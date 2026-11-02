@@ -62,6 +62,8 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       't2_narx_protokol_yarat_v1', 't2_narx_protokol_tasdiqla_v1', 't2_narx_protokol_bekor_v1',
                       't2_obyekt_hujjat_yoz', 't2_obyekt_hujjat_ochir',
                       't2_sklad_yarat', 't2_kadr_yarat', 't2_texnika_yarat',
+                      /* 2026-10-29 C11 PR-B: markaziy ombor kirimi (≤1000 qator, idempotent) va storno; RPC ichida a'zolik + document.write. */
+                      't2_sklad_markaziy_prixod_import_v1', 't2_sklad_markaziy_prixod_storno_v1',
                       't2_resurs_yarat_v2', 't2_resurs_yangila_v2', 't2_resurs_bekor_v2',
                       't2_resurs_bog_saqla', 't2_resurs_bog_ochir',
                       't2_loyiha_yarat', 't2_loyiha_yangila', 't2_loyiha_ochir',
@@ -134,7 +136,11 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                          canonical t2_qator; it is not a second line writer. */
                       't2_shartnoma_qamrov_saqla_v1',
                       /* 2026-10-24: pul tahlili P1 - haqiqiy xarajatni kategoriya/obyekt bilan kiritish va bekor qilish (financial.write). */
-                      't2_xarajat_kirit_v1', 't2_xarajat_bekor_v1'].sort();
+                      't2_xarajat_kirit_v1', 't2_xarajat_bekor_v1',
+                      /* 2026-10-27: mindmap 2-bosqich — obyekt/loyihaga mas'ul biriktirish (company.member.manage, RPC ichida tekshiriladi). */
+                      't2_mindmap_masul_v1',
+                      /* 2026-10-27: moliyaviy tahlil — tizimda yo'q ko'rsatkichni qo'lda kiritish (financial.write). */
+                      't2_moliya_qolda_yoz_v1'].sort();
     T('RPC ro\'yxati AYNAN belgilangan ' + KUTILGAN.length + ' ta domen amali',
       JSON.stringify(amallar) === JSON.stringify(KUTILGAN),
       'topildi: ' + amallar.join(', '));

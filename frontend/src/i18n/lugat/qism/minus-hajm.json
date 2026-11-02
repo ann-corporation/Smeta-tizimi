@@ -1,0 +1,4 @@
+{
+  "Hajm son bo‘lishi kerak (minus ham mumkin)": { "ru": "Объём должен быть числом (допускается минус)", "en": "Volume must be a number (negative allowed)" },
+  "Almashtiriladigan hajm son bo‘lishi kerak (minus ham mumkin).": { "ru": "Заменяемый объём должен быть числом (допускается минус).", "en": "Replaced volume must be a number (negative allowed)." }
+}

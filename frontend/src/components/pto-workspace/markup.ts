@@ -1,10 +1,10 @@
 import type { T2Obyekt } from '../../api/supabase';
 import type { Liniya } from '../../api/t2-shartnoma-liniya';
 import { NAKRUTKA_KOEF_KODLAR, type t2ObyektNakrutka } from '../../api/t2-nakrutka';
-import { podvalTanla, serverCatsKatga, type PodvalYozuv } from '../../api/t2-nakrutka-podval';
-import { podvalgaKoefQoy, podvalHisobla, podvalTekshir } from '../../lib/nakrutka-konstruktor';
+import { podvalTanla, type PodvalYozuv } from '../../api/t2-nakrutka-podval';
+import { kaskad, podvalNdsFoizi, podvalTekshir, serverCatsdan, serverMerosKoefQoy, yaxlit2 } from '../../lib/hisob-yadro';
 import type { Aggregate } from './hierarchy';
-import { kaskadCats, yaxlitBilanYakun } from '../../lib/svod-yaxlit';
+import { kaskadCats, svodYaxlitQqs } from '../../lib/svod-yaxlit';
 
 export function effectiveContract(line: Liniya, objectId: number): number | null | undefined {
   const o = line.obyektlar.find(x => x.id === objectId);
@@ -24,17 +24,12 @@ export function markupAmount(object: T2Obyekt, result: Awaited<ReturnType<typeof
     || Math.abs(result.nakrutka.pryamye - object.jami) > 0.02) return null;
   const record = podvalTanla(podvals, {obyektId:object.id,shartnomaId:contractId});
   if (!record) return Number.isFinite(result.nakrutka.vsego) ? result.nakrutka.vsego : null;
-  const podval = podvalgaKoefQoy({versiya:1,nom:record.nom,qatorlar:record.qatorlar},result.koeffitsientlar);
+  // Server meros rejimi (faqat manba ≠ smeta qatorlari koeffitsientdan) — server bilan bir xil.
+  const podval = serverMerosKoefQoy({versiya:1,nom:record.nom,qatorlar:record.qatorlar},result.koeffitsientlar);
   if (podvalTekshir(podval).length) return null;
-  // Svod yaxlit bo'limlari kaskaddan chiqariladi va ИТОГО-4 ga ustamasiz qo'shiladi (server bilan bir xil).
-  const n = podvalHisobla(podval,serverCatsKatga(kaskadCats(result) ?? result.cats));
-  if (result.svod_yaxlit) {
-    const i4 = n.qiymat.itogo4; // podvalda ИТОГО-4 bo'lmasa — taxmin qilinmaydi (NULL ≠ 0)
-    if (i4 == null || !Number.isFinite(i4)) return null;
-    return yaxlitBilanYakun(i4, result.svod_yaxlit.qqssiz, Number(result.koeffitsientlar.НДС ?? 0))?.vsego ?? null;
-  }
-  const total = n.vsego;
-  return total != null && Number.isFinite(total) ? total : null;
+  // Svod yaxlit bo'limlari kaskaddan chiqariladi va ИТОГО-4 ga ustamasiz qo'shiladi (yadro, server bilan bir xil).
+  const n = kaskad(serverCatsdan(kaskadCats(result) ?? result.cats), podval, { yaxlit: svodYaxlitQqs(result.svod_yaxlit, podvalNdsFoizi(podval)) });
+  return n.vsego != null && Number.isFinite(n.vsego) ? n.vsego : null;
 }
 
 export function aggregateMarkup(ids: readonly number[], objects: readonly T2Obyekt[], value: (id:number) => number | null | undefined): Aggregate {
@@ -46,5 +41,5 @@ export function aggregateMarkup(ids: readonly number[], objects: readonly T2Obye
     if (amount == null || !Number.isFinite(amount)) unknown++;
     else {known+=amount;present++;if (!object || object.narxsiz == null || object.narxsiz > 0) unknown++;}
   }
-  return {known:Math.round(known*100)/100,present,unknown,total:unique.length};
+  return {known:yaxlit2(known),present,unknown,total:unique.length};
 }

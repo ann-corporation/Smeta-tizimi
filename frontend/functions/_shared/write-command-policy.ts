@@ -34,6 +34,9 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   fayl_amal_v1: 'document.write',
   m29_bajar_v1: 'fakt.write',
   m29_bekor_v1: 'fakt.write',
+  /* C11 PR-B: RPC (t2_sklad_markaziy_prixod_import_v1/_storno_v1) ham document.write talab qiladi. */
+  sklad_kirim_import_v1: 'document.write',
+  sklad_kirim_storno_v1: 'document.write',
   token_sarfla_v1: 'company.read',
   token_qaytar_v1: 'company.read',
   token_yakunla_v1: 'company.read',
@@ -149,6 +152,7 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   smeta_versiya_bekor_v1: 'smeta.write',
   xarajat_kirit_v1: 'financial.write',
   xarajat_bekor_v1: 'financial.write',
+  moliya_qolda_yoz_v1: 'financial.write',
   fakt_yoz_v2: 'fakt.write',
   fakt_belgila_v2: 'fakt.write',
   fakt_belgila: 'fakt.write',
@@ -162,6 +166,7 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   mindmap_bog_ochir: 'document.write',
   mindmap_joylashuv_saqla: 'document.write',
   mindmap_tugun_ochir: 'document.write',
+  mindmap_masul: 'company.member.manage',
 };
 
 export function writeCommandPermission(amal: string, body: Record<string, unknown> = {}): string {

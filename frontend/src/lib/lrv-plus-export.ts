@@ -48,8 +48,13 @@ import { lrvKalitYoz } from './lrv-qayta-import';
 import { resursVedomostAoa } from './resurs-vedomost';
 import { boshKeshQoy, chopNomlariAbsolyut, ogohlantirishlarniOchir, bugunSana, hujjatFaylNomi, imzoMatni, imzoMuhrli, imzoTomonlari, IMZO_IMZO_CHIZIQ, IMZO_IZOH, IMZO_IZOH_SHAXS, IMZO_MP, IMZO_PODPIS, type ImzoNomlar } from './hujjat-yozuvchi';
 import { narxBildirishnomaKerak } from './narx-bildirishnoma';
+import { downloadBlob } from './construction-document-control/export/download-helper';
 
 import { kattaHarfga } from './hujjat-yozuvchi/rasmiy';
+import { OZGARISH_HEX, OZGARISH_KOD, OZGARISH_LEGENDA, OZGARISH_NOMI_RU, ozgarishBor, ozgarishIzohi, ozgarishRangi, ozgarishXaritasi, type OzgarishGuruh } from './lrv-ozgarish';
+import { nakrutkaKat, NAKRUTKA_KATLAR, type KatSummalar } from './nakrutka-podval';
+import { ayirma2, kaskad as yadroKaskad, faktSummaF2Narxda, serverMerosKoefQoy, standartPodval, yaxlit2, type Kat, type Podval } from './hisob-yadro';
+import { NOMALUM_PODVAL_NOM, podvalQatorFormulasi, podvalQatorNomi } from './nakrutka-podval';
 const katta = <T,>(v: T): T => (typeof v === 'string' ? kattaHarfga(v) as T : v);
 /**
  * `toliq` — butun LRV_PLUS (A..W + yashirin Даража).
@@ -81,6 +86,10 @@ export type LrvPlusOptions = {
    * o'zgartirsa butun zanjir qayta hisoblanadi.
    */
   nakrutka?: NakrutkaKoeffitsientlar;
+  /** Obyekt smeta podvali — berilsa foizlar shundan (server meros rejimi), aks holda `nakrutka` dan standart. */
+  podval?: Podval | null;
+  /** Server `nk_manba` (smeta_podvali / shartnoma / kompaniya / sukut) — meros foizlari izohi hujjatda (yadro `serverMerosKoefQoy`). */
+  nkManba?: string | null;
   /** Imzo blokidagi tomonlar (saytdan; bo'sh — chiziq). */
   imzo?: ImzoNomlar;
 };
@@ -109,7 +118,8 @@ export interface LrvPlusQator {
   summaFormula: string | null;
   summaQiymat: number | null;
   faktHajm: number;
-  faktSumma: number;
+  /** Fakt summasi (F2 narxida, yadro). null — noma'lum (F2 narxi to'qilmaydi): katak bo'sh, jamiga kirmaydi. */
+  faktSumma: number | null;
   f2Hajm: number;
   f2Summa: number;
   /** X (yashirin) va Excel outline darajasi. */
@@ -280,7 +290,8 @@ export function lrvPlusQatorlarniHisobla(
     out.push({
       id: q.id, row: r, no: i + 1, kod: q.kod ?? '', nom: q.nom ?? '', birlik: q.birlik ?? '', tur,
       kat: q.kat ?? '', birlikHajm, obyomFormula, obyomQiymat, narx, summaFormula, summaQiymat,
-      faktHajm: h ? h.fakt_hajm : 0, faktSumma: h ? h.fakt_summa : 0,
+      // Narx qoidasi (yadro): tasdiqlangan F2 bor qatorda fakt summasi F2 birlik narxida; fakt hajmi yozilganidek.
+      faktHajm: h ? h.fakt_hajm : 0, faktSumma: h ? faktSummaF2Narxda(h.fakt_hajm, h.f2_hajm, h.f2_summa, h.fakt_summa).summa : 0,
       f2Hajm: h ? h.f2_hajm : 0, f2Summa: h ? h.f2_summa : 0,
       daraja,
     });
@@ -301,7 +312,8 @@ export function lrvPlusQatorlarniHisobla(
       hasChild = true;
       const childSum = out[j].summaQiymat;
       if (childSum != null) sum += childSum;
-      fakt += out[j].faktSumma; f2 += out[j].f2Summa;
+      // Noma'lum fakt summasi (null) yig'ilmaydi — Excel SUMIF bo'sh katakni o'tkazib yuborgani kabi.
+      fakt += out[j].faktSumma ?? 0; f2 += out[j].f2Summa;
     }
     item.summaQiymat = hasChild ? sum : null;
     if (hasChild) { item.faktSumma = fakt; item.f2Summa = f2; }
@@ -340,6 +352,9 @@ export const LRV_PLUS_USTUNLAR = [
 export const LRV_FORMA2_USTUNLAR = [
   ...LRV_PLUS_USTUNLAR.slice(0, 15), 'ЗАМЕЧАНИЕ', 'Даража', 'КАЛИТ',
 ] as const;
+
+/** Qo'shimcha/zamena bor obyektda oxiriga qo'shiladigan ustunlar: izoh (ko'rinadi) va guruh kodi (yashirin). */
+export const LRV_OZGARISH_USTUNLAR = ['ПРИМЕЧАНИЕ (ДОП. РАБОТА / ЗАМЕНА)', 'ИЗМ'] as const;
 
 /** Fayl qaysi obyekt/davrga tegishli ekanini mashina o'qiy oladigan belgi —
  *  tahrirlangan fayl BOSHQA obyektga import qilinib ketmasligi uchun. */
@@ -401,191 +416,64 @@ function qatorBalandligi(nom: string, tur: string): number {
   return Math.min(78, Math.max(22, 22 + (Math.min(5, satrlar) - 1) * 13));
 }
 
-/**
- * Nakrutka kaskadi jadvalining bitta qatori. `pctKoef` berilsa E ustunida
- * TAHRIRLANADIGAN foiz katagi chiqadi (literal son); `summaFormula` shu
- * foiz katagiga va yuqoridagi qatorlarga/`J3..O3` kategoriya jamilariga
- * tayanadi — Excelning o'zida qayta hisoblanadi.
- */
-type NakrutkaQator = {
-  label: string;
-  pctKoef: keyof NakrutkaKoeffitsientlar | null;
-  /** `r` — shu qatorning o'zi yozilayotgan Excel qator raqami. */
-  summaFormula: (r: number) => string;
-  /**
-   * Kutilgan JS qiymati — .v keshi to'g'ri bo'lishi uchun. `summaOldin[i]`
-   * — i-INDEKSLI (0-based) OLDINGI qatorning ALLAQACHON hisoblangan
-   * summasi (FOIZLAR bu massivga KIRMAYDI — faqat summa, aralashtirilmasin).
-   */
-  summaJS: (kat: NakrutkaHisob, koef: NakrutkaKoeffitsientlar, summaOldin: number[]) => number;
-  jami?: boolean;
-};
+/** LRV+ kategoriya ЖАМИ kataklari (3-qator): kategoriya → ustun. БЕЗ СКЛАД ustuni yo'q — kaskad bo'limida alohida qator. */
+const KAT_JAMI_KATAK: Partial<Record<Kat, string>> = { ЧЕЛ: 'J3', МАШ: 'K3', МАТ: 'L3', ОБ: 'M3', КАБ: 'N3', 'М/К': 'O3' };
 
-type NakrutkaHisob = {
-  chel: number; mash: number; mat: number; ob: number; kab: number; mk: number;
+/** Qatorlar ro'yxatidan H yig'indisi formulasi (uzun bo'lsa — null: qiymat yoziladi). */
+const hSumFormula = (qatorlar: readonly number[]): string | null => {
+  if (!qatorlar.length) return '0';
+  const f = `SUM(${qatorlar.map((r) => `H${r}`).join(',')})`;
+  return f.length < 7000 ? f : null;
 };
 
 /**
- * `t2_nakrutka_hisobla_v1` (migratsiya `20261014090000`) bilan BAYT-
- * BAYTIGA bir xil kaskad — endi Excel formula sifatida. `mat` bu yerda
- * TO'LIQ bucket (МАТ+КАБ+М/К), server RPC'dagi bilan bir xil semantika;
- * `kab`/`mk` undan formulada QAYTA ayiriladi.
- */
-function nakrutkaQatorlarQur(): NakrutkaQator[] {
-  return [
-    {
-      label: 'Прямые затраты (ЧЕЛ+МАШ+МАТ+ОБ)', pctKoef: null,
-      summaFormula: () => '=ROUND(J3+K3+L3+M3+N3+O3,2)',
-      summaJS: (kat) => kat.chel + kat.mash + kat.mat + kat.ob,
-    },
-    {
-      label: 'Транспорт (материалы)', pctKoef: 'ТРАНСПОРТ_МАТЕРИАЛ',
-      summaFormula: (r) => `=ROUND((L3+O3)*E${r}/100,2)`,
-      summaJS: (kat, koef) => (kat.mat - kat.kab) * (koef.ТРАНСПОРТ_МАТЕРИАЛ ?? 0) / 100,
-    },
-    {
-      label: 'Складские (материалы)', pctKoef: 'СКЛАДСКИЕ_МАТЕРИАЛ',
-      summaFormula: (r) => `=ROUND((L3+N3)*E${r}/100,2)`,
-      summaJS: (kat, koef) => (kat.mat - kat.mk) * (koef.СКЛАДСКИЕ_МАТЕРИАЛ ?? 0) / 100,
-    },
-    {
-      label: 'Складские (М/К)', pctKoef: 'СКЛАДСКИЕ_МК',
-      summaFormula: (r) => `=ROUND(O3*E${r}/100,2)`,
-      summaJS: (kat, koef) => kat.mk * (koef.СКЛАДСКИЕ_МК ?? 0) / 100,
-    },
-    {
-      label: 'Транспорт (кабель)', pctKoef: 'ТРАНСПОРТ_КАБЕЛЬ',
-      summaFormula: (r) => `=ROUND(N3*E${r}/100,2)`,
-      summaJS: (kat, koef) => kat.kab * (koef.ТРАНСПОРТ_КАБЕЛЬ ?? 0) / 100,
-    },
-    {
-      label: 'ИТОГО-1 (прямые − ОБ + транспорт/склад)', pctKoef: null,
-      summaFormula: (r) => `=ROUND(F${r - 5}-M3+F${r - 4}+F${r - 3}+F${r - 2}+F${r - 1},2)`,
-      summaJS: (kat, _koef, s) => s[0] - kat.ob + s[1] + s[2] + s[3] + s[4],
-      jami: true,
-    },
-    {
-      label: 'Прочие расходы подрядчика', pctKoef: 'ПРОЧИЕ_ПОДРЯДЧИК',
-      summaFormula: (r) => `=ROUND(F${r - 1}*E${r}/100,2)`,
-      summaJS: (_kat, koef, s) => s[5] * (koef.ПРОЧИЕ_ПОДРЯДЧИК ?? 0) / 100,
-    },
-    {
-      label: 'ИТОГО-2', pctKoef: null,
-      summaFormula: (r) => `=ROUND(F${r - 2}+F${r - 1},2)`,
-      summaJS: (_kat, _koef, s) => s[5] + s[6],
-      jami: true,
-    },
-    {
-      label: 'Транспорт (оборудование)', pctKoef: 'ТРАНСПОРТ_ОБОРУД',
-      summaFormula: (r) => `=ROUND(M3*E${r}/100,2)`,
-      summaJS: (kat, koef) => kat.ob * (koef.ТРАНСПОРТ_ОБОРУД ?? 0) / 100,
-    },
-    {
-      label: 'Заготовительно-складские (оборудование)', pctKoef: 'ЗАГОТ_СКЛАД_ОБОРУД',
-      summaFormula: (r) => `=ROUND(M3*E${r}/100,2)`,
-      summaJS: (kat, koef) => kat.ob * (koef.ЗАГОТ_СКЛАД_ОБОРУД ?? 0) / 100,
-    },
-    {
-      label: 'ИТОГО-3 (+ ОБ + транспорт/заготовка)', pctKoef: null,
-      summaFormula: (r) => `=ROUND(F${r - 3}+M3+F${r - 2}+F${r - 1},2)`, // ИТОГО-2 + ОБ + транспорт + заготовка
-      summaJS: (kat, _koef, s) => s[7] + kat.ob + s[8] + s[9],
-      jami: true,
-    },
-    {
-      label: 'Страхование объекта', pctKoef: 'СТРАХОВАНИЕ',
-      summaFormula: (r) => `=ROUND(F${r - 1}*E${r}/100,2)`,
-      summaJS: (_kat, koef, s) => s[10] * (koef.СТРАХОВАНИЕ ?? 0) / 100,
-    },
-    {
-      label: 'Риск', pctKoef: 'РИСК',
-      summaFormula: (r) => `=ROUND(F${r - 2}*E${r}/100,2)`,
-      summaJS: (_kat, koef, s) => s[10] * (koef.РИСК ?? 0) / 100,
-    },
-    {
-      label: 'ИТОГО-4', pctKoef: null,
-      summaFormula: (r) => `=ROUND(F${r - 3}+F${r - 2}+F${r - 1},2)`,
-      summaJS: (_kat, _koef, s) => s[10] + s[11] + s[12],
-      jami: true,
-    },
-    {
-      label: 'НДС', pctKoef: 'НДС',
-      summaFormula: (r) => `=ROUND(F${r - 1}*E${r}/100,2)`,
-      summaJS: (_kat, koef, s) => s[13] * (koef.НДС ?? 0) / 100,
-    },
-    {
-      label: 'ВСЕГО (с учётом накрутки и НДС)', pctKoef: null,
-      summaFormula: (r) => `=ROUND(F${r - 2}+F${r - 1},2)`,
-      summaJS: (_kat, _koef, s) => s[13] + s[14],
-      jami: true,
-    },
-  ];
-}
-
-/**
- * Nakrutka kaskadi jadvalini `ws` ga yozadi, `startRow` dan boshlab.
- * `J3..O3` (kategoriya ЖАМИ formulalari) allaqachon faylda yozilgan
- * bo'lishi shart — bu funksiya faqat ularga HAVOLA qiladi, qayta
- * hisoblamaydi (ikkinchi haqiqat manbai emas).
+ * Ustama podvalini `ws` ga yozadi (`startRow` dan). Standart ham maxsus podval ham — YAGONA formula quruvchisi
+ * (`podvalQatorFormulasi`, umumiy yozuvchi bilan bir xil) — formula = kesh (yadro `kaskad`). Kategoriyalar: J3..O3
+ * kataklari; БЕЗ СКЛАД va «вид затрат не указан» (ustamasiz, ИТОГО-4 ga) — alohida qatorlar. Noma'lum — bo'sh katak.
  */
 function nakrutkaKaskadYoz(
   ws: import('xlsx-js-style').WorkSheet, XLSX: typeof import('xlsx-js-style'),
-  startRow: number, koef: NakrutkaKoeffitsientlar, kat: NakrutkaHisob,
+  startRow: number, podval: Podval, kat: KatSummalar,
+  bez: { summa: number; qatorlar: number[] }, nom: { summa: number; qatorlar: number[] },
 ): number {
+  const natija = yadroKaskad(kat, podval, { nomalumQism: Math.abs(nom.summa) >= 0.005 ? nom.summa : null });
+  if (natija.xato) throw new Error(`${natija.xato}: ИТОГО-4 dan keyin maxsus qator bor — ustamasiz qismni qayerga qo‘shish noaniq`);
   ws[XLSX.utils.encode_cell({ r: startRow - 1, c: 1 })] = {
     t: 's', v: 'НАКРУТКА (накладные расходы и НДС)', s: { font: { bold: true, sz: 12 } },
   };
   const boshQator = startRow + 1;
-  const bosh = [['Показатель', 1], ['%', 4], ['Сумма', 5]] as const;
-  for (const [matn, ustun] of bosh) {
-    const ref = XLSX.utils.encode_cell({ r: boshQator - 1, c: ustun });
-    ws[ref] = {
+  for (const [matn, ustun] of [['Показатель', 1], ['%', 4], ['Сумма', 5]] as const) {
+    ws[XLSX.utils.encode_cell({ r: boshQator - 1, c: ustun })] = {
       t: 's', v: matn,
-      s: {
-        font: { bold: true },
-        fill: { patternType: 'solid', fgColor: { rgb: 'EAF0F5' } },
-        border: chegara(ustun),
-        alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
-      },
+      s: { font: { bold: true }, fill: { patternType: 'solid', fgColor: { rgb: 'EAF0F5' } }, border: chegara(ustun), alignment: { horizontal: 'center', vertical: 'center', wrapText: true } },
     };
   }
-
-  const qatorlar = nakrutkaQatorlarQur();
-  // FAQAT summa (foizlar aralashtirilmaydi) — `summaJS` shu indekslar
-  // bo'yicha OLDINGI qatorlarga murojaat qiladi.
-  const summaOldin: number[] = [];
   let r = boshQator + 1;
-  for (const q of qatorlar) {
-    ws[XLSX.utils.encode_cell({ r: r - 1, c: 1 })] = {
-      t: 's', v: q.label,
-      s: { font: { bold: !!q.jami }, alignment: { vertical: 'center', wrapText: true } },
-    };
-    if (q.pctKoef) {
-      const pct = koef[q.pctKoef] ?? 0;
-      ws[`E${r}`] = {
-        t: 'n', v: pct, z: '0.##',
-        s: {
-          fill: { patternType: 'solid', fgColor: { rgb: 'FFF9E0' } },
-          border: chegara(4),
-          alignment: { horizontal: 'right', vertical: 'center' },
-        },
-      };
+  const yoz = (label: string, jami: boolean, pul: { f?: string | null; v: number | null } | null, pct?: number | null) => {
+    ws[XLSX.utils.encode_cell({ r: r - 1, c: 1 })] = { t: 's', v: label, s: { font: { bold: jami }, alignment: { vertical: 'center', wrapText: true } } };
+    if (pct !== undefined) {
+      ws[`E${r}`] = pct == null ? { t: 's', v: '' } : { t: 'n', v: pct, z: '0.##', s: { fill: { patternType: 'solid', fgColor: { rgb: 'FFF9E0' } }, border: chegara(4), alignment: { horizontal: 'right', vertical: 'center' } } };
     }
-    const summaJS = Math.round(q.summaJS(kat, koef, summaOldin) * 100) / 100;
-    ws[`F${r}`] = {
-      t: 'n', f: q.summaFormula(r).replace(/^=/, ''), v: summaJS, z: '#,##0.00',
-      s: {
-        font: { bold: !!q.jami },
-        fill: { patternType: 'solid', fgColor: { rgb: q.jami ? 'FFF2CC' : 'F8FAFC' } },
-        border: chegara(5),
-        alignment: { horizontal: 'right', vertical: 'center' },
-      },
-    };
-    summaOldin.push(summaJS);
-    r++;
+    const st = { font: { bold: jami }, fill: { patternType: 'solid', fgColor: { rgb: jami ? 'FFF2CC' : 'F8FAFC' } }, border: chegara(5), alignment: { horizontal: 'right', vertical: 'center' } };
+    // Noma'lum — bo'sh katak (formula yo'q: Excel bo'sh foizni 0 deb hisoblamasin).
+    if (pul && pul.v != null) ws[`F${r}`] = pul.f ? { t: 'n', f: pul.f, v: pul.v, z: '#,##0.00', s: st } : { t: 'n', v: pul.v, z: '#,##0.00', s: st };
+    return r++;
+  };
+  const bezR = Math.abs(bez.summa) >= 0.005 || bez.qatorlar.length
+    ? yoz('Прямые затраты: материалы без складского хранения (БЕЗ СКЛАД)', false, { f: hSumFormula(bez.qatorlar), v: yaxlit2(bez.summa) }) : null;
+  const qr: Record<string, number> = {};
+  const qosh: number[] = [];
+  for (const q of podval.qatorlar) {
+    if (q.kod === 'itogo4' && Math.abs(nom.summa) >= 0.005) qosh.push(yoz(NOMALUM_PODVAL_NOM, false, { f: hSumFormula(nom.qatorlar), v: yaxlit2(nom.summa) }));
+    const val = natija.qiymat[q.kod] ?? null;
+    const f = q.tur === 'foiz' && q.foiz == null ? null : podvalQatorFormulasi(q, {
+      kat: (k) => (k === 'БЕЗ СКЛАД' ? (bezR != null ? `F${bezR}` : '0') : KAT_JAMI_KATAK[k] ?? '0'),
+      qator: (kod) => `F${qr[kod]}`, foiz: `E${r}`, qosh: q.kod === 'itogo4' ? qosh.map((x) => `F${x}`) : [],
+    });
+    qr[q.kod] = yoz(podvalQatorNomi(q), q.tur === 'jami', q.tur === 'summa' ? { v: q.summa ?? null } : { f, v: val }, q.tur === 'foiz' ? (q.foiz ?? null) : undefined);
   }
   return r; // birinchi bo'sh qator (jadvaldan keyin)
 }
-
 /** RESURS_VEDOMOST varag‘ini ishchi hujjat darajasiga olib keladi.
  *
  * Resurs qatorlari — eksport paytidagi kanonik read-model snapshoti. Kategoriya
@@ -690,8 +578,24 @@ export async function lrvPlusFaylBaytlari(
   }
   const rejim = options?.rejim ?? 'toliq';
   const darajaUstun = LRV_DARAJA_USTUN[rejim];
-  const ustunlar = rejim === 'forma2' ? LRV_FORMA2_USTUNLAR : LRV_PLUS_USTUNLAR;
+  // Ustama podvali (yadro): obyekt podvali bo'lsa u (server meros rejimi), aks holda koeffitsientlardan standart.
+  // Koeffitsient ham, podval ham yo'q — jadval chiqmaydi (o'ylab topilgan son yo'q).
+  const podvalJ: Podval | null = options?.podval
+    ? (options.nakrutka ? serverMerosKoefQoy(options.podval, options.nakrutka, options.nkManba) : options.podval)
+    : options?.nakrutka ? standartPodval(options.nakrutka) : null;
+  /* Qo'shimcha ish / zamena (egasi 2026-10-29) — faqat o'zgarish bor obyektda oxiriga ПРИМЕЧАНИЕ (ko'rinadi) va
+     ИЗМ (yashirin guruh kodi, pastdagi jamlar SUMIFS uchun); mavjud ustunlar o'rni o'zgarmaydi. */
+  const oz = ozgarishBor(qatorlar) ? ozgarishXaritasi(qatorlar) : null;
+  const asosUstunlar: readonly string[] = rejim === 'forma2' ? LRV_FORMA2_USTUNLAR : LRV_PLUS_USTUNLAR;
+  const ustunlar: readonly string[] = oz ? [...asosUstunlar, ...LRV_OZGARISH_USTUNLAR] : asosUstunlar;
   const hisob = lrvPlusQatorlarniHisobla(qatorlar, holatlar, darajaUstun);
+  const holatXarita = new Map((holatlar ?? []).map((x) => [x.qator_id, x] as const));
+  const noXarita = new Map(hisob.map((q) => [q.id, q.no] as const));
+  const qatorXarita = new Map(qatorlar.map((q) => [q.id, q] as const));
+  const izohi = (id: number): string | null => (oz ? ozgarishIzohi(id, oz, {
+    poz: (x) => noXarita.get(x), nom: (x) => qatorXarita.get(x)?.nom, ota: (x) => qatorXarita.get(x)?.ota_id,
+    qoldiq: (x) => { const v = holatXarita.get(x)?.qoldiq_hajm; return v == null ? null : Number(v); }, birlik: (x) => qatorXarita.get(x)?.birlik,
+  }) : null);
   const ildiz = hisob.filter((q) => q.daraja === 0);
   // Egasi qoidasi (2026-10-08): jami — ma'lum summalar yig'indisi; narxsiz qator jamini bo'shatmaydi.
   const knownSum = (items: LrvPlusQator[], pick: (row: LrvPlusQator) => number | null): number | null =>
@@ -704,11 +608,29 @@ export async function lrvPlusFaylBaytlari(
   // yerdan oladi (faqat barglar, T1 dagidek).
   const katYigindi: Record<string, number> = { 'ЧЕЛ': 0, 'МАШ': 0, 'МАТ': 0, 'ОБ': 0, 'КАБ': 0, 'М/К': 0 };
   const katQatorSoni: Record<string, number> = { 'ЧЕЛ': 0, 'МАШ': 0, 'МАТ': 0, 'ОБ': 0, 'КАБ': 0, 'М/К': 0 };
+  // БЕЗ СКЛАД va kategoriyasi ko'rsatilmagan barglar (J..O ustunlarida yo'q) — kaskad bo'limida alohida qatorlar.
+  const bezJS = { summa: 0, qatorlar: [] as number[] };
+  const nomJS = { summa: 0, qatorlar: [] as number[] };
   for (const q of hisob) {
-    if (LEAF_TUR.has(q.tur) && q.kat in katYigindi) {
-      katQatorSoni[q.kat] += 1;
-      katYigindi[q.kat] += q.summaQiymat ?? 0;
+    const nk = nakrutkaKat(q.kat) ?? ''; // kategoriya normallashtiriladi (мат → МАТ, БЕЗСКЛАД → БЕЗ СКЛАД)
+    if (LEAF_TUR.has(q.tur) && nk in katYigindi) {
+      katQatorSoni[nk] += 1;
+      katYigindi[nk] += q.summaQiymat ?? 0;
+    } else if (LEAF_TUR.has(q.tur) && q.summaQiymat != null) {
+      const t = nk === 'БЕЗ СКЛАД' ? bezJS : nomJS;
+      t.summa += q.summaQiymat; t.qatorlar.push(q.row);
     }
+  }
+  /* Guruh (asl / qo'shimcha / zamena) jamlari — faqat barglar (rs/mat/ob), ustamali uchun kategoriya kesimida. */
+  const guruhJS = Object.fromEntries((['asl', 'qoshimcha', 'zamena'] as const).map((g) => [g, {
+    H: 0, nom: 0, ks: Object.fromEntries(NAKRUTKA_KATLAR.map((k) => [k, 0])) as KatSummalar,
+  }])) as Record<OzgarishGuruh, { H: number; nom: number; ks: KatSummalar }>;
+  if (oz) for (const q of hisob) {
+    if (!LEAF_TUR.has(q.tur) || q.summaQiymat == null) continue;
+    const g = guruhJS[oz.get(q.id)?.guruh ?? 'asl'];
+    g.H += q.summaQiymat;
+    const k = nakrutkaKat(q.kat); // tur bo'yicha МАТ/ОБ taxmin yo'q
+    if (k) g.ks[k] += q.summaQiymat; else g.nom += q.summaQiymat;
   }
 
   const XLSX = await import('xlsx-js-style');
@@ -736,7 +658,7 @@ export async function lrvPlusFaylBaytlari(
   for (const q of hisob) {
     const kat: (string | number | null)[] = Array.from({ length: 6 }, () => null);
     if (LEAF_TUR.has(q.tur)) {
-      const idx = KAT_INDEX.get(q.kat) ?? -1;
+      const idx = KAT_INDEX.get(nakrutkaKat(q.kat) ?? '') ?? -1;
       if (idx >= 0) kat[idx] = q.summaQiymat ?? null;
     }
     // Egasi (2026-10-14): smeta qatorlari to'liq KATTA HARFDA (qayta-import kaliti katta-kichik harfni farqlamaydi).
@@ -746,16 +668,18 @@ export async function lrvPlusFaylBaytlari(
       q.tur,
       ...kat,
     ];
+    const ozgarishKatak: (string | null)[] = oz ? [katta(izohi(q.id)), OZGARISH_KOD[oz.get(q.id)?.guruh ?? 'asl']] : [];
     if (rejim === 'forma2') {
       // A..O + ЗАМЕЧАНИЕ (bo'sh, buyurtmachi to'ldiradi) + Даража + КАЛИТ.
-      aoa.push([...asosiy, '', q.daraja, lrvKalitYoz(q.id, q.kod, q.nom, q.birlik)]);
+      aoa.push([...asosiy, '', q.daraja, lrvKalitYoz(q.id, q.kod, q.nom, q.birlik), ...ozgarishKatak]);
     } else {
       aoa.push([
         ...asosiy,
         q.faktHajm, q.obyomQiymat == null ? '' : q.obyomQiymat - q.faktHajm, q.f2Hajm, q.faktHajm - q.f2Hajm,
-        q.faktSumma, q.summaQiymat == null ? '' : q.summaQiymat - q.faktSumma, q.f2Summa, q.faktSumma - q.f2Summa,
+        q.faktSumma ?? '', q.summaQiymat == null || q.faktSumma == null ? '' : q.summaQiymat - q.faktSumma, q.f2Summa, q.faktSumma == null ? '' : q.faktSumma - q.f2Summa,
         q.daraja,
         lrvKalitYoz(q.id, q.kod, q.nom, q.birlik),
+        ...ozgarishKatak,
       ]);
     }
   }
@@ -777,14 +701,14 @@ export async function lrvPlusFaylBaytlari(
     }
     // Kategoriya ustunlari — H ga havola (faqat bargda).
     if (LEAF_TUR.has(q.tur)) {
-      const ustun = KAT_USTUN[q.kat];
+      const ustun = KAT_USTUN[nakrutkaKat(q.kat) ?? ''];
       if (ustun) ws[`${ustun}${q.row}`] = kesh(`H${q.row}`, q.summaQiymat);
     }
     if (rejim === 'toliq') {
       ws[`Q${q.row}`] = kesh(`IF(F${q.row}="","",F${q.row}-P${q.row})`, q.obyomQiymat == null ? null : q.obyomQiymat - q.faktHajm);
       ws[`S${q.row}`] = { t: 'n', f: `P${q.row}-R${q.row}`, v: q.faktHajm - q.f2Hajm };
-      ws[`U${q.row}`] = kesh(`IF(H${q.row}="","",H${q.row}-T${q.row})`, q.summaQiymat == null ? null : q.summaQiymat - q.faktSumma);
-      ws[`W${q.row}`] = { t: 'n', f: `T${q.row}-V${q.row}`, v: q.faktSumma - q.f2Summa };
+      ws[`U${q.row}`] = kesh(`IF(OR(H${q.row}="",T${q.row}=""),"",H${q.row}-T${q.row})`, q.summaQiymat == null || q.faktSumma == null ? null : q.summaQiymat - q.faktSumma);
+      ws[`W${q.row}`] = kesh(`IF(T${q.row}="","",T${q.row}-V${q.row})`, q.faktSumma == null ? null : q.faktSumma - q.f2Summa);
       // Ota (rz/bl) qatorida Fakt (T) va F2 (V) summasi — bevosita bolalar yig'indisi (tirik formula).
       const sumif = OTA_TUR.has(q.tur) ? q.summaFormula?.match(/SUMIF\(([^,]+),([^,]+),H(\d+):H(\d+)\)\)?$/) : null;
       if (sumif) {
@@ -805,6 +729,11 @@ export async function lrvPlusFaylBaytlari(
   for (const [ustun, qiymat] of jamiUstunlar) {
     const f = lrvPlusJamiFormula(hisob, ustun, darajaUstun);
     if (f) ws[`${ustun}3`] = kesh(f, qiymat);
+  }
+  // Fakt jami to'liq emas (F2 narxi noma'lum qatorlar) — «не определена» izohi (jim emas).
+  const faktNomalum = hisob.filter((q) => LEAF_TUR.has(q.tur) && q.faktSumma == null).length;
+  if (rejim === 'toliq' && faktNomalum && ws['T3']) {
+    (ws['T3'] as { c?: unknown }).c = [{ a: 'Smeta tizimi', t: `Итог по факту неполный: сумма факта не определена по ${faktNomalum} поз. (нет цены по утвержденной Ф-2) — в итог не включены.` }];
   }
   if (hisob.length) {
     const c1 = hisob[0].row, c2 = hisob[hisob.length - 1].row;
@@ -840,7 +769,11 @@ export async function lrvPlusFaylBaytlari(
   // Sarlavha qiymatlari o'zgarmaydi; guruhlar rang va qalin ajratgich bilan
   // ko'rinadi. Har bir katakka og'ir chegara chizilmaydi.
   for (const q of hisob) {
-    const rang = RANG[q.tur];
+    // Qo'shimcha — och sariq, zamena — och ko'k, almashtirilgan asl — kulrang kursiv (tur rangidan ustun).
+    const ozr = oz ? ozgarishRangi(oz.get(q.id)) : null;
+    const rang = ozr
+      ? { fill: { patternType: 'solid', fgColor: { rgb: OZGARISH_HEX[ozr] } }, font: { bold: RANG[q.tur]?.font?.bold, ...(ozr === 'almashtirilgan' ? { italic: true, color: { rgb: '595959' } } : {}) } }
+      : RANG[q.tur];
     for (let c = 0; c < NCOLS; c++) {
       const ref = XLSX.utils.encode_cell({ r: q.row - 1, c });
       const cell = ws[ref];
@@ -933,18 +866,16 @@ export async function lrvPlusFaylBaytlari(
         { wch: 7, hidden: true },   // Даража
         { wch: 18, hidden: true },  // КАЛИТ
       ];
+  if (oz) (ws['!cols'] as Array<{ wch: number; hidden?: boolean }>).push({ wch: 40 }, { wch: 6, hidden: true }); // ПРИМЕЧАНИЕ, ИЗМ
   const oxirgiMalumotQator = 3 + hisob.length;
   ws['!autofilter'] = { ref: `A2:${XLSX.utils.encode_col(NCOLS - 1)}${oxirgiMalumotQator}` };
 
   // ── Nakrutka kaskadi — egasining talabi bo'yicha ikkala rejimda ham,
   // faqat koeffitsientlar berilganda (o'ylab topilgan son bo'lmasin). ──
-  if (options?.nakrutka) {
-    const kat: NakrutkaHisob = {
-      chel: katYigindi['ЧЕЛ'], mash: katYigindi['МАШ'],
-      mat: katYigindi['МАТ'] + katYigindi['КАБ'] + katYigindi['М/К'],
-      ob: katYigindi['ОБ'], kab: katYigindi['КАБ'], mk: katYigindi['М/К'],
-    };
-    const oxirgiNakrutkaQator = nakrutkaKaskadYoz(ws, XLSX, oxirgiMalumotQator + 2, options.nakrutka, kat);
+  if (podvalJ) {
+    // БЕЗ СКЛАД ham kaskadga kiradi (o'z qatori bilan); kat ko'rsatilmagan barglar — ustamasiz qism (jim tashlanmaydi).
+    const kat: KatSummalar = { ЧЕЛ: katYigindi['ЧЕЛ'], МАШ: katYigindi['МАШ'], МАТ: katYigindi['МАТ'], ОБ: katYigindi['ОБ'], КАБ: katYigindi['КАБ'], 'М/К': katYigindi['М/К'], 'БЕЗ СКЛАД': bezJS.summa };
+    const oxirgiNakrutkaQator = nakrutkaKaskadYoz(ws, XLSX, oxirgiMalumotQator + 2, podvalJ, kat, bezJS, nomJS);
     // ⚠️ SheetJS asl `aoa_to_sheet` chegarasidan (`!ref`) TASHQARIDA qo'lda
     // qo'shilgan kataklarni YOZISHDA JIM TASHLAB YUBORADI (tekshirilgan:
     // `XLSX.write` keyin qayta o'qilganda `!ref`dan tashqari katak yo'qoladi).
@@ -1058,6 +989,52 @@ export async function lrvPlusFaylBaytlari(
       if (font) c.font = font;
       c.alignment = { vertical: 'top', wrapText: false };
     };
+    if (oz && hisob.length) {
+      /* Asl smeta / Qo'shimcha / Zamena jamlari (egasi 2026-10-29): ustamasiz — SUMIFS (barglar I∈rs/mat/ob,
+         yashirin ИЗМ kodi bo'yicha), ustamali — koeffitsientlar berilgan bo'lsa mavjud kaskad bilan. Oxirida rang izohi. */
+      const c1 = hisob[0].row, c2 = hisob[hisob.length - 1].row;
+      const kodUstun = XLSX.utils.encode_col(ustunlar.length - 1);
+      const sumifs = (kod: string) => [...LEAF_TUR].map((t) => `SUMIFS(H${c1}:H${c2},I${c1}:I${c2},"${t}",${kodUstun}${c1}:${kodUstun}${c2},"${kod}")`).join('+');
+      const pul = (row: number, col: number, v: number | null, f?: string) => {
+        const c = asosiy.getCell(row, col);
+        c.value = f ? { formula: f, result: v ?? undefined } as import('exceljs').CellFormulaValue : v;
+        c.numFmt = PUL_FORMAT;
+        c.alignment = { horizontal: 'right' };
+      };
+      const boya = (row: number, hex: string | null, italic = false) => {
+        if (!hex) return;
+        for (let col = 1; col <= 8; col++) {
+          const c = asosiy.getCell(row, col);
+          c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: `FF${hex}` } };
+          if (italic) c.font = { ...(c.font ?? {}), italic: true };
+        }
+      };
+      matn(r++, 3, 'ИТОГИ ПО ВИДАМ ПОЗИЦИЙ: ОСНОВНАЯ СМЕТА / ДОПОЛНИТЕЛЬНЫЕ РАБОТЫ / ЗАМЕНЫ (графа «СУММА»)', { bold: true });
+      const pryamye: number[] = [];
+      for (const g of ['asl', 'qoshimcha', 'zamena'] as const) {
+        const x = guruhJS[g];
+        const hex = g === 'asl' ? null : OZGARISH_HEX[g];
+        matn(r, 3, `${kattaHarfga(OZGARISH_NOMI_RU[g])} — ПРЯМЫЕ ЗАТРАТЫ (БЕЗ НАКРУТКИ)`);
+        pul(r, 8, yaxlit2(x.H), sumifs(OZGARISH_KOD[g]));
+        boya(r, hex); pryamye.push(r); r++;
+        if (podvalJ) {
+          // Yadro kaskadi (obyekt podvali bo'lsa u bo'yicha — avval podval=null edi). Noma'lum foiz — bo'sh, 0 emas.
+          const k = yadroKaskad(x.ks, podvalJ, { nomalumQism: x.nom || null }); // kat ko'rsatilmagan — ustamasiz
+          const tolik = !k.nomalumQatorlar.length;
+          matn(r, 3, `${kattaHarfga(OZGARISH_NOMI_RU[g])} — С НАКРУТКОЙ, БЕЗ НДС`); pul(r, 8, tolik ? k.itogo4 : null); boya(r, hex); r++;
+          matn(r, 3, `${kattaHarfga(OZGARISH_NOMI_RU[g])} — С НАКРУТКОЙ И НДС`); pul(r, 8, tolik ? k.vsego : null); boya(r, hex); r++;
+        }
+      }
+      const jamiV = yaxlit2(guruhJS.asl.H + guruhJS.qoshimcha.H + guruhJS.zamena.H);
+      matn(r, 3, 'ВСЕГО ПРЯМЫЕ ЗАТРАТЫ ПО ВИДАМ ПОЗИЦИЙ', { bold: true });
+      pul(r, 8, jamiV, pryamye.map((x) => `H${x}`).join('+')); const jR = r++;
+      matn(r, 3, 'СВЕРКА: ПО ВИДАМ ПОЗИЦИЙ − ЖАМИ (ДОЛЖНО БЫТЬ 0,00)', { italic: true });
+      pul(r, 8, ayirma2(jamiV, jamiSumma), `IF(H3="","",ROUND(H${jR}-H3,2))`); r++;
+      r++;
+      matn(r++, 3, 'УСЛОВНЫЕ ОБОЗНАЧЕНИЯ', { bold: true });
+      for (const [rang, izoh] of OZGARISH_LEGENDA) { matn(r, 3, izoh.toLocaleUpperCase('ru-RU'), rang === 'almashtirilgan' ? { italic: true } : undefined); boya(r, OZGARISH_HEX[rang], rang === 'almashtirilgan'); r++; }
+      r++;
+    }
     if (nomalumlar.length) {
       matn(r++, 3, `ПОЗИЦИИ, ТРЕБУЮЩИЕ ВНИМАНИЯ (${nomalumlar.length})`, { bold: true });
       const LIMIT = 500;
@@ -1079,7 +1056,7 @@ export async function lrvPlusFaylBaytlari(
       r++;
     }
     // Chop hududi: ko'rinadigan oxirgi ustungacha (yashirin Даража/КАЛИТ kirmaydi) va imzogacha.
-    const oxirgiKorinadigan = rejim === 'toliq' ? 'W' : 'P';
+    const oxirgiKorinadigan = oz ? XLSX.utils.encode_col(ustunlar.length - 2) : rejim === 'toliq' ? 'W' : 'P';
     asosiy.pageSetup.printArea = `A1:${oxirgiKorinadigan}${r}`;
   }
   const manbaWs = ewb.getWorksheet('МАНБА');
@@ -1097,17 +1074,5 @@ export function lrvPlusFaylNomi(obyektNomi: string, rejim: LrvPlusRejim = 'toliq
 
 /** Brauzerda faylni yuklab olishga majburlaydi (blob + vaqtinchalik link). */
 export function lrvPlusYuklab(bytes: Uint8Array, obyektNomi: string, rejim: LrvPlusRejim = 'toliq'): void {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const blob = new Blob([bytes as any], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const url = URL.createObjectURL(blob);
-  try {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = lrvPlusFaylNomi(obyektNomi, rejim);
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  } finally {
-    URL.revokeObjectURL(url);
-  }
+  downloadBlob(bytes, lrvPlusFaylNomi(obyektNomi, rejim)); // tizim imzosi shu yo'lda qo'yiladi
 }

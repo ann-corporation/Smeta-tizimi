@@ -24,6 +24,8 @@ import { qidiruvSozlari } from '../../src/lib/jarvis/qidiruv-sozlari';
 import { studioKontekstTekshir } from '../../src/lib/jarvis/studio-kontekst';
 import { baholash, javobNarxi, openrouterModellar, tavsiyaEtilgan, TALAB } from '../_shared/agent-modellar';
 import { openrouterBalans } from '../_shared/openrouter-balans';
+import { AI_TIZIM_AMALLAR, aiJavobTozala, platformaSuperadminmi } from '../_shared/tizim-maxfiy';
+import { mijozNarxParam, modellarMijozga, orQatorMijozga } from '../_shared/ai-mijoz-narx';
 
 type Env = AiEnv & { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; KUZATUV_KALIT?: string; KUZATUV_ACTOR_ID?: string; AGENT_ISH_YOQILGAN?: string; GITHUB_AGENT_TOKEN?: string; GITHUB_REPO?: string };
 
@@ -73,7 +75,7 @@ function doira(v: unknown): number | null | 'xato' {
   return sonmi(v) ? Number(v) : 'xato';
 }
 
-export const onRequestGet: PagesFunction<Env> = async (ctx) => {
+const oqishIchki = async (ctx: EventContext<Env, string, unknown>, sa: boolean): Promise<Response> => {
   const k = await kirish(ctx); if (k instanceof Response) return k;
   if (k.kalit) return xato('Kalit bilan o‘qish yo‘q', 403);
   const u = new URL(ctx.request.url);
@@ -104,16 +106,20 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   }
   /* OpenRouter'ning jonli ro'yxati + shu ishchi uchun moslik bahosi va ogohlantirishlar. Kalit kerak emas (ommaviy API). */
   if (bolim === 'openrouter_modellar') {
-    const royxat = await openrouterModellar();
     const q = (u.searchParams.get('q') ?? '').toLowerCase().trim().slice(0, 60);
     const ids = new Set((u.searchParams.get('ids') ?? '').split(',').map((x) => x.trim()).filter(Boolean).slice(0, 80));
+    /* Kompaniya faqat katalog modellarini baholatadi (ids). Erkin qidiruv — katalogga import uchun, faqat superadmin. */
+    if (!sa && !ids.size) return tizimRad();
+    const royxat = await openrouterModellar();
     const hamma = royxat.map((m) => { const b = baholash(m, profil || null); return { ...m, ...b, narx: javobNarxi(m) }; });
     const tavsiya = tavsiyaEtilgan(hamma.map((x) => ({ id: x.id, b: x, narx: x.narx })), 3);
     const RANK: Record<string, number> = { juda_mos: 0, mos: 1, chegarada: 2, kuchsiz: 3 };
     const tanlangan = (ids.size ? hamma.filter((x) => ids.has(x.id)) : hamma.filter((x) => !q || x.id.toLowerCase().includes(q) || x.nom.toLowerCase().includes(q)))
       .sort((a, c) => (tavsiya.includes(c.id) ? 1 : 0) - (tavsiya.includes(a.id) ? 1 : 0) || RANK[a.daraja] - RANK[c.daraja] || a.narx - c.narx).slice(0, ids.size ? 80 : 120);
     const t = (profil && TALAB[profil]) || { min: 50, izoh: 'Umumiy ishchi' };
-    return Response.json({ ok: true, jami: royxat.length, tavsiya, talab: { min: t.min, izoh: t.izoh }, natija: tanlangan }, JAVOB);
+    const np = await mijozNarxParam(ctx.env, kid);
+    const natija = tanlangan.map((x) => orQatorMijozga(x as unknown as Record<string, unknown>, np, sa));
+    return Response.json({ ok: true, jami: royxat.length, tavsiya, talab: { min: t.min, izoh: t.izoh }, natija }, JAVOB);
   }
   if (bolim === 'shaxsiy') return chiqar(await rpcData(ctx.env, 't2_agent_shaxsiy_v1', { p_actor_id: k.actor }));
   if (bolim === 'uslub') {
@@ -151,7 +157,12 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     if (kid != null) return xato('Faqat tizim doirasida', 403);
     return chiqar(await rpcData(ctx.env, 't2_agent_muhit_v1', { p_actor_id: k.actor, p_kompaniya_id: null, p_profil: null }));
   }
-  if (bolim === 'modellar') return chiqar(await rpcData(ctx.env, 't2_agent_modellar_v1', { p_actor_id: k.actor, p_kompaniya_id: kid }));
+  if (bolim === 'modellar') {
+    const r = await rpcData(ctx.env, 't2_agent_modellar_v1', { p_actor_id: k.actor, p_kompaniya_id: kid });
+    if (!r.ok) return chiqar(r);
+    /* Har modelga MIJOZ narxi (token / so'rov) va narx darajasi; kompaniyaga USD va ustama chiqmaydi (ai-mijoz-narx.ts). */
+    return Response.json(modellarMijozga(r.data, await mijozNarxParam(ctx.env, kid), sa), JAVOB);
+  }
   if (bolim === 'buyruqlar') {
     if (kid != null) return xato('Buyruqlar faqat tizim doirasida', 403);
     return chiqar(await rpcData(ctx.env, 't2_agent_buyruq_royxat_v1', { p_actor_id: k.actor }));
@@ -371,7 +382,7 @@ async function kasbQuvur(env: Env, actor: number, kid: number, so: Yuk, log: (be
   return { status: 200, body: { ok: true, kasb: ish, javob: ajr.javob, harakatlar, sahifalar, toifalar: ishlatilgan, model: r.model, model_manba: m.data.model_manba ?? null, provider: r.provider, ms: Date.now() - t0, jurnal_id: jid } };
 }
 
-export const onRequestPost: PagesFunction<Env> = async (ctx) => {
+const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Response> => {
   const k = await kirish(ctx); if (k instanceof Response) return k;
   let so: Yuk;
   try { so = await ctx.request.json() as Yuk; } catch { return xato('Noto‘g‘ri so‘rov'); }
@@ -743,4 +754,48 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     }
   }
   return xato('Amal ochiq emas');
+};
+
+/* ═══ Egasi 2026-10-27: platforma AI iqtisodiyoti — faqat platforma superadmini (server qatlami) ═══
+ * • katalogni yozish, OpenRouter'dan import, ustama va USD byudjet — superadmin bo'lmaganga 403;
+ * • model tanlash (kompaniya/shaxsiy) va kompaniya model siyosati — kompaniyaga OCHIQ (ruxsatni baza tekshiradi, avvalgidek);
+ * • AI javoblari, oqim va jurnal o'zgarmaydi (model nomi ko'rinadi) — faqat provayder sarfi (USD) olib tashlanadi.
+ * Davriy kalit (X-Kuzatuv-Kalit) — superadmin nomidan (KUZATUV_ACTOR_ID) va faqat oq ro'yxatdagi amallar. */
+const kalitBilan = (ctx: EventContext<Env, string, unknown>) => ctx.request.headers.has('X-Kuzatuv-Kalit');
+const tizimRad = () => Response.json({ ok: false, code: 'SUPERADMIN_REQUIRED', error: 'Bu bo‘lim faqat platforma administratori uchun' }, { status: 403, ...JAVOB });
+
+/** JSON yoki NDJSON (oqim) javobini superadmin bo'lmagan uchun tozalaydi (aiJavobTozala). */
+export async function jsonTozala(r: Response): Promise<Response> {
+  const tur = r.headers.get('Content-Type') || '';
+  const sarlavha = new Headers(r.headers); sarlavha.delete('Content-Length');
+  if (/application\/x-ndjson/.test(tur) && r.body) {
+    const dek = new TextDecoder(); const enc = new TextEncoder(); let qoldiq = '';
+    const qator = (q: string) => { if (!q.trim()) return q; try { return JSON.stringify(aiJavobTozala(JSON.parse(q))); } catch { return q; } };
+    const oqim = r.body.pipeThrough(new TransformStream<Uint8Array, Uint8Array>({
+      transform(bolak, c) { qoldiq += dek.decode(bolak, { stream: true }); const q = qoldiq.split('\n'); qoldiq = q.pop() ?? ''; for (const x of q) c.enqueue(enc.encode(qator(x) + '\n')); },
+      flush(c) { qoldiq += dek.decode(); if (qoldiq) c.enqueue(enc.encode(qator(qoldiq))); },
+    }));
+    return new Response(oqim, { status: r.status, headers: sarlavha });
+  }
+  if (!/json/.test(tur)) return r;
+  const matn = await r.text();
+  let j: unknown;
+  try { j = JSON.parse(matn); } catch { return new Response(matn, { status: r.status, headers: sarlavha }); }
+  return new Response(JSON.stringify(aiJavobTozala(j)), { status: r.status, headers: sarlavha });
+}
+
+export const onRequestGet: PagesFunction<Env> = async (ctx) => {
+  const sa = kalitBilan(ctx) || platformaSuperadminmi(ctx);
+  const r = await oqishIchki(ctx, sa);
+  return sa ? r : jsonTozala(r);
+};
+
+export const onRequestPost: PagesFunction<Env> = async (ctx) => {
+  const sa = kalitBilan(ctx) || platformaSuperadminmi(ctx);
+  if (!sa) {
+    const amal = await ctx.request.clone().json().then((b) => String((b as { amal?: unknown })?.amal ?? '')).catch(() => '');
+    if (AI_TIZIM_AMALLAR.has(amal)) return tizimRad();
+  }
+  const r = await yozishIchki(ctx);
+  return sa ? r : jsonTozala(r);
 };

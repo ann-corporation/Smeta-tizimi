@@ -14,9 +14,8 @@ import { hujjatTekshir } from './hujjat-yozuvchi';
 
 /*
  * Sintetik obyekt (mijoz ma'lumoti emas): 10-bo'lim svod yaxlit belgili (svod 1 344 so'm QQS bilan → 1 200 QQS siz),
- * 20-bo'lim belgisiz. ORAKUL — server SQL'ining so'zma-so'z JS nusxasi:
- *   t2_nakrutka_yaxlit_qosh_v1(t2_nakrutka_hisobla_v1(cats_kaskad, nk), qqssiz, barglar, nk):
- *     itogo4 = round(kaskad.itogo4 + qqssiz, 2); nds = round(itogo4 × НДС / 100, 2); vsego = round(itogo4 + nds, 2).
+ * 20-bo'lim belgisiz. ORAKUL — egasi qoidasi (2026-10-30): svodda yaxlit qator НДС dan KEYIN, summa QQS bilan yakuniy:
+ *   ВСЕГО = ishlar ВСЕГО + svod summasi (aynan); ustamali (QQS siz) = ishlar ИТОГО-4 + svod QQS siz.
  */
 const NK = { ТРАНСПОРТ_МАТЕРИАЛ: 5, СКЛАДСКИЕ_МАТЕРИАЛ: 2, СКЛАДСКИЕ_МК: 0.75, ТРАНСПОРТ_КАБЕЛЬ: 1.5, ПРОЧИЕ_ПОДРЯДЧИК: 18, ТРАНСПОРТ_ОБОРУД: 2, ЗАГОТ_СКЛАД_ОБОРУД: 0, СТРАХОВАНИЕ: 0.32, РИСК: 0, НДС: 12 };
 const r2 = (x: number) => Math.round((x + Number.EPSILON) * 100) / 100;
@@ -35,7 +34,11 @@ const SVOD: SvodYaxlit = {
 };
 const TOLIQ = ks({ ЧЕЛ: 1300, МАТ: 2700, ОБ: 500 });
 const KASKAD = ks({ ЧЕЛ: 1000, МАТ: 2000, ОБ: 500 });
-const ORAKUL = serverYaxlitQosh(nakrutkaKaskadJS(KASKAD, NK), SVOD.qqssiz, 12);
+const ISHLAR = nakrutkaKaskadJS(KASKAD, NK);
+const ORAKUL = { itogo4: r2(ISHLAR.itogo4 + 1200), vsego: r2(ISHLAR.vsego + 1344) };
+/** Qator darajasidagi yaxlit (QQS siz, svod summasisiz) — QQS bilan ×1,12, НДС dan keyin. */
+const qatorYaxlit = (qqssiz: number) => r2(ISHLAR.vsego + r2(qqssiz * 1.12));
+void serverYaxlitQosh;
 const ESKI = nakrutkaKaskadJS(TOLIQ, NK);
 
 function q(id: number, ota_id: number | null, tur: string, hajm: number | null, kat: string | null = null): T2Qator {
@@ -78,15 +81,17 @@ describe('svod yaxlit — obyekt darajasidagi ko‘rinishlar server bilan bir xi
     expect(u0.ustamali).toBe(ESKI.itogo4);
   });
 
-  it('qator darajasi: yaxlit avlodlari koeffitsientsiz (kOplate, kesim)', () => {
+  it('qator darajasi: yaxlit avlodlari ustamasiz, faqat QQS (kOplate ×1,12), kesim', () => {
     const kf = kategoriyaKf(NK);
-    expect(kOplate(300, 'ЧЕЛ', kf, true)).toBe(300);
-    expect(kOplate(300, 'ЧЕЛ', kf)).toBe(r2(300 * kf.ЧЕЛ));
+    // Qasddan o'zgarish (hisob yadrosi): к оплате ustuni QQS bilan — yaxlit qatorda ham QQS (1 + 12 %), ustama yo'q.
+    expect(kOplate(300, 'ЧЕЛ', kf, true, 12)).toBe(336);
+    expect(kOplate(300, 'ЧЕЛ', kf, true)).toBeNull(); // QQS stavkasi noma'lum — taxmin yo'q
+    expect(kOplate(300, 'ЧЕЛ', kf)).toBe(r2(300 * kf.ЧЕЛ!));
     const barglar = DARAXT.filter((x) => x.tur === 'rs');
     const k = katKesimYigish(barglar, (x) => x.kat, (x) => (x.hajm ?? 0) * 1000, (x) => IDLAR.has(x.id));
     expect(k.yaxlitQator).toBe(1000);
     const u = ustamaliHisobla(k, NK);
-    expect(u.ndsBilan).toBe(serverYaxlitQosh(nakrutkaKaskadJS(KASKAD, NK), 1000, 12).vsego);
+    expect(u.ndsBilan).toBe(qatorYaxlit(1000));
     expect(u.ustamasiz).toBe(4500);
     // belgisiz — avvalgidek
     expect(ustamaliHisobla(katKesimYigish(barglar, (x) => x.kat, (x) => (x.hajm ?? 0) * 1000), NK).ndsBilan).toBe(ESKI.vsego);
@@ -98,8 +103,9 @@ describe('svod yaxlit — obyekt darajasidagi ko‘rinishlar server bilan bir xi
     expect(t.ustamasiz).toBe(4500);
     expect(ustamaTasiri(catsKat(serverCats(TOLIQ)), NK, NK).eski.vsego).toBe(ESKI.vsego);
     const p = standartPodval(NK);
-    const qiy = podvalQiymatYaxlit(podvalHisobla(p, KASKAD).qiymat, p, SVOD.qqssiz, NK);
-    expect(qiy.itogo4).toBe(ORAKUL.itogo4);
+    const qiy = podvalQiymatYaxlit(podvalHisobla(p, KASKAD).qiymat, p, { qqsBilan: 1344, qqssiz: 1200 });
+    expect(qiy.itogo4).toBe(ISHLAR.itogo4); // podval ИТОГО-4 — ishlarniki; yaxlit НДС dan keyin
+    expect(qiy.yaxlit_qqssiz).toBe(1200);
     expect(qiy[p.qatorlar[p.qatorlar.length - 1].kod]).toBe(ORAKUL.vsego);
   });
 
@@ -115,22 +121,22 @@ describe('svod yaxlit — obyekt darajasidagi ko‘rinishlar server bilan bir xi
     const rows = DARAXT.map((x) => nq({ qator_id: x.id, ota_id: x.ota_id, tur: x.tur as NakopitelniyQator['tur'], kat: x.kat, nom: x.nom,
       smeta_summa: x.tur === 'rs' ? (x.hajm ?? 0) * 1000 : null, joriy_summa: x.id === 12 ? 100 : x.id === 22 ? 200 : 0 }));
     const h1 = nakopitelniyVedomostHujjat(rows, { obyektNom: 'Объект', davr: '2026-09-01', nakrutka: NK, ndsFoiz: 12, svodYaxlit: SVOD });
-    expect(h1.kaskad!.G.itogo4).toBe(ORAKUL.itogo4);
-    expect(h1.kaskad!.G.vsego).toBe(ORAKUL.vsego);
+    expect(h1.kaskad!.G!.itogo4).toBe(ORAKUL.itogo4);
+    expect(h1.kaskad!.G!.vsego).toBe(ORAKUL.vsego);
     const t = tekshir(h1.bytes);
     expect(t.matnlar).toEqual(expect.arrayContaining([NOM]));
     expect(t.varaqlar[0].kataklar.some((k) => k.matn === YAXLIT_KAT || k.v === YAXLIT_KAT)).toBe(true);
     expect(t.dollarFormulalar).toEqual([]);
     expect(t.keshsizFormulalar).toEqual([]);
     const h0 = nakopitelniyVedomostHujjat(rows, { obyektNom: 'Объект', davr: '2026-09-01', nakrutka: NK, ndsFoiz: 12 });
-    expect(h0.kaskad!.G.vsego).toBe(ESKI.vsego);
+    expect(h0.kaskad!.G!.vsego).toBe(ESKI.vsego);
     expect(tekshir(h0.bytes).matnlar).not.toContain(NOM);
   });
 
   it('Ostatka eksporti: yaxlit qatorlar ustamasiz (podval qatori), boshqasi kaskad orqali', () => {
     const m = ostatkaHujjatModeli(DARAXT, HOLAT);
     const r = ostatkaHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', nakrutka: NK, yaxlitIdlar: IDLAR });
-    expect(r.kOplataVsego).toBe(serverYaxlitQosh(nakrutkaKaskadJS(KASKAD, NK), 1000, 12).vsego);
+    expect(r.kOplataVsego).toBe(qatorYaxlit(1000));
     expect(tekshir(r.bytes).matnlar).toEqual(expect.arrayContaining([NOM]));
     const r0 = ostatkaHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', nakrutka: NK });
     expect(r0.kOplataVsego).toBe(ESKI.vsego);
@@ -155,3 +161,65 @@ describe('svod yaxlit — obyekt darajasidagi ko‘rinishlar server bilan bir xi
     expect(qiymatBor(r0.bytes, ESKI.vsego)).toBe(true);
   });
 });
+
+describe('svod yaxlit — butun tarkib aynan yaxlit summaga yig‘iladi (qator darajasida taqsim)', () => {
+  const HF = DARAXT.map((x) => h(x.id, x.id === 12 ? 0.15 : x.id === 13 ? 0.7 : 0)); // 10-bo'lim qisman bajarilgan
+  it('Slichitelniy modeli: bo‘lim smetasi = svod QQS siz aynan, fakti = svod × (fakt / smeta)', () => {
+    const m = slichitelniyModeli(DARAXT, HF, { svodYaxlit: SVOD });
+    const yq = m.qatorlar.filter((x) => x.yaxlitTaqsim != null);
+    expect(yq.length).toBe(2);
+    expect(r2(yq.reduce((t, x) => t + (x.smetaSumma ?? 0), 0))).toBe(1200);
+    // fakt 850 / smeta 1000 → 1200 × 0,85 = 1020
+    expect(r2(yq.reduce((t, x) => t + (x.faktSumma ?? 0), 0))).toBe(1020);
+    const r = slichitelniyHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', nakrutka: NK, yaxlitIdlar: IDLAR, svodYaxlit: SVOD });
+    expect(qiymatBor(r.bytes, 1344)).toBe(true);            // smeta к оплате = svod summasi (QQS bilan) aynan
+    expect(qiymatBor(r.bytes, r2(1344 * 0.85))).toBe(true); // выполнено к оплате = svod × (fakt / smeta)
+  });
+  it('Ostatka modeli: bo‘lim qoldig‘i = svod − svod × fakt/smeta, qatorlarga aynan taqsim', () => {
+    const m = ostatkaHujjatModeli(DARAXT, HF, [], SVOD);
+    const yq = m.qatorlar.filter((x) => m.yaxlitTaqsimlangan?.has(x.id));
+    expect(r2(yq.reduce((t, x) => t + (x.summa ?? 0), 0))).toBe(r2(1200 - 1020));
+    const r = ostatkaHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', nakrutka: NK, yaxlitIdlar: IDLAR });
+    expect(qiymatBor(r.bytes, r2(1344 - 1344 * 0.85))).toBe(true); // qoldiq к оплате (QQS bilan) aynan
+  });
+});
+
+describe('fakt F2 yonida — ishoraga qarab (manfiy qatorlar nolga tushirilmaydi)', () => {
+  const D: T2Qator[] = [q(1, null, 'rz', null), q(2, 1, 'bl', 1), q(3, 2, 'rs', -5, 'МАТ'), q(4, 2, 'rs', 5, 'МАТ')];
+  const H = (f3: number, f2_3: number | null, f4 = 0) => [h(1, 0), h(2, 0), { ...h(3, f3), f2_hajm: f2_3, f2_summa: f2_3 == null ? null : f2_3 * 1000 }, h(4, f4)] as T2QatorHolat[];
+  it('manfiy qator, F2 yo‘q — fakt o‘zgarmaydi', () => {
+    const m = slichitelniyModeli(D, H(-3, null));
+    expect(m.qatorlar.find((x) => x.id === 3)!.faktHajm).toBe(-3);
+    expect(m.qatorlar.find((x) => x.id === 3)!.faktSumma).toBe(-3000);
+  });
+  it('manfiy qator, manfiy F2 — fakt hajmi yozilganidek, summa F2 narxida', () => {
+    const m = slichitelniyModeli(D, H(-3, -4));
+    expect(m.qatorlar.find((x) => x.id === 3)!.faktHajm).toBe(-3);
+    expect(m.qatorlar.find((x) => x.id === 3)!.faktSumma).toBe(-3000); // F2 narxi 1 000
+  });
+  it('narxsiz qator, manfiy F2 — fakt F2 narxida (narx to‘qilmaydi)', () => {
+    const D2 = D.map((x) => (x.id === 3 ? { ...x, narx: null } : x));
+    const m = slichitelniyModeli(D2, H(-3, -4));
+    expect(m.qatorlar.find((x) => x.id === 3)!.faktSumma).toBe(-3000);
+  });
+});describe('ko‘rib chiqish: NULL taqsimda 0 bo‘lmaydi, F2 ishorasi', () => {
+  it('fakti noma‘lum svod qatori taqsimga kirmaydi, null qoladi, diqqatda aytiladi', () => {
+    const HF = DARAXT.filter((x) => x.id !== 13).map((x) => h(x.id, x.id === 12 ? 0.15 : 0));
+    const m = slichitelniyModeli(DARAXT, HF, { svodYaxlit: SVOD });
+    expect(m.qatorlar.find((x) => x.id === 13)!.faktSumma).toBeNull();
+    expect(m.diqqat.some((d) => /нет данных о выполнении/.test(d.sabab))).toBe(true);
+  });
+  it('fakt va F2 ishorasi har xil — fakt yozilganidek (MAX/MIN qoidasi yo‘q)', () => {
+    const D: T2Qator[] = [q(1, null, 'rz', null), q(2, 1, 'bl', 1), q(3, 2, 'rs', -5, 'МАТ')];
+    const H = [h(1, 0), h(2, 0), { ...h(3, -3), f2_hajm: 4, f2_summa: 4000 }] as T2QatorHolat[];
+    const m = slichitelniyModeli(D, H);
+    expect(m.qatorlar.find((x) => x.id === 3)!.faktHajm).toBe(-3);
+    expect(m.qatorlar.find((x) => x.id === 3)!.faktSumma).toBe(-3000);
+  });
+  it('F2 summasi null, hajmi bor — fakt hajmi o‘zgarmaydi, summa noma‘lum (F2 narxi to‘qilmaydi, 0 emas)', () => {
+    const D: T2Qator[] = [q(1, null, 'rz', null), q(2, 1, 'bl', 1), q(3, 2, 'rs', 5, 'МАТ')];
+    const H = [h(1, 0), h(2, 0), { ...h(3, 2), f2_hajm: 4, f2_summa: null }] as T2QatorHolat[];
+    const m = slichitelniyModeli(D, H);
+    expect(m.qatorlar.find((x) => x.id === 3)!.faktHajm).toBe(2);
+    expect(m.qatorlar.find((x) => x.id === 3)!.faktSumma).toBeNull();
+  });});

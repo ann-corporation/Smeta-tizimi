@@ -91,7 +91,7 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
     const eskiQator = amal === 'replacement' ? rows.find(r => String(r.id) === oldId) : undefined;
     const birlikFarqli = !!eskiQator && birlik.trim().toLowerCase() !== (eskiQator.birlik ?? '').trim().toLowerCase();
     const almSoni = birlikFarqli && almHajm.trim() !== '' ? Number(almHajm.replace(',', '.')) : null;
-    if (almSoni != null && (!Number.isFinite(almSoni) || almSoni < 0)) { setError(t('Almashtiriladigan hajm manfiy bo‘lmagan son bo‘lishi shart.')); return; }
+    if (almSoni != null && !Number.isFinite(almSoni)) { setError(t('Almashtiriladigan hajm son bo‘lishi kerak (minus ham mumkin).')); return; }
     setBusy(true); setError(''); setDone('');
     const asos = {
       kompaniyaId: companyId, obyektId: Number(objectId), otaQatorId: parent.id,

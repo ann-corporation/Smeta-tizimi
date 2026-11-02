@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { htmldanKirishSkripti, korilmaganlar, saqlanmaganIsh, saqlanmaganIshBormi, versiyaKuzatuvi, yangiliklarniAjrat } from './versiya';
+import { htmldanKirishSkripti, korilmaganlar, reloadQoriqchisiniTozala, saqlanmaganIsh, saqlanmaganIshBormi, versiyaKuzatuvi, yangiliklarniAjrat } from './versiya';
 
 describe('«Nima yangi» (egasi 2026-10-25: versiya almashganda nima o‘zgarganini aytsin)', () => {
   const r = yangiliklarniAjrat({ yozuvlar: [{ id: 1, sana: 'a', sarlavha: 'eski', bandlar: ['x'] }, { id: 3, sana: 'c', sarlavha: 'yangi', bandlar: ['z'] }, { id: 'yomon' }, { id: 2, sana: 'b', sarlavha: 'o‘rta', bandlar: ['y', 5] }] });
@@ -30,6 +30,26 @@ describe('versiya kuzatuvi', () => {
   it('index.html dan kirish skripti xeshi olinadi', () => {
     expect(htmldanKirishSkripti('<script type="module" crossorigin src="/assets/index-mU6HDLPt.js"></script>')).toBe('/assets/index-mU6HDLPt.js');
     expect(htmldanKirishSkripti('<script src="/src/main.tsx"></script>')).toBeNull();
+  });
+});
+
+describe('cheksiz reload himoyasi (tez yuklash 2026-10-30)', () => {
+  it('yuklashda qo‘riqchi TOZALANMAYDI — App/lug‘at chunki doim yiqilsa ikkinchi avto-reload bo‘lmaydi', () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('tarmoq yo‘q'))));
+    const reload = vi.fn();
+    vi.stubGlobal('location', { ...window.location, reload });
+    const s = document.createElement('script'); s.type = 'module'; s.src = '/assets/index-AbC123.js'; document.head.appendChild(s);
+    try {
+      sessionStorage.setItem('versiya-reload', '1'); // oldingi yuklash allaqachon bir marta reload qilgan
+      versiyaKuzatuvi();
+      expect(sessionStorage.getItem('versiya-reload')).toBe('1');
+      window.dispatchEvent(new Event('vite:preloadError'));
+      expect(reload).not.toHaveBeenCalled();
+      // Ilova chizilgach main.tsx tozalaydi — keyingi deploy uchun yana bitta reload ruxsat.
+      reloadQoriqchisiniTozala();
+      expect(sessionStorage.getItem('versiya-reload')).toBeNull();
+    } finally { s.remove(); sessionStorage.removeItem('versiya-reload'); vi.useRealTimers(); }
   });
 });
 

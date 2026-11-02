@@ -13,11 +13,13 @@ import UlashSahifa from './kirish/UlashSahifa';
 
 const AdminShell = lazy(() => import('./admin/AdminShell'));
 const BossShell = lazy(() => import('./boss/BossShell'));
+const TgKirish = lazy(() => import('./telegram/TgKirish'));
 
-// Admin pages
-import { HolatNative } from './admin/sahifalar/HolatNative';
-import { FaktNative } from './admin/sahifalar/FaktNative';
-import FaylBoglash from './admin/sahifalar/FaylBoglash';
+// Admin pages — tez yuklash (2026-10-30): hammasi lazy; Suspense + xato chegarasi qobiq Outlet'ida
+// (`SahifaChegarasi`), shuning uchun kirish sahifasi bu og'ir sahifalarni yuklamaydi.
+const HolatNative = lazy(() => import('./admin/sahifalar/HolatNative'));
+const FaktNative = lazy(() => import('./admin/sahifalar/FaktNative'));
+const FaylBoglash = lazy(() => import('./admin/sahifalar/FaylBoglash'));
 /* TIZIM_02 — Supabase sinov muhiti. Tizim_01 ga TEGMAYDI. */
 const TestShell     = lazy(() => import('./test02/TestShell'));
 const TestKorzinka  = lazy(() => import('./test02/TestKorzinka'));
@@ -66,6 +68,7 @@ const BoshqaruvPanel = lazy(() => import('./admin/sahifalar/BoshqaruvPanel'));
 const AkkauntMarkazi = lazy(() => import('./admin/sahifalar/AkkauntMarkazi'));
 const SozlamalarMarkazi = lazy(() => import('./admin/sahifalar/SozlamalarMarkazi'));
 const SaytXaritasi = lazy(() => import('./admin/sahifalar/SaytXaritasi'));
+const TizimXaritasi = lazy(() => import('./admin/sahifalar/TizimXaritasi'));
 const AiAgentlar = lazy(() => import('./admin/sahifalar/AiAgentlar'));
 const NarxManbalari = lazy(() => import('./admin/sahifalar/NarxManbalari'));
 const ZakazchikKabinet = lazy(() => import('./admin/zakazchik/ZakazchikKabinet'));
@@ -78,18 +81,20 @@ const F2Reestr = lazy(() => import('./admin/sahifalar/F2Reestr'));
 const DocumentCenterDemo = lazy(() => import('./admin/document-center/DocumentCenterDemo'));
 const ParticipantNetworkDemo = lazy(() => import('./admin/participants/ParticipantNetworkDemo'));
 const SystemControlDemo = lazy(() => import('./admin/system-control/SystemControlDemo'));
-import F2ImportV3 from './admin/sahifalar/F2ImportV3';
-import M29Native from './admin/sahifalar/M29Native';
-import { F2TayyorlashNative } from './admin/sahifalar/F2TayyorlashNative';
-import NakopitelniyVedomost from './admin/sahifalar/NakopitelniyVedomost';
-import NakrutkaNative from './admin/sahifalar/NakrutkaNative';
-import F2TarixNative from './admin/sahifalar/F2TarixNative';
-import SmetaNarxlashResNative from './admin/sahifalar/SmetaNarxlashResNative';
-import OfertaNative from './admin/sahifalar/OfertaNative';
-import { Narxlar } from './admin/sahifalar/Narxlar';
-import RolBoshSahifa from './admin/RolBoshSahifa';
-import BolimTablari from './admin/BolimTablari';
-import { AiHelper } from './umumiy/ui/AiHelper';
+const F2ImportV3 = lazy(() => import('./admin/sahifalar/F2ImportV3'));
+const M29Native = lazy(() => import('./admin/sahifalar/M29Native'));
+const F2TayyorlashNative = lazy(() => import('./admin/sahifalar/F2TayyorlashNative'));
+const NakopitelniyVedomost = lazy(() => import('./admin/sahifalar/NakopitelniyVedomost'));
+const NakrutkaNative = lazy(() => import('./admin/sahifalar/NakrutkaNative'));
+const F2TarixNative = lazy(() => import('./admin/sahifalar/F2TarixNative'));
+const SmetaNarxlashResNative = lazy(() => import('./admin/sahifalar/SmetaNarxlashResNative'));
+const OfertaNative = lazy(() => import('./admin/sahifalar/OfertaNative'));
+const Narxlar = lazy(() => import('./admin/sahifalar/Narxlar'));
+const RolBoshSahifa = lazy(() => import('./admin/RolBoshSahifa'));
+const BolimTablari = lazy(() => import('./admin/BolimTablari'));
+// AiHelper (48 KB) faqat admin'dan tashqari sahifalarda — lazy, kirish sahifasini og'irlashtirmaydi.
+const AiHelperLazy = lazy(() => import('./umumiy/ui/AiHelper').then((m) => ({ default: m.AiHelper })));
+function AiHelper() { return <Suspense fallback={null}><AiHelperLazy /></Suspense>; }
 
 // Boss pages
 const Umumiy = lazy(() => import('./boss/sahifalar/Umumiy'));
@@ -116,6 +121,8 @@ export default function App() {
         <Route path="/qoshil/:kod" element={<QoshilSahifa />} />
         {/* T5: obyektni ulashish havolasi — qabul qilgan odam obyektni o'z ish joyida faqat ko'radi. */}
         <Route path="/ulash/:kod" element={<UlashSahifa />} />
+        {/* Telegram Mini App (@qur_uz_bot menyu tugmasi): imzolangan initData → oddiy sessiya → rol bosh sahifasi. */}
+        <Route path="/tg" element={<Suspense fallback={<SahifaYuklanmoqda />}><TgKirish /></Suspense>} />
 
         {/* Admin shell and routes */}
         <Route path="/admin" element={
@@ -214,6 +221,8 @@ export default function App() {
           <Route path="zakazchik/obyekt/:aloqaId/:obyektId" element={<Suspense fallback={<SahifaYuklanmoqda />}><ObyektPortali /></Suspense>} />
           <Route path="akkaunt" element={<Suspense fallback={<SahifaYuklanmoqda />}><AkkauntMarkazi /></Suspense>} />
           <Route path="sayt-xaritasi" element={<Suspense fallback={<SahifaYuklanmoqda />}><SaytXaritasi /></Suspense>} />
+          {/* Egasi 2026-10-27: tizim darajasidagi jonli mindmap — faqat superadmin va u ruxsat berganlar (sahifa avval serverdan so'raydi). */}
+          <Route path="tizim-xaritasi" element={<Suspense fallback={<SahifaYuklanmoqda />}><TizimXaritasi /></Suspense>} />
           {/* Demo harnesses — explicit, never the default route. */}
           <Route path="_demo/documents" element={<Suspense fallback={<SahifaYuklanmoqda />}><DocumentCenterDemo /></Suspense>} />
           <Route path="_demo/participants" element={<Suspense fallback={<SahifaYuklanmoqda />}><ParticipantNetworkDemo /></Suspense>} />

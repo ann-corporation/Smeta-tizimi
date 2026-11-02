@@ -45,13 +45,15 @@ function boshQiymat(v: string | number | null | undefined): string {
 }
 
 export function QatorTahrirModal({
-  nishon, yop, saqlandi,
+  nishon, yop, saqlandi, ziddiyatda,
 }: {
   nishon: QatorTahrirNishon;
   yop: () => void;
   /** Har bir muvaffaqiyatli saqlashdan keyin chaqiriladi — chaqiruvchi
    *  daraxtni yangilashi mumkin (masalan `yuklash()`). */
   saqlandi: () => void;
+  /** Ziddiyatda (bazada boshqa versiya) — chaqiruvchi shu qatorni qayta o'qiydi; foydalanuvchi qayta urinadi. */
+  ziddiyatda?: () => void;
 }) {
   const [versiya, setVersiya] = useState(nishon.versiya);
   const [qiymatlar, setQiymatlar] = useState<Record<QatorTahrirMaydon, string>>(() => {
@@ -105,6 +107,7 @@ export function QatorTahrirModal({
     if (r.sabab === 'ziddiyat') {
       /* Bu XATO EMAS — boshqa klient tezroq yozgan. Ko'rsatamiz. */
       setZiddiyat((prev) => ({ ...prev, [maydon]: r }));
+      ziddiyatda?.();
       return;
     }
     toast(r.xabar || r.error || t('Saqlanmadi'), 'danger', undefined, 9000);

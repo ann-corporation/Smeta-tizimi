@@ -20,6 +20,7 @@
  * Ikkisini bir faylda saqlash — kelajakda tasodifan yozishga ruxsat
  * berib qo'yishning eng qisqa yo'li.
  */
+import { tokenJavobTozala } from '../_shared/tizim-maxfiy';
 import { cachedAuthority, dataPermission } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
@@ -64,6 +65,10 @@ const AMALLAR = {
   /* Egasi 2026-10-21 (ADR-3): ombor Fakt orqali emas — bajarilgan M-29 orqali kamayadi. */
   m29_bajar_v1: { rpc: 't2_m29_bajar_v1' },
   m29_bekor_v1: { rpc: 't2_m29_bekor_v1' },
+  /* C11 PR-B (2026-10-29): markaziy ombor kirimi — «Приход» varag'idan ≤1000 qatorlik bo'lak (R2 da tasdiqlangan
+     hujjat, idempotent operation_id) va 24 soat ichida storno (sabab majburiy). RPC a'zolik + document.write. */
+  sklad_kirim_import_v1: { rpc: 't2_sklad_markaziy_prixod_import_v1' },
+  sklad_kirim_storno_v1: { rpc: 't2_sklad_markaziy_prixod_storno_v1' },
   /* Egasi 2026-10-02: token daftari (o'zgarmas): sarf/qaytarish — a'zo; to'ldirish/obuna/demo — faqat superadmin (RPC ichida). */
   token_sarfla_v1: { rpc: 't2_token_sarfla_v1' },
   token_qaytar_v1: { rpc: 't2_token_qaytar_v1' },
@@ -207,6 +212,8 @@ const AMALLAR = {
   /* Egasi 2026-10-24 (pul tahlili P1): haqiqiy xarajatni kategoriya/obyekt bilan qo'lda kiritish (idempotent) va bekor qilish. */
   xarajat_kirit_v1: { rpc: 't2_xarajat_kirit_v1' },
   xarajat_bekor_v1: { rpc: 't2_xarajat_bekor_v1' },
+  /* Egasi 2026-10-27: moliyaviy tahlil — tizimda yo'q ko'rsatkichni qo'lda kiritish/almashtirish/bekor (append-only, idempotent). */
+  moliya_qolda_yoz_v1: { rpc: 't2_moliya_qolda_yoz_v1' },
   fakt_yoz_v2: { rpc: 't2_fakt_yoz_v2' },
   fakt_belgila_v2: { rpc: 't2_fakt_belgila_v2' },
   fakt_belgila: { rpc: 't2_fakt_belgila' },
@@ -238,7 +245,9 @@ const AMALLAR = {
   mindmap_bog: { rpc: 't2_mindmap_bog_v2' },
   mindmap_bog_ochir: { rpc: 't2_mindmap_bog_ochir_v2' },
   mindmap_joylashuv_saqla: { rpc: 't2_mindmap_joylashuv_saqla_v2' },
-  mindmap_tugun_ochir: { rpc: 't2_mindmap_tugun_ochir_v2' }
+  mindmap_tugun_ochir: { rpc: 't2_mindmap_tugun_ochir_v2' },
+  /* 2026-11-11: odamni obyekt/loyihaga mas'ul qilib biriktirish/olib tashlash (company.member.manage yoki control.company.write). */
+  mindmap_masul: { rpc: 't2_mindmap_masul_v1' }
 } as const;
 
 type Amal = keyof typeof AMALLAR;
@@ -333,7 +342,7 @@ export const onRequestPost: PagesFunction<{
       if (!uuidRe.test(operationId)) {
         return Response.json({ ok: false, error: 'operation_id UUID bo\'lishi shart' });
       }
-      if (amal !== 'mindmap_joylashuv_saqla' && amal !== 'resurs_yarat_v2' &&
+      if (amal !== 'mindmap_joylashuv_saqla' && amal !== 'mindmap_masul' && amal !== 'resurs_yarat_v2' &&
           (!Number.isInteger(Number(so.expected_version)) || Number(so.expected_version) < 0)) {
         return Response.json({ ok: false, error: 'expected_version noto\'g\'ri' });
       }
@@ -658,6 +667,31 @@ export const onRequestPost: PagesFunction<{
         return Response.json({ ok: false, error: 'M-29 bekor: hujjat va sabab talab qilinadi.' }, { status: 400 });
       }
       yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_hujjat_id: Number(so.hujjat_id), p_sabab: String(so.sabab).slice(0, 1000) };
+    } else if (amal === 'sklad_kirim_import_v1') {
+      const q = so.qatorlar;
+      const butun = (v: unknown) => Number.isSafeInteger(Number(v)) && Number(v) > 0;
+      const matn = (v: unknown, n: number) => (v == null || String(v).trim() === '' ? null : String(v).trim().slice(0, n));
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !butun(so.sklad_id) || !butun(so.document_id)
+          || so.varaq !== 'Приход' || !Array.isArray(q) || q.length < 1 || q.length > 1000
+          || q.some((x: any) => !x || !butun(x.source_row) || !/^\d{4}-\d{2}-\d{2}$/.test(String(x.sana || ''))
+            || typeof x.nomi !== 'string' || !x.nomi.trim() || typeof x.birligi !== 'string' || !x.birligi.trim()
+            || !/^[0-9]+(\.[0-9]+)?$/.test(String(x.obyomi || '')) || !(Number(x.obyomi) > 0))) {
+        return Response.json({ ok: false, code: 'BATCH_INVALID', error: 'Kirim: ombor, hujjat, «Приход» varag‘i, 1–1000 qator (sana, nom, birlik, miqdor > 0) va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_sklad_id: Number(so.sklad_id),
+        p_document_id: Number(so.document_id), p_source_sheet: 'Приход',
+        /* Faqat ruxsat etilgan maydonlar; narx/summa umuman o'tkazilmaydi. */
+        p_qatorlar: q.map((x: any) => ({ source_row: Number(x.source_row), sana: String(x.sana), nomi: String(x.nomi).trim().slice(0, 500),
+          birligi: String(x.birligi).trim().slice(0, 100), obyomi: String(x.obyomi), postavshik: matn(x.postavshik, 500),
+          manba_turi: matn(x.manba_turi, 200), sf_tasdiq: matn(x.sf_tasdiq, 200) })),
+        p_operation_id: so.operation_id };
+    } else if (amal === 'sklad_kirim_storno_v1') {
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isSafeInteger(Number(so.harakat_id)) || Number(so.harakat_id) <= 0
+          || typeof so.sabab !== 'string' || !so.sabab.trim()) {
+        return Response.json({ ok: false, code: 'REQUIRED_FIELD', error: 'Storno: kirim qatori, sabab va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_harakat_id: Number(so.harakat_id),
+        p_sabab: String(so.sabab).trim().slice(0, 1000), p_operation_id: so.operation_id };
     } else if (amal === 'fayl_amal_v1') {
       const AMALLAR = ['nomla', 'kochir', 'savat', 'tikla', 'papka_yarat', 'papka_nomla', 'papka_kochir', 'papka_ochir'];
       const ixt = (v: unknown) => (v == null || v === '' ? null : Number(v));
@@ -2176,6 +2210,25 @@ export const onRequestPost: PagesFunction<{
         p_operation_id: String(so.operation_id),
       };
 
+    } else if (amal === 'moliya_qolda_yoz_v1') {
+      const kompaniyaId = Number(so.kompaniya_id);
+      const obyektId = so.obyekt_id == null || so.obyekt_id === '' ? null : Number(so.obyekt_id);
+      const qiymat = so.qiymat == null || so.qiymat === '' ? null : Number(so.qiymat);
+      if (!Number.isInteger(kompaniyaId) || kompaniyaId <= 0 || (obyektId != null && !(Number.isInteger(obyektId) && obyektId > 0))) {
+        return Response.json({ ok: false, error: 'kompaniya_id yoki obyekt_id noto\'g\'ri' });
+      }
+      if (!['fakt', 'f2', 'f2_kutilgan', 'tushgan', 'sarf', 'qarz', 'yakunlash_talab', 'qmi'].includes(String(so.kod))) return Response.json({ ok: false, error: 'kod noto\'g\'ri' });
+      if (qiymat != null && (!Number.isFinite(qiymat) || Math.abs(qiymat) > 1e15)) return Response.json({ ok: false, error: 'qiymat noto\'g\'ri' });
+      if (so.sana != null && so.sana !== '' && !/^\d{4}-\d{2}-\d{2}$/.test(String(so.sana))) return Response.json({ ok: false, error: 'sana YYYY-MM-DD shaklida bo\'lishi kerak' });
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(so.operation_id || ''))) {
+        return Response.json({ ok: false, error: 'operation_id UUID bo\'lishi kerak' });
+      }
+      yuk = {
+        p_kompaniya_id: kompaniyaId, p_actor_id: sess.foydalanuvchi_id, p_obyekt_id: obyektId, p_kod: String(so.kod),
+        p_qiymat: qiymat, p_sana: so.sana ? String(so.sana) : null, p_izoh: so.izoh ? String(so.izoh).slice(0, 1000) : null,
+        p_operation_id: String(so.operation_id),
+      };
+
     } else if (amal === 'xarajat_bekor_v1') {
       const kompaniyaId = Number(so.kompaniya_id);
       const id = Number(so.id);
@@ -2478,6 +2531,29 @@ export const onRequestPost: PagesFunction<{
           p_kutilgan_versiya: Number(so.expected_version), p_operation_id: operationId,
           p_actor_label: sess.email || null };
       }
+
+    /* ══════════ MINDMAP — MAS'ULLARNI BIRIKTIRISH ══════════
+       Odam (a'zo) → obyekt YOKI loyiha. `ruxsat` null = olib tashlash. Aʼzolik/egalik RPC ichida ham tekshiriladi. */
+    } else if (amal === 'mindmap_masul') {
+      const obyektId = so.obyekt_id == null || so.obyekt_id === '' ? null : Number(so.obyekt_id);
+      const loyihaId = so.loyiha_id == null || so.loyiha_id === '' ? null : Number(so.loyiha_id);
+      const userId = Number(so.foydalanuvchi_id);
+      if ((obyektId == null) === (loyihaId == null)) {
+        return Response.json({ ok: false, error: "obyekt_id yoki loyiha_id (faqat bittasi) kerak" });
+      }
+      for (const v of [obyektId, loyihaId]) {
+        if (v != null && (!Number.isInteger(v) || v <= 0)) return Response.json({ ok: false, error: "obyekt_id/loyiha_id noto'g'ri" });
+      }
+      if (!Number.isInteger(userId) || userId <= 0) {
+        return Response.json({ ok: false, error: "foydalanuvchi_id noto'g'ri" });
+      }
+      const ruxsat = so.ruxsat == null || so.ruxsat === '' ? null : String(so.ruxsat);
+      if (ruxsat != null && !['read', 'write', 'manage'].includes(ruxsat)) {
+        return Response.json({ ok: false, error: "ruxsat noto'g'ri" });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: Number(so.kompaniya_id),
+        p_obyekt_id: obyektId, p_loyiha_id: loyihaId, p_foydalanuvchi_id: userId,
+        p_ruxsat: ruxsat, p_operation_id: operationId };
 
     /* Tugun sudrab ko'chirilganda joylashuv saqlanadi — aks holda har
        ochilganda avtomatik qayta terilib, odam terib qo'ygan tartib
@@ -2899,6 +2975,8 @@ export const onRequestPost: PagesFunction<{
 
     /* Baza `{ok:false, sabab:'ziddiyat'|'invariant', …}` qaytarishi
        MUMKIN va bu xato emas — normal holat. O'zgartirmasdan uzatamiz. */
+    /* Egasi 2026-10-27: sarf hisobidagi tannarx va foyda — faqat platforma superadmini (vakolat bazadan). */
+    if (amal === 'token_sarfla_v1' && sess.rol !== 'superadmin') natija = tokenJavobTozala(natija);
     return Response.json({ ...natija, amal, ms: Date.now() - t0 });
 
   } catch (err: unknown) {

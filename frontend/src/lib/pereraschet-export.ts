@@ -1,3 +1,4 @@
+import { qqsBilan, qqsFormulasi, qqsSumma } from './hisob-yadro';
 /**
  * «ПЕРЕРАСЧЁТ — <объект>» rasmiy hujjati (egasi 2026-10-25): buyurtmachi bilan pereraschet asosi.
  * Hujjat standarti H1–H9 (RasmiyVaraq): narx NDS SIZ, summalar formulada (to'g'ri xarajat), ustamali (obyekt kaskadi)
@@ -129,9 +130,9 @@ export function pereraschetXlsx(n: PNatija, o: PereraschetOpsiya): { bytes: Uint
   const asosQiymat = o.ustamali ? o.ustamali.plus - o.ustamali.minus : n.jami.sof;
   if (o.ndsFoiz != null) {
     const nds = v.qator('jami', [null, null, `НДС ${o.ndsFoiz}%`, null, null, null, null, null, null, null, null,
-      { f: `ROUND(L${asos}*${o.ndsFoiz}/100,2)`, v: Math.round(asosQiymat * o.ndsFoiz) / 100 }, null]);
+      { f: qqsFormulasi(`L${asos}`, o.ndsFoiz), v: qqsSumma(asosQiymat, o.ndsFoiz) }, null]);
     v.qator('vsego', [null, null, 'ВСЕГО ПО ПЕРЕРАСЧЁТУ С НДС', null, null, null, null, null, null, null, null,
-      { f: `L${asos}+L${nds}`, v: asosQiymat + Math.round(asosQiymat * o.ndsFoiz) / 100 }, null]);
+      { f: `L${asos}+L${nds}`, v: qqsBilan(asosQiymat, o.ndsFoiz) }, null]);
   }
   v.filtrOxiri(tL);
   v.bosh();
@@ -200,9 +201,9 @@ function faktDum(v: RasmiyVaraq, nUst: number, saldo: number, sof: number, ust: 
     asosQ = uq;
   }
   if (ndsFoiz != null) {
-    const nq = Math.round(asosQ * ndsFoiz) / 100;
-    const nds = yoz('jami', `НДС ${ndsFoiz}%`, { f: `ROUND(${pL}${asos}*${ndsFoiz}/100,2)`, v: nq });
-    yoz('vsego', 'ВСЕГО ПО ПЕРЕРАСЧЁТУ С НДС', { f: `${pL}${asos}+${pL}${nds}`, v: asosQ + nq });
+    const nq = qqsSumma(asosQ, ndsFoiz);
+    const nds = yoz('jami', `НДС ${ndsFoiz}%`, { f: qqsFormulasi(`${pL}${asos}`, ndsFoiz), v: nq });
+    yoz('vsego', 'ВСЕГО ПО ПЕРЕРАСЧЁТУ С НДС', { f: `${pL}${asos}+${pL}${nds}`, v: qqsBilan(asosQ, ndsFoiz) });
   }
 }
 

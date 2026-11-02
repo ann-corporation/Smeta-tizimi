@@ -4,6 +4,8 @@ import { bosKatKesim, katKesimgaQosh, type KatKesim } from './ustamali-summa';
 import type { JurnalHolat } from './fakt-jurnal';
 import { ochiqQoldiq } from './zamena-qoldiq';
 import { chiqarilganmi } from './resurs-amal';
+import { faktSummaF2Narxda, katJami, qatorSumma, yigindi2 } from './hisob-yadro';
+import { svodKorinishKesimi, yaxlitQatorIdlari, type SvodYaxlit } from './svod-yaxlit';
 
 /**
  * Fakt Studio yig'indisi (egasi 2026-10-24): fakt kiritish ekranida doimiy ko'rinadigan hisob.
@@ -19,6 +21,8 @@ export type FaktYigindi = {
   yangiSoni: number; yangiKesim: KatKesim; yangiUstamasiz: number;
   /** Bajarilmaydigan hajmlar: pozitsiya soni, narxi ma'lum qismining summasi va narxsiz soni. */
   bajarilmadiSoni: number; bajarilmadiKesim: KatKesim; bajarilmadiUstamasiz: number; bajarilmadiNarxsiz: number;
+  /** Narx qoidasi: fakt summasi tasdiqlangan F2 birlik narxida hisoblangan pozitsiyalar soni. */
+  faktF2Narxda: number;
 };
 
 type Qator = Pick<T2Qator, 'id' | 'tur' | 'kat' | 'ota_id' | 'qoshimcha' | 'zamena'>;
@@ -27,6 +31,8 @@ export function faktYigindiHisobla(
   rows: readonly Qator[],
   states: readonly JurnalHolat[],
   bajarilmadi: readonly Pick<BajarilmadiQator, 'qator_id' | 'bajarilmagan_hajm' | 'holat'>[] = [],
+  /** Svod yaxlit (server) — bo'lim fakti yaxlit summaga masshtablanadi (`svodKorinishKesimi`). */
+  svod?: SvodYaxlit | null,
 ): FaktYigindi {
   const holat = new Map(states.map((s) => [s.qator_id, s]));
   const byId = new Map(rows.map((r) => [r.id, r]));
@@ -38,8 +44,8 @@ export function faktYigindiHisobla(
     return false;
   };
   const son = (v: unknown): number | null => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
-  const faktKesim = bosKatKesim(); const yangiKesim = bosKatKesim();
-  let faktUstamasiz = 0; let yangiUstamasiz = 0; let yangiSoni = 0;
+  type El = { id: number; kat: string | null; summa: number | null; smeta: number | null };
+  const faktEl: El[] = []; const yangiEl: El[] = []; let yangiSoni = 0; let faktF2Narxda = 0;
   // Ishdan chiqarilgan resurs (faol «bajarilmaydi» butun smeta hajmini qoplaydi; lib/resurs-amal) — F2 ga kirmaydi,
   // norma × ish faktidan hosila fakt summasi ham jamiga qo'shilmaydi.
   const bajMap = bajarilmadiHajmlar(bajarilmadi);
@@ -49,22 +55,35 @@ export function faktYigindiHisobla(
     if (ildiz(r) && (r.tur === 'bl' || r.tur === 'mat' || r.tur === 'ob') && !(ota && yangiMi(ota))) yangiSoni++;
     if (!BARG.has(r.tur ?? '')) continue;
     if (bajMap.has(r.id) && chiqarilganmi(son(holat.get(r.id)?.smeta_hajm), bajMap.get(r.id))) continue;
-    const s = son(holat.get(r.id)?.fakt_summa);
-    katKesimgaQosh(faktKesim, r.kat, s);
-    if (s != null) faktUstamasiz += s;
-    if (yangiMi(r)) { katKesimgaQosh(yangiKesim, r.kat, s); if (s != null) yangiUstamasiz += s; }
+    // Fakt summasi — yadro narx qoidasi: tasdiqlangan F2 bor qatorda F2 birlik narxida (hajm yozilganidek, NULL — NULL).
+    const h = holat.get(r.id);
+    const fq = faktSummaF2Narxda(son(h?.fakt_hajm), son(h?.f2_hajm), son(h?.f2_summa), son(h?.fakt_summa));
+    if (fq.manba === 'f2' && fq.summa != null) faktF2Narxda++;
+    const e = { id: r.id, kat: r.kat ?? null, summa: fq.summa, smeta: son(h?.smeta_summa) };
+    faktEl.push(e);
+    if (yangiMi(r)) yangiEl.push(e);
   }
-  const bajarilmadiKesim = bosKatKesim();
-  let bajarilmadiUstamasiz = 0; let bajarilmadiNarxsiz = 0; let bajarilmadiSoni = 0;
+  // Kesim va jami — yadrodan (`svodKorinishKesimi`): svod bo'limi yaxlit × (fakt / BUTUN bo'lim smetasi), ustama yo'q.
+  const bolimSmeta = new Map<number, number>();
+  for (const b of svod?.bolimlar ?? []) {
+    const ids = yaxlitQatorIdlari(rows, { ...svod!, bolimlar: [b] });
+    bolimSmeta.set(Number(b.qator_id), yigindi2(rows.filter((r) => ids.has(r.id) && BARG.has(r.tur ?? '')).map((r) => son(holat.get(r.id)?.smeta_summa))));
+  }
+  const f = { id: (e: El) => e.id, kat: (e: El) => e.kat, summa: (e: El) => e.summa, smeta: (e: El) => e.smeta };
+  const faktKesim = svodKorinishKesimi(rows, faktEl, f, svod, { bolimSmeta });
+  const yangiKesim = svodKorinishKesimi(rows, yangiEl, f, svod, { bolimSmeta });
+  const jami = (k: KatKesim) => yigindi2([katJami(k.summalar), k.nomalum, k.yaxlit?.qqssiz]);  const bajarilmadiKesim = bosKatKesim();
+  const bajL: number[] = []; let bajarilmadiNarxsiz = 0; let bajarilmadiSoni = 0;
   for (const b of bajarilmadi) {
     if (b.holat !== 'faol') continue;
     bajarilmadiSoni++;
     const narx = son(holat.get(b.qator_id)?.smeta_narx);
-    if (narx == null) { bajarilmadiNarxsiz++; continue; }
-    const summa = Number(b.bajarilmagan_hajm) * narx;
-    bajarilmadiUstamasiz += summa; katKesimgaQosh(bajarilmadiKesim, byId.get(b.qator_id)?.kat, summa);
+    // NULL ≠ 0: narx noma'lum — summa noma'lum (sanaladi). Summa = ROUND(hajm × narx, 2) — yadro.
+    const summa = qatorSumma(Number(b.bajarilmagan_hajm), narx);
+    if (summa == null) { bajarilmadiNarxsiz++; continue; }
+    bajL.push(summa); katKesimgaQosh(bajarilmadiKesim, byId.get(b.qator_id)?.kat, summa);
   }
-  return { faktKesim, faktUstamasiz, yangiSoni, yangiKesim, yangiUstamasiz, bajarilmadiSoni, bajarilmadiKesim, bajarilmadiUstamasiz, bajarilmadiNarxsiz };
+  return { faktKesim, faktUstamasiz: jami(faktKesim), yangiSoni, yangiKesim, yangiUstamasiz: jami(yangiKesim), bajarilmadiSoni, bajarilmadiKesim, bajarilmadiUstamasiz: yigindi2(bajL), bajarilmadiNarxsiz, faktF2Narxda };
 }
 
 /** Faol «bajarilmadi» hajmlari: qator_id -> jami bajarilmagan hajm. */

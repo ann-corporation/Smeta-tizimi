@@ -4,13 +4,14 @@
  * /api/system-control `capability_override_set` (scope=company; server: boss/superadmin, versiya, audit).
  * Bu menyu ko'rinishi — xavfsizlik chegarasi emas (ruxsatlarni server alohida tekshiradi).
  */
+import { vaqtliOqish } from './vaqtli-fetch';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { capabilityOverrideSet } from './t2-control';
 
 export type Modul = { kod: string; nom: string; izoh: string | null; holat: 'on' | 'off'; manba: string; versiya: number };
 
 export async function modulHolatOl(kompaniyaId: number): Promise<Modul[]> {
-  const r = await fetch('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soro: 'modul_holat_v1', kompaniya_id: kompaniyaId }) });
+  const r = await vaqtliOqish('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soro: 'modul_holat_v1', kompaniya_id: kompaniyaId }) });
   const j = await r.json().catch(() => null) as { ok?: boolean; natija?: { ok?: boolean; modullar?: Modul[] }; error?: string } | null;
   if (!j?.ok || !j.natija?.ok || !Array.isArray(j.natija.modullar)) throw new Error(j?.error || 'Modullar holatini o‘qib bo‘lmadi');
   return j.natija.modullar;

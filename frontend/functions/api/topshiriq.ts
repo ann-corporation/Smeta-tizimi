@@ -8,8 +8,9 @@
 import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
+import { fonda, telegramYubor } from '../_shared/telegram';
 
-type Env = { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string };
+type Env = { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; TELEGRAM_BOT_TOKEN?: string; TELEGRAM_SAYT_URL?: string };
 type Yuk = Record<string, unknown>;
 const JAVOB = { headers: { 'Cache-Control': 'no-store' } };
 const TURLAR = ['ish', 'reys', 'tamir', 'tekshiruv', 'tuzatish', 'boshqa'];
@@ -96,5 +97,11 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const t = yozishYuki(so);
   if (typeof t === 'string') return Response.json({ ok: false, error: t }, { status: 400 });
   const r = await rpc(ctx.env, t.rpc, { p_actor_id: a, ...t.yuk });
+  /* Telegram (egasi 2026-10-28): topshiriq BAZADA muvaffaqiyatli berilgandan keyingina ijrochiga xabar (opt-in, fonda).
+   * Ruxsat RPC ichida tekshirilgan; xabar javobni kechiktirmaydi va xatosi javobni buzmaydi. */
+  const ijrochi = butun(t.yuk.p_ijrochi_foydalanuvchi_id);
+  if (t.rpc === 't2_topshiriq_ber_v1' && r.status === 200 && r.body.ok !== false && ijrochi && ijrochi !== a) {
+    fonda(ctx, telegramYubor(ctx.env, ijrochi, 'Sizga yangi topshiriq: {sarlavha}', { sarlavha: String(t.yuk.p_sarlavha ?? '') }, 'topshiriq'));
+  }
   return Response.json(r.body, { status: r.status, ...JAVOB });
 };

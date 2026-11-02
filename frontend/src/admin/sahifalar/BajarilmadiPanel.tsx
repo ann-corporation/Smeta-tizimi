@@ -52,7 +52,7 @@ export function BajarilmadiPanel({ kompaniyaId, obyektId, obyektNomi, qatorlar, 
   const belgila = async () => {
     if (!tanlangan) return;
     const n = hajm.trim() ? Number(hajm.replace(',', '.')) : null;
-    if (n != null && (!Number.isFinite(n) || n < 0)) { setXabar({ tur: 'xato', matn: t('Hajm musbat son bo‘lishi kerak') }); return; }
+    if (n != null && !Number.isFinite(n)) { setXabar({ tur: 'xato', matn: t('Hajm son bo‘lishi kerak (minus ham mumkin)') }); return; }
     const id = hujjat.trim() ? Number(hujjat) : null;
     if (id != null && !(Number.isInteger(id) && id > 0)) { setXabar({ tur: 'xato', matn: t('Dalil hujjat raqami noto‘g‘ri') }); return; }
     setBand(true); setXabar(null);

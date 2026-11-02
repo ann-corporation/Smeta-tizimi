@@ -28,6 +28,8 @@ export const ID_JADVAL: Readonly<Record<string, string>> = {
   p_document_id: 't2_document_registry',
   /* Fayl menejeri o'z papkalari (p_ota_id emas — u t2_qator uchun band). */
   p_papka_id: 't2_fayl_papka', p_ota_papka_id: 't2_fayl_papka',
+  /* C11 markaziy ombor kirimi (2026-10-29): ombor va jurnal qatori ham shlyuzda kompaniya bo'yicha tekshiriladi. */
+  p_sklad_id: 't2_sklad_mustaqil', p_harakat_id: 't2_sklad_harakat',
 };
 /** Massiv argumentlar. */
 export const IDLAR_JADVAL: Readonly<Record<string, string>> = { p_aosr_ids: 't2_aosr', p_qator_ids: 't2_qator', p_obyektlar: 't2_obyekt' };

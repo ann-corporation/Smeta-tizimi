@@ -40,7 +40,7 @@ describe('smeta podvali → obyekt podvali', () => {
     expect(t.yangi.itogo4).toBe(1183.78);
     expect(t.eski.vsego).toBe(1325.83);
     expect(t.yangi.vsego).toBe(1361.35);
-    expect(t.kfYangi.ЧЕЛ).toBeGreaterThan(t.kfEski.ЧЕЛ);
+    expect(t.kfYangi.ЧЕЛ!).toBeGreaterThan(t.kfEski.ЧЕЛ!);
   });
 });
 
@@ -56,5 +56,15 @@ describe('shartnoma ↔ smeta podvali (egasi 2026-10-27: smetadagisi ustun)', ()
   it('bir xil yoki maʼlumotsiz — boʻsh', () => {
     expect(shartnomaSmetaFarqlari(SUKUT, SUKUT)).toEqual([]);
     expect(shartnomaSmetaFarqlari(null, SUKUT)).toEqual([]);
+  });
+});
+
+describe('smetadanPodval — aniq 0 va meros farqi', () => {
+  it('hujjatdagi aniq 0 — smeta (manba bo‘lmasa ham); topilmagan kod — meros (joriy qiymat)', () => {
+    const o: NakrutkaPodvalOqish = { ...OQISH, koeffitsientlar: { РИСК: 0, ТРАНСПОРТ_МАТЕРИАЛ: 5 }, manba: { ТРАНСПОРТ_МАТЕРИАЛ: m(10) }, holat: 'qisman', lokal: true };
+    const p = smetadanPodval(o, SUKUT);
+    expect(p.qatorlar.find((q) => q.koefKod === 'РИСК')).toMatchObject({ foiz: 0, manba: 'smeta' });
+    expect(p.qatorlar.find((q) => q.koefKod === 'ПРОЧИЕ_ПОДРЯДЧИК')).toMatchObject({ foiz: 18, manba: 'meros' });
+    expect(podvalSmetaNk(p)).toEqual({ РИСК: 0, ТРАНСПОРТ_МАТЕРИАЛ: 5 });
   });
 });

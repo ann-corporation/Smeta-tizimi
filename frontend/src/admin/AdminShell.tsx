@@ -12,6 +12,7 @@ import { KompaniyaLogoRasm } from '../umumiy/hujjat/KompaniyaLogo';
 import { KompaniyaTanlagich } from '../umumiy/kontekst/KompaniyaTanlagich';
 import { PTOWorkspaceBar, PTOWorkspaceProvider } from '../umumiy/kontekst/PTOWorkspaceContext';
 import { RuxsatGuard } from '../umumiy/kontekst/RuxsatGuard';
+import { SahifaChegarasi } from '../umumiy/ui/XatoChegarasi';
 import { tizimdanChiq } from '../umumiy/kontekst/chiqish';
 import { t } from '../i18n/til';
 import { TilTanlagich } from '../i18n/TilTanlagich';
@@ -23,6 +24,7 @@ import { CommandPalette } from '../umumiy/ui/CommandPalette';
 import { BolimTablariKontekst } from './bolimTablariKontekst';
 import { NAV_GURUHLAR, NAV_SAHIFALAR, type NavIkonka } from '../lib/nav/navReestr';
 import { menyuQur } from '../lib/nav/navFiltr';
+import { useTizimRuxsat } from '../api/t2-tizim-xaritasi';
 import { useModullar } from '../api/t2-modul';
 import { MENYU_MODUL } from '../lib/modullar';
 
@@ -66,6 +68,8 @@ function AdminShellInner() {
   const sess = useSessiya();
   const k = useKompaniya();
   const modulQuery = useModullar(k.globalRejim ? null : k.joriy?.id);
+  /* Tizim xaritasi menyusi — faqat server ruxsat bersa (superadmin yoki berilgan grant); 5 daqiqa kesh. */
+  const tizimRuxsat = useTizimRuxsat(!!sess.data);
   const joy = useLocation();
   // Effective role for THIS render: the active company's own membership
   // role, or a platform-level label when no company is selected. Never the
@@ -181,7 +185,7 @@ function AdminShellInner() {
   // (bu ko'rinish, xavfsizlik emas; L0 2026-10-22: Codex varianti xato bo'lganda ishni to'xtatardi).
   const moduleOpen = !routeModule || !modullar?.some(m => m.kod === routeModule && m.holat === 'off');
   /* Rol/ruxsat/modul/qatlam filtri — sof funksiya (lib/nav/navFiltr.ts, rol snapshot testlari bilan). */
-  const filtrKilinganGuruhlar = menyuQur({ superadmin: !!k.superadmin, rol: effektivRol, permissions: k.joriy?.permissions, modullar })
+  const filtrKilinganGuruhlar = menyuQur({ superadmin: !!k.superadmin, rol: effektivRol, permissions: k.joriy?.permissions, modullar, tizimXaritasi: tizimRuxsat.data?.ruxsat === true })
     .map(g => ({ nom: g.nom, id: g.id, Ikonka: IKONKALAR[g.ikonka], menyular: g.bandlar.map((b): MenyuQator => ({ yol: b.yol, nom: b.nom, Ikonka: IKONKALAR[b.ikonka], tablar: b.tablar })) }));
   /* Ctrl+K — sidebar bilan BIR manba: shu rol/ruxsat/modul filtridan o'tgan bandlar (tizim xaritasi P3); tablar alohida topiladi. */
   const palitraBandlari = filtrKilinganGuruhlar.flatMap(g => g.menyular.flatMap(m => m.tablar
@@ -286,8 +290,8 @@ function AdminShellInner() {
           </button>
           <OrqaOldinga />
           <KompaniyaTanlagich />
-          {k.superadmin && <span className="rounded-md border border-accent/25 px-2 py-1 text-[10px] text-accent">{t('Platforma roli')}: superadmin</span>}
-          {k.superadmin && k.joriy?.membershipRole && <span className="text-[10px] text-text-dim">{t('Kompaniyadagi rol')}: {k.joriy.membershipRole}</span>}
+          {k.superadmin && <span className="hidden rounded-md border border-accent/25 px-2 py-1 text-[10px] text-accent 2xl:inline">{t('Platforma roli')}: superadmin</span>}
+          {k.superadmin && k.joriy?.membershipRole && <span className="hidden text-[10px] text-text-dim 2xl:inline">{t('Kompaniyadagi rol')}: {k.joriy.membershipRole}</span>}
           <PTOWorkspaceBar />
           <div className="ml-auto flex items-center gap-2"><TilTanlagich ixcham /><AkkauntTugmasi /></div>
         </div>
@@ -328,7 +332,7 @@ function AdminShellInner() {
          * tashqi scroll umuman ko'rinmaydi. */}
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
           <BolimTablariKontekst.Provider value={tabGuruhlari}>
-            {moduleOpen ? <RuxsatGuard /> : <p role="alert" className="karta p-4 text-sm">{t('Bu modul kompaniyada o‘chirilgan.')}</p>}
+            {moduleOpen ? <SahifaChegarasi><RuxsatGuard /></SahifaChegarasi> : <p role="alert" className="karta p-4 text-sm">{t('Bu modul kompaniyada o‘chirilgan.')}</p>}
           </BolimTablariKontekst.Provider>
         </div>
       </main>

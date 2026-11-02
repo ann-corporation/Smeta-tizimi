@@ -9,6 +9,7 @@
  */
 import type { TreeNode } from '../api/types';
 import { katGuruh, type KatGuruh } from './f2-hujjat-korinish';
+import { ayirma2, yaxlit2 } from './hisob-yadro';
 
 const n = (v: number | null | undefined): number | null => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
 
@@ -34,11 +35,11 @@ function yig(qismlar: readonly Uchlik[]): Kesim {
   }
   const { smeta, fakt, f2 } = sum;
   const ul = (x: number | null) => (smeta != null && smeta > 0 && x != null ? Math.min(1, Math.max(0, x / smeta)) : null);
-  const bajarilgan = fakt == null && f2 == null ? null : Math.max(fakt ?? 0, f2 ?? 0);
+  // Egasi: fakt ≥ F2 qoidasi YO'Q — bajarilish = fakt yozilganidek; qoldiq = smeta − F2 AYNAN (yadro `ayirma2`).
   return {
-    smeta, fakt, f2,
-    f2Ulush: ul(f2), faktUlush: ul(bajarilgan),
-    qoldiq: smeta == null || bajarilgan == null ? null : smeta - bajarilgan,
+    smeta: smeta == null ? null : yaxlit2(smeta), fakt: fakt == null ? null : yaxlit2(fakt), f2: f2 == null ? null : yaxlit2(f2),
+    f2Ulush: ul(f2), faktUlush: ul(fakt),
+    qoldiq: ayirma2(smeta, f2 ?? 0),
     nomalum: nom, toliq: nom.smeta === 0 && nom.fakt === 0 && nom.f2 === 0,
   };
 }

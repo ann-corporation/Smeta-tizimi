@@ -1,0 +1,142 @@
+{
+ "Ustun filtri": {
+  "ru": "Фильтр столбца",
+  "en": "Column filter"
+ },
+ "Filtr va saralash": {
+  "ru": "Фильтр и сортировка",
+  "en": "Filter and sort"
+ },
+ "Filtr": {
+  "ru": "Фильтр",
+  "en": "Filter"
+ },
+ "Kichikdan kattaga": {
+  "ru": "По возрастанию",
+  "en": "Smallest to largest"
+ },
+ "A → Я": {
+  "ru": "А → Я",
+  "en": "A → Z"
+ },
+ "Kattadan kichikka": {
+  "ru": "По убыванию",
+  "en": "Largest to smallest"
+ },
+ "Я → A": {
+  "ru": "Я → А",
+  "en": "Z → A"
+ },
+ "Son sharti": {
+  "ru": "Числовое условие",
+  "en": "Number condition"
+ },
+ "Son sharti — yo‘q": {
+  "ru": "Без числового условия",
+  "en": "No number condition"
+ },
+ "katta": {
+  "ru": "больше",
+  "en": "greater"
+ },
+ "katta yoki teng": {
+  "ru": "больше или равно",
+  "en": "greater or equal"
+ },
+ "kichik": {
+  "ru": "меньше",
+  "en": "less"
+ },
+ "kichik yoki teng": {
+  "ru": "меньше или равно",
+  "en": "less or equal"
+ },
+ "teng emas": {
+  "ru": "не равно",
+  "en": "not equal"
+ },
+ "oraliqda": {
+  "ru": "между",
+  "en": "between"
+ },
+ "gacha": {
+  "ru": "до",
+  "en": "to"
+ },
+ "Matn sharti": {
+  "ru": "Текстовое условие",
+  "en": "Text condition"
+ },
+ "ichida bor": {
+  "ru": "содержит",
+  "en": "contains"
+ },
+ "ichida yo‘q": {
+  "ru": "не содержит",
+  "en": "does not contain"
+ },
+ "bilan boshlanadi": {
+  "ru": "начинается с",
+  "en": "starts with"
+ },
+ "Matn": {
+  "ru": "Текст",
+  "en": "Text"
+ },
+ "matn…": {
+  "ru": "текст…",
+  "en": "text…"
+ },
+ "Qiymatlardan qidirish": {
+  "ru": "Поиск значений",
+  "en": "Search values"
+ },
+ "Qiymatlardan qidirish…": {
+  "ru": "Поиск значений…",
+  "en": "Search values…"
+ },
+ "Topilganlarni belgilash": {
+  "ru": "Выбрать найденные",
+  "en": "Select found"
+ },
+ "Hammasini belgilash": {
+  "ru": "Выделить все",
+  "en": "Select all"
+ },
+ "(bo‘sh)": {
+  "ru": "(пустые)",
+  "en": "(blanks)"
+ },
+ "Yana {n} ta — qidiruv bilan toraytiring": {
+  "ru": "Ещё {n} — уточните поиском",
+  "en": "{n} more — narrow with search"
+ },
+ "Qo‘llash": {
+  "ru": "Применить",
+  "en": "Apply"
+ },
+ "{n} ta filtr/saralash faol": {
+  "ru": "Активно фильтров/сортировок: {n}",
+  "en": "{n} filters/sorts active"
+ },
+ "{a} / {b} qator": {
+  "ru": "{a} / {b} строк",
+  "en": "{a} / {b} rows"
+ },
+ "Filtrlarni tozalash": {
+  "ru": "Сбросить фильтры",
+  "en": "Clear filters"
+ },
+ "Son qiymati": {
+  "ru": "Значение",
+  "en": "Value"
+ },
+ "Bo‘limlar panelini ochish": {
+  "ru": "Открыть панель разделов",
+  "en": "Open sections panel"
+ },
+ "Bo‘limlar panelini yig‘ish": {
+  "ru": "Свернуть панель разделов",
+  "en": "Collapse sections panel"
+ }
+}

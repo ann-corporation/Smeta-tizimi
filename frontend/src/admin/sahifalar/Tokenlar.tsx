@@ -13,6 +13,8 @@ const TUR_NOMI: Record<TokenHarakat['tur'], string> = { oylik: 'Obuna (oylik)', 
 const HOLAT_NOMI: Record<string, string> = { kutilmoqda: 'Kutilmoqda', tasdiqlandi: 'Tasdiqlandi', rad: 'Rad etildi', bekor: 'Bekor qilindi' };
 const son = (x: number | null | undefined) => (x == null ? '—' : Number(x).toLocaleString(tilLocale(), { maximumFractionDigits: 2 }));
 const kirit = 'rounded-md border border-border bg-surface px-2 py-1.5 text-[13px] text-text outline-none focus:border-accent';
+/* Mijozga: narx qanday shakllanishi — tannarx/foyda tilga olinmaydi (egasi 2026-10-27). */
+const QANDAY_HISOB_KALIT = 'Narx tizim hisoblagan kataklar soni boʻyicha. Har sarfning hisobi pastda koʻrinadi. Bir xil hujjatni qayta yuklash bepul; xato boʻlsa token qaytadi; maʼlumot kiritish bepul.';
 const HOLAT_MUHR: Record<string, string> = { kutilmoqda: 'fz-stamp--warn', tasdiqlandi: 'fz-stamp--ok', rad: 'fz-stamp--danger', bekor: '' };
 
 /** Oxirgi 30 kun: kunlik sarf ustunlari (firuza) va kirim belgisi (yashil). */
@@ -39,15 +41,16 @@ function SarfGrafik({ kunlar }: { kunlar: KunSarf[] }) {
   );
 }
 
-/** Sarf hisobining to'liq izohi: nima uchun, qancha birlik, tannarx, foyda, yakuniy narx. */
-function HisobIzoh({ h, meta }: { h: NarxTafsilot; meta: TokenHarakat['meta'] }) {
+/** Sarf hisobining izohi: nima uchun, qancha birlik, yakuniy narx. Tannarx va foyda — faqat platforma superadminiga
+ *  (egasi 2026-10-27; server ham ularni boshqalarga yubormaydi — functions/_shared/tizim-maxfiy.ts). */
+function HisobIzoh({ h, meta, superadmin }: { h: NarxTafsilot; meta: TokenHarakat['meta']; superadmin: boolean }) {
   return (
     <div className="grid gap-x-6 gap-y-0.5 text-[12px] text-text-dim md:grid-cols-2">
       {meta?.sabab && <div className="md:col-span-2 text-text">{String(meta.sabab)}</div>}
       <div>{t('Amal')}: <b className="text-text">{t(h.nom)}</b></div>
       <div>{t('Hajm')}: <b className="text-text">{son(h.birlik_soni)}</b> {t('birlik')} ({son(h.qism)} × {son(h.birlik)})</div>
-      <div>{t('Tannarx')}: {son(h.asos_som)} + {son(h.qism)} × {son(h.birlik_som)} = <b className="text-text">{son(h.tannarx_som)} {t('soʻm')}</b></div>
-      <div>{t('Foyda')}: {son(h.foyda_foiz)}% {h.min_som ? `· ${t('min')} ${son(h.min_som)}` : ''} {h.max_som ? `· ${t('max')} ${son(h.max_som)}` : ''}</div>
+      {superadmin && <div>{t('Tannarx')}: {son(h.asos_som)} + {son(h.qism)} × {son(h.birlik_som)} = <b className="text-text">{son(h.tannarx_som)} {t('soʻm')}</b></div>}
+      {superadmin && <div>{t('Foyda')}: {son(h.foyda_foiz)}% {h.min_som ? `· ${t('min')} ${son(h.min_som)}` : ''} {h.max_som ? `· ${t('max')} ${son(h.max_som)}` : ''}</div>}
       <div>{t('Yakuniy narx')}: <b className="text-text">{son(h.yakuniy_som)} {t('soʻm')}</b></div>
       <div>{t('Token')}: {son(h.yakuniy_som)} ÷ {son(h.token_som)} = <b className="text-text">{son(h.token)}</b></div>
     </div>
@@ -55,12 +58,13 @@ function HisobIzoh({ h, meta }: { h: NarxTafsilot; meta: TokenHarakat['meta'] })
 }
 
 /**
- * Tokenlar va obuna (egasi, 2026-10-02): balans, token sotib olish, narxlar (tannarx + foyda), har sarfning
- * "nima uchun" izohi. Superadmin amallari — Boshqaruv panelida.
+ * Tokenlar va obuna (egasi, 2026-10-02): balans, token sotib olish, amallar narxi, har sarfning "nima uchun" izohi.
+ * Tannarx, foyda foizi va platforma ustamasi — faqat superadmin (egasi 2026-10-27). Superadmin amallari — Boshqaruv panelida.
  */
 export function Tokenlar() {
   const { joriy } = useKompaniya();
   const kid = joriy?.id ?? null;
+  const QANDAY_HISOB = t(QANDAY_HISOB_KALIT);
   const [h, setH] = useState<TokenHolat | null>(null);
   const [xato, setXato] = useState<string | null>(null);
   const [yuk, setYuk] = useState(false);
@@ -136,7 +140,7 @@ export function Tokenlar() {
           <details className="fz-card p-4 text-[12.5px] text-text-dim">
             <summary className="cursor-pointer text-[13px] font-semibold text-text">{t('Qanday hisoblanadi')}</summary>
             <div className="mt-2 flex flex-col gap-1">
-              <span>{t('Narx = tannarx (tizim hisoblagan kataklar soni boʻyicha) + foyda. Har sarfning toʻliq hisobi pastda koʻrinadi. Bir xil hujjatni qayta yuklash bepul; xato boʻlsa token qaytadi; maʼlumot kiritish bepul.')}</span>
+              <span>{h.superadmin ? t('Narx = tannarx (tizim hisoblagan kataklar soni boʻyicha) + foyda. Har sarfning toʻliq hisobi pastda koʻrinadi. Bir xil hujjatni qayta yuklash bepul; xato boʻlsa token qaytadi; maʼlumot kiritish bepul.') : QANDAY_HISOB}</span>
               <span>{t('Faqat tizim oʻzi hisoblab yozgan katak sanaladi (summa, jami, nakrutka — formula). Matn, ish nomlari va hujjatdan koʻchirilgan sonlar sanalmaydi. Tekshirish: Excel → «Выделить группу ячеек» → «Формулы».')}</span>
               {f2Misol && <span className="text-text">{t('Masalan: F2 (213 hisoblangan katak) = {s} soʻm = {n} token', { s: son(f2Misol.yakuniy_som), n: son(f2Misol.token) })}</span>}
             </div>
@@ -196,7 +200,9 @@ export function Tokenlar() {
                       <td className="text-text">{t(n.nom)}{n.izoh && <div className="text-[11px] text-text-mute">{t(n.izoh)}</div>}</td>
                       <td className="text-[12px] text-text-dim">
                         {n.asos_som || n.birlik_som
-                          ? t('{a} soʻm + har {b} birlikka {c} soʻm, foyda {f}%', { a: son(n.asos_som), b: son(n.birlik), c: son(n.birlik_som), f: son(n.foyda_foiz ?? h.sozlama.foyda_foiz) })
+                          ? (h.superadmin
+                            ? t('{a} soʻm + har {b} birlikka {c} soʻm, foyda {f}%', { a: son(n.asos_som), b: son(n.birlik), c: son(n.birlik_som), f: son(n.foyda_foiz ?? h.sozlama.foyda_foiz) })
+                            : t('{a} soʻm + har {b} birlikka {c} soʻm', { a: son(n.asos_som), b: son(n.birlik), c: son(n.birlik_som) }))
                           : t('Bepul')}
                         {n.min_som ? ` · ${t('min')} ${son(n.min_som)}` : ''}{n.max_som ? ` · ${t('max')} ${son(n.max_som)}` : ''}
                       </td>
@@ -230,7 +236,7 @@ export function Tokenlar() {
                         </td>
                         <td className={`fz-c-num font-semibold ${x.miqdor < 0 ? 'text-danger' : 'text-ok'}`}>{x.miqdor > 0 ? '+' : ''}{son(x.miqdor)}</td>
                       </tr>
-                      {ochiq === x.id && hisob && <tr><td /><td colSpan={3} className="pb-2"><HisobIzoh h={hisob} meta={x.meta} /></td></tr>}
+                      {ochiq === x.id && hisob && <tr><td /><td colSpan={3} className="pb-2"><HisobIzoh h={hisob} meta={x.meta} superadmin={h.superadmin} /></td></tr>}
                     </Fragment>
                   );
                 })}

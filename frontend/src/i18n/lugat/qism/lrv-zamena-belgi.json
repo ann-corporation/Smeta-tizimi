@@ -1,0 +1,15 @@
+{
+  "Asl smeta": { "ru": "Основная смета", "en": "Original estimate" },
+  "Avvalgi versiya (almashtirilgan)": { "ru": "Предыдущая версия (заменена)", "en": "Previous version (superseded)" },
+  "Qo‘shimcha ish — asl smetada yo‘q": { "ru": "Дополнительная работа — нет в основной смете", "en": "Additional work — not in the original estimate" },
+  "QO‘SHIMCHA": { "ru": "ДОП. РАБОТА", "en": "ADDITIONAL" },
+  "Zamena — asl smeta qatori o‘rniga": { "ru": "Замена — вместо позиции основной сметы", "en": "Replacement — instead of an original estimate line" },
+  "ZAMENA": { "ru": "ЗАМЕНА", "en": "REPLACEMENT" },
+  "Avvalgi versiya — yangi smeta versiyasi bilan almashtirilgan; jamlarga kirmaydi": { "ru": "Предыдущая версия — заменена новой версией сметы; в итоги не входит", "en": "Previous version — superseded by a new estimate version; excluded from totals" },
+  "AVVALGI VERSIYA": { "ru": "ПРЕД. ВЕРСИЯ", "en": "PREVIOUS VERSION" },
+  "Almashtirilgan asl qator": { "ru": "Заменённая позиция основной сметы", "en": "Replaced original line" },
+  "poz.": { "ru": "поз.", "en": "item" },
+  "Zamena qilingan": { "ru": "Заменено", "en": "Replaced by" },
+  "ALMASHTIRILGAN": { "ru": "ЗАМЕНЕНО", "en": "REPLACED" },
+  "Zamenadan keyin asl qatorning qoldiq hajmi": { "ru": "Остаток объёма исходной позиции после замены", "en": "Remaining quantity of the original line after replacement" }
+}

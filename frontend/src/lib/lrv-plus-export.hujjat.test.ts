@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { strFromU8, unzipSync } from 'fflate';
 import { lrvPlusFaylBaytlari, lrvPlusFaylNomi } from './lrv-plus-export';
 import { NAKRUTKA_STANDART } from './nakrutka-kaskad';
+import { standartPodval } from './hisob-yadro';
 import { hujjatTekshir, imzoRollariBormi } from './hujjat-yozuvchi';
 import { namunaSaqla } from './hujjat-yozuvchi/test-yordam';
 import type { T2Qator, T2QatorHolat } from '../api/supabase';
@@ -74,7 +75,7 @@ describe('LRV_PLUS — hujjat standarti', () => {
     const k = hujjatTekshir(bytes, { ruxsat: T1_MATNI }).varaqlar[0].kataklar;
     const qatorOf = (matn: string) => Number(k.find((x) => x.matn === matn)!.ref.replace(/^[A-Z]+/, ''));
     const i2 = qatorOf('ИТОГО-2');
-    const i3 = qatorOf('ИТОГО-3 (+ ОБ + транспорт/заготовка)');
+    const i3 = qatorOf('ИТОГО-3 (с оборудованием)'); // podval nomi (yagona formula quruvchisi)
     expect(k.find((x) => x.ref === `F${i3}`)!.f).toBe(`ROUND(F${i2}+M3+F${i3 - 2}+F${i3 - 1},2)`);
   });
 
@@ -87,5 +88,22 @@ describe('LRV_PLUS — hujjat standarti', () => {
     const bytes = await lrvPlusFaylBaytlari(DARAXT, 'Амфитеатр', HOLAT, {}, { kompaniyaId: 1, loyihaId: 1, obyektId: 1, davrId: '2026-09', sourceDocumentId: '7', revisionId: '7:r1', sourceChecksum: 'abc', dataComplete: true });
     const t = hujjatTekshir(bytes, { ruxsat: T1_MATNI });
     expect(t.varaqlar.find((v) => v.nom === 'МАНБА')?.yashirin).toBe(true);
+  });
+});
+
+describe('LRV_PLUS — ustama podvali yadrodan (formula = kesh)', () => {
+  it('БЕЗ СКЛАД kaskadga kiradi, vid ko‘rsatilmagan qator yashirilmaydi (alohida «без накрутки» qatori), maxsus podval nomlari bilan', async () => {
+    const leaves = DARAXT.filter((x) => ['rs', 'mat', 'ob'].includes(x.tur ?? ''));
+    const D = DARAXT.map((x) => (x.id === leaves[0].id ? { ...x, kat: 'БЕЗСКЛАД' } : x.id === leaves[1].id ? { ...x, kat: null } : x));
+    const bytes = await lrvPlusFaylBaytlari(D, 'Амфитеатр', HOLAT, { nakrutka: NAKRUTKA_STANDART });
+    const matn = hujjatTekshir(bytes, { ruxsat: T1_MATNI }).varaqlar[0].kataklar.map((x) => x.matn);
+    expect(matn).toEqual(expect.arrayContaining(['Прямые затраты: материалы без складского хранения (БЕЗ СКЛАД)', 'ВИД ЗАТРАТ НЕ УКАЗАН — без накрутки (только НДС)']));
+    const p = standartPodval(NAKRUTKA_STANDART);
+    p.qatorlar.splice(p.qatorlar.findIndex((q) => q.kod === 'itogo3'), 0, { kod: 'vrem', nom: 'Временные здания, %', tur: 'foiz', foiz: 1.5, baza: [{ qator: 'itogo2' }] });
+    p.qatorlar.find((q) => q.kod === 'itogo3')!.baza!.push({ qator: 'vrem' });
+    const b2 = await lrvPlusFaylBaytlari(D, 'Амфитеатр', HOLAT, { nakrutka: NAKRUTKA_STANDART, podval: p });
+    const k2 = hujjatTekshir(b2, { ruxsat: T1_MATNI }).varaqlar[0].kataklar;
+    expect(k2.some((x) => (x.matn ?? '').startsWith('Временные здания'))).toBe(true);
+    expect(k2.some((x) => /#(REF|VALUE)/.test(String(x.v ?? '')))).toBe(false);
   });
 });
