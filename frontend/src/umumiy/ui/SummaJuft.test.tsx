@@ -26,10 +26,10 @@ afterEach(cleanup);
 describe('SummaJuft (sukut, jami) — QQS bilan katta; ustamali va ustamasiz kichik (egasi 2026-10-27)', () => {
   it('asosiy — server ВСЕГО (QQS bilan) tiyinigacha; ostida ИТОГО-4 va ustamasiz', async () => {
     wrap(<SummaJuft obyektId={7} kompaniyaId={17} ustamasiz={1283792838.67} katKesim={katKesimServerdan(CATS)} />);
-    await waitFor(() => expect(matn('summa-qqs')).toBe('QQS bilan 1 688 906 131.21'));
+    await waitFor(() => expect(matn('summa-qqs')).toBe('QQS bilan 1 688 906 131.20')); // yadro (har qadam ROUND 2); SQL …131,21
     expect(matn('summa-ustamali')).toBe('ustamali, QQS siz: 1 507 951 902.86');
     expect(matn('summa-ustamasiz')).toContain('1 283 792 838.67');
-    expect((screen.getByTestId('qiymat-uchlik').getAttribute('title') ?? '').replace(/\s/g, ' ')).toContain('QQS bilan (alohida): 1 688 906 131,21');
+    expect((screen.getByTestId('qiymat-uchlik').getAttribute('title') ?? '').replace(/\s/g, ' ')).toContain('QQS bilan (alohida): 1 688 906 131,2');
   });
 
   it('kat noma’lum qismi bo‘lsa — «taxminiy» va so‘m aniq ko‘rsatiladi', async () => {

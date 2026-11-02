@@ -1,3 +1,4 @@
+import { qqsBilan } from '../hisob-yadro';
 /**
  * F2 TAYYORLASH oynasi uchun AI yordamchi vositalari (sof funksiyalar — test qilinadi).
  * Manba — sahifadagi o'sha hisob (f2Qur / f2Qatorlar / f2Jami / f2Uchastkalar): yangi formula yo'q, raqam to'qilmaydi.
@@ -65,7 +66,7 @@ export function f2Satr(m: Pick<F2Malumot, 'k' | 'manba'>, j: Joy): string {
 const summaMatn = (m: F2Malumot) => {
   const u = m.ustamali?.(m.katKesim);
   const ust = u?.ustamali == null ? null : (u.taxminiy ? '≈ ' : '') + pul(u.ustamali);
-  const nds = m.ndsFoiz != null && u?.ustamali != null ? `NDS ${m.ndsFoiz}% faqat oxirida: ${pul(u.ustamali * (1 + m.ndsFoiz / 100))}` : null;
+  const nds = m.ndsFoiz != null && u?.ustamali != null ? `NDS ${m.ndsFoiz}% faqat oxirida: ${pul(qqsBilan(u.ustamali, m.ndsFoiz) as number)}` : null;
   return [`F2 summasi (NDS siz): ustamasiz ${pul(m.jami.summa)}; ustamali ${ust ?? 'noma’lum'}`, ...(nds ? [nds] : []),
     `Kategoriya bo‘yicha (ustamasiz): ${Object.entries(m.jami.kat).map(([k, v]) => `${k} ${pul(v)}`).join('; ') || '—'}`].join('\n');
 };
@@ -162,7 +163,7 @@ export function f2AmalTekshir(m: F2Malumot, a: SahifaAmal, narxlar: NarxRuxsat):
   if (a.tur === 'f2_hajm') {
     if (j.tur === 'resurs' && j.r.avto) return 'Avtomatik resurs: hajmi ish hajmi × normadan';
     const v = sonOqi(a.qiymat ?? '');
-    return typeof v === 'number' && v > 0 ? null : 'Hajm musbat son bo‘lishi kerak';
+    return typeof v === 'number' && Number.isFinite(v) && v !== 0 ? null : 'Hajm son bo‘lishi kerak (minus ham mumkin)';
   }
   if (a.tur === 'narx') {
     if (j.tur !== 'resurs') return 'Ish qatorida narx yo‘q (narx resurslarda)';

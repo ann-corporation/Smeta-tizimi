@@ -65,6 +65,10 @@ const AMALLAR = {
   /* Egasi 2026-10-21 (ADR-3): ombor Fakt orqali emas — bajarilgan M-29 orqali kamayadi. */
   m29_bajar_v1: { rpc: 't2_m29_bajar_v1' },
   m29_bekor_v1: { rpc: 't2_m29_bekor_v1' },
+  /* C11 PR-B (2026-10-29): markaziy ombor kirimi — «Приход» varag'idan ≤1000 qatorlik bo'lak (R2 da tasdiqlangan
+     hujjat, idempotent operation_id) va 24 soat ichida storno (sabab majburiy). RPC a'zolik + document.write. */
+  sklad_kirim_import_v1: { rpc: 't2_sklad_markaziy_prixod_import_v1' },
+  sklad_kirim_storno_v1: { rpc: 't2_sklad_markaziy_prixod_storno_v1' },
   /* Egasi 2026-10-02: token daftari (o'zgarmas): sarf/qaytarish — a'zo; to'ldirish/obuna/demo — faqat superadmin (RPC ichida). */
   token_sarfla_v1: { rpc: 't2_token_sarfla_v1' },
   token_qaytar_v1: { rpc: 't2_token_qaytar_v1' },
@@ -663,6 +667,31 @@ export const onRequestPost: PagesFunction<{
         return Response.json({ ok: false, error: 'M-29 bekor: hujjat va sabab talab qilinadi.' }, { status: 400 });
       }
       yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_hujjat_id: Number(so.hujjat_id), p_sabab: String(so.sabab).slice(0, 1000) };
+    } else if (amal === 'sklad_kirim_import_v1') {
+      const q = so.qatorlar;
+      const butun = (v: unknown) => Number.isSafeInteger(Number(v)) && Number(v) > 0;
+      const matn = (v: unknown, n: number) => (v == null || String(v).trim() === '' ? null : String(v).trim().slice(0, n));
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !butun(so.sklad_id) || !butun(so.document_id)
+          || so.varaq !== 'Приход' || !Array.isArray(q) || q.length < 1 || q.length > 1000
+          || q.some((x: any) => !x || !butun(x.source_row) || !/^\d{4}-\d{2}-\d{2}$/.test(String(x.sana || ''))
+            || typeof x.nomi !== 'string' || !x.nomi.trim() || typeof x.birligi !== 'string' || !x.birligi.trim()
+            || !/^[0-9]+(\.[0-9]+)?$/.test(String(x.obyomi || '')) || !(Number(x.obyomi) > 0))) {
+        return Response.json({ ok: false, code: 'BATCH_INVALID', error: 'Kirim: ombor, hujjat, «Приход» varag‘i, 1–1000 qator (sana, nom, birlik, miqdor > 0) va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_sklad_id: Number(so.sklad_id),
+        p_document_id: Number(so.document_id), p_source_sheet: 'Приход',
+        /* Faqat ruxsat etilgan maydonlar; narx/summa umuman o'tkazilmaydi. */
+        p_qatorlar: q.map((x: any) => ({ source_row: Number(x.source_row), sana: String(x.sana), nomi: String(x.nomi).trim().slice(0, 500),
+          birligi: String(x.birligi).trim().slice(0, 100), obyomi: String(x.obyomi), postavshik: matn(x.postavshik, 500),
+          manba_turi: matn(x.manba_turi, 200), sf_tasdiq: matn(x.sf_tasdiq, 200) })),
+        p_operation_id: so.operation_id };
+    } else if (amal === 'sklad_kirim_storno_v1') {
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isSafeInteger(Number(so.harakat_id)) || Number(so.harakat_id) <= 0
+          || typeof so.sabab !== 'string' || !so.sabab.trim()) {
+        return Response.json({ ok: false, code: 'REQUIRED_FIELD', error: 'Storno: kirim qatori, sabab va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_harakat_id: Number(so.harakat_id),
+        p_sabab: String(so.sabab).trim().slice(0, 1000), p_operation_id: so.operation_id };
     } else if (amal === 'fayl_amal_v1') {
       const AMALLAR = ['nomla', 'kochir', 'savat', 'tikla', 'papka_yarat', 'papka_nomla', 'papka_kochir', 'papka_ochir'];
       const ixt = (v: unknown) => (v == null || v === '' ? null : Number(v));

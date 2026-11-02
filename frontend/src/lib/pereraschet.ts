@@ -13,6 +13,7 @@
  * kirmaydi; narx 0 = 0. Summalar NDS SIZ; ustamali (kaskad) va NDS — chaqiruvchida (`ustamaliHisobla`), NDS faqat oxirida.
  */
 import { katKesimgaQosh, bosKatKesim, type KatKesim } from './ustamali-summa';
+import { yaxlit2 } from './hisob-yadro';
 import { mashinistMehnati } from './narx-bildirishnoma';
 import { ESKI_SMETA } from './f2-dublikat/tekshiruv';
 
@@ -103,11 +104,8 @@ const son = (x: unknown): number | null => {
   const n = Number(x);
   return Number.isFinite(n) ? n : null;
 };
-export const yaxlit2 = (x: number): number => {
-  const a = Number((Math.abs(x) * 100).toPrecision(15));
-  const r = Math.round(a) / 100;
-  return x < 0 ? -r : r;
-};
+export { yaxlit2 };
+
 
 /** Bitta barg qatorni tasnif qiladi (kontekst — razdel/eski/zamena belgilari tashqaridan). Tasnifga kirmasa null. */
 export function qatorTasnif(q: PQator, o: { eski: boolean; zamena: boolean; bolimId: number | null; bolimYol: string[]; ajdodlar: number[]; asosiy?: ChegirmaAsosiy | null }): PNatijaQator | null {

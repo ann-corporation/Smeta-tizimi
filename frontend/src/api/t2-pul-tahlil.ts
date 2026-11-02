@@ -1,3 +1,4 @@
+import { vaqtliOqish } from './vaqtli-fetch';
 import { yozAmali, type AktNatija } from './supabase';
 import type { PulKesim, PulUstamali } from '../lib/pul-tahlil';
 import { ogirYuklashKut } from './ogir-sorov-navbat';
@@ -26,7 +27,7 @@ export async function pulTahlilOl(p: PulTahlilSoro): Promise<{ ok: true; natija:
   try {
     // Nakopitelniy to'liq yuklanayotgan bo'lsa — tugashini kutadi (prod 2026-10-27: parallel og'ir so'rovlar 30 s timeout).
     await ogirYuklashKut();
-    const r = await fetch('/api/sb', {
+    const r = await vaqtliOqish('/api/sb', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         soro: 'pul_tahlil_v2', kompaniya_id: p.kompaniyaId,

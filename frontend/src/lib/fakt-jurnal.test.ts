@@ -149,7 +149,14 @@ describe('Fakt jurnali — ierarxiya, zamena tartibi, summalar (2026-10-25)', ()
     expect(s.get(0)?.f2.ustamasiz).toBe(300 + 5000 + 70 + 30);
     expect(s.get(2)?.f2.ustamasiz).toBe(300 + 70 + 30);
     expect(s.get(1)?.f2.ustamasiz).toBe(5400);
+    // Fakt yozilganidek (F2 dan chiqarilmaydi): F2 hajmi berilmagan qatorlarda — odatdagi fakt summasi.
     expect(s.get(0)?.fakt.ustamasiz).toBe(200 + 10 + 100);
+    expect(s.get(0)?.faktF2).toEqual({ f2Narxda: 0 });
+    // Narx qoidasi: 10-qatorda tasdiqlangan F2 (0,5 hajm, 30 so'm → 60 so'm/birlik) — fakt 1 × 60 (smeta narxi emas).
+    const h2 = h.map((x) => (x.qator_id === 10 ? { ...x, f2_hajm: 0.5 } : x));
+    const s2 = bolimSummalari(r, h2);
+    expect(s2.get(0)?.fakt.ustamasiz).toBe(200 + 10 + 60);
+    expect(s2.get(0)?.faktF2).toEqual({ f2Narxda: 1 });
     expect(s.get(0)?.smeta.ustamasiz).toBe(1400);          // faqat barglar (asl)
     expect(s.get(0)?.qoldiq.ustamasiz).toBe(700 + 370 - 5000 - 70);
     // Nakopitelniy bilan muvofiqlik: smeta = daraxt + qo'shimcha; F2 = jami tasdiqlangan.

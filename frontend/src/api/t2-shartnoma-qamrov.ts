@@ -5,6 +5,7 @@
  * bu yerda faqat shartnoma uni hisobga oladimi va zarur bo'lsa shartnomaviy
  * hajm override'i bormi, shu saqlanadi.
  */
+import { vaqtliOqish } from './vaqtli-fetch';
 import { yangiOperationId } from './supabase';
 
 export type ShartnomaQamrovQatori = {
@@ -55,7 +56,7 @@ export type ShartnomaQamrovNatija = {
 
 async function soro(body: Record<string, unknown>): Promise<{ ok: boolean; natija?: ShartnomaQamrovNatija; error?: string }> {
   try {
-    const r = await fetch('/api/sb', {
+    const r = await vaqtliOqish('/api/sb', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     });
     return await r.json();

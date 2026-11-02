@@ -169,7 +169,7 @@ function CompanyFileManager({ kompaniyaId }: { kompaniyaId: number }) {
           if (!current()) return;
           setBand(t('Ma’lumotlar: {nom}', { nom: j.nom }));
           try {
-            const q = await jadvalHammasi(j.jadval, kompaniyaId, j.ustunlar);
+            const q = await jadvalHammasi(j.jadval, kompaniyaId, j.ustunlar, j.versiya);
             z[`malumotlar/${j.nom}.csv`] = strToU8(csv(q));
             z[`malumotlar/json/${j.nom}.json`] = strToU8(JSON.stringify(q));
           } catch { xatolar.push(j.nom); }

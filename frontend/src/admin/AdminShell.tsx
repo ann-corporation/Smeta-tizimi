@@ -12,6 +12,7 @@ import { KompaniyaLogoRasm } from '../umumiy/hujjat/KompaniyaLogo';
 import { KompaniyaTanlagich } from '../umumiy/kontekst/KompaniyaTanlagich';
 import { PTOWorkspaceBar, PTOWorkspaceProvider } from '../umumiy/kontekst/PTOWorkspaceContext';
 import { RuxsatGuard } from '../umumiy/kontekst/RuxsatGuard';
+import { SahifaChegarasi } from '../umumiy/ui/XatoChegarasi';
 import { tizimdanChiq } from '../umumiy/kontekst/chiqish';
 import { t } from '../i18n/til';
 import { TilTanlagich } from '../i18n/TilTanlagich';
@@ -331,7 +332,7 @@ function AdminShellInner() {
          * tashqi scroll umuman ko'rinmaydi. */}
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
           <BolimTablariKontekst.Provider value={tabGuruhlari}>
-            {moduleOpen ? <RuxsatGuard /> : <p role="alert" className="karta p-4 text-sm">{t('Bu modul kompaniyada o‘chirilgan.')}</p>}
+            {moduleOpen ? <SahifaChegarasi><RuxsatGuard /></SahifaChegarasi> : <p role="alert" className="karta p-4 text-sm">{t('Bu modul kompaniyada o‘chirilgan.')}</p>}
           </BolimTablariKontekst.Provider>
         </div>
       </main>

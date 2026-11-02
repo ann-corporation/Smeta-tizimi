@@ -1,5 +1,5 @@
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, RefreshCw, Target } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
@@ -7,7 +7,8 @@ import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { SmetaTree } from '../../umumiy/daraxt/SmetaTree';
 import { useT2Daraxt } from '../../umumiy/daraxt/useT2Daraxt';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
-import { sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt } from '../../api/supabase';
+import { yangiOperationId } from '../../api/supabase';
+import { useT2ObyektlarRoyxati } from '../../api/t2-obyektlar-kesh';
 import { sbFaktBelgilaV2, sbFaktYoz } from '../../api/t2-fakt';
 import type { TreeNode } from '../../api/types';
 import { faktQoldaKiritiladimi } from '../../lib/fakt-input-policy';
@@ -22,7 +23,6 @@ import { bajarilmaydiXarita, faktQamrovBekor, holatXarita, markirovkaIshlari } f
 
 export function FaktNative() {
   const { joriy } = useKompaniya(); const navigate = useNavigate(); const [params, setParams] = useSearchParams(); const workspace = usePTOWorkspace();
-  const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
   const jurnalSaqlash = useRef<SaqlashFn | null>(null); const [otmoqda, setOtmoqda] = useState(false);
   const [marker, setMarker] = useState(''); const [saving, setSaving] = useState(false);
   /** Egasi 2026-10-01: tezkor jadval (ko'p qatorni bir yo'la saqlash) asosiy ko'rinish; daraxt — ixtiyoriy. */
@@ -31,10 +31,11 @@ export function FaktNative() {
   /** Pereraschet ekranidan havola: `?filtr=faktsiz_f2&bolim=<id>` (fakti yo'q, F2 olingan qatorlar). */
   const boshFaktsizF2 = params.get('filtr') === 'faktsiz_f2';
   const boshBolimRaw = Number(params.get('bolim')); const boshBolimId = Number.isSafeInteger(boshBolimRaw) && boshBolimRaw > 0 ? boshBolimRaw : null;
-  const { rows, states, tree, price, loading, yangilanmoqda, error, yuklash, holatniYangila } = useT2Daraxt(valid ? obyektId : null);
+  const { rows, states, tree, price, loading, yangilanmoqda, error, yuklash, holatniYangila, qatorniYangila } = useT2Daraxt(valid ? obyektId : null);
   const markers = useMemo(() => Array.from(new Set(rows.filter(r => faktQoldaKiritiladimi(r.tur || '') && r.kat?.trim()).map(r => r.kat!.trim()))).sort(), [rows]);
   const smetaJami = states.reduce((s, r) => s + (r.smeta_hajm || 0), 0); const faktJami = states.reduce((s, r) => s + (r.fakt_hajm || 0), 0);
-  useEffect(() => { if (joriy?.id) void sbT2ObyektlarOlKomp(joriy.id).then(r => setObyektlar((r.ok ? r.qatorlar : []) as T2Obyekt[])); }, [joriy?.id]);
+  // Obyektlar ro'yxati umumiy keshdan (Holat/Nakopitelniy bilan bitta so'rov).
+  const { obyektlar } = useT2ObyektlarRoyxati(joriy?.id ?? null);
   const faktSaqlash = useCallback(async (node: TreeNode, mode: 'qoshish' | 'jami', value: number) => {
     if (!valid || node.id == null) return { ok: false, message: 'Kanonik qator ID topilmadi.' };
     if (!faktQoldaKiritiladimi(node.type)) return { ok: false, message: 'Bu qatorga Fakt qo‘lda kiritilmaydi.' };
@@ -96,9 +97,9 @@ export function FaktNative() {
       {!valid && <section className="fz-note fz-note--info"><span>{t('Avval kanonik obyektni tanlang.')}</span></section>}
       {error && valid && <section role="alert" className="fz-note fz-note--danger"><AlertTriangle aria-hidden="true"/><span>{error}</span></section>}
       {birinchiYuklash && <div className="skel min-h-[280px] flex-1 rounded-[var(--radius-md)]"/>}
-      {jurnal && joriy?.id && <FaktJurnal boshFaktsizF2={boshFaktsizF2} boshBolimId={boshBolimId} saqlashRef={jurnalSaqlash} f2Otish={(oy) => void f2gaOt(true, oy)} kompaniyaId={joriy.id} obyektId={obyektId} rows={rows} states={states} holatniYangila={() => holatniYangila()} tuzilmaniYangila={() => yuklash()} />}
+      {jurnal && joriy?.id && <FaktJurnal boshFaktsizF2={boshFaktsizF2} boshBolimId={boshBolimId} saqlashRef={jurnalSaqlash} f2Otish={(oy) => void f2gaOt(true, oy)} kompaniyaId={joriy.id} obyektId={obyektId} rows={rows} states={states} holatniYangila={(idlar) => holatniYangila(idlar)} tuzilmaniYangila={() => yuklash()} />}
       {valid && joriy?.id && korinish === 'xotira' && !birinchiYuklash && !error && <XotiradanFakt kompaniyaId={joriy.id} obyektId={obyektId} rows={rows} states={states} holatniYangila={() => holatniYangila()} tuzilmaniYangila={() => yuklash()} />}
-      {korinish === 'daraxt' && tree.length > 0 && <div className="min-h-0 flex-1"><SmetaTree data={tree} priceControlLines={price} onFaktSave={faktSaqlash} onQatorTahrirlandi={yuklash}/></div>}
+      {korinish === 'daraxt' && tree.length > 0 && <div className="min-h-0 flex-1"><SmetaTree data={tree} priceControlLines={price} onFaktSave={faktSaqlash} onQatorTahrirlandi={(id) => void qatorniYangila(id)}/></div>}
       {markirovkaQamrov && joriy?.id && <FaktQamrov sarlavha={markirovkaQamrov.sarlavha} ishlar={markirovkaQamrov.ishlar} holatMap={holatMap} narxOl={narxOl}
         obyektId={obyektId} kompaniyaId={joriy.id} sana={new Date().toISOString().slice(0, 10)}
         onYop={() => setMarkirovkaQamrov(null)} onBajarildi={() => holatniYangila()} aktBekor={faktQamrovBekor} />}

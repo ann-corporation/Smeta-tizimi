@@ -75,8 +75,9 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
     try {
       const [h, z, qs] = await Promise.all([
         t2ToliqOqiParallel<PQator>(sbOqi, { jadval: 't2_qator_holat', filtr: 'obyekt_id=eq.' + obyektId, ustunlar: PERERASCHET_USTUNLAR, limit: 200000 }, 'qator_id'),
-        sbOqi<{ id: number; replaces_line_id: number | null }>({ jadval: 't2_qator', filtr: `obyekt_id=eq.${obyektId}&replaces_line_id=not.is.null`, ustunlar: 'id,replaces_line_id', limit: 20000 }),
-        t2ToliqOqiParallel<{ id: number }>(sbOqi, { jadval: 't2_qator', filtr: `obyekt_id=eq.${obyektId}&qoshimcha=is.true`, ustunlar: 'id', limit: 200000 }, 'id'),
+        /* Pereraschet — F2 tarixi (t2_qator_holat barcha versiyalar): zamena/qo'shimcha to'plamlari ham shu doirada ('tarix'). */
+        sbOqi<{ id: number; replaces_line_id: number | null }>({ jadval: 't2_qator', filtr: `obyekt_id=eq.${obyektId}&replaces_line_id=not.is.null`, ustunlar: 'id,replaces_line_id', limit: 20000, versiya: 'tarix' }),
+        t2ToliqOqiParallel<{ id: number }>(sbOqi, { jadval: 't2_qator', filtr: `obyekt_id=eq.${obyektId}&qoshimcha=is.true`, ustunlar: 'id', limit: 200000, versiya: 'tarix' }, 'id'),
       ]);
       if (!h.ok || h.toliq === false) { setXato(t('Smeta qatorlari to‘liq o‘qilmadi — pereraschet chala ma’lumot ustida hisoblanmaydi.')); setRows(null); return; }
       if (!z.ok) { setXato(t('Zamena bog‘lanishlari o‘qilmadi — qayta urinib ko‘ring.')); setRows(null); return; }

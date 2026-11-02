@@ -43,6 +43,26 @@ export function faktTaalluqliIdlar(
   return natija.size > chegara ? null : [...natija];
 }
 
+/**
+ * Qator tahriridan keyin qayta o'qilgan `t2_daraxt` qatorlari `id` bo'yicha joyiga qo'yiladi; tartib va
+ * boshqa qatorlar o'zgarmaydi. `change_type`/`replaces_line_id` view'da yo'q — eski qatordan saqlanadi
+ * (tahrir ularni o'zgartirmaydi). Yangi id (ro'yxatda yo'q) qo'shilmaydi — bu tuzilma o'zgarishi, to'liq yuklash kerak.
+ */
+export function qatorlarniYamala<T extends { id: number; change_type?: string | null; replaces_line_id?: number | null }>(
+  eski: readonly T[], yangi: readonly T[],
+): T[] {
+  if (!yangi.length) return [...eski];
+  const byId = new Map(yangi.map((r) => [r.id, r]));
+  return eski.map((r) => {
+    const y = byId.get(r.id);
+    if (!y) return r;
+    const chiq: T = { ...y };
+    if ('change_type' in r) chiq.change_type = r.change_type;
+    if ('replaces_line_id' in r) chiq.replaces_line_id = r.replaces_line_id;
+    return chiq;
+  });
+}
+
 /** Yangi kelgan holatlar `qator_id` bo'yicha almashtiriladi; qolganlari o'z joyida, tartib saqlanadi. */
 export function holatlarniAlmashtir(eski: readonly T2QatorHolat[], yangi: readonly T2QatorHolat[]): T2QatorHolat[] {
   if (!yangi.length) return [...eski];

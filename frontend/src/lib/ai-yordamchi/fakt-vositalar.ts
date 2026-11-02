@@ -191,7 +191,7 @@ export function faktAmalTekshir(m: FaktMalumot, a: SahifaAmal, normativlar: Read
     }
     case 'bajarilmaydi': {
       if (j.avto) return 'Avtomatik resurs — ishning o‘ziga belgilang';
-      if (a.qiymat != null && !(Number(a.qiymat.replace(',', '.')) > 0)) return 'Hajm musbat son bo‘lishi kerak';
+      if (a.qiymat != null && !Number.isFinite(Number(a.qiymat.replace(',', '.')))) return 'Hajm son bo‘lishi kerak (minus ham mumkin)';
       return null;
     }
     case 'korsat': return null;

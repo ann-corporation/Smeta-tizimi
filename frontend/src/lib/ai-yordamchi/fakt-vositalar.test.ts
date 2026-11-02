@@ -65,7 +65,7 @@ describe('fakt AI vositalari — faqat real ma’lumotdan', () => {
     expect(faktAmalTekshir(m, { tur: 'zamena', qator: 6, qiymat: 'N:w1', izoh: '' }, n)).toBeNull();
     expect(faktAmalTekshir(m, { tur: 'zamena', qator: 7, qiymat: null, izoh: '' }, n)).toMatch(/zamena qilinmaydi/);
     expect(faktAmalTekshir(m, { tur: 'material_ol', qator: 6, qiymat: null, izoh: '' }, n)).toMatch(/taklifi yo‘q/);
-    expect(faktAmalTekshir(m, { tur: 'bajarilmaydi', qator: 6, qiymat: '-3', izoh: '' }, n)).toMatch(/musbat/);
+    expect(faktAmalTekshir(m, { tur: 'bajarilmaydi', qator: 6, qiymat: 'abc', izoh: '' }, n)).toMatch(/minus ham mumkin/); // minus ruxsat, faqat son emas rad
   });
   it('hajm o‘qish va yorliq (yangi fakt / smeta)', () => {
     expect(faktHajmOqi('+ 2,5')).toEqual({ rejim: '+', qiymat: '2.5' });

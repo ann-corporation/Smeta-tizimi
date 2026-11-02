@@ -1,3 +1,4 @@
+import { NDS_SUKUT_FOIZ, qqsAjratTiyin } from './hisob-yadro';
 /**
  * Nakopitelniy — SHARTNOMA darajasi (CODEMAP «Nakopitelniy + F3 + Akt TN» qatorining kengaytmasi, yangi modul emas):
  * shartnoma (+ DS) → tasdiqlangan F2 (t2_akt) → F3 sotuv summasidan (t2_forma3.manba='sotuv') → to'lov (t2_tolov) → akt-sverka qoldig'i.
@@ -194,9 +195,8 @@ export type F3SotuvHisob = {
 };
 
 /** QQS bilan summadan [QQSsiz, QQS, jami]: QQSsiz = ROUND(jami / (1 + st), 2), QQS = jami − QQSsiz. */
-export function qqsAjrat(jamiTiyin: number, ndsFoiz = 12): [number, number, number] {
-  const siz = tiyin(jamiTiyin / 100 / (1 + ndsFoiz / 100));
-  return [siz, jamiTiyin - siz, jamiTiyin];
+export function qqsAjrat(jamiTiyin: number, ndsFoiz = NDS_SUKUT_FOIZ): [number, number, number] {
+  return qqsAjratTiyin(jamiTiyin, ndsFoiz); // yadro
 }
 
 export function f3SotuvdanHisobla(sh: Pick<SvodShartnoma, 'f3' | 'ds' | 'jami_nds_bilan'>, f3Id: number): F3SotuvHisob | null {
@@ -209,7 +209,7 @@ export function f3SotuvdanHisobla(sh: Pick<SvodShartnoma, 'f3' | 'ds' | 'jami_nd
   const gacha = tartib.slice(0, i + 1);
   const jamiQqs = (xs: SotuvF3[]) => {
     const r: [number, number, number] = [0, 0, 0];
-    for (const x of xs) { const q = qqsAjrat(tiyin(x.sotuv_summa), x.nds_foiz ?? 12); r[0] += q[0]; r[1] += q[1]; r[2] += q[2]; }
+    for (const x of xs) { const q = qqsAjrat(tiyin(x.sotuv_summa), x.nds_foiz ?? NDS_SUKUT_FOIZ); r[0] += q[0]; r[1] += q[1]; r[2] += q[2]; }
     return r;
   };
   const oldingi = i > 0 ? tartib[i - 1] : null;
@@ -219,7 +219,7 @@ export function f3SotuvdanHisobla(sh: Pick<SvodShartnoma, 'f3' | 'ds' | 'jami_nd
     f3: s,
     davrBoshi: saqlangan ? sanaKalit(s.davr_boshi) : (oldingi ? sanaKalit(oldingi.sotuv_sana) : sana),
     davrOxiri: saqlangan ? sanaKalit(s.davr_oxiri) : sana,
-    davr: qqsAjrat(tiyin(s.sotuv_summa), s.nds_foiz ?? 12),
+    davr: qqsAjrat(tiyin(s.sotuv_summa), s.nds_foiz ?? NDS_SUKUT_FOIZ),
     yilBoshidan: jamiQqs(gacha.filter((x) => sanaKalit(x.sotuv_sana).startsWith(yil))),
     boshidan: jamiQqs(gacha),
     shartnoma: j.summa == null ? null : tiyin(j.summa),
