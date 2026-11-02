@@ -393,13 +393,15 @@ function MeterSvg({ x, y, w, h, faktFoiz, f2Foiz, smetaBor }: { x: number; y: nu
       </g>
     );
   }
-  const f2 = Math.max(0, Math.min(100, f2Foiz ?? 0)), fakt = Math.max(f2, Math.min(100, faktFoiz ?? 0));
+  // Fakt yozilganidek (F2 bilan MAX yo'q): F2 dan ortiq qism alohida bo'lak.
+  const f2 = Math.max(0, Math.min(100, f2Foiz ?? 0)), fakt = Math.min(100, Math.max(0, faktFoiz ?? 0));
+  const ortiq = fakt > f2 ? fakt - f2 : 0;
   const oshgan = (faktFoiz ?? 0) > 100 || (f2Foiz ?? 0) > 100;
   return (
     <g>
       <rect x={x} y={y} width={w} height={h} rx={2} style={{ fill: 'var(--surface-3)', stroke: oshgan ? 'var(--warn)' : 'none' }} />
       <rect x={x} y={y} width={(w * f2) / 100} height={h} rx={2} style={{ fill: oshgan ? 'var(--warn)' : 'var(--accent)' }} />
-      <rect x={x + (w * f2) / 100} y={y} width={(w * (fakt - f2)) / 100} height={h} style={{ fill: 'var(--info)' }} />
+      <rect x={x + (w * f2) / 100} y={y} width={(w * ortiq) / 100} height={h} style={{ fill: 'var(--info)' }} />
     </g>
   );
 }

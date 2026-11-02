@@ -8,7 +8,7 @@ import { reportMoneyValidity } from '../../lib/money-input';
  */
 import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Activity, Bot, Building2, Coins, CreditCard, Crown, FileSearch, Settings, ToggleLeft, Users } from 'lucide-react';
+import { Activity, Bot, Building2, Coins, CreditCard, Crown, FileSearch, Send, Settings, ToggleLeft, Users } from 'lucide-react';
 import { Sahifa, Skelet } from '../../umumiy/ui/Sahifa';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { GrafikPanel, Legenda, OylikUstunlar, Tasma, UfqiyUstunlar } from '../../components/boshqaruv-grafik/Grafiklar';
@@ -23,6 +23,7 @@ import { markazOl, ustamaBelgila } from '../../api/t2-agent-ish';
 const SystemControlPage = lazy(() => import('../pages/SystemControlPage'));
 const AiMarkaz = lazy(() => import('../ai-markaz/AiMarkaz').then((m) => ({ default: m.AiMarkaz })));
 const CatalogReleasePanel = lazy(() => import('../catalog-release/CatalogReleasePanel'));
+const TelegramBotPanel = lazy(() => import('../../telegram/TelegramBotPanel'));
 const NarxIndeksPaneli = lazy(() => import('../catalog-release/NarxIndeksPaneli'));
 
 const son = (x: number | null | undefined) => (x == null ? '—' : Number(x).toLocaleString('ru-RU', { maximumFractionDigits: 2 }));
@@ -31,7 +32,7 @@ const ROLLAR = ['superadmin', 'admin', 'boss', 'rahbar', 'bugalter', 'pto', 'pro
 const AMAL_NOMI: Record<string, string> = { smeta_import: 'Smeta import', f2_import: 'F2 import', katalog_import: 'Katalog import', f2_qoralama: 'F2 qoralama', f2_hujjat: 'F2 hujjati', hujjat: 'Hujjat', ai_kirish: 'AI kiruvchi', ai_chiqish: 'AI chiquvchi' };
 const TUR_NOMI: Record<string, string> = { oylik: 'Oylik', toldirish: 'To‘lov', bonus: 'Bonus', sarf: 'Sarf', qaytarish: 'Qaytarish', tuzatish: 'Tuzatish' };
 
-type Bolim = 'umumiy' | 'foydalanuvchilar' | 'kompaniyalar' | 'tolovlar' | 'token' | 'audit' | 'sozlamalar' | 'funksiyalar' | 'ai' | 'katalog';
+type Bolim = 'umumiy' | 'foydalanuvchilar' | 'kompaniyalar' | 'tolovlar' | 'token' | 'audit' | 'sozlamalar' | 'funksiyalar' | 'ai' | 'katalog' | 'telegram';
 const BOLIMLAR: { id: Bolim; nom: string; Ikonka: typeof Users }[] = [
   { id: 'umumiy', nom: 'Umumiy', Ikonka: Activity },
   { id: 'foydalanuvchilar', nom: 'Foydalanuvchilar', Ikonka: Users },
@@ -42,6 +43,7 @@ const BOLIMLAR: { id: Bolim; nom: string; Ikonka: typeof Users }[] = [
   { id: 'sozlamalar', nom: 'Sozlamalar', Ikonka: Settings },
   { id: 'katalog', nom: 'Kataloglar', Ikonka: FileSearch },
   { id: 'ai', nom: 'AI markazi', Ikonka: Bot },
+  { id: 'telegram', nom: 'Telegram bot', Ikonka: Send },
   { id: 'funksiyalar', nom: 'Funksiyalar va tizim', Ikonka: ToggleLeft },
 ];
 
@@ -629,6 +631,7 @@ export default function BoshqaruvPanel() {
       {bolim === 'katalog' && <Suspense fallback={<Yuklanmoqda />}><div className="space-y-4"><NarxIndeksPaneli /><CatalogReleasePanel /></div></Suspense>}
       {bolim === 'ai' && <Suspense fallback={<Yuklanmoqda />}><AiMarkaz kompaniyalar={(komp.d ?? []).map((k) => ({ id: k.id, nom: k.nom }))} /></Suspense>}
       {bolim === 'funksiyalar' && <Funksiyalar />}
+      {bolim === 'telegram' && <Suspense fallback={<Yuklanmoqda />}><TelegramBotPanel /></Suspense>}
     </Sahifa>
   );
 }

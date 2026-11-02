@@ -57,6 +57,7 @@ export const GENERATED_SITE_MAP = {
     "/",
     "/qoshil/:kod",
     "/ulash/:kod",
+    "/tg",
     "/admin",
     "dashboard",
     "holat",
@@ -324,6 +325,14 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "m29_bekor_v1",
       "rpc": "t2_m29_bekor_v1"
+    },
+    {
+      "amal": "sklad_kirim_import_v1",
+      "rpc": "t2_sklad_markaziy_prixod_import_v1"
+    },
+    {
+      "amal": "sklad_kirim_storno_v1",
+      "rpc": "t2_sklad_markaziy_prixod_storno_v1"
     },
     {
       "amal": "token_sarfla_v1",

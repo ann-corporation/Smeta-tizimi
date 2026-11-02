@@ -28,10 +28,10 @@ describe('kanonik LRV daraxti', () => {
       faktHajm: 60,
       f2ol: 25,
       f2mum: 35,
-      stFakt: 3000,
+      stFakt: 2999.98, // fakt F2 narxida: 60 × 1249,99/25
       stF2: 1249.99,
       stOst: 2000,
-      stF2Mum: 1750,
+      stF2Mum: 1749.99, // F2 narxidagi fakt − F2
     });
   });
 

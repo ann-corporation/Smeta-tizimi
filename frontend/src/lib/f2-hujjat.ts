@@ -18,7 +18,7 @@ import { davrMatni } from './nakopitelniy-vedomost-export';
 import { lrvKalitYoz } from './lrv-qayta-import';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { NAKRUTKA_KATLAR, nakrutkaKat, nakrutkaPodvaliYoz, type KatSummalar, type NakrutkaKat } from './nakrutka-podval';
-import { podvalgaKoefQoy, type Podval } from './nakrutka-konstruktor';
+import { serverMerosKoefQoy, type Podval } from './hisob-yadro';
 import { kodlarMatni, resursGuruhKaliti, shifrKorinish } from './f2-resurs-guruh';
 import { BOLIMSIZ_KALIT, f2BolimIerarxiya } from './f2-bolim-daraxti';
 import { sumRefs } from './hujjat-yozuvchi/formula';
@@ -81,6 +81,7 @@ export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qato
   let n = 0;
   let jamiJS: number | null = 0;
   const ks = Object.fromEntries(NAKRUTKA_KATLAR.map((k) => [k, 0])) as KatSummalar;
+  let nomJS = 0; // kategoriyasi ko'rsatilmagan summa
   const bolimJamiQatorlari: number[] = [];
   const birinchi = v.r;
 
@@ -92,7 +93,8 @@ export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qato
   /** Resurs vedomosti uchun: har resurs qaysi qatorga yozilgani (kalit — kat|kod|nom|birlik). */
   const vedomost = new Map<string, VedQator>();
   const resursYoz = (x: F2Qator, kod: string | null, norma: number | null, ishQator: number | null): number => {
-    const kat = nakrutkaKat(x.kat) ?? (x.tur === 'mat' ? 'МАТ' : x.tur === 'ob' ? 'ОБ' : null);
+    // Kategoriya faqat qatorning o'zidan (tur bo'yicha МАТ/ОБ taxmin yo'q); yo'q — ustamasiz qism (podvalda alohida).
+    const kat = nakrutkaKat(x.kat);
     const narxBor = !x.narxsiz && x.narx != null;
     const hisob = narxBor ? yaxlit2(x.hajm * (x.narx as number)) : null;
     // Hujjat summasi qo'lda o'zgartirilgan (ARIFMETIKA) yoki resurs fakt bilan cheklangan — qiymat yoziladi.
@@ -103,7 +105,7 @@ export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qato
      * Egasi qoidasi (2026-10-08): narxsiz qator jamini HECH QACHON bo'shatmaydi — faqat o'zi bo'sh qoladi. */
     const ongliNarxsiz = x.narxsiz;
     oxirgiSumma = narxBor && x.summa != null ? x.summa : null;
-    if (oxirgiSumma != null) { jamiJS = (jamiJS ?? 0) + oxirgiSumma; if (kat) ks[kat] += oxirgiSumma; }
+    if (oxirgiSumma != null) { jamiJS = (jamiJS ?? 0) + oxirgiSumma; if (kat) ks[kat] += oxirgiSumma; else nomJS += oxirgiSumma; }
     const qatorR = v.r;
     const guruh = resursGuruhKaliti(kat, x.nom, x.birlik);
     const vk = `${joriyIldiz?.kalit ?? ''}|${guruh}|${narxBor ? x.narx : '-'}`;
@@ -193,8 +195,8 @@ export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qato
   v.bosh();
   const nk: Partial<NakrutkaKoeffitsientlar> = { ...(o.nakrutka ?? {}) };
   if (o.ndsFoiz != null && Number.isFinite(o.ndsFoiz) && o.ndsFoiz >= 0) nk.НДС = o.ndsFoiz;
-  const podval = o.podval ? podvalgaKoefQoy(o.podval, nk) : null;
-  nakrutkaPodvaliYoz(v, { podval, katUstun: 'J', oraliq: [birinchi, oxirgi], pulUstunlar: ['H'], foizUstun: 'G', nk, katSummalar: { H: ks }, kfJadval: false });
+  const podval = o.podval ? serverMerosKoefQoy(o.podval, nk) : null;
+  nakrutkaPodvaliYoz(v, { podval, katUstun: 'J', oraliq: [birinchi, oxirgi], pulUstunlar: ['H'], foizUstun: 'G', nk, katSummalar: { H: ks }, kfJadval: false, nomalum: Math.abs(nomJS) >= 0.005 ? { H: yaxlit2(nomJS) } : null });
   v.imzo(imzoTomonlari(o.imzo?.subpudratchi ? ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СУБПОДРЯДЧИК', 'ТЕХНАДЗОР'] : ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР'], o.imzo));
   const ved = [...vedomost.values()];
   const narxlari = new Map<string, number>();

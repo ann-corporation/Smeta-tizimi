@@ -90,7 +90,7 @@ describe('Сличительная ведомость — ikki narx', () => {
   it('выполнено и отклонение к оплате; podval 4 ustun; kesh = formula', () => {
     const rows = QATOR.map((r) => (r.tur === 'rs' ? { ...r, kat: 'ЧЕЛ' } : r.tur === 'mat' ? { ...r, kat: 'МАТ' } : r));
     const m = slichitelniyModeli(rows, HOLAT);
-    const r = slichitelniyHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', nakrutka: { ПРОЧИЕ_ПОДРЯДЧИК: 18, НДС: 12 } });
+    const r = slichitelniyHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', nakrutka: { ...{ ТРАНСПОРТ_МАТЕРИАЛ: 0, СКЛАДСКИЕ_МАТЕРИАЛ: 0, СКЛАДСКИЕ_МК: 0, ТРАНСПОРТ_КАБЕЛЬ: 0, ПРОЧИЕ_ПОДРЯДЧИК: 0, ТРАНСПОРТ_ОБОРУД: 0, ЗАГОТ_СКЛАД_ОБОРУД: 0, СТРАХОВАНИЕ: 0, РИСК: 0, НДС: 12 }, ПРОЧИЕ_ПОДРЯДЧИК: 18 } }); // foizlar to'liq (kiritilmagan foiz 0 deb olinmaydi)
     namunaSaqla('slichitelniy_k_oplate.xlsx', r.bytes);
     // ЧЕЛ Kf = 1,18 × 1,12; МАТ Kf = 1,18 × 1,12 (transport/sklad 0 %).
     expect(r.kOplata.fakt).toBeCloseTo(660_000 * 1.18 * 1.12, 0);

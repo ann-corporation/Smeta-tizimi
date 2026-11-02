@@ -141,6 +141,11 @@ export function saqlanmaganIsh(belgi: string, bor: boolean): void {
 }
 export const saqlanmaganIshBormi = (): boolean => saqlanmagan.size > 0;
 
+/** Ilova muvaffaqiyatli chizilgach chaqiriladi: keyingi deploy'da yana bitta avto-reload ruxsat etiladi. */
+export function reloadQoriqchisiniTozala(): void {
+  try { sessionStorage.removeItem('versiya-reload'); } catch { /* storage yo'q */ }
+}
+
 export function versiyaKuzatuvi(davriyMs = 5 * 60_000): void {
   // Deploydan keyin eski lazy chunk topilmasa — Vite shu hodisani beradi: bitta marta avtomatik yangilaymiz,
   // LEKIN saqlanmagan ish bo'lsa — yo'q (faqat banner; operator ishini saqlab, o'zi yangilaydi).
@@ -154,7 +159,8 @@ export function versiyaKuzatuvi(davriyMs = 5 * 60_000): void {
   });
   const joriy = joriyKirishSkripti();
   if (!joriy) return; // dev rejim — kirish skripti /src/main.tsx
-  try { sessionStorage.removeItem('versiya-reload'); } catch { /* */ }
+  // `versiya-reload` qo'riqchisi bu yerda TOZALANMAYDI: App/lug'at chunki doim yiqilsa, cheksiz reload bo'lardi.
+  // Uni `main.tsx` ilova haqiqatan chizilgandan keyin `reloadQoriqchisiniTozala()` bilan tozalaydi.
   nimaYangiOyna();
   let tekshirilmoqda = false;
   const tekshir = async () => {

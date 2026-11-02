@@ -2,7 +2,6 @@
  * «Bajarilmagan hajmlar ro'yxati» (egasi 2026-10-24): bajarilmadi deb belgilangan ishlar — sabab, sana, kim, dalil hujjat bilan.
  * Rasmiy hujjat rus tilida (boshqa ostatka hujjatlari kabi). Smeta qatorlari o'zgarmaydi: bu qoplama yozuvlar ro'yxati.
  */
-import ExcelJS from 'exceljs';
 import type { BajarilmadiQator } from '../api/t2-bajarilmadi';
 
 const SABAB_RU: Record<string, string> = {
@@ -25,6 +24,7 @@ export function bajarilmadiQatorlari(royxat: readonly BajarilmadiQator[]): Bajar
 
 export async function bajarilmadiXlsx(royxat: readonly BajarilmadiQator[], o: { obyektNomi: string; sana?: string }): Promise<{ bytes: Uint8Array; faylNomi: string; soni: number }> {
   const qatorlar = bajarilmadiQatorlari(royxat);
+  const ExcelJS = (await import('exceljs')).default; // og'ir kutubxona — faqat eksportda yuklanadi
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Не выполнено');
   ws.addRow(['ВЕДОМОСТЬ НЕВЫПОЛНЕННЫХ ОБЪЁМОВ']).font = { bold: true, size: 13 };

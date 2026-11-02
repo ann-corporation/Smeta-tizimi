@@ -12,6 +12,7 @@
  * as every other write RPC in this codebase (p_operation_id).
  */
 
+import { vaqtliOqish } from './vaqtli-fetch';
 import { yangiOperationId } from './supabase';
 import type { SvodYaxlit } from '../lib/svod-yaxlit';
 
@@ -51,7 +52,7 @@ export type NakrutkaKaskad = {
 };
 
 async function soroOqi<T>(body: Record<string, unknown>): Promise<{ ok: boolean; natija?: T; error?: string }> {
-  const r = await fetch('/api/sb', {
+  const r = await vaqtliOqish('/api/sb', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });

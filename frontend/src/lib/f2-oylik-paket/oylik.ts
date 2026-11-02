@@ -12,15 +12,14 @@ import type { F2Tafsilot } from '../../api/t2-narx';
 import type { F2HujjatKonteksti } from '../../api/f2-hujjat-kontekst';
 import { f2AktKirish } from '../f2-akt-hujjat';
 import { f2Hujjat } from '../f2-hujjat';
-import { NDS_SUKUT_FOIZ } from '../nakopitelniy-vedomost-export';
+import { NDS_SUKUT_FOIZ, hisob, qqsSumma, yaxlit2 } from '../hisob-yadro';
 import { f3SotuvdanHisobla, sotuvF3lar, type SotuvF3, type SvodShartnoma } from '../nakopitelniy-svod';
 import type { NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
 import type { Podval } from '../nakrutka-konstruktor';
-import { katKesimYigish, ustamaliHisobla } from '../ustamali-summa';
+import { katKesimYigish } from '../ustamali-summa';
 import { bosqich, qosh, type F2Bosqich, type ReestrAkt, type ReestrObyekt, type ReestrShartnoma, type Summa } from '../f2-reestr/reestr';
 
 export const NDS_FOIZ = NDS_SUKUT_FOIZ;
-const yaxlit2 = (x: number) => Math.round((x + Number.EPSILON) * 100) / 100;
 
 /** «YYYY-MM» (yoki «YYYY-MM-DD») → «YYYY-MM»; noto'g'ri bo'lsa null. */
 export function oyKaliti(s: string | null | undefined): string | null {
@@ -46,11 +45,12 @@ export type AktMoliya = {
   sabab: NomalumSabab | null;
 };
 
-const katTuri = (x: F2Qator): string | null => x.kat ?? (x.tur === 'mat' ? 'МАТ' : x.tur === 'ob' ? 'ОБ' : null);
+/** Kategoriya faqat qatorning o'zidan; yo'q — noma'lum (tur bo'yicha МАТ/ОБ deb taxmin qilinmaydi — hisob yadrosi qoidasi). */
+const katTuri = (x: F2Qator): string | null => x.kat ?? null;
 
 /**
- * F2 qatorlaridan (f2AktKirish natijasi) summalar. Qator yo'q bo'lsa — faqat hujjat jami (ustamasiz), ustamali noma'lum.
- * NDS = ustamali × stavka (ustamali noma'lum bo'lsa NDS ham, jami ham noma'lum).
+ * F2 qatorlaridan (f2AktKirish natijasi) summalar — hisob yadrosi (`hisob`): kat noma'lum qism ИТОГО-4 ga ustamasiz
+ * (taxminiy), QQS bir marta. Qator yo'q bo'lsa — faqat hujjat jami (ustamasiz), ustamali noma'lum.
  */
 export function aktMoliya(i: {
   qatorlar: readonly F2Qator[]; hujjatJami: number | null;
@@ -62,18 +62,15 @@ export function aktMoliya(i: {
     return { ustamasiz: i.hujjatJami == null ? null : yaxlit2(i.hujjatJami), ustamali: null, taxminiy: false, nds: null, jami: null, narxsizQator: 0, qatorSoni: 0, sabab: 'QATOR_YOQ' };
   }
   const kesim = katKesimYigish(qatorlar, katTuri, (x) => (x.narxsiz ? null : x.summa));
-  const u = ustamaliHisobla(kesim, i.koef, i.podval);
-  const ustamasiz = yaxlit2(u.ustamasiz + u.nomalum.summa);
-  const hechBiriYoq = u.nomalum.soni > 0 && u.ustamasiz === 0;
+  const h = hisob(kesim, { podval: i.podval, koef: i.koef });
+  const hechBiriYoq = h.nomalumSoni > 0 && yaxlit2(h.ustamasiz - h.nomalumSumma) === 0;
   let ustamali: number | null = null;
   let sabab: NomalumSabab | null = null;
-  let taxminiy = false;
-  if (u.ustamali == null) sabab = u.xato ?? 'KOEF_YOQ';
+  if (h.sabab === 'KOEF_YOQ' || h.sabab === 'PODVAL_TOLIQ_EMAS') sabab = h.sabab;
   else if (hechBiriYoq) sabab = 'KAT_NOMALUM';
-  else if (u.nomalum.soni > 0) { ustamali = yaxlit2(u.ustamali + u.nomalum.summa); taxminiy = true; }
-  else ustamali = yaxlit2(u.ustamali);
-  const nds = ustamali == null ? null : yaxlit2((ustamali * ndsFoiz) / 100);
-  return { ustamasiz, ustamali, taxminiy, nds, jami: ustamali == null || nds == null ? null : yaxlit2(ustamali + nds), narxsizQator: kesim.summasizSoni, qatorSoni: qatorlar.length, sabab };
+  else ustamali = h.ustamali;
+  const nds = qqsSumma(ustamali, ndsFoiz);
+  return { ustamasiz: h.ustamasiz, ustamali, taxminiy: ustamali != null && h.taxminiy, nds, jami: ustamali == null || nds == null ? null : yaxlit2(ustamali + nds), narxsizQator: kesim.summasizSoni, qatorSoni: qatorlar.length, sabab };
 }
 
 const UCHASTKA_RE = /уч[аa]ст|uchast|(^|[^а-яa-z])уч\.?\s*№?\s*\d|(^|[^а-яa-z0-9])эо([^а-яa-z]|$)|(^|[^a-z0-9])eo([^a-z]|$)/i;

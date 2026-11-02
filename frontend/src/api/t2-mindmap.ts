@@ -1,3 +1,4 @@
+import { vaqtliOqish } from './vaqtli-fetch';
 import { yozAmali } from './supabase';
 import { t } from '../i18n/til';
 import { sbSkladYarat, sbKadrYarat, sbTexnikaYarat } from './t2-resurs';
@@ -208,7 +209,7 @@ export function grafOdamsiz(g: MindmapGraf): MindmapGraf {
 }
 
 async function grafSorov(body: Record<string, unknown>): Promise<{ ok: true; graf: MindmapGraf } | { ok: false; error: string }> {
-  const res = await fetch('/api/sb', {
+  const res = await vaqtliOqish('/api/sb', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),

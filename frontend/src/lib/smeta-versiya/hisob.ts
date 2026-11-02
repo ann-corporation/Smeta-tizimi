@@ -122,9 +122,10 @@ export function qatorPul(
   const dh = davaHajm(m);
   let dava: number | null = null; let davaKesim: KatKesim | null = null;
   if (dh != null) {
-    const joriydan = joriy?.summa != null && m.joriyHajm != null && m.joriyHajm > 0 && !m.birlikFarq && m.holat !== 'ochirilgan' && m.holat !== 'almashtirilgan';
+    // Ishora manba hajmiga tegishli; birlik narxni faqat nol hajmdan chiqarib bo'lmaydi.
+    const joriydan = joriy?.summa != null && m.joriyHajm != null && m.joriyHajm !== 0 && !m.birlikFarq && m.holat !== 'ochirilgan' && m.holat !== 'almashtirilgan';
     if (joriydan) { const f = dh / m.joriyHajm!; dava = joriy!.summa! * f; davaKesim = kesimKopaytir(joriy!.kesim, f); }
-    else if (eski?.summa != null && m.eskiHajm != null && m.eskiHajm > 0) { const f = dh / m.eskiHajm; dava = eski.summa * f; davaKesim = kesimKopaytir(eski.kesim, f); }
+    else if (eski?.summa != null && m.eskiHajm != null && m.eskiHajm !== 0) { const f = dh / m.eskiHajm; dava = eski.summa * f; davaKesim = kesimKopaytir(eski.kesim, f); }
     else if (dh === 0) { dava = 0; davaKesim = bosKatKesim(); }
   }
   return { eski: e, joriy: j, farq, farqKesim, davaHajm: dh, dava, davaKesim };

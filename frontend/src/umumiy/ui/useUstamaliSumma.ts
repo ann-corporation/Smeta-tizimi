@@ -4,7 +4,7 @@ import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
 import { podvalTanla, sbPodvallarOl } from '../../api/t2-nakrutka-podval';
 import { limitedRead } from '../../components/pto-workspace/useMarkupTotals';
 import { obyektKesimi, ustamaliHisobla, type KatKesim, type UstamaNatija } from '../../lib/ustamali-summa';
-import { yaxlitQatorIdlari, type SvodYaxlit } from '../../lib/svod-yaxlit';
+import { svodKorinishKesimi, yaxlitQatorIdlari, type SvodYaxlit } from '../../lib/svod-yaxlit';
 import type { Podval } from '../../lib/nakrutka-konstruktor';
 import { useKompaniya } from '../kontekst/KompaniyaKontekst';
 
@@ -65,5 +65,8 @@ export function useUstamaliSumma(obyektId: number | null | undefined, opts: { ko
   const obyektKesim: KatKesim | null = useMemo(() => (nak.data && svodYaxlit ? obyektKesimi(nak.data) : null), [nak.data, svodYaxlit]);
   /** Qatorlar (id, ota_id) → svod yaxlit bo'limi va avlodlari to'plami (qator darajasidagi kesimlar uchun). */
   const yaxlitIdlari = useCallback((qatorlar: Iterable<{ id: number; ota_id?: number | null }>) => yaxlitQatorIdlari(qatorlar, svodYaxlit), [svodYaxlit]);
-  return { holat, koef, podval, hisobla, retry, svodYaxlit, obyektKesim, yaxlitIdlari };
+  /** Ko'rinish kesimi — svod bo'limlari eksport bilan bir xil masshtablanadi (`svodKorinishKesimi`). */
+  const korinishKesimi = useCallback(<T,>(daraxt: ReadonlyArray<{ id: number; ota_id?: number | null }>, barglar: readonly T[], f: Parameters<typeof svodKorinishKesimi<T>>[2], o?: Parameters<typeof svodKorinishKesimi<T>>[4]) =>
+    svodKorinishKesimi(daraxt, barglar, f, svodYaxlit, o), [svodYaxlit]);
+  return { holat, koef, podval, hisobla, retry, svodYaxlit, obyektKesim, yaxlitIdlari, korinishKesimi };
 }
