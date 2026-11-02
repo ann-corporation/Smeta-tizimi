@@ -686,7 +686,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
-      <section className="fz-card flex flex-wrap items-center gap-3 px-3 py-2">
+      <section className="fz-card flex shrink-0 flex-wrap items-center gap-3 px-3 py-2">
         <label className="flex items-center gap-2 text-[12px] font-medium text-text-dim">{t('Sana')}<input type="date" value={sana} onChange={(e) => setSana(e.target.value)} className="input h-8 px-2 text-[13px] text-text" aria-label={t('Fakt sanasi')} /></label>
         <div className="relative min-w-[240px] flex-1"><Search size={14} className="absolute left-2.5 top-2 text-text-mute" />
           <input ref={qidiruvRef} value={qidiruv} onChange={(e) => setQidiruv(e.target.value)} onKeyDown={qidiruvKlav} placeholder={t('Butun obyekt bo‘yicha qidirish…  ( / )')} aria-label={t('Qidirish')} className="input h-8 w-full pl-8 pr-8 text-[13px]" />
