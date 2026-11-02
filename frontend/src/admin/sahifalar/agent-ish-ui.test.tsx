@@ -51,6 +51,52 @@ describe('AgentModellar', () => {
     expect(screen.queryByPlaceholderText('ishlab-chiqaruvchi/model-nomi')).toBeNull();
   });
 
+  describe('egasi 2026-10-27: kompaniya modelni tanlaydi — narxi token da, qimmatida ogohlantirish', () => {
+    /** Sintetik: server kompaniyaga USD bermaydi — faqat mijoz narxi (token / so'rov) va daraja. */
+    const kompaniyaModellar = () => ({ ok: true, natija: {
+      rol: 'boss', tanlash_mumkin: true,
+      agentlar: [{ kod: 'document_control', nom: 'Hujjat nazorati', rol: 'document_controller', izoh: null, permission_mode: 'command_prepare', default_scope: 'object', model_id: 'vendor/a', model_manba: 'kompaniya' }],
+      katalog: [{ id: 'vendor/a', nom: 'Model A', tavsif: null, vision: false, javob_token: 2, narx_daraja: 'arzon' }, { id: 'vendor/b', nom: 'Model B', tavsif: null, vision: true, javob_token: 120, narx_daraja: 'qimmat' }],
+    } });
+    const baho = (id: string, nom: string) => ({ id, nom, kontekst: 100000, vision: true, tools: true, json: true, reasoning: false, ball: 80, manba: 'tanilgan', daraja: 'mos', talab: 62, sabablar: [], ogohlantirish: null });
+    beforeEach(() => {
+      m.modellarOl.mockResolvedValue(kompaniyaModellar()); m.modelTanla.mockResolvedValue({ ok: true, natija: {} });
+      m.orModellar.mockResolvedValue({ ok: true, natija: { jami: 2, tavsiya: [], talab: { min: 52, izoh: 'x' }, natija: [baho('vendor/a', 'Model A'), baho('vendor/b', 'Model B')] } });
+    });
+    afterEach(() => vi.restoreAllMocks());
+
+    it('ro‘yxatda har model yonida narx yorlig‘i (daraja + token), USD yo‘q', async () => {
+      render(<AgentModellar kompaniyaId={5} tizim={false} />);
+      fireEvent.click(await screen.findByRole('button', { name: /Model — Hujjat nazorati/ }));
+      const b = await screen.findByRole('option', { name: /Model B/ });
+      expect(within(b).getByTestId('model-narx').textContent).toBe('Qimmat≈ 120 token / so‘rov');
+      expect(within(screen.getByRole('option', { name: /Model A/ })).getByTestId('model-narx').textContent).toBe('Arzon≈ 2 token / so‘rov');
+      expect(document.body.textContent).not.toContain('$');
+    });
+
+    it('qimmat model tanlansa — saqlashdan OLDIN narxi bilan ogohlantirish; rad etilsa saqlanmaydi, rozi bo‘lsa saqlanadi', async () => {
+      const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
+      render(<AgentModellar kompaniyaId={5} tizim={false} />);
+      fireEvent.click(await screen.findByRole('button', { name: /Model — Hujjat nazorati/ }));
+      fireEvent.click(await screen.findByRole('option', { name: /Model B/ }));
+      await waitFor(() => expect(confirm).toHaveBeenCalledWith('Bu model qimmat: 1 so‘rov ≈ 120 token. Davom etasizmi?'));
+      expect(m.modelTanla).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('option', { name: /Model B/ }));
+      await waitFor(() => expect(m.modelTanla).toHaveBeenCalledWith(5, 'document_control', 'vendor/b'));
+      expect(confirm).toHaveBeenCalledTimes(2);
+    });
+
+    it('arzon modelga qaytishda ogohlantirish yo‘q', async () => {
+      m.modellarOl.mockResolvedValue({ ...kompaniyaModellar(), natija: { ...kompaniyaModellar().natija, agentlar: [{ ...kompaniyaModellar().natija.agentlar[0], model_id: 'vendor/b' }] } });
+      const confirm = vi.spyOn(window, 'confirm');
+      render(<AgentModellar kompaniyaId={5} tizim={false} />);
+      fireEvent.click(await screen.findByRole('button', { name: /Model — Hujjat nazorati/ }));
+      fireEvent.click(await screen.findByRole('option', { name: /Model A/ }));
+      await waitFor(() => expect(m.modelTanla).toHaveBeenCalledWith(5, 'document_control', 'vendor/a'));
+      expect(confirm).not.toHaveBeenCalled();
+    });
+  });
+
   it('xato bo‘lsa tushunarli xabar', async () => {
     m.modellarOl.mockResolvedValue({ ok: false, error: 'Bu doiraga ruxsat yo‘q' });
     render(<AgentModellar kompaniyaId={null} tizim />);

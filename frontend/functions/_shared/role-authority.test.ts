@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { roleAuthority, mayWriteCompanies, vakolatKeshTozala, VAKOLAT_KESH_MS } from './role-authority';
-import type { Sess } from './auth';
+import { roleAuthority, mayWriteCompanies, vakolatKeshTozala, VAKOLAT_KESH_MS, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from './role-authority';
+import { SESSIYA_MUDDAT_MS, type Sess } from './auth';
 
 const env = { SUPABASE_URL: 'https://test.supabase.co', SUPABASE_KEY: 'server-only' };
 const sess: Sess = { rol: 'superadmin', foydalanuvchi_id: 7, jti: 'test', exp: Date.now()+10000,
@@ -74,5 +74,80 @@ describe('fresh server authority', () => {
   it('DB exception fails closed', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));
     expect(await roleAuthority(sess, env)).toBeNull();
+  });
+});
+
+describe('sessiya bekor qilish (t2_men_v1.foydalanuvchi.sessiya_bekor_dan)', () => {
+  const iatBilan = (iat: number): Sess => ({ ...sess, exp: iat + SESSIYA_MUDDAT_MS });
+  const bekorli = (bekor?: string | null) => ({ ...model('none', 'pto'), foydalanuvchi: { holat: 'faol', ...(bekor === undefined ? {} : { sessiya_bekor_dan: bekor }) } });
+  const stub = (m: unknown) => { const f = vi.fn(async () => Response.json(m)); vi.stubGlobal('fetch', f); return f; };
+
+  it('cookie bekor qilishdan OLDIN chiqarilgan → null', async () => {
+    const now = Date.now();
+    stub(bekorli(new Date(now).toISOString()));
+    expect(await roleAuthority(iatBilan(now - 60_000), env)).toBeNull();
+  });
+  it('cookie bekor qilishdan KEYIN chiqarilgan → ok', async () => {
+    const now = Date.now();
+    stub(bekorli(new Date(now - 60_000).toISOString()));
+    expect((await roleAuthority(iatBilan(now), env))?.rol).toBe('pto');
+  });
+  it('2 s soat siljishi chegarasi: 1 s oldingi — ok, 3 s oldingi — null', async () => {
+    const now = Date.now();
+    stub(bekorli(new Date(now).toISOString()));
+    expect((await roleAuthority(iatBilan(now - 1000), env))?.rol).toBe('pto');
+    vakolatKeshTozala();
+    expect(await roleAuthority(iatBilan(now - 3000), env)).toBeNull();
+  });
+  it('maydon yo‘q (eski DB) yoki null → xatti-harakat o‘zgarmaydi', async () => {
+    stub(bekorli());
+    expect((await roleAuthority(sess, env))?.rol).toBe('pto');
+    vakolatKeshTozala();
+    stub(bekorli(null));
+    expect((await roleAuthority(sess, env))?.rol).toBe('pto');
+  });
+  it('kesh ham bekor ni qo‘llaydi: keshdan o‘qilganda eski cookie rad etiladi, yangisi o‘tadi', async () => {
+    const now = Date.now();
+    const f = stub(bekorli(new Date(now).toISOString()));
+    expect((await roleAuthority(iatBilan(now + 5000), env))?.rol).toBe('pto');   // yangi cookie → keshga yoziladi
+    expect(await roleAuthority(iatBilan(now - 60_000), env)).toBeNull();          // kesh urishi, eski cookie
+    expect((await roleAuthority(iatBilan(now + 6000), env))?.rol).toBe('pto');
+    expect(f).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('yaroqsiz sessiya 401 bilan farqlanadi (503 emas)', () => {
+  it('birlashtirilgan/faol emas hisob — yaroqsiz; tarmoq xatosi — yaroqsiz emas', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ...model(), foydalanuvchi: { holat: 'birlashtirildi' } }), { status: 200 })));
+    const a = { ...sess, foydalanuvchi_id: 91 };
+    expect(await roleAuthority(a, env)).toBeNull();
+    expect(sessiyaYaroqsizmi(a)).toBe(true);
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('x', { status: 500 })));
+    const b = { ...sess, foydalanuvchi_id: 92 };
+    expect(await roleAuthority(b, env)).toBeNull();
+    expect(sessiyaYaroqsizmi(b)).toBe(false);
+  });
+  it('hisob topilmadi / birlashtirilgan (t2_men_v1 ACTOR_NOT_FOUND) — yaroqsiz (401), boshqa ok:false — yaroqsiz emas (503)', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ok: false, code: 'ACTOR_NOT_FOUND' }), { status: 200 })));
+    const a = { ...sess, foydalanuvchi_id: 94 };
+    expect(await roleAuthority(a, env)).toBeNull();
+    expect(sessiyaYaroqsizmi(a)).toBe(true);
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ok: false, code: 'BOSHQA' }), { status: 200 })));
+    const b = { ...sess, foydalanuvchi_id: 95 };
+    expect(await roleAuthority(b, env)).toBeNull();
+    expect(sessiyaYaroqsizmi(b)).toBe(false);
+  });
+  it('bekor qilingan sessiya (kesh orqali ham) — yaroqsiz; javob 401 va cookie tozalanadi', async () => {
+    const bekor = new Date(Date.now() + 60_000).toISOString();
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ...model(), foydalanuvchi: { holat: 'faol', sessiya_bekor_dan: bekor } }), { status: 200 })));
+    const eski = { ...sess, foydalanuvchi_id: 93, exp: Date.now() + SESSIYA_MUDDAT_MS - 3_600_000 };
+    expect(await roleAuthority(eski, env)).toBeNull();
+    expect(sessiyaYaroqsizmi(eski)).toBe(true);
+    const keshdan = { ...eski };
+    expect(await roleAuthority(keshdan, env)).toBeNull();
+    expect(sessiyaYaroqsizmi(keshdan)).toBe(true);
+    const r = yaroqsizSessiyaJavob();
+    expect(r.status).toBe(401);
+    expect(r.headers.get('Set-Cookie')).toContain('Max-Age=0');
   });
 });

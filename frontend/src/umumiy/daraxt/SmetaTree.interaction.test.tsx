@@ -20,8 +20,19 @@ describe('intentional estimate row details',()=>{
   fireEvent.click(screen.getByRole('tab',{name:'Fakt'}));expect(screen.queryByRole('button',{name:'Faktni saqlash'})).toBeNull();
   fireEvent.click(screen.getByRole('button',{name:'Fakt kiritish oynasini ochish'}));expect(open).toHaveBeenCalledOnce();
  });
+ it('SMETA CONST: o‘zgargan qator belgisi, filtr va «avval / endi» tafsiloti',()=>{
+  const muhr=new Map([[2,{qator_id:2,obyekt_id:7,tur:'bl',kod:'E1',nom:'Ish A',ota_id:1,holat:'ozgargan' as const,maydonlar:['nom' as const,'hajm' as const],
+   avval:{nom:'Ish A.',hajm:0},endi:{nom:'Ish A',hajm:null},faqat_narx_qoyildi:false,aslda_yoq:false,ekspertizagacha:true,tekshirilmagan:[],
+   muhr_manba:'import',asos_vaqt:null,jurnal_soni:0,oxirgi_tahrir:null,oxirgi_kim:null,oxirgi_manba:null}]]);
+  render(<SmetaTree data={data} muhrFarq={muhr}/>);fireEvent.click(screen.getByText('Razdel A'));
+  fireEvent.click(screen.getByRole('button',{name:'O‘zgargan: Nomi, Hajm'}));
+  const drawer=screen.getByLabelText('Asl smetadan farq');
+  expect(within(drawer).getByText('Ish A.')).toBeTruthy();expect(within(drawer).getByText('0')).toBeTruthy();expect(within(drawer).getByText('bo‘sh')).toBeTruthy();
+  expect(within(drawer).getByText(/jurnalida yozuv yo‘q/)).toBeTruthy();expect(within(drawer).getByText('ekspertizagacha bo‘lim')).toBeTruthy();
+  expect(screen.getAllByRole('button',{name:/Asl smetadan farq/}).length).toBeGreaterThan(0);
+ });
  it('removes the mismatched extra heading row for every preset',()=>{
   render(<SmetaTree data={data}/>);expect(screen.queryByText('QIYMATLAR')).toBeNull();
-  fireEvent.change(screen.getByLabelText('Ustun preset'),{target:{value:'F2'}});expect(screen.queryByText('Sm. Vol')).toBeNull();expect(screen.getByText('F2 Vol')).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('Ustun preset'),{target:{value:'F2'}});expect(screen.queryByText('Smeta')).toBeNull();expect(screen.getByText('F2 olingan')).toBeTruthy();
  });
 });

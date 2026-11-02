@@ -10,6 +10,10 @@ import { toast } from '../../umumiy/ui/Toast';
 import { AlertTriangle, Save, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import type { NarxQator } from '../../api/types';
 import NarxlarNative from './NarxlarNative';
+import { t } from '../../i18n/til';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { narxOgish } from '../../lib/narx-korinish';
+import { OgishMeter } from '../../components/narx/NarxKorinish';
 
 /* ЧЕЛ va МАШ — birlikdan avtomat aniqlanadi va QULFLANGAN (qat'iy qoida).
  * Qolganlari qo'lda tanlanadi. */
@@ -27,14 +31,16 @@ export function Narxlar() {
   const [native, setNative] = useState(() => {
     try { return localStorage.getItem('t2-narxlar-native-mode') !== 'false'; } catch { return true; }
   });
+  const rejimAlmashtir = async (useLegacy: boolean) => {
+    if (!(await tasdiqSora({ sarlavha: t('Rejimni almashtirish'), matn: t('Rejim almashsa, saqlanmagan tahrirlar yopiladi. Davom etasizmi?') }))) return;
+    try { localStorage.setItem('t2-narxlar-native-mode', String(!useLegacy)); } catch { /* Joriy sessiyada ishlaydi. */ }
+    setNative(!useLegacy);
+  };
   return <>
-    <label className="flex items-center gap-2 p-3 text-[12px] text-text-mute">
-      <input type="checkbox" checked={!native} onChange={(e) => {
-        const useLegacy = e.target.checked;
-        if (!window.confirm('Rejim almashsa, saqlanmagan tahrirlar yopiladi. Davom etasizmi?')) return;
-        try { localStorage.setItem('t2-narxlar-native-mode', String(!useLegacy)); } catch { /* Joriy sessiyada ishlaydi. */ }
-        setNative(!useLegacy);
-      }} />Muammo bo'lsa: eski (GAS) rejimga o'tish
+    <label className="flex items-center gap-2 px-6 pt-3 text-[12px] text-text-mute">
+      <input type="checkbox" checked={!native} onChange={(e) => { void rejimAlmashtir(e.target.checked); }} />
+      {t('Muammo bo‘lsa: eski (GAS) rejimga o‘tish')}
+      {!native && <span className="fz-stamp fz-stamp--warn">{t('Eski rejim')}</span>}
     </label>
     {native ? <NarxlarNative /> : <NarxlarLegacy />}
   </>;
@@ -63,7 +69,7 @@ function NarxlarLegacy() {
       ? '' : String(tanlangan.belgilangan));
   }, [tanlangan]);
 
-  const hammasi = soragan.data?.rows ?? [];
+  const hammasi = useMemo(() => soragan.data?.rows ?? [], [soragan.data]);
 
   const satrlar = useMemo(() => {
     const s = q.trim().toUpperCase();
@@ -184,8 +190,7 @@ function NarxlarLegacy() {
             <div className="flex-1 min-w-[220px]">
               <label className="text-[12px] font-medium text-text block mb-1.5">Obyekt</label>
               <select value={orObyekt} onChange={(e) => { setOrObyekt(e.target.value); setOrTahrir(null); }}
-                className="w-full bg-[var(--surface-2)] border border-border rounded
-                           px-2 py-1.5 text-[12px] text-text">
+                className="h-8 w-full px-2 text-[12px] text-text">
                 <option value="">— tanlang —</option>
                 {(obyektlar.data ?? []).map((o) => (
                   <option key={o.obyekt} value={o.obyekt}>{o.obyekt}</option>
@@ -204,8 +209,7 @@ function NarxlarLegacy() {
                 });
               }}
               disabled={orSkan.isPending || !orObyekt}
-              className="px-3 py-1.5 rounded-lg bg-accent/15 text-accent hover:bg-accent/25
-                         text-[12px] font-medium transition-colors disabled:opacity-40">
+              className="fz-btn">
               {orSkan.isPending ? 'Skanlanmoqda…' : '🔍 Svodkani skanlash'}
             </button>
           </div>
@@ -226,20 +230,19 @@ function NarxlarLegacy() {
             }
             return (
               <>
-                <div className="max-h-64 overflow-auto scrollbar-thin rounded border border-border">
-                  <table className="w-full text-[12px]">
-                    <thead className="text-text-mute text-xs sticky top-0 bg-[var(--surface-2)]">
-                      <tr className="text-left">
-                        <th className="py-1.5 px-2">Varaq</th>
-                        <th className="py-1.5 px-2 text-right">Qator</th>
-                        <th className="py-1.5 px-2">Kategoriya</th>
-                        <th className="py-1.5 px-2">Sarlavha</th>
+                <div className="fz-table-wrap max-h-64">
+                  <table className="fz-table text-[12px]">
+                    <thead>
+                      <tr>
+                        <th>{t('Varaq')}</th>
+                        <th className="fz-c-num">{t('Qator')}</th>
+                        <th>{t('Kategoriya')}</th>
+                        <th>{t('Sarlavha')}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {royxat.map((o, i) => (
-                        <tr key={`${o.varaq}-${o.qator}-${i}`}
-                          className="border-t border-border/60 hover:bg-white/[.03]">
+                        <tr key={`${o.varaq}-${o.qator}-${i}`}>
                           <td className="py-1 px-2 text-text-dim truncate max-w-[160px]">{o.varaq}</td>
                           <td className="py-1 px-2 text-right tabular-nums text-text-dim">{o.qator}</td>
                           <td className="py-1 px-2">
@@ -247,13 +250,12 @@ function NarxlarLegacy() {
                               <select value={o.kat}
                                 onChange={(e) => setOrTahrir((p) => (p ?? []).map((x, j) =>
                                   j === i ? { ...x, kat: e.target.value } : x))}
-                                className="bg-[var(--surface-3)] border border-border rounded
-                                           px-1.5 py-0.5 text-xs text-text">
+                                className="h-7 px-1.5 text-xs text-text">
                                 {['ЧЕЛ', 'МАШ', 'МАТ', 'ОБ', 'КАБ', 'М/К'].map((k) =>
                                   <option key={k} value={k}>{k}</option>)}
                               </select>
                             ) : (
-                              <span className="px-1.5 py-0.5 rounded bg-white/5 text-text">{o.kat}</span>
+                              <span className="fz-chip">{o.kat}</span>
                             )}
                           </td>
                           <td className="py-1 px-2 text-text-mute truncate max-w-[260px]"
@@ -275,17 +277,15 @@ function NarxlarLegacy() {
                         onError: (e: Error) => toast(e.message, 'danger', undefined, 9000),
                       })}
                       disabled={orSaqla.isPending}
-                      className="px-3 py-1.5 rounded-lg bg-accent text-white text-[12px]
-                                 font-medium hover:bg-accent/90 transition-colors disabled:opacity-50">
+                      className="fz-btn fz-btn--primary">
                       {orSaqla.isPending ? 'Saqlanmoqda…' : 'Tasdiqlash va saqlash'}
                     </button>
                     <button onClick={() => setOrTahrir(null)}
-                      className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10
-                                 text-[12px] text-text-mute transition-colors">
+                      className="fz-btn fz-btn--ghost">
                       Bekor qilish
                     </button>
-                    <span className="text-xs text-warn">
-                      Saqlangach obyektni «Ishla» bilan qayta hisoblang
+                    <span className="fz-chip fz-chip--warn">
+                      {t('Saqlangach obyektni «Ishla» bilan qayta hisoblang')}
                     </span>
                   </div>
                 )}
@@ -347,8 +347,8 @@ function NarxlarLegacy() {
             </section>
 
             {tanlangan.xavf && (
-              <div className="rounded-[10px] border border-warn/25 bg-warn/[.08] p-3 text-sm text-text-dim">
-                <AlertTriangle size={14} className="text-warn inline mr-1.5 -mt-0.5" />
+              <div className="fz-note fz-note--warn">
+                <AlertTriangle size={14} aria-hidden="true" />
                 Obyektlar bo'yicha narxlar <strong className="text-text">5% dan ortiq</strong> farq qiladi.
                 Qaysi biri to'g'riligini tanlab, qo'lda belgilab qo'ying.
               </div>
@@ -377,9 +377,10 @@ function NarxlarLegacy() {
                 <h4 className="text-xs uppercase tracking-[0.04em] text-text-dim mb-2">Obyektlar bo'yicha</h4>
                 <div className="karta divide-y divide-border max-h-56 overflow-y-auto">
                   {Object.entries(tanlangan.smeta).map(([ob, n]) => (
-                    <div key={ob} className="px-3 py-2 flex items-center justify-between gap-3 text-sm">
+                    <div key={ob} className="px-3 py-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 text-sm">
                       <span className="text-text-dim truncate" title={ob}>{ob}</span>
                       <span className="tabular-nums text-text flex-shrink-0"><FmtN val={n} /></span>
+                      <span className="col-span-2" title={t('Obyekt narxi ishlatiladigan narxga nisbatan')}><OgishMeter og={narxOgish(Number(n), Number(tanlangan.natija) || null)} /></span>
                     </div>
                   ))}
                 </div>

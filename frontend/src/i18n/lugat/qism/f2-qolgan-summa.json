@@ -1,0 +1,5 @@
+{
+  "{n} ta qator — ustamali noma’lum, {pul} so‘m ustamasiz": { "ru": "{n} строк — с накруткой неизвестно, {pul} сум без накрутки", "en": "{n} rows — with markup unknown, {pul} sum without markup" },
+  "{n} ta qator — {ust} so‘m (nakrutka bilan), {pul} so‘m ustamasiz": { "ru": "{n} строк — {ust} сум (с накруткой), {pul} сум без накрутки", "en": "{n} rows — {ust} sum (with markup), {pul} sum without markup" },
+  "(taxminiy, kat noma’lum: {pul} so‘m)": { "ru": "(приблизительно, категория неизвестна: {pul} сум)", "en": "(approximate, category unknown: {pul} sum)" }
+}

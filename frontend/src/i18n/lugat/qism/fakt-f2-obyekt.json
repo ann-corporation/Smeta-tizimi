@@ -1,0 +1,17 @@
+{
+  "yana {n} ta qator — bo‘lim jadvali bilan boshqaring": { "ru": "ещё строк: {n} — управляйте через таблицу разделов", "en": "{n} more rows — manage them via the section table" },
+  "Butun obyekt (barcha bo‘limlar)": { "ru": "Весь объект (все разделы)", "en": "Whole object (all sections)" },
+  "Fakt = F2 (butun obyekt)": { "ru": "Факт = Ф2 (весь объект)", "en": "Actual = F2 (whole object)" },
+  "Butun obyekt (barcha bo‘limlar): F2 hajmi fakt dan ko‘p ishlarga farqni yozish — oldindan ko‘rish, istisno va bekor qilish bilan": { "ru": "Весь объект (все разделы): дописать разницу в факт там, где объём Ф2 больше факта — с предпросмотром, исключениями и отменой", "en": "Whole object (all sections): add the difference to actuals where the F2 volume exceeds them — with preview, exclusions and undo" },
+  "Fakt = F2: butun obyekt": { "ru": "Факт = Ф2: весь объект", "en": "Actual = F2: whole object" },
+  "Fakt = F2: obyekt": { "ru": "Факт = Ф2: объект", "en": "Actual = F2: object" },
+  "F2 davri": { "ru": "Период Ф2", "en": "F2 period" },
+  "Shu davr uchun F2 qoralama: fakt − F2 > 0 bo‘lgan barcha ishlar avtomatik olinadi; tasdiq — F2 tarixida (egasi)": { "ru": "Черновик Ф2 за этот период: все работы с факт − Ф2 > 0 берутся автоматически; утверждение — в истории Ф2 (владелец)", "en": "F2 draft for this period: all works with actual − F2 > 0 are taken automatically; approval stays in F2 history (owner)" },
+  "Nakopitelniy smeta": { "ru": "Смета накопительной", "en": "Cumulative statement estimate" },
+  "daraxt smeta": { "ru": "смета дерева", "en": "tree estimate" },
+  "qo‘shimcha ishlar": { "ru": "дополнительные работы", "en": "additional works" },
+  "(ustamasiz, NDS siz)": { "ru": "(без накрутки, без НДС)", "en": "(without markup, excl. VAT)" },
+  "Nakopitelniy bilan farq": { "ru": "Расхождение с накопительной", "en": "Difference from cumulative statement" },
+  "(daraxt − Nakopitelniy; tekshiring)": { "ru": "(дерево − накопительная; проверьте)", "en": "(tree − cumulative statement; please check)" },
+  "Fakt = F2: {n} qator faktga yozildi": { "ru": "Факт = Ф2: в факт записано строк: {n}", "en": "Actual = F2: {n} rows written to actuals" }
+}

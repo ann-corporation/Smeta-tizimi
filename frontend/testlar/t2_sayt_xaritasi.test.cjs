@@ -1,6 +1,6 @@
 /*
  * Sayt xaritasi qo'riqchisi. Manifest qo'lda chizilgan diagramma emas:
- * generator App/AdminShell va ikki Cloudflare oq ro'yxatidan qayta quriladi.
+ * generator App/navigatsiya reestri (lib/nav/navReestr.ts) va ikki Cloudflare oq ro'yxatidan qayta quriladi.
  * Generator ishlatilmagan yoki katalog route qamramagan bo'lsa tekshiruv yiqiladi.
  */
 const fs = require('fs');
@@ -10,7 +10,7 @@ const assert = require('assert');
 
 const ROOT = path.join(__dirname, '..');
 const read = (...parts) => fs.readFileSync(path.join(ROOT, ...parts), 'utf8');
-const shell = read('src', 'admin', 'AdminShell.tsx');
+const shell = read('src', 'lib', 'nav', 'navReestr.ts'); // yagona navigatsiya reestri (AdminShell shundan o'qiydi)
 const app = read('src', 'App.tsx');
 const sb = read('functions', 'api', 'sb.ts');
 const sbWrite = read('functions', 'api', 'sb-yoz.ts');
@@ -33,7 +33,7 @@ const catalogRoutes = unique([...catalog.matchAll(/yol:\s*'([^']+)'/g)].map((m) 
 for (const route of menuRoutes) must(`menyu yo‘li katalogda: ${route}`, catalogRoutes.includes(route), 'Menyu route sahifa katalogiga kiritilmagan');
 must('/admin/sayt-xaritasi App.tsx route sifatida bor', app.includes('path="sayt-xaritasi"'));
 must('/admin/sayt-xaritasi Global menyuda bor', shell.includes("/admin/sayt-xaritasi"));
-must('manifest menyu yo‘llari AdminShell bilan teng', JSON.stringify(generated.menuRoutes) === JSON.stringify(menuRoutes));
+must('manifest menyu yo‘llari navigatsiya reestri bilan teng', JSON.stringify(generated.menuRoutes) === JSON.stringify(menuRoutes));
 must('manifestda sayt xaritasi segmenti bor', generated.appRouteSegments.includes('sayt-xaritasi'));
 
 const readBlock = (sb.match(/const RUXSAT_JADVALLAR[\s\S]*?\n\]\);/m)?.[0] || '').replace(/\/\*[\s\S]*?\*\//g, '');

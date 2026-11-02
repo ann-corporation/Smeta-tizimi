@@ -29,6 +29,18 @@ export type TreeNode = {
   oylar?: Record<string, { obyom: number; narx: number; narxIsFormula?: boolean; uid?: string; }>;
   isQosh?: boolean;
   isZamena?: boolean;
+  /** LRV belgisi (egasi 2026-10-29): `t2_qator.change_type` dan, ota-zanjir bo'yicha meros (lib/lrv-ozgarish). */
+  ozgarishGuruh?: 'asl' | 'qoshimcha' | 'zamena';
+  /** Qatorning o'z `change_type` qiymati. */
+  ozgarishOzi?: 'ADDITIONAL' | 'REPLACEMENT' | null;
+  /** LRV Excel'dagi «№ п/п» (rz — yo'q). */
+  lrvPoz?: number | null;
+  /** Zamena → u almashtirgan asl qator. */
+  almashtiradi?: { id: number; poz: number | null; nom: string } | null;
+  /** Asl qator → uni almashtirgan zamenalar (bo'sh bo'lmasa — «ALMASHTIRILGAN»). */
+  almashtirganlar?: Array<{ id: number; poz: number | null; nom: string }>;
+  /** Avvalgi (almashtirilgan) smeta versiyasi qatori — asosiy ro'yxatda emas; qiymat — yangi versiya nomi (bo'sh bo'lishi mumkin). */
+  avvalgiVersiya?: string;
   d1?: string; d2?: string; d3?: string;
   children?: TreeNode[];
 };

@@ -1,38 +1,31 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Mail, Building, Users } from 'lucide-react';
 import TestKorrespondensiya from './TestKorrespondensiya';
 import TestSotuvCrm from './TestSotuvCrm';
 import TestInvite from './TestInvite';
+import { t } from '../i18n/til';
 
+type Tab = 'edo' | 'sotuv' | 'invite';
+const TABS: { id: Tab; nom: string; izoh: string; Icon: typeof Mail }[] = [
+  { id: 'invite', nom: 'Taklif va bog‘lanish', izoh: 'Hamkorlarni tizimga taklif qilish', Icon: Users },
+  { id: 'edo', nom: 'Korrespondensiya (B2B)', izoh: 'Kiruvchi va chiquvchi xatlar', Icon: Mail },
+  { id: 'sotuv', nom: 'Uy sotuv (Developer CRM)', izoh: 'Xaridorlar va shartnomalar', Icon: Building },
+];
+
+/** CRM: uch bo'lim bitta joyda (Firuza tab qatori; ichki sahifalar o'zgarmaydi). */
 export default function WrapperCRM() {
-  const [activeTab, setActiveTab] = useState<'edo' | 'sotuv' | 'invite'>('invite');
-
+  const [activeTab, setActiveTab] = useState<Tab>('invite');
   return (
-    <div className="h-full flex flex-col bg-transparent">
-      {/* Wrapper Tabs */}
-      <div className="flex items-center gap-2 px-6 pt-4 border-b border-white/10 bg-black/20">
-        <button
-          onClick={() => setActiveTab('invite')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'invite' ? 'border-sky-500 text-sky-400' : 'border-transparent text-zinc-400 hover:text-white'}`}
-        >
-          <Users size={16} /> Taklif va Bog'lanish
-        </button>
-        <button
-          onClick={() => setActiveTab('edo')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'edo' ? 'border-sky-500 text-sky-400' : 'border-transparent text-zinc-400 hover:text-white'}`}
-        >
-          <Mail size={16} /> Korrespondensiya (B2B)
-        </button>
-        <button
-          onClick={() => setActiveTab('sotuv')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'sotuv' ? 'border-sky-500 text-sky-400' : 'border-transparent text-zinc-400 hover:text-white'}`}
-        >
-          <Building size={16} /> Uy Sotuv (Developer CRM)
-        </button>
+    <div className="flex h-full flex-col bg-bg">
+      <div role="tablist" aria-label={t('CRM bo‘limlari')} className="flex items-end gap-1 overflow-x-auto border-b border-border bg-surface px-6 pt-3">
+        {TABS.map((x) => (
+          <button key={x.id} type="button" role="tab" aria-selected={activeTab === x.id} onClick={() => setActiveTab(x.id)} title={t(x.izoh)}
+            className={`-mb-px flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-2 text-[13px] font-medium transition-colors ${activeTab === x.id ? 'border-accent text-text' : 'border-transparent text-text-dim hover:text-text'}`}>
+            <x.Icon size={16} className={activeTab === x.id ? 'text-accent' : ''} /> {t(x.nom)}
+          </button>
+        ))}
       </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-hidden relative">
+      <div role="tabpanel" className="relative flex-1 overflow-hidden">
         {activeTab === 'invite' && <TestInvite />}
         {activeTab === 'edo' && <TestKorrespondensiya />}
         {activeTab === 'sotuv' && <TestSotuvCrm />}

@@ -39,7 +39,7 @@ export function AiKorinish({ m, bolimOch }: { m: Markaz; bolimOch: (b: string) =
             <li key={b.nom} className="flex items-start gap-2 text-[13px]">
               <span className="mt-0.5"><Belgi h={b.holat} /></span>
               <span className="flex-1"><span className="font-medium text-text">{t(b.nom)}</span> <span className="text-text-dim">— {t(b.izoh)}</span></span>
-              {b.bolim && b.holat !== 'ok' && <button type="button" className="tugma h-7 px-2 text-[12px]" onClick={() => bolimOch(b.bolim!)}>{t(b.amal ?? 'Ochish')}</button>}
+              {b.bolim && b.holat !== 'ok' && <button type="button" className="fz-btn h-7 px-2 text-[12px]" onClick={() => bolimOch(b.bolim!)}>{t(b.amal ?? 'Ochish')}</button>}
             </li>
           ))}
         </ul>

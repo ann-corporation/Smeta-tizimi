@@ -1,0 +1,523 @@
+{
+  "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
+  "yozuvlar": [
+    {
+      "id": 52,
+      "sana": "2026-10-31",
+      "sarlavha": "Fakt jurnali: foiz bilan tez kiritish — oynasiz, bitta saqlash",
+      "bandlar": [
+        "Hajm katagiga «50%» yozing — smeta hajmining yarmi olinadi («=» rejimda jami fakt, «+» rejimda bugungi hajm).",
+        "Bo'lim sarlavhasidagi «Jami %: 25 / 50 / 75 / 100» tugmalari ko'rinadigan barcha ish va resurslarga darhol qo'llanadi — oyna ochilmaydi.",
+        "Excel'dan bir ustun qiymatlarni katakka joylasangiz, pastdagi qatorlarga ketma-ket tushadi. Enter — pastga.",
+        "Hamma o'zgarish qoralamada ajralib ko'rinadi; «Orqaga» (Ctrl+Z) oxirgi ommaviy amalni qaytaradi; «Saqlash» hammasini bitta yozadi.",
+        "«Jami» qiymatlar saqlanishdan oldin tekshiriladi: fakt boshqa joyda o'zgargan bo'lsa hech narsa yozilmaydi va jadval yangilanadi."
+      ]
+    },
+    {
+      "id": 51,
+      "sana": "2026-10-31",
+      "sarlavha": "F2 ni bekor qilish — tasdiqlangan F2 ham, bir nechtasini birdaniga",
+      "bandlar": [
+        "«F2 tarixi va tasdiqlash» sahifasida har F2 yonida «Bekor qilish» tugmasi bor — qoralama ham, tasdiqlangan ham.",
+        "Bir obyektning bir nechta F2 sini belgilab, bitta amal bilan bekor qilish mumkin.",
+        "Shu oynaning o'zida tasdiq: F2 raqami, oyi, summasi va qatorlar soni ko'rinadi; sabab yozish majburiy.",
+        "Hech narsa o'chirilmaydi: bekor qilingan F2 tarixda qoladi, lekin LRV, qoldiq va Nakopitelniy jamilaridan chiqadi. Tasdiqlangan F2 ni faqat F2 tasdiqlash huquqi bor xodim yoki rahbar bekor qiladi."
+      ]
+    },
+    {
+      "id": 50,
+      "sana": "2026-10-31",
+      "sarlavha": "Fakt summasi tasdiqlangan F2 narxida; Fakt jurnali, Nakopitelniy va Studio bitta hisob yadrosida",
+      "bandlar": [
+        "Qatorda tasdiqlangan F2 bo'lsa, fakt summasi F2 birlik narxida hisoblanadi (masalan smeta 12 000, F2 35 000 bo'lsa — fakt hajmi × 35 000). F2 yo'q qatorda fakt summasi avvalgidek.",
+        "Fakt hajmi qanday kiritilgan bo'lsa shunday ko'rsatiladi: fakt F2 dan kam bo'lishi normal (F2 oldindan olinadi), fakt F2 dan avtomatik olinmaydi. «Fakt = F2» faqat o'sha tugma orqali yoziladi.",
+        "Fakt jurnali, «Fakt (hozircha)», Сличительная, Накопительная, ЛРВ va ЛРВ+ shu bitta narx qoidasidan foydalanadi; Excel formulasi ekrandagi qiymat bilan teng.",
+        "Yaxlit svod bo'limi: fakt — svod summasi × (bo'lim fakti / bo'lim smetasi), F2 qoldig'i — svod summasi − F2 (aynan); narxsiz qator 0 deb sanalmaydi.",
+        "Ostatka, Сличительная, ЛРВ va Накопительная/Ф-3 eksporti ustama yoki podval o'qilmasa jimgina chiqmaydi — sababi ko'rsatiladi.",
+        "Nakopitelniy: smeta «к оплате» bitta hisobdan, kategoriyasi ko'rsatilmagan qism ham kiradi (≈); ma'lumot yetishmasa «не определена» va sababi yoziladi.",
+        "Studio RES: ustama kaskadi podval qatorlari bo'yicha, buyurtmachi xarajatlari alohida, kategoriyasiz qatorlar ustamasiz qo'shiladi (≈); jami QQS bilan birinchi."
+      ]
+    },
+    {
+      "id": 49,
+      "sana": "2026-10-30",
+      "sarlavha": "Bitta hisob yadrosi: ekran va barcha Excel hujjatlar endi bir xil hisoblaydi",
+      "bandlar": [
+        "Ustama (podval), QQS, yaxlit svod va yaxlitlash endi bitta joyda hisoblanadi — сличительная, остаток, накопительная, Ф-3, ЛРВ, ЛРВ+, Ф-2, oylik paket va tender bir xil raqam beradi; Excel formulasi ekrandagi qiymat bilan tiyinigacha teng.",
+        "Yaxlit svod summasi QQS bilan, НДС qatoridan keyin alohida qator bo'lib turadi va ВСЕГО ga aynan qo'shiladi; ichidagi qatorlar tiyinigacha shu summaga taqsimlanadi.",
+        "Svoddagi «Прочие затраты заказчика» va «Фонд Шаффоф» ВСЕГО dan keyin alohida ko'rsatiladi — pudratchi summasiga qo'shilmaydi.",
+        "Podvalda kiritilmagan foiz endi jimgina 0% olinmaydi — «не определена» deb ko'rsatiladi; shartnomadan olingan foiz manbasi bilan yoziladi."
+      ]
+    },
+    {
+      "id": 48,
+      "sana": "2026-10-29",
+      "sarlavha": "Smeta versiyasi: hamma joyda faqat joriy smeta, eski versiya bilan farq bir joyda",
+      "bandlar": [
+        "Smeta yangi versiyaga (masalan ekspertiza xulosasi) almashtirilgan obyektlarda endi barcha ekran, eksport, AI javoblari, narxlash va qidiruv faqat JORIY smetani oladi — eski va yangi qatorlar qo'shilib smeta ikki barobar chiqmaydi.",
+        "Eski smeta o'chirilmaydi: undagi tasdiqlangan F2 tarixda qoladi va bajarilganda bir marta sanaladi. Pereraschet va to'liq eksport eski qatorlarni ham ko'radi.",
+        "Obyekt sahifasida «Smeta yangi versiyaga almashtirilgan — eski va yangi farqi» tugmasi: «Versiyalar va farq» da eski → joriy zanjiri, jamilar (QQS bilan, ustamali QQS siz, прямые), har pozitsiya bo'yicha kamaygan / oshgan / yangi / o'chirilgan / o'zgarmagan, eski va yangi hajm/narx/summa, eski qatordagi F2 va pereraschet ishorasi (eski F2 minus, joriy narxda plus).",
+        "Tizim o'zini tekshiradi: smeta qatorlarini versiyani hisobga olmasdan o'qiydigan yangi hisob paydo bo'lsa, xato signali chiqadi."
+      ]
+    },
+    {
+      "id": 47,
+      "sana": "2026-10-29",
+      "sarlavha": "LRV: qo'shimcha ish va zamena endi aniq ko'rinadi",
+      "bandlar": [
+        "LRV daraxtida har qatorda belgi: «QO'SHIMCHA» (asl smetada yo'q ish) va «ZAMENA» (qaysi asl qator o'rniga — «← poz. N: nomi», bosilsa o'sha qatorga o'tadi). Almashtirilgan asl qator kursivda «ALMASHTIRILGAN → poz. M» va qoldiq hajmi bilan.",
+        "Tezkor filtrlar: Hammasi / Asl smeta / Qo'shimcha / Zamena. Yangi smeta versiyasi bilan almashtirilgan eski qatorlar asosiy ro'yxatga kirmaydi — «Avvalgi versiya (almashtirilgan)» filtrida kulrang ko'rinadi.",
+        "LRV Excel'da shakl o'zgarmaydi, oxirida «Примечание» ustuni: «ДОПОЛНИТЕЛЬНАЯ РАБОТА», «ЗАМЕНА поз. N (…)», «ЗАМЕНЕНО → поз. M, остаток X». Rang: qo'shimcha — sariq, zamena — ko'k, almashtirilgan — kulrang kursiv.",
+        "Excel oxirida jamlar: asl smeta / qo'shimcha ishlar / zamena — ustamasiz (formula) va ustama bilan (QQS siz va QQS bilan), uchtasi smeta jami bilan sverka qilinadi; rang izohi. Avvalgi versiya qatorlari alohida «Пред. версия» varag'ida (jamlarga kirmaydi)."
+      ]
+    },
+    {
+      "id": 46,
+      "sana": "2026-10-28",
+      "sarlavha": "«Fakt = F2» endi F2 narxi bilan yozadi",
+      "bandlar": [
+        "«Fakt = F2» (obyekt, bo'lim yoki tanlangan ish) har qatorni tasdiqlangan F2 dagi narx bilan faktga yozadi — material va uskunaning haqiqiy olingan narxi faktga o'tadi. Narx manbasi (F2 hujjat raqami) qatorda saqlanadi.",
+        "F2 da narx bo'lmasa narx to'qilmaydi: smeta narxi olinadi yoki qator «narxsiz» bo'lib qoladi. Tasdiqlash oynasida: ustamasiz jami, F2 narxli / smeta narxli / narxsiz qatorlar soni — ko'rgan summangiz aynan yoziladigan summa.",
+        "Tasdiqlangan F2 ning har satri (minus satrlar ham) o'z fakt qatoriga 1:1 ko'chiriladi — hajm, narx va summa hujjatdagidek, har fakt qatorida qaysi F2 satridan kelgani saqlanadi; bir F2 satri ikki marta ko'chirilmaydi.",
+        "Mehnat va mashina F2 dagi aniq qatorlaridan yoziladi; F2 dan ko'chirilgan ish uchun norma bo'yicha qo'shimcha hisoblanmaydi (ikki marta sanash yo'q). Qo'lda kiritilgan fakt avvalgidek ishlaydi.",
+        "Oldin smeta narxida yozilgan «Fakt = F2» hujjatlari bo'lsa, oynada ro'yxati va «Bekor qilib qayta yozish» tugmasi chiqadi (tasdiq bilan) — keyin «Fakt = F2» ni qayta oching."
+      ]
+    },
+    {
+      "id": 45,
+      "sana": "2026-10-29",
+      "sarlavha": "Ombor: Excel'dagi «Приход» endi tizimda",
+      "bandlar": [
+        "«Ombor» sahifasida yangi «Kirim» yorlig'i: omborni tanlang va «Excel'dan yuklash» ni bosing — faqat «Приход» varag'i o'qiladi, boshqa varaqlar import qilinmaydi.",
+        "Yozishdan oldin har qator ko'rsatiladi: yangi, takror (shu fayldan oldin yozilgan) va xato (qizil, tuzatish mumkin). «Tasdiqlab yozish» asl faylni saqlaydi va qatorlarni 1000 tadan yozadi; aloqa uzilsa «Davom ettirish» qolganini yozadi, takror yozuv bo'lmaydi.",
+        "Kirim ro'yxatida filtr, 50 talik sahifa va material bo'yicha jami bor; xato kirimni 24 soat ichida sabab yozib storno qilish mumkin. «Qoldiq» yorlig'ida rasxod hali kiritilmagani aniq yoziladi. Narx bu bosqichda yo'q."
+      ]
+    },
+    {
+      "id": 44,
+      "sana": "2026-10-29",
+      "sarlavha": "Telegram bot @qur_uz_bot va Telegram ichidagi ilova",
+      "bandlar": [
+        "Akkaunt → Bildirishnomalar → «Telegramni ulash»: bitta bosish bilan Telegram hisobingiz tizimga ulanadi (havola 10 daqiqa, bir marta ishlaydi). Uzish — shu yerdan yoki botda /chiqish.",
+        "Botdagi «Smeta» menyu tugmasi tizimni Telegram ichida ochadi — siz o'z rolingiz va ruxsatlaringiz bilan kirasiz, alohida parol kerak emas.",
+        "Bot buyruqlari: /men (hisob, ish joylari, rollar), /ilova, /yordam, /chiqish. Yangi topshiriq berilsa — Telegramga xabar (o'chirib qo'yish mumkin).",
+        "Keyingi bosqichlar: fakt kiritish (rasm/ovoz), F2 holati, ombor KELDI/BERDIM, rahbar kunlik xulosasi — bot orqali."
+      ]
+    },
+    {
+      "id": 43,
+      "sana": "2026-10-28",
+      "sarlavha": "Ekspertiza «ALL» smetalari qo'lda belgilashsiz o'qiladi",
+      "bandlar": [
+        "RES / F5 / VED / TNDR varaqli ekspertiza fayli yuklanganda rollar avtomatik: F5 — LRV (faqat uskunali smeta ham), RES — narx va podval manbai, VED va TNDR — e'tiborsiz. TNDR narxini faqat ongli tanlasangiz oladi (ogohlantirish bilan).",
+        "RES podvalidagi transport va zagot-sklad foizlari КОЛ-ВО ustunidan o'qiladi va blok summasi bilan isbotlanadi; material, metallokonstruksiya, kabel va uskuna bloklari o'z koeffitsientiga tushadi. Uskunalar RES guruhi bo'yicha ОБ bo'ladi.",
+        "Zagot-skladsiz bloklar (transport bor, zagot qatori yo'q) hujjatdagidek БЕЗСКЛАД kategoriyasiga tushadi. Isbotsiz bloklar, LRV↔RES manba xatolari va RES nomi farqli qatorlar uchun narx takliflari ko'rinadigan ogohlantirish sifatida chiqadi — hech narsa avtomatik birlashtirilmaydi."
+      ]
+    },
+    {
+      "id": 42,
+      "sana": "2026-10-27",
+      "sarlavha": "Tizim xaritasi — tizimda nima bo'layotgani jonli",
+      "bandlar": [
+        "Yangi «Tizim xaritasi» sahifasi: kompaniyalar → modullar (smeta, fakt, F2, Nakopitelniy, sverka, ombor, agentlar), har birida oxirgi amal, 24 soatdagi xatolar va navbatdagi ishlar.",
+        "Yon tomonda «Oxirgi hodisalar» lentasi; xarita har 30 soniyada o'zi yangilanadi (yashirin tabda to'xtaydi).",
+        "Faqat platforma superadmini va u ruxsat bergan odamlar ko'radi; ruxsatlar shu sahifada beriladi va olinadi, har amal auditga yoziladi."
+      ]
+    },
+    {
+      "id": 41,
+      "sana": "2026-10-27",
+      "sarlavha": "Xarita: tugundan to'g'ridan-to'g'ri amal",
+      "bandlar": [
+        "Xaritada tugunni o'ng tugma bilan bosing (yoki panel sarlavhasidagi «Amallar», klaviaturada Shift+F10) — shu tugun uchun amallar menyusi ochiladi.",
+        "Obyektda: LRV, fakt kiritish, F2 tayyorlash va tarixi, Nakopitelniy, smeta yuklash, zayavka, mas'ul biriktirish va topshiriq berish. Odamda: mas'ul qilish, topshiriq berish, rolni o'zgartirish. Shartnomada: to'lov va akt-sverka; skladda: prixod/rasxod.",
+        "Ruxsatingiz yo'q amal qulf bilan ko'rinadi va sababi yoziladi; moliyaviy ruxsat bo'lmasa pulga oid amallar chiqmaydi. Har yozuvchi amal mavjud server buyrug'i orqali — ruxsat va audit serverda."
+      ]
+    },
+    {
+      "id": 40,
+      "sana": "2026-10-27",
+      "sarlavha": "Tizimga oid bo'limlar faqat platforma administratorida",
+      "bandlar": [
+        "Menyudan «Sayt xaritasi» olib tashlandi.",
+        "Tizimning o'ziga oid bo'limlar (integratsiyalar holati, texnik nazorat, AI model katalogi va ustamasi, sinov sahifalari) endi faqat platforma administratoriga ko'rinadi — menyuda ham, to'g'ridan-to'g'ri havola bilan ham.",
+        "Kompaniya va uning a'zolari AI modelini avvalgidek o'zi tanlaydi (qimmat modellarni ham), kompaniya model siyosatini ham o'zi belgilaydi. Har model yonida narxi ko'rinadi: «arzon / o'rta / qimmat» va «1 so'rov ≈ N token»; qimmat model tanlanganda narxi bilan ogohlantirish chiqadi.",
+        "«Tokenlar va obuna» sahifasida kompaniya o'z balansini, sarfini va har amalning yakuniy narxini ko'radi; narxning ichki tarkibi ko'rsatilmaydi.",
+        "AI yordamchisi, chat, takliflar va AI jurnali avvalgidek ishlaydi (javob bergan model nomi ham ko'rinadi). Kompaniyaning o'z sozlamalari, a'zolari, modullari va audit jurnali ham o'zgarmagan."
+      ]
+    },
+    {
+      "id": 39,
+      "sana": "2026-10-27",
+      "sarlavha": "Obyekt qiymati endi QQS bilan — asosiy raqam",
+      "bandlar": [
+        "Har obyekt, bo'lim, shartnoma va portfel jami summasida katta raqam endi QQS bilan qiymat (ВСЕГО, server hisobi bilan bir xil). Ostida kichik: «ustamali, QQS siz» (ИТОГО-4) va «to'g'ri xarajat (ustamasiz)».",
+        "Rahbar paneli, Nakopitelniy kartalari (smeta, fakt, F2, faktdan F2 ga mumkin), Smeta anatomiyasi, Resurs vedomosti, Pereraschet sof natijasi, Pul tahlili, F2 reestri, shartnoma va obyekt kartalarida shunday. QQS stavkasi koeffitsientlardan olinadi.",
+        "Qiymat noma'lum bo'lsa «—» (sababi sichqoncha ostida), 0 emas; kategoriyasi noma'lum qism bo'lsa ikkala qiymat ham «≈ taxminiy».",
+        "Smeta va F2 narxlari, qator summalari, tasdiqlangan F2 aktlari va rasmiy hujjat/Excel shakllari o'zgarmaydi. Tasdiqlangan F2 jami (hujjat jami) hozircha «ustamasiz, QQS siz» yorlig'i bilan ko'rsatiladi."
+      ]
+    },
+    {
+      "id": 38,
+      "sana": "2026-10-27",
+      "sarlavha": "Har bir hujjatda tizim imzosi",
+      "bandlar": [
+        "Tizimdan yuklab olinadigan har Excel hujjat (F2, F3, LRV, Nakopitelniy, ostatka, sverka, pereraschet, oferta va boshqalar) sahifa pastida tizim imzosini oladi: «Smeta tizimi · smeta-tizimi.pages.dev», hujjat nomi, kim yaratgani, sana-vaqt va tekshirish kodi.",
+        "Tekshirish kodi hujjat mazmunidan olinadi: bir xil hujjat — bir xil kod, raqam o'zgarsa — kod ham o'zgaradi. Fayl xususiyatlarida (Muallif / Tashkilot / Izoh) ham shu imzo bor.",
+        "Imzo faqat kolontitulda — rasmiy shakllar, jadval va Подрядчик/Заказчик imzo bloklari joyidan siljimaydi. F2 oylik paket ichidagi har fayl ham imzolanadi."
+      ]
+    },
+    {
+      "id": 36,
+      "sana": "2026-10-27",
+      "sarlavha": "Xarita: jamoa va mas'ullar; jadval ustun filtrlari",
+      "bandlar": [
+        "Xaritada obyekt/loyihaga mas'ul biriktirish va jamoa ko'rinishi; har kim faqat o'ziga ruxsat berilgan qismni ko'radi.",
+        "Nakopitelniy jadvalida Excel'dagidek ustun filtrlari; grafiklar endi cho'zilib ketmaydi.",
+        "Fakt ekrani ixchamroq, suzuvchi AI tugmalari jadval raqamlarini to'smaydi."
+      ]
+    },
+    {
+      "id": 35,
+      "sana": "2026-10-27",
+      "sarlavha": "Pul tahlilida «Moliyaviy tahlil» jadvali",
+      "bandlar": [
+        "Nakopitelniy → Shartnoma svodi → Pul tahlili ichida 16 ko'rsatkichli moliyaviy tahlil (mlrd so'm, QQS bilan): fakt, F2, tushgan pul, sarf, qarz, yakunlash va yakuniy farq.",
+        "Har qator yonida manba belgisi (tizim / qo'lda / hisoblangan) va formula; tizimda yo'q qiymatlarni (qarz, kutilayotgan F2, yakunlash uchun talab) shu yerning o'zida qo'lda kiritish mumkin — sana va muallif saqlanadi.",
+        "Noma'lum qiymat «—» bo'lib qoladi va unga bog'liq hisoblar ham «—» — nol bilan aldamaydi. Excel'ga (rus tilida) egasi jadvali tartibida yuklab olinadi."
+      ]
+    },
+    {
+      "id": 34,
+      "sana": "2026-10-27",
+      "sarlavha": "Katta obyektlarda Nakopitelniy ishonchli ochiladi",
+      "bandlar": [
+        "Katta obyektlarda (25 ming+ qator) Nakopitelniy endi «keyinroq qayta urinib ko'ring» demaydi: sahifalar serverga bir vaqtda 4 tadan emas, ko'pi bilan 2 tadan so'raladi, server vaqtincha band bo'lsa o'zi 2 marta qayta urinadi.",
+        "Yuklash paytida nechta qator o'qilgani ko'rinadi («Yuklanmoqda… 10 000 / 26 475 qator»).",
+        "Pul tahlili, shartnoma svodi va F2 reestri Nakopitelniy yuklanib bo'lgach o'qiladi — bir vaqtda serverni to'ldirmaydi. Raqamlar o'zgarmaydi."
+      ]
+    },
+    {
+      "id": 33,
+      "sana": "2026-10-27",
+      "sarlavha": "Svod yaxlit bo'limlari — barcha ekran va hujjatlarda ustamasiz",
+      "bandlar": [
+        "Svodda (письмо заказчика / ekspertiza) yaxlit summa bilan berilgan bo'limlarga endi hech qaysi ekranda ustama qo'shilmaydi: smeta qiymati, Nakopitelniy ko'rsatkichlari va «к оплате» paneli, Resurs vedomosti, Pereraschet, nakrutka podvali konstruktori va smeta podvali preview'i server ВСЕГО bilan bir xil raqam ko'rsatadi.",
+        "Nakopitelniy, Ostatka, Slichitelniy va LRV Excel hujjatlarida bu bo'limlar qatorlarida «к оплате» = to'g'ri xarajat (koeffitsientsiz), podvalda esa alohida «Разделы по своду целой суммой (без накладных расходов, без НДС)» qatori ИТОГО-4 ga qo'shiladi, НДС bir marta.",
+        "Tasdiqlangan F2 aktlari va F2 hujjati o'zgarmaydi."
+      ]
+    },
+    {
+      "id": 32,
+      "sana": "2026-10-27",
+      "sarlavha": "Email kod bilan kirish, Sozlamalar markazi va obyekt imzochilari",
+      "bandlar": [
+        "Kirish sahifasida email orqali kirish: emailingizga 6 xonali kod keladi (10 daqiqa amal qiladi), kodni kiritib kirasiz — parol shart emas. Yangi hisob ochilganda kompaniya avtomatik ochilmaydi: kompaniyaga taklif havolasi orqali qo'shilasiz yoki STIR bilan kompaniya ochish so'rovini yuborasiz.",
+        "«Sozlamalar markazi» (yon menyuda): hujjat imzo tomonlari, hujjat dizayni va F2 tasdiq rejimi endi kompaniya bo'yicha serverda saqlanadi — boshqa kompyuterda yoki boshqa xodimda ham bir xil.",
+        "Hujjat imzochilari loyiha, obyekt yoki razdel darajasida belgilanadi; har tomon (zakazchik, pudratchi, texnadzor…) o'z imzochisini o'zi tayinlaydi, avval kiritilgan nomlar taklif sifatida chiqadi.",
+        "Kompaniya xaritasida (mindmap) F2 faqat tasdiqlangan aktlardan hisoblanadi, qoralama alohida; fakt kiritilmagan obyekt «fakt kiritilmagan» deb ko'rsatiladi."
+      ]
+    },
+    {
+      "id": 31,
+      "sana": "2026-10-27",
+      "sarlavha": "Svoddagi yaxlit summalarga ustama qo'shilmaydi",
+      "bandlar": [
+        "Ekspertiza svodida yoki «письмо заказчика» bo'yicha yaxlit summa bilan kelgan bo'lim belgilansa, uning qatorlariga transport/sklad/прочие/sug'urta qayta qo'shilmaydi: summa svodning o'zidan (ҚҚС siz) olinadi va ИТОГО-4 ga ustamasiz qo'shiladi, ҚҚС faqat oxirida bir marta.",
+        "Nakrutka sahifasi va Nakopitelniy ВСЕГО shu qoidaga amal qiladi; to'g'ri xarajat (ustamasiz) avvalgidek barcha smeta qatorlari.",
+        "Tasdiqlangan F2 lar o'zgarmaydi. Belgisiz obyektlarda hech narsa o'zgarmaydi."
+      ]
+    },
+    {
+      "id": 30,
+      "sana": "2026-10-27",
+      "sarlavha": "Yangi smeta importida nakrutka foizlari podvaldan avtomatik saqlanadi",
+      "bandlar": [
+        "Obyektga birinchi marta smeta yuklansa, smeta podvalidan o'qilgan foizlar (transport, sklad, прочие, sug'urta, ҚҚС …) obyektga darhol yoziladi — alohida tasdiq so'ralmaydi. Natija (avval / smeta podvali bilan ВСЕГО), dalil kataklari va ogohlantirishlar shu yerda ko'rinadi; «Bekor qilish» avvalgi koeffitsientlarni qaytaradi.",
+        "Smetasi bor obyektda «Podvalni smetadan qayta o'qish» avvalgidek: avval ko'rib chiqasiz, keyin tasdiqlaysiz.",
+        "Nakrutka sahifasida: foizlar smeta podvalidan olinayotgan bo'lsa va shartnomadagidan farq qilsa — «shartnomada X%, smetada Y% — smetadagisi ishlatilmoqda» xabari chiqadi."
+      ]
+    },
+    {
+      "id": 29,
+      "sana": "2026-10-26",
+      "sarlavha": "1C akt-sverkani yuklash: to'lov, F3 (sotuv) va F2 bilan farq",
+      "bandlar": [
+        "Nakopitelniy sahifasida «1C akt-sverkani yuklash» tugmasi: 1C dan chiqqan «Акт сверки» faylini tanlaysiz (bir nechta davr bo'lsa — hammasini birga). Fayl brauzerda o'qiladi, avval ko'rib chiqish jadvali chiqadi: yangi to'lovlar, yangi Продажа (F3), tizimda bor (takror yozilmaydi), shartnoma topilmagan qatorlar.",
+        "Har shartnoma bo'yicha saldo fayl bilan solishtiriladi; 1C da keyinroq o'zgargan yoki yo'qolgan yozuvlar alohida ro'yxatda — o'zingiz tasdiqlamaguningizcha hech narsa o'chirilmaydi (sana ko'chgan bo'lsa — sanani tuzatasiz). To'lov shartnoma summasidan oshsa — ogohlantirish (bloklamaydi).",
+        "«Продажа ↔ F2»: har Продажага qaysi F2 lar tegishli (taklif — oyma-oy, qo'lda o'zgartirasiz), F2 ustamasiz, QQS bilan va farq; F2 si yo'q Продажа va Продажага kirmagan F2 ro'yxati. Rasmiy F2 reestri (CSV) yuklansa hujjat jami ishlatiladi.",
+        "«Obyektlar bo'yicha»: har obyekt uchun F3 / to'langan / qarz yoki avans — jami netto qarz va avansni yashirmaydi. Ko'p obyektli shartnomada to'lov taqsimoti taklif qilinadi (eng eski F2 dan), siz tasdiqlaysiz.",
+        "F2 hujjatlari o'zgarmaydi; yozish qayta bosilsa ham ikki marta yozilmaydi."
+      ]
+    },
+    {
+      "id": 28,
+      "sana": "2026-10-26",
+      "sarlavha": "Nakrutka foizlari endi smetaning o'z podvalidan",
+      "bandlar": [
+        "Smeta yuklanganda podval o'qiladi: transport, складские (М/К alohida), kabel transporti, прочие расходы подрядчика, jihoz transporti va заготовительно-складские, страхование, риск, НДС — har biri katak manzili va dalili bilan (formula / yorliq / summa nisbati).",
+        "Arifmetik isbot: o'qilgan foizlar bilan ИТОГО, НДС va ВСЕГО qayta hisoblanib hujjatga solishtiriladi; nomos bo'lsa ogohlantirish chiqadi, import to'xtamaydi. Topilmagan foiz uydirilmaydi — shartnoma/sukut qiymati qoladi.",
+        "Tasdiqlasangiz foizlar obyekt podvaliga yoziladi va obyekt hisobi shu foizlar bilan yuradi; nakrutka sahifasida manba ko'rinadi: «smeta podvalidan» / «shartnoma» / «sukut».",
+        "Mavjud obyektlar uchun «Podvalni smetadan qayta o'qish»: asl fayl R2 da bo'lsa o'shandan, bo'lmasa faylni qayta tanlaysiz — eski/yangi foizlar va ВСЕГО ga ta'siri (ustamasiz va ustamali) ko'rsatiladi, yozish faqat tasdiq bilan."
+      ]
+    },
+    {
+      "id": 27,
+      "sana": "2026-10-26",
+      "sarlavha": "Smeta yuklash: perevozka va svod endi tashlab yuborilmaydi",
+      "bandlar": [
+        "tn·km perevozka varag'i («трансп.», «Лист2») o'qiladi: har material — tonna, masofa, tn·km, narx, summa; arifmetika va ИТОГО bilan tekshiriladi, svoddagi «ЗАТРАТЫ НА ТРАНСПОРТНЫЕ РАСХОДЫ» qatoriga bog'lanadi.",
+        "«16.Перевоз» kabi sarlavhasiz perevozka resurs varag'i RES sifatida o'qiladi (resurslar va ИТОГО).",
+        "Svod qatorlari (moddalar, foizlar, НДС, «письмо заказчика №…» yaxlit summalari, заявленная/снижения) «Hamroh varaqlar» panelida ko'rinadi. Smetaga hech narsa o'zi yozilmaydi: belgilangan tn·km varag'i — har material alohida perevozka resursi; belgilangan xat qatori — smeta tarkibiga yaxlit ish (НДС siz narx svoddagi stavka bilan).",
+        "O'qilmagan varaq endi jim «0 qator» bo'lmaydi: «tushunilmadi» ogohlantirishi, eng katta summa va taklif chiqadi."
+      ]
+    },
+    {
+      "id": 26,
+      "sana": "2026-10-27",
+      "sarlavha": "Faktli ishda resurs zamenasi va «ishdan chiqarish»",
+      "bandlar": [
+        "F2 tayyorlash va Fakt jurnalida ish ichidagi istalgan resurs (mashina, material, uskuna, perevozka) yonida «Zamena» tugmasi bor: yangi resursni katalogdan tanlang yoki qo'lda yozing (kod, nom, birlik, norma/hajm, narx manbasi). Asl qator o'zgarmaydi — zamena F2 da uning o'rnida turadi, aslning hajmi esa zamena hajmiga qarab yopiladi (ikki marta olinmaydi). Birlik farqli bo'lsa — «asl resursning qancha hajmini almashtiradi» ni yozish mumkin.",
+        "«Ishdan chiqarish» — resurs shu ishda ishlatilmagan bo'lsa: sababini tanlaysiz, resurs F2 ga kirmaydi va «ishdan chiqarilgan» belgisi bilan ko'rinadi. Smeta qatori o'chirilmaydi; belgini bosib bekor qilish mumkin.",
+        "Ishchi mehnati (ЗАТРАТЫ ТРУДА РАБОЧИХ-СТРОИТЕЛЕЙ) zamena qilinmaydi va hozircha chiqarilmaydi — tugma xira, ustiga borsangiz sababi yoziladi."
+      ]
+    },
+    {
+      "id": 25,
+      "sana": "2026-10-27",
+      "sarlavha": "Smeta muhrlandi: asl smetadan har bir o'zgarish ko'rinadi",
+      "bandlar": [
+        "Har obyekt smetasining asl qatorlari muhrlandi (shifr, nom, birlik, hajm, narx, norma, tur, joyi). Bitta vergul qo'shilsa ham qator «O'zgargan» deb belgilanadi.",
+        "Smeta va bajarilish sahifasida daraxt ustida xulosa: nechta qator o'zgargan, qo'shilgan yoki o'chirilgan; daraxtda «Asl smetadan farq» filtri va qator yonida belgi.",
+        "Belgini bosing — qator tafsilotida «Avval (asl smeta) / Endi» jadvali va o'zgarish jurnali (kim, qachon) chiqadi. Tahrirlash taqiqlanmaydi — faqat ko'rinadi.",
+        "Narx keyin qo'yilgan qatorlar («Narx qo'yildi») va ekspertizagacha bo'limlar alohida ko'rsatiladi."
+      ]
+    },
+    {
+      "id": 24,
+      "sana": "2026-10-26",
+      "sarlavha": "Chap menyu: ish, kompaniya va platforma ajratildi",
+      "bandlar": [
+        "Menyu qurilish zanjiri tartibida: Obyektlar → Smeta → Fakt → F2 va Nakopitelniy → Moliya va shartnomalar → Hujjatlar → Ta'minot. PTO pulga aloqador hamma bandni avvalgidek ko'radi.",
+        "Takroriy bandlar bittaga yig'ildi: narx (6 ta) — «Narxlash», tomonlar — «Shartnomalar va tomonlar» va «Kiruvchi», sozlamalar — «⚙ Kompaniya». Har sahifa eski manzilida, tepada tablar bilan.",
+        "«Fakt kiritish» menyuga qo'shildi (usta, brigadir, prorab, PTO).",
+        "Platforma boshqaruvi, sayt xaritasi va sinov yo'llari endi faqat platforma superadminiga ko'rinadi; kompaniya rahbari ularni ko'rmaydi.",
+        "Har rol faqat o'z ishiga oid bandni ko'radi: usta, omborchi, haydovchi va buyurtmachiga «AI ishchilar», «Korzinka», «Sayt xaritasi», nakrutka va narx manbalari ko'rinmaydi."
+      ]
+    },
+    {
+      "id": 23,
+      "sana": "2026-10-26",
+      "sarlavha": "Fakt: «Fakt = F2» butun obyekt bo'yicha va «Faktdan F2» tez yo'li",
+      "bandlar": [
+        "Fakt jurnalida yangi «Fakt = F2: obyekt» tugmasi (Shift+F): barcha bo'limlarda F2 hajmi faktdan ko'p ishlar bir oynada — qatorlar soni, summa (ustamasiz va ustamali) va bo'lim bo'yicha jami. Keraksiz bo'lim yoki qatorni belgini olib istisno qilasiz.",
+        "Yozish bitta urinishda: katta obyekt (Sun'iy ko'l kabi) bir necha hujjatga bo'linadi, javob kelmasa xuddi shu amal qayta yuboriladi (ikki marta yozilmaydi), xabardagi «Bekor qilish» hammasini qaytaradi. Fakt faqat oshadi, kamaymaydi; smeta o'zgarmaydi.",
+        "Panelda F2 davrini (oyni) tanlab «Fakt bo'yicha F2 qoralama» bosilsa — F2 tayyorlash shu oy bilan ochiladi, F2 ga hali kirmagan barcha faktli ishlar o'zi olinadi, faqat olinganlar ko'rinadi va keyingi F2 raqami qo'yiladi. Qoralamani yaratish va tasdiqlash avvalgidek sizda.",
+        "Bo'lim va obyekt F2 jamisiga endi to'g'ridan-to'g'ri ish qatoriga bog'langan F2 summasi ham qo'shiladi (avval ko'rinmasdi, masalan Sun'iy ko'lda 5,5 mlrd). Jami yonida «Nakopitelniy smeta = daraxt smeta + qo'shimcha ishlar» izohi; Nakopitelniy bilan farq bo'lsa ogohlantirish chiqadi."
+      ]
+    },
+    {
+      "id": 22,
+      "sana": "2026-10-26",
+      "sarlavha": "Pereraschet: «Fakt bo'yicha qayta hisob» rejimi",
+      "bandlar": [
+        "Nakopitelniy → Pereraschet: yangi «Fakt bo'yicha qayta hisob» tugmasi. Har smeta pozitsiyasi uchun «bo'lishi kerak» = fakt × smeta narxi, «olingan» = barcha tasdiqlangan F2 (tuzatish aktlari bilan); farq plyus yoki minus bo'lib ko'rinadi.",
+        "Smetaga bog'lanmagan eski F2 qatorlari (smeta yo'q paytida o'tkazilgan arzon ishlar, F2 importida qo'shilgan narxsiz qatorlar, «(ekspertizagacha)» bo'lim) alohida ro'yxatda — to'liq minus.",
+        "Ikki format, natija bir xil: «To'liq storno + qayta» (olinganning hammasi minus, fakt bo'yicha yangidan) yoki «Faqat farq». Excel «ПЕРЕРАСЧЁТ ПО ФАКТУ» ikkala varaq bilan; F2 qoralamasi yaratiladi, tasdiqlash — F2 tarixida.",
+        "«Fakti yo'q, lekin F2 olingan» pozitsiyalarni bir bosishda Fakt jurnalida filtr bilan ochib, faktni qayta belgilash mumkin."
+      ]
+    },
+    {
+      "id": 21,
+      "sana": "2026-10-26",
+      "sarlavha": "Daraxt: «Markirovka bo'yicha 100%» endi faktni kamaytirmaydi",
+      "bandlar": [
+        "Fakt → Daraxt → markirovkani tanlab «100% qilish» bosilsa, endi «Qamrov %» oynasi ochiladi: qaysi qatorlarga qancha qo'shilishi, summa va istisnolar oldindan ko'rinadi, hammasi bitta fakt hujjatiga yoziladi va xabardagi «Bekor qilish» bilan qaytariladi.",
+        "Fakti smetadan oshgan qator (masalan smeta 100, fakt 120) o'zgarmaydi — «allaqachon ≥100%» deb ko'rsatiladi. Avval bunday qator jimgina 100 ga tushirilardi.",
+        "Faktni kamaytirish kerak bo'lsa — shu oynadagi alohida «Tuzatishni ko'rish»: eski fakt, yangi fakt va farq ko'rinadi, keraklisini belgilab «Tuzatishni yozish» bosiladi."
+      ]
+    },
+    {
+      "id": 20,
+      "sana": "2026-10-26",
+      "sarlavha": "Yangi dizayn «Firuza» — butun tizim",
+      "bandlar": [
+        "Butun tizim yangi ko'rinishda: aniqroq shrift, ranglar va kartalar. Hisob-kitob va funksiyalar o'zgarmagan.",
+        "Smeta sahifasida «anatomiya»: jami, bo'limlar va bajarilish bir qarashda; noma'lum summa «—» bo'lib ko'rinadi (0 emas).",
+        "F2 hujjati, Nakopitelniy, Fakt va rahbar paneli grafiklar va o'lchagichlar bilan; tasdiqlash oynalari yangilandi.",
+        "O'ng yuqori burchakda «Akkaunt markazi»: profil, xavfsizlik va kirish usullari bitta joyda."
+      ]
+    },
+    {
+      "id": 19,
+      "sana": "2026-10-26",
+      "sarlavha": "Smeta va Fakt / LRV: «Versiyalar va farq» — ekspertizagacha smeta bilan solishtirish va da'vo ro'yxati",
+      "bandlar": [
+        "Obyekt sahifasida yangi «Versiyalar va farq» tabi: boshqa smeta versiyasining LRV fayl(lar)ini yuklang (masalan ekspertizaga topshirilgan, ekspertizagacha). Joriy smeta o'zgarmaydi — versiya faqat solishtirish uchun saqlanadi.",
+        "Tizim har pozitsiyani joriy smeta bilan moslaydi: o'zgarmagan, kamaygan, oshgan, almashtirilgan (zamena), o'chirilgan, yangi va noaniq (ishonch % bilan). Bo'limlar bo'yicha eski / joriy / kesilgan / oshgan summalar — ustamasiz va ustamali.",
+        "Noaniq mosliklarni «Mos» / «Mos emas» bilan tasdiqlang; kesilgan pozitsiyalar bo'yicha qaror qo'ying: qurilgan, qurilmagan yoki qisman (qurilgan hajmni kiriting). Klaviatura: H, Y, Q, T, R, ↑/↓, Ctrl+S.",
+        "Ekspertiza kesgan, lekin qurilgan hajm avtomatik minus qilinmaydi — «da'vo» sifatida alohida hisoblanadi. «Da'vo ro'yxati (Excel)» — rasmiy hujjat (rus tilida, NDS faqat oxirida)."
+      ]
+    },
+    {
+      "id": 18,
+      "sana": "2026-10-25",
+      "sarlavha": "Fakt jurnali: ish ichidagi materiallar ham ergashadi",
+      "bandlar": [
+        "Ishga fakt kiritsangiz, uning ICHIDAGI material/uskuna qatorlarida ham xira «taklif: +X» chiqadi — ish qancha foiz bajarilgan bo'lsa, material ham shu ulushda (zamena va «bajarilmaydi» qismi ayrilgan).",
+        "Ish qatoridagi «Materiallarni ham olish (n)» endi ichidagi va undan keyingi alohida materiallarni birga oladi — bitta bosish, so'ng Ctrl+S. Taklifni bosib bittalab ham olish mumkin.",
+        "Hech narsa o'zi yozilmaydi: taklif faqat kiritmaga tushadi, saqlashni o'zingiz qilasiz."
+      ]
+    },
+    {
+      "id": 17,
+      "sana": "2026-10-25",
+      "sarlavha": "Fakt jurnali: «Qamrov %» — bo'limni bitta foiz bilan tiklash",
+      "bandlar": [
+        "Fakt jurnalida bo'limni tanlang va yuqoridagi «Qamrov %» tugmasini bosing (yoki klaviaturada «%»). Ichki bo'limlar sarlavhasida ham, har ish qatorida ham «%» tugmasi bor; hajm katagida «%» yozsangiz — shu ish uchun ochiladi.",
+        "Foizni yozing (masalan 100 yoki 70): har ish, alohida material/uskuna va (xohlasangiz) ish ichidagi materiallarga fakt = foiz × ochiq qoldiq taklif qilinadi. Mehnat va mashina normadan o'zi ergashadi.",
+        "Oldindan ko'rishda qatorlar soni, summa (ustamasiz va ustamali) va istisnolar chiqadi: allaqachon faktli, zamenalangan, bajarilmaydi, narxsiz, chegirma. Keraksizini belgidan olib tashlang yoki turini bitta tugma bilan chiqaring.",
+        "Enter yoki Ctrl+Enter — hammasi bitta fakt hujjatiga yoziladi. Xabardagi «Bekor qilish» shu yozuvni butunlay qaytaradi. Asl smeta o'zgarmaydi.",
+        "Internet uzilib javob kelmasa — oyna «oldingi urinish noma'lum» deb ko'rsatadi: «qayta yuborish» xuddi shu amalni yuboradi (ikki marta yozilmaydi), foizni o'zgartirish yoki yangi urinish faqat shu hal bo'lgach. Oynani yopib qayta ochsangiz ham, sahifani yangilasangiz ham esda qoladi.",
+        "Bir qismi yozilib, qolgani rad etilsa: «Urinishni tashlash» faqat yozilmagan qismni tashlaydi — yozilgan hujjatlar ro'yxati va «bekor qilish» qoladi. Yangi qamrov jadval yangilangach, yangi qoldiqdan hisoblanadi (yozilgani ikki marta yozilmaydi)."
+      ]
+    },
+    {
+      "id": 16,
+      "sana": "2026-10-26",
+      "sarlavha": "Buxgalter F2 ni faqat ko'radi",
+      "bandlar": [
+        "Buxgalter F2 tarixi, reestr va Nakopitelniyni avvalgidek ko'radi va yuklab oladi.",
+        "F2 import, tayyorlash, tasdiqlash, rad etish, bekor qilish va tuzatish buxgalterga endi ko'rinmaydi — bu amallarni PTO yoki prorab bajaradi. Server ham shu qoidani tekshiradi."
+      ]
+    },
+    {
+      "id": 13,
+      "sana": "2026-10-25",
+      "sarlavha": "Fakt jurnali: bitta «ochiq qoldiq»",
+      "bandlar": [
+        "Fakt jurnalidagi «Ochiq qoldiq» ustuni endi smeta − fakt − almashtirilgan (zamena) − «bajarilmaydi» hajmini ko'rsatadi; F2 qoldig'i farq qilsa ostida kichik «F2: …» bo'lib turadi.",
+        "25/50/100% tugmalari, «faqat bajarilmaganlar» belgisi va «qoldiqdan oshdi» ogohlantirishi shu bitta raqamdan hisoblanadi — zamena yoki «bajarilmaydi» bor qatorda 100% endi ortiqcha hajm bermaydi.",
+        "Oshib ketsa ham saqlash bloklanmaydi: kiritma ostida «qoldiqdan oshdi +X» ko'rinadi."
+      ]
+    },
+    {
+      "id": 12,
+      "sana": "2026-10-25",
+      "sarlavha": "F2 — menyuda bitta band, ichida tablar",
+      "bandlar": [
+        "Chap menyudagi 5 ta F2 bandi (tayyorlash, import, tarix va tasdiqlash, reestr, nakopitelniy) endi bitta «F2» bandida. Sahifa tepasidagi tablar bilan almashasiz.",
+        "Tab almashganda tanlangan obyekt va davr saqlanadi. Eski havolalar va xatcho'plar avvalgidek ishlaydi.",
+        "Rolingizga ochiq bo'lmagan F2 sahifasi tablarda ko'rinmaydi."
+      ]
+    },
+    {
+      "id": 11,
+      "sana": "2026-10-25",
+      "sarlavha": "Kirgach — o'z ish sahifangiz; Ctrl+K bilan istalgan sahifani toping",
+      "bandlar": [
+        "Tizimga kirgach endi «SINOV» sahifasiga emas, rolingizning ish sahifasiga tushasiz: PTO — Obyektlar, rahbar — Rahbar paneli, buyurtmachi — Buyurtmachi kabineti, usta — Fakt, omborchi — Ta'minot va sklad, boshqalar — Ish joylarim.",
+        "Ctrl+K: menyudagi har bir sahifani nomi bo'yicha qidiring (faqat sizga ochiq bo'limlar) va obyekt nomini yozib, to'g'ridan-to'g'ri o'sha obyektni oching. Strelka va Enter bilan tanlanadi."
+      ]
+    },
+    {
+      "id": 10,
+      "sana": "2026-10-25",
+      "sarlavha": "Pereraschet: qancha ko'p olasiz yoki qancha qaytarasiz",
+      "bandlar": [
+        "Nakopitelniy sahifasida «Pereraschet» bo'limi: har resurs qatori bo'yicha ortiqcha olingan hajm (minus), narx farqi (±) va faktda bor, lekin F2 ga olinmagan hajm (plyus).",
+        "Yuqorida jami: olish mumkin / qaytarish kerak / sof natija — ustamasiz, obyekt ustamasi bilan va QQS bilan; razdellar bo'yicha. Qatorni bossangiz — qaysi F2 aktlarda olingani.",
+        "Birlik shubhasi, smetada hajm yoki narx yo'q, «(ekspertizagacha)» bo'lim, zamena qatorlari pulga kirmaydi — «Tekshirish kerak» ro'yxatida.",
+        "Excel «Перерасчёт» hujjati (buyurtmachi bilan pereraschet asosi) va tanlangan qatorlardan tuzatuvchi F2 qoralamasi — tasdiqlash siz tomondan F2 tarixida."
+      ]
+    },
+    {
+      "id": 9,
+      "sana": "2026-10-25",
+      "sarlavha": "F2 ikki marta yozilib ketishidan himoya",
+      "bandlar": [
+        "Bitta fayl varag'i allaqachon F2 ga yozilgan bo'lsa, qayta yozib bo'lmaydi — mavjud F2 ni yangilash havolasi chiqadi.",
+        "Shu obyektda shu raqamli F2 bor bo'lsa yozilmaydi (baza ham bir shartnoma doirasida bir xil raqamni rad etadi). Egizak nusxadan keyin raqam ko'chmaydi — yangi raqam so'raladi.",
+        "Summasi deyarli bir xil F2 yoki «(ekspertizagacha)» smetadagi qator yangi smeta bilan birga bo'lsa — ogohlantirish chiqadi (pereraschet bo'lishi mumkin).",
+        "F2 reestrida «Takrorlar tekshiruvi»: bir xil raqam, bir xil summa va tuzatish (N-П) aktlari asl akti bilan juft ko'rinadi."
+      ]
+    },
+    {
+      "id": 8,
+      "sana": "2026-10-25",
+      "sarlavha": "F2 import: zamena hajmi aslning qoldig'idan ayriladi",
+      "bandlar": [
+        "Shu F2 qoralamasida zamena qatoriga hajm bog'lansangiz, asl qatorning qoldig'i darhol kamayadi — hali yozilmagan bo'lsa ham (hujjatda ostatka qolmaydi).",
+        "Asl qatorda «almashtiriladi (shu F2)» yozuvi va yozilgani bilan farqi ko'rinadi; ayrilgan hajm aslning qolgan qoldig'idan oshmaydi.",
+        "Asl ham, zamenasi ham shu F2 da olinsa — ikki marta bo'lishi mumkinligi haqida ogohlantirish chiqadi (bloklanmaydi)."
+      ]
+    },
+    {
+      "id": 7,
+      "sana": "2026-10-25",
+      "sarlavha": "F2 import: qo'shimcha ish va podval",
+      "bandlar": [
+        "Ishni qo'shimcha ish qilib qo'shganda, siz boshqa joyga bog'lagan qatorlar (masalan daraxtlar) endi tortib olinmaydi — faqat belgilangan yoki bog'lanmaganlar o'tadi.",
+        "Podval qatorlarini «Bog'lash» yoki sudrash bilan to'g'ridan-to'g'ri smeta qatoriga bog'lash mumkin; «Faqat izoh» — aktga kirmaydi, ikki marta sanalmaydi.",
+        "Summasi aynan teng smeta qatori podval uchun o'zi taklif qilinadi."
+      ]
+    },
+    {
+      "id": 6,
+      "sana": "2026-10-25",
+      "sarlavha": "AI yordamchi — Fakt va F2 tayyorlashda",
+      "bandlar": [
+        "O'ng pastdagi AI tugmasi: ish topish, nega fakt kam ekanini tushuntirish, fakt hajmi/materiallar/zamena/«bajarilmaydi» takliflari.",
+        "F2 tayyorlashda: uchastka bo'yicha mumkin hajm, narxsiz qatorlar, narx takliflari (faqat mavjud manbalardan).",
+        "AI faqat taklif qiladi — saqlash va yozish sizning tugmangiz bilan."
+      ]
+    },
+    {
+      "id": 5,
+      "sana": "2026-10-25",
+      "sarlavha": "F2 hujjati va resurs vedomosti",
+      "bandlar": [
+        "F2 Excel: uchastka → razdel sarlavhalari va «ИТОГО ПО РАЗДЕЛУ» oraliq jamilari; vedomost uchastka bo'yicha.",
+        "Shifr o'rnida «ЦЕНА» chiqmaydi; bir xil resurs bitta qator; mashinist qatori formulalarni buzmaydi.",
+        "F2 tayyorlashda «Resurs vedomosti» — har resursga barcha manbalardan narx takliflari, «Narxni qo'llash» bilan."
+      ]
+    },
+    {
+      "id": 4,
+      "sana": "2026-10-25",
+      "sarlavha": "Oylik F2 paketi va tez reestr",
+      "bandlar": [
+        "F2 reestr → «Oylik F2 paketini tayyorlash»: oyning barcha F2 lari, jami (ustamasiz/ustamali/NDS), tekshiruvlar va bitta ZIP paket.",
+        "F2 reestr endi ancha tez ochiladi."
+      ]
+    },
+    {
+      "id": 3,
+      "sana": "2026-10-25",
+      "sarlavha": "F2 tahrirlash va texnadzor Excel'i",
+      "bandlar": [
+        "F2 tarixida tizimda yasalgan qoralama: «✎ Tizimda tahrirlash» va «⬆ Fayldan yangilash» — o'sha qoralama, o'sha raqam yangilanadi.",
+        "Tizim chiqargan F2 Excel'ida yashirin kalit: texnadzordan qaytgan fayl qatorlari o'zi bog'lanadi."
+      ]
+    },
+    {
+      "id": 2,
+      "sana": "2026-10-25",
+      "sarlavha": "Fakt oynasi yangilandi",
+      "bandlar": [
+        "Daraxt ko'rinishi: bo'lim → ISH → resurslar (ЧЕЛ/МАШ/МАТ/ОБ belgilari), ustunlar: smeta / F2 / fakt / qoldiq / narx / summa.",
+        "Resurs qatorida resurs zamenasi, ish qatorida ish zamenasi; normativ katalogdan va AI bilan qidirish.",
+        "«Materiallarni ham olish» — ish ostidagi alohida materiallar ham taklif qilinadi."
+      ]
+    },
+    {
+      "id": 1,
+      "sana": "2026-10-25",
+      "sarlavha": "Zamena qoldig'i va F2 yozish",
+      "bandlar": [
+        "Zamena bajarilgan sari asl ishning qoldig'i shu ulushda yopiladi.",
+        "Hajmi 0 qator F2 yozishni to'xtatmaydi — faqat ogohlantiradi."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "Resurs vedomosti": { "ru": "Ведомость ресурсов", "en": "Resource statement" },
+  "Resurs vedomosti uchun avval ish hajmini kiriting.": { "ru": "Для ведомости ресурсов сначала введите объём работ.", "en": "Enter work quantities first to get the resource statement." },
+  "Takliflar yuklanmoqda…": { "ru": "Загрузка предложений…", "en": "Loading offers…" },
+  "Ba’zi manbalar o‘qilmadi — mavjud takliflar ko‘rsatilmoqda.": { "ru": "Некоторые источники не прочитаны — показаны доступные предложения.", "en": "Some sources could not be read — showing available offers." },
+  "Taklif topilmadi — narx o‘ylab topilmaydi; qo‘lda kiriting.": { "ru": "Предложений нет — цена не выдумывается; введите вручную.", "en": "No offers — prices are never invented; enter manually." },
+  "sana ko‘rsatilmagan": { "ru": "дата не указана", "en": "no date" },
+  "Narxni qo‘llash": { "ru": "Применить цену", "en": "Apply price" },
+  "NDS bilan/noma’lum narxlar ko‘rsatilmadi: {n}": { "ru": "Цены с НДС/неизвестные не показаны: {n}", "en": "Prices with VAT/unknown not shown: {n}" },
+  "Boshqa resurslar": { "ru": "Прочие ресурсы", "en": "Other resources" },
+  "Narx takliflari": { "ru": "Предложения цен", "en": "Price offers" },
+  "narx farqli": { "ru": "цена отличается", "en": "price differs" },
+  "ma’lumot qatori (narx mashina narxi ichida)": { "ru": "информационная строка (цена внутри цены машины)", "en": "information row (price is inside the machine price)" },
+  "narx yo‘q": { "ru": "нет цены", "en": "no price" },
+  "Narx NDS siz. Taklif avtomatik yozilmaydi — «Narxni qo‘llash» faqat F2 qatoriga yozadi (asl smeta o‘zgarmaydi).": { "ru": "Цена без НДС. Предложение не записывается автоматически — «Применить цену» пишет только в строку Ф-2 (исходная смета не меняется).", "en": "Price excl. VAT. Offers are never applied automatically — “Apply price” writes only to the F2 row (the original estimate is unchanged)." },
+  "{n} ta yetkazuvchi narxi o‘rtachalandi": { "ru": "усреднены цены {n} поставщиков", "en": "prices of {n} suppliers averaged" }
+}

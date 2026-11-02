@@ -15,6 +15,7 @@ import { mashinistMehnati } from './narx-bildirishnoma';
 import { lrvDaraxti } from './smeta-anatomiya/yuklash';
 import { lrvPlusFaylBaytlari } from './lrv-plus-export';
 import { bugunSana, hujjatFaylNomi } from './hujjat-yozuvchi';
+import { qatorSumma, yigindi2, type Podval } from './hisob-yadro';
 import type { SheetGrid } from './f2-import-parse/types';
 
 // LRV va RES bir resursni turli qavsda yozadi: '/ОБЩ.ВЕС-7,49КГ/' ↔ '(ОБЩ.ВЕС-7,49КГ)' — qavs/slash/qo'shtirnoq e'tiborsiz.
@@ -98,6 +99,8 @@ export type OfertaLrvHujjat = OfertaLrvNatija & { bytes: Uint8Array; faylNomi: s
 export async function ofertaLrvHujjati(o: {
   lrvVaraqNomi: string; rows: SheetGrid; natijalar: readonly OfertaQatorNatija[]; obyektNomi: string;
   nk: NakrutkaKoeffitsientlar; imzo?: { zakazchik?: string; pudratchi?: string }; sana?: string;
+  /** Oferta podvali (bo'lsa) va koeffitsient manbai — yadro `serverMerosKoefQoy` ga (obyektsiz oferta: null — standart kaskad). */
+  podval?: Podval | null; nkManba?: string | null;
 }): Promise<OfertaLrvHujjat | null> {
   const d = lrvDaraxti(o.lrvVaraqNomi, o.rows);
   if (!d.anatomiya || !d.tree.length) return null;
@@ -110,8 +113,9 @@ export async function ofertaLrvHujjati(o: {
     davr: sana,
     buyurtmachi: o.imzo?.zakazchik || undefined,
     pudratchi: o.imzo?.pudratchi || undefined,
-    ...(r.bezSkladBor ? {} : { nakrutka: o.nk }),
+    ...(r.bezSkladBor ? {} : { nakrutka: o.nk, podval: o.podval ?? null, nkManba: o.nkManba ?? null }),
   });
-  const togridanJami = Math.round(r.qatorlar.reduce((s, q) => s + (RESURS.has(q.tur ?? '') && q.narx != null && q.hajm != null ? q.hajm * q.narx : 0), 0) * 100) / 100;
+  // To'g'ridan jami — yadro: har qator ROUND(hajm × narx, 2), yig'indi ROUND 2; narxsiz qator yig'ilmaydi (NULL ≠ 0).
+  const togridanJami = yigindi2(r.qatorlar.filter((q) => RESURS.has(q.tur ?? '')).map((q) => qatorSumma(q.hajm, q.narx)));
   return { ...r, bytes, togridanJami, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNomi, hujjat: 'ЛРВ_ОФЕРТЫ_Ф-2', davr: sana }) };
 }

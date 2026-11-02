@@ -1,34 +1,47 @@
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
-import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
-import { Search, Download, RefreshCw, AlertTriangle, Eye, Plus, Trash2, ClipboardPaste, FileSpreadsheet } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { NakopitelniyGrafik } from '../../components/nakopitelniy/NakopitelniyGrafik';
+import { nakFaktJami } from '../../lib/nakopitelniy-korinish';
+import { Search, Download, RefreshCw, AlertTriangle, Eye, Plus, Trash2, ClipboardPaste, FileSpreadsheet, FileText, History, Settings2 } from 'lucide-react';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
-import { sbT2ObyektlarOlKomp, sbT2KompaniyalarOl, yangiOperationId, type T2Kompaniya, type T2Obyekt } from '../../api/supabase';
+import { sbT2KompaniyalarOl, yangiOperationId, type T2Kompaniya, type T2Obyekt } from '../../api/supabase';
+import { obyektlarKeshdan, useIxtiyoriyQueryClient } from '../../api/t2-obyektlar-kesh';
 import { sbT2ShartnomaBogOl, sbT2ShartnomalarOl, zakazchikRekvizit } from '../../api/t2-shartnoma';
 import type { Forma3Rekvizit } from '../../lib/forma3-export';
-import { shartnomaSvodOl, sverkaXato, sverkaYozuvYoz, t2NakopitelniyToliq, tolovYoz, type NakopitelniyQator, type NakopitelniyDavr, type NakopitelniyJami, type SverkaYozuvTur } from '../../api/t2-nakopitelniy';
+import { shartnomaSvodOl, sverkaXato, sverkaYozuvYoz, t2NakopitelniyToliq, tolovYoz, type NakopitelniyProgress, type NakopitelniyQator, type NakopitelniyDavr, type NakopitelniyJami, type SverkaYozuvTur } from '../../api/t2-nakopitelniy';
 import { shartnomaSvodi, somga, sverkaHisobla, sverkaMatniniOqi, tiyin, type F3Holat, type SvodShartnoma, type SverkaImportNatija, type TolovTur } from '../../lib/nakopitelniy-svod';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
-import { HujjatToliqEmasXato, NDS_SUKUT_FOIZ, nakopitelniyVedomostHujjat, davrMatni, shartnomaSvodXlsx, sverkaXlsx } from '../../lib/nakopitelniy-vedomost-export';
+import { HujjatToliqEmasXato, NDS_SUKUT_FOIZ, nakopitelniyVedomostHujjat, shartnomaSvodXlsx, sverkaXlsx } from '../../lib/nakopitelniy-vedomost-export';
 import { t } from '../../i18n/til';
 import PulTahlil from '../../components/boss-decision/PulTahlil';
 import { forma3Hujjat, forma3SotuvdanXlsx, type Forma3ExportOptions } from '../../lib/forma3-export';
 import { sbT2F2TafsilotOl } from '../../api/t2-narx';
 import { ozgarishRoyxatOl } from '../../api/t2-document-control';
 import { t2ObyektNakrutka, type NakrutkaKaskad, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
-import { obyektPodvali, serverCatsKatga } from '../../api/t2-nakrutka-podval';
-import { podvalgaKoefQoy, type Podval } from '../../lib/nakrutka-konstruktor';
-import { podvalliKaskad } from '../../lib/nakrutka-podval';
+import { obyektPodvaliOqi } from '../../api/t2-nakrutka-podval';
+import type { Podval } from '../../lib/hisob-yadro';
+import type { SmetaNakrutka } from '../../api/t2-nakopitelniy';
+import { obyektSmetaKOplate } from '../../lib/ustamali-summa';
+import type { SvodYaxlit } from '../../lib/svod-yaxlit';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { hujjatArxivla } from '../../api/t2-hujjat-arxiv';
 import { toast } from '../../umumiy/ui/Toast';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
-import { FmtN } from '../../lib/format';
 import { ozgarishIzohi, smetaModeliniYukla, tartibla, type SmetaModel } from '../../lib/smeta-model';
-import { buildPtoLineLedger, validatePtoHierarchy, type PtoF3LineageInput, type PtoLineageScope } from '../../lib/pto-document-lineage';
+import { validatePtoHierarchy, type PtoF3LineageInput, type PtoLineageScope } from '../../lib/pto-document-lineage';
 import { f3CertifiedHajm, f3CertifiedSources, f2OyKesimi } from '../../lib/pto-document-lineage/f3-sources';
+import { Maydon, Sahifa } from '../../umumiy/ui/Sahifa';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { AmalMenyu } from '../../components/nakopitelniy/AmalMenyu';
+import { DavrChiziq } from '../../components/nakopitelniy/DavrChiziq';
+import { NakopitelniyKpi } from '../../components/nakopitelniy/NakopitelniyKpi';
+import { NakopitelniyJadval } from '../../components/nakopitelniy/NakopitelniyJadval';
+import { ShartnomaQuvur } from '../../components/nakopitelniy/ShartnomaQuvur';
+import { PereraschetBolimi } from './PereraschetBolimi';
+import { SverkaImportPanel } from '../../components/sverka-import/SverkaImportPanel';
 
 /**
  * T2-PTO-OWNER-CRITICAL-CLOSURE P0-3: the real, line-by-line PTO nakopitelniy
@@ -40,12 +53,9 @@ import { f3CertifiedHajm, f3CertifiedSources, f2OyKesimi } from '../../lib/pto-d
  * rows are summed there (t2_nakopitelniy_v1's own join condition).
  */
 
-const PAGE_SIZE = 200;
-
-function jamiHajmSafe(q: NakopitelniyQator) { return q.smeta_hajm ?? 0; }
-
 function Sessiya({ companyId }: { companyId: number }) {
   const [objects, setObjects] = useState<T2Obyekt[]>([]);
+  const qc = useIxtiyoriyQueryClient();
   const workspace = usePTOWorkspace();
   const objectId = workspace.scope.objectId ? String(workspace.scope.objectId) : '';
   const setObjectId = (value: string) => workspace.setObjectId(value ? Number(value) : null);
@@ -61,39 +71,53 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [obyektKompaniyaId, setObyektKompaniyaId] = useState<number | null>(null);
   const [qidiruv, setQidiruv] = useState('');
   const [busy, setBusy] = useState(false);
+  /** Katta obyekt: sahifalab yuklash progressi (prod 2026-10-27 — foydalanuvchi kutayotganini ko'rsin). */
+  const [progress, setProgress] = useState<NakopitelniyProgress | null>(null);
   const [xato, setXato] = useState('');
-  const [page, setPage] = useState(0);
   const [treeMeta, setTreeMeta] = useState<Map<number, { ota_id: number | null; daraja: number | null }>>(new Map());
   /** Egasi 2026-09-30: jadvalda ham har tasdiqlangan F2 oyi alohida ustun (+ ИТОГО). */
   const [oyKesim, setOyKesim] = useState<ReturnType<typeof f2OyKesimi> | null>(null);
 
   useEffect(() => {
     let active = true;
-    void sbT2ObyektlarOlKomp(companyId).then(r => { if (active && r.ok) setObjects((r.qatorlar || []) as T2Obyekt[]); });
+    // Umumiy kesh (Holat/Fakt/PTO kontekst bilan bitta so'rov).
+    void obyektlarKeshdan(qc, companyId).then(r => { if (active && r.ok) setObjects((r.qatorlar || []) as T2Obyekt[]); });
     return () => { active = false; };
-  }, [companyId]);
+  }, [companyId, qc]);
 
   // Ikki narx (egasi): hujjatda к оплате = прямые × Kf — obyekt/shartnoma nakrutka foizlari.
   const [nakrutka, setNakrutka] = useState<NakrutkaKoeffitsientlar | null>(null);
   const [nakrutkaKaskadi, setNakrutkaKaskadi] = useState<NakrutkaKaskad | null>(null);
   /** Maxsus nakrutka podvali (konstruktor) — null: standart kaskad. */
   const [podval, setPodval] = useState<Podval | null>(null);
-  const [nakrutkaCats, setNakrutkaCats] = useState<ReturnType<typeof serverCatsKatga> | null>(null);
+  /** Server kesimi (cats / cats_kaskad / svod_yaxlit) — obyekt ustamalisi yagona obyektUstamali orqali. */
+  const [nakrutkaJavob, setNakrutkaJavob] = useState<Awaited<ReturnType<typeof t2ObyektNakrutka>> | null>(null);
+  const svodYaxlit: SvodYaxlit | null = nakrutkaJavob?.svod_yaxlit ?? null;
+  /** Podval o'qildi (null — standart kaskad); o'qilmaguncha smeta к оплате hisoblanmaydi (standart bilan «miltillamasin»). */
+  const [podvalOqildi, setPodvalOqildi] = useState(false);
+  /** Nakrutka o'qish xatosi — jim yutilmaydi, ekranda ko'rsatiladi. */
+  const [nakrutkaXato, setNakrutkaXato] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
     setNakrutka(null);
     setNakrutkaKaskadi(null);
     setPodval(null);
-    setNakrutkaCats(null);
+    setPodvalOqildi(false);
+    setNakrutkaJavob(null);
+    setNakrutkaXato(null);
     if (!objectId) return;
     void t2ObyektNakrutka(Number(objectId)).then(async (r) => {
-      if (!active || !r.ok) return;
+      if (!active) return;
+      if (!r.ok) { setNakrutkaXato(r.error || r.code || 'Nakrutka o‘qilmadi'); return; }
       if (r.koeffitsientlar) setNakrutka(r.koeffitsientlar);
       if (r.nakrutka) setNakrutkaKaskadi(r.nakrutka);
-      if (r.cats) setNakrutkaCats(serverCatsKatga(r.cats));
-      const p = await obyektPodvali(companyId, Number(objectId), r.shartnoma_id ?? null);
-      if (active) setPodval(p);
-    }).catch(() => undefined);
+      if (r.cats) setNakrutkaJavob(r);
+      // «Podval yo'q» (standart) va «o'qilmadi» farqlanadi; o'qilmasa — xato ko'rsatiladi, eksport bloklanadi.
+      const p = await obyektPodvaliOqi(companyId, Number(objectId), r.shartnoma_id ?? null, r.nakrutka_podval_id ?? null);
+      if (!active) return;
+      if (!p.ok) { setNakrutkaXato(p.xato); return; }
+      setPodval(p.podval); setPodvalOqildi(true);
+    }).catch(() => { if (active) setNakrutkaXato('Nakrutka o‘qilmadi (tarmoq xatosi)'); });
     return () => { active = false; };
   }, [objectId]);
 
@@ -151,7 +175,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     try {
       // Yagona smeta modeli (lib/smeta-model): daraxt, zamena bog'lanishi va o'zgarish izohlari bir joydan.
       const [r, model, taf] = await Promise.all([
-        t2NakopitelniyToliq(objId, tanlanganDavr || null),
+        t2NakopitelniyToliq(objId, tanlanganDavr || null, false, { onProgress: (p) => { if (currentRequest === requestId.current) setProgress(p); } }),
         smetaModeliniYukla(objId),
         sbT2F2TafsilotOl({ obyektId: objId, tur: 'f2' }).catch(() => null),
       ]);
@@ -169,9 +193,8 @@ function Sessiya({ companyId }: { companyId: number }) {
       setLoyihaId(r.obyekt.loyiha_id);
       setObyektKompaniyaId(r.obyekt.kompaniya_id);
       setTruncated(Boolean(r.truncated));
-      setPage(0);
     } catch { if (currentRequest === requestId.current) setXato('Ma’lumotlarni yuklab bo‘lmadi. Yangilab qayta urinib ko‘ring.'); }
-    finally { if (currentRequest === requestId.current) setBusy(false); }
+    finally { if (currentRequest === requestId.current) { setBusy(false); setProgress(null); } }
   };
 
   useEffect(() => {
@@ -210,54 +233,22 @@ function Sessiya({ companyId }: { companyId: number }) {
   // RZ bo'limlarida bunday usul bo'limlarni yo'qotadi.
   const gorunumRows = korinadigan;
 
-  /** Egasi: "har bir qavatning o'z hisobi" — razdel qatorida smeta / oldingi / joriy / jami summalar. */
-  const rzJami = useMemo(() => {
-    const otaBor = new Set<number>();
-    for (const q of qatorlar) if (q.ota_id != null) otaBor.add(q.ota_id);
-    const byId = new Map(qatorlar.map((q) => [q.qator_id, q]));
-    const m = new Map<number, { smeta: number | null; oldingi: number; joriy: number; jami: number; oy: Map<string, number> }>();
-    for (const q of qatorlar) {
-      if (q.tur === 'rz' || otaBor.has(q.qator_id)) continue;
-      for (let o = q.ota_id != null ? byId.get(q.ota_id) : undefined; o; o = o.ota_id != null ? byId.get(o.ota_id) : undefined) {
-        if (o.tur !== 'rz' && o.tur !== 'bl') continue;
-        const x = m.get(o.qator_id) ?? { smeta: null, oldingi: 0, joriy: 0, jami: 0, oy: new Map<string, number>() };
-        if (q.smeta_summa != null) x.smeta = (x.smeta ?? 0) + q.smeta_summa; x.oldingi += q.oldingi_summa ?? 0; x.joriy += q.joriy_summa ?? 0; x.jami += q.jami_summa ?? 0;
-        for (const [oy, v] of oyKesim?.qiymat.get(q.qator_id) ?? []) x.oy.set(oy, (x.oy.get(oy) ?? 0) + (v.summa ?? 0)); // noma'lum (null) — jamiga kirmaydi, qatorning o'zi bo'sh
-        m.set(o.qator_id, x);
-      }
-    }
-    return m;
-  }, [qatorlar, oyKesim]);
-  /** Ko'rinadigan davr ustunlari: oylar (bor bo'lsa) yoki eski "oldingi / joriy". */
-  const oyUstunlar = oyKesim && oyKesim.oylar.length ? oyKesim.oylar : null;
-  const oyQ = (id: number, oy: string) => {
-    const source = oyKesim?.qiymat.get(id)?.get(oy);
-    const sum = rzJami.get(id)?.oy.get(oy);
-    return sum == null ? source : { hajm: source?.hajm ?? 0, summa: sum };
-  };
-  const sahifa = gorunumRows.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
-  const sahifaSoni = Math.max(1, Math.ceil(gorunumRows.length / PAGE_SIZE));
-
-  const [tomonlar, setTomonlar] = useHujjatTomonlari(companyId);
+  const [tomonlar, setTomonlar, imzoTafsilot] = useHujjatTomonlari(companyId, objectId ? Number(objectId) : null);
   const [ndsFoiz, setNdsFoiz] = useState(String(NDS_SUKUT_FOIZ));
   const [truncated, setTruncated] = useState(false);
-  const smetaNakrutka = useMemo(() => {
-    // Maxsus podval — ekrandagi smeta к оплате ham shu podval bo'yicha (hujjat bilan bir xil).
-    if (podval && nakrutkaCats && nakrutka) {
-      try {
-        const k = podvalliKaskad(nakrutkaCats, nakrutka, podvalgaKoefQoy(podval, nakrutka));
-        return { pryamye: k.pryamye, itogo4: k.itogo4, nds: k.nds, nds_foiz: nakrutka.НДС ?? null, vsego: k.vsego };
-      } catch { return null; }
-    }
-    if (!nakrutkaKaskadi) return jami?.smeta_nakrutka ?? null;
-    return {
-      pryamye: nakrutkaKaskadi.pryamye,
-      itogo4: nakrutkaKaskadi.itogo4,
-      nds: nakrutkaKaskadi.nds,
-      nds_foiz: nakrutka?.НДС ?? null,
-      vsego: nakrutkaKaskadi.vsego,
-    };
-  }, [jami?.smeta_nakrutka, nakrutka, nakrutkaKaskadi, podval, nakrutkaCats]);
+  /**
+   * Smeta «к оплате» — BITTA yadro hisobi (`obyektUstamali`: server kesimi + svod yaxlit + podval/koeffitsientlar), hujjat bilan
+   * bir xil. Muqobil manbalar (server kaskadi / jami.smeta_nakrutka) yo'q: kirish yetishmasa — «не определена» va sababi.
+   */
+  const smetaNakrutkaHisob = useMemo((): { qiymat: SmetaNakrutka | null; sabab: string | null } => {
+    if (nakrutkaXato) return { qiymat: null, sabab: nakrutkaXato };
+    if (!podvalOqildi) return { qiymat: null, sabab: null }; // hali o'qilmoqda
+    // Kategoriyasi ko'rsatilmagan smeta qismi (jami − kesim) tashlanmaydi — ИТОГО-4 ga ustamasiz, taxminiy (≈).
+    return obyektSmetaKOplate(nakrutkaJavob, podval, nakrutka, jami?.smeta_summa ?? null);
+  }, [nakrutka, podval, podvalOqildi, nakrutkaJavob, nakrutkaXato, jami?.smeta_summa]);
+  /** Eksport darvozasi: ustama/podval o'qilmagan yoki xato — hujjat yasalmaydi (sababi bilan). */
+  const ustamaTayyorEmas = (): string | null => (nakrutkaXato ? `Hujjat yasalmadi: ${nakrutkaXato}.` : !podvalOqildi ? 'Hujjat yasalmadi: ustama (nakrutka) va podval hali o‘qilmoqda — biroz kuting.' : null);
+  const smetaNakrutka = smetaNakrutkaHisob.qiymat;
 
   /** Hujjat faqat TO'LIQ ro'yxatdan yasaladi: ekrandagi ro'yxat qisqa bo'lsa
    *  (server sukuti 500 qator) — server sahifalari avtomat oxirigacha o'qiladi
@@ -267,14 +258,14 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (!truncated) return qatorlar;
     setEksportBusy(true);
     try {
-      const r = await t2NakopitelniyToliq(Number(objectId), davr || null);
+      const r = await t2NakopitelniyToliq(Number(objectId), davr || null, false, { onProgress: setProgress });
       if (!r.ok) {
         setXato(r.code === 'NAKOPITELNIY_OZGARDI' ? 'O‘qish paytida smeta qatorlari o‘zgardi — qayta urinib ko‘ring.' : (r.xato || r.code || 'Yuklanmadi'));
         return null;
       }
       if (r.truncated) { setXato('Hujjat yasalmadi: server ro‘yxatni to‘liq bermadi — chala hujjat chiqarilmaydi.'); return null; }
       return tartibla(r.qatorlar.map(q => ({ ...q, ...(treeMeta.get(q.qator_id) ?? {}), ozgarish_izoh: ozgarishIzohi(q, modelRef.current), norma: modelRef.current?.byId.get(q.qator_id)?.norma ?? null })), modelRef.current);
-    } finally { setEksportBusy(false); }
+    } finally { setEksportBusy(false); setProgress(null); }
   };
   const stavkaOl = (): number | null => {
     const t = ndsFoiz.trim();
@@ -319,6 +310,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [forma3Diqqat, setForma3Diqqat] = useState<Array<{ nom: string; sabab: string }>>([]);
   const forma3EksportQil = async (korish = false) => {
     setXato(''); setForma3Diqqat([]);
+    const ux = ustamaTayyorEmas(); if (ux) { setXato(ux); return; }
     if (!objectId || !davr) { setXato('F3 uchun tasdiqlangan F2 davri yo‘q — hujjat yasalmadi.'); return; }
     setForma3Busy(true);
     try {
@@ -392,240 +384,164 @@ function Sessiya({ companyId }: { companyId: number }) {
   })());
   useEffect(() => {
     const a = f3Avto.current;
-    if (!a || busy || !objectId || !davr || !qatorlar.length) return;
+    if (!a || busy || !objectId || !davr || !qatorlar.length || (!podvalOqildi && !nakrutkaXato)) return;
     if (a.davr && davr.slice(0, 7) !== a.davr) { f3Avto.current = null; toast(t('F3 davri F2 davriga mos kelmadi — kerakli davrni tanlab «Форма № 3» ni bosing.'), 'warn'); return; }
     const timer = window.setTimeout(() => { if (f3Avto.current) { f3Avto.current = null; void forma3EksportQil(true); } }, 1500);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [busy, objectId, davr, qatorlar.length, nakrutka, podval, shartnoma, zakazchikRek, pudratchiRek, tomonlar]);
+  }, [busy, objectId, davr, qatorlar.length, nakrutka, podval, podvalOqildi, nakrutkaXato, shartnoma, zakazchikRek, pudratchiRek, tomonlar]);
 
   const korinish = useHujjatKorinish();
   const eksportQil = async (korish = false) => {
     setXato('');
+    const ux = ustamaTayyorEmas(); if (ux) { setXato(ux); return; }
     try {
       const rows = await toliqQatorlar();
       if (!rows) return;
       // Egasi 2026-09-30: har tasdiqlangan F2 oyi alohida ustun + ИТОГО (manba — F3 bilan bir xil certified F2).
       const taf = await sbT2F2TafsilotOl({ obyektId: Number(objectId), tur: 'f2' });
       const oylar = taf.ok && taf.toliq !== false && taf.qatorlar && davr ? f2OyKesimi(taf.qatorlar, davr.slice(0, 7)) : null;
-      const h = nakopitelniyVedomostHujjat(rows, { obyektNom, davr, imzo: tomonlar, ndsFoiz: stavkaOl(), smetaNakrutka, nakrutka, podval, oylar });
+      const h = nakopitelniyVedomostHujjat(rows, { obyektNom, davr, imzo: tomonlar, ndsFoiz: stavkaOl(), smetaNakrutka, nakrutka, podval, oylar, svodYaxlit });
       const t = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'NAKOPITELNIY', sabab: `Накопительная ведомость · ${obyektNom} · ${davr}`, obyekt: objectId },
         () => { if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi); });
       if (!t.ok) toast(t.xabar, 'danger'); else if (t.xabar) toast(t.xabar, 'ok');
     } catch (e) { setXato(e instanceof HujjatToliqEmasXato ? 'Hujjat to‘liq emas — eksport bloklandi.' : 'Excel fayli tuzilmadi.'); }
   };
 
+  const davrQator = davrlar.find((d) => d.oy === davr);
+  const sertifikat = davrQator?.certified === true;
+  const tasdiqlanganSoni = davrlar.filter((d) => d.certified).length;
+  const davrOzgartir = (oy: string) => { if (objectId) void yukla(Number(objectId), oy); };
+  const eksportOchiq = qatorlar.length > 0;
+
+  const amallar = (
+    <>
+      <button type="button" className="fz-btn fz-btn--ghost" disabled={!objectId || busy} onClick={() => void yukla(Number(objectId), davr)}>
+        <RefreshCw className={busy ? 'animate-spin' : ''} /> {t('Yangilash')}
+      </button>
+      {eksportOchiq && (
+        <button type="button" className="fz-btn fz-btn--icon" onClick={() => void eksportQil(true)} disabled={eksportBusy}
+          title={t('Накопительная ведомость — saytda hujjatdagiday ko‘rish')} aria-label={t('Nakopitelniy ko‘rish')}><Eye /></button>
+      )}
+      {eksportOchiq && !!davr && (
+        <AmalMenyu matn={t('Форма № 3')} ikonka={<FileText size={16} />} ochirilgan={eksportBusy || forma3Busy} bandlar={[
+          { kalit: 'f3-yuklash', belgi: <Download size={16} />, matn: t('Форма № 3 — Excel yuklab olish'), sarlavha: t('СПРАВКА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ И ЗАТРАТ (счет-фактура к актам Ф-2)'), onBos: () => void forma3EksportQil(false) },
+          { kalit: 'f3-korish', belgi: <Eye size={16} />, matn: t('Форма № 3 — saytda ko‘rish'), aria: t('F3 ko‘rish'), sarlavha: t('Форма № 3 — saytda hujjatdagiday ko‘rish'), onBos: () => void forma3EksportQil(true) },
+          ...(objectId ? [{ kalit: 'f2-tarix', belgi: <History size={16} />, matn: t('Ф-2 — F2 tarixida'), sarlavha: t('Ф-2 hujjati yagona shaklda — F2 tarixida (har tasdiqlangan akt uchun)'), href: `/admin/f2-tarix?obyekt=${objectId}`, ajrat: true }] : []),
+        ]} />
+      )}
+      {eksportOchiq && (
+        <button type="button" className="fz-btn fz-btn--primary" onClick={() => void eksportQil(false)} disabled={eksportBusy}>
+          <Download /> {t('XLSX eksport')}
+        </button>
+      )}
+    </>
+  );
+
   return (
-    <div className="space-y-3 p-1">
-      {korinish.oyna}
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="block text-sm">Obyekt
-          <select aria-label="Obyekt" className="ml-2 border rounded px-2 py-1"
-            value={objectId} onChange={e => setObjectId(e.target.value)}>
-            <option value="">Tanlang</option>
-            <ObyektOptionlari obyektlar={objects} />
-          </select>
-        </label>
-        {!!davrlar.length && (
-          <label className="block text-sm">Davr
-            <select aria-label="Davr" className="ml-2 border rounded px-2 py-1"
-              value={davr} onChange={e => void yukla(Number(objectId), e.target.value)}>
-              {davrlar.map(d => <option key={d.oy} value={d.oy}>{d.oy}{d.certified ? '' : ' (qoralama)'}</option>)}
+    <Sahifa sarlavha={t('Nakopitelniy vedomost')} tavsif={t('Tasdiqlangan F2 aktlarining oyma-oy kumulyativ reestri: smeta, fakt va topshirilgan ish bir joyda.')} amallar={amallar}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+        {korinish.oyna}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 'var(--space-4)' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 220 }}>
+            <span className="fz-kpi__label">{t('Obyekt')}</span>
+            <select aria-label={t('Obyekt')} className="input" style={{ height: 'var(--control-md)', padding: '0 8px' }}
+              value={objectId} onChange={e => setObjectId(e.target.value)}>
+              <option value="">{t('Tanlang')}</option>
+              <ObyektOptionlari obyektlar={objects} />
             </select>
           </label>
+          {!!davrlar.length && (
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span className="fz-kpi__label">{t('Davr')}</span>
+              <select aria-label={t('Davr')} className="input" style={{ height: 'var(--control-md)', padding: '0 8px' }}
+                value={davr} onChange={e => void yukla(Number(objectId), e.target.value)}>
+                {davrlar.map(d => <option key={d.oy} value={d.oy}>{d.certified ? d.oy : `${d.oy} (${t('qoralama')})`}</option>)}
+              </select>
+            </label>
+          )}
+          {!!davr && !!davrQator && (
+            <span className={'fz-stamp ' + (sertifikat ? 'fz-stamp--ok' : 'fz-stamp--warn fz-stamp--draft')} style={{ alignSelf: 'flex-end', marginBottom: 6 }}
+              title={sertifikat ? t('Tasdiqlangan F2 — jami hisobiga kiradi') : t('Qoralama F2 — jami hisobiga kirmaydi')}>
+              {sertifikat ? t('Tasdiqlangan') : t('Qoralama')}
+            </span>
+          )}
+          {!!davrlar.length && <span style={{ alignSelf: 'flex-end', marginBottom: 6, fontSize: 12, color: 'var(--text-mute)' }}>{t('Tasdiqlangan oylar: {a} / {b}', { a: tasdiqlanganSoni, b: davrlar.length })}</span>}
+          {qatorlar.length > 0 && (
+            <label style={{ flex: 1, minWidth: 220, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span className="fz-kpi__label">{t('Qidirish')}</span>
+              <div style={{ position: 'relative' }}>
+                <Search size={14} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-mute)' }} />
+                <input aria-label={t("Kod yoki nom bo'yicha qidirish")} className="input" style={{ width: '100%', height: 'var(--control-md)', padding: '0 8px 0 28px' }}
+                  placeholder={t("Kod yoki nom bo'yicha qidirish…")} value={qidiruv}
+                  onChange={e => setQidiruv(e.target.value)} />
+              </div>
+            </label>
+          )}
+        </div>
+        <DavrChiziq davrlar={davrlar} davr={davr} onTanla={davrOzgartir} band={busy} />
+
+        {!!davrQator && !sertifikat && (
+          <div className="fz-note fz-note--warn"><AlertTriangle />
+            <span>{t('Tanlangan oy — F2 qoralama. U oldingi / joriy / jami summalarga KIRMAGAN: reestrda faqat tasdiqlangan oylar hisoblanadi.')}</span>
+          </div>
         )}
+        {!objectId && <div className="fz-note fz-note--info"><span>{t('Reestrni ko‘rish uchun yuqoridan obyektni tanlang.')}</span></div>}
+
+        {busy && <p role="status" style={{ margin: 0 }}>{progress?.jami ? t('Yuklanmoqda… {n} / {jami} qator', { n: progress.yuklandi.toLocaleString('ru-RU'), jami: progress.jami.toLocaleString('ru-RU') }) : t('Yuklanmoqda…')}</p>}
+        {eksportBusy && <p role="status" style={{ margin: 0 }}>{t('To‘liq ro‘yxat serverdan sahifalab o‘qilmoqda…')}</p>}
+        {forma3Busy && <p role="status" style={{ margin: 0 }}>{t('Форма № 3 manbalari yig‘ilmoqda (nakopitelniy + tasdiqlangan F2)…')}</p>}
+        {xato && <div role="alert" className="fz-note fz-note--danger"><AlertTriangle /><span>{xato}</span></div>}
+        {forma3Diqqat.length > 0 && (
+          <details className="fz-note fz-note--warn" style={{ display: 'block' }}>
+            <summary style={{ cursor: 'pointer' }}>{t('Форма № 3 diqqatlar: {n} ta (hujjatda ham yozilgan)', { n: forma3Diqqat.length })}</summary>
+            <ul style={{ margin: '6px 0 0', paddingLeft: 20, listStyle: 'disc' }}>
+              {forma3Diqqat.slice(0, 12).map((d, i) => <li key={i}><b>{d.nom}</b> — {d.sabab}</li>)}
+            </ul>
+          </details>
+        )}
+
+        {jami && <NakopitelniyKpi jami={jami} qatorlar={qatorlar} truncated={truncated} obyektId={Number(objectId)} kompaniyaId={companyId}
+          smetaNakrutka={smetaNakrutka} smetaNakrutkaSabab={smetaNakrutkaHisob.sabab} kaskadBor={!!nakrutkaKaskadi} davr={davrQator} />}
+
+        {/* Firuza (egasi 2026-10-25): oyma-oy F2 va jamlanma grafigi. */}
+        {/* Fakt — sahifadagi yagona jami (KPI/jadval bilan bir xil, F2 narxida). */}
+        {jami && <NakopitelniyGrafik kesim={oyKesim} smeta={jami.smeta_summa} fakt={nakFaktJami(qatorlar, jami.fakt_summa, truncated).summa} />}
+
         {qatorlar.length > 0 && (
-          <label className="block text-sm flex-1 min-w-[220px]">
-            <span className="sr-only">Qidirish</span>
-            <div className="relative">
-              <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-mute" />
-              <input aria-label="Kod yoki nom bo'yicha qidirish" className="w-full border rounded pl-7 pr-2 py-1"
-                placeholder="Kod yoki nom bo'yicha qidirish…" value={qidiruv}
-                onChange={e => { setQidiruv(e.target.value); setPage(0); }} />
+          <NakopitelniyJadval qatorlar={qatorlar} korinadigan={gorunumRows} oyKesim={oyKesim} jami={jami} truncated={truncated} filtrBor={!!filtr} />
+        )}
+
+        {qatorlar.length > 0 && (
+          <details className="fz-panel" style={{ padding: 'var(--space-3) var(--space-4)' }}>
+            <summary style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+              <Settings2 size={15} />{t('Hujjat sozlamalari: imzolovchilar va QQS')}
+              <span style={{ marginLeft: 'auto', fontWeight: 400, color: 'var(--text-mute)', fontSize: 12 }}>{ndsFoiz.trim() === '' ? t('QQS qo‘shilmaydi') : t('QQS {p}%', { p: ndsFoiz })}</span>
+            </summary>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 'var(--space-4)', marginTop: 'var(--space-3)' }}>
+              <div style={{ minWidth: 280, flex: 1 }}><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} tafsilot={imzoTafsilot} /></div>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: 'var(--text-dim)', maxWidth: 260 }} title={t('F2 resurs qatorlari QQS siz; QQS hujjat oxirida bir marta qo‘shiladi')}>
+                <span className="fz-kpi__label">{t('QQS (НДС) stavkasi, % — hujjat oxirida bir marta')}</span>
+                <input aria-label={t('QQS stavkasi')} value={ndsFoiz} onChange={e => setNdsFoiz(e.target.value)} placeholder={t('bo‘sh — QQS qo‘shilmaydi')}
+                  className="input" style={{ width: 120, height: 'var(--control-md)', padding: '0 8px' }} inputMode="decimal" />
+              </label>
             </div>
-          </label>
+          </details>
         )}
-        <button type="button" disabled={!objectId || busy} onClick={() => void yukla(Number(objectId), davr)}
-          className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border text-sm hover:border-accent/50 disabled:opacity-50">
-          <RefreshCw size={14} className={busy ? 'animate-spin' : ''} /> Yangilash
-        </button>
-        {qatorlar.length > 0 && (
-          <button type="button" onClick={() => void eksportQil(false)} disabled={eksportBusy}
-            className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-accent text-white text-sm hover:opacity-90">
-            <Download size={14} /> XLSX eksport
-          </button>
+
+        {objectId && obyektKompaniyaId === companyId && (
+          <PereraschetBolimi key={objectId} companyId={companyId} obyektId={Number(objectId)} obyektNom={obyektNom} tomonlar={tomonlar} ndsFoiz={stavkaOl()} />
         )}
-        {qatorlar.length > 0 && (
-          <button type="button" onClick={() => void eksportQil(true)} disabled={eksportBusy} title="Накопительная ведомость — saytda hujjatdagiday ko‘rish" aria-label="Nakopitelniy ko‘rish"
-            className="h-8 px-2 inline-flex items-center rounded-lg border text-sm hover:border-accent/50"><Eye size={14} /></button>
+        {shartnomaId != null && (
+          <ShartnomaSvodBolimi companyId={companyId} shartnomaId={shartnomaId} tashkilot={kompaniyalar.find((x) => x.id === companyId)?.nom ?? null} />
         )}
-        {qatorlar.length > 0 && objectId && (
-          <a href={`/admin/f2-tarix?obyekt=${objectId}`} title={t('Ф-2 hujjati yagona shaklda — F2 tarixida (har tasdiqlangan akt uchun)')}
-            className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border border-accent/50 text-accent text-sm hover:bg-accent/10">
-            <Download size={14} /> {t('Ф-2 — F2 tarixida')}
-          </a>
-        )}
-        {qatorlar.length > 0 && !!davr && (
-          <button type="button" onClick={() => void forma3EksportQil(false)} disabled={eksportBusy || forma3Busy}
-            title="СПРАВКА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ И ЗАТРАТ (счет-фактура к актам Ф-2)"
-            className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border border-accent/50 text-accent text-sm hover:bg-accent/10">
-            <Download size={14} /> Форма № 3
-          </button>
-        )}
-        {qatorlar.length > 0 && !!davr && (
-          <button type="button" onClick={() => void forma3EksportQil(true)} disabled={eksportBusy || forma3Busy} title="Форма № 3 — saytda hujjatdagiday ko‘rish" aria-label="F3 ko‘rish"
-            className="h-8 px-2 inline-flex items-center rounded-lg border text-sm hover:border-accent/50"><Eye size={14} /></button>
+        {/* Egasi 2026-10-26: 1C akt-sverka importi — kompaniya darajasida (bir faylda bir nechta shartnoma). */}
+        <SverkaImportPanel companyId={companyId} />
+        {objectId && !busy && !xato && !qatorlar.length && (
+          <div className="fz-note fz-note--info"><span>{t('Bu obyektda smeta qatori topilmadi.')}</span></div>
         )}
       </div>
-
-      {qatorlar.length > 0 && (
-        <div className="flex flex-wrap items-start gap-3">
-          <div className="min-w-[280px] flex-1"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} /></div>
-          <label className="text-[12px] text-text-dim" title="F2 resurs qatorlari QQS siz; QQS hujjat oxirida bir marta qo‘shiladi">QQS (НДС) stavkasi, % — hujjat oxirida bir marta
-            <input aria-label="QQS stavkasi" value={ndsFoiz} onChange={e => setNdsFoiz(e.target.value)} placeholder="bo‘sh — QQS qo‘shilmaydi"
-              className="ml-2 w-24 border rounded px-2 py-1" inputMode="decimal" />
-          </label>
-        </div>
-      )}
-
-      {busy && <p role="status">Yuklanmoqda…</p>}
-      {eksportBusy && <p role="status">To‘liq ro‘yxat serverdan sahifalab o‘qilmoqda…</p>}
-      {forma3Busy && <p role="status">Форма № 3 manbalari yig‘ilmoqda (nakopitelniy + tasdiqlangan F2)…</p>}
-      {truncated && !busy && (
-        <p className="text-[12px] text-text-dim">{truncated ? `Ekranda ${qatorlar.length} ta qator (to‘liq emas); Excel hujjatlari barcha qatorlar bilan tuziladi.` : `Barcha ${qatorlar.length} ta qator; har razdel qatorida o‘z jamisi.`}</p>
-      )}
-      {xato && <p role="alert" className="text-danger flex items-center gap-1.5"><AlertTriangle size={14} /> {xato}</p>}
-      {forma3Diqqat.length > 0 && (
-        <details className="text-[12px] text-text-dim border border-border rounded p-2">
-          <summary className="cursor-pointer">Форма № 3 diqqatlar: {forma3Diqqat.length} ta (hujjatda ham yozilgan)</summary>
-          <ul className="mt-1 list-disc pl-5 space-y-0.5">
-            {forma3Diqqat.slice(0, 12).map((d, i) => <li key={i}><b>{d.nom}</b> — {d.sabab}</li>)}
-          </ul>
-        </details>
-      )}
-
-      {jami && (
-        <div className="karta p-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-[12px]">
-          <div><span className="text-text-mute block">Smeta jami — to‘g‘ri xarajat</span><FmtN val={jami.smeta_summa} />
-            <span className="text-text-mute block mt-1">Smeta jami — к оплате (nakrutka + QQS)</span>
-            {smetaNakrutka ? <FmtN val={smetaNakrutka.vsego} /> : <span className="text-warn block">Nakrutka hisoblanmadi</span>}
-            {smetaNakrutka && <span className="block text-text-mute">Farq (nakrutka + QQS): <FmtN val={smetaNakrutka.vsego - smetaNakrutka.pryamye} /></span>}
-            {!nakrutkaKaskadi && <span className="block text-warn">Koeffitsientlar o‘qilmadi — eksportda alohida ogohlantirish beriladi.</span>}
-            {!!jami.smeta_summa_nomalum && <span className="block text-warn">{jami.smeta_summa_nomalum} ta qatorda summa noma’lum</span>}
-          </div>
-          <div><span className="text-text-mute block">Fakt jami</span><FmtN val={jami.fakt_summa} /></div>
-          <div><span className="text-text-mute block">Jami tasdiqlangan F2</span><FmtN val={jami.jami_tasdiqlangan_summa} /></div>
-          <div><span className="text-text-mute block">Faktdan F2ga mumkin</span>
-            <span className={jami.f2_mumkin_summa < 0 ? 'text-danger font-semibold' : ''}><FmtN val={jami.f2_mumkin_summa} /></span>
-            <span className="block text-text-mute">Fakt − tasdiqlangan F2</span>
-          </div>
-        </div>
-      )}
-
-      {qatorlar.length > 0 && (
-        <>
-          <div className="karta overflow-auto max-h-[70vh]">
-            <table className="w-full text-[11px] border-collapse">
-              <thead className="sticky top-0 z-10 bg-surface-2">
-                <tr className="text-text-mute text-center">
-                  <th rowSpan={2} className="text-left px-2 py-1.5 sticky left-0 bg-surface-2 z-20 min-w-[160px]">Ish</th>
-                  <th rowSpan={2} className="px-2 py-1.5">Birlik</th>
-                  <th colSpan={3} className="px-2 py-1 border-l border-border">SMETA</th>
-                  <th rowSpan={2} className="px-2 py-1.5 border-l border-border">FAKT<br />hajm</th>
-                  {oyUstunlar ? oyUstunlar.map((oy, i) => (
-                    <th key={oy} colSpan={2} className={'px-2 py-1 border-l border-border ' + (i === oyUstunlar.length - 1 ? 'text-accent' : '')}>{davrMatni(oy).toUpperCase()}{i === oyUstunlar.length - 1 ? ' (hisobot davri)' : ''}</th>
-                  )) : <>
-                    <th colSpan={2} className="px-2 py-1 border-l border-border">OLDINGI F2</th>
-                    <th colSpan={3} className="px-2 py-1 border-l border-border">JORIY F2</th>
-                  </>}
-                  <th colSpan={2} className="px-2 py-1 border-l border-border">{oyUstunlar ? 'ИТОГО (barcha oylar)' : 'JAMI (tasdiqlangan) F2'}</th>
-                  <th colSpan={3} className="px-2 py-1 border-l border-border">QOLDIQ SEMANTIKASI</th>
-                </tr>
-                <tr className="text-text-mute text-right">
-                  <th className="px-2 py-1 border-l border-border">Hajm</th><th className="px-2 py-1">Narx</th><th className="px-2 py-1">Summa</th>
-                  {oyUstunlar ? oyUstunlar.map((oy) => <Fragment key={oy}><th className="px-2 py-1 border-l border-border">Hajm</th><th className="px-2 py-1">Summa</th></Fragment>) : <>
-                    <th className="px-2 py-1 border-l border-border">Hajm</th><th className="px-2 py-1">Summa</th>
-                    <th className="px-2 py-1 border-l border-border">Hajm</th><th className="px-2 py-1">Narx</th><th className="px-2 py-1">Summa</th>
-                  </>}
-                  <th className="px-2 py-1 border-l border-border">Hajm</th><th className="px-2 py-1">Summa</th>
-                  <th className="px-2 py-1 border-l border-border">Smeta − Fakt</th><th className="px-2 py-1">F2 mumkin</th><th className="px-2 py-1">Kontrakt − F2</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sahifa.map(q => q.tur === 'rz' ? (
-                  <tr key={q.qator_id} className="bg-surface-2/70 text-right font-semibold text-text">
-                    <td colSpan={2} className="px-2 py-1.5 text-left sticky left-0 bg-surface-2/70" style={{ paddingLeft: `${8 + Math.max(0, q.daraja ?? 0) * 14}px` }}>{q.nom}</td>
-                    <td className="border-l border-border" /><td /><td className="px-2 py-1.5 tabular-nums">{rzJami.get(q.qator_id)?.smeta != null ? <FmtN val={rzJami.get(q.qator_id)!.smeta!} /> : ''}</td>
-                    <td className="border-l border-border" />
-                    {oyUstunlar ? oyUstunlar.map((oy) => <Fragment key={oy}><td className="border-l border-border" /><td className="px-2 py-1.5 tabular-nums">{rzJami.get(q.qator_id)?.oy.get(oy) ? <FmtN val={rzJami.get(q.qator_id)!.oy.get(oy)!} /> : '—'}</td></Fragment>) : <>
-                      <td className="border-l border-border" /><td className="px-2 py-1.5 tabular-nums">{rzJami.get(q.qator_id)?.oldingi ? <FmtN val={rzJami.get(q.qator_id)!.oldingi} /> : '—'}</td>
-                      <td className="border-l border-border" /><td /><td className="px-2 py-1.5 tabular-nums">{rzJami.get(q.qator_id)?.joriy ? <FmtN val={rzJami.get(q.qator_id)!.joriy} /> : '—'}</td>
-                    </>}
-                    <td className="border-l border-border" /><td className="px-2 py-1.5 tabular-nums">{rzJami.get(q.qator_id)?.jami ? <FmtN val={rzJami.get(q.qator_id)!.jami} /> : '—'}</td>
-                    <td className="border-l border-border" /><td /><td />
-                  </tr>
-                ) : (
-                  (() => {
-                    const sum = q.tur === 'bl' ? rzJami.get(q.qator_id) : undefined;
-                    const amount = sum ? { smeta: sum.smeta, oldingi: sum.oldingi, joriy: sum.joriy, jami: sum.jami } : { smeta: q.smeta_summa, oldingi: q.oldingi_summa, joriy: q.joriy_summa, jami: q.jami_summa };
-                    const ledger = buildPtoLineLedger({
-                      lineId: q.qator_id,
-                      baselineQuantity: q.smeta_hajm,
-                      baselineUnitPrice: q.smeta_narx,
-                      baselineAmount: amount.smeta,
-                      factQuantity: q.fakt_hajm,
-                      factAmount: q.fakt_summa,
-                      previousApprovedQuantity: q.oldingi_hajm,
-                      previousApprovedAmount: amount.oldingi,
-                      currentApprovedQuantity: q.joriy_hajm,
-                      currentApprovedAmount: amount.joriy,
-                      approvedF2Quantity: q.jami_hajm,
-                      approvedF2Amount: amount.jami,
-                    });
-                    return <tr key={q.qator_id} className="border-t border-border/60 hover:bg-surface-2/40 text-right">
-                    <td className={'text-left px-2 py-1 sticky left-0 bg-surface ' + (q.tur === 'bl' ? 'font-medium' : '')} style={{ paddingLeft: `${8 + Math.max(0, q.daraja ?? 0) * 14}px` }} title={q.ozgarish_izoh || q.kod || ''}>{q.kod ? q.kod + ' ' : ''}{q.nom}{q.ozgarish_izoh && <span className="ml-1 rounded bg-accent/20 px-1 text-[10px] font-semibold text-accent">{q.zamena ? 'zamena' : 'qo‘shimcha'}</span>}</td>
-                    <td className="text-center px-2 py-1">{q.birlik || '—'}</td>
-                    <td className="px-2 py-1 border-l border-border tabular-nums"><FmtN val={jamiHajmSafe(q)} kasr={3} /></td>
-                    <td className="px-2 py-1 tabular-nums">{q.smeta_narx == null ? '—' : <FmtN val={q.smeta_narx} />}</td>
-                    <td className="px-2 py-1 tabular-nums">{amount.smeta == null ? '—' : <FmtN val={amount.smeta} />}</td>
-                    <td className="px-2 py-1 border-l border-border tabular-nums font-medium">{q.fakt_hajm ? <FmtN val={q.fakt_hajm} kasr={3} /> : '—'}</td>
-                    {oyUstunlar ? oyUstunlar.map((oy) => { const x = oyQ(q.qator_id, oy); return <Fragment key={oy}>
-                      <td className="px-2 py-1 border-l border-border tabular-nums">{x?.hajm ? <FmtN val={x.hajm} kasr={3} /> : '—'}</td>
-                      <td className="px-2 py-1 tabular-nums">{x?.summa ? <FmtN val={x.summa} /> : '—'}</td>
-                    </Fragment>; }) : <>
-                      <td className="px-2 py-1 border-l border-border tabular-nums">{q.oldingi_hajm ? <FmtN val={q.oldingi_hajm} kasr={3} /> : '—'}</td>
-                      <td className="px-2 py-1 tabular-nums">{amount.oldingi ? <FmtN val={amount.oldingi} /> : '—'}</td>
-                      <td className="px-2 py-1 border-l border-border tabular-nums">{q.joriy_hajm ? <FmtN val={q.joriy_hajm} kasr={3} /> : '—'}</td>
-                      <td className="px-2 py-1 tabular-nums">{q.joriy_hajm ? <FmtN val={Math.round((amount.joriy / q.joriy_hajm) * 100) / 100} /> : '—'}</td>
-                      <td className="px-2 py-1 tabular-nums">{amount.joriy ? <FmtN val={amount.joriy} /> : '—'}</td>
-                    </>}
-                    <td className="px-2 py-1 border-l border-border tabular-nums font-medium">{q.jami_hajm ? <FmtN val={q.jami_hajm} kasr={3} /> : '—'}</td>
-                    <td className="px-2 py-1 tabular-nums">{amount.jami ? <FmtN val={amount.jami} /> : '—'}</td>
-                    <td className="px-2 py-1 border-l border-border tabular-nums">{ledger.smetaRemainingQuantity == null ? '—' : <FmtN val={ledger.smetaRemainingQuantity} kasr={3} />}</td>
-                    <td className={'px-2 py-1 tabular-nums font-medium ' + (ledger.overCertified ? 'text-danger' : '')}>{ledger.f2AvailableQuantity == null ? '—' : <FmtN val={ledger.f2AvailableQuantity} kasr={3} />}</td>
-                    <td className="px-2 py-1 tabular-nums">{ledger.contractualRemainingQuantity == null ? '—' : <FmtN val={ledger.contractualRemainingQuantity} kasr={3} />}</td>
-                  </tr>;
-                  })()
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {sahifaSoni > 1 && (
-            <div className="flex items-center gap-2 text-[12px]">
-              <button disabled={page === 0} onClick={() => setPage(p => p - 1)} className="px-2 py-1 border rounded disabled:opacity-40">Oldingi</button>
-              <span>{page + 1} / {sahifaSoni}</span>
-              <button disabled={page + 1 >= sahifaSoni} onClick={() => setPage(p => p + 1)} className="px-2 py-1 border rounded disabled:opacity-40">Keyingi</button>
-            </div>
-          )}
-        </>
-      )}
-      {shartnomaId != null && (
-        <ShartnomaSvodBolimi companyId={companyId} shartnomaId={shartnomaId} tashkilot={kompaniyalar.find((x) => x.id === companyId)?.nom ?? null} />
-      )}
-      {objectId && !busy && !xato && !qatorlar.length && (
-        <p className="text-text-mute text-sm">Bu obyektda smeta qatori topilmadi.</p>
-      )}
-    </div>
+    </Sahifa>
   );
 }
 
@@ -637,9 +553,7 @@ type SvodShakl = { tur: SvodKiritishTur; sana: string; raqam: string; summa: str
 const SVOD_BOSH: SvodShakl = { tur: 'f3', sana: '', raqam: '', summa: '', tolovTur: 'tolov', izoh: '' };
 const svodPul = (x: number | null | undefined) => (x == null ? '—' : somga(x).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 const svodSana = (s: string | null | undefined) => (s ? s.slice(0, 10).split('-').reverse().join('.') : '—');
-const SVOD_RANG: Record<string, string> = { '1': 'text-success', '-1': 'text-danger' };
-const svodRang = (x: number) => SVOD_RANG[String(Math.sign(x))] ?? '';
-const svodKirit = 'w-full rounded border border-border bg-surface px-2 py-1 text-[13px]';
+const svodKirit = 'input w-full h-8 px-2 text-[13px]';
 
 function ShartnomaSvodBolimi({ companyId, shartnomaId, tashkilot }: { companyId: number; shartnomaId: number; tashkilot: string | null }) {
   const [hammasi, setHammasi] = useState<SvodShartnoma[] | null>(null);
@@ -705,117 +619,130 @@ function ShartnomaSvodBolimi({ companyId, shartnomaId, tashkilot }: { companyId:
     setJoylash(''); setTahlil(null); void yukla();
   }
   async function bekor(tur: SverkaYozuvTur, id: number, versiya: number) {
-    if (!window.confirm(t('Yozuvni bekor qilasizmi?'))) return;
+    if (!(await tasdiqSora({ matn: t('Yozuvni bekor qilasizmi?'), xavfli: true }))) return;
     if (await yoz(tur, { holat: 'bekor' }, id, versiya)) void yukla();
   }
 
-  if (xato) return <p className="text-danger text-sm">{t(xato)}</p>;
+  if (xato) return <div role="alert" className="fz-note fz-note--danger"><AlertTriangle /><span>{t(xato)}</span></div>;
   if (!sh || !sv || !sverka) return null;
+  const qoldiqRang = (x: number): CSSProperties | undefined => (x > 0 ? { color: 'var(--ok)' } : x < 0 ? { color: 'var(--danger)' } : undefined);
+  const nom0 = t('Boshlang‘ich qoldiq');
   return (
-    <details className="rounded-lg border border-border p-3" open>
-      <summary className="cursor-pointer text-sm font-semibold">{t('Shartnoma bo‘yicha: F3, to‘lov va akt-sverka')} — № {sh.raqam}</summary>
-      <div className="mt-2 grid grid-cols-2 gap-2 text-[13px] md:grid-cols-5">
-        <div><div className="text-text-mute text-[11px]">{t('Shartnoma summasi (DS bilan)')}</div><div className="tabular-nums">{svodPul(sv.joriy.summa == null ? null : tiyin(sv.joriy.summa))}</div></div>
-        <div><div className="text-text-mute text-[11px]">{t('F2 tasdiqlangan (nakrutkasiz)')}</div><div className="tabular-nums">{svodPul(sv.f2)}</div></div>
-        <div><div className="text-text-mute text-[11px]">{t('Sotuv (F3)')}</div><div className="tabular-nums">{svodPul(sv.f3)}</div></div>
-        <div><div className="text-text-mute text-[11px]">{t('To‘lov')}</div><div className="tabular-nums">{svodPul(sv.tolov)}</div></div>
-        <div><div className="text-text-mute text-[11px]">{t('Qoldiq')}</div><div className={`tabular-nums ${svodRang(sv.qoldiq)}`}>{svodPul(sv.qoldiq)}</div></div>
-      </div>
-      {sv.ogohlantirishlar.map((g) => <div key={g.kod} className="mt-1 flex items-start gap-1 text-[12px] text-warning"><AlertTriangle size={13} className="mt-0.5" />{t(g.matn)}</div>)}
-
-      <div className="mt-3 flex flex-wrap items-end gap-2">
-        <label className="text-[12px]">{t('Dan')}<input type="date" className={svodKirit} value={dan} onChange={(e) => setDan(e.target.value)} /></label>
-        <label className="text-[12px]">{t('Gacha')}<input type="date" className={svodKirit} value={gacha} onChange={(e) => setGacha(e.target.value)} /></label>
-        <button type="button" className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border text-sm" onClick={() => void ber(sverkaXlsx(sh, { tashkilot, dan: dan || null, gacha: gacha || null }), 'AKT_SVERKA', `Акт сверки № ${sh.raqam}`)}>
-          <Download size={14} />{t('Akt-sverka (Excel)')}
-        </button>
-        <button type="button" className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border text-sm" onClick={() => void ber(hammasi ? shartnomaSvodXlsx(hammasi, { tashkilot }) : null, 'NAKOPITELNIY', 'Накопительная по договорам')}>
-          <FileSpreadsheet size={14} />{t('Barcha shartnomalar svodi (Excel)')}
-        </button>
-      </div>
-      <table className="mt-2 w-full text-[12px]">
-        <thead><tr className="border-b text-text-mute">
-          <th className="px-1 text-left">{t('Sana')}</th><th className="px-1 text-left">{t('Hujjat')}</th>
-          <th className="px-1 text-right">{t('Debet (sotuv)')}</th><th className="px-1 text-right">{t('Kredit (to‘lov)')}</th><th className="px-1 text-right">{t('Qoldiq')}</th><th />
-        </tr></thead>
-        <tbody>
-          <tr className="border-b"><td /><td className="px-1">{t('Boshlang‘ich qoldiq')}</td><td /><td /><td className={`px-1 text-right tabular-nums ${svodRang(sverka.boshlangich)}`}>{svodPul(sverka.boshlangich)}</td><td /></tr>
-          {sverka.qatorlar.map((q) => {
-            const f3 = q.tur === 'sotuv' ? sh.f3.find((x) => x.id === q.manbaId) : undefined;
-            return (
-              <tr key={`${q.tur}-${q.manbaId}`} className="border-b border-border/40">
-                <td className="px-1">{svodSana(q.sana)}</td><td className="px-1">{q.hujjat}</td>
-                <td className="px-1 text-right tabular-nums">{q.debet ? svodPul(q.debet) : ''}</td>
-                <td className="px-1 text-right tabular-nums">{q.kredit ? svodPul(q.kredit) : ''}</td>
-                <td className={`px-1 text-right tabular-nums ${svodRang(q.qoldiq)}`}>{svodPul(q.qoldiq)}</td>
-                <td className="px-1 text-right">
-                  {f3 && (
-                    <span className="inline-flex items-center gap-1">
-                      <select aria-label={t('F3 holati')} className="rounded border px-1 text-[12px]" value={f3.holat}
-                        onChange={(e) => void yoz('f3_sotuv', { holat: e.target.value as F3Holat }, f3.id, f3.versiya).then((ok) => { if (ok) void yukla(); })}>
-                        <option value="qoralama">{t('tayyorlanmagan')}</option>
-                        <option value="tayyor">{t('tayyor (yuborildi)')}</option>
-                        <option value="imzolangan">{t('imzolandi')}</option>
-                      </select>
-                      <button type="button" title={t('F3 (Excel)')} className="rounded p-1 hover:bg-surface-2"
-                        onClick={() => void ber(forma3SotuvdanXlsx(sh, f3.id, { tashkilot }), 'F3', `Форма №3 · № ${sh.raqam} · ${f3.sotuv_sana ?? ''}`)}><Download size={12} /></button>
-                      <button type="button" title={t('Bekor qilish')} className="rounded p-1 text-danger" onClick={() => void bekor('f3_sotuv', f3.id, f3.versiya)}><Trash2 size={12} /></button>
-                    </span>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-          <tr className="font-semibold"><td /><td className="px-1">{t('Aylanma va yakuniy qoldiq')}</td>
-            <td className="px-1 text-right tabular-nums">{svodPul(sverka.debetJami)}</td><td className="px-1 text-right tabular-nums">{svodPul(sverka.kreditJami)}</td>
-            <td className={`px-1 text-right tabular-nums ${svodRang(sverka.yakuniy)}`}>{svodPul(sverka.yakuniy)}</td><td /></tr>
-        </tbody>
-      </table>
-      {sh.ds.length !== 0 && (
-        <div className="mt-2 space-y-0.5 text-[12px]">
-          {sh.ds.map((d) => (
-            <div key={d.id} className="flex items-center gap-2">
-              <span>{t('DS')} № {d.raqam} · {svodSana(d.sana)}</span><span className="ml-auto tabular-nums">{svodPul(tiyin(d.jami_nds_bilan))}</span>
-              <button type="button" title={t('Bekor qilish')} className="rounded p-1 text-danger" onClick={() => void bekor('ds', d.id, d.versiya)}><Trash2 size={12} /></button>
-            </div>
-          ))}
+    <section className="fz-card" aria-label={t('Shartnoma bo‘yicha: F3, to‘lov va akt-sverka')}>
+      <div className="fz-card__head">
+        <div>
+          <h2 className="fz-card__title">{t('Shartnoma bo‘yicha: F3, to‘lov va akt-sverka')} — № {sh.raqam}</h2>
+          <p className="fz-card__sub">{t('Shartnoma → F2 → F3 → to‘lov → qoldiq: pul oqimi bir qarashda')}</p>
         </div>
-      )}
-
-      <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-6">
-        <label className="text-[12px]">{t('Yozuv turi')}
-          <select className={svodKirit} value={shakl.tur} onChange={(e) => setShakl({ ...shakl, tur: e.target.value as SvodKiritishTur })}>
-            <option value="f3">{t('Sotuv (F3)')}</option><option value="tolov">{t('To‘lov')}</option><option value="ds">{t('Qo‘shimcha kelishuv (DS)')}</option>
-          </select></label>
-        <label className="text-[12px]">{t('Sana')}<input type="date" className={svodKirit} value={shakl.sana} onChange={(e) => setShakl({ ...shakl, sana: e.target.value })} /></label>
-        {shakl.tur === 'tolov'
-          ? <label className="text-[12px]">{t('To‘lov turi')}
-              <select className={svodKirit} value={shakl.tolovTur} onChange={(e) => setShakl({ ...shakl, tolovTur: e.target.value as TolovTur })}>
-                <option value="tolov">{t('To‘lov')}</option><option value="avans">{t('Avans')}</option><option value="qaytarim">{t('Qaytarim')}</option>
-              </select></label>
-          : <label className="text-[12px]">{t('Raqam')}<input className={svodKirit} value={shakl.raqam} onChange={(e) => setShakl({ ...shakl, raqam: e.target.value })} /></label>}
-        <label className="text-[12px]">{shakl.tur === 'ds' ? t('Yangi shartnoma summasi (QQS bilan)') : t('Summa (QQS bilan)')}
-          <MoneyInput aria-label={t('Summa (QQS bilan)')} inputMode="decimal" className={`${svodKirit} tabular-nums`} value={shakl.summa} onValueChange={(v) => setShakl({ ...shakl, summa: v })} /></label>
-        <label className="text-[12px]">{t('Izoh')}<input className={svodKirit} value={shakl.izoh} onChange={(e) => setShakl({ ...shakl, izoh: e.target.value })} /></label>
-        <button type="button" disabled={band} className="self-end h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-accent text-white text-sm disabled:opacity-50" onClick={() => void qosh()}>
-          <Plus size={14} />{t('Qo‘shish')}
-        </button>
-      </div>
-      <div className="mt-2">
-        <textarea aria-label={t('Akt-sverkadan joylash (Sana · Hujjat · Debet · Kredit)')} placeholder={t('Akt-sverkadan joylash (Sana · Hujjat · Debet · Kredit)')}
-          className={`${svodKirit} h-16 font-mono`} value={joylash} onChange={(e) => { setJoylash(e.target.value); setTahlil(null); }} />
-        <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px]">
-          <button type="button" className="h-7 px-2 inline-flex items-center gap-1 rounded border" onClick={() => setTahlil(sverkaMatniniOqi(joylash))}><ClipboardPaste size={13} />{t('Tekshirish')}</button>
-          {tahlil && (
-            <>
-              <span>{t('Sotuv: {s}, to‘lov: {t}, tushunilmagan: {x}', { s: String(tahlil.qatorlar.filter((q) => q.tur === 'sotuv').length), t: String(tahlil.qatorlar.filter((q) => q.tur !== 'sotuv').length), x: String(tahlil.xatolar.length) })}</span>
-              <button type="button" disabled={band || !tahlil.qatorlar.length} className="h-7 px-2 rounded bg-accent text-white disabled:opacity-50" onClick={() => void joylashniKirit()}>{t('Kiritish')}</button>
-            </>
-          )}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+          <button type="button" className="fz-btn" onClick={() => void ber(sverkaXlsx(sh, { tashkilot, dan: dan || null, gacha: gacha || null }), 'AKT_SVERKA', `Акт сверки № ${sh.raqam}`)}>
+            <Download />{t('Akt-sverka (Excel)')}
+          </button>
+          <button type="button" className="fz-btn" onClick={() => void ber(hammasi ? shartnomaSvodXlsx(hammasi, { tashkilot }) : null, 'NAKOPITELNIY', 'Накопительная по договорам')}>
+            <FileSpreadsheet />{t('Barcha shartnomalar svodi (Excel)')}
+          </button>
         </div>
       </div>
-      <div className="mt-3"><PulTahlil companyId={companyId} shartnomaId={shartnomaId} obyektlar={sh.obyektlar.map((o) => ({ id: o.id, nom: o.nom }))} /></div>
-    </details>
+      <div className="fz-card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+        <ShartnomaQuvur shartnoma={sv.joriy.summa == null ? null : tiyin(sv.joriy.summa)} f2={sv.f2} f3={sv.f3} tolov={sv.tolov} qoldiq={sv.qoldiq} pul={svodPul} />
+        {sv.ogohlantirishlar.map((g) => <div key={g.kod} className="fz-note fz-note--warn"><AlertTriangle />{t(g.matn)}</div>)}
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 'var(--space-3)' }}>
+          <Maydon nom={t('Dan')}><input type="date" className={svodKirit} value={dan} onChange={(e) => setDan(e.target.value)} /></Maydon>
+          <Maydon nom={t('Gacha')}><input type="date" className={svodKirit} value={gacha} onChange={(e) => setGacha(e.target.value)} /></Maydon>
+        </div>
+        <div className="fz-table-wrap" style={{ maxHeight: 420 }}>
+          <table className="fz-table">
+            <thead><tr>
+              <th>{t('Sana')}</th><th>{t('Hujjat')}</th>
+              <th className="fz-c-num" style={{ textAlign: 'right' }}>{t('Debet (sotuv)')}</th><th className="fz-c-num" style={{ textAlign: 'right' }}>{t('Kredit (to‘lov)')}</th><th className="fz-c-num" style={{ textAlign: 'right' }}>{t('Qoldiq')}</th><th />
+            </tr></thead>
+            <tbody>
+              <tr className="fz-row-rz"><td /><td>{nom0}</td><td /><td /><td className="fz-c-num" style={qoldiqRang(sverka.boshlangich)}>{svodPul(sverka.boshlangich)}</td><td /></tr>
+              {sverka.qatorlar.map((q) => {
+                const f3 = q.tur === 'sotuv' ? sh.f3.find((x) => x.id === q.manbaId) : undefined;
+                return (
+                  <tr key={`${q.tur}-${q.manbaId}`}>
+                    <td className="fz-c-unit">{svodSana(q.sana)}</td><td>{q.hujjat}</td>
+                    <td className="fz-c-num">{q.debet ? svodPul(q.debet) : ''}</td>
+                    <td className="fz-c-num" style={q.kredit ? { color: 'var(--ok)' } : undefined}>{q.kredit ? svodPul(q.kredit) : ''}</td>
+                    <td className="fz-c-num" style={{ fontWeight: 600, ...qoldiqRang(q.qoldiq) }}>{svodPul(q.qoldiq)}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      {f3 && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <select aria-label={t('F3 holati')} className="input" style={{ height: 28, padding: '0 6px', fontSize: 12 }} value={f3.holat}
+                            onChange={(e) => void yoz('f3_sotuv', { holat: e.target.value as F3Holat }, f3.id, f3.versiya).then((ok) => { if (ok) void yukla(); })}>
+                            <option value="qoralama">{t('tayyorlanmagan')}</option>
+                            <option value="tayyor">{t('tayyor (yuborildi)')}</option>
+                            <option value="imzolangan">{t('imzolandi')}</option>
+                          </select>
+                          <button type="button" title={t('F3 (Excel)')} aria-label={t('F3 (Excel)')} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm"
+                            onClick={() => void ber(forma3SotuvdanXlsx(sh, f3.id, { tashkilot }), 'F3', `Форма №3 · № ${sh.raqam} · ${f3.sotuv_sana ?? ''}`)}><Download /></button>
+                          <button type="button" title={t('Bekor qilish')} aria-label={t('Bekor qilish')} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" style={{ color: 'var(--danger)' }} onClick={() => void bekor('f3_sotuv', f3.id, f3.versiya)}><Trash2 /></button>
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+              <tr className="fz-row-total"><td /><td>{t('Aylanma va yakuniy qoldiq')}</td>
+                <td className="fz-c-num">{svodPul(sverka.debetJami)}</td><td className="fz-c-num">{svodPul(sverka.kreditJami)}</td>
+                <td className="fz-c-num" style={qoldiqRang(sverka.yakuniy)}>{svodPul(sverka.yakuniy)}</td><td /></tr>
+            </tbody>
+          </table>
+        </div>
+        {sh.ds.length !== 0 && (
+          <div className="fz-panel">
+            <div className="fz-panel__h"><span>{t('Qo‘shimcha kelishuvlar (DS)')}</span></div>
+            {sh.ds.map((d) => (
+              <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>{t('DS')} № {d.raqam} · {svodSana(d.sana)}</span><span className="tabular-nums" style={{ marginLeft: 'auto', fontWeight: 600 }}>{svodPul(tiyin(d.jami_nds_bilan))}</span>
+                <button type="button" title={t('Bekor qilish')} aria-label={t('Bekor qilish')} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" style={{ color: 'var(--danger)' }} onClick={() => void bekor('ds', d.id, d.versiya)}><Trash2 /></button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="fz-panel">
+          <div className="fz-panel__h"><span>{t('Yangi yozuv kiritish')}</span></div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-3)', alignItems: 'end' }}>
+            <Maydon nom={t('Yozuv turi')}>
+              <select className={svodKirit} value={shakl.tur} onChange={(e) => setShakl({ ...shakl, tur: e.target.value as SvodKiritishTur })}>
+                <option value="f3">{t('Sotuv (F3)')}</option><option value="tolov">{t('To‘lov')}</option><option value="ds">{t('Qo‘shimcha kelishuv (DS)')}</option>
+              </select></Maydon>
+            <Maydon nom={t('Sana')}><input type="date" className={svodKirit} value={shakl.sana} onChange={(e) => setShakl({ ...shakl, sana: e.target.value })} /></Maydon>
+            {shakl.tur === 'tolov'
+              ? <Maydon nom={t('To‘lov turi')}>
+                  <select className={svodKirit} value={shakl.tolovTur} onChange={(e) => setShakl({ ...shakl, tolovTur: e.target.value as TolovTur })}>
+                    <option value="tolov">{t('To‘lov')}</option><option value="avans">{t('Avans')}</option><option value="qaytarim">{t('Qaytarim')}</option>
+                  </select></Maydon>
+              : <Maydon nom={t('Raqam')}><input className={svodKirit} value={shakl.raqam} onChange={(e) => setShakl({ ...shakl, raqam: e.target.value })} /></Maydon>}
+            <Maydon nom={shakl.tur === 'ds' ? t('Yangi shartnoma summasi (QQS bilan)') : t('Summa (QQS bilan)')}>
+              <MoneyInput aria-label={t('Summa (QQS bilan)')} inputMode="decimal" className={`${svodKirit} tabular-nums`} value={shakl.summa} onValueChange={(v) => setShakl({ ...shakl, summa: v })} /></Maydon>
+            <Maydon nom={t('Izoh')}><input className={svodKirit} value={shakl.izoh} onChange={(e) => setShakl({ ...shakl, izoh: e.target.value })} /></Maydon>
+            <button type="button" disabled={band} className="fz-btn fz-btn--primary" onClick={() => void qosh()}>
+              <Plus />{t('Qo‘shish')}
+            </button>
+          </div>
+        </div>
+
+        <div className="fz-panel">
+          <div className="fz-panel__h"><span>{t('Akt-sverkadan joylash')}</span></div>
+          <textarea aria-label={t('Akt-sverkadan joylash (Sana · Hujjat · Debet · Kredit)')} placeholder={t('Akt-sverkadan joylash (Sana · Hujjat · Debet · Kredit)')}
+            className={`${svodKirit} font-mono`} style={{ height: 72, padding: 8 }} value={joylash} onChange={(e) => { setJoylash(e.target.value); setTahlil(null); }} />
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-2)', fontSize: 12 }}>
+            <button type="button" className="fz-btn fz-btn--sm" onClick={() => setTahlil(sverkaMatniniOqi(joylash))}><ClipboardPaste />{t('Tekshirish')}</button>
+            {tahlil && (
+              <>
+                <span>{t('Sotuv: {s}, to‘lov: {t}, tushunilmagan: {x}', { s: String(tahlil.qatorlar.filter((q) => q.tur === 'sotuv').length), t: String(tahlil.qatorlar.filter((q) => q.tur !== 'sotuv').length), x: String(tahlil.xatolar.length) })}</span>
+                <button type="button" disabled={band || !tahlil.qatorlar.length} className="fz-btn fz-btn--sm fz-btn--primary" onClick={() => void joylashniKirit()}>{t('Kiritish')}</button>
+              </>
+            )}
+          </div>
+        </div>
+        <PulTahlil companyId={companyId} shartnomaId={shartnomaId} obyektlar={sh.obyektlar.map((o) => ({ id: o.id, nom: o.nom }))} />
+      </div>
+    </section>
   );
 }
 

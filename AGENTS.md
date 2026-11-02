@@ -34,6 +34,14 @@ Interfeys 4 tilda: o'zbek lotin (manba), o'zbek kirill, rus, ingliz (`frontend/s
 ## 2b. Pul summasi qoidasi (egasi, 2026-10-24 - har ishda majburiy)
 Tizimdagi HAR pul summasi: USTAMALI (nakrutka bilan, asosiy/katta) + ustamasiz (yonida kichik), NDS siz; QQS faqat alohida yorliq bilan. Yangi formula yozilmaydi: rontend/src/umumiy/ui/SummaJuft.tsx + useUstamaliSumma + lib/ustamali-summa.ts. Kategoriya noma'lum bo'lsa - 	axminiy (kat noma'lum: N so'm), 0 emas. Joylar ro'yxati - Obsidian CODEMAP.
 
+## 2c. Smeta versiyasi qoidasi (egasi, 2026-10-29 — har ishda majburiy)
+**t2_qator o'quvchisi versiyani hisobga olishi shart.** Eski smeta qatorlari o'chirilmaydi (`versiya_holat = 'almashtirilgan'`, F2 tarixi ularda); joriy smeta — `versiya_holat = 'faol'`.
+- A — smeta asosi (hajm/narx/summa, jami, narxsiz, ustama, AI konteksti, narxlash, qidiruv, eksport ko'rinishi): faqat `versiya_holat = 'faol'`.
+- B — tarix (F2/fakt `t2_akt_qator` orqali, muhr, jurnal, id bo'yicha yozuvchi, texnik): filtrsiz, lekin `public.t2_versiya_xabardorlik_ruxsat` ga sabab bilan yoziladi (yoki izohda `versiya: tarix|texnik|eskirgan|versiya`).
+- C — aniq versiya obyektlari (`t2_smeta_versiya*`, faollashtirish, moslik).
+- Shlyuz: `/api/sb` `t2_qator` ni sukut bo'yicha faqat faol beradi (`frontend/functions/_shared/versiya-oqish.ts`); tarix kerak bo'lsa — aniq `versiya: 'tarix'`. Ekranda alohida filtr yozilmaydi.
+- Qo'riqchi: `select * from public.t2_versiya_xabardorlik_audit_v1()` bo'sh bo'lishi shart (har migratsiya qabulida); repo testi `frontend/src/lib/smeta-versiya/versiya-qoriqchi.test.ts` yangi migratsiyadagi t2_qator o'quvchisini tekshiradi. Farq ekrani — mavjud «Versiyalar va farq» (`SmetaVersiyaFarq.tsx`), yangisi yaratilmaydi.
+
 ## 3. Ish tugagach (majburiy)
 Gate'lar (`CODEMAP.md` oxirida) → commit → push → deploy tekshiruvi → Obsidian: `CURRENT_STATE.md` **qayta yoziladi**, `PRODUCT_ROADMAP.md` da band holati, `AGENT_LOG.md` ga bir qator. Bitta mavzu — bitta kanonik hujjat; takror hujjat yaratmang, eskirganini birlashtirib o'chiring.
 

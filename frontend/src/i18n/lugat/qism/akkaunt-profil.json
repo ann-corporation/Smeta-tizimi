@@ -1,0 +1,534 @@
+{
+  "Firuza": {
+    "ru": "Бирюзовый",
+    "en": "Turquoise"
+  },
+  "Moviy-yashil": {
+    "ru": "Сине-зелёный",
+    "en": "Teal blue"
+  },
+  "Osmon": {
+    "ru": "Небесный",
+    "en": "Sky"
+  },
+  "Ko‘k": {
+    "ru": "Синий",
+    "en": "Blue"
+  },
+  "Indigo": {
+    "ru": "Индиго",
+    "en": "Indigo"
+  },
+  "Binafsha": {
+    "ru": "Фиолетовый",
+    "en": "Violet"
+  },
+  "Pushti-binafsha": {
+    "ru": "Пурпурный",
+    "en": "Magenta"
+  },
+  "Qizil-pushti": {
+    "ru": "Розово-красный",
+    "en": "Rose"
+  },
+  "Qahrabo": {
+    "ru": "Янтарный",
+    "en": "Amber"
+  },
+  "Yashil": {
+    "ru": "Зелёный",
+    "en": "Green"
+  },
+  "Kamida 8 belgi": {
+    "ru": "Не менее 8 символов",
+    "en": "At least 8 characters"
+  },
+  "128 belgidan oshmasin": {
+    "ru": "Не более 128 символов",
+    "en": "No more than 128 characters"
+  },
+  "Joriy paroldan farq qilsin": {
+    "ru": "Отличается от текущего пароля",
+    "en": "Differs from the current password"
+  },
+  "Harf bor (tavsiya)": {
+    "ru": "Есть буква (рекомендуется)",
+    "en": "Has a letter (recommended)"
+  },
+  "Raqam bor (tavsiya)": {
+    "ru": "Есть цифра (рекомендуется)",
+    "en": "Has a digit (recommended)"
+  },
+  "Belgi bor: ! ? # % (tavsiya)": {
+    "ru": "Есть символ: ! ? # % (рекомендуется)",
+    "en": "Has a symbol: ! ? # % (recommended)"
+  },
+  "Profil saqlandi": {
+    "ru": "Профиль сохранён",
+    "en": "Profile saved"
+  },
+  "Avatar rangi": {
+    "ru": "Цвет аватара",
+    "en": "Avatar colour"
+  },
+  "2–80 belgi": {
+    "ru": "2–80 символов",
+    "en": "2–80 characters"
+  },
+  "Masalan: +998 90 123 45 67": {
+    "ru": "Например: +998 90 123 45 67",
+    "en": "For example: +998 90 123 45 67"
+  },
+  "Interfeys tili": {
+    "ru": "Язык интерфейса",
+    "en": "Interface language"
+  },
+  "Saqlaganingizda interfeys tili ham almashadi.": {
+    "ru": "При сохранении язык интерфейса тоже переключится.",
+    "en": "The interface language switches too when you save."
+  },
+  "Ism, telefon, til va avatar rangi. Login va elektron pochta o‘zgarmaydi.": {
+    "ru": "Имя, телефон, язык и цвет аватара. Логин и электронная почта не меняются.",
+    "en": "Name, phone, language and avatar colour. Login and email cannot be changed."
+  },
+  "Ro‘yxatdan o‘tgan": {
+    "ru": "Дата регистрации",
+    "en": "Registered"
+  },
+  "Parol yangilandi. Boshqa qurilmalardagi sessiyalar yopildi.": {
+    "ru": "Пароль обновлён. Сеансы на других устройствах закрыты.",
+    "en": "Password updated. Sessions on other devices were closed."
+  },
+  "Joriy parol": {
+    "ru": "Текущий пароль",
+    "en": "Current password"
+  },
+  "Yangi parol": {
+    "ru": "Новый пароль",
+    "en": "New password"
+  },
+  "Parol kuchi": {
+    "ru": "Надёжность пароля",
+    "en": "Password strength"
+  },
+  "faqat maslahat": {
+    "ru": "только подсказка",
+    "en": "hint only"
+  },
+  "Parol talablari": {
+    "ru": "Требования к паролю",
+    "en": "Password requirements"
+  },
+  "bajarildi": {
+    "ru": "выполнено",
+    "en": "met"
+  },
+  "bajarilmagan": {
+    "ru": "не выполнено",
+    "en": "not met"
+  },
+  "Yangi parolni takrorlang": {
+    "ru": "Повторите новый пароль",
+    "en": "Repeat the new password"
+  },
+  "Parollar mos kelmayapti": {
+    "ru": "Пароли не совпадают",
+    "en": "Passwords do not match"
+  },
+  "Juda ko‘p urinish bo‘ldi. Xavfsizlik uchun birozdan so‘ng (taxminan bir necha daqiqadan keyin) qayta urinib ko‘ring.": {
+    "ru": "Слишком много попыток. В целях безопасности повторите чуть позже (через несколько минут).",
+    "en": "Too many attempts. For security, try again a little later (in a few minutes)."
+  },
+  "Parolni yangilash": {
+    "ru": "Обновить пароль",
+    "en": "Update password"
+  },
+  "Parolni o‘rnatish": {
+    "ru": "Установить пароль",
+    "en": "Set password"
+  },
+  "Oxirgi o‘zgarish": {
+    "ru": "Последнее изменение",
+    "en": "Last changed"
+  },
+  "{n} kun qoldi": {
+    "ru": "Осталось дней: {n}",
+    "en": "{n} days left"
+  },
+  "{n} soat qoldi": {
+    "ru": "Осталось часов: {n}",
+    "en": "{n} hours left"
+  },
+  "Boshqa qurilmalardan chiqish": {
+    "ru": "Выйти на других устройствах",
+    "en": "Sign out on other devices"
+  },
+  "Shu qurilmadan tashqari barcha qurilmalardagi sessiyalaringiz yopiladi. Shu qurilmada kirib turasiz. Davom etasizmi?": {
+    "ru": "Ваши сеансы на всех устройствах, кроме этого, будут закрыты. На этом устройстве вы останетесь в системе. Продолжить?",
+    "en": "Your sessions on every device except this one will be closed. You stay signed in here. Continue?"
+  },
+  "Boshqa qurilmalardagi sessiyalar yopildi.": {
+    "ru": "Сеансы на других устройствах закрыты.",
+    "en": "Sessions on other devices were closed."
+  },
+  "Shu qurilma": {
+    "ru": "Это устройство",
+    "en": "This device"
+  },
+  "Sessiya muddati": {
+    "ru": "Срок сеанса",
+    "en": "Session lifetime"
+  },
+  "Boshqa barcha qurilmalardan chiqish": {
+    "ru": "Выйти на всех других устройствах",
+    "en": "Sign out on all other devices"
+  },
+  "Qurilmalar ro‘yxati yuritilmaydi: serverda har bir qurilma alohida kuzatilmaydi, shu sababli faqat «boshqa hammasidan chiqish» mavjud.": {
+    "ru": "Список устройств не ведётся: сервер не отслеживает каждое устройство отдельно, поэтому доступна только функция «выйти на всех остальных».",
+    "en": "A per-device list is not tracked: the server does not follow each device separately, so only “sign out everywhere else” is available."
+  },
+  "Google’ni uzish": {
+    "ru": "Отключить Google",
+    "en": "Disconnect Google"
+  },
+  "Google akkaunti shu hisobdan uziladi. Bundan keyin faqat login va parol bilan kirasiz. Davom etasizmi?": {
+    "ru": "Аккаунт Google будет отключён от этой учётной записи. Дальше вход только по логину и паролю. Продолжить?",
+    "en": "Google will be disconnected from this account. From now on you sign in with login and password only. Continue?"
+  },
+  "Google uzildi": {
+    "ru": "Google отключён",
+    "en": "Google disconnected"
+  },
+  "Ulanmagan": {
+    "ru": "Не подключено",
+    "en": "Not connected"
+  },
+  "Google’ni uzish uchun avval parol o‘rnating — aks holda akkauntga kira olmay qolasiz.": {
+    "ru": "Чтобы отключить Google, сначала установите пароль — иначе вы не сможете войти.",
+    "en": "To disconnect Google, set a password first — otherwise you would be locked out."
+  },
+  "Google hisobingiz hali ulanmagan. «Kirish usullari» bo‘limida Google’ni shu hisobga ulashingiz yoki ikkinchi hisobni birlashtirishingiz mumkin.": {
+    "ru": "Ваш аккаунт Google ещё не подключён. В разделе «Способы входа» можно подключить Google к этой учётной записи или объединить вторую учётную запись.",
+    "en": "Your Google account is not connected yet. In “Sign-in methods” you can connect Google to this account or merge a second account."
+  },
+  "Kirish usullariga o‘tish": {
+    "ru": "Перейти к способам входа",
+    "en": "Go to sign-in methods"
+  },
+  "Sessiyalar": {
+    "ru": "Сеансы",
+    "en": "Sessions"
+  },
+  "Hozirgi qurilmadagi sessiya va boshqa qurilmalardan chiqish.": {
+    "ru": "Сеанс на этом устройстве и выход на других устройствах.",
+    "en": "The session on this device and signing out of other devices."
+  },
+  "Boshlangan": {
+    "ru": "Начат",
+    "en": "Started"
+  },
+  "Tugaydi": {
+    "ru": "Истекает",
+    "en": "Expires"
+  },
+  "Google": {
+    "ru": "Google",
+    "en": "Google"
+  },
+  "Google akkaunti orqali kirish.": {
+    "ru": "Вход через аккаунт Google.",
+    "en": "Signing in with a Google account."
+  },
+  "Kompaniya № {n}": {
+    "ru": "Компания № {n}",
+    "en": "Company #{n}"
+  },
+  "Hisoblar birlashtirildi. Endi ikkinchi hisob login bilan kirsangiz ham shu hisobga tushasiz.": {
+    "ru": "Учётные записи объединены. Теперь при входе по логину второй записи вы попадёте в эту учётную запись.",
+    "en": "Accounts merged. Signing in with the second account’s login now lands you in this account."
+  },
+  "Ko‘chirilgan kompaniyalar va rollar": {
+    "ru": "Перенесённые компании и роли",
+    "en": "Moved companies and roles"
+  },
+  "Kompaniya ko‘chirilmadi (ikkinchi hisobda ish joyi bo‘lmagan).": {
+    "ru": "Компании не перенесены (у второй записи не было рабочих мест).",
+    "en": "No company was moved (the second account had no workspaces)."
+  },
+  "Hisobingizda qolgan rollar": {
+    "ru": "Остальные роли вашей учётной записи",
+    "en": "Other roles on your account"
+  },
+  "Sahifani yangilash": {
+    "ru": "Обновить страницу",
+    "en": "Reload page"
+  },
+  "Google shu hisobga ulandi": {
+    "ru": "Google подключён к этой учётной записи",
+    "en": "Google is now connected to this account"
+  },
+  "Bu Google pochta «{login}» hisobiga ulangan. Quyida uning login va parolini kiriting — hisoblar birlashtiriladi.": {
+    "ru": "Эта почта Google привязана к учётной записи «{login}». Введите ниже её логин и пароль — записи будут объединены.",
+    "en": "This Google email is linked to the account “{login}”. Enter its login and password below to merge the accounts."
+  },
+  "Hisoblarni birlashtirish": {
+    "ru": "Объединение учётных записей",
+    "en": "Merge accounts"
+  },
+  "«{login}» hisobi shu hisobga birlashtiriladi:": {
+    "ru": "Учётная запись «{login}» будет объединена с этой:",
+    "en": "The account “{login}” will be merged into this one:"
+  },
+  "uning kompaniyalari va rollari shu hisobga o‘tadi;": {
+    "ru": "её компании и роли перейдут в эту учётную запись;",
+    "en": "its companies and roles move to this account;"
+  },
+  "u login va parol bilan kirsangiz ham shu hisobga tushasiz;": {
+    "ru": "при входе по её логину и паролю вы попадёте в эту запись;",
+    "en": "signing in with its login and password lands you in this account;"
+  },
+  "boshqa qurilmalardagi sessiyalar yopilishi mumkin.": {
+    "ru": "сеансы на других устройствах могут быть закрыты.",
+    "en": "sessions on other devices may be closed."
+  },
+  "Davom etasizmi?": {
+    "ru": "Продолжить?",
+    "en": "Continue?"
+  },
+  "Hisoblar birlashtirildi": {
+    "ru": "Учётные записи объединены",
+    "en": "Accounts merged"
+  },
+  "Parol o‘rnatilmagan": {
+    "ru": "Пароль не задан",
+    "en": "No password set"
+  },
+  "Login va parol bilan ham kirish uchun parol o‘rnating.": {
+    "ru": "Установите пароль, чтобы входить и по логину с паролем.",
+    "en": "Set a password to sign in with login and password too."
+  },
+  "Parol o‘rnatish": {
+    "ru": "Установка пароля",
+    "en": "Set password"
+  },
+  "Google akkauntingizni shu hisobga ulang — keyin Google bilan kirsangiz ham shu hisobga tushasiz (qayta kirish talab qilinmaydi).": {
+    "ru": "Подключите свой аккаунт Google к этой учётной записи — тогда вход через Google тоже приведёт сюда (повторный вход не нужен).",
+    "en": "Connect your Google account to this account — signing in with Google will then land here too (no need to sign in again)."
+  },
+  "Ikkinchi hisobning kompaniya va rollari shu hisobga o‘tadi; u login bilan kirsangiz ham shu hisobga tushasiz.": {
+    "ru": "Компании и роли второй учётной записи перейдут в эту; при входе по её логину вы тоже попадёте сюда.",
+    "en": "The second account’s companies and roles move to this account; signing in with its login also lands you here."
+  },
+  "Boshqa hisobni shu hisobga birlashtirish": {
+    "ru": "Объединить другую учётную запись с этой",
+    "en": "Merge another account into this one"
+  },
+  "Birlashtiriladigan ikkinchi hisobning login va parolini kiriting. Uning kompaniya va rollari shu hisobga o‘tadi.": {
+    "ru": "Введите логин и пароль второй учётной записи. Её компании и роли перейдут в эту запись.",
+    "en": "Enter the second account’s login and password. Its companies and roles move to this account."
+  },
+  "Ikkinchi hisob logini": {
+    "ru": "Логин второй записи",
+    "en": "Second account login"
+  },
+  "Ikkinchi hisob paroli": {
+    "ru": "Пароль второй записи",
+    "en": "Second account password"
+  },
+  "Birlashtirilmoqda…": {
+    "ru": "Объединение…",
+    "en": "Merging…"
+  },
+  "Bitta hisob — barcha kirish usullari": {
+    "ru": "Одна учётная запись — все способы входа",
+    "en": "One account — all sign-in methods"
+  },
+  "Login/parol va Google — bitta hisobga olib boradi. Ikkita alohida hisobingiz bo‘lsa, ularni shu yerda birlashtiring.": {
+    "ru": "Логин/пароль и Google ведут в одну учётную запись. Если у вас две отдельные записи, объедините их здесь.",
+    "en": "Login/password and Google lead to one account. If you have two separate accounts, merge them here."
+  },
+  "Login va parol": {
+    "ru": "Логин и пароль",
+    "en": "Login and password"
+  },
+  "Server yangilanmagan": {
+    "ru": "Сервер не обновлён",
+    "en": "Server not updated"
+  },
+  "profil API hali yoqilmagan, shuning uchun tahrirlash vaqtincha o‘chirilgan. Quyida mavjud ma‘lumotlar faqat o‘qiladi.": {
+    "ru": "API профиля ещё не включён, поэтому редактирование временно отключено. Ниже имеющиеся данные только для чтения.",
+    "en": "the profile API is not enabled yet, so editing is temporarily off. The data below is read-only."
+  },
+  "Topshiriqlarni o‘qib bo‘lmadi.": {
+    "ru": "Не удалось загрузить поручения.",
+    "en": "Could not load tasks."
+  },
+  "Hozir sizdan hech narsa kutilmayapti.": {
+    "ru": "Сейчас от вас ничего не ожидается.",
+    "en": "Nothing is waiting on you right now."
+  },
+  "Turlar bo‘yicha": {
+    "ru": "По типам",
+    "en": "By type"
+  },
+  "Barcha topshiriqlarni ochish": {
+    "ru": "Открыть все поручения",
+    "en": "Open all tasks"
+  },
+  "Telegram va elektron pochta orqali xabar yuborish hali ulanmagan, shuning uchun sozlama tugmalari ko‘rsatilmaydi.": {
+    "ru": "Отправка уведомлений через Telegram и электронную почту ещё не подключена, поэтому переключатели не показываются.",
+    "en": "Notifications via Telegram and email are not connected yet, so no toggles are shown."
+  },
+  "Hozirgi ma‘lumotlar (faqat o‘qiladi).": {
+    "ru": "Текущие данные (только чтение).",
+    "en": "Current data (read-only)."
+  },
+  "Interfeys tili brauzerda saqlanadi; profildagi til saqlanganda u ham almashadi.": {
+    "ru": "Язык интерфейса хранится в браузере; при сохранении языка в профиле он тоже переключается.",
+    "en": "The interface language is stored in the browser; saving a language in your profile switches it too."
+  },
+  "Sizdan kutilmoqda": {
+    "ru": "Ожидается от вас",
+    "en": "Waiting on you"
+  },
+  "Ilova ichidagi kirish qutingiz: sizga berilgan topshiriqlar (joriy kompaniya).": {
+    "ru": "Ваши входящие в приложении: поручения, выданные вам (текущая компания).",
+    "en": "Your in-app inbox: tasks assigned to you (current company)."
+  },
+  "Faol topshiriqlar": {
+    "ru": "Активные поручения",
+    "en": "Active tasks"
+  },
+  "Yangi (qabul kutilmoqda)": {
+    "ru": "Новые (ждут принятия)",
+    "en": "New (awaiting acceptance)"
+  },
+  "Kanallar": {
+    "ru": "Каналы",
+    "en": "Channels"
+  },
+  "Xabarlar qaysi kanal orqali keladi.": {
+    "ru": "Через какие каналы приходят уведомления.",
+    "en": "Which channels notifications come through."
+  },
+  "Ilova ichida": {
+    "ru": "В приложении",
+    "en": "In the app"
+  },
+  "Telegram": {
+    "ru": "Telegram",
+    "en": "Telegram"
+  },
+  "Kirish usullari": {
+    "ru": "Способы входа",
+    "en": "Sign-in methods"
+  },
+  "Parol kiritilmagan": {
+    "ru": "Пароль не введён",
+    "en": "No password entered"
+  },
+  "Juda zaif": {
+    "ru": "Очень слабый",
+    "en": "Very weak"
+  },
+  "Zaif": {
+    "ru": "Слабый",
+    "en": "Weak"
+  },
+  "O‘rtacha": {
+    "ru": "Средний",
+    "en": "Fair"
+  },
+  "Kuchli": {
+    "ru": "Надёжный",
+    "en": "Strong"
+  },
+  "Tasdiq": {
+    "ru": "Подтверждение",
+    "en": "Approval"
+  },
+  "Sessiya tugagan. Qaytadan kiring.": {
+    "ru": "Сеанс истёк. Войдите снова.",
+    "en": "Session expired. Please sign in again."
+  },
+  "Ism 2 dan 80 gacha belgidan iborat bo‘lishi kerak.": {
+    "ru": "Имя должно содержать от 2 до 80 символов.",
+    "en": "The name must be 2 to 80 characters long."
+  },
+  "Telefon raqami noto‘g‘ri (7–15 raqam, boshida + bo‘lishi mumkin).": {
+    "ru": "Неверный номер телефона (7–15 цифр, в начале может быть +).",
+    "en": "Invalid phone number (7–15 digits, may start with +)."
+  },
+  "Til noto‘g‘ri tanlangan.": {
+    "ru": "Язык выбран неверно.",
+    "en": "Invalid language."
+  },
+  "Rang noto‘g‘ri tanlangan.": {
+    "ru": "Цвет выбран неверно.",
+    "en": "Invalid colour."
+  },
+  "Joriy parol noto‘g‘ri.": {
+    "ru": "Текущий пароль неверен.",
+    "en": "The current password is wrong."
+  },
+  "Yangi parol kamida 8 belgi bo‘lishi kerak.": {
+    "ru": "Новый пароль должен содержать не менее 8 символов.",
+    "en": "The new password must be at least 8 characters."
+  },
+  "Yangi parol 128 belgidan oshmasligi kerak.": {
+    "ru": "Новый пароль не должен превышать 128 символов.",
+    "en": "The new password must not exceed 128 characters."
+  },
+  "Yangi parol joriy paroldan farq qilishi kerak.": {
+    "ru": "Новый пароль должен отличаться от текущего.",
+    "en": "The new password must differ from the current one."
+  },
+  "Juda ko‘p urinish. Birozdan so‘ng qayta urinib ko‘ring.": {
+    "ru": "Слишком много попыток. Повторите чуть позже.",
+    "en": "Too many attempts. Try again shortly."
+  },
+  "Google’ni uzishdan oldin parol o‘rnating — aks holda akkauntga kira olmay qolasiz.": {
+    "ru": "Перед отключением Google установите пароль — иначе вы не сможете войти.",
+    "en": "Set a password before disconnecting Google — otherwise you would be locked out."
+  },
+  "Bu Google pochta boshqa hisobga ulangan. Ikkala hisobni birlashtirishingiz mumkin.": {
+    "ru": "Эта почта Google привязана к другой учётной записи. Можно объединить обе.",
+    "en": "This Google email is linked to another account. You can merge the two."
+  },
+  "Login yoki parol noto‘g‘ri.": {
+    "ru": "Неверный логин или пароль.",
+    "en": "Wrong login or password."
+  },
+  "Bu sizning joriy hisobingiz — o‘zini o‘ziga birlashtirib bo‘lmaydi.": {
+    "ru": "Это ваша текущая учётная запись — объединить её с самой собой нельзя.",
+    "en": "This is your current account — it cannot be merged into itself."
+  },
+  "Bu hisobda parol yo‘q, shuning uchun login bilan birlashtirib bo‘lmaydi.": {
+    "ru": "У этой записи нет пароля, поэтому объединить её по логину нельзя.",
+    "en": "This account has no password, so it cannot be merged by login."
+  },
+  "Tarmoq xatosi. Ulanishni tekshirib qayta urinib ko‘ring.": {
+    "ru": "Ошибка сети. Проверьте соединение и повторите.",
+    "en": "Network error. Check your connection and try again."
+  },
+  "Amal bajarilmadi. Qayta urinib ko‘ring.": {
+    "ru": "Действие не выполнено. Повторите попытку.",
+    "en": "The action failed. Please try again."
+  },
+  "Server yangilanmagan: profil API hali yoqilmagan.": {
+    "ru": "Сервер не обновлён: API профиля ещё не включён.",
+    "en": "Server not updated: the profile API is not enabled yet."
+  },
+  "Parolni o‘zgartirish": {
+    "ru": "Смена пароля",
+    "en": "Change password"
+  },
+  "Parolni yangilasangiz, shu qurilmada kirib turasiz; boshqa qurilmalardagi sessiyalar yopiladi.": {
+    "ru": "После смены пароля вы останетесь в системе на этом устройстве; сеансы на других устройствах будут закрыты.",
+    "en": "After changing the password you stay signed in on this device; sessions on other devices are closed."
+  },
+  "Hozir bu akkauntda parol yo‘q — faqat Google orqali kirasiz. Parol o‘rnatsangiz, login va parol bilan ham kira olasiz.": {
+    "ru": "Сейчас у этой учётной записи нет пароля — вход только через Google. Установив пароль, вы сможете входить и по логину с паролем.",
+    "en": "This account has no password right now — you sign in with Google only. After setting one you can also sign in with login and password."
+  }
+}

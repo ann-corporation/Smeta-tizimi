@@ -9,6 +9,7 @@ vi.mock('../../umumiy/ui/Toast', () => ({ toast: m.toast }));
 vi.mock('../../test02/KompaniyaTanlov', () => ({ useKompaniya: () => ({ joriy: { id: 7 } }) }));
 
 import Tokenlar from './Tokenlar';
+import { tokenHolatTozala } from '../../../functions/_shared/tizim-maxfiy';
 
 const HISOB = { amal: 'f2_hujjat', nom: 'F2 hujjati (Excel / ko\'rish)', birlik_soni: 792, birlik: 100, qism: 8, asos_som: 20000, birlik_som: 1000, tannarx_som: 28000, foyda_foiz: 30, min_som: 30000, max_som: 100000, yakuniy_som: 36400, token_som: 100, token: 364 };
 const HOLAT = {
@@ -30,12 +31,28 @@ describe('Tokenlar (narx v2, sotib olish, nima uchun)', () => {
     expect(screen.getByText(/Matn, ish nomlari va hujjatdan koʻchirilgan sonlar sanalmaydi/)).toBeTruthy();
   });
 
-  it('sarfning to‘liq hisobi ochiladi (sabab, tannarx, foyda, yakuniy narx)', async () => {
+  it('superadmin: sarfning to‘liq hisobi ochiladi (sabab, tannarx, foyda, yakuniy narx)', async () => {
+    m.holat.mockResolvedValue({ ok: true, natija: { ...HOLAT, superadmin: true } });
     render(<MemoryRouter><Tokenlar /></MemoryRouter>);
     fireEvent.click(await screen.findByRole('button', { name: 'Hisobni koʻrsatish' }));
     expect(screen.getAllByText(/F2 №1 · Fast Food/).length).toBeGreaterThan(0);
     expect(screen.getByText(/28\s000 soʻm/)).toBeTruthy();
     expect(screen.getByText(/36\s400 soʻm/, { selector: 'b' })).toBeTruthy();
+  });
+
+  it('egasi 2026-10-27: kompaniya (superadmin emas) — server tozalagan javob: tannarx, foyda, ustama YO‘Q; balans, sarf va yakuniy narx bor', async () => {
+    const toza = tokenHolatTozala(HOLAT) as typeof HOLAT;
+    expect(JSON.stringify(toza)).not.toMatch(/tannarx_som|usd_kurs|"foyda_foiz":(?!0)/);
+    expect(toza.narxlar[0]).toMatchObject({ asos_som: 26000, birlik_som: 1300, foyda_foiz: 0 });
+    m.holat.mockResolvedValue({ ok: true, natija: toza });
+    render(<MemoryRouter><Tokenlar /></MemoryRouter>);
+    // Mijoz narxi o'zgarmadi: F2 misoli hamon 30 000 so'm = 300 token.
+    expect(await screen.findByText(/F2 \(213 hisoblangan katak\) = 30\s000 soʻm = 300 token/)).toBeTruthy();
+    fireEvent.click(await screen.findByRole('button', { name: 'Hisobni koʻrsatish' }));
+    expect(screen.getByText(/36\s400 soʻm/, { selector: 'b' })).toBeTruthy();
+    const matn = document.body.textContent ?? '';
+    expect(matn).not.toMatch(/Tannarx|Foyda|foyda|28\s000/);
+    expect(screen.getByLabelText('Token balansi').textContent).toBe('136');
   });
 
   it('sotib olish: paket + to‘lov ma‘lumoti → so‘rov', async () => {

@@ -1,3 +1,4 @@
+import { vaqtliOqish } from './vaqtli-fetch';
 import { yangiOperationId, yozAmali, type AktNatija } from './supabase';
 
 export type PtoLifecycleStatus = 'draft' | 'submitted' | 'checked' | 'approved' | 'rejected' | 'cancelled' | 'superseded';
@@ -104,7 +105,7 @@ export async function t2AktLifecycleHistory(p: { kompaniyaId: number; aktId: num
   if (!validId(p.kompaniyaId) || !validId(p.aktId)) {
     return { ok: false, qatorlar: [], error: 'Lifecycle identifikatori noto‘g‘ri' };
   }
-  const r = await fetch('/api/sb', {
+  const r = await vaqtliOqish('/api/sb', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ soro: 'akt_lifecycle_history_v1', kompaniya_id: p.kompaniyaId, akt_id: p.aktId }),
   });

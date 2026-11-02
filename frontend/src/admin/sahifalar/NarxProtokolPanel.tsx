@@ -15,6 +15,7 @@ import { NARX_MANBA_TUR_NOMI, type NarxDalilHolat } from '../../api/t2-narx-dali
 import type { TaklifNatija } from '../../lib/narx-dalil/taklif';
 import { manbaRekviziti } from '../../lib/narx-asoslash-export';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { narxProtokolXlsx, protokolNomzodlari } from '../../lib/narx-protokol-hujjat';
 import type { ImzoNomlar } from '../../lib/hujjat-yozuvchi';
 import { t } from '../../i18n/til';
@@ -25,9 +26,7 @@ const keyingiOy = () => { const d = new Date(); d.setMonth(d.getMonth() + 1); re
 const HOLAT_NOMI: Record<NarxProtokol['holat'], string> = { qoralama: 'qoralama — imzo kutilmoqda', tasdiqlangan: 'tasdiqlangan', bekor: 'bekor qilingan' };
 
 function yuklabBer(bytes: Uint8Array, faylNomi: string) {
-  const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-  const a = document.createElement('a'); a.href = url; a.download = faylNomi; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  downloadBlob(bytes, faylNomi); // tizim imzosi shu yo'lda qo'yiladi
 }
 
 export function NarxProtokolPanel(p: { kompaniyaId: number; obyektId: number; obyektNomi: string; takliflar: readonly TaklifNatija[]; dalillar: readonly NarxDalilHolat[]; imzo?: ImzoNomlar }) {

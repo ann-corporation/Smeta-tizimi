@@ -6,14 +6,13 @@ import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { toast } from '../../umumiy/ui/Toast';
+import { t } from '../../i18n/til';
+import { AlertTriangle, Eye } from 'lucide-react';
 
 /**
  * Smeta yuklanganda LRV ↔ RES farqlari (egasi, C5). Avtomatik hisoblanadi,
  * importni to'xtatmaydi: farq — ogohlantirish va «Сверка ЛРВ и РС» hujjati.
  */
-const HOLAT_RANG: Record<SverkaHolat, string> = {
-  mos: 'text-success', farq: 'text-danger', faqat_lrv: 'text-warn', faqat_res: 'text-warn', noaniq: 'text-warn', mashinist: 'text-text-mute',
-};
 const HOLAT_UZ: Record<SverkaHolat, string> = {
   mos: 'mos', farq: 'farq bor', faqat_lrv: 'faqat LRV da', faqat_res: 'faqat RES da', noaniq: 'miqdor yo‘q', mashinist: 'ma’lumot uchun',
 };
@@ -43,8 +42,8 @@ export function LrvResSverkaPanel({ lrvlar, reslar, obyektNomi }: {
   }, [kalit]);
 
   if (!lrvlar.length) return null;
-  if (xato) return <p className="text-[12px] text-danger">{xato}</p>;
-  if (!natija) return <p role="status" className="text-[12px] text-text-mute">LRV va RES solishtirilmoqda…</p>;
+  if (xato) return <div role="alert" className="fz-note fz-note--danger"><AlertTriangle aria-hidden="true" /><span>{xato}</span></div>;
+  if (!natija) return <p role="status" className="text-[12px] text-text-mute">{t('LRV va RES solishtirilmoqda…')}</p>;
 
   const lrvManba = lrvlar.map((m) => m.nom).join('; ');
   const resManba = reslar.length ? reslar.map((m) => m.nom).join('; ') : 'ресурсная ведомость в составе ЛРВ';
@@ -58,60 +57,86 @@ export function LrvResSverkaPanel({ lrvlar, reslar, obyektNomi }: {
   const c = natija.soni;
   const korinadi = natija.pozitsiyalar.filter((p) => !faqatFarq || (p.holat !== 'mos' && p.holat !== 'mashinist'));
 
+  /* Natija — bir qarashda: har holat o'z rangida kenglik bo'yicha (soni ulushi). Rang — faqat Firuza tokenlari. */
+  const BO_LAKLAR: ReadonlyArray<{ id: SverkaHolat; rang: string; soz: string }> = [
+    { id: 'mos', rang: 'var(--ok)', soz: 'mos' },
+    { id: 'farq', rang: 'var(--danger)', soz: 'farq bor' },
+    { id: 'faqat_lrv', rang: 'var(--warn)', soz: 'faqat LRV da' },
+    { id: 'faqat_res', rang: 'var(--info)', soz: 'faqat RES da' },
+    { id: 'noaniq', rang: 'var(--kat-ob)', soz: 'miqdori yo‘q' },
+    { id: 'mashinist', rang: 'var(--border-strong)', soz: 'mashinist mehnati (ma’lumot uchun)' },
+  ];
+  const jami = BO_LAKLAR.reduce((x, k) => x + c[k.id], 0);
+  const HOLAT_MUHR: Record<SverkaHolat, string> = { mos: 'fz-stamp--ok', farq: 'fz-stamp--danger', faqat_lrv: 'fz-stamp--warn', faqat_res: 'fz-stamp--info', noaniq: 'fz-stamp--warn', mashinist: '' };
+
   return (
-    <div className={`karta p-2 space-y-1.5 ${natija.muammo ? 'border-amber-500/40' : 'border-success/40'}`} data-testid="lrv-res-sverka">
-      <p className="text-[12px] font-semibold text-text">LRV ↔ RES solishtirish (Сверка ЛРВ и РС)</p>
+    <div className="fz-panel" style={{ borderColor: natija.muammo ? 'color-mix(in srgb, var(--warn) 45%, transparent)' : 'color-mix(in srgb, var(--ok) 45%, transparent)' }} data-testid="lrv-res-sverka">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[13px] font-semibold text-text" style={{ fontFamily: 'var(--font-display)' }}>{t('LRV ↔ RES solishtirish')} <span className="font-normal text-text-mute">(Сверка ЛРВ и РС)</span></p>
+        {!natija.resYoq && natija.muammo === 0 && <span className="fz-stamp fz-stamp--ok">{t('to‘liq mos')}</span>}
+        {!natija.resYoq && natija.muammo > 0 && <span className="fz-stamp fz-stamp--warn">{natija.muammo} {t('ta muammo')}</span>}
+      </div>
       {natija.resYoq ? (
-        <p className="text-[12px] text-warn">RES topilmadi — na alohida RES varag‘i, na LRV ichidagi resurs vedomosti. Solishtirish uchun RES varag‘ini belgilang yoki RES faylini yuklang.</p>
-      ) : (
-        <p className="text-[12px]">
-          {natija.pozitsiyalar.length} ta resurs: <b className="text-success">{c.mos} mos</b>
-          {c.farq > 0 && <> · <b className="text-danger">{c.farq} farq bor</b></>}
-          {c.faqat_lrv > 0 && <> · <b className="text-warn">{c.faqat_lrv} faqat LRV da</b></>}
-          {c.faqat_res > 0 && <> · <b className="text-warn">{c.faqat_res} faqat RES da</b></>}
-          {c.noaniq > 0 && <> · <b className="text-warn">{c.noaniq} miqdori yo‘q</b></>}
-          {c.mashinist > 0 && <span className="text-text-mute"> · {c.mashinist} mashinist mehnati (ma’lumot uchun)</span>}
-          {natija.muammo === 0 && <span className="text-success"> — LRV va RES to‘liq mos.</span>}
-        </p>
-      )}
+        <div className="fz-note fz-note--warn"><AlertTriangle aria-hidden="true" /><span>RES topilmadi — na alohida RES varag‘i, na LRV ichidagi resurs vedomosti. Solishtirish uchun RES varag‘ini belgilang yoki RES faylini yuklang.</span></div>
+      ) : (<>
+        <p className="text-[12px] text-text-dim">{natija.pozitsiyalar.length} ta resurs:</p>
+        {jami > 0 && <div className="fz-split" role="img" aria-label={t('LRV va RES solishtirish natijasi')} style={{ height: 14 }}>
+          {BO_LAKLAR.filter((k) => c[k.id] > 0).map((k) => <i key={k.id} style={{ flex: c[k.id], background: k.rang }} title={`${c[k.id]} ${t(k.soz)}`} />)}
+        </div>}
+        <div className="flex flex-wrap gap-x-5 gap-y-1 text-[12px]">
+          {BO_LAKLAR.filter((k) => c[k.id] > 0).map((k) => (
+            <span key={k.id} className="inline-flex items-center gap-1.5 tabular-nums text-text-dim"><i aria-hidden="true" style={{ width: 9, height: 9, borderRadius: 2, background: k.rang, flexShrink: 0 }} />{c[k.id]} {t(k.soz)}</span>
+          ))}
+        </div>
+      </>)}
       {natija.muammo > 0 && (
-        <p className="text-[11px] text-text-mute">Import to‘xtatilmaydi — bu ogohlantirish. Solishtirish nom + birlik bo‘yicha; kod bir xil, nomi farqli pozitsiyalar birlashtirilmaydi, izohda ko‘rsatiladi.</p>
+        <p className="text-[11.5px] text-text-mute">{t('Import to‘xtatilmaydi — bu ogohlantirish. Solishtirish nom + birlik bo‘yicha; kod bir xil, nomi farqli pozitsiyalar birlashtirilmaydi, izohda ko‘rsatiladi.')}</p>
+      )}
+      {(natija.review ?? []).length > 0 && (
+        <details className="text-[11.5px]" data-testid="sverka-review">
+          <summary className="cursor-pointer text-warn">{t('Manba xatolari — hujjatdagidek import qilinadi ({n})', { n: natija.review.length })}</summary>
+          <ul className="list-disc pl-5 text-text-dim">
+            {natija.review.slice(0, 50).map((r, i) => <li key={i}>{r.izoh}</li>)}
+          </ul>
+        </details>
       )}
       <div className="flex flex-wrap items-center gap-2">
-        <label className="text-[12px] flex items-center gap-1">
+        <label className="flex items-center gap-1.5 text-[12px] text-text-dim">
           <input type="checkbox" checked={faqatFarq} onChange={(e) => setFaqatFarq(e.target.checked)} /> faqat farqlilar
         </label>
-        <button type="button" className="tugma" onClick={() => hujjat(true)}>👁 Hujjatni ko‘rish</button>
-        <button type="button" className="tugma" onClick={() => hujjat(false)}>«Сверка ЛРВ и РС» Excel</button>
+        <span className="ml-auto flex flex-wrap gap-2">
+          <button type="button" className="fz-btn fz-btn--sm" onClick={() => hujjat(true)}><Eye aria-hidden="true" />{t('Hujjatni ko‘rish')}</button>
+          <button type="button" className="fz-btn fz-btn--sm" onClick={() => hujjat(false)}>«Сверка ЛРВ и РС» Excel</button>
+        </span>
       </div>
       {korinadi.length > 0 && (
-        <div className="overflow-auto max-h-72 text-[12px]">
-          <table className="w-full border-collapse">
-            <thead className="sticky top-0 bg-surface">
-              <tr className="text-left text-text-mute">
-                <th className="font-normal px-1">Tur</th><th className="font-normal px-1">Resurs</th><th className="font-normal px-1">Birlik</th>
-                <th className="font-normal px-1 text-right">LRV</th><th className="font-normal px-1 text-right">RES</th><th className="font-normal px-1 text-right">Farq</th>
-                <th className="font-normal px-1">Holat</th>
+        <div className="fz-table-wrap max-h-72">
+          <table className="fz-table" style={{ fontSize: 12.5 }}>
+            <thead>
+              <tr>
+                <th>{t('Tur')}</th><th>{t('Resurs')}</th><th>{t('Birlik')}</th>
+                <th className="fz-c-num">LRV</th><th className="fz-c-num">RES</th><th className="fz-c-num">{t('Farq')}</th>
+                <th>{t('Holat')}</th>
               </tr>
             </thead>
             <tbody>
               {korinadi.slice(0, 500).map((p, i) => (
-                <tr key={i} className="border-t border-border/40 align-top">
-                  <td className="px-1 text-text-mute" title={SVERKA_KAT_NOMI[p.kat]}>{p.kat}</td>
-                  <td className="px-1">{p.nom}{p.kod ? <span className="text-text-mute"> ({p.kod})</span> : null}
+                <tr key={i} style={{ verticalAlign: 'top' }}>
+                  <td className="fz-c-unit" title={SVERKA_KAT_NOMI[p.kat]}>{p.kat}</td>
+                  <td>{p.nom}{p.kod ? <span className="text-text-mute"> ({p.kod})</span> : null}
                     {p.lrvManzil && <span className="block text-[11px] text-text-mute">LRV: {p.lrvManzil.varaq}, {p.lrvManzil.qator}-qator{p.lrvSoni > 1 ? ` (+${p.lrvSoni - 1} ta ishda)` : ''}{p.resManzil ? ` · RES: ${p.resManzil.varaq}, ${p.resManzil.qator}-qator` : ''}</span>}
                     {!p.lrvManzil && p.resManzil && <span className="block text-[11px] text-text-mute">RES: {p.resManzil.varaq}, {p.resManzil.qator}-qator</span>}
                   </td>
-                  <td className="px-1 whitespace-nowrap">{p.birlik}</td>
-                  <td className="px-1 text-right whitespace-nowrap">{fmt(p.lrvHajm)}</td>
-                  <td className="px-1 text-right whitespace-nowrap">{fmt(p.resHajm)}</td>
-                  <td className={`px-1 text-right whitespace-nowrap ${p.farqHajm ? 'text-danger' : ''}`}>{fmt(p.farqHajm)}</td>
-                  <td className={`px-1 ${HOLAT_RANG[p.holat]}`} title={`${SVERKA_HOLAT_NOMI[p.holat]}${p.izoh ? `: ${p.izoh}` : ''}`}>{HOLAT_UZ[p.holat]}</td>
+                  <td className="fz-c-unit">{p.birlik}</td>
+                  <td className="fz-c-num">{fmt(p.lrvHajm)}</td>
+                  <td className="fz-c-num">{fmt(p.resHajm)}</td>
+                  <td className={`fz-c-num ${p.farqHajm ? 'fz-over' : ''}`} style={p.farqHajm ? { color: 'var(--danger)' } : undefined}>{fmt(p.farqHajm)}</td>
+                  <td title={`${SVERKA_HOLAT_NOMI[p.holat]}${p.izoh ? `: ${p.izoh}` : ''}`}><span className={`fz-stamp ${HOLAT_MUHR[p.holat]}`}>{HOLAT_UZ[p.holat]}</span></td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {korinadi.length > 500 && <p className="text-[11px] text-text-mute">…va yana {korinadi.length - 500} ta — to‘liq ro‘yxat Excel hujjatida.</p>}
+          {korinadi.length > 500 && <p className="p-2 text-[11px] text-text-mute">…va yana {korinadi.length - 500} ta — to‘liq ro‘yxat Excel hujjatida.</p>}
         </div>
       )}
       {korinish.oyna}

@@ -1,0 +1,5 @@
+{
+  "Fakt bo‘yicha F2 qoralama": { "ru": "Черновик Ф-2 по факту", "en": "F2 draft from actuals" },
+  "Fakt bo‘yicha {n} ta ish hajmi olindi. Tekshirib, Ctrl+Enter bilan qoralama yarating.": { "ru": "Объёмы по факту взяты: работ — {n}. Проверьте и создайте черновик (Ctrl+Enter).", "en": "Actual volumes loaded for {n} works. Review and create the draft with Ctrl+Enter." },
+  "Fakt qoldig‘i yo‘q - olinadigan hajm topilmadi.": { "ru": "Остатка факта нет — объёмов для взятия не найдено.", "en": "No actuals remainder - nothing to load." }
+}

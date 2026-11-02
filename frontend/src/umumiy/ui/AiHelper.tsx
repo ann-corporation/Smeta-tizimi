@@ -61,10 +61,10 @@ export function AiHelper() {
       <p className="text-text">{kuzatuv.taklif.taklif}</p>
       <div className="mt-2 flex gap-2">
         {kuzatuv.taklif.yol && (
-          <button type="button" className="rounded-md bg-accent px-2.5 py-1 text-xs text-white"
+          <button type="button" className="fz-btn fz-btn--primary fz-btn--sm"
             onClick={() => { const y = kuzatuv.taklif?.yol; kuzatuv.qabul(); if (y) navigate(y); }}>{t('Ko‘rish')}</button>
         )}
-        <button type="button" className="rounded-md border border-border px-2.5 py-1 text-xs text-text-dim hover:bg-white/5" onClick={kuzatuv.rad}>{t('Hozir kerak emas')}</button>
+        <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" onClick={kuzatuv.rad}>{t('Hozir kerak emas')}</button>
       </div>
     </div>
   ) : null;
@@ -72,11 +72,11 @@ export function AiHelper() {
   return (
     <>
       {location.pathname.startsWith('/admin') && <AiSelektsiya />}
-      {!isOpen && taklifKarta && <div className="fixed bottom-24 right-6 z-40 w-72">{taklifKarta}</div>}
+      {!isOpen && taklifKarta && <div className="fixed bottom-16 right-3 z-40 w-72">{taklifKarta}</div>}
       {!isOpen && (
         <button onClick={() => setIsOpen(true)} aria-label={t('Jarvis AI yordamchisini ochish')}
-          className="group fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-xl transition-transform hover:scale-105 hover:bg-accent/90">
-          <Bot size={26} />
+          className="group fixed bottom-3 right-3 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-accent text-[var(--on-accent)] opacity-75 shadow-xl transition hover:scale-105 hover:opacity-100 hover:brightness-110 focus-visible:opacity-100">
+          <Bot size={21} />
           <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-bg bg-ok"></span>
           <div className="pointer-events-none absolute right-full mr-4 whitespace-nowrap rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-sm text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">{t('Jarvis AI yordamchisi')}</div>
         </button>
@@ -88,24 +88,24 @@ export function AiHelper() {
             <div className="flex items-center gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20 text-accent"><Bot size={20} /></div>
               <div>
-                <h3 className="text-sm font-semibold text-white">{kasb?.nom ?? 'Jarvis AI'}</h3>
+                <h3 className="text-sm font-semibold text-text">{kasb?.nom ?? 'Jarvis AI'}</h3>
                 <p className="flex items-center gap-1 text-xs text-text-dim"><span className="h-1.5 w-1.5 rounded-full bg-ok"></span> {t('Sizning lavozimingizga mos AI ishchi')}</p>
               </div>
             </div>
             <div className="flex items-center">
               <button type="button" onClick={() => kuzatuv.almashtir(!kuzatuv.yoqilgan)} aria-pressed={kuzatuv.yoqilgan} aria-label={t('AI kuzatuvi')}
                 title={kuzatuv.yoqilgan ? t('AI kuzatuvi yoqilgan: qiyinchilikda taklif beradi (matn o‘qilmaydi)') : t('AI kuzatuvi o‘chiq')}
-                className={`mr-1 rounded p-1 transition-colors hover:bg-white/5 ${kuzatuv.yoqilgan ? 'text-accent' : 'text-text-dim'}`}>
+                className={`mr-1 rounded p-1 transition-colors hover:bg-surface-3 ${kuzatuv.yoqilgan ? 'text-accent' : 'text-text-dim'}`}>
                 {kuzatuv.yoqilgan ? <Eye size={18} /> : <EyeOff size={18} />}
               </button>
-              <button onClick={() => setIsOpen(false)} aria-label={t('Yopish')} title={t('Yopish')} className="rounded p-1 text-text-dim transition-colors hover:bg-white/5 hover:text-white"><X size={20} /></button>
+              <button onClick={() => setIsOpen(false)} aria-label={t('Yopish')} title={t('Yopish')} className="rounded p-1 text-text-dim transition-colors hover:bg-surface-3 hover:text-text"><X size={20} /></button>
             </div>
           </div>
 
           <div className="flex shrink-0 border-b border-border bg-surface" role="tablist">
             {TABLAR.map(([id, nom]) => (
               <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
-                className={`${TAB_USLUB} ${tab === id ? 'border-b-2 border-accent text-white' : 'text-text-dim'}`}>{t(nom)}</button>
+                className={`${TAB_USLUB} ${tab === id ? 'border-b-2 border-accent text-text' : 'text-text-dim'}`}>{t(nom)}</button>
             ))}
           </div>
           {taklifKarta && <div className="shrink-0 p-3">{taklifKarta}</div>}

@@ -22,6 +22,8 @@ const FAQAT_KORISH = new Set(['kuzatuvchi', 'buyurtmachi', 'pudratchi']);
 type Bolim = 'tizim' | 'mening' | 'savat';
 type AmalParam = NonNullable<Parameters<typeof faylAmal>[2]>;
 import { R2DublikatPanel } from './R2DublikatPanel';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { FAYL_TURI_NOMI, FAYL_TURI_RANG, faylTurTaqsimot } from '../../lib/fayl-korinish';
 
 const EXCEL = /spreadsheet|excel|\.xlsx?$/i;
 const sanaMatni = (s: string) => (s ? new Date(s).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' }) : '');
@@ -97,7 +99,7 @@ function CompanyFileManager({ kompaniyaId }: { kompaniyaId: number }) {
     void amal('papka_nomla', { papkaId: p.id, nom: nom.trim() }, t('Papka nomi o‘zgartirildi'));
   };
   const papkaOchir = async (p: FaylPapka) => {
-    if (!window.confirm(t('«{nom}» papkasi o‘chirilsinmi? (faqat bo‘sh papka o‘chadi; fayllar o‘chmaydi)', { nom: p.nom }))) return;
+    if (!(await tasdiqSora({ sarlavha: t('Papkani o‘chirish'), matn: t('«{nom}» papkasi o‘chirilsinmi? (faqat bo‘sh papka o‘chadi; fayllar o‘chmaydi)', { nom: p.nom }), xavfli: true }))) return;
     if (await amal('papka_ochir', { papkaId: p.id }, t('Papka o‘chirildi'))) setMenPapka(p.ota_id ?? null);
   };
   /** Ko'chirish tanlovi: «''» — tizim papkasi (asl joyi), aks holda o'z papkasi ID si. */
@@ -167,7 +169,7 @@ function CompanyFileManager({ kompaniyaId }: { kompaniyaId: number }) {
           if (!current()) return;
           setBand(t('Ma’lumotlar: {nom}', { nom: j.nom }));
           try {
-            const q = await jadvalHammasi(j.jadval, kompaniyaId, j.ustunlar);
+            const q = await jadvalHammasi(j.jadval, kompaniyaId, j.ustunlar, j.versiya);
             z[`malumotlar/${j.nom}.csv`] = strToU8(csv(q));
             z[`malumotlar/json/${j.nom}.json`] = strToU8(JSON.stringify(q));
           } catch { xatolar.push(j.nom); }
@@ -221,7 +223,7 @@ function CompanyFileManager({ kompaniyaId }: { kompaniyaId: number }) {
     const tanlangan = p.kalit === joriyKalit;
     return (
       <li key={p.kalit}>
-        <div className={`flex items-center gap-1 rounded px-1 py-0.5 text-[12px] ${tanlangan ? 'bg-accent/15 text-text' : 'text-text-dim hover:bg-white/5'}`} style={{ paddingLeft: 4 + p.daraja * 12 }}>
+        <div className={`flex items-center gap-1 rounded px-1 py-0.5 text-[12px] ${tanlangan ? 'bg-accent/15 text-text' : 'text-text-dim hover:bg-surface-2'}`} style={{ paddingLeft: 4 + p.daraja * 12 }}>
           {p.bolalar.length
             ? <button type="button" onClick={() => ochYop(p.kalit)} aria-label={ochilgan ? t('Papkani yopish') : t('Papkani ochish')} className="shrink-0">{ochilgan ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</button>
             : <span className="w-[13px] shrink-0" />}
@@ -247,7 +249,7 @@ function CompanyFileManager({ kompaniyaId }: { kompaniyaId: number }) {
     const tanlangan = bolim === 'mening' && menJoriy === p.id;
     return (
       <li key={k}>
-        <div className={`flex items-center gap-1 rounded px-1 py-0.5 text-[12px] ${tanlangan ? 'bg-accent/15 text-text' : 'text-text-dim hover:bg-white/5'}`} style={{ paddingLeft: 4 + daraja * 12 }}>
+        <div className={`flex items-center gap-1 rounded px-1 py-0.5 text-[12px] ${tanlangan ? 'bg-accent/15 text-text' : 'text-text-dim hover:bg-surface-2'}`} style={{ paddingLeft: 4 + daraja * 12 }}>
           {bolalar.length
             ? <button type="button" onClick={() => ochYop(k)} aria-label={ochilgan ? t('Papkani yopish') : t('Papkani ochish')} className="shrink-0">{ochilgan ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</button>
             : <span className="w-[13px] shrink-0" />}
@@ -264,14 +266,14 @@ function CompanyFileManager({ kompaniyaId }: { kompaniyaId: number }) {
 
   /** Fayl qatori — barcha bo'limlarda bir xil; amallar lavozimga va bo'limga qarab. */
   const faylQatori = (f: Fayl, joyKorsat: boolean) => (
-    <tr key={f.id} onDoubleClick={() => void korish(f)} className="border-t border-border/40 hover:bg-white/5">
+    <tr key={f.id} onDoubleClick={() => void korish(f)} className="border-t border-border/40 hover:bg-surface-2">
       <td className="max-w-[420px] px-3 py-1.5">
         <span className="flex items-center gap-2 text-text">{EXCEL.test(f.mime) || EXCEL.test(f.nom) ? <FileSpreadsheet size={15} className="shrink-0 text-ok" /> : <FileText size={15} className="shrink-0 text-text-dim" />}<span className="truncate" title={f.asl_nom && f.asl_nom !== f.nom ? `${f.nom}\n${t('Asl nom: {n}', { n: f.asl_nom })}` : f.nom}>{f.nom}</span></span>
         {joyKorsat && <span className="ml-6 block truncate text-[10px] text-text-mute">{[f.loyiha, f.obyekt, turNomi(f.tur)].filter(Boolean).join(' / ')}</span>}
         {kochirish === f.id && <div className="ml-6 mt-1">{kochirTanlov(null, t('Tizim papkasi (asl joyi)'), (v) => void amal('kochir', { documentId: f.id, papkaId: v }, t('Fayl ko‘chirildi')))}</div>}
       </td>
       <td className="px-2 text-text-dim">{turNomi(f.tur)}</td>
-      <td className="px-2 text-text-dim">v{f.versiya}</td>
+      <td><span className="fz-chip">v{f.versiya}</span></td>
       <td className="px-2 text-right tabular-nums text-text-dim">{hajmMatni(f.hajm)}</td>
       <td className="px-2 text-text-dim">{sanaMatni(f.sana)}</td>
       <td className="max-w-[140px] truncate px-2 text-text-mute">{f.kim}</td>
@@ -295,36 +297,46 @@ function CompanyFileManager({ kompaniyaId }: { kompaniyaId: number }) {
   const menRoyxat = menQidiruv ? menFayllar.filter((f) => f.nom.toLowerCase().includes(menQidiruv)) : menFayllar;
   const menJoriyPapka = menJoriy == null ? null : menPapkalar.find((p) => p.id === menJoriy) ?? null;
 
+  const turlar = faylTurTaqsimot(bolim === 'savat' ? savat : bolim === 'mening' ? menFayllar : papkaFayllari(joriy));
   const royxat = qidiruvNatija ?? joriy.fayllar;
   const papkalar = qidiruvNatija ? [] : joriy.bolalar;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <section className="karta flex flex-wrap items-center gap-2 p-3">
+      <section className="fz-card flex flex-wrap items-center gap-2 p-3">
         <div className="mr-2 min-w-0">
-          <div className="truncate text-[14px] font-semibold text-text">{data?.kompaniya ?? '…'}</div>
-          <div className="text-[11px] text-text-mute">{t('{n} fayl · {h}', { n: ildiz.soni, h: hajmMatni(ildiz.hajm) })}</div>
+          <div className="truncate text-[15px] font-semibold text-text" style={{ fontFamily: 'var(--font-display)' }}>{data?.kompaniya ?? '…'}</div>
+          <div className="text-[12px] text-text-mute">{t('{n} fayl · {h}', { n: ildiz.soni, h: hajmMatni(ildiz.hajm) })}{data?.rol && <span className="fz-chip ml-2">{data.rol}</span>}</div>
         </div>
         <label className="relative ml-auto min-w-[220px] flex-1 sm:flex-none">
           <Search size={13} className="pointer-events-none absolute left-2 top-2.5 text-text-mute" />
           <input value={qidiruv} onChange={(e) => setQidiruv(e.target.value)} placeholder={t('Shu papkada qidirish')} aria-label={t('Shu papkada qidirish')} className="input h-8 w-full pl-7 text-[12px]" />
         </label>
-        <label className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[12px] text-text ${band || bolim === 'savat' || !yozaOladi ? 'pointer-events-none opacity-50' : ''}`}>
+        <label className={`fz-btn ${band || bolim === 'savat' || !yozaOladi ? 'pointer-events-none opacity-50' : ''}`}>
           <Upload size={14} />{t('Shu papkaga yuklash')}
           <input type="file" multiple className="hidden" onChange={(e) => { void faylYuklash(e.target.files); e.target.value = ''; }} />
         </label>
         <button type="button" disabled={!!band} onClick={() => void (bolim === 'mening' ? zip(menFayllar, false, menJoriyPapka?.nom ?? 'mening_papkalarim')
           : bolim === 'savat' ? zip(savat, false, 'savat')
-          : zip(papkaFayllari(joriy), false, joriy.kalit ? joriy.nom : (data?.kompaniya ?? 'fayllar')))} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[12px] text-text disabled:opacity-50"><FileArchive size={14} />{t('Papkani ZIP')}</button>
-        <button type="button" disabled={!!band} onClick={() => void zip(papkaFayllari(ildiz), true, `${data?.kompaniya ?? 'kompaniya'}_toliq_arxiv`)} className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-50"><FileArchive size={14} />{t('Hammasi + ma’lumotlar (ZIP)')}</button>
-        <button type="button" onClick={() => void yukla()} aria-label={t('Yangilash')} className="rounded-lg border border-border p-1.5 text-text-dim"><RefreshCw size={14} /></button>
+          : zip(papkaFayllari(joriy), false, joriy.kalit ? joriy.nom : (data?.kompaniya ?? 'fayllar')))} className="fz-btn"><FileArchive size={14} />{t('Papkani ZIP')}</button>
+        <button type="button" disabled={!!band} onClick={() => void zip(papkaFayllari(ildiz), true, `${data?.kompaniya ?? 'kompaniya'}_toliq_arxiv`)} className="fz-btn fz-btn--primary"><FileArchive size={14} />{t('Hammasi + ma’lumotlar (ZIP)')}</button>
+        <button type="button" onClick={() => void yukla()} aria-label={t('Yangilash')} title={t('Yangilash')} className="fz-btn fz-btn--icon fz-btn--ghost"><RefreshCw size={14} /></button>
       </section>
-      {band && <div role="status" className="karta px-3 py-2 text-[12px] text-text-dim">{band}</div>}
-      {xato && <div role="alert" className="karta border-danger/40 px-3 py-2 text-[12px] text-danger">{xato}</div>}
+      {turlar.soni > 0 && <section className="fz-card flex flex-col gap-2 px-3 py-2.5" aria-label={t('Fayl turlari')}>
+        <div className="flex flex-wrap items-baseline justify-between gap-2"><span className="fz-panel__h">{t('Fayl turlari (shu bo‘limda)')}</span><span className="text-[12px] text-text-mute">{t('{n} fayl · {h}', { n: turlar.soni, h: hajmMatni(turlar.jamiHajm) })}</span></div>
+        <div className="fz-split" role="img" aria-label={turlar.qismlar.map((q) => `${FAYL_TURI_NOMI[q.tur]} ${Math.round(q.ulush * 100)}%`).join(', ')}>
+          {turlar.qismlar.map((q) => <i key={q.tur} style={{ flexGrow: Math.max(q.ulush, 0.004), background: FAYL_TURI_RANG[q.tur] }} />)}
+        </div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-text-dim">
+          {turlar.qismlar.map((q) => <span key={q.tur} className="inline-flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: FAYL_TURI_RANG[q.tur] }} />{t(FAYL_TURI_NOMI[q.tur])}<b className="tabular-nums text-text">{q.soni}</b><span className="tabular-nums text-text-mute">{hajmMatni(q.hajm)}</span></span>)}
+        </div>
+      </section>}
+      {band && <div role="status" className="fz-note fz-note--info">{band}</div>}
+      {xato && <div role="alert" className="fz-note fz-note--danger">{xato}</div>}
       {data?.rol === 'superadmin' && <R2DublikatPanel />}
 
       <div className="flex min-h-0 flex-1 gap-3">
-        <nav aria-label={t('Papkalar')} className="karta hidden w-[290px] shrink-0 overflow-auto p-2 md:block">
+        <nav aria-label={t('Papkalar')} className="fz-card hidden w-[290px] shrink-0 overflow-auto p-2 md:block">
           <button type="button" onClick={() => tanla('')} className={`mb-1 flex w-full items-center gap-1.5 rounded px-1 py-1 text-left text-[12px] font-semibold ${joriyKalit === '' ? 'bg-accent/15 text-text' : 'text-text'}`}>
             <FolderOpen size={14} className="text-accent" /><span className="truncate">{data?.kompaniya ?? t('Kompaniya')}</span><span className="ml-auto text-[10px] text-text-mute">{ildiz.soni}</span>
           </button>
@@ -343,7 +355,7 @@ function CompanyFileManager({ kompaniyaId }: { kompaniyaId: number }) {
           </button>
         </nav>
 
-        <section className="karta flex min-w-0 flex-1 flex-col overflow-hidden">
+        <section className="fz-card flex min-w-0 flex-1 flex-col overflow-hidden">
           {bolim === 'tizim' && <div className="flex flex-wrap items-center gap-1 border-b border-border px-3 py-2 text-[12px]">
             <button type="button" onClick={() => tanla('')} className="text-accent hover:underline">{data?.kompaniya ?? t('Kompaniya')}</button>
             {yolQismlari.map((q, i) => (
@@ -361,13 +373,13 @@ function CompanyFileManager({ kompaniyaId }: { kompaniyaId: number }) {
               </span>
             ))}
             {yozaOladi && <span className="ml-auto flex flex-wrap items-center gap-1">
-              <button type="button" disabled={!!band} onClick={() => papkaYarat(menJoriy)} className="inline-flex items-center gap-1 rounded border border-border px-2 py-0.5 text-[11px] text-text"><FolderPlus size={13} />{t('Yangi papka')}</button>
+              <button type="button" disabled={!!band} onClick={() => papkaYarat(menJoriy)} className="fz-btn fz-btn--sm"><FolderPlus size={13} />{t('Yangi papka')}</button>
               {menJoriyPapka && <>
-                <button type="button" disabled={!!band} onClick={() => papkaNomla(menJoriyPapka)} className="inline-flex items-center gap-1 rounded border border-border px-2 py-0.5 text-[11px] text-text"><Pencil size={13} />{t('Nomini o‘zgartirish')}</button>
+                <button type="button" disabled={!!band} onClick={() => papkaNomla(menJoriyPapka)} className="fz-btn fz-btn--sm"><Pencil size={13} />{t('Nomini o‘zgartirish')}</button>
                 {kochirish === 'papka'
                   ? kochirTanlov(menJoriyPapka.id, t('Mening papkalarim (ildiz)'), (v) => void amal('papka_kochir', { papkaId: menJoriyPapka.id, otaPapkaId: v }, t('Papka ko‘chirildi')))
-                  : <button type="button" disabled={!!band} onClick={() => setKochirish('papka')} className="inline-flex items-center gap-1 rounded border border-border px-2 py-0.5 text-[11px] text-text"><FolderInput size={13} />{t('Ko‘chirish')}</button>}
-                <button type="button" disabled={!!band} onClick={() => void papkaOchir(menJoriyPapka)} className="inline-flex items-center gap-1 rounded border border-border px-2 py-0.5 text-[11px] text-danger"><Trash2 size={13} />{t('Papkani o‘chirish')}</button>
+                  : <button type="button" disabled={!!band} onClick={() => setKochirish('papka')} className="fz-btn fz-btn--sm"><FolderInput size={13} />{t('Ko‘chirish')}</button>}
+                <button type="button" disabled={!!band} onClick={() => void papkaOchir(menJoriyPapka)} className="fz-btn fz-btn--danger fz-btn--sm"><Trash2 size={13} />{t('Papkani o‘chirish')}</button>
               </>}
             </span>}
           </div>}
@@ -377,14 +389,14 @@ function CompanyFileManager({ kompaniyaId }: { kompaniyaId: number }) {
           </div>}
           <div className="min-h-0 flex-1 overflow-auto">
             {yuklanmoqda ? <div className="skel m-3 h-40 rounded-lg" /> : (
-              <table className="w-full text-[12px]">
-                <thead className="sticky top-0 bg-surface text-left text-[11px] text-text-mute">
-                  <tr><th className="px-3 py-1.5">{t('Nomi')}</th><th className="px-2">{t('Turi')}</th><th className="px-2">{t('Versiya')}</th><th className="px-2 text-right">{t('Hajmi')}</th><th className="px-2">{t('Sana')}</th><th className="px-2">{t('Kim')}</th><th className="px-2" /></tr>
+              <table className="fz-table">
+                <thead>
+                  <tr><th>{t('Nomi')}</th><th>{t('Turi')}</th><th>{t('Versiya')}</th><th className="fz-c-num">{t('Hajmi')}</th><th>{t('Sana')}</th><th>{t('Kim')}</th><th aria-label={t('Amallar')} /></tr>
                 </thead>
                 <tbody>
                   {bolim === 'mening' && <>
                     {menBolalar.map((p) => (
-                      <tr key={'m' + p.id} onDoubleClick={() => menTanla(p.id)} className="cursor-pointer border-t border-border/40 hover:bg-white/5">
+                      <tr key={'m' + p.id} onDoubleClick={() => menTanla(p.id)} className="cursor-pointer border-t border-border/40 hover:bg-surface-2">
                         <td className="px-3 py-1.5"><button type="button" onClick={() => menTanla(p.id)} className="flex items-center gap-2 text-left text-text"><Folder size={15} className="text-accent" />{p.nom}</button></td>
                         <td className="px-2 text-text-mute">{t('Papka')}</td><td /><td />
                         <td className="px-2 text-text-mute" colSpan={3}>{t('{n} fayl', { n: menPapkaSoni(menPapkalar, fayllar, p.id) })}</td>
@@ -402,7 +414,7 @@ function CompanyFileManager({ kompaniyaId }: { kompaniyaId: number }) {
                     {!savat.length && <tr><td colSpan={7} className="px-3 py-8 text-center text-text-mute">{t('Savat bo‘sh')}</td></tr>}
                   </>}
                   {bolim === 'tizim' && papkalar.map((p) => (
-                    <tr key={p.kalit} onDoubleClick={() => tanla(p.kalit)} className="cursor-pointer border-t border-border/40 hover:bg-white/5">
+                    <tr key={p.kalit} onDoubleClick={() => tanla(p.kalit)} className="cursor-pointer border-t border-border/40 hover:bg-surface-2">
                       <td className="px-3 py-1.5"><button type="button" onClick={() => tanla(p.kalit)} className="flex items-center gap-2 text-left text-text"><Folder size={15} className="text-accent" />{p.nom}</button></td>
                       <td className="px-2 text-text-mute">{t('Papka')}</td><td />
                       <td className="px-2 text-right text-text-mute">{hajmMatni(p.hajm)}</td>

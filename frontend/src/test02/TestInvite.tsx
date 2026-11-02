@@ -58,7 +58,7 @@ export default function TestInvite() {
       <div className="flex justify-between items-start mb-8">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2 mb-2">
-            <Users className="text-indigo-400" />
+            <Users className="text-[var(--accent-text)]" />
             B2B Kontragentlar Tarmog'i va Takliflar
           </h1>
           <p className="text-sm text-text-dim max-w-2xl">
@@ -76,9 +76,9 @@ export default function TestInvite() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab.id ? 'bg-bg text-white shadow-sm border border-border' : 'text-text-dim hover:text-white hover:bg-surface-2'}`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab.id ? 'bg-bg text-[var(--text)] shadow-sm border border-border' : 'text-text-dim hover:text-[var(--text)] hover:bg-surface-2'}`}
           >
-            <tab.icon size={16} className={activeTab === tab.id ? 'text-indigo-400' : ''} />
+            <tab.icon size={16} className={activeTab === tab.id ? 'text-[var(--accent-text)]' : ''} />
             {tab.label}
           </button>
         ))}
@@ -92,11 +92,11 @@ export default function TestInvite() {
               <input
                 type="text"
                 placeholder="Hamkor nomi yoki STIR orqali izlash..."
-                className="w-full bg-surface border border-border rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:border-accent outline-none"
+                className="w-full bg-surface border border-border rounded-lg pl-9 pr-4 py-2 text-sm text-[var(--text)] focus:border-accent outline-none"
               />
             </div>
           </div>
-          {xato && <div className="m-4 p-3 bg-red-900/20 border border-red-500/30 text-red-400 rounded-lg text-sm">{xato}</div>}
+          {xato && <div className="m-4 p-3 bg-[color-mix(in_srgb,var(--danger)_20%,transparent)] border border-[color-mix(in_srgb,var(--danger)_30%,transparent)] text-[var(--danger)] rounded-lg text-sm">{xato}</div>}
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="bg-surface-2 border-b border-border text-text-dim font-medium">
@@ -117,8 +117,8 @@ export default function TestInvite() {
               )}
               {hamkorlar.map(t => (
                 <tr key={t.id} className="hover:bg-bg/50 transition-colors">
-                  <td className="px-6 py-4 font-bold text-white flex items-center gap-2">
-                    <Building2 size={16} className="text-indigo-400" />
+                  <td className="px-6 py-4 font-bold text-[var(--text)] flex items-center gap-2">
+                    <Building2 size={16} className="text-[var(--accent-text)]" />
                     {t.nom}
                   </td>
                   <td className="px-6 py-4 font-mono text-text-dim">{t.inn || '-'}</td>
@@ -128,7 +128,7 @@ export default function TestInvite() {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <a href="/admin/test/kontragent" className="text-sky-400 hover:text-sky-300 flex items-center gap-1 text-xs font-medium">
+                    <a href="/admin/test/kontragent" className="text-[var(--info)] hover:text-[var(--info)] flex items-center gap-1 text-xs font-medium">
                       Batafsil <ExternalLink size={14} />
                     </a>
                   </td>
@@ -142,12 +142,12 @@ export default function TestInvite() {
       {activeTab === 'yangi' && (
         <div className="max-w-2xl">
           <div className="bg-surface border border-border rounded-xl p-8 shadow-xl">
-            <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-              <Send size={20} className="text-indigo-400" />
+            <h2 className="text-lg font-bold text-[var(--text)] mb-6 flex items-center gap-2">
+              <Send size={20} className="text-[var(--accent-text)]" />
               Yangi hamkorni platformaga taklif qilish
             </h2>
 
-            <div className="mb-5 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm text-amber-300">
+            <div className="mb-5 p-3 bg-[color-mix(in_srgb,var(--warn)_10%,transparent)] border border-[color-mix(in_srgb,var(--warn)_30%,transparent)] rounded-lg text-sm text-[var(--warn)]">
               Email orqali taklif yuborish tizimi (token, xat jo'natish) hali qurilmagan.
               Hozircha hamkorni "Kontragentlar" bo'limidan STIR bilan to'g'ridan-to'g'ri qo'shing.
             </div>
@@ -160,7 +160,7 @@ export default function TestInvite() {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="masalan: info@kompaniya.uz"
-                  className="w-full bg-bg border border-border rounded-lg px-4 py-3 text-white focus:border-accent focus:ring-1 focus:ring-accent outline-none"
+                  className="w-full bg-bg border border-border rounded-lg px-4 py-3 text-[var(--text)] focus:border-accent focus:ring-1 focus:ring-accent outline-none"
                 />
               </div>
 
@@ -168,16 +168,16 @@ export default function TestInvite() {
                 <label className="block text-sm font-medium text-text-dim mb-2">Loyihadagi Roli (Polimorfik)</label>
                 <div className="grid grid-cols-2 gap-3">
                   {['Subpudratchi', 'Yetkazib beruvchi', 'Loyihachi', 'Texnik Nazoratchi'].map(r => (
-                    <label key={r} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${rol === r.toLowerCase() ? 'bg-indigo-500/10 border-indigo-500/50' : 'bg-bg border-border hover:border-text-dim'}`}>
+                    <label key={r} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${rol === r.toLowerCase() ? 'bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] border-[color-mix(in_srgb,var(--accent)_50%,transparent)]' : 'bg-bg border-border hover:border-text-dim'}`}>
                       <input
                         type="radio"
                         name="rol"
                         value={r.toLowerCase()}
                         checked={rol === r.toLowerCase()}
                         onChange={e => setRol(e.target.value)}
-                        className="accent-indigo-500"
+                        className="accent-[var(--accent)]"
                       />
-                      <span className={rol === r.toLowerCase() ? 'text-indigo-300 font-medium' : 'text-text-dim'}>{r}</span>
+                      <span className={rol === r.toLowerCase() ? 'text-[var(--accent-text)] font-medium' : 'text-text-dim'}>{r}</span>
                     </label>
                   ))}
                 </div>
@@ -185,7 +185,7 @@ export default function TestInvite() {
 
               <button
                 onClick={handleYuborish}
-                className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors shadow-lg shadow-indigo-900/20"
+                className="w-full mt-2 bg-[var(--accent)] hover:brightness-110 text-[var(--on-accent)] px-6 py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
               >
                 <Mail size={18} />
                 Taklifnomani yuborish

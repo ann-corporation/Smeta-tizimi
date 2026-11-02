@@ -1,38 +1,44 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ClipboardList, Plus, Search, Building2, Calendar, AlertTriangle, Send, Warehouse, Trash2, CheckCircle2, Clock, XCircle, Edit, FileText } from 'lucide-react';
+import { ClipboardList, Plus, Building2, Calendar, Send, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useKompaniya } from './KompaniyaTanlov';
 import { toast } from '../umumiy/ui/Toast';
 import { sbZayavkalarOl, sbZayavkaYoz, sbZayavkaHolatYoz, type T2Zayavka, type ZayavkaHolat } from '../api/t2-zayavka';
-import { yozAmali } from '../api/supabase';
 import { sbT2ObyektlarOlKomp, type T2Obyekt } from '../api/supabase';
 import { Sahifa } from '../umumiy/ui/Sahifa';
 import { FmtN } from '../lib/format';
-import { motion, AnimatePresence } from 'framer-motion';
+import { t } from '../i18n/til';
+import { kunYoshi, taqsimot, ZAYAVKA_TARTIB, zayavkaXulosa, zayavkaYetkazish } from '../lib/kompaniya-ops-korinish';
+import { OpsBoshQator, OpsChiziq, OpsKpi, OpsKpiQator, OpsMaydon, OpsOyna, OpsQidiruv, OpsTaqsimot } from '../components/kompaniya-ops/OpsUi';
 
-const HOLAT_RANG: Record<ZayavkaHolat, string> = {
-  draft: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20',
-  submitted: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  approved: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
-  procurement: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-  ordered: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
-  partially_delivered: 'bg-teal-500/10 text-teal-400 border-teal-500/20',
-  delivered: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  closed: 'bg-zinc-800 text-zinc-500 border-zinc-700/50',
-  cancelled: 'bg-red-500/10 text-red-400 border-red-500/20',
+/**
+ * Zayavkalar — obyektdan ta'minotga talabnoma (egasi 2026-10-25: Firuza ko'rinishi).
+ * Yo'l: qoralama → yuborildi → tasdiqlandi → ta'minotda → buyurtma → (qisman) yetkazildi → yopildi; bekor — alohida.
+ * Tepada: ochiq / muddati o'tgan / yetkazilgan soni va holatlar bo'yicha segmentli chiziq (bosilsa — filtr).
+ */
+const HOLAT: Record<ZayavkaHolat, { nom: string; stamp: string; rang: string }> = {
+  draft: { nom: 'Qoralama', stamp: 'fz-stamp--draft', rang: 'var(--border-strong)' },
+  submitted: { nom: 'Yuborildi', stamp: 'fz-stamp--warn', rang: 'var(--warn)' },
+  approved: { nom: 'Tasdiqlandi', stamp: 'fz-stamp--info', rang: 'var(--info)' },
+  procurement: { nom: 'Ta’minotda', stamp: 'fz-stamp--info', rang: 'var(--kat-ob)' },
+  ordered: { nom: 'Buyurtma berildi', stamp: 'fz-stamp--info', rang: 'var(--kat-chel)' },
+  partially_delivered: { nom: 'Qisman yetkazildi', stamp: 'fz-stamp--warn', rang: 'var(--accent)' },
+  delivered: { nom: 'Yetkazildi', stamp: 'fz-stamp--ok', rang: 'var(--ok)' },
+  closed: { nom: 'Yopildi', stamp: '', rang: 'var(--text-mute)' },
+  cancelled: { nom: 'Bekor qilindi', stamp: 'fz-stamp--danger', rang: 'var(--danger)' },
 };
+const holatNom = (h: ZayavkaHolat) => t(HOLAT[h]?.nom ?? h);
 
-const HOLAT_NOM: Record<ZayavkaHolat, string> = {
-  draft: 'Qoralama (Draft)',
-  submitted: 'Yuborildi (Submitted)',
-  approved: 'Tasdiqlandi (Approved)',
-  procurement: 'Ta\'minotda (Procurement)',
-  ordered: 'Buyurtma berildi (Ordered)',
-  partially_delivered: 'Qisman yetkazildi',
-  delivered: 'Yetkazildi (Delivered)',
-  closed: 'Yopildi (Closed)',
-  cancelled: 'Bekor qilindi',
-};
+/** Keyingi qadam tugmalari — holatlar mashinasi o'zgarmagan. */
+const QADAMLAR: { dan: ZayavkaHolat[]; ga: ZayavkaHolat; nom: string; title: string; cls: string }[] = [
+  { dan: ['draft'], ga: 'submitted', nom: 'Yuborish', title: 'Yuborish', cls: 'fz-btn--primary' },
+  { dan: ['submitted'], ga: 'approved', nom: 'Tasdiqlash', title: 'Tasdiqlash', cls: 'fz-btn--primary' },
+  { dan: ['approved'], ga: 'procurement', nom: 'Ta’minotga', title: 'Ta’minotga berish', cls: 'fz-btn--primary' },
+  { dan: ['procurement'], ga: 'ordered', nom: 'Buyurtma', title: 'Buyurtma berish', cls: 'fz-btn--primary' },
+  { dan: ['ordered', 'partially_delivered'], ga: 'delivered', nom: 'Yetkazildi', title: 'Yetkazildi deb belgilash', cls: 'fz-btn--primary' },
+  { dan: ['delivered'], ga: 'closed', nom: 'Yopish', title: 'Yopish', cls: '' },
+  { dan: ['draft', 'submitted'], ga: 'cancelled', nom: 'Bekor qilish', title: 'Bekor qilish', cls: 'fz-btn--ghost' },
+];
 
 export default function TestZayavka() {
   const { joriy } = useKompaniya();
@@ -43,13 +49,14 @@ export default function TestZayavka() {
   const [zayavkalar, setZayavkalar] = useState<T2Zayavka[]>([]);
   const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
-  
+  const [filtr, setFiltr] = useState<ZayavkaHolat | null>(null);
+  const [qidiruv, setQidiruv] = useState('');
+
   const [isModalOpen, setIsModalOpen] = useState(initYarat);
   const [formObyektId, setFormObyektId] = useState('');
   const [formMaxsulot, setFormMaxsulot] = useState('');
   const [formMiqdor, setFormMiqdor] = useState('');
   const [formBirlik, setFormBirlik] = useState('metr');
-  const [formBuyurtma, setFormBuyurtma] = useState('');
   const [formSana, setFormSana] = useState('');
   const [formMuhimlik, setFormMuhimlik] = useState('orta');
   const [formIzoh, setFormIzoh] = useState('');
@@ -59,47 +66,34 @@ export default function TestZayavka() {
   const yukla = async () => {
     if (!joriy) return;
     setYuklanmoqda(true);
-    
     try {
-      const [zRes, oRes] = await Promise.all([
-        sbZayavkalarOl(joriy.id),
-        sbT2ObyektlarOlKomp(joriy.id)
-      ]);
-      
+      const [zRes, oRes] = await Promise.all([sbZayavkalarOl(joriy.id), sbT2ObyektlarOlKomp(joriy.id)]);
       if (zRes.error) throw new Error(zRes.error);
       if (oRes.error) throw new Error(oRes.error);
-      
       setZayavkalar(zRes.qatorlar || []);
       setObyektlar(oRes.qatorlar || []);
     } catch (err: any) {
-      toast(err.message, "danger");
+      toast(err.message, 'danger');
     } finally {
       setYuklanmoqda(false);
     }
   };
 
-  useEffect(() => {
-    yukla();
-  }, [joriy]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { void yukla(); }, [joriy]);
 
   useEffect(() => {
-    if (!initialObyekt) {
-      setFormObyektId('');
-      return;
-    }
-    const obyekt = obyektlar.find((o) =>
-      String(o.id) === initialObyekt || o.nom === initialObyekt,
-    );
+    if (!initialObyekt) { setFormObyektId(''); return; }
+    const obyekt = obyektlar.find((o) => String(o.id) === initialObyekt || o.nom === initialObyekt);
     setFormObyektId(obyekt ? String(obyekt.id) : '');
   }, [initialObyekt, obyektlar]);
 
   const handleYuborish = async () => {
     if (!joriy) return;
     if (!formObyektId || !formMaxsulot || !formMiqdor) {
-      toast("Obyekt, maxsulot va miqdorni kiriting", "warn");
+      toast(t('Obyekt, maxsulot va miqdorni kiriting'), 'warn');
       return;
     }
-    
     setYuklanmoqda(true);
     try {
       const natija = await sbZayavkaYoz(joriy.id, {
@@ -109,21 +103,15 @@ export default function TestZayavka() {
         unit: formBirlik,
         requiredDate: formSana,
         priority: formMuhimlik,
-        note: formIzoh
+        note: formIzoh,
       });
-
-      if (!natija.ok) throw new Error(natija.error || "Xato yuz berdi");
-
-      toast("Zayavka muvaffaqiyatli yaratildi!", "ok");
+      if (!natija.ok) throw new Error(natija.error || t('Xato yuz berdi'));
+      toast(t('Zayavka muvaffaqiyatli yaratildi!'), 'ok');
       setIsModalOpen(false);
-      setFormMaxsulot('');
-      setFormMiqdor('');
-      setFormBuyurtma('');
-      setFormSana('');
-      setFormIzoh('');
-      yukla();
+      setFormMaxsulot(''); setFormMiqdor(''); setFormSana(''); setFormIzoh('');
+      void yukla();
     } catch (err: any) {
-      toast(err.message, "danger");
+      toast(err.message, 'danger');
     } finally {
       setYuklanmoqda(false);
     }
@@ -134,209 +122,162 @@ export default function TestZayavka() {
     setAmalId(id);
     try {
       const request = zayavkalar.find((item) => item.id === id);
-      if (!request) throw new Error("Zayavka topilmadi");
+      if (!request) throw new Error(t('Zayavka topilmadi'));
       const natija = await sbZayavkaHolatYoz(joriy.id, request, yHolat);
-      if (!natija.ok) throw new Error(natija.error || "Xato yuz berdi");
-      toast("Holat o'zgardi: " + HOLAT_NOM[yHolat], "ok");
-      yukla();
+      if (!natija.ok) throw new Error(natija.error || t('Xato yuz berdi'));
+      toast(t('Holat o‘zgardi: {h}', { h: holatNom(yHolat) }), 'ok');
+      void yukla();
     } catch (err: any) {
-      toast(err.message, "danger");
+      toast(err.message, 'danger');
     } finally {
       setAmalId(null);
     }
   };
 
-  const sanaKorsat = (sana?: string | null) => {
-    if (!sana) return '�';
-    return new Date(sana).toLocaleDateString('uz-UZ', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-  };
-
-  const hisoblaYosh = (sanaS: string) => {
-    const d1 = new Date(sanaS).getTime();
-    const d2 = new Date().getTime();
-    const diff = (d2 - d1) / (1000 * 3600 * 24);
-    if (diff < 1) return '< 1 kun';
-    return Math.floor(diff) + ' kun';
-  };
+  const bugun = new Date().toISOString().slice(0, 10);
+  const xulosa = useMemo(() => zayavkaXulosa(zayavkalar, bugun), [zayavkalar, bugun]);
+  const quvur = useMemo(() => taqsimot(zayavkalar, (z) => z.status, ZAYAVKA_TARTIB), [zayavkalar]);
+  const obyektNomi = (id: number) => obyektlar.find((o) => o.id === id)?.nom || t('Noma’lum obyekt');
+  const korinadi = zayavkalar.filter((z) => (!filtr || z.status === filtr)
+    && (!qidiruv || `${z.itemText} ${obyektNomi(z.obyektId)} ${z.note ?? ''}`.toLowerCase().includes(qidiruv.toLowerCase())));
 
   return (
-    <Sahifa sarlavha="Zayavkalar (Ta'minot talabnomasi)">
-      <div className="flex justify-between items-center mb-6">
-        <p className="text-zinc-400 text-sm">Obyektlardan kelgan barcha ta'minot talabnomalari ro'yxati.</p>
-        <div className="flex gap-2">
-          <button onClick={yukla} disabled={yuklanmoqda} className="px-4 py-2 border border-white/10 rounded-xl text-sm font-medium hover:bg-white/5 transition-colors text-white">
-            Yangilash
-          </button>
-          <button onClick={() => setIsModalOpen(true)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-medium text-white transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(79,70,229,0.3)]">
-            <Plus size={16} /> Yangi Zayavka
-          </button>
-        </div>
-      </div>
+    <Sahifa
+      sarlavha="Zayavkalar (ta’minot talabnomasi)"
+      tavsif="Obyektdan kelgan talab → tasdiq → ta’minot → buyurtma → yetkazish. Har qatorda yetkazilgan ulush."
+      amallar={<>
+        <button type="button" onClick={() => void yukla()} disabled={yuklanmoqda} className="fz-btn fz-btn--ghost"><RefreshCw className={yuklanmoqda ? 'animate-spin' : ''} /> {t('Yangilash')}</button>
+        <button type="button" onClick={() => setIsModalOpen(true)} className="fz-btn fz-btn--primary"><Plus /> {t('Yangi zayavka')}</button>
+      </>}
+    >
+      <div className="flex flex-col gap-3">
+        <OpsKpiQator yorliq={t('Zayavka ko‘rsatkichlari')}>
+          <OpsKpi nom={t('Jami zayavka')} qiymat={xulosa.jami} />
+          <OpsKpi nom={t('Ochiq (jarayonda)')} qiymat={xulosa.ochiq} rang="var(--info)" ost={t('yetkazilmagan va bekor qilinmagan')} />
+          <OpsKpi nom={t('Muddati o‘tgan')} qiymat={<span className={xulosa.muddatiOtgan ? 'text-danger' : ''}>{xulosa.muddatiOtgan}</span>} rang="var(--danger)" ost={t('kerakli sana o‘tgan, hali ochiq')} />
+          <OpsKpi nom={t('Yetkazilgan / yopilgan')} qiymat={xulosa.yetkazilgan} rang="var(--ok)" />
+        </OpsKpiQator>
 
-      <div className="bg-[#0a0f1d] border border-white/10 rounded-2xl overflow-hidden shadow-lg">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-white/5 text-zinc-400 border-b border-white/10">
+        <OpsTaqsimot sarlavha={t('Zayavkalar yo‘li — holatlar bo‘yicha')} tanlangan={filtr}
+          onTanla={(k) => setFiltr((f) => (f === k ? null : k as ZayavkaHolat))}
+          ong={filtr ? <button type="button" className="fz-chip fz-chip--accent" onClick={() => setFiltr(null)}>{t('filtrni olib tashlash')}</button> : t('bosing — filtr')}
+          segmentlar={quvur.map((q) => ({ kalit: q.kalit, nom: holatNom(q.kalit), soni: q.soni, rang: HOLAT[q.kalit]?.rang ?? 'var(--border-strong)' }))} />
+
+        <div className="flex items-center gap-2">
+          <OpsQidiruv qiymat={qidiruv} onChange={setQidiruv} placeholder={t('Material, obyekt yoki izoh bo‘yicha…')} />
+          <span className="text-[12px] text-text-mute">{t('{n} ta ko‘rsatilmoqda', { n: korinadi.length })}</span>
+        </div>
+
+        <div className="fz-table-wrap">
+          <table className="fz-table">
+            <thead>
               <tr>
-                <th className="px-4 py-3 font-medium">� / Yosh</th>
-                <th className="px-4 py-3 font-medium">Obyekt / Sana</th>
-                <th className="px-4 py-3 font-medium">Maxsulot</th>
-                <th className="px-4 py-3 font-medium text-right">So'ralgan</th>
-                <th className="px-4 py-3 font-medium text-right">Yetkazilgan</th>
-                <th className="px-4 py-3 font-medium text-right">Qolgan</th>
-                <th className="px-4 py-3 font-medium">Holat</th>
-                <th className="px-4 py-3 font-medium text-right">Amallar</th>
+                <th>{t('№ / yoshi')}</th>
+                <th>{t('Obyekt / kerakli sana')}</th>
+                <th>{t('Material')}</th>
+                <th className="fz-c-num">{t('So‘ralgan')}</th>
+                <th className="fz-c-num">{t('Yetkazilgan')}</th>
+                <th className="fz-c-num">{t('Qolgan')}</th>
+                <th>{t('Yetkazish')}</th>
+                <th>{t('Holat')}</th>
+                <th style={{ textAlign: 'right' }}>{t('Keyingi qadam')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5 text-white">
-              {zayavkalar.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-zinc-500">
-                    Hozircha zayavkalar yo'q.
-                  </td>
-                </tr>
-              ) : (
-                zayavkalar.map((z) => {
-                  const yetkazildi = z.deliveredQty || 0;
-                  const qoldi = z.remainingQty ?? Math.max(z.requestedQty - yetkazildi, 0);
-
-                  return (
-                  <tr key={z.id} className="hover:bg-white/5 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="font-mono text-xs text-zinc-400">{"#" + z.id}</div>
-                      <div className="text-[10px] text-zinc-500 mt-1">{hisoblaYosh(z.createdAt || '')}</div>
+            <tbody>
+              {korinadi.length === 0 ? (
+                <OpsBoshQator ustun={9} matn={zayavkalar.length ? t('Filtrga mos zayavka yo‘q.') : t('Hozircha zayavkalar yo‘q.')}
+                  izoh={zayavkalar.length ? undefined : t('«Yangi zayavka» tugmasi bilan obyekt uchun material so‘rang.')} />
+              ) : korinadi.map((z) => {
+                const yetkazildi = z.deliveredQty || 0;
+                const { ulush, qolgan } = zayavkaYetkazish(z);
+                const yosh = kunYoshi(z.createdAt);
+                const kechikdi = !!z.requiredDate && z.requiredDate.slice(0, 10) < bugun && !['delivered', 'closed', 'cancelled'].includes(z.status);
+                const h = HOLAT[z.status];
+                return (
+                  <tr key={z.id}>
+                    <td>
+                      <span className="fz-c-shifr">{'#' + z.id}</span>
+                      <span className="block text-[11px] text-text-mute">{yosh == null ? '—' : yosh < 1 ? t('bugun') : t('{n} kun', { n: yosh })}</span>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium flex items-center gap-1">
-                        <Building2 size={12} className="text-indigo-400" />
-                        {obyektlar.find((o) => o.id === z.obyektId)?.nom || "Noma'lum"}
-                      </div>
-                      <div className="text-[10px] text-zinc-400 flex gap-1 items-center mt-1">
-                        <Calendar size={10} /> Kutilmoqda: {z.requiredDate || '—'}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="text-sky-300 font-medium">{z.itemText}</div>
-                      {z.note && <div className="text-[10px] text-zinc-500 mt-1 line-clamp-1">{z.note}</div>}
-                    </td>
-                    <td className="px-4 py-3 text-right font-medium text-amber-400">
-                      <FmtN val={z.requestedQty} /> <span className="text-[10px]">{z.unit}</span>
-                    </td>
-                    <td className="px-4 py-3 text-right font-medium text-emerald-400">
-                      <FmtN val={yetkazildi} /> <span className="text-[10px]">{z.unit}</span>
-                    </td>
-                    <td className="px-4 py-3 text-right font-medium text-rose-400">
-                      <FmtN val={qoldi > 0 ? qoldi : 0} /> <span className="text-[10px]">{z.unit}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={"inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-medium " + (HOLAT_RANG[z.status] || '')}>
-                        {HOLAT_NOM[z.status] || z.status}
+                    <td>
+                      <span className="inline-flex items-center gap-1 font-medium"><Building2 size={12} className="text-text-mute" />{obyektNomi(z.obyektId)}</span>
+                      <span className={`mt-0.5 flex items-center gap-1 text-[11.5px] ${kechikdi ? 'font-semibold text-danger' : 'text-text-mute'}`}>
+                        {kechikdi ? <AlertTriangle size={11} /> : <Calendar size={11} />}{z.requiredDate || '—'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td>
+                      <span className="font-medium text-text">{z.itemText}</span>
+                      {z.note && <span className="mt-0.5 block line-clamp-1 text-[11.5px] text-text-mute">{z.note}</span>}
+                    </td>
+                    <td className="fz-c-num"><FmtN val={z.requestedQty} /> <span className="text-[11px] text-text-mute">{z.unit}</span></td>
+                    <td className="fz-c-num"><FmtN val={yetkazildi} /> <span className="text-[11px] text-text-mute">{z.unit}</span></td>
+                    <td className={`fz-c-num ${qolgan && qolgan > 0 ? 'text-warn' : ''}`}><FmtN val={qolgan == null ? null : Math.max(qolgan, 0)} /> <span className="text-[11px] text-text-mute">{z.unit}</span></td>
+                    <td style={{ minWidth: 110 }}>
+                      <span className="flex items-center gap-2">
+                        <OpsChiziq ulush={ulush} rang={ulush === 1 ? 'var(--ok)' : 'var(--accent)'} />
+                        <span className="w-9 text-right text-[11.5px] tabular-nums text-text-mute">{ulush == null ? '—' : `${Math.round(ulush * 100)}%`}</span>
+                      </span>
+                    </td>
+                    <td><span className={`fz-stamp ${h?.stamp ?? ''}`}>{holatNom(z.status)}</span></td>
+                    <td className="text-right">
                       {amalId === z.id ? (
-                        <span className="text-zinc-500 text-xs animate-pulse">Kuting...</span>
+                        <span className="animate-pulse text-[12px] text-text-mute">{t('Kuting…')}</span>
                       ) : (
-                        <div className="flex items-center justify-end gap-1 flex-wrap">
-                          {z.status === 'draft' && (
-                            <button onClick={() => holatOzgartir(z.id, 'submitted')} className="px-2 py-1 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 rounded text-[10px] transition-colors" title="Yuborish">Yuborish</button>
-                          )}
-                          {z.status === 'submitted' && (
-                            <button onClick={() => holatOzgartir(z.id, 'approved')} className="px-2 py-1 bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 rounded text-[10px] transition-colors" title="Tasdiqlash">Tasdiqlash</button>
-                          )}
-                          {z.status === 'approved' && (
-                            <button onClick={() => holatOzgartir(z.id, 'procurement')} className="px-2 py-1 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 rounded text-[10px] transition-colors" title="Ta'minotga berish">Ta'minotga</button>
-                          )}
-                          {z.status === 'procurement' && (
-                            <button onClick={() => holatOzgartir(z.id, 'ordered')} className="px-2 py-1 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 rounded text-[10px] transition-colors" title="Buyurtma berish">Buyurtma</button>
-                          )}
-                          {(z.status === 'ordered' || z.status === 'partially_delivered') && (
-                            <button onClick={() => holatOzgartir(z.id, 'delivered')} className="px-2 py-1 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded text-[10px] transition-colors" title="Yetkazildi deb belgilash">Yetkazildi</button>
-                          )}
-                          {z.status === 'delivered' && (
-                            <button onClick={() => holatOzgartir(z.id, 'closed')} className="px-2 py-1 bg-zinc-700/50 text-zinc-300 hover:bg-zinc-700 rounded text-[10px] transition-colors" title="Yopish">Yopish</button>
-                          )}
-                          {(z.status === 'draft' || z.status === 'submitted') && (
-                            <button onClick={() => holatOzgartir(z.id, 'cancelled')} className="px-2 py-1 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded text-[10px] transition-colors" title="Bekor qilish">Bekor qilish</button>
-                          )}
-                        </div>
+                        <span className="inline-flex flex-wrap items-center justify-end gap-1">
+                          {QADAMLAR.filter((q) => q.dan.includes(z.status)).map((q) => (
+                            <button key={q.ga} type="button" onClick={() => void holatOzgartir(z.id, q.ga)} className={`fz-btn fz-btn--sm ${q.cls}`} title={t(q.title)}>{t(q.nom)}</button>
+                          ))}
+                        </span>
                       )}
                     </td>
                   </tr>
-                )}))}
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
 
-      <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
-            
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative bg-[#0f172a] border border-white/10 p-6 rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto">
-              <h3 className="font-bold text-lg mb-4 text-white flex items-center gap-2">
-                <ClipboardList className="text-indigo-400" /> Yangi Zayavka
-              </h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Obyekt *</label>
-                  <select value={formObyektId} onChange={e => setFormObyektId(e.target.value)} className="w-full bg-black/30 border border-white/10 rounded-xl p-2 text-sm text-white focus:border-indigo-500 outline-none">
-                    <option value="">-- Tanlang --</option>
-                    {obyektlar.map(o => (
-                      <option key={o.id} value={o.id}>{o.nom}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Material / Xizmat nomi *</label>
-                  <input type="text" value={formMaxsulot} onChange={e => setFormMaxsulot(e.target.value)} placeholder="M400 Beton" className="w-full bg-black/30 border border-white/10 rounded-xl p-2 text-sm text-white focus:border-indigo-500 outline-none" />
-                </div>
-
-                <div className="flex gap-3">
-                  <div className="flex-1">
-                    <label className="block text-xs text-zinc-400 mb-1">Miqdor *</label>
-                    <input type="number" min="0" step="any" value={formMiqdor} onChange={e => setFormMiqdor(e.target.value)} placeholder="0.00" className="w-full bg-black/30 border border-white/10 rounded-xl p-2 text-sm text-white focus:border-indigo-500 outline-none" />
-                  </div>
-                  <div className="w-1/3">
-                    <label className="block text-xs text-zinc-400 mb-1">Birlik</label>
-                    <input type="text" value={formBirlik} onChange={e => setFormBirlik(e.target.value)} placeholder="tonna, m3" className="w-full bg-black/30 border border-white/10 rounded-xl p-2 text-sm text-white focus:border-indigo-500 outline-none" />
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <div className="flex-1">
-                    <label className="block text-xs text-zinc-400 mb-1">Qachonga kerak?</label>
-                    <input type="date" value={formSana} onChange={e => setFormSana(e.target.value)} className="w-full bg-black/30 border border-white/10 rounded-xl p-2 text-sm text-white focus:border-indigo-500 outline-none" />
-                  </div>
-                  <div className="w-1/3">
-                    <label className="block text-xs text-zinc-400 mb-1">Muhimlik</label>
-                    <select value={formMuhimlik} onChange={e => setFormMuhimlik(e.target.value)} className="w-full bg-black/30 border border-white/10 rounded-xl p-2 text-sm text-white focus:border-indigo-500 outline-none">
-                      <option value="past">Past</option>
-                      <option value="orta">O'rta</option>
-                      <option value="yuqori">Yuqori</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Izoh</label>
-                  <textarea value={formIzoh} onChange={e => setFormIzoh(e.target.value)} rows={2} placeholder="Qo'shimcha ma'lumotlar..." className="w-full bg-black/30 border border-white/10 rounded-xl p-2 text-sm text-white focus:border-indigo-500 outline-none"></textarea>
-                </div>
-              </div>
-
-              <div className="flex gap-3 justify-end mt-6 pt-5 border-t border-white/10">
-                <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded-xl text-sm font-medium text-zinc-400 hover:bg-white/5 transition-colors">Bekor qilish</button>
-                <button onClick={handleYuborish} disabled={yuklanmoqda} className="px-4 py-2 rounded-xl text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-500 transition-colors flex items-center gap-2">
-                  {yuklanmoqda ? 'Yuborilmoqda...' : <><Send size={16} /> Yuborish</>}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <OpsOyna ochiq={isModalOpen} onYop={() => setIsModalOpen(false)} band={yuklanmoqda} ikon={<ClipboardList />} sarlavha={t('Yangi zayavka')}
+        amallar={<>
+          <button type="button" onClick={() => setIsModalOpen(false)} className="fz-btn fz-btn--ghost">{t('Bekor qilish')}</button>
+          <button type="button" onClick={() => void handleYuborish()} disabled={yuklanmoqda} className="fz-btn fz-btn--primary">
+            {yuklanmoqda ? t('Yuborilmoqda…') : <><Send /> {t('Yuborish')}</>}
+          </button>
+        </>}>
+        <OpsMaydon nom={t('Obyekt')} majburiy>
+          <select value={formObyektId} onChange={(e) => setFormObyektId(e.target.value)}>
+            <option value="">{t('— tanlang —')}</option>
+            {obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
+          </select>
+        </OpsMaydon>
+        <OpsMaydon nom={t('Material / xizmat nomi')} majburiy>
+          <input type="text" value={formMaxsulot} onChange={(e) => setFormMaxsulot(e.target.value)} placeholder={t('M400 beton')} />
+        </OpsMaydon>
+        <div className="grid grid-cols-[1fr_120px] gap-3">
+          <OpsMaydon nom={t('Miqdor')} majburiy>
+            <input type="number" min="0" step="any" value={formMiqdor} onChange={(e) => setFormMiqdor(e.target.value)} placeholder="0.00" className="text-right tabular-nums" />
+          </OpsMaydon>
+          <OpsMaydon nom={t('Birlik')}>
+            <input type="text" value={formBirlik} onChange={(e) => setFormBirlik(e.target.value)} placeholder={t('tonna, m3')} />
+          </OpsMaydon>
+        </div>
+        <div className="grid grid-cols-[1fr_120px] gap-3">
+          <OpsMaydon nom={t('Qachonga kerak?')}>
+            <input type="date" value={formSana} onChange={(e) => setFormSana(e.target.value)} />
+          </OpsMaydon>
+          <OpsMaydon nom={t('Muhimlik')}>
+            <select value={formMuhimlik} onChange={(e) => setFormMuhimlik(e.target.value)}>
+              <option value="past">{t('Past')}</option>
+              <option value="orta">{t('O‘rta')}</option>
+              <option value="yuqori">{t('Yuqori')}</option>
+            </select>
+          </OpsMaydon>
+        </div>
+        <OpsMaydon nom={t('Izoh')}>
+          <textarea value={formIzoh} onChange={(e) => setFormIzoh(e.target.value)} rows={2} placeholder={t('Qo‘shimcha ma’lumotlar…')} />
+        </OpsMaydon>
+      </OpsOyna>
     </Sahifa>
   );
 }

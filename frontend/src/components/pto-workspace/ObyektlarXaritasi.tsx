@@ -41,7 +41,7 @@ export default function ObyektlarXaritasi(props: {
     <div className="space-y-1.5">
       <p className="text-[12px] text-text-dim">
         {t('Xaritada')}: <b>{joylangan.length}</b>
-        {joysiz > 0 && <> · <span className="text-amber-500">{t('lokatsiyasiz')}: {joysiz}</span></>}
+        {joysiz > 0 && <> · <span className="text-warn">{t('lokatsiyasiz')}: {joysiz}</span></>}
       </p>
       <div className="h-[360px] rounded-xl overflow-hidden border border-border relative z-0">
         <MapContainer center={nuqtalar[0] ?? TOSHKENT} zoom={nuqtalar.length ? 12 : 7} style={{ height: '100%', width: '100%' }}>

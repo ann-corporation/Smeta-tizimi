@@ -1,16 +1,130 @@
 {
-  "Pudratchi sizga ochgan obyekt: bajarilish, aktlar va hujjatlar holati": { "ru": "Объект, открытый вам подрядчиком: выполнение, акты и статус документов", "en": "Site opened to you by the contractor: progress, acts and document status" },
-  "Buyurtmachi kabinetiga qaytish": { "ru": "Назад в кабинет заказчика", "en": "Back to the customer cabinet" },
-  "Obyekt topilmadi yoki sizga ochilmagan.": { "ru": "Объект не найден или не открыт для вас.", "en": "Site not found or not shared with you." },
-  "Shartnoma summasi (QQSsiz)": { "ru": "Сумма договора (без НДС)", "en": "Contract amount (excl. VAT)" },
-  "Sertifikatlangan F2 jami": { "ru": "Итого сертифицированных Ф-2", "en": "Total certified Form-2" },
-  "Bajarilish": { "ru": "Выполнение", "en": "Progress" },
-  "sertifikatlangan F2 / shartnoma": { "ru": "сертифицированные Ф-2 / договор", "en": "certified Form-2 / contract" },
-  "ta akt": { "ru": "акт(ов)", "en": "acts" },
-  "Yuborilgan hujjatlar": { "ru": "Присланные документы", "en": "Submitted documents" },
-  "Qaror chiqarish": { "ru": "Принять решение", "en": "Make a decision" },
-  "Sertifikatlangan F2 aktlar": { "ru": "Сертифицированные акты Ф-2", "en": "Certified Form-2 acts" },
-  "Pudratchi F2 ni sizga hali ochmagan.": { "ru": "Подрядчик ещё не открыл вам Ф-2.", "en": "The contractor has not opened Form-2 to you yet." },
-  "Hali sertifikatlangan akt yo‘q": { "ru": "Сертифицированных актов пока нет", "en": "No certified acts yet" },
-  "Summa (QQSsiz)": { "ru": "Сумма (без НДС)", "en": "Amount (excl. VAT)" }
+  "Pudratchi sizga ochgan obyekt: bajarilish, aktlar va hujjatlar holati": {
+    "ru": "Объект, открытый вам подрядчиком: выполнение, акты и статус документов",
+    "en": "Site opened to you by the contractor: progress, acts and document status"
+  },
+  "Buyurtmachi kabinetiga qaytish": {
+    "ru": "Назад в кабинет заказчика",
+    "en": "Back to the customer cabinet"
+  },
+  "Obyekt topilmadi yoki sizga ochilmagan.": {
+    "ru": "Объект не найден или не открыт для вас.",
+    "en": "Site not found or not shared with you."
+  },
+  "Shartnoma summasi (QQSsiz)": {
+    "ru": "Сумма договора (без НДС)",
+    "en": "Contract amount (excl. VAT)"
+  },
+  "Sertifikatlangan F2 jami": {
+    "ru": "Итого сертифицированных Ф-2",
+    "en": "Total certified Form-2"
+  },
+  "Bajarilish": {
+    "ru": "Выполнение",
+    "en": "Progress"
+  },
+  "sertifikatlangan F2 / shartnoma": {
+    "ru": "сертифицированные Ф-2 / договор",
+    "en": "certified Form-2 / contract"
+  },
+  "ta akt": {
+    "ru": "акт(ов)",
+    "en": "acts"
+  },
+  "Yuborilgan hujjatlar": {
+    "ru": "Присланные документы",
+    "en": "Submitted documents"
+  },
+  "Qaror chiqarish": {
+    "ru": "Принять решение",
+    "en": "Make a decision"
+  },
+  "Sertifikatlangan F2 aktlar": {
+    "ru": "Сертифицированные акты Ф-2",
+    "en": "Certified Form-2 acts"
+  },
+  "Pudratchi F2 ni sizga hali ochmagan.": {
+    "ru": "Подрядчик ещё не открыл вам Ф-2.",
+    "en": "The contractor has not opened Form-2 to you yet."
+  },
+  "Hali sertifikatlangan akt yo‘q": {
+    "ru": "Сертифицированных актов пока нет",
+    "en": "No certified acts yet"
+  },
+  "Summa (QQSsiz)": {
+    "ru": "Сумма (без НДС)",
+    "en": "Amount (excl. VAT)"
+  },
+  "Hujjatdagi podval": {
+    "ru": "Подвал документа",
+    "en": "Document footer lines"
+  },
+  "Sarlavha kamida 3 belgi bo‘lsin": {
+    "ru": "Заголовок — не менее 3 символов",
+    "en": "Title must be at least 3 characters"
+  },
+  "So‘rov pudratchiga yuborildi": {
+    "ru": "Запрос отправлен подрядчику",
+    "en": "Request sent to the contractor"
+  },
+  "Yangi so‘rov": {
+    "ru": "Новый запрос",
+    "en": "New request"
+  },
+  "Qisqa sarlavha": {
+    "ru": "Краткий заголовок",
+    "en": "Short title"
+  },
+  "Tafsilot: nimani o‘zgartirish yoki qaysi hujjat kerak": {
+    "ru": "Подробности: что изменить или какой документ нужен",
+    "en": "Details: what to change or which document is needed"
+  },
+  "Tafsilot": {
+    "ru": "Подробности",
+    "en": "Details"
+  },
+  "Bu obyekt bo‘yicha so‘rov yo‘q": {
+    "ru": "По этому объекту запросов нет",
+    "en": "No requests for this site"
+  },
+  "Bu qatorga hali izoh yo‘q": {
+    "ru": "К этой строке замечаний пока нет",
+    "en": "No comments on this row yet"
+  },
+  "ichki": {
+    "ru": "внутренний",
+    "en": "internal"
+  },
+  "hal qilindi": {
+    "ru": "решено",
+    "en": "resolved"
+  },
+  "Javob yozish": {
+    "ru": "Ответить",
+    "en": "Reply"
+  },
+  "Hal qilindi": {
+    "ru": "Решено",
+    "en": "Resolved"
+  },
+  "Yangi izoh": {
+    "ru": "Новое замечание",
+    "en": "New comment"
+  },
+  "Shu qator bo‘yicha izoh yozing": {
+    "ru": "Напишите замечание по этой строке",
+    "en": "Write a comment on this row"
+  },
+  "Ichki (buyurtmachiga ko‘rinmaydi)": {
+    "ru": "Внутреннее (заказчик не видит)",
+    "en": "Internal (hidden from the customer)"
+  },
+  "Javobni bekor qilish": {
+    "ru": "Отменить ответ",
+    "en": "Cancel reply"
+  },
+  "narxsiz qator: {n} ta": {
+    "ru": "строк без цены: {n}",
+    "en": "rows without price: {n}"
+  }
 }

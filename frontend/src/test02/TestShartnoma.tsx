@@ -1,46 +1,44 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { sbT2ShartnomalarOl, sbT2ShartnomaSaqla, type Shartnoma } from '../api/t2-shartnoma';
-import { Briefcase, Plus, FileSignature, AlertCircle, Search, FileText, CheckCircle2, Calculator, PieChart, RefreshCw, Save, X } from 'lucide-react';
+import { Briefcase, Plus, FileText, Calculator, PieChart, RefreshCw, Network } from 'lucide-react';
 import { FmtN } from '../lib/format';
 import { toast } from '../umumiy/ui/Toast';
+import { t } from '../i18n/til';
+import { Sahifa } from '../umumiy/ui/Sahifa';
 import { useKompaniya } from './KompaniyaTanlov';
 import { EntityFormModal } from '../umumiy/ui/forms/SharedForms';
 import { onEntityChanged } from '../api/entity-consistency';
+import { taqsimot } from '../lib/kompaniya-ops-korinish';
+import { OpsBoshQator, OpsKpi, OpsKpiQator, OpsQidiruv, OpsTablar, OpsTaqsimot } from '../components/kompaniya-ops/OpsUi';
+
+/**
+ * Shartnomalar reestri (egasi 2026-10-25: Firuza ko'rinishi). Summa — shartnomadagi QQS bilan jami (ustama emas).
+ * Sub-pudrat va kafolat ushlanmasi hali hisoblanmaydi — «—» (nol emas).
+ */
+type Tab = 'shartnomalar' | 'dop' | 'kalkulyator' | 'radar';
+const HOLAT: Record<Shartnoma['holat'], { nom: string; stamp: string; rang: string }> = {
+  faol: { nom: 'Faol', stamp: 'fz-stamp--ok', rang: 'var(--ok)' },
+  yopilgan: { nom: 'Yopilgan', stamp: 'fz-stamp--frozen', rang: 'var(--accent)' },
+  bekor: { nom: 'Bekor', stamp: 'fz-stamp--danger', rang: 'var(--danger)' },
+};
 
 export default function TestShartnoma() {
   const navigate = useNavigate();
   const { joriy } = useKompaniya();
   const aktKomp = joriy?.id ?? 0;
-  const [params] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'shartnomalar' | 'dop' | 'kalkulyator' | 'radar'>('shartnomalar');
+  const [activeTab, setActiveTab] = useState<Tab>('shartnomalar');
   const [isFormOpen, setIsFormOpen] = useState(false);
-  
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [saqlamoqda, setSaqlamoqda] = useState(false);
   const [shartnomalar, setShartnomalar] = useState<Shartnoma[]>([]);
-
-  // Yangi shartnoma form
-  const [formData, setFormData] = useState({
-    raqam: '',
-    nom: '',
-    taraf: '',
-    summa_bez_nds: '',
-    nds: '12',
-    izoh: ''
-  });
+  const [qidiruv, setQidiruv] = useState('');
 
   const yukla = async () => {
     if (!joriy) return;
     setYuklanmoqda(true);
     try {
-      /* ⚠️ 2026-08-28: avval BARCHA kompaniyalarning shartnomalari
-         o'qilib, keyin MIJOZ TOMONIDA filtrlanardi. Ikki xato:
-         (a) boshqa mijozning ma'lumoti tarmoq orqali kelardi,
-         (b) `kompaniya_id` mos kelmasa shartnoma JIMGINA YO'QOLARDI —
-             foydalanuvchi aynan shundan shikoyat qildi («mindmapda
-             shartnoma yaratsang, shartnomalar bo'limida chiqmaydi»).
-         Endi filtr SERVERDA. */
+      /* ⚠️ 2026-08-28: filtr SERVERDA (avval barcha kompaniyalar o'qilib, mijozda filtrlanardi — shartnoma jim yo'qolardi). */
       const res = await sbT2ShartnomalarOl(joriy.id, false);
       setShartnomalar(res.qatorlar || []);
     } catch (e: any) {
@@ -50,251 +48,118 @@ export default function TestShartnoma() {
     }
   };
 
-  useEffect(() => {
-    yukla();
-  }, [joriy]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { void yukla(); }, [joriy]);
   useEffect(() => onEntityChanged((event) => {
-    if (event.detail.kompaniyaId === aktKomp && event.detail.type === 'shartnoma') yukla();
+    if (event.detail.kompaniyaId === aktKomp && event.detail.type === 'shartnoma') void yukla();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [aktKomp]);
 
-  const handleSaqlash = async () => {
-    if (!formData.raqam || !formData.nom) return toast("Raqam va nomni kiriting!", "warn");
-
-    setSaqlamoqda(true);
-    try {
-      const sum = Number(formData.summa_bez_nds) || 0;
-      const ndsFoiz = Number(formData.nds) || 0;
-      const ndsSumma = (sum * ndsFoiz) / 100;
-      const jami = sum + ndsSumma;
-
-      const res = await sbT2ShartnomaSaqla({
-        kompaniyaId: joriy!.id,
-        raqam: formData.raqam,
-        nom: formData.nom,
-        taraf: formData.taraf,
-        summaBezNds: sum,
-        nds: ndsSumma,
-        jamiNdsBilan: jami,
-        izoh: formData.izoh
-      });
-
-      if (!res.ok) throw new Error(res.error || "Noma'lum xato");
-
-      toast("Shartnoma muvaffaqiyatli saqlandi!", "ok");
-      setIsFormOpen(false);
-      setFormData({ raqam: '', nom: '', taraf: '', summa_bez_nds: '', nds: '12', izoh: '' });
-      yukla();
-    } catch (e: any) {
-      toast(e.message, "danger");
-    } finally {
-      setSaqlamoqda(false);
-    }
-  };
-
-  // Hisoblashlar
-  const stats = shartnomalar.reduce((acc, s) => {
+  const stats = useMemo(() => shartnomalar.reduce((acc, s) => {
     acc.jami += Number(s.jami_nds_bilan) || 0;
-    if (s.holat === 'faol' || s.holat === 'yopilgan') {
-      // Daromad va xarajatni farqlash qiyin "taraf" orqali, hozircha faol/yopilganini daromad deymiz demo uchun
-      acc.bosh += Number(s.jami_nds_bilan) || 0;
-    }
+    // Daromad/xarajatni «taraf» orqali farqlash hali yo'q — faol va yopilganlar bosh pudrat deb olinadi (avvalgi hisob).
+    if (s.holat === 'faol' || s.holat === 'yopilgan') acc.bosh += Number(s.jami_nds_bilan) || 0;
     return acc;
-  }, { jami: 0, bosh: 0, sub: 0, ret: 0 });
+  }, { jami: 0, bosh: 0 }), [shartnomalar]);
+  const holatlar = useMemo(() => taqsimot(shartnomalar, (s) => s.holat, ['faol', 'yopilgan', 'bekor'] as const), [shartnomalar]);
+  const q = qidiruv.toLowerCase();
+  const korinadi = shartnomalar.filter((s) => `${s.raqam} ${s.nom ?? ''} ${s.taraf ?? ''}`.toLowerCase().includes(q));
 
   return (
-    <div className="p-6 bg-bg min-h-screen text-text overflow-y-auto">
-      
-      {/* HEADER */}
-      <div className="flex items-start justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2 mb-2">
-            <FileSignature className="text-purple-400" />
-            Polimorfik Shartnomalar (B2B Kontraktlar)
-          </h1>
-          <p className="text-text-dim text-sm max-w-2xl">
-            Bosh pudrat, sub-pudrat, va xarid shartnomalarining markazlashgan reestri. Qo'shimcha kelishuvlar (Dop. Soglasheniye), ustamalar va bo'nak (avans) nazorati.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={yukla} className="p-2.5 bg-surface border border-border rounded-lg text-text hover:text-white transition-colors">
-            <RefreshCw size={18} className={yuklanmoqda ? "animate-spin" : ""} />
-          </button>
-          <button 
-            onClick={() => setIsFormOpen(true)}
-            className="bg-purple-600 hover:bg-purple-500 text-white px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-lg shadow-purple-900/20"
-          >
-            <Plus size={18} />
-            Yangi Shartnoma
-          </button>
-        </div>
-      </div>
+    <Sahifa
+      sarlavha="Shartnomalar"
+      tavsif="Bosh pudrat, sub-pudrat va xarid shartnomalari reestri: summa (QQS bilan), holat va mindmapdagi bog‘lanishi."
+      amallar={<>
+        <button type="button" onClick={() => void yukla()} className="fz-btn fz-btn--ghost" aria-label={t('Yangilash')}><RefreshCw className={yuklanmoqda ? 'animate-spin' : ''} /> {t('Yangilash')}</button>
+        <button type="button" onClick={() => setIsFormOpen(true)} className="fz-btn fz-btn--primary"><Plus /> {t('Yangi shartnoma')}</button>
+      </>}
+    >
+      <div className="flex flex-col gap-3">
+        <OpsKpiQator yorliq={t('Shartnoma ko‘rsatkichlari')}>
+          <OpsKpi nom={t('Jami portfel')} qiymat={<FmtN val={stats.jami} />} ost={t('{n} ta shartnoma · so‘m, QQS bilan', { n: shartnomalar.length })} />
+          <OpsKpi nom={t('Bosh pudrat (daromad)')} rang="var(--ok)" qiymat={<FmtN val={stats.bosh} />} ost={t('faol va yopilganlar')} />
+          <OpsKpi nom={t('Sub-pudrat / xarid')} rang="var(--danger)" qiymat={<span className="text-text-mute">—</span>} ost={t('hali hisoblanmaydi')} />
+          <OpsKpi nom={t('Kafolat ushlanmasi')} rang="var(--warn)" qiymat={<span className="text-text-mute">—</span>} ost={t('hali hisoblanmaydi')} />
+        </OpsKpiQator>
 
-      {/* KPI WIDGETS */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-surface border border-border p-5 rounded-xl">
-          <h3 className="text-sm font-medium text-text-dim mb-1">Jami Shartnomalar (Portfolio)</h3>
-          <p className="text-2xl font-bold font-mono text-white"><FmtN val={stats.jami} /> <span className="text-sm text-text-dim font-sans">UZS</span></p>
-        </div>
-        <div className="bg-gradient-to-br from-emerald-900/20 to-emerald-900/5 border border-emerald-500/20 p-5 rounded-xl">
-          <h3 className="text-sm font-medium text-emerald-400 mb-1">Bosh Pudrat (Daromad)</h3>
-          <p className="text-2xl font-bold font-mono text-white"><FmtN val={stats.bosh} /> <span className="text-sm text-text-dim font-sans">UZS</span></p>
-        </div>
-        <div className="bg-rose-500/10 border border-rose-500/20 p-5 rounded-xl opacity-50">
-          <h3 className="text-sm font-medium text-rose-400 mb-1">Sub-Pudrat / Xarid</h3>
-          <p className="text-2xl font-bold font-mono text-white">0 <span className="text-sm text-text-dim font-sans">UZS</span></p>
-        </div>
-        <div className="bg-amber-500/10 border border-amber-500/20 p-5 rounded-xl opacity-50">
-          <h3 className="text-sm font-medium text-amber-400 mb-1">Kafolat Depoziti (Retention)</h3>
-          <p className="text-2xl font-bold font-mono text-white">0 <span className="text-sm text-text-dim font-sans">UZS</span></p>
-        </div>
-      </div>
+        <OpsTaqsimot sarlavha={t('Shartnomalar holati')} segmentlar={holatlar.map((h) => ({ kalit: h.kalit, nom: t(HOLAT[h.kalit]?.nom ?? h.kalit), soni: h.soni, rang: HOLAT[h.kalit]?.rang ?? 'var(--border-strong)' }))} />
 
-      {/* TABS */}
-      <div className="flex gap-1 bg-surface border border-border p-1 rounded-lg w-max mb-6">
-        {[
-          { id: 'shartnomalar', label: 'Bosh Shartnomalar', icon: Briefcase },
-          { id: 'dop', label: 'Qo\'shimcha Kelishuvlar (Dop)', icon: FileText },
-          { id: 'kalkulyator', label: 'Ustama va Soliqlar', icon: Calculator },
-          { id: 'radar', label: 'Limitlar Radari', icon: PieChart }
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab.id ? 'bg-bg text-white shadow-sm border border-border' : 'text-text-dim hover:text-white hover:bg-surface-2'}`}
-          >
-            <tab.icon size={16} className={activeTab === tab.id ? 'text-purple-400' : ''} />
-            {tab.label}
-          </button>
-        ))}
-      </div>
+        <OpsTablar<Tab> yorliq={t('Shartnoma bo‘limlari')} joriy={activeTab} onTanla={setActiveTab} tablar={[
+          { id: 'shartnomalar', nom: t('Bosh shartnomalar'), ikon: <Briefcase />, soni: shartnomalar.length },
+          { id: 'dop', nom: t('Qo‘shimcha kelishuvlar'), ikon: <FileText /> },
+          { id: 'kalkulyator', nom: t('Ustama va soliqlar'), ikon: <Calculator /> },
+          { id: 'radar', nom: t('Limitlar radari'), ikon: <PieChart /> },
+        ]} />
 
-      {/* WRITE FORM MODAL */}
-      {isFormOpen && (
-        <EntityFormModal
-          entityType="shartnoma"
-          title="Yangi Shartnomani Ro'yxatga Olish"
-          color="#c084fc" // purple-400
-          onClose={() => setIsFormOpen(false)}
-          isLoading={saqlamoqda}
-          onSubmit={async (data) => {
-            if (!data.raqam || !data.nom) return toast("Raqam va nomni kiriting!", "warn");
-            setSaqlamoqda(true);
-            try {
-              const sum = data.summaBezNds === '' ? undefined : Number(data.summaBezNds);
-              const ndsFoiz = Number(data.nds) || 0;
-              const ndsSumma = sum == null ? undefined : (sum * ndsFoiz) / 100;
-              const jami = sum == null ? undefined : sum + (ndsSumma || 0);
+        {isFormOpen && (
+          <EntityFormModal
+            entityType="shartnoma"
+            title={t('Yangi shartnomani ro‘yxatga olish')}
+            color="var(--accent)"
+            onClose={() => setIsFormOpen(false)}
+            isLoading={saqlamoqda}
+            onSubmit={async (data) => {
+              if (!data.raqam || !data.nom) return toast(t('Raqam va nomni kiriting!'), 'warn');
+              setSaqlamoqda(true);
+              try {
+                const sum = data.summaBezNds === '' ? undefined : Number(data.summaBezNds);
+                const ndsFoiz = Number(data.nds) || 0;
+                const ndsSumma = sum == null ? undefined : (sum * ndsFoiz) / 100;
+                const jami = sum == null ? undefined : sum + (ndsSumma || 0);
+                const res = await sbT2ShartnomaSaqla({
+                  kompaniyaId: joriy!.id, raqam: data.raqam, nom: data.nom, taraf: data.taraf,
+                  summaBezNds: sum, nds: ndsSumma, jamiNdsBilan: jami, izoh: data.izoh,
+                });
+                if (!res.ok) throw new Error(res.error || t('Noma’lum xato'));
+                toast(t('Shartnoma muvaffaqiyatli saqlandi!'), 'ok');
+                setIsFormOpen(false);
+                void yukla();
+              } catch (e: any) {
+                toast(e.message, 'danger');
+              } finally {
+                setSaqlamoqda(false);
+              }
+            }}
+          />
+        )}
 
-              const res = await sbT2ShartnomaSaqla({
-                kompaniyaId: joriy!.id,
-                raqam: data.raqam,
-                nom: data.nom,
-                taraf: data.taraf,
-                summaBezNds: sum,
-                nds: ndsSumma,
-                jamiNdsBilan: jami,
-                izoh: data.izoh
-              });
-
-              if (!res.ok) throw new Error(res.error || "Noma'lum xato");
-
-              toast("Shartnoma muvaffaqiyatli saqlandi!", "ok");
-              setIsFormOpen(false);
-              yukla();
-            } catch (e: any) {
-              toast(e.message, "danger");
-            } finally {
-              setSaqlamoqda(false);
-            }
-          }}
-        />
-      )}
-
-      {/* CONTENT: SHARTNOMALAR */}
-      {activeTab === 'shartnomalar' && (
-        <div className="bg-surface border border-border rounded-xl shadow-xl overflow-hidden">
-          <div className="p-4 border-b border-border bg-bg/50">
-            <div className="relative w-96">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-dim" size={16} />
-              <input 
-                type="text" 
-                placeholder="Raqam, nom yoki kontragent bo'yicha..."
-                className="w-full bg-surface border border-border rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:border-accent outline-none"
-              />
+        {activeTab === 'shartnomalar' && (
+          <div className="flex flex-col gap-2">
+            <OpsQidiruv qiymat={qidiruv} onChange={setQidiruv} placeholder={t('Raqam, nom yoki kontragent bo‘yicha…')} />
+            <div className="fz-table-wrap">
+              <table className="fz-table">
+                <thead>
+                  <tr><th>{t('Shartnoma №')}</th><th>{t('Nomi va predmeti')}</th><th>{t('Kontragent (2-tomon)')}</th><th className="fz-c-num">{t('Summa, so‘m')}</th><th>{t('Holat')}</th><th style={{ textAlign: 'right' }}>{t('Amal')}</th></tr>
+                </thead>
+                <tbody>
+                  {korinadi.length === 0 && !yuklanmoqda && <OpsBoshQator ustun={6} matn={shartnomalar.length ? t('Qidiruvga mos shartnoma yo‘q.') : t('Hech qanday shartnoma topilmadi.')} izoh={shartnomalar.length ? undefined : t('«Yangi shartnoma» tugmasi bilan birinchi shartnomani kiriting.')} />}
+                  {korinadi.map((s) => (
+                    <tr key={s.id}>
+                      <td><span className="fz-c-shifr">№ {s.raqam}</span><span className="block text-[11px] text-text-mute">{new Date(s.yaratildi).toLocaleDateString('ru-RU')}</span></td>
+                      <td><span className="block font-medium text-text">{s.nom || '—'}</span>{s.izoh && <span className="text-[11.5px] text-text-mute">{s.izoh}</span>}</td>
+                      <td className="text-text-dim">{s.taraf || '—'}</td>
+                      <td className="fz-c-num">
+                        <span className="block font-semibold"><FmtN val={s.jami_nds_bilan} /></span>
+                        <span className={`text-[11px] ${(s.nds || 0) > 0 ? 'text-text-mute' : 'text-warn'}`}>{(s.nds || 0) > 0 ? t('QQS bilan') : t('QQS siz')}</span>
+                      </td>
+                      <td><span className={`fz-stamp ${HOLAT[s.holat]?.stamp ?? ''}`}>{t(HOLAT[s.holat]?.nom ?? s.holat)}</span></td>
+                      <td className="text-right">
+                        <button type="button" onClick={() => navigate(`/admin/mindmap?tugun=shartnoma:${s.id}`)} className="fz-btn fz-btn--ghost fz-btn--sm"><Network /> {t('Mindmapda ko‘rish')}</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-          
-          {shartnomalar.length === 0 && !yuklanmoqda ? (
-            <div className="p-8 text-center text-text-dim">
-              Hech qanday shartnoma topilmadi.
-            </div>
-          ) : (
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="bg-surface-2 border-b border-border text-text-dim font-medium">
-                  <th className="px-6 py-4">Shartnoma №</th>
-                  <th className="px-6 py-4">Nomlanishi va Predmeti</th>
-                  <th className="px-6 py-4">Kontragent (2-taraf)</th>
-                  <th className="px-6 py-4 text-right">Summa (UZS)</th>
-                  <th className="px-6 py-4 text-center">Holat</th>
-                  <th className="px-6 py-4 text-right">Amal</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {shartnomalar.map(s => (
-                  <tr key={s.id} className="hover:bg-bg/50 transition-colors">
-                    <td className="px-6 py-4 font-mono font-bold text-purple-400">
-                      № {s.raqam}
-                      <br/><span className="text-[10px] text-text-dim font-sans">{new Date(s.yaratildi).toLocaleDateString('uz-UZ')}</span>
-                    </td>
-                    <td className="px-6 py-4 font-bold text-white">
-                      {s.nom}
-                      {s.izoh && <div className="text-xs text-text-dim font-normal mt-1">{s.izoh}</div>}
-                    </td>
-                    <td className="px-6 py-4 text-text-dim">{s.taraf || '-'}</td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="font-mono font-bold text-white"><FmtN val={s.jami_nds_bilan || 0} /></div>
-                      {(s.nds || 0) > 0 ? (
-                        <span className="text-[10px] text-emerald-400 font-bold">QQS (12%) bilan</span>
-                      ) : (
-                        <span className="text-[10px] text-amber-400 font-bold">QQS siz (0%)</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      {s.holat === 'faol' ? (
-                        <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-1"><CheckCircle2 size={12}/> Faol</span>
-                      ) : (
-                        <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-1"><AlertCircle size={12}/> {s.holat}</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => navigate(`/admin/test/xarita?tugun=shartnoma:${s.id}`)}
-                        className="text-xs bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 px-2.5 py-1.5 rounded-lg transition-colors border border-sky-500/20"
-                      >
-                        Mindmapda ko'rish
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
+        )}
 
-      {/* CONTENT: DOP SOGLASHENIYE */}
-      {activeTab === 'dop' && (
-        <div className="bg-surface border border-border rounded-xl p-12 text-center shadow-xl">
-          <div className="w-20 h-20 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-purple-500/20">
-            <FileText size={32} className="text-purple-400" />
-          </div>
-          <h2 className="text-xl font-bold text-white mb-3">Qo'shimcha Kelishuvlar Reestri</h2>
-          <p className="text-text-dim max-w-lg mx-auto mb-8">
-            Asosiy shartnomaga qilingan barcha qo'shimcha kelishuvlar (Dop. Soglasheniyalar) ushbu modulda markazlashgan tarzda yuritiladi va asosiy summa bilan avtomatik jamlanadi.
-          </p>
-        </div>
-      )}
-    </div>
+        {activeTab !== 'shartnomalar' && (
+          <section className="fz-note"><FileText /><span>{activeTab === 'dop'
+            ? t('Qo‘shimcha kelishuvlar reestri — asosiy shartnomaga qilingan kelishuvlar shu yerda yuritiladi va asosiy summa bilan jamlanadi (jarayonda).')
+            : t('Bu bo‘lim keyingi bosqichda ishga tushiriladi.')}</span></section>
+        )}
+      </div>
+    </Sahifa>
   );
 }

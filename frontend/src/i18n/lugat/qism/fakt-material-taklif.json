@@ -1,0 +1,10 @@
+{
+  "Olinadigan material taklifi yo‘q.": { "ru": "Нет предложений по материалам.", "en": "No material suggestions to take." },
+  "{n} ta material taklifi kiritildi — tekshirib saqlang (Ctrl+S).": { "ru": "Внесено предложений по материалам: {n} — проверьте и сохраните (Ctrl+S).", "en": "{n} material suggestions entered — review and save (Ctrl+S)." },
+  "Ishdan keyingi alohida materiallarga ish ulushida taklif (avtomatik yozilmaydi)": { "ru": "Предложение для отдельных материалов после работы пропорционально работе (не записывается автоматически)", "en": "Suggestion for standalone materials after the work, in the work's proportion (not written automatically)" },
+  "Materiallarni ham olish: {nom}": { "ru": "Взять и материалы: {nom}", "en": "Take materials too: {nom}" },
+  "Materiallarni ham olish ({n})": { "ru": "Взять и материалы ({n})", "en": "Take materials too ({n})" },
+  "«{nom}» ishi ulushida taklif — bosing, kiritmaga olinadi": { "ru": "Предложение пропорционально работе «{nom}» — нажмите, чтобы внести", "en": "Suggestion in proportion to «{nom}» — click to enter" },
+  "taklif": { "ru": "предложение", "en": "suggestion" },
+  "Bo‘lim: materiallarni ham olish ({n})": { "ru": "Раздел: взять и материалы ({n})", "en": "Section: take materials too ({n})" }
+}

@@ -1,0 +1,402 @@
+{
+ "2D graf": {
+  "ru": "2D-граф",
+  "en": "2D graph"
+ },
+ "3D graf": {
+  "ru": "3D-граф",
+  "en": "3D graph"
+ },
+ "Bajarilgan yoki topshirilgan hajm smetadan oshgan — tekshiring.": {
+  "ru": "Выполненный или сданный объём превышает смету — проверьте.",
+  "en": "Completed or certified volume exceeds the estimate — please check."
+ },
+ "Belgi yo‘q": {
+  "ru": "Нет сигналов",
+  "en": "No signals"
+ },
+ "Belgilar izohi": {
+  "ru": "Легенда",
+  "en": "Legend"
+ },
+ "Biriktirilgan": {
+  "ru": "Привязано",
+  "en": "Linked"
+ },
+ "Bu loyihada hali obyekt yo‘q.": {
+  "ru": "В этом проекте пока нет объектов.",
+  "en": "This project has no objects yet."
+ },
+ "Bu obyekt uchun hali hodisa yozilmagan.": {
+  "ru": "Для этого объекта событий пока нет.",
+  "en": "No events recorded for this object yet."
+ },
+ "Bu obyektlar hech bir loyihaga biriktirilmagan. Tahrir rejimida loyihaga bog‘lang.": {
+  "ru": "Эти объекты не привязаны ни к одному проекту. Привяжите их в режиме редактирования.",
+  "en": "These objects are not linked to any project. Link them in edit mode."
+ },
+ "Diqqat markazida": {
+  "ru": "В центре внимания",
+  "en": "Needs attention"
+ },
+ "Ekranga sig‘dirish": {
+  "ru": "Вписать в экран",
+  "en": "Fit to screen"
+ },
+ "E’tibor kerak": {
+  "ru": "Требует внимания",
+  "en": "Needs attention"
+ },
+ "F2 siz qoldiq": {
+  "ru": "Остаток без Ф2",
+  "en": "Remaining without F2"
+ },
+ "F2 topshirilgan + bajarilgan (fakt) / smeta": {
+  "ru": "Сдано по Ф2 + выполнено (факт) / смета",
+  "en": "Certified by F2 + completed (actual) / estimate"
+ },
+ "F2 {p}": {
+  "ru": "Ф2 {p}",
+  "en": "F2 {p}"
+ },
+ "F2: {f2} · bajarilgan: {fakt}": {
+  "ru": "Ф2: {f2} · выполнено: {fakt}",
+  "en": "F2: {f2} · completed: {fakt}"
+ },
+ "Fakt (bajarilgan ishlar)": {
+  "ru": "Факт (выполненные работы)",
+  "en": "Actual (completed works)"
+ },
+ "Guruh": {
+  "ru": "Группа",
+  "en": "Group"
+ },
+ "Hali loyiha va obyekt yo‘q. Obyektlar «Obyektlar» sahifasida, loyiha va resurslar «Tahrir» ko‘rinishida qo‘shiladi.": {
+  "ru": "Пока нет проектов и объектов. Объекты добавляются на странице «Объекты», проекты и ресурсы — в режиме «Редактирование».",
+  "en": "No projects or objects yet. Objects are added on the “Objects” page, projects and resources in the “Edit” view."
+ },
+ "Hali loyiha yo‘q.": {
+  "ru": "Проектов пока нет.",
+  "en": "No projects yet."
+ },
+ "Hamma loyihani yig‘ish": {
+  "ru": "Свернуть все проекты",
+  "en": "Collapse all projects"
+ },
+ "Hamma loyihani yoyish": {
+  "ru": "Развернуть все проекты",
+  "en": "Expand all projects"
+ },
+ "Har 30 soniyada yangilanadi": {
+  "ru": "Обновляется каждые 30 секунд",
+  "en": "Refreshes every 30 seconds"
+ },
+ "Hech bir obyekt yoki loyihaga biriktirilmagan: {r}": {
+  "ru": "Не привязаны ни к объекту, ни к проекту: {r}",
+  "en": "Not linked to any object or project: {r}"
+ },
+ "Hisob holati": {
+  "ru": "Состояние расчёта",
+  "en": "Calculation status"
+ },
+ "Hodisa tarixi o‘qilmadi": {
+  "ru": "История событий не загрузилась",
+  "en": "Event history could not be loaded"
+ },
+ "Hodisa tarixi yuklanmoqda…": {
+  "ru": "Загрузка истории событий…",
+  "en": "Loading event history…"
+ },
+ "Holat bo‘yicha filtr": {
+  "ru": "Фильтр по состоянию",
+  "en": "Filter by status"
+ },
+ "Holat o‘qilmadi": {
+  "ru": "Состояние не получено",
+  "en": "Status not available"
+ },
+ "Izohni yopish": {
+  "ru": "Закрыть легенду",
+  "en": "Close legend"
+ },
+ "Kompaniya xaritasi": {
+  "ru": "Карта компании",
+  "en": "Company map"
+ },
+ "Kompaniya xaritasi. Strelkalar — tugunlar bo‘ylab yurish, Enter — tafsilot, plyus/minus — zum, 0 — sig‘dirish.": {
+  "ru": "Карта компании. Стрелки — переход по узлам, Enter — подробности, плюс/минус — масштаб, 0 — вписать.",
+  "en": "Company map. Arrows — move between nodes, Enter — details, plus/minus — zoom, 0 — fit."
+ },
+ "Loyiha byudjeti": {
+  "ru": "Бюджет проекта",
+  "en": "Project budget"
+ },
+ "Loyihalar kesimi": {
+  "ru": "По проектам",
+  "en": "By project"
+ },
+ "Loyihalar sahifasi": {
+  "ru": "Страница проектов",
+  "en": "Projects page"
+ },
+ "Loyihalar → obyektlar → smeta, fakt va F2 holati. Tugunni bosing — tafsilot va havolalar.": {
+  "ru": "Проекты → объекты → состояние сметы, факта и Ф2. Нажмите на узел — подробности и ссылки.",
+  "en": "Projects → objects → estimate, actual and F2 status. Click a node for details and links."
+ },
+ "Loyihasiz obyektlar": {
+  "ru": "Объекты без проекта",
+  "en": "Objects without a project"
+ },
+ "Ma’lumot sifati": {
+  "ru": "Качество данных",
+  "en": "Data quality"
+ },
+ "Ma’lumot yo‘q": {
+  "ru": "Нет данных",
+  "en": "No data"
+ },
+ "Muammosiz": {
+  "ru": "Без проблем",
+  "en": "No issues"
+ },
+ "Narxsiz qator, smeta yo‘q yoki ko‘zgu farqi": {
+  "ru": "Строки без цены, нет сметы или расхождение зеркала",
+  "en": "Unpriced lines, no estimate or mirror mismatch"
+ },
+ "Obyekt holati": {
+  "ru": "Состояние объекта",
+  "en": "Object status"
+ },
+ "Obyekt yoki loyihani qidiring…": {
+  "ru": "Поиск объекта или проекта…",
+  "en": "Search for an object or project…"
+ },
+ "Obyekt yo‘q": {
+  "ru": "Нет объектов",
+  "en": "No objects"
+ },
+ "Obyektlar holati": {
+  "ru": "Состояние объектов",
+  "en": "Object status"
+ },
+ "Obyektlarni ko‘rsatish ({n})": {
+  "ru": "Показать объекты ({n})",
+  "en": "Show objects ({n})"
+ },
+ "Obyektlarni yig‘ish": {
+  "ru": "Свернуть объекты",
+  "en": "Collapse objects"
+ },
+ "Ochiq zayavka yoki smetadan oshish": {
+  "ru": "Открытая заявка или превышение сметы",
+  "en": "Open request or estimate overrun"
+ },
+ "Ochiq zayavkalar": {
+  "ru": "Открытые заявки",
+  "en": "Open requests"
+ },
+ "Ogohlantirish belgisi bor obyekt yo‘q.": {
+  "ru": "Нет объектов с предупреждениями.",
+  "en": "No objects with warnings."
+ },
+ "Ogohlantirishlar soni (qizil — muammo, sariq — e’tibor)": {
+  "ru": "Число предупреждений (красный — проблема, жёлтый — внимание)",
+  "en": "Number of warnings (red — problem, amber — attention)"
+ },
+ "Ogohlantirishlar": {
+  "ru": "Предупреждения",
+  "en": "Warnings"
+ },
+ "Panelni yopish": {
+  "ru": "Закрыть панель",
+  "en": "Close panel"
+ },
+ "Qidiruv yoki filtrga mos obyekt topilmadi.": {
+  "ru": "Нет объектов, подходящих под поиск или фильтр.",
+  "en": "No objects match the search or filter."
+ },
+ "Romb o‘lchami va chiziq qalinligi — smeta summasi": {
+  "ru": "Размер ромба и толщина линии — сумма сметы",
+  "en": "Rhombus size and line width — estimate amount"
+ },
+ "Shartnoma va qatnashchilar": {
+  "ru": "Договоры и участники",
+  "en": "Contracts and participants"
+ },
+ "Smeta byudjetning {p} qismi": {
+  "ru": "Смета составляет {p} бюджета",
+  "en": "Estimate is {p} of the budget"
+ },
+ "Smeta yo‘q — foiz hisoblanmaydi": {
+  "ru": "Сметы нет — процент не считается",
+  "en": "No estimate — percentage not calculated"
+ },
+ "Smeta yuklanmagan — foiz yo‘q": {
+  "ru": "Смета не загружена — процента нет",
+  "en": "Estimate not uploaded — no percentage"
+ },
+ "So‘nggi hodisalar": {
+  "ru": "Последние события",
+  "en": "Recent events"
+ },
+ "Strelkalar — yurish · Enter — ochish · 0 — sig‘dirish · / — qidiruv": {
+  "ru": "Стрелки — переход · Enter — открыть · 0 — вписать · / — поиск",
+  "en": "Arrows — move · Enter — open · 0 — fit · / — search"
+ },
+ "Summalar ustamasiz (smeta bo‘limlari yig‘indisi). Ustamali summa — «Obyekt holati» sahifasida.": {
+  "ru": "Суммы без накруток (сумма разделов сметы). Сумма с накрутками — на странице «Состояние объекта».",
+  "en": "Amounts are without markups (sum of estimate sections). The amount with markups is on the “Object status” page."
+ },
+ "Tafsilot paneli": {
+  "ru": "Панель подробностей",
+  "en": "Details panel"
+ },
+ "Tahrir rejimida ochish": {
+  "ru": "Открыть в режиме редактирования",
+  "en": "Open in edit mode"
+ },
+ "Tahrir": {
+  "ru": "Редактирование",
+  "en": "Edit"
+ },
+ "To‘liq emas": {
+  "ru": "Неполный",
+  "en": "Incomplete"
+ },
+ "To‘liq xaritani ochish": {
+  "ru": "Открыть полную карту",
+  "en": "Open full map"
+ },
+ "To‘liq": {
+  "ru": "Полный",
+  "en": "Complete"
+ },
+ "Umumiy holat": {
+  "ru": "Общее состояние",
+  "en": "Overview"
+ },
+ "Uzoqlashtirish": {
+  "ru": "Отдалить",
+  "en": "Zoom out"
+ },
+ "Xarita ma’lumoti yo‘q.": {
+  "ru": "Нет данных для карты.",
+  "en": "No map data."
+ },
+ "Xarita o‘qilmadi: {x}": {
+  "ru": "Карта не загрузилась: {x}",
+  "en": "Map could not be loaded: {x}"
+ },
+ "Xarita yuklanmoqda…": {
+  "ru": "Загрузка карты…",
+  "en": "Loading map…"
+ },
+ "Xarita": {
+  "ru": "Карта",
+  "en": "Map"
+ },
+ "Xaritada qidirish": {
+  "ru": "Поиск по карте",
+  "en": "Search the map"
+ },
+ "Yaqinlashtirish": {
+  "ru": "Приблизить",
+  "en": "Zoom in"
+ },
+ "bajarilgan, F2 siz": {
+  "ru": "выполнено, без Ф2",
+  "en": "completed, not in F2"
+ },
+ "barcha obyektlarda bor": {
+  "ru": "есть во всех объектах",
+  "en": "present for all objects"
+ },
+ "bosing — filtr": {
+  "ru": "нажмите — фильтр",
+  "en": "click to filter"
+ },
+ "holat: {h}": {
+  "ru": "состояние: {h}",
+  "en": "status: {h}"
+ },
+ "kompaniya xaritasi": {
+  "ru": "карта компании",
+  "en": "company map"
+ },
+ "kontragent": {
+  "ru": "контрагент",
+  "en": "counterparty"
+ },
+ "narxsiz qator yo‘q": {
+  "ru": "строк без цены нет",
+  "en": "no unpriced lines"
+ },
+ "sklad": {
+  "ru": "склад",
+  "en": "warehouse"
+ },
+ "smeta yuklanmagan": {
+  "ru": "смета не загружена",
+  "en": "estimate not uploaded"
+ },
+ "smeta {s}": {
+  "ru": "смета {s}",
+  "en": "estimate {s}"
+ },
+ "smeta · F2": {
+  "ru": "смета · Ф2",
+  "en": "estimate · F2"
+ },
+ "smeta − F2": {
+  "ru": "смета − Ф2",
+  "en": "estimate − F2"
+ },
+ "texnika": {
+  "ru": "техника",
+  "en": "equipment"
+ },
+ "to‘liq emas": {
+  "ru": "неполная",
+  "en": "incomplete"
+ },
+ "xodim": {
+  "ru": "сотрудник",
+  "en": "employee"
+ },
+ "{n} / {m} obyekt": {
+  "ru": "{n} / {m} объектов",
+  "en": "{n} / {m} objects"
+ },
+ "{n} obyektda narxsiz qator": {
+  "ru": "{n} объектов со строками без цены",
+  "en": "{n} objects with unpriced lines"
+ },
+ "{n} obyektda smeta yo‘q": {
+  "ru": "{n} объектов без сметы",
+  "en": "{n} objects without an estimate"
+ },
+ "{n} ta loyiha": {
+  "ru": "{n} проектов",
+  "en": "{n} projects"
+ },
+ "{n} ta loyihada": {
+  "ru": "в {n} проектах",
+  "en": "in {n} projects"
+ },
+ "{n} ta obyekt": {
+  "ru": "{n} объектов",
+  "en": "{n} objects"
+ },
+ "Foiz faqat smetasi bor obyektlar bo‘yicha": {
+  "ru": "Процент — только по объектам со сметой",
+  "en": "Percentage covers only objects with an estimate"
+ },
+ "ming": {
+  "ru": "тыс.",
+  "en": "K"
+ },
+ "trln": {
+  "ru": "трлн",
+  "en": "tn"
+ }
+}
