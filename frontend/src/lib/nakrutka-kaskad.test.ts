@@ -1,17 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { NAKRUTKA_STANDART, nakrutkaKaskad, pulYaxlitla } from './nakrutka-kaskad';
+import { kategoriyaKf, standartPodval } from './hisob-yadro';
 
 /* Oltin qiymatlar production Supabase'dagi `public.t2_nakrutka_hisobla_v1`
  * (immutable funksiya, 2026-09-23 execute_sql) natijasidan ko'chirilgan.
  * TS port SQL'dan bir tiyin ham farq qilmasligi shart. */
-describe('nakrutka kaskadi — SQL t2_nakrutka_hisobla_v1 bilan paritet', () => {
+describe('nakrutka kaskadi — server shakli, hisob yadrosi orqali (SQL bilan ≤ 0,01)', () => {
   it('A: standart koeffitsientlar, barcha kategoriyalar', () => {
     const r = nakrutkaKaskad({ chel: 906363170.46, mash: 188652881.67, mat: 73766663.54, ob: 115010123, mk: 1234567.89, kab: 17630000.3, bez: 2500000 }, NAKRUTKA_STANDART);
     expect(r).toEqual({
       pryamye: 1283792838.67, tr_mat: 2806833.16, skl_mat: 1409901.17, tr_kab: 264450,
-      itogo1: 1173263900.01, prochie: 211187502, itogo2: 1384451402.01,
-      tr_ob: 2300202.46, zag_ob: 1380121.48, itogo3: 1503141848.95,
-      strax: 4810053.92, risk: 0, itogo4: 1507951902.86, nds: 180954228.34, vsego: 1688906131.21,
+      // Yadro har qadamda ROUND 2 (Excel). SQL faqat oxirida: itogo1 …900,01, itogo2 …402,01, itogo3 …848,95, vsego …131,21 —
+      // farq ≤ 0,01 (yaxlitlash bosqichi, hisob-yadro/paritet.test.ts).
+      itogo1: 1173263900, prochie: 211187502, itogo2: 1384451402,
+      tr_ob: 2300202.46, zag_ob: 1380121.48, itogo3: 1503141848.94,
+      strax: 4810053.92, risk: 0, itogo4: 1507951902.86, nds: 180954228.34, vsego: 1688906131.2,
     });
   });
 
@@ -22,12 +25,15 @@ describe('nakrutka kaskadi — SQL t2_nakrutka_hisobla_v1 bilan paritet', () => 
     expect(r.risk).toBe(44793157.89);
     expect(r.skl_mat).toBe(13077523.32);
     expect(r.tr_kab).toBe(17003698.59);
-    expect(r.itogo1).toBe(1496372809.76);
+    expect(r.itogo1).toBe(1496372809.75); // SQL (oxirida yaxlitlash): …809,76
   });
 
-  it('C: kategoriya koeffitsient jadvali (t2_nakrutka_koef_jadval_v1)', () => {
-    const one = (p: Partial<Record<'chel' | 'mash' | 'mat' | 'ob' | 'mk' | 'kab' | 'bez', number>>) =>
-      nakrutkaKaskad({ chel: 0, mash: 0, mat: 0, ob: 0, mk: 0, kab: 0, bez: 0, ...p }, NAKRUTKA_STANDART).vsego;
+  it('C: kategoriya koeffitsient jadvali (t2_nakrutka_koef_jadval_v1) — yadro Kf (yaxlitlashsiz) 2 xonagacha', () => {
+    // SQL jadvali 1 so'mlik kaskadni OXIRIDA yaxlitlaydi; yadro Kf yaxlitlashsiz — 2 xonada aynan teng.
+    // (1 so'mlik kaskadni har qadamda yaxlitlash 1,32 beradi — shuning uchun Kf kaskad orqali emas, chiziqli olinadi.)
+    const kf = kategoriyaKf(standartPodval(NAKRUTKA_STANDART));
+    const tab: Record<string, number | null> = { chel: kf.ЧЕЛ, mash: kf.МАШ, mat: kf.МАТ, ob: kf.ОБ, mk: kf['М/К'], kab: kf.КАБ, bez: kf['БЕЗ СКЛАД'] };
+    const one = (p: Partial<Record<'chel' | 'mash' | 'mat' | 'ob' | 'mk' | 'kab' | 'bez', number>>) => pulYaxlitla(tab[p.mk ? 'mk' : p.kab ? 'kab' : p.bez ? 'bez' : Object.keys(p)[0]] as number);
     expect(one({ chel: 1 })).toBe(1.33);
     expect(one({ mash: 1 })).toBe(1.33);
     expect(one({ mat: 1 })).toBe(1.42);

@@ -33,7 +33,8 @@ import { xavfsizUpstream } from '../_shared/xato';
 import { azoKompaniyalar, oqishQarori, rpcKompaniyasi } from '../_shared/tenant-oqish';
 import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shared/role-authority';
 import { oraliqgaQosh, oraliqlarniRejala, prefiksYigi } from '../_shared/kalit-oraliq';
-import { otaKeshOl, otaKeshYoz } from '../_shared/ota-kesh';
+/* Ota yozuv kompaniyasi (60 s kesh) — `_shared/ota-kompaniya` (obyekt-paket.ts bilan umumiy). */
+import { otaKompaniyasi } from '../_shared/ota-kompaniya';
 import { versiyaFiltri } from '../_shared/versiya-oqish';
 
 /* Faqat shu jadvallar o'qiladi. Yangi jadval kerak bo'lsa SHU YERGA va `_shared/tenant-oqish.ts` dagi
@@ -138,25 +139,6 @@ const RUXSAT_JADVALLAR = new Set([
 
 /** Bitta `/api/sb` o'qishining vaqt byudjeti (ms). Oshsa — log + `sekin: true`. */
 const TEZLIK_BYUDJETI_MS = 3000;
-
-/** Ota yozuvning (obyekt / loyiha / viborka) kompaniyasi — 60 s kesh (`_shared/ota-kesh`), keyin baza. */
-async function otaKompaniyasi(env: { SUPABASE_URL: string; SUPABASE_KEY: string }, jadval: string, id: number): Promise<number | null> {
-  const bor = otaKeshOl(jadval, id);
-  if (bor != null) return bor;
-  const k = await otaKompaniyasiBazadan(env, jadval, id);
-  if (k != null) otaKeshYoz(jadval, id, k);
-  return k;
-}
-
-async function otaKompaniyasiBazadan(env: { SUPABASE_URL: string; SUPABASE_KEY: string }, jadval: string, id: number): Promise<number | null> {
-  const r = await fetch(
-    supabaseBaseUrl(env.SUPABASE_URL) + '/rest/v1/' + jadval + '?select=kompaniya_id&id=eq.' + id + '&limit=1',
-    { headers: { apikey: env.SUPABASE_KEY, Authorization: 'Bearer ' + env.SUPABASE_KEY } });
-  if (!r.ok) throw new Error('OTA_OQILMADI');
-  const rows = await r.json() as Array<{ kompaniya_id?: number | null }>;
-  const k = Array.isArray(rows) && rows[0] ? Number(rows[0].kompaniya_id) : NaN;
-  return Number.isSafeInteger(k) && k > 0 ? k : null;
-}
 
 export const onRequestPost: PagesFunction<{
   SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string;

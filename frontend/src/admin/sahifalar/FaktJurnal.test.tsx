@@ -10,6 +10,8 @@ vi.mock('../../api/t2-bajarilmadi', async (orig) => ({ ...(await orig<typeof imp
 const abc = vi.hoisted(() => ({ ochir: vi.fn() }));
 vi.mock('../../api/t2-ish-abc', () => ({ ishTuriQidir: vi.fn(async () => []), resursQidir: vi.fn(async () => []), narxTakliflari: vi.fn(async () => []), ishAbcSaqla: vi.fn(), ishAbcTahrir: vi.fn(), ishAbcOchir: abc.ochir, abcXato: () => '' }));
 
+const hq = vi.hoisted(() => ({ ol: vi.fn(async () => ({ ok: true, qatorlar: [{ qator_id: 2, fakt_hajm: 40 }, { qator_id: 3, fakt_hajm: 0 }, { qator_id: 5, fakt_hajm: 0 }] as unknown[] })) }));
+vi.mock('../../api/t2-holat-qisman', () => ({ sbT2QatorHolatQisman: hq.ol, sbT2DaraxtQisman: vi.fn() }));
 const zb = vi.hoisted(() => ({ ol: vi.fn(async () => ({ almashtiradi: new Map<number, number>(), almashtirilgan: new Map<number, number>() })) }));
 vi.mock('../../lib/fakt-zamena-boglanish', () => ({ zamenaBoglanishOl: zb.ol }));
 
@@ -124,11 +126,51 @@ describe('FaktJurnal', () => {
     expect(screen.queryByTestId('qamrov-urinish')).toBeNull();
   });
 
-  it('Qamrov %: ish qatoridagi «%» tugmasi va katakda «%» — faqat shu ish', () => {
+  it('Qamrov %: ish qatoridagi «%» tugmasi — faqat shu ish (katakda «%» endi oyna ochmaydi)', () => {
     render(<FaktJurnal {...props()} />);
     fireEvent.keyDown(screen.getByLabelText('Bugun bajarildi: Qum'), { key: '%' });
+    expect(screen.queryByRole('dialog', { name: 'Qamrov %' })).toBeNull();
+    fireEvent.click(screen.getAllByTestId('qamrov-ish')[0]);
     expect(screen.getByRole('dialog', { name: 'Qamrov %' }).textContent).toMatch(/Grunt/);
     expect(screen.getByTestId('qamrov-jami').textContent).toMatch(/2 qator yoziladi/);
+  });
+
+  it('foiz: katakda «50%» va «Jami %» chiplari — oynasiz, qoralamada, bitta saqlash; orqaga', async () => {
+    m.yoz.mockResolvedValue({ ok: true });
+    render(<FaktJurnal {...props()} />);
+    fireEvent.change(screen.getByLabelText('Bugun bajarildi: Grunt'), { target: { value: '10%' } });
+    expect(screen.getByText('1 ta o‘zgarish')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Ko‘rinadigan ishlar: jami 75%' }));
+    expect((screen.getByLabelText('Jami fakt: Grunt') as HTMLInputElement).value).toBe('75%');
+    expect((screen.getByLabelText('Jami fakt: Qum') as HTMLInputElement).value).toBe('75%');
+    expect(screen.queryByRole('dialog')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /^Orqaga/ }));
+    expect((screen.getByLabelText('Bugun bajarildi: Grunt') as HTMLInputElement).value).toBe('10%');
+    fireEvent.click(screen.getByRole('button', { name: 'Ko‘rinadigan ishlar: jami 75%' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Saqlash/ }));
+    await waitFor(() => expect(m.yoz).toHaveBeenCalledTimes(1));
+    // Grunt: 75 − 40 = 35; Qum: 7.5 − 0 (fakt F2 dan kam bo'lishi mumkin — MAX yo'q)
+    expect(m.yoz.mock.calls[0][0].qatorlar).toEqual([{ qator_id: 2, hajm: 35 }, { qator_id: 3, hajm: 7.5 }]);
+    expect(hq.ol).toHaveBeenCalledWith(8, [2, 3]);
+  });
+
+  it('foiz: CAS — server fakti o‘zgargan bo‘lsa «jami» saqlanmaydi', async () => {
+    hq.ol.mockResolvedValueOnce({ ok: true, qatorlar: [{ qator_id: 2, fakt_hajm: 41 }] });
+    const p = props();
+    render(<FaktJurnal {...p} />);
+    fireEvent.click(screen.getAllByRole('button', { name: '=' })[0]);
+    fireEvent.change(screen.getByLabelText('Jami fakt: Grunt'), { target: { value: '50%' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Saqlash/ }));
+    await waitFor(() => expect(m.toast).toHaveBeenCalledWith(expect.stringMatching(/o‘zgargan/), 'danger', undefined, 9000));
+    expect(m.yoz).not.toHaveBeenCalled();
+    expect(p.holatniYangila).toHaveBeenCalledWith([2]);
+  });
+
+  it('foiz: Excel ustunini joylash — pastga ketma-ket', () => {
+    render(<FaktJurnal {...props()} />);
+    fireEvent.paste(screen.getByLabelText('Bugun bajarildi: Grunt'), { clipboardData: { getData: () => '5\n2,5\n' } });
+    expect((screen.getByLabelText('Bugun bajarildi: Grunt') as HTMLInputElement).value).toBe('5');
+    expect((screen.getByLabelText('Bugun bajarildi: Qum') as HTMLInputElement).value).toBe('2,5');
   });
 
   it('boshqa bo‘lim tanlanadi; qidiruv butun obyekt bo‘yicha', () => {

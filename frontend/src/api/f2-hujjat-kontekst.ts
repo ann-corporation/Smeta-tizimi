@@ -4,7 +4,7 @@
  */
 import { shartnomaLiniyaOl } from './t2-shartnoma-liniya';
 import { t2ObyektNakrutka, type NakrutkaKoeffitsientlar } from './t2-nakrutka';
-import { obyektPodvali } from './t2-nakrutka-podval';
+import { obyektPodvaliOqi, ustamaKontekstXatosi } from './t2-nakrutka-podval';
 import { obyektImzoNomlari, shartnomaImzoNomlari } from '../lib/obyekt-imzochi';
 import { obyektImzochilarOl } from './obyekt-imzochi';
 import { kompaniyaSozlamaOl } from './kompaniya-sozlama';
@@ -13,7 +13,9 @@ import type { Podval } from '../lib/nakrutka-konstruktor';
 import type { SvodYaxlit } from '../lib/svod-yaxlit';
 
 /** svodYaxlit — smeta darajasidagi hujjatlar (LRV) uchun; tasdiqlangan F2 hujjati undan foydalanmaydi. */
-export type F2HujjatKonteksti = { imzo: ImzoNomlar; shartnoma: string | null; nakrutka: Partial<NakrutkaKoeffitsientlar> | null; podval: Podval | null; svodYaxlit?: SvodYaxlit | null };
+export type F2HujjatKonteksti = { imzo: ImzoNomlar; shartnoma: string | null; nakrutka: Partial<NakrutkaKoeffitsientlar> | null; podval: Podval | null; svodYaxlit?: SvodYaxlit | null; nkManba?: string | null;
+  /** Ustama/podval o'qilmadi — sabab (smeta darajasidagi hujjatlar bloklanadi; null — hammasi o'qildi). */
+  xato?: string | null };
 
 /**
  * Imzo: obyektdagi tayinlangan imzochi > shartnoma tomoni > bo'sh; tuzuvchi/tekshiruvchi — kompaniya sukuti.
@@ -36,8 +38,11 @@ export async function f2HujjatKonteksti(kompaniyaId: number, obyektId: number): 
     shartnoma: liniya?.ok ? shartnomaImzoNomlari(liniya.natija, obyektId) : null,
     kompaniya: sukut && typeof sukut === 'object' ? sukut as ImzoNomlar : null,
   });
-  const podval = await obyektPodvali(kompaniyaId, obyektId, nk?.ok ? nk.shartnoma_id : null);
-  return { imzo, shartnoma, nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval, svodYaxlit: nk?.ok ? nk.svod_yaxlit ?? null : null };
+  // «Podval yo'q» va «o'qilmadi» farqlanadi: o'qish xatosi xato da (jim standartga tushilmaydi).
+  const pod = nk?.ok ? await obyektPodvaliOqi(kompaniyaId, obyektId, nk.shartnoma_id ?? null, nk.nakrutka_podval_id ?? null) : null;
+  const podval = pod?.ok ? pod.podval : null;
+  return { imzo, shartnoma, nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval, svodYaxlit: nk?.ok ? nk.svod_yaxlit ?? null : null, nkManba: nk?.ok ? nk.nk_manba ?? null : null,
+    xato: ustamaKontekstXatosi(nk, pod) };
 }
 
 /** F2 hujjati "kimligi" — bir xil F2 (obyekt + oy + raqam) uchun token bir marta olinadi, qayta chiqarish bepul. */

@@ -6,6 +6,7 @@
  *   ruxsatlar: /api/boshqaruv (faqat superadmin) bolim=tizim_ruxsat, amal=tizim_ruxsat_ber / tizim_ruxsat_ol.
  * Hech qanday pul summasi kelmaydi — faqat sonlar, vaqtlar, matnlar.
  */
+import { vaqtliOqish } from './vaqtli-fetch';
 import { useQuery } from '@tanstack/react-query';
 import { boshqaruvOqi, type BFoydalanuvchi } from './t2-boshqaruv';
 
@@ -59,7 +60,7 @@ export type TizimNatija<T> = { ok: true; natija: T } | { ok: false; code?: strin
 
 async function sbOqi<T>(body: Record<string, unknown>): Promise<TizimNatija<T>> {
   try {
-    const r = await fetch('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const r = await vaqtliOqish('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const j = await r.json() as { ok: boolean; natija?: (T & { ok?: boolean; code?: string }) | null; error?: string; code?: string };
     if (!j.ok || !j.natija) return { ok: false, code: j.code, error: j.error || j.code || 'So‘rov bajarilmadi' };
     if (j.natija.ok === false) return { ok: false, code: j.natija.code, error: j.natija.code || 'Rad etildi' };

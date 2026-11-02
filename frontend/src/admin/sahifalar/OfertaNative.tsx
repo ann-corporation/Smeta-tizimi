@@ -303,7 +303,9 @@ function Sessiya() {
         hisoblangan += xlsxYacheykaSoni(n.bytes, isZip(o.fayl.bytes) ? o.fayl.bytes : await xlsdanXlsx(o.fayl.bytes));
         // Oferta LRV — F2 shaklida (to'liq bo'lim ierarxiyasi, oferta narxlari, jonli formulalar, nakrutka jadvali).
         if (o.fayl.lrv) {
-          const l = await ofertaLrvHujjati({ lrvVaraqNomi: o.fayl.lrv.nom, rows: o.fayl.lrv.rows, natijalar: o.hisob.qatorlar, obyektNomi: o.fayl.nom, nk: o.hisob.koeffitsientlar, imzo });
+          const l = await ofertaLrvHujjati({ lrvVaraqNomi: o.fayl.lrv.nom, rows: o.fayl.lrv.rows, natijalar: o.hisob.qatorlar, obyektNomi: o.fayl.nom, nk: o.hisob.koeffitsientlar, imzo,
+            // Oferta obyektga bog'lanmagan: podval yo'q — standart kaskad (oferta koeffitsientlari), manba — oferta hisobi.
+            podval: null, nkManba: null });
           if (l) {
             natijalar.push({ nom: l.faylNomi, bytes: l.bytes, saqlanish: 'toliq' });
             hisoblangan += xlsxYacheykaSoni(l.bytes);

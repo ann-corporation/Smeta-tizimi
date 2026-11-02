@@ -28,6 +28,7 @@ import { strToU8, zipSync, type Zippable } from 'fflate';
 import { BARQAROR_VAQT } from './kitob';
 import { num, sheetRef, ustunHarfi, xmlEsc } from './ooxml';
 import { sumRefs } from './formula';
+import { yaxlit2 as yadroYaxlit2 } from '../hisob-yadro/yaxlit';
 import { IMZO_IMZO_CHIZIQ, IMZO_IZOH, IMZO_IZOH_SHAXS, IMZO_MP, IMZO_PODPIS, imzoMatni, imzoMuhrli, type ImzoTomon } from './imzo';
 
 /** Barcha rasmiy hujjatlar kolontituli — tizim nomi (egasi: hujjatlarda tizim reklamasi bo'lsin). */
@@ -723,8 +724,5 @@ export function sumFormula(harf: string, qatorlar: readonly number[]): string | 
 /** Pul yaxlitlash — Excel ROUND(x;2) bilan bir xil: yarmi noldan uzoqqa,
  * 15 muhim raqamgacha tozalab (1,005 → 1,01; −2,345 → −2,35). */
 export function yaxlit2(x: number): number {
-  if (!Number.isFinite(x)) return x;
-  const a = Number((Math.abs(x) * 100).toPrecision(15));
-  const r = Math.round(a) / 100;
-  return x < 0 ? -r : r;
+  return yadroYaxlit2(x);
 }

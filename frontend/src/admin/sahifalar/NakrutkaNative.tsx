@@ -23,6 +23,15 @@ import { PodvalKonstruktor } from './PodvalKonstruktor';
 import { NakrutkaManbaChip } from './SmetaPodvalNakrutka';
 import type { SvodYaxlit } from '../../lib/svod-yaxlit';
 import { shartnomaSmetaFarqlari } from '../../lib/nakrutka-smetadan';
+import { kategoriyaKf, standartPodval } from '../../lib/hisob-yadro';
+
+/** Kf jadvali — yadrodan (yaxlitlanmagan, hujjatdagi Kf bilan bir xil); server `jadval` (round 2) ishlatilmaydi. Noma'lum — 0 emas, ko'rsatilmaydi. */
+function koreJadval(nk: Partial<NakrutkaKoeffitsientlar>): NakrutkaKategoriyaJadval {
+  const kf = kategoriyaKf(standartPodval(nk));
+  const j: Partial<NakrutkaKategoriyaJadval> = {};
+  for (const [k, v] of Object.entries(kf)) if (v != null) j[(k === 'БЕЗ СКЛАД' ? 'БЕЗСКЛАД' : k) as keyof NakrutkaKategoriyaJadval] = v;
+  return j as NakrutkaKategoriyaJadval;
+}
 
 /**
  * T1->T2 PTO gap-close: NAKRUTKA (markup/overhead) sahifasi -- T1 GAS'ning
@@ -151,7 +160,7 @@ function ObyektKaskad({ companyId, obyektId, contractId }: { companyId: number; 
     void t2ObyektNakrutka(obyektId, contractId).then(r => {
       if (!active) return;
       if (!r.ok) { setXato(r.error || r.code || 'Hisoblanmadi'); setCats(null); setKaskad(null); setJadval(null); return; }
-      setCats(r.cats ?? null); setKaskad(r.nakrutka ?? null); setJadval(r.jadval ?? null); setManba(r.nk_manba ?? null); setSvodYaxlit(r.svod_yaxlit ?? null);
+      setCats(r.cats ?? null); setKaskad(r.nakrutka ?? null); setJadval(r.koeffitsientlar ? koreJadval(r.koeffitsientlar) : null); setManba(r.nk_manba ?? null); setSvodYaxlit(r.svod_yaxlit ?? null);
       setUstunlik(null);
       if (r.nk_manba === 'smeta_podvali' && r.koeffitsientlar) {
         const amaldagi = r.koeffitsientlar;

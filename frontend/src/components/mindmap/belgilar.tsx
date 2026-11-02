@@ -39,14 +39,16 @@ export function Bajarilish({ faktFoiz, f2Foiz, katta = false, smetaBor = true, m
     );
   }
   const f2 = Math.max(0, Math.min(100, f2Foiz ?? 0));
-  const fakt = Math.max(f2, Math.min(100, faktFoiz ?? 0));
+  // Fakt yozilganidek (F2 bilan MAX yo'q): F2 dan ortiq bajarilgan qism alohida bo'lak; fakt < F2 bo'lsa bo'lak yo'q.
+  const fakt = Math.min(100, Math.max(0, faktFoiz ?? 0));
+  const ortiq = fakt > f2 ? fakt - f2 : 0;
   const oshgan = (faktFoiz ?? 0) > 100 || (f2Foiz ?? 0) > 100;
   return (
     <div className={'fz-meter' + (katta ? ' fz-meter--lg' : '') + (oshgan ? ' fz-meter--over' : '')}
       role="img" aria-label={t('F2: {f2} · bajarilgan: {fakt}', { f2: foizMatn(f2Foiz), fakt: foizMatn(faktFoiz) })}>
       <div className="fz-meter__t">
         <i className="fz-meter__shu" style={{ width: f2 + '%' }} />
-        <i className="fz-meter__fakt" style={{ width: (fakt - f2) + '%' }} />
+        <i className="fz-meter__fakt" style={{ width: ortiq + '%' }} />
       </div>
       <span className="fz-meter__f">{matn ?? foizMatn(f2Foiz)}</span>
     </div>

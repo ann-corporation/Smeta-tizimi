@@ -71,7 +71,7 @@ describe('F2 AI vositalari — sahifa hisobidan, to‘qimasdan', () => {
   it('hajm va faktdan olish tekshiruvi; uchastka bo‘limlari', () => {
     const m = qur(bosKiritma()); const nr: NarxRuxsat = new Map();
     expect(f2AmalTekshir(m, { tur: 'f2_hajm', qator: 3, qiymat: '1', izoh: '' }, nr)).toMatch(/Avtomatik/);
-    expect(f2AmalTekshir(m, { tur: 'f2_hajm', qator: 2, qiymat: '0', izoh: '' }, nr)).toMatch(/musbat/);
+    expect(f2AmalTekshir(m, { tur: 'f2_hajm', qator: 2, qiymat: '0', izoh: '' }, nr)).toMatch(/minus ham mumkin/);
     expect(f2AmalTekshir(m, { tur: 'f2_hajm', qator: 2, qiymat: '6', izoh: '' }, nr)).toBeNull();
     expect(f2AmalTekshir(m, { tur: 'f2_hajm', qator: 777, qiymat: '6', izoh: '' }, nr)).toMatch(/topilmadi/);
     expect(f2AmalTekshir(m, { tur: 'faktdan_ol', qator: null, qiymat: 'U5', izoh: '' }, nr)).toBeNull();

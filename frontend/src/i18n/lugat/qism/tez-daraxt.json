@@ -1,0 +1,7 @@
+{
+  "Bu obyekt joriy kompaniya ro‘yxatida topilmadi. Yuqoridan obyektni tanlang.": { "ru": "Этот объект не найден в списке текущей компании. Выберите объект выше.", "en": "This object is not in the current company's list. Select an object above." },
+  "Obyektlar kanonik ro‘yxatdan o‘qilmadi.": { "ru": "Список объектов не загружен.", "en": "The object list could not be loaded." },
+  "obyekt joriy kompaniya ro‘yxatida hali tasdiqlanmadi": { "ru": "объект ещё не подтверждён в списке текущей компании", "en": "the object is not yet confirmed in the current company's list" },
+  "qo‘shimcha/zamena belgilari o‘qilmadi — sahifani yangilang": { "ru": "пометки доп. работ/замен не загружены — обновите страницу", "en": "additional/replacement markers were not loaded — refresh the page" },
+  "smeta server bilan tekshirilmoqda — biroz kuting": { "ru": "смета сверяется с сервером — подождите немного", "en": "the estimate is being checked against the server — please wait" }
+}
