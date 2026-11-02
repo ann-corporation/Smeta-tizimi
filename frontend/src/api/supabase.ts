@@ -22,8 +22,10 @@
  * xato turi.
  */
 
-import { t2ToliqOqi, t2ToliqOqiParallel } from './t2-toliq-oqish';
+import { t2ToliqOqiParallel } from './t2-toliq-oqish';
+import { obyektlarEskirdi } from './obyektlar-kesh-belgi';
 import { ogirYuklashKut } from './ogir-sorov-navbat';
+import { lrvPozitsiyaRaqamlari, ozgarishBor, ozgarishXaritasi } from '../lib/lrv-ozgarish';
 
 export type SbJavob<T> = {
   ok: boolean;
@@ -51,6 +53,9 @@ export type SbSoro = {
   ustunlar?: string;
   tartib?: string;
   limit?: number;
+  /** Smeta versiyasi (2026-10-29): `t2_qator` shlyuzda SUKUT bo'yicha faqat faol versiya. `'tarix'` — aniq opt-in:
+   *  almashtirilgan (eski) qatorlar ham (F2/fakt tarixi, pereraschet, to'liq eksport). `id=eq./in.` qidiruvi doim barcha versiya. */
+  versiya?: 'faol' | 'tarix';
 };
 
 /* Egasi (2026-10-02): fakt saqlashda tugma 10 daqiqa «Saqlanmoqda…» da qotdi — server yozib bo'lgan, javob esa yo'lda
@@ -180,6 +185,7 @@ export function sbDaraxtQur(qatorlar: SbHolatQator[]): SbTugun[] {
  * daraxt varaq/qator TARTIBI bo'yicha tiklanadi.
  * ══════════════════════════════════════════════════════════════════ */
 import type { TreeNode } from './types';
+import { f2MumkinIshorali, faktSummaF2Narxda } from '../lib/hisob-yadro';
 
 export function sbTreeQur(qatorlar: SbHolatQator[]): TreeNode[] {
   const son = (v: unknown) => Number(v) || 0;
@@ -201,7 +207,7 @@ export function sbTreeQur(qatorlar: SbHolatQator[]): TreeNode[] {
     /* ⚠️ `f2mum` (F2 mumkin = fakt − f2ol) jadvalda SAQLANMAYDI.
        O'zimiz to'qib chiqarmaymiz — mavjud ikki ustundan hisoblaymiz,
        bu GAS dagi ta'rif bilan bir xil. */
-    f2mum: Math.max(0, son(r.fakt) - son(r.f2ol)),
+    f2mum: f2MumkinIshorali(son(r.fakt), son(r.f2ol), son(r.smeta_hajm)) ?? 0, // ishorali: manfiy qator nolga tushirilmaydi
     stFakt: son(r.st_fakt),
     stF2: son(r.st_f2),
     children: [],
@@ -339,10 +345,19 @@ export type T2Qator = {
   versiya: number;
   raqam: string | null;
   norma: number | null;
+  /** `t2_qator.change_type` (NULL — asl smeta, 'ADDITIONAL', 'REPLACEMENT'). `t2_daraxt` view'ida yo'q —
+   *  daraxt yo'lida `api/t2-ozgarish` bilan alohida o'qib qo'shiladi (LRV belgilari, faqat ko'rsatish). */
+  change_type?: string | null;
+  /** Zamena qatori → u almashtirgan asl qator id (`t2_qator.replaces_line_id`). */
+  replaces_line_id?: number | null;
+  /** Faqat almashtirilgan (avvalgi) versiya qatorlarida: uni almashtirgan `t2_smeta_versiya.id`. */
+  almashtirgan_versiya_id?: number | null;
 };
 
+/** Katta obyektda kalit (qator_id) oynalari PARALLEL o'qiladi — natija ketma-ket o'qish bilan aynan bir xil
+ *  (qator_id bo'yicha o'sish tartibi, to'liqlik tekshiruvi; xato bo'lsa ketma-ket yo'lga qaytadi). */
 export function sbT2QatorHolatOl(obyektId: number, ustunlar?: string) {
-  return t2ToliqOqi<T2QatorHolat>(sbOqi, {
+  return t2ToliqOqiParallel<T2QatorHolat>(sbOqi, {
     jadval: 't2_qator_holat',
     filtr: 'obyekt_id=eq.' + obyektId,
     limit: 200000,
@@ -396,6 +411,16 @@ export async function sbT2DaraxtOl(obyektId: number, ustunlar?: string) {
  *
  * Bu yerda TAXMIN YO'Q: bog'lanish bazadan keladi.
  */
+/**
+ * «F2 ga olish mumkin» (pul), ishorali: fakt summasi F2 narxida qayta hisoblangan bo'lsa — yadro bilan qayta (server qiymati
+ * smeta narxida); aks holda server `f2_mumkin_summa`, u bo'lmasa yadro. NULL — NULL.
+ */
+function f2MumkinSumma(h: T2QatorHolat, smetaHajm: number | null): number | null {
+  const fr = faktSummaF2Narxda(h.fakt_hajm, h.f2_hajm, h.f2_summa, h.fakt_summa);
+  if (fr.manba === 'fakt' && h.f2_mumkin_summa != null) return h.f2_mumkin_summa;
+  return f2MumkinIshorali(fr.summa, h.f2_summa, smetaHajm);
+}
+
 export function sbT2TreeQur(qatorlar: T2Qator[], holatlar?: T2QatorHolat[]): TreeNode[] {
   const son = (v: unknown): number | null => {
     if (v == null || String(v).trim() === '') return null;
@@ -436,13 +461,14 @@ export function sbT2TreeQur(qatorlar: T2Qator[], holatlar?: T2QatorHolat[]): Tre
          yig'iladi. Uni nolga tushirish native LRVda "F2 olish mumkin"
          qiymatini noto'g'ri kattalashtirib yuborardi. */
       f2ol: h ? h.f2_hajm : 0,
-      f2mum: h ? (h.f2_mumkin_hajm ?? Math.max(0, h.fakt_hajm - h.f2_hajm)) : 0,
-      stFakt: h ? h.fakt_summa : 0,
+      f2mum: h ? (h.f2_mumkin_hajm ?? f2MumkinIshorali(h.fakt_hajm, h.f2_hajm, son(r.hajm)) ?? 0) : 0,
+      // Narx qoidasi (yadro): tasdiqlangan F2 bor qatorda fakt summasi F2 birlik narxida; NULL — NULL.
+      stFakt: h ? faktSummaF2Narxda(h.fakt_hajm, h.f2_hajm, h.f2_summa, h.fakt_summa).summa : 0,
       stF2: h ? h.f2_summa : 0,
       stOst: h ? h.qoldiq_summa : son(r.summa),
       /* `f2mum` hajm ustuni bilan bir xil qoida — bazadagi tayyor
          `f2_mumkin_summa`, u bo'lmasa fakt-f2 (manfiy bo'lmasin). */
-      stF2Mum: h ? (h.f2_mumkin_summa ?? Math.max(0, h.fakt_summa - h.f2_summa)) : 0,
+      stF2Mum: h ? f2MumkinSumma(h, son(r.hajm)) : 0,
       faktHajm: h ? h.fakt_hajm : 0,
       qoldiqHajm: h ? h.qoldiq_hajm : son(r.hajm),
       qoldiqSumma: h ? h.qoldiq_summa : son(r.summa),
@@ -451,6 +477,25 @@ export function sbT2TreeQur(qatorlar: T2Qator[], holatlar?: T2QatorHolat[]): Tre
       zamena: Boolean(r.zamena),
       children: [],
     });
+  }
+
+  /* 1b: qo'shimcha / zamena belgilari (egasi 2026-10-29) — faqat change_type ma'lum bo'lsa. */
+  if (ozgarishBor(qatorlar)) {
+    const oz = ozgarishXaritasi(qatorlar);
+    const poz = lrvPozitsiyaRaqamlari(qatorlar);
+    const nomi = new Map(qatorlar.map((r) => [r.id, r.nom ?? ''] as const));
+    const hav = (id: number) => ({ id, poz: poz.get(id) ?? null, nom: nomi.get(id) ?? '' });
+    for (const r of qatorlar) {
+      const n = xarita.get(r.id)!;
+      const x = oz.get(r.id)!;
+      n.ozgarishGuruh = x.guruh;
+      n.ozgarishOzi = x.ozi;
+      n.lrvPoz = poz.get(r.id) ?? null;
+      n.isQosh = x.guruh === 'qoshimcha';
+      n.isZamena = x.guruh === 'zamena';
+      n.almashtiradi = x.almashtiradi != null ? hav(x.almashtiradi) : null;
+      if (x.almashtirilgan.length) n.almashtirganlar = x.almashtirilgan.map(hav);
+    }
   }
 
   /* 2-o'tish: ota-bola bog'lash */
@@ -1042,6 +1087,7 @@ export async function sbObyektOchirish(id: number, nomi: string): Promise<any> {
     body: JSON.stringify({ amal: 'korzinkaga_tashlash', jadval: 't2_obyekt', id })
   });
   const data = await res.json();
+  obyektlarEskirdi();
 
   // 2. Drive'da trash qutisiga ko'chirish
   fetch('/api/gas', {
@@ -1078,7 +1124,9 @@ export async function sbT2ObyektYarat(p: { kompaniyaId: number; loyihaId?: numbe
       nom: p.nom, operation_id: p.operationId || yangiOperationId(),
     }),
   });
-  return await res.json();
+  const j = (await res.json()) as { ok: boolean; obyekt_id?: number; code?: string; error?: string; xato?: string };
+  obyektlarEskirdi();
+  return j;
 }
 
 /** T2-PTO-OWNER-CRITICAL-CLOSURE: resurs kategoriya (ЧЕЛ/МАШ/МАТ/ОБ/М/К/КАБ/БЕЗСКЛАД)
@@ -1104,6 +1152,7 @@ export async function sbObyektTahrirlash(id: number, nomi: string, tur: string):
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ amal: 'obyekt_yangila', id, nomi, tur })
   });
+  obyektlarEskirdi();
   
   // Drive'da nomini yangilash
   fetch('/api/gas', {
@@ -1121,6 +1170,7 @@ export async function sbKorzinkadanTiklash(jadval: string, id: number, nomi: str
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ amal: 'korzinkadan_tiklash', jadval, id })
   });
+  obyektlarEskirdi();
   
   fetch('/api/gas', {
     method: 'POST',
@@ -1137,6 +1187,7 @@ export async function sbButunlayOchirish(jadval: string, id: number, nomi: strin
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ amal: 'butunlay_ochirish', jadval, id })
   });
+  obyektlarEskirdi();
   
   fetch('/api/gas', {
     method: 'POST',

@@ -3,6 +3,7 @@
  * (yangi smeta yuklanishi bilan avtomatik kengayadi) + katalog; narx takliflari; ШНК tuzilishida saqlash.
  * O'qish: /api/sb (OQISH_RPC, GET → faqat stable funksiyalar). Yozish: /api/sb-yoz `ish_abc_saqla_v1`.
  */
+import { vaqtliOqish } from './vaqtli-fetch';
 import { yozAmali, type AktNatija } from './supabase';
 
 export type Kat = 'ЧЕЛ' | 'МАШ' | 'МАТ' | 'ОБ';
@@ -24,7 +25,7 @@ export type NarxVariant = { manba: NarxManba; narx: number; izoh: string };
 
 async function soroOqi<T>(body: Record<string, unknown>): Promise<T | null> {
   try {
-    const r = await fetch('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const r = await vaqtliOqish('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const j = await r.json() as { ok: boolean; natija?: T };
     return j.ok ? (j.natija ?? null) : null;
   } catch { return null; }
@@ -100,8 +101,8 @@ export function abcXato(r: { error?: string; xabar?: string; code?: string } | n
   if (/F2_DA/.test(m)) return 'Bu qator F2 aktida — avval F2 ni bekor qiling.';
   if (/BOGLANGAN/.test(m)) return 'Qatorga АОСР / laboratoriya / narx dalili bog‘langan — avval ularni yeching.';
   if (/STALE_VERSION/.test(m)) return 'Smeta shu orada o‘zgargan — jadvalni yangilab qayta urinib ko‘ring.';
-  if (/RESURS_INVALID/.test(m)) return 'Har resursda nom, birlik va norma yoki aniq hajm (> 0) bo‘lishi shart.';
-  if (/ISH_HAJM_REQUIRED/.test(m)) return 'Ish hajmi (> 0) kiritilmagan.';
+  if (/RESURS_INVALID/.test(m)) return 'Har resursda nom, birlik va norma (> 0) yoki aniq hajm (0 dan farqli) bo‘lishi shart.';
+  if (/ISH_HAJM_REQUIRED/.test(m)) return 'Ish hajmi kiritilmagan yoki 0 (minus ham mumkin).';
   if (/TREE_STRUCTURE_INVALID|REPLACEMENT_SCOPE_INVALID/.test(m)) return 'Tanlangan bo‘lim yoki qator bu amal uchun mos emas.';
   if (/WRITE_ROLE_REQUIRED/.test(m)) return 'Bu amal uchun PTO, rahbar yoki admin roli kerak.';
   return r?.error || r?.xabar || r?.code || 'Saqlab bo‘lmadi.';

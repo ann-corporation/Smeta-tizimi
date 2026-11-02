@@ -70,13 +70,14 @@ export function abcTekshir(p: { rejim: 'ish' | 'resurs'; ish?: { nom: string; bi
   if (p.rejim === 'ish') {
     if (!p.ish?.nom.trim()) x.push({ joy: 'ish', matn: 'Ish turi nomi kiritilmagan' });
     if (!p.ish?.birlik.trim()) x.push({ joy: 'ish', matn: 'Ish birligi kiritilmagan' });
-    const h = son(p.ish?.hajm); if (h == null || h <= 0) x.push({ joy: 'ish', matn: 'Ish hajmi > 0 bo‘lishi kerak' });
-    const f = son(p.fakt ?? ''); if (p.fakt?.trim() && (f == null || f < 0)) x.push({ joy: 'fakt', matn: 'Bajarilgan hajm noto‘g‘ri' });
+    // Minus normal (noto'g'ri olingan hajmni yopish/tuzatish) — faqat 0 rad etiladi.
+    const h = son(p.ish?.hajm); if (h == null || h === 0) x.push({ joy: 'ish', matn: 'Ish hajmi 0 dan farqli bo‘lishi kerak (minus ham mumkin)' });
+    const f = son(p.fakt ?? ''); if (p.fakt?.trim() && f == null) x.push({ joy: 'fakt', matn: 'Bajarilgan hajm noto‘g‘ri' });
   } else if (p.resurslar.length !== 1) x.push({ joy: 'resurs', matn: 'Bitta yangi resurs tanlang' });
   p.resurslar.forEach((r, i) => {
     if (!r.nom.trim() || !r.birlik.trim()) x.push({ joy: `r${i}`, matn: `${i + 1}-resurs: nom va birlik kerak` });
     const n = son(r.norma); const hj = son(r.hajm ?? '');
-    if (!((n != null && n > 0) || (hj != null && hj > 0))) x.push({ joy: `r${i}`, matn: `${i + 1}-resurs: norma yoki aniq hajm > 0 bo‘lishi kerak` });
+    if (!((n != null && n > 0) || (hj != null && hj !== 0))) x.push({ joy: `r${i}`, matn: `${i + 1}-resurs: norma (> 0) yoki aniq hajm (0 dan farqli) bo‘lishi kerak` });
     const pr = son(r.narx); if (r.narx.trim() && (pr == null || pr < 0)) x.push({ joy: `r${i}`, matn: `${i + 1}-resurs: narx noto‘g‘ri` });
   });
   if (!p.sabab.trim()) x.push({ joy: 'sabab', matn: 'Sabab majburiy' });

@@ -14,7 +14,6 @@
  *     laboratoriya kompaniyasi hujjati, АОСР ga bog'langan).
  *   - Kompaniya logosi chap yuqori burchakda; kolontitulda tizim nomi.
  */
-import ExcelJS from 'exceljs';
 
 export type AosrKomissiyaRol = 'smo' | 'subpudratchi' | 'bosh_pudratchi' | 'texnadzor' | 'loyihachi' | 'boshqa';
 
@@ -137,6 +136,7 @@ const SHRIFT = 'Times New Roman';
 const USTUN_ENI = [11.8, 9.2, 9.2, 13, 9.2, 9.2, 17.3, 2.2, 9.2, 20, 15.6];
 
 export async function aosrExcel(k: AosrKirish): Promise<Uint8Array> {
+  const ExcelJS = (await import('exceljs')).default; // og'ir kutubxona — faqat eksportda yuklanadi
   const wb = new ExcelJS.Workbook();
   wb.creator = 'Smeta tizimi';
   const nom = `АОСР ${toza(k.raqam) || 'б-н'}`.replace(/[\\/?*[\]:]/g, '_').slice(0, 31);

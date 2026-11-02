@@ -1,3 +1,4 @@
+import { qqsBilan, qqsFormulasi, qqsSumma } from '../hisob-yadro';
 /**
  * «ВЕДОМОСТЬ ВЫПОЛНЕННЫХ РАБОТ, ИСКЛЮЧЁННЫХ (СОКРАЩЁННЫХ) ЭКСПЕРТИЗОЙ» — da'vo ro'yxati rasmiy hujjati (egasi 2026-10-26:
  * ekspertiza kesgan, lekin qurilgan hajm — fakt, himoya qilinadi). Hujjat standarti (RasmiyVaraq): rus tilida, narx NDS SIZ,
@@ -90,9 +91,9 @@ export function davaXlsx(qatorlar: readonly DavaEksportQator[], o: DavaEksportOp
   }
   if (o.ndsFoiz != null) {
     const nds = v.qator('jami', [null, null, `НДС ${o.ndsFoiz}%`, null, null, null, null, null, null,
-      { f: `ROUND(J${asos}*${o.ndsFoiz}/100,2)`, v: Math.round(asosQiymat * o.ndsFoiz) / 100 }, null]);
+      { f: qqsFormulasi(`J${asos}`, o.ndsFoiz), v: qqsSumma(asosQiymat, o.ndsFoiz) }, null]);
     v.qator('vsego', [null, null, 'ВСЕГО К ПРЕДЪЯВЛЕНИЮ С НДС', null, null, null, null, null, null,
-      { f: `J${asos}+J${nds}`, v: asosQiymat + Math.round(asosQiymat * o.ndsFoiz) / 100 }, null]);
+      { f: `J${asos}+J${nds}`, v: qqsBilan(asosQiymat, o.ndsFoiz) }, null]);
   }
   v.filtrOxiri(tJ);
   v.bosh();
