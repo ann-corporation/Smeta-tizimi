@@ -13,6 +13,7 @@
  * kirmaydi; narx 0 = 0. Summalar NDS SIZ; ustamali (kaskad) va NDS — chaqiruvchida (`ustamaliHisobla`), NDS faqat oxirida.
  */
 import { katKesimgaQosh, bosKatKesim, type KatKesim } from './ustamali-summa';
+import { yaxlit2 } from './hisob-yadro';
 import { mashinistMehnati } from './narx-bildirishnoma';
 import { ESKI_SMETA } from './f2-dublikat/tekshiruv';
 
@@ -87,6 +88,8 @@ export type PKontekst = {
   aslIdlar?: ReadonlySet<number>;
   /** Filtr: faqat shu razdel (rz id) ostidagilar. */
   bolimId?: number | null;
+  /** Svod yaxlit bo'limlari va avlodlari (yaxlitQatorIdlari): ustamali summada koeffitsient qo'llanmaydi. */
+  yaxlitIdlar?: ReadonlySet<number>;
 };
 
 const BARG = new Set(['rs', 'mat', 'ob']);
@@ -101,11 +104,8 @@ const son = (x: unknown): number | null => {
   const n = Number(x);
   return Number.isFinite(n) ? n : null;
 };
-export const yaxlit2 = (x: number): number => {
-  const a = Number((Math.abs(x) * 100).toPrecision(15));
-  const r = Math.round(a) / 100;
-  return x < 0 ? -r : r;
-};
+export { yaxlit2 };
+
 
 /** Bitta barg qatorni tasnif qiladi (kontekst — razdel/eski/zamena belgilari tashqaridan). Tasnifga kirmasa null. */
 export function qatorTasnif(q: PQator, o: { eski: boolean; zamena: boolean; bolimId: number | null; bolimYol: string[]; ajdodlar: number[]; asosiy?: ChegirmaAsosiy | null }): PNatijaQator | null {
@@ -187,10 +187,13 @@ const NORMA_HAVOLA = /НОРМ[ЕАЫ]?\s*(?:№\s*)?([0-9]+(?:-[0-9]+)+)/i;
 const kodNorm = (k: string | null | undefined) => String(k ?? '').toUpperCase().replace(/\s+/g, '').replace(/Е/g, 'E');
 const kodPrefiks = (k: string | null | undefined) => { const s = kodNorm(k); const i = s.lastIndexOf('-'); return i > 0 ? s.slice(0, i) : ''; };
 
-type Ajdod = { bolimId: number | null; yol: string[]; ajdodlar: number[]; eski: boolean };
+export type Ajdod = { bolimId: number | null; yol: string[]; ajdodlar: number[]; eski: boolean };
 
-/** Butun obyekt: barcha qatorlar (rz/bl ham — daraxt uchun) → pereraschet natijasi. O(n). */
-export function pereraschetHisobla(rows: readonly PQator[], k: PKontekst = {}): PNatija {
+/**
+ * Daraxt bo'yicha ajdod ma'lumoti (eng yaqin razdel, yo'l, barcha razdel ajdodlar, «(ekspertizagacha)» belgisi).
+ * `ajdodOl(id)` — tugunning O'ZI va ajdodlari (iterativ, memo bilan). Fakt asosidagi pereraschet ham shuni ishlatadi.
+ */
+export function ajdodlarQur(rows: readonly PQator[]): { byId: Map<number, PQator>; ajdodOl: (id: number | null) => Ajdod } {
   const byId = new Map<number, PQator>();
   for (const r of rows) byId.set(r.qator_id, r);
   const memo = new Map<number, Ajdod>();
@@ -218,6 +221,12 @@ export function pereraschetHisobla(rows: readonly PQator[], k: PKontekst = {}): 
     }
     return memo.get(id) ?? BOSH;
   };
+  return { byId, ajdodOl };
+}
+
+/** Butun obyekt: barcha qatorlar (rz/bl ham — daraxt uchun) → pereraschet natijasi. O(n). */
+export function pereraschetHisobla(rows: readonly PQator[], k: PKontekst = {}): PNatija {
+  const { byId, ajdodOl } = ajdodlarQur(rows);
 
   const bolalar = new Map<number | null, PQator[]>();
   for (const r of rows) { const kk = r.ota_id ?? null; const x = bolalar.get(kk); if (x) x.push(r); else bolalar.set(kk, [r]); }
@@ -281,8 +290,8 @@ export function pereraschetHisobla(rows: readonly PQator[], k: PKontekst = {}): 
     for (const b of q.bandlar) {
       const t = turBoyicha[b.tur];
       t.soni++;
-      if (b.summa > 0) { t.plus += b.summa; jami.plus += b.summa; bj.plus += b.summa; katKesimgaQosh(plusKesim, q.kat, b.summa); if (b.tur === 'olinmagan' && q.eslatma.includes('fakt_norma')) faktNormaPlus += b.summa; }
-      else { t.minus += -b.summa; jami.minus += -b.summa; bj.minus += -b.summa; katKesimgaQosh(minusKesim, q.kat, -b.summa); }
+      if (b.summa > 0) { t.plus += b.summa; jami.plus += b.summa; bj.plus += b.summa; katKesimgaQosh(plusKesim, q.kat, b.summa, !!k.yaxlitIdlar?.has(q.qatorId)); if (b.tur === 'olinmagan' && q.eslatma.includes('fakt_norma')) faktNormaPlus += b.summa; }
+      else { t.minus += -b.summa; jami.minus += -b.summa; bj.minus += -b.summa; katKesimgaQosh(minusKesim, q.kat, -b.summa, !!k.yaxlitIdlar?.has(q.qatorId)); }
     }
     bolimMap.set(bk, bj);
   }

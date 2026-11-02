@@ -13,6 +13,8 @@ import type { SystemControlData } from '../../components/system-control';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
 import { useSystemControl, useGlobalSystemControl, useControlCommands } from '../../api/t2-control';
+import { Skelet } from '../../umumiy/ui/Sahifa';
+import { t } from '../../i18n/til';
 
 const EMPTY: SystemControlData = {
   health: [], capabilities: [], integrations: [], jobs: [], incidents: [], auditEvents: [],
@@ -42,8 +44,8 @@ export default function SystemControlPage() {
   if (!joriy?.id && !globalRejim) {
     return (
       <div className="bg-bg min-h-screen text-text">
-        <h1 className="text-2xl font-bold flex items-center gap-2 px-6 pt-6"><ServerCog className="text-accent" /> Tizim boshqaruv markazi</h1>
-        <KompaniyaKerak nima="Tizim boshqaruv markazi" />
+        <header className="fz-pagehead"><h1 className="fz-pagehead__title flex items-center gap-2"><ServerCog className="text-[var(--accent-text)]" aria-hidden="true" />{t('Tizim boshqaruv markazi')}</h1></header>
+        <KompaniyaKerak nima={t('Tizim boshqaruv markazi')} />
       </div>
     );
   }
@@ -51,10 +53,9 @@ export default function SystemControlPage() {
   if (!joriy?.id && globalRejim && q.isError && (q.error as any)?.code === 'AUTHORIZATION_DENIED') {
     return (
       <div className="bg-bg min-h-screen text-text">
-        <h1 className="text-2xl font-bold flex items-center gap-2 px-6 pt-6"><ServerCog className="text-accent" /> Tizim boshqaruv markazi</h1>
-        <div className="mx-6 mt-4 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-[13px] text-rose-100 max-w-lg">
-          Platforma darajasidagi boshqaruv markaziga ruxsatingiz yo‘q. Bu — platforma-darajasidagi
-          "kill switch"; kompaniya bossi buni boshqara olmaydi.
+        <header className="fz-pagehead"><h1 className="fz-pagehead__title flex items-center gap-2"><ServerCog className="text-[var(--accent-text)]" aria-hidden="true" />{t('Tizim boshqaruv markazi')}</h1></header>
+        <div role="alert" className="fz-note fz-note--danger mx-6 max-w-lg">
+          {t('Platforma darajasidagi boshqaruv markaziga ruxsatingiz yo‘q. Bu — platforma-darajasidagi «kill switch»; kompaniya bossi buni boshqara olmaydi.')}
         </div>
       </div>
     );
@@ -62,10 +63,10 @@ export default function SystemControlPage() {
 
   return (
     <div className="bg-bg min-h-screen text-text">
-      {q.isLoading && <div className="px-6 py-4 text-sm text-text-dim">Nazorat ma'lumotlari yuklanmoqda…</div>}
+      {q.isLoading && <div className="px-6 pt-4" aria-label={t('Nazorat ma’lumotlari yuklanmoqda…')}><Skelet qatorlar={4} /></div>}
       {q.isError && (
-        <div className="mx-6 mt-4 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-[13px] text-rose-100">
-          Nazorat ma'lumotini o'qib bo'lmadi: {(q.error as any)?.code || 'xato'}.
+        <div role="alert" className="fz-note fz-note--danger mx-6 mt-4">
+          {t('Nazorat ma’lumotini o‘qib bo‘lmadi: {x}.', { x: (q.error as any)?.code || t('xato') })}
         </div>
       )}
 
@@ -87,14 +88,13 @@ export default function SystemControlPage() {
         onRetry={(t) => { if (t.type === 'job') cmd.job.mutate({ job_kod: t.id, job_action: 'retry' }); }}
       />
 
-      <div className="mx-6 my-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-[13px] text-amber-100 flex items-start gap-2 max-w-3xl">
-        <Info size={16} className="mt-0.5 shrink-0" />
-        Health semantikasi: Supabase DOWN = core degraded · R2 DOWN = kanonik fayl tizimi degraded ·
-        Drive/Sheets DOWN = faqat replika degraded, core UP · GAS DOWN = faqat legacy/replica ko'prik degraded.
+      <div className="fz-note fz-note--info mx-6 my-4 max-w-3xl">
+        <Info aria-hidden="true" />
+        <span>{t('Health semantikasi: Supabase DOWN = core degraded · R2 DOWN = kanonik fayl tizimi degraded · Drive/Sheets DOWN = faqat replika degraded, core UP · GAS DOWN = faqat legacy/replica ko‘prik degraded.')}</span>
       </div>
       <Link to="/admin/_demo/system-control"
-        className="mx-6 mb-8 inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-[13px] hover:bg-surface-2">
-        UI namuna (demo data) <ArrowRight size={14} />
+        className="fz-btn mx-6 mb-8">
+        {t('UI namuna (demo data)')} <ArrowRight aria-hidden="true" />
       </Link>
     </div>
   );

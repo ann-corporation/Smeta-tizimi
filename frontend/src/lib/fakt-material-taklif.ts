@@ -35,12 +35,39 @@ export function ishKeyingiMateriallari(rows: readonly TaklifQator[]): Map<number
 }
 
 /**
- * Material uchun «bugun» taklifi: ish ulushidagi maqsad (ishFakt / ishSmeta × matSmeta) − material fakti.
+ * Ish (bl) id → shu ishga ERGASHADIGAN barcha mat/ob (tadqiqot 02, birinchi navbat #3; egasi: «ish bajarildi, materiallari
+ * ergashmadi»): (1) ishning o'z ichidagi mat/ob bolalari (ota = ish; ichki rs/mat orqali ham, boshqa ishdan o'tmaydi) —
+ * smeta importida `rs` emas `mat` deb belgilangan resurslar ham shu yerda; (2) ishdan keyingi alohida mat/ob
+ * (`ishKeyingiMateriallari`). Qo'shimcha/zamena qatorlar kirmaydi (asl smeta tuzilmasi bo'yicha). Tartib: avval ichkilar.
+ */
+export function ishMateriallari(rows: readonly TaklifQator[]): Map<number, number[]> {
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const out = new Map<number, number[]>();
+  const tartibli = [...rows].sort((a, b) => (a.tartib ?? Number.MAX_SAFE_INTEGER) - (b.tartib ?? Number.MAX_SAFE_INTEGER) || a.id - b.id);
+  for (const r of tartibli) {
+    if (!RESURS.has(r.tur ?? '') || r.qoshimcha || r.zamena) continue;
+    let p = r.ota_id != null ? byId.get(r.ota_id) : undefined; let n = 0; let ish: TaklifQator | undefined;
+    while (p && n++ < 20) {
+      if (p.qoshimcha || p.zamena || p.tur === 'rz') break;
+      if (p.tur === 'bl') { ish = p; break; }
+      p = p.ota_id != null ? byId.get(p.ota_id) : undefined;
+    }
+    if (ish) { const a = out.get(ish.id); if (a) a.push(r.id); else out.set(ish.id, [r.id]); }
+  }
+  for (const [ish, ms] of ishKeyingiMateriallari(rows)) out.set(ish, [...(out.get(ish) ?? []), ...ms]);
+  return out;
+}
+
+/**
+ * Material uchun «bugun» taklifi: ish ulushidagi maqsad (ishFakt / ishSmeta × (matSmeta − yopiq)) − material fakti.
+ * `yopiq` — materialning zamena qoplagan va «bajarilmaydi» hajmi (yagona ochiq qoldiq formulasi bilan bir xil asos).
  * Smeta noma'lum/manfiy (chegirma) yoki taklif ≤ 0 bo'lsa null.
  */
-export function materialTaklifi(ishFakt: number, ishSmeta: number | null, matSmeta: number | null, matFakt: number): number | null {
+export function materialTaklifi(ishFakt: number, ishSmeta: number | null, matSmeta: number | null, matFakt: number, yopiq = 0): number | null {
   if (ishSmeta == null || matSmeta == null || !(ishSmeta > 0) || !(matSmeta > 0) || !(ishFakt > 0)) return null;
-  const maqsad = ishFakt / ishSmeta * matSmeta; // hajm bloklanmaydi: ish smetadan oshsa, taklif ham shu ulushda
+  const asos = matSmeta - Math.max(yopiq, 0);
+  if (!(asos > 0)) return null;
+  const maqsad = ishFakt / ishSmeta * asos; // hajm bloklanmaydi: ish smetadan oshsa, taklif ham shu ulushda
   const d = Math.round((maqsad - matFakt) * 1e6) / 1e6;
   return d > 1e-9 ? d : null;
 }

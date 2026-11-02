@@ -14,7 +14,9 @@
  * va saqlangan folder ID orqali. Xato bo'lsa eski umumiy papkaga tushmaydi.
  */
 import { useEffect, useState } from 'react';
-import { HardDrive, FolderTree, Boxes, FileUp, RefreshCw, Archive, Loader2 } from 'lucide-react';
+import { FolderTree, Boxes, FileUp, RefreshCw, Archive, Loader2, ChevronRight } from 'lucide-react';
+import { Sahifa } from '../umumiy/ui/Sahifa';
+import { t } from '../i18n/til';
 import { useKompaniya } from './KompaniyaTanlov';
 import { Badge } from '../umumiy/ui/Badge';
 import {
@@ -118,71 +120,73 @@ export default function TestSaqlash() {
   const companyUi = company ? toUiStatus(company.status)
     : (companyXato ? 'FAILED' : 'NOT_CONFIGURED') as ReturnType<typeof toUiStatus>;
 
-  return (
-    <div className="p-6 bg-bg min-h-screen text-text overflow-y-auto">
-      <div className="flex items-start justify-between mb-5">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <HardDrive className="text-accent" /> Fayl saqlash (Storage)
-          </h1>
-          <p className="text-sm text-text-dim max-w-3xl mt-1">
-            Kompaniya → Loyiha → Obyekt → Hujjat zanjiri. Har bir daraja o‘zining
-            tekshirilgan Google Drive papkasiga ega. Global umumiy papka
-            («TIZIM_01 ildizi») YO‘Q — hamma narsa kanonik ID orqali.
-          </p>
-        </div>
-        <button onClick={yukla} className="bg-surface border border-border hover:bg-surface-2 px-4 py-2 flex items-center gap-2 rounded-lg text-sm font-medium">
-          <RefreshCw size={14} className={yuklanmoqda ? 'animate-spin text-accent' : ''} /> Yangilash
-        </button>
-      </div>
+  const loyihaTayyor = projects.filter((p) => p.provisioning_status === 'verified').length;
+  const obyektTayyor = objects.filter((o) => o.storage_status === 'ready').length;
+  const yuklashTayyor = objects.some((o) => o.storage_status === 'ready');
+  /** Zanjir tayyorligi: kompaniya → loyiha → obyekt → yuklash; har bosqich so'z bilan va ulush bilan. */
+  const bosqichlar: { nom: string; qiymat: string; ulush: number | null; ok: boolean; izoh: string }[] = [
+    { nom: t('Kompaniya papkasi'), qiymat: companyTayyor ? t('tayyor') : t('tayyor emas'), ulush: companyTayyor ? 1 : 0, ok: companyTayyor, izoh: company?.root_folder_name ?? t('biriktirilmagan') },
+    { nom: t('Loyiha papkalari'), qiymat: companyTayyor && projects.length ? `${loyihaTayyor}/${projects.length}` : '—', ulush: companyTayyor && projects.length ? loyihaTayyor / projects.length : null, ok: projects.length > 0 && loyihaTayyor === projects.length, izoh: t('tayyorlangan loyihalar') },
+    { nom: t('Obyekt papkalari'), qiymat: tanlanganLoyiha != null && objects.length ? `${obyektTayyor}/${objects.length}` : '—', ulush: tanlanganLoyiha != null && objects.length ? obyektTayyor / objects.length : null, ok: objects.length > 0 && obyektTayyor === objects.length, izoh: tanlanganLoyiha == null ? t('loyiha tanlang') : t('tanlangan loyihada') },
+    { nom: t('Hujjat yuklash'), qiymat: yuklashTayyor ? t('mumkin') : t('hali yo‘q'), ulush: yuklashTayyor ? 1 : 0, ok: yuklashTayyor, izoh: t('kamida bitta tayyor obyekt kerak') },
+  ];
 
+  return (
+    <Sahifa sarlavha="Fayl saqlash (Storage)" tavsif="Kompaniya → Loyiha → Obyekt → Hujjat zanjiri. Har daraja o‘zining tekshirilgan Google Drive papkasiga ega; global umumiy papka yo‘q — hammasi kanonik ID orqali."
+      amallar={<button type="button" onClick={() => void yukla()} className="fz-btn"><RefreshCw size={14} className={yuklanmoqda ? 'animate-spin text-accent' : ''} />{t('Yangilash')}</button>}>
+      <div className="flex flex-col gap-4">
       {demo && (
-        <div className="mb-5 flex flex-wrap items-center gap-2 rounded-lg bg-amber-500/10 border border-amber-500/30 px-4 py-2.5 text-[12px] text-amber-200">
-          <Archive size={14} />
-          <span>
-            DEMO — backend hali productionga qo‘llanmagan. Ekran kanonik kontrakt
-            shakli bilan ishlaydi; jonli ulanish uchun manzilga{' '}
-            <code className="px-1 rounded bg-black/30">?demo=0</code>.
-          </span>
-          <span className="ml-auto flex items-center gap-1">
-            <span className="text-amber-300/70">Holat:</span>
-            {DEMO_SENARIY.map((s) => (
-              <button key={s.id} onClick={() => setDemoKompaniyaId(s.id)}
-                className={'px-2 py-0.5 rounded text-[11px] border font-medium ' +
-                  (demoKompaniyaId === s.id
-                    ? 'bg-amber-400/30 border-amber-400/60 text-amber-50'
-                    : 'border-amber-500/25 hover:bg-amber-500/10')}>
-                {s.nom}
-              </button>
+        <div className="fz-note fz-note--warn flex-wrap" style={{ alignItems: 'center' }}>
+          <Archive aria-hidden="true" />
+          <span>{t('DEMO — backend hali productionga qo‘llanmagan. Ekran kanonik kontrakt shakli bilan ishlaydi; jonli ulanish uchun manzilga ?demo=0 qo‘shing.')}</span>
+          <span className="ml-auto flex flex-wrap items-center gap-1">
+            <span className="text-text-mute">{t('Holat')}:</span>
+            {DEMO_SENARIY.map((x) => (
+              <button key={x.id} type="button" onClick={() => setDemoKompaniyaId(x.id)} aria-pressed={demoKompaniyaId === x.id}
+                className={`fz-btn fz-btn--sm ${demoKompaniyaId === x.id ? 'fz-btn--primary' : 'fz-btn--ghost'}`}>{x.nom}</button>
             ))}
           </span>
         </div>
       )}
 
-      {!kompaniyaId && <div className="text-text-dim text-sm">Avval yuqoridan kompaniya tanlang.</div>}
+      {!kompaniyaId && <div className="fz-card p-4 text-[13px] text-text-dim">{t('Avval yuqoridan kompaniya tanlang.')}</div>}
 
       {kompaniyaId > 0 && (
-        <div className="grid gap-5 lg:grid-cols-2 items-start">
+        <section className="fz-card p-4" aria-label={t('Zanjir tayyorligi')}>
+          <ol className="grid grid-cols-1 gap-2 sm:grid-cols-4">
+            {bosqichlar.map((x, i) => (
+              <li key={x.nom} className="relative flex flex-col gap-1 rounded-md border border-border bg-surface-2 px-3 py-2.5" style={{ borderTop: `3px solid ${x.ok ? 'var(--ok)' : x.ulush ? 'var(--warn)' : 'var(--border-strong)'}` }}>
+                <span className="text-[10.5px] font-semibold uppercase tracking-wide text-text-mute">{i + 1}. {x.nom}</span>
+                <b className="text-[15px] tabular-nums text-text">{x.qiymat}</b>
+                {x.ulush != null && <span className="fz-meter" style={{ minWidth: 0 }}><span className="fz-meter__t"><i style={{ width: `${x.ulush * 100}%`, background: x.ok ? 'var(--ok)' : 'var(--warn)' }} /></span></span>}
+                <span className="truncate text-[11.5px] text-text-mute" title={x.izoh}>{x.izoh}</span>
+                {i < bosqichlar.length - 1 && <ChevronRight aria-hidden="true" size={14} className="absolute -right-[11px] top-1/2 z-10 hidden -translate-y-1/2 text-text-mute sm:block" />}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {kompaniyaId > 0 && (
+        <div className="grid items-start gap-4 lg:grid-cols-2">
           {/* ── 1. KOMPANIYA STORAGE ── */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <StorageHealthCard
-                className="w-full"
-                provider={company?.provider === 'google_drive' ? 'Google Drive' : 'Google Drive'}
-                mode={company?.mode ?? null}
-                folderName={company?.root_folder_name ?? null}
-                status={companyUi}
-                lastVerifiedAt={company?.verified_at ?? null}
-                errorCode={!companyTayyor ? companyXato?.code : null}
-                error={!companyTayyor ? (companyXato?.xabar ? storageXatoMatn(companyXato.code, companyXato.xabar) : null) : null}
-                loading={yuklanmoqda && !company}
-                onRetry={company?.status === 'failed' ? () => bind(form) : undefined}
-              />
-            </div>
+            <StorageHealthCard
+              className="w-full"
+              provider={company?.provider === 'google_drive' ? 'Google Drive' : 'Google Drive'}
+              mode={company?.mode ?? null}
+              folderName={company?.root_folder_name ?? null}
+              status={companyUi}
+              lastVerifiedAt={company?.verified_at ?? null}
+              errorCode={!companyTayyor ? companyXato?.code : null}
+              error={!companyTayyor ? (companyXato?.xabar ? storageXatoMatn(companyXato.code, companyXato.xabar) : null) : null}
+              loading={yuklanmoqda && !company}
+              onRetry={company?.status === 'failed' ? () => bind(form) : undefined}
+            />
             {company?.legacy && (
-              <div className="flex items-center gap-2 text-[12px] text-sky-200">
-                <Badge variant="bl" className="gap-1"><Archive size={12} /> ESKI (LEGACY)</Badge>
-                Bu kompaniya legacy ruxsatnomasida — yangi T2 yozuv oqimi legacy workspace’ga yozmaydi.
+              <div className="fz-note fz-note--info" style={{ alignItems: 'center' }}>
+                <Badge variant="bl" className="gap-1"><Archive size={12} /> {t('ESKI (LEGACY)')}</Badge>
+                {t('Bu kompaniya legacy ruxsatnomasida — yangi T2 yozuv oqimi legacy workspace’ga yozmaydi.')}
               </div>
             )}
             {!companyTayyor && (
@@ -197,27 +201,26 @@ export default function TestSaqlash() {
           </div>
 
           {/* ── 2. LOYIHA STORAGE ── */}
-          <section className="karta p-4">
-            <h2 className="font-semibold flex items-center gap-2 mb-3"><FolderTree size={16} className="text-accent" /> Loyiha storage</h2>
-            {!companyTayyor && <div className="text-[12px] text-text-dim">Avval kompaniya storage tayyor bo‘lishi kerak.</div>}
-            {companyTayyor && projects.length === 0 && <div className="text-[12px] text-text-dim">Loyiha topilmadi.</div>}
+          <section className="fz-card p-4">
+            <h2 className="fz-card__title mb-3 flex items-center gap-2"><FolderTree size={16} className="text-accent" /> {t('Loyiha storage')}</h2>
+            {!companyTayyor && <div className="text-[12.5px] text-text-dim">{t('Avval kompaniya storage tayyor bo‘lishi kerak.')}</div>}
+            {companyTayyor && projects.length === 0 && <div className="text-[12.5px] text-text-dim">{t('Loyiha topilmadi.')}</div>}
             <ul className="space-y-2">
               {companyTayyor && projects.map((p) => (
                 <li key={p.loyiha_id}
-                  className={'rounded-lg border px-3 py-2 cursor-pointer transition-colors ' +
+                  className={'cursor-pointer rounded-lg border px-3 py-2 transition-colors ' +
                     (tanlanganLoyiha === p.loyiha_id ? 'border-accent/50 bg-accent/5' : 'border-border hover:bg-surface-2')}
                   onClick={() => setTanlanganLoyiha(p.loyiha_id)}>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[13px] font-medium truncate">{p.loyiha_nom}</span>
+                    <span className="truncate text-[13px] font-medium">{p.loyiha_nom}</span>
                     <StorageStatusBadge status={toUiStatus(p.provisioning_status)} />
                   </div>
                   {p.storage_error && <StorageErrorPanel message={p.storage_error} className="mt-2" />}
                   {p.provisioning_status !== 'verified' && (
-                    <button onClick={(e) => { e.stopPropagation(); provision(p.loyiha_id, p.versiya); }}
-                      disabled={ish === 'provision:' + p.loyiha_id}
-                      className="mt-2 inline-flex items-center gap-1.5 text-[11px] border border-border rounded px-2 py-1 hover:bg-surface-2 disabled:opacity-40">
+                    <button type="button" onClick={(e) => { e.stopPropagation(); void provision(p.loyiha_id, p.versiya); }}
+                      disabled={ish === 'provision:' + p.loyiha_id} className="fz-btn fz-btn--sm mt-2">
                       {ish === 'provision:' + p.loyiha_id ? <Loader2 size={12} className="animate-spin" /> : <FolderTree size={12} />}
-                      Papkani tayyorlash
+                      {t('Papkani tayyorlash')}
                     </button>
                   )}
                 </li>
@@ -226,24 +229,23 @@ export default function TestSaqlash() {
           </section>
 
           {/* ── 3. OBYEKT STORAGE ── */}
-          <section className="karta p-4">
-            <h2 className="font-semibold flex items-center gap-2 mb-3"><Boxes size={16} className="text-accent" /> Obyekt storage</h2>
-            {tanlanganLoyiha == null && <div className="text-[12px] text-text-dim">Chapdan loyiha tanlang.</div>}
-            {tanlanganLoyiha != null && objects.length === 0 && <div className="text-[12px] text-text-dim">Bu loyihada obyekt yo‘q.</div>}
+          <section className="fz-card p-4">
+            <h2 className="fz-card__title mb-3 flex items-center gap-2"><Boxes size={16} className="text-accent" /> {t('Obyekt storage')}</h2>
+            {tanlanganLoyiha == null && <div className="text-[12.5px] text-text-dim">{t('Chapdan loyiha tanlang.')}</div>}
+            {tanlanganLoyiha != null && objects.length === 0 && <div className="text-[12.5px] text-text-dim">{t('Bu loyihada obyekt yo‘q.')}</div>}
             <ul className="space-y-2">
               {objects.map((o) => (
                 <li key={o.obyekt_id} className="rounded-lg border border-border px-3 py-2">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[13px] font-medium truncate">{o.obyekt_nom}</span>
+                    <span className="truncate text-[13px] font-medium">{o.obyekt_nom}</span>
                     <StorageStatusBadge status={toUiStatus(o.storage_status)} />
                   </div>
-                  <div className="text-[10px] text-text-mute font-mono mt-0.5">{o.folder_id ? 'folder: ' + o.folder_id : 'papka biriktirilmagan'}</div>
+                  <div className="mt-0.5 font-mono text-[11px] text-text-mute">{o.folder_id ? `folder: ${o.folder_id}` : t('papka biriktirilmagan')}</div>
                   {o.storage_error && <StorageErrorPanel message={o.storage_error} className="mt-2" />}
                   {o.storage_status !== 'ready' && (
-                    <button onClick={() => retryObject(o)} disabled={ish === 'object:' + o.obyekt_id}
-                      className="mt-2 inline-flex items-center gap-1.5 text-[11px] border border-border rounded px-2 py-1 hover:bg-surface-2 disabled:opacity-40">
+                    <button type="button" onClick={() => void retryObject(o)} disabled={ish === 'object:' + o.obyekt_id} className="fz-btn fz-btn--sm mt-2">
                       {ish === 'object:' + o.obyekt_id ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                      Papkani tayyorlash / qayta urinish
+                      {t('Papkani tayyorlash / qayta urinish')}
                     </button>
                   )}
                 </li>
@@ -259,7 +261,8 @@ export default function TestSaqlash() {
           />
         </div>
       )}
-    </div>
+      </div>
+    </Sahifa>
   );
 }
 
@@ -281,34 +284,31 @@ function HujjatYuklash({ kompaniyaId, loyihaId, obyekt }: {
     const r = await documentUpload({
       kompaniyaId, loyihaId, obyektId: obyekt.obyekt_id, file, documentType: tur,
     });
-    if (r.ok) { setHolat('SUCCESS'); setNatija('Hujjat #' + r.document_id + ' — ' + obyekt.obyekt_nom + ' obyekt papkasiga (kanonik folder_id) yozildi va reyestrga qayd etildi.'); }
+    if (r.ok) { setHolat('SUCCESS'); setNatija(t('Hujjat #{id} — «{ob}» obyekt papkasiga yozildi va reyestrga qayd etildi.', { id: r.document_id, ob: obyekt.obyekt_nom })); }
     else { setHolat('FAILED'); setNatija(storageXatoMatn(r.code, r.xabar)); }
   };
 
   return (
-    <section className="karta p-4">
-      <h2 className="font-semibold flex items-center gap-2 mb-3"><FileUp size={16} className="text-accent" /> Hujjat / F2 yuklash</h2>
+    <section className="fz-card p-4">
+      <h2 className="fz-card__title mb-3 flex items-center gap-2"><FileUp size={16} className="text-accent" /> {t('Hujjat / F2 yuklash')}</h2>
       {!tayyor && (
-        <div className="text-[12px] text-text-dim">
-          Yuklash uchun kompaniya, loyiha va storage‑i <b>TAYYOR</b> obyekt tanlang.
-        </div>
+        <div className="text-[12.5px] text-text-dim">{t('Yuklash uchun kompaniya, loyiha va storage‑i')} <b className="text-text">{t('TAYYOR')}</b> {t('obyekt tanlang.')}</div>
       )}
       {tayyor && obyekt && (
         <>
-          <div className="text-[12px] text-text-dim mb-2">Manzil: <span className="text-text">{obyekt.obyekt_nom}</span> → kanonik obyekt papkasi</div>
+          <div className="mb-2 text-[12.5px] text-text-dim">{t('Manzil')}: <span className="text-text">{obyekt.obyekt_nom}</span> → {t('kanonik obyekt papkasi')}</div>
           <div className="flex flex-wrap items-center gap-2">
             <input type="file" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setHolat('IDLE'); }}
               className="text-[12px] file:mr-2 file:rounded file:border-0 file:bg-surface-2 file:px-2 file:py-1 file:text-text" />
             <select value={tur} onChange={(e) => setTur(e.target.value)}
               className="input px-2 py-1.5 text-[12px]">
-              <option value="hujjat">Hujjat</option>
-              <option value="f2">F2 / Bajarilgan ish dalolatnomasi</option>
-              <option value="loyiha">Loyiha chizmasi</option>
-              <option value="aosr">AOSR / yashirin ishlar</option>
+              <option value="hujjat">{t('Hujjat')}</option>
+              <option value="f2">{t('F2 / Bajarilgan ish dalolatnomasi')}</option>
+              <option value="loyiha">{t('Loyiha chizmasi')}</option>
+              <option value="aosr">{t('AOSR / yashirin ishlar')}</option>
             </select>
-            <button onClick={yukla} disabled={!file || holat === 'UPLOADING'}
-              className="inline-flex items-center gap-1.5 bg-accent hover:bg-accent/90 text-white font-medium text-[12px] px-3 py-1.5 rounded disabled:opacity-40">
-              <FileUp size={13} /> Yuklash
+            <button type="button" onClick={() => void yukla()} disabled={!file || holat === 'UPLOADING'} className="fz-btn fz-btn--primary fz-btn--sm">
+              <FileUp size={13} />{t('Yuklash')}
             </button>
           </div>
           {holat !== 'IDLE' && (
@@ -320,15 +320,11 @@ function HujjatYuklash({ kompaniyaId, loyihaId, obyekt }: {
             />
           )}
           {holat === 'FAILED' && (
-            <button onClick={yukla} className="mt-2 inline-flex items-center gap-1.5 text-[11px] border border-border rounded px-2 py-1 hover:bg-surface-2">
-              <RefreshCw size={12} /> Qayta urinish
+            <button type="button" onClick={() => void yukla()} className="fz-btn fz-btn--sm mt-2">
+              <RefreshCw size={12} />{t('Qayta urinish')}
             </button>
           )}
-          <p className="mt-3 text-[10px] text-text-mute">
-            Fayl faqat obyektning saqlangan <code>folder_id</code>‑siga yoziladi va
-            <code> t2_document_registry</code> ga qayd etiladi. Nom bo‘yicha Drive
-            qidiruvi yo‘q; xato bo‘lsa eski umumiy papkaga tushmaydi.
-          </p>
+          <p className="mt-3 text-[11.5px] text-text-mute">{t('Fayl faqat obyektning saqlangan papkasiga (folder_id) yoziladi va hujjatlar reyestriga qayd etiladi. Nom bo‘yicha Drive qidiruvi yo‘q; xato bo‘lsa eski umumiy papkaga tushmaydi.')}</p>
         </>
       )}
     </section>

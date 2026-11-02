@@ -1,6 +1,6 @@
 import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir, kalitBormi } from '../_shared/auth';
-import { roleAuthority } from '../_shared/role-authority';
+import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shared/role-authority';
 
 /**
  * Joriy sessiya haqida ma'lumot — sayt kim bo'lib kirganini BILISHI uchun.
@@ -11,7 +11,9 @@ export const onRequestGet: PagesFunction<{ SESSIYA_KALIT: string; SUPABASE_URL: 
   const secret = ctx.env.SESSIYA_KALIT;
   let sess = cachedAuthority(ctx) ?? await tekshir(ctx.request.headers.get('Cookie'), secret);
   if (!sess) return Response.json({ ok: false }, { status: 401 });
+  const tekshirilgan = sess;
   sess = cachedAuthority(ctx) ?? await roleAuthority(sess, ctx.env);
+  if (!sess && sessiyaYaroqsizmi(tekshirilgan)) return yaroqsizSessiyaJavob();
   if (!sess) return Response.json({ ok: false, code: 'AUTHORITY_UNAVAILABLE' }, { status: 503 });
 
   /* gas.ts dagi bilan BIR XIL ro'yxat bo'lishi shart — aks holda UI bir narsa

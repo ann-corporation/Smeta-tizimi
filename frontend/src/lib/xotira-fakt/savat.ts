@@ -7,6 +7,7 @@
 import type { T2Qator } from '../../api/supabase';
 import type { NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
 import { kategoriyaKf, nakrutkaKat, NAKRUTKA_KATLAR, type NakrutkaKat } from '../nakrutka-podval';
+import { yaxlit2 } from '../hisob-yadro';
 import type { MiqdorTuri } from './parse';
 import type { XotiraNomzod } from './moslash';
 
@@ -159,6 +160,10 @@ export function savatJami(savat: readonly SavatQator[], nk: Partial<NakrutkaKoef
     if (k) kat[k] += s; else ustamaBor = false;
   }
   let ustamali: number | null = null;
-  if (nk && ustamaBor) { const kf = kategoriyaKf(nk); ustamali = NAKRUTKA_KATLAR.reduce((t, k) => t + kat[k] * kf[k], 0); }
-  return { asos: Math.round(asos * 100) / 100, ustamali: ustamali == null ? null : Math.round(ustamali * 100) / 100, narxsiz };
+  if (nk && ustamaBor) {
+    // Kf yadrodan; ishlatilgan kategoriya foizi noma'lum — ustamali ham noma'lum (0 emas).
+    const kf = kategoriyaKf(nk);
+    ustamali = NAKRUTKA_KATLAR.some((k) => kat[k] !== 0 && kf[k] == null) ? null : NAKRUTKA_KATLAR.reduce((t, k) => t + (kat[k] === 0 ? 0 : kat[k] * (kf[k] as number)), 0);
+  }
+  return { asos: yaxlit2(asos), ustamali: ustamali == null ? null : yaxlit2(ustamali), narxsiz };
 }

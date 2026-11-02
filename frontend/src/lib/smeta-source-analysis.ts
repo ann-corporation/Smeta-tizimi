@@ -109,7 +109,8 @@ export function smetaVaraqniTahlilQil(rows: SheetGrid | null | undefined, nom = 
     }
     const x = varaqRoli(nom, grid);
     if (x.aniq) {
-      const etiborsiz = x.rol === 'etiborsiz';
+      // `hamroh` (svod / tn·km) — LRV/RES manbasi emas: bu tahlilda e'tiborsiz, qatorlari smeta yuklashning hamroh panelida.
+      const etiborsiz = x.rol === 'etiborsiz' || x.rol === 'hamroh';
       return {
         ...natija,
         detectedRole: etiborsiz ? 'unknown' : x.rol === 'lrv' ? 'lrv' : 'res',

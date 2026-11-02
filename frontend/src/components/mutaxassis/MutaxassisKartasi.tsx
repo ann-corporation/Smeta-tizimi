@@ -14,7 +14,7 @@ export function MutaxassisKartasi({ m, children }: { m: MutaxassisKarta; childre
   return (
     <div className="rounded-xl border border-border bg-surface-1 p-3">
       <div className="flex items-start gap-3">
-        <span aria-hidden className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[14px] font-semibold text-white" style={{ background: rang(m.foydalanuvchi_id) }}>{harf(m.ism)}</span>
+        <span aria-hidden className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[14px] font-semibold text-text" style={{ background: `color-mix(in srgb, ${rang(m.foydalanuvchi_id)} 45%, var(--surface-2))` }}>{harf(m.ism)}</span>
         <div className="min-w-0 flex-1">
           <p className="text-[14px] font-semibold text-text">{m.ism}</p>
           <p className="text-[12px] text-text-dim">
@@ -24,8 +24,8 @@ export function MutaxassisKartasi({ m, children }: { m: MutaxassisKarta; childre
           </p>
         </div>
       </div>
-      {s && s.f2_soni > 0 && <div className="mt-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2 text-[12px]">
-        <p className="flex items-center gap-1 font-semibold text-emerald-400"><BadgeCheck size={13} /> {t('Smeta tizimi tasdiqlagan tajriba')}</p>
+      {s && s.f2_soni > 0 && <div className="mt-2 rounded-lg border border-ok/30 bg-ok/10 p-2 text-[12px]">
+        <p className="flex items-center gap-1 font-semibold text-ok"><BadgeCheck size={13} /> {t('Smeta tizimi tasdiqlagan tajriba')}</p>
         <p className="mt-0.5 text-text">
           <b>{s.f2_soni}</b> {t('ta F2')} ({s.tasdiqlangan_f2} {t('tasdiqlangan')}) · <b>{s.obyektlar}</b> {t('obyekt')} · <b>{qisqaSumma(s.jami_summa)}</b> {t('so‘m')}
         </p>

@@ -24,6 +24,16 @@ export type FaktQator = {
   /** Bajarilgan hajm. Manfiy ham bo'lishi mumkin (ПЕРЕРАСЧЁТ — tuzatish). */
   hajm: number;
   izoh?: string;
+  /** Qatorning o'z narxi (t2_akt_yarat: coalesce(narx, smeta narxi)) — «Fakt = F2»: tasdiqlangan F2 narxi. */
+  narx?: number;
+  /** «Fakt = F2» 1:1 nusxa: manba tasdiqlangan F2 akt qatori (server hajm/narx/summani undan aynan oladi). */
+  manba_akt_qator_id?: number;
+  /** Narx ataylab yo'q (F2 bo'yicha narxsiz): summa yozilmaydi, smeta narxi olinmaydi. */
+  narx_yoq?: boolean;
+  /** Narx manbasi (t2_akt_qator_narx_manba_check: smeta | f2_sertifikat | taminot | shartnoma | qol_nomalum). */
+  narx_manba?: string;
+  narx_manba_id?: number;
+  narx_izoh?: string;
 };
 
 export type FaktNatija = {

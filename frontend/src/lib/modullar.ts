@@ -4,17 +4,11 @@
  * ko'rinish, xavfsizlikni server alohida tekshiradi.
  */
 import type { Modul } from '../api/t2-modul';
+import { NAV_SAHIFALAR } from './nav/navReestr';
 
-export const MENYU_MODUL: Readonly<Record<string, string>> = {
-  '/admin/aosr': 'module.aosr',
-  '/admin/smeta-narxlash': 'module.narx', '/admin/oferta': 'module.narx', '/admin/narx-manbalari': 'module.narx',
-  '/admin/narx-dalil': 'module.narx', '/admin/nakrutka': 'module.narx', '/admin/narxlar': 'module.narx',
-  '/admin/loyiha': 'module.loyiha', '/admin/shartnoma-liniya': 'module.loyiha', '/admin/documents': 'module.loyiha',
-  '/admin/hujjat-nazorat': 'module.loyiha', '/admin/participants': 'module.loyiha', '/admin/crm': 'module.loyiha',
-  '/admin/zakazchik': 'module.loyiha', '/admin/taqdimlar': 'module.loyiha', '/admin/murojaatlar': 'module.loyiha', '/admin/aloqalar': 'module.loyiha',
-  '/admin/dashboard': 'module.erp', '/admin/moliya': 'module.erp', '/admin/logistika': 'module.erp', '/admin/zayavka': 'module.erp',
-  '/admin/erp': 'module.erp', '/admin/mindmap': 'module.erp',
-};
+/** Yo'l → modul kodi. Manba — yagona navigatsiya reestri (lib/nav/navReestr.ts `modul`). */
+export const MENYU_MODUL: Readonly<Record<string, string>> =
+  Object.fromEntries(NAV_SAHIFALAR.flatMap((s) => (s.modul ? [[s.yol, s.modul]] : [])));
 
 /** Shu menyu yo'li ko'rinadimi: modul bog'lanmagan → doim; holat noma'lum → ko'rinadi; 'off' → yo'q. */
 export function menyuModulYoqilgan(yol: string, modullar: readonly Modul[] | undefined): boolean {

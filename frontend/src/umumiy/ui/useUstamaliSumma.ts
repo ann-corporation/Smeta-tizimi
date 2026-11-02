@@ -1,9 +1,10 @@
-import { useCallback, useContext } from 'react';
+import { useCallback, useContext, useMemo } from 'react';
 import { QueryClient, QueryClientContext, useQuery } from '@tanstack/react-query';
 import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
 import { podvalTanla, sbPodvallarOl } from '../../api/t2-nakrutka-podval';
 import { limitedRead } from '../../components/pto-workspace/useMarkupTotals';
-import { ustamaliHisobla, type KatKesim, type UstamaNatija } from '../../lib/ustamali-summa';
+import { obyektKesimi, ustamaliHisobla, type KatKesim, type UstamaNatija } from '../../lib/ustamali-summa';
+import { svodKorinishKesimi, yaxlitQatorIdlari, type SvodYaxlit } from '../../lib/svod-yaxlit';
 import type { Podval } from '../../lib/nakrutka-konstruktor';
 import { useKompaniya } from '../kontekst/KompaniyaKontekst';
 
@@ -55,5 +56,17 @@ export function useUstamaliSumma(obyektId: number | null | undefined, opts: { ko
   const koef = nak.data?.koeffitsientlar ?? null;
   const hisobla = useCallback((kesim: KatKesim): UstamaNatija | null => (holat === 'tayyor' ? ustamaliHisobla(kesim, koef, podval) : null), [holat, koef, podval]);
   const retry = useCallback(() => { void nak.refetch(); void pod.refetch(); }, [nak, pod]);
-  return { holat, koef, podval, hisobla, retry };
+  /** Svod yaxlit xulosasi (belgi yo'q — null): qator darajasida yaxlitIdlari bilan ustama qo'llanmaydi. */
+  const svodYaxlit: SvodYaxlit | null = nak.data?.svod_yaxlit ?? null;
+  /**
+   * OBYEKT darajasidagi to'liq smeta kesimi (server cats_kaskad/cats + svod yaxlit) — butun smeta ustamalisi
+   * shundan (server ВСЕГО bilan bir xil). Belgi yo'q obyektda null: chaqiruvchi avvalgi kesimini ishlatadi.
+   */
+  const obyektKesim: KatKesim | null = useMemo(() => (nak.data && svodYaxlit ? obyektKesimi(nak.data) : null), [nak.data, svodYaxlit]);
+  /** Qatorlar (id, ota_id) → svod yaxlit bo'limi va avlodlari to'plami (qator darajasidagi kesimlar uchun). */
+  const yaxlitIdlari = useCallback((qatorlar: Iterable<{ id: number; ota_id?: number | null }>) => yaxlitQatorIdlari(qatorlar, svodYaxlit), [svodYaxlit]);
+  /** Ko'rinish kesimi — svod bo'limlari eksport bilan bir xil masshtablanadi (`svodKorinishKesimi`). */
+  const korinishKesimi = useCallback(<T,>(daraxt: ReadonlyArray<{ id: number; ota_id?: number | null }>, barglar: readonly T[], f: Parameters<typeof svodKorinishKesimi<T>>[2], o?: Parameters<typeof svodKorinishKesimi<T>>[4]) =>
+    svodKorinishKesimi(daraxt, barglar, f, svodYaxlit, o), [svodYaxlit]);
+  return { holat, koef, podval, hisobla, retry, svodYaxlit, obyektKesim, yaxlitIdlari, korinishKesimi };
 }

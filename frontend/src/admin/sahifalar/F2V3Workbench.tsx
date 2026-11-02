@@ -27,6 +27,9 @@ import { expandableDepths, expandableIdsAtDepth, flattenVisibleTree } from '../.
 import { saqlanmaganIsh } from '../../_shared/versiya';
 import { t, t as tarj } from '../../i18n/til';
 import { almashtirildiMatn, qoralamaAlmashtirilgan } from '../../lib/zamena-qoldiq';
+import { qatorBajarilish } from '../../lib/f2-hujjat-korinish';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { F2Oyna } from './F2Oyna';
 
 /**
  * F2 V3 — ikki oynali moslashtirish (docs/architecture/F2_IMPORT_V3.md §3).
@@ -57,6 +60,14 @@ const BELGI: Record<KorinishHolat, { b: string; cls: string; t: string }> = {
   otkazildi: { b: '–', cls: 'text-text-mute', t: 'Aktga kiritilmaydi' },
 };
 
+/** Qator holati — so'z bilan (belgi yetarli emas: ✓ ◐ ✕ ni ramz sifatida eslab qolish shart bo'lmasin). */
+const holatSoz = (k: KorinishHolat): string => ({
+  aniq: t('Aniq mos'), xotira: t('Oldingi qaror'), qolda: t('Siz bog‘ladingiz'), taklif: t('Taklif — tasdiqlang'), topilmadi: t('Topilmadi'), otkazildi: t('Aktga kirmaydi'),
+})[k];
+const HOLAT_CHIP: Record<KorinishHolat, string> = {
+  aniq: '', xotira: '', qolda: 'fz-chip--accent', taklif: 'fz-chip--warn', topilmadi: 'fz-chip--danger', otkazildi: '',
+};
+
 /** Egasi 2026-09-29: har qator holatiga ko'ra och fon — bir qarashda tushunarli. */
 const QATOR_FON: Record<KorinishHolat, string> = {
   aniq: 'bg-ok/[0.05]', xotira: 'bg-ok/[0.05]', qolda: 'bg-accent/[0.06]',
@@ -72,9 +83,9 @@ function TreeControls(props: {
   onToggleDepth: (depth: number) => void;
 }) {
   return <div className="flex flex-wrap items-center gap-1 border-b border-border/50 px-2 py-1" aria-label="Daraxt ko‘rinishini boshqarish">
-    <button type="button" className="tugma h-6 px-1.5 text-[10px]" onClick={props.onOpenAll}>{t('Hammasini ochish')}</button>
-    <button type="button" className="tugma h-6 px-1.5 text-[10px]" onClick={props.onCloseAll}>{t('Hammasini yopish')}</button>
-    {props.depths.map((depth) => <button key={depth} type="button" className="tugma h-6 px-1.5 text-[10px]"
+    <button type="button" className="fz-btn fz-btn--sm" onClick={props.onOpenAll}>{t('Hammasini ochish')}</button>
+    <button type="button" className="fz-btn fz-btn--sm" onClick={props.onCloseAll}>{t('Hammasini yopish')}</button>
+    {props.depths.map((depth) => <button key={depth} type="button" className="fz-btn fz-btn--sm"
       aria-label={`${depth + 1}-qavatdagi barcha bo‘limlarni ochish/yopish`} onClick={() => props.onToggleDepth(depth)}>
       {depth + 1}-qavat
     </button>)}
@@ -119,6 +130,8 @@ export interface F2V3WorkbenchProps {
   /** Smetaga yangi bo'lim (qoralamaga). otaQatorId null — yuqori daraja. Vaqtinchalik id yoki null (nom noto'g'ri). */
   onBolimRejali?: (nom: string, otaQatorId: number | null, keyinQatorId?: number) => number | null;
   disabled?: boolean;
+  /** Sahifadagi «Tekshiruv» ro'yxati «Keyingi tekshirilmagan qator»ga sakrashi uchun: workbench o'z funksiyasini shu yerga qo'yadi. */
+  keyingiRef?: { current: (() => void) | null };
 }
 
 const BOSH_XARITA: ReadonlyMap<number, number> = new Map();
@@ -127,9 +140,9 @@ const NARX_MANBALAR: readonly NarxManba[] = ['smeta_obyekt', 'smeta_shartnoma', 
 /** Egasi 2026-10-18: "vizual tushunarsiz — ranglarni yaxshiroq ko'rinadigan qil". Qator manbasi bir qarashda. */
 const QATOR_RANG: Record<SmetaQatorTuri, { fon: string; chegara: string; belgi: string; yorliq: string }> = {
   asl: { fon: '', chegara: 'border-l-4 border-l-transparent', belgi: '🔒', yorliq: 'Smetadan — o‘zgarmas' },
-  qoshimcha: { fon: 'bg-emerald-500/15', chegara: 'border-l-4 border-l-emerald-500', belgi: '＋', yorliq: 'Qo‘shimcha — siz qo‘shgansiz (tahrirlanadi)' },
-  zamena: { fon: 'bg-amber-500/15', chegara: 'border-l-4 border-l-amber-500', belgi: '⇄', yorliq: 'Zamena — siz qo‘shgansiz (tahrirlanadi)' },
-  almashtirilgan: { fon: 'bg-rose-500/10', chegara: 'border-l-4 border-l-rose-500', belgi: '↷', yorliq: 'Smeta qatori, o‘rniga zamena kiritilgan' },
+  qoshimcha: { fon: 'bg-[var(--info-soft)]', chegara: 'border-l-4 border-l-[var(--info)]', belgi: '＋', yorliq: 'Qo‘shimcha — siz qo‘shgansiz (tahrirlanadi)' },
+  zamena: { fon: 'bg-[color-mix(in_srgb,var(--kat-ob)_14%,transparent)]', chegara: 'border-l-4 border-l-[var(--kat-ob)]', belgi: '⇄', yorliq: 'Zamena — siz qo‘shgansiz (tahrirlanadi)' },
+  almashtirilgan: { fon: 'bg-danger/10', chegara: 'border-l-4 border-l-danger', belgi: '↷', yorliq: 'Smeta qatori, o‘rniga zamena kiritilgan' },
 };
 
 /** Smeta paneli tepasidagi rang izohi. */
@@ -184,12 +197,12 @@ const KATAK = 'border-b border-r border-border/70 px-1.5 py-1';
 /** Amal ustuni gorizontal aylantirishda ham o'ngda ko'rinib turadi (egasi sinovi: tugmalar kesilib qolardi). */
 /** Egasi 2026-10-06: har bir ish va uning resurslari massivi alohida chegarada ko'rinsin (ikkala panelda bir xil).
  *  Ish — ustida qalin chiziq; uning resurslari — chapda shu rangdagi vertikal chiziq. */
-const ISH_CHEGARA = 'border-t-2 border-t-sky-400/70';
+const ISH_CHEGARA = 'border-t-2 border-t-[var(--border-strong)]';
 /** Sudrash nishoni — `data-drop` atributi orqali (React qayta chizmaydi): ustiga — sariq fon, oldin/keyin — qatorlar orasida sariq chiziq. */
-const DROP_NISHON = 'data-[drop=ustiga]:bg-amber-500/25 data-[drop=ustiga]:outline data-[drop=ustiga]:outline-2 data-[drop=ustiga]:outline-amber-500 '
-  + 'data-[drop=oldin]:shadow-[inset_0_3px_0_0_rgb(245,158,11)] data-[drop=keyin]:shadow-[inset_0_-3px_0_0_rgb(245,158,11)]';
-const RESURS_CHEGARA = 'shadow-[inset_4px_0_0_0_rgba(56,189,248,0.45)]';
-const AMAL_YOPISHQOQ = 'sticky right-0 z-[1] bg-surface-1 shadow-[-6px_0_6px_-6px_rgba(0,0,0,.6)]';
+const DROP_NISHON = 'data-[drop=ustiga]:bg-warn/25 data-[drop=ustiga]:outline data-[drop=ustiga]:outline-2 data-[drop=ustiga]:outline-warn '
+  + 'data-[drop=oldin]:shadow-[inset_0_3px_0_0_var(--warn)] data-[drop=keyin]:shadow-[inset_0_-3px_0_0_var(--warn)]';
+const RESURS_CHEGARA = 'shadow-[inset_4px_0_0_0_color-mix(in_srgb,var(--info)_45%,transparent)]';
+const AMAL_YOPISHQOQ = 'sticky right-0 z-[1] bg-surface shadow-[-6px_0_6px_-6px_rgba(0,0,0,.6)]';
 const SON = `${KATAK} text-right tabular-nums text-[11.5px]`;
 /** Holat katagi — to'liq rangli fon (Excel shartli formatlashi kabi). */
 const HOLAT_KATAK: Record<KorinishHolat, string> = {
@@ -201,7 +214,7 @@ function PanelFiltr<T extends string>(props: { label: string; value: T; onChange
   return (
     <div role="group" aria-label={props.label} className="flex flex-wrap items-center gap-1 border-b border-border/60 px-2 py-1">
       {props.options.map(([v, l]) => <button key={v} type="button" aria-pressed={props.value === v}
-        className={`tugma h-6 px-1.5 text-[10.5px] ${props.value === v ? 'tugma-asosiy' : ''}`} onClick={() => props.onChange(v)}>{l}</button>)}
+        className={`fz-btn fz-btn--sm ${props.value === v ? 'fz-btn--primary' : ''}`} onClick={() => props.onChange(v)}>{l}</button>)}
       {props.izoh && <span className="ml-auto text-[10px] text-text-mute">{props.izoh}</span>}
     </div>
   );
@@ -732,8 +745,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       <div className="border-b border-l-4 border-accent/60 bg-surface-2/70 px-3 py-2 text-[11.5px]" onMouseDown={(e) => e.stopPropagation()}>
         <div className="mb-1 flex flex-wrap items-center gap-2">
           <b className="text-text">{tarj('Shu smeta qatoriga bog‘langan F2 qatorlari')}: {band.uidlar.length}</b>
-          <button type="button" className="tugma h-6 px-1.5 text-[11px] text-danger" disabled={p.disabled} onClick={uzHammasi}><Unlink size={11} /> {tarj('Hammasini uzish')}</button>
-          <button type="button" className="tugma h-6 px-1.5 text-[11px]" onClick={() => setManbaOchiq(null)}>✕</button>
+          <button type="button" className="fz-btn fz-btn--sm fz-btn--danger" disabled={p.disabled} onClick={uzHammasi}><Unlink size={11} /> {tarj('Hammasini uzish')}</button>
+          <button type="button" className="fz-btn fz-btn--sm" onClick={() => setManbaOchiq(null)}>✕</button>
         </div>
         <ul className="space-y-0.5">
           {band.uidlar.map((uid) => {
@@ -751,8 +764,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
                       ⇶ {fmt(band.qism.get(uid) ?? 0, 6)} / {fmt(f.hajm ?? 0)} {f.birlik ?? ''}</span>
                   : <span className={`font-mono ${minus ? 'font-semibold text-danger' : 'text-text'}`}>{fmt(f.hajm ?? 0)} {f.birlik ?? ''}</span>}
                 <span className="rounded bg-surface px-1 text-[10px] text-text-dim" title={b.usul}>{usulNomi(b)}</span>
-                <button type="button" className="tugma h-6 px-1.5 text-[11px]" onClick={() => f2Korsat(uid)}>{tarj('F2 da ko‘rsatish')}</button>
-                <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={p.disabled} onClick={() => uzBir(uid)}><Unlink size={11} /> {tarj('Uzish')}</button>
+                <button type="button" className="fz-btn fz-btn--sm" onClick={() => f2Korsat(uid)}>{tarj('F2 da ko‘rsatish')}</button>
+                <button type="button" className="fz-btn fz-btn--sm" disabled={p.disabled} onClick={() => uzBir(uid)}><Unlink size={11} /> {tarj('Uzish')}</button>
               </li>
             );
           })}
@@ -818,7 +831,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           <span className={`${SON} font-semibold`}>{fmt(rzSumma.get(t.uid) ?? null, 2)}</span>
           <span className={`${KATAK} text-[10.5px] font-normal normal-case ${d?.ok || !ishliRz ? 'text-text-mute' : 'text-warn'}`} title={sNom || undefined}>
             {d?.ok ? `→ ${sNom || 'smeta bo‘limi'}` : t.podval ? tarj('har qatorni to‘g‘ridan-to‘g‘ri smeta qatoriga bog‘lang (bo‘lim shart emas)') : ishliRz ? (rzTaklif ? '' : 'bo‘lim ulanmagan — mos smeta bo‘limiga torting') : 'guruh'}
-            {!d?.ok && !t.podval && rzTaklif && <button type="button" className="tugma tugma-asosiy h-6 px-1.5 text-[11px]" disabled={p.disabled || mutationBusy}
+            {!d?.ok && !t.podval && rzTaklif && <button type="button" className="fz-btn fz-btn--primary fz-btn--sm" disabled={p.disabled || mutationBusy}
               title={`${rzTaklif.soni}/${rzTaklif.jami} ${tarj('ish shu bo‘limga bog‘langan')}`}
               onClick={() => p.onRzBog(t.uid, rzTaklif.smetaRzId)}>
               <Check size={11} /> {tarj('Bo‘lim')}: {(rzTaklif.nom || '').slice(0, 40)} ({Math.round(rzTaklif.ulush * 100)}%)
@@ -864,7 +877,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     };
     const tavsiya = p.natija.natijalar.get(t.uid)?.tavsiya;
     const tavsiyaS = tavsiya?.tur === 'zamena' ? S.byId.get(tavsiya.qatorId) : undefined;
-    const tugma = 'tugma h-6 px-1.5 text-[11px]';
+    const tugma = 'fz-btn fz-btn--sm';
     const podvalTakror = t.podval ? podvalTakrori(t, ind.qatorlar, ij).length > 0 : false;
     return (
       <div data-fuid={t.uid} role="group" aria-label={`F2 qatori (${f2QatorTuriYorlig(t.tur)}): ${t.nom}`}
@@ -872,7 +885,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         title={(p.disabled || mutationBusy) ? undefined : 'Sudrab o‘ngdagi smeta qatoriga tashlang: ish → ish (bog‘lash/zamena), ish → razdel (qo‘shimcha)'}
         className={`${F2_GRID} cursor-grab text-[12px] active:cursor-grabbing ${sudrash?.uid === t.uid ? 'opacity-50' : ''} ${sel ? 'bg-accent/15 outline outline-1 outline-accent' : `${QATOR_FON[k]} hover:bg-surface-2/60`} ${ish ? `font-medium text-text ${ISH_CHEGARA}` : `text-text-dim ${RESURS_CHEGARA}`}`}>
         <button type="button" aria-pressed={belgi.has(t.uid)} aria-label={`${tarj('Belgilash')}: ${t.nom}`} onClick={(e) => belgiBos(t.uid, e.shiftKey)}
-          className={`${KATAK} flex items-start justify-center text-[13px] font-bold ${belgi.has(t.uid) ? 'bg-accent text-white' : HOLAT_KATAK[k]}`}
+          className={`${KATAK} flex items-start justify-center text-[13px] font-bold ${belgi.has(t.uid) ? 'bg-accent text-[color:var(--on-accent)]' : HOLAT_KATAK[k]}`}
           title={`${B.t} — ${tarj('bosing: belgilash (Shift: oraliq)')}`}>{belgi.has(t.uid) ? '☑' : B.b}</button>
         <span className={`${KATAK} overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[10.5px] text-text-mute`} title={t.kod ?? ''}>{t.kod}</span>
         <div className={`${KATAK} flex items-start text-left`} style={{ paddingLeft: 6 + depth * 14 }}>
@@ -893,6 +906,18 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           {podvalTakror && <span className="mt-0.5 block text-[10.5px] font-normal text-warn">{tarj('Takror: bu smeta qatori aktning asosiy qismida ham olingan — «Faqat izoh» bosing, aks holda summa ikki marta sanaladi')}</span>}
           {t.ogohlantirish?.length ? <span className="mt-0.5 block text-[10.5px] font-normal text-danger">{t.ogohlantirish.join('; ')}</span> : null}
           {bk.summaBoyicha && <span className="mt-0.5 block text-[10.5px] font-normal text-text-mute">{tarj('summa bo‘yicha hisoblandi')}: {fmt(bk.summa, 2)} / {fmt(bk.smetaNarx, 2)}</span>}
+          {<span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10.5px] font-normal" data-holat-soz={k}>
+            <span className={`fz-chip ${HOLAT_CHIP[k]}`}>{holatSoz(k)}</span>
+            {s && t.barg && k !== 'otkazildi' && (() => {
+              const bj = qatorBajarilish(s.hajm, p.oldingi.get(s.id) ?? 0, bk.hajm ?? 0);
+              if (bj.foiz == null || bk.hajm == null) return <span className="text-text-mute" title={tarj('Smeta hajmi noma’lum')}>{tarj('smetaga nisbatan')}: —</span>;
+              return <span className={`fz-meter ${bj.oshdi ? 'fz-meter--over' : ''}`} style={{ minWidth: 110, maxWidth: 160 }}
+                title={tarj('Oldin olingan: {o} · shu F2: {s} · smeta: {m}', { o: fmt(bj.oldin), s: fmt(bj.shu), m: fmt(bj.smeta) })}>
+                <span className="fz-meter__t"><i className="fz-meter__oldin" style={{ width: `${bj.oldinUlush * 100}%` }} /><i className="fz-meter__shu" style={{ width: `${bj.shuUlush * 100}%` }} /></span>
+                <span className="fz-meter__f">{Math.round(bj.foiz)}%</span>
+              </span>;
+            })()}
+          </span>}
         </button>
         </div>
         <span className={`${SON} text-text-mute`}>{t.norma == null ? '' : fmt(t.norma, 6)}</span>
@@ -906,7 +931,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           {t.barg ? fmt(t.summa, 2) : bolaSumma(t) != null ? fmt(bolaSumma(t), 2) : ''}
         </span>
         <span className={`${KATAK} ${AMAL_YOPISHQOQ} flex flex-wrap items-center gap-1 font-normal`} onMouseDown={(e) => e.stopPropagation()}>
-          {(t.tur === 'bl' ? guruhHolati(ind, ij, t) === 'taklif' && ij.bog.has(t.uid) : k === 'taklif' && ind.ota.get(t.uid)?.tur !== 'bl') && <button type="button" className={`${tugma} tugma-asosiy`} disabled={(p.disabled || mutationBusy)}
+          {(t.tur === 'bl' ? guruhHolati(ind, ij, t) === 'taklif' && ij.bog.has(t.uid) : k === 'taklif' && ind.ota.get(t.uid)?.tur !== 'bl') && <button type="button" className={`${tugma} fz-btn--primary`} disabled={(p.disabled || mutationBusy)}
             onClick={() => (t.tur === 'bl' ? ishTasdiq(t) : p.onIj(tasdiqla(ij, [t.uid])))} title={t.tur === 'bl' ? tarj('Ishni va uning barcha resurslarini tasdiqlash') : 'Tizim taklifini tasdiqlash'}><Check size={11} /> Tasdiqlash</button>}
           {k === 'topilmadi' && ish && <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)}
             onClick={() => scrollTanlanganPanelga(t.uid)} title="Smeta razdelidagi qaysi ish o‘rniga bajarilganini tanlang">⇄ Zamena</button>}
@@ -914,13 +939,13 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
             onClick={() => ochModal(t, { kind: 'additional', parent: p.raw.get(rzId)!, keyinId: oldingiKeyin() })} title="Smetaga qo‘shimcha ish (resurslari bilan) — F2 dagi tartibda, oldingi bog‘langan ishdan keyin">＋ Qo‘shimcha</button>}
           <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)}
             aria-label={`Bog‘lash variantlari: ${t.nom}`} onClick={() => scrollTanlanganPanelga(t.uid)} title={candidateCount ? `Mos smeta qatorlari va dalillari (${candidateCount} ta variant)` : 'Mos smeta qatorlari va dalillari'}><Link2 size={11} /> {tarj('Variantlar')}{candidateCount ? ` (${candidateCount})` : ''}</button>
-          {k === 'topilmadi' && !ish && tavsiyaS && <button type="button" className={`${tugma} tugma-asosiy`} disabled={(p.disabled || mutationBusy)}
+          {k === 'topilmadi' && !ish && tavsiyaS && <button type="button" className={`${tugma} fz-btn--primary`} disabled={(p.disabled || mutationBusy)}
             onClick={() => zamena(t, tavsiyaS)} title={`Smetadagi «${tavsiyaS.nom ?? ''}» o‘rniga (zamena resurs) — aynan uning ortidan joylashadi`}>⇄ Zamena</button>}
-          {k === 'topilmadi' && !ish && otaSmetaIsh != null && p.raw.get(otaSmetaIsh) && <button type="button" className={`${tugma} ${tavsiya?.tur === 'qoshimcha' ? 'tugma-asosiy' : ''}`} disabled={(p.disabled || mutationBusy)}
+          {k === 'topilmadi' && !ish && otaSmetaIsh != null && p.raw.get(otaSmetaIsh) && <button type="button" className={`${tugma} ${tavsiya?.tur === 'qoshimcha' ? 'fz-btn--primary' : ''}`} disabled={(p.disabled || mutationBusy)}
             onClick={() => ochModal(t, { kind: 'resource', parent: p.raw.get(otaSmetaIsh)!, keyinId: resursKeyin() })} title="Smeta ishiga qo‘shimcha resurs — F2 dagi tartibda">＋ Resurs</button>}
           {k === 'topilmadi' && !ish && otaSmetaIsh == null && <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)}
             onClick={() => scrollTanlanganPanelga(t.uid)} title="Avval ishini bog‘lang">Tanlash</button>}
-          {t.podval && t.barg && <button type="button" className={`${tugma} ${podvalTakror ? 'tugma-asosiy' : ''}`} disabled={(p.disabled || mutationBusy)}
+          {t.podval && t.barg && <button type="button" className={`${tugma} ${podvalTakror ? 'fz-btn--primary' : ''}`} disabled={(p.disabled || mutationBusy)}
             aria-label={`${k === 'otkazildi' ? tarj('Aktga qaytarish') : tarj('Faqat izoh')}: ${t.nom}`} onClick={() => p.onIj(otkazibYubor(ij, t, k !== 'otkazildi'))}
             title={tarj('Podval qatori faqat izoh — aktga kirmaydi, summasi sanalmaydi, yozish to‘xtamaydi')}>
             <SkipForward size={11} /> {k === 'otkazildi' ? tarj('Aktga qaytarish') : tarj('Faqat izoh')}</button>}
@@ -962,13 +987,13 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     return [...sBelgi].filter((id) => S.byId.has(id) && !ichida(id));
   }
   /** Belgilangan QO'SHILGAN qatorlar (bo'limlar ham) — o'chirishga (qoralamaga). Asl smeta qatorlari o'zgarmaydi. */
-  function sOmmaviyOchir() {
+  async function sOmmaviyOchir() {
     if (p.disabled || mutationBusy) return;
     const ildiz = sBelgiIldizlar();
     const asl = ildiz.filter((id) => id > 0 && !qoshilganmi(p.raw.get(id)));
     const olinadi = ildiz.filter((id) => !asl.includes(id));
     if (!olinadi.length) { xab(tarj('Belgilanganlar orasida siz qo‘shgan qator yo‘q — smetaning asl qatorlari o‘chirilmaydi.')); return; }
-    if (!window.confirm(`${olinadi.length} ${tarj('ta qo‘shilgan qator (ichidagilari bilan) o‘chirishga belgilansinmi? «F2 ni yozish» bosilganda o‘chiriladi, arxivda qoladi.')}${asl.length ? ` ${asl.length} ${tarj('ta asl smeta qatori o‘tkazib yuboriladi.')}` : ''}`)) return;
+    if (!(await tasdiqSora({ xavfli: true, tasdiqMatni: t('Belgilash'), matn: `${olinadi.length} ${tarj('ta qo‘shilgan qator (ichidagilari bilan) o‘chirishga belgilansinmi? «F2 ni yozish» bosilganda o‘chiriladi, arxivda qoladi.')}${asl.length ? ` ${asl.length} ${tarj('ta asl smeta qatori o‘tkazib yuboriladi.')}` : ''}` }))) return;
     let n = 0;
     for (const id of olinadi) {
       if (id < 0) { if (p.onRejaliOchir) { p.onRejaliOchir(id); n++; } continue; }
@@ -1134,7 +1159,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     if (!ketmaKetXabar(pastdagilarniBogla(ij, ind, S, uid))) xab(t('Pastda ketma-ket mos qator topilmadi.'));
   }
   /** Belgilangan qatorlarga bitta amal — bitta onIj (bitta «Orqaga» qadami). */
-  function ommaviy(amal: 'tasdiq' | 'uz' | 'otkaz' | 'kirit') {
+  async function ommaviy(amal: 'tasdiq' | 'uz' | 'otkaz' | 'kirit') {
     const tugunlar = [...belgi].map((u) => ind.byUid.get(u)).filter((x): x is F2Tugun => !!x && x.tur !== 'rz');
     if (!tugunlar.length) return;
     let next = ij;
@@ -1142,7 +1167,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     if (amal === 'tasdiq') {
       // «Boshqa bo'limda shifr mos» ◐ lari jim tasdiqlanmaydi (zamena/qo'shimcha bo'lishi mumkin) — alohida sanaladi va so'raladi.
       const ehtiyot = tugunlar.filter((x) => { const b = ij.bog.get(x.uid); return b?.holat === 'taklif' && b.usul === BOSHQA_BOLIM_USUL; });
-      const ruxsat = ehtiyot.length > 0 && window.confirm(`${ehtiyot.length} ${tarj('ta ◐ taklif BOSHQA bo‘limdagi shifr mos ish — zamena yoki qo‘shimcha ham bo‘lishi mumkin. Ularni ham tasdiqlaysizmi? «Bekor» — faqat qolganlari tasdiqlanadi.')}`);
+      const ruxsat = ehtiyot.length > 0 && await tasdiqSora({ matn: `${ehtiyot.length} ${tarj('ta ◐ taklif BOSHQA bo‘limdagi shifr mos ish — zamena yoki qo‘shimcha ham bo‘lishi mumkin. Ularni ham tasdiqlaysizmi?')}`, tasdiqMatni: t('Ha, hammasini tasdiqlash'), bekorMatni: t('Faqat qolganlarini') });
       const olib = new Set(ruxsat ? [] : ehtiyot.map((x) => x.uid));
       ehtiyotOtkazildi = olib.size;
       // Ish tanlansa resurslari ham tasdiqlanadi/bog'lanadi (guruh).
@@ -1189,7 +1214,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
 
   /**
    * SUDRASH — brauzerning HTML5 drag-and-drop i EMAS, sichqoncha/pointer hodisalari bilan (egasi 2026-10-24: «F2 dan ushlab
-   * smeta ustiga tashlasam hech qanday reaksiya yo'q»). Sabab: qator nomi <button> — Chrome tugma ustidan boshlangan
+   * smeta ustiga tashlasam hech qanday reaksiya yo'q»). Sabab: qator nomi <button> — Chrome fz-btn ustidan boshlangan
    * native sudrashni boshlamaydi; Windows/overlay dasturlar ham OS drag-and-drop ni buzishi mumkin. Pointer usuli
    * qatorning istalgan joyidan (nomidan ham) ishlaydi; 6 px dan kam siljish — oddiy bosish (tanlash) bo'lib qoladi.
    * Tanlov (yuqoridagi panel) sudrash paytida O'ZGARMAYDI — tashlangach tanlanadi (egasi sinovi 2026-09-29).
@@ -1371,7 +1396,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   function sBelgiKatak(s: SmetaQator) {
     const on = sBelgi.has(s.id);
     return <button type="button" aria-pressed={on} aria-label={`${tarj('Smetada belgilash')}: ${s.nom ?? ''}`} onClick={(e) => { e.stopPropagation(); sBelgiBos(s.id, e.shiftKey); }}
-      className={`${KATAK} flex items-start justify-center text-[12px] ${on ? 'bg-accent text-white' : 'text-text-mute hover:bg-surface-2'}`}
+      className={`${KATAK} flex items-start justify-center text-[12px] ${on ? 'bg-accent text-[color:var(--on-accent)]' : 'text-text-mute hover:bg-surface-2'}`}
       title={tarj('bosing: belgilash (Shift: oraliq)')}>{on ? '☑' : '☐'}</button>;
   }
   function smetaQator(s: SmetaQator, depth: number, tekis = false): React.ReactNode {
@@ -1387,7 +1412,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           {ochiq ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
         </button>
       : null;
-    const tugma = 'tugma h-6 px-1.5 text-[11px]';
+    const tugma = 'fz-btn fz-btn--sm';
     if (s.tur === 'rz') {
       return (
         <div data-sid={s.id} {...dropProps(s)} className={`${S_RZ_GRID} text-[12px] font-semibold text-text ${mosNishon(s) ? 'bg-surface-2/80 outline-dashed outline-1 outline-accent/60' : 'bg-surface-2/80'} ${DROP_NISHON}`}>
@@ -1407,7 +1432,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
               aria-label={`${tarj('Ichida yangi bo‘lim')}: ${s.nom}`} title={tarj('Shu bo‘lim ichida yangi bo‘lim')}>＋ {tarj('Ichki bo‘lim')}</button>}
             {p.onBolimRejali && <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)} onClick={() => yangiBolim(s.otaId != null ? S.byId.get(s.otaId) ?? null : null, s)}
               aria-label={`${tarj('Keyin yangi bo‘lim')}: ${s.nom}`} title={tarj('Shu bo‘limdan keyin, xuddi shu darajada yangi bo‘lim')}>＋ {tarj('Bo‘lim')}</button>}
-            {(s.id < 0 || qoshilganmi(p.raw.get(s.id))) && <button type="button" className={`${tugma} text-danger`} disabled={(p.disabled || mutationBusy)}
+            {(s.id < 0 || qoshilganmi(p.raw.get(s.id))) && <button type="button" className={`${tugma} fz-btn--danger`} disabled={(p.disabled || mutationBusy)}
               onClick={() => void qoshilganOchir(s.id)} aria-label={`${tarj('Bo‘limni o‘chirish')}: ${s.nom}`}
               title={tarj('Siz qo‘shgan bo‘limni ichidagilari bilan o‘chirish (asl smeta bo‘limlari o‘chirilmaydi)')}><Trash2 size={11} /></button>}
           </span>
@@ -1433,14 +1458,23 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
         <button type="button" className="min-w-0 flex-1 text-left" onClick={() => { if (tTugun) tashla(tTugun.uid, s.id); }}
           title={tTugun ? 'Tanlangan F2 qatorini shu yerga bog‘lash yoki o‘zgarish sifatida kiritish' : undefined}>
           {percent != null && <span className="mr-1 rounded bg-warn/20 px-1 text-[10px] font-semibold text-warn" title="Moslik indeksi — ehtimollik emas">{percent}%</span>}
-          <span className={`break-words ${tur === 'almashtirilgan' ? 'line-through decoration-rose-500/70' : ''}`}>{s.nom}</span>
-          {s.id < 0 && <span title="Hali serverga yozilmagan — «Saqlash» bosilganda yoziladi" className="ml-1 rounded bg-sky-500/20 px-1 text-[10px] font-semibold text-sky-700 dark:text-sky-300">⏳ saqlanmagan</span>}
-          {tur !== 'asl' && <span title={rang.yorliq} className={`ml-1 rounded px-1 text-[10px] font-semibold ${tur === 'qoshimcha' ? 'bg-emerald-500/25 text-emerald-700 dark:text-emerald-300' : tur === 'zamena' ? 'bg-amber-500/25 text-amber-700 dark:text-amber-300' : 'bg-rose-500/20 text-rose-700 dark:text-rose-300'}`}>
+          <span className={`break-words ${tur === 'almashtirilgan' ? 'line-through decoration-danger/70' : ''}`}>{s.nom}</span>
+          {s.id < 0 && <span title="Hali serverga yozilmagan — «Saqlash» bosilganda yoziladi" className="ml-1 rounded bg-[var(--info-soft)] px-1 text-[10px] font-semibold text-[var(--info)]">⏳ saqlanmagan</span>}
+          {tur !== 'asl' && <span title={rang.yorliq} className={`ml-1 rounded px-1 text-[10px] font-semibold ${tur === 'qoshimcha' ? 'bg-[var(--info-soft)] text-[var(--info)]' : tur === 'zamena' ? 'bg-[color-mix(in_srgb,var(--kat-ob)_20%,transparent)] text-[var(--kat-ob)]' : 'bg-danger/20 text-danger'}`}>
             {rang.belgi} {tur === 'qoshimcha' ? 'qo‘shimcha' : tur === 'zamena' ? 'zamena' : 'almashtirilgan'}</span>}
           {tekis && <span className="mt-0.5 block text-[10.5px] font-normal text-text-mute">{yolMatn(s)}</span>}
           {(old > 0 || band) && <span className="mt-0.5 block text-[10.5px] font-normal text-text-mute">
             oldin F2 {fmt(old)}{band && <span className="ml-1 text-ok">· shu F2 {fmt(band.hajm)}</span>}
           </span>}
+          {s.hajm != null && (old > 0 || band) && (() => {
+            const bj = qatorBajarilish(s.hajm, old + (p.almashtirilgan?.get(s.id) ?? 0), band?.hajm ?? 0);
+            if (bj.foiz == null) return null;
+            return <span className={`fz-meter mt-1 ${bj.oshdi ? 'fz-meter--over' : ''}`} style={{ minWidth: 110, maxWidth: 160 }}
+              title={t('Oldin olingan: {o} · shu F2: {s} · smeta: {m}', { o: fmt(bj.oldin), s: fmt(bj.shu), m: fmt(bj.smeta) })}>
+              <span className="fz-meter__t"><i className="fz-meter__oldin" style={{ width: `${bj.oldinUlush * 100}%` }} /><i className="fz-meter__shu" style={{ width: `${bj.shuUlush * 100}%` }} /></span>
+              <span className="fz-meter__f">{Math.round(bj.foiz)}%</span>
+            </span>;
+          })()}
         </button>
         {band && (() => {
           const minuslar = band.uidlar.filter((u) => (ind.byUid.get(u)?.hajm ?? 0) < 0).length;
@@ -1475,7 +1509,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           {qoshilgan && p.onQoshilganOzgardi && <>
             <button type="button" className={tugma} disabled={(p.disabled || mutationBusy)} onClick={() => qoshilganTahrir(s.id)}
               aria-label={`Tahrirlash: ${s.nom}`} title={t('Siz qo‘shgan qatorni tahrirlash (nom, hajm, resurslar, narx)')}><Pencil size={11} /></button>
-            <button type="button" className={`${tugma} text-danger`} disabled={(p.disabled || mutationBusy)} onClick={() => void qoshilganOchir(s.id)}
+            <button type="button" className={`${tugma} fz-btn--danger`} disabled={(p.disabled || mutationBusy)} onClick={() => void qoshilganOchir(s.id)}
               aria-label={`O‘chirish: ${s.nom}`} title={t('Siz qo‘shgan qatorni o‘chirish (arxivda qoladi; smeta qatori o‘zgarmaydi)')}><Trash2 size={11} /></button>
           </>}
         </span>
@@ -1536,15 +1570,15 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
             {r?.sabab && k !== 'qolda' && <p className="text-[11px] text-text-mute">{r.sabab}</p>}
           </div>
           <div className="flex flex-wrap gap-1">
-            {(tTugun.tur === 'bl' ? guruhHolati(ind, ij, tTugun) === 'taklif' && !!b : k === 'taklif') && <button type="button" className="tugma tugma-asosiy h-7 px-2 text-[12px]" onClick={() => (tTugun.tur === 'bl' ? ishTasdiq(tTugun) : p.onIj(tasdiqla(ij, [tTugun.uid])))}><Check size={13} /> {tTugun.tur === 'bl' ? tarj('Ish va resurslarini tasdiqlash') : 'Tasdiqlash'}</button>}
-            {b && <button type="button" className="tugma h-7 px-2 text-[12px]" onClick={() => p.onIj(uz(ij, tTugun))}><Unlink size={13} /> Uzish</button>}
-            {b && k !== 'taklif' && <button type="button" className="tugma h-7 px-2 text-[12px]" disabled={p.disabled || mutationBusy} onClick={() => pastdagilar(tTugun.uid)}
+            {(tTugun.tur === 'bl' ? guruhHolati(ind, ij, tTugun) === 'taklif' && !!b : k === 'taklif') && <button type="button" className="fz-btn fz-btn--primary fz-btn--sm" onClick={() => (tTugun.tur === 'bl' ? ishTasdiq(tTugun) : p.onIj(tasdiqla(ij, [tTugun.uid])))}><Check size={13} /> {tTugun.tur === 'bl' ? tarj('Ish va resurslarini tasdiqlash') : 'Tasdiqlash'}</button>}
+            {b && <button type="button" className="fz-btn fz-btn--sm" onClick={() => p.onIj(uz(ij, tTugun))}><Unlink size={13} /> Uzish</button>}
+            {b && k !== 'taklif' && <button type="button" className="fz-btn fz-btn--sm" disabled={p.disabled || mutationBusy} onClick={() => pastdagilar(tTugun.uid)}
               title={t('Bog‘langan qatordan keyingi F2 va smeta qatorlari ketma-ket mos tursa, ularni ham bog‘laydi')}>{t('⇊ Pastdagi mos qatorlarni ham bog‘lash')}</button>}
-            {reja && <button type="button" className={`tugma h-7 px-2 text-[12px] ${taqsimOchiq === tTugun.uid ? 'tugma-asosiy' : ''}`} disabled={p.disabled || mutationBusy}
+            {reja && <button type="button" className={`fz-btn fz-btn--sm ${taqsimOchiq === tTugun.uid ? 'fz-btn--primary' : ''}`} disabled={p.disabled || mutationBusy}
               aria-expanded={taqsimOchiq === tTugun.uid} onClick={() => setTaqsimOchiq(taqsimOchiq === tTugun.uid ? null : tTugun.uid)}
               title={t('F2 hajmini bir xil shifr va birlikdagi smeta qatorlariga bo‘lib bog‘lash: har qator qoldig‘igacha, ortig‘i oxirgisiga')}>
               ⇶ {t('Taqsimlab bog‘lash')} ({reja.qatorlar.length} {t('ta qator')})</button>}
-            <button type="button" className="tugma h-7 px-2 text-[12px]" onClick={() => p.onIj(otkazibYubor(ij, tTugun, k !== 'otkazildi'))}>
+            <button type="button" className="fz-btn fz-btn--sm" onClick={() => p.onIj(otkazibYubor(ij, tTugun, k !== 'otkazildi'))}>
               <SkipForward size={13} /> {k === 'otkazildi' ? 'Aktga qaytarish' : 'Aktga kiritmaslik'}
             </button>
           </div>
@@ -1583,9 +1617,9 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
               <div className="flex flex-wrap items-center gap-2 border-t border-border/60 px-2 py-1 text-[11.5px]">
                 <span className="text-text-dim">{t('Bo‘laklar jami')}: <b className="tabular-nums text-text">{fmt(jamiQ, 6)}</b> = F2 {fmt(tTugun.hajm)}</span>
                 {oshadi && <span className="text-danger">{t('Ortig‘i oxirgi qatorga tushdi — qoldiqdan oshish ko‘rinadi (blok emas).')}</span>}
-                <button type="button" className="tugma tugma-asosiy ml-auto h-7 px-2 text-[12px]" disabled={p.disabled || mutationBusy} onClick={() => taqsimQolla(tTugun, reja.qismlar)}>
+                <button type="button" className="fz-btn fz-btn--primary fz-btn--sm ml-auto" disabled={p.disabled || mutationBusy} onClick={() => taqsimQolla(tTugun, reja.qismlar)}>
                   <Check size={13} /> {t('Taqsimlab bog‘lash')}</button>
-                <button type="button" className="tugma h-7 px-2 text-[12px]" onClick={() => setTaqsimOchiq(null)}>{t('Bekor qilish')}</button>
+                <button type="button" className="fz-btn fz-btn--sm" onClick={() => setTaqsimOchiq(null)}>{t('Bekor qilish')}</button>
               </div>
             </div>
           );
@@ -1640,9 +1674,9 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
                     <span className={kat}>{sr ? sr.nom : tvS ? <span className="text-warn">⇄ taklif: {tvS.nom}</span> : <span className="text-text-mute">— smetada jufti yo‘q</span>}</span>
                     <span className={`${kat} text-right tabular-nums`}>{sr ? `${fmt(sr.hajm)} ${sr.birlik ?? ''}` : ''}</span>
                     <span className={`${kat} flex flex-wrap gap-1`}>
-                      {!sr && tvS && <button type="button" className="tugma tugma-asosiy h-6 px-1.5 text-[11px]" onClick={() => zamena(r, tvS)}>⇄ Zamena</button>}
-                      {!sr && p.raw.get(sIshId) && <button type="button" className="tugma h-6 px-1.5 text-[11px]" onClick={() => ochModal(r, { kind: 'resource', parent: p.raw.get(sIshId)!, keyinId: keyin })}>＋ Resurs</button>}
-                      {sr && <button type="button" className="tugma h-6 px-1.5 text-[11px]" onClick={() => p.onIj(uz(ij, r))}><Unlink size={11} /> Uzish</button>}
+                      {!sr && tvS && <button type="button" className="fz-btn fz-btn--primary fz-btn--sm" onClick={() => zamena(r, tvS)}>⇄ Zamena</button>}
+                      {!sr && p.raw.get(sIshId) && <button type="button" className="fz-btn fz-btn--sm" onClick={() => ochModal(r, { kind: 'resource', parent: p.raw.get(sIshId)!, keyinId: keyin })}>＋ Resurs</button>}
+                      {sr && <button type="button" className="fz-btn fz-btn--sm" onClick={() => p.onIj(uz(ij, r))}><Unlink size={11} /> Uzish</button>}
                     </span>
                   </div>
                   </Fragment>
@@ -1673,10 +1707,10 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
                       {n.yol ? ` — ${n.yol}` : ''}
                     </span>
                   </span>
-                  <button type="button" className="tugma h-6 shrink-0 px-1.5 text-[11px]" onClick={() => (tTugun.tur === 'bl' ? ishBogla(tTugun, ns.id) : (p.onIj(bogla(ij, tTugun.uid, ns.id)), xab('Bog‘landi.')))}>
+                  <button type="button" className="fz-btn fz-btn--sm shrink-0" onClick={() => (tTugun.tur === 'bl' ? ishBogla(tTugun, ns.id) : (p.onIj(bogla(ij, tTugun.uid, ns.id)), xab('Bog‘landi.')))}>
                     <Link2 size={12} /> Bog‘lash
                   </button>
-                  <button type="button" className="tugma h-6 shrink-0 px-1.5 text-[11px]" onClick={() => zamena(tTugun, ns)} title="F2 qatori shu smeta qatori o‘rniga bajarilgan (zamena)">⇄ Zamena</button>
+                  <button type="button" className="fz-btn fz-btn--sm shrink-0" onClick={() => zamena(tTugun, ns)} title="F2 qatori shu smeta qatori o‘rniga bajarilgan (zamena)">⇄ Zamena</button>
                 </div>
               );
             })}
@@ -1700,7 +1734,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
               <div key={rzId} className="rounded border border-border/60">
                 <div className="flex items-center gap-2 border-b border-border/60 bg-surface-2/50 px-2 py-1 text-[11.5px]">
                   <span className="min-w-0 flex-1 truncate">Smetaning <b>«{rzS?.nom}»</b> razdelida ({ishlar.length} ta qator) — qaysi ish o‘rniga bajarilgan?</span>
-                  <button type="button" className="tugma h-6 shrink-0 px-1.5 text-[11px]" disabled={(p.disabled || mutationBusy) || !p.raw.get(rzId)}
+                  <button type="button" className="fz-btn fz-btn--sm shrink-0" disabled={(p.disabled || mutationBusy) || !p.raw.get(rzId)}
                     onClick={() => ochModal(tTugun, { kind: 'additional', parent: p.raw.get(rzId)! })}>＋ Qo‘shimcha ish</button>
                 </div>
                 <div>
@@ -1708,7 +1742,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
                     <div key={x.id} className="flex items-center gap-2 border-b border-border/30 px-2 py-1 text-[11.5px] last:border-0">
                       <span className="min-w-0 flex-1 truncate" title={x.nom ?? ''}>{x.kod && x.kod.length > 2 && <span className="mr-1 font-mono text-text-mute">{x.kod.split(/\s+/)[0]}</span>}{x.nom}</span>
                       <SonUstunlari norma={x.norma} miqdor={x.hajm} birlik={x.birlik} narx={x.narx} oxirgi="" />
-                      <button type="button" className="tugma h-6 shrink-0 px-1.5 text-[11px]" disabled={(p.disabled || mutationBusy)} onClick={() => zamena(tTugun, x)} title="F2 ishi smetadagi shu ish o‘rniga bajarilgan">⇄ Zamena</button>
+                      <button type="button" className="fz-btn fz-btn--sm shrink-0" disabled={(p.disabled || mutationBusy)} onClick={() => zamena(tTugun, x)} title="F2 ishi smetadagi shu ish o‘rniga bajarilgan">⇄ Zamena</button>
                     </div>
                   ))}
                 </div>
@@ -1722,22 +1756,54 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
 
   const gh = guruhHisobla(ind, ij);
   const halSoni = gh.hal.length;
+  if (p.keyingiRef) p.keyingiRef.current = keyingiHal;
+  /* Moslik sifati: har F2 qatori (gh bilan bir xil sanoq) aniq bitta guruhga tushadi. */
+  let sifatMos = 0, sifatZamena = 0, sifatQosh = 0;
+  for (const tg of ind.qatorlar) {
+    const o = ind.ota.get(tg.uid);
+    if (o && o.tur === 'bl') continue;
+    const g = guruhHolati(ind, ij, tg);
+    if (g !== 'aniq' && g !== 'xotira' && g !== 'qolda') continue;
+    const bb = ij.bog.get(tg.uid);
+    const sid = bb ? bogIdlari(bb)[0] : undefined;
+    const tr = sid != null ? qatorTuri(sid) : 'asl';
+    if (tr === 'zamena') sifatZamena++; else if (tr === 'qoshimcha') sifatQosh++; else sifatMos++;
+  }
+  const sifatQismlar = [
+    { id: 'mos', nom: t('Mos topildi'), soni: sifatMos, rang: 'var(--ok)', matn: 'var(--ok)', izoh: t('Smeta qatoriga bog‘langan: tizim topgan, oldingi qaror yoki operator tasdiqlagan') },
+    { id: 'zamena', nom: t('Zamena'), soni: sifatZamena, rang: 'var(--kat-ob)', matn: 'var(--kat-ob)', izoh: t('Smeta qatori o‘rniga bajarilgan (yangi qator, eskisi o‘zgarmaydi)') },
+    { id: 'qoshimcha', nom: t('Qo‘shimcha'), soni: sifatQosh, rang: 'var(--info)', matn: 'var(--info)', izoh: t('Smetada yo‘q ish yoki resurs — smetaga qo‘shimcha qilib yoziladi') },
+    { id: 'taklif', nom: t('Taklif — tasdiq kutmoqda'), soni: gh.taklif, rang: 'var(--warn)', matn: 'var(--warn)', izoh: t('Tizim taklif qildi, lekin operator hali tasdiqlamadi') },
+    { id: 'topilmadi', nom: t('Topilmadi'), soni: gh.topilmadi, rang: 'var(--danger)', matn: 'var(--danger)', izoh: t('Smetada mos qator yo‘q — bog‘lang, zamena yoki qo‘shimcha qiling') },
+    { id: 'otkazildi', nom: t('Aktga kiritilmaydi'), soni: gh.otkazildi, rang: 'var(--border-strong)', matn: 'var(--text-dim)', izoh: t('Ataylab chiqarilgan (masalan podval izohi)') },
+  ];
+  const sifatJami = sifatQismlar.reduce((a, q) => a + q.soni, 0);
   // Modal ishi: yangi ish ostiga faqat o'tadigan resurslar (boshqa joyga bog'langanlari o'z bog'lanishini saqlaydi).
   const modalF: F2Tugun | null = modal ? (modal.f.tur === 'bl' ? { ...modal.f, bolalar: otadigan(modal.f) } : modal.f) : null;
   return (
-    <div className="space-y-2">
-      <div className="karta space-y-2 p-2 text-[12px]">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-          <span title="Moslik dvigateli dalillar bo‘yicha avtomatik topdi; bu operator tekshiruvi degani emas."><b className="text-ok">✓ {gh.tizimTopdi}</b> tizim mos topdi</span>
-          <span title="Avvalgi davrda tasdiqlangan bog‘lanish xotirasidan olindi."><b className="text-ok">↻ {gh.avvalgiQaror}</b> oldingi qaror</span>
-          <span title="Bu qatorni operator qo‘lda bog‘ladi yoki taklifni tasdiqladi."><b className="text-ok">✋ {gh.operatorTasdiqladi}</b> operator tasdiqladi</span>
-          <span><b className="text-warn">◐ {gh.taklif}</b> operator tasdig‘ini kutmoqda</span>
-          <span><b className="text-danger">✕ {gh.topilmadi}</b> topilmadi</span>
-          <span><b className="text-text-mute">– {gh.otkazildi}</b> ataylab chiqarilgan</span>
-          <button type="button" className="tugma tugma-asosiy ml-auto h-7 px-2 text-[12px]" disabled={!halSoni} onClick={keyingiHal}>
+    <div className="space-y-2 [&_.fz-btn--sm]:!h-6 [&_.fz-btn--sm]:!gap-1 [&_.fz-btn--sm]:!px-1.5 [&_.fz-btn--sm]:!text-[11px] [&_.fz-btn--sm_svg]:!h-3 [&_.fz-btn--sm_svg]:!w-3">
+      <div className="fz-card space-y-3 p-3 text-[12px]" aria-label={t('Moslik sifati')}>
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="fz-panel__h m-0">{t('Moslik sifati')}</h3>
+          <span className="text-text-mute">{t('F2 qatorlari smeta bilan qanchalik bog‘langan')}</span>
+          <button type="button" className="fz-btn fz-btn--primary fz-btn--sm ml-auto" disabled={!halSoni} onClick={keyingiHal}>
             <ArrowDownToLine size={13} /> Keyingi tekshirilmagan
           </button>
         </div>
+        {sifatJami > 0 && <div className="fz-split" role="img" aria-label={sifatQismlar.filter((q) => q.soni > 0).map((q) => `${q.nom}: ${q.soni}`).join(', ')}>
+          {sifatQismlar.filter((q) => q.soni > 0).map((q) => <i key={q.id} style={{ width: `${(q.soni / sifatJami) * 100}%`, background: q.rang }} title={`${q.nom}: ${q.soni}`} />)}
+        </div>}
+        <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 xl:grid-cols-3">
+          {sifatQismlar.map((q) => (
+            <div key={q.id} data-sifat={q.id} className="flex items-center gap-2" title={q.izoh}>
+              <span aria-hidden className="inline-block h-2.5 w-2.5 shrink-0 rounded-[2px]" style={{ background: q.rang }} />
+              <span className="min-w-0 flex-1 truncate text-text-dim">{q.nom}</span>
+              <b className="tabular-nums" style={{ color: q.soni > 0 ? q.matn : 'var(--text-mute)' }}>{q.soni}</b>
+              <small className="w-10 text-right tabular-nums text-text-mute">{sifatJami > 0 ? `${Math.round((q.soni / sifatJami) * 100)}%` : '—'}</small>
+            </div>
+          ))}
+        </div>
+        <p className="text-[11px] text-text-mute">{t('Mos topilganlar: tizim {a} · oldingi qaror {b} · operator {c}', { a: gh.tizimTopdi, b: gh.avvalgiQaror, c: gh.operatorTasdiqladi })}</p>
         {/* Egasi 2026-09-28: xulosa — to'rtta aniq son va bitta chiziq; chalkash foiz/taqqos qatorlari yo'q. */}
         {(() => {
           const jami = reconciliation.sourceAmount.knownAmount;
@@ -1756,16 +1822,16 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
                 ].map(([t, v, c, iz, kk]) => (
                   <div key={t as string} className="rounded-md bg-surface-2/50 px-2 py-1.5">
                     <span className="block text-[10.5px] text-text-mute">{t as string}</span>
-                    {/* Egasi 2026-10-24: har summa ustamali (asosiy) + ustamasiz (kichik). */}
+                    {/* Egasi 2026-10-27: jami — QQS bilan (asosiy), ustamali va ustamasiz (kichik). */}
                     <SummaJuft className={`block ${c as string}`} obyektId={p.objectId} kompaniyaId={p.companyId} ustamasiz={v as number} katKesim={kk as KatKesim} />
                     {iz ? <span className="block text-[10px] text-text-mute">{iz as string}</span> : null}
                   </div>
                 ))}
               </div>
-              <div className="flex h-1.5 overflow-hidden rounded-full bg-surface-2" aria-hidden>
-                <span className="bg-emerald-500" style={{ width: `${ulush(ok)}%` }} />
-                <span className="bg-amber-500" style={{ width: `${ulush(taklif)}%` }} />
-                <span className="bg-rose-500" style={{ width: `${ulush(yoq)}%` }} />
+              <div className="fz-split" style={{ height: 6 }} aria-hidden>
+                <i style={{ width: `${ulush(ok)}%`, background: 'var(--ok)' }} />
+                <i style={{ width: `${ulush(taklif)}%`, background: 'var(--warn)' }} />
+                <i style={{ width: `${ulush(yoq)}%`, background: 'var(--danger)' }} />
               </div>
             </div>
           );
@@ -1815,13 +1881,13 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       <div className="karta flex flex-wrap items-center gap-2 p-2" aria-label={t('Panel ko‘rinishi')}>
         <span className="text-[12px] text-text-dim">{t('1. F2 qatorini tanlang → 2. Smetadan mos qatorni tanlang → 3. Bog‘lanishni tekshiring.')}</span>
         <div role="group" aria-label={t('Panel kengligi')} className="ml-auto flex flex-wrap gap-1">
-          {([['teng', t('Teng panellar')], ['f2', t('F2 kengroq')], ['smeta', t('Smeta kengroq')], ['ustma', t('Ustma-ust')]] as const).map(([value, label]) => <button key={value} type="button" className={`tugma text-[11px] ${panellar === value ? 'tugma-asosiy' : ''}`} aria-pressed={panellar === value} onClick={() => setPanellar(value)}>{label}</button>)}
-          <button type="button" className="tugma text-[11px]" aria-pressed={tafsilot} onClick={() => setTafsilot(!tafsilot)}>{t('Norma va narx tafsilotlari')}</button>
+          {([['teng', t('Teng panellar')], ['f2', t('F2 kengroq')], ['smeta', t('Smeta kengroq')], ['ustma', t('Ustma-ust')]] as const).map(([value, label]) => <button key={value} type="button" className={`fz-btn fz-btn--sm ${panellar === value ? 'fz-btn--primary' : ''}`} aria-pressed={panellar === value} onClick={() => setPanellar(value)}>{label}</button>)}
+          <button type="button" className="fz-btn fz-btn--sm" aria-pressed={tafsilot} onClick={() => setTafsilot(!tafsilot)}>{t('Norma va narx tafsilotlari')}</button>
         </div>
       </div>
-      <div className={`grid grid-cols-1 gap-2 ${panellar === 'teng' ? 'lg:grid-cols-2' : panellar === 'f2' ? 'lg:grid-cols-[3fr_2fr]' : panellar === 'smeta' ? 'lg:grid-cols-[2fr_3fr]' : ''} ${tafsilot ? '' : '[&_.f2-grid]:grid-cols-[26px_72px_minmax(160px,1fr)_70px_45px_85px_64px] [&_.f2-grid>*:nth-child(4)]:hidden [&_.f2-grid>*:nth-child(7)]:hidden [&_.smeta-grid]:grid-cols-[22px_72px_minmax(180px,1fr)_70px_45px_75px_100px] [&_.smeta-grid>*:nth-child(4)]:hidden [&_.smeta-grid>*:nth-child(7)]:hidden'}`}>
-        <section className="karta flex min-h-0 flex-col overflow-hidden" aria-label="F2 akt">
-          <header className="flex flex-wrap items-center gap-2 border-b border-border bg-sky-500/10 px-2 py-2">
+      <div className={`grid grid-cols-1 gap-2 ${panellar === 'teng' ? 'lg:grid-cols-2' : panellar === 'f2' ? 'lg:grid-cols-[3fr_2fr]' : panellar === 'smeta' ? 'lg:grid-cols-[2fr_3fr]' : ''} ${tafsilot ? '' : '[&_.f2-grid]:grid-cols-[26px_72px_minmax(160px,1fr)_70px_45px_85px_108px] [&_.f2-grid>*:nth-child(4)]:hidden [&_.f2-grid>*:nth-child(7)]:hidden [&_.smeta-grid]:grid-cols-[22px_72px_minmax(180px,1fr)_70px_45px_75px_100px] [&_.smeta-grid>*:nth-child(4)]:hidden [&_.smeta-grid>*:nth-child(7)]:hidden'}`}>
+        <section className="fz-card flex min-h-0 flex-col overflow-hidden" aria-label="F2 akt">
+          <header className="flex flex-wrap items-center gap-2 border-b border-border bg-surface-2 px-2 py-2" style={{ borderTop: '3px solid var(--info)' }}>
             <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-text-dim">F2 akt — {p.akt.varaq} {filtr === 'hal' && halSoni === 0 ? '· hal qilindi' : ''}</span>
             <div className="relative flex-1">
               <Search size={12} className="absolute left-1.5 top-1/2 -translate-y-1/2 text-text-mute" />
@@ -1835,18 +1901,18 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           <div role="toolbar" aria-label={tarj('Belgilangan F2 qatorlari')} className="flex flex-wrap items-center gap-1 border-b border-border bg-surface-2/50 px-2 py-1 text-[11px]">
             {belgi.size ? <>
               <span className="font-semibold text-text">{belgi.size} {tarj('ta belgilandi:')}</span>
-              <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={p.disabled || mutationBusy} onClick={() => ommaviy('tasdiq')}><Check size={11} /> {tarj('Tasdiqlash')}</button>
-              <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={p.disabled || mutationBusy} onClick={() => ommaviy('uz')}><Unlink size={11} /> {tarj('Uzish')}</button>
-              <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={p.disabled || mutationBusy} onClick={() => ommaviy('otkaz')}>{tarj('Aktga kiritmaslik')}</button>
-              <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={p.disabled || mutationBusy} onClick={() => ommaviy('kirit')}>{tarj('Aktga qaytarish')}</button>
-              {p.onRejali && <button type="button" className="tugma tugma-asosiy h-6 px-1.5 text-[11px]" disabled={p.disabled || mutationBusy}
+              <button type="button" className="fz-btn fz-btn--sm" disabled={p.disabled || mutationBusy} onClick={() => ommaviy('tasdiq')}><Check size={11} /> {tarj('Tasdiqlash')}</button>
+              <button type="button" className="fz-btn fz-btn--sm" disabled={p.disabled || mutationBusy} onClick={() => ommaviy('uz')}><Unlink size={11} /> {tarj('Uzish')}</button>
+              <button type="button" className="fz-btn fz-btn--sm" disabled={p.disabled || mutationBusy} onClick={() => ommaviy('otkaz')}>{tarj('Aktga kiritmaslik')}</button>
+              <button type="button" className="fz-btn fz-btn--sm" disabled={p.disabled || mutationBusy} onClick={() => ommaviy('kirit')}>{tarj('Aktga qaytarish')}</button>
+              {p.onRejali && <button type="button" className="fz-btn fz-btn--primary fz-btn--sm" disabled={p.disabled || mutationBusy}
                 onClick={() => ommaviyQoralama('qoshimcha')} title={tarj('Belgilangan bog‘lanmagan ishlar o‘z razdeliga qo‘shimcha ish (resurslari bilan), resurslar o‘z ishiga qo‘shimcha resurs bo‘lib qoralamaga qo‘shiladi')}>＋ {tarj('Hammasi qo‘shimcha')}</button>}
-              {p.onRejali && <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={p.disabled || mutationBusy}
+              {p.onRejali && <button type="button" className="fz-btn fz-btn--sm" disabled={p.disabled || mutationBusy}
                 onClick={() => ommaviyQoralama('taklif')} title={tarj('Tizim zamena taklif qilgan qatorlar — zamena, qolganlari — qo‘shimcha')}>⇄ {tarj('Takliflar bo‘yicha')}</button>}
-              <button type="button" className="tugma h-6 px-1.5 text-[11px]" onClick={() => setBelgi(new Set())}>{tarj('Belgini tozalash')}</button>
+              <button type="button" className="fz-btn fz-btn--sm" onClick={() => setBelgi(new Set())}>{tarj('Belgini tozalash')}</button>
               {belgi.size > 1 && <span className="text-text-mute">{t('Belgilanganlarni smetadagi birinchi mos qator USTIGA torting — pastdagilariga ketma-ket bog‘lanadi.')}</span>}
             </> :<span className="text-text-mute">{tarj('Holat belgisini (✓ ◐ ✕) bosib qatorlarni belgilang — bir nechtasini birga tasdiqlash, uzish yoki aktdan chiqarish mumkin.')}</span>}
-            <button type="button" className="tugma ml-auto h-6 px-1.5 text-[11px]" disabled={!f2VisibleRows.length}
+            <button type="button" className="fz-btn fz-btn--sm ml-auto" disabled={!f2VisibleRows.length}
               onClick={() => setBelgi(new Set(f2VisibleRows.filter((r) => r.node.tur !== 'rz').map((r) => r.node.uid)))}>{tarj('Ko‘rinadiganlarni belgilash')}</button>
           </div>
           <div ref={f2Quti} className="h-[66vh] overflow-auto">
@@ -1866,15 +1932,15 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
             {filtr !== 'hammasi' && !f2VisibleRows.length && <p className="p-3 text-center text-[12px] text-text-mute">Bu filtr bo‘yicha qator topilmadi.</p>}
           </div>
         </section>
-        <section className="karta flex min-h-0 flex-col overflow-hidden" aria-label="Smeta">
-          <header className="flex flex-wrap items-center gap-2 border-b border-border bg-emerald-500/10 px-2 py-2">
+        <section className="fz-card flex min-h-0 flex-col overflow-hidden" aria-label="Smeta">
+          <header className="flex flex-wrap items-center gap-2 border-b border-border bg-surface-2 px-2 py-2" style={{ borderTop: '3px solid var(--accent)' }}>
             <span className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">Smeta (LRV)</span>
             <div className="relative flex-1">
               <Search size={12} className="absolute left-1.5 top-1/2 -translate-y-1/2 text-text-mute" />
               <input aria-label="Smetadan qidirish" value={q} onChange={(e) => setQ(e.target.value)} placeholder="shifr yoki nom…"
                 className="input h-7 w-full pl-5 pr-1.5 text-[12px]" />
             </div>
-            {p.onBolimRejali && <button type="button" className="tugma h-7 px-2 text-[11px]" disabled={p.disabled || mutationBusy} onClick={() => yangiBolim(null)}
+            {p.onBolimRejali && <button type="button" className="fz-btn fz-btn--sm" disabled={p.disabled || mutationBusy} onClick={() => yangiBolim(null)}
               title={tarj('Smetaning yuqori darajasiga yangi bo‘lim (oxiriga)')}>＋ {tarj('Bo‘lim')}</button>}
           </header>
           <QatorRangIzohi />
@@ -1884,12 +1950,12 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
           <div role="toolbar" aria-label={tarj('Belgilangan smeta qatorlari')} className="flex flex-wrap items-center gap-1 border-b border-border bg-surface-2/50 px-2 py-1 text-[11px]">
             {sBelgi.size ? <>
               <span className="font-semibold text-text">{sBelgi.size} {tarj('ta belgilandi:')}</span>
-              <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={p.disabled || mutationBusy} onClick={sOmmaviyUz}><Unlink size={11} /> {tarj('F2 bog‘lanishlarini uzish')}</button>
-              {(p.onOchirishRejali || p.onRejaliOchir) && <button type="button" className="tugma h-6 px-1.5 text-[11px] text-danger" disabled={p.disabled || mutationBusy} onClick={sOmmaviyOchir}
+              <button type="button" className="fz-btn fz-btn--sm" disabled={p.disabled || mutationBusy} onClick={sOmmaviyUz}><Unlink size={11} /> {tarj('F2 bog‘lanishlarini uzish')}</button>
+              {(p.onOchirishRejali || p.onRejaliOchir) && <button type="button" className="fz-btn fz-btn--sm fz-btn--danger" disabled={p.disabled || mutationBusy} onClick={sOmmaviyOchir}
                 title={tarj('Faqat siz qo‘shgan qatorlar va bo‘limlar o‘chiriladi; asl smeta qatorlari o‘zgarmaydi')}><Trash2 size={11} /> {tarj('Qo‘shilganlarni o‘chirish')}</button>}
-              <button type="button" className="tugma h-6 px-1.5 text-[11px]" onClick={() => setSBelgi(new Set())}>{tarj('Belgini tozalash')}</button>
+              <button type="button" className="fz-btn fz-btn--sm" onClick={() => setSBelgi(new Set())}>{tarj('Belgini tozalash')}</button>
             </> : <span className="text-text-mute">{tarj('☐ ni bosib smeta qatorlarini belgilang (Shift — oraliq): bir nechtasining F2 bog‘lanishini uzish yoki siz qo‘shganlarini o‘chirish mumkin.')}</span>}
-            <button type="button" className="tugma ml-auto h-6 px-1.5 text-[11px]" disabled={!smetaVisibleRows.length}
+            <button type="button" className="fz-btn fz-btn--sm ml-auto" disabled={!smetaVisibleRows.length}
               onClick={() => setSBelgi(new Set(smetaVisibleRows.map((r) => r.node.id)))}>{tarj('Ko‘rinadiganlarni belgilash')}</button>
           </div>
           {sudrash && <div className="border-b border-accent/40 bg-accent/15 px-2 py-1 text-[11.5px] text-text" role="status">
@@ -1917,43 +1983,43 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       </div>
 
       {tanlov && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setTanlov(null)}>
-          <div className="karta w-full max-w-lg space-y-3 p-4" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Bog‘lash turi">
-            <h3 className="text-[14px] font-semibold text-text">Bu qanday bog‘lanish?</h3>
+        <F2Oyna label="Bog‘lash turi" kenglik={520} onYop={() => setTanlov(null)}>
+          <div className="space-y-3 p-4">
+            <h3 className="m-0 text-[15px] font-semibold text-text" style={{ fontFamily: 'var(--font-display)' }}>Bu qanday bog‘lanish?</h3>
             <div className="grid gap-1 text-[12px]">
               <p><span className="text-text-mute">F2:</span> {tanlov.f.kod} {tanlov.f.nom} <span className="text-text-mute">({tanlov.f.birlik ?? '—'}, {fmt(tanlov.f.hajm)})</span></p>
               <p><span className="text-text-mute">Smeta:</span> {tanlov.s.kod} {tanlov.s.nom} <span className="text-text-mute">({tanlov.s.birlik ?? '—'}, {fmt(tanlov.s.hajm)})</span></p>
             </div>
             {tanlov.tur === 'ish_resurs' ? <div className="grid gap-2">
-              <button type="button" className="tugma tugma-asosiy justify-start text-left" onClick={() => { const { f, s } = tanlov; setTanlov(null); void resursOrnigaIsh(f, s); }}>
+              <button type="button" className="fz-btn fz-btn--primary justify-start text-left" style={{ height: 'auto', minHeight: 32, padding: '8px 12px', whiteSpace: 'normal', justifyContent: 'flex-start', textAlign: 'left' }} onClick={() => { const { f, s } = tanlov; setTanlov(null); void resursOrnigaIsh(f, s); }}>
                 <span>⇄</span> <span><b>Shu resurs o‘rniga ish</b> — masalan ГПС ni buyurtmachi bergan: material olinmaydi, uning o‘rniga qazib olish / tashish ishi yoziladi. Resursning o‘zi o‘zgarmaydi.</span>
               </button>
-              <button type="button" className="tugma justify-start text-left" onClick={() => { const { f, s } = tanlov; setTanlov(null); zamena(f, s); }}>
+              <button type="button" className="fz-btn justify-start text-left" style={{ height: 'auto', minHeight: 32, padding: '8px 12px', whiteSpace: 'normal', justifyContent: 'flex-start', textAlign: 'left' }} onClick={() => { const { f, s } = tanlov; setTanlov(null); zamena(f, s); }}>
                 <span>⇄</span> <span><b>{tarj('Zamena material')}</b> — {tarj('faqat material almashgan (masalan ПК o‘rniga ПБ): smetadagi resurs o‘rniga F2 dagisi, yangi qator, eskisi o‘zgarmaydi')}</span>
               </button>
-              <button type="button" className="tugma" onClick={() => setTanlov(null)}>Bekor qilish</button>
+              <button type="button" className="fz-btn fz-btn--ghost" onClick={() => setTanlov(null)}>Bekor qilish</button>
             </div> : <div className="grid gap-2">
-              <button type="button" className="tugma justify-start text-left" onClick={() => {
+              <button type="button" className="fz-btn justify-start text-left" style={{ height: 'auto', minHeight: 32, padding: '8px 12px', whiteSpace: 'normal', justifyContent: 'flex-start', textAlign: 'left' }} onClick={() => {
                 const { f, s } = tanlov; setTanlov(null);
                 if (f.tur === 'bl') ishBogla(f, s.id); else { p.onIj(bogla(ij, f.uid, s.id)); xab('Bog‘landi.'); }
               }}>
                 <Link2 size={14} /> <span><b>Bog‘lash</b> — bu o‘sha {tanlov.tur === 'ish' ? 'ish' : 'resurs'} (nomi/shifri boshqacha yozilgan)</span>
               </button>
-              <button type="button" className="tugma justify-start text-left" onClick={() => { const { f, s } = tanlov; setTanlov(null); zamena(f, s); }}>
+              <button type="button" className="fz-btn justify-start text-left" style={{ height: 'auto', minHeight: 32, padding: '8px 12px', whiteSpace: 'normal', justifyContent: 'flex-start', textAlign: 'left' }} onClick={() => { const { f, s } = tanlov; setTanlov(null); zamena(f, s); }}>
                 <span>⇄</span> <span><b>{tanlov.tur === 'ish' ? 'Zamena ish' : 'Zamena material'}</b> — smetadagi qator o‘rniga F2 dagisi bajarilgan (yangi qator, eskisi o‘zgarmaydi)</span>
               </button>
               {tanlov.s.otaId != null && p.raw.get(tanlov.s.otaId) && (
-                <button type="button" className="tugma justify-start text-left" onClick={() => {
+                <button type="button" className="fz-btn justify-start text-left" style={{ height: 'auto', minHeight: 32, padding: '8px 12px', whiteSpace: 'normal', justifyContent: 'flex-start', textAlign: 'left' }} onClick={() => {
                   const { f, s, tur } = tanlov; setTanlov(null);
                   ochModal(f, { kind: tur === 'ish' ? 'additional' : 'resource', parent: p.raw.get(s.otaId!)!, keyinId: s.id });
                 }}>
                   <span>＋</span> <span><b>{tanlov.tur === 'ish' ? 'Qo‘shimcha ish' : 'Qo‘shimcha resurs'}</b> — smetada yo‘q; aynan shu qatordan KEYIN joylashadi</span>
                 </button>
               )}
-              <button type="button" className="tugma" onClick={() => setTanlov(null)}>Bekor qilish</button>
+              <button type="button" className="fz-btn fz-btn--ghost" onClick={() => setTanlov(null)}>Bekor qilish</button>
             </div>}
           </div>
-        </div>
+        </F2Oyna>
       )}
 
       {modal && (

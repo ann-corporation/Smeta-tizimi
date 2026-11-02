@@ -12,9 +12,22 @@ import { aloqalarOl, taqdimlarOl, zakazchikObyektlarOl, type Aloqa, type TaqdimQ
 import { t } from '../../i18n/til';
 import { Bolim, HolatBelgi } from './tomon-ui';
 import { oyMatn, pul, sana } from './tomon-yordam';
+import { bajarilishFoizi } from './obyekt-portali-yordam';
 
-function Kartochka({ nom, qiymat, izoh }: { nom: string; qiymat: string; izoh?: string }) {
-  return <div className="rounded-lg border border-border px-3 py-2"><div className="text-[11px] uppercase text-text-dim">{t(nom)}</div><div className="text-xl font-semibold tabular-nums">{qiymat}</div>{izoh && <div className="text-[11px] text-text-dim">{t(izoh)}</div>}</div>;
+function Kartochka({ nom, qiymat, izoh, rang }: { nom: string; qiymat: string; izoh?: string; rang?: string }) {
+  return <div className="fz-kpi"><span className="fz-kpi__label">{rang && <i style={{ background: rang }} />}{t(nom)}</span><span className="fz-kpi__value">{qiymat}</span>{izoh && <span className="fz-kpi__sub">{t(izoh)}</span>}</div>;
+}
+
+/** Obyekt bajarilishi: sertifikatlangan F2 / shartnoma (QQSsiz) — chiziq; ma'lum bo'lmasa «—» (0 emas). */
+function Bajarilish({ o }: { o: ZakazchikObyekt }) {
+  const foiz = bajarilishFoizi(o.f2?.jami, o.shartnoma?.summa_bez_nds);
+  if (foiz == null) return <span className="text-text-mute">—</span>;
+  return (
+    <span className={`fz-meter ${foiz > 100 ? 'fz-meter--over' : ''}`} title={t('sertifikatlangan F2 / shartnoma')}>
+      <span className="fz-meter__t"><i className="fz-meter__shu" style={{ width: `${Math.min(foiz, 100)}%` }} /></span>
+      <span className="fz-meter__f">{Math.round(foiz)}%</span>
+    </span>
+  );
 }
 
 export default function ZakazchikKabinet() {
@@ -52,25 +65,25 @@ export default function ZakazchikKabinet() {
   return (
     <Sahifa sarlavha="Buyurtmachi kabineti" tavsif="Ulangan pudratchilar, ularning sizga ochilgan obyektlari, sertifikatlangan ishlar va qaror kutayotgan hujjatlar">
       <div className="space-y-4">
-        {xato && <div role="alert" className="rounded border border-danger/40 bg-danger/5 px-3 py-2 text-sm text-danger">{xato}</div>}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Kartochka nom="Faol aloqalar" qiymat={String(faol.length)} />
+        {xato && <div role="alert" className="fz-note fz-note--danger">{xato}</div>}
+        <section className="fz-card fz-kpis p-4" aria-label={t('Kabinet ko‘rsatkichlari')}>
+          <Kartochka nom="Faol aloqalar" qiymat={String(faol.length)} rang="var(--ok)" />
           <Kartochka nom="Ko‘rinadigan obyektlar" qiymat={String(obyektlar.length)} />
-          <Kartochka nom="Tasdiqlangan F2 jami" qiymat={pul(f2Jami)} izoh="faqat sizga ochilgan obyektlar bo‘yicha" />
-          <Kartochka nom="Qaror kutayotgan hujjat" qiymat={String(kutayotgan.length)} />
-        </div>
+          <Kartochka nom="Tasdiqlangan F2 jami" qiymat={pul(f2Jami)} izoh="faqat sizga ochilgan obyektlar bo‘yicha" rang="var(--info)" />
+          <Kartochka nom="Qaror kutayotgan hujjat" qiymat={String(kutayotgan.length)} rang={kutayotgan.length ? 'var(--warn)' : undefined} />
+        </section>
 
         {kutayotgan.length > 0 && (
           <Bolim sarlavha="Qaror kutayotgan hujjatlar" amal={<Link to="/admin/taqdimlar" className="text-xs text-accent underline">{t('Hammasi')}</Link>}>
-            <ul className="space-y-1">{kutayotgan.slice(0, 6).map((x) => (
-              <li key={x.id} className="flex flex-wrap items-center gap-2 text-sm"><b>{x.nom}</b><span className="text-text-dim">{x.qarshi_nom} · {x.obyekt_nom ?? '—'} · {oyMatn(x.oy)}</span><HolatBelgi holat={x.holat} turi="taqdim" />
+            <ul className="divide-y divide-border">{kutayotgan.slice(0, 6).map((x) => (
+              <li key={x.id} className="flex flex-wrap items-center gap-2 py-1.5 text-[13px]"><Link to={`/admin/taqdimlar?id=${x.id}`} className="font-semibold text-text hover:underline">{x.nom}</Link><span className="text-text-dim">{x.qarshi_nom} · {x.obyekt_nom ?? '—'} · {oyMatn(x.oy)}</span><HolatBelgi holat={x.holat} turi="taqdim" />
                 <span className="ml-auto text-xs text-text-dim">{sana(x.taqdim_vaqti)}</span></li>))}</ul>
           </Bolim>
         )}
 
         {yuklandi && faol.length === 0 && (
           <Bolim sarlavha="Boshlash">
-            <p className="text-sm text-text-dim">{t('Hali pudratchi ulanmagan. Pudratchingizning INN sini kiriting yoki u yuborgan taklif kodini qabul qiling.')}</p>
+            <p className="text-[13px] text-text-dim">{t('Hali pudratchi ulanmagan. Pudratchingizning INN sini kiriting yoki u yuborgan taklif kodini qabul qiling.')}</p>
             <Link to="/admin/aloqalar" className="mt-2 inline-block text-sm text-accent underline">{t('Aloqalarga o‘tish')}</Link>
           </Bolim>
         )}
@@ -80,17 +93,18 @@ export default function ZakazchikKabinet() {
 
         {guruhlar.map(([id, g]) => (
           <Bolim key={id} sarlavha={`${g.nom} — ${g.rol}`}>
-            <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-xs">
-              <thead className="text-left text-text-dim"><tr><th className="px-2 py-1.5">{t('Obyekt')}</th><th className="px-2 py-1.5">{t('Shartnoma')}</th><th className="px-2 py-1.5 text-right">{t('Shartnoma summasi (QQS bilan)')}</th>
-                <th className="px-2 py-1.5 text-right">{t('Tasdiqlangan F2 (soni / jami)')}</th><th className="px-2 py-1.5">{t('Oxirgi F2 oyi')}</th><th className="px-2 py-1.5 text-right">{t('Kutayotgan')}</th></tr></thead>
+            <div className="fz-table-wrap"><table className="fz-table min-w-[820px]">
+              <thead><tr><th>{t('Obyekt')}</th><th>{t('Shartnoma')}</th><th className="fz-c-num">{t('Shartnoma summasi (QQS bilan)')}</th>
+                <th className="fz-c-num">{t('Tasdiqlangan F2 (soni / jami)')}</th><th style={{ minWidth: 140 }}>{t('Bajarilish')}</th><th>{t('Oxirgi F2 oyi')}</th><th className="fz-c-num">{t('Kutayotgan')}</th></tr></thead>
               <tbody>{g.obyektlar.map((o) => (
-                <tr key={o.obyekt_id} className="border-t">
-                  <td className="px-2 py-1.5 font-medium"><Link to={`/admin/zakazchik/obyekt/${o.aloqa_id}/${o.obyekt_id}`} className="text-accent underline">{o.obyekt_nom}</Link></td>
-                  <td className="px-2 py-1.5">{o.shartnoma ? `№ ${o.shartnoma.raqam}` : <span className="text-text-dim">{t('ochilmagan')}</span>}</td>
-                  <td className="px-2 py-1.5 text-right tabular-nums">{o.shartnoma ? pul(o.shartnoma.jami_nds_bilan) : '—'}</td>
-                  <td className="px-2 py-1.5 text-right tabular-nums">{o.f2 ? `${o.f2.soni} / ${pul(o.f2.jami)}` : <span className="text-text-dim">{t('ochilmagan')}</span>}</td>
-                  <td className="px-2 py-1.5">{o.f2 ? oyMatn(o.f2.oxirgi_oy) : '—'}</td>
-                  <td className="px-2 py-1.5 text-right tabular-nums">{o.kutayotgan_taqdim || ''}</td>
+                <tr key={o.obyekt_id}>
+                  <td className="font-medium"><Link to={`/admin/zakazchik/obyekt/${o.aloqa_id}/${o.obyekt_id}`} className="text-accent underline">{o.obyekt_nom}</Link></td>
+                  <td>{o.shartnoma ? `№ ${o.shartnoma.raqam}` : <span className="text-text-mute">{t('ochilmagan')}</span>}</td>
+                  <td className="fz-c-num">{o.shartnoma ? pul(o.shartnoma.jami_nds_bilan) : '—'}</td>
+                  <td className="fz-c-num">{o.f2 ? `${o.f2.soni} / ${pul(o.f2.jami)}` : <span className="text-text-mute">{t('ochilmagan')}</span>}</td>
+                  <td><Bajarilish o={o} /></td>
+                  <td>{o.f2 ? oyMatn(o.f2.oxirgi_oy) : '—'}</td>
+                  <td className="fz-c-num">{o.kutayotgan_taqdim ? <span className="fz-chip fz-chip--warn">{o.kutayotgan_taqdim}</span> : ''}</td>
                 </tr>))}</tbody>
             </table></div>
           </Bolim>

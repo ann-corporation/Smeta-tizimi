@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { kompaniyaSozlamaOl, kompaniyaSozlamaYoz } from '../../api/kompaniya-sozlama';
+import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { Check, Palette } from 'lucide-react';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import {
@@ -40,8 +42,43 @@ export function HujjatDizayni() {
   const [tanlov, setTanlov] = useState<Record<HujjatTuri, RangMavzusi>>(() =>
     Object.fromEntries((Object.keys(HUJJAT_TURLARI) as HujjatTuri[]).map((t) => [t, hujjatMavzusi(t)])) as Record<HujjatTuri, RangMavzusi>);
   const [ochiq, setOchiq] = useState<HujjatTuri>('f2');
-  const tanla = (t: HujjatTuri, m: RangMavzusi) => { hujjatMavzusiniSaqla(t, m); setTanlov((o) => ({ ...o, [t]: m })); };
-  const hammasiga = (m: RangMavzusi) => { for (const t of Object.keys(HUJJAT_TURLARI) as HujjatTuri[]) hujjatMavzusiniSaqla(t, m); setTanlov((o) => Object.fromEntries(Object.keys(o).map((t) => [t, m])) as Record<HujjatTuri, RangMavzusi>); };
+  const kompaniyaId = useKompaniya().joriyId;
+  const yozish = useRef(false);
+  const taymer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const oxirgi = useRef(tanlov);
+  oxirgi.current = tanlov;
+  const serverga = useCallback((x: Record<string, string>) => {
+    if (kompaniyaId == null || !yozish.current) return;
+    if (taymer.current) clearTimeout(taymer.current);
+    taymer.current = setTimeout(() => {
+      taymer.current = null;
+      void kompaniyaSozlamaYoz({ kompaniya_id: kompaniyaId, kalit: 'hujjat.dizayn', qiymat: { ...x } }).catch(() => { /* jim — mahalliy saqlangan */ });
+    }, 800);
+  }, [kompaniyaId]);
+  useEffect(() => () => { if (taymer.current) clearTimeout(taymer.current); }, []);
+  /* Server qiymati (butun kompaniya uchun bir xil) → localStorage (rasmiy.ts sinxron o'quvchilari o'zgarmaydi). */
+  useEffect(() => {
+    if (kompaniyaId == null) return;
+    let bekor = false;
+    kompaniyaSozlamaOl(kompaniyaId).then((s) => {
+      if (bekor) return;
+      yozish.current = s.yozish_mumkin;
+      const sv = s.sozlamalar['hujjat.dizayn']?.qiymat;
+      if (sv && typeof sv === 'object') {
+        const yangi = { ...oxirgi.current };
+        for (const tur of Object.keys(HUJJAT_TURLARI) as HujjatTuri[]) {
+          const m = (sv as Record<string, unknown>)[tur];
+          if (typeof m === 'string' && (RANG_MAVZULARI as readonly string[]).includes(m)) { hujjatMavzusiniSaqla(tur, m as RangMavzusi); yangi[tur] = m as RangMavzusi; }
+        }
+        setTanlov(yangi);
+      } else if (s.yozish_mumkin && (Object.values(oxirgi.current) as string[]).some((m) => m !== 'kulrang')) {
+        serverga(oxirgi.current);
+      }
+    }).catch(() => { /* jim — mahalliy rejim */ });
+    return () => { bekor = true; };
+  }, [kompaniyaId, serverga]);
+  const tanla = (t: HujjatTuri, m: RangMavzusi) => { hujjatMavzusiniSaqla(t, m); setTanlov((o) => ({ ...o, [t]: m })); serverga({ ...oxirgi.current, [t]: m }); };
+  const hammasiga = (m: RangMavzusi) => { for (const t of Object.keys(HUJJAT_TURLARI) as HujjatTuri[]) hujjatMavzusiniSaqla(t, m); serverga(Object.fromEntries(Object.keys(HUJJAT_TURLARI).map((t) => [t, m]))); setTanlov((o) => Object.fromEntries(Object.keys(o).map((t) => [t, m])) as Record<HujjatTuri, RangMavzusi>); };
 
   return (
     <Sahifa sarlavha="Hujjatlar dizayni" tavsif="Har bir hujjat turi uchun rang mavzusi — Excel va ko'rish oynasida shu qo'llanadi">

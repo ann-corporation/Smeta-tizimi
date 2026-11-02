@@ -1,0 +1,13 @@
+{
+  "Bekor qilish sababi majburiy.": { "ru": "Причина отмены обязательна.", "en": "A cancellation reason is required." },
+  "F2 №{r}": { "ru": "Ф2 №{r}", "en": "F2 No. {r}" },
+  "({n} tasi bekor qilindi)": { "ru": "(отменено: {n})", "en": "({n} cancelled)" },
+  "{n} ta tasdiqlangan F2 bekor qilinadi: hujjat va qatorlari tarixda qoladi, lekin LRV, qoldiq va Nakopitelniy jamilaridan chiqadi.": { "ru": "Будет отменено утверждённых Ф2: {n}. Документ и его строки остаются в истории, но исключаются из итогов ЛРВ, остатка и накопительной.", "en": "{n} approved F2 will be cancelled: the document and its lines stay in history but are excluded from LRV, remainder and cumulative totals." },
+  "Bekor qilish sababi (majburiy)": { "ru": "Причина отмены (обязательно)", "en": "Cancellation reason (required)" },
+  "Masalan: yangi smetaga qayta import": { "ru": "Например: повторный импорт на новую смету", "en": "E.g. re-import against the new estimate" },
+  "{i} / {j} bekor qilindi…": { "ru": "Отменено {i} / {j}…", "en": "{i} / {j} cancelled…" },
+  "{n} ta F2 ni bekor qilish": { "ru": "Отменить Ф2: {n}", "en": "Cancel {n} F2" },
+  "{n} ta F2 bekor qilindi — LRV, qoldiq va Nakopitelniy yangilanadi.": { "ru": "Отменено Ф2: {n} — ЛРВ, остаток и накопительная обновятся.", "en": "{n} F2 cancelled — LRV, remainder and cumulative will refresh." },
+  "Tanlanganlarni bekor qilish ({n})": { "ru": "Отменить выбранные ({n})", "en": "Cancel selected ({n})" },
+  "F2 №{r} ni bekor qilish uchun tanlash": { "ru": "Выбрать Ф2 №{r} для отмены", "en": "Select F2 No. {r} for cancellation" }
+}

@@ -219,7 +219,7 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot }: { kompaniyaId: number; m
       <span className="ml-auto flex flex-wrap items-center gap-2">
         <a className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[12px]" href={`/admin/f2?davr=${encodeURIComponent(oy)}`}><Upload size={14} /> {t('+ F2 yuklash')}</a>
         <button type="button" onClick={() => void paketniYukla()} disabled={!!band || !tanlanganlar.length}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-50">
+          className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-[12px] font-semibold text-[color:var(--on-accent)] disabled:opacity-50">
           <Download size={14} /> {band === 'paket' ? t('Paket yig‘ilmoqda…') : t('Paketni yuklab olish ({n})', { n: tanlanganlar.length })}</button>
       </span>
     </div>
@@ -291,7 +291,7 @@ export function F2OylikPaket(p: { kompaniyaId: number; malumot: ReestrMalumot; t
     return <section className="karta flex flex-wrap items-center gap-3 p-3 text-[12px]" aria-label={t('Oylik F2 paketi')}>
       <div className="min-w-[200px] flex-1"><p className="text-[13px] font-semibold text-text">{t('Oylik F2 paketi')}</p>
         <p className="text-[11px] text-text-mute">{t('Oy bo‘yicha barcha F2 lar, oy jami, tekshiruvlar va bitta ZIP paket')}</p></div>
-      <button type="button" onClick={() => setOchiq(true)} className="rounded-lg bg-accent px-3 py-2 text-[12px] font-semibold text-white">{t('Oylik F2 paketini tayyorlash')}</button>
+      <button type="button" onClick={() => setOchiq(true)} className="rounded-lg bg-accent px-3 py-2 text-[12px] font-semibold text-[color:var(--on-accent)]">{t('Oylik F2 paketini tayyorlash')}</button>
     </section>;
   }
   return <div className="flex flex-col gap-1">

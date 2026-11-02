@@ -1,22 +1,30 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #0B0E14;
-  --color-surface: #131722;
-  --color-surface-2: #1B2130;
-  --color-border: #232A3B;
-  --color-text: #E6EAF2;
-  --color-text-dim: #8B93A7;
-  
-  --color-accent: #4F7BFF;
-  --color-ok: #2ED3A0;
-  --color-warn: #FFB020;
-  --color-danger: #FF5A5A;
-  
-  --color-t-bl: #A78BFA;
-  --color-t-rs: #7DD3FC;
-  --color-t-mat: #6EE7B7;
-  --color-t-ob: #FCD34D;
+  /* Firuza tokenlari (dizayn/firuza.css bilan bir xil; mavzu u yerda almashtiriladi). */
+  --color-bg: #0e1113;
+  --color-surface: #151a1d;
+  --color-surface-2: #1c2226;
+  --color-surface-3: #252c31;
+  --color-border: #2b3338;
+  --color-text: #e8ecea;
+  --color-text-dim: #a7b1af;
+  --color-text-mute: #8a9593;
+
+  --color-accent: #2ec4b6;
+  --color-ok: #62c97a;
+  --color-success: #62c97a;
+  --color-warn: #f0b450;
+  --color-danger: #ff7a6e;
+  --color-info: #86a6ff;
+
+  --color-t-bl: #b9a2f5;
+  --color-t-rs: #74b8f2;
+  --color-t-mat: #76c98f;
+  --color-t-ob: #e9a94f;
+
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
 }
 
 :root {
@@ -108,7 +116,7 @@ html, body, #root { height: 100%; min-height: 100%; }
   isolation: isolate;
   background:
     radial-gradient(85% 65% at 100% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 58%),
-    radial-gradient(70% 60% at 0% 100%, rgba(255, 255, 255, .025), transparent 60%),
+    radial-gradient(70% 60% at 0% 100%, color-mix(in srgb, var(--text) 2.5%, transparent), transparent 60%),
     var(--bg);
 }
 .os-app-shell > * { min-height: 0; }
@@ -127,27 +135,27 @@ html, body, #root { height: 100%; min-height: 100%; }
   pointer-events: none;
   opacity: .28;
   background-image:
-    linear-gradient(rgba(255, 255, 255, .025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, .025) 1px, transparent 1px);
+    linear-gradient(color-mix(in srgb, var(--text) 2.5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--text) 2.5%, transparent) 1px, transparent 1px);
   background-size: 32px 32px;
   mask-image: linear-gradient(to bottom, rgba(0, 0, 0, .55), transparent 76%);
 }
 .os-sidebar {
-  background: color-mix(in srgb, var(--surface) 92%, black);
-  border-color: color-mix(in srgb, var(--border) 80%, white 8%);
-  box-shadow: 18px 0 46px rgba(0, 0, 0, .16);
+  background: color-mix(in srgb, var(--surface) 92%, var(--bg));
+  border-color: var(--border);
+  box-shadow: 18px 0 46px rgba(0, 0, 0, .06);
   min-height: 0;
 }
 .os-workspace {
-  background: linear-gradient(135deg, rgba(255, 255, 255, .012), transparent 34%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--text) 1.2%, transparent), transparent 34%);
 }
 .os-brand-mark {
-  background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 88%, white), var(--accent));
+  background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 88%, var(--on-accent)), var(--accent));
   box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 .os-context-bar {
   background: color-mix(in srgb, var(--surface) 74%, transparent);
-  border-color: color-mix(in srgb, var(--border) 75%, white 7%);
+  border-color: var(--border);
 }
 .os-context-divider { color: var(--text-mute, #596276); font-size: 0.75rem; }
 .os-route-label { color: var(--text-dim); font-size: 0.75rem; font-weight: 600; letter-spacing: .01em; }
@@ -156,7 +164,7 @@ html, body, #root { height: 100%; min-height: 100%; }
   display: inline-flex; align-items: center; gap: .4rem; flex-shrink: 0;
   border: 1px solid color-mix(in srgb, var(--ok) 26%, transparent);
   border-radius: 999px; padding: .25rem .55rem;
-  color: color-mix(in srgb, var(--ok) 82%, white);
+  color: var(--ok);
   background: color-mix(in srgb, var(--ok) 8%, transparent);
   font-size: .68rem; font-weight: 600; letter-spacing: .02em;
 }
@@ -176,7 +184,7 @@ html, body, #root { height: 100%; min-height: 100%; }
 }
 .os-nav-link:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, .035);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
 }
 .os-nav-link--active {
   color: var(--text);
@@ -190,38 +198,19 @@ html, body, #root { height: 100%; min-height: 100%; }
   font-variant-numeric: tabular-nums;
 }
 
-.jonli-fon {
-  position: fixed; inset: 0; z-index: -2;
-  background:
-    radial-gradient(60% 50% at 15% 20%, #4F7BFF22, transparent 60%),
-    radial-gradient(50% 45% at 85% 15%, #8B5CF61e, transparent 60%),
-    radial-gradient(55% 50% at 70% 85%, #05966918, transparent 60%),
-    var(--bg);
-  animation: fon-suz 24s ease-in-out infinite alternate;
-}
-@keyframes fon-suz {
-  0%   { background-position: 0% 0%,   100% 0%,  70% 100%; }
-  100% { background-position: 10% 8%,  88% 10%,  60% 92%;  }
-}
-
-.grain {
-  position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  opacity: .035; mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
 
 /* Nafosat qatlami (Design V3) yorug'lik va kursorlar */
 .karta {
   background-color: var(--surface);
   border: 1px solid var(--border);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: inset 0 1px 0 0 color-mix(in srgb, var(--text) 5%, transparent), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   border-radius: 0.5rem;
 }
 
 .input {
   background-color: var(--surface-2);
   border: 1px solid var(--border);
-  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2), inset 0 -1px 0 0 rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.12), inset 0 -1px 0 0 color-mix(in srgb, var(--text) 3%, transparent);
   color: var(--text);
   border-radius: 0.375rem;
   transition: all 0.2s;
@@ -229,7 +218,7 @@ html, body, #root { height: 100%; min-height: 100%; }
 .input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(79, 123, 255, 0.25), inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent), inset 0 2px 4px 0 rgba(0, 0, 0, 0.12);
 }
 
 /* ⚡ 2026-09-07: `.tugma`/`.tugma-asosiy` (SmetaYuklaNative.tsx,
@@ -260,7 +249,7 @@ html, body, #root { height: 100%; min-height: 100%; }
   display: inline-flex; align-items: center; justify-content: center; gap: .375rem;
   height: 2rem; padding: 0 .875rem; border-radius: .5rem;
   font-size: .8125rem; font-weight: 600; line-height: 1;
-  border: 1px solid transparent; color: #fff;
+  border: 1px solid transparent; color: var(--on-accent);
   background-color: var(--accent);
   cursor: pointer;
   transition: opacity .15s;
@@ -292,17 +281,17 @@ html, body, #root { height: 100%; min-height: 100%; }
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: color-mix(in srgb, var(--text) 18%, transparent);
   border-radius: 10px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover { 
-  background: rgba(255, 255, 255, 0.3); 
+  background: color-mix(in srgb, var(--text) 32%, transparent); 
   background-clip: padding-box; 
 }
 
-::selection { background: rgba(79,123,255,.28); color: #fff; }
+::selection { background: var(--selection, rgba(79,123,255,.28)); color: var(--text); }
 
 :focus { outline: none; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
@@ -332,7 +321,7 @@ html, body, #root { height: 100%; min-height: 100%; }
   .os-sidebar.os-sidebar--open { transform: translateX(0); }
   .os-sidebar-backdrop {
     display: block; position: fixed; inset: 0; z-index: 20;
-    border: 0; background: rgba(2, 6, 23, .72); backdrop-filter: blur(2px);
+    border: 0; background: var(--scrim, rgba(2, 6, 23, .72)); backdrop-filter: blur(2px);
   }
 }
 
@@ -348,89 +337,8 @@ html, body, #root { height: 100%; min-height: 100%; }
   }
 }
 
-/* Owner 2026-10-10: Liquid Glass for the authenticated workspace.
-   Opaque defaults remain usable without blur; data cells never use blur. */
-.os-app-shell {
-  --text-dim: #b4bfd5;
-  --color-text-dim: #b4bfd5;
-  --border: rgba(211, 228, 255, .17);
-  --color-border: rgba(211, 228, 255, .17);
-  --radius-lg: 1.4rem;
-  background:
-    radial-gradient(ellipse at 8% 5%, rgba(67, 114, 204, .34), transparent 52%),
-    radial-gradient(ellipse at 94% 22%, rgba(134, 93, 195, .25), transparent 48%),
-    radial-gradient(ellipse at 70% 100%, rgba(35, 143, 160, .16), transparent 48%),
-    #0c1221;
-}
-.os-app-shell::before { opacity: .08; }
-.os-app-shell .os-workspace { background: transparent; }
-.os-app-shell :is(.os-sidebar, .os-context-bar) {
-  background: linear-gradient(145deg, #24314a, #121b2d);
-  border-color: rgba(224, 236, 255, .18);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .13), 0 10px 36px rgba(0, 0, 0, .18);
-}
-.os-app-shell .os-context-bar {
-  margin: .65rem .85rem 0;
-  border: 1px solid rgba(224, 236, 255, .18);
-  border-radius: 1.2rem;
-  padding: .65rem .85rem;
-}
-.os-app-shell .karta {
-  background: linear-gradient(150deg, rgba(42, 55, 80, .96), rgba(19, 29, 48, .96));
-  border-color: rgba(221, 234, 255, .2);
-  border-radius: 1.35rem;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .17), inset 0 -1px 0 rgba(255, 255, 255, .025), 0 12px 32px rgba(2, 7, 20, .18);
-}
-.os-app-shell .karta .karta {
-  background: rgba(15, 25, 44, .65);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
-}
-.os-app-shell :is(.input, select, textarea, input:not([type="checkbox"]):not([type="radio"]):not([type="file"])) {
-  border-radius: .85rem;
-  background-color: rgba(12, 22, 40, .8);
-  border-color: rgba(213, 230, 255, .22);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .18), 0 1px 0 rgba(255, 255, 255, .06);
-}
-.os-app-shell select option { background: #17243b; color: #e6eaf2; }
-.os-app-shell :is(.tugma, .os-menu-button) {
-  border-radius: 999px;
-  background: linear-gradient(155deg, rgba(114, 140, 183, .24), rgba(59, 78, 112, .25));
-  border-color: rgba(226, 237, 255, .25);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 3px 10px rgba(0, 0, 0, .12);
-}
-.os-app-shell .tugma-asosiy {
-  border-radius: 999px;
-  background: linear-gradient(145deg, #668eff, #4267e7);
-  border-color: rgba(213, 228, 255, .35);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), 0 5px 16px rgba(58, 95, 229, .23);
-}
-.os-app-shell .os-nav-link { border-radius: 1rem; }
-.os-app-shell .os-nav-link:hover {
-  background: rgba(199, 222, 255, .09);
-  border-color: rgba(219, 235, 255, .12);
-}
-.os-app-shell .os-nav-link--active {
-  background: linear-gradient(140deg, rgba(109, 156, 255, .3), rgba(91, 125, 220, .15));
-  border-color: rgba(169, 201, 255, .42);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 4px 16px rgba(18, 38, 89, .2);
-}
-.os-app-shell :is(button, a, input, textarea, select):focus-visible {
-  outline: 2px solid #b2d1ff;
-  outline-offset: 3px;
-}
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .os-app-shell :is(.os-sidebar, .os-context-bar) {
-    background: linear-gradient(145deg, rgba(58, 77, 113, .62), rgba(17, 28, 49, .76));
-    -webkit-backdrop-filter: blur(24px) saturate(145%);
-    backdrop-filter: blur(24px) saturate(145%);
-  }
-  .os-app-shell .karta {
-    background: linear-gradient(150deg, rgba(58, 75, 110, .52), rgba(20, 32, 54, .75));
-  }
-}
+/* Mobil: kontekst panelidagi PTO ish joyi tanlagichi ikki ustunli katakka o'tadi. */
 @media (max-width: 640px) {
-  .os-app-shell .os-context-bar { margin: .4rem .4rem 0; padding: .5rem; border-radius: 1rem; }
-  .os-app-shell .karta { border-radius: 1.05rem; }
   .os-app-shell .os-context-bar [data-testid="pto-workspace-bar"] {
     flex-basis: 100%;
     order: 3;
@@ -439,35 +347,8 @@ html, body, #root { height: 100%; min-height: 100%; }
     width: 100%;
   }
   .os-app-shell .os-context-bar [data-testid="pto-workspace-bar"] > span { grid-column: 1 / -1; }
-  .os-app-shell .os-context-bar [data-testid="pto-workspace-bar"] select {
-    min-width: 0;
-    max-width: 100%;
-    width: 100%;
-  }
-}
-@media (prefers-reduced-transparency: reduce) {
-  .os-app-shell :is(.karta, .os-sidebar, .os-context-bar) {
-    background: #17243b;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-}
-@media (forced-colors: active) {
-  .os-app-shell :is(.karta, .os-sidebar, .os-context-bar, .input, .tugma, .tugma-asosiy, .os-nav-link) {
-    background: Canvas;
-    color: CanvasText;
-    border-color: CanvasText;
-    box-shadow: none;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
+  .os-app-shell .os-context-bar [data-testid="pto-workspace-bar"] select { min-width: 0; max-width: 100%; width: 100%; }
 }
 @media print {
-  .os-app-shell, .os-app-shell .karta, .os-app-shell .os-workspace {
-    background: white !important;
-    color: black !important;
-    box-shadow: none !important;
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
-  }
+  .os-app-shell, .os-app-shell .karta, .os-app-shell .os-workspace { background: white !important; color: black !important; box-shadow: none !important; }
 }

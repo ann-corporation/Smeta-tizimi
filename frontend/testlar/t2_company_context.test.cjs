@@ -44,7 +44,9 @@ must('AdminShell va BossShell YAGONA tizimdanChiq ni ishlatadi', /tizimdanChiq/.
 
 console.log('\n── P0-4: route scope klassifikatsiyasi ──');
 must('routeScope.ts har route ni klasslashtiradi', /GLOBAL|COMPANY_SCOPED|PROJECT_SCOPED|OBJECT_SCOPED/.test(scope));
-must('/admin/kompaniya = GLOBAL (kompaniya tanlash shart emas)', /'\/admin\/kompaniya': 'GLOBAL'/.test(scope));
+// 2026-10-26: menyudagi sahifalarning scope'i yagona navigatsiya reestrida (routeScope.ts undan yig'adi).
+const navReestr = R('frontend', 'src', 'lib', 'nav', 'navReestr.ts');
+must('/admin/kompaniya = GLOBAL (kompaniya tanlash shart emas)', /yol: '\/admin\/kompaniya'[^\n]*scope: 'GLOBAL'/.test(navReestr) && /NAV_SAHIFALAR/.test(scope));
 must('company-scoped sahifa <KompaniyaKerak/> ko\'rsatadi (xom matn emas)', bor('frontend','src','umumiy','kontekst','KompaniyaKerak.tsx') && /Global rejim|Kompaniya tanlanmagan/.test(kerak));
 for (const f of ['HujjatNazoratPage.tsx', 'DocumentsPage.tsx', 'ParticipantsPage.tsx']) {
   const s = R('frontend', 'src', 'admin', 'pages', f);
@@ -68,7 +70,7 @@ console.log('\n── P1: IA konsolidatsiyasi ──');
 must('/admin/test/xodimlar -> /admin/kompaniya ga yo\'naltiriladi', /path="xodimlar" element=\{<Navigate to="\/admin\/kompaniya"/.test(app));
 must('AdminShell navida "Xodimlar va Rollar" yo\'q (dublikat CRUD)', !/Xodimlar va Rollar/.test(adminShell));
 must('KompaniyaPage a\'zolar boshqaruvini o\'z ichiga oladi (kanonik komandalar)', /useKompaniyaAzolari/.test(R('frontend','src','admin','pages','KompaniyaPage.tsx')) && /azoOchir/.test(R('frontend','src','admin','pages','KompaniyaPage.tsx')));
-must('Settings dagi kompaniya-profil bloki olib tashlangan (redirect)', /Kompaniya sahifasiga o'tish/.test(R('frontend','src','test02','TestSozlama.tsx')) && !/kompaniya_nomi/.test(R('frontend','src','test02','TestSozlama.tsx')));
+must('Settings dagi kompaniya-profil bloki olib tashlangan (redirect)', /Kompaniya sahifasiga o['‘ʻ]tish/.test(R('frontend','src','test02','TestSozlama.tsx')) && !/kompaniya_nomi/.test(R('frontend','src','test02','TestSozlama.tsx')));
 
 console.log('\n── P0-2 server: platforma superadmin (sun\'iy a\'zoliksiz) ──');
 const mig = R('supabase', 'migrations', '20260914120000_t2_platforma_superadmin_context_v1.sql');

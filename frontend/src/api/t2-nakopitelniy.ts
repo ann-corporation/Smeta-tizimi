@@ -10,8 +10,10 @@
  * engine never modeled Fakt at all.
  */
 
+import { vaqtliOqish } from './vaqtli-fetch';
 import { yozAmali, type AktNatija } from './supabase';
 import type { SvodShartnoma, TolovTur } from '../lib/nakopitelniy-svod';
+import { ogirYuklashBoshla, ogirYuklashKut } from './ogir-sorov-navbat';
 
 export type NakopitelniyQator = {
   qator_id: number; tartib: number; kod: string | null; nom: string | null; birlik: string | null;
@@ -59,7 +61,7 @@ export type NakopitelniyJami = {
 };
 
 /** Smeta: to'g'ri xarajat → ИТОГО-4 (без НДС) → НДС → ВСЕГО (t2_obyekt_nakrutka). */
-export type SmetaNakrutka = { pryamye: number; itogo4: number; nds: number; nds_foiz: number | null; vsego: number };
+export type SmetaNakrutka = { pryamye: number; itogo4: number; nds: number; nds_foiz: number | null; vsego: number; /** Kat noma'lum qism bor — taxminiy. */ taxminiy?: boolean };
 
 export type NakopitelniyJavob = {
   ok: true; generated_at: string;
@@ -77,19 +79,43 @@ export type NakopitelniyJavob = {
 export const NAKOPITELNIY_SAHIFA = 5000;
 /** Xavfsizlik chegarasi: 200 sahifa × 5000 = 1 mln qator. */
 const NAKOPITELNIY_MAX_SAHIFA = 200;
-/** Bir vaqtda o'qiladigan sahifalar soni (server/DB yuklamasini cheklash uchun). */
-const NAKOPITELNIY_PARALLEL = 4;
+/**
+ * Bir vaqtda o'qiladigan sahifalar soni. Prod 2026-10-27: 4 parallel sahifa kichik DB instansini CPU ga to'yintirib,
+ * har biri 30 s statement timeout bilan 500 berdi («keyinroq qayta urinib ko'ring»). Endi ko'pi bilan 2.
+ */
+export const NAKOPITELNIY_PARALLEL = 2;
+/** Vaqtinchalik server xatosida (5xx / tarmoq) qayta urinishlar soni va boshlang'ich kutish (eksponensial: 1×, 2×). */
+export const NAKOPITELNIY_QAYTA = 2;
+export const nakopitelniyQaytaKutish = { ms: 1500 };
 
-export async function t2NakopitelniyOl(obyektId: number, davr?: string | null, limit?: number, offset?: number, faqatFaol = false): Promise<NakopitelniyJavob> {
+/** Yuklash progressi: qancha qator o'qildi / jami (jami birinchi sahifadan keyin ma'lum). */
+export type NakopitelniyProgress = { yuklandi: number; jami: number | null; sahifa: number; sahifalar: number | null };
+export type NakopitelniyOpts = { onProgress?: (p: NakopitelniyProgress) => void };
+
+const kut = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+/** Vaqtinchalik (qayta urinsa o'tishi mumkin) xato: 5xx yoki tarmoq. 4xx (ruxsat, parametr) — qayta urinilmaydi. */
+const vaqtinchalik = (status: number | undefined) => status == null || status >= 500;
+
+async function sahifaBirMarta(obyektId: number, davr: string | null | undefined, limit: number | undefined, offset: number | undefined, faqatFaol: boolean): Promise<{ j: NakopitelniyJavob; qayta: boolean }> {
   const q = new URLSearchParams({ amal: 'nakopitelniy', obyekt_id: String(obyektId), faqat_faol: faqatFaol ? '1' : '0' });
   // UI month selector uses YYYY-MM; PostgreSQL RPC requires a complete date.
   if (davr) q.set('davr', /^\d{4}-\d{2}$/.test(davr) ? `${davr}-01` : davr);
   if (limit) q.set('limit', String(limit));
   if (offset) q.set('offset', String(offset));
-  const r = await fetch('/api/hujjat-nazorat?' + q.toString());
-  const j = await r.json().catch(() => null);
-  if (!j) return { ok: false, code: 'NETWORK_ERROR' };
-  return j;
+  let r: Response;
+  try { r = await fetch('/api/hujjat-nazorat?' + q.toString()); } catch { return { j: { ok: false, code: 'NETWORK_ERROR' }, qayta: true }; }
+  const j = await r.json().catch(() => null) as NakopitelniyJavob | null;
+  if (!j) return { j: { ok: false, code: 'NETWORK_ERROR' }, qayta: vaqtinchalik(r.status) };
+  return { j, qayta: !j.ok && vaqtinchalik(r.status) };
+}
+
+/** Bitta sahifa; 5xx/tarmoq xatosida eksponensial kutish bilan NAKOPITELNIY_QAYTA marta qayta uriniladi. */
+export async function t2NakopitelniyOl(obyektId: number, davr?: string | null, limit?: number, offset?: number, faqatFaol = false): Promise<NakopitelniyJavob> {
+  for (let urinish = 0; ; urinish++) {
+    const { j, qayta } = await sahifaBirMarta(obyektId, davr, limit, offset, faqatFaol);
+    if (j.ok || !qayta || urinish >= NAKOPITELNIY_QAYTA) return j;
+    await kut(nakopitelniyQaytaKutish.ms * 2 ** urinish);
+  }
 }
 
 /**
@@ -99,8 +125,8 @@ export async function t2NakopitelniyOl(obyektId: number, davr?: string | null, l
  * birinchi sahifadan. Sahifalar orasida qator soni o'zgarsa (parallel import)
  * — xato, chala hujjat yasalmaydi.
  */
-/** Qolgan sahifalarni 4 tadan parallel o'qiydi. Hammasi to'g'ri va to'liq bo'lsa — qatorlar, aks holda null (chaqiruvchi ketma-ket o'qiydi). */
-async function nakopitelniyParallel(obyektId: number, davr: string | null, boshi: number, jami: number): Promise<NakopitelniyQator[] | null> {
+/** Qolgan sahifalarni NAKOPITELNIY_PARALLEL tadan o'qiydi. Hammasi to'g'ri va to'liq bo'lsa — qatorlar, aks holda null (chaqiruvchi ketma-ket o'qiydi). */
+async function nakopitelniyParallel(obyektId: number, davr: string | null, boshi: number, jami: number, progress: (n: number) => void): Promise<NakopitelniyQator[] | null> {
   const offsetlar: number[] = [];
   for (let o = boshi; o < jami; o += NAKOPITELNIY_SAHIFA) offsetlar.push(o);
   if (offsetlar.length >= NAKOPITELNIY_MAX_SAHIFA) return null;
@@ -115,28 +141,42 @@ async function nakopitelniyParallel(obyektId: number, davr: string | null, boshi
       }
       qatorlar.push(...s.qatorlar);
     }
+    progress(qatorlar.length);
   }
   return qatorlar.length + boshi === jami ? qatorlar : null;
 }
-export async function t2NakopitelniyToliq(obyektId: number, davr?: string | null, faqatFaol = false): Promise<NakopitelniyJavob> {
+export async function t2NakopitelniyToliq(obyektId: number, davr?: string | null, faqatFaol = false, opts: NakopitelniyOpts = {}): Promise<NakopitelniyJavob> {
+  // Yuklash davomida boshqa og'ir o'qishlar (pul tahlili, akt reestri) kutadi — DB bir vaqtda to'yinmasin.
+  const tugadi = ogirYuklashBoshla();
+  try { return await toliqOqi(obyektId, davr, faqatFaol, opts); } finally { tugadi(); }
+}
+
+async function toliqOqi(obyektId: number, davr: string | null | undefined, faqatFaol: boolean, opts: NakopitelniyOpts): Promise<NakopitelniyJavob> {
+  const xabar = (yuklandi: number, jami: number | null) => {
+    try {
+      opts.onProgress?.({ yuklandi, jami, sahifa: Math.ceil(yuklandi / NAKOPITELNIY_SAHIFA), sahifalar: jami == null || faqatFaol ? null : Math.max(1, Math.ceil(jami / NAKOPITELNIY_SAHIFA)) });
+    } catch { /* progress UI xatosi yuklashni to'xtatmaydi */ }
+  };
+  xabar(0, null);
   const birinchi = await t2NakopitelniyOl(obyektId, davr, NAKOPITELNIY_SAHIFA, 0, faqatFaol);
   if (!birinchi.ok) return birinchi;
   const qatorlar = [...birinchi.qatorlar];
   let keyingi = birinchi.keyingi_offset ?? null;
+  const progressJami = faqatFaol ? null : birinchi.qatorlar_jami;
+  xabar(qatorlar.length, progressJami);
   // Eski server (v1 javobi, keyingi_offset yo'q) qirqilgan bo'lsa — to'liq emas.
   if (keyingi == null && birinchi.truncated && birinchi.keyingi_offset === undefined) {
     return { ...birinchi, qatorlar, qatorlar_korsatildi: qatorlar.length, truncated: true };
   }
   const davrQat = davr || birinchi.davr;
-  // Unumdorlik (Sun'iy ko'l 25k qator, prod profil 2026-10-24: 5 sahifa ketma-ket ~3 s dan = ~15 s): jami ma'lum bo'lsa
-  // qolgan sahifalar oldindan rejalanadi va 4 tadan PARALLEL o'qiladi; tartib offset bo'yicha saqlanadi, natija bir xil.
+  // Jami ma'lum bo'lsa qolgan sahifalar oldindan rejalanadi va NAKOPITELNIY_PARALLEL tadan o'qiladi; tartib offset bo'yicha saqlanadi.
   const jami = birinchi.qatorlar_jami;
   // Faqat server sahifa hajmini to'liq bergan bo'lsa (keyingi = 5000) — aks holda eski ketma-ket yo'l.
   // Faqat faol qatorlar rejimida qatorlar_jami obyektning BARCHA qatorlari soni — oldindan rejalab bo'lmaydi (ketma-ket).
   if (!faqatFaol && keyingi != null && keyingi === NAKOPITELNIY_SAHIFA && Number.isSafeInteger(jami) && jami > keyingi) {
-    // Parallel o'qish faqat TEZLASHTIRISH: biror sahifa xato/tarmoq uzilishi/nomuvofiqlik bersa — jim xato emas,
-    // eski ishonchli ketma-ket yo'lga qaytiladi (regressiya 2026-10-24: Sun'iy ko'l da «Nakopitelniy o'qilmadi»).
-    const parallel = await nakopitelniyParallel(obyektId, davrQat, keyingi, jami).catch((e) => {
+    // Parallel o'qish faqat TEZLASHTIRISH: biror sahifa (qayta urinishlardan keyin ham) xato bersa — jim xato emas,
+    // ketma-ket yo'lga qaytiladi (regressiya 2026-10-24: Sun'iy ko'l da «Nakopitelniy o'qilmadi»).
+    const parallel = await nakopitelniyParallel(obyektId, davrQat, keyingi, jami, (n) => xabar(qatorlar.length + n, progressJami)).catch((e) => {
       // eslint-disable-next-line no-console
       console.info('[nakopitelniy parallel] istisno:', e instanceof Error ? e.message : String(e));
       return null;
@@ -144,13 +184,15 @@ export async function t2NakopitelniyToliq(obyektId: number, davr?: string | null
     // eslint-disable-next-line no-console
     if (!parallel) console.info('[nakopitelniy parallel] zaxira (ketma-ket) yo‘l');
     if (parallel) return { ...birinchi, qatorlar: [...qatorlar, ...parallel], qatorlar_korsatildi: qatorlar.length + parallel.length, truncated: false, keyingi_offset: null };
-  }  for (let n = 0; keyingi != null; n++) {
+  }
+  for (let n = 0; keyingi != null; n++) {
     if (n >= NAKOPITELNIY_MAX_SAHIFA) return { ok: false, code: 'NAKOPITELNIY_SAHIFA_CHEGARASI' };
     const s = await t2NakopitelniyOl(obyektId, davrQat, NAKOPITELNIY_SAHIFA, keyingi, faqatFaol);
     if (!s.ok) return s;
     if (s.qatorlar_jami !== birinchi.qatorlar_jami) return { ok: false, code: 'NAKOPITELNIY_OZGARDI' };
     qatorlar.push(...s.qatorlar);
     keyingi = s.keyingi_offset ?? null;
+    xabar(qatorlar.length, progressJami);
   }
   return { ...birinchi, qatorlar, qatorlar_korsatildi: qatorlar.length, truncated: false, keyingi_offset: null };
 }
@@ -163,7 +205,8 @@ export type ShartnomaSvodJavob = { ok: true; generated_at: string; shartnomalar:
 
 export async function shartnomaSvodOl(kompaniyaId: number): Promise<{ ok: true; natija: ShartnomaSvodJavob } | { ok: false; error: string }> {
   try {
-    const r = await fetch('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soro: 'shartnoma_svod_v1', kompaniya_id: kompaniyaId }) });
+    await ogirYuklashKut(); // Nakopitelniy sahifalari bilan bir vaqtda DB ni to'yintirmasin (prod 2026-10-27).
+    const r = await vaqtliOqish('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soro: 'shartnoma_svod_v1', kompaniya_id: kompaniyaId }) });
     const j = await r.json() as { ok: boolean; natija?: ShartnomaSvodJavob; error?: string };
     if (!j.ok || !j.natija || !Array.isArray(j.natija.shartnomalar)) return { ok: false, error: j.error || 'Svodni o‘qib bo‘lmadi.' };
     return { ok: true, natija: j.natija };

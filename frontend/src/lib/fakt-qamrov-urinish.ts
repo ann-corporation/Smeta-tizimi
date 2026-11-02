@@ -1,0 +1,179 @@
+/**
+ * QAMROV % URINISHI (attempt) — o'zgarmas snapshot va bo'lak receipt'lari (Codex QA 2026-10-25, JQA-04 / JQA-08).
+ *
+ * Muammo: `fakt_yoz_v2` javobi yo'qolsa (timeout/tarmoq) server hujjatni YOZGAN bo'lishi mumkin. Mavjud operation_id
+ * bilan qayta yuborilsa server eski aktni qaytaradi (takror), yangi body SOLISHTIRILMAYDI. Shuning uchun:
+ *  1) birinchi so'rovdan OLDIN urinish snapshoti muzlatiladi: bo'laklar (qatorlar + hajmlar), har bo'lakka UUID, sana,
+ *     izoh, qamrov, foiz — va u modal yopilsa ham yashaydigan joyda saqlanadi (modul reestri + localStorage,
+ *     kompaniya/obyekt bo'yicha);
+ *  2) har bo'lak uchun receipt: confirmed (akt_id bor) / failed (server aniq rad etdi) / unknown (javob noma'lum);
+ *  3) hal bo'lmagan urinish bor ekan YANGI urinish boshlanmaydi: avval xuddi shu snapshot xuddi shu UUID'lar bilan
+ *     qayta yuboriladi (server idempotent — ikkinchi hujjat yaratilmaydi), natija aniqlangach tozalanadi;
+ *  4) foiz/qamrov o'zgarsa — bu yangi urinish, yangi UUID'lar, lekin faqat eskisi hal bo'lgach.
+ * Hech qanday pul/hajm to'qilmaydi; snapshot faqat mijoz buyrug'ining nusxasi.
+ */
+export type BolakHolat = 'kutmoqda' | 'confirmed' | 'failed' | 'unknown';
+/** Yuboriladigan fakt qatori. «Fakt = F2» F2 narxini manbasi bilan qo'shadi (snapshotda muzlatiladi — qayta yuborishda aynan shu). */
+export type UrinishQator = { qator_id: number; hajm: number; manba_akt_qator_id?: number; narx?: number; narx_yoq?: boolean; narx_manba?: string; narx_manba_id?: number; narx_izoh?: string };
+const qatorNusxa = (x: UrinishQator): UrinishQator => {
+  const n: UrinishQator = { qator_id: x.qator_id, hajm: x.hajm };
+  if (x.manba_akt_qator_id != null) n.manba_akt_qator_id = x.manba_akt_qator_id;
+  if (x.narx != null) n.narx = x.narx;
+  if (x.narx_yoq === true) n.narx_yoq = true;
+  if (x.narx_manba != null) n.narx_manba = x.narx_manba;
+  if (x.narx_manba_id != null) n.narx_manba_id = x.narx_manba_id;
+  if (x.narx_izoh != null) n.narx_izoh = x.narx_izoh;
+  return n;
+};
+export type UrinishBolak = {
+  operationId: string;
+  qatorlar: readonly UrinishQator[];
+  izoh: string;
+  holat: BolakHolat;
+  aktId: number | null;
+  xato: string | null;
+  /** Har qatorning urinish yaratilgandagi fakti (qatorlar bilan parallel) — keyin «yozilgani jadvalda ko'rinyaptimi» tekshiruvi uchun. */
+  asos: readonly number[];
+};
+export type QamrovUrinish = {
+  kalit: string; kompaniyaId: number; obyektId: number; sana: string; sarlavha: string; foiz: number;
+  /** 'qamrov' — foiz × ochiq qoldiq (faqat oshiradi); 'tuzatish' — oshgan faktni ochiq qoldiq 0 ga kamaytirish (alohida, preview bilan). */
+  tur?: 'qamrov' | 'tuzatish' | 'f2';
+  yaratildi: string; bolaklar: readonly UrinishBolak[];
+};
+export type UrinishHolat = 'kutmoqda' | 'toliq' | 'nomalum' | 'xato';
+
+export const urinishKaliti = (kompaniyaId: number, obyektId: number) => `${kompaniyaId}:${obyektId}`;
+
+/** Snapshot: bo'laklar va UUID'lar shu yerda muzlatiladi (keyin o'zgarmaydi). */
+export function urinishYarat(p: { kompaniyaId: number; obyektId: number; sana: string; sarlavha: string; foiz: number; /** Izoh boshi (standart: «Qamrov N%»). */ izohBosh?: string; tur?: 'qamrov' | 'tuzatish' | 'f2' },
+  bolaklar: readonly (readonly UrinishQator[])[], yangiId: () => string, hozir: () => string = () => new Date().toISOString(),
+  faktOl: (id: number) => number = () => 0): QamrovUrinish {
+  const n = bolaklar.length;
+  return Object.freeze({
+    kalit: urinishKaliti(p.kompaniyaId, p.obyektId), kompaniyaId: p.kompaniyaId, obyektId: p.obyektId, sana: p.sana, sarlavha: p.sarlavha, foiz: p.foiz, tur: p.tur ?? 'qamrov',
+    yaratildi: hozir(),
+    bolaklar: bolaklar.map((q, i) => Object.freeze({
+      operationId: yangiId(), qatorlar: q.map(qatorNusxa),
+      izoh: `${p.izohBosh ?? `Qamrov ${p.foiz}%`}: ${p.sarlavha}`.slice(0, 480) + (n > 1 ? ` (${i + 1}/${n})` : ''),
+      holat: 'kutmoqda' as BolakHolat, aktId: null, xato: null, asos: q.map((x) => faktOl(x.qator_id)),
+    })),
+  });
+}
+
+export function urinishHolati(u: QamrovUrinish): UrinishHolat {
+  if (u.bolaklar.every((b) => b.holat === 'confirmed')) return 'toliq';
+  if (u.bolaklar.some((b) => b.holat === 'unknown')) return 'nomalum';
+  if (u.bolaklar.some((b) => b.holat === 'failed')) return 'xato';
+  return 'kutmoqda';
+}
+/** Hal bo'lmagan = hamma bo'lagi confirmed emas. */
+export const urinishOchiqmi = (u: QamrovUrinish | null | undefined): u is QamrovUrinish => !!u && urinishHolati(u) !== 'toliq';
+export const urinishAktlari = (u: QamrovUrinish) => u.bolaklar.flatMap((b) => (b.aktId != null ? [b.aktId] : []));
+
+/** yozAmali transport matnlari (api/supabase.ts): server amalni bajargan bo'lishi mumkin — natija NOMA'LUM. */
+const TRANSPORT = /serverda bajarilgan bo‘lishi mumkin|Internet aloqasi uzildi|Server vaqtincha javob bermadi|^HTTP 5\d\d/;
+export type YozJavob = { ok: boolean; akt_id?: number; code?: string; error?: string; xabar?: string; takror?: boolean } | null | undefined;
+/** Javob tasnifi: istisno (throw) → unknown; ok → confirmed; ok:false + server `code` → failed; ok:false + transport matni → unknown; boshqa rad → failed. */
+export function javobTasnifi(r: YozJavob | { tashlandi: true }): BolakHolat {
+  if (!r || 'tashlandi' in r) return 'unknown';
+  if (r.ok) return 'confirmed';
+  if (r.code) return 'failed';
+  return TRANSPORT.test(r.error ?? '') ? 'unknown' : 'failed';
+}
+
+/** Bo'lak receipt'ini yozilgan yangi urinish (sof; snapshot bodysi o'zgarmaydi). */
+export function urinishReceipt(u: QamrovUrinish, i: number, r: YozJavob | { tashlandi: true }): QamrovUrinish {
+  const holat = javobTasnifi(r);
+  const j = r && !('tashlandi' in r) ? r : null;
+  return Object.freeze({ ...u, bolaklar: u.bolaklar.map((b, k) => (k === i ? Object.freeze({ ...b, holat, aktId: holat === 'confirmed' ? j?.akt_id ?? b.aktId : b.aktId,
+    xato: holat === 'confirmed' ? null : j?.error ?? j?.xabar ?? j?.code ?? 'javob yo‘q' }) : b)) });
+}
+
+// ── Reestr: modal yopilsa/qayta ochilsa ham yashaydi; sahifa yangilansa — localStorage'dan. ──
+const reestr = new Map<string, QamrovUrinish>();
+const LS = 't2.fakt.qamrov.urinish:';
+const ls = (): Storage | null => { try { return typeof localStorage === 'undefined' ? null : localStorage; } catch { return null; } };
+
+export function urinishOl(kompaniyaId: number, obyektId: number): QamrovUrinish | null {
+  const k = urinishKaliti(kompaniyaId, obyektId);
+  const bor = reestr.get(k); if (bor) return bor;
+  try {
+    const s = ls()?.getItem(LS + k); if (!s) return null;
+    const u = JSON.parse(s) as QamrovUrinish;
+    if (u?.kalit !== k || !Array.isArray(u.bolaklar)) return null;
+    reestr.set(k, u); return u;
+  } catch { return null; }
+}
+export function urinishSaqla(u: QamrovUrinish): void {
+  reestr.set(u.kalit, u);
+  try { ls()?.setItem(LS + u.kalit, JSON.stringify(u)); } catch { /* localStorage yo'q — reestr yetarli */ }
+}
+export function urinishOchir(kompaniyaId: number, obyektId: number): void {
+  const k = urinishKaliti(kompaniyaId, obyektId);
+  reestr.delete(k);
+  try { ls()?.removeItem(LS + k); } catch { /* yo'q */ }
+}
+
+// ── JQA-09: TASDIQLANGAN yozuvlar yozuvi (urinish tugagach yoki tashlangach ham saqlanadi). ──
+/**
+ * Urinish to'liq tasdiqlangach yoki (aniq rad etilgan qismi) tashlangach — tasdiqlangan bo'laklar aktlari va har qator
+ * uchun KUTILGAN jami fakt (asos + hajm) yozib qo'yiladi. Keyingi yangi urinish faqat jadval (holat) shu faktni
+ * ko'rsatgandan keyin boshlanadi — aks holda eski qoldiqdan hisoblangan reja tasdiqlangan hajmni ikkinchi marta yozardi.
+ * Yozuv aktlar bekor qilinsa yoki jadval yangilangani tasdiqlansa o'chiriladi. Fakt hech qachon avtomatik kamaytirilmaydi.
+ */
+export type YozilganTekshir = { qator_id: number; kutilgan: number; ishora: 1 | -1 };
+export type QamrovYozilgan = { kalit: string; sarlavha: string; foiz: number; aktlar: readonly number[]; tekshir: readonly YozilganTekshir[] };
+
+/**
+ * Kutilgan fakt — qator bo'yicha: asos (urinish yaratilgandagi fakt) + shu qatorning BARCHA yozilgan hajmlari yig'indisi.
+ * «Fakt = F2» 1:1 nusxada bir qator bir necha fakt qatori (har F2 satri) bo'ladi — har birini alohida tekshirish noto'g'ri.
+ */
+function tekshirYig(tasdiq: readonly UrinishBolak[]): YozilganTekshir[] {
+  const m = new Map<number, { asos: number; jami: number }>();
+  for (const b of tasdiq) b.qatorlar.forEach((q, i) => {
+    const x = m.get(q.qator_id);
+    if (x) x.jami += q.hajm; else m.set(q.qator_id, { asos: b.asos?.[i] ?? 0, jami: q.hajm });
+  });
+  return [...m].map(([qator_id, x]) => ({ qator_id, kutilgan: Math.round((x.asos + x.jami) * 1e6) / 1e6, ishora: (x.jami < 0 ? -1 : 1) as 1 | -1 }));
+}
+/** Urinishning tasdiqlangan bo'laklaridan yozuv (tasdiqlangani bo'lmasa null). */
+export function yozilganYasa(u: QamrovUrinish): QamrovYozilgan | null {
+  const tasdiq = u.bolaklar.filter((b) => b.holat === 'confirmed');
+  if (!tasdiq.length) return null;
+  return {
+    kalit: u.kalit, sarlavha: u.sarlavha, foiz: u.foiz,
+    aktlar: tasdiq.flatMap((b) => (b.aktId != null ? [b.aktId] : [])),
+    tekshir: tekshirYig(tasdiq),
+  };
+}
+/** Jadval (holat fakt_hajm) yozilgan hajmlarni ko'rsatyaptimi? Qator holati yo'q — hali yo'q deb hisoblanadi. */
+export function yozilganKorinadimi(y: QamrovYozilgan, faktOl: (id: number) => number | null | undefined): boolean {
+  return y.tekshir.every((x) => {
+    const f = faktOl(x.qator_id);
+    if (f == null || !Number.isFinite(Number(f))) return false;
+    return x.ishora > 0 ? Number(f) >= x.kutilgan - 1e-6 : Number(f) <= x.kutilgan + 1e-6;
+  });
+}
+
+const yozReestr = new Map<string, QamrovYozilgan>();
+const LSY = 't2.fakt.qamrov.yozilgan:';
+export function yozilganOl(kompaniyaId: number, obyektId: number): QamrovYozilgan | null {
+  const k = urinishKaliti(kompaniyaId, obyektId);
+  const bor = yozReestr.get(k); if (bor) return bor;
+  try {
+    const s = ls()?.getItem(LSY + k); if (!s) return null;
+    const y = JSON.parse(s) as QamrovYozilgan;
+    if (y?.kalit !== k || !Array.isArray(y.tekshir)) return null;
+    yozReestr.set(k, y); return y;
+  } catch { return null; }
+}
+export function yozilganSaqla(y: QamrovYozilgan): void {
+  yozReestr.set(y.kalit, y);
+  try { ls()?.setItem(LSY + y.kalit, JSON.stringify(y)); } catch { /* reestr yetarli */ }
+}
+export function yozilganOchir(kompaniyaId: number, obyektId: number): void {
+  const k = urinishKaliti(kompaniyaId, obyektId);
+  yozReestr.delete(k);
+  try { ls()?.removeItem(LSY + k); } catch { /* yo'q */ }
+}

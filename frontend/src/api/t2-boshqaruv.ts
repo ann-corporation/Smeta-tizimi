@@ -34,7 +34,7 @@ export type BAudit ={ id: number; vaqt: string; kompaniya_id: number; kompaniya:
 
 type Javob<T> = { ok: true; natija: T } | { ok: false; error: string; code?: string };
 
-export async function boshqaruvOqi<T>(bolim: 'umumiy' | 'foydalanuvchilar' | 'kompaniyalar' | 'token' | 'audit' | 'tolovlar' | 'token_saga', p: Record<string, string | number | null | undefined> = {}): Promise<Javob<T>> {
+export async function boshqaruvOqi<T>(bolim: 'umumiy' | 'foydalanuvchilar' | 'kompaniyalar' | 'token' | 'audit' | 'tolovlar' | 'token_saga' | 'tizim_ruxsat', p: Record<string, string | number | null | undefined> = {}): Promise<Javob<T>> {
   const q = new URLSearchParams({ bolim });
   for (const [k, v] of Object.entries(p)) if (v != null && v !== '') q.set(k, String(v));
   try {

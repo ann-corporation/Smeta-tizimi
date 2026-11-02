@@ -1,0 +1,134 @@
+{
+ "Server hali yangilanmagan: kompaniya sozlamalari API si yoqilmagan. Hozircha hujjat sozlamalari shu brauzerda saqlanadi.": {
+  "ru": "Сервер ещё не обновлён: API настроек компании не включён. Пока настройки документов хранятся в этом браузере.",
+  "en": "Server not updated yet: the company settings API is not enabled. For now document settings are stored in this browser."
+ },
+ "Kompaniya sozlamalarini o‘qib bo‘lmadi.": {
+  "ru": "Не удалось прочитать настройки компании.",
+  "en": "Could not load company settings."
+ },
+ "Server hali yangilanmagan.": {
+  "ru": "Сервер ещё не обновлён.",
+  "en": "Server not updated yet."
+ },
+ "Saqlab bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.": {
+  "ru": "Не удалось сохранить. Повторите попытку позже.",
+  "en": "Could not save. Please try again later."
+ },
+ "Sozlamalarni faqat kompaniya profilini o‘zgartirish huquqi bor xodim tahrirlay oladi. Sizda faqat ko‘rish.": {
+  "ru": "Настройки может менять только сотрудник с правом изменять профиль компании. У вас только просмотр.",
+  "en": "Only an employee allowed to edit the company profile can change settings. You have view-only access."
+ },
+ "belgilanmagan": {
+  "ru": "не указано",
+  "en": "not set"
+ },
+ "Kompaniya turi hali tanlanmagan — Profil yorlig‘ida belgilang.": {
+  "ru": "Тип компании ещё не выбран — укажите его на вкладке «Профиль».",
+  "en": "Company type is not chosen yet — set it in the Profile tab."
+ },
+ "Profilda o‘zgartirish": {
+  "ru": "Изменить в профиле",
+  "en": "Change in Profile"
+ },
+ "F2 tasdiqlash tartibi": {
+  "ru": "Порядок утверждения Ф-2",
+  "en": "F2 approval workflow"
+ },
+ "O‘zgartirish uchun ruxsat yo‘q.": {
+  "ru": "Нет права на изменение.",
+  "en": "No permission to change."
+ },
+ "Barcha xodimlar va kompyuterlarda bir xil": {
+  "ru": "Одинаково у всех сотрудников и на всех компьютерах",
+  "en": "Same for all employees and computers"
+ },
+ "Kompaniya dizayni serverda saqlangan.": {
+  "ru": "Дизайн компании сохранён на сервере.",
+  "en": "Company design is saved on the server."
+ },
+ "Sukut (kulrang) mavzu qo‘llanmoqda.": {
+  "ru": "Используется стандартная (серая) тема.",
+  "en": "The default (grey) theme is in use."
+ },
+ "Dizaynni sozlash": {
+  "ru": "Настроить дизайн",
+  "en": "Configure design"
+ },
+ "Saqlandi": {
+  "ru": "Сохранено",
+  "en": "Saved"
+ },
+ "Kompaniya turi": {
+  "ru": "Тип компании",
+  "en": "Company type"
+ },
+ "Mavqe tizim interfeysi va hujjatlar qaysi tomondan tuzilishini belgilaydi.": {
+  "ru": "Тип определяет интерфейс системы и сторону, от которой составляются документы.",
+  "en": "The type defines the system interface and which party documents are prepared for."
+ },
+ "Faqat pudratchining F2 aktlariga tegishli.": {
+  "ru": "Относится только к актам Ф-2 подрядчика.",
+  "en": "Applies only to the contractor's F2 acts."
+ },
+ "Hujjat imzo tomonlari": {
+  "ru": "Стороны подписи документов",
+  "en": "Document signatories"
+ },
+ "Hujjat imzo blokida chiqadigan tashkilotlar. Bo‘sh qoldirilsa hujjatda to‘ldirish chizig‘i chiqadi.": {
+  "ru": "Организации в блоке подписей документа. Если пусто — в документе будет линия для заполнения.",
+  "en": "Organisations shown in the document signature block. If left empty, a fill-in line appears."
+ },
+ "Hujjat dizayni": {
+  "ru": "Дизайн документов",
+  "en": "Document design"
+ },
+ "Har bir hujjat turi uchun rang mavzusi (Excel va ko‘rish oynasida).": {
+  "ru": "Цветовая тема для каждого типа документа (в Excel и окне просмотра).",
+  "en": "Colour theme per document type (in Excel and the preview)."
+ },
+ "Sozlamalar": {
+  "ru": "Настройки",
+  "en": "Settings"
+ },
+ "Buyurtmachi": {
+  "ru": "Заказчик",
+  "en": "Customer"
+ },
+ "Pudratchi": {
+  "ru": "Подрядчик",
+  "en": "Contractor"
+ },
+ "Loyihachi": {
+  "ru": "Проектировщик",
+  "en": "Designer"
+ },
+ "Pudratchi aktlarini qabul qiladi, tasdiqlaydi va to‘lovni nazorat qiladi.": {
+  "ru": "Принимает и утверждает акты подрядчика и контролирует оплату.",
+  "en": "Accepts and approves contractor acts and controls payment."
+ },
+ "Smeta, F2 akt va resurs vedomostlarini tayyorlaydi; F2 tasdiqlash tartibi shu yerda qo‘llanadi.": {
+  "ru": "Готовит смету, акты Ф-2 и ресурсные ведомости; здесь действует порядок утверждения Ф-2.",
+  "en": "Prepares estimates, F2 acts and resource statements; the F2 approval workflow applies here."
+ },
+ "Loyiha va smeta hujjatlarini tayyorlaydi; hujjat dizayni va imzo tomonlari muhim.": {
+  "ru": "Готовит проектные и сметные документы; важны дизайн документов и стороны подписи.",
+  "en": "Prepares design and estimate documents; document design and signatories matter."
+ },
+ "Shaxsiy": {
+  "ru": "Личный",
+  "en": "Personal"
+ },
+ "Korporativ": {
+  "ru": "Корпоративный",
+  "en": "Corporate"
+ },
+ "Bir kishi tayyorlaydi va o‘zi tasdiqlaydi — kichik jamoalar uchun.": {
+  "ru": "Один человек готовит и сам утверждает — для небольших команд.",
+  "en": "One person prepares and approves — for small teams."
+ },
+ "Tayyorlovchi, tekshiruvchi va tasdiqlovchi turli kishilar bo‘lishi shart — buni ma’lumotlar bazasi o‘zi majburlaydi.": {
+  "ru": "Составитель, проверяющий и утверждающий — разные люди; это обеспечивает сама база данных.",
+  "en": "Preparer, checker and approver must be different people — enforced by the database itself."
+ }
+}

@@ -20,7 +20,7 @@ export function dataPermission(name: string, write: boolean, body: Record<string
     if (n === 'akt_yarat') return body.tur === 'fakt' ? 'fakt.write' : 'f2.prepare';
     if (/f2|(^|_)akt_/.test(n)) return 'f2.prepare';
   } else if (/f2|(^|_)akt(?:_|$)|viborka|nakop/.test(n)) return 'f2.read';
-  if (/tolov|xarajat|faktura|bux|debitor|financial|boss/.test(n)) return write ? 'financial.write' : 'financial.read';
+  if (/tolov|xarajat|faktura|bux|debitor|financial|boss|rahbar_panel/.test(n)) return write ? 'financial.write' : 'financial.read';
   if (/fakt/.test(n)) return write ? 'fakt.write' : 'fakt.read';
   if (/narx|price|nakrutka|alias/.test(n)) return write ? 'narx.write' : 'narx.read';
   if (/qator|smeta|daraxt|ish_turi|resurs_kategoriya|qoshimcha_ish|zamena_ish|resurs_bola|ish_resurs/.test(n)) return write ? 'smeta.write' : 'smeta.read';
@@ -34,11 +34,15 @@ export function dataPermission(name: string, write: boolean, body: Record<string
 
 /** Public/auth/webhook/catalog endpoints retain their own guards. All tenant business APIs are covered here. */
 export const SCOPED_APIS = new Set(['object-financials','contract-scope','sb','sb-yoz','company','sessiya','smeta-studio','smeta-yukla','smeta-ai','smeta-narx-agent','f2-moslash',
-  'hujjat-nazorat','hujjat-ol','hujjat-royxat','hujjat-yukla','boss-dashboard','boss-documents','system-control','tomon','agent-ish','ai-savol','ai-parse','gas','boshqaruv','agent-control']);
+  'hujjat-nazorat','hujjat-ol','hujjat-royxat','hujjat-yukla','boss-dashboard','boss-documents','system-control','tomon','agent-ish','ai-savol','ai-parse','gas','boshqaruv','agent-control',
+  /* Obyekt paketi (ADR OBYEKT_PAKET §1.4): smeta + holat + F2 ro'yxati + nakrutka — faqat o'qish. */
+  'obyekt-paket']);
 
 export function requestPermission(api: string, method: string, b: Record<string, unknown>, q: URLSearchParams): string | null {
   if (!SCOPED_APIS.has(api) || api === 'sessiya') return null;
   if (api === 'object-financials') return 'object.read';
+  if (api === 'obyekt-paket') return 'smeta.read'; // shlyuz qo'shimcha f2.read + narx.read ni ham talab qiladi
+
   if (api === 'contract-scope') return method === 'GET' ? 'smeta.read' : 'smeta.write';
   if (api === 'company') {
     if (method === 'GET') return q.has('profile')?'company.read':q.has('azolik_ruxsatlari')?'company.member.manage':null;
@@ -46,6 +50,9 @@ export function requestPermission(api: string, method: string, b: Record<string,
     if (String(b.action).startsWith('member_') || String(b.action).startsWith('azolik_ruxsat')) return 'company.member.manage';
     return null; // Company requests / platform approval have their own director/platform guard.
   }
+  /* Tizim xaritasi — platforma darajasi: kompaniya capability si bilan BERILMAYDI va to'silmaydi. Yagona ruxsat — bazada
+   * (superadmin YOKI t2_tizim_xaritasi_ruxsat qatori), actor sessiyadan (sb.ts `tizim_actor`). */
+  if (api === 'sb' && (b.soro === 'tizim_xaritasi_v1' || b.soro === 'tizim_xaritasi_ruxsat_tekshir_v1')) return null;
   if (api === 'sb') return b.soro === 'modul_holat_v1' ? 'company.read' : dataPermission(String(b.jadval || b.soro || ''),false,b);
   // Yozish — faqat aniq reyestr orqali (fail-closed): reyestrda yo'q amal hech kimga ruxsat etilmaydi.
   if (api === 'sb-yoz') return writeCommandPermission(String(b.amal || 'qator_tahrir'),b);

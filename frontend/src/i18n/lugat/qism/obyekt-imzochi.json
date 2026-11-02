@@ -1,0 +1,142 @@
+{
+  "Har tomon o‘z imzochisini o‘zi tayinlaydi.": {
+    "ru": "Каждая сторона сама назначает своего подписанта.",
+    "en": "Each party appoints its own signatory."
+  },
+  "Yuklanmoqda…": {
+    "ru": "Загрузка…",
+    "en": "Loading…"
+  },
+  "Obyekt imzochilarini o‘qib bo‘lmadi — tomonlar tahrirlanmaydi.": {
+    "ru": "Не удалось прочитать подписантов объекта — стороны не редактируются.",
+    "en": "Could not load the object's signatories — parties are read-only."
+  },
+  "Bu tomonni faqat shu tomonning o‘zi tayinlay oladi.": {
+    "ru": "Эту сторону может назначить только она сама.",
+    "en": "Only this party can appoint its own signatory."
+  },
+  "Bu rolni boshqa kompaniya allaqachon tayinlagan.": {
+    "ru": "Эту роль уже назначила другая компания.",
+    "en": "Another company has already appointed this role."
+  },
+  "Tanlangan daraja mavjud emas.": {
+    "ru": "Выбранный уровень не существует.",
+    "en": "The selected level does not exist."
+  },
+  "Bu amal uchun ruxsatingiz yo‘q.": {
+    "ru": "У вас нет прав на это действие.",
+    "en": "You do not have permission for this action."
+  },
+  "Saqlab bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.": {
+    "ru": "Не удалось сохранить. Повторите попытку позже.",
+    "en": "Could not save. Please try again shortly."
+  },
+  "Faqat shu razdel": {
+    "ru": "Только этот раздел",
+    "en": "This section only"
+  },
+  "Faqat shu obyekt": {
+    "ru": "Только этот объект",
+    "en": "This object only"
+  },
+  "Butun loyiha": {
+    "ru": "Весь проект",
+    "en": "Whole project"
+  },
+  "shu razdel": {
+    "ru": "этот раздел",
+    "en": "this section"
+  },
+  "shu obyekt": {
+    "ru": "этот объект",
+    "en": "this object"
+  },
+  "butun loyiha": {
+    "ru": "весь проект",
+    "en": "whole project"
+  },
+  "Belgilangan daraja": {
+    "ru": "Заданный уровень",
+    "en": "Set at level"
+  },
+  "Qaysi darajaga saqlanadi": {
+    "ru": "На какой уровень сохранить",
+    "en": "Save at level"
+  },
+  "Oldin kiritilganlar": {
+    "ru": "Ранее введённые",
+    "en": "Previously entered"
+  },
+  "Oldin kiritilganlardan tanlash…": {
+    "ru": "Выбрать из ранее введённых…",
+    "en": "Pick from previously entered…"
+  },
+  "Tashkilot": {
+    "ru": "Организация",
+    "en": "Organization"
+  },
+  "Lavozim": {
+    "ru": "Должность",
+    "en": "Position"
+  },
+  "F.I.O.": {
+    "ru": "Ф.И.О.",
+    "en": "Full name"
+  },
+  "Saqlash": {
+    "ru": "Сохранить",
+    "en": "Save"
+  },
+  "Saqlandi": {
+    "ru": "Сохранено",
+    "en": "Saved"
+  },
+  "Shartnomadan: {nom}": {
+    "ru": "Из договора: {nom}",
+    "en": "From the contract: {nom}"
+  },
+  "Bo‘sh saqlansa — shu daraja tozalanadi, yuqori daraja qiymati qaytadi.": {
+    "ru": "Если сохранить пустым — этот уровень очистится, вернётся значение верхнего уровня.",
+    "en": "Saving empty clears this level; the higher level's value applies again."
+  },
+  "siz kiritgansiz — tasdiqlanmagan": {
+    "ru": "вы ввели — не подтверждено",
+    "en": "entered by you — unconfirmed"
+  },
+  "tasdiqlanmagan": {
+    "ru": "не подтверждено",
+    "en": "unconfirmed"
+  },
+  "sizning tomoningiz": {
+    "ru": "ваша сторона",
+    "en": "your party"
+  },
+  "o‘zi tayinlagan": {
+    "ru": "назначила сама",
+    "en": "appointed by itself"
+  },
+  "Hujjat imzochilari": {
+    "ru": "Подписанты документов",
+    "en": "Document signatories"
+  },
+  "Hujjat imzo blokida chiqadigan tomonlar.": {
+    "ru": "Стороны, которые указываются в блоке подписей документа.",
+    "en": "Parties shown in the document's signature block."
+  },
+  "Imzochilar har obyektda alohida — tomonlar o‘zi tayinlaydi": {
+    "ru": "Подписанты задаются отдельно по каждому объекту — стороны назначают их сами",
+    "en": "Signatories are set per object — each party appoints its own"
+  },
+  "Buyurtmachi o‘z odamlarini, pudratchi o‘zinikini belgilaydi: hujjat sahifalaridagi «Hujjat imzolari» panelida (loyiha, obyekt yoki razdel darajasida).": {
+    "ru": "Заказчик назначает своих людей, подрядчик — своих: в панели «Подписи документа» на страницах документов (на уровне проекта, объекта или раздела).",
+    "en": "The customer appoints its own people and the contractor its own, in the “Document signatures” panel on document pages (project, object or section level)."
+  },
+  "Obyektlarga o‘tish": {
+    "ru": "Перейти к объектам",
+    "en": "Go to objects"
+  },
+  "Imzochilar har obyektda (loyiha, obyekt yoki razdel darajasida) alohida: buyurtmachi o‘z odamlarini, pudratchi o‘zinikini tayinlaydi. Hujjat sahifalaridagi «Hujjat imzolari» panelida.": {
+    "ru": "Подписанты задаются отдельно по проекту, объекту или разделу: заказчик назначает своих людей, подрядчик — своих. В панели «Подписи документа» на страницах документов.",
+    "en": "Signatories are set per project, object or section: the customer appoints its own people, the contractor its own. In the “Document signatures” panel on document pages."
+  }
+}

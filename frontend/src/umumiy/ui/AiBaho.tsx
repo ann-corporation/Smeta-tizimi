@@ -7,7 +7,7 @@ const MATN: Record<JavobBahosi, string> = {
   yaxshi: 'Rahmat — bu uslub saqlab qolinadi', yomon: 'Rahmat — bu javob tizim yaxshilanishiga signal bo‘ldi',
   qisqaroq: 'Tushundim — keyingi javoblar qisqaroq bo‘ladi', batafsilroq: 'Tushundim — keyingi javoblar batafsilroq bo‘ladi', noaniq: 'Rahmat — aniqroq javob berishga harakat qilamiz',
 };
-const TUGMA = 'rounded px-1.5 py-0.5 text-[10px] text-text-mute hover:bg-white/5 hover:text-text disabled:opacity-40';
+const TUGMA = 'rounded px-1.5 py-0.5 text-[10px] text-text-mute hover:bg-surface-3 hover:text-text disabled:opacity-40';
 
 /**
  * Javobga baho: 👍/👎 va «qisqaroq / batafsilroq / noaniq». «Qisqaroq/batafsilroq» sizning uslubingizni o'zgartiradi,

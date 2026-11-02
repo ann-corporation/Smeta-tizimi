@@ -3,7 +3,13 @@ import { AlertTriangle } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { pulTahlilOl, pulXarajatBekor, type PulDalilQator, type PulTahlilJavob, type PulXarajatQator } from '../../api/t2-pul-tahlil';
 import { toast } from '../../umumiy/ui/Toast';
+import { QiymatUchlik } from '../../umumiy/ui/QiymatUchlik';
+import { serverUchligi } from '../../lib/ustamali-summa';
 import XarajatKiritish from './XarajatKiritish';
+import MoliyaviyTahlil from './MoliyaviyTahlil';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { Maydon } from '../../umumiy/ui/Sahifa';
+import { IkkiTomonQator, Eksa, Rang } from '../nakopitelniy/PereraschetGrafik';
 import { PUL_ZANJIR, pulBannerlar, pulFarq, pulFarqFoiz, pulUmumiyKoef, pulZanjirQiymat, xarajatQamrovFoiz, type PulKesim, type PulUstamali } from '../../lib/pul-tahlil';
 
 /**
@@ -17,21 +23,13 @@ const KAT_NOM: Record<string, string> = {
 };
 const pul = (x: number | null | undefined) => (x == null ? '—' : x.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 const foiz = (x: number | null) => (x == null ? '—' : `${x > 0 ? '+' : ''}${x.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} %`);
-const rang = (x: number | null) => (x == null || x === 0 ? '' : x > 0 ? 'text-danger' : 'text-success');
+const RANG: Record<string, string> = { '1': 'text-danger', '-1': 'text-success' };
+const rang = (x: number | null) => (x == null ? '' : RANG[String(Math.sign(x))] ?? '');
 const nom = (k: string) => t(KAT_NOM[k] ?? k);
 
-/** Summa katagi: ASOSIY = ustamali (QQS siz); kichik: ustamasiz va QQS bilan (egasi qoidasi 2026-10-24). Ustama bazadan keladi — bu yerda hisoblanmaydi. */
+/** Summa katagi (egasi qoidasi 2026-10-27): ASOSIY = QQS bilan (ВСЕГО); kichik: ustamali (QQS siz) va to‘g‘ri xarajat. Yagona `QiymatUchlik`; ustama bazadan keladi — bu yerda hisoblanmaydi. */
 function UstamaliKatak({ ustamali, ustamasiz, bosish }: { ustamali: PulUstamali | null | undefined; ustamasiz: number | null | undefined; bosish?: () => void }) {
-  const asosiy = ustamali ? pul(ustamali.itogo4) : pul(ustamasiz);
-  return (
-    <div>
-      {bosish ? <button type="button" className="underline decoration-dotted" onClick={bosish}>{asosiy}</button> : asosiy}
-      <div className="text-[10px] leading-tight text-text-mute">
-        {t('ustamasiz')}: {pul(ustamasiz)}
-        {ustamali && <> · {t('QQS bilan')}: {pul(ustamali.vsego)}</>}
-      </div>
-    </div>
-  );
+  return <QiymatUchlik q={serverUchligi(ustamali, ustamasiz)} kichik className="items-end text-right" asosiyBosish={bosish} />;
 }
 
 export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { companyId: number; shartnomaId: number | null; obyektlar: Array<{ id: number; nom: string }> }) {
@@ -72,7 +70,7 @@ export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { compa
   }
 
   async function xarajatniBekor(q: PulXarajatQator) {
-    if (!window.confirm(t('Xarajatni bekor qilasizmi?'))) return;
+    if (!(await tasdiqSora({ matn: t('Xarajatni bekor qilasizmi?'), xavfli: true }))) return;
     const r = await pulXarajatBekor({ kompaniyaId: companyId, id: q.id, versiya: q.versiya });
     if (!r.ok) { toast(t(r.error || 'Bekor qilib bo‘lmadi'), 'danger'); return; }
     toast(t('Bekor qilindi'), 'ok'); setTanlangan(null); setDalil(null); setYangila((n) => n + 1);
@@ -83,29 +81,41 @@ export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { compa
   const bannerlar = data ? pulBannerlar({ kesimlar, f2Nomalum: data.jami.f2_nomalum, smetaNomalum: data.jami.smeta_nomalum }) : [];
   const zanjir = data?.zanjir;
   const jamiZ = zanjir?.jami ?? null;
+  const farqlar = new Map<string, number>();
+  for (const k of kesimlar) { const f = pulFarq(k.xarajat, k.f2_yopilgan); if (f != null && Number.isFinite(f)) farqlar.set(k.kat, f); }
+  const farqMax = Math.max(0, ...[...farqlar.values()].map(Math.abs));
 
   return (
-    <details className="rounded-lg border border-border p-3" open>
-      <summary className="cursor-pointer text-sm font-semibold">{t('Pul tahlili')}</summary>
-      <div className="mt-2 flex flex-wrap items-end gap-2 text-[12px]">
-        <label>{t('Qamrov')}
-          <select className="block rounded border border-border bg-surface px-2 py-1 text-[13px]" value={qamrov} onChange={(e) => setQamrov(e.target.value)}>
-            {shartnomaId != null && <option value="sh">{t('Shartnoma')}</option>}
-            <option value="jami">{t('Jami (kompaniya)')}</option>
-            {obyektlar.map((o) => <option key={o.id} value={`o:${o.id}`}>{o.nom}</option>)}
-          </select>
-        </label>
-        <label>{t('Davr (gacha)')}
-          <input type="month" className="block rounded border border-border bg-surface px-2 py-1 text-[13px]" value={gacha} onChange={(e) => setGacha(e.target.value)} />
-        </label>
-        {band && <span className="text-text-mute">{t('Yuklanmoqda…')}</span>}
+    <section className="fz-card" aria-label={t('Pul tahlili')}>
+      <div className="fz-card__head">
+        <div>
+          <h3 className="fz-card__title">{t('Pul tahlili')}</h3>
+          <p className="fz-card__sub">{t('Smeta, yopilgan F2 va haqiqiy xarajat: qayerda ortiqcha sarf, qayerda tejam')}</p>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 'var(--space-3)' }}>
+          <Maydon nom={t('Qamrov')}>
+            <select className="input" style={{ height: 'var(--control-md)', padding: '0 8px' }} value={qamrov} onChange={(e) => setQamrov(e.target.value)}>
+              {shartnomaId != null && <option value="sh">{t('Shartnoma')}</option>}
+              <option value="jami">{t('Jami (kompaniya)')}</option>
+              {obyektlar.map((o) => <option key={o.id} value={`o:${o.id}`}>{o.nom}</option>)}
+            </select>
+          </Maydon>
+          <Maydon nom={t('Davr (gacha)')}>
+            <input type="month" className="input" style={{ height: 'var(--control-md)', padding: '0 8px' }} value={gacha} onChange={(e) => setGacha(e.target.value)} />
+          </Maydon>
+          {band && <span role="status" style={{ color: 'var(--text-mute)' }}>{t('Yuklanmoqda…')}</span>}
+        </div>
       </div>
-      {xato && <p className="mt-2 text-sm text-danger">{t(xato)}</p>}
+      <div className="fz-card__body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      {/* Egasi 2026-10-27: «Парк объектининг молиявий таҳлили» — kompaniya yoki tanlangan obyekt kesimida (shartnoma rejimida — kompaniya). */}
+      <MoliyaviyTahlil companyId={companyId} obyektId={qamrov.startsWith('o:') ? Number(qamrov.slice(2)) : null}
+        qamrovNomi={qamrov.startsWith('o:') ? (obyektlar.find((o) => `o:${o.id}` === qamrov)?.nom ?? qamrov) : t('Jami (kompaniya)')} />
+      {xato && <div role="alert" className="fz-note fz-note--danger"><AlertTriangle /><span>{t(xato)}</span></div>}
       {data && (
         <>
           {bannerlar[0] && (
-            <div className="mt-2 flex items-start gap-1 text-[12px] text-warning">
-              <AlertTriangle size={13} className="mt-0.5" />
+            <div className="fz-note fz-note--warn">
+              <AlertTriangle />
               <span>{t(bannerlar[0].matn, { foiz: String(xarajatQamrovFoiz(kesimlar)), soni: String(bannerlar[0].kod === 'f2_nomalum' ? data.jami.f2_nomalum : data.jami.smeta_nomalum) })}</span>
               {bannerlar.length > 1 && (
                 <details className="ml-1"><summary className="cursor-pointer">{t('yana {n} ▸', { n: String(bannerlar.length - 1) })}</summary>
@@ -114,10 +124,19 @@ export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { compa
               )}
             </div>
           )}
-          <table className="mt-2 w-full text-[12px]">
-            <thead><tr className="border-b text-text-mute">
-              <th className="px-1 text-left">{t('Kesim')}</th><th className="px-1 text-right">{t('Smeta')}</th><th className="px-1 text-right">{t('F2 yopilgan')}</th>
-              <th className="px-1 text-right">{t('Xarajat')}</th><th className="px-1 text-right" title={t('Farq = xarajat − F2 (ustamasiz)')}>{t('Farq = xarajat − F2 (ustamasiz)')}</th><th className="px-1 text-right">%</th>
+          <div className="fz-panel">
+            <div className="fz-panel__h"><span>{t('Farq bo‘yicha: xarajat − F2 (ustamasiz)')}</span><span>{t('chapga — ortiqcha sarf')}</span></div>
+            {kesimlar.filter((k) => korinadi(k) && k.xarajat_holat !== 'hisoblanmagan' && farqlar.has(k.kat)).map((k) => {
+              const f = farqlar.get(k.kat)!;
+              return <IkkiTomonQator key={k.kat} nom={nom(k.kat)} plus={Math.max(-f, 0)} minus={Math.max(f, 0)} max={farqMax} sof={-f} baland={10} />;
+            })}
+            {!farqlar.size && <span className="fz-kpi__sub">{t('Xarajat hali kiritilmagan — farq noma‘lum')}</span>}
+            <Eksa><Rang rang="var(--danger)" matn={t('xarajat F2 dan ko‘p (ortiqcha sarf)')} /><Rang rang="var(--ok)" matn={t('xarajat F2 dan kam (tejam)')} /></Eksa>
+          </div>
+          <div className="fz-table-wrap"><table className="fz-table">
+            <thead><tr>
+              <th>{t('Kesim')}</th><th style={{ textAlign: 'right' }}>{t('Smeta')}</th><th style={{ textAlign: 'right' }}>{t('F2 yopilgan')}</th>
+              <th style={{ textAlign: 'right' }}>{t('Xarajat')}</th><th style={{ textAlign: 'right' }} title={t('Farq = xarajat − F2 (ustamasiz)')}>{t('Farq = xarajat − F2 (ustamasiz)')}</th><th style={{ textAlign: 'right' }}>%</th>
             </tr></thead>
             <tbody>
               {kesimlar.filter(korinadi).map((k) => {
@@ -125,31 +144,31 @@ export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { compa
                 const farq = pulFarq(k.xarajat, k.f2_yopilgan);
                 const bosiladi = !hisoblanmagan;
                 return (
-                  <tr key={k.kat} className={`border-b border-border/40 ${tanlangan === k.kat ? 'bg-accent/10' : ''} ${k.ota ? 'text-text-dim' : ''}`}>
-                    <td className={`px-1 ${k.ota ? 'pl-4' : ''}`}>
+                  <tr key={k.kat} className={k.ota ? 'fz-row-res' : 'fz-row-bl'} style={tanlangan === k.kat ? { background: 'var(--accent-soft)' } : undefined}>
+                    <td style={k.ota ? { paddingLeft: 28 } : undefined}>
                       {k.kat === 'МАТ' && <button type="button" className="mr-1 text-accent" aria-expanded={ochiq} onClick={() => setOchiq(!ochiq)}>{ochiq ? '▾' : '▸'}</button>}
                       {nom(k.kat)}{hisoblanmagan && <span className="ml-1 text-warning">· {t('hisoblanmagan')}</span>}
                     </td>
-                    <td className="px-1 text-right tabular-nums">{bosiladi ? <UstamaliKatak ustamali={k.smeta_ustamali} ustamasiz={k.smeta_ustamasiz} bosish={() => void dalilOch(k.kat)} /> : '—'}</td>
-                    <td className="px-1 text-right tabular-nums">{bosiladi ? <UstamaliKatak ustamali={k.f2_ustamali} ustamasiz={k.f2_yopilgan} bosish={() => void dalilOch(k.kat)} /> : '—'}</td>
-                    <td className="px-1 text-right tabular-nums text-text-mute" title={t("Xarajat hali kiritilmagan — noma'lum")}>{k.xarajat == null ? '—' : <button type="button" className="underline decoration-dotted" onClick={() => void dalilOch(k.kat, 'xarajat')}>{pul(k.xarajat)}</button>}</td>
-                    <td className={`px-1 text-right tabular-nums ${rang(farq)}`}>{pul(farq)}</td>
-                    <td className={`px-1 text-right tabular-nums ${rang(farq)}`}>{foiz(pulFarqFoiz(k.xarajat, k.f2_yopilgan))}</td>
+                    <td className="fz-c-num">{bosiladi ? <UstamaliKatak ustamali={k.smeta_ustamali} ustamasiz={k.smeta_ustamasiz} bosish={() => void dalilOch(k.kat)} /> : '—'}</td>
+                    <td className="fz-c-num">{bosiladi ? <UstamaliKatak ustamali={k.f2_ustamali} ustamasiz={k.f2_yopilgan} bosish={() => void dalilOch(k.kat)} /> : '—'}</td>
+                    <td className="fz-c-num" style={{ color: 'var(--text-mute)' }} title={t("Xarajat hali kiritilmagan — noma'lum")}>{k.xarajat == null ? '—' : <button type="button" className="underline decoration-dotted" onClick={() => void dalilOch(k.kat, 'xarajat')}>{pul(k.xarajat)}</button>}</td>
+                    <td className={`fz-c-num ${rang(farq)}`}>{pul(farq)}</td>
+                    <td className={`fz-c-num ${rang(farq)}`}>{foiz(pulFarqFoiz(k.xarajat, k.f2_yopilgan))}</td>
                   </tr>
                 );
               })}
-              <tr className="font-semibold">
-                <td className="px-1">{t('JAMI (ustama bilan, QQS siz)')}</td>
-                <td className="px-1 text-right tabular-nums"><UstamaliKatak ustamali={data.jami.smeta_ustamali} ustamasiz={data.jami.smeta_ustamasiz} /></td>
-                <td className="px-1 text-right tabular-nums"><UstamaliKatak ustamali={data.jami.f2_ustamali} ustamasiz={data.jami.f2_yopilgan} /></td>
-                <td className="px-1 text-right tabular-nums">{pul(data.jami.xarajat)}</td>
-                <td className={`px-1 text-right tabular-nums ${rang(data.jami.farq)}`}>{pul(data.jami.farq)}</td><td className={`px-1 text-right tabular-nums ${rang(data.jami.farq)}`}>{foiz(data.jami.farq_foiz)}</td>
+              <tr className="fz-row-total">
+                <td>{t('JAMI (QQS bilan)')}</td>
+                <td className="fz-c-num"><UstamaliKatak ustamali={data.jami.smeta_ustamali} ustamasiz={data.jami.smeta_ustamasiz} /></td>
+                <td className="fz-c-num"><UstamaliKatak ustamali={data.jami.f2_ustamali} ustamasiz={data.jami.f2_yopilgan} /></td>
+                <td className="fz-c-num">{pul(data.jami.xarajat)}</td>
+                <td className={`fz-c-num ${rang(data.jami.farq)}`}>{pul(data.jami.farq)}</td><td className={`fz-c-num ${rang(data.jami.farq)}`}>{foiz(data.jami.farq_foiz)}</td>
               </tr>
             </tbody>
-          </table>
+          </table></div>
 
           {tanlangan && (
-            <div className="mt-2 rounded border border-border p-2 text-[12px]">
+            <div className="fz-panel">
               <div className="mb-1 font-semibold">{t('Dalil — manba qatorlar')}: {nom(tanlangan)}</div>
               {dalil == null && <span className="text-text-mute">{t('Yuklanmoqda…')}</span>}
               {dalil != null && !dalil.length && <span className="text-text-mute">{t('Qator yo‘q')}</span>}
@@ -193,8 +212,8 @@ export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { compa
                   <tbody>{PUL_ZANJIR.map((b) => (
                     <tr key={b.kalit} className={`border-b border-border/40 ${b.kalit.startsWith('itogo') || b.kalit === 'vsego' || b.kalit === 'pryamye' ? 'font-semibold' : ''}`}>
                       <td className="px-1">{t(b.nom)}</td><td className="px-1 text-text-mute">{b.formula}</td>
-                      <td className="px-1 text-right tabular-nums">{pul(pulZanjirQiymat(jamiZ, b.kalit))}</td>
-                      <td className="px-1 text-right tabular-nums">{pul(pulZanjirQiymat(zanjir?.f2_jami ?? null, b.kalit))}</td>
+                      <td className="fz-c-num">{pul(pulZanjirQiymat(jamiZ, b.kalit))}</td>
+                      <td className="fz-c-num">{pul(pulZanjirQiymat(zanjir?.f2_jami ?? null, b.kalit))}</td>
                     </tr>))}</tbody>
                 </table>
               </>
@@ -202,6 +221,7 @@ export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { compa
           </details>
         </>
       )}
-    </details>
+      </div>
+    </section>
   );
 }

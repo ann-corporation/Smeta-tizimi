@@ -3,6 +3,7 @@ import { jurnalOl, type JurnalYozuvi } from '../../api/t2-agent-ish';
 import { t } from '../../i18n/til';
 import { AiQadamlar } from './AiQadamlar';
 import { HARAKAT_NOMI } from './ai-harakat';
+import { harakatMuhr, tokenMatn } from '../../lib/ai-korinish';
 
 const TUR: Record<string, string> = { savol: 'Savol', rad: 'Doiradan tashqari (rad)', salom: 'Salomlashuv', xato: 'Xato' };
 const HOLAT: Record<string, string> = { kutilmoqda: 'Tasdiq kutmoqda', tasdiqlandi: 'Tasdiqlandi', rad: 'Rad etildi', bajarildi: 'Bajarildi', xato: 'Xato' };
@@ -27,18 +28,23 @@ export function AiJurnal({ kompaniyaId, admin }: { kompaniyaId: number; admin: b
       {xato && <p role="alert" className="text-xs text-danger">{xato}</p>}
       {royxat && royxat.length === 0 && <p className="text-xs text-text-mute">{t('Hali yozuv yo‘q.')}</p>}
       {royxat?.map((j) => (
-        <article key={j.id} className="rounded-xl border border-border bg-surface-2 p-3">
-          <div className="flex items-center gap-2 text-[11px] text-text-mute">
-            <span className={`rounded px-1.5 py-0.5 ${j.rad ? 'bg-warn/15 text-warn' : 'bg-accent/15 text-accent'}`}>{t(TUR[j.tur] ?? j.tur)}</span>
+        <article key={j.id} className="fz-panel gap-1.5 p-3">
+          <div className="flex flex-wrap items-center gap-2 text-[11px] text-text-mute">
+            <span className={`fz-stamp ${j.rad ? 'fz-stamp--warn' : j.tur === 'xato' ? 'fz-stamp--danger' : 'fz-stamp--info'}`}>{t(TUR[j.tur] ?? j.tur)}</span>
             <span>{new Date(j.vaqt).toLocaleString('ru-RU')}</span>
             {j.kim && <span>· {j.kim}</span>}
             <span className="ml-auto tabular-nums">{j.model && j.model !== 'local' ? `${j.model} · ${j.kirish_token + j.chiqish_token} ${t('token')}` : t('token sarflanmadi')}</span>
           </div>
+          {j.model && j.model !== 'local' && (() => { const kir = tokenMatn(j.kirish_token), chiq = tokenMatn(j.chiqish_token); return (
+            <div className="flex flex-wrap gap-1.5 text-[11px]" data-testid="ai-token-sarf">
+              <span className="fz-chip" title={t('Modelga yuborilgan matn (savol, kontekst, qoidalar)')}>{t('Kirdi')}: {t(kir.kalit, { n: kir.n })}</span>
+              <span className="fz-chip" title={t('Model yozgan javob')}>{t('Chiqdi')}: {t(chiq.kalit, { n: chiq.n })}</span>
+            </div>); })()}
           {j.savol && <p className="mt-1 text-text">{j.savol}</p>}
           {j.javob && <p className="mt-1 line-clamp-3 text-xs text-text-dim">{j.javob}</p>}
           {j.harakatlar.length > 0 && (
             <ul className="mt-1.5 space-y-0.5 text-xs">
-              {j.harakatlar.map((h) => <li key={h.id} className="text-text-dim">🧾 {t(HARAKAT_NOMI[h.amal] ?? h.amal)} — <b className={h.holat === 'bajarildi' ? 'text-ok' : h.holat === 'xato' ? 'text-danger' : 'text-warn'}>{t(HOLAT[h.holat] ?? h.holat)}</b></li>)}
+              {j.harakatlar.map((h) => <li key={h.id} className="flex flex-wrap items-center gap-1.5 text-text-dim">{t(HARAKAT_NOMI[h.amal] ?? h.amal)} <span className={`fz-stamp ${harakatMuhr(h.holat).cls}`}>{t(HOLAT[h.holat] ?? h.holat)}</span></li>)}
             </ul>
           )}
           <AiQadamlar qadamlar={j.qadamlar} />

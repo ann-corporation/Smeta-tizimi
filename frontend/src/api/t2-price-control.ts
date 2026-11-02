@@ -1,3 +1,4 @@
+import { vaqtliOqish } from './vaqtli-fetch';
 /**
  * t2-price-control.ts — T2-REAL-PARK-LRV-VERTICAL-SLICE-004.
  * Reads /api/sb {soro:'price_control_v1'|'f2_exact_qatorlar_v1'} ->
@@ -22,7 +23,7 @@ export type PriceControlLine = {
 };
 
 async function soroOqi<T>(body: Record<string, unknown>): Promise<{ ok: boolean; natija?: T; error?: string }> {
-  const r = await fetch('/api/sb', {
+  const r = await vaqtliOqish('/api/sb', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });

@@ -50,13 +50,13 @@ export function XizmatTakliflari({ kompaniyaId, isDirector }: { kompaniyaId: num
     <div className="karta mt-3 space-y-4 p-4">
       <div>
         <h3 className="flex items-center gap-2 text-sm font-semibold"><Inbox size={14} /> {t('Xizmat takliflari')}
-          {kutilmoqda.length > 0 && <span className="rounded-full bg-accent px-1.5 text-[11px] text-white">{kutilmoqda.length}</span>}</h3>
+          {kutilmoqda.length > 0 && <span className="rounded-full bg-accent px-1.5 text-[11px] text-[var(--on-accent)]">{kutilmoqda.length}</span>}</h3>
         <label className="mt-1 flex items-center gap-2 text-[12px] text-text-dim">
           <input type="checkbox" checked={ochiq} onChange={(e) => void ochiqAlmash(e.target.checked)} />
           {t('Xizmat takliflarini qabul qilaman — mutaxassislar kompaniyamizni nomi bo‘yicha topadi (STIR bo‘yicha har doim topiladi)')}
         </label>
       </div>
-      {xato && <p role="alert" className="text-[12px] text-rose-300">{xato}</p>}
+      {xato && <p role="alert" className="text-[12px] text-danger">{xato}</p>}
       {kelgan && !kutilmoqda.length && <p className="text-[12px] text-text-mute">{t('Yangi taklif yo‘q.')}</p>}
       <div className="grid gap-3 md:grid-cols-2">
         {kutilmoqda.map((x) => <MutaxassisKartasi key={x.id} m={x.mutaxassis}>
@@ -69,7 +69,7 @@ export function XizmatTakliflari({ kompaniyaId, isDirector }: { kompaniyaId: num
       {javobBerilgan.length > 0 && <details className="text-[12px]">
         <summary className="cursor-pointer text-text-mute">{t('Javob berilganlar')} ({javobBerilgan.length})</summary>
         <ul className="mt-1 divide-y divide-border/50">{javobBerilgan.map((x) => <li key={x.id} className="py-1">
-          {x.mutaxassis.ism} · {ROLE_LABELS[x.rol] ?? x.rol} · <span className={x.holat === 'qabul' ? 'text-emerald-400' : 'text-text-mute'}>
+          {x.mutaxassis.ism} · {ROLE_LABELS[x.rol] ?? x.rol} · <span className={x.holat === 'qabul' ? 'text-ok' : 'text-text-mute'}>
             {x.holat === 'qabul' ? t('Qabul qilindi') : x.holat === 'rad' ? t('Rad etildi') : t('Bekor qilingan')}</span></li>)}</ul>
       </details>}
 

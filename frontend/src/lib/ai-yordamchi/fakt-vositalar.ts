@@ -5,6 +5,7 @@
  */
 import type { BolimSumma, JurnalBolim, JurnalHolat, JurnalIsh, JurnalQator, SummaKesim } from '../fakt-jurnal';
 import { qidiruvTayyorla } from '../qidiruv-normalizatsiya';
+import { qoldiqHajmi } from '../zamena-qoldiq';
 import type { OqishSorovi, SahifaAmal } from './protokol';
 
 export type UstamaliFn = (s: SummaKesim) => { ustamali: number | null; taxminiy: boolean };
@@ -50,7 +51,7 @@ const TUR: Record<JurnalQator['tur'], string> = { bl: 'ISH', mat: 'MAT', ob: 'OB
 export function qatorSatri(m: Pick<FaktMalumot, 'holatMap' | 'bajHajm'>, j: Pick<FaktQatorJoyi, 'q' | 'avto'>): string {
   const { q } = j; const h = m.holatMap.get(q.id);
   const f2 = h?.f2_hajm == null ? null : Number(h.f2_hajm);
-  const qoldiq = h?.qoldiq_hajm != null ? Number(h.qoldiq_hajm) : q.smeta == null ? null : q.smeta - (f2 ?? 0) - (q.almashtirilgan ?? 0);
+  const qoldiq = h?.qoldiq_hajm != null ? Number(h.qoldiq_hajm) : qoldiqHajmi(q.smeta, f2, q.almashtirilgan);
   const narx = h?.smeta_narx == null ? null : Number(h.smeta_narx);
   const belgi = [q.zamena && `zamena${q.aslNom ? ` (asl: ${q.aslNom})` : ''}`, q.qoshimcha && 'smetadan tashqari', q.almashtirilgan && `almashtirilgan ${raqam(q.almashtirilgan)}`,
     (m.bajHajm.get(q.id) ?? 0) > 0 && `bajarilmaydi ${raqam(m.bajHajm.get(q.id))}`, q.holat === 'oshdi' && 'SMETADAN OSHDI', qoldiq != null && qoldiq < -1e-9 && (q.smeta ?? 0) >= 0 && 'QOLDIQDAN OSHDI',
@@ -190,7 +191,7 @@ export function faktAmalTekshir(m: FaktMalumot, a: SahifaAmal, normativlar: Read
     }
     case 'bajarilmaydi': {
       if (j.avto) return 'Avtomatik resurs — ishning o‘ziga belgilang';
-      if (a.qiymat != null && !(Number(a.qiymat.replace(',', '.')) > 0)) return 'Hajm musbat son bo‘lishi kerak';
+      if (a.qiymat != null && !Number.isFinite(Number(a.qiymat.replace(',', '.')))) return 'Hajm son bo‘lishi kerak (minus ham mumkin)';
       return null;
     }
     case 'korsat': return null;

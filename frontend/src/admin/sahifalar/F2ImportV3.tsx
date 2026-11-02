@@ -2,6 +2,29 @@ import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { fayldanKalitBog } from '../../lib/f2-kalit-bogla';
 import { avvalgiF2Ol, f2RaqamNormal, qoralamaAktmi, type AvvalgiF2 } from '../../lib/f2-moslash-v3/takror';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useInRouterContext, useSearchParams } from 'react-router-dom';
+
+/** JQA-07: faol ish (ij) va serverdagi job/akt URL'da ham turadi (`?job=…&akt=…`, replace — tarixga yozilmaydi).
+ *  F2 bo'limi tablari (BolimTablari) shu tabning oxirgi URL'ini eslab qoladi — boshqa tabga o'tib qaytganda
+ *  qoralama mount'dagi odatiy `job`/`akt` o'qish orqali o'zi tiklanadi. Biz yozgan paramlar ish tugaganda o'chiriladi.
+ *  Alohida komponent: F2ImportV3 Router'siz (testlarda) ham render bo'ladi. */
+function F2UrlSinxron({ faol, jobId, aktId }: { faol: boolean; jobId: number | null; aktId: number | null }) {
+  const [, setSearchParams] = useSearchParams();
+  const yozildi = useRef(false);
+  useEffect(() => {
+    const bor = faol && jobId != null;
+    if (!bor && !yozildi.current) return;
+    yozildi.current = bor;
+    setSearchParams((p) => {
+      const n = new URLSearchParams(p);
+      if (bor) { n.set('job', String(jobId)); if (aktId != null) n.set('akt', String(aktId)); else n.delete('akt'); }
+      else { n.delete('job'); n.delete('akt'); }
+      return n;
+    }, { replace: true });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [faol, jobId, aktId]);
+  return null;
+}
 import {
   sbOqi, sbT2AktYaratV2, sbT2F2QoralamaYangila, sbT2DaraxtOl, sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt, type T2Qator,
 } from '../../api/supabase';
@@ -46,6 +69,9 @@ import { nakQoldiqXaritalari } from '../../lib/f2-moslash-v3/nakQoldiq';
 import { bolimXato, smetaBolimYarat } from '../../api/t2-smeta-bolim';
 import type { Fayl } from '../../lib/fayl-daraxt';
 import { t } from '../../i18n/til';
+import { Sahifa } from '../../umumiy/ui/Sahifa';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { AlertTriangle, CheckCircle2, XCircle, Info } from 'lucide-react';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 import { f2IshchiOl, f2IshchiSaqla, f2ServerCorrectionSaqla, f2PendingCorrectionOl, type F2PendingCorrection, f2MinusTaklif, f2QoralamaBogTekshir, f2QoralamaYozish, f2ServerOl, f2ManbaMosla, f2BuzilganniBoshat, f2ServerSaqla, f2ServerSaqlaBardoshli, F2ServerZiddiyat, type F2IshchiQoralama, type F2ServerQoralama } from '../../lib/f2-ishchi-qoralama';
 
@@ -181,7 +207,10 @@ function Sessiya({ companyId }: { companyId: number }) {
   const lastWorkingDraft = useRef<F2IshchiQoralama | null>(null);
   const serverDraft = useRef<F2ServerQoralama | undefined>(undefined);
   const [serverId, setServerId] = useState('');
+  /* JQA-07: faol ish va serverdagi job/akt URL'da ham turadi — pastdagi <F2UrlSinxron/> (faqat Router ichida). */
+  const routerda = useInRouterContext();
   const [serverHolat, setServerHolat] = useState('');
+  const keyingiHalRef = useRef<(() => void) | null>(null);
   const rawFile = useRef<File | null>(null);
   const operation = useRef('');
   const sourceOp = useRef('');
@@ -1209,7 +1238,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (dublikatBlok) { qadam('tekshiruv', 'xato', dublikatMasalalar.filter((m) => m.daraja === 'blok').map((m) => m.matn).join(' ')); return; }
     // Ogohlantirishlar (summa takrori, pereraschet) bloklamaydi — lekin operator ko‘rib, ongli tasdiqlaydi.
     const dublikatOgoh = dublikatlar.filter((m) => m.daraja === 'ogoh');
-    if (dublikatOgoh.length && !window.confirm(`${dublikatOgoh.map((m) => m.matn).join('\n\n')}\n\n${t('Baribir yozasizmi?')}`)) {
+    if (dublikatOgoh.length && !(await tasdiqSora({ xavfli: true, sarlavha: t('Dublikat ogohlantirishi'), tasdiqMatni: t('Baribir yozish'), matn: `${dublikatOgoh.map((m) => m.matn).join('\n\n')}\n\n${t('Baribir yozasizmi?')}` }))) {
       qadam('tekshiruv', 'xato', t('Yozish bekor qilindi — dublikat ogohlantirishini tekshiring.')); return;
     }
     if (saqlashBlok) {
@@ -1223,7 +1252,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       const pul = yozish.qolgan.filter((n) => n.barg && n.summa != null).reduce((a, n) => a + Number(n.summa), 0);
       // Ustamali (asosiy) + ustamasiz: kat — taklif qilingan smeta qatoridan; bog'lanmagani kat noma'lum (≈).
       const kesim = katKesimYigish(yozish.qolgan.filter((n) => n.barg && n.summa != null), (n) => { const b = ij?.bog.get(n.uid); return b ? raw.get(b.qatorId)?.kat : null; }, (n) => Number(n.summa));
-      const ok = window.confirm(`${qolganSummaMatni(yozish.qolgan.length, pul, ustama.hisobla(kesim))} ${t('hali bog‘lanmagan — aktga KIRMAYDI. Baribir yozasizmi? (Keyin «✎ Tahrirlash» bilan qo‘shish mumkin.)')}`);
+      const ok = await tasdiqSora({ xavfli: true, sarlavha: t('Bog‘lanmagan qatorlar bor'), tasdiqMatni: t('Baribir yozish'), matn: `${qolganSummaMatni(yozish.qolgan.length, pul, ustama.hisobla(kesim))} ${t('hali bog‘lanmagan — aktga KIRMAYDI. Baribir yozasizmi? (Keyin «✎ Tahrirlash» bilan qo‘shish mumkin.)')}` });
       if (!ok) { qadam('tekshiruv', 'xato', t('Yozish bekor qilindi — bog‘lanmagan qatorlarni hal qiling.')); return; }
     }
     qadam('tekshiruv', 'tayyor', `${payload.rows.length} ${t('qator aktga kiradi')}${yozish.qolgan.length ? `; ${yozish.qolgan.length} ${t('tasi kiritilmaydi (bog‘lanmagan)')}` : ''}`);
@@ -1342,33 +1371,64 @@ function Sessiya({ companyId }: { companyId: number }) {
     ? jamiFarq / Math.abs(akt.jami.pryamye) * 100
     : null;
   const selectedObjectName = objects.find((o) => o.id === Number(objectId))?.nom;
+  /* Tekshiruv — yozishdan oldingi BARCHA ogohlantirish va to'siqlar bitta ro'yxatda (har qator: nima, qancha, qayerda). */
+  type TekshiruvBand = { id: string; daraja: 'ok' | 'warn' | 'bad'; matn: string; amal?: { nom: string; run: () => void } };
+  const sakra = (nom: string) => () => { document.querySelector(`[${'aria-label'}=${JSON.stringify(nom)}]`)?.scrollIntoView?.({ block: 'start', behavior: 'smooth' }); };
+  const tekshiruvBandlari: TekshiruvBand[] = [];
+  if (akt && ij && !done) {
+    if (payload?.error) tekshiruvBandlari.push({ id: 'payload', daraja: 'bad', matn: t('Yozish ma‘lumotida xato bor — xabar pastda'), amal: { nom: t('Ko‘rsatish'), run: sakra('Aktga kirmaydiganlar') } });
+    const dubBlok = dublikatMasalalar.filter((m) => m.daraja === 'blok').length;
+    const dubOgoh = dublikatMasalalar.length - dubBlok;
+    if (dubBlok) tekshiruvBandlari.push({ id: 'dub-blok', daraja: 'bad', matn: t('Dublikat nazorati to‘sig‘i: {n}', { n: dubBlok }), amal: { nom: t('Ko‘rsatish'), run: sakra('Dublikat tekshiruvi') } });
+    if (dubOgoh) tekshiruvBandlari.push({ id: 'dub-ogoh', daraja: 'warn', matn: t('Dublikat nazorati ogohlantirishi: {n}', { n: dubOgoh }), amal: { nom: t('Ko‘rsatish'), run: sakra('Dublikat tekshiruvi') } });
+    if (takrorTekshirilmoqda) tekshiruvBandlari.push({ id: 'takror', daraja: 'bad', matn: t('Avvalgi F2 tekshirilmoqda — bir lahzadan so‘ng qayta urinib ko‘ring.') });
+    else if (almashtirishKutilmoqda) tekshiruvBandlari.push({ id: 'almashtir', daraja: 'bad', matn: t('Shu raqamdagi F2 qoralamasini almashtirish tasdiqlanmagan. Boshqa F2 bo‘lsa, uning raqamini kiriting.'), amal: { nom: t('Ko‘rsatish'), run: sakra('Allaqachon kiritilgan') } });
+    else if (saqlashBlok) tekshiruvBandlari.push({ id: 'blok', daraja: 'bad', matn: maqsadMosEmas ? t('Maqsad qoralama topilmadi yoki o‘zgargan - saqlash to‘xtatildi (yangi akt yaratilmaydi). Sahifani qayta oching.') : t('Bu obyekt va oy uchun tasdiqlangan F2 bor — yangi akt yozilmaydi. F2 tarixini oching.') });
+    if (yozish && yozish.qolgan.length > 0) tekshiruvBandlari.push({ id: 'qolgan', daraja: 'warn', matn: t('Bog‘lanmagan qatorlar aktga kirmaydi: {n}', { n: yozish.qolgan.length }), amal: { nom: t('Qatorga o‘tish'), run: () => { sakra('F2 akt')(); keyingiHalRef.current?.(); } } });
+    if (taklifSoni > 0) tekshiruvBandlari.push({ id: 'taklif', daraja: 'warn', matn: t('Tasdiq kutayotgan takliflar (aktga faqat tasdiqlanganlar kiradi): {n}', { n: taklifSoni }), amal: { nom: t('Qatorga o‘tish'), run: () => { sakra('F2 akt')(); keyingiHalRef.current?.(); } } });
+    if (oshishlar.length > 0) tekshiruvBandlari.push({ id: 'oshish', daraja: 'warn', matn: t('Smeta qoldig‘idan oshadigan qatorlar: {n}', { n: oshishlar.length }), amal: { nom: t('Ko‘rsatish'), run: sakra('Dublikat hajm nazorati') } });
+    if (jamiFarq != null && tiyingaYaxlitla(jamiFarq) !== 0) tekshiruvBandlari.push({ id: 'jami', daraja: 'warn', matn: t('Manba jami va qatorlar yig‘indisi mos emas: {n} so‘m', { n: `${jamiFarq > 0 ? '+' : ''}${fmt(jamiFarq)}` }), amal: { nom: t('Ko‘rsatish'), run: sakra('Akt') } });
+    if (eskiQoralama && ketmaKetBartaraf !== eskiQoralama.job_id) tekshiruvBandlari.push({ id: 'ketma', daraja: 'warn', matn: t('Avval {oy} F2 si yozilmagan — ochasizmi?', { oy: (eskiQoralama.oy ?? '').slice(0, 7) + (eskiQoralama.raqam ? ` №${eskiQoralama.raqam}` : '') }), amal: { nom: t('Ko‘rsatish'), run: sakra('F2 ketma-ketligi') } });
+    if (rejali.length + ochirish.length > 0) tekshiruvBandlari.push({ id: 'rejali', daraja: 'warn', matn: t('Serverga hali yozilmagan o‘zgarishlar: {n} — «F2 ni yozish» bosilganda hammasi bittada yoziladi', { n: rejali.length + ochirish.length }), amal: { nom: t('Ko‘rsatish'), run: sakra('Saqlanmagan o‘zgarishlar') } });
+    if (payload && !payload.error && !tekshiruvBandlari.some((x) => x.daraja === 'bad')) tekshiruvBandlari.push({ id: 'kiradi', daraja: 'ok', matn: t('Aktga kiradigan qatorlar: {n}', { n: payload.rows.length }) });
+  }
+  const tekshiruvYomon = tekshiruvBandlari.filter((x) => x.daraja === 'bad').length;
+  const tekshiruvOgoh = tekshiruvBandlari.filter((x) => x.daraja === 'warn').length;
+  const yolIdx = !akt || !ij ? 0 : done ? 2 : 1;
+  const yolIzoh = [
+    akt ? `${akt.fayl} · ${akt.varaq}` : t('Obyektni tanlang va F2 faylni yuklang'),
+    ij ? (payload && !payload.error ? t('Aktga kiradi: {n}', { n: payload.rows.length }) : t('Qatorlarni bog‘lang')) : t('Fayl yuklangach ochiladi'),
+    done ? t('Yozildi') : jarayon?.find((q) => q.holat === 'ishlayapti')?.nom ?? t('Tekshiruv → yozish'),
+  ];
   return (
-    <section className="w-full space-y-3 p-3 sm:p-4">
-      <div className="flex flex-wrap items-baseline gap-2">
-        <h1 className="text-lg font-semibold sm:text-xl">{t('F2 import')}</h1>
-        <p role="status" className="text-[13px] text-text-dim">{holat}</p>
-      </div>
-      <section className="karta flex flex-wrap items-center gap-2 p-2 text-[12px]" aria-label={t('Ish holati')}>
-        <ol className="flex flex-wrap items-center gap-1" aria-label={t('Qadamlar')}>
-          {[t('1. Obyekt va F2 fayl'), t('2. Bog‘lash (hammasi qoralamada)'), t('3. F2 ni yozish')].map((nom, i) => {
-            const joriy = !akt || !ij ? 0 : done ? 2 : 1;
-            return <li key={nom} aria-current={i === joriy ? 'step' : undefined}
-              className={`rounded-full px-2 py-0.5 ${i === joriy ? 'bg-accent text-white' : i < joriy ? 'bg-ok/15 text-ok' : 'bg-surface-2 text-text-dim'}`}>{i < joriy ? '✓ ' : ''}{nom}</li>;
-          })}
+    <Sahifa sarlavha="F2 import" tavsif="Fayl → akt → moslash → qoralamaga yozish. Har bosqichda nimani tekshirish kerakligi ko‘rsatiladi.">
+    <div className="w-full space-y-3">
+      {routerda && <F2UrlSinxron faol={!!ij} jobId={Number.isSafeInteger(Number(serverId)) && Number(serverId) > 0 ? Number(serverId) : null} aktId={tahrirAkt} />}
+      <p role="status" className="m-0 text-[13px] text-text-dim">{holat}</p>
+      <section className="fz-card flex flex-wrap items-center gap-2 p-4 text-[12px]" aria-label={t('Ish holati')}>
+        <ol className="fz-yol m-0 w-full list-none p-0" aria-label={t('Qadamlar')}>
+          {[t('1. Obyekt va F2 fayl'), t('2. Bog‘lash (hammasi qoralamada)'), t('3. F2 ni yozish')].map((nom, i) => (
+            <li key={nom} aria-current={i === yolIdx ? 'step' : undefined}
+              className={`fz-yol__q ${i < yolIdx || (i === 2 && !!done) ? 'fz-yol__q--done' : i === yolIdx ? 'fz-yol__q--now' : ''}`}>
+              <span className="fz-yol__nuqta" aria-hidden="true" />
+              <span className="fz-yol__nom">{nom}</span>
+              <span className="fz-yol__izoh">{yolIzoh[i]}</span>
+            </li>
+          ))}
         </ol>
         <span className="ml-auto text-text-dim">{ishSaqlandi || t('Ish shu brauzerda avtomatik saqlanadi.')}</span>
         {ishXato && <p role="alert" className="w-full text-danger">{ishXato} {t('Saqlanganini tasdiqlamaguncha sahifani yopmang.')}</p>}
-        {!ij && saqlanganIsh && objects.some((o) => o.id === saqlanganIsh.objectId) && <button type="button" className="tugma tugma-asosiy" disabled={busy} onClick={() => void ishniTikla()}>
+        {!ij && saqlanganIsh && objects.some((o) => o.id === saqlanganIsh.objectId) && <button type="button" className="fz-btn fz-btn--primary" disabled={busy} onClick={() => void ishniTikla()}>
           {t('Saqlangan ishni davom ettirish:')} {saqlanganIsh.source.name} · {saqlanganIsh.davr}
         </button>}
         <div className="flex w-full flex-wrap items-center gap-2 border-t border-border/50 pt-2">
           <span className="text-text-dim">{t('Boshqa kompyuterda davom ettirish')}:</span>
           <div className="flex flex-wrap items-center gap-2">
-            {ij && <button type="button" className="tugma" disabled={busy} onClick={() => void ishniSaqla()}>{t('Ish holatini saqlash (davom ettirish uchun)')}</button>}
-            {ij && !done && <button type="button" className="tugma" disabled={busy} onClick={() => void servergaSaqla()}>{t('Server ish holatini saqlash')}</button>}
+            {ij && <button type="button" className="fz-btn" disabled={busy} onClick={() => void ishniSaqla()}>{t('Ish holatini saqlash (davom ettirish uchun)')}</button>}
+            {ij && !done && <button type="button" className="fz-btn" disabled={busy} onClick={() => void servergaSaqla()}>{t('Server ish holatini saqlash')}</button>}
             {!ij && <label className="block text-[12px]">{t('Server qoralamasi raqami')}
               <input aria-label={t('Server qoralamasi raqami')} type="number" min="1" value={serverId} onChange={(e) => setServerId(e.target.value)} className="input mx-2" />
-              <button type="button" className="tugma" disabled={busy || !serverId} onClick={() => void serverdanTikla()}>{t('Serverdagi qoralamani davom ettirish')}</button>
+              <button type="button" className="fz-btn" disabled={busy || !serverId} onClick={() => void serverdanTikla()}>{t('Serverdagi qoralamani davom ettirish')}</button>
             </label>}
           </div>
         </div>
@@ -1425,7 +1485,7 @@ function Sessiya({ companyId }: { companyId: number }) {
               <input aria-label={t('Reestr summasi (QQSsiz yoki QQS bilan)')} className="input mt-1 block h-8 w-56 px-2 tabular-nums" value={reestrMatn}
                 onChange={(e) => setReestrMatn(e.target.value)} placeholder="24 143 466 271" disabled={busy} />
             </label>
-            {reestrMos.length === 1 && reestrMos[0].i !== aktIdx && <button type="button" className="tugma tugma-asosiy h-8" disabled={busy}
+            {reestrMos.length === 1 && reestrMos[0].i !== aktIdx && <button type="button" className="fz-btn fz-btn--primary h-8" disabled={busy}
               onClick={() => varaqniTanla(reestrMos[0].i)}>{t('Mos varaqni tanlash')}</button>}
             {reestrSumma != null && reestrMos.length === 0 && <span className="text-warn">{t('Bu summaga mos varaq topilmadi.')}</span>}
           </div>
@@ -1461,10 +1521,10 @@ function Sessiya({ companyId }: { companyId: number }) {
             <span className="font-semibold text-text">{akt.fayl} · {akt.varaq}</span>
             <span className="text-text-dim">Ish: <b className="text-text">{akt.ishlarSoni}</b></span>
             <span className="text-text-dim">Qator (pul): <b className="text-text">{akt.barglarSoni}</b></span>
-            <span className="inline-flex items-start gap-1 text-text-dim">Hujjat ИТОГО ПРЯМЫЕ: <SummaJuft obyektId={Number(objectId)} kompaniyaId={companyId} ustamasiz={akt.jami.pryamye}
+            <span className="inline-flex items-start gap-1 text-text-dim">Hujjat ИТОГО ПРЯМЫЕ: <SummaJuft rejim="ustamali" obyektId={Number(objectId)} kompaniyaId={companyId} ustamasiz={akt.jami.pryamye}
               katKesim={qatorlarKesimi ? katKesimNomalumBilan(qatorlarKesimi, jamiFarq == null ? null : -jamiFarq) : null} /></span>
             <span className="inline-flex items-start gap-1 text-text-dim">Qatorlar yig‘indisi: <span className={jamiFarq != null && Math.abs(jamiFarq) > 1 ? 'text-warn' : 'text-ok'}>
-              <SummaJuft obyektId={Number(objectId)} kompaniyaId={companyId} ustamasiz={akt.qatorlarJami} katKesim={qatorlarKesimi} /></span></span>
+              <SummaJuft rejim="ustamali" obyektId={Number(objectId)} kompaniyaId={companyId} ustamasiz={akt.qatorlarJami} katKesim={qatorlarKesimi} /></span></span>
             {akt.jami.ranee != null && <span className="text-text-dim">Ранее оформленным: <b className="tabular-nums text-text">{fmt(akt.jami.ranee)}</b></span>}
           </div>
           {kumReja && !done && (
@@ -1479,7 +1539,7 @@ function Sessiya({ companyId }: { companyId: number }) {
                   : <b className="text-warn">{t('ВСЕГО − ранее dan farq: {n} so‘m', { n: fmt(kumReja.nazorat.natija - kumReja.nazorat.kutilgan) })}</b>}</>}
                 {kumRejim && kumReja.storno.length > 0 && <> {t('Storno taklifi: {n} qator ({pul} so‘m) — oldingi F2 da bor, bu varaqda yo‘q; minus qator sifatida qo‘lda kiriting.', { n: kumReja.storno.length, pul: fmt(kumReja.storno.reduce((s, x) => s + x.pul, 0)) })}</>}
               </span>
-              <button type="button" className={oldingiYozilgan && !kumRejim ? 'tugma tugma-asosiy' : 'tugma'} disabled={busy} onClick={() => setKumRejim((v) => !v)}>{kumRejim ? t('Ayirishni bekor qilish') : t('Oldingi F2 larni ayirish')}</button>
+              <button type="button" className={oldingiYozilgan && !kumRejim ? 'fz-btn fz-btn--primary' : 'fz-btn'} disabled={busy} onClick={() => setKumRejim((v) => !v)}>{kumRejim ? t('Ayirishni bekor qilish') : t('Oldingi F2 larni ayirish')}</button>
             </p>
           )}
           {jamiFarq != null && tiyingaYaxlitla(jamiFarq) !== 0 && (
@@ -1512,7 +1572,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         {avvalgiImport.length !== 0 && <p className="font-semibold">⚠ {t('Bu varaq allaqachon kiritilgan')}: {avvalgiImport.map((k) => { const a = aktNomlari.get(k.aktId); return `F2 ${a?.raqam ?? '#' + k.aktId} (${(a?.oy ?? '').slice(0, 7)}, ${a?.holat ?? ''})`; }).join('; ')}. {t('Takror kiritish hajmni ikki marta yopadi.')}</p>}
         {!avvalgiKalit ? null : takrorTekshirilmoqda ? <p>{t('Avval kiritilgan F2 tekshirilmoqda…')}</p> : joriyAvvalgi?.error ? <>
           <p>{t('Avvalgi F2 tekshirilmadi. Takroriy akt yaratmaslik uchun qayta tekshiring. Bog‘lanishlar saqlanadi.')}</p>
-          <button type="button" className="tugma mt-2" onClick={() => setTekshiruv((v) => v + 1)}>{t('Qayta tekshirish')}</button>
+          <button type="button" className="fz-btn mt-2" onClick={() => setTekshiruv((v) => v + 1)}>{t('Qayta tekshirish')}</button>
         </> : joriyAvvalgi?.akt && <>
           <p className="font-semibold">{mavjudQoralama
             ? t('Shu obyekt, oy va raqam uchun F2 qoralama bor. «F2 ni yozish» uning BARCHA qatorlarini shu fayl bilan almashtiradi.')
@@ -1533,8 +1593,8 @@ function Sessiya({ companyId }: { companyId: number }) {
       {akt && !done && eskiQoralama && ketmaKetBartaraf !== eskiQoralama.job_id && (
         <section role="status" className="karta flex flex-wrap items-center gap-2 border border-warn/40 bg-warn/5 p-2 text-[12px] text-warn" aria-label={t('F2 ketma-ketligi')}>
           <span className="min-w-0 flex-1">{t('Avval {oy} F2 si yozilmagan — ochasizmi?', { oy: (eskiQoralama.oy ?? '').slice(0, 7) + (eskiQoralama.raqam ? ` №${eskiQoralama.raqam}` : '') })}</span>
-          <a className="tugma h-7 px-2" href={`/admin/f2?obyekt=${eskiQoralama.obyekt_id}&job=${eskiQoralama.job_id}`} target="_blank" rel="noopener noreferrer">{t('Ochish')}</a>
-          <button type="button" className="tugma h-7 px-2" onClick={() => setKetmaKetBartaraf(eskiQoralama.job_id)}>{t('Baribir yozish')}</button>
+          <a className="fz-btn fz-btn--sm" href={`/admin/f2?obyekt=${eskiQoralama.obyekt_id}&job=${eskiQoralama.job_id}`} target="_blank" rel="noopener noreferrer">{t('Ochish')}</a>
+          <button type="button" className="fz-btn fz-btn--sm" onClick={() => setKetmaKetBartaraf(eskiQoralama.job_id)}>{t('Baribir yozish')}</button>
         </section>
       )}
       {ogoh && <p className="text-[12px] text-warn">{ogoh}</p>}
@@ -1542,12 +1602,12 @@ function Sessiya({ companyId }: { companyId: number }) {
         href={`/admin/f2-tarix?obyekt=${Number(objectId)}`} target="_blank" rel="noopener noreferrer"
         className="mt-2 inline-block underline text-accent">{t('Mavjud F2 tarixini boshqa oynada ochish')}</a>}</div>}
 
-      {akt && ij && (rows.length === 0 ? <section className="karta space-y-2 border-2 border-sky-500/50 bg-sky-500/5 p-3 text-[13px]" aria-label={t('Smetasi yo‘q obyekt')}>
+      {akt && ij && (rows.length === 0 ? <section className="karta space-y-2 border border-[var(--info)] p-3 text-[13px]" style={{ background: 'var(--info-soft)' }} aria-label={t('Smetasi yo‘q obyekt')}>
         <p className="font-semibold text-text">{t('Bu obyektda smeta yo‘q. F2 ni baribir kiritish mumkin: F2 dagi ishlar smetaga o‘z bo‘limlari bilan qo‘shimcha ish (resurslari bilan) bo‘lib yoziladi va akt shularga bog‘lanadi.')}</p>
-        <button type="button" className="tugma tugma-asosiy" disabled={busy || !!done} onClick={f2ToliqOtkaz}>{t('F2 dagi barcha ishlarni qoralamaga qo‘shish')}</button>
-      </section> : <section className="karta flex flex-wrap items-center gap-2 border border-sky-500/40 bg-sky-500/5 p-2 text-[12px]" aria-label={t('F2 ni to‘liq o‘tkazish')}>
+        <button type="button" className="fz-btn fz-btn--primary" disabled={busy || !!done} onClick={f2ToliqOtkaz}>{t('F2 dagi barcha ishlarni qoralamaga qo‘shish')}</button>
+      </section> : <section className="karta flex flex-wrap items-center gap-2 border border-[var(--info)] p-2 text-[12px]" style={{ background: 'var(--info-soft)' }} aria-label={t('F2 ni to‘liq o‘tkazish')}>
         <span className="min-w-0 flex-1 text-text-dim">{t('Smetada yo‘q ishlar ko‘pmi? Bog‘lanmagan barcha F2 ishlarini bo‘limlari bilan smetaga qo‘shimcha qilib qoralamaga qo‘shing (bog‘langanlari tegilmaydi).')}</span>
-        <button type="button" className="tugma" disabled={busy || !!done} onClick={f2ToliqOtkaz}>{t('Bog‘lanmagan F2 ni smetaga o‘tkazish')}</button>
+        <button type="button" className="fz-btn" disabled={busy || !!done} onClick={f2ToliqOtkaz}>{t('Bog‘lanmagan F2 ni smetaga o‘tkazish')}</button>
       </section>)}
       {akt && ij && ind && objectId && !done && rows.length > 0 && <F2EgizakNusxa companyId={companyId} objectId={Number(objectId)} objects={objects} ind={ind}
         jobId={serverDraft.current?.jobId ?? null} busy={busy} yarat={rejaliYarat} versiya={otaVersiya} smetaYangila={smetaYangila}
@@ -1555,30 +1615,30 @@ function Sessiya({ companyId }: { companyId: number }) {
 
       {akt && ij && (
         <section className="karta sticky top-0 z-20 flex flex-wrap items-center gap-3 border-2 border-accent/50 bg-surface p-3 shadow-md" aria-label={t('Moslashtirish')}>
-          <button type="button" className="tugma tugma-asosiy" disabled={busy || !!done} onClick={() => void aniqBogla()}>{t('Mos qatorlarni bog‘lash')}</button>
-          <button type="button" className="tugma" disabled={busy || !!done || !avtoSoni}
+          <button type="button" className="fz-btn fz-btn--primary" disabled={busy || !!done} onClick={() => void aniqBogla()}>{t('Mos qatorlarni bog‘lash')}</button>
+          <button type="button" className="fz-btn" disabled={busy || !!done || !avtoSoni}
             title={t('Dvigatel qilgan barcha bog‘lanishlarni (✓ aniq, xotira, ◐ taklif) uzadi. Qo‘lda bog‘langan va tasdiqlanganlar qoladi. Orqaga (Ctrl+Z) bilan qaytariladi.')}
-            onClick={() => {
-              if (!ij || !window.confirm(`${avtoSoni} ${t('ta avtomatik bog‘lanish uziladi. Qo‘lda bog‘langanlar qoladi. Davom etasizmi?')}`)) return;
-              const r = avtoBoglarniUz(ij); ijOzgar(r.ij);
+            onClick={async () => {
+              if (!ij || !(await tasdiqSora({ xavfli: true, tasdiqMatni: t('Uzish'), matn: `${avtoSoni} ${t('ta avtomatik bog‘lanish uziladi. Qo‘lda bog‘langanlar qoladi. Davom etasizmi?')}` }))) return;
+              const r = avtoBoglarniUz(ijRef.current ?? ij); ijOzgar(r.ij);
               setHolat(`${r.uzildi} ${t('ta avtomatik bog‘lanish uzildi. Qaytarish: «Orqaga» (Ctrl+Z).')}`);
             }}>✕ {t('Avto bog‘lanishlarni uzish')}{avtoSoni ? ` (${avtoSoni})` : ''}</button>
-          <button type="button" className="tugma" disabled={busy || !!done}
+          <button type="button" className="fz-btn" disabled={busy || !!done}
             title={t('Bog‘langan har bir ishning bog‘lanmagan resurslarini o‘sha smeta ishi ichidan bog‘laydi: aniq mosi ✓, o‘xshashi ◐ taklif. Orqaga (Ctrl+Z) bilan qaytariladi.')}
             onClick={() => ishResurslariniBogla()}>⇣ {t('Ish resurslarini bog‘lash')}</button>
-          <button type="button" className="tugma" disabled={busy || !!done || !tarixSoni} onClick={orqaga} title={t('Oxirgi bog‘lash, uzish yoki tasdiqni qaytarish (Ctrl+Z)')}>↶ {t('Orqaga')}{tarixSoni ? ` (${tarixSoni})` : ''}</button>
+          <button type="button" className="fz-btn" disabled={busy || !!done || !tarixSoni} onClick={orqaga} title={t('Oxirgi bog‘lash, uzish yoki tasdiqni qaytarish (Ctrl+Z)')}>↶ {t('Orqaga')}{tarixSoni ? ` (${tarixSoni})` : ''}</button>
           <span className="flex flex-wrap gap-x-3 text-[12px] text-text-dim" aria-label={t('Holat')}>
             <span className="inline-flex items-start gap-1 text-ok">✓ {payload && !payload.error ? payload.rows.length : 0} {t('aktga kiradi')}
               {yozishKesimi && payload && !payload.error && <SummaJuft obyektId={Number(objectId)} kompaniyaId={companyId} kichik
                 ustamasiz={payload.rows.reduce((s, r) => s + (r.certifiedAmount ?? 0), 0)} katKesim={yozishKesimi} />}</span>
             {taklifSoni > 0 && <span className="text-warn">◐ {taklifSoni} {t('tasdiq kutmoqda')}</span>}
             {!!yozish?.qolgan.length && <span>✕ {yozish.qolgan.length} {t('kiritilmaydi')}</span>}
-            {rejali.length + ochirish.length > 0 && <span className="text-sky-600 dark:text-sky-300">⏳ {rejali.length + ochirish.length} {t('o‘zgarish qoralamada')}</span>}
+            {rejali.length + ochirish.length > 0 && <span style={{ color: 'var(--info)' }}>⏳ {rejali.length + ochirish.length} {t('o‘zgarish qoralamada')}</span>}
           </span>
-          {done && keyingi != null && <button type="button" className="tugma tugma-asosiy ml-auto" disabled={busy} onClick={() => varaqniTanla(keyingi)}>
+          {done && keyingi != null && <button type="button" className="fz-btn fz-btn--primary ml-auto" disabled={busy} onClick={() => varaqniTanla(keyingi)}>
             {t('Keyingi varaq → yangi F2')}: {aktlar[keyingi]?.varaq}</button>}
           {done ? (!jarayon && <p className="ml-auto text-[13px] text-ok">{done}</p>) : (
-            <button type="button" className="tugma tugma-asosiy ml-auto" disabled={busy || !payload || saqlashBlok || dublikatBlok}
+            <button type="button" className="fz-btn fz-btn--primary ml-auto" disabled={busy || !payload || saqlashBlok || dublikatBlok}
               onClick={() => void saqla()}>
               {t('F2 ni yozish')}{payload && !payload.error ? ` (${payload.rows.length} ${t('qator')}${rejali.length + ochirish.length ? ` + ${rejali.length + ochirish.length} ${t('o‘zgarish')}` : ''})` : ''}
             </button>
@@ -1586,26 +1646,47 @@ function Sessiya({ companyId }: { companyId: number }) {
         </section>
       )}
 
+      {akt && ij && !done && (
+        <section className="fz-card p-4" aria-label={t('Tekshiruv')}>
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <h3 className="fz-panel__h m-0">{t('Tekshiruv')} — {t('yozishdan oldin')}</h3>
+            <span className={`fz-stamp ml-auto ${tekshiruvYomon ? 'fz-stamp--danger' : tekshiruvOgoh ? 'fz-stamp--warn' : 'fz-stamp--ok'}`}>
+              {tekshiruvYomon ? t('To‘siq: {n}', { n: tekshiruvYomon }) : tekshiruvOgoh ? t('Ogohlantirish: {n}', { n: tekshiruvOgoh }) : t('Tayyor')}
+            </span>
+          </div>
+          <ul className="fz-check m-0 list-none p-0">
+            {tekshiruvBandlari.map((x) => (
+              <li key={x.id} data-tekshiruv={x.daraja} className={`fz-check__q fz-check__q--${x.daraja}`}>
+                {x.daraja === 'ok' ? <CheckCircle2 aria-hidden /> : x.daraja === 'warn' ? <AlertTriangle aria-hidden /> : <XCircle aria-hidden />}
+                <span className="min-w-0 flex-1" style={{ overflowWrap: 'anywhere' }}>{x.matn}</span>
+                {x.amal && <button type="button" className="fz-btn fz-btn--sm" onClick={x.amal.run}>{x.amal.nom}</button>}
+              </li>
+            ))}
+            {!tekshiruvBandlari.length && <li className="fz-check__q"><Info aria-hidden /><span>{t('Tekshiriladigan narsa yo‘q — qatorlar hisoblanmoqda.')}</span></li>}
+          </ul>
+        </section>
+      )}
+
       {akt && ind && natija && ij && (
-        <F2V3Workbench akt={akt} ind={ind} natija={natija} S={S} raw={raw} oldingi={oldingi} almashtirilgan={almashtirilgan} band={band}
+        <F2V3Workbench keyingiRef={keyingiHalRef} akt={akt} ind={ind} natija={natija} S={S} raw={raw} oldingi={oldingi} almashtirilgan={almashtirilgan} band={band}
           ij={ij} onIj={ijOzgar} onRzBog={rzOrgat} companyId={companyId} objectId={Number(objectId)}
           onYaratildi={yaratildi} zamenaAsl={zamenaAslK} zamenaMiqdor={zamenaMiqdorK}onQoshilganOzgardi={qoshilganOzgardi} onRejali={onRejali} onRejaliOchir={onRejaliOchir} onOchirishRejali={onOchirishRejali} onTahrirRejali={onTahrirRejali} onBolimRejali={bolimRejali} rejaliIdlar={() => rejaliRef.current.map((b) => b.tempId)} disabled={busy || !!done} />
       )}
 
-      {ochirish.length > 0 && <section className="karta space-y-1 border border-rose-500/40 bg-rose-500/5 p-3 text-[12px]" aria-label={t('O‘chirishga belgilangan')}>
+      {ochirish.length > 0 && <section className="karta space-y-1 border border-danger/40 bg-danger/5 p-3 text-[12px]" aria-label={t('O‘chirishga belgilangan')}>
         <p className="font-semibold text-text">🗑 {ochirish.length} {t('ta qator o‘chirishga belgilangan — «F2 ni yozish» bosilganda o‘chiriladi.')}</p>
         <ul className="max-h-32 space-y-0.5 overflow-auto">{ochirish.map((o) => <li key={o.qatorId} className="flex items-center gap-2">
-          <span className="min-w-0 flex-1 truncate line-through decoration-rose-500/70">{o.nom}</span>
-          <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={busy} onClick={() => ochirishniBekor(o.qatorId)}>{t('Bekor qilish')}</button>
+          <span className="min-w-0 flex-1 truncate line-through decoration-danger/70">{o.nom}</span>
+          <button type="button" className="fz-btn fz-btn--sm" disabled={busy} onClick={() => ochirishniBekor(o.qatorId)}>{t('Bekor qilish')}</button>
         </li>)}</ul>
       </section>}
-      {rejali.length > 0 && <section className="karta space-y-1 border border-sky-500/40 bg-sky-500/5 p-3 text-[12px]" aria-label={t('Saqlanmagan o‘zgarishlar')}>
+      {rejali.length > 0 && <section className="karta space-y-1 border border-[var(--info)] p-3 text-[12px]" style={{ background: 'var(--info-soft)' }} aria-label={t('Saqlanmagan o‘zgarishlar')}>
         <p className="font-semibold text-text">⏳ {rejali.length} {t('ta qo‘shimcha/zamena qoralamada — «Saqlash» bosilganda hammasi bittada yoziladi.')}</p>
         <ul className="max-h-40 space-y-0.5 overflow-auto">{rejali.map((b) => <li key={b.tempId} className="flex items-center gap-2">
-          <span className={`rounded px-1 text-[10px] font-semibold ${b.kind === 'replacement' || b.kind === 'resurs_ish' ? 'bg-amber-500/25' : 'bg-emerald-500/25'}`}>{b.kind === 'replacement' || b.kind === 'resurs_ish' ? t('zamena') : b.kind === 'resource' ? t('resurs') : b.kind === 'bolim' ? t('bo‘lim') : t('qo‘shimcha')}</span>
+          <span className={`rounded px-1 text-[10px] font-semibold ${b.kind === 'replacement' || b.kind === 'resurs_ish' ? 'bg-warn/25 text-warn' : 'bg-[var(--info-soft)] text-[var(--info)]'}`}>{b.kind === 'replacement' || b.kind === 'resurs_ish' ? t('zamena') : b.kind === 'resource' ? t('resurs') : b.kind === 'bolim' ? t('bo‘lim') : t('qo‘shimcha')}</span>
           <span className="min-w-0 flex-1 truncate">{b.nom} · {b.hajm ?? '—'} {b.birlik}{b.resurslar.length ? ` · ${b.resurslar.length} ${t('resurs')}` : ''}</span>
-          {([-1, 1] as const).map((yon) => <button key={yon} type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={busy || !rejaliSurishMumkin(rejali, b.tempId, yon)} onClick={() => onRejaliSurish(b.tempId, yon)} aria-label={`${yon < 0 ? t('Yuqoriga') : t('Pastga')}: ${b.nom}`}>{yon < 0 ? '▲' : '▼'}</button>)}
-          <button type="button" className="tugma h-6 px-1.5 text-[11px]" disabled={busy} onClick={() => onRejaliOchir(b.tempId)} aria-label={`${t('Olib tashlash')}: ${b.nom}`}>✕</button>
+          {([-1, 1] as const).map((yon) => <button key={yon} type="button" className="fz-btn fz-btn--sm" disabled={busy || !rejaliSurishMumkin(rejali, b.tempId, yon)} onClick={() => onRejaliSurish(b.tempId, yon)} aria-label={`${yon < 0 ? t('Yuqoriga') : t('Pastga')}: ${b.nom}`}>{yon < 0 ? '▲' : '▼'}</button>)}
+          <button type="button" className="fz-btn fz-btn--sm" disabled={busy} onClick={() => onRejaliOchir(b.tempId)} aria-label={`${t('Olib tashlash')}: ${b.nom}`}>✕</button>
         </li>)}</ul>
       </section>}
 
@@ -1625,9 +1706,9 @@ function Sessiya({ companyId }: { companyId: number }) {
           <summary className="cursor-pointer font-semibold text-text">{t('ТН·КМ qatori faylda yo‘q')}: {tkmQoshTaklif.length} {t('qator')}</summary>
           <ul className="mt-1 space-y-1 text-text-dim">{tkmQoshTaklif.map((q) => <li key={q.qatorId} className="flex flex-wrap items-center gap-2">
             <b className="text-text">{q.nom.slice(0, 80)}</b>
-            {([['A', q.tk.a], ['B', q.tk.b]] as const).map(([k, v]) => v && <button key={k} type="button" className="tugma h-6 px-1.5 text-[11px]" title={v.izoh} disabled={busy} onClick={() => setTkmQosh((o) => new Map(o).set(q.qatorId, v.qiymat))}>{k}: {fmt(v.qiymat)}</button>)}
+            {([['A', q.tk.a], ['B', q.tk.b]] as const).map(([k, v]) => v && <button key={k} type="button" className="fz-btn fz-btn--sm" title={v.izoh} disabled={busy} onClick={() => setTkmQosh((o) => new Map(o).set(q.qatorId, v.qiymat))}>{k}: {fmt(v.qiymat)}</button>)}
             {tkmQosh.has(q.qatorId) && <><span className="text-ok">✓ {fmt(tkmQosh.get(q.qatorId)!)} {t('F2 qatori sifatida qo‘shiladi')}</span>
-              <button type="button" className="tugma h-6 px-1.5 text-[11px]" onClick={() => setTkmQosh((o) => { const n = new Map(o); n.delete(q.qatorId); return n; })}>{t('Bekor qilish')}</button></>}
+              <button type="button" className="fz-btn fz-btn--sm" onClick={() => setTkmQosh((o) => { const n = new Map(o); n.delete(q.qatorId); return n; })}>{t('Bekor qilish')}</button></>}
             <span className="w-full text-text-mute">{[q.tk.a?.izoh, q.tk.b?.izoh].filter(Boolean).join(' · ')}</span>
           </li>)}</ul>
         </details>
@@ -1656,7 +1737,7 @@ function Sessiya({ companyId }: { companyId: number }) {
           {!!yozish.qolgan.length && <div className="text-[12px] text-warn"><p>{t('Bog‘lanmagan yoki tasdiqlanmagan qatorlar aktga kiritilmaydi; ular manba va server ish qoralamasida saqlanadi. Qoralama aktni saqlash mumkin. Minuslar kiritilmasa, ular oldingi hajmlarni kamaytirmaydi.')} ({yozish.qolgan.length})</p>
             <ul className="mt-1 max-h-24 overflow-auto pl-4 text-text-dim">{yozish.qolgan.map((n) => <li key={n.uid}>{n.manzil.varaq}!{n.manzil.qator} · {n.nom} · {fmt(n.hajm)} {n.birlik}</li>)}</ul>
           </div>}
-          {akt && ij && ind?.qatorlar.some((q) => q.hajm != null && q.hajm < 0 && !ij.bog.has(q.uid) && !ij.otkaz.has(q.uid)) && <button type="button" className="tugma" disabled={busy || !!done} onClick={() => {
+          {akt && ij && ind?.qatorlar.some((q) => q.hajm != null && q.hajm < 0 && !ij.bog.has(q.uid) && !ij.otkaz.has(q.uid)) && <button type="button" className="fz-btn" disabled={busy || !!done} onClick={() => {
             const result = f2MinusTaklif(akt, ij); ijOzgar(result.ij);
             setHolat(`${result.soni} ta minus qator uchun ayni aktdagi aniq bog‘lanish asosida taklif berildi. Har birini tekshirib tasdiqlang; boshqa qatorlarni qo‘lda bog‘lang.`);
           }}>{t('Minus qatorlarga bog‘lanish taklif qilish')}</button>}
@@ -1668,7 +1749,8 @@ function Sessiya({ companyId }: { companyId: number }) {
 
       {jarayon && <F2YozishOynasi qadamlar={jarayon} natija={done} band={busy || davomEt}
         onQayta={() => void saqla()} onYop={() => setJarayon(null)} />}
-    </section>
+    </div>
+    </Sahifa>
   );
 }
 

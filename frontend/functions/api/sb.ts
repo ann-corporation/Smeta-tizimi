@@ -25,14 +25,17 @@
  *   { ok: true, qatorlar: [...], soni: 1234, ms: 87 }
  *   { ok: false, error: "..." }
  */
+import { tokenHolatTozala } from '../_shared/tizim-maxfiy';
 import { cachedAuthority, dataPermission } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { xavfsizUpstream } from '../_shared/xato';
 import { azoKompaniyalar, oqishQarori, rpcKompaniyasi } from '../_shared/tenant-oqish';
-import { roleAuthority } from '../_shared/role-authority';
+import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shared/role-authority';
 import { oraliqgaQosh, oraliqlarniRejala, prefiksYigi } from '../_shared/kalit-oraliq';
-import { otaKeshOl, otaKeshYoz } from '../_shared/ota-kesh';
+/* Ota yozuv kompaniyasi (60 s kesh) — `_shared/ota-kompaniya` (obyekt-paket.ts bilan umumiy). */
+import { otaKompaniyasi } from '../_shared/ota-kompaniya';
+import { versiyaFiltri } from '../_shared/versiya-oqish';
 
 /* Faqat shu jadvallar o'qiladi. Yangi jadval kerak bo'lsa SHU YERGA va `_shared/tenant-oqish.ts` dagi
    OQISH_SIYOSATI ga (aniq izolyatsiya siyosati bilan) qo'shiladi — ikkalasi bir xil bo'lishi testda majburiy.
@@ -79,6 +82,10 @@ const RUXSAT_JADVALLAR = new Set([
   't2_platforma_narx_manba', 't2_platforma_narx_manba_qator',
   /* Протокол согласования цен (2026-10-03). */
   't2_narx_protokol_royxat', 't2_narx_protokol_qator',
+  /* Smeta versiyasi → farq → da'vo (PTO-CORE-001, 2026-10-26): tashqi versiya, pozitsiyalar, moslik/qaror, da'vo o'qish modeli. */
+  't2_smeta_versiya', 't2_smeta_versiya_pozitsiya', 't2_smeta_versiya_moslik', 't2_smeta_versiya_dava',
+  /* Smeta CONST (2026-10-27): qator muhridan farq — o'zgargan / o'chirilgan / qo'shilgan, avval/endi. */
+  't2_qator_muhr_farq',
   /* KORZINKA — bekor qilingan obyekt/smeta/sklad harakat (3 jadval
      birlashgan VIEW — `holat='bekor'`, is_deleted EMAS). */
   't2_korzinka',
@@ -133,25 +140,6 @@ const RUXSAT_JADVALLAR = new Set([
 /** Bitta `/api/sb` o'qishining vaqt byudjeti (ms). Oshsa — log + `sekin: true`. */
 const TEZLIK_BYUDJETI_MS = 3000;
 
-/** Ota yozuvning (obyekt / loyiha / viborka) kompaniyasi — 60 s kesh (`_shared/ota-kesh`), keyin baza. */
-async function otaKompaniyasi(env: { SUPABASE_URL: string; SUPABASE_KEY: string }, jadval: string, id: number): Promise<number | null> {
-  const bor = otaKeshOl(jadval, id);
-  if (bor != null) return bor;
-  const k = await otaKompaniyasiBazadan(env, jadval, id);
-  if (k != null) otaKeshYoz(jadval, id, k);
-  return k;
-}
-
-async function otaKompaniyasiBazadan(env: { SUPABASE_URL: string; SUPABASE_KEY: string }, jadval: string, id: number): Promise<number | null> {
-  const r = await fetch(
-    supabaseBaseUrl(env.SUPABASE_URL) + '/rest/v1/' + jadval + '?select=kompaniya_id&id=eq.' + id + '&limit=1',
-    { headers: { apikey: env.SUPABASE_KEY, Authorization: 'Bearer ' + env.SUPABASE_KEY } });
-  if (!r.ok) throw new Error('OTA_OQILMADI');
-  const rows = await r.json() as Array<{ kompaniya_id?: number | null }>;
-  const k = Array.isArray(rows) && rows[0] ? Number(rows[0].kompaniya_id) : NaN;
-  return Number.isSafeInteger(k) && k > 0 ? k : null;
-}
-
 export const onRequestPost: PagesFunction<{
   SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string;
 }> = async (ctx) => {
@@ -172,18 +160,24 @@ export const onRequestPost: PagesFunction<{
       });
     }
 
+    const tekshirilgan = sess;
     sess = cachedAuthority(ctx) ?? await roleAuthority(sess, ctx.env);
+    if (!sess && sessiyaYaroqsizmi(tekshirilgan)) return yaroqsizSessiyaJavob();
     if (!sess) return Response.json({ ok: false, code: 'AUTHORITY_UNAVAILABLE', error: 'Joriy ruxsatlarni tekshirib bo‘lmadi. Qayta urinib ko‘ring.' }, { status: 503 });
 
     const so = await ctx.request.json<{
       jadval?: string; filtr?: string; ustunlar?: string;
       tartib?: string; limit?: number;
+      /* Smeta versiyasi (2026-10-29): t2_qator sukut — faqat faol; 'tarix' — aniq opt-in (F2/fakt tarixi, eksport). */
+      versiya?: string;
       soro?: string; obyekt_id?: number; kompaniya_id?: number; akt_id?: number; job_id?: number;
       shartnoma_id?: number;
       /* pul_tahlil_v1 (2026-10-24) */
       davr_gacha?: string; davr_dan?: string; dalil_kat?: string; dalil_turi?: string;
       /* ABC kutubxona qidiruvi (2026-10-01). */
       q?: string; kat?: string; items?: Array<{ nom?: string; birlik?: string }>;
+      /* C11 ombor kirimi ro'yxati (2026-10-29). */
+      sklad_id?: number; offset?: number;
     }>();
 
     if (sess.permissionsByCompany && sess.rol!=='superadmin') {
@@ -203,13 +197,15 @@ export const onRequestPost: PagesFunction<{
      *
      * Rol: `boss`/`rahbar` ham CHAQIRA OLADI — bu faqat o'qish. */
     if (so.soro) {
-      const OQISH_RPC: Record<string, 'obyekt' | 'kompaniya' | 'obyekt_kompaniya' | 'obyekt_actor' | 'akt_actor' | 'job_actor' | 'kompaniya_actor' | 'akt_kompaniya_actor' | 'shartnoma_actor'> = {
+      const OQISH_RPC: Record<string, 'obyekt' | 'kompaniya' | 'obyekt_kompaniya' | 'obyekt_actor' | 'akt_actor' | 'job_actor' | 'kompaniya_actor' | 'akt_kompaniya_actor' | 'shartnoma_actor' | 'tizim_actor'> = {
         ai_kontekst: 'obyekt',
         ai_umumiy: 'kompaniya',
         /* ⚡ 2026-08-28: mindmap butun grafni (tugunlar + bog'lanishlar)
            BITTA chaqiruvda oladi — jadval-jadval o'qish o'rniga. */
         mindmap_grafi: 'kompaniya',
         mindmap_grafi_v2: 'kompaniya',
+        /* 2026-11-11 (mindmap 2-bosqich): odamlar + ko'rish doirasi — actor SESSIYADAN (p_actor_id), a'zolik shu yerda tekshiriladi. */
+        mindmap_grafi_v4: 'kompaniya_actor',
         hodisa_obyekt_lenta: 'obyekt_kompaniya',
         /* T2-REAL-PARK-LRV-VERTICAL-SLICE-004: Price Control + exact-F2
            read models. p_actor_id ALWAYS from the verified session --
@@ -249,15 +245,29 @@ export const onRequestPost: PagesFunction<{
         shartnoma_liniya_v1: 'kompaniya_actor',
         /* Egasi 2026-10-23: shartnoma svodi (nakopitelniy F2 nazorati) va akt-sverka — DS, F2 reestri, sotuv, to'lov. `stable`, a'zolik + f2.read ichida. */
         shartnoma_svod_v1: 'kompaniya_actor',
+        /* Egasi 2026-10-26: 1C akt-sverka importi — Продажа ↔ F2 moslash (F2 ustama bilan), to'lov taqsimoti. `stable`, a'zolik + f2.read ichida. */
+        sverka_moslash_v1: 'kompaniya_actor',
         /* Egasi 2026-10-24: rahbarlar uchun pul tahlili (P0) — kategoriya × {smeta, F2} + zanjir. `stable`; a'zolik + f2.read + financial.read. */
         pul_tahlil_v1: 'kompaniya_actor',
         pul_tahlil_v2: 'kompaniya_actor',
+        /* Egasi 2026-10-27: «Парк объектининг молиявий таҳлили» — 16 ko'rsatkich (tizim + qo'lda). `stable`; a'zolik + financial.read. */
+        moliya_tahlil_v1: 'kompaniya_actor',
+        /* Issue #195 (egasi 2026-10-29): RAHBAR PANELI — kartalar, pul oqimi, obyektlar matritsasi, diqqat (top-10), tasdiq navbati.
+           Summalar yagona «summa paketi» (QQS bilan · ustamali · прямые + kesim). `stable`; a'zolik + financial.read ichida. */
+        rahbar_panel_v1: 'kompaniya_actor',
         /* Egasi 2026-10-02: token balansi, tarif, narxlar, harakatlar (sotiladigan PTO). */
         token_holat_v1: 'kompaniya_actor',
         /* Egasi 2026-10-21 («Telegram modeli»): kompaniyada qaysi modullar yoqilgan — menyu shundan (a'zolik ichida). */
         modul_holat_v1: 'kompaniya_actor',
         /* Egasi 2026-10-02: fayl menejeri — kompaniya fayllari loyiha/obyekt/tur bo'yicha (a'zolik ichida). */
         fayl_explorer_v1: 'kompaniya_actor',
+        /* Egasi 2026-10-27: «Tizim xaritasi» — FAQAT platforma superadmini va u ruxsat bergan odamlar (kompaniya roli yetarli
+           EMAS). Ruxsat bazada (`_t2_tizim_xaritasi_ruxsatmi`); actor SESSIYADAN; kompaniya_id — faqat ixtiyoriy filtr. `stable`. */
+        tizim_xaritasi_v1: 'tizim_actor',
+        tizim_xaritasi_ruxsat_tekshir_v1: 'tizim_actor',
+        /* C11 PR-B (2026-10-29): markaziy ombor kirimi ro'yxati — qatorlar + material bo'yicha jami. `stable`
+           (20261114400000), a'zolik + document.read RPC ichida; sklad kompaniyasi ham RPC da tekshiriladi. */
+        sklad_kirim_royxat_v1: 'kompaniya_actor',
       };
       const tur = OQISH_RPC[so.soro];
       if (!tur) {
@@ -303,7 +313,7 @@ export const onRequestPost: PagesFunction<{
         }
         q.set('p_shartnoma_id', String(id));
       }
-      if (tur === 'obyekt_actor' || tur === 'akt_actor' || tur === 'job_actor' || tur === 'kompaniya_actor' || tur === 'akt_kompaniya_actor' || tur === 'shartnoma_actor') {
+      if (tur === 'obyekt_actor' || tur === 'akt_actor' || tur === 'job_actor' || tur === 'kompaniya_actor' || tur === 'akt_kompaniya_actor' || tur === 'shartnoma_actor' || tur === 'tizim_actor') {
         if (!Number.isInteger(sess.foydalanuvchi_id) || (sess.foydalanuvchi_id as number) <= 0) {
           return Response.json({ ok: false, error: 'Sessiyada foydalanuvchi yo\'q' }, { status: 401 });
         }
@@ -340,6 +350,12 @@ export const onRequestPost: PagesFunction<{
         }
         q.set('p_kompaniya_id', String(kid));
       }
+      /* Tizim xaritasi: kompaniya a'zoligi TEKSHIRILMAYDI (platforma darajasi) — ruxsatni baza beradi. Filtr faqat raqam. */
+      if (so.soro === 'tizim_xaritasi_v1' && so.kompaniya_id != null && String(so.kompaniya_id) !== '') {
+        const kid = Number(so.kompaniya_id);
+        if (!Number.isSafeInteger(kid) || kid <= 0) return Response.json({ ok: false, error: 'kompaniya_id noto\'g\'ri' });
+        q.set('p_kompaniya_id', String(kid));
+      }
       if (so.soro === 'nakrutka_koef_ol_v1' || so.soro === 'obyekt_nakrutka_v1') {
         if (so.shartnoma_id != null && String(so.shartnoma_id) !== '') {
           const sid = Number(so.shartnoma_id);
@@ -353,6 +369,24 @@ export const onRequestPost: PagesFunction<{
         const oid = Number(so.obyekt_id);
         if (!Number.isInteger(oid) || oid <= 0) return Response.json({ ok: false, error: 'obyekt_id noto\'g\'ri' });
         q.set('p_obyekt_id', String(oid));
+      }
+      if (so.soro === 'moliya_tahlil_v1' && so.obyekt_id != null && String(so.obyekt_id) !== '') {
+        const id = Number(so.obyekt_id);
+        if (!Number.isInteger(id) || id <= 0) return Response.json({ ok: false, error: "obyekt_id noto'g'ri" });
+        q.set('p_obyekt_id', String(id));
+      }
+      if (so.soro === 'rahbar_panel_v1') {
+        if (so.obyekt_id != null && String(so.obyekt_id) !== '') {
+          const id = Number(so.obyekt_id);
+          if (!Number.isInteger(id) || id <= 0) return Response.json({ ok: false, error: "obyekt_id noto'g'ri" });
+          q.set('p_obyekt_id', String(id));
+        }
+        for (const [kalit, param] of [['davr_dan', 'p_davr_dan'], ['davr_gacha', 'p_davr_gacha']] as const) {
+          const v = so[kalit];
+          if (v == null || v === '') continue;
+          if (typeof v !== 'string' || !/^\d{4}-\d{2}(-\d{2})?$/.test(v)) return Response.json({ ok: false, error: `${kalit} noto'g'ri` });
+          q.set(param, v.length === 7 ? `${v}-01` : v);
+        }
       }
       if (so.soro === 'pul_tahlil_v1' || so.soro === 'pul_tahlil_v2') {
         for (const [kalit, param] of [['obyekt_id', 'p_obyekt_id'], ['shartnoma_id', 'p_shartnoma_id']] as const) {
@@ -399,6 +433,28 @@ export const onRequestPost: PagesFunction<{
         const items = Array.isArray(so.items) ? so.items.slice(0, 80).map((x, i) => ({ i, nom: String(x?.nom ?? '').slice(0, 300), birlik: String(x?.birlik ?? '').slice(0, 30) })) : [];
         q.set('p_items', JSON.stringify(items));
       }
+      if (so.soro === 'sklad_kirim_royxat_v1') {
+        const sid = Number(so.sklad_id);
+        if (!Number.isSafeInteger(sid) || sid <= 0) return Response.json({ ok: false, error: 'sklad_id noto\'g\'ri' });
+        const lim = Number(so.limit ?? 50), off = Number(so.offset ?? 0);
+        if (!Number.isInteger(lim) || lim < 1 || lim > 1000 || !Number.isInteger(off) || off < 0 || off > 10_000_000) {
+          return Response.json({ ok: false, error: 'limit/offset noto\'g\'ri' });
+        }
+        const xf = (so as { filtr?: unknown }).filtr;
+        const f = xf && typeof xf === 'object' && !Array.isArray(xf) ? xf as Record<string, unknown> : {};
+        const filtr: Record<string, string> = {};
+        for (const k of ['dan', 'gacha', 'qidir', 'tur', 'yetkazuvchi']) {
+          const v = f[k];
+          if (v == null || v === '') continue;
+          if (typeof v !== 'string') return Response.json({ ok: false, error: 'filtr noto\'g\'ri' });
+          if ((k === 'dan' || k === 'gacha') && !/^\d{4}-\d{2}-\d{2}$/.test(v)) return Response.json({ ok: false, error: 'sana YYYY-MM-DD bo\'lishi kerak' });
+          filtr[k] = v.slice(0, 200);
+        }
+        q.set('p_sklad_id', String(sid));
+        q.set('p_filtr', JSON.stringify(filtr));
+        q.set('p_limit', String(lim));
+        q.set('p_offset', String(off));
+      }
       if (so.soro === 'hodisa_obyekt_lenta') {
         const lim = Math.min(100, Math.max(1, Number(so.limit || 20)));
         q.set('p_limit', String(Number.isFinite(lim) ? lim : 20));
@@ -417,7 +473,10 @@ export const onRequestPost: PagesFunction<{
         return Response.json(
           { ok: false, error: 'So\'rov bajarilmadi (' + rr.status + ')' });
       }
-      const natija = await rr.json();
+      let natija: unknown = await rr.json();
+      /* Egasi 2026-10-27: token tannarxi, foyda foizi va platforma ustamasi — faqat platforma superadmini. Bayroq RPC ning
+         o'zidan (t2_platforma_superadmin(actor)) — superadmin bo'lmaganga javob SERVERDA tozalanadi. */
+      if (so.soro === 'token_holat_v1' && (natija as { superadmin?: unknown } | null)?.superadmin !== true) natija = tokenHolatTozala(natija);
       return Response.json({ ok: true, natija, ms: Date.now() - t0 });
     }
 
@@ -441,7 +500,10 @@ export const onRequestPost: PagesFunction<{
         return Response.json({ ok: false, code: 'TENANT_FORBIDDEN', error: 'Bu ma\'lumotga ruxsat yo\'q' }, { status: 403 });
       }
     }
-    const majburiyFiltr = qaror.qoshimchaFiltr.map((f) => {
+    /* SMETA VERSIYASI — markaziy qoida (har ekranda emas): t2_qator sukut bo'yicha faqat faol versiya. */
+    const vq = versiyaFiltri(jadval, so);
+    if (!vq.ok) return Response.json({ ok: false, code: 'VERSIYA_INVALID', error: vq.error }, { status: 400 });
+    const majburiyFiltr = (vq.filtr ? [...qaror.qoshimchaFiltr, vq.filtr] : qaror.qoshimchaFiltr).map((f) => {
       const i = f.indexOf('=');
       return encodeURIComponent(f.slice(0, i)) + '=' + encodeURIComponent(f.slice(i + 1));
     }).join('&');
