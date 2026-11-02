@@ -39,7 +39,7 @@ export function FaktStudioBar({ yigindi, obyektId, kompaniyaId, onF2, onYangiIsh
     return () => { tirik = false; };
   }, [obyektId, bor]);
   const ml = jami ? nakopitelniyMoslik(jami, nak) : null;
-  return <section className="karta flex flex-wrap items-start gap-x-6 gap-y-2 px-3 py-2" aria-label={t('Fakt yig‘indisi')} data-testid="fakt-studio-bar">
+  return <section className="karta flex shrink-0 flex-wrap items-start gap-x-6 gap-y-2 px-3 py-2" aria-label={t('Fakt yig‘indisi')} data-testid="fakt-studio-bar">
     <div><div className="text-[10px] uppercase text-text-mute">{t('Fakt (hozircha)')}</div>
       <SummaJuft obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={y.faktUstamasiz} katKesim={y.faktKesim} />
       <FaktF2Izoh f2Narxda={y.faktF2Narxda} /></div>
