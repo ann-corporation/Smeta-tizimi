@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import assert from 'node:assert/strict';
+import Decimal from 'decimal.js';
 if(!isMainThread){
   globalThis.postMessage=x=>parentPort.postMessage(x);await import(workerData.bundle);
   parentPort.on('message',data=>globalThis.onmessage({data}));parentPort.postMessage('READY');
@@ -18,6 +19,17 @@ if(!isMainThread){
     q:{id:Array.from({length:n},(_,i)=>i+1),ota_id:Array.from({length:n},(_,i)=>i===0?null:i===1?1:2),daraja:f(2),tartib:f(1),tur:Array.from({length:n},(_,i)=>i<2?i:2),kat:f(0),kod:f(null),nom:f(0),birlik:f(null),hajm:src(2),narx:src(0.3),summa:src(0.6),norma:src(0.2),narx_usul:f(null),versiya:f(1),qoshimcha:f(0),zamena:f(0),xom_qator:{}},
     h:{fakt_hajm:f(0),fakt_summa:f(0),f2_hajm:f(1),f2_summa:f(0.31),f2_summa_nomalum:f(0),direct_fakt_hajm:f(0),fakt_manbasi:f(0),almashtirilgan_hajm:{},almashtirilgan_summa:{}},f2:[],meta:{}};
   p.q.hajm[1]=10;p.q.summa[0]=p.q.summa[1]=15598.8;
+  const varied=process.env.VARIED==='1';
+  if(varied){
+    let initial=new Decimal(0);
+    for(let i=2;i<n;i++){
+      p.q.norma[i]=Number(new Decimal(i%97+1).div(1000).toFixed());
+      p.q.narx[i]=Number(new Decimal(i%31+1).div(10).toFixed());
+      p.q.hajm[i]=Number(new Decimal(p.q.norma[i]).times(10).toFixed());
+      p.q.summa[i]=Number(new Decimal(p.q.hajm[i]).times(p.q.narx[i]).toFixed());initial=initial.plus(p.q.summa[i]);
+    }
+    p.q.summa[0]=p.q.summa[1]=Number(initial.toFixed());
+  }
   const w=new Worker(new URL(import.meta.url),{workerData:{bundle:pathToFileURL(join(outDir,'worker.mjs')).href}});
   const receive=()=>new Promise((resolve,reject)=>{
     const timeout=setTimeout(()=>done(new Error('WORKER_TIMEOUT')),15000);
@@ -33,8 +45,9 @@ if(!isMainThread){
     assert.equal(await receive(),'READY');await send({amal:'och',paket:p});
     for(const price of ['0.4','0.3','0.5'])await send({amal:'tahrir',tahrir:{qator_id:n,maydon:'narx',qiymat:price,kutilgan_versiya:1}});
     const cascade=await send({amal:'tahrir',tahrir:{qator_id:2,maydon:'hajm',qiymat:'2.5',kutilgan_versiya:1}});
-    assert.equal(cascade.xulosa.jami,'3899.8');assert.equal(cascade.invalidatsiya,true);
-    const rows=await send({amal:'oqi',ids:[n]});assert.equal(rows.qatorlar[0].summa,'0.25');assert.equal(rows.qatorlar[0].f2_summa,0.31);
-    console.log(JSON.stringify({rows:n,times,sourceFrozen:true},null,2));
+    let expected=new Decimal(0);for(let i=2;i<n;i++)expected=expected.plus(new Decimal(p.q.norma[i]).times('2.5').times(i===n-1?'0.5':String(p.q.narx[i])));
+    assert.equal(cascade.xulosa.jami,expected.toFixed());assert.equal(cascade.invalidatsiya,true);
+    const rows=await send({amal:'oqi',ids:[n]});assert.equal(rows.qatorlar[0].summa,new Decimal(p.q.norma[n-1]).times('2.5').times('0.5').toFixed());assert.equal(rows.qatorlar[0].f2_summa,0.31);
+    console.log(JSON.stringify({rows:n,varied,times,sourceFrozen:true},null,2));
   }finally{await w.terminate()}
 }
