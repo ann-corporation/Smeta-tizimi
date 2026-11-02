@@ -53,8 +53,16 @@ console.log('\n── 2. KIRISHDA HAQIQIY A\'ZOLIK YOZUVI YARATILADIMI ──');
   T('t2_kirish_royxatga_ol chaqiriladi', s.indexOf('t2_kirish_royxatga_ol') >= 0);
   T('sessiya foydalanuvchi_id/kompaniyalar bilan imzolanadi',
     /imzola\(\{[^}]*foydalanuvchi_id[^}]*kompaniyalar/s.test(s));
-  T('Supabase ishlamasa ham kirish BLOKLANMAYDI (best-effort)',
-    s.indexOf('kirish baribir davom etadi') >= 0);
+  /* af1874cf (2026-09-02, T2-COMPANY-CONTEXT-P0-FIX-001): AVVALGI "best-effort" (Supabase ishlamasa ham
+     sessiya foydalanuvchi_id siz beriladi) split-brain auth yaratardi va ataylab olib tashlandi. Kanonik
+     kontrakt: actor aniqlanmaguncha sessiya BERILMAYDI (fail-closed). */
+  const rad = s.indexOf("code: 'ACTOR_RESOLVE_FAILED'");
+  T('actor aniqlanmasa kirish RAD etiladi (fail-closed, split-brain yo\'q)',
+    rad >= 0 && /if \(res\.xato \|\| res\.id == null\) \{\s*return Response\.json\(\{ ok: false, code: 'ACTOR_RESOLVE_FAILED'/.test(s)
+      && rad < s.indexOf('imzola('));
+  T('Supabase sozlanmagan bo\'lsa ham sessiya berilmaydi (503 CONFIG)',
+    /if \(!ctx\.env\.SUPABASE_URL \|\| !ctx\.env\.SUPABASE_KEY\) \{\s*return Response\.json\(\{ ok: false, code: 'CONFIG'/.test(s)
+      && !/kirish baribir davom etadi/.test(s));
 }
 
 console.log('\n── 3. sb-yoz.ts HAR YOZUVDA A\'ZOLIKNI TEKSHIRADIMI ──');
@@ -70,8 +78,20 @@ console.log('\n── 3. sb-yoz.ts HAR YOZUVDA A\'ZOLIKNI TEKSHIRADIMI ──');
   /* ⚠️ 2026-09-07 (Claude, P0): AVVAL `boss` ham shu yerda bloklangan
      edi — bu XATO edi (t2_effective_authorization_v1ning o'z jadvaliga
      ko'ra boss to'liq yozish huquqiga ega). Endi faqat `rahbar`. */
+  /* 27d31b0e: bitta `rahbar` tengligi o'quvchi rollar ro'yxatiga kengaydi (boss YO'Q).
+     7685bd91: DB per-company permissionlar (`permissionsByCompany`) kelganda bu eski rol-ro'yxat o'rniga
+     `_middleware.ts` fail-closed permission darvozasi ishlaydi (sb-yoz SCOPED_APIS da; permissionsiz → 503;
+     reyestrda yo'q amal → PERMISSION_DENIED). Ikkala yo'l ham tekshiriladi. */
+  const rolRoyxat = (s.match(/\[([^\]]*)\]\.includes\(azolik\.rol\)/) || [, ''])[1];
+  const mw = oqi('functions/api/_middleware.ts');
+  const pp = oqi('functions/_shared/permission-policy.ts');
   T('POLIMORFIK ROL: shu kompaniyadagi rol rahbar bo\'lsa yozish rad etiladi (boss EMAS)',
-    /azolik\.rol === 'rahbar'/.test(s) && !/azolik\.rol === 'boss'/.test(s));
+    /'rahbar'/.test(rolRoyxat) && !/'boss'/.test(rolRoyxat) && !/azolik\.rol === 'boss'/.test(s)
+      && /SCOPED_APIS = new Set\(\[[^\]]*'sb-yoz'/.test(pp)
+      && /if \(!authority\.permissionsByCompany\) return fail\('AUTHORITY_SCHEMA_REQUIRED',503\)/.test(mw)
+      && /permission==='command\.unregistered'\) return fail\('PERMISSION_DENIED'\)/.test(mw)
+      && /authority\.permissionsByCompany!\[id\]\?\.includes\(permission\)\)\) return fail\('PERMISSION_DENIED'\)/.test(mw),
+    'rol ro\'yxati: ' + rolRoyxat);
 }
 
 console.log('\n── 4. sb.ts (O\'QISH) HAM KOMPANIYA A\'ZOLIGINI TEKSHIRADIMI ──');
@@ -86,7 +106,9 @@ console.log('\n── 4. sb.ts (O\'QISH) HAM KOMPANIYA A\'ZOLIGINI TEKSHIRADIMI 
   T('kompaniya jadvaliga kompaniya_id=in.(a\'zolar) majburan qo\'shiladi', /kompaniya_id=in\.\$\{royxat\}/.test(t));
   T('rad javobi 403 bilan qaytadi', /zo emassiz[\s\S]{0,80}/.test(t) && /rad\(403, 'TENANT_FORBIDDEN'/.test(t));
   T('eski anchorsiz o\'tkazib yuborish olib tashlandi', !/HOZIRCHA o'tkazib yuboriladi/.test(s));
-  const blok = (s.match(/const RUXSAT_JADVALLAR[\s\S]*?\n\]\);/m) || [''])[0].replace(/\/\*[\s\S]*?\*\//g, '');
+  /* `//` qator izohlari ham olib tashlanadi: f501918d dan beri `'v_sklad_nomlar',  // ... ko'zgusi ... o'chirildi`
+     izohidagi apostroflar jadval nomi deb o'qilardi (soxta yiqilish). */
+  const blok = (s.match(/const RUXSAT_JADVALLAR[\s\S]*?\n\]\);/m) || [''])[0].replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
   const ochiq = [...new Set([...blok.matchAll(/'([^']+)'/g)].map((m) => m[1]))].sort();
   const sBlok = (t.match(/export const OQISH_SIYOSATI[\s\S]*?\n\};/m) || [''])[0].replace(/\/\*[\s\S]*?\*\//g, '');
   const siyosat = [...new Set([...sBlok.matchAll(/\b([a-z][a-z0-9_]*):\s*(?:K\b|OBYEKT\b|\{\s*tur)/g)].map((m) => m[1]))].sort();

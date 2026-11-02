@@ -1,5 +1,6 @@
 import { yozAmali, sbOqi } from './supabase';
 import { trackEntityCommand } from './entity-consistency';
+import { obyektlarEskirdi } from './obyektlar-kesh-belgi';
 
 /* ⚡ 2026-08-27 (Claude, MASTER_REJA_ENTERPRISE_OS.md — FAZA-oldi eng
  * ustuvor bo'shliq): to'liq domen iyerarxiyasi
@@ -105,7 +106,7 @@ export function sbLoyihaOchir(id: number) {
 
 /** Obyektni loyihaga biriktirish; `loyihaId: null` — guruhdan chiqarish. */
 export function sbObyektLoyihagaBiriktir(obyektId: number, loyihaId: number | null) {
-  return yozAmali({ amal: 'obyekt_loyihaga_biriktir', obyekt_id: obyektId, loyiha_id: loyihaId });
+  return yozAmali({ amal: 'obyekt_loyihaga_biriktir', obyekt_id: obyektId, loyiha_id: loyihaId }).finally(obyektlarEskirdi);
 }
 
 /* ⚡ 2026-08-28 — POLIMORFIK TASHKILOT MODELI (MASTER_REJA band 1):

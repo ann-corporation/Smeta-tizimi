@@ -1,37 +1,33 @@
 import { MoneyInput } from '../umumiy/ui/MoneyInput';
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Gavel, PackageSearch, Plus, TrendingDown, Clock, ChevronRight, X, Save, RefreshCw, Handshake, CheckCircle2 } from 'lucide-react';
+import { Gavel, PackageSearch, Plus, Clock, ChevronRight, ChevronLeft, Save, RefreshCw, Handshake, CheckCircle2 } from 'lucide-react';
 import { toast } from '../umumiy/ui/Toast';
 import { FmtN } from '../lib/format';
 import { useKompaniya } from './KompaniyaTanlov';
 import { t } from '../i18n/til';
+import { Sahifa } from '../umumiy/ui/Sahifa';
 import { BirjaTaqqoslash } from './BirjaTaqqoslash';
-import {
-  sbBirjaSorovOl,
-  sbBirjaTakliflarOl,
-  sbBirjaRfqYarat,
-  sbBirjaTaklifBer,
-  type BirjaRfq,
-  type BirjaTaklif
-} from '../api/t2-birja';
+import { sbBirjaSorovOl, sbBirjaTakliflarOl, sbBirjaRfqYarat, sbBirjaTaklifBer, type BirjaRfq, type BirjaTaklif } from '../api/t2-birja';
+import { OpsChiziq, OpsMaydon, OpsOyna, OpsTablar } from '../components/kompaniya-ops/OpsUi';
+
+/**
+ * B2B xarid birjasi (RFQ) — egasi 2026-10-25: Firuza ko'rinishi. So'rov e'lon qilinadi → yetkazuvchilar narx beradi →
+ * takliflar eng arzondan boshlab chiziq bilan taqqoslanadi. (Avvalgi «AI bozor tahlili» bloki — manbasiz raqam edi, olib tashlandi.)
+ */
+type Tab = 'rfq' | 'taklif' | 'tarix';
+const BIRLIKLAR = ['tonna', 'm2', 'm3', 'kg', 'dona', 'litr'];
 
 export default function TestBirja() {
   const { joriy } = useKompaniya();
-  const [activeTab, setActiveTab] = useState<'rfq' | 'taklif' | 'tarix'>('rfq');
+  const [activeTab, setActiveTab] = useState<Tab>('rfq');
   const [rfqList, setRfqList] = useState<BirjaRfq[]>([]);
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // Yangi RFQ
   const [yangiRfq, setYangiRfq] = useState({ nom: '', birlik: 'tonna', hajm: '', izoh: '' });
   const [saqlamoqda, setSaqlamoqda] = useState(false);
-
-  // Tanlangan RFQ va Takliflar
   const [tanlanganRfq, setTanlanganRfq] = useState<BirjaRfq | null>(null);
   const [takliflar, setTakliflar] = useState<BirjaTaklif[]>([]);
   const [taklifYuklanmoqda, setTaklifYuklanmoqda] = useState(false);
-
-  // Yangi taklif berish
   const [yangiTaklif, setYangiTaklif] = useState({ narx: '', izoh: '' });
 
   const yuklaRfq = async () => {
@@ -45,30 +41,20 @@ export default function TestBirja() {
       setYuklanmoqda(false);
     }
   };
-
-  useEffect(() => {
-    yuklaRfq();
-  }, []);
+  useEffect(() => { void yuklaRfq(); }, []);
 
   const handleYaratRfq = async () => {
-    if (!joriy) return toast("Kompaniya tanlang", "warn");
-    if (!yangiRfq.nom || !yangiRfq.hajm) return toast("Nomi va hajmini kiriting", "warn");
-
+    if (!joriy) return toast(t('Kompaniya tanlang'), 'warn');
+    if (!yangiRfq.nom || !yangiRfq.hajm) return toast(t('Nomi va hajmini kiriting'), 'warn');
     setSaqlamoqda(true);
     try {
-      await sbBirjaRfqYarat({
-        nom: yangiRfq.nom,
-        birlik: yangiRfq.birlik,
-        hajm: Number(yangiRfq.hajm),
-        izoh: yangiRfq.izoh,
-        kompaniya_id: joriy.id
-      });
-      toast("Yangi RFQ tenderga qo'yildi!", "ok");
+      await sbBirjaRfqYarat({ nom: yangiRfq.nom, birlik: yangiRfq.birlik, hajm: Number(yangiRfq.hajm), izoh: yangiRfq.izoh, kompaniya_id: joriy.id });
+      toast(t('Yangi RFQ tenderga qo‘yildi!'), 'ok');
       setIsModalOpen(false);
       setYangiRfq({ nom: '', birlik: 'tonna', hajm: '', izoh: '' });
-      yuklaRfq();
+      void yuklaRfq();
     } catch (e: any) {
-      toast(e.message, "danger");
+      toast(e.message, 'danger');
     } finally {
       setSaqlamoqda(false);
     }
@@ -89,321 +75,158 @@ export default function TestBirja() {
 
   const handleTaklifBer = async () => {
     if (!tanlanganRfq || !joriy) return;
-    if (!yangiTaklif.narx) return toast("Narxni kiriting", "warn");
-
+    if (!yangiTaklif.narx) return toast(t('Narxni kiriting'), 'warn');
     setSaqlamoqda(true);
     try {
       await sbBirjaTaklifBer(tanlanganRfq.id, joriy.id, Number(yangiTaklif.narx), yangiTaklif.izoh);
-      toast("Taklif yuborildi!", "ok");
+      toast(t('Taklif yuborildi!'), 'ok');
       setYangiTaklif({ narx: '', izoh: '' });
-      // qayta yuklash
       const res = await sbBirjaTakliflarOl(tanlanganRfq.id);
       setTakliflar(res.qatorlar || []);
     } catch (e: any) {
-      toast(e.message, "danger");
+      toast(e.message, 'danger');
     } finally {
       setSaqlamoqda(false);
     }
   };
 
+  const maksNarx = Math.max(1, ...takliflar.map((x) => Number(x.narx) || 0));
+  const ochiqSorovlar = rfqList.filter((r) => r.kompaniya_id !== joriy?.id && !['yopiq', 'yopildi', 'bekor'].includes(r.holat));
+
   return (
-    <div className="p-6 bg-bg min-h-screen text-text">
-      {/* HEADER */}
-      <div className="flex items-start justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2 mb-2">
-            <ShoppingCart className="text-cyan-400" />
-            B2B Xarid Birjasi (Tenderlar)
-          </h1>
-          <p className="text-text-dim text-sm max-w-2xl">
-            Moddiy ehtiyojlar asosida (Viborka) avtomatik tender so'rovlari (RFQ) yuborish va tijoriy takliflarni taqqoslash.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={yuklaRfq} className="p-2.5 bg-surface border border-border rounded-lg text-text hover:text-white transition-colors">
-            <RefreshCw size={18} className={yuklanmoqda ? "animate-spin" : ""} />
-          </button>
-          <button onClick={() => setIsModalOpen(true)} className="bg-cyan-600 hover:bg-cyan-500 text-white px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-lg shadow-cyan-900/20">
-            <Plus size={18} />
-            Yangi RFQ Yaratish
-          </button>
-        </div>
-      </div>
+    <Sahifa
+      sarlavha="Xarid birjasi (tenderlar)"
+      tavsif="Material so‘rovi (RFQ) e’lon qilinadi, yetkazuvchilar narx beradi, takliflar eng arzonidan boshlab taqqoslanadi."
+      amallar={<>
+        <button type="button" onClick={() => void yuklaRfq()} className="fz-btn fz-btn--ghost" aria-label={t('Yangilash')}><RefreshCw className={yuklanmoqda ? 'animate-spin' : ''} /> {t('Yangilash')}</button>
+        <button type="button" onClick={() => setIsModalOpen(true)} className="fz-btn fz-btn--primary"><Plus /> {t('Yangi RFQ')}</button>
+      </>}
+    >
+      <div className="flex flex-col gap-3">
+        <OpsTablar<Tab> yorliq={t('Birja bo‘limlari')} joriy={activeTab} onTanla={(k) => { setActiveTab(k); setTanlanganRfq(null); }} tablar={[
+          { id: 'rfq', nom: t('Faol so‘rovlar (RFQ)'), ikon: <Gavel />, soni: rfqList.length },
+          { id: 'taklif', nom: t('Yetkazuvchi kabineti'), ikon: <PackageSearch />, soni: ochiqSorovlar.length || null },
+          { id: 'tarix', nom: t('Xarid tarixi'), ikon: <Clock /> },
+        ]} />
 
-      {/* KPI & AI INSIGHT */}
-      <div className="bg-gradient-to-r from-cyan-900/20 to-blue-900/10 border border-cyan-500/20 rounded-xl p-5 mb-8 flex items-start gap-4">
-        <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center shrink-0">
-          <TrendingDown className="text-cyan-400" size={20} />
-        </div>
-        <div>
-          <h3 className="text-sm font-bold text-cyan-300 mb-1">AI Bozor Tahlili</h3>
-          <p className="text-sm text-text-dim leading-relaxed">
-            Siz izlayotgan <strong className="text-white">Sement</strong> o'rtacha bozor narxi joriy haftada pasaydi.
-            Xaridni hozir amalga oshirish orqali 4% gacha tejamkorlikka erishish mumkin. Tizim eng yaxshi takliflarni avtomatik saralaydi.
-          </p>
-        </div>
-      </div>
-
-      {/* TABS */}
-      <div className="flex gap-1 bg-surface border border-border p-1 rounded-lg w-max mb-6">
-        {[
-          { id: 'rfq', label: 'Faol So\'rovlar (RFQ)', icon: Gavel },
-          { id: 'taklif', label: t('Yetkazuvchi kabineti'), icon: PackageSearch },
-          { id: 'tarix', label: 'Xarid Tarixi', icon: Clock }
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => { setActiveTab(tab.id as any); setTanlanganRfq(null); }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab.id ? 'bg-bg text-white shadow-sm border border-border' : 'text-text-dim hover:text-white hover:bg-surface-2'}`}
-          >
-            <tab.icon size={16} className={activeTab === tab.id ? 'text-cyan-400' : ''} />
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* RFQ MODAL */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-surface border border-border p-6 rounded-xl w-full max-w-md shadow-2xl">
-            <div className="flex justify-between items-center mb-6 border-b border-border pb-4">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Gavel className="text-cyan-400" size={20}/>
-                Yangi RFQ qo'shish
-              </h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-text-dim hover:text-white"><X size={20}/></button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-text-dim mb-1">Tovarning to'liq nomi</label>
-                <input
-                  value={yangiRfq.nom}
-                  onChange={e => setYangiRfq({...yangiRfq, nom: e.target.value})}
-                  className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white focus:border-cyan-500 outline-none"
-                  placeholder="masalan: M400 Sement"
-                />
-              </div>
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-text-dim mb-1">Hajm</label>
-                  <input
-                    type="number"
-                    value={yangiRfq.hajm}
-                    onChange={e => setYangiRfq({...yangiRfq, hajm: e.target.value})}
-                    className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white font-mono focus:border-cyan-500 outline-none"
-                    placeholder="100"
-                  />
-                </div>
-                <div className="w-1/3">
-                  <label className="block text-sm font-medium text-text-dim mb-1">O'lchov birligi</label>
-                  <select
-                    value={yangiRfq.birlik}
-                    onChange={e => setYangiRfq({...yangiRfq, birlik: e.target.value})}
-                    className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white focus:border-cyan-500 outline-none appearance-none"
-                  >
-                    <option value="tonna">tonna</option>
-                    <option value="m2">m2</option>
-                    <option value="m3">m3</option>
-                    <option value="kg">kg</option>
-                    <option value="dona">dona</option>
-                    <option value="litr">litr</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-dim mb-1">Qo'shimcha izoh</label>
-                <textarea
-                  value={yangiRfq.izoh}
-                  onChange={e => setYangiRfq({...yangiRfq, izoh: e.target.value})}
-                  className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-white focus:border-cyan-500 outline-none min-h-[80px]"
-                  placeholder="Zavodga qo'shimcha talablar..."
-                />
-              </div>
-
-              <button
-                onClick={handleYaratRfq}
-                disabled={saqlamoqda}
-                className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-2.5 rounded-lg font-medium mt-2 flex items-center justify-center gap-2"
-              >
-                {saqlamoqda ? <RefreshCw className="animate-spin" size={18}/> : <Save size={18}/>}
-                Tenderga e'lon qilish
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* CONTENT: RFQ LIST & TAKLIFLAR */}
-      {activeTab === 'rfq' && (
-        !tanlanganRfq ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {activeTab === 'rfq' && (!tanlanganRfq ? (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {rfqList.length === 0 && !yuklanmoqda && (
-              <div className="col-span-full py-12 text-center text-text-dim bg-surface rounded-xl border border-border">
-                Hali hech qanday RFQ e'lon qilinmagan.
-              </div>
+              <section className="fz-note col-span-full"><Gavel /><span>{t('Hali hech qanday RFQ e’lon qilinmagan.')} {t('«Yangi RFQ» tugmasi bilan birinchi so‘rovni e’lon qiling.')}</span></section>
             )}
-
-            {rfqList.map(rfq => (
-              <div key={rfq.id} className="bg-surface border border-border hover:border-cyan-500/50 transition-colors rounded-xl p-5 shadow-lg flex flex-col group">
-                <div className="flex justify-between items-start mb-4">
-                  <span className="text-xs font-mono font-bold text-text-dim bg-bg px-2 py-1 rounded">#{rfq.id}</span>
-                  <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-full ${rfq.holat === 'faol' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'}`}>
-                    {rfq.holat}
-                  </span>
+            {rfqList.map((rfq) => (
+              <article key={rfq.id} className="fz-panel">
+                <div className="flex items-start justify-between">
+                  <span className="fz-c-shifr">#{rfq.id}</span>
+                  <span className={`fz-stamp ${rfq.holat === 'faol' ? 'fz-stamp--ok' : ''}`}>{t(rfq.holat)}</span>
                 </div>
-
-                <h3 className="text-lg font-bold text-white mb-2 leading-tight group-hover:text-cyan-300 transition-colors">{rfq.nom}</h3>
-
-                <div className="flex gap-4 mb-4 pb-4 border-b border-border/50">
-                  <div>
-                    <p className="text-[10px] uppercase text-text-dim mb-0.5">Talab Hajmi</p>
-                    <p className="text-sm font-bold text-sky-400"><FmtN val={rfq.hajm} /> {rfq.birlik}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase text-text-dim mb-0.5">Sana</p>
-                    <p className="text-sm font-medium text-text">{new Date(rfq.yaratilgan_vaqt).toLocaleDateString('uz-UZ')}</p>
-                  </div>
+                <h3 className="text-[15px] font-semibold leading-tight text-text">{rfq.nom}</h3>
+                <div className="flex gap-6 text-[12px]">
+                  <span><span className="block text-text-mute">{t('Talab hajmi')}</span><b className="tabular-nums"><FmtN val={rfq.hajm} /> {rfq.birlik}</b></span>
+                  <span><span className="block text-text-mute">{t('Sana')}</span><b>{new Date(rfq.yaratilgan_vaqt).toLocaleDateString('ru-RU')}</b></span>
                 </div>
-
-                <button
-                  onClick={() => korishRfq(rfq)}
-                  className="w-full mt-auto bg-surface-2 hover:bg-cyan-900/30 hover:text-cyan-300 text-white py-2 rounded-lg text-sm font-medium transition-colors border border-transparent hover:border-cyan-500/30 flex items-center justify-center gap-2"
-                >
-                  Batafsil & Takliflar <ChevronRight size={16} />
-                </button>
-              </div>
+                <button type="button" onClick={() => void korishRfq(rfq)} className="fz-btn mt-auto w-full">{t('Batafsil va takliflar')} <ChevronRight /></button>
+              </article>
             ))}
           </div>
         ) : (
-          <div className="bg-surface border border-border rounded-xl shadow-xl overflow-hidden flex flex-col md:flex-row">
-            {/* CHAP TOMON: RFQ DETAILS & TAKLIF QO'SHISH */}
-            <div className="w-full md:w-1/3 bg-surface-2 p-6 border-r border-border flex flex-col">
-              <button onClick={() => setTanlanganRfq(null)} className="text-cyan-400 hover:text-cyan-300 text-sm font-medium flex items-center gap-1 mb-6">
-                <ChevronRight size={16} className="rotate-180" /> Orqaga
-              </button>
-
-              <div className="mb-6">
-                <div className="text-xs font-mono text-text-dim mb-1">RFQ #{tanlanganRfq.id}</div>
-                <h2 className="text-xl font-bold text-white leading-tight mb-2">{tanlanganRfq.nom}</h2>
-                <div className="inline-block bg-bg border border-border px-3 py-1 rounded text-sm text-sky-400 font-bold mb-4">
-                  <FmtN val={tanlanganRfq.hajm} /> {tanlanganRfq.birlik}
-                </div>
-                {tanlanganRfq.izoh && (
-                  <div className="bg-bg/50 p-3 rounded-lg text-sm text-text-dim border border-border">
-                    {tanlanganRfq.izoh}
-                  </div>
-                )}
-              </div>
-
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(260px,1fr)_2fr]">
+            <section className="fz-panel">
+              <button type="button" onClick={() => setTanlanganRfq(null)} className="fz-btn fz-btn--ghost fz-btn--sm self-start"><ChevronLeft /> {t('Orqaga')}</button>
+              <span className="fz-c-shifr">RFQ #{tanlanganRfq.id}</span>
+              <h2 className="text-[17px] font-semibold leading-tight text-text">{tanlanganRfq.nom}</h2>
+              <span className="fz-chip fz-chip--accent self-start"><FmtN val={tanlanganRfq.hajm} /> {tanlanganRfq.birlik}</span>
+              {tanlanganRfq.izoh && <p className="fz-note">{tanlanganRfq.izoh}</p>}
               {tanlanganRfq.kompaniya_id !== joriy?.id && (
-                <div className="mt-auto pt-6 border-t border-border">
-                  <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2"><Handshake size={16} className="text-emerald-400"/> Taklif yuborish</h3>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs text-text-dim mb-1">Sizning narxingiz (so'm/{tanlanganRfq.birlik})</label>
-                      <MoneyInput
-
-                        value={yangiTaklif.narx}
-                        onValueChange={(moneyValue) => setYangiTaklif({...yangiTaklif, narx: moneyValue})}
-                        className="w-full bg-bg border border-border rounded p-2 text-emerald-400 font-bold font-mono outline-none focus:border-emerald-500"
-                        placeholder="masalan: 1200000"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-text-dim mb-1">Izoh / Muddat</label>
-                      <input
-                        type="text"
-                        value={yangiTaklif.izoh}
-                        onChange={e => setYangiTaklif({...yangiTaklif, izoh: e.target.value})}
-                        className="w-full bg-bg border border-border rounded p-2 text-white outline-none focus:border-emerald-500"
-                        placeholder="3 kunda yetkazib beramiz"
-                      />
-                    </div>
-                    <button
-                      onClick={handleTaklifBer}
-                      disabled={saqlamoqda}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded font-medium flex items-center justify-center gap-2"
-                    >
-                      {saqlamoqda ? <RefreshCw className="animate-spin" size={16}/> : <CheckCircle2 size={16}/>}
-                      Yuborish
-                    </button>
-                  </div>
+                <div className="mt-2 space-y-3 border-t border-border pt-3">
+                  <h3 className="inline-flex items-center gap-2 text-[13px] font-semibold"><Handshake size={15} />{t('Taklif yuborish')}</h3>
+                  <OpsMaydon nom={t('Sizning narxingiz (so‘m / {b})', { b: tanlanganRfq.birlik })}>
+                    <MoneyInput value={yangiTaklif.narx} onValueChange={(v) => setYangiTaklif({ ...yangiTaklif, narx: v })} className="h-8 w-full px-2 text-right font-semibold tabular-nums" placeholder={t('masalan: 1200000')} />
+                  </OpsMaydon>
+                  <OpsMaydon nom={t('Izoh / muddat')}>
+                    <input type="text" value={yangiTaklif.izoh} onChange={(e) => setYangiTaklif({ ...yangiTaklif, izoh: e.target.value })} placeholder={t('3 kunda yetkazib beramiz')} />
+                  </OpsMaydon>
+                  <button type="button" onClick={() => void handleTaklifBer()} disabled={saqlamoqda} className="fz-btn fz-btn--primary w-full">
+                    {saqlamoqda ? <RefreshCw className="animate-spin" /> : <CheckCircle2 />} {t('Yuborish')}
+                  </button>
                 </div>
               )}
-            </div>
+            </section>
 
-            {/* O'NG TOMON: KELIB TUSHKAN TAKLIFLAR RO'YXATI */}
-            <div className="w-full md:w-2/3 p-6 bg-bg">
-              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <PackageSearch className="text-cyan-400" />
-                Kelib tushgan takliflar ({takliflar.length})
-              </h3>
-
-              {taklifYuklanmoqda ? (
-                <div className="flex justify-center p-8"><RefreshCw className="animate-spin text-text-dim" /></div>
-              ) : takliflar.length === 0 ? (
-                <div className="border border-border/50 border-dashed rounded-xl p-8 text-center text-text-dim flex flex-col items-center justify-center">
-                  <Clock size={32} className="mb-3 opacity-50" />
-                  <p>Hozircha hech qanday zavod taklif bermagan.</p>
-                </div>
-              ) : (
-                <>
+            <section className="fz-panel" aria-label={t('Kelib tushgan takliflar')}>
+              <div className="fz-panel__h"><span>{t('Kelib tushgan takliflar')}</span><span>{takliflar.length}</span></div>
+              {taklifYuklanmoqda ? <div className="skel h-24 rounded" /> : takliflar.length === 0 ? (
+                <p className="fz-note"><Clock /><span>{t('Hozircha hech qanday zavod taklif bermagan.')}</span></p>
+              ) : (<>
                 <BirjaTaqqoslash rfq={tanlanganRfq} takliflar={takliflar} />
-                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin">
-                  {takliflar.map((t, idx) => (
-                    <div key={t.id} className={`bg-surface border p-4 rounded-xl flex items-center justify-between ${idx === 0 ? 'border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'border-border'}`}>
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-bold text-white">Kompaniya #{t.kompaniya_id}</span>
-                          {idx === 0 && <span className="bg-emerald-500/10 text-emerald-400 text-[10px] px-2 py-0.5 rounded font-bold uppercase border border-emerald-500/20">Eng arzon</span>}
+                <div className="max-h-[500px] space-y-2 overflow-y-auto pr-1">
+                  {takliflar.map((tk, idx) => (
+                    <div key={tk.id} className="rounded-md border p-3" style={{ borderColor: idx === 0 ? 'color-mix(in srgb, var(--ok) 50%, transparent)' : 'var(--border)', background: 'var(--surface-2)' }}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <span className="font-semibold text-text">{t('Kompaniya #{id}', { id: tk.kompaniya_id })}</span>
+                          {idx === 0 && <span className="fz-stamp fz-stamp--ok ml-2">{t('Eng arzon')}</span>}
+                          <span className="block text-[12px] text-text-dim">{tk.izoh || t('Izohsiz')}</span>
+                          <span className="block text-[11px] text-text-mute">{new Date(tk.yaratilgan_vaqt).toLocaleString('ru-RU')}</span>
                         </div>
-                        <div className="text-sm text-text-dim">{t.izoh || "Izohsiz"}</div>
-                        <div className="text-xs text-text-mute mt-2">{new Date(t.yaratilgan_vaqt).toLocaleString('uz-UZ')}</div>
+                        <div className="text-right">
+                          <span className="block text-[17px] font-semibold tabular-nums"><FmtN val={tk.narx} /></span>
+                          <span className="text-[11px] text-text-mute">{t('so‘m / {b}', { b: tanlanganRfq.birlik })}</span>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-xl font-bold font-mono text-emerald-400"><FmtN val={t.narx} /></div>
-                        <div className="text-xs text-text-dim">so'm/{tanlanganRfq.birlik}</div>
-                      </div>
+                      <div className="mt-2"><OpsChiziq ulush={(Number(tk.narx) || 0) / maksNarx} rang={idx === 0 ? 'var(--ok)' : 'var(--border-strong)'} /></div>
                     </div>
                   ))}
                 </div>
-                </>
-              )}
-            </div>
+              </>)}
+            </section>
           </div>
-        )
-      )}
+        ))}
 
-      {/* TARIQ / TAKLIF TAB EMPTY STATES */}
-      {activeTab === 'taklif' && (
-        <div className="bg-surface border border-border rounded-xl p-6 shadow-xl">
-           <h2 className="text-lg font-bold text-white mb-1 flex items-center gap-2"><PackageSearch size={20} className="text-cyan-400" />{t('Yetkazuvchi kabineti')}</h2>
-           <p className="text-sm text-text-dim mb-4">{t("Narx bera oladigan ochiq so'rovlar (boshqa kompaniyalar e'lon qilgan)")}</p>
-           {(() => {
-             const ochiq = rfqList.filter((r) => r.kompaniya_id !== joriy?.id && !['yopiq', 'yopildi', 'bekor'].includes(r.holat));
-             if (ochiq.length === 0) return <p className="text-sm text-text-dim">{t("Hozircha sizga narx berish uchun ochiq so'rov yo'q.")}</p>;
-             return (
-               <ul className="divide-y divide-border/50">
-                 {ochiq.map((r) => (
-                   <li key={r.id} className="py-2 flex items-center justify-between gap-3">
-                     <span className="text-white">{r.nom} <span className="text-sky-400 font-mono text-sm"><FmtN val={r.hajm} /> {r.birlik}</span></span>
-                     <button onClick={() => { setActiveTab('rfq'); korishRfq(r); }} className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded text-sm">{t('Narx berish')}</button>
-                   </li>
-                 ))}
-               </ul>
-             );
-           })()}
-           <p className="text-xs text-text-mute mt-4">{t("Mahsulot katalogi, ombor joylashuvi va buyurtmalar yetkazuvchi kabinetiga keyingi bosqichda qo'shiladi.")}</p>
-        </div>
-      )}
-      {activeTab === 'tarix' && (
-        <div className="bg-surface border border-border rounded-xl p-12 text-center shadow-xl">
-           <Clock size={32} className="text-cyan-400 mx-auto mb-4" />
-           <p className="text-text-dim">Yopilgan va hal qilingan tenderlar tarixi.</p>
-        </div>
-      )}
+        {activeTab === 'taklif' && (
+          <section className="fz-panel">
+            <div className="fz-panel__h"><span>{t('Yetkazuvchi kabineti')}</span></div>
+            <p className="text-[12.5px] text-text-dim">{t("Narx bera oladigan ochiq so'rovlar (boshqa kompaniyalar e'lon qilgan)")}</p>
+            {ochiqSorovlar.length === 0 ? <p className="text-[12.5px] text-text-mute">{t("Hozircha sizga narx berish uchun ochiq so'rov yo'q.")}</p> : (
+              <ul className="divide-y divide-border">
+                {ochiqSorovlar.map((r) => (
+                  <li key={r.id} className="flex items-center justify-between gap-3 py-2">
+                    <span>{r.nom} <span className="fz-chip"><FmtN val={r.hajm} /> {r.birlik}</span></span>
+                    <button type="button" onClick={() => { setActiveTab('rfq'); void korishRfq(r); }} className="fz-btn fz-btn--sm fz-btn--primary">{t('Narx berish')}</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-[11.5px] text-text-mute">{t("Mahsulot katalogi, ombor joylashuvi va buyurtmalar yetkazuvchi kabinetiga keyingi bosqichda qo'shiladi.")}</p>
+          </section>
+        )}
+        {activeTab === 'tarix' && <section className="fz-note"><Clock /><span>{t('Yopilgan va hal qilingan tenderlar tarixi shu yerda ko‘rinadi (keyingi bosqich).')}</span></section>}
+      </div>
 
-    </div>
+      <OpsOyna ochiq={isModalOpen} onYop={() => setIsModalOpen(false)} band={saqlamoqda} ikon={<Gavel />} sarlavha={t('Yangi RFQ qo‘shish')}
+        amallar={<>
+          <button type="button" onClick={() => setIsModalOpen(false)} className="fz-btn fz-btn--ghost">{t('Bekor qilish')}</button>
+          <button type="button" onClick={() => void handleYaratRfq()} disabled={saqlamoqda} className="fz-btn fz-btn--primary">
+            {saqlamoqda ? <RefreshCw className="animate-spin" /> : <Save />} {t('Tenderga e’lon qilish')}
+          </button>
+        </>}>
+        <OpsMaydon nom={t('Tovarning to‘liq nomi')} majburiy>
+          <input value={yangiRfq.nom} onChange={(e) => setYangiRfq({ ...yangiRfq, nom: e.target.value })} placeholder={t('masalan: M400 sement')} />
+        </OpsMaydon>
+        <div className="grid grid-cols-[1fr_120px] gap-3">
+          <OpsMaydon nom={t('Hajm')} majburiy>
+            <input type="number" value={yangiRfq.hajm} onChange={(e) => setYangiRfq({ ...yangiRfq, hajm: e.target.value })} placeholder="100" className="text-right tabular-nums" />
+          </OpsMaydon>
+          <OpsMaydon nom={t('O‘lchov birligi')}>
+            <select value={yangiRfq.birlik} onChange={(e) => setYangiRfq({ ...yangiRfq, birlik: e.target.value })}>
+              {BIRLIKLAR.map((b) => <option key={b} value={b}>{b}</option>)}
+            </select>
+          </OpsMaydon>
+        </div>
+        <OpsMaydon nom={t('Qo‘shimcha izoh')}>
+          <textarea value={yangiRfq.izoh} onChange={(e) => setYangiRfq({ ...yangiRfq, izoh: e.target.value })} rows={3} placeholder={t('Zavodga qo‘shimcha talablar…')} />
+        </OpsMaydon>
+      </OpsOyna>
+    </Sahifa>
   );
 }

@@ -1,0 +1,12 @@
+{
+  "Asl qatorning qancha hajmini almashtiradi ({birlik}, ixtiyoriy)": { "ru": "Какой объём исходной строки заменяет ({birlik}, необязательно)", "en": "How much of the original line it replaces ({birlik}, optional)" },
+  "Bo‘sh = asl qator to‘liq almashtirilgan": { "ru": "Пусто = исходная строка заменена полностью", "en": "Empty = original line fully replaced" },
+  "Almashtiriladigan hajm": { "ru": "Заменяемый объём", "en": "Replaced quantity" },
+  "Almashtiriladigan hajm manfiy bo‘lmagan son bo‘lishi shart.": { "ru": "Заменяемый объём должен быть неотрицательным числом.", "en": "The replaced quantity must be a non-negative number." },
+  "Almashtirish hajmi saqlanmadi.": { "ru": "Заменяемый объём не сохранён.", "en": "The replaced quantity was not saved." },
+  "almashtiriladi (shu F2)": { "ru": "будет заменено (этот Ф2)", "en": "to be replaced (this F2)" },
+  "yozilgan": { "ru": "записано", "en": "written" },
+  "shu F2": { "ru": "этот Ф2", "en": "this F2" },
+  "asl ham, zamenasi ham olinmoqda — ikki marta bo‘lishi mumkin": { "ru": "берётся и исходная строка, и её замена — возможен двойной учёт", "en": "both the original and its replacement are taken — may be counted twice" },
+  "almashtirildi": { "ru": "заменено", "en": "replaced" }
+}

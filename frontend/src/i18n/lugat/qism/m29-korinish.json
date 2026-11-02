@@ -1,0 +1,342 @@
+{
+ "ortiqcha": {
+  "ru": "перерасход",
+  "en": "overspend"
+ },
+ "tejaldi": {
+  "ru": "экономия",
+  "en": "saved"
+ },
+ "ortiqcha sarf": {
+  "ru": "перерасход",
+  "en": "overspend"
+ },
+ "normada": {
+  "ru": "по норме",
+  "en": "on norm"
+ },
+ "Smeta o‘qilmadi.": {
+  "ru": "Смета не прочитана.",
+  "en": "Estimate could not be read."
+ },
+ "F2 qatorlari to‘liq o‘qilmadi — M-29 chala ma’lumot ustida tuzilmaydi.": {
+  "ru": "Строки Ф-2 прочитаны не полностью — М-29 по неполным данным не составляется.",
+  "en": "F2 lines were not fully read — M-29 is not built on incomplete data."
+ },
+ "Sklad harakatlari o‘qilmadi — «Фактически» ustuni bo‘sh (noma’lum) qoladi.": {
+  "ru": "Движения склада не прочитаны — графа «Фактически» останется пустой (неизвестно).",
+  "en": "Warehouse movements could not be read — the “Actual” column stays empty (unknown)."
+ },
+ "Bu obyektda tasdiqlangan F2 ham, sklad harakati ham yo‘q — M-29 bo‘sh bo‘ladi.": {
+  "ru": "На объекте нет ни утверждённых Ф-2, ни движений склада — М-29 будет пустым.",
+  "en": "This site has neither approved F2 nor warehouse movements — M-29 will be empty."
+ },
+ "Yuklanmadi.": {
+  "ru": "Не загружено.",
+  "en": "Not loaded."
+ },
+ "M-29 tuzilmadi: {x}": {
+  "ru": "М-29 не составлен: {x}",
+  "en": "M-29 was not built: {x}"
+ },
+ "M-29 tuzilmadi.": {
+  "ru": "М-29 не составлен.",
+  "en": "M-29 was not built."
+ },
+ "Diqqat ({n})": {
+  "ru": "Внимание ({n})",
+  "en": "Attention ({n})"
+ },
+ "Smetada yo‘q ({n})": {
+  "ru": "Нет в смете ({n})",
+  "en": "Not in estimate ({n})"
+ },
+ "Hujjatni saytda ko‘rish": {
+  "ru": "Просмотреть документ на сайте",
+  "en": "View the document on site"
+ },
+ "Excel М-29": {
+  "ru": "Excel М-29",
+  "en": "Excel M-29"
+ },
+ "Obyektni tanlang — M-29 norma va sklad chiqimini shu obyekt bo‘yicha taqqoslaydi.": {
+  "ru": "Выберите объект — М-29 сопоставит расход по норме и списание со склада по этому объекту.",
+  "en": "Choose a site — M-29 compares norm consumption with warehouse issue for that site."
+ },
+ "M-29 uchun ma’lumot yo‘q": {
+  "ru": "Нет данных для М-29",
+  "en": "No data for M-29"
+ },
+ "Bu obyektda tasdiqlangan F2 ham, sklad harakati ham yo‘q. Avval F2 aktini tasdiqlang (norma shundan olinadi) va obyekt skladiga kirim/chiqim kiriting.": {
+  "ru": "На объекте нет ни утверждённых Ф-2, ни движений склада. Сначала утвердите акт Ф-2 (из него берётся норма) и внесите приход/расход на склад объекта.",
+  "en": "This site has neither approved F2 nor warehouse movements. First approve an F2 act (the norm comes from it) and record receipts/issues in the site warehouse."
+ },
+ "Ko'rsatkichlar": {
+  "ru": "Показатели",
+  "en": "Indicators"
+ },
+ "{oy} · boshidan beri": {
+  "ru": "{oy} · с начала строительства",
+  "en": "{oy} · since start"
+ },
+ "{n} ta normadan oshgan": {
+  "ru": "сверх нормы: {n}",
+  "en": "{n} over norm"
+ },
+ "{n} ta tejalgan": {
+  "ru": "сэкономлено: {n}",
+  "en": "{n} saved"
+ },
+ "{n} ta fakti noma’lum": {
+  "ru": "факт неизвестен: {n}",
+  "en": "{n} with unknown actual"
+ },
+ "Tejash (normadan kam)": {
+  "ru": "Экономия (меньше нормы)",
+  "en": "Savings (below norm)"
+ },
+ "smeta narxida": {
+  "ru": "по сметной цене",
+  "en": "at estimate prices"
+ },
+ "Ortiqcha sarf (normadan ko‘p)": {
+  "ru": "Перерасход (больше нормы)",
+  "en": "Overspend (above norm)"
+ },
+ "Sof natija": {
+  "ru": "Чистый итог",
+  "en": "Net result"
+ },
+ "ortiqcha sarf − tejash": {
+  "ru": "перерасход − экономия",
+  "en": "overspend − savings"
+ },
+ "Ayrim materiallar narxi noma’lum": {
+  "ru": "У части материалов цена неизвестна",
+  "en": "Some materials have unknown prices"
+ },
+ "Zarar — normadan ortiq sarflangan": {
+  "ru": "Убыток — израсходовано сверх нормы",
+  "en": "Loss — consumed above norm"
+ },
+ "Foyda — normadan kam sarflangan": {
+  "ru": "Выгода — израсходовано меньше нормы",
+  "en": "Gain — consumed below norm"
+ },
+ "Materiallar holati": {
+  "ru": "Состояние материалов",
+  "en": "Materials status"
+ },
+ "{n} ta material": {
+  "ru": "материалов: {n}",
+  "en": "{n} materials"
+ },
+ "Normadan oshgan: {o} · normada: {m} · tejalgan: {t} · fakt noma’lum: {f}": {
+  "ru": "Сверх нормы: {o} · по норме: {m} · экономия: {t} · факт неизвестен: {f}",
+  "en": "Over norm: {o} · on norm: {m} · saved: {t} · actual unknown: {f}"
+ },
+ "normadan oshgan": {
+  "ru": "сверх нормы",
+  "en": "over norm"
+ },
+ "tejalgan": {
+  "ru": "экономия",
+  "en": "saved"
+ },
+ "fakt noma’lum": {
+  "ru": "факт неизвестен",
+  "en": "actual unknown"
+ },
+ "Sklad ma’lumoti yo‘q — haqiqiy sarf noma’lum": {
+  "ru": "Нет данных склада — фактический расход неизвестен",
+  "en": "No warehouse data — actual consumption unknown"
+ },
+ "Norma bo‘yicha sarf {n} ta material uchun hisoblandi (tasdiqlangan F2 dan), lekin obyekt skladidan bitta ham chiqim yozilmagan. Shuning uchun tejash, ortiqcha sarf va sof natija hozircha aniqlanmaydi — nol emas, noma’lum.": {
+  "ru": "Расход по норме рассчитан для {n} материалов (по утверждённым Ф-2), но со склада объекта не внесено ни одного списания. Поэтому экономия, перерасход и чистый итог пока не определены — не ноль, а неизвестно.",
+  "en": "Norm consumption was calculated for {n} materials (from approved F2), but no warehouse issue has been recorded for the site. So savings, overspend and net result cannot be determined yet — unknown, not zero."
+ },
+ "Obyekt skladiga kirim va chiqimlarni kiriting (Sklad bo‘limi).": {
+  "ru": "Внесите приход и расход на склад объекта (раздел «Склад»).",
+  "en": "Record receipts and issues in the site warehouse (Warehouse section)."
+ },
+ "Yoki yuqoridagi «Ombordan chiqim qilish» bilan shu davr M-29 ni bajaring.": {
+  "ru": "Или выполните М-29 за этот период кнопкой «Списать со склада» выше.",
+  "en": "Or execute M-29 for this period with “Issue from warehouse” above."
+ },
+ "Shundan keyin har material bo‘yicha norma ↔ fakt chizig‘i, tejash va ortiqcha sarf shu yerda ko‘rinadi.": {
+  "ru": "После этого здесь появятся шкала норма ↔ факт по каждому материалу, экономия и перерасход.",
+  "en": "After that the norm ↔ actual bar per material, savings and overspend will appear here."
+ },
+ "faqat muammolilar": {
+  "ru": "только проблемные",
+  "en": "problems only"
+ },
+ "Material / ish": {
+  "ru": "Материал / работа",
+  "en": "Material / work"
+ },
+ "Ед.": {
+  "ru": "Ед.",
+  "en": "Unit"
+ },
+ "Boshidan beri": {
+  "ru": "С начала строительства",
+  "en": "Since start"
+ },
+ "Farq, so‘m": {
+  "ru": "Отклонение, сум",
+  "en": "Deviation, sum"
+ },
+ "Skladda qoldiq": {
+  "ru": "Остаток на складе",
+  "en": "Warehouse balance"
+ },
+ "Haqiqiy": {
+  "ru": "Фактически",
+  "en": "Actual"
+ },
+ "Norma = 100% ↔ fakt": {
+  "ru": "Норма = 100% ↔ факт",
+  "en": "Norm = 100% ↔ actual"
+ },
+ "{n} ta": {
+  "ru": "{n} шт.",
+  "en": "{n}"
+ },
+ "norma bo‘yicha: {s} so‘m (ustamasiz)": {
+  "ru": "по норме: {s} сум (без накруток)",
+  "en": "by norm: {s} sum (without markups)"
+ },
+ "Norma: {n} · fakt: {f} {b}": {
+  "ru": "Норма: {n} · факт: {f} {b}",
+  "en": "Norm: {n} · actual: {f} {b}"
+ },
+ "miqdor F2 aktidan": {
+  "ru": "количество из акта Ф-2",
+  "en": "quantity from the F2 act"
+ },
+ "norma {n} × hajm {h} {b}": {
+  "ru": "норма {n} × объём {h} {b}",
+  "en": "norm {n} × volume {h} {b}"
+ },
+ "norma noma’lum": {
+  "ru": "норма неизвестна",
+  "en": "norm unknown"
+ },
+ "Jami sof natija (ortiqcha sarf − tejash)": {
+  "ru": "Итого чистый результат (перерасход − экономия)",
+  "en": "Total net result (overspend − savings)"
+ },
+ "Diqqat": {
+  "ru": "Внимание",
+  "en": "Attention"
+ },
+ "Diqqat talab qiladigan holat yo‘q.": {
+  "ru": "Ситуаций, требующих внимания, нет.",
+  "en": "Nothing requires attention."
+ },
+ "{s} so‘m": {
+  "ru": "{s} сум",
+  "en": "{s} sum"
+ },
+ "Skladdan chiqarilgan barcha materiallar smetada bor.": {
+  "ru": "Все списанные со склада материалы есть в смете.",
+  "en": "All materials issued from the warehouse are in the estimate."
+ },
+ "Material (skladdan) — qayerga ishlatildi?": {
+  "ru": "Материал (со склада) — где использован?",
+  "en": "Material (from warehouse) — where was it used?"
+ },
+ "Kirim": {
+  "ru": "Приход",
+  "en": "Receipt"
+ },
+ "Chiqim (oy)": {
+  "ru": "Расход (месяц)",
+  "en": "Issue (month)"
+ },
+ "Chiqim (boshidan)": {
+  "ru": "Расход (с начала)",
+  "en": "Issue (since start)"
+ },
+ "Hujjat imzolari": {
+  "ru": "Подписи документа",
+  "en": "Document signatures"
+ },
+ "Excel М-29 imzo tomonlari": {
+  "ru": "Подписанты Excel М-29",
+  "en": "Excel M-29 signatories"
+ },
+ "Kompaniyani tanlang.": {
+  "ru": "Выберите компанию.",
+  "en": "Choose a company."
+ },
+ "ortiqcha {f}%": {
+  "ru": "перерасход {f}%",
+  "en": "overspend {f}%"
+ },
+ "tejaldi {f}%": {
+  "ru": "экономия {f}%",
+  "en": "saved {f}%"
+ },
+ "normasiz chiqim": {
+  "ru": "списание без нормы",
+  "en": "issue without norm"
+ },
+ "М-29 · Materiallar: norma ↔ fakt": {
+  "ru": "М-29 · Материалы: норма ↔ факт",
+  "en": "M-29 · Materials: norm ↔ actual"
+ },
+ "Norma — tasdiqlangan F2 bo‘yicha (ish hajmi × norma) · haqiqiy — obyekt skladidan chiqim": {
+  "ru": "Норма — по утверждённым Ф-2 (объём работ × норма) · факт — списание со склада объекта",
+  "en": "Norm — from approved F2 (work volume × norm) · actual — issue from the site warehouse"
+ },
+ "Smetada yo‘q material skladdan chiqarilgan — qayerga ishlatildi?": {
+  "ru": "Со склада списан материал, которого нет в смете — где использован?",
+  "en": "Material not in the estimate was issued from the warehouse — where was it used?"
+ },
+ "Tasdiqlangan F2 da ishi yo‘q, lekin skladdan chiqarilgan — qayerga ishlatildi?": {
+  "ru": "В утверждённых Ф-2 работ нет, но со склада списано — где использовано?",
+  "en": "No work in approved F2, but issued from the warehouse — where was it used?"
+ },
+ "Normadan ortiq sarf": {
+  "ru": "Перерасход сверх нормы",
+  "en": "Consumption above norm"
+ },
+ "Norma bo‘yicha sarflangan, sklad chiqimi kiritilmagan (haqiqiy sarf noma’lum)": {
+  "ru": "Израсходовано по норме, списание со склада не внесено (факт неизвестен)",
+  "en": "Consumed by norm, warehouse issue not recorded (actual unknown)"
+ },
+ "Smetada norma yo‘q": {
+  "ru": "В смете нет нормы",
+  "en": "No norm in the estimate"
+ },
+ "Smetada narxlar farqli": {
+  "ru": "В смете разные цены",
+  "en": "Different prices in the estimate"
+ },
+ "smetada yo‘q": {
+  "ru": "нет в смете",
+  "en": "not in estimate"
+ },
+ "F2 da ishi yo‘q — qayerga ishlatildi?": {
+  "ru": "нет работ в Ф-2 — где использовано?",
+  "en": "no F2 work — where was it used?"
+ },
+ "normadan ortiq sarf": {
+  "ru": "перерасход",
+  "en": "above norm"
+ },
+ "sklad chiqimi kiritilmagan": {
+  "ru": "списание не внесено",
+  "en": "issue not recorded"
+ },
+ "smetada norma yo‘q": {
+  "ru": "нет нормы в смете",
+  "en": "no norm in estimate"
+ },
+ "narxlar farqli": {
+  "ru": "разные цены",
+  "en": "different prices"
+ }
+}

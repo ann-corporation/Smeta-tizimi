@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": false,
+    "jsx": "react-jsx",
+    "noUnusedLocals": false,
+    "typeRoots": ["./node_modules/@types"],
+    "paths": {
+      "xlsx": ["./node_modules/xlsx"],
+      "fflate": ["./node_modules/fflate"],
+      "react": ["./node_modules/@types/react"]
+    }
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}

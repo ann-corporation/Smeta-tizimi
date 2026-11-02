@@ -139,7 +139,8 @@ describe('Fakt savati', () => {
   it('jami: ishning resurslari bo‘yicha asos va kategoriya koeffitsientli ustamali summa (resurs ikki marta sanalmaydi)', () => {
     const s = savatgaQosh([], rows, mosBP, 100, 'matn');
     expect(birlikKatSummalari(rows, BP).narx).toBeCloseTo((153000000 + 18000000) / 300);
-    const nk = { 'ПРОЧИЕ_ПОДРЯДЧИК': 18, 'СТРАХОВАНИЕ': 0.32, 'РИСК': 0, 'НДС': 12, 'ТРАНSPORT_МАТЕРИАЛ': 0 } as never;
+    // Foizlar to'liq (hisob yadrosi: kiritilmagan foiz 0 deb olinmaydi).
+    const nk = { 'ПРОЧИЕ_ПОДРЯДЧИК': 18, 'СТРАХОВАНИЕ': 0.32, 'РИСК': 0, 'НДС': 12, 'ТРАНСПОРТ_МАТЕРИАЛ': 0, 'СКЛАДСКИЕ_МАТЕРИАЛ': 0, 'СКЛАДСКИЕ_МК': 0, 'ТРАНСПОРТ_КАБЕЛЬ': 0, 'ТРАНСПОРТ_ОБОРУД': 0, 'ЗАГОТ_СКЛАД_ОБОРУД': 0 } as never;
     const j0 = savatJami(s, null);
     expect(j0.asos).toBeCloseTo((153000000 + 18000000) / 3, 0);
     expect(j0.ustamali).toBeNull();

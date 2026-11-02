@@ -1,0 +1,9 @@
+{
+  "bog‘landi.": { "ru": "привязано.", "en": "linked." },
+  "Bu smeta qatori aktning asosiy qismida ham olingan — takror bo‘lsa «Faqat izoh» bosing (summa ikki marta sanalmaydi).": { "ru": "Эта строка сметы уже взята в основной части акта — если это повтор, нажмите «Только примечание» (сумма не учтётся дважды).", "en": "This estimate row is already used in the main part of the act — if it is a duplicate, press «Note only» (the amount is not counted twice)." },
+  "har qatorni to‘g‘ridan-to‘g‘ri smeta qatoriga bog‘lang (bo‘lim shart emas)": { "ru": "привяжите каждую строку прямо к строке сметы (раздел не обязателен)", "en": "link each row directly to an estimate row (section not required)" },
+  "Aktga qaytarish": { "ru": "Вернуть в акт", "en": "Return to act" },
+  "Faqat izoh": { "ru": "Только примечание", "en": "Note only" },
+  "Podval qatori faqat izoh — aktga kirmaydi, summasi sanalmaydi, yozish to‘xtamaydi": { "ru": "Строка подвала — только примечание: не входит в акт, сумма не учитывается, запись не блокируется", "en": "Footer row is a note only — not included in the act, amount not counted, saving is not blocked" },
+  "Takror: bu smeta qatori aktning asosiy qismida ham olingan — «Faqat izoh» bosing, aks holda summa ikki marta sanaladi": { "ru": "Повтор: эта строка сметы уже взята в основной части акта — нажмите «Только примечание», иначе сумма учтётся дважды", "en": "Duplicate: this estimate row is already used in the main part of the act — press «Note only», otherwise the amount is counted twice" }
+}

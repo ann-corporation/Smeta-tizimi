@@ -1,0 +1,4 @@
+{
+  "To‘liq emas: {s} bo‘limda smeta, {f} da fakt, {f2} da F2 summasi noma’lum — ko‘rsatilgan qiymat faqat ma’lum qismlar yig‘indisi": { "ru": "Неполные данные: сумма сметы неизвестна в {s} разделах, факта — в {f}, Ф2 — в {f2}; показана сумма только известных частей", "en": "Incomplete: estimate amount unknown in {s} sections, actual in {f}, F2 in {f2}; the value shown sums only the known parts" },
+  "qisman": { "ru": "частично", "en": "partial" }
+}

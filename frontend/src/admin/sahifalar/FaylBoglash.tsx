@@ -21,6 +21,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Save, FileSpreadsheet, AlertTriangle, CheckCircle2, RefreshCw, Search } from 'lucide-react';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
+import { t as tr } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
 import {
   useObyektlar, useSheetlar, useBoglashSaqla, useSvodUstunSaqla,
@@ -97,85 +98,103 @@ export default function FaylBoglash() {
     });
     saqla.mutate(pairs, {
       onSuccess: () => {
-        toast(`${ozgarganSoni} ta obyekt sozlamasi saqlandi`, 'ok', undefined, 7000);
+        toast(tr('{n} ta obyekt sozlamasi saqlandi', { n: ozgarganSoni }), 'ok', undefined, 7000);
         setOzgarish({});
       },
       onError: (e: Error) => toast(e.message, 'danger', undefined, 9000),
     });
   };
 
+  /** Obyekt sozlamasi holati: smeta, svodka (yoki «narx tayyor») — hisoblashga tayyormi. */
+  const yoqmi = (v?: string | null) => !v || v === "(yo'q)";
+  const tayyorlik = useMemo(() => {
+    const b = obyektlar.data ?? [];
+    const toliq = b.filter((o) => !yoqmi(o.lokName) && (!yoqmi(o.svodName) || o.narxTayyor)).length;
+    return { jami: b.length, toliq, smetasiz: b.filter((o) => yoqmi(o.lokName)).length, svodkasiz: b.filter((o) => yoqmi(o.svodName) && !o.narxTayyor).length };
+  }, [obyektlar.data]);
+
   const varaqTanlov = (
     barchasi: string[] | undefined, tanlanganlar: string[] | undefined,
     ozgart: (v: string[]) => void, bosh: string,
   ) => {
-    const t = tanlanganlar ?? [];
+    const tl = tanlanganlar ?? [];
     if (!barchasi?.length) {
-      return <p className="text-[11px] text-text-mute italic">{bosh}</p>;
+      return <p className="text-[12px] italic text-text-mute">{bosh}</p>;
     }
     return (
-      <div className="max-h-40 overflow-y-auto scrollbar-thin space-y-0.5 rounded
-                      border border-border bg-[var(--surface-2)]/30 p-1.5">
+      <div className="max-h-40 space-y-0.5 overflow-y-auto rounded border border-border bg-surface-2 p-1.5">
         {barchasi.map((v) => {
-          const bor = t.includes(v);
+          const bor = tl.includes(v);
           return (
-            <label key={v}
-              className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer text-[12px]
-                          transition-colors ${bor ? 'bg-accent/15 text-text' : 'hover:bg-white/5 text-text-dim'}`}>
-              <input type="checkbox" checked={bor} className="accent-[var(--accent)] cursor-pointer"
-                onChange={() => ozgart(bor ? t.filter((x) => x !== v) : [...t, v])} />
+            <label key={v} className={`flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-[12px] transition-colors ${bor ? 'bg-accent/15 text-text' : 'text-text-dim hover:bg-surface-3'}`}>
+              <input type="checkbox" checked={bor} className="cursor-pointer" onChange={() => ozgart(bor ? tl.filter((x) => x !== v) : [...tl, v])} />
               <span className="truncate" title={v}>{v}</span>
             </label>
           );
         })}
-        <p className="text-[10px] text-text-mute px-2 pt-1">
-          Hech biri belgilanmasa — <b>barcha varaqlar</b> o'qiladi.
-        </p>
+        <p className="px-2 pt-1 text-[11px] text-text-mute">{tr('Hech biri belgilanmasa — barcha varaqlar o‘qiladi.')}</p>
       </div>
     );
   };
+  const faylTanlov = (kalit: 'lokId' | 'svodId', nomKalit: 'lokName' | 'svodName', varaqKalit: 'lokSheets' | 'svodSheets', joriyId?: string | null, joriyNom?: string | null) => (
+    <select value={String(q(kalit) || '')} aria-label={kalit === 'lokId' ? tr('Smeta fayli') : tr('Svodka fayli')}
+      onChange={(e) => {
+        const c = joriy?.candidates?.find((x) => x.id === e.target.value);
+        yoz(kalit, e.target.value);
+        yoz(nomKalit, c?.name || '');
+        yoz(varaqKalit, []);
+      }}
+      className="input w-full px-2 py-1.5 text-[12.5px]">
+      <option value="">{tr('— tanlanmagan —')}</option>
+      {(joriy?.candidates ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+      {joriyId && !joriy?.candidates?.some((c) => c.id === joriyId) && <option value={joriyId}>{tr('{n} (joriy)', { n: joriyNom ?? '' })}</option>}
+    </select>
+  );
 
   return (
     <Sahifa
       sarlavha="Fayl bog'lash"
       tavsif="Obyekt sozlamasi — qaysi fayl smeta, qaysi fayl svodka, qaysi varaqlar va ustunlar"
     >
-      <div className="flex gap-4 h-full min-h-0">
+      <div className="flex h-full min-h-0 flex-col gap-3">
+        {tayyorlik.jami > 0 && <section className="fz-card flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3" aria-label={tr('Sozlama holati')}>
+          <div className="flex min-w-[220px] flex-1 flex-col gap-1">
+            <span className="fz-panel__h">{tr('Hisoblashga tayyor obyektlar')}</span>
+            <span className={`fz-meter ${tayyorlik.toliq < tayyorlik.jami ? 'fz-meter--over' : ''}`}>
+              <span className="fz-meter__t"><i style={{ width: `${(tayyorlik.toliq / tayyorlik.jami) * 100}%`, background: 'var(--ok)' }} /></span>
+              <span className="fz-meter__f">{tayyorlik.toliq}/{tayyorlik.jami}</span>
+            </span>
+          </div>
+          {tayyorlik.smetasiz > 0 && <span className="fz-chip fz-chip--danger">{tr('{n} tasida smeta fayli yo‘q', { n: tayyorlik.smetasiz })}</span>}
+          {tayyorlik.svodkasiz > 0 && <span className="fz-chip fz-chip--warn">{tr('{n} tasida narx manbai yo‘q', { n: tayyorlik.svodkasiz })}</span>}
+          {ozgarganSoni > 0 && <span className="fz-chip fz-chip--accent">{tr('{n} ta saqlanmagan o‘zgarish', { n: ozgarganSoni })}</span>}
+        </section>}
+      <div className="flex h-full min-h-0 gap-4">
         {/* ── CHAP: obyektlar ro'yxati ────────────────────────────── */}
-        <div className="w-[300px] flex-shrink-0 flex flex-col gap-2 min-h-0">
+        <div className="flex min-h-0 w-[300px] flex-shrink-0 flex-col gap-2">
           <div className="relative">
             <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-mute" />
-            <input value={qidiruv} onChange={(e) => setQidiruv(e.target.value)}
-              placeholder="Obyekt qidirish…"
-              className="w-full pl-8 pr-2 py-2 rounded-lg bg-[var(--surface-2)] border border-border
-                         text-[13px] text-text outline-none focus:border-accent/50" />
+            <input value={qidiruv} onChange={(e) => setQidiruv(e.target.value)} aria-label={tr('Obyekt qidirish')}
+              placeholder={tr('Obyekt qidirish…')} className="input w-full py-2 pl-8 pr-2 text-[13px]" />
           </div>
 
-          <div className="flex-1 overflow-y-auto scrollbar-thin space-y-1 min-h-0">
+          <div className="min-h-0 flex-1 space-y-1 overflow-y-auto">
             {obyektlar.isLoading && <div className="skel h-10 rounded" />}
             {royxat.map((o) => {
-              const svodYoq = !o.svodName || o.svodName === "(yo'q)";
-              const lokYoq = !o.lokName || o.lokName === "(yo'q)";
+              const svodYoq = yoqmi(o.svodName) && !o.narxTayyor;
+              const lokYoq = yoqmi(o.lokName);
               const ozgargan = !!ozgarish[o.obyekt];
               return (
-                <button key={o.obyekt} onClick={() => setTanlangan(o.obyekt)}
-                  className={`w-full text-left px-2.5 py-2 rounded-lg border transition-colors
-                    ${tanlangan === o.obyekt
-                      ? 'bg-accent/15 border-accent/40'
-                      : 'bg-[var(--surface-2)]/40 border-border hover:bg-white/5'}`}>
+                <button key={o.obyekt} type="button" onClick={() => setTanlangan(o.obyekt)} aria-current={tanlangan === o.obyekt ? 'true' : undefined}
+                  className={`w-full rounded-lg border px-2.5 py-2 text-left transition-colors ${tanlangan === o.obyekt ? 'border-accent/40 bg-accent/10' : 'border-border bg-surface hover:bg-surface-2'}`}>
                   <div className="flex items-start gap-1.5">
-                    <span className="flex-1 text-[12px] text-text leading-tight break-words">
-                      {o.obyekt}
-                    </span>
-                    {ozgargan && <span className="text-[9px] text-amber-400 flex-shrink-0">●</span>}
+                    <span className="flex-1 break-words text-[12.5px] leading-tight text-text">{o.obyekt}</span>
+                    {ozgargan && <span className="fz-chip fz-chip--accent">{tr('o‘zgargan')}</span>}
                   </div>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    {lokYoq
-                      ? <span className="text-[9px] px-1 rounded bg-danger/20 text-danger">smeta yo'q</span>
-                      : <span className="text-[9px] px-1 rounded bg-emerald-500/15 text-emerald-400">smeta ✓</span>}
-                    {svodYoq
-                      ? <span className="text-[9px] px-1 rounded bg-warn/20 text-warn">svodka yo'q</span>
-                      : <span className="text-[9px] px-1 rounded bg-emerald-500/15 text-emerald-400">svodka ✓</span>}
-                    <span className="text-[9px] px-1 rounded bg-white/5 text-text-mute">{o.format || 'TN'}</span>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                    <span className={`fz-chip ${lokYoq ? 'fz-chip--danger' : 'fz-chip--accent'}`}>{lokYoq ? tr('smeta yo‘q') : tr('smeta bor')}</span>
+                    <span className={`fz-chip ${svodYoq ? 'fz-chip--warn' : 'fz-chip--accent'}`}>{svodYoq ? tr('narx manbai yo‘q') : o.narxTayyor && yoqmi(o.svodName) ? tr('narx smetada') : tr('svodka bor')}</span>
+                    <span className="fz-chip">{o.format || 'TN'}</span>
                   </div>
                 </button>
               );
@@ -183,202 +202,110 @@ export default function FaylBoglash() {
           </div>
 
           {ozgarganSoni > 0 && (
-            <button onClick={saqlash} disabled={saqla.isPending}
-              className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg
-                         bg-accent text-white text-[13px] font-medium hover:bg-accent/90
-                         transition-colors disabled:opacity-50">
+            <button type="button" onClick={saqlash} disabled={saqla.isPending} className="fz-btn fz-btn--primary">
               <Save size={15} />
-              {saqla.isPending ? 'Saqlanmoqda…' : `${ozgarganSoni} ta o'zgarishni saqlash`}
+              {saqla.isPending ? tr('Saqlanmoqda…') : tr('{n} ta o‘zgarishni saqlash', { n: ozgarganSoni })}
             </button>
           )}
         </div>
 
         {/* ── O'NG: sozlama ──────────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin min-h-0 pr-1">
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
           {!joriy ? (
-            <div className="karta p-6 text-center text-text-mute text-sm">
-              Chapdan obyekt tanlang
-            </div>
+            <div className="fz-card p-6 text-center text-[13px] text-text-mute">{tr('Chapdan obyekt tanlang')}</div>
           ) : (
             <div className="space-y-4">
-              <div className="karta p-4">
-                <h3 className="text-[15px] font-semibold text-text mb-3 flex items-center gap-2">
-                  <FileSpreadsheet size={17} className="text-accent" />
-                  {joriy.obyekt}
-                </h3>
-
-                {/* Fayllar */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <section className="fz-card p-4">
+                <h3 className="fz-card__title mb-3 flex items-center gap-2"><FileSpreadsheet size={17} className="text-accent" />{joriy.obyekt}</h3>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                   <div>
-                    <label className="text-[12px] font-medium text-text block mb-1.5">
-                      Smeta fayli (лок)
-                    </label>
-                    <select value={String(q('lokId') || '')}
-                      onChange={(e) => {
-                        const c = joriy.candidates?.find((x) => x.id === e.target.value);
-                        yoz('lokId', e.target.value);
-                        yoz('lokName', c?.name || '');
-                        yoz('lokSheets', []);
-                      }}
-                      className="w-full bg-[var(--surface-2)] border border-border rounded
-                                 px-2 py-1.5 text-[12px] text-text">
-                      <option value="">— tanlanmagan —</option>
-                      {(joriy.candidates ?? []).map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                      {joriy.lokId && !joriy.candidates?.some((c) => c.id === joriy.lokId) && (
-                        <option value={joriy.lokId}>{joriy.lokName} (joriy)</option>
-                      )}
-                    </select>
+                    <span className="mb-1.5 block text-[12px] font-medium text-text">{tr('1. Smeta fayli (лок)')}</span>
+                    {faylTanlov('lokId', 'lokName', 'lokSheets', joriy.lokId, joriy.lokName)}
                     <div className="mt-2">
-                      <p className="text-[11px] text-text-mute mb-1">O'qiladigan varaqlar:</p>
-                      {varaqTanlov(lokVaraqlar.data, q('lokSheets') as string[],
-                        (v) => yoz('lokSheets', v),
-                        lokVaraqlar.isLoading ? 'Varaqlar o\'qilmoqda…' : 'Avval faylni tanlang')}
+                      <p className="mb-1 text-[12px] text-text-mute">{tr('O‘qiladigan varaqlar')}:</p>
+                      {varaqTanlov(lokVaraqlar.data, q('lokSheets') as string[], (v) => yoz('lokSheets', v), lokVaraqlar.isLoading ? tr('Varaqlar o‘qilmoqda…') : tr('Avval faylni tanlang'))}
                     </div>
                   </div>
-
                   <div>
-                    <label className="text-[12px] font-medium text-text block mb-1.5">
-                      Svodka fayli (нарх манбаи)
-                    </label>
-                    <select value={String(q('svodId') || '')}
-                      onChange={(e) => {
-                        const c = joriy.candidates?.find((x) => x.id === e.target.value);
-                        yoz('svodId', e.target.value);
-                        yoz('svodName', c?.name || '');
-                        yoz('svodSheets', []);
-                      }}
-                      className="w-full bg-[var(--surface-2)] border border-border rounded
-                                 px-2 py-1.5 text-[12px] text-text">
-                      <option value="">— tanlanmagan —</option>
-                      {(joriy.candidates ?? []).map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                      {joriy.svodId && !joriy.candidates?.some((c) => c.id === joriy.svodId) && (
-                        <option value={joriy.svodId}>{joriy.svodName} (joriy)</option>
-                      )}
-                    </select>
+                    <span className="mb-1.5 block text-[12px] font-medium text-text">{tr('2. Svodka fayli (нарх манбаи)')}</span>
+                    {faylTanlov('svodId', 'svodName', 'svodSheets', joriy.svodId, joriy.svodName)}
                     <div className="mt-2">
-                      <p className="text-[11px] text-text-mute mb-1">O'qiladigan varaqlar:</p>
-                      {varaqTanlov(svodVaraqlar.data, q('svodSheets') as string[],
-                        (v) => yoz('svodSheets', v),
-                        svodVaraqlar.isLoading ? 'Varaqlar o\'qilmoqda…' : 'Avval faylni tanlang')}
+                      <p className="mb-1 text-[12px] text-text-mute">{tr('O‘qiladigan varaqlar')}:</p>
+                      {varaqTanlov(svodVaraqlar.data, q('svodSheets') as string[], (v) => yoz('svodSheets', v), svodVaraqlar.isLoading ? tr('Varaqlar o‘qilmoqda…') : tr('Avval faylni tanlang'))}
                     </div>
                   </div>
                 </div>
-              </div>
+              </section>
 
-              {/* Format + narxTayyor */}
-              <div className="karta p-4 space-y-3">
-                <div className="flex items-center gap-4 flex-wrap">
-                  <div>
-                    <label className="text-[12px] font-medium text-text block mb-1.5">Format</label>
-                    <select value={String(q('format') || 'TN')}
-                      onChange={(e) => yoz('format', e.target.value)}
-                      className="bg-[var(--surface-2)] border border-border rounded
-                                 px-3 py-1.5 text-[12px] text-text">
+              <section className="fz-card space-y-3 p-4">
+                <div className="flex flex-wrap items-center gap-4">
+                  <label className="block text-[12px] font-medium text-text">{tr('3. Format')}
+                    <select value={String(q('format') || 'TN')} onChange={(e) => yoz('format', e.target.value)} className="input mt-1.5 block px-3 py-1.5 text-[12.5px]">
                       <option value="TN">TN</option>
                       <option value="ABC">ABC</option>
                     </select>
-                  </div>
-
-                  {/* ⚡ narxTayyor — smeta ichida narx allaqachon bor bo'lsa,
-                      svodka TALAB QILINMAYDI (dvigatel uni o'tkazib yuboradi) */}
-                  <label className="flex items-start gap-2 cursor-pointer mt-5">
-                    <input type="checkbox" checked={!!q('narxTayyor')}
-                      onChange={(e) => yoz('narxTayyor', e.target.checked)}
-                      className="accent-[var(--accent)] cursor-pointer mt-0.5" />
-                    <span className="text-[12px] text-text leading-snug">
-                      Narx tayyor
-                      <span className="block text-[10px] text-text-mute">
-                        Smetada narx allaqachon bor — svodka talab qilinmaydi
-                      </span>
+                  </label>
+                  {/* ⚡ narxTayyor — smeta ichida narx allaqachon bor bo'lsa, svodka TALAB QILINMAYDI (dvigatel uni o'tkazib yuboradi) */}
+                  <label className="mt-5 flex cursor-pointer items-start gap-2">
+                    <input type="checkbox" checked={!!q('narxTayyor')} onChange={(e) => yoz('narxTayyor', e.target.checked)} className="mt-0.5 cursor-pointer" />
+                    <span className="text-[12.5px] leading-snug text-text">{tr('Narx tayyor')}
+                      <span className="block text-[11.5px] text-text-mute">{tr('Smetada narx allaqachon bor — svodka talab qilinmaydi')}</span>
                     </span>
                   </label>
                 </div>
-
                 {!q('svodId') && !q('narxTayyor') && (
-                  <div className="flex items-start gap-2 p-2 rounded bg-warn/10 border border-warn/30">
-                    <AlertTriangle size={14} className="text-warn flex-shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-warn leading-snug">
-                      Svodka tanlanmagan va «Narx tayyor» ham belgilanmagan —
-                      <b> narxlash ishlamaydi</b> va obyekt hisoblanmaydi.
-                    </p>
-                  </div>
+                  <p className="fz-note fz-note--warn"><AlertTriangle aria-hidden="true" />{tr('Svodka tanlanmagan va «Narx tayyor» ham belgilanmagan — narxlash ishlamaydi va obyekt hisoblanmaydi.')}</p>
                 )}
-              </div>
+              </section>
 
-              {/* Svodka ustunlari */}
-              <div className="karta p-4">
-                <h4 className="text-[13px] font-semibold text-text mb-1">Svodka ustunlari</h4>
-                <p className="text-[11px] text-text-mute mb-3">
-                  Svodka faylida qaysi ma'lumot qaysi ustunda turishi (raqam bilan: A=1, B=2…).
-                  Bo'sh qoldirilsa tizim o'zi topishga urinadi.
-                  <b className="text-text"> Papkadagi barcha lokalkaga tarqaladi.</b>
-                </p>
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+              <section className="fz-card p-4">
+                <h4 className="fz-card__title text-[14px]">{tr('4. Svodka ustunlari')}</h4>
+                <p className="mb-3 mt-1 text-[12px] text-text-mute">{tr('Svodka faylida qaysi ma’lumot qaysi ustunda turishi (raqam bilan: A=1, B=2…). Bo‘sh qoldirilsa tizim o‘zi topishga urinadi. Papkadagi barcha lokalkaga tarqaladi.')}</p>
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
                   {SVOD_USTUN.map((u) => (
                     <div key={u.kalit}>
-                      <label className="text-[11px] font-medium text-text block mb-1">
-                        {u.nom}
-                        {u.kalit === 'narx' && <span className="text-danger"> *</span>}
+                      <label className="mb-1 block text-[12px] font-medium text-text" htmlFor={`svod-${u.kalit}`}>
+                        {u.nom}{u.kalit === 'narx' && <span className="text-danger"> *</span>}
                       </label>
-                      <input type="number" min={1}
+                      <input id={`svod-${u.kalit}`} type="number" min={1}
                         value={String((q('svodCols') as Record<string, number>)?.[u.kalit] ?? '')}
                         onChange={(e) => yoz('svodCols', {
                           ...((q('svodCols') as Record<string, number>) || {}),
                           [u.kalit]: e.target.value ? Number(e.target.value) : undefined,
                         } as BoglashYozuv['svodCols'])}
-                        placeholder="—"
-                        className="w-full bg-[var(--surface-2)] border border-border rounded
-                                   px-2 py-1.5 text-[12px] text-text outline-none focus:border-accent/50" />
-                      <p className="text-[10px] text-text-mute mt-0.5 leading-tight">{u.izoh}</p>
+                        placeholder="—" className="input w-full px-2 py-1.5 text-[12.5px]" />
+                      <p className="mt-0.5 text-[11px] leading-tight text-text-mute">{tr(u.izoh)}</p>
                     </div>
                   ))}
                 </div>
-                <button
+                <button type="button"
                   onClick={() => {
                     const sc = (q('svodCols') as Record<string, number>) || {};
                     svodSaqla.mutate({ obyekt: tanlangan, svodCols: sc }, {
-                      onSuccess: () => toast('Svodka ustunlari saqlandi (papkadagi barcha lokalkaga)', 'ok', undefined, 7000),
+                      onSuccess: () => toast(tr('Svodka ustunlari saqlandi (papkadagi barcha lokalkaga)'), 'ok', undefined, 7000),
                       onError: (e: Error) => toast(e.message, 'danger'),
                     });
                   }}
-                  disabled={svodSaqla.isPending}
-                  className="mt-3 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-border
-                             text-[12px] text-text transition-colors disabled:opacity-50">
-                  {svodSaqla.isPending ? 'Saqlanmoqda…' : 'Faqat ustunlarni saqlash'}
+                  disabled={svodSaqla.isPending} className="fz-btn fz-btn--sm mt-3">
+                  {svodSaqla.isPending ? tr('Saqlanmoqda…') : tr('Faqat ustunlarni saqlash')}
                 </button>
-              </div>
+              </section>
 
               {ozgarish[tanlangan] && (
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
-                  <RefreshCw size={14} className="text-amber-400 flex-shrink-0" />
-                  <p className="text-[12px] text-amber-300 flex-1">
-                    Bu obyektda saqlanmagan o'zgarish bor. Chapdagi tugma bilan saqlang.
-                  </p>
-                  <button
-                    onClick={() => setOzgarish((p) => {
-                      const n = { ...p }; delete n[tanlangan]; return n;
-                    })}
-                    className="text-[11px] px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-text-mute">
-                    Bekor qilish
-                  </button>
+                <div className="fz-note fz-note--warn" style={{ alignItems: 'center' }}>
+                  <RefreshCw aria-hidden="true" />
+                  <span className="flex-1">{tr('Bu obyektda saqlanmagan o‘zgarish bor. Chapdagi tugma bilan saqlang.')}</span>
+                  <button type="button" onClick={() => setOzgarish((p) => { const n = { ...p }; delete n[tanlangan]; return n; })} className="fz-btn fz-btn--ghost fz-btn--sm">{tr('Bekor qilish')}</button>
                 </div>
               )}
 
               {!ozgarish[tanlangan] && joriy.svodId && (
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/25">
-                  <CheckCircle2 size={14} className="text-emerald-400 flex-shrink-0" />
-                  <p className="text-[12px] text-emerald-300">
-                    Sozlama to'liq — bu obyekt hisoblanishga tayyor.
-                  </p>
-                </div>
+                <p className="fz-note fz-note--info"><CheckCircle2 aria-hidden="true" />{tr('Sozlama to‘liq — bu obyekt hisoblanishga tayyor.')}</p>
               )}
             </div>
           )}
         </div>
+      </div>
       </div>
     </Sahifa>
   );

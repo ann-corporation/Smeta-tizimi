@@ -90,6 +90,14 @@ export function sbT2ZamenaIshYarat(p: T2ZamenaIshYaratInput): Promise<AktNatija>
   });
 }
 
+/**
+ * Zamena qatori: «aslning qancha hajmini almashtiradi» (ASLNING birligida, zamenaning TO'LIQ rejalangan hajmi uchun).
+ * hajm: null -- tozalash (birlik farqli bo'lsa asl to'liq almashtirilgan hisoblanadi). Faqat t2_qator.almashtirish_hajm yoziladi.
+ */
+export function sbT2ZamenaAlmashtirishBelgila(p: { kompaniyaId: number; qatorId: number; hajm: number | null }): Promise<AktNatija & { almashtirilgan_hajm?: number }> {
+  return yozAmali({ amal: 'zamena_almashtirish_belgila_v1', kompaniya_id: p.kompaniyaId, qator_id: p.qatorId, hajm: p.hajm }) as Promise<AktNatija & { almashtirilgan_hajm?: number }>;
+}
+
 /** TAKLIF qilingan server command: `resurs_bola_qosh_v1`. */
 export function sbT2ResursBolaQosh(p: T2ResursBolaQoshInput): Promise<AktNatija> {
   return yozAmali({

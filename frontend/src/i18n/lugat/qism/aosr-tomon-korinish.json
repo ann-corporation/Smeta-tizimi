@@ -1,0 +1,454 @@
+{
+ "Ish nomini kiriting": {
+  "ru": "Введите наименование работ",
+  "en": "Enter the work name"
+ },
+ "Akt boshqa joyda o‘zgargan — qayta yuklang": {
+  "ru": "Акт изменён в другом месте — перезагрузите",
+  "en": "The act was changed elsewhere — reload"
+ },
+ "✓ Akt saqlandi": {
+  "ru": "✓ Акт сохранён",
+  "en": "✓ Act saved"
+ },
+ "Kompaniyani tanlang": {
+  "ru": "Выберите компанию",
+  "en": "Choose a company"
+ },
+ "Excel yasalmadi: {x}": {
+  "ru": "Excel не сформирован: {x}",
+  "en": "Excel was not built: {x}"
+ },
+ "Reestr yasalmadi: {x}": {
+  "ru": "Реестр не сформирован: {x}",
+  "en": "Register was not built: {x}"
+ },
+ "Aktni oching va kamida bitta ish belgilang": {
+  "ru": "Откройте акт и отметьте хотя бы одну работу",
+  "en": "Open an act and tick at least one work"
+ },
+ "✓ {n} ta ish ulandi": {
+  "ru": "✓ Привязано работ: {n}",
+  "en": "✓ {n} works linked"
+ },
+ "Aktni bekor qilish": {
+  "ru": "Отмена акта",
+  "en": "Cancel act"
+ },
+ "Akt № {r} bekor qilinsinmi? (o‘chirilmaydi, tarixda qoladi)": {
+  "ru": "Отменить акт № {r}? (не удаляется, остаётся в истории)",
+  "en": "Cancel act No. {r}? (not deleted, stays in history)"
+ },
+ "Akt bekor qilindi": {
+  "ru": "Акт отменён",
+  "en": "Act cancelled"
+ },
+ "Protokol raqamini kiriting": {
+  "ru": "Введите номер протокола",
+  "en": "Enter the protocol number"
+ },
+ "Protokol saqlandi, lekin aktlarga bog‘lanmadi: {x}": {
+  "ru": "Протокол сохранён, но не привязан к актам: {x}",
+  "en": "Protocol saved but not linked to acts: {x}"
+ },
+ "Protokol boshqa joyda o‘zgargan — qayta yuklang": {
+  "ru": "Протокол изменён в другом месте — перезагрузите",
+  "en": "The protocol was changed elsewhere — reload"
+ },
+ "✓ Protokol saqlandi": {
+  "ru": "✓ Протокол сохранён",
+  "en": "✓ Protocol saved"
+ },
+ "Protokolni bekor qilish": {
+  "ru": "Отмена протокола",
+  "en": "Cancel protocol"
+ },
+ "Protokol № {r} bekor qilinsinmi?": {
+  "ru": "Отменить протокол № {r}?",
+  "en": "Cancel protocol No. {r}?"
+ },
+ "— laboratoriya ko‘rsatilmagan —": {
+  "ru": "— лаборатория не указана —",
+  "en": "— laboratory not specified —"
+ },
+ "Ijro hujjatlari ko‘rsatkichlari": {
+  "ru": "Показатели исполнительной документации",
+  "en": "As-built documentation indicators"
+ },
+ "Yashirin ishlar qoplamasi": {
+  "ru": "Покрытие скрытых работ",
+  "en": "Hidden works coverage"
+ },
+ "{a} / {j} yashirin ish АОСР bilan": {
+  "ru": "{a} / {j} скрытых работ с АОСР",
+  "en": "{a} / {j} hidden works with AOSR"
+ },
+ "yashirin ish belgilanmagan": {
+  "ru": "скрытые работы не отмечены",
+  "en": "no hidden works marked"
+ },
+ "Aktsiz yashirin ish": {
+  "ru": "Скрытые работы без акта",
+  "en": "Hidden works without act"
+ },
+ "F2 bloklanmaydi — ogohlantirish": {
+  "ru": "Ф-2 не блокируется — предупреждение",
+  "en": "F2 is not blocked — warning only"
+ },
+ "Faol aktlar": {
+  "ru": "Действующие акты",
+  "en": "Active acts"
+ },
+ "{n} tasi tasdiqlangan yoki imzolangan": {
+  "ru": "утверждено или подписано: {n}",
+  "en": "{n} approved or signed"
+ },
+ "Laboratoriya protokollari": {
+  "ru": "Протоколы лаборатории",
+  "en": "Laboratory protocols"
+ },
+ "mos: {m} · mos emas: {e} · kutilmoqda: {k}": {
+  "ru": "соотв.: {m} · не соотв.: {e} · ожидается: {k}",
+  "en": "pass: {m} · fail: {e} · pending: {k}"
+ },
+ "Ijro hujjatlari bo‘limlari": {
+  "ru": "Разделы исполнительной документации",
+  "en": "As-built documentation sections"
+ },
+ "Aktlar (АОСР)": {
+  "ru": "Акты (АОСР)",
+  "en": "Acts (AOSR)"
+ },
+ "{n} ta yashirin ish bajarilgan, lekin АОСР yo‘q. F2 bloklanmaydi — faqat ogohlantirish.": {
+  "ru": "Выполнено скрытых работ без АОСР: {n}. Ф-2 не блокируется — только предупреждение.",
+  "en": "{n} hidden works done without an AOSR. F2 is not blocked — warning only."
+ },
+ "Bajarilgan ishlar": {
+  "ru": "Выполненные работы",
+  "en": "Completed works"
+ },
+ "Belgilang → akt yarating yoki ochiq aktga ulang": {
+  "ru": "Отметьте → создайте акт или привяжите к открытому",
+  "en": "Tick → create an act or link to the open one"
+ },
+ "faqat aktsiz": {
+  "ru": "только без акта",
+  "en": "without act only"
+ },
+ "Belgilanganlardan akt ({n})": {
+  "ru": "Акт из отмеченных ({n})",
+  "en": "Act from ticked ({n})"
+ },
+ "Ochiq aktga ulash": {
+  "ru": "Привязать к открытому акту",
+  "en": "Link to open act"
+ },
+ "Bajarilgan ish topilmadi": {
+  "ru": "Выполненные работы не найдены",
+  "en": "No completed works found"
+ },
+ "Yashirin ish — akt talab qilinadi": {
+  "ru": "Скрытая работа — требуется акт",
+  "en": "Hidden work — act required"
+ },
+ "akt": {
+  "ru": "акт",
+  "en": "act"
+ },
+ "aktsiz": {
+  "ru": "без акта",
+  "en": "no act"
+ },
+ "Akt reestri": {
+  "ru": "Реестр актов",
+  "en": "Act register"
+ },
+ "Akt reestri ({n})": {
+  "ru": "Реестр актов ({n})",
+  "en": "Act register ({n})"
+ },
+ "РЕЕСТР АОСР (Excel)": {
+  "ru": "РЕЕСТР АОСР (Excel)",
+  "en": "AOSR REGISTER (Excel)"
+ },
+ "Reestr": {
+  "ru": "Реестр",
+  "en": "Register"
+ },
+ "Yangi akt": {
+  "ru": "Новый акт",
+  "en": "New act"
+ },
+ "Akt № {r}": {
+  "ru": "Акт № {r}",
+  "en": "Act No. {r}"
+ },
+ "Akt sanasi": {
+  "ru": "Дата акта",
+  "en": "Act date"
+ },
+ "Blank": {
+  "ru": "Бланк",
+  "en": "Form"
+ },
+ "Subpudratchisiz": {
+  "ru": "Без субподрядчика",
+  "en": "Without subcontractor"
+ },
+ "Subpudratchili": {
+  "ru": "С субподрядчиком",
+  "en": "With subcontractor"
+ },
+ "Ish nomi (sarlavha) *": {
+  "ru": "Наименование работ (заголовок) *",
+  "en": "Work name (title) *"
+ },
+ "1. Taqdim etilgan ishlar (har qator — alohida band)": {
+  "ru": "1. Предъявленные работы (каждая строка — отдельный пункт)",
+  "en": "1. Works presented (each line is a separate item)"
+ },
+ "2. Loyiha tashkiloti": {
+  "ru": "2. Проектная организация",
+  "en": "2. Design organization"
+ },
+ "Chizmalar № / sana": {
+  "ru": "№ / дата чертежей",
+  "en": "Drawings No. / date"
+ },
+ "3. Qo‘llangan materiallar (sertifikat/hujjat havolasi bilan)": {
+  "ru": "3. Применённые материалы (со ссылкой на сертификат/документ)",
+  "en": "3. Materials used (with certificate/document reference)"
+ },
+ "4. Loyihadan chetlanishlar": {
+  "ru": "4. Отступления от проекта",
+  "en": "4. Deviations from design"
+ },
+ "5. Boshlanish": {
+  "ru": "5. Начало",
+  "en": "5. Start"
+ },
+ "Tugash": {
+  "ru": "Окончание",
+  "en": "Finish"
+ },
+ "Keyingi ishlarga ruxsat (ishlar va konstruksiyalar)": {
+  "ru": "Разрешение на последующие работы (работы и конструкции)",
+  "en": "Permission for subsequent works (works and structures)"
+ },
+ "Komissiya va imzolar": {
+  "ru": "Комиссия и подписи",
+  "en": "Commission and signatures"
+ },
+ "A’zoni olib tashlash": {
+  "ru": "Удалить члена",
+  "en": "Remove member"
+ },
+ "Akt holati": {
+  "ru": "Статус акта",
+  "en": "Act status"
+ },
+ "Akt yo‘q — chapdan ishlarni belgilab akt yarating": {
+  "ru": "Актов нет — отметьте работы слева и создайте акт",
+  "en": "No acts — tick works on the left and create one"
+ },
+ "sana yo‘q": {
+  "ru": "без даты",
+  "en": "no date"
+ },
+ "{n} protokol": {
+  "ru": "протоколов: {n}",
+  "en": "{n} protocols"
+ },
+ "Excel (blank)": {
+  "ru": "Excel (бланк)",
+  "en": "Excel (form)"
+ },
+ "Laboratoriya protokollari ({n})": {
+  "ru": "Протоколы лаборатории ({n})",
+  "en": "Laboratory protocols ({n})"
+ },
+ "РЕЕСТР ПРОТОКОЛОВ (Excel)": {
+  "ru": "РЕЕСТР ПРОТОКОЛОВ (Excel)",
+  "en": "PROTOCOL REGISTER (Excel)"
+ },
+ "Protokol": {
+  "ru": "Протокол",
+  "en": "Protocol"
+ },
+ "Laboratoriya kompaniyasi yo‘q. Kontragentlar ro‘yxatiga «laboratoriya» roli bilan qo‘shing.": {
+  "ru": "Нет компании-лаборатории. Добавьте её в контрагенты с ролью «лаборатория».",
+  "en": "No laboratory company. Add one to counterparties with the “laboratory” role."
+ },
+ "№ / sana": {
+  "ru": "№ / дата",
+  "en": "No. / date"
+ },
+ "Sinov": {
+  "ru": "Испытание",
+  "en": "Test"
+ },
+ "Konstruksiya · marka": {
+  "ru": "Конструкция · марка",
+  "en": "Structure · grade"
+ },
+ "ilova qilinmagan": {
+  "ru": "не приложен",
+  "en": "not attached"
+ },
+ "Laboratoriyalar bo‘yicha jami": {
+  "ru": "Итого по лабораториям",
+  "en": "Totals by laboratory"
+ },
+ "{n} mos emas": {
+  "ru": "не соответствует: {n}",
+  "en": "{n} failed"
+ },
+ "{n} ta summasiz": {
+  "ru": "без суммы: {n}",
+  "en": "{n} without amount"
+ },
+ "Protokolni tanlang yoki yangisini qo‘shing.": {
+  "ru": "Выберите протокол или добавьте новый.",
+  "en": "Select a protocol or add a new one."
+ },
+ "Protokol № {r}": {
+  "ru": "Протокол № {r}",
+  "en": "Protocol No. {r}"
+ },
+ "Yangi protokol": {
+  "ru": "Новый протокол",
+  "en": "New protocol"
+ },
+ "Protokol № *": {
+  "ru": "Протокол № *",
+  "en": "Protocol No. *"
+ },
+ "Sinov turi": {
+  "ru": "Вид испытания",
+  "en": "Test type"
+ },
+ "Konstruksiya": {
+  "ru": "Конструкция",
+  "en": "Structure"
+ },
+ "Фундамент Фм-1": {
+  "ru": "Фундамент Фм-1",
+  "en": "Foundation Fm-1"
+ },
+ "Marka / klass": {
+  "ru": "Марка / класс",
+  "en": "Grade / class"
+ },
+ "м3": {
+  "ru": "м3",
+  "en": "m3"
+ },
+ "Invoys №": {
+  "ru": "Счёт №",
+  "en": "Invoice No."
+ },
+ "Invoys sanasi": {
+  "ru": "Дата счёта",
+  "en": "Invoice date"
+ },
+ "Summa (bo‘sh — noma’lum)": {
+  "ru": "Сумма (пусто — неизвестно)",
+  "en": "Amount (blank — unknown)"
+ },
+ "Qaysi aktlarga ilova": {
+  "ru": "К каким актам приложить",
+  "en": "Attach to which acts"
+ },
+ "Akt yo‘q": {
+  "ru": "Актов нет",
+  "en": "No acts"
+ },
+ "Qiymat yo‘q bo‘lsa — bo‘sh qoladi (o‘ylab topilmaydi); Excel blankida to‘ldirish chizig‘i chiqadi.": {
+  "ru": "Если значения нет — поле остаётся пустым (не выдумывается); в бланке Excel будет линия для заполнения.",
+  "en": "Missing values stay blank (never invented); the Excel form shows a fill-in line."
+ },
+ "Ijro hujjatlari: АОСР va laboratoriya": {
+  "ru": "Исполнительная документация: АОСР и лаборатория",
+  "en": "As-built documents: AOSR and laboratory"
+ },
+ "Yashirin ishlar dalolatnomasi (АОСР) bajarilgan har yashirin ishni qoplashi kerak; laboratoriya protokollari aktlarga ilova qilinadi.": {
+  "ru": "Акт освидетельствования скрытых работ (АОСР) должен покрывать каждую выполненную скрытую работу; протоколы лаборатории прикладываются к актам.",
+  "en": "The hidden-works act (AOSR) must cover every hidden work done; laboratory protocols are attached to acts."
+ },
+ "Kabinet ko‘rsatkichlari": {
+  "ru": "Показатели кабинета",
+  "en": "Dashboard indicators"
+ },
+ "Obyekt ko‘rsatkichlari": {
+  "ru": "Показатели объекта",
+  "en": "Site indicators"
+ },
+ "Bajarilish: sertifikatlangan F2 / shartnoma (QQSsiz)": {
+  "ru": "Выполнение: сертифицированные Ф-2 / договор (без НДС)",
+  "en": "Progress: certified F2 / contract (excl. VAT)"
+ },
+ "shartnomadan oshgan": {
+  "ru": "превышен договор",
+  "en": "contract exceeded"
+ },
+ "qolgan: {f}%": {
+  "ru": "осталось: {f}%",
+  "en": "remaining: {f}%"
+ },
+ "Hujjatlar holati": {
+  "ru": "Статус документов",
+  "en": "Document status"
+ },
+ "Yuborilgan hujjatlar holati": {
+  "ru": "Статус отправленных документов",
+  "en": "Submitted document status"
+ },
+ "Oy hissasi": {
+  "ru": "Доля месяца",
+  "en": "Month share"
+ },
+ "eng katta aktga nisbatan": {
+  "ru": "относительно наибольшего акта",
+  "en": "relative to the largest act"
+ },
+ "Yuborilgan hujjat": {
+  "ru": "Отправленный документ",
+  "en": "Submitted document"
+ },
+ "Kimdan": {
+  "ru": "От кого",
+  "en": "From"
+ },
+ "Yo‘nalish": {
+  "ru": "Направление",
+  "en": "Direction"
+ },
+ "Qurilish-montaj tashkiloti (СМО)": {
+  "ru": "Строительно-монтажная организация (СМО)",
+  "en": "Construction contractor (SMO)"
+ },
+ "Texnik nazorat (buyurtmachi)": {
+  "ru": "Технадзор (заказчик)",
+  "en": "Technical supervision (client)"
+ },
+ "Loyihachi (avtorlik nazorati)": {
+  "ru": "Проектировщик (авторский надзор)",
+  "en": "Designer (author supervision)"
+ },
+ "АОСР (yashirin ishlar)": {
+  "ru": "АОСР (скрытые работы)",
+  "en": "AOSR (hidden works)"
+ },
+ "Oraliq qabul (mas’ul konstruksiyalar)": {
+  "ru": "Промежуточная приёмка (ответственные конструкции)",
+  "en": "Interim acceptance (critical structures)"
+ },
+ "Sinov akti": {
+  "ru": "Акт испытания",
+  "en": "Test act"
+ },
+ "Qog‘ozda imzolangan": {
+  "ru": "Подписан на бумаге",
+  "en": "Signed on paper"
+ }
+}

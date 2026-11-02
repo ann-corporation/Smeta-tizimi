@@ -223,10 +223,17 @@ export function ishniBogla(ij: IshJoyi, fIsh: F2Tugun, sIshId: number, S: SmetaI
   const band = new Set<number>();
   let boglandi = 0, qoldi = 0;
   const havza = resursHavzasi(S, sIshId, ichki);
+  const oldingiIsh = ij.bog.get(fIsh.uid);
   for (const r of fIsh.bolalar) {
     const joriy = bog.get(r.uid);
     const hv = havza(r);
     if (joriy?.holat === 'qolda' && hv.some((t) => t.id === joriy.qatorId)) { band.add(joriy.qatorId); boglandi++; continue; }
+    // Egasi 2026-10-25 (Sun'iy ko'l): operator resursni QO'LDA boshqa smeta qatoriga bog'lagan bo'lsa (ishning avvalgi
+    // bog'lanishi ichida emas va qator smetada bor) — ish qayta bog'langanda u tortib olinmaydi, o'z bog'lanishi saqlanadi.
+    if (joriy && joriy.holat === 'qolda' && joriy.usul === 'qolda' && !joriy.taqsim) {
+      const t = S.byId.get(joriy.qatorId);
+      if (t && joriy.qatorId !== oldingiIsh?.qatorId && t.otaId !== oldingiIsh?.qatorId) continue;
+    }
     bog.delete(r.uid);
     const bosh = hv.filter((t) => !band.has(t.id));
     const t = resursMosTop(r, bosh);

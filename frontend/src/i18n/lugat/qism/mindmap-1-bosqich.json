@@ -1,0 +1,178 @@
+{
+  "Belgi va ochiq signal yo‘q": {
+    "ru": "Нет отметок и открытых сигналов",
+    "en": "No flags or open signals"
+  },
+  "Belgilar va signallar soni (qizil — muammo/kritik, sariq — e’tibor)": {
+    "ru": "Число отметок и сигналов (красный — проблема/критично, жёлтый — внимание)",
+    "en": "Number of flags and signals (red — problem/critical, yellow — attention)"
+  },
+  "F2 (tasdiqlangan) + bajarilgan (fakt) / smeta (ustamasiz)": {
+    "ru": "Ф-2 (утверждённые) + выполнено (факт) / смета (без наценки)",
+    "en": "F2 (approved) + completed (actual) / estimate (no markup)"
+  },
+  "F2 (tasdiqlangan) / smeta": {
+    "ru": "Ф-2 (утверждённые) / смета",
+    "en": "F2 (approved) / estimate"
+  },
+  "F2 (tasdiqlangan) {p}": {
+    "ru": "Ф-2 (утверждённые) {p}",
+    "en": "F2 (approved) {p}"
+  },
+  "F2 asosi noma’lum: server hali yangilanmagan, qoralama F2 ham hisoblangan bo‘lishi mumkin.": {
+    "ru": "Основа Ф-2 неизвестна: сервер ещё не обновлён, черновики Ф-2 могли быть учтены.",
+    "en": "F2 basis unknown: the server is not updated yet, draft F2 may be included."
+  },
+  "F2 asosi noma’lum: server hali yangilanmagan, qoralama ham hisoblangan bo‘lishi mumkin.": {
+    "ru": "Основа Ф-2 неизвестна: сервер ещё не обновлён, черновики могли быть учтены.",
+    "en": "F2 basis unknown: the server is not updated yet, drafts may be included."
+  },
+  "F2 fakt yoki smetadan oshgan (overbilling radari) — tekshiring.": {
+    "ru": "Ф-2 превышает факт или смету (радар переплат) — проверьте.",
+    "en": "F2 exceeds actuals or estimate (overbilling radar) — please check."
+  },
+  "F2 ga kirmaydi": {
+    "ru": "не входит в Ф-2",
+    "en": "not part of F2"
+  },
+  "F2 ortiqcha": {
+    "ru": "Ф-2 превышает",
+    "en": "F2 exceeds"
+  },
+  "F2 qoralama (tasdiqlanmagan)": {
+    "ru": "Черновик Ф-2 (не утверждён)",
+    "en": "F2 draft (not approved)"
+  },
+  "Fakt / smeta (ustamasiz)": {
+    "ru": "Факт / смета (без наценки)",
+    "en": "Actual / estimate (no markup)"
+  },
+  "Faqat ko‘rish rejimi": {
+    "ru": "Режим только просмотра",
+    "en": "View-only mode"
+  },
+  "Faqat ko‘rish: bu xarita joriy kompaniyangiz emas.": {
+    "ru": "Только просмотр: эта карта не относится к вашей текущей компании.",
+    "en": "View only: this map is not your current company."
+  },
+  "Faqat ko‘rish: rahbar roli xaritani o‘zgartira olmaydi.": {
+    "ru": "Только просмотр: роль руководителя не может изменять карту.",
+    "en": "View only: the executive role cannot change the map."
+  },
+  "Faqat ko‘rish: tahrirlash uchun «Hujjatlar bilan ishlash» (document.write) ruxsati kerak.": {
+    "ru": "Только просмотр: для редактирования нужно разрешение «Работа с документами» (document.write).",
+    "en": "View only: editing requires the “Work with documents” (document.write) permission."
+  },
+  "Faqat tasdiqlangan F2 aktlar. Foiz faqat smetasi bor obyektlar bo‘yicha": {
+    "ru": "Только утверждённые акты Ф-2. Процент — только по объектам со сметой",
+    "en": "Approved F2 acts only. Percentage covers objects with an estimate only"
+  },
+  "Hali loyiha va obyekt yo‘q.": {
+    "ru": "Проектов и объектов пока нет.",
+    "en": "No projects or objects yet."
+  },
+  "Narxsiz qator, smeta yo‘q, ko‘zgu farqi yoki kritik signal": {
+    "ru": "Строка без цены, нет сметы, расхождение зеркала или критичный сигнал",
+    "en": "Line without price, no estimate, mirror mismatch or critical signal"
+  },
+  "Nomsiz signal": {
+    "ru": "Сигнал без названия",
+    "en": "Untitled signal"
+  },
+  "Obyekt ustidagi belgi — shu obyekt bo‘yicha real e’tibor talab qiladigan holat.": {
+    "ru": "Отметка на объекте — реальное состояние, требующее внимания по этому объекту.",
+    "en": "A flag on an object is a real condition that needs attention for that object."
+  },
+  "Ochiq signallar": {
+    "ru": "Открытые сигналы",
+    "en": "Open signals"
+  },
+  "Ochiq zayavka, resurs qatorlari yo‘q, F2 ortiqcha (overbilling) yoki ochiq signal": {
+    "ru": "Открытая заявка, нет строк ресурсов, Ф-2 превышает (переплата) или открытый сигнал",
+    "en": "Open request, no resource lines, F2 exceeds (overbilling) or an open signal"
+  },
+  "Qatnashchi roli serverdan kelmadi — uzib bo‘lmaydi (server yangilanmagan).": {
+    "ru": "Роль участника не пришла с сервера — отвязать нельзя (сервер не обновлён).",
+    "en": "Participant role not received from the server — cannot unlink (server not updated)."
+  },
+  "Qoldiq (smeta − F2 tasdiqlangan)": {
+    "ru": "Остаток (смета − утверждённые Ф-2)",
+    "en": "Remainder (estimate − approved F2)"
+  },
+  "Shartnoma holati": {
+    "ru": "Состояние договора",
+    "en": "Contract status"
+  },
+  "Signal ma’lumoti yo‘q (server yangilanmagan).": {
+    "ru": "Данных о сигналах нет (сервер не обновлён).",
+    "en": "No signal data (server not updated)."
+  },
+  "Signallar": {
+    "ru": "Сигналы",
+    "en": "Signals"
+  },
+  "Summa (NDS bilan)": {
+    "ru": "Сумма (с НДС)",
+    "en": "Amount (incl. VAT)"
+  },
+  "Summa (NDS siz)": {
+    "ru": "Сумма (без НДС)",
+    "en": "Amount (excl. VAT)"
+  },
+  "Xarita har 30 soniyada yangilanadi (yashirin tabda to‘xtaydi)": {
+    "ru": "Карта обновляется каждые 30 секунд (на скрытой вкладке — приостановлено)",
+    "en": "The map refreshes every 30 seconds (paused in a hidden tab)"
+  },
+  "Yana {n} ta signal — Tizim boshqaruv markazida.": {
+    "ru": "Ещё сигналов: {n} — в Центре управления системой.",
+    "en": "{n} more signals — in the System control centre."
+  },
+  "asosi noma’lum (server yangilanmagan)": {
+    "ru": "основа неизвестна (сервер не обновлён)",
+    "en": "basis unknown (server not updated)"
+  },
+  "ma’lumot yo‘q": {
+    "ru": "нет данных",
+    "en": "no data"
+  },
+  "qoralama: {x}": {
+    "ru": "черновик: {x}",
+    "en": "draft: {x}"
+  },
+  "smeta (ustamasiz) {s}": {
+    "ru": "смета (без наценки) {s}",
+    "en": "estimate (no markup) {s}"
+  },
+  "tugunni sudrang, nuqtadan chiziq torting": {
+    "ru": "перетаскивайте узлы, тяните линию от точки",
+    "en": "drag nodes, pull a line from the dot"
+  },
+  "{n} kritik": {
+    "ru": "критичных: {n}",
+    "en": "{n} critical"
+  },
+  "{n} kritik signal": {
+    "ru": "критичных сигналов: {n}",
+    "en": "{n} critical signals"
+  },
+  "{n} ochiq signal": {
+    "ru": "открытых сигналов: {n}",
+    "en": "{n} open signals"
+  },
+  "{n} ochiq signal, {k} kritik": {
+    "ru": "открытых сигналов: {n}, критичных: {k}",
+    "en": "{n} open signals, {k} critical"
+  },
+  "{n} ta obyektda F2 ortiqcha": {
+    "ru": "Ф-2 превышает на объектах: {n}",
+    "en": "F2 exceeds on {n} objects"
+  },
+  "{n} ta obyektda resurs qatorlari yo‘q": {
+    "ru": "нет строк ресурсов на объектах: {n}",
+    "en": "no resource lines on {n} objects"
+  },
+  "{n} ta · {k} kritik": {
+    "ru": "{n} · критичных: {k}",
+    "en": "{n} · {k} critical"
+  }
+}

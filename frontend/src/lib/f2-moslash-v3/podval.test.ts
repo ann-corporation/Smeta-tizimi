@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { f2AktlarniOqi, podvalQolda, PODVAL_RZ_NOM } from '../smeta-anatomiya/f2';
 import type { Katak } from '../smeta-anatomiya/turlar';
 import { f2Indeks, yozishManbasi, type IshJoyi } from './ishJoyi';
-import { dvigatelDaraxti, podvalMosQator, podvalTaklifQosh } from './podval';
+import { dvigatelDaraxti, podvalMosQator, podvalTakrori, podvalTaklifQosh } from './podval';
 
 /** Sintetik F2: bitta ish + podvalda bojxona va shef-montaj qatorlari (summa «narx» ustunida — format odati). */
 const ROWS: Katak[][] = [
@@ -65,5 +65,37 @@ describe('F2 podval — qo‘lda qatorlar (bojxona, shef-montaj)', () => {
     ])).toBeNull();
     // Summa mos emas.
     expect(podvalMosQator({ nom: 'ТАМОЖЕННЫЕ РАСХОДЫ', summa: 10 }, [{ id: 1, tur: 'bl', nom: 'ТАМОЖЕННЫЕ РАСХОДЫ', summa: 12 }])).toBeNull();
+  });
+
+  it('Sun’iy ko‘l: summa aynan teng YAGONA smeta qatori — nom boshqacha yozilgan bo‘lsa ham ◐ taklif; summa ustuni bo‘sh — hajm × narx', () => {
+    const smeta = [
+      { id: 950874, tur: 'rz', nom: '17. ОБОРУДОВАНИЕ MAGIC FUN', summa: 4_046_929_242.85 },
+      { id: 950885, tur: 'ob', nom: 'Шефмонтажные работы', summa: null, hajm: 1, narx: 4_009_740_240 },
+      // Siz qo'shgan qator: summa ustuni bo'sh, hajm × narx.
+      { id: 950888, tur: 'ob', nom: 'Импорт: расходы (НДС 12%)', summa: null, hajm: 1, narx: 4_046_929_242.85 },
+    ];
+    expect(podvalMosQator({ nom: 'ТАМОЖЕННЫЕ РАСХОДЫ И НДС ДЛЯ ОБОРУДОВАНИЕ', summa: 4_046_929_242.85 }, smeta)).toBe(950888);
+    // Shef-montaj podvalda yarmi (2 004 870 120) — summa teng qator yo'q, taklif yo'q (operator qo'lda bog'laydi yoki izoh qiladi).
+    expect(podvalMosQator({ nom: 'ШЕФ-МОНТАЖНАЯ РАБОТА', summa: 2_004_870_120 }, smeta)).toBeNull();
+    // Kichik summa faqat summa bo'yicha taklif qilinmaydi (tasodif).
+    expect(podvalMosQator({ nom: 'ТАМОЖЕННЫЕ', summa: 500 }, [{ id: 1, tur: 'mat', nom: 'Песок', summa: 500 }])).toBeNull();
+    // Summasi teng ikki qator — noaniq.
+    expect(podvalMosQator({ nom: 'X', summa: 5_000_000 }, [{ id: 1, tur: 'mat', nom: 'A', summa: 5_000_000 }, { id: 2, tur: 'mat', nom: 'B', summa: 5_000_000 }])).toBeNull();
+  });
+
+  it('podval qatori asosiy qismda olingan smeta qatoriga bog‘lansa — takror; «faqat izoh» (otkaz) — takror yo‘q, yozish to‘xtamaydi', () => {
+    const a = akt();
+    const ind = f2Indeks(a.daraxt);
+    const shef = ind.qatorlar.find((t) => t.podval && t.nom.startsWith('ШЕФ'))!;
+    const ij: IshJoyi = { bog: new Map([
+      ['V!6', { qatorId: 11, holat: 'qolda', usul: 'qolda' }], ['V!7', { qatorId: 12, holat: 'qolda', usul: 'qolda' }],
+      [shef.uid, { qatorId: 11, holat: 'qolda', usul: 'qolda' }],
+    ]), otkaz: new Set() };
+    expect(podvalTakrori(shef, ind.qatorlar, ij)).toEqual(['V!6']);
+    const izoh: IshJoyi = { bog: new Map([...ij.bog].filter(([u]) => u !== shef.uid)), otkaz: new Set([shef.uid]) };
+    expect(podvalTakrori(shef, ind.qatorlar, izoh)).toEqual([]);
+    const w = yozishManbasi(ind, izoh);
+    expect(w.toxtatish.filter((m) => /hal qilinmagan/.test(m))).toEqual([]);
+    expect(w.nodes.map((n) => n.uid)).toEqual(['V!6', 'V!7']);
   });
 });

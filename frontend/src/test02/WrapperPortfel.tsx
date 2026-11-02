@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FolderKanban, Building2, Network, CheckCircle2 } from 'lucide-react';
+import { t } from '../i18n/til';
 import TestLoyiha from './TestLoyiha';
 import TestObyektlar from './TestObyektlar';
 import TestXarita from './TestXarita';
@@ -12,36 +13,36 @@ export default function WrapperPortfel() {
   return (
     <div className="h-full flex flex-col bg-transparent">
       {/* Wrapper Tabs */}
-      <div className="flex items-center gap-2 px-6 pt-4 border-b border-white/10 bg-black/20">
+      <div className="flex items-center gap-2 px-6 pt-4 border-b border-border bg-surface-2">
         <button
           onClick={() => setActiveTab('loyiha')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'loyiha' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-zinc-400 hover:text-white'}`}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'loyiha' ? 'border-accent text-[var(--accent-text)]' : 'border-transparent text-text-mute hover:text-text'}`}
         >
-          <FolderKanban size={16} /> Loyihalar
+          <FolderKanban size={16} /> {t('Loyihalar')}
         </button>
         <button
           onClick={() => setActiveTab('obyekt')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'obyekt' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-zinc-400 hover:text-white'}`}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'obyekt' ? 'border-accent text-[var(--accent-text)]' : 'border-transparent text-text-mute hover:text-text'}`}
         >
-          <Building2 size={16} /> Obyektlar
+          <Building2 size={16} /> {t('Obyektlar')}
         </button>
         <button
           onClick={() => setActiveTab('fakt')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'fakt' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-zinc-400 hover:text-white'}`}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'fakt' ? 'border-accent text-[var(--accent-text)]' : 'border-transparent text-text-mute hover:text-text'}`}
         >
-          <CheckCircle2 size={16} /> Fakt (Bajarilgan)
+          <CheckCircle2 size={16} /> {t('Fakt (Bajarilgan)')}
         </button>
         <button
           onClick={() => setActiveTab('xarita')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'xarita' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-zinc-400 hover:text-white'}`}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'xarita' ? 'border-accent text-[var(--accent-text)]' : 'border-transparent text-text-mute hover:text-text'}`}
         >
-          <Network size={16} /> Xarita (Mind Map)
+          <Network size={16} /> {t('Xarita (Mind Map)')}
         </button>
         <button
           onClick={() => setActiveTab('aosr')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'aosr' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-zinc-400 hover:text-white'}`}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'aosr' ? 'border-accent text-[var(--accent-text)]' : 'border-transparent text-text-mute hover:text-text'}`}
         >
-          <FolderKanban size={16} /> AOSR
+          <FolderKanban size={16} /> {t('AOSR')}
         </button>
       </div>
 

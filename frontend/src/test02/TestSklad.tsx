@@ -1,316 +1,245 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Box, ArrowDownToLine, ArrowUpFromLine, RefreshCcw, Search, Barcode, ClipboardCheck, QrCode, Building2, PackageOpen, AlertTriangle } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { Box, ArrowDownToLine, ArrowUpFromLine, Barcode, ClipboardCheck, QrCode, Building2, History, Layers, FileSpreadsheet, Plus, Warehouse } from 'lucide-react';
 import { useKompaniya } from './KompaniyaTanlov';
 import { FmtN } from '../lib/format';
 import { toast } from '../umumiy/ui/Toast';
-import { sbT2ObyektlarOl, sbSkladQoldiqOl, sbSkladgaYozish, yangiOperationId, type T2Obyekt, type T2SkladQoldiq } from '../api/supabase';
-import { sbSkladlarOl } from '../api/t2-resurs';
+import { t } from '../i18n/til';
+import { Sahifa } from '../umumiy/ui/Sahifa';
+import { sbT2ObyektlarOl, sbSkladQoldiqOl, sbSkladgaYozish, type T2Obyekt, type T2SkladQoldiq } from '../api/supabase';
+import { sbSkladlarOl, sbSkladYarat, type SkladMustaqil } from '../api/t2-resurs';
 import { sbSkladKonsolidatsiyaOl, type SkladKonsolidatsiya } from '../api/t2-sklad-konsolidatsiya';
+import { obyektUlushlari, skladXulosa } from '../lib/kompaniya-ops-korinish';
+import { OpsBoshQator, OpsKpi, OpsKpiQator, OpsMaydon, OpsOyna, OpsQidiruv, OpsTablar } from '../components/kompaniya-ops/OpsUi';
+import { PrixodKitobPreview } from '../components/ombor/PrixodKitobPreview';
+import { OmborKirimJadval, OmborQoldiqJadval } from '../components/ombor/OmborKirimJadval';
+import { kirimRuxsat } from '../lib/ombor-prixod/yozish';
+
+/** Egasi (KOORDINATSIYA 2026-10-28): «Navoiy park.xlsx» → «Приход» shu omborda ko'rinsin. Avtomatik yaratilmaydi — tugma bilan. */
+export const NAVOIY_SKLAD_NOMI = "NEW TIMES BUILDINGS MCHJ — Navoiy bog' skladi";
+const NAVOIY_KOMPANIYA_ID = 123;
+
+/**
+ * Ombor (sklad) — qoldiq va kirim/chiqim yozuvi (egasi 2026-10-25: Firuza ko'rinishi).
+ * Jamlangan ombor: har material bo'yicha jami qoldiq va uning obyektlar orasida taqsimoti (chiziq).
+ * Obyekt qoldiqlari: manfiy qoldiq (kirim kiritilmagan chiqim) qizil bilan aniq belgilanadi.
+ */
+type Tab = 'ombor-kirim' | 'ombor-qoldiq' | 'qoldiq' | 'kirim' | 'm29' | 'konsolidatsiya';
+const OBYEKT_RANGLARI = ['var(--kat-chel)', 'var(--kat-mat)', 'var(--kat-mash)', 'var(--kat-ob)', 'var(--accent)', 'var(--info)'];
 
 export default function TestSklad() {
-  const [params] = useSearchParams();
   const { joriy } = useKompaniya();
   const aktKomp = joriy?.id ?? 0;
-  
-  const [activeTab, setActiveTab] = useState<'qoldiq' | 'kirim' | 'chiqim' | 'm29' | 'konsolidatsiya'>('konsolidatsiya');
+
+  const [activeTab, setActiveTab] = useState<Tab>('ombor-kirim');
+  const ruxsat = kirimRuxsat(joriy?.permissions);
+  const [excelOchiq, setExcelOchiq] = useState(false);
+  const [kirimYangilash, setKirimYangilash] = useState(0);
+  const [skladYaratilmoqda, setSkladYaratilmoqda] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [opType, setOpType] = useState<'kirim'|'chiqim'>('kirim');
+  const [opType, setOpType] = useState<'kirim' | 'chiqim'>('kirim');
 
   const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
   const [obyektId, setObyektId] = useState<number | null>(null);
-  
   const [skladQoldiq, setSkladQoldiq] = useState<T2SkladQoldiq[]>([]);
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
-  
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Konsolidatsiya State
-  const [markaziySkladlar, setMarkaziySkladlar] = useState<any[]>([]);
+  const [markaziySkladlar, setMarkaziySkladlar] = useState<SkladMustaqil[]>([]);
   const [markaziyId, setMarkaziyId] = useState<number | null>(null);
   const [konsQoldiqlar, setKonsQoldiqlar] = useState<SkladKonsolidatsiya[]>([]);
 
-
-  // Form State
   const [formNomi, setFormNomi] = useState('');
   const [formHajmi, setFormHajmi] = useState('');
   const [formBirligi, setFormBirligi] = useState('dona');
 
   useEffect(() => {
     if (!aktKomp) { setObyektlar([]); return; }
-    sbT2ObyektlarOl(aktKomp).then(r => {
+    void sbT2ObyektlarOl(aktKomp).then((r) => {
       if (r.ok && r.qatorlar) {
         setObyektlar(r.qatorlar);
-        if (r.qatorlar.length > 0 && !obyektId) {
-          setObyektId(r.qatorlar[0].id);
-        }
+        if (r.qatorlar.length > 0 && !obyektId) setObyektId(r.qatorlar[0].id);
       }
     });
-    if (aktKomp) {
-      sbSkladlarOl(aktKomp).then(r => {
-        if (r.ok && r.qatorlar) {
-          setMarkaziySkladlar(r.qatorlar);
-          if (r.qatorlar.length > 0 && !markaziyId) {
-            setMarkaziyId(r.qatorlar[0].id);
-          }
-        }
-      });
-    }
+    skladlarniYukla();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aktKomp]);
 
-  // Yuklash logika: Agar konsolidatsiya tanlangan bo'lsa, konsolidatsiya yuklaymiz
+  function skladlarniYukla(tanla?: string) {
+    void sbSkladlarOl(aktKomp).then((r) => {
+      if (r.ok && r.qatorlar) {
+        setMarkaziySkladlar(r.qatorlar);
+        const nomli = tanla ? r.qatorlar.find((s) => s.nomi === tanla) : undefined;
+        const navoiy = r.qatorlar.find((s) => s.nomi === NAVOIY_SKLAD_NOMI);
+        if (nomli) setMarkaziyId(nomli.id);
+        else if (!markaziyId || !r.qatorlar.some((s) => s.id === markaziyId)) setMarkaziyId((navoiy ?? r.qatorlar[0])?.id ?? null);
+      }
+    });
+  }
+
+  const navoiySkladYoq = aktKomp === NAVOIY_KOMPANIYA_ID && !markaziySkladlar.some((s) => s.nomi === NAVOIY_SKLAD_NOMI);
+  const navoiySkladYarat = async () => {
+    setSkladYaratilmoqda(true);
+    const r = await sbSkladYarat({ kompaniyaId: aktKomp, nomi: NAVOIY_SKLAD_NOMI });
+    setSkladYaratilmoqda(false);
+    if (r.ok) { toast(t('Ombor yaratildi.'), 'ok'); skladlarniYukla(NAVOIY_SKLAD_NOMI); }
+    else toast(t('Xato yuz berdi: {x}', { x: r.error ?? '' }), 'danger');
+  };
+  const tanlanganSklad = markaziySkladlar.find((s) => s.id === markaziyId) ?? null;
+
   useEffect(() => {
     if (activeTab === 'konsolidatsiya' && markaziyId) {
       setYuklanmoqda(true);
-      sbSkladKonsolidatsiyaOl(markaziyId).then(r => {
+      void sbSkladKonsolidatsiyaOl(markaziyId).then((r) => {
         if (r.ok && r.qatorlar) setKonsQoldiqlar(r.qatorlar as SkladKonsolidatsiya[]);
         setYuklanmoqda(false);
       });
     }
   }, [activeTab, markaziyId]);
 
-
   const qoldiqYukla = () => {
     if (!obyektId) return;
     setYuklanmoqda(true);
-    sbSkladQoldiqOl(obyektId).then(r => {
+    void sbSkladQoldiqOl(obyektId).then((r) => {
       setYuklanmoqda(false);
-      if (r.ok && r.qatorlar) {
-        setSkladQoldiq(r.qatorlar);
-      } else {
-        setSkladQoldiq([]);
-      }
+      setSkladQoldiq(r.ok && r.qatorlar ? r.qatorlar : []);
     });
   };
-
-  useEffect(() => {
-    qoldiqYukla();
-  }, [obyektId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { qoldiqYukla(); }, [obyektId]);
 
   const handleSave = async () => {
     if (!obyektId || !formNomi || !formHajmi || !formBirligi) {
-      toast("Barcha maydonlarni to'ldiring", "warn");
+      toast(t('Barcha maydonlarni to‘ldiring'), 'warn');
       return;
     }
-    
     setYuklanmoqda(true);
     const operatsiya = opType === 'kirim' ? 'prixod' : 'rasxod';
     const res = await sbSkladgaYozish(aktKomp, operatsiya, {
-      obyekt_id: obyektId,
-      operatsiya: operatsiya,
-      turi: 'mat',
-      sana: new Date().toISOString().split('T')[0],
-      nomi: formNomi,
-      birligi: formBirligi,
-      obyomi: Number(formHajmi)
+      obyekt_id: obyektId, operatsiya, turi: 'mat', sana: new Date().toISOString().split('T')[0],
+      nomi: formNomi, birligi: formBirligi, obyomi: Number(formHajmi),
     });
-    
     setYuklanmoqda(false);
-    
     if (res.ok) {
-      toast(`Omborga ${opType} amaliyoti Ledgerga yozildi!`, "ok");
+      toast(opType === 'kirim' ? t('Omborga kirim yozildi.') : t('Ombordan chiqim yozildi.'), 'ok');
       setIsFormOpen(false);
-      setFormNomi('');
-      setFormHajmi('');
+      setFormNomi(''); setFormHajmi('');
       qoldiqYukla();
     } else {
-      toast(`Xato yuz berdi: ${res.error}`, "danger");
+      toast(t('Xato yuz berdi: {x}', { x: res.error ?? '' }), 'danger');
     }
   };
 
-  const filteredQoldiq = skladQoldiq.filter(item => item.nomi.toLowerCase().includes(searchTerm.toLowerCase()));
-  const totalSum = filteredQoldiq.reduce((acc, curr) => acc + (curr.qoldiq || 0), 0); // Warning: we don't have price in qoldiq yet, so this sum is just qty right now.
+  const filteredQoldiq = skladQoldiq.filter((item) => item.nomi.toLowerCase().includes(searchTerm.toLowerCase()));
+  const xulosa = useMemo(() => skladXulosa(skladQoldiq), [skladQoldiq]);
+  const obyektRangi = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const k of konsQoldiqlar) for (const o of k.obyektlar_boyicha ?? []) if (!m.has(o.obyekt_id)) m.set(o.obyekt_id, OBYEKT_RANGLARI[m.size % OBYEKT_RANGLARI.length]);
+    return m;
+  }, [konsQoldiqlar]);
+  const ochOyna = (tur: 'kirim' | 'chiqim') => { setOpType(tur); setIsFormOpen(true); };
 
   return (
-    <div className="p-6 bg-transparent min-h-screen text-text h-full overflow-y-auto">
-      
-      {/* HEADER */}
-      <div className="flex items-start justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2 mb-2 text-white">
-            <PackageOpen className="text-amber-500" />
-            Ombor (WMS) va Tranzaksion Ledger
-          </h1>
-          <p className="text-text-dim text-sm max-w-2xl">
-            Materiallar qoldig'i, Kirim/Chiqim tranzaksiyalari, QR-kodli sifat pasportlari va oylik M-29 hisobotini yuritish tizimi.
-          </p>
-        </div>
-        <div className="flex gap-3 items-center">
-          <div className="flex items-center gap-2 bg-[var(--surface-1)] border border-border p-1.5 rounded-lg mr-4">
-            <Building2 className="text-zinc-400 ml-2" size={18} />
-            <select 
-              className="bg-transparent text-sm text-white font-medium outline-none pr-4 cursor-pointer"
-              value={obyektId || ''}
-              onChange={(e) => setObyektId(Number(e.target.value))}
-            >
-              {obyektlar.map(o => (
-                <option key={o.id} value={o.id} className="bg-zinc-900">{o.nom}</option>
-              ))}
-            </select>
-          </div>
+    <Sahifa
+      sarlavha="Ombor (sklad): qoldiq va harakatlar"
+      tavsif="Kirim — omborga keldi, chiqim — obyektga sarflandi. Qoldiq = kirim − chiqim; manfiy qoldiq — kirim kiritilmagan."
+      amallar={<>
+        <label className="inline-flex items-center gap-1.5 text-[12px] text-text-dim">
+          <Building2 size={15} className="text-text-mute" />
+          <select aria-label={t('Obyekt')} className="h-8 max-w-[260px] px-2 text-[13px]" value={obyektId || ''} onChange={(e) => setObyektId(Number(e.target.value))}>
+            {obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
+          </select>
+        </label>
+        <button type="button" onClick={() => ochOyna('chiqim')} className="fz-btn"><ArrowUpFromLine /> {t('Chiqim (rasxod)')}</button>
+        <button type="button" onClick={() => ochOyna('kirim')} className="fz-btn fz-btn--primary"><ArrowDownToLine /> {t('Kirim (prixod)')}</button>
+      </>}
+    >
+      <div className="flex flex-col gap-3">
+        <OpsKpiQator yorliq={t('Ombor ko‘rsatkichlari')}>
+          <OpsKpi nom={t('Pozitsiyalar (tanlangan obyekt)')} qiymat={xulosa.pozitsiya} />
+          <OpsKpi nom={t('Manfiy qoldiq')} rang="var(--danger)" qiymat={<span className={xulosa.manfiy ? 'text-danger' : ''}>{xulosa.manfiy}</span>} ost={t('chiqim bor, kirim yo‘q — tekshiring')} />
+          <OpsKpi nom={t('Tugagan (0)')} rang="var(--warn)" qiymat={xulosa.nol} />
+          <OpsKpi nom={t('Oxirgi harakat')} qiymat={<span className="text-[15px]">{xulosa.oxirgi ?? '—'}</span>} />
+        </OpsKpiQator>
 
-          <button 
-            onClick={() => { setOpType('chiqim'); setIsFormOpen(true); }}
-            className="bg-surface border border-border hover:bg-surface-2 text-rose-400 px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors"
-          >
-            <ArrowUpFromLine size={18} />
-            Chiqim (Rasxod)
-          </button>
-          <button 
-            onClick={() => { setOpType('kirim'); setIsFormOpen(true); }}
-            className="bg-amber-600 hover:bg-amber-500 text-white px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-lg shadow-amber-900/20"
-          >
-            <ArrowDownToLine size={18} />
-            Kirim (Prixod)
-          </button>
-        </div>
-      </div>
+        <OpsTablar<Tab> yorliq={t('Ombor bo‘limlari')} joriy={activeTab} onTanla={setActiveTab} tablar={[
+          { id: 'ombor-kirim', nom: t('Kirim'), ikon: <ArrowDownToLine /> },
+          { id: 'ombor-qoldiq', nom: t('Qoldiq'), ikon: <Warehouse /> },
+          { id: 'konsolidatsiya', nom: t('Jamlangan ombor'), ikon: <Layers /> },
+          { id: 'qoldiq', nom: t('Obyekt qoldiqlari'), ikon: <Box />, soni: skladQoldiq.length },
+          { id: 'kirim', nom: t('Harakatlar tarixi'), ikon: <History /> },
+          { id: 'm29', nom: t('M-29 hisobot'), ikon: <ClipboardCheck /> },
+        ]} />
 
-      {/* KPI WIDGETS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="bg-[var(--surface-2)] border border-border p-5 rounded-xl">
-          <h3 className="text-sm font-medium text-text-dim mb-1">Jami Turlari</h3>
-          <p className="text-2xl font-bold font-mono text-white">{skladQoldiq.length} <span className="text-sm text-text-dim font-sans">pozitsiya</span></p>
-        </div>
-        <div className="bg-[var(--surface-1)] border border-border p-5 rounded-xl">
-          <h3 className="text-sm font-medium text-text-dim mb-1">Umumiy Hajm</h3>
-          <p className="text-2xl font-bold font-mono text-emerald-400"><FmtN val={totalSum}/> <span className="text-sm text-text-dim font-sans">birlik</span></p>
-        </div>
-        <div className="bg-[var(--surface-1)] border border-border p-5 rounded-xl">
-          <h3 className="text-sm font-medium text-text-dim mb-1">So'nggi Yangilanish</h3>
-          <p className="text-2xl font-bold font-mono text-white text-sm mt-2">{skladQoldiq.length > 0 ? skladQoldiq[0].oxirgi_harakat : 'Yo\'q'}</p>
-        </div>
-      </div>
-
-      {/* TABS */}
-        <div className="flex items-center gap-2 mb-4 border-b border-border pb-2 overflow-x-auto">
-          <button onClick={() => setActiveTab('konsolidatsiya')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'konsolidatsiya' ? 'border-accent text-accent' : 'border-transparent text-text-dim hover:text-white'}`}>
-            Jamlangan Ombor
-          </button>
-          <div className="w-px h-6 bg-border mx-2" />
-          <button onClick={() => setActiveTab('qoldiq')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'qoldiq' ? 'border-accent text-accent' : 'border-transparent text-text-dim hover:text-white'}`}>
-            Obyekt Qoldiqlari
-          </button>
-          <button onClick={() => setActiveTab('kirim')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'kirim' ? 'border-accent text-accent' : 'border-transparent text-text-dim hover:text-white'}`}>
-            Tranzaksiyalar Tarixi
-          </button>
-          <button onClick={() => setActiveTab('m29')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'm29' ? 'border-accent text-accent' : 'border-transparent text-text-dim hover:text-white'}`}>
-            M-29 Moddiy Hisobot
-          </button>
-        </div>
-
-      {/* TRANSACTION MODAL */}
-      {isFormOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-black border border-border rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="p-5 border-b border-border flex justify-between items-center bg-[var(--surface-1)]">
-              <h3 className="font-bold text-white flex items-center gap-2">
-                {opType === 'kirim' ? <ArrowDownToLine className="text-emerald-400"/> : <ArrowUpFromLine className="text-rose-400"/>}
-                {opType === 'kirim' ? 'Omborga Kirim Qilish' : 'Ombordan Chiqim Qilish'}
-              </h3>
-            </div>
-            <div className="p-5 space-y-4 bg-[var(--surface-0)]">
-              <div>
-                <label className="block text-sm font-medium text-text-dim mb-1">Material Nomi</label>
-                <div className="relative">
-                  <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 text-text-dim" size={16} />
-                  <input 
-                    type="text" 
-                    value={formNomi}
-                    onChange={(e) => setFormNomi(e.target.value)}
-                    className="w-full bg-black border border-border rounded-lg pl-9 pr-3 py-2 text-white focus:border-sky-500 outline-none" 
-                    placeholder="Masalan, Sement M400"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-text-dim mb-1">Hajmi</label>
-                  <input 
-                    type="number" 
-                    value={formHajmi}
-                    onChange={(e) => setFormHajmi(e.target.value)}
-                    className="w-full bg-black border border-border rounded-lg px-3 py-2 text-white font-mono focus:border-sky-500 outline-none" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-text-dim mb-1">O'lchov Birligi</label>
-                  <select 
-                    value={formBirligi}
-                    onChange={(e) => setFormBirligi(e.target.value)}
-                    className="w-full bg-black border border-border rounded-lg px-3 py-2 text-white focus:border-sky-500 outline-none"
-                  >
-                    <option value="tonna">tonna</option>
-                    <option value="dona">dona</option>
-                    <option value="m2">m2</option>
-                    <option value="m3">m3</option>
-                    <option value="kg">kg</option>
-                  </select>
-                </div>
-              </div>
-              
-              <div className="pt-4 flex justify-end gap-3 border-t border-border mt-4">
-                <button onClick={() => setIsFormOpen(false)} className="px-4 py-2 text-text-dim hover:text-white transition-colors">Bekor qilish</button>
-                <button 
-                  onClick={handleSave} 
-                  disabled={yuklanmoqda}
-                  className={`px-5 py-2 rounded-lg font-medium transition-colors shadow-lg disabled:opacity-50 ${opType === 'kirim' ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/20 text-white' : 'bg-rose-600 hover:bg-rose-500 shadow-rose-900/20 text-white'}`}>
-                  {yuklanmoqda ? 'Yozilmoqda...' : 'Tasdiqlash'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* CONTENT: QOLDIQ */}
-      
-        {activeTab === 'konsolidatsiya' && (
-          <div className="space-y-4">
-            <div className="flex gap-4 items-end">
-              <div className="flex-1 max-w-sm">
-                <label className="block text-xs text-text-dim mb-1">Markaziy Skladni tanlang</label>
-                <select value={markaziyId || ''} onChange={e => setMarkaziyId(Number(e.target.value))} className="w-full bg-bg border border-border rounded-xl p-2.5 text-sm outline-none focus:border-accent">
-                  <option value="">-- Tanlang --</option>
-                  {markaziySkladlar.map(s => (
-                    <option key={s.id} value={s.id}>{s.nomi} {s.manzil ? `(${s.manzil})` : ''}</option>
-                  ))}
+        {(activeTab === 'ombor-kirim' || activeTab === 'ombor-qoldiq') && (
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+              <OpsMaydon nom={t('Ombor')}>
+                <select aria-label={t('Ombor')} value={markaziyId ?? ''} onChange={(e) => { setMarkaziyId(e.target.value ? Number(e.target.value) : null); setExcelOchiq(false); }}
+                  className="min-h-[48px] w-full sm:max-w-md">
+                  <option value="">{t('— tanlang —')}</option>
+                  {markaziySkladlar.map((s) => <option key={s.id} value={s.id}>{s.nomi}</option>)}
                 </select>
-              </div>
+              </OpsMaydon>
+              {navoiySkladYoq && ruxsat.yozish && <button type="button" className="fz-btn min-h-[48px] justify-center" disabled={skladYaratilmoqda} onClick={() => void navoiySkladYarat()}>
+                <Plus size={16} aria-hidden="true" />{t('«{nom}» omborini yaratish', { nom: NAVOIY_SKLAD_NOMI })}</button>}
+              {activeTab === 'ombor-kirim' && tanlanganSklad && ruxsat.yozish && <button type="button" className={`fz-btn ${excelOchiq ? '' : 'fz-btn--primary'} min-h-[56px] justify-center text-[15px] font-semibold`}
+                aria-expanded={excelOchiq} onClick={() => setExcelOchiq((v) => !v)}>
+                <FileSpreadsheet size={18} aria-hidden="true" />{excelOchiq ? t('Yuklashni yopish') : t('Excel’dan yuklash')}</button>}
             </div>
-            
+            {!ruxsat.korish && <p className="m-0 text-[12px] text-warn">{t('Omborni ko‘rish uchun «Hujjatlarni ko‘rish» huquqi kerak.')}</p>}
+            {!tanlanganSklad && <div className="rounded-md border border-dashed border-[var(--border-strong)] px-4 py-8 text-center text-[13px] text-text-mute">
+              {markaziySkladlar.length ? t('Omborni tanlang.') : t('Bu kompaniyada hali ombor yo‘q.')}</div>}
+            {tanlanganSklad && activeTab === 'ombor-kirim' && excelOchiq && ruxsat.yozish && <PrixodKitobPreview kompaniyaId={aktKomp} skladId={tanlanganSklad.id}
+              skladNomi={tanlanganSklad.nomi} yozishMumkin={ruxsat.yozish} onYozildi={() => setKirimYangilash((n) => n + 1)} />}
+            {tanlanganSklad && ruxsat.korish && activeTab === 'ombor-kirim' && <OmborKirimJadval kompaniyaId={aktKomp} skladId={tanlanganSklad.id} yozishMumkin={ruxsat.yozish} yangilash={kirimYangilash} />}
+            {tanlanganSklad && ruxsat.korish && activeTab === 'ombor-qoldiq' && <OmborQoldiqJadval kompaniyaId={aktKomp} skladId={tanlanganSklad.id} yangilash={kirimYangilash} />}
+          </div>
+        )}
+
+        {activeTab === 'konsolidatsiya' && (
+          <div className="flex flex-col gap-3">
+            <OpsMaydon nom={t('Markaziy sklad')}>
+              <select value={markaziyId || ''} onChange={(e) => setMarkaziyId(Number(e.target.value))} className="max-w-sm">
+                <option value="">{t('— tanlang —')}</option>
+                {markaziySkladlar.map((s) => <option key={s.id} value={s.id}>{s.nomi} {s.manzil ? `(${s.manzil})` : ''}</option>)}
+              </select>
+            </OpsMaydon>
             {yuklanmoqda ? <div className="skel h-40 rounded-xl" /> : (
-              <div className="karta overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="fz-table-wrap">
+                <table className="fz-table">
                   <thead>
-                    <tr className="border-b border-border bg-surface-2/50 text-text-dim">
-                      <th className="text-left px-4 py-3 font-medium">Material</th>
-                      <th className="text-right px-4 py-3 font-medium text-emerald-400">JAMI QOLDIQ</th>
-                      <th className="text-left px-4 py-3 font-medium border-l border-border/50">Obyektlardagi Taqsimot (Filiallar kesimida)</th>
+                    <tr>
+                      <th>{t('Material')}</th>
+                      <th className="fz-c-num">{t('Jami qoldiq')}</th>
+                      <th style={{ width: '45%' }}>{t('Obyektlar bo‘yicha taqsimot')}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {konsQoldiqlar.length === 0 && (
-                      <tr><td colSpan={3} className="px-4 py-8 text-center text-text-mute">Ushbu markaziy sklad va unga bog'langan obyektlarda qoldiq yo'q.</td></tr>
-                    )}
-                    {konsQoldiqlar.map((kq, i) => (
-                      <tr key={i} className="border-b border-border/50 hover:bg-surface-2/30">
-                        <td className="px-4 py-3 text-white font-medium">{kq.material_nomi}</td>
-                        <td className="px-4 py-3 text-right tabular-nums text-emerald-400 font-bold bg-emerald-500/5">
-                          <FmtN val={kq.jami_qoldiq} /> {kq.birligi}
-                        </td>
-                        <td className="px-4 py-3 border-l border-border/50">
-                          <div className="flex flex-wrap gap-2">
-                            {kq.obyektlar_boyicha?.map((ob, j) => (
-                              <div key={j} className="inline-flex items-center gap-1.5 bg-bg border border-border px-2 py-1 rounded-md text-[11px]">
-                                <span className="text-text-dim truncate max-w-[120px]">{ob.obyekt_nom}:</span>
-                                <span className="text-white font-medium"><FmtN val={ob.qoldiq} /></span>
-                              </div>
-                            ))}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {konsQoldiqlar.length === 0 && <OpsBoshQator ustun={3} matn={t('Ushbu markaziy sklad va unga bog‘langan obyektlarda qoldiq yo‘q.')} />}
+                    {konsQoldiqlar.map((kq, i) => {
+                      const ul = obyektUlushlari(kq.obyektlar_boyicha ?? []);
+                      return (
+                        <tr key={i}>
+                          <td className="font-medium text-text">{kq.material_nomi}</td>
+                          <td className={`fz-c-num font-semibold ${kq.jami_qoldiq < 0 ? 'text-danger' : ''}`}><FmtN val={kq.jami_qoldiq} /> <span className="text-[11px] font-normal text-text-mute">{kq.birligi}</span></td>
+                          <td>
+                            <div className="fz-split mb-1.5" role="img" aria-label={ul.map((o) => `${o.obyekt_nom}: ${o.qoldiq}`).join(', ')}>
+                              {ul.filter((o) => o.ulush > 0).map((o) => <i key={o.obyekt_id} style={{ background: obyektRangi.get(o.obyekt_id), flexGrow: o.ulush }} title={`${o.obyekt_nom}: ${o.qoldiq}`} />)}
+                            </div>
+                            <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11.5px]">
+                              {ul.map((o) => (
+                                <span key={o.obyekt_id} className="inline-flex items-center gap-1">
+                                  <i className="inline-block h-2 w-2 rounded-sm" style={{ background: obyektRangi.get(o.obyekt_id) }} />
+                                  <span className="max-w-[140px] truncate text-text-dim">{o.obyekt_nom}</span>
+                                  <b className={`tabular-nums ${o.manfiy ? 'text-danger' : 'text-text'}`}><FmtN val={o.qoldiq} /></b>
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -319,86 +248,81 @@ export default function TestSklad() {
         )}
 
         {activeTab === 'qoldiq' && (
-        <div className="bg-[var(--surface-1)] border border-border rounded-xl shadow-xl overflow-hidden">
-          <div className="p-4 border-b border-border bg-[var(--surface-2)]">
-            <div className="relative w-96">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-dim" size={16} />
-              <input 
-                type="text" 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Material nomi bo'yicha..."
-                className="w-full bg-black border border-border rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:border-sky-500 outline-none"
-              />
-            </div>
+          <div className="flex flex-col gap-2">
+            <OpsQidiruv qiymat={searchTerm} onChange={setSearchTerm} placeholder={t('Material nomi bo‘yicha…')} />
+            {yuklanmoqda ? <div className="skel h-40 rounded-xl" /> : (
+              <div className="fz-table-wrap">
+                <table className="fz-table">
+                  <thead>
+                    <tr><th>{t('ID')}</th><th>{t('Material')}</th><th className="fz-c-num">{t('Qoldiq')}</th><th>{t('Holat')}</th><th>{t('Oxirgi harakat')}</th><th className="text-center">{t('QR pasport')}</th></tr>
+                  </thead>
+                  <tbody>
+                    {filteredQoldiq.map((item) => (
+                      <tr key={item.id}>
+                        <td className="fz-c-shifr">#{item.id.toString().padStart(4, '0')}</td>
+                        <td className="font-medium text-text"><span className="inline-flex items-center gap-2"><Box size={14} className="text-text-mute" />{item.nomi}</span></td>
+                        <td className={`fz-c-num font-semibold ${item.qoldiq < 0 ? 'text-danger' : ''}`}><FmtN val={item.qoldiq} /> <span className="text-[11px] font-normal text-text-mute">{item.birligi}</span></td>
+                        <td>
+                          {item.qoldiq < 0 ? <span className="fz-stamp fz-stamp--danger">{t('manfiy')}</span>
+                            : item.qoldiq === 0 ? <span className="fz-stamp fz-stamp--warn">{t('tugagan')}</span>
+                              : <span className="fz-stamp fz-stamp--ok">{t('bor')}</span>}
+                        </td>
+                        <td className="text-[12px] text-text-mute">{item.oxirgi_harakat || '—'}</td>
+                        <td className="text-center">
+                          <button type="button" className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" aria-label={t('QR pasport')} title={t('QR pasport')}><QrCode /></button>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredQoldiq.length === 0 && <OpsBoshQator ustun={6} matn={t('Omborda qoldiq mavjud emas yoki topilmadi.')} izoh={t('Kirim tugmasi bilan omborga material kiriting.')} />}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-          
-          {yuklanmoqda ? (
-            <div className="p-10 text-center text-text-dim animate-pulse">Yuklanmoqda...</div>
-          ) : (
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="bg-black/40 border-b border-border text-text-dim font-medium">
-                  <th className="px-6 py-4">ID</th>
-                  <th className="px-6 py-4">Material Nomi</th>
-                  <th className="px-6 py-4 text-right">Qoldiq Hajmi</th>
-                  <th className="px-6 py-4 text-center">QR Pasport</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filteredQoldiq.map(item => (
-                  <tr key={item.id} className="hover:bg-white/5 transition-colors">
-                    <td className="px-6 py-4 font-mono text-text-dim">#{item.id.toString().padStart(4, '0')}</td>
-                    <td className="px-6 py-4 font-bold text-white flex items-center gap-2">
-                      <Box size={16} className="text-amber-500/50" />
-                      {item.nomi}
-                    </td>
-                    <td className="px-6 py-4 text-right font-mono font-bold text-white">
-                      {item.qoldiq} <span className="text-text-dim font-sans text-xs">{item.birligi}</span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <button className="text-sky-400 hover:text-sky-300 p-1.5 bg-sky-500/10 rounded border border-sky-500/20 mx-auto transition-colors">
-                        <QrCode size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {filteredQoldiq.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="p-10 text-center text-text-dim">
-                      Omborda qoldiq mavjud emas yoki topilmadi.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
+        )}
 
-      {/* CONTENT: M29 */}
-      {activeTab === 'm29' && (
-        <div className="bg-[var(--surface-1)] border border-border rounded-xl p-12 text-center shadow-xl mt-6">
-          <div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-amber-500/20">
-            <ClipboardCheck size={32} className="text-amber-400" />
-          </div>
-          <h2 className="text-xl font-bold text-white mb-3">M-29: Materiallarning Oylik Sarf Hisoboti</h2>
-          <p className="text-text-dim max-w-lg mx-auto mb-8">
-            Bu yerda Smeta (Norma) bo'yicha belgilangan materiallar miqdori va Ombor (Fakt) bo'yicha sarflangan miqdorlar solishtiriladi. Hozircha faqat qoldiq ko'rish rejimida.
-          </p>
-        </div>
-      )}
-      
-      {activeTab === 'kirim' && (
-        <div className="bg-[var(--surface-1)] border border-border rounded-xl p-12 text-center shadow-xl mt-6">
-          <h2 className="text-xl font-bold text-white mb-3">Tranzaksiyalar Tarixi Jurnali Hali Yasalmadi</h2>
-          <p className="text-text-dim max-w-lg mx-auto mb-8">
-            Bu sahifada barcha kirim va chiqim jurnali tarixi (tranzaksiyalar) chiqadi.
-            Jarayonlar hozircha "Qoldiq" orqali shakllanmoqda.
-          </p>
-        </div>
-      )}
+        {activeTab === 'm29' && (
+          <section className="fz-note fz-note--info">
+            <ClipboardCheck />
+            <span>
+              <b>{t('M-29: norma ↔ fakt sarf hisoboti')}</b>{' — '}{t('tasdiqlangan F2 normasi va ombor chiqimi alohida sahifada solishtiriladi.')}{' '}
+              <Link to="/admin/m29" className="font-semibold underline">{t('M-29 sahifasini ochish')}</Link>
+            </span>
+          </section>
+        )}
 
-    </div>
+        {activeTab === 'kirim' && (
+          <section className="fz-note"><History /><span>{t('Kirim va chiqim jurnali hali yasalmagan — hozircha harakatlar «Obyekt qoldiqlari» orqali ko‘rinadi.')}</span></section>
+        )}
+      </div>
+
+      <OpsOyna ochiq={isFormOpen} onYop={() => setIsFormOpen(false)} band={yuklanmoqda}
+        ikon={opType === 'kirim' ? <ArrowDownToLine style={{ color: 'var(--ok)' }} /> : <ArrowUpFromLine style={{ color: 'var(--danger)' }} />}
+        sarlavha={opType === 'kirim' ? t('Omborga kirim qilish') : t('Ombordan chiqim qilish')}
+        amallar={<>
+          <button type="button" onClick={() => setIsFormOpen(false)} className="fz-btn fz-btn--ghost">{t('Bekor qilish')}</button>
+          <button type="button" onClick={() => void handleSave()} disabled={yuklanmoqda} className={`fz-btn ${opType === 'kirim' ? 'fz-btn--primary' : 'fz-btn--danger'}`}>
+            {yuklanmoqda ? t('Yozilmoqda…') : t('Tasdiqlash')}
+          </button>
+        </>}>
+        <p className="text-[12px] text-text-dim">{t('Obyekt')}: <b className="text-text">{obyektlar.find((o) => o.id === obyektId)?.nom ?? '—'}</b></p>
+        <OpsMaydon nom={t('Material nomi')} majburiy>
+          <span className="relative block">
+            <Barcode className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-text-mute" size={15} />
+            <input type="text" value={formNomi} onChange={(e) => setFormNomi(e.target.value)} style={{ paddingLeft: 30 }} placeholder={t('Masalan, sement M400')} />
+          </span>
+        </OpsMaydon>
+        <div className="grid grid-cols-2 gap-3">
+          <OpsMaydon nom={t('Hajmi')} majburiy>
+            <input type="number" value={formHajmi} onChange={(e) => setFormHajmi(e.target.value)} className="text-right tabular-nums" />
+          </OpsMaydon>
+          <OpsMaydon nom={t('O‘lchov birligi')}>
+            <select value={formBirligi} onChange={(e) => setFormBirligi(e.target.value)}>
+              {['tonna', 'dona', 'm2', 'm3', 'kg'].map((b) => <option key={b} value={b}>{b}</option>)}
+            </select>
+          </OpsMaydon>
+        </div>
+      </OpsOyna>
+    </Sahifa>
   );
 }

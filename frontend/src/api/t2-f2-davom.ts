@@ -1,3 +1,4 @@
+import { vaqtliOqish } from './vaqtli-fetch';
 /** «Davom ettiriladigan F2 lar»: kompaniya (ixtiyoriy obyekt) bo'yicha F2 V3 server ish qoralamalari (egasi 2026-10-24).
  *  /api/sb o'qish-RPC `f2_import_job_royxat_v1` (stable, a'zolik + f2.read ichida; actor sessiyadan). */
 export type T2F2DavomQator = {
@@ -7,7 +8,7 @@ export type T2F2DavomQator = {
 };
 
 export async function f2DavomRoyxatOl(kompaniyaId: number, obyektId?: number | null): Promise<{ ok: boolean; qatorlar: T2F2DavomQator[]; error?: string }> {
-  const r = await fetch('/api/sb', {
+  const r = await vaqtliOqish('/api/sb', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ soro: 'f2_import_job_royxat_v1', kompaniya_id: kompaniyaId, ...(obyektId ? { obyekt_id: obyektId } : {}) }),
   });

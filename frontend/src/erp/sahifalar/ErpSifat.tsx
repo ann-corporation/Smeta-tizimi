@@ -1,11 +1,20 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { ShieldCheck, Search, ShieldAlert, CheckCircle, Clock, Plus } from 'lucide-react';
-import { AuroraBackground, GlassCard } from '../../boss/sahifalar/Umumiy';
+import { Plus, RotateCcw } from 'lucide-react';
 import { useSifatData, useNuqsonQosh, useNuqsonHolatYangila } from '../../api/hooks';
-import { Skelet } from '../../umumiy/ui/Sahifa';
+import { Sahifa, Skelet } from '../../umumiy/ui/Sahifa';
 import { ErpQoshModal } from '../ErpQoshModal';
 import { toast } from '../../umumiy/ui/Toast';
+import { t } from '../../i18n/til';
+import { OpsBoshQator, OpsKpi, OpsKpiQator, OpsQidiruv, OpsTaqsimot } from '../../components/kompaniya-ops/OpsUi';
+
+/** Nuqson holati va darajasi — so'z + rang (Firuza). Qiymatlar bazadagidek (o'zgarmagan). */
+const STATUS: Record<string, { stamp: string; rang: string }> = {
+  Yangi: { stamp: 'fz-stamp--info', rang: 'var(--info)' },
+  Jarayonda: { stamp: 'fz-stamp--warn', rang: 'var(--warn)' },
+  'Muddati o\'tgan': { stamp: 'fz-stamp--danger', rang: 'var(--danger)' },
+  Tuzatildi: { stamp: 'fz-stamp--ok', rang: 'var(--ok)' },
+};
+const DARAJA: Record<string, string> = { Oddiy: 'fz-chip', 'O\'rta': 'fz-chip fz-chip--warn', Kritik: 'fz-chip fz-chip--danger' };
 
 export default function ErpSifat() {
   const { data, isLoading } = useSifatData();
@@ -15,245 +24,99 @@ export default function ErpSifat() {
   const nuqsonQosh = useNuqsonQosh();
   const holatYangila = useNuqsonHolatYangila();
 
-  if (isLoading || !data) {
-    return (
-      <AuroraBackground>
-        <div className="p-8"><Skelet qatorlar={5} /></div>
-      </AuroraBackground>
-    );
-  }
+  if (isLoading || !data) return <Sahifa sarlavha="Sifat nazorati"><Skelet qatorlar={5} /></Sahifa>;
 
   const filtrlanganNuqsonlar = data.nuqsonlar.filter((n: any) => {
-    const mosKeladi = String(n.tavsif ?? '').toLowerCase().includes(qidiruv.toLowerCase()) || 
-                      String(n.obyekt ?? '').toLowerCase().includes(qidiruv.toLowerCase());
-    if (filterStatus !== 'Barchasi') {
-      return mosKeladi && n.status === filterStatus;
-    }
+    const mosKeladi = String(n.tavsif ?? '').toLowerCase().includes(qidiruv.toLowerCase())
+      || String(n.obyekt ?? '').toLowerCase().includes(qidiruv.toLowerCase());
+    if (filterStatus !== 'Barchasi') return mosKeladi && n.status === filterStatus;
     return mosKeladi;
   });
 
   const holatOzgartir = async (id: string, status: 'Jarayonda' | 'Tuzatildi') => {
     try {
       await holatYangila.mutateAsync({ id, status });
-      toast(`Holat o'zgartirildi: ${status}`, 'ok');
-    } catch (e: any) { toast('Xato: ' + e.message, 'danger'); }
+      toast(t('Holat o‘zgartirildi: {h}', { h: t(status) }), 'ok');
+    } catch (e: any) { toast(t('Xato: {x}', { x: e.message }), 'danger'); }
   };
-
-  const darajaRangi = (daraja: string) => {
-    switch (daraja) {
-      case 'Oddiy': return 'text-blue-400 bg-blue-500/10 border-blue-500/20';
-      case 'O\'rta': return 'text-orange-400 bg-orange-500/10 border-orange-500/20';
-      case 'Kritik': return 'text-rose-400 bg-rose-500/10 border-rose-500/20';
-      default: return 'text-slate-400 bg-slate-500/10 border-slate-500/20';
-    }
-  };
-
-  const statusRangi = (status: string) => {
-    switch (status) {
-      case 'Yangi': return 'text-blue-400';
-      case 'Jarayonda': return 'text-amber-400';
-      case 'Tuzatildi': return 'text-emerald-400';
-      case 'Muddati o\'tgan': return 'text-rose-500 font-bold animate-pulse';
-      default: return 'text-slate-400';
-    }
-  };
+  const soni = (s: string) => data.nuqsonlar.filter((n: any) => n.status === s).length;
 
   return (
-    <AuroraBackground>
-      <div className="max-w-[1600px] mx-auto p-6 flex flex-col h-full overflow-hidden relative z-10">
-        
-        <header className="mb-6 flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300 tracking-tight flex items-center gap-3">
-              <ShieldCheck className="text-blue-400" size={32} />
-              Sifat Nazorati (Texnadzor)
-            </h1>
-            <p className="text-slate-400 mt-2 text-sm">Obyektlardagi nuqsonlar (defektlar) va ularni tuzatish jarayoni</p>
-          </div>
-          <button
-            onClick={() => setQoshOchiq(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-500 text-white font-medium hover:bg-blue-600 transition-colors shadow-lg"
-          >
-            <Plus size={18} /> Nuqson qayd etish
-          </button>
-        </header>
+    <Sahifa
+      sarlavha="Sifat nazorati (texnadzor)"
+      tavsif="Obyektlardagi nuqsonlar va ularni tuzatish yo‘li: yangi → jarayonda → tuzatildi. Muddati o‘tganlari qizil."
+      amallar={<button type="button" onClick={() => setQoshOchiq(true)} className="fz-btn fz-btn--primary"><Plus /> {t('Nuqson qayd etish')}</button>}
+    >
+      <div className="flex flex-col gap-3">
+        <OpsKpiQator yorliq={t('Sifat ko‘rsatkichlari')}>
+          <OpsKpi nom={t('Jami nuqsonlar')} qiymat={t('{n} ta', { n: data.jamiNuqsonlar })} />
+          <OpsKpi nom={t('Tuzatilgan')} rang="var(--ok)" qiymat={t('{n} ta', { n: data.tuzatilganlar })} />
+          <OpsKpi nom={t('Muddati o‘tgan')} rang="var(--danger)" qiymat={<span className={data.muddatOtilgan ? 'text-danger' : ''}>{t('{n} ta', { n: data.muddatOtilgan })}</span>} />
+          <OpsKpi nom={t('Kritik')} rang="var(--danger)" qiymat={t('{n} ta', { n: data.kritik })} />
+        </OpsKpiQator>
 
-        {/* KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <GlassCard className="p-5 flex items-center gap-4 hover:bg-white/5 transition-colors border-blue-500/20">
-            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400">
-              <ShieldCheck size={24} />
-            </div>
-            <div>
-              <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Jami Nuqsonlar</div>
-              <div className="text-2xl font-bold font-mono text-white">{data.jamiNuqsonlar} ta</div>
-            </div>
-          </GlassCard>
-          
-          <GlassCard className="p-5 flex items-center gap-4 hover:bg-white/5 transition-colors border-emerald-500/20">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
-              <CheckCircle size={24} />
-            </div>
-            <div>
-              <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Tuzatilgan</div>
-              <div className="text-2xl font-bold font-mono text-white">{data.tuzatilganlar} ta</div>
-            </div>
-          </GlassCard>
+        <OpsTaqsimot sarlavha={t('Nuqsonlar holati')} tanlangan={filterStatus === 'Barchasi' ? null : filterStatus}
+          onTanla={(k) => setFilterStatus((f) => (f === k ? 'Barchasi' : k))}
+          ong={filterStatus !== 'Barchasi' ? <button type="button" className="fz-chip fz-chip--accent" onClick={() => setFilterStatus('Barchasi')}>{t('Barchasi')}</button> : t('bosing — filtr')}
+          segmentlar={Object.entries(STATUS).map(([s, v]) => ({ kalit: s, nom: t(s), soni: soni(s), rang: v.rang }))} />
 
-          <GlassCard className="p-5 flex items-center gap-4 hover:bg-white/5 transition-colors border-rose-500/20 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl"></div>
-            <div className="w-12 h-12 rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-400 relative z-10">
-              <Clock size={24} />
-              {data.muddatOtilgan > 0 && <span className="absolute top-0 right-0 w-3 h-3 bg-rose-500 rounded-full animate-ping"></span>}
-            </div>
-            <div className="relative z-10">
-              <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Muddati O'tgan</div>
-              <div className="text-2xl font-bold font-mono text-white">{data.muddatOtilgan} ta</div>
-            </div>
-          </GlassCard>
+        <OpsQidiruv qiymat={qidiruv} onChange={setQidiruv} placeholder={t('Nuqson tavsifi yoki obyekt…')} />
 
-          <GlassCard className="p-5 flex items-center gap-4 hover:bg-white/5 transition-colors border-orange-500/20">
-            <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-400">
-              <ShieldAlert size={24} />
-            </div>
-            <div>
-              <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">Kritik Holatlar</div>
-              <div className="text-2xl font-bold font-mono text-white">{data.kritik} ta</div>
-            </div>
-          </GlassCard>
-        </div>
-
-        <div className="flex-1 bg-[#0B0E14]/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-          
-          <div className="p-4 border-b border-white/10 flex flex-wrap items-center justify-between gap-4 bg-white/5">
-            <div className="flex gap-2">
-               {['Barchasi', 'Yangi', 'Jarayonda', 'Muddati o\'tgan', 'Tuzatildi'].map(st => (
-                 <button 
-                   key={st}
-                   onClick={() => setFilterStatus(st)}
-                   className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${filterStatus === st ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-black/40 text-slate-400 hover:text-white border border-white/10'}`}
-                 >
-                   {st}
-                 </button>
-               ))}
-            </div>
-
-            <div className="relative w-full max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input 
-                type="text" 
-                placeholder="Nuqson tavsifi yoki obyekt..."
-                value={qidiruv}
-                onChange={e => setQidiruv(e.target.value)}
-                className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 transition-colors"
-              />
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-auto scrollbar-thin">
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-black/60 sticky top-0 z-20 backdrop-blur-md">
-                <tr>
-                  <th className="py-4 px-6 text-xs text-slate-400 font-bold uppercase tracking-wider">Nuqson Tavsifi / Darajasi</th>
-                  <th className="py-4 px-6 text-xs text-slate-400 font-bold uppercase tracking-wider">Obyekt va Prorab</th>
-                  <th className="py-4 px-6 text-xs text-slate-400 font-bold uppercase tracking-wider">Sana / Muddat</th>
-                  <th className="py-4 px-6 text-xs text-slate-400 font-bold uppercase tracking-wider text-center">Status</th>
-                  <th className="py-4 px-6 text-xs text-slate-400 font-bold uppercase tracking-wider text-center">Harakatlar</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtrlanganNuqsonlar.map((n: any, idx: number) => (
-                  <motion.tr 
-                    key={n.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group"
-                  >
-                    <td className="py-4 px-6 max-w-md">
-                      <div className="font-semibold text-white/90 text-sm whitespace-normal">{n.tavsif}</div>
-                      <div className={`inline-flex px-2 py-0.5 mt-2 rounded border text-[10px] font-bold uppercase tracking-wider ${darajaRangi(n.daraja)}`}>
-                        {n.daraja}
-                      </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="text-sm text-slate-300 font-bold">{n.obyekt}</div>
-                      <div className="text-xs text-slate-500 mt-1">{n.prorab}</div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="text-xs text-slate-400">Yozilgan: <span className="text-slate-300 font-mono">{n.sana}</span></div>
-                      <div className="text-xs text-slate-400 mt-1">Muddat: <span className="text-slate-300 font-mono">{n.muddat}</span></div>
-                    </td>
-                    <td className="py-4 px-6 text-center font-bold text-sm">
-                      <span className={statusRangi(n.status)}>{n.status}</span>
-                      {n.izoh && <div className="text-[10px] text-rose-400 mt-1 font-normal bg-rose-500/10 px-2 py-1 rounded inline-block">{n.izoh}</div>}
-                    </td>
-                    <td className="py-4 px-6 text-center space-x-2">
+        <div className="fz-table-wrap">
+          <table className="fz-table">
+            <thead>
+              <tr><th>{t('Nuqson / daraja')}</th><th>{t('Obyekt va prorab')}</th><th>{t('Sana / muddat')}</th><th>{t('Holat')}</th><th style={{ textAlign: 'right' }}>{t('Keyingi qadam')}</th></tr>
+            </thead>
+            <tbody>
+              {filtrlanganNuqsonlar.map((n: any) => (
+                <tr key={n.id}>
+                  <td className="max-w-md whitespace-normal">
+                    <span className="block font-medium text-text">{n.tavsif}</span>
+                    {n.daraja && <span className={`mt-1 ${DARAJA[n.daraja] ?? 'fz-chip'}`}>{t(n.daraja)}</span>}
+                  </td>
+                  <td><span className="block font-medium">{n.obyekt || '—'}</span><span className="text-[11.5px] text-text-mute">{n.prorab}</span></td>
+                  <td className="text-[12px] text-text-dim">
+                    <span className="block">{t('Yozilgan')}: <b className="tabular-nums text-text">{n.sana || '—'}</b></span>
+                    <span className="block">{t('Muddat')}: <b className="tabular-nums text-text">{n.muddat || '—'}</b></span>
+                  </td>
+                  <td>
+                    <span className={`fz-stamp ${STATUS[n.status]?.stamp ?? ''}`}>{n.status ? t(n.status) : '—'}</span>
+                    {n.izoh && <span className="mt-1 block text-[11px] text-text-mute">{n.izoh}</span>}
+                  </td>
+                  <td className="text-right">
+                    <span className="inline-flex flex-wrap justify-end gap-1">
+                      {n.status !== 'Tuzatildi' && n.status === 'Yangi' && (
+                        <button type="button" onClick={() => void holatOzgartir(n.id, 'Jarayonda')} disabled={holatYangila.isPending} className="fz-btn fz-btn--sm">{t('Ishga olindi')}</button>
+                      )}
                       {n.status !== 'Tuzatildi' && (
-                        <>
-                          {n.status === 'Yangi' && (
-                            <button
-                              onClick={() => holatOzgartir(n.id, 'Jarayonda')}
-                              disabled={holatYangila.isPending}
-                              className="text-xs bg-amber-500/20 hover:bg-amber-500 hover:text-white text-amber-400 px-3 py-1.5 rounded border border-amber-500/30 transition-colors disabled:opacity-50"
-                            >
-                              Ishga olindi
-                            </button>
-                          )}
-                          <button
-                            onClick={() => holatOzgartir(n.id, 'Tuzatildi')}
-                            disabled={holatYangila.isPending}
-                            className="text-xs bg-emerald-500/20 hover:bg-emerald-500 hover:text-white text-emerald-400 px-3 py-1.5 rounded border border-emerald-500/30 transition-colors disabled:opacity-50"
-                          >
-                            Tuzatildi deb belgilash
-                          </button>
-                        </>
+                        <button type="button" onClick={() => void holatOzgartir(n.id, 'Tuzatildi')} disabled={holatYangila.isPending} className="fz-btn fz-btn--sm fz-btn--primary">{t('Tuzatildi deb belgilash')}</button>
                       )}
-                      {/* ⚡⚡⚡ 2026-08-16 (audit M — WORKFLOW TUZOG'I).
-                          «Tuzatildi» belgilangach BARCHA tugmalar yo'qolardi
-                          va nuqsonni QAYTA OCHISHNING iloji yo'q edi.
-                          Xato bosilsa yoki tuzatish tekshiruvdan o'tmasa —
-                          yozuv abadiy «tuzatilgan» bo'lib qolardi va
-                          nazoratdan chiqib ketardi. */}
+                      {/* ⚡⚡⚡ 2026-08-16 (audit M): «Tuzatildi» dan keyin ham QAYTA OCHISH mumkin — tekshiruvdan o'tmasa nazoratdan chiqib ketmaydi. */}
                       {n.status === 'Tuzatildi' && (
-                        <button
-                          onClick={() => holatOzgartir(n.id, 'Jarayonda')}
-                          disabled={holatYangila.isPending}
-                          title="Tuzatish tekshiruvdan o'tmadi — qayta ishga qaytarish"
-                          className="text-xs bg-white/5 hover:bg-amber-500/20 text-slate-400 hover:text-amber-400 px-3 py-1.5 rounded border border-white/10 hover:border-amber-500/30 transition-colors disabled:opacity-50"
-                        >
-                          ↺ Qayta ochish
-                        </button>
+                        <button type="button" onClick={() => void holatOzgartir(n.id, 'Jarayonda')} disabled={holatYangila.isPending} title={t('Tuzatish tekshiruvdan o‘tmadi — qayta ishga qaytarish')} className="fz-btn fz-btn--sm fz-btn--ghost"><RotateCcw /> {t('Qayta ochish')}</button>
                       )}
-                    </td>
-                  </motion.tr>
-                ))}
-                
-                {filtrlanganNuqsonlar.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="py-12 text-center text-slate-500">
-                      {data.nuqsonlar.length === 0
-                        ? "Hali birorta nuqson qayd etilmagan — «Nuqson qayd etish» tugmasini bosing."
-                        : 'Filtrga mos nuqson topilmadi.'}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              {filtrlanganNuqsonlar.length === 0 && (
+                <OpsBoshQator ustun={5} matn={data.nuqsonlar.length === 0 ? t('Hali birorta nuqson qayd etilmagan — «Nuqson qayd etish» tugmasini bosing.') : t('Filtrga mos nuqson topilmadi.')} />
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
       <ErpQoshModal
         isOpen={qoshOchiq}
-        title="Yangi nuqson qayd etish"
+        title={t('Yangi nuqson qayd etish')}
         isSaving={nuqsonQosh.isPending}
         initial={{ sana: new Date().toISOString().split('T')[0], daraja: 'Oddiy', status: 'Yangi' }}
         onClose={() => setQoshOchiq(false)}
         fields={[
           { key: 'tavsif', label: 'Nuqson tavsifi', type: 'textarea', required: true, placeholder: 'B1 ustunda beton markasi past chiqdi...' },
           { key: 'obyekt', label: 'Obyekt', type: 'text' },
-          { key: 'prorab', label: 'Mas\'ul prorab', type: 'text' },
+          { key: 'prorab', label: 'Mas’ul prorab', type: 'text' },
           { key: 'daraja', label: 'Muhimlik darajasi', type: 'select', options: ['Oddiy', 'O\'rta', 'Kritik'] },
           { key: 'sana', label: 'Qayd etilgan sana', type: 'date' },
           { key: 'muddat', label: 'Tuzatish muddati', type: 'date' },
@@ -262,11 +125,11 @@ export default function ErpSifat() {
         onSubmit={async (v) => {
           try {
             await nuqsonQosh.mutateAsync(v as any);
-            toast('Nuqson qayd etildi', 'ok');
+            toast(t('Nuqson qayd etildi'), 'ok');
             setQoshOchiq(false);
-          } catch (e: any) { toast('Xato: ' + e.message, 'danger'); }
+          } catch (e: any) { toast(t('Xato: {x}', { x: e.message }), 'danger'); }
         }}
       />
-    </AuroraBackground>
+    </Sahifa>
   );
 }

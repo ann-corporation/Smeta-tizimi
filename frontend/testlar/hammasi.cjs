@@ -55,6 +55,16 @@ const TESTLAR = [
   ['SMETA import dublikat guard', 't2_smeta_import_dublikat_guard.test.cjs'],
 ];
 
+/* 2026-10-24: qo'lda ro'yxatga kiritilmagan `*.test.cjs` lar CI da HECH QACHON yurmay chirib qolgan edi
+ * (t2_tenant_izolyatsiya, t2_pto_document_lineage, t2_construction_document_workbench ...). Endi papkadagi
+ * har `*.test.cjs` avtomatik qo'shiladi — yangi governance testini ro'yxatga yozishni unutish mumkin emas.
+ * Istisno kerak bo'lsa: shu yerga fayl nomi + sabab (hisobot havolasi) bilan yozing. */
+const ISTISNO = new Set([]);
+const royxatda = new Set(TESTLAR.map(([, f]) => f));
+for (const f of require('fs').readdirSync(__dirname).filter((x) => x.endsWith('.test.cjs')).sort()) {
+  if (!royxatda.has(f) && !ISTISNO.has(f)) TESTLAR.push([f.replace(/\.test\.cjs$/, ''), f]);
+}
+
 let yiqildi = 0;
 
 /* Cloudflare Pages Functions REAL type gate — asosiy `tsc -b` frontend/functions/**

@@ -8,8 +8,10 @@ import { reportMoneyValidity } from '../../lib/money-input';
  */
 import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Activity, Bot, Building2, Coins, CreditCard, Crown, FileSearch, Settings, ToggleLeft, Users } from 'lucide-react';
-import { Sahifa } from '../../umumiy/ui/Sahifa';
+import { Activity, Bot, Building2, Coins, CreditCard, Crown, FileSearch, Send, Settings, ToggleLeft, Users } from 'lucide-react';
+import { Sahifa, Skelet } from '../../umumiy/ui/Sahifa';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { GrafikPanel, Legenda, OylikUstunlar, Tasma, UfqiyUstunlar } from '../../components/boshqaruv-grafik/Grafiklar';
 import { toast } from '../../umumiy/ui/Toast';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { sbT2ObyektlarOlKomp, type T2Obyekt } from '../../api/supabase';
@@ -21,6 +23,7 @@ import { markazOl, ustamaBelgila } from '../../api/t2-agent-ish';
 const SystemControlPage = lazy(() => import('../pages/SystemControlPage'));
 const AiMarkaz = lazy(() => import('../ai-markaz/AiMarkaz').then((m) => ({ default: m.AiMarkaz })));
 const CatalogReleasePanel = lazy(() => import('../catalog-release/CatalogReleasePanel'));
+const TelegramBotPanel = lazy(() => import('../../telegram/TelegramBotPanel'));
 const NarxIndeksPaneli = lazy(() => import('../catalog-release/NarxIndeksPaneli'));
 
 const son = (x: number | null | undefined) => (x == null ? '—' : Number(x).toLocaleString('ru-RU', { maximumFractionDigits: 2 }));
@@ -29,7 +32,7 @@ const ROLLAR = ['superadmin', 'admin', 'boss', 'rahbar', 'bugalter', 'pto', 'pro
 const AMAL_NOMI: Record<string, string> = { smeta_import: 'Smeta import', f2_import: 'F2 import', katalog_import: 'Katalog import', f2_qoralama: 'F2 qoralama', f2_hujjat: 'F2 hujjati', hujjat: 'Hujjat', ai_kirish: 'AI kiruvchi', ai_chiqish: 'AI chiquvchi' };
 const TUR_NOMI: Record<string, string> = { oylik: 'Oylik', toldirish: 'To‘lov', bonus: 'Bonus', sarf: 'Sarf', qaytarish: 'Qaytarish', tuzatish: 'Tuzatish' };
 
-type Bolim = 'umumiy' | 'foydalanuvchilar' | 'kompaniyalar' | 'tolovlar' | 'token' | 'audit' | 'sozlamalar' | 'funksiyalar' | 'ai' | 'katalog';
+type Bolim = 'umumiy' | 'foydalanuvchilar' | 'kompaniyalar' | 'tolovlar' | 'token' | 'audit' | 'sozlamalar' | 'funksiyalar' | 'ai' | 'katalog' | 'telegram';
 const BOLIMLAR: { id: Bolim; nom: string; Ikonka: typeof Users }[] = [
   { id: 'umumiy', nom: 'Umumiy', Ikonka: Activity },
   { id: 'foydalanuvchilar', nom: 'Foydalanuvchilar', Ikonka: Users },
@@ -40,6 +43,7 @@ const BOLIMLAR: { id: Bolim; nom: string; Ikonka: typeof Users }[] = [
   { id: 'sozlamalar', nom: 'Sozlamalar', Ikonka: Settings },
   { id: 'katalog', nom: 'Kataloglar', Ikonka: FileSearch },
   { id: 'ai', nom: 'AI markazi', Ikonka: Bot },
+  { id: 'telegram', nom: 'Telegram bot', Ikonka: Send },
   { id: 'funksiyalar', nom: 'Funksiyalar va tizim', Ikonka: ToggleLeft },
 ];
 
@@ -51,9 +55,9 @@ function sababSora(savol: string): string | null {
 
 function Karta({ sarlavha, qiymat, izoh }: { sarlavha: string; qiymat: ReactNode; izoh?: ReactNode }) {
   return (
-    <div className="karta p-4">
-      <div className="text-[11px] uppercase tracking-wide text-text-mute">{sarlavha}</div>
-      <div className="mt-1 text-2xl font-bold tabular-nums text-text">{qiymat}</div>
+    <div className="fz-panel">
+      <div className="fz-panel__h">{sarlavha}</div>
+      <div className="text-2xl font-semibold tabular-nums text-text">{qiymat}</div>
       {izoh && <div className="text-[12px] text-text-dim">{izoh}</div>}
     </div>
   );
@@ -74,43 +78,59 @@ function useOqi<T>(bolim: Parameters<typeof boshqaruvOqi>[0], p: Record<string, 
   return { d, xato, yuk, yukla };
 }
 
-// ─── Umumiy ───
+// ─── Umumiy — platforma bir qarashda (grafiklar) ───
 function Umumiy() {
   const { d, xato } = useOqi<BUmumiy>('umumiy', {}, '');
   if (xato) return <Xato x={xato} />;
   if (!d) return <Yuklanmoqda />;
+  const tk = t('token');
+  const bloklangan = Math.max(0, d.foydalanuvchi.jami - d.foydalanuvchi.faol);
+  const fIzoh = t('7 kunda +{a} · 30 kunda +{b} · Google: {g}', { a: d.foydalanuvchi.yangi_7, b: d.foydalanuvchi.yangi_30, g: d.foydalanuvchi.google });
+  const kIzoh = t('30 kunda +{a} · obyektlar: {o}', { a: d.kompaniya.yangi_30, o: son(d.obyekt) });
+  const tIzoh = t('berilgan {b} · sarf {s} · 30 kunda {m}', { b: son(d.token.berilgan), s: son(d.token.sarflangan), m: son(d.token.sarf_30) });
   return (
     <div className="space-y-3">
-      <section className="grid gap-3 md:grid-cols-4">
-        <Karta sarlavha="Foydalanuvchilar" qiymat={son(d.foydalanuvchi.jami)} izoh={`7 kunda +${d.foydalanuvchi.yangi_7} · 30 kunda +${d.foydalanuvchi.yangi_30} · Google: ${d.foydalanuvchi.google}`} />
-        <Karta sarlavha="Kompaniyalar" qiymat={son(d.kompaniya.jami)} izoh={`30 kunda +${d.kompaniya.yangi_30} · obyektlar: ${son(d.obyekt)}`} />
-        <Karta sarlavha="Oylik tushum (faol obunalar)" qiymat={`${son(d.oylik_tushum_som)} so‘m`} izoh={`sotilgan token: ${son(d.token.sotilgan)}`} />
-        <Karta sarlavha="Tokenlar" qiymat={son(d.token.qoldiq)} izoh={`berilgan ${son(d.token.berilgan)} · sarf ${son(d.token.sarflangan)} · 30 kunda ${son(d.token.sarf_30)}`} />
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Karta sarlavha={t('Foydalanuvchilar')} qiymat={son(d.foydalanuvchi.jami)} izoh={fIzoh} />
+        <Karta sarlavha={t('Kompaniyalar')} qiymat={son(d.kompaniya.jami)} izoh={kIzoh} />
+        <Karta sarlavha={t('Oylik tushum (faol obunalar)')} qiymat={`${son(d.oylik_tushum_som)} ${t('so‘m')}`} izoh={t('sotilgan token: {n}', { n: son(d.token.sotilgan) })} />
+        <Karta sarlavha={t('Tokenlar')} qiymat={son(d.token.qoldiq)} izoh={tIzoh} />
       </section>
-      <section className="grid gap-3 md:grid-cols-3">
-        <div className="karta p-4">
-          <h2 className="mb-2 text-[14px] font-semibold text-text">Obunalar</h2>
-          <table className="w-full text-[13px]"><tbody>
-            {d.obunalar.map((o) => <tr key={o.kod} className="border-t border-border/60"><td className="py-1 text-text">{o.nom}</td><td className="py-1 text-right text-text-dim">{son(o.narx_som)} so‘m</td><td className="py-1 text-right font-semibold tabular-nums text-text">{o.soni}</td></tr>)}
-          </tbody></table>
-        </div>
-        <div className="karta p-4">
-          <h2 className="mb-2 text-[14px] font-semibold text-text">Token nimaga sarflanmoqda</h2>
-          {d.token_amal.length === 0 ? <p className="text-[12px] text-text-mute">Hali sarf yo‘q.</p> : (
-            <table className="w-full text-[13px]"><tbody>
-              {d.token_amal.map((a) => <tr key={a.amal} className="border-t border-border/60"><td className="py-1 text-text">{AMAL_NOMI[a.amal] ?? a.amal}</td><td className="py-1 text-right text-text-dim">{a.soni} marta</td><td className="py-1 text-right font-semibold tabular-nums text-text">{son(a.token)}</td></tr>)}
-            </tbody></table>
-          )}
-        </div>
-        <div className="karta p-4">
-          <h2 className="mb-2 text-[14px] font-semibold text-text">Oxirgi ro‘yxatdan o‘tganlar</h2>
-          {d.royxat_oxirgi.length === 0 ? <p className="text-[12px] text-text-mute">Hali yo‘q.</p> : (
+      <section className="grid gap-3 lg:grid-cols-3">
+        <GrafikPanel sarlavha={t('Token oqimi')} ong={tk}>
+          <UfqiyUstunlar birlik={tk} qatorlar={[
+            { nom: t('Berilgan (oylik+bonus)'), qiymat: d.token.berilgan, rang: 'var(--info)' },
+            { nom: t('Sotilgan'), qiymat: d.token.sotilgan, rang: 'var(--ok)' },
+            { nom: t('Sarflangan'), qiymat: d.token.sarflangan, rang: 'var(--warn)' },
+            { nom: t('Qoldiq'), qiymat: d.token.qoldiq, rang: 'var(--accent)' },
+          ]} />
+        </GrafikPanel>
+        <GrafikPanel sarlavha={t('Foydalanuvchilar holati')} ong={son(d.foydalanuvchi.jami)}>
+          <Tasma label={t('Foydalanuvchilar holati')} qismlar={[{ nom: t('Faol'), qiymat: d.foydalanuvchi.faol, rang: 'var(--ok)' }, { nom: t('Bloklangan'), qiymat: bloklangan, rang: 'var(--danger)' }]} />
+          <Legenda qatorlar={[{ nom: t('Faol'), rang: 'var(--ok)', qiymat: d.foydalanuvchi.faol }, { nom: t('Bloklangan'), rang: 'var(--danger)', qiymat: bloklangan }]} />
+          <UfqiyUstunlar qatorlar={[
+            { nom: t('Yangi — 7 kun'), qiymat: d.foydalanuvchi.yangi_7 },
+            { nom: t('Yangi — 30 kun'), qiymat: d.foydalanuvchi.yangi_30 },
+            { nom: t('Google orqali'), qiymat: d.foydalanuvchi.google, rang: 'var(--info)' },
+          ]} />
+        </GrafikPanel>
+        <GrafikPanel sarlavha={t('Obunalar')} ong={t('kompaniyalar soni')}>
+          <UfqiyUstunlar qatorlar={d.obunalar.map((o) => ({ nom: `${o.nom} · ${son(o.narx_som)} ${t('so‘m')}`, qiymat: o.soni }))} />
+        </GrafikPanel>
+      </section>
+      <section className="grid gap-3 lg:grid-cols-2">
+        <GrafikPanel sarlavha={t('Token nimaga sarflanmoqda')} ong={tk}>
+          {d.token_amal.length === 0 ? <p className="text-[12px] text-text-mute">{t('Hali sarf yo‘q.')}</p>
+            : <UfqiyUstunlar birlik={tk} rang="var(--warn)" qatorlar={d.token_amal.map((a) => ({ nom: `${t(AMAL_NOMI[a.amal] ?? a.amal)} · ${t('{n} marta', { n: a.soni })}`, qiymat: a.token }))} />}
+        </GrafikPanel>
+        <GrafikPanel sarlavha={t('Oxirgi ro‘yxatdan o‘tganlar')}>
+          {d.royxat_oxirgi.length === 0 ? <p className="text-[12px] text-text-mute">{t('Hali yo‘q.')}</p> : (
             <ul className="space-y-1 text-[12px]">
-              {d.royxat_oxirgi.map((r) => <li key={r.id} className="flex justify-between gap-2 border-t border-border/60 pt-1"><span className="truncate text-text">{r.ism || r.login} <span className="text-text-mute">· {r.kompaniya}</span></span><span className="shrink-0 text-text-mute">{r.google ? 'Google · ' : ''}{vaqt(r.vaqt)}</span></li>)}
+              {d.royxat_oxirgi.map((r) => <li key={r.id} className="flex justify-between gap-2 border-t border-border pt-1"><span className="truncate text-text">{r.ism || r.login} <span className="text-text-mute">· {r.kompaniya}</span></span><span className="shrink-0 text-text-mute">{r.google ? 'Google · ' : ''}{vaqt(r.vaqt)}</span></li>)}
             </ul>
           )}
-          <p className="mt-2 text-[11px] text-text-mute">Demo obyekt: {d.demo_obyekt?.nom ?? 'tanlanmagan'}</p>
-        </div>
+          <p className="text-[11px] text-text-mute">{t('Demo obyekt')}: {d.demo_obyekt?.nom ?? t('tanlanmagan')}</p>
+        </GrafikPanel>
       </section>
     </div>
   );
@@ -140,12 +160,12 @@ function Foydalanuvchilar({ kompaniyalar }: { kompaniyalar: BKompaniya[] }) {
     <div className="space-y-3">
       <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); setQidir(q.trim()); }}>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Login, ism yoki email" className="input px-2 py-1.5 text-[13px] max-w-sm" aria-label="Qidirish" />
-        <button className="tugma" disabled={yuk}>Qidirish</button>
+        <button className="fz-btn" disabled={yuk}>{t('Qidirish')}</button>
       </form>
       {xato && <Xato x={xato} />}
       {d && (
-        <div className="karta overflow-x-auto">
-          <table className="w-full text-[13px]">
+        <div className="fz-table-wrap">
+          <table className="fz-table">
             <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th className="p-2">Foydalanuvchi</th><th className="p-2">Kirish</th><th className="p-2">A‘zoliklar</th><th className="p-2">Holat</th><th className="p-2" /></tr></thead>
             <tbody>
               {d.map((f) => (
@@ -170,13 +190,13 @@ function Foydalanuvchilar({ kompaniyalar }: { kompaniyalar: BKompaniya[] }) {
                         <select className="input h-7 px-2 text-[12px]" value={rolUchun.rol} onChange={(e) => setRolUchun({ ...rolUchun, rol: e.target.value })} aria-label="Rol">
                           {ROLLAR.map((r) => <option key={r}>{r}</option>)}
                         </select>
-                        <button type="button" className="tugma-asosiy h-7 px-2 text-[12px]" disabled={!rolUchun.kid} onClick={() => void azolik(f.id, Number(rolUchun.kid), rolUchun.rol, `${f.login} — ${kompaniyalar.find((k) => k.id === Number(rolUchun.kid))?.nom}: ${rolUchun.rol}`)}>Saqlash</button>
-                        <button type="button" className="tugma h-7 px-2 text-[12px]" onClick={() => setRolUchun(null)}>Bekor</button>
+                        <button type="button" className="fz-btn fz-btn--primary fz-btn--sm" disabled={!rolUchun.kid} onClick={() => void azolik(f.id, Number(rolUchun.kid), rolUchun.rol, `${f.login} — ${kompaniyalar.find((k) => k.id === Number(rolUchun.kid))?.nom}: ${rolUchun.rol}`)}>Saqlash</button>
+                        <button type="button" className="fz-btn fz-btn--sm" onClick={() => setRolUchun(null)}>Bekor</button>
                       </div>
                     ) : <button type="button" className="mt-1 text-[11px] text-accent hover:underline" onClick={() => setRolUchun({ fid: f.id, kid: '', rol: 'pto' })}>+ rol berish</button>}
                   </td>
                   <td className="p-2"><span className={f.holat === 'faol' ? 'text-ok' : 'text-danger'}>{f.holat === 'faol' ? 'Faol' : 'Bloklangan'}</span></td>
-                  <td className="p-2 text-right"><button type="button" className={f.holat === 'faol' ? 'tugma h-7 px-2 text-[12px] text-danger' : 'tugma h-7 px-2 text-[12px]'} onClick={() => void holat(f)}>{f.holat === 'faol' ? 'Bloklash' : 'Faollashtirish'}</button></td>
+                  <td className="p-2 text-right"><button type="button" className={f.holat === 'faol' ? 'fz-btn fz-btn--danger fz-btn--sm' : 'fz-btn fz-btn--sm'} onClick={() => void holat(f)}>{f.holat === 'faol' ? 'Bloklash' : 'Faollashtirish'}</button></td>
                 </tr>
               ))}
             </tbody>
@@ -208,8 +228,8 @@ function Kompaniyalar({ d, xato, yukla, tariflar }: { d: BKompaniya[] | null; xa
   if (xato) return <Xato x={xato} />;
   if (!d) return <Yuklanmoqda />;
   return (
-    <div className="karta overflow-x-auto">
-      <table className="w-full text-[13px]">
+    <div className="fz-table-wrap">
+      <table className="fz-table">
         <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th className="p-2">Kompaniya</th><th className="p-2">Boss</th><th className="p-2 text-right">A‘zo / obyekt</th><th className="p-2">Tarif</th><th className="p-2 text-right">Balans</th><th className="p-2 text-right">Sarf 30 kun</th><th className="p-2" /></tr></thead>
         <tbody>
           {d.map((k) => (
@@ -226,7 +246,7 @@ function Kompaniyalar({ d, xato, yukla, tariflar }: { d: BKompaniya[] | null; xa
               </td>
               <td className="p-2 text-right font-semibold tabular-nums text-text">{son(k.balans)}</td>
               <td className="p-2 text-right tabular-nums text-text-dim">{son(k.sarf_30)}</td>
-              <td className="p-2 text-right"><button type="button" className="tugma h-7 px-2 text-[12px]" onClick={() => void toldir(k)}>+ Token</button></td>
+              <td className="p-2 text-right"><button type="button" className="fz-btn fz-btn--sm" onClick={() => void toldir(k)}>+ Token</button></td>
             </tr>
           ))}
         </tbody>
@@ -256,7 +276,7 @@ function SagaNavbat() {
       <p className="mb-2 text-[12px] text-text-mute">{t('Token yechilgan, lekin amal natijasi 30 daqiqadan beri kelmagan (brauzer yopilgan yoki tarmoq uzilgan). Qaytaring yoki amal bajarilgan bo‘lsa — yakunlangan deb belgilang.')}</p>
       {xato && <Xato x={xato} />}
       {xabar && <p role="status" className="mb-2 text-[12.5px] text-ok">{xabar}</p>}
-      {!!royxat.length && <table className="w-full text-[12px]"><tbody>
+      {!!royxat.length && <table className="fz-table"><tbody>
         {royxat.map((s) => (
           <tr key={s.sarf_operation_id} className="border-t border-border/60">
             <td className="py-1 text-text-mute">{vaqt(s.yaratildi)}</td>
@@ -264,8 +284,8 @@ function SagaNavbat() {
             <td className="py-1 text-text-dim">{s.amal ? (AMAL_NOMI[s.amal] ?? s.amal) : ''}{s.hujjat ? ` · ${s.hujjat}` : ''}</td>
             <td className="py-1 text-right font-semibold tabular-nums text-danger">−{son(s.token)}</td>
             <td className="py-1 text-right whitespace-nowrap">
-              <button type="button" className="tugma h-7 px-2 text-[12px]" onClick={() => void hal(s, 'qaytar')}>{t('Qaytarish')}</button>{' '}
-              <button type="button" className="tugma h-7 px-2 text-[12px]" onClick={() => void hal(s, 'yakunlandi')}>{t('Bajarilgan')}</button>
+              <button type="button" className="fz-btn fz-btn--sm" onClick={() => void hal(s, 'qaytar')}>{t('Qaytarish')}</button>{' '}
+              <button type="button" className="fz-btn fz-btn--sm" onClick={() => void hal(s, 'yakunlandi')}>{t('Bajarilgan')}</button>
             </td>
           </tr>
         ))}
@@ -288,16 +308,20 @@ function TokenHisobi({ kompaniyalar }: { kompaniyalar: BKompaniya[] }) {
       {xato && <Xato x={xato} />}
       {d && (
         <>
+          <GrafikPanel sarlavha={t('Token oylar bo‘yicha')} ong={t('token')}>
+            <OylikUstunlar label={t('Token oylar bo‘yicha')} oylar={[...d.oylar].sort((a, b) => a.oy.localeCompare(b.oy)).slice(-12).map((o) => ({ oy: o.oy, qiymatlar: [o.berilgan, o.sotilgan, o.sarflangan] }))}
+              seriyalar={[{ nom: t('Berilgan (oylik+bonus)'), rang: 'var(--info)' }, { nom: t('Sotilgan'), rang: 'var(--ok)' }, { nom: t('Sarflangan'), rang: 'var(--warn)' }]} />
+          </GrafikPanel>
           <section className="karta p-4">
-            <h2 className="mb-2 text-[14px] font-semibold text-text">Oylar bo‘yicha</h2>
-            <table className="w-full text-[13px]">
+            <h2 className="mb-2 text-[14px] font-semibold text-text">{t('Oylar bo‘yicha')}</h2>
+            <table className="fz-table">
               <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th>Oy</th><th className="text-right">Berilgan (oylik+bonus)</th><th className="text-right">Sotilgan</th><th className="text-right">Sarflangan</th></tr></thead>
               <tbody>{d.oylar.map((o) => <tr key={o.oy} className="border-t border-border/60"><td className="py-1 text-text">{o.oy}</td><td className="py-1 text-right tabular-nums">{son(o.berilgan)}</td><td className="py-1 text-right tabular-nums">{son(o.sotilgan)}</td><td className="py-1 text-right tabular-nums">{son(o.sarflangan)}</td></tr>)}</tbody>
             </table>
           </section>
-          <section className="karta overflow-x-auto p-4">
+          <section className="fz-table-wrap p-4">
             <h2 className="mb-2 text-[14px] font-semibold text-text">Daftar (oxirgi 300, o‘zgarmas)</h2>
-            <table className="w-full text-[12px]"><tbody>
+            <table className="fz-table"><tbody>
               {d.harakatlar.map((h) => (
                 <tr key={h.id} className="border-t border-border/60">
                   <td className="py-1 text-text-mute">{vaqt(h.vaqt)}</td>
@@ -333,11 +357,11 @@ function Audit({ kompaniyalar }: { kompaniyalar: BKompaniya[] }) {
           <option value="">Barcha kompaniyalar</option>
           {kompaniyalar.map((k) => <option key={k.id} value={k.id}>{k.nom}</option>)}
         </select>
-        <button className="tugma">Qidirish</button>
+        <button className="fz-btn">{t('Qidirish')}</button>
       </form>
       {xato && <Xato x={xato} />}
-      <div className="karta overflow-x-auto">
-        <table className="w-full text-[12px]"><tbody>
+      <div className="fz-table-wrap">
+        <table className="fz-table"><tbody>
           {qator.map((a) => (
             <tr key={a.id} className="border-t border-border/60 align-top">
               <td className="whitespace-nowrap p-2 text-text-mute">{vaqt(a.vaqt)}</td>
@@ -348,7 +372,7 @@ function Audit({ kompaniyalar }: { kompaniyalar: BKompaniya[] }) {
             </tr>
           ))}
         </tbody></table>
-        {yana && <button type="button" className="m-2 tugma" onClick={() => void yukla(qator[qator.length - 1]?.id)}>Ko‘proq</button>}
+        {yana && <button type="button" className="fz-btn m-2" onClick={() => void yukla(qator[qator.length - 1]?.id)}>{t('Ko‘proq')}</button>}
       </div>
     </div>
   );
@@ -359,7 +383,8 @@ function Tolovlar() {
   const [holat, setHolat] = useState('kutilmoqda');
   const { d, xato, yukla } = useOqi<BTolov[]>('tolovlar', { holat }, holat);
   const hal = async (s: BTolov, qaror: 'tasdiqlandi' | 'rad') => {
-    const sabab = qaror === 'rad' ? sababSora(t('Rad etish sababi')) : window.confirm(t('{k}: {s} soʻm uchun {n} token yozilsinmi? Pul hisobingizga tushganini tekshirdingizmi?', { k: s.kompaniya, s: son(s.summa_som), n: son(s.token) })) ? 'tasdiq' : null;
+    const sabab = qaror === 'rad' ? sababSora(t('Rad etish sababi'))
+      : await tasdiqSora({ sarlavha: t('Toʻlovni tasdiqlash'), matn: t('{k}: {s} soʻm uchun {n} token yozilsinmi? Pul hisobingizga tushganini tekshirdingizmi?', { k: s.kompaniya, s: son(s.summa_som), n: son(s.token) }), tasdiqMatni: t('Tasdiqlash') }) ? 'tasdiq' : null;
     if (!sabab) return;
     const r = await boshqaruvYoz('tolov_hal', { sorov_id: s.id, qaror, sabab: qaror === 'rad' ? sabab : null });
     toast(r.xabar, r.ok ? 'ok' : 'danger'); if (r.ok) void yukla();
@@ -376,8 +401,8 @@ function Tolovlar() {
       </div>
       {xato && <Xato x={xato} />}
       {d && (d.length === 0 ? <p className="karta p-4 text-[13px] text-text-mute">{t('Soʻrov yoʻq.')}</p> : (
-        <div className="karta overflow-x-auto">
-          <table className="w-full text-[13px]"><tbody>
+        <div className="fz-table-wrap">
+          <table className="fz-table"><tbody>
             {d.map((s) => (
               <tr key={s.id} className="border-t border-border/60 align-top">
                 <td className="p-2 text-text-mute">#{s.id}<div className="text-[11px]">{vaqt(s.vaqt)}</div></td>
@@ -387,8 +412,8 @@ function Tolovlar() {
                 <td className="p-2 text-right whitespace-nowrap">
                   {s.holat === 'kutilmoqda' ? (
                     <>
-                      <button type="button" className="tugma-asosiy h-7 px-2 text-[12px]" onClick={() => void hal(s, 'tasdiqlandi')}>{t('Tasdiqlash')}</button>
-                      <button type="button" className="tugma ml-1 h-7 px-2 text-[12px] text-danger" onClick={() => void hal(s, 'rad')}>{t('Rad etish')}</button>
+                      <button type="button" className="fz-btn fz-btn--primary fz-btn--sm" onClick={() => void hal(s, 'tasdiqlandi')}>{t('Tasdiqlash')}</button>
+                      <button type="button" className="fz-btn fz-btn--danger fz-btn--sm ml-1" onClick={() => void hal(s, 'rad')}>{t('Rad etish')}</button>
                     </>
                   ) : <span className={s.holat === 'tasdiqlandi' ? 'text-ok' : 'text-danger'}>{t(s.holat === 'tasdiqlandi' ? 'Tasdiqlandi' : s.holat === 'rad' ? 'Rad etildi' : 'Bekor qilindi')}{s.sabab && s.sabab !== 'tasdiq' ? ` — ${s.sabab}` : ''}</span>}
                 </td>
@@ -475,10 +500,10 @@ function Sozlamalar({ kompaniyaId }: { kompaniyaId: number | null }) {
           <label className="mt-2 block text-[12px] text-text-dim">{t('Toʻlov rekvizitlari (foydalanuvchilarga koʻrinadi: karta raqami, egasi, bank, hisob raqam)')}
             <textarea rows={3} className="input mt-1 w-full px-2 py-1.5 text-[13px]" value={soz.tolov_rekvizit ?? ''} onChange={(e) => setSoz({ ...soz, tolov_rekvizit: e.target.value })} />
           </label>
-          <button type="button" className="tugma-asosiy mt-2 h-8 px-3 text-[13px]" onClick={(e) => { if (reportMoneyValidity(e.currentTarget.closest('section'))) void sozSaqla(); }}>{t('Saqlash')}</button>
+          <button type="button" className="fz-btn fz-btn--primary mt-2" onClick={(e) => { if (reportMoneyValidity(e.currentTarget.closest('section'))) void sozSaqla(); }}>{t('Saqlash')}</button>
         </section>
       )}
-      <section className="karta overflow-x-auto p-4">
+      <section className="fz-table-wrap p-4">
         <h2 className="mb-1 text-[14px] font-semibold text-text">{t('Amallar narxi: tannarx + foyda')}</h2>
         <p className="mb-2 text-[12px] text-text-mute">{t('Yakuniy = (asosiy + har birlik boʻlagi × narx) × (1 + foyda%), keyin min/max. Foyda boʻsh — umumiy foiz. Oʻzgarish faqat keyingi sarflarga taʼsir qiladi.')}</p>
         <p className="mb-2 text-[12px] text-text-mute">{t('Hujjatlarda birlik — tizim oʻzi hisoblagan katak (formula). Matn va hujjatdan koʻchirilgan sonlar sanalmaydi. Masalan, 43 qatorli F2 da 213 ta hisoblangan katak bor.')}</p>
@@ -486,7 +511,7 @@ function Sozlamalar({ kompaniyaId }: { kompaniyaId: number | null }) {
           <input type="number" min={0} className={`${kir} w-28`} value={misolKatak} onChange={(e) => setMisolKatak(e.target.value)} aria-label={t('Sinov: hujjatdagi hisoblangan kataklar soni')} />
           <span className="text-text-mute">{t('— qiymatlarni oʻzgartiring, «Misol» ustuni darhol yangilanadi (saqlamaguncha hech narsa oʻzgarmaydi)')}</span>
         </label>
-        <table className="w-full text-[12px]">
+        <table className="fz-table">
           <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th>{t('Amal')}</th><th>{t('Asosiy (soʻm)')}</th><th>{t('Birlik')}</th><th>{t('Har birlik (soʻm)')}</th><th>{t('Min')}</th><th>{t('Max')}</th><th>{t('Foyda %')}</th><th>{t('Misol')}</th><th /></tr></thead>
           <tbody>{narxlar.map((n, i) => {
             const misolN = n.tur === 'ai' ? 10000 : katakSoni;
@@ -503,7 +528,7 @@ function Sozlamalar({ kompaniyaId }: { kompaniyaId: number | null }) {
                 <td className="py-1 pr-2 tabular-nums text-text-dim whitespace-nowrap">{m ? `${son(misolN)} → ${son(m.yakuniy_som)} = ${son(m.token)} ${t('token')}` : '—'}</td>
                 <td className="py-1 text-right whitespace-nowrap">
                   <label className="mr-1 text-[11px] text-text-mute"><input type="checkbox" checked={n.faol} onChange={(e) => ozgar(setNarxlar, i, { faol: e.target.checked })} /> {t('faol')}</label>
-                  <button type="button" className="tugma h-7 px-2 text-[12px]" onClick={(e) => { if (reportMoneyValidity(e.currentTarget.closest('tr'))) void narxSaqla(n); }}>{t('Saqlash')}</button>
+                  <button type="button" className="fz-btn fz-btn--sm" onClick={(e) => { if (reportMoneyValidity(e.currentTarget.closest('tr'))) void narxSaqla(n); }}>{t('Saqlash')}</button>
                 </td>
               </tr>
             );
@@ -516,13 +541,13 @@ function Sozlamalar({ kompaniyaId }: { kompaniyaId: number | null }) {
         <div className="flex flex-wrap items-end gap-3 text-[12px] text-text-dim">
           <label className="flex flex-col gap-1">{t('Standart ustama (%)')}<input type="number" min={0} max={1000} className={`${kir} w-28`} value={ustama} onChange={(e) => setUstama(e.target.value)} /></label>
           <label className="flex flex-col gap-1">{t('Sinov: bitta AI javob tannarxi ($)')}<MoneyInput  min={0} step="0.001" className={`${kir} w-28`} value={misolUsd} onValueChange={(moneyValue) => setMisolUsd(moneyValue)} /></label>
-          <button type="button" className="tugma-asosiy h-7 px-3 text-[12px]" onClick={() => void ustamaSaqla()}>{t('Saqlash')}</button>
+          <button type="button" className="fz-btn fz-btn--primary fz-btn--sm" onClick={() => void ustamaSaqla()}>{t('Saqlash')}</button>
         </div>
         {aiMisol && <p className="mt-2 text-[12px] tabular-nums text-text" data-testid="ai-misol">{t('Misol: ${u} tannarx → mijozga ${m} = {s} soʻm = {n} token (foyda ≈ {f} soʻm)', { u: misolUsd, m: aiMisol.mijozUsd.toFixed(4), s: son(aiMisol.som), n: son(aiMisol.tok), f: son(aiMisol.foydaSom) })}</p>}
       </section>
       <section className="karta p-4">
-        <div className="mb-2 flex items-center justify-between"><h2 className="text-[14px] font-semibold text-text">{t('Tariflar')}</h2><button type="button" className="tugma h-7 px-2 text-[12px]" onClick={yangiTarif}>{t('+ Yangi tarif')}</button></div>
-        <table className="w-full text-[13px]">
+        <div className="mb-2 flex items-center justify-between"><h2 className="text-[14px] font-semibold text-text">{t('Tariflar')}</h2><button type="button" className="fz-btn fz-btn--sm" onClick={yangiTarif}>{t('+ Yangi tarif')}</button></div>
+        <table className="fz-table">
           <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th>{t('Kod')}</th><th>{t('Nomi')}</th><th>{t('Token/oy')}</th><th>{t('Narx (soʻm/oy)')}</th><th /></tr></thead>
           <tbody>{tariflar.map((tf, i) => (
             <tr key={tf.kod} className="border-t border-border/60">
@@ -531,8 +556,8 @@ function Sozlamalar({ kompaniyaId }: { kompaniyaId: number | null }) {
               <td className="py-1"><input type="number" className={`${kir} w-28`} value={tf.oylik_token} onChange={(e) => ozgar(setTariflar, i, { oylik_token: Number(e.target.value) })} aria-label={t('Token/oy')} /></td>
               <td className="py-1"><MoneyInput numericValue  className={`${kir} w-32`} value={tf.narx_som} onValueChange={(moneyValue) => ozgar(setTariflar, i, { narx_som: Number(moneyValue) })} aria-label={t('Narx (soʻm/oy)')} /></td>
               <td className="py-1 text-right whitespace-nowrap">
-                <button type="button" className="tugma h-7 px-2 text-[12px]" onClick={(e) => { if (reportMoneyValidity(e.currentTarget.closest('tr'))) void tarifSaqla(tf); }}>{t('Saqlash')}</button>
-                {tf.kod !== 'free' && <button type="button" className="tugma ml-1 h-7 px-2 text-[12px] text-danger" onClick={(e) => { if (reportMoneyValidity(e.currentTarget.closest('tr'))) void tarifSaqla({ ...tf, faol: false }); }}>{t('Yashirish')}</button>}
+                <button type="button" className="fz-btn fz-btn--sm" onClick={(e) => { if (reportMoneyValidity(e.currentTarget.closest('tr'))) void tarifSaqla(tf); }}>{t('Saqlash')}</button>
+                {tf.kod !== 'free' && <button type="button" className="fz-btn fz-btn--danger fz-btn--sm ml-1" onClick={(e) => { if (reportMoneyValidity(e.currentTarget.closest('tr'))) void tarifSaqla({ ...tf, faol: false }); }}>{t('Yashirish')}</button>}
               </td>
             </tr>
           ))}</tbody>
@@ -572,8 +597,8 @@ function Funksiyalar() {
   );
 }
 
-function Xato({ x }: { x: string }) { return <section role="alert" className="karta border-danger/40 p-4 text-danger">{x}</section>; }
-function Yuklanmoqda() { return <div className="p-4 text-text-dim">Yuklanmoqda…</div>; }
+function Xato({ x }: { x: string }) { return <section role="alert" className="fz-note fz-note--danger">{x}</section>; }
+function Yuklanmoqda() { return <Skelet qatorlar={4} />; }
 
 export default function BoshqaruvPanel() {
   const { joriy, superadmin } = useKompaniya() as ReturnType<typeof useKompaniya> & { superadmin?: boolean };
@@ -583,16 +608,16 @@ export default function BoshqaruvPanel() {
   useEffect(() => { if (joriy?.id) void tokenHolatOl(joriy.id).then((h) => { if (h.ok) setTariflar(h.natija.tariflar); }); }, [joriy?.id]);
 
   if (komp.xato && /superadmin/i.test(komp.xato)) {
-    return <Sahifa sarlavha="Boshqaruv paneli" tavsif="Platforma boshqaruvi"><Xato x="Bu panel faqat platforma superadmini uchun." /></Sahifa>;
+    return <Sahifa sarlavha={t('Boshqaruv paneli')} tavsif={t('Platforma boshqaruvi')}><Xato x={t('Bu panel faqat platforma superadmini uchun.')} /></Sahifa>;
   }
   return (
-    <Sahifa sarlavha="Boshqaruv paneli" tavsif="Butun platforma: foydalanuvchilar, obunalar, hisob, audit, sozlamalar va funksiyalar" onYangila={() => void komp.yukla()} yangilanmoqda={komp.yuk}>
-      <div className="mb-3 flex items-center gap-2 text-[12px] text-text-mute"><Crown size={14} className="text-accent" />Faqat siz ko‘rasiz{superadmin === false ? ' (superadmin emas)' : ''} · har o‘zgarish sabab bilan auditga yoziladi</div>
-      <nav className="mb-3 flex flex-wrap gap-1" aria-label="Boshqaruv bo‘limlari">
+    <Sahifa sarlavha={t('Boshqaruv paneli')} tavsif={t('Butun platforma: foydalanuvchilar, obunalar, hisob, audit, sozlamalar va funksiyalar')} onYangila={() => void komp.yukla()} yangilanmoqda={komp.yuk}>
+      <div className="mb-3 flex items-center gap-2 text-[12px] text-text-mute"><Crown size={14} className="text-accent" aria-hidden="true" />{t('Faqat siz ko‘rasiz')}{superadmin === false ? ` (${t('superadmin emas')})` : ''} · {t('har o‘zgarish sabab bilan auditga yoziladi')}</div>
+      <nav className="mb-4 flex flex-wrap gap-1 border-b border-border pb-3" aria-label={t('Boshqaruv bo‘limlari')}>
         {BOLIMLAR.map(({ id, nom, Ikonka }) => (
           <button key={id} type="button" onClick={() => setBolim(id)} aria-pressed={bolim === id}
-            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[13px] ${bolim === id ? 'border-accent bg-accent/10 text-text' : 'border-border text-text-dim hover:text-text'}`}>
-            <Ikonka size={14} />{t(nom)}
+            className={`fz-btn fz-btn--sm ${bolim === id ? 'fz-btn--primary' : 'fz-btn--ghost'}`}>
+            <Ikonka aria-hidden="true" />{t(nom)}
           </button>
         ))}
       </nav>
@@ -606,6 +631,7 @@ export default function BoshqaruvPanel() {
       {bolim === 'katalog' && <Suspense fallback={<Yuklanmoqda />}><div className="space-y-4"><NarxIndeksPaneli /><CatalogReleasePanel /></div></Suspense>}
       {bolim === 'ai' && <Suspense fallback={<Yuklanmoqda />}><AiMarkaz kompaniyalar={(komp.d ?? []).map((k) => ({ id: k.id, nom: k.nom }))} /></Suspense>}
       {bolim === 'funksiyalar' && <Funksiyalar />}
+      {bolim === 'telegram' && <Suspense fallback={<Yuklanmoqda />}><TelegramBotPanel /></Suspense>}
     </Sahifa>
   );
 }

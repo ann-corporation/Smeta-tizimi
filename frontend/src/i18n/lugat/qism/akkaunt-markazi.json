@@ -1,0 +1,354 @@
+{
+ "Superadmin": {
+  "ru": "Суперадмин",
+  "en": "Superadmin"
+ },
+ "Akkaunt menyusi": {
+  "ru": "Меню аккаунта",
+  "en": "Account menu"
+ },
+ "Ish joyi": {
+  "ru": "Рабочее пространство",
+  "en": "Workspace"
+ },
+ "Mening rollarim": {
+  "ru": "Мои роли",
+  "en": "My roles"
+ },
+ "Akkaunt sozlamalari": {
+  "ru": "Настройки аккаунта",
+  "en": "Account settings"
+ },
+ "Kompaniya sozlamalari": {
+  "ru": "Настройки компании",
+  "en": "Company settings"
+ },
+ "Xavfsizlik": {
+  "ru": "Безопасность",
+  "en": "Security"
+ },
+ "Bildirishnomalar": {
+  "ru": "Уведомления",
+  "en": "Notifications"
+ },
+ "Tarif va hisob": {
+  "ru": "Тариф и счёт",
+  "en": "Plan and billing"
+ },
+ "Kompaniya ma‘lumotini o‘qib bo‘lmadi.": {
+  "ru": "Не удалось прочитать данные компании.",
+  "en": "Could not read company data."
+ },
+ "Joriy": {
+  "ru": "Текущая",
+  "en": "Current"
+ },
+ "Ruxsatlar": {
+  "ru": "Разрешения",
+  "en": "Permissions"
+ },
+ "yozish ruxsatlari": {
+  "ru": "разрешения на запись",
+  "en": "write permissions"
+ },
+ "Ruxsatlar ro‘yxati": {
+  "ru": "Список разрешений",
+  "en": "Permission list"
+ },
+ "Kompaniya markazini ochish": {
+  "ru": "Открыть центр компании",
+  "en": "Open company center"
+ },
+ "Taklif havolalarini faqat kompaniya rahbari yaratadi va ko‘radi.": {
+  "ru": "Ссылки-приглашения создаёт и видит только руководитель компании.",
+  "en": "Only the company head creates and sees invitation links."
+ },
+ "A‘zolar va taklif havolalarini boshqarish": {
+  "ru": "Управление участниками и ссылками-приглашениями",
+  "en": "Manage members and invitation links"
+ },
+ "Parolni kompaniya rahbari a‘zolar bo‘limidan belgilashi mumkin.": {
+  "ru": "Пароль может задать руководитель компании в разделе участников.",
+  "en": "The company head can set the password from the members section."
+ },
+ "Zichlik": {
+  "ru": "Плотность",
+  "en": "Density"
+ },
+ "Yon panelni doim ochiq (mahkam) ushlash": {
+  "ru": "Держать боковую панель всегда открытой (закреплённой)",
+  "en": "Keep the sidebar always open (pinned)"
+ },
+ "Tokenlar va obunani ochish": {
+  "ru": "Открыть токены и подписку",
+  "en": "Open tokens and subscription"
+ },
+ "Sozlamalarni qidirish…": {
+  "ru": "Поиск настроек…",
+  "en": "Search settings…"
+ },
+ "Ko‘rinadigan sahifalar rolingiz ruxsatlariga bog‘liq; yakuniy tekshiruv serverda.": {
+  "ru": "Видимые страницы зависят от разрешений вашей роли; окончательная проверка на сервере.",
+  "en": "Visible pages depend on your role permissions; the final check happens on the server."
+ },
+ "Akkaunt ma‘lumotlari. Tahrirlash uchun alohida server amali hali yo‘q — shu sabab maydonlar faqat o‘qiladi.": {
+  "ru": "Данные аккаунта. Отдельного серверного действия для редактирования пока нет — поля только для чтения.",
+  "en": "Account details. There is no server action for editing yet, so the fields are read-only."
+ },
+ "Ism": {
+  "ru": "Имя",
+  "en": "Name"
+ },
+ "Elektron pochta": {
+  "ru": "Электронная почта",
+  "en": "Email"
+ },
+ "Ism, telefon va rasmni o‘zgartirish hamda Google rasmini ulash — akkaunt profili serveri tayyor bo‘lgach.": {
+  "ru": "Изменение имени, телефона и фото, а также подключение фото Google — когда будет готов сервер профиля аккаунта.",
+  "en": "Changing name, phone and photo and linking the Google photo — once the account profile server is ready."
+ },
+ "Interfeys tili brauzerda saqlanadi.": {
+  "ru": "Язык интерфейса сохраняется в браузере.",
+  "en": "The interface language is saved in the browser."
+ },
+ "Kompaniyalar va rollar": {
+  "ru": "Компании и роли",
+  "en": "Companies and roles"
+ },
+ "Bir odam bir kompaniyada bir nechta rol tutishi mumkin. Ruxsatlar serverdagi samarali ruxsatlardan olinadi.": {
+  "ru": "Один человек может иметь несколько ролей в одной компании. Разрешения берутся из эффективных разрешений сервера.",
+  "en": "One person can hold several roles in a company. Permissions come from the server's effective permissions."
+ },
+ "Takliflar va so‘rovlar": {
+  "ru": "Приглашения и запросы",
+  "en": "Invitations and requests"
+ },
+ "Kutilayotgan kompaniya ro‘yxatdan o‘tish so‘rovlari": {
+  "ru": "Ожидающие запросы на регистрацию компании",
+  "en": "Pending company registration requests"
+ },
+ "Joriy kompaniyadagi faol taklif havolalari": {
+  "ru": "Активные ссылки-приглашения в текущей компании",
+  "en": "Active invitation links in the current company"
+ },
+ "Joriy sessiya": {
+  "ru": "Текущая сессия",
+  "en": "Current session"
+ },
+ "Sessiya serverda HttpOnly cookie sifatida saqlanadi.": {
+  "ru": "Сессия хранится на сервере как HttpOnly cookie.",
+  "en": "The session is stored as an HttpOnly cookie on the server."
+ },
+ "Sessiya tugashi": {
+  "ru": "Окончание сессии",
+  "en": "Session expires"
+ },
+ "Boshqa qurilmalardagi sessiyalar": {
+  "ru": "Сессии на других устройствах",
+  "en": "Sessions on other devices"
+ },
+ "Parol va Google": {
+  "ru": "Пароль и Google",
+  "en": "Password and Google"
+ },
+ "Parolni o‘zgartirish, faol sessiyalar ro‘yxati va Google akkauntini ulash/uzish — server amallari tayyor bo‘lgach. Hozir Google orqali kirish kirish sahifasida ishlaydi.": {
+  "ru": "Смена пароля, список активных сессий и подключение/отключение аккаунта Google — когда будут готовы серверные действия. Сейчас вход через Google работает на странице входа.",
+  "en": "Changing the password, the list of active sessions and linking/unlinking a Google account — once the server actions are ready. For now Google sign-in works on the sign-in page."
+ },
+ "Qaysi hodisa haqida qanday xabar olishingizni shu yerda tanlaysiz.": {
+  "ru": "Здесь вы выбираете, о каких событиях и как получать уведомления.",
+  "en": "Here you choose which events you are notified about and how."
+ },
+ "Bildirishnoma sozlamalari uchun server API hali yaratilmagan; soxta tugmalar ko‘rsatilmaydi.": {
+  "ru": "Серверный API для настроек уведомлений ещё не создан; фиктивные кнопки не показываются.",
+  "en": "The server API for notification settings does not exist yet; no fake controls are shown."
+ },
+ "Tugma va maydonlar balandligi.": {
+  "ru": "Высота кнопок и полей.",
+  "en": "Height of buttons and fields."
+ },
+ "Yon panel": {
+  "ru": "Боковая панель",
+  "en": "Sidebar"
+ },
+ "sizning ish joylaringiz": {
+  "ru": "ваши рабочие пространства",
+  "en": "your workspaces"
+ },
+ "joriy kompaniya": {
+  "ru": "текущая компания",
+  "en": "current company"
+ },
+ "joriy kompaniya a‘zolari": {
+  "ru": "участники текущей компании",
+  "en": "members of the current company"
+ },
+ "Tarif": {
+  "ru": "Тариф",
+  "en": "Plan"
+ },
+ "Joriy kompaniya uchun.": {
+  "ru": "Для текущей компании.",
+  "en": "For the current company."
+ },
+ "Oylik token": {
+  "ru": "Токены в месяц",
+  "en": "Monthly tokens"
+ },
+ "Obuna tugashi": {
+  "ru": "Окончание подписки",
+  "en": "Subscription ends"
+ },
+ "Fayl saqlash holati": {
+  "ru": "Состояние хранилища файлов",
+  "en": "File storage status"
+ },
+ "Saqlash hajmi (GB)": {
+  "ru": "Объём хранилища (ГБ)",
+  "en": "Storage size (GB)"
+ },
+ "To‘lov va hisob-kitob": {
+  "ru": "Оплата и расчёты",
+  "en": "Payment and billing"
+ },
+ "Onlayn to‘lov va hisob-faktura ulanmagan. To‘lov so‘rovlari hozircha Tokenlar sahifasida qo‘lda ko‘rib chiqiladi.": {
+  "ru": "Онлайн-оплата и счета не подключены. Запросы на оплату пока рассматриваются вручную на странице токенов.",
+  "en": "Online payment and invoicing are not connected. Payment requests are currently reviewed manually on the Tokens page."
+ },
+ "Barcha ish joylari va navbatingiz": {
+  "ru": "Все рабочие пространства и ваша очередь",
+  "en": "All workspaces and your queue"
+ },
+ "Mutaxassis profili va xizmat takliflari": {
+  "ru": "Профиль специалиста и предложения услуг",
+  "en": "Specialist profile and service offers"
+ },
+ "Token balansi, tarif va to‘lov so‘rovlari": {
+  "ru": "Баланс токенов, тариф и запросы на оплату",
+  "en": "Token balance, plan and payment requests"
+ },
+ "Kompaniya, a‘zolar va modullar": {
+  "ru": "Компания, участники и модули",
+  "en": "Company, members and modules"
+ },
+ "Rekvizitlar, a‘zolar, rollar, ruxsatlar, modullar": {
+  "ru": "Реквизиты, участники, роли, разрешения, модули",
+  "en": "Details, members, roles, permissions, modules"
+ },
+ "Loyihadagi tomonlar va ularning rollari": {
+  "ru": "Стороны проекта и их роли",
+  "en": "Project parties and their roles"
+ },
+ "Umumiy sozlamalar": {
+  "ru": "Общие настройки",
+  "en": "General settings"
+ },
+ "Kompaniya sozlamalari va taklif havolalari": {
+  "ru": "Настройки компании и ссылки-приглашения",
+  "en": "Company settings and invitation links"
+ },
+ "Hamkorlar va elektron hujjat almashinuvi": {
+  "ru": "Партнёры и электронный документооборот",
+  "en": "Partners and electronic document exchange"
+ },
+ "Nakrutka koeffitsientlari": {
+  "ru": "Коэффициенты накрутки",
+  "en": "Markup coefficients"
+ },
+ "Ustama (nakrutka) qoidalari": {
+  "ru": "Правила наценки (накрутки)",
+  "en": "Markup rules"
+ },
+ "Katalog, faktura va tijoriy takliflar": {
+  "ru": "Каталог, счета-фактуры и коммерческие предложения",
+  "en": "Catalog, invoices and commercial offers"
+ },
+ "Narx o‘zgarishi va chetlanishlar": {
+  "ru": "Изменения цен и отклонения",
+  "en": "Price changes and deviations"
+ },
+ "Rasmiy hujjat ko‘rinishi va logotip": {
+  "ru": "Вид официальных документов и логотип",
+  "en": "Official document layout and logo"
+ },
+ "Hujjat holati va muddatlar nazorati": {
+  "ru": "Контроль статуса и сроков документов",
+  "en": "Document status and deadline control"
+ },
+ "Barcha loyiha hujjatlari": {
+  "ru": "Все документы проекта",
+  "en": "All project documents"
+ },
+ "Saqlash ulanishi va papkalar holati": {
+  "ru": "Подключение хранилища и состояние папок",
+  "en": "Storage connection and folder status"
+ },
+ "Fayllarni obyekt va hujjatlarga bog‘lash": {
+  "ru": "Привязка файлов к объектам и документам",
+  "en": "Link files to objects and documents"
+ },
+ "Tizim holati, tekshiruvlar va nazorat": {
+  "ru": "Состояние системы, проверки и контроль",
+  "en": "System status, checks and control"
+ },
+ "AI agentlar va ularning vazifalari": {
+  "ru": "ИИ-агенты и их задачи",
+  "en": "AI agents and their tasks"
+ },
+ "Barcha sahifa, jadval va oqimlar xaritasi": {
+  "ru": "Карта всех страниц, таблиц и потоков",
+  "en": "Map of all pages, tables and flows"
+ },
+ "O‘chirilgan yozuvlarni tiklash": {
+  "ru": "Восстановление удалённых записей",
+  "en": "Restore deleted records"
+ },
+ "Barcha kompaniyalar, obunalar (superadmin)": {
+  "ru": "Все компании, подписки (суперадмин)",
+  "en": "All companies, subscriptions (superadmin)"
+ },
+ "Akkaunt bo‘limlari": {
+  "ru": "Разделы аккаунта",
+  "en": "Account sections"
+ },
+ "Akkaunt markazi": {
+  "ru": "Центр аккаунта",
+  "en": "Account center"
+ },
+ "Akkaunt, kompaniyalar va rollar, xavfsizlik, ko‘rinish, tarif va barcha tizim sozlamalari — bir joyda.": {
+  "ru": "Аккаунт, компании и роли, безопасность, внешний вид, тариф и все системные настройки — в одном месте.",
+  "en": "Account, companies and roles, security, appearance, plan and all system settings — in one place."
+ },
+ "Qulay": {
+  "ru": "Комфортная",
+  "en": "Comfortable"
+ },
+ "Ixcham": {
+  "ru": "Компактная",
+  "en": "Compact"
+ },
+ "Hisob va ish joylari": {
+  "ru": "Аккаунт и рабочие пространства",
+  "en": "Account and workspaces"
+ },
+ "Narx va hisob-kitob": {
+  "ru": "Цены и расчёты",
+  "en": "Pricing and calculations"
+ },
+ "Hujjat va fayllar": {
+  "ru": "Документы и файлы",
+  "en": "Documents and files"
+ },
+ "Tizim va nazorat": {
+  "ru": "Система и контроль",
+  "en": "System and control"
+ },
+ "Platforma boshqaruvini ko‘rish": {
+  "ru": "Просмотр управления платформой",
+  "en": "View platform management"
+ },
+ "Platformani boshqarish": {
+  "ru": "Управление платформой",
+  "en": "Manage the platform"
+ }
+}

@@ -1,3 +1,4 @@
+import { vaqtliOqish } from './vaqtli-fetch';
 /**
  * t2-ai.ts — AI UCHUN KONTEKST (Postgres'da hisoblangan)
  * ═══════════════════════════════════════════════════════════════════
@@ -69,7 +70,7 @@ type Javob<T> = { ok: boolean; natija?: T; error?: string; ms?: number };
 
 async function soro<T>(tana: Record<string, unknown>): Promise<Javob<T>> {
   try {
-    const r = await fetch('/api/sb', {
+    const r = await vaqtliOqish('/api/sb', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(tana),

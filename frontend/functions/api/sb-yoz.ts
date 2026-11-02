@@ -20,12 +20,13 @@
  * Ikkisini bir faylda saqlash — kelajakda tasodifan yozishga ruxsat
  * berib qo'yishning eng qisqa yo'li.
  */
+import { tokenJavobTozala } from '../_shared/tizim-maxfiy';
 import { cachedAuthority, dataPermission } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { xavfsizUpstream } from '../_shared/xato';
 import { azoKompaniyalar } from '../_shared/tenant-oqish';
-import { roleAuthority, mayWriteCompanies } from '../_shared/role-authority';
+import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob, mayWriteCompanies } from '../_shared/role-authority';
 import { egaQarori, egalarniOqi, yozishTalablari } from '../_shared/tenant-yozish';
 import { katalogSnapshotlari } from '../_shared/narx-katalog-snapshot';
 
@@ -52,11 +53,22 @@ const AMALLAR = {
   shartnoma_saqla_v2: { rpc: 't2_shartnoma_saqla_v2' },
   /* Egasi 2026-10-23: shartnoma svodi/akt-sverka yozuvlari — DS, F2 reestri, sotuv (F3 summasi). RPC a'zolik + financial.write ni o'zi tekshiradi. */
   sverka_yozuv_v1: { rpc: 't2_sverka_yozuv_v1' },
+  /* Egasi 2026-10-26: 1C akt-sverka importi (partiya ≤ 200: to'lov + F3 sotuv + F2 to'plami), to'lov taqsimoti, Продажа ↔ F2.
+     RPC a'zolik + financial.write ni o'zi tekshiradi; idempotent (operation_id). */
+  sverka_import_v1: { rpc: 't2_sverka_import_v1' },
+  tolov_taqsimot_saqla_v1: { rpc: 't2_tolov_taqsimot_saqla_v1' },
+  forma3_f2_bog_v1: { rpc: 't2_forma3_f2_bog_v1' },
+  /* Rasmiy F2 reestri jamilari (QQSsiz / QQS / QQS bilan): t2_akt.hujjat_jami — bog'langan qatorlar pryamye, hujjat jami emas. */
+  f2_reestr_yoz_v1: { rpc: 't2_f2_reestr_yoz_v1' },
   /* Egasi 2026-10-20: fayl menejeri — o'z papkalari, ko'rinadigan nom, ko'chirish, savat (kanonik hujjat o'zgarmaydi). */
   fayl_amal_v1: { rpc: 't2_fayl_amal_v1' },
   /* Egasi 2026-10-21 (ADR-3): ombor Fakt orqali emas — bajarilgan M-29 orqali kamayadi. */
   m29_bajar_v1: { rpc: 't2_m29_bajar_v1' },
   m29_bekor_v1: { rpc: 't2_m29_bekor_v1' },
+  /* C11 PR-B (2026-10-29): markaziy ombor kirimi — «Приход» varag'idan ≤1000 qatorlik bo'lak (R2 da tasdiqlangan
+     hujjat, idempotent operation_id) va 24 soat ichida storno (sabab majburiy). RPC a'zolik + document.write. */
+  sklad_kirim_import_v1: { rpc: 't2_sklad_markaziy_prixod_import_v1' },
+  sklad_kirim_storno_v1: { rpc: 't2_sklad_markaziy_prixod_storno_v1' },
   /* Egasi 2026-10-02: token daftari (o'zgarmas): sarf/qaytarish — a'zo; to'ldirish/obuna/demo — faqat superadmin (RPC ichida). */
   token_sarfla_v1: { rpc: 't2_token_sarfla_v1' },
   token_qaytar_v1: { rpc: 't2_token_qaytar_v1' },
@@ -67,6 +79,8 @@ const AMALLAR = {
   obuna_belgila_v1: { rpc: 't2_obuna_belgila_v1' },
   demo_manba_belgila_v1: { rpc: 't2_demo_manba_belgila_v1' },
   zamena_ish_yarat_v1: { rpc: 't2_zamena_ish_yarat_v1' },
+  /* Zamena «aslning qancha hajmini almashtiradi» (birlik farqli) -- t2_qator.almashtirish_hajm, faqat shu ustun. */
+  zamena_almashtirish_belgila_v1: { rpc: 't2_zamena_almashtirish_belgila_v1' },
   resurs_bola_qosh_v1: { rpc: 't2_resurs_bola_qosh_v1' },
   /* Egasi 2026-09-28: zamena/qo'shimcha ish RESURSLARI BILAN bitta so'rov, bitta tranzaksiya. */
   ish_resurslar_bilan_yarat_v1: { rpc: 't2_ish_resurslar_bilan_yarat_v1' },
@@ -189,9 +203,17 @@ const AMALLAR = {
   kontragent_ochir: { rpc: 't2_kontragent_ochir' },
   bajarilmadi_belgila: { rpc: 't2_bajarilmadi_belgila_v1' },
   bajarilmadi_bekor: { rpc: 't2_bajarilmadi_bekor_v1' },
+  /* PTO-CORE-001 (egasi 2026-10-26): smeta versiyasi → farq → da'vo — t2_qator ga TEGMAYDI; a'zolik + smeta.write RPC ichida. */
+  smeta_versiya_yarat_v1: { rpc: 't2_smeta_versiya_yarat_v1' },
+  smeta_versiya_pozitsiya_yoz_v1: { rpc: 't2_smeta_versiya_pozitsiya_yoz_v1' },
+  smeta_versiya_moslik_yoz_v1: { rpc: 't2_smeta_versiya_moslik_yoz_v1' },
+  smeta_versiya_qaror_v1: { rpc: 't2_smeta_versiya_qaror_v1' },
+  smeta_versiya_bekor_v1: { rpc: 't2_smeta_versiya_bekor_v1' },
   /* Egasi 2026-10-24 (pul tahlili P1): haqiqiy xarajatni kategoriya/obyekt bilan qo'lda kiritish (idempotent) va bekor qilish. */
   xarajat_kirit_v1: { rpc: 't2_xarajat_kirit_v1' },
   xarajat_bekor_v1: { rpc: 't2_xarajat_bekor_v1' },
+  /* Egasi 2026-10-27: moliyaviy tahlil — tizimda yo'q ko'rsatkichni qo'lda kiritish/almashtirish/bekor (append-only, idempotent). */
+  moliya_qolda_yoz_v1: { rpc: 't2_moliya_qolda_yoz_v1' },
   fakt_yoz_v2: { rpc: 't2_fakt_yoz_v2' },
   fakt_belgila_v2: { rpc: 't2_fakt_belgila_v2' },
   fakt_belgila: { rpc: 't2_fakt_belgila' },
@@ -223,7 +245,9 @@ const AMALLAR = {
   mindmap_bog: { rpc: 't2_mindmap_bog_v2' },
   mindmap_bog_ochir: { rpc: 't2_mindmap_bog_ochir_v2' },
   mindmap_joylashuv_saqla: { rpc: 't2_mindmap_joylashuv_saqla_v2' },
-  mindmap_tugun_ochir: { rpc: 't2_mindmap_tugun_ochir_v2' }
+  mindmap_tugun_ochir: { rpc: 't2_mindmap_tugun_ochir_v2' },
+  /* 2026-11-11: odamni obyekt/loyihaga mas'ul qilib biriktirish/olib tashlash (company.member.manage yoki control.company.write). */
+  mindmap_masul: { rpc: 't2_mindmap_masul_v1' }
 } as const;
 
 type Amal = keyof typeof AMALLAR;
@@ -290,7 +314,9 @@ export const onRequestPost: PagesFunction<{
         error: 'Supabase sozlanmagan (SUPABASE_URL / SUPABASE_KEY)' });
     }
 
+    const tekshirilgan = sess;
     sess = cachedAuthority(ctx) ?? await roleAuthority(sess, ctx.env);
+    if (!sess && sessiyaYaroqsizmi(tekshirilgan)) return yaroqsizSessiyaJavob();
     if (!sess) return Response.json({ ok: false, code: 'AUTHORITY_UNAVAILABLE', error: 'Joriy ruxsatlarni tekshirib bo‘lmadi. Qayta urinib ko‘ring.' }, { status: 503 });
 
     const so = await ctx.request.json<any>();
@@ -316,7 +342,7 @@ export const onRequestPost: PagesFunction<{
       if (!uuidRe.test(operationId)) {
         return Response.json({ ok: false, error: 'operation_id UUID bo\'lishi shart' });
       }
-      if (amal !== 'mindmap_joylashuv_saqla' && amal !== 'resurs_yarat_v2' &&
+      if (amal !== 'mindmap_joylashuv_saqla' && amal !== 'mindmap_masul' && amal !== 'resurs_yarat_v2' &&
           (!Number.isInteger(Number(so.expected_version)) || Number(so.expected_version) < 0)) {
         return Response.json({ ok: false, error: 'expected_version noto\'g\'ri' });
       }
@@ -529,6 +555,12 @@ export const onRequestPost: PagesFunction<{
       };
       if (amal === 'zamena_ish_yarat_v1') yuk.p_almashtirilayotgan_qator_id = so.almashtirilayotgan_qator_id;
       if (amal === 'resurs_bola_qosh_v1') yuk.p_tur = so.tur;
+    } else if (amal === 'zamena_almashtirish_belgila_v1') {
+      const miq = so.hajm === null || so.hajm === undefined ? null : Number(so.hajm);
+      if (!sess.foydalanuvchi_id || !Number.isSafeInteger(Number(so.qator_id)) || (miq !== null && (!Number.isFinite(miq) || miq < 0))) {
+        return Response.json({ ok: false, error: 'Zamena qatori va manfiy bo‘lmagan hajm talab qilinadi.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_qator_id: so.qator_id, p_hajm: miq };
     } else if (amal === 'fakt_smetadan_tashqari_v1') {
       const buyruq = String(so.command || '');
       const hajm = Number(so.hajm);
@@ -635,6 +667,31 @@ export const onRequestPost: PagesFunction<{
         return Response.json({ ok: false, error: 'M-29 bekor: hujjat va sabab talab qilinadi.' }, { status: 400 });
       }
       yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_hujjat_id: Number(so.hujjat_id), p_sabab: String(so.sabab).slice(0, 1000) };
+    } else if (amal === 'sklad_kirim_import_v1') {
+      const q = so.qatorlar;
+      const butun = (v: unknown) => Number.isSafeInteger(Number(v)) && Number(v) > 0;
+      const matn = (v: unknown, n: number) => (v == null || String(v).trim() === '' ? null : String(v).trim().slice(0, n));
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !butun(so.sklad_id) || !butun(so.document_id)
+          || so.varaq !== 'Приход' || !Array.isArray(q) || q.length < 1 || q.length > 1000
+          || q.some((x: any) => !x || !butun(x.source_row) || !/^\d{4}-\d{2}-\d{2}$/.test(String(x.sana || ''))
+            || typeof x.nomi !== 'string' || !x.nomi.trim() || typeof x.birligi !== 'string' || !x.birligi.trim()
+            || !/^[0-9]+(\.[0-9]+)?$/.test(String(x.obyomi || '')) || !(Number(x.obyomi) > 0))) {
+        return Response.json({ ok: false, code: 'BATCH_INVALID', error: 'Kirim: ombor, hujjat, «Приход» varag‘i, 1–1000 qator (sana, nom, birlik, miqdor > 0) va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_sklad_id: Number(so.sklad_id),
+        p_document_id: Number(so.document_id), p_source_sheet: 'Приход',
+        /* Faqat ruxsat etilgan maydonlar; narx/summa umuman o'tkazilmaydi. */
+        p_qatorlar: q.map((x: any) => ({ source_row: Number(x.source_row), sana: String(x.sana), nomi: String(x.nomi).trim().slice(0, 500),
+          birligi: String(x.birligi).trim().slice(0, 100), obyomi: String(x.obyomi), postavshik: matn(x.postavshik, 500),
+          manba_turi: matn(x.manba_turi, 200), sf_tasdiq: matn(x.sf_tasdiq, 200) })),
+        p_operation_id: so.operation_id };
+    } else if (amal === 'sklad_kirim_storno_v1') {
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isSafeInteger(Number(so.harakat_id)) || Number(so.harakat_id) <= 0
+          || typeof so.sabab !== 'string' || !so.sabab.trim()) {
+        return Response.json({ ok: false, code: 'REQUIRED_FIELD', error: 'Storno: kirim qatori, sabab va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_harakat_id: Number(so.harakat_id),
+        p_sabab: String(so.sabab).trim().slice(0, 1000), p_operation_id: so.operation_id };
     } else if (amal === 'fayl_amal_v1') {
       const AMALLAR = ['nomla', 'kochir', 'savat', 'tikla', 'papka_yarat', 'papka_nomla', 'papka_kochir', 'papka_ochir'];
       const ixt = (v: unknown) => (v == null || v === '' ? null : Number(v));
@@ -676,14 +733,15 @@ export const onRequestPost: PagesFunction<{
     } else if (amal === 'sverka_yozuv_v1') {
       const m = so.malumot;
       const yid = so.yozuv_id == null || so.yozuv_id === '' ? null : Number(so.yozuv_id);
-      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !['ds', 'f2_reestr', 'sotuv'].includes(String(so.tur))
+      // 'f3_sotuv' — RPC (20261106820000) aynan shu nomni kutadi; avval BFF uni rad etardi (F3 sotuvdan qo'lda kiritish ishlamasdi).
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !['ds', 'f3_sotuv', 'f2_reestr', 'sotuv'].includes(String(so.tur))
           || !Number.isSafeInteger(Number(so.shartnoma_id)) || Number(so.shartnoma_id) <= 0
           || (yid != null && (!Number.isSafeInteger(yid) || yid <= 0))
           || !m || typeof m !== 'object' || Array.isArray(m)) {
         return Response.json({ ok: false, error: 'Sverka yozuvi: shartnoma, tur (ds | f2_reestr | sotuv), ma\'lumot va operatsiya talab qilinadi.' }, { status: 400 });
       }
       const mk = ['raqam', 'sana', 'jami_nds_bilan', 'izoh', 'holat', 'reestr_raqam', 'oy', 'obyekt_id', 'summa_nds_siz', 'summa_nds_bilan',
-        'akt_id', 'nom', 'fayl', 'summa', 'nds_foiz', 'davr_boshi', 'davr_oxiri', 'f3_holat', 'manba'];
+        'akt_id', 'nom', 'fayl', 'summa', 'nds_foiz', 'davr_boshi', 'davr_oxiri', 'f3_holat', 'manba', 'sotuv_sana', 'sotuv_summa'];
       const malumot: Record<string, unknown> = {};
       for (const k of mk) {
         const x = m[k];
@@ -698,6 +756,75 @@ export const onRequestPost: PagesFunction<{
         p_yozuv_id: yid, p_kutilgan_versiya: so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya),
         p_malumot: malumot, p_operation_id: so.operation_id,
       };
+    } else if (amal === 'sverka_import_v1') {
+      /* 1C akt-sverka partiyasi: har qator faqat ruxsat etilgan maydonlar bilan (RPC qolganini tekshiradi). */
+      const qs = so.qatorlar;
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Array.isArray(qs) || qs.length === 0 || qs.length > 200) {
+        return Response.json({ ok: false, error: 'Sverka importi: 1–200 qator va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      const kalitlar = ['tur', 'shartnoma_id', 'sana', 'summa', 'raqam', 'izoh', 'operation_id', 'obyekt_id', 'f3_holat', 'nds_foiz', 'davr_boshi'];
+      const qatorlar: Record<string, unknown>[] = [];
+      for (const q of qs) {
+        if (!q || typeof q !== 'object' || Array.isArray(q)) return Response.json({ ok: false, error: 'Sverka importi: qator obyekt bo‘lishi kerak.' }, { status: 400 });
+        const r: Record<string, unknown> = {};
+        for (const k of kalitlar) {
+          const x = (q as Record<string, unknown>)[k];
+          if (x === undefined) continue;
+          if (x !== null && typeof x !== 'string' && typeof x !== 'number') return Response.json({ ok: false, error: 'Sverka importi: maydon matn yoki son bo‘lishi kerak.' }, { status: 400 });
+          r[k] = typeof x === 'string' ? x.slice(0, 500) : x;
+        }
+        const tq = (q as Record<string, unknown>).taqsimot;
+        if (tq != null) {
+          if (!Array.isArray(tq) || tq.length > 100) return Response.json({ ok: false, error: 'Sverka importi: taqsimot ro‘yxati noto‘g‘ri.' }, { status: 400 });
+          r.taqsimot = tq.map((t) => ({ obyekt_id: (t as Record<string, unknown>)?.obyekt_id ?? null, summa: (t as Record<string, unknown>)?.summa ?? null, manba: (t as Record<string, unknown>)?.manba ?? null }));
+        }
+        for (const k of ['f2_akt_ids', 'f2_reestr_ids'] as const) {
+          const ak = (q as Record<string, unknown>)[k];
+          if (ak == null) continue;
+          if (!Array.isArray(ak) || ak.length > 500 || ak.some((x) => !Number.isSafeInteger(Number(x)))) return Response.json({ ok: false, error: 'Sverka importi: F2 ro‘yxati noto‘g‘ri.' }, { status: 400 });
+          r[k] = ak.map(Number);
+        }
+        qatorlar.push(r);
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_qatorlar: qatorlar, p_operation_id: so.operation_id };
+    } else if (amal === 'tolov_taqsimot_saqla_v1') {
+      const qs = so.qatorlar;
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isSafeInteger(Number(so.tolov_id)) || Number(so.tolov_id) <= 0
+          || !Array.isArray(qs) || qs.length > 100) {
+        return Response.json({ ok: false, error: 'Taqsimot: to‘lov, ≤100 qator va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = {
+        p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_tolov_id: Number(so.tolov_id), p_operation_id: so.operation_id,
+        p_qatorlar: qs.map((t) => ({ obyekt_id: (t as Record<string, unknown>)?.obyekt_id ?? null, summa: (t as Record<string, unknown>)?.summa ?? null, manba: (t as Record<string, unknown>)?.manba ?? null })),
+      };
+    } else if (amal === 'forma3_f2_bog_v1') {
+      const ak = so.akt_ids;
+      const re = so.reestr_ids ?? [];
+      const idlar = (x: unknown): x is unknown[] => Array.isArray(x) && x.length <= 500 && x.every((v) => Number.isSafeInteger(Number(v)) && Number(v) > 0);
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isSafeInteger(Number(so.forma3_id)) || Number(so.forma3_id) <= 0
+          || !idlar(ak) || !idlar(re)) {
+        return Response.json({ ok: false, error: 'Продажа ↔ F2: F3, ≤500 akt/reestr va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_forma3_id: Number(so.forma3_id), p_akt_ids: ak.map(Number), p_reestr_ids: re.map(Number), p_operation_id: so.operation_id };
+    } else if (amal === 'f2_reestr_yoz_v1') {
+      const qs = so.qatorlar;
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Array.isArray(qs) || qs.length === 0 || qs.length > 200) {
+        return Response.json({ ok: false, error: 'F2 reestri: 1–200 qator va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      const kalitlar = ['shartnoma_id', 'akt_id', 'raqam', 'lot', 'obyekt_ish', 'davr', 'oy', 'qqssiz', 'qqs', 'qqs_bilan', 'holat_matn'];
+      const qatorlar: Record<string, unknown>[] = [];
+      for (const q of qs) {
+        if (!q || typeof q !== 'object' || Array.isArray(q)) return Response.json({ ok: false, error: 'F2 reestri: qator obyekt bo‘lishi kerak.' }, { status: 400 });
+        const r: Record<string, unknown> = {};
+        for (const k of kalitlar) {
+          const x = (q as Record<string, unknown>)[k];
+          if (x === undefined) continue;
+          if (x !== null && typeof x !== 'string' && typeof x !== 'number') return Response.json({ ok: false, error: 'F2 reestri: maydon matn yoki son bo‘lishi kerak.' }, { status: 400 });
+          r[k] = typeof x === 'string' ? x.slice(0, 500) : x;
+        }
+        qatorlar.push(r);
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_qatorlar: qatorlar, p_operation_id: so.operation_id };
     } else if (amal === 'shartnoma_saqla_v2') {
       const m = so.malumot;
       if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !m || typeof m !== 'object' || Array.isArray(m)
@@ -2083,6 +2210,25 @@ export const onRequestPost: PagesFunction<{
         p_operation_id: String(so.operation_id),
       };
 
+    } else if (amal === 'moliya_qolda_yoz_v1') {
+      const kompaniyaId = Number(so.kompaniya_id);
+      const obyektId = so.obyekt_id == null || so.obyekt_id === '' ? null : Number(so.obyekt_id);
+      const qiymat = so.qiymat == null || so.qiymat === '' ? null : Number(so.qiymat);
+      if (!Number.isInteger(kompaniyaId) || kompaniyaId <= 0 || (obyektId != null && !(Number.isInteger(obyektId) && obyektId > 0))) {
+        return Response.json({ ok: false, error: 'kompaniya_id yoki obyekt_id noto\'g\'ri' });
+      }
+      if (!['fakt', 'f2', 'f2_kutilgan', 'tushgan', 'sarf', 'qarz', 'yakunlash_talab', 'qmi'].includes(String(so.kod))) return Response.json({ ok: false, error: 'kod noto\'g\'ri' });
+      if (qiymat != null && (!Number.isFinite(qiymat) || Math.abs(qiymat) > 1e15)) return Response.json({ ok: false, error: 'qiymat noto\'g\'ri' });
+      if (so.sana != null && so.sana !== '' && !/^\d{4}-\d{2}-\d{2}$/.test(String(so.sana))) return Response.json({ ok: false, error: 'sana YYYY-MM-DD shaklida bo\'lishi kerak' });
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(so.operation_id || ''))) {
+        return Response.json({ ok: false, error: 'operation_id UUID bo\'lishi kerak' });
+      }
+      yuk = {
+        p_kompaniya_id: kompaniyaId, p_actor_id: sess.foydalanuvchi_id, p_obyekt_id: obyektId, p_kod: String(so.kod),
+        p_qiymat: qiymat, p_sana: so.sana ? String(so.sana) : null, p_izoh: so.izoh ? String(so.izoh).slice(0, 1000) : null,
+        p_operation_id: String(so.operation_id),
+      };
+
     } else if (amal === 'xarajat_bekor_v1') {
       const kompaniyaId = Number(so.kompaniya_id);
       const id = Number(so.id);
@@ -2104,6 +2250,42 @@ export const onRequestPost: PagesFunction<{
       /* Egalik: yozuv shu kompaniyaniki ekani RPC ichida (kompaniya_id sharti) tekshiriladi; p_id shlyuz egalik jadvaliga kirmaydi. */
       yuk = { p_kompaniya_id: kompaniyaId, p_actor_id: sess.foydalanuvchi_id, p_id: id,
         p_sabab: so.sabab ? String(so.sabab).slice(0, 500) : null, p_operation_id: String(so.operation_id) };
+
+    /* Smeta versiyasi / farq / da'vo (PTO-CORE-001): faqat qoplama jadvallar; egalik (versiya → kompaniya, qator → obyekt)
+       RPC ichida tekshiriladi (`p_versiya_id` shlyuz egalik jadvaliga kirmaydi — xuddi bajarilmadi_bekor kabi). */
+    } else if (amal.startsWith('smeta_versiya_')) {
+      const kompaniyaId = Number(so.kompaniya_id);
+      if (!Number.isInteger(kompaniyaId) || kompaniyaId <= 0) return Response.json({ ok: false, error: 'kompaniya_id noto\'g\'ri' });
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(so.operation_id || ''))) {
+        return Response.json({ ok: false, error: 'operation_id UUID bo\'lishi kerak' });
+      }
+      const asos = { p_kompaniya_id: kompaniyaId, p_actor_id: sess.foydalanuvchi_id, p_operation_id: String(so.operation_id) };
+      const musbatId = (v: unknown) => { const n = Number(v); return Number.isInteger(n) && n > 0 ? n : null; };
+      if (amal === 'smeta_versiya_yarat_v1') {
+        const obyektId = musbatId(so.obyekt_id);
+        if (!obyektId) return Response.json({ ok: false, error: 'obyekt_id noto\'g\'ri' });
+        const sana = so.manba_sana ? String(so.manba_sana) : null;
+        if (sana && !/^\d{4}-\d{2}-\d{2}$/.test(sana)) return Response.json({ ok: false, error: 'manba_sana YYYY-MM-DD shaklida bo\'lishi kerak' });
+        const fayllar = Array.isArray(so.manba_fayllar) ? so.manba_fayllar.slice(0, 200).map((f: { nom?: unknown; hajm?: unknown }) => ({
+          nom: String(f?.nom ?? '').slice(0, 300), hajm: Number.isFinite(Number(f?.hajm)) ? Number(f?.hajm) : null })) : [];
+        yuk = { ...asos, p_obyekt_id: obyektId, p_nom: String(so.nom ?? '').slice(0, 300), p_tur: String(so.tur ?? ''),
+          p_manba_sana: sana, p_manba_fayllar: fayllar, p_izoh: so.izoh ? String(so.izoh).slice(0, 2000) : null };
+      } else {
+        const versiyaId = musbatId(so.versiya_id);
+        if (!versiyaId) return Response.json({ ok: false, error: 'versiya_id noto\'g\'ri' });
+        if (amal === 'smeta_versiya_pozitsiya_yoz_v1') {
+          if (!Array.isArray(so.pozitsiyalar) || !so.pozitsiyalar.length || so.pozitsiyalar.length > 1000) return Response.json({ ok: false, error: 'pozitsiyalar 1..1000 ta bo\'lishi kerak' });
+          yuk = { ...asos, p_versiya_id: versiyaId, p_pozitsiyalar: so.pozitsiyalar };
+        } else if (amal === 'smeta_versiya_moslik_yoz_v1') {
+          if (so.mosliklar != null && (!Array.isArray(so.mosliklar) || so.mosliklar.length > 2000)) return Response.json({ ok: false, error: 'mosliklar 0..2000 ta bo\'lishi kerak' });
+          yuk = { ...asos, p_versiya_id: versiyaId, p_mosliklar: so.mosliklar ?? [], p_yakunla: so.yakunla === true };
+        } else if (amal === 'smeta_versiya_qaror_v1') {
+          if (!Array.isArray(so.qarorlar) || !so.qarorlar.length || so.qarorlar.length > 2000) return Response.json({ ok: false, error: 'qarorlar 1..2000 ta bo\'lishi kerak' });
+          yuk = { ...asos, p_versiya_id: versiyaId, p_qarorlar: so.qarorlar };
+        } else {
+          yuk = { ...asos, p_versiya_id: versiyaId, p_sabab: so.sabab ? String(so.sabab).slice(0, 1000) : null };
+        }
+      }
 
     /* Shartnoma qamrovi: canonical t2_qator satrini o'chirmasdan,
        faqat shu shartnoma hisobidan kiritish/chiqarish qarorini saqlaydi. */
@@ -2349,6 +2531,29 @@ export const onRequestPost: PagesFunction<{
           p_kutilgan_versiya: Number(so.expected_version), p_operation_id: operationId,
           p_actor_label: sess.email || null };
       }
+
+    /* ══════════ MINDMAP — MAS'ULLARNI BIRIKTIRISH ══════════
+       Odam (a'zo) → obyekt YOKI loyiha. `ruxsat` null = olib tashlash. Aʼzolik/egalik RPC ichida ham tekshiriladi. */
+    } else if (amal === 'mindmap_masul') {
+      const obyektId = so.obyekt_id == null || so.obyekt_id === '' ? null : Number(so.obyekt_id);
+      const loyihaId = so.loyiha_id == null || so.loyiha_id === '' ? null : Number(so.loyiha_id);
+      const userId = Number(so.foydalanuvchi_id);
+      if ((obyektId == null) === (loyihaId == null)) {
+        return Response.json({ ok: false, error: "obyekt_id yoki loyiha_id (faqat bittasi) kerak" });
+      }
+      for (const v of [obyektId, loyihaId]) {
+        if (v != null && (!Number.isInteger(v) || v <= 0)) return Response.json({ ok: false, error: "obyekt_id/loyiha_id noto'g'ri" });
+      }
+      if (!Number.isInteger(userId) || userId <= 0) {
+        return Response.json({ ok: false, error: "foydalanuvchi_id noto'g'ri" });
+      }
+      const ruxsat = so.ruxsat == null || so.ruxsat === '' ? null : String(so.ruxsat);
+      if (ruxsat != null && !['read', 'write', 'manage'].includes(ruxsat)) {
+        return Response.json({ ok: false, error: "ruxsat noto'g'ri" });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: Number(so.kompaniya_id),
+        p_obyekt_id: obyektId, p_loyiha_id: loyihaId, p_foydalanuvchi_id: userId,
+        p_ruxsat: ruxsat, p_operation_id: operationId };
 
     /* Tugun sudrab ko'chirilganda joylashuv saqlanadi — aks holda har
        ochilganda avtomatik qayta terilib, odam terib qo'ygan tartib
@@ -2758,7 +2963,7 @@ export const onRequestPost: PagesFunction<{
     }
     if (!r.ok && f2AktRaqamZiddiyati(amal, matn)) {
       return Response.json({ ok: false, code: 'F2_ACT_NUMBER_CONFLICT',
-        error: 'Shu obyekt, oy va raqam bilan F2 allaqachon mavjud. Mavjud aktni tekshiring. Tasdiqlangan akt oddiy import bilan almashtirilmaydi.' }, { status: 409 });
+        error: 'Shu raqam bilan F2 allaqachon mavjud (shu obyekt yoki shartnoma doirasida). Mavjud aktni tekshiring. Tasdiqlangan akt oddiy import bilan almashtirilmaydi.' }, { status: 409 });
     }
     if (!r.ok) {
       return xavfsizUpstream(r.status, matn);
@@ -2770,6 +2975,8 @@ export const onRequestPost: PagesFunction<{
 
     /* Baza `{ok:false, sabab:'ziddiyat'|'invariant', …}` qaytarishi
        MUMKIN va bu xato emas — normal holat. O'zgartirmasdan uzatamiz. */
+    /* Egasi 2026-10-27: sarf hisobidagi tannarx va foyda — faqat platforma superadmini (vakolat bazadan). */
+    if (amal === 'token_sarfla_v1' && sess.rol !== 'superadmin') natija = tokenJavobTozala(natija);
     return Response.json({ ...natija, amal, ms: Date.now() - t0 });
 
   } catch (err: unknown) {
@@ -2782,6 +2989,6 @@ export function f2AktRaqamZiddiyati(amal: string, matn: string): boolean {
   if (amal !== 'akt_yarat_v2') return false;
   try {
     const j = JSON.parse(matn) as { code?: string; message?: string };
-    return j.code === '23505' && typeof j.message === 'string' && /\bt2_akt_kalit_uniq\b/.test(j.message);
+    return j.code === '23505' && typeof j.message === 'string' && /\bt2_akt_(kalit_uniq|raqam_takror)\b/.test(j.message);
   } catch { return false; }
 }

@@ -8,7 +8,7 @@ import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketP
  * `t2_narx_markaz`ning bazadagi ko‘rinishidan olinadi. Flag-off legacy
  * ekran boshqa modulda o‘z holicha qoladi.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, RefreshCw, Save, Search, ShieldAlert, Tags } from 'lucide-react';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { FmtN } from '../../lib/format';
@@ -24,7 +24,13 @@ import {
   type NarxDalilHolat, type NarxManba, type NarxManbaQidiruvQatori,
 } from '../../api/t2-narx-dalil';
 import { birlikKalit, narxSemantikNomzodlari, nomKalit, type NarxQidiruvResurs, type NarxSemantikNomzod } from '../../lib/narx-dalil/semantik';
-import KatalogManbaImport from './KatalogManbaImport';
+import { PanelXatoChegarasi } from '../../umumiy/ui/XatoChegarasi';
+import { t } from '../../i18n/til';
+import { MARKAZ_MANBA, markazXulosa, narxOgish } from '../../lib/narx-korinish';
+import { ManbaChip, OgishMeter, QamrovChizigi } from '../../components/narx/NarxKorinish';
+
+// Katalog importi (xlsx/pdf tahlili, ~475 KB) — lazy: Narxlar sahifasi usiz tez ochiladi.
+const KatalogManbaImport = lazy(() => import('./KatalogManbaImport'));
 
 type NarxRegistr = {
   id: number;
@@ -264,103 +270,129 @@ export default function NarxlarNative() {
     }
   }
 
-  if (kompaniyaYuklanmoqda) return <div className="p-6 text-sm text-text-mute">Kompaniya konteksti yuklanmoqda…</div>;
-  if (!kompaniyaId) return <div className="p-6 text-sm text-warn">Narxlarni ko‘rish uchun faol kompaniya tanlanmagan.</div>;
+  const xulosa = useMemo(() => markazXulosa(markaz), [markaz]);
+  const manbaKalit = (r: NarxMarkaz) => (r.natija == null || r.manba == null ? 'yoq' : r.manba);
 
+  if (kompaniyaYuklanmoqda) return <div className="p-6 text-sm text-text-mute">{t('Kompaniya konteksti yuklanmoqda…')}</div>;
+  if (!kompaniyaId) return <div className="fz-note fz-note--warn m-6">{t('Narxlarni ko‘rish uchun faol kompaniya tanlanmagan.')}</div>;
+
+  const xavfTugma = faqatXavf ? t('Xavf filtri: yoqilgan') : t('Faqat xavflilar');
   return (
     <Sahifa
       sarlavha="Narxlar markazi"
       tavsif="Supabase registri: narx manbasi va uning hisobga olinishi aniq ko‘rinadi"
-      amallar={<button onClick={() => void yukla()} disabled={yuklanmoqda}
-        className="h-9 px-3 inline-flex items-center gap-2 rounded-[10px] karta text-sm text-text disabled:opacity-50">
-        <RefreshCw size={15} className={yuklanmoqda ? 'animate-spin' : ''} /> Yangilash
+      amallar={<button onClick={() => void yukla()} disabled={yuklanmoqda} className="fz-btn fz-btn--ghost">
+        <RefreshCw size={15} className={yuklanmoqda ? 'animate-spin' : ''} /> {t('Yangilash')}
       </button>}
     >
-      <div className="space-y-3">
-        <KatalogManbaImport />
-        <MarketPriceComparison objectId={obyektId} companyId={kompaniyaId} />
-        <div className="karta p-3 flex flex-wrap items-end gap-2">
-          <label className="min-w-[220px] flex-1 text-[12px] font-medium text-text">Obyekt
+      <div className="flex flex-col gap-3">
+        <section className="fz-panel" aria-label={t('Narx qayerdan olinadi')} data-testid="markaz-xulosa">
+          <div className="fz-panel__h"><span>{t('Narx qayerdan olinadi (ustunlik: belgilangan → sana → smeta, eng kattasi)')}</span><span>{t('{n} resurs', { n: xulosa.jami.toLocaleString('ru-RU') })}</span></div>
+          <QamrovChizigi aria={t('Narx qayerdan olinadi')} bolaklar={xulosa.bolaklar}
+            nomlar={Object.fromEntries(Object.entries(MARKAZ_MANBA).map(([k, v]) => [k, t(v.matn)]))}
+            ranglar={Object.fromEntries(Object.entries(MARKAZ_MANBA).map(([k, v]) => [k, v.rang]))} />
+          {xulosa.xavf > 0 && <button type="button" onClick={() => setFaqatXavf((v) => !v)} className="fz-chip fz-chip--warn self-start">
+            <ShieldAlert size={12} aria-hidden="true" />{t('{n} ta resurs obyektlararo 5% dan ortiq farq bilan narxlangan', { n: String(xulosa.xavf) })}</button>}
+        </section>
+        <PanelXatoChegarasi nom="katalog-import"><Suspense fallback={<div className="fz-card min-h-[120px] p-4" aria-busy="true"><div className="skel h-4 w-48" /></div>}><KatalogManbaImport /></Suspense></PanelXatoChegarasi>
+        <PanelXatoChegarasi nom="bozor-narx"><MarketPriceComparison objectId={obyektId} companyId={kompaniyaId} /></PanelXatoChegarasi>
+        <div className="fz-card fz-card__body flex flex-wrap items-end gap-2">
+          <label className="min-w-[220px] flex-1 text-[12px] font-medium text-text-dim">{t('Obyekt')}
             <select value={obyektId ?? ''} onChange={e => { const id = Number(e.target.value); setObyektId(Number.isSafeInteger(id) && id > 0 ? id : null); workspace.setObjectId(Number.isSafeInteger(id) && id > 0 ? id : null); }}
-              className="mt-1.5 w-full bg-[var(--surface-2)] border border-border rounded-lg px-3 py-2 text-[13px] text-text">
-              {!obyektlar.length && <option value="">— obyekt yo‘q —</option>}
+              className="mt-1.5 h-9 w-full px-3 text-[13px] text-text">
+              {!obyektlar.length && <option value="">{t('— obyekt yo‘q —')}</option>}
               <ObyektOptionlari obyektlar={obyektlar} />
             </select>
           </label>
-          <label className="min-w-[220px] flex-1 text-[12px] font-medium text-text">Qidiruv
+          <label className="min-w-[220px] flex-1 text-[12px] font-medium text-text-dim">{t('Qidiruv')}
             <span className="relative mt-1.5 block"><Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-mute" />
-              <input value={qidiruv} onChange={e => setQidiruv(e.target.value)} placeholder="nom yoki birlik…"
-                className="w-full bg-[var(--surface-2)] border border-border rounded-lg pl-8 pr-3 py-2 text-[13px] text-text" />
+              <input value={qidiruv} onChange={e => setQidiruv(e.target.value)} placeholder={t('nom yoki birlik…')}
+                className="h-9 w-full pl-8 pr-3 text-[13px] text-text" />
             </span>
           </label>
-          <button onClick={() => setFaqatXavf(v => !v)} className={`h-9 px-3 rounded-lg text-[12px] ${faqatXavf ? 'bg-warn/20 text-warn' : 'bg-white/5 text-text-dim'}`}>
-            {faqatXavf ? 'Xavf filtri: yoqilgan' : 'Faqat xavflilar'}
-          </button>
+          <button onClick={() => setFaqatXavf(v => !v)} aria-pressed={faqatXavf} className={`fz-btn ${faqatXavf ? 'border-warn text-warn' : ''}`}>{xavfTugma}</button>
         </div>
 
-        {xato && <div className="karta p-3 border-danger/40 bg-danger/5 text-[13px] text-danger"><AlertTriangle size={15} className="inline mr-2" />{xato}</div>}
-        {xabar && <div className="karta p-3 border-ok/40 bg-ok/5 text-[13px] text-ok"><CheckCircle2 size={15} className="inline mr-2" />{xabar}</div>}
+        {xato && <div className="fz-note fz-note--danger" role="alert"><AlertTriangle aria-hidden="true" /><span>{xato}</span></div>}
+        {xabar && <div className="fz-note border-ok/40 bg-[var(--ok-soft)]" role="status"><CheckCircle2 className="text-ok" aria-hidden="true" /><span>{xabar}</span></div>}
 
-        <section className="karta p-3">
-          <h2 className="text-[13px] font-semibold text-text flex gap-2 items-center"><AlertTriangle size={15} className={topilmaganSatrlar.length ? 'text-warn' : 'text-ok'} />
-            Bog‘lanish topilmagan resurslar ({topilmaganSatrlar.length})</h2>
-          <p className="text-xs text-text-mute mt-1">Har bir qator uchun katalogdan birlik va mazmun bo‘yicha taklif qidiriladi. Taklif narxi smeta narxidan alohida ko‘rsatiladi; u smetaga avtomatik yozilmaydi.</p>
-          <div className="mt-2 max-h-64 overflow-auto divide-y divide-border">
+        <section className="fz-card">
+          <div className="fz-card__head">
+            <div>
+              <h2 className="fz-card__title flex items-center gap-2"><AlertTriangle size={15} className={topilmaganSatrlar.length ? 'text-warn' : 'text-ok'} aria-hidden="true" />
+                {t('Bog‘lanish topilmagan resurslar ({n})', { n: String(topilmaganSatrlar.length) })}</h2>
+              <p className="fz-card__sub">{t('Har bir qator uchun katalogdan birlik va mazmun bo‘yicha taklif qidiriladi. Taklif narxi smeta narxidan alohida ko‘rsatiladi; u smetaga avtomatik yozilmaydi.')}</p>
+            </div>
+          </div>
+          <div className="max-h-[420px] divide-y divide-border overflow-auto">
             {topilmaganSatrlar.map(r => {
               const key = `${nomKalit(r.nom)}|${birlikKalit(r.birlik)}`;
               const group = takliflarByKey.get(key);
               const dalilBoglangan = !!group?.qatorIds.some(id => dalilQatorIds.has(id));
-              return <div key={`${r.obyekt_id}|${r.nom_key}|${r.birlik_key}`} className="py-2 text-[12px]">
-                <div className="flex gap-3 items-center">
-                  <button onClick={() => setTanlangan(r)} className="flex-1 min-w-0 text-left flex gap-3 items-center hover:bg-white/[.03]">
-                    <span className="truncate text-text">{r.nom || '—'}</span><span className="w-16 shrink-0 text-text-mute">{r.birlik || '—'}</span>
-                    <span className="w-20 shrink-0 text-right text-text-dim">{r.qator_soni} qator</span>
-                    <span className="shrink-0 text-accent">Qo‘lda narxlash</span>
+              return <div key={`${r.obyekt_id}|${r.nom_key}|${r.birlik_key}`} className="px-4 py-2.5 text-[12.5px]">
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setTanlangan(r)} className="flex min-w-0 flex-1 items-center gap-3 rounded-[var(--radius-sm)] px-1 py-0.5 text-left hover:bg-surface-3">
+                    <span className="truncate font-medium text-text">{r.nom || '—'}</span><span className="fz-c-unit w-16 shrink-0 text-text-mute">{r.birlik || '—'}</span>
+                    <span className="w-20 shrink-0 text-right tabular-nums text-text-dim">{t('{n} qator', { n: String(r.qator_soni) })}</span>
+                    <span className="fz-chip fz-chip--accent shrink-0">{t('Qo‘lda narxlash')}</span>
                   </button>
-                  {dalilBoglangan && <span className="shrink-0 text-ok">Dalil bog‘langan</span>}
+                  {dalilBoglangan ? <span className="fz-stamp fz-stamp--ok shrink-0">{t('Dalil bog‘langan')}</span> : <span className="fz-stamp fz-stamp--draft shrink-0">{t('Narxsiz')}</span>}
                 </div>
                 {group?.nomzodlar.slice(0, 3).map(candidate => {
                   const manba = manbaById.get(candidate.manba_id);
-                  return <div key={`${key}|${candidate.manba_qator_id}`} className="mt-2 ml-3 rounded-lg border border-accent/20 bg-accent/5 p-2 grid gap-1 md:grid-cols-[1fr_auto_auto] md:items-center">
+                  return <div key={`${key}|${candidate.manba_qator_id}`} className="ml-3 mt-2 grid gap-2 rounded-[var(--radius-sm)] border border-border bg-surface-2 p-2.5 md:grid-cols-[minmax(0,1fr)_150px_170px_auto] md:items-center">
                     <div className="min-w-0">
-                      <div className="truncate text-text">Taklif: {manba?.nom || `Manba #${candidate.manba_id}`} · {candidate.manba_narx.toLocaleString('ru-RU')} so‘m/{r.birlik || 'birlik'}</div>
-                      <div className="text-xs text-text-mute">Moslik: <b className="text-accent">{candidate.moslikFoiz}%</b> · Smeta: {candidate.smeta_narx == null ? 'narx ko‘rsatilmagan' : `${candidate.smeta_narx.toLocaleString('ru-RU')} so‘m`} · Farq: {candidate.farqFoiz == null ? 'hisoblanmadi' : `${candidate.farqFoiz > 0 ? '+' : ''}${candidate.farqFoiz}%`}</div>
-                      <div className="text-xs text-text-mute">{candidate.sabablar.join(' · ')}</div>
+                      <div className="flex items-center gap-1.5">{manba && <ManbaChip tur={manba.tur} />}<span className="truncate text-text">{manba?.nom || t('Manba #{n}', { n: String(candidate.manba_id) })}</span></div>
+                      <div className="mt-0.5 text-[11.5px] text-text-mute">{candidate.sabablar.join(' · ')}</div>
                     </div>
-                    <span className="text-xs text-text-mute">{manba?.tur || 'manba'}</span>
-                    <button onClick={() => void dalilniBoglash(group.qatorIds, candidate)} disabled={saqlanmoqda} className="px-2 py-1 rounded bg-accent text-white text-xs disabled:opacity-50">Dalilni bog‘lash</button>
+                    <span className="flex flex-col gap-0.5 text-[11px] text-text-mute">{t('Moslik')}
+                      <span className="fz-meter" style={{ minWidth: 0 }}><span className="fz-meter__t"><i className="fz-meter__shu" style={{ width: `${Math.max(0, Math.min(100, candidate.moslikFoiz))}%` }} /></span><span className="fz-meter__f">{candidate.moslikFoiz}%</span></span>
+                    </span>
+                    <span className="flex flex-col gap-0.5 text-[11px] text-text-mute">
+                      <span>{t('Taklif')}: <b className="tabular-nums text-text">{candidate.manba_narx.toLocaleString('ru-RU')}</b> · {t('smeta')}: <b className="tabular-nums text-text-dim">{candidate.smeta_narx == null ? '—' : candidate.smeta_narx.toLocaleString('ru-RU')}</b></span>
+                      <OgishMeter og={narxOgish(candidate.manba_narx, candidate.smeta_narx)} />
+                    </span>
+                    <button onClick={() => void dalilniBoglash(group.qatorIds, candidate)} disabled={saqlanmoqda} className="fz-btn fz-btn--primary fz-btn--sm">{t('Dalilni bog‘lash')}</button>
                   </div>;
                 })}
-                {!group?.nomzodlar.length && <div className="mt-1 ml-3 text-xs text-warn">Katalogdan birlik va mazmun bo‘yicha ishonchli taklif topilmadi — qo‘lda tanlash kerak.</div>}
+                {!group?.nomzodlar.length && <div className="ml-3 mt-1.5"><span className="fz-chip fz-chip--warn">{t('Katalogdan birlik va mazmun bo‘yicha ishonchli taklif topilmadi — qo‘lda tanlash kerak.')}</span></div>}
               </div>;
             })}
-            {!topilmaganSatrlar.length && <p className="py-4 text-center text-[12px] text-ok">Tanlangan obyekt uchun narxi topilmagan resurs yo‘q.</p>}
+            {!topilmaganSatrlar.length && <p className="py-5 text-center text-[12.5px] text-ok">{t('Tanlangan obyekt uchun narxi topilmagan resurs yo‘q.')}</p>}
           </div>
         </section>
 
-        <section className="karta p-3">
-          <h2 className="text-[13px] font-semibold text-text flex gap-2 items-center"><Tags size={15} className="text-accent" />Narx registri ({markazSatrlar.length})</h2>
-          <div className="mt-2 max-h-[460px] overflow-auto"><table className="w-full text-[12px]">
-            <thead className="sticky top-0 bg-[var(--surface-1)] text-text-mute"><tr className="border-b border-border text-left">
-              <th className="py-2 pr-2">Resurs</th><th className="py-2 pr-2">Birlik</th><th className="py-2 pr-2">Kat.</th><th className="py-2 pr-2 text-right">Smeta max</th><th className="py-2 pr-2 text-right">Belgilangan</th><th className="py-2 pr-2 text-right">Sana max</th><th className="py-2 text-right">Natija</th>
+        <section className="fz-card">
+          <div className="fz-card__head"><h2 className="fz-card__title flex items-center gap-2"><Tags size={15} className="text-accent" aria-hidden="true" />{t('Narx registri ({n})', { n: String(markazSatrlar.length) })}</h2></div>
+          <div className="max-h-[520px] overflow-auto"><table className="fz-table text-[12.5px]">
+            <thead><tr>
+              <th>{t('Resurs')}</th><th>{t('Birlik')}</th><th>{t('Kat.')}</th><th className="fz-c-num">{t('Smeta max')}</th><th className="fz-c-num">{t('Belgilangan')}</th><th className="fz-c-num">{t('Sana max')}</th><th className="fz-c-num">{t('Natija')}</th><th>{t('Manba')}</th>
             </tr></thead>
-            <tbody>{markazSatrlar.map(r => <tr key={kalit(r.nom_key, r.birlik_key)} onClick={() => setTanlangan(r)} className="border-b border-border/60 cursor-pointer hover:bg-white/[.03]">
-              <td className="py-2 pr-2 max-w-[360px] truncate text-text">{r.xavf && <ShieldAlert size={13} className="inline mr-1 text-warn" />}{r.nom || '—'}</td><td className="py-2 pr-2 text-text-mute">{r.birlik || '—'}</td><td className="py-2 pr-2 text-text-mute">{r.kat || '—'}</td><td className="py-2 pr-2 text-right tabular-nums"><FmtN val={r.smeta_max} /></td><td className="py-2 pr-2 text-right tabular-nums"><FmtN val={r.belgilangan_narx} /></td><td className="py-2 pr-2 text-right tabular-nums"><FmtN val={r.sana_max_narx} /></td><td className="py-2 text-right tabular-nums font-medium text-text"><FmtN val={r.natija} /></td>
-            </tr>)}</tbody>
+            <tbody>{markazSatrlar.map(r => { const mk = MARKAZ_MANBA[manbaKalit(r)]; return <tr key={kalit(r.nom_key, r.birlik_key)} onClick={() => setTanlangan(r)} className="cursor-pointer">
+              <td className="max-w-[360px]"><div className="truncate text-text">{r.nom || '—'}</div>{r.xavf && <span className="fz-stamp fz-stamp--warn mt-0.5" title={r.farq_koef != null ? t('Obyektlar orasida {k} barobar farq', { k: r.farq_koef.toLocaleString('ru-RU', { maximumFractionDigits: 2 }) }) : undefined}>{t('Farq >5%')}{r.farq_koef != null ? ` ×${r.farq_koef.toLocaleString('ru-RU', { maximumFractionDigits: 1 })}` : ''}</span>}</td>
+              <td className="fz-c-unit">{r.birlik || '—'}</td><td className="text-text-mute">{r.kat || '—'}</td>
+              <td className={`fz-c-num ${r.manba === 'smeta' ? 'font-semibold text-text' : 'text-text-dim'}`}><FmtN val={r.smeta_max} /></td>
+              <td className={`fz-c-num ${r.manba === 'belgilangan' ? 'font-semibold text-text' : 'text-text-dim'}`}><FmtN val={r.belgilangan_narx} /></td>
+              <td className={`fz-c-num ${r.manba === 'sana' ? 'font-semibold text-text' : 'text-text-dim'}`}><FmtN val={r.sana_max_narx} /></td>
+              <td className="fz-c-num font-semibold text-text">{r.natija == null ? '—' : <FmtN val={r.natija} />}</td>
+              <td><span className={`fz-chip ${mk.cls}`}>{t(mk.matn)}</span></td>
+            </tr>; })}</tbody>
           </table></div>
         </section>
 
-        {tanlangan && <section className="karta p-4 border-accent/30">
-          <div className="flex justify-between gap-3"><div><h2 className="text-[14px] font-semibold text-text">{tanlangan.nom || 'Nomsiz resurs'}</h2><p className="text-[12px] text-text-mute">{tanlangan.birlik || 'Birlik ko‘rsatilmagan'} · {qulfKat || ('kat' in tanlangan ? tanlangan.kat || 'kategoriya yo‘q' : 'kategoriya yo‘q')}</p></div><button onClick={() => setTanlangan(null)} className="text-[12px] text-text-mute">Yopish</button></div>
-          <div className="mt-3 grid gap-3 md:grid-cols-3">
-            <label className="text-[12px] text-text-dim">Narx<MoneyInput  min="0.000001" value={narxKiritma} onValueChange={(moneyValue) => setNarxKiritma(moneyValue)} className="mt-1 block w-full input" /></label>
-            <label className="text-[12px] text-text-dim">Kategoriya
-              {qulfKat ? <span className="mt-1 block h-9 px-3 py-2 rounded input opacity-60">{qulfKat} · birlikdan qulflangan</span> : <select value={kat} onChange={e => setKat(e.target.value)} className="mt-1 w-full input"><option value="">— o‘zgartirmaslik —</option>{ERKIN_KAT.map(x => <option key={x} value={x}>{x}</option>)}</select>}
+        {tanlangan && <section className="fz-card border-accent/40">
+          <div className="fz-card__head"><div><h2 className="fz-card__title">{tanlangan.nom || t('Nomsiz resurs')}</h2><p className="fz-card__sub">{tanlangan.birlik || t('Birlik ko‘rsatilmagan')} · {qulfKat || ('kat' in tanlangan ? tanlangan.kat || t('kategoriya yo‘q') : t('kategoriya yo‘q'))}</p></div><button onClick={() => setTanlangan(null)} className="fz-btn fz-btn--ghost fz-btn--sm">{t('Yopish')}</button></div>
+          <div className="fz-card__body">
+          <div className="grid gap-3 md:grid-cols-3">
+            <label className="text-[12px] text-text-dim">{t('Narx')}<MoneyInput  min="0.000001" value={narxKiritma} onValueChange={(moneyValue) => setNarxKiritma(moneyValue)} className="mt-1 block w-full input" /></label>
+            <label className="text-[12px] text-text-dim">{t('Kategoriya')}
+              {qulfKat ? <span className="mt-1 block h-9 rounded-[var(--radius-sm)] border border-border bg-surface-2 px-3 py-2 text-text-mute">{t('{k} · birlikdan qulflangan', { k: qulfKat })}</span> : <select value={kat} onChange={e => setKat(e.target.value)} className="mt-1 w-full input"><option value="">{t('— o‘zgartirmaslik —')}</option>{ERKIN_KAT.map(x => <option key={x} value={x}>{x}</option>)}</select>}
             </label>
-            <label className="text-[12px] text-text-dim">Sana narxi uchun sana<input type="date" value={sana} onChange={e => setSana(e.target.value)} className="mt-1 block w-full input" /></label>
+            <label className="text-[12px] text-text-dim">{t('Sana narxi uchun sana')}<input type="date" value={sana} onChange={e => setSana(e.target.value)} className="mt-1 block w-full input" /></label>
           </div>
-          {tanlanganRegistr && <p className="mt-2 text-xs text-text-mute">Saqlash paytida mavjud narx qayta tekshiriladi.</p>}
-          <div className="mt-3 flex flex-wrap gap-2"><button onClick={() => void narxniSaqlash()} disabled={saqlanmoqda} className="px-3 py-2 rounded-lg bg-accent text-white text-[12px] disabled:opacity-50"><Save size={14} className="inline mr-1" />Belgilangan narxni saqlash</button><button onClick={() => void sanaNarxiniQoshish()} disabled={saqlanmoqda} className="px-3 py-2 rounded-lg bg-white/5 text-text text-[12px] disabled:opacity-50">Sana narxini qo‘shish</button></div>
+          {tanlanganRegistr && <p className="mt-2 text-xs text-text-mute">{t('Saqlash paytida mavjud narx qayta tekshiriladi.')}</p>}
+          <div className="mt-3 flex flex-wrap gap-2"><button onClick={() => void narxniSaqlash()} disabled={saqlanmoqda} className="fz-btn fz-btn--primary"><Save size={14} />{t('Belgilangan narxni saqlash')}</button><button onClick={() => void sanaNarxiniQoshish()} disabled={saqlanmoqda} className="fz-btn">{t('Sana narxini qo‘shish')}</button></div>
+          </div>
         </section>}
       </div>
     </Sahifa>

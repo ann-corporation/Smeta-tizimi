@@ -24,11 +24,8 @@ export function exactWrite(nodes: F2ExactManbaTugun[], mapping: Map<string, numb
   // Bazada akt qatori hajmi 0 bo'lishi mumkin emas (t2_akt_qator_hajm_check). Hajm 0 va pul yo'q qator — aktga
   // hech narsa qo'shmaydi, o'tkazib yuboriladi (izohda ko'rsatiladi). Hajm 0, lekin summa bor — yozib bo'lmaydi:
   // aniq qaysi qatorligini aytamiz (umumiy «server xatosi» o'rniga).
-  const nolHajmPulli = rows.filter((r) => r.hajm === 0 && r.summaBor && r.summa !== 0);
-  if (nolHajmPulli.length) {
-    const kodlar = nolHajmPulli.slice(0, 5).map((r) => nolKod(nodes, mapping, r.qator_id)).join(', ');
-    throw new Error(`${nolHajmPulli.length} ta qatorda hajm 0, lekin summa bor (${kodlar}) — hujjatdagi hajmni tekshiring yoki bu qatorni aktga kiritmang.`);
-  }
+  // Egasi qarori (2026-10-25): bloklamaymiz — hajm 0 qatorlar (summasi bo'lsa ham) aktga kirmaydi, F2 yoziladi,
+  // yozilmay qolgan summa esa `exactWriteIzohlar` ogohlantirishida aniq ko'rsatiladi.
   return rows.filter((r) => r.hajm !== 0).map(hujjatdagidek);
 }
 
@@ -57,6 +54,12 @@ export function exactWriteIzohlar(nodes: F2ExactManbaTugun[], mapping: Map<strin
   const summasiz = rows.filter((r) => !r.summaBor && r.narx != null && r.hajm !== 0).length;
   const nol = rows.filter((r) => r.hajm === 0 && !(r.summaBor && r.summa !== 0)).length;
   if (nol) out.push(`${nol} ta qatorda hajm 0 va summa yo'q — aktga kiritilmadi (pulga ta'siri yo'q).`);
+  const nolPulli = rows.filter((r) => r.hajm === 0 && r.summaBor && r.summa !== 0);
+  if (nolPulli.length) {
+    const jami = nolPulli.reduce((s, r) => s + (r.summa ?? 0), 0);
+    const kodlar = nolPulli.slice(0, 5).map((r) => nolKod(nodes, mapping, r.qator_id)).join(', ');
+    out.push(`⚠ ${nolPulli.length} ta qatorda hajm 0, lekin summa bor (${kodlar}${nolPulli.length > 5 ? ', …' : ''}) — bazaga hajmsiz qator yozib bo'lmaydi, shu qatorlarsiz yozildi. Yozilmagan summa: ${jami.toLocaleString('ru-RU', { maximumFractionDigits: 2 })} (ustamasiz). Keyin hajmini tuzatib qo'shishingiz mumkin.`);
+  }
   if (turli) out.push(`${turli} ta smeta qatoriga hujjatda turli narxlar tushdi — hajm va summa yig'ildi, narx = summa / hajm.`);
   if (narxsiz) out.push(`${narxsiz} ta qatorda hujjatda summa bor, narx yo'q — narx = summa / hajm, summa hujjatdagidek.`);
   if (qisman) out.push(`${qisman} ta smeta qatorida summa hujjatda faqat bo'laklarning bir qismida bor — summa hujjatdagi summalar yig'indisi.`);

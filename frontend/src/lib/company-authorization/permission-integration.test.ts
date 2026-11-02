@@ -20,7 +20,17 @@ describe('role integration architecture',()=>{
       'mutaxassis',
       /* P1 topshiriq (2026-10-24): ijrochi usta fakt.write ga ega emas - bitta middleware ruxsati mos kelmaydi. Actor sessiyadan;
          a'zolik, rol, tomon, aloqa va o'tish qoidalari har RPC ichida (t2_topshiriq_contract.sql, topshiriq.test.ts). */
-      'topshiriq']);
+      'topshiriq',
+      /* Akkaunt markazi (2026-10-26): faqat SESSIYA egasining o'z profili/paroli/sessiyalari/hisob birlashtirish — kompaniya
+         ma'lumoti yo'q. Actor faqat sessiyadan (body'dan hech qachon); origin tekshiruvi, parol/birlashtirish urinish limiti;
+         har RPC bazada actor faolligini tekshiradi (profil.test.ts, 20261110200000_t2_profil_xavfsizlik_v1.acceptance.sql). */
+      'profil',
+      /* Email kod bilan kirish/ro'yxat (2026-10-26): login'dan OLDINGI ochiq nuqta (kirish/kirish-google kabi) — sessiya yo'q.
+         Kod HMAC xeshi, 10 daqiqa, 5 urinish, email/IP limitlari bazada; origin tekshiruvi (kirish-email.test.ts). */
+      'kirish-email',
+      /* Sozlamalar markazi (2026-10-26): kompaniya sozlamalari (imzo tomonlari, hujjat dizayni, F2 tasdiq rejimi). Actor sessiyadan;
+         o'qish company.read, yozish company.profile.update — har RPC ichida t2_effective_authorization_v1 (kompaniya-sozlama.test.ts). */
+      'kompaniya-sozlama']);
     const routes=readdirSync(resolve(root,'frontend/functions/api')).filter(n=>n.endsWith('.ts')&&!n.endsWith('.test.ts')&&!n.startsWith('_')).map(n=>n.slice(0,-3));
     expect(routes.filter(n=>!SCOPED_APIS.has(n)&&!exceptions.has(n))).toEqual([]);
   });

@@ -77,7 +77,7 @@ export default function ObjectLocationMap({ position, onChange }: Props) {
     );
   };
 
-  const inp = 'bg-bg border border-border rounded-lg px-2.5 py-1.5 text-[12px] text-text outline-none focus:border-sky-500';
+  const inp = 'bg-bg border border-border rounded-lg px-2.5 py-1.5 text-[12px] text-text outline-none focus:border-accent';
   const btn = 'px-3 py-1.5 rounded-lg text-[12px] font-medium bg-surface-2 hover:bg-surface-2/70 border border-border';
 
   return (
@@ -102,7 +102,7 @@ export default function ObjectLocationMap({ position, onChange }: Props) {
             ))}
           </ul>
         )}
-        {qidiruvXato && <p className="text-[11px] text-amber-500">{qidiruvXato}</p>}
+        {qidiruvXato && <p className="text-[11px] text-warn">{qidiruvXato}</p>}
         <div className="flex gap-2">
           <input value={koordMatn} onChange={(e) => setKoordMatn(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') koordQollash(); }}

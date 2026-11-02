@@ -31,7 +31,7 @@ export function AiOrganishBolimi({ taklifgaOt }: { taklifgaOt: () => void }) {
             <h2 className="text-[14px] font-semibold text-text">{t('Tizim nimadan o‘rganyapti')}</h2>
             <p className="text-[12px] text-text-mute">{t('Quyida — oxirgi 30 kunda foydalanuvchilar va agentlardan kelgan muammo signallari. Kompaniya nomi, raqam, havola va shaxsiy ma’lumot tozalangan; qaysi kompaniyadan kelgani ko‘rinmaydi, faqat nechta kompaniyada takrorlangani.')}</p>
           </div>
-          <button type="button" disabled={band || g.length === 0} onClick={() => void tahlil()} className="tugma-asosiy h-8 px-3 text-[12px] disabled:opacity-40">{band ? t('Tahlil qilinmoqda…') : t('Signallardan taklif tayyorlash')}</button>
+          <button type="button" disabled={band || g.length === 0} onClick={() => void tahlil()} className="fz-btn fz-btn--primary h-8 px-3 text-[12px] disabled:opacity-40">{band ? t('Tahlil qilinmoqda…') : t('Signallardan taklif tayyorlash')}</button>
         </div>
       </section>
       {g.length === 0 ? <p className="karta p-4 text-[13px] text-text-mute">{t('Yangi signal yo‘q — tizim hozircha o‘rganadigan muammo ko‘rmayapti.')}</p> : (

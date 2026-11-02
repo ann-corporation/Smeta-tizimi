@@ -62,6 +62,8 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       't2_narx_protokol_yarat_v1', 't2_narx_protokol_tasdiqla_v1', 't2_narx_protokol_bekor_v1',
                       't2_obyekt_hujjat_yoz', 't2_obyekt_hujjat_ochir',
                       't2_sklad_yarat', 't2_kadr_yarat', 't2_texnika_yarat',
+                      /* 2026-10-29 C11 PR-B: markaziy ombor kirimi (≤1000 qator, idempotent) va storno; RPC ichida a'zolik + document.write. */
+                      't2_sklad_markaziy_prixod_import_v1', 't2_sklad_markaziy_prixod_storno_v1',
                       't2_resurs_yarat_v2', 't2_resurs_yangila_v2', 't2_resurs_bekor_v2',
                       't2_resurs_bog_saqla', 't2_resurs_bog_ochir',
                       't2_loyiha_yarat', 't2_loyiha_yangila', 't2_loyiha_ochir',
@@ -72,6 +74,9 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       't2_fakt_yoz_v2', 't2_fakt_belgila', 't2_fakt_belgila_v2',
                       /* 2026-10-24: «Bajarilmadi» qoplamasi — smeta qatoriga tegmaydi; RPC ichida a'zolik + fakt.write. */
                       't2_bajarilmadi_belgila_v1', 't2_bajarilmadi_bekor_v1',
+                      /* 2026-10-26 PTO-CORE-001: smeta versiyasi / farq / da'vo — qoplama; RPC ichida a'zolik + smeta.write. */
+                      't2_smeta_versiya_yarat_v1', 't2_smeta_versiya_pozitsiya_yoz_v1', 't2_smeta_versiya_moslik_yoz_v1',
+                      't2_smeta_versiya_qaror_v1', 't2_smeta_versiya_bekor_v1',
                       /* 2026-09-06, T2 daily native F2 import: resumable
                          import job and durable draft writes are explicit
                          named RPCs, so they must remain in the gateway
@@ -97,12 +102,15 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                          never mutated; relation is structural (change_type/
                          replaces_line_id), never a name-marker. */
                       't2_qoshimcha_ish_yarat_v1', 't2_zamena_ish_yarat_v1', 't2_resurs_bola_qosh_v1',
+                      /* 2026-10-25: zamena asl qatorning qancha hajmini almashtirishini belgilaydi
+                         (faqat t2_qator.almashtirish_hajm; asl qator o'zgarmaydi). */
+                      't2_zamena_almashtirish_belgila_v1',
                       /* 2026-09-28 (Claude): ish + F2 resurslari BITTA tranzaksiyada —
                          ichida o'sha `t2_addrepl_execute_v1` (rol, versiya, OLD o'zgarmaydi,
                          audit); faqat service_role, actor sessiyadan. */
                       't2_ish_resurslar_bilan_yarat_v1',
                       // Egasi 2026-10-01: fakt kiritishda qo'shimcha ish/zamena, smetasiz obyekt; ish turlari katalogi.
-                      't2_fakt_smetadan_tashqari_v1', 't2_ish_turi_saqla_v1', 't2_ish_abc_saqla_v1', 't2_ish_abc_ochir_v1', 't2_ish_abc_tahrir_v1', 't2_ish_abc_ochir_v1', 't2_ish_abc_tahrir_v1', 't2_ish_abc_ochir_v2', 't2_ish_abc_tahrir_v2', 't2_resurs_ish_zamena_v1', 't2_smeta_bolim_yarat_v1', 't2_shartnoma_saqla_v2', 't2_sverka_yozuv_v1', 't2_fayl_amal_v1', 't2_m29_bajar_v1', 't2_m29_bekor_v1', 't2_token_sarfla_v1', 't2_token_qaytar_v1', 't2_token_yakunla_v1', 't2_tolov_sorov_yarat_v1', 't2_token_toldir_v1', 't2_obuna_belgila_v1', 't2_demo_manba_belgila_v1',
+                      't2_fakt_smetadan_tashqari_v1', 't2_ish_turi_saqla_v1', 't2_ish_abc_saqla_v1', 't2_ish_abc_ochir_v1', 't2_ish_abc_tahrir_v1', 't2_ish_abc_ochir_v1', 't2_ish_abc_tahrir_v1', 't2_ish_abc_ochir_v2', 't2_ish_abc_tahrir_v2', 't2_resurs_ish_zamena_v1', 't2_smeta_bolim_yarat_v1', 't2_shartnoma_saqla_v2', 't2_sverka_yozuv_v1', 't2_sverka_import_v1', 't2_f2_reestr_yoz_v1', 't2_tolov_taqsimot_saqla_v1', 't2_forma3_f2_bog_v1', 't2_fayl_amal_v1', 't2_m29_bajar_v1', 't2_m29_bekor_v1', 't2_token_sarfla_v1', 't2_token_qaytar_v1', 't2_token_yakunla_v1', 't2_tolov_sorov_yarat_v1', 't2_token_toldir_v1', 't2_obuna_belgila_v1', 't2_demo_manba_belgila_v1',
                       /* 2026-09-05, T2-PTO-CLOSURE-007 (Codex): catalog
                          observation ingestion -- exact-match-only auto-link,
                          no price ever stored/copied through this path. */
@@ -128,7 +136,11 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                          canonical t2_qator; it is not a second line writer. */
                       't2_shartnoma_qamrov_saqla_v1',
                       /* 2026-10-24: pul tahlili P1 - haqiqiy xarajatni kategoriya/obyekt bilan kiritish va bekor qilish (financial.write). */
-                      't2_xarajat_kirit_v1', 't2_xarajat_bekor_v1'].sort();
+                      't2_xarajat_kirit_v1', 't2_xarajat_bekor_v1',
+                      /* 2026-10-27: mindmap 2-bosqich — obyekt/loyihaga mas'ul biriktirish (company.member.manage, RPC ichida tekshiriladi). */
+                      't2_mindmap_masul_v1',
+                      /* 2026-10-27: moliyaviy tahlil — tizimda yo'q ko'rsatkichni qo'lda kiritish (financial.write). */
+                      't2_moliya_qolda_yoz_v1'].sort();
     T('RPC ro\'yxati AYNAN belgilangan ' + KUTILGAN.length + ' ta domen amali',
       JSON.stringify(amallar) === JSON.stringify(KUTILGAN),
       'topildi: ' + amallar.join(', '));

@@ -1,0 +1,150 @@
+{
+  "source_pin": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9",
+  "review_scope": "Определены только предполагаемый жизненный цикл и бизнес-роль; статические и исходные материалы не подтверждают текущее использование при выполнении или в боевой среде.",
+  "overrides": [
+    {
+      "table": "public.t2_bosqich_katalog",
+      "classification": "CANONICAL",
+      "classification_basis": "Канонический справочник этапов процесса с ключом по примитиву и типу; это намерение контракта, а не доказательство использования в боевой среде.",
+      "business_role": "Справочник этапов процесса: название, порядок и ответственная сторона.",
+      "usage_verified": false,
+      "classification_evidence": [
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "supabase/migrations/20261108000000_t2_ekotizim_f1_yadro_v1.sql", "line": 364, "supports": "Определяет справочник этапов и внешний ключ на примитив и тип." },
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "docs/architecture/ekotizim/E7_SHAXS_KATALOG_PRIMITIVLAR.md", "line": 68, "supports": "Описывает этапы для конкретных типов и контракт справочника этапов." }
+      ],
+      "manual_review_basis": "Классифицировано как канонические справочные данные процесса; применение миграции и использование при выполнении не проверены. Решение об удалении не подразумевается."
+    },
+    {
+      "table": "public.t2_primitiv_tur",
+      "classification": "CANONICAL",
+      "classification_basis": "Канонический справочник типов примитивов экосистемы; это намерение контракта, а не доказательство использования в боевой среде.",
+      "business_role": "Справочник типов примитивов: работа, рейс, ремонт, проверка и другие.",
+      "usage_verified": false,
+      "classification_evidence": [
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "supabase/migrations/20261108000000_t2_ekotizim_f1_yadro_v1.sql", "line": 333, "supports": "Определяет таблицу типов примитивов и начальные значения справочника." },
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "docs/architecture/ekotizim/E7_SHAXS_KATALOG_PRIMITIVLAR.md", "line": 70, "supports": "Описывает контракт справочника типов и примеры." }
+      ],
+      "manual_review_basis": "Классифицировано как канонические справочные данные экосистемы; применение миграции и использование при выполнении не проверены. Решение об удалении не подразумевается."
+    },
+    {
+      "table": "public.t2_primitiv_dalil",
+      "classification": "CANONICAL",
+      "classification_basis": "Канонические связи доказательных документов с примитивами; хранят ссылки, а не содержимое файлов.",
+      "business_role": "Связь примитива с подтверждающим документом, например фотографией, ТТН или протоколом.",
+      "usage_verified": false,
+      "classification_evidence": [
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "supabase/migrations/20261108000000_t2_ekotizim_f1_yadro_v1.sql", "line": 386, "supports": "Определяет связи доказательных документов с примитивами." },
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "docs/architecture/ekotizim/E7_SHAXS_KATALOG_PRIMITIVLAR.md", "line": 73, "supports": "Указывает ID документов как доказательства, прикреплённые к примитиву." },
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "supabase/migrations/20261108600000_t2_topshiriq_v1.sql", "line": 7, "supports": "Указывает, что существующий массив доказательств планируется перенести после появления этой таблицы." }
+      ],
+      "manual_review_basis": "Классифицировано как канонические связи доказательств; планируемый переход не разрешает удалять существующие массивы доказательств или строки. Применение в боевой среде не проверено."
+    },
+    {
+      "table": "public.t2_tuzilma",
+      "classification": "CANONICAL",
+      "classification_basis": "Каноническая иерархия объекта и сметы, на которую ссылаются строки сметы; это не временная таблица.",
+      "business_role": "Иерархия зданий, секций и этажей объекта со связями родитель—потомок.",
+      "usage_verified": false,
+      "classification_evidence": [
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "docs/architecture/ekotizim/E3_DOMEN_CHEGARALARI.md", "line": 33, "supports": "Называет t2_tuzilma необязательной структурой здания, секции или этажа." },
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "supabase/migrations/20261109300000_t2_obyekt_snapshot_v1.sql", "line": 45, "supports": "Описывает t2_tuzilma как структуру сметы и указывает внешний ключ t2_qator.tuzilma_id." },
+        { "revision": "32de9cda71ede060933e6a0f500fa3eb1587e560", "path": "docs/architecture/DATA_MODEL_REGISTRY.yaml", "line": 17047, "supports": "Снимок реестра фиксирует внешний ключ на родительскую запись той же таблицы." }
+      ],
+      "manual_review_basis": "Классифицировано как каноническая структура объекта; сохранять иерархию и ссылки строк. Одних внешних ключей недостаточно, чтобы подтвердить использование при выполнении."
+    },
+    {
+      "table": "public.t2_lrv_sync_event",
+      "classification": "COMPAT",
+      "classification_basis": "Каркас конверта событий синхронизационного моста; инфраструктура совместимости, а не замена таблицы бизнес-данных.",
+      "business_role": "Идемпотентный конверт события синхронизации строк между Google Sheets и Supabase.",
+      "usage_verified": false,
+      "classification_evidence": [
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "supabase/migrations/20260920140000_t2_lrv_sync_envelope_v1.sql", "line": 20, "supports": "Определяет операцию, источник, сущность, версии, хеш проекции и время события." },
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "supabase/migrations/20260920140000_t2_lrv_sync_envelope_v1.sql", "line": 54, "supports": "Описывает планируемый мост Sheets/Supabase и отсутствие подключённой записи со стороны GAS на тот момент." },
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "ops/handoff/T2_PTO_DAILY_WORKFLOW_CLOSURE_007.md", "line": 44, "supports": "Исторический аудит отмечает, что на тот момент потребитель не был подключён." }
+      ],
+      "manual_review_basis": "Сохранить как инфраструктуру моста; статус каркаса не является решением об удалении. Не заявлять о подключённом потребителе или использовании в боевой среде без проверки при выполнении."
+    },
+    {
+      "table": "public.t2_lrv_sync_conflict",
+      "classification": "COMPAT",
+      "classification_basis": "Каркас очереди конфликтов и необработанных событий моста; инфраструктура совместимости, а не замена таблицы бизнес-данных.",
+      "business_role": "Записи конфликтов из-за устаревших версий, замороженного F2 и отсутствующего соответствия строк.",
+      "usage_verified": false,
+      "classification_evidence": [
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "supabase/migrations/20260920140000_t2_lrv_sync_envelope_v1.sql", "line": 35, "supports": "Определяет записи конфликтов, связанные с событиями синхронизации, и перечисляет причины конфликтов." },
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "supabase/migrations/20260920140000_t2_lrv_sync_envelope_v1.sql", "line": 56, "supports": "Описывает назначение очереди необработанных событий и конфликтов." },
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "ops/handoff/T2_PTO_DAILY_WORKFLOW_CLOSURE_007.md", "line": 44, "supports": "Исторический аудит отмечает, что на тот момент потребитель не был подключён." }
+      ],
+      "manual_review_basis": "Сохранить как инфраструктуру моста; статические ссылки не доказывают, что таблица пуста, не нужна или сейчас используется потребителем."
+    },
+    {
+      "table": "public.t2_work_resource_observation",
+      "classification": "CANONICAL",
+      "classification_basis": "Каноническое неизменяемое хранилище OBSERVATION-фактов с происхождением; это не утверждённый каталог рецептов или выполнения работ.",
+      "business_role": "Наблюдавшаяся в исходном документе пара «вид работы — ресурс» с количеством и ссылками на записи происхождения.",
+      "usage_verified": false,
+      "classification_evidence": [
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "supabase/migrations/20260919120000_t2_construction_catalog_observation_v1.sql", "line": 51, "supports": "Определяет строку наблюдения рецепта с внешними ключами, количеством и единицей." },
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "supabase/migrations/20260919120000_t2_construction_catalog_observation_v1.sql", "line": 89, "supports": "Поясняет, что строка фиксирует состав, замеченный в одном исходном документе." },
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "ops/handoff/T2_CONSTRUCTION_CATALOG_001.md", "line": 30, "supports": "Отделяет наблюдения с происхождением от канонических каталогов работ и ресурсов." }
+      ],
+      "manual_review_basis": "Каноническая только для собственных фактов наблюдения и их происхождения. Это не утверждённый каталог рецептов или выполнения; автоматическое слияние в t2_ish_turi, t2_narx или псевдонимы запрещено. Сохранять цепочку источника."
+    },
+    {
+      "table": "public.t2_erp_kadr",
+      "classification": null,
+      "classification_basis": "Жизненный цикл не установлен: есть прежняя SQL-схема, а аудит источников называет GAS текущим владельцем кадровых фактов и описывает будущий импорт в Supabase.",
+      "business_role": "Прежние кадровые записи ERP; фактический владелец строк и решение об их переносе не установлены.",
+      "usage_verified": false,
+      "classification_evidence": [
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "tizim02/01_erp_va_audit_jadvallar.sql", "line": 6, "supports": "Определяет прежнюю таблицу кадров и её поля." },
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "docs/architecture/ekotizim/E0_AUDIT_20261024.md", "line": 25, "supports": "На момент аудита называет GAS источником кадровых и технических фактов." },
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "docs/architecture/ekotizim/E3_DOMEN_CHEGARALARI.md", "line": 233, "supports": "Требует идемпотентного импорта и отчёта по несопоставленным строкам перед планируемым переносом GAS → Supabase." }
+      ],
+      "manual_review_basis": "Оставить NULL до решения владельца и сверки данных. Сохранить все исходные факты: план переноса в t2_kadr_mustaqil не доказывает, что эта таблица пуста, устарела или безопасна для удаления."
+    },
+    {
+      "table": "public.t2_erp_texnika",
+      "classification": null,
+      "classification_basis": "Жизненный цикл не установлен: есть прежняя SQL-схема, а аудит источников называет GAS текущим владельцем фактов о технике и описывает будущий импорт в Supabase.",
+      "business_role": "Прежние записи ERP о технике; фактический владелец строк и решение об их переносе не установлены.",
+      "usage_verified": false,
+      "classification_evidence": [
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "tizim02/01_erp_va_audit_jadvallar.sql", "line": 18, "supports": "Определяет прежнюю таблицу техники и её поля." },
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "docs/architecture/ekotizim/E0_AUDIT_20261024.md", "line": 25, "supports": "На момент аудита называет GAS источником кадровых и технических фактов." },
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "docs/architecture/ekotizim/E3_DOMEN_CHEGARALARI.md", "line": 233, "supports": "Требует идемпотентного импорта и отчёта по несопоставленным строкам перед планируемым переносом GAS → Supabase." }
+      ],
+      "manual_review_basis": "Оставить NULL до решения владельца и сверки данных. Сохранить все исходные факты: план переноса в t2_texnika_mustaqil не доказывает, что эта таблица пуста, устарела или безопасна для удаления."
+    },
+    {
+      "table": "public.t2_erp_sifat",
+      "classification": null,
+      "classification_basis": "Жизненный цикл не установлен: прежняя схема контроля качества существует, но изученные архитектурные материалы не определяют её канонического владельца или план переноса именно этой таблицы.",
+      "business_role": "Прежние записи контроля качества: заключения инспектора и замечания о дефектах; текущий владелец и срок хранения не установлены.",
+      "usage_verified": false,
+      "classification_evidence": [
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "tizim02/01_erp_va_audit_jadvallar.sql", "line": 43, "supports": "Определяет поля инспектора, заключения и дефектов." },
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "docs/architecture/CONSTRUCTION_OS_MASTER_ROADMAP.md", "line": 49, "supports": "Отмечает контроль качества, безопасность и надзор как отсутствующие в целевой дорожной карте." },
+        { "revision": "d7bf735359e8a54ef9e589c9a23cc28fc67876a9", "path": "Smeta tizimi/87_ErpModullar.js", "line": 312, "supports": "Содержит функцию GAS-панели контроля качества." }
+      ],
+      "manual_review_basis": "Оставить NULL до решения владельца домена и сверки исходных данных. Отсутствие целевого домена не означает, что существующие факты проверок можно удалить."
+    },
+    {
+      "table": "public.t2_tmp_eq_lot1",
+      "classification": null,
+      "candidate_class": "TEMP",
+      "classification_basis": "TEMP — только предположение по имени; назначение, владелец и срок хранения не подтверждены.",
+      "business_role": "Назначение отношения неизвестно; снимок схемы показывает только ID объекта, наименование и цену.",
+      "usage_verified": false,
+      "classification_evidence": [
+        { "revision": "32de9cda71ede060933e6a0f500fa3eb1587e560", "path": "docs/architecture/SCHEMA_METADATA_20261026.json", "line": 13083, "supports": "Снимок перечисляет это отношение и его ограниченный набор столбцов." },
+        { "revision": "32de9cda71ede060933e6a0f500fa3eb1587e560", "path": "docs/architecture/ROUTINE_TABLE_REFERENCES_20261026.json", "line": 8458, "supports": "В статическом списке ссылок у отношения нет routine_references; это не доказывает отсутствия динамического или внешнего использования." },
+        { "revision": "32de9cda71ede060933e6a0f500fa3eb1587e560", "path": "docs/architecture/RISK_REGISTER.md", "line": 30, "supports": "Запись о риске требует выяснить создателя, назначение, срок хранения, зависимости и возможность восстановления; одного имени недостаточно." }
+      ],
+      "manual_review_basis": "Оставить classification и owner_module равными NULL, пока L0 не установит создателя, назначение и срок хранения. TEMP остаётся только кандидатом на проверку; delete_authorized остаётся false.",
+      "owner_module": null,
+      "owner_basis": "Не установлено; назначить владельца L0 после установления происхождения."
+    }
+  ]
+}

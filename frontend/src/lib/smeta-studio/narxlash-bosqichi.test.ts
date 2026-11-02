@@ -92,7 +92,7 @@ describe('AI narx qidiruvi: birinchi qidiruvda nomzod yo‘q resurs ham AI ibora
 
 describe('RES: tasdiqlangan stavkalar va koeffitsientlar', () => {
   it('stavkalar tasdiqlansa RES ostida tirik nakrutka podvali; ВСЕГО К ОПЛАТЕ JS kaskadiga teng', () => {
-    const d = applyCommand(draft(), { type: 'SET_RATES', rates: { values: { ТРАНСПОРТ_МАТЕРИАЛ: 5, СКЛАДСКИЕ_МАТЕРИАЛ: 2, ПРОЧИЕ_ПОДРЯДЧИК: 18, СТРАХОВАНИЕ: 0.32, НДС: 12 }, source: 'Kompaniya sozlamasi' } });
+    const d = applyCommand(draft(), { type: 'SET_RATES', rates: { values: { ТРАНСПОРТ_МАТЕРИАЛ: 5, СКЛАДСКИЕ_МАТЕРИАЛ: 2, СКЛАДСКИЕ_МК: 0, ТРАНСПОРТ_КАБЕЛЬ: 0, ТРАНСПОРТ_ОБОРУД: 0, ЗАГОТ_СКЛАД_ОБОРУД: 0, РИСК: 0, ПРОЧИЕ_ПОДРЯДЧИК: 18, СТРАХОВАНИЕ: 0.32, НДС: 12 }, source: 'Kompaniya sozlamasi' } });
     const r = abcHujjat(d, calcDoc(d), unitText);
     const rows = sheet(r.bytes, 'RES');
     expect(rows.some(x => x.join('|').includes('РАСЧЕТ СТОИМОСТИ (СТАВКИ: KOMPANIYA SOZLAMASI)'))).toBe(true);

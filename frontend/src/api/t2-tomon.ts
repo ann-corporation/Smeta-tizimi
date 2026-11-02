@@ -29,18 +29,25 @@ export type TomonResurs = { kalit: string; nom: string; nom_ru: string | null; g
 export type TaqdimQisqa = {
   id: number; aloqa_id: number; resurs: string; nom: string; oy: string | null; summa: number | null; holat: TaqdimHolat; kelgan: boolean;
   qarshi_nom: string | null; obyekt_nom: string | null; taqdim_vaqti: string; qaror_vaqti: string | null; qaror_izoh: string | null; oldingi_taqdim_id: number | null;
+  /** 20261108102000 dan keyin; eski serverda yo'q. */
+  obyekt_id?: number | null; manba_jadval?: string; manba_id?: number;
 };
-export type TaqdimQator = { qator_id: number; tartib: number; kod: string | null; nom: string | null; birlik: string | null; tur: string | null; kat: string | null; hajm: number | null; narx: number | null; summa: number | null; narx_manba: string | null };
+export type TaqdimQator = { akt_qator_id?: number; qator_id: number; tartib: number; kod: string | null; nom: string | null; birlik: string | null; tur: string | null; kat: string | null; hajm: number | null; narx: number | null; summa: number | null; narx_manba: string | null };
 export type TaqdimTafsilot = {
   taqdim: Omit<TaqdimQisqa, 'qarshi_nom'> & {
-    snapshot: Record<string, unknown>; etuvchi_nom: string | null; qabul_qiluvchi_nom: string | null; taqdim_izoh: string | null; document_id: number | null;
+    snapshot: Record<string, unknown>; etuvchi_nom: string | null; qabul_qiluvchi_nom: string | null; taqdim_izoh: string | null; document_id: number | null; manba_jadval?: string; manba_id?: number;
   };
   qatorlar: TaqdimQator[]; qator_jami: number; qisqartirilgan: boolean; butunlik_ok: boolean | null; hodisalar: Hodisa[];
+};
+/** Rasmiy hujjatdagi ikki raqam + podval satrlari (server hisoblaydi; ichki koeffitsient/marja ko'rsatilmaydi). */
+export type AktUstama = {
+  pryamye: number; ustamali: number; katsiz: number; narxsiz_qator: number;
+  podval: Partial<Record<'tr_mat' | 'skl_mat' | 'tr_kab' | 'itogo1' | 'prochie' | 'itogo2' | 'tr_ob' | 'zag_ob' | 'itogo3' | 'strax' | 'risk' | 'itogo4' | 'nds' | 'vsego', number | null>>;
 };
 export type ZakazchikObyekt = {
   aloqa_id: number; qarshi_kompaniya_id: number; qarshi_nom: string; qarshi_rol: string; obyekt_id: number; obyekt_nom: string;
   shartnoma: { raqam: string; nom: string | null; summa_bez_nds: number | null; jami_nds_bilan: number | null } | null;
-  f2: { soni: number; jami: number; oxirgi_oy: string | null; royxat: Array<{ akt_id: number; raqam: string | null; oy: string | null; jami: number | null }> } | null;
+  f2: { soni: number; jami: number; oxirgi_oy: string | null; royxat: Array<{ akt_id: number; raqam: string | null; oy: string | null; jami: number | null; ustama?: AktUstama }>; ustama_jami?: AktUstama | null } | null;
   kutayotgan_taqdim: number;
 };
 
@@ -141,3 +148,18 @@ export const murojaatJavob = (k: number, id: number, matn: string, documentIds: 
 export const murojaatHujjat = (k: number, id: number, documentId: number) => tomonYoz('murojaat_hujjat', k, { murojaat_id: id, document_id: documentId });
 export const murojaatQarori = (k: number, id: number, qaror: 'yopish' | 'qayta_ochish', izoh?: string) => tomonYoz('murojaat_qaror', k, { murojaat_id: id, qaror, izoh: izoh || null });
 export const murojaatBekor = (k: number, id: number, sabab?: string) => tomonYoz('murojaat_bekor', k, { murojaat_id: id, sabab: sabab || null });
+
+/* ───── Qator izohi (P4 t2_izoh): taqdim qilingan F2 aktning har qatoriga ───── */
+export type QatorIzoh = {
+  id: number; manba_jadval: string; manba_id: number; ota_izoh_id: number | null; matn: string; holat: 'faol' | 'hal_qilingan'; versiya: number;
+  yaratildi: string; meniki: boolean; ichki: boolean; kompaniya_nom: string | null;
+};
+const IZOH_XATO: Record<string, string> = { RUXSAT_YOQ: 'Bu qatorga izoh yozishga ruxsat yo‘q', VERSIYA_ESKI: 'Izoh o‘zgargan - sahifani yangilang', MANBA_QOLLANMAYDI: 'Bu turdagi manbaga izoh hali yoqilmagan', OTA_IZOH_YOQ: 'Javob beriladigan izoh topilmadi', MATN_NOTOGRI: 'Izoh matni 1–4000 belgi' };
+function izohXatosi<T>(r: TomonJavob<T>): TomonJavob<T> { return r.ok ? r : { ...r, error: (r.code && IZOH_XATO[r.code]) || r.error }; }
+/** Akt bo'yicha barcha qator izohlari (ichki izohlar faqat yozuvchi tenantga ko'rinadi - serverda). */
+export const qatorIzohlariOl = async (k: number, aktId: number, aloqaId?: number | null) =>
+  izohXatosi(await tomonOqi<{ izohlar: QatorIzoh[] }>('izohlar', k, { akt_id: aktId, aloqa_id: aloqaId }));
+export const qatorIzohYoz = async (k: number, p: { aloqaId?: number | null; aktQatorId: number; matn: string; otaIzohId?: number | null }) =>
+  izohXatosi(await tomonYoz<{ id: number; versiya: number }>('qator_izoh', k, { aloqa_id: p.aloqaId ?? null, manba_jadval: 't2_akt_qator', manba_id: p.aktQatorId, matn: p.matn, ota_izoh_id: p.otaIzohId ?? null, operation_id: yangiOperationId() }));
+export const qatorIzohHal = async (k: number, izohId: number, versiya: number, hal: boolean) =>
+  izohXatosi(await tomonYoz<{ versiya: number }>('qator_izoh_hal', k, { izoh_id: izohId, versiya, hal, operation_id: yangiOperationId() }));

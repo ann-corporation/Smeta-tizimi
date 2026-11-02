@@ -4,6 +4,7 @@ import { byudjetBelgila, ustamaBelgila, type Markaz } from '../../api/t2-agent-i
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
 import { foiz, usd } from './ai-markaz-yordam';
+import { limitHolati, tokenMatn } from '../../lib/ai-korinish';
 
 type Komp = { id: number; nom: string };
 const LIMIT_NAMUNA = '50';
@@ -35,6 +36,9 @@ export function AiXarajatBolimi({ m, kompaniyalar, yangila }: { m: Markaz; kompa
   };
   const sarfFoiz = m.limit_usd ? foiz(m.oy_sarfi_usd, m.limit_usd) : 0;
   const narxsiz = m.modellar.reduce((a, x) => a + x.narxsiz, 0);
+  const lh = limitHolati(m.oy_sarfi_usd, m.limit_usd, m.ogohlantirish_foiz ?? 80);
+  const LIMIT_MUHR = { yoq: ['fz-stamp--danger', 'Limit yo‘q — AI ishlamaydi'], ok: ['fz-stamp--ok', 'Limit ichida'], ogoh: ['fz-stamp--warn', 'Limitga yaqin'], tugadi: ['fz-stamp--danger', 'Limit tugadi'] } as const;
+  const limitRang = lh.daraja === 'ok' ? 'var(--accent)' : lh.daraja === 'ogoh' ? 'var(--warn)' : 'var(--danger)';
   return (
     <div className="space-y-3">
       <section className="grid gap-2 md:grid-cols-3" aria-label={t('Moliyaviy natija')}>
@@ -48,7 +52,7 @@ export function AiXarajatBolimi({ m, kompaniyalar, yangila }: { m: Markaz; kompa
         <p className="mb-2 text-[12px] text-text-mute">{t('Kompaniyadan olinadigan narx = OpenRouter haqiqiy sarfi × (1 + ustama%). Natija so‘mga, so‘ng tokenga aylantirilib, kompaniya hamyonidan yechiladi (kurs va token narxi — «Sozlamalar»da).')}</p>
         <div className="flex flex-wrap items-end gap-2 text-[11px] text-text-mute">
           <label className="flex flex-col gap-1">{t('Standart ustama (%)')}<input inputMode="decimal" value={ust} onChange={(e) => setUst(e.target.value)} className="input h-8 w-24 px-2 text-[13px]" /></label>
-          <button type="button" className="tugma-asosiy h-8 px-3 text-[12px]" onClick={() => void ustamaSaqla(null, ust)}>{t('Saqlash')}</button>
+          <button type="button" className="fz-btn fz-btn--primary h-8 px-3 text-[12px]" onClick={() => void ustamaSaqla(null, ust)}>{t('Saqlash')}</button>
           {misol != null && <span className="pb-1.5 text-[12px] text-text-dim">{t('Misol')}: $5.00 → <b className="text-text">{usd(misol)}</b></span>}
         </div>
         <div className="mt-3 flex flex-wrap items-end gap-2 text-[11px] text-text-mute">
@@ -57,8 +61,8 @@ export function AiXarajatBolimi({ m, kompaniyalar, yangila }: { m: Markaz; kompa
               <option value="">{t('Tanlang…')}</option>{kompaniyalar.map((k) => <option key={k.id} value={k.id}>{k.nom}</option>)}
             </select></label>
           <label className="flex flex-col gap-1">{t('Ustama (%)')}<input inputMode="decimal" value={uK} onChange={(e) => setUK(e.target.value)} className="input h-8 w-24 px-2 text-[12px]" /></label>
-          <button type="button" disabled={!uKId || uK.trim() === ''} className="tugma h-8 px-3 text-[12px] disabled:opacity-40" onClick={() => void ustamaSaqla(Number(uKId), uK)}>{t('Kompaniya ustamasini saqlash')}</button>
-          <button type="button" disabled={!uKId} className="tugma h-8 px-3 text-[12px] disabled:opacity-40" onClick={() => void ustamaSaqla(Number(uKId), '')}>{t('Standartga qaytarish')}</button>
+          <button type="button" disabled={!uKId || uK.trim() === ''} className="fz-btn h-8 px-3 text-[12px] disabled:opacity-40" onClick={() => void ustamaSaqla(Number(uKId), uK)}>{t('Kompaniya ustamasini saqlash')}</button>
+          <button type="button" disabled={!uKId} className="fz-btn h-8 px-3 text-[12px] disabled:opacity-40" onClick={() => void ustamaSaqla(Number(uKId), '')}>{t('Standartga qaytarish')}</button>
         </div>
       </section>
 
@@ -68,8 +72,12 @@ export function AiXarajatBolimi({ m, kompaniyalar, yangila }: { m: Markaz; kompa
         <div className="flex flex-wrap items-end gap-2 text-[11px] text-text-mute">
           <label className="flex flex-col gap-1">{t('Oylik limit ($)')}<MoneyInput inputMode="decimal" value={plLimit} onValueChange={(moneyValue) => setPlLimit(moneyValue)} placeholder={LIMIT_NAMUNA} className="input h-8 w-28 px-2 text-[13px]" /></label>
           <label className="flex flex-col gap-1">{t('Ogohlantirish (%)')}<input inputMode="numeric" value={ogoh} onChange={(e) => setOgoh(e.target.value)} className="input h-8 w-20 px-2 text-[13px]" /></label>
-          <button type="button" className="tugma-asosiy h-8 px-3 text-[12px]" onClick={() => void saqla(null, plLimit, Number(ogoh) || 80)}>{t('Saqlash')}</button>
-          {m.limit_usd != null && <button type="button" className="tugma h-8 px-3 text-[12px] text-danger" onClick={() => void saqla(null, plLimit || String(m.limit_usd), Number(ogoh) || 80, false)}>{t('AI ni to‘xtatish (kill-switch)')}</button>}
+          <button type="button" className="fz-btn fz-btn--primary h-8 px-3 text-[12px]" onClick={() => void saqla(null, plLimit, Number(ogoh) || 80)}>{t('Saqlash')}</button>
+          {m.limit_usd != null && <button type="button" className="fz-btn h-8 px-3 text-[12px] text-danger" onClick={() => void saqla(null, plLimit || String(m.limit_usd), Number(ogoh) || 80, false)}>{t('AI ni to‘xtatish (kill-switch)')}</button>}
+        </div>
+        <div className="mt-3 flex flex-col gap-1.5" data-testid="ai-limit-holati">
+          <div className="flex flex-wrap items-center gap-2"><span className={`fz-stamp ${!m.limit_faol && m.limit_usd != null ? 'fz-stamp--danger' : LIMIT_MUHR[lh.daraja][0]}`}>{!m.limit_faol && m.limit_usd != null ? t('To‘xtatilgan') : t(LIMIT_MUHR[lh.daraja][1])}</span></div>
+          {m.limit_usd != null && <span className="fz-meter"><span className="fz-meter__t"><i className="fz-meter__shu" style={{ width: `${lh.ulush * 100}%`, background: limitRang }} /></span><span className="fz-meter__f">{sarfFoiz}%</span></span>}
         </div>
         {m.limit_usd != null && <p className="mt-2 text-[12px] text-text-dim">{t('Shu oy')}: {usd(m.oy_sarfi_usd)} / {usd(m.limit_usd)} ({sarfFoiz}%){!m.limit_faol ? ` · ${t('hozir TO‘XTATILGAN')}` : ''}</p>}
         {narxsiz > 0 && <p className="mt-1 text-[12px] text-warn">{narxsiz} {t('ta chaqiruvning narxi noma’lum (provayder narx bermadi, katalogda narx yo‘q) — limitga qo‘shilmagan. Modellarga narx kiriting.')}</p>}
@@ -83,7 +91,7 @@ export function AiXarajatBolimi({ m, kompaniyalar, yangila }: { m: Markaz; kompa
             {m.kompaniyalar.length === 0 && <tr><td colSpan={7} className="py-2 text-text-mute">{t('Hali sarf yo‘q')}</td></tr>}
             {m.kompaniyalar.map((k) => (
               <tr key={`${k.kompaniya_id}`} className="border-t border-border/60"><td className="py-1 text-text">{k.nom ?? (k.kompaniya_id == null ? t('Tizim (platforma)') : `#${k.kompaniya_id}`)}</td>
-                <td className="tabular-nums">{usd(k.narx_usd)}</td><td className="tabular-nums">{usd(k.mijoz_usd)}</td><td className="tabular-nums">{Math.round(k.token).toLocaleString('ru-RU')}</td><td className="tabular-nums">{k.ustama_foiz}%</td><td className="tabular-nums">{k.chaqiruv}</td><td className="tabular-nums">{k.limit_usd != null ? usd(k.limit_usd) : '—'}</td></tr>
+                <td className="tabular-nums">{usd(k.narx_usd)}</td><td className="tabular-nums">{usd(k.mijoz_usd)}</td><td className="tabular-nums" title={`${Math.round(k.token).toLocaleString('ru-RU')} ${t('token')}`}>{(() => { const tm = tokenMatn(k.token); return t(tm.kalit, { n: tm.n }); })()}</td><td className="tabular-nums">{k.ustama_foiz}%</td><td className="tabular-nums">{k.chaqiruv}</td><td className="tabular-nums">{k.limit_usd != null ? usd(k.limit_usd) : '—'}</td></tr>
             ))}
           </tbody>
         </table>
@@ -93,7 +101,7 @@ export function AiXarajatBolimi({ m, kompaniyalar, yangila }: { m: Markaz; kompa
               <option value="">{t('Tanlang…')}</option>{kompaniyalar.map((k) => <option key={k.id} value={k.id}>{k.nom}</option>)}
             </select></label>
           <label className="flex flex-col gap-1">{t('Oylik limit ($)')}<MoneyInput inputMode="decimal" value={kLimit} onValueChange={(moneyValue) => setKLimit(moneyValue)} placeholder={LIMIT_NAMUNA} className="input h-8 w-24 px-2 text-[12px]" /></label>
-          <button type="button" disabled={!kId} className="tugma h-8 px-3 text-[12px] disabled:opacity-40" onClick={() => void saqla(Number(kId), kLimit, 80)}>{t('Kompaniya limitini saqlash')}</button>
+          <button type="button" disabled={!kId} className="fz-btn h-8 px-3 text-[12px] disabled:opacity-40" onClick={() => void saqla(Number(kId), kLimit, 80)}>{t('Kompaniya limitini saqlash')}</button>
         </div>
       </section>
 

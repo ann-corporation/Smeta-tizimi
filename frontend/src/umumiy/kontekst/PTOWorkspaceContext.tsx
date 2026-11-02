@@ -1,8 +1,10 @@
+import { t } from '../../i18n/til';
 import { ObyektOptionlari } from '../ui/ObyektOptionlari';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { useKompaniya } from './KompaniyaKontekst';
-import { sbT2ObyektlarOlKomp, sbT2AktReestrOl, type T2AktReestr, type T2Obyekt } from '../../api/supabase';
+import { sbT2AktReestrOl, type T2AktReestr, type T2Obyekt } from '../../api/supabase';
+import { obyektlarKeshdan, useIxtiyoriyQueryClient } from '../../api/t2-obyektlar-kesh';
 import { sbT2LoyihalarOl, type Loyiha } from '../../api/t2-loyiha';
 import { hujjatRoyxatOl, type DocRegistry } from '../../api/t2-hujjat-canonical';
 import type { CenterDocument } from '../../components/document-center';
@@ -274,6 +276,7 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState<LoadingState>({ hierarchy: false, periods: false, documents: false });
   const [error, setError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
+  const qc = useIxtiyoriyQueryClient();
   /** Company whose project/object lists are really loaded — before that a URL object is not judged
    *  (owner 2026-09-29: ?obyekt=78 used to vanish against an empty list). */
   const [loadedCompany, setLoadedCompany] = useState<number | null>(null);
@@ -316,7 +319,8 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
     }
     let alive = true;
     setLoading((old) => ({ ...old, hierarchy: true }));
-    Promise.all([sbT2LoyihalarOl(companyId), sbT2ObyektlarOlKomp(companyId)])
+    // Obyektlar umumiy keshdan; qo'lda yangilash (refresh) keshni chetlab o'tadi.
+    Promise.all([sbT2LoyihalarOl(companyId), obyektlarKeshdan(qc, companyId, refreshToken > 0)])
       .then(([projectResult, objectResult]) => {
         if (!alive) return;
         if (!projectResult.ok || !objectResult.ok) {
@@ -332,7 +336,7 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
       .catch(() => { if (alive) setError('PTO iyerarxiyasini yuklab bo‘lmadi.'); })
       .finally(() => { if (alive) setLoading((old) => ({ ...old, hierarchy: false })); });
     return () => { alive = false; };
-  }, [companyId, refreshToken]);
+  }, [companyId, refreshToken, qc]);
 
   useEffect(() => {
     if (companyId == null || loading.hierarchy || loadedCompany !== companyId) return;
@@ -452,34 +456,46 @@ export function PTOWorkspaceBar() {
     ? workspace.revisions
     : workspace.revisions.filter((row) => row.documentId === workspace.scope.sourceDocumentId);
 
+  /* 2026-10-27 (egasi: «noutbuk ekraniga sig'maydi»): 5 ta tanlov ustma-ust tushib, yuqori panel ~170px
+   * bo'lib ketardi. Endi har tanlov eni cheklangan (uzun nom qisqartiriladi, to'liq nomi title'da), manba
+   * hujjat va revision esa «Manba» ochiladigan oynasida — panel bitta qatorda qoladi. */
+  const tanlov = 'h-8 truncate rounded-md border border-border bg-black/20 px-2 text-xs text-text disabled:cursor-not-allowed disabled:opacity-50';
+  const nomi = (rows: readonly { id: number; nom: string }[], id: number | null) =>
+    rows.find((x) => x.id === id)?.nom ?? '';
+  const manbaTanlangan = workspace.scope.sourceDocumentId != null || workspace.scope.revisionId != null;
   return (
-    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2" data-testid="pto-workspace-bar">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-text-dim">PTO scope</span>
+    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5" data-testid="pto-workspace-bar">
+      <span className="hidden text-[10.5px] font-semibold uppercase tracking-[0.06em] text-text-mute 2xl:inline">{t('Ish doirasi')}</span>
       <label className="sr-only" htmlFor="pto-project-select">Loyiha</label>
-      <select id="pto-project-select" aria-label="PTO loyiha" value={workspace.scope.projectId ?? ''} onChange={(event) => workspace.setProjectId(event.target.value ? Number(event.target.value) : null)} className="min-w-[150px] rounded-md border border-border bg-black/20 px-2 py-1.5 text-xs text-text">
+      <select id="pto-project-select" aria-label="PTO loyiha" title={nomi(workspace.projects, workspace.scope.projectId)} value={workspace.scope.projectId ?? ''} onChange={(event) => workspace.setProjectId(event.target.value ? Number(event.target.value) : null)} className={`${tanlov} w-[clamp(120px,14vw,220px)]`}>
         <option value="">Loyiha tanlang</option>
         {workspace.projects.map((row) => <option key={row.id} value={row.id}>{row.nom}</option>)}
       </select>
       <label className="sr-only" htmlFor="pto-object-select">Obyekt</label>
-      <select id="pto-object-select" aria-label="PTO obyekt" value={workspace.scope.objectId ?? ''} onChange={(event) => workspace.setObjectId(event.target.value ? Number(event.target.value) : null)} disabled={!objects.length} className="min-w-[150px] rounded-md border border-border bg-black/20 px-2 py-1.5 text-xs text-text disabled:cursor-not-allowed disabled:opacity-50">
+      <select id="pto-object-select" aria-label="PTO obyekt" title={nomi(objects, workspace.scope.objectId)} value={workspace.scope.objectId ?? ''} onChange={(event) => workspace.setObjectId(event.target.value ? Number(event.target.value) : null)} disabled={!objects.length} className={`${tanlov} w-[clamp(130px,15vw,240px)]`}>
         <option value="">Obyekt tanlang</option>
         <ObyektOptionlari obyektlar={objects} kompaniyaId={workspace.companyId} />
       </select>
       <label className="sr-only" htmlFor="pto-period-select">Davr</label>
-      <select id="pto-period-select" aria-label="PTO davr" value={workspace.scope.periodId ?? ''} onChange={(event) => workspace.setPeriodId(event.target.value || null)} disabled={!workspace.periods.length} className="min-w-[106px] rounded-md border border-border bg-black/20 px-2 py-1.5 text-xs text-text disabled:cursor-not-allowed disabled:opacity-50">
+      <select id="pto-period-select" aria-label="PTO davr" value={workspace.scope.periodId ?? ''} onChange={(event) => workspace.setPeriodId(event.target.value || null)} disabled={!workspace.periods.length} className={`${tanlov} w-[112px]`}>
         <option value="">Davr tanlang</option>
         {workspace.periods.map((row) => <option key={row.id} value={row.id}>{row.label}</option>)}
       </select>
-      <label className="sr-only" htmlFor="pto-document-select">Source document</label>
-      <select id="pto-document-select" aria-label="PTO source document" value={workspace.scope.sourceDocumentId ?? ''} onChange={(event) => workspace.setSourceDocumentId(event.target.value || null)} disabled={!workspace.sourceDocuments.length} className="min-w-[170px] max-w-[240px] rounded-md border border-border bg-black/20 px-2 py-1.5 text-xs text-text disabled:cursor-not-allowed disabled:opacity-50">
-        <option value="">Source hujjat tanlang</option>
-        {workspace.sourceDocuments.map((row) => <option key={row.id} value={row.id}>{row.filename} · r{row.revision}</option>)}
-      </select>
-      <label className="sr-only" htmlFor="pto-revision-select">Revision</label>
-      <select id="pto-revision-select" aria-label="PTO revision" value={workspace.scope.revisionId ?? ''} onChange={(event) => workspace.setRevisionId(event.target.value || null)} disabled={!revisions.length} className="min-w-[118px] rounded-md border border-border bg-black/20 px-2 py-1.5 text-xs text-text disabled:cursor-not-allowed disabled:opacity-50">
-        <option value="">Revision tanlang</option>
-        {revisions.map((row) => <option key={row.id} value={row.id}>{row.label}</option>)}
-      </select>
+      <details className="relative">
+        <summary className={`flex h-8 cursor-pointer list-none items-center gap-1 rounded-md border px-2 text-xs ${manbaTanlangan ? 'border-accent/40 text-accent' : 'border-border text-text-dim'}`}>{t('Manba')} ▾</summary>
+        <div className="absolute left-0 top-9 z-40 flex w-[280px] flex-col gap-2 rounded-lg border border-border bg-surface p-2 shadow-lg">
+          <label className="sr-only" htmlFor="pto-document-select">Source document</label>
+          <select id="pto-document-select" aria-label="PTO source document" value={workspace.scope.sourceDocumentId ?? ''} onChange={(event) => workspace.setSourceDocumentId(event.target.value || null)} disabled={!workspace.sourceDocuments.length} className={`${tanlov} w-full`}>
+            <option value="">Source hujjat tanlang</option>
+            {workspace.sourceDocuments.map((row) => <option key={row.id} value={row.id}>{row.filename} · r{row.revision}</option>)}
+          </select>
+          <label className="sr-only" htmlFor="pto-revision-select">Revision</label>
+          <select id="pto-revision-select" aria-label="PTO revision" value={workspace.scope.revisionId ?? ''} onChange={(event) => workspace.setRevisionId(event.target.value || null)} disabled={!revisions.length} className={`${tanlov} w-full`}>
+            <option value="">Revision tanlang</option>
+            {revisions.map((row) => <option key={row.id} value={row.id}>{row.label}</option>)}
+          </select>
+        </div>
+      </details>
       {workspace.loading.hierarchy || workspace.loading.periods || workspace.loading.documents ? <span className="text-[11px] text-text-dim" role="status">Yuklanmoqda…</span> : null}
       {workspace.error ? <span className="max-w-[260px] truncate text-[11px] text-warn" role="alert" title={workspace.error}>{workspace.error}</span> : null}
     </div>

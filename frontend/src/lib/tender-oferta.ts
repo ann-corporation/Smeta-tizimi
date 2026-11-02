@@ -17,7 +17,7 @@
  * hisoblanadi.
  */
 import type { NakrutkaKoefKod, NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
-import { NAKRUTKA_STANDART, nakrutkaKaskadXom, pulYaxlitla, type NakrutkaAsos, type NakrutkaQadamlar } from './nakrutka-kaskad';
+import { NAKRUTKA_STANDART, nakrutkaKaskad, nakrutkaKaskadXom, pulYaxlitla, type NakrutkaAsos, type NakrutkaQadamlar } from './nakrutka-kaskad';
 import { mashinistMehnati } from './narx-bildirishnoma';
 
 export type OfertaNarxRejimi = 'foiz' | 'qolda';
@@ -570,9 +570,6 @@ function bosNatija(qator: OfertaQator, muammolar: OfertaMuammo[] = []): OfertaQa
   };
 }
 
-function kaskadYaxlit(q: NakrutkaQadamlar): NakrutkaQadamlar {
-  return Object.fromEntries(Object.entries(q).map(([k, v]) => [k, pulYaxlitla(v)])) as NakrutkaQadamlar;
-}
 
 /**
  * RES qatorlaridan oferta natijasini quradi. Noma'lum qiymatlar 0 ga
@@ -652,12 +649,14 @@ export function ofertaYigish(natijalar: OfertaQatorNatija[], nk: NakrutkaKoeffit
   const asos = kategoriyadanAsos(kategoriyaJami);
   const qoshimcha = transportSiyosati === 'varaq' ? { trMatOverride: transportVaraqJami } : {};
   const kaskadXom = nakrutkaKaskadXom(asos, nk, qoshimcha);
+  // Ko'rsatiladigan kaskad — hisob yadrosi (har qadam ROUND 2, Excel bilan aynan).
+  const kaskad = nakrutkaKaskad(asos, nk, qoshimcha);
 
   // Egasi qoidasi (2026-10-08): yakuniy summa har doim ko'rinadi; narxsiz/kategoriyasiz qator — faqat o'zi uchun bildirishnoma
   // (mashinist mehnati narxi mashina ichida — sanalmaydi). Narx 0 — haqiqiy 0.
   const halQilinmagan = natijalar.filter((n) => n.rol === 'RESOURCE' && ((n.pudratchiSumma == null && !mashinistMehnati(n)) || n.samaraliKategoriya === 'UNKNOWN')).length;
   const muammolarSoni = natijalar.reduce((a, n) => a + n.muammolar.length, 0);
-  const yakuniyOferta = natijalar.some((n) => n.rol === 'RESOURCE') ? pulYaxlitla(kaskadXom.vsego) : null;
+  const yakuniyOferta = natijalar.some((n) => n.rol === 'RESOURCE') ? kaskad.vsego : null;
 
   return {
     qatorlar: natijalar,
@@ -670,8 +669,8 @@ export function ofertaYigish(natijalar: OfertaQatorNatija[], nk: NakrutkaKoeffit
     koeffitsientlar: nk,
     transportSiyosati,
     kaskadXom,
-    kaskad: kaskadYaxlit(kaskadXom),
-    manbaKaskad: kaskadYaxlit(nakrutkaKaskadXom(kategoriyadanAsos(manbaKategoriyaJami), nk)),
+    kaskad,
+    manbaKaskad: nakrutkaKaskad(kategoriyadanAsos(manbaKategoriyaJami), nk),
     yakuniyOferta,
     halQilinmagan,
     muammolarSoni,

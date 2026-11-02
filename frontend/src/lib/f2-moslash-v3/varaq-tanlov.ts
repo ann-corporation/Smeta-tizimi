@@ -1,3 +1,4 @@
+import { NDS_SUKUT_FOIZ, qqsKoef } from '../hisob-yadro';
 /**
  * F2 import — HAR VARAQ = ALOHIDA F2 (egasi 2026-10-23). Bitta faylda o'nlab F2 varag'i bo'lishi mumkin (obyekt boshida
  * hammasi bitta faylda; ba'zi varaqlar ichki/oraliq — masalan «ost», manfiy «Лист2 (2)»). Reestrda esa faqat bittasi.
@@ -19,10 +20,10 @@ export const VARAQ_MOSLIK_NOMI: Record<VaraqMoslik, string> = {
 const yaqin = (a: number | null | undefined, b: number, tol = 1) => a != null && Number.isFinite(a) && Math.abs(a - b) <= tol;
 
 /** Reestr summasi shu varaqqa mosmi — qaysi qiymat bo'yicha. Mos emas — null. */
-export function varaqReestrMos(akt: Pick<F2Akt, 'jami'>, summa: number, ndsFoiz = 12): VaraqMoslik | null {
+export function varaqReestrMos(akt: Pick<F2Akt, 'jami'>, summa: number, ndsFoiz = NDS_SUKUT_FOIZ): VaraqMoslik | null {
   if (!Number.isFinite(summa) || summa === 0) return null;
   const { vsego, pryamye, ranee } = akt.jami;
-  const k = 1 + ndsFoiz / 100;
+  const k = qqsKoef(ndsFoiz) as number; // yadro
   if (yaqin(vsego, summa)) return 'vsego';
   if (vsego != null && yaqin(vsego / k, summa)) return 'vsego_qqssiz';
   if (yaqin(pryamye, summa)) return 'pryamye';

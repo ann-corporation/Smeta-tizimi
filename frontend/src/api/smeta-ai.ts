@@ -2,6 +2,7 @@
 import type { NormaTajriba } from '../lib/smeta-ai/tajriba';
 import type { NarxTajriba } from '../lib/smeta-studio/narx-ishonch';
 import type { InternetNatija, InternetSorov } from '../lib/smeta-ai/internet-narx';
+import type { OqishNatija, SahifaJavob, SahifaTuri, SahifaXabar } from '../lib/ai-yordamchi/protokol';
 import type { IshNiyati, KoefSorovi, KoefTanlov, KpOqish, NarxSorovi, NarxTanlov, SuhbatJavobi, SuhbatXabari, Tanlov, TanlovSorovi } from '../lib/smeta-ai/protokol';
 
 export type AiXato = { ok: false; code: string; message?: string };
@@ -60,3 +61,6 @@ export const smetachiNarxInternet = (kompaniyaId: number, sorovlar: InternetSoro
 /** AI picks a price candidate per resource among the ones the browser found (catalogue / company estimates). */
 export const smetachiNarxTanla = (kompaniyaId: number, sorovlar: NarxSorovi[], hudud: string | null) =>
   post<{ ok: true; tanlovlar: NarxTanlov[] }>({ amal: 'narx_tanla', kompaniya_id: kompaniyaId, sorovlar, hudud });
+/** Sahifa AI yordamchisi (fakt / F2): bitta aylanish — o'qish natijalari bilan; javobda yangi o'qish so'rovlari yoki amal takliflari. */
+export const sahifaSuhbat = (kompaniyaId: number, sahifa: SahifaTuri, xabarlar: SahifaXabar[], kontekst: string, natijalar: OqishNatija[], oxirgi = false) =>
+  post<{ ok: true; model: string; tushunildi?: boolean; ogohlantirish?: string } & SahifaJavob>({ amal: 'sahifa_suhbat', kompaniya_id: kompaniyaId, sahifa, xabarlar: xabarlar.slice(-14), kontekst, natijalar, oxirgi });
