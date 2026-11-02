@@ -163,7 +163,7 @@ export function f2AmalTekshir(m: F2Malumot, a: SahifaAmal, narxlar: NarxRuxsat):
   if (a.tur === 'f2_hajm') {
     if (j.tur === 'resurs' && j.r.avto) return 'Avtomatik resurs: hajmi ish hajmi × normadan';
     const v = sonOqi(a.qiymat ?? '');
-    return typeof v === 'number' && v > 0 ? null : 'Hajm musbat son bo‘lishi kerak';
+    return typeof v === 'number' && Number.isFinite(v) && v !== 0 ? null : 'Hajm son bo‘lishi kerak (minus ham mumkin)';
   }
   if (a.tur === 'narx') {
     if (j.tur !== 'resurs') return 'Ish qatorida narx yo‘q (narx resurslarda)';
