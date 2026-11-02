@@ -1,0 +1,16 @@
+{
+  "Joriy faktni tekshirib bo‘lmadi — saqlanmadi. Qayta urinib ko‘ring.": { "ru": "Не удалось проверить текущий факт — не сохранено. Попробуйте ещё раз.", "en": "Could not verify the current fact — nothing saved. Please try again." },
+  "{n} ta qator fakti boshqa joyda o‘zgargan ({nomlar}) — hech narsa saqlanmadi. Jadval yangilandi; «jami» qiymatlarini tekshirib qayta saqlang.": { "ru": "Факт строк ({n}) изменён в другом месте ({nomlar}) — ничего не сохранено. Таблица обновлена; проверьте «итого» и сохраните снова.", "en": "The fact of {n} rows changed elsewhere ({nomlar}) — nothing saved. The table was refreshed; check the totals and save again." },
+  "Orqaga (ommaviy kiritma)": { "ru": "Назад (массовый ввод)", "en": "Undo (bulk entry)" },
+  "{n} ta qiymat joylandi — tekshirib saqlang (Ctrl+S).": { "ru": "Вставлено значений: {n} — проверьте и сохраните (Ctrl+S).", "en": "{n} values pasted — review and save (Ctrl+S)." },
+  "Son yoki foiz (masalan 50% — smeta hajmining yarmi). Enter — pastga, Excel ustunini joylash mumkin.": { "ru": "Число или процент (например 50% — половина сметного объёма). Enter — вниз, можно вставить столбец из Excel.", "en": "A number or a percent (e.g. 50% — half of the estimate quantity). Enter moves down; you can paste an Excel column." },
+  "Smeta hajmi bor qator yo‘q — foiz qo‘llanmadi.": { "ru": "Нет строк со сметным объёмом — процент не применён.", "en": "No rows with an estimate quantity — percent not applied." },
+  "{n} ta qatorga jami {p}% qo‘yildi{s} — tekshirib saqlang (Ctrl+S), orqaga — Ctrl+Z.": { "ru": "Итого {p}% задано для строк: {n}{s} — проверьте и сохраните (Ctrl+S), отмена — Ctrl+Z.", "en": "Total {p}% set on {n} rows{s} — review and save (Ctrl+S), undo — Ctrl+Z." },
+  " ({m} tasi smetasiz — o‘tkazildi)": { "ru": " ({m} без сметы — пропущены)", "en": " ({m} without estimate — skipped)" },
+  "Ko‘rinadigan ishlarga jami foiz": { "ru": "Итоговый процент для видимых работ", "en": "Total percent for visible works" },
+  "Jami %:": { "ru": "Итого %:", "en": "Total %:" },
+  "Ko‘rinadigan ishlar: jami {p}%": { "ru": "Видимые работы: итого {p}%", "en": "Visible works: total {p}%" },
+  "Ko‘rinadigan barcha ish va resurslar: jami fakt = smetaning {p}% (qoralamaga; saqlash — bitta, orqaga — Ctrl+Z)": { "ru": "Все видимые работы и ресурсы: итоговый факт = {p}% сметы (в черновик; сохранение — одно, отмена — Ctrl+Z)", "en": "All visible works and resources: total fact = {p}% of the estimate (to draft; one save, undo — Ctrl+Z)" },
+  "Oxirgi ommaviy amalni qaytarish": { "ru": "Отменить последнее массовое действие", "en": "Undo the last bulk action" },
+  "Foiz uchun smeta hajmi kerak": { "ru": "Для процента нужен сметный объём", "en": "A percent needs an estimate quantity" }
+}
