@@ -4,9 +4,9 @@
   "tasks": [
     {
       "id": "DESKTOP-D3-WORKER-20261031", "title": "Desktop D3 Worker read-model foundation", "owner": "codex", "machine": "noutbuk",
-      "branch": "codex/desktop-d3-worker", "base_sha": "fc4f0eab8bba5e24d9752f5e1d27618742999ee7",
-      "status": "ready_for_review", "production_write_allowed": false,
-      "owns": ["frontend/src/lib/hisob-yadro/holat.ts", "frontend/src/lib/hisob-yadro/holat.paritet.test.ts", "frontend/src/ombor/paket.ts", "frontend/src/ombor/hisob*", "ops/handoff/DESKTOP_D3_WORKER_20261031.md"],
+      "branch": "codex/desktop-d3-retained", "base_sha": "c785517dcddebca333df932ee8d0fc4d883f62f8",
+      "status": "active", "production_write_allowed": false,
+      "owns": ["frontend/src/lib/hisob-yadro/holat.ts", "frontend/src/lib/hisob-yadro/holat.paritet.test.ts", "frontend/src/lib/hisob-yadro/daraxt-yigish*", "frontend/src/ombor/paket.ts", "frontend/src/ombor/hisob*", "frontend/package.json", "frontend/package-lock.json", "supabase/tests/desktop-hisob-parity.mjs", "ops/handoff/DESKTOP_D3_WORKER_20261031.md"],
       "depends_on": [], "must_read": ["docs/architecture/OBYEKT_PAKET_OFFLINE_DESKTOP_V1.md"],
       "note": "Isolated D3 worker foundation, no runtime hook, no production writes; Claude asynchronous review. Existing formula extraction only."
     },
