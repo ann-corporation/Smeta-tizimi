@@ -1,0 +1,26 @@
+{
+  "Hajm yoki formula": {
+    "ru": "Объём или формула",
+    "en": "Quantity or formula"
+  },
+  "Hajm yoki formulani tekshiring. Masalan: 12 × 3 × 0,2.": {
+    "ru": "Проверьте объём или формулу. Например: 12 × 3 × 0,2.",
+    "en": "Check the quantity or formula. For example: 12 × 3 × 0.2."
+  },
+  "Hisoblangan hajm: {n} {birlik}": {
+    "ru": "Рассчитанный объём: {n} {birlik}",
+    "en": "Calculated quantity: {n} {birlik}"
+  },
+  "Hajmni hozir kiriting yoki bo‘sh qoldirib keyin to‘ldiring. Enter — qo‘shish.": {
+    "ru": "Введите объём сейчас или оставьте пустым, чтобы заполнить позже. Enter — добавить.",
+    "en": "Enter the quantity now or leave it blank for later. Enter to add."
+  },
+  "Ish «{nom}» smetaga qo‘shildi.": {
+    "ru": "Работа «{nom}» добавлена в смету.",
+    "en": "Work “{nom}” was added to the estimate."
+  },
+  "Resurslar tarkibi ({n})": {
+    "ru": "Состав ресурсов ({n})",
+    "en": "Resource breakdown ({n})"
+  }
+}
