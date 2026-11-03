@@ -43,7 +43,7 @@ Boshqaruv to'liq **L0 (lokal agent)** da. Cloud ishni faqat L0 dan oladi, boshla
 
 ### 2. Tender — `claude/tender-v1` · PR ann-corporation/Smeta-tizimi#239 (draft) — ✅ server + UI tayyor
 - **Asos:** mavjud `t2_birja_*` / `t2_buyurtma*` / `t2_tender_*_v1` kengaytirildi. v1 RPC buzilmagan; `supabase/tests/t2_tender_contract.sql` o'tadi.
-- **Migratsiya** `20261122000000_t2_tender_protsess_v1` (+rollback, acceptance — 66 tekshiruv).
+- **Migratsiya** `20261122000200_t2_tender_protsess_v1` (+rollback, acceptance — 66 tekshiruv).
   - Yangi jadvallar: `t2_tender_jurnal` (o'zgarmas, payload ≤1 KB), `t2_tender_savol`, `t2_tender_baho`; fayllar R2 da (`t2_primitiv_dalil`).
   - RPC: 12 yozish + 4 o'qish.
   - Ruxsatlar: `procurement.*`, `supply.offer` (yangi capability yo'q).
