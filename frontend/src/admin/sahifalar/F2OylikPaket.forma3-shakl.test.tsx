@@ -16,6 +16,10 @@ vi.mock('../../api/t2-shartnoma-oylik-paket', () => ({
   oyFaktSoni: vi.fn(async () => 0), oyM29Holati: vi.fn(async () => 'yoq'), oylikPaketlarRoyxati: vi.fn(async () => ({ ok: true, paketlar: [] })),
   oylikPaketniTopshir: vi.fn(), paketZipniSaqla: vi.fn(), saqlanganZipniOl: vi.fn(), yangiTopshirishId: () => 'op',
 }));
+// Obyekt hujjatlari (Nakopitelniy/M-29/Ostatka/Slichitelniy) bu testda tekshirilmaydi - tarmoqsiz bo'sh natija (lib/oylik-hujjat/paket.test.ts da to'liq).
+vi.mock('../../lib/oylik-hujjat/paket', () => ({ obyektHujjatlariniYigish: vi.fn(async () => ({ fayllar: [], kataklar: {}, otkazilgan: [] })) }));
+vi.mock('../../lib/oylik-hujjat/ostatka-slichitelniy', () => ({ paketImzosiOl: vi.fn(async () => ({})) }));
+vi.mock('../../lib/oylik-hujjat/m29', () => ({ pudratchiNomiOl: vi.fn(async () => null) }));
 vi.mock('../../lib/token-hujjat', () => ({ hujjatTokenBilan: (...a: unknown[]) => m.token(...a) }));
 vi.mock('../../lib/construction-document-control/export/download-helper', () => ({ downloadBlob: (...a: unknown[]) => m.dl(...a) }));
 

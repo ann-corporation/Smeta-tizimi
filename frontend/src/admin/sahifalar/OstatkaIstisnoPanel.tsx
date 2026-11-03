@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { yangiOperationId, type T2Qator, type T2QatorHolat } from '../../api/supabase';
-import { ostatkaIstisnoYarat, ozgarishQaytar, ozgarishRoyxatOl, ozgarishTasdiqla, type OstatkaIstisnoQator } from '../../api/t2-document-control';
+import { ostatkaIstisnoYarat, ozgarishQaytar, ozgarishTasdiqla, type OstatkaIstisnoQator } from '../../api/t2-document-control';
 import { ostatkaIstisnolari, type OstatkaIstisno } from '../../lib/ostatka-export';
+import { istisnolarOl } from '../../lib/oylik-hujjat/ostatka-slichitelniy';
 import { FmtN } from '../../lib/format';
 import { Info } from 'lucide-react';
 
@@ -26,10 +27,9 @@ export function useOstatkaIstisnolari(obyektId: number | null) {
   const yangila = useCallback(async (): Promise<OstatkaIstisno[]> => {
     if (!obyektId) { setRoyxat([]); return []; }
     try {
-      const j = await ozgarishRoyxatOl(obyektId, 500);
-      const r = ((j.ozgarishlar ?? []) as OzgarishXom[]).filter((o) => o.tur === 'olib_tashlash');
+      const { royxat: r, istisnolar: ist } = await istisnolarOl<OzgarishXom>(obyektId);
       setRoyxat(r); setXato('');
-      return ostatkaIstisnolari(r);
+      return ist;
     } catch (e) {
       setXato(e instanceof Error ? e.message : 'O‘zgarishlar ro‘yxati o‘qilmadi');
       throw e;
