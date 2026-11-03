@@ -168,6 +168,16 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
     ],
   },
   {
+    /* Uy sotish (egasi 2026-11-03): ko'chmas mulk sotuvi — qurilish zanjiridan alohida domen (sales.*). PTO da sales.* yo'q,
+     * shuning uchun «PTO ish qatlamining hammasini ko'radi» qoidasi bu guruhga taalluqli emas (navFiltr.test.ts). */
+    id: 'sotuv', nom: 'Uy sotish', ikonka: 'Building2', qatlam: 'ish',
+    bandlar: [
+      { nom: 'Uy sotish', ikonka: 'Building2', sahifalar: [
+        { yol: '/admin/sotuv', nom: 'Uy sotish', ruxsat: ['sales.read'], scope: 'COMPANY_SCOPED' },
+      ] },
+    ],
+  },
+  {
     id: 'kompaniya', nom: '⚙ Kompaniya', ikonka: 'Settings', qatlam: 'kompaniya',
     bandlar: [
       /* Sozlamalar 5 joyda, audit 4, AI 3 (M7) → bitta «Kompaniya» bandi, tepada tablar. */

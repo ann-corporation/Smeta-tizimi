@@ -1,0 +1,950 @@
+{
+ "Birliklar saqlandi: yangi {y}, yangilandi {u}, o‘tkazildi {o}": {
+  "ru": "Объекты сохранены: новых {y}, обновлено {u}, пропущено {o}",
+  "en": "Units saved: new {y}, updated {u}, skipped {o}"
+ },
+ "Birliklar yaratish": {
+  "ru": "Создать объекты",
+  "en": "Create units"
+ },
+ "Podyezdlar": {
+  "ru": "Подъезды",
+  "en": "Entrances"
+ },
+ "Qavatlar": {
+  "ru": "Этажи",
+  "en": "Floors"
+ },
+ "Birinchi qavat": {
+  "ru": "Первый этаж",
+  "en": "First floor"
+ },
+ "Raqamlash": {
+  "ru": "Нумерация",
+  "en": "Numbering"
+ },
+ "Ketma-ket (1, 2, 3 …)": {
+  "ru": "Сквозная (1, 2, 3 …)",
+  "en": "Sequential (1, 2, 3 …)"
+ },
+ "Podyezd-qavat-№ (2-05-3)": {
+  "ru": "Подъезд-этаж-№ (2-05-3)",
+  "en": "Entrance-floor-№ (2-05-3)"
+ },
+ "Qavat ustamasi, % (har qavatga)": {
+  "ru": "Надбавка за этаж, % (на каждый этаж)",
+  "en": "Floor premium, % (per floor)"
+ },
+ "Qavat ustamasi": {
+  "ru": "Надбавка за этаж",
+  "en": "Floor premium"
+ },
+ "Tijorat qavati (shu qavatgacha)": {
+  "ru": "Коммерческие этажи (до этого этажа)",
+  "en": "Commercial floors (up to this floor)"
+ },
+ "Tijorat qavati": {
+  "ru": "Коммерческий этаж",
+  "en": "Commercial floor"
+ },
+ "Qavatdagi xonadonlar (chapdan o‘ngga)": {
+  "ru": "Квартиры на этаже (слева направо)",
+  "en": "Apartments per floor (left to right)"
+ },
+ "Namuna qo‘shish": {
+  "ru": "Добавить шаблон",
+  "en": "Add template"
+ },
+ "Xonalar": {
+  "ru": "Комнаты",
+  "en": "Rooms"
+ },
+ "m² narxi (bo‘sh — narxsiz)": {
+  "ru": "Цена за м² (пусто — без цены)",
+  "en": "Price per m² (empty — no price)"
+ },
+ "m² narxi": {
+  "ru": "Цена за м²",
+  "en": "Price per m²"
+ },
+ "Juda ko‘p birlik (chegara {n}). Binoni qismlarga bo‘lib yarating.": {
+  "ru": "Слишком много объектов (лимит {n}). Создавайте здание по частям.",
+  "en": "Too many units (limit {n}). Create the building in parts."
+ },
+ "Oldindan ko‘rish: {n} ta birlik, jami {m} m²": {
+  "ru": "Предпросмотр: {n} объектов, всего {m} м²",
+  "en": "Preview: {n} units, total {m} m²"
+ },
+ "Narxsiz: {n}": {
+  "ru": "Без цены: {n}",
+  "en": "Unpriced: {n}"
+ },
+ "Podyezd": {
+  "ru": "Подъезд",
+  "en": "Entrance"
+ },
+ "Qavat": {
+  "ru": "Этаж",
+  "en": "Floor"
+ },
+ "m²": {
+  "ru": "м²",
+  "en": "m²"
+ },
+ "Tijorat": {
+  "ru": "Коммерция",
+  "en": "Commercial"
+ },
+ "Xonadon": {
+  "ru": "Квартира",
+  "en": "Apartment"
+ },
+ "Bitim kartasi": {
+  "ru": "Карточка сделки",
+  "en": "Deal card"
+ },
+ "Bitim №{id}": {
+  "ru": "Сделка №{id}",
+  "en": "Deal #{id}"
+ },
+ "JSHSHIR": {
+  "ru": "ПИНФЛ",
+  "en": "PINFL"
+ },
+ "Pasport": {
+  "ru": "Паспорт",
+  "en": "Passport"
+ },
+ "E-pochta": {
+  "ru": "Эл. почта",
+  "en": "Email"
+ },
+ "Qo‘shimcha telefon": {
+  "ru": "Доп. телефон",
+  "en": "Additional phone"
+ },
+ "Bron muddati tugadi": {
+  "ru": "Срок брони истёк",
+  "en": "Reservation expired"
+ },
+ "Bron: {s} soat {d} daqiqa qoldi": {
+  "ru": "Бронь: осталось {s} ч {d} мин",
+  "en": "Reservation: {s} h {d} min left"
+ },
+ "Bekor sababi": {
+  "ru": "Причина отмены",
+  "en": "Cancellation reason"
+ },
+ "Mijoz": {
+  "ru": "Клиент",
+  "en": "Client"
+ },
+ "Rozilik": {
+  "ru": "Согласие",
+  "en": "Consent"
+ },
+ "Podyezd / qavat": {
+  "ru": "Подъезд / этаж",
+  "en": "Entrance / floor"
+ },
+ "Narx (jami)": {
+  "ru": "Цена (итого)",
+  "en": "Price (total)"
+ },
+ "Birlik tanlanmagan": {
+  "ru": "Объект не выбран",
+  "en": "No unit selected"
+ },
+ "To‘lov grafigi": {
+  "ru": "График платежей",
+  "en": "Payment schedule"
+ },
+ "Versiya {v}": {
+  "ru": "Версия {v}",
+  "en": "Version {v}"
+ },
+ "Grafik tuzilmagan": {
+  "ru": "График не составлен",
+  "en": "No schedule yet"
+ },
+ "Grafikni qayta tuzish": {
+  "ru": "Пересоставить график",
+  "en": "Rebuild schedule"
+ },
+ "Grafik tuzish": {
+  "ru": "Составить график",
+  "en": "Build schedule"
+ },
+ "№": {
+  "ru": "№",
+  "en": "#"
+ },
+ "Kechikish, kun": {
+  "ru": "Просрочка, дн.",
+  "en": "Overdue, days"
+ },
+ "Tarix (audit)": {
+  "ru": "История (аудит)",
+  "en": "History (audit)"
+ },
+ "Shartnoma sanasi": {
+  "ru": "Дата договора",
+  "en": "Contract date"
+ },
+ "Notarius sanasi": {
+  "ru": "Дата нотариуса",
+  "en": "Notary date"
+ },
+ "Kadastr sanasi": {
+  "ru": "Дата кадастра",
+  "en": "Cadastre date"
+ },
+ "Eskrou hisobi": {
+  "ru": "Эскроу-счёт",
+  "en": "Escrow account"
+ },
+ "Chegirma, %": {
+  "ru": "Скидка, %",
+  "en": "Discount, %"
+ },
+ "Shartnoma va narx": {
+  "ru": "Договор и цена",
+  "en": "Contract and price"
+ },
+ "Bino": {
+  "ru": "Здание",
+  "en": "Building"
+ },
+ "Birlikni almashtirish": {
+  "ru": "Сменить объект",
+  "en": "Change unit"
+ },
+ "Hisob: {m} m² × m² narxi": {
+  "ru": "Расчёт: {m} м² × цена за м²",
+  "en": "Calculation: {m} m² × price per m²"
+ },
+ "Summaga qo‘yish": {
+  "ru": "Подставить в сумму",
+  "en": "Use as amount"
+ },
+ "Ipoteka dasturi": {
+  "ru": "Ипотечная программа",
+  "en": "Mortgage programme"
+ },
+ "Subsidiya": {
+  "ru": "Субсидия",
+  "en": "Subsidy"
+ },
+ "Keyingi aloqa": {
+  "ru": "Следующий контакт",
+  "en": "Next contact"
+ },
+ "Shartnoma uchun birlik tanlang.": {
+  "ru": "Выберите объект для договора.",
+  "en": "Select a unit for the contract."
+ },
+ "Shartnoma summasi kerak.": {
+  "ru": "Нужна сумма договора.",
+  "en": "Contract amount is required."
+ },
+ "Shartnoma tuzilsinmi? Birlik «Sotilgan» bo‘ladi.": {
+  "ru": "Заключить договор? Объект станет «Продан».",
+  "en": "Sign the contract? The unit will become «Sold»."
+ },
+ "Bosqich: {b}": {
+  "ru": "Этап: {b}",
+  "en": "Stage: {b}"
+ },
+ "Bosqichni o‘zgartirish": {
+  "ru": "Изменить этап",
+  "en": "Change stage"
+ },
+ "O‘tkazish…": {
+  "ru": "Перевести…",
+  "en": "Move to…"
+ },
+ "Bitim bekor qilindi": {
+  "ru": "Сделка отменена",
+  "en": "Deal cancelled"
+ },
+ "Bitimni bekor qilish": {
+  "ru": "Отменить сделку",
+  "en": "Cancel deal"
+ },
+ "Bron va sotilgan birlik bo‘shatiladi, grafik o‘chiriladi. Bekor qilingan bitim qayta ochilmaydi.": {
+  "ru": "Бронь и проданный объект освобождаются, график отключается. Отменённая сделка не открывается повторно.",
+  "en": "The reservation and sold unit are released, the schedule is deactivated. A cancelled deal cannot be reopened."
+ },
+ "Bron bekor qilindi": {
+  "ru": "Бронь отменена",
+  "en": "Reservation cancelled"
+ },
+ "Bronni bekor qilish": {
+  "ru": "Отменить бронь",
+  "en": "Cancel reservation"
+ },
+ "Grafik saqlandi": {
+  "ru": "График сохранён",
+  "en": "Schedule saved"
+ },
+ "Boshlang‘ich to‘lov, %": {
+  "ru": "Первоначальный взнос, %",
+  "en": "Down payment, %"
+ },
+ "Boshlang‘ich to‘lov": {
+  "ru": "Первоначальный взнос",
+  "en": "Down payment"
+ },
+ "Boshlang‘ich to‘lov sanasi": {
+  "ru": "Дата первоначального взноса",
+  "en": "Down payment date"
+ },
+ "Oylar": {
+  "ru": "Месяцы",
+  "en": "Months"
+ },
+ "Usul": {
+  "ru": "Способ",
+  "en": "Method"
+ },
+ "Teng bo‘lib": {
+  "ru": "Равными частями",
+  "en": "Equal instalments"
+ },
+ "Annuitet": {
+  "ru": "Аннуитет",
+  "en": "Annuity"
+ },
+ "Yillik foiz, %": {
+  "ru": "Годовая ставка, %",
+  "en": "Annual rate, %"
+ },
+ "Yillik foiz": {
+  "ru": "Годовая ставка",
+  "en": "Annual rate"
+ },
+ "Yaxlitlash": {
+  "ru": "Округление",
+  "en": "Rounding"
+ },
+ "Boshlang‘ich": {
+  "ru": "Первоначальный",
+  "en": "Down payment"
+ },
+ "Oylik": {
+  "ru": "Ежемесячный",
+  "en": "Monthly"
+ },
+ "Σ shartnoma summasiga teng.": {
+  "ru": "Σ равна сумме договора.",
+  "en": "Σ equals the contract amount."
+ },
+ "Annuitet foizi bilan jami shartnoma summasidan oshadi — server faqat Σ = summa grafigini qabul qiladi.": {
+  "ru": "С процентами аннуитета итог превышает сумму договора — сервер принимает только график с Σ = сумме.",
+  "en": "With annuity interest the total exceeds the contract amount — the server only accepts a schedule where Σ = amount."
+ },
+ "Grafik jami shartnoma summasiga teng emas.": {
+  "ru": "Итог графика не равен сумме договора.",
+  "en": "Schedule total does not equal the contract amount."
+ },
+ "Grafikni saqlash": {
+  "ru": "Сохранить график",
+  "en": "Save schedule"
+ },
+ "Ism yoki telefon": {
+  "ru": "Имя или телефон",
+  "en": "Name or phone"
+ },
+ "Bekor qilinganlarni ko‘rsatish": {
+  "ru": "Показать отменённые",
+  "en": "Show cancelled"
+ },
+ "Yangi lid": {
+  "ru": "Новый лид",
+  "en": "New lead"
+ },
+ "Bitimlar voronkasi": {
+  "ru": "Воронка сделок",
+  "en": "Deal pipeline"
+ },
+ "Birlik {raqam}": {
+  "ru": "Объект {raqam}",
+  "en": "Unit {raqam}"
+ },
+ "Aloqa kechikdi: {s}": {
+  "ru": "Контакт просрочен: {s}",
+  "en": "Contact overdue: {s}"
+ },
+ "Keyingi aloqa: {s}": {
+  "ru": "Следующий контакт: {s}",
+  "en": "Next contact: {s}"
+ },
+ "Lid yaratildi": {
+  "ru": "Лид создан",
+  "en": "Lead created"
+ },
+ "Shaxsiy ma’lumotga rozilik": {
+  "ru": "Согласие на обработку персональных данных",
+  "en": "Consent to personal data processing"
+ },
+ "Mijoz topilmadi.": {
+  "ru": "Клиент не найден.",
+  "en": "No client found."
+ },
+ "Bitimlar": {
+  "ru": "Сделки",
+  "en": "Deals"
+ },
+ "0–30 kun": {
+  "ru": "0–30 дней",
+  "en": "0–30 days"
+ },
+ "31–90 kun": {
+  "ru": "31–90 дней",
+  "en": "31–90 days"
+ },
+ "90+ kun": {
+  "ru": "90+ дней",
+  "en": "90+ days"
+ },
+ "Muddati kelmagan": {
+  "ru": "Срок не наступил",
+  "en": "Not yet due"
+ },
+ "Yangilangan: {s}": {
+  "ru": "Обновлено: {s}",
+  "en": "Updated: {s}"
+ },
+ "Zaxira (jami birlik)": {
+  "ru": "Запас (всего объектов)",
+  "en": "Inventory (total units)"
+ },
+ "bo‘sh {b} · bron {r} · sotilgan {s}": {
+  "ru": "свободно {b} · бронь {r} · продано {s}",
+  "en": "available {b} · reserved {r} · sold {s}"
+ },
+ "Bo‘sh birliklar qiymati": {
+  "ru": "Стоимость свободных объектов",
+  "en": "Value of available units"
+ },
+ "Sotildi": {
+  "ru": "Продано",
+  "en": "Sold"
+ },
+ "o‘rtacha m²": {
+  "ru": "средняя за м²",
+  "en": "average per m²"
+ },
+ "Tushum": {
+  "ru": "Поступления",
+  "en": "Collections"
+ },
+ "Muddati o‘tgan qarz": {
+  "ru": "Просроченный долг",
+  "en": "Overdue debt"
+ },
+ "Qarz muddati bo‘yicha": {
+  "ru": "Долг по срокам",
+  "en": "Debt ageing"
+ },
+ "Tushum prognozi (12 oy)": {
+  "ru": "Прогноз поступлений (12 мес.)",
+  "en": "Collections forecast (12 months)"
+ },
+ "Voronka": {
+  "ru": "Воронка",
+  "en": "Funnel"
+ },
+ "Bekor qilingan: {n}": {
+  "ru": "Отменено: {n}",
+  "en": "Cancelled: {n}"
+ },
+ "Lid": {
+  "ru": "Лид",
+  "en": "Lead"
+ },
+ "Konversiya": {
+  "ru": "Конверсия",
+  "en": "Conversion"
+ },
+ "Kechikkan to‘lovlar (qo‘ng‘iroq ro‘yxati)": {
+  "ru": "Просроченные платежи (список обзвона)",
+  "en": "Overdue payments (call list)"
+ },
+ "Kechikkan to‘lov yo‘q": {
+  "ru": "Просроченных платежей нет",
+  "en": "No overdue payments"
+ },
+ "Kun": {
+  "ru": "Дней",
+  "en": "Days"
+ },
+ "Menejerlar": {
+  "ru": "Менеджеры",
+  "en": "Managers"
+ },
+ "Menejer": {
+  "ru": "Менеджер",
+  "en": "Manager"
+ },
+ "Binolar": {
+  "ru": "Здания",
+  "en": "Buildings"
+ },
+ "Narxni o‘zgartirish ({n})": {
+  "ru": "Изменить цену ({n})",
+  "en": "Change price ({n})"
+ },
+ "Shaxmatkani ko‘rish uchun binoni tanlang.": {
+  "ru": "Выберите здание, чтобы увидеть шахматку.",
+  "en": "Select a building to view the chessboard."
+ },
+ "Xulosa": {
+  "ru": "Сводка",
+  "en": "Summary"
+ },
+ "Bo‘sh maydon": {
+  "ru": "Свободная площадь",
+  "en": "Available area"
+ },
+ "Bo‘sh qiymati": {
+  "ru": "Стоимость свободных",
+  "en": "Available value"
+ },
+ "Filtrlar": {
+  "ru": "Фильтры",
+  "en": "Filters"
+ },
+ "Filtrni tozalash": {
+  "ru": "Сбросить фильтр",
+  "en": "Clear filter"
+ },
+ "Bu binoda hali birliklar yo‘q.": {
+  "ru": "В этом здании пока нет объектов.",
+  "en": "This building has no units yet."
+ },
+ "Shaxmatka": {
+  "ru": "Шахматка",
+  "en": "Chessboard"
+ },
+ "Podyezd {n}": {
+  "ru": "Подъезд {n}",
+  "en": "Entrance {n}"
+ },
+ "dan": {
+  "ru": "от",
+  "en": "from"
+ },
+ "Yashash maydoni, m²": {
+  "ru": "Жилая площадь, м²",
+  "en": "Living area, m²"
+ },
+ "Pardoz": {
+  "ru": "Отделка",
+  "en": "Finish"
+ },
+ "Bron tugaydi": {
+  "ru": "Бронь до",
+  "en": "Reserved until"
+ },
+ "{s} soat {d} daqiqa qoldi": {
+  "ru": "осталось {s} ч {d} мин",
+  "en": "{s} h {d} min left"
+ },
+ "Birlikka narx qo‘yilmagan — avval narx belgilang.": {
+  "ru": "У объекта нет цены — сначала задайте цену.",
+  "en": "The unit has no price — set a price first."
+ },
+ "Bron qilish": {
+  "ru": "Забронировать",
+  "en": "Reserve"
+ },
+ "Bitimni ochish": {
+  "ru": "Открыть сделку",
+  "en": "Open deal"
+ },
+ "Narxni o‘zgartirish": {
+  "ru": "Изменить цену",
+  "en": "Change price"
+ },
+ "Holatni o‘zgartirish": {
+  "ru": "Изменить статус",
+  "en": "Change status"
+ },
+ "Narx o‘zgardi: {n} ta birlik": {
+  "ru": "Цена изменена: {n} объектов",
+  "en": "Price changed: {n} units"
+ },
+ "Narxni ommaviy o‘zgartirish": {
+  "ru": "Массовое изменение цены",
+  "en": "Bulk price change"
+ },
+ "Tanlangan: {n}; narxi o‘zgaradi: {m}; bron/sotilgan (o‘tkaziladi): {k}": {
+  "ru": "Выбрано: {n}; цена изменится: {m}; бронь/продано (пропускаются): {k}",
+  "en": "Selected: {n}; price will change: {m}; reserved/sold (skipped): {k}"
+ },
+ "Foizga (±%)": {
+  "ru": "На процент (±%)",
+  "en": "By percent (±%)"
+ },
+ "m² ga summa (±)": {
+  "ru": "Сумма на м² (±)",
+  "en": "Amount per m² (±)"
+ },
+ "Yangi m² narx": {
+  "ru": "Новая цена за м²",
+  "en": "New price per m²"
+ },
+ "Narxsiz birliklar ({n}) — faqat «Yangi m² narx» bilan narxlanadi.": {
+  "ru": "Объекты без цены ({n}) — получают цену только через «Новая цена за м²».",
+  "en": "Unpriced units ({n}) can only be priced with «New price per m²»."
+ },
+ "Namuna: {raqam}": {
+  "ru": "Пример: {raqam}",
+  "en": "Example: {raqam}"
+ },
+ "/ m²": {
+  "ru": "/ м²",
+  "en": "/ m²"
+ },
+ "Sabab (kamida 3 harf)": {
+  "ru": "Причина (минимум 3 символа)",
+  "en": "Reason (at least 3 characters)"
+ },
+ "Holat o‘zgardi": {
+  "ru": "Статус изменён",
+  "en": "Status changed"
+ },
+ "Birlik holati": {
+  "ru": "Статус объекта",
+  "en": "Unit status"
+ },
+ "Birlik {raqam}: hozir «{holat}»": {
+  "ru": "Объект {raqam}: сейчас «{holat}»",
+  "en": "Unit {raqam}: currently «{holat}»"
+ },
+ "Yangi holat": {
+  "ru": "Новый статус",
+  "en": "New status"
+ },
+ "Bron qilindi": {
+  "ru": "Забронировано",
+  "en": "Reserved"
+ },
+ "Bo‘sh birlik": {
+  "ru": "Свободный объект",
+  "en": "Available unit"
+ },
+ "Mavjud bitim": {
+  "ru": "Существующая сделка",
+  "en": "Existing deal"
+ },
+ "Yangi mijoz": {
+  "ru": "Новый клиент",
+  "en": "New client"
+ },
+ "Bitim": {
+  "ru": "Сделка",
+  "en": "Deal"
+ },
+ "Muddat (soat; bo‘sh — loyiha sozlamasi)": {
+  "ru": "Срок (часы; пусто — настройка проекта)",
+  "en": "Duration (hours; empty — project setting)"
+ },
+ "Muddat (soat)": {
+  "ru": "Срок (часы)",
+  "en": "Duration (hours)"
+ },
+ "Bron to‘lovi (ixtiyoriy)": {
+  "ru": "Оплата брони (необязательно)",
+  "en": "Reservation fee (optional)"
+ },
+ "Bron to‘lovi": {
+  "ru": "Оплата брони",
+  "en": "Reservation fee"
+ },
+ "Mijozlar": {
+  "ru": "Клиенты",
+  "en": "Clients"
+ },
+ "Panel": {
+  "ru": "Панель",
+  "en": "Dashboard"
+ },
+ "Sozlama": {
+  "ru": "Настройка",
+  "en": "Settings"
+ },
+ "Bu bo‘lim uchun «sales.read» ruxsati kerak.": {
+  "ru": "Для этого раздела нужно право «sales.read».",
+  "en": "This section requires the «sales.read» permission."
+ },
+ "Uy sotish bo‘limlari": {
+  "ru": "Разделы продажи жилья",
+  "en": "Home sales sections"
+ },
+ "Kompaniyada loyiha yo‘q. Avval «Loyihalar» bo‘limida loyiha yarating.": {
+  "ru": "В компании нет проектов. Сначала создайте проект в разделе «Проекты».",
+  "en": "The company has no projects. Create a project in «Projects» first."
+ },
+ "PP-4732: uy-joy reklamasi va sotuvi faqat loyiha reyestrga kiritilgandan keyin. Reyestr raqamisiz «Sotuvda» yoqilmaydi.": {
+  "ru": "ПП-4732: реклама и продажа жилья — только после внесения проекта в реестр. Без номера реестра «В продаже» не включается.",
+  "en": "PP-4732: housing may be advertised and sold only after the project is registered. «On sale» cannot be enabled without a registry number."
+ },
+ "Reyestr raqami": {
+  "ru": "Номер реестра",
+  "en": "Registry number"
+ },
+ "Reyestr sanasi": {
+  "ru": "Дата реестра",
+  "en": "Registry date"
+ },
+ "Eskrou banki": {
+  "ru": "Эскроу-банк",
+  "en": "Escrow bank"
+ },
+ "Topshirish sanasi": {
+  "ru": "Дата сдачи",
+  "en": "Handover date"
+ },
+ "Bron muddati, soat (1–720)": {
+  "ru": "Срок брони, часы (1–720)",
+  "en": "Reservation period, hours (1–720)"
+ },
+ "Sotuvda (reklama va bron ochiq)": {
+  "ru": "В продаже (реклама и бронь открыты)",
+  "en": "On sale (advertising and reservations open)"
+ },
+ "Sotuvga chiqarish uchun reyestr raqami kerak (PP-4732).": {
+  "ru": "Для вывода в продажу нужен номер реестра (ПП-4732).",
+  "en": "A registry number is required to put on sale (PP-4732)."
+ },
+ "Saqlashda reyestr sanasi, eskrou banki va tavsif ham yoziladi — bo‘sh qoldirilsa tozalanadi.": {
+  "ru": "При сохранении также записываются дата реестра, эскроу-банк и описание — пустые значения очищаются.",
+  "en": "Saving also writes the registry date, escrow bank and description — empty values are cleared."
+ },
+ "To‘lov qo‘shish": {
+  "ru": "Добавить платёж",
+  "en": "Add payment"
+ },
+ "To‘lov yo‘q": {
+  "ru": "Платежей нет",
+  "en": "No payments"
+ },
+ "To‘lovni bekor qilish": {
+  "ru": "Отменить платёж",
+  "en": "Cancel payment"
+ },
+ "To‘lov yozildi": {
+  "ru": "Платёж записан",
+  "en": "Payment recorded"
+ },
+ "To‘lov faqat shartnomadan keyin yoziladi.": {
+  "ru": "Платёж записывается только после договора.",
+  "en": "Payments can be recorded only after the contract."
+ },
+ "To‘lov bekor qilindi": {
+  "ru": "Платёж отменён",
+  "en": "Payment cancelled"
+ },
+ "Ipoteka kalkulyatori": {
+  "ru": "Ипотечный калькулятор",
+  "en": "Mortgage calculator"
+ },
+ "Muddat, yil": {
+  "ru": "Срок, лет",
+  "en": "Term, years"
+ },
+ "Kredit": {
+  "ru": "Кредит",
+  "en": "Loan"
+ },
+ "Oylik to‘lov": {
+  "ru": "Ежемесячный платёж",
+  "en": "Monthly payment"
+ },
+ "Jami to‘lov": {
+  "ru": "Всего выплат",
+  "en": "Total payments"
+ },
+ "Jami foiz": {
+  "ru": "Всего процентов",
+  "en": "Total interest"
+ },
+ "Boshlang‘ich to‘lov ulushi: {f}%": {
+  "ru": "Доля первоначального взноса: {f}%",
+  "en": "Down payment share: {f}%"
+ },
+ "Bron": {
+  "ru": "Бронь",
+  "en": "Reserved"
+ },
+ "Zaxira": {
+  "ru": "Резерв",
+  "en": "Held back"
+ },
+ "Sotuvda emas": {
+  "ru": "Не в продаже",
+  "en": "Not for sale"
+ },
+ "Aloqa": {
+  "ru": "Контакт",
+  "en": "Contacted"
+ },
+ "Ko‘rsatildi": {
+  "ru": "Показ",
+  "en": "Viewing done"
+ },
+ "Instagram": {
+  "ru": "Instagram",
+  "en": "Instagram"
+ },
+ "OLX": {
+  "ru": "OLX",
+  "en": "OLX"
+ },
+ "Uybor": {
+  "ru": "Uybor",
+  "en": "Uybor"
+ },
+ "Sayt": {
+  "ru": "Сайт",
+  "en": "Website"
+ },
+ "Qo‘ng‘iroq": {
+  "ru": "Звонок",
+  "en": "Phone call"
+ },
+ "Ofis": {
+  "ru": "Офис",
+  "en": "Office"
+ },
+ "Muddatli": {
+  "ru": "Рассрочка",
+  "en": "Instalments"
+ },
+ "Ipoteka": {
+  "ru": "Ипотека",
+  "en": "Mortgage"
+ },
+ "Eskrou": {
+  "ru": "Эскроу",
+  "en": "Escrow"
+ },
+ "Naqd": {
+  "ru": "Наличные",
+  "en": "Cash"
+ },
+ "Karta": {
+  "ru": "Карта",
+  "en": "Card"
+ },
+ "Payme": {
+  "ru": "Payme",
+  "en": "Payme"
+ },
+ "Click": {
+  "ru": "Click",
+  "en": "Click"
+ },
+ "Uzum": {
+  "ru": "Uzum",
+  "en": "Uzum"
+ },
+ "Uy sotish": {
+  "ru": "Продажа жилья",
+  "en": "Home sales"
+ },
+ "Shaxmatka, bitimlar, bron, to‘lov grafigi va sotuv paneli": {
+  "ru": "Шахматка, сделки, бронь, график платежей и панель продаж",
+  "en": "Chessboard, deals, reservations, payment schedule and sales dashboard"
+ },
+ "Bu birlik hozir boshqa mijozga bron qilingan yoki sotilgan.": {
+  "ru": "Этот объект сейчас забронирован другим клиентом или продан.",
+  "en": "This unit is currently reserved by another client or sold."
+ },
+ "Birlik allaqachon sotilgan.": {
+  "ru": "Объект уже продан.",
+  "en": "The unit is already sold."
+ },
+ "Bron yoki sotilgan birlikni bu yerdan o‘zgartirib bo‘lmaydi.": {
+  "ru": "Забронированный или проданный объект нельзя изменить здесь.",
+  "en": "A reserved or sold unit cannot be changed here."
+ },
+ "Birlik topilmadi.": {
+  "ru": "Объект не найден.",
+  "en": "Unit not found."
+ },
+ "Birlik faol bitimga bog‘langan.": {
+  "ru": "Объект привязан к активной сделке.",
+  "en": "The unit is linked to an active deal."
+ },
+ "Bitim topilmadi.": {
+  "ru": "Сделка не найдена.",
+  "en": "Deal not found."
+ },
+ "Bu bosqichga o‘tib bo‘lmaydi.": {
+  "ru": "Нельзя перейти на этот этап.",
+  "en": "Cannot move to this stage."
+ },
+ "Bron faqat «Bron qilish» tugmasi orqali qilinadi.": {
+  "ru": "Бронь оформляется только кнопкой «Забронировать».",
+  "en": "Reservations are made only via the «Reserve» button."
+ },
+ "Narx noto‘g‘ri.": {
+  "ru": "Неверная цена.",
+  "en": "Invalid price."
+ },
+ "Foiz noto‘g‘ri.": {
+  "ru": "Неверный процент.",
+  "en": "Invalid percent."
+ },
+ "Usul noto‘g‘ri.": {
+  "ru": "Неверный способ.",
+  "en": "Invalid method."
+ },
+ "Sababini yozing (kamida 3 harf).": {
+  "ru": "Укажите причину (минимум 3 символа).",
+  "en": "Enter a reason (at least 3 characters)."
+ },
+ "Summa noto‘g‘ri.": {
+  "ru": "Неверная сумма.",
+  "en": "Invalid amount."
+ },
+ "Sana noto‘g‘ri.": {
+  "ru": "Неверная дата.",
+  "en": "Invalid date."
+ },
+ "Ma’lumot shu orada o‘zgargan — yangilab qayta urinib ko‘ring.": {
+  "ru": "Данные тем временем изменились — обновите и попробуйте снова.",
+  "en": "The data changed meanwhile — refresh and try again."
+ },
+ "Bitim yopilgan — o‘zgartirib bo‘lmaydi.": {
+  "ru": "Сделка закрыта — изменить нельзя.",
+  "en": "The deal is closed and cannot be changed."
+ },
+ "Telefon raqami noto‘g‘ri.": {
+  "ru": "Неверный номер телефона.",
+  "en": "Invalid phone number."
+ },
+ "Mijoz FIO sini yozing.": {
+  "ru": "Укажите ФИО клиента.",
+  "en": "Enter the client's full name."
+ },
+ "Qatorlardan biri noto‘g‘ri.": {
+  "ru": "Одна из строк неверна.",
+  "en": "One of the rows is invalid."
+ },
+ "Qatorlar noto‘g‘ri.": {
+  "ru": "Строки неверны.",
+  "en": "Rows are invalid."
+ },
+ "Sotuv ma’lumotini o‘qib bo‘lmadi.": {
+  "ru": "Не удалось прочитать данные продаж.",
+  "en": "Could not load sales data."
+ },
+ "Tarmoq xatosi": {
+  "ru": "Ошибка сети",
+  "en": "Network error"
+ }
+}
