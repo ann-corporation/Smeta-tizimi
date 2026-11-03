@@ -13,7 +13,8 @@ import { tokenBilan, mazmunXeshi } from '../../api/t2-token';
 import { f2HujjatKaliti } from '../../api/f2-hujjat-kontekst';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
-import { forma3SotuvdanXlsx } from '../../lib/forma3-export';
+import { Forma3ShaklTanlagich } from '../../components/forma3/Forma3ShaklTanlagich';
+import { f3PaketTanlovOl, f3PaketTanlovSaqla, forma3SotuvFayllari, type PaketF3Tanlov } from '../../lib/forma3-shakl-tanlov';
 import { hujjatFaylNomi } from '../../lib/hujjat-yozuvchi';
 import { oylikReestrXlsx, paketTarkibiMatni, paketZip, tarkibBaytlari, TARKIB_FAYL_NOMI } from '../../lib/f2-oylik-paket/eksport';
 import { sverkaXlsx } from '../../lib/nakopitelniy-vedomost-export';
@@ -75,6 +76,10 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot }: { kompaniyaId: number; m
   const [tanlov, setTanlov] = useState<Set<number>>(new Set());
   const [band, setBand] = useState<string | null>(null);
   const [f3Xabar, setF3Xabar] = useState('');
+  // Forma-3 shakli paketda (egasi 2026-11-03): sukut to'liq; tanlov kompaniya bo'yicha eslanadi (faqat qulaylik).
+  const [f3Tanlov, setF3Tanlov] = useState<PaketF3Tanlov>(() => f3PaketTanlovOl(kompaniyaId));
+  useEffect(() => { setF3Tanlov(f3PaketTanlovOl(kompaniyaId)); }, [kompaniyaId]);
+  const f3TanlovOzgar = (x: PaketF3Tanlov) => { setF3Tanlov(x); f3PaketTanlovSaqla(kompaniyaId, x); };
   const obyektKesh = useRef(new Map<string, Promise<OyObyekt>>());
   const versiya = useRef(0);
   // Shartnoma rejimi (egasi 2026-11-03): bir shartnoma x bir oy. Shartnomalar bo'lmasa — eski loyiha rejimi.
@@ -206,10 +211,10 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot }: { kompaniyaId: number; m
     if (!shSvod) otkazilgan.push(`Forma-3 / ${t('Akt-sverka')}: ${t('shartnoma svodi o‘qilmadi')}`);
     else {
       for (const { sh: s, f3: x } of oyF3lar(svodOl!, new Set([tanlanganShartnoma.id]), oy).tayyor) {
-        const h = forma3SotuvdanXlsx(s, x.id, { tashkilot });
-        if (!h) continue;
-        const q = await hujjatTokenBilan({ kompaniyaId, bytes: h.bytes, hujjat: 'F3', sabab: `Форма №3 · № ${s.raqam} · ${x.sotuv_sana}` }, () => undefined);
-        if (q.ok) ildiz.push({ nom: h.faylNomi, bytes: h.bytes, tur: 'forma3' }); else otkazilgan.push(`Forma-3 № ${x.raqam ?? x.id}: ${q.xabar}`);
+        for (const h of forma3SotuvFayllari(s, x.id, f3Tanlov, { tashkilot })) {
+          const q = await hujjatTokenBilan({ kompaniyaId, bytes: h.bytes, hujjat: 'F3', sabab: `Форма №3${h.shakl === 'bir_qatorli' ? ' (одностр.)' : ''} · № ${s.raqam} · ${x.sotuv_sana}` }, () => undefined);
+          if (q.ok) ildiz.push({ nom: h.faylNomi, bytes: h.bytes, tur: 'forma3' }); else otkazilgan.push(`Forma-3 № ${x.raqam ?? x.id}: ${q.xabar}`);
+        }
       }
       const [yy, mm] = oy.split('-').map(Number);
       const oyOxiri = new Date(Date.UTC(yy, mm, 0)).toISOString().slice(0, 10);
@@ -314,10 +319,10 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot }: { kompaniyaId: number; m
         else {
           const f3 = oyF3lar(svod, shIdlar, oy);
           for (const { sh, f3: x } of f3.tayyor) {
-            const h = forma3SotuvdanXlsx(sh, x.id, { tashkilot });
-            if (!h) continue;
-            const q = await hujjatTokenBilan({ kompaniyaId, bytes: h.bytes, hujjat: 'F3', sabab: `Форма №3 · № ${sh.raqam} · ${x.sotuv_sana}` }, () => undefined);
-            if (q.ok) fayllar.push({ papka: 'Forma-3', nom: h.faylNomi, bytes: h.bytes, tur: 'forma3' }); else otkazilgan.push(`Forma-3 № ${x.raqam ?? x.id}: ${q.xabar}`);
+            for (const h of forma3SotuvFayllari(sh, x.id, f3Tanlov, { tashkilot })) {
+              const q = await hujjatTokenBilan({ kompaniyaId, bytes: h.bytes, hujjat: 'F3', sabab: `Форма №3${h.shakl === 'bir_qatorli' ? ' (одностр.)' : ''} · № ${sh.raqam} · ${x.sotuv_sana}` }, () => undefined);
+              if (q.ok) fayllar.push({ papka: 'Forma-3', nom: h.faylNomi, bytes: h.bytes, tur: 'forma3' }); else otkazilgan.push(`Forma-3 № ${x.raqam ?? x.id}: ${q.xabar}`);
+            }
           }
           setF3Xabar(f3.tayyor.length || f3.qoralama
             ? t('Forma-3: paketga {n} ta kirdi, qoralamada qolgan: {q}', { n: f3.tayyor.length, q: f3.qoralama })
@@ -352,6 +357,7 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot }: { kompaniyaId: number; m
           {!sh && <option value="">{t('Hammasi')}</option>}
           {(sh ? shartnomalarRoyxati.map((s) => ({ id: s.id, nom: `№ ${s.raqam}${s.nom ? ` · ${s.nom}` : ''}` })) : shartnomalar).map((s) => <option key={s.id} value={s.id}>{s.nom}</option>)}</select></label>
       <span className="ml-auto flex flex-wrap items-center gap-2">
+        <Forma3ShaklTanlagich paket qiymat={f3Tanlov} onChange={f3TanlovOzgar} disabled={!!band} />
         <a className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[12px]" href={`/admin/f2?davr=${encodeURIComponent(oy)}`}><Upload size={14} /> {t('+ F2 yuklash')}</a>
         <button type="button" onClick={() => void (sh ? shartnomaPaketiniYuklash() : paketniYukla())} disabled={!!band || !tanlanganlar.length}
           className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-[12px] font-semibold text-[color:var(--on-accent)] disabled:opacity-50">
