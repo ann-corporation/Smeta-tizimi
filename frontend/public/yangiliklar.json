@@ -2,6 +2,17 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 58,
+      "sana": "2026-11-03",
+      "sarlavha": "Obyekt ombori: bir jumlada kiritish, tez sana va haqiqiy harakatlar jurnali",
+      "bandlar": [
+        "Obyekt omborida «KELDI» / «BERDIM» oynasida bitta jumla yoziladi («Sement 50 qop keldi»): material, birlik, miqdor va yetkazuvchi shu obyekt tarixidan taklif qilinadi; noaniq variantlar ro'yxatdan tanlanadi. Oxirida to'liq ko'rinish va bitta tasdiq. Qo'lda forma — kerak bo'lsa «Batafsil».",
+        "Sana ko'rinib turadi: Bugun / Kecha / kalendar. Avvalgi harakatni bugungi qoralama sifatida takrorlash mumkin — eski operatsiya ID si va avtomatik yozuv yo'q.",
+        "«Harakatlar tarixi» endi haqiqiy jurnal: sana, holat, kim kiritgan, qabul qiluvchi va asos; jurnalning bir qismi olinsa ogohlantirish chiqadi. Noma'lum qiymat 0 emas, «Noma'lum» deb ko'rsatiladi.",
+        "Obyekt tanlash telefonda pastdan chiqadigan qidiruv oynasi (lotin/kirill, klaviatura bilan)."
+      ]
+    },
+    {
       "id": 57,
       "sana": "2026-11-03",
       "sarlavha": "Kirim kitobi: ovoz/matn taklifi va tasdiqlangan qoralamalar RU Excel",
