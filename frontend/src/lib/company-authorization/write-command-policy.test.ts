@@ -11,7 +11,9 @@ const amallar = [...blok.matchAll(/^\s+([a-z0-9_]+):\s*\{/gm)].map((m) => m[1]);
 const KATALOG = new Set(['company.member.manage', 'company.profile.update', 'company.read', 'control.company.read', 'control.company.write',
   'control.global.read', 'control.global.write', 'document.read', 'document.write', 'f2.approve', 'f2.cancel', 'f2.correct', 'f2.import', 'f2.prepare',
   'f2.read', 'fakt.read', 'fakt.write', 'financial.read', 'financial.write', 'narx.read', 'narx.write', 'object.read', 'object.write',
-  'project.read', 'project.write', 'smeta.read', 'smeta.write']);
+  'project.read', 'project.write', 'smeta.read', 'smeta.write',
+  // TRANSPORT v1 (20261123000000): DB katalogida 20261108010000 dan beri bor
+  'logistics.dispatch', 'logistics.trip', 'machinery.write']);
 
 describe('yozish buyruqlari reyestri', () => {
   it('sb-yoz dagi har amal reyestrda (yoki dinamik ro‘yxatda), reyestrda ortiqcha amal yo‘q', () => {

@@ -1,3 +1,5 @@
+import { yaxlit2 } from '../hisob-yadro';
+
 /** Reys holat mashinasi, hujjat muddati signali, obyektlarga ulush (SQL `t2_tr_reys_yop_v1` bilan bir xil qoida). */
 export type ReysHolat = 'reja' | 'yolda' | 'yetkazildi' | 'yopildi' | 'bekor';
 export const REYS_HOLATLARI: ReadonlyArray<ReysHolat> = ['reja', 'yolda', 'yetkazildi', 'yopildi', 'bekor'];
@@ -19,7 +21,6 @@ export function hujjatSignal(muddat: string, bugun: string, ogohKun = 30): { qol
 
 export type YukUlush = { obyektId: number | null; ogirlikT: number | null };
 export type Ulush = { obyektId: number; ulush: number; summa: number; asos: 'ogirlik' | 'teng' };
-const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 /**
  * Reys tannarxini obyektlarga taqsimlash: barcha obyektli yuk og'irligi ma'lum bo'lsa — og'irlikka mutanosib, aks holda teng.
@@ -42,7 +43,7 @@ export function obyektgaTaqsimla(jami: number, yuklar: YukUlush[], tushirishObye
     const oxirgi = i === idlar.length - 1;
     const ush = oxirgi ? 1 - kum : (guruh.get(id) as number) / tot;
     kum += Math.round(ush * 1e6) / 1e6;
-    const summa = oxirgi ? r2(jami - sum) : r2(jami * ush);
+    const summa = oxirgi ? yaxlit2(jami - sum) : yaxlit2(jami * ush);
     sum += summa;
     return { obyektId: id, ulush: Math.round(ush * 1e6) / 1e6, summa, asos: ogirlikBilan ? 'ogirlik' : 'teng' };
   });

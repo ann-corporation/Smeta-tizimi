@@ -3,6 +3,8 @@
 -- tashqi narxlash (tarif), yoqilg'i narxi tarixi, rentabellik KPI. Ombor (C11) jadvallariga TEGILMAYDI; faqat t2_obyekt (lat/lng),
 -- t2_kadr_mustaqil / t2_texnika_mustaqil / t2_kontragent ga ixtiyoriy havola. Xarajat obyektga FAQAT mavjud t2_xarajat_kirit_v1 orqali o'tadi.
 -- Pul: ichki tannarx QQS SIZ; tashqi narxda QQS 12% alohida (asosiy ko'rsatkich QQS bilan). Noma'lum = NULL (kiritilmagan), 0 emas.
+-- Saqlash qoidasi (egasi 2026-11-03): GPS trek / marshrut geometriyasi / foto / PDF Supabase'ga YOZILMAYDI — faqat metadata va hisob qatorlari
+-- (reja_km, reja_daqiqa, marshrut_manba, bekat koordinatalari, tasdiq_ref = R2 fayl kaliti uchun joy). Marshrut chizig'i mijozda hisoblanadi.
 -- Migratsiyani FAQAT L0 qo'llaydi. Rollback: .rollback.sql. Qabul: .acceptance.sql.
 begin;
 

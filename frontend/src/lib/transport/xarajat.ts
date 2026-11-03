@@ -1,3 +1,5 @@
+import { yaxlit2 } from '../hisob-yadro';
+
 /**
  * Reys tannarxi (ICHKI, QQS SIZ). SQL `_t2_tr_tannarx_v1` bilan BIR XIL formulalar (acceptance + unit test bir xil raqamlarni tekshiradi).
  *  yoqilg'i  = (haqiqiy sarf, yo'q bo'lsa me'yor) × narx; me'yor = (L/100km × km/100 + L/moto-soat × soat) × koef
@@ -27,7 +29,6 @@ export type Tannarx = {
   jami: number; toliq: boolean; yetishmaydi: Modda[];
 };
 
-const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 const bor = (n: number | null | undefined): n is number => n != null && Number.isFinite(n);
 
 /** Reys sanasidagi (yoki undan oldingi eng so'nggi) yoqilg'i narxi. */
@@ -47,8 +48,8 @@ export function tannarxHisobla(m: MashinaTannarx, h: HaydovchiTannarx | null, r:
   let soat: number | null = null;
   if (bor(r.motoBoshi) && bor(r.motoOxiri)) soat = r.motoOxiri - r.motoBoshi;
   else if (bor(r.ishSoat)) soat = r.ishSoat;
-  else if (r.boshlandi && r.tugadi) soat = r2((Date.parse(r.tugadi) - Date.parse(r.boshlandi)) / 3_600_000);
-  else if (bor(r.rejaDaqiqa)) soat = r2(r.rejaDaqiqa / 60);
+  else if (r.boshlandi && r.tugadi) soat = yaxlit2((Date.parse(r.tugadi) - Date.parse(r.boshlandi)) / 3_600_000);
+  else if (bor(r.rejaDaqiqa)) soat = yaxlit2(r.rejaDaqiqa / 60);
   let kun = 1;
   if (r.boshlandi && r.tugadi) {
     const kd = (iso: string) => Math.floor(Date.parse(iso.slice(0, 10) + 'T00:00:00Z') / 86_400_000);
@@ -58,14 +59,14 @@ export function tannarxHisobla(m: MashinaTannarx, h: HaydovchiTannarx | null, r:
   let norma: number | null = null;
   if (bor(m.norma100km) && km != null) norma = (norma ?? 0) + (m.norma100km * km) / 100;
   if (bor(m.normaMotosoat) && soat != null) norma = (norma ?? 0) + m.normaMotosoat * soat;
-  if (norma != null) norma = r2(norma * r.normaKoef);
+  if (norma != null) norma = yaxlit2(norma * r.normaKoef);
   const fakt = bor(r.yoqilgiSarfiL) ? r.yoqilgiSarfiL : null;
   const litr = fakt ?? norma;
   let narx: number | null = null; let narxManba: 'fakt' | 'tarix' | null = null;
   if (bor(r.yoqilgiNarxFakt)) { narx = r.yoqilgiNarxFakt; narxManba = 'fakt'; }
   else { narx = yoqilgiNarxiOl(narxTarix, m.yoqilgiTuri, r.sana); narxManba = narx == null ? null : 'tarix'; }
   let yoq: number | null = null;
-  if (litr != null && narx != null) yoq = r2(litr * narx); else yet.push('yoqilgi');
+  if (litr != null && narx != null) yoq = yaxlit2(litr * narx); else yet.push('yoqilgi');
   const ogish = fakt != null && norma != null && norma > 0 ? Math.round(((fakt - norma) / norma) * 1000) / 10 : null;
 
   let hay: number | null = null;
@@ -75,21 +76,21 @@ export function tannarxHisobla(m: MashinaTannarx, h: HaydovchiTannarx | null, r:
       : h.tolovTuri === 'km' ? (km == null ? null : h.tolovStavka * km)
       : h.tolovTuri === 'soat' ? (soat == null ? null : h.tolovStavka * soat)
       : h.tolovStavka / 26 * kun;
-    if (t == null) yet.push('haydovchi'); else hay = r2(t * (1 + h.ijtimoiyFoiz / 100));
+    if (t == null) yet.push('haydovchi'); else hay = yaxlit2(t * (1 + h.ijtimoiyFoiz / 100));
   }
 
   let amo: number | null = null; let bo = false; let at = 0;
   const qosh = (stavka: number | null, miqdor: number | null) => { if (bor(stavka) && miqdor != null) { at += stavka * miqdor; bo = true; } };
   if (m.egalik === 'oz') { qosh(m.amortKm, km); qosh(m.amortSoat, soat); }
   else { qosh(m.ijaraKm, km); qosh(m.ijaraSoat, soat); qosh(m.ijaraKun, kun); }
-  if (bo) amo = r2(at); else yet.push('amortizatsiya');
+  if (bo) amo = yaxlit2(at); else yet.push('amortizatsiya');
 
   let kut: number | null = null;
   if (!bor(r.kutishDaqiqa) || r.kutishDaqiqa === 0) kut = 0;
   else if (!bor(m.kutishSoatNarx)) yet.push('kutish');
-  else kut = r2((r.kutishDaqiqa / 60) * m.kutishSoatNarx);
+  else kut = yaxlit2((r.kutishDaqiqa / 60) * m.kutishSoatNarx);
 
-  const jami = r2((yoq ?? 0) + (hay ?? 0) + (amo ?? 0) + (kut ?? 0) + (r.yolHaqi ?? 0) + (r.boshqaXarajat ?? 0));
+  const jami = yaxlit2((yoq ?? 0) + (hay ?? 0) + (amo ?? 0) + (kut ?? 0) + (r.yolHaqi ?? 0) + (r.boshqaXarajat ?? 0));
   return {
     km, kmManba, soat, kun, yoqilgi: { normaL: norma, faktL: fakt, litr, narx, narxManba, summa: yoq, ogishFoiz: ogish },
     haydovchi: hay, amortizatsiya: amo, kutish: kut, yolHaqi: r.yolHaqi, boshqa: r.boshqaXarajat, jami, toliq: yet.length === 0, yetishmaydi: yet,

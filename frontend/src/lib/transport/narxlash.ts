@@ -1,3 +1,5 @@
+import { yaxlit2 } from '../hisob-yadro';
+
 /**
  * Tashqi mijozga narxlash (tarif). Asosiy ko'rsatkich — QQS BILAN (egasi qoidasi); QQS siz alohida. Tarif narxlari QQS bilan kiritilgan bo'lsa
  * (`qqsKiritilgan`) avval QQS siz holatga keltiriladi. Foyda/marja — QQS siz tannarxga nisbatan.
@@ -16,11 +18,10 @@ export type NarxNatija = {
   foyda: number | null; marjaFoiz: number | null; yetishmaydi: Array<'km' | 'tonna' | 'soat'>; minimalQoplandi: boolean;
 };
 
-const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 const bor = (n: number | null | undefined): n is number => n != null && Number.isFinite(n);
 
-export const qqsBilanOl = (qqsSiz: number, foiz: number) => r2(qqsSiz * (1 + foiz / 100));
-export const qqsSizOl = (qqsBilan: number, foiz: number) => r2(qqsBilan / (1 + foiz / 100));
+export const qqsBilanOl = (qqsSiz: number, foiz: number) => yaxlit2(qqsSiz * (1 + foiz / 100));
+export const qqsSizOl = (qqsBilan: number, foiz: number) => yaxlit2(qqsBilan / (1 + foiz / 100));
 
 export function narxHisobla(t: Tarif, k: NarxKirish, tannarx: { jami: number | null; toliq: boolean } | null): NarxNatija {
   const bol = t.qqsKiritilgan ? 1 + t.qqsFoiz / 100 : 1;
@@ -38,18 +39,18 @@ export function narxHisobla(t: Tarif, k: NarxKirish, tannarx: { jami: number | n
   qosh(n(t.soatNarx), [[k.soat, 'soat']]);
   if (bor(t.reysNarx)) { jami += (t.reysNarx / bol) * (k.reys ?? 1); bo = true; }
   const min = n(t.minimalSumma);
-  let tarif: number | null = bo ? r2(jami) : null;
+  let tarif: number | null = bo ? yaxlit2(jami) : null;
   let qoplandi = false;
-  if (min != null && tarif != null && tarif < min) { tarif = r2(min); qoplandi = true; }
-  else if (min != null && tarif == null && yet.length === 0) { tarif = r2(min); qoplandi = true; }
+  if (min != null && tarif != null && tarif < min) { tarif = yaxlit2(min); qoplandi = true; }
+  else if (min != null && tarif == null && yet.length === 0) { tarif = yaxlit2(min); qoplandi = true; }
 
   const tn = tannarx?.jami ?? null;
-  const marjaMin = tn != null && bor(t.marjaFoiz) && t.marjaFoiz < 100 ? r2(tn / (1 - t.marjaFoiz / 100)) : null;
+  const marjaMin = tn != null && bor(t.marjaFoiz) && t.marjaFoiz < 100 ? yaxlit2(tn / (1 - t.marjaFoiz / 100)) : null;
   const tavsiya = tarif != null && marjaMin != null ? Math.max(tarif, marjaMin) : (tarif ?? marjaMin);
-  const qqs = tavsiya != null ? r2(tavsiya * t.qqsFoiz / 100) : null;
-  const foyda = tavsiya != null && tn != null ? r2(tavsiya - tn) : null;
+  const qqs = tavsiya != null ? yaxlit2(tavsiya * t.qqsFoiz / 100) : null;
+  const foyda = tavsiya != null && tn != null ? yaxlit2(tavsiya - tn) : null;
   return {
-    tarifQqsSiz: tarif, minimalQqsSiz: min, marjaUchunMin: marjaMin, tavsiyaQqsSiz: tavsiya, qqs, qqsBilan: tavsiya != null && qqs != null ? r2(tavsiya + qqs) : null,
+    tarifQqsSiz: tarif, minimalQqsSiz: min, marjaUchunMin: marjaMin, tavsiyaQqsSiz: tavsiya, qqs, qqsBilan: tavsiya != null && qqs != null ? yaxlit2(tavsiya + qqs) : null,
     tannarx: tn, tannarxToliq: tannarx?.toliq ?? false, foyda, marjaFoiz: foyda != null && tavsiya ? Math.round((foyda / tavsiya) * 1000) / 10 : null,
     yetishmaydi: yet, minimalQoplandi: qoplandi,
   };
