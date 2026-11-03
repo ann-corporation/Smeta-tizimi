@@ -1,0 +1,55 @@
+{
+  "schema": "pto-windowing-evidence-v1",
+  "observed_at": "2026-10-26T20:29:49.9616127+05:00",
+  "base_sha": "a4fe8b6583556c725ae0aab00db392cd48fcc9ec",
+  "runtime_blobs": {
+    "FaktJurnal": "757d878fc657c9d4b34d34679d4b5ce012023ab8",
+    "FaktNative": "e12eaa65fa81e211863397d4186de223328d30cb"
+  },
+  "tests": {
+    "typescript_app": "PASS",
+    "full_local_suite": "not repeated; remote CI required",
+    "passed": 30,
+    "tekshir": "PASS",
+    "typescript_functions": "PASS via npm run build",
+    "window_contract_cases_included": 3,
+    "targeted_files": 5,
+    "oxlint": "PASS",
+    "build": "PASS"
+  },
+  "browser": {
+    "journal_rows": 4000,
+    "performance_claim": "DOM windowing proof only; no INP/LCP/production latency claim",
+    "draft_last": "0,5",
+    "tree_rows": 4001,
+    "last_indices": [
+      3994,
+      3995,
+      3996,
+      3997,
+      3998,
+      3999
+    ],
+    "first_window_mounted": 11,
+    "draft_count_after_search_roundtrip": 2,
+    "screenshot": "C:/Temp/PTO-window-1000-end-20261026.png",
+    "environment": "127.0.0.1:5194 synthetic read-only",
+    "production_business_write": false,
+    "draft_first": "0,25",
+    "end_window_mounted": 13,
+    "works": 1000,
+    "first_value_after_return": "0,25",
+    "keyboard": "Tab materialA0003 -> materialB0003 -> work0004; automatic skipped; Control+End reached last resource"
+  },
+  "governance": {
+    "historical_overlap_count": 23,
+    "guard_modified": false,
+    "baseline_identical": true,
+    "status": "FAIL"
+  },
+  "limits": [
+    "No production writer, DDL or authenticated owner acceptance",
+    "API fixtures do not prove backend authorization",
+    "Original Claude runtime owner retained; L0 review/merge"
+  ]
+}

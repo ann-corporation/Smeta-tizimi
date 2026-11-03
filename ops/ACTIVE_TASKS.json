@@ -17,6 +17,21 @@
       "note": "L0 request 2026-10-26 17:40: separate narrow PR for JQA01/02 after integration sandbox. PereraschetBolimi UI uses retained DIZAYN author ownership with scoped integration sublease for two review reasons and shared SummaJuft only. Unknown F2 stays NULL; amount-only balance review-only, no automatic correction. No DB/DDL. Baseline main has unrelated historical overlapping locks; guard remains unchanged."
     },
     {
+      "id": "FAKT-WINDOWING-20261026",
+      "title": "Window Fakt journal rendering with persistent drafts and complete search",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/fakt-windowing-20261026",
+      "base_sha": "a4fe8b65",
+      "status": "ready_for_review",
+      "owns": ["frontend/testlar/pto-integration-20261026/", "frontend/src/i18n/lugat/qism/fakt-ish-maydoni-20261026.json"],
+      "production_write_allowed": false,
+      "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/OWNER_AUTHORIZATION.md"],
+      "runtime_sublease": { "from_task": "DIZAYN-FIRUZA-V1-20261025", "paths": ["frontend/src/admin/sahifalar/FaktJurnal.tsx", "frontend/src/admin/sahifalar/FaktNative.tsx"], "basis": "L0 17:40 and18:50 asks for isolated small PR on current main after154. Runtime author ownership retained, no transfer of other files; L0 review/merge." },
+      "note": "Windowing/header/search on main95e9f743 compatibility: preserve whole-object Fakt=F2, chosen month, factless-F2 filter and resource replacement/exclusion. Six focused files49PASS incl300eligible factless+Cyrillic without200cap, app/functionsTS,lint/build pass; final static gate rerun after materializing missing trackedMCP build file. Guard23baseline errors unchanged;163separate own-lock release. No business writer or main promotion. Historical a2a41073 CI5PASS precedes this merge, newheadneedsfreshCI."
+    },
+    {
       "id": "SMETA-VERSIYA-SIGNED-20261027",
       "title": "C6 signed claim amounts and XLSX preservation",
       "owner": "codex",

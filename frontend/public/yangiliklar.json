@@ -2,6 +2,15 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 58,
+      "sana": "2026-11-03",
+      "sarlavha": "Katta fakt jurnali uchun kengroq va tezroq ish maydoni",
+      "bandlar": [
+        "Katta jurnalda faqat ko‘rinayotgan qatorlar chiziladi; saqlanmagan kiritishlar qator ekrandan chiqib qaytganda ham saqlanadi.",
+        "Qidiruv va fakt kiritilmagan ishlar filtri to‘liq ro‘yxatda ishlaydi. Obyekt, oy va Fakt=F2 boshqaruvlari saqlangan; jadval ustidagi takror sarlavha ixchamlashtirilgan."
+      ]
+    },
+    {
       "id": 57,
       "sana": "2026-11-03",
       "sarlavha": "Qayta hisobda noma’lum summa va hajmsiz F2 alohida ko‘rsatiladi",
