@@ -1,38 +1,30 @@
-# D2 PR216 — 2026-11-03 main adaptation
+# Desktop D2 — ETag/304 и новый пакет F2, 03.11.2026
 
-Branch `codex/desktop-d2-etag`, workdir `C:/Temp/GAS-desktop-d2`, common git `C:/Temp/GAS-slich/.git`.
-Exact main merged: `fc65e64582c4b1fa792d556c2a073540f6ad1ebc` (second merge parent).
-Only conflict: `ops/ACTIVE_TASKS.json`; all 101 main task records preserved unchanged, D2 record added/updated.
-Local commit only; parent review precedes push. No production SQL/writers/deploy/main push. `supabase/.temp/` preserved.
+База: exact main `fc65e64582c4b1fa792d556c2a073540f6ad1ebc`. Ветка `codex/desktop-d2-etag`; PR216. Архитектура и production-интеграция — Claude Code L0.
 
-## Changes / parent coordination
+## Изменения
 
-- New CLI2.122.0 migration `20261103123741_t2_obyekt_paket_f2_summa_yoq_v1.sql`, with `.rollback.sql` and `.acceptance.sql`.
-- Contains literal full CREATE OR REPLACE of the existing packet function, not a runtime string patch. Deployed `20261116400000` and all other main historical migrations remain byte-identical.
-- Adds `h.f2_summa_yoq` straight from the canonical view, in the same `tartib,id` order as every parallel array. No financial formula added. NULL source amount and explicit zero remain distinct; signed storno quantities do not erase unknown evidence.
-- Adds `meta.akt_podval` using exactly the projection/order/scope of `t2_akt_podval_ol_v1` in deployed `20261121000000`. Includes sign, source document, NK, document totals, source verification and version. Synthetic acceptance compares the entire projection to that canonical reader.
-- Existing unpublished D2 migration now fingerprints independent `t2_akt_podval` rows: insert/update/delete changes ETag even when immutable parent akt versions stay fixed. All raw podval fields are conservatively hashed; a timestamp-only change may also invalidate.
-- Full packet function definition was already fingerprinted: the optional field extension and rollback both invalidate ETag. Added `_t2_f2_narxda_v1` definition hash: changing its body invalidates even when view text stays identical.
-- Actor source (`manba`) and raw_snapshot source/meta changes are checked with explicit version increments. The real production version triggers/writers are NOT executed/proven by these fixtures.
-- API/client implementation unchanged from PR216: flag `OBYEKT_PAKET_ETAG=1` remains default-off; authorization before 304, streamed body, same-snapshot wrapper, no-store, caller actor.
-- Parent D1b/D3b must extend its `PaketXom`/decoder/types/use of `h.f2_summa_yoq` and consume `meta.akt_podval` as appropriate. Those parent-owned paths were not edited here.
+- ETag/304 включается только `OBYEKT_PAKET_ETAG=1`; по умолчанию прежний endpoint. Аутентификация, компания и все разрешения проверяются ДО 304. Тело передаётся потоком; Cookie/Authorization входят в Vary; no-store сохранён.
+- Обёртка STABLE вычисляет тело и ETag в одном snapshot. Отдельный probe не пересчитывает формулы NK.
+- Техническая печать охватывает версии/INSERT/DELETE строк, фактов и актов, метаданные, восстановление snapshot, определения функций/view и независимые изменения `t2_akt_podval`. Пакет по-прежнему содержит только активную версию сметы.
+- НОВАЯ миграция `20261103123741_t2_obyekt_paket_f2_summa_yoq_v1` передаёт точный `h.f2_summa_yoq` и `meta.akt_podval` по существующей канонической проекции. NULL, ноль, знак и порядок строк сохраняются. Документ F2 не оценивается по подвалу сметы.
+- Ранее опубликованные/применённые миграции не переписаны. Новые бизнес-таблицы, триггеры и писатели не создаются.
 
-## Selective apply / rollback
+## Порядок интеграции L0
 
-CLI timestamp `20261103123741` is earlier than future-dated dependencies. L0 must SELECTIVELY apply after `20261116400000` (packet), `20261117400000` (view + helper), `20261121000000` (akt podval); do not apply all pending by filename order.
-Apply the unpublished D2 `20261031181105` functions and the new extension only after those dependencies, then both read-only acceptance files. D2 probe hashes packet definition dynamically, so extension order relative to D2 itself is safe.
-Extension rollback restores the exact former packet definition; D2 hashes remain conservative. Roll back extension first, then D2 functions if needed. No tables or business rows are deleted by either rollback.
+1. Проверить зависимости: `20261116400000` (пакет), `20261117400000` (view/счётчик) и `20261121000000` (подвал F2).
+2. Проверить/применить ТОЛЬКО файлы D2 `20261031181105` и новой миграции `20261103123741`, затем соответствующие read-only acceptance. Время CLI раньше уже существующих миграций с будущими датами: массовый `db push` всех pending НЕ применять.
+3. При откате сначала восстановить прежнее определение пакета новым rollback, затем удалить новые функции D2 своим rollback. Бизнес-данные не удаляются.
+4. Проверить authenticated 200/304 через PostgREST и gateway, реальные разрешения, revoke, конкурентные записи/restore и latency. После этого L0 решает о включении флага.
 
-## Verified on this merged tree
+## Доказательства
 
-- `PGLITE_DIR=C:/Temp/c11-sql-runtime/node_modules/@electric-sql/pglite node supabase/tests/desktop-etag-pglite.mjs`: 88 checks PASS. Loads exact main view/helper, packet SQL, deployed podval table/reader, new migration and acceptance. Synthetic actor/NK/permission fixtures; explicit version increments, no business-writer claims.
-- Covers NULL/zero/new counter, BL legacy-counter distinction, parallel-array ordering, signed known/unknown storno and cancellation, source/meta changes, helper-only definition change, full packet definition change, independent podval changes with fixed akt versions, foreign-company isolation, no-op, empty packet, wrapper body/header, grants, exact rollback definition and reapply.
-- Focused Vitest: 5 files / 35 PASS (`functions/api/obyekt-paket{,.etag}.test.ts`, `src/api/t2-obyekt-paket.etag.test.ts`, `src/ombor/paket.test.ts`, `src/lib/smeta-versiya/versiya-qoriqchi.test.ts`). One worker.
-- `npx tsc -b` and `npx tsc -p tsconfig.functions.json --noEmit`: PASS.
-- `npx oxlint src` plus D2 functions/tests and SQL runner: PASS, existing source warnings remain. `git diff --cached --check fc65e64582c4b1fa792d556c2a073540f6ad1ebc`: PASS. Whole merge vs old branch reports existing EOF blank lines in three main-owned PTO integration test files; untouched.
-- `node ops/governance-check.cjs`: FAIL existing main C11-WAREHOUSE-LEDGER-20261027 vs C11-WAREHOUSE-CONTRACT-20261027 overlap; stale CURRENT_STATE SHA warning. No unrelated ownership records modified.
-- Build / full Vitest / other full gates: NOT RUN on this revision; parent schedules one process after other laptop agents finish. Prior 2026-10-31 full-suite and performance receipts are historical, not evidence for this tree.
+- Disposable PGlite: **88 PASS**. Загружены actual repo SQL view/helper, пакет, podval reader, миграция и acceptance. Проверены NULL/0, BL/RZ, signed/storno/cancel, выравнивание массивов, независимый podval, tenant isolation, no-op, смена определений, тело/заголовок, grants, точный rollback/reapply.
+- Actor/NK/permission fixtures синтетические; явное увеличение версий не доказывает работу production-триггеров и бизнес-писателей.
+- Focused Vitest: **35 PASS**, 5 файлов; app/functions TS и lint PASS.
+- Build и полная Vitest запущены родительской сессией; финальные результаты — в Obsidian DESKTOP_DASTUR и PR. Исторический full-suite за 31.10 не является проверкой нового head.
+- Governance: существующий конфликт C11-WAREHOUSE-LEDGER/C11-WAREHOUSE-CONTRACT; чужие owns не изменялись. Предупреждение о старом CURRENT_STATE SHA отдельно.
 
-## Remaining acceptance / risks
+## Границы
 
-Parent review and full gates required before push. L0 target read-only acceptance and authenticated 200/304 PostgREST smoke remain open; real concurrent writers, deployed version-trigger behavior, permission revoke/authority TTL and final warm probe <50ms remain unverified here. Added podval fingerprint cost needs target measurement. No production DB contacted in this adaptation.
+Production БД, R2, env-флаг, main не изменялись. Реальный warm probe <50 ms, cold latency и authenticated business smoke пока не подтверждены; старые эквивалентные SELECT warm34.367/cold1084.892 ms относятся к прежней реализации. Стоимость нового podval fingerprint должна быть измерена на целевой БД. Это PR D2, не готовый офлайн-продукт.
