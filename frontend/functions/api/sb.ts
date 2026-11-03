@@ -548,6 +548,7 @@ export const onRequestPost: PagesFunction<{
         }
         q.set('p_bolim', bolim);
         q.set('p_filtr', JSON.stringify(filtr));
+      }
       if (so.soro === 'tender_tafsilot_v2') {
         const xs = so as Record<string, unknown>;
         const rid = Number(xs.rfq_id);
