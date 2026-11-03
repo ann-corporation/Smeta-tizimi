@@ -13,7 +13,8 @@ const KATALOG = new Set(['company.member.manage', 'company.profile.update', 'com
   'f2.read', 'fakt.read', 'fakt.write', 'financial.read', 'financial.write', 'narx.read', 'narx.write', 'object.read', 'object.write',
   'project.read', 'project.write', 'smeta.read', 'smeta.write',
   // TRANSPORT v1 (20261123000000): DB katalogida 20261108010000 dan beri bor
-  'logistics.dispatch', 'logistics.trip', 'machinery.write']);
+  'logistics.dispatch', 'logistics.trip', 'machinery.write',
+  /* 20261124000000 uy sotish */ 'sales.read', 'sales.write', 'sales.price', 'sales.payment']);
 
 describe('yozish buyruqlari reyestri', () => {
   it('sb-yoz dagi har amal reyestrda (yoki dinamik ro‘yxatda), reyestrda ortiqcha amal yo‘q', () => {

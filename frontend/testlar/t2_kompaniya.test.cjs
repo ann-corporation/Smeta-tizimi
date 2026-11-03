@@ -147,7 +147,11 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       /* 2026-11-03 (L0): shartnoma oylik paketi saqlash (document.write, RPC ichida tekshiriladi). */
                       /* 2026-11-23 TRANSPORT v1: park/reys/tarif (RPC ichida a'zolik + machinery.write | logistics.dispatch | logistics.trip | financial.write). */
                       't2_tr_mashina_saqla_v1', 't2_tr_haydovchi_saqla_v1', 't2_tr_hujjat_saqla_v1', 't2_tr_yoqilgi_narx_saqla_v1', 't2_tr_tarif_saqla_v1', 't2_tr_reys_saqla_v1', 't2_tr_reys_yurish_v1', 't2_tr_reys_yop_v1', 't2_tr_reys_bekor_v1', 't2_tr_xarajat_otkaz_v1',
-                      't2_shartnoma_oylik_paket_saqla_v1'].sort();
+                      't2_shartnoma_oylik_paket_saqla_v1',
+                      /* 2026-11-03: uy sotish (sales.*, RPC ichida a'zolik + ruxsat; yuk _shared/sotuv-yuk.ts oq ro'yxati). */
+                      't2_sotuv_loyiha_saqla_v1', 't2_sotuv_birlik_saqla_v1', 't2_sotuv_narx_ozgartir_v1', 't2_sotuv_birlik_holat_v1',
+                      't2_sotuv_bitim_saqla_v1', 't2_sotuv_bron_v1', 't2_sotuv_bron_bekor_v1', 't2_sotuv_grafik_saqla_v1',
+                      't2_sotuv_tolov_yoz_v1', 't2_sotuv_tolov_bekor_v1'].sort();
     T('RPC ro\'yxati AYNAN belgilangan ' + KUTILGAN.length + ' ta domen amali',
       JSON.stringify(amallar) === JSON.stringify(KUTILGAN),
       'topildi: ' + amallar.join(', '));

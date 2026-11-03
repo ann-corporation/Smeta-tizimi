@@ -8,7 +8,8 @@ export const sonmi = (v: unknown) => v != null && v !== '' && Number.isSafeInteg
 const opId = (v: unknown) => (typeof v === 'string' && UUID.test(v) ? v : crypto.randomUUID());
 export const TAKLIF_ROLLARI = ['rahbar', 'bugalter', 'pto', 'prorab', 'buyurtmachi', 'pudratchi', 'kuzatuvchi',
   /* Ekotizim rollari (E2 §3.2; SQL t2_ish_joyi_taklif_yarat_v1 bilan bir xil) */
-  'omborchi', 'mexanik', 'kadr', 'taminotchi', 'usta', 'brigadir', 'haydovchi', 'inspektor', 'loyihachi'] as const;
+  'omborchi', 'mexanik', 'kadr', 'taminotchi', 'usta', 'brigadir', 'haydovchi', 'inspektor', 'loyihachi',
+  /* Uy sotish menejeri (20261124000000) */ 'sotuvchi'] as const;
 
 /** Ochiq kod alifbosi: o'xshash belgilarsiz (0/O, 1/I/L yo'q). */
 const KOD_ALIFBO = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';

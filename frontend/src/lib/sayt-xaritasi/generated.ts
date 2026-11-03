@@ -309,6 +309,46 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_shartnoma_oylik_paket_saqla_v1"
     },
     {
+      "amal": "sotuv_loyiha_saqla_v1",
+      "rpc": "t2_sotuv_loyiha_saqla_v1"
+    },
+    {
+      "amal": "sotuv_birlik_saqla_v1",
+      "rpc": "t2_sotuv_birlik_saqla_v1"
+    },
+    {
+      "amal": "sotuv_narx_ozgartir_v1",
+      "rpc": "t2_sotuv_narx_ozgartir_v1"
+    },
+    {
+      "amal": "sotuv_birlik_holat_v1",
+      "rpc": "t2_sotuv_birlik_holat_v1"
+    },
+    {
+      "amal": "sotuv_bitim_saqla_v1",
+      "rpc": "t2_sotuv_bitim_saqla_v1"
+    },
+    {
+      "amal": "sotuv_bron_v1",
+      "rpc": "t2_sotuv_bron_v1"
+    },
+    {
+      "amal": "sotuv_bron_bekor_v1",
+      "rpc": "t2_sotuv_bron_bekor_v1"
+    },
+    {
+      "amal": "sotuv_grafik_saqla_v1",
+      "rpc": "t2_sotuv_grafik_saqla_v1"
+    },
+    {
+      "amal": "sotuv_tolov_yoz_v1",
+      "rpc": "t2_sotuv_tolov_yoz_v1"
+    },
+    {
+      "amal": "sotuv_tolov_bekor_v1",
+      "rpc": "t2_sotuv_tolov_bekor_v1"
+    },
+    {
       "amal": "sverka_yozuv_v1",
       "rpc": "t2_sverka_yozuv_v1"
     },

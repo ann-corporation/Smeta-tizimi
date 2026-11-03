@@ -278,6 +278,13 @@ export const onRequestPost: PagesFunction<{
         sklad_kirim_royxat_v1: 'kompaniya_actor',
         /* TRANSPORT v1 (20261123000000): park, reyslar, tannarx, KPI. `stable`; a'zolik + logistics.read/machinery.read RPC ichida. */
         transport_ol_v1: 'kompaniya_actor',
+        /* Egasi 2026-11-03: UY SOTISH (20261124000000) — shaxmatka, bitimlar, bitim kartasi, mijozlar, sotuv paneli. `stable`;
+           a'zolik + sales.read/sales.write RPC ichida; obyekt/bitim kompaniyaga tegishliligi ham RPC da. */
+        sotuv_shaxmatka_v1: 'kompaniya_actor',
+        sotuv_bitimlar_v1: 'kompaniya_actor',
+        sotuv_bitim_v1: 'kompaniya_actor',
+        sotuv_mijozlar_v1: 'kompaniya_actor',
+        sotuv_panel_v1: 'kompaniya_actor',
       };
       const tur = OQISH_RPC[so.soro];
       if (!tur) {
@@ -396,6 +403,43 @@ export const onRequestPost: PagesFunction<{
         const id = Number(so.obyekt_id);
         if (!Number.isInteger(id) || id <= 0) return Response.json({ ok: false, error: "obyekt_id noto'g'ri" });
         q.set('p_obyekt_id', String(id));
+      }
+      if (typeof so.soro === 'string' && so.soro.startsWith('sotuv_')) {
+        const sx = so as unknown as Record<string, unknown>;
+        const musbat = (v: unknown) => { const n = Number(v); return Number.isSafeInteger(n) && n > 0 ? n : null; };
+        if (so.soro === 'sotuv_shaxmatka_v1' || so.soro === 'sotuv_bitim_v1') {
+          const kalit = so.soro === 'sotuv_shaxmatka_v1' ? 'obyekt_id' : 'bitim_id';
+          const id = musbat(sx[kalit]);
+          if (!id) return Response.json({ ok: false, error: `${kalit} noto'g'ri` });
+          q.set(so.soro === 'sotuv_shaxmatka_v1' ? 'p_obyekt_id' : 'p_bitim_id', String(id));
+        }
+        if (so.soro === 'sotuv_panel_v1' && sx.loyiha_id != null && String(sx.loyiha_id) !== '') {
+          const id = musbat(sx.loyiha_id);
+          if (!id) return Response.json({ ok: false, error: "loyiha_id noto'g'ri" });
+          q.set('p_loyiha_id', String(id));
+        }
+        if (so.soro === 'sotuv_mijozlar_v1' && sx.qidiruv != null && String(sx.qidiruv).trim() !== '') {
+          q.set('p_qidiruv', String(sx.qidiruv).trim().slice(0, 100));
+        }
+        if (so.soro === 'sotuv_bitimlar_v1') {
+          const f = sx.filtr;
+          const r: Record<string, string | number> = {};
+          if (f && typeof f === 'object' && !Array.isArray(f)) {
+            for (const k of ['bosqich', 'qidiruv'] as const) {
+              const v = (f as Record<string, unknown>)[k];
+              if (typeof v === 'string' && v.trim()) r[k] = v.trim().slice(0, 100);
+            }
+            for (const k of ['loyiha_id', 'masul_actor_id'] as const) {
+              const v = (f as Record<string, unknown>)[k];
+              if (v == null || v === '') continue;
+              const id = musbat(v);
+              if (!id) return Response.json({ ok: false, error: `${k} noto'g'ri` });
+              r[k] = id;
+            }
+            if ((f as Record<string, unknown>).yopilganlar === true) r.yopilganlar = 'true';
+          }
+          q.set('p_filtr', JSON.stringify(r));
+        }
       }
       if (so.soro === 'rahbar_panel_v1') {
         if (so.obyekt_id != null && String(so.obyekt_id) !== '') {

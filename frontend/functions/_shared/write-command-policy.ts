@@ -29,6 +29,10 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   qarzdorlik_saqla_v1: 'financial.write',
   qarzdorlik_import_v1: 'financial.write',
   shartnoma_oylik_paket_saqla_v1: 'document.write',
+  /* Uy sotish (20261124000000): RPC ham aynan shu capability ni tekshiradi. */
+  sotuv_loyiha_saqla_v1: 'sales.price', sotuv_narx_ozgartir_v1: 'sales.price', sotuv_birlik_holat_v1: 'sales.price',
+  sotuv_birlik_saqla_v1: 'sales.write', sotuv_bitim_saqla_v1: 'sales.write', sotuv_bron_v1: 'sales.write', sotuv_bron_bekor_v1: 'sales.write',
+  sotuv_grafik_saqla_v1: 'sales.write', sotuv_tolov_yoz_v1: 'sales.payment', sotuv_tolov_bekor_v1: 'sales.payment',
   sverka_yozuv_v1: 'financial.write',
   sverka_import_v1: 'financial.write',
   f2_reestr_yoz_v1: 'financial.write',

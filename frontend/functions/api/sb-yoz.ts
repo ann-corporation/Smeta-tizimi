@@ -29,6 +29,7 @@ import { azoKompaniyalar } from '../_shared/tenant-oqish';
 import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob, mayWriteCompanies } from '../_shared/role-authority';
 import { egaQarori, egalarniOqi, yozishTalablari } from '../_shared/tenant-yozish';
 import { katalogSnapshotlari } from '../_shared/narx-katalog-snapshot';
+import { sotuvAmalmi, sotuvYuk } from '../_shared/sotuv-yuk';
 
 /** Har amal → qaysi RPC va uni kim chaqira oladi. */
 const AMALLAR = {
@@ -56,6 +57,18 @@ const AMALLAR = {
   qarzdorlik_import_v1: { rpc: 't2_qarzdorlik_import_v1' },
   /* Egasi 2026-11-03: shartnoma oylik paketi - «Topshirildi» (versiya, manifest, ZIP kanonik saqlashda). RPC a'zolik + document.write ni o'zi tekshiradi; idempotent (operation_id). */
   shartnoma_oylik_paket_saqla_v1: { rpc: 't2_shartnoma_oylik_paket_saqla_v1' },
+  /* Egasi 2026-11-03: UY SOTISH (20261124000000) — inventar, narx, bitim, bron, grafik, to'lov. Yuk: _shared/sotuv-yuk.ts (oq ro'yxat);
+     RPC a'zolik + sales.* ni o'zi tekshiradi; idempotent (operation_id). */
+  sotuv_loyiha_saqla_v1: { rpc: 't2_sotuv_loyiha_saqla_v1' },
+  sotuv_birlik_saqla_v1: { rpc: 't2_sotuv_birlik_saqla_v1' },
+  sotuv_narx_ozgartir_v1: { rpc: 't2_sotuv_narx_ozgartir_v1' },
+  sotuv_birlik_holat_v1: { rpc: 't2_sotuv_birlik_holat_v1' },
+  sotuv_bitim_saqla_v1: { rpc: 't2_sotuv_bitim_saqla_v1' },
+  sotuv_bron_v1: { rpc: 't2_sotuv_bron_v1' },
+  sotuv_bron_bekor_v1: { rpc: 't2_sotuv_bron_bekor_v1' },
+  sotuv_grafik_saqla_v1: { rpc: 't2_sotuv_grafik_saqla_v1' },
+  sotuv_tolov_yoz_v1: { rpc: 't2_sotuv_tolov_yoz_v1' },
+  sotuv_tolov_bekor_v1: { rpc: 't2_sotuv_tolov_bekor_v1' },
   /* Egasi 2026-10-23: shartnoma svodi/akt-sverka yozuvlari — DS, F2 reestri, sotuv (F3 summasi). RPC a'zolik + financial.write ni o'zi tekshiradi. */
   sverka_yozuv_v1: { rpc: 't2_sverka_yozuv_v1' },
   /* Egasi 2026-10-26: 1C akt-sverka importi (partiya ≤ 200: to'lov + F3 sotuv + F2 to'plami), to'lov taqsimoti, Продажа ↔ F2.
@@ -3038,6 +3051,11 @@ export const onRequestPost: PagesFunction<{
        RPC darajasida ham hali bazada YO'Q (tekshirildi). Aniq xato
        xabari — soxta muvaffaqiyatdan yaxshiroq. Har amal o'z egasi
        tomonidan tegishli parametrlar bilan to'ldirilishi kerak. */
+    } else if (sotuvAmalmi(amal)) {
+      /* Uy sotish: yuk oq ro'yxatdan (_shared/sotuv-yuk.ts); actor sessiyadan. */
+      const y = sotuvYuk(amal, so as Record<string, unknown>, Number(sess.foydalanuvchi_id));
+      if (typeof y === 'string') return Response.json({ ok: false, error: y }, { status: 400 });
+      yuk = y;
     } else {
       return Response.json({ ok: false,
         error: 'Amal "' + amal + '" ro\'yxatda bor, lekin hali parametr moslashtirilmagan (TODO)' });
