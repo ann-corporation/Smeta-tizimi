@@ -1,0 +1,27 @@
+[package]
+name = "smeta-desktop"
+version = "0.1.0"
+description = "TIZIM 02 Windows client"
+edition = "2021"
+rust-version = "1.99"
+publish = false
+
+[lib]
+name = "smeta_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+keyring = { version = "=3.6.3", features = ["windows-native"] }
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
