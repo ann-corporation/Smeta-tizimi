@@ -15,6 +15,8 @@
         "frontend/src/lib/hisob-yadro/holat.ts",
         "frontend/src/lib/hisob-yadro/holat.paritet.test.ts",
         "frontend/src/ombor/paket.ts",
+        "frontend/src/ombor/paket.test.ts",
+        "frontend/src/api/t2-daraxt-ustunlar.ts (optional-field comment only)",
         "frontend/src/ombor/hisob*",
         "ops/handoff/DESKTOP_D3_WORKER_20261031.md"
       ],
@@ -22,7 +24,7 @@
       "must_read": [
         "docs/architecture/OBYEKT_PAKET_OFFLINE_DESKTOP_V1.md"
       ],
-      "note": "PR217 D3a aligned to exact main; shared signed/null core, optional f2_summa_yoq transport; no push, SQL extension and final D3b integration owned by parent L0."
+      "note": "PR217 D3a aligned to exact main; shared signed/null core, optional f2_summa_yoq transport; no push, SQL extension and final D3b integration owned by parent L0. Parent bounded extension: packet null fixture/test wording, one optional-field comment, quantity-only precision helper and fail-closed missing zero-amount guard with own regressions; Obsidian note logged by parent."
     },
     {
       "id": "PTO-RECONCILIATION-20261026",

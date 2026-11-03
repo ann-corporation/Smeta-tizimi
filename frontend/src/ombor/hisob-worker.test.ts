@@ -116,6 +116,16 @@ describe('PR217 packet f2_summa_yoq compatibility', () => {
     if(r.ok) expect(r.holatlar[0]).toMatchObject({f2_hajm:-3,f2_summa:-20.03,fakt_summa:-56,f2_mumkin_hajm:-5,f2_mumkin_summa:-33.38});
     expect(p).toEqual(before);
   });
+  it.each([undefined,null,0,1])('zero F2 amount guard %s preserves source and fails closed when unknown', guard => {
+    const p = fixture(1); p.h.f2_summa = [0];
+    if(guard !== undefined) p.h.f2_summa_yoq = [guard];
+    const before = structuredClone(p);
+    const r = hisobIshlov({id:1,epoch:0,revision:0,paket:p});
+    expect(r.ok).toBe(true);
+    if(r.ok) expect(r.holatlar[0]).toMatchObject({f2_hajm:3,f2_summa:0,fakt_summa:56,
+      f2_mumkin_summa:guard == null ? null : guard === 0 ? 0 : 56});
+    expect(p).toEqual(before);
+  });
   it('rejects malformed optional column rather than inventing zero counts', () => {
     const p = fixture(); p.h.f2_summa_yoq = [0];
     expect(hisobIshlov({id:1,epoch:0,revision:0,paket:p})).toMatchObject({ok:false,xato:'HISOB_PAKET_XATO'});

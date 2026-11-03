@@ -13,8 +13,14 @@ describe('active packet derivation — canonical signed/null contract', () => {
   it('actual missing-amount guard suppresses F2 repricing, including BL/RZ', () => {
     expect(holatHosilalari({...asos,f2S:0,f2SummaYoq:1})).toMatchObject({f2_mumkin_summa:90});
     expect(holatHosilalari({...asos,f2S:0,f2SummaYoq:0})).toMatchObject({f2_mumkin_summa:0});
-    expect(holatHosilalari({...asos,f2S:0})).toMatchObject({f2_mumkin_summa:0});
+    expect(holatHosilalari({...asos,f2S:0})).toMatchObject({f2_mumkin_summa:null});
+    expect(holatHosilalari({...asos,f2S:0,f2SummaYoq:null})).toMatchObject({f2_mumkin_summa:null});
     expect(holatHosilalari({...asos,f2S:null})).toMatchObject({f2_mumkin_summa:null});
+  });
+  it.each([1,-1])('small norma quantities retain precision, sign %s', sign => {
+    const h = holatHosilalari({...asos,hajm:0.01*sign,faktH:0.003*sign,f2H:0.001*sign,alH:0});
+    expect(h.f2_mumkin_hajm).toBeCloseTo(0.002*sign, 12);
+    expect(h.qoldiq_hajm).toBeCloseTo(0.009*sign, 12);
   });
   it('storno availability remains signed and frozen F2 is immutable', () => {
     const a = {...asos,hajm:-10,summa:-100,faktH:-8,faktS:-90,f2H:-3,f2S:-31.07,alH:0,alS:0};
