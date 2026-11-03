@@ -2,6 +2,17 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 77,
+      "sana": "2026-11-04",
+      "sarlavha": "Hujjat aylanishi — kiruvchi quti, tasdiq zanjiri, xatlar reestri",
+      "bandlar": [
+        "Yangi sahifa «Hujjat aylanishi»: sizdan nima kutilayotgani bir joyda — tasdiqingizni kutayotgan hujjatlar, kiruvchi xatlar va ochiq predpisaniya/murojaatlar, muddati o'tganlari alohida belgilanadi.",
+        "Tasdiq zanjiri: hujjat (АОСР, laboratoriya protokoli, osvidetelstvovaniya akti va boshqalar) texnadzor, buyurtmachi va boshqa tomonlarga tartib bilan yuboriladi; har qadamda tasdiqlash, rad etish yoki izoh bilan tuzatishga qaytarish bor, tuzatilgach hujjat qayta yuboriladi — tarix saqlanadi.",
+        "Xatlar reestri: chiquvchi va kiruvchi xatlar avtomatik raqamlanadi, javob xati ota xatga bog'lanadi, javob muddati bo'lsa eslatma keladi.",
+        "To'rtta yangi shablon: laboratoriya sinov protokoli, osvidetelstvovaniya akti, texnik nazorat predpisaniyasi va soprovod xat. Yetishmagan maydonlar hujjat ichida «e'tibor talab qiladigan o'rinlar» bo'lib chiqadi, hech narsa o'ylab topilmaydi."
+      ]
+    },
+    {
       "id": 76,
       "sana": "2026-11-03",
       "sarlavha": "Rahbar paneli — boshqaruv markazi",

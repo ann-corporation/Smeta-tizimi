@@ -149,6 +149,7 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
       { nom: 'Kiruvchi (tomonlar)', ikonka: 'Inbox', sahifalar: [
         { yol: '/admin/zakazchik', nom: 'Buyurtmachi kabineti', ruxsat: [RAHBARIYAT, 'project.read'], modul: 'module.loyiha' },
         { yol: '/admin/taqdimlar', nom: 'Tomonlar hujjatlari', ruxsat: [RAHBARIYAT, 'project.read'], modul: 'module.loyiha' },
+        { yol: '/admin/hujjat-aylanish', nom: 'Hujjat aylanishi (kiruvchi, xat, tasdiq)', ruxsat: [RAHBARIYAT, 'document.read', 'quality.read'], modul: 'module.loyiha' },
         { yol: '/admin/murojaatlar', nom: 'Murojaatlar (remark, so‘rov)', ruxsat: [RAHBARIYAT, 'project.read'], modul: 'module.loyiha' },
       ] },
     ],

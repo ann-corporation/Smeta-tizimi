@@ -42,6 +42,11 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       const tomon = await rpc(ctx.env, 't2_tomon_hujjat_ol_v1', { p_actor_id: actorId, p_document_id: id });
       if (tomon.httpOk && tomon.body && tomon.body.ok === true) res = tomon;
     }
+    // HUJJAT-AYLANISH-001: tasdiq zanjiri qatnashchisi yoki xat qabul qiluvchisi — faqat shu aniq hujjat.
+    if ((!res.httpOk || !res.body || res.body.ok !== true) && (!res.body || res.body.code !== 'CANONICAL_BINARY_MISSING')) {
+      const aylanish = await rpc(ctx.env, 't2_hujjat_aylanish_hujjat_ol_v1', { p_actor_id: actorId, p_document_id: id });
+      if (aylanish.httpOk && aylanish.body && aylanish.body.ok === true) res = aylanish;
+    }
     if (!res.httpOk || !res.body || res.body.ok !== true) {
       const code = (res.body && res.body.code) || 'DOCUMENT_FORBIDDEN';
       const status = code === 'DOCUMENT_NOT_FOUND' ? 404 : code === 'CANONICAL_BINARY_MISSING' ? 502 : 403;
