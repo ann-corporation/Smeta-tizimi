@@ -1,3 +1,4 @@
+import { yaxlit2 } from '../../lib/hisob-yadro';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 import { memo, useEffect, useMemo, useState } from 'react';
@@ -309,7 +310,7 @@ function Sessiya() {
           if (l) {
             natijalar.push({ nom: l.faylNomi, bytes: l.bytes, saqlanish: 'toliq' });
             hisoblangan += xlsxYacheykaSoni(l.bytes);
-            const farq = Math.round((l.togridanJami - o.hisob.togridanJami) * 100) / 100;
+            const farq = yaxlit2(l.togridanJami - o.hisob.togridanJami);
             lrvIzoh.push(`${o.fayl.nom}: LRV (F2) — ${l.narxlandi}/${l.resurslar} resurs narxlandi${l.topilmadi.length ? `, ${l.topilmadi.length} tasining narxi RES da topilmadi (ro‘yxat hujjatda)` : ''}; to‘g‘ridan-to‘g‘ri xarajat LRV ${fmt(l.togridanJami)} / RES ${fmt(o.hisob.togridanJami)}${farq ? ` (farq ${fmt(farq)} — manbadagi RES hajmlari yaxlitlangan)` : ' — mos'}${l.bezSkladBor ? '; БЕЗСКЛАД resurs bor — nakrutka jadvali LRV da berilmadi, yakuniy summa oferta svodida' : ''}.`);
           }
         }

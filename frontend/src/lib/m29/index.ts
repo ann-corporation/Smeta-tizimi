@@ -24,6 +24,7 @@
  * smetada yo'q sklad materiali — hammasi DIQQAT ro'yxatida.
  */
 import { normBir, normNom } from '../f2-match-engine';
+import { yaxlit2 } from '../hisob-yadro';
 import { nakrutkaKat } from '../nakrutka-podval';
 
 export interface M29SmetaQator {
@@ -204,7 +205,7 @@ export function m29Hisobla(k: M29Kirish, davr: string): M29Natija {
     if (m.faktJami != null) {
       m.farqOy = r6((m.faktOy ?? 0) - m.normaOy);
       m.farqJami = r6(m.faktJami - m.normaJami);
-      m.farqSummaJami = m.narx == null ? null : Math.round(m.farqJami * m.narx * 100) / 100;
+      m.farqSummaJami = m.narx == null ? null : yaxlit2(m.farqJami * m.narx);
     }
     const nomi = `${m.nom} (${m.birlik ?? '—'})`;
     if (m.faktJami == null && m.normaJami > EPS) {
@@ -225,15 +226,15 @@ export function m29Hisobla(k: M29Kirish, davr: string): M29Natija {
       if (m.farqSummaJami == null) { if (m.faktJami != null) fs = null; } else if (fs != null) fs += m.farqSummaJami;
       if (m.narx == null) ns = null; else if (ns != null) ns += m.normaJami * m.narx;
     }
-    g.farqSummaJami = fs == null ? null : Math.round(fs * 100) / 100;
-    g.normaSummaJami = ns == null ? null : Math.round(ns * 100) / 100;
+    g.farqSummaJami = fs == null ? null : yaxlit2(fs);
+    g.normaSummaJami = ns == null ? null : yaxlit2(ns);
     if (g.farqSummaJami == null) farqJamiSum = null; else if (farqJamiSum != null) farqJamiSum += g.farqSummaJami;
   }
   // Tartib: eng katta pul ta'siri birinchi.
   diqqat.sort((a, b) => Math.abs(b.summa ?? 0) - Math.abs(a.summa ?? 0));
   return {
     davr, guruhlar: guruhlar.filter((g) => g.materiallar.length), smetadaYoq, diqqat,
-    jami: { farqSummaJami: farqJamiSum == null ? null : Math.round(farqJamiSum * 100) / 100, tejashSumma: Math.round(tejash * 100) / 100, ortiqchaSumma: Math.round(ortiqcha * 100) / 100 },
+    jami: { farqSummaJami: farqJamiSum == null ? null : yaxlit2(farqJamiSum), tejashSumma: yaxlit2(tejash), ortiqchaSumma: yaxlit2(ortiqcha) },
   };
 }
 

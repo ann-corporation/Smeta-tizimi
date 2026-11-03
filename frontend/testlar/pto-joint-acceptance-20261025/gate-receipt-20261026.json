@@ -1,0 +1,55 @@
+{
+  "generated_at_utc": "2026-10-25T19:32:03.0802836Z",
+  "runtime_base": "8b1eb8946dcb5b171db9af5a014d7e031dece585",
+  "qa_precommit_head": "567e0da44216edd7f46ce4ef6ebd4c561463b0b9",
+  "stages": [
+    {
+      "stage": "app-ts",
+      "exit": 0,
+      "log": "C:\\Temp\\PTO-QA-app-ts-20261026.log"
+    },
+    {
+      "stage": "functions-ts",
+      "exit": 0,
+      "log": "C:\\Temp\\PTO-QA-functions-ts-20261026.log"
+    },
+    {
+      "stage": "oxlint",
+      "exit": 0,
+      "log": "C:\\Temp\\PTO-QA-oxlint-20261026.log"
+    },
+    {
+      "stage": "site-map-check",
+      "exit": 0,
+      "log": "C:\\Temp\\PTO-QA-site-map-check-20261026.log"
+    },
+    {
+      "stage": "tekshir",
+      "exit": 0,
+      "log": "C:\\Temp\\PTO-QA-tekshir-20261026.log"
+    },
+    {
+      "stage": "build",
+      "exit": 0,
+      "log": "C:\\Temp\\PTO-QA-build-20261026.log"
+    },
+    {
+      "stage": "vitest",
+      "exit": 0,
+      "log": "C:\\Temp\\PTO-QA-vitest-20261026.log"
+    },
+    {
+      "stage": "governance",
+      "exit": 0,
+      "log": "C:\\Temp\\PTO-QA-governance-20261026.log"
+    }
+  ],
+  "vitest": {
+    "skip": 20,
+    "fail": 0,
+    "maxWorkers": 2,
+    "pass": 3264
+  },
+  "site_map_generate_identical": true,
+  "scope": "Normal QA-branch regression; separate candidate probes have their own exact source pins and expected OPEN failures. Not candidate CI or deployment proof."
+}

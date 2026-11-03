@@ -6,7 +6,7 @@ import {
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { NAKRUTKA_KATLAR, NOMALUM_KAT, kOplate, kategoriyaKf, nakrutkaKat, nakrutkaPodvaliYoz, podvalKfQatorlari, podvalNdsFoiz, podvalQatorRaqami, type KatSummalar } from './nakrutka-podval';
 import { YAXLIT_IZOH, YAXLIT_KAT, bolimBarglari, bolimJamilari, bolimQqsBilan, type SvodYaxlit } from './svod-yaxlit';
-import { NDS_SUKUT_FOIZ, qatorSumma, serverMerosKoefQoy, yaxlit2 as yadroYaxlit2, yaxlitBolimJami, yaxlitKOplateTaqsim, yaxlitQatorlarga, yigindi2, yigindi2Qatiy, type Podval } from './hisob-yadro';
+import { NDS_SUKUT_FOIZ, ayirma2, faktSummaF2Narxda, qatorSumma, serverMerosKoefQoy, yaxlit2 as yadroYaxlit2, yaxlitBolimJami, yaxlitKOplateTaqsim, yaxlitQatorlarga, yigindi2, yigindi2Qatiy, type Podval } from './hisob-yadro';
 import { mashinistMehnati, narxBildirishnomaKerak } from './narx-bildirishnoma';
 
 /**
@@ -182,6 +182,8 @@ export type OstatkaModelQator = {
   nomalum: number;
   /** Resurs kategoriyasi (barg) — к оплате koeffitsienti uchun. */
   kat?: string | null;
+  /** Tasdiqlangan F2 bor qator: summa = smeta − fakt (F2 narxida) qiymat sifatida yoziladi (F × G formulasi emas). */
+  f2Narxda?: boolean;
   /** Qaysi qatorlar yig'indisi (itogo/bl/rz uchun) — model indekslari. */
   bolalar: number[];
 };
@@ -258,14 +260,19 @@ export function ostatkaHujjatModeli(qatorlar: readonly T2Qator[], holatlar: read
       if (o != null && smeta != null && oshibKetdimi(smeta, o)) { oshib.push({ nom: q.nom ?? '', birlik: q.birlik ?? '', smetaHajm: smeta!, faktHajm: fakt!, yol: yolOf(q) }); return null; }
       if (o === 0) return null;
       const narx = q.narx ?? null;
-      const summa = qatorSumma(o, narx);
+      // Qoldiq puli: tasdiqlangan F2 bor qatorda = smeta summasi − fakt summasi (F2 narxida, yadro `faktSummaF2Narxda`), MAX yo'q.
+      const h = holat.get(q.id);
+      const f2Bor = h != null && h.f2_hajm != null && Number(h.f2_hajm) !== 0;
+      const summa = f2Bor
+        ? ayirma2(qatorSumma(smeta, narx), faktSummaF2Narxda(fakt, Number(h!.f2_hajm), h!.f2_summa == null ? null : Number(h!.f2_summa), qatorSumma(fakt, narx)).summa)
+        : qatorSumma(o, narx);
       const sabablar = [smeta == null ? 'нет количества по смете' : '', fakt == null ? 'нет данных о выполнении' : '', narxBildirishnomaKerak(q, narx) ? 'нет сметной цены — строка не включена в сумму' : ''].filter(Boolean);
       if (sabablar.length) diqqat.push({ nom: `${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`, sabab: sabablar.join('; '), joy: yolOf(q) || undefined });
       const kutilmoqda = istisnoOf.get(q.id);
       if (kutilmoqda?.holat === 'qoralama') diqqat.push({ nom: `${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`, sabab: `исключение из остатка на согласовании (${kutilmoqda.asos}${kutilmoqda.sabab ? `; ${kutilmoqda.sabab}` : ''}) — до утверждения учитывается в остатке`, joy: yolOf(q) || undefined });
       barglar++;
       const tartib = blNo ? `${blNo}.${k}` : String(++no);
-      out.push({ id: q.id, tur: 'barg', daraja, tartib, kod: q.kod ?? '', nom: q.nom ?? '', birlik: q.birlik ?? '', smetaHajm: smeta, faktHajm: fakt, ostatkaHajm: o, narx, summa, nomalum: summa == null && !mashinistMehnati(q) ? 1 : 0, kat: q.kat ?? null, bolalar: [] });
+      out.push({ id: q.id, tur: 'barg', daraja, tartib, kod: q.kod ?? '', nom: q.nom ?? '', birlik: q.birlik ?? '', smetaHajm: smeta, faktHajm: fakt, ostatkaHajm: o, narx, summa, nomalum: summa == null && !mashinistMehnati(q) ? 1 : 0, kat: q.kat ?? null, bolalar: [], ...(f2Bor ? { f2Narxda: true } : {}) });
       return out.length - 1;
     }
     if (tur === 'bl') {
@@ -459,7 +466,7 @@ export function ostatkaHujjatXlsx(model: OstatkaModel, o: OstatkaHujjatOpsiya): 
         { f: `IF(OR(E${n}="",F${n}=""),"",E${n}-F${n})`, v: q.ostatkaHajm ?? '' },
         qiy(q.narx),
         // Svod bo'limiga taqsimlangan qator — summa qiymat (bo'lim yaxlit summasidan taqsim), formula emas.
-        taqsim?.has(q.id) ? qiy(q.summa) : { f: `IF(OR(G${n}="",H${n}=""),"",ROUND(G${n}*H${n},2))`, v: q.summa ?? '' },
+        taqsim?.has(q.id) || q.f2Narxda ? qiy(q.summa) : { f: `IF(OR(G${n}="",H${n}=""),"",ROUND(G${n}*H${n},2))`, v: q.summa ?? '' },
         mashinistMehnati(q) ? 0 : { f: `IF(I${n}="",1,0)`, v: q.nomalum },
         ...((): Qiymat[] => {
           // Svod yaxlit bo'limi: ustama yo'q, faqat QQS (к оплате = прямые × (1+НДС)).

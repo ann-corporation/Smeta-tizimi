@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
-import { AlertCircle, Check, ChevronLeft, ChevronRight, FileSpreadsheet, LoaderCircle, Search, ShieldAlert, Upload, X } from 'lucide-react';
+import { AlertCircle, Check, ChevronLeft, ChevronRight, Download, FileSpreadsheet, LoaderCircle, Search, ShieldAlert, Upload, X } from 'lucide-react';
 import { t, raqamFormatla } from '../../i18n/til';
 import { qidiruvKaliti } from '../../i18n/lotin-kirill';
 import { prixodKitobFonda } from '../../lib/ombor-prixod/read-fonda';
 import { varaqNomlari } from '../../lib/ombor-prixod/kitob';
 import { PrixodQatorEditor } from './PrixodQatorEditor';
+import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
+import { omborDavrExcel, type OmborDavr, type OmborHisobotQator } from '../../lib/ombor-prixod/davr-eksport';
 import { materialTaklifQur } from '../../lib/ombor-prixod/taklif';
 import { prixodQoralama, qoralamaQator, qoralamaTasdiqlangan, type PrixodQoralama } from '../../lib/ombor-prixod/qoralama';
 import type { PrixodKitob, PrixodQator, PrixodXato, PrixodOgoh } from '../../lib/ombor-prixod/turlar';
@@ -95,6 +98,10 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi, yozishMumk
   const [tahrirQatori, setTahrirQatori] = useState<number | null>(null);
   const [yozish, setYozish] = useState<Yozish>({ holat: 'yoq' });
   const [oldingiReja, setOldingiReja] = useState<KirimReja | null>(null);
+  const [davrBoshi, setDavrBoshi] = useState('');
+  const [davrOxiri, setDavrOxiri] = useState('');
+  const [eksportYuklanmoqda, setEksportYuklanmoqda] = useState(false);
+  const [eksportXatosi, setEksportXatosi] = useState<string | null>(null);
   const faylRef = useRef<File | null>(null);
   const requestRef = useRef<AbortController | null>(null);
   const generationRef = useRef(0);
@@ -105,6 +112,7 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi, yozishMumk
     setFaylNomi(null); setVaraqlar([]); setKitob(null); setOqilmoqda(false); setXato(null); setTakrorXato(false);
     setQidiruv(''); setFiltr('hammasi'); setSahifa(0); setQoralamalar(new Map()); setTahrirQatori(null);
     setYozish({ holat: 'yoq' }); setOldingiReja(null);
+    setDavrBoshi(''); setDavrOxiri(''); setEksportXatosi(null); setEksportYuklanmoqda(false);
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { tozala(); return () => { generationRef.current++; requestRef.current?.abort(); }; }, [kompaniyaId, skladId]);
@@ -169,6 +177,15 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi, yozishMumk
     const d = qoralamalar.get(q.manbaQator);
     return q.holat === 'yangi' && (!d || qoralamaTasdiqlangan(d));
   }), [korinadi, qoralamalar]);
+  // RU Excel: faqat tasdiqlangan (yangi) qoralamalar; takror qator hech qachon eksportga kirmaydi.
+  const takrorManbalar = useMemo(() => new Set((kitob?.qatorlar ?? []).filter((q) => q.holat === 'takror').map((q) => q.manbaQator)), [kitob]);
+  const eksportQatorlari = useMemo<OmborHisobotQator[]>(() => [...qoralamalar.values()]
+    .filter((d) => qoralamaTasdiqlangan(d) && !takrorManbalar.has(d.manba.manbaQator))
+    .map((d) => {
+      const row = qoralamaQator(d);
+      return { id: String(row.manbaQator), sana: row.sana!, operatsiya: 'prixod' as const, nom: row.nom, birlik: row.birlik,
+        miqdor: row.miqdor!, tomon: row.yetkazuvchi, hujjat: row.hujjat, manbaQator: row.manbaQator, tasdiqlangan: true };
+    }), [qoralamalar, takrorManbalar]);
   const queryKey = qidiruvKaliti(qidiruv);
   const mos = useMemo(() => korinadi.filter((q) => (filtr === 'hammasi' || q.holat === filtr)
     && (!queryKey || qidiruvKaliti(qatorQidiruvMatni(q)).includes(queryKey))), [korinadi, filtr, queryKey]);
@@ -179,6 +196,34 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi, yozishMumk
   const kattaFayl = (faylRef.current?.size ?? 0) > SERVER_HASH_CHEGARA;
   const yozishTayyor = !!kitob && skladId != null && yozishMumkin && kitob.takrorTekshirildi && !takrorXato
     && !ishlayapti && yozish.holat !== 'tugadi' && !kattaFayl && (yoziladigan.length > 0 || oldingiReja != null);
+
+  const eksportMumkin = !!kitob && eksportQatorlari.length > 0 && davrBoshi !== '' && davrOxiri !== '' && davrBoshi <= davrOxiri
+    && kompaniyaId > 0 && skladId != null && !eksportYuklanmoqda;
+  const davrExcelYukla = async () => {
+    if (!eksportMumkin || !kitob || skladId == null) return;
+    const generation = generationRef.current;
+    setEksportYuklanmoqda(true); setEksportXatosi(null);
+    const davr: OmborDavr = {
+      bosh: davrBoshi, oxir: davrOxiri, kompaniya: `${t('Kompaniya')} ${kompaniyaId}`,
+      ombor: skladNomi || `${t('Ombor')} ${skladId}`, holat: 'qoralama', rasxodKiritilgan: false,
+      manbaNomi: kitob.faylNomi, manbaSha256: kitob.sha256,
+    };
+    try {
+      const bytes = await omborDavrExcel(eksportQatorlari, davr);
+      if (generation !== generationRef.current) return;
+      const nom = `Kirim_qoralama_${davrBoshi}_${davrOxiri}.xlsx`;
+      const natija = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'OMBOR_QORALAMA_REESTR',
+        sabab: `Черновик прихода · ${davr.bosh} — ${davr.oxir} · склад ${skladId}` }, () => {
+        if (generation !== generationRef.current) throw new Error('EXPORT_SCOPE_CHANGED');
+        downloadBlob(bytes, nom);
+      });
+      if (!natija.ok && generation === generationRef.current) setEksportXatosi(natija.xabar);
+    } catch {
+      if (generation === generationRef.current) setEksportXatosi(t('Excelni tayyorlab bo‘lmadi. Tasdiqlangan qatorlar va davrni tekshiring.'));
+    } finally {
+      if (generation === generationRef.current) setEksportYuklanmoqda(false);
+    }
+  };
 
   const bajar = async (reja: KirimReja) => {
     if (!kitob || skladId == null) return;
@@ -275,6 +320,28 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi, yozishMumk
       {xato && <div className="fz-note fz-note--danger" role="alert"><AlertCircle size={16} aria-hidden="true" />{xato}</div>}
 
       {kitob && <>
+        {yozish.holat !== 'tugadi' && <section className="rounded-md border border-border bg-surface-2 p-3" aria-label={t('Tasdiqlangan qoralamalar eksporti')}>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+            <label className="min-w-0 flex-1 text-[12px] font-medium text-text-dim">
+              {t('Davr boshi')}
+              <input type="date" value={davrBoshi} onChange={(e) => { setDavrBoshi(e.target.value); setEksportXatosi(null); }}
+                className="mt-1 h-[48px] w-full rounded-md border border-[var(--border-strong)] bg-bg px-3 text-[13px] text-text" />
+            </label>
+            <label className="min-w-0 flex-1 text-[12px] font-medium text-text-dim">
+              {t('Davr oxiri')}
+              <input type="date" value={davrOxiri} onChange={(e) => { setDavrOxiri(e.target.value); setEksportXatosi(null); }}
+                className="mt-1 h-[48px] w-full rounded-md border border-[var(--border-strong)] bg-bg px-3 text-[13px] text-text" />
+            </label>
+            <button type="button" disabled={!eksportMumkin} onClick={() => void davrExcelYukla()}
+              className="fz-btn fz-btn--primary min-h-[48px] justify-center px-3 disabled:cursor-not-allowed disabled:opacity-50">
+              {eksportYuklanmoqda ? <LoaderCircle size={16} className="animate-spin" aria-hidden="true" /> : <Download size={16} aria-hidden="true" />}
+              {eksportYuklanmoqda ? t('Excel tayyorlanmoqda…') : t('Tasdiqlangan qoralamalar — RU Excel')}
+            </button>
+          </div>
+          <p className="mb-0 mt-2 text-[11px] text-text-mute">{t('Tasdiqlangan qoralamalar: {soni}', { soni: eksportQatorlari.length })} · {t('Eksportda faqat tasdiqlangan qoralamalar olinadi.')}</p>
+          <p className="mb-0 mt-1 text-[11px] text-text-mute">{t('Eksport amaldagi hujjat tarifiga kiradi.')}</p>
+          {eksportXatosi && <p className="mb-0 mt-1 text-[12px] text-danger" role="alert">{eksportXatosi}</p>}
+        </section>}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Summary label={t('Yangi')} value={jami.yangi} tone="ok" />
           <Summary label={t('Takror')} value={kitob.takrorTekshirildi ? jami.takror : '—'} tone="warn" />
@@ -352,7 +419,7 @@ export function PrixodKitobPreview({ kompaniyaId, skladId, skladNomi, yozishMumk
             <button type="button" className="fz-btn min-h-[48px] px-3" disabled={joriy + 1 >= sahifalar} onClick={() => setSahifa((n) => Math.min(sahifalar - 1, n + 1))} aria-label={t('Keyingi sahifa')}>{t('Keyingi')}<ChevronRight size={17} aria-hidden="true" /></button>
           </div>
         </div>
-        {faolQoralama && <PrixodQatorEditor qoralama={faolQoralama} takliflar={takliflar}
+        {faolQoralama && <PrixodQatorEditor kompaniyaId={kompaniyaId} qoralama={faolQoralama} takliflar={takliflar}
           onOzgar={(updated) => {
             setQoralamalar((old) => new Map(old).set(updated.manba.manbaQator, updated));
             if (qoralamaTasdiqlangan(updated)) setTahrirQatori(null);

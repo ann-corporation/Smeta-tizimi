@@ -46,7 +46,13 @@ begin
   exp4 := (h->>'itogo4')::numeric + 200;
   rep := rep || (case when (a->>'ustamali')::numeric = round(exp4, 2) then 'OK   ustamali = podval itogo4 + KATSIZ (ustamasiz) - mavjud kaskad bilan teng' else 'FAIL ustamali: ' || (a->>'ustamali') || ' != ' || exp4::text end);
   rep := rep || (case when (a->>'katsiz')::numeric = 200 and (a->>'narxsiz_qator')::int = 1 then 'OK   KATSIZ=200, narxsiz qator=1 (NULL != 0)' else 'FAIL katsiz/narxsiz: ' || a::text end);
-  rep := rep || (case when (a->'podval'->>'itogo4')::numeric = (h->>'itogo4')::numeric and (a->'podval'->>'vsego')::numeric = (h->>'vsego')::numeric then 'OK   podval satrlari kaskad natijasiga teng' else 'FAIL podval' end);
+  -- Izoh (20261116000000): podval = paket `ustama`. KATSIZ (kat noma'lum) ИТОГО-4 ga ustamasiz qo'shiladi, shuning uchun
+  -- podval itogo4/vsego — KATSIZ qo'shilgan sarlavha (= ustamali / qqs_bilan), sof kaskad emas; avvalgi kutish
+  -- (podval itogo4 = sof kaskad itogo4) KATSIZ bor holatda noto'g'ri edi. Sof kaskad qatorlari (itogo1..itogo3) — h bilan teng.
+  rep := rep || (case when (a->'podval'->>'itogo3')::numeric = (h->>'itogo3')::numeric and (a->'podval'->>'itogo1')::numeric = (h->>'itogo1')::numeric
+                       and (a->'podval'->>'itogo4')::numeric = (a->>'ustamali')::numeric
+                       and (a->'podval'->>'itogo4')::numeric = round((h->>'itogo4')::numeric + 200, 2)
+    then 'OK   podval satrlari: kaskad qatorlari h bilan, ИТОГО-4 = kaskad + KATSIZ' else 'FAIL podval: ' || coalesce((a->'podval')::text, 'null') end);
   rep := rep || (case when (r->0->'f2'->'ustama_jami'->>'ustamali')::numeric = (a->>'ustamali')::numeric then 'OK   obyekt jami ustamali (bitta akt) mos' else 'FAIL jami ustamali' end);
   -- 4. ichki ma'lumot sizmaydi
   rep := rep || (case when r::text !~* '(koef|marja|margin|subpudrat|cats|chel|mash)' and not (a->'podval' ? 'chel') then 'OK   koeffitsient/marja/kategoriya bo''linmasi javobda yo''q' else 'FAIL ichki ma''lumot sizdi' end);

@@ -26,7 +26,7 @@ function sourceSuggestions() {
 
 function TestEditor({ initial, takliflar, onUpdate }: { initial: PrixodQoralama; takliflar: ReturnType<typeof sourceSuggestions>; onUpdate?: (q: PrixodQoralama) => void }) {
   const [draft, setDraft] = useState(initial);
-  return <PrixodQatorEditor qoralama={draft} takliflar={takliflar} onYop={() => undefined}
+  return <PrixodQatorEditor kompaniyaId={17} qoralama={draft} takliflar={takliflar} onYop={() => undefined}
     onOzgar={(next) => { setDraft(next); onUpdate?.(next); }} />;
 }
 
@@ -74,10 +74,22 @@ describe('PrixodQatorEditor', () => {
     expect(confirm.disabled).toBe(true);
   });
 
-  it('has no voice input (voice is frozen until stage B4)', () => {
-    const approved = qoralamaTasdiqla(prixodQoralama(qator({ sana: '2026-10-27', nom: 'Sement', birlik: 'qop', miqdor: 1,
-      miqdorMatni: '1', xatolar: [], ogohlar: [] })));
-    render(<TestEditor initial={approved} takliflar={[]} />);
-    expect(screen.queryByText(/Ovoz/)).toBeNull();
+  it('applies bounded voice-to-draft suggestions through the editor change handler and clears approval', () => {
+    const original = qator({ sana: '2026-10-27', nom: 'Old material', birlik: 'qop', miqdor: 1, miqdorMatni: '1',
+      yetkazuvchi: 'Old supplier', hujjat: 'OLD-1', xatolar: [], ogohlar: [] });
+    const approved = qoralamaTasdiqla(prixodQoralama(original));
+    expect(qoralamaTasdiqlangan(approved)).toBe(true);
+    let latest = approved;
+    const catalog = materialTaklifQur([qator({ nom: 'Sement', birlik: 'qop', yetkazuvchi: 'Supplier A' })]);
+    render(<TestEditor initial={approved} takliflar={catalog} onUpdate={(next) => { latest = next; }} />);
+    fireEvent.click(screen.getByText('Ovoz yoki matndan kirim taklifi'));
+    fireEvent.change(screen.getByLabelText('O‘qilgan matn — tahrirlash mumkin'), {
+      target: { value: 'Sement 50 qop keldi Supplier A' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Topilgan takliflarni qatorga olish' }));
+
+    expect(latest.maydonlar).toMatchObject({ nom: 'Sement', birlik: 'qop', miqdor: '50', yetkazuvchi: 'Supplier A' });
+    expect(latest.tasdiq).toBeNull();
+    expect(qoralamaTasdiqlangan(latest)).toBe(false);
   });
 });

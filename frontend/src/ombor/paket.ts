@@ -10,7 +10,7 @@
  * Sahifalarga HALI ulanmagan (PR2, bayroq ostida).
  *
  * Hosila holat ustunlari (smeta_*, qoldiq_*, f2_mumkin_*) `t2_qator_holat` formulalari bilan hisoblanadi
- * (faqat faol versiya qatorlari keladi). PR4 da bu `lib/hisob-yadro/holat.ts` ga ko'chadi.
+ * (faqat faol versiya qatorlari keladi). Hisob `lib/hisob-yadro/holat.ts` orqali, yagona yadroda.
  */
 import type { T2Qator, T2QatorHolat } from '../api/supabase';
 import { holatHosilalari } from '../lib/hisob-yadro/holat';
@@ -32,6 +32,8 @@ export type PaketXom = {
   };
   h: {
     fakt_hajm: (number | null)[]; fakt_summa: (number | null)[]; f2_hajm: (number | null)[]; f2_summa: (number | null)[];
+    /** Optional until parent PR2 SQL extension; absent is not a zero count. */
+    f2_summa_yoq?: (number | null)[];
     f2_summa_nomalum: (number | null)[]; direct_fakt_hajm: (number | null)[]; fakt_manbasi: number[];
     almashtirilgan_hajm: Record<string, number>; almashtirilgan_summa: Record<string, number | null>;
   };
@@ -56,6 +58,7 @@ export type Paket = {
   narx_usul: (string | null)[]; versiya: Int32Array; qoshimcha: Uint8Array; zamena: Uint8Array;
   xom_qator: SonUstun;
   fakt_hajm: SonUstun; fakt_summa: SonUstun; f2_hajm: SonUstun; f2_summa: SonUstun;
+  f2_summa_yoq?: SonUstun;
   f2_summa_nomalum: SonUstun; direct_fakt_hajm: SonUstun;
   /** 0 — DIRECT, 1 — BL_NORMA. */
   fakt_manbasi: Uint8Array;
@@ -154,6 +157,7 @@ export function paketDekod(x: PaketXom): Paket {
     xom_qator: siyrakUstun(n, 'xom_qator', x.q.xom_qator, indeks, null),
     fakt_hajm: sonUstun(n, 'fakt_hajm', x.h?.fakt_hajm), fakt_summa: sonUstun(n, 'fakt_summa', x.h?.fakt_summa),
     f2_hajm: sonUstun(n, 'f2_hajm', x.h?.f2_hajm), f2_summa: sonUstun(n, 'f2_summa', x.h?.f2_summa),
+    ...(x.h?.f2_summa_yoq === undefined ? {} : { f2_summa_yoq: sonUstun(n, 'f2_summa_yoq', x.h.f2_summa_yoq) }),
     f2_summa_nomalum: sonUstun(n, 'f2_summa_nomalum', x.h?.f2_summa_nomalum), direct_fakt_hajm: sonUstun(n, 'direct_fakt_hajm', x.h?.direct_fakt_hajm),
     fakt_manbasi: bitlar(n, 'fakt_manbasi', x.h?.fakt_manbasi),
     almashtirilgan_hajm: siyrakUstun(n, 'almashtirilgan_hajm', x.h?.almashtirilgan_hajm, indeks, 0),
@@ -178,13 +182,14 @@ export function paketdanQatorlar(p: Paket): T2Qator[] {
   return out;
 }
 
-/** `t2_qator_holat` hosila ustunlari (faol qator uchun; NULL qoidasi Postgres bilan bir xil, GREATEST NULL ni tashlaydi). */
+/** `t2_qator_holat` hosila ustunlari (faol qator uchun; ishorali/NULL qoidasi yagona yadrodan). */
 export function holatHosila(i: number, p: Paket) {
   const hajm = son(p.hajm, i), summa = son(p.summa, i);
   const faktH = son(p.fakt_hajm, i), faktS = son(p.fakt_summa, i);
-  const f2H = son(p.f2_hajm, i) ?? 0, f2S = son(p.f2_summa, i) ?? 0;
-  const alH = son(p.almashtirilgan_hajm, i), alS = son(p.almashtirilgan_summa, i) ?? 0;
-  return holatHosilalari({ hajm, summa, faktH, faktS, f2H, f2S, alH, alS });
+  const f2H = son(p.f2_hajm, i), f2S = son(p.f2_summa, i);
+  const alH = son(p.almashtirilgan_hajm, i), alS = son(p.almashtirilgan_summa, i);
+  return holatHosilalari({ hajm, summa, faktH, faktS, f2H, f2S, alH, alS,
+    f2SummaYoq: p.f2_summa_yoq === undefined ? undefined : son(p.f2_summa_yoq, i) });
 }
 
 /** `T2_HOLAT_DARAXT_USTUNLARI` shaklidagi holatlar (qator_id bo'yicha o'sish — `sbT2QatorHolatOl` bilan bir xil). */
@@ -194,6 +199,7 @@ export function paketdanHolatlar(p: Paket): T2QatorHolat[] {
     const d = holatHosila(i, p);
     return {
       qator_id: p.id[i], tur: matn(p.tur, i), kod: matn(p.kod, i), nom: matn(p.nom, i), birlik: matn(p.birlik, i), kat: matn(p.kat, i),
+      ...(p.f2_summa_yoq === undefined ? {} : { f2_summa_yoq: son(p.f2_summa_yoq, i) }),
       smeta_hajm: d.smeta_hajm, smeta_summa: d.smeta_summa,
       fakt_hajm: son(p.fakt_hajm, i), fakt_summa: son(p.fakt_summa, i), f2_hajm: son(p.f2_hajm, i), f2_summa: son(p.f2_summa, i),
       qoldiq_hajm: d.qoldiq_hajm, qoldiq_summa: d.qoldiq_summa, f2_mumkin_hajm: d.f2_mumkin_hajm, f2_mumkin_summa: d.f2_mumkin_summa,

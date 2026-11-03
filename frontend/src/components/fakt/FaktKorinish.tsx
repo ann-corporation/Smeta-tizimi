@@ -86,7 +86,7 @@ export function FaktXulosaPanel({ x, obyekt }: { x: JurnalXulosa; obyekt: Obyekt
     : obyekt.usul === 'ish' ? t('bo‘limlardagi ishlar soni bo‘yicha tortilgan (smeta summasi to‘liq emas)') : t('smeta hajmi yo‘q — hisoblab bo‘lmaydi');
   const holatlar = HOLAT_TARTIB.filter((h) => x.ishlar[h] > 0);
   const bolimMatn = t('{a} / {b} tugagan', { a: String(x.bolimTugagan), b: String(x.bolimJami) });
-  return <section className="fz-card grid grid-cols-1 divide-y divide-border md:grid-cols-[minmax(220px,1fr)_minmax(180px,.7fr)_minmax(300px,1.6fr)] md:divide-x md:divide-y-0" aria-label={t('Fakt xulosasi')} data-testid="fakt-xulosa">
+  return <section className="fz-card grid shrink-0 grid-cols-1 divide-y divide-border md:grid-cols-[minmax(220px,1fr)_minmax(180px,.7fr)_minmax(300px,1.6fr)] md:divide-x md:divide-y-0" aria-label={t('Fakt xulosasi')} data-testid="fakt-xulosa">
     <Katak sarlavha={t('Obyekt bajarilishi')} izoh={usulMatn}>
       <div className="flex items-center gap-3">
         <b className="font-[family-name:var(--font-display)] text-[22px] leading-7 tabular-nums text-text" data-testid="obyekt-foiz">{obyekt.ulush == null ? '—' : foizMatn(obyekt.ulush * 100)}</b>

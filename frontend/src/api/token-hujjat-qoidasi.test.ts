@@ -54,7 +54,7 @@ describe('Token hujjat qoidasi — fayl faqat token bilan beriladi', () => {
   it('rasmiy hujjat sahifalari token bilan beradi', () => {
     for (const f of ['admin/sahifalar/HolatNative.tsx', 'admin/sahifalar/M29Native.tsx', 'admin/sahifalar/NakopitelniyVedomost.tsx',
       'admin/sahifalar/LrvResSverkaPanel.tsx', 'admin/sahifalar/OfertaNative.tsx', 'admin/sahifalar/ResursVedomostNative.tsx',
-      'admin/sahifalar/F2TarixNative.tsx', 'admin/sahifalar/F2TayyorlashNative.tsx', 'test02/TestAosr.tsx']) {
+      'admin/sahifalar/F2TarixNative.tsx', 'admin/sahifalar/ObosnovaniePanel.tsx', 'admin/sahifalar/F2TayyorlashNative.tsx', 'test02/TestAosr.tsx']) {
       expect(izohsiz(readFileSync(join(ILDIZ, f), 'utf8')), f).toMatch(TOKEN);
     }
   });

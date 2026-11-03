@@ -56,7 +56,7 @@
   "Qoralama summasi": { "ru": "Сумма черновика", "en": "Draft amount" },
   "Summa hali yo‘q — ish hajmini kiriting": { "ru": "Суммы пока нет — введите объём работ", "en": "No amount yet — enter work quantities" },
   "{n} ta resursda summa yo‘q": { "ru": "Ресурсов без суммы: {n}", "en": "{n} resources without amount" },
-  "{n} ta qatorda hajm noto‘g‘ri — 0 dan katta son bo‘lsin": { "ru": "Неверный объём в строках: {n} — нужно число больше 0", "en": "Invalid quantity in {n} rows — must be a number above 0" },
+  "{n} ta qatorda hajm noto‘g‘ri — son bo‘lsin va 0 bo‘lmasin (minus mumkin)": { "ru": "Неверный объём в строках: {n} — нужно число, не равное 0 (минус допускается)", "en": "Invalid quantity in {n} rows — must be a non-zero number (negative allowed)" },
   "{n} ta resursda narx yo‘q — narx kiriting yoki narxsiz deb belgilang": { "ru": "Нет цены у ресурсов: {n} — введите цену или отметьте «без цены»", "en": "{n} resources have no price — enter a price or mark as “no price”" },
   "{n} ta qatorda summa son emas": { "ru": "Сумма не число в строках: {n}", "en": "Amount is not a number in {n} rows" },
   "{n} ta qator smeta hajmidan oshadi": { "ru": "Строк сверх сметного объёма: {n}", "en": "{n} rows exceed the estimate quantity" },

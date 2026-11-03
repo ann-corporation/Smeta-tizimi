@@ -2,7 +2,7 @@
  * YAXLIT SVOD bo'limlari (egasi qoidasi): yaxlit svod summasi — bu boshqa shartnoma yoki ish (smeta, shartnoma yoki
  * boshqa manbadan — yechim universal). Uning BUTUN tarkibi aynan shu summaga yig'iladi; QQS dan boshqa ustama YO'Q.
  * Egasi (2026-10-30): svodda yaxlit qator НДС dan KEYIN — summa QQS BILAN va yakuniy; ВСЕГО = ishlar ВСЕГО + svod aynan.
- * (Server `t2_nakrutka_yaxlit_qosh_v1` hozircha QQS siz qismni ИТОГО-4 ga qo'shib QQS ni qayta hisoblaydi — keyingi migratsiyada tekislanadi.)
+ * Server (20261116000000): `t2_nakrutka_yaxlit_qosh_v2` / `_t2_summa_paket_hisob_v1` — shu qoida bilan aynan (tiyingacha).
  *
  * «Ustamasiz» ko'rsatkich tarkibdan kelib chiqadi: bolalar summasi svod summasiga MASSHTABLANADI va tiyingacha
  * TAQSIMLANADI (eng katta qoldiq usuli), shunda Σ bolalar = svod summasi (QQS siz) aynan.

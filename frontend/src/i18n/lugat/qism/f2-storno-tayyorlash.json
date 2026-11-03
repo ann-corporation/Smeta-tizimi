@@ -1,0 +1,16 @@
+{
+  "Eski F2 ni storno qilish (pereraschet)": { "ru": "Сторнировать старый Ф2 (перерасчёт)", "en": "Reverse an old F2 (recalculation)" },
+  "Eski F2 qatorlaridan minus (storno) qoralama yaratadi; asl F2 o‘zgarmaydi": { "ru": "Создаёт черновик со сторно (минус) из строк старого Ф2; исходный Ф2 не меняется", "en": "Creates a reversal (minus) draft from the old F2 lines; the original F2 is unchanged" },
+  "Storno qilinadigan F2 ni tanlang: uning qatorlari minus qilib yangi qoralamaga yoziladi, asl F2 o‘zgarmaydi. Keyin shu oynada yangi smeta qatorlarini qo‘shasiz.": { "ru": "Выберите Ф2 для сторно: его строки запишутся с минусом в новый черновик, исходный Ф2 не меняется. Затем в этом же окне добавите строки по новой смете.", "en": "Pick the F2 to reverse: its lines are written with minus into a new draft, the original F2 is unchanged. Then you add the new-estimate lines in this same window." },
+  "Storno qilinadigan F2 yo‘q (bekor qilinganlar ko‘rsatilmaydi).": { "ru": "Нет Ф2 для сторно (отменённые не показываются).", "en": "No F2 available to reverse (cancelled ones are not shown)." },
+  "F2 reestri o‘qilmadi. Qayta urinib ko‘ring.": { "ru": "Реестр Ф2 не прочитан. Повторите попытку.", "en": "The F2 register could not be read. Please try again." },
+  "Storno qoralamasi yaratildi. Yangi smeta qatorlarini pastda qo‘shib, saqlang.": { "ru": "Черновик сторно создан. Добавьте строки новой сметы ниже и сохраните.", "en": "Reversal draft created. Add the new-estimate lines below and save." },
+  "Storno qilinayotgan F2: №{r}": { "ru": "Сторнируется Ф2 №{r}", "en": "Reversing F2 No. {r}" },
+  "Storno qoralamasi yaratildi, lekin uning raqami olinmadi. F2 tarixidan oching.": { "ru": "Черновик сторно создан, но его номер не получен. Откройте его в истории Ф2.", "en": "The reversal draft was created but its id was not returned. Open it from F2 history." },
+  "Qoralama": { "ru": "Черновик", "en": "Draft" },
+  "Yuborilgan": { "ru": "Отправлен", "en": "Submitted" },
+  "Tekshirilgan": { "ru": "Проверен", "en": "Checked" },
+  "Tasdiqlangan": { "ru": "Утверждён", "en": "Approved" },
+  "Tanlash": { "ru": "Выбрать", "en": "Select" },
+  "noma‘lum": { "ru": "неизвестно", "en": "unknown" }
+}

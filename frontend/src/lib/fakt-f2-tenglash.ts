@@ -15,6 +15,7 @@
  *    qatorlar (qo'lda kiritilgan, topshirilmagan ish) o'zgartirilmaydi — faqat signal.
  */
 import { sbT2AktBekor } from '../api/supabase';
+import { yigindi2 } from './hisob-yadro';
 import type { JurnalHolat, JurnalIsh, JurnalQator } from './fakt-jurnal';
 import { bosKatKesim, katKesimgaQosh, type KatKesim } from './ustamali-summa';
 
@@ -286,7 +287,7 @@ function rejaYasa(qatorlar: TenglashQator[], manfiyReja: number, f2Yoq: number, 
   return {
     qatorlar,
     paket: qatorlar.flatMap(paketQatorlar),
-    jamiSumma: yaxlit(qatorlar.reduce((s, x) => s + (x.summa ?? 0), 0)),
+    jamiSumma: yigindi2(qatorlar.map((x) => x.summa)), // noma'lum summa o'tkaziladi; soni `narxsiz` da
     narxsiz: qatorlar.filter((x) => x.summa == null).length,
     otkazildi: { manfiyReja, f2Yoq }, faktOrtiq,
   };

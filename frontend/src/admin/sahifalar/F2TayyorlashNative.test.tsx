@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import type { T2Qator } from '../../api/supabase';
 
-const m = vi.hoisted(() => ({ yarat: vi.fn(), toast: vi.fn(), yangila: vi.fn(), oqi: vi.fn(), belgila: vi.fn(), baj: [] as unknown[] }));
+const m = vi.hoisted(() => ({ yarat: vi.fn(), toast: vi.fn(), yangila: vi.fn(), oqi: vi.fn(), belgila: vi.fn(), baj: [] as unknown[], reestr: vi.fn(), komp: { joriy: { id: 1 } as Record<string, unknown>, superadmin: false } }));
 const q = (o: Partial<T2Qator> & { id: number; tur: string; norma?: number | null }): T2Qator => ({
   obyekt_id: 8, obyekt: null, kompaniya_id: 1, ota_id: null, daraja: 0, tartib: o.id, kod: null, nom: `q${o.id}`, birlik: 'м3',
   hajm: null, narx: null, summa: null, kat: null, narx_usul: null, qoshimcha: false, zamena: false,
@@ -30,6 +30,7 @@ vi.mock('../../api/supabase', () => ({
   sbT2AktYaratV2: m.yarat,
   sbT2F2QoralamaYangila: m.yangila,
   sbOqi: m.oqi,
+  sbT2AktReestrOl: m.reestr,
   yangiOperationId: () => '00000000-0000-4000-8000-000000000001',
 }));
 // Token daftari: sarf muvaffaqiyatli — amal bajariladi (token mantig'i t2-token/f2-yacheyka testlarida).
@@ -51,14 +52,16 @@ vi.mock('../../api/t2-shartnoma-liniya', () => ({ shartnomaLiniyaOl: vi.fn(async
   ],
 } })) }));
 vi.mock('../../umumiy/ui/Toast', () => ({ toast: m.toast }));
-vi.mock('../../test02/KompaniyaTanlov', () => ({ useKompaniya: () => ({ joriy: { id: 1 } }) }));
+vi.mock('../../test02/KompaniyaTanlov', () => ({ useKompaniya: () => m.komp }));
+vi.mock('./F2StornoOyna', () => ({ F2StornoOyna: (p: { akt: { id: number }; onYaratildi?: (id: number) => void }) => <button type="button" onClick={() => p.onYaratildi?.(555)}>storno-oyna-{p.akt.id}</button> }));
 vi.mock('../../umumiy/kontekst/PTOWorkspaceContext', () => ({ usePTOWorkspace: () => ({ scope: { objectId: null }, setObjectId: vi.fn() }) }));
 vi.mock('../../umumiy/hujjat/HujjatTomonlari', () => ({ useHujjatTomonlari: () => [{}, vi.fn()], HujjatTomonlariPanel: () => null }));
 vi.mock('../../umumiy/hujjat/HujjatKorinish', () => ({ useHujjatKorinish: () => ({ oyna: null, ochish: vi.fn() }) }));
 
 import { F2TayyorlashNative } from './F2TayyorlashNative';
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
+afterEach(() => { cleanup(); vi.clearAllMocks(); sessionStorage.clear(); m.komp.joriy = { id: 1 }; m.komp.superadmin = false; });
+const Joy = () => <output data-testid="joy">{useLocation().search}</output>;
 const ochish = () => render(<MemoryRouter initialEntries={['/admin/f2-tayyorlash?obyekt=8']}><F2TayyorlashNative /></MemoryRouter>);
 
 describe('F2 tayyorlash', () => {
@@ -250,4 +253,58 @@ describe('F2 tayyorlash', () => {
     expect(saqla.disabled).toBe(true);
     expect(m.yangila).not.toHaveBeenCalled();
   });
-});
+
+  describe('eski F2 ni storno qilish (F2 tayyorlash oynasida)', () => {
+    const akt = (o: Record<string, unknown>) => ({ tur: 'f2', oy: '2026-09-01', holat: 'tasdiqlangan', lifecycle_status: 'approved', qator_soni: 3, hujjat_jami: 1000, ...o });
+    const ochishJoy = (url = '/admin/f2-tayyorlash?obyekt=8') => render(<MemoryRouter initialEntries={[url]}><F2TayyorlashNative /><Joy /></MemoryRouter>);
+
+    it('tugma f2.prepare bo‘lsa ko‘rinadi, bo‘lmasa yashirin; superadmin ko‘radi; yopiq rolda yo‘q', async () => {
+      ochishJoy();
+      await screen.findByLabelText('F2 raqami');
+      expect(screen.queryByTestId('storno-tanlov-tugma')).toBeNull();
+      cleanup();
+      m.komp.joriy = { id: 1, permissions: ['f2.prepare'] };
+      ochishJoy();
+      expect(await screen.findByTestId('storno-tanlov-tugma')).toBeTruthy();
+      cleanup();
+      m.komp.joriy = { id: 1, permissions: [] }; m.komp.superadmin = true;
+      ochishJoy();
+      expect(await screen.findByTestId('storno-tanlov-tugma')).toBeTruthy();
+      cleanup();
+      m.komp.joriy = { id: 1, permissions: ['f2.prepare'], rol: 'bugalter' }; m.komp.superadmin = false;
+      ochishJoy();
+      await screen.findByLabelText('F2 raqami');
+      expect(screen.queryByTestId('storno-tanlov-tugma')).toBeNull();
+    });
+
+    it('tanlagich bekor/rad/superseded aktlarni chiqarmaydi; tanlash F2StornoOyna ni ochadi; yaratilgach ?akt=yangi ga o‘tadi', async () => {
+      m.komp.joriy = { id: 1, permissions: ['f2.prepare'] };
+      m.reestr.mockResolvedValue({ ok: true, qatorlar: [
+        akt({ id: 11, raqam: '1' }),
+        akt({ id: 12, raqam: '2', holat: 'bekor', lifecycle_status: 'cancelled' }),
+        akt({ id: 13, raqam: '3', holat: 'qoralama', lifecycle_status: 'rejected' }),
+        akt({ id: 14, raqam: '4', lifecycle_status: 'superseded' }),
+        akt({ id: 15, raqam: '5', holat: 'qoralama', lifecycle_status: 'draft', hujjat_jami: null }),
+        { ...akt({ id: 16, raqam: 'X' }), tur: 'boshqa' },
+      ] });
+      ochishJoy();
+      fireEvent.click(await screen.findByTestId('storno-tanlov-tugma'));
+      const qatorlar = await screen.findAllByTestId('storno-tanlov-akt');
+      expect(qatorlar.map((x) => x.querySelector('td')?.textContent)).toEqual(['5', '1']);
+      expect(qatorlar[0].textContent).toContain('noma‘lum');
+      fireEvent.click(qatorlar[1].querySelector('button') as HTMLElement);
+      fireEvent.click(await screen.findByText('storno-oyna-11'));
+      await waitFor(() => expect(screen.getByTestId('joy').textContent).toBe('?obyekt=8&akt=555'));
+      expect(screen.queryByText('storno-oyna-11')).toBeNull();
+    });
+
+    it('?akt= storno qoralamasida qaysi F2 storno qilinayotgani ko‘rinadi', async () => {
+      m.oqi.mockImplementation(async (s: { jadval: string }) => s.jadval === 't2_akt'
+        ? { ok: true, qatorlar: [{ id: 77, raqam: '5-С', oy: '2026-09-01', holat: 'qoralama', lifecycle_status: 'draft', versiya: 1, manba: null }] }
+        : s.jadval === 't2_akt_qator'
+          ? { ok: true, qatorlar: [{ qator_id: 2, hajm: -6, certified_quantity: -6, certified_unit_price: 100, certified_amount: -600, provenance_status: 'source_certified', raw_snapshot: { source: 'storno', stornoOf: 11 } }] }
+          : { ok: true, qatorlar: [] });
+      ochishJoy('/admin/f2-tayyorlash?obyekt=8&akt=77');
+      expect((await screen.findByTestId('storno-manba')).textContent).toContain('№11');
+    });
+  });});

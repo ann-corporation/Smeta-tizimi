@@ -1,0 +1,5 @@
+{
+  "Summasi noma‘lum qatorlar": { "ru": "Строки с неизвестной суммой", "en": "Rows with unknown amount" },
+  "+{n} summasiz": { "ru": "+{n} без суммы", "en": "+{n} without amount" },
+  "Summasi noma‘lum resurslar jamiga kirmagan": { "ru": "Ресурсы с неизвестной суммой не входят в итог", "en": "Resources with unknown amount are not included in the total" }
+}

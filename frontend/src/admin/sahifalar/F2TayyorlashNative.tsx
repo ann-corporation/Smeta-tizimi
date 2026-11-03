@@ -1,4 +1,5 @@
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { topshirilganPaketOgohi } from '../../lib/f2-oylik-paket/ogoh';
 import { TayyorlanganF2lar } from './TayyorlanganF2lar';
 import { F2AiYordamchi } from './F2AiYordamchi';
 import { tkmBirlikmi, tkmTaklif } from '../../lib/f2-moslash-v3/tkm';
@@ -20,6 +21,9 @@ import { sbOqi, sbT2AktYaratV2, sbT2F2QoralamaYangila, sbT2DaraxtOl, sbT2Obyektl
 import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
 import { sbQatorHolatOl, sbF2QoralamaHajmlar, type QatorHolat } from '../../api/t2-fakt';
 import { f2Hujjat } from '../../lib/f2-hujjat';
+import { stornoBlokniSaqla, stornoQatorimi } from '../../lib/f2-storno';
+import { yigindi2 } from '../../lib/hisob-yadro';
+import { f2QatorniOlibTashla, f2SessiyaOqi, f2SessiyaSaqla, f2SessiyaTozala } from '../../lib/f2-tayyor-sessiya';
 import { useObyektF2Aktlari } from './F2DublikatPanel';
 import { bloklarmi, dublikatTekshiruv, pereraschetBelgisi } from '../../lib/f2-dublikat/tekshiruv';
 import { shifrKorinish } from '../../lib/f2-resurs-guruh';
@@ -36,6 +40,10 @@ import { qidiruvTayyorla } from '../../lib/qidiruv-normalizatsiya';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
+import { useAktPodvallar } from '../../umumiy/ui/useAktPodvallar';
+import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
+import { eskiBloklarHujjat, pereraschetBaholash, pereraschetBloklari } from '../../lib/f2-pereraschet';
+import { PereraschetPanel } from '../../components/f2-tayyorlash/PereraschetPanel';
 import { obyektPodvali } from '../../api/t2-nakrutka-podval';
 import { sbAosrCoverageOl, type AosrCoverage } from '../../api/t2-aosr';
 import { aosrIshora, AOSR_ISHORA_MATNI, type AosrIshora } from '../../lib/nazorat/aosr-holat';
@@ -44,7 +52,9 @@ import {
   bosKiritma, f2Jami, f2KatKesim, f2Qatorlar, f2Qur, f2Yacheykalar, f2Yuk, f2ZamenaQolla, ishBirlikNarxi, narxsizNomzodlar, sonOqi, ulushHajm,
   type F2Bolim, type F2Ish, type F2Kiritma, type F2Manba, type F2Qator, type F2Resurs, type F2ZamenaKontekst,
 } from '../../lib/f2-tayyor';
-import { MinusCircle, Repeat2 } from 'lucide-react';
+import { MinusCircle, Repeat2, RotateCcw } from 'lucide-react';
+import { rolF2YozishYopiq } from '../../lib/nav/menyuRolYopiq';
+import { F2StornoTanlov } from './F2StornoTanlov';
 import { bajarilmadiBekor, bajarilmadiRoyxatOl, bajarilmadiXato, type BajarilmadiQator } from '../../api/t2-bajarilmadi';
 import { bajarilmadiHajmlar } from '../../lib/fakt-studio';
 import { zamenaBoglanishOl, zamenaMiqdorOl } from '../../lib/fakt-zamena-boglanish';
@@ -65,12 +75,12 @@ import { f2Elementlar, f2ElementUstunlar, f2QaytaQur, f2ResursUstunlar, type F2F
 import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
 
 const oyBoshlanishi = () => `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`;
-const XATO_MATN: Record<NonNullable<F2Qator['xato']>, string> = { HAJM: 'Hajm 0 dan katta son bo‘lsin', NARX: 'Narx kerak (yoki «narxsiz» belgilang)', SUMMA: 'Summa son emas' };
+const XATO_MATN: Record<NonNullable<F2Qator['xato']>, string> = { HAJM: 'Hajm 0 bo‘lmasligi kerak (minus ham mumkin)', NARX: 'Narx kerak (yoki «narxsiz» belgilang)', SUMMA: 'Summa son emas' };
 const OGOH_MATN: Record<NonNullable<F2Qator['ogoh']>, string> = { RESURS_CHEGARA: 'resurs fakt qoldig‘i bilan cheklandi', ARIFMETIKA: 'summa hajm × narxdan farq qiladi — hujjat summasi saqlanadi', SMETADAN_OSHDI: 'smeta hajmidan oshadi (ruxsat, ogohlantirish)', AXBOROT_NARXSIZ: 'axborot qatori: narxsiz (smetada narxi yo‘q)', QOLDIQDAN_OSHDI: 'fakt qoldig‘idan oshadi (ruxsat, ogohlantirish)', QORALAMA_TAKROR: 'qoralamadagi F2 bilan birga ikki marta olinadi — tekshiring' };
 /** Hajm qoldiqdan oshgan ogohlantirishlar - maydon sariq (blok emas). */
 const OSH_OGOH = new Set<F2Qator['ogoh']>(['SMETADAN_OSHDI', 'QOLDIQDAN_OSHDI', 'QORALAMA_TAKROR']);
 /** Tahrirlanayotgan QORALAMA akt (?akt=ID): sarlavha + qatorlar (t2_akt_qator) - kiritmalarga yuklanadi. */
-type AktBand = { qator_id: number; hajm: number | string | null; certified_quantity: number | string | null; certified_unit_price: number | string | null; certified_amount: number | string | null; provenance_status: string | null };
+type AktBand = { qator_id: number; hajm: number | string | null; certified_quantity: number | string | null; certified_unit_price: number | string | null; certified_amount: number | string | null; provenance_status: string | null; raw_snapshot?: unknown };
 type TahrirAkt = { id: number; raqam: string | null; oy: string | null; holat: string; lifecycle_status: string | null; versiya: number; qatorlar: AktBand[] };
 const sonQ = (v: unknown): number | null => (v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
 const kirit = 'rounded border border-border bg-bg px-2 py-1 text-right tabular-nums outline-none focus:border-accent';
@@ -100,7 +110,10 @@ function ResursJadval({ resurslar, ustunlar, qator }: { resurslar: F2Resurs[]; u
  */
 export function F2TayyorlashNative() {
   const moneyScope = useRef<HTMLDivElement>(null);
-  const { joriy } = useKompaniya();
+  const { joriy, superadmin } = useKompaniya();
+  /** «Eski F2 ni storno qilish» ruxsati: F2 tarixidagi storno tugmasi bilan bir xil (f2.prepare, yozish yopiq rol emas). */
+  const mayPrepare = !!superadmin || (!rolF2YozishYopiq(joriy?.rol) && !!joriy?.permissions?.includes('f2.prepare'));
+  const [stornoTanlovOchiq, setStornoTanlovOchiq] = useState(false);
   const [ndsFoiz, setNdsFoiz] = useState(String(NDS_SUKUT_FOIZ));
   const workspace = usePTOWorkspace();
   const navigate = useNavigate();
@@ -148,6 +161,11 @@ export function F2TayyorlashNative() {
   const aktQollandi = useRef<string | null>(null);
   /** Faqat qoralama (draft) akt tahrirlanadi; tasdiqlangan/yuborilgan - faqat ko'rish. */
   const aktKorish = !!akt && (akt.holat !== 'qoralama' || (akt.lifecycle_status ?? 'draft') !== 'draft');
+  /** «Сторно (eski F2)» bloki: shu qoralamadagi storno qatorlari (hujjat boshida, tahrirlanmaydi, saqlashda aynan qayta yoziladi). */
+  const stornoBlok = useMemo(() => {
+    const qs = (akt?.qatorlar ?? []).filter(stornoQatorimi);
+    return { soni: qs.length, jami: yigindi2(qs.map((x) => sonQ(x.certified_amount))), nomalum: qs.filter((x) => sonQ(x.certified_amount) == null).length };
+  }, [akt]);
 
   useEffect(() => {
     if (!joriy?.id) return;
@@ -157,7 +175,9 @@ export function F2TayyorlashNative() {
 
   /** Loads are numbered: rows of an object the user already left must never stay under the new object (an F2 act is written from them). */
   const sorov = useRef(0);
+  const sessObyekt = useRef<number | null>(null);
   const yuklash = useCallback(async () => {
+    sessObyekt.current = null;
     const raqam = ++sorov.current;
     const dolzarb = () => raqam === sorov.current;
     if (!validId) { setRows([]); setHolat([]); setProtokolQ([]); setAosrsiz([]); setAosrKoz(new Map()); return; }
@@ -167,7 +187,7 @@ export function F2TayyorlashNative() {
         void (async () => {
           const [a, q] = await Promise.all([
             sbOqi<{ id: number; raqam: string | null; oy: string | null; holat: string; lifecycle_status: string | null; versiya: number | null }>({ jadval: 't2_akt', filtr: `id=eq.${aktId}&obyekt_id=eq.${obyektId}&tur=eq.f2`, ustunlar: 'id,raqam,oy,holat,lifecycle_status,versiya', limit: 1 }),
-            sbOqi<AktBand>({ jadval: 't2_akt_qator', filtr: `akt_id=eq.${aktId}&obyekt_id=eq.${obyektId}`, ustunlar: 'qator_id,hajm,certified_quantity,certified_unit_price,certified_amount,provenance_status', limit: 50000 }),
+            sbOqi<AktBand>({ jadval: 't2_akt_qator', filtr: `akt_id=eq.${aktId}&obyekt_id=eq.${obyektId}`, ustunlar: 'qator_id,hajm,certified_quantity,certified_unit_price,certified_amount,provenance_status,raw_snapshot', limit: 50000 }),
           ]);
           if (!dolzarb()) return;
           const h0 = a.ok ? a.qatorlar?.[0] : undefined;
@@ -183,12 +203,16 @@ export function F2TayyorlashNative() {
       if (!dolzarb()) return;
       if (!d.ok || !h.ok) { setRows([]); setHolat([]); setError('F2 uchun smeta va fakt qoldig‘i o‘qilmadi.'); return; }
       setRows((d.qatorlar || []) as T2Qator[]); setHolat((h.qatorlar || []) as QatorHolat[]);
-      setK(bosKiritma()); setBolimId(undefined); setManbaTanlov(null);
+      sessObyekt.current = aktId == null ? obyektId : null;
+      const sess = aktId == null ? f2SessiyaOqi(obyektId) : null; // saqlanmagan kiritmalar (yangilashdan keyin ham)
+      setK(sess?.k ?? bosKiritma()); if (sess?.raqam) setRaqam(sess.raqam); setBolimId(undefined); setManbaTanlov(null);
       operationId.current = yangiOperationId();
     } catch { if (dolzarb()) { setRows([]); setHolat([]); setError('F2 uchun ma’lumotlar o‘qilmadi. Qayta urinib ko‘ring.'); } }
     finally { if (dolzarb()) setLoading(false); }
   }, [obyektId, validId, aktId]);
   useEffect(() => { void yuklash(); }, [yuklash]);
+  /** Saqlanmagan kiritmalar sessionStorage da (faqat shu obyekt yuklangach — eski obyekt kiritmasi yangisiga yozilmasin). */
+  useEffect(() => { if (validId && aktId == null && sessObyekt.current === obyektId) f2SessiyaSaqla(obyektId, { k, raqam }); }, [k, raqam, validId, aktId, obyektId]);
 
   /**
    * Resurs zamenasi/chiqarish qatlami (egasi 2026-10-27): faol «bajarilmaydi» belgilari (chiqarilgan resurslar), zamena → asl
@@ -273,6 +297,27 @@ export function F2TayyorlashNative() {
   const tayyor = qatorlar.length > 0 && jami.xato === 0;
   /** DUBLIKAT HIMOYASI (egasi 2026-10-25): shu obyektda shu raqam bor — BLOK; summasi ±0,5% teng F2 / pereraschet — ogohlantirish. */
   const { aktlar: obyektAktlari } = useObyektF2Aktlari(validId ? obyektId : null, saving ? 1 : 0);
+  /** Storno qoralamasi qaysi eski F2 ni storno qilishi: storno qatorlaridagi `raw_snapshot.stornoOf`. */
+  const stornoManbaAkt = useMemo(() => {
+    const q = (akt?.qatorlar ?? []).find((x) => stornoQatorimi(x) && Number((x.raw_snapshot as { stornoOf?: unknown }).stornoOf) > 0);
+    if (!q) return null;
+    const id = Number((q.raw_snapshot as { stornoOf?: unknown }).stornoOf);
+    return { id, raqam: obyektAktlari.find((a) => a.id === id)?.raqam ?? null };
+  }, [akt, obyektAktlari]);
+  /* PERERASCHET (egasi 2026-11-03): eski F2 bloklari — har biri O'Z hujjat podvali bilan; yangi qatorlar — smeta podvali bilan. */
+  const aktPodval = useAktPodvallar(validId && aktId != null ? obyektId : null);
+  const ustama = useUstamaliSumma(validId && aktId != null ? obyektId : null, { kompaniyaId: joriy?.id });
+  const eskiBloklar = useMemo(() => {
+    const sm = new Map(rows.map((r) => [r.id, r] as const));
+    const raqamlar = new Map(obyektAktlari.map((a) => [a.id, a.raqam ?? null] as const));
+    return pereraschetBloklari(akt?.qatorlar ?? [], sm, raqamlar);
+  }, [akt, rows, obyektAktlari]);
+  /** Blok foizlari: shu aktdagi blok nusxasi, bo'lmasa manba aktning o'z podvali; yo'q — null (smeta podvali). */
+  const blokNk = useCallback((manbaId: number) => aktPodval.nkOl(aktId ?? -1, String(manbaId)) ?? aktPodval.nkOl(manbaId, ''), [aktPodval, aktId]);
+  const pereraschetBaho = useMemo(
+    () => (eskiBloklar.length > 0 && ustama.holat === 'tayyor' && aktPodval.holat === 'tayyor'
+      ? pereraschetBaholash(eskiBloklar, blokNk, katKesim, { podval: ustama.podval, koef: ustama.koef }) : null),
+    [eskiBloklar, ustama.holat, ustama.podval, ustama.koef, aktPodval.holat, blokNk, katKesim]);
   const dublikatlar = useMemo(() => {
     if (!validId || aktId != null || !qatorlar.length) return [];
     const yuk = f2Yuk(qatorlar, raqam);
@@ -398,6 +443,7 @@ export function F2TayyorlashNative() {
     }
     const nk = bosKiritma(); let yoq = 0;
     for (const x of akt.qatorlar) {
+      if (stornoQatorimi(x)) continue; // Сторно (eski F2) bloki alohida saqlanadi (aktniYangila), kiritmalarga tushmaydi
       const id = x.qator_id; const qty = sonQ(x.certified_quantity) ?? sonQ(x.hajm);
       if (hajmQ.has(id)) { if (qty != null) nk.hajm[id] = String(qty); } else if (!avtoQ.has(id)) { yoq++; continue; }
       if (!resQ.has(id)) continue;
@@ -442,9 +488,13 @@ export function F2TayyorlashNative() {
   /** ?akt=ID rejimi: yangi akt yaratilmaydi - mavjud qoralama qatorlari almashtiriladi (akt id/raqam saqlanadi). */
   const aktniYangila = async () => {
     if (!akt || aktKorish || !joriy?.id || saving) return;
+    await topshirilganPaketOgohi(obyektId, oy); // topshirilgan oylik paket bo'lsa - ogohlantirish (saqlashni to'smaydi)
     setSaving(true);
     try {
-      const r = await sbT2F2QoralamaYangila({ kompaniyaId: joriy.id, aktId: akt.id, kutilganVersiya: akt.versiya, operationId: yangiOperationId(), qatorlar: f2Yuk(qatorlar, akt.raqam ?? raqam) });
+      /* Сторно (eski F2) bloki hujjat BOSHIDA aynan o'zi bilan qayta yuboriladi, yangi qatorlar ular ostida (qatorlar to'liq almashtiriladi). */
+      const yuk = stornoBlokniSaqla(akt.qatorlar, f2Yuk(qatorlar, akt.raqam ?? raqam));
+      if (yuk.toqnashdi > 0) toast(t('{n} ta yangi qator storno bloki bilan bir xil pozitsiya - tashlandi.', { n: String(yuk.toqnashdi) }), 'warn');
+      const r = await sbT2F2QoralamaYangila({ kompaniyaId: joriy.id, aktId: akt.id, kutilganVersiya: akt.versiya, operationId: yangiOperationId(), qatorlar: yuk.qatorlar });
       if (!r.ok) {
         if (r.code === 'STALE_VERSION') { toast(t('F2 qoralama boshqa joyda o‘zgargan - yangi holati o‘qildi. Tekshirib, qayta saqlang.'), 'warn'); await yuklash(); }
         else toast(r.xabar || r.error || t('F2 qoralama yangilanmadi.'), 'danger');
@@ -462,6 +512,7 @@ export function F2TayyorlashNative() {
     if (aktId != null) { await aktniYangila(); return; }
     const ogoh = dublikatlar.filter((m) => m.daraja === 'ogoh');
     if (ogoh.length && !await tasdiqSora(ogoh.map((m) => m.matn).join('\n\n') + '\n\n' + t('Baribir yozasizmi?'))) return;
+    await topshirilganPaketOgohi(obyektId, oy); // topshirilgan oylik paket bo'lsa - ogohlantirish (saqlashni to'smaydi)
     setSaving(true);
     try {
       // Token (egasi 2026-10-02): F2 qoralama — "f2_qoralama"; server xato bersa token avtomatik qaytadi.
@@ -471,6 +522,7 @@ export function F2TayyorlashNative() {
         return result;
       });
       if (!t.ok) { toast(t.xabar, 'danger'); return; }
+      f2SessiyaTozala(obyektId); // saqlandi — saqlanmagan kiritma qolmadi
       toast(`F2 qoralama yaratildi (${t.sarflandi} token). Tasdiqlash — F2 tarixida.`, 'ok', undefined, 12000, { label: 'Ochish', onClick: () => navigate(`/admin/f2-tarix?obyekt=${obyektId}`) });
       await yuklash();
     } catch { toast('Javob olinmadi. Shu amal IDsi bilan qayta urinishingiz mumkin.', 'danger'); }
@@ -480,19 +532,24 @@ export function F2TayyorlashNative() {
   const korinish = useHujjatKorinish();
   const excelYuklash = async (korish = false) => {
     if (!moneyValid()) return;
-    if (!validId || !tayyor) return;
+    if (!validId || !(tayyor || eskiBloklar.length > 0)) return;
     const object = obyektlar.find((item) => item.id === obyektId);
     if (!object) { toast('Obyekt topilmadi.', 'danger'); return; }
+    // Eski F2 bloklari o'z hujjat podvali bilan yoziladi: podval o'qilmasa jim smeta podvaliga o'tilmaydi.
+    if (eskiBloklar.length > 0 && aktPodval.holat !== 'tayyor') { toast(t('Hujjat podvallari o‘qilmadi — Excel tuzilmadi. Qayta urinib ko‘ring.'), 'danger'); return; }
     try {
-      const stavka = ndsFoiz.trim() === '' ? null : Number(ndsFoiz.replace(',', '.'));
+      // QQS stavkasi bo'sh qolsa ham tizim stavkasi (NDS_SUKUT_FOIZ) olinadi - hujjat QQS siz chiqmaydi.
+      const stavkaXom = ndsFoiz.trim() === '' ? NDS_SUKUT_FOIZ : Number(ndsFoiz.replace(',', '.'));
+      const stavka = Number.isFinite(stavkaXom) ? stavkaXom : NDS_SUKUT_FOIZ;
       const nk = await t2ObyektNakrutka(obyektId).catch(() => null);
       const podval = await obyektPodvali(joriy?.id, obyektId, nk?.ok ? nk.shartnoma_id : null);
       // Qo'lda kiritilgan imzo (panel) — shartnomadagidan ustun; bo'sh maydon — shartnomadagi qoladi.
       const qolda = Object.fromEntries(Object.entries(tomonlar).filter(([, x]) => typeof x === 'string' && x.trim())) as ImzoNomlar;
       const h = f2Hujjat(bolimlar, qatorlar, {
         obyektNom: object.nom, davr: oy, raqam, imzo: { ...avto.imzo, ...qolda }, shartnoma: avto.shartnoma,
-        ndsFoiz: stavka != null && Number.isFinite(stavka) ? stavka : null,
-        nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval, rows,
+        ndsFoiz: stavka,
+        nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval, nkManba: nk?.ok ? nk.nk_manba ?? null : null, rows,
+        eskiBloklar: eskiBloklar.length ? eskiBloklarHujjat(eskiBloklar, blokNk) : undefined,
       });
       // Token (egasi 2026-10-02): hujjat avval yaratiladi (xato bo'lsa token olinmaydi), keyin "f2_hujjat" sarfi bilan beriladi.
       // Mazmun xeshi: aynan shu hujjat qayta ochilsa/yuklansa — qayta to'lov yo'q. Sabab daftarda ko'rinadi.
@@ -621,7 +678,10 @@ export function F2TayyorlashNative() {
   function ishKartasi(i: F2Ish) {
     const x = byId.get(i.id);
     const ochilgan = ochiq.has(i.id) || !!qidir.trim();
-    const resSumma = i.resurslar.reduce((s, r) => s + (byId.get(r.id)?.summa ?? 0), 0);
+    // Resurs summasi noma'lum bo'lsa 0 emas: ma'lumlar yig'indisi + noma'lumlar soni.
+    const resMalum = i.resurslar.map((r) => byId.get(r.id)?.summa).filter((s): s is number => s != null);
+    const resSumma = resMalum.length ? resMalum.reduce((s, v) => s + v, 0) : null;
+    const resNomalum = i.resurslar.length - resMalum.length;
     const meter = ishMeter(i, x && !x.xato ? x.hajm : 0);
     const tg = bolimTuguni(bolimIer, qatorBolim.get(i.id) ?? null);
     const aosr = aosrKoz.get(i.id);
@@ -649,9 +709,10 @@ export function F2TayyorlashNative() {
           <div className="flex items-center gap-1.5">
             <input aria-label={`F2 hajmi: ${i.nom}`} data-ish-hajm inputMode="decimal" value={k.hajm[i.id] ?? ''} onChange={(e) => yoz('hajm', i.id, e.target.value)} onKeyDown={(e) => hajmKlaviatura(e, i.id)} placeholder={t('hajm')} className={`${kirit} w-24 ${OSH_OGOH.has(x?.ogoh) ? '!border-warn bg-warn/10' : ''}`} />
             <span className="w-10 text-[12px] text-text-mute">{i.birlik}</span>
+            {(k.hajm[i.id] ?? '') !== '' && <button type="button" tabIndex={-1} aria-label={`: ${i.nom}`} title={t('Qatorni F2 dan olib tashlash (kiritmalar tozalanadi)')} onClick={() => setK((o) => f2QatorniOlibTashla(o, i.id))} className="fz-btn fz-btn--ghost fz-btn--sm">✕</button>}
             {(i.erkin || i.mumkin > 0) && [25, 50, 100].map((f) => <button key={f} type="button" tabIndex={-1} onClick={() => yoz('hajm', i.id, ulushHajm(i.mumkin, f))} className="fz-btn fz-btn--ghost fz-btn--sm">{f}%</button>)}
           </div>
-          <span className="w-32 self-center text-right text-[13px] font-semibold tabular-nums text-text">{resSumma ? <FmtN val={resSumma} /> : ''}</span>
+          <span className="w-32 self-center text-right text-[13px] font-semibold tabular-nums text-text">{resSumma != null ? <FmtN val={resSumma} /> : ''}{resNomalum > 0 && resSumma !== null ? <span className="ml-1 text-[10px] font-normal text-warn" title={t('Summasi noma‘lum resurslar jamiga kirmagan')}>+{resNomalum}?</span> : null}</span>
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-3 pb-2.5 pl-10 text-[12px] text-text-dim">
           <span className="w-56 max-w-full"><IshMeter m={meter} birlik={i.birlik} /></span>
@@ -752,11 +813,25 @@ export function F2TayyorlashNative() {
           <Search size={14} className="pointer-events-none absolute bottom-2.5 left-2.5 text-text-mute" />
           <input aria-label="Qidirish" value={qidir} onChange={(e) => setQidir(e.target.value)} placeholder={t('ish, resurs, kod…')} className="mt-1.5 block w-full rounded-lg border border-border bg-surface-2 py-2 pl-8 pr-3 text-text" /></label>}
         {validId && bolimlar.length > 0 && <label className="flex items-center gap-1.5 pb-2.5 text-[12px] text-text-dim"><input type="checkbox" checked={faqatKiritilgan} onChange={(e) => setFaqatKiritilgan(e.target.checked)} />{t('Faqat kiritilganlar')}</label>}
+        {validId && mayPrepare && <button type="button" data-testid="storno-tanlov-tugma" className="fz-btn" title={t('Eski F2 qatorlaridan minus (storno) qoralama yaratadi; asl F2 o‘zgarmaydi')} onClick={() => setStornoTanlovOchiq(true)} disabled={saving}><RotateCcw aria-hidden="true" />{t('Eski F2 ni storno qilish (pereraschet)')}</button>}
       </section>
+      {validId && stornoTanlovOchiq && <F2StornoTanlov obyektId={obyektId} onYop={() => setStornoTanlovOchiq(false)} onYaratildi={(yangiId) => {
+        setStornoTanlovOchiq(false);
+        toast(t('Storno qoralamasi yaratildi. Yangi smeta qatorlarini pastda qo‘shib, saqlang.'), 'ok');
+        navigate(`/admin/f2-tayyorlash?obyekt=${obyektId}&akt=${yangiId}`);
+      }} />}
       {validId && aktId != null && <section role="status" aria-label={t('F2 qoralamani tahrirlash')} className={`fz-note ${aktXato || aktKorish ? 'fz-note--warn' : 'fz-note--info'} flex-wrap`} style={{ alignItems: 'center' }}>
         {tahrirHolati}
         <Link className="ml-auto text-accent underline" to={`/admin/f2-tayyorlash?obyekt=${obyektId}`}>{t('Yangi F2 tayyorlash')}</Link>
       </section>}
+      {validId && aktId != null && stornoBlok.soni > 0 && <section aria-label={t('Сторно (eski F2)')} data-testid="storno-blok" className="fz-note fz-note--info flex-wrap" style={{ alignItems: 'center' }}>
+        <b>{t('Сторно (eski F2)')}</b>
+        <span>{t('{n} qator, Σ (minus):', { n: String(stornoBlok.soni) })} <FmtN val={stornoBlok.jami} /> — {t('hujjat boshida saqlanadi; yangi pozitsiyalar shu blok ostiga qo‘shiladi.')}</span>
+        {stornoManbaAkt && <span data-testid="storno-manba">{t('Storno qilinayotgan F2: №{r}', { r: stornoManbaAkt.raqam || String(stornoManbaAkt.id) })}</span>}
+        {stornoBlok.nomalum > 0 && <span className="text-warn">{t('{n} qatorda summa noma‘lum', { n: String(stornoBlok.nomalum) })}</span>}
+      </section>}
+      {validId && aktId != null && eskiBloklar.length > 0 && aktPodval.holat === 'xato' && <section role="alert" className="fz-note fz-note--warn" style={{ alignItems: 'center' }}><AlertTriangle /><span className="flex-1">{t('Hujjat podvallari o‘qilmadi — pereraschet jami va Excel hisoblanmaydi.')}</span><button type="button" onClick={aktPodval.qayta} className="fz-btn fz-btn--sm">{t('Qayta urinib ko‘rish')}</button></section>}
+      {validId && aktId != null && pereraschetBaho && <PereraschetPanel baho={pereraschetBaho} />}
       {!validId && <section className="fz-card p-4 text-text-dim">{t('Avval obyektni tanlang.')}</section>}
       {error && validId && <section role="alert" className="fz-note fz-note--danger" style={{ alignItems: 'center' }}><AlertTriangle /><span className="flex-1">{t(error)}</span><button type="button" onClick={() => void yuklash()} className="fz-btn fz-btn--danger fz-btn--sm">{t('Qayta urinib ko‘rish')}</button></section>}
       {bajXato && validId && <section role="alert" className="fz-note fz-note--warn" style={{ alignItems: 'center' }}><AlertTriangle /><span className="flex-1">{t('Ishdan chiqarilgan resurslar ro‘yxati o‘qilmadi — F2 saqlanmaydi. Qayta urinib ko‘ring.')}</span><button type="button" onClick={() => void qoshimchaYukla()} className="fz-btn fz-btn--sm">{t('Qayta urinib ko‘rish')}</button></section>}
@@ -821,8 +896,8 @@ export function F2TayyorlashNative() {
             <div role="group" aria-label={t('Qo‘shimcha amallar')} className="flex items-center gap-1 border-l border-border pl-3">
               <button type="button" aria-pressed={vedomostOchiq} disabled={qatorlar.length === 0} onClick={() => setVedomostOchiq((o) => !o)} className={`fz-btn fz-btn--sm ${vedomostOchiq ? '' : 'fz-btn--ghost'}`}>{t('Resurs vedomosti')}</button>
               <Link to={`/admin/f2-tarix?obyekt=${obyektId}`} className="fz-btn fz-btn--ghost fz-btn--sm">{t('F2 tarixi')}</Link>
-              <button type="button" onClick={() => void excelYuklash(false)} disabled={!tayyor || saving} className="fz-btn fz-btn--ghost fz-btn--sm"><Download aria-hidden="true" />{t('Excel')}</button>
-              <button type="button" onClick={() => void excelYuklash(true)} disabled={!tayyor || saving} aria-label="Forma-2 qoralama ko‘rish" title={t('Forma-2 qoralama ko‘rish')} className="fz-btn fz-btn--ghost fz-btn--sm fz-btn--icon"><Eye aria-hidden="true" /></button>
+              <button type="button" onClick={() => void excelYuklash(false)} disabled={!(tayyor || eskiBloklar.length > 0) || saving} className="fz-btn fz-btn--ghost fz-btn--sm"><Download aria-hidden="true" />{t('Excel')}</button>
+              <button type="button" onClick={() => void excelYuklash(true)} disabled={!(tayyor || eskiBloklar.length > 0) || saving} aria-label="Forma-2 qoralama ko‘rish" title={t('Forma-2 qoralama ko‘rish')} className="fz-btn fz-btn--ghost fz-btn--sm fz-btn--icon"><Eye aria-hidden="true" /></button>
             </div>
             <button type="button" onClick={() => void saqlash()} disabled={!saqlashMumkin || saving} className="fz-btn fz-btn--primary"><Save aria-hidden="true" />{saqlaMatn}<kbd className="fz-kbd" aria-hidden="true">{'Ctrl+Enter'}</kbd></button>
           </div>

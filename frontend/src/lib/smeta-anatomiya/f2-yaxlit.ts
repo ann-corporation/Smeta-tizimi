@@ -10,6 +10,7 @@
  *   - «РАНЕЕ ОПЛАЧЕНО (АВАНС)» to'lov, «ранее оформленным» emas — ranee ga yozilmaydi.
  * Hech narsa taxmin qilinmaydi: ustun yoki ИТОГО БЕЗ НДС qatori topilmasa — bu varaq bu yo'l bilan o'qilmaydi (null).
  */
+import { yaxlit2 } from '../hisob-yadro';
 import { kalit, son, xom } from './matn';
 import type { F2Akt, F2Tugun } from './f2';
 import type { Katak, KirishKitob, KirishVaraq, VaraqAnatomiyasi } from './turlar';
@@ -76,7 +77,7 @@ export function yaxlitAkt(kitob: KirishKitob, v: KirishVaraq): F2Akt | null {
     const hajm = itemlar.length === 1 && bez!.shart != null && bez!.shart > 0 ? bez!.sum! / bez!.shart : x.pct;
     return {
       uid: `${v.nom}!${x.qator}`, tur: 'bl', kod: null, nom: x.nom, birlik: x.birlik ?? 'сум', hajm, narx,
-      summa: itemlar.length === 1 ? bez!.sum : Math.round(hajm * narx * 100) / 100,
+      summa: itemlar.length === 1 ? bez!.sum : yaxlit2(hajm * narx),
       manzil: manzil(x.qator, sum), yol: [], bolalar: [], barg: true,
     };
   });

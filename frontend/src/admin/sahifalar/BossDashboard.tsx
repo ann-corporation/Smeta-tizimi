@@ -18,14 +18,17 @@ import Reports from '../../components/boss-decision/Reports';
 import ExecutiveCockpit from '../../components/boss-decision/ExecutiveCockpit';
 import { F2Oqimi, MoliyaUstunlari, SignalTasma, SmetaF2Ustunlari } from '../../components/rahbar-panel/RahbarGrafiklar';
 import { MindmapSlot } from '../../components/rahbar-panel/MindmapSlot';
-import { KategoriyaDonut, SanaYurish, UstamaSharshara, UstamaXulosaKarta } from '../../components/rahbar-panel/RahbarUstama';
-import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
+import { KategoriyaDonut, UstamaSharshara, UstamaXulosaKarta } from '../../components/rahbar-panel/RahbarUstama';
+import { QiymatUchlik } from '../../umumiy/ui/QiymatUchlik';
 import { PortfelSummaJuft } from '../../umumiy/ui/PortfelSummaJuft';
+import { SummaJuft } from '../../umumiy/ui/SummaJuft';
+import { useRahbarPanel, type RahbarPanel } from '../../api/t2-rahbar-panel';
+import { paketUchligi, type SummaPaket } from '../../lib/summa-paket';
+import { ustamasizUchlik } from '../../lib/ustamali-summa';
+import type { TafsilQism } from '../../lib/summa-tafsilot';
 
 type Dashboard = NonNullable<ReturnType<typeof useBossDashboard>['data']>;
 
-const nf = new Intl.NumberFormat('uz-UZ', { maximumFractionDigits: 2 });
-const money = (value: unknown) => { const n = amount(value); return n == null ? '—' : nf.format(n) + ' UZS'; };
 const vaqt = (iso: string | null | undefined, sana = false) => {
   if (!iso || !Number.isFinite(Date.parse(iso))) return '—';
   const d = new Date(iso);
@@ -59,8 +62,27 @@ export default function BossDashboard() {
   );
 }
 
-/** 1) Xulosa — to'rtta asosiy raqam. Smeta va F2 nisbatidan foiz chiqarilmaydi (hisob asoslari har xil). */
-function Xulosa({ data, e }: { data: Dashboard; e: BossExecutive | null }) {
+type PanelHolat = { panel: RahbarPanel | undefined; yuklanmoqda: boolean };
+
+/**
+ * Tasdiqlangan F2 summasi — HAR DOIM uchlik (QQS bilan · ustamali QQS siz · ustamasiz): server paketi (`t2_rahbar_panel_v1`,
+ * yagona `_t2_summa_paket_*` yadro). Paket yo'q — «hisoblanmadi» (faqat ma'lum ustamasiz ko'rsatiladi, yorlig'i bilan), 0 emas.
+ */
+function F2Qiymat({ paket, ustamasiz, holat, qismlar, nomalumSoni, kichik = false }: {
+  paket: SummaPaket | null; ustamasiz: number | null; holat: PanelHolat; qismlar?: TafsilQism[]; nomalumSoni?: number; kichik?: boolean;
+}) {
+  if (paket) return <SummaJuft paket={paket} yorliq={t('F2, QQS bilan')} kichik={kichik} qismlar={qismlar} nomalumSoni={nomalumSoni} />;
+  if (holat.yuklanmoqda) return <span className="text-text-mute">{t('Hisoblanmoqda…')}</span>;
+  return <QiymatUchlik q={ustamasizUchlik(ustamasiz, 'HISOBLANMADI')} yorliq={t('F2, QQS bilan')} kichik={kichik} nomalumSoni={nomalumSoni} />;
+}
+
+/** F2 tarkibi: obyektlar, har biri o'z F2 uchligi bilan (server paketidan). */
+function f2Qismlari(panel: RahbarPanel | undefined): TafsilQism[] | undefined {
+  return panel?.obyektlar.map((o) => ({ kalit: String(o.obyekt_id), nom: o.nom, q: paketUchligi(o.f2) }));
+}
+
+/** 1) Xulosa — asosiy raqamlar. Smeta va F2 nisbatidan foiz chiqarilmaydi (hisob asoslari har xil). */
+function Xulosa({ data, e, ph }: { data: Dashboard; e: BossExecutive | null; ph: PanelHolat }) {
   const obyektlar = (e?.objects ?? []).map(o => ({ obyektId: o.object_id }));
   const yoq = t('Ma’lumot yetarli emas');
   const smetaIzoh = e ? `${t('Narxsiz qatorlar')}: ${e.totals.unpriced_rows} · ${t('Smetasi yetishmagan obyektlar')}: ${e.totals.estimate_missing}` : yoq;
@@ -71,10 +93,11 @@ function Xulosa({ data, e }: { data: Dashboard; e: BossExecutive | null }) {
     <section aria-label={t('Portfel xulosasi')} className="flex flex-col gap-2">
       {!e && <div role="status" className="fz-note fz-note--warn"><AlertTriangle aria-hidden="true" />
         <span>{t('Tasdiqlangan F2 va obyektlar bo‘yicha yangi hisob modeli hali ulanmagan. Eski umumiy akt summasi bajarilgan ish sifatida ko‘rsatilmaydi.')}</span></div>}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        {e && <UstamaXulosaKarta obyektlar={obyektlar} ustamasiz={amount(e.totals.estimate_known)} kompaniyaId={data.kompaniya.kompaniya_id} />}
-        <KpiKarta nom={t('To‘g‘ridan-to‘g‘ri xarajat (ustamasiz)')} qiymat={e && amount(e.totals.estimate_known) != null ? <><SanaYurish qiymat={amount(e.totals.estimate_known)} />{' UZS'}</> : '—'} ost={smetaIzoh} />
-        <KpiKarta nom={t('Tasdiqlangan F2 hujjatlari summasi')} qiymat={e && amount(e.totals.approved_known) != null ? <><SanaYurish qiymat={amount(e.totals.approved_known)} />{' UZS'}<SummaYorliq tur="ustamasiz" /></> : '—'} ost={f2Izoh} />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {/* To'g'ridan-to'g'ri xarajat (ustamasiz) alohida plitka EMAS: u shu uchlikning 3-qatori (aralash turlar chalkashmasin). */}
+        {e && <UstamaXulosaKarta obyektlar={obyektlar.map((o, i) => ({ ...o, nom: e.objects[i]?.name }))} ustamasiz={amount(e.totals.estimate_known)} kompaniyaId={data.kompaniya.kompaniya_id} izoh={smetaIzoh} />}
+        <KpiKarta nom={t('Tasdiqlangan F2 hujjatlari summasi')}
+          qiymat={e ? <F2Qiymat paket={ph.panel?.kartalar.bajarildi.jami ?? null} ustamasiz={amount(e.totals.approved_known)} holat={ph} qismlar={f2Qismlari(ph.panel)} nomalumSoni={e.totals.approved_missing} /> : '—'} ost={f2Izoh} />
         <KpiKarta nom={t('F2: tekshiruv / qoralama')} qiymat={jarayon} ost={t('Tasdiqlangan aktlardan alohida')} />
         <KpiKarta nom={t('Muhim ochiq signallar')} qiymat={<span className={data.signal.kritik_soni > 0 ? 'text-danger' : ''}>{data.signal.kritik_soni}</span>} ost={signalIzoh} />
       </div>
@@ -154,7 +177,7 @@ function ObyektBelgilari({ o }: { o: ExecutiveObject }) {
 }
 
 /** 4) Loyihalar va obyektlar jadvali. */
-function Obyektlar({ e, onAsos }: { e: BossExecutive; onAsos: (objectId: number) => void }) {
+function Obyektlar({ e, onAsos, ph }: { e: BossExecutive; onAsos: (objectId: number) => void; ph: PanelHolat }) {
   const [project, setProject] = useState('all');
   const [search, setSearch] = useState('');
   const [issues, setIssues] = useState(false);
@@ -172,11 +195,12 @@ function Obyektlar({ e, onAsos }: { e: BossExecutive; onAsos: (objectId: number)
         </div>
       </div>
       <div className="grid gap-3 md:grid-cols-3">
-        {e.projects.map(p => <Link className="fz-panel hover:bg-surface-2" to={projectUrl(p.project_id)} key={p.project_id ?? 'none'}>
-          <span className="font-medium">{p.name}</span>
+        {/* Karta Link EMAS: ichidagi ▸ tafsilot (bosiladigan) havola ichida bo'lmasin. */}
+        {e.projects.map(p => <div className="fz-panel hover:bg-surface-2" key={p.project_id ?? 'none'}>
+          <Link className="font-medium hover:underline" to={projectUrl(p.project_id)}>{p.name}</Link>
           <span className="text-[13px] text-text-dim">{p.object_count} {t('obyekt')}</span>
-          <PortfelSummaJuft obyektlar={e.objects.filter(o => o.project_id === p.project_id).map(o => ({ obyektId: o.object_id }))} ustamasiz={amount(p.estimate_known)} />
-        </Link>)}
+          <PortfelSummaJuft obyektlar={e.objects.filter(o => o.project_id === p.project_id).map(o => ({ obyektId: o.object_id, nom: o.name }))} ustamasiz={amount(p.estimate_known)} />
+        </div>)}
       </div>
       <label className="flex items-center gap-2 text-[13px]"><input type="checkbox" checked={issues} onChange={ev => setIssues(ev.target.checked)} />{t('Faqat e’tibor talab qiladigan obyektlar')}</label>
       <div className="fz-table-wrap">
@@ -191,12 +215,12 @@ function Obyektlar({ e, onAsos }: { e: BossExecutive; onAsos: (objectId: number)
                 <p className="mt-1 text-[12px] text-text-dim">{o.project_name ?? t('Loyihaga biriktirilmagan')}</p>
               </td>
               <td className="fz-c-num">
-                <a href="#boss-reports" className="underline decoration-dotted underline-offset-4 hover:text-accent" aria-label={`${t('Summaning asosini ko‘rish')}: ${o.name}`} onClick={() => onAsos(o.object_id)}>
-                  <PortfelSummaJuft kichik obyektlar={[{ obyektId: o.object_id }]} ustamasiz={amount(o.estimate_known)} />
-                </a>
+                <PortfelSummaJuft kichik obyektlar={[{ obyektId: o.object_id, nom: o.name }]} ustamasiz={amount(o.estimate_known)} className="items-end text-right" />
+                <a href="#boss-reports" className="text-[10.5px] underline decoration-dotted underline-offset-4 hover:text-accent" aria-label={`${t('Summaning asosini ko‘rish')}: ${o.name}`} onClick={() => onAsos(o.object_id)}>{t('asosi')}</a>
               </td>
               <td className="fz-c-num">
-                <Link className="underline decoration-dotted underline-offset-4 hover:text-accent" to={objectUrl(o.object_id, o.project_id, 'f2-tarix')}>{money(o.approved_known)}</Link><SummaYorliq tur="ustamasiz" />
+                <F2Qiymat kichik paket={ph.panel?.obyektlar.find(x => x.obyekt_id === o.object_id)?.f2 ?? null} ustamasiz={amount(o.approved_known)} holat={ph} nomalumSoni={o.approved_missing} />
+                <Link className="text-[10.5px] underline decoration-dotted underline-offset-4 hover:text-accent" to={objectUrl(o.object_id, o.project_id, 'f2-tarix')}>{t('F2 tarixi')}</Link>
               </td>
               <td><ObyektBelgilari o={o} /></td>
             </tr>)}
@@ -212,6 +236,8 @@ function Obyektlar({ e, onAsos }: { e: BossExecutive; onAsos: (objectId: number)
 
 function Portfolio({ data }: { data: Dashboard }) {
   const e = trustedExecutive(data);
+  const rp = useRahbarPanel(data.kompaniya.kompaniya_id);
+  const ph: PanelHolat = { panel: rp.data, yuklanmoqda: rp.isPending && rp.fetchStatus !== 'idle' };
   const [reports, setReports] = useState(false);
   const [reportObject, setReportObject] = useState<number | undefined>();
   const [reportProject, setReportProject] = useState<number | null | undefined>();
@@ -222,7 +248,7 @@ function Portfolio({ data }: { data: Dashboard }) {
   };
   const toggleReports = () => { setReportObject(undefined); setReportProject(undefined); setReports(!reports); };
   return <>
-    <Xulosa data={data} e={e} />
+    <Xulosa data={data} e={e} ph={ph} />
 
     <MindmapSlot kompaniyaId={data.kompaniya.kompaniya_id} />
     {e && <div className="grid gap-4 xl:grid-cols-2">
@@ -253,7 +279,7 @@ function Portfolio({ data }: { data: Dashboard }) {
     <details className="fz-card">
       <summary className="fz-card__head cursor-pointer font-semibold">{t('Portfelning batafsil raqamlari va obyektlar jadvali')}</summary>
       <div className="fz-card__body flex flex-col gap-4">
-        {e && <Obyektlar e={e} onAsos={id => { setReportObject(id); setReportProject(undefined); setReports(true); }} />}
+        {e && <Obyektlar e={e} ph={ph} onAsos={id => { setReportObject(id); setReportProject(undefined); setReports(true); }} />}
         <div className="fz-note fz-note--info text-[13px]"><div>
           <p className="font-medium">{t('Hisob asoslari va yetishmayotgan ma’lumotlar')}</p>
           <p className="mt-1 text-text-dim">{t('Portfel faqat faol obyektlarni qamraydi. Tasdiqlanmagan F2 va fakt yozuvlari tasdiqlangan F2 summasiga kirmaydi. Noma’lum qiymat nol bilan almashtirilmaydi.')}</p>

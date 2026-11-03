@@ -187,8 +187,8 @@ export function paketTekshiruvlari(rows: readonly PaketAkt[]): Tekshiruv[] {
 
 /* ───────────── paket tarkibi ───────────── */
 
-export type PaketFaylTuri = 'f2' | 'reestr' | 'forma3';
-export type PaketFayl = { yol: string; bytes: Uint8Array; tur: PaketFaylTuri };
+export type PaketFaylTuri = 'f2' | 'reestr' | 'forma3' | 'sverka';
+export type PaketFayl = { yol: string; bytes: Uint8Array; tur: PaketFaylTuri; obyektId?: number | null };
 
 /** ZIP ichida takrorlanmas yo'l: bir xil nom bo'lsa «_2», «_3» qo'shiladi (kengaytmadan oldin). */
 export function takrorsizYol(yol: string, band: ReadonlySet<string>): string {
@@ -200,12 +200,12 @@ export function takrorsizYol(yol: string, band: ReadonlySet<string>): string {
 }
 
 /** Fayllarni takrorsiz yo'llar bilan jamlaydi (kirish tartibi saqlanadi). */
-export function paketFayllari(fayllar: ReadonlyArray<{ papka: string; nom: string; bytes: Uint8Array; tur: PaketFaylTuri }>): PaketFayl[] {
+export function paketFayllari(fayllar: ReadonlyArray<{ papka: string; nom: string; bytes: Uint8Array; tur: PaketFaylTuri; obyektId?: number | null }>): PaketFayl[] {
   const band = new Set<string>();
   return fayllar.map((f) => {
     const yol = takrorsizYol(f.papka ? `${f.papka}/${f.nom}` : f.nom, band);
     band.add(yol.toLowerCase());
-    return { yol, bytes: f.bytes, tur: f.tur };
+    return { yol, bytes: f.bytes, tur: f.tur, obyektId: f.obyektId ?? null };
   });
 }
 
@@ -231,7 +231,7 @@ export function aktExcel(m: OyObyekt, a: Pick<ReestrAkt, 'id' | 'oy' | 'raqam'>,
   if (!k.qatorlar.length) return null;
   const h = f2Hujjat(k.bolimlar, k.qatorlar, {
     obyektNom, davr: a.oy || '', raqam: a.raqam, imzo: m.kontekst.imzo, shartnoma: m.kontekst.shartnoma,
-    ndsFoiz: NDS_FOIZ, nakrutka: m.kontekst.nakrutka, podval: m.kontekst.podval, formulasiz: true,
+    ndsFoiz: NDS_FOIZ, nakrutka: m.kontekst.nakrutka, podval: m.kontekst.podval, nkManba: m.kontekst.nkManba ?? null, formulasiz: true,
   });
   return { bytes: h.bytes, faylNomi: h.faylNomi, yacheykalar: h.yacheykalar, topilmagan: k.topilmagan };
 }

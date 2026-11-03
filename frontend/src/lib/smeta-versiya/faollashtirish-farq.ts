@@ -8,6 +8,7 @@
  *   - pereraschet ishorasi: eski F2 summasi minus, shu hajm (yangi hajmgacha) yangi narxda plus; ortiqcha hajm — alohida.
  * Pul — NDS siz (ustamasiz = прямые); ustamali/QQS SummaJuft kaskadida. NULL ≠ 0: narxsiz qator summasi null qoladi.
  */
+import { yaxlit2 } from '../hisob-yadro';
 import { katKesimYigish, type KatKesim } from '../ustamali-summa';
 import { son, type MoslikHolat, type MoslikQator, type PozitsiyaQator } from './turlar';
 
@@ -42,7 +43,7 @@ export type FarqJami = {
   holatlar: Record<MoslikHolat, number>;
 };
 
-const r2 = (x: number) => Math.round(x * 100) / 100;
+const r2 = yaxlit2;
 const BARG = new Set(['rs', 'mat', 'ob']);
 const birlikNarx = (summa: number | null, hajm: number | null): number | null =>
   summa == null || hajm == null || hajm === 0 ? null : r2(summa / hajm);

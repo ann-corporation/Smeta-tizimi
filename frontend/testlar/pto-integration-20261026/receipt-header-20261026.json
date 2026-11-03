@@ -1,0 +1,33 @@
+{
+  "schema": "fakt-header-workspace-v1",
+  "observed_at": "2026-10-26T21:29:58.6905373+05:00",
+  "parent_sha": "1195c15519e154c747fdb967833d39b10160ef60",
+  "runtime_blob": "38c36f861ac264733b78fef5b42fc31384760db7",
+  "case": "same fixture and fixed1519x785 browser viewport, controlled before/after source HMR",
+  "table_width": 1110,
+  "table_height_before": 210,
+  "table_height_after": 274,
+  "gain_px": 64,
+  "source_restore_sha256": "CBB87514774B4005A4BC0899D48DE44FD6B723DC0B75C8E93ACE2B26736713BA",
+  "header_button_count_before": 0,
+  "header_button_count_after": 6,
+  "large_fixture": {
+    "height": 286,
+    "works": 1000,
+    "mounted_rows": 13,
+    "journal_rows": 4000,
+    "markup": "explicit synthetic zero rates"
+  },
+  "targeted": {
+    "lint": "PASS",
+    "app_ts": "PASS",
+    "files": 5,
+    "passed": 30
+  },
+  "production_write": false,
+  "limits": [
+    "DOM geometry in one synthetic browser viewport, not INP/latency",
+    "Full CI for previous1195c155 remains historical; new head requires fresh CI",
+    "No business logic or permission change"
+  ]
+}

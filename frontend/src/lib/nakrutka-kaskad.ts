@@ -1,8 +1,8 @@
 /**
  * NAKRUTKA kaskadi — server `t2_nakrutka_hisobla_v1` KIRISH/CHIQISH shaklidagi moslik qatlami.
  * Formula bu yerda EMAS: hisob `lib/hisob-yadro` dagi yagona podval baholovchisida (standart podval = SQL tartibi).
- *  - `nakrutkaKaskad` — har qadam ROUND 2 (Excel, yadro sukuti). SQL faqat oxirida yaxlitlaydi — farq bir necha
- *    tiyin bo'lishi mumkin (`hisob-yadro/paritet.test.ts` chegarani qotiradi).
+ *  - `nakrutkaKaskad` — har qadam ROUND 2 (Excel, yadro sukuti). SQL ham har qadamda yaxlitlaydi (20261116000000) —
+ *    aynan bir xil (`hisob-yadro/paritet.test.ts`).
  *  - `nakrutkaKaskadXom` — yaxlitlashsiz (Tender Oferta o'z yaxlitlash tartibi bilan ishlatadi).
  */
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';

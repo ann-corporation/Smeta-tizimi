@@ -11,7 +11,7 @@
 import type { T2Qator } from '../api/supabase';
 import { bosKatKesim, type KatKesim } from './ustamali-summa';
 import { ochiqQoldiq } from './zamena-qoldiq';
-import { ayirma2, faktSummaF2Narxda, katJami, yigindi2 } from './hisob-yadro';
+import { ayirma2, faktSummaF2Narxda, hajmMasshtab, katJami, yigindi2 } from './hisob-yadro';
 import { svodKorinishKesimi, yaxlitQatorIdlari, type SvodYaxlit } from './svod-yaxlit';
 
 export type JurnalHolat = {
@@ -23,6 +23,8 @@ export type JurnalHolat = {
   almashtirilgan_hajm?: number | null;
   /** t2_qator_holat: qoldiq = smeta − F2 − almashtirilgan; summalar (NDS siz). */
   qoldiq_hajm?: number | null; f2_summa?: number | null; qoldiq_summa?: number | null;
+  /** t2_qator_holat.f2_summa_yoq > 0 — F2 summasi noma'lum (NULL ≠ 0): fakt F2 narxida baholanmaydi. */
+  f2_summa_yoq?: number | string | null;
 };
 
 /** Zamena bog'lanishi (ixtiyoriy, alohida o'qiladi): zamena qatori → asl qator; asl → almashtirilgan hajm. */
@@ -237,7 +239,7 @@ export function bolimSummalari(rows: readonly T2Qator[], states: readonly Jurnal
   };
   const v = (x: unknown) => son(x as number | null | undefined);
   /** Fakt summasi — yadro narx qoidasi: tasdiqlangan F2 bor qatorda F2 birlik narxida; hajm yozilganidek, NULL — NULL. */
-  const faktOl = (h: JurnalHolat | undefined) => faktSummaF2Narxda(v(h?.fakt_hajm), v(h?.f2_hajm), v(h?.f2_summa), v(h?.fakt_summa));
+  const faktOl = (h: JurnalHolat | undefined) => faktSummaF2Narxda(v(h?.fakt_hajm), v(h?.f2_hajm), v(h?.f2_summa), v(h?.fakt_summa), v(h?.f2_summa_yoq));
   const belgi = (x: BolimSumma, q: ReturnType<typeof faktOl>) => { if (q.manba === 'f2' && q.summa != null) x.faktF2.f2Narxda++; };
   /** Ota-bobolari: yangi (qo'shimcha/zamena) ekanligi va bo'limlari (0 — obyekt). */
   const yol = (r: T2Qator) => {
@@ -283,7 +285,7 @@ export function bolimSummalari(rows: readonly T2Qator[], states: readonly Jurnal
   }
   for (const [s, l] of elementlar) {
     // F2 — aynan (masshtablanmaydi); qoldiq svod bo'limida = yaxlit − F2 aynan; qolganlari yaxlit × (ko'rinish / smeta).
-    s.kesim = svodKorinishKesimi(rows, l, f, svod, { masshtab: !masshtabsiz.has(s), bolimSmeta, ...(qoldiqlar.has(s) ? { qoldiqF2: f2Of } : {}) });
+    s.kesim = svodKorinishKesimi(rows, l, f, svod, { masshtab: !masshtabsiz.has(s), f2: masshtabsiz.has(s) && !qoldiqlar.has(s), bolimSmeta, ...(qoldiqlar.has(s) ? { qoldiqF2: f2Of } : {}) });
     if (!l.some((e) => e.summa != null && Number.isFinite(e.summa))) { s.ustamasiz = null; continue; }
     s.ustamasiz = yigindi2([katJami(s.kesim.summalar), s.kesim.nomalum, s.kesim.yaxlit?.qqssiz]);
   }
@@ -339,9 +341,27 @@ export function sonOqi(v: string): number | null {
   return /^-?\d+(\.\d+)?$/.test(t) ? Number(t) : NaN;
 }
 
-export type JurnalXato = 'SON_EMAS' | 'MANFIY' | 'NOL' | 'ISHORA';
+/** «50%» / «12,5 %» — smeta hajmining foizi (egasi 2026-10-31: foiz bilan tez kiritish). Foiz yozuvi bo'lmasa — null. */
+export function foizOqi(v: string): number | null {
+  const m = /^(-?\d+(?:\.\d+)?)%$/.exec(v.trim().replace(/\s/g, '').replace(',', '.'));
+  return m ? Number(m[1]) : null;
+}
+
+/**
+ * Kiritma soni: oddiy son (`sonOqi`) yoki smeta foizi — hajm = smeta × foiz (yadro `hajmMasshtab`, 6 xona).
+ * '+' rejimda — bugungi hajm (smetaning foizi), '=' rejimda — jami fakt. Foiz, lekin smeta noma'lum/0 — 'SMETASIZ' (to'qilmaydi).
+ */
+export function kiritmaSoni(v: string, smeta: number | null | undefined): number | null | 'SMETASIZ' {
+  const f = foizOqi(v);
+  if (f == null) return sonOqi(v);
+  if (smeta == null || !Number.isFinite(smeta) || smeta === 0) return 'SMETASIZ';
+  return hajmMasshtab(smeta, f / 100);
+}
+
+export type JurnalXato = 'SON_EMAS' | 'MANFIY' | 'NOL' | 'ISHORA' | 'FOIZ_SMETASIZ';
 export const JURNAL_XATO_MATN: Record<JurnalXato, string> = {
   SON_EMAS: 'Son emas', MANFIY: 'Jami fakt manfiy bo‘lib qoladi', ISHORA: 'Chegirma ishi: fakt smeta kabi manfiy bo‘lishi kerak', NOL: '0 qo‘shilmaydi',
+  FOIZ_SMETASIZ: 'Foiz uchun smeta hajmi kerak',
 };
 
 /**
@@ -354,7 +374,8 @@ export function jurnalPaket(kiritmalar: Readonly<Record<number, Kiritma>>, faktl
   for (const [k, v] of Object.entries(kiritmalar)) {
     const id = Number(k); const joriy = faktlar.get(id);
     if (joriy == null) continue;
-    const n = sonOqi(v.qiymat);
+    const n = kiritmaSoni(v.qiymat, smetalar?.get(id));
+    if (n === 'SMETASIZ') { xatolar.set(id, 'FOIZ_SMETASIZ'); continue; }
     if (n == null) continue;
     if (!Number.isFinite(n)) { xatolar.set(id, 'SON_EMAS'); continue; }
     const delta = v.rejim === '+' ? n : yaxlit(n - joriy);

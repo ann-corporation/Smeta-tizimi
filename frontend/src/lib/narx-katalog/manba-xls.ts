@@ -11,6 +11,8 @@
  * bo'lmasa narx kotirovka ÷ 1,12 bilan hisoblanadi — egasining o'z fayllaridagi amaliyoti (2024-03, 2024-12 birja
  * fayllarida aynan shu ustun bor) va har qatorga "hisoblangan" izohi yoziladi.
  */
+import { yaxlit2 } from '../hisob-yadro';
+
 export type ManbaTuri = 'katalog' | 'asosiy_material' | 'birja' | 'prays';
 export type SheetRows = unknown[][];
 export type NashrQatori = { nom: string; birlik: string; narx: number; hudud: string | null; zavod: string | null; guruh: string | null;
@@ -49,7 +51,7 @@ const num = (v: unknown): number | null => {
   const s = str(v).replace(/\s/g, '').replace(',', '.');
   return /^\d+(\.\d+)?$/.test(s) && Number(s) > 0 ? Number(s) : null;
 };
-const round2 = (v: number) => Math.round(v * 100) / 100;
+const round2 = yaxlit2;
 /** "01.04.2026" / "24.03.2025\nпо\n30.03.2025" → the LAST date as ISO. */
 export function sanaOl(v: unknown): string | null {
   const all = [...str(v).matchAll(/(\d{2})\.(\d{2})\.(\d{4})/g)];

@@ -12,6 +12,7 @@
  * ballari) faqat anatomiya varaqni tanimagan yoki operator ustunlarni qo'lda
  * o'zgartirgan holatda zaxira sifatida qoladi.
  */
+import { qqsSizNarx, yaxlit2 } from '../hisob-yadro';
 import { varaqniTahlilQil } from './varaq';
 import { anatomiyadanAktDaraxt } from './akt-daraxt';
 import type { ErkinVaraq, Katak, SvodQatori, SvodVaraq, UstunXaritasi, VaraqAnatomiyasi } from './turlar';
@@ -121,10 +122,10 @@ export function xatQatoriNarxi(svod: SvodVaraq, q: SvodQatori): { narx: number |
   if (!s) return { narx: null, ndsBilan: null, sabab: 'summa yo‘q' };
   if (s.masshtab == null) return { narx: null, ndsBilan: null, sabab: 'ustun birligi (so‘m / ming so‘m) aniqlanmadi' };
   const somda = s.qiymat * s.masshtab;
-  if (s.ndsBilan === false) return { narx: Math.round(somda * 100) / 100, ndsBilan: null, sabab: null };
+  if (s.ndsBilan === false) return { narx: yaxlit2(somda), ndsBilan: null, sabab: null };
   if (s.ndsBilan == null) return { narx: null, ndsBilan: somda, sabab: 'НДС holati (с НДС / без НДС) aniqlanmadi' };
   if (!svod.nds) return { narx: null, ndsBilan: somda, sabab: 'svodda НДС stavkasi topilmadi' };
-  return { narx: Math.round((somda / (1 + svod.nds.stavka)) * 100) / 100, ndsBilan: somda, sabab: null };
+  return { narx: qqsSizNarx(somda, svod.nds.stavka * 100), ndsBilan: somda, sabab: null };
 }
 
 export interface HamrohTanlov {
