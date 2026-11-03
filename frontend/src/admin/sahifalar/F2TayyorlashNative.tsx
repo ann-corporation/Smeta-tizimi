@@ -40,6 +40,10 @@ import { qidiruvTayyorla } from '../../lib/qidiruv-normalizatsiya';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
+import { useAktPodvallar } from '../../umumiy/ui/useAktPodvallar';
+import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
+import { eskiBloklarHujjat, pereraschetBaholash, pereraschetBloklari } from '../../lib/f2-pereraschet';
+import { PereraschetPanel } from '../../components/f2-tayyorlash/PereraschetPanel';
 import { obyektPodvali } from '../../api/t2-nakrutka-podval';
 import { sbAosrCoverageOl, type AosrCoverage } from '../../api/t2-aosr';
 import { aosrIshora, AOSR_ISHORA_MATNI, type AosrIshora } from '../../lib/nazorat/aosr-holat';
@@ -300,6 +304,20 @@ export function F2TayyorlashNative() {
     const id = Number((q.raw_snapshot as { stornoOf?: unknown }).stornoOf);
     return { id, raqam: obyektAktlari.find((a) => a.id === id)?.raqam ?? null };
   }, [akt, obyektAktlari]);
+  /* PERERASCHET (egasi 2026-11-03): eski F2 bloklari — har biri O'Z hujjat podvali bilan; yangi qatorlar — smeta podvali bilan. */
+  const aktPodval = useAktPodvallar(validId && aktId != null ? obyektId : null);
+  const ustama = useUstamaliSumma(validId && aktId != null ? obyektId : null, { kompaniyaId: joriy?.id });
+  const eskiBloklar = useMemo(() => {
+    const sm = new Map(rows.map((r) => [r.id, r] as const));
+    const raqamlar = new Map(obyektAktlari.map((a) => [a.id, a.raqam ?? null] as const));
+    return pereraschetBloklari(akt?.qatorlar ?? [], sm, raqamlar);
+  }, [akt, rows, obyektAktlari]);
+  /** Blok foizlari: shu aktdagi blok nusxasi, bo'lmasa manba aktning o'z podvali; yo'q — null (smeta podvali). */
+  const blokNk = useCallback((manbaId: number) => aktPodval.nkOl(aktId ?? -1, String(manbaId)) ?? aktPodval.nkOl(manbaId, ''), [aktPodval, aktId]);
+  const pereraschetBaho = useMemo(
+    () => (eskiBloklar.length > 0 && ustama.holat === 'tayyor' && aktPodval.holat === 'tayyor'
+      ? pereraschetBaholash(eskiBloklar, blokNk, katKesim, { podval: ustama.podval, koef: ustama.koef }) : null),
+    [eskiBloklar, ustama.holat, ustama.podval, ustama.koef, aktPodval.holat, blokNk, katKesim]);
   const dublikatlar = useMemo(() => {
     if (!validId || aktId != null || !qatorlar.length) return [];
     const yuk = f2Yuk(qatorlar, raqam);
@@ -514,19 +532,24 @@ export function F2TayyorlashNative() {
   const korinish = useHujjatKorinish();
   const excelYuklash = async (korish = false) => {
     if (!moneyValid()) return;
-    if (!validId || !tayyor) return;
+    if (!validId || !(tayyor || eskiBloklar.length > 0)) return;
     const object = obyektlar.find((item) => item.id === obyektId);
     if (!object) { toast('Obyekt topilmadi.', 'danger'); return; }
+    // Eski F2 bloklari o'z hujjat podvali bilan yoziladi: podval o'qilmasa jim smeta podvaliga o'tilmaydi.
+    if (eskiBloklar.length > 0 && aktPodval.holat !== 'tayyor') { toast(t('Hujjat podvallari o‘qilmadi — Excel tuzilmadi. Qayta urinib ko‘ring.'), 'danger'); return; }
     try {
-      const stavka = ndsFoiz.trim() === '' ? null : Number(ndsFoiz.replace(',', '.'));
+      // QQS stavkasi bo'sh qolsa ham tizim stavkasi (NDS_SUKUT_FOIZ) olinadi - hujjat QQS siz chiqmaydi.
+      const stavkaXom = ndsFoiz.trim() === '' ? NDS_SUKUT_FOIZ : Number(ndsFoiz.replace(',', '.'));
+      const stavka = Number.isFinite(stavkaXom) ? stavkaXom : NDS_SUKUT_FOIZ;
       const nk = await t2ObyektNakrutka(obyektId).catch(() => null);
       const podval = await obyektPodvali(joriy?.id, obyektId, nk?.ok ? nk.shartnoma_id : null);
       // Qo'lda kiritilgan imzo (panel) — shartnomadagidan ustun; bo'sh maydon — shartnomadagi qoladi.
       const qolda = Object.fromEntries(Object.entries(tomonlar).filter(([, x]) => typeof x === 'string' && x.trim())) as ImzoNomlar;
       const h = f2Hujjat(bolimlar, qatorlar, {
         obyektNom: object.nom, davr: oy, raqam, imzo: { ...avto.imzo, ...qolda }, shartnoma: avto.shartnoma,
-        ndsFoiz: stavka != null && Number.isFinite(stavka) ? stavka : null,
+        ndsFoiz: stavka,
         nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval, nkManba: nk?.ok ? nk.nk_manba ?? null : null, rows,
+        eskiBloklar: eskiBloklar.length ? eskiBloklarHujjat(eskiBloklar, blokNk) : undefined,
       });
       // Token (egasi 2026-10-02): hujjat avval yaratiladi (xato bo'lsa token olinmaydi), keyin "f2_hujjat" sarfi bilan beriladi.
       // Mazmun xeshi: aynan shu hujjat qayta ochilsa/yuklansa — qayta to'lov yo'q. Sabab daftarda ko'rinadi.
@@ -807,6 +830,8 @@ export function F2TayyorlashNative() {
         {stornoManbaAkt && <span data-testid="storno-manba">{t('Storno qilinayotgan F2: №{r}', { r: stornoManbaAkt.raqam || String(stornoManbaAkt.id) })}</span>}
         {stornoBlok.nomalum > 0 && <span className="text-warn">{t('{n} qatorda summa noma‘lum', { n: String(stornoBlok.nomalum) })}</span>}
       </section>}
+      {validId && aktId != null && eskiBloklar.length > 0 && aktPodval.holat === 'xato' && <section role="alert" className="fz-note fz-note--warn" style={{ alignItems: 'center' }}><AlertTriangle /><span className="flex-1">{t('Hujjat podvallari o‘qilmadi — pereraschet jami va Excel hisoblanmaydi.')}</span><button type="button" onClick={aktPodval.qayta} className="fz-btn fz-btn--sm">{t('Qayta urinib ko‘rish')}</button></section>}
+      {validId && aktId != null && pereraschetBaho && <PereraschetPanel baho={pereraschetBaho} />}
       {!validId && <section className="fz-card p-4 text-text-dim">{t('Avval obyektni tanlang.')}</section>}
       {error && validId && <section role="alert" className="fz-note fz-note--danger" style={{ alignItems: 'center' }}><AlertTriangle /><span className="flex-1">{t(error)}</span><button type="button" onClick={() => void yuklash()} className="fz-btn fz-btn--danger fz-btn--sm">{t('Qayta urinib ko‘rish')}</button></section>}
       {bajXato && validId && <section role="alert" className="fz-note fz-note--warn" style={{ alignItems: 'center' }}><AlertTriangle /><span className="flex-1">{t('Ishdan chiqarilgan resurslar ro‘yxati o‘qilmadi — F2 saqlanmaydi. Qayta urinib ko‘ring.')}</span><button type="button" onClick={() => void qoshimchaYukla()} className="fz-btn fz-btn--sm">{t('Qayta urinib ko‘rish')}</button></section>}
@@ -871,8 +896,8 @@ export function F2TayyorlashNative() {
             <div role="group" aria-label={t('Qo‘shimcha amallar')} className="flex items-center gap-1 border-l border-border pl-3">
               <button type="button" aria-pressed={vedomostOchiq} disabled={qatorlar.length === 0} onClick={() => setVedomostOchiq((o) => !o)} className={`fz-btn fz-btn--sm ${vedomostOchiq ? '' : 'fz-btn--ghost'}`}>{t('Resurs vedomosti')}</button>
               <Link to={`/admin/f2-tarix?obyekt=${obyektId}`} className="fz-btn fz-btn--ghost fz-btn--sm">{t('F2 tarixi')}</Link>
-              <button type="button" onClick={() => void excelYuklash(false)} disabled={!tayyor || saving} className="fz-btn fz-btn--ghost fz-btn--sm"><Download aria-hidden="true" />{t('Excel')}</button>
-              <button type="button" onClick={() => void excelYuklash(true)} disabled={!tayyor || saving} aria-label="Forma-2 qoralama ko‘rish" title={t('Forma-2 qoralama ko‘rish')} className="fz-btn fz-btn--ghost fz-btn--sm fz-btn--icon"><Eye aria-hidden="true" /></button>
+              <button type="button" onClick={() => void excelYuklash(false)} disabled={!(tayyor || eskiBloklar.length > 0) || saving} className="fz-btn fz-btn--ghost fz-btn--sm"><Download aria-hidden="true" />{t('Excel')}</button>
+              <button type="button" onClick={() => void excelYuklash(true)} disabled={!(tayyor || eskiBloklar.length > 0) || saving} aria-label="Forma-2 qoralama ko‘rish" title={t('Forma-2 qoralama ko‘rish')} className="fz-btn fz-btn--ghost fz-btn--sm fz-btn--icon"><Eye aria-hidden="true" /></button>
             </div>
             <button type="button" onClick={() => void saqlash()} disabled={!saqlashMumkin || saving} className="fz-btn fz-btn--primary"><Save aria-hidden="true" />{saqlaMatn}<kbd className="fz-kbd" aria-hidden="true">{'Ctrl+Enter'}</kbd></button>
           </div>

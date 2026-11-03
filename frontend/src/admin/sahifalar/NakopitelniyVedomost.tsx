@@ -16,7 +16,9 @@ import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { HujjatToliqEmasXato, NDS_SUKUT_FOIZ, nakopitelniyVedomostHujjat, shartnomaSvodXlsx, sverkaXlsx } from '../../lib/nakopitelniy-vedomost-export';
 import { t } from '../../i18n/til';
 import PulTahlil from '../../components/boss-decision/PulTahlil';
-import { forma3Hujjat, forma3SotuvdanXlsx, type Forma3ExportOptions } from '../../lib/forma3-export';
+import { forma3Hujjat, forma3SotuvdanXlsx, type Forma3ExportOptions, type Forma3Shakl } from '../../lib/forma3-export';
+import { Forma3ShaklTanlagich } from '../../components/forma3/Forma3ShaklTanlagich';
+import { f3ShaklOl, f3ShaklSaqla } from '../../lib/forma3-shakl-tanlov';
 import { sbT2F2TafsilotOl } from '../../api/t2-narx';
 import { ozgarishRoyxatOl } from '../../api/t2-document-control';
 import { t2ObyektNakrutka, type NakrutkaKaskad, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
@@ -307,6 +309,10 @@ function Sessiya({ companyId }: { companyId: number }) {
    *  jami — nakrutka kaskadi, «за отчетный период» ВСЕГО К ОПЛАТЕ = shu davr
    *  tasdiqlangan F2 к оплате jamisi (tiyingacha); farq — diqqat, yashirilmaydi. */
   const [forma3Busy, setForma3Busy] = useState(false);
+  // Forma-3 shakli (egasi 2026-11-03): to'liq / bir qatorli; tanlov kompaniya bo'yicha eslanadi (faqat qulaylik).
+  const [f3Shakl, setF3Shakl] = useState<Forma3Shakl>(() => f3ShaklOl(companyId));
+  useEffect(() => { setF3Shakl(f3ShaklOl(companyId)); }, [companyId]);
+  const f3ShaklOzgar = (x: Forma3Shakl) => { setF3Shakl(x); f3ShaklSaqla(companyId, x); };
   const [forma3Diqqat, setForma3Diqqat] = useState<Array<{ nom: string; sabab: string }>>([]);
   const forma3EksportQil = async (korish = false) => {
     setXato(''); setForma3Diqqat([]);
@@ -353,14 +359,14 @@ function Sessiya({ companyId }: { companyId: number }) {
       const h = forma3Hujjat(
         { nakopitelniy: [{ obyekt_id: Number(objectId), obyektNom, qatorlar: rows }], f2Oylik, f2Hajm: f3CertifiedHajm(taf.qatorlar, companyId, Number(objectId), davr.slice(0, 7)) },
         {
-          obyektNom, davr, asosiyObyektId: Number(objectId), imzo: tomonlar, nakrutka, podval, nkManba: nakrutkaJavob?.nk_manba ?? null, ndsFoiz: stavkaOl(),
+          shakl: f3Shakl, obyektNom, davr, asosiyObyektId: Number(objectId), imzo: tomonlar, nakrutka, podval, nkManba: nakrutkaJavob?.nk_manba ?? null, ndsFoiz: stavkaOl(),
           smetaNakrutka, ozgarishlar, lineage, lineageRequired: Boolean(lineage),
           pudratchi: pudratchiRek, zakazchik: zakazchikRek,
           shartnomaRaqam: shartnoma?.raqam ?? null, shartnomaSana: shartnoma?.sana ?? null, shartnomaSumma: shartnoma?.summa ?? null,
         },
       );
       setForma3Diqqat([...h.diqqat, ...(context.warning ? [{ nom: 'Rekvizitlar', sabab: context.warning }] : []), ...(!f2Oylik.length ? [{ nom: 'F2 manbasi', sabab: 'Bu davrgacha tasdiqlangan F2 yo‘q; bajarilgan ish qiymatlari bo‘sh hisobot sifatida beriladi.' }] : [])]);
-      const t = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'F3', sabab: `Форма №3 · ${obyektNom} · ${davr.slice(0, 7)}`, obyekt: objectId },
+      const t = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'F3', sabab: `Форма №3${f3Shakl === 'bir_qatorli' ? ' (одностр.)' : ''} · ${obyektNom} · ${davr.slice(0, 7)}`, obyekt: objectId },
         () => { if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi); });
       if (!t.ok) { toast(t.xabar, 'danger'); return; }
       if (t.xabar) toast(t.xabar, 'ok');
@@ -423,6 +429,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         <button type="button" className="fz-btn fz-btn--icon" onClick={() => void eksportQil(true)} disabled={eksportBusy}
           title={t('Накопительная ведомость — saytda hujjatdagiday ko‘rish')} aria-label={t('Nakopitelniy ko‘rish')}><Eye /></button>
       )}
+      {eksportOchiq && !!davr && <Forma3ShaklTanlagich qiymat={f3Shakl} onChange={f3ShaklOzgar} disabled={forma3Busy} />}
       {eksportOchiq && !!davr && (
         <AmalMenyu matn={t('Форма № 3')} ikonka={<FileText size={16} />} ochirilgan={eksportBusy || forma3Busy} bandlar={[
           { kalit: 'f3-yuklash', belgi: <Download size={16} />, matn: t('Форма № 3 — Excel yuklab olish'), sarlavha: t('СПРАВКА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ И ЗАТРАТ (счет-фактура к актам Ф-2)'), onBos: () => void forma3EksportQil(false) },
@@ -563,6 +570,9 @@ function ShartnomaSvodBolimi({ companyId, shartnomaId, tashkilot }: { companyId:
   const [gacha, setGacha] = useState('');
   const [shakl, setShakl] = useState<SvodShakl>(SVOD_BOSH);
   const [joylash, setJoylash] = useState('');
+  const [f3Shakl, setF3Shakl] = useState<Forma3Shakl>(() => f3ShaklOl(companyId));
+  useEffect(() => { setF3Shakl(f3ShaklOl(companyId)); }, [companyId]);
+  const f3ShaklOzgar = (x: Forma3Shakl) => { setF3Shakl(x); f3ShaklSaqla(companyId, x); };
   const [tahlil, setTahlil] = useState<SverkaImportNatija | null>(null);
 
   const yukla = async () => {
@@ -650,6 +660,7 @@ function ShartnomaSvodBolimi({ companyId, shartnomaId, tashkilot }: { companyId:
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 'var(--space-3)' }}>
           <Maydon nom={t('Dan')}><input type="date" className={svodKirit} value={dan} onChange={(e) => setDan(e.target.value)} /></Maydon>
           <Maydon nom={t('Gacha')}><input type="date" className={svodKirit} value={gacha} onChange={(e) => setGacha(e.target.value)} /></Maydon>
+          <Forma3ShaklTanlagich qiymat={f3Shakl} onChange={f3ShaklOzgar} />
         </div>
         <div className="fz-table-wrap" style={{ maxHeight: 420 }}>
           <table className="fz-table">
@@ -677,7 +688,7 @@ function ShartnomaSvodBolimi({ companyId, shartnomaId, tashkilot }: { companyId:
                             <option value="imzolangan">{t('imzolandi')}</option>
                           </select>
                           <button type="button" title={t('F3 (Excel)')} aria-label={t('F3 (Excel)')} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm"
-                            onClick={() => void ber(forma3SotuvdanXlsx(sh, f3.id, { tashkilot }), 'F3', `Форма №3 · № ${sh.raqam} · ${f3.sotuv_sana ?? ''}`)}><Download /></button>
+                            onClick={() => void ber(forma3SotuvdanXlsx(sh, f3.id, { tashkilot, shakl: f3Shakl }), 'F3', `Форма №3${f3Shakl === 'bir_qatorli' ? ' (одностр.)' : ''} · № ${sh.raqam} · ${f3.sotuv_sana ?? ''}`)}><Download /></button>
                           <button type="button" title={t('Bekor qilish')} aria-label={t('Bekor qilish')} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" style={{ color: 'var(--danger)' }} onClick={() => void bekor('f3_sotuv', f3.id, f3.versiya)}><Trash2 /></button>
                         </span>
                       )}

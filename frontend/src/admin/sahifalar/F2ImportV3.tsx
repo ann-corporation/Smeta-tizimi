@@ -65,6 +65,7 @@ import type { ModalRejali } from './F2AddReplModal';
 import { BOLIM_ILDIZ, SMETASIZ_RZ, resursTuri, type OchirishBuyruq, ijniAlmashtir, vaqtinchami, rejaliniYoz, rejaliniYozilganlardanTozala, type YozilganQator, rejaliOchir, rejaliBuyruqQosh, otadiganResurslar, rejaliQatorlar, rejaliSurish, rejaliSurishMumkin, yangiTempIdlar, type RejaliBuyruq, type RejaliYaratish } from '../../lib/f2-moslash-v3/rejali';
 import { sbT2IshResurslarBilanYarat, sbT2QoshimchaIshYarat, sbT2ResursBolaQosh, sbT2ZamenaAlmashtirishBelgila, sbT2ZamenaIshYarat } from '../../api/t2-additional-replacement';
 import { faylBaytlari, faylExplorerOl } from '../../api/t2-fayl';
+import { aktPodvalYoz } from '../../api/t2-akt-podval';
 import { olchov, type Olchov } from '../../lib/vaqt-olchov';
 import { nakQoldiqXaritalari } from '../../lib/f2-moslash-v3/nakQoldiq';
 import { bolimXato, smetaBolimYarat } from '../../api/t2-smeta-bolim';
@@ -1357,10 +1358,19 @@ function Sessiya({ companyId }: { companyId: number }) {
         else qadam('akt', 'xato', `${r.xabar || r.error || r.sabab || t('xato')}`);
         return;
       }
+      // Hujjatning O'Z podvali (egasi 2026-11-03): foizlari isbotlangan bo'lsa t2_akt_podval ga yoziladi, aks holda smeta podvali qoladi.
+      let podvalIzoh = '';
+      if (akt.podval && r.akt_id) {
+        if (!akt.podval.tekshiruv.toliq) podvalIzoh = ` ${t('Hujjat podvali isbotlanmadi (smeta podvali qoladi):')} ${akt.podval.tekshiruv.isbotsiz.join(', ') || t('ziddiyatli foizlar')}.`;
+        else {
+          const pr = await aktPodvalYoz({ kompaniyaId: companyId, aktId: Number(r.akt_id), manba: 'import', podval: akt.podval }).catch(() => null);
+          podvalIzoh = pr?.ok ? ` ${t('Hujjat podvali saqlandi.')}` : ` ${t('Hujjat podvali saqlanmadi (smeta podvali qoladi).')}`;
+        }
+      }
       setTekshiruv((v) => v + 1);
       qadam('akt', 'tayyor', `#${r.akt_id ?? '?'} · ${payload.rows.length} ${t('qator')}`);
       setSessiyaKiritilgan((s) => new Set([...s, akt.varaq]));
-      setDone(`F2 qoralamasi ${mavjudQoralama ? 'yangilandi' : 'saqlandi'} (akt #${r.akt_id ?? '?'}, ${payload.rows.length} qator). Tasdiqlangach Nakopitelniyga kiradi — F2 tarixi sahifasida.`);
+      setDone(`F2 qoralamasi ${mavjudQoralama ? 'yangilandi' : 'saqlandi'} (akt #${r.akt_id ?? '?'}, ${payload.rows.length} qator). Tasdiqlangach Nakopitelniyga kiradi — F2 tarixi sahifasida.${podvalIzoh}`);
       if (yozish.qolgan.length) setServerHolat(`Diqqat: ${yozish.qolgan.length} ta bog‘lanmagan yoki tasdiqlanmagan qator aktga kiritilmadi. Ular manba faylida ${draft.server ? `va server ish qoralamasi #${draft.server.jobId} da ` : ''}saqlangan. Akt faqat tasdiqlangan bog‘lanishlardan tuzildi.`);
       setHolat('Tayyor.');
     } catch (e) {

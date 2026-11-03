@@ -81,3 +81,25 @@ describe('owner financial overview acceptance', () => {
     fireEvent.click(screen.getAllByRole('button',{name:'Smetani ochish'})[0]);expect(m.open).toHaveBeenCalledWith(objects[0],100);
   });
 });
+
+describe('loyihasiz obyektlar (egasi qoidasi: hech qachon yashirilmaydi)', () => {
+  const yetim = { id: 282, nom: 'Obyekt Yetim', loyiha_id: null, jami: null, qator_soni: 5, razdel: 1, ish: 1, resurs: 1, narxsiz: 0 } as unknown as T2Obyekt;
+  function yetimBilan(url: string) {
+    const hammasi = [...objects, yetim];
+    m.line = { ...(m.line as object), obyektlar: hammasi };
+    render(<MemoryRouter initialEntries={[url]}><ProjectNavigator companyId={17} objects={hammasi} onOpen={m.open} onEdit={vi.fn()} onArchive={vi.fn()} /></MemoryRouter>);
+  }
+  it('barcha loyihalar ko‘rinishida va tanlangan loyiha ichida «Loyihasiz obyektlar» guruhi chiqadi', () => {
+    yetimBilan('/admin/obyektlar');
+    const guruh = screen.getByTestId('loyihasiz-obyektlar');
+    expect(guruh.textContent).toContain('Obyekt Yetim');
+    expect(screen.getByRole('button', { name: /Loyihaga biriktirish/ })).toBeTruthy();
+    cleanup();
+    yetimBilan('/admin/obyektlar?loyiha=1');
+    expect(screen.getByTestId('loyihasiz-282')).toBeTruthy();
+  });
+  it('loyihasiz obyekt qatori navigatorda alohida satr bo‘lib turadi', () => {
+    yetimBilan('/admin/obyektlar');
+    expect(screen.getByRole('row',{name:/Loyihasiz obyektlar/})).toBeTruthy();
+  });
+});

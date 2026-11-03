@@ -12,6 +12,8 @@
  *     (ПЕРЕРАСЧЕТ) qatorlar — ochiq ogohlantirish, jim tuzatish YO'Q.
  */
 import { kitobAnatomiyasi } from './index';
+import { nakrutkaPodvaliniOqi } from './nakrutka';
+import { aktPodvalYuki, type AktPodvalYuk } from '../akt-podval';
 import { yaxlitAkt, yaxlitVaraqmi } from './f2-yaxlit';
 import { sarlavhaYoli } from './ierarxiya';
 import { kalit, son, xom } from './matn';
@@ -90,6 +92,8 @@ export interface F2Akt {
   ogohlantirishlar: F2Ogohlantirish[];
   /** Anatomiya natijasi (ichki tekshiruv uchun). */
   anatomiya: VaraqAnatomiyasi;
+  /** Hujjatning O'Z podvali (foizlar, isbot bilan) - t2_akt_podval ga yoziladi. null - hujjatda podval topilmadi. */
+  podval?: AktPodvalYuk | null;
 }
 
 // ─── Podval (qo'lda qatorlar) ─────────────────────────────────────────────────
@@ -169,7 +173,10 @@ export function f2AktlarniOqi(kitob: KirishKitob): F2Akt[] {
   // Ishsiz, faqat mustaqil qatorli akt varag'i ham F2 (masalan uskuna/shefmontaj varag'i — egasi 2026-10-23).
   const aktlar = anat.varaqlar.filter((v) => v.rol === 'lrv' && (v.ishlar.length > 0 || (v.mustaqilResurslar?.length ?? 0) > 0));
   // Ishsiz varaq faqat hujjatning o'z jami (ИТОГО ПРЯМЫЕ yoki ВСЕГО) bo'lsa akt — boshqa jadvallar (masalan счёт-фактура) F2 emas.
-  const umumiy = aktlar.map((v) => aktQur(kitob, v)).filter((a) => a.ishlarSoni > 0 || a.jami.pryamye != null || a.jami.vsego != null);
+  const podvalQosh = (a: F2Akt): F2Akt => {
+    try { return { ...a, podval: aktPodvalYuki(nakrutkaPodvaliniOqi(kitob, { varaqlar: [a.varaq] }), a.jami) }; } catch { return { ...a, podval: null }; }
+  };
+  const umumiy = aktlar.map((v) => podvalQosh(aktQur(kitob, v))).filter((a) => a.ishlarSoni > 0 || a.jami.pryamye != null || a.jami.vsego != null);
   if (!yaxlit.size) return umumiy;
   // Varaq tartibi saqlanadi.
   const tartib = new Map(kitob.varaqlar.map((v, i) => [v.nom, i]));

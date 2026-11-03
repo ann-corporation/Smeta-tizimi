@@ -20,13 +20,17 @@ function holatMatni(a: T2AktReestr): string {
 }
 
 /**
- * F2 tayyorlash oynasidan «Eski F2 ni storno qilish (pereraschet)»: obyektning bekor qilinmagan F2 aktlari ro‘yxati,
- * aktni tanlash → mavjud `F2StornoOyna`. Storno qoralamasi yaratilgach `onYaratildi(aktId)` chaqiriladi.
+ * F2 tayyorlash oynasidan «Eski F2 ni storno qilish (pereraschet)»: obyektning bekor qilinmagan F2 aktlari ro‘yxati.
+ * Bitta aktni «Tanlash» yoki BIR NECHTA aktni «Birga» bilan belgilab davom etish (egasi 2026-11-03) → `F2StornoOyna`.
+ * Har eski F2 hujjatda alohida blok bo‘ladi (o‘z podvali bilan). Qoralama yaratilgach `onYaratildi(aktId)` chaqiriladi.
  */
 export function F2StornoTanlov(p: { obyektId: number; onYop: () => void; onYaratildi: (aktId: number) => void }) {
   const [reestr, setReestr] = useState<T2AktReestr[] | null>(null);
   const [xato, setXato] = useState('');
   const [tanlangan, setTanlangan] = useState<F2StornoAkt | null>(null);
+  /** Birga storno qilinadigan eski F2 lar (id). */
+  const [belgi, setBelgi] = useState<ReadonlySet<number>>(new Set());
+  const [birga, setBirga] = useState<F2StornoAkt[] | null>(null);
 
   useEffect(() => {
     let jonli = true;
@@ -41,16 +45,21 @@ export function F2StornoTanlov(p: { obyektId: number; onYop: () => void; onYarat
     return () => { jonli = false; };
   }, [p.obyektId]);
 
+  if (birga && birga.length > 0 && reestr) {
+    return <F2StornoOyna obyektId={p.obyektId} akt={birga[0]} qoshimcha={birga.slice(1)} reestr={reestr} onYop={p.onYop} onYaratildi={p.onYaratildi} />;
+  }
   if (tanlangan && reestr) {
     return <F2StornoOyna obyektId={p.obyektId} akt={tanlangan} reestr={reestr} onYop={p.onYop} onYaratildi={p.onYaratildi} />;
   }
 
   const nomzod = reestr ? stornoNomzodAktlar(reestr) : [];
+  const belgila = (id: number, on: boolean) => setBelgi((s) => { const n = new Set(s); if (on) n.add(id); else n.delete(id); return n; });
   return (
     <F2Oyna label={t('Eski F2 ni storno qilish (pereraschet)')} onYop={p.onYop} kenglik={760}>
       <div className="fz-card__head" style={{ padding: '10px 16px' }}><h3 className="fz-card__title"><RotateCcw size={15} aria-hidden="true" /> {t('Eski F2 ni storno qilish (pereraschet)')}</h3></div>
       <div className="space-y-3 p-4 text-[13px]">
         <p className="text-text-dim">{t('Storno qilinadigan F2 ni tanlang: uning qatorlari minus qilib yangi qoralamaga yoziladi, asl F2 o‘zgarmaydi. Keyin shu oynada yangi smeta qatorlarini qo‘shasiz.')}</p>
+        <p className="text-text-dim">{t('Bir nechta eski F2 ni «Birga» bilan belgilang: ularning qatorlari bitta hujjatda alohida bloklar bo‘lib tepada turadi, har biri o‘z podvali bilan.')}</p>
         {xato && <p role="alert" className="fz-note fz-note--danger"><ShieldAlert />{xato}</p>}
         {!xato && !reestr && <div className="skel min-h-[120px] rounded-xl" />}
         {reestr && nomzod.length === 0 && <p data-testid="storno-tanlov-bosh" className="text-text-dim">{t('Storno qilinadigan F2 yo‘q (bekor qilinganlar ko‘rsatilmaydi).')}</p>}
@@ -66,14 +75,27 @@ export function F2StornoTanlov(p: { obyektId: number; onYop: () => void; onYarat
                     <td>{holatMatni(a)}</td>
                     <td className="text-right tabular-nums">{a.qator_soni ?? '—'}</td>
                     <td className="text-right tabular-nums">{a.hujjat_jami == null ? <span className="text-warn">{t('noma‘lum')}</span> : <FmtN val={a.hujjat_jami} />}</td>
-                    <td className="p-1.5 text-right"><button type="button" className="fz-btn fz-btn--sm" onClick={() => setTanlangan({ id: a.id, raqam: a.raqam, oy: a.oy, hujjat_jami: a.hujjat_jami })}>{t('Tanlash')}</button></td>
+                    <td className="p-1.5 text-right">
+                      <button type="button" className="fz-btn fz-btn--sm" onClick={() => setTanlangan({ id: a.id, raqam: a.raqam, oy: a.oy, hujjat_jami: a.hujjat_jami })}>{t('Tanlash')}</button>
+                      <label className="ml-2 inline-flex items-center gap-1 text-text-dim">
+                        <input type="checkbox" data-testid="storno-tanlov-belgi" checked={belgi.has(a.id)} onChange={(e) => belgila(a.id, e.target.checked)} aria-label={t('Birga storno: F2 №{r}', { r: a.raqam || String(a.id) })} />{t('Birga')}
+                      </label>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-        <div className="flex justify-end"><button type="button" className="fz-btn fz-btn--ghost" onClick={p.onYop}>{t('Yopish')}</button></div>
+        <div className="flex justify-end gap-2">
+          {belgi.size > 0 && (
+            <button type="button" data-testid="storno-tanlov-davom" className="fz-btn fz-btn--primary"
+              onClick={() => setBirga(nomzod.filter((a) => belgi.has(a.id)).sort((x, y) => (x.oy ?? '').localeCompare(y.oy ?? '') || x.id - y.id).map((a) => ({ id: a.id, raqam: a.raqam, oy: a.oy, hujjat_jami: a.hujjat_jami })))}>
+              {t('Belgilangan F2 lar bilan davom etish ({n})', { n: belgi.size })}
+            </button>
+          )}
+          <button type="button" className="fz-btn fz-btn--ghost" onClick={p.onYop}>{t('Yopish')}</button>
+        </div>
       </div>
     </F2Oyna>
   );

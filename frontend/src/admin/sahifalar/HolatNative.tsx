@@ -2,6 +2,7 @@ import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { ContractScopePanel } from '../../components/contract-scope/ContractScopePanel';
 import { ObjectMoneySummary } from '../../components/pto-workspace/ObjectMoneySummary';
 import { ObjectTrail } from '../../components/pto-workspace/ObjectTrail';
+import { ObyektPodvalOgohi } from './SmetaPodvalNakrutka';
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 import { marketReadPrice } from '../../lib/smeta-studio/market-comparison';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -396,6 +397,7 @@ export function HolatNative() {
             <button type="button" className="fz-btn fz-btn--sm fz-btn--primary" onClick={() => setActiveTab('yuklash')}><Upload aria-hidden="true" />{t('Smeta yuklash')}</button>
           </div>
         )}
+        {selected && (selected.qator_soni ?? 0) > 0 && <ObyektPodvalOgohi obyektId={selected.id} />}
         {selected && shartnomaTanlangan && <ObjectMoneySummary object={selected} />}
 
         {validId && <nav aria-label={t('Obyekt ish bo‘limlari')} className="flex flex-wrap items-center gap-x-3 gap-y-2">
