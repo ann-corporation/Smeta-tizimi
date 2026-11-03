@@ -25,7 +25,7 @@ export function FaktEgizakOyna({ obyektId, obyektNom, objects, sana, qoralama, b
   qoralama: Readonly<Record<number, Kiritma>>;
   bolimNom: string | null; bolimKiritma: Readonly<Record<number, Kiritma>>; obyektKiritma: Readonly<Record<number, Kiritma>>;
   /** Qoralama doirasida: avval shu obyektga saqlash (jurnalning o'z yo'li). */
-  manbaSaqla: () => Promise<boolean>;
+  manbaSaqla: { (): Promise<boolean> };
   onYop: () => unknown; onYozildi: () => unknown;
 }) {
   // Ochilgan paytdagi surat: manba saqlangach jurnal qoralamasi tozalansa ham reja o'zgarmaydi.
@@ -149,7 +149,7 @@ export function FaktEgizakOyna({ obyektId, obyektNom, objects, sana, qoralama, b
                   <td className="px-1 text-right font-semibold tabular-nums">{x.delta > 0 ? '+' : ''}{fmt(x.delta)} {x.birlik ?? ''}</td>
                   <td className="px-1 text-right tabular-nums">{fmt(x.yangi)}</td></tr>)}</tbody>
               </table>}
-              {r.moslar.length > KORSAT && <p className="pt-1 text-[11px] text-text-mute">{t('yana {n} ta qator', { n: String(r.moslar.length - KORSAT) })}</p>}
+              {KORSAT < r.moslar.length && <p className="pt-1 text-[11px] text-text-mute">{t('yana {n} ta qator', { n: String(r.moslar.length - KORSAT) })}</p>}
               {r.radlar.length > 0 && <details open className="mt-2 text-warn"><summary>{t('Yozilmaydigan qatorlar ({n}):', { n: String(r.radlar.length) })}</summary>
                 <ul className="ml-4 list-disc">{r.radlar.slice(0, KORSAT).map((x) => <li key={x.aId}>{x.nom} — {t(RAD_SABAB_MATN[x.sabab])}</li>)}</ul></details>}
             </section>;
