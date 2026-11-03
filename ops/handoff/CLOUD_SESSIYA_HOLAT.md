@@ -60,10 +60,24 @@ Boshqaruv to'liq **L0 (lokal agent)** da. Cloud ishni faqat L0 dan oladi, boshla
 - Dastlabki tavsiya: Twinmotion / Lumion fasl renderlari + 360° panorama (R2) → three.js interaktiv bino (shaxmatkaga bog'langan) → dron / Gaussian Splatting. Pixel Streaming — faqat premium.
 
 ## L0 yo'liga o'tkaziladi (cloud boshlagan edi — egasi to'g'ridan-to'g'ri so'ragan edi)
-- **Logistika** — `claude/logistika-v1`, PR ann-corporation/Smeta-tizimi#235.
-  - Sub-agent qurdi, migratsiya `20261123…`.
-  - CI qizil: 2 test — `write-command-policy.test.ts` KATALOG ga `logistics.*`; `hisob-yadro` qo'riqchisi — lokal `r2` yaxlitlash. Sub-agent tuzatmoqda.
-  - Shundan keyin PR L0 ga topshiriladi; cloud yangi logistika ishini boshlamaydi.
+- **Logistika** — `claude/logistika-v1`, PR ann-corporation/Smeta-tizimi#235 — ✅ CI yashil (7d2c96b9). Cloud ishi TUGADI, L0 ga topshirildi.
+  - Migratsiya `20261123000000_t2_transport_v1`: jadvallar `t2_tr_*`, 10 yozish RPC + `t2_transport_ol_v1`. Tannarx, ob'ektlarga taqsim, `t2_xarajat_kirit_v1` ga МАШ provodka, narxlash va marja.
+    - GPS trek, marshrut geometriyasi va fayllar Supabase'ga yozilmaydi.
+  - **Acceptance** real `t2_azolik` / `t2_foydalanuvchi` ga sintetik qator yozadi. Faqat stub ustida sinalgan — real schema'da NOT NULL va CHECK larni BEGIN..ROLLBACK da tekshiring.
+  - **UI qoralamasi** `claude/logistika-v1-ui` tarmog'ida (PR yo'q, TEKSHIRILMAGAN): rebase'dan keyin to'liq darvozalar kerak.
+  - **Qilinmagan:**
+    - ombor / xarid → reys bog'lash;
+    - yetkazish isboti (R2);
+    - pullik routing adapteri (hozir OSRM demo; `VITE_ROUTING_URL`);
+    - haydovchi tanlagich;
+    - `haydovchi` roliga `machinery.read`;
+    - yoqilg'i xaridi daftari.
+  - **Egasiga savollar:**
+    - ijtimoiy soliq 12% to'g'rimi;
+    - oylik ÷ 26 to'g'rimi;
+    - yoqilg'i narxi QQSsiz kiritiladimi;
+    - ijaradagi mashina ham ob'ektlarga taqsimlanadimi;
+    - МАШ kategoriyasimi.
 - **Asfalt pirogi m² kalkulyatsiyasi** — sub-agent faqat o'qish bilan Excel tayyorlamoqda. Natija L0 / egasiga beriladi, cloud davom ettirmaydi.
 - **Ijro hujjatlari / laboratoriya** va **HR-KPI + buxgalteriya** — sub-agentlar faqat loyihalash hujjatlarini yozmoqda (kod yo'q). Tayyor bo'lgach lokal agentlarga kirish material sifatida topshiriladi (`docs/` yoki INBOX orqali).
 
