@@ -32,6 +32,31 @@
       "verification": "2026-11-03 exact main fc65e645 merged: PGlite88PASS, focused Vitest35PASS, app/functions TS PASS, lint PASS with existing warnings, diff PASS. Full/build deferred to parent single-process schedule. Governance FAIL existing C11 ledger/contract overlap. No production SQL, no push."
     },
     {
+      "id": "DESKTOP-D3-WORKER-20261031",
+      "title": "Desktop D3 Worker read-model foundation",
+      "owner": "codex",
+      "machine": "noutbuk",
+      "branch": "codex/desktop-d3-worker",
+      "base_sha": "fc65e64582c4b1fa792d556c2a073540f6ad1ebc",
+      "status": "ready_for_review",
+      "production_write_allowed": false,
+      "owns": [
+        "frontend/src/lib/hisob-yadro/holat.ts",
+        "frontend/src/lib/hisob-yadro/holat.paritet.test.ts",
+        "frontend/src/ombor/paket.ts",
+        "frontend/src/ombor/paket.test.ts",
+        "frontend/src/api/t2-daraxt-ustunlar.ts (optional-field comment only)",
+        "frontend/src/ombor/hisob*",
+        "ops/handoff/DESKTOP_D3_WORKER_20261031.md"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "docs/architecture/OBYEKT_PAKET_OFFLINE_DESKTOP_V1.md"
+      ],
+      "production_write_allowed": false,
+      "note": "PR217 D3a aligned to exact main; shared signed/null core, optional f2_summa_yoq transport; no push, SQL extension and final D3b integration owned by parent L0. Parent bounded extension: packet null fixture/test wording, one optional-field comment, quantity-only precision helper and fail-closed missing zero-amount guard with own regressions; Obsidian note logged by parent."
+    },
+    {
       "id": "PTO-RECONCILIATION-20261026",
       "title": "Preserve certified unknown and amount-only F2 reconciliation evidence",
       "owner": "codex",
