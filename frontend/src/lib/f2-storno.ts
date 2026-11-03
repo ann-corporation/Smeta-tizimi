@@ -104,6 +104,16 @@ export function faolStornolar(stornoAktIdlar: readonly number[], reestr: readonl
     && a.lifecycle_status !== 'cancelled' && a.lifecycle_status !== 'rejected' && a.lifecycle_status !== 'superseded');
 }
 
+/** Aktning storno qilinadigan-qilinmasligi: bekor / rad / almashtirilgan (superseded) aktlar storno qilinmaydi. */
+export const stornoQilinadiAkt = (a: StornoReestrAkt & { tur?: string | null }): boolean =>
+  (a.tur == null || a.tur === 'f2') && a.holat !== 'bekor' && a.holat !== 'rad'
+  && a.lifecycle_status !== 'cancelled' && a.lifecycle_status !== 'rejected' && a.lifecycle_status !== 'superseded';
+
+/** Storno tanlagichi uchun obyekt F2 aktlari: bekor qilinmaganlari, yangisi tepada. */
+export function stornoNomzodAktlar<T extends StornoReestrAkt & { tur?: string | null }>(reestr: readonly T[]): T[] {
+  return reestr.filter(stornoQilinadiAkt).sort((a, b) => b.id - a.id);
+}
+
 /* ── Fakt ham 0 ga: minus fakt yozuvlari ────────────────────────────────────────────────────────────────────────── */
 export type StornoFaktHolat = { qator_id: number; tur?: string | null; fakt_hajm?: number | string | null };
 export type StornoFaktYozuv = { qator_id: number; hajm: number; izoh: string };

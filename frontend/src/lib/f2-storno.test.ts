@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { faolStornolar, stornoBlokniSaqla, stornoFaktReja, stornoQator, stornoQatorimi, stornoQur, type StornoManbaQator } from './f2-storno';
+import { faolStornolar, stornoNomzodAktlar, stornoBlokniSaqla, stornoFaktReja, stornoQator, stornoQatorimi, stornoQur, type StornoManbaQator } from './f2-storno';
 
 const manba: StornoManbaQator[] = [
   { qator_id: 1, hajm: 4, certified_quantity: 4, certified_unit_price: 25, certified_amount: 100 },
@@ -103,5 +103,19 @@ describe('qoralamani qayta saqlashda storno bloki', () => {
     const r = stornoBlokniSaqla([{ qator_id: 9, certified_quantity: -2, provenance_status: 'price_intentionally_absent', raw_snapshot: { source: 'storno' } }], []);
     expect(r.qatorlar[0]).toMatchObject({ priceIntentionallyAbsent: true });
     expect((r.qatorlar[0] as { certifiedAmount?: number }).certifiedAmount).toBeUndefined();
+  });
+});
+
+describe('storno tanlagichi nomzodlari', () => {
+  it('bekor, rad, superseded va F2 emas aktlar chiqmaydi; yangisi tepada', () => {
+    const r = [
+      { id: 1, tur: 'f2', holat: 'tasdiqlangan', lifecycle_status: 'approved' as const },
+      { id: 2, tur: 'f2', holat: 'bekor', lifecycle_status: 'cancelled' as const },
+      { id: 3, tur: 'f2', holat: 'qoralama', lifecycle_status: 'rejected' as const },
+      { id: 4, tur: 'f2', holat: 'tasdiqlangan', lifecycle_status: 'superseded' as const },
+      { id: 5, tur: 'f2', holat: 'qoralama', lifecycle_status: 'draft' as const },
+      { id: 6, tur: 'boshqa', holat: 'qoralama' },
+    ];
+    expect(stornoNomzodAktlar(r).map((a) => a.id)).toEqual([5, 1]);
   });
 });
