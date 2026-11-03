@@ -3246,7 +3246,11 @@
         "frontend/src/umumiy/ui/SummaJuft.tsx (PR2: server paket + kesim)",
         "frontend/src/umumiy/ui/QiymatUchlik.tsx (PR2: kesim + kiritilmagan)",
         "frontend/src/umumiy/ui/SummaKesimi.tsx",
-        "frontend/public/yangiliklar.json (PR2 yozuvi)"
+        "frontend/public/yangiliklar.json (PR2 yozuvi)",
+        "frontend/src/admin/sahifalar/BossDashboard.tsx (PR3: boshqaruv markazi)",
+        "frontend/src/components/rahbar-panel/RahbarMarkaz.tsx",
+        "frontend/src/lib/rahbar-panel/markaz.ts",
+        "frontend/src/i18n/lugat/qism/rahbar-markaz.json"
       ],
       "depends_on": [],
       "must_read": [

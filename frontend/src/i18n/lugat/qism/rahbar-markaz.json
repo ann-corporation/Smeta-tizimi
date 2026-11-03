@@ -1,0 +1,210 @@
+{
+  "Avvalgi xulosa (portfel modeli)": {
+    "ru": "Прежняя сводка (модель портфеля)",
+    "en": "Previous summary (portfolio model)"
+  },
+  "Bajarilgan, lekin F2 topshirilmagan": {
+    "ru": "Выполнено, но Ф2 не сдана",
+    "en": "Done, but F2 not submitted"
+  },
+  "Bajarilish: smeta → fakt → F2 → F3. Har summa — QQS bilan asosiy; ▸ bosilsa tafsilot.": {
+    "ru": "Выполнение: смета → факт → Ф2 → Ф3. Каждая сумма — основная с НДС; ▸ — детали.",
+    "en": "Progress: estimate → fact → F2 → F3. Each amount — incl. VAT main; ▸ for details."
+  },
+  "Boshqaruv markazi": {
+    "ru": "Центр управления",
+    "en": "Control centre"
+  },
+  "Boshqaruv markazi yuklanmadi.": {
+    "ru": "Центр управления не загрузился.",
+    "en": "Control centre failed to load."
+  },
+  "Chorak": {
+    "ru": "Квартал",
+    "en": "Quarter"
+  },
+  "Daromad (F2, QQS siz)": {
+    "ru": "Доход (Ф2, без НДС)",
+    "en": "Revenue (F2, excl. VAT)"
+  },
+  "Debitor": {
+    "ru": "Дебиторка",
+    "en": "Receivables"
+  },
+  "Diqqat talab qiladi": {
+    "ru": "Требует внимания",
+    "en": "Needs attention"
+  },
+  "Eng katta risk": {
+    "ru": "Главный риск",
+    "en": "Top risk"
+  },
+  "F2 (QQS bilan)": {
+    "ru": "Ф2 (с НДС)",
+    "en": "F2 (incl. VAT)"
+  },
+  "F2 faktdan oshgan": {
+    "ru": "Ф2 превышает факт",
+    "en": "F2 exceeds fact"
+  },
+  "Hozir pulga ta’sir qiladigan muammo topilmadi.": {
+    "ru": "Проблем, влияющих на деньги, не найдено.",
+    "en": "No money-affecting issues found."
+  },
+  "Jami qancha ishim bor?": {
+    "ru": "Сколько всего работы?",
+    "en": "How much work do I have?"
+  },
+  "Keyingi {n} kun prognozi": {
+    "ru": "Прогноз на {n} дней",
+    "en": "Forecast for {n} days"
+  },
+  "Kompaniya bo‘yicha": {
+    "ru": "По компании",
+    "en": "Company-wide"
+  },
+  "Kreditor": {
+    "ru": "Кредиторка",
+    "en": "Payables"
+  },
+  "Kutilayotgan tushum": {
+    "ru": "Ожидаемые поступления",
+    "en": "Expected inflow"
+  },
+  "Loyihasiz": {
+    "ru": "Без проекта",
+    "en": "No project"
+  },
+  "Manba yo‘q: {m}": {
+    "ru": "Нет источника: {m}",
+    "en": "No source: {m}"
+  },
+  "Men kimga qarzman?": {
+    "ru": "Кому я должен?",
+    "en": "Whom do I owe?"
+  },
+  "Menga kim qancha qarz va necha kundan beri?": {
+    "ru": "Кто мне должен, сколько и как давно?",
+    "en": "Who owes me, how much and for how long?"
+  },
+  "Moliya bo‘limida kiritiladi →": {
+    "ru": "Вводится в разделе «Финансы» →",
+    "en": "Entered in Finance →"
+  },
+  "Obyektlar matritsasi": {
+    "ru": "Матрица объектов",
+    "en": "Object matrix"
+  },
+  "Oylar bo‘yicha: bajarildi (F2, QQS bilan) · to‘lov tushdi · xarajat. Kulrang — kiritilmagan.": {
+    "ru": "По месяцам: выполнено (Ф2, с НДС) · поступления · расходы. Серое — не введено.",
+    "en": "By month: done (F2, incl. VAT) · payments in · expenses. Grey — not entered."
+  },
+  "Portfel": {
+    "ru": "Портфель",
+    "en": "Portfolio"
+  },
+  "Pul ishlayapmanmi?": {
+    "ru": "Зарабатываю ли я?",
+    "en": "Am I making money?"
+  },
+  "Pul oqimi": {
+    "ru": "Денежный поток",
+    "en": "Cash flow"
+  },
+  "Qancha pul oldim?": {
+    "ru": "Сколько денег получено?",
+    "en": "How much have I been paid?"
+  },
+  "Qanchasini qildim va topshirdim?": {
+    "ru": "Сколько сделано и сдано?",
+    "en": "How much is done and submitted?"
+  },
+  "Qoralama F2": {
+    "ru": "Черновик Ф2",
+    "en": "Draft F2"
+  },
+  "Reestr bilan farq": {
+    "ru": "Разница с реестром",
+    "en": "Difference vs register"
+  },
+  "Rentabellik": {
+    "ru": "Рентабельность",
+    "en": "Profitability"
+  },
+  "Shartnoma (QQS bilan)": {
+    "ru": "Договор (с НДС)",
+    "en": "Contract (incl. VAT)"
+  },
+  "Shartnoma limitiga yaqin": {
+    "ru": "Близко к лимиту договора",
+    "en": "Near contract limit"
+  },
+  "Shartnomalar (QQS bilan)": {
+    "ru": "Договоры (с НДС)",
+    "en": "Contracts (incl. VAT)"
+  },
+  "Sklad manfiy qoldig‘i": {
+    "ru": "Отрицательный остаток склада",
+    "en": "Negative stock balance"
+  },
+  "Smeta, QQS bilan": {
+    "ru": "Смета, с НДС",
+    "en": "Estimate, incl. VAT"
+  },
+  "Smetadan oshgan hajm": {
+    "ru": "Объём сверх сметы",
+    "en": "Volume over estimate"
+  },
+  "Tasdiq kutayotgan hujjat yo‘q.": {
+    "ru": "Нет документов на утверждение.",
+    "en": "No documents awaiting approval."
+  },
+  "Tasdiqlangan F2 — F3 chiqarilmagan": {
+    "ru": "Утверждённая Ф2 — Ф3 не выпущена",
+    "en": "Approved F2 — F3 not issued"
+  },
+  "Tizim ↔ reestr farqi": {
+    "ru": "Расхождение система ↔ реестр",
+    "en": "System ↔ register difference"
+  },
+  "To‘landi": {
+    "ru": "Оплачено",
+    "en": "Paid"
+  },
+  "To‘langan %": {
+    "ru": "Оплачено %",
+    "en": "Paid %"
+  },
+  "To‘lanmagan F2": {
+    "ru": "Неоплаченные Ф2",
+    "en": "Unpaid F2"
+  },
+  "To‘lov 60 kundan ortiq kechikkan": {
+    "ru": "Оплата просрочена более 60 дней",
+    "en": "Payment overdue 60+ days"
+  },
+  "Yozuvlar": {
+    "ru": "Записи",
+    "en": "Records"
+  },
+  "bir nechta obyekt uchun": {
+    "ru": "на несколько объектов",
+    "en": "for several objects"
+  },
+  "marja": {
+    "ru": "маржа",
+    "en": "margin"
+  },
+  "smetadan {f}%": {
+    "ru": "{f}% от сметы",
+    "en": "{f}% of estimate"
+  },
+  "summasi noma’lum": {
+    "ru": "сумма неизвестна",
+    "en": "amount unknown"
+  },
+  "ta": {
+    "ru": "шт.",
+    "en": "pcs"
+  }
+}
