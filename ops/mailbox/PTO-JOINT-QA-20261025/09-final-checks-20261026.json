@@ -1,0 +1,88 @@
+{
+  "observed_at": "2026-10-26T21:53:50.7547543+05:00",
+  "candidates": [
+    {
+      "pr": "163",
+      "checks": [
+        {
+          "name": "Cloudflare Pages",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/ann-corporation/Smeta-tizimi/runs/121701614197",
+          "completed_at": "2026-10-26T16:30:09Z"
+        },
+        {
+          "name": "mcp",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40359293676/job/121700068714",
+          "completed_at": "2026-10-26T16:27:50Z"
+        },
+        {
+          "name": "frontend",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40359293676/job/121700068305",
+          "completed_at": "2026-10-26T16:37:50Z"
+        },
+        {
+          "name": "mcp",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40359281016/job/121700024499",
+          "completed_at": "2026-10-26T16:27:45Z"
+        },
+        {
+          "name": "frontend",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40359281016/job/121700023776",
+          "completed_at": "2026-10-26T16:35:20Z"
+        }
+      ],
+      "sha": "0aa96e98f605ec010adb9321ee3961252b65969f"
+    },
+    {
+      "pr": "162",
+      "checks": [
+        {
+          "name": "Cloudflare Pages",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/ann-corporation/Smeta-tizimi/runs/121705007334",
+          "completed_at": "2026-10-26T16:36:14Z"
+        },
+        {
+          "name": "mcp",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40360310271/job/121703641851",
+          "completed_at": "2026-10-26T16:34:15Z"
+        },
+        {
+          "name": "frontend",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40360310271/job/121703641350",
+          "completed_at": "2026-10-26T16:44:18Z"
+        },
+        {
+          "name": "mcp",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40360303102/job/121703626783",
+          "completed_at": "2026-10-26T16:34:06Z"
+        },
+        {
+          "name": "frontend",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40360303102/job/121703626240",
+          "completed_at": "2026-10-26T16:39:42Z"
+        }
+      ],
+      "sha": "a2a4107369a7390fee5fadf1d1a0345842e1baaa"
+    }
+  ],
+  "main_promoted": false
+}

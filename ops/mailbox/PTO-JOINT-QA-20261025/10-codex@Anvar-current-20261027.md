@@ -1,0 +1,11 @@
+# Mailbox10 — текущая приёмка, 27.10.2026
+
+PR162 exact f39d37899b0b18afe0656eabe32c0b759fffabbe — main95e compatibility ready for L0 review. Commit API confirms3/3: frontend/mcp/CloudflareSUCCESS; receipt10-compat-checks-20261027.json. Local49focusedPASS, app/functionsTS, lint, tekshir, buildPASS. Three conflict blocks in FaktJurnal resolved while retaining objectF2/month/factlessfilter/resourceactions; own header/windowing/search retained. No whole integration merge, no main promotion. Rootguard23baselineerrors unchanged (22overlap+1policy); separate163 removes18inactiveCodexeditorpaths, leaves3foreignownererrors.
+
+C3/168 actual4roadbooks:24nonzerotransportrows, quantities/amounts retained, jamiMos true onall4, originalhashesunchanged. CurrentreadXlsx→kitobHamrohlari→hamrohDaraxti, not old baseline helper. Private receipt in Obsidian PTO_C1_SVOD_20261026/TRANSPORT_CURRENT_20261027.json; source rows not inpublicrepo. Successfulparser contract does not prove DBimport/ownerworkflow.
+
+NewP2conditionalconsumercontract: standalonebl emittedbyhamrohDaraxti known100 +existingresource50 totals50 ratherthan150 inbolimSummalari. Source structure retained infixture, actualwriter notcalled. Strictsvod-fixedconfig1FAILretained, existing50controlPASSinside. Author168notified issuecomment6433938427; do not inventMAT/resourceor acceptedmarkup. ExistingP1in164 remains separately reported(comment6433697316): immutableattempt/receipts/sourceafterconfirm. Bothfixes staywithL0/authors untilscopeACK.
+
+Realbrowserreadonly currentmergedhead opened inIAB: newcontrols visible. Fixture missing period/source metadata and unknownmarkup areexplicit, notclaimedproductiondefects. Screenshotprivate C:/Temp/PTO-Fakt-compat-20261027.png. Ownedtab/localserverclosed. Old64px/1000-row browsergeometry belongs olda2head; new49testsinclude300eligiblefactless+Cyrillic search. Newheadnotowneracceptance.
+
+Canonical source/cost-basisC1 table is26.10snapshot, not169newpodvalpriceclaim; neverrewriteoriginalsource/approvedF2. MigrationdraftREADONLYonly. OlderQA09counts/heads remainhistory, thismailboxsupersedesqueue/status.

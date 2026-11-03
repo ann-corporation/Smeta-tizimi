@@ -27,8 +27,8 @@ import { Maydon } from '../../umumiy/ui/Sahifa';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { IkkiTomonQator, MiniFarq, Eksa, Rang } from '../../components/nakopitelniy/PereraschetGrafik';
 import { useObyektF2Aktlari } from './F2DublikatPanel';
+import { katKesimYigish, qiymatUchligi, uchlikAyir, type KatKesim } from '../../lib/ustamali-summa';
 import { PereraschetFakt } from './PereraschetFakt';
-import { qiymatUchligi, uchlikAyir, type KatKesim } from '../../lib/ustamali-summa';
 import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
 
 const SAHIFA = 100;
@@ -40,6 +40,8 @@ const tekshirNomi = (s: TekshirSabab) => ({
   chegirma_asosiy_yoq: t('Chegirma qatori — asosiy ishi topilmadi'),
   eski_smeta: t('«(ekspertizagacha)» bo‘lim — tuzatish bilan yopilmagan'),
   zamena: t('Zamena juftligi'),
+  f2_hajmsiz_summa: t('F2 hajmi 0, tasdiqlangan summa bor — aktlarni tekshiring'),
+  f2_summa_yoq: t('F2 summasi noma’lum — narx farqi hisoblanmadi'),
 })[s];
 const RANG: Record<string, string> = { '1': 'var(--ok)', '-1': 'var(--danger)' };
 const rangSof = (x: number) => RANG[String(Math.sign(x))] ?? 'var(--text-dim)';
@@ -333,7 +335,12 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
                 <div className="fz-table-wrap" style={{ marginTop: 8, maxHeight: 320 }}>
                   <table className="fz-table"><tbody>{natija.tekshirish.slice(0, 300).map((q) => (
                     <tr key={q.qatorId}>
-                      <td>{q.kod ? `${q.kod} ` : ''}{q.nom}<div style={{ fontSize: 11, color: 'var(--text-mute)' }}>{q.bolimYol.join(' › ')}</div></td>
+                      <td>{q.kod ? `${q.kod} ` : ''}{q.nom}<div style={{ fontSize: 11, color: 'var(--text-mute)' }}>{q.bolimYol.join(' › ')}</div>
+                        {q.tekshir.some((s) => s === 'f2_hajmsiz_summa' || s === 'f2_summa_yoq') && <div className="mt-1 flex flex-wrap items-start gap-2 text-[11px] text-text-mute">
+                          <span>{t('Tasdiqlangan F2 summasi')}</span>
+                          <SummaJuft kichik obyektId={obyektId} kompaniyaId={companyId} ustamasiz={q.f2Summa} katKesim={katKesimYigish([q], (r) => r.kat, (r) => r.f2Summa)} />
+                        </div>}
+                      </td>
                       <td className="fz-c-unit">{q.birlik ?? '—'}</td>
                       <td className="fz-c-num">{q.smetaHajm == null ? '—' : <FmtN val={q.smetaHajm} kasr={3} />} / <FmtN val={q.f2Hajm} kasr={3} /></td>
                       <td style={{ color: 'var(--warn)' }}>{q.tekshir.map(tekshirNomi).join('; ')}</td>

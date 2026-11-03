@@ -1,0 +1,14 @@
+{
+  "F2 hajmi 0, tasdiqlangan summa bor — aktlarni tekshiring": {
+    "ru": "Итоговый объём Ф-2 равен 0, подтверждённая сумма не равна 0 — проверьте акты",
+    "en": "F2 net quantity is zero but a certified amount remains — review the acts"
+  },
+  "Tasdiqlangan F2 summasi": {
+    "ru": "Подтверждённая сумма Ф-2",
+    "en": "Certified F2 amount"
+  },
+  "F2 summasi noma’lum — narx farqi hisoblanmadi": {
+    "ru": "Сумма Ф-2 неизвестна — разница в цене не рассчитана",
+    "en": "F2 amount is unknown — price difference was not calculated"
+  }
+}
