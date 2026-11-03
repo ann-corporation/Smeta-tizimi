@@ -2,6 +2,15 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 77,
+      "sana": "2026-11-04",
+      "sarlavha": "Baza hajmi nazorati (superadmin)",
+      "bandlar": [
+        "Fayl menejerida platforma superadmini uchun «Baza hajmi» paneli: joriy hajm, chegaraga nisbati va eng katta jadvallar. 80% da ogohlantirish, 90% da xavf belgisi.",
+        "Eski snapshot mazmunini R2 ga xavfsiz ko'chirish tayyorlandi: nusxa R2 dan qayta o'qib tekshirilmaguncha bazadan hech narsa olinmaydi; snapshot qaytarish kerak bo'lsa mazmun R2 dan o'zi tiklanadi."
+      ]
+    },
+    {
       "id": 76,
       "sana": "2026-11-03",
       "sarlavha": "Rahbar paneli — boshqaruv markazi",
