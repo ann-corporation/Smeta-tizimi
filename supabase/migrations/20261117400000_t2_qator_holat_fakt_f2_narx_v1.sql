@@ -1,8 +1,10 @@
 -- T2_QATOR_HOLAT_FAKT_F2_NARX v1 (egasi PR #211 qoidasi, SERVER tomoni): tasdiqlangan F2 bor qatorda fakt SUMMASI F2 birlik narxida.
---   fakt_summa = _t2_f2_narxda_v1(fakt_hajm, f2_hajm, f2_summa) = yaxlit2((H*K)/J)  (f2_hajm <> 0 va F2 summasi to'liq malum bo'lganda;
+--   fakt_summa = _t2_f2_narxda_v1(fakt_hajm, f2_hajm, f2_summa) = yaxlit2((H*K)/J)  (f2_hajm <> 0 va F2 summasi MALUM, ya'ni f2_summa_yoq = 0 bo'lganda;
 --   TS: hisob-yadro/korinish.ts faktSummaF2Narxda, Excel bilan bir xil tartib (H*K)/J, keyin ROUND 2).
---   Boshqa hollarda (F2 yo'q, F2 summasi nomalum, fakt NULL) fakt_summa avvalgidek; NULL NULL bo'lib qoladi. MAX(fakt,F2) YO'Q.
---   Ustunlar va tartibi prod ta'rifi bilan AYNAN (17 ta bog'liq view). f2_mumkin_summa / fakt_narx hisobi o'zgarmadi (xom fakt summasi).
+--   F2 summasi NOMALUM (NULL <> 0): tasdiqlangan F2 qatorlarida hajm bor-u COALESCE(certified_amount, summa) NULL (BL/RZ ham; svod bo'limlarda F2 summasi
+--   qatorda yozilmaydi) - narx tuqilmaydi, fakt_summa avvalgidek (0 ga tushmaydi). Boshqa hollarda (F2 yo'q, fakt NULL) fakt_summa avvalgidek; NULL NULL bo'lib qoladi. MAX(fakt,F2) YO'Q.
+--   Mavjud 34 ustun va tartibi prod ta'rifi bilan AYNAN; yangi f2_summa_yoq (bigint) OXIRIGA qo'shildi (17 ta bog'liq view buzilmaydi).
+--   f2_summa / f2_summa_nomalum / f2 o'lchovi O'ZGARMADI. f2_mumkin_summa / fakt_narx hisobi o'zgarmadi (xom fakt summasi).
 
 -- TS yaxlit2 bilan AYNAN: (H*K)/J float8 da, so'ng 15 muhim raqamga (float8 -> numeric), ROUND 2 yarmi noldan uzoqqa.
 -- Sof numeric round() F2 summasi float shovqinli qatorlarda (x.xx4999999999995) 1 tiyin farq berardi (real 3 obyektda ~0.5% qator).
@@ -36,7 +38,7 @@ create or replace view public.t2_qator_holat as
         END AS smeta_summa,
     e.fakt_hajm,
     CASE
-            WHEN d.f2_hajm <> 0::numeric AND d.f2_summa_nomalum = 0 AND e.fakt_hajm IS NOT NULL AND e.fakt_summa IS NOT NULL THEN public._t2_f2_narxda_v1(e.fakt_hajm, d.f2_hajm, d.f2_summa_malum)
+            WHEN d.f2_hajm <> 0::numeric AND d.f2_summa_yoq = 0 AND e.fakt_hajm IS NOT NULL AND e.fakt_summa IS NOT NULL THEN public._t2_f2_narxda_v1(e.fakt_hajm, d.f2_hajm, d.f2_summa_malum)
             ELSE e.fakt_summa
         END AS fakt_summa,
     d.f2_hajm,
@@ -73,7 +75,8 @@ create or replace view public.t2_qator_holat as
     als.s AS almashtirilgan_summa,
     q.versiya_holat,
     q.hajm AS asl_smeta_hajm,
-    q.summa AS asl_smeta_summa
+    q.summa AS asl_smeta_summa,
+    d.f2_summa_yoq
    FROM t2_qator q
      CROSS JOIN LATERAL ( SELECT
                 CASE
@@ -95,7 +98,8 @@ create or replace view public.t2_qator_holat as
             COALESCE(sum(aq.summa) FILTER (WHERE a.tur = 'fakt'::text AND a.holat <> 'bekor'::text), 0::numeric) AS direct_fakt_summa,
             COALESCE(sum(COALESCE(aq.certified_quantity, aq.hajm)) FILTER (WHERE a.tur = 'f2'::text AND a.holat = 'tasdiqlangan'::text), 0::numeric) AS f2_hajm,
             COALESCE(sum(COALESCE(aq.certified_amount, aq.summa)) FILTER (WHERE a.tur = 'f2'::text AND a.holat = 'tasdiqlangan'::text), 0::numeric) AS f2_summa_malum,
-            count(*) FILTER (WHERE a.tur = 'f2'::text AND a.holat = 'tasdiqlangan'::text AND (q.tur <> ALL (ARRAY['rz'::text, 'bl'::text])) AND COALESCE(q.nom, ''::text) !~* 'ЗАТРАТЫ\s+ТРУДА\s+МАШИНИСТ'::text AND COALESCE(aq.certified_amount, aq.summa) IS NULL AND COALESCE(aq.certified_quantity, aq.hajm, 0::numeric) <> 0::numeric) AS f2_summa_nomalum
+            count(*) FILTER (WHERE a.tur = 'f2'::text AND a.holat = 'tasdiqlangan'::text AND (q.tur <> ALL (ARRAY['rz'::text, 'bl'::text])) AND COALESCE(q.nom, ''::text) !~* 'ЗАТРАТЫ\s+ТРУДА\s+МАШИНИСТ'::text AND COALESCE(aq.certified_amount, aq.summa) IS NULL AND COALESCE(aq.certified_quantity, aq.hajm, 0::numeric) <> 0::numeric) AS f2_summa_nomalum,
+            count(*) FILTER (WHERE a.tur = 'f2'::text AND a.holat = 'tasdiqlangan'::text AND COALESCE(aq.certified_amount, aq.summa) IS NULL AND COALESCE(aq.certified_quantity, aq.hajm, 0::numeric) <> 0::numeric) AS f2_summa_yoq
            FROM t2_akt_qator aq
              LEFT JOIN t2_akt a ON a.id = aq.akt_id
           WHERE aq.qator_id = q.id) d ON true

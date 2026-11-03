@@ -37,12 +37,16 @@ const son = (x: number | null | undefined): number | null => (x == null || !Numb
  * NARX QOIDASI (egasi, YAGONA): fakt HAJMI qanday yozilgan bo'lsa shunday (F2 dan hech narsa chiqarilmaydi; fakt < F2 —
  * normal, F2 oldindan olinadi). Qatorda tasdiqlangan F2 bo'lsa — fakt SUMMASI F2 birlik narxida:
  * F2 narx = Σ F2 summa / Σ F2 hajm (qator bo'yicha, `f2NarxYigish` ma'nosi); summa = ROUND(fakt × F2 summa / F2 hajm, 2).
- * F2 summasi noma'lum — narx to'qilmaydi (null). F2 yo'q (hajm 0/null) — odatdagi fakt summasi (`faktSummaAsl`).
+ * F2 summasi noma'lum — narx to'qilmaydi: f2Summa null — null; `f2SummaYoq` > 0 (F2 hajmi bor-u summa yozilmagan, f2Summa 0 ko'rinsa
+ * ham) — fakt summasi avvalgidek (0 ga tushmaydi). F2 yo'q (hajm 0/null) — odatdagi fakt summasi (`faktSummaAsl`).
  * Fakt noma'lum — null (NULL ≠ 0); 0 — 0.
  */
-export function faktSummaF2Narxda(faktHajm: number | null | undefined, f2Hajm: number | null | undefined, f2Summa: number | null | undefined, faktSummaAsl: number | null | undefined): FaktSummaNatija {
+export function faktSummaF2Narxda(faktHajm: number | null | undefined, f2Hajm: number | null | undefined, f2Summa: number | null | undefined, faktSummaAsl: number | null | undefined, f2SummaYoq?: number | string | boolean | null): FaktSummaNatija {
   const fk = son(faktHajm), f2h = son(f2Hajm), f2s = son(f2Summa);
   if (f2h == null || f2h === 0) return { summa: son(faktSummaAsl), manba: 'fakt', narx: null };
+  // F2 qatorlarida hajm bor-u summa yozilmagan (`f2SummaYoq` > 0 — server `t2_qator_holat.f2_summa_yoq`; bl/rz ham: pul bolalarda, svod
+  // bo'limlarda) — `f2_summa` 0 ko'rinsa ham u NOMA'LUM, 0 emas: narx to'qilmaydi, fakt summasi avvalgidek (SQL bilan bir xil).
+  if (f2SummaYoq != null && Number(f2SummaYoq) > 0) return { summa: son(faktSummaAsl), manba: 'fakt', narx: null };
   if (f2s == null) return { summa: null, manba: 'f2', narx: null };
   // Excel bilan bir xil tartib: (H × K) / J, so'ng ROUND 2.
   return { summa: fk == null ? null : yaxlit2((fk * f2s) / f2h), manba: 'f2', narx: f2s / f2h };

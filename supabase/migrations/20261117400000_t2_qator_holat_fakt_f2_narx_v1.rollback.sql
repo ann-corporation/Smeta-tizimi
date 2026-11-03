@@ -1,4 +1,5 @@
--- ROLLBACK: t2_qator_holat.fakt_summa oldingi (xom fakt) ma'nosiga qaytadi.
+-- ROLLBACK: t2_qator_holat.fakt_summa oldingi (xom fakt) ma'nosiga qaytadi. f2_summa_yoq ustuni view da QOLADI (CREATE OR REPLACE ustunni olib tashlay olmaydi;
+-- 17 bog'liq view tufayli DROP mumkin emas) - zararsiz, hech kim o'qimasa ham bo'ladi.
 create or replace view public.t2_qator_holat as
  SELECT q.id,
     q.id AS qator_id,
@@ -54,7 +55,8 @@ create or replace view public.t2_qator_holat as
     als.s AS almashtirilgan_summa,
     q.versiya_holat,
     q.hajm AS asl_smeta_hajm,
-    q.summa AS asl_smeta_summa
+    q.summa AS asl_smeta_summa,
+    d.f2_summa_yoq
    FROM t2_qator q
      CROSS JOIN LATERAL ( SELECT
                 CASE
@@ -76,7 +78,8 @@ create or replace view public.t2_qator_holat as
             COALESCE(sum(aq.summa) FILTER (WHERE a.tur = 'fakt'::text AND a.holat <> 'bekor'::text), 0::numeric) AS direct_fakt_summa,
             COALESCE(sum(COALESCE(aq.certified_quantity, aq.hajm)) FILTER (WHERE a.tur = 'f2'::text AND a.holat = 'tasdiqlangan'::text), 0::numeric) AS f2_hajm,
             COALESCE(sum(COALESCE(aq.certified_amount, aq.summa)) FILTER (WHERE a.tur = 'f2'::text AND a.holat = 'tasdiqlangan'::text), 0::numeric) AS f2_summa_malum,
-            count(*) FILTER (WHERE a.tur = 'f2'::text AND a.holat = 'tasdiqlangan'::text AND (q.tur <> ALL (ARRAY['rz'::text, 'bl'::text])) AND COALESCE(q.nom, ''::text) !~* 'ЗАТРАТЫ\s+ТРУДА\s+МАШИНИСТ'::text AND COALESCE(aq.certified_amount, aq.summa) IS NULL AND COALESCE(aq.certified_quantity, aq.hajm, 0::numeric) <> 0::numeric) AS f2_summa_nomalum
+            count(*) FILTER (WHERE a.tur = 'f2'::text AND a.holat = 'tasdiqlangan'::text AND (q.tur <> ALL (ARRAY['rz'::text, 'bl'::text])) AND COALESCE(q.nom, ''::text) !~* 'ЗАТРАТЫ\s+ТРУДА\s+МАШИНИСТ'::text AND COALESCE(aq.certified_amount, aq.summa) IS NULL AND COALESCE(aq.certified_quantity, aq.hajm, 0::numeric) <> 0::numeric) AS f2_summa_nomalum,
+            count(*) FILTER (WHERE a.tur = 'f2'::text AND a.holat = 'tasdiqlangan'::text AND COALESCE(aq.certified_amount, aq.summa) IS NULL AND COALESCE(aq.certified_quantity, aq.hajm, 0::numeric) <> 0::numeric) AS f2_summa_yoq
            FROM t2_akt_qator aq
              LEFT JOIN t2_akt a ON a.id = aq.akt_id
           WHERE aq.qator_id = q.id) d ON true

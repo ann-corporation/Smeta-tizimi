@@ -215,6 +215,10 @@ describe('ko‘rinishlar (Construct uslubi)', () => {
     // Manfiy qator: ishorali narx; F2 summasi noma'lum — narx to'qilmaydi; 0 — 0.
     expect(faktSummaF2Narxda(-1, -2, -70000, -12000).summa).toBe(-35000);
     expect(faktSummaF2Narxda(2, 5, null, 24000)).toEqual({ summa: null, manba: 'f2', narx: null });
+    // F2 summasi yozilmagan (server f2_summa_yoq > 0, summa 0 ko'rinsa ham): fakt 0 ga tushmaydi, avvalgidek; yoq=0 — odatdagi qoida.
+    expect(faktSummaF2Narxda(1, 1, 0, 3270, 1)).toEqual({ summa: 3270, manba: 'fakt', narx: null });
+    expect(faktSummaF2Narxda(1, 1, 0, 3270, 0).summa).toBe(0);
+    expect(faktSummaF2Narxda(null, 1, null, null, 2).summa).toBeNull();
     expect(faktSummaF2Narxda(2, 5, 0, 24000).summa).toBe(0);
     // Float shovqinli chegara (x.xx4999999999995): yaxlit2 15 muhim raqamga olib YUQORI yaxlitlaydi — SQL `_t2_f2_narxda_v1` shuni qiladi.
     expect(faktSummaF2Narxda(1, 1, 28656.224999999995, null).summa).toBe(28656.23);
