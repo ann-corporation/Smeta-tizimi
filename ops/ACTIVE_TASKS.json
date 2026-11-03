@@ -3,6 +3,35 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "DESKTOP-D2-ETAG-20261031",
+      "owner": "codex",
+      "machine": "noutbuk",
+      "title": "D2 triggersiz obyekt paketi ETag, snapshot va HTTP304",
+      "branch": "codex/desktop-d2-etag",
+      "base_sha": "fc65e64582c4b1fa792d556c2a073540f6ad1ebc",
+      "status": "ready_for_review",
+      "owns": [
+        "supabase/migrations/*t2_obyekt_paket_muhr_v1*.sql",
+        "supabase/tests/desktop-etag-pglite.mjs",
+        "frontend/functions/api/obyekt-paket.ts",
+        "frontend/functions/api/obyekt-paket.etag.test.ts",
+        "frontend/functions/_shared/obyekt-etag.ts",
+        "frontend/src/api/t2-obyekt-paket.ts",
+        "frontend/src/api/t2-obyekt-paket.etag.test.ts",
+        "ops/handoff/DESKTOP_D2_ETAG_20261031.md",
+        "supabase/migrations/20261122000100_t2_obyekt_paket_f2_summa_yoq_v1.sql",
+        "supabase/migrations/20261122000100_t2_obyekt_paket_f2_summa_yoq_v1.rollback.sql",
+        "supabase/migrations/20261122000100_t2_obyekt_paket_f2_summa_yoq_v1.acceptance.sql"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "docs/architecture/OBYEKT_PAKET_OFFLINE_DESKTOP_V1.md"
+      ],
+      "production_write_allowed": false,
+      "note": "2026-11-03 L0: PR216 exact main adaptation incl. new additive package migration f2_summa_yoq + akt_podval; full/build scheduled by parent only. Local commit, no push before parent review. Deployed historical migrations immutable.",
+      "verification": "2026-11-03 exact main fc65e645 merged: PGlite88PASS, focused Vitest35PASS, app/functions TS PASS, lint PASS with existing warnings, diff PASS. Full/build deferred to parent single-process schedule. Governance FAIL existing C11 ledger/contract overlap. No production SQL, no push."
+    },
+    {
       "id": "PTO-RECONCILIATION-20261026",
       "title": "Preserve certified unknown and amount-only F2 reconciliation evidence",
       "owner": "codex",

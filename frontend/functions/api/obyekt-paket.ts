@@ -3,7 +3,8 @@
  *
  *   GET /api/obyekt-paket?obyekt_id=N   → butun paket (ustunli JSON, t2_obyekt_paket_v1)
  *
- * PR1a — XAVFSIZ MINIMUM: reviziya/ETag/304 va R2 kesh YO'Q (PR1b — kompozit muhr ETag, PR1c — R2, PR3 — delta).
+ * Sukut: PR1a. OBYEKT_PAKET_ETAG=1 — D2 kompozit muhr/304 (migratsiya qo'llangandan keyin).
+ * 200 wrapper RPC tanasi va ETag'i bitta STABLE snapshot'dan. R2/delta bu bosqichda yo'q.
  * Qoidalar:
  *   - Auth/tenant `sb.ts` bilan bir xil: tekshir → roleAuthority → otaKompaniyasi (a'zolik). `p_actor_id` doim sessiyadan.
  *   - Paket smeta + F2 ro'yxati + nakrutkani birga beradi — smeta.read + f2.read + narx.read hammasi shart.
@@ -18,8 +19,9 @@ import { xavfsizUpstream } from '../_shared/xato';
 import { azoKompaniyalar } from '../_shared/tenant-oqish';
 import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shared/role-authority';
 import { otaKompaniyasi } from '../_shared/ota-kompaniya';
+import { muhrMos, paketMuhr } from '../_shared/obyekt-etag';
 
-type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string };
+type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; OBYEKT_PAKET_ETAG?: string };
 
 /** Paket uchun kerakli ruxsatlar (obyekt kompaniyasida hammasi bo'lishi shart). */
 export const PAKET_RUXSATLARI = ['smeta.read', 'f2.read', 'narx.read'] as const;
@@ -57,11 +59,26 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       if (!PAKET_RUXSATLARI.every((p) => bor.includes(p))) return xato(403, 'PERMISSION_DENIED', 'Obyekt paketi uchun ruxsat yetarli emas');
     }
 
-    const up = await fetch(
-      supabaseBaseUrl(env.SUPABASE_URL) + '/rest/v1/rpc/t2_obyekt_paket_v1?p_obyekt_id=' + obyektId + '&p_actor_id=' + sess.foydalanuvchi_id,
-      { headers: { apikey: env.SUPABASE_KEY, Authorization: 'Bearer ' + env.SUPABASE_KEY, Accept: 'application/json' } });
+    const headers = { apikey: env.SUPABASE_KEY, Authorization: 'Bearer ' + env.SUPABASE_KEY, Accept: 'application/json' };
+    const rpc = supabaseBaseUrl(env.SUPABASE_URL) + '/rest/v1/rpc/';
+    const args = '?p_obyekt_id=' + obyektId + '&p_actor_id=' + sess.foydalanuvchi_id;
+    const etagYoqilgan = env.OBYEKT_PAKET_ETAG === '1';
+    if (etagYoqilgan && ctx.request.headers.has('If-None-Match')) {
+      const probe = await fetch(rpc + 't2_obyekt_paket_muhr_v1' + args, { headers });
+      if (!probe.ok) return xavfsizUpstream(probe.status, await probe.text().catch(() => ''), upstreamHolat(probe.status));
+      const muhr: unknown = await probe.json();
+      if (!paketMuhr(muhr)) return xato(502, 'PAKET_MUHR_INVALID', 'Obyekt holatini tekshirib bo‘lmadi.');
+      if (muhrMos(ctx.request.headers.get('If-None-Match'), muhr)) return new Response(null, {
+        status: 304, headers: { ...NO_STORE, ETag: muhr, Vary: 'Cookie, Authorization' },
+      });
+    }
+    const up = await fetch(rpc + (etagYoqilgan ? 't2_obyekt_paket_etag_v1' : 't2_obyekt_paket_v1') + args, { headers });
     if (!up.ok || !up.body) return xavfsizUpstream(up.status, await up.text().catch(() => ''), upstreamHolat(up.status));
-    return new Response(up.body, { headers: { ...NO_STORE, 'Content-Type': 'application/json; charset=utf-8' } });
+    const muhr = up.headers.get('ETag');
+    if (etagYoqilgan && !paketMuhr(muhr)) return xato(502, 'PAKET_MUHR_INVALID', 'Obyekt holatini tekshirib bo‘lmadi.');
+    return new Response(up.body, { headers: { ...NO_STORE, 'Content-Type': 'application/json; charset=utf-8',
+      ...(etagYoqilgan && muhr ? { ETag: muhr, Vary: 'Cookie, Authorization' } : {}),
+    } });
   } catch (err: unknown) {
     return xavfsizUpstream(502, err);
   }
