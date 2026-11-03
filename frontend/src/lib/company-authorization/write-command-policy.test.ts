@@ -11,7 +11,9 @@ const amallar = [...blok.matchAll(/^\s+([a-z0-9_]+):\s*\{/gm)].map((m) => m[1]);
 const KATALOG = new Set(['company.member.manage', 'company.profile.update', 'company.read', 'control.company.read', 'control.company.write',
   'control.global.read', 'control.global.write', 'document.read', 'document.write', 'f2.approve', 'f2.cancel', 'f2.correct', 'f2.import', 'f2.prepare',
   'f2.read', 'fakt.read', 'fakt.write', 'financial.read', 'financial.write', 'narx.read', 'narx.write', 'object.read', 'object.write',
-  'project.read', 'project.write', 'smeta.read', 'smeta.write']);
+  'project.read', 'project.write', 'smeta.read', 'smeta.write',
+  /* Xarid/ta'minot capability lari (20261108010000_t2_ekotizim_f1_ruxsat_v1; effective-authorization.ts) — tender amallari ishlatadi. */
+  'procurement.read', 'procurement.write', 'procurement.approve', 'supply.offer', 'supply.fulfil']);
 
 describe('yozish buyruqlari reyestri', () => {
   it('sb-yoz dagi har amal reyestrda (yoki dinamik ro‘yxatda), reyestrda ortiqcha amal yo‘q', () => {
