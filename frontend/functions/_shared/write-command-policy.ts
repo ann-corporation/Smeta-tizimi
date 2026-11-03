@@ -28,6 +28,7 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   shartnoma_saqla_v2: 'document.write',
   qarzdorlik_saqla_v1: 'financial.write',
   qarzdorlik_import_v1: 'financial.write',
+  shartnoma_oylik_paket_saqla_v1: 'document.write',
   sverka_yozuv_v1: 'financial.write',
   sverka_import_v1: 'financial.write',
   f2_reestr_yoz_v1: 'financial.write',
