@@ -43,7 +43,7 @@ const PANEL: SotuvPanel = {
   prognoz: [{ oy: '2026-12', summa: 3_000_000 }], voronka: { lid: 4, aloqa: 2, shartnoma: 1, bekor: 1 },
   manbalar: [{ manba: 'telegram', lid: 5, sotildi: 1 }], menejerlar: [{ actor_id: 1, ism: 'Sinov Menejer', bitim: 7, sotildi: 1, summa: 50_000_000 }],
   oylik_sotuv: [], binolar: [{ obyekt_id: 10, nom: 'Sinov bino A', loyiha_id: 3, jami: 3, bosh: 1, sotilgan: 1 }],
-  loyihalar: [{ loyiha_id: 3, nom: 'Sinov loyiha', reyestr_raqam: null, sotuvda: false, topshirish_sana: null, eskrou_hisob: null, bron_soat: 72 }],
+  loyihalar: [{ loyiha_id: 3, nom: 'Sinov loyiha', reyestr_raqam: null, reyestr_sana: null, sotuvda: false, topshirish_sana: null, eskrou_bank: null, eskrou_hisob: null, tavsif: null, bron_soat: 72 }],
 };
 const BITIMLAR: BitimQator[] = [{
   id: 501, bosqich: 'lid', mijoz_id: 1, mijoz: 'Sinov Lid', telefon: '998901112233', manba: 'telegram', masul_actor_id: 1, loyiha_id: null, birlik_id: null,

@@ -23,6 +23,10 @@ begin
   insert into public.t2_loyiha (kompaniya_id, nom) values (v_komp, t) returning id into v_loy;
   insert into public.t2_obyekt (nom, kompaniya_id, loyiha_id) values (t || ' blok', v_komp, v_loy) returning id into v_ob;
 
+  r := public.t2_sotuv_loyiha_saqla_v1(v_komp, v_actor, v_loy, '{"reyestr_raqam":"R-1","eskrou_bank":"Sintetik bank","tavsif":"x"}', gen_random_uuid());
+  r := public.t2_sotuv_loyiha_saqla_v1(v_komp, v_actor, v_loy, '{"sotuvda":true}', gen_random_uuid());
+  if r->>'ok' <> 'true' or (select eskrou_bank from public.t2_sotuv_loyiha where loyiha_id = v_loy) is distinct from 'Sintetik bank'
+     or not (select sotuvda from public.t2_sotuv_loyiha where loyiha_id = v_loy) then raise exception 'ACCEPT_FAIL: loyiha qisman %', r; end if;
   r := public.t2_sotuv_birlik_saqla_v1(v_komp, v_actor, v_ob, '[{"raqam":"1","qavat":1,"xona_soni":2,"maydon":60,"narx_m2":10000000},
      {"raqam":"2","qavat":1,"xona_soni":3,"maydon":80,"narx_m2":10000000},{"raqam":"3","qavat":2,"maydon":50}]', gen_random_uuid());
   if (r->>'yangi')::int <> 3 then raise exception 'ACCEPT_FAIL: birlik %', r; end if;

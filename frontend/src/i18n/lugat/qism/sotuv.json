@@ -719,10 +719,6 @@
   "ru": "Для вывода в продажу нужен номер реестра (ПП-4732).",
   "en": "A registry number is required to put on sale (PP-4732)."
  },
- "Saqlashda reyestr sanasi, eskrou banki va tavsif ham yoziladi — bo‘sh qoldirilsa tozalanadi.": {
-  "ru": "При сохранении также записываются дата реестра, эскроу-банк и описание — пустые значения очищаются.",
-  "en": "Saving also writes the registry date, escrow bank and description — empty values are cleared."
- },
  "To‘lov qo‘shish": {
   "ru": "Добавить платёж",
   "en": "Add payment"

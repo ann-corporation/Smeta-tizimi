@@ -345,20 +345,22 @@ end $$;
 -- 3.1 Loyiha sozlamasi (reyestr, eskrou, sotuvga chiqarish).
 create or replace function public.t2_sotuv_loyiha_saqla_v1(p_kompaniya_id bigint, p_actor_id bigint, p_loyiha_id bigint, p jsonb, p_operation_id uuid)
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
-declare v jsonb; v_eski jsonb; r jsonb;
+declare v jsonb; v_eski jsonb; m jsonb; r jsonb;
 begin
   v := public._t2_sotuv_op(p_operation_id, p_kompaniya_id); if v is not null then return v; end if;
   perform public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id);
   perform public.t2_require_permission_v2(p_kompaniya_id, p_actor_id, 'sales.price');
   if not exists (select 1 from public.t2_loyiha where id = p_loyiha_id and kompaniya_id = p_kompaniya_id) then
     return jsonb_build_object('ok', false, 'code', 'LOYIHA_NOT_FOUND'); end if;
-  if coalesce((p->>'sotuvda')::boolean, false) and nullif(btrim(coalesce(p->>'reyestr_raqam', '')), '') is null then
+  -- Qisman yangilash: p da YO'Q kalit eski qiymatda qoladi (forma hamma maydonni yubormasligi mumkin) → m = eski || p.
+  select to_jsonb(l) into v_eski from public.t2_sotuv_loyiha l where l.loyiha_id = p_loyiha_id;
+  m := coalesce(v_eski, '{}'::jsonb) || p;
+  if coalesce((m->>'sotuvda')::boolean, false) and nullif(btrim(coalesce(m->>'reyestr_raqam', '')), '') is null then
     return jsonb_build_object('ok', false, 'code', 'REYESTR_KERAK');
   end if;
-  select to_jsonb(l) into v_eski from public.t2_sotuv_loyiha l where l.loyiha_id = p_loyiha_id;
   insert into public.t2_sotuv_loyiha as l (loyiha_id, kompaniya_id, reyestr_raqam, reyestr_sana, eskrou_bank, eskrou_hisob, topshirish_sana, tavsif, sotuvda, bron_soat)
-  values (p_loyiha_id, p_kompaniya_id, nullif(btrim(p->>'reyestr_raqam'), ''), (p->>'reyestr_sana')::date, p->>'eskrou_bank', p->>'eskrou_hisob',
-          (p->>'topshirish_sana')::date, p->>'tavsif', coalesce((p->>'sotuvda')::boolean, false), coalesce((p->>'bron_soat')::int, 72))
+  values (p_loyiha_id, p_kompaniya_id, nullif(btrim(m->>'reyestr_raqam'), ''), (m->>'reyestr_sana')::date, m->>'eskrou_bank', m->>'eskrou_hisob',
+          (m->>'topshirish_sana')::date, m->>'tavsif', coalesce((m->>'sotuvda')::boolean, false), coalesce((m->>'bron_soat')::int, 72))
   on conflict (loyiha_id) do update set reyestr_raqam = excluded.reyestr_raqam, reyestr_sana = excluded.reyestr_sana, eskrou_bank = excluded.eskrou_bank,
     eskrou_hisob = excluded.eskrou_hisob, topshirish_sana = excluded.topshirish_sana, tavsif = excluded.tavsif, sotuvda = excluded.sotuvda,
     bron_soat = excluded.bron_soat, versiya = l.versiya + 1, yangilandi = now();
@@ -918,8 +920,9 @@ begin
         'jami', x.jami, 'bosh', x.bosh, 'sotilgan', x.sotilgan) order by o.nom), '[]'::jsonb)
         from (select obyekt_id, count(*) jami, count(*) filter (where h = 'bosh') bosh, count(*) filter (where h = 'sotilgan') sotilgan from s group by obyekt_id) x
         join public.t2_obyekt o on o.id = x.obyekt_id),
-    'loyihalar', (select coalesce(jsonb_agg(jsonb_build_object('loyiha_id', l.id, 'nom', l.nom, 'reyestr_raqam', sl.reyestr_raqam, 'sotuvda', coalesce(sl.sotuvda, false),
-        'topshirish_sana', sl.topshirish_sana, 'eskrou_hisob', sl.eskrou_hisob, 'bron_soat', coalesce(sl.bron_soat, 72)) order by l.nom), '[]'::jsonb)
+    'loyihalar', (select coalesce(jsonb_agg(jsonb_build_object('loyiha_id', l.id, 'nom', l.nom, 'reyestr_raqam', sl.reyestr_raqam, 'reyestr_sana', sl.reyestr_sana, 'sotuvda', coalesce(sl.sotuvda, false),
+        'topshirish_sana', sl.topshirish_sana, 'eskrou_bank', sl.eskrou_bank, 'eskrou_hisob', sl.eskrou_hisob, 'tavsif', sl.tavsif,
+        'bron_soat', coalesce(sl.bron_soat, 72)) order by l.nom), '[]'::jsonb)
         from public.t2_loyiha l left join public.t2_sotuv_loyiha sl on sl.loyiha_id = l.id
         where l.kompaniya_id = p_kompaniya_id and (p_loyiha_id is null or l.id = p_loyiha_id)))
   into v;

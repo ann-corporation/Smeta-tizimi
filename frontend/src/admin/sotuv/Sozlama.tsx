@@ -1,7 +1,7 @@
 /**
  * Loyiha sotuv sozlamasi (sales.price): reyestr raqami/sanasi, eskrou bank/hisob, topshirish sanasi, tavsif, bron muddati,
  * «Sotuvda» belgisi. Qoida (PP-4732): reklama va sotuv — faqat reyestrga kiritilgandan keyin (server ham REYESTR_KERAK qaytaradi).
- * Diqqat: server barcha maydonlarni birga yozadi — panel bermaydigan maydonlar (reyestr sanasi, eskrou bank, tavsif) qayta kiritiladi.
+ * Server qisman yangilaydi (eski || yangi); panel barcha maydonlarni beradi — forma to'liq oldindan to'ldiriladi.
  */
 import { useRef, useState } from 'react';
 import { t } from '../../i18n/til';
@@ -31,8 +31,8 @@ export function Sozlama({ kid, loyihalar }: { kid: number; loyihalar: readonly L
 
 function LoyihaForma({ kid, l }: { kid: number; l: Loyiha }) {
   const [f, setF] = useState({
-    reyestr_raqam: l.reyestr_raqam ?? '', reyestr_sana: '', eskrou_bank: '', eskrou_hisob: l.eskrou_hisob ?? '',
-    topshirish_sana: l.topshirish_sana?.slice(0, 10) ?? '', tavsif: '', bron_soat: String(l.bron_soat ?? 72), sotuvda: l.sotuvda,
+    reyestr_raqam: l.reyestr_raqam ?? '', reyestr_sana: l.reyestr_sana?.slice(0, 10) ?? '', eskrou_bank: l.eskrou_bank ?? '', eskrou_hisob: l.eskrou_hisob ?? '',
+    topshirish_sana: l.topshirish_sana?.slice(0, 10) ?? '', tavsif: l.tavsif ?? '', bron_soat: String(l.bron_soat ?? 72), sotuvda: l.sotuvda,
   });
   const [band, setBand] = useState(false);
   const op = useRef(yangiOperationId());
@@ -74,7 +74,6 @@ function LoyihaForma({ kid, l }: { kid: number; l: Loyiha }) {
         {t('Sotuvda (reklama va bron ochiq)')}
       </label>
       {f.sotuvda && reyestrYoq && <p className="fz-note fz-note--danger">{t('Sotuvga chiqarish uchun reyestr raqami kerak (PP-4732).')}</p>}
-      <p className="text-[11.5px] text-text-mute">{t('Saqlashda reyestr sanasi, eskrou banki va tavsif ham yoziladi — bo‘sh qoldirilsa tozalanadi.')}</p>
       <div className="flex justify-end"><button type="button" className="fz-btn fz-btn--primary" disabled={!ok || band} onClick={saqla}>{t('Saqlash')}</button></div>
     </div>
   );
