@@ -8,9 +8,9 @@ Boshqaruv to'liq **L0 (lokal agent)** da. Cloud ishni faqat L0 dan oladi, boshla
 
 ## Yakuniy taqsimot (L0 2026-11-03)
 - **Cloud:**
-  1. Uy sotish — #236 + ekranlar (sub-agent shu tarmoqda quryapti).
-  2. Tender — #239 + ekranlar (sub-agent shu tarmoqda quryapti).
-  3. Logistika #235 — FAQAT 2 ta CI xatosi, keyin to'xtash.
+  1. Uy sotish — #236: S1 + S2 tayyor; S3 (xaridor) — L0 ruxsati bilan.
+  2. Tender — #239: server + UI tayyor.
+  3. Logistika #235 — 2 CI xatosi tuzatildi, yashil; cloud to'xtadi.
   4. 3D — keyinroq, faqat tadqiqot.
 - **To'xtatildi:** HR/KPI, buxgalteriya, hujjat/laboratoriya rejalash agentlari, asfalt.
   - Rejalash agentlari to'xtatishdan oldin tugagan edi. Rejalar `claude/cloud-rejalar` tarmog'ida, `docs/architecture/cloud-rejalar/`: `IJRO_HUJJATLARI_LAB_TOMONLAR.md`, `HR_KPI_BUXGALTERIYA.md`. O'zgarishsiz — lokal quruvchilar uchun kirish material.
@@ -81,8 +81,8 @@ Boshqaruv to'liq **L0 (lokal agent)** da. Cloud ishni faqat L0 dan oladi, boshla
     - yoqilg'i narxi QQSsiz kiritiladimi;
     - ijaradagi mashina ham ob'ektlarga taqsimlanadimi;
     - МАШ kategoriyasimi.
-- **Asfalt pirogi m² kalkulyatsiyasi** — sub-agent faqat o'qish bilan Excel tayyorlamoqda. Natija L0 / egasiga beriladi, cloud davom ettirmaydi.
-- **Ijro hujjatlari / laboratoriya** va **HR-KPI + buxgalteriya** — sub-agentlar faqat loyihalash hujjatlarini yozmoqda (kod yo'q). Tayyor bo'lgach lokal agentlarga kirish material sifatida topshiriladi (`docs/` yoki INBOX orqali).
+- **Asfalt pirogi m² kalkulyatsiyasi** — ✅ Excel egasiga berildi (9 ta shubhali joy faylda); tekshiruv — lokal agent.
+- **Ijro hujjatlari / laboratoriya** va **HR-KPI + buxgalteriya** — ✅ loyihalash hujjatlari tayyor: PR ann-corporation/Smeta-tizimi#241 (`docs/architecture/cloud-rejalar/`).
 
 ## Boshqa ochiq PR'lar
 - ann-corporation/Smeta-tizimi#234 — rahbar paneli tahlil (L0 merge kutmoqda).
