@@ -3,12 +3,13 @@
  * tanlangan ishning normativ resurslari. Smeta Studio (LRV) va fakt oynasidagi zamena (IshAbcModal) BIR XIL
  * komponentdan foydalanadi (dublikat yo'q). Katalog o'zgarmas ma'lumotnoma (R2); bu panel faqat o'qiydi.
  */
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { t } from '../../i18n/til';
 import type { NormDetail, RemoteTreeNode } from '../../lib/catalog-extraction/norm-remote';
 import type { StudioNormCatalog } from '../../lib/catalog-extraction/norm-library';
 import type { NormWork } from '../../lib/catalog-extraction/norm-catalog';
 import { catalogueBasis } from '../../lib/smeta-studio/catalog-bridge';
+import { parseQuantityInput } from '../../lib/smeta-studio/quantity-input';
 import { ishIndeksi } from '../../lib/smeta-ai/worker';
 
 export type NormRecipe = NormDetail['recipes'][number];
@@ -36,6 +37,10 @@ export function KatalogPanel({ katalog, nishon = null, onAdd, commandError = '',
   const [xato, setXato] = useState('');
   const [addResult, setAddResult] = useState<'success' | 'failed' | null>(null);
   const [addedSection, setAddedSection] = useState('');
+  const quantityInput = useRef<HTMLInputElement>(null);
+  const quantityHelpId = useId();
+  const detailId = detail?.work.id;
+  useEffect(() => { if (detailId && !hajmYoq && !amalYoq) quantityInput.current?.focus(); }, [detailId, hajmYoq, amalYoq]);
   useEffect(() => { const timer = setTimeout(() => { setQidiruv(soz); setSahifa(0); }, 200); return () => clearTimeout(timer); }, [soz]);
   const selectionRequest = useRef(0);
   useEffect(() => () => { selectionRequest.current++; }, []);
@@ -71,6 +76,11 @@ export function KatalogPanel({ katalog, nishon = null, onAdd, commandError = '',
   const sourceMeasure = 'sourceBasis' in katalog;
   const basis = detail ? catalogueBasis(katalog, detail.work.unitCode) : null;
   const measureLabel = unit?.text ?? (sourceMeasure ? detail?.work.unitCode : null);
+  let quantity: ReturnType<typeof parseQuantityInput> | null = null;
+  let quantityInvalid = false;
+  if (!hajmYoq && hajm.trim()) {
+    try { quantity = parseQuantityInput(hajm); } catch { quantityInvalid = true; }
+  }
   return <div className="space-y-2">
     {tugun >= 0 && katalog.breadcrumb(tugun).some(n => n.labelOrigin === 'EDITORIAL') && <p role="status" className="text-sm text-text-dim">{t('Bo‘lim nomlari ishlar mazmuni asosida tuzilgan.')}</p>}
     <nav aria-label={t('Katalog ierarxiyasi')} className="flex flex-wrap gap-1 text-sm">
@@ -86,7 +96,7 @@ export function KatalogPanel({ katalog, nishon = null, onAdd, commandError = '',
         <span className="text-xs text-text-mute tabular-nums">{n.workCount.toLocaleString('ru')}</span>
       </button>)}
     </div>}
-    {ishlar && <div className="border border-border rounded">
+    {ishlar && <div className="border border-border rounded max-h-[34vh] overflow-y-auto">
       <p className="text-xs text-text-mute px-2 py-1">{ishlar.mano ? t('Aynan mos yozuv yo‘q — ma’no bo‘yicha eng yaqin ishlar') : <>{t('Topildi')}: {ishlar.total.toLocaleString('ru')}</>}</p>
       {ishlar.rows.map(w => <button key={w.id} className={`block w-full text-left px-2 py-1.5 border-b border-border hover:bg-surface-2 ${tanlangan?.id === w.id ? 'bg-surface-2' : ''}`} onClick={() => void tanla(w)}>
         <span className="font-mono text-xs text-accent">{w.code}</span> <span>{w.name ?? t('Nom noma’lum')}</span>
@@ -106,6 +116,35 @@ export function KatalogPanel({ katalog, nishon = null, onAdd, commandError = '',
       {sourceMeasure && basis?.scale && basis.unitLabel && <p className="text-sm">{t('Norma masshtabi')}: <b>{basis.scale} {basis.unitLabel}</b></p>}
       {detail.recipeCount === 0 && <p role="status" className="text-sm text-warn">{t('Resurs retsepti yo‘q — ishni smetaga qo‘shib bo‘lmaydi.')}</p>}
       {detail.workCodeAmbiguous && <p className="text-danger text-sm">{t('Bir shifrga ikki ish yozuvi mos keladi — bu ish hisobga qo‘shilmaydi.')}</p>}
+      {!amalYoq && <form className="space-y-2" onSubmit={e => {
+        e.preventDefault();
+        if (quantityInvalid || detail.workCodeAmbiguous || detail.recipeCount === 0) return;
+        const ok = onAdd(tanlangan, detail, hajmYoq ? hajm : quantity?.qiymat ?? '');
+        setAddResult(ok ? 'success' : 'failed');
+        if (ok) { setAddedSection(nishon ?? ''); setHajm(''); quantityInput.current?.focus(); }
+      }}>
+        <div className="flex flex-wrap items-end gap-2">
+          {!hajmYoq && <label className="min-w-40 flex-1 text-sm">{t('Hajm yoki formula')}{basis?.unitLabel ? ` (${basis.unitLabel})` : ''}
+            <input ref={quantityInput} className="block w-full min-h-11 p-2 border border-border rounded bg-bg" inputMode="text"
+              value={hajm} aria-invalid={quantityInvalid} aria-describedby={quantityHelpId} autoComplete="off"
+              onChange={e => { setHajm(e.target.value); setAddResult(null); }} placeholder="12 × 3 × 0,2" />
+          </label>}
+          <button type="submit" className="min-h-11 px-3 py-2 rounded bg-accent text-white disabled:opacity-40"
+            disabled={quantityInvalid || detail.workCodeAmbiguous || detail.recipeCount === 0}>{amalMatn ?? t('Smetaga qo‘shish')} →</button>
+        </div>
+        {!hajmYoq && <p id={quantityHelpId} role={quantityInvalid ? 'alert' : 'status'} className={`text-xs ${quantityInvalid ? 'text-danger' : 'text-text-dim'}`}>
+          {quantityInvalid ? t('Hajm yoki formulani tekshiring. Masalan: 12 × 3 × 0,2.')
+            : quantity ? t('Hisoblangan hajm: {n} {birlik}', { n: quantity.qiymat, birlik: basis?.unitLabel ?? '' })
+            : t('Hajmni hozir kiriting yoki bo‘sh qoldirib keyin to‘ldiring. Enter — qo‘shish.')}
+        </p>}
+        {izoh !== undefined ? izoh : <p className="text-xs text-text-mute">{nishon ? t('Bo‘lim: {n}', { n: nishon }) : t('Ish uchun bo‘lim avtomatik yaratiladi')}</p>}
+      </form>}
+      {addResult === 'success' && izoh === undefined && <p role="status" className="text-sm text-accent">{addedSection
+        ? t('Ish «{nom}» «{bolim}» bo‘limiga qo‘shildi.', { nom: detail.work.name ?? detail.work.code, bolim: addedSection })
+        : t('Ish «{nom}» smetaga qo‘shildi.', { nom: detail.work.name ?? detail.work.code })}</p>}
+      {addResult === 'failed' && <p role="alert" className="text-sm text-danger">{commandError || t('Amal bajarilmadi. Kiritilgan qiymatlarni tekshiring.')}</p>}
+      <details key={detail.work.id} open={onResurs != null || amalYoq}>
+      <summary className="cursor-pointer py-2 text-sm font-medium">{t('Resurslar tarkibi ({n})', { n: detail.recipeCount })}</summary>
       <table className="w-full text-xs"><thead><tr className="text-text-mute"><th className="text-left">{t('Resurs')}</th><th className="text-right">{t('Norma')}</th><th className="text-left">{t('Holat')}</th>{onResurs && <th />}</tr></thead>
         <tbody>{detail.recipes.map(r => <tr key={r.id} className="border-t border-border">
           <td>{r.resourceStatus === 'EXACT' ? r.candidates[0]?.name : <span className="text-warn">{r.resourceCode ?? r.resourceIdCode} — {t('{n} nomzod', { n: r.candidateCount })}</span>}</td>
@@ -118,19 +157,7 @@ export function KatalogPanel({ katalog, nishon = null, onAdd, commandError = '',
         <span>{resSahifa + 1} / {Math.ceil(detail.recipeCount / 25)}</span>
         <button disabled={(resSahifa + 1) * 25 >= detail.recipeCount} onClick={() => { setResSahifa(p => p + 1); setDetail(katalog.detail(detail.work.id, resSahifa + 1)); }}>{t('Keyingi')}</button>
       </div>}
-      {!amalYoq && <div className="flex flex-wrap items-end gap-2">
-        {!hajmYoq && <label className="text-sm">{t('Hajm')}{basis?.unitLabel ? ` (${basis.unitLabel})` : ''}
-          <input className="block w-32 p-1 border border-border rounded bg-bg" inputMode="decimal" value={hajm} onChange={e => { setHajm(e.target.value); setAddResult(null); }} placeholder="4,5" /></label>}
-        <button className="px-3 py-1.5 rounded bg-accent text-white disabled:opacity-40" disabled={detail.workCodeAmbiguous || detail.recipeCount === 0}
-          onClick={() => {
-            const ok = onAdd(tanlangan, detail, hajm);
-            setAddResult(ok ? 'success' : 'failed');
-            if (ok) { setAddedSection(nishon ?? ''); setHajm(''); }
-          }}>{amalMatn ?? t('Smetaga qo‘shish')} →</button>
-        {izoh !== undefined ? izoh : <span className="text-xs text-text-mute">{nishon ? t('Bo‘lim: {n}', { n: nishon }) : t('Ish uchun bo‘lim avtomatik yaratiladi')}</span>}
-      </div>}
-      {addResult === 'success' && izoh === undefined && <p role="status" className="text-sm text-accent">{t('Ish «{nom}» «{bolim}» bo‘limiga qo‘shildi.', { nom: detail.work.name ?? detail.work.code, bolim: addedSection })}</p>}
-      {addResult === 'failed' && <p role="alert" className="text-sm text-danger">{commandError || t('Amal bajarilmadi. Kiritilgan qiymatlarni tekshiring.')}</p>}
+      </details>
     </div>}
   </div>;
 }

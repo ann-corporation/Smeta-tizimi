@@ -1,0 +1,13 @@
+# Studio: меньше ручного ввода при добавлении нормы
+
+Владельцу неудобен путь от выбора готовой нормы до рассчитанной работы. Установленная причина: поле source measure «100 м3 бетона, бутобетона и железобетона в деле» возвращало неизвестную basis, хотя scale и физическая единица прямо записаны в источнике. Каталог/recipe parity не проверял эту пригодность для работы.
+
+Исправлено в существующем source-measure-basis: ограниченный список наблюдаемых единиц/уточнений pinned edition. На всех48083работах: recognized17277→27916 (+10639); missing948 сохраняются, нераспознанных19219. Composite/range/неизвестные единицы требуют проверки, никакой конверсии км→м или догадок по названию работы. Исходный measure не меняется и сохраняется в evidence. Существующие catalogueBasis manual/AI используют один результат.
+
+В общем NormKatalogPanel: объём/главное действие перед resource table, expression preview через существующий parseQuantityInput, Enter submit, focus после выбора/добавления, неправильная формула не проводится, blank≠0. Ресурсы свернуты в обычном picker, выбор ресурса в замене остается открытым. Поиск имеет ограниченную высоту, кнопки44px. Исправлено пустое имя автоматически созданного раздела в success message. Переводы отдельным qism-файлом. SmetaStudio/calc/model/commands/catalog-bridge/foreign design не редактировались; существующий Codex-owned Studio test обновлён для нового UI.
+
+Доказательства: focused79PASS (реальный Studio+picker+sourcebasis); дополнительно65PASS с i18n/quantity, appTS/lint и tekshir PASS. Временный локальный browser harness использует production-компонент, реальный pinned каталог и command/calc; код/данные harness НЕ входят вPR. Е06-01-001-1→formula12×3×0,2→Enter→7.2м3/9resources; sourcebasis100м3 auto; price unknown сохранена.375px: scrollWidth367≤375, input/button доступны. Фото C:/Temp/studio-easy-mobile-20261102.png.
+
+Полный локальный Vitest до обновления старых UI assertions имел4 ожидаемых fail, завершение остановлено; окончательный focused Studio79PASS после обновления. Новый fullCI нужно проверить по точному head; не выдавать предварительный полный запуск за зеленый. Tekshir сначала выявил отсутствующий sparsecheckout mcp/smeta-mcp/build.mjs: tracked mcp восстановлен через sparse-checkout add, source не изменён; повтор tekshirPASS. Governance4 прежних foreign AKKAUNT/DIZAYN/C11fail не обходились.
+
+Production/DB/R2 pointers не менялись; полный authenticated production save/reopen/export и owner acceptance не пройдены. Это первая конкретная UX поставка, не «идеальная система готова». Следующий шаг после интеграции: объяснить оставшиеся unknown/composite basis в одном месте и упростить подбор/обоснование цен, не придумывая отсутствующие цены. Main release остается L0.
