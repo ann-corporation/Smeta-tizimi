@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+// eslint-disable-next-line no-restricted-imports -- test fixture workbook builder only
 import * as XLSX from 'xlsx';
 import { readXlsx } from '../../src/lib/f2-import-parse/xlsxReader';
 import {
