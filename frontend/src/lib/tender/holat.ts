@@ -48,17 +48,17 @@ export type Ruxsatlar = { yoz: boolean; tasdiq: boolean };
 /** Ekranda ko'rsatiladigan tugmalar (xaridor tomoni): holat + ruxsat + muddat bo'yicha. */
 export function harakatlar(holat: TenderHolat, ruxsat: Ruxsatlar, muddatOtdi: boolean): Harakat[] {
   const r: Harakat[] = [];
-  const y = (h: Harakat) => { if (ruxsat.yoz) r.push(h); };
-  const t = (h: Harakat) => { if (ruxsat.tasdiq) r.push(h); };
+  const yoz = (h: Harakat) => { if (ruxsat.yoz) r.push(h); };
+  const tas = (h: Harakat) => { if (ruxsat.tasdiq) r.push(h); };
   switch (holat) {
-    case 'qoralama': y('tahrir'); y('tasdiqga'); t('bekor'); break;
-    case 'tasdiqlashda': t('elon'); t('qaytarish'); t('bekor'); break;
-    case 'elon': if (muddatOtdi) t('ochish'); else t('erta_yopish'); t('bekor'); break;
-    case 'takliflar_yopildi': t('ochish'); t('bekor'); break;
-    case 'baholash': y('baholash_saqlash'); t('raund'); t('golib'); t('yopish'); t('bekor'); break;
-    case 'golib_tanlandi': y('shartnoma'); y('bajarilmoqda'); t('yopish'); t('bekor'); break;
-    case 'shartnoma': y('bajarilmoqda'); t('bekor'); break;
-    case 'bajarilmoqda': t('yopish'); t('bekor'); break;
+    case 'qoralama': yoz('tahrir'); yoz('tasdiqga'); tas('bekor'); break;
+    case 'tasdiqlashda': tas('elon'); tas('qaytarish'); tas('bekor'); break;
+    case 'elon': if (muddatOtdi) tas('ochish'); else tas('erta_yopish'); tas('bekor'); break;
+    case 'takliflar_yopildi': tas('ochish'); tas('bekor'); break;
+    case 'baholash': yoz('baholash_saqlash'); tas('raund'); tas('golib'); tas('yopish'); tas('bekor'); break;
+    case 'golib_tanlandi': yoz('shartnoma'); yoz('bajarilmoqda'); tas('yopish'); tas('bekor'); break;
+    case 'shartnoma': yoz('bajarilmoqda'); tas('bekor'); break;
+    case 'bajarilmoqda': tas('yopish'); tas('bekor'); break;
     default: break;
   }
   return r;
