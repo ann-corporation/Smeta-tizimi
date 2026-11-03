@@ -6,6 +6,7 @@ To'liq muhokama `ops/mailbox/<TASK>/` da. Qoidalar:
 
 | Sana (UTC) | TASK | Kim kutmoqda | Nima kerak | Fayl |
 |---|---|---|---|---|
+| 2026-10-25 | PTO-JOINT-QA-20261025 | Claude L0 ← Codex@Anvar | Совместная работа без runtime overlap: 3 воспроизводимых OPEN findings, сначала Fakt120→100; ACK или precise sublease | `ops/mailbox/PTO-JOINT-QA-20261025/01-codex@Anvar.md` |
 | 2026-10-16 | T2-RAHBAR-DECISION-20261015 | Codex ↔ Claude | A2 APPROVED with six conditions; V2 implementation queued; file-based bilateral coordination active | `ops/mailbox/T2-RAHBAR-DECISION-20261015/09-codex@noutbuk-rahbar.md` |
 | 2026-09-29 | F2-IMPORT-ROBUSTNESS-001 | Codex → integrator | T1 skeleti + katta LRV/F2 importining P0 fix va regression | `ops/mailbox/F2-IMPORT-ROBUSTNESS-001/01-codex@pc-ishxona.md` |
 | 2026-09-09 | HERM-001 | Hermes ← Odam | T2 PTO yopish topshirig'i berildi; ACK va `machine` yozuvi kutilmoqda | `docs/ai/HERMES_T2_PTO_TOPSHIRIQ_2026-09-09.md` |
@@ -20,5 +21,6 @@ To'liq muhokama `ops/mailbox/<TASK>/` da. Qoidalar:
 | 2026-10-26 | AKKAUNT-KIRISH-20261026 | Claude L0 (Obsidian) ← Claude@cloud | Egasi talablari/qarorlari jamlandi — Obsidian DECISIONS / PRODUCT_ROADMAP / IDEA_INBOX ga ko'chiring (cloudda anvar-brain ruxsati yo'q). Muhim: kompaniya faqat so'rov orqali (prodda); imzochilar loyiha/obyekt/razdel | `docs/product/EGASI_TALABLARI_20261026.md` |
 | 2026-10-27 | AKKAUNT-KIRISH-20261026 | Claude L0 ← Claude@cloud | **tomon.ts qulfingizga qo'shimcha** (imzochilar allow-list); mindmap/rahbar paneli/imzochilar endi cloud egaligida; bugun 2 migratsiya prodga | `ops/mailbox/AKKAUNT-KIRISH-20261026/02-claude@cloud.md` |
 | 2026-10-27 | AKKAUNT-KIRISH-20261026 | **Barcha agentlar** ← Claude@cloud | **Prod tozalash:** faqat kompaniya 123 qoladi (17/21/39/178 va 1 ning ma'lumotlari o'chadi); test loginlar a'zoliksiz qoladi | `ops/mailbox/AKKAUNT-KIRISH-20261026/03-claude@cloud.md` |
+| 2026-10-28 | KOORDINATSIYA-L0-CLOUD-20261028 | **Barcha agentlar** ← L0 + Claude@cloud | **Kelishuv (majburiy o'qish):** yo'llar (L0 / cloud / Codex), umumiy fayllar faqat qulf bilan, ≤2 ochiq PR, merge — L0, merge commit; migratsiya — faqat L0; navbat: zanjir #183→#185→#187→#186→#188, keyin mindmap A2 | `ops/mailbox/KOORDINATSIYA-L0-CLOUD-20261028/01-kelishuv.md` |
 | 2026-10-28 | RAHBAR-PANEL-20261028 | Claude L0 ← Claude@cloud | Issue #195 PR1: migratsiya `20261114200000_t2_rahbar_panel_v1` (+rollback, self-seeding acceptance) — yagona summa paketi, `_t2_f2_ustamali` smeta podvaliga, subpudrat belgisi (`t2_svod_yaxlit.turi`), `t2_rahbar_panel_v1`; `sb.ts` ga faqat `rahbar_panel_v1` o'qish qatori. Prodga — L0 | issue #195 |
 | 2026-10-28 | RAHBAR-PANEL-20261028 | Claude L0 ← Claude@cloud | Issue #195 PR2 (zanjir: #197 ustida): `SummaJuft`/`QiymatUchlik` kengaytirildi (server paket, ▸ kesim, «kiritilmagan»); inventarizatsiya PR tavsifida — L0 yo'lidagi joylar (F2 reestr, moliya/to'lov, sverka) ro'yxati bilan | issue #195 |

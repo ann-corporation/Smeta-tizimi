@@ -1,0 +1,126 @@
+{
+  "c6": {
+    "production_write": false,
+    "typecheck": "PASS",
+    "static_checks": "PASS",
+    "functions_typecheck": "PASS",
+    "governance": "3 preexisting foreign errors",
+    "build": "PASS",
+    "lint": "PASS with preexisting warnings",
+    "module_tests": 24
+  },
+  "c4": {
+    "live_writer_called": false,
+    "independent_fail": 1,
+    "independent_pass": 2,
+    "author_tests": 13
+  },
+  "pr161": {
+    "app_typecheck": "PASS",
+    "focused_tests": 36
+  },
+  "pr162": {
+    "focused_tests": 55,
+    "focused_files": 6
+  },
+  "note": "Pending CI remains pending; Pages success is preview, not main production promotion.",
+  "checks": {
+    "9977ce56f598d7c926417eedf9ebd25b19bc100b": [
+      {
+        "name": "Cloudflare Pages",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ann-corporation/Smeta-tizimi/runs/122022876797"
+      },
+      {
+        "name": "mcp",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40453649256/job/122021864471"
+      },
+      {
+        "name": "frontend",
+        "status": "in_progress",
+        "conclusion": null,
+        "html_url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40453649256/job/122021864282"
+      },
+      {
+        "name": "mcp",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40453643361/job/122021846799"
+      },
+      {
+        "name": "frontend",
+        "status": "in_progress",
+        "conclusion": null,
+        "html_url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40453643361/job/122021846393"
+      }
+    ],
+    "3be17dd92b896b859ed307ee38bdb437babbe4dc": [
+      {
+        "name": "Cloudflare Pages",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ann-corporation/Smeta-tizimi/runs/122022364999"
+      },
+      {
+        "name": "mcp",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40453506744/job/122021406751"
+      },
+      {
+        "name": "frontend",
+        "status": "in_progress",
+        "conclusion": null,
+        "html_url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40453506744/job/122021406282"
+      },
+      {
+        "name": "mcp",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40453500399/job/122021387342"
+      },
+      {
+        "name": "frontend",
+        "status": "in_progress",
+        "conclusion": null,
+        "html_url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40453500399/job/122021387333"
+      }
+    ],
+    "d8284cb14cd00486881ef3bedbd49fc26d3a49aa": [
+      {
+        "name": "Cloudflare Pages",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ann-corporation/Smeta-tizimi/runs/122021716445"
+      },
+      {
+        "name": "mcp",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40453450543/job/122021232133"
+      },
+      {
+        "name": "frontend",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40453450543/job/122021231971"
+      },
+      {
+        "name": "mcp",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40453445717/job/122021217053"
+      },
+      {
+        "name": "frontend",
+        "status": "in_progress",
+        "conclusion": null,
+        "html_url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40453445717/job/122021216787"
+      }
+    ]
+  },
+  "source_main": "8b596fb820dca6204a27fd2963331ca3fb64de3f"
+}

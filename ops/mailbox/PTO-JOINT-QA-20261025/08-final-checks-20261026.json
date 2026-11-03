@@ -1,0 +1,123 @@
+{
+  "observed_at": "2026-10-26T20:43:44.5712343+05:00",
+  "source_main": "a4fe8b6583556c725ae0aab00db392cd48fcc9ec",
+  "pull_requests": [
+    {
+      "number": 160,
+      "head": "dee64acb7958fefe1a835dfd37ee566e8968d147",
+      "state": "OPEN",
+      "checks": [
+        {
+          "name": "frontend",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40347179371/job/121657112941"
+        },
+        {
+          "name": "frontend",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40347099994/job/121656829844"
+        },
+        {
+          "name": "mcp",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40347179371/job/121657112297"
+        },
+        {
+          "name": "mcp",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40347099994/job/121656830191"
+        },
+        {
+          "name": "Cloudflare Pages",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://dash.cloudflare.com/?to=/a1c100a7556b327d298ca95da1d6985f/pages/view/smeta-tizimi/1b01ad2c-14ab-4d88-a7de-69c489b04f23"
+        }
+      ]
+    },
+    {
+      "number": 161,
+      "head": "a65e7c2591c35794f465a944a40c0eecb2f9872c",
+      "state": "OPEN",
+      "checks": [
+        {
+          "name": "frontend",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40350084367/job/121667432854"
+        },
+        {
+          "name": "frontend",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40350074752/job/121667399279"
+        },
+        {
+          "name": "mcp",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40350084367/job/121667432385"
+        },
+        {
+          "name": "mcp",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40350074752/job/121667398837"
+        },
+        {
+          "name": "Cloudflare Pages",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://dash.cloudflare.com/?to=/a1c100a7556b327d298ca95da1d6985f/pages/view/smeta-tizimi/b2f5f59e-1da2-4b79-bf8a-7e6bfeb3645d"
+        }
+      ]
+    },
+    {
+      "number": 162,
+      "head": "1195c15519e154c747fdb967833d39b10160ef60",
+      "state": "OPEN",
+      "checks": [
+        {
+          "name": "frontend",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40349993751/job/121667748383"
+        },
+        {
+          "name": "frontend",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40349979573/job/121667705422"
+        },
+        {
+          "name": "mcp",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40349993751/job/121667749026"
+        },
+        {
+          "name": "mcp",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/ann-corporation/Smeta-tizimi/actions/runs/40349979573/job/121667707298"
+        },
+        {
+          "name": "Cloudflare Pages",
+          "status": "COMPLETED",
+          "conclusion": "SUCCESS",
+          "url": "https://dash.cloudflare.com/?to=/a1c100a7556b327d298ca95da1d6985f/pages/view/smeta-tizimi/fd2a97d7-7c00-4ed7-8c80-c5d2249c5dca"
+        }
+      ]
+    }
+  ],
+  "deployment_claim": "Branch previews and GitHub checks only. No main promotion by Codex.",
+  "governance": {
+    "runtime_candidates": "FAIL:23 baseline overlaps identical to main",
+    "qa_artifact_branch": "PASS89tasks",
+    "guard_modified": false
+  }
+}
