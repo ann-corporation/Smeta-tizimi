@@ -22,6 +22,14 @@ describe('Worker retained sessiya',()=>{
     expect(s.ishlov({id:2,epoch:2,revision:0,amal:'tahrir',tahrir:{qator_id:3,maydon:'narx',qiymat:'5',kutilgan_versiya:1}})).toMatchObject({ok:false,xato:'HISOB_ESKI'});
     expect(s.ishlov({id:3,epoch:1,revision:0,amal:'oqi',ids:[3]})).toMatchObject({ok:true,qatorlar:[{summa:'0.6'}]});
   });
+  it('F2 summasining noma’lum belgisi mahalliy norma tahririda ham aynan qoladi',()=>{
+    const s=new HisobSessiya(),p=paket();p.h.f2_summa_yoq=[0,null,2];
+    expect(s.ishlov({id:1,epoch:1,revision:0,amal:'och',paket:p})).toMatchObject({ok:true});
+    expect(s.ishlov({id:2,epoch:1,revision:0,amal:'tahrir',tahrir:{qator_id:2,maydon:'hajm',qiymat:'-2',kutilgan_versiya:1}})).toMatchObject({ok:true});
+    expect(s.ishlov({id:3,epoch:1,revision:1,amal:'oqi',ids:[1,2,3]})).toMatchObject({
+      qatorlar:[{f2_summa_yoq:0},{f2_summa_yoq:null},{f2_summa_yoq:2,f2_summa:0.31,f2_hajm:1}],
+    });
+  });
   it('buzilgan yangi company paketi eskisini ham yopadi',()=>{
     const s=new HisobSessiya();och(s);const p=paket();p.kompaniya_id=2;p.q.hajm.pop();
     expect(s.ishlov({id:2,epoch:2,revision:0,amal:'och',paket:p})).toMatchObject({ok:false});

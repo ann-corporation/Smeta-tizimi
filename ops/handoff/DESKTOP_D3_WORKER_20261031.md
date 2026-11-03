@@ -106,3 +106,16 @@ Full Vitest:584fayl/4262test PASS,12fayl/25test skip,471.77s (`C:/Temp/desktop-d
 To‘liq D3 tahrir→jami≤50ms mezoni PASS emas. Har safar katta paket/resultni structured-clone qilishning o‘zi ortiqcha vaqt oladi. Keyingi D3b: Worker ichida obyekt snapshotini ushlash; faqat canonical IDli o‘zgarish yuborish; iterativ daraxt/rollup va norma kaskadini aynan server manbasi bilan isbotlash; kichik o‘zgargan-natija qaytarish. RZ/BL rollup va norma mutatsiyalari bu PRda yo‘q. Real server differential/shadow parity, actual browser Worker roundtrip va UI ulanishi ochiq. Snapshotlar bir-biriga qo‘shilmaydi; approved F2ni lokal tahrirlash eshigi yo‘q.
 
 Main/prod o‘zgarmadi, migratsiya yo‘q. Claude independent reviewdan keyin integratsiya qiladi. Goal ACTIVE.
+
+## 03.11.2026 — D3b: интеграция с новым main и защита очереди
+
+Exact main fc65e645 и D3a 1e555aea объединены в codex/desktop-d3-retained. Сохранены все чужие записи задач; структура/архитектура — Claude L0.
+
+- Группа rollup каждого ресурса определяется один раз на INIT, без повторного поиска родителя при каждом изменении; Decimal100 и SQL порядок расчёта сохранены. Точный ноль переиспользуется, NULL не превращается в ноль.
+- Пакет и команда фиксируются в момент постановки в FIFO: последующее изменение объекта caller не меняет отложенную команду. Ответ с неверной revision закрывает Worker и отклоняет оставшуюся очередь — неизвестный результат не становится новым основанием.
+- Снимки F2 и f2_summa_yoq проходят без пересчёта/изменения при локальной норме, в том числе отрицательной.
+- Браузерный harness теперь проверяет 97 норм ×31 цену на26k строках, пять последовательных каскадов с положительным/нулевым/отрицательным объёмом, независимые Decimal итоги, F2 и company switch. До оптимизации39–85ms; после26.5–64.9ms (четыре из пяти <50ms). Все логические проверки PASS; универсальный предел50ms НЕ достигнут. INIT341.3ms относится к dev Worker и не доказывает открытие объекта из кэша <300ms. Screenshot C:/Temp/desktop-worker-browser-20261103.png.
+- Actual repo SQL в disposable PGlite:241 сравнение/240мутаций PASS после оптимизации. Это активные синтетические строки; version triggers/история/production не симулируются. Новые signed UI производные D3a не являются полным сырым SQL-view parity (см. начало документа).
+- Focused перед последним переносом f2_summa_yoq:48PASS; после этого повторяется session test. Полный build/Vitest и exact-head CI проверяет родитель; не считать старые receipts проверкой нового head.
+
+Runtime hook, canonical writer/offline queue, полная серверная синхронизация и документы F2 не подключены этим PR. D2 отдельным PR доставляет meta.akt_podval, но оценки документа без контрактных category cuts D3b не делает. Никакой production записи/main/deploy.

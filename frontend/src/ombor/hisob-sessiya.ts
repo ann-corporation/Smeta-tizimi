@@ -8,7 +8,7 @@ export type SessiyaSorov=Belgi & (
 type Row=ReturnType<DaraxtHisob['ol']>[number];
 export type SessiyaJavob=Belgi & (
   {ok:true;amal:SessiyaSorov['amal'];obyekt_id:number|null;kompaniya_id:number|null;soni:number;vaqtMs:number;
-    xulosa?:ReturnType<DaraxtHisob['xulosa']>;qatorlar?:Array<Row & {f2_hajm:number|null;f2_summa:number|null}>;
+    xulosa?:ReturnType<DaraxtHisob['xulosa']>;qatorlar?:Array<Row & {f2_hajm:number|null;f2_summa:number|null;f2_summa_yoq?:number|null}>;
     ozgargan?:number;invalidatsiya?:boolean}
   |{ok:false;xato:string}
 );
@@ -21,7 +21,8 @@ export class HisobSessiya {
     const h=this.holat!;
     return h.yadro.ol(ids).map(q=>{
       const i=h.p.indeks.get(q.id)!;
-      return {...q,f2_hajm:son(h.p.f2_hajm,i),f2_summa:son(h.p.f2_summa,i)};
+      return {...q,f2_hajm:son(h.p.f2_hajm,i),f2_summa:son(h.p.f2_summa,i),
+        ...(h.p.f2_summa_yoq===undefined?{}:{f2_summa_yoq:son(h.p.f2_summa_yoq,i)})};
     });
   }
   ishlov(s:SessiyaSorov):SessiyaJavob {
