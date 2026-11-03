@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 57,
+      "sana": "2026-11-03",
+      "sarlavha": "Kirim kitobi: ovoz/matn taklifi va tasdiqlangan qoralamalar RU Excel",
+      "bandlar": [
+        "«Приход» Excel qatorini tahrirlayotganda «Ovoz yoki matndan kirim taklifi» bo'limi bor: «Sement 50 qop keldi» kabi matn (yoki ovozdan o'girilgan matn) bo'yicha faqat katalogda topilgan nom, birlik, aniq miqdor va yetkazuvchi taklif qilinadi. Taklif qoralamani o'zgartiradi va tasdiqni bekor qiladi — hech narsa avtomatik yozilmaydi.",
+        "Kirim ko'rib chiqish oynasida davr (boshi–oxiri) tanlab, faqat tasdiqlangan qoralamalarni rus tilidagi Excelga (reestr + svod + manba/SHA) yuklash mumkin. Belgi: «НЕ ПРОВЕДЕНО»; narx, summa, boshlang'ich va oxirgi qoldiq noma'lum bo'lsa 0 qo'yilmaydi.",
+        "Excel yuklash amaldagi hujjat tarifi bo'yicha token yechadi; kompaniya almashsa kechikkan yuklash bekor qilinadi."
+      ]
+    },
+    {
       "id": 56,
       "sana": "2026-11-03",
       "sarlavha": "F2: minus hajm ruxsat va tez pereraschet — «Storno (minus) F2»",

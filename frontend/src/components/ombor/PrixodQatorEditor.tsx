@@ -1,6 +1,7 @@
 import { Check, FileSpreadsheet } from 'lucide-react';
 import { OpsOyna } from '../kompaniya-ops/OpsUi';
 import { t } from '../../i18n/til';
+import { OmborOvozYordam } from './OmborOvozYordam';
 import { materialMaydonTaklif, materialTaklifQidir, type MaterialTaklif } from '../../lib/ombor-prixod/taklif';
 import {
   qoralamaQator, qoralamaTasdiqla, qoralamaTahrirla,
@@ -23,8 +24,9 @@ const XATO_MATNLARI: Record<string, string> = {
 };
 
 export function PrixodQatorEditor({
-  qoralama, takliflar, onOzgar, onYop,
+  kompaniyaId, qoralama, takliflar, onOzgar, onYop,
 }: {
+  kompaniyaId: number;
   qoralama: PrixodQoralama;
   takliflar: MaterialTaklif[];
   onOzgar: (q: PrixodQoralama) => void;
@@ -76,6 +78,8 @@ export function PrixodQatorEditor({
       </ul>}
       {!tasdiqlashMumkin && <p className="mb-0 mt-2 text-[12px] text-danger">{t('Xatolarni tuzatmaguncha tasdiqlab bo‘lmaydi.')}</p>}
     </section>
+    <OmborOvozYordam kompaniyaId={kompaniyaId} takliflar={takliflar}
+      onTaklif={(fields) => onOzgar(qoralamaTahrirla(qoralama, fields))} />
   </OpsOyna></div>;
 }
 
