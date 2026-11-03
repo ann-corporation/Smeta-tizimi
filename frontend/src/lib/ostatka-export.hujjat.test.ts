@@ -200,3 +200,35 @@ describe('Ostatka — manfiy smeta qatorlari (chegirma/qaytariladigan material),
     expect(m.oshibKetgan.map((x) => x.nom)).toEqual(['ВОЗВРАТ 2']);
   });
 });
+
+describe('Ostatka — tasdiqlangan F2 bor qatorda qoldiq puli (yadro narx qoidasi)', () => {
+  const qs = [q(1, null, 'rz', null, { nom: 'Р' }), q(2, 1, 'mat', 10, { narx: 100 })];
+
+  it('qoldiq = smeta summasi − fakt summasi (F2 narxida), MAX yo‘q', () => {
+    // F2 narxi = 600 / 5 = 120; fakt 4 → 480; smeta 10 × 100 = 1000 → qoldiq 520 (F2 yo'q bo'lsa 6 × 100 = 600).
+    const m = ostatkaHujjatModeli(qs, [{ ...h(2, 4), f2_hajm: 5, f2_summa: 600 }]);
+    const barg = m.qatorlar.find((r) => r.tur === 'barg')!;
+    expect(barg.ostatkaHajm).toBe(6);
+    expect(barg.summa).toBe(520);
+    expect(barg.f2Narxda).toBe(true);
+    expect(m.jami).toBe(520);
+  });
+
+  it('fakt F2 dan kam bo‘lsa ham ayirma ishorasi saqlanadi (fakt < F2 — normal)', () => {
+    // F2 hajmi 8 (narx 150), fakt 2 → fakt summasi 300; qoldiq 1000 − 300 = 700.
+    const m = ostatkaHujjatModeli(qs, [{ ...h(2, 2), f2_hajm: 8, f2_summa: 1200 }]);
+    expect(m.qatorlar.find((r) => r.tur === 'barg')!.summa).toBe(700);
+  });
+
+  it('F2 summasi noma‘lum — qoldiq puli noma‘lum (null), 0 emas', () => {
+    const m = ostatkaHujjatModeli(qs, [{ ...h(2, 4), f2_hajm: 5, f2_summa: null as unknown as number }]);
+    expect(m.qatorlar.find((r) => r.tur === 'barg')!.summa).toBeNull();
+  });
+
+  it('F2 yo‘q qatorda eski qoida: ostatka hajm × narx', () => {
+    const m = ostatkaHujjatModeli(qs, [h(2, 4)]);
+    const barg = m.qatorlar.find((r) => r.tur === 'barg')!;
+    expect(barg.summa).toBe(600);
+    expect(barg.f2Narxda).toBeUndefined();
+  });
+});

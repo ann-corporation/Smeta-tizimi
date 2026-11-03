@@ -213,6 +213,9 @@ export const onRequestPost: PagesFunction<{
            it is never client-supplied. */
         price_control_v1: 'obyekt_actor',
         f2_exact_qatorlar_v1: 'akt_actor',
+        /* Egasi 2026-11-03: F2 hujjat podvali (akt, blok) va backfill nomzodlari. stable; a'zolik + f2.read RPC ichida. */
+        akt_podval_ol_v1: 'obyekt_actor',
+        akt_podval_nomzod_v1: 'obyekt_actor',
         /* T2-GAS-EXIT-001 §5/§6: resumable F2 import job — resumption reads.
            Both RPCs are `stable` (read-only) and membership-checked inside
            the function itself via job_id -> kompaniya_id, same law as above. */
@@ -243,6 +246,11 @@ export const onRequestPost: PagesFunction<{
         resurs_narx_taklif_v1: 'obyekt_actor',
         /* Egasi 2026-10-01: Loyiha → Shartnoma (tomonlar) → Obyektlar liniyasi. `stable`, a'zolik ichida. */
         shartnoma_liniya_v1: 'kompaniya_actor',
+        /* Egasi 2026-11-02: qarzdorlik (postavshik/subpudrat kreditor qarzi) - shartnoma + asoslar + hisob. stable, a'zolik + financial.read ichida. */
+        qarzdorlik_royxat_v1: 'kompaniya_actor',
+        /* Egasi 2026-11-03: shartnoma oylik paketi arxivi (versiyalar + manifest + hozirgi iz) va fakt/F2 saqlashdan oldingi ogohlantirish. `stable`; a'zolik RPC ichida. */
+        shartnoma_oylik_paket_royxat_v1: 'kompaniya_actor',
+        shartnoma_oylik_paket_tekshir_v1: 'obyekt_actor',
         /* Egasi 2026-10-23: shartnoma svodi (nakopitelniy F2 nazorati) va akt-sverka — DS, F2 reestri, sotuv, to'lov. `stable`, a'zolik + f2.read ichida. */
         shartnoma_svod_v1: 'kompaniya_actor',
         /* Egasi 2026-10-26: 1C akt-sverka importi — Продажа ↔ F2 moslash (F2 ustama bilan), to'lov taqsimoti. `stable`, a'zolik + f2.read ichida. */
@@ -369,6 +377,18 @@ export const onRequestPost: PagesFunction<{
         const oid = Number(so.obyekt_id);
         if (!Number.isInteger(oid) || oid <= 0) return Response.json({ ok: false, error: 'obyekt_id noto\'g\'ri' });
         q.set('p_obyekt_id', String(oid));
+      }
+      if (so.soro === 'shartnoma_oylik_paket_royxat_v1' || so.soro === 'shartnoma_oylik_paket_tekshir_v1') {
+        const oy = (so as { oy?: unknown }).oy;
+        if (oy != null && oy !== '') {
+          if (typeof oy !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(oy)) return Response.json({ ok: false, error: "oy noto'g'ri" });
+          q.set('p_oy', oy);
+        } else if (so.soro === 'shartnoma_oylik_paket_tekshir_v1') return Response.json({ ok: false, error: 'oy majburiy' });
+        if (so.soro === 'shartnoma_oylik_paket_royxat_v1' && so.shartnoma_id != null && String(so.shartnoma_id) !== '') {
+          const sid = Number(so.shartnoma_id);
+          if (!Number.isSafeInteger(sid) || sid <= 0) return Response.json({ ok: false, error: "shartnoma_id noto'g'ri" });
+          q.set('p_shartnoma_id', String(sid));
+        }
       }
       if (so.soro === 'moliya_tahlil_v1' && so.obyekt_id != null && String(so.obyekt_id) !== '') {
         const id = Number(so.obyekt_id);

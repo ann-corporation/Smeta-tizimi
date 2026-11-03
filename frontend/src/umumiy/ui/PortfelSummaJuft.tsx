@@ -1,6 +1,7 @@
 import { t } from '../../i18n/til';
 import { portfelUchligi } from '../../lib/ustamali-summa';
 import { QiymatUchlik } from './QiymatUchlik';
+import { portfelQismlari } from '../../lib/summa-tafsilot';
 import { usePortfelUstamali, type PortfelObyekt } from './usePortfelUstamali';
 
 /**
@@ -18,7 +19,7 @@ export function PortfelSummaJuft({ obyektlar, ustamasiz, kompaniyaId, kichik = f
   const qisman = q.taxminiy;
   return (
     <span className="contents" data-testid="portfel-summa-juft">
-      <QiymatUchlik q={q} kichik={kichik} className={className} yorliq={yorliq} yuklanmoqda={p.holat === 'yuklanmoqda'}
+      <QiymatUchlik q={q} qismlar={portfelQismlari(p)} nomalumSoni={p.nomalumSoni} kichik={kichik} className={className} yorliq={yorliq} yuklanmoqda={p.holat === 'yuklanmoqda'}
         title={qisman ? t('{n} ta obyektning ustamasi va QQS hisoblanmadi — ular to‘g‘ri xarajati bilan qo‘shilgan', { n: p.nomalumSoni }) : undefined}>
         {qisman && <span className="text-[10px] text-warn">{t('{n} / {jami} obyekt ustamasi noma’lum', { n: p.nomalumSoni, jami: p.jamiSoni })}</span>}
         {p.holat !== 'yuklanmoqda' && p.ustamali == null && p.jamiSoni > 0 && <button type="button" className="text-left text-[10px] text-warn underline" onClick={p.retry}>{t('Ustama o‘qilmadi — qayta urinish')}</button>}

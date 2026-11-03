@@ -1,0 +1,45 @@
+{
+  "schema": "pto157-live-definition-readback-v1",
+  "observed_at": "2026-10-26 15:34:37 UTC",
+  "project": "tuoyrzadkgoltpqkdiyx",
+  "method": "SELECT pg_get_functiondef; no business rows or writer",
+  "routines": [
+    {
+      "signature": "t2_smeta_versiya_dava_hajm(text,text,numeric,numeric,numeric,boolean)",
+      "security_definer": false,
+      "client_old_quantity_expression": false,
+      "client_current_quantity_expression": false,
+      "client_unit_flag_expression": false
+    },
+    {
+      "signature": "t2_smeta_versiya_moslik_yoz_v1(bigint,bigint,bigint,jsonb,boolean,uuid)",
+      "security_definer": true,
+      "client_old_quantity_expression": true,
+      "client_current_quantity_expression": true,
+      "client_unit_flag_expression": true
+    }
+  ],
+  "immutable_select_cases": [
+    {
+      "case": "negative_deleted",
+      "value": -2
+    },
+    {
+      "case": "client_values_1000_0",
+      "value": 1000
+    },
+    {
+      "case": "source_values_100_80",
+      "value": 20
+    },
+    {
+      "case": "unit_mismatch",
+      "value": null
+    }
+  ],
+  "limits": [
+    "No writer invoked; no stale payload persisted",
+    "Numeric helper SELECT confirms arithmetic, not an authenticated write exploit",
+    "Matching writer definition retains client quantities; source/contract review establishes integrity finding"
+  ]
+}

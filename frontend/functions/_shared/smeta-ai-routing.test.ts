@@ -5,7 +5,7 @@ import type { NarxSorovi, NarxTanlov } from '../../src/lib/smeta-ai/protokol';
 const q = (): NarxSorovi => ({ id:'r1',nom:'Бетон B15',birlik:'м3',kat:'МАТ',nomzodlar:[{id:'n1',nom:'Бетон B15',birlik:'м3',narx:0,manba:'Katalog 2026'}] });
 const t = (): NarxTanlov => ({id:'r1',tanlov:'n1',ishonch:'yuqori',sabab:'x'});
 describe('Studio model duties: primary is not replaced by the utility model',()=>{
- it.each(['smeta_suhbat','smeta_ish_tanlash','smeta_koef_tanlash','smeta_kp_oqish','smeta_narx_internet'])('%s preserves selected expert',amal=>{
+ it.each(['smeta_suhbat','smeta_ish_tanlash','smeta_koef_tanlash','smeta_f2_niyat','smeta_kp_oqish','smeta_narx_internet'])('%s preserves selected expert',amal=>{
   expect(studioModelRequest({},'smeta_ai',amal,{text:'x',tier:'fast',workload:'utility'},'owner/gemini-3.1')).toMatchObject({model:'owner/gemini-3.1'});
  });
  it('price utility uses independent server model, planner unchanged',()=>{

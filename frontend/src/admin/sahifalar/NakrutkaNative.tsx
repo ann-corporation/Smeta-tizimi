@@ -20,7 +20,7 @@ import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { kaskadZinapoya, umumiyUstama } from '../../lib/narx-korinish';
 import { KaskadZinapoya, ZinapoyaLegenda } from '../../components/narx/NarxKorinish';
 import { PodvalKonstruktor } from './PodvalKonstruktor';
-import { NakrutkaManbaChip } from './SmetaPodvalNakrutka';
+import { NakrutkaManbaChip, PodvalYoqOgoh } from './SmetaPodvalNakrutka';
 import type { SvodYaxlit } from '../../lib/svod-yaxlit';
 import { shartnomaSmetaFarqlari } from '../../lib/nakrutka-smetadan';
 import { kategoriyaKf, standartPodval } from '../../lib/hisob-yadro';
@@ -194,6 +194,7 @@ function ObyektKaskad({ companyId, obyektId, contractId }: { companyId: number; 
             <span className="text-text-dim">{t('ВСЕГО (ustamali, ҚҚС bilan)')}</span><b className="text-right font-[family-name:var(--font-display)] text-[18px] tabular-nums text-text"><FmtN val={kaskad.vsego} /></b>
           </div>
           <NakrutkaManbaChip manba={manba} />
+          <PodvalYoqOgoh manba={manba} />
           {svodYaxlit && (
             <p className="fz-note fz-note--info text-[12px]" data-testid="svod-yaxlit">
               {t('Svod yaxlit bo‘limlari ({n}) ustamasiz qo‘shildi: {s} so‘m (ҚҚС siz) — summa svodning o‘zidan, ustama hisoblanmaydi.', { n: String(svodYaxlit.bolimlar.length), s: svodYaxlit.qqssiz.toLocaleString('ru-RU', { maximumFractionDigits: 2 }) })}

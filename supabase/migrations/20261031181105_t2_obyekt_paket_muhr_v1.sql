@@ -27,6 +27,10 @@ begin
   -- va hisob ta'riflari muhrlanadi. Paketning o'zi existing RPCdan keladi.
   v_meta := jsonb_build_object(
     'obyekt_nom',v_nom,'kompaniya_id',v_komp,
+    -- F2 backfill/storno podval mustaqil yoziladi: immutable akt versiyasi
+    -- oshmasligi mumkin. To'liq manba izi INSERT/UPDATE/DELETE ni qamraydi.
+    'akt_podval',(select coalesce(jsonb_agg(to_jsonb(p) order by p.akt_id,p.blok),'[]'::jsonb)
+      from public.t2_akt_podval p where p.obyekt_id=p_obyekt_id and p.kompaniya_id=v_komp),
     -- Snapshot qaytarish versiya triggerlarini chetlab o'tishi mumkin.
     -- Mavjud journal atomik qaytarish commitini muhrga qo'shadi (yangi trigger yo'q).
     'qaytarish',(select jsonb_build_array(count(*),max(j.id)) from snapshot.qaytarish_jurnal j
@@ -45,7 +49,10 @@ begin
         'public.t2_nakrutka_podval_smeta_nk_v1(jsonb)'::regprocedure,
         'public.t2_svod_yaxlit_obyekt_v1(bigint)'::regprocedure,
         'public.t2_almashtirilgan_hajm(bigint)'::regprocedure,
-        'public.t2_almashtirilgan_oz_hajm(bigint)'::regprocedure)),
+        'public.t2_almashtirilgan_oz_hajm(bigint)'::regprocedure,
+        -- Main 20261117400000: view matni bir xil qolib, yordamchi formula
+        -- o'zgarsa ham fakt_summa va undan hosila paket eskirishi shart.
+        'public._t2_f2_narxda_v1(numeric,numeric,numeric)'::regprocedure)),
     'views',jsonb_build_array(md5(pg_get_viewdef('public.t2_qator_holat'::regclass)),md5(pg_get_viewdef('public.t2_zamena_qoplash'::regclass))),
     'podval',(select jsonb_build_object('id',p.id,'nom',p.nom,'versiya',p.versiya,'qatorlar',p.qatorlar)
       from public.t2_nakrutka_podval p where p.obyekt_id=p_obyekt_id and p.kompaniya_id=v_komp and p.faol order by p.id desc limit 1),

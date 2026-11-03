@@ -5,6 +5,7 @@
  */
 import { useMemo, useRef } from 'react';
 import { t } from '../../i18n/til';
+import { F2AiRejaBolim } from './F2AiRejaBolim';
 import { AiYordamchiPanel } from '../../umumiy/ui/ai-yordamchi/AiYordamchiPanel';
 import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 import type { SahifaVositalar } from '../../lib/ai-yordamchi/sikl';
@@ -78,6 +79,9 @@ export function F2AiYordamchi({ kompaniyaId, obyektId, malumot, amallar }: {
     };
   }, [obyektId]);
 
-  return <AiYordamchiPanel kompaniyaId={kompaniyaId} vositalar={vositalar} saqlashKalit={`f2:${kompaniyaId}:${obyektId}`} sarlavha={t('F2 AI yordamchisi')}
+  return <AiYordamchiPanel kompaniyaId={kompaniyaId} vositalar={vositalar} saqlashKalit={`f2:${kompaniyaId}:${obyektId}`}
+    qoshimcha={<F2AiRejaBolim bolimlar={malumot.bolimlar} kompaniyaId={kompaniyaId}
+      onQoshish={(hajm) => { for (const [id, v] of Object.entries(hajm)) amallar.hajm(Number(id), v); }} />}
+    sarlavha={t('F2 AI yordamchisi')}
     namunalar={[t('Qaysi uchastkada F2 ga olinadigan hajm bor?'), t('Joriy F2 ni tekshir: narxsiz va xatolar'), t('F2 summasini ustamasiz va ustamali tushuntir'), t('Narxi yo‘q resurslarga narx manbalarini top')]} />;
 }

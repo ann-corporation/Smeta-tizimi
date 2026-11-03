@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main-local",
+  "description": "Mahalliy interfeys; fayl tizimi va shell uchun umumiy huquq berilmaydi",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

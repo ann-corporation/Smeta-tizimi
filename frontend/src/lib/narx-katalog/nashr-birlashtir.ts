@@ -9,6 +9,7 @@
  *
  * Qator id: nashr tartibi × 1 000 000 + tartib raqami — deterministik, nashrlar to'plami o'zgarmasa id lar o'zgarmaydi.
  */
+import { yaxlit2 } from '../hisob-yadro';
 import { birlikKalit, nomKalit } from './kalit';
 import { hududAniqla, nashrSarlavhasi, type ManbaTuri, type Nashr } from './manba-xls';
 import { PRICE_LOOKUP_ROWS, PRICE_ROWS_PER_FILE, PRICE_SHARD_SCHEMA, type PriceDict, type PriceManba, type PriceRow } from './price-shards';
@@ -61,7 +62,7 @@ export function nashrlarniBirlashtir(nashrlar: Array<Nashr & { sha256?: string |
       const key = [n.tur, nomKalit(q.nom), birlikKalit(q.birlik), hk ?? '', q.zavod ?? ''].join('\u0001');
       const egasi = egallangan.get(key);
       if (egasi != null && egasi !== i) { c.eskirganTashlandi++; continue; }
-      const narx = String(Math.round(q.narx * 100) / 100);
+      const narx = String(yaxlit2(q.narx));
       const oldin = nashrIchida.get(key);
       if (oldin != null) {
         c.nashrIchidaTakror++;

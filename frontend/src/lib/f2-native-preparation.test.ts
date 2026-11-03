@@ -11,10 +11,29 @@ describe('native F2 tayyorlash kontrakti', () => {
     expect(result.qatorlar[0].certifiedAmount).toBe(1234.49);
     expect(result.issues).toContainEqual({ qatorId: 17, code: 'ARITHMETIC_MISMATCH', blocking: false });
   });
-  it("Fakt qoldig'idan ko'p miqdorni rad etadi", () => {
-    const result = f2NativePayloadQur([{ ...input, quantity: '10.01' }], candidate);
-    expect(result.ok).toBe(false);
-    expect(result.issues[0].code).toBe('QTY_EXCEEDS_FAKT');
+  it("Fakt qoldig'idan ko'p miqdor — faqat ogohlantirish (F2 ≤ fakt qoidasi yo'q), qator payloadda qoladi", () => {
+    const result = f2NativePayloadQur([{ ...input, quantity: '10.01', amount: '1235.72' }], candidate);
+    expect(result.ok).toBe(true);
+    expect(result.qatorlar).toHaveLength(1);
+    expect(result.issues.find((i) => i.code === 'QTY_EXCEEDS_FAKT')).toMatchObject({ blocking: false });
+  });
+  it('minus hajm qabul qilinadi: summa minus, narx plyus', () => {
+    const result = f2NativePayloadQur([{ ...input, quantity: '-4', unitPrice: '10', amount: '-40' }], candidate);
+    expect(result.ok).toBe(true);
+    expect(result.qatorlar[0]).toMatchObject({ certifiedQuantity: -4, certifiedUnitPrice: 10, certifiedAmount: -40 });
+    expect(result.issues).toEqual([]); // −4×10 = −40: arifmetika mos, fakt chegarasidan oshmaydi
+  });
+  it('minus hajmda arifmetik farq faqat ogohlantirish', () => {
+    const result = f2NativePayloadQur([{ ...input, quantity: '-4', unitPrice: '10', amount: '-41' }], candidate);
+    expect(result.ok).toBe(true);
+    expect(result.issues).toContainEqual({ qatorId: 17, code: 'ARITHMETIC_MISMATCH', blocking: false });
+  });
+  it('aynan 0 va son bo\'lmagan hajm rad etiladi', () => {
+    for (const q of ['0', '-0', '0,0', 'abc', '']) {
+      const result = f2NativePayloadQur([{ ...input, quantity: q }], candidate);
+      expect(result.ok, q).toBe(false);
+      expect(result.issues[0]).toMatchObject({ code: 'QTY_INVALID', blocking: true });
+    }
   });
   it('smeta narxini fallback qilmaydi', () => {
     const result = f2NativePayloadQur([{ ...input, unitPrice: '', amount: '' }], candidate);
@@ -53,9 +72,10 @@ describe('F2 — smetadan oshgan hajm bloklamaydi, ogohlantiradi', () => {
     expect(n.issues.find((i) => i.code === 'QTY_EXCEEDS_SMETA')?.oshiq).toBeCloseTo(2, 9);
   });
 
-  it('FAKTdan oshsa esa BLOKLAYDI (bu boshqa qoida)', () => {
+  it('FAKTdan oshsa ham BLOKLAMAYDI (egasi: F2 ≤ fakt qoidasi yo\'q) — faqat ogohlantirish', () => {
     const n = f2NativePayloadQur(kirit('13'), [{ qatorId: 1, f2Mumkin: 12, smetaHajm: 10 }]);
-    expect(n.ok).toBe(false);
-    expect(n.issues.some((i) => i.code === 'QTY_EXCEEDS_FAKT' && i.blocking)).toBe(true);
+    expect(n.ok).toBe(true);
+    expect(n.qatorlar).toHaveLength(1);
+    expect(n.issues.some((i) => i.code === 'QTY_EXCEEDS_FAKT' && !i.blocking)).toBe(true);
   });
 });

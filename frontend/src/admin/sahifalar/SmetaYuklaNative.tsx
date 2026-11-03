@@ -4,6 +4,7 @@ import { sbT2DaraxtOl, sbT2ObyektlarOlKomp, sbT2ResursKategoriyaBelgila, yangiOp
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { f2FaylOqiCore, f2UstunAniqla, type XlsxWorkbook, type F2ColumnConfig, type SheetGrid } from '../../lib/f2-import-parse';
+import { yaxlit2 } from '../../lib/hisob-yadro';
 import { smetaDaraxtniYoy, bolaklarga } from '../../lib/smeta-flatten';
 import { smetaPaketQatorlariniYoy, smetaPaketRejasiniTekshir, type SmetaPaketManbaReja } from '../../lib/smeta-package-import';
 import { lrvVaIchkiResniAjrat } from '../../lib/smeta-lrv-boundary';
@@ -864,7 +865,7 @@ export function narxlarniDaraxtgaQoll(
       return n;
     }
     mosSoni++;
-    const summa = n.hajm != null ? Math.round(n.hajm * narx * 100) / 100 : undefined;
+    const summa = n.hajm != null ? yaxlit2(n.hajm * narx) : undefined;
     return { ...n, narx, summa };
   }
   return { tree: tree.map(walk), mosSoni, mosEmasSoni, narxsizlar };
@@ -2244,7 +2245,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       )}
       {objectId && (book ? nakrutkaOqish : alreadyHasSmeta) && (
         <SmetaPodvalNakrutka kompaniyaId={companyId} obyektId={Number(objectId)} oqish={book ? nakrutkaOqish : null} fayl={rawFile.current?.name}
-          avtoSaqla={!!book && !!result && smetaOldinBor.current === false} />
+          avtoSaqla={!!book && !!result && smetaOldinBor.current != null} mavjudSmeta={smetaOldinBor.current === true} />
       )}
       {book && cols && !result && (
         <>

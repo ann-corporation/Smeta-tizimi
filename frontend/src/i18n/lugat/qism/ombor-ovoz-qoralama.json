@@ -1,0 +1,94 @@
+{
+  "Ovoz xizmati hali ulanmagan.": {
+    "ru": "Голосовой сервис ещё не подключён.",
+    "en": "Voice service is not configured yet."
+  },
+  "Yozuvda nutq topilmadi.": {
+    "ru": "В записи не обнаружена речь.",
+    "en": "No speech was found in the recording."
+  },
+  "Ovoz xizmati band. Keyinroq qayta urinib ko‘ring.": {
+    "ru": "Голосовой сервис занят. Попробуйте позже.",
+    "en": "Voice service is busy. Try again later."
+  },
+  "Bu kompaniyada ovoz xizmatidan foydalanish huquqi yo‘q.": {
+    "ru": "Нет права использовать голосовой сервис в этой организации.",
+    "en": "Voice service is not permitted in this company."
+  },
+  "Ovoz fayli juda katta. Qisqaroq yozuvni tanlang.": {
+    "ru": "Аудиофайл слишком большой. Выберите более короткую запись.",
+    "en": "Audio file is too large. Choose a shorter recording."
+  },
+  "Bu brauzerda ovoz yozish mavjud emas. Ovoz faylini tanlang.": {
+    "ru": "В этом браузере запись недоступна. Выберите аудиофайл.",
+    "en": "Recording is unavailable in this browser. Select an audio file."
+  },
+  "Mikrofon ochilmadi. Ruxsatni tekshiring yoki ovoz faylini tanlang.": {
+    "ru": "Не удалось включить микрофон. Проверьте разрешение или выберите аудиофайл.",
+    "en": "Microphone could not be opened. Check permission or choose an audio file."
+  },
+  "Ovozni o‘qib bo‘lmadi. Matnni qo‘lda kiriting.": {
+    "ru": "Не удалось распознать речь. Введите текст вручную.",
+    "en": "Could not transcribe audio. Enter the text manually."
+  },
+  "Ovoz yoki matndan kirim taklifi": {
+    "ru": "Подсказки для прихода из речи или текста",
+    "en": "Receipt suggestions from voice or text"
+  },
+  "Yozuv «Matnga o‘girish» bosilganda ElevenLabs xizmatiga yuboriladi. Natija qoralama, avtomatik yozilmaydi.": {
+    "ru": "При нажатии «Распознать» запись отправляется в ElevenLabs. Результат — черновик, автоматического проведения нет.",
+    "en": "Clicking Transcribe sends the recording to ElevenLabs. The result is a draft and is never posted automatically."
+  },
+  "Yozishni to‘xtatish": {
+    "ru": "Остановить запись",
+    "en": "Stop recording"
+  },
+  "Mikrofon ochilmoqda…": {
+    "ru": "Включение микрофона…",
+    "en": "Opening microphone…"
+  },
+  "Ovoz yozish": {
+    "ru": "Записать голос",
+    "en": "Record voice"
+  },
+  "Ovoz fayli": {
+    "ru": "Аудиофайл",
+    "en": "Audio file"
+  },
+  "Ovoz o‘qilmoqda…": {
+    "ru": "Распознавание речи…",
+    "en": "Transcribing audio…"
+  },
+  "Matnga o‘girish": {
+    "ru": "Распознать",
+    "en": "Transcribe"
+  },
+  "Ovoz yozuvi tayyor. Matnga o‘girish uchun tasdiqlang.": {
+    "ru": "Аудиозапись готова. Нажмите «Распознать» для отправки.",
+    "en": "Recording is ready. Click Transcribe to submit it."
+  },
+  "Yozilmoqda… Eng ko‘pi 60 soniya.": {
+    "ru": "Идёт запись… Не более 60 секунд.",
+    "en": "Recording… Up to 60 seconds."
+  },
+  "O‘qilgan matn — tahrirlash mumkin": {
+    "ru": "Распознанный текст — можно редактировать",
+    "en": "Recognized text — editable"
+  },
+  "Faqat katalogda topilgan nom, birlik va aniq miqdor taklif qilinadi. Yetishmagan qiymatlarni tekshiring.": {
+    "ru": "Предлагаются только найденные в каталоге наименование, единица и явно указанное количество. Проверьте недостающие значения.",
+    "en": "Only catalog-backed names, units and explicit quantities are suggested. Check missing values."
+  },
+  "Bu oyna kirim uchun. Matnda «keldi» yoki «kirim» aniq bo‘lishi kerak; chiqim bu yerda yozilmaydi.": {
+    "ru": "Это окно прихода. В тексте должно быть явно указано поступление; расход здесь не проводится.",
+    "en": "This is a receipt window. The text must explicitly state receipt; issues are not posted here."
+  },
+  "Matnda noaniqlik bor. Har bir qiymatni alohida tekshiring.": {
+    "ru": "В тексте есть неоднозначность. Проверьте каждое значение.",
+    "en": "The text is ambiguous. Check every value."
+  },
+  "Topilgan takliflarni qatorga olish": {
+    "ru": "Перенести найденные подсказки в строку",
+    "en": "Use suggested fields in the row"
+  }
+}

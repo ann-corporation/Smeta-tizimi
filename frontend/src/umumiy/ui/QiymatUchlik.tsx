@@ -1,8 +1,12 @@
 import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { FmtN } from '../../lib/format';
 import { t } from '../../i18n/til';
 import type { QiymatUchlik as Uchlik } from '../../lib/ustamali-summa';
+import type { SummaPaket } from '../../lib/summa-paket';
 import { summaTuriMatni, uchlikSababMatni, type SummaTuri } from './qiymatYorliq';
+import { SummaKesimi } from './SummaKesimi';
+import type { TafsilQism, ZanjirQator } from '../../lib/summa-tafsilot';
 
 const Yoq = ({ izoh }: { izoh?: string }) => <span className="text-text-mute" title={izoh ?? t('Manba qiymati yo‘q')}>—</span>;
 
@@ -13,7 +17,7 @@ const Yoq = ({ izoh }: { izoh?: string }) => <span className="text-text-mute" ti
  * Bu yerda hisob YO‘Q — qiymatlar `qiymatUchligi`/`portfelUchligi` dan (yoki server javobidan). Noma’lum — «—» + izoh.
  * Taxminiy (kat noma’lum) bo‘lsa ikkala ustamali qiymat ham «≈» bilan.
  */
-export function QiymatUchlik({ q, yuklanmoqda = false, yorliq, kichik = false, className = '', title, asosiyBosish, rang, children }: {
+export function QiymatUchlik({ q, yuklanmoqda = false, yorliq, kichik = false, className = '', title, asosiyBosish, rang, kesim, kiritishYoli, zanjir, qismlar, nomalumSoni, tafsilYoq = false, children }: {
   q: Uchlik;
   yuklanmoqda?: boolean;
   /** Asosiy qator yorlig‘i (sukut: «QQS bilan»), masalan «F2, QQS bilan». */
@@ -25,9 +29,33 @@ export function QiymatUchlik({ q, yuklanmoqda = false, yorliq, kichik = false, c
   asosiyBosish?: () => void;
   /** Asosiy raqam rangi (CSS rang, masalan sof natija ishorasi bo‘yicha). */
   rang?: string;
+  /** ▸ Kesim (server summa paketi): ЧЕЛ/МАШ/МАТ/ОБ/Subpudrat + soatlar. Berilmasa — faqat uchlik va kaskad. */
+  kesim?: SummaPaket | null;
+  /** Qiymat kiritilmagan bo‘lsa (manba yo‘q) — «kiritilmagan» + qayerdan kiritiladi havolasi (0 ko‘rsatilmaydi). */
+  kiritishYoli?: { yol: string; matn?: string };
+  /** Kaskad qadamlari (berilmasa: paketdan / uchlikdan). */
+  zanjir?: ZanjirQator[];
+  /** Agregat tarkibi (obyekt/bo‘lim) — har biri o‘z uchligi bilan; ochilganda ko‘rinadi. */
+  qismlar?: TafsilQism[];
+  /** Hisoblanmagan (noma’lum) bandlar soni — tafsilotda ko‘rsatiladi. */
+  nomalumSoni?: number;
+  /** Tafsilotni (▸ kesim va hisob) ko‘rsatmaslik — faqat juda zich kataklar uchun. */
+  tafsilYoq?: boolean;
   /** Qo‘shimcha kichik qatorlar (taxminiy izohi, qayta urinish va h.k.). */
   children?: ReactNode;
 }) {
+  if (q.sabab === 'SUMMA_YOQ' && kiritishYoli && !yuklanmoqda) {
+    return (
+      <span className={`inline-flex flex-col leading-tight ${className}`} data-testid="qiymat-uchlik" title={title}>
+        <span className={kichik ? 'text-[12px]' : 'text-[15px]'} data-testid="summa-kiritilmagan">
+          <span className="mr-1 text-[10px] font-normal text-text-mute">{yorliq ?? t('QQS bilan')}</span>{' '}
+          <span className="text-text-mute">{t('kiritilmagan')}</span>
+        </span>
+        <Link className="text-[10.5px] text-accent underline" to={kiritishYoli.yol} data-testid="summa-kiritish-yoli">{kiritishYoli.matn ?? t('Qayerdan kiritiladi →')}</Link>
+        {children}
+      </span>
+    );
+  }
   const katta = kichik ? 'text-[12px]' : 'text-[15px]';
   const belgi = q.taxminiy ? '≈ ' : '';
   const sabab = uchlikSababMatni(q.sabab);
@@ -49,6 +77,7 @@ export function QiymatUchlik({ q, yuklanmoqda = false, yorliq, kichik = false, c
       <span className="text-[10.5px] text-text-mute" data-testid="summa-ustamasiz">
         {t('to‘g‘ri xarajat (ustamasiz)')}: {q.ustamasiz != null ? <FmtN val={q.ustamasiz} /> : <Yoq />}
       </span>
+      {!tafsilYoq && !yuklanmoqda && <SummaKesimi paket={kesim ?? null} q={q} zanjir={zanjir} qismlar={qismlar} nomalumSoni={nomalumSoni} />}
       {children}
     </span>
   );

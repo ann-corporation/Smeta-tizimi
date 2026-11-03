@@ -10,6 +10,8 @@
  *        → { ok, tanlovlar }                           (fast tier: pick a price candidate per resource by MEANING)
  *   POST { amal: 'koef_tanla', kompaniya_id, sharoit, sorovlar: KoefSorovi[] }
  *        → { ok, tanlovlar, savol }                    (picks normative coefficients for the stated conditions, only from the list)
+ *   POST { amal: 'f2_niyat', kompaniya_id, matn }
+ *        → { ok, niyatlar }                            (fast tier: splits the monthly F2 text into work intents; matching/qty/price are CODE, nothing stored)
  *   POST { amal: 'kp_oqi', kompaniya_id, fayl?: {mimeType, data(base64)}, matn? }
  *        → { ok, kp }                                  (reads a КП / price list: rows, supplier, VAT state; nothing stored)
  *
@@ -32,7 +34,7 @@ import { normaKalit, tajribaMatni, xotiraBloklari, type NormaTajriba, type Xotir
 import { aiPublicError, type AiRequest, type AiResponse, type AiTier } from '../_shared/ai';
 import { aiHisobli, AiByudjetXatosi, type HisobEnv } from '../_shared/ai-hisobli';
 import { exactPriceChoice, priceLane, utilityPriceAccepted, type RoutedPriceRequest } from '../_shared/smeta-ai-routing';
-import { KOEF_TANLOV_TIZIM, KP_OQISH_TIZIM, NARX_TANLOV_TIZIM, SMETACHI_TIZIM, SMETACHI_VERSIYA, TANLOV_TIZIM } from '../../src/lib/smeta-ai/prompt';
+import { F2_NIYAT_TIZIM, KOEF_TANLOV_TIZIM, KP_OQISH_TIZIM, NARX_TANLOV_TIZIM, SMETACHI_TIZIM, SMETACHI_VERSIYA, TANLOV_TIZIM } from '../../src/lib/smeta-ai/prompt';
 import { foundationSourceContext, contradictsFoundationSource } from '../../src/lib/smeta-ai/normative-reference';
 import { INTERNET_NARX_SXEMA, INTERNET_NARX_TIZIM, internetJavobiniTekshir, internetNarxi, qqsSiz, sahifadaMahsulotBor, sahifadaNarxBor,
   type InternetManba, type InternetNatija, type InternetSorov } from '../../src/lib/smeta-ai/internet-narx';
@@ -40,7 +42,7 @@ import { priceUnitFactor } from '../../src/lib/smeta-studio/resource-match';
 import { oqishNatijalari, sahifaJavobiniTekshir, sahifaSxema, sahifaTuri } from '../../src/lib/ai-yordamchi/protokol';
 import { SAHIFA_TIZIM, SAHIFA_YORDAM_VERSIYA } from '../../src/lib/ai-yordamchi/prompt';
 import { vebOl, vebUrlTekshir } from '../_shared/agent-veb';
-import { KOEF_TANLOV_SXEMA, KP_SXEMA, hajmSonlariniTekshir, koefTanlovlariniTekshir, type KoefSorovi, NARX_TANLOV_SXEMA, SUHBAT_SXEMA, kpJavobiniTekshir, TANLOV_SXEMA, jsonAjrat, manbaMaterialiniTekshir, narxTanlovlariniTekshir, suhbatJavobiniTekshir, tanlovlarniTekshir,
+import { F2_NIYAT_SXEMA, f2NiyatlariniTekshir, KOEF_TANLOV_SXEMA, KP_SXEMA, hajmSonlariniTekshir, koefTanlovlariniTekshir, type KoefSorovi, NARX_TANLOV_SXEMA, SUHBAT_SXEMA, kpJavobiniTekshir, TANLOV_SXEMA, jsonAjrat, manbaMaterialiniTekshir, narxTanlovlariniTekshir, suhbatJavobiniTekshir, tanlovlarniTekshir,
   type IshNiyati, type NarxSorovi, type SuhbatXabari, type TanlovSorovi } from '../../src/lib/smeta-ai/protokol';
 
 /** Veb-qidiruvli model (OpenRouter `:online` — sahifalarni qidirib o'qiydi) — faqat internet narx agenti uchun. */
@@ -317,6 +319,14 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const out = sahifaJavobiniTekshir(obj, sahifa);
       return Response.json({ ok: true, ...out, ...(oxirgi ? { oqish: [] } : {}), tushunildi: !!obj, model: r.model, versiya: SAHIFA_YORDAM_VERSIYA,
         ...(ogohlantirish ? { ogohlantirish } : {}) }, { headers: { 'Cache-Control': 'no-store' } });
+    }
+    if (so.amal === 'f2_niyat') {
+      const matn = clip(so.matn, 2000).trim();
+      if (matn.length < 3) return fail('SOROV_INVALID');
+      const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_f2_niyat', req);
+      const { r, obj } = await ishonchliChaqir(chaqir,
+        { system: F2_NIYAT_TIZIM, text: `<MATN>\n${matn}\n</MATN>`, tier: 'fast' as AiTier, temperature: 0, reasoning: TANLOV_FIKR, maxOutputTokens: 3000, jsonSchema: F2_NIYAT_SXEMA }, ['niyatlar']);
+      return Response.json({ ok: true, niyatlar: f2NiyatlariniTekshir(obj), model: r.model }, { headers: { 'Cache-Control': 'no-store' } });
     }
     if (so.amal === 'xotira') return Response.json({ ok: true, ...(await xotiraOqi(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, true)) }, { headers: { 'Cache-Control': 'no-store' } });
     if (so.amal === 'xotira_yoz') {

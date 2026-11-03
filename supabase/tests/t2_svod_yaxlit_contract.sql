@@ -51,15 +51,16 @@ begin
   r := t2_svod_yaxlit_belgila_v1(p, up, r2a, null, null, '{"fayl":"x.xlsx"}', 'ichki', gen_random_uuid());
   rep := rep || (case when r->>'code' = 'ICHMA_ICH_BELGI' then 'OK   ichma-ich belgi rad' else 'FAIL ichma_ich: ' || r::text end);
 
-  -- 3. kaskad: R2 avlodlari kategoriyadan chiqdi; yaxlit = 2240/1.12 = 2000; QQS bir marta
+  -- 3. kaskad: R2 avlodlari kategoriyadan chiqdi; svod 2240 QQS bilan — НДС dan keyin AYNAN (20261116000000, yadro hisob()):
+  --    ВСЕГО = ishlar ВСЕГО + 2240; ИТОГО-4 = ishlar ИТОГО-4 + 2240/1.12 (= 2000); НДС = ВСЕГО − ИТОГО-4.
   j := t2_obyekt_nakrutka_v1(o1, up, null);
   h := t2_nakrutka_hisobla_v1(jsonb_build_object('chel',1000,'mash',0,'mat',0,'ob',0,'mk',0,'kab',0,'bez',0), nk);
   i4 := round((h->>'itogo4')::numeric + 2000, 2);
-  nds := round(i4 * coalesce((nk->>'НДС')::numeric,0) / 100, 2);
+  nds := round((h->>'vsego')::numeric + 2240, 2) - i4;
   ok_ := (j->'cats_kaskad'->>'chel')::numeric = 1000 and (j->'cats_kaskad'->>'mat')::numeric = 0 and (j->'cats_kaskad'->>'ob')::numeric = 0
     and (j->'svod_yaxlit'->>'qqssiz')::numeric = 2000 and (j->'svod_yaxlit'->>'barglar')::numeric = 1000
     and (j->'nakrutka'->>'itogo4')::numeric = i4 and (j->'nakrutka'->>'nds')::numeric = nds
-    and (j->'nakrutka'->>'vsego')::numeric = round(i4 + nds, 2)
+    and (j->'nakrutka'->>'vsego')::numeric = round((h->>'vsego')::numeric + 2240, 2)
     and (j->'nakrutka'->>'pryamye')::numeric = 2000 and (j->'nakrutka'->>'yaxlit')::numeric = 2000
     and j->'cats' = j0->'cats';
   rep := rep || (case when ok_ then 'OK   yaxlit ustamasiz ИТОГО-4 ga, QQS bir marta, pryamye = barcha barglar, cats o''zgarmadi'

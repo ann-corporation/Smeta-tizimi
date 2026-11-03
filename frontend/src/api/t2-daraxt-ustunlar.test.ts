@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { T2_DARAXT_USTUNLARI, T2_HOLAT_DARAXT_USTUNLARI } from './t2-daraxt-ustunlar';
 
 const PROD_DARAXT = 'id,obyekt_id,obyekt,ota_id,daraja,tartib,tur,kod,nom,birlik,hajm,narx,kat,summa,narx_usul,qoshimcha,zamena,d1,d2,d3,manba_id,xom_qator,yangilandi,kompaniya_id,versiya,raqam,norma'.split(',');
-const PROD_HOLAT = 'id,qator_id,obyekt_id,tur,raqam,kod,nom,birlik,kat,smeta_hajm,smeta_narx,smeta_summa,fakt_hajm,fakt_summa,f2_hajm,f2_summa,qoldiq_hajm,qoldiq_summa,f2_mumkin_hajm,f2_mumkin_summa,f2_narx,fakt_narx,f2_narx_farq_foiz,ota_id,norma,direct_fakt_hajm,direct_fakt_summa,fakt_manbasi'.split(',');
+const PROD_HOLAT = 'id,qator_id,obyekt_id,tur,raqam,kod,nom,birlik,kat,smeta_hajm,smeta_narx,smeta_summa,fakt_hajm,fakt_summa,f2_hajm,f2_summa,qoldiq_hajm,qoldiq_summa,f2_mumkin_hajm,f2_mumkin_summa,f2_narx,fakt_narx,f2_narx_farq_foiz,ota_id,norma,direct_fakt_hajm,direct_fakt_summa,fakt_manbasi,f2_summa_nomalum,almashtirilgan_hajm,almashtirilgan_summa,versiya_holat,asl_smeta_hajm,asl_smeta_summa,f2_summa_yoq'.split(',');
 
 function qator(i: number, ustunlar: readonly string[]): Record<string, unknown> {
   const q: Record<string, unknown> = {

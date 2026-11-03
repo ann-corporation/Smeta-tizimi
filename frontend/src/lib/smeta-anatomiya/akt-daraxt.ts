@@ -77,7 +77,7 @@ export function anatomiyadanAktDaraxt(v: VaraqAnatomiyasi): AktDaraxtNatija {
       const tur: AktNode['type'] = r.texnikBelgi?.startsWith('ob') ? 'ob' : r.texnikBelgi?.startsWith('mat') ? 'mat' : 'rs';
       joy(r.sarlavha ?? null).push({
         uid: `anat_m${r.manzil.qator}`, type: tur, kod: r.kod ?? '', nom: r.xom, bir: r.birlik ?? '',
-        hajm: rh, narx: r.narx ?? 0, summa: r.summa ?? 0, children: [], norma: 0,
+        hajm: rh, narx: r.narx ?? undefined, summa: r.summa ?? undefined, children: [], norma: 0, // noma'lum - undefined (0 emas)
       } as Tugun);
       continue;
     }
@@ -95,7 +95,7 @@ export function anatomiyadanAktDaraxt(v: VaraqAnatomiyasi): AktDaraxtNatija {
       if (!r.xom || !rh) { otkazildi++; continue; }
       resurslar.push({
         uid: `anat_r${r.manzil.qator}`, type: 'rs', kod: r.kod ?? '', nom: r.xom, bir: r.birlik ?? '',
-        hajm: rh, narx: r.narx ?? 0, summa: r.summa ?? 0, children: [],
+        hajm: rh, narx: r.narx ?? undefined, summa: r.summa ?? undefined, children: [],
         norma: r.hajm != null ? (r.normaBirlikka ?? 0) : 0,
       });
     }
@@ -103,7 +103,7 @@ export function anatomiyadanAktDaraxt(v: VaraqAnatomiyasi): AktDaraxtNatija {
       : /ОБОРУДОВАН/.test(nomK) || /ОБОРУДОВАН/.test(yol) ? 'ob' : 'mat';
     joy(ish.sarlavha).push({
       uid: `anat_i${ish.manzil.qator}`, type: tur, kod: ish.shifr ?? '', nom: ish.xom, bir: ish.birlik ?? '',
-      hajm, narx: ish.narx ?? 0, summa: ish.summa ?? 0, children: resurslar, norma: 0,
+      hajm, narx: ish.narx ?? undefined, summa: ish.summa ?? undefined, children: resurslar, norma: 0,
     } as Tugun);
   }
   // Ishsiz qolgan sarlavhalar daraxtni ifloslamaydi (eski quruvchi ham bo'sh RZ ni tashlaydi).

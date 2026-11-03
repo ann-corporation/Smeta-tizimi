@@ -5,6 +5,8 @@
  */
 
 /** Ustamali summa (mavjud kaskad natijasi): itogo4 = QQS siz, vsego = QQS bilan. */
+import { yaxlit2 } from './hisob-yadro';
+
 export type PulUstamali = { itogo4: number; nds: number; vsego: number };
 
 export type PulKesim = {
@@ -42,7 +44,7 @@ const bor = (x: number | null | undefined): x is number => x != null && Number.i
 /** Farq = xarajat − F2. Ikkala tomon ma'lum bo'lsagina; aks holda null (NULL ≠ 0). Tiyingacha aniq. */
 export function pulFarq(xarajat: number | null | undefined, f2: number | null | undefined): number | null {
   if (!bor(xarajat) || !bor(f2)) return null;
-  return Math.round((xarajat - f2) * 100) / 100;
+  return yaxlit2(xarajat - f2);
 }
 
 /** Farq foizi = farq / F2 × 100. F2 = 0 bo'lsa yoki biror tomon noma'lum bo'lsa — null (nolga bo'lish yo'q). */

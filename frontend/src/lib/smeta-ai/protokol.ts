@@ -4,6 +4,8 @@
  * normative search phrases and a quantity FORMULA from the user's own dimensions, (3) a choice among
  * catalogue candidates the browser found. Everything is validated here; invalid parts are dropped.
  */
+import { yaxlit2 } from '../hisob-yadro';
+
 export const BIRLIKLAR = ['м3', 'м2', 'м', 'т', 'кг', 'шт', 'компл'] as const;
 export type Birlik = typeof BIRLIKLAR[number];
 export type IshHolati = 'TAYYOR' | 'HAJM_KERAK' | 'ANIQLASH_KERAK';
@@ -326,7 +328,7 @@ export function kpJavobiniTekshir(v: Record<string, unknown> | null): KpOqish {
   const qatorlar = (Array.isArray(o.qatorlar) ? o.qatorlar : []).slice(0, 2000).flatMap((q: unknown) => {
     const r = (q ?? {}) as Record<string, unknown>;
     const nom = kpMatn(r.nom, 600);
-    const narx = typeof r.narx === 'number' && Number.isFinite(r.narx) && r.narx > 0 ? Math.round(r.narx * 100) / 100 : null;
+    const narx = typeof r.narx === 'number' && Number.isFinite(r.narx) && r.narx > 0 ? yaxlit2(r.narx) : null;
     return nom ? [{ nom, birlik: kpMatn(r.birlik, 30), narx }] : [];
   });
   return { yetkazuvchi: kpMatn(o.yetkazuvchi, 200), inn: kpMatn(o.inn, 20)?.replace(/\D/g, '') || null, raqam: kpMatn(o.raqam, 60),
@@ -338,3 +340,20 @@ export const NARX_TANLOV_SXEMA = { name: 'smetachi_narx_tanlov', schema: { type:
     id: { type: 'string' }, tanlov: { type: ['string', 'null'] }, ishonch: { type: 'string', enum: ['yuqori', 'orta', 'past'] }, sabab: { type: 'string' },
     qidiruv: { type: 'array', items: { type: 'string' } },
     qayta_hisob: { type: ['object', 'null'], additionalProperties: false, required: ['ifoda', 'izoh'], properties: { ifoda: { type: 'string' }, izoh: { type: 'string' } } } } } } } } };
+
+/** F2 yordamchi niyatlari (B8-2): model faqat MATNNI ajratadi; qiymatlar bu yerda tekshiriladi, keyin moslashni kod qiladi. */
+export type F2Niyat = { tavsif: string; birlik: string | null; hajm: string | null; razdel: string | null };
+export const F2_NIYAT_SXEMA = { name: 'smetachi_f2_niyat', schema: { type: 'object', additionalProperties: false, required: ['niyatlar'], properties: {
+  niyatlar: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['tavsif', 'birlik', 'hajm', 'razdel'], properties: {
+    tavsif: { type: 'string' }, birlik: { type: ['string', 'null'] }, hajm: { type: ['string', 'null'] }, razdel: { type: ['string', 'null'] } } } } } } };
+export function f2NiyatlariniTekshir(v: Record<string, unknown> | null): F2Niyat[] {
+  const s = (x: unknown, n: number) => (typeof x === 'string' && x.trim() ? x.trim().slice(0, n) : null);
+  return (Array.isArray(v?.niyatlar) ? v!.niyatlar as unknown[] : []).slice(0, 60).flatMap((x) => {
+    const r = (x ?? {}) as Record<string, unknown>;
+    const tavsif = s(r.tavsif, 200);
+    if (!tavsif) return [];
+    // Hajm — faqat raqam/amal belgilari (ifoda kod bilan hisoblanadi); boshqa matn (masalan «taxminan ko'p») rad.
+    const hajm = typeof r.hajm === 'number' && Number.isFinite(r.hajm) ? String(r.hajm) : s(r.hajm, 60);
+    return [{ tavsif, birlik: s(r.birlik, 12), hajm: hajm && /^[\d\s.,*×x/÷:+\-−–()]+$/i.test(hajm) ? hajm : null, razdel: s(r.razdel, 80) }];
+  });
+}

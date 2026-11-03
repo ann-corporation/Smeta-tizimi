@@ -110,8 +110,12 @@ const TEKSHIRUV_RU: Record<Tekshiruv['kod'], string> = {
 };
 
 /** Paket tarkibi (matn): fayllar ro'yxati + tekshiruv ogohlantirishlari. */
-export function paketTarkibiMatni(o: { oy: string; fayllar: readonly PaketFayl[]; tekshiruvlar: readonly Tekshiruv[]; otkazilgan: readonly string[] }): string {
-  const q = [`ПАКЕТ Ф-2 ЗА ${o.oy}`, '', 'Состав пакета:'];
+export function paketTarkibiMatni(o: {
+  oy: string; fayllar: readonly PaketFayl[]; tekshiruvlar: readonly Tekshiruv[]; otkazilgan: readonly string[];
+  /** Shartnoma rejimi: sarlavha shartnoma bilan (loyiha rejimida yo'q). */
+  shartnoma?: { raqam: string; nom?: string | null } | null;
+}): string {
+  const q = [o.shartnoma ? `ПАКЕТ ПО ДОГОВОРУ № ${o.shartnoma.raqam}${o.shartnoma.nom ? ` (${o.shartnoma.nom})` : ''} ЗА ${o.oy}` : `ПАКЕТ Ф-2 ЗА ${o.oy}`, '', 'Состав пакета:'];
   for (const f of o.fayllar) q.push(`  ${f.yol}`);
   if (o.otkazilgan.length) { q.push('', 'Не включено (ошибка при формировании):'); for (const s of o.otkazilgan) q.push(`  ${s}`); }
   if (o.tekshiruvlar.length) {
@@ -122,10 +126,14 @@ export function paketTarkibiMatni(o: { oy: string; fayllar: readonly PaketFayl[]
 }
 
 /** Fayllarni bitta ZIP ga (barqaror sana — bir xil kirish = bir xil baytlar). UTF-8 nomlar. */
+export const TARKIB_FAYL_NOMI = 'ПАКЕТ_СОСТАВ.txt';
+/** ПАКЕТ_СОСТАВ.txt baytlari (UTF-8 BOM bilan) - ZIP ichidagi aynan shu baytlar manifestda ham xeshlanadi. */
+export const tarkibBaytlari = (tarkib: string): Uint8Array => strToU8(`﻿${tarkib}`);
+
 export function paketZip(fayllar: readonly PaketFayl[], tarkib: string): Uint8Array {
   const z: Zippable = {};
   const mtime = new Date('2000-01-01T00:00:00Z');
   for (const f of fayllar) z[f.yol] = [f.bytes, { level: 6, mtime }];
-  z['ПАКЕТ_СОСТАВ.txt'] = [strToU8(`﻿${tarkib}`), { level: 6, mtime }];
+  z[TARKIB_FAYL_NOMI] = [tarkibBaytlari(tarkib), { level: 6, mtime }];
   return zipSync(z);
 }

@@ -1,17 +1,20 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Box, ArrowDownToLine, ArrowUpFromLine, Barcode, ClipboardCheck, QrCode, Building2, History, Layers, FileSpreadsheet, Plus, Warehouse } from 'lucide-react';
+import { Box, ArrowDownToLine, ArrowUpFromLine, ClipboardCheck, QrCode, Building2, History, Layers, FileSpreadsheet, Plus, Warehouse } from 'lucide-react';
 import { useKompaniya } from './KompaniyaTanlov';
 import { FmtN } from '../lib/format';
 import { toast } from '../umumiy/ui/Toast';
 import { t } from '../i18n/til';
 import { Sahifa } from '../umumiy/ui/Sahifa';
-import { sbT2ObyektlarOl, sbSkladQoldiqOl, sbSkladgaYozish, type T2Obyekt, type T2SkladQoldiq } from '../api/supabase';
+import { sbT2ObyektlarOl, sbSkladQoldiqOl, type T2Obyekt, type T2SkladQoldiq } from '../api/supabase';
 import { sbSkladlarOl, sbSkladYarat, type SkladMustaqil } from '../api/t2-resurs';
 import { sbSkladKonsolidatsiyaOl, type SkladKonsolidatsiya } from '../api/t2-sklad-konsolidatsiya';
 import { obyektUlushlari, skladXulosa } from '../lib/kompaniya-ops-korinish';
-import { OpsBoshQator, OpsKpi, OpsKpiQator, OpsMaydon, OpsOyna, OpsQidiruv, OpsTablar } from '../components/kompaniya-ops/OpsUi';
+import { OpsBoshQator, OpsKpi, OpsKpiQator, OpsMaydon, OpsQidiruv, OpsTablar } from '../components/kompaniya-ops/OpsUi';
 import { PrixodKitobPreview } from '../components/ombor/PrixodKitobPreview';
+import { KirimKunlikForm } from '../components/ombor/KirimKunlikForm';
+import { KirimKunlikJurnal } from '../components/ombor/KirimKunlikJurnal';
+import { OmborTanlov } from '../components/ombor/OmborTanlov';
 import { OmborKirimJadval, OmborQoldiqJadval } from '../components/ombor/OmborKirimJadval';
 import { kirimRuxsat } from '../lib/ombor-prixod/yozish';
 
@@ -30,6 +33,8 @@ const OBYEKT_RANGLARI = ['var(--kat-chel)', 'var(--kat-mat)', 'var(--kat-mash)',
 export default function TestSklad() {
   const { joriy } = useKompaniya();
   const aktKomp = joriy?.id ?? 0;
+  const kompaniyaRef = useRef(aktKomp); kompaniyaRef.current = aktKomp;
+  const obyektRef = useRef<number | null>(null);
 
   const [activeTab, setActiveTab] = useState<Tab>('ombor-kirim');
   const ruxsat = kirimRuxsat(joriy?.permissions);
@@ -41,6 +46,9 @@ export default function TestSklad() {
 
   const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
   const [obyektId, setObyektId] = useState<number | null>(null);
+  obyektRef.current = obyektId;
+  const [obyektlarYuklanmoqda, setObyektlarYuklanmoqda] = useState(false);
+  const [harakatYangilash, setHarakatYangilash] = useState(0);
   const [skladQoldiq, setSkladQoldiq] = useState<T2SkladQoldiq[]>([]);
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,21 +57,25 @@ export default function TestSklad() {
   const [markaziyId, setMarkaziyId] = useState<number | null>(null);
   const [konsQoldiqlar, setKonsQoldiqlar] = useState<SkladKonsolidatsiya[]>([]);
 
-  const [formNomi, setFormNomi] = useState('');
-  const [formHajmi, setFormHajmi] = useState('');
-  const [formBirligi, setFormBirligi] = useState('dona');
-
   useEffect(() => {
-    if (!aktKomp) { setObyektlar([]); return; }
-    void sbT2ObyektlarOl(aktKomp).then((r) => {
-      if (r.ok && r.qatorlar) {
-        setObyektlar(r.qatorlar);
-        if (r.qatorlar.length > 0 && !obyektId) setObyektId(r.qatorlar[0].id);
-      }
-    });
+    let active = true;
+    const kompaniya = aktKomp;
+    // Boshqa kompaniyaning obyekti/qoldig'i yangi kompaniyada ko'rinib qolmasin.
+    setObyektlar([]); setObyektId(null); setSkladQoldiq([]); setObyektlarYuklanmoqda(kompaniya > 0);
+    if (!kompaniya) return () => { active = false; };
+    void sbT2ObyektlarOl(kompaniya).then((r) => {
+      if (!active || kompaniyaRef.current !== kompaniya) return;
+      const qatorlar = r.ok && r.qatorlar ? r.qatorlar.filter((o) => o.kompaniya_id === kompaniya) : [];
+      setObyektlar(qatorlar);
+      if (qatorlar.length > 0) setObyektId(qatorlar[0].id);
+      setObyektlarYuklanmoqda(false);
+    }).catch(() => { if (active && kompaniyaRef.current === kompaniya) setObyektlarYuklanmoqda(false); });
     skladlarniYukla();
+    return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aktKomp]);
+
+  const tanlanganObyekt = obyektlar.find((o) => o.id === obyektId && o.kompaniya_id === aktKomp) ?? null;
 
   function skladlarniYukla(tanla?: string) {
     void sbSkladlarOl(aktKomp).then((r) => {
@@ -97,38 +109,19 @@ export default function TestSklad() {
     }
   }, [activeTab, markaziyId]);
 
-  const qoldiqYukla = () => {
-    if (!obyektId) return;
+  useEffect(() => {
+    let active = true;
+    const company = aktKomp; const object = tanlanganObyekt;
+    setSkladQoldiq([]);
+    if (!object || company <= 0) { setYuklanmoqda(false); return () => { active = false; }; }
     setYuklanmoqda(true);
-    void sbSkladQoldiqOl(obyektId).then((r) => {
+    void sbSkladQoldiqOl(object.id).then((r) => {
+      if (!active || kompaniyaRef.current !== company || obyektRef.current !== object.id) return;
       setYuklanmoqda(false);
       setSkladQoldiq(r.ok && r.qatorlar ? r.qatorlar : []);
     });
-  };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { qoldiqYukla(); }, [obyektId]);
-
-  const handleSave = async () => {
-    if (!obyektId || !formNomi || !formHajmi || !formBirligi) {
-      toast(t('Barcha maydonlarni to‘ldiring'), 'warn');
-      return;
-    }
-    setYuklanmoqda(true);
-    const operatsiya = opType === 'kirim' ? 'prixod' : 'rasxod';
-    const res = await sbSkladgaYozish(aktKomp, operatsiya, {
-      obyekt_id: obyektId, operatsiya, turi: 'mat', sana: new Date().toISOString().split('T')[0],
-      nomi: formNomi, birligi: formBirligi, obyomi: Number(formHajmi),
-    });
-    setYuklanmoqda(false);
-    if (res.ok) {
-      toast(opType === 'kirim' ? t('Omborga kirim yozildi.') : t('Ombordan chiqim yozildi.'), 'ok');
-      setIsFormOpen(false);
-      setFormNomi(''); setFormHajmi('');
-      qoldiqYukla();
-    } else {
-      toast(t('Xato yuz berdi: {x}', { x: res.error ?? '' }), 'danger');
-    }
-  };
+    return () => { active = false; };
+  }, [aktKomp, tanlanganObyekt, harakatYangilash]);
 
   const filteredQoldiq = skladQoldiq.filter((item) => item.nomi.toLowerCase().includes(searchTerm.toLowerCase()));
   const xulosa = useMemo(() => skladXulosa(skladQoldiq), [skladQoldiq]);
@@ -137,7 +130,7 @@ export default function TestSklad() {
     for (const k of konsQoldiqlar) for (const o of k.obyektlar_boyicha ?? []) if (!m.has(o.obyekt_id)) m.set(o.obyekt_id, OBYEKT_RANGLARI[m.size % OBYEKT_RANGLARI.length]);
     return m;
   }, [konsQoldiqlar]);
-  const ochOyna = (tur: 'kirim' | 'chiqim') => { setOpType(tur); setIsFormOpen(true); };
+  const ochOyna = (tur: 'kirim' | 'chiqim') => { if (!tanlanganObyekt) return; setOpType(tur); setIsFormOpen(true); };
 
   return (
     <Sahifa
@@ -146,12 +139,11 @@ export default function TestSklad() {
       amallar={<>
         <label className="inline-flex items-center gap-1.5 text-[12px] text-text-dim">
           <Building2 size={15} className="text-text-mute" />
-          <select aria-label={t('Obyekt')} className="h-8 max-w-[260px] px-2 text-[13px]" value={obyektId || ''} onChange={(e) => setObyektId(Number(e.target.value))}>
-            {obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
-          </select>
+          <OmborTanlov label={t('Obyekt')} value={tanlanganObyekt ? String(tanlanganObyekt.id) : ''} disabled={!aktKomp || obyektlarYuklanmoqda}
+            options={obyektlar.map((o) => ({ value: String(o.id), label: o.nom }))} onChange={(v) => setObyektId(Number(v))} />
         </label>
-        <button type="button" onClick={() => ochOyna('chiqim')} className="fz-btn"><ArrowUpFromLine /> {t('Chiqim (rasxod)')}</button>
-        <button type="button" onClick={() => ochOyna('kirim')} className="fz-btn fz-btn--primary"><ArrowDownToLine /> {t('Kirim (prixod)')}</button>
+        <button type="button" disabled={!tanlanganObyekt} onClick={() => ochOyna('chiqim')} className="fz-btn min-h-[48px] disabled:opacity-50"><ArrowUpFromLine /> {t('BERDIM — ombordan chiqim')}</button>
+        <button type="button" disabled={!tanlanganObyekt} onClick={() => ochOyna('kirim')} className="fz-btn fz-btn--primary min-h-[48px] disabled:opacity-50"><ArrowDownToLine /> {t('KELDI — omborga kirim')}</button>
       </>}
     >
       <div className="flex flex-col gap-3">
@@ -291,38 +283,16 @@ export default function TestSklad() {
           </section>
         )}
 
-        {activeTab === 'kirim' && (
-          <section className="fz-note"><History /><span>{t('Kirim va chiqim jurnali hali yasalmagan — hozircha harakatlar «Obyekt qoldiqlari» orqali ko‘rinadi.')}</span></section>
-        )}
+        {activeTab === 'kirim' && <KirimKunlikJurnal kompaniyaId={aktKomp} obyektId={tanlanganObyekt?.id ?? null} obyektNomi={tanlanganObyekt?.nom} yangilashKaliti={harakatYangilash} />}
       </div>
 
-      <OpsOyna ochiq={isFormOpen} onYop={() => setIsFormOpen(false)} band={yuklanmoqda}
-        ikon={opType === 'kirim' ? <ArrowDownToLine style={{ color: 'var(--ok)' }} /> : <ArrowUpFromLine style={{ color: 'var(--danger)' }} />}
-        sarlavha={opType === 'kirim' ? t('Omborga kirim qilish') : t('Ombordan chiqim qilish')}
-        amallar={<>
-          <button type="button" onClick={() => setIsFormOpen(false)} className="fz-btn fz-btn--ghost">{t('Bekor qilish')}</button>
-          <button type="button" onClick={() => void handleSave()} disabled={yuklanmoqda} className={`fz-btn ${opType === 'kirim' ? 'fz-btn--primary' : 'fz-btn--danger'}`}>
-            {yuklanmoqda ? t('Yozilmoqda…') : t('Tasdiqlash')}
-          </button>
-        </>}>
-        <p className="text-[12px] text-text-dim">{t('Obyekt')}: <b className="text-text">{obyektlar.find((o) => o.id === obyektId)?.nom ?? '—'}</b></p>
-        <OpsMaydon nom={t('Material nomi')} majburiy>
-          <span className="relative block">
-            <Barcode className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-text-mute" size={15} />
-            <input type="text" value={formNomi} onChange={(e) => setFormNomi(e.target.value)} style={{ paddingLeft: 30 }} placeholder={t('Masalan, sement M400')} />
-          </span>
-        </OpsMaydon>
-        <div className="grid grid-cols-2 gap-3">
-          <OpsMaydon nom={t('Hajmi')} majburiy>
-            <input type="number" value={formHajmi} onChange={(e) => setFormHajmi(e.target.value)} className="text-right tabular-nums" />
-          </OpsMaydon>
-          <OpsMaydon nom={t('O‘lchov birligi')}>
-            <select value={formBirligi} onChange={(e) => setFormBirligi(e.target.value)}>
-              {['tonna', 'dona', 'm2', 'm3', 'kg'].map((b) => <option key={b} value={b}>{b}</option>)}
-            </select>
-          </OpsMaydon>
-        </div>
-      </OpsOyna>
+      {isFormOpen && <KirimKunlikForm key={`${aktKomp}:${tanlanganObyekt?.id ?? 0}:${opType}`} kompaniyaId={aktKomp} obyekt={tanlanganObyekt}
+        amal={opType === 'kirim' ? 'prixod' : 'rasxod'} onYop={() => setIsFormOpen(false)}
+        onYozildi={({ kompaniyaId, obyektId: yozilganObyekt }) => {
+          if (kompaniyaRef.current !== kompaniyaId || obyektRef.current !== yozilganObyekt) return;
+          setIsFormOpen(false); setHarakatYangilash((n) => n + 1);
+          toast(t('Ombor harakati yozildi.'), 'ok');
+        }} />}
     </Sahifa>
   );
 }

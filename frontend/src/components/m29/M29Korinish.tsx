@@ -54,7 +54,7 @@ function PulFarq({ obyektId, summa, kesim, kichik = false }: { obyektId: number;
   return (
     <span className="inline-flex flex-col items-end">
       <small className={`text-[10.5px] font-semibold uppercase tracking-wide ${rang}`}>{soz}</small>
-      <SummaJuft rejim="ustamali" obyektId={obyektId} ustamasiz={Math.abs(summa!)} katKesim={kesim} kichik={kichik} className="items-end text-right" />
+      <SummaJuft rejim={kichik ? 'ustamali' : 'qqs'} obyektId={obyektId} ustamasiz={Math.abs(summa!)} katKesim={kesim} kichik={kichik} className="items-end text-right" />
     </span>
   );
 }
@@ -126,17 +126,17 @@ export function M29Korinish({ natija, obyektId }: { natija: M29Natija; obyektId:
               </div>
             </Korsatkich>
             <Korsatkich nom={t('Tejash (normadan kam)')} ikon={<TrendingDown size={15} />} rang="var(--ok)" ost={t('smeta narxida')}>
-              <SummaJuft rejim="ustamali" obyektId={oid} ustamasiz={natija.jami.tejashSumma} katKesim={kesim.tejash} />
+              <SummaJuft obyektId={oid} ustamasiz={natija.jami.tejashSumma} katKesim={kesim.tejash} />
             </Korsatkich>
             <Korsatkich nom={t('Ortiqcha sarf (normadan ko‘p)')} ikon={<TrendingUp size={15} />} rang="var(--danger)" ost={t('smeta narxida')}>
-              <SummaJuft rejim="ustamali" obyektId={oid} ustamasiz={natija.jami.ortiqchaSumma} katKesim={kesim.ortiqcha} />
+              <SummaJuft obyektId={oid} ustamasiz={natija.jami.ortiqchaSumma} katKesim={kesim.ortiqcha} />
             </Korsatkich>
             <Korsatkich nom={t('Sof natija')} ikon={<Scale size={15} />} ost={t('ortiqcha sarf − tejash')}>
               {natija.jami.farqSummaJami == null
                 ? <span className="text-text-mute" title={t('Ayrim materiallar narxi noma’lum')}>—</span>
                 : <span className="flex flex-col gap-0.5">
                   <span className={`text-[12px] font-semibold ${natija.jami.farqSummaJami > 0 ? 'text-danger' : 'text-ok'}`}>{natija.jami.farqSummaJami > 0 ? t('Zarar — normadan ortiq sarflangan') : t('Foyda — normadan kam sarflangan')}</span>
-                  <SummaJuft rejim="ustamali" obyektId={oid} ustamasiz={Math.abs(natija.jami.farqSummaJami)} katKesim={kesim.sof} />
+                  <SummaJuft obyektId={oid} ustamasiz={Math.abs(natija.jami.farqSummaJami)} katKesim={kesim.sof} />
                 </span>}
             </Korsatkich>
             <M29ChetlanishDiagramma royxat={chetlanish} />
@@ -302,7 +302,9 @@ export function M29Korinish({ natija, obyektId }: { natija: M29Natija; obyektId:
             {DIQQAT_TURLARI.map((tur) => {
               const list = natija.diqqat.filter((d) => d.tur === tur.tur);
               if (!list.length) return null;
-              const summa = list.reduce((s, d) => s + (d.summa ?? 0), 0);
+              const malum = list.filter((d) => d.summa != null); // summasi noma'lum qator 0 emas: soni alohida ko'rsatiladi
+              const summa = malum.length ? malum.reduce((s, d) => s + (d.summa as number), 0) : null;
+              const nomalumSoni = list.length - malum.length;
               return (
                 <details key={tur.tur} className="fz-card text-[12.5px]" open={tur.muhim}>
                   <summary className="flex cursor-pointer items-center gap-2 px-4 py-3">
@@ -310,6 +312,7 @@ export function M29Korinish({ natija, obyektId }: { natija: M29Natija; obyektId:
                     <span className={tur.muhim ? 'font-semibold text-text' : 'text-text-dim'}>{t(tur.nom)}</span>
                     <span className="fz-chip">{list.length}</span>
                     {summa ? <span className="ml-auto tabular-nums text-danger">{t('{s} so‘m', { s: pul(summa) })}</span> : null}
+                    {nomalumSoni > 0 ? <span className={`fz-chip${summa ? '' : ' ml-auto'}`} title={t('Summasi noma‘lum qatorlar')}>{t('+{n} summasiz', { n: nomalumSoni })}</span> : null}
                   </summary>
                   <ul className="max-h-80 divide-y divide-border overflow-auto border-t border-border px-4">
                     {list.map((d, i) => (

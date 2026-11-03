@@ -1,0 +1,54 @@
+{
+ "Loyihaga biriktirilmadi": {
+  "ru": "Не удалось привязать к проекту",
+  "en": "Could not attach to the project"
+ },
+ "Obyekt loyihaga biriktirildi.": {
+  "ru": "Объект привязан к проекту.",
+  "en": "The object was attached to the project."
+ },
+ "Bu obyektlar hech bir loyihaga biriktirilmagan, lekin yashirilmaydi. Loyihaga biriktirsangiz, shartnoma va hisobotlarda to‘g‘ri guruhlanadi.": {
+  "ru": "Эти объекты не привязаны ни к одному проекту, но не скрываются. После привязки к проекту они правильно группируются в договорах и отчётах.",
+  "en": "These objects are not attached to any project, but they are never hidden. Once attached, they are grouped correctly in contracts and reports."
+ },
+ "Loyihani tanlang": {
+  "ru": "Выберите проект",
+  "en": "Select a project"
+ },
+ "Loyihaga biriktirish": {
+  "ru": "Привязать к проекту",
+  "en": "Attach to project"
+ },
+ "Shu nomli obyekt kompaniyada allaqachon bor: {nom}. Dublikat yaratmaslik uchun mavjudini oching.": {
+  "ru": "Объект с таким названием уже есть в компании: {nom}. Чтобы не создавать дубликат, откройте существующий.",
+  "en": "An object with this name already exists in the company: {nom}. Open the existing one to avoid a duplicate."
+ },
+ "+ Yangi loyiha…": {
+  "ru": "+ Новый проект…",
+  "en": "+ New project…"
+ },
+ "Yangi loyiha nomi": {
+  "ru": "Название нового проекта",
+  "en": "New project name"
+ },
+ "Masalan: Parkent": {
+  "ru": "Например: Паркент",
+  "en": "For example: Parkent"
+ },
+ "Loyiha tanlanmadi: obyekt «Loyihasiz obyektlar» guruhida turadi. Keyinroq «Loyihaga biriktirish» bilan biriktirish mumkin.": {
+  "ru": "Проект не выбран: объект будет в группе «Объекты без проекта». Позже его можно привязать кнопкой «Привязать к проекту».",
+  "en": "No project selected: the object will sit in the “Objects without a project” group. You can attach it later with “Attach to project”."
+ },
+ "Yangi loyiha nomini kiriting yoki “Loyihasiz” tanlang.": {
+  "ru": "Введите название нового проекта или выберите «Без проекта».",
+  "en": "Enter a name for the new project or choose “No project”."
+ },
+ "Loyiha yaratilmadi": {
+  "ru": "Проект не создан",
+  "en": "The project was not created"
+ },
+ "Smeta podvali kiritilmagan — kompaniya sukut foizlari ishlatilmoqda": {
+  "ru": "Подвал сметы не внесён — используются проценты компании по умолчанию",
+  "en": "The estimate footer is not entered — the company default percentages are in use"
+ }
+}

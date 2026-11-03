@@ -1,0 +1,6 @@
+{
+  "Hujjat podvali isbotlanmadi (smeta podvali qoladi):": { "ru": "Подвал документа не подтверждён (остаётся подвал сметы):", "en": "Document markup block not proven (the estimate markup stays):" },
+  "ziddiyatli foizlar": { "ru": "противоречивые проценты", "en": "conflicting percentages" },
+  "Hujjat podvali saqlandi.": { "ru": "Подвал документа сохранён.", "en": "Document markup block saved." },
+  "Hujjat podvali saqlanmadi (smeta podvali qoladi).": { "ru": "Подвал документа не сохранён (остаётся подвал сметы).", "en": "Document markup block not saved (the estimate markup stays)." }
+}

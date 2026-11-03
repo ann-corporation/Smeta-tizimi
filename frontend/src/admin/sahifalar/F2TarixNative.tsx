@@ -1,6 +1,7 @@
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
+import { topshirilganPaketOgohi } from '../../lib/f2-oylik-paket/ogoh';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Ban, CheckCircle2, Download, Eye, FileText, Pencil, RefreshCw, ShieldAlert, Upload } from 'lucide-react';
+import { Ban, CheckCircle2, Download, Eye, FileText, Pencil, RefreshCw, RotateCcw, ShieldAlert, Upload } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { F2HujjatKorinish } from '../../components/f2-hujjat/F2HujjatKorinish';
 import { davrNomi } from '../../lib/f2-hujjat-korinish';
@@ -22,6 +23,9 @@ import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
 import type { T2Qator } from '../../api/supabase';
 import { f2AktKirish } from '../../lib/f2-akt-hujjat';
 import { f2Hujjat } from '../../lib/f2-hujjat';
+import { aktPodvallariniOl } from '../../api/t2-akt-podval';
+import { aktPodvalXaritasi } from '../../lib/akt-podval';
+import { eskiBloklarHujjat, pereraschetBloklari } from '../../lib/f2-pereraschet';
 import { f2HujjatKaliti, f2HujjatKonteksti } from '../../api/f2-hujjat-kontekst';
 import { mazmunXeshi, tokenBilan } from '../../api/t2-token';
 import { hujjatArxivla } from '../../api/t2-hujjat-arxiv';
@@ -33,6 +37,8 @@ import { ZakazchigaYuborish } from '../zakazchik/ZakazchigaYuborish';
 import { f2ImportAktlari, f2ImportQilinganmi } from '../../lib/f2-manba';
 import { f2BekorMumkin } from '../../lib/f2-bekor';
 import { F2BekorOyna, type F2BekorOynaAkt } from './F2BekorOyna';
+import { F2StornoOyna, type F2StornoAkt } from './F2StornoOyna';
+import { F2PodvalBackfillOyna } from './F2PodvalBackfillOyna';
 import { useIxtiyoriyQueryClient } from '../../api/t2-obyektlar-kesh';
 import { daraxtKaliti } from '../../umumiy/daraxt/useT2Daraxt';
 
@@ -63,6 +69,7 @@ export function F2TarixNative() {
   const f2YozishYopiq=!superadmin&&rolF2YozishYopiq(joriy?.rol);
   const mayApprove=!f2YozishYopiq&&(superadmin||!!joriy?.permissions?.includes('f2.approve'));
   const mayCancel=!f2YozishYopiq&&(superadmin||!!joriy?.permissions?.includes('f2.cancel'));
+  const mayPrepare=!f2YozishYopiq&&(superadmin||!!joriy?.permissions?.includes('f2.prepare'));
   const workspace = usePTOWorkspace();
   /* Tasdiqlash rejimi (ADR-2): shaxsiy — «Yakunlash (shaxsiy)»; korporativ — har bosqich alohida, SoD bazada. */
   const [rejim, setRejim] = useState<F2TasdiqRejimi>('shaxsiy');
@@ -96,12 +103,16 @@ export function F2TarixNative() {
   /** Bekor qilish uchun belgilangan aktlar (bitta obyekt) va ochiq tasdiq oynasi. */
   const [tanlangan, setTanlangan] = useState<ReadonlySet<number>>(new Set());
   const [bekorOyna, setBekorOyna] = useState<F2BekorOynaAkt[] | null>(null);
+  /** Storno (minus) F2 yaratish oynasi: bitta manba akt. */
+  const [stornoOyna, setStornoOyna] = useState<F2StornoAkt | null>(null);
+  /** F2 podvalini asl fayldan tiklash (backfill) oynasi. */
+  const [podvalOyna, setPodvalOyna] = useState(false);
   const qc = useIxtiyoriyQueryClient();
 
   const obyektId = Number(params.get('obyekt'));
   const validId = Number.isSafeInteger(obyektId) && obyektId > 0;
   // Obyekt almashsa — belgilar va oyna tozalanadi (bir amal faqat bitta obyekt aktlari).
-  useEffect(() => { setTanlangan(new Set()); setBekorOyna(null); }, [obyektId]);
+  useEffect(() => { setTanlangan(new Set()); setBekorOyna(null); setStornoOyna(null); }, [obyektId]);
   const f2Reestr = useMemo(() => reestr.filter((a) => a.tur === 'f2'), [reestr]);
   const selectedAkt = f2Reestr.find((a) => a.id === selectedAktId) ?? f2Reestr[0] ?? null;
   useEffect(() => {
@@ -190,6 +201,7 @@ export function F2TarixNative() {
       const current = live.ok ? live.qatorlar?.[0] : null;
       if (!current) { toast('Hujjatning joriy holatini tekshirib bo‘lmadi. Sahifani yangilang.', 'danger'); return; }
       const target = statuses.at(-1);
+      if (target === 'approved') await topshirilganPaketOgohi(obyektId, String((akt as { oy?: string | null }).oy ?? '')); // tasdiqlash topshirilgan paketga kirmaydi - ogohlantirish
       /* Korporativ rejim: faqat keyingi BITTA bosqich (yuborish / tekshirish / tasdiqlash) — har birini boshqa xodim bajaradi. */
       const plan = birQadam
         ? (target != null && f2KeyingiQadam(current.lifecycle_status) === target ? [target] : null)
@@ -234,9 +246,24 @@ export function F2TarixNative() {
       const ctx = await f2HujjatKonteksti(kompaniyaId, obyektId);
       // Ustama/podval o'qilmasa F2 hujjati jimgina standart podval yoki ustamasiz chiqmaydi.
       if (ctx.xato) { toast(`F2 hujjati tuzilmadi: ${ctx.xato}`, 'danger'); return; }
-      const h = f2Hujjat(k.bolimlar, k.qatorlar, {
+      // F2 hujjati O'Z podvali bilan (egasi 2026-11-03): podval/qator o'qilmasa jim smeta podvaliga o'tilmaydi.
+      const [pv, aq] = await Promise.all([
+        aktPodvallariniOl(obyektId),
+        sbOqi<{ qator_id: number; hajm: number | null; certified_quantity: number | null; certified_unit_price: number | null; certified_amount: number | null; raw_snapshot: unknown }>({
+          jadval: 't2_akt_qator', filtr: `akt_id=eq.${akt.id}&obyekt_id=eq.${obyektId}`, ustunlar: 'qator_id,hajm,certified_quantity,certified_unit_price,certified_amount,raw_snapshot', limit: 50000 }),
+      ]);
+      if (!pv.ok || !aq.ok) { toast(`F2 hujjati tuzilmadi: ${t('hujjat podvali o‘qilmadi')}`, 'danger'); return; }
+      const xarita = aktPodvalXaritasi(pv.podvallar);
+      const eskiB = pereraschetBloklari(aq.qatorlar ?? [], new Map(smetaRows.map((r) => [r.id, r] as const)), new Map(f2Reestr.map((a) => [a.id, a.raqam ?? null] as const)));
+      const stornoIds = new Set(eskiB.flatMap((b) => b.qatorlar.map((q) => q.qatorId)));
+      const ozNk = xarita.get(`${akt.id}:`)?.nk ?? null;
+      const blokNk = (m: number) => xarita.get(`${akt.id}:${m}`)?.nk ?? xarita.get(`${m}:`)?.nk ?? null;
+      const ozNakrutka = ozNk ? (Object.fromEntries(Object.entries(ozNk).filter(([, v]) => v != null).map(([kk, v]) => [kk, Number(v)])) as typeof ctx.nakrutka) : null;
+      const h = f2Hujjat(k.bolimlar, k.qatorlar.filter((x) => !stornoIds.has(x.id)), {
         obyektNom: object?.nom || '', davr: akt.oy || '', raqam: akt.raqam, imzo: ctx.imzo, shartnoma: ctx.shartnoma,
-        ndsFoiz: NDS_SUKUT_FOIZ, nakrutka: ctx.nakrutka, podval: ctx.podval,
+        // Hujjatning o'z podvali bo'lsa - uning foizlari (QQS ham o'ziniki); yo'q - obyekt podvali va tizim QQS stavkasi.
+        ndsFoiz: ozNk ? null : NDS_SUKUT_FOIZ, nakrutka: ozNakrutka ?? ctx.nakrutka, podval: ozNk ? null : ctx.podval, nkManba: ozNk ? null : ctx.nkManba ?? null,
+        eskiBloklar: eskiB.length ? eskiBloklarHujjat(eskiB, blokNk) : undefined,
         // Saqlangan akt — tarix: faqat sertifikatlangan qiymatlar, formulasiz (Excel hech narsani qayta hisoblamaydi).
         formulasiz: true, rows: smetaRows,
       });
@@ -279,6 +306,15 @@ export function F2TarixNative() {
   const tanlanganAktlar = f2Reestr.filter((a) => tanlangan.has(a.id) && bekorMumkin(a));
   const belgila = (id: number, on: boolean) => setTanlangan((s) => { const n = new Set(s); if (on) n.add(id); else n.delete(id); return n; });
   /** Bekor qilingandan keyin: daraxt (LRV/fakt) keshi va obyektlar ro'yxati eskirgan — tashlanadi, reestr qayta o'qiladi. */
+  /** Storno yaratilgandan keyin: LRV/qoldiq keshi eskirdi (fakt 0 ga tushdi), reestr qayta o'qiladi, yangi qoralama tanlanadi. */
+  async function stornoTugadi(yangiAktId: number) {
+    qc?.removeQueries({ queryKey: daraxtKaliti(obyektId) });
+    void qc?.invalidateQueries({ queryKey: ['t2-obyektlar'] });
+    toast(t('Storno qoralamasi yaratildi. Tasdiqlash — shu sahifada; yangi pozitsiyalarni «F2 tayyorlash»da shu qoralama ostiga qo‘shing.'), 'ok');
+    setStornoOyna(null);
+    await yuklash();
+    setSelectedAktId(yangiAktId);
+  }
   async function bekorTugadi(n: { bajarildi: number[]; xato: unknown }) {
     if (n.bajarildi.length) {
       qc?.removeQueries({ queryKey: daraxtKaliti(obyektId) });
@@ -302,6 +338,8 @@ export function F2TarixNative() {
     <>{korinish.oyna}
     {bekorOyna && (workspace.companyId ?? joriy?.id) && <F2BekorOyna kompaniyaId={(workspace.companyId ?? joriy?.id) as number} aktlar={bekorOyna}
       onYop={() => setBekorOyna(null)} onTugadi={(n) => void bekorTugadi(n)} />}
+    {podvalOyna && (workspace.companyId ?? joriy?.id) && <F2PodvalBackfillOyna obyektId={obyektId} kompaniyaId={(workspace.companyId ?? joriy?.id) as number} onYop={() => setPodvalOyna(false)} onTugadi={() => void yuklash()} />}
+    {stornoOyna && <F2StornoOyna obyektId={obyektId} akt={stornoOyna} reestr={f2Reestr} onYop={() => setStornoOyna(null)} onTugadi={(id) => void stornoTugadi(id)} />}
     <Sahifa
       sarlavha="F2 tarixi va tasdiqlash"
       tavsif="Qoralama ko‘rib chiqiladi; faqat tasdiqlangan aniq manba LRV va Nakopitelniyga kiradi"
@@ -316,6 +354,7 @@ export function F2TarixNative() {
             </select>
           </label>
           <div className="flex gap-2 text-[12px] text-text-dim"><span className="fz-chip">{t('{n} ta F2', { n: f2Reestr.length })}</span><span className="fz-chip fz-chip--accent">{t('{n} tasi tasdiqlangan', { n: f2Reestr.filter((a) => a.holat === 'tasdiqlangan').length })}</span></div>
+          {validId && mayPrepare && <button type="button" data-testid="podval-backfill-tugma" className="fz-btn fz-btn--ghost" title={t('Tasdiqlangan F2 ning asl faylidan faqat podvalni o‘qib, akt bilan moslaydi')} onClick={() => setPodvalOyna(true)}><Upload />{t('F2 podvalini fayldan tiklash')}</button>}
           {tanlanganAktlar.length > 0 && <button type="button" className="fz-btn fz-btn--danger" onClick={() => setBekorOyna(tanlanganAktlar.map(bekorAkt))}><Ban />{t('Tanlanganlarni bekor qilish ({n})', { n: tanlanganAktlar.length })}</button>}
         </section>
 
@@ -370,6 +409,7 @@ export function F2TarixNative() {
                     </>}
                     {selectedAkt.holat === 'tasdiqlangan' && selectedAkt.oy && <Link to={`/admin/nakopitelniy?obyekt=${obyektId}&davr=${encodeURIComponent(selectedAkt.oy)}&f3=1`} title={t('Shu davr uchun СПРАВКА-СЧЕТ-ФАКТУРА (Форма №3) ni ochadi')} className="fz-btn"><FileText />{t('Форма №3 (счёт-фактура)')}</Link>}
                     {selectedAkt.lifecycle_status === 'approved' && importAkt?.id === selectedAkt.id && !importAkt.import && <ZakazchigaYuborish kompaniyaId={workspace.companyId ?? joriy?.id} aktId={selectedAkt.id} />}
+                    {mayPrepare && statusOf(selectedAkt) !== 'cancelled' && <button type="button" className="fz-btn" title={t('Shu F2 qatorlaridan minus (storno) qoralama yaratadi; asl F2 o‘zgarmaydi')} onClick={() => setStornoOyna({ id: selectedAkt.id, raqam: selectedAkt.raqam, oy: selectedAkt.oy, hujjat_jami: selectedAkt.hujjat_jami })} disabled={savingId != null}><RotateCcw />{t('Storno (minus) F2 yaratish')}</button>}
                     {bekorMumkin(selectedAkt) && <button type="button" className="fz-btn fz-btn--danger" onClick={() => setBekorOyna([bekorAkt(selectedAkt)])} disabled={savingId != null}><Ban />{t('Bekor qilish')}</button>}
                   </>}
                   ostida={<>

@@ -1,4 +1,4 @@
-import { qqsBilan, qqsFormulasi, qqsSumma } from '../hisob-yadro';
+import { qqsBilan, qqsFormulasi, qqsSumma, yaxlit2 } from '../hisob-yadro';
 /**
  * «ВЕДОМОСТЬ ВЫПОЛНЕННЫХ РАБОТ, ИСКЛЮЧЁННЫХ (СОКРАЩЁННЫХ) ЭКСПЕРТИЗОЙ» — da'vo ro'yxati rasmiy hujjati (egasi 2026-10-26:
  * ekspertiza kesgan, lekin qurilgan hajm — fakt, himoya qilinadi). Hujjat standarti (RasmiyVaraq): rus tilida, narx NDS SIZ,
@@ -76,10 +76,10 @@ export function davaXlsx(qatorlar: readonly DavaEksportQator[], o: DavaEksportOp
       const narx = q.dava! / q.davaHajm!;
       const q2 = (x: number | null): Qiymat => (x == null ? null : x);
       rr.push(v.qator('oddiy', (n) => [++no, q.kod, q.nom, q.birlik, q2(q.eskiHajm), q2(q.joriyHajm), q2(q.qurilganHajm), q.davaHajm,
-        Math.round(narx * 100) / 100, { f: `ROUND(H${n}*I${n},2)`, v: Math.round(q.davaHajm! * (Math.round(narx * 100) / 100) * 100) / 100 },
+        yaxlit2(narx), { f: `ROUND(H${n}*I${n},2)`, v: yaxlit2(q.davaHajm! * yaxlit2(narx)) },
         [HOLAT_RU[q.holat], q.izoh].filter(Boolean).join('; ')]));
     }
-    const s = qs.reduce((t, q) => t + Math.round(q.davaHajm! * (Math.round((q.dava! / q.davaHajm!) * 100) / 100) * 100) / 100, 0);
+    const s = qs.reduce((t, q) => t + yaxlit2(q.davaHajm! * yaxlit2(q.dava! / q.davaHajm!)), 0);
     jami += s;
     bolimJami.push(v.qator('jami', [null, null, 'Итого по разделу', null, null, null, null, null, null, { f: sumRefs('J', rr), v: s }, null]));
   }

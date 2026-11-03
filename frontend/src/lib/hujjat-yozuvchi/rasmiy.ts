@@ -188,6 +188,7 @@ export const HUJJAT_TURLARI = {
   f2: 'Акт Ф-2 (форма № 2) va resurs vedomosti',
   f3: 'Справка Ф-3 (форма № 3)',
   nakopitelniy: 'Накопительная ведомость',
+  obosnovanie: 'Обоснование выполненных объёмов, не закрытых Ф-2',
   slichitelniy: 'Сличительная ведомость',
   ostatka: 'Остатка (qoldiq) ведомости',
   resurs_vedomost: 'Ведомость ресурсов (по смете объекта)',

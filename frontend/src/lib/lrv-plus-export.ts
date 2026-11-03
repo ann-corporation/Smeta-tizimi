@@ -291,7 +291,7 @@ export function lrvPlusQatorlarniHisobla(
       id: q.id, row: r, no: i + 1, kod: q.kod ?? '', nom: q.nom ?? '', birlik: q.birlik ?? '', tur,
       kat: q.kat ?? '', birlikHajm, obyomFormula, obyomQiymat, narx, summaFormula, summaQiymat,
       // Narx qoidasi (yadro): tasdiqlangan F2 bor qatorda fakt summasi F2 birlik narxida; fakt hajmi yozilganidek.
-      faktHajm: h ? h.fakt_hajm : 0, faktSumma: h ? faktSummaF2Narxda(h.fakt_hajm, h.f2_hajm, h.f2_summa, h.fakt_summa).summa : 0,
+      faktHajm: h ? h.fakt_hajm : 0, faktSumma: h ? faktSummaF2Narxda(h.fakt_hajm, h.f2_hajm, h.f2_summa, h.fakt_summa, h.f2_summa_yoq).summa : 0,
       f2Hajm: h ? h.f2_hajm : 0, f2Summa: h ? h.f2_summa : 0,
       daraja,
     });
