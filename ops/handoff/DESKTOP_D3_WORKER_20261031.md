@@ -67,6 +67,23 @@ The current packet lacks t2_akt_podval metadata / per-act-per-block own nk and a
 
 # D3a — Worker o‘qish modeli poydevori
 
+## 2026-11-02 — D3b retained hisob davomi
+
+Branch `codex/desktop-d3-retained`, D3a `c785517` ustidan. Source commit `33b8a435`; current main `bf96ca7d796b5d94dda136ec23aa691c36f154f8` ishchi branchga `dabaa60a` bilan merge qilindi. Main/prod yozuvi yo‘q.
+
+- Yadro `daraxt-yigish.ts`: serverdagi amaldagi `t2_qator_tahrir` norma kaskadi va `t2_rollup` tartibi; numeric ROUND2 qilinmaydi. `decimal.js@10.6.0` mustaqil100digit clone bilan ishlatiladi. Dependency avval transitive/dev edi, endi direct pinned; boshqa lock churn kiritilmadi. RZ display subtotal canonical RZ summa bilan aralashtirilmaydi;30k chuqurlik rekursiyasiz, sikl/yo‘q ota rad.
+- Worker snapshotni bir marta ochadi; keyin IDli kichik tahrir va≤500qatorlik o‘qish. Revision CAS, epoch, takror INIT/eski close rad; FIFO klient, close/logout navbati rad. Katta kaskad faqat summary+invalidatsiya qaytaradi,26k qator main-threadga qayta ko‘chmaydi. Approved F2 snapshotiga yozish buyrug‘i yo‘q; son/summa manbadan saqlanadi. Har lokal hisob `taxminiy:true`; server version oshirilmaydi, exportga serverTasdiq bermaydi.
+- Fokus31test PASS (D3b16 + oldpacket/Worker15). `desktop-hisob-parity.mjs`: haqiqiy repo SQL funksiyalari disposable PGlite ichida,241solishtiruv/240mutatsiya PASS. Production ulanish yo‘q. Scope faqat faol fixturelar; triggerli version/audit yoki barcha historical-version parity isboti emas. Server rollup tarixiy versiyalarni ham o‘qishi mumkin, paket faqat faol — bu farq keng runtime acceptance’da ochiq.
+- Production bundle alohida Node threadda26k fixture: INIT139.58ms; oddiy tahrir0.59–1.98ms; hamma26k normani kaskadlash23.48ms (Worker21.40ms),257byte javob. Avval shu kaskad78ms edi. Natija takroriy norma/narxli sintetik datasetga tegishli; har qanday real26k yoki browser-render50ms degan claim emas. Boshqa yuklamada100ms ham kuzatilgan, vaqt kafolati yashirilmaydi.
+- Keng variant: `$env:VARIED='1'; node src/ombor/hisob-retained-smoke.mjs` —97norma×31narx,26kqator, jami va frozenF2PASS. INIT199.87ms, oddiytahrir0.79–2.13ms, to‘liqkaskad68.18ms/261byte. Demak50ms barcha datasetda hali PASS emas.
+- Brauzer sinov HTML: `/src/ombor/hisob-browser-smoke.html`, lokal Vite127.0.0.1:5179. IAB ochish timeout; Computer Use Chrome URLni ishonchli aniqlay olmagani uchun shu turnda blokladi. Brauzer/desktop GUI acceptance UNKNOWN, cheklov chetlab o‘tilmadi. Lokal web business ma’lumoti ishlatilmadi.
+- Full Vitest jarayoni: exec51698, log `C:/Temp/desktop-d3b-vitest.log`. TS/functionsTS/lint/tekshir/build jarayoni exec70855 (loglar `C:/Temp/desktop-d3b-*`). Terminal holatni tekshirmasdan qayta boshlamang. Governance avvalgi4 policy/owns FAIL; yangi lane konflikti yo‘q. Yakuniy gate natijalari hali pending.
+- AppTS/FunctionsTS/lint/tekshir/Vitebuild exit0 (70855 tugadi); build14.96s. Fullsuite’da `SmetaStudio.test.tsx:84`1619ms FAIL ko‘rindi; detail va terminal kutilmoqda. Alohida aynan shu test exec53445 bilan tekshirilmoqda, Studio source/test o‘zgarmagan. Hozircha fullsuitePASS deb aytilmaydi.
+
+Qolgan ish: real browser/runtime hook; Fakt-derived/almashtirilgan qiymatlari, server bilan keng differential parity, tarixiy versiya muammosi; encrypted session key/auth wiring; D4delta/D5offline buyruqlar; licensing/catalog/updater. Butun D3 yoki Windows mahsulot READY emas.
+
+Run: `frontend`dan `node src/ombor/hisob-retained-smoke.mjs`; rootdan `$env:PGLITE_DIR='.../@electric-sql/pglite'; node supabase/tests/desktop-hisob-parity.mjs`. Decimal docs: https://mikemcl.github.io/decimal.js/ .
+
 Codex@noutbuk; base `fc4f0eab8bba5e24d9752f5e1d27618742999ee7`; `codex/desktop-d3-worker`.
 
 ## Nima o‘zgardi
@@ -89,3 +106,16 @@ Full Vitest:584fayl/4262test PASS,12fayl/25test skip,471.77s (`C:/Temp/desktop-d
 To‘liq D3 tahrir→jami≤50ms mezoni PASS emas. Har safar katta paket/resultni structured-clone qilishning o‘zi ortiqcha vaqt oladi. Keyingi D3b: Worker ichida obyekt snapshotini ushlash; faqat canonical IDli o‘zgarish yuborish; iterativ daraxt/rollup va norma kaskadini aynan server manbasi bilan isbotlash; kichik o‘zgargan-natija qaytarish. RZ/BL rollup va norma mutatsiyalari bu PRda yo‘q. Real server differential/shadow parity, actual browser Worker roundtrip va UI ulanishi ochiq. Snapshotlar bir-biriga qo‘shilmaydi; approved F2ni lokal tahrirlash eshigi yo‘q.
 
 Main/prod o‘zgarmadi, migratsiya yo‘q. Claude independent reviewdan keyin integratsiya qiladi. Goal ACTIVE.
+
+## 03.11.2026 — D3b: интеграция с новым main и защита очереди
+
+Exact main fc65e645 и D3a 1e555aea объединены в codex/desktop-d3-retained. Сохранены все чужие записи задач; структура/архитектура — Claude L0.
+
+- Группа rollup каждого ресурса определяется один раз на INIT, без повторного поиска родителя при каждом изменении; Decimal100 и SQL порядок расчёта сохранены. Точный ноль переиспользуется, NULL не превращается в ноль.
+- Пакет и команда фиксируются в момент постановки в FIFO: последующее изменение объекта caller не меняет отложенную команду. Ответ с неверной revision закрывает Worker и отклоняет оставшуюся очередь — неизвестный результат не становится новым основанием.
+- Снимки F2 и f2_summa_yoq проходят без пересчёта/изменения при локальной норме, в том числе отрицательной.
+- Браузерный harness теперь проверяет 97 норм ×31 цену на26k строках, пять последовательных каскадов с положительным/нулевым/отрицательным объёмом, независимые Decimal итоги, F2 и company switch. До оптимизации39–85ms; после26.5–64.9ms (четыре из пяти <50ms). Все логические проверки PASS; универсальный предел50ms НЕ достигнут. INIT341.3ms относится к dev Worker и не доказывает открытие объекта из кэша <300ms. Screenshot C:/Temp/desktop-worker-browser-20261103.png.
+- Actual repo SQL в disposable PGlite:241 сравнение/240мутаций PASS после оптимизации. Это активные синтетические строки; version triggers/история/production не симулируются. Новые signed UI производные D3a не являются полным сырым SQL-view parity (см. начало документа).
+- Focused перед последним переносом f2_summa_yoq:48PASS; после этого повторяется session test. Полный build/Vitest и exact-head CI проверяет родитель; не считать старые receipts проверкой нового head.
+
+Runtime hook, canonical writer/offline queue, полная серверная синхронизация и документы F2 не подключены этим PR. D2 отдельным PR доставляет meta.akt_podval, но оценки документа без контрактных category cuts D3b не делает. Никакой production записи/main/deploy.
