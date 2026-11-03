@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 67,
+      "sana": "2026-11-03",
+      "sarlavha": "Forma-3 ikki shaklda: to‘liq va bir qatorli",
+      "bandlar": [
+        "Forma-3 (счет-фактура) chiqarishda endi shaklni tanlaysiz: «To‘liq» — ish turlari, hajm va narxlar bilan (o‘zgarmagan); «Bir qatorli» — ish ro‘yxatisiz bitta yig‘ma qator («Выполненные строительно-монтажные работы по объекту … за период …») va pastida summa NDS siz, NDS, jami NDS bilan. Sarlavha, rekvizitlar va imzolar ikkala shaklda bir xil.",
+        "Ikkala shaklda summalar bir xil hisobdan olinadi — tiyingacha teng. Summasi noma’lum bo‘lsa katak bo‘sh qoladi va sababi yoziladi (0 yozilmaydi).",
+        "Tanlov Nakopitelniy sahifasidagi Forma-3 tugmasi, shartnoma bo‘limidagi F3 yuklash va oylik paketda bor; paketda «Ikkalasi ham» ham tanlanadi. Tanlovingiz kompaniya uchun eslab qolinadi."
+      ]
+    },
+    {
       "id": 66,
       "sana": "2026-11-03",
       "sarlavha": "F2 hujjati endi o‘z podvali bilan hisoblanadi; pereraschet — bitta hujjatda",
