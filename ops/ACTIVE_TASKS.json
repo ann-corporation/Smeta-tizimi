@@ -3379,9 +3379,9 @@
     "base_sha": "c7f437e0",
     "status": "in_progress",
     "owns": [
-      "supabase/migrations/20261122000000_t2_tender_protsess_v1.sql",
-      "supabase/migrations/20261122000000_t2_tender_protsess_v1.rollback.sql",
-      "supabase/migrations/20261122000000_t2_tender_protsess_v1.acceptance.sql",
+      "supabase/migrations/20261122000200_t2_tender_protsess_v1.sql",
+      "supabase/migrations/20261122000200_t2_tender_protsess_v1.rollback.sql",
+      "supabase/migrations/20261122000200_t2_tender_protsess_v1.acceptance.sql",
       "frontend/functions/_shared/tender-yuk.ts",
       "frontend/functions/_shared/tender-yuk.test.ts",
       "frontend/functions/_shared/permission-policy.ts",
@@ -3408,7 +3408,7 @@
       "ops/mailbox/KOORDINATSIYA-L0-CLOUD-20261028/01-kelishuv.md"
     ],
     "production_write_allowed": false,
-    "note": "Egasi 2026-11-03: «tendr ... mukammal jarayon». P2/P3 (t2_birja_*, t2_buyurtma) ustiga additiv; migratsiya 20261122000000 prodga FAQAT L0 qo'llaydi. PR-T1 (claude/tender-v1): baza + shlyuz + api + lib; PR-T2 (claude/tender-v1-ui): UI. v1 RPC lar (elon/golib/yop/tafsilot) service_role dan yig'iladi (muhr va tasdiq aylanib o'tilmasin)."
+    "note": "Egasi 2026-11-03: «tendr ... mukammal jarayon». P2/P3 (t2_birja_*, t2_buyurtma) ustiga additiv; migratsiya 20261122000200 prodga FAQAT L0 qo'llaydi. PR-T1 (claude/tender-v1): baza + shlyuz + api + lib; PR-T2 (claude/tender-v1-ui): UI. v1 RPC lar (elon/golib/yop/tafsilot) service_role dan yig'iladi (muhr va tasdiq aylanib o'tilmasin)."
   }
 ]
 }

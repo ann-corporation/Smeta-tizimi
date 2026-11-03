@@ -1,5 +1,5 @@
 /**
- * TENDER holat mashinasi (sof funksiyalar). Baza (`_t2_tender_otish_ruxsat`, 20261122000000) bilan AYNAN bir xil jadval:
+ * TENDER holat mashinasi (sof funksiyalar). Baza (`_t2_tender_otish_ruxsat`, 20261122000200) bilan AYNAN bir xil jadval:
  * o'zgarsa ikkalasi birga o'zgaradi (holat.test.ts jadvalni qat'iy tekshiradi).
  * qoralama → tasdiqlashda → elon → (takliflar_yopildi) → baholash → golib_tanlandi → shartnoma → bajarilmoqda → yopildi; bekor.
  */

@@ -285,7 +285,7 @@ export const onRequestPost: PagesFunction<{
         sotuv_bitim_v1: 'kompaniya_actor',
         sotuv_mijozlar_v1: 'kompaniya_actor',
         sotuv_panel_v1: 'kompaniya_actor',
-        /* TENDER (2026-11-03, 20261122000000): ro'yxat, tafsilot (muhr qoidasi RPC da), yetkazuvchilar, tahlil. `stable`; a'zolik + procurement.read/supply.* RPC ichida. */
+        /* TENDER (2026-11-03, 20261122000200): ro'yxat, tafsilot (muhr qoidasi RPC da), yetkazuvchilar, tahlil. `stable`; a'zolik + procurement.read/supply.* RPC ichida. */
         tender_royxat_v1: 'kompaniya_actor',
         tender_tafsilot_v2: 'kompaniya_actor',
         tender_yetkazuvchilar_v1: 'kompaniya_actor',

@@ -155,7 +155,7 @@ const AMALLAR = {
   taklif_qabul: { rpc: 't2_taklif_qabul' },
   birja_rfq_yarat: { rpc: 't2_birja_rfq_yarat' },
   birja_taklif_ber: { rpc: 't2_birja_taklif_ber' },
-  /* TENDER protsessi (2026-11-03, 20261122000000_t2_tender_protsess_v1): qoralama → tasdiq → e'lon → ochish → baholash → g'olib. Argumentlar `_shared/tender-yuk.ts` da. */
+  /* TENDER protsessi (2026-11-03, 20261122000200_t2_tender_protsess_v1): qoralama → tasdiq → e'lon → ochish → baholash → g'olib. Argumentlar `_shared/tender-yuk.ts` da. */
   tender_saqla_v1: { rpc: 't2_tender_saqla_v1' },
   tender_otish_v1: { rpc: 't2_tender_otish_v1' },
   tender_raund_v1: { rpc: 't2_tender_raund_v1' },

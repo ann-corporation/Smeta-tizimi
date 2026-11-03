@@ -1,6 +1,6 @@
 /**
  * TENDER / XARID API (egasi 2026-11-03). O'qish: /api/sb (`tender_*`, stable RPC), yozish: /api/sb-yoz (`tender_*` amallari).
- * Server: 20261122000000_t2_tender_protsess_v1 (P2/P3 poydevori ustida). Actor — sessiyadan; muhr qoidasi (takliflar ochilguncha
+ * Server: 20261122000200_t2_tender_protsess_v1 (P2/P3 poydevori ustida). Actor — sessiyadan; muhr qoidasi (takliflar ochilguncha
  * yashirin) va byudjet yashirinligi BAZADA — bu yerda faqat tur va xaritalash.
  * Narxlar NDS siz keladi; QQS bilan ko'rsatish — lib/tender/pul.ts (yagona hisob-yadro).
  */

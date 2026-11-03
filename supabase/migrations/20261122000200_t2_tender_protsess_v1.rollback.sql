@@ -1,4 +1,4 @@
--- ROLLBACK: 20261122000000_t2_tender_protsess_v1. Yangi tender protsessi ma'lumotlari (jurnal, savol, baho) YO'QOLADI.
+-- ROLLBACK: 20261122000200_t2_tender_protsess_v1. Yangi tender protsessi ma'lumotlari (jurnal, savol, baho) YO'QOLADI.
 begin;
 drop function if exists public.t2_tender_saqla_v1(bigint,bigint,uuid,bigint,integer,text,text,bigint[],bigint,timestamptz,jsonb,jsonb);
 drop function if exists public.t2_tender_otish_v1(bigint,bigint,uuid,bigint,integer,text,text,bigint);

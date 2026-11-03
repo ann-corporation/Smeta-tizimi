@@ -1,4 +1,4 @@
--- ACCEPTANCE: 20261122000000_t2_tender_protsess_v1 (self-seeding, sintetik, oxirida ROLLBACK).
+-- ACCEPTANCE: 20261122000200_t2_tender_protsess_v1 (self-seeding, sintetik, oxirida ROLLBACK).
 -- Talab: P2/P3 migratsiyalari + shu migratsiya. Natija: har tekshiruv 'OK'/'FAIL' notice; FAIL bo'lsa exception.
 begin;
 do $$

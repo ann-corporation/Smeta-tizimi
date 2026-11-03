@@ -26,7 +26,7 @@ L0 shu faylni o'qib, egasining koordinatsiya yozuvlariga ko'chiradi.
 
 ### 2. Tender — `claude/tender-v1` (sub-agent; PR hali ochilmagan)
 - Mavjud `t2_birja_rfq / _qator / t2_birja_taklif / t2_buyurtma` va `t2_tender_*_v1` RPC'lari **kengaytiriladi** — parallel model yo'q (tekshirildi).
-- Migratsiya `20261122000000_t2_tender_protsess_v1`: yangi jadvallar faqat `t2_tender_jurnal`, `t2_tender_savol`, `t2_tender_baho`.
+- Migratsiya `20261122000200_t2_tender_protsess_v1`: yangi jadvallar faqat `t2_tender_jurnal`, `t2_tender_savol`, `t2_tender_baho`.
 - Oqim: tasdiq, muhrlangan takliflar, baholash, g'olib, audit.
 - Fayllar R2 da (faqat havola); jurnal payload ≤1 KB.
 

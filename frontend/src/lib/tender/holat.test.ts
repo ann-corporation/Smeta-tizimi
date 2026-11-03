@@ -5,7 +5,7 @@ import { OTISHLAR, TENDER_HOLATLAR, effektivHolat, harakatlar, izohKerak, keying
 
 describe('tender holat mashinasi', () => {
   it('baza (_t2_tender_otish_ruxsat) bilan AYNAN bir xil jadval', () => {
-    const sql = readFileSync(resolve(__dirname, '../../../../supabase/migrations/20261122000000_t2_tender_protsess_v1.sql'), 'utf8');
+    const sql = readFileSync(resolve(__dirname, '../../../../supabase/migrations/20261122000200_t2_tender_protsess_v1.sql'), 'utf8');
     const blok = sql.slice(sql.indexOf('function public._t2_tender_otish_ruxsat'), sql.indexOf('-- Ko\'rinish: egasi'));
     const juftlar = [...blok.matchAll(/\('([a-z_]+)','([a-z_]+)'\)/g)].map((m) => `${m[1]}>${m[2]}`).sort();
     expect(juftlar).toEqual(OTISHLAR.map(([a, b]) => `${a}>${b}`).sort());
