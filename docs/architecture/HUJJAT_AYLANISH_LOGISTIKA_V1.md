@@ -119,3 +119,19 @@ Park, reys, tannarx, narxlash va rentabellik PR #235 (`claude/logistika-v1`) da.
 3. Bildirishnoma UI (qo'ng'iroqcha): RPC va BFF bo'limi (`bolim=bildirishnomalar`) tayyor, i18n kalitlari qo'shilgan; ko'rsatish komponenti keyingi ish.
 4. АОСР/lab protokoli reestrlaridan «tasdiqqa yuborish» tugmasi (`manba_jadval/manba_id` allaqachon qo'llab-quvvatlanadi).
 5. AI qoralama (6-bo'lim), qolgan shablonlar (4-bo'lim).
+
+## 9. Bulut rejasi bilan solishtirish (`claude/cloud-rejalar`: IJRO_HUJJATLARI_LAB_TOMONLAR.md, TAKLIF)
+Manba hujjat — kod emas, egasi tasdig'ini kutayotgan reja. Bu yerdagi qurilgan MVP manba haqiqati (source of truth); farqlar:
+
+| Mavzu | Bulut rejasi | Bu MVP (qurilgan) | Keyingi qadam |
+|---|---|---|---|
+| Konvert | bitta `t2_ijro_hujjat` konverti + turlar katalogi (IJ-01…17) | konvert **yo'q**: umumiy tasdiq zanjiri `hujjat_turi` kaliti + `manba_jadval/manba_id` bilan mavjud `t2_aosr`/`t2_lab_protokol` ga havola (ular ko'chirilmaydi — rejadagi tamoyil bilan mos) | katalog kerak bo'lsa `hujjat_turi` uchun lug'at jadvali qo'shiladi; konvertga zarurat bo'lsa zanjir unga ulanadi |
+| Imzo/tasdiq zanjiri | ketma-ket yoki parallel qadam, majburiy/ixtiyoriy | ketma-ket 1–8 qadam, hammasi majburiy | parallel/ixtiyoriy qadam |
+| E-IMZO / ERI | PKCS#7 imzo, kanonik xesh | yo'q (tasdiq = tizim ichidagi qaror + o'zgarmas jurnal) | rejadagi E-IMZO bosqichi; zanjir qadamiga imzo xeshi ustuni |
+| Kompaniyalararo yuborish | `t2_tomon_taqdim` (`manba_jadval` allow-list) orqali | zanjir/xat o'zi faol aloqani tekshiradi, taqdimni chetlab o'tmaydi; fayl faqat tegishli qatnashchiga ochiladi | agar taqdim snapshoti (xesh) kerak bo'lsa zanjir tasdiqlanganda `taqdim` yaratiladi |
+| Xat reestri (§4.4) | reja | **qurilgan**: `t2_xat`, kiruvchi/chiquvchi raqam, javob xati, kiruvchi quti | — |
+| Predpisaniya/ko'rsatma (§4.5) | murojaat primitivi + eslatma/kechikish signali yo'q | murojaat primitivi qayta ishlatildi, `talabnoma/ogohlantirish` turlari va **muddat eslatmasi** (`t2_hujjat_eslatma_v1` → outbox → bildirishnoma) qurildi | Telegram/email kanallari (§4.6), foto-dalil majburiyligi |
+| Capability | `quality.write`, `quality.sign`, `design.review` | yangi capability YO'Q: o'qish `document.read`, yozish `document.write`, qaror roli bazada (inspektor/pto/buyurtmachi/boss…) | rejadagi capability'lar egasi qarori bilan; shlyuz permission'i shunga o'tkaziladi |
+| «F2 uchun yetishmayotgan hujjatlar» (PR1 rejada) | birinchi PR | qurilmagan | `shablonToliqligi` uslubidagi sof tekshiruv sifatida qo'shiladi |
+| Xavf: `t2_aosr_yoz_v2` yozuvchining o'ziga `tasdiqlangan` qo'yishga ruxsat beradi | aniqlangan | **o'zgartirilmadi** | АОСР `tasdiqlangan` holatini zanjirning `tasdiqlandi` natijasiga bog'lash — alohida, egasi tasdiqlagan PR |
+| Shablonlar | 7-ilova, sinov aktlari, jurnallar … | 4 shablon (lab protokoli, osvidetelstvovaniya, predpisaniya, soprovod xat) | rejadagi katalog bo'yicha davom |
