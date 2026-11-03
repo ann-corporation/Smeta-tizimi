@@ -155,7 +155,7 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
     const f2SummaV = h?.f2_summa == null ? null : Number(h.f2_summa);
     // NARX qoidasi (yadro `faktSummaF2Narxda`): tasdiqlangan F2 bor qatorda fakt summasi F2 birlik narxida.
     const asl = qatorSumma(fakt, q.narx ?? null);
-    const r = faktSummaF2Narxda(fakt, f2HajmV, f2SummaV, asl);
+    const r = faktSummaF2Narxda(fakt, f2HajmV, f2SummaV, asl, h?.f2_summa_yoq == null ? null : Number(h.f2_summa_yoq));
     const farq = smeta == null || fakt == null ? null : nol(fakt - smeta);
     return { h, smeta, fakt, faktSumma: r.summa,
       // Izoh faqat F2 narxi summani o'zgartirganda (F2 narxi = smeta narxi bo'lsa shovqin yo'q).

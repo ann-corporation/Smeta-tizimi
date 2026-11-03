@@ -24,6 +24,7 @@ export const GENERATED_SITE_MAP = {
     "/admin/nakopitelniy",
     "/admin/moliya",
     "/admin/shartnoma-liniya",
+    "/admin/qarzdorlik",
     "/admin/crm",
     "/admin/aloqalar",
     "/admin/documents",
@@ -73,6 +74,7 @@ export const GENERATED_SITE_MAP = {
     "tokenlar",
     "hujjat-dizayn",
     "shartnoma-liniya",
+    "qarzdorlik",
     "nakrutka",
     "narx-manbalari",
     "narx-dalil",
@@ -293,6 +295,14 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "shartnoma_saqla_v2",
       "rpc": "t2_shartnoma_saqla_v2"
+    },
+    {
+      "amal": "qarzdorlik_saqla_v1",
+      "rpc": "t2_qarzdorlik_saqla_v1"
+    },
+    {
+      "amal": "qarzdorlik_import_v1",
+      "rpc": "t2_qarzdorlik_import_v1"
     },
     {
       "amal": "sverka_yozuv_v1",

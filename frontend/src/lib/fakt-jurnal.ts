@@ -23,6 +23,8 @@ export type JurnalHolat = {
   almashtirilgan_hajm?: number | null;
   /** t2_qator_holat: qoldiq = smeta − F2 − almashtirilgan; summalar (NDS siz). */
   qoldiq_hajm?: number | null; f2_summa?: number | null; qoldiq_summa?: number | null;
+  /** t2_qator_holat.f2_summa_yoq > 0 — F2 summasi noma'lum (NULL ≠ 0): fakt F2 narxida baholanmaydi. */
+  f2_summa_yoq?: number | string | null;
 };
 
 /** Zamena bog'lanishi (ixtiyoriy, alohida o'qiladi): zamena qatori → asl qator; asl → almashtirilgan hajm. */
@@ -237,7 +239,7 @@ export function bolimSummalari(rows: readonly T2Qator[], states: readonly Jurnal
   };
   const v = (x: unknown) => son(x as number | null | undefined);
   /** Fakt summasi — yadro narx qoidasi: tasdiqlangan F2 bor qatorda F2 birlik narxida; hajm yozilganidek, NULL — NULL. */
-  const faktOl = (h: JurnalHolat | undefined) => faktSummaF2Narxda(v(h?.fakt_hajm), v(h?.f2_hajm), v(h?.f2_summa), v(h?.fakt_summa));
+  const faktOl = (h: JurnalHolat | undefined) => faktSummaF2Narxda(v(h?.fakt_hajm), v(h?.f2_hajm), v(h?.f2_summa), v(h?.fakt_summa), v(h?.f2_summa_yoq));
   const belgi = (x: BolimSumma, q: ReturnType<typeof faktOl>) => { if (q.manba === 'f2' && q.summa != null) x.faktF2.f2Narxda++; };
   /** Ota-bobolari: yangi (qo'shimcha/zamena) ekanligi va bo'limlari (0 — obyekt). */
   const yol = (r: T2Qator) => {

@@ -114,7 +114,7 @@ const IKON = { bad: OctagonAlert, warn: AlertTriangle, info: Info } as const;
 function bandMatni(b: TekshiruvBand): string {
   const n = b.soni;
   const M: Record<TekshiruvKod, () => string> = {
-    xato_hajm: () => t('{n} ta qatorda hajm noto‘g‘ri — 0 dan katta son bo‘lsin', { n }),
+    xato_hajm: () => t('{n} ta qatorda hajm noto‘g‘ri — son bo‘lsin va 0 bo‘lmasin (minus mumkin)', { n }),
     xato_narx: () => t('{n} ta resursda narx yo‘q — narx kiriting yoki narxsiz deb belgilang', { n }),
     xato_summa: () => t('{n} ta qatorda summa son emas', { n }),
     dublikat_blok: () => b.matn ?? '',

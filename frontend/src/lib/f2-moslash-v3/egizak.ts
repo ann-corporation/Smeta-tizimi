@@ -75,6 +75,45 @@ export function aslXarita(a: readonly EgizakQator[], b: readonly EgizakQator[]):
   return { ok: true, map, soni: A.length, imzo: imzoA };
 }
 
+export type AslMoslik = { map: Map<number, number>; qatiy: boolean; topilmadi: number[]; hajmFarq: number[] };
+
+/**
+ * Yumshoq moslash (Fakt egizaklari uchun): tuzilma bir xil bo'lsa — `aslXarita` (qat'iy); aks holda tur|kod|nom|birlik kaliti +
+ * takror tartibi bo'yicha (ota mosligi tekshiriladi). Topilmaganlari `topilmadi`, hajmi farqlilari `hajmFarq` — rad etilmaydi,
+ * chunki fakt qatorma-qator yoziladi (foizlar har egizakning o'z smetasidan).
+ */
+export function aslMoslash(a: readonly EgizakQator[], b: readonly EgizakQator[]): AslMoslik {
+  const x = aslXarita(a, b);
+  if (x.ok) return { map: x.map, qatiy: true, topilmadi: [], hajmFarq: [] };
+  const A = aslQatorlar(a), B = aslQatorlar(b);
+  const kalit = (q: EgizakQator) => `${q.tur ?? ''}|${matn(q.kod)}|${matn(q.nom)}|${matn(q.birlik)}`;
+  const bRoyxat = new Map<string, EgizakQator[]>();
+  for (const q of B) { const k = kalit(q); const l = bRoyxat.get(k); if (l) l.push(q); else bRoyxat.set(k, [q]); }
+  const korildi = new Map<string, number>();
+  const juft = new Map<number, EgizakQator>();
+  const topilmadi: number[] = [];
+  for (const q of A) {
+    const k = kalit(q); const n = korildi.get(k) ?? 0; korildi.set(k, n + 1);
+    const y = bRoyxat.get(k)?.[n];
+    if (y) juft.set(q.id, y); else topilmadi.push(q.id);
+  }
+  const map = new Map<number, number>(); const hajmFarq: number[] = [];
+  for (const q of A) {
+    const y = juft.get(q.id); if (!y) continue;
+    const otaMos = q.ota_id == null ? y.ota_id == null : juft.get(q.ota_id)?.id === (y.ota_id ?? -1);
+    if (!otaMos) { topilmadi.push(q.id); continue; }
+    map.set(q.id, y.id);
+    if (!sonTeng(q.hajm, y.hajm)) hajmFarq.push(q.id);
+  }
+  return { map, qatiy: false, topilmadi, hajmFarq };
+}
+
+/** Shu obyektning egizaklari: bir loyihadagi boshqa obyektlar (F2EgizakNusxa va Fakt jurnali uchun yagona qoida). */
+export function egizakObyektlar<T extends { id: number; loyiha_id: number | null }>(objects: readonly T[], objectId: number): T[] {
+  const loyiha = objects.find((o) => o.id === objectId)?.loyiha_id ?? null;
+  return loyiha == null ? [] : objects.filter((o) => o.loyiha_id === loyiha && o.id !== objectId);
+}
+
 /** A qoralamasining manba qatorlari ↔ B da ochiq F2 (uid, kod, hajm bir xil bo'lishi shart). */
 export function f2Mosligi(aManba: ReadonlyArray<{ uid: string; kod?: string | null; hajm?: unknown }>, bInd: F2Indeks): { ok: boolean; farqlar: string[] } {
   const farqlar: string[] = [];

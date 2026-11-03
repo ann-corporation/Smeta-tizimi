@@ -67,9 +67,9 @@
     "ru": "прямые затраты (без накруток)",
     "en": "direct cost (no markup)"
   },
-  "Smeta qiymati: QQS bilan (katta), ostida ustamali va to‘g‘ri xarajat. «Smeta summasini qo‘yish» to‘g‘ri xarajatdan oladi. Shartnoma summasini tizim o‘zi o‘zgartirmaydi — kerak bo‘lsa tugma bilan to‘ldiring va tahrirlang.": {
-    "ru": "Стоимость сметы: с НДС (крупно), ниже — с накрутками и прямые затраты. «Подставить сумму сметы» берёт прямые затраты. Система сама не меняет сумму договора — при необходимости заполните кнопкой и отредактируйте.",
-    "en": "Estimate value: incl. VAT (large), below — with markup and direct cost. “Insert estimate amount” uses the direct cost. The system never changes the contract amount by itself — fill it with the button and edit if needed."
+  "Smeta qiymati: QQS bilan (katta), ostida ustamali va to‘g‘ri xarajat. «Smeta qiymatini qo‘yish» ustamali (QQS siz) va QQS bilan qiymatni oladi. Shartnoma summasini tizim o‘zi o‘zgartirmaydi — kerak bo‘lsa tugma bilan to‘ldiring va tahrirlang.": {
+    "ru": "Стоимость сметы: с НДС (крупно), ниже — с накрутками и прямые затраты. «Подставить стоимость сметы» берёт сумму с накрутками (без НДС) и с НДС. Система сама сумму договора не меняет — при необходимости заполните кнопкой и отредактируйте.",
+    "en": "Estimate value: incl. VAT (large), below — with markup and direct cost. «Use estimate value» takes the with-markup (excl. VAT) and incl.-VAT amounts. The system never changes the contract amount itself — fill it with the button and edit if needed."
   },
   "ustamasiz, QQS siz": {
     "ru": "без накруток, без НДС",
