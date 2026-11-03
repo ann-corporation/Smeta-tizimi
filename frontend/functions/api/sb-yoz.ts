@@ -54,6 +54,8 @@ const AMALLAR = {
   /* Egasi 2026-11-02: qarzdorlik - asoslar saqlash (CAS) va Excel importi (idempotent operation_id). RPC a'zolik + financial.write ni o'zi tekshiradi. */
   qarzdorlik_saqla_v1: { rpc: 't2_qarzdorlik_saqla_v1' },
   qarzdorlik_import_v1: { rpc: 't2_qarzdorlik_import_v1' },
+  /* Egasi 2026-11-03: shartnoma oylik paketi - «Topshirildi» (versiya, manifest, ZIP kanonik saqlashda). RPC a'zolik + document.write ni o'zi tekshiradi; idempotent (operation_id). */
+  shartnoma_oylik_paket_saqla_v1: { rpc: 't2_shartnoma_oylik_paket_saqla_v1' },
   /* Egasi 2026-10-23: shartnoma svodi/akt-sverka yozuvlari — DS, F2 reestri, sotuv (F3 summasi). RPC a'zolik + financial.write ni o'zi tekshiradi. */
   sverka_yozuv_v1: { rpc: 't2_sverka_yozuv_v1' },
   /* Egasi 2026-10-26: 1C akt-sverka importi (partiya ≤ 200: to'lov + F3 sotuv + F2 to'plami), to'lov taqsimoti, Продажа ↔ F2.
@@ -877,6 +879,24 @@ export const onRequestPost: PagesFunction<{
         p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_shartnoma_id: Number(so.shartnoma_id),
         p_kutilgan_versiya: so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya), p_qatorlar: qatorlar,
         p_ochirilgan: och == null ? null : och.map(Number), p_spravka: spravka, p_operation_id: so.operation_id,
+      };
+    } else if (amal === 'shartnoma_oylik_paket_saqla_v1') {
+      /* Shartnoma oylik paketi: manifest ob'ekt (fayllar massivi bilan), ZIP esa kanonik saqlashda (hujjat_id). Server izni o'zi hisoblaydi. */
+      const mf = so.manifest;
+      const hid = so.hujjat_id == null ? null : Number(so.hujjat_id);
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isSafeInteger(Number(so.shartnoma_id)) || Number(so.shartnoma_id) <= 0
+          || !/^\d{4}-(0[1-9]|1[0-2])$/.test(String(so.oy || '')) || !mf || typeof mf !== 'object' || Array.isArray(mf)
+          || !Array.isArray((mf as Record<string, unknown>).fayllar) || ((mf as { fayllar: unknown[] }).fayllar.length > 5000)
+          || JSON.stringify(mf).length > 2_000_000
+          || (hid != null && (!Number.isSafeInteger(hid) || hid <= 0))
+          || (so.zip_sha256 != null && !/^[0-9a-f]{64}$/.test(String(so.zip_sha256)))
+          || (so.zip_olcham != null && (!Number.isSafeInteger(Number(so.zip_olcham)) || Number(so.zip_olcham) <= 0))) {
+        return Response.json({ ok: false, error: 'Oylik paket: shartnoma, oy (YYYY-MM), manifest (fayllar bilan) va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = {
+        p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_shartnoma_id: Number(so.shartnoma_id), p_oy: String(so.oy),
+        p_manifest: mf, p_hujjat_id: hid, p_zip_sha256: so.zip_sha256 == null ? null : String(so.zip_sha256),
+        p_zip_olcham: so.zip_olcham == null ? null : Number(so.zip_olcham), p_operation_id: so.operation_id,
       };
     } else if (amal === 'qarzdorlik_import_v1') {
       /* Qarzdorlik Excel importi: ≤300 shartnoma, jami ≤5000 asos qatori; maydonlar oq ro'yxatdan. */

@@ -2,12 +2,21 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 62,
+      "id": 63,
       "sana": "2026-11-03",
       "sarlavha": "Eski F2 ni storno qilish endi F2 tayyorlash oynasining o‘zida",
       "bandlar": [
         "F2 tayyorlashda «Eski F2 ni storno qilish (pereraschet)» tugmasi: obyektning bekor qilinmagan F2 lari ro‘yxatidan keraklisini tanlaysiz, qatorlari minus qilib yangi qoralamaga yoziladi (asl F2 o‘zgarmaydi).",
         "Qoralama yaratilgach o‘sha oynada qolasiz: tepada «Сторно (eski F2)» bloki va qaysi F2 storno qilinayotgani ko‘rinadi, pastda yangi smeta qatorlarini qo‘shib (minus ham mumkin) saqlaysiz."
+      ]
+    },
+    {
+      "id": 62,
+      "sana": "2026-11-03",
+      "sarlavha": "Shartnoma bo‘yicha oylik paket: obyektlar papkalarida, «Topshirildi» bilan",
+      "bandlar": [
+        "F2 paketi endi shartnoma va oy bo‘yicha: ZIP da har obyektning hujjatlari o‘z papkasida, reestr/svod, Forma-3 va akt-sverka esa ildizda. «Tayyorgarlik» jadvali nima yetishmasligini ko‘rsatadi, lekin hech narsani to‘smaydi.",
+        "«Topshirildi» paketni versiya bilan arxivga saqlaydi. Topshirilgan oyda fakt yoki F2 o‘zgarsa — saqlash to‘xtamaydi, faqat ogohlantirish chiqadi va arxivda «topshirilgandan keyin o‘zgargan» belgisi paydo bo‘ladi."
       ]
     },
     {
