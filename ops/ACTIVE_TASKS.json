@@ -3284,6 +3284,31 @@
   ],
   "production_write_allowed": false,
   "note": "Owner resumes UX request 02.11: reduce re-entry and scrolling from selection to quantity and shared command. Existing exact parseQuantityInput reused. SmetaStudio/Claude design and calc/catalog-bridge/commands untouched. No production business writes."
+},
+{
+  "id": "UY-SOTUV-V1-20261103",
+  "title": "Uy sotish moduli: inventar (shaxmatka), narx, CRM bitim/bron, to'lov grafigi, tushum/qarz paneli",
+  "owner": "claude@cloud",
+  "machine": "cloud",
+  "branch": "claude/uy-sotuv-v1",
+  "base_sha": "c7f437e02d76e9449402755f84a4247be512f13d",
+  "status": "in_progress",
+  "owns": [
+    "supabase/migrations/20261124000000_t2_uy_sotuv_v1*.sql",
+    "frontend/functions/_shared/sotuv-yuk.ts",
+    "frontend/functions/_shared/sotuv-yuk.test.ts",
+    "frontend/src/api/t2-sotuv.ts",
+    "frontend/src/lib/sotuv/",
+    "frontend/src/admin/sotuv/",
+    "frontend/src/i18n/lugat/qism/sotuv.json"
+  ],
+  "depends_on": [],
+  "must_read": [
+    "AGENTS.md",
+    "docs/governance/CONSTITUTION.md"
+  ],
+  "production_write_allowed": false,
+  "note": "Egasi 2026-11-03: «uy ham sotadi — 0 dan 100 gacha, sotuvchi ham oluvchi uchun». Umumiy fayllarga faqat qo'shimcha qatorlar: sb.ts/sb-yoz.ts (sotuv_* ro'yxati), write-command-policy, permission-policy (sotuv_ → sales.*), tenant-yozish (ID_JADVAL), effective-authorization/permission-labels (sales.*, rol sotuvchi), t2_kompaniya.test.cjs KUTILGAN. Migratsiya prodga — faqat L0."
 }
 ]
 }
