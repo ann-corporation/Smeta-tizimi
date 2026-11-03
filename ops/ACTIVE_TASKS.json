@@ -3,6 +3,16 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "DESKTOP-D1B-AUTH-20261103", "owner": "codex", "machine": "noutbuk",
+      "title": "Bounded D1b online object authorization, ephemeral key lifecycle and native command ACL",
+      "branch": "codex/desktop-d1b-auth-20261103", "base_sha": "fc65e645", "status": "ready_for_review",
+      "owns": ["frontend/src/ombor/sessiya.ts", "frontend/src/ombor/sessiya.test.ts", "docs/architecture/DESKTOP_SESSION_LIFECYCLE.md", "ops/handoff/DESKTOP_D1B_AUTH_20261103.md"],
+      "runtime_sublease": { "from_tasks": ["DESKTOP-D1-STORE-20261031", "DESKTOP-TAURI-SHELL-20261031"], "paths": ["frontend/src/ombor/oqish.ts", "frontend/src/ombor/oqish.test.ts", "frontend/src-tauri/src/maxfiy.rs", "frontend/src-tauri/build.rs", "frontend/src-tauri/capabilities/default.json", "frontend/src-tauri/permissions/"], "basis": "Explicit parent bounded D1b assignment 2026-11-03 under Claude L0. Original author ownership retained; no runtime hook/auth integration." },
+      "production_write_allowed": false, "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/architecture/OBYEKT_PAKET_OFFLINE_DESKTOP_V1.md"],
+      "note": "Explicit parent sublease under Claude L0 Desktop03.11, old D1 oqish and native shell ownership retained. Own task entry only. No hook/auth/server integration, D7 lease, external session writes or production writes. Commit only; parent reviews before push."
+    },
+    {
       "id": "PTO-RECONCILIATION-20261026",
       "title": "Preserve certified unknown and amount-only F2 reconciliation evidence",
       "owner": "codex",
