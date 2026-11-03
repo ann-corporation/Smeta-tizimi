@@ -1,4 +1,5 @@
 import { t } from '../../i18n/til';
+import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ChevronDown, ChevronRight, Download, FileUp, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
@@ -301,11 +302,18 @@ export function Qarzdorlik() {
     const buf = await qarzdorlikXlsxYarat(korinadigan.map(({ sh }) => ({
       kontragent: sh.kontragent ?? '', nom: sh.nom, predmet: sh.predmet, raqam: sh.raqam, summa: sh.shartnoma_summa, spravkaQarz: sh.spravka_qarz, tolovT2: sh.tolov_t2, qatorlar: sh.qatorlar,
     })));
-    const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-    const a = document.createElement('a');
-    a.href = url; a.download = `ОБОСНОВАНИЕ_ЗАДОЛЖЕННОСТИ_${new Date().toISOString().slice(0, 10)}.xlsx`;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    if (kid == null) { toast(t('Kompaniya tanlanmagan'), 'danger'); return; }
+    const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf as ArrayBuffer);
+    const faylNomi = `ОБОСНОВАНИЕ_ЗАДОЛЖЕННОСТИ_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    // Har hujjat token yechadi; bir xil mazmunni qayta yuklash bepul.
+    const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'QARZDORLIK', sabab: 'Обоснование задолженности' }, () => {
+      const url = URL.createObjectURL(new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = faylNomi;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    });
+    toast(r.xabar, r.ok ? 'ok' : 'danger');
   };
 
   return (

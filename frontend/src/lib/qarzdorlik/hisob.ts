@@ -8,6 +8,8 @@
  * Qoidalar: hamma summa QQS bilan; minus ruxsat; NULL = noma'lum (0 emas).
  */
 
+import { yaxlit2 } from '../hisob-yadro/yaxlit';
+
 export type AsosTur = 'yetkazib_berish' | 'bajarilgan_ish' | 'tolov' | 'boshlangich_qoldiq';
 export const ASOS_TURLAR: readonly AsosTur[] = ['yetkazib_berish', 'bajarilgan_ish', 'tolov', 'boshlangich_qoldiq'];
 
@@ -44,7 +46,7 @@ export type QarzNatija = {
 /** Sezgirlik chegarasi (so'm): shundan kichik farq e'tiborga olinmaydi. */
 export const QARZ_TOLERANS = 0.5;
 
-const yaxlit = (n: number): number => Math.round(n * 100) / 100;
+const yaxlit = yaxlit2;
 const son = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
 /** Qator summasi: kiritilgan summa, bo'lmasa hajm x narx; bo'lmasa NULL (noma'lum). */
