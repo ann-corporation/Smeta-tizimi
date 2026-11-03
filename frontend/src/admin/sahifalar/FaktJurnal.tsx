@@ -14,7 +14,10 @@ import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { bosKatKesim, katKesimgaQosh, type KatKesim } from '../../lib/ustamali-summa';
 import { yaxlit2, yigindi2 } from '../../lib/hisob-yadro';
 import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
-import { yangiOperationId, type T2Qator } from '../../api/supabase';
+import { yangiOperationId, type T2Obyekt, type T2Qator } from '../../api/supabase';
+import { FaktEgizakOyna } from './FaktEgizakOyna';
+import { egizakObyektlar } from '../../lib/f2-moslash-v3/egizak';
+import { faktdanKiritmalar } from '../../lib/fakt-egizak';
 import { sbFaktYoz } from '../../api/t2-fakt';
 import { bolimIshlariYigish, faktF2Bekor, faktF2Reja, obyektF2Reja, type EskiF2Akt, type TenglashKontekst, type TenglashOyna } from '../../lib/fakt-f2-tenglash';
 import { sbF2TasdiqNarxlar } from '../../api/t2-f2-narx';
@@ -55,8 +58,10 @@ const fmt = (v: number | null | undefined) => (v == null ? '—' : Number(v).toL
 export type SaqlashNatija = Promise<boolean>;
 export type SaqlashFn = () => SaqlashNatija;
 type SaqlashVaqda = SaqlashNatija | null;
-export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila, tuzilmaniYangila, saqlashRef, f2Otish, boshBolimId = null, boshFaktsizF2 = false }: {
+export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holatniYangila, tuzilmaniYangila, saqlashRef, f2Otish, boshBolimId = null, boshFaktsizF2 = false }: {
   kompaniyaId: number; obyektId: number;
+  /** Kompaniya obyektlari (egizaklarni aniqlash uchun; yo'q bo'lsa «Egizaklarga ham yozish» ko'rinmaydi). */
+  objects?: readonly T2Obyekt[];
   /** Boshlang'ich bo'lim (masalan pereraschet ekranidan havola: `?bolim=`). */
   boshBolimId?: number | null;
   /** Boshlang'ich filtr «fakti yo'q, lekin F2 olingan» (pereraschet ekranidan havola: `?filtr=faktsiz_f2`). */
@@ -213,6 +218,10 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
 
   // ── «Fakt = F2»: F2 hajmi fakt dan ko'p bo'lgan ishlarga farqni yozish (oldindan ko'rish + bekor qilish). ──
   const [tenglash, setTenglash] = useState<TenglashOyna | null>(null);
+  // Egizak obyektlar (bir loyiha — F2EgizakNusxa qoidasi): «Egizaklarga ham yozish» oynasi.
+  const [egizakOyna, setEgizakOyna] = useState(false);
+  const egizaklar = useMemo(() => egizakObyektlar(objects ?? [], obyektId), [objects, obyektId]);
+  const obyektNom = (objects ?? []).find((o) => o.id === obyektId)?.nom ?? `#${obyektId}`;
   const holatMap = useMemo(() => new Map(states.map((s) => [s.qator_id, s])), [states]);
   /** Ustamali summa (egasi 2026-10-24): resurs kat'i smeta qatoridan (t2_qator.kat) - M/K, КАБ, БЕЗ СКЛАД ham aniq; ish (bl) o'z narxiga ega emas - resurslar yig'indisi. */
   const taxminKesim = (q: JurnalQator): { fakt: KatKesim; smeta: KatKesim; faktSumma: number; smetaSumma: number } | null => {
@@ -384,7 +393,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
     { id: 'fakt.tozala', keys: 'esc', nom: t('Kiritilganlarni bekor qilish'), run: () => { if (!ozgarishSoni) return false; ommaviy({}); } },
     { id: 'fakt.orqaga', keys: 'ctrl+z', nom: t('Orqaga (ommaviy kiritma)'), run: () => orqaga() },
     { id: 'fakt.qamrov', keys: '%', nom: t('Qamrov % (tanlangan bo‘lim)'), run: () => { const b = bolimlar.find((x) => x.id === bolimId); if (!b || qidiruv) return false; qamrovBolim(b); } },
-  ], !modal && !tenglash && !bajModal && !narxModal && !qamrov && !chiqModal);
+  ], !modal && !tenglash && !bajModal && !narxModal && !qamrov && !chiqModal && !egizakOyna);
   useEffect(() => {
     if (!ozgarishSoni) return;
     const k = (e: BeforeUnloadEvent) => { e.preventDefault(); };
@@ -702,6 +711,8 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
         {tanlanganBolim && !qidiruv && <button type="button" onClick={() => qamrovBolim(tanlanganBolim)} data-testid="qamrov-tanlangan"
           title={sarlavhaBilan(t('Tiklash rejimi: shu bo‘lim (ichki bo‘limlari bilan) barcha ishlariga bitta foiz — fakt = foiz × ochiq qoldiq; oldindan ko‘rish va bekor qilish bilan'), '%')} aria-label={t('Qamrov %: bo‘lim')}
           className="fz-btn">{t('Qamrov %')} <kbd className="fz-kbd">%</kbd></button>}
+        {egizaklar.length > 0 && <button type="button" onClick={() => setEgizakOyna(true)} data-testid="fakt-egizak-och" className="fz-btn"
+          title={t('Shu faktni bir loyihadagi egizak obyektlarga ham yozish — oldindan ko‘rish bilan')}>{t('Egizaklarga ham yozish')}</button>}
         <button onClick={() => setModal({ rejim: { tur: 'additional', bolimId } })} className="fz-btn"><Plus size={14} className="text-accent" /> {t('Smetadan tashqari ish')}</button>
       </section>
 
@@ -822,6 +833,13 @@ export function FaktJurnal({ kompaniyaId, obyektId, rows, states, holatniYangila
       {tenglash && <FaktF2Tenglash sarlavha={tenglash.sarlavha} reja={tenglash.reja} eskiAktlar={tenglash.eskiAktlar} obyektId={obyektId} kompaniyaId={kompaniyaId} sana={sana} holatMap={holatMap}
         onYop={() => setTenglash(null)} onBajarildi={() => holatniYangila()}
         aktBekor={faktF2Bekor} />}
+
+      {egizakOyna && <FaktEgizakOyna obyektId={obyektId} obyektNom={obyektNom} objects={objects ?? []} sana={sana}
+        qoralama={Object.fromEntries(Object.entries(kiritmalar).filter(([, k]) => k.qiymat.trim()))}
+        bolimNom={tanlanganBolim?.nom ?? null}
+        bolimKiritma={faktdanKiritmalar(tanlanganBolim ? bolimIshlariYigish(tanlanganBolim.id, bolimIshlari, bolimBolalari, true).flatMap((i) => [i, ...i.resurslar]) : [])}
+        obyektKiritma={faktdanKiritmalar([...bolimIshlari.values(), ildizIshlari].flat().flatMap((i) => [i, ...i.resurslar]))}
+        manbaSaqla={() => (ozgarishSoni ? saqla() : Promise.resolve(true))} onYop={() => setEgizakOyna(false)} onYozildi={() => holatniYangila()} />}
 
       {qamrov && <FaktQamrov sarlavha={qamrov.sarlavha} ishlar={qamrov.ishlar} holatMap={holatMap} narxOl={narxOl} obyektId={obyektId} kompaniyaId={kompaniyaId} sana={sana}
         onYop={() => setQamrov(null)} onBajarildi={() => holatniYangila()} aktBekor={faktQamrovBekor} />}

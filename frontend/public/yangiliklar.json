@@ -2,6 +2,17 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 53,
+      "sana": "2026-11-02",
+      "sarlavha": "Fakt jurnali: egizak obyektlarga ham yozish",
+      "bandlar": [
+        "Bir loyihadagi bir xil binolarga (masalan «Osiyo oshxonasi №1/№2») fakt endi bir marta kiritiladi: «Egizaklarga ham yozish» tugmasi.",
+        "Oynada har egizak uchun oldindan ko'rinadi: mos qatorlar, mos kelmagan qatorlar sababi bilan va yoziladigan hajm.",
+        "«+» va «=» rejimi saqlanadi; «50%» kabi foiz har egizakning o'z smeta hajmidan hisoblanadi.",
+        "Har egizakka alohida yoziladi; birortasida fakt boshqa joyda o'zgargan bo'lsa shu egizak to'xtaydi, qolganlari davom etadi. Tasdiqlangan F2 o'zgarmaydi."
+      ]
+    },
+    {
       "id": 52,
       "sana": "2026-10-31",
       "sarlavha": "Fakt jurnali: foiz bilan tez kiritish — oynasiz, bitta saqlash",
