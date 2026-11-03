@@ -106,6 +106,8 @@ const AMALLAR = {
   akt_yarat_v2:   { rpc: 't2_akt_yarat_v2' },
   // F2 import: mavjud QORALAMA aktning qatorlarini yangilash (tasdiqlangan akt rad etiladi; 2026-10-20).
   f2_qoralama_yangila_v1: { rpc: 't2_f2_qoralama_yangila_v1' },
+  // F2 hujjat podvali (egasi 2026-11-03): import / storno nusxasi / backfill (tasdiqlangan uchun faqat backfill - RPC ichida).
+  akt_podval_yoz_v1: { rpc: 't2_akt_podval_yoz_v1' },
   price_basis_yarat: { rpc: 't2_price_basis_yarat_v1' },
   /* T2-GAS-EXIT-001 §5/§6: resumable F2 import job + durable draft mapping.
      Read-only counterparts (f2_import_job_holat_v1/f2_import_draft_royxat_v1)
@@ -989,6 +991,22 @@ export const onRequestPost: PagesFunction<{
           raw_snapshot: q.raw_snapshot ?? null, izoh: q.izoh ? String(q.izoh).slice(0, 500) : null,
         })),
         p_operation_id: so.operation_id, p_manba: 'frontend_v2',
+      };
+    } else if (amal === 'akt_podval_yoz_v1') {
+      const aktId = Number(so.akt_id);
+      const manba = String(so.manba || '');
+      if (!sess.foydalanuvchi_id || !Number.isSafeInteger(aktId) || aktId <= 0 || !Number.isSafeInteger(Number(so.kompaniya_id))
+          || !['import', 'storno', 'smeta', 'backfill'].includes(manba)) {
+        return Response.json({ ok: false, error: 'Akt, kompaniya va manba talab qilinadi.' }, { status: 400 });
+      }
+      if (manba !== 'storno' && (so.podval == null || typeof so.podval !== 'object' || JSON.stringify(so.podval).length > 200000)) {
+        return Response.json({ ok: false, error: 'Podval noto\'g\'ri yoki juda katta.' }, { status: 400 });
+      }
+      yuk = {
+        p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: Number(so.kompaniya_id), p_akt_id: aktId,
+        p_blok: so.blok == null ? '' : String(so.blok).slice(0, 40), p_manba: manba,
+        p_podval: manba === 'storno' ? null : so.podval,
+        p_manba_akt_id: so.manba_akt_id == null ? null : Number(so.manba_akt_id),
       };
     } else if (amal === 'akt_yarat_v2') {
       const obyektId = Number(so.obyekt_id);

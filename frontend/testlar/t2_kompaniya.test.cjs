@@ -83,7 +83,7 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                          allow-list oracle. */
                       't2_f2_import_job_yarat_v1', 't2_f2_qoralama_yangila_v1', 't2_f2_import_job_ilgarilash_v1',
                       't2_f2_import_job_recover_v1', 't2_f2_import_job_cancel_v1',
-                      't2_f2_import_draft_saqla_v1',
+                      't2_f2_import_draft_saqla_v1', 't2_akt_podval_yoz_v1',
                       /* 2026-09-10, HERM-001: lifecycle transition and
                          correction are named, tenant/actor-bound commands;
                          they must remain explicit in this allow-list. */
