@@ -8,6 +8,8 @@ import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 import { katKesimJamiBilan, katKesimYigish } from '../../lib/ustamali-summa';
 import { ayirma2 } from '../../lib/hisob-yadro';
 import { KAT_GURUH_NOMI } from '../../lib/f2-hujjat-korinish';
+import { birlikOgohi } from '../../lib/fakt-birlik-ogoh';
+import { BirlikOgohBlok } from '../fakt/BirlikOgoh';
 import { barglar, bolimlarKorinishi, katSmeta, oshganQatorlar, umumiyKesim, type Kesim } from '../../lib/smeta-korinish';
 
 /**
@@ -104,6 +106,8 @@ export function SmetaAnatomiya({ tree, obyektId }: { tree: readonly TreeNode[]; 
                 <span>{d.kod && <span className="fz-c-shifr" style={{ marginRight: 6 }}>{d.kod}</span>}{d.nom}</span>
                 <b className="text-warn">{Math.round(d.foiz)}%</b>
                 <span style={{ gridColumn: '1 / -1', fontSize: 11.5, color: 'var(--text-mute)' }}><FmtN val={d.faktHajm} /> / <FmtN val={d.smetaHajm} /> {d.birlik ?? ''}</span>
+                {/* Birlik xatosi gumoni (masalan «100М3» ga 300): faqat maslahat, hisob o'zgarmaydi. */}
+                {(() => { const og = birlikOgohi({ smeta: d.smetaHajm, joriy: 0, rejim: '=', n: d.faktHajm, birlik: d.birlik }); return og?.gumon ? <div style={{ gridColumn: '1 / -1' }}><BirlikOgohBlok ogoh={og} tur="fakt" /></div> : null; })()}
               </div>))}
             </div>}
         </section>
