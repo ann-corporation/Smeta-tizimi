@@ -1,4 +1,5 @@
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
+import { yaxlit2 } from '../../lib/hisob-yadro';
 import { fayldanKalitBog } from '../../lib/f2-kalit-bogla';
 import { avvalgiF2Ol, f2RaqamNormal, qoralamaAktmi, type AvvalgiF2 } from '../../lib/f2-moslash-v3/takror';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -716,7 +717,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       // Qo'shilgan ТН·КМ qatorlari: smetadagi т·км qatoriga bog'langan F2 qatori (hajm = taklif, narx = smeta narxi).
       const qosh = [...tkmQosh].flatMap(([qid, hajm]) => {
         const narx = raw.get(qid)?.narx;
-        return hajm > 0 ? [{ uid: `tkm:${qid}`, hajm, narx: narx ?? undefined, summa: narx != null ? Math.round(hajm * narx * 100) / 100 : undefined, tur: 'rs' as const, summaYozilgan: narx != null }] : [];
+        return hajm > 0 ? [{ uid: `tkm:${qid}`, hajm, narx: narx ?? undefined, summa: narx != null ? yaxlit2(hajm * narx) : undefined, tur: 'rs' as const, summaYozilgan: narx != null }] : [];
       });
       const mapping = new Map(yozish.mapping);
       for (const n of qosh) mapping.set(n.uid, Number(n.uid.slice(4)));

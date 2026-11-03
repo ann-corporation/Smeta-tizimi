@@ -6,6 +6,7 @@
  * QQS (egasi: smeta hujjatlarida narx QQSsiz): manba «QQS bilan» bo'lsa narx ÷ 1,12 va bu izohda yoziladi; QQS holati
  * NOMA'LUM manba nomzod bo'lmaydi (sanaladi va foydalanuvchiga ko'rsatiladi) — taxmin qilinmaydi.
  */
+import { NDS_SUKUT_FOIZ, qqsSizNarx } from '../hisob-yadro';
 import { sbNarxManbaQidiruvQatorlariOl, sbNarxManbalarOl, type NarxManba } from '../../api/t2-narx-dalil';
 import type { KatalogQatori } from '../narx-katalog/types';
 import type { MatchCatalog } from './resource-match';
@@ -27,7 +28,7 @@ export function kompaniyaManbaKatalogi(manbalar: Array<Pick<NarxManba, 'id' | 't
     if (!m || q.narx == null || !(Number(q.narx) > 0) || !q.nom?.trim()) continue;
     if (m.nds_holati === 'nomalum') { qqsNomalum++; continue; }
     const asl = Number(q.narx);
-    const narx = m.nds_holati === 'nds_bilan' ? Math.round((asl / (1 + QQS_STAVKA)) * 100) / 100 : asl;
+    const narx = m.nds_holati === 'nds_bilan' ? qqsSizNarx(asl, NDS_SUKUT_FOIZ) : asl;
     if (m.nds_holati === 'nds_bilan') qqsChiqarildi++;
     const hujjat = [m.tur === 'kp' ? 'Коммерческое предложение' : m.tur === 'faktura' ? 'Счет-фактура' : 'Прайс-лист', m.raqam ? `№ ${m.raqam}` : null,
       m.sana ? `от ${m.sana.split('-').reverse().join('.')}` : null, m.yetkazuvchi].filter(Boolean).join(' ');

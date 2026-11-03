@@ -10,6 +10,8 @@
  *   4) bir nechta tekshirilgan manba — arifmetik o'rtacha (egasi 2026-10-17, yetkazuvchilar o'rtachasi qoidasi).
  * Faqat so'm (UZS). Sahifa matni modelga QAYTA berilmaydi — u faqat kodda raqam qidirish uchun o'qiladi.
  */
+import { NDS_SUKUT_FOIZ, qqsSizNarx, yaxlit2 } from '../hisob-yadro';
+
 export type InternetSorov = { id: string; nom: string; birlik: string | null; kat: string | null };
 export type InternetDavo = { url: string; nom: string; narx: number; birlik: string | null; nds: 'bilan' | 'siz' | 'nomalum'; sotuvchi: string };
 export type InternetManba = InternetDavo & { domen: string; tekshirildi: boolean; sabab: string | null;
@@ -101,10 +103,10 @@ export function sahifadaMahsulotBor(matn: string, nom: string): boolean {
   return sozlar.length > 0 && sozlar.filter(w => p.includes(w)).length >= Math.ceil(sozlar.length / 2);
 }
 /** VAT-free price of a source in its own unit (owner: prices are always without VAT; unknown is treated as including VAT). */
-export const qqsSiz = (d: Pick<InternetDavo, 'narx' | 'nds'>) => (d.nds === 'siz' ? d.narx : Math.round((d.narx / QQS) * 100) / 100);
+export const qqsSiz = (d: Pick<InternetDavo, 'narx' | 'nds'>) => (d.nds === 'siz' ? d.narx : qqsSizNarx(d.narx, NDS_SUKUT_FOIZ));
 
 /** The resource's price from verified sources: their mean in the estimate unit; null when nothing was verified. */
 export function internetNarxi(manbalar: InternetManba[]): number | null {
   const ok = manbalar.filter(m => m.tekshirildi && m.smetaNarx != null).map(m => m.smetaNarx as number);
-  return ok.length ? Math.round((ok.reduce((s, v) => s + v, 0) / ok.length) * 100) / 100 : null;
+  return ok.length ? yaxlit2(ok.reduce((s, v) => s + v, 0) / ok.length) : null;
 }

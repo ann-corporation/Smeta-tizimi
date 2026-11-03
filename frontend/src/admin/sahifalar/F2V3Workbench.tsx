@@ -791,12 +791,19 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   /** Ishning resurslari summasi (ish qatorida o'zi pul yo'q — pul resurslarda). */
   /** Razdel jami (egasi: har qavatning o'z hisobi) — ichidagi barcha pozitsiyalar summasi. */
   const rzSumma = useMemo(() => {
-    const m = new Map<string, number>();
-    const yur = (t: F2Tugun): number => {
-      let x = 0;
-      for (const c of t.bolalar) x += c.tur === 'rz' ? yur(c) : c.barg ? (c.summa ?? 0) : c.bolalar.reduce((a, r) => a + (r.summa ?? 0), 0);
-      m.set(t.uid, x);
-      return x;
+    // Razdel jami: summasi noma'lum qator 0 emas — o'tkazib yuboriladi va soni alohida ko'rsatiladi.
+    const m = new Map<string, { summa: number | null; nomalum: number }>();
+    const yur = (t: F2Tugun): { summa: number | null; nomalum: number } => {
+      let x = 0, bor = false, nomalum = 0;
+      const qosh = (s: number | null) => { if (s == null) nomalum++; else { x += s; bor = true; } };
+      for (const c of t.bolalar) {
+        if (c.tur === 'rz') { const r = yur(c); if (r.summa != null) { x += r.summa; bor = true; } nomalum += r.nomalum; }
+        else if (c.barg) qosh(c.summa);
+        else for (const r of c.bolalar) qosh(r.summa);
+      }
+      const res = { summa: bor ? x : null, nomalum };
+      m.set(t.uid, res);
+      return res;
     };
     p.akt.daraxt.filter((t) => t.tur === 'rz').forEach(yur);
     return m;
@@ -828,7 +835,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
             title="Razdelni o‘ngdagi smeta razdeliga tortsangiz — shu razdel ichidan qidiriladi">
             {chevron}<button type="button" className="min-w-0 flex-1 break-words text-left" onClick={() => scrollTanlanganPanelga(t.uid)}>{t.nom}</button>
           </div>
-          <span className={`${SON} font-semibold`}>{fmt(rzSumma.get(t.uid) ?? null, 2)}</span>
+          <span className={`${SON} font-semibold`}>{fmt(rzSumma.get(t.uid)?.summa ?? null, 2)}{(rzSumma.get(t.uid)?.nomalum ?? 0) > 0 && <span className="block text-[10px] font-normal text-warn" title="Summasi noma‘lum qatorlar jamiga kirmagan">+{rzSumma.get(t.uid)?.nomalum} summasiz</span>}</span>
           <span className={`${KATAK} text-[10.5px] font-normal normal-case ${d?.ok || !ishliRz ? 'text-text-mute' : 'text-warn'}`} title={sNom || undefined}>
             {d?.ok ? `→ ${sNom || 'smeta bo‘limi'}` : t.podval ? tarj('har qatorni to‘g‘ridan-to‘g‘ri smeta qatoriga bog‘lang (bo‘lim shart emas)') : ishliRz ? (rzTaklif ? '' : 'bo‘lim ulanmagan — mos smeta bo‘limiga torting') : 'guruh'}
             {!d?.ok && !t.podval && rzTaklif && <button type="button" className="fz-btn fz-btn--primary fz-btn--sm" disabled={p.disabled || mutationBusy}

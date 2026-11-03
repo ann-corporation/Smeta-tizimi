@@ -5,6 +5,7 @@
  * Matching keys are recomputed with ./kalit and verified against the DB keys; any differing row ships an
  * explicit override (never a silent mismatch).
  */
+import { qqsSizNarx } from '../hisob-yadro';
 import { birlikKalit, nomKalit } from './kalit';
 
 export const PRICE_SHARD_SCHEMA = 'narx-katalog-shards-v1';
@@ -60,7 +61,7 @@ export function smetaNarxlari(rows: ExportRow[]) {
       if (netTwins.has(twinKey(r))) { c.vatRowsDropped++; continue; }
       const rate = Number((r[10] ?? '').match(/(\d+(?:[.,]\d+)?)\s*%/)?.[1]?.replace(',', '.'));
       if (r[6] == null || !Number.isFinite(rate)) { c.unknownVatDropped++; continue; }
-      const net = (Math.round((Number(r[6]) / (1 + rate / 100)) * 100) / 100).toFixed(2).replace(/\.00$/, '');
+      const net = qqsSizNarx(Number(r[6]), rate).toFixed(2).replace(/\.00$/, '');
       r = [...r] as ExportRow;
       r[6] = net; r[9] = 'nds_siz'; r[13] = 'nds_siz'; r[10] = `hisoblangan: ${r0[10]} chiqarildi (manba narxi ${r0[6]})`;
       c.derivedNet++;

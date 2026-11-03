@@ -492,7 +492,7 @@ export function F2TayyorlashNative() {
       const h = f2Hujjat(bolimlar, qatorlar, {
         obyektNom: object.nom, davr: oy, raqam, imzo: { ...avto.imzo, ...qolda }, shartnoma: avto.shartnoma,
         ndsFoiz: stavka != null && Number.isFinite(stavka) ? stavka : null,
-        nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval, rows,
+        nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval, nkManba: nk?.ok ? nk.nk_manba ?? null : null, rows,
       });
       // Token (egasi 2026-10-02): hujjat avval yaratiladi (xato bo'lsa token olinmaydi), keyin "f2_hujjat" sarfi bilan beriladi.
       // Mazmun xeshi: aynan shu hujjat qayta ochilsa/yuklansa — qayta to'lov yo'q. Sabab daftarda ko'rinadi.
@@ -621,7 +621,10 @@ export function F2TayyorlashNative() {
   function ishKartasi(i: F2Ish) {
     const x = byId.get(i.id);
     const ochilgan = ochiq.has(i.id) || !!qidir.trim();
-    const resSumma = i.resurslar.reduce((s, r) => s + (byId.get(r.id)?.summa ?? 0), 0);
+    // Resurs summasi noma'lum bo'lsa 0 emas: ma'lumlar yig'indisi + noma'lumlar soni.
+    const resMalum = i.resurslar.map((r) => byId.get(r.id)?.summa).filter((s): s is number => s != null);
+    const resSumma = resMalum.length ? resMalum.reduce((s, v) => s + v, 0) : null;
+    const resNomalum = i.resurslar.length - resMalum.length;
     const meter = ishMeter(i, x && !x.xato ? x.hajm : 0);
     const tg = bolimTuguni(bolimIer, qatorBolim.get(i.id) ?? null);
     const aosr = aosrKoz.get(i.id);
@@ -651,7 +654,7 @@ export function F2TayyorlashNative() {
             <span className="w-10 text-[12px] text-text-mute">{i.birlik}</span>
             {(i.erkin || i.mumkin > 0) && [25, 50, 100].map((f) => <button key={f} type="button" tabIndex={-1} onClick={() => yoz('hajm', i.id, ulushHajm(i.mumkin, f))} className="fz-btn fz-btn--ghost fz-btn--sm">{f}%</button>)}
           </div>
-          <span className="w-32 self-center text-right text-[13px] font-semibold tabular-nums text-text">{resSumma ? <FmtN val={resSumma} /> : ''}</span>
+          <span className="w-32 self-center text-right text-[13px] font-semibold tabular-nums text-text">{resSumma != null ? <FmtN val={resSumma} /> : ''}{resNomalum > 0 && resSumma !== null ? <span className="ml-1 text-[10px] font-normal text-warn" title={t('Summasi noma‘lum resurslar jamiga kirmagan')}>+{resNomalum}?</span> : null}</span>
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-3 pb-2.5 pl-10 text-[12px] text-text-dim">
           <span className="w-56 max-w-full"><IshMeter m={meter} birlik={i.birlik} /></span>

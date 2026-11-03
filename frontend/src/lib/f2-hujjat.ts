@@ -18,7 +18,7 @@ import { davrMatni } from './nakopitelniy-vedomost-export';
 import { lrvKalitYoz } from './lrv-qayta-import';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { NAKRUTKA_KATLAR, nakrutkaKat, nakrutkaPodvaliYoz, type KatSummalar, type NakrutkaKat } from './nakrutka-podval';
-import { serverMerosKoefQoy, type Podval } from './hisob-yadro';
+import { serverMerosKoefQoy, yigindi2, type Podval } from './hisob-yadro';
 import { kodlarMatni, resursGuruhKaliti, shifrKorinish } from './f2-resurs-guruh';
 import { BOLIMSIZ_KALIT, f2BolimIerarxiya } from './f2-bolim-daraxti';
 import { sumRefs } from './hujjat-yozuvchi/formula';
@@ -35,6 +35,8 @@ export type F2HujjatOpsiya = {
   shartnoma?: string | null;
   ndsFoiz?: number | null;
   nakrutka?: Partial<NakrutkaKoeffitsientlar> | null;
+  /** Server `nk_manba` — meros foizlari izohi (yadro `serverMerosKoefQoy`). */
+  nkManba?: string | null;
   podval?: Podval | null;
   /** Rang mavzusi (berilmasa — sahifada tanlangan joriy mavzu). */
   mavzu?: RangMavzusi;
@@ -142,7 +144,7 @@ export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qato
       const mustaqil = ish.resurslar.filter((r) => !r.avto && tanlangan.has(r.id));
       let blQ: number | null = null;
       if (bl) {
-        const ishJS = yaxlit2(avto.reduce((s2, r) => s2 + (tanlangan.get(r.id)?.summa ?? 0), 0));
+        const ishJS = yigindi2(avto.map((r) => tanlangan.get(r.id)?.summa)); // noma'lum summa o'tkaziladi (Excel SUM bo'sh katakni shunday sanaydi)
         blQ = v.qator('ish', (r): Qiymat[] => [++n, shifrKorinish(ish.kod), ish.nom, ish.birlik ?? '', null, bl.hajm, null,
           avto.length ? { f: `SUM(H${r + 1}:H${r + avto.length})`, v: ishJS } : null, 'bl', '', lrvKalitYoz(ish.id, ish.kod, ish.nom, ish.birlik)], { daraja: 1 });
         tarkib.push(blQ);
@@ -195,7 +197,7 @@ export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qato
   v.bosh();
   const nk: Partial<NakrutkaKoeffitsientlar> = { ...(o.nakrutka ?? {}) };
   if (o.ndsFoiz != null && Number.isFinite(o.ndsFoiz) && o.ndsFoiz >= 0) nk.НДС = o.ndsFoiz;
-  const podval = o.podval ? serverMerosKoefQoy(o.podval, nk) : null;
+  const podval = o.podval ? serverMerosKoefQoy(o.podval, nk, o.nkManba) : null;
   nakrutkaPodvaliYoz(v, { podval, katUstun: 'J', oraliq: [birinchi, oxirgi], pulUstunlar: ['H'], foizUstun: 'G', nk, katSummalar: { H: ks }, kfJadval: false, nomalum: Math.abs(nomJS) >= 0.005 ? { H: yaxlit2(nomJS) } : null });
   v.imzo(imzoTomonlari(o.imzo?.subpudratchi ? ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СУБПОДРЯДЧИК', 'ТЕХНАДЗОР'] : ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР'], o.imzo));
   const ved = [...vedomost.values()];
@@ -280,7 +282,7 @@ function resursVedomosti(
   if (bolimli && sec.nom) {
     const q = guruhJami.slice(secBoshi);
     bolimJami.push(w.qator('jami', (): Qiymat[] => [null, null, `Итого по «${sec.nom}»`, null, null, null,
-      { f: q.length ? sumRefs('G', q) : '0', v: yaxlit2(rs.filter((x) => x.ildiz === sec.kalit).reduce((s, x) => s + (x.summa ?? 0), 0)) }]));
+      { f: q.length ? sumRefs('G', q) : '0', v: yigindi2(rs.filter((x) => x.ildiz === sec.kalit).map((x) => x.summa)) }]));
   }
   }
   const vR = w.qator('vsego', (): Qiymat[] => [null, null, 'ВСЕГО ПО ВЕДОМОСТИ РЕСУРСОВ', null, null, null,

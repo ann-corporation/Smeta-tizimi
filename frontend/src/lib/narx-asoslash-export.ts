@@ -7,6 +7,7 @@
  * Hujjat standarti H1–H9: formulalar tirik (og'ish), `$` siz, imzolar, fayl nomi.
  * Manba va smeta qiymatlari o'zgartirilmaydi; noma'lum — bo'sh (NULL ≠ 0).
  */
+import { yaxlit2 } from './hisob-yadro';
 import {
   RANG_TARTIB, RasmiyVaraq, bugunSana, hujjatFaylNomi, imzoTomonlari, rasmiyKitob,
   type ImzoNomlar, type QatorRangi, type RasmiyUstun,
@@ -77,7 +78,7 @@ export function narxAsoslashVaraq(bandlar: readonly AsoslashBand[], o: AsoslashO
       if (b.dalilsizSabab) dalilsiz.push({ nom: `${b.nom ?? '—'}${b.birlik ? `, ${b.birlik}` : ''}`, sabab: b.dalilsizSabab });
       else tasdiqlangan++;
       const q = b.qaytaHisob;
-      const birlikNarx = b.manbaNarx == null ? null : Math.round(b.manbaNarx * (q?.koef ?? 1) * 100) / 100;
+      const birlikNarx = b.manbaNarx == null ? null : yaxlit2(b.manbaNarx * (q?.koef ?? 1));
       v.qator('oddiy', (n) => [
         ++no, b.kod, b.nom, b.birlik, b.hajm, b.narx,
         b.hujjatTuri, b.rekvizit, b.manbaNom, b.manbaBirlik, b.manbaNarx,

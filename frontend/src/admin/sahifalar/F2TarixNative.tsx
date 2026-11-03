@@ -236,7 +236,7 @@ export function F2TarixNative() {
       if (ctx.xato) { toast(`F2 hujjati tuzilmadi: ${ctx.xato}`, 'danger'); return; }
       const h = f2Hujjat(k.bolimlar, k.qatorlar, {
         obyektNom: object?.nom || '', davr: akt.oy || '', raqam: akt.raqam, imzo: ctx.imzo, shartnoma: ctx.shartnoma,
-        ndsFoiz: NDS_SUKUT_FOIZ, nakrutka: ctx.nakrutka, podval: ctx.podval,
+        ndsFoiz: NDS_SUKUT_FOIZ, nakrutka: ctx.nakrutka, podval: ctx.podval, nkManba: ctx.nkManba ?? null,
         // Saqlangan akt — tarix: faqat sertifikatlangan qiymatlar, formulasiz (Excel hech narsani qayta hisoblamaydi).
         formulasiz: true, rows: smetaRows,
       });

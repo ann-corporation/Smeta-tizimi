@@ -4,6 +4,8 @@
  * normative search phrases and a quantity FORMULA from the user's own dimensions, (3) a choice among
  * catalogue candidates the browser found. Everything is validated here; invalid parts are dropped.
  */
+import { yaxlit2 } from '../hisob-yadro';
+
 export const BIRLIKLAR = ['м3', 'м2', 'м', 'т', 'кг', 'шт', 'компл'] as const;
 export type Birlik = typeof BIRLIKLAR[number];
 export type IshHolati = 'TAYYOR' | 'HAJM_KERAK' | 'ANIQLASH_KERAK';
@@ -326,7 +328,7 @@ export function kpJavobiniTekshir(v: Record<string, unknown> | null): KpOqish {
   const qatorlar = (Array.isArray(o.qatorlar) ? o.qatorlar : []).slice(0, 2000).flatMap((q: unknown) => {
     const r = (q ?? {}) as Record<string, unknown>;
     const nom = kpMatn(r.nom, 600);
-    const narx = typeof r.narx === 'number' && Number.isFinite(r.narx) && r.narx > 0 ? Math.round(r.narx * 100) / 100 : null;
+    const narx = typeof r.narx === 'number' && Number.isFinite(r.narx) && r.narx > 0 ? yaxlit2(r.narx) : null;
     return nom ? [{ nom, birlik: kpMatn(r.birlik, 30), narx }] : [];
   });
   return { yetkazuvchi: kpMatn(o.yetkazuvchi, 200), inn: kpMatn(o.inn, 20)?.replace(/\D/g, '') || null, raqam: kpMatn(o.raqam, 60),
