@@ -31,7 +31,7 @@ export type PQator = {
 };
 
 export type BandTur = 'ortiqcha' | 'narx_farqi' | 'olinmagan' | 'chegirma';
-export type TekshirSabab = 'birlik_shubha' | 'smeta_hajm_yoq' | 'narx_yoq' | 'chegirma_asosiy_yoq' | 'eski_smeta' | 'zamena';
+export type TekshirSabab = 'birlik_shubha' | 'smeta_hajm_yoq' | 'narx_yoq' | 'chegirma_asosiy_yoq' | 'eski_smeta' | 'zamena' | 'f2_hajmsiz_summa' | 'f2_summa_yoq';
 export type Eslatma = 'fakt_norma' | 'smetadan_tashqari' | 'narx_farqi_hisoblanmadi';
 
 /** `summa` ishorali: + olish mumkin, − qaytarish kerak. `hajm` ishorali (ortiqcha — manfiy, narx farqi — 0). */
@@ -39,7 +39,7 @@ export type PBand = { tur: BandTur; hajm: number; summa: number };
 
 export type PNatijaQator = {
   qatorId: number; kod: string | null; nom: string; birlik: string | null; kat: string | null; tur: string;
-  smetaHajm: number | null; smetaNarx: number | null; faktHajm: number; f2Hajm: number; f2Summa: number;
+  smetaHajm: number | null; smetaNarx: number | null; faktHajm: number; f2Hajm: number; f2Summa: number | null;
   /** F2 o'rtacha narxi (F2 summa / F2 hajm) — noma'lum bo'lsa null. */
   f2Narx: number | null;
   almashtirilgan: number;
@@ -114,17 +114,21 @@ export function qatorTasnif(q: PQator, o: { eski: boolean; zamena: boolean; boli
   const f2 = son(q.f2_hajm) ?? 0;
   const fakt = son(q.fakt_hajm) ?? 0;
   const smeta = son(q.smeta_hajm);
+  const f2s = son(q.f2_summa);
+  const nomalumSoni = (son(q.f2_summa_nomalum) ?? 0) > 0;
+  const nomalum = f2s == null || nomalumSoni;
+  // Quantity/amount corrections can net quantity to zero while preserving a certified monetary balance.
+  const hajmsizSumma = Math.abs(f2) < EPS && f2s != null && Math.abs(f2s) > EPS;
   const chegirmami = smeta != null && smeta < -EPS;
   // Chegirma F2 da umuman olinmagan bo'lsa ham, asosiy ish olingan bo'lsa — hisobga kiradi.
-  if (Math.abs(f2) < EPS && Math.abs(fakt) < EPS && !(chegirmami && (o.asosiy?.ulush ?? 0) > EPS)) return null;
+  if (Math.abs(f2) < EPS && Math.abs(fakt) < EPS && !hajmsizSumma && !nomalumSoni && !(chegirmami && (o.asosiy?.ulush ?? 0) > EPS)) return null;
   const narx = son(q.smeta_narx);
-  const f2s = son(q.f2_summa) ?? 0;
-  const nomalum = (son(q.f2_summa_nomalum) ?? 0) > 0;
   const alm = Math.max(0, son(q.almashtirilgan_hajm) ?? 0);
-  const f2Narx = !nomalum && Math.abs(f2) > EPS ? f2s / f2 : null;
+  const f2Narx = !nomalum && f2s != null && Math.abs(f2) > EPS ? f2s / f2 : null;
 
   const tekshir: TekshirSabab[] = [];
   const eslatma: Eslatma[] = [];
+  if (hajmsizSumma) tekshir.push('f2_hajmsiz_summa');
   if (chegirmami && !o.asosiy) tekshir.push('chegirma_asosiy_yoq');
   else if (!chegirmami && (smeta == null || Math.abs(smeta) < EPS)) tekshir.push('smeta_hajm_yoq');
   if (narx == null) tekshir.push('narx_yoq');
@@ -149,7 +153,7 @@ export function qatorTasnif(q: PQator, o: { eski: boolean; zamena: boolean; boli
       const d = x - y;
       if (Math.abs(d) > 1e-9) { const hajm = Number((d * (smeta as number)).toPrecision(12)); bandlar.push({ tur: 'chegirma', hajm, summa: yaxlit2(hajm * narx) }); }
       if (Math.abs(f2) > EPS) {
-        if (nomalum) eslatma.push('narx_farqi_hisoblanmadi');
+        if (nomalum || f2s == null) eslatma.push('narx_farqi_hisoblanmadi');
         else bandlar.push({ tur: 'narx_farqi', hajm: 0, summa: yaxlit2(-(f2s - f2 * narx)) });
       }
     }
@@ -162,7 +166,7 @@ export function qatorTasnif(q: PQator, o: { eski: boolean; zamena: boolean; boli
     const tashqari = fakt - Math.max(f2, chegara);
     if (tashqari > EPS) { tashqariHajm = tashqari; eslatma.push('smetadan_tashqari'); }
     if (Math.abs(f2) > EPS) {
-      if (nomalum) eslatma.push('narx_farqi_hisoblanmadi');
+      if (nomalum || f2s == null) eslatma.push('narx_farqi_hisoblanmadi');
       else {
         const farq = f2s - f2 * narx;
         bandlar.push({ tur: 'narx_farqi', hajm: 0, summa: yaxlit2(-farq) });
@@ -170,6 +174,9 @@ export function qatorTasnif(q: PQator, o: { eski: boolean; zamena: boolean; boli
     }
   }
   const pul = bandlar.filter((b) => Math.abs(b.summa) >= PUL_CHEGARA);
+  // Retain an unresolved amount even when skipping the price comparison leaves no monetary band.
+  // Existing quantity-based bands still use the known estimate price; never manufacture a zero F2 amount.
+  if (!pul.length && nomalum && (Math.abs(f2) > EPS || nomalumSoni)) tekshir.push('f2_summa_yoq');
   const sof = yaxlit2(pul.reduce((s, b) => s + b.summa, 0));
   if (!pul.length && !tekshir.length) return null;
   return {

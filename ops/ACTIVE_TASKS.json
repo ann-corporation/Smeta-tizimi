@@ -3,6 +3,20 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "PTO-RECONCILIATION-20261026",
+      "title": "Preserve certified unknown and amount-only F2 reconciliation evidence",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/pto-reconciliation-20261026",
+      "base_sha": "a4fe8b65",
+      "status": "ready_for_review",
+      "owns": ["frontend/src/lib/pereraschet.ts", "frontend/src/lib/pereraschet-export.ts", "frontend/src/lib/pereraschet-null.test.ts", "frontend/src/i18n/lugat/qism/pereraschet-semantika-20261026.json"],
+      "production_write_allowed": false,
+      "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/OWNER_AUTHORIZATION.md"],
+      "note": "L0 request 2026-10-26 17:40: separate narrow PR for JQA01/02 after integration sandbox. PereraschetBolimi UI uses retained DIZAYN author ownership with scoped integration sublease for two review reasons and shared SummaJuft only. Unknown F2 stays NULL; amount-only balance review-only, no automatic correction. No DB/DDL. Baseline main has unrelated historical overlapping locks; guard remains unchanged."
+    },
+    {
       "id": "SMETA-VERSIYA-SIGNED-20261027",
       "title": "C6 signed claim amounts and XLSX preservation",
       "owner": "codex",
@@ -38,6 +52,7 @@
       "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/OWNER_AUTHORIZATION.md"],
       "production_write_allowed": false,
       "note": "Human asks continued work with parallel agents. Only four Codex-owned editor-slot records are changed; all original statuses/backlogs and every Claude task stay unchanged. Main remains unchanged until L0 review/merge. Guard remains enabled, foreign overlaps and production flag policy error are explicitly open."
+
     },
     {
       "id": "ARCHITECTURE-PACK-20261026",
