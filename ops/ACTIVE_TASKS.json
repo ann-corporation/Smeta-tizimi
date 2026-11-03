@@ -3270,7 +3270,11 @@
         "frontend/src/umumiy/ui/SummaJuft.tsx (PR2: server paket + kesim)",
         "frontend/src/umumiy/ui/QiymatUchlik.tsx (PR2: kesim + kiritilmagan)",
         "frontend/src/umumiy/ui/SummaKesimi.tsx",
-        "frontend/public/yangiliklar.json (PR2 yozuvi)"
+        "frontend/public/yangiliklar.json (PR2 yozuvi)",
+        "frontend/src/admin/sahifalar/BossDashboard.tsx (PR3: boshqaruv markazi)",
+        "frontend/src/components/rahbar-panel/RahbarMarkaz.tsx",
+        "frontend/src/lib/rahbar-panel/markaz.ts",
+        "frontend/src/i18n/lugat/qism/rahbar-markaz.json"
       ],
       "depends_on": [],
       "must_read": [
@@ -3280,5 +3284,30 @@
       "production_write_allowed": false,
       "note": "Issue #195 (L0 → cloud, egasi 2026-10-29). Migratsiyani prodga faqat L0 qo'llaydi. Keyingi PR'lar: (2) SummaJuft kengaytirish + inventarizatsiya, (3) panel §1–§5, (4) §6–§7."
     }
-  ]
+  ,
+{
+  "id": "STUDIO-EASY-ESTIMATE-20261102",
+  "title": "Shared norm picker: quantity-first, inline expression, expandable recipe",
+  "owner": "codex",
+  "machine": "Anvar",
+  "branch": "codex/studio-easy-estimate-20261102",
+  "base_sha": "09f6c483ae371f831f5d8f15a99f3f6a4b0cd3f1",
+  "status": "in_progress",
+  "owns": [
+    "frontend/src/admin/sahifalar/NormKatalogPanel.tsx",
+    "frontend/src/admin/sahifalar/NormKatalogPanel.test.tsx",
+    "frontend/src/i18n/lugat/qism/studio-easy-estimate.json",
+    "frontend/src/lib/smeta-studio/source-measure-basis.ts",
+    "frontend/src/lib/smeta-studio/source-measure-basis.test.ts",
+    "ops/mailbox/STUDIO-EASY-ESTIMATE-20261102/"
+  ],
+  "depends_on": [],
+  "must_read": [
+    "AGENTS.md",
+    "docs/governance/CONSTITUTION.md"
+  ],
+  "production_write_allowed": false,
+  "note": "Owner resumes UX request 02.11: reduce re-entry and scrolling from selection to quantity and shared command. Existing exact parseQuantityInput reused. SmetaStudio/Claude design and calc/catalog-bridge/commands untouched. No production business writes."
+}
+]
 }
