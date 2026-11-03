@@ -63,7 +63,7 @@ const OBYEKT = a('dashboard', 'obyektlar', 'loyiha', 'participants', 'mindmap');
 const SMETA = a('smeta-studio', 'holat', 'smeta-narxlash', 'narx-dalil', 'nakrutka', 'narxlar', 'narx-manbalari', 'oferta');
 const FAKT = a('fakt', 'm29');
 const F2 = a('f2-tayyorlash', 'f2', 'f2-tarix', 'f2-reestr', 'nakopitelniy');
-const MOLIYA = a('moliya', 'shartnoma-liniya', 'qarzdorlik', 'crm', 'aloqalar');
+const MOLIYA = a('moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'crm', 'aloqalar');
 const HUJJAT = a('documents', 'hujjat-nazorat', 'aosr', 'storage', 'zakazchik', 'taqdimlar', 'murojaatlar');
 const TAMINOT = a('logistika', 'zayavka', 'erp');
 const ISH = [...OBYEKT, ...SMETA, ...FAKT, ...F2, ...MOLIYA, ...HUJJAT, ...TAMINOT];
@@ -79,9 +79,9 @@ const KUTILGAN: Record<string, string[]> = {
   boss: [...ISH, ...KOMPANIYA, ...SHAXSIY],
   admin: [...ISH, ...KOMPANIYA, ...SHAXSIY],
   pto: [...ISH, ...SHAXSIY],
-  bugalter: [...a('dashboard', 'obyektlar', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'moliya', 'shartnoma-liniya', 'qarzdorlik', 'crm', 'aloqalar',
+  bugalter: [...a('dashboard', 'obyektlar', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'crm', 'aloqalar',
     'documents', 'hujjat-nazorat', 'storage', 'logistika', 'zayavka', 'erp'), ...SHAXSIY],
-  prorab: [...bez(ISH, 'dashboard', 'moliya', 'qarzdorlik'), ...SHAXSIY],
+  prorab: [...bez(ISH, 'dashboard', 'moliya', 'buxgalteriya', 'qarzdorlik'), ...SHAXSIY],
   usta: [...a('fakt'), ...SHAXSIY],
   buyurtmachi: [...a('obyektlar', 'loyiha', 'participants', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'shartnoma-liniya',
     'documents', 'hujjat-nazorat', 'storage', 'zakazchik', 'taqdimlar', 'murojaatlar'), ...SHAXSIY],
@@ -248,7 +248,7 @@ describe('yagona manba — boshqa iste‘molchilar o‘zgarmagan', () => {
       '/admin/aosr': 'module.aosr',
       '/admin/smeta-narxlash': 'module.narx', '/admin/oferta': 'module.narx', '/admin/narx-manbalari': 'module.narx',
       '/admin/narx-dalil': 'module.narx', '/admin/nakrutka': 'module.narx', '/admin/narxlar': 'module.narx',
-      '/admin/loyiha': 'module.loyiha', '/admin/shartnoma-liniya': 'module.loyiha', '/admin/qarzdorlik': 'module.erp', '/admin/documents': 'module.loyiha',
+      '/admin/loyiha': 'module.loyiha', '/admin/shartnoma-liniya': 'module.loyiha', '/admin/qarzdorlik': 'module.erp', '/admin/buxgalteriya': 'module.erp', '/admin/documents': 'module.loyiha',
       '/admin/hujjat-nazorat': 'module.loyiha', '/admin/participants': 'module.loyiha', '/admin/crm': 'module.loyiha',
       '/admin/zakazchik': 'module.loyiha', '/admin/taqdimlar': 'module.loyiha', '/admin/murojaatlar': 'module.loyiha', '/admin/aloqalar': 'module.loyiha',
       '/admin/dashboard': 'module.erp', '/admin/moliya': 'module.erp', '/admin/logistika': 'module.erp', '/admin/zayavka': 'module.erp',

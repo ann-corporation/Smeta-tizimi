@@ -157,13 +157,15 @@ begin
   l := public.t2_bux_tolov_v1(k, ub, null, null, null, null, null, 500);
   rep := rep || (case when (select count(*) from jsonb_array_elements(l->'tolovlar') e where e->>'manba' = 'bank_import') = 2 then 'OK   bank va kassa ro''yxati: 2 import' else 'FAIL tolov royxat: ' || l::text end);
 
-  -- 14. HR ilgagi: faqat hr_* manba; idempotent; kamaysa storno
+  -- 14. HR/transport ilgagi: faqat hr_* yoki tr_* manba; idempotent; kamaysa storno
   r := public.t2_bux_tashqi_sync_v1(ub, k, 'qolda', '[]'::jsonb, gen_random_uuid());
-  rep := rep || (case when r->>'code' = 'MANBA_TUR_HR' then 'OK   hr_* dan boshqa manba rad' else 'FAIL manba tur: ' || r::text end);
+  rep := rep || (case when r->>'code' = 'MANBA_TUR_HR' then 'OK   hr_*/tr_* dan boshqa manba rad' else 'FAIL manba tur: ' || r::text end);
   r := public.t2_bux_tashqi_sync_v1(ub, k, 'hr_ish_haqi', jsonb_build_array(jsonb_build_object('manba_id', 1, 'sana', '2026-03-31', 'dt_kod', '2010', 'kt_kod', '6710', 'summa', 900)), gen_random_uuid());
   rep := rep || (case when (r->>'yangi')::int = 1 then 'OK   HR ilgagi: 1 provodka' else 'FAIL hr: ' || r::text end);
   r := public.t2_bux_tashqi_sync_v1(ub, k, 'hr_ish_haqi', jsonb_build_array(jsonb_build_object('manba_id', 1, 'sana', '2026-03-31', 'dt_kod', '2010', 'kt_kod', '6710', 'summa', 900)), gen_random_uuid());
   rep := rep || (case when (r->>'yangi')::int = 0 and (r->>'storno')::int = 0 then 'OK   HR ilgagi idempotent' else 'FAIL hr takror: ' || r::text end);
+  r := public.t2_bux_tashqi_sync_v1(ub, k, 'tr_mash_xarajat', jsonb_build_array(jsonb_build_object('manba_id', 7, 'sana', '2026-03-15', 'dt_kod', '2010', 'kt_kod', '6010', 'summa', 50)), gen_random_uuid());
+  rep := rep || (case when (r->>'yangi')::int = 1 then 'OK   transport ilgagi (tr_*): 1 provodka' else 'FAIL tr: ' || r::text end);
   r := public.t2_bux_tashqi_sync_v1(ub, k, 'hr_ish_haqi', '[]'::jsonb, gen_random_uuid());
   rep := rep || (case when (r->>'storno')::int = 1 then 'OK   HR hujjati yo''qolsa storno' else 'FAIL hr storno: ' || r::text end);
 

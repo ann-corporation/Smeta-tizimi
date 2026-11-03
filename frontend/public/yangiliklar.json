@@ -2,6 +2,17 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 91,
+      "sana": "2026-11-04",
+      "sarlavha": "Buxgalteriya — hujjatlardan avtomatik provodka",
+      "bandlar": [
+        "Yangi «Buxgalteriya» sahifasi: hisoblar rejasi (NSBU № 21 asosida namuna, tahrirlanadi) va o‘zgarmas provodka jurnali. Xato bo‘lsa tahrir emas — «Storno» (teskari yozuv).",
+        "«Hujjatlardan yangilash»: Forma-3 realizatsiyasi (QQS ajratilgan), to‘lovlar, ombor kirimi va subpudrat aktlaridan provodka o‘zi yoziladi. Qayta bosish zarar qilmaydi; hujjat o‘zgarsa farqi yoziladi, bekor bo‘lsa storno.",
+        "«Kontragent bilan hisob-kitob» — kim bizga qarz, biz kimga qarz, hujjatlargacha; akt-sverka Excel (ruscha) bir bosishda. Oborot-saldo vedomost, QQS reyestri (sotuv va xarid).",
+        "«Bank va kassa»: bank ko‘chirmasini (CSV/Excel) yuklang — tizim shartnomaga moslaydi, moslanmaganini o‘zingiz tanlaysiz; takror yozilmaydi.",
+        "Davrni yopish ogohlantirish bilan (bloklamaydi). Kadrlar moduli uchun ilgak tayyor. Summa noma‘lum bo‘lsa 0 deb yozilmaydi."
+      ]
+    },    {
       "id": 76,
       "sana": "2026-11-03",
       "sarlavha": "Rahbar paneli — boshqaruv markazi",

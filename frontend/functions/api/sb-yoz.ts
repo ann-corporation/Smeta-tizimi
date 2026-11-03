@@ -54,6 +54,16 @@ const AMALLAR = {
   /* Egasi 2026-11-02: qarzdorlik - asoslar saqlash (CAS) va Excel importi (idempotent operation_id). RPC a'zolik + financial.write ni o'zi tekshiradi. */
   qarzdorlik_saqla_v1: { rpc: 't2_qarzdorlik_saqla_v1' },
   qarzdorlik_import_v1: { rpc: 't2_qarzdorlik_import_v1' },
+  /* Egasi 2026-11-04: buxgalteriya (reja, o'zgarmas jurnal, avto-provodka, davr, bank importi, HR ilgagi). RPC a'zolik + accounting.* ni o'zi tekshiradi; idempotent (operation_id). */
+  bux_boshlash_v1: { rpc: 't2_bux_boshlash_v1' },
+  bux_hisob_saqla_v1: { rpc: 't2_bux_hisob_saqla_v1' },
+  bux_moslik_saqla_v1: { rpc: 't2_bux_moslik_saqla_v1' },
+  bux_avto_v1: { rpc: 't2_bux_avto_provodka_v1' },
+  bux_qolda_v1: { rpc: 't2_bux_qolda_provodka_v1' },
+  bux_storno_v1: { rpc: 't2_bux_storno_v1' },
+  bux_davr_v1: { rpc: 't2_bux_davr_v1' },
+  bux_bank_import_v1: { rpc: 't2_bux_bank_import_v1' },
+  bux_tashqi_v1: { rpc: 't2_bux_tashqi_sync_v1' },
   /* Egasi 2026-11-03: shartnoma oylik paketi - «Topshirildi» (versiya, manifest, ZIP kanonik saqlashda). RPC a'zolik + document.write ni o'zi tekshiradi; idempotent (operation_id). */
   shartnoma_oylik_paket_saqla_v1: { rpc: 't2_shartnoma_oylik_paket_saqla_v1' },
   /* Egasi 2026-10-23: shartnoma svodi/akt-sverka yozuvlari — DS, F2 reestri, sotuv (F3 summasi). RPC a'zolik + financial.write ni o'zi tekshiradi. */
@@ -940,6 +950,66 @@ export const onRequestPost: PagesFunction<{
         shartnomalar.push(r);
       }
       yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_shartnomalar: shartnomalar, p_obyekt_id: so.obyekt_id == null ? null : Number(so.obyekt_id), p_operation_id: so.operation_id };
+    } else if (amal.startsWith('bux_')) {
+      /* Buxgalteriya (egasi 2026-11-04): hisoblar rejasi, avto-provodka, qo'lda provodka/storno, davr, bank importi, HR ilgagi.
+         Har amalning oq ro'yxatdagi maydonlari; a'zolik + accounting.* RPC ichida tekshiriladi. */
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || ''))) {
+        return Response.json({ ok: false, error: 'Buxgalteriya: operatsiya (operation_id) talab qilinadi.' }, { status: 400 });
+      }
+      const matn = (x: unknown, n: number) => (x == null || String(x).trim() === '' ? null : String(x).slice(0, n));
+      const butun = (x: unknown) => (x == null || x === '' ? null : Number(x));
+      const sonXato = (x: unknown) => x != null && x !== '' && !Number.isFinite(Number(x));
+      const idXato = (x: unknown) => x != null && x !== '' && (!Number.isSafeInteger(Number(x)) || Number(x) <= 0);
+      const sanaXato = (x: unknown) => x != null && x !== '' && !/^\d{4}-\d{2}-\d{2}$/.test(String(x));
+      const asos = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_operation_id: so.operation_id };
+      const xato400 = (m: string) => Response.json({ ok: false, error: `Buxgalteriya: ${m}` }, { status: 400 });
+      if (amal === 'bux_boshlash_v1') {
+        yuk = { ...asos };
+      } else if (amal === 'bux_hisob_saqla_v1') {
+        if (!/^\d{4}$/.test(String(so.kod || '')) || !matn(so.nom_uz, 200) || !matn(so.nom_ru, 200)) return xato400('hisob kodi (4 raqam) va nomlari talab qilinadi.');
+        yuk = { ...asos, p_kod: String(so.kod), p_nom_uz: matn(so.nom_uz, 200), p_nom_ru: matn(so.nom_ru, 200), p_tur: matn(so.tur, 30),
+          p_kontragent_analitika: so.kontragent_analitika === true, p_faol: so.faol !== false };
+      } else if (amal === 'bux_moslik_saqla_v1') {
+        if (!/^[a-z0-9_]+\.[a-z0-9_]+$/.test(String(so.kalit || '')) || sonXato(so.qiymat)) return xato400('qoida kaliti noto‘g‘ri.');
+        yuk = { ...asos, p_kalit: String(so.kalit), p_dt_kod: matn(so.dt_kod, 4), p_kt_kod: matn(so.kt_kod, 4), p_qiymat: butun(so.qiymat) };
+      } else if (amal === 'bux_avto_v1') {
+        yuk = { ...asos, p_dry: so.dry === true };
+      } else if (amal === 'bux_qolda_v1') {
+        if (sanaXato(so.sana) || !so.sana || sonXato(so.summa) || so.summa == null || idXato(so.kontragent_id) || idXato(so.shartnoma_id) || idXato(so.obyekt_id)) return xato400('sana, summa va analitika noto‘g‘ri.');
+        yuk = { ...asos, p_sana: String(so.sana), p_dt_kod: matn(so.dt_kod, 4), p_kt_kod: matn(so.kt_kod, 4), p_summa: Number(so.summa),
+          p_kontragent_id: butun(so.kontragent_id), p_shartnoma_id: butun(so.shartnoma_id), p_obyekt_id: butun(so.obyekt_id), p_izoh: matn(so.izoh, 300) };
+      } else if (amal === 'bux_storno_v1') {
+        if (idXato(so.provodka_id) || so.provodka_id == null) return xato400('provodka talab qilinadi.');
+        yuk = { ...asos, p_provodka_id: Number(so.provodka_id), p_izoh: matn(so.izoh, 300) };
+      } else if (amal === 'bux_davr_v1') {
+        if (!/^\d{4}-\d{2}(-\d{2})?$/.test(String(so.oy || '')) || !['yop', 'och'].includes(String(so.davr_amal))) return xato400('oy va amal (yop/och) talab qilinadi.');
+        const oy = String(so.oy);
+        yuk = { ...asos, p_oy: oy.length === 7 ? `${oy}-01` : oy, p_amal: String(so.davr_amal), p_tasdiq: so.tasdiq === true, p_izoh: matn(so.izoh, 300) };
+      } else if (amal === 'bux_bank_import_v1') {
+        const qs = so.qatorlar;
+        if (!Array.isArray(qs) || qs.length === 0 || qs.length > 500) return xato400('1–500 qator talab qilinadi.');
+        const qatorlar: Record<string, unknown>[] = [];
+        for (const q of qs) {
+          const e = q as Record<string, unknown> | null;
+          if (!e || typeof e !== 'object' || Array.isArray(e) || sanaXato(e.sana) || sonXato(e.summa) || idXato(e.shartnoma_id)) return xato400('bank qatori noto‘g‘ri.');
+          qatorlar.push({ kalit: matn(e.kalit, 120), sana: matn(e.sana, 10), summa: e.summa, yonalish: matn(e.yonalish, 10), shartnoma_id: butun(e.shartnoma_id),
+            hujjat_raqam: matn(e.hujjat_raqam, 60), izoh: matn(e.izoh, 500) });
+        }
+        yuk = { ...asos, p_qatorlar: qatorlar };
+      } else if (amal === 'bux_tashqi_v1') {
+        const qs = so.qatorlar;
+        if (!/^(hr|tr)_[a-z0-9_]{1,30}$/.test(String(so.manba_tur || '')) || !Array.isArray(qs) || qs.length > 5000) return xato400('manba (hr_* yoki tr_*) va ≤5000 qator talab qilinadi.');
+        const qatorlar: Record<string, unknown>[] = [];
+        for (const q of qs) {
+          const e = q as Record<string, unknown> | null;
+          if (!e || typeof e !== 'object' || Array.isArray(e) || idXato(e.manba_id) || sanaXato(e.sana) || sonXato(e.summa) || idXato(e.kontragent_id) || idXato(e.shartnoma_id) || idXato(e.obyekt_id)) return xato400('qator noto‘g‘ri.');
+          qatorlar.push({ manba_id: butun(e.manba_id), sana: matn(e.sana, 10), dt_kod: matn(e.dt_kod, 4), kt_kod: matn(e.kt_kod, 4), summa: e.summa,
+            kontragent_id: butun(e.kontragent_id), shartnoma_id: butun(e.shartnoma_id), obyekt_id: butun(e.obyekt_id) });
+        }
+        yuk = { ...asos, p_manba_tur: String(so.manba_tur), p_qatorlar: qatorlar };
+      } else {
+        return xato400('noma‘lum amal.');
+      }
     } else if (amal === 'ish_turi_saqla_v1') {
       if (!sess.foydalanuvchi_id) return Response.json({ ok: false, error: 'Sessiya talab qilinadi.' }, { status: 401 });
       yuk = {

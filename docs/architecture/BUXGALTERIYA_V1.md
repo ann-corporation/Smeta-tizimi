@@ -126,3 +126,20 @@ HR uchun tashqi manba ilgagi, ru/en tarjima, yangiliklar yozuvi.
 6. Soliq hisobotlari (QQS deklaratsiyasi, foyda solig'i), balans va foyda-zarar (P&L) hisobotlari, yil yopilishi.
 7. 1C dan boshlang'ich qoldiq va jurnal importi; 1C bilan parallel sverka (Продажа ≠ F2 farqlari).
 8. Qat'iy davr bloklash (ixtiyoriy, kompaniya sozlamasi), ko'p valyutali hisoblar, hujjat shablonlari (provodka qoidalari konstruktori).
+
+## 9. Bulut rejasi (`docs/architecture/cloud-rejalar/HR_KPI_BUXGALTERIYA.md`) bilan farqlar
+
+Reja o'qildi; shu build manba-haqiqat. Olingan g'oyalar: hisob rejasi `[T]` (buxgalter tasdiqlaydi), o'zgarmas jurnal + storno, hujjat -> provodka -> manba zanjiri («Nega bu summa?»), oddiy tildagi izohlar, davr yopish checklisti, ombor/F2/to'lovni faqat o'qish (ikki marta sanamaslik), HR/oylik ilgagi, bank importi (kontragent INN / shartnoma raqami bo'yicha moslash, AI emas — deterministik).
+
+| Rejada | Shu MVP da | Sabab |
+| --- | --- | --- |
+| Alohida `t2_bux_hujjat` + qatorlar, `t2_bux_provodka_qoida` shablonlari, partitsiya, `t2_bux_saldo_oy` | Hujjat nusxalanmaydi: provodka manbaga `manba_tur+manba_id` bilan bog'lanadi; qoidalar `t2_bux_moslik` (kalit -> Dt/Kt); saldo so'rovdan hisoblanadi | Supabase hajmi chegarada (421/500 MB); mavjud hujjatlar dublikat qilinmaydi |
+| Provodka summasi doim musbat, storno `storno_of_id` | Minus summa (qizil storno) + `storno_id`; avto-sinxron faqat delta yozadi | Egasi qoidasi: minus ruxsat; idempotentlik |
+| Hujjat qoralama -> buxgalter tasdig'i | Manba hujjat holati (F3 `tayyor/imzolangan`, to'lov faol) provodka beradi; tasdiq - davr yopish | MVP soddaligi; tasdiq qatlami keyingi bosqich |
+| `accounting.post` mutaxassis ruxsati | `accounting.write/approve` (mavjud) | Yangi ruxsat kodi egasi tasdig'ini talab qiladi |
+| Kassa, OS, amortizatsiya, valyuta, Didox, balans/P&L, 1C import-eksport | Keyingi bosqich (§8) | MVP doirasi |
+| Realizatsiya F2 dan sotuv hujjati | Faqat **Forma-3** (счёт-фактура) dan; F2 F3 ga o'tmaguncha provodka yo'q | 1C «Продажа» ≠ F2; ochiq savol (ustamasiz yoki ustamali) egasida qoladi - F3 summasi (`sotuv_summa`) haqiqat |
+
+## 10. Tashqi manbalar ilgagi: kadrlar va logistika
+
+`t2_bux_tashqi_sync_v1(manba_tur, qatorlar)` — modul o'z hujjatlaridan «bo'lishi kerak» provodkalarni beradi, sinxron faqat deltani yozadi (idempotent, bekor -> storno). Ruxsat etilgan prefikslar: `hr_*` (kadrlar: `hr_ish_haqi`) va `tr_*` (logistika PR #235: `t2_tr_*` va `t2_xarajat_kirit_v1` orqali tushgan МАШ/transport xarajatlari, masalan `tr_mash_xarajat`; standart juftlik Dt 2010 (obyekt analitikasi) / Kt 6010 yoki 6710 — modul belgilaydi). Logistika tomoni keyin shu RPC ni (BFF `bux_tashqi_v1`) chaqiradi yoki `t2_xarajat` dan avto-manba sifatida `_t2_bux_kerak_avto` ga qo'shiladi (yangi `xarid.mash` moslik kaliti bilan).

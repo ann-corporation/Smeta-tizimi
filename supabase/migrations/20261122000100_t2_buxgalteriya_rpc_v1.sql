@@ -5,7 +5,7 @@
 -- YOZISH (idempotent operation_id, /api/sb-yoz):
 --   t2_bux_boshlash_v1, t2_bux_hisob_saqla_v1, t2_bux_moslik_saqla_v1, t2_bux_avto_provodka_v1 (sinxron: faqat DELTA yoziladi),
 --   t2_bux_qolda_provodka_v1, t2_bux_storno_v1, t2_bux_davr_v1 (ogohlantirish asosida), t2_bux_bank_import_v1,
---   t2_bux_tashqi_sync_v1 (KADRLAR / boshqa modullar uchun ilgak: manba_tur = hr_*).
+--   t2_bux_tashqi_sync_v1 (KADRLAR va LOGISTIKA uchun ilgak: manba_tur = hr_* | tr_*).
 -- Provodka o'zgarmas: tuzatish faqat storno (minus summa) / yangi provodka. Summa QQS bilan keladi, asosiy+QQS ga ayirma bilan bo'linadi.
 begin;
 
@@ -560,7 +560,7 @@ begin
 end $$;
 
 -- KADRLAR / boshqa modullar uchun ilgak: modul o'z hujjatlaridan "bo'lishi kerak" qatorlarni beradi; sinxron faqat deltani yozadi (idempotent, storno bilan).
--- qatorlar: [{manba_id, sana, dt_kod, kt_kod, summa, kontragent_id?, shartnoma_id?, obyekt_id?}]; manba_tur faqat hr_* (masalan hr_ish_haqi).
+-- qatorlar: [{manba_id, sana, dt_kod, kt_kod, summa, kontragent_id?, shartnoma_id?, obyekt_id?}]; manba_tur faqat hr_* (kadrlar, masalan hr_ish_haqi) yoki tr_* (logistika/transport, masalan tr_mash_xarajat).
 create or replace function public.t2_bux_tashqi_sync_v1(p_actor_id bigint, p_kompaniya_id bigint, p_manba_tur text, p_qatorlar jsonb, p_operation_id uuid)
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
 declare v_prev jsonb; v_kerak jsonb; v_sync jsonb; v_res jsonb;
@@ -569,7 +569,7 @@ begin
   select natija into v_prev from public.t2_onboarding_command_log where operation_id = p_operation_id;
   if found then return v_prev; end if;
   perform public._t2_bux_ruxsat(p_kompaniya_id, p_actor_id, 'accounting.write');
-  if p_manba_tur is null or p_manba_tur !~ '^hr_[a-z0-9_]{1,30}$' then return jsonb_build_object('ok', false, 'code', 'MANBA_TUR_HR'); end if;
+  if p_manba_tur is null or p_manba_tur !~ '^(hr|tr)_[a-z0-9_]{1,30}$' then return jsonb_build_object('ok', false, 'code', 'MANBA_TUR_HR'); end if;
   if p_qatorlar is null or jsonb_typeof(p_qatorlar) <> 'array' or jsonb_array_length(p_qatorlar) > 5000 then return jsonb_build_object('ok', false, 'code', 'QATORLAR_0_5000'); end if;
   if exists (
     select 1 from jsonb_to_recordset(p_qatorlar) as x(manba_id bigint, sana date, dt_kod text, kt_kod text, summa numeric)

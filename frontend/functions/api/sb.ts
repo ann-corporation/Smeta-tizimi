@@ -248,6 +248,13 @@ export const onRequestPost: PagesFunction<{
         shartnoma_liniya_v1: 'kompaniya_actor',
         /* Egasi 2026-11-02: qarzdorlik (postavshik/subpudrat kreditor qarzi) - shartnoma + asoslar + hisob. stable, a'zolik + financial.read ichida. */
         qarzdorlik_royxat_v1: 'kompaniya_actor',
+        /* Egasi 2026-11-04: buxgalteriya o'qishlari (reja, jurnal, ОСВ, kontragent hisob-kitobi, QQS reyestri, bank/kassa). `stable`; a'zolik + rol + accounting.read RPC ichida. */
+        bux_holat_v1: 'kompaniya_actor',
+        bux_jurnal_v1: 'kompaniya_actor',
+        bux_osv_v1: 'kompaniya_actor',
+        bux_kontragent_v1: 'kompaniya_actor',
+        bux_nds_v1: 'kompaniya_actor',
+        bux_tolov_v1: 'kompaniya_actor',
         /* Egasi 2026-11-03: shartnoma oylik paketi arxivi (versiyalar + manifest + hozirgi iz) va fakt/F2 saqlashdan oldingi ogohlantirish. `stable`; a'zolik RPC ichida. */
         shartnoma_oylik_paket_royxat_v1: 'kompaniya_actor',
         shartnoma_oylik_paket_tekshir_v1: 'obyekt_actor',
@@ -388,6 +395,33 @@ export const onRequestPost: PagesFunction<{
           const sid = Number(so.shartnoma_id);
           if (!Number.isSafeInteger(sid) || sid <= 0) return Response.json({ ok: false, error: "shartnoma_id noto'g'ri" });
           q.set('p_shartnoma_id', String(sid));
+        }
+      }
+      if (typeof so.soro === 'string' && so.soro.startsWith('bux_')) {
+        /* Buxgalteriya o'qishlari: umumiy filtr imzosi (dan, gacha, kontragent, shartnoma, hisob, limit) — qiymatlar qat'iy tekshiriladi. */
+        for (const [kalit, param] of [['dan', 'p_dan'], ['gacha', 'p_gacha']] as const) {
+          const v = (so as Record<string, unknown>)[kalit];
+          if (v == null || v === '') continue;
+          if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return Response.json({ ok: false, error: `${kalit} YYYY-MM-DD bo'lishi kerak` });
+          q.set(param, v);
+        }
+        for (const [kalit, param] of [['kontragent_id', 'p_kontragent_id'], ['shartnoma_id', 'p_shartnoma_id']] as const) {
+          const v = (so as Record<string, unknown>)[kalit];
+          if (v == null || String(v) === '') continue;
+          const id = Number(v);
+          if (!Number.isSafeInteger(id) || id <= 0) return Response.json({ ok: false, error: `${kalit} noto'g'ri` });
+          q.set(param, String(id));
+        }
+        const hisob = (so as Record<string, unknown>).hisob;
+        if (hisob != null && hisob !== '') {
+          if (typeof hisob !== 'string' || !/^\d{4}$/.test(hisob)) return Response.json({ ok: false, error: "hisob 4 raqam bo'lishi kerak" });
+          q.set('p_hisob', hisob);
+        }
+        const lim = (so as Record<string, unknown>).limit;
+        if (lim != null && lim !== '') {
+          const n = Number(lim);
+          if (!Number.isInteger(n) || n < 1 || n > 2000) return Response.json({ ok: false, error: "limit 1..2000 bo'lishi kerak" });
+          q.set('p_limit', String(n));
         }
       }
       if (so.soro === 'moliya_tahlil_v1' && so.obyekt_id != null && String(so.obyekt_id) !== '') {

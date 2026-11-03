@@ -23,6 +23,7 @@ export const GENERATED_SITE_MAP = {
     "/admin/f2-reestr",
     "/admin/nakopitelniy",
     "/admin/moliya",
+    "/admin/buxgalteriya",
     "/admin/shartnoma-liniya",
     "/admin/qarzdorlik",
     "/admin/crm",
@@ -75,6 +76,7 @@ export const GENERATED_SITE_MAP = {
     "hujjat-dizayn",
     "shartnoma-liniya",
     "qarzdorlik",
+    "buxgalteriya",
     "nakrutka",
     "narx-manbalari",
     "narx-dalil",
@@ -104,7 +106,6 @@ export const GENERATED_SITE_MAP = {
     "boshqaruv",
     "smeta-studio",
     "m29",
-    "buxgalteriya",
     "shartnomalar",
     "fakturalar",
     "sklad",
@@ -303,6 +304,42 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "qarzdorlik_import_v1",
       "rpc": "t2_qarzdorlik_import_v1"
+    },
+    {
+      "amal": "bux_boshlash_v1",
+      "rpc": "t2_bux_boshlash_v1"
+    },
+    {
+      "amal": "bux_hisob_saqla_v1",
+      "rpc": "t2_bux_hisob_saqla_v1"
+    },
+    {
+      "amal": "bux_moslik_saqla_v1",
+      "rpc": "t2_bux_moslik_saqla_v1"
+    },
+    {
+      "amal": "bux_avto_v1",
+      "rpc": "t2_bux_avto_provodka_v1"
+    },
+    {
+      "amal": "bux_qolda_v1",
+      "rpc": "t2_bux_qolda_provodka_v1"
+    },
+    {
+      "amal": "bux_storno_v1",
+      "rpc": "t2_bux_storno_v1"
+    },
+    {
+      "amal": "bux_davr_v1",
+      "rpc": "t2_bux_davr_v1"
+    },
+    {
+      "amal": "bux_bank_import_v1",
+      "rpc": "t2_bux_bank_import_v1"
+    },
+    {
+      "amal": "bux_tashqi_v1",
+      "rpc": "t2_bux_tashqi_sync_v1"
     },
     {
       "amal": "shartnoma_oylik_paket_saqla_v1",
