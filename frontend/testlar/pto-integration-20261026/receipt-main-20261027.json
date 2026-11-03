@@ -1,0 +1,35 @@
+{
+  "schema": "fakt-main-compatibility-v1",
+  "observed_date": "2026-10-27",
+  "main_source": "95e9f7436ea6b7548ed880493f6b54fbc057671f",
+  "previous_head": "a2a4107369a7390fee5fadf1d1a0345842e1baaa",
+  "targeted_files": 6,
+  "targeted_pass": 49,
+  "added_case": "300 eligible whole-object factless-F2 works retain complete Latin/Cyrillic search",
+  "app_ts": "PASS",
+  "functions_ts": "PASS",
+  "oxlint": "PASS with pre-existing import-page fast-refresh warnings",
+  "build": "PASS",
+  "root_governance": "FAIL:23baseline errors; separate163proposal",
+  "CI": "pending for new merge head",
+  "production_write": false,
+  "main_promoted": false,
+  "scope": [
+    "FaktJurnal",
+    "FaktNative",
+    "own window contracts/translation/read-only harness/metadata"
+  ],
+  "preserved": [
+    "whole-object Fakt=F2",
+    "F2 chosen month",
+    "factless-F2 initial section/filter",
+    "resource replacement/exclusion",
+    "immutable draft data and keyboard order"
+  ],
+  "limits": [
+    "Old browser64px receipt is before this compatibility merge",
+    "No current production owner smoke",
+    "Missing trackedMCPbuild.mjs materialized from index with empty runtime diff; guard unchanged"
+  ],
+  "tekshir": "PASS after tracked MCP bootstrap"
+}

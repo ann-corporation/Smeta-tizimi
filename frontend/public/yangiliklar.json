@@ -2,7 +2,7 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 57,
+      "id": 59,
       "sana": "2026-11-03",
       "sarlavha": "Rahbar paneli — boshqaruv markazi",
       "bandlar": [
@@ -11,6 +11,24 @@
         "«Diqqat talab qiladi» — pulga ta'siri bo'yicha top-10 (topshirilmagan ish, smetadan oshgan hajm, F3 chiqmagan F2, reestr farqi va h.k.), har birida «Ochish».",
         "«Tasdiq kutmoqda» — F2 qoralamalari va zayavkalar; obyektlar matritsasi Excel filtrlari bilan, telefonda kartalar.",
         "Davr: oy / chorak / yil / hammasi. Kiritilmagan to'lov, xarajat va tannarx «kiritilmagan» deb ko'rsatiladi, 0 emas."
+      ]
+    },
+    {
+      "id": 58,
+      "sana": "2026-11-03",
+      "sarlavha": "Katta fakt jurnali uchun kengroq va tezroq ish maydoni",
+      "bandlar": [
+        "Katta jurnalda faqat ko‘rinayotgan qatorlar chiziladi; saqlanmagan kiritishlar qator ekrandan chiqib qaytganda ham saqlanadi.",
+        "Qidiruv va fakt kiritilmagan ishlar filtri to‘liq ro‘yxatda ishlaydi. Obyekt, oy va Fakt=F2 boshqaruvlari saqlangan; jadval ustidagi takror sarlavha ixchamlashtirilgan."
+      ]
+    },
+    {
+      "id": 57,
+      "sana": "2026-11-03",
+      "sarlavha": "Qayta hisobda noma’lum summa va hajmsiz F2 alohida ko‘rsatiladi",
+      "bandlar": [
+        "Tasdiqlangan F2 summasi noma’lum bo‘lsa, narx farqi nol deb hisoblanmaydi. Hajmi nol, summasi bor qatorlar avtomatik tuzatishga kirmaydi — avval aktlarni tekshirish uchun ajratiladi.",
+        "Qayta hisobdagi pul ko‘rinishi umumiy ustamali va ustamasiz ko‘rsatishga moslashtirildi."
       ]
     },
     {

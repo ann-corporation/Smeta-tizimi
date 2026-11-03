@@ -68,9 +68,18 @@ export function FaktNative() {
   const birinchiYuklash = loading && tree.length === 0;
   const korinishlar = [['tezkor', t('Fakt jurnali')], ['xotira', t('Xotiradan')], ['daraxt', t('Daraxt')]] as const;
   const jurnal = valid && joriy?.id && !birinchiYuklash && !error && (korinish === 'tezkor' || (korinish === 'daraxt' && tree.length === 0));
-  return <Sahifa sarlavha="Bajarilgan ishlar (Fakt)" tavsif="Smeta hajmi va Faktni RZ → BL → RS/MAT/OB daraxtida boshqaring">
+  const amallar = <>
+    {valid && <button onClick={() => navigate(`/admin/holat/${obyektId}${workspace.scopeSearch(obyektId)}`)} className="fz-btn">{t('LRVga qaytish')}</button>}
+    {valid && <button onClick={() => void yuklash()} disabled={loading || yangilanmoqda || saving} className="fz-btn"><RefreshCw size={14} className={yangilanmoqda ? 'animate-spin' : undefined}/> {t('Yangilash')}</button>}
+    {valid && <button disabled={otmoqda} onClick={() => void f2gaOt()} className="fz-btn fz-btn--primary">{t('F2 tayyorlash →')}</button>}
+    {yangilanmoqda && <span role="status" className="text-[11px] text-text-mute">{t('Yangilanmoqda…')}</span>}
+    {valid && <div className="ml-auto flex items-center gap-0.5 rounded-[var(--radius-sm)] border border-border bg-surface-2 p-0.5" role="group" aria-label={t('Fakt ko‘rinishi')}>
+      {korinishlar.map(([k, l]) => <button key={k} aria-pressed={korinish === k} onClick={() => setKorinish(k)} className={`fz-btn fz-btn--sm ${korinish === k ? 'border-transparent bg-accent/15 text-text' : 'fz-btn--ghost'}`}>{l}</button>)}
+    </div>}
+  </>;
+  return <Sahifa sarlavha="Bajarilgan ishlar (Fakt)" tavsif="Smeta hajmi va Faktni RZ → BL → RS/MAT/OB daraxtida boshqaring" amallar={workspace.isProvider && valid ? amallar : undefined}>
     <div className="flex h-full min-h-0 flex-col gap-3">
-      <section className="fz-card flex flex-wrap items-end gap-2 p-3">
+      {!workspace.isProvider && <section className="fz-card flex flex-wrap items-end gap-2 p-3">
         <label className="min-w-[260px] flex-1 text-[12px] font-medium text-text-dim">{t('Obyekt')}
           <select aria-label={t('Obyekt')} value={valid ? obyektId : ''} onChange={e => { const o = obyektlar.find(x => x.id === Number(e.target.value)); if (workspace.isProvider) workspace.setObjectId(o?.id ?? null); else setParams(o ? { obyekt: String(o.id) } : {}); }} className="input mt-1.5 block h-9 w-full px-2 text-[13px] text-text">
             <option value="">{t('-- obyektni tanlang --')}</option>
@@ -78,14 +87,8 @@ export function FaktNative() {
             <ObyektOptionlari obyektlar={obyektlar} />
           </select>
         </label>
-        {valid && <button onClick={() => navigate(`/admin/holat/${obyektId}${workspace.scopeSearch(obyektId)}`)} className="fz-btn">{t('LRVga qaytish')}</button>}
-        {valid && <button onClick={() => void yuklash()} disabled={loading || yangilanmoqda || saving} className="fz-btn"><RefreshCw size={14} className={yangilanmoqda ? 'animate-spin' : undefined}/> {t('Yangilash')}</button>}
-        {valid && <button disabled={otmoqda} onClick={() => void f2gaOt()} className="fz-btn fz-btn--primary">{t('F2 tayyorlash →')}</button>}
-        {yangilanmoqda && <span role="status" className="text-[11px] text-text-mute">{t('Yangilanmoqda…')}</span>}
-        {valid && <div className="ml-auto flex items-center gap-0.5 rounded-[var(--radius-sm)] border border-border bg-surface-2 p-0.5" role="group" aria-label={t('Fakt ko‘rinishi')}>
-          {korinishlar.map(([k, l]) => <button key={k} aria-pressed={korinish === k} onClick={() => setKorinish(k)} className={`fz-btn fz-btn--sm ${korinish === k ? 'border-transparent bg-accent/15 text-text' : 'fz-btn--ghost'}`}>{l}</button>)}
-        </div>}
-      </section>
+        {amallar}
+      </section>}
       {valid && korinish === 'daraxt' && !birinchiYuklash && !error && tree.length > 0 && <section className="fz-card flex flex-wrap items-end gap-3 p-3" aria-label={t('Fakt markirovka boshqaruvi')}>
         <span className="text-[12px] text-text-dim"><b className="text-text">{t('Smeta')}:</b> {smetaJami.toLocaleString('ru-RU')} · <b className="text-text">{t('Fakt')}:</b> {faktJami.toLocaleString('ru-RU')}</span>
         <label className="min-w-[220px] text-[12px] font-medium text-text-dim">{t('Markirovka bo‘yicha 100%')}
