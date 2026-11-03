@@ -3250,7 +3250,9 @@
         "frontend/src/admin/sahifalar/BossDashboard.tsx (PR3: boshqaruv markazi)",
         "frontend/src/components/rahbar-panel/RahbarMarkaz.tsx",
         "frontend/src/lib/rahbar-panel/markaz.ts",
-        "frontend/src/i18n/lugat/qism/rahbar-markaz.json"
+        "frontend/src/i18n/lugat/qism/rahbar-markaz.json",
+        "frontend/src/components/rahbar-panel/RahbarTahlil.tsx (PR4)",
+        "frontend/src/lib/rahbar-panel/eksport.ts (PR4)"
       ],
       "depends_on": [],
       "must_read": [

@@ -206,5 +206,69 @@
   "ta": {
     "ru": "шт.",
     "en": "pcs"
+  },
+  "F2 / smeta": {
+    "ru": "Ф2 / смета",
+    "en": "F2 / estimate"
+  },
+  "Haqiqiy xarajat": {
+    "ru": "Фактические затраты",
+    "en": "Actual cost"
+  },
+  "Haqiqiy xarajat (sklad kirim narxi, 1C prixod, ish haqi) tizimga hali kiritilmagan — shu ustun to‘ladi.": {
+    "ru": "Фактические затраты (цена прихода склада, приход 1С, зарплата) ещё не введены — колонка заполнится после ввода.",
+    "en": "Actual cost (stock receipt price, 1C receipts, wages) not entered yet — this column will fill in."
+  },
+  "Kim qancha fakt / F2 kiritgani va kechikkan vazifalar (mindmap mas’ullari) — keyingi bosqichda ulanadi.": {
+    "ru": "Кто сколько ввёл факта / Ф2 и просроченные задачи (ответственные в mindmap) — подключится на следующем этапе.",
+    "en": "Who entered how much fact / F2 and overdue tasks (mindmap owners) — connected in the next stage."
+  },
+  "Obyekt paneli": {
+    "ru": "Панель объекта",
+    "en": "Object panel"
+  },
+  "Obyekt paneli yuklanmadi.": {
+    "ru": "Панель объекта не загрузилась.",
+    "en": "Object panel failed to load."
+  },
+  "Obyekt sahifasini ochish": {
+    "ru": "Открыть страницу объекта",
+    "en": "Open object page"
+  },
+  "Resurs (to‘g‘ri xarajat)": {
+    "ru": "Ресурс (прямые затраты)",
+    "en": "Resource (direct cost)"
+  },
+  "Smeta (shartnoma qismi)": {
+    "ru": "Смета (часть договора)",
+    "en": "Estimate (contract part)"
+  },
+  "Subpudrat qatorlari hali belgilanmagan. Smeta qatorini «subpudrat» deb belgilasangiz (kontragent bilan), u bu yerda ustamasiz ko‘rinadi.": {
+    "ru": "Строки субподряда ещё не отмечены. Отметьте строку сметы как «субподряд» (с контрагентом) — она появится здесь без накруток.",
+    "en": "No subcontract rows marked yet. Mark an estimate row as «subcontract» (with counterparty) and it appears here without markup."
+  },
+  "Subpudratchilar": {
+    "ru": "Субподрядчики",
+    "en": "Subcontractors"
+  },
+  "Tahlil": {
+    "ru": "Анализ",
+    "en": "Analysis"
+  },
+  "Yetkazuvchilar": {
+    "ru": "Поставщики",
+    "en": "Suppliers"
+  },
+  "Yetkazuvchilar bo‘yicha kirim (C11 sklad) va to‘lovlar tizimga ulangach shu yerda: kirim · to‘langan · qarz.": {
+    "ru": "Когда приходы по поставщикам (склад C11) и оплаты будут подключены — здесь: приход · оплачено · долг.",
+    "en": "Once supplier receipts (C11 stock) and payments are connected — here: received · paid · owed."
+  },
+  "chel-soat / mash-soat": {
+    "ru": "чел.-ч / маш.-ч",
+    "en": "labour-h / machine-h"
+  },
+  "▸ obyekt paneli": {
+    "ru": "▸ панель объекта",
+    "en": "▸ object panel"
   }
 }
