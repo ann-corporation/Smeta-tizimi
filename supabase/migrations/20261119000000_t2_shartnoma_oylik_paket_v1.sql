@@ -98,8 +98,9 @@ begin
   insert into public.t2_shartnoma_oylik_paket(kompaniya_id, shartnoma_id, oy, versiya, holat, manifest, hujjat_id, zip_sha256, zip_olcham, kim_actor_id, operation_id)
   values (p_kompaniya_id, p_shartnoma_id, v_oy, v_ver, 'topshirildi', p_manifest || jsonb_build_object('iz', v_iz), p_hujjat_id, p_zip_sha256, p_zip_olcham, p_actor_id, p_operation_id)
   returning id, vaqt into v_id, v_vaqt;
-  perform public.t2_audit_yoz(p_kompaniya_id, 'shartnoma_oylik_paket', 'shartnoma', p_shartnoma_id,
-    format('oy=%s versiya=%s fayl=%s', p_oy, v_ver, jsonb_array_length(p_manifest->'fayllar')), 'actor:' || p_actor_id, null);
+  -- 4-parametr obyekt_id (FK t2_obyekt) — shartnoma emas; shartnoma tafsilotda.
+  perform public.t2_audit_yoz(p_kompaniya_id, 'shartnoma_oylik_paket', 'shartnoma', null,
+    format('shartnoma=%s oy=%s versiya=%s fayl=%s', p_shartnoma_id, p_oy, v_ver, jsonb_array_length(p_manifest->'fayllar')), 'actor:' || p_actor_id, null);
   v_res := jsonb_build_object('ok', true, 'id', v_id, 'versiya', v_ver, 'vaqt', v_vaqt, 'oy', p_oy, 'obyekt_soni', jsonb_array_length(v_iz));
   insert into public.t2_onboarding_command_log(operation_id, actor_id, command, natija) values (p_operation_id, p_actor_id, 't2_shartnoma_oylik_paket_saqla_v1', v_res);
   return v_res;
