@@ -23,6 +23,8 @@ import { QiymatUchlik } from '../../umumiy/ui/QiymatUchlik';
 import { PortfelSummaJuft } from '../../umumiy/ui/PortfelSummaJuft';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { useRahbarPanel, type RahbarPanel } from '../../api/t2-rahbar-panel';
+import { DavrTanlov, DiqqatRoyxati, ObyektlarMatritsa, PulOqimi, RahbarKartalar, TasdiqNavbati } from '../../components/rahbar-panel/RahbarMarkaz';
+import { davrOraligi, type DavrTur } from '../../lib/rahbar-panel/markaz';
 import { paketUchligi, type SummaPaket } from '../../lib/summa-paket';
 import { ustamasizUchlik } from '../../lib/ustamali-summa';
 import type { TafsilQism } from '../../lib/summa-tafsilot';
@@ -236,7 +238,8 @@ function Obyektlar({ e, onAsos, ph }: { e: BossExecutive; onAsos: (objectId: num
 
 function Portfolio({ data }: { data: Dashboard }) {
   const e = trustedExecutive(data);
-  const rp = useRahbarPanel(data.kompaniya.kompaniya_id);
+  const [davr, setDavr] = useState<DavrTur>('hammasi');
+  const rp = useRahbarPanel(data.kompaniya.kompaniya_id, davrOraligi(davr));
   const ph: PanelHolat = { panel: rp.data, yuklanmoqda: rp.isPending && rp.fetchStatus !== 'idle' };
   const [reports, setReports] = useState(false);
   const [reportObject, setReportObject] = useState<number | undefined>();
@@ -247,8 +250,32 @@ function Portfolio({ data }: { data: Dashboard }) {
     requestAnimationFrame(() => document.getElementById('boss-reports')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
   const toggleReports = () => { setReportObject(undefined); setReportProject(undefined); setReports(!reports); };
+  // Markaz bo'limlari faqat to'liq javob bilan (eski/qisman javob — faqat avvalgi bo'limlar).
+  const markaz = rp.data && rp.data.kartalar?.tolandi && Array.isArray(rp.data.pul_oqimi?.oylar) && Array.isArray(rp.data.diqqat) ? rp.data : null;
+  const obyektNomi = (id: number | null) => rp.data?.obyektlar.find((o) => o.obyekt_id === id)?.nom ?? (id != null ? `#${id}` : t('Kompaniya'));
   return <>
-    <Xulosa data={data} e={e} ph={ph} />
+    {/* Boshqaruv markazi (issue #195 §1–§5): server paketi — bitta manba. */}
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <h2 className="fz-card__title">{t('Boshqaruv markazi')}</h2>
+      <DavrTanlov qiymat={davr} onChange={setDavr} />
+    </div>
+    {rp.isError && <div role="alert" className="fz-note fz-note--danger"><AlertTriangle aria-hidden="true" /><span>{t('Boshqaruv markazi yuklanmadi.')}</span>
+      <button type="button" className="fz-btn fz-btn--sm ml-auto" onClick={() => void rp.refetch()}>{t('Qayta urinish')}</button></div>}
+    {ph.yuklanmoqda && !rp.data && <Skelet qatorlar={3} />}
+    {markaz && <>
+      <RahbarKartalar p={markaz} />
+      <PulOqimi p={markaz} />
+      <div className="grid gap-4 xl:grid-cols-2">
+        <DiqqatRoyxati diqqat={markaz.diqqat} />
+        <TasdiqNavbati royxat={markaz.tasdiq_kutmoqda} obyektNomi={obyektNomi} />
+      </div>
+      <ObyektlarMatritsa p={markaz} />
+    </>}
+
+    <details className="fz-card">
+      <summary className="fz-card__head cursor-pointer font-semibold">{t('Avvalgi xulosa (portfel modeli)')}</summary>
+      <div className="fz-card__body"><Xulosa data={data} e={e} ph={ph} /></div>
+    </details>
 
     <MindmapSlot kompaniyaId={data.kompaniya.kompaniya_id} />
     {e && <div className="grid gap-4 xl:grid-cols-2">
