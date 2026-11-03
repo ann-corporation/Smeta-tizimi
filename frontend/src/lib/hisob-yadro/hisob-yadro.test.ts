@@ -239,6 +239,19 @@ describe('ko‘rinishlar (Construct uslubi)', () => {
     expect(k.yaxlitQator).toBe(1000);
     expect(k.summalar.МАТ).toBe(1000);
   });
+  it('F2 ko‘rinishida svod ichidagi ЧЕЛ/МАШ yaxlit emas (ustama oladi), МАТ yaxlit qoladi; smeta ko‘rinishi o‘zgarmaydi', () => {
+    const qs = [q({ id: 1, kat: 'ЧЕЛ', f2Summa: 1000 }), q({ id: 2, kat: 'МАШ', f2Summa: 200 }), q({ id: 3, kat: 'ОБ', f2Summa: 500 })];
+    const yx = new Set([1, 2, 3]);
+    const f2 = korinishKesim(qs, 'f2', { yaxlitIdlar: yx });
+    expect(f2.summalar.ЧЕЛ).toBe(1000);
+    expect(f2.summalar.МАШ).toBe(200);
+    expect(f2.yaxlitQator).toBe(500);
+    const qor = korinishKesim(qs, 'f2_qoralama', { yaxlitIdlar: yx });
+    expect(qor.summalar.ЧЕЛ ?? 0).toBe(0); // f2QoralamaSumma berilmagan — summa noma'lum, lekin yaxlit sanalmaydi
+    const sm = korinishKesim(qs.map((x) => ({ ...x, smetaHajm: 1, narx: x.f2Summa })), 'smeta', { yaxlitIdlar: yx });
+    expect(sm.summalar.ЧЕЛ).toBeUndefined();
+    expect(sm.yaxlitQator).toBe(1700);
+  });
 });
 
 describe('ko‘rib chiqish tuzatishlari (NULL ≠ 0, ВСЕГО kodi)', () => {

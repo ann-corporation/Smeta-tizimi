@@ -44,14 +44,14 @@ export function NakopitelniyKpi({ jami, qatorlar, truncated, obyektId, kompaniya
     const barglar = qatorlar.filter((q) => !BARG_EMAS.has(q.tur));
     const daraxt = qatorlar.map((q) => ({ id: q.qator_id, ota_id: q.ota_id }));
     // Svod bo'limlari eksport bilan bir xil: smeta/fakt — yaxlit × (ko'rinish / smeta); F2 — aynan (masshtablanmaydi).
-    const yig = (summa: (q: NakopitelniyQator) => number | null | undefined, sarlavha: number, masshtab = true): KatKesim | null => (korinishKesimi
-      ? korinishKesimi(daraxt, barglar, { id: (q) => q.qator_id, kat: (q) => q.kat, summa, smeta: (q) => q.smeta_summa }, { jami: sarlavha, masshtab })
+    const yig = (summa: (q: NakopitelniyQator) => number | null | undefined, sarlavha: number, masshtab = true, f2 = false): KatKesim | null => (korinishKesimi
+      ? korinishKesimi(daraxt, barglar, { id: (q) => q.qator_id, kat: (q) => q.kat, summa, smeta: (q) => q.smeta_summa }, { jami: sarlavha, masshtab, f2 })
       : katKesimJamiBilan(barglar, (q) => q.kat, summa, sarlavha));
     return {
       smeta: obyektKesim ?? yig((q) => q.smeta_summa, jami.smeta_summa),
       fakt: yig(faktQ, ef.fakt),
-      f2: yig((q) => q.jami_summa, jami.jami_tasdiqlangan_summa, false),
-      joriy: yig((q) => q.joriy_summa, jami.joriy_tasdiqlangan_summa, false),
+      f2: yig((q) => q.jami_summa, jami.jami_tasdiqlangan_summa, false, true),
+      joriy: yig((q) => q.joriy_summa, jami.joriy_tasdiqlangan_summa, false, true),
       // Fakt − tasdiqlangan F2 (qator bo'yicha ayirma) — F2 aynan bo'lgani uchun masshtablanmaydi.
       // Fakt noma'lum — ayirma ham noma'lum (NULL ≠ 0); tasdiqlangan F2 yo'q — 0 (aynan). Yadro `ayirma2`.
       mumkin: yig((q) => { const f = faktQ(q); return f == null ? null : ayirma2(f, q.jami_summa ?? 0); }, ef.mumkin, false),

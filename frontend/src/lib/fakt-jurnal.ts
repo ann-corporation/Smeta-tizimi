@@ -285,7 +285,7 @@ export function bolimSummalari(rows: readonly T2Qator[], states: readonly Jurnal
   }
   for (const [s, l] of elementlar) {
     // F2 — aynan (masshtablanmaydi); qoldiq svod bo'limida = yaxlit − F2 aynan; qolganlari yaxlit × (ko'rinish / smeta).
-    s.kesim = svodKorinishKesimi(rows, l, f, svod, { masshtab: !masshtabsiz.has(s), bolimSmeta, ...(qoldiqlar.has(s) ? { qoldiqF2: f2Of } : {}) });
+    s.kesim = svodKorinishKesimi(rows, l, f, svod, { masshtab: !masshtabsiz.has(s), f2: masshtabsiz.has(s) && !qoldiqlar.has(s), bolimSmeta, ...(qoldiqlar.has(s) ? { qoldiqF2: f2Of } : {}) });
     if (!l.some((e) => e.summa != null && Number.isFinite(e.summa))) { s.ustamasiz = null; continue; }
     s.ustamasiz = yigindi2([katJami(s.kesim.summalar), s.kesim.nomalum, s.kesim.yaxlit?.qqssiz]);
   }
