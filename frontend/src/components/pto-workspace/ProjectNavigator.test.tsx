@@ -6,6 +6,7 @@ import { ProjectNavigator } from './ProjectNavigator';
 import { aggregateFinancials } from './financials';
 import type { ObjectFinancials } from '../../api/t2-object-financials';
 const m = vi.hoisted(() => ({ line: {} as unknown, open: vi.fn(), failed: false, retry: vi.fn(), rows: [] as ObjectFinancials[] }));
+vi.mock('../../api/t2-rahbar-panel', () => ({ useRahbarPanel: () => ({ data: undefined }) }));
 vi.mock('./useLineage', () => ({useCompanyLineage: () => ({data:m.line,isPending:false,error:null,refetch:vi.fn()})}));
 vi.mock('./useMarkupTotals',()=>({useMarkupTotals:()=>({loading:false,failed:false,sum:()=>({known:150,present:1,unknown:1,total:2})})}));
 vi.mock('./useObjectFinancials', () => ({useObjectFinancials: () => ({loading:false,failed:m.failed,retry:m.retry,sum:(ids:number[])=>aggregateFinancials(ids,m.rows)})}));

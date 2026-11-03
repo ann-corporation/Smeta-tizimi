@@ -9,7 +9,10 @@ import { useCompanyLineage } from './useLineage';
 import { useObjectFinancials } from './useObjectFinancials';
 import { FINANCIAL_METRICS, type FinancialMetric, type FinancialTotals } from './financials';
 import { PortfelSummaJuft } from '../../umumiy/ui/PortfelSummaJuft';
-import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
+import { QiymatUchlik, SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
+import { useRahbarPanel } from '../../api/t2-rahbar-panel';
+import { paketUchligi, type SummaPaket } from '../../lib/summa-paket';
+import { paketlarJami } from '../../lib/summa-tafsilot';
 import { KatTaqsimot, LoyihaStack, ProgressQadam, type StackQator } from './ObyektGrafik';
 
 const financialLabels: Record<FinancialMetric, string> = { smeta: 'Smeta', fakt: 'Fakt', f2: 'Tasdiqlangan F2', ostatka: 'Ostatka' };
@@ -55,6 +58,9 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
 }) {
   const { data: line, isPending, error, refetch } = useCompanyLineage(companyId);
   const financials = useObjectFinancials(companyId, objects);
+  /** Fakt va F2 uchligi — server paketi (rahbar paneli); panel o‘qilmasa ustamasiz yorlig‘i bilan eski ko‘rinish. */
+  const rp = useRahbarPanel(companyId);
+  const paketlar = useMemo(() => new Map((rp.data?.obyektlar ?? []).map(o => [o.obyekt_id, { fakt: o.fakt, f2: o.f2 }] as const)), [rp.data]);
   const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState('');
   const summarize = useMemo(() => makeSummarizer(objects), [objects]);
@@ -89,6 +95,12 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
       <PortfelSummaJuft obyektlar={objectIds.map(obyektId => ({ obyektId, shartnomaId: sid ?? null }))} ustamasiz={agg.present === 0 ? null : agg.known} />
       {agg.unknown > 0 && <span className="mt-1 block text-[11px] font-normal text-text-mute">{t('narxsiz resurslar summaga kirmagan — Narxlar bo‘limida')}</span>}
     </>;
+    if ((metric === 'fakt' || metric === 'f2') && paketlar.size > 0) {
+      const pk: (SummaPaket | null)[] = objectIds.map(id => paketlar.get(id)?.[metric] ?? null);
+      const j = paketlarJami(pk);
+      if (j.q.qqsBilan != null) return <QiymatUchlik q={j.q} kichik className="items-end text-right" yorliq={metric === 'fakt' ? t('Fakt, QQS bilan') : t('F2, QQS bilan')} nomalumSoni={j.nomalumSoni}
+        qismlar={objectIds.map(id => ({ kalit: String(id), nom: objects.find(o => o.id === id)?.nom ?? ('#' + id), q: paketUchligi(paketlar.get(id)?.[metric] ?? null) }))} />;
+    }
     return <><Value value={agg} money /><SummaYorliq tur="ustamasiz" /></>;
   };
   const stackQatorlar: StackQator[] = projectId === undefined && !contractRaw
@@ -131,7 +143,7 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
       </div>
     </div>}
     {!financials.loading && !financials.failed && stackQatorlar.length > 0 && <LoyihaStack qatorlar={stackQatorlar} />}
-    <p className="text-[11px] text-text-dim">{t('Smeta: katta raqam — QQS bilan; ostida ustamali (QQS siz) va to‘g‘ri xarajat. Fakt, F2 va Ostatka — to‘g‘ri xarajat (ustamasiz): bu ro‘yxatda kategoriya kesimi yo‘q.')}</p>
+    <p className="text-[11px] text-text-dim">{t('Smeta, Fakt va F2: katta raqam — QQS bilan; ostida ustamali (QQS siz) va to‘g‘ri xarajat (▸ kesim va hisob — tarkibi). Ostatka — faqat to‘g‘ri xarajat (ustamasiz): kategoriya kesimi yo‘q. Fakt/F2 server paketi o‘qilmasa ham ustamasiz yorlig‘i bilan ko‘rsatiladi.')}</p>
     {technicalDetails(ids, projectId === undefined ? t('Barcha loyihalar') : contract?.nom ?? projectName)}
     {financials.failed && <p role="status" className="fz-note fz-note--warn">{t('Moliyaviy ko‘rsatkichlar o‘qilmadi.')}<button type="button" className="fz-btn fz-btn--sm ml-2" onClick={financials.retry}>{t('Qayta urinish')}</button></p>}
     <div className="flex flex-wrap items-center gap-3">

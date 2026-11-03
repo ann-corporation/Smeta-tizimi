@@ -3,6 +3,7 @@
  * Javob — `t2_rahbar_panel_v1`: §1 kartalar, §2 pul oqimi, §3 obyektlar matritsasi, §4 diqqat (top-10), §5 tasdiq navbati.
  * Summalar — yagona summa paketi (lib/summa-paket). Kiritilmagan qiymat — null (UI «kiritilmagan»), 0 emas.
  */
+import { useQuery } from '@tanstack/react-query';
 import { vaqtliOqish } from './vaqtli-fetch';
 import { ogirYuklashKut } from './ogir-sorov-navbat';
 import { summaPaket, type SummaPaket } from '../lib/summa-paket';
@@ -118,4 +119,12 @@ export async function rahbarPanelOl(p: {
     if (j.natija.ok !== true) return { ok: false, error: 'Rahbar panelini o‘qib bo‘lmadi.', code: typeof j.natija.code === 'string' ? j.natija.code : undefined };
     return { ok: true, natija: rahbarPanelTozala(j.natija) };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : 'Tarmoq xatosi' }; }
+}
+
+/** Rahbar paneli server paketi (F2 uchligi uchun): xato bo‘lsa `data` undefined — UI «hisoblanmadi» deydi (0 emas). */
+export function useRahbarPanel(kompaniyaId: number | null | undefined) {
+  return useQuery({
+    queryKey: ['rahbar-panel-v1', kompaniyaId], enabled: kompaniyaId != null, staleTime: 60_000, retry: 1,
+    queryFn: async () => { const r = await rahbarPanelOl({ kompaniyaId: kompaniyaId as number }); if (!r.ok) throw new Error(r.error); return r.natija; },
+  });
 }

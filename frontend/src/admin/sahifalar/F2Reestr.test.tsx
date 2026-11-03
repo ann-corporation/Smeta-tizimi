@@ -6,6 +6,7 @@ import { f2ReestrOl, type ReestrMalumot } from '../../api/t2-f2-reestr';
 
 const mocks = vi.hoisted(() => ({ company: { joriy: { id: 17 }, yuklanmoqda: false }, fayllar: vi.fn() }));
 vi.mock('../../umumiy/kontekst/KompaniyaKontekst', () => ({ useKompaniya: () => mocks.company }));
+vi.mock('../../api/t2-rahbar-panel', () => ({ useRahbarPanel: () => ({ data: undefined, isPending: false, fetchStatus: 'idle' }) }));
 vi.mock('../../api/t2-f2-reestr', () => ({
   f2ReestrOl: vi.fn(async () => ({
     obyektlar: [{ id: 140, nom: 'Yevropa oshxonasi', loyiha_id: 7, jami: 5_000_000, narxsiz: 3 }, { id: 150, nom: 'Karting', loyiha_id: null, jami: null, narxsiz: 0 }],

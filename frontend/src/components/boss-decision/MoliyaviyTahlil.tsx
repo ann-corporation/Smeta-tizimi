@@ -96,12 +96,19 @@ export default function MoliyaviyTahlil({ companyId, obyektId, qamrovNomi }: { c
                     </span>
                   ) : (
                     <>
-                      {mlrd(k.qiymat)}
+                      {k.qiymat == null && k.manba !== 'hisoblangan'
+                        ? <span className="text-text-mute" data-testid="moliya-kiritilmagan">{t('kiritilmagan')}</span>
+                        : mlrd(k.qiymat)}
                       {k.tahrir && (
                         <button type="button" className="ml-1" title={t('Qo‘lda kiritish')} aria-label={t('Qo‘lda kiritish')}
                           onClick={() => setTahrir({ kod: k.kod, matn: k.qolda ? String(Math.round((k.qolda.qiymat / 1e9) * 100) / 100) : '', opId: yangiOperationId() })}>
                           <Pencil size={12} />
                         </button>
+                      )}
+                      {k.ustamasiz != null && k.qiymat != null && (
+                        <span className="block text-[10.5px] text-text-mute" data-testid="moliya-uchlik">
+                          {t('ustamali, QQS siz')}: {mlrd(k.ustamali_qqssiz)} · {t('to‘g‘ri xarajat (ustamasiz)')}: {mlrd(k.ustamasiz)}
+                        </span>
                       )}
                     </>
                   )}

@@ -1,0 +1,62 @@
+{
+  "{n} chel-soat": {
+    "ru": "{n} чел.-ч",
+    "en": "{n} labour-hours"
+  },
+  "{n} mash-soat": {
+    "ru": "{n} маш.-ч",
+    "en": "{n} machine-hours"
+  },
+  "mashinist: {s}": {
+    "ru": "машинист: {s}",
+    "en": "operator: {s}"
+  },
+  "Subpudrat / maxsus ishlar": {
+    "ru": "Субподряд / спецработы",
+    "en": "Subcontract / special works"
+  },
+  "Svod («письмо»), ustamasiz": {
+    "ru": "Свод («письмо»), без накруток",
+    "en": "Summary («письмо»), no markup"
+  },
+  "Boshqa ustamasiz (bojxona va h.k.)": {
+    "ru": "Прочее без накруток (таможня и т.п.)",
+    "en": "Other without markup (customs, etc.)"
+  },
+  "Kategoriyasi noma’lum": {
+    "ru": "Категория не известна",
+    "en": "Category unknown"
+  },
+  "▸ kesim (to‘g‘ri xarajat)": {
+    "ru": "▸ разбивка (прямые затраты)",
+    "en": "▸ breakdown (direct cost)"
+  },
+  "{n} ta qator narxsiz — summaga kirmagan": {
+    "ru": "{n} строк без цены — не вошли в сумму",
+    "en": "{n} rows without price — not included"
+  },
+  "kiritilmagan": {
+    "ru": "не введено",
+    "en": "not entered"
+  },
+  "Qayerdan kiritiladi →": {
+    "ru": "Где ввести →",
+    "en": "Where to enter →"
+  },
+  "Farq: smetaning ustamali qiymati hisoblanmadi — solishtirib bo‘lmaydi.": {
+    "ru": "Разница: сумма сметы с накрутками не рассчитана — сравнить нельзя.",
+    "en": "Difference: the estimate with-markup value was not computed — cannot compare."
+  },
+  "Farq (shartnoma − smeta ustamali, QQS siz)": {
+    "ru": "Разница (договор − смета с накрутками, без НДС)",
+    "en": "Difference (contract − estimate with markup, excl. VAT)"
+  },
+  "Smeta qiymatini qo‘yish (ustamali + QQS)": {
+    "ru": "Подставить стоимость сметы (с накрутками + НДС)",
+    "en": "Use estimate value (with markup + VAT)"
+  },
+  "Xarajat pastdagi «Xarajat kiritish» bo‘limida kiritiladi": {
+    "ru": "Расходы вводятся ниже, в разделе «Ввод расходов»",
+    "en": "Expenses are entered below, in «Enter expenses»"
+  }
+}
