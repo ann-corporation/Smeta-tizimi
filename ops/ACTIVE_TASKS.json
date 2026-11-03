@@ -59,7 +59,6 @@
       ],
       "production_write_allowed": false,
       "note": "PR217 D3a aligned to exact main; shared signed/null core, optional f2_summa_yoq transport; no push, SQL extension and final D3b integration owned by parent L0. Parent bounded extension: packet null fixture/test wording, one optional-field comment, quantity-only precision helper and fail-closed missing zero-amount guard with own regressions; Obsidian note logged by parent."
->>>>>>> 67d556c241bb8303da54c2a1b56f166500ccc321
     },
     {
       "id": "PTO-RECONCILIATION-20261026",
