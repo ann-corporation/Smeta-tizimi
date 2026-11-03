@@ -6,10 +6,10 @@ import assert from 'node:assert/strict';
 const runtime = process.env.PGLITE_DIR;
 const { PGlite } = await import(runtime ? pathToFileURL(resolve(runtime,'dist/index.js')).href : '@electric-sql/pglite');
 const db = new PGlite();
-const migration = new URL('../migrations/20261031181105_t2_obyekt_paket_muhr_v1.sql',import.meta.url);
-const rollback = new URL('../migrations/20261031181105_t2_obyekt_paket_muhr_v1.rollback.sql',import.meta.url);
-const extension = new URL('../migrations/20261103123741_t2_obyekt_paket_f2_summa_yoq_v1.sql',import.meta.url);
-const extensionRollback = new URL('../migrations/20261103123741_t2_obyekt_paket_f2_summa_yoq_v1.rollback.sql',import.meta.url);
+const migration = new URL('../migrations/20261122000000_t2_obyekt_paket_muhr_v1.sql',import.meta.url);
+const rollback = new URL('../migrations/20261122000000_t2_obyekt_paket_muhr_v1.rollback.sql',import.meta.url);
+const extension = new URL('../migrations/20261122000100_t2_obyekt_paket_f2_summa_yoq_v1.sql',import.meta.url);
+const extensionRollback = new URL('../migrations/20261122000100_t2_obyekt_paket_f2_summa_yoq_v1.rollback.sql',import.meta.url);
 let checks=0;
 try {
   await db.exec(`
@@ -47,7 +47,13 @@ try {
   await db.exec('create table t2_kompaniya(id bigint primary key); insert into t2_kompaniya values(8),(9)');
   const podvalMigration=await readFile(new URL('../migrations/20261121000000_t2_akt_podval_v1.sql',import.meta.url),'utf8');
   await db.exec(podvalMigration.slice(podvalMigration.indexOf('create table if not exists'),podvalMigration.indexOf('create index if not exists')));
-  const sql=await readFile(migration,'utf8'); await db.exec(sql);
+  const sql=await readFile(migration,'utf8');
+  await db.exec('begin');
+  await db.exec(sql);
+  assert.notEqual((await db.query("select to_regprocedure('t2_obyekt_paket_muhr_v1(bigint,bigint)') p")).rows[0].p,null); checks++;
+  await db.exec('rollback');
+  assert.equal((await db.query("select to_regprocedure('t2_obyekt_paket_muhr_v1(bigint,bigint)') p")).rows[0].p,null); checks++;
+  await db.exec(sql);
   const hash=async()=> (await db.query('select t2_obyekt_paket_muhr_v1(4,7) h')).rows[0].h;
   const changed=async(q)=>{const before=await hash(); await db.exec(q); assert.notEqual(await hash(),before);checks++;};
   const first=await hash(); assert.match(first,/^W\/"t2-paket-1-[a-f0-9]{32}"$/); checks++;
@@ -115,7 +121,13 @@ try {
   await db.exec(await readFile(new URL('../migrations/20261116400000_t2_obyekt_paket_v1.sql',import.meta.url),'utf8'));
   const definition=async()=> (await db.query("select pg_get_functiondef('t2_obyekt_paket_v1(bigint,bigint)'::regprocedure) d")).rows[0].d;
   const previousDefinition=await definition();
-  await changed(await readFile(extension,'utf8')); // literal definition change invalidates existing cache
+  const extensionSql=await readFile(extension,'utf8');
+  await db.exec('begin');
+  await db.exec(extensionSql);
+  assert.match(await definition(),/f2_summa_yoq/); checks++;
+  await db.exec('rollback');
+  assert.equal(await definition(),previousDefinition); checks++;
+  await changed(extensionSql); // literal definition change invalidates existing cache
   const view=async()=> (await db.query('select f2_hajm,f2_summa,f2_summa_nomalum,f2_summa_yoq,fakt_summa from t2_qator_holat where id=10')).rows[0];
   const packet=async()=> (await db.query('select t2_obyekt_paket_etag_v1(4,7) j')).rows[0].j;
   assert.equal((await view()).f2_summa_yoq,1); checks++;
@@ -189,7 +201,7 @@ try {
     create function t2_require_permission_v2(k bigint,a bigint,p text) returns void language sql stable as $$select$$;`);
   // Canonical reader projection from exact main, with synthetic permission guard.
   await db.exec(podvalMigration.slice(podvalMigration.indexOf('create or replace function public.t2_akt_podval_ol_v1('),podvalMigration.indexOf('-- Backfill nomzodlari:')));
-  await db.exec(await readFile(new URL('../migrations/20261103123741_t2_obyekt_paket_f2_summa_yoq_v1.acceptance.sql',import.meta.url),'utf8')); checks++;
+  await db.exec(await readFile(new URL('../migrations/20261122000100_t2_obyekt_paket_f2_summa_yoq_v1.acceptance.sql',import.meta.url),'utf8')); checks++;
   await db.exec("insert into t2_obyekt values(6,8,'EMPTY_SYNTHETIC')");
   const empty=(await db.query('select t2_obyekt_paket_v1(6,7) j')).rows[0].j;
   assert.deepEqual(empty.h.f2_summa_yoq,[]); assert.deepEqual(empty.meta.akt_podval,[]); checks++;

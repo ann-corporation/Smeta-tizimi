@@ -1,6 +1,5 @@
 -- Restore exact pre-extension package definition; no business data change.
 -- Roll back ONLY this extension before rolling back D2; conservative podval ETag invalidation remains.
-begin;
 create or replace function public.t2_obyekt_paket_v1(p_obyekt_id bigint, p_actor_id bigint)
 returns json
 language plpgsql stable security definer
@@ -118,5 +117,3 @@ comment on function public.t2_obyekt_paket_v1(bigint, bigint) is
 
 revoke all on function public.t2_obyekt_paket_v1(bigint, bigint) from public, anon, authenticated;
 grant execute on function public.t2_obyekt_paket_v1(bigint, bigint) to service_role;
-
-commit;

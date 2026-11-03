@@ -1,9 +1,8 @@
 -- D2/PR2 additive package fields; literal full definition, no runtime function patch.
 -- SELECTIVE APPLY by L0 AFTER 20261116400000, 20261117400000 and 20261121000000.
--- CLI timestamp precedes future-dated dependencies; never apply all pending blindly.
+-- Version follows declared dependencies; no transaction control so L0 can dry-run and rollback.
 -- h.f2_summa_yoq = exact view counter (NULL is not zero); meta.akt_podval = existing read projection.
 -- D2 hashes full package definition and independent akt_podval sources. No business writers.
-begin;
 create or replace function public.t2_obyekt_paket_v1(p_obyekt_id bigint, p_actor_id bigint)
 returns json
 language plpgsql stable security definer
@@ -130,5 +129,3 @@ comment on function public.t2_obyekt_paket_v1(bigint, bigint) is
 
 revoke all on function public.t2_obyekt_paket_v1(bigint, bigint) from public, anon, authenticated;
 grant execute on function public.t2_obyekt_paket_v1(bigint, bigint) to service_role;
-
-commit;

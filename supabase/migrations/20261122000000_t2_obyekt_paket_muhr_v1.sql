@@ -1,6 +1,5 @@
 -- D2: triggersiz muhr. Mavjud biznes yozuvchilari va formulalar o'zgarmaydi.
 -- Faqat fayl; production apply Claude tomonidan alohida reviewdan keyin.
-begin;
 create or replace function public.t2_obyekt_paket_muhr_v1(p_obyekt_id bigint, p_actor_id bigint)
 returns text language plpgsql stable security definer
 set search_path to 'public', 'pg_temp'
@@ -85,4 +84,3 @@ revoke all on function public.t2_obyekt_paket_muhr_v1(bigint,bigint) from public
 revoke all on function public.t2_obyekt_paket_etag_v1(bigint,bigint) from public,anon,authenticated;
 grant execute on function public.t2_obyekt_paket_muhr_v1(bigint,bigint) to service_role;
 grant execute on function public.t2_obyekt_paket_etag_v1(bigint,bigint) to service_role;
-commit;

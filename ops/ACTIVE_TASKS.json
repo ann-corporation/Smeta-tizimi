@@ -19,9 +19,9 @@
         "frontend/src/api/t2-obyekt-paket.ts",
         "frontend/src/api/t2-obyekt-paket.etag.test.ts",
         "ops/handoff/DESKTOP_D2_ETAG_20261031.md",
-        "supabase/migrations/20261103123741_t2_obyekt_paket_f2_summa_yoq_v1.sql",
-        "supabase/migrations/20261103123741_t2_obyekt_paket_f2_summa_yoq_v1.rollback.sql",
-        "supabase/migrations/20261103123741_t2_obyekt_paket_f2_summa_yoq_v1.acceptance.sql"
+        "supabase/migrations/20261122000100_t2_obyekt_paket_f2_summa_yoq_v1.sql",
+        "supabase/migrations/20261122000100_t2_obyekt_paket_f2_summa_yoq_v1.rollback.sql",
+        "supabase/migrations/20261122000100_t2_obyekt_paket_f2_summa_yoq_v1.acceptance.sql"
       ],
       "depends_on": [],
       "must_read": [
