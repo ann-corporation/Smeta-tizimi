@@ -63,7 +63,7 @@ export function pereraschetBloklari(
     if (summa == null) b.nomalum++; else b.jami += summa;
     bloklar.set(manba, b);
   }
-  for (const b of bloklar.values()) b.jami = Math.round(b.jami * 100) / 100; // faqat ko'rsatish; pul jami yadro `f2Baholash` dan
+  for (const b of bloklar.values()) b.jami = yaxlit2(b.jami); // faqat ko'rsatish; pul jami yadro f2Baholash dan
   return [...bloklar.values()];
 }
 
@@ -95,4 +95,15 @@ export function pereraschetBaholash(
     yangi: yangiBlok ? f2Baholash([yangiBlok], smeta) : null,
     sof: f2Baholash([...eskiBloklar, ...(yangiBlok ? [yangiBlok] : [])], smeta),
   };
+}
+
+/** Excel hujjat (`f2Hujjat.eskiBloklar`) uchun eski bloklar: har biri o'z podvali (nk) bilan; podval yo'q - nk null (smeta podvali). */
+export function eskiBloklarHujjat(
+  bloklar: readonly PereraschetBlok[], nkOl: (manbaAktId: number) => AktPodvalNk | null,
+): Array<{ nom: string; nk: Partial<Record<string, number>> | null; qatorlar: Array<{ id: number; kod: string | null; nom: string; birlik: string | null; kat: string | null; tur: string; hajm: number | null; narx: number | null; summa: number | null }> }> {
+  return bloklar.map((b) => {
+    const nk = nkOl(b.manbaAktId);
+    const toza = nk ? Object.fromEntries(Object.entries(nk).filter(([, v]) => v != null && Number.isFinite(Number(v))).map(([k, v]) => [k, Number(v)])) : null;
+    return { nom: b.raqam || String(b.manbaAktId), nk: toza, qatorlar: b.qatorlar.map((q) => ({ id: q.qatorId, kod: q.kod, nom: q.nom, birlik: q.birlik, kat: q.kat, tur: q.tur, hajm: q.hajm, narx: q.narx, summa: q.summa })) };
+  });
 }

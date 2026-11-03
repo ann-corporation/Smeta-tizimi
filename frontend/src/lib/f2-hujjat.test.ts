@@ -121,3 +121,31 @@ describe('Ф-2 hujjati (LRV_PLUS asosiy ustunlari, tirik formulalar)', () => {
     }
   });
 });
+
+describe('Ф-2 pereraschet: eski F2 bloklari (minus, o‘z podvali) + yangi qatorlar (egasi 2026-11-03)', () => {
+  const eskiQatorlar = [
+    { id: 1, kod: 'E1', nom: 'mehnat', birlik: 'чел.-ч', kat: 'ЧЕЛ', tur: 'rs', hajm: -10, narx: 100, summa: -1000 },
+    { id: 2, kod: 'E2', nom: 'material', birlik: 'шт', kat: 'МАТ', tur: 'mat', hajm: -5, narx: 200, summa: -1000 },
+  ];
+  const NK_AKT = { ...NAMUNA_NAKRUTKA, ПРОЧИЕ_ПОДРЯДЧИК: 10, НДС: 12 };
+
+  it('faqat storno (yangi qator yo‘q): blok, jami va sof jami yoziladi, yiqilmaydi', () => {
+    const r = f2Hujjat([], [], { obyektNom: 'Объект', davr: '2026-10', raqam: '535-С', eskiBloklar: [{ nom: '535', nk: NK_AKT, qatorlar: eskiQatorlar }] });
+    const t = hujjatTekshir(r.bytes);
+    expect(t.matnlar.some((s) => s.toUpperCase().includes('СТОРНО Ф-2 № 535'))).toBe(true);
+    expect(t.matnlar.some((s) => s.toUpperCase().includes('ИТОГО ПЕРЕРАСЧЕТ'))).toBe(true);
+    expect(t.taqiqlangan).toEqual([]);
+    expect(t.dollarFormulalar).toEqual([]);
+  });
+
+  it('ikki eski F2 + yangi qatorlar: har blok alohida, yangi blok smeta podvali bilan', () => {
+    const { b, q } = tayyorla();
+    const r = f2Hujjat(b, q, { obyektNom: 'Объект', davr: '2026-10', raqam: '1', ndsFoiz: 12, nakrutka: NAMUNA_NAKRUTKA,
+      eskiBloklar: [{ nom: '535', nk: NK_AKT, qatorlar: eskiQatorlar }, { nom: '536', nk: null, qatorlar: eskiQatorlar.slice(0, 1) }] });
+    const t = hujjatTekshir(r.bytes);
+    expect(t.matnlar.some((s) => s.toUpperCase().includes('СТОРНО Ф-2 № 535'))).toBe(true);
+    expect(t.matnlar.some((s) => s.toUpperCase().includes('СТОРНО Ф-2 № 536'))).toBe(true);
+    expect(t.matnlar.some((s) => s.toUpperCase().includes('ИТОГО ПЕРЕРАСЧЕТ'))).toBe(true);
+    expect(r.jami).toBeCloseTo(150026606.32, 2);
+  });
+});
