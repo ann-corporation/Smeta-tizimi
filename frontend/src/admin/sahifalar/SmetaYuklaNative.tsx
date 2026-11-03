@@ -2245,7 +2245,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       )}
       {objectId && (book ? nakrutkaOqish : alreadyHasSmeta) && (
         <SmetaPodvalNakrutka kompaniyaId={companyId} obyektId={Number(objectId)} oqish={book ? nakrutkaOqish : null} fayl={rawFile.current?.name}
-          avtoSaqla={!!book && !!result && smetaOldinBor.current === false} />
+          avtoSaqla={!!book && !!result && smetaOldinBor.current != null} mavjudSmeta={smetaOldinBor.current === true} />
       )}
       {book && cols && !result && (
         <>
