@@ -25,7 +25,7 @@ afterEach(cleanup);
 it('oylik paket: yig‘iq; ochilganda eng yangi oy, qatorlar, havolalar, jami, tekshiruvlar va sukut tanlov (tasdiqlanganlar)', async () => {
   render(<F2OylikPaket kompaniyaId={17} malumot={malumot} tashkilot="NEW TIMES" />);
   expect(screen.queryByText('Yevropa oshxonasi')).toBeNull();
-  fireEvent.click(screen.getByText('Oylik F2 paketini tayyorlash'));
+  fireEvent.click(screen.getByText('Oylik paketni tayyorlash'));
   expect((await screen.findAllByText('Yevropa oshxonasi')).length).toBeGreaterThanOrEqual(2);
   expect((screen.getByLabelText('Hisobot oyi') as HTMLInputElement).value).toBe('2026-09');
   // Avgust F2 si bu oyda ko'rinmaydi.

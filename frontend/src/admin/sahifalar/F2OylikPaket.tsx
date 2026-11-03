@@ -15,7 +15,16 @@ import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { forma3SotuvdanXlsx } from '../../lib/forma3-export';
 import { hujjatFaylNomi } from '../../lib/hujjat-yozuvchi';
-import { oylikReestrXlsx, paketTarkibiMatni, paketZip } from '../../lib/f2-oylik-paket/eksport';
+import { oylikReestrXlsx, paketTarkibiMatni, paketZip, tarkibBaytlari, TARKIB_FAYL_NOMI } from '../../lib/f2-oylik-paket/eksport';
+import { sverkaXlsx } from '../../lib/nakopitelniy-vedomost-export';
+import {
+  barchaShartnomalar, manifestQur, shartnomaObyektlari, shartnomaPaketYigish, sha256Hex, tayyorgarlikHisobla,
+  type Forma3Holat, type KirishFayl, type M29Holat,
+} from '../../lib/f2-oylik-paket/shartnoma';
+import type { SvodShartnoma } from '../../lib/nakopitelniy-svod';
+import { oyFaktSoni, oyM29Holati, oylikPaketniTopshir, paketZipniSaqla, yangiTopshirishId } from '../../api/t2-shartnoma-oylik-paket';
+import { TayyorgarlikJadvali } from '../../components/oylik-paket/TayyorgarlikJadvali';
+import { PaketArxivi } from '../../components/oylik-paket/PaketArxivi';
 import {
   NDS_FOIZ, aktExcel, aktHisob, mavjudOylar, oyAktlari, oyF3lar, oyJami, oyKaliti, paketFayllari, paketTekshiruvlari, sukutTanlov,
   type OyObyekt, type PaketAkt, type PaketFayl, type PaketFaylTuri, type Tekshiruv, type TekshiruvKodi,
@@ -68,6 +77,15 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot }: { kompaniyaId: number; m
   const [f3Xabar, setF3Xabar] = useState('');
   const obyektKesh = useRef(new Map<string, Promise<OyObyekt>>());
   const versiya = useRef(0);
+  // Shartnoma rejimi (egasi 2026-11-03): bir shartnoma x bir oy. Shartnomalar bo'lmasa — eski loyiha rejimi.
+  const shartnomalarRoyxati = useMemo(() => barchaShartnomalar(malumot), [malumot]);
+  const [rejim, setRejim] = useState<'shartnoma' | 'loyiha'>(() => (barchaShartnomalar(malumot).length ? 'shartnoma' : 'loyiha'));
+  const [faktSoni, setFaktSoni] = useState<Map<number, number | null>>(new Map());
+  const [m29, setM29] = useState<Map<number, M29Holat>>(new Map());
+  const [svod, setSvod] = useState<SvodShartnoma[] | null | undefined>(undefined);
+  const [arxivVer, setArxivVer] = useState(0);
+  const topshirishId = useRef<string | null>(null);
+  const sh = rejim === 'shartnoma';
 
   useEffect(() => { obyektKesh.current = new Map(); setHisoblar(new Map()); }, [kompaniyaId, malumot]);
 
@@ -80,9 +98,12 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot }: { kompaniyaId: number; m
     }
     return [...m].map(([id, nom]) => ({ id, nom }));
   }, [malumot, loyihaId]);
-  useEffect(() => { if (shartnomaId != null && !shartnomalar.some((s) => s.id === shartnomaId)) setShartnomaId(null); }, [shartnomalar, shartnomaId]);
+  useEffect(() => { if (!sh && shartnomaId != null && !shartnomalar.some((s) => s.id === shartnomaId)) setShartnomaId(null); }, [shartnomalar, shartnomaId, sh]);
+  useEffect(() => { if (sh && shartnomaId == null && shartnomalarRoyxati.length) setShartnomaId(shartnomalarRoyxati[0].id); }, [sh, shartnomaId, shartnomalarRoyxati]);
+  const tanlanganShartnoma = sh && shartnomaId != null ? shartnomalarRoyxati.find((s) => s.id === shartnomaId) ?? null : null;
+  const shObyektlar = useMemo(() => (sh && shartnomaId != null ? shartnomaObyektlari(malumot, shartnomaId) : []), [malumot, sh, shartnomaId]);
 
-  const asos = useMemo(() => oyAktlari(malumot, { oy, loyihaId, shartnomaId }), [malumot, oy, loyihaId, shartnomaId]);
+  const asos = useMemo(() => oyAktlari(malumot, { oy, loyihaId: sh ? null : loyihaId, shartnomaId }), [malumot, oy, loyihaId, shartnomaId, sh]);
   const rows: PaketAkt[] = useMemo(() => asos.map((r) => {
     const h = hisoblar.get(r.akt.id);
     return h ? { ...r, moliya: h.moliya, uchastkalar: h.uchastkalar, moliyaXato: h.xato } : r;
@@ -132,6 +153,116 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot }: { kompaniyaId: number; m
   const jamiHammasi = useMemo(() => oyJami(rows), [rows]);
   const jamiTanlangan = useMemo(() => oyJami(rows, tanlov), [rows, tanlov]);
   const tanlanganlar = rows.filter((r) => tanlov.has(r.akt.id));
+
+  // Tayyorgarlik uchun: shartnoma obyektlarining fakt aktlari soni, M-29 holati va shartnoma svodi (Forma-3 / akt-sverka). Hammasi faqat o'qish.
+  const shObyektKalit = shObyektlar.map((o) => o.id).join(',');
+  useEffect(() => {
+    if (!sh || !shObyektlar.length) return;
+    let faol = true;
+    setFaktSoni(new Map()); setM29(new Map());
+    void (async () => {
+      for (const o of shObyektlar) {
+        const [f, m] = await Promise.all([oyFaktSoni(o.id, oy).catch(() => null), oyM29Holati(o.id, oy)]);
+        if (!faol) return;
+        setFaktSoni((x) => new Map(x).set(o.id, f)); setM29((x) => new Map(x).set(o.id, m));
+      }
+    })();
+    return () => { faol = false; };
+  }, [sh, shObyektKalit, oy]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!sh) return;
+    let faol = true;
+    setSvod(undefined);
+    void f3SvodOl(kompaniyaId).then((s) => { if (faol) setSvod(s); }, () => { if (faol) setSvod(null); });
+    return () => { faol = false; };
+  }, [sh, kompaniyaId, arxivVer]);
+  const f3Holat: Forma3Holat | null = useMemo(() => {
+    if (!sh || shartnomaId == null || !svod) return null;
+    const f = oyF3lar(svod, new Set([shartnomaId]), oy);
+    return { tayyor: f.tayyor.length, qoralama: f.qoralama };
+  }, [sh, shartnomaId, svod, oy]);
+  const tayyorgarlik = useMemo(() => (sh ? tayyorgarlikHisobla({ obyektlar: shObyektlar, aktlar: rows, faktSoni, m29, forma3: f3Holat, tekshiruvlar }) : null),
+    [sh, shObyektlar, rows, faktSoni, m29, f3Holat, tekshiruvlar]);
+
+  /** Shartnoma paketini yig'adi (hujjatlar token bilan; xatolar paketni to'xtatmaydi - ПАКЕТ_СОСТАВ.txt ga yoziladi). */
+  async function shartnomaPaketiniYigish() {
+    if (!tanlanganShartnoma) return null;
+    const otkazilgan: string[] = [];
+    const obyektFayllari = new Map<number, KirishFayl[]>();
+    const ildiz: KirishFayl[] = [];
+    for (const r of tanlanganlar) {
+      const belgi = `${r.obyektNom} · F2 № ${r.akt.raqam ?? '—'}`;
+      try {
+        const x = await f2Fayl(r);
+        if ('fayl' in x) obyektFayllari.set(r.akt.obyekt_id, [...(obyektFayllari.get(r.akt.obyekt_id) ?? []), { nom: x.fayl.nom, bytes: x.fayl.bytes, tur: 'f2', obyektId: r.akt.obyekt_id }]);
+        else otkazilgan.push(`${belgi}: ${x.xato}`);
+      } catch { otkazilgan.push(`${belgi}: ${t('Ф-2 hujjatini yaratib bo‘lmadi.')}`); }
+    }
+    const reestr = oylikReestrXlsx(tanlanganlar, { oy, tashkilot, loyiha: null });
+    const rt = await hujjatTokenBilan({ kompaniyaId, bytes: reestr.bytes, hujjat: 'F2_OYLIK_REESTR', sabab: `Реестр и свод Ф-2 · договор № ${tanlanganShartnoma.raqam} · ${oy}` }, () => undefined);
+    if (rt.ok) ildiz.push({ nom: reestr.faylNomi, bytes: reestr.bytes, tur: 'reestr' }); else otkazilgan.push(`${t('Oylik reestr')}: ${rt.xabar}`);
+    const svodOl = svod ?? await f3SvodOl(kompaniyaId);
+    const shSvod = svodOl?.find((x) => x.id === tanlanganShartnoma.id) ?? null;
+    if (!shSvod) otkazilgan.push(`Forma-3 / ${t('Akt-sverka')}: ${t('shartnoma svodi o‘qilmadi')}`);
+    else {
+      for (const { sh: s, f3: x } of oyF3lar(svodOl!, new Set([tanlanganShartnoma.id]), oy).tayyor) {
+        const h = forma3SotuvdanXlsx(s, x.id, { tashkilot });
+        if (!h) continue;
+        const q = await hujjatTokenBilan({ kompaniyaId, bytes: h.bytes, hujjat: 'F3', sabab: `Форма №3 · № ${s.raqam} · ${x.sotuv_sana}` }, () => undefined);
+        if (q.ok) ildiz.push({ nom: h.faylNomi, bytes: h.bytes, tur: 'forma3' }); else otkazilgan.push(`Forma-3 № ${x.raqam ?? x.id}: ${q.xabar}`);
+      }
+      const [yy, mm] = oy.split('-').map(Number);
+      const oyOxiri = new Date(Date.UTC(yy, mm, 0)).toISOString().slice(0, 10);
+      const sv = sverkaXlsx(shSvod, { tashkilot, gacha: oyOxiri });
+      const st = await hujjatTokenBilan({ kompaniyaId, bytes: sv.bytes, hujjat: 'AKT_SVERKA', sabab: `Акт сверки · договор № ${shSvod.raqam} · ${oy}` }, () => undefined);
+      if (st.ok) ildiz.push({ nom: sv.faylNomi, bytes: sv.bytes, tur: 'sverka' }); else otkazilgan.push(`${t('Akt-sverka')}: ${st.xabar}`);
+    }
+    const jamlangan = shartnomaPaketYigish({ obyektlar: shObyektlar, obyektFayllari, shartnomaFayllari: ildiz });
+    if (!jamlangan.length) return { bosh: true as const, otkazilgan };
+    const tarkib = paketTarkibiMatni({ oy, fayllar: jamlangan, tekshiruvlar: tekshiruvlar.filter((x) => tanlov.has(x.aktId)), otkazilgan, shartnoma: { raqam: tanlanganShartnoma.raqam, nom: tanlanganShartnoma.nom } });
+    const manifest = await manifestQur({ oy, shartnoma: tanlanganShartnoma, fayllar: jamlangan, tarkib: { yol: TARKIB_FAYL_NOMI, bytes: tarkibBaytlari(tarkib) },
+      aktlar: tanlanganlar, obyektlar: shObyektlar, tayyorgarlik: tayyorgarlik?.qatorlar ?? [], kirmadi: otkazilgan });
+    const zip = paketZip(jamlangan, tarkib);
+    const zipNom = hujjatFaylNomi({ obyekt: tashkilot ?? undefined, hujjat: `ПАКЕТ_${tanlanganShartnoma.raqam}`, davr: oy, kengaytma: 'zip' });
+    manifest.zip = { sha256: await sha256Hex(zip), olcham: zip.byteLength, nom: zipNom };
+    return { bosh: false as const, zip, zipNom, manifest, otkazilgan };
+  }
+
+  async function shartnomaPaketiniYuklash() {
+    if (band || !tanlanganShartnoma || !tanlanganlar.length) return;
+    setBand('paket');
+    try {
+      const x = await shartnomaPaketiniYigish();
+      if (!x || x.bosh) { toast(t('Paketga hech narsa kirmadi'), 'danger'); return; }
+      downloadBlob(x.zip, x.zipNom);
+      toast(x.otkazilgan.length ? t('Paket yuklandi; {n} ta hujjat kirmadi (ZIP ichidagi ПАКЕТ_СОСТАВ.txt ga qarang)', { n: x.otkazilgan.length }) : t('Paket yuklandi'), x.otkazilgan.length ? 'warn' : 'ok');
+    } catch { toast(t('Paketni yig‘ib bo‘lmadi.'), 'danger'); }
+    finally { setBand(null); }
+  }
+
+  /** «Topshirildi»: paketni yig'ib kanonik saqlashga yuklaydi va yangi versiya yozadi (hech narsani bloklamaydi - faqat ogohlantiradi). */
+  async function topshirish() {
+    if (band || !tanlanganShartnoma || !tanlanganlar.length) return;
+    setBand('topshir');
+    topshirishId.current ??= yangiTopshirishId();
+    try {
+      const x = await shartnomaPaketiniYigish();
+      if (!x || x.bosh) { toast(t('Paketga hech narsa kirmadi'), 'danger'); return; }
+      // ZIP o'zi hisoblangan katak sanamaydi (ichidagi hujjatlar yuqorida to'langan); bir xil bayt qayta yuklansa - bepul.
+      const tk = await hujjatTokenBilan({ kompaniyaId, bytes: x.zip, hujjat: 'SHARTNOMA_OYLIK_PAKET', sabab: `Пакет по договору № ${tanlanganShartnoma.raqam} · ${oy}`, yacheykalar: 0 }, () => undefined);
+      if (!tk.ok) { toast(tk.xabar, 'danger'); return; }
+      const loyihalar = new Set(shObyektlar.map((o) => o.loyiha_id));
+      const sk = await paketZipniSaqla({ kompaniyaId, loyihaId: loyihalar.size === 1 ? [...loyihalar][0] : null, zip: x.zip, fayl: x.zipNom, oy, operationId: yangiTopshirishId() });
+      if (!sk.ok) { toast(`${t('ZIP ni saqlab bo‘lmadi')}: ${sk.xato}`, 'danger'); return; }
+      const r = await oylikPaketniTopshir({ kompaniyaId, shartnomaId: tanlanganShartnoma.id, oy, manifest: x.manifest, hujjatId: sk.hujjatId,
+        zipSha256: x.manifest.zip?.sha256 ?? null, zipOlcham: x.manifest.zip?.olcham ?? null, operationId: topshirishId.current });
+      if (!r.ok) { toast(r.error || r.xabar || r.code || t('Topshirib bo‘lmadi.'), 'danger'); return; }
+      topshirishId.current = null;
+      setArxivVer((n) => n + 1);
+      toast(t('Paket topshirildi (v{n})', { n: String(r.versiya ?? '') }), x.otkazilgan.length ? 'warn' : 'ok');
+    } catch { toast(t('Topshirib bo‘lmadi.'), 'danger'); }
+    finally { setBand(null); }
+  }
 
   function belgila(id: number, on: boolean) { setTanlov((s) => { const x = new Set(s); if (on) x.add(id); else x.delete(id); return x; }); }
 
@@ -204,25 +335,33 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot }: { kompaniyaId: number; m
   }
 
   const sarlavha = 'px-2 py-2';
-  return <section className="karta flex flex-col gap-3 p-3 text-[12px]" aria-label={t('Oylik F2 paketi')}>
+  return <section className="karta flex flex-col gap-3 p-3 text-[12px]" aria-label={t('Shartnoma oylik paketi')}>
     <div className="flex flex-wrap items-end gap-3">
-      <div className="min-w-[160px]"><p className="text-[13px] font-semibold text-text">{t('Oylik F2 paketi')}</p>
+      <div className="min-w-[160px]"><p className="text-[13px] font-semibold text-text">{t('Shartnoma oylik paketi')}</p>
         <p className="text-[11px] text-text-mute">{t('Summalar NDS siz; NDS {n}% oxirida alohida', { n: NDS_FOIZ })}</p></div>
+      {shartnomalarRoyxati.length > 0 && <label>{t('Rejim')}
+        <select aria-label={t('Rejim')} value={rejim} onChange={(e) => { const v = e.target.value as 'shartnoma' | 'loyiha'; setRejim(v); if (v === 'shartnoma') setLoyihaId(null); else setShartnomaId(null); }} className="input mt-1 block h-8">
+          <option value="shartnoma">{t('Shartnoma bo‘yicha')}</option><option value="loyiha">{t('Loyiha bo‘yicha')}</option></select></label>}
       <label>{t('Oy')}
         <input type="month" aria-label={t('Hisobot oyi')} value={oy} onChange={(e) => { if (oyKaliti(e.target.value)) setOy(e.target.value.slice(0, 7)); }} className="input mt-1 block h-8" /></label>
-      <label>{t('Loyiha')}
+      {!sh && <label>{t('Loyiha')}
         <select aria-label={t('Loyiha')} value={loyihaId ?? ''} onChange={(e) => setLoyihaId(e.target.value ? Number(e.target.value) : null)} className="input mt-1 block h-8 max-w-[220px]">
-          <option value="">{t('Hammasi')}</option>{loyihalar.map((l) => <option key={l.id} value={l.id}>{l.nom}</option>)}</select></label>
+          <option value="">{t('Hammasi')}</option>{loyihalar.map((l) => <option key={l.id} value={l.id}>{l.nom}</option>)}</select></label>}
       <label>{t('Shartnoma')}
         <select aria-label={t('Shartnoma')} value={shartnomaId ?? ''} onChange={(e) => setShartnomaId(e.target.value ? Number(e.target.value) : null)} className="input mt-1 block h-8 max-w-[220px]">
-          <option value="">{t('Hammasi')}</option>{shartnomalar.map((s) => <option key={s.id} value={s.id}>{s.nom}</option>)}</select></label>
+          {!sh && <option value="">{t('Hammasi')}</option>}
+          {(sh ? shartnomalarRoyxati.map((s) => ({ id: s.id, nom: `№ ${s.raqam}${s.nom ? ` · ${s.nom}` : ''}` })) : shartnomalar).map((s) => <option key={s.id} value={s.id}>{s.nom}</option>)}</select></label>
       <span className="ml-auto flex flex-wrap items-center gap-2">
         <a className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[12px]" href={`/admin/f2?davr=${encodeURIComponent(oy)}`}><Upload size={14} /> {t('+ F2 yuklash')}</a>
-        <button type="button" onClick={() => void paketniYukla()} disabled={!!band || !tanlanganlar.length}
+        <button type="button" onClick={() => void (sh ? shartnomaPaketiniYuklash() : paketniYukla())} disabled={!!band || !tanlanganlar.length}
           className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-[12px] font-semibold text-[color:var(--on-accent)] disabled:opacity-50">
           <Download size={14} /> {band === 'paket' ? t('Paket yig‘ilmoqda…') : t('Paketni yuklab olish ({n})', { n: tanlanganlar.length })}</button>
+        {sh && <button type="button" onClick={() => void topshirish()} disabled={!!band || !tanlanganlar.length || !tanlanganShartnoma}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-accent px-3 py-2 text-[12px] font-semibold text-accent disabled:opacity-50">
+          {band === 'topshir' ? t('Topshirilmoqda…') : t('Topshirildi')}</button>}
       </span>
     </div>
+    {sh && tayyorgarlik && <TayyorgarlikJadvali qatorlar={tayyorgarlik.qatorlar} />}
 
     {f3Xabar && <p role="status" className="text-[11.5px] text-text-dim">{f3Xabar}</p>}
     {hisoblanmoqda && <p role="status" className="text-[11.5px] text-text-mute">{t('Summalar (ustamali, NDS) hisoblanmoqda…')}</p>}
@@ -278,6 +417,7 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot }: { kompaniyaId: number; m
         {tekshiruvlar.map((x, i) => <li key={i}><b>{x.obyektNom}</b> · F2 № {x.raqam ?? '—'}: {t(TEKSHIRUV_MATNI[x.kod])}{tafsilotMatni(x) ? ` (${tafsilotMatni(x)})` : ''}</li>)}
       </ul>
     </div>}
+    {sh && <PaketArxivi kompaniyaId={kompaniyaId} shartnomaId={shartnomaId} yangilash={arxivVer} />}
   </section>;
 }
 
@@ -288,10 +428,10 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot }: { kompaniyaId: number; m
 export function F2OylikPaket(p: { kompaniyaId: number; malumot: ReestrMalumot; tashkilot: string | null }) {
   const [ochiq, setOchiq] = useState(() => { try { return new URLSearchParams(window.location.search).get('paket') === '1'; } catch { return false; } });
   if (!ochiq) {
-    return <section className="karta flex flex-wrap items-center gap-3 p-3 text-[12px]" aria-label={t('Oylik F2 paketi')}>
-      <div className="min-w-[200px] flex-1"><p className="text-[13px] font-semibold text-text">{t('Oylik F2 paketi')}</p>
+    return <section className="karta flex flex-wrap items-center gap-3 p-3 text-[12px]" aria-label={t('Shartnoma oylik paketi')}>
+      <div className="min-w-[200px] flex-1"><p className="text-[13px] font-semibold text-text">{t('Shartnoma oylik paketi')}</p>
         <p className="text-[11px] text-text-mute">{t('Oy bo‘yicha barcha F2 lar, oy jami, tekshiruvlar va bitta ZIP paket')}</p></div>
-      <button type="button" onClick={() => setOchiq(true)} className="rounded-lg bg-accent px-3 py-2 text-[12px] font-semibold text-[color:var(--on-accent)]">{t('Oylik F2 paketini tayyorlash')}</button>
+      <button type="button" onClick={() => setOchiq(true)} className="rounded-lg bg-accent px-3 py-2 text-[12px] font-semibold text-[color:var(--on-accent)]">{t('Oylik paketni tayyorlash')}</button>
     </section>;
   }
   return <div className="flex flex-col gap-1">

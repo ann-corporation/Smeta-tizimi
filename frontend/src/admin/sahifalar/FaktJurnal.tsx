@@ -20,6 +20,7 @@ import { FaktEgizakOyna } from './FaktEgizakOyna';
 import { egizakObyektlar } from '../../lib/f2-moslash-v3/egizak';
 import { faktdanKiritmalar } from '../../lib/fakt-egizak';
 import { sbFaktYoz } from '../../api/t2-fakt';
+import { topshirilganPaketOgohi } from '../../lib/f2-oylik-paket/ogoh';
 import { bolimIshlariYigish, faktF2Bekor, faktF2Reja, obyektF2Reja, type EskiF2Akt, type TenglashKontekst, type TenglashOyna } from '../../lib/fakt-f2-tenglash';
 import { sbF2TasdiqNarxlar } from '../../api/t2-f2-narx';
 import { FaktF2Tenglash } from './FaktF2Tenglash';
@@ -365,6 +366,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
           return false;
         }
       }
+      await topshirilganPaketOgohi(obyektId, sana); // topshirilgan oylik paket bo'lsa - ogohlantirish (saqlashni to'smaydi)
       const r = await sbFaktYoz({ obyektId, sana, operationId: operationId.current, qatorlar: paket.qatorlar, izoh: `Fakt jurnali: ${paket.qatorlar.length} qator` });
       if (!r.ok) { toast(r.error || r.xabar || 'Fakt saqlanmadi.', 'danger'); return false; }
       const ids = new Set(paket.qatorlar.map((x) => x.qator_id));

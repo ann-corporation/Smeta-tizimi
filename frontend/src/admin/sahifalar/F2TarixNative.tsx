@@ -1,4 +1,5 @@
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
+import { topshirilganPaketOgohi } from '../../lib/f2-oylik-paket/ogoh';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Ban, CheckCircle2, Download, Eye, FileText, Pencil, RefreshCw, RotateCcw, ShieldAlert, Upload } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -194,6 +195,7 @@ export function F2TarixNative() {
       const current = live.ok ? live.qatorlar?.[0] : null;
       if (!current) { toast('Hujjatning joriy holatini tekshirib bo‘lmadi. Sahifani yangilang.', 'danger'); return; }
       const target = statuses.at(-1);
+      if (target === 'approved') await topshirilganPaketOgohi(obyektId, String((akt as { oy?: string | null }).oy ?? '')); // tasdiqlash topshirilgan paketga kirmaydi - ogohlantirish
       /* Korporativ rejim: faqat keyingi BITTA bosqich (yuborish / tekshirish / tasdiqlash) — har birini boshqa xodim bajaradi. */
       const plan = birQadam
         ? (target != null && f2KeyingiQadam(current.lifecycle_status) === target ? [target] : null)

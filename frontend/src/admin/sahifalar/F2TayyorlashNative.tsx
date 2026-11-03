@@ -1,4 +1,5 @@
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { topshirilganPaketOgohi } from '../../lib/f2-oylik-paket/ogoh';
 import { TayyorlanganF2lar } from './TayyorlanganF2lar';
 import { F2AiYordamchi } from './F2AiYordamchi';
 import { tkmBirlikmi, tkmTaklif } from '../../lib/f2-moslash-v3/tkm';
@@ -457,6 +458,7 @@ export function F2TayyorlashNative() {
   /** ?akt=ID rejimi: yangi akt yaratilmaydi - mavjud qoralama qatorlari almashtiriladi (akt id/raqam saqlanadi). */
   const aktniYangila = async () => {
     if (!akt || aktKorish || !joriy?.id || saving) return;
+    await topshirilganPaketOgohi(obyektId, oy); // topshirilgan oylik paket bo'lsa - ogohlantirish (saqlashni to'smaydi)
     setSaving(true);
     try {
       /* Сторно (eski F2) bloki hujjat BOSHIDA aynan o'zi bilan qayta yuboriladi, yangi qatorlar ular ostida (qatorlar to'liq almashtiriladi). */
@@ -480,6 +482,7 @@ export function F2TayyorlashNative() {
     if (aktId != null) { await aktniYangila(); return; }
     const ogoh = dublikatlar.filter((m) => m.daraja === 'ogoh');
     if (ogoh.length && !await tasdiqSora(ogoh.map((m) => m.matn).join('\n\n') + '\n\n' + t('Baribir yozasizmi?'))) return;
+    await topshirilganPaketOgohi(obyektId, oy); // topshirilgan oylik paket bo'lsa - ogohlantirish (saqlashni to'smaydi)
     setSaving(true);
     try {
       // Token (egasi 2026-10-02): F2 qoralama — "f2_qoralama"; server xato bersa token avtomatik qaytadi.
