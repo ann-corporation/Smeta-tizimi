@@ -4,7 +4,7 @@
  * AI byudjeti va hisobi): model vositalar bilan real ma'lumotni o'qiydi, amallarni faqat TAKLIF qiladi; har yozuv —
  * foydalanuvchi «Bajarish» ni bosgandan keyin mavjud yozish yo'li orqali (kiritma + Saqlash, mavjud oynalar).
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Sparkles, X } from 'lucide-react';
 import { t } from '../../../i18n/til';
 import { ModelChip } from '../ModelChip';
@@ -22,10 +22,12 @@ const xatoMatn = (code: string, message?: string) => t(XATO[code] ?? message ?? 
 
 type Taklif = SahifaAmal & { ogoh: string | null; tanlangan: boolean };
 
-export function AiYordamchiPanel({ kompaniyaId, vositalar, saqlashKalit, sarlavha, namunalar }: {
+export function AiYordamchiPanel({ kompaniyaId, vositalar, saqlashKalit, sarlavha, namunalar, qoshimcha }: {
   kompaniyaId: number; vositalar: SahifaVositalar;
   /** Suhbat shu kalit bilan (masalan obyekt bo'yicha) brauzerda saqlanadi — faqat qulaylik. */
   saqlashKalit: string; sarlavha: string; namunalar: readonly string[];
+  /** Sahifaga xos qo'shimcha bo'lim (masalan F2: «Matndan reja») — suhbat ustida, panel ichida. */
+  qoshimcha?: ReactNode;
 }) {
   const [ochiq, setOchiq] = useState(false);
   const kalit = `ai-yordamchi:${saqlashKalit}`;
@@ -84,6 +86,7 @@ export function AiYordamchiPanel({ kompaniyaId, vositalar, saqlashKalit, sarlavh
       <button type="button" onClick={() => setOchiq(false)} aria-label={t('Yopish')} className="rounded p-1 text-text-dim hover:bg-surface-3 hover:text-text"><X size={16} /></button>
     </div>
     <ModelChip profil="smeta_ai" kompaniyaId={kompaniyaId} />
+    {qoshimcha}
     <div className="karta min-h-[140px] flex-1 space-y-2 overflow-auto p-2" role="log" aria-live="polite">
       {!xabarlar.length && <div className="space-y-1.5 text-[12.5px] text-text-dim">
         <p className="font-medium text-text">{t('Savol bering yoki vazifa yozing — AI sahifadagi real ma’lumotni o‘qib, tushuntiradi va amal taklif qiladi. Yozuv faqat siz «Bajarish» va «Saqlash» ni bosganingizda.')}</p>

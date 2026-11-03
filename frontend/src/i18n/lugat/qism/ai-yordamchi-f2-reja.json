@@ -1,0 +1,11 @@
+{
+  "Matndan reja (shu oy nima bajarildi)": { "ru": "План из текста (что выполнено в этом месяце)", "en": "Plan from text (what was done this month)" },
+  "AI hozir javob bermadi — «AI siz» tugmasi bilan davom eting.": { "ru": "ИИ сейчас не ответил — продолжите кнопкой «Без ИИ».", "en": "AI did not respond — continue with the “No AI” button." },
+  "Shu oy nima bajarildi?": { "ru": "Что выполнено в этом месяце?", "en": "What was done this month?" },
+  "masalan: betonlash 120 m3 (Fundamentlar); armatura 5 t": { "ru": "например: бетонирование 120 м3 (Фундаменты); арматура 5 т", "en": "e.g. concreting 120 m3 (Foundations); rebar 5 t" },
+  "Nomzod": { "ru": "Кандидат", "en": "Candidate" },
+  "Reja tuzish": { "ru": "Составить план", "en": "Build plan" },
+  "AI o‘qimoqda…": { "ru": "ИИ читает…", "en": "AI is reading…" },
+  "AI bilan tushunish": { "ru": "Понять с ИИ", "en": "Understand with AI" },
+  "Qoralamaga qo‘shish": { "ru": "Добавить в черновик", "en": "Add to draft" }
+}
