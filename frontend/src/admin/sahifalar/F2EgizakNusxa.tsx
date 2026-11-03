@@ -1,11 +1,12 @@
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { useEffect, useState } from 'react';
-import { sbOqi, type T2Obyekt } from '../../api/supabase';
+import type { T2Obyekt } from '../../api/supabase';
+import { egizakQatorlarOl } from '../../api/t2-egizak';
 import { f2DavomRoyxatOl, type T2F2DavomQator } from '../../api/t2-f2-davom';
 import { f2ServerOl } from '../../lib/f2-ishchi-qoralama';
 import {
-  EGIZAK_USTUNLAR, aslXarita, egizakAktRaqami, boglanishKochir, egizakHolat, egizakOpId, egizakQoshimchaYoz, f2Mosligi, idXarita, qoshimchaReja,
-  type EgizakQator, type KochmaganSabab, type QoshimchaReja,
+  aslXarita, egizakAktRaqami, boglanishKochir, egizakHolat, egizakObyektlar, egizakOpId, egizakQoshimchaYoz, f2Mosligi, idXarita, qoshimchaReja,
+  type KochmaganSabab, type QoshimchaReja,
 } from '../../lib/f2-moslash-v3/egizak';
 import type { F2Indeks, IshJoyi } from '../../lib/f2-moslash-v3/ishJoyi';
 import type { RejaliYaratish, YozilganQator } from '../../lib/f2-moslash-v3/rejali';
@@ -43,11 +44,7 @@ const SABAB: Record<KochmaganSabab, string> = {
   ota: 'ota qatori ko‘chmadi', almashtirilgan: 'almashtirilgan qator topilmadi', hajm: 'hajmi yo‘q', birlik: 'birligi yo‘q',
 };
 
-async function qatorlar(oid: number): Promise<EgizakQator[]> {
-  const r = await sbOqi<EgizakQator>({ jadval: 't2_qator', filtr: `obyekt_id=eq.${oid}`, ustunlar: EGIZAK_USTUNLAR, tartib: 'id.asc', limit: 50000 });
-  if (!r.ok) throw new Error(t('Egizak obyekt ma’lumotlari o‘qilmadi.'));
-  return r.qatorlar ?? [];
-}
+const qatorlar = egizakQatorlarOl;
 
 export function F2EgizakNusxa(p: F2EgizakNusxaProps) {
   const [nomzodlar, setNomzodlar] = useState<T2F2DavomQator[]>([]);
@@ -62,7 +59,7 @@ export function F2EgizakNusxa(p: F2EgizakNusxaProps) {
     let faol = true;
     setNomzodlar([]); setTahlil(null); setRad([]); setIzoh('');
     if (loyiha == null) return () => { faol = false; };
-    const egizak = new Set(p.objects.filter((o) => o.loyiha_id === loyiha && o.id !== p.objectId).map((o) => o.id));
+    const egizak = new Set(egizakObyektlar(p.objects, p.objectId).map((o) => o.id));
     if (!egizak.size) return () => { faol = false; };
     void f2DavomRoyxatOl(p.companyId).then((r) => {
       if (!faol || !r.ok) return;

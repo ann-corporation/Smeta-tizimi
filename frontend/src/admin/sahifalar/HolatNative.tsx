@@ -2,6 +2,7 @@ import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { ContractScopePanel } from '../../components/contract-scope/ContractScopePanel';
 import { ObjectMoneySummary } from '../../components/pto-workspace/ObjectMoneySummary';
 import { ObjectTrail } from '../../components/pto-workspace/ObjectTrail';
+import { ObyektPodvalOgohi } from './SmetaPodvalNakrutka';
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 import { marketReadPrice } from '../../lib/smeta-studio/market-comparison';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -33,6 +34,7 @@ import ResursVedomostNative from './ResursVedomostNative';
 import NarxNazoratNative from './NarxNazoratNative';
 import { OstatkaIstisnoPanel, useOstatkaIstisnolari } from './OstatkaIstisnoPanel';
 import { BajarilmadiPanel } from './BajarilmadiPanel';
+import { ObosnovaniePanel } from './ObosnovaniePanel';
 import { SmetaAnatomiya } from '../../components/smeta-hujjat/SmetaAnatomiya';
 import { SmetaVersiyaFarq, VersiyaAlmashtirilganBelgi } from './SmetaVersiyaFarq';
 import { yaxlitQatorIdlari } from '../../lib/svod-yaxlit';
@@ -368,6 +370,10 @@ export function HolatNative() {
                   <input type="checkbox" checked={slichFaqatFarq} onChange={(e) => setSlichFaqatFarq(e.target.checked)} /> {t('faqat farqi borlar')}
                 </label>)}
               <details className="border-t border-border py-2.5">
+                <summary className="cursor-pointer text-[13px] font-semibold text-text">{t('Bajarilgan, lekin F2 ga chiqmagan ish asosi')}</summary>
+                <div className="mt-2">{joriy?.id != null && <ObosnovaniePanel kompaniyaId={joriy.id} obyektId={obyektId} obyektNomi={obyektNom} loyihaId={selected?.loyiha_id ?? null} obyektlar={obyektlar} qatorlar={daraxtXom} holatlar={holatXom} tomonlar={tomonlar} />}</div>
+              </details>
+              <details className="border-t border-border py-2.5">
                 <summary className="cursor-pointer text-[12.5px] font-medium text-text-dim">{t('Hujjatlardagi imzo va tomonlar')}</summary>
                 <div className="mt-2"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} tafsilot={imzoTafsilot} /></div>
               </details>
@@ -391,6 +397,7 @@ export function HolatNative() {
             <button type="button" className="fz-btn fz-btn--sm fz-btn--primary" onClick={() => setActiveTab('yuklash')}><Upload aria-hidden="true" />{t('Smeta yuklash')}</button>
           </div>
         )}
+        {selected && (selected.qator_soni ?? 0) > 0 && <ObyektPodvalOgohi obyektId={selected.id} />}
         {selected && shartnomaTanlangan && <ObjectMoneySummary object={selected} />}
 
         {validId && <nav aria-label={t('Obyekt ish bo‘limlari')} className="flex flex-wrap items-center gap-x-3 gap-y-2">

@@ -12,6 +12,8 @@
  *     (ПЕРЕРАСЧЕТ) qatorlar — ochiq ogohlantirish, jim tuzatish YO'Q.
  */
 import { kitobAnatomiyasi } from './index';
+import { nakrutkaPodvaliniOqi } from './nakrutka';
+import { aktPodvalYuki, type AktPodvalYuk } from '../akt-podval';
 import { yaxlitAkt, yaxlitVaraqmi } from './f2-yaxlit';
 import { sarlavhaYoli } from './ierarxiya';
 import { kalit, son, xom } from './matn';
@@ -90,6 +92,8 @@ export interface F2Akt {
   ogohlantirishlar: F2Ogohlantirish[];
   /** Anatomiya natijasi (ichki tekshiruv uchun). */
   anatomiya: VaraqAnatomiyasi;
+  /** Hujjatning O'Z podvali (foizlar, isbot bilan) - t2_akt_podval ga yoziladi. null - hujjatda podval topilmadi. */
+  podval?: AktPodvalYuk | null;
 }
 
 // ─── Podval (qo'lda qatorlar) ─────────────────────────────────────────────────
@@ -169,7 +173,10 @@ export function f2AktlarniOqi(kitob: KirishKitob): F2Akt[] {
   // Ishsiz, faqat mustaqil qatorli akt varag'i ham F2 (masalan uskuna/shefmontaj varag'i — egasi 2026-10-23).
   const aktlar = anat.varaqlar.filter((v) => v.rol === 'lrv' && (v.ishlar.length > 0 || (v.mustaqilResurslar?.length ?? 0) > 0));
   // Ishsiz varaq faqat hujjatning o'z jami (ИТОГО ПРЯМЫЕ yoki ВСЕГО) bo'lsa akt — boshqa jadvallar (masalan счёт-фактура) F2 emas.
-  const umumiy = aktlar.map((v) => aktQur(kitob, v)).filter((a) => a.ishlarSoni > 0 || a.jami.pryamye != null || a.jami.vsego != null);
+  const podvalQosh = (a: F2Akt): F2Akt => {
+    try { return { ...a, podval: aktPodvalYuki(nakrutkaPodvaliniOqi(kitob, { varaqlar: [a.varaq] }), a.jami) }; } catch { return { ...a, podval: null }; }
+  };
+  const umumiy = aktlar.map((v) => podvalQosh(aktQur(kitob, v))).filter((a) => a.ishlarSoni > 0 || a.jami.pryamye != null || a.jami.vsego != null);
   if (!yaxlit.size) return umumiy;
   // Varaq tartibi saqlanadi.
   const tartib = new Map(kitob.varaqlar.map((v, i) => [v.nom, i]));
@@ -335,11 +342,15 @@ export function tiyingaYaxlitla(n: number): number {
 export function farqTushuntir(hujjat: number, qatorlar: number, v: VaraqAnatomiyasi, obUstun = 0): string {
   const farq = qatorlar - hujjat;
   const asos = `Hujjatdagi ИТОГО ПРЯМЫЕ ЗАТРАТЫ ${fmt(hujjat)}, qatorlar yig'indisi ${fmt(qatorlar)} — farq ${fmt(farq)}`;
-  const ishPuli = v.ishlar.map((i) => (i.resurslar.length ? i.resurslar.reduce((s, r) => s + (r.summa ?? 0), 0) : (i.summa ?? 0)));
+  // Noma'lum summa 0 emas: bunday qator farqni «tushuntira olmaydi» (null).
+  const nomalumsiz = (xs: Array<number | null | undefined>): number | null => { let s = 0; for (const x of xs) { if (x == null) return null; s += x; } return s; };
+  const ishPuli = v.ishlar.map((i) => (i.resurslar.length ? nomalumsiz(i.resurslar.map((r) => r.summa)) : (i.summa ?? null)));
   const tekshir = (tartib: number[]) => {
     let s = 0;
     for (let n = 0; n < tartib.length && n < 30; n++) {
-      s += ishPuli[tartib[n]];
+      const pul = ishPuli[tartib[n]];
+      if (pul == null) return null;
+      s += pul;
       if (Math.abs(s - farq) <= 1) return tartib.slice(0, n + 1);
     }
     return null;
@@ -348,16 +359,16 @@ export function farqTushuntir(hujjat: number, qatorlar: number, v: VaraqAnatomiy
   // zamena materiali hujjat jamisiga kiritilmagan (Karting СЕТКА). Ish yoki mustaqil MAT/OB bo'lishi mumkin.
   const belgili = [
     ...v.ishlar.map((i, n) => ({ belgi: i.belgi, tartib: i.tartib, kod: i.shifr, nom: i.xom, qator: i.manzil.qator, pul: ishPuli[n] })),
-    ...(v.mustaqilResurslar ?? []).map((r) => ({ belgi: r.belgi, tartib: r.tartib, kod: r.kod, nom: r.xom, qator: r.manzil.qator, pul: r.summa ?? 0 })),
-  ].filter((x) => x.belgi && x.pul !== 0 && Math.abs(x.pul - farq) <= 1);
+    ...(v.mustaqilResurslar ?? []).map((r) => ({ belgi: r.belgi, tartib: r.tartib, kod: r.kod, nom: r.xom, qator: r.manzil.qator, pul: r.summa ?? null })),
+  ].filter((x) => x.belgi && x.pul != null && x.pul !== 0 && Math.abs(x.pul - farq) <= 1);
   if (belgili.length === 1) {
     const i = belgili[0];
     const b = i.belgi === 'zamena' ? 'zamena (~) ' : "qo'shimcha (+) ";
     return `${asos}: farq aynan ${b}${i.tartib ? `${i.tartib}-ish ` : ''}(${i.kod ?? ''}, ${i.qator}-qator) "${i.nom.slice(0, 50)}" summasiga teng — u hujjat formulasiga kirmagan. Qatorlar o'zaro to'g'ri.`;
   }
   // ИТОГО ПРЯМЫЕ ko'p shablonda = ЧЕЛ+МАШ+МАТ; оборудование podvalda alohida qo'shiladi (Turk).
-  const obJami = obUstun || (v.mustaqilResurslar ?? []).filter((r) => r.texnikBelgi?.startsWith('ob')).reduce((s, r) => s + (r.summa ?? 0), 0);
-  if (obJami !== 0 && Math.abs(obJami - farq) <= 1) {
+  const obJami = obUstun || nomalumsiz((v.mustaqilResurslar ?? []).filter((r) => r.texnikBelgi?.startsWith('ob')).map((r) => r.summa));
+  if (obJami != null && obJami !== 0 && Math.abs(obJami - farq) <= 1) {
     return `${asos}: farq aynan оборудование (ОБ) pozitsiyalari yig'indisiga teng — hujjatda ИТОГО ПРЯМЫЕ ЗАТРАТЫ faqat ЧЕЛ+МАШ+МАТ, оборудование podvalda alohida qatorda. Qatorlar o'zaro to'g'ri.`;
   }
   const oxiri = tekshir(v.ishlar.map((_, i) => v.ishlar.length - 1 - i));
@@ -370,13 +381,15 @@ export function farqTushuntir(hujjat: number, qatorlar: number, v: VaraqAnatomiy
   // Podval formulasi diapazoni birinchi (yoki oxirgi) barg qatorlarini tashlab ketgan: SUM(J14:…) —
   // 13-qator kirmagan (Sovg'alar, GAME CLUB). Barg qatorlari hujjat tartibida.
   const barglar = [
-    ...v.ishlar.flatMap((i) => (i.resurslar.length ? i.resurslar.map((r) => ({ qator: r.manzil.qator, nom: r.xom, pul: r.summa ?? 0 })) : [{ qator: i.manzil.qator, nom: i.xom, pul: i.summa ?? 0 }])),
-    ...(v.mustaqilResurslar ?? []).map((r) => ({ qator: r.manzil.qator, nom: r.xom, pul: r.summa ?? 0 })),
+    ...v.ishlar.flatMap((i) => (i.resurslar.length ? i.resurslar.map((r) => ({ qator: r.manzil.qator, nom: r.xom, pul: r.summa ?? null })) : [{ qator: i.manzil.qator, nom: i.xom, pul: i.summa ?? null }])),
+    ...(v.mustaqilResurslar ?? []).map((r) => ({ qator: r.manzil.qator, nom: r.xom, pul: r.summa ?? null })),
   ].sort((a, b) => a.qator - b.qator);
   const chet = (tartib: typeof barglar) => {
     let s = 0;
     for (let n = 0; n < tartib.length && n < 30; n++) {
-      s += tartib[n].pul;
+      const pul = tartib[n].pul;
+      if (pul == null) return null;
+      s += pul;
       if (s !== 0 && Math.abs(s - farq) <= 1) return tartib.slice(0, n + 1);
     }
     return null;

@@ -19,9 +19,24 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
   'object.read': 'Obyektlarni ko‘rish', 'object.write': 'Obyektlarni tahrirlash',
   'document.read': 'Hujjatlarni ko‘rish', 'document.write': 'Hujjatlar bilan ishlash',
   'financial.read': 'Moliyaviy ma’lumotlarni ko‘rish', 'financial.write': 'Moliyaviy ma’lumotlarni tahrirlash',
+  // Ekotizim (E2 §3.1)
+  'procurement.read': 'Xaridlarni ko‘rish', 'procurement.write': 'Zayavka va tender bilan ishlash', 'procurement.approve': 'Xaridni tasdiqlash',
+  'supply.offer': 'Tenderga taklif berish', 'supply.fulfil': 'Buyurtmani bajarish',
+  'logistics.read': 'Yuk va reyslarni ko‘rish', 'logistics.dispatch': 'Reyslarni taqsimlash', 'logistics.trip': 'O‘z reysini bajarish',
+  'warehouse.read': 'Omborni ko‘rish', 'warehouse.write': 'Ombor harakatlarini kiritish', 'warehouse.receive': 'Yukni omborga qabul qilish',
+  'quality.read': 'Sifat nazoratini ko‘rish', 'quality.inspect': 'Tekshiruv o‘tkazish', 'quality.decide': 'Sifat bo‘yicha qaror chiqarish',
+  'design.read': 'Chizmalarni ko‘rish', 'design.write': 'Chizmalar bilan ishlash', 'design.issue': 'Chizmani ishga chiqarish',
+  'hr.read': 'Xodimlarni ko‘rish', 'hr.write': 'Xodimlarni tahrirlash', 'hr.pii.read': 'Xodimlarning shaxsiy ma’lumotlarini ko‘rish',
+  'hr.pii.write': 'Xodimlarning shaxsiy ma’lumotlarini tahrirlash', 'hr.tabel.write': 'Tabel kiritish',
+  'payroll.read': 'Ish haqini ko‘rish', 'payroll.write': 'Ish haqini hisoblash',
+  'machinery.read': 'Texnikani ko‘rish', 'machinery.write': 'Texnikani tahrirlash', 'machinery.log': 'Texnika jurnaliga yozish',
+  'accounting.read': 'Buxgalteriyani ko‘rish', 'accounting.write': 'Buxgalteriya yozuvlarini kiritish', 'accounting.approve': 'To‘lovni tasdiqlash',
+  'self.work.read': 'O‘z topshiriqlarini ko‘rish', 'self.work.write': 'O‘z topshiriqlarini bajarish',
 };
 export const ROLE_LABELS: Record<string, string> = {
   superadmin: 'Superadmin (platforma)', admin: 'Kompaniya administratori', boss: 'Kompaniya rahbari',
   rahbar: 'Kuzatuvchi rahbar', pto: 'PTO muhandisi', prorab: 'Prorab', bugalter: 'Buxgalter',
   buyurtmachi: 'Buyurtmachi', pudratchi: 'Pudratchi', kuzatuvchi: 'Kuzatuvchi',
+  omborchi: 'Omborchi', mexanik: 'Mexanik', kadr: 'Kadrlar xodimi', taminotchi: 'Ta’minotchi', usta: 'Usta',
+  brigadir: 'Brigadir', haydovchi: 'Haydovchi', inspektor: 'Inspektor', loyihachi: 'Loyihachi',
 };

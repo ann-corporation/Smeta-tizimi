@@ -1,9 +1,11 @@
-﻿/**
+/**
  * Yetkazuvchi takliflarini taqqoslash (T2 ta'minot zanjiri). Sof funksiyalar, bazaga tegmaydi.
  * Qoidalar (egasi): narx doim NDS siz; bir mahsulotga bir necha yetkazuvchi narxi -> arifmetik o'rtacha
  * VA foydalanuvchiga xabar; narx o'ylab topilmaydi: narxsiz taklif o'rtachaga/eng yaxshiga kirmaydi, 0 esa haqiqiy 0.
  * Bir yetkazuvchining bir qatordagi bir nechta taklifi - oxirgisi hisoblanadi (har yetkazuvchi bir marta).
  */
+import { yaxlit2 } from '../hisob-yadro';
+
 export type Taklif = {
   yetkazuvchiId: number; yetkazuvchiNom: string;
   /** Birlik narxi, NDS siz. null = yetkazuvchi narx bermagan. */
@@ -32,7 +34,7 @@ export type YetkazuvchiJami = {
   maxMuddatKun: number | null;
 };
 
-const yaxlit = (n: number) => Math.round(n * 100) / 100;
+const yaxlit = yaxlit2;
 const haqiqiyNarx = (n: number | null | undefined): n is number => typeof n === 'number' && Number.isFinite(n) && n >= 0;
 
 /** Har yetkazuvchining oxirgi taklifi (massivda keyingisi yangi). */

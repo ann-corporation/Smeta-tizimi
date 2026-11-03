@@ -57,7 +57,7 @@ export function faktYigindiHisobla(
     if (bajMap.has(r.id) && chiqarilganmi(son(holat.get(r.id)?.smeta_hajm), bajMap.get(r.id))) continue;
     // Fakt summasi — yadro narx qoidasi: tasdiqlangan F2 bor qatorda F2 birlik narxida (hajm yozilganidek, NULL — NULL).
     const h = holat.get(r.id);
-    const fq = faktSummaF2Narxda(son(h?.fakt_hajm), son(h?.f2_hajm), son(h?.f2_summa), son(h?.fakt_summa));
+    const fq = faktSummaF2Narxda(son(h?.fakt_hajm), son(h?.f2_hajm), son(h?.f2_summa), son(h?.fakt_summa), son(h?.f2_summa_yoq));
     if (fq.manba === 'f2' && fq.summa != null) faktF2Narxda++;
     const e = { id: r.id, kat: r.kat ?? null, summa: fq.summa, smeta: son(h?.smeta_summa) };
     faktEl.push(e);

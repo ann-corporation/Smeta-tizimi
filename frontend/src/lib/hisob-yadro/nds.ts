@@ -39,6 +39,11 @@ export function qqsAjratTiyin(jamiTiyin: number, foiz: number): [number, number,
   return [siz, jamiTiyin - siz, jamiTiyin];
 }
 
+/** QQS bilan narxdan (so'mda) QQS siz narx: qqsAjratTiyin orqali (tiyin aniqligida, 2 xonaga). */
+export function qqsSizNarx(bilan: number, foiz: number): number {
+  return qqsAjratTiyin(Math.round(bilan * 100), foiz)[0] / 100;
+}
+
 /** Excel QQS formulasi (kesh — `qqsSumma`): ROUND(asos × foiz / 100, 2). */
 export function qqsFormulasi(asosRef: string, foiz: number | string): string {
   return `ROUND(${asosRef}*${foiz}/100,2)`;

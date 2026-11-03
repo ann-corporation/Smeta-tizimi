@@ -27,7 +27,12 @@ export function son(v: string | number | null | undefined): number | null {
 const y6 = (x: number) => Math.round(x * 1e6) / 1e6;
 /** Postgres numeric bilan bir xil yaxlitlash: avval float shovqinini (…7849999) 6 xonada tozalab,
  *  keyin o'nlik ko'rinishda 2 xonaga (85,085 × 29 421 = 2 503 285,785 → ,79 — server ham ,79). */
-export const pulYaxlit = (x: number): number => { const t = y6(x); return Number(Math.round(Number(`${t}e2`)) + 'e-2'); };
+export const pulYaxlit = (x: number): number => {
+  const t = y6(x);
+  /* Minus hajm ham mumkin: yarmi noldan uzoqqa, ishoraga simmetrik (−2,675 → −2,68), Postgres numeric kabi; −0 bo'lmaydi. */
+  if (t < 0) { const r = -pulYaxlit(-t); return r === 0 ? 0 : r; }
+  return Number(Math.round(Number(`${t}e2`)) + 'e-2');
+};
 
 /** Smeta kategoriyasini aniqlash (sostavdagi kat/tur → ЧЕЛ/МАШ/МАТ/ОБ). */
 export function katAniqla(kat: string | null | undefined, tur?: string | null, birlik?: string | null): Kat {

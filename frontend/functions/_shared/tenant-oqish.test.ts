@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Sess } from './auth';
-import { OQISH_SIYOSATI, oqishQarori, rpcKompaniyasi } from './tenant-oqish';
+import { OQISH_SIYOSATI, filtrXavfsizmi, oqishQarori, rpcKompaniyasi } from './tenant-oqish';
 
 /* Egasi (2026-10-02): "man NTB ning PTO si bo'la turib hech qachon tasodifan ham Discover Invest ning hujjatlarini
  * ko'rishim kerak emas". NTB = 17, Discover Invest = 99 (sinov). Har yo'l — rad yoki NTB bilan cheklangan. */
@@ -70,5 +70,19 @@ describe('O‘qish izolyatsiyasi (NTB ↔ Discover Invest)', () => {
     expect(rpcKompaniyasi(pto(), null)).toEqual({ ok: true, id: NTB });
     expect(rpcKompaniyasi(pto([NTB, 21]), undefined)).toMatchObject({ ok: false, status: 400 });
     expect(rpcKompaniyasi(pto(), DISCOVER)).toMatchObject({ ok: false, status: 403 });
+  });
+});
+
+describe('filtrXavfsizmi — jsonb bitta kalit', () => {
+  it('ustun va jsonb kaliti (storno tekshiruvi) qabul qilinadi', () => {
+    expect(filtrXavfsizmi('obyekt_id=eq.166&raw_snapshot->>stornoOf=eq.535')).toBe(true);
+    expect(filtrXavfsizmi('akt_id=in.(1,2)')).toBe(true);
+  });
+  it('ichma-ich yo\'l, -> operatori, kalitda maxsus belgi rad etiladi', () => {
+    expect(filtrXavfsizmi('raw_snapshot->a->>b=eq.1')).toBe(false);
+    expect(filtrXavfsizmi('raw_snapshot->stornoOf=eq.1')).toBe(false);
+    expect(filtrXavfsizmi("raw_snapshot->>'x'=eq.1")).toBe(false);
+    expect(filtrXavfsizmi('raw_snapshot->>x;drop=eq.1')).toBe(false);
+    expect(filtrXavfsizmi('or=(a.eq.1)')).toBe(false);
   });
 });

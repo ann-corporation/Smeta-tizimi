@@ -1,0 +1,7 @@
+# C11 voice adapter — transcript is a draft, never a stock command
+
+GET/POST /api/ombor-ovoz. Current company permission required; signed cookie role alone is not live authority. Server calls fixed ElevenLabs Scribev2 endpoint with managed ELEVENLABS_API_KEY. Client receives text/language/draft_only; caller URLs/actor IDs are not forwarded. No warehouse, invoice, expense or payment write. Provider errors/key/rawbody are not returned. Inputs/outputs bounded; cancellation propagated; no paid automatic retry.
+
+Official API verified27Oct2026: https://elevenlabs.io/docs/api-reference/speech-to-text/convert ; Uzbekcapability https://elevenlabs.io/docs/overview/capabilities/speech-to-text . Defaultproviderretention followsaccount; enterprisezero-retention not assumed. No APIkey found in permittedlocalenv(devvars name-only inspection); productionbinding status unknown. L0 must connect owner's existing key as server secret, never VITE_/publicconfig. This repository does not contain it.
+
+9mocked testsPASS: no auth, foreigntenant/explicitdenial, freshDBfailure, missingkey, origin/type/size checks, boundedunknown-lengthstream, boundedproviderresult, fixedupstream anddraft-onlyresult, safefailure/silence. FunctionsTS/lintPASS. Actualpaidtranscription/audio recognition NOTtested; no secret or privateaudio sent. Rootgovernance3existingforeignerrors noted, not bypassed. Frontendrecording/intent interpretation/confirmation integration separatelyinC11, thisadapterdoesnotclaimfullvoiceworkflowcomplete.

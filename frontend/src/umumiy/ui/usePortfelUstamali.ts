@@ -6,7 +6,7 @@ import { limitedRead } from '../../components/pto-workspace/useMarkupTotals';
 import { obyektKesimi, ustamaliHisobla } from '../../lib/ustamali-summa';
 import { useKompaniya } from '../kontekst/KompaniyaKontekst';
 
-export type PortfelObyekt = { obyektId: number; shartnomaId?: number | null };
+export type PortfelObyekt = { obyektId: number; shartnomaId?: number | null; /** Tafsilotda ko‘rsatiladigan nom (ixtiyoriy). */ nom?: string | null };
 export type PortfelUstamali = {
   holat: 'yuklanmoqda' | 'tayyor' | 'xato';
   /** Ustamali (ИТОГО-4, QQS siz) — faqat hisoblangan obyektlar yig‘indisi; hech biri hisoblanmasa null. */
@@ -23,6 +23,10 @@ export type PortfelUstamali = {
   boYicha: Map<number, number | null>;
   /** Obyekt bo‘yicha QQS bilan (ВСЕГО; null — noma’lum). Egasi 2026-10-27: jami qiymatning asosiy raqami. */
   qqsBoYicha: Map<number, number | null>;
+  /** Obyekt bo‘yicha ustamasiz (to‘g‘ri xarajat, server kesimidan; null — o‘qilmadi). */
+  ustamasizBoYicha: Map<number, number | null>;
+  /** Ro‘yxat (takrorsiz) — tafsilot tarkibi uchun. */
+  royxat: readonly PortfelObyekt[];
   retry: () => void;
 };
 
@@ -66,6 +70,7 @@ export function usePortfelUstamali(obyektlar: readonly PortfelObyekt[], opts: { 
   const kutyapti = !bor || pod.isPending || nak.some((q) => q.isPending);
   const boYicha = new Map<number, number | null>();
   const qqsBoYicha = new Map<number, number | null>();
+  const ustamasizBoYicha = new Map<number, number | null>();
   let ustamali = 0, ustamasiz = 0, hisUs = 0, nds = 0, hisoblandi = 0, nomalum = 0, ustamasizBor = false;
   royxat.forEach((o, i) => {
     const r = nak[i]?.data;
@@ -73,7 +78,7 @@ export function usePortfelUstamali(obyektlar: readonly PortfelObyekt[], opts: { 
     const kesim = obyektKesimi(r)!;
     const p = podvalTanla(pod.data, { obyektId: o.obyektId, shartnomaId: o.shartnomaId ?? null });
     const u = ustamaliHisobla(kesim, r.koeffitsientlar, p ? { versiya: 1, nom: p.nom, qatorlar: p.qatorlar } : null);
-    ustamasiz += u.ustamasiz; ustamasizBor = true;
+    ustamasiz += u.ustamasiz; ustamasizBor = true; ustamasizBoYicha.set(o.obyektId, u.ustamasiz);
     if (u.ustamali == null) { boYicha.set(o.obyektId, null); qqsBoYicha.set(o.obyektId, null); nomalum++; return; }
     boYicha.set(o.obyektId, u.ustamali);
     qqsBoYicha.set(o.obyektId, u.ndsBilan);
@@ -90,6 +95,8 @@ export function usePortfelUstamali(obyektlar: readonly PortfelObyekt[], opts: { 
     jamiSoni: royxat.length,
     boYicha,
     qqsBoYicha,
+    ustamasizBoYicha,
+    royxat,
     retry: () => { void pod.refetch(); nak.forEach((q) => { void q.refetch(); }); },
   };
 }

@@ -2,12 +2,13 @@
  * Internet narxi → «Обоснование цен» (egasi 2026-10-17: "havolalar bilan obosnovat qilib bersin"). Faqat sahifasi ochilib,
  * narx va mahsulot belgilari sahifada TEKSHIRILGAN manbalar; ular bir nechta bo'lsa — arifmetik o'rtacha.
  */
+import { yaxlit2 } from '../hisob-yadro';
 import type { InternetNatija } from '../smeta-ai/internet-narx';
 import type { StudioCommand } from './commands';
 import type { PriceJustification } from './model';
 import type { ResursQatori } from './narx-yigish';
 
-const fmt = (v: number) => String(Math.round(v * 100) / 100);
+const fmt = (v: number) => String(yaxlit2(v));
 
 export function internetAsosi(n: InternetNatija, sana = new Date()): PriceJustification | null {
   const ok = n.manbalar.filter(m => m.tekshirildi && m.smetaNarx != null);

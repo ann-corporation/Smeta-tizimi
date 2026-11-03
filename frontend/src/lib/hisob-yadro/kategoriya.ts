@@ -17,6 +17,17 @@ export function katAniqla(kat: string | null | undefined): Kat | null {
 
 export const bosKatSummalar = (): KatSummalar => Object.fromEntries(KATLAR.map((k) => [k, 0])) as KatSummalar;
 
+/**
+ * F2 (tasdiqlangan hujjat) da svod bo'limi ichidagi pudratchining O'Z MEHNATI qatorlari (ЧЕЛ / МАШ) yaxlit (ustamasiz)
+ * hisoblanmaydi: ular oddiy kategoriya sifatida smeta podvalidagi ustama bilan hisoblanadi (egasi qarori:
+ * ustama faqat obyektning o'z smeta podvalidan). Yaxlit bo'lim tarkibidagi boshqa kat (ОБ / МАТ …) — yaxlit qoladi.
+ * Server `_t2_summa_agg_v1` (f2 / f2_qoralama / aktlar o'lchovi) bilan aynan.
+ */
+export function f2YaxlitdanChiqadi(kat: string | null | undefined): boolean {
+  const k = katAniqla(kat);
+  return k === 'ЧЕЛ' || k === 'МАШ';
+}
+
 /** Kategoriya kesimi: aniq kat summalari + noma'lum qism + yaxlit (svod) qism. */
 export type Kesim = {
   summalar: Partial<Record<Kat, number>>;

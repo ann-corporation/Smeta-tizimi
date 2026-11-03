@@ -11,6 +11,7 @@
  *
  * Narx hech qachon o'ylab topilmaydi: nomzod bo'lmasa resurs narxsiz qoladi va ro'yxatda ko'rinadi.
  */
+import { yaxlit2 } from '../hisob-yadro';
 import { MatnIndeks } from '../smeta-ai/matn-qidiruv';
 import type { NarxNomzodi, NarxSorovi, NarxTanlov } from '../smeta-ai/protokol';
 import type { KatalogQatori } from '../narx-katalog/types';
@@ -120,7 +121,7 @@ export function narxIndeksi(cat: MatchCatalog): MatnIndeks {
   return x;
 }
 
-const round2 = (v: number) => Math.round(v * 100) / 100;
+const round2 = yaxlit2;
 const manbaTuriMatni = (t: string) => (t === 'birja' ? 'birja' : t === 'prays' ? 'prays-list' : t === 'asosiy_material' ? 'asosiy materiallar' : t === 'mash_soat' ? 'mash.-soat ro‘yxati' : 'katalog');
 
 /**

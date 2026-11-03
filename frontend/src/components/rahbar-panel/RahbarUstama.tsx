@@ -13,6 +13,7 @@ import { t } from '../../i18n/til';
 import { usePortfelUstamali, type PortfelObyekt } from '../../umumiy/ui/usePortfelUstamali';
 import { QiymatUchlik } from '../../umumiy/ui/QiymatUchlik';
 import { portfelUchligi } from '../../lib/ustamali-summa';
+import { portfelQismlari } from '../../lib/summa-tafsilot';
 import { compactMoney } from '../boss-decision/decision-v2';
 import { GrafikKarta } from './RahbarGrafiklar';
 
@@ -36,15 +37,16 @@ export function SanaYurish({ qiymat, format = (n: number) => toliq.format(n) }: 
  * Barcha obyektlar uchun xulosa kartasi (egasi 2026-10-27: QQS bilan — ASOSIY): portfel qiymati QQS bilan (katta),
  * ostida ustamali (QQS siz) va to‘g‘ri xarajat (ustamasiz) — yagona `QiymatUchlik` ko‘rinishi.
  */
-export function UstamaXulosaKarta({ obyektlar, ustamasiz, kompaniyaId }: { obyektlar: readonly PortfelObyekt[]; ustamasiz: number | null; kompaniyaId?: number | null }) {
+export function UstamaXulosaKarta({ obyektlar, ustamasiz, kompaniyaId, izoh }: { obyektlar: readonly PortfelObyekt[]; ustamasiz: number | null; kompaniyaId?: number | null; izoh?: string }) {
   const p = usePortfelUstamali(obyektlar, { kompaniyaId });
   const q = portfelUchligi(p, ustamasiz);
   return (
     <div className="karta @container min-w-0 p-4 xl:p-5" data-testid="ustama-xulosa">
       <p className="text-[11px] uppercase tracking-[0.04em] text-text-dim">{t('Smeta qiymati (QQS bilan)')}</p>
-      <QiymatUchlik q={q} yuklanmoqda={p.holat === 'yuklanmoqda'} className="mt-1 [&_[data-testid=summa-qqs]]:text-[clamp(15px,7.4cqi,26px)] [&_[data-testid=summa-qqs]]:font-semibold [&_[data-testid=summa-qqs]]:leading-8">
+      <QiymatUchlik q={q} yuklanmoqda={p.holat === 'yuklanmoqda'} qismlar={portfelQismlari(p)} nomalumSoni={p.nomalumSoni} className="mt-1 [&_[data-testid=summa-qqs]]:text-[clamp(15px,7.4cqi,26px)] [&_[data-testid=summa-qqs]]:font-semibold [&_[data-testid=summa-qqs]]:leading-8">
         {q.taxminiy && <span className="text-[11px] text-warn">{t('{n} / {jami} obyekt ustamasi noma’lum', { n: p.nomalumSoni, jami: p.jamiSoni })}</span>}
       </QiymatUchlik>
+      {izoh && <p className="mt-1 text-[11px] text-text-mute" data-testid="ustama-xulosa-izoh">{izoh}</p>}
     </div>
   );
 }

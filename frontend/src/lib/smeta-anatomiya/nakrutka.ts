@@ -16,6 +16,7 @@
  * hujjat summalariga ±1 (hujjat birligida: so'm yoki ming so'm) solishtiriladi. Nomos — ogohlantirish,
  * bloklamaydi.
  */
+import { yaxlit2 } from '../hisob-yadro';
 import { kalit, son, xom } from './matn';
 import type { Katak, KirishKitob, KirishVaraq, Manzil, ReviewBand } from './turlar';
 import { resBloklari, type ResBlok, type ResBlokKat } from './res-blok';
@@ -547,8 +548,8 @@ function zanjirIsboti(
   const isbot: NakrutkaIsbot[] = [];
   const tekshir = (nom: string, kutilgan: number, q: NakrutkaPodvalQatori) => {
     if (q.summa == null) return;
-    const farq = Math.round((q.summa - kutilgan) * 100) / 100;
-    isbot.push({ nom, kutilgan: Math.round(kutilgan * 100) / 100, hujjat: q.summa, farq, mos: Math.abs(farq) <= 1, manzil: q.manzil });
+    const farq = yaxlit2(q.summa - kutilgan);
+    isbot.push({ nom, kutilgan: yaxlit2(kutilgan), hujjat: q.summa, farq, mos: Math.abs(farq) <= 1, manzil: q.manzil });
   };
   // Bir varaq + ustun bo'yicha guruhlab, ketma-ketlikdagi qatorlarni bog'laymiz.
   const guruhlar = new Map<string, NakrutkaPodvalQatori[]>();

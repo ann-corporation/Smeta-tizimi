@@ -151,7 +151,7 @@ export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { compa
                     </td>
                     <td className="fz-c-num">{bosiladi ? <UstamaliKatak ustamali={k.smeta_ustamali} ustamasiz={k.smeta_ustamasiz} bosish={() => void dalilOch(k.kat)} /> : '—'}</td>
                     <td className="fz-c-num">{bosiladi ? <UstamaliKatak ustamali={k.f2_ustamali} ustamasiz={k.f2_yopilgan} bosish={() => void dalilOch(k.kat)} /> : '—'}</td>
-                    <td className="fz-c-num" style={{ color: 'var(--text-mute)' }} title={t("Xarajat hali kiritilmagan — noma'lum")}>{k.xarajat == null ? '—' : <button type="button" className="underline decoration-dotted" onClick={() => void dalilOch(k.kat, 'xarajat')}>{pul(k.xarajat)}</button>}</td>
+                    <td className="fz-c-num" style={{ color: 'var(--text-mute)' }} title={t("Xarajat hali kiritilmagan — noma'lum")}>{k.xarajat == null ? <span data-testid="xarajat-kiritilmagan">{t('kiritilmagan')}</span> : <button type="button" className="underline decoration-dotted" onClick={() => void dalilOch(k.kat, 'xarajat')}>{pul(k.xarajat)}</button>}</td>
                     <td className={`fz-c-num ${rang(farq)}`}>{pul(farq)}</td>
                     <td className={`fz-c-num ${rang(farq)}`}>{foiz(pulFarqFoiz(k.xarajat, k.f2_yopilgan))}</td>
                   </tr>
@@ -161,7 +161,7 @@ export default function PulTahlil({ companyId, shartnomaId, obyektlar }: { compa
                 <td>{t('JAMI (QQS bilan)')}</td>
                 <td className="fz-c-num"><UstamaliKatak ustamali={data.jami.smeta_ustamali} ustamasiz={data.jami.smeta_ustamasiz} /></td>
                 <td className="fz-c-num"><UstamaliKatak ustamali={data.jami.f2_ustamali} ustamasiz={data.jami.f2_yopilgan} /></td>
-                <td className="fz-c-num">{pul(data.jami.xarajat)}</td>
+                <td className="fz-c-num" title={data.jami.xarajat == null ? t('Xarajat pastdagi «Xarajat kiritish» bo‘limida kiritiladi') : undefined}>{data.jami.xarajat == null ? <span className="text-text-mute">{t('kiritilmagan')}</span> : pul(data.jami.xarajat)}</td>
                 <td className={`fz-c-num ${rang(data.jami.farq)}`}>{pul(data.jami.farq)}</td><td className={`fz-c-num ${rang(data.jami.farq)}`}>{foiz(data.jami.farq_foiz)}</td>
               </tr>
             </tbody>

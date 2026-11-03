@@ -5,6 +5,7 @@
  * (lib/f2-resurs-guruh). Narx hech qachon o'ylab topilmaydi va avtomatik yozilmaydi: taklif faqat egasi «Narxni qo'llash»
  * bosganda F2 qatoriga (certified_unit_price) tushadi; asl smeta o'zgarmaydi. Narx doim NDS siz.
  */
+import { yaxlit2 } from './hisob-yadro';
 import type { F2Qator } from './f2-tayyor';
 import { kodlarMatni, resursGuruhKaliti } from './f2-resurs-guruh';
 import { katKesimYigish, type KatKesim } from './ustamali-summa';
@@ -29,7 +30,7 @@ export type VedomostQator = {
 };
 export type VedomostGuruhi = { kat: NakrutkaKat | null; qatorlar: VedomostQator[]; summa: number; katKesim: KatKesim };
 
-const y2 = (x: number) => Math.round(x * 100) / 100;
+const y2 = yaxlit2;
 const y6 = (x: number) => Math.round(x * 1e6) / 1e6;
 
 /** F2 qatorlari (faqat resurslar: rs/mat/ob) -> vedomost. `kodOl` - smeta qatorining shifri (F2Qator da kod yo'q). */

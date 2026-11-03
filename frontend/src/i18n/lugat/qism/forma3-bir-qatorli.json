@@ -1,0 +1,6 @@
+{
+  "Forma-3 shakli": { "ru": "Вид формы № 3", "en": "Form 3 layout" },
+  "To‘liq (ish turlari, hajm va narxlar bilan)": { "ru": "Полная (с видами работ, объемами и ценами)", "en": "Full (with work types, volumes and prices)" },
+  "Bir qatorli (faqat yig‘ma qator va jami)": { "ru": "Однострочная (только сводная строка и итоги)", "en": "Single-line (summary line and totals only)" },
+  "Ikkalasi ham (to‘liq va bir qatorli)": { "ru": "Обе (полная и однострочная)", "en": "Both (full and single-line)" }
+}

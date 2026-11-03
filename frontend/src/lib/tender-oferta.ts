@@ -137,7 +137,7 @@ export type OfertaGuruh = {
   pudratchiNarxlar: number[];
   kategoriyalar: OfertaKategoriya[];
   kategoriyaTaklifi?: OfertaMalumKategoriya;
-  jamiSmetaSumma: number;
+  jamiSmetaSumma: number | null;
   /** Birorta qator summasi noma’lum bo‘lsa null. */
   jamiTaklifSumma: number | null;
   muammolar: OfertaMuammo[];
@@ -310,7 +310,7 @@ function guruhTayyorla(qatorlar: readonly OfertaQator[], birXilNarx: boolean, ta
     for (const q of a) {
       if (q.smetaBirlikNarx == null || !Number.isFinite(q.smetaBirlikNarx)) continue;
       const st = stat.get(q.smetaBirlikNarx) ?? { soni: 0, summa: 0 };
-      st.soni++; st.summa += q.smetaSumma ?? 0;
+      st.soni++; if (q.smetaSumma != null) st.summa += q.smetaSumma; // noma'lum summa tenglik ajratishda hisobga olinmaydi (0 deb yozilmaydi)
       stat.set(q.smetaBirlikNarx, st);
     }
     if (stat.size < 2) continue;
@@ -345,7 +345,7 @@ function guruhlarQur(natijalar: readonly OfertaQatorNatija[]): OfertaGuruh[] {
     const k = n.samaraliKategoriya ?? 'UNKNOWN';
     if (!g.kategoriyalar.includes(k)) g.kategoriyalar.push(k);
     if (n.kategoriyaTaklifi && !g.kategoriyaTaklifi) g.kategoriyaTaklifi = n.kategoriyaTaklifi;
-    g.jamiSmetaSumma += n.smetaSumma ?? 0;
+    g.jamiSmetaSumma = g.jamiSmetaSumma == null || n.smetaSumma == null ? null : g.jamiSmetaSumma + n.smetaSumma; // noma'lum - jami ham noma'lum
     g.jamiTaklifSumma = g.jamiTaklifSumma == null || n.pudratchiSumma == null ? null : g.jamiTaklifSumma + n.pudratchiSumma;
     for (const m of n.muammolar) if (!g.muammolar.includes(m)) g.muammolar.push(m);
   }
@@ -529,8 +529,9 @@ function kategoriyaQoidasi(n: OfertaQatorNatija, barglar: readonly OfertaQatorNa
 function podvalniHisobla(n: OfertaQatorNatija, jami: OfertaQatorNatija | null, keyingi: OfertaQatorNatija[], byId: ReadonlyMap<string, OfertaQatorNatija>, nk: NakrutkaKoeffitsientlar): void {
   const src = n.smetaSumma;
   if (src == null || !Number.isFinite(src) || !jami || jami.smetaSumma == null) return;
-  const yigindiManba = jami.smetaSumma + keyingi.reduce((a, k) => a + (k.smetaSumma ?? 0), 0);
-  if (keyingi.length && teng(src, yigindiManba)) {
+  // Birorta qator summasi noma'lum bo'lsa yig'indi ham noma'lum - «yig'indi» deb qaralmaydi.
+  const yigindiManba = keyingi.some((k) => k.smetaSumma == null) ? null : jami.smetaSumma + keyingi.reduce((a, k) => a + (k.smetaSumma as number), 0);
+  if (keyingi.length && yigindiManba != null && teng(src, yigindiManba)) {
     const qism = [jami, ...keyingi];
     if (qism.every((k) => k.pudratchiSumma != null)) {
       n.podval = { tur: 'yigindi', bazalar: qism.map((k) => k.sourceId) };

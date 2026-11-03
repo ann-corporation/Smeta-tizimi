@@ -1,0 +1,8 @@
+{
+  "Birlik: {birlik} — siz {n} kiritdingiz (smeta {smeta}). {taklif} nazarda tutilmaganmi?": { "ru": "Единица: {birlik} — вы ввели {n} (смета {smeta}). Не имелось в виду {taklif}?", "en": "Unit: {birlik} — you entered {n} (estimate {smeta}). Did you mean {taklif}?" },
+  "Birlik: {birlik} — fakt {n} (smeta {smeta}). {taklif} bo‘lishi kerak emasmi?": { "ru": "Единица: {birlik} — факт {n} (смета {smeta}). Не должно ли быть {taklif}?", "en": "Unit: {birlik} — actual {n} (estimate {smeta}). Should it be {taklif}?" },
+  "Fakt {n} — smetadan {k} marta ko‘p (smeta {smeta}). Birlik yoki o‘nli vergulni tekshiring.": { "ru": "Факт {n} — в {k} раз больше сметы (смета {smeta}). Проверьте единицу или запятую.", "en": "Actual {n} — {k} times the estimate (estimate {smeta}). Check the unit or the decimal point." },
+  "Siz {n} kiritdingiz — jami smetadan {k} marta ko‘p (smeta {smeta}). Birlik yoki o‘nli vergulni tekshiring.": { "ru": "Вы ввели {n} — в сумме в {k} раз больше сметы (смета {smeta}). Проверьте единицу или запятую.", "en": "You entered {n} — in total {k} times the estimate (estimate {smeta}). Check the unit or the decimal point." },
+  "{v} qilib qo‘yish": { "ru": "Поставить {v}", "en": "Set to {v}" },
+  "{n} qatorda fakt smetadan ancha oshgan — baribir saqlansinmi?": { "ru": "В строках ({n}) факт заметно превышает смету — всё равно сохранить?", "en": "In {n} rows the actual is far above the estimate — save anyway?" }
+}

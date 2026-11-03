@@ -17,6 +17,7 @@
  *
  * Every sum is a live formula; an unknown price leaves the enclosing total blank (NULL ≠ 0).
  */
+import { yaxlit2 } from '../hisob-yadro';
 import { RasmiyVaraq, rasmiyKitob, hujjatFaylNomi, type Qiymat, type RasmiyUstun } from '../hujjat-yozuvchi';
 import type { DocCalc, LineCalc } from './calc';
 import type { CatalogResource, EstimateDoc } from './model';
@@ -129,7 +130,7 @@ export function resGroups(doc: EstimateDoc, calc: DocCalc, units: Units): ResGro
       kat: o.overrides[l.recipeId]?.kat ? qatorKategoriyasi(o, l.recipeId, l.resource, unitText) : bucket === 'machines' ? 'МАШ' as const : nakrutkaKategoriyasi(l.resource, unitText) };
     cur.qty = Math.round((cur.qty + (n(l.quantity) ?? 0)) * 1e7) / 1e7;
     // Narxsiz qism qatorning o'zini bo'sh qiladi (bildirishnoma), lekin guruh/jami ma'lum summalardan yig'iladi.
-    cur.amount = cur.amount == null || l.amount == null ? null : Math.round((cur.amount + Number(l.amount)) * 100) / 100;
+    cur.amount = cur.amount == null || l.amount == null ? null : yaxlit2(cur.amount + Number(l.amount));
     acc.set(key, cur);
   }
   const g: ResGroups = { labour: [], machines: [], materials: new Map(), equipment: [] };
@@ -141,7 +142,7 @@ export function resGroups(doc: EstimateDoc, calc: DocCalc, units: Units): ResGro
   }
   return g;
 }
-const sumOf = (xs: ResLine[]) => xs.reduce<number>((s, x) => (x.amount == null ? s : Math.round((s + x.amount) * 100) / 100), 0);
+const sumOf = (xs: ResLine[]) => xs.reduce<number>((s, x) => (x.amount == null ? s : yaxlit2(s + x.amount)), 0);
 
 function resVaraq(doc: EstimateDoc, g: ResGroups, o: AbcHujjatOpsiya, unresolved: number): RasmiyVaraq {
   const U: RasmiyUstun[] = [
@@ -155,7 +156,7 @@ function resVaraq(doc: EstimateDoc, g: ResGroups, o: AbcHujjatOpsiya, unresolved
   const mats = [...g.materials.values()].flat();
   const val = (x: number) => x.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' сум';
   const direct = [sumOf(g.labour), sumOf(g.machines), sumOf(mats), sumOf(g.equipment)];
-  const total = Math.round(direct.reduce((a, b) => a + b, 0) * 100) / 100;
+  const total = yaxlit2(direct.reduce((a, b) => a + b, 0));
   const v = new RasmiyVaraq({ nom: 'RES', sarlavha: 'ЛОКАЛЬНАЯ РЕСУРСНАЯ СМЕТА', ostSarlavha: [doc.context.title || ''].filter(Boolean),
     titul: [...titul(o, doc), ...(unresolved ? [['СТАТУС РАСЧЁТА', `НЕПОЛНЫЙ: ${unresolved} ресурсных строк требуют уточнения. Итоги содержат только известную часть стоимости.`] as const] : []),
       [unresolved ? 'ПРЯМЫЕ ЗАТРАТЫ (ИЗВЕСТНАЯ ЧАСТЬ)' : 'ПРЯМЫЕ ЗАТРАТЫ', val(total)], ['в том числе: ЗАРАБОТНАЯ ПЛАТА', val(direct[0])],
@@ -195,7 +196,7 @@ function resVaraq(doc: EstimateDoc, g: ResGroups, o: AbcHujjatOpsiya, unresolved
   // Confirmed pricing-step rates → the company markup cascade under the RES, every step a live formula.
   if (doc.rates && totals.length) {
     const ks = Object.fromEntries(NAKRUTKA_KATLAR.map(k => [k, 0])) as KatSummalar;
-    for (const x of [...g.labour, ...g.machines, ...mats, ...g.equipment]) if (x.kat && x.amount != null) ks[x.kat] = Math.round((ks[x.kat] + x.amount) * 100) / 100;
+    for (const x of [...g.labour, ...g.machines, ...mats, ...g.equipment]) if (x.kat && x.amount != null) ks[x.kat] = yaxlit2(ks[x.kat] + x.amount);
     v.bosh();
     nakrutkaPodvaliYoz(v, { katUstun: 'I', oraliq: [firstData, lastData], pulUstunlar: [S], foizUstun: P, nk: doc.rates.values, katSummalar: { [S]: ks },
       kfJadval: false, sarlavha: `РАСЧЕТ СТОИМОСТИ (ставки: ${doc.rates.source})`, podval: doc.rates.podval ?? null });
@@ -256,7 +257,7 @@ export function asoslashBandlari(doc: EstimateDoc, calc: DocCalc, units: Units):
 export function studioProtokolQatorlari(doc: EstimateDoc, calc: DocCalc, units: Units): ProtokolQator[] {
   return asoslashBandlari(doc, calc, units).bandlar.filter(b => b.narx != null).map(b => ({
     kat: b.kat || null, kod: b.kod, nom: b.nom, birlik: b.birlik,
-    eski_narx: b.manbaNarx == null ? null : Math.round(b.manbaNarx * (b.qaytaHisob?.koef ?? 1) * 100) / 100,
+    eski_narx: b.manbaNarx == null ? null : yaxlit2(b.manbaNarx * (b.qaytaHisob?.koef ?? 1)),
     yangi_narx: b.narx as number,
     izoh: [b.hujjatTuri, b.rekvizit, b.manbaNom && b.manbaNom !== b.nom ? `в документе: ${b.manbaNom}${b.manbaBirlik ? `, ${b.manbaBirlik}` : ''}` : null,
       b.qaytaHisob ? `пересчёт: ${b.qaytaHisob.formula}${b.qaytaHisob.izoh ? ` (${b.qaytaHisob.izoh})` : ''}` : null].filter(Boolean).join('; ') || null,

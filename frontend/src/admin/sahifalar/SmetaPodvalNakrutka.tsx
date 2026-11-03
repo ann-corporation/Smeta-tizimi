@@ -17,6 +17,27 @@ export function NakrutkaManbaChip({ manba }: { manba: NakrutkaManba | null | und
   return <span className={`fz-chip ${manba === 'smeta_podvali' ? 'fz-chip--accent' : ''}`} data-testid="nakrutka-manba">{t('Nakrutka manbai')}: {nom}</span>;
 }
 
+/**
+ * Egasi qoidasi: nakrutka foizlari doim smeta podvalidan. Obyektda podval yo'q (manba kompaniya/sukut) bo'lsa — aniq ogohlantirish
+ * (jimgina kompaniya sukut foizlariga tushmasin). `manba` noma'lum (hali o'qilmagan) — hech narsa ko'rsatilmaydi.
+ */
+export function PodvalYoqOgoh({ manba }: { manba: NakrutkaManba | null | undefined }) {
+  if (manba !== 'kompaniya' && manba !== 'sukut') return null;
+  return <p className="fz-note fz-note--warn items-center" role="status" data-testid="podval-yoq-ogoh"><AlertTriangle size={14} aria-hidden="true" />
+    <span>{t('Smeta podvali kiritilmagan — kompaniya sukut foizlari ishlatilmoqda')}</span></p>;
+}
+
+/** Obyekt nakrutka manbasini o'zi o'qib ogohlantirishni ko'rsatadi (Holat kabi nakrutka o'qimaydigan sahifalar uchun). */
+export function ObyektPodvalOgohi({ obyektId }: { obyektId: number }) {
+  const [manba, setManba] = useState<NakrutkaManba | null>(null);
+  useEffect(() => {
+    let faol = true; setManba(null);
+    void t2ObyektNakrutka(obyektId).then((r) => { if (faol && r.ok) setManba(r.nk_manba ?? null); }).catch(() => undefined);
+    return () => { faol = false; };
+  }, [obyektId]);
+  return <PodvalYoqOgoh manba={manba} />;
+}
+
 type Holat = {
   koef: NakrutkaKoeffitsientlar;
   cats: { chel: number; mash: number; mat: number; ob: number; mk: number; kab: number; bez: number };
@@ -31,8 +52,10 @@ type Holat = {
  * koeffitsientlar va obyekt jami summasiga ta'siri (ustamasiz + ustamali) → operator tasdig'i bilan
  * obyekt podvaliga yozish. `oqish` berilmasa — R2 dagi asl smeta faylidan qayta o'qish tugmasi.
  */
-export function SmetaPodvalNakrutka({ kompaniyaId, obyektId, oqish: tashqi, fayl, avtoSaqla = false }: {
+export function SmetaPodvalNakrutka({ kompaniyaId, obyektId, oqish: tashqi, fayl, avtoSaqla = false, mavjudSmeta = false }: {
   kompaniyaId: number; obyektId: number; oqish: NakrutkaPodvalOqish | null; fayl?: string;
+  /** Import oldidan obyektda smeta bor edi (qayta import). */
+  mavjudSmeta?: boolean;
   /**
    * Egasi 2026-10-27: YANGI smeta importi tugagach podvaldan o'qilgan foizlar (manba='smeta') obyektga
    * avtomatik yoziladi — natija, ogohlantirishlar va «bekor qilish» ko'rinib turadi. Mavjud obyektda — preview + tasdiq.
@@ -106,6 +129,9 @@ export function SmetaPodvalNakrutka({ kompaniyaId, obyektId, oqish: tashqi, fayl
   // Yangi smeta importi: podvaldan o'qilgan foizlar bir marta avtomatik yoziladi (tasdiq so'ralmaydi).
   useEffect(() => {
     if (!avtoSaqla || avtoUrinildi.current || !oqish || !holat || band) return;
+    // Obyektda smeta oldin ham bor edi (qayta import / tozalashdan keyingi import): mavjud podvalning ustidan yozilmaydi (preview + tasdiq),
+    // lekin podval umuman yo'q bo'lsa — yoziladigan narsa yo'q, foizlar kompaniya sukutida qolmasin deb avtomatik yoziladi.
+    if (mavjudSmeta && holat.podval) return;
     if (oqish.holat === 'topilmadi' || !Object.keys(oqish.koeffitsientlar).length) return;
     // Bloklovchi review (masalan БЕЗ СКЛАД bloki) — avtomatik yozilmaydi, operator ko'rib tasdiqlaydi.
     if (oqish.review.some((r) => r.bloklovchi)) return;
@@ -156,6 +182,7 @@ export function SmetaPodvalNakrutka({ kompaniyaId, obyektId, oqish: tashqi, fayl
       </div>
       <div className="fz-card__body flex flex-col gap-3">
         {xato && <p className="fz-note fz-note--danger">{xato}</p>}
+        {!holat?.podval && !avtoFaol && <PodvalYoqOgoh manba={holat?.manba} />}
         {avtoFaol && (
           <div className="fz-note fz-note--info items-center" role="status" data-testid="podval-avto-saqlandi">
             <CheckCircle2 size={14} aria-hidden="true" />

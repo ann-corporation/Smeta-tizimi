@@ -8,11 +8,12 @@ import { ProjectNavigator } from '../components/pto-workspace/ProjectNavigator';
 import { t } from '../i18n/til';
 import { Sahifa, BoshHolat } from '../umumiy/ui/Sahifa';
 import { sbT2ObyektlarOlKomp, sbObyektOchirish, sbObyektTahrirlash, sbObyektLokatsiyaBelgila, sbT2ObyektYarat, type T2Obyekt } from '../api/supabase';
-import { sbT2LoyihalarOl, type T2Loyiha } from '../api/t2-loyiha';
+import { sbT2LoyihalarOl, sbT2LoyihaYoz, type T2Loyiha } from '../api/t2-loyiha';
 import { toast } from '../umumiy/ui/Toast';
 import { useKompaniya } from './KompaniyaTanlov';
 import { usePTOWorkspace } from '../umumiy/kontekst/PTOWorkspaceContext';
 import { ObyektUlash } from '../components/ulash/ObyektUlash';
+import { YangiObyektMaydonlari, YANGI_LOYIHA } from '../components/pto-workspace/YangiObyektMaydonlari';
 
 const ObjectLocationMap = lazy(() => import('../components/pto-workspace/ObjectLocationMap'));
 const ObyektlarXaritasi = lazy(() => import('../components/pto-workspace/ObyektlarXaritasi'));
@@ -45,6 +46,7 @@ export default function TestObyektlar() {
   const [yaratishOchiq, setYaratishOchiq] = useState(false);
   const [yangiNom, setYangiNom] = useState('');
   const [yangiLoyihaId, setYangiLoyihaId] = useState('');
+  const [yangiLoyihaNom, setYangiLoyihaNom] = useState('');
   const [yaratilmoqda, setYaratilmoqda] = useState(false);
   const [yangiJoy, setYangiJoy] = useState<[number, number] | null>(null);
   const [yangiJoyOchiq, setYangiJoyOchiq] = useState(false);
@@ -57,11 +59,22 @@ export default function TestObyektlar() {
     return () => { active = false; };
   }, [joriy?.id]);
 
+  /* Loyiha tanlovi hozirgi tanlangan loyihadan boshlanadi (egasi tanlagan ish doirasi). */
+  const yaratishniOch = () => { setYangiLoyihaId(workspace.scope.projectId != null ? String(workspace.scope.projectId) : ''); setYangiLoyihaNom(''); setYaratishOchiq(true); };
+
   const obyektYarat = async () => {
     if (!joriy?.id || !yangiNom.trim()) return;
+    if (yangiLoyihaId === YANGI_LOYIHA && !yangiLoyihaNom.trim()) { toast(t('Yangi loyiha nomini kiriting yoki “Loyihasiz” tanlang.'), 'danger'); return; }
     setYaratilmoqda(true);
     try {
-      const r = await sbT2ObyektYarat({ kompaniyaId: joriy.id, loyihaId: yangiLoyihaId ? Number(yangiLoyihaId) : null, nom: yangiNom.trim() });
+      let loyihaId: number | null = yangiLoyihaId && yangiLoyihaId !== YANGI_LOYIHA ? Number(yangiLoyihaId) : null;
+      if (yangiLoyihaId === YANGI_LOYIHA) {
+        const lr = await sbT2LoyihaYoz(joriy.id, { nom: yangiLoyihaNom.trim() }) as { ok: boolean; id?: number; error?: string };
+        if (!lr.ok || !lr.id) { toast(lr.error || t('Loyiha yaratilmadi'), 'danger'); return; }
+        loyihaId = Number(lr.id);
+        void sbT2LoyihalarOl(joriy.id).then(x => { if (x.ok) setLoyihalar(x.qatorlar || []); });
+      }
+      const r = await sbT2ObyektYarat({ kompaniyaId: joriy.id, loyihaId, nom: yangiNom.trim() });
       if (!r.ok) { toast(r.xato || r.error || r.code || 'Obyekt yaratilmadi', 'danger'); return; }
       let joyXabari = '';
       if (yangiJoy && r.obyekt_id) {
@@ -74,7 +87,7 @@ export default function TestObyektlar() {
         } catch { joyXabari = ' ' + t('Lokatsiya saqlanmadi - tahrirlashda qayta belgilang.'); }
       }
       toast('Obyekt yaratildi.' + joyXabari, joyXabari ? 'danger' : 'ok');
-      setYaratishOchiq(false); setYangiNom(''); setYangiLoyihaId(''); setYangiJoy(null); setYangiJoyOchiq(false);
+      setYaratishOchiq(false); setYangiNom(''); setYangiLoyihaId(''); setYangiLoyihaNom(''); setYangiJoy(null); setYangiJoyOchiq(false);
       sinxronla();
     } catch (e: any) {
       toast('Xatolik: ' + (e?.message || e), 'danger');
@@ -195,7 +208,7 @@ export default function TestObyektlar() {
             <MapPin aria-hidden="true" />
             {t('Xaritada')}
           </button>
-          <button type="button" onClick={() => setYaratishOchiq(true)} className="fz-btn fz-btn--primary">
+          <button type="button" onClick={yaratishniOch} className="fz-btn fz-btn--primary">
             <Plus aria-hidden="true" />
             {t('Yangi obyekt')}
           </button>
@@ -215,27 +228,11 @@ export default function TestObyektlar() {
         )}
         {yaratishOchiq && (
           <ModalOyna sarlavha="Yangi obyekt" ikon={<FolderKanban className="text-accent" size={18} aria-hidden="true" />}
-            yop={() => { setYaratishOchiq(false); setYangiNom(''); setYangiLoyihaId(''); setYangiJoy(null); setYangiJoyOchiq(false); }}>
-            <label className="mb-3 block text-sm">
-              <span className="text-[12px] text-text-dim">{t('Nomi')}</span>
-              <input value={yangiNom} onChange={e => setYangiNom(e.target.value)} autoFocus
-                onKeyDown={(e) => { if (e.key === 'Enter' && yangiNom.trim() && !yaratilmoqda) void obyektYarat(); }}
-                className="mt-1 h-9 w-full rounded-md border border-[var(--border-strong)] bg-bg px-3 text-sm text-text"
-                placeholder={t('Masalan: Amfiteatr, blok A')} />
-            </label>
-            <label className="mb-4 block text-sm">
-              <span className="text-[12px] text-text-dim">{t('Loyiha (ixtiyoriy)')}</span>
-              <select value={yangiLoyihaId} onChange={e => setYangiLoyihaId(e.target.value)}
-                className="mt-1 h-9 w-full rounded-md border border-[var(--border-strong)] bg-bg px-2 text-sm text-text">
-                <option value="">{t('— Loyihasiz —')}</option>
-                {loyihalar.map(l => <option key={l.id} value={l.id}>{l.nom}</option>)}
-              </select>
-              {!loyihalar.length && (
-                <span className="mt-1 block text-[11px] text-text-mute">
-                  {t('Hali loyiha yo‘q.')} <a href="/admin/loyiha" className="text-[var(--accent-text)] underline">{t('Loyiha yaratish')}</a>
-                </span>
-              )}
-            </label>
+            yop={() => { setYaratishOchiq(false); setYangiNom(''); setYangiLoyihaId(''); setYangiLoyihaNom(''); setYangiJoy(null); setYangiJoyOchiq(false); }}>
+            <YangiObyektMaydonlari kompaniyaId={joriy?.id ?? 0} mavjud={currentRows ?? []} loyihalar={loyihalar}
+              nom={yangiNom} onNom={setYangiNom} loyihaId={yangiLoyihaId} onLoyiha={setYangiLoyihaId}
+              yangiLoyihaNom={yangiLoyihaNom} onYangiLoyihaNom={setYangiLoyihaNom}
+              onEnter={() => { if (!yaratilmoqda) void obyektYarat(); }} />
             <div className="mb-4">
               <button type="button" onClick={() => setYangiJoyOchiq((v) => !v)}
                 className="inline-flex items-center gap-1 text-[12px] text-[var(--accent-text)] underline">
@@ -249,7 +246,7 @@ export default function TestObyektlar() {
               )}
             </div>
             <div className="flex justify-end gap-2">
-              <button type="button" className="fz-btn fz-btn--ghost" onClick={() => { setYaratishOchiq(false); setYangiNom(''); setYangiLoyihaId(''); setYangiJoy(null); setYangiJoyOchiq(false); }}>
+              <button type="button" className="fz-btn fz-btn--ghost" onClick={() => { setYaratishOchiq(false); setYangiNom(''); setYangiLoyihaId(''); setYangiLoyihaNom(''); setYangiJoy(null); setYangiJoyOchiq(false); }}>
                 {t('Bekor qilish')}
               </button>
               <button type="button" className="fz-btn fz-btn--primary" onClick={() => void obyektYarat()} disabled={!yangiNom.trim() || yaratilmoqda}>
@@ -290,7 +287,7 @@ export default function TestObyektlar() {
               </ol>
               <div className="flex flex-wrap justify-center gap-2">
                 <a className="fz-btn" href="/admin/loyiha"><FolderPlus aria-hidden="true" />{t('Loyiha yaratish')}</a>
-                <button type="button" className="fz-btn fz-btn--primary" onClick={() => setYaratishOchiq(true)}><Building2 aria-hidden="true" />{t('Yangi obyekt')}</button>
+                <button type="button" className="fz-btn fz-btn--primary" onClick={yaratishniOch}><Building2 aria-hidden="true" />{t('Yangi obyekt')}</button>
               </div>
             </div>} />
         )}
@@ -306,7 +303,7 @@ export default function TestObyektlar() {
           }}
           onEdit={o => handleTahrir({ stopPropagation() {} }, o)}
           onArchive={o => void handleOchirish({ stopPropagation() {} }, o)}
-          onShare={o => setUlashObj(o)} />}
+          onShare={o => setUlashObj(o)} onChanged={() => void sinxronla()} />}
         {ulashObj && joriy?.id && <ObyektUlash kompaniyaId={joriy.id} obyekt={ulashObj} yopish={() => setUlashObj(null)} />}
 
       </div>
