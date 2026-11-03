@@ -65,7 +65,7 @@ import { f2Elementlar, f2ElementUstunlar, f2QaytaQur, f2ResursUstunlar, type F2F
 import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
 
 const oyBoshlanishi = () => `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`;
-const XATO_MATN: Record<NonNullable<F2Qator['xato']>, string> = { HAJM: 'Hajm 0 dan katta son bo‘lsin', NARX: 'Narx kerak (yoki «narxsiz» belgilang)', SUMMA: 'Summa son emas' };
+const XATO_MATN: Record<NonNullable<F2Qator['xato']>, string> = { HAJM: 'Hajm 0 bo‘lmasligi kerak (minus ham mumkin)', NARX: 'Narx kerak (yoki «narxsiz» belgilang)', SUMMA: 'Summa son emas' };
 const OGOH_MATN: Record<NonNullable<F2Qator['ogoh']>, string> = { RESURS_CHEGARA: 'resurs fakt qoldig‘i bilan cheklandi', ARIFMETIKA: 'summa hajm × narxdan farq qiladi — hujjat summasi saqlanadi', SMETADAN_OSHDI: 'smeta hajmidan oshadi (ruxsat, ogohlantirish)', AXBOROT_NARXSIZ: 'axborot qatori: narxsiz (smetada narxi yo‘q)', QOLDIQDAN_OSHDI: 'fakt qoldig‘idan oshadi (ruxsat, ogohlantirish)', QORALAMA_TAKROR: 'qoralamadagi F2 bilan birga ikki marta olinadi — tekshiring' };
 /** Hajm qoldiqdan oshgan ogohlantirishlar - maydon sariq (blok emas). */
 const OSH_OGOH = new Set<F2Qator['ogoh']>(['SMETADAN_OSHDI', 'QOLDIQDAN_OSHDI', 'QORALAMA_TAKROR']);

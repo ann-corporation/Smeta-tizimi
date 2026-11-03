@@ -189,7 +189,8 @@ export function f2Qatorlar(bolimlar: F2Bolim[], k: F2Kiritma): F2Qator[] {
     if (r.chiqarilgan) return; // ishdan chiqarilgan resurs F2 ga kirmaydi
     const v = sonOqi(k.hajm[r.id]);
     if (v == null) return;
-    if (v === 'xato' || v <= 0) { out.push({ id: r.id, ishId, tur: r.tur, kat: r.kat, nom: r.nom, birlik: r.birlik, hajm: 0, narx: null, summa: null, manba: 'yoq', narxsiz: false, xato: 'HAJM' }); return; }
+    /* Egasi: minus hajm ham mumkin — faqat aynan 0 yoki son bo'lmagan kiritma xato. */
+    if (v === 'xato' || v === 0) { out.push({ id: r.id, ishId, tur: r.tur, kat: r.kat, nom: r.nom, birlik: r.birlik, hajm: 0, narx: null, summa: null, manba: 'yoq', narxsiz: false, xato: 'HAJM' }); return; }
     const q = resursQator(r, v, ishId, k);
     if (!q.ogoh) q.ogoh = oshOgoh(v, r); // blok emas, ogohlantirish
     out.push(q);
@@ -198,7 +199,7 @@ export function f2Qatorlar(bolimlar: F2Bolim[], k: F2Kiritma): F2Qator[] {
     for (const ish of b.ishlar) {
       const v = sonOqi(k.hajm[ish.id]);
       if (v != null) {
-        if (v === 'xato' || v <= 0) out.push({ id: ish.id, ishId: null, tur: 'bl', kat: null, nom: ish.nom, birlik: ish.birlik, hajm: 0, narx: null, summa: null, manba: 'yoq', narxsiz: true, xato: 'HAJM' });
+        if (v === 'xato' || v === 0) out.push({ id: ish.id, ishId: null, tur: 'bl', kat: null, nom: ish.nom, birlik: ish.birlik, hajm: 0, narx: null, summa: null, manba: 'yoq', narxsiz: true, xato: 'HAJM' });
         else {
           const bl: F2Qator = { id: ish.id, ishId: null, tur: 'bl', kat: null, nom: ish.nom, birlik: ish.birlik, hajm: v, narx: null, summa: null, manba: 'yoq', narxsiz: true };
           if (ish.smeta != null && ish.olingan + (ish.qoralama ?? 0) + v > ish.smeta + 1e-9) bl.ogoh = 'SMETADAN_OSHDI';
@@ -206,10 +207,11 @@ export function f2Qatorlar(bolimlar: F2Bolim[], k: F2Kiritma): F2Qator[] {
           out.push(bl);
           // Ish hajmi qoldiqdan oshgan bo'lsa (ongli) - resurslar normadan to'liq; aks holda fakt qoldig'i bilan cheklanadi.
           const ustida = v > ish.mumkin + 1e-9;
+          const minus = v < 0; // minus ish: resurslari ham minus (norma bo'yicha), qoldiqqa bog'lanmaydi
           for (const r of ish.resurslar) {
-            if (!r.avto || r.chiqarilgan || r.norma == null || r.norma <= 0 || (r.mumkin + (r.qoralama ?? 0) <= 0 && !r.erkin)) continue;
+            if (!r.avto || r.chiqarilgan || r.norma == null || r.norma <= 0 || (!minus && r.mumkin + (r.qoralama ?? 0) <= 0 && !r.erkin)) continue;
             const talab = y6(v * r.norma);
-            const hajm = r.erkin || ustida ? talab : Math.min(talab, r.mumkin);
+            const hajm = r.erkin || ustida || minus ? talab : Math.min(talab, r.mumkin);
             const q = resursQator(r, hajm, ish.id, k);
             if (talab > r.mumkin + 1e-9 && !q.ogoh) q.ogoh = r.erkin || ustida ? oshOgoh(talab, r) : 'RESURS_CHEGARA';
             out.push(q);

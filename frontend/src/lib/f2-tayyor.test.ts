@@ -141,6 +141,32 @@ describe('F2 tayyorlash mantig‘i', () => {
     expect(ulushHajm(6, 50)).toBe('3');
   });
 
+  it('minus hajm (egasi: plyus-minus foydalanuvchi ishi): ish va resurslar minus, narx plyus, summa minus; 0 va son emas — xato', () => {
+    const b = f2Qur(rows, holat);
+    const r = f2Qatorlar(b, Object.assign(bosKiritma(), { hajm: { 2: '-3' }, narxsiz: { 4: true } }));
+    expect(r.every((x) => !x.xato)).toBe(true);
+    expect(r.map((x) => [x.id, x.hajm, x.narx, x.summa])).toEqual([
+      [2, -3, null, null], [3, -6, 25000, -150000], [4, -1.5, null, null], [5, -3.06, 880000, -2692800],
+    ]);
+    expect(f2Jami(r).summa).toBe(-2842800);
+    expect(r[0].ogoh).toBeUndefined(); // minus — qoldiq/smeta chegarasiga tegmaydi
+    // F2 yuki: minus hajm, plyus narx, minus summa serverga ketadi.
+    const y = f2Yuk(r, '12');
+    expect(y[1]).toMatchObject({ qatorId: 3, certifiedQuantity: -6, certifiedUnitPrice: 25000, certifiedAmount: -150000 });
+    for (const bad of ['0', '-0', 'abc']) {
+      const x = f2Qatorlar(b, Object.assign(bosKiritma(), { hajm: { 2: bad }, narxsiz: { 4: true } }));
+      expect(x[0].xato, bad).toBe('HAJM');
+    }
+  });
+
+  it('minus hajm fakt qoldig‘i 0 bo‘lgan ishda ham resurslari bilan minus yoziladi (qoldiqqa bog‘lanmaydi)', () => {
+    const b = f2Qur(rows, holat.map((h) => (h.qator_id === 3 ? { ...h, f2_mumkin_hajm: 0 } : h)));
+    const plus = f2Qatorlar(b, Object.assign(bosKiritma(), { hajm: { 2: '2' }, narxsiz: { 4: true } }));
+    expect(plus.find((x) => x.id === 3)).toBeUndefined(); // plyusda qoldiq 0 resurs F2 ga kirmaydi (eski xulq o'zgarmadi)
+    const r = f2Qatorlar(b, Object.assign(bosKiritma(), { hajm: { 2: '-2' }, narxsiz: { 4: true } }));
+    expect(r.find((x) => x.id === 3)).toMatchObject({ hajm: -4, summa: -100000 });
+  });
+
   it('bo‘lim daraxti yig‘iq: ajdodlar ochilmaguncha farzandlar ko‘rinmaydi; tanlangan bo‘lim ajdodlari doim ochiq', () => {
     const bo = (id: number, daraja: number) => ({ id, nom: `b${id}`, daraja, ishlar: [], alohida: [] });
     const d = bolimDaraxti([bo(1, 0), bo(2, 1), bo(3, 2), bo(4, 1), bo(5, 0)]);
