@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 76,
+      "sana": "2026-11-03",
+      "sarlavha": "«Fakt tiklash»: yetishmayotgan faktni dalil bilan qaytarish",
+      "bandlar": [
+        "Fakt jurnalida yangi «Fakt tiklash» tugmasi: tasdiqlangan F2 va qoralama F2 hajmi fakt dan ko‘p bo‘lgan qatorlar ro‘yxati — hozirgi fakt, taklif, farq, manba hujjat (F2 №…) va pul ta’siri (QQS bilan · ustamali · to‘g‘ri) bilan.",
+        "Tasdiqlangan F2 qatorlari oldindan belgilangan, qoralama qatorlar belgilanmagan (kuchsizroq dalil). Belgilab, bitta tasdiq bilan yozasiz — faqat farq (delta) fakt ga qo‘shiladi, tasdiqlangan F2 o‘zgarmaydi.",
+        "Pastda «Kompaniya bo‘yicha» xulosa: har obyektda tasdiqlangan F2 dan va qoralama F2 dan fakt qancha yetishmayotgani."
+      ]
+    },
+    {
       "id": 73,
       "sana": "2026-11-03",
       "sarlavha": "Loyihasiz obyekt endi hech qayerda yashirilmaydi",

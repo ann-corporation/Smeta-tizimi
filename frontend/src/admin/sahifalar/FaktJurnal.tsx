@@ -24,6 +24,9 @@ import { topshirilganPaketOgohi } from '../../lib/f2-oylik-paket/ogoh';
 import { bolimIshlariYigish, faktF2Bekor, faktF2Reja, obyektF2Reja, type EskiF2Akt, type TenglashKontekst, type TenglashOyna } from '../../lib/fakt-f2-tenglash';
 import { sbF2TasdiqNarxlar } from '../../api/t2-f2-narx';
 import { FaktF2Tenglash } from './FaktF2Tenglash';
+import { FaktTiklash } from './FaktTiklash';
+import { sbTiklashQoralama } from '../../api/t2-fakt-tiklash';
+import { tiklashSatrlar, type TiklashMeta, type TiklashSatr } from '../../lib/fakt-tiklash';
 import { FaktQamrov } from './FaktQamrov';
 import { faktQamrovBekor } from '../../lib/fakt-qamrov';
 import { casZiddiyat, foizQoll, jamiIdlari, tarixgaQosh, ustunJoylash, ustunOqi, type Kiritmalar } from '../../lib/fakt-foiz-grid';
@@ -273,6 +276,25 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
     setTenglash({ sarlavha: t('Butun obyekt (barcha bo‘limlar)'), reja: obyektF2Reja(guruhlar, holatMap, k.ktx), eskiAktlar: k.eskiAktlar });
   };
 
+  /** «Fakt tiklash»: dalil (tasdiqlangan + qoralama F2) bo‘yicha butun obyekt takliflari; faqat o‘qish, yozish oynada (bitta tasdiq). */
+  const [tiklash, setTiklash] = useState<TiklashSatr[] | null>(null);
+  const tiklashOch = async () => {
+    if (tenglashYuk) return;
+    kiritmaOgoh();
+    {
+      const [k, q] = await Promise.all([tenglashKontekst(), sbTiklashQoralama(obyektId)]);
+      if (!k) return;
+      if (!q.ok) { toast(t('Qoralama F2 yuklanmadi — «Fakt tiklash» ochilmadi. Qayta urinib ko‘ring.'), 'danger'); return; }
+      const guruhlar = [...bolimlar.map((b) => ({ nom: b.nom, ishlar: bolimIshlari.get(b.id) ?? [] })), { nom: t('Bo‘limsiz'), ishlar: ildizIshlari }];
+      const meta: TiklashMeta[] = []; const korildi = new Set<number>();
+      for (const g of guruhlar) for (const ish of g.ishlar) for (const x of [ish as JurnalQator, ...ish.resurslar, ...ish.avtomatik]) {
+        if (korildi.has(x.id)) continue; korildi.add(x.id);
+        meta.push({ id: x.id, tur: x.tur, nom: x.nom, birlik: x.birlik, kat: rowById.get(x.id)?.kat ?? x.kat ?? null, bolim: g.nom });
+      }
+      setTiklash(tiklashSatrlar({ reja: obyektF2Reja(guruhlar, holatMap, k.ktx), holat: holatMap, meta, qoralama: q.yigma, qoralamaRaqam: q.raqam, smetaNarx: (id) => narxOl(id) }));
+    }
+  };
+
   // ── «Qamrov %» (Tiklash rejimi): bo'lim (avlodlari bilan) yoki ish → foiz × ochiq qoldiq; oldindan ko'rish + bitta tranzaksiya + bekor qilish. ──
   const [qamrov, setQamrov] = useState<{ sarlavha: string; ishlar: JurnalIsh[] } | null>(null);
   const qamrovBolim = (b: JurnalBolim) => { kiritmaOgoh(); setQamrov({ sarlavha: b.nom, ishlar: bolimIshlariYigish(b.id, bolimIshlari, bolimBolalari, true) }); };
@@ -401,7 +423,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
     { id: 'fakt.tozala', keys: 'esc', nom: t('Kiritilganlarni bekor qilish'), run: () => { if (!ozgarishSoni) return false; ommaviy({}); } },
     { id: 'fakt.orqaga', keys: 'ctrl+z', nom: t('Orqaga (ommaviy kiritma)'), run: () => orqaga() },
     { id: 'fakt.qamrov', keys: '%', nom: t('Qamrov % (tanlangan bo‘lim)'), run: () => { const b = bolimlar.find((x) => x.id === bolimId); if (!b || qidiruv) return false; qamrovBolim(b); } },
-  ], !modal && !tenglash && !bajModal && !narxModal && !qamrov && !chiqModal && !egizakOyna);
+  ], !modal && !tenglash && !tiklash && !bajModal && !narxModal && !qamrov && !chiqModal && !egizakOyna);
   useEffect(() => {
     if (!ozgarishSoni) return;
     const k = (e: BeforeUnloadEvent) => { e.preventDefault(); };
@@ -789,6 +811,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
         {(bolimlar.length > 0 || ildizIshlari.length > 0) && <button type="button" onClick={() => void tenglashObyekt()} disabled={tenglashYuk} data-testid="f2-tenglash-obyekt"
           title={sarlavhaBilan(t('Butun obyekt (barcha bo‘limlar): F2 hajmi fakt dan ko‘p ishlarga farqni yozish — oldindan ko‘rish, istisno va bekor qilish bilan'), 'shift+f')} aria-label={t('Fakt = F2: butun obyekt')}
           className="fz-btn">{t('Fakt = F2: obyekt')} <kbd className="fz-kbd">{'Shift+F'}</kbd></button>}
+        {(bolimlar.length > 0 || ildizIshlari.length > 0) && <button type="button" onClick={() => void tiklashOch()} disabled={tenglashYuk} data-testid="fakt-tiklash-och"
+          title={t('Fakt tiklash: tasdiqlangan va qoralama F2 dalili bo‘yicha yetishmayotgan faktni qatorma-qator taklif qilish — belgilab, bitta tasdiq bilan yozish')}
+          className="fz-btn">{t('Fakt tiklash')}</button>}
         {tanlanganBolim && !qidiruv && <button type="button" onClick={() => qamrovBolim(tanlanganBolim)} data-testid="qamrov-tanlangan"
           title={sarlavhaBilan(t('Tiklash rejimi: shu bo‘lim (ichki bo‘limlari bilan) barcha ishlariga bitta foiz — fakt = foiz × ochiq qoldiq; oldindan ko‘rish va bekor qilish bilan'), '%')} aria-label={t('Qamrov %: bo‘lim')}
           className="fz-btn">{t('Qamrov %')} <kbd className="fz-kbd">%</kbd></button>}
@@ -910,6 +935,11 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
       {tenglash && <FaktF2Tenglash sarlavha={tenglash.sarlavha} reja={tenglash.reja} eskiAktlar={tenglash.eskiAktlar} obyektId={obyektId} kompaniyaId={kompaniyaId} sana={sana} holatMap={holatMap}
         onYop={() => setTenglash(null)} onBajarildi={() => holatniYangila()}
         aktBekor={faktF2Bekor} />}
+
+      {tiklash && <FaktTiklash obyektNom={obyektNom} satrlar={tiklash} fakt={summalar.get(0)?.fakt ?? null} f2={summalar.get(0)?.f2 ?? null}
+        obyektId={obyektId} kompaniyaId={kompaniyaId} sana={sana} holatMap={holatMap}
+        obyektlar={(objects ?? []).filter((o) => o.kompaniya_id === kompaniyaId).map((o) => ({ id: o.id, nom: o.nom }))}
+        onYop={() => setTiklash(null)} onBajarildi={() => holatniYangila()} aktBekor={faktF2Bekor} />}
 
       {egizakOyna && <FaktEgizakOyna obyektId={obyektId} obyektNom={obyektNom} objects={objects ?? []} sana={sana}
         qoralama={Object.fromEntries(Object.entries(kiritmalar).filter(([, k]) => k.qiymat.trim()))}
