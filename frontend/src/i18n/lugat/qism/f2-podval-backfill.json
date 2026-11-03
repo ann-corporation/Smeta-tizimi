@@ -6,6 +6,8 @@
   "F2 aktlari o‘qilmadi. Qayta urinib ko‘ring.": { "ru": "Акты Ф2 не прочитаны. Повторите попытку.", "en": "F2 acts could not be read. Please retry." },
   "Fayl o‘qilmadi. F2 xlsx faylini tanlang.": { "ru": "Файл не прочитан. Выберите xlsx-файл Ф2.", "en": "The file could not be read. Choose an F2 xlsx file." },
   "Faylda F2 varag‘i topilmadi.": { "ru": "В файле не найден лист Ф2.", "en": "No F2 sheet found in the file." },
+  "Storno qoralamalari yangilandi: {n} ta": { "ru": "Черновики сторно обновлены: {n}", "en": "Storno drafts updated: {n}" },
+  "Storno qoralamalari tekshirilmadi — qayta urinib ko‘ring": { "ru": "Черновики сторно не проверены — повторите попытку", "en": "Storno drafts were not checked — please retry" },
   "Varaq": { "ru": "Лист", "en": "Sheet" },
   "ПРЯМЫЕ": { "ru": "ПРЯМЫЕ", "en": "Direct costs" },
   "ИТОГО-4": { "ru": "ИТОГО-4", "en": "Subtotal-4" },

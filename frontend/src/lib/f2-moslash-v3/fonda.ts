@@ -43,7 +43,7 @@ export async function f2AktlarniOqiFonda(fayl: string, source: Blob | ArrayBuffe
   if (r) return r;
   const bytes = source instanceof ArrayBuffer ? source : await source.arrayBuffer();
   const kitob = await readXlsxFonda(bytes);
-  return f2AktlarniOqi({ fayl, varaqlar: kitob.sheets.map((s) => ({ nom: s.name, rows: s.rows, merges: s.merges })) });
+  return f2AktlarniOqi({ fayl, varaqlar: kitob.sheets.map((s) => ({ nom: s.name, rows: s.rows, merges: s.merges, formulalar: s.formulalar })) });
 }
 
 /** F2 daraxti × smeta → natija (fonda). */
