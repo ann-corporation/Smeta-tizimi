@@ -28,3 +28,15 @@ GAP-COEF-001 и GAP-COEF-002 исправлены в owner-authorized release: �
 
 
 Актуализация: reference-index опубликован в R2 и проверен GET/SHA; runtime сопоставлен с установленным core для 42 608 работ, 0 расхождений. Это source/reference, не нормативное утверждение и не разрешение автоматического применения. Старые сведения об unpublished WIP выше относятся к исходной L3-передаче.
+
+## 30.10.2026 — повторный audit установленного ядра 2.8.1
+
+Текущие Construct.dll/Pto.Core.dll и обе cdb побайтно совпали с snapshot23.10; хэши до/после проверены. Native NormRepository.Corrections вызван для всех48083 работ:7177 с кандидатами,40906 без кандидатов,31340 связей. Production coefficientCandidates/sourceCoefficientCatalog на main567c58b7 дали0 расхождений по полному набору: коды, условия, основания и3 множителя. Отсутствие правила в источнике не заполняется выдуманным коэффициентом.
+
+Полный внешний пакет: D:/CatalogMigration/construct-2-data/audit-20261030. PROBE_MANIFEST.json содержит SHA каждого артефакта и сценария. NATIVE_COEFFICIENTS.jsonl не содержит пользовательских смет; его объём/исходные тексты не копируются в Git.
+
+Повторяемый gate (из frontend): задайте CONSTRUCT_NATIVE_FIXTURE_ROOT на этот пакет и NORM_LIBRARY_FIXTURE_ROOT на D:/CatalogMigration/construct-2-data/audit-20261023-v2/library-release; выполните `npx vitest run src/lib/catalog-oracle/native-runtime.local.test.ts`. Без обоих путей тест явно SKIP; обычный CI не считается полным повторением native audit. Gate проверяет seal, source identity, raw coefficient SHA, все ключи, все candidate records и точное отсутствие непредусмотренных правил. Самостоятельно не запускает стороннюю программу и не обращается к production/R2.
+
+Соседний actual-release test повторно прошёл все48083 работы/432277 ресурсных норм/112 shards и типы/единицы/SHA. Shared reader того же synthetic XLSX видит3 листа, ЛРВ с1работой/6ресурсами; неизвестная цена остаётсяNULL. Native ResourceLine.Cost при отсутствии цены возвращает0 — это наблюдаемое поведение источника, которое намеренно НЕ копируется в наш расчёт.
+
+GUI30.10 остановлен окном истёкшей подписки (28.10): меню/коэффициенты/реальные импорты в GUI НЕ проверены; лицензия/сессия не менялись. Production route200 и защищённый libraryAPI401 без сессии доказывают только доступность HTML и отказ анониму. Текущий private R2 readback, authenticated workflow и business-save не проверены. Review-only добавление в draft не является нормативным утверждением; наличие этого draft-пути само по себе не доказанная ошибка. Чужие calc/model/catalog-extraction/версии/F2 не менялись.
