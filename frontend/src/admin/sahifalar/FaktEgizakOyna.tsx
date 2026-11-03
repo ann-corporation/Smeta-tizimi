@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { yangiOperationId, type T2Obyekt } from '../../api/supabase';
-import { sbFaktYoz, sbQatorHolatOl } from '../../api/t2-fakt';
+import { sbFaktYoz } from '../../api/t2-fakt';
 import { sbT2QatorHolatQisman } from '../../api/t2-holat-qisman';
-import { egizakQatorlarOl } from '../../api/t2-egizak';
-import { egizakObyektlar, type EgizakQator } from '../../lib/f2-moslash-v3/egizak';
+import { egizakHolatOl, egizakQatorlarOl, EgizakOqishXatosi } from '../../api/t2-egizak';
+import { egizakJuftlari, type EgizakQator } from '../../lib/f2-moslash-v3/egizak';
 import { RAD_SABAB_MATN, faktEgizakReja, faktEgizakYoz, qoshimchaXarita, type EgizakNatija, type EgizakReja } from '../../lib/fakt-egizak';
 import type { Kiritma } from '../../lib/fakt-jurnal';
 import { t } from '../../i18n/til';
@@ -30,7 +30,7 @@ export function FaktEgizakOyna({ obyektId, obyektNom, objects, sana, qoralama, b
 }) {
   // Ochilgan paytdagi surat: manba saqlangach jurnal qoralamasi tozalansa ham reja o'zgarmaydi.
   const [snap] = useState(() => ({ qoralama: { ...qoralama }, bolim: { ...bolimKiritma }, obyekt: { ...obyektKiritma } }));
-  const nomzod = useMemo(() => egizakObyektlar(objects, obyektId), [objects, obyektId]);
+  const nomzod = useMemo(() => egizakJuftlari(objects, obyektId), [objects, obyektId]);
   const [doira, setDoira] = useState<EgizakDoira>(Object.keys(snap.qoralama).length ? 'qoralama' : bolimNom ? 'bolim' : 'obyekt');
   const [tanlangan, setTanlangan] = useState<Set<number>>(() => new Set(nomzod.map((o) => o.id)));
   const [manbaBilan, setManbaBilan] = useState(true);
@@ -38,6 +38,7 @@ export function FaktEgizakOyna({ obyektId, obyektNom, objects, sana, qoralama, b
   const [xato, setXato] = useState('');
   const [manba, setManba] = useState<EgizakQator[]>([]);
   const [tomonlar, setTomonlar] = useState<Map<number, Tomon>>(new Map());
+  const [tomonXato, setTomonXato] = useState<Map<number, string>>(new Map());
   const [band, setBand] = useState(false);
   const [natijalar, setNatijalar] = useState<Map<number, EgizakNatija>>(new Map());
   const opRef = useRef(new Map<number, { imzo: string; id: string }>());
@@ -46,22 +47,29 @@ export function FaktEgizakOyna({ obyektId, obyektNom, objects, sana, qoralama, b
     let faol = true;
     void (async () => {
       try {
+        if (!nomzod.length) { if (faol) setYuk(false); return; }
         const m = await egizakQatorlarOl(obyektId);
-        const tm = new Map<number, Tomon>();
-        await Promise.all(nomzod.map(async (o) => {
-          const [qatorlar, h] = await Promise.all([egizakQatorlarOl(o.id), sbQatorHolatOl(o.id)]);
-          if (!h.ok) throw new Error(t('Egizak obyekt ma’lumotlari o‘qilmadi.'));
-          const holat = new Map((h.qatorlar ?? []).map((x) => [Number(x.qator_id), x] as const));
-          const smeta = new Map<number, number | null>(); const fakt = new Map<number, number>();
-          for (const q of qatorlar) {
-            const x = holat.get(q.id);
-            const s = x?.smeta_hajm ?? q.hajm;
-            smeta.set(q.id, s == null || !Number.isFinite(Number(s)) ? null : Number(s));
-            fakt.set(q.id, Number(x?.fakt_hajm ?? 0));
+        if (faol) setManba(m);
+        // Egizaklar ketma-ket: biri o'qilmasa (vaqt/xato) boshqalari to'xtamaydi, xato kodi bilan ko'rsatiladi.
+        for (const o of nomzod) {
+          try {
+            const [qatorlar, hq] = await Promise.all([egizakQatorlarOl(o.id), egizakHolatOl(o.id)]);
+            const holat = new Map(hq.map((x) => [Number(x.qator_id), x] as const));
+            const smeta = new Map<number, number | null>(); const fakt = new Map<number, number>();
+            for (const q of qatorlar) {
+              const x = holat.get(q.id);
+              const s = x?.smeta_hajm ?? q.hajm;
+              smeta.set(q.id, s == null || !Number.isFinite(Number(s)) ? null : Number(s));
+              fakt.set(q.id, Number(x?.fakt_hajm ?? 0));
+            }
+            const tomon: Tomon = { qatorlar, smeta, fakt, qosh: await qoshimchaXarita(m, qatorlar, o.id) };
+            if (faol) setTomonlar((p) => new Map(p).set(o.id, tomon));
+          } catch (e) {
+            const kod = e instanceof EgizakOqishXatosi ? e.kod : 'XATO';
+            if (faol) setTomonXato((p) => new Map(p).set(o.id, t('«{nom}» o‘qilmadi ({kod}) — bu egizak o‘tkazib yuborildi.', { nom: o.nom, kod })));
           }
-          tm.set(o.id, { qatorlar, smeta, fakt, qosh: await qoshimchaXarita(m, qatorlar, o.id) });
-        }));
-        if (faol) { setManba(m); setTomonlar(tm); setYuk(false); }
+        }
+        if (faol) setYuk(false);
       } catch (e) { if (faol) { setXato(e instanceof Error ? e.message : t('Egizak obyekt ma’lumotlari o‘qilmadi.')); setYuk(false); } }
     })();
     return () => { faol = false; };
@@ -128,6 +136,7 @@ export function FaktEgizakOyna({ obyektId, obyektNom, objects, sana, qoralama, b
 
         {yuk && <p role="status" className="text-[12px] text-text-dim">{t('Egizak obyekt tekshirilmoqda…')}</p>}
         {xato && <p role="alert" className="text-[12px] text-danger">{xato}</p>}
+        {[...tomonXato.values()].map((x) => <p key={x} role="alert" className="text-[12px] text-danger">{x}</p>)}
         {!yuk && !xato && nomzod.length === 0 && <p className="text-[12px] text-text-dim">{t('Bu loyihada egizak obyekt yo‘q.')}</p>}
 
         <div className="min-h-0 flex-1 space-y-3 overflow-auto">

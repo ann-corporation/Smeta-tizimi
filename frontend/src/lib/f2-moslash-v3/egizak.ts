@@ -114,6 +114,24 @@ export function egizakObyektlar<T extends { id: number; loyiha_id: number | null
   return loyiha == null ? [] : objects.filter((o) => o.loyiha_id === loyiha && o.id !== objectId);
 }
 
+/** «Osiyo oshxonasi №2» -> «osiyo oshxonasi»; raqamli belgisi yo'q nom -> null. */
+export function egizakNomIldizi(nom: string | null | undefined): string | null {
+  const m = String(nom ?? '').replace(/\s+/g, ' ').trim().match(/^(.*?)\s*(?:№|#)\s*\d+$/);
+  const ildiz = m?.[1]?.trim().toLowerCase();
+  return ildiz ? ildiz : null;
+}
+
+/**
+ * Fakt «Egizaklarga ham yozish» nomzodlari: bir loyihadagi, nomi bir xil «ildiz + №N» bo'lgan obyektlar.
+ * Loyihaning HAMMA obyekti emas (33 obyektli loyihada katta obyektlarni — 26 000 qatorgacha — o'qishga urinish oynani
+ * 60 soniyalik vaqt chegarasiga uradi; 2026-11-03, «Osiyo oshxonasi №1» hisoboti).
+ */
+export function egizakJuftlari<T extends { id: number; nom?: string | null; loyiha_id: number | null }>(objects: readonly T[], objectId: number): T[] {
+  const ildiz = egizakNomIldizi(objects.find((o) => o.id === objectId)?.nom);
+  if (!ildiz) return [];
+  return egizakObyektlar(objects, objectId).filter((o) => egizakNomIldizi(o.nom) === ildiz);
+}
+
 /** A qoralamasining manba qatorlari ↔ B da ochiq F2 (uid, kod, hajm bir xil bo'lishi shart). */
 export function f2Mosligi(aManba: ReadonlyArray<{ uid: string; kod?: string | null; hajm?: unknown }>, bInd: F2Indeks): { ok: boolean; farqlar: string[] } {
   const farqlar: string[] = [];

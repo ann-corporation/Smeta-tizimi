@@ -2,6 +2,15 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 65,
+      "sana": "2026-11-03",
+      "sarlavha": "«Egizaklarga ham yozish» katta loyihalarda ochiladi",
+      "bandlar": [
+        "Oyna endi loyihaning hamma obyektini emas, faqat nomi bir xil «…№1 / №2» egizaklarni o‘qiydi — avval 26 000 qatorli obyektlar ham o‘qilib, oyna «o‘qilmadi» xatosi berardi.",
+        "Biror egizak o‘qilmasa, qolganlari yuklanadi; xato xabarida kod ko‘rsatiladi."
+      ]
+    },
+    {
       "id": 64,
       "sana": "2026-11-03",
       "sarlavha": "Bajarilgan, lekin F2 ga chiqmagan ish endi tizim maʻlumotidan pozitsiya boʻyicha asoslanadi",
