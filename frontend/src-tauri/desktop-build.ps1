@@ -29,6 +29,10 @@ Push-Location $desktopFrontend
 try {
     & (Join-Path $PSScriptRoot 'desktop-bootstrap.ps1')
     if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) { throw 'Rust MSVC toolchain is required.' }
+    $modules = Get-Item -LiteralPath 'node_modules' -ErrorAction SilentlyContinue
+    if ($modules -and ($modules.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+        throw 'Run release builds in an isolated checkout with local node_modules.'
+    }
     & npm.cmd ci
     if ($LASTEXITCODE -ne 0) { throw 'npm ci failed.' }
     if (Test-Path -LiteralPath $installer) { Remove-Item -LiteralPath $installer }
