@@ -2,6 +2,18 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 79,
+      "sana": "2026-11-03",
+      "sarlavha": "Tender / xarid — tasdiqdan g‘olibgacha",
+      "bandlar": [
+        "Yangi «Tender / xarid» sahifasi (Ta’minot bo‘limida): tovar, xizmat va subpudrat uchun tender — qoralama, tasdiq, e’lon.",
+        "Takliflar muhrlangan: muddat tugaguncha va siz «Takliflarni ochish» ni bosmaguncha faqat soni ko‘rinadi. Byudjet yetkazuvchidan yashirin.",
+        "Solishtirish jadvali: pozitsiya × yetkazuvchi, eng arzoni yashil, jami QQS bilan (asosiy) va QQS siz; ball bilan baholash va qayta raund (BAFO).",
+        "G‘olib pozitsiya bo‘yicha tanlanadi (asos majburiy), har g‘olibga alohida buyurtma; savol-javob, audit jurnali, yetkazuvchi reytingi va tejam tahlili.",
+        "Yetkazuvchi tomoni: «Menga taklif qilingan» va ochiq e’lonlar, taklifni muddatgacha o‘zgartirish yoki qaytarib olish."
+      ]
+    },
+    {
       "id": 78,
       "sana": "2026-11-03",
       "sarlavha": "Rahbar paneli: obyekt paneli, resurslar tahlili va Excel",

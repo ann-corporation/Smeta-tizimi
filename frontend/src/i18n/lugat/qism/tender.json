@@ -1,0 +1,894 @@
+{
+ "Kompaniya tanlang.": {
+  "ru": "Выберите компанию.",
+  "en": "Select a company."
+ },
+ "Yangi tender": {
+  "ru": "Новый тендер",
+  "en": "New tender"
+ },
+ "Tender bo‘limlari": {
+  "ru": "Разделы тендеров",
+  "en": "Tender sections"
+ },
+ "Mening tenderlarim": {
+  "ru": "Мои тендеры",
+  "en": "My tenders"
+ },
+ "Menga taklif qilingan": {
+  "ru": "Приглашён участвовать",
+  "en": "Invited to bid"
+ },
+ "Ochiq e’lonlar": {
+  "ru": "Открытые объявления",
+  "en": "Open notices"
+ },
+ "Tahlil": {
+  "ru": "Аналитика",
+  "en": "Analytics"
+ },
+ "Raqam, nom yoki tashkilot bo‘yicha…": {
+  "ru": "По номеру, названию или организации…",
+  "en": "By number, name or organization…"
+ },
+ "Tender": {
+  "ru": "Тендер",
+  "en": "Tender"
+ },
+ "Takliflar": {
+  "ru": "Предложения",
+  "en": "Bids"
+ },
+ "Sizning taklifingiz": {
+  "ru": "Ваше предложение",
+  "en": "Your bid"
+ },
+ "Byudjet": {
+  "ru": "Бюджет",
+  "en": "Budget"
+ },
+ "Hali tender yo‘q. «Yangi tender» tugmasi bilan yarating yoki zayavkadan import qiling.": {
+  "ru": "Тендеров пока нет. Создайте кнопкой «Новый тендер» или импортируйте из заявки.",
+  "en": "No tenders yet. Create one with “New tender” or import from a request."
+ },
+ "Sizga taklif qilingan tender yo‘q.": {
+  "ru": "Вам не приглашали на тендеры.",
+  "en": "No tenders you were invited to."
+ },
+ "Ochiq e’lonlar yo‘q.": {
+  "ru": "Открытых объявлений нет.",
+  "en": "No open notices."
+ },
+ "Raund {n}": {
+  "ru": "Раунд {n}",
+  "en": "Round {n}"
+ },
+ "lot": {
+  "ru": "лот",
+  "en": "lot"
+ },
+ "yuborilgan": {
+  "ru": "отправлено",
+  "en": "submitted"
+ },
+ "Savol kamida 5 belgi bo‘lsin.": {
+  "ru": "Вопрос — не менее 5 символов.",
+  "en": "The question must be at least 5 characters."
+ },
+ "Savol yuborildi.": {
+  "ru": "Вопрос отправлен.",
+  "en": "Question sent."
+ },
+ "Javob yuborildi.": {
+  "ru": "Ответ отправлен.",
+  "en": "Answer sent."
+ },
+ "Savol va javoblar": {
+  "ru": "Вопросы и ответы",
+  "en": "Questions and answers"
+ },
+ "Savol muddati": {
+  "ru": "Срок вопросов",
+  "en": "Question deadline"
+ },
+ "Hozircha savol yo‘q.": {
+  "ru": "Вопросов пока нет.",
+  "en": "No questions yet."
+ },
+ "Sizning savolingiz": {
+  "ru": "Ваш вопрос",
+  "en": "Your question"
+ },
+ "Ishtirokchi savoli": {
+  "ru": "Вопрос участника",
+  "en": "Participant question"
+ },
+ "faqat savol egasiga": {
+  "ru": "только автору вопроса",
+  "en": "to the asker only"
+ },
+ "Javobingiz…": {
+  "ru": "Ваш ответ…",
+  "en": "Your answer…"
+ },
+ "Javob berish": {
+  "ru": "Ответить",
+  "en": "Answer"
+ },
+ "Javob barcha ishtirokchilarga ko‘rinsin (savol egasi nomsiz)": {
+  "ru": "Ответ виден всем участникам (автор вопроса анонимен)",
+  "en": "Show the answer to all participants (asker anonymous)"
+ },
+ "Xaridorga savolingiz…": {
+  "ru": "Ваш вопрос заказчику…",
+  "en": "Your question to the buyer…"
+ },
+ "Savol berish": {
+  "ru": "Задать вопрос",
+  "en": "Ask a question"
+ },
+ "Tender topilmadi yoki sizga ochiq emas.": {
+  "ru": "Тендер не найден или недоступен вам.",
+  "en": "Tender not found or not available to you."
+ },
+ "Yangi muddat va sababni kiriting.": {
+  "ru": "Укажите новый срок и причину.",
+  "en": "Enter a new deadline and a reason."
+ },
+ "Shartnomani tanlang.": {
+  "ru": "Выберите договор.",
+  "en": "Select a contract."
+ },
+ "Bajarildi.": {
+  "ru": "Выполнено.",
+  "en": "Done."
+ },
+ "Baho saqlandi.": {
+  "ru": "Оценка сохранена.",
+  "en": "Rating saved."
+ },
+ "Ro‘yxatga": {
+  "ru": "К списку",
+  "en": "Back to list"
+ },
+ "Tender bosqichlari": {
+  "ru": "Этапы тендера",
+  "en": "Tender stages"
+ },
+ "Tender ko‘rsatkichlari": {
+  "ru": "Показатели тендеров",
+  "en": "Tender metrics"
+ },
+ "Takliflar muddati": {
+  "ru": "Срок подачи предложений",
+  "en": "Bid deadline"
+ },
+ "muddat tugaguncha takliflar yopiq": {
+  "ru": "до окончания срока предложения закрыты",
+  "en": "bids are sealed until the deadline"
+ },
+ "muhrlangan — ochilmagan": {
+  "ru": "запечатано — не вскрыто",
+  "en": "sealed — not opened"
+ },
+ "G‘olibni aniqlash": {
+  "ru": "Определение победителя",
+  "en": "Winner selection"
+ },
+ "Ball bilan": {
+  "ru": "По баллам",
+  "en": "By score"
+ },
+ "Eng past narx": {
+  "ru": "Наименьшая цена",
+  "en": "Lowest price"
+ },
+ "To‘lov sharti": {
+  "ru": "Условия оплаты",
+  "en": "Payment terms"
+ },
+ "Diqqat: tasdiqlovchi va yuboruvchi bir kishi.": {
+  "ru": "Внимание: утверждающий и отправитель — одно лицо.",
+  "en": "Note: the approver and the submitter are the same person."
+ },
+ "Yetkazish joyi": {
+  "ru": "Место поставки",
+  "en": "Delivery place"
+ },
+ "Takliflar muhrlangan: muddat tugagach «Takliflarni ochish» tugmasi paydo bo‘ladi. Ungacha faqat soni ko‘rinadi.": {
+  "ru": "Предложения запечатаны: после срока появится кнопка «Вскрыть предложения». До этого видно только количество.",
+  "en": "Bids are sealed: the “Open bids” button appears after the deadline. Until then only the count is visible."
+ },
+ "Muddat tugadi. Takliflarni ochganingizda hamma tomon ko‘ra oladi va jurnalga yoziladi.": {
+  "ru": "Срок истёк. При вскрытии предложения становятся видны стороне заказчика, действие записывается в журнал.",
+  "en": "The deadline has passed. Opening the bids makes them visible to the buyer side and is written to the log."
+ },
+ "G‘olib": {
+  "ru": "Победитель",
+  "en": "Winner"
+ },
+ "Tanlanmadi": {
+  "ru": "Не выбран",
+  "en": "Not selected"
+ },
+ "Taklif berish uchun «Tenderga taklif berish» ruxsati kerak.": {
+  "ru": "Для подачи предложения нужно право «Подача предложений на тендер».",
+  "en": "Bidding requires the “Bid on tenders” permission."
+ },
+ "Buyurtmalar va yetkazish": {
+  "ru": "Заказы и поставка",
+  "en": "Orders and delivery"
+ },
+ "qabul qilindi": {
+  "ru": "принято",
+  "en": "received"
+ },
+ "To‘lov holati va ombor kirimi — moliya/ombor bo‘limlarida; bu yerga hozircha ulanmagan.": {
+  "ru": "Статус оплаты и приход на склад — в разделах финансов/склада; сюда пока не подключены.",
+  "en": "Payment status and warehouse receipt live in finance/warehouse; not connected here yet."
+ },
+ "Sizning bahoyingiz": {
+  "ru": "Ваша оценка",
+  "en": "Your rating"
+ },
+ "Yetkazuvchini baholang": {
+  "ru": "Оцените поставщика",
+  "en": "Rate the supplier"
+ },
+ "E’londan keyin yetkazuvchilar taklif bera oladi. Muddat": {
+  "ru": "После публикации поставщики смогут подавать предложения. Срок",
+  "en": "After publishing, suppliers can submit bids. Deadline"
+ },
+ "Takliflar ochiladi: xaridor tomoni ko‘radi, ochgan kishi va vaqt jurnalga yoziladi.": {
+  "ru": "Предложения будут вскрыты: их увидит сторона заказчика, кто и когда вскрыл — записывается в журнал.",
+  "en": "Bids will be opened: the buyer side sees them; who opened them and when is logged."
+ },
+ "Yangi muddat": {
+  "ru": "Новый срок",
+  "en": "New deadline"
+ },
+ "Lot": {
+  "ru": "Лот",
+  "en": "Lot"
+ },
+ "Tenderlar soni": {
+  "ru": "Количество тендеров",
+  "en": "Number of tenders"
+ },
+ "Jami tejam (QQS bilan)": {
+  "ru": "Общая экономия (с НДС)",
+  "en": "Total savings (incl. VAT)"
+ },
+ "byudjeti va g‘olibi ma’lum {n} ta tender bo‘yicha": {
+  "ru": "по {n} тендерам с известным бюджетом и победителем",
+  "en": "across {n} tenders with known budget and winner"
+ },
+ "O‘rtacha ishtirokchi": {
+  "ru": "Среднее число участников",
+  "en": "Average bidders"
+ },
+ "ochilgan tenderlarda": {
+  "ru": "в вскрытых тендерах",
+  "en": "in opened tenders"
+ },
+ "O‘rtacha aylanish (kun)": {
+  "ru": "Средний цикл (дней)",
+  "en": "Average cycle (days)"
+ },
+ "e’londan g‘olibgacha": {
+  "ru": "от публикации до победителя",
+  "en": "from publishing to winner"
+ },
+ "Byudjet (QQS bilan)": {
+  "ru": "Бюджет (с НДС)",
+  "en": "Budget (incl. VAT)"
+ },
+ "G‘olib (QQS bilan)": {
+  "ru": "Победитель (с НДС)",
+  "en": "Winner (incl. VAT)"
+ },
+ "Tejam": {
+  "ru": "Экономия",
+  "en": "Savings"
+ },
+ "Ishtirokchi": {
+  "ru": "Участник",
+  "en": "Bidder"
+ },
+ "Kun": {
+  "ru": "Дней",
+  "en": "Days"
+ },
+ "Hozircha tender yo‘q.": {
+  "ru": "Тендеров пока нет.",
+  "en": "No tenders yet."
+ },
+ "Buyurtmalar": {
+  "ru": "Заказы",
+  "en": "Orders"
+ },
+ "Reyting": {
+  "ru": "Рейтинг",
+  "en": "Rating"
+ },
+ "Baholar soni": {
+  "ru": "Число оценок",
+  "en": "Ratings count"
+ },
+ "Hali g‘olib yetkazuvchi yo‘q.": {
+  "ru": "Победивших поставщиков пока нет.",
+  "en": "No winning suppliers yet."
+ },
+ "baho yo‘q": {
+  "ru": "нет оценок",
+  "en": "no ratings"
+ },
+ "{n} ta zayavka o‘tkazib yuborildi (birlik/qoldiq/holat noto‘g‘ri).": {
+  "ru": "Пропущено заявок: {n} (неверная единица/остаток/статус).",
+  "en": "{n} requests skipped (wrong unit/remainder/status)."
+ },
+ "Tender nomini yozing.": {
+  "ru": "Введите название тендера.",
+  "en": "Enter a tender name."
+ },
+ "Har pozitsiyada nom, birlik va miqdor (0 dan katta) bo‘lishi kerak.": {
+  "ru": "В каждой позиции нужны наименование, единица и количество (больше 0).",
+  "en": "Each item needs a name, unit and quantity (greater than 0)."
+ },
+ "Kamida bitta pozitsiya kiriting.": {
+  "ru": "Добавьте хотя бы одну позицию.",
+  "en": "Add at least one item."
+ },
+ "Ball usulida mezon vaznlari yig‘indisi 100 bo‘lishi va narx mezoni bo‘lishi kerak.": {
+  "ru": "При оценке по баллам сумма весов должна быть 100 и должен быть критерий цены.",
+  "en": "For scoring, weights must sum to 100 and include the price criterion."
+ },
+ "Taklif qilinadigan yetkazuvchilarni tanlang yoki «Ochiq» ni belgilang.": {
+  "ru": "Выберите приглашаемых поставщиков или отметьте «Открытое объявление».",
+  "en": "Select invited suppliers or choose “Open notice”."
+ },
+ "QQS stavkasi 0–100 bo‘lsin.": {
+  "ru": "Ставка НДС — от 0 до 100.",
+  "en": "VAT rate must be 0–100."
+ },
+ "Qoralama saqlandi. Keyingi qadam — tasdiqqa yuborish.": {
+  "ru": "Черновик сохранён. Следующий шаг — отправить на утверждение.",
+  "en": "Draft saved. Next step: send for approval."
+ },
+ "Tenderni tahrirlash": {
+  "ru": "Редактирование тендера",
+  "en": "Edit tender"
+ },
+ "Qoralamani saqlash": {
+  "ru": "Сохранить черновик",
+  "en": "Save draft"
+ },
+ "Tender nomi": {
+  "ru": "Название тендера",
+  "en": "Tender name"
+ },
+ "Masalan: Obyekt uchun armatura va sement": {
+  "ru": "Например: арматура и цемент для объекта",
+  "en": "E.g. rebar and cement for the site"
+ },
+ "Takliflarni qabul qilish muddati": {
+  "ru": "Срок приёма предложений",
+  "en": "Bid submission deadline"
+ },
+ "Muddat tugamaguncha takliflar sizga ko‘rinmaydi.": {
+  "ru": "До окончания срока предложения вам не видны.",
+  "en": "Bids stay hidden from you until the deadline."
+ },
+ "Savol berish muddati": {
+  "ru": "Срок задавания вопросов",
+  "en": "Question deadline"
+ },
+ "Pul va shartlar": {
+  "ru": "Деньги и условия",
+  "en": "Money and terms"
+ },
+ "Ixtiyoriy. Sukut bo‘yicha yetkazuvchilardan yashirin.": {
+  "ru": "Необязательно. По умолчанию скрыт от поставщиков.",
+  "en": "Optional. Hidden from suppliers by default."
+ },
+ "QQS stavkasi, %": {
+  "ru": "Ставка НДС, %",
+  "en": "VAT rate, %"
+ },
+ "Byudjetni yetkazuvchilarga ko‘rsatish": {
+  "ru": "Показывать бюджет поставщикам",
+  "en": "Show budget to suppliers"
+ },
+ "Masalan: 30% oldindan, 70% topshirgach 10 kun ichida": {
+  "ru": "Например: 30% аванс, 70% в течение 10 дней после сдачи",
+  "en": "E.g. 30% upfront, 70% within 10 days after delivery"
+ },
+ "G‘olibni aniqlash usuli": {
+  "ru": "Способ определения победителя",
+  "en": "Winner selection method"
+ },
+ "Usul": {
+  "ru": "Способ",
+  "en": "Method"
+ },
+ "Eng past narx (QQS bilan)": {
+  "ru": "Наименьшая цена (с НДС)",
+  "en": "Lowest price (incl. VAT)"
+ },
+ "Ball bilan (vaznli mezonlar)": {
+  "ru": "По баллам (взвешенные критерии)",
+  "en": "By score (weighted criteria)"
+ },
+ "Vaznlar yig‘indisi": {
+  "ru": "Сумма весов",
+  "en": "Weights total"
+ },
+ "100 bo‘lishi va narx mezoni bo‘lishi kerak": {
+  "ru": "должна быть 100 и включать цену",
+  "en": "must be 100 and include price"
+ },
+ "Kimlar taklif beradi": {
+  "ru": "Кто подаёт предложения",
+  "en": "Who can bid"
+ },
+ "Taklif qilingan yetkazuvchilar": {
+  "ru": "Приглашённые поставщики",
+  "en": "Invited suppliers"
+ },
+ "Ochiq e’lon (hamma ko‘radi)": {
+  "ru": "Открытое объявление (видно всем)",
+  "en": "Open notice (visible to all)"
+ },
+ "Faol aloqadagi yetkazuvchi yo‘q. Avval «Tomonlar» orqali aloqa o‘rnating yoki ochiq e’lonni tanlang.": {
+  "ru": "Нет поставщиков с активной связью. Сначала установите связь через «Стороны» или выберите открытое объявление.",
+  "en": "No suppliers with an active link. Connect through “Parties” first or choose an open notice."
+ },
+ "Pozitsiyalar (lotlar bo‘yicha)": {
+  "ru": "Позиции (по лотам)",
+  "en": "Items (by lot)"
+ },
+ "Pozitsiya qo‘shish": {
+  "ru": "Добавить позицию",
+  "en": "Add item"
+ },
+ "Zayavkadan import": {
+  "ru": "Импорт из заявки",
+  "en": "Import from request"
+ },
+ "Texnik talab / marka": {
+  "ru": "Технические требования / марка",
+  "en": "Specification / brand"
+ },
+ "Umumiy izoh / talablar": {
+  "ru": "Общие примечания / требования",
+  "en": "General notes / requirements"
+ },
+ "Zayavkalardan tanlang": {
+  "ru": "Выберите из заявок",
+  "en": "Pick from requests"
+ },
+ "Tenderga qo‘shish": {
+  "ru": "Добавить в тендер",
+  "en": "Add to tender"
+ },
+ "Tasdiqlangan (yetkazilmagan) zayavka yo‘q.": {
+  "ru": "Нет утверждённых (непоставленных) заявок.",
+  "en": "No approved (undelivered) requests."
+ },
+ "Kamida bitta pozitsiyaga narx kiriting.": {
+  "ru": "Укажите цену хотя бы по одной позиции.",
+  "en": "Enter a price for at least one item."
+ },
+ "QQS stavkasini kiriting (0–100).": {
+  "ru": "Укажите ставку НДС (0–100).",
+  "en": "Enter the VAT rate (0–100)."
+ },
+ "Taklif yangilandi. Muddatgacha yana o‘zgartirishingiz mumkin.": {
+  "ru": "Предложение обновлено. До срока его можно ещё менять.",
+  "en": "Bid updated. You can change it again until the deadline."
+ },
+ "Taklif yuborildi. U muddat tugaguncha xaridorga ko‘rinmaydi.": {
+  "ru": "Предложение отправлено. Заказчик не увидит его до окончания срока.",
+  "en": "Bid submitted. The buyer cannot see it until the deadline."
+ },
+ "Taklif qaytarib olindi.": {
+  "ru": "Предложение отозвано.",
+  "en": "Bid withdrawn."
+ },
+ "Sizning taklifingiz (o‘zgartirish mumkin)": {
+  "ru": "Ваше предложение (можно изменить)",
+  "en": "Your bid (can be changed)"
+ },
+ "Taklif berish": {
+  "ru": "Подать предложение",
+  "en": "Submit a bid"
+ },
+ "Muhrlangan: xaridor muddat tugaguncha ko‘rmaydi": {
+  "ru": "Запечатано: заказчик не видит до окончания срока",
+  "en": "Sealed: the buyer cannot see it until the deadline"
+ },
+ "Narxlarni QQS siz kiriting (birlik narxi). Narx kiritilmagan pozitsiya taklifga kirmaydi.": {
+  "ru": "Вводите цены без НДС (цена за единицу). Позиция без цены в предложение не входит.",
+  "en": "Enter prices excluding VAT (unit price). Items without a price are not part of the bid."
+ },
+ "Birlik narxi (QQS siz)": {
+  "ru": "Цена за ед. (без НДС)",
+  "en": "Unit price (excl. VAT)"
+ },
+ "Yetkazish (kun)": {
+  "ru": "Поставка (дней)",
+  "en": "Delivery (days)"
+ },
+ "Pozitsiya summasi": {
+  "ru": "Сумма позиции",
+  "en": "Item total"
+ },
+ "QQS to‘lovchi bo‘lmasangiz — 0": {
+  "ru": "Если вы не плательщик НДС — 0",
+  "en": "If you are not a VAT payer — 0"
+ },
+ "Yetkazish haqi (QQS siz)": {
+  "ru": "Стоимость доставки (без НДС)",
+  "en": "Delivery fee (excl. VAT)"
+ },
+ "Taklif amal qilish muddati (kun)": {
+  "ru": "Срок действия предложения (дней)",
+  "en": "Bid validity (days)"
+ },
+ "Kafolat (oy)": {
+  "ru": "Гарантия (мес.)",
+  "en": "Warranty (months)"
+ },
+ "Xaridor sharti": {
+  "ru": "Условие заказчика",
+  "en": "Buyer's term"
+ },
+ "Masalan: 30% oldindan, qolgani topshirgach": {
+  "ru": "Например: 30% аванс, остальное после сдачи",
+  "en": "E.g. 30% upfront, the rest on delivery"
+ },
+ "Taklif jami ({n} / {m} pozitsiya)": {
+  "ru": "Итого по предложению ({n} из {m} позиций)",
+  "en": "Bid total ({n} of {m} items)"
+ },
+ "QQS stavkasi kiritilmaguncha QQS bilan summa ko‘rsatilmaydi.": {
+  "ru": "Пока не указана ставка НДС, сумма с НДС не показывается.",
+  "en": "The VAT-inclusive total is not shown until a VAT rate is entered."
+ },
+ "Avval barcha mezonlar bo‘yicha ballarni to‘ldiring (to‘lov sharti — qo‘lda).": {
+  "ru": "Сначала заполните баллы по всем критериям (условия оплаты — вручную).",
+  "en": "Fill in scores for all criteria first (payment terms — manually)."
+ },
+ "Ballar saqlandi.": {
+  "ru": "Баллы сохранены.",
+  "en": "Scores saved."
+ },
+ "Kamida bitta pozitsiya uchun g‘olibni belgilang.": {
+  "ru": "Отметьте победителя хотя бы по одной позиции.",
+  "en": "Mark a winner for at least one item."
+ },
+ "G‘olib tanlash asosini yozing (kamida 10 belgi).": {
+  "ru": "Укажите основание выбора победителя (не менее 10 символов).",
+  "en": "Enter the justification for the winner (at least 10 characters)."
+ },
+ "G‘olib tanlandi, buyurtmalar yaratildi.": {
+  "ru": "Победитель выбран, заказы созданы.",
+  "en": "Winner selected, orders created."
+ },
+ "Taklif kelmagan.": {
+  "ru": "Предложений нет.",
+  "en": "No bids received."
+ },
+ "Pozitsiya bo‘yicha eng arzon": {
+  "ru": "Самое дешёвое по позициям",
+  "en": "Cheapest per item"
+ },
+ "Bitta g‘olib: umumiy eng arzon": {
+  "ru": "Один победитель: самый дешёвый в целом",
+  "en": "Single winner: cheapest overall"
+ },
+ "Narxlar QQS bilan solishtiriladi; eng arzoni yashil.": {
+  "ru": "Цены сравниваются с НДС; самая низкая — зелёная.",
+  "en": "Prices are compared incl. VAT; the lowest is green."
+ },
+ "narx bermagan": {
+  "ru": "цену не указал",
+  "en": "no price given"
+ },
+ "shu jumladan yetkazish": {
+  "ru": "в т.ч. доставка",
+  "en": "incl. delivery"
+ },
+ "Yetkazish muddati (eng uzun)": {
+  "ru": "Срок поставки (максимальный)",
+  "en": "Delivery time (longest)"
+ },
+ "Kafolat": {
+  "ru": "Гарантия",
+  "en": "Warranty"
+ },
+ "{n} oy": {
+  "ru": "{n} мес.",
+  "en": "{n} months"
+ },
+ "Yetkazuvchi reytingi": {
+  "ru": "Рейтинг поставщика",
+  "en": "Supplier rating"
+ },
+ "Taklif amal qiladi": {
+  "ru": "Предложение действует",
+  "en": "Bid valid for"
+ },
+ "Ball bilan baholash": {
+  "ru": "Оценка по баллам",
+  "en": "Scoring"
+ },
+ "Jami ball": {
+  "ru": "Итоговый балл",
+  "en": "Total score"
+ },
+ "To‘lov sharti bali": {
+  "ru": "Балл за условия оплаты",
+  "en": "Payment terms score"
+ },
+ "Taklifda ko‘rsatilmagan: shartli ball berilgan": {
+  "ru": "В предложении не указано: присвоен условный балл",
+  "en": "Not stated in the bid: a conventional score was given"
+ },
+ "hisoblanmadi": {
+  "ru": "не рассчитан",
+  "en": "not calculated"
+ },
+ "* taklifda ko‘rsatilmagan ma’lumot: kafolat/muddat — 0 ball, reytingsiz — 50 (neytral). Narx balli faqat to‘liq takliflarga beriladi.": {
+  "ru": "* данные не указаны в предложении: гарантия/срок — 0 баллов, без рейтинга — 50 (нейтрально). Балл за цену даётся только полным предложениям.",
+  "en": "* data not stated in the bid: warranty/time — 0 points, no rating — 50 (neutral). The price score is given only to complete bids."
+ },
+ "Ballarni saqlash": {
+  "ru": "Сохранить баллы",
+  "en": "Save scores"
+ },
+ "G‘olibni tasdiqlash": {
+  "ru": "Утверждение победителя",
+  "en": "Confirm winner"
+ },
+ "Jadvalda har pozitsiya uchun «tanlash» ni belgilang yoki yuqoridagi tugmalardan foydalaning.": {
+  "ru": "Отметьте «выбрать» по каждой позиции в таблице или используйте кнопки выше.",
+  "en": "Mark “select” for each item in the table or use the buttons above."
+ },
+ "{n} ta pozitsiyada eng arzon taklif tanlanmagan — asosda sababini yozing.": {
+  "ru": "По {n} поз. выбрано не самое дешёвое предложение — объясните в обосновании.",
+  "en": "For {n} items the cheapest bid was not chosen — explain in the justification."
+ },
+ "Tanlash asosi (majburiy)": {
+  "ru": "Основание выбора (обязательно)",
+  "en": "Selection justification (required)"
+ },
+ "Bu matn audit jurnaliga yoziladi.": {
+  "ru": "Этот текст записывается в журнал аудита.",
+  "en": "This text is written to the audit log."
+ },
+ "Tanlanmagan pozitsiyalar qolsa ham tenderni yakunlash": {
+  "ru": "Завершить тендер, даже если остались невыбранные позиции",
+  "en": "Finish the tender even if some items remain unawarded"
+ },
+ "G‘olibni tasdiqlash va buyurtma yaratish": {
+  "ru": "Утвердить победителя и создать заказ",
+  "en": "Confirm winner and create order"
+ },
+ "Tanlash asosi": {
+  "ru": "Основание выбора",
+  "en": "Selection justification"
+ },
+ "QQS stavkasi noma’lum": {
+  "ru": "Ставка НДС неизвестна",
+  "en": "VAT rate unknown"
+ },
+ "Amalni bajarib bo‘lmadi.": {
+  "ru": "Не удалось выполнить действие.",
+  "en": "The action could not be completed."
+ },
+ "Tasdiqlashda": {
+  "ru": "На утверждении",
+  "en": "Pending approval"
+ },
+ "E’lon qilingan": {
+  "ru": "Опубликован",
+  "en": "Published"
+ },
+ "Takliflar yopildi": {
+  "ru": "Приём предложений закрыт",
+  "en": "Bids closed"
+ },
+ "Baholash": {
+  "ru": "Оценка",
+  "en": "Evaluation"
+ },
+ "G‘olib tanlandi": {
+  "ru": "Победитель выбран",
+  "en": "Winner selected"
+ },
+ "Material (tovar)": {
+  "ru": "Материал (товар)",
+  "en": "Material (goods)"
+ },
+ "Subpudrat ishlari": {
+  "ru": "Субподрядные работы",
+  "en": "Subcontract works"
+ },
+ "Texnika ijarasi": {
+  "ru": "Аренда техники",
+  "en": "Equipment rental"
+ },
+ "Loyihalash": {
+  "ru": "Проектирование",
+  "en": "Design"
+ },
+ "Laboratoriya sinovi": {
+  "ru": "Лабораторные испытания",
+  "en": "Laboratory testing"
+ },
+ "Yetkazish muddati": {
+  "ru": "Срок поставки",
+  "en": "Delivery time"
+ },
+ "Tasdiqqa yuborish": {
+  "ru": "Отправить на утверждение",
+  "en": "Send for approval"
+ },
+ "Tasdiqlash va e’lon qilish": {
+  "ru": "Утвердить и опубликовать",
+  "en": "Approve and publish"
+ },
+ "Muddatdan oldin yopish": {
+  "ru": "Закрыть досрочно",
+  "en": "Close early"
+ },
+ "Takliflarni ochish": {
+  "ru": "Вскрыть предложения",
+  "en": "Open bids"
+ },
+ "Qayta raund (BAFO)": {
+  "ru": "Повторный раунд (BAFO)",
+  "en": "Re-bid round (BAFO)"
+ },
+ "Shartnomaga bog‘lash": {
+  "ru": "Привязать к договору",
+  "en": "Link to contract"
+ },
+ "Bajarilmoqda deb belgilash": {
+  "ru": "Отметить «исполняется»",
+  "en": "Mark in progress"
+ },
+ "Qoralama yaratildi": {
+  "ru": "Черновик создан",
+  "en": "Draft created"
+ },
+ "Tahrirlandi": {
+  "ru": "Отредактировано",
+  "en": "Edited"
+ },
+ "Holat o‘zgardi": {
+  "ru": "Статус изменён",
+  "en": "Status changed"
+ },
+ "Taklif keldi": {
+  "ru": "Поступило предложение",
+  "en": "Bid received"
+ },
+ "Taklif qaytarib olindi": {
+  "ru": "Предложение отозвано",
+  "en": "Bid withdrawn"
+ },
+ "Savol berildi": {
+  "ru": "Задан вопрос",
+  "en": "Question asked"
+ },
+ "Javob berildi": {
+  "ru": "Дан ответ",
+  "en": "Answer given"
+ },
+ "Ballar saqlandi": {
+  "ru": "Баллы сохранены",
+  "en": "Scores saved"
+ },
+ "Qayta raund": {
+  "ru": "Повторный раунд",
+  "en": "Re-bid round"
+ },
+ "Yetkazuvchi baholandi": {
+  "ru": "Поставщик оценён",
+  "en": "Supplier rated"
+ },
+ "Tender boshqa foydalanuvchi tomonidan o‘zgartirilgan. Sahifani yangilang.": {
+  "ru": "Тендер изменён другим пользователем. Обновите страницу.",
+  "en": "The tender was changed by another user. Refresh the page."
+ },
+ "Tender holati bu amalga mos emas.": {
+  "ru": "Статус тендера не подходит для этого действия.",
+  "en": "The tender status does not allow this action."
+ },
+ "Muddat o‘tgan.": {
+  "ru": "Срок истёк.",
+  "en": "The deadline has passed."
+ },
+ "Takliflarni ochish uchun muddat tugashi kerak.": {
+  "ru": "Чтобы вскрыть предложения, срок должен истечь.",
+  "en": "The deadline must pass before bids can be opened."
+ },
+ "Avval taklif qabul qilish muddatini kiriting.": {
+  "ru": "Сначала укажите срок приёма предложений.",
+  "en": "Enter the bid submission deadline first."
+ },
+ "Kamida bitta pozitsiya kerak.": {
+  "ru": "Нужна хотя бы одна позиция.",
+  "en": "At least one item is required."
+ },
+ "Tanlangan yetkazuvchi bilan faol aloqa yo‘q.": {
+  "ru": "Нет активной связи с выбранным поставщиком.",
+  "en": "No active link with the selected supplier."
+ },
+ "G‘olib bilan avval aloqa o‘rnating.": {
+  "ru": "Сначала установите связь с победителем.",
+  "en": "Establish a link with the winner first."
+ },
+ "Bu pozitsiya allaqachon g‘olibga berilgan.": {
+  "ru": "Эта позиция уже отдана победителю.",
+  "en": "This item is already awarded."
+ },
+ "Har pozitsiya uchun narxni kiriting (narxsiz pozitsiya yuborilmaydi).": {
+  "ru": "Укажите цену по каждой позиции (позиция без цены не отправляется).",
+  "en": "Enter a price for each item (items without a price are not submitted)."
+ },
+ "Savol berish muddati tugagan.": {
+  "ru": "Срок вопросов истёк.",
+  "en": "The question period has ended."
+ },
+ "Bu savolga javob berilgan.": {
+  "ru": "На этот вопрос уже дан ответ.",
+  "en": "This question has already been answered."
+ },
+ "Bu buyurtma baholangan.": {
+  "ru": "Этот заказ уже оценён.",
+  "en": "This order has already been rated."
+ },
+ "Qayta raundlar soni cheklangan.": {
+  "ru": "Число повторных раундов ограничено.",
+  "en": "The number of re-bid rounds is limited."
+ },
+ "Shartnoma topilmadi.": {
+  "ru": "Договор не найден.",
+  "en": "Contract not found."
+ },
+ "Bu amal uchun ruxsat yo‘q.": {
+  "ru": "Нет прав на это действие.",
+  "en": "You do not have permission for this action."
+ },
+ "Tender / xarid": {
+  "ru": "Тендеры / закупки",
+  "en": "Tenders / procurement"
+ },
+ "Tovar, xizmat va subpudrat uchun tender: tasdiq → e’lon → muhrlangan takliflar → solishtirish → g‘olib → buyurtma.": {
+  "ru": "Тендер на товары, услуги и субподряд: утверждение → публикация → запечатанные предложения → сравнение → победитель → заказ.",
+  "en": "Tender for goods, services and subcontract: approval → publish → sealed bids → comparison → winner → order."
+ },
+ "Fayl biriktirildi": {
+  "ru": "Файл прикреплён",
+  "en": "File attached"
+ },
+ "Hujjatlar noto‘g‘ri (1–10 ta).": {
+  "ru": "Неверные документы (1–10 шт.).",
+  "en": "Invalid documents (1–10)."
+ },
+ "Fayllar soni chegarasi (20 ta) oshdi.": {
+  "ru": "Превышен лимит файлов (20 шт.).",
+  "en": "File limit (20) exceeded."
+ },
+ "Hujjat sizning kompaniyangizga tegishli emas.": {
+  "ru": "Документ не принадлежит вашей компании.",
+  "en": "The document does not belong to your company."
+ },
+ "Tender (xarid)": {
+  "ru": "Тендеры (закупки)",
+  "en": "Tenders (procurement)"
+ }
+}
