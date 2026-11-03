@@ -38,6 +38,7 @@ import { f2ImportAktlari, f2ImportQilinganmi } from '../../lib/f2-manba';
 import { f2BekorMumkin } from '../../lib/f2-bekor';
 import { F2BekorOyna, type F2BekorOynaAkt } from './F2BekorOyna';
 import { F2StornoOyna, type F2StornoAkt } from './F2StornoOyna';
+import { F2PodvalBackfillOyna } from './F2PodvalBackfillOyna';
 import { useIxtiyoriyQueryClient } from '../../api/t2-obyektlar-kesh';
 import { daraxtKaliti } from '../../umumiy/daraxt/useT2Daraxt';
 
@@ -104,6 +105,8 @@ export function F2TarixNative() {
   const [bekorOyna, setBekorOyna] = useState<F2BekorOynaAkt[] | null>(null);
   /** Storno (minus) F2 yaratish oynasi: bitta manba akt. */
   const [stornoOyna, setStornoOyna] = useState<F2StornoAkt | null>(null);
+  /** F2 podvalini asl fayldan tiklash (backfill) oynasi. */
+  const [podvalOyna, setPodvalOyna] = useState(false);
   const qc = useIxtiyoriyQueryClient();
 
   const obyektId = Number(params.get('obyekt'));
@@ -335,6 +338,7 @@ export function F2TarixNative() {
     <>{korinish.oyna}
     {bekorOyna && (workspace.companyId ?? joriy?.id) && <F2BekorOyna kompaniyaId={(workspace.companyId ?? joriy?.id) as number} aktlar={bekorOyna}
       onYop={() => setBekorOyna(null)} onTugadi={(n) => void bekorTugadi(n)} />}
+    {podvalOyna && (workspace.companyId ?? joriy?.id) && <F2PodvalBackfillOyna obyektId={obyektId} kompaniyaId={(workspace.companyId ?? joriy?.id) as number} onYop={() => setPodvalOyna(false)} onTugadi={() => void yuklash()} />}
     {stornoOyna && <F2StornoOyna obyektId={obyektId} akt={stornoOyna} reestr={f2Reestr} onYop={() => setStornoOyna(null)} onTugadi={(id) => void stornoTugadi(id)} />}
     <Sahifa
       sarlavha="F2 tarixi va tasdiqlash"
@@ -350,6 +354,7 @@ export function F2TarixNative() {
             </select>
           </label>
           <div className="flex gap-2 text-[12px] text-text-dim"><span className="fz-chip">{t('{n} ta F2', { n: f2Reestr.length })}</span><span className="fz-chip fz-chip--accent">{t('{n} tasi tasdiqlangan', { n: f2Reestr.filter((a) => a.holat === 'tasdiqlangan').length })}</span></div>
+          {validId && mayPrepare && <button type="button" data-testid="podval-backfill-tugma" className="fz-btn fz-btn--ghost" title={t('Tasdiqlangan F2 ning asl faylidan faqat podvalni o‘qib, akt bilan moslaydi')} onClick={() => setPodvalOyna(true)}><Upload />{t('F2 podvalini fayldan tiklash')}</button>}
           {tanlanganAktlar.length > 0 && <button type="button" className="fz-btn fz-btn--danger" onClick={() => setBekorOyna(tanlanganAktlar.map(bekorAkt))}><Ban />{t('Tanlanganlarni bekor qilish ({n})', { n: tanlanganAktlar.length })}</button>}
         </section>
 
