@@ -36,6 +36,7 @@ import {
 } from './nakrutka-podval';
 import { serverMerosKoefQoy, yaxlitKOplate, yaxlitKOplateTaqsim, yaxlitQatorlarga, type Podval } from './hisob-yadro';
 import { narxBildirishnomaKerak } from './narx-bildirishnoma';
+import { bargUslubi } from './qator-uslubi';
 import { YAXLIT_IZOH, YAXLIT_KAT, svodYaxlitQqs, yaxlitQatorIdlari, type SvodYaxlit } from './svod-yaxlit';
 
 export interface NakopitelniyVedomostExportOptions {
@@ -99,25 +100,25 @@ function ustunRejasi(davrlar: readonly DavrUstun[]) {
     { sarlavha: 'Шифр, код', kenglik: 13, tur: 'kod' },
     { sarlavha: 'Наименование работ и затрат', kenglik: 44, tur: 'matn' },
     { sarlavha: 'Ед. изм.', kenglik: 8, tur: 'birlik' },
-    { sarlavha: 'кол-во', kenglik: 11, tur: 'hajm', guruh: 'ПО СМЕТЕ' },
-    { sarlavha: 'цена, сум', kenglik: 13, tur: 'narx', guruh: 'ПО СМЕТЕ' },
-    { sarlavha: 'сумма, сум', kenglik: 15, tur: 'pul', guruh: 'ПО СМЕТЕ' },
-    { sarlavha: 'Выполнено (факт), кол-во', kenglik: 11, tur: 'hajm' },
+    { sarlavha: 'кол-во', kenglik: 13, tur: 'hajm', guruh: 'ПО СМЕТЕ' },
+    { sarlavha: 'цена, сум', kenglik: 16, tur: 'narx', guruh: 'ПО СМЕТЕ' },
+    { sarlavha: 'сумма, сум', kenglik: 19, tur: 'pul', guruh: 'ПО СМЕТЕ' },
+    { sarlavha: 'Выполнено (факт), кол-во', kenglik: 13, tur: 'hajm' },
   ];
   const davrH: string[] = [], davrS: string[] = [];
   for (const d of davrlar) {
-    davrH.push(ustunHarfi(u.length)); u.push({ sarlavha: 'кол-во', kenglik: 11, tur: 'hajm', guruh: d.sarlavha });
-    davrS.push(ustunHarfi(u.length)); u.push({ sarlavha: 'сумма, сум', kenglik: 15, tur: 'pul', guruh: d.sarlavha });
+    davrH.push(ustunHarfi(u.length)); u.push({ sarlavha: 'кол-во', kenglik: 13, tur: 'hajm', guruh: d.sarlavha });
+    davrS.push(ustunHarfi(u.length)); u.push({ sarlavha: 'сумма, сум', kenglik: 19, tur: 'pul', guruh: d.sarlavha });
   }
   const at = (s: RasmiyUstun) => { const h = ustunHarfi(u.length); u.push(s); return h; };
   const JAMI_GURUH = davrlar.length > 2 || !davrlar[0]?.sarlavha.startsWith('ПРИНЯТО') ? 'С НАЧАЛА СТРОИТЕЛЬСТВА (ИТОГО ЗА ВСЕ МЕСЯЦЫ)' : 'С НАЧАЛА СТРОИТЕЛЬСТВА';
-  const jamiH = at({ sarlavha: 'кол-во', kenglik: 11, tur: 'hajm', guruh: JAMI_GURUH });
-  const jamiS = at({ sarlavha: 'сумма, сум', kenglik: 15, tur: 'pul', guruh: JAMI_GURUH });
-  const ostH = at({ sarlavha: 'кол-во', kenglik: 11, tur: 'hajm', guruh: 'ОСТАТОК ПО СМЕТЕ' });
-  const ostS = at({ sarlavha: 'сумма, сум', kenglik: 15, tur: 'pul', guruh: 'ОСТАТОК ПО СМЕТЕ' });
+  const jamiH = at({ sarlavha: 'кол-во', kenglik: 13, tur: 'hajm', guruh: JAMI_GURUH });
+  const jamiS = at({ sarlavha: 'сумма, сум', kenglik: 19, tur: 'pul', guruh: JAMI_GURUH });
+  const ostH = at({ sarlavha: 'кол-во', kenglik: 13, tur: 'hajm', guruh: 'ОСТАТОК ПО СМЕТЕ' });
+  const ostS = at({ sarlavha: 'сумма, сум', kenglik: 19, tur: 'pul', guruh: 'ОСТАТОК ПО СМЕТЕ' });
   const mozhno = at({ sarlavha: 'Можно предъявить (факт − принято), кол-во', kenglik: 13, tur: 'hajm' });
-  const koPer = at({ sarlavha: 'за отчетный период, сум', kenglik: 16, tur: 'pul', guruh: 'К ОПЛАТЕ (с накладными расходами и НДС)' });
-  const koJami = at({ sarlavha: 'с начала строительства, сум', kenglik: 16, tur: 'pul', guruh: 'К ОПЛАТЕ (с накладными расходами и НДС)' });
+  const koPer = at({ sarlavha: 'за отчетный период, сум', kenglik: 19, tur: 'pul', guruh: 'К ОПЛАТЕ (с накладными расходами и НДС)' });
+  const koJami = at({ sarlavha: 'с начала строительства, сум', kenglik: 19, tur: 'pul', guruh: 'К ОПЛАТЕ (с накладными расходами и НДС)' });
   // Yashirin texnik ustunlar: kategoriya (podval SUMIF) va barg belgisi (jamilar SUMIF(belgi,1,…)).
   const kat = at({ sarlavha: 'Кат.', kenglik: 6, tur: 'texnik', yashirin: true });
   const belgi = at({ sarlavha: 'Т', kenglik: 4, tur: 'texnik', yashirin: true });
@@ -375,7 +376,8 @@ export function nakopitelniyVedomostHujjat(
     else if (x.tur === 'barg' || x.tur === 'bl') {
       const barg = x.tur === 'barg';
       const tartib = barg ? '' : String(++no);
-      r = v.qator(barg ? 'oddiy' : 'ish', (rr) => {
+      const us = barg ? bargUslubi(q!.tur === 'rs' || q!.tur === 'mat' || q!.tur === 'ob' ? q!.tur : null) : { tur: 'ish' as const, rang: undefined };
+      r = v.qator(us.tur, (rr) => {
         const c: Qiymat[] = Array(U.ustunlar.length).fill(null);
         c[0] = tartib; c[1] = q!.kod ?? ''; c[2] = nomIzohBilan(q!.nom ?? '', q!.ozgarish_izoh); c[3] = q!.birlik ?? '';
         // Egasi 2026-09-30: tirik smeta — ish hajmi (E) o'zgarsa resurs hajmi = norma × ish hajmi,
@@ -434,7 +436,7 @@ export function nakopitelniyVedomostHujjat(
           c[col(U.koJami)] = koSum(x.bolalar, 'jami');
         }
         return c;
-      }, { daraja: x.daraja ?? (barg ? 2 : 1) });
+      }, { daraja: x.daraja ?? (barg ? 2 : 1), rang: us.rang });
     } else {
       r = v.qator('jami', (rr) => {
         const c: Qiymat[] = Array(U.ustunlar.length).fill(null);
@@ -546,14 +548,14 @@ const SVOD_USTUN: RasmiyUstun[] = [
   { sarlavha: '№ п/п', kenglik: 6, tur: 'tartib' },
   { sarlavha: 'Договор', kenglik: 30, tur: 'matn' },
   { sarlavha: 'Объекты', kenglik: 26, tur: 'matn' },
-  { sarlavha: 'Сумма договора с учётом ДС, с НДС', kenglik: 17, tur: 'pul' },
+  { sarlavha: 'Сумма договора с учётом ДС, с НДС', kenglik: 19, tur: 'pul' },
   { sarlavha: 'Ф-2 утверждено, шт.', kenglik: 9, tur: 'birlik', guruh: 'ВЫПОЛНЕНИЕ (Ф-2)' },
-  { sarlavha: 'Ф-2, прямые затраты (без накруток и НДС)', kenglik: 18, tur: 'pul', guruh: 'ВЫПОЛНЕНИЕ (Ф-2)' },
-  { sarlavha: 'Реализация (Ф-3), с НДС', kenglik: 17, tur: 'pul', guruh: 'РАСЧЁТЫ С ЗАКАЗЧИКОМ' },
+  { sarlavha: 'Ф-2, прямые затраты (без накруток и НДС)', kenglik: 19, tur: 'pul', guruh: 'ВЫПОЛНЕНИЕ (Ф-2)' },
+  { sarlavha: 'Реализация (Ф-3), с НДС', kenglik: 19, tur: 'pul', guruh: 'РАСЧЁТЫ С ЗАКАЗЧИКОМ' },
   { sarlavha: '% от договора', kenglik: 9, tur: 'foiz', guruh: 'РАСЧЁТЫ С ЗАКАЗЧИКОМ' },
-  { sarlavha: 'Оплачено заказчиком', kenglik: 17, tur: 'pul', guruh: 'РАСЧЁТЫ С ЗАКАЗЧИКОМ' },
-  { sarlavha: 'Сальдо (+ долг заказчика)', kenglik: 17, tur: 'pul', guruh: 'РАСЧЁТЫ С ЗАКАЗЧИКОМ' },
-  { sarlavha: 'Ф-3 сверх договора', kenglik: 17, tur: 'pul', guruh: 'РАСЧЁТЫ С ЗАКАЗЧИКОМ' },
+  { sarlavha: 'Оплачено заказчиком', kenglik: 19, tur: 'pul', guruh: 'РАСЧЁТЫ С ЗАКАЗЧИКОМ' },
+  { sarlavha: 'Сальдо (+ долг заказчика)', kenglik: 19, tur: 'pul', guruh: 'РАСЧЁТЫ С ЗАКАЗЧИКОМ' },
+  { sarlavha: 'Ф-3 сверх договора', kenglik: 19, tur: 'pul', guruh: 'РАСЧЁТЫ С ЗАКАЗЧИКОМ' },
   { sarlavha: 'Ф-3 подписано, шт.', kenglik: 9, tur: 'birlik' },
 ];
 
@@ -562,8 +564,8 @@ const OY_USTUN: RasmiyUstun[] = [
   { sarlavha: 'Договор', kenglik: 30, tur: 'matn' },
   { sarlavha: 'Отчётный месяц', kenglik: 11, tur: 'birlik' },
   { sarlavha: 'Ф-2, шт.', kenglik: 8, tur: 'birlik' },
-  { sarlavha: 'Ф-2 за месяц, прямые затраты', kenglik: 18, tur: 'pul' },
-  { sarlavha: 'Нарастающим итогом', kenglik: 18, tur: 'pul' },
+  { sarlavha: 'Ф-2 за месяц, прямые затраты', kenglik: 19, tur: 'pul' },
+  { sarlavha: 'Нарастающим итогом', kenglik: 19, tur: 'pul' },
 ];
 
 /** НАКОПИТЕЛЬНАЯ ВЕДОМОСТЬ ПО ДОГОВОРАМ: svod + Ф-2 oyma-oy. */
@@ -628,9 +630,9 @@ const SVERKA_USTUN: RasmiyUstun[] = [
   { sarlavha: '№ п/п', kenglik: 6, tur: 'tartib' },
   { sarlavha: 'Дата', kenglik: 11, tur: 'birlik' },
   { sarlavha: 'Документ', kenglik: 34, tur: 'matn' },
-  { sarlavha: 'Дебет (реализация)', kenglik: 18, tur: 'pul' },
-  { sarlavha: 'Кредит (оплата)', kenglik: 18, tur: 'pul' },
-  { sarlavha: 'Сальдо', kenglik: 18, tur: 'pul' },
+  { sarlavha: 'Дебет (реализация)', kenglik: 19, tur: 'pul' },
+  { sarlavha: 'Кредит (оплата)', kenglik: 19, tur: 'pul' },
+  { sarlavha: 'Сальдо', kenglik: 19, tur: 'pul' },
 ];
 
 /** АКТ СВЕРКИ ВЗАИМНЫХ РАСЧЁТОВ (сличительная) по одному договору за период. */

@@ -9,6 +9,7 @@ import { NAKRUTKA_KATLAR, NOMALUM_KAT, kOplate, kategoriyaKf, nakrutkaKat, nakru
 import { YAXLIT_IZOH, YAXLIT_KAT, bolimBarglari, bolimQqsBilan, svodYaxlitQqs, type SvodYaxlit } from './svod-yaxlit';
 import { NDS_SUKUT_FOIZ, faktSummaF2Narxda, faktSummaF2NarxFormula, qatorSumma, serverMerosKoefQoy, yaxlitBolimJami, yaxlitKOplate, yaxlitKOplateTaqsim, yaxlitKorinish, yaxlitQatorlarga, yigindi2, yigindi2Qatiy, type Podval } from './hisob-yadro';
 import { mashinistMehnati, narxBildirishnomaKerak } from './narx-bildirishnoma';
+import { bargUslubi } from './qator-uslubi';
 
 /**
  * СЛИЧИТЕЛЬНАЯ ВЕДОМОСТЬ — smeta va haqiqatda bajarilgan hajmlarni
@@ -64,6 +65,8 @@ export type SlichitelniyModelOpsiya = Pick<SlichitelniyOpsiya, 'faqatFarq' | 'is
 export type SlichitelniyQator = {
   id: number;
   tur: 'rz' | 'bl' | 'barg' | 'itogo';
+  /** Resurs turi (RS/MAT/OB) - hujjatda qator uslubi uchun (rs: kursiv, mat/ob: qalin). */
+  resTur?: 'rs' | 'mat' | 'ob';
   daraja: number;
   tartib: string;
   kod: string;
@@ -180,7 +183,7 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
         id: q.id, tur: 'barg', daraja, tartib: blNo ? `${blNo}.${k}` : String(++no), kod: q.kod ?? '', nom: q.nom ?? '', birlik: q.birlik ?? '',
         smetaHajm: smeta, narx, smetaSumma, faktHajm: fakt, faktSumma, f2Hajm, f2Summa, farqHajm: farq, farqSumma,
         izoh: [izohOf(q, smeta, fakt, farq), f2Narxda ? 'сумма факта — по цене утвержденной Ф-2' : ''].filter(Boolean).join('; '),
-        nomalum, kat: q.kat ?? null, bolalar: [], norma: q.norma ?? null, otaIdx, f2Narxda: f2Narxda || undefined, f2SummaNomalum: f2SummaV == null || undefined,
+        nomalum, kat: q.kat ?? null, bolalar: [], ...(q.tur === 'rs' || q.tur === 'mat' || q.tur === 'ob' ? { resTur: q.tur } : {}), norma: q.norma ?? null, otaIdx, f2Narxda: f2Narxda || undefined, f2SummaNomalum: f2SummaV == null || undefined,
       });
       return out.length - 1;
     }
@@ -263,20 +266,20 @@ const USTUNLAR: RasmiyUstun[] = [
   { sarlavha: 'Шифр, код', kenglik: 13, tur: 'kod' },
   { sarlavha: 'Наименование работ и затрат', kenglik: 40, tur: 'matn' },
   { sarlavha: 'Ед. изм.', kenglik: 8, tur: 'birlik' },
-  { sarlavha: 'кол-во', kenglik: 11, tur: 'hajm', guruh: 'ПО СМЕТЕ' },
-  { sarlavha: 'цена за ед., сум', kenglik: 13, tur: 'narx', guruh: 'ПО СМЕТЕ' },
-  { sarlavha: 'сумма, сум', kenglik: 15, tur: 'pul', guruh: 'ПО СМЕТЕ' },
-  { sarlavha: 'кол-во', kenglik: 11, tur: 'hajm', guruh: 'ФАКТИЧЕСКИ ВЫПОЛНЕНО' },
-  { sarlavha: 'сумма, сум', kenglik: 15, tur: 'pul', guruh: 'ФАКТИЧЕСКИ ВЫПОЛНЕНО' },
-  { sarlavha: 'кол-во', kenglik: 11, tur: 'hajm', guruh: 'ПРИНЯТО ПО АКТАМ Ф-2' },
-  { sarlavha: 'сумма, сум', kenglik: 15, tur: 'pul', guruh: 'ПРИНЯТО ПО АКТАМ Ф-2' },
-  { sarlavha: 'кол-во (+/−)', kenglik: 11, tur: 'hajm', guruh: 'ОТКЛОНЕНИЕ (ФАКТ − СМЕТА)' },
-  { sarlavha: 'сумма, сум', kenglik: 15, tur: 'pul', guruh: 'ОТКЛОНЕНИЕ (ФАКТ − СМЕТА)' },
+  { sarlavha: 'кол-во', kenglik: 13, tur: 'hajm', guruh: 'ПО СМЕТЕ' },
+  { sarlavha: 'цена за ед., сум', kenglik: 16, tur: 'narx', guruh: 'ПО СМЕТЕ' },
+  { sarlavha: 'сумма, сум', kenglik: 19, tur: 'pul', guruh: 'ПО СМЕТЕ' },
+  { sarlavha: 'кол-во', kenglik: 13, tur: 'hajm', guruh: 'ФАКТИЧЕСКИ ВЫПОЛНЕНО' },
+  { sarlavha: 'сумма, сум', kenglik: 19, tur: 'pul', guruh: 'ФАКТИЧЕСКИ ВЫПОЛНЕНО' },
+  { sarlavha: 'кол-во', kenglik: 13, tur: 'hajm', guruh: 'ПРИНЯТО ПО АКТАМ Ф-2' },
+  { sarlavha: 'сумма, сум', kenglik: 19, tur: 'pul', guruh: 'ПРИНЯТО ПО АКТАМ Ф-2' },
+  { sarlavha: 'кол-во (+/−)', kenglik: 13, tur: 'hajm', guruh: 'ОТКЛОНЕНИЕ (ФАКТ − СМЕТА)' },
+  { sarlavha: 'сумма, сум', kenglik: 19, tur: 'pul', guruh: 'ОТКЛОНЕНИЕ (ФАКТ − СМЕТА)' },
   { sarlavha: 'Примечание', kenglik: 26, tur: 'matn' },
   // Yashirin texnik ustun: noma'lum pul pozitsiyalari soni (jamini bo'sh qoldirish uchun).
   { sarlavha: 'Н', kenglik: 4, tur: 'texnik', yashirin: true },
-  { sarlavha: 'выполнено, сум', kenglik: 15, tur: 'pul', guruh: 'К ОПЛАТЕ (с накладными расходами и НДС)' },
-  { sarlavha: 'отклонение, сум', kenglik: 15, tur: 'pul', guruh: 'К ОПЛАТЕ (с накладными расходами и НДС)' },
+  { sarlavha: 'выполнено, сум', kenglik: 19, tur: 'pul', guruh: 'К ОПЛАТЕ (с накладными расходами и НДС)' },
+  { sarlavha: 'отклонение, сум', kenglik: 19, tur: 'pul', guruh: 'К ОПЛАТЕ (с накладными расходами и НДС)' },
   { sarlavha: 'Кат.', kenglik: 6, tur: 'texnik', yashirin: true },
 ];
 // A№ B kod C nom D ed E smHajm F narx G smSumma H faktHajm I faktSumma J f2Hajm K f2Summa L farqHajm M farqSumma N izoh O nomalum
@@ -366,7 +369,8 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
       // Egasi 2026-09-30: tirik smeta — resurs hajmi = norma × ish hajmi (ish hajmi o'zgarsa resurs ham).
       const ota = q.otaIdx != null ? model.qatorlar[q.otaIdx] : undefined;
       const normaF = q.norma != null && ota?.tur === 'bl' && ota.smetaHajm != null && q.smetaHajm != null;
-      r = v.qator('oddiy', (n) => [
+      const us = bargUslubi(q.resTur);
+      r = v.qator(us.tur, (n) => [
         q.tartib, q.kod, q.nom, q.birlik, normaF ? { f: `ROUND(${q.norma}*E${rowOf(q.otaIdx!)},6)`, v: q.smetaHajm! } : qiy(q.smetaHajm), qiy(q.narx),
         // Svod bo'limiga taqsimlangan qator: G/I/M — bo'lim yaxlit summasidan taqsim (qiymat, formula emas).
         q.yaxlitTaqsim != null ? qiy(q.smetaSumma) : { f: `IF(OR(E${n}="",F${n}=""),"",ROUND(E${n}*F${n},2))`, v: q.smetaSumma ?? '' },
@@ -391,7 +395,7 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
           if (kfJS[kat] == null) return [null, null, kat]; // Kf noma'lum — bo'sh, formula yo'q
           return [{ f: `IF(I${n}="","",ROUND(I${n}*F${kfQ[kat]},2))`, v: koOf(i, 'P') ?? '' }, { f: `IF(M${n}="","",ROUND(M${n}*F${kfQ[kat]},2))`, v: koOf(i, 'Q') ?? '' }, kat];
         })(),
-      ], { daraja: q.daraja });
+      ], { daraja: q.daraja, rang: us.rang });
     } else if (q.tur === 'bl') {
       r = v.qator('ish', (n) => [
         q.tartib, q.kod, q.nom, q.birlik, qiy(q.smetaHajm), null,

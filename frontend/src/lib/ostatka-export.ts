@@ -8,6 +8,7 @@ import { NAKRUTKA_KATLAR, NOMALUM_KAT, kOplate, kategoriyaKf, nakrutkaKat, nakru
 import { YAXLIT_IZOH, YAXLIT_KAT, bolimBarglari, bolimJamilari, bolimQqsBilan, type SvodYaxlit } from './svod-yaxlit';
 import { NDS_SUKUT_FOIZ, ayirma2, faktSummaF2Narxda, qatorSumma, serverMerosKoefQoy, yaxlit2 as yadroYaxlit2, yaxlitBolimJami, yaxlitKOplateTaqsim, yaxlitQatorlarga, yigindi2, yigindi2Qatiy, type Podval } from './hisob-yadro';
 import { mashinistMehnati, narxBildirishnomaKerak } from './narx-bildirishnoma';
+import { bargUslubi } from './qator-uslubi';
 
 /**
  * OSTATKA — bajarilmay qolgan ishlar smeta shaklida (egasi 2026-09-23: "tizim
@@ -168,6 +169,8 @@ export type OstatkaHujjatOpsiya = {
 export type OstatkaModelQator = {
   id: number;
   tur: 'rz' | 'bl' | 'barg' | 'itogo';
+  /** Resurs turi (RS/MAT/OB) - hujjatda qator uslubi uchun (rs: kursiv, mat/ob: qalin). */
+  resTur?: 'rs' | 'mat' | 'ob';
   daraja: number;
   tartib: string;
   kod: string;
@@ -272,7 +275,7 @@ export function ostatkaHujjatModeli(qatorlar: readonly T2Qator[], holatlar: read
       if (kutilmoqda?.holat === 'qoralama') diqqat.push({ nom: `${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`, sabab: `исключение из остатка на согласовании (${kutilmoqda.asos}${kutilmoqda.sabab ? `; ${kutilmoqda.sabab}` : ''}) — до утверждения учитывается в остатке`, joy: yolOf(q) || undefined });
       barglar++;
       const tartib = blNo ? `${blNo}.${k}` : String(++no);
-      out.push({ id: q.id, tur: 'barg', daraja, tartib, kod: q.kod ?? '', nom: q.nom ?? '', birlik: q.birlik ?? '', smetaHajm: smeta, faktHajm: fakt, ostatkaHajm: o, narx, summa, nomalum: summa == null && !mashinistMehnati(q) ? 1 : 0, kat: q.kat ?? null, bolalar: [], ...(f2Bor ? { f2Narxda: true } : {}) });
+      out.push({ id: q.id, tur: 'barg', daraja, tartib, kod: q.kod ?? '', nom: q.nom ?? '', birlik: q.birlik ?? '', smetaHajm: smeta, faktHajm: fakt, ostatkaHajm: o, narx, summa, nomalum: summa == null && !mashinistMehnati(q) ? 1 : 0, kat: q.kat ?? null, bolalar: [], ...(q.tur === 'rs' || q.tur === 'mat' || q.tur === 'ob' ? { resTur: q.tur } : {}), ...(f2Bor ? { f2Narxda: true } : {}) });
       return out.length - 1;
     }
     if (tur === 'bl') {
@@ -376,8 +379,8 @@ const OSTATKA_USTUNLAR: RasmiyUstun[] = [
   { sarlavha: 'по смете', kenglik: 13, tur: 'hajm', guruh: 'КОЛИЧЕСТВО' },
   { sarlavha: 'выполнено', kenglik: 13, tur: 'hajm', guruh: 'КОЛИЧЕСТВО' },
   { sarlavha: 'остаток', kenglik: 13, tur: 'hajm', guruh: 'КОЛИЧЕСТВО' },
-  { sarlavha: 'цена за ед., сум', kenglik: 15, tur: 'narx', guruh: 'СТОИМОСТЬ ОСТАТКА' },
-  { sarlavha: 'сумма, сум', kenglik: 17, tur: 'pul', guruh: 'СТОИМОСТЬ ОСТАТКА' },
+  { sarlavha: 'цена за ед., сум', kenglik: 16, tur: 'narx', guruh: 'СТОИМОСТЬ ОСТАТКА' },
+  { sarlavha: 'сумма, сум', kenglik: 19, tur: 'pul', guruh: 'СТОИМОСТЬ ОСТАТКА' },
   // Yashirin texnik ustun: noma'lum pul pozitsiyalari soni (jamini bo'sh qoldirish uchun).
   { sarlavha: 'Н', kenglik: 4, tur: 'texnik', yashirin: true },
   { sarlavha: 'Стоимость остатка к оплате (с накладными расходами и НДС), сум', kenglik: 19, tur: 'pul' },
@@ -461,7 +464,8 @@ export function ostatkaHujjatXlsx(model: OstatkaModel, o: OstatkaHujjatOpsiya): 
     let r = 0;
     if (q.tur === 'rz') r = v.bolim(q.nom, { daraja: q.daraja });
     else if (q.tur === 'barg') {
-      r = v.qator('oddiy', (n) => [
+      const us = bargUslubi(q.resTur);
+      r = v.qator(us.tur, (n) => [
         q.tartib, q.kod, q.nom, q.birlik, qiy(q.smetaHajm), qiy(q.faktHajm),
         { f: `IF(OR(E${n}="",F${n}=""),"",E${n}-F${n})`, v: q.ostatkaHajm ?? '' },
         qiy(q.narx),
@@ -481,7 +485,7 @@ export function ostatkaHujjatXlsx(model: OstatkaModel, o: OstatkaHujjatOpsiya): 
           if (kfJS[kat] == null) return [null, kat]; // Kf noma'lum — bo'sh, formula yo'q (0 deb olinmaydi)
           return [{ f: `IF(I${n}="","",ROUND(I${n}*H${kfQ[kat]},2))`, v: koOf(i) ?? '' }, kat];
         })(),
-      ], { daraja: q.daraja });
+      ], { daraja: q.daraja, rang: us.rang });
     } else if (q.tur === 'bl') {
       r = v.qator('ish', (n) => [
         q.tartib, q.kod, q.nom, q.birlik, qiy(q.smetaHajm), qiy(q.faktHajm),
