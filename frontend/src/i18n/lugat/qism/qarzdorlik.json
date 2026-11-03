@@ -1,0 +1,326 @@
+{
+ "Yetkazib berish": {
+  "ru": "Поставка",
+  "en": "Delivery"
+ },
+ "Bajarilgan ish": {
+  "ru": "Выполненные работы",
+  "en": "Work performed"
+ },
+ "To‘lov": {
+  "ru": "Оплата",
+  "en": "Payment"
+ },
+ "Boshlang‘ich qoldiq": {
+  "ru": "Начальный остаток",
+  "en": "Opening balance"
+ },
+ "Postavshik": {
+  "ru": "Поставщик",
+  "en": "Supplier"
+ },
+ "Subpudrat": {
+  "ru": "Субподряд",
+  "en": "Subcontract"
+ },
+ "Xizmat": {
+  "ru": "Услуга",
+  "en": "Service"
+ },
+ "Ortiqcha to‘lov / avans: ular bizdan qarz": {
+  "ru": "Переплата / аванс: нам должны",
+  "en": "Overpayment / advance: they owe us"
+ },
+ "Qabul qilingan shartnoma summasidan oshgan": {
+  "ru": "Принято больше суммы договора",
+  "en": "Received exceeds the contract amount"
+ },
+ "Spravka qarzi asoslanmagan farq bor": {
+  "ru": "Есть необоснованная разница с долгом по справке",
+  "en": "Unjustified difference from the statement debt"
+ },
+ "Spravkada qarz bor, lekin asos hujjatlar kiritilmagan": {
+  "ru": "В справке есть долг, но документы-основания не внесены",
+  "en": "The statement shows debt but no supporting documents are entered"
+ },
+ "Summasi noma‘lum asos qatorlari bor": {
+  "ru": "Есть строки оснований с неизвестной суммой",
+  "en": "Some basis lines have an unknown amount"
+ },
+ "To‘lovlar spravkadagidan kam": {
+  "ru": "Оплат меньше, чем в справке",
+  "en": "Payments are lower than in the statement"
+ },
+ "Noma‘lum (asos kiritilmagan)": {
+  "ru": "Неизвестно (основания не внесены)",
+  "en": "Unknown (no basis entered)"
+ },
+ "Saqlandi": {
+  "ru": "Сохранено",
+  "en": "Saved"
+ },
+ "Qarz asoslari": {
+  "ru": "Основания долга",
+  "en": "Debt basis"
+ },
+ "Turi": {
+  "ru": "Тип",
+  "en": "Type"
+ },
+ "Hujjat №": {
+  "ru": "№ документа",
+  "en": "Document No."
+ },
+ "Sana": {
+  "ru": "Дата",
+  "en": "Date"
+ },
+ "Nomi": {
+  "ru": "Наименование",
+  "en": "Name"
+ },
+ "Birlik": {
+  "ru": "Ед. изм.",
+  "en": "Unit"
+ },
+ "Hajm": {
+  "ru": "Кол-во",
+  "en": "Quantity"
+ },
+ "Narx": {
+  "ru": "Цена",
+  "en": "Price"
+ },
+ "Summa (QQS bilan)": {
+  "ru": "Сумма (с НДС)",
+  "en": "Amount (incl. VAT)"
+ },
+ "Izoh": {
+  "ru": "Примечание",
+  "en": "Note"
+ },
+ "Asos qatori yo‘q — qarz noma‘lum. Pastdan qo‘shing.": {
+  "ru": "Строк оснований нет — долг неизвестен. Добавьте ниже.",
+  "en": "No basis lines — debt is unknown. Add them below."
+ },
+ "Qatorni o‘chirish": {
+  "ru": "Удалить строку",
+  "en": "Delete line"
+ },
+ "Hisob": {
+  "ru": "Расчёт",
+  "en": "Calculation"
+ },
+ "qabul": {
+  "ru": "принято",
+  "en": "received"
+ },
+ "to‘langan": {
+  "ru": "оплачено",
+  "en": "paid"
+ },
+ "qarz": {
+  "ru": "долг",
+  "en": "debt"
+ },
+ "farq": {
+  "ru": "разница",
+  "en": "difference"
+ },
+ "Saqlash": {
+  "ru": "Сохранить",
+  "en": "Save"
+ },
+ "Tizim to‘lovlari (t2_tolov) alohida hisobga kiritilgan:": {
+  "ru": "Платежи системы (t2_tolov) учтены отдельно:",
+  "en": "System payments (t2_tolov) are counted separately:"
+ },
+ "Faylni o‘qib bo‘lmadi": {
+  "ru": "Не удалось прочитать файл",
+  "en": "Could not read the file"
+ },
+ "Import: {y} yangi, {u} yangilandi, {q} qator qo‘shildi, {k} takror o‘tkazildi": {
+  "ru": "Импорт: {y} новых, {u} обновлено, добавлено строк: {q}, повторов пропущено: {k}",
+  "en": "Import: {y} new, {u} updated, {q} lines added, {k} duplicates skipped"
+ },
+ "Excel import": {
+  "ru": "Импорт из Excel",
+  "en": "Excel import"
+ },
+ "Excel import (shablon yoki finansoviy spravka)": {
+  "ru": "Импорт из Excel (шаблон или финансовая справка)",
+  "en": "Excel import (template or financial statement)"
+ },
+ "Yopish": {
+  "ru": "Закрыть",
+  "en": "Close"
+ },
+ "Fayl (.xlsx)": {
+  "ru": "Файл (.xlsx)",
+  "en": "File (.xlsx)"
+ },
+ "Shartnoma turi (standart)": {
+  "ru": "Тип договора (по умолчанию)",
+  "en": "Contract type (default)"
+ },
+ "Obyekt (ixtiyoriy)": {
+  "ru": "Объект (необязательно)",
+  "en": "Object (optional)"
+ },
+ "— biriktirilmasin —": {
+  "ru": "— не привязывать —",
+  "en": "— do not link —"
+ },
+ "Fayl o‘qilmoqda…": {
+  "ru": "Файл читается…",
+  "en": "Reading file…"
+ },
+ "Format: Обоснование задолженности (shablon)": {
+  "ru": "Формат: Обоснование задолженности (шаблон)",
+  "en": "Format: Debt justification (template)"
+ },
+ "Format: finansoviy spravka": {
+  "ru": "Формат: финансовая справка",
+  "en": "Format: financial statement"
+ },
+ "Format tanilmadi": {
+  "ru": "Формат не распознан",
+  "en": "Format not recognised"
+ },
+ "{n} ta shartnoma": {
+  "ru": "Договоров: {n}",
+  "en": "{n} contracts"
+ },
+ "Import ko‘rinishi": {
+  "ru": "Предпросмотр импорта",
+  "en": "Import preview"
+ },
+ "Kontragent": {
+  "ru": "Контрагент",
+  "en": "Counterparty"
+ },
+ "Shartnoma": {
+  "ru": "Договор",
+  "en": "Contract"
+ },
+ "Shartnoma summasi": {
+  "ru": "Сумма договора",
+  "en": "Contract amount"
+ },
+ "Asos qatori": {
+  "ru": "Строк оснований",
+  "en": "Basis lines"
+ },
+ "Hisob qarzi": {
+  "ru": "Долг по расчёту",
+  "en": "Calculated debt"
+ },
+ "Spravka qarzi": {
+  "ru": "Долг по справке",
+  "en": "Statement debt"
+ },
+ "Bekor qilish": {
+  "ru": "Отмена",
+  "en": "Cancel"
+ },
+ "Saqlash (import)": {
+  "ru": "Сохранить (импорт)",
+  "en": "Save (import)"
+ },
+ "Qarzdorlik": {
+  "ru": "Задолженность",
+  "en": "Payables"
+ },
+ "Postavshik va subpudratchilar oldidagi qarz — har qarz hujjat bilan asoslanadi. Qarz = qabul qilingan − to‘langan (QQS bilan; + biz qarzmiz, − ular qarz).": {
+  "ru": "Долг перед поставщиками и субподрядчиками — каждый долг обосновывается документами. Долг = принято − оплачено (с НДС; + мы должны, − нам должны).",
+  "en": "Debt to suppliers and subcontractors — every debt is justified by documents. Debt = received − paid (incl. VAT; + we owe, − they owe)."
+ },
+ "Excel eksport": {
+  "ru": "Экспорт в Excel",
+  "en": "Excel export"
+ },
+ "Yangilash": {
+  "ru": "Обновить",
+  "en": "Refresh"
+ },
+ "Hamma turlar": {
+  "ru": "Все типы",
+  "en": "All types"
+ },
+ "Qidiruv": {
+  "ru": "Поиск",
+  "en": "Search"
+ },
+ "Kontragent, shartnoma…": {
+  "ru": "Контрагент, договор…",
+  "en": "Counterparty, contract…"
+ },
+ "Faqat ogohlantirishlilar": {
+  "ru": "Только с предупреждениями",
+  "en": "With warnings only"
+ },
+ "Jami": {
+  "ru": "Итого",
+  "en": "Total"
+ },
+ "Qabul qilingan": {
+  "ru": "Принято",
+  "en": "Received"
+ },
+ "To‘langan": {
+  "ru": "Оплачено",
+  "en": "Paid"
+ },
+ "Qarz": {
+  "ru": "Долг",
+  "en": "Debt"
+ },
+ "Farq (asoslanmagan)": {
+  "ru": "Разница (необоснованная)",
+  "en": "Difference (unjustified)"
+ },
+ "{n} ta shartnomada asos yo‘q — qarzi noma‘lum, jamiga kirmagan.": {
+  "ru": "В договорах без оснований ({n}) долг неизвестен — в итог не включён.",
+  "en": "{n} contracts have no basis — debt unknown, excluded from the total."
+ },
+ "Qarzdorlik ro‘yxati": {
+  "ru": "Список задолженности",
+  "en": "Payables list"
+ },
+ "Farq": {
+  "ru": "Разница",
+  "en": "Difference"
+ },
+ "Kontragent shartnomalari yo‘q — «Excel import» bilan yuklang.": {
+  "ru": "Договоров с контрагентами нет — загрузите через «Импорт из Excel».",
+  "en": "No counterparty contracts — load them with “Excel import”."
+ },
+ "Yuklanmoqda…": {
+  "ru": "Загрузка…",
+  "en": "Loading…"
+ },
+ "Yig‘ish": {
+  "ru": "Свернуть",
+  "en": "Collapse"
+ },
+ "Asoslarni ochish": {
+  "ru": "Показать основания",
+  "en": "Show basis"
+ },
+ "Spravka qarzi (QQS bilan)": {
+  "ru": "Долг по справке (с НДС)",
+  "en": "Statement debt (incl. VAT)"
+ },
+ "Spravka: to‘langan": {
+  "ru": "Справка: оплачено",
+  "en": "Statement: paid"
+ },
+ "Spravka: prognoz": {
+  "ru": "Справка: прогноз",
+  "en": "Statement: forecast"
+ },
+ "Qarzdorlik (postavshik, subpudrat)": {
+  "ru": "Задолженность (поставщики, субподряд)",
+  "en": "Payables (suppliers, subcontractors)"
+ }
+}
