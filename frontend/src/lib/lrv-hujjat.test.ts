@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { strFromU8, unzipSync } from 'fflate';
 import { lrvHujjat } from './lrv-hujjat';
-import { hujjatTekshir } from './hujjat-yozuvchi';
+import { darajaHisobot, hujjatDizaynTekshir, hujjatTekshir, joriyHujjatDizayni, tipUstunlariYashirin } from './hujjat-yozuvchi';
 import { namunaSaqla } from './hujjat-yozuvchi/test-yordam';
 import { readXlsx } from './f2-import-parse/xlsxReader';
 import { kitobAnatomiyasi } from './smeta-anatomiya';
@@ -97,5 +97,19 @@ describe('LRV — yangi shakl (butun smeta, Ф-2 bilan bir xil yozuvchi)', () =>
     expect(lrv.rol).toBe('lrv');
     expect(lrv.ishlar.map((i) => i.shifr)).toEqual(['Е1202-001-01', 'Е1501-026-01 ДОП. 6', 'Е0904-002-03']);
     expect(lrv.ishlar.map((i) => i.hajm)).toEqual([0.1344, 0.092, 120]);
+  });
+});
+
+describe('LRV — hujjat dizayni (resolver)', () => {
+  it('Тип ustuni yashirin (asosiy va avvalgi varaq); BL qalin, RS kursiv, MAT qalin; dizayn tekshiruvi toza', () => {
+    const r = yasa();
+    // 1-varaq (LRV) va «Предыдущая версия» — yashirin; pivot manba varag‘i («Данные») texnik maydon nomlari uchun, hujjat emas.
+    expect(tipUstunlariYashirin(r.bytes)[0]).toBe(true);
+    const h = darajaHisobot(r.bytes);
+    expect(h.bl?.qalin).toEqual(new Set([true]));
+    expect(h.rs?.kursiv).toEqual(new Set([true]));
+    expect(h.mat?.qalin).toEqual(new Set([true]));
+    // 4-varaq — pivot manba varag‘i («Данные»): texnik maydon nomlari, hujjat emas.
+    expect(hujjatDizaynTekshir(r.bytes, joriyHujjatDizayni()).filter((x) => !x.startsWith('varaq 4:'))).toEqual([]);
   });
 });

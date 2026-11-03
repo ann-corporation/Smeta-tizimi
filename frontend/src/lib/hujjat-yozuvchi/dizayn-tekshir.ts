@@ -125,3 +125,22 @@ export function hujjatDizaynTekshir(bytes: Uint8Array, d: HujjatDizayn): string[
   });
   return xato;
 }
+
+/** Darajalar bo'yicha: nechta katak, qalin/kursiv qiymatlari (generator testlari uchun: BL qalin, RS kursiv, MAT/OB qalin). */
+export function darajaHisobot(bytes: Uint8Array): Partial<Record<DarajaKalit, { soni: number; qalin: Set<boolean>; kursiv: Set<boolean> }>> {
+  const o = dizaynOqi(bytes);
+  const r: Partial<Record<DarajaKalit, { soni: number; qalin: Set<boolean>; kursiv: Set<boolean> }>> = {};
+  for (const v of o.varaqlar) for (const q of v.qatorlar) for (const k of q.kataklar) {
+    if (!k.daraja) continue;
+    const f = o.fontlar[o.xflar[k.s].fontId];
+    const x = r[k.daraja] ??= { soni: 0, qalin: new Set(), kursiv: new Set() };
+    x.soni++; x.qalin.add(f.qalin); x.kursiv.add(f.kursiv);
+  }
+  return r;
+}
+
+/** «Тип» sarlavhali ustunlar yashirinmi: har bir shunday ustun uchun true/false (bo'lmasa — bo'sh ro'yxat). */
+export function tipUstunlariYashirin(bytes: Uint8Array): boolean[] {
+  const o = dizaynOqi(bytes);
+  return o.varaqlar.flatMap((v) => v.qatorlar.flatMap((q) => q.kataklar.filter((k) => k.matn === 'Тип').map((k) => v.ustunlar[k.col]?.yashirin === true)));
+}

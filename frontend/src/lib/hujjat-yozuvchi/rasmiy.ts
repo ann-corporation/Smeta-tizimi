@@ -820,6 +820,11 @@ export function formulalarniQiymatga(xml: string): string {
   });
 }
 
+/** Har yasalgan kitobni kuzatuvchi (faqat testlar: vitest.setup.ts dizayn talablarini HAR generator chiqishida tekshiradi). */
+export type KitobKuzatuvchi = (bytes: Uint8Array, dizayn: HujjatDizayn, varaqNomlari: readonly string[]) => void;
+let kitobKuzatuvchi: KitobKuzatuvchi | null = null;
+export function kitobKuzatuvchiniOrnat(f: KitobKuzatuvchi | null): void { kitobKuzatuvchi = f; }
+
 export function rasmiyKitob(varaqlar: readonly RasmiyVaraq[], o?: { mavzu?: RangMavzusi; tur?: HujjatTuri; formulasiz?: boolean; dizayn?: HujjatDizayn }): RasmiyKitobNatija {
   if (!varaqlar.length) throw new Error('RASMIY_KITOB_BOSH');
   const nomlar: string[] = [];
@@ -857,7 +862,9 @@ export function rasmiyKitob(varaqlar: readonly RasmiyVaraq[], o?: { mavzu?: Rang
     yacheykalar += xom.match(/<c [^>]*[^/]><f\b/g)?.length ?? 0;
     files[`xl/worksheets/sheet${i + 1}.xml`] = strToU8(x);
   });
-  return { bytes: zipSync(files, { level: 6, mtime: BARQAROR_VAQT }), varaqlar: metas, yacheykalar };
+  const bytes = zipSync(files, { level: 6, mtime: BARQAROR_VAQT });
+  kitobKuzatuvchi?.(bytes, o?.dizayn ?? varaqlar[0].dizayn, nomlar);
+  return { bytes, varaqlar: metas, yacheykalar };
 }
 
 /** Ro'yxatdagi qatorlar yig'indisi formulasi: `SUM(H5:H9,H12)`; bo'sh bo'lsa null. */
