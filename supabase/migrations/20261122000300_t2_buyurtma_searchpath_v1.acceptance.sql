@@ -1,4 +1,4 @@
--- ACCEPTANCE: 20261122000000_t2_buyurtma_searchpath_v1 - BEGIN..ROLLBACK, ma'lumot yozmaydi.
+-- ACCEPTANCE: 20261122000300_t2_buyurtma_searchpath_v1 - BEGIN..ROLLBACK, ma'lumot yozmaydi.
 -- Tekshiradi: 3 funksiya ham proconfig da search_path=public, pg_temp ga ega va xulq o'zgarmagan.
 begin;
 
