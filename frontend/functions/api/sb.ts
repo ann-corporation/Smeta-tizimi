@@ -243,6 +243,8 @@ export const onRequestPost: PagesFunction<{
         resurs_narx_taklif_v1: 'obyekt_actor',
         /* Egasi 2026-10-01: Loyiha → Shartnoma (tomonlar) → Obyektlar liniyasi. `stable`, a'zolik ichida. */
         shartnoma_liniya_v1: 'kompaniya_actor',
+        /* Egasi 2026-11-02: qarzdorlik (postavshik/subpudrat kreditor qarzi) - shartnoma + asoslar + hisob. stable, a'zolik + financial.read ichida. */
+        qarzdorlik_royxat_v1: 'kompaniya_actor',
         /* Egasi 2026-10-23: shartnoma svodi (nakopitelniy F2 nazorati) va akt-sverka — DS, F2 reestri, sotuv, to'lov. `stable`, a'zolik + f2.read ichida. */
         shartnoma_svod_v1: 'kompaniya_actor',
         /* Egasi 2026-10-26: 1C akt-sverka importi — Продажа ↔ F2 moslash (F2 ustama bilan), to'lov taqsimoti. `stable`, a'zolik + f2.read ichida. */
