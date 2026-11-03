@@ -59,8 +59,10 @@ export function f2NativePayloadQur(inputs: F2NativeInput[], candidates: F2Native
     const unitPrice = numberOrUndefined(input.unitPrice);
     const amount = numberOrUndefined(input.amount);
     const limit = limits.get(input.qatorId);
-    if (quantity == null || quantity <= 0) { issues.push({ qatorId: input.qatorId, code: 'QTY_INVALID', blocking: true }); continue; }
-    if (limit == null || quantity > limit + 1e-9) { issues.push({ qatorId: input.qatorId, code: 'QTY_EXCEEDS_FAKT', blocking: true }); continue; }
+    /* Egasi: plyus ham, minus ham hajm — foydalanuvchi ishi. Faqat aynan 0 yoki son bo'lmagan kiritma rad etiladi. */
+    if (quantity == null || quantity === 0) { issues.push({ qatorId: input.qatorId, code: 'QTY_INVALID', blocking: true }); continue; }
+    /* «F2 ≤ fakt» qoidasi YO'Q: fakt qoldig'idan oshish — faqat bloklamaydigan ogohlantirish, qator baribir payloadga kiradi. */
+    if (limit == null || quantity > limit + 1e-9) { issues.push({ qatorId: input.qatorId, code: 'QTY_EXCEEDS_FAKT', blocking: false }); }
     if (!input.sourceReference.trim()) { issues.push({ qatorId: input.qatorId, code: 'SOURCE_REQUIRED', blocking: true }); continue; }
     if (!input.priceIntentionallyAbsent && (unitPrice == null || unitPrice < 0)) { issues.push({ qatorId: input.qatorId, code: 'PRICE_REQUIRED', blocking: true }); continue; }
     if (!input.priceIntentionallyAbsent && amount == null) { issues.push({ qatorId: input.qatorId, code: 'AMOUNT_REQUIRED', blocking: true }); continue; }

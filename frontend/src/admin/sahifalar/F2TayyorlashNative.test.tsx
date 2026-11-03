@@ -58,7 +58,7 @@ vi.mock('../../umumiy/hujjat/HujjatKorinish', () => ({ useHujjatKorinish: () => 
 
 import { F2TayyorlashNative } from './F2TayyorlashNative';
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
+afterEach(() => { cleanup(); vi.clearAllMocks(); sessionStorage.clear(); });
 const ochish = () => render(<MemoryRouter initialEntries={['/admin/f2-tayyorlash?obyekt=8']}><F2TayyorlashNative /></MemoryRouter>);
 
 describe('F2 tayyorlash', () => {
