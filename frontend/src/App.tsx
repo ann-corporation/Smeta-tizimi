@@ -36,6 +36,7 @@ const TestNarxlar   = lazy(() => import('./test02/TestNarxlar'));
 const TestF2        = lazy(() => import('./test02/TestF2'));
 const TestSklad     = lazy(() => import('./test02/TestSklad'));
 const TestZayavka   = lazy(() => import('./test02/TestZayavka'));
+const TenderSahifa  = lazy(() => import('./admin/tender/TenderSahifa'));
 const TestBirja     = lazy(() => import('./test02/TestBirja'));
 const TestInvite    = lazy(() => import('./test02/TestInvite'));
 const TestTolov     = lazy(() => import('./test02/TestTolov'));
@@ -281,6 +282,7 @@ export default function App() {
           <Route path="moliya" element={<WrapperMoliya />} />
           <Route path="logistika" element={<WrapperLogistika />} />
           <Route path="zayavka" element={<TestZayavka />} />
+          <Route path="tender" element={<Suspense fallback={<SahifaYuklanmoqda />}><TenderSahifa /></Suspense>} />
           <Route path="erp" element={<TestErp />} />
           {/* `sozlamalar` (T1) allaqachon band — bu T2 sozlamalari. */}
 

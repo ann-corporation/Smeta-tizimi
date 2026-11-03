@@ -162,6 +162,9 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
       { nom: 'Zayavkalar', ikonka: 'ClipboardList', sahifalar: [
         { yol: '/admin/zayavka', nom: 'Zayavkalar', ruxsat: [RAHBARIYAT, ...ICHKI_ISH, 'procurement.read', 'warehouse.write'], modul: 'module.erp' },
       ] },
+      { nom: 'Tender (xarid)', ikonka: 'ClipboardList', sahifalar: [
+        { yol: '/admin/tender', nom: 'Tender / xarid', ruxsat: [RAHBARIYAT, ...ICHKI_ISH, 'procurement.read', 'supply.offer'], modul: 'module.erp' },
+      ] },
       { nom: 'Kadrlar va texnika', ikonka: 'Users', sahifalar: [
         { yol: '/admin/erp', nom: 'Kadrlar va texnika', ruxsat: [RAHBARIYAT, ...ICHKI_ISH, 'hr.read', 'machinery.read', 'machinery.log'], modul: 'module.erp' },
       ] },
