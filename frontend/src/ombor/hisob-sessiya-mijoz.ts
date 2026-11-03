@@ -22,7 +22,11 @@ export class HisobSessiyaMijoz {
     this.port.onmessage=e=>{
       const r=e.data as SessiyaJavob,p=this.pending;if(!p||!r||r.id!==p.id)return;
       clearTimeout(p.timer);this.pending=null;
-      if(r.epoch!==p.epoch||r.revision!==(p.revision+(r.ok&&p.amal==='tahrir'?1:0))||(r.ok&&r.amal!==p.amal))p.reject(new Error('HISOB_ESKI'));
+      if(r.epoch!==p.epoch||r.revision!==(p.revision+(r.ok&&p.amal==='tahrir'?1:0))||(r.ok&&r.amal!==p.amal)){
+        // Javob buzilgan bo'lsa Worker mutatsiyasi bajarilganmi — noma'lum.
+        // Shu snapshot ustidan navbatni davom ettirish mumkin emas.
+        p.reject(new Error('HISOB_ESKI'));this.yop();
+      }
       else if(!r.ok)p.reject(new Error(r.xato));
       else p.resolve(r);
     };
@@ -48,9 +52,9 @@ export class HisobSessiyaMijoz {
   }
   och(paket:PaketXom):Promise<OK>{
     this.generation++;this.epoch++;this.revision=0;this.bekor();
-    return this.navbat({amal:'och',paket},this.generation);
+    return this.navbat({amal:'och',paket:structuredClone(paket)},this.generation);
   }
-  tahrir(tahrir:HisobTahrir){return this.navbat({amal:'tahrir',tahrir},this.generation);}
+  tahrir(tahrir:HisobTahrir){return this.navbat({amal:'tahrir',tahrir:{...tahrir}},this.generation);}
   oqi(ids:number[]){return this.navbat({amal:'oqi',ids:[...ids]},this.generation);}
   yop(){this.generation++;this.bekor();this.port?.terminate();this.port=null;}
 }

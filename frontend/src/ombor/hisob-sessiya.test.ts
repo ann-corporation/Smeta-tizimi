@@ -75,4 +75,21 @@ describe('retained client FIFO va lifecycle',()=>{
     const a=c.oqi([3]),b=c.oqi([2]);const result=Promise.allSettled([a,b]);c.yop();
     expect((await result).every(r=>r.status==='rejected')).toBe(true);expect(p.closed).toBe(true);
   });
+  it('navbatga qo‘yilgan hajm va paket keyingi caller mutatsiyasidan himoyalangan',async()=>{
+    const p=new Port(),c=new HisobSessiyaMijoz(p),initial=paket();
+    const opened=c.och(initial);initial.q.narx[2]=999;
+    const edit={qator_id:3,maydon:'narx' as const,qiymat:'2',kutilgan_versiya:1};
+    const edited=c.tahrir(edit);edit.qiymat='999';
+    expect(await opened).toMatchObject({ok:true});await edited;
+    expect(await c.oqi([3])).toMatchObject({qatorlar:[{narx:'2',summa:'4',f2_summa:0.31}]});c.yop();
+  });
+  it('revisioni buzilgan javobda qolgan navbat va Worker yopiladi',async()=>{
+    const p=new Port(),c=new HisobSessiyaMijoz(p);await c.och(paket());p.auto=false;
+    const edit=c.tahrir({qator_id:3,maydon:'narx',qiymat:'2',kutilgan_versiya:1});
+    const read=c.oqi([3]);const settled=Promise.allSettled([edit,read]);
+    await Promise.resolve();await Promise.resolve();
+    const req=p.posts.at(-1) as {id:number;epoch:number;revision:number};
+    p.onmessage?.call(null as unknown as Worker,{data:{...req,ok:true,amal:'tahrir',revision:99}} as MessageEvent);
+    expect((await settled).every(r=>r.status==='rejected')).toBe(true);expect(p.closed).toBe(true);
+  });
 });

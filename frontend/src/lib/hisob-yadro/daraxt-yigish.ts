@@ -2,6 +2,7 @@ import Decimal from 'decimal.js';
 
 // Alohida konfiguratsiya: boshqa modulning Decimal.set amali hisobni o‘zgartirmaydi.
 const D = Decimal.clone({ precision: 100, rounding: Decimal.ROUND_HALF_UP });
+const ZERO = new D(0);
 type N = Decimal | null;
 export type HisobQator = {
   id: number; ota_id: number | null; tur: string;
@@ -13,7 +14,7 @@ type Q = Omit<HisobQator, 'hajm' | 'narx' | 'summa' | 'norma'> & {hajm:N; narx:N
 type Sum = { v:Decimal; n:number; count:number };
 const bos = ():Sum => ({v:new D(0),n:0,count:0});
 const str = (x:N) => x?.toFixed() ?? null;
-const eq = (a:N,b:N) => a == null ? b == null : b != null && a.eq(b);
+const eq = (a:N,b:N) => a === b || (a == null ? b == null : b != null && a.eq(b));
 function n(x:number|string|null):N {
   if (x == null) return null;
   const text=String(x);
@@ -42,6 +43,8 @@ export class DaraxtHisob {
   private bolalar = new Map<number,number[]>();
   private blSum = new Map<number,Sum>();
   private rzSum = new Map<number,Sum>();
+  /** Tuzilma sessiya davomida o'zgarmaydi: har bargning rollup guruhi bir marta topiladi. */
+  private guruhlar = new Map<number,{s:Sum;ota:number;bl:boolean}>();
   private blDirty = new Set<number>();
   private rzDirty = new Set<number>();
   private jami = bos();
@@ -91,12 +94,16 @@ export class DaraxtHisob {
   }
   private guruhHissa(r:Q,old:N,value:N,init=false){
     if(r.ota_id==null)return;
-    if(r.tur==='rs'&&this.q.get(r.ota_id)?.tur==='bl'){
-      const s=this.blSum.get(r.ota_id)??bos();this.hissa(s,old,value);if(init)s.count++;this.blSum.set(r.ota_id,s);this.blDirty.add(r.ota_id);
+    if(init){
+      const otaTur=this.q.get(r.ota_id)?.tur;
+      const bl=r.tur==='rs'&&otaTur==='bl';
+      if(bl||(rzBola.has(r.tur)&&otaTur==='rz')){
+        const sums=bl?this.blSum:this.rzSum,s=sums.get(r.ota_id)??bos();
+        s.count++;sums.set(r.ota_id,s);this.guruhlar.set(r.id,{s,ota:r.ota_id,bl});
+      }
     }
-    if(rzBola.has(r.tur)&&this.q.get(r.ota_id)?.tur==='rz'){
-      const s=this.rzSum.get(r.ota_id)??bos();this.hissa(s,old,value);if(init)s.count++;this.rzSum.set(r.ota_id,s);this.rzDirty.add(r.ota_id);
-    }
+    const g=this.guruhlar.get(r.id);
+    if(g){this.hissa(g.s,old,value);(g.bl?this.blDirty:this.rzDirty).add(g.ota);}
   }
   private summa(r:Q,value:N,changed:Set<number>){
     if(eq(r.summa,value))return;
@@ -113,7 +120,7 @@ export class DaraxtHisob {
     if(t.maydon!=='hajm'&&t.maydon!=='narx')throw new Error('HISOB_MAYDON_YOPIQ');
     const value=n(t.qiymat); // barchasi validatsiyadan keyin; xatoda yarim tahrir yo‘q
     const products=new Map<Decimal,Map<Decimal,Decimal>>();
-    const mul=(a:Decimal,b:Decimal)=>{let byB=products.get(a);if(!byB){byB=new Map();products.set(a,byB);}let result=byB.get(b);if(!result){result=a.times(b);byB.set(b,result);}return result;};
+    const mul=(a:Decimal,b:Decimal)=>{if(a.isZero()||b.isZero())return ZERO;let byB=products.get(a);if(!byB){byB=new Map();products.set(a,byB);}let result=byB.get(b);if(!result){result=a.times(b);byB.set(b,result);}return result;};
     const changed=new Set<number>([r.id]);
     if(r.tur==='bl')this.blDirty.add(r.id);
     if(r.tur==='rz')this.rzDirty.add(r.id);

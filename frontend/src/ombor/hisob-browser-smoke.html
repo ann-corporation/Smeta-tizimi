@@ -1,9 +1,11 @@
 <!doctype html><html lang="uz"><meta charset="utf-8"><title>Desktop hisob sinovi</title>
 <body><h1>Desktop hisob sinovi — 26 000 sintetik qator</h1>
 <p>Haqiqiy biznes ma’lumotlari ishlatilmaydi. Serverga hech narsa yozilmaydi.</p>
+<label><input id="varied" type="checkbox" checked> Turli 97 norma va 31 narx</label>
 <button id="run">Worker sinovini boshlash</button><pre id="result">Tayyor</pre>
 <script type="module">
 import { HisobSessiyaMijoz } from './hisob-sessiya-mijoz.ts';
+import Decimal from 'decimal.js';
 const button=document.querySelector('#run'),out=document.querySelector('#result');
 button.onclick=async()=>{
  button.disabled=true;out.textContent='Ishlayapti';const client=new HisobSessiyaMijoz();
@@ -13,17 +15,32 @@ button.onclick=async()=>{
  q:{id:Array.from({length:n},(_,i)=>i+1),ota_id:Array.from({length:n},(_,i)=>i===0?null:i===1?1:2),daraja:f(2),tartib:f(1),tur:Array.from({length:n},(_,i)=>i<2?i:2),kat:f(0),kod:f(null),nom:f(0),birlik:f(null),hajm:src(2),narx:src(0.3),summa:src(0.6),norma:src(0.2),narx_usul:f(null),versiya:f(1),qoshimcha:f(0),zamena:f(0),xom_qator:{}},
  h:{fakt_hajm:f(0),fakt_summa:f(0),f2_hajm:f(1),f2_summa:f(0.31),f2_summa_nomalum:f(0),direct_fakt_hajm:f(0),fakt_manbasi:f(0),almashtirilgan_hajm:{},almashtirilgan_summa:{}},f2:[],meta:{}};
  p.q.hajm[1]=10;p.q.summa[0]=p.q.summa[1]=15598.8;
+ const varied=document.querySelector('#varied').checked;
+ if(varied){
+  let initial=new Decimal(0);
+  for(let i=2;i<n;i++){
+   p.q.norma[i]=Number(new Decimal(i%97+1).div(1000).toFixed());
+   p.q.narx[i]=Number(new Decimal(i%31+1).div(10).toFixed());
+   p.q.hajm[i]=Number(new Decimal(p.q.norma[i]).times(10).toFixed());
+   p.q.summa[i]=Number(new Decimal(p.q.hajm[i]).times(p.q.narx[i]).toFixed());initial=initial.plus(p.q.summa[i]);
+  }
+  p.q.summa[0]=p.q.summa[1]=Number(initial.toFixed());
+ }
  const times=[],check=(x,msg)=>{if(!x)throw new Error(msg)};
  async function timed(name,fn){const start=performance.now();const r=await fn();times.push({name,roundtripMs:Math.round((performance.now()-start)*100)/100,workerMs:Math.round(r.vaqtMs*100)/100});return r;}
  try{
   await timed('INIT26k',()=>client.och(p));
   for(const price of ['0.4','0.3','0.5'])await timed('Narx tahriri',()=>client.tahrir({qator_id:n,maydon:'narx',qiymat:price,kutilgan_versiya:1}));
-  const r=await timed('26k norma kaskadi',()=>client.tahrir({qator_id:2,maydon:'hajm',qiymat:'2.5',kutilgan_versiya:1}));
-  check(r.xulosa.jami==='3899.8','Jami teng emas');
-  const leaf=await client.oqi([n]);check(leaf.qatorlar[0].summa==='0.25','Barg summasi teng emas');check(leaf.qatorlar[0].f2_summa===0.31,'F2 o‘zgardi');
+  for(const quantity of ['2.5','3','0','-1.25','2.5']){
+   const r=await timed('26k norma kaskadi '+quantity,()=>client.tahrir({qator_id:2,maydon:'hajm',qiymat:quantity,kutilgan_versiya:1}));
+   let expected=new Decimal(0);for(let i=2;i<n;i++)expected=expected.plus(new Decimal(p.q.norma[i]).times(quantity).times(i===n-1?'0.5':String(p.q.narx[i])));
+   check(r.xulosa.jami===expected.toFixed(),'Jami teng emas');
+  }
+  const leaf=await client.oqi([n]);check(leaf.qatorlar[0].summa===new Decimal(p.q.norma[n-1]).times('2.5').times('0.5').toFixed(),'Barg summasi teng emas');check(leaf.qatorlar[0].f2_summa===0.31,'F2 o‘zgardi');
   const b=structuredClone(p);b.kompaniya_id=2;b.obyekt_id=2;await client.och(b);
-  check((await client.oqi([n])).qatorlar[0].summa==='0.6','Oldingi company tahriri sizdi');
-  out.textContent='PASS\nF2 exact saqlandi; company switch toza; FIFO ishladi.\n'+JSON.stringify(times,null,2);
+  check((await client.oqi([n])).qatorlar[0].summa===String(p.q.summa[n-1]),'Oldingi company tahriri sizdi');
+  const under50=times.filter(t=>t.name.startsWith('26k')).every(t=>t.roundtripMs<=50);
+  out.textContent='Mantiq: PASS\nF2 exact saqlandi; company switch toza; FIFO ishladi.\nTurli qiymatlar: '+varied+'\n5 kaskadning hammasi ≤50ms: '+under50+'\n'+JSON.stringify(times,null,2);
  }catch(e){out.textContent='FAIL: '+(e instanceof Error?e.message:'Tekshiruv xatosi');}
  finally{client.yop();button.disabled=false;}
 };
