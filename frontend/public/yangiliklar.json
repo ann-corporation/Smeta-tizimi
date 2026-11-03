@@ -2,6 +2,15 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 62,
+      "sana": "2026-11-03",
+      "sarlavha": "Eski F2 ni storno qilish endi F2 tayyorlash oynasining o‘zida",
+      "bandlar": [
+        "F2 tayyorlashda «Eski F2 ni storno qilish (pereraschet)» tugmasi: obyektning bekor qilinmagan F2 lari ro‘yxatidan keraklisini tanlaysiz, qatorlari minus qilib yangi qoralamaga yoziladi (asl F2 o‘zgarmaydi).",
+        "Qoralama yaratilgach o‘sha oynada qolasiz: tepada «Сторно (eski F2)» bloki va qaysi F2 storno qilinayotgani ko‘rinadi, pastda yangi smeta qatorlarini qo‘shib (minus ham mumkin) saqlaysiz."
+      ]
+    },
+    {
       "id": 60,
       "sana": "2026-11-03",
       "sarlavha": "Katta fakt jurnali uchun kengroq va tezroq ish maydoni",

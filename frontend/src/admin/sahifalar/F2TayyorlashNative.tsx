@@ -47,7 +47,9 @@ import {
   bosKiritma, f2Jami, f2KatKesim, f2Qatorlar, f2Qur, f2Yacheykalar, f2Yuk, f2ZamenaQolla, ishBirlikNarxi, narxsizNomzodlar, sonOqi, ulushHajm,
   type F2Bolim, type F2Ish, type F2Kiritma, type F2Manba, type F2Qator, type F2Resurs, type F2ZamenaKontekst,
 } from '../../lib/f2-tayyor';
-import { MinusCircle, Repeat2 } from 'lucide-react';
+import { MinusCircle, Repeat2, RotateCcw } from 'lucide-react';
+import { rolF2YozishYopiq } from '../../lib/nav/menyuRolYopiq';
+import { F2StornoTanlov } from './F2StornoTanlov';
 import { bajarilmadiBekor, bajarilmadiRoyxatOl, bajarilmadiXato, type BajarilmadiQator } from '../../api/t2-bajarilmadi';
 import { bajarilmadiHajmlar } from '../../lib/fakt-studio';
 import { zamenaBoglanishOl, zamenaMiqdorOl } from '../../lib/fakt-zamena-boglanish';
@@ -103,7 +105,10 @@ function ResursJadval({ resurslar, ustunlar, qator }: { resurslar: F2Resurs[]; u
  */
 export function F2TayyorlashNative() {
   const moneyScope = useRef<HTMLDivElement>(null);
-  const { joriy } = useKompaniya();
+  const { joriy, superadmin } = useKompaniya();
+  /** «Eski F2 ni storno qilish» ruxsati: F2 tarixidagi storno tugmasi bilan bir xil (f2.prepare, yozish yopiq rol emas). */
+  const mayPrepare = !!superadmin || (!rolF2YozishYopiq(joriy?.rol) && !!joriy?.permissions?.includes('f2.prepare'));
+  const [stornoTanlovOchiq, setStornoTanlovOchiq] = useState(false);
   const [ndsFoiz, setNdsFoiz] = useState(String(NDS_SUKUT_FOIZ));
   const workspace = usePTOWorkspace();
   const navigate = useNavigate();
@@ -287,6 +292,13 @@ export function F2TayyorlashNative() {
   const tayyor = qatorlar.length > 0 && jami.xato === 0;
   /** DUBLIKAT HIMOYASI (egasi 2026-10-25): shu obyektda shu raqam bor — BLOK; summasi ±0,5% teng F2 / pereraschet — ogohlantirish. */
   const { aktlar: obyektAktlari } = useObyektF2Aktlari(validId ? obyektId : null, saving ? 1 : 0);
+  /** Storno qoralamasi qaysi eski F2 ni storno qilishi: storno qatorlaridagi `raw_snapshot.stornoOf`. */
+  const stornoManbaAkt = useMemo(() => {
+    const q = (akt?.qatorlar ?? []).find((x) => stornoQatorimi(x) && Number((x.raw_snapshot as { stornoOf?: unknown }).stornoOf) > 0);
+    if (!q) return null;
+    const id = Number((q.raw_snapshot as { stornoOf?: unknown }).stornoOf);
+    return { id, raqam: obyektAktlari.find((a) => a.id === id)?.raqam ?? null };
+  }, [akt, obyektAktlari]);
   const dublikatlar = useMemo(() => {
     if (!validId || aktId != null || !qatorlar.length) return [];
     const yuk = f2Yuk(qatorlar, raqam);
@@ -775,7 +787,13 @@ export function F2TayyorlashNative() {
           <Search size={14} className="pointer-events-none absolute bottom-2.5 left-2.5 text-text-mute" />
           <input aria-label="Qidirish" value={qidir} onChange={(e) => setQidir(e.target.value)} placeholder={t('ish, resurs, kod…')} className="mt-1.5 block w-full rounded-lg border border-border bg-surface-2 py-2 pl-8 pr-3 text-text" /></label>}
         {validId && bolimlar.length > 0 && <label className="flex items-center gap-1.5 pb-2.5 text-[12px] text-text-dim"><input type="checkbox" checked={faqatKiritilgan} onChange={(e) => setFaqatKiritilgan(e.target.checked)} />{t('Faqat kiritilganlar')}</label>}
+        {validId && mayPrepare && <button type="button" data-testid="storno-tanlov-tugma" className="fz-btn" title={t('Eski F2 qatorlaridan minus (storno) qoralama yaratadi; asl F2 o‘zgarmaydi')} onClick={() => setStornoTanlovOchiq(true)} disabled={saving}><RotateCcw aria-hidden="true" />{t('Eski F2 ni storno qilish (pereraschet)')}</button>}
       </section>
+      {validId && stornoTanlovOchiq && <F2StornoTanlov obyektId={obyektId} onYop={() => setStornoTanlovOchiq(false)} onYaratildi={(yangiId) => {
+        setStornoTanlovOchiq(false);
+        toast(t('Storno qoralamasi yaratildi. Yangi smeta qatorlarini pastda qo‘shib, saqlang.'), 'ok');
+        navigate(`/admin/f2-tayyorlash?obyekt=${obyektId}&akt=${yangiId}`);
+      }} />}
       {validId && aktId != null && <section role="status" aria-label={t('F2 qoralamani tahrirlash')} className={`fz-note ${aktXato || aktKorish ? 'fz-note--warn' : 'fz-note--info'} flex-wrap`} style={{ alignItems: 'center' }}>
         {tahrirHolati}
         <Link className="ml-auto text-accent underline" to={`/admin/f2-tayyorlash?obyekt=${obyektId}`}>{t('Yangi F2 tayyorlash')}</Link>
@@ -783,6 +801,7 @@ export function F2TayyorlashNative() {
       {validId && aktId != null && stornoBlok.soni > 0 && <section aria-label={t('Сторно (eski F2)')} data-testid="storno-blok" className="fz-note fz-note--info flex-wrap" style={{ alignItems: 'center' }}>
         <b>{t('Сторно (eski F2)')}</b>
         <span>{t('{n} qator, Σ (minus):', { n: String(stornoBlok.soni) })} <FmtN val={stornoBlok.jami} /> — {t('hujjat boshida saqlanadi; yangi pozitsiyalar shu blok ostiga qo‘shiladi.')}</span>
+        {stornoManbaAkt && <span data-testid="storno-manba">{t('Storno qilinayotgan F2: №{r}', { r: stornoManbaAkt.raqam || String(stornoManbaAkt.id) })}</span>}
         {stornoBlok.nomalum > 0 && <span className="text-warn">{t('{n} qatorda summa noma‘lum', { n: String(stornoBlok.nomalum) })}</span>}
       </section>}
       {!validId && <section className="fz-card p-4 text-text-dim">{t('Avval obyektni tanlang.')}</section>}

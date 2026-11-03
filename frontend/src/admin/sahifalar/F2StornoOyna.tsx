@@ -1,11 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { RotateCcw, ShieldAlert } from 'lucide-react';
 import { F2Oyna } from './F2Oyna';
+import { sbT2AktReestrOl, type T2AktReestr } from '../../api/supabase';
 import { FmtN } from '../../lib/format';
 import { davrNomi } from '../../lib/f2-hujjat-korinish';
 import { t, tilLocale } from '../../i18n/til';
 import { faolStornolar, stornoFaktReja, stornoQator, stornoQur, type StornoManbaQator, type StornoReestrAkt } from '../../lib/f2-storno';
 import { f2StornoAktIdlari, f2StornoFaktYoz, f2StornoHolatOl, f2StornoManbaOl, f2StornoQoralamaYarat, yangiOperationId, type StornoQatorKorinish } from '../../api/t2-f2-storno';
+
+/** Server akt id qaytarmasa: reestrdagi shu raqamli (bo'lmasa eng so'nggi) F2 qoralamasi. */
+async function oxirgiQoralamaTop(obyektId: number, raqam: string): Promise<number | null> {
+  try {
+    const r = await sbT2AktReestrOl(obyektId);
+    if (!r.ok) return null;
+    const q = ((r.qatorlar ?? []) as T2AktReestr[]).filter((a) => a.tur === 'f2' && a.holat === 'qoralama').sort((a, b) => b.id - a.id);
+    return (q.find((a) => raqam !== '' && a.raqam === raqam) ?? q[0])?.id ?? null;
+  } catch { return null; }
+}
 
 export type F2StornoAkt = { id: number; raqam: string | null; oy: string | null; hujjat_jami: number | null };
 
@@ -20,7 +31,11 @@ const oyBosh = () => `${bugun().slice(0, 7)}-01`;
  */
 export function F2StornoOyna(p: {
   obyektId: number; akt: F2StornoAkt; reestr: readonly StornoReestrAkt[];
-  onYop: () => void; onTugadi: (yangiAktId: number) => void;
+  onYop: () => void;
+  /** Qoralama (va fakt 0 ga) tayyor bo'lgach yangi qoralama id si bilan chaqiriladi. */
+  onYaratildi?: (yangiAktId: number) => void;
+  /** Eski nom (F2 tarixi): `onYaratildi` bilan bir vaqtda chaqiriladi. */
+  onTugadi?: (yangiAktId: number) => void;
 }) {
   const [manba, setManba] = useState<StornoManbaQator[] | null>(null);
   const [holat, setHolat] = useState<StornoQatorKorinish[] | null>(null);
@@ -78,11 +93,13 @@ export function F2StornoOyna(p: {
   const takrorKerak = (faol?.length ?? 0) > 0;
   const tayyor = !!reja && reja.qatorlar.length > 0 && !!/^\d{4}-\d{2}-\d{2}$/.test(oy) && (!takrorKerak || takrorTasdiq) && faol !== null;
 
+  const bitdi = (aktId: number) => { p.onYaratildi?.(aktId); p.onTugadi?.(aktId); };
+
   async function faktYoz(aktId: number) {
-    if (!faktReja || faktReja.yozuvlar.length === 0) { p.onTugadi(aktId); return; }
+    if (!faktReja || faktReja.yozuvlar.length === 0) { bitdi(aktId); return; }
     const r = await f2StornoFaktYoz({ obyektId: p.obyektId, sana: bugun(), yozuvlar: faktReja.yozuvlar, operationId: opFakt.current, raqam: undefined, izoh: `Сторно F2 №${p.akt.raqam || p.akt.id}: fakt 0 ga` });
     if (!r.ok) { setXato(`${t('Storno qoralamasi yaratildi, lekin fakt 0 ga tushmadi')}: ${r.error || r.xabar || ''} ${t('— qayta urinib ko‘ring (qoralama takrorlanmaydi).')}`); return; }
-    p.onTugadi(aktId);
+    bitdi(aktId);
   }
 
   async function bajar() {
@@ -92,8 +109,10 @@ export function F2StornoOyna(p: {
       let aktId = yaratilganAkt;
       if (aktId == null) {
         const r = await f2StornoQoralamaYarat({ obyektId: p.obyektId, oy, raqam: raqam.trim() || undefined, qatorlar: reja.qatorlar, operationId: opQoralama.current });
-        if (!r.ok || r.akt_id == null) { setXato(r.error || r.xabar || t('Storno qoralamasi yaratilmadi.')); return; }
-        aktId = r.akt_id; setYaratilganAkt(aktId);
+        if (!r.ok) { setXato(r.error || r.xabar || t('Storno qoralamasi yaratilmadi.')); return; }
+        const topilgan = r.akt_id ?? await oxirgiQoralamaTop(p.obyektId, raqam.trim());
+        if (topilgan == null) { setXato(t('Storno qoralamasi yaratildi, lekin uning raqami olinmadi. F2 tarixidan oching.')); return; }
+        aktId = topilgan; setYaratilganAkt(aktId);
       }
       await faktYoz(aktId);
     } catch { setXato(t('Javob olinmadi. Qayta urinib ko‘ring — takror yozilmaydi.')); }
