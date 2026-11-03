@@ -106,7 +106,7 @@ begin
     rep := rep || ('FAIL begona kompaniya: ' || l::text);
   exception when others then
     get stacked diagnostics v_state = returned_sqlstate;
-    rep := rep || 'OK   begona kompaniya rad (' || v_state || ')';
+    rep := rep || ('OK   begona kompaniya rad (' || v_state || ')');
   end;
 
   -- 9. Asosiy shartnoma ustiga import yozilmaydi
