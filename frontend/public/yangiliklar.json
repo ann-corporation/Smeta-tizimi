@@ -2,6 +2,17 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 80,
+      "sana": "2026-11-04",
+      "sarlavha": "Hujjat dizayni: darajalar aniq ajralib turadi, matn va sonlar katakka sig‘adi",
+      "bandlar": [
+        "Barcha rasmiy hujjatlarda (Ф-2, Форма-3, накопительная, остатка, ЛРВ, М-29, обоснование va boshqalar) «Тип» belgisi ustuni endi yashirin — chop etilmaydi (kerak bo‘lsa sozlamada yoqiladi).",
+        "Ish (BL) qalin, resurs (RS) kursiv va kichikroq, material (MAT) va uskuna (OB) qalin va o‘z foni bilan; razdel — rangli keng tasma, jami va ВСЕГО — alohida fon va qo‘sh yuqori chiziq. Nomlar daraja bo‘yicha surilgan, har katak ramkada, ranglar kulrang chopda ham farqlanadi.",
+        "Ustun eni mazmundan hisoblanadi: sonlar («###» siz) va uzun so‘zlar kesilmaydi, nom ustunlarida matn o‘raladi va qator balandligi shunga moslanadi, sarlavha qatori ham o‘raladi.",
+        "«Hujjatlar dizayni» sahifasida yangi bo‘lim: shrift, daraja uslublari, Тип ustuni, son xonalari, chegara, zebra, chekka va yo‘nalish — jonli namuna va «Klassik / Kontrastli / Minimal» andozalari bilan; kompaniya sozlamasi sifatida saqlanadi."
+      ]
+    },
+    {
       "id": 73,
       "sana": "2026-11-03",
       "sarlavha": "Loyihasiz obyekt endi hech qayerda yashirilmaydi",
