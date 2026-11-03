@@ -3369,5 +3369,46 @@
   "production_write_allowed": false,
   "note": "Egasi 2026-11-03: «uy ham sotadi — 0 dan 100 gacha, sotuvchi ham oluvchi uchun». Umumiy fayllarga faqat qo'shimcha qatorlar: sb.ts/sb-yoz.ts (sotuv_* ro'yxati), write-command-policy, permission-policy (sotuv_ → sales.*), tenant-yozish (ID_JADVAL), effective-authorization/permission-labels (sales.*, rol sotuvchi), t2_kompaniya.test.cjs KUTILGAN. Migratsiya prodga — faqat L0."
 }
+  ,
+  {
+    "id": "TENDER-V1-20261103",
+    "title": "Tender / xarid protsessi: tasdiq zanjiri, muhrlangan takliflar, baholash, g'olib, yetkazuvchi portali",
+    "owner": "claude",
+    "machine": "cloud",
+    "branch": "claude/tender-v1",
+    "base_sha": "c7f437e0",
+    "status": "in_progress",
+    "owns": [
+      "supabase/migrations/20261122000000_t2_tender_protsess_v1.sql",
+      "supabase/migrations/20261122000000_t2_tender_protsess_v1.rollback.sql",
+      "supabase/migrations/20261122000000_t2_tender_protsess_v1.acceptance.sql",
+      "frontend/functions/_shared/tender-yuk.ts",
+      "frontend/functions/_shared/tender-yuk.test.ts",
+      "frontend/functions/_shared/permission-policy.ts",
+      "frontend/functions/_shared/write-command-policy.ts",
+      "frontend/functions/api/sb.ts",
+      "frontend/functions/api/sb-yoz.ts",
+      "frontend/testlar/t2_kompaniya.test.cjs",
+      "frontend/src/api/t2-tender.ts",
+      "frontend/src/lib/tender/",
+      "frontend/src/admin/sahifalar/Tender*",
+      "frontend/src/admin/tender/",
+      "frontend/src/i18n/lugat/qism/tender.json",
+      "frontend/src/lib/nav/navReestr.ts",
+      "frontend/src/lib/nav/navFiltr.ts",
+      "frontend/src/admin/AdminShell.tsx",
+      "frontend/src/lib/sayt-xaritasi/generated.ts",
+      "frontend/public/yangiliklar.json",
+      "ops/mailbox/INBOX.md",
+      "ops/ACTIVE_TASKS.json"
+    ],
+    "depends_on": [],
+    "must_read": [
+      "AGENTS.md",
+      "ops/mailbox/KOORDINATSIYA-L0-CLOUD-20261028/01-kelishuv.md"
+    ],
+    "production_write_allowed": false,
+    "note": "Egasi 2026-11-03: «tendr ... mukammal jarayon». P2/P3 (t2_birja_*, t2_buyurtma) ustiga additiv; migratsiya 20261122000000 prodga FAQAT L0 qo'llaydi. PR-T1 (claude/tender-v1): baza + shlyuz + api + lib; PR-T2 (claude/tender-v1-ui): UI. v1 RPC lar (elon/golib/yop/tafsilot) service_role dan yig'iladi (muhr va tasdiq aylanib o'tilmasin)."
+  }
 ]
 }

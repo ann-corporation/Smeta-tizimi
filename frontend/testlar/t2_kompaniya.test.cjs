@@ -151,7 +151,11 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       /* 2026-11-03: uy sotish (sales.*, RPC ichida a'zolik + ruxsat; yuk _shared/sotuv-yuk.ts oq ro'yxati). */
                       't2_sotuv_loyiha_saqla_v1', 't2_sotuv_birlik_saqla_v1', 't2_sotuv_narx_ozgartir_v1', 't2_sotuv_birlik_holat_v1',
                       't2_sotuv_bitim_saqla_v1', 't2_sotuv_bron_v1', 't2_sotuv_bron_bekor_v1', 't2_sotuv_grafik_saqla_v1',
-                      't2_sotuv_tolov_yoz_v1', 't2_sotuv_tolov_bekor_v1'].sort();
+                      't2_sotuv_tolov_yoz_v1', 't2_sotuv_tolov_bekor_v1',
+                      /* 2026-11-03 (tender): protsess RPC lari — procurement.write/approve, supply.offer (write-command-policy.ts). */
+                      't2_tender_saqla_v1', 't2_tender_otish_v1', 't2_tender_raund_v1', 't2_tender_taklif_v2', 't2_tender_taklif_qaytar_v2',
+                      't2_tender_savol_ber_v1', 't2_tender_javob_v1', 't2_tender_baholash_saqla_v1', 't2_tender_golib_v2', 't2_tender_baho_ber_v1',
+                      't2_tender_fayl_bogla_v1', 't2_tender_taklif_fayl_bogla_v1'].sort();
     T('RPC ro\'yxati AYNAN belgilangan ' + KUTILGAN.length + ' ta domen amali',
       JSON.stringify(amallar) === JSON.stringify(KUTILGAN),
       'topildi: ' + amallar.join(', '));

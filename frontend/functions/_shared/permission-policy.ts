@@ -3,6 +3,14 @@ import { writeCommandPermission } from './write-command-policy';
 /** Named business permission classification. Neither row order nor caller-supplied permission is trusted. */
 export function dataPermission(name: string, write: boolean, body: Record<string, unknown> = {}): string {
   const n = name.replace(/^t2_/, '');
+  /* TENDER (2026-11-03): mavjud xarid capability lari. Yetkazuvchi tomoni — supply.offer, tasdiq/g'olib/raund — procurement.approve,
+     qolgani — procurement.write; o'qish — procurement.read (RPC ichida supply.offer/fulfil ham qabul qilinadi). write-command-policy.ts bilan bir xil. */
+  if (/^tender_/.test(n)) {
+    if (!write) return 'procurement.read';
+    if (['tender_taklif_v2','tender_taklif_qaytar_v2','tender_savol_ber_v1','tender_taklif_fayl_bogla_v1'].includes(n)) return 'supply.offer';
+    if (['tender_raund_v1','tender_golib_v2'].includes(n)) return 'procurement.approve';
+    return 'procurement.write';
+  }
   if (['erp_amal','sozlama_saqla','kirish_amal','taklif_yubor','taklif_qabul'].includes(n)) return 'control.company.write';
   if (n==='token_sarfla_v1'||n==='token_qaytar_v1'||n==='token_yakunla_v1') return 'company.read';
   /* M-29 bajarish (ombordan chiqim) — bajarish domeni; RPC ham fakt.write talab qiladi (ADR-3, 2026-10-21). */

@@ -30,6 +30,7 @@ import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob, mayWriteCompani
 import { egaQarori, egalarniOqi, yozishTalablari } from '../_shared/tenant-yozish';
 import { katalogSnapshotlari } from '../_shared/narx-katalog-snapshot';
 import { sotuvAmalmi, sotuvYuk } from '../_shared/sotuv-yuk';
+import { TENDER_AMALLAR, tenderYuk } from '../_shared/tender-yuk';
 
 /** Har amal → qaysi RPC va uni kim chaqira oladi. */
 const AMALLAR = {
@@ -154,6 +155,20 @@ const AMALLAR = {
   taklif_qabul: { rpc: 't2_taklif_qabul' },
   birja_rfq_yarat: { rpc: 't2_birja_rfq_yarat' },
   birja_taklif_ber: { rpc: 't2_birja_taklif_ber' },
+  /* TENDER protsessi (2026-11-03, 20261122000000_t2_tender_protsess_v1): qoralama → tasdiq → e'lon → ochish → baholash → g'olib. Argumentlar `_shared/tender-yuk.ts` da. */
+  tender_saqla_v1: { rpc: 't2_tender_saqla_v1' },
+  tender_otish_v1: { rpc: 't2_tender_otish_v1' },
+  tender_raund_v1: { rpc: 't2_tender_raund_v1' },
+  tender_taklif_v2: { rpc: 't2_tender_taklif_v2' },
+  tender_taklif_qaytar_v2: { rpc: 't2_tender_taklif_qaytar_v2' },
+  tender_savol_ber_v1: { rpc: 't2_tender_savol_ber_v1' },
+  tender_javob_v1: { rpc: 't2_tender_javob_v1' },
+  tender_baholash_saqla_v1: { rpc: 't2_tender_baholash_saqla_v1' },
+  tender_golib_v2: { rpc: 't2_tender_golib_v2' },
+  tender_baho_ber_v1: { rpc: 't2_tender_baho_ber_v1' },
+  /* Fayl R2 da (hujjat-yukla); bu yerda faqat hujjat havolasi (metadata). */
+  tender_fayl_bogla_v1: { rpc: 't2_tender_fayl_bogla_v1' },
+  tender_taklif_fayl_bogla_v1: { rpc: 't2_tender_taklif_fayl_bogla_v1' },
   viborka_smetadan_toldir: { rpc: 't2_viborka_smetadan_toldir' },
   viborka_qabul_yoz: { rpc: 't2_viborka_qabul_yoz' },
   shartnoma_saqla: { rpc: 't2_shartnoma_saqla' },
@@ -2909,6 +2924,12 @@ export const onRequestPost: PagesFunction<{
         p_kutilgan_versiya: so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya),
         p_lat: lat, p_lng: lng,
       };
+
+    /* ══════════ TENDER PROTSESSI ══════════ */
+    } else if (TENDER_AMALLAR.has(amal)) {
+      const t = tenderYuk(amal, so as Record<string, unknown>, sess.foydalanuvchi_id);
+      if (!t.ok) return Response.json({ ok: false, code: 'REQUIRED_FIELD', error: t.error }, { status: 400 });
+      yuk = t.yuk;
 
     /* ══════════ B2B BIRJA ══════════
        ⚠️ IDEMPOTENTLIK MAJBURIY — RFQ va taklif narxga bog'liq. */
