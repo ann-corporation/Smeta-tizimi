@@ -1,0 +1,62 @@
+{
+    "Bajarilgan, lekin F2 ga chiqmagan ish asosi":  {
+                                                        "ru":  "Обоснование выполненных, но не закрытых Ф-2 работ",
+                                                        "en":  "Justification of executed work not yet closed by F-2"
+                                                    },
+    "Fakt va tasdiqlangan F2 farqi (fakt − F2) pozitsiya bo‘yicha, asos (jurnal, F2 raqami) bilan. Summalar: QQS bilan / ustamali / ustamasiz.":  {
+                                                                                                                                                      "ru":  "Разница между фактом и утверждённым Ф-2 (факт − Ф-2) по позициям, с основанием (журнал, номер Ф-2). Суммы: с НДС / с накладными / прямые.",
+                                                                                                                                                      "en":  "Difference between actuals and approved F-2 (actual − F-2) per item, with the evidence (journal, F-2 number). Amounts: incl. VAT / with overheads / direct."
+                                                                                                                                                  },
+    "Qamrov":  {
+                   "ru":  "Охват",
+                   "en":  "Scope"
+               },
+    "Shu obyekt":  {
+                       "ru":  "Этот объект",
+                       "en":  "This object"
+                   },
+    "Loyihaning hamma obyektlari":  {
+                                        "ru":  "Все объекты проекта",
+                                        "en":  "All objects of the project"
+                                    },
+    "Holat sanasi":  {
+                         "ru":  "Состояние на дату",
+                         "en":  "As-of date"
+                     },
+    "F2 faktdan oshgan qatorlar ham":  {
+                                           "ru":  "Включать строки, где Ф-2 больше факта",
+                                           "en":  "Include lines where F-2 exceeds actuals"
+                                       },
+    "Asos hujjati (Excel)":  {
+                                 "ru":  "Обоснование (Excel)",
+                                 "en":  "Justification (Excel)"
+                             },
+    "Eski hisobot raqamlari bilan solishtirish (ixtiyoriy, QQS bilan, so‘m)":  {
+                                                                                   "ru":  "Сравнить с цифрами прежнего отчёта (необязательно, с НДС, сум)",
+                                                                                   "en":  "Compare with the old report figures (optional, incl. VAT, UZS)"
+                                                                               },
+    "Eski fakt":  {
+                      "ru":  "Факт по прежнему отчёту",
+                      "en":  "Old report: actuals"
+                  },
+    "Eski F2 yopilgan":  {
+                             "ru":  "Закрыто Ф-2 по прежнему отчёту",
+                             "en":  "Old report: closed by F-2"
+                         },
+    "Eski F2 ga chiqmagan":  {
+                                 "ru":  "Не закрыто Ф-2 по прежнему отчёту",
+                                 "en":  "Old report: not closed by F-2"
+                             },
+    "Hujjat tuzilmadi, qayta urinib ko‘ring.":  {
+                                                    "ru":  "Документ не сформирован, повторите попытку.",
+                                                    "en":  "The document was not generated, please try again."
+                                                },
+    "ta obyekt":  {
+                      "ru":  "объект(ов)",
+                      "en":  "objects"
+                  },
+    "ta ogohlantirish (hujjatda ko‘rsatilgan)":  {
+                                                     "ru":  "предупреждений (указаны в документе)",
+                                                     "en":  "warnings (listed in the document)"
+                                                 }
+}
