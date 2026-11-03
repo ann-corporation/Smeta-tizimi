@@ -38,11 +38,22 @@ Boshqaruv to'liq **L0 (lokal agent)** da. Cloud ishni faqat L0 dan oladi, boshla
   - xaridor — katalog, xonadon sahifasi, ipoteka kalkulyatori, kabinet.
 - Rasmlar va planirovkalar R2 da.
 
-### 2. Tender — `claude/tender-v1` (sub-agent; PR hali ochilmagan)
-- Mavjud `t2_birja_rfq / _qator / t2_birja_taklif / t2_buyurtma` va `t2_tender_*_v1` RPC'lari **kengaytiriladi** — parallel model yo'q (tekshirildi).
-- Migratsiya `20261122000000_t2_tender_protsess_v1`: yangi jadvallar faqat `t2_tender_jurnal`, `t2_tender_savol`, `t2_tender_baho`.
-- Oqim: tasdiq, muhrlangan takliflar, baholash, g'olib, audit.
-- Fayllar R2 da (faqat havola); jurnal payload ≤1 KB.
+### 2. Tender — `claude/tender-v1` · PR ann-corporation/Smeta-tizimi#239 (draft) — ✅ server + UI tayyor
+- **Asos:** mavjud `t2_birja_*` / `t2_buyurtma*` / `t2_tender_*_v1` kengaytirildi. v1 RPC buzilmagan; `supabase/tests/t2_tender_contract.sql` o'tadi.
+- **Migratsiya** `20261122000000_t2_tender_protsess_v1` (+rollback, acceptance — 66 tekshiruv).
+  - Yangi jadvallar: `t2_tender_jurnal` (o'zgarmas, payload ≤1 KB), `t2_tender_savol`, `t2_tender_baho`; fayllar R2 da (`t2_primitiv_dalil`).
+  - RPC: 12 yozish + 4 o'qish.
+  - Ruxsatlar: `procurement.*`, `supply.offer` (yangi capability yo'q).
+- **Oqim:** qoralama → tasdiq → e'lon → muhrlangan takliflar → ochish → baholash (narx / ball) → BAFO raund → g'olib (qator bo'yicha bo'linma, asos majburiy) → buyurtma → yopish.
+- **UI** `/admin/tender`: mening tenderlarim, menga taklif qilinganlar, ochiq e'lonlar, tahlil.
+- **Darvozalar:** tsc, oxlint, site-map, tekshir va to'liq vitest (636 fayl / 4675 test) — yashil.
+- **Qoldiqlar:**
+  - fayl yuklash UI;
+  - to'lov va ombor havolasi UI'da;
+  - outbox → Telegram fan-out;
+  - yetkazuvchi o'qishi `procurement.read` talab qiladi;
+  - brauzerda qo'lda ko'rilmagan.
+- **L0 dan kerak:** migratsiyani BEGIN..ROLLBACK da sinab qo'llash; egasiga 5 savol (PR tavsifida).
 
 ### 3. 3D / virtual sayohat — navbatda (uy sotish S2 dan keyin)
 - Faqat tadqiqot + reja.
