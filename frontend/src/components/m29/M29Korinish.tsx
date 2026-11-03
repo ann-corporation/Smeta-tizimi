@@ -302,7 +302,9 @@ export function M29Korinish({ natija, obyektId }: { natija: M29Natija; obyektId:
             {DIQQAT_TURLARI.map((tur) => {
               const list = natija.diqqat.filter((d) => d.tur === tur.tur);
               if (!list.length) return null;
-              const summa = list.reduce((s, d) => s + (d.summa ?? 0), 0);
+              const malum = list.filter((d) => d.summa != null); // summasi noma'lum qator 0 emas: soni alohida ko'rsatiladi
+              const summa = malum.length ? malum.reduce((s, d) => s + (d.summa as number), 0) : null;
+              const nomalumSoni = list.length - malum.length;
               return (
                 <details key={tur.tur} className="fz-card text-[12.5px]" open={tur.muhim}>
                   <summary className="flex cursor-pointer items-center gap-2 px-4 py-3">
@@ -310,6 +312,7 @@ export function M29Korinish({ natija, obyektId }: { natija: M29Natija; obyektId:
                     <span className={tur.muhim ? 'font-semibold text-text' : 'text-text-dim'}>{t(tur.nom)}</span>
                     <span className="fz-chip">{list.length}</span>
                     {summa ? <span className="ml-auto tabular-nums text-danger">{t('{s} so‘m', { s: pul(summa) })}</span> : null}
+                    {nomalumSoni > 0 ? <span className={`fz-chip${summa ? '' : ' ml-auto'}`} title={t('Summasi noma‘lum qatorlar')}>{t('+{n} summasiz', { n: nomalumSoni })}</span> : null}
                   </summary>
                   <ul className="max-h-80 divide-y divide-border overflow-auto border-t border-border px-4">
                     {list.map((d, i) => (

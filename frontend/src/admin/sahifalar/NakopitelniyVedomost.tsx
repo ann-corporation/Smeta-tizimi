@@ -353,7 +353,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       const h = forma3Hujjat(
         { nakopitelniy: [{ obyekt_id: Number(objectId), obyektNom, qatorlar: rows }], f2Oylik, f2Hajm: f3CertifiedHajm(taf.qatorlar, companyId, Number(objectId), davr.slice(0, 7)) },
         {
-          obyektNom, davr, asosiyObyektId: Number(objectId), imzo: tomonlar, nakrutka, podval, ndsFoiz: stavkaOl(),
+          obyektNom, davr, asosiyObyektId: Number(objectId), imzo: tomonlar, nakrutka, podval, nkManba: nakrutkaJavob?.nk_manba ?? null, ndsFoiz: stavkaOl(),
           smetaNakrutka, ozgarishlar, lineage, lineageRequired: Boolean(lineage),
           pudratchi: pudratchiRek, zakazchik: zakazchikRek,
           shartnomaRaqam: shartnoma?.raqam ?? null, shartnomaSana: shartnoma?.sana ?? null, shartnomaSumma: shartnoma?.summa ?? null,
@@ -401,7 +401,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       // Egasi 2026-09-30: har tasdiqlangan F2 oyi alohida ustun + ИТОГО (manba — F3 bilan bir xil certified F2).
       const taf = await sbT2F2TafsilotOl({ obyektId: Number(objectId), tur: 'f2' });
       const oylar = taf.ok && taf.toliq !== false && taf.qatorlar && davr ? f2OyKesimi(taf.qatorlar, davr.slice(0, 7)) : null;
-      const h = nakopitelniyVedomostHujjat(rows, { obyektNom, davr, imzo: tomonlar, ndsFoiz: stavkaOl(), smetaNakrutka, nakrutka, podval, oylar, svodYaxlit });
+      const h = nakopitelniyVedomostHujjat(rows, { obyektNom, davr, imzo: tomonlar, ndsFoiz: stavkaOl(), smetaNakrutka, nakrutka, podval, nkManba: nakrutkaJavob?.nk_manba ?? null, oylar, svodYaxlit });
       const t = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'NAKOPITELNIY', sabab: `Накопительная ведомость · ${obyektNom} · ${davr}`, obyekt: objectId },
         () => { if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi); });
       if (!t.ok) toast(t.xabar, 'danger'); else if (t.xabar) toast(t.xabar, 'ok');

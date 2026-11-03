@@ -2,6 +2,7 @@
  * Superadmin: built index → /api/narx-katalog-nashr (files in ≤ 8 MB batches, then activation). Generic price lists
  * (a manufacturer's own Excel layout) become an edition via the shared column reader; VAT is confirmed by the admin.
  */
+import { NDS_SUKUT_FOIZ, qqsSizNarx } from '../hisob-yadro';
 import type { NarxManbaQatorKirish } from '../../api/t2-narx-dalil';
 import type { Nashr } from './manba-xls';
 import type { QurilganReviziya } from './nashr-birlashtir';
@@ -37,7 +38,7 @@ export async function reviziyaniNashrQil(rev: QurilganReviziya, jarayon?: (yukla
 /** A manufacturer's / supplier's price list (any layout read by the column reader or the AI) → an edition. */
 export function praysNashri(p: { nom: string; yetkazuvchi: string; sana: string | null; nds: 'nds_bilan' | 'nds_siz'; hudud: string | null; qatorlar: NarxManbaQatorKirish[] }): Nashr {
   const qatorlar = p.qatorlar.filter(q => q.narx != null && q.narx > 0 && q.nom?.trim() && q.birlik?.trim()).map(q => ({
-    nom: q.nom.trim(), birlik: (q.birlik ?? '').trim(), narx: p.nds === 'nds_bilan' ? Math.round(((q.narx as number) / 1.12) * 100) / 100 : (q.narx as number),
+    nom: q.nom.trim(), birlik: (q.birlik ?? '').trim(), narx: p.nds === 'nds_bilan' ? qqsSizNarx(q.narx as number, NDS_SUKUT_FOIZ) : (q.narx as number),
     hudud: p.hudud, zavod: p.yetkazuvchi || null, guruh: q.guruh ?? null, sana: p.sana, izoh: p.nds === 'nds_bilan' ? `цена прайс-листа ${q.narx} с НДС, НДС 12% исключён` : null }));
   const y = p.sana ? Number(p.sana.slice(0, 4)) : null, m = p.sana ? Number(p.sana.slice(5, 7)) : null;
   return { tur: 'prays', nom: p.nom, yetkazuvchi: p.yetkazuvchi || null, yil: y, kvartal: m ? Math.ceil(m / 3) : null, oy: m, sana: p.sana, qatorlar,

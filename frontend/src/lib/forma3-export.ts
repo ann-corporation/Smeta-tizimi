@@ -89,6 +89,8 @@ export interface Forma3ExportOptions {
   zakazchik?: Forma3Rekvizit | null;
   /** Obyekt nakrutka foizlari (t2_obyekt_nakrutka). null — 0 % + diqqat. */
   nakrutka?: Partial<NakrutkaKoeffitsientlar> | null;
+  /** Server `nk_manba` — meros foizlari izohi (yadro `serverMerosKoefQoy`). */
+  nkManba?: string | null;
   /** Maxsus nakrutka podvali (konstruktor) — null: standart kaskad. */
   podval?: Podval | null;
   /** НДС stavkasi % (sukut 12, F3_NDS_SUKUT); null — kaskaddagi qiymat. */
@@ -510,7 +512,7 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
     model.diqqat.push({ nom: 'Проценты накладных и прочих расходов', sabab: 'не заданы для объекта (договора) — стоимость к оплате не определена (проценты не принимаются равными 0)' });
   }
   const qiymatIdx = f3QiymatIndekslar(rows);
-  const podval = o.podval ? serverMerosKoefQoy(o.podval, nk) : null;
+  const podval = o.podval ? serverMerosKoefQoy(o.podval, nk, o.nkManba) : null;
   const ustunlar = f3UstunlarNatijasi(rows, qiymatIdx, nk, podval);
 
   // ── Titul ──

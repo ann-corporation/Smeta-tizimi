@@ -51,6 +51,8 @@ export interface NakopitelniyVedomostExportOptions {
   /** Obyekt nakrutka foizlari (t2_obyekt_nakrutka_v1.koeffitsientlar). Berilmasa — 0 %
    *  (к оплате = прямые) va hujjatda "проценты не заданы" deyiladi. */
   nakrutka?: Partial<NakrutkaKoeffitsientlar> | null;
+  /** Server `nk_manba` — meros foizlari izohi (yadro `serverMerosKoefQoy`). */
+  nkManba?: string | null;
   /** Maxsus nakrutka podvali (konstruktor) — null: standart kaskad. */
   podval?: Podval | null;
   /** Smeta nakrutka kaskadi (RPC jami.smeta_nakrutka) — izohda ko'rsatiladi. */
@@ -268,7 +270,7 @@ export function nakopitelniyVedomostHujjat(
   const nk: Partial<NakrutkaKoeffitsientlar> = { ...(o.nakrutka ?? {}) };
   if (o.ndsFoiz != null && Number.isFinite(o.ndsFoiz) && o.ndsFoiz >= 0) nk.НДС = o.ndsFoiz;
   // Foizlar faqat podvaldan (server meros rejimi); noma'lum foiz — к оплате bo'sh, 0 emas.
-  const podval = o.podval ? serverMerosKoefQoy(o.podval, nk) : null;
+  const podval = o.podval ? serverMerosKoefQoy(o.podval, nk, o.nkManba) : null;
   const kfJS = kategoriyaKf(nk, podval);
   const ndsFoiz = podvalNdsFoiz(podval, nk);
   const podvalBosh = bosh + reja.length + 2;

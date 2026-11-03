@@ -231,7 +231,7 @@ export function aktExcel(m: OyObyekt, a: Pick<ReestrAkt, 'id' | 'oy' | 'raqam'>,
   if (!k.qatorlar.length) return null;
   const h = f2Hujjat(k.bolimlar, k.qatorlar, {
     obyektNom, davr: a.oy || '', raqam: a.raqam, imzo: m.kontekst.imzo, shartnoma: m.kontekst.shartnoma,
-    ndsFoiz: NDS_FOIZ, nakrutka: m.kontekst.nakrutka, podval: m.kontekst.podval, formulasiz: true,
+    ndsFoiz: NDS_FOIZ, nakrutka: m.kontekst.nakrutka, podval: m.kontekst.podval, nkManba: m.kontekst.nkManba ?? null, formulasiz: true,
   });
   return { bytes: h.bytes, faylNomi: h.faylNomi, yacheykalar: h.yacheykalar, topilmagan: k.topilmagan };
 }

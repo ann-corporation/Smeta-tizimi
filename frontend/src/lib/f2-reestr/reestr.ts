@@ -9,6 +9,8 @@
  * eski importlarda faqat `manba = 'f2_v3'`); o'qib bo'lmasa «aniqlanmadi».
  */
 
+import { yaxlit2 } from '../hisob-yadro';
+
 export type F2Manba = 'import' | 'tizim' | null;
 export type F2Bosqich = 'tasdiqlangan' | 'jarayonda' | 'rad' | 'bekor';
 
@@ -51,7 +53,7 @@ export function bosqich(a: Pick<ReestrAkt, 'holat' | 'lifecycle_status'>): F2Bos
 export function qosh(s: Summa, qiymat: number | null): Summa {
   return qiymat == null || !Number.isFinite(Number(qiymat))
     ? { ...s, nomalum: s.nomalum + 1, soni: s.soni + 1 }
-    : { malum: Math.round((s.malum + Number(qiymat)) * 100) / 100, nomalum: s.nomalum, soni: s.soni + 1 };
+    : { malum: yaxlit2(s.malum + Number(qiymat)), nomalum: s.nomalum, soni: s.soni + 1 };
 }
 export const yigindi = (aktlar: ReadonlyArray<Pick<ReestrAkt, 'hujjat_jami'>>): Summa => aktlar.reduce((s, a) => qosh(s, a.hujjat_jami), bosSumma());
 
@@ -116,7 +118,7 @@ export function reestrQur(p: {
   return { qatorlar, jami };
 }
 function birlashtir(a: Summa, b: Summa): Summa {
-  return { malum: Math.round((a.malum + b.malum) * 100) / 100, nomalum: a.nomalum + b.nomalum, soni: a.soni + b.soni };
+  return { malum: yaxlit2(a.malum + b.malum), nomalum: a.nomalum + b.nomalum, soni: a.soni + b.soni };
 }
 
 export type ReestrFiltr = { bosqich: F2Bosqich | 'hammasi' | 'f2siz'; matn: string; faqatMuammo: boolean };

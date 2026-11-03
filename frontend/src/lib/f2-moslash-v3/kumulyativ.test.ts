@@ -84,4 +84,18 @@ describe('kumulyativ varaq rejimi', () => {
     expect(reja.storno[0].hajm).toBeCloseTo(-3.5, 6);
     expect(reja.nazorat!.mosStornoBilan).toBe(true);
   });
-});
+
+  it('resurs summasi noma‘lum — ayirilgan pul null (0 emas), storno va nazorat hisoblanmaydi', () => {
+    const d = daraxt();
+    const a = d[0].bolalar[0];
+    a.bolalar[1] = { ...a.bolalar[1], summa: null }; // A2 summasi noma'lum
+    const reja = kumulyativReja({
+      ind: f2Indeks(d), ij: BOG, oldingi: new Map([[101, 3]]), band: new Map(), narx: () => null,
+      jami: { pryamye: 1800, vsego: 2160, ranee: 660 },
+    });
+    expect(reja.qatorlar.get('A')).toMatchObject({ eski: 10, yangi: 7, oldin: 3, pul: null });
+    expect(reja.ayirilganPul).toBeNull();
+    expect(reja.qoldiqPul).toBeNull();
+    expect(reja.storno).toEqual([]);
+    expect(reja.nazorat).toBeNull();
+  });});

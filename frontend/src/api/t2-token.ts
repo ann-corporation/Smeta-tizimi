@@ -9,6 +9,7 @@
  *   token       = ceil(yakuniy_som / token_som)
  * Server (t2_token_hisobla_v2) yakuniy; bu yerdagi `narxHisob` — oldindan ko'rsatish uchun AYNAN o'sha formula.
  */
+import { yaxlit2 } from '../lib/hisob-yadro';
 import { vaqtliOqish } from './vaqtli-fetch';
 import { yangiOperationId, yozAmali, type AktNatija } from './supabase';
 
@@ -47,7 +48,7 @@ export async function tokenHolatOl(kompaniyaId: number): Promise<{ ok: true; nat
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : 'Tarmoq xatosi' }; }
 }
 
-const yaxlit2 = (x: number) => Math.round(x * 100) / 100;
+
 
 /** Narx hisobi — server `t2_token_hisobla_v2` bilan AYNAN bir xil formula (oldindan ko'rsatish uchun). */
 export function narxHisob(n: TokenNarx | undefined, birlikSoni: number, s: Pick<TokenSozlama, 'token_som' | 'foyda_foiz'> | undefined): NarxTafsilot | null {
