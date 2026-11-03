@@ -1,5 +1,5 @@
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual';
 import { Ban, CheckCircle2, ChevronDown, ChevronRight, Cpu, MinusCircle, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Repeat2, RotateCcw, Save, Search, Trash2, X } from 'lucide-react';
 import { chiqarilganmi, chiqarishRuxsat, MEHNAT_ZAMENA_YOQ, mehnatResursmi } from '../../lib/resurs-amal';
