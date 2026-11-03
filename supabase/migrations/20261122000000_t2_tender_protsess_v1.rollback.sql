@@ -16,6 +16,8 @@ drop function if exists public.t2_tender_royxat_v1(bigint,bigint,text,text,text,
 drop function if exists public.t2_tender_tafsilot_v2(bigint,bigint,bigint);
 drop function if exists public.t2_tender_yetkazuvchilar_v1(bigint,bigint);
 drop function if exists public.t2_tender_tahlil_v1(bigint,bigint,date,date);
+drop trigger if exists t2_birja_rfq_holat_mashina on public.t2_birja_rfq;
+drop function if exists public._t2_tender_holat_qoriqchi();
 drop trigger if exists t2_birja_rfq_qator_golib_v2 on public.t2_birja_rfq_qator;
 drop trigger if exists t2_tender_jurnal_ozgarmas on public.t2_tender_jurnal;
 drop function if exists public._t2_tender_golib_qoriqchi();
@@ -48,9 +50,5 @@ alter table public.t2_birja_rfq_qator
   drop column if exists lot_no, drop column if exists lot_nom, drop column if exists talab_sana, drop column if exists yetkazish_joyi, drop column if exists spets;
 alter table public.t2_birja_taklif
   drop column if exists tolov_sharti, drop column if exists amal_kun, drop column if exists kafolat_oy, drop column if exists raund;
--- v1 RPC lar service_role ga qaytariladi
-grant execute on function public.t2_tender_elon_v1(bigint,bigint,uuid,text,text,bigint[],bigint,timestamptz,jsonb,jsonb) to service_role;
-grant execute on function public.t2_tender_golib_v1(bigint,bigint,uuid,bigint,integer,bigint,bigint[],jsonb) to service_role;
-grant execute on function public.t2_tender_yop_v1(bigint,bigint,uuid,bigint,integer,boolean) to service_role;
-grant execute on function public.t2_tender_tafsilot_v1(bigint,bigint,bigint) to service_role;
+-- t2_tender_tafsilot_v1 ni asl ta'rifga qaytarish: 20261108420000_t2_tender_rpc_p2_v1.sql dagi funksiyani qayta ishga tushiring (grantlar o'zgarmagan).
 commit;

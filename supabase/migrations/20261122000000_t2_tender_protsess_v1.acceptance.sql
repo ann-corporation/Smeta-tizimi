@@ -149,13 +149,13 @@ begin
   -- 39 QQS bilan tejam (byudjet 50 000 000; g'olib 25 500 000 * 1.12 = 28 560 000)
   r := t2_tender_tahlil_v1(ux, x, null, null);
   rep := rep || (case when (r->'tenderlar'->0->>'golib_qqs_bilan')::numeric = 28560000 and (r->'tenderlar'->0->>'tejam_qqs_bilan')::numeric = 21440000 then 'OK   39 tahlil: tejam QQS bilan 21 440 000' else 'FAIL 39 ' || r::text end);
-  -- 40 v1 xavfli yo'llar yopilgan, v2 ochiq
-  rep := rep || (case when not has_function_privilege('service_role', 'public.t2_tender_golib_v1(bigint,bigint,uuid,bigint,integer,bigint,bigint[],jsonb)', 'execute')
-                       and not has_function_privilege('service_role', 'public.t2_tender_elon_v1(bigint,bigint,uuid,text,text,bigint[],bigint,timestamptz,jsonb,jsonb)', 'execute')
-                       and not has_function_privilege('service_role', 'public.t2_tender_tafsilot_v1(bigint,bigint,bigint)', 'execute')
+  -- 40 v1 RPC lar BUZILMAYDI (grant saqlangan), v2 faqat service_role
+  rep := rep || (case when has_function_privilege('service_role', 'public.t2_tender_golib_v1(bigint,bigint,uuid,bigint,integer,bigint,bigint[],jsonb)', 'execute')
+                       and has_function_privilege('service_role', 'public.t2_tender_elon_v1(bigint,bigint,uuid,text,text,bigint[],bigint,timestamptz,jsonb,jsonb)', 'execute')
+                       and has_function_privilege('service_role', 'public.t2_tender_tafsilot_v1(bigint,bigint,bigint)', 'execute')
                        and has_function_privilege('service_role', 'public.t2_tender_golib_v2(bigint,bigint,uuid,bigint,integer,jsonb,text,boolean,jsonb)', 'execute')
                        and not has_function_privilege('authenticated', 'public.t2_tender_golib_v2(bigint,bigint,uuid,bigint,integer,jsonb,text,boolean,jsonb)', 'execute')
-                  then 'OK   40 v1 yo''llar yopiq, v2 faqat service_role' else 'FAIL 40 grantlar' end);
+                  then 'OK   40 v1 RPC lar buzilmagan, v2 faqat service_role' else 'FAIL 40 grantlar' end);
   -- 41 shartnomaga bog'lash: begona shartnoma rad, o'zinikini qabul
   insert into t2_shartnoma (kompaniya_id, raqam) values (z, 'SH-Z') returning id into sz;
   r := t2_tender_otish_v1(uxp, x, gen_random_uuid(), rfq, v, 'shartnoma', null, sz);
@@ -220,6 +220,26 @@ begin
   rep := rep || (case when jsonb_array_length(r->'qatorlar') = 2 then 'OK   58 kuzatuvchi ro''yxatni ko''radi (2 tender)' else 'FAIL 58 ' || r::text end);
   r := t2_tender_yetkazuvchilar_v1(ux, x);
   rep := rep || (case when jsonb_array_length(r->'qatorlar') = 2 then 'OK   59 yetkazuvchilar ro''yxati (faol aloqa)' else 'FAIL 59 ' || r::text end);
+
+  -- 64-66 v1 yo'llari protsess_v2 tenderda muhr va holat mashinasini aylanib o'tolmaydi (v1 RPC o'zi ishlaydi)
+  r := t2_tender_saqla_v1(ux, x, gen_random_uuid(), null, null, 'material', 'taklif', array[y], null, now() + interval '2 days', '{"sarlavha":"Muhr tenderi"}'::jsonb,
+                          jsonb_build_array(jsonb_build_object('nom', 'Shag''al', 'birlik', 'm3', 'miqdor', 9)));
+  rfq3 := (r->>'id')::bigint;
+  select id into q3 from t2_birja_rfq_qator where rfq_id = rfq3;
+  select versiya into v3 from t2_birja_rfq where id = rfq3;
+  perform t2_tender_otish_v1(uxp, x, gen_random_uuid(), rfq3, v3, 'tasdiqlashda'); v3 := v3 + 1;
+  perform t2_tender_otish_v1(ux, x, gen_random_uuid(), rfq3, v3, 'elon');
+  perform t2_tender_taklif_v2(uy, y, gen_random_uuid(), rfq3, jsonb_build_array(jsonb_build_object('rfq_qator_id', q3, 'narx', 100)), null, null);
+  r := t2_tender_tafsilot_v1(ux, x, rfq3);
+  rep := rep || (case when (r->>'ok')::boolean and jsonb_array_length(r->'takliflar') = 0 then 'OK   64 v1 tafsilot muhrni ochmaydi (ochilguncha takliflar yo''q)' else 'FAIL 64 ' || r::text end);
+  select versiya into v3 from t2_birja_rfq where id = rfq3;
+  begin perform t2_tender_yop_v1(ux, x, gen_random_uuid(), rfq3, v3, false); rep := rep || 'FAIL 65 v1 yop holat mashinasini buzdi';
+  exception when others then rep := rep || (case when sqlstate = '42501' then 'OK   65 v1 yop elon -> yopildi sakrashi taqiqlandi' else 'FAIL 65 ' || sqlerrm end); end;
+  update t2_birja_rfq set muddat = now() - interval '1 minute' where id = rfq3;
+  select versiya into v3 from t2_birja_rfq where id = rfq3;
+  perform t2_tender_otish_v1(ux, x, gen_random_uuid(), rfq3, v3, 'baholash');
+  r := t2_tender_tafsilot_v1(ux, x, rfq3);
+  rep := rep || (case when jsonb_array_length(r->'takliflar') = 1 then 'OK   66 ochilgandan keyin v1 tafsilot takliflarni qaytaradi' else 'FAIL 66 ' || r::text end);
 
   -- 60-63 fayllar: faqat metadata (R2 hujjat havolasi); begona kompaniya hujjati rad; e'londan keyin tender fayli bog'lanmaydi
   insert into t2_document_registry (kompaniya_id) values (x) returning id into n;

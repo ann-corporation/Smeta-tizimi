@@ -17,9 +17,7 @@
 -- PUL: narxlar NDS siz (mavjud kelishuv); QQS foizi alohida (tender: sukut 12). Noma'lum = NULL (0 emas).
 -- FAYLLAR: tender hujjatlari va taklif fayllari (PDF/Excel/rasm) R2 da (mavjud hujjat-yukla -> t2_document_registry); bu yerda faqat
 --   havola (t2_primitiv_dalil: primitiv 'tender' / 'tender_taklif', hujjat_id). Fayl matni/ikkilik ma'lumot Supabase'ga YOZILMAYDI.
--- XAVFSIZLIK: v1 dagi t2_tender_elon_v1 (tasdiqsiz e'lon), t2_tender_golib_v1 (asossiz/muhrsiz g'olib), t2_tender_yop_v1 va
---   t2_tender_tafsilot_v1 (takliflarni muddatdan oldin ochadi) bu yerda service_role dan YIG'ILADI; ularning o'rniga v2/yangi RPC lar.
---   t2_buyurtma_yarat_v1(p_taklif_id) orqali aylanib o'tishga qarshi — t2_birja_rfq_qator triggeri (protsess_v2 tenderlarda).
+-- XAVFSIZLIK: v1 RPC lar BUZILMAYDI; protsess_v2 tenderlarda muhr va tasdiq triggerlar bilan himoyalangan (qarang pastda).
 -- ALDINDAN KERAK: 20261108400000, 20261108410000, 20261108420000 (va F1: t2_outbox_yoz, t2_baho; ruxsat: t2_permission_allowed_v2).
 
 do $$ begin
@@ -143,6 +141,16 @@ drop trigger if exists t2_birja_rfq_qator_golib_v2 on public.t2_birja_rfq_qator;
 create trigger t2_birja_rfq_qator_golib_v2 before update on public.t2_birja_rfq_qator
   for each row execute function public._t2_tender_golib_qoriqchi();
 
+create or replace function public._t2_tender_holat_qoriqchi() returns trigger
+language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  if old.protsess_v2 and new.holat is distinct from old.holat and not public._t2_tender_otish_ruxsat(old.holat, new.holat) then
+    raise exception 'TENDER_HOLAT_TAQIQ' using errcode = '42501';
+  end if;
+  return new;
+end $$;
+drop trigger if exists t2_birja_rfq_holat_mashina on public.t2_birja_rfq;
+
 -- ───────────────────────── 2. Yordamchilar ─────────────────────────
 create or replace function public._t2_tender_azo(p_actor_id bigint, p_kompaniya_id bigint, p_amal text) returns void
 language plpgsql stable security definer set search_path = public, pg_temp as $$
@@ -181,6 +189,9 @@ language sql immutable as $$
     ('golib_tanlandi','bekor'), ('shartnoma','bekor'), ('bajarilmoqda','bekor')
   )
 $$;
+
+create trigger t2_birja_rfq_holat_mashina before update of holat on public.t2_birja_rfq
+  for each row execute function public._t2_tender_holat_qoriqchi();
 
 -- Ko'rinish: egasi — har doim; boshqa tomon — mavjud qoida (_t2_tender_korinadi) VA (e'lon qilingan YOKI o'z taklifi bor).
 create or replace function public._t2_tender_korinadi_v2(p_rfq_id bigint, p_kompaniya_id bigint) returns boolean
@@ -846,16 +857,39 @@ begin
 end $$;
 
 -- ───────────────────────── 5. Ruxsatlar ─────────────────────────
--- v1 RPC larining xavfli yo'llari yopiladi (e'lon tasdiqsiz, g'olib asossiz/muhrsiz, yopish jurnalsiz, tafsilot muhrni ochadi).
-revoke execute on function public.t2_tender_elon_v1(bigint,bigint,uuid,text,text,bigint[],bigint,timestamptz,jsonb,jsonb) from service_role;
-revoke execute on function public.t2_tender_golib_v1(bigint,bigint,uuid,bigint,integer,bigint,bigint[],jsonb) from service_role;
-revoke execute on function public.t2_tender_yop_v1(bigint,bigint,uuid,bigint,integer,boolean) from service_role;
-revoke execute on function public.t2_tender_tafsilot_v1(bigint,bigint,bigint) from service_role;
+-- v1 RPC lar BUZILMAYDI (L0 kelishuvi): grantlar o'zgarmaydi. Muhr/tasdiq aylanib o'tilmasligi uchun:
+--   * t2_tender_golib_v1 -> t2_birja_rfq_qator triggeri (protsess_v2 tenderda faqat t2_tender_golib_v2 yo'li);
+--   * t2_tender_yop_v1 va boshqa holat sakrashlari -> t2_birja_rfq triggeri (protsess_v2 tenderda faqat ruxsat etilgan o'tishlar);
+--   * t2_tender_tafsilot_v1 -> quyida qayta ta'riflanadi: protsess_v2 tenderda xaridorga takliflar OCHILGUNCHA qaytmaydi (boshqa hammasi aynan o'sha).
+-- Eslatma: t2_tender_elon_v1 eski (tasdiqsiz) oqim sifatida qoladi — yangi oqim t2_tender_saqla_v1 -> t2_tender_otish_v1 (shlyuzga faqat yangisi ulangan).
+create or replace function public.t2_tender_tafsilot_v1(p_actor_id bigint, p_kompaniya_id bigint, p_rfq_id bigint)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare v_rfq public.t2_birja_rfq; v_egasi boolean;
+begin
+  perform public._t2_yet_azo(p_actor_id, p_kompaniya_id, 'korish');
+  select * into v_rfq from public.t2_birja_rfq where id = p_rfq_id;
+  if not found or not public._t2_tender_korinadi(p_rfq_id, p_kompaniya_id) then return jsonb_build_object('ok', false, 'code', 'TOPILMADI'); end if;
+  v_egasi := v_rfq.kompaniya_id = p_kompaniya_id;
+  return jsonb_build_object('ok', true, 'egasi', v_egasi,
+    'rfq', jsonb_build_object('id', v_rfq.id, 'nom', v_rfq.nom, 'tur', v_rfq.tur, 'holat', v_rfq.holat, 'doira', v_rfq.doira, 'muddat', v_rfq.muddat,
+             'izoh', v_rfq.izoh, 'shart', v_rfq.shart, 'versiya', v_rfq.versiya, 'obyekt_id', case when v_egasi then v_rfq.obyekt_id end),
+    'qatorlar', coalesce((select jsonb_agg(jsonb_build_object('id', q.id, 'qator_no', q.qator_no, 'nom', q.nom, 'birlik', q.birlik, 'miqdor', q.miqdor, 'resurs_kodi', q.resurs_kodi,
+             'zayavka_id', case when v_egasi then q.zayavka_id end, 'golib_taklif_qator_id', case when v_egasi then q.golib_taklif_qator_id end) order by q.qator_no)
+             from public.t2_birja_rfq_qator q where q.rfq_id = v_rfq.id), '[]'::jsonb),
+    'takliflar', coalesce((select jsonb_agg(jsonb_build_object('id', t.id, 'yetkazuvchi_kompaniya_id', t.kompaniya_id,
+             'yetkazuvchi_nom', case when v_egasi then (select k.nom from public.t2_kompaniya k where k.id = t.kompaniya_id) end,
+             'holat', t.holat, 'versiya', t.versiya, 'narx', t.narx, 'yetkazish_narx', t.yetkazish_narx, 'qqs_foiz', t.qqs_foiz, 'izoh', t.izoh, 'yaratildi', t.yaratilgan_vaqt,
+             'qatorlar', coalesce((select jsonb_agg(jsonb_build_object('rfq_qator_id', tq.rfq_qator_id, 'taklif_qator_id', tq.id, 'narx', tq.narx, 'muddat_kun', tq.muddat_kun,
+                          'mavjud_miqdor', tq.mavjud_miqdor, 'izoh', tq.izoh) order by tq.rfq_qator_id) from public.t2_birja_taklif_qator tq where tq.taklif_id = t.id), '[]'::jsonb)) order by t.id)
+             from public.t2_birja_taklif t
+            where t.rfq_id = v_rfq.id and t.holat in ('berildi', 'faol', 'golib', 'yutqazdi') and (v_egasi or t.kompaniya_id = p_kompaniya_id)
+              and (not v_rfq.protsess_v2 or not v_egasi or (v_rfq.ochilgan_vaqt is not null and v_rfq.holat in ('baholash', 'golib_tanlandi', 'shartnoma', 'bajarilmoqda', 'yopildi', 'bekor')))), '[]'::jsonb));
+end $$;
 
 revoke all on function
   public._t2_tender_azo(bigint,bigint,text), public._t2_tender_jurnal_yoz(bigint,bigint,text,bigint,bigint,jsonb), public._t2_tender_otish_ruxsat(text,text),
   public._t2_tender_korinadi_v2(bigint,bigint), public._t2_tender_son(text), public._t2_tender_meyor_xato(text,jsonb),
-  public._t2_tender_jurnal_qoriqchi(), public._t2_tender_golib_qoriqchi()
+  public._t2_tender_jurnal_qoriqchi(), public._t2_tender_golib_qoriqchi(), public._t2_tender_holat_qoriqchi()
   from public, anon, authenticated;
 revoke all on function
   public.t2_tender_saqla_v1(bigint,bigint,uuid,bigint,integer,text,text,bigint[],bigint,timestamptz,jsonb,jsonb),
