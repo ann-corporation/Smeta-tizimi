@@ -30,6 +30,7 @@ const TestObyektlar = lazy(() => import('./test02/TestObyektlar'));
 const WrapperPortfel = lazy(() => import('./test02/WrapperPortfel'));
 const WrapperMoliya = lazy(() => import('./test02/WrapperMoliya'));
 const WrapperLogistika = lazy(() => import('./test02/WrapperLogistika'));
+const TransportSahifa = lazy(() => import('./transport/TransportSahifa'));
 const WrapperCRM = lazy(() => import('./test02/WrapperCRM'));
 const TestSmetaBirlashgan = lazy(() => import('./test02/TestSmetaBirlashgan'));
 const TestNarxlar   = lazy(() => import('./test02/TestNarxlar'));
@@ -176,6 +177,7 @@ export default function App() {
             <Route path="storage" element={<TestSaqlash />} />
             <Route path="mindmap" element={<TestXarita />} />
             <Route path="documents" element={<Suspense fallback={<SahifaYuklanmoqda />}><DocumentsPage /></Suspense>} />
+            <Route path="transport" element={<Suspense fallback={<SahifaYuklanmoqda />}><TransportSahifa /></Suspense>} />
             <Route path="hujjat-nazorat" element={<Suspense fallback={<SahifaYuklanmoqda />}><HujjatNazoratPage /></Suspense>} />
             <Route path="participants" element={<Suspense fallback={<SahifaYuklanmoqda />}><ParticipantsPage /></Suspense>} />
             <Route path="zakazchik" element={<Suspense fallback={<SahifaYuklanmoqda />}><ZakazchikKabinet /></Suspense>} />

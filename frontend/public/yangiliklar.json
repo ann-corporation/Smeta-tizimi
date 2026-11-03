@@ -2,6 +2,18 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 77,
+      "sana": "2026-11-03",
+      "sarlavha": "Transport va logistika moduli",
+      "bandlar": [
+        "Yangi «Transport» bo'limi: mashina va texnika (me'yor L/100 km va L/moto-soat, odometr, ijara/amortizatsiya), haydovchilar va hujjat muddatlari (sug'urta, texnik ko'rik, guvohnoma) — muddat tugashidan 30 kun oldin signal.",
+        "Reyslar (putevoy list): reja → yo'lda → yetkazildi → yopildi; bekatlar xaritada, masofa va vaqt (yo'l bo'yicha yoki taxminiy), Google/Yandex xaritada ochish, haydovchi uchun telefon ko'rinishi.",
+        "Tannarx: yoqilg'i (me'yor yoki haqiqiy × sanadagi narx), haydovchi ish haqi, amortizatsiya/ijara, bekor turish, yo'l haqi — QQS siz; obyektlarga og'irlik bo'yicha taqsimlanadi va mavjud xarajat yozuviga o'tkaziladi.",
+        "Tashqi mijozga narx: tarif (km, tonna-km, soat, minimal summa, maqsadli marja); asosiy summa QQS bilan. Kiritilmagan qiymat «kiritilmagan» deb ko'rinadi, 0 emas.",
+        "Rentabellik: reys, mashina, haydovchi, marshrut bo'yicha foyda, bo'sh yurish, tonna-km tannarxi, yoqilg'i og'ishi, bandlik; Excelga yuklash."
+      ]
+    },
+    {
       "id": 76,
       "sana": "2026-11-03",
       "sarlavha": "Rahbar paneli — boshqaruv markazi",

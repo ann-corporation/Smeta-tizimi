@@ -159,6 +159,10 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
       { nom: 'Ta‘minot va sklad', ikonka: 'Box', sahifalar: [
         { yol: '/admin/logistika', nom: 'Ta‘minot va sklad', ruxsat: [RAHBARIYAT, ...ICHKI_ISH, 'warehouse.read', 'procurement.read', 'logistics.read', 'logistics.trip'], modul: 'module.erp' },
       ] },
+      /* TRANSPORT v1 (2026-11-03): park, reyslar, xarita, tannarx, narxlash, rentabellik. Ombor (/admin/logistika) dan alohida. */
+      { nom: 'Transport', ikonka: 'Truck', sahifalar: [
+        { yol: '/admin/transport', nom: 'Transport va logistika', ruxsat: [RAHBARIYAT, 'logistics.read', 'logistics.dispatch', 'logistics.trip', 'machinery.read'], modul: 'module.erp' },
+      ] },
       { nom: 'Zayavkalar', ikonka: 'ClipboardList', sahifalar: [
         { yol: '/admin/zayavka', nom: 'Zayavkalar', ruxsat: [RAHBARIYAT, ...ICHKI_ISH, 'procurement.read', 'warehouse.write'], modul: 'module.erp' },
       ] },

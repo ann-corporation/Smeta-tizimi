@@ -1,0 +1,1130 @@
+{
+ "Yuk mashinasi": {
+  "ru": "Грузовик",
+  "en": "Truck"
+ },
+ "Beton mikser": {
+  "ru": "Бетономешалка",
+  "en": "Concrete mixer"
+ },
+ "Yuklagich": {
+  "ru": "Погрузчик",
+  "en": "Loader"
+ },
+ "Avtobus": {
+  "ru": "Автобус",
+  "en": "Bus"
+ },
+ "Yengil mashina": {
+  "ru": "Легковой автомобиль",
+  "en": "Car"
+ },
+ "Dizel": {
+  "ru": "Дизель",
+  "en": "Diesel"
+ },
+ "Benzin": {
+  "ru": "Бензин",
+  "en": "Petrol"
+ },
+ "Metan": {
+  "ru": "Метан",
+  "en": "Methane"
+ },
+ "Propan": {
+  "ru": "Пропан",
+  "en": "Propane"
+ },
+ "Elektr": {
+  "ru": "Электро",
+  "en": "Electric"
+ },
+ "Texnik ko‘rik": {
+  "ru": "Техосмотр",
+  "en": "Technical inspection"
+ },
+ "Haydovchilik guvohnomasi": {
+  "ru": "Водительское удостоверение",
+  "en": "Driving licence"
+ },
+ "Ruxsatnoma": {
+  "ru": "Разрешение",
+  "en": "Permit"
+ },
+ "Egalik": {
+  "ru": "Принадлежность",
+  "en": "Ownership"
+ },
+ "O‘zimizniki": {
+  "ru": "Собственная",
+  "en": "Own"
+ },
+ "Yuk sig‘imi, t": {
+  "ru": "Грузоподъёмность, т",
+  "en": "Load capacity, t"
+ },
+ "Hajm, m³": {
+  "ru": "Объём, м³",
+  "en": "Volume, m³"
+ },
+ "Yoqilg‘i": {
+  "ru": "Топливо",
+  "en": "Fuel"
+ },
+ "Me‘yor, L/100 km": {
+  "ru": "Норма, л/100 км",
+  "en": "Norm, L/100 km"
+ },
+ "Me‘yor, L/moto-soat": {
+  "ru": "Норма, л/моточас",
+  "en": "Norm, L/engine hour"
+ },
+ "Odometr, km": {
+  "ru": "Одометр, км",
+  "en": "Odometer, km"
+ },
+ "Moto-soat": {
+  "ru": "Моточасы",
+  "en": "Engine hours"
+ },
+ "Amortizatsiya, so‘m/km (QQS siz)": {
+  "ru": "Амортизация, сум/км (без НДС)",
+  "en": "Depreciation, UZS/km (excl. VAT)"
+ },
+ "Amortizatsiya, so‘m/soat": {
+  "ru": "Амортизация, сум/час",
+  "en": "Depreciation, UZS/hour"
+ },
+ "Ijara, so‘m/km": {
+  "ru": "Аренда, сум/км",
+  "en": "Rental, UZS/km"
+ },
+ "Ijara, so‘m/soat": {
+  "ru": "Аренда, сум/час",
+  "en": "Rental, UZS/hour"
+ },
+ "Ijara, so‘m/kun": {
+  "ru": "Аренда, сум/день",
+  "en": "Rental, UZS/day"
+ },
+ "Bekor turish, so‘m/soat": {
+  "ru": "Простой, сум/час",
+  "en": "Idle time, UZS/hour"
+ },
+ "Asosiy haydovchi": {
+  "ru": "Основной водитель",
+  "en": "Main driver"
+ },
+ "Ta‘mirda": {
+  "ru": "В ремонте",
+  "en": "Under repair"
+ },
+ "Nofaol": {
+  "ru": "Неактивен",
+  "en": "Inactive"
+ },
+ "Ish haqi turi": {
+  "ru": "Тип оплаты труда",
+  "en": "Pay type"
+ },
+ "Reys uchun": {
+  "ru": "За рейс",
+  "en": "Per trip"
+ },
+ "Km uchun": {
+  "ru": "За км",
+  "en": "Per km"
+ },
+ "Soat uchun": {
+  "ru": "За час",
+  "en": "Per hour"
+ },
+ "Oylik (26 kunga bo‘linadi)": {
+  "ru": "Оклад (делится на 26 дней)",
+  "en": "Monthly salary (divided by 26 days)"
+ },
+ "Stavka, so‘m": {
+  "ru": "Ставка, сум",
+  "en": "Rate, UZS"
+ },
+ "Ijtimoiy soliq, %": {
+  "ru": "Социальный налог, %",
+  "en": "Social tax, %"
+ },
+ "Tizim foydalanuvchi ID (o‘z reyslarini ko‘rishi uchun)": {
+  "ru": "ID пользователя системы (чтобы видеть свои рейсы)",
+  "en": "System user ID (to see own trips)"
+ },
+ "Kimniki": {
+  "ru": "Чьё",
+  "en": "Belongs to"
+ },
+ "Mashina": {
+  "ru": "Машина",
+  "en": "Vehicle"
+ },
+ "Egasi": {
+  "ru": "Владелец",
+  "en": "Owner"
+ },
+ "Hujjat turi": {
+  "ru": "Тип документа",
+  "en": "Document type"
+ },
+ "Raqami": {
+  "ru": "Номер",
+  "en": "Number"
+ },
+ "Boshlanish sanasi": {
+  "ru": "Дата начала",
+  "en": "Start date"
+ },
+ "Amal qilish muddati": {
+  "ru": "Срок действия",
+  "en": "Valid until"
+ },
+ "Mashina va texnika": {
+  "ru": "Машины и техника",
+  "en": "Vehicles and machinery"
+ },
+ "Mashina qo‘shish": {
+  "ru": "Добавить машину",
+  "en": "Add vehicle"
+ },
+ "Yuk, t": {
+  "ru": "Груз, т",
+  "en": "Load, t"
+ },
+ "Me‘yor L/100 km": {
+  "ru": "Норма л/100 км",
+  "en": "Norm L/100 km"
+ },
+ "Odometr": {
+  "ru": "Одометр",
+  "en": "Odometer"
+ },
+ "Mashinalar kiritilmagan": {
+  "ru": "Машины не внесены",
+  "en": "No vehicles entered"
+ },
+ "Reys rejalashtirish uchun avval mashina qo‘shing.": {
+  "ru": "Чтобы планировать рейсы, сначала добавьте машину.",
+  "en": "Add a vehicle first to plan trips."
+ },
+ "Haydovchi va operatorlar": {
+  "ru": "Водители и операторы",
+  "en": "Drivers and operators"
+ },
+ "Haydovchi qo‘shish": {
+  "ru": "Добавить водителя",
+  "en": "Add driver"
+ },
+ "Ish haqi": {
+  "ru": "Оплата труда",
+  "en": "Pay"
+ },
+ "Haydovchilar kiritilmagan": {
+  "ru": "Водители не внесены",
+  "en": "No drivers entered"
+ },
+ "Oylik": {
+  "ru": "Оклад",
+  "en": "Monthly salary"
+ },
+ "Hujjatlar va muddatlar": {
+  "ru": "Документы и сроки",
+  "en": "Documents and deadlines"
+ },
+ "Hujjat qo‘shish": {
+  "ru": "Добавить документ",
+  "en": "Add document"
+ },
+ "Qolgan kun": {
+  "ru": "Осталось дней",
+  "en": "Days left"
+ },
+ "Hujjatlar kiritilmagan": {
+  "ru": "Документы не внесены",
+  "en": "No documents entered"
+ },
+ "Sug‘urta, texnik ko‘rik, guvohnoma muddati tugashidan 30 kun oldin signal beradi.": {
+  "ru": "Страховка, техосмотр и права дают сигнал за 30 дней до окончания срока.",
+  "en": "Insurance, inspection and licence signal 30 days before expiry."
+ },
+ "{n} kun o‘tgan": {
+  "ru": "Просрочено на {n} дн.",
+  "en": "{n} days overdue"
+ },
+ "Mashina / texnika": {
+  "ru": "Машина / техника",
+  "en": "Vehicle / machinery"
+ },
+ "Reja": {
+  "ru": "План",
+  "en": "Planned"
+ },
+ "Yo‘lda": {
+  "ru": "В пути",
+  "en": "On the road"
+ },
+ "Odometr (boshlanish), km": {
+  "ru": "Одометр (старт), км",
+  "en": "Odometer (start), km"
+ },
+ "Bo‘sh qoldirilsa mashina odometri olinadi": {
+  "ru": "Если пусто — берётся одометр машины",
+  "en": "If empty, the vehicle odometer is used"
+ },
+ "Moto-soat (boshlanish)": {
+  "ru": "Моточасы (старт)",
+  "en": "Engine hours (start)"
+ },
+ "Yetib keldi": {
+  "ru": "Прибыл",
+  "en": "Arrived"
+ },
+ "Bajarildi (yuk topshirildi)": {
+  "ru": "Выполнено (груз сдан)",
+  "en": "Done (cargo handed over)"
+ },
+ "O‘tkazib yuborildi": {
+  "ru": "Пропущено",
+  "en": "Skipped"
+ },
+ "Qabul qiluvchi (F.I.Sh.)": {
+  "ru": "Получатель (Ф.И.О.)",
+  "en": "Receiver (full name)"
+ },
+ "Tasdiq turi": {
+  "ru": "Тип подтверждения",
+  "en": "Confirmation type"
+ },
+ "Imzo": {
+  "ru": "Подпись",
+  "en": "Signature"
+ },
+ "Foto": {
+  "ru": "Фото",
+  "en": "Photo"
+ },
+ "Tasdiq havolasi (keyinroq foto/imzo yuklash)": {
+  "ru": "Ссылка на подтверждение (позже загрузка фото/подписи)",
+  "en": "Confirmation link (photo/signature upload later)"
+ },
+ "Odometr (tugash), km": {
+  "ru": "Одометр (финиш), км",
+  "en": "Odometer (finish), km"
+ },
+ "Moto-soat (tugash)": {
+  "ru": "Моточасы (финиш)",
+  "en": "Engine hours (finish)"
+ },
+ "Bo‘sh yurish, km": {
+  "ru": "Порожний пробег, км",
+  "en": "Empty run, km"
+ },
+ "Bekor turish, daqiqa": {
+  "ru": "Простой, мин",
+  "en": "Idle time, min"
+ },
+ "Haqiqiy yoqilg‘i sarfi, L": {
+  "ru": "Фактический расход топлива, л",
+  "en": "Actual fuel consumption, L"
+ },
+ "Quyilgan yoqilg‘i, L": {
+  "ru": "Заправлено топлива, л",
+  "en": "Fuel added, L"
+ },
+ "Yo‘l haqi, so‘m": {
+  "ru": "Дорожные сборы, сум",
+  "en": "Tolls, UZS"
+ },
+ "Boshqa xarajat, so‘m": {
+  "ru": "Прочие расходы, сум",
+  "en": "Other expenses, UZS"
+ },
+ "Boshqa xarajat izohi": {
+  "ru": "Примечание к прочим расходам",
+  "en": "Other expenses note"
+ },
+ "Haqiqiy yoqilg‘i narxi, so‘m/L": {
+  "ru": "Фактическая цена топлива, сум/л",
+  "en": "Actual fuel price, UZS/L"
+ },
+ "Mijozga narx, QQS siz": {
+  "ru": "Цена для клиента, без НДС",
+  "en": "Client price, excl. VAT"
+ },
+ "Ichki qiymat, QQS siz": {
+  "ru": "Внутренняя стоимость, без НДС",
+  "en": "Internal value, excl. VAT"
+ },
+ "Tannarx to‘liq bo‘lmasa ham o‘tkazish": {
+  "ru": "Передать, даже если себестоимость неполная",
+  "en": "Post even if the cost is incomplete"
+ },
+ "Faqat ma‘lum moddalar yig‘indisi o‘tadi (QQS siz, МАШ).": {
+  "ru": "Передаётся только сумма известных статей (без НДС, МАШ).",
+  "en": "Only the sum of known items is posted (excl. VAT, МАШ)."
+ },
+ "Xarajat obyektlarga o‘tkazildi": {
+  "ru": "Расход передан на объекты",
+  "en": "Cost posted to objects"
+ },
+ "Reys bekor qilindi": {
+  "ru": "Рейс отменён",
+  "en": "Trip cancelled"
+ },
+ "Reys yopildi, tannarx muhrlandi": {
+  "ru": "Рейс закрыт, себестоимость зафиксирована",
+  "en": "Trip closed, cost sealed"
+ },
+ "haydovchi biriktirilmagan": {
+  "ru": "водитель не назначен",
+  "en": "no driver assigned"
+ },
+ "km": {
+  "ru": "км",
+  "en": "km"
+ },
+ "km kiritilmagan": {
+  "ru": "км не указаны",
+  "en": "km not entered"
+ },
+ "Doska": {
+  "ru": "Доска",
+  "en": "Board"
+ },
+ "Yangi reys": {
+  "ru": "Новый рейс",
+  "en": "New trip"
+ },
+ "Reyslarni o‘qib bo‘lmadi.": {
+  "ru": "Не удалось прочитать рейсы.",
+  "en": "Could not load trips."
+ },
+ "Reys": {
+  "ru": "Рейс",
+  "en": "Trip"
+ },
+ "Marshrut": {
+  "ru": "Маршрут",
+  "en": "Route"
+ },
+ "Km": {
+  "ru": "Км",
+  "en": "Km"
+ },
+ "Tannarx (QQS siz)": {
+  "ru": "Себестоимость (без НДС)",
+  "en": "Cost (excl. VAT)"
+ },
+ "Narx (QQS bilan)": {
+  "ru": "Цена (с НДС)",
+  "en": "Price (incl. VAT)"
+ },
+ "Tanlangan davrda reys yo‘q": {
+  "ru": "За выбранный период рейсов нет",
+  "en": "No trips in the selected period"
+ },
+ "Obyektlar — tizimdagi koordinatalar bo‘yicha. Reys chiziqlari bekatlar orasidagi to‘g‘ri chiziq (yo‘l bo‘yicha marshrut reys kartasida).": {
+  "ru": "Объекты — по координатам из системы. Линии рейсов — прямые между остановками (маршрут по дорогам — в карточке рейса).",
+  "en": "Objects use coordinates from the system. Trip lines are straight lines between stops (road route is in the trip card)."
+ },
+ "Reysni boshlash": {
+  "ru": "Начать рейс",
+  "en": "Start trip"
+ },
+ "Yopish va tannarxni muhrlash": {
+  "ru": "Закрыть и зафиксировать себестоимость",
+  "en": "Close and seal cost"
+ },
+ "Obyekt xarajatiga o‘tkazish": {
+  "ru": "Передать на расходы объекта",
+  "en": "Post to object expenses"
+ },
+ "Bekat holati": {
+  "ru": "Статус остановки",
+  "en": "Stop status"
+ },
+ "Xarajatga o‘tkazish": {
+  "ru": "Передать в расходы",
+  "en": "Post to expenses"
+ },
+ "Reysni yopish": {
+  "ru": "Закрыть рейс",
+  "en": "Close trip"
+ },
+ "Reysni bekor qilish": {
+  "ru": "Отменить рейс",
+  "en": "Cancel trip"
+ },
+ "Bekat": {
+  "ru": "Остановка",
+  "en": "Stop"
+ },
+ "Reysni yakunlash": {
+  "ru": "Завершить рейс",
+  "en": "Finish trip"
+ },
+ "O‘tkazildi": {
+  "ru": "Пропущено",
+  "en": "Skipped"
+ },
+ "Tashqi": {
+  "ru": "Внешний",
+  "en": "External"
+ },
+ "Ichki": {
+  "ru": "Внутренний",
+  "en": "Internal"
+ },
+ "Bekor sababi": {
+  "ru": "Причина отмены",
+  "en": "Cancellation reason"
+ },
+ "yuklash": {
+  "ru": "погрузка",
+  "en": "loading"
+ },
+ "tushirish": {
+  "ru": "разгрузка",
+  "en": "unloading"
+ },
+ "oraliq": {
+  "ru": "промежуточная",
+  "en": "intermediate"
+ },
+ "Qabul qildi": {
+  "ru": "Принял",
+  "en": "Received by"
+ },
+ "imzo": {
+  "ru": "подпись",
+  "en": "signature"
+ },
+ "foto": {
+  "ru": "фото",
+  "en": "photo"
+ },
+ "Yuk": {
+  "ru": "Груз",
+  "en": "Cargo"
+ },
+ "t": {
+  "ru": "т",
+  "en": "t"
+ },
+ "Tannarx (muhrlangan, QQS siz)": {
+  "ru": "Себестоимость (зафиксирована, без НДС)",
+  "en": "Cost (sealed, excl. VAT)"
+ },
+ "Tannarx (hisob-kitob, QQS siz)": {
+  "ru": "Себестоимость (расчёт, без НДС)",
+  "en": "Cost (estimate, excl. VAT)"
+ },
+ "Masofa": {
+  "ru": "Расстояние",
+  "en": "Distance"
+ },
+ "reja": {
+  "ru": "план",
+  "en": "plan"
+ },
+ "me‘yordan": {
+  "ru": "от нормы",
+  "en": "vs norm"
+ },
+ "Amortizatsiya / ijara": {
+  "ru": "Амортизация / аренда",
+  "en": "Depreciation / rental"
+ },
+ "Bekor turish": {
+  "ru": "Простой",
+  "en": "Idle time"
+ },
+ "Yo‘l haqi / boshqa": {
+  "ru": "Дорожные сборы / прочее",
+  "en": "Tolls / other"
+ },
+ "Yetishmaydi": {
+  "ru": "Не хватает",
+  "en": "Missing"
+ },
+ "Mijozga narx": {
+  "ru": "Цена для клиента",
+  "en": "Client price"
+ },
+ "Ichki qiymat": {
+  "ru": "Внутренняя стоимость",
+  "en": "Internal value"
+ },
+ "Foyda (QQS siz)": {
+  "ru": "Прибыль (без НДС)",
+  "en": "Profit (excl. VAT)"
+ },
+ "tannarx to‘liq emas": {
+  "ru": "себестоимость неполная",
+  "en": "cost incomplete"
+ },
+ "Obyektlarga ulush": {
+  "ru": "Доли по объектам",
+  "en": "Shares by object"
+ },
+ "og‘irlik": {
+  "ru": "по весу",
+  "en": "by weight"
+ },
+ "xarajatga o‘tgan": {
+  "ru": "передано в расходы",
+  "en": "posted to expenses"
+ },
+ "«{nom}» majburiy": {
+  "ru": "«{nom}» обязательно",
+  "en": "«{nom}» is required"
+ },
+ "«{nom}» raqam bo‘lishi kerak": {
+  "ru": "«{nom}» должно быть числом",
+  "en": "«{nom}» must be a number"
+ },
+ "«{nom}» manfiy bo‘lmasligi kerak": {
+  "ru": "«{nom}» не может быть отрицательным",
+  "en": "«{nom}» cannot be negative"
+ },
+ "Transport xaritasi": {
+  "ru": "Карта транспорта",
+  "en": "Transport map"
+ },
+ "Marshrut uchun barcha bekatlarda koordinata bo‘lishi kerak (obyekt tanlang yoki xaritadan belgilang).": {
+  "ru": "Для маршрута у всех остановок должны быть координаты (выберите объект или отметьте на карте).",
+  "en": "All stops need coordinates for a route (pick an object or mark on the map)."
+ },
+ "Nuqta {n}": {
+  "ru": "Точка {n}",
+  "en": "Point {n}"
+ },
+ "Mashinani tanlang": {
+  "ru": "Выберите машину",
+  "en": "Select a vehicle"
+ },
+ "Kamida 2 ta bekat va har birining nomi bo‘lishi kerak": {
+  "ru": "Нужно минимум 2 остановки, у каждой — название",
+  "en": "At least 2 stops are required, each with a name"
+ },
+ "Reys saqlandi": {
+  "ru": "Рейс сохранён",
+  "en": "Trip saved"
+ },
+ "Reys {raqam}": {
+  "ru": "Рейс {raqam}",
+  "en": "Trip {raqam}"
+ },
+ "Reysni saqlash": {
+  "ru": "Сохранить рейс",
+  "en": "Save trip"
+ },
+ "Ichki (o‘z obyektlarimiz)": {
+  "ru": "Внутренний (свои объекты)",
+  "en": "Internal (own objects)"
+ },
+ "Tashqi mijoz": {
+  "ru": "Внешний клиент",
+  "en": "External client"
+ },
+ "Marshrut bekatlari": {
+  "ru": "Остановки маршрута",
+  "en": "Route stops"
+ },
+ "Bekat qo‘shish": {
+  "ru": "Добавить остановку",
+  "en": "Add stop"
+ },
+ "Bekat turi": {
+  "ru": "Тип остановки",
+  "en": "Stop type"
+ },
+ "Tushirish": {
+  "ru": "Разгрузка",
+  "en": "Unloading"
+ },
+ "Oraliq": {
+  "ru": "Промежуточная",
+  "en": "Intermediate"
+ },
+ "koordinatasiz": {
+  "ru": "без координат",
+  "en": "no coordinates"
+ },
+ "Nomi (ombor, zavod…)": {
+  "ru": "Название (склад, завод…)",
+  "en": "Name (warehouse, plant…)"
+ },
+ "Bekatni o‘chirish": {
+  "ru": "Удалить остановку",
+  "en": "Delete stop"
+ },
+ "Koordinatasiz bekat uchun xaritani bosing: nuqta birinchi bo‘sh bekatga qo‘yiladi.": {
+  "ru": "Для остановки без координат нажмите на карту: точка встанет на первую свободную остановку.",
+  "en": "For a stop without coordinates click the map: the point goes to the first empty stop."
+ },
+ "Masofa va vaqtni hisoblash": {
+  "ru": "Рассчитать расстояние и время",
+  "en": "Calculate distance and time"
+ },
+ "daq": {
+  "ru": "мин",
+  "en": "min"
+ },
+ "yo‘l bo‘yicha (OSRM)": {
+  "ru": "по дорогам (OSRM)",
+  "en": "by road (OSRM)"
+ },
+ "taxminiy: to‘g‘ri chiziq × 1,3": {
+  "ru": "приблизительно: прямая × 1,3",
+  "en": "approximate: straight line × 1.3"
+ },
+ "Yuk qo‘shish": {
+  "ru": "Добавить груз",
+  "en": "Add cargo"
+ },
+ "Material / yuk nomi": {
+  "ru": "Материал / название груза",
+  "en": "Material / cargo name"
+ },
+ "miqdor": {
+  "ru": "кол-во",
+  "en": "qty"
+ },
+ "Og‘irlik, t": {
+  "ru": "Вес, т",
+  "en": "Weight, t"
+ },
+ "t (og‘irlik)": {
+  "ru": "т (вес)",
+  "en": "t (weight)"
+ },
+ "Qaysi obyektga": {
+  "ru": "На какой объект",
+  "en": "To which object"
+ },
+ "Obyekt (xarajat ulushi uchun)": {
+  "ru": "Объект (для доли расходов)",
+  "en": "Object (for cost share)"
+ },
+ "Tushirish bekati": {
+  "ru": "Остановка разгрузки",
+  "en": "Unloading stop"
+ },
+ "bekat №": {
+  "ru": "№ остановки",
+  "en": "Stop no."
+ },
+ "Yukni o‘chirish": {
+  "ru": "Удалить груз",
+  "en": "Delete cargo"
+ },
+ "Yuk ({a} t) mashina sig‘imidan ({b} t) oshib ketdi.": {
+  "ru": "Груз ({a} т) превышает грузоподъёмность машины ({b} т).",
+  "en": "Load ({a} t) exceeds vehicle capacity ({b} t)."
+ },
+ "Reja tannarxi (ichki)": {
+  "ru": "Плановая себестоимость (внутренняя)",
+  "en": "Planned cost (internal)"
+ },
+ "me‘yor yo‘q": {
+  "ru": "нормы нет",
+  "en": "no norm"
+ },
+ "Haydovchi (soliq bilan)": {
+  "ru": "Водитель (с налогом)",
+  "en": "Driver (with tax)"
+ },
+ "Mijoz nomi": {
+  "ru": "Название клиента",
+  "en": "Client name"
+ },
+ "— tarifsiz —": {
+  "ru": "— без тарифа —",
+  "en": "— no tariff —"
+ },
+ "Me‘yor koeffitsienti": {
+  "ru": "Коэффициент нормы",
+  "en": "Norm coefficient"
+ },
+ "Qish/yomon yo‘l: 1,1–1,3": {
+  "ru": "Зима/плохая дорога: 1,1–1,3",
+  "en": "Winter/bad road: 1.1–1.3"
+ },
+ "Tavsiya etilgan narx": {
+  "ru": "Рекомендуемая цена",
+  "en": "Recommended price"
+ },
+ "Narxga qo‘llash": {
+  "ru": "Применить к цене",
+  "en": "Apply to price"
+ },
+ "Tarif uchun yetishmaydi": {
+  "ru": "Для тарифа не хватает",
+  "en": "Tariff is missing"
+ },
+ "Mashina bo‘yicha": {
+  "ru": "По машинам",
+  "en": "By vehicle"
+ },
+ "Haydovchi bo‘yicha": {
+  "ru": "По водителям",
+  "en": "By driver"
+ },
+ "Marshrut bo‘yicha": {
+  "ru": "По маршрутам",
+  "en": "By route"
+ },
+ "Bo‘sh yurish": {
+  "ru": "Порожний пробег",
+  "en": "Empty run"
+ },
+ "Daromad (QQS bilan)": {
+  "ru": "Доход (с НДС)",
+  "en": "Revenue (incl. VAT)"
+ },
+ "Marja": {
+  "ru": "Маржа",
+  "en": "Margin"
+ },
+ "t·km tannarxi": {
+  "ru": "Себестоимость т·км",
+  "en": "Cost per t·km"
+ },
+ "Yoqilg‘i og‘ishi": {
+  "ru": "Отклонение топлива",
+  "en": "Fuel deviation"
+ },
+ "Bandlik": {
+  "ru": "Загрузка",
+  "en": "Utilisation"
+ },
+ "Ma‘lumot yo‘q": {
+  "ru": "Нет данных",
+  "en": "No data"
+ },
+ "{n} reys to‘liq emas": {
+  "ru": "{n} рейс. неполных",
+  "en": "{n} incomplete trips"
+ },
+ "{n} reysda narx yo‘q": {
+  "ru": "в {n} рейсах нет цены",
+  "en": "{n} trips without price"
+ },
+ "Excel yaratib bo‘lmadi": {
+  "ru": "Не удалось создать Excel",
+  "en": "Could not create Excel"
+ },
+ "Excelga yuklash": {
+  "ru": "Выгрузить в Excel",
+  "en": "Export to Excel"
+ },
+ "Ko‘rsatkichlarni o‘qib bo‘lmadi.": {
+  "ru": "Не удалось прочитать показатели.",
+  "en": "Could not load indicators."
+ },
+ "Hujjat muddati: {a} ta o‘tgan, {b} ta 30 kun ichida tugaydi (Park bo‘limi).": {
+  "ru": "Сроки документов: просрочено {a}, истекает в течение 30 дней {b} (раздел «Парк»).",
+  "en": "Document deadlines: {a} overdue, {b} expire within 30 days (Fleet section)."
+ },
+ "Transport ko‘rsatkichlari": {
+  "ru": "Показатели транспорта",
+  "en": "Transport indicators"
+ },
+ "Reyslar (yetkazilgan/yopilgan)": {
+  "ru": "Рейсы (доставлено/закрыто)",
+  "en": "Trips (delivered/closed)"
+ },
+ "kiritilgan reyslar bo‘yicha": {
+  "ru": "по рейсам с введённым значением",
+  "en": "for trips with entered values"
+ },
+ "1 t·km tannarxi": {
+  "ru": "Себестоимость 1 т·км",
+  "en": "Cost of 1 t·km"
+ },
+ "yuk og‘irligi ma‘lum reyslar": {
+  "ru": "рейсы с известным весом груза",
+  "en": "trips with known cargo weight"
+ },
+ "haqiqiy / me‘yor": {
+  "ru": "факт / норма",
+  "en": "actual / norm"
+ },
+ "Tarmoq xatosi. Qayta urinib ko‘ring.": {
+  "ru": "Ошибка сети. Повторите попытку.",
+  "en": "Network error. Please retry."
+ },
+ "Amal bajarilmadi: {kod}": {
+  "ru": "Действие не выполнено: {kod}",
+  "en": "Action failed: {kod}"
+ },
+ "Yetib keldim": {
+  "ru": "Я прибыл",
+  "en": "I have arrived"
+ },
+ "Yuk topshirildi": {
+  "ru": "Груз сдан",
+  "en": "Cargo handed over"
+ },
+ "Qabul qildi (F.I.Sh.)": {
+  "ru": "Принял (Ф.И.О.)",
+  "en": "Received by (full name)"
+ },
+ "Sarflangan yoqilg‘i, L": {
+  "ru": "Израсходовано топлива, л",
+  "en": "Fuel used, L"
+ },
+ "Kutish, daqiqa": {
+  "ru": "Ожидание, мин",
+  "en": "Waiting, min"
+ },
+ "Bugungi reyslarim": {
+  "ru": "Мои рейсы на сегодня",
+  "en": "My trips today"
+ },
+ "Bugun sizga reys biriktirilmagan.": {
+  "ru": "Сегодня рейсов нет.",
+  "en": "No trips assigned to you today."
+ },
+ "Butun marshrut": {
+  "ru": "Весь маршрут",
+  "en": "Whole route"
+ },
+ "Yakunlash": {
+  "ru": "Завершить",
+  "en": "Finish"
+ },
+ "so‘m, QQS bilan": {
+  "ru": "сум, с НДС",
+  "en": "UZS, incl. VAT"
+ },
+ "kamida": {
+  "ru": "не менее",
+  "en": "at least"
+ },
+ "so‘m, QQS siz": {
+  "ru": "сум, без НДС",
+  "en": "UZS, excl. VAT"
+ },
+ "Tarif nomi": {
+  "ru": "Название тарифа",
+  "en": "Tariff name"
+ },
+ "Zona / hudud": {
+  "ru": "Зона / район",
+  "en": "Zone / area"
+ },
+ "Mashina turi": {
+  "ru": "Тип машины",
+  "en": "Vehicle type"
+ },
+ "1 km uchun, so‘m": {
+  "ru": "За 1 км, сум",
+  "en": "Per 1 km, UZS"
+ },
+ "1 tonna-km uchun, so‘m": {
+  "ru": "За 1 тонно-км, сум",
+  "en": "Per 1 tonne-km, UZS"
+ },
+ "1 soat uchun, so‘m": {
+  "ru": "За 1 час, сум",
+  "en": "Per 1 hour, UZS"
+ },
+ "Reys boshiga qo‘shimcha, so‘m": {
+  "ru": "Надбавка за рейс, сум",
+  "en": "Per-trip surcharge, UZS"
+ },
+ "Minimal summa, so‘m": {
+  "ru": "Минимальная сумма, сум",
+  "en": "Minimum amount, UZS"
+ },
+ "Maqsadli marja, %": {
+  "ru": "Целевая маржа, %",
+  "en": "Target margin, %"
+ },
+ "Narx tannarxdan shu marja bilan past bo‘lmasligi tavsiya qilinadi": {
+  "ru": "Цена не должна быть ниже себестоимости с этой маржой",
+  "en": "Price should not fall below cost plus this margin"
+ },
+ "Tarif narxlari QQS bilan kiritilganmi?": {
+  "ru": "Цены тарифа указаны с НДС?",
+  "en": "Tariff prices include VAT?"
+ },
+ "Yoqilg‘i turi": {
+  "ru": "Тип топлива",
+  "en": "Fuel type"
+ },
+ "Qaysi sanadan": {
+  "ru": "С какой даты",
+  "en": "From date"
+ },
+ "Narx, so‘m (QQS siz)": {
+  "ru": "Цена, сум (без НДС)",
+  "en": "Price, UZS (excl. VAT)"
+ },
+ "t·km": {
+  "ru": "т·км",
+  "en": "t·km"
+ },
+ "reys": {
+  "ru": "рейс",
+  "en": "trip"
+ },
+ "Narx kalkulyatori": {
+  "ru": "Калькулятор цены",
+  "en": "Price calculator"
+ },
+ "Yuk, tonna": {
+  "ru": "Груз, тонн",
+  "en": "Cargo, tonnes"
+ },
+ "Ish vaqti, soat": {
+  "ru": "Время работы, часов",
+  "en": "Working time, hours"
+ },
+ "Ichki tannarx": {
+  "ru": "Внутренняя себестоимость",
+  "en": "Internal cost"
+ },
+ "1 tonna-km tannarxi": {
+  "ru": "Себестоимость 1 тонно-км",
+  "en": "Cost of 1 tonne-km"
+ },
+ "Tavsiya etilgan (asosiy)": {
+  "ru": "Рекомендуемая (основная)",
+  "en": "Recommended (main)"
+ },
+ "Tarif bo‘yicha (QQS siz)": {
+  "ru": "По тарифу (без НДС)",
+  "en": "By tariff (excl. VAT)"
+ },
+ "Marja uchun minimal (QQS siz)": {
+  "ru": "Минимум для маржи (без НДС)",
+  "en": "Minimum for margin (excl. VAT)"
+ },
+ "Minimal summa qo‘llandi": {
+  "ru": "Применена минимальная сумма",
+  "en": "Minimum amount applied"
+ },
+ "Tarifni tanlang": {
+  "ru": "Выберите тариф",
+  "en": "Select a tariff"
+ },
+ "Tarif qo‘shish": {
+  "ru": "Добавить тариф",
+  "en": "Add tariff"
+ },
+ "Zona": {
+  "ru": "Зона",
+  "en": "Zone"
+ },
+ "Minimal": {
+  "ru": "Минимум",
+  "en": "Minimum"
+ },
+ "Tariflar kiritilmagan": {
+  "ru": "Тарифы не внесены",
+  "en": "No tariffs entered"
+ },
+ "Tashqi mijozlarga narx berish uchun tarif qo‘shing.": {
+  "ru": "Чтобы назвать цену внешним клиентам, добавьте тариф.",
+  "en": "Add a tariff to quote external clients."
+ },
+ "(narx QQS bilan)": {
+  "ru": "(цена с НДС)",
+  "en": "(price incl. VAT)"
+ },
+ "(narx QQS siz)": {
+  "ru": "(цена без НДС)",
+  "en": "(price excl. VAT)"
+ },
+ "Yoqilg‘i narxi tarixi": {
+  "ru": "История цен на топливо",
+  "en": "Fuel price history"
+ },
+ "Narx qo‘shish": {
+  "ru": "Добавить цену",
+  "en": "Add price"
+ },
+ "Yoqilg‘i narxi kiritilmagan": {
+  "ru": "Цена топлива не внесена",
+  "en": "Fuel price not entered"
+ },
+ "Narx bo‘lmasa yoqilg‘i xarajati hisoblanmaydi («kiritilmagan»).": {
+  "ru": "Без цены расход топлива не считается («не введено»).",
+  "en": "Without a price fuel cost is not calculated («not entered»)."
+ },
+ "Yoqilg‘i narxi": {
+  "ru": "Цена топлива",
+  "en": "Fuel price"
+ },
+ "Reyslar": {
+  "ru": "Рейсы",
+  "en": "Trips"
+ },
+ "Park": {
+  "ru": "Парк",
+  "en": "Fleet"
+ },
+ "Transport va logistika": {
+  "ru": "Транспорт и логистика",
+  "en": "Transport and logistics"
+ },
+ "Park, reyslar va xarita, tannarx, tashqi narxlash va rentabellik. Ichki tannarx QQS siz; mijozga narx QQS bilan.": {
+  "ru": "Парк, рейсы и карта, себестоимость, внешняя цена и рентабельность. Внутренняя себестоимость без НДС; цена клиенту с НДС.",
+  "en": "Fleet, trips and map, cost, external pricing and profitability. Internal cost excl. VAT; client price incl. VAT."
+ },
+ "Transport bo‘limlari": {
+  "ru": "Разделы транспорта",
+  "en": "Transport sections"
+ },
+ "Transport bo‘limiga ruxsatingiz yo‘q.": {
+  "ru": "У вас нет доступа к разделу «Транспорт».",
+  "en": "You have no access to the Transport section."
+ },
+ "Ma‘lumot boshqa joyda o‘zgargan. Yangilab qayta urinib ko‘ring.": {
+  "ru": "Данные изменены в другом месте. Обновите и повторите.",
+  "en": "Data was changed elsewhere. Refresh and retry."
+ },
+ "Reys holati bu amalga mos emas.": {
+  "ru": "Статус рейса не подходит для этого действия.",
+  "en": "Trip status does not allow this action."
+ },
+ "Avval barcha bekatlarni yakunlang.": {
+  "ru": "Сначала завершите все остановки.",
+  "en": "Complete all stops first."
+ },
+ "Tannarx to‘liq emas — yetishmagan qiymatlarni kiriting.": {
+  "ru": "Себестоимость неполная — введите недостающие значения.",
+  "en": "Cost is incomplete — enter the missing values."
+ },
+ "Bu amal uchun ruxsat yo‘q.": {
+  "ru": "Нет прав для этого действия.",
+  "en": "No permission for this action."
+ },
+ "Oxirgi odometr boshlang‘ich qiymatdan kichik bo‘lmasligi kerak.": {
+  "ru": "Конечный одометр не может быть меньше начального.",
+  "en": "End odometer cannot be less than start."
+ },
+ "Avval reysga haydovchi biriktiring.": {
+  "ru": "Сначала назначьте водителя на рейс.",
+  "en": "Assign a driver to the trip first."
+ },
+ "Obyekt shu kompaniyaga tegishli emas.": {
+  "ru": "Объект не относится к этой компании.",
+  "en": "The object does not belong to this company."
+ },
+ "Kenglik (lat)": {
+  "ru": "Широта (lat)",
+  "en": "Latitude (lat)"
+ },
+ "Uzunlik (lng)": {
+  "ru": "Долгота (lng)",
+  "en": "Longitude (lng)"
+ }
+}
