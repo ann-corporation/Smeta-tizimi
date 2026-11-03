@@ -18,6 +18,12 @@ import { t, tilLocale } from '../../i18n/til';
 import { davrNomi } from '../../lib/f2-hujjat-korinish';
 import { PortfelSummaJuft } from '../../umumiy/ui/PortfelSummaJuft';
 import { usePortfelUstamali } from '../../umumiy/ui/usePortfelUstamali';
+import { SummaJuft } from '../../umumiy/ui/SummaJuft';
+import { QiymatUchlik } from '../../umumiy/ui/QiymatUchlik';
+import { SummaKesimi } from '../../umumiy/ui/SummaKesimi';
+import { useRahbarPanel } from '../../api/t2-rahbar-panel';
+import { paketUchligi, type SummaPaket } from '../../lib/summa-paket';
+import { paketlarJami, type TafsilQism } from '../../lib/summa-tafsilot';
 import { F2ReestrOylik } from '../../components/f2-hujjat/F2ReestrOylik';
 import { F2DavomRoyxat } from './F2DavomRoyxat';
 import { F2OylikPaket } from './F2OylikPaket';
@@ -42,6 +48,22 @@ function SummaKorinish({ s, qisqa = false }: { s: Summa; qisqa?: boolean }) {
   const nomalum = s.nomalum > 0 ? t('+ {n} ta summasi noma’lum', { n: s.nomalum }) : null;
   return <span className="tabular-nums">{qisqa ? pulQisqa(s.malum) : <FmtN val={s.malum} />}
     {nomalum && <span className="fz-chip fz-chip--warn ml-1">{nomalum}</span>}</span>;
+}
+/**
+ * Tasdiqlangan F2 summasi katagi — uchlik (QQS bilan · ustamali · ustamasiz) server paketidan (`t2_rahbar_panel_v1.obyektlar[].f2`).
+ * Paket yo'q (panel o'qilmagan) — faqat ma'lum ustamasiz, yorlig'i va «QQS bilan va ustamali hisoblanmadi» izohi bilan.
+ */
+function F2Katak({ s, paket, qisqa = true }: { s: Summa; paket: SummaPaket | null | undefined; qisqa?: boolean }) {
+  if (paket) {
+    return <>
+      <SummaJuft paket={paket} kichik yorliq={t('F2, QQS bilan')} nomalumSoni={s.nomalum} className="items-end text-right" />
+      {s.nomalum > 0 && <span className="fz-chip fz-chip--warn">{t('+ {n} ta summasi noma’lum', { n: s.nomalum })}</span>}
+    </>;
+  }
+  return <>
+    <SummaKorinish s={s} qisqa={qisqa} />
+    {s.soni > 0 && <div className="text-[11px] font-normal text-text-mute">{t('ustamasiz')} · {t('QQS bilan va ustamali hisoblanmadi')}</div>}
+  </>;
 }
 function ogohMatni(o: Ogoh): string {
   if (o.tur === 'shartnomadan_oshgan') return t('F2 shartnomadan {k} baravar ko‘p — shartnoma summasi yoki biriktirishni tekshiring', { k: String(o.qiymat ?? '').replace('.', ',') });
@@ -114,7 +136,8 @@ function HolatChiplari({ q }: { q: ReestrQator }) {
 }
 
 /** Kompaniya xulosasi — bitta tasma: obyektlar, tasdiqlangan F2 (manba taqsimoti bilan), jarayondagilar, shartnomasizlar. */
-function XulosaTasma({ jami, qatorlar }: { jami: ReestrJami; qatorlar: ReestrQator[] }) {
+function XulosaTasma({ jami, qatorlar, f2Paket, f2Jami }: { jami: ReestrJami; qatorlar: ReestrQator[]; f2Paket: ReadonlyMap<number, SummaPaket | null>; f2Jami: SummaPaket | null }) {
+  const f2Qismlar: TafsilQism[] | undefined = f2Paket.size ? qatorlar.filter(q => q.aktlar.length).map(q => ({ kalit: String(q.obyekt.id), nom: q.obyekt.nom, q: paketUchligi(f2Paket.get(q.obyekt.id) ?? null) })) : undefined;
   const portfel = useMemo(() => qatorlar.map(q => ({ obyektId: q.obyekt.id })), [qatorlar]);
   const f2Bor = qatorlar.filter(q => q.aktlar.length).length;
   const m = manbaTaqsimot({ tasdiqlangan: jami.boyicha.tasdiqlangan, tasdiqImport: jami.tasdiqImport, tasdiqTizim: jami.tasdiqTizim });
@@ -127,9 +150,11 @@ function XulosaTasma({ jami, qatorlar }: { jami: ReestrJami; qatorlar: ReestrQat
         <div className="text-[12px] text-text-mute">{t('F2 si bor: {n}', { n: f2Bor })}</div>
       </div>
       <div className="fz-panel rounded-none border-0">
-        <div className="fz-panel__h"><span>{t('Tasdiqlangan F2')}</span><span>{t('ustamasiz')}</span></div>
+        <div className="fz-panel__h"><span>{t('Tasdiqlangan F2')}</span><span>{f2Jami ? t('QQS bilan · ustamali · ustamasiz') : t('ustamasiz')}</span></div>
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="text-2xl font-semibold"><SummaKorinish s={jami.boyicha.tasdiqlangan} qisqa /></span>
+          <span className="text-2xl font-semibold" data-testid="reestr-f2-jami">{f2Jami
+            ? <SummaJuft paket={f2Jami} yorliq={t('F2, QQS bilan')} qismlar={f2Qismlar} nomalumSoni={jami.boyicha.tasdiqlangan.nomalum} />
+            : <><SummaKorinish s={jami.boyicha.tasdiqlangan} qisqa /><span className="block text-[11px] font-normal text-text-mute">{t('ustamasiz')} · {t('QQS bilan va ustamali hisoblanmadi')}</span></>}</span>
           <span className="text-[12px] text-text-mute">{t('{n} ta akt', { n: jami.boyicha.tasdiqlangan.soni })}</span>
         </div>
         {m.jami > 0 && <div className="fz-split" role="img" aria-label={t('Tasdiqlangan F2 manbasi bo‘yicha')}>
@@ -201,6 +226,10 @@ export default function F2Reestr() {
   const [summaTur, setSummaTur] = useState<'qqs' | 'ustamasiz' | 'ustamali'>('qqs');
   const portfelHammasi = useMemo(() => (reestr ? reestr.qatorlar.map(q => ({ obyektId: q.obyekt.id })) : []), [reestr]);
   const portfelUstamali = usePortfelUstamali(portfelHammasi);
+  /** F2 uchligi — server paketi (rahbar paneli): obyekt bo'yicha va kompaniya jami. Panel o'qilmasa bo'sh (UI «hisoblanmadi» deydi). */
+  const rp = useRahbarPanel(kompaniyaId);
+  const f2Paket = useMemo(() => new Map((rp.data?.obyektlar ?? []).map(o => [o.obyekt_id, o.f2] as const)), [rp.data]);
+  const f2Jami = rp.data?.kartalar.bajarildi.jami ?? null;
   /* Excel uslubidagi ustun filtrlari (egasi 2026-10-27): yuqoridagi qidiruv/holat filtri bilan VA; tekis — saralash mumkin. */
   /* usePortfelUstamali har renderda yangi Map beradi — ustunlar faqat qiymatlar o'zgarganda qayta quriladi. */
   const ustamaliImzo = summaTur === 'ustamali' ? [...portfelUstamali.boYicha].map(([id, v]) => `${id}:${v ?? ''}`).join('|') : '';
@@ -241,7 +270,7 @@ export default function F2Reestr() {
       {xato && <div role="alert" className="fz-note fz-note--danger"><AlertTriangle aria-hidden="true" /><span>{t('F2 reestri o‘qilmadi: {x}', { x: xato })}</span></div>}
       {yuklanmoqda && !reestr && <Skelet qatorlar={6} />}
 
-      {reestr && <XulosaTasma jami={reestr.jami} qatorlar={reestr.qatorlar} />}
+      {reestr && <XulosaTasma jami={reestr.jami} qatorlar={reestr.qatorlar} f2Paket={f2Paket} f2Jami={f2Jami} />}
       <F2DavomRoyxat kompaniyaId={kompaniyaId} />
       {malumot && <F2Takrorlar malumot={malumot} />}
       {malumot && kompaniyaId != null && <F2OylikPaket kompaniyaId={kompaniyaId} malumot={malumot} tashkilot={joriy?.nom ?? null} />}
@@ -304,8 +333,9 @@ export default function F2Reestr() {
                     ? (() => { const v = (summaTur === 'qqs' ? portfelUstamali.qqsBoYicha : portfelUstamali.boYicha).get(q.obyekt.id);
                       return v != null ? <span title={summaTur === 'qqs' ? t('QQS bilan') : t('ustamali, NDS siz')}>{pulQisqa(v)}</span> : <span className="text-text-mute" title={portfelUstamali.holat === 'yuklanmoqda' ? t('Hisoblanmoqda…') : t('ustamali noma’lum')}>—</span>; })()
                     : q.obyekt.jami != null ? pulQisqa(q.obyekt.jami) : <span className="text-text-mute">—</span>}
-                    {(q.obyekt.narxsiz ?? 0) > 0 && <div><span className="fz-chip fz-chip--warn">{t('{n} narxsiz qator', { n: q.obyekt.narxsiz ?? 0 })}</span></div>}</td>
-                  <td className="fz-c-num"><span className="font-semibold"><SummaKorinish s={q.boyicha.tasdiqlangan} qisqa /></span>
+                    {(q.obyekt.narxsiz ?? 0) > 0 && <div><span className="fz-chip fz-chip--warn">{t('{n} narxsiz qator', { n: q.obyekt.narxsiz ?? 0 })}</span></div>}
+                    <SummaKesimi q={{ qqsBilan: portfelUstamali.qqsBoYicha.get(q.obyekt.id) ?? null, ustamali: portfelUstamali.boYicha.get(q.obyekt.id) ?? null, ustamasiz: q.obyekt.jami ?? null, taxminiy: false, nomalum: 0, sabab: null }} nomalumSoni={q.obyekt.narxsiz ?? 0} /></td>
+                  <td className="fz-c-num"><span className="font-semibold"><F2Katak s={q.boyicha.tasdiqlangan} paket={f2Paket.get(q.obyekt.id)} /></span>
                     {q.boyicha.tasdiqlangan.soni > 0 && <div className="text-[12px] text-text-mute">{t('{n} ta akt', { n: q.boyicha.tasdiqlangan.soni })}</div>}</td>
                   <td><SmetaChizigi q={q} /></td>
                   <td className="fz-c-num text-[12px]"><div className="text-text-dim"><SummaKorinish s={q.tasdiqImport} qisqa /></div><div className="text-text"><SummaKorinish s={q.tasdiqTizim} qisqa /></div></td>
@@ -331,7 +361,11 @@ export default function F2Reestr() {
           {korinadi.length > 0 && <tfoot><tr className="fz-row-total">
             <td /><td colSpan={2}>{uf.soni > 0 ? t('Jami (filtr bo‘yicha): {a} obyekt', { a: korinadi.length }) : t('Jami: {a} obyekt', { a: korinadi.length })}</td>
             <td className="fz-c-num"><PortfelSummaJuft obyektlar={korinadiganPortfel} ustamasiz={korinadiganJami.smeta} kichik className="items-end text-right" /></td>
-            <td className="fz-c-num"><SummaKorinish s={korinadiganJami.tasdiq} qisqa /><div className="text-[11px] font-normal text-text-mute">{t('ustamasiz')}</div></td>
+            <td className="fz-c-num">{f2Paket.size > 0
+              ? (() => { const j = paketlarJami(korinadi.filter(q => q.aktlar.length).map(q => f2Paket.get(q.obyekt.id) ?? null));
+                return <QiymatUchlik kichik className="items-end text-right" yorliq={t('F2, QQS bilan')} q={j.q} nomalumSoni={j.nomalumSoni}
+                  qismlar={korinadi.filter(q => q.aktlar.length).map(q => ({ kalit: String(q.obyekt.id), nom: q.obyekt.nom, q: paketUchligi(f2Paket.get(q.obyekt.id) ?? null) }))} />; })()
+              : <><SummaKorinish s={korinadiganJami.tasdiq} qisqa /><div className="text-[11px] font-normal text-text-mute">{t('ustamasiz')} · {t('QQS bilan va ustamali hisoblanmadi')}</div></>}</td>
             <td colSpan={5} />
           </tr></tfoot>}
         </table>

@@ -1,6 +1,20 @@
-﻿{
+{
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
+    {
+      "id": 53,
+      "sana": "2026-11-02",
+      "sarlavha": "Har summa bir xil uchlikda va bosilsa joyida ochiladi: QQS bilan, ustamali, ustamasiz",
+      "bandlar": [
+        "Har jami summa ostida «▸ kesim»: ЧЕЛ (chel-soat bilan), МАШ (mash-soat bilan), МАТ, ОБ, subpudrat (kim ekani bilan), kat noma'lum — yig'indisi to'g'ri xarajatga teng.",
+        "Kiritilmagan qiymat endi «kiritilmagan» deb yoziladi (0 yoki bo'sh chiziq emas); Moliyaviy tahlilda uchala qator ko'rinadi.",
+        "Shartnoma sahifasi: «Farq» endi shartnoma (QQS siz) va smetaning ustamali qiymati (ИТОГО-4) o'rtasida — avval to'g'ri xarajat bilan solishtirilardi; «Smeta qiymatini qo'yish» ustamali + QQS ni oladi.",
+        "M29: tejash / ortiqcha / sof natija jamilari QQS bilan asosiy ko'rinishda.",
+        "Rahbar panelida «to‘g‘ridan-to‘g‘ri xarajat» alohida plitka bo‘lib turmaydi: u smeta kartasidagi uchlikning uchinchi qatori. Tasdiqlangan F2 summasi ham har doim uchlikda: QQS bilan, ustamali, ustamasiz.",
+        "Har summa ostidagi «▸ kesim va hisob»ni bossangiz joyida ochiladi: uchala qiymat, hisob bosqichlari (ЧЕЛ, МАШ, МАТ, ОБ → transport → прочие → sug‘urta → ИТОГО-4 → НДС → ВСЕГО) va jami bo‘lsa — tarkibidagi obyektlar, har biri o‘z uchligi bilan.",
+        "Hisoblanmagan yoki narxsiz bandlar soni yoziladi; noma‘lum qiymat «noma‘lum» deb ko‘rinadi, 0 emas. F2 reestri va loyiha navigatorida Fakt va F2 ham uchlikda."
+      ]
+    },
     {
       "id": 52,
       "sana": "2026-10-31",
@@ -69,17 +83,6 @@
         "Tezkor filtrlar: Hammasi / Asl smeta / Qo'shimcha / Zamena. Yangi smeta versiyasi bilan almashtirilgan eski qatorlar asosiy ro'yxatga kirmaydi — «Avvalgi versiya (almashtirilgan)» filtrida kulrang ko'rinadi.",
         "LRV Excel'da shakl o'zgarmaydi, oxirida «Примечание» ustuni: «ДОПОЛНИТЕЛЬНАЯ РАБОТА», «ЗАМЕНА поз. N (…)», «ЗАМЕНЕНО → поз. M, остаток X». Rang: qo'shimcha — sariq, zamena — ko'k, almashtirilgan — kulrang kursiv.",
         "Excel oxirida jamlar: asl smeta / qo'shimcha ishlar / zamena — ustamasiz (formula) va ustama bilan (QQS siz va QQS bilan), uchtasi smeta jami bilan sverka qilinadi; rang izohi. Avvalgi versiya qatorlari alohida «Пред. версия» varag'ida (jamlarga kirmaydi)."
-      ]
-    },
-    {
-      "id": 47,
-      "sana": "2026-10-28",
-      "sarlavha": "Summalar bir xil ko'rinishda: QQS bilan, ustamali, to'g'ri xarajat va kesim",
-      "bandlar": [
-        "Har jami summa ostida «▸ kesim»: ЧЕЛ (chel-soat bilan), МАШ (mash-soat bilan), МАТ, ОБ, subpudrat (kim ekani bilan), kat noma'lum — yig'indisi to'g'ri xarajatga teng.",
-        "Kiritilmagan qiymat endi «kiritilmagan» deb yoziladi (0 yoki bo'sh chiziq emas); Moliyaviy tahlilda uchala qator ko'rinadi.",
-        "Shartnoma sahifasi: «Farq» endi shartnoma (QQS siz) va smetaning ustamali qiymati (ИТОГО-4) o'rtasida — avval to'g'ri xarajat bilan solishtirilardi; «Smeta qiymatini qo'yish» ustamali + QQS ni oladi.",
-        "M29: tejash / ortiqcha / sof natija jamilari QQS bilan asosiy ko'rinishda."
       ]
     },
     {

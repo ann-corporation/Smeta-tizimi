@@ -6,6 +6,7 @@ import type { QiymatUchlik as Uchlik } from '../../lib/ustamali-summa';
 import type { SummaPaket } from '../../lib/summa-paket';
 import { summaTuriMatni, uchlikSababMatni, type SummaTuri } from './qiymatYorliq';
 import { SummaKesimi } from './SummaKesimi';
+import type { TafsilQism, ZanjirQator } from '../../lib/summa-tafsilot';
 
 const Yoq = ({ izoh }: { izoh?: string }) => <span className="text-text-mute" title={izoh ?? t('Manba qiymati yo‘q')}>—</span>;
 
@@ -16,7 +17,7 @@ const Yoq = ({ izoh }: { izoh?: string }) => <span className="text-text-mute" ti
  * Bu yerda hisob YO‘Q — qiymatlar `qiymatUchligi`/`portfelUchligi` dan (yoki server javobidan). Noma’lum — «—» + izoh.
  * Taxminiy (kat noma’lum) bo‘lsa ikkala ustamali qiymat ham «≈» bilan.
  */
-export function QiymatUchlik({ q, yuklanmoqda = false, yorliq, kichik = false, className = '', title, asosiyBosish, rang, kesim, kiritishYoli, children }: {
+export function QiymatUchlik({ q, yuklanmoqda = false, yorliq, kichik = false, className = '', title, asosiyBosish, rang, kesim, kiritishYoli, zanjir, qismlar, nomalumSoni, tafsilYoq = false, children }: {
   q: Uchlik;
   yuklanmoqda?: boolean;
   /** Asosiy qator yorlig‘i (sukut: «QQS bilan»), masalan «F2, QQS bilan». */
@@ -28,10 +29,18 @@ export function QiymatUchlik({ q, yuklanmoqda = false, yorliq, kichik = false, c
   asosiyBosish?: () => void;
   /** Asosiy raqam rangi (CSS rang, masalan sof natija ishorasi bo‘yicha). */
   rang?: string;
-  /** ▸ Kesim (server summa paketi): ЧЕЛ/МАШ/МАТ/ОБ/Subpudrat + soatlar. Berilmasa — ko‘rsatilmaydi. */
+  /** ▸ Kesim (server summa paketi): ЧЕЛ/МАШ/МАТ/ОБ/Subpudrat + soatlar. Berilmasa — faqat uchlik va kaskad. */
   kesim?: SummaPaket | null;
   /** Qiymat kiritilmagan bo‘lsa (manba yo‘q) — «kiritilmagan» + qayerdan kiritiladi havolasi (0 ko‘rsatilmaydi). */
   kiritishYoli?: { yol: string; matn?: string };
+  /** Kaskad qadamlari (berilmasa: paketdan / uchlikdan). */
+  zanjir?: ZanjirQator[];
+  /** Agregat tarkibi (obyekt/bo‘lim) — har biri o‘z uchligi bilan; ochilganda ko‘rinadi. */
+  qismlar?: TafsilQism[];
+  /** Hisoblanmagan (noma’lum) bandlar soni — tafsilotda ko‘rsatiladi. */
+  nomalumSoni?: number;
+  /** Tafsilotni (▸ kesim va hisob) ko‘rsatmaslik — faqat juda zich kataklar uchun. */
+  tafsilYoq?: boolean;
   /** Qo‘shimcha kichik qatorlar (taxminiy izohi, qayta urinish va h.k.). */
   children?: ReactNode;
 }) {
@@ -68,7 +77,7 @@ export function QiymatUchlik({ q, yuklanmoqda = false, yorliq, kichik = false, c
       <span className="text-[10.5px] text-text-mute" data-testid="summa-ustamasiz">
         {t('to‘g‘ri xarajat (ustamasiz)')}: {q.ustamasiz != null ? <FmtN val={q.ustamasiz} /> : <Yoq />}
       </span>
-      {kesim && <SummaKesimi paket={kesim} />}
+      {!tafsilYoq && !yuklanmoqda && <SummaKesimi paket={kesim ?? null} q={q} zanjir={zanjir} qismlar={qismlar} nomalumSoni={nomalumSoni} />}
       {children}
     </span>
   );

@@ -80,7 +80,7 @@ export function PortfelXaritasi({ e }: { e: BossExecutive }) {
     };
   }, [e, W, H]);
   return (
-    <GrafikKarta sarlavha={t('Portfel xaritasi')} izoh={t('Plitka maydoni — smeta (ma’lum to‘g‘ridan-to‘g‘ri xarajat); rangi — obyekt holati. Bosing — obyekt ochiladi.')}>
+    <GrafikKarta sarlavha={t('Portfel xaritasi')} izoh={t('Plitka maydoni — smeta, ustamasiz (ma’lum to‘g‘ridan-to‘g‘ri xarajat, QQS siz); rangi — obyekt holati. Bosing — obyekt ochiladi.')}>
       <div ref={ref} className="w-full">{plitkalar.length > 0 ? <div className="relative w-full overflow-hidden rounded-md" style={{ height: H }}>
         {plitkalar.map((x) => {
           if (!x.p) return null;
@@ -94,7 +94,7 @@ export function PortfelXaritasi({ e }: { e: BossExecutive }) {
           }
           const o = x.o, h = obyektHolati(o), rang = HOLAT_RANG[h];
           return <div key={o.object_id} className="absolute p-0.5" style={uslub}>
-            <Link to={objectUrl(o.object_id, o.project_id)} title={`${o.name} · ${t('Smeta')}: ${pul(o.estimate_known)} · ${t('Tasdiqlangan F2')}: ${pul(o.approved_known)} · ${t(HOLAT_NOMI[h])}`}
+            <Link to={objectUrl(o.object_id, o.project_id)} title={`${o.name} · ${t('Smeta, ustamasiz')}: ${pul(o.estimate_known)} · ${t('Tasdiqlangan F2, ustamasiz')}: ${pul(o.approved_known)} ·${t(HOLAT_NOMI[h])}`}
               className="flex h-full w-full flex-col justify-between overflow-hidden rounded-sm p-1.5 text-text transition-[filter] hover:brightness-125 focus-visible:outline-2"
               style={{ background: yumshoq(rang, 26), boxShadow: `inset 3px 0 0 ${rang}` }}>
               {katta ? <>
@@ -136,16 +136,16 @@ export function SmetaF2Ustunlari({ e }: { e: BossExecutive }) {
   const sh = shkala(kor.flatMap((o) => [o.estimate_known, o.approved_known]));
   const smetaRang = 'var(--border-strong)', f2Rang = 'var(--accent)';
   return (
-    <GrafikKarta sarlavha={t('Smeta va tasdiqlangan F2 — obyektlar bo‘yicha')} izoh={t('Ikkala ustun bitta shkalada (UZS). Hisob asoslari har xil — foiz chiqarilmaydi, jismoniy bajarilish emas.')}
-      ong={<Legenda qatorlar={[{ rang: smetaRang, nom: t('Smeta'), chiziq: true }, { rang: f2Rang, nom: t('Tasdiqlangan F2') }]} />}>
+    <GrafikKarta sarlavha={t('Smeta va tasdiqlangan F2 — obyektlar bo‘yicha')} izoh={t('Hamma ustun — ustamasiz (прямые), QQS siz; bitta shkalada (UZS). QQS bilan va ustamali qiymatlar pastdagi obyektlar jadvalida (▸ kesim va hisob). Foiz chiqarilmaydi.')}
+      ong={<Legenda qatorlar={[{ rang: smetaRang, nom: t('Smeta, ustamasiz'), chiziq: true }, { rang: f2Rang, nom: t('Tasdiqlangan F2, ustamasiz') }]} />}>
       <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 sm:grid-cols-[minmax(0,13rem)_minmax(0,1fr)] sm:gap-y-2">
         <span className="hidden sm:block" />
         <div className="pr-[5.5rem]"><Shkala belgilar={sh.belgilar} max={sh.max} /></div>
         {kor.map((o: ExecutiveObject) => <div key={o.object_id} className="contents">
           <Link to={objectUrl(o.object_id, o.project_id)} className="truncate pt-1 text-[12.5px] hover:underline sm:self-center sm:pt-0" title={o.name}>{o.name}</Link>
           <div className="flex flex-col gap-1">
-            <Ustun qiymat={amount(o.estimate_known)} max={sh.max} rang={smetaRang} nom={t('Smeta')} chiziq />
-            <Ustun qiymat={amount(o.approved_known)} max={sh.max} rang={f2Rang} nom={t('Tasdiqlangan F2')} />
+            <Ustun qiymat={amount(o.estimate_known)} max={sh.max} rang={smetaRang} nom={t('Smeta, ustamasiz')} chiziq />
+            <Ustun qiymat={amount(o.approved_known)} max={sh.max} rang={f2Rang} nom={t('Tasdiqlangan F2, ustamasiz')} />
           </div>
         </div>)}
       </div>

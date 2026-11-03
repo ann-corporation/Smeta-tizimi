@@ -29,6 +29,8 @@ export type SummaPaket = {
   subpudratchilar: Array<{ kontragent: string; summa: number }>;
   narxsiz_soni: number;
   qator_soni: number;
+  /** Server kaskad qadamlari (_t2_summa_paket_hisob_v1.ustama): tr_mat, skl_mat, prochie, strax, risk, itogo4, nds, vsego va h.k. Yo'q — bo'lmasligi mumkin. */
+  ustama?: Record<string, number>;
   nk_manba?: 'smeta_podvali' | 'shartnoma' | 'kompaniya' | 'sukut' | string;
   obyekt_soni?: number;
   smetadan_oshgan?: number;
@@ -62,6 +64,7 @@ export function summaPaket(x: unknown): SummaPaket | null {
     soat: { chel: son0(s.chel), mash: son0(s.mash), mashinist: son0(s.mashinist) },
     subpudratchilar: subs.filter(obyektmi).map((e) => ({ kontragent: String(e.kontragent ?? '—'), summa: son0(e.summa) })),
     narxsiz_soni: son0(x.narxsiz_soni), qator_soni: son0(x.qator_soni),
+    ...(obyektmi(x.ustama) ? { ustama: Object.fromEntries(Object.entries(x.ustama).map(([k2, v]) => [k2, son(v)]).filter((e): e is [string, number] => e[1] != null)) } : {}),
     ...(typeof x.nk_manba === 'string' ? { nk_manba: x.nk_manba } : {}),
     ...(son(x.obyekt_soni) != null ? { obyekt_soni: son0(x.obyekt_soni) } : {}),
     ...(son(x.smetadan_oshgan) != null ? { smetadan_oshgan: son0(x.smetadan_oshgan), smetadan_oshgan_soni: son0(x.smetadan_oshgan_soni) } : {}),

@@ -1,0 +1,102 @@
+{
+  "asosi": {
+    "ru": "основание",
+    "en": "basis"
+  },
+  "QQS bilan va ustamali hisoblanmadi": {
+    "ru": "с НДС и с накруткой не рассчитано",
+    "en": "with VAT and with markup not calculated"
+  },
+  "QQS bilan · ustamali · ustamasiz": {
+    "ru": "с НДС · с накруткой · без накрутки",
+    "en": "with VAT · with markup · without markup"
+  },
+  "Smeta, Fakt va F2: katta raqam — QQS bilan; ostida ustamali (QQS siz) va to‘g‘ri xarajat (▸ kesim va hisob — tarkibi). Ostatka — faqat to‘g‘ri xarajat (ustamasiz): kategoriya kesimi yo‘q. Fakt/F2 server paketi o‘qilmasa ham ustamasiz yorlig‘i bilan ko‘rsatiladi.": {
+    "ru": "Смета, Факт и Ф-2: крупная цифра — с НДС; ниже с накруткой (без НДС) и прямые затраты (▸ разрез и расчёт — состав). Остаток — только прямые затраты (без накрутки): разреза по категориям нет. Если серверный пакет Факта/Ф-2 не прочитан, показываются прямые затраты с пометкой.",
+    "en": "Estimate, Actual and F2: the large figure is with VAT; below it with markup (excl. VAT) and direct cost (▸ breakdown and calculation shows the composition). Remaining is direct cost only (no markup): there is no category breakdown. If the server package for Actual/F2 is not read, direct cost is shown with a label."
+  },
+  "Plitka maydoni — smeta, ustamasiz (ma’lum to‘g‘ridan-to‘g‘ri xarajat, QQS siz); rangi — obyekt holati. Bosing — obyekt ochiladi.": {
+    "ru": "Площадь плитки — смета без накрутки (известные прямые затраты, без НДС); цвет — состояние объекта. Нажмите — откроется объект.",
+    "en": "Tile area is the estimate without markup (known direct cost, excl. VAT); colour is the object status. Click to open the object."
+  },
+  "Smeta, ustamasiz": {
+    "ru": "Смета, без накрутки",
+    "en": "Estimate, without markup"
+  },
+  "Tasdiqlangan F2, ustamasiz": {
+    "ru": "Утверждённая Ф-2, без накрутки",
+    "en": "Approved F2, without markup"
+  },
+  "Hamma ustun — ustamasiz (прямые), QQS siz; bitta shkalada (UZS). QQS bilan va ustamali qiymatlar pastdagi obyektlar jadvalida (▸ kesim va hisob). Foiz chiqarilmaydi.": {
+    "ru": "Все столбцы — без накрутки (прямые), без НДС; одна шкала (UZS). Значения с НДС и с накруткой — в таблице объектов ниже (▸ разрез и расчёт). Проценты не выводятся.",
+    "en": "All bars are without markup (direct), excl. VAT; one scale (UZS). Values with VAT and with markup are in the object table below (▸ breakdown and calculation). No percentages are derived."
+  },
+  "ПРЯМЫЕ (ustamasiz)": {
+    "ru": "ПРЯМЫЕ (без накрутки)",
+    "en": "DIRECT (no markup)"
+  },
+  "ИТОГО-4 (ustamali, QQS siz)": {
+    "ru": "ИТОГО-4 (с накруткой, без НДС)",
+    "en": "TOTAL-4 (with markup, excl. VAT)"
+  },
+  "НДС (QQS)": {
+    "ru": "НДС",
+    "en": "VAT"
+  },
+  "ЧЕЛ": {
+    "ru": "ЧЕЛ",
+    "en": "LAB"
+  },
+  "МАШ": {
+    "ru": "МАШ",
+    "en": "MACH"
+  },
+  "МАТ": {
+    "ru": "МАТ",
+    "en": "MAT"
+  },
+  "ОБ": {
+    "ru": "ОБ",
+    "en": "EQ"
+  },
+  "Transport / sklad": {
+    "ru": "Транспорт / склад",
+    "en": "Transport / warehouse"
+  },
+  "Прочие": {
+    "ru": "Прочие",
+    "en": "Other"
+  },
+  "Sug‘urta / risk": {
+    "ru": "Страхование / риск",
+    "en": "Insurance / risk"
+  },
+  "Ustamasiz qism (svod, subpudrat, bojxona, kat noma’lum)": {
+    "ru": "Часть без накрутки (свод, субподряд, таможня, категория неизвестна)",
+    "en": "Part without markup (summary, subcontract, customs, unknown category)"
+  },
+  "▸ kesim va hisob": {
+    "ru": "▸ разрез и расчёт",
+    "en": "▸ breakdown and calculation"
+  },
+  "ustamasiz (прямые)": {
+    "ru": "без накрутки (прямые)",
+    "en": "without markup (direct)"
+  },
+  "Tarkibi": {
+    "ru": "Состав",
+    "en": "Composition"
+  },
+  "ustunlar": {
+    "ru": "столбцы",
+    "en": "columns"
+  },
+  "{n} ta band hisoblanmagan (noma’lum) — yig‘indiga kirmagan": {
+    "ru": "{n} позиц. не рассчитано (неизвестно) — в итог не входят",
+    "en": "{n} item(s) not calculated (unknown) — not included in the total"
+  },
+  "qatorlar: {n}": {
+    "ru": "строк: {n}",
+    "en": "rows: {n}"
+  }
+}
