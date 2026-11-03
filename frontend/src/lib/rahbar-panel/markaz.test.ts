@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bosqichFoizlari, davrOraligi, diqqatYoli, kartaHolati, trendNuqtalari } from './markaz';
+import { bosqichFoizlari, davrOraligi, diqqatYoli, kartaHolati, resursJadvali, subpudratchilar, trendNuqtalari } from './markaz';
 import type { RahbarPanel } from '../../api/t2-rahbar-panel';
 
 const paket = { qqs_bilan: 112, qqs: 12, ustamali: 100, ustamasiz: 80, qqs_foiz: 12, ustamasiz_qism: 0,
@@ -48,5 +48,22 @@ describe('rahbar markazi yordamchilari', () => {
   });
   it('bosqich foizlari 0–100 ga cheklanadi, null saqlanadi', () => {
     expect(bosqichFoizlari({ fakt: 140, f2: -3, f3: null })).toEqual([{ kalit: 'fakt', foiz: 100 }, { kalit: 'f2', foiz: 0 }, { kalit: 'f3', foiz: null }]);
+  });
+});
+
+describe('resurs va subpudrat jadvallari', () => {
+  const pk = (kesim: Record<string, number>, subs: Array<{ kontragent: string; summa: number }> = []) => ({
+    qqs_bilan: 0, qqs: 0, ustamali: 0, ustamasiz: 0, qqs_foiz: 12, ustamasiz_qism: 0,
+    kesim: { chel: 0, mash: 0, mat: 0, ob: 0, subpudrat: 0, svod: 0, ustamasiz: 0, nomalum: 0, ...kesim },
+    soat: { chel: 0, mash: 0, mashinist: 0 }, subpudratchilar: subs, narxsiz_soni: 0, qator_soni: 0 });
+  it('asosiy to‘rtlik doim; qolganlari faqat qiymat bo‘lsa; F2/smeta foizi; paketsiz ustun null', () => {
+    const r = resursJadvali(pk({ chel: 200, subpudrat: 50 }), null, pk({ chel: 100 }));
+    expect(r.map((x) => x.kalit)).toEqual(['chel', 'mash', 'mat', 'ob', 'subpudrat']);
+    expect(r[0]).toEqual({ kalit: 'chel', smeta: 200, fakt: null, f2: 100, f2Foiz: 50 });
+    expect(r[1].f2Foiz).toBeNull();
+  });
+  it('subpudratchilar smeta va F2 dan birlashadi', () => {
+    const r = subpudratchilar(pk({}, [{ kontragent: 'A', summa: 10 }]), pk({}, [{ kontragent: 'A', summa: 4 }, { kontragent: 'B', summa: 2 }]));
+    expect(r).toEqual([{ kontragent: 'A', smeta: 10, f2: 4 }, { kontragent: 'B', smeta: null, f2: 2 }]);
   });
 });

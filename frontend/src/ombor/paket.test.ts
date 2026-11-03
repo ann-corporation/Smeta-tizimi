@@ -20,7 +20,7 @@ const h = (x: Record<string, string | number | null>) => x as Partial<T2QatorHol
 const ESKI_HOLATLAR: Partial<T2QatorHolat>[] = [
   h({ qator_id: 10, tur: 'rz', kod: null, nom: 'РАЗДЕЛ', birlik: null, kat: null, smeta_hajm: null, smeta_summa: 1550, fakt_hajm: 0, fakt_summa: 0, f2_hajm: 0, f2_summa: 0, qoldiq_hajm: null, qoldiq_summa: 1550, f2_mumkin_hajm: 0, f2_mumkin_summa: 0 }),
   h({ qator_id: 11, tur: 'bl', kod: 'E1-1', nom: 'ИШ', birlik: 'М3', kat: null, smeta_hajm: 10, smeta_summa: 1500, fakt_hajm: 4, fakt_summa: 400, f2_hajm: 0, f2_summa: 0, qoldiq_hajm: 10, qoldiq_summa: 1500, f2_mumkin_hajm: 4, f2_mumkin_summa: 400 }),
-  h({ qator_id: 12, tur: 'rs', kod: 'C2', nom: 'ГИПС', birlik: 'КГ', kat: 'МАТ', smeta_hajm: 2, smeta_summa: null, fakt_hajm: 2, fakt_summa: null, f2_hajm: 0, f2_summa: 0, qoldiq_hajm: 2, qoldiq_summa: null, f2_mumkin_hajm: 2, f2_mumkin_summa: 0 }),
+  h({ qator_id: 12, tur: 'rs', kod: 'C2', nom: 'ГИПС', birlik: 'КГ', kat: 'МАТ', smeta_hajm: 2, smeta_summa: null, fakt_hajm: 2, fakt_summa: null, f2_hajm: 0, f2_summa: 0, qoldiq_hajm: 2, qoldiq_summa: null, f2_mumkin_hajm: 2, f2_mumkin_summa: null }),
   h({ qator_id: 13, tur: 'rs', kod: 'C1', nom: 'ЦЕМЕНТ', birlik: 'Т', kat: 'МАТ', smeta_hajm: 10, smeta_summa: 1000, fakt_hajm: 7, fakt_summa: 700, f2_hajm: 6, f2_summa: 600, qoldiq_hajm: 1, qoldiq_summa: 100, f2_mumkin_hajm: 1, f2_mumkin_summa: 100 }),
   h({ qator_id: 14, tur: 'rs', kod: 'C1', nom: 'ЦЕМЕНТ', birlik: 'Т', kat: 'МАТ', smeta_hajm: 5, smeta_summa: 500, fakt_hajm: 0, fakt_summa: 0, f2_hajm: 0, f2_summa: 0, qoldiq_hajm: 4, qoldiq_summa: 500, f2_mumkin_hajm: 0, f2_mumkin_summa: 0 }),
 ];
@@ -75,20 +75,20 @@ describe('paketDekod — struct-of-arrays', () => {
   });
 });
 
-describe('materializator = eski o‘quvchilar (t2_daraxt + t2_qator_holat)', () => {
+describe('materializator — joriy kanonik hisob-yadro kontrakti', () => {
   it('qatorlar aynan T2_DARAXT_USTUNLARI shaklida va tartibida', () => {
     const q = paketdanQatorlar(paketDekod(nusxa(PAKET)));
     expect(q).toEqual(ESKI_QATORLAR);
     for (const r of q) expect(Object.keys(r).sort()).toEqual(T2_DARAXT_USTUNLARI.split(',').sort());
   });
 
-  it('holatlar aynan T2_HOLAT_DARAXT_USTUNLARI shaklida (hosila ustunlar t2_qator_holat formulasi bilan)', () => {
+  it('holatlar T2_HOLAT_DARAXT_USTUNLARI shaklida, hosilalar joriy hisob-yadro kontrakti bilan', () => {
     const hs = paketdanHolatlar(paketDekod(nusxa(PAKET)));
     expect(hs).toEqual(ESKI_HOLATLAR);
     for (const r of hs) expect(Object.keys(r).sort()).toEqual(T2_HOLAT_DARAXT_USTUNLARI.split(',').sort());
   });
 
-  it('daraxt (sbT2TreeQur) eski yo‘l bilan bir xil', () => {
+  it('daraxt (sbT2TreeQur) kanonik NULL fixture bilan bir xil', () => {
     const p = paketDekod(nusxa(PAKET));
     expect(sbT2TreeQur(paketdanQatorlar(p), paketdanHolatlar(p))).toEqual(sbT2TreeQur(ESKI_QATORLAR as T2Qator[], ESKI_HOLATLAR as T2QatorHolat[]));
   });

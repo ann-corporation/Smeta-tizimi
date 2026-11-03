@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { T2_DARAXT_USTUNLARI, T2_HOLAT_DARAXT_USTUNLARI_YOQ } from '../../api/t2-daraxt-ustunlar';
-import { sbT2DaraxtOl, sbT2QatorHolatOl, sbT2TreeQur, type T2Qator, type T2QatorHolat } from '../../api/supabase';
+import { T2_HOLAT_DARAXT_USTUNLARI_YOQ } from '../../api/t2-daraxt-ustunlar';
+import { daraxtVaHolatOl } from '../../lib/oylik-hujjat/ostatka-slichitelniy';
+import { sbT2QatorHolatOl, sbT2TreeQur, type T2Qator, type T2QatorHolat } from '../../api/supabase';
 import { sbT2DaraxtQisman, sbT2QatorHolatQisman } from '../../api/t2-holat-qisman';
 import { priceControlOl, type PriceControlLine } from '../../api/t2-price-control';
 import { faktTaalluqliIdlar, holatlarniAlmashtir, qatorlarniYamala } from '../../lib/fakt-yangilash';
@@ -148,16 +149,17 @@ export function useT2Daraxt(obyektId: number | null) {
     const qoshP = qoshimchalarniOl(obyektId);
     const jarayon = (async (): Promise<boolean> => {
       try {
-        const [d, h] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbT2QatorHolatOl(obyektId, T2_HOLAT_DARAXT_USTUNLARI_YOQ)]);
+        // Yagona o'qish (lib/oylik-hujjat): oylik paket ham aynan shu funksiyadan foydalanadi.
+        const d = await daraxtVaHolatOl(obyektId);
         if (toliq !== toliqNavbat.current || !tirik(e, obyektId)) return false;
-        if (!d.ok || !h.ok) {
-          setError(d.error || h.error || 'Kanonik daraxt o‘qilmadi.');
+        if (!d.ok) {
+          setError(d.xato);
           if (birinchi) { setRows([]); setStates([]); }
           return false;
         }
         // Avvalgi belgilar darhol (miltillamasin); yangisi kelguncha qoshimchaHolat='yuklanmoqda' — eksport kutadi.
-        setRows(ozgarishniQosh((d.qatorlar || []) as T2Qator[], ozRef.current));
-        setStates((h.qatorlar || []) as T2QatorHolat[]);
+        setRows(ozgarishniQosh(d.rows, ozRef.current));
+        setStates(d.states);
         setServerTasdiq(true);
         keshgaYoz(obyektId, e);
         void narxNazorati(obyektId, e);

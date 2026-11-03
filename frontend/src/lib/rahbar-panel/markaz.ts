@@ -3,6 +3,7 @@
  * Davr tanlovi, karta holat rangi, «diqqat» bandlarining nomi va olib boradigan joyi, trend nuqtalari.
  */
 import type { RahbarDiqqat, RahbarOy, RahbarPanel } from '../../api/t2-rahbar-panel';
+import type { SummaPaket } from '../summa-paket';
 
 export type DavrTur = 'hammasi' | 'oy' | 'chorak' | 'yil';
 export type Davr = { dan: string | null; gacha: string | null };
@@ -73,4 +74,35 @@ export function diqqatYoli(d: RahbarDiqqat): string {
 export function bosqichFoizlari(b: { fakt: number | null; f2: number | null; f3: number | null }): Array<{ kalit: 'fakt' | 'f2' | 'f3'; foiz: number | null }> {
   const cheg = (v: number | null) => (v == null || !Number.isFinite(v) ? null : Math.max(0, Math.min(100, v)));
   return [{ kalit: 'fakt', foiz: cheg(b.fakt) }, { kalit: 'f2', foiz: cheg(b.f2) }, { kalit: 'f3', foiz: cheg(b.f3) }];
+}
+
+
+export type ResursKalit = 'chel' | 'mash' | 'mat' | 'ob' | 'subpudrat' | 'svod' | 'ustamasiz' | 'nomalum';
+export type ResursQator = { kalit: ResursKalit; smeta: number | null; fakt: number | null; f2: number | null; f2Foiz: number | null };
+
+const KESIM_TARTIB: ResursKalit[] = ['chel', 'mash', 'mat', 'ob', 'subpudrat', 'svod', 'ustamasiz', 'nomalum'];
+
+/**
+ * §6 Resurslar: kesim bo'yicha smeta vs fakt vs F2 (to'g'ri xarajat, прямые). Paket yo'q ustun — null (0 emas).
+ * Asosiy to'rtlik doim; qolganlari faqat biror ustunda qiymat bo'lsa.
+ */
+export function resursJadvali(smeta: SummaPaket | null, fakt: SummaPaket | null, f2: SummaPaket | null): ResursQator[] {
+  const ol = (p: SummaPaket | null, k: ResursKalit) => (p ? p.kesim[k] : null);
+  return KESIM_TARTIB.map((k) => {
+    const s = ol(smeta, k), f = ol(fakt, k), b = ol(f2, k);
+    return { kalit: k, smeta: s, fakt: f, f2: b, f2Foiz: s != null && b != null && s !== 0 ? Math.round((b / s) * 1000) / 10 : null };
+  }).filter((q) => ['chel', 'mash', 'mat', 'ob'].includes(q.kalit) || [q.smeta, q.fakt, q.f2].some((v) => v != null && v !== 0));
+}
+
+export type SubpudratQator = { kontragent: string; smeta: number | null; f2: number | null };
+
+/** Subpudratchilar: smeta va F2 paketlaridagi kontragentlar birlashtiriladi (nomi bo'yicha). To'lov/qarz — hali manba yo'q. */
+export function subpudratchilar(smeta: SummaPaket | null, f2: SummaPaket | null): SubpudratQator[] {
+  const m = new Map<string, SubpudratQator>();
+  for (const x of smeta?.subpudratchilar ?? []) m.set(x.kontragent, { kontragent: x.kontragent, smeta: x.summa, f2: null });
+  for (const x of f2?.subpudratchilar ?? []) {
+    const b = m.get(x.kontragent) ?? { kontragent: x.kontragent, smeta: null, f2: null };
+    b.f2 = x.summa; m.set(x.kontragent, b);
+  }
+  return [...m.values()].sort((a, b) => (b.smeta ?? b.f2 ?? 0) - (a.smeta ?? a.f2 ?? 0));
 }

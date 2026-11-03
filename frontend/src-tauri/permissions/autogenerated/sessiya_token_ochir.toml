@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-sessiya-token-ochir"
+description = "Enables the sessiya_token_ochir command without any pre-configured scope."
+commands.allow = ["sessiya_token_ochir"]
+
+[[permission]]
+identifier = "deny-sessiya-token-ochir"
+description = "Denies the sessiya_token_ochir command without any pre-configured scope."
+commands.deny = ["sessiya_token_ochir"]

@@ -20,19 +20,19 @@ const USTUNLAR: RasmiyUstun[] = [
   { sarlavha: 'Шифр, код', kenglik: 12, tur: 'kod' },
   { sarlavha: 'Наименование материала / работы', kenglik: 58, tur: 'matn' },
   { sarlavha: 'Ед. изм.', kenglik: 8, tur: 'birlik' },
-  { sarlavha: 'Норма на ед. работ', kenglik: 11, tur: 'norma' },
-  { sarlavha: 'Объём работ', kenglik: 11, tur: 'hajm', guruh: 'ЗА ОТЧЁТНЫЙ МЕСЯЦ' },
-  { sarlavha: 'Расход по норме', kenglik: 12, tur: 'hajm', guruh: 'ЗА ОТЧЁТНЫЙ МЕСЯЦ' },
-  { sarlavha: 'Фактически', kenglik: 12, tur: 'hajm', guruh: 'ЗА ОТЧЁТНЫЙ МЕСЯЦ' },
+  { sarlavha: 'Норма на ед. работ', kenglik: 13, tur: 'norma' },
+  { sarlavha: 'Объём работ', kenglik: 13, tur: 'hajm', guruh: 'ЗА ОТЧЁТНЫЙ МЕСЯЦ' },
+  { sarlavha: 'Расход по норме', kenglik: 13, tur: 'hajm', guruh: 'ЗА ОТЧЁТНЫЙ МЕСЯЦ' },
+  { sarlavha: 'Фактически', kenglik: 13, tur: 'hajm', guruh: 'ЗА ОТЧЁТНЫЙ МЕСЯЦ' },
   { sarlavha: 'Отклонение (+ перерасход, − экономия)', kenglik: 13, tur: 'hajm', guruh: 'ЗА ОТЧЁТНЫЙ МЕСЯЦ' },
-  { sarlavha: 'Объём работ', kenglik: 11, tur: 'hajm', guruh: 'С НАЧАЛА СТРОИТЕЛЬСТВА' },
-  { sarlavha: 'Расход по норме', kenglik: 12, tur: 'hajm', guruh: 'С НАЧАЛА СТРОИТЕЛЬСТВА' },
-  { sarlavha: 'Фактически', kenglik: 12, tur: 'hajm', guruh: 'С НАЧАЛА СТРОИТЕЛЬСТВА' },
+  { sarlavha: 'Объём работ', kenglik: 13, tur: 'hajm', guruh: 'С НАЧАЛА СТРОИТЕЛЬСТВА' },
+  { sarlavha: 'Расход по норме', kenglik: 13, tur: 'hajm', guruh: 'С НАЧАЛА СТРОИТЕЛЬСТВА' },
+  { sarlavha: 'Фактически', kenglik: 13, tur: 'hajm', guruh: 'С НАЧАЛА СТРОИТЕЛЬСТВА' },
   { sarlavha: 'Отклонение (+ перерасход, − экономия)', kenglik: 13, tur: 'hajm', guruh: 'С НАЧАЛА СТРОИТЕЛЬСТВА' },
-  { sarlavha: 'Цена по смете, сум', kenglik: 13, tur: 'narx' },
-  { sarlavha: 'Сумма отклонения, сум', kenglik: 15, tur: 'pul' },
-  { sarlavha: 'Поступило на объект', kenglik: 12, tur: 'hajm', guruh: 'СКЛАД ОБЪЕКТА' },
-  { sarlavha: 'Остаток на складе', kenglik: 12, tur: 'hajm', guruh: 'СКЛАД ОБЪЕКТА' },
+  { sarlavha: 'Цена по смете, сум', kenglik: 16, tur: 'narx' },
+  { sarlavha: 'Сумма отклонения, сум', kenglik: 19, tur: 'pul' },
+  { sarlavha: 'Поступило на объект', kenglik: 13, tur: 'hajm', guruh: 'СКЛАД ОБЪЕКТА' },
+  { sarlavha: 'Остаток на складе', kenglik: 13, tur: 'hajm', guruh: 'СКЛАД ОБЪЕКТА' },
 ];
 // Ustun harflari: A№ B kod C nom D birlik E norma | F G H I (oy) | J K L M (jami) | N narx O summa | P kirim Q qoldiq
 
@@ -57,8 +57,8 @@ export function m29DavrMatni(davr: string): string {
 /** Ustunlar: A–E, keyin oldingi oylar (har biri 2 ustun), keyin hisobot oyi, с начала, narx, sklad. */
 function m29Ustunlar(oylar: readonly string[]): RasmiyUstun[] {
   const oy: RasmiyUstun[] = oylar.flatMap((m) => [
-    { sarlavha: 'Расход по норме', kenglik: 12, tur: 'hajm' as const, guruh: m29DavrMatni(m).toUpperCase() },
-    { sarlavha: 'Фактически', kenglik: 12, tur: 'hajm' as const, guruh: m29DavrMatni(m).toUpperCase() },
+    { sarlavha: 'Расход по норме', kenglik: 13, tur: 'hajm' as const, guruh: m29DavrMatni(m).toUpperCase() },
+    { sarlavha: 'Фактически', kenglik: 13, tur: 'hajm' as const, guruh: m29DavrMatni(m).toUpperCase() },
   ]);
   return [...USTUNLAR.slice(0, 5), ...oy, ...USTUNLAR.slice(5)];
 }
@@ -111,14 +111,14 @@ export function m29Hujjat(n: M29Natija, o: M29ExportOpsiya): M29HujjatNatija {
       ], { daraja: 1 });
       matQatorlar.push(r);
       for (const ish of m.ishlar) {
-        v.qator('oddiy', (rr) => [
+        v.qator('ish', (rr) => [
           null, kodKor(ish.kod), `   ${ish.nom}${ish.toGridan ? ' (расход по акту Ф-2)' : ''}`, ish.birlik,
           ish.norma == null ? null : { n: ish.norma, uslub: 'norma' },
           ...oldingi.flatMap((_, k): Qiymat[] => { const x = matOy(k, m.kalit)?.ishlar.find((z) => z.blId === ish.blId); return [x ? x.normaOy : null, null]; }),
           ish.hajmOy, ish.toGridan || ish.norma == null ? ish.normaOy : { f: `ROUND(E${rr}*${H('F')}${rr},6)`, v: ish.normaOy }, null, null,
           ish.hajmJami, ish.toGridan || ish.norma == null ? ish.normaJami : { f: `ROUND(E${rr}*${H('J')}${rr},6)`, v: ish.normaJami }, null, null,
           null, null, null, null,
-        ], { daraja: 2 });
+        ], { daraja: 2, rang: null }); // BL (ish) - qalin (egasi qoidasi)
       }
     }
     const jr = v.qator('jami', () => [
