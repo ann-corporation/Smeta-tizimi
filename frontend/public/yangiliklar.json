@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 80,
+      "sana": "2026-11-04",
+      "sarlavha": "Shartnoma oylik paketida endi Nakopitelniy, M-29, Ostatka va Slichitelniy ham bor; egizakka F2 nusxasi qattiq emas",
+      "bandlar": [
+        "Shartnoma oylik paketida har obyekt papkasiga Nakopitelniy vedomost, M-29, Ostatka va Slichitelniy vedomosti qo‘shiladi — sahifadagi Excel bilan aynan bir xil fayl, har biri token bilan. «Tayyorgarlik» jadvalida katak haqiqatan yaratilgan faylga qarab ✓ yoki ✗ bo‘ladi; ma’lumot yo‘q hujjat paketni to‘xtatmaydi.",
+        "Egizak obyektga F2 nusxasi bitta farq tufayli butunlay rad etilmaydi: mos kelgan qatorlar ko‘chadi, moslanmaganlari sababi (EGIZAK_KALIT / EGIZAK_OTA) bilan ko‘rinishda chiqadi. Qatorlar soni farqi ogohlantirish bo‘ldi. Tasdiqlangan F2 o‘zgarmaydi — egizakda faqat qoralama yaratiladi.",
+        "Nakopitelniy, M-29, Ostatka va Slichitelniy Excel: tur belgisi ustuni chop etilmaydi va ko‘rinmaydi; ish (BL), material (MAT) va jihoz (OB) qalin, resurs (RS) kursiv va ochroq; raqam ustunlari kengaytirildi."
+      ]
+    },
+    {
       "id": 79,
       "sana": "2026-11-03",
       "sarlavha": "Tender / xarid — tasdiqdan g‘olibgacha",
@@ -73,16 +83,6 @@
         "Import qilingan F2 ning o‘z podvali (ustama foizlari) bazada saqlanadi va panel, tarix, qoralama, Excel hamda storno hammasida shu foizlar bilan hisoblanadi. Tasdiqlangan F2 ning asl faylini qayta yuklab, faqat podvalni tiklash mumkin (F2 tarixi).",
         "Pereraschet: bir nechta eski F2 ni birga tanlab, ularni hujjat tepasida alohida «Сторно Ф-2 №…» bloklari (har biri o‘z podvali bilan), pastda yangi smeta qatorlarini qo‘shasiz. Jami: yangi − eski, QQS bilan / ustamali / ustamasiz.",
         "Forma-2 Excel qoralamasi ham shu bloklarni va sof jamini ko‘rsatadi; QQS stavkasi bo‘sh qolsa tizim stavkasi olinadi."
-      ]
-    },
-    {
-      "id": 76,
-      "sana": "2026-11-04",
-      "sarlavha": "Shartnoma oylik paketida endi Nakopitelniy, M-29, Ostatka va Slichitelniy ham bor; egizakka F2 nusxasi qattiq emas",
-      "bandlar": [
-        "Shartnoma oylik paketida har obyekt papkasiga Nakopitelniy vedomost, M-29, Ostatka va Slichitelniy vedomosti qo‘shiladi — sahifadagi Excel bilan aynan bir xil fayl, har biri token bilan. «Tayyorgarlik» jadvalida katak haqiqatan yaratilgan faylga qarab ✓ yoki ✗ bo‘ladi; ma’lumot yo‘q hujjat paketni to‘xtatmaydi.",
-        "Egizak obyektga F2 nusxasi bitta farq tufayli butunlay rad etilmaydi: mos kelgan qatorlar ko‘chadi, moslanmaganlari sababi (EGIZAK_KALIT / EGIZAK_OTA) bilan ko‘rinishda chiqadi. Qatorlar soni farqi ogohlantirish bo‘ldi. Tasdiqlangan F2 o‘zgarmaydi — egizakda faqat qoralama yaratiladi.",
-        "Nakopitelniy, M-29, Ostatka va Slichitelniy Excel: tur belgisi ustuni chop etilmaydi va ko‘rinmaydi; ish (BL), material (MAT) va jihoz (OB) qalin, resurs (RS) kursiv va ochroq; raqam ustunlari kengaytirildi."
       ]
     },
     {
