@@ -98,7 +98,7 @@ it('chapdan ish tanlab o‘ngga qo‘shish: kuzatilgan birlik, resurs miqdori, n
   fireEvent.click(await screen.findByText('Устройство бетонной подготовки', undefined, { timeout: 8000 }));
   await screen.findByText('Бетон B7,5', undefined, { timeout: 8000 });
   expect(screen.getByText('М3')).toBeTruthy();
-  fireEvent.change(screen.getByPlaceholderText('4,5'), { target: { value: '4' } });
+  fireEvent.change(screen.getByLabelText(/^Hajm yoki formula/), { target: { value: '4' } });
   fireEvent.click(screen.getByRole('button', { name: /Smetaga qo‘shish/ }));
   const panel = screen.getByRole('region', { name: 'Smeta qoralamasi' });
   // Operator does not need a hidden extra expansion step after adding the work.
@@ -147,11 +147,12 @@ it('tanlangan podrazdelga vergulli hajm qo‘shiladi; noto‘g‘ri hajm tugma y
   fireEvent.change(screen.getByLabelText('Normativ ish qidirish'), { target: { value: 'бетон' } });
   fireEvent.click(await screen.findByText('Устройство бетонной подготовки', undefined, { timeout: 8000 }));
   await screen.findByText('Бетон B7,5', undefined, { timeout: 8000 });
-  const quantity = screen.getByPlaceholderText('4,5') as HTMLInputElement;
+  const quantity = screen.getByLabelText(/^Hajm yoki formula/) as HTMLInputElement;
   const button = screen.getByRole('button', { name: /Smetaga qo‘shish/ });
   fireEvent.change(quantity, { target: { value: '-4' } });
   fireEvent.click(button);
-  expect(within(button.closest('.space-y-2')!).getByRole('alert').textContent).toContain('Hajm noto‘g‘ri');
+  expect(within(button.closest('.space-y-2')!).getByRole('alert').textContent).toContain('formulani tekshiring');
+  expect((button as HTMLButtonElement).disabled).toBe(true);
   expect(quantity.value).toBe('-4');
   fireEvent.change(quantity, { target: { value: '4,5' } });
   fireEvent.click(button);
@@ -281,7 +282,7 @@ it('keeps the worksheet visible while selecting works and preserves an unsaved i
  fireEvent.change(await screen.findByLabelText('Normativ ish qidirish'),{target:{value:'beton'}});
  fireEvent.click(await screen.findByText('Устройство бетонной подготовки'));
  await screen.findByText('Бетон B7,5');
- const quantity=screen.getByPlaceholderText('4,5');
+ const quantity=screen.getByLabelText(/^Hajm yoki formula/);
  fireEvent.change(quantity,{target:{value:'3'}});fireEvent.click(screen.getByRole('button',{name:/Smetaga qo‘shish/}));
  fireEvent.change(quantity,{target:{value:'4'}});fireEvent.click(screen.getByRole('button',{name:/Smetaga qo‘shish/}));
  const table=screen.getByRole('region',{name:'Smeta ishlar jadvali'});
@@ -416,7 +417,7 @@ it('restores the selected library and displays explicit source scale with a phys
     fireEvent.click(await screen.findByText('Устройство бетонной подготовки'));
     await screen.findByText('Бетон B7,5');
     expect(screen.getByText(/^Norma masshtabi:/).textContent).toContain('100 м3');
-    expect(screen.getByLabelText('Hajm (м3)')).toBeTruthy();
+    expect(screen.getByLabelText('Hajm yoki formula (м3)')).toBeTruthy();
     expect(screen.queryByText(/manbada aniqlanmagan/)).toBeNull();
     expect(screen.queryByText(/marta kuzatilgan/)).toBeNull();
     // A selected catalogue is not the source of every frozen occurrence;
