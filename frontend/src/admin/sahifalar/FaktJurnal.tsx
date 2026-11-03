@@ -43,6 +43,8 @@ import { abcXato, ishAbcOchir, type NarxManba } from '../../api/t2-ish-abc';
 import { katAniqla, type AbcResurs } from '../../lib/ish-abc';
 import { HOLAT_MUHR, f2OlishMumkin, faktMeter, jurnalXulosa, obyektUlushi as obyektUlushiHisobla } from '../../lib/fakt-korinish';
 import { BolimMeter, FaktXulosaPanel, HolatMuhr, MeterLegenda, QatorMeter } from '../../components/fakt/FaktKorinish';
+import { BirlikOgohBlok } from '../../components/fakt/BirlikOgoh';
+import { qiymatBirlikOgohi } from '../../lib/fakt-birlik-ogoh';
 import type { Daraxt, Ustun } from '../../umumiy/jadval-filtr/ustunFiltr';
 import { useJadvalFiltr } from '../../umumiy/jadval-filtr/useJadvalFiltr';
 import { FiltrHolatQatori, UstunFiltrTugma } from '../../umumiy/jadval-filtr/UstunFiltrTugma';
@@ -350,6 +352,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   }, [paket, band, obyektId, sana, holatniYangila]);
   const saqlaIchki = async (): SaqlashNatija => {
     if (!paket.ok || band) return false;
+    // Birlik xatosi gumoni («100М3» ga 300): faqat ogohlantirish — foydalanuvchi baribir saqlashi mumkin.
+    const ogohSoni = paket.qatorlar.filter((x) => { const q = barchaById.get(x.qator_id); const k = kiritmalar[x.qator_id]; return !!q && !!k && qiymatBirlikOgohi(k.qiymat, k.rejim, q.smeta, q.fakt, q.birlik) != null; }).length;
+    if (ogohSoni > 0 && !await tasdiqSora({ matn: t('{n} qatorda fakt smetadan ancha oshgan — baribir saqlansinmi?', { n: ogohSoni }), xavfli: true })) return false;
     setBand(true);
     try {
       // CAS: «jami» (=) kiritmalari brauzerdagi faktga nisbatan delta — server fakti o'zgargan bo'lsa yozilmaydi.
@@ -441,7 +446,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
     const ortiqcha = xato || yangiFakt == null ? null : ochiqdanOrtiqcha({ smeta: q.smeta, fakt: yangiFakt, almashtirilgan: q.almashtirilgan, bajarilmaydi: q.bajarilmaydi });
     const oshdi = (ortiqcha ?? 0) > 0;
     const izoh = yangiFakt != null && <div className={`absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap text-[10.5px] ${oshdi ? 'font-semibold text-warn' : 'text-text-mute'}`} data-testid={oshdi ? 'qoldiqdan-oshdi' : undefined}>→ {fmt(yangiFakt)}{q.smeta ? ` / ${fmt(q.smeta)}` : ''}{oshdi ? ` · ${t('qoldiqdan oshdi')} +${fmt(ortiqcha)}` : ''}</div>;
-    return <div className="flex flex-wrap-reverse items-center justify-end gap-1">
+    // Birlik xatosi gumoni (bloklamaydi): smeta birligi «100М3» bo'lsa 300 → 3,00 taklifi, bir tugmada tuzatiladi.
+    const birlikOgoh = xato ? null : qiymatBirlikOgohi(k.qiymat, k.rejim, q.smeta, q.fakt, q.birlik);
+    const asosiy = <div className="flex flex-wrap-reverse items-center justify-end gap-1">
       <div className="flex w-full justify-end gap-0.5 empty:hidden">{!kichik && [25, 50, 75, 100].map((p) => { const v = qoldiqUlushi(q, p); return v ? <button key={p} type="button" tabIndex={-1} onClick={() => kirit(q.id, { rejim: '+', qiymat: v })} title={t('Ochiq qoldiqning {p}% i', { p: String(p) })} className="h-6 rounded-[var(--radius-xs)] border border-border px-1 font-mono text-[10.5px] text-text-dim hover:border-accent hover:text-text">{p}%</button> : null; })}</div>
       <div className="inline-flex h-6 overflow-hidden rounded-[var(--radius-xs)] border border-border-strong text-[12px]" role="group" aria-label={t('Kiritish rejimi')}>
         {(['+', '='] as Rejim[]).map((r) => <button key={r} type="button" tabIndex={-1} aria-pressed={k.rejim === r} title={r === '+' ? t('Bugun bajarilgan hajm (qo‘shiladi)') : t('Jami fakt (shu qiymatga tenglashtiriladi)')} onClick={() => kirit(q.id, { rejim: r })} className={`w-6 font-semibold ${k.rejim === r ? 'bg-accent text-[var(--on-accent)]' : 'text-text-dim hover:bg-surface-3'}`}>{r}</button>)}
@@ -453,6 +460,8 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
         {xato ? <div className="absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap text-[10.5px] font-semibold text-warn">{t(JURNAL_XATO_MATN[xato])}</div> : izoh}
       </div>
     </div>;
+    // Doim bir xil o'ram: ogohlantirish paydo bo'lganda input qayta yaratilmaydi (fokus yo'qolmaydi).
+    return <div className="flex flex-col gap-1">{asosiy}{birlikOgoh && <BirlikOgohBlok ogoh={birlikOgoh} onTuzat={(v) => kirit(q.id, { qiymat: v })} className="mt-4 w-[300px] self-end" />}</div>;
   };
 
   /**

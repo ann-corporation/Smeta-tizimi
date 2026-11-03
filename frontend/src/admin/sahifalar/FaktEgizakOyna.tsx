@@ -1,16 +1,22 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { yangiOperationId, type T2Obyekt } from '../../api/supabase';
 import { sbFaktYoz } from '../../api/t2-fakt';
 import { sbT2QatorHolatQisman } from '../../api/t2-holat-qisman';
 import { egizakHolatOl, egizakQatorlarOl, EgizakOqishXatosi } from '../../api/t2-egizak';
 import { egizakJuftlari, type EgizakQator } from '../../lib/f2-moslash-v3/egizak';
-import { RAD_SABAB_MATN, faktEgizakReja, faktEgizakYoz, qoshimchaXarita, type EgizakNatija, type EgizakReja } from '../../lib/fakt-egizak';
+import { RAD_SABAB_MATN, faktEgizakReja, faktEgizakYoz, qoshimchaXarita, type EgizakMos, type EgizakNatija, type EgizakReja } from '../../lib/fakt-egizak';
 import type { Kiritma } from '../../lib/fakt-jurnal';
 import { t } from '../../i18n/til';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { BirlikOgohBlok } from '../../components/fakt/BirlikOgoh';
+import { qiymatBirlikOgohi } from '../../lib/fakt-birlik-ogoh';
 
 const fmt = (v: number | null | undefined) => (v == null ? '—' : Number(v).toLocaleString('ru-RU', { maximumFractionDigits: 3 }));
 const KORSAT = 150;
+
+/** Egizak qatori uchun birlik xatosi gumoni (faqat ogohlantirish; egizakning o'z smetasi va birligi bo'yicha). */
+const mosOgohi = (x: EgizakMos) => qiymatBirlikOgohi(x.qiymat, x.rejim, x.smeta, x.joriy, x.birlik);
 
 export type EgizakDoira = 'qoralama' | 'bolim' | 'obyekt';
 type Tomon = { qatorlar: EgizakQator[]; smeta: Map<number, number | null>; fakt: Map<number, number>; qosh: Map<number, number> };
@@ -92,6 +98,8 @@ export function FaktEgizakOyna({ obyektId, obyektNom, objects, sana, qoralama, b
   };
   const yoz = async () => {
     if (band || !yoziladi.length) return;
+    const ogohSoni = yoziladi.reduce((s, r) => s + r.moslar.filter((x) => mosOgohi(x) != null).length, 0);
+    if (ogohSoni > 0 && !await tasdiqSora({ matn: t('{n} qatorda fakt smetadan ancha oshgan — baribir saqlansinmi?', { n: ogohSoni }), xavfli: true })) return;
     setBand(true);
     try {
       if (doira === 'qoralama' && manbaBilan && !(await manbaSaqla())) return;
@@ -151,12 +159,13 @@ export function FaktEgizakOyna({ obyektId, obyektNom, objects, sana, qoralama, b
               </div>
               {r.moslar.length > 0 && <table className="fz-table mt-2 w-full">
                 <thead><tr className="border-b border-border text-left text-text-mute"><th className="px-1">{t('Qator')}</th><th className="px-1 text-right">{t('Smeta')}</th><th className="px-1 text-right">{t('Hozirgi fakt')}</th><th className="px-1 text-center">{t('Rejim')}</th><th className="px-1 text-right">{t('Yoziladi')}</th><th className="px-1 text-right">{t('Yangi fakt')}</th></tr></thead>
-                <tbody>{r.moslar.slice(0, KORSAT).map((x) => <tr key={x.bId} className="border-b border-border/40">
+                <tbody>{r.moslar.slice(0, KORSAT).map((x) => { const og = mosOgohi(x); return <Fragment key={x.bId}><tr className="border-b border-border/40">
                   <td className="max-w-[300px] truncate px-1" title={x.nom}>{x.nom}{x.hajmFarq ? ' ⚠' : ''}</td>
                   <td className="px-1 text-right tabular-nums">{fmt(x.smeta)}</td><td className="px-1 text-right tabular-nums">{fmt(x.joriy)}</td>
                   <td className="px-1 text-center font-mono">{x.rejim}{x.qiymat.includes('%') ? ` ${x.qiymat}` : ''}</td>
                   <td className="px-1 text-right font-semibold tabular-nums">{x.delta > 0 ? '+' : ''}{fmt(x.delta)} {x.birlik ?? ''}</td>
-                  <td className="px-1 text-right tabular-nums">{fmt(x.yangi)}</td></tr>)}</tbody>
+                  <td className="px-1 text-right tabular-nums">{fmt(x.yangi)}</td></tr>
+                  {og && <tr><td colSpan={6} className="px-1 pb-1"><BirlikOgohBlok ogoh={og} /></td></tr>}</Fragment>; })}</tbody>
               </table>}
               {KORSAT < r.moslar.length && <p className="pt-1 text-[11px] text-text-mute">{t('yana {n} ta qator', { n: String(r.moslar.length - KORSAT) })}</p>}
               {r.radlar.length > 0 && <details open className="mt-2 text-warn"><summary>{t('Yozilmaydigan qatorlar ({n}):', { n: String(r.radlar.length) })}</summary>

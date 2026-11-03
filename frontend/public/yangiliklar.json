@@ -2,7 +2,7 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 68,
+      "id": 73,
       "sana": "2026-11-03",
       "sarlavha": "Loyihasiz obyekt endi hech qayerda yashirilmaydi",
       "bandlar": [
@@ -12,7 +12,7 @@
       ]
     },
     {
-      "id": 67,
+      "id": 74,
       "sana": "2026-11-03",
       "sarlavha": "Forma-3 ikki shaklda: to‘liq va bir qatorli",
       "bandlar": [
@@ -22,13 +22,23 @@
       ]
     },
     {
-      "id": 66,
+      "id": 75,
       "sana": "2026-11-03",
       "sarlavha": "F2 hujjati endi o‘z podvali bilan hisoblanadi; pereraschet — bitta hujjatda",
       "bandlar": [
         "Import qilingan F2 ning o‘z podvali (ustama foizlari) bazada saqlanadi va panel, tarix, qoralama, Excel hamda storno hammasida shu foizlar bilan hisoblanadi. Tasdiqlangan F2 ning asl faylini qayta yuklab, faqat podvalni tiklash mumkin (F2 tarixi).",
         "Pereraschet: bir nechta eski F2 ni birga tanlab, ularni hujjat tepasida alohida «Сторно Ф-2 №…» bloklari (har biri o‘z podvali bilan), pastda yangi smeta qatorlarini qo‘shasiz. Jami: yangi − eski, QQS bilan / ustamali / ustamasiz.",
         "Forma-2 Excel qoralamasi ham shu bloklarni va sof jamini ko‘rsatadi; QQS stavkasi bo‘sh qolsa tizim stavkasi olinadi."
+      ]
+    },
+    {
+      "id": 72,
+      "sana": "2026-11-03",
+      "sarlavha": "Fakt kiritishda birlik xatosi haqida ogohlantirish",
+      "bandlar": [
+        "Smeta birligi «100 М3» bo‘lgan ishga 300 yozilsa (300 m³ ni nazarda tutib), tizim endi saqlashdan oldin shu qatorning o‘zida ogohlantiradi: «Birlik: 100 М3 — siz 300 kiritdingiz (smeta 2,791). 3,00 nazarda tutilmaganmi?» va bitta bosish bilan «3,00 qilib qo‘yish» taklif qiladi.",
+        "Fakt jamlangan holda smetadan 1,5 baravardan ko‘p bo‘lsa yoki smetadan aynan 10, 100, 1000 marta (±10%) ko‘p bo‘lsa ogohlantiriladi — Fakt jurnali (katak, foiz bilan tez kiritish, ommaviy saqlash) va egizaklarga yozish oldindan ko‘rishida. Saqlashda shunday qatorlar bo‘lsa, umumiy tasdiq so‘raladi; hech narsa bloklanmaydi, minus qiymat ham mumkin.",
+        "Holat sahifasidagi «Diqqat: smetadan oshgan» kartasida ham, nisbat birlik xatosiga o‘xshasa, shu maslahat ko‘rinadi."
       ]
     },
     {
