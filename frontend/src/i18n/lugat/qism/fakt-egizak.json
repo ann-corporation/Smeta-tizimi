@@ -20,5 +20,7 @@
   "Xato: {xabar}": { "ru": "Ошибка: {xabar}", "en": "Error: {xabar}" },
   "egizak smetasida mos qator topilmadi": { "ru": "в смете близнеца нет подходящей строки", "en": "no matching row in the twin's estimate" },
   "qo‘shimcha qator egizakda yo‘q (F2 egizak nusxasi bilan yarating)": { "ru": "дополнительной строки нет у близнеца (создайте копированием Ф-2 близнеца)", "en": "the additional row does not exist in the twin (create it via F2 twin copy)" },
-  "bu qatorga fakt qo‘lda kiritilmaydi": { "ru": "в эту строку факт вручную не вводится", "en": "fact is not entered manually on this row" }
+  "bu qatorga fakt qo‘lda kiritilmaydi": { "ru": "в эту строку факт вручную не вводится", "en": "fact is not entered manually on this row" },
+  "Egizak obyekt ma’lumotlari o‘qilmadi ({kod}).": { "ru": "Данные объекта-близнеца не прочитаны ({kod}).", "en": "Twin object data could not be read ({kod})." },
+  "«{nom}» o‘qilmadi ({kod}) — bu egizak o‘tkazib yuborildi.": { "ru": "«{nom}» не прочитан ({kod}) — этот близнец пропущен.", "en": "“{nom}” could not be read ({kod}) — this twin was skipped." }
 }

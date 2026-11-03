@@ -33,6 +33,7 @@ import ResursVedomostNative from './ResursVedomostNative';
 import NarxNazoratNative from './NarxNazoratNative';
 import { OstatkaIstisnoPanel, useOstatkaIstisnolari } from './OstatkaIstisnoPanel';
 import { BajarilmadiPanel } from './BajarilmadiPanel';
+import { ObosnovaniePanel } from './ObosnovaniePanel';
 import { SmetaAnatomiya } from '../../components/smeta-hujjat/SmetaAnatomiya';
 import { SmetaVersiyaFarq, VersiyaAlmashtirilganBelgi } from './SmetaVersiyaFarq';
 import { yaxlitQatorIdlari } from '../../lib/svod-yaxlit';
@@ -367,6 +368,10 @@ export function HolatNative() {
                 <label className="mt-1 inline-flex items-center gap-1.5 text-[11.5px] text-text-dim" title={t('Slichitelniy vedomostga faqat fakt smetadan farq qiladigan pozitsiyalar kirsin')}>
                   <input type="checkbox" checked={slichFaqatFarq} onChange={(e) => setSlichFaqatFarq(e.target.checked)} /> {t('faqat farqi borlar')}
                 </label>)}
+              <details className="border-t border-border py-2.5">
+                <summary className="cursor-pointer text-[13px] font-semibold text-text">{t('Bajarilgan, lekin F2 ga chiqmagan ish asosi')}</summary>
+                <div className="mt-2">{joriy?.id != null && <ObosnovaniePanel kompaniyaId={joriy.id} obyektId={obyektId} obyektNomi={obyektNom} loyihaId={selected?.loyiha_id ?? null} obyektlar={obyektlar} qatorlar={daraxtXom} holatlar={holatXom} tomonlar={tomonlar} />}</div>
+              </details>
               <details className="border-t border-border py-2.5">
                 <summary className="cursor-pointer text-[12.5px] font-medium text-text-dim">{t('Hujjatlardagi imzo va tomonlar')}</summary>
                 <div className="mt-2"><HujjatTomonlariPanel qiymat={tomonlar} onChange={setTomonlar} tafsilot={imzoTafsilot} /></div>

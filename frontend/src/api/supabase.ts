@@ -33,6 +33,8 @@ export type SbJavob<T> = {
   soni?: number;
   ms?: number;
   error?: string;
+  /** Barqaror xato kodi (server `code` yoki mijoz: TIMEOUT / NETWORK) — hisobotda tashxis uchun. */
+  code?: string;
   sozlanmagan?: boolean;
   /* ⚠️ 2026-08-17: Supabase REST da SERVER TOMONDA 1000 qator chegarasi
      bor («Max rows»). Darcha endi sahifalab o'qiydi, lekin natija baribir
@@ -85,7 +87,7 @@ export async function sbOqi<T = Record<string, unknown>>(s: SbSoro): Promise<SbJ
     return { ...j, ms: Math.round(performance.now() - t0) };
   } catch (e) {
     return { ok: false, error: chegaraOtdimi(e) ? 'Server 60 soniyada javob bermadi. Sahifani yangilab qayta urinib ko‘ring.' : 'Ma’lumotni yuklab bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.',
-             ms: Math.round(performance.now() - t0) };
+             code: chegaraOtdimi(e) ? 'TIMEOUT' : 'NETWORK', ms: Math.round(performance.now() - t0) };
   }
 }
 

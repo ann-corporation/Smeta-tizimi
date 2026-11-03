@@ -5,7 +5,7 @@
  *  - Qoldiq = smeta − F2 − almashtirilgan; smeta summasi noma'lum — qoldiq ham noma'lum (0 emas).
  *  - Fakt hajmi yozilganidek (F2 dan chiqarilmaydi); tasdiqlangan F2 bor qatorda fakt summasi F2 narxida: `faktSummaF2Narxda`.
  */
-import { bosKesim, kesimgaQosh, type Kesim } from './kategoriya';
+import { bosKesim, f2YaxlitdanChiqadi, kesimgaQosh, type Kesim } from './kategoriya';
 import { qatorSumma, yaxlit2 } from './yaxlit';
 
 export type Korinish = 'smeta' | 'fakt' | 'f2' | 'f2_qoralama' | 'qoldiq' | 'oy' | 'jamlanma';
@@ -111,6 +111,7 @@ export function korinishSummasi(q: KorinishQator, k: Korinish, o: KorinishOpsiya
 /** Ko'rinish kesimi: har qator summasi `korinishSummasi` dan; `yaxlitIdlar` — svod yaxlit avlodlari (ustamasiz). */
 export function korinishKesim(qatorlar: Iterable<KorinishQator>, k: Korinish, o: KorinishOpsiya & { yaxlitIdlar?: ReadonlySet<number> | null } = {}): Kesim {
   const kes = bosKesim();
-  for (const q of qatorlar) kesimgaQosh(kes, q.kat, korinishSummasi(q, k, o), !!o.yaxlitIdlar?.has(q.id));
+  const f2m = k === 'f2' || k === 'f2_qoralama';
+  for (const q of qatorlar) kesimgaQosh(kes, q.kat, korinishSummasi(q, k, o), !!o.yaxlitIdlar?.has(q.id) && !(f2m && f2YaxlitdanChiqadi(q.kat)));
   return kes;
 }

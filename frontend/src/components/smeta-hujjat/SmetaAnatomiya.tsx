@@ -47,14 +47,14 @@ export function SmetaAnatomiya({ tree, obyektId }: { tree: readonly TreeNode[]; 
     const bs = [...barglar(tree)].filter((b) => b.type !== 'rz' && b.type !== 'bl');
     const son = (v: number | null | undefined) => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
     // Svod bo'limlari eksport bilan bir model: yaxlit × (ko'rinish / smeta); F2 — aynan (masshtablanmaydi).
-    const yig = (qs: TreeNode[], summa: (b: TreeNode) => number | null, jami: number | null, masshtab = true) => (korinishKesimi
-      ? korinishKesimi(juft, qs, { id: (b) => b.id, kat: (b) => b.kat, summa, smeta: (b) => son(b.smeta) }, { jami, masshtab })
+    const yig = (qs: TreeNode[], summa: (b: TreeNode) => number | null, jami: number | null, masshtab = true, f2 = false) => (korinishKesimi
+      ? korinishKesimi(juft, qs, { id: (b) => b.id, kat: (b) => b.kat, summa, smeta: (b) => son(b.smeta) }, { jami, masshtab, f2 })
       : katKesimJamiBilan(qs, (b) => b.kat, summa, jami));
     return {
       /** Bo'lim jami (bo'lim darajasi) — tree[i] ↔ bolimlar[i]. */
       bolim: tree.map((r) => yig([...barglar([r])].filter((b) => b.type !== 'rz' && b.type !== 'bl'), (b) => son(b.smeta), son(r.smeta))),
       fakt: yig(bs, (b) => son(b.stFakt), umumiy.fakt),
-      f2: yig(bs, (b) => son(b.stF2), umumiy.f2, false),
+      f2: yig(bs, (b) => son(b.stF2), umumiy.f2, false, true),
       // Qoldiq = smeta − F2 AYNAN (fakt ≥ F2 qoidasi yo'q); F2 yo'q — 0. Yadro `ayirma2`.
       qoldiq: yig(bs, (b) => ayirma2(son(b.smeta), son(b.stF2) ?? 0), umumiy.qoldiq),
     };
