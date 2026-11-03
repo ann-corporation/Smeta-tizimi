@@ -20,7 +20,9 @@
         "frontend/package.json",
         "frontend/package-lock.json",
         "supabase/tests/desktop-hisob-parity.mjs",
-        "ops/handoff/DESKTOP_D3_WORKER_20261031.md"
+        "ops/handoff/DESKTOP_D3_WORKER_20261031.md",
+        "frontend/src/ombor/paket.test.ts",
+        "frontend/src/api/t2-daraxt-ustunlar.ts (optional-field comment only)"
       ],
       "depends_on": [],
       "must_read": [
