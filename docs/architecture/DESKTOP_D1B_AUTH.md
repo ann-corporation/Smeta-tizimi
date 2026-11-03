@@ -1,70 +1,16 @@
-# Desktop D1b object authorization
+# Desktop D1b — авторизация объекта и ключ кэша
 
-M3 adds a client adapter for the PR237 ObyektRuxsatPort. The requested base
-c7f437e0 predates the PR237 session manager. The adapter matches its port
-structurally so integration can happen after both branches are combined.
+Адаптер совместим с портом ObyektRuxsatPort из PR237. В текущем main сам менеджер PR237 отсутствует.
 
-## Online decision
+1. Для каждого открытия GET /api/sessiya подтверждает пользователя, срок сессии и штатный ключ подписи. Затем без условного заголовка вызывается GET /api/obyekt-paket: существующий BFF проверяет компанию, smeta.read, f2.read и narx.read. Ответ должен совпасть по формату, объекту и компании.
+2. Повторный GET /api/sessiya проверяет пользователя и прежний срок. Все запросы запрещают редиректы и кэширование. Смена поколения, ошибка сети, 304 и неверное тело закрывают доступ. Только 403 пакета допускает отдельно авторизованный старый путь PR237.
+3. Передать один неизменный контекст авторизации на весь запрос и инвалидировать его до logout, refresh и смены компании. Текущий пакет не возвращает actor/session version; повторная проверка не доказывает отсутствие A→B→A. Для атомарной привязки нужен подтверждённый сервером actor/session version либо транспорт, закрепляющий credential на время операции.
+4. После онлайн-подтверждения менеджер PR237 создаёт временный неэкспортируемый AES-GCM ключ. Refresh/switch закрывает старое поколение до создания нового ключа. Logout/revoke/expiry немедленно скрывают данные, блокируют поздние ответы и очищают ciphertext после завершения записи. Перезапуск не восстанавливает доступ. Native IPC доступен только локальному окну; будущий bootstrap сохраняет credential только после серверного подтверждения и проверки билета поколения PR237.
 
-For each open, the adapter reads GET /api/sessiya, checks the expected actor
-and unexpired server session, and rejects fallback signing-key mode. It then
-requests an unconditional GET /api/obyekt-paket?obyekt_id=N. The BFF derives
-the actor from its session, checks the object's tenant and requires smeta.read,
-f2.read and narx.read under its existing policy. The adapter checks the returned
-package format, tenant and object, discards the package body, and reads the
-session again to confirm the actor and expiry. Both routes use no-store and
-reject redirects. The extra package fetch is the cost of using the existing
-full-package permission gate. A 304 cannot authorize.
+## Офлайн
 
-Only a package 403 is passed through as 403. PR237 may use it to permit one
-separate legacy server read under that endpoint's own authorization. Other
-failures leave the cache closed. Network failure or malformed JSON yields
-status 0. The adapter never touches cache, native credentials or key storage.
+Доступ остаётся закрытым. Нет подписанного серверного lease и проверенного механизма его отзыва. Контракт для согласования L0: lease связывает actor, компанию, объект, устройство, права и срок; проверяются подпись, поколение/отзыв, смена пользователя и откат часов. При истечении доступ закрывается; немедленный серверный отзыв без сети недоказуем, поэтому требуется ограниченный срок и обязательная перепроверка при подключении.
 
-Bind the adapter's joriy callback to an immutable auth generation and
-invalidate it synchronously before logout, refresh, revoke, or actor/company
-switch. Use the same authenticated transport for all three requests. The
-session reads check continuity but the package does not identify its actor
-or session version. They cannot detect an out-of-band A→B→A credential
-change. Atomic proof requires the BFF to return the actor and session version
-with the package decision, or a transport that pins the credential for the
-sequence and invalidates it on auth changes.
+## Приёмка
 
-The base BFF routes authenticate via Cookie. The Desktop fetch shim strips
-cookies and sends Bearer. Installed Desktop therefore still needs a reviewed
-BFF transport that authenticates both routes, including origin/preflight policy,
-or an approved cookie bridge. The adapter does not convert or persist tokens.
-Login/bootstrap and the PR237 loader are integration work. Endpoints are
-tested through mocked HTTP responses in this change.
-
-## Key and credential lifecycle
-
-Use the PR237 manager after a verified online session. Start with the BFF
-expiry in Unix milliseconds and create an in-memory non-extractable AES-GCM
-key. Refresh and tenant/actor switches close the previous generation before
-creating a fresh key. Logout, revoke and expiry immediately invalidate cache
-handles and clear displayed data. Wait for outstanding writes before deleting
-ciphertext and before opening a new cache. A failed cleanup leaves the manager
-closed. Restart requires online authorization and a fresh key.
-
-The trusted bootstrap must verify server authorization before exposing cache
-or committing a credential. PR237 native IPC is local-origin restricted and
-uses a generation ticket for credential writes. Capture the ticket before
-starting the authorized login/refresh flow and reject a late save after logout.
-Close JS access synchronously before awaiting native credential deletion.
-The credential expiry and IPC ticket provide local lifecycle controls.
-
-## Offline lease and revocation
-
-Offline access stays closed. The current BFF does not issue a signed object
-lease and the client has no verifier, durable key binding, or revocation sync.
-The server session expiry is only an online session bound. A future lease
-needs signed issuer, audience, actor, tenant, object, device/key binding,
-permission scope, issue and expiry times, and a revocation identifier or epoch.
-Verify signature and scope before decrypting. Expiry must withstand clock
-rollback and restart. The issuer must define a maximum offline lifetime and
-refresh/revocation policy. A disconnected client can enforce local expiry
-but learns remote revocations only when it reconnects. Reconnect must recheck
-authority before showing cached rows and invalidate keys/data when denied.
-The issuer, verifier, trusted time, revocation and device-bound key storage
-remain open.
+29 целевых тестов HTTP, BFF и transport прошли на синтетических ответах. Main BFF ждёт Cookie, установленный Desktop shim передаёт Bearer. Native bootstrap, разрешённый транспорт BFF и подключение PR237 остаются открыты. Адаптер не сохраняет токен и не читает кэш. Полный gate и реальный вход не подтверждены.
