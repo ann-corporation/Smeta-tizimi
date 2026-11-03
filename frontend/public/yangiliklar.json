@@ -2,6 +2,18 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 77,
+      "sana": "2026-11-04",
+      "sarlavha": "Kadrlar, KPI va ish haqi",
+      "bandlar": [
+        "Yangi «Kadrlar, KPI va ish haqi» sahifasi: xodim kartasi (rol, grafik, oklad yoki kunlik stavka, biriktirilgan obyektlar va ulush, KPI sxemasi); shaxsiy ma'lumotlar alohida ruxsat bilan.",
+        "F2 bonus: tasdiqlangan F2 summasining X% i (ustamasiz yoki ustamali) — biriktirilgan obyektlar yoki akt muallifi bo'yicha; har aktning hissasi xodim qatorida ochiladi.",
+        "Jarima (nuqson, kechikish, xavfsizlik) va qo'lda bonus: qoralama yaratiladi, ish haqi huquqiga ega shaxs tasdiqlagandan keyingina hisobga kiradi.",
+        "Ish kalendari (bayramlar tahrirlanadi), tatil rejasi, oylik norma (kun va soat) va tabel; oylik ish haqi qoralamasi: baza + KPI + bonus - jarima, NDFL/INPS stavkalari sozlanadi, Excel vedomost.",
+        "Noma'lum qiymat (tabel yoki stavka yo'q, F2 summasi yo'q) 0 deb olinmaydi — ogohlantirish bilan ko'rsatiladi va shunday hisobni tasdiqlab bo'lmaydi."
+      ]
+    },
+    {
       "id": 76,
       "sana": "2026-11-03",
       "sarlavha": "Rahbar paneli — boshqaruv markazi",

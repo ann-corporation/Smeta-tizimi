@@ -142,7 +142,9 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       /* 2026-10-27: moliyaviy tahlil — tizimda yo'q ko'rsatkichni qo'lda kiritish (financial.write). */
                       't2_moliya_qolda_yoz_v1',
                       /* 2026-11-03 (L0): qarzdorlik — import va qo'lda saqlash (financial.write, RPC ichida tekshiriladi). */
-                      't2_qarzdorlik_import_v1', 't2_qarzdorlik_saqla_v1'].sort();
+                      't2_qarzdorlik_import_v1', 't2_qarzdorlik_saqla_v1',
+                      /* 2026-11-04: HR + KPI (hr.* / payroll.* RPC ichida tekshiriladi). */
+                      't2_hr_kalendar_saqla_v1', 't2_hr_oylik_hisobla_v1', 't2_hr_sxema_saqla_v1', 't2_hr_tabel_saqla_v1', 't2_hr_tuzatma_qaror_v1', 't2_hr_tuzatma_saqla_v1', 't2_hr_xodim_saqla_v1'].sort();
     T('RPC ro\'yxati AYNAN belgilangan ' + KUTILGAN.length + ' ta domen amali',
       JSON.stringify(amallar) === JSON.stringify(KUTILGAN),
       'topildi: ' + amallar.join(', '));

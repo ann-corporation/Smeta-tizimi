@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { FmtN } from '../../lib/format';
 import {
@@ -80,7 +81,7 @@ export default function ErpKadrlar() {
     <Sahifa
       sarlavha="Kadrlar va davomat"
       tavsif="Ishchilar, oylik tabel va hisoblangan maosh. Katakni bosing: bo‘sh → keldi (8) → kelmadi (N) → bemor (B)."
-      amallar={<button type="button" onClick={() => setQoshOchiq(true)} className="fz-btn fz-btn--primary"><Plus /> {t('Ishchi qo‘shish')}</button>}
+      amallar={<><Link to="/admin/hr" className="fz-btn">{t('Yangi: HR, KPI va ish haqi')}</Link><button type="button" onClick={() => setQoshOchiq(true)} className="fz-btn fz-btn--primary"><Plus /> {t('Ishchi qo‘shish')}</button></>}
     >
       <div className="flex flex-col gap-3">
         <OpsKpiQator yorliq={t('Kadrlar ko‘rsatkichlari')}>

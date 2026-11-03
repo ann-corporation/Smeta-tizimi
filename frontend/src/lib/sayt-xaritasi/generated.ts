@@ -37,6 +37,7 @@ export const GENERATED_SITE_MAP = {
     "/admin/logistika",
     "/admin/zayavka",
     "/admin/erp",
+    "/admin/hr",
     "/admin/kompaniya",
     "/admin/system-control",
     "/admin/tizim-sozlama",
@@ -75,6 +76,7 @@ export const GENERATED_SITE_MAP = {
     "hujjat-dizayn",
     "shartnoma-liniya",
     "qarzdorlik",
+    "hr",
     "nakrutka",
     "narx-manbalari",
     "narx-dalil",
@@ -303,6 +305,34 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "qarzdorlik_import_v1",
       "rpc": "t2_qarzdorlik_import_v1"
+    },
+    {
+      "amal": "hr_xodim_saqla_v1",
+      "rpc": "t2_hr_xodim_saqla_v1"
+    },
+    {
+      "amal": "hr_sxema_saqla_v1",
+      "rpc": "t2_hr_sxema_saqla_v1"
+    },
+    {
+      "amal": "hr_kalendar_saqla_v1",
+      "rpc": "t2_hr_kalendar_saqla_v1"
+    },
+    {
+      "amal": "hr_tabel_saqla_v1",
+      "rpc": "t2_hr_tabel_saqla_v1"
+    },
+    {
+      "amal": "hr_tuzatma_saqla_v1",
+      "rpc": "t2_hr_tuzatma_saqla_v1"
+    },
+    {
+      "amal": "hr_tuzatma_qaror_v1",
+      "rpc": "t2_hr_tuzatma_qaror_v1"
+    },
+    {
+      "amal": "hr_oylik_v1",
+      "rpc": "t2_hr_oylik_hisobla_v1"
     },
     {
       "amal": "shartnoma_oylik_paket_saqla_v1",

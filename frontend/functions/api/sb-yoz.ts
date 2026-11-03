@@ -30,6 +30,19 @@ import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob, mayWriteCompani
 import { egaQarori, egalarniOqi, yozishTalablari } from '../_shared/tenant-yozish';
 import { katalogSnapshotlari } from '../_shared/narx-katalog-snapshot';
 
+/** HR: jsonb obyektidan oq ro'yxatdagi skalyar maydonlarni oladi (matn ≤500); noto'g'ri tur yoki obyekt emas - null. */
+function hrPick(src: unknown, kalitlar: readonly string[]): Record<string, unknown> | null {
+  if (src == null || typeof src !== 'object' || Array.isArray(src)) return null;
+  const r: Record<string, unknown> = {};
+  for (const k of kalitlar) {
+    const x = (src as Record<string, unknown>)[k];
+    if (x === undefined) continue;
+    if (x !== null && typeof x !== 'string' && typeof x !== 'number' && typeof x !== 'boolean') return null;
+    r[k] = typeof x === 'string' ? x.slice(0, 500) : x;
+  }
+  return r;
+}
+
 /** Har amal → qaysi RPC va uni kim chaqira oladi. */
 const AMALLAR = {
   qoshimcha_ish_yarat_v1: { rpc: 't2_qoshimcha_ish_yarat_v1' },
@@ -54,6 +67,15 @@ const AMALLAR = {
   /* Egasi 2026-11-02: qarzdorlik - asoslar saqlash (CAS) va Excel importi (idempotent operation_id). RPC a'zolik + financial.write ni o'zi tekshiradi. */
   qarzdorlik_saqla_v1: { rpc: 't2_qarzdorlik_saqla_v1' },
   qarzdorlik_import_v1: { rpc: 't2_qarzdorlik_import_v1' },
+  /* Egasi 2026-11-04: HR + KPI (xodim kartasi, sxema/stavka, kalendar/tatil, tabel, jarima/bonus, ish haqi qoralamasi).
+     RPC lar a'zolik + aniq ruxsatni (hr.write, hr.pii.write, hr.tabel.write, payroll.write) o'zi tekshiradi; idempotent (operation_id). */
+  hr_xodim_saqla_v1: { rpc: 't2_hr_xodim_saqla_v1' },
+  hr_sxema_saqla_v1: { rpc: 't2_hr_sxema_saqla_v1' },
+  hr_kalendar_saqla_v1: { rpc: 't2_hr_kalendar_saqla_v1' },
+  hr_tabel_saqla_v1: { rpc: 't2_hr_tabel_saqla_v1' },
+  hr_tuzatma_saqla_v1: { rpc: 't2_hr_tuzatma_saqla_v1' },
+  hr_tuzatma_qaror_v1: { rpc: 't2_hr_tuzatma_qaror_v1' },
+  hr_oylik_v1: { rpc: 't2_hr_oylik_hisobla_v1' },
   /* Egasi 2026-11-03: shartnoma oylik paketi - «Topshirildi» (versiya, manifest, ZIP kanonik saqlashda). RPC a'zolik + document.write ni o'zi tekshiradi; idempotent (operation_id). */
   shartnoma_oylik_paket_saqla_v1: { rpc: 't2_shartnoma_oylik_paket_saqla_v1' },
   /* Egasi 2026-10-23: shartnoma svodi/akt-sverka yozuvlari — DS, F2 reestri, sotuv (F3 summasi). RPC a'zolik + financial.write ni o'zi tekshiradi. */
@@ -882,6 +904,66 @@ export const onRequestPost: PagesFunction<{
         p_kutilgan_versiya: so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya), p_qatorlar: qatorlar,
         p_ochirilgan: och == null ? null : och.map(Number), p_spravka: spravka, p_operation_id: so.operation_id,
       };
+    } else if (amal.startsWith('hr_')) {
+      /* HR + KPI: maydonlar oq ro'yxatdan (skalyar), ruxsat va biznes qoidalarni RPC tekshiradi. */
+      const opXato = !sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || ''));
+      const yaroqsiz = (x: string) => Response.json({ ok: false, error: x }, { status: 400 });
+      const idOrNull = (v: unknown) => (v == null || v === '' ? null : Number(v));
+      const kv = so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya);
+      const oyOk = /^\d{4}-(0[1-9]|1[0-2])$/.test(String(so.oy || ''));
+      const asos = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_operation_id: so.operation_id };
+      if (opXato || (kv != null && !Number.isSafeInteger(kv))) return yaroqsiz('HR: operatsiya noto‘g‘ri.');
+      if (amal === 'hr_xodim_saqla_v1') {
+        const kid = idOrNull(so.kadr_id);
+        const profil = so.profil == null ? null : hrPick(so.profil, ['ism', 'lavozim', 'foydalanuvchi_id', 'rol', 'grafik', 'baza_turi', 'baza_summa', 'sxema_id', 'qabul_sana', 'bosh_sana']);
+        const pii = so.pii == null ? null : hrPick(so.pii, ['pinfl', 'pasport', 'telefon', 'manzil']);
+        const ob = so.obyektlar;
+        const obyektlar = ob == null ? null : (Array.isArray(ob) && ob.length <= 200 ? ob.map((x: unknown) => hrPick(x, ['obyekt_id', 'ulush_foiz', 'rol', 'dan', 'gacha'])) : undefined);
+        if ((kid != null && (!Number.isSafeInteger(kid) || kid <= 0)) || (so.profil != null && !profil) || (so.pii != null && !pii)
+            || obyektlar === undefined || (obyektlar && obyektlar.some((x: unknown) => !x))) return yaroqsiz('Xodim: kadr, profil, PII yoki obyektlar noto‘g‘ri.');
+        yuk = { ...asos, p_kadr_id: kid, p_profil: profil, p_pii: pii, p_obyektlar: obyektlar, p_kutilgan_versiya: kv };
+      } else if (amal === 'hr_sxema_saqla_v1') {
+        const sx = so.sxema == null ? null : hrPick(so.sxema, ['id', 'nom', 'f2_foiz', 'f2_baza', 'f2_rejim', 'izoh', 'faol']);
+        const sz = so.sozlama == null ? null : hrPick(so.sozlama, ['ndfl_foiz', 'inps_foiz', 'kun_soat']);
+        if ((so.sxema != null && !sx) || (so.sozlama != null && !sz) || (!sx && !sz)) return yaroqsiz('Sxema yoki stavkalar noto‘g‘ri.');
+        yuk = { ...asos, p_sxema: sx, p_sozlama: sz };
+      } else if (amal === 'hr_kalendar_saqla_v1') {
+        const kn = so.kunlar; const tt = so.tatillar;
+        const kunlar = kn == null ? null : (Array.isArray(kn) && kn.length <= 400 ? kn.map((x: unknown) => hrPick(x, ['sana', 'tur', 'nom'])) : undefined);
+        const tatillar = tt == null ? null : (Array.isArray(tt) && tt.length <= 200 ? tt.map((x: unknown) => hrPick(x, ['id', 'kadr_id', 'tur', 'dan', 'gacha', 'holat', 'izoh'])) : undefined);
+        if (kunlar === undefined || tatillar === undefined || (kunlar && kunlar.some((x: unknown) => !x)) || (tatillar && tatillar.some((x: unknown) => !x))) return yaroqsiz('Kalendar: kunlar (≤400) yoki tatillar (≤200) noto‘g‘ri.');
+        yuk = { ...asos, p_kunlar: kunlar, p_tatillar: tatillar };
+      } else if (amal === 'hr_tabel_saqla_v1') {
+        const qs = so.qatorlar;
+        if (!oyOk || !Array.isArray(qs) || qs.length > 500) return yaroqsiz('Tabel: oy (YYYY-MM) va ≤500 qator talab qilinadi.');
+        const qatorlar: Record<string, unknown>[] = [];
+        for (const q of qs) {
+          const b = hrPick(q, ['kadr_id', 'holat']);
+          const kun = q && typeof q === 'object' ? (q as Record<string, unknown>).kunlar : undefined;
+          if (!b || !Number.isSafeInteger(Number(b.kadr_id)) || Number(b.kadr_id) <= 0 || !kun || typeof kun !== 'object' || Array.isArray(kun) || Object.keys(kun).length > 31) return yaroqsiz('Tabel: qator noto‘g‘ri.');
+          const kunlar: Record<string, string> = {};
+          for (const [k, v] of Object.entries(kun as Record<string, unknown>)) { if (typeof v !== 'string' || v.length !== 1) return yaroqsiz('Tabel: kun belgisi noto‘g‘ri.'); kunlar[k.slice(0, 2)] = v; }
+          qatorlar.push({ ...b, kunlar });
+        }
+        yuk = { ...asos, p_oy: String(so.oy), p_qatorlar: qatorlar };
+      } else if (amal === 'hr_tuzatma_saqla_v1') {
+        const tz = hrPick(so.tuzatma, ['id', 'bekor', 'kadr_id', 'oy', 'tur', 'sabab', 'izoh', 'summa', 'foiz', 'obyekt_id', 'akt_id', 'sifat_id', 'fayl_id']);
+        if (!tz) return yaroqsiz('Jarima/bonus noto‘g‘ri.');
+        yuk = { ...asos, p_tuzatma: tz, p_kutilgan_versiya: kv };
+      } else if (amal === 'hr_tuzatma_qaror_v1') {
+        const id = Number(so.id);
+        if (!Number.isSafeInteger(id) || id <= 0 || !['tasdiqlangan', 'rad'].includes(String(so.qaror))) return yaroqsiz('Qaror: yozuv va qaror (tasdiqlangan | rad) talab qilinadi.');
+        yuk = { ...asos, p_id: id, p_qaror: String(so.qaror), p_izoh: so.izoh == null ? null : String(so.izoh).slice(0, 500), p_kutilgan_versiya: kv };
+      } else if (amal === 'hr_oylik_v1') {
+        const ids = so.kadr_ids;
+        if (!oyOk || !['hisobla', 'tasdiqla', 'qaytar'].includes(String(so.oylik_amal))
+            || (ids != null && (!Array.isArray(ids) || ids.length > 1000 || ids.some((x: unknown) => !Number.isSafeInteger(Number(x)) || Number(x) <= 0)))) {
+          return yaroqsiz('Ish haqi: oy (YYYY-MM), amal (hisobla | tasdiqla | qaytar) va xodimlar noto‘g‘ri.');
+        }
+        yuk = { ...asos, p_oy: String(so.oy), p_amal: String(so.oylik_amal), p_kadr_ids: ids == null ? null : (ids as unknown[]).map(Number) };
+      } else {
+        return yaroqsiz('HR amali noma’lum.');
+      }
     } else if (amal === 'shartnoma_oylik_paket_saqla_v1') {
       /* Shartnoma oylik paketi: manifest ob'ekt (fayllar massivi bilan), ZIP esa kanonik saqlashda (hujjat_id). Server izni o'zi hisoblaydi. */
       const mf = so.manifest;

@@ -165,6 +165,9 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
       { nom: 'Kadrlar va texnika', ikonka: 'Users', sahifalar: [
         { yol: '/admin/erp', nom: 'Kadrlar va texnika', ruxsat: [RAHBARIYAT, ...ICHKI_ISH, 'hr.read', 'machinery.read', 'machinery.log'], modul: 'module.erp' },
       ] },
+      { nom: 'Kadrlar, KPI va ish haqi', ikonka: 'Users', sahifalar: [
+        { yol: '/admin/hr', nom: 'Kadrlar, KPI va ish haqi', ruxsat: ['hr.read', 'hr.tabel.write', 'payroll.read'], modul: 'module.erp' },
+      ] },
     ],
   },
   {

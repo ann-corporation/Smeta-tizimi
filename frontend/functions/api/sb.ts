@@ -248,6 +248,11 @@ export const onRequestPost: PagesFunction<{
         shartnoma_liniya_v1: 'kompaniya_actor',
         /* Egasi 2026-11-02: qarzdorlik (postavshik/subpudrat kreditor qarzi) - shartnoma + asoslar + hisob. stable, a'zolik + financial.read ichida. */
         qarzdorlik_royxat_v1: 'kompaniya_actor',
+        /* 2026-11-04: HR + KPI (stable; a'zolik + hr.* / payroll.* RPC ichida). */
+        hr_xodimlar_v1: 'kompaniya_actor',
+        hr_oy_v1: 'kompaniya_actor',
+        hr_kpi_v1: 'kompaniya_actor',
+        hr_oylik_buxgalteriya_v1: 'kompaniya_actor',
         /* Egasi 2026-11-03: shartnoma oylik paketi arxivi (versiyalar + manifest + hozirgi iz) va fakt/F2 saqlashdan oldingi ogohlantirish. `stable`; a'zolik RPC ichida. */
         shartnoma_oylik_paket_royxat_v1: 'kompaniya_actor',
         shartnoma_oylik_paket_tekshir_v1: 'obyekt_actor',
@@ -389,6 +394,11 @@ export const onRequestPost: PagesFunction<{
           if (!Number.isSafeInteger(sid) || sid <= 0) return Response.json({ ok: false, error: "shartnoma_id noto'g'ri" });
           q.set('p_shartnoma_id', String(sid));
         }
+      }
+      if (so.soro === 'hr_oy_v1' || so.soro === 'hr_kpi_v1' || so.soro === 'hr_oylik_buxgalteriya_v1') {
+        const oy = (so as { oy?: unknown }).oy;
+        if (typeof oy !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(oy)) return Response.json({ ok: false, error: "oy majburiy (YYYY-MM)" });
+        q.set('p_oy', oy);
       }
       if (so.soro === 'moliya_tahlil_v1' && so.obyekt_id != null && String(so.obyekt_id) !== '') {
         const id = Number(so.obyekt_id);

@@ -1,0 +1,12 @@
+{
+ "izoh": "O'zbekiston umumxalq bayramlari - TAHRIRLANADIGAN MA'LUMOT (mantiq emas). Faqat sanasi qat'iy bayramlar. Hayit (Ramazon, Qurbon) va hukumat qarori bilan ko'chirilgan dam/ish kunlari har yil qo'lda kalendarga kiritiladi. Kompaniya kalendariga yozilgach shu yerdan mustaqil tahrirlanadi.",
+ "bayramlar": [
+  { "oy": 1, "kun": 1, "nom": "Yangi yil" },
+  { "oy": 3, "kun": 8, "nom": "Xalqaro xotin-qizlar kuni" },
+  { "oy": 3, "kun": 21, "nom": "Navro'z bayrami" },
+  { "oy": 5, "kun": 9, "nom": "Xotira va qadrlash kuni" },
+  { "oy": 9, "kun": 1, "nom": "Mustaqillik kuni" },
+  { "oy": 10, "kun": 1, "nom": "O'qituvchi va murabbiylar kuni" },
+  { "oy": 12, "kun": 8, "nom": "O'zbekiston Respublikasi Konstitutsiyasi kuni" }
+ ]
+}
