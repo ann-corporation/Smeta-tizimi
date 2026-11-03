@@ -27,16 +27,19 @@ Boshqaruv to'liq **L0 (lokal agent)** da. Cloud ishni faqat L0 dan oladi, boshla
 
 ## Vazifalar
 
-### 1. Uy sotish — `claude/uy-sotuv-v1` · PR ann-corporation/Smeta-tizimi#236 (draft)
-- **Bajarildi (S1 server):**
-  - migratsiya `20261124000000_t2_uy_sotuv_v1` (+rollback, self-seeding acceptance; lokal PG16 da forward → acceptance → rollback → forward o'tdi);
-  - 10 yozish + 5 o'qish RPC, `sales.*` capability, rol `sotuvchi`;
-  - shlyuz (sb, sb-yoz, policy, tenant), `src/api/t2-sotuv.ts`, `src/lib/sotuv/hisob.ts` + testlar.
-- **L0 dan kerak:** migratsiyani prodga qo'llash, keyin `.acceptance.sql`.
-- **Keyingi (S2 UI):**
-  - sotuvchi — shaxmatka, kanban, bitim kartasi, grafik, to'lovlar, panel, loyiha sozlamasi;
-  - xaridor — katalog, xonadon sahifasi, ipoteka kalkulyatori, kabinet.
-- Rasmlar va planirovkalar R2 da.
+### 1. Uy sotish — `claude/uy-sotuv-v1` · PR ann-corporation/Smeta-tizimi#236 (draft) — ✅ S1 server + S2 sotuvchi UI
+- **Migratsiya** `20261124000000_t2_uy_sotuv_v1` (+rollback, self-seeding acceptance; lokal PG16 da o'tdi). RPC: 10 yozish + 5 o'qish; ruxsatlar `sales.*`, rol `sotuvchi`.
+  - Loyiha sozlamasi qisman yangilanadi (eski || yangi).
+- **UI** `/admin/sotuv`:
+  - shaxmatka (generator, bron, ommaviy narx);
+  - kanban; bitim kartasi (grafik generatori, to'lovlar, ipoteka);
+  - mijozlar, panel, sozlama (reyestr / eskrou, PP-4732).
+- **Darvozalar:** tsc, oxlint, site-map, tekshir, to'liq vitest (634 fayl) — yashil.
+- **L0 dan kerak:** migratsiyani BEGIN..ROLLBACK da sinab qo'llash.
+- **Ochiq qarorlar:**
+  - `sotuvchi` roli `project.read` orqali hujjat menyularini ham ko'radi;
+  - annuitet (foizli) grafik saqlanmaydi — server Σ = summa talab qiladi.
+- **Keyingi (L0 ruxsati bilan):** S3 xaridor tomoni — ochiq katalog (PII siz alohida endpoint + migratsiya), xonadon sahifasi, kabinet.
 
 ### 2. Tender — `claude/tender-v1` · PR ann-corporation/Smeta-tizimi#239 (draft) — ✅ server + UI tayyor
 - **Asos:** mavjud `t2_birja_*` / `t2_buyurtma*` / `t2_tender_*_v1` kengaytirildi. v1 RPC buzilmagan; `supabase/tests/t2_tender_contract.sql` o'tadi.
