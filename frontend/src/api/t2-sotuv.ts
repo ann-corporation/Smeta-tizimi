@@ -60,8 +60,8 @@ export type SotuvPanel = {
   menejerlar: Array<{ actor_id: number | null; ism: string | null; bitim: number; sotildi: number; summa: number | null }>;
   oylik_sotuv: Array<{ oy: string; soni: number; summa: number | null }>;
   binolar: Array<{ obyekt_id: number; nom: string; loyiha_id: number | null; jami: number; bosh: number; sotilgan: number }>;
-  loyihalar: Array<{ loyiha_id: number; nom: string; reyestr_raqam: string | null; sotuvda: boolean; topshirish_sana: string | null;
-    eskrou_hisob: string | null; bron_soat: number }>;
+  loyihalar: Array<{ loyiha_id: number; nom: string; reyestr_raqam: string | null; reyestr_sana: string | null; sotuvda: boolean;
+    topshirish_sana: string | null; eskrou_bank: string | null; eskrou_hisob: string | null; tavsif: string | null; bron_soat: number }>;
 };
 
 type Oqildi<T> = { ok: true; natija: T } | { ok: false; error: string; code?: string };

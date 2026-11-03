@@ -35,6 +35,8 @@ export const ADMIN_MARSHRUTLARI = [
   'crm', 'aloqalar', 'zakazchik', 'taqdimlar', 'murojaatlar', 'moliya', 'logistika', 'zayavka', 'erp', 'f2-reestr',
   'nakopitelniy', 'tizim-sozlama', 'hujjat-dizayn', 'tokenlar', 'ai-agentlar', 'korzinka', 'ish-joylarim',
   'topshiriqlar', 'mutaxassis', 'boshqaruv', 'sayt-xaritasi', 'akkaunt', 'tizim-xaritasi',
+  /* 2026-11-03: Uy sotish. */
+  'sotuv',
 ] as const;
 
 /**

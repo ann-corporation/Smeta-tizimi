@@ -3506,7 +3506,7 @@
     "docs/governance/CONSTITUTION.md"
   ],
   "production_write_allowed": false,
-  "note": "Egasi 2026-11-03: «uy ham sotadi — 0 dan 100 gacha, sotuvchi ham oluvchi uchun». Umumiy fayllarga faqat qo'shimcha qatorlar: sb.ts/sb-yoz.ts (sotuv_* ro'yxati), write-command-policy, permission-policy (sotuv_ → sales.*), tenant-yozish (ID_JADVAL), effective-authorization/permission-labels (sales.*, rol sotuvchi), t2_kompaniya.test.cjs KUTILGAN. Migratsiya prodga — faqat L0."
+  "note": "Egasi 2026-11-03: «uy ham sotadi — 0 dan 100 gacha, sotuvchi ham oluvchi uchun». Umumiy fayllarga faqat qo'shimcha qatorlar: sb.ts/sb-yoz.ts (sotuv_* ro'yxati), write-command-policy, permission-policy (sotuv_ → sales.*), tenant-yozish (ID_JADVAL), effective-authorization/permission-labels (sales.*, rol sotuvchi), t2_kompaniya.test.cjs KUTILGAN. S2 (UI) umumiy fayllari: App.tsx (sotuv marshruti), lib/nav/navReestr.ts + navFiltr.test.ts (Uy sotish guruhi), route-permission.ts (sotuv → sales.read), umumiy/marshrutTekshir.ts, sayt-xaritasi/pageCatalog.ts + generated.ts. Migratsiya prodga — faqat L0."
 }
   ,
   {
