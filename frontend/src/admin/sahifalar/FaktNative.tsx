@@ -97,7 +97,7 @@ export function FaktNative() {
       {!valid && <section className="fz-note fz-note--info"><span>{t('Avval kanonik obyektni tanlang.')}</span></section>}
       {error && valid && <section role="alert" className="fz-note fz-note--danger"><AlertTriangle aria-hidden="true"/><span>{error}</span></section>}
       {birinchiYuklash && <div className="skel min-h-[280px] flex-1 rounded-[var(--radius-md)]"/>}
-      {jurnal && joriy?.id && <FaktJurnal boshFaktsizF2={boshFaktsizF2} boshBolimId={boshBolimId} saqlashRef={jurnalSaqlash} f2Otish={(oy) => void f2gaOt(true, oy)} kompaniyaId={joriy.id} obyektId={obyektId} rows={rows} states={states} holatniYangila={(idlar) => holatniYangila(idlar)} tuzilmaniYangila={() => yuklash()} />}
+      {jurnal && joriy?.id && <FaktJurnal boshFaktsizF2={boshFaktsizF2} boshBolimId={boshBolimId} saqlashRef={jurnalSaqlash} f2Otish={(oy) => void f2gaOt(true, oy)} kompaniyaId={joriy.id} obyektId={obyektId} objects={obyektlar} rows={rows} states={states} holatniYangila={(idlar) => holatniYangila(idlar)} tuzilmaniYangila={() => yuklash()} />}
       {valid && joriy?.id && korinish === 'xotira' && !birinchiYuklash && !error && <XotiradanFakt kompaniyaId={joriy.id} obyektId={obyektId} rows={rows} states={states} holatniYangila={() => holatniYangila()} tuzilmaniYangila={() => yuklash()} />}
       {korinish === 'daraxt' && tree.length > 0 && <div className="min-h-0 flex-1"><SmetaTree data={tree} priceControlLines={price} onFaktSave={faktSaqlash} onQatorTahrirlandi={(id) => void qatorniYangila(id)}/></div>}
       {markirovkaQamrov && joriy?.id && <FaktQamrov sarlavha={markirovkaQamrov.sarlavha} ishlar={markirovkaQamrov.ishlar} holatMap={holatMap} narxOl={narxOl}
