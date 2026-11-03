@@ -75,7 +75,11 @@ export function aslXarita(a: readonly EgizakQator[], b: readonly EgizakQator[]):
   return { ok: true, map, soni: A.length, imzo: imzoA };
 }
 
-export type AslMoslik = { map: Map<number, number>; qatiy: boolean; topilmadi: number[]; hajmFarq: number[] };
+export type AslMoslik = {
+  map: Map<number, number>; qatiy: boolean; topilmadi: number[]; hajmFarq: number[];
+  /** Topilmagan A qatorining sababi: kalit - B da shu tur|kod|nom|birlik (takror tartibi bilan) yo'q; ota - ota qatori mos kelmadi. */
+  sabab?: Map<number, 'kalit' | 'ota'>;
+};
 
 /**
  * Yumshoq moslash (Fakt egizaklari uchun): tuzilma bir xil bo'lsa — `aslXarita` (qat'iy); aks holda tur|kod|nom|birlik kaliti +
@@ -92,20 +96,41 @@ export function aslMoslash(a: readonly EgizakQator[], b: readonly EgizakQator[])
   const korildi = new Map<string, number>();
   const juft = new Map<number, EgizakQator>();
   const topilmadi: number[] = [];
+  const sabab = new Map<number, 'kalit' | 'ota'>();
   for (const q of A) {
     const k = kalit(q); const n = korildi.get(k) ?? 0; korildi.set(k, n + 1);
     const y = bRoyxat.get(k)?.[n];
-    if (y) juft.set(q.id, y); else topilmadi.push(q.id);
+    if (y) juft.set(q.id, y); else { topilmadi.push(q.id); sabab.set(q.id, 'kalit'); }
   }
   const map = new Map<number, number>(); const hajmFarq: number[] = [];
   for (const q of A) {
     const y = juft.get(q.id); if (!y) continue;
     const otaMos = q.ota_id == null ? y.ota_id == null : juft.get(q.ota_id)?.id === (y.ota_id ?? -1);
-    if (!otaMos) { topilmadi.push(q.id); continue; }
+    if (!otaMos) { topilmadi.push(q.id); sabab.set(q.id, 'ota'); continue; }
     map.set(q.id, y.id);
     if (!sonTeng(q.hajm, y.hajm)) hajmFarq.push(q.id);
   }
-  return { map, qatiy: false, topilmadi, hajmFarq };
+  return { map, qatiy: false, topilmadi, hajmFarq, sabab };
+}
+
+/** Egizak nusxa ko'rinishi: moslangan juftlar soni va MOSLANMAGAN asl qatorlar (sabab kodi bilan) - rad etish o'rniga ko'rsatiladi. */
+export type AslKorinish = {
+  map: Map<number, number>; qatiy: boolean; soni: { a: number; b: number }; imzo: { a: string; b: string };
+  /** Moslanmagan A qatori: orin (1 dan), sabab kodi (EGIZAK_KALIT / EGIZAK_OTA). */
+  moslanmadi: Array<{ id: number; orin: number; nom: string; kod: string; sabab: 'EGIZAK_KALIT' | 'EGIZAK_OTA' }>;
+  hajmFarq: Array<{ id: number; orin: number; nom: string; kod: string }>;
+};
+export function aslKorinish(a: readonly EgizakQator[], b: readonly EgizakQator[]): AslKorinish {
+  const m = aslMoslash(a, b);
+  const A = aslQatorlar(a);
+  const orin = new Map(A.map((q, i) => [q.id, i + 1]));
+  const byId = new Map(A.map((q) => [q.id, q]));
+  const ko = (id: number) => ({ id, orin: orin.get(id) ?? 0, nom: matn(byId.get(id)?.nom), kod: matn(byId.get(id)?.kod) });
+  return {
+    map: m.map, qatiy: m.qatiy, soni: { a: A.length, b: aslQatorlar(b).length }, imzo: { a: aslImzo(a), b: aslImzo(b) },
+    moslanmadi: m.topilmadi.map((id) => ({ ...ko(id), sabab: m.sabab?.get(id) === 'ota' ? 'EGIZAK_OTA' as const : 'EGIZAK_KALIT' as const })),
+    hajmFarq: m.hajmFarq.map(ko),
+  };
 }
 
 /** Shu obyektning egizaklari: bir loyihadagi boshqa obyektlar (F2EgizakNusxa va Fakt jurnali uchun yagona qoida). */
@@ -133,16 +158,17 @@ export function egizakJuftlari<T extends { id: number; nom?: string | null; loyi
 }
 
 /** A qoralamasining manba qatorlari ↔ B da ochiq F2 (uid, kod, hajm bir xil bo'lishi shart). */
-export function f2Mosligi(aManba: ReadonlyArray<{ uid: string; kod?: string | null; hajm?: unknown }>, bInd: F2Indeks): { ok: boolean; farqlar: string[] } {
+export function f2Mosligi(aManba: ReadonlyArray<{ uid: string; kod?: string | null; hajm?: unknown }>, bInd: F2Indeks): { ok: boolean; farqlar: string[]; soniFarq?: { a: number; b: number } } {
   const farqlar: string[] = [];
-  if (aManba.length !== bInd.qatorlar.length) farqlar.push(`#${aManba.length}≠${bInd.qatorlar.length}`);
+  // Qatorlar SONI farqi rad etish emas, ogohlantirish (egasi 2026-11-03); uid / kod / hajm farqi esa rad etadi.
+  const soniFarq = aManba.length !== bInd.qatorlar.length ? { a: aManba.length, b: bInd.qatorlar.length } : undefined;
   for (const r of aManba) {
     const n = bInd.byUid.get(r.uid);
     if (!n) farqlar.push(r.uid);
     else if (matn(r.kod) !== matn(n.kod) || !sonTeng(r.hajm ?? null, n.hajm ?? null)) farqlar.push(r.uid);
     if (farqlar.length >= 20) break;
   }
-  return { ok: farqlar.length === 0, farqlar };
+  return { ok: farqlar.length === 0, farqlar, ...(soniFarq ? { soniFarq } : {}) };
 }
 
 /** Deterministik operation_id (UUID ko'rinishi, v5 belgilari): bir A qatori + bir B obyekti → doim bir xil. */

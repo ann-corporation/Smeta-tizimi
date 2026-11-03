@@ -32,6 +32,16 @@
       ]
     },
     {
+      "id": 76,
+      "sana": "2026-11-04",
+      "sarlavha": "Shartnoma oylik paketida endi Nakopitelniy, M-29, Ostatka va Slichitelniy ham bor; egizakka F2 nusxasi qattiq emas",
+      "bandlar": [
+        "Shartnoma oylik paketida har obyekt papkasiga Nakopitelniy vedomost, M-29, Ostatka va Slichitelniy vedomosti qo‘shiladi — sahifadagi Excel bilan aynan bir xil fayl, har biri token bilan. «Tayyorgarlik» jadvalida katak haqiqatan yaratilgan faylga qarab ✓ yoki ✗ bo‘ladi; ma’lumot yo‘q hujjat paketni to‘xtatmaydi.",
+        "Egizak obyektga F2 nusxasi bitta farq tufayli butunlay rad etilmaydi: mos kelgan qatorlar ko‘chadi, moslanmaganlari sababi (EGIZAK_KALIT / EGIZAK_OTA) bilan ko‘rinishda chiqadi. Qatorlar soni farqi ogohlantirish bo‘ldi. Tasdiqlangan F2 o‘zgarmaydi — egizakda faqat qoralama yaratiladi.",
+        "Nakopitelniy, M-29, Ostatka va Slichitelniy Excel: tur belgisi ustuni chop etilmaydi va ko‘rinmaydi; ish (BL), material (MAT) va jihoz (OB) qalin, resurs (RS) kursiv va ochroq; raqam ustunlari kengaytirildi."
+      ]
+    },
+    {
       "id": 72,
       "sana": "2026-11-03",
       "sarlavha": "Fakt kiritishda birlik xatosi haqida ogohlantirish",
