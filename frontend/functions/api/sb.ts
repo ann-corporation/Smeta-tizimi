@@ -276,6 +276,8 @@ export const onRequestPost: PagesFunction<{
         /* C11 PR-B (2026-10-29): markaziy ombor kirimi ro'yxati — qatorlar + material bo'yicha jami. `stable`
            (20261114400000), a'zolik + document.read RPC ichida; sklad kompaniyasi ham RPC da tekshiriladi. */
         sklad_kirim_royxat_v1: 'kompaniya_actor',
+        /* TRANSPORT v1 (20261123000000): park, reyslar, tannarx, KPI. `stable`; a'zolik + logistics.read/machinery.read RPC ichida. */
+        transport_ol_v1: 'kompaniya_actor',
       };
       const tur = OQISH_RPC[so.soro];
       if (!tur) {
@@ -474,6 +476,29 @@ export const onRequestPost: PagesFunction<{
         q.set('p_filtr', JSON.stringify(filtr));
         q.set('p_limit', String(lim));
         q.set('p_offset', String(off));
+      }
+      if (so.soro === 'transport_ol_v1') {
+        const bolim = String((so as { bolim?: unknown }).bolim ?? '');
+        if (!['park', 'sozlama', 'joylar', 'reyslar', 'reys', 'bugun', 'kpi'].includes(bolim)) return Response.json({ ok: false, error: "bolim noto'g'ri" });
+        const xf = (so as { filtr?: unknown }).filtr;
+        const f = xf && typeof xf === 'object' && !Array.isArray(xf) ? xf as Record<string, unknown> : {};
+        const filtr: Record<string, string | number> = {};
+        for (const [k, v] of Object.entries(f)) {
+          if (v == null || v === '') continue;
+          if (['dan', 'gacha', 'sana'].includes(k)) {
+            if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return Response.json({ ok: false, error: `${k} YYYY-MM-DD bo'lishi kerak` });
+            filtr[k] = v;
+          } else if (['id', 'mashina_id', 'haydovchi_id', 'limit'].includes(k)) {
+            const n = Number(v);
+            if (!Number.isSafeInteger(n) || n <= 0) return Response.json({ ok: false, error: `${k} noto'g'ri` });
+            filtr[k] = n;
+          } else if (k === 'holat') {
+            if (typeof v !== 'string' || !['reja', 'yolda', 'yetkazildi', 'yopildi', 'bekor'].includes(v)) return Response.json({ ok: false, error: "holat noto'g'ri" });
+            filtr[k] = v;
+          }
+        }
+        q.set('p_bolim', bolim);
+        q.set('p_filtr', JSON.stringify(filtr));
       }
       if (so.soro === 'hodisa_obyekt_lenta') {
         const lim = Math.min(100, Math.max(1, Number(so.limit || 20)));

@@ -817,6 +817,46 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_xarajat_bekor_v1"
     },
     {
+      "amal": "transport_mashina_saqla_v1",
+      "rpc": "t2_tr_mashina_saqla_v1"
+    },
+    {
+      "amal": "transport_haydovchi_saqla_v1",
+      "rpc": "t2_tr_haydovchi_saqla_v1"
+    },
+    {
+      "amal": "transport_hujjat_saqla_v1",
+      "rpc": "t2_tr_hujjat_saqla_v1"
+    },
+    {
+      "amal": "transport_yoqilgi_narx_saqla_v1",
+      "rpc": "t2_tr_yoqilgi_narx_saqla_v1"
+    },
+    {
+      "amal": "transport_tarif_saqla_v1",
+      "rpc": "t2_tr_tarif_saqla_v1"
+    },
+    {
+      "amal": "transport_reys_saqla_v1",
+      "rpc": "t2_tr_reys_saqla_v1"
+    },
+    {
+      "amal": "transport_reys_yurish_v1",
+      "rpc": "t2_tr_reys_yurish_v1"
+    },
+    {
+      "amal": "transport_reys_yop_v1",
+      "rpc": "t2_tr_reys_yop_v1"
+    },
+    {
+      "amal": "transport_reys_bekor_v1",
+      "rpc": "t2_tr_reys_bekor_v1"
+    },
+    {
+      "amal": "transport_xarajat_otkaz_v1",
+      "rpc": "t2_tr_xarajat_otkaz_v1"
+    },
+    {
       "amal": "moliya_qolda_yoz_v1",
       "rpc": "t2_moliya_qolda_yoz_v1"
     },

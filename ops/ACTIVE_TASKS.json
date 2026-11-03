@@ -3315,6 +3315,34 @@
   ],
   "production_write_allowed": false,
   "note": "Owner resumes UX request 02.11: reduce re-entry and scrolling from selection to quantity and shared command. Existing exact parseQuantityInput reused. SmetaStudio/Claude design and calc/catalog-bridge/commands untouched. No production business writes."
+},
+{
+  "id": "TRANSPORT-V1-20261103",
+  "title": "Transport logistika moduli: park, reys, tannarx, narxlash, rentabellik, xarita",
+  "owner": "claude",
+  "machine": "cloud",
+  "branch": "claude/logistika-v1",
+  "status": "in_progress",
+  "owns": [
+    "supabase/migrations/20261123000000_t2_transport_v1.sql",
+    "supabase/migrations/20261123000000_t2_transport_v1.rollback.sql",
+    "supabase/migrations/20261123000000_t2_transport_v1.acceptance.sql",
+    "frontend/src/api/t2-transport.ts",
+    "frontend/src/lib/transport/",
+    "frontend/src/i18n/lugat/qism/transport.json",
+    "frontend/src/transport/",
+    "frontend/functions/api/sb.ts",
+    "frontend/functions/api/sb-yoz.ts",
+    "frontend/functions/_shared/write-command-policy.ts",
+    "frontend/testlar/t2_kompaniya.test.cjs",
+    "frontend/src/lib/nav/navReestr.ts",
+    "frontend/public/yangiliklar.json",
+    "frontend/src/lib/sayt-xaritasi/generated.ts"
+  ],
+  "depends_on": [],
+  "must_read": ["AGENTS.md", "ops/mailbox/KOORDINATSIYA-L0-CLOUD-20261028/01-kelishuv.md"],
+  "production_write_allowed": false,
+  "note": "Yangi /admin/transport. Ombor (C11, Codex) kodiga tegilmaydi; /admin/logistika sahifasi o'zgarmaydi. Migratsiya 20261123xxxxxx (koordinator ajratgan oraliq). Xarajat obyektga faqat mavjud t2_xarajat_kirit_v1 orqali. Prodga faqat L0."
 }
 ]
 }

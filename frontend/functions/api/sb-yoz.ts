@@ -219,6 +219,17 @@ const AMALLAR = {
   /* Egasi 2026-10-24 (pul tahlili P1): haqiqiy xarajatni kategoriya/obyekt bilan qo'lda kiritish (idempotent) va bekor qilish. */
   xarajat_kirit_v1: { rpc: 't2_xarajat_kirit_v1' },
   xarajat_bekor_v1: { rpc: 't2_xarajat_bekor_v1' },
+  /* TRANSPORT v1 (20261123000000): park/reys/tarif yozuvlari. Hammasi (kompaniya, actor, operation_id, data) — a'zolik + ruxsat RPC ichida. */
+  transport_mashina_saqla_v1: { rpc: 't2_tr_mashina_saqla_v1' },
+  transport_haydovchi_saqla_v1: { rpc: 't2_tr_haydovchi_saqla_v1' },
+  transport_hujjat_saqla_v1: { rpc: 't2_tr_hujjat_saqla_v1' },
+  transport_yoqilgi_narx_saqla_v1: { rpc: 't2_tr_yoqilgi_narx_saqla_v1' },
+  transport_tarif_saqla_v1: { rpc: 't2_tr_tarif_saqla_v1' },
+  transport_reys_saqla_v1: { rpc: 't2_tr_reys_saqla_v1' },
+  transport_reys_yurish_v1: { rpc: 't2_tr_reys_yurish_v1' },
+  transport_reys_yop_v1: { rpc: 't2_tr_reys_yop_v1' },
+  transport_reys_bekor_v1: { rpc: 't2_tr_reys_bekor_v1' },
+  transport_xarajat_otkaz_v1: { rpc: 't2_tr_xarajat_otkaz_v1' },
   /* Egasi 2026-10-27: moliyaviy tahlil — tizimda yo'q ko'rsatkichni qo'lda kiritish/almashtirish/bekor (append-only, idempotent). */
   moliya_qolda_yoz_v1: { rpc: 't2_moliya_qolda_yoz_v1' },
   fakt_yoz_v2: { rpc: 't2_fakt_yoz_v2' },
@@ -2347,6 +2358,17 @@ export const onRequestPost: PagesFunction<{
       }
       yuk = { p_kompaniya_id: kompaniyaId, p_actor_id: sess.foydalanuvchi_id, p_xarajat_id: id,
         p_kutilgan_versiya: so.versiya == null ? null : Number(so.versiya) };
+    } else if (amal.startsWith('transport_')) {
+      /* TRANSPORT v1: bitta umumiy shakl. ID lar `data` ichida — egalik (kompaniya) RPC ichida tekshiriladi. */
+      const kompaniyaId = Number(so.kompaniya_id);
+      if (!Number.isInteger(kompaniyaId) || kompaniyaId <= 0) return Response.json({ ok: false, error: 'kompaniya_id noto\'g\'ri' });
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(so.operation_id || ''))) {
+        return Response.json({ ok: false, error: 'operation_id UUID bo\'lishi kerak' });
+      }
+      const data = (so as { data?: unknown }).data;
+      if (!data || typeof data !== 'object' || Array.isArray(data)) return Response.json({ ok: false, error: 'data obyekt bo\'lishi kerak' });
+      if (JSON.stringify(data).length > 200_000) return Response.json({ ok: false, error: 'data juda katta' });
+      yuk = { p_kompaniya_id: kompaniyaId, p_actor_id: sess.foydalanuvchi_id, p_operation_id: String(so.operation_id), p_data: data };
     } else if (amal === 'bajarilmadi_bekor') {
       const kompaniyaId = Number(so.kompaniya_id);
       const id = Number(so.id);
