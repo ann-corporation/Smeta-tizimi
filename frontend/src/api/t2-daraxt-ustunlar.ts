@@ -7,6 +7,11 @@
  *  fakt_narx, f2_narx_farq_foiz — daraxt yo'lida o'qilmaydi. */
 export const T2_HOLAT_DARAXT_USTUNLARI = 'qator_id,tur,kod,nom,birlik,kat,smeta_hajm,smeta_summa,fakt_hajm,fakt_summa,f2_hajm,f2_summa,qoldiq_hajm,qoldiq_summa,f2_mumkin_hajm,f2_mumkin_summa';
 
+/** Fakt F2 narxida baholanganda F2 summasi NOMA'LUM qatorlarni ajratish uchun (migratsiya 20261117400000 dan KEYIN mavjud).
+ *  Paket (ombor/paket.ts) shu ustunni hali olib kelmaydi — T2_HOLAT_DARAXT_USTUNLARI paket kontrakti bilan bir xil qoladi. */
+export const T2_HOLAT_F2_YOQ_USTUN = 'f2_summa_yoq';
+export const T2_HOLAT_DARAXT_USTUNLARI_YOQ = `${T2_HOLAT_DARAXT_USTUNLARI},${T2_HOLAT_F2_YOQ_USTUN}`;
+
 /** Daraxt yo'li uchun t2_daraxt ustunlari. Olib tashlangan: kompaniya_id, d1–d3,
  *  yangilandi, manba_id, raqam — daraxt/eksport/ostatka/fakt ularni o'qimaydi. */
 export const T2_DARAXT_USTUNLARI = 'id,obyekt_id,obyekt,ota_id,daraja,tartib,tur,kod,nom,birlik,hajm,narx,summa,kat,narx_usul,qoshimcha,zamena,xom_qator,versiya,norma';

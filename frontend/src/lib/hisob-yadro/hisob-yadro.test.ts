@@ -215,7 +215,14 @@ describe('ko‘rinishlar (Construct uslubi)', () => {
     // Manfiy qator: ishorali narx; F2 summasi noma'lum — narx to'qilmaydi; 0 — 0.
     expect(faktSummaF2Narxda(-1, -2, -70000, -12000).summa).toBe(-35000);
     expect(faktSummaF2Narxda(2, 5, null, 24000)).toEqual({ summa: null, manba: 'f2', narx: null });
+    // F2 summasi yozilmagan (server f2_summa_yoq > 0, summa 0 ko'rinsa ham): fakt 0 ga tushmaydi, avvalgidek; yoq=0 — odatdagi qoida.
+    expect(faktSummaF2Narxda(1, 1, 0, 3270, 1)).toEqual({ summa: 3270, manba: 'fakt', narx: null });
+    expect(faktSummaF2Narxda(1, 1, 0, 3270, 0).summa).toBe(0);
+    expect(faktSummaF2Narxda(null, 1, null, null, 2).summa).toBeNull();
     expect(faktSummaF2Narxda(2, 5, 0, 24000).summa).toBe(0);
+    // Float shovqinli chegara (x.xx4999999999995): yaxlit2 15 muhim raqamga olib YUQORI yaxlitlaydi — SQL `_t2_f2_narxda_v1` shuni qiladi.
+    expect(faktSummaF2Narxda(1, 1, 28656.224999999995, null).summa).toBe(28656.23);
+    expect(faktSummaF2Narxda(1, 1, -28656.224999999995, null).summa).toBe(-28656.23);
     expect(faktSummaF2NarxFormula('H1', 'J1', 'K1', 'ROUND(H1*F1,2)')).toBe('IF(AND(ISNUMBER(J1),J1<>0),IF(AND(ISNUMBER(K1),H1<>""),ROUND(H1*K1/J1,2),""),ROUND(H1*F1,2))');
     expect(korinishSummasi(q({ faktHajm: 5, f2Hajm: 8, f2Summa: 80 }), 'fakt', { f2Narx: true })).toBe(50);
     expect(korinishSummasi(q({ faktHajm: 5, f2Hajm: 8, f2Summa: 160 }), 'fakt', { f2Narx: true })).toBe(100);

@@ -193,7 +193,7 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
     const f2 = son(hq?.f2_hajm) ?? 0;
     const f2Summa = son(hq?.f2_summa) ?? (f2 === 0 ? 0 : narx != null ? yaxlit2(f2 * narx) : null);
     // Narx qoidasi (yadro): tasdiqlangan F2 bor qatorda fakt summasi F2 birlik narxida (N / M), fakt hajmi yozilganidek.
-    const fr = faktSummaF2Narxda(fakt, f2, f2Summa, faktAsl);
+    const fr = faktSummaF2Narxda(fakt, f2, f2Summa, faktAsl, son(hq?.f2_summa_yoq));
     const faktSumma = fr.summa;
     const summa = narx != null ? yaxlit2(smetaHajm * narx) : null;
     if (narxBildirishnomaKerak(q, narx)) diqqat.push({ nom: `${q.kod ? `${q.kod} ` : ''}${q.nom ?? ''}`.trim(), sabab: NARX_YOQ_SABAB });

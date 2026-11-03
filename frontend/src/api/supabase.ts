@@ -324,6 +324,9 @@ export type T2QatorHolat = {
   f2_narx?: number | null;
   fakt_narx?: number | null;
   f2_narx_farq_foiz?: number | null;
+  /** Tasdiqlangan F2 qatorlarining nechtasida hajm bor-u summa yozilmagan (NULL; bl/rz ham). > 0 — F2 summasi NOMA'LUM
+   *  (`f2_summa` 0 ko'rinsa ham): fakt F2 narxida baholanmaydi (`faktSummaF2Narxda` 5-argumenti). */
+  f2_summa_yoq?: number | string | null;
 };
 export type T2Qator = {
   id: number; obyekt_id: number; obyekt: string | null;
@@ -416,7 +419,7 @@ export async function sbT2DaraxtOl(obyektId: number, ustunlar?: string) {
  * smeta narxida); aks holda server `f2_mumkin_summa`, u bo'lmasa yadro. NULL — NULL.
  */
 function f2MumkinSumma(h: T2QatorHolat, smetaHajm: number | null): number | null {
-  const fr = faktSummaF2Narxda(h.fakt_hajm, h.f2_hajm, h.f2_summa, h.fakt_summa);
+  const fr = faktSummaF2Narxda(h.fakt_hajm, h.f2_hajm, h.f2_summa, h.fakt_summa, h.f2_summa_yoq);
   if (fr.manba === 'fakt' && h.f2_mumkin_summa != null) return h.f2_mumkin_summa;
   return f2MumkinIshorali(fr.summa, h.f2_summa, smetaHajm);
 }
@@ -463,7 +466,7 @@ export function sbT2TreeQur(qatorlar: T2Qator[], holatlar?: T2QatorHolat[]): Tre
       f2ol: h ? h.f2_hajm : 0,
       f2mum: h ? (h.f2_mumkin_hajm ?? f2MumkinIshorali(h.fakt_hajm, h.f2_hajm, son(r.hajm)) ?? 0) : 0,
       // Narx qoidasi (yadro): tasdiqlangan F2 bor qatorda fakt summasi F2 birlik narxida; NULL — NULL.
-      stFakt: h ? faktSummaF2Narxda(h.fakt_hajm, h.f2_hajm, h.f2_summa, h.fakt_summa).summa : 0,
+      stFakt: h ? faktSummaF2Narxda(h.fakt_hajm, h.f2_hajm, h.f2_summa, h.fakt_summa, h.f2_summa_yoq).summa : 0,
       stF2: h ? h.f2_summa : 0,
       stOst: h ? h.qoldiq_summa : son(r.summa),
       /* `f2mum` hajm ustuni bilan bir xil qoida — bazadagi tayyor

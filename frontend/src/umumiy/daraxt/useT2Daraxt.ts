@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { T2_DARAXT_USTUNLARI, T2_HOLAT_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
+import { T2_DARAXT_USTUNLARI, T2_HOLAT_DARAXT_USTUNLARI_YOQ } from '../../api/t2-daraxt-ustunlar';
 import { sbT2DaraxtOl, sbT2QatorHolatOl, sbT2TreeQur, type T2Qator, type T2QatorHolat } from '../../api/supabase';
 import { sbT2DaraxtQisman, sbT2QatorHolatQisman } from '../../api/t2-holat-qisman';
 import { priceControlOl, type PriceControlLine } from '../../api/t2-price-control';
@@ -148,7 +148,7 @@ export function useT2Daraxt(obyektId: number | null) {
     const qoshP = qoshimchalarniOl(obyektId);
     const jarayon = (async (): Promise<boolean> => {
       try {
-        const [d, h] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbT2QatorHolatOl(obyektId, T2_HOLAT_DARAXT_USTUNLARI)]);
+        const [d, h] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbT2QatorHolatOl(obyektId, T2_HOLAT_DARAXT_USTUNLARI_YOQ)]);
         if (toliq !== toliqNavbat.current || !tirik(e, obyektId)) return false;
         if (!d.ok || !h.ok) {
           setError(d.error || h.error || 'Kanonik daraxt o‘qilmadi.');
@@ -207,7 +207,7 @@ export function useT2Daraxt(obyektId: number | null) {
           try {
             const [d, h] = await Promise.all([
               qIdlar.length ? sbT2DaraxtQisman(id, qIdlar) : Promise.resolve(null),
-              hIdlar ? sbT2QatorHolatQisman(id, hIdlar) : sbT2QatorHolatOl(id, T2_HOLAT_DARAXT_USTUNLARI),
+              hIdlar ? sbT2QatorHolatQisman(id, hIdlar) : sbT2QatorHolatOl(id, T2_HOLAT_DARAXT_USTUNLARI_YOQ),
             ]);
             if (!tirik(e, id)) return;
             const dq = (d?.qatorlar || []) as T2Qator[];
@@ -217,7 +217,7 @@ export function useT2Daraxt(obyektId: number | null) {
               let holatlar = (h.qatorlar || []) as T2QatorHolat[];
               let toliqHolat = !hIdlar;
               if (!hOk && hIdlar) { // qisman holat o'qilmadi — butun holat jadvali
-                const hh = await sbT2QatorHolatOl(id, T2_HOLAT_DARAXT_USTUNLARI);
+                const hh = await sbT2QatorHolatOl(id, T2_HOLAT_DARAXT_USTUNLARI_YOQ);
                 if (!tirik(e, id)) return;
                 hOk = hh.ok; holatlar = (hh.qatorlar || []) as T2QatorHolat[]; toliqHolat = true;
               }
