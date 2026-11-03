@@ -1,0 +1,67 @@
+{
+  "Kalendar sanasi": { "ru": "Дата в календаре", "en": "Calendar date" },
+  "Bir gap bilan kiriting": {
+    "ru": "Введите одной фразой",
+    "en": "Enter in one sentence"
+  },
+  "Masalan: 10 kub sheben keldi, Karyerdan": {
+    "ru": "Например: пришло 10 кубов щебня с карьера",
+    "en": "For example: received 10 cubic metres of gravel from the quarry"
+  },
+  "Masalan: 2 kub sheben Anvarga berdim": {
+    "ru": "Например: выдал Анвару 2 куба щебня",
+    "en": "For example: issued 2 cubic metres of gravel to Anvar"
+  },
+  "Matndagi harakat tanlangan kirim yoki chiqimga mos emas.": {
+    "ru": "Операция в тексте не соответствует выбранному приходу или расходу.",
+    "en": "The operation in the text does not match the selected receipt or issue."
+  },
+  "Material variantini tanlang": {
+    "ru": "Выберите вариант материала",
+    "en": "Choose a material variant"
+  },
+  "Gapdan qator tayyorlash": {
+    "ru": "Подготовить строку из фразы",
+    "en": "Prepare a row from the sentence"
+  },
+  "Tez sana tanlash": {
+    "ru": "Быстрый выбор даты",
+    "en": "Quick date selection"
+  },
+  "Kalendar": {
+    "ru": "Календарь",
+    "en": "Calendar"
+  },
+  "Kimdan yoki kimga ekanini tanlang": {
+    "ru": "Выберите отправителя или получателя",
+    "en": "Choose the sender or recipient"
+  },
+  "Qabul qiluvchini tanlang": {
+    "ru": "Выберите получателя",
+    "en": "Choose the recipient"
+  },
+  "Oldingi yozuvdan takrorlash": {
+    "ru": "Повторить из предыдущей записи",
+    "en": "Repeat a previous entry"
+  },
+  "Bugungi takror": {
+    "ru": "Повторить сегодня",
+    "en": "Repeat today"
+  },
+  "Yetishmagan qiymatlarni to‘ldirish": {
+    "ru": "Заполнить недостающие значения",
+    "en": "Fill in missing values"
+  },
+  "Batafsil tahrirlash": {
+    "ru": "Подробное редактирование",
+    "en": "Edit details"
+  },
+  "Bugun": {
+    "ru": "Сегодня",
+    "en": "Today"
+  },
+  "Kecha": {
+    "ru": "Вчера",
+    "en": "Yesterday"
+  }
+}

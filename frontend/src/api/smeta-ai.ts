@@ -3,7 +3,7 @@ import type { NormaTajriba } from '../lib/smeta-ai/tajriba';
 import type { NarxTajriba } from '../lib/smeta-studio/narx-ishonch';
 import type { InternetNatija, InternetSorov } from '../lib/smeta-ai/internet-narx';
 import type { OqishNatija, SahifaJavob, SahifaTuri, SahifaXabar } from '../lib/ai-yordamchi/protokol';
-import type { IshNiyati, KoefSorovi, KoefTanlov, KpOqish, NarxSorovi, NarxTanlov, SuhbatJavobi, SuhbatXabari, Tanlov, TanlovSorovi } from '../lib/smeta-ai/protokol';
+import type { F2Niyat, IshNiyati, KoefSorovi, KoefTanlov, KpOqish, NarxSorovi, NarxTanlov, SuhbatJavobi, SuhbatXabari, Tanlov, TanlovSorovi } from '../lib/smeta-ai/protokol';
 
 export type AiXato = { ok: false; code: string; message?: string };
 async function post<T>(body: unknown): Promise<T | AiXato> {
@@ -38,6 +38,9 @@ export async function smetaXotiraYoz(kompaniyaId: number, mazmun: string, daraja
 /** Every norm the estimator put into the estimate — the platform learns which norm practitioners use for which work. */
 export const smetaTajribaYoz = (kompaniyaId: number, tanlovlar: Array<{ kod: string; tavsif: string; birlik: string; koef?: string; manba: 'ai' | 'qolda' }>) =>
   post<{ ok: true; yozildi: number }>({ amal: 'tajriba_yoz', kompaniya_id: kompaniyaId, tanlovlar });
+/** F2 yordamchi: matn -> niyatlar (B8-2). Moslash/hisob lokal (lib/f2-moslash-v3/ai-reja). */
+export const smetachiF2Niyat = (kompaniyaId: number, matn: string) =>
+  post<{ ok: true; niyatlar: F2Niyat[]; model?: string }>({ amal: 'f2_niyat', kompaniya_id: kompaniyaId, matn });
 /** AI picks normative coefficients that match the stated work conditions (codes only from the list sent). */
 export const smetachiKoefTanla = (kompaniyaId: number, sharoit: string, sorovlar: KoefSorovi[]) =>
   post<{ ok: true; tanlovlar: KoefTanlov[]; savol: string | null }>({ amal: 'koef_tanla', kompaniya_id: kompaniyaId, sharoit, sorovlar });

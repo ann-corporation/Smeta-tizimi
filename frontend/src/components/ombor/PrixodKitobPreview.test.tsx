@@ -3,9 +3,12 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { PrixodKitobPreview } from './PrixodKitobPreview';
 import type { PrixodKitob, PrixodQator } from '../../lib/ombor-prixod/turlar';
 
-const mocks = vi.hoisted(() => ({ read: vi.fn(), varaqlar: vi.fn(), yozilgan: vi.fn(), importla: vi.fn(), yukla: vi.fn() }));
+const mocks = vi.hoisted(() => ({ read: vi.fn(), varaqlar: vi.fn(), yozilgan: vi.fn(), importla: vi.fn(), yukla: vi.fn(), excel: vi.fn(), download: vi.fn() }));
+vi.mock('../../lib/ombor-prixod/davr-eksport', () => ({ omborDavrExcel: mocks.excel }));
+vi.mock('../../lib/construction-document-control/export/download-helper', () => ({ downloadBlob: mocks.download }));
+vi.mock('../../lib/token-hujjat', () => ({ hujjatTokenBilan: async (_p: unknown, deliver: () => void) => { deliver(); return { ok: true }; } }));
 vi.mock('../../lib/ombor-prixod/read-fonda', () => ({ prixodKitobFonda: mocks.read }));
-vi.mock('../../lib/ombor-prixod/kitob', () => ({ varaqNomlari: mocks.varaqlar }));
+vi.mock('../../lib/ombor-prixod/kitob', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../lib/ombor-prixod/kitob')>()), varaqNomlari: mocks.varaqlar }));
 vi.mock('../../api/t2-sklad-kirim', () => ({ sbSkladKirimYozilganQatorlar: mocks.yozilgan, sbSkladKirimImport: mocks.importla }));
 vi.mock('../../api/t2-hujjat-canonical', () => ({ hujjatYukla: mocks.yukla }));
 
@@ -121,4 +124,76 @@ describe('PrixodKitobPreview — Excel’dan yuklash', () => {
     expect(yozTugma().disabled).toBe(true);
     expect(mocks.yozilgan).not.toHaveBeenCalled();
   });
-});
+
+  const tasdiqla = async (nom: string) => {
+    await screen.findByText(nom);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Tahrirlash' })[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Hammasi to‘g‘ri — tasdiqlash' }));
+  };
+  const davrKirit = () => {
+    fireEvent.change(screen.getByLabelText('Davr boshi'), { target: { value: '2026-10-01' } });
+    fireEvent.change(screen.getByLabelText('Davr oxiri'), { target: { value: '2026-10-31' } });
+  };
+
+  it('RU Excel faqat tasdiqlangan qoralamalarni va davr metama’lumotini eksport qiladi', async () => {
+    const tasdiqlangan = qator(40); tasdiqlangan.nom = 'Confirmed stone'; tasdiqlangan.hujjat = 'IN-40';
+    const tegilmagan = qator(41); tegilmagan.nom = 'Unconfirmed sand';
+    mocks.read.mockResolvedValue(kitob([tasdiqlangan, tegilmagan]));
+    mocks.excel.mockResolvedValue(new Uint8Array([3, 4, 5]));
+    render(<PrixodKitobPreview kompaniyaId={27} skladId={8} skladNomi="Warehouse Eight" />);
+    yukla();
+    await screen.findByText('Confirmed stone');
+    const tugma = screen.getByRole('button', { name: 'Tasdiqlangan qoralamalar — RU Excel' }) as HTMLButtonElement;
+    expect(tugma.disabled).toBe(true);
+    davrKirit();
+    expect(tugma.disabled).toBe(true);
+    await tasdiqla('Confirmed stone');
+    expect(tugma.disabled).toBe(false);
+    fireEvent.click(tugma);
+    await waitFor(() => expect(mocks.excel).toHaveBeenCalledTimes(1));
+    const [rows, davr] = mocks.excel.mock.calls[0] as [Array<Record<string, unknown>>, Record<string, unknown>];
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toEqual(expect.objectContaining({ id: '42', operatsiya: 'prixod', nom: 'Confirmed stone', manbaQator: 42, hujjat: 'IN-40', tasdiqlangan: true }));
+    expect(davr).toEqual(expect.objectContaining({ bosh: '2026-10-01', oxir: '2026-10-31', kompaniya: 'Kompaniya 27', ombor: 'Warehouse Eight',
+      holat: 'qoralama', rasxodKiritilgan: false, manbaNomi: 'synthetic.xlsx' }));
+    await waitFor(() => expect(mocks.download).toHaveBeenCalledWith(expect.any(Uint8Array), expect.stringContaining('Kirim_qoralama_')));
+  });
+
+  it('ombor tanlanmagan bo‘lsa RU Excel o‘chiq', async () => {
+    mocks.read.mockResolvedValue(kitob([qator(50)]));
+    render(<PrixodKitobPreview kompaniyaId={27} skladId={null} />);
+    yukla();
+    await tasdiqla('Tovar 50');
+    davrKirit();
+    expect((screen.getByRole('button', { name: 'Tasdiqlangan qoralamalar — RU Excel' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(mocks.excel).not.toHaveBeenCalled();
+  });
+
+  it('takror qator tasdiqlangan bo‘lsa ham RU Excel ga kirmaydi', async () => {
+    mocks.read.mockResolvedValue(kitob([qator(60), qator(61)]));
+    mocks.yozilgan.mockResolvedValue(new Set([63])); // qator(61).manbaQator = 63
+    mocks.excel.mockResolvedValue(new Uint8Array([1]));
+    render(<PrixodKitobPreview kompaniyaId={1} skladId={4} />);
+    yukla();
+    await tasdiqla('Tovar 60');
+    davrKirit();
+    fireEvent.click(screen.getByRole('button', { name: 'Tasdiqlangan qoralamalar — RU Excel' }));
+    await waitFor(() => expect(mocks.excel).toHaveBeenCalledOnce());
+    expect((mocks.excel.mock.calls[0][0] as Array<{ manbaQator: number }>).map((r) => r.manbaQator)).toEqual([62]);
+  });
+
+  it('kompaniya almashsa kechikkan eksport yuklanmaydi', async () => {
+    mocks.read.mockResolvedValue(kitob([qator(70)]));
+    let resolve!: (v: Uint8Array) => void;
+    mocks.excel.mockReturnValue(new Promise<Uint8Array>((r) => { resolve = r; }));
+    const view = render(<PrixodKitobPreview kompaniyaId={1} skladId={4} />);
+    yukla();
+    await tasdiqla('Tovar 70');
+    davrKirit();
+    fireEvent.click(screen.getByRole('button', { name: 'Tasdiqlangan qoralamalar — RU Excel' }));
+    await waitFor(() => expect(mocks.excel).toHaveBeenCalledOnce());
+    view.rerender(<PrixodKitobPreview kompaniyaId={2} skladId={4} />);
+    resolve(new Uint8Array([1]));
+    await waitFor(() => expect(screen.queryByText('Tovar 70')).toBeNull());
+    expect(mocks.download).not.toHaveBeenCalled();
+  });});
