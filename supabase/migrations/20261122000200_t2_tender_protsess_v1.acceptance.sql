@@ -216,8 +216,15 @@ begin
   r := t2_tender_otish_v1(ux, x, gen_random_uuid(), rfq3, v3, 'bekor', 'Byudjet qayta ko''rilmoqda');
   rep := rep || (case when (r->>'ok')::boolean then 'OK   57 bekor qilindi' else 'FAIL 57 ' || r::text end);
   -- 58 ro'yxat: kuzatuvchi o'qiy oladi; ochiq tender ro'yxatida boshqa kompaniya byudjetsiz
-  r := t2_tender_royxat_v1(uxk, x, 'meniki', null, null, 50, null);
-  rep := rep || (case when jsonb_array_length(r->'qatorlar') = 2 then 'OK   58 kuzatuvchi ro''yxatni ko''radi (2 tender)' else 'FAIL 58 ' || r::text end);
+  -- L0 04.11: kuzatuvchida procurement.read yo'q (prod va repo rol xaritasi) — ro'yxatni PTO o'qiydi, kuzatuvchi rad etiladi.
+  r := t2_tender_royxat_v1(uxp, x, 'meniki', null, null, 50, null);
+  rep := rep || (case when jsonb_array_length(r->'qatorlar') = 2 then 'OK   58 pto ro''yxatni ko''radi (2 tender)' else ('FAIL 58 ' || r::text) end);
+  begin
+    perform t2_tender_royxat_v1(uxk, x, 'meniki', null, null, 50, null);
+    rep := rep || 'FAIL 58b kuzatuvchi procurement.read siz ro''yxatni ko''rdi'::text;
+  exception when others then
+    rep := rep || ('OK   58b kuzatuvchi rad etildi (' || sqlstate || ')');
+  end;
   r := t2_tender_yetkazuvchilar_v1(ux, x);
   rep := rep || (case when jsonb_array_length(r->'qatorlar') = 2 then 'OK   59 yetkazuvchilar ro''yxati (faol aloqa)' else 'FAIL 59 ' || r::text end);
 
@@ -242,8 +249,8 @@ begin
   rep := rep || (case when jsonb_array_length(r->'takliflar') = 1 then 'OK   66 ochilgandan keyin v1 tafsilot takliflarni qaytaradi' else 'FAIL 66 ' || r::text end);
 
   -- 60-63 fayllar: faqat metadata (R2 hujjat havolasi); begona kompaniya hujjati rad; e'londan keyin tender fayli bog'lanmaydi
-  insert into t2_document_registry (kompaniya_id) values (x) returning id into n;
-  insert into t2_document_registry (kompaniya_id) values (z) returning id into q3;
+  insert into t2_document_registry (kompaniya_id, document_type, status) values (x, 'tender_dalil', 'active') returning id into n;
+  insert into t2_document_registry (kompaniya_id, document_type, status) values (z, 'tender_dalil', 'active') returning id into q3;
   r := t2_tender_saqla_v1(ux, x, gen_random_uuid(), null, null, 'material', 'ochiq', null, null, now() + interval '2 days', '{"sarlavha":"Fayl tenderi"}'::jsonb,
                           jsonb_build_array(jsonb_build_object('nom', 'Qum', 'birlik', 'm3', 'miqdor', 5)));
   rfq3 := (r->>'id')::bigint;
