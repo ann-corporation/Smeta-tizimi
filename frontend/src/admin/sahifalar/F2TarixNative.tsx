@@ -23,6 +23,9 @@ import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
 import type { T2Qator } from '../../api/supabase';
 import { f2AktKirish } from '../../lib/f2-akt-hujjat';
 import { f2Hujjat } from '../../lib/f2-hujjat';
+import { aktPodvallariniOl } from '../../api/t2-akt-podval';
+import { aktPodvalXaritasi } from '../../lib/akt-podval';
+import { eskiBloklarHujjat, pereraschetBloklari } from '../../lib/f2-pereraschet';
 import { f2HujjatKaliti, f2HujjatKonteksti } from '../../api/f2-hujjat-kontekst';
 import { mazmunXeshi, tokenBilan } from '../../api/t2-token';
 import { hujjatArxivla } from '../../api/t2-hujjat-arxiv';
@@ -35,6 +38,7 @@ import { f2ImportAktlari, f2ImportQilinganmi } from '../../lib/f2-manba';
 import { f2BekorMumkin } from '../../lib/f2-bekor';
 import { F2BekorOyna, type F2BekorOynaAkt } from './F2BekorOyna';
 import { F2StornoOyna, type F2StornoAkt } from './F2StornoOyna';
+import { F2PodvalBackfillOyna } from './F2PodvalBackfillOyna';
 import { useIxtiyoriyQueryClient } from '../../api/t2-obyektlar-kesh';
 import { daraxtKaliti } from '../../umumiy/daraxt/useT2Daraxt';
 
@@ -101,6 +105,8 @@ export function F2TarixNative() {
   const [bekorOyna, setBekorOyna] = useState<F2BekorOynaAkt[] | null>(null);
   /** Storno (minus) F2 yaratish oynasi: bitta manba akt. */
   const [stornoOyna, setStornoOyna] = useState<F2StornoAkt | null>(null);
+  /** F2 podvalini asl fayldan tiklash (backfill) oynasi. */
+  const [podvalOyna, setPodvalOyna] = useState(false);
   const qc = useIxtiyoriyQueryClient();
 
   const obyektId = Number(params.get('obyekt'));
@@ -240,9 +246,24 @@ export function F2TarixNative() {
       const ctx = await f2HujjatKonteksti(kompaniyaId, obyektId);
       // Ustama/podval o'qilmasa F2 hujjati jimgina standart podval yoki ustamasiz chiqmaydi.
       if (ctx.xato) { toast(`F2 hujjati tuzilmadi: ${ctx.xato}`, 'danger'); return; }
-      const h = f2Hujjat(k.bolimlar, k.qatorlar, {
+      // F2 hujjati O'Z podvali bilan (egasi 2026-11-03): podval/qator o'qilmasa jim smeta podvaliga o'tilmaydi.
+      const [pv, aq] = await Promise.all([
+        aktPodvallariniOl(obyektId),
+        sbOqi<{ qator_id: number; hajm: number | null; certified_quantity: number | null; certified_unit_price: number | null; certified_amount: number | null; raw_snapshot: unknown }>({
+          jadval: 't2_akt_qator', filtr: `akt_id=eq.${akt.id}&obyekt_id=eq.${obyektId}`, ustunlar: 'qator_id,hajm,certified_quantity,certified_unit_price,certified_amount,raw_snapshot', limit: 50000 }),
+      ]);
+      if (!pv.ok || !aq.ok) { toast(`F2 hujjati tuzilmadi: ${t('hujjat podvali o‘qilmadi')}`, 'danger'); return; }
+      const xarita = aktPodvalXaritasi(pv.podvallar);
+      const eskiB = pereraschetBloklari(aq.qatorlar ?? [], new Map(smetaRows.map((r) => [r.id, r] as const)), new Map(f2Reestr.map((a) => [a.id, a.raqam ?? null] as const)));
+      const stornoIds = new Set(eskiB.flatMap((b) => b.qatorlar.map((q) => q.qatorId)));
+      const ozNk = xarita.get(`${akt.id}:`)?.nk ?? null;
+      const blokNk = (m: number) => xarita.get(`${akt.id}:${m}`)?.nk ?? xarita.get(`${m}:`)?.nk ?? null;
+      const ozNakrutka = ozNk ? (Object.fromEntries(Object.entries(ozNk).filter(([, v]) => v != null).map(([kk, v]) => [kk, Number(v)])) as typeof ctx.nakrutka) : null;
+      const h = f2Hujjat(k.bolimlar, k.qatorlar.filter((x) => !stornoIds.has(x.id)), {
         obyektNom: object?.nom || '', davr: akt.oy || '', raqam: akt.raqam, imzo: ctx.imzo, shartnoma: ctx.shartnoma,
-        ndsFoiz: NDS_SUKUT_FOIZ, nakrutka: ctx.nakrutka, podval: ctx.podval, nkManba: ctx.nkManba ?? null,
+        // Hujjatning o'z podvali bo'lsa - uning foizlari (QQS ham o'ziniki); yo'q - obyekt podvali va tizim QQS stavkasi.
+        ndsFoiz: ozNk ? null : NDS_SUKUT_FOIZ, nakrutka: ozNakrutka ?? ctx.nakrutka, podval: ozNk ? null : ctx.podval, nkManba: ozNk ? null : ctx.nkManba ?? null,
+        eskiBloklar: eskiB.length ? eskiBloklarHujjat(eskiB, blokNk) : undefined,
         // Saqlangan akt — tarix: faqat sertifikatlangan qiymatlar, formulasiz (Excel hech narsani qayta hisoblamaydi).
         formulasiz: true, rows: smetaRows,
       });
@@ -317,6 +338,7 @@ export function F2TarixNative() {
     <>{korinish.oyna}
     {bekorOyna && (workspace.companyId ?? joriy?.id) && <F2BekorOyna kompaniyaId={(workspace.companyId ?? joriy?.id) as number} aktlar={bekorOyna}
       onYop={() => setBekorOyna(null)} onTugadi={(n) => void bekorTugadi(n)} />}
+    {podvalOyna && (workspace.companyId ?? joriy?.id) && <F2PodvalBackfillOyna obyektId={obyektId} kompaniyaId={(workspace.companyId ?? joriy?.id) as number} onYop={() => setPodvalOyna(false)} onTugadi={() => void yuklash()} />}
     {stornoOyna && <F2StornoOyna obyektId={obyektId} akt={stornoOyna} reestr={f2Reestr} onYop={() => setStornoOyna(null)} onTugadi={(id) => void stornoTugadi(id)} />}
     <Sahifa
       sarlavha="F2 tarixi va tasdiqlash"
@@ -332,6 +354,7 @@ export function F2TarixNative() {
             </select>
           </label>
           <div className="flex gap-2 text-[12px] text-text-dim"><span className="fz-chip">{t('{n} ta F2', { n: f2Reestr.length })}</span><span className="fz-chip fz-chip--accent">{t('{n} tasi tasdiqlangan', { n: f2Reestr.filter((a) => a.holat === 'tasdiqlangan').length })}</span></div>
+          {validId && mayPrepare && <button type="button" data-testid="podval-backfill-tugma" className="fz-btn fz-btn--ghost" title={t('Tasdiqlangan F2 ning asl faylidan faqat podvalni o‘qib, akt bilan moslaydi')} onClick={() => setPodvalOyna(true)}><Upload />{t('F2 podvalini fayldan tiklash')}</button>}
           {tanlanganAktlar.length > 0 && <button type="button" className="fz-btn fz-btn--danger" onClick={() => setBekorOyna(tanlanganAktlar.map(bekorAkt))}><Ban />{t('Tanlanganlarni bekor qilish ({n})', { n: tanlanganAktlar.length })}</button>}
         </section>
 

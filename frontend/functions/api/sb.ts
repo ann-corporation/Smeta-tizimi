@@ -213,6 +213,9 @@ export const onRequestPost: PagesFunction<{
            it is never client-supplied. */
         price_control_v1: 'obyekt_actor',
         f2_exact_qatorlar_v1: 'akt_actor',
+        /* Egasi 2026-11-03: F2 hujjat podvali (akt, blok) va backfill nomzodlari. stable; a'zolik + f2.read RPC ichida. */
+        akt_podval_ol_v1: 'obyekt_actor',
+        akt_podval_nomzod_v1: 'obyekt_actor',
         /* T2-GAS-EXIT-001 §5/§6: resumable F2 import job — resumption reads.
            Both RPCs are `stable` (read-only) and membership-checked inside
            the function itself via job_id -> kompaniya_id, same law as above. */

@@ -4,6 +4,8 @@ import { t } from '../../i18n/til';
 import { qiymatUchligi, type KatKesim } from '../../lib/ustamali-summa';
 import { pulMatni as pul, ustamaIzohi } from './ustamaIzohi';
 import { useUstamaliSumma } from './useUstamaliSumma';
+import { ustamaliHisobla } from '../../lib/ustamali-summa';
+import { aktPodvaliPodval, type AktPodvalNk } from '../../lib/hisob-yadro';
 import { QiymatUchlik } from './QiymatUchlik';
 import { ustamaZanjirQatorlari, type TafsilQism } from '../../lib/summa-tafsilot';
 import { katKesimdanPaket, kesimMosmi, paketUchligi, type SummaPaket } from '../../lib/summa-paket';
@@ -31,6 +33,8 @@ type SummaJuftProps = {
   obyektId?: number | null; ustamasiz?: number | null; katKesim?: KatKesim | null;
   shartnomaId?: number | null; kompaniyaId?: number | null; kichik?: boolean; className?: string;
   rejim?: 'qqs' | 'ustamali'; yorliq?: string;
+  /** F2 hujjatining O'Z podvali (egasi 2026-11-03): berilsa shu foizlar bilan baholanadi (smeta podvali emas). */
+  aktNk?: AktPodvalNk | null;
   /** Server summa paketi (`_t2_summa_paket_*`): QQS bilan · ustamali · прямые + ▸ kesim. `null` — kiritilmagan/noma’lum. */
   paket?: SummaPaket | null;
   /** Paket bilan: ▸ kesimni ko‘rsatmaslik (zich jadval kataklari). */
@@ -41,8 +45,9 @@ type SummaJuftProps = {
   kiritishYoli?: { yol: string; matn?: string };
 };
 
-function MijozSummaJuft({ obyektId, ustamasiz, katKesim, shartnomaId, kompaniyaId, kichik = false, className = '', rejim = 'qqs', yorliq, kesimYoq = false }: {
+function MijozSummaJuft({ obyektId, ustamasiz, katKesim, shartnomaId, kompaniyaId, kichik = false, className = '', rejim = 'qqs', yorliq, kesimYoq = false, aktNk = null }: {
   kesimYoq?: boolean;
+  aktNk?: AktPodvalNk | null;
   obyektId?: number | null | undefined; ustamasiz?: number | null | undefined; katKesim?: KatKesim | null;
   shartnomaId?: number | null; kompaniyaId?: number | null; kichik?: boolean; className?: string;
   /** `qqs` (sukut) — jami: QQS bilan asosiy; `ustamali` — qator summasi (ish jadvali ichida). */
@@ -51,7 +56,7 @@ function MijozSummaJuft({ obyektId, ustamasiz, katKesim, shartnomaId, kompaniyaI
   yorliq?: string;
 }) {
   const h = useUstamaliSumma(obyektId, { kompaniyaId, shartnomaId });
-  const u = katKesim ? h.hisobla(katKesim) : null;
+  const u = katKesim ? (aktNk ? ustamaliHisobla(katKesim, null, aktPodvaliPodval(aktNk)) : h.hisobla(katKesim)) : null;
   if (rejim === 'qqs') {
     const q = qiymatUchligi(u, ustamasiz);
     // ▸ kesim faqat Σ kesim = ko'rsatilgan прямые bo'lsa (aks holda chalg'itadi).

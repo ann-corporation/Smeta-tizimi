@@ -1,5 +1,6 @@
 import { t } from '../../i18n/til';
 import { ObyektOptionlari } from '../ui/ObyektOptionlari';
+import { loyihaBoyichaObyektlar } from '../../lib/loyihasiz-obyekt';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { useKompaniya } from './KompaniyaKontekst';
@@ -449,9 +450,9 @@ export function PTOWorkspaceBar() {
   const location = useLocation();
   if (!workspace.companyId || !isPtoRoute(location.pathname)) return null;
 
-  const objects = workspace.scope.projectId == null
-    ? workspace.objects
-    : workspace.objects.filter((row) => row.loyiha_id === workspace.scope.projectId);
+  /* Egasi qoidasi: loyihasiz obyekt hech qachon yashirilmaydi — loyiha tanlanganda ham ro'yxatda («Loyihasiz obyektlar» guruhi). */
+  const { loyihali, loyihasiz } = loyihaBoyichaObyektlar(workspace.objects, workspace.scope.projectId);
+  const objects = [...loyihali, ...loyihasiz];
   const revisions = workspace.scope.sourceDocumentId == null
     ? workspace.revisions
     : workspace.revisions.filter((row) => row.documentId === workspace.scope.sourceDocumentId);

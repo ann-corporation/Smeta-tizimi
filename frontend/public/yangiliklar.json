@@ -2,6 +2,36 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 68,
+      "sana": "2026-11-03",
+      "sarlavha": "Loyihasiz obyekt endi hech qayerda yashirilmaydi",
+      "bandlar": [
+        "Loyihaga biriktirilmagan obyekt navigatorda va ish doirasi tanlovida «Loyihasiz obyektlar» guruhida ko‘rinadi; har biriga bitta bosishda «Loyihaga biriktirish» bor.",
+        "Yangi obyekt yaratishda loyiha tanlovi hozirgi tanlangan loyihadan boshlanadi, «Yangi loyiha» varianti bor; loyiha tanlanmasa ogohlantiradi. Kompaniyada xuddi shu nomli obyekt bo‘lsa (defis atrofidagi bo‘shliqlar hisobga olinmaydi) dublikat haqida ogohlantiradi.",
+        "Obyektda smeta podvali bo‘lmasa «Smeta podvali kiritilmagan — kompaniya sukut foizlari ishlatilmoqda» deb aniq ko‘rsatiladi; qayta importda podval yo‘q bo‘lsa smetadagi foizlar avtomatik yoziladi."
+      ]
+    },
+    {
+      "id": 67,
+      "sana": "2026-11-03",
+      "sarlavha": "Forma-3 ikki shaklda: to‘liq va bir qatorli",
+      "bandlar": [
+        "Forma-3 (счет-фактура) chiqarishda endi shaklni tanlaysiz: «To‘liq» — ish turlari, hajm va narxlar bilan (o‘zgarmagan); «Bir qatorli» — ish ro‘yxatisiz bitta yig‘ma qator («Выполненные строительно-монтажные работы по объекту … за период …») va pastida summa NDS siz, NDS, jami NDS bilan. Sarlavha, rekvizitlar va imzolar ikkala shaklda bir xil.",
+        "Ikkala shaklda summalar bir xil hisobdan olinadi — tiyingacha teng. Summasi noma’lum bo‘lsa katak bo‘sh qoladi va sababi yoziladi (0 yozilmaydi).",
+        "Tanlov Nakopitelniy sahifasidagi Forma-3 tugmasi, shartnoma bo‘limidagi F3 yuklash va oylik paketda bor; paketda «Ikkalasi ham» ham tanlanadi. Tanlovingiz kompaniya uchun eslab qolinadi."
+      ]
+    },
+    {
+      "id": 66,
+      "sana": "2026-11-03",
+      "sarlavha": "F2 hujjati endi o‘z podvali bilan hisoblanadi; pereraschet — bitta hujjatda",
+      "bandlar": [
+        "Import qilingan F2 ning o‘z podvali (ustama foizlari) bazada saqlanadi va panel, tarix, qoralama, Excel hamda storno hammasida shu foizlar bilan hisoblanadi. Tasdiqlangan F2 ning asl faylini qayta yuklab, faqat podvalni tiklash mumkin (F2 tarixi).",
+        "Pereraschet: bir nechta eski F2 ni birga tanlab, ularni hujjat tepasida alohida «Сторно Ф-2 №…» bloklari (har biri o‘z podvali bilan), pastda yangi smeta qatorlarini qo‘shasiz. Jami: yangi − eski, QQS bilan / ustamali / ustamasiz.",
+        "Forma-2 Excel qoralamasi ham shu bloklarni va sof jamini ko‘rsatadi; QQS stavkasi bo‘sh qolsa tizim stavkasi olinadi."
+      ]
+    },
+    {
       "id": 65,
       "sana": "2026-11-03",
       "sarlavha": "«Egizaklarga ham yozish» katta loyihalarda ochiladi",

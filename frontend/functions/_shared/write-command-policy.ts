@@ -58,6 +58,7 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   qator_qosh: 'smeta.write',
   akt_yarat_v2: 'f2.prepare',
   f2_qoralama_yangila_v1: 'f2.prepare',
+  akt_podval_yoz_v1: 'f2.prepare',
   price_basis_yarat: 'narx.write',
   f2_import_job_yarat: 'f2.import',
   f2_import_job_ilgarilash: 'f2.import',
