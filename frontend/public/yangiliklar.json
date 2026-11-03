@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 68,
+      "sana": "2026-11-03",
+      "sarlavha": "Loyihasiz obyekt endi hech qayerda yashirilmaydi",
+      "bandlar": [
+        "Loyihaga biriktirilmagan obyekt navigatorda va ish doirasi tanlovida «Loyihasiz obyektlar» guruhida ko‘rinadi; har biriga bitta bosishda «Loyihaga biriktirish» bor.",
+        "Yangi obyekt yaratishda loyiha tanlovi hozirgi tanlangan loyihadan boshlanadi, «Yangi loyiha» varianti bor; loyiha tanlanmasa ogohlantiradi. Kompaniyada xuddi shu nomli obyekt bo‘lsa (defis atrofidagi bo‘shliqlar hisobga olinmaydi) dublikat haqida ogohlantiradi.",
+        "Obyektda smeta podvali bo‘lmasa «Smeta podvali kiritilmagan — kompaniya sukut foizlari ishlatilmoqda» deb aniq ko‘rsatiladi; qayta importda podval yo‘q bo‘lsa smetadagi foizlar avtomatik yoziladi."
+      ]
+    },
+    {
       "id": 67,
       "sana": "2026-11-03",
       "sarlavha": "Forma-3 ikki shaklda: to‘liq va bir qatorli",

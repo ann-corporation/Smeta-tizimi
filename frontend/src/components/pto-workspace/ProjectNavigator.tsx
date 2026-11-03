@@ -14,6 +14,7 @@ import { useRahbarPanel } from '../../api/t2-rahbar-panel';
 import { paketUchligi, type SummaPaket } from '../../lib/summa-paket';
 import { paketlarJami } from '../../lib/summa-tafsilot';
 import { KatTaqsimot, LoyihaStack, ProgressQadam, type StackQator } from './ObyektGrafik';
+import { LoyihasizObyektlar } from './LoyihasizObyektlar';
 
 const financialLabels: Record<FinancialMetric, string> = { smeta: 'Smeta', fakt: 'Fakt', f2: 'Tasdiqlangan F2', ostatka: 'Ostatka' };
 const technicalMetrics = ['razdel', 'ish', 'resurs', 'narxsiz', 'qator_soni'] as const;
@@ -52,9 +53,11 @@ function Value({ value, money = false }: { value: Aggregate; money?: boolean }) 
   return <span className="tabular-nums">{value.present === 0 && (money || value.total !== 0) ? t('Noma’lum') : money ? <FmtN val={value.known} kasr={0} /> : value.known.toLocaleString('ru-RU')}
     {value.unknown > 0 && <span className="mt-1 block text-[11px] font-normal text-text-mute">{t('narxsiz resurslar summaga kirmagan — Narxlar bo‘limida')}</span>}</span>;
 }
-export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive, onShare }: {
+export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive, onShare, onChanged }: {
   companyId: number; objects: T2Obyekt[]; onOpen: (o: T2Obyekt, contractId?: number) => void;
   onEdit: (o: T2Obyekt) => void; onArchive: (o: T2Obyekt) => void; onShare?: (o: T2Obyekt) => void;
+  /** Loyihasiz obyekt loyihaga biriktirilgach (ro'yxatni qayta o'qish uchun). */
+  onChanged?: () => void;
 }) {
   const { data: line, isPending, error, refetch } = useCompanyLineage(companyId);
   const financials = useObjectFinancials(companyId, objects);
@@ -125,7 +128,11 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
     </tr>;
   };
   const scopeFin = financials.sum(ids);
+  /* Egasi qoidasi: loyihasiz obyekt yashirilmaydi — har ko'rinishda alohida guruh va «Loyihaga biriktirish». */
+  const loyihasizlar = objects.filter(o => o.loyiha_id == null && matches(o.nom));
   return <section className="space-y-4" aria-label={t('Loyiha va obyektlar navigatori')}>
+    <LoyihasizObyektlar companyId={companyId} obyektlar={loyihasizlar} loyihalar={line.loyihalar} boshlangichLoyihaId={project?.id ?? null}
+      onOpen={id => { const o = objects.find(x => x.id === id); if (o) onOpen(o); }} onChanged={onChanged} />
     <nav aria-label={t('Loyiha yo‘li')} className="flex flex-wrap items-center gap-2 text-[13px]">
       <button className="fz-btn fz-btn--sm" onClick={() => go()}>{t('Barcha loyihalar')}</button>
       {projectId !== undefined && <><ChevronRight size={14} className="text-text-mute" /><button className="fz-btn fz-btn--sm" onClick={() => go(projectId)}>{projectName}</button></>}
@@ -154,7 +161,7 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
     {!contractRaw ? <div className="fz-table-wrap"><table className="fz-table"><thead><tr><th>{projectId !== undefined ? t('Shartnoma') : t('Loyiha')}</th>{FINANCIAL_METRICS.map(metric => <th key={metric} className="fz-c-num">{t(financialLabels[metric])}</th>)}</tr></thead><tbody>
       {projectId === undefined ? <>
         {line.loyihalar.filter(p => matches(p.nom) || line.obyektlar.some(o => o.loyiha_id === p.id && matches(o.nom))).map(p => row(`p${p.id}`,p.nom, projectObjects(line, p.id), () => { go(p.id); }, <FolderKanban size={20} className="shrink-0 text-accent" />, `${line.shartnomalar.filter(s => s.loyiha_id === p.id).length} ${t('shartnoma')}`))}
-        {projectObjects(line,null).length > 0 && row('unassigned-project',t('Loyihaga biriktirilmagan'), projectObjects(line,null), () => { go(null,'biriktirilmagan'); }, <FolderKanban size={20} className="shrink-0 text-text-mute" />)}
+        {projectObjects(line,null).length > 0 && row('unassigned-project',t('Loyihasiz obyektlar'), projectObjects(line,null), () => { go(null,'biriktirilmagan'); }, <FolderKanban size={20} className="shrink-0 text-text-mute" />)}
       </> : <>
         {contracts.filter(s => matches(`${s.raqam} ${s.nom ?? ''}`) || line.obyektlar.some(o => s.obyektlar.includes(o.id) && matches(o.nom))).map(s => row(`s${s.id}`,`№ ${s.raqam} · ${s.nom ?? ''}`, contractObjects(line,s.id), () => { go(projectId,s.id); }, <FileSignature size={20} className="shrink-0 text-accent" />, s.tomonlar.map(p => `${p.rol}: ${p.nom}`).join(' · '),s.id))}
         {unassignedObjects(line,projectId ?? null).length > 0 && row('unassigned-contract',t('Shartnomaga biriktirilmagan'),unassignedObjects(line,projectId ?? null),() => { go(projectId,'biriktirilmagan'); },<Building2 size={20} className="shrink-0 text-text-mute" />)}
