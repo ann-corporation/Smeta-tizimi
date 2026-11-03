@@ -2,6 +2,18 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 76,
+      "sana": "2026-11-03",
+      "sarlavha": "Rahbar paneli — boshqaruv markazi",
+      "bandlar": [
+        "Yuqorida 6 karta: Portfel, Bajarildi (tasdiqlangan F2), To'landi, Debitor (0–30 / 30–60 / 60+ kun), Kreditor, Rentabellik — har biri rangli holat va oylik trend bilan.",
+        "Pul oqimi: oylar bo'yicha bajarildi / to'lov / xarajat va keyingi 90 kun prognozi; kiritilmagan oy kulrang.",
+        "«Diqqat talab qiladi» — pulga ta'siri bo'yicha top-10 (topshirilmagan ish, smetadan oshgan hajm, F3 chiqmagan F2, reestr farqi va h.k.), har birida «Ochish».",
+        "«Tasdiq kutmoqda» — F2 qoralamalari va zayavkalar; obyektlar matritsasi Excel filtrlari bilan, telefonda kartalar.",
+        "Davr: oy / chorak / yil / hammasi. Kiritilmagan to'lov, xarajat va tannarx «kiritilmagan» deb ko'rsatiladi, 0 emas."
+      ]
+    },
+    {
       "id": 73,
       "sana": "2026-11-03",
       "sarlavha": "Loyihasiz obyekt endi hech qayerda yashirilmaydi",
