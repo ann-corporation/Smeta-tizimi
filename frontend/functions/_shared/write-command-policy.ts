@@ -86,6 +86,18 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   taklif_qabul: 'control.company.write',
   birja_rfq_yarat: 'document.write',
   birja_taklif_ber: 'document.write',
+  /* TENDER (2026-11-03): mavjud xarid capability lari qayta ishlatiladi (yangi nom YO'Q). Yetkazuvchi tomoni — supply.offer;
+     xaridor tomoni — procurement.write (tasdiq/e'lon/g'olib/raund/bekor RPC ichida procurement.approve ni ham talab qiladi). */
+  tender_saqla_v1: 'procurement.write',
+  tender_otish_v1: 'procurement.write', // RPC: tasdiqlashda/shartnoma/bajarilmoqda — write; elon/baholash/yopildi/bekor/qaytarish — approve
+  tender_raund_v1: 'procurement.approve',
+  tender_taklif_v2: 'supply.offer',
+  tender_taklif_qaytar_v2: 'supply.offer',
+  tender_savol_ber_v1: 'supply.offer',
+  tender_javob_v1: 'procurement.write',
+  tender_baholash_saqla_v1: 'procurement.write',
+  tender_golib_v2: 'procurement.approve',
+  tender_baho_ber_v1: 'procurement.write',
   viborka_smetadan_toldir: 'smeta.write',
   viborka_qabul_yoz: 'document.write',
   shartnoma_saqla: 'document.write',

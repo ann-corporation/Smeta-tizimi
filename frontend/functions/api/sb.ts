@@ -276,6 +276,11 @@ export const onRequestPost: PagesFunction<{
         /* C11 PR-B (2026-10-29): markaziy ombor kirimi ro'yxati — qatorlar + material bo'yicha jami. `stable`
            (20261114400000), a'zolik + document.read RPC ichida; sklad kompaniyasi ham RPC da tekshiriladi. */
         sklad_kirim_royxat_v1: 'kompaniya_actor',
+        /* TENDER (2026-11-03, 20261122000000): ro'yxat, tafsilot (muhr qoidasi RPC da), yetkazuvchilar, tahlil. `stable`; a'zolik + procurement.read/supply.* RPC ichida. */
+        tender_royxat_v1: 'kompaniya_actor',
+        tender_tafsilot_v2: 'kompaniya_actor',
+        tender_yetkazuvchilar_v1: 'kompaniya_actor',
+        tender_tahlil_v1: 'kompaniya_actor',
       };
       const tur = OQISH_RPC[so.soro];
       if (!tur) {
@@ -474,6 +479,41 @@ export const onRequestPost: PagesFunction<{
         q.set('p_filtr', JSON.stringify(filtr));
         q.set('p_limit', String(lim));
         q.set('p_offset', String(off));
+      }
+      if (so.soro === 'tender_tafsilot_v2') {
+        const xs = so as Record<string, unknown>;
+        const rid = Number(xs.rfq_id);
+        if (!Number.isSafeInteger(rid) || rid <= 0) return Response.json({ ok: false, error: 'rfq_id noto\'g\'ri' });
+        q.set('p_rfq_id', String(rid));
+      }
+      if (so.soro === 'tender_royxat_v1') {
+        const xs = so as Record<string, unknown>;
+        const yon = String(xs.yonalish ?? 'meniki');
+        if (!['meniki', 'menga', 'ochiq'].includes(yon)) return Response.json({ ok: false, error: 'yonalish noto\'g\'ri' });
+        q.set('p_yonalish', yon);
+        for (const [kalit, param] of [['tur', 'p_tur'], ['holat', 'p_holat']] as const) {
+          const v = xs[kalit];
+          if (v == null || v === '') continue;
+          if (typeof v !== 'string' || !/^[a-z_]{2,40}$/.test(v)) return Response.json({ ok: false, error: `${kalit} noto'g'ri` });
+          q.set(param, v);
+        }
+        const lim = Number(xs.limit ?? 50);
+        if (!Number.isInteger(lim) || lim < 1 || lim > 100) return Response.json({ ok: false, error: 'limit noto\'g\'ri' });
+        q.set('p_limit', String(lim));
+        if (xs.keyin_id != null && xs.keyin_id !== '') {
+          const kid = Number(xs.keyin_id);
+          if (!Number.isSafeInteger(kid) || kid <= 0) return Response.json({ ok: false, error: 'keyin_id noto\'g\'ri' });
+          q.set('p_keyin_id', String(kid));
+        }
+      }
+      if (so.soro === 'tender_tahlil_v1') {
+        const xs = so as Record<string, unknown>;
+        for (const [kalit, param] of [['dan', 'p_dan'], ['gacha', 'p_gacha']] as const) {
+          const v = xs[kalit];
+          if (v == null || v === '') continue;
+          if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return Response.json({ ok: false, error: `${kalit} YYYY-MM-DD bo'lishi kerak` });
+          q.set(param, v);
+        }
       }
       if (so.soro === 'hodisa_obyekt_lenta') {
         const lim = Math.min(100, Math.max(1, Number(so.limit || 20)));

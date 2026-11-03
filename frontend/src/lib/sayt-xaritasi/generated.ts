@@ -541,6 +541,46 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_birja_taklif_ber"
     },
     {
+      "amal": "tender_saqla_v1",
+      "rpc": "t2_tender_saqla_v1"
+    },
+    {
+      "amal": "tender_otish_v1",
+      "rpc": "t2_tender_otish_v1"
+    },
+    {
+      "amal": "tender_raund_v1",
+      "rpc": "t2_tender_raund_v1"
+    },
+    {
+      "amal": "tender_taklif_v2",
+      "rpc": "t2_tender_taklif_v2"
+    },
+    {
+      "amal": "tender_taklif_qaytar_v2",
+      "rpc": "t2_tender_taklif_qaytar_v2"
+    },
+    {
+      "amal": "tender_savol_ber_v1",
+      "rpc": "t2_tender_savol_ber_v1"
+    },
+    {
+      "amal": "tender_javob_v1",
+      "rpc": "t2_tender_javob_v1"
+    },
+    {
+      "amal": "tender_baholash_saqla_v1",
+      "rpc": "t2_tender_baholash_saqla_v1"
+    },
+    {
+      "amal": "tender_golib_v2",
+      "rpc": "t2_tender_golib_v2"
+    },
+    {
+      "amal": "tender_baho_ber_v1",
+      "rpc": "t2_tender_baho_ber_v1"
+    },
+    {
       "amal": "viborka_smetadan_toldir",
       "rpc": "t2_viborka_smetadan_toldir"
     },

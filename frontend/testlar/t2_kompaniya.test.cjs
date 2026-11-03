@@ -142,7 +142,12 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       /* 2026-10-27: moliyaviy tahlil — tizimda yo'q ko'rsatkichni qo'lda kiritish (financial.write). */
                       't2_moliya_qolda_yoz_v1',
                       /* 2026-11-03 (L0): qarzdorlik — import va qo'lda saqlash (financial.write, RPC ichida tekshiriladi). */
-                      't2_qarzdorlik_import_v1', 't2_qarzdorlik_saqla_v1'].sort();
+                      't2_qarzdorlik_import_v1', 't2_qarzdorlik_saqla_v1',
+                      /* main qizil edi: sb-yoz.ts + write-command-policy.ts da ro'yxatdan o'tgan (document.write), KUTILGAN da yo'q edi. */
+                      't2_shartnoma_oylik_paket_saqla_v1',
+                      /* 2026-11-03 (tender): protsess RPC lari — procurement.write/approve, supply.offer (write-command-policy.ts). */
+                      't2_tender_saqla_v1', 't2_tender_otish_v1', 't2_tender_raund_v1', 't2_tender_taklif_v2', 't2_tender_taklif_qaytar_v2',
+                      't2_tender_savol_ber_v1', 't2_tender_javob_v1', 't2_tender_baholash_saqla_v1', 't2_tender_golib_v2', 't2_tender_baho_ber_v1'].sort();
     T('RPC ro\'yxati AYNAN belgilangan ' + KUTILGAN.length + ' ta domen amali',
       JSON.stringify(amallar) === JSON.stringify(KUTILGAN),
       'topildi: ' + amallar.join(', '));
