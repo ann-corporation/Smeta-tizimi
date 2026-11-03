@@ -13,7 +13,7 @@ type CheckedPacket =
 /** Scope belongs to one authorized desktop session. Destroy on logout/switch/revoke. */
 export class DesktopPacketRefresh {
   private revision = 0;
-  private previous?: { id: number; etag: string };
+  private previous?: { id: number; etag: string; f2SummaYoq: ReadonlyArray<number | null> };
   private closed = false;
   private busy = false;
 
@@ -33,7 +33,8 @@ export class DesktopPacketRefresh {
   private async refreshOnce(id: number) {
     if (this.closed || !Number.isSafeInteger(id) || id <= 0) throw new Error('DESKTOP_PACKET_SCOPE');
     const revision = ++this.revision;
-    const etag = this.previous?.id === id ? this.previous.etag : undefined;
+    const prior = this.previous?.id === id ? this.previous : undefined;
+    const etag = prior?.etag;
     const current = () => !this.closed && revision === this.revision;
     const response = await this.read(id, etag);
     if (!current()) return;
@@ -42,7 +43,7 @@ export class DesktopPacketRefresh {
       throw new Error('DESKTOP_PACKET_UNAVAILABLE');
     }
     if (response.notModified) {
-      if (!etag || response.etag !== etag) throw new Error('DESKTOP_PACKET_ETAG');
+      if (!prior || !etag || response.etag !== etag) throw new Error('DESKTOP_PACKET_ETAG');
       // Only an authorized 304 may unlock the scoped snapshot. Never fall back on a network error.
       const saved = await this.store.och(id);
       if (!current()) return;
@@ -50,7 +51,7 @@ export class DesktopPacketRefresh {
         this.previous = undefined;
         return;
       }
-      return { paket: saved.paket, serverTasdiq: true as const };
+      return { paket: saved.paket, f2SummaYoq: prior.f2SummaYoq, serverTasdiq: true as const };
     }
     const raw = response.paket as ExtendedPacket;
     if (raw.kompaniya_id !== this.companyId || raw.obyekt_id !== id) {
@@ -63,8 +64,9 @@ export class DesktopPacketRefresh {
     const paket = paketDekod(raw);
     await this.store.serverdan(raw);
     if (!current()) return;
-    this.previous = response.etag ? { id, etag: response.etag } : undefined;
-    return { paket, serverTasdiq: true as const };
+    const f2SummaYoq = Object.freeze([...raw.h.f2_summa_yoq]);
+    this.previous = response.etag ? { id, etag: response.etag, f2SummaYoq } : undefined;
+    return { paket, f2SummaYoq, serverTasdiq: true as const };
   }
 
   async close() {
