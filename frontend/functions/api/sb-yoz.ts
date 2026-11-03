@@ -153,6 +153,9 @@ const AMALLAR = {
   tender_baholash_saqla_v1: { rpc: 't2_tender_baholash_saqla_v1' },
   tender_golib_v2: { rpc: 't2_tender_golib_v2' },
   tender_baho_ber_v1: { rpc: 't2_tender_baho_ber_v1' },
+  /* Fayl R2 da (hujjat-yukla); bu yerda faqat hujjat havolasi (metadata). */
+  tender_fayl_bogla_v1: { rpc: 't2_tender_fayl_bogla_v1' },
+  tender_taklif_fayl_bogla_v1: { rpc: 't2_tender_taklif_fayl_bogla_v1' },
   viborka_smetadan_toldir: { rpc: 't2_viborka_smetadan_toldir' },
   viborka_qabul_yoz: { rpc: 't2_viborka_qabul_yoz' },
   shartnoma_saqla: { rpc: 't2_shartnoma_saqla' },

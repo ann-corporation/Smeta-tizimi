@@ -47,6 +47,14 @@ describe('tender yozuv argumentlari (oq ro\'yxat)', () => {
     expect(tenderYuk('tender_baho_ber_v1', b({ buyurtma_id: 1, ball: 6 }), 7).ok).toBe(false);
     expect(tenderYuk('tender_savol_ber_v1', b({ rfq_id: 1, savol: 'ha' }), 7).ok).toBe(false);
   });
+  it('fayl havolasi: faqat hujjat id lari (R2), 1–10 ta', () => {
+    const r = tenderYuk('tender_fayl_bogla_v1', b({ rfq_id: 3, hujjat_idlar: [5, 6], icerik: 'BASE64...' }), 7);
+    expect(r.ok && r.yuk).toEqual({ p_actor_id: 7, p_kompaniya_id: 5, p_operation_id: OP, p_rfq_id: 3, p_hujjat_idlar: [5, 6] });
+    expect(tenderYuk('tender_taklif_fayl_bogla_v1', b({ taklif_id: 9, hujjat_idlar: [1] }), 7).ok).toBe(true);
+    expect(tenderYuk('tender_fayl_bogla_v1', b({ rfq_id: 3, hujjat_idlar: [] }), 7).ok).toBe(false);
+    expect(tenderYuk('tender_fayl_bogla_v1', b({ rfq_id: 3, hujjat_idlar: Array.from({ length: 11 }, (_, i) => i + 1) }), 7).ok).toBe(false);
+    expect(tenderYuk('tender_fayl_bogla_v1', b({ rfq_id: 3, hujjat_idlar: ['x'] }), 7).ok).toBe(false);
+  });
   it('har tender amali uchun ruxsat: dataPermission == writeCommandPermission (xarid capability lari)', () => {
     for (const a of TENDER_AMALLAR) {
       expect(writeCommandPermission(a)).toBe(dataPermission(a, true));

@@ -98,6 +98,8 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   tender_baholash_saqla_v1: 'procurement.write',
   tender_golib_v2: 'procurement.approve',
   tender_baho_ber_v1: 'procurement.write',
+  tender_fayl_bogla_v1: 'procurement.write',
+  tender_taklif_fayl_bogla_v1: 'supply.offer',
   viborka_smetadan_toldir: 'smeta.write',
   viborka_qabul_yoz: 'document.write',
   shartnoma_saqla: 'document.write',

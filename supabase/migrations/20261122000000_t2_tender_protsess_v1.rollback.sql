@@ -10,6 +10,8 @@ drop function if exists public.t2_tender_javob_v1(bigint,bigint,uuid,bigint,text
 drop function if exists public.t2_tender_baholash_saqla_v1(bigint,bigint,uuid,bigint,integer,jsonb);
 drop function if exists public.t2_tender_golib_v2(bigint,bigint,uuid,bigint,integer,jsonb,text,boolean,jsonb);
 drop function if exists public.t2_tender_baho_ber_v1(bigint,bigint,uuid,bigint,integer,text);
+drop function if exists public.t2_tender_fayl_bogla_v1(bigint,bigint,uuid,bigint,bigint[]);
+drop function if exists public.t2_tender_taklif_fayl_bogla_v1(bigint,bigint,uuid,bigint,bigint[]);
 drop function if exists public.t2_tender_royxat_v1(bigint,bigint,text,text,text,integer,bigint);
 drop function if exists public.t2_tender_tafsilot_v2(bigint,bigint,bigint);
 drop function if exists public.t2_tender_yetkazuvchilar_v1(bigint,bigint);

@@ -55,6 +55,8 @@ export type TenderTafsilot = {
   baholar: { taklif_id: number; raund: number; jami_ball: number; ballar: Record<string, number>; izoh: string | null }[];
   jurnal: { id: number; hodisa: string; actor_id: number | null; payload: Record<string, unknown>; yaratildi: string }[];
   buyurtmalar: TenderBuyurtma[];
+  /** Fayllar R2 da (hujjat-yukla); bu yerda faqat havola (metadata). */
+  fayllar: { id: number; hujjat_id: number; primitiv: 'tender' | 'tender_taklif'; primitiv_id: number; turi: string; yaratildi: string }[];
 };
 export type TenderTahlil = {
   jami: { tender_soni: number; ortacha_ishtirokchi: number | null; jami_tejam_qqs_bilan: number | null; tejam_hisoblangan_soni: number; ortacha_aylanish_kun: number | null };
@@ -134,6 +136,11 @@ export const tenderBaholashSaqla = (kompaniyaId: number, p: { rfqId: number; kut
   yoz('tender_baholash_saqla_v1', kompaniyaId, { rfq_id: p.rfqId, kutilgan_versiya: p.kutilganVersiya, ballar: p.ballar }, operationId);
 export const tenderGolib = (kompaniyaId: number, p: { rfqId: number; kutilganVersiya: number; tanlov: { taklif_id: number; qator_idlar?: number[] | null }[]; asos: string; yakun?: boolean }, operationId?: string) =>
   yoz('tender_golib_v2', kompaniyaId, { rfq_id: p.rfqId, kutilgan_versiya: p.kutilganVersiya, tanlov: p.tanlov, asos: p.asos, yakun: p.yakun ?? true }, operationId);
+/** Fayl (PDF/Excel/rasm) avval R2 ga hujjat-yukla orqali yuklanadi; so'ng shu yerda hujjat id si tenderga/taklifga bog'lanadi. */
+export const tenderFaylBogla = (kompaniyaId: number, p: { rfqId: number; hujjatIdlar: number[] }, operationId?: string) =>
+  yoz('tender_fayl_bogla_v1', kompaniyaId, { rfq_id: p.rfqId, hujjat_idlar: p.hujjatIdlar }, operationId);
+export const tenderTaklifFaylBogla = (kompaniyaId: number, p: { taklifId: number; hujjatIdlar: number[] }, operationId?: string) =>
+  yoz('tender_taklif_fayl_bogla_v1', kompaniyaId, { taklif_id: p.taklifId, hujjat_idlar: p.hujjatIdlar }, operationId);
 export const tenderBahoBer = (kompaniyaId: number, p: { buyurtmaId: number; ball: number; izoh?: string }, operationId?: string) =>
   yoz('tender_baho_ber_v1', kompaniyaId, { buyurtma_id: p.buyurtmaId, ball: p.ball, izoh: p.izoh ?? null }, operationId);
 
@@ -157,5 +164,8 @@ export const TENDER_XATO_XABARI: Readonly<Record<string, string>> = {
   BAHO_BOR: 'Bu buyurtma baholangan.',
   RAUND_CHEGARA: 'Qayta raundlar soni cheklangan.',
   SHARTNOMA_BEGONA: 'Shartnoma topilmadi.',
+  HUJJAT_NOTOGRI: 'Hujjatlar noto‘g‘ri (1–10 ta).',
+  FAYL_CHEGARA: 'Fayllar soni chegarasi (20 ta) oshdi.',
+  DALIL_BEGONA: 'Hujjat sizning kompaniyangizga tegishli emas.',
   PERMISSION_DENIED: 'Bu amal uchun ruxsat yo‘q.',
 };

@@ -6,6 +6,7 @@
 export const TENDER_AMALLAR: ReadonlySet<string> = new Set([
   'tender_saqla_v1', 'tender_otish_v1', 'tender_raund_v1', 'tender_taklif_v2', 'tender_taklif_qaytar_v2',
   'tender_savol_ber_v1', 'tender_javob_v1', 'tender_baholash_saqla_v1', 'tender_golib_v2', 'tender_baho_ber_v1',
+  'tender_fayl_bogla_v1', 'tender_taklif_fayl_bogla_v1',
 ]);
 
 export type TenderYuk = { ok: true; yuk: Record<string, unknown> } | { ok: false; error: string };
@@ -158,6 +159,14 @@ export function tenderYuk(amal: string, so: Record<string, unknown>, actorId: nu
       const b = id(so.buyurtma_id), ball = Number(so.ball);
       if (!b || !Number.isInteger(ball) || ball < 1 || ball > 5) return bad('buyurtma_id va ball (1–5) majburiy');
       return { ok: true, yuk: { ...asos, p_buyurtma_id: b, p_ball: ball, p_izoh: matn(so.izoh, 1000) } };
+    }
+    case 'tender_fayl_bogla_v1':
+    case 'tender_taklif_fayl_bogla_v1': {
+      // Fayl R2 da (hujjat-yukla); bu yerda faqat hujjat id lari (metadata). Hujjat egaligi RPC da tekshiriladi.
+      const manba = amal === 'tender_fayl_bogla_v1' ? rfq : id(so.taklif_id);
+      const idlar = Array.isArray(so.hujjat_idlar) ? so.hujjat_idlar.map(id) : null;
+      if (!manba || !idlar || idlar.length === 0 || idlar.length > 10 || idlar.some((n) => n == null)) return bad('rfq_id/taklif_id va 1–10 ta hujjat_id majburiy');
+      return { ok: true, yuk: amal === 'tender_fayl_bogla_v1' ? { ...asos, p_rfq_id: manba, p_hujjat_idlar: idlar } : { ...asos, p_taklif_id: manba, p_hujjat_idlar: idlar } };
     }
     default: return bad('Noma‘lum tender amali');
   }

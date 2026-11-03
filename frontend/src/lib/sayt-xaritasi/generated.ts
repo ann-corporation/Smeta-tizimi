@@ -581,6 +581,14 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_tender_baho_ber_v1"
     },
     {
+      "amal": "tender_fayl_bogla_v1",
+      "rpc": "t2_tender_fayl_bogla_v1"
+    },
+    {
+      "amal": "tender_taklif_fayl_bogla_v1",
+      "rpc": "t2_tender_taklif_fayl_bogla_v1"
+    },
+    {
       "amal": "viborka_smetadan_toldir",
       "rpc": "t2_viborka_smetadan_toldir"
     },

@@ -7,7 +7,7 @@ export function dataPermission(name: string, write: boolean, body: Record<string
      qolgani — procurement.write; o'qish — procurement.read (RPC ichida supply.offer/fulfil ham qabul qilinadi). write-command-policy.ts bilan bir xil. */
   if (/^tender_/.test(n)) {
     if (!write) return 'procurement.read';
-    if (['tender_taklif_v2','tender_taklif_qaytar_v2','tender_savol_ber_v1'].includes(n)) return 'supply.offer';
+    if (['tender_taklif_v2','tender_taklif_qaytar_v2','tender_savol_ber_v1','tender_taklif_fayl_bogla_v1'].includes(n)) return 'supply.offer';
     if (['tender_raund_v1','tender_golib_v2'].includes(n)) return 'procurement.approve';
     return 'procurement.write';
   }

@@ -221,6 +221,23 @@ begin
   r := t2_tender_yetkazuvchilar_v1(ux, x);
   rep := rep || (case when jsonb_array_length(r->'qatorlar') = 2 then 'OK   59 yetkazuvchilar ro''yxati (faol aloqa)' else 'FAIL 59 ' || r::text end);
 
+  -- 60-63 fayllar: faqat metadata (R2 hujjat havolasi); begona kompaniya hujjati rad; e'londan keyin tender fayli bog'lanmaydi
+  insert into t2_document_registry (kompaniya_id) values (x) returning id into n;
+  insert into t2_document_registry (kompaniya_id) values (z) returning id into q3;
+  r := t2_tender_saqla_v1(ux, x, gen_random_uuid(), null, null, 'material', 'ochiq', null, null, now() + interval '2 days', '{"sarlavha":"Fayl tenderi"}'::jsonb,
+                          jsonb_build_array(jsonb_build_object('nom', 'Qum', 'birlik', 'm3', 'miqdor', 5)));
+  rfq3 := (r->>'id')::bigint;
+  r := t2_tender_fayl_bogla_v1(ux, x, gen_random_uuid(), rfq3, array[n::bigint]);
+  rep := rep || (case when (r->>'ok')::boolean and (r->>'soni')::int = 1 then 'OK   60 tender fayli havolasi bog''landi (R2 hujjat id)' else 'FAIL 60 ' || r::text end);
+  r := t2_tender_fayl_bogla_v1(ux, x, gen_random_uuid(), rfq3, array[q3::bigint]);
+  rep := rep || (case when r->>'code' = 'DALIL_BEGONA' then 'OK   61 begona kompaniya hujjati rad' else 'FAIL 61 ' || r::text end);
+  r := t2_tender_tafsilot_v2(ux, x, rfq3);
+  rep := rep || (case when jsonb_array_length(r->'fayllar') = 1 then 'OK   62 tafsilotda fayl metadata (1)' else 'FAIL 62 ' || r::text end);
+  select versiya into v3 from t2_birja_rfq where id = rfq3;
+  perform t2_tender_otish_v1(ux, x, gen_random_uuid(), rfq3, v3, 'tasdiqlashda');
+  r := t2_tender_fayl_bogla_v1(ux, x, gen_random_uuid(), rfq3, array[n::bigint]);
+  rep := rep || (case when r->>'code' = 'HOLAT' then 'OK   63 tasdiqqa yuborilgach fayl qo''shib bo''lmaydi' else 'FAIL 63 ' || r::text end);
+
   select count(*) into n from unnest(rep) l where l like 'FAIL%';
   if n > 0 then raise exception E'TENDER ACCEPTANCE YIQILDI (% ta):\n%', n, array_to_string(rep, E'\n'); end if;
   raise notice E'TENDER ACCEPTANCE: hammasi OK (% tekshiruv)\n%', array_length(rep, 1), array_to_string(rep, E'\n');

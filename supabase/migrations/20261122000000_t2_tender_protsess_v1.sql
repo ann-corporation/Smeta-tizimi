@@ -15,6 +15,8 @@
 -- RUXSAT: procurement.write (qoralama, savol-javob, baholash, shartnoma), procurement.approve (tasdiq/e'lon, ochish, g'olib, bekor),
 --         supply.offer (taklif, savol). O'qish: procurement.read yoki supply.offer/fulfil. Yangi capability QO'SHILMAYDI.
 -- PUL: narxlar NDS siz (mavjud kelishuv); QQS foizi alohida (tender: sukut 12). Noma'lum = NULL (0 emas).
+-- FAYLLAR: tender hujjatlari va taklif fayllari (PDF/Excel/rasm) R2 da (mavjud hujjat-yukla -> t2_document_registry); bu yerda faqat
+--   havola (t2_primitiv_dalil: primitiv 'tender' / 'tender_taklif', hujjat_id). Fayl matni/ikkilik ma'lumot Supabase'ga YOZILMAYDI.
 -- XAVFSIZLIK: v1 dagi t2_tender_elon_v1 (tasdiqsiz e'lon), t2_tender_golib_v1 (asossiz/muhrsiz g'olib), t2_tender_yop_v1 va
 --   t2_tender_tafsilot_v1 (takliflarni muddatdan oldin ochadi) bu yerda service_role dan YIG'ILADI; ularning o'rniga v2/yangi RPC lar.
 --   t2_buyurtma_yarat_v1(p_taklif_id) orqali aylanib o'tishga qarshi — t2_birja_rfq_qator triggeri (protsess_v2 tenderlarda).
@@ -78,7 +80,7 @@ create table if not exists public.t2_tender_jurnal (
   hodisa text not null check (hodisa ~ '^[a-z_]{2,40}$'),
   actor_id bigint references public.t2_foydalanuvchi(id),
   aktor_kompaniya_id bigint references public.t2_kompaniya(id),
-  payload jsonb not null default '{}'::jsonb check (octet_length(payload::text) <= 4096),
+  payload jsonb not null default '{}'::jsonb check (octet_length(payload::text) <= 1024),   -- kichik qatorlar: katta log/JSON Supabase'da saqlanmaydi (egasi 2026-11-03)
   yaratildi timestamptz not null default now()
 );
 create index if not exists t2_tender_jurnal_rfq_idx on public.t2_tender_jurnal (rfq_id, id);
@@ -658,6 +660,42 @@ begin
   return jsonb_build_object('ok', true, 'buyurtma_id', v_b.id);
 end $$;
 
+-- 3.10 Fayl havolasi (fayl R2 da; faqat metadata). Tender fayllari — xaridor (qoralamada); taklif fayllari — yetkazuvchi (muddatgacha). Har biri <= 20 ta.
+create or replace function public.t2_tender_fayl_bogla_v1(p_actor_id bigint, p_kompaniya_id bigint, p_operation_id uuid, p_rfq_id bigint, p_hujjat_idlar bigint[])
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare v_rfq public.t2_birja_rfq; v_n integer; v_r jsonb;
+begin
+  perform public._t2_tender_azo(p_actor_id, p_kompaniya_id, 'yoz');
+  if p_operation_id is null then return jsonb_build_object('ok', false, 'code', 'OPERATION_ID_KERAK'); end if;
+  select * into v_rfq from public.t2_birja_rfq where id = p_rfq_id and kompaniya_id = p_kompaniya_id and protsess_v2 for update;
+  if not found then return jsonb_build_object('ok', false, 'code', 'TOPILMADI'); end if;
+  if v_rfq.holat <> 'qoralama' then return jsonb_build_object('ok', false, 'code', 'HOLAT', 'holat', v_rfq.holat); end if;
+  if p_hujjat_idlar is null or cardinality(p_hujjat_idlar) not between 1 and 10 then return jsonb_build_object('ok', false, 'code', 'HUJJAT_NOTOGRI'); end if;
+  select count(*) into v_n from public.t2_primitiv_dalil where primitiv = 'tender' and primitiv_id = v_rfq.id and holat = 'faol';
+  if v_n + cardinality(p_hujjat_idlar) > 20 then return jsonb_build_object('ok', false, 'code', 'FAYL_CHEGARA'); end if;
+  v_r := public._t2_yet_dalil_yoz(p_kompaniya_id, p_actor_id, 'tender', v_rfq.id, p_hujjat_idlar);
+  if (v_r->>'ok')::boolean then
+    perform public._t2_tender_jurnal_yoz(p_kompaniya_id, v_rfq.id, 'fayl', p_actor_id, p_kompaniya_id, jsonb_build_object('soni', v_r->'soni'));
+  end if;
+  return v_r;
+end $$;
+
+create or replace function public.t2_tender_taklif_fayl_bogla_v1(p_actor_id bigint, p_kompaniya_id bigint, p_operation_id uuid, p_taklif_id bigint, p_hujjat_idlar bigint[])
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare v_t public.t2_birja_taklif; v_rfq public.t2_birja_rfq; v_n integer;
+begin
+  perform public._t2_tender_azo(p_actor_id, p_kompaniya_id, 'taklif');
+  if p_operation_id is null then return jsonb_build_object('ok', false, 'code', 'OPERATION_ID_KERAK'); end if;
+  select * into v_t from public.t2_birja_taklif where id = p_taklif_id and kompaniya_id = p_kompaniya_id and holat in ('berildi', 'faol') for update;
+  if not found then return jsonb_build_object('ok', false, 'code', 'TOPILMADI'); end if;
+  select * into v_rfq from public.t2_birja_rfq where id = v_t.rfq_id;
+  if v_rfq.holat <> 'elon' or (v_rfq.muddat is not null and v_rfq.muddat <= now()) then return jsonb_build_object('ok', false, 'code', 'MUDDAT_OTGAN'); end if;
+  if p_hujjat_idlar is null or cardinality(p_hujjat_idlar) not between 1 and 10 then return jsonb_build_object('ok', false, 'code', 'HUJJAT_NOTOGRI'); end if;
+  select count(*) into v_n from public.t2_primitiv_dalil where primitiv = 'tender_taklif' and primitiv_id = v_t.id and holat = 'faol';
+  if v_n + cardinality(p_hujjat_idlar) > 20 then return jsonb_build_object('ok', false, 'code', 'FAYL_CHEGARA'); end if;
+  return public._t2_yet_dalil_yoz(p_kompaniya_id, p_actor_id, 'tender_taklif', v_t.id, p_hujjat_idlar);
+end $$;
+
 -- ───────────────────────── 4. O'QUVCHI RPC lar (stable; /api/sb GET orqali) ─────────────────────────
 -- 4.1 Ro'yxat: 'meniki' (xaridor) | 'menga' (taklif qilingan) | 'ochiq' (ochiq e'lonlar, minimal maydon).
 create or replace function public.t2_tender_royxat_v1(
@@ -736,6 +774,10 @@ begin
              'savol_nom', case when v_egasi then (select k.nom from public.t2_kompaniya k where k.id = s.savol_kompaniya_id) end) order by s.id)
              from public.t2_tender_savol s
             where s.rfq_id = v_rfq.id and (v_egasi or s.savol_kompaniya_id = p_kompaniya_id or (s.ommaviy and s.javob is not null))), '[]'::jsonb),
+    'fayllar', coalesce((select jsonb_agg(jsonb_build_object('id', d.id, 'hujjat_id', d.hujjat_id, 'primitiv', d.primitiv, 'primitiv_id', d.primitiv_id, 'turi', r.document_type, 'yaratildi', d.yaratildi) order by d.id)
+             from public.t2_primitiv_dalil d join public.t2_document_registry r on r.id = d.hujjat_id
+            where d.holat = 'faol' and ((d.primitiv = 'tender' and d.primitiv_id = v_rfq.id)
+                   or (d.primitiv = 'tender_taklif' and d.primitiv_id in (select t.id from public.t2_birja_taklif t where t.rfq_id = v_rfq.id and (t.kompaniya_id = p_kompaniya_id or (v_egasi and v_ochilgan)))))), '[]'::jsonb),
     'baholar', case when v_egasi and v_ochilgan then coalesce((select jsonb_agg(jsonb_build_object('taklif_id', b.taklif_id, 'raund', b.raund, 'jami_ball', b.jami_ball, 'ballar', b.ballar, 'izoh', b.izoh) order by b.id)
              from public.t2_tender_baho b where b.rfq_id = v_rfq.id), '[]'::jsonb) else '[]'::jsonb end,
     'jurnal', case when v_egasi then coalesce((select jsonb_agg(jsonb_build_object('id', j.id, 'hodisa', j.hodisa, 'actor_id', j.actor_id, 'payload', j.payload, 'yaratildi', j.yaratildi) order by j.id)
@@ -826,6 +868,8 @@ revoke all on function
   public.t2_tender_baholash_saqla_v1(bigint,bigint,uuid,bigint,integer,jsonb),
   public.t2_tender_golib_v2(bigint,bigint,uuid,bigint,integer,jsonb,text,boolean,jsonb),
   public.t2_tender_baho_ber_v1(bigint,bigint,uuid,bigint,integer,text),
+  public.t2_tender_fayl_bogla_v1(bigint,bigint,uuid,bigint,bigint[]),
+  public.t2_tender_taklif_fayl_bogla_v1(bigint,bigint,uuid,bigint,bigint[]),
   public.t2_tender_royxat_v1(bigint,bigint,text,text,text,integer,bigint),
   public.t2_tender_tafsilot_v2(bigint,bigint,bigint),
   public.t2_tender_yetkazuvchilar_v1(bigint,bigint),
@@ -842,6 +886,8 @@ grant execute on function
   public.t2_tender_baholash_saqla_v1(bigint,bigint,uuid,bigint,integer,jsonb),
   public.t2_tender_golib_v2(bigint,bigint,uuid,bigint,integer,jsonb,text,boolean,jsonb),
   public.t2_tender_baho_ber_v1(bigint,bigint,uuid,bigint,integer,text),
+  public.t2_tender_fayl_bogla_v1(bigint,bigint,uuid,bigint,bigint[]),
+  public.t2_tender_taklif_fayl_bogla_v1(bigint,bigint,uuid,bigint,bigint[]),
   public.t2_tender_royxat_v1(bigint,bigint,text,text,text,integer,bigint),
   public.t2_tender_tafsilot_v2(bigint,bigint,bigint),
   public.t2_tender_yetkazuvchilar_v1(bigint,bigint),
