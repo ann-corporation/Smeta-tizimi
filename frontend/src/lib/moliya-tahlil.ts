@@ -41,6 +41,8 @@ export const MOLIYA_NOM: Record<string, { uz: string; ru: string }> = {
 
 export const MLRD = 1e9;
 /** So'm → mlrd so'm, 2 xona. null → «—» (0 emas). */
+import { exceljsJadvalUslubi } from './hujjat-yozuvchi/exceljs-dizayn';
+
 export function mlrd(x: number | null | undefined): string {
   if (x == null || !Number.isFinite(Number(x))) return '—';
   return (Number(x) / MLRD).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -78,6 +80,7 @@ export async function moliyaXlsx(j: MoliyaTahlilJavob, o: { qamrovNomi: string; 
   }
   [5, 60, 18, 50, 12, 28].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
   ws.getColumn(3).numFmt = '#,##0.00';
+  exceljsJadvalUslubi(ws, { sarlavha: bosh.number, pulUstunlari: [3] });
   const buf = await wb.xlsx.writeBuffer();
   const toza = o.qamrovNomi.replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 60) || 'obyekt';
   return { bytes: new Uint8Array(buf as ArrayBuffer), faylNomi: `Finansovyy_analiz_${toza}_${sana.replace(/-/g, '')}.xlsx` };

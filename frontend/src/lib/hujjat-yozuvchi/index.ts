@@ -19,6 +19,7 @@ export * from './fayl-nomi';
 export * from './rasmiy';
 export * from './dizayn';
 export * from './dizayn-tekshir';
+export * from './exceljs-dizayn';
 export * from './propis';
 export * from './korinish';
 export * from './tizim-imzo';
