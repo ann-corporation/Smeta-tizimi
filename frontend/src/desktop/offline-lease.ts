@@ -32,7 +32,7 @@ export async function verifyDesktopLease(
   const bytes = base64urlDecode(e.payload), signature = base64urlDecode(e.imzo);
   const key = await crypto.subtle.importKey('raw', new Uint8Array(publicKey), { name: 'Ed25519' }, false, ['verify']);
   if (signature.length !== 64 || !await crypto.subtle.verify('Ed25519', key, signature, bytes)) throw new Error('DESKTOP_LEASE_SIGNATURE');
-  const p = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) as DesktopLease;
+  const p = JSON.parse(new TextDecoder('utf-8', { fatal: true, ignoreBOM: false }).decode(bytes)) as DesktopLease;
   if (!p || p.format !== DESKTOP_LEASE_FORMAT || !positive(p.foydalanuvchi_id) || !positive(p.kompaniya_id) ||
       p.foydalanuvchi_id !== scope.foydalanuvchiId || p.kompaniya_id !== scope.kompaniyaId ||
       typeof p.device_id !== 'string' || p.device_id !== scope.deviceId || !p.device_id ||
