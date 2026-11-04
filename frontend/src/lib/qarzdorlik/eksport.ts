@@ -32,6 +32,8 @@ function sanaDate(s: string | null): Date | null {
   return m ? new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12)) : null;
 }
 
+import { exceljsJadvalUslubi, joriyHujjatDizayni } from '../hujjat-yozuvchi';
+
 export async function qarzdorlikXlsxYarat(shartnomalar: ReadonlyArray<EksportShartnoma>): Promise<ArrayBuffer> {
   const ExcelJS = (await import('exceljs')).default;
   const wb = new ExcelJS.Workbook();
@@ -131,6 +133,11 @@ export async function qarzdorlikXlsxYarat(shartnomalar: ReadonlyArray<EksportSha
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFBDD7EE' } };
     if (c >= 8) cell.numFmt = PUL_FMT;
   }
+  const darajalar = new Map<number, 'bl' | 'vsego'>(pozQatorlar.map((q) => [q, 'bl'] as const));
+  darajalar.set(r + 1, 'vsego');
+  exceljsJadvalUslubi(ws, { sarlavha: 4, oxir: r + 1, darajalar, yonalish: 'landscape' });
+  // Qator turi belgisi (13-ustun) texnik: dizaynda ko'rsatish o'chiq bo'lsa yashirin (asl qiymat o'qishga qoladi).
+  if (!joriyHujjatDizayni().tipKorsat) ws.getColumn(13).hidden = true;
   const buf = await wb.xlsx.writeBuffer();
   return buf as ArrayBuffer;
 }

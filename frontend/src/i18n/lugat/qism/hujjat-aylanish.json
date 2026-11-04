@@ -1,0 +1,486 @@
+{
+ "Asos (norma, band)": {
+  "ru": "Основание (норма, пункт)",
+  "en": "Basis (standard, clause)"
+ },
+ "Bajarilgan ishlar tavsifi": {
+  "ru": "Описание выполненных работ",
+  "en": "Description of completed work"
+ },
+ "Bartaraf etish muddati": {
+  "ru": "Срок устранения",
+  "en": "Remediation deadline"
+ },
+ "Bekor qilingan": {
+  "ru": "Отменён",
+  "en": "Cancelled"
+ },
+ "Bekor qilish": {
+  "ru": "Отменить",
+  "en": "Cancel"
+ },
+ "Boshqa": {
+  "ru": "Другое",
+  "en": "Other"
+ },
+ "Chiquvchi": {
+  "ru": "Исходящие",
+  "en": "Outgoing"
+ },
+ "Ekspertiza izohiga javob": {
+  "ru": "Ответ на замечание экспертизы",
+  "en": "Reply to expert review comment"
+ },
+ "Fayl uchun loyiha topilmadi": {
+  "ru": "Не найден проект для файла",
+  "en": "No project found for the file"
+ },
+ "Fayl yuklanmadi": {
+  "ru": "Файл не загружен",
+  "en": "File was not uploaded"
+ },
+ "Hammasi": {
+  "ru": "Все",
+  "en": "All"
+ },
+ "Hozircha sizdan hech narsa kutilmayapti.": {
+  "ru": "Пока от вас ничего не ожидается.",
+  "en": "Nothing is expected from you right now."
+ },
+ "Hujjat aylanishi": {
+  "ru": "Документооборот",
+  "en": "Document workflow"
+ },
+ "Hujjat fayli": {
+  "ru": "Файл документа",
+  "en": "Document file"
+ },
+ "Hujjat shablonlari": {
+  "ru": "Шаблоны документов",
+  "en": "Document templates"
+ },
+ "Hujjat turi": {
+  "ru": "Тип документа",
+  "en": "Document type"
+ },
+ "Hujjatni yuklab olish (.xlsx)": {
+  "ru": "Скачать документ (.xlsx)",
+  "en": "Download document (.xlsx)"
+ },
+ "Ilova fayli": {
+  "ru": "Файл приложения",
+  "en": "Attachment file"
+ },
+ "Ilovalar (har qator — bitta hujjat)": {
+  "ru": "Приложения (каждая строка — один документ)",
+  "en": "Attachments (one document per line)"
+ },
+ "Izoh (rad etish va qaytarishda majburiy)": {
+  "ru": "Комментарий (обязателен при отклонении и возврате)",
+  "en": "Comment (required when rejecting or returning)"
+ },
+ "Jarayonda": {
+  "ru": "В процессе",
+  "en": "In progress"
+ },
+ "Javob berilgan": {
+  "ru": "Ответ дан",
+  "en": "Replied"
+ },
+ "Javob muddati": {
+  "ru": "Срок ответа",
+  "en": "Reply deadline"
+ },
+ "Javob xati": {
+  "ru": "Ответное письмо",
+  "en": "Reply letter"
+ },
+ "Javob yozish": {
+  "ru": "Написать ответ",
+  "en": "Write a reply"
+ },
+ "Kimga": {
+  "ru": "Кому",
+  "en": "To"
+ },
+ "Kiruvchi": {
+  "ru": "Входящие",
+  "en": "Incoming"
+ },
+ "Kiruvchi raqam": {
+  "ru": "Входящий номер",
+  "en": "Incoming number"
+ },
+ "Kiruvchi xatlar": {
+  "ru": "Входящие письма",
+  "en": "Incoming letters"
+ },
+ "Komissiya qarori": {
+  "ru": "Решение комиссии",
+  "en": "Commission decision"
+ },
+ "Kompaniya": {
+  "ru": "Компания",
+  "en": "Company"
+ },
+ "Konstruksiya / namuna olingan joy": {
+  "ru": "Конструкция / место отбора пробы",
+  "en": "Structure / sampling location"
+ },
+ "Kutilmoqda": {
+  "ru": "Ожидает",
+  "en": "Waiting"
+ },
+ "Laboratoriya": {
+  "ru": "Лаборатория",
+  "en": "Laboratory"
+ },
+ "Laboratoriya protokoli": {
+  "ru": "Лабораторный протокол",
+  "en": "Laboratory protocol"
+ },
+ "Laboratoriya sinov protokoli": {
+  "ru": "Протокол лабораторных испытаний",
+  "en": "Laboratory test protocol"
+ },
+ "Loyiha o‘zgarishi": {
+  "ru": "Изменение проекта",
+  "en": "Design change"
+ },
+ "Loyiha shifri / chizmalar": {
+  "ru": "Шифр проекта / чертежи",
+  "en": "Design code / drawings"
+ },
+ "Loyihadan chetlanishlar": {
+  "ru": "Отступления от проекта",
+  "en": "Deviations from the design"
+ },
+ "Marka / sinf": {
+  "ru": "Марка / класс",
+  "en": "Grade / class"
+ },
+ "Materiallar (sertifikatlar)": {
+  "ru": "Материалы (сертификаты)",
+  "en": "Materials (certificates)"
+ },
+ "Matn": {
+  "ru": "Текст",
+  "en": "Text"
+ },
+ "Mavzu": {
+  "ru": "Тема",
+  "en": "Subject"
+ },
+ "Men yuborgan": {
+  "ru": "Отправленные мной",
+  "en": "Sent by me"
+ },
+ "Menga tasdiqqa kelgan": {
+  "ru": "Пришедшие мне на согласование",
+  "en": "Sent to me for approval"
+ },
+ "Muddat": {
+  "ru": "Срок",
+  "en": "Deadline"
+ },
+ "Navbatda": {
+  "ru": "В очереди",
+  "en": "Current turn"
+ },
+ "Nima ko‘rsatilmoqda": {
+  "ru": "Что предъявляется",
+  "en": "What is presented"
+ },
+ "Normativ hujjat (ShNK/GOST)": {
+  "ru": "Нормативный документ (ШНК/ГОСТ)",
+  "en": "Standard (ShNK/GOST)"
+ },
+ "Nuqsonlar (har qator — bitta nuqson)": {
+  "ru": "Нарушения (каждая строка — одно нарушение)",
+  "en": "Violations (one per line)"
+ },
+ "Obyekt": {
+  "ru": "Объект",
+  "en": "Site"
+ },
+ "Ochiq murojaat va predpisaniyalar": {
+  "ru": "Открытые обращения и предписания",
+  "en": "Open requests and instructions"
+ },
+ "Ogohlantirish": {
+  "ru": "Предупреждение",
+  "en": "Warning"
+ },
+ "Olib tashlash": {
+  "ru": "Убрать",
+  "en": "Remove"
+ },
+ "Osvidetelstvovaniya akti": {
+  "ru": "Акт освидетельствования",
+  "en": "Inspection act"
+ },
+ "Qabul qilindi": {
+  "ru": "Принято",
+  "en": "Received"
+ },
+ "Qabul qilish (kiruvchi raqam berish)": {
+  "ru": "Принять (присвоить входящий номер)",
+  "en": "Receive (assign incoming number)"
+ },
+ "Qadam qo‘shish": {
+  "ru": "Добавить шаг",
+  "en": "Add step"
+ },
+ "Qadam roli": {
+  "ru": "Роль шага",
+  "en": "Step role"
+ },
+ "Qayta yuborildi": {
+  "ru": "Отправлено повторно",
+  "en": "Resubmitted"
+ },
+ "Qaytarildi": {
+  "ru": "Возвращён",
+  "en": "Returned"
+ },
+ "Qaytarildi — tuzatish kerak": {
+  "ru": "Возвращён — требуется исправление",
+  "en": "Returned — needs rework"
+ },
+ "Rad etildi": {
+  "ru": "Отклонён",
+  "en": "Rejected"
+ },
+ "Rad etish": {
+  "ru": "Отклонить",
+  "en": "Reject"
+ },
+ "Raqam": {
+  "ru": "Номер",
+  "en": "Number"
+ },
+ "Sababni yozing": {
+  "ru": "Укажите причину",
+  "en": "Enter the reason"
+ },
+ "Sana": {
+  "ru": "Дата",
+  "en": "Date"
+ },
+ "Sarlavha": {
+  "ru": "Заголовок",
+  "en": "Title"
+ },
+ "Shablon": {
+  "ru": "Шаблон",
+  "en": "Template"
+ },
+ "Sinov turi": {
+  "ru": "Вид испытания",
+  "en": "Test type"
+ },
+ "Soprovod xat": {
+  "ru": "Сопроводительное письмо",
+  "en": "Cover letter"
+ },
+ "Talabnoma": {
+  "ru": "Требование",
+  "en": "Demand notice"
+ },
+ "Tarix": {
+  "ru": "История",
+  "en": "History"
+ },
+ "Tasdiq tartibi": {
+  "ru": "Порядок согласования",
+  "en": "Approval order"
+ },
+ "Tasdiq zanjirlari": {
+  "ru": "Цепочки согласования",
+  "en": "Approval chains"
+ },
+ "Tasdiqingiz kutilmoqda": {
+  "ru": "Ожидается ваше согласование",
+  "en": "Awaiting your approval"
+ },
+ "Tasdiqlandi": {
+  "ru": "Согласовано",
+  "en": "Approved"
+ },
+ "Tasdiqlash": {
+  "ru": "Согласовать",
+  "en": "Approve"
+ },
+ "Tasdiqqa yuborildi": {
+  "ru": "Отправлено на согласование",
+  "en": "Sent for approval"
+ },
+ "Tasdiqqa yuborish": {
+  "ru": "Отправить на согласование",
+  "en": "Send for approval"
+ },
+ "Texnik nazorat predpisaniyasi": {
+  "ru": "Предписание технического надзора",
+  "en": "Technical supervision order"
+ },
+ "Tomonlar orasida hujjat, xat va tasdiq — raqamli, muddatli, izohli.": {
+  "ru": "Документы, письма и согласования между сторонами — с номерами, сроками и комментариями.",
+  "en": "Documents, letters and approvals between parties — numbered, time-bound, commented."
+ },
+ "Turi": {
+  "ru": "Тип",
+  "en": "Type"
+ },
+ "Tuzatib qayta yuborish": {
+  "ru": "Исправить и отправить повторно",
+  "en": "Fix and resubmit"
+ },
+ "Tuzatilgan hujjat fayli": {
+  "ru": "Файл исправленного документа",
+  "en": "Corrected document file"
+ },
+ "Tuzatishga qaytarish": {
+  "ru": "Вернуть на доработку",
+  "en": "Return for rework"
+ },
+ "Xat": {
+  "ru": "Письмо",
+  "en": "Letter"
+ },
+ "Xat yuborildi": {
+  "ru": "Письмо отправлено",
+  "en": "Letter sent"
+ },
+ "Xat yuborish": {
+  "ru": "Отправить письмо",
+  "en": "Send letter"
+ },
+ "Xat yuborish uchun avval faol aloqa kerak (Tomonlar aloqasi).": {
+  "ru": "Для отправки письма сначала нужна активная связь (Связи сторон).",
+  "en": "An active connection is needed first to send a letter (Party connections)."
+ },
+ "Xatlar reestri": {
+  "ru": "Реестр писем",
+  "en": "Letter register"
+ },
+ "Xatlar yo‘q.": {
+  "ru": "Писем нет.",
+  "en": "No letters."
+ },
+ "Xulosa (mos / mos emas)": {
+  "ru": "Заключение (соответствует / не соответствует)",
+  "en": "Conclusion (conforms / does not conform)"
+ },
+ "Yangi hujjatni tasdiqqa yuborish": {
+  "ru": "Отправить новый документ на согласование",
+  "en": "Send a new document for approval"
+ },
+ "Yangi xat": {
+  "ru": "Новое письмо",
+  "en": "New letter"
+ },
+ "Yetishmagan maydonlar hujjat ichida «e’tibor talab qiladigan o‘rinlar» bo‘lib chiqadi; hech narsa o‘ylab topilmaydi.": {
+  "ru": "Недостающие поля попадут в документ как «позиции, требующие внимания»; ничего не выдумывается.",
+  "en": "Missing fields appear in the document as “items needing attention”; nothing is invented."
+ },
+ "Yo‘nalish": {
+  "ru": "Направление",
+  "en": "Direction"
+ },
+ "Yuborilgan": {
+  "ru": "Отправлено",
+  "en": "Sent"
+ },
+ "Yuklanmoqda…": {
+  "ru": "Загрузка…",
+  "en": "Loading…"
+ },
+ "Zanjirlar yo‘q.": {
+  "ru": "Цепочек нет.",
+  "en": "No chains."
+ },
+ "javob muddati": {
+  "ru": "срок ответа",
+  "en": "reply deadline"
+ },
+ "muddat": {
+  "ru": "срок",
+  "en": "deadline"
+ },
+ "muddat o‘tgan": {
+  "ru": "срок истёк",
+  "en": "overdue"
+ },
+ "navbat": {
+  "ru": "очередь",
+  "en": "turn"
+ },
+ "o‘zimiz": {
+  "ru": "наша",
+  "en": "our company"
+ },
+ "raund": {
+  "ru": "раунд",
+  "en": "round"
+ },
+ "sizning navbatingiz": {
+  "ru": "ваша очередь",
+  "en": "your turn"
+ },
+ "АОСР (yashirin ishlar akti)": {
+  "ru": "АОСР (акт освидетельствования скрытых работ)",
+  "en": "Hidden works inspection act (AOSR)"
+ },
+ "— kompaniya —": {
+  "ru": "— компания —",
+  "en": "— company —"
+ },
+ "— tanlang —": {
+  "ru": "— выберите —",
+  "en": "— select —"
+ },
+ "bildirishnoma.hujjat.tasdiq_kutmoqda": {
+  "ru": "Документ ждёт вашего согласования",
+  "en": "A document awaits your approval"
+ },
+ "bildirishnoma.hujjat.tasdiqlandi": {
+  "ru": "Документ согласован",
+  "en": "Document approved"
+ },
+ "bildirishnoma.hujjat.rad_etildi": {
+  "ru": "Документ отклонён",
+  "en": "Document rejected"
+ },
+ "bildirishnoma.hujjat.qaytarildi": {
+  "ru": "Документ возвращён на доработку",
+  "en": "Document returned for rework"
+ },
+ "bildirishnoma.hujjat.xat_keldi": {
+  "ru": "Получено новое письмо",
+  "en": "New letter received"
+ },
+ "bildirishnoma.hujjat.muddat_yaqin": {
+  "ru": "Срок по документу истекает",
+  "en": "A document deadline is approaching"
+ },
+ "bildirishnoma.hujjat.muddat_otdi": {
+  "ru": "Срок по документу истёк",
+  "en": "A document deadline has passed"
+ },
+ "Bildirishnomalar": {
+  "ru": "Уведомления",
+  "en": "Notifications"
+ },
+ "Hammasini o‘qildi deb belgilash": {
+  "ru": "Отметить все прочитанными",
+  "en": "Mark all as read"
+ },
+ "Bildirishnoma yo‘q.": {
+  "ru": "Уведомлений нет.",
+  "en": "No notifications."
+ },
+ "Hujjat aylanishi (kiruvchi, xat, tasdiq)": {
+  "ru": "Документооборот (входящие, письма, согласование)",
+  "en": "Document workflow (inbox, letters, approval)"
+ }
+}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { f2Hujjat } from './f2-hujjat';
 import { bosKiritma, f2Qatorlar, f2Qur } from './f2-tayyor';
-import { hujjatTekshir, imzoRollariBormi } from './hujjat-yozuvchi';
+import { darajaHisobot, dizaynTozala, hujjatDizayniniSaqla, hujjatDizaynTekshir, hujjatTekshir, imzoRollariBormi, joriyHujjatDizayni, tipUstunlariYashirin } from './hujjat-yozuvchi';
 import { namunaSaqla } from './hujjat-yozuvchi/test-yordam';
 import { readXlsx } from './f2-import-parse/xlsxReader';
 import { f2FaylOqiCore, f2UstunAniqla } from './f2-import-parse';
@@ -147,5 +147,32 @@ describe('Ф-2 pereraschet: eski F2 bloklari (minus, o‘z podvali) + yangi qato
     expect(t.matnlar.some((s) => s.toUpperCase().includes('СТОРНО Ф-2 № 536'))).toBe(true);
     expect(t.matnlar.some((s) => s.toUpperCase().includes('ИТОГО ПЕРЕРАСЧЕТ'))).toBe(true);
     expect(r.jami).toBeCloseTo(150026606.32, 2);
+  });
+});
+describe('Ф-2 — hujjat dizayni (resolver)', () => {
+  it('Тип ustuni yashirin; BL qalin, RS kursiv, MAT/OB qalin; ramka/son/o‘rash tekshiruvi toza', () => {
+    const { b, q } = tayyorla();
+    const r = f2Hujjat(b, q, { obyektNom: 'Fast Food 1-etaj', davr: '2026-10', raqam: '1', nakrutka: NAMUNA_NAKRUTKA, ndsFoiz: 12 });
+    expect(tipUstunlariYashirin(r.bytes)).toEqual([true]);
+    const h = darajaHisobot(r.bytes);
+    expect(h.bl?.qalin).toEqual(new Set([true]));
+    expect(h.rs?.kursiv).toEqual(new Set([true]));
+    expect(h.rs?.qalin).toEqual(new Set([false]));
+    expect(h.mat?.qalin).toEqual(new Set([true]));
+    expect(h.jami?.qalin).toEqual(new Set([true]));
+    expect(hujjatDizaynTekshir(r.bytes, joriyHujjatDizayni())).toEqual([]);
+  });
+
+  it('kompaniya dizayni qo‘llanadi: Тип ko‘rinadi, RS qalin (formula va summa o‘zgarmaydi)', () => {
+    const { b, q } = tayyorla();
+    const opt = { obyektNom: 'Fast Food 1-etaj', davr: '2026-10', raqam: '1', nakrutka: NAMUNA_NAKRUTKA, ndsFoiz: 12 };
+    const asl = f2Hujjat(b, q, opt);
+    hujjatDizayniniSaqla(dizaynTozala({ tipKorsat: true, daraja: { rs: { qalin: true, kursiv: false } } }));
+    try {
+      const r = f2Hujjat(b, q, opt);
+      expect(tipUstunlariYashirin(r.bytes)).toEqual([false]);
+      expect(darajaHisobot(r.bytes).rs?.qalin).toEqual(new Set([true]));
+      expect(r.jami).toBe(asl.jami);
+    } finally { hujjatDizayniniSaqla(null); }
   });
 });

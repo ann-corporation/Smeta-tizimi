@@ -1,0 +1,13 @@
+{
+  "Windows uchun yuklab olish": { "ru": "Скачать для Windows", "en": "Download for Windows" },
+  "Versiya {version} · {size}": { "ru": "Версия {version} · {size}", "en": "Version {version} · {size}" },
+  "Oʻrnatish fayli raqamli imzolanmagan. Oʻrnatishdan oldin SHA-256 ni tekshiring.": {
+    "ru": "Установщик без цифровой подписи. Проверьте SHA-256 перед установкой.",
+    "en": "The installer is unsigned. Verify the SHA-256 before installing."
+  },
+  "SHA-256 nazorat summasi": { "ru": "Контрольная сумма SHA-256", "en": "SHA-256 checksum" },
+  "SHA-256 ni nusxalash": { "ru": "Скопировать SHA-256", "en": "Copy SHA-256" },
+  "SHA-256 nusxalandi": { "ru": "SHA-256 скопирован", "en": "SHA-256 copied" },
+  "SHA-256 ni qoʻlda nusxalang": { "ru": "Скопируйте SHA-256 вручную", "en": "Copy the SHA-256 manually" },
+  "Oʻrnatish yoʻriqnomasi (rus tilida)": { "ru": "Инструкция по установке (на русском)", "en": "Installation guide (in Russian)" }
+}

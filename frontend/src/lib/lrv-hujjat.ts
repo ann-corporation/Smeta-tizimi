@@ -58,7 +58,7 @@ const U: RasmiyUstun[] = [
   { sarlavha: 'Количество', kenglik: 13, tur: 'hajm', guruh: 'По смете' },
   { sarlavha: 'Цена за ед., сум', kenglik: 14, tur: 'narx', guruh: 'По смете' },
   { sarlavha: 'Сумма, сум', kenglik: 16, tur: 'pul', guruh: 'По смете' },
-  { sarlavha: 'Тип', kenglik: 6, tur: 'birlik' },
+  { sarlavha: 'Тип', kenglik: 6, tur: 'birlik', belgi: true },
   { sarlavha: 'Кат.', kenglik: 8, tur: 'texnik', yashirin: true },
   { sarlavha: 'Количество', kenglik: 12, tur: 'hajm', guruh: 'Выполнено (факт)' },
   { sarlavha: 'Сумма, сум', kenglik: 15, tur: 'pul', guruh: 'Выполнено (факт)' },
@@ -330,7 +330,7 @@ const AVVALGI_U: RasmiyUstun[] = [
   { sarlavha: 'Количество', kenglik: 13, tur: 'hajm' },
   { sarlavha: 'Цена за ед., сум', kenglik: 14, tur: 'narx' },
   { sarlavha: 'Сумма, сум', kenglik: 16, tur: 'pul' },
-  { sarlavha: 'Тип', kenglik: 6, tur: 'birlik' },
+  { sarlavha: 'Тип', kenglik: 6, tur: 'birlik', belgi: true },
   { sarlavha: 'Заменена версией', kenglik: 26, tur: 'matn' },
 ];
 

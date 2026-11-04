@@ -30,6 +30,7 @@ import { num, sheetRef, ustunHarfi, xmlEsc } from './ooxml';
 import { sumRefs } from './formula';
 import { yaxlit2 as yadroYaxlit2 } from '../hisob-yadro/yaxlit';
 import { IMZO_IMZO_CHIZIQ, IMZO_IZOH, IMZO_IZOH_SHAXS, IMZO_MP, IMZO_PODPIS, imzoMatni, imzoMuhrli, type ImzoTomon } from './imzo';
+import { DARAJALAR, darajaAniqla, joriyHujjatDizayni, sonUzunligi, type DarajaKalit, type HujjatDizayn } from './dizayn';
 
 /** Barcha rasmiy hujjatlar kolontituli — tizim nomi (egasi: hujjatlarda tizim reklamasi bo'lsin). */
 export const HUJJAT_KOLONTITUL = 'Сформировано в системе «Smeta tizimi» — smeta-tizimi.pages.dev';
@@ -45,6 +46,8 @@ export type RasmiyUstun = {
   guruh?: string;
   /** Texnik ustun (masalan yashirin belgi) — chop etilmaydi, ko'rinmaydi, raqamlanmaydi. */
   yashirin?: boolean;
+  /** «Тип» belgi ustuni (bl/rs/mat/ob): hujjat dizaynida `tipKorsat` o'chiq bo'lsa yashiriladi; qiymati qator darajasini aniqlaydi. */
+  belgi?: boolean;
 };
 
 export type RasmiyQatorTuri = 'oddiy' | 'ish' | 'bolim' | 'jami' | 'vsego';
@@ -91,6 +94,8 @@ export type RasmiyVaraqSozlama = {
   muzlatUstun?: number;
   /** Avtofiltr (raqamlash qatorida) — ishchi hujjatlarda qidirish/saralash uchun (LRV). Oxiri: `filtrOxiri()`. */
   filtr?: boolean;
+  /** Hujjat dizayni (kompaniya sozlamasi); berilmasa — joriy (`hujjatDizayniniOrnat`) yoki sukut «Kontrastli». */
+  dizayn?: HujjatDizayn;
 };
 
 /** Erkin blok katagi: c1..c2 ustunlar birlashtiriladi. */
@@ -104,7 +109,9 @@ export type BlokKatak = {
 export type SarlavhaKatak = { c1: number; c2?: number; qator: number; qatorlar?: number; matn: string };
 
 type Katak = { col: number; s: number; xml: (ref: string) => string };
-type Qator = { cells: Katak[]; daraja?: number; ht?: number };
+/** Matn katagi: qator balandligi yakuniy ustun enlari bilan xml() da hisoblanadi. */
+type MatnO = { matn: string; col: number; qalin: boolean; otstup: number; sz: number };
+type Qator = { cells: Katak[]; daraja?: number; ht?: number; matnlar?: MatnO[] };
 
 export type RasmiyVaraqMeta = {
   nom: string;
@@ -133,8 +140,6 @@ export const RS = {
   jamiMarkaz: 25, vsegoMarkaz: 26, jamiHajm: 27, qutiMarkaz: 28,
 } as const;
 
-const B1 = '<left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right><top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom><diagonal/>';
-const B2 = '<left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right><top style="medium"><color auto="1"/></top><bottom style="medium"><color auto="1"/></bottom><diagonal/>';
 
 const xf = (numFmt: number, font: number, border: number, al: string, fill = 0) =>
   `<xf numFmtId="${numFmt}" fontId="${font}" fillId="${fill}" borderId="${border}" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1" applyAlignment="1"${fill ? ' applyFill="1"' : ''}><alignment ${al}/></xf>`;
@@ -225,7 +230,7 @@ export function rangli(s: number, rang?: QatorRangi | null): number {
   const i = RANG_TARTIB.indexOf(rang);
   return i < 0 ? s : s + 29 * (1 + i);
 }
-const XF_BAZA: ReadonlyArray<(fill: number) => string> = [
+const XF_BAZA: ReadonlyArray<(fill: number, pul: number) => string> = [
   (fill: number) => `<xf numFmtId="0" fontId="0" fillId="${fill}" borderId="0" xfId="0"${fill ? ' applyFill="1"' : ''}/>`, // 0 oddiy
   (fill: number) => xf(0, 2, 0, 'horizontal="center" vertical="center" wrapText="1"', fill), // 1 sarlavha
   (fill: number) => xf(0, 0, 0, 'horizontal="center" vertical="center" wrapText="1"', fill), // 2 ost
@@ -235,16 +240,16 @@ const XF_BAZA: ReadonlyArray<(fill: number) => string> = [
   (fill: number) => xf(0, 3, 1, 'horizontal="center" vertical="center"', fill), // 6 raqam
   (fill: number) => xf(0, 0, 1, L, fill), // 7 matn
   (fill: number) => xf(0, 0, 1, 'horizontal="center" vertical="top" wrapText="1"', fill), // 8 markaz
-  (fill: number) => xf(4, 0, 1, R, fill), // 9 pul
+  (fill: number, pul: number) => xf(pul, 0, 1, R, fill), // 9 pul
   (fill: number) => xf(165, 0, 1, R, fill), // 10 hajm
   (fill: number) => xf(166, 0, 1, R, fill), // 11 norma
   (fill: number) => xf(2, 0, 1, R, fill), // 12 foiz
   (fill: number) => xf(0, 1, 1, L, fill), // 13 bolim matn
-  (fill: number) => xf(4, 1, 1, R, fill), // 14 bolim pul
+  (fill: number, pul: number) => xf(pul, 1, 1, R, fill), // 14 bolim pul
   (fill: number) => xf(0, 1, 1, 'horizontal="left" vertical="top" wrapText="1"', fill), // 15 jami matn
-  (fill: number) => xf(4, 1, 1, R, fill), // 16 jami pul
+  (fill: number, pul: number) => xf(pul, 1, 1, R, fill), // 16 jami pul
   (fill: number) => xf(0, 1, 2, 'horizontal="left" vertical="top" wrapText="1"', fill), // 17 vsego matn
-  (fill: number) => xf(4, 1, 2, R, fill), // 18 vsego pul
+  (fill: number, pul: number) => xf(pul, 1, 2, R, fill), // 18 vsego pul
   (fill: number) => xf(0, 0, 0, 'horizontal="left" vertical="bottom"', fill), // 19 imzo matn
   (fill: number) => xf(0, 3, 0, 'horizontal="center" vertical="top"', fill), // 20 imzo izoh
   (fill: number) => xf(0, 1, 0, 'horizontal="left" vertical="center"', fill), // 21 bo'lim sarlavhasi (jadvaldan tashqari)
@@ -263,28 +268,104 @@ function kursivga(r: QatorRangi, xml: string): string {
   return xml.replace('fontId="0"', 'fontId="6"').replace('fontId="1"', 'fontId="5"');
 }
 
-export function rasmiyStylesXml(mavzu: RangMavzusi = 'kulrang'): string {
+// ───────────────────────── dizayn (daraja) uslublari ─────────────────────────
+
+/** Daraja qatorlari uchun katak turlari (ustun turiga ko'ra). */
+const LEV_KIND = ['matn', 'markaz', 'pul', 'hajm', 'norma', 'foiz'] as const;
+type LevKind = typeof LEV_KIND[number];
+/** Variantlar: 0 — daraja foni; 1..15 — mavzu/toifa rangi (RANG_TARTIB+1); 16 — zebra. */
+const VARIANT_SONI = RANG_TARTIB.length + 2;
+const VAR_ZEBRA = VARIANT_SONI - 1;
+const LEV_BAZA = 29 * (1 + RANG_TARTIB.length);
+const levIdx = (lv: DarajaKalit, kind: LevKind, vi: number): number =>
+  LEV_BAZA + ((DARAJALAR.indexOf(lv) * LEV_KIND.length + LEV_KIND.indexOf(kind)) * VARIANT_SONI + vi);
+/** Uslub indeksini daraja/rang/zebra ga ochadi (testlar va tekshiruv uchun). daraja: null — darajasiz (eski) uslub. */
+export function uslubniOch(s: number): { daraja: DarajaKalit | null; rang: QatorRangi | null; zebra: boolean; header: boolean } {
+  if (s === HEADER_XF) return { daraja: null, rang: 'header', zebra: false, header: true };
+  if (s < LEV_BAZA) return { daraja: null, rang: s < 29 ? null : RANG_TARTIB[Math.floor(s / 29) - 1], zebra: false, header: false };
+  const k = s - LEV_BAZA;
+  const vi = k % VARIANT_SONI;
+  const li = Math.floor(k / VARIANT_SONI / LEV_KIND.length);
+  return { daraja: DARAJALAR[li] ?? null, rang: vi >= 1 && vi < VAR_ZEBRA ? RANG_TARTIB[vi - 1] : null, zebra: vi === VAR_ZEBRA, header: false };
+}
+/** Jadval sarlavhasi (header) uslubi — dizayn shrifti + sarlavha foni. */
+const HEADER_XF = LEV_BAZA + DARAJALAR.length * LEV_KIND.length * VARIANT_SONI;
+const FONT_LEV = 7;
+const FONT_LEV_AL = FONT_LEV + DARAJALAR.length;
+const FONT_HEADER = FONT_LEV_AL + DARAJALAR.length;
+
+const pulFmtId = (d: HujjatDizayn): number => (d.xonaPul === 2 ? 4 : 167);
+const pulFmtKod = (d: HujjatDizayn): string => `#,##0${d.xonaPul > 0 ? `.${'0'.repeat(d.xonaPul)}` : ''}`;
+const hajmFmtKod = (d: HujjatDizayn): string => `#,##0${d.xonaHajm > 0 ? `.${'0'.repeat(d.xonaHajm)}${'#'.repeat(Math.max(0, 6 - d.xonaHajm))}` : ''}`;
+
+function fontXml(b: boolean, i: boolean, sz: number, rang: string | null, nom: string): string {
+  return `<font>${b ? '<b/>' : ''}${i ? '<i/>' : ''}<sz val="${sz}"/>${rang ? `<color rgb="FF${rang}"/>` : ''}<name val="${xmlEsc(nom)}"/><family val="1"/><charset val="204"/></font>`;
+}
+
+export function rasmiyStylesXml(mavzu: RangMavzusi = 'kulrang', d: HujjatDizayn = joriyHujjatDizayni()): string {
   const hex = MAVZU_HEX[mavzu];
+  const S = d.shrift.olcham;
+  const nom = d.shrift.nom;
+  const fonts = [
+    fontXml(false, false, S, null, nom), fontXml(true, false, S, null, nom), fontXml(true, false, S + 3, null, nom),
+    fontXml(false, true, Math.max(6, S - 2), null, nom), fontXml(false, true, S, null, nom), fontXml(true, true, S, null, nom),
+    fontXml(false, true, S, '595959', nom),
+    ...DARAJALAR.map((k) => { const u = d.daraja[k]; return fontXml(u.qalin, u.kursiv, Math.max(6, S + u.olchamQosh), u.matnRang, nom); }),
+    ...DARAJALAR.map((k) => { const u = d.daraja[k]; return fontXml(u.qalin, true, Math.max(6, S + u.olchamQosh), '595959', nom); }),
+    fontXml(true, false, S, null, nom),
+  ];
+  // Qo'shimcha to'ldirishlar (dizayn ranglari) mavzu ranglaridan KEYIN qo'shiladi.
+  const fillBaza = 2 + RANG_TARTIB.length;
+  const qoshFill: string[] = [];
+  const fillOf = (h: string): number => {
+    let i = qoshFill.indexOf(h);
+    if (i < 0) { qoshFill.push(h); i = qoshFill.length - 1; }
+    return fillBaza + i;
+  };
+  const sol = d.chegara === 'none' ? '' : d.chegara;
+  const yon = (tag: string, st: string) => (st ? `<${tag} style="${st}"><color auto="1"/></${tag}>` : `<${tag}/>`);
+  const bord = (top: string, bottom: string) => `<border>${yon('left', sol)}${yon('right', sol)}${yon('top', top)}${yon('bottom', bottom)}<diagonal/></border>`;
+  const borders = [
+    '<border><left/><right/><top/><bottom/><diagonal/></border>',
+    bord(sol, sol),
+    bord('medium', 'medium'),
+    bord(d.blQalinChiziq ? 'medium' : sol, sol),
+    bord(d.jamiQosChiziq ? 'double' : sol, sol),
+    bord(d.jamiQosChiziq ? 'double' : sol, 'medium'),
+  ];
+  const LEV_BORDER: Record<DarajaKalit, number> = { rz: 1, bl: 3, rs: 1, mat: 1, ob: 1, jami: 4, vsego: 5 };
+  const pf = pulFmtId(d);
+  const fmtOf: Record<LevKind, number> = { matn: 0, markaz: 0, pul: pf, hajm: 165, norma: 166, foiz: 2 };
+  const alOf = (k: LevKind, otstup: number): string => (k === 'matn' ? `horizontal="left" vertical="top" wrapText="1"${otstup > 0 ? ` indent="${otstup}"` : ''}`
+    : k === 'markaz' ? 'horizontal="center" vertical="top" wrapText="1"' : R);
+  const levXfs: string[] = [];
+  DARAJALAR.forEach((lv, li) => {
+    const u = d.daraja[lv];
+    for (const k of LEV_KIND) {
+      for (let vi = 0; vi < VARIANT_SONI; vi++) {
+        const font = vi === RANG_TARTIB.indexOf('almashtirilgan') + 1 ? FONT_LEV_AL + li : FONT_LEV + li;
+        const fill = vi === 0 ? (mavzu !== 'rangsiz' && u.fon ? fillOf(u.fon) : 0) : vi === VAR_ZEBRA ? (d.zebra ? fillOf(d.zebraFon) : 0) : 2 + (vi - 1);
+        levXfs.push(xf(fmtOf[k], font, LEV_BORDER[lv], alOf(k, u.otstup), fill));
+      }
+    }
+  });
+  const sarFill = mavzu === 'rangsiz' ? 0 : d.sarlavhaFon ? fillOf(d.sarlavhaFon) : 2 + RANG_TARTIB.indexOf('header');
+  const headerXf = xf(0, FONT_HEADER, 1, C, sarFill);
+  const xflar = [
+    ...XF_BAZA.map((f) => f(0, pf)),
+    ...RANG_TARTIB.flatMap((r, i) => XF_BAZA.map((f) => kursivga(r, f(2 + i, pf)))),
+    ...levXfs, headerXf,
+  ];
+  const mavzuFill = RANG_TARTIB.map((r) => (hex[r] ? `<fill><patternFill patternType="solid"><fgColor rgb="FF${hex[r]}"/><bgColor indexed="64"/></patternFill></fill>` : '<fill><patternFill patternType="none"/></fill>')).join('');
+  const qoshFillXml = qoshFill.map((h) => `<fill><patternFill patternType="solid"><fgColor rgb="FF${h}"/><bgColor indexed="64"/></patternFill></fill>`).join('');
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
   + '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-  + '<numFmts count="2"><numFmt numFmtId="165" formatCode="#,##0.000###"/><numFmt numFmtId="166" formatCode="0.0000##"/></numFmts>'
-  + '<fonts count="7">'
-  + '<font><sz val="10"/><name val="Times New Roman"/><family val="1"/><charset val="204"/></font>'
-  + '<font><b/><sz val="10"/><name val="Times New Roman"/><family val="1"/><charset val="204"/></font>'
-  + '<font><b/><sz val="13"/><name val="Times New Roman"/><family val="1"/><charset val="204"/></font>'
-  + '<font><i/><sz val="8"/><name val="Times New Roman"/><family val="1"/><charset val="204"/></font>'
-  + '<font><i/><sz val="10"/><name val="Times New Roman"/><family val="1"/><charset val="204"/></font>'
-  + '<font><b/><i/><sz val="10"/><name val="Times New Roman"/><family val="1"/><charset val="204"/></font>'
-  + '<font><i/><sz val="10"/><color rgb="FF595959"/><name val="Times New Roman"/><family val="1"/><charset val="204"/></font>'
-  + '</fonts>'
-  + `<fills count="${2 + RANG_TARTIB.length}"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>`
-  + RANG_TARTIB.map((r) => (hex[r] ? `<fill><patternFill patternType="solid"><fgColor rgb="FF${hex[r]}"/><bgColor indexed="64"/></patternFill></fill>` : '<fill><patternFill patternType="none"/></fill>')).join('') + '</fills>'
-  + `<borders count="3"><border><left/><right/><top/><bottom/><diagonal/></border><border>${B1}</border><border>${B2}</border></borders>`
+  + `<numFmts count="3"><numFmt numFmtId="165" formatCode="${hajmFmtKod(d)}"/><numFmt numFmtId="166" formatCode="0.0000##"/><numFmt numFmtId="167" formatCode="${pulFmtKod(d)}"/></numFmts>`
+  + `<fonts count="${fonts.length}">${fonts.join('')}</fonts>`
+  + `<fills count="${fillBaza + qoshFill.length}"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>${mavzuFill}${qoshFillXml}</fills>`
+  + `<borders count="${borders.length}">${borders.join('')}</borders>`
   + '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-  + `<cellXfs count="${29 * (1 + RANG_TARTIB.length)}">`
-  + XF_BAZA.map((f) => f(0)).join('')
-  + RANG_TARTIB.map((r, i) => XF_BAZA.map((f) => kursivga(r, f(2 + i))).join('')).join('')
-  + '</cellXfs>'
+  + `<cellXfs count="${xflar.length}">${xflar.join('')}</cellXfs>`
   + '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
   + '</styleSheet>';
 }
@@ -366,15 +447,22 @@ export class RasmiyVaraq {
   private readonly filtrBor: boolean;
   private filtrOxir: number | null = null;
   private readonly kattaHarf: boolean;
+  readonly dizayn: HujjatDizayn;
+  /** Har ustun uchun kerakli eng kichik eni (formatlangan son / eng uzun so'z) — xml() da kenglik shundan kam bo'lmaydi. */
+  private readonly kerak: number[];
+  private zebraTartib = 0;
 
   constructor(o: RasmiyVaraqSozlama) {
     this.nom = o.nom.replace(/[\\/?*[\]:]/g, '_').slice(0, 31);
     this.muzlatUstun = Math.max(0, o.muzlatUstun ?? 0);
     this.kattaHarf = o.kattaHarf !== false;
     this.filtrBor = !!o.filtr;
-    this.ustunlar = o.ustunlar;
-    this.yonalish = o.yonalish ?? 'landscape';
-    this.korinadigan = o.ustunlar.map((u, i) => (u.yashirin ? -1 : i)).filter((i) => i >= 0);
+    this.dizayn = o.dizayn ?? joriyHujjatDizayni();
+    // «Тип» belgi ustuni dizaynda o'chiq bo'lsa — yashirin (hidden, chop etilmaydi); qiymati qatorda qoladi (import round-trip).
+    this.ustunlar = o.ustunlar.map((u) => (u.belgi && !this.dizayn.tipKorsat ? { ...u, yashirin: true } : u));
+    this.kerak = this.ustunlar.map(() => 0);
+    this.yonalish = o.yonalish ?? (this.dizayn.yonalish === 'auto' ? 'landscape' : this.dizayn.yonalish);
+    this.korinadigan = this.ustunlar.map((u, i) => (u.yashirin ? -1 : i)).filter((i) => i >= 0);
     const oxir = this.oxirgiUstun;
 
     this.put([katakXml(0, RS.sarlavha, o.sarlavha)], balandlik(o.sarlavha, this.kenglikJami(0, oxir), 18));
@@ -439,9 +527,9 @@ export class RasmiyVaraq {
         const cells: Katak[] = [];
         // Ramka uzluksiz bo'lishi uchun har ko'rinadigan ustunga katak (bo'shi ham).
         for (let i = 0; i <= oxir; i++) {
-          if (o.ustunlar[i]?.yashirin) continue;
+          if (this.ustunlar[i]?.yashirin) continue;
           const t = kat.find((x) => x.c1 === i);
-          cells.push(katakXml(i, rangli(RS.header, 'header'), t ? t.matn : null));
+          cells.push(katakXml(i, HEADER_XF, t ? t.matn : null));
         }
         this.put(cells, ms.balandliklar?.[k]);
       }
@@ -450,36 +538,36 @@ export class RasmiyVaraq {
         if (r2 > r1 || c2 > x.c1) this.merges.push(`${ustunHarfi(x.c1)}${r1}:${ustunHarfi(c2)}${r2}`);
       }
       let n = 0;
-      this.raqamQatori = this.put(o.ustunlar.map((u, i) => katakXml(i, RS.raqam, u.yashirin ? null : ++n)));
+      this.raqamQatori = this.put(this.ustunlar.map((u, i) => katakXml(i, RS.raqam, u.yashirin ? null : ++n)));
       return;
     }
     // Jadval sarlavhasi (guruh bo'lsa — ikki qator).
-    const ikki = o.ustunlar.some((u) => u.guruh);
+    const ikki = this.ustunlar.some((u) => u.guruh);
     const h1 = this.r;
     this.sarlavhaQatori = h1;
     const bir: Katak[] = [];
     const ikkinchi: Katak[] = [];
-    for (let i = 0; i < o.ustunlar.length; i++) {
-      const u = o.ustunlar[i];
+    for (let i = 0; i < this.ustunlar.length; i++) {
+      const u = this.ustunlar[i];
       if (!ikki || !u.guruh) {
-        bir.push(katakXml(i, rangli(RS.header, 'header'), u.sarlavha));
-        if (ikki) { ikkinchi.push(katakXml(i, rangli(RS.header, 'header'), null)); this.merges.push(`${ustunHarfi(i)}${h1}:${ustunHarfi(i)}${h1 + 1}`); }
+        bir.push(katakXml(i, HEADER_XF, u.sarlavha));
+        if (ikki) { ikkinchi.push(katakXml(i, HEADER_XF, null)); this.merges.push(`${ustunHarfi(i)}${h1}:${ustunHarfi(i)}${h1 + 1}`); }
         continue;
       }
       let j = i;
-      while (j + 1 < o.ustunlar.length && o.ustunlar[j + 1].guruh === u.guruh) j++;
-      bir.push(katakXml(i, rangli(RS.header, 'header'), u.guruh));
-      for (let k = i + 1; k <= j; k++) bir.push(katakXml(k, rangli(RS.header, 'header'), null));
+      while (j + 1 < this.ustunlar.length && this.ustunlar[j + 1].guruh === u.guruh) j++;
+      bir.push(katakXml(i, HEADER_XF, u.guruh));
+      for (let k = i + 1; k <= j; k++) bir.push(katakXml(k, HEADER_XF, null));
       if (j > i) this.merges.push(`${ustunHarfi(i)}${h1}:${ustunHarfi(j)}${h1}`);
-      for (let k = i; k <= j; k++) ikkinchi.push(katakXml(k, rangli(RS.header, 'header'), o.ustunlar[k].sarlavha));
+      for (let k = i; k <= j; k++) ikkinchi.push(katakXml(k, HEADER_XF, this.ustunlar[k].sarlavha));
       i = j;
     }
-    const hBal = Math.max(...o.ustunlar.map((u) => balandlik(u.sarlavha, u.kenglik) ?? 15));
-    this.put(bir, ikki ? balandlik(o.ustunlar.map((u) => u.guruh ?? '').sort((a, b) => b.length - a.length)[0], 20) : hBal);
+    const hBal = Math.max(...this.ustunlar.map((u) => balandlik(u.sarlavha, u.kenglik * 0.88) ?? 15));
+    this.put(bir, ikki ? balandlik(this.ustunlar.map((u) => u.guruh ?? '').sort((a, b) => b.length - a.length)[0], 20) : hBal);
     if (ikki) this.put(ikkinchi, hBal);
     // 1 | 2 | 3 … raqamlash (yashirin ustun raqamlanmaydi).
     let n = 0;
-    this.raqamQatori = this.put(o.ustunlar.map((u, i) => katakXml(i, RS.raqam, u.yashirin ? null : ++n)));
+    this.raqamQatori = this.put(this.ustunlar.map((u, i) => katakXml(i, RS.raqam, u.yashirin ? null : ++n)));
   }
 
   /** Keyingi yoziladigan qator raqami (1-asosli). */
@@ -497,8 +585,8 @@ export class RasmiyVaraq {
     return s;
   }
 
-  private put(cells: Katak[], ht?: number, daraja?: number): number {
-    this.qatorlar.push({ cells, ht, daraja });
+  private put(cells: Katak[], ht?: number, daraja?: number, matnlar?: MatnO[]): number {
+    this.qatorlar.push({ cells, ht, daraja, matnlar });
     return this.qatorlar.length;
   }
 
@@ -513,30 +601,84 @@ export class RasmiyVaraq {
     const xom = typeof qiymatlar === 'function' ? qiymatlar(r) : qiymatlar;
     const q = this.kattaHarf ? xom.map((v, i) => (typeof v === 'string' && MATN_TURLARI.has(this.ustunlar[i]?.tur) ? kattaHarfga(v) : v)) : xom;
     const rang = o?.rang !== undefined ? o.rang : TUR_RANGI[tur];
+    // Daraja (BL/RS/MAT/OB/razdel/jami/ВСЕГО): «Тип» belgi ustuni qiymati yoki qator turi/toifasidan — BITTA resolver.
+    const belgiI = this.ustunlar.findIndex((u) => u.belgi);
+    const lv = darajaAniqla(tur, belgiI >= 0 ? q[belgiI] : null, rang);
+    if (lv === 'bl') this.zebraTartib++;
+    const dz = lv ? this.dizayn.daraja[lv] : null;
+    const qalin = lv ? dz!.qalin : tur !== 'oddiy';
+    const sz = this.dizayn.shrift.olcham + (dz?.olchamQosh ?? 0);
+    const matnlar: MatnO[] = [];
     const cells = this.ustunlar.map((u, i) => {
       const v = q[i];
       const ku = v != null && typeof v === 'object' ? v.uslub : undefined;
-      return katakXml(i, rangli(ku === 'norma' ? RS.norma : ku === 'foiz' ? RS.foiz : uslub(tur, u.tur), rang), v);
+      this.kerakYangila(i, u, v, ku, qalin, sz);
+      if (typeof v === 'string' && (u.tur === 'matn' || u.tur === 'kod' || u.tur === 'birlik')) {
+        matnlar.push({ matn: v, col: i, qalin, otstup: u.tur === 'matn' ? dz?.otstup ?? 0 : 0, sz });
+      }
+      if (!lv) return katakXml(i, rangli(ku === 'norma' ? RS.norma : ku === 'foiz' ? RS.foiz : uslub(tur, u.tur), rang), v);
+      const sonmi = u.tur === 'pul' || u.tur === 'narx';
+      const kind: LevKind = ku === 'norma' ? 'norma' : ku === 'foiz' ? 'foiz' : sonmi ? 'pul' : u.tur === 'hajm' ? 'hajm' : u.tur === 'norma' ? 'norma' : u.tur === 'foiz' ? 'foiz'
+        : u.tur === 'tartib' || u.tur === 'kod' || u.tur === 'birlik' ? 'markaz' : 'matn';
+      return katakXml(i, this.darajaUslubi(lv, kind, rang), v);
     });
+    return this.put(cells, undefined, o?.daraja, matnlar);
+  }
+
+  /** Daraja uslubi indeksi: o'zgarish ranglari (qo'shimcha/zamena/almashtirilgan) > daraja foni > mavzu/toifa rangi > zebra. */
+  private darajaUslubi(lv: DarajaKalit, kind: LevKind, rang: QatorRangi | null): number {
+    const u = this.dizayn.daraja[lv];
+    if (rang === 'qoshimcha' || rang === 'zamena' || rang === 'almashtirilgan') return levIdx(lv, kind, RANG_TARTIB.indexOf(rang) + 1);
+    const guruhda = lv === 'bl' || lv === 'rs' || lv === 'mat' || lv === 'ob';
+    if (this.dizayn.zebra && guruhda && this.zebraTartib % 2 === 1 && (u.fon == null || u.fon === 'FFFFFF')) return levIdx(lv, kind, VAR_ZEBRA);
+    if (u.fon != null) return levIdx(lv, kind, 0);
+    const i = rang ? RANG_TARTIB.indexOf(rang) : -1;
+    return levIdx(lv, kind, i >= 0 ? i + 1 : 0);
+  }
+
+  /** Ustun uchun kerakli eng kichik en (formatlangan son yoki eng uzun so'z) — «###» va kesilgan matn bo'lmasin. */
+  private kerakYangila(i: number, u: RasmiyUstun, v: Qiymat, ku: KatakUslub | undefined, qalin: boolean, sz: number): void {
+    const d = this.dizayn;
+    const ol = (sz / 10) * (qalin ? 1.12 : 1);
+    let len = 0;
+    const son = v != null && typeof v === 'object' ? ('f' in v ? v.v : v.n) : v;
+    if (typeof son === 'number' && Number.isFinite(son)) {
+      const t = ku === 'norma' || u.tur === 'norma' ? sonUzunligi(son, 4, 6)
+        : ku === 'foiz' || u.tur === 'foiz' ? sonUzunligi(son, 2, 2)
+          : u.tur === 'hajm' ? sonUzunligi(son, d.xonaHajm, d.xonaHajm > 0 ? 6 : 0)
+            : u.tur === 'pul' || u.tur === 'narx' ? sonUzunligi(son, d.xonaPul, d.xonaPul)
+              : String(son).length;
+      len = t;
+    } else if (typeof son === 'string' && (u.tur === 'kod' || u.tur === 'birlik' || u.tur === 'tartib')) {
+      const soz = Math.max(0, ...son.split(/\s+/).map((s) => s.length));
+      len = soz * (son === son.toUpperCase() && /[А-ЯЁ]/.test(son) ? 1.25 : 1);
+    }
+    if (len > 0) this.kerak[i] = Math.max(this.kerak[i], Math.min(45, Math.ceil(len * ol + 2)));
+  }
+
+  /** Ustunning yakuniy eni: belgilangan eni va mazmun talabidan kattasi. */
+  kenglik(i: number): number { return Math.max(this.ustunlar[i]?.kenglik ?? 9, this.kerak[i] ?? 0); }
+
+  /** Matn katagiga qarab qator balandligi (yakuniy ustun enlari bilan, shrift/otstup hisobida). */
+  private matnBalandligi(m: MatnO[]): number | undefined {
     let ht: number | undefined;
-    const qalin = tur !== 'oddiy';
-    this.ustunlar.forEach((u, i) => {
-      const v = q[i];
-      // Qalin shrift ~12% kengroq — sig'im shunga ko'ra kamayadi (oxirgi qator kesilmasin).
-      if (typeof v !== 'string' || !(u.tur === 'matn' || u.tur === 'kod' || u.tur === 'birlik')) return;
-      // KATTA harfli kirill matn ~30% kengroq (Ш, Щ, М, Ж) — kesilgandan ortiqcha joy yaxshi.
-      const katta = v.length > 8 && v === v.toUpperCase() && /[А-ЯЁ]/.test(v);
-      ht = Math.max(ht ?? 0, balandlik(v, u.kenglik * (qalin ? 0.88 : 1) * (katta ? 0.72 : 1)) ?? 0) || undefined;
-    });
-    return this.put(cells, ht, o?.daraja);
+    for (const x of m) {
+      const katta = x.matn.length > 8 && x.matn === x.matn.toUpperCase() && /[А-ЯЁ]/.test(x.matn);
+      const eni = Math.max(4, this.kenglik(x.col) - x.otstup * 1.5) * (10 / x.sz) * (x.qalin ? 0.88 : 1) * (katta ? 0.72 : 1);
+      const b = balandlik(x.matn, eni, 13 * (x.sz / 10));
+      if (b) ht = Math.max(ht ?? 0, b);
+    }
+    return ht;
   }
 
   /** Bo'lim (РАЗДЕЛ) sarlavhasi — butun jadval eni bo'ylab birlashtirilgan. */
   bolim(matnXom: string, o?: { daraja?: number }): number {
     const matn = this.kattaHarf ? kattaHarfga(matnXom) : matnXom;
     const oxir = this.oxirgiUstun;
-    const cells = this.ustunlar.map((_u, i) => katakXml(i, rangli(RS.bolimMatn, 'bolim'), i === 0 ? matn : null));
-    const r = this.put(cells, balandlik(matn, this.kenglikJami(0, oxir)), o?.daraja);
+    const s = this.darajaUslubi('rz', 'matn', 'bolim');
+    const cells = this.ustunlar.map((_u, i) => katakXml(i, s, i === 0 ? matn : null));
+    const sz = this.dizayn.shrift.olcham + this.dizayn.daraja.rz.olchamQosh;
+    const r = this.put(cells, balandlik(matn, this.kenglikJami(0, oxir) * (10 / sz) * 0.9, 13 * (sz / 10)), o?.daraja);
     this.merge(0, r, oxir);
     return r;
   }
@@ -546,7 +688,7 @@ export class RasmiyVaraq {
   /** Erkin qator: har katak c1..c2 ga birlashtiriladi (quti — ramkali). */
   blok(kataklar: ReadonlyArray<BlokKatak>, ht?: number): number {
     const S: Record<NonNullable<BlokKatak['tur']>, number> = {
-      yorliq: RS.titulYorliq, qiymat: RS.titulQiymat, quti: RS.qutiMarkaz, qutiQalin: RS.header,
+      yorliq: RS.titulYorliq, qiymat: RS.titulQiymat, quti: RS.qutiMarkaz, qutiQalin: HEADER_XF,
       imzo: RS.imzoMatn, izoh: RS.imzoIzoh, ost: RS.ost, qalin: RS.bolimSarlavha,
     };
     const cells: Katak[] = [];
@@ -625,11 +767,12 @@ export class RasmiyVaraq {
     const maxD = Math.max(0, ...this.qatorlar.map((q) => q.daraja ?? 0));
     const rows = this.qatorlar.map((q, i) => {
       const r = i + 1;
-      const attrs = `${q.ht ? ` ht="${q.ht}" customHeight="1"` : ''}${q.daraja ? ` outlineLevel="${Math.min(7, q.daraja)}"` : ''}`;
+      const ht = q.ht ?? (q.matnlar ? this.matnBalandligi(q.matnlar) : undefined);
+      const attrs = `${ht ? ` ht="${ht}" customHeight="1"` : ''}${q.daraja ? ` outlineLevel="${Math.min(7, q.daraja)}"` : ''}`;
       if (!q.cells.length) return `<row r="${r}"${attrs}/>`;
       return `<row r="${r}"${attrs}>${[...q.cells].sort((a, b) => a.col - b.col).map((c) => c.xml(`${ustunHarfi(c.col)}${r}`)).join('')}</row>`;
     }).join('');
-    const cols = this.ustunlar.map((u, i) => `<col min="${i + 1}" max="${i + 1}" width="${u.kenglik}" customWidth="1"${u.yashirin ? ' hidden="1"' : ''}/>`).join('');
+    const cols = this.ustunlar.map((u, i) => `<col min="${i + 1}" max="${i + 1}" width="${this.kenglik(i)}" customWidth="1"${u.yashirin ? ' hidden="1"' : ''}/>`).join('');
     const oxirgiQ = Math.max(1, this.qatorlar.length);
     const y = this.raqamQatori, x = this.muzlatUstun;
     const bosh = `${ustunHarfi(x)}${y + 1}`;
@@ -650,7 +793,7 @@ export class RasmiyVaraq {
       + (filtr ? `<autoFilter ref="${filtr}"/>` : '')
       + (this.merges.length ? `<mergeCells count="${this.merges.length}">${this.merges.map((m) => `<mergeCell ref="${m}"/>`).join('')}</mergeCells>` : '')
       + '<printOptions horizontalCentered="1"/>'
-      + '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.6" header="0.3" footer="0.3"/>'
+      + `<pageMargins left="${this.dizayn.chekka.chap}" right="${this.dizayn.chekka.ong}" top="${this.dizayn.chekka.yuqori}" bottom="${this.dizayn.chekka.past}" header="0.3" footer="0.3"/>`
       + `<pageSetup paperSize="9" orientation="${this.yonalish}" fitToWidth="1" fitToHeight="0"/>`
       + '<headerFooter><oddFooter>' + xmlEsc('&L&7' + HUJJAT_KOLONTITUL + '&C&8Страница &P из &N') + '</oddFooter></headerFooter>'
       // OOXML tartibi: ignoredErrors — headerFooter dan KEYIN (aks holda Excel faylni ochmaydi).
@@ -677,7 +820,12 @@ export function formulalarniQiymatga(xml: string): string {
   });
 }
 
-export function rasmiyKitob(varaqlar: readonly RasmiyVaraq[], o?: { mavzu?: RangMavzusi; tur?: HujjatTuri; formulasiz?: boolean }): RasmiyKitobNatija {
+/** Har yasalgan kitobni kuzatuvchi (faqat testlar: vitest.setup.ts dizayn talablarini HAR generator chiqishida tekshiradi). */
+export type KitobKuzatuvchi = (bytes: Uint8Array, dizayn: HujjatDizayn, varaqNomlari: readonly string[]) => void;
+let kitobKuzatuvchi: KitobKuzatuvchi | null = null;
+export function kitobKuzatuvchiniOrnat(f: KitobKuzatuvchi | null): void { kitobKuzatuvchi = f; }
+
+export function rasmiyKitob(varaqlar: readonly RasmiyVaraq[], o?: { mavzu?: RangMavzusi; tur?: HujjatTuri; formulasiz?: boolean; dizayn?: HujjatDizayn }): RasmiyKitobNatija {
   if (!varaqlar.length) throw new Error('RASMIY_KITOB_BOSH');
   const nomlar: string[] = [];
   for (const v of varaqlar) {
@@ -704,7 +852,7 @@ export function rasmiyKitob(varaqlar: readonly RasmiyVaraq[], o?: { mavzu?: Rang
     'xl/_rels/workbook.xml.rels': strToU8('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
       + varaqlar.map((_v, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('')
       + `<Relationship Id="rId${varaqlar.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`),
-    'xl/styles.xml': strToU8(rasmiyStylesXml(o?.mavzu ?? (o?.tur ? hujjatMavzusi(o.tur) : joriyMavzu))),
+    'xl/styles.xml': strToU8(rasmiyStylesXml(o?.mavzu ?? (o?.tur ? hujjatMavzusi(o.tur) : joriyMavzu), o?.dizayn ?? varaqlar[0].dizayn)),
   };
   let yacheykalar = 0;
   varaqlar.forEach((v, i) => {
@@ -714,7 +862,9 @@ export function rasmiyKitob(varaqlar: readonly RasmiyVaraq[], o?: { mavzu?: Rang
     yacheykalar += xom.match(/<c [^>]*[^/]><f\b/g)?.length ?? 0;
     files[`xl/worksheets/sheet${i + 1}.xml`] = strToU8(x);
   });
-  return { bytes: zipSync(files, { level: 6, mtime: BARQAROR_VAQT }), varaqlar: metas, yacheykalar };
+  const bytes = zipSync(files, { level: 6, mtime: BARQAROR_VAQT });
+  kitobKuzatuvchi?.(bytes, o?.dizayn ?? varaqlar[0].dizayn, nomlar);
+  return { bytes, varaqlar: metas, yacheykalar };
 }
 
 /** Ro'yxatdagi qatorlar yig'indisi formulasi: `SUM(H5:H9,H12)`; bo'sh bo'lsa null. */

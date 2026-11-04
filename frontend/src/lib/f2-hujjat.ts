@@ -64,7 +64,7 @@ const USTUNLAR: RasmiyUstun[] = [
   { sarlavha: 'Сумма, сум', kenglik: 18, tur: 'pul' },
   /* I — LRV_PLUS'dagi kabi qator turi (rz/bl/rs/mat/ob): tizimning o'z F2 importi aynan shu belgidan o'qiydi —
      hujjat qaytib yuklanganda ish/resurs/material ADASHMAYDI. */
-  { sarlavha: 'Тип', kenglik: 7, tur: 'birlik' },
+  { sarlavha: 'Тип', kenglik: 7, tur: 'birlik', belgi: true },
   /* J — xarajat turi (ЧЕЛ/МАШ/МАТ/…): podval SUMIF va ranglar uchun, chop etilmaydi. */
   { sarlavha: 'Кат.', kenglik: 8, tur: 'texnik', yashirin: true },
   /* K — yashirin КАЛИТ <t2_qator.id>:<barmoq izi> (round-trip: texnadzor tuzatgan fayl qaytganda F2 import aniq bog'laydi; lrv-qayta-import himoyasi). Chop etilmaydi. */

@@ -17,16 +17,19 @@ import { tizimdanChiq } from '../umumiy/kontekst/chiqish';
 import { t } from '../i18n/til';
 import { TilTanlagich } from '../i18n/TilTanlagich';
 import { AkkauntTugmasi } from '../components/akkaunt/AkkauntTugmasi';
+import { Qongiroqcha } from '../components/hujjat-aylanish/Qongiroqcha';
 import { OrqaOldinga } from '../umumiy/ui/OrqaOldinga';
 import { SIDEBAR_HODISA } from '../components/akkaunt/korinish-sozlama';
 import { AiHelper } from '../umumiy/ui/AiHelper';
 import { CommandPalette } from '../umumiy/ui/CommandPalette';
 import { BolimTablariKontekst } from './bolimTablariKontekst';
-import { NAV_GURUHLAR, NAV_SAHIFALAR, type NavIkonka } from '../lib/nav/navReestr';
-import { menyuQur } from '../lib/nav/navFiltr';
+import { NAV_GURUHLAR, NAV_SAHIFALAR, navSahifa, type NavIkonka } from '../lib/nav/navReestr';
+import { menyuQur, ilovalarRoyxati, type NavKontekst } from '../lib/nav/navFiltr';
+import { ILOVA_MAP, type IlovaKod } from '../lib/ilova/ilovalar';
+import { IlovaIshgaTushirgich } from '../components/ilova/IlovaIshgaTushirgich';
 import { useTizimRuxsat } from '../api/t2-tizim-xaritasi';
 import { useModullar } from '../api/t2-modul';
-import { MENYU_MODUL } from '../lib/modullar';
+import { menyuModulYoqilgan } from '../lib/modullar';
 
 /* 2026-10-26 (egasi; tizim xaritasi S1/P2): menyu tuzilmasi va rol filtri — YAGONA navigatsiya reestrida
  * (lib/nav/navReestr.ts) va sof filtrda (lib/nav/navFiltr.ts). Bu yerda faqat ikonka xaritasi va ulash.
@@ -97,6 +100,23 @@ function AdminShellInner() {
     return () => window.removeEventListener(SIDEBAR_HODISA, f);
   }, []);
   const sidebarKengaygan = mahkam || kengaygan || mobilMenyuOchiq;
+  /* Ilova menyusi (ekotizim P1): sukut - faqat joriy ilova bo'limlari; «Barcha bo'limlar» - hammasi (tanlov eslab qolinadi). */
+  const [hammasiRejim, setHammasiRejim] = useState<boolean>(() => {
+    try { return localStorage.getItem('fz-menyu-hammasi') === '1'; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('fz-menyu-hammasi', hammasiRejim ? '1' : '0'); } catch { /* brauzer xotirasi yopiq */ }
+  }, [hammasiRejim]);
+  const [oxirgiIlova, setOxirgiIlova] = useState<IlovaKod | null>(() => {
+    try { return (localStorage.getItem('fz-ilova') as IlovaKod | null) || null; } catch { return null; }
+  });
+  const yolIlovasi: IlovaKod | null = navSahifa(joy.pathname)?.ilova ?? null;
+  /* Oxirgi ishlatilgan ilova eslab qolinadi (yadro/platforma sahifalarida yon menyu shu ilovada qoladi). */
+  useEffect(() => {
+    if (!yolIlovasi || !ILOVA_MAP[yolIlovasi].ishgaTushirgich) return;
+    setOxirgiIlova(yolIlovasi);
+    try { localStorage.setItem('fz-ilova', yolIlovasi); } catch { /* xotira yopiq */ }
+  }, [yolIlovasi]);
 
   // Qaysi guruhlar ochiq ekanligini saqlash
   const [ochiqGuruhlar, setOchiqGuruhlar] = useState<Record<string, boolean>>(() => {
@@ -180,19 +200,28 @@ function AdminShellInner() {
   // qo'riqchi — bu yerdagi filtr faqat menyu tuzilishi, xavfsizlik chegarasi
   // EMAS.
   const modullar = modulQuery.data;
-  const routeModule = MENYU_MODUL[joy.pathname];
   // Faqat modul ANIQ o'chirilgan bo'lsa yopiladi. Yuklanayotgan / o'qib bo'lmagan / global rejim — sahifa ochiq
   // (bu ko'rinish, xavfsizlik emas; L0 2026-10-22: Codex varianti xato bo'lganda ishni to'xtatardi).
-  const moduleOpen = !routeModule || !modullar?.some(m => m.kod === routeModule && m.holat === 'off');
+  const moduleOpen = menyuModulYoqilgan(joy.pathname, modullar);
   /* Rol/ruxsat/modul/qatlam filtri — sof funksiya (lib/nav/navFiltr.ts, rol snapshot testlari bilan). */
-  const filtrKilinganGuruhlar = menyuQur({ superadmin: !!k.superadmin, rol: effektivRol, permissions: k.joriy?.permissions, modullar, tizimXaritasi: tizimRuxsat.data?.ruxsat === true })
+  const navK: NavKontekst = { superadmin: !!k.superadmin, rol: effektivRol, permissions: k.joriy?.permissions, modullar, tizimXaritasi: tizimRuxsat.data?.ruxsat === true };
+  const guruhQator = (ilova: IlovaKod | 'hammasi') => menyuQur({ ...navK, ilova })
     .map(g => ({ nom: g.nom, id: g.id, Ikonka: IKONKALAR[g.ikonka], menyular: g.bandlar.map((b): MenyuQator => ({ yol: b.yol, nom: b.nom, Ikonka: IKONKALAR[b.ikonka], tablar: b.tablar })) }));
+  /* Ilova ishga tushirgich + joriy ilova (yo'l ilovasi, bo'lmasa oxirgi tanlangan, bo'lmasa birinchi). */
+  const ilovalar = ilovalarRoyxati(navK);
+  const ilovaKodlari = ilovalar.map(i => i.kod);
+  const joriyIlova: IlovaKod | null = yolIlovasi && ilovaKodlari.includes(yolIlovasi) ? yolIlovasi
+    : oxirgiIlova && ilovaKodlari.includes(oxirgiIlova) ? oxirgiIlova : (ilovaKodlari[0] ?? null);
+  const menyuIlova: IlovaKod | 'hammasi' = hammasiRejim || !joriyIlova || ilovalar.length < 2 ? 'hammasi' : joriyIlova;
+  /* Ctrl+K va sahifa tablari — HAMMA ruxsatli bo'limlardan (ilova filtri faqat yon menyuga). */
+  const hammasiGuruhlar = guruhQator('hammasi');
+  const filtrKilinganGuruhlar = menyuIlova === 'hammasi' ? hammasiGuruhlar : guruhQator(menyuIlova);
   /* Ctrl+K — sidebar bilan BIR manba: shu rol/ruxsat/modul filtridan o'tgan bandlar (tizim xaritasi P3); tablar alohida topiladi. */
-  const palitraBandlari = filtrKilinganGuruhlar.flatMap(g => g.menyular.flatMap(m => m.tablar
+  const palitraBandlari = hammasiGuruhlar.flatMap(g => g.menyular.flatMap(m => m.tablar
     ? m.tablar.map(tb => ({ yol: tb.yol, nom: tb.nom, guruh: g.nom }))
     : [{ yol: m.yol, nom: m.nom, guruh: g.nom }]));
   /* BolimTablari (sahifa tepasidagi tablar) uchun — ruxsat bo'yicha filtrlangan tab guruhlari. */
-  const tabGuruhlari = filtrKilinganGuruhlar.flatMap(g => g.menyular.flatMap(m => m.tablar ? [m.tablar] : []));
+  const tabGuruhlari = hammasiGuruhlar.flatMap(g => g.menyular.flatMap(m => m.tablar ? [m.tablar] : []));
   const bandFaol = (m: MenyuQator, isActive: boolean) => isActive || !!m.tablar?.some(tb => joy.pathname === tb.yol || joy.pathname.startsWith(tb.yol + '/'));
 
   return (
@@ -229,6 +258,12 @@ function AdminShellInner() {
 
         <div className="fz-sidebar__scroll">
           <nav className="fz-nav">
+            {ilovalar.length > 1 && sidebarKengaygan && (
+              <button type="button" className="fz-nav__group" aria-pressed={menyuIlova === 'hammasi'} onClick={() => setHammasiRejim(v => !v)}
+                title={menyuIlova === 'hammasi' ? t('Faqat joriy ilova bo‘limlari') : t('Barcha bo‘limlar')}>
+                <span className="flex-1 truncate">{menyuIlova === 'hammasi' ? t('Faqat joriy ilova bo‘limlari') : t('Barcha bo‘limlar')}</span>
+              </button>
+            )}
             {filtrKilinganGuruhlar.map((guruh, gi) => (
               <div key={guruh.id}>
                 {sidebarKengaygan ? (
@@ -288,12 +323,13 @@ function AdminShellInner() {
           <button type="button" className="os-mobile-only os-menu-button" aria-label={mobilMenyuOchiq ? 'Navigatsiyani yopish' : 'Navigatsiyani ochish'} aria-expanded={mobilMenyuOchiq} onClick={() => setMobilMenyuOchiq((open) => !open)}>
             {mobilMenyuOchiq ? <X size={17} /> : <Menu size={17} />}
           </button>
+          <IlovaIshgaTushirgich ilovalar={ilovalar} joriy={joriyIlova} onTanla={(kod) => { setOxirgiIlova(kod); setHammasiRejim(false); try { localStorage.setItem('fz-ilova', kod); } catch { /* xotira yopiq */ } }} />
           <OrqaOldinga />
           <KompaniyaTanlagich />
           {k.superadmin && <span className="hidden rounded-md border border-accent/25 px-2 py-1 text-[10px] text-accent 2xl:inline">{t('Platforma roli')}: superadmin</span>}
           {k.superadmin && k.joriy?.membershipRole && <span className="hidden text-[10px] text-text-dim 2xl:inline">{t('Kompaniyadagi rol')}: {k.joriy.membershipRole}</span>}
           <PTOWorkspaceBar />
-          <div className="ml-auto flex items-center gap-2"><TilTanlagich ixcham /><AkkauntTugmasi /></div>
+          <div className="ml-auto flex items-center gap-2"><TilTanlagich ixcham /><Qongiroqcha /><AkkauntTugmasi /></div>
         </div>
 
         {/* ⚠️ 2026-09-07 (Claude, P0): AVVAL bu yerda `sess.data.yozaOladi`

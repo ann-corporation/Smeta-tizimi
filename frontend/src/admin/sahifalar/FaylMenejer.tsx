@@ -22,6 +22,7 @@ const FAQAT_KORISH = new Set(['kuzatuvchi', 'buyurtmachi', 'pudratchi']);
 type Bolim = 'tizim' | 'mening' | 'savat';
 type AmalParam = NonNullable<Parameters<typeof faylAmal>[2]>;
 import { R2DublikatPanel } from './R2DublikatPanel';
+import { DbHajmPanel } from './DbHajmPanel';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { FAYL_TURI_NOMI, FAYL_TURI_RANG, faylTurTaqsimot } from '../../lib/fayl-korinish';
 
@@ -333,6 +334,7 @@ function CompanyFileManager({ kompaniyaId }: { kompaniyaId: number }) {
       </section>}
       {band && <div role="status" className="fz-note fz-note--info">{band}</div>}
       {xato && <div role="alert" className="fz-note fz-note--danger">{xato}</div>}
+      {data?.rol === 'superadmin' && <DbHajmPanel />}
       {data?.rol === 'superadmin' && <R2DublikatPanel />}
 
       <div className="flex min-h-0 flex-1 gap-3">

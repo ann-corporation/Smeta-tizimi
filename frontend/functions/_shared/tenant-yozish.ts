@@ -20,6 +20,8 @@ export const ID_JADVAL: Readonly<Record<string, string>> = {
   p_viborka_id: 't2_viborka',
   p_shartnoma_id: 't2_shartnoma',
   p_tolov_id: 't2_tolov',
+  /* 2026-11-04: HR + KPI - xodim (kadr) kompaniya bo'yicha tekshiriladi. */
+  p_kadr_id: 't2_kadr_mustaqil',
   p_xarajat_id: 't2_xarajat',
   p_loyiha_id: 't2_loyiha',
   p_aosr_id: 't2_aosr',
@@ -38,6 +40,7 @@ export const IDLAR_JADVAL: Readonly<Record<string, string>> = { p_aosr_ids: 't2_
 
 /** `p_id` — amalga qarab qaysi jadval (null = p_id bu amalda ishlatilmaydi / mindmap kabi o'zi tekshiradi). */
 export const P_ID_JADVAL: Readonly<Record<string, string>> = {
+  hr_tuzatma_qaror_v1: 't2_hr_tuzatma',
   aosr_yoz: 't2_aosr', aosr_bekor: 't2_aosr', aosr_yoz_v2: 't2_aosr',
   lab_protokol_yoz: 't2_lab_protokol', lab_protokol_bekor: 't2_lab_protokol',
   nakrutka_podval_saqla: 't2_nakrutka_podval', nakrutka_podval_ochir: 't2_nakrutka_podval',

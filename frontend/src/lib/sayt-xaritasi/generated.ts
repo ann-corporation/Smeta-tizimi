@@ -25,6 +25,7 @@ export const GENERATED_SITE_MAP = {
     "/admin/moliya",
     "/admin/shartnoma-liniya",
     "/admin/qarzdorlik",
+    "/admin/buxgalteriya",
     "/admin/crm",
     "/admin/aloqalar",
     "/admin/documents",
@@ -34,10 +35,13 @@ export const GENERATED_SITE_MAP = {
     "/admin/zakazchik",
     "/admin/taqdimlar",
     "/admin/murojaatlar",
+    "/admin/hujjat-aylanish",
     "/admin/logistika",
     "/admin/zayavka",
     "/admin/tender",
+    "/admin/yuk-birjasi",
     "/admin/erp",
+    "/admin/hr",
     "/admin/sotuv",
     "/admin/kompaniya",
     "/admin/system-control",
@@ -77,6 +81,8 @@ export const GENERATED_SITE_MAP = {
     "hujjat-dizayn",
     "shartnoma-liniya",
     "qarzdorlik",
+    "hr",
+    "buxgalteriya",
     "nakrutka",
     "narx-manbalari",
     "narx-dalil",
@@ -92,6 +98,7 @@ export const GENERATED_SITE_MAP = {
     "aloqalar",
     "taqdimlar",
     "murojaatlar",
+    "hujjat-aylanish",
     "system-control",
     "ai-agentlar",
     "kompaniya",
@@ -107,7 +114,6 @@ export const GENERATED_SITE_MAP = {
     "smeta-studio",
     "m29",
     "sotuv",
-    "buxgalteriya",
     "shartnomalar",
     "fakturalar",
     "sklad",
@@ -149,6 +155,7 @@ export const GENERATED_SITE_MAP = {
     "taminot",
     "sifat",
     "tender",
+    "yuk-birjasi",
     "shartnoma",
     "kalkulyator",
     "*",
@@ -307,6 +314,70 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "qarzdorlik_import_v1",
       "rpc": "t2_qarzdorlik_import_v1"
+    },
+    {
+      "amal": "hr_xodim_saqla_v1",
+      "rpc": "t2_hr_xodim_saqla_v1"
+    },
+    {
+      "amal": "hr_sxema_saqla_v1",
+      "rpc": "t2_hr_sxema_saqla_v1"
+    },
+    {
+      "amal": "hr_kalendar_saqla_v1",
+      "rpc": "t2_hr_kalendar_saqla_v1"
+    },
+    {
+      "amal": "hr_tabel_saqla_v1",
+      "rpc": "t2_hr_tabel_saqla_v1"
+    },
+    {
+      "amal": "hr_tuzatma_saqla_v1",
+      "rpc": "t2_hr_tuzatma_saqla_v1"
+    },
+    {
+      "amal": "hr_tuzatma_qaror_v1",
+      "rpc": "t2_hr_tuzatma_qaror_v1"
+    },
+    {
+      "amal": "hr_oylik_v1",
+      "rpc": "t2_hr_oylik_hisobla_v1"
+    },
+    {
+      "amal": "bux_boshlash_v1",
+      "rpc": "t2_bux_boshlash_v1"
+    },
+    {
+      "amal": "bux_hisob_saqla_v1",
+      "rpc": "t2_bux_hisob_saqla_v1"
+    },
+    {
+      "amal": "bux_moslik_saqla_v1",
+      "rpc": "t2_bux_moslik_saqla_v1"
+    },
+    {
+      "amal": "bux_avto_v1",
+      "rpc": "t2_bux_avto_provodka_v1"
+    },
+    {
+      "amal": "bux_qolda_v1",
+      "rpc": "t2_bux_qolda_provodka_v1"
+    },
+    {
+      "amal": "bux_storno_v1",
+      "rpc": "t2_bux_storno_v1"
+    },
+    {
+      "amal": "bux_davr_v1",
+      "rpc": "t2_bux_davr_v1"
+    },
+    {
+      "amal": "bux_bank_import_v1",
+      "rpc": "t2_bux_bank_import_v1"
+    },
+    {
+      "amal": "bux_tashqi_v1",
+      "rpc": "t2_bux_tashqi_sync_v1"
     },
     {
       "amal": "shartnoma_oylik_paket_saqla_v1",
@@ -947,6 +1018,34 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "transport_xarajat_otkaz_v1",
       "rpc": "t2_tr_xarajat_otkaz_v1"
+    },
+    {
+      "amal": "yb_yuk_saqla_v1",
+      "rpc": "t2_yb_yuk_saqla_v1"
+    },
+    {
+      "amal": "yb_yuk_elon_v1",
+      "rpc": "t2_yb_yuk_elon_v1"
+    },
+    {
+      "amal": "yb_yuk_javob_v1",
+      "rpc": "t2_yb_yuk_javob_v1"
+    },
+    {
+      "amal": "yb_yuk_bekor_v1",
+      "rpc": "t2_yb_yuk_bekor_v1"
+    },
+    {
+      "amal": "yb_yuk_tasdiq_v1",
+      "rpc": "t2_yb_yuk_tasdiq_v1"
+    },
+    {
+      "amal": "yb_yuk_baho_v1",
+      "rpc": "t2_yb_yuk_baho_v1"
+    },
+    {
+      "amal": "yb_yuk_nizo_v1",
+      "rpc": "t2_yb_yuk_nizo_v1"
     },
     {
       "amal": "moliya_qolda_yoz_v1",

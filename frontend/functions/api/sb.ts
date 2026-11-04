@@ -31,6 +31,8 @@ import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { xavfsizUpstream } from '../_shared/xato';
 import { azoKompaniyalar, oqishQarori, rpcKompaniyasi } from '../_shared/tenant-oqish';
+import { ilovaDarvozasi } from '../_shared/ilova-darvoza';
+import { soroIlovasi } from '../../src/lib/ilova/ilovalar';
 import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shared/role-authority';
 import { oraliqgaQosh, oraliqlarniRejala, prefiksYigi } from '../_shared/kalit-oraliq';
 /* Ota yozuv kompaniyasi (60 s kesh) — `_shared/ota-kompaniya` (obyekt-paket.ts bilan umumiy). */
@@ -180,6 +182,10 @@ export const onRequestPost: PagesFunction<{
       sklad_id?: number; offset?: number;
     }>();
 
+    /* Ilova darvozasi (ekotizim P1): o'chirilgan ilovaning o'qish so'rovlari serverda rad etiladi. */
+    const ilovaRad = await ilovaDarvozasi(ctx.env, sess, soroIlovasi(so.soro), so.kompaniya_id);
+    if (ilovaRad) return ilovaRad;
+
     if (sess.permissionsByCompany && sess.rol!=='superadmin') {
       const permission=dataPermission(String(so.jadval||so.soro||''),false);
       sess={...sess,kompaniyalar:sess.kompaniyalar?.filter(a=>sess!.permissionsByCompany![a.kompaniya_id]?.includes(permission))};
@@ -248,6 +254,18 @@ export const onRequestPost: PagesFunction<{
         shartnoma_liniya_v1: 'kompaniya_actor',
         /* Egasi 2026-11-02: qarzdorlik (postavshik/subpudrat kreditor qarzi) - shartnoma + asoslar + hisob. stable, a'zolik + financial.read ichida. */
         qarzdorlik_royxat_v1: 'kompaniya_actor',
+        /* 2026-11-04: HR + KPI (stable; a'zolik + hr.* / payroll.* RPC ichida). */
+        hr_xodimlar_v1: 'kompaniya_actor',
+        hr_oy_v1: 'kompaniya_actor',
+        hr_kpi_v1: 'kompaniya_actor',
+        hr_oylik_buxgalteriya_v1: 'kompaniya_actor',
+        /* Egasi 2026-11-04: buxgalteriya o'qishlari (reja, jurnal, ОСВ, kontragent hisob-kitobi, QQS reyestri, bank/kassa). `stable`; a'zolik + rol + accounting.read RPC ichida. */
+        bux_holat_v1: 'kompaniya_actor',
+        bux_jurnal_v1: 'kompaniya_actor',
+        bux_osv_v1: 'kompaniya_actor',
+        bux_kontragent_v1: 'kompaniya_actor',
+        bux_nds_v1: 'kompaniya_actor',
+        bux_tolov_v1: 'kompaniya_actor',
         /* Egasi 2026-11-03: shartnoma oylik paketi arxivi (versiyalar + manifest + hozirgi iz) va fakt/F2 saqlashdan oldingi ogohlantirish. `stable`; a'zolik RPC ichida. */
         shartnoma_oylik_paket_royxat_v1: 'kompaniya_actor',
         shartnoma_oylik_paket_tekshir_v1: 'obyekt_actor',
@@ -278,6 +296,8 @@ export const onRequestPost: PagesFunction<{
         sklad_kirim_royxat_v1: 'kompaniya_actor',
         /* TRANSPORT v1 (20261123000000): park, reyslar, tannarx, KPI. `stable`; a'zolik + logistics.read/machinery.read RPC ichida. */
         transport_ol_v1: 'kompaniya_actor',
+        /* YUK BIRJASI v1 (20261201000000): egasi tomoni ro'yxati/tafsiloti/narx sozlamasi. `stable`; a'zolik + procurement.read RPC ichida. */
+        yb_ol_v1: 'kompaniya_actor',
         /* Egasi 2026-11-03: UY SOTISH (20261124000000) — shaxmatka, bitimlar, bitim kartasi, mijozlar, sotuv paneli. `stable`;
            a'zolik + sales.read/sales.write RPC ichida; obyekt/bitim kompaniyaga tegishliligi ham RPC da. */
         sotuv_shaxmatka_v1: 'kompaniya_actor',
@@ -402,6 +422,38 @@ export const onRequestPost: PagesFunction<{
           const sid = Number(so.shartnoma_id);
           if (!Number.isSafeInteger(sid) || sid <= 0) return Response.json({ ok: false, error: "shartnoma_id noto'g'ri" });
           q.set('p_shartnoma_id', String(sid));
+        }
+      }
+      if (so.soro === 'hr_oy_v1' || so.soro === 'hr_kpi_v1' || so.soro === 'hr_oylik_buxgalteriya_v1') {
+        const oy = (so as { oy?: unknown }).oy;
+        if (typeof oy !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(oy)) return Response.json({ ok: false, error: "oy majburiy (YYYY-MM)" });
+        q.set('p_oy', oy);
+      }
+      if (typeof so.soro === 'string' && so.soro.startsWith('bux_')) {
+        /* Buxgalteriya o'qishlari: umumiy filtr imzosi (dan, gacha, kontragent, shartnoma, hisob, limit) — qiymatlar qat'iy tekshiriladi. */
+        for (const [kalit, param] of [['dan', 'p_dan'], ['gacha', 'p_gacha']] as const) {
+          const v = (so as Record<string, unknown>)[kalit];
+          if (v == null || v === '') continue;
+          if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return Response.json({ ok: false, error: `${kalit} YYYY-MM-DD bo'lishi kerak` });
+          q.set(param, v);
+        }
+        for (const [kalit, param] of [['kontragent_id', 'p_kontragent_id'], ['shartnoma_id', 'p_shartnoma_id']] as const) {
+          const v = (so as Record<string, unknown>)[kalit];
+          if (v == null || String(v) === '') continue;
+          const id = Number(v);
+          if (!Number.isSafeInteger(id) || id <= 0) return Response.json({ ok: false, error: `${kalit} noto'g'ri` });
+          q.set(param, String(id));
+        }
+        const hisob = (so as Record<string, unknown>).hisob;
+        if (hisob != null && hisob !== '') {
+          if (typeof hisob !== 'string' || !/^\d{4}$/.test(hisob)) return Response.json({ ok: false, error: "hisob 4 raqam bo'lishi kerak" });
+          q.set('p_hisob', hisob);
+        }
+        const lim = (so as Record<string, unknown>).limit;
+        if (lim != null && lim !== '') {
+          const n = Number(lim);
+          if (!Number.isInteger(n) || n < 1 || n > 2000) return Response.json({ ok: false, error: "limit 1..2000 bo'lishi kerak" });
+          q.set('p_limit', String(n));
         }
       }
       if (so.soro === 'moliya_tahlil_v1' && so.obyekt_id != null && String(so.obyekt_id) !== '') {
@@ -583,6 +635,26 @@ export const onRequestPost: PagesFunction<{
           if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return Response.json({ ok: false, error: `${kalit} YYYY-MM-DD bo'lishi kerak` });
           q.set(param, v);
         }
+      }
+      if (so.soro === 'yb_ol_v1') {
+        const bolim = String((so as { bolim?: unknown }).bolim ?? '');
+        if (!['yuklarim', 'yuk', 'sozlama'].includes(bolim)) return Response.json({ ok: false, error: "bolim noto'g'ri" });
+        const xf = (so as { filtr?: unknown }).filtr;
+        const f = xf && typeof xf === 'object' && !Array.isArray(xf) ? xf as Record<string, unknown> : {};
+        const filtr: Record<string, string | number> = {};
+        for (const [k, v] of Object.entries(f)) {
+          if (v == null || v === '') continue;
+          if (['id', 'limit'].includes(k)) {
+            const n = Number(v);
+            if (!Number.isSafeInteger(n) || n <= 0) return Response.json({ ok: false, error: `${k} noto'g'ri` });
+            filtr[k] = n;
+          } else if (k === 'holat') {
+            if (typeof v !== 'string' || !['qoralama', 'elon', 'takliflar', 'bron', 'yolda', 'yetkazildi', 'yopildi', 'bekor', 'muddat_tugadi', 'nizo'].includes(v)) return Response.json({ ok: false, error: "holat noto'g'ri" });
+            filtr[k] = v;
+          }
+        }
+        q.set('p_bolim', bolim);
+        q.set('p_filtr', JSON.stringify(filtr));
       }
       if (so.soro === 'hodisa_obyekt_lenta') {
         const lim = Math.min(100, Math.max(1, Number(so.limit || 20)));

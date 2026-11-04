@@ -2,6 +2,83 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 95,
+      "sana": "2026-11-04",
+      "sarlavha": "Ilovalar: faqat kerakli bo‘limlar ko‘rinadi",
+      "bandlar": [
+        "Yuqoridagi «Ilovalar» tugmasidan kerakli ilovani tanlang (PTO va Smeta, Fakt va F2, Moliya, Uy sotish, Xarid va tender, Kadrlar, Logistika, Hujjat aylanishi) — yon menyuda faqat shu ilovaning bo‘limlari ko‘rinadi. Hammasini ko‘rish uchun menyudagi «Barcha bo‘limlar» tugmasini bosing.",
+        "Kompaniya rahbari «Kompaniya → Modullar» bo‘limida keraksiz ilovani o‘chirishi mumkin: u menyudan yo‘qoladi va serverda ham yopiladi (ma‘lumotlar saqlanadi). PTO yadrosi (obyekt, smeta, fakt, F2) doim yoqiq.",
+        "Rasmiy hujjat arxivi (oylik paket, F2, F3) endi to‘langan token bo‘lsa saqlanadi va beriladi; bir xil mazmunni qayta yuklash bepul.",
+        "Eski /admin/test/* va /boss/* manzillari endi asosiy sahifalarga yo‘naltiriladi."
+      ]
+    },
+    {
+      "id": 94,
+      "sana": "2026-11-04",
+      "sarlavha": "Hujjat aylanishi — kiruvchi quti, tasdiq zanjiri, xatlar reestri, bildirishnomalar",
+      "bandlar": [
+        "Yangi sahifa «Hujjat aylanishi»: sizdan nima kutilayotgani bir joyda — tasdiqingizni kutayotgan hujjatlar, kiruvchi xatlar va ochiq predpisaniya/murojaatlar, muddati o'tganlari alohida belgilanadi.",
+        "Tasdiq zanjiri: hujjat (АОСР, laboratoriya protokoli, osvidetelstvovaniya akti va boshqalar) texnadzor, buyurtmachi va boshqa tomonlarga tartib bilan yuboriladi; har qadamda tasdiqlash, rad etish yoki izoh bilan tuzatishga qaytarish bor, tuzatilgach hujjat qayta yuboriladi — tarix saqlanadi.",
+        "Xatlar reestri: chiquvchi va kiruvchi xatlar avtomatik raqamlanadi, javob xati ota xatga bog'lanadi, javob muddati bo'lsa eslatma keladi.",
+        "To'rtta yangi shablon: laboratoriya sinov protokoli, osvidetelstvovaniya akti, texnik nazorat predpisaniyasi va soprovod xat. Yetishmagan maydonlar hujjat ichida «e'tibor talab qiladigan o'rinlar» bo'lib chiqadi.",
+        "Yuqori panelda qo'ng'iroqcha: o'qilmagan bildirishnomalar soni va ro'yxati, bosganda o'qilgan deb belgilanadi."
+      ]
+    },
+    {
+      "id": 93,
+      "sana": "2026-11-04",
+      "sarlavha": "Yuk birjasi — materialni tez yetkazish uchun yuk e’lon qiling",
+      "bandlar": [
+        "Ta’minot bo‘limida yangi «Yuk birjasi» sahifasi: yuk e’lon qilasiz (marshrut, tonna, sana, to‘lov shakli — naqd yoki o‘tkazma), tashuvchilar takliflarini ko‘rasiz, qabul qilasiz yoki qarshi narx berasiz. Faqat O‘zbekiston ichida.",
+        "Narx tavsiyasi tonna-kilometr bo‘yicha hisoblanadi (masofa server orqali, QQS siz va QQS bilan alohida). Bu faqat tavsiya: yakuniy narx va to‘lovni siz bilan tashuvchi kelishasiz. Stavka hali kiritilmagan bo‘lsa, narxni o‘zingiz belgilaysiz.",
+        "Yetkazishda 4 xonali qabul kodi va foto isboti bor; yuk yetkazilgach siz tasdiqlaysiz va tashuvchini baholaysiz. Platforma orqali to‘lov (litsenziyali provayderda ushlab turish) tayyorlandi — provayder tanlangach yoqiladi."
+      ]
+    },
+    {
+      "id": 92,
+      "sana": "2026-11-04",
+      "sarlavha": "Baza hajmi nazorati (superadmin)",
+      "bandlar": [
+        "Fayl menejerida platforma superadmini uchun «Baza hajmi» paneli: joriy hajm, chegaraga nisbati va eng katta jadvallar. 80% da ogohlantirish, 90% da xavf belgisi.",
+        "Eski snapshot mazmunini R2 ga xavfsiz ko'chirish tayyorlandi: nusxa R2 dan qayta o'qib tekshirilmaguncha bazadan hech narsa olinmaydi; snapshot qaytarish kerak bo'lsa mazmun R2 dan o'zi tiklanadi."
+      ]
+    },
+    {
+      "id": 91,
+      "sana": "2026-11-04",
+      "sarlavha": "Buxgalteriya — hujjatlardan avtomatik provodka",
+      "bandlar": [
+        "Yangi «Buxgalteriya» sahifasi: hisoblar rejasi (NSBU № 21 asosida namuna, tahrirlanadi) va o‘zgarmas provodka jurnali. Xato bo‘lsa tahrir emas — «Storno» (teskari yozuv).",
+        "«Hujjatlardan yangilash»: Forma-3 realizatsiyasi (QQS ajratilgan), to‘lovlar, ombor kirimi va subpudrat aktlaridan provodka o‘zi yoziladi. Qayta bosish zarar qilmaydi; hujjat o‘zgarsa farqi yoziladi, bekor bo‘lsa storno.",
+        "«Kontragent bilan hisob-kitob» — kim bizga qarz, biz kimga qarz, hujjatlargacha; akt-sverka Excel (ruscha) bir bosishda. Oborot-saldo vedomost, QQS reyestri (sotuv va xarid).",
+        "«Bank va kassa»: bank ko‘chirmasini (CSV/Excel) yuklang — tizim shartnomaga moslaydi, moslanmaganini o‘zingiz tanlaysiz; takror yozilmaydi.",
+        "Davrni yopish ogohlantirish bilan (bloklamaydi). Kadrlar moduli uchun ilgak tayyor. Summa noma‘lum bo‘lsa 0 deb yozilmaydi."
+      ]
+    },
+    {
+      "id": 90,
+      "sana": "2026-11-04",
+      "sarlavha": "Hujjat dizayni: darajalar aniq ajralib turadi, matn va sonlar katakka sig‘adi",
+      "bandlar": [
+        "Barcha rasmiy hujjatlarda (Ф-2, Форма-3, накопительная, остатка, ЛРВ, М-29, обоснование va boshqalar) «Тип» belgisi ustuni endi yashirin — chop etilmaydi (kerak bo‘lsa sozlamada yoqiladi).",
+        "Ish (BL) qalin, resurs (RS) kursiv va kichikroq, material (MAT) va uskuna (OB) qalin va o‘z foni bilan; razdel — rangli keng tasma, jami va ВСЕГО — alohida fon va qo‘sh yuqori chiziq. Nomlar daraja bo‘yicha surilgan, har katak ramkada, ranglar kulrang chopda ham farqlanadi.",
+        "Ustun eni mazmundan hisoblanadi: sonlar («###» siz) va uzun so‘zlar kesilmaydi, nom ustunlarida matn o‘raladi va qator balandligi shunga moslanadi, sarlavha qatori ham o‘raladi.",
+        "«Hujjatlar dizayni» sahifasida yangi bo‘lim: shrift, daraja uslublari, Тип ustuni, son xonalari, chegara, zebra, chekka va yo‘nalish — jonli namuna va «Klassik / Kontrastli / Minimal» andozalari bilan; kompaniya sozlamasi sifatida saqlanadi."
+      ]
+    },
+    {
+      "id": 82,
+      "sana": "2026-11-04",
+      "sarlavha": "Kadrlar, KPI va ish haqi",
+      "bandlar": [
+        "Yangi «Kadrlar, KPI va ish haqi» sahifasi: xodim kartasi (rol, grafik, oklad yoki kunlik stavka, biriktirilgan obyektlar va ulush, KPI sxemasi); shaxsiy ma'lumotlar alohida ruxsat bilan.",
+        "F2 bonus: tasdiqlangan F2 summasining X% i (ustamasiz yoki ustamali) — biriktirilgan obyektlar yoki akt muallifi bo'yicha; har aktning hissasi xodim qatorida ochiladi.",
+        "Jarima (nuqson, kechikish, xavfsizlik) va qo'lda bonus: qoralama yaratiladi, ish haqi huquqiga ega shaxs tasdiqlagandan keyingina hisobga kiradi.",
+        "Ish kalendari (bayramlar tahrirlanadi), tatil rejasi, oylik norma (kun va soat) va tabel; oylik ish haqi qoralamasi: baza + KPI + bonus - jarima, NDFL/INPS stavkalari sozlanadi, Excel vedomost.",
+        "Noma'lum qiymat (tabel yoki stavka yo'q, F2 summasi yo'q) 0 deb olinmaydi — ogohlantirish bilan ko'rsatiladi va shunday hisobni tasdiqlab bo'lmaydi."
+      ]
+    },
+    {
       "id": 81,
       "sana": "2026-11-04",
       "sarlavha": "Eski tizim (LRV_PLUS) F2 podvali endi tiklanadi",

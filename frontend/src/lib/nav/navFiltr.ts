@@ -16,7 +16,8 @@ import { ROLE_PERMISSIONS, type CompanyMembershipRole } from '../company-authori
 import { menyuRuxsati } from '../company-authorization/route-permission';
 import { menyuModulYoqilgan } from '../modullar';
 import { menyuRolYopiq } from './menyuRolYopiq';
-import { NAV_GURUHLAR, faqatSuperadminYolmi, ruxsatMos, type NavGuruh, type NavIkonka, type NavQatlam } from './navReestr';
+import { NAV_GURUHLAR, NAV_SAHIFALAR, faqatSuperadminYolmi, ruxsatMos, type NavGuruh, type NavIkonka, type NavQatlam } from './navReestr';
+import { ILOVALAR, type IlovaKod, type IlovaTa } from '../ilova/ilovalar';
 
 export type NavKontekst = {
   superadmin: boolean;
@@ -27,6 +28,8 @@ export type NavKontekst = {
   modullar?: readonly Modul[];
   /** Server (`tizim_xaritasi_ruxsat_tekshir_v1`) tizim xaritasini ko'rishga ruxsat berdimi. Kelmagan — yo'q. */
   tizimXaritasi?: boolean;
+  /** Ilova menyusi (ekotizim P1): berilsa — faqat shu ilova sahifalari; yo'q yoki 'hammasi' — «Barcha bo'limlar» (hammasi). */
+  ilova?: IlovaKod | 'hammasi';
 };
 
 /** Platforma darajasidagi ruxsat bilan ochiladigan sahifa (kompaniya capability si emas). */
@@ -59,7 +62,7 @@ export function menyuQur(k: NavKontekst, guruhlar: readonly NavGuruh[] = NAV_GUR
   return guruhlar.map((g) => ({
     id: g.id, nom: g.nom, ikonka: g.ikonka, qatlam: g.qatlam,
     bandlar: g.bandlar.flatMap((b): MenyuBand[] => {
-      const sahifalar = b.sahifalar.filter((s) => sahifaKorinadi(g, s.yol, k));
+      const sahifalar = b.sahifalar.filter((s) => (!k.ilova || k.ilova === 'hammasi' || s.ilova === k.ilova) && sahifaKorinadi(g, s.yol, k));
       if (!sahifalar.length) return [];
       const band: MenyuBand = { yol: sahifalar[0].yol, nom: b.sahifalar.length > 1 ? b.nom : sahifalar[0].nom, ikonka: b.ikonka };
       /* Tabli band: tablar faqat ko'ringan sahifalardan; bittasi qolsa ham tab-guruh saqlanadi (BolimTablari 2+ da chizadi). */
@@ -72,4 +75,19 @@ export function menyuQur(k: NavKontekst, guruhlar: readonly NavGuruh[] = NAV_GUR
 /** Test/hisobot uchun: menyudagi barcha ko'ringan yo'llar (tablar bilan). */
 export function menyuYollari(menyu: readonly MenyuGuruh[]): string[] {
   return menyu.flatMap((g) => g.bandlar.flatMap((b) => (b.tablar ? b.tablar.map((t) => t.yol) : [b.yol])));
+}
+
+/** Ilova ishga tushirgich: kontekstda kamida bitta KO'RINADIGAN sahifasi bor ilovalar (ishgaTushirgich=true), tartib bo'yicha.
+ *  yol — ilovaning birinchi ko'rinadigan sahifasi (bosilganda shu ochiladi). */
+export type IlovaKarta = IlovaTa & { yol: string; sahifaSoni: number };
+export function ilovalarRoyxati(k: NavKontekst): IlovaKarta[] {
+  const hammasi = menyuQur({ ...k, ilova: 'hammasi' });
+  const yollar = new Set(menyuYollari(hammasi));
+  const natija: IlovaKarta[] = [];
+  for (const i of [...ILOVALAR].sort((a, b) => a.tartib - b.tartib)) {
+    if (!i.ishgaTushirgich) continue;
+    const s = NAV_SAHIFALAR.filter((x) => x.ilova === i.kod && yollar.has(x.yol));
+    if (s.length) natija.push({ ...i, yol: s[0].yol, sahifaSoni: s.length });
+  }
+  return natija;
 }

@@ -1,0 +1,654 @@
+{
+ "Kadrlar, KPI va ish haqi": {
+  "ru": "Кадры, KPI и зарплата",
+  "en": "HR, KPI and payroll"
+ },
+ "Xodim kartasi, F2 bo‘yicha KPI, jarima/bonus, ish kalendari, tabel va oylik ish haqi qoralamasi.": {
+  "ru": "Карточка сотрудника, KPI по Ф-2, штрафы/премии, рабочий календарь, табель и черновик ежемесячной зарплаты.",
+  "en": "Employee card, F-2 based KPI, penalties/bonuses, work calendar, timesheet and monthly payroll draft."
+ },
+ "HR bo‘limlari": {
+  "ru": "Разделы HR",
+  "en": "HR sections"
+ },
+ "Kompaniya tanlanmagan.": {
+  "ru": "Компания не выбрана.",
+  "en": "No company selected."
+ },
+ "F.I.O yoki lavozim bo‘yicha qidiruv…": {
+  "ru": "Поиск по Ф.И.О. или должности…",
+  "en": "Search by name or position…"
+ },
+ "Xodim qo‘shish": {
+  "ru": "Добавить сотрудника",
+  "en": "Add employee"
+ },
+ "Maosh bazasi sizga yopiq": {
+  "ru": "Оклад/ставки вам недоступны",
+  "en": "Salary base is hidden from you"
+ },
+ "Maosh bazasi": {
+  "ru": "Оклад/ставка",
+  "en": "Salary base"
+ },
+ "KPI sxemasi": {
+  "ru": "Схема KPI",
+  "en": "KPI scheme"
+ },
+ "HR kartasi yo‘q": {
+  "ru": "Нет HR-карточки",
+  "en": "No HR card"
+ },
+ "{n} kunlik": {
+  "ru": "{n}-дневка",
+  "en": "{n}-day week"
+ },
+ "/oy": {
+  "ru": "/мес",
+  "en": "/month"
+ },
+ "Xodim topilmadi.": {
+  "ru": "Сотрудники не найдены.",
+  "en": "No employees found."
+ },
+ "Xodim kartasi": {
+  "ru": "Карточка сотрудника",
+  "en": "Employee card"
+ },
+ "Ish grafigi": {
+  "ru": "График работы",
+  "en": "Work schedule"
+ },
+ "5 kunlik": {
+  "ru": "5-дневка",
+  "en": "5-day"
+ },
+ "6 kunlik": {
+  "ru": "6-дневка",
+  "en": "6-day"
+ },
+ "Maosh turi": {
+  "ru": "Тип оплаты",
+  "en": "Pay type"
+ },
+ "Oklad (oyiga)": {
+  "ru": "Оклад (в месяц)",
+  "en": "Salary (monthly)"
+ },
+ "Kunlik stavka": {
+  "ru": "Дневная ставка",
+  "en": "Daily rate"
+ },
+ "Oklad (so‘m/oy)": {
+  "ru": "Оклад (сум/мес)",
+  "en": "Salary (UZS/month)"
+ },
+ "— yo‘q —": {
+  "ru": "— нет —",
+  "en": "— none —"
+ },
+ "Qabul sanasi": {
+  "ru": "Дата приёма",
+  "en": "Hire date"
+ },
+ "Bo‘shagan sanasi": {
+  "ru": "Дата увольнения",
+  "en": "Termination date"
+ },
+ "Biriktirilgan obyektlar (F2 KPI shu obyektlar bo‘yicha)": {
+  "ru": "Закреплённые объекты (KPI по Ф-2 считается по ним)",
+  "en": "Assigned sites (F-2 KPI is calculated on them)"
+ },
+ "Obyekt qo‘shish": {
+  "ru": "Добавить объект",
+  "en": "Add site"
+ },
+ "— obyekt —": {
+  "ru": "— объект —",
+  "en": "— site —"
+ },
+ "Ulush, %": {
+  "ru": "Доля, %",
+  "en": "Share, %"
+ },
+ "Boshlanish": {
+  "ru": "Начало",
+  "en": "Start"
+ },
+ "Shaxsiy ma’lumotlar (PINFL, pasport, telefon) sizga yopiq.": {
+  "ru": "Персональные данные (ПИНФЛ, паспорт, телефон) вам недоступны.",
+  "en": "Personal data (PINFL, passport, phone) is hidden from you."
+ },
+ "PINFL": {
+  "ru": "ПИНФЛ",
+  "en": "PINFL"
+ },
+ "Pasport": {
+  "ru": "Паспорт",
+  "en": "Passport"
+ },
+ "Telefon (+998…)": {
+  "ru": "Телефон (+998…)",
+  "en": "Phone (+998…)"
+ },
+ "Ushlanma stavkalari": {
+  "ru": "Ставки удержаний",
+  "en": "Deduction rates"
+ },
+ "Stavkalar kodda qattiq yozilmagan: kiritmaguncha ushlanma va «sof» ish haqi noma’lum (NULL) bo‘lib qoladi.": {
+  "ru": "Ставки не зашиты в коде: пока они не введены, удержания и «на руки» остаются неизвестными (NULL).",
+  "en": "Rates are not hard-coded: until entered, deductions and net pay stay unknown (NULL)."
+ },
+ "NDFL, %": {
+  "ru": "НДФЛ, %",
+  "en": "Income tax, %"
+ },
+ "INPS, %": {
+  "ru": "ИНПС, %",
+  "en": "Pension fund, %"
+ },
+ "Ish kuni, soat": {
+  "ru": "Рабочий день, часов",
+  "en": "Work day, hours"
+ },
+ "KPI sxemalari (F2 bonus)": {
+  "ru": "Схемы KPI (премия по Ф-2)",
+  "en": "KPI schemes (F-2 bonus)"
+ },
+ "Bonus = tasdiqlangan F2 summasining X% i (oy ichida tasdiqlangan aktlar). Bog‘lash: biriktirilgan obyektlar bo‘yicha yoki akt muallifi bo‘yicha.": {
+  "ru": "Премия = X% от суммы утверждённых Ф-2 (акты, утверждённые в течение месяца). Привязка: по закреплённым объектам или по автору акта.",
+  "en": "Bonus = X% of the approved F-2 amount (acts approved within the month). Linking: by assigned sites or by act author."
+ },
+ "F2 bonus, %": {
+  "ru": "Премия по Ф-2, %",
+  "en": "F-2 bonus, %"
+ },
+ "Summa bazasi": {
+  "ru": "База суммы",
+  "en": "Amount basis"
+ },
+ "Akt muallifi": {
+  "ru": "Автор акта",
+  "en": "Act author"
+ },
+ "Biriktirilgan obyekt": {
+  "ru": "Закреплённый объект",
+  "en": "Assigned site"
+ },
+ "Nofaol": {
+  "ru": "Неактивна",
+  "en": "Inactive"
+ },
+ "Sxema hali yo‘q.": {
+  "ru": "Схем пока нет.",
+  "en": "No schemes yet."
+ },
+ "Sxema qo‘shish": {
+  "ru": "Добавить схему",
+  "en": "Add scheme"
+ },
+ "Katakni bosing: bo‘sh → K → N → O → B → D → bo‘sh": {
+  "ru": "Нажимайте на ячейку: пусто → K → N → O → B → D → пусто",
+  "en": "Click a cell: empty → K → N → O → B → D → empty"
+ },
+ "Tasdiqlangan tatildan to‘ldirish": {
+  "ru": "Заполнить из утверждённых отпусков",
+  "en": "Fill from approved leave"
+ },
+ "Tabelni tasdiqlash": {
+  "ru": "Утвердить табель",
+  "en": "Approve timesheet"
+ },
+ "Norma: 5 kunlik {a} kun / {b} soat; 6 kunlik {c} kun": {
+  "ru": "Норма: 5-дневка {a} дн. / {b} ч; 6-дневка {c} дн.",
+  "en": "Norm: 5-day {a} days / {b} h; 6-day {c} days"
+ },
+ "Yopiq": {
+  "ru": "Закрыт",
+  "en": "Closed"
+ },
+ "Hamma ish kuniga K": {
+  "ru": "K на все рабочие дни",
+  "en": "K for all work days"
+ },
+ "K⟶": {
+  "ru": "K⟶",
+  "en": "K⟶"
+ },
+ "{kun}-kun belgisi": {
+  "ru": "Отметка за {kun}-е число",
+  "en": "Mark for day {kun}"
+ },
+ "Avval «Xodimlar» bo‘limida HR kartasini to‘ldiring.": {
+  "ru": "Сначала заполните HR-карточку в разделе «Сотрудники».",
+  "en": "First fill in the HR card in the “Employees” section."
+ },
+ "Ish kalendari": {
+  "ru": "Рабочий календарь",
+  "en": "Work calendar"
+ },
+ "Oylik norma: 5 kunlik {a} kun / {b} soat; 6 kunlik {c} kun / {e} soat": {
+  "ru": "Месячная норма: 5-дневка {a} дн. / {b} ч; 6-дневка {c} дн. / {e} ч",
+  "en": "Monthly norm: 5-day {a} days / {b} h; 6-day {c} days / {e} h"
+ },
+ "Standart bayramlarni qo‘shish ({yil})": {
+  "ru": "Добавить стандартные праздники ({yil})",
+  "en": "Add standard holidays ({yil})"
+ },
+ "Bayramlar ma’lumot sifatida saqlanadi va tahrirlanadi. Hayit va hukumat qarori bilan ko‘chirilgan kunlarni qo‘lda belgilang (bayram / dam / ko‘chirilgan ish kuni).": {
+  "ru": "Праздники хранятся как данные и редактируются. Хаит и дни, перенесённые решением правительства, отметьте вручную (праздник / выходной / перенесённый рабочий день).",
+  "en": "Holidays are stored as editable data. Mark Eid and days moved by government decree manually (holiday / day off / moved work day)."
+ },
+ "Hafta kuni": {
+  "ru": "День недели",
+  "en": "Weekday"
+ },
+ "— standart —": {
+  "ru": "— по умолчанию —",
+  "en": "— default —"
+ },
+ "Bayram": {
+  "ru": "Праздник",
+  "en": "Holiday"
+ },
+ "Dam": {
+  "ru": "Выходной",
+  "en": "Day off"
+ },
+ "Ish kuni": {
+  "ru": "Рабочий день",
+  "en": "Work day"
+ },
+ "Tatil va otgul rejasi": {
+  "ru": "План отпусков и отгулов",
+  "en": "Leave and day-off plan"
+ },
+ "— xodim —": {
+  "ru": "— сотрудник —",
+  "en": "— employee —"
+ },
+ "Rejalash": {
+  "ru": "Запланировать",
+  "en": "Schedule"
+ },
+ "Reja": {
+  "ru": "План",
+  "en": "Planned"
+ },
+ "Bu oyda tatil rejalashtirilmagan.": {
+  "ru": "В этом месяце отпуска не запланированы.",
+  "en": "No leave planned this month."
+ },
+ "Jarima yoki bonus kiritish": {
+  "ru": "Ввод штрафа или премии",
+  "en": "Add penalty or bonus"
+ },
+ "Yozuv qoralama bo‘lib tushadi; ish haqiga faqat ish haqi huquqiga ega shaxs tasdiqlagandan keyin kiradi.": {
+  "ru": "Запись создаётся как черновик; в зарплату попадает только после утверждения лицом с правом на зарплату.",
+  "en": "The entry is created as a draft; it counts in payroll only after approval by someone with payroll rights."
+ },
+ "Jarima": {
+  "ru": "Штраф",
+  "en": "Penalty"
+ },
+ "Miqdor usuli": {
+  "ru": "Способ расчёта",
+  "en": "Amount method"
+ },
+ "Bazadan foiz (%)": {
+  "ru": "Процент от базы (%)",
+  "en": "Percent of base (%)"
+ },
+ "Foiz (%)": {
+  "ru": "Процент (%)",
+  "en": "Percent (%)"
+ },
+ "F2 akt ID (ixtiyoriy)": {
+  "ru": "ID акта Ф-2 (необязательно)",
+  "en": "F-2 act ID (optional)"
+ },
+ "Sifat nazorati ID (ixtiyoriy)": {
+  "ru": "ID контроля качества (необязательно)",
+  "en": "Quality inspection ID (optional)"
+ },
+ "Sabab tavsifi (majburiy)": {
+  "ru": "Описание причины (обязательно)",
+  "en": "Reason description (required)"
+ },
+ "Dalil fayli (hujjat identifikatori, ixtiyoriy)": {
+  "ru": "Файл-доказательство (идентификатор документа, необязательно)",
+  "en": "Evidence file (document identifier, optional)"
+ },
+ "Qoralama yaratish": {
+  "ru": "Создать черновик",
+  "en": "Create draft"
+ },
+ "Shu oydagi jarima va bonuslar": {
+  "ru": "Штрафы и премии за месяц",
+  "en": "Penalties and bonuses this month"
+ },
+ "Qaror izohi (ixtiyoriy)": {
+  "ru": "Комментарий к решению (необязательно)",
+  "en": "Decision comment (optional)"
+ },
+ "sifat": {
+  "ru": "качество",
+  "en": "quality"
+ },
+ "Bu oyda jarima yoki bonus yo‘q.": {
+  "ru": "В этом месяце штрафов и премий нет.",
+  "en": "No penalties or bonuses this month."
+ },
+ "{n} xodim tasdiqlanmadi (hisob to‘liq emas yoki provodka yozilgan)": {
+  "ru": "{n} сотр. не утверждены (расчёт неполный или проводка уже создана)",
+  "en": "{n} employee(s) not approved (calculation incomplete or journal entry already posted)"
+ },
+ "Ведомость tayyor": {
+  "ru": "Ведомость готова",
+  "en": "Payroll sheet ready"
+ },
+ "Hisoblash (qoralama)": {
+  "ru": "Рассчитать (черновик)",
+  "en": "Calculate (draft)"
+ },
+ "Excel vedomost": {
+  "ru": "Ведомость Excel",
+  "en": "Excel payroll sheet"
+ },
+ "Tasdiqlash faqat to‘liq (noma’lum qismsiz) hisob uchun. Buxgalteriya provodkasi keyingi bosqichda ulanadi.": {
+  "ru": "Утверждение только для полного расчёта (без неизвестных частей). Бухгалтерская проводка будет подключена на следующем этапе.",
+  "en": "Approval only for a complete calculation (no unknown parts). Accounting posting is connected in the next stage."
+ },
+ "KPI (F2)": {
+  "ru": "KPI (Ф-2)",
+  "en": "KPI (F-2)"
+ },
+ "NDFL": {
+  "ru": "НДФЛ",
+  "en": "Income tax"
+ },
+ "INPS": {
+  "ru": "ИНПС",
+  "en": "Pension fund"
+ },
+ "Qo‘lga": {
+  "ru": "На руки",
+  "en": "Net pay"
+ },
+ "Hisoblanmagan": {
+  "ru": "Не рассчитано",
+  "en": "Not calculated"
+ },
+ "Sxema: {nom}, F2 bonus {foiz}% ({baza})": {
+  "ru": "Схема: {nom}, премия по Ф-2 {foiz}% ({baza})",
+  "en": "Scheme: {nom}, F-2 bonus {foiz}% ({baza})"
+ },
+ "KPI sxemasi biriktirilmagan.": {
+  "ru": "Схема KPI не назначена.",
+  "en": "No KPI scheme assigned."
+ },
+ "Tabel: keldi {k}, kelmadi {n}, otpusk {o}, kasal {b}, otgul {d}": {
+  "ru": "Табель: явки {k}, неявки {n}, отпуск {o}, больничный {b}, отгул {d}",
+  "en": "Timesheet: present {k}, absent {n}, vacation {o}, sick {b}, day off {d}"
+ },
+ "F2 akt": {
+  "ru": "Акт Ф-2",
+  "en": "F-2 act"
+ },
+ "Tasdiq sanasi": {
+  "ru": "Дата утверждения",
+  "en": "Approval date"
+ },
+ "KPI": {
+  "ru": "KPI",
+  "en": "KPI"
+ },
+ "HR kartasi to‘ldirilgan xodim yo‘q.": {
+  "ru": "Нет сотрудников с заполненной HR-карточкой.",
+  "en": "No employees with a filled HR card."
+ },
+ "Noma’lum: {n}": {
+  "ru": "Неизвестно: {n}",
+  "en": "Unknown: {n}"
+ },
+ "Tasdiqlangan F2 (biriktirilgan)": {
+  "ru": "Утверждённые Ф-2 (закреплённые)",
+  "en": "Approved F-2 (assigned)"
+ },
+ "F2 KPI bonuslari": {
+  "ru": "Премии KPI по Ф-2",
+  "en": "F-2 KPI bonuses"
+ },
+ "Qo‘lda bonuslar": {
+  "ru": "Премии вручную",
+  "en": "Manual bonuses"
+ },
+ "Jarimalar": {
+  "ru": "Штрафы",
+  "en": "Penalties"
+ },
+ "Hisoblangan jami": {
+  "ru": "Начислено всего",
+  "en": "Total accrued"
+ },
+ "{n} xodimning hisobi to‘liq emas (noma’lum qismlar jamiga kirmagan).": {
+  "ru": "Расчёт {n} сотр. неполный (неизвестные части не вошли в итог).",
+  "en": "Calculation for {n} employee(s) is incomplete (unknown parts are not in the total)."
+ },
+ "Reyting mezoni": {
+  "ru": "Критерий рейтинга",
+  "en": "Ranking criterion"
+ },
+ "F2 KPI bonusi": {
+  "ru": "Премия KPI по Ф-2",
+  "en": "F-2 KPI bonus"
+ },
+ "F2 hajmi (summa)": {
+  "ru": "Объём Ф-2 (сумма)",
+  "en": "F-2 volume (amount)"
+ },
+ "Hisoblangan ish haqi": {
+  "ru": "Начисленная зарплата",
+  "en": "Accrued pay"
+ },
+ "F2 aktlar": {
+  "ru": "Акты Ф-2",
+  "en": "F-2 acts"
+ },
+ "Bonus va jarima": {
+  "ru": "Премии и штрафы",
+  "en": "Bonuses and penalties"
+ },
+ "Yangi: HR, KPI va ish haqi": {
+  "ru": "Новое: HR, KPI и зарплата",
+  "en": "New: HR, KPI and payroll"
+ },
+ "Xodim saqlandi": {
+  "ru": "Сотрудник сохранён",
+  "en": "Employee saved"
+ },
+ "Stavkalar saqlandi": {
+  "ru": "Ставки сохранены",
+  "en": "Rates saved"
+ },
+ "Sxema saqlandi": {
+  "ru": "Схема сохранена",
+  "en": "Scheme saved"
+ },
+ "Qoralama yaratildi (tasdiq kutmoqda)": {
+  "ru": "Черновик создан (ожидает утверждения)",
+  "en": "Draft created (awaiting approval)"
+ },
+ "Qoralama hisoblandi": {
+  "ru": "Черновик рассчитан",
+  "en": "Draft calculated"
+ },
+ "Kalendar saqlandi": {
+  "ru": "Календарь сохранён",
+  "en": "Calendar saved"
+ },
+ "Tatil rejalandi": {
+  "ru": "Отпуск запланирован",
+  "en": "Leave scheduled"
+ },
+ "Tatil yangilandi": {
+  "ru": "Отпуск обновлён",
+  "en": "Leave updated"
+ },
+ "Ishchi": {
+  "ru": "Рабочий",
+  "en": "Worker"
+ },
+ "Keldi": {
+  "ru": "Явка",
+  "en": "Present"
+ },
+ "Kelmadi": {
+  "ru": "Неявка",
+  "en": "Absent"
+ },
+ "Otpusk": {
+  "ru": "Отпуск",
+  "en": "Vacation"
+ },
+ "Kasal": {
+  "ru": "Больничный",
+  "en": "Sick"
+ },
+ "Otgul": {
+  "ru": "Отгул",
+  "en": "Day off (leave)"
+ },
+ "Du": {
+  "ru": "Пн",
+  "en": "Mon"
+ },
+ "Se": {
+  "ru": "Вт",
+  "en": "Tue"
+ },
+ "Ch": {
+  "ru": "Ср",
+  "en": "Wed"
+ },
+ "Pa": {
+  "ru": "Чт",
+  "en": "Thu"
+ },
+ "Ju": {
+  "ru": "Пт",
+  "en": "Fri"
+ },
+ "Sh": {
+  "ru": "Сб",
+  "en": "Sat"
+ },
+ "Ya": {
+  "ru": "Вс",
+  "en": "Sun"
+ },
+ "Nuqsonli ish": {
+  "ru": "Некачественная работа",
+  "en": "Defective work"
+ },
+ "Kechikish": {
+  "ru": "Опоздание/срыв сроков",
+  "en": "Delay"
+ },
+ "Xavfsizlik buzilishi": {
+  "ru": "Нарушение безопасности",
+  "en": "Safety violation"
+ },
+ "Rag‘batlantirish": {
+  "ru": "Поощрение",
+  "en": "Incentive"
+ },
+ "Tabel kiritilmagan": {
+  "ru": "Табель не введён",
+  "en": "No timesheet"
+ },
+ "Tabel tasdiqlanmagan": {
+  "ru": "Табель не утверждён",
+  "en": "Timesheet not approved"
+ },
+ "Ishlangan kun normadan oshgan": {
+  "ru": "Отработано больше нормы",
+  "en": "Worked more than the norm"
+ },
+ "Maosh bazasi kiritilmagan": {
+  "ru": "Не задан оклад/ставка",
+  "en": "Salary base not set"
+ },
+ "Ba’zi F2 aktlarda summa noma’lum": {
+  "ru": "В некоторых актах Ф-2 сумма неизвестна",
+  "en": "Amount unknown in some F-2 acts"
+ },
+ "Jarima/bonus summasi noma’lum": {
+  "ru": "Сумма штрафа/премии неизвестна",
+  "en": "Penalty/bonus amount unknown"
+ },
+ "Tasdiq kutayotgan jarima/bonus bor": {
+  "ru": "Есть неутверждённые штрафы/премии",
+  "en": "There are pending penalties/bonuses"
+ },
+ "NDFL/INPS stavkalari kiritilmagan": {
+  "ru": "Не заданы ставки НДФЛ/ИНПС",
+  "en": "Income tax/pension rates not set"
+ },
+ "Hisoblangan summa manfiy": {
+  "ru": "Начисление отрицательное",
+  "en": "Accrued amount is negative"
+ },
+ "Yozuv shu orada o‘zgargan — yangilab qayta urinib ko‘ring.": {
+  "ru": "Запись изменилась — обновите и повторите.",
+  "en": "The record has changed — refresh and try again."
+ },
+ "Bu oy uchun ish haqi tasdiqlangan — avval «Qaytarish» kerak.": {
+  "ru": "Зарплата за этот месяц утверждена — сначала нужно «Вернуть».",
+  "en": "Payroll for this month is approved — use “Return” first."
+ },
+ "O‘zingiz yaratgan yozuvni o‘zingiz tasdiqlay olmaysiz.": {
+  "ru": "Нельзя утвердить запись, созданную вами.",
+  "en": "You cannot approve a record you created."
+ },
+ "Summa yoki foizdan aynan bittasini kiriting.": {
+  "ru": "Укажите ровно одно: сумму или процент.",
+  "en": "Enter exactly one: amount or percent."
+ },
+ "Jarima sababini yozing.": {
+  "ru": "Укажите причину штрафа.",
+  "en": "Enter the reason for the penalty."
+ },
+ "Faqat qoralama yozuvni tahrirlash mumkin.": {
+  "ru": "Редактировать можно только черновик.",
+  "en": "Only a draft can be edited."
+ },
+ "Buxgalteriyaga o‘tkazilgan — qaytarib bo‘lmaydi.": {
+  "ru": "Передано в бухгалтерию — вернуть нельзя.",
+  "en": "Posted to accounting — cannot be returned."
+ },
+ "Tabel kunlari noto‘g‘ri.": {
+  "ru": "Некорректные дни табеля.",
+  "en": "Invalid timesheet days."
+ },
+ "HR ma‘lumotini o‘qib bo‘lmadi.": {
+  "ru": "Не удалось прочитать данные HR.",
+  "en": "Could not read HR data."
+ },
+ "Standart bayramlarni kalendarga yozildi": {
+  "ru": "Стандартные праздники записаны в календарь",
+  "en": "Standard holidays written to the calendar"
+ },
+ "Tabel tasdiqlandi": {
+  "ru": "Табель утверждён",
+  "en": "Timesheet approved"
+ },
+ "Tabel saqlandi": {
+  "ru": "Табель сохранён",
+  "en": "Timesheet saved"
+ },
+ "Qoralamaga qaytarildi": {
+  "ru": "Возвращено в черновик",
+  "en": "Returned to draft"
+ }
+}

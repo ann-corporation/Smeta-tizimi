@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { t } from './i18n/til';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { useEffect } from 'react';
 import { titleForPath } from './lib/pageTitle';
 import { SahifaYuklanmoqda } from './umumiy/ui/SahifaYuklanmoqda';
@@ -37,6 +37,7 @@ const TestF2        = lazy(() => import('./test02/TestF2'));
 const TestSklad     = lazy(() => import('./test02/TestSklad'));
 const TestZayavka   = lazy(() => import('./test02/TestZayavka'));
 const TenderSahifa  = lazy(() => import('./admin/tender/TenderSahifa'));
+const YukBirjasiSahifa = lazy(() => import('./admin/yuk-birjasi/YukBirjasiSahifa'));
 const TestBirja     = lazy(() => import('./test02/TestBirja'));
 const TestInvite    = lazy(() => import('./test02/TestInvite'));
 const TestTolov     = lazy(() => import('./test02/TestTolov'));
@@ -60,6 +61,8 @@ const SystemControlPage = lazy(() => import('./admin/pages/SystemControlPage'));
 const KompaniyaPage = lazy(() => import('./admin/pages/KompaniyaPage'));
 const ShartnomaLiniya = lazy(() => import('./admin/sahifalar/ShartnomaLiniya'));
 const Qarzdorlik = lazy(() => import('./admin/sahifalar/Qarzdorlik'));
+const Hr = lazy(() => import('./admin/sahifalar/Hr'));
+const Buxgalteriya = lazy(() => import('./admin/sahifalar/Buxgalteriya'));
 const SotuvSahifa = lazy(() => import('./admin/sotuv/SotuvSahifa'));
 const HujjatDizayni = lazy(() => import('./admin/sahifalar/HujjatDizayni'));
 const SmetaStudio = lazy(() => import('./admin/sahifalar/SmetaStudio'));
@@ -79,6 +82,7 @@ const ObyektPortali = lazy(() => import('./admin/zakazchik/ObyektPortali'));
 const TomonlarAloqa = lazy(() => import('./admin/zakazchik/TomonlarAloqa'));
 const TaqdimlarInbox = lazy(() => import('./admin/zakazchik/TaqdimlarInbox'));
 const Murojaatlar = lazy(() => import('./admin/zakazchik/Murojaatlar'));
+const HujjatAylanish = lazy(() => import('./admin/zakazchik/HujjatAylanish'));
 const NarxDalil = lazy(() => import('./admin/sahifalar/NarxDalil'));
 const F2Reestr = lazy(() => import('./admin/sahifalar/F2Reestr'));
 const DocumentCenterDemo = lazy(() => import('./admin/document-center/DocumentCenterDemo'));
@@ -169,6 +173,8 @@ export default function App() {
             <Route path="hujjat-dizayn" element={<Suspense fallback={<SahifaYuklanmoqda />}><HujjatDizayni /></Suspense>} />
             <Route path="shartnoma-liniya" element={<Suspense fallback={<SahifaYuklanmoqda />}><ShartnomaLiniya /></Suspense>} />
             <Route path="qarzdorlik" element={<Suspense fallback={<SahifaYuklanmoqda />}><Qarzdorlik /></Suspense>} />
+            <Route path="hr" element={<Suspense fallback={<SahifaYuklanmoqda />}><Hr /></Suspense>} />
+            <Route path="buxgalteriya" element={<Suspense fallback={<SahifaYuklanmoqda />}><Buxgalteriya /></Suspense>} />
             <Route path="nakrutka" element={<NakrutkaNative />} />
             <Route path="narx-manbalari" element={<Suspense fallback={<SahifaYuklanmoqda />}><NarxManbalari /></Suspense>} />
             <Route path="narx-dalil" element={<Suspense fallback={<SahifaYuklanmoqda />}><NarxDalil /></Suspense>} />
@@ -184,6 +190,7 @@ export default function App() {
             <Route path="aloqalar" element={<Suspense fallback={<SahifaYuklanmoqda />}><TomonlarAloqa /></Suspense>} />
             <Route path="taqdimlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><TaqdimlarInbox /></Suspense>} />
             <Route path="murojaatlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><Murojaatlar /></Suspense>} />
+            <Route path="hujjat-aylanish" element={<Suspense fallback={<SahifaYuklanmoqda />}><HujjatAylanish /></Suspense>} />
             <Route path="system-control" element={<Suspense fallback={<SahifaYuklanmoqda />}><SystemControlPage /></Suspense>} />
             <Route path="ai-agentlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><AiAgentlar /></Suspense>} />
             <Route path="kompaniya" element={<Suspense fallback={<SahifaYuklanmoqda />}><KompaniyaPage /></Suspense>} />
@@ -242,33 +249,33 @@ export default function App() {
             
             {/* Yangi Wrapper Marshrutlar */}
             <Route path="portfel" element={<WrapperPortfel />} />
-            <Route path="moliya" element={<WrapperMoliya />} />
-            <Route path="logistika" element={<WrapperLogistika />} />
-            <Route path="crm" element={<WrapperCRM />} />
+            <Route path="moliya" element={<Navigate to="/admin/moliya" replace />} />
+            <Route path="logistika" element={<Navigate to="/admin/logistika" replace />} />
+            <Route path="crm" element={<Navigate to="/admin/crm" replace />} />
 
-            <Route path="sozlama" element={<TestSozlama />} />
+            <Route path="sozlama" element={<Navigate to="/admin/tizim-sozlama" replace />} />
             {/* IA consolidation (T2-COMPANY-CONTEXT-P0-FIX-001): a'zolar boshqaruvi
                 endi bitta joyda — /admin/kompaniya. Eski manzil yo'naltiriladi. */}
             <Route path="xodimlar" element={<Navigate to="/admin/kompaniya" replace />} />
-            <Route path="loyiha" element={<TestLoyiha />} />
-            <Route path="korzinka" element={<TestKorzinka />} />
-            <Route path="xarita" element={<TestXarita />} />
+            <Route path="loyiha" element={<Navigate to="/admin/loyiha" replace />} />
+            <Route path="korzinka" element={<Navigate to="/admin/korzinka" replace />} />
+            <Route path="xarita" element={<Navigate to="/admin/mindmap" replace />} />
             <Route path="kontragent" element={<TestKontragent />} />
-            <Route path="obyektlar" element={<TestObyektlar />} />
-            <Route path="saqlash" element={<TestSaqlash />} />
+            <Route path="obyektlar" element={<Navigate to="/admin/obyektlar" replace />} />
+            <Route path="saqlash" element={<Navigate to="/admin/storage" replace />} />
             <Route path="smeta" element={<TestSmetaBirlashgan />} />
             <Route path="daraxt" element={<TestDaraxt />} />
-            <Route path="shartnomalar" element={<TestShartnoma />} />
+            <Route path="shartnomalar" element={<Navigate to="/admin/shartnoma-liniya" replace />} />
             <Route path="tolov" element={<TestTolov />} />
-            <Route path="sklad" element={<TestSklad />} />
-              <Route path="zayavka" element={<TestZayavka />} />
+            <Route path="sklad" element={<Navigate to="/admin/logistika" replace />} />
+              <Route path="zayavka" element={<Navigate to="/admin/zayavka" replace />} />
             <Route path="f2native" element={<Navigate to="/admin/f2" replace />} />
             <Route path="faktura" element={<TestFaktura />} />
-            <Route path="erp" element={<TestErp />} />
+            <Route path="erp" element={<Navigate to="/admin/erp" replace />} />
             <Route path="hisobot" element={<TestHisobot />} />
-            <Route path="sozlama" element={<TestSozlama />} />
+            <Route path="sozlama" element={<Navigate to="/admin/tizim-sozlama" replace />} />
             <Route path="tizim" element={<TestTizim />} />
-            <Route path="aosr" element={<TestAosr />} />
+            <Route path="aosr" element={<Navigate to="/admin/aosr" replace />} />
           </Route>
           {/* ERP routes for Admin */}
           <Route path="kadrlar" element={<ErpKadrlar />} />
@@ -286,6 +293,7 @@ export default function App() {
           <Route path="logistika" element={<WrapperLogistika />} />
           <Route path="zayavka" element={<TestZayavka />} />
           <Route path="tender" element={<Suspense fallback={<SahifaYuklanmoqda />}><TenderSahifa /></Suspense>} />
+          <Route path="yuk-birjasi" element={<Suspense fallback={<SahifaYuklanmoqda />}><YukBirjasiSahifa /></Suspense>} />
           <Route path="erp" element={<TestErp />} />
           {/* `sozlamalar` (T1) allaqachon band — bu T2 sozlamalari. */}
 
@@ -318,14 +326,14 @@ export default function App() {
               superseded by the canonical /admin/dashboard read model. */}
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="eski" element={<Umumiy />} />
-          <Route path="holat" element={<HolatNative />} />
-          <Route path="holat/:id" element={<HolatNative />} />
-          <Route path="fakt" element={<FaktNative />} />
+          <Route path="holat" element={<Navigate to="/admin/holat" replace />} />
+          <Route path="holat/:id" element={<BossHolatYonaltir />} />
+          <Route path="fakt" element={<Navigate to="/admin/fakt" replace />} />
           {/* ERP routes for Boss */}
-          <Route path="kadrlar" element={<ErpKadrlar />} />
-          <Route path="texnika" element={<ErpTexnika />} />
-          <Route path="taminot" element={<ErpTaminot />} />
-          <Route path="sifat" element={<ErpSifat />} />
+          <Route path="kadrlar" element={<Navigate to="/admin/kadrlar" replace />} />
+          <Route path="texnika" element={<Navigate to="/admin/texnika" replace />} />
+          <Route path="taminot" element={<Navigate to="/admin/taminot" replace />} />
+          <Route path="sifat" element={<Navigate to="/admin/sifat" replace />} />
         </Route>
 
         {/* Fallback */}
@@ -336,5 +344,8 @@ export default function App() {
     </BrowserRouter>
   );
 }
+
+/** /boss/holat/:id eski havolalari (Umumiy.tsx) - production sahifaga. */
+function BossHolatYonaltir() { const { id } = useParams(); return <Navigate to={`/admin/holat/${encodeURIComponent(id ?? '')}`} replace />; }
 
 function PageIdentity() { const { pathname } = useLocation(); useEffect(() => { document.title = titleForPath(pathname); }, [pathname]); return null; }

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="uz">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Desktop download — synthetic mobile fixture</title>
+<body style="margin:0;background:#111;color:white">
+<main class="public-entry" style="width:320px;min-height:0;padding:16px;box-sizing:border-box" id="fixture"></main>
+<script type="module">
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { DesktopDownload } from '../src/components/public-entry/DesktopDownload.tsx';
+import '../src/components/public-entry/public-entry.css';
+const originalFetch = window.fetch;
+window.fetch = (input, init) => new URL(String(input), location.href).pathname === '/desktop-release.json'
+  ? Promise.resolve(Response.json({ version:'0.1.0', arch:'x64', generatedAtUtc:'2026-11-04T00:00:00Z',
+      file:'Synthetic_0.1.0_x64-setup.exe', bytes:7632695, sha256:'ab'.repeat(32), signature:'NotSigned', signerThumbprint:null }))
+  : originalFetch(input, init);
+createRoot(document.getElementById('fixture')).render(React.createElement(DesktopDownload));
+</script>
+</body>
+</html>

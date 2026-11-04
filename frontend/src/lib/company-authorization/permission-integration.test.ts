@@ -10,6 +10,8 @@ describe('role integration architecture',()=>{
     const exceptions=new Set(['didox-webhook','t2-bridge','hujjat-r2','kirish','kirish-google','chiqish','royxat','royxat-ozi','royxat-email-kod','soglik','xato','kontekst-diag','catalog-release','norm-katalog','koef-katalog','hour-price-catalog','mash-katalog','narx-katalog','narx-katalog-nashr',
       /* superadminActor: har chaqiruvda bazada qayta tekshiriladi (r2-dublikat.test.ts — superadmin bo'lmasa 403, R2 ga tegmaydi). */
       'r2-dublikat',
+      /* superadminActor: har chaqiruvda bazada qayta tekshiriladi (db-hajm.test.ts — superadmin bo'lmasa 403). */
+      'db-hajm',
       /* Global immutable reference data, not tenant rows: session + pinned file whitelist;
          norm-library.test.ts proves auth fails closed before any R2 access. */
       'norm-library',
@@ -34,7 +36,9 @@ describe('role integration architecture',()=>{
       'kirish-email',
       /* Sozlamalar markazi (2026-10-26): kompaniya sozlamalari (imzo tomonlari, hujjat dizayni, F2 tasdiq rejimi). Actor sessiyadan;
          o'qish company.read, yozish company.profile.update — har RPC ichida t2_effective_authorization_v1 (kompaniya-sozlama.test.ts). */
-      'kompaniya-sozlama']);
+      'kompaniya-sozlama',
+      /* Yuk birjasi (2026-11-04): faqat sessiya + masofa hisobi (kompaniya ma'lumotiga tegmaydi); O'zbekiston ramkasi, foydalanuvchi bo'yicha 30/daqiqa limit, kalit mijozda yo'q (yuk-marshrut.test.ts). */
+      'yuk-marshrut']);
     const routes=readdirSync(resolve(root,'frontend/functions/api')).filter(n=>n.endsWith('.ts')&&!n.endsWith('.test.ts')&&!n.startsWith('_')).map(n=>n.slice(0,-3));
     expect(routes.filter(n=>!SCOPED_APIS.has(n)&&!exceptions.has(n))).toEqual([]);
   });

@@ -155,7 +155,14 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       /* 2026-11-03 (tender): protsess RPC lari — procurement.write/approve, supply.offer (write-command-policy.ts). */
                       't2_tender_saqla_v1', 't2_tender_otish_v1', 't2_tender_raund_v1', 't2_tender_taklif_v2', 't2_tender_taklif_qaytar_v2',
                       't2_tender_savol_ber_v1', 't2_tender_javob_v1', 't2_tender_baholash_saqla_v1', 't2_tender_golib_v2', 't2_tender_baho_ber_v1',
-                      't2_tender_fayl_bogla_v1', 't2_tender_taklif_fayl_bogla_v1'].sort();
+                      't2_tender_fayl_bogla_v1', 't2_tender_taklif_fayl_bogla_v1',
+                      /* 2026-11-04: HR + KPI (hr.* / payroll.* RPC ichida tekshiriladi). */
+                      't2_hr_kalendar_saqla_v1', 't2_hr_oylik_hisobla_v1', 't2_hr_sxema_saqla_v1', 't2_hr_tabel_saqla_v1', 't2_hr_tuzatma_qaror_v1', 't2_hr_tuzatma_saqla_v1', 't2_hr_xodim_saqla_v1',
+                      /* 2026-11-04: buxgalteriya (accounting.write/approve RPC ichida tekshiriladi; idempotent operation_id). */
+                      't2_bux_boshlash_v1', 't2_bux_hisob_saqla_v1', 't2_bux_moslik_saqla_v1', 't2_bux_avto_provodka_v1',
+                      't2_bux_qolda_provodka_v1', 't2_bux_storno_v1', 't2_bux_davr_v1', 't2_bux_bank_import_v1', 't2_bux_tashqi_sync_v1',
+                      /* 2026-11-04: yuk birjasi (egasi tomoni; procurement.write/approve RPC ichida; yuk _shared/yuk-birjasi-yuk.ts oq ro'yxati). */
+                      't2_yb_yuk_saqla_v1', 't2_yb_yuk_elon_v1', 't2_yb_yuk_javob_v1', 't2_yb_yuk_bekor_v1', 't2_yb_yuk_tasdiq_v1', 't2_yb_yuk_baho_v1', 't2_yb_yuk_nizo_v1'].sort();
     T('RPC ro\'yxati AYNAN belgilangan ' + KUTILGAN.length + ' ta domen amali',
       JSON.stringify(amallar) === JSON.stringify(KUTILGAN),
       'topildi: ' + amallar.join(', '));
