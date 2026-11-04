@@ -466,5 +466,21 @@
  "bildirishnoma.hujjat.muddat_otdi": {
   "ru": "Срок по документу истёк",
   "en": "A document deadline has passed"
+ },
+ "Bildirishnomalar": {
+  "ru": "Уведомления",
+  "en": "Notifications"
+ },
+ "Hammasini o‘qildi deb belgilash": {
+  "ru": "Отметить все прочитанными",
+  "en": "Mark all as read"
+ },
+ "Bildirishnoma yo‘q.": {
+  "ru": "Уведомлений нет.",
+  "en": "No notifications."
+ },
+ "Hujjat aylanishi (kiruvchi, xat, tasdiq)": {
+  "ru": "Документооборот (входящие, письма, согласование)",
+  "en": "Document workflow (inbox, letters, approval)"
  }
 }

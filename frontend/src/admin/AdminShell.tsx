@@ -17,6 +17,7 @@ import { tizimdanChiq } from '../umumiy/kontekst/chiqish';
 import { t } from '../i18n/til';
 import { TilTanlagich } from '../i18n/TilTanlagich';
 import { AkkauntTugmasi } from '../components/akkaunt/AkkauntTugmasi';
+import { Qongiroqcha } from '../components/hujjat-aylanish/Qongiroqcha';
 import { OrqaOldinga } from '../umumiy/ui/OrqaOldinga';
 import { SIDEBAR_HODISA } from '../components/akkaunt/korinish-sozlama';
 import { AiHelper } from '../umumiy/ui/AiHelper';
@@ -293,7 +294,7 @@ function AdminShellInner() {
           {k.superadmin && <span className="hidden rounded-md border border-accent/25 px-2 py-1 text-[10px] text-accent 2xl:inline">{t('Platforma roli')}: superadmin</span>}
           {k.superadmin && k.joriy?.membershipRole && <span className="hidden text-[10px] text-text-dim 2xl:inline">{t('Kompaniyadagi rol')}: {k.joriy.membershipRole}</span>}
           <PTOWorkspaceBar />
-          <div className="ml-auto flex items-center gap-2"><TilTanlagich ixcham /><AkkauntTugmasi /></div>
+          <div className="ml-auto flex items-center gap-2"><TilTanlagich ixcham /><Qongiroqcha /><AkkauntTugmasi /></div>
         </div>
 
         {/* ⚠️ 2026-09-07 (Claude, P0): AVVAL bu yerda `sess.data.yozaOladi`

@@ -20,6 +20,7 @@ import {
 } from '../../api/t2-hujjat-aylanish';
 import { STANDART_ZANJIRLAR, egasiAmallari, menQarorChiqaraman, type ZanjirModel } from '../../lib/hujjat-aylanish/zanjir';
 import { SHABLON_TURLARI, type ShablonTuri } from '../../lib/hujjat-aylanish/toliqlik';
+import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { t } from '../../i18n/til';
 import { Bolim } from './tomon-ui';
 import { inp, sana, tugma, tugmaAsosiy } from './tomon-yordam';
@@ -312,7 +313,10 @@ function Shablonlar() {
       korsatkichlar: undefined,
     };
     const r = shablonYoz(tur, kirish);
-    downloadBlob(r.bytes, r.faylNomi);
+    if (!joriy) return;
+    const tk = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes: r.bytes, hujjat: tur.toUpperCase(), sabab: `${tur} · ${q.obyekt ?? ''} · ${q.raqam ?? ''}` }, () => downloadBlob(r.bytes, r.faylNomi));
+    if (!tk.ok) { toast(tk.xabar, 'danger'); return; }
+    if (tk.xabar) toast(tk.xabar, 'ok');
     setYetishmaydi((await import('../../lib/hujjat-aylanish/toliqlik')).shablonToliqligi(tur, kirish));
   };
   return (
@@ -346,7 +350,7 @@ export default function HujjatAylanish() {
   const [aloqalar, setAloqalar] = useState<Aloqa[]>([]);
   useEffect(() => { if (kompaniyaId) void aloqalarOl(kompaniyaId).then((r) => { if (r.ok) setAloqalar(r.natija); }); }, [kompaniyaId]);
   const ochish = (yangi: Tab, id: number) => { setTab(yangi); if (yangi === 'zanjir') setZanjirId(id); else setXatId(id); };
-  const tablar = useMemo(() => ([['kiruvchi', 'Kiruvchi hujjatlar'], ['zanjir', 'Tasdiq zanjirlari'], ['xat', 'Xatlar reestri'], ['shablon', 'Shablonlar']] as Array<[Tab, string]>), []);
+  const tablar = useMemo((): [Tab, string][] => [['kiruvchi', 'Kiruvchi hujjatlar'], ['zanjir', 'Tasdiq zanjirlari'], ['xat', 'Xatlar reestri'], ['shablon', 'Shablonlar']], []);
   if (!kompaniyaId) return <KompaniyaKerak nima={t('Hujjat aylanishi')} />;
   return (
     <Sahifa sarlavha={t('Hujjat aylanishi')} tavsif={t('Tomonlar orasida hujjat, xat va tasdiq — raqamli, muddatli, izohli.')}>
