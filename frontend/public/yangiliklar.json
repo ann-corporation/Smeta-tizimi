@@ -2,6 +2,17 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 95,
+      "sana": "2026-11-04",
+      "sarlavha": "Ilovalar: faqat kerakli bo‘limlar ko‘rinadi",
+      "bandlar": [
+        "Yuqoridagi «Ilovalar» tugmasidan kerakli ilovani tanlang (PTO va Smeta, Fakt va F2, Moliya, Uy sotish, Xarid va tender, Kadrlar, Logistika, Hujjat aylanishi) — yon menyuda faqat shu ilovaning bo‘limlari ko‘rinadi. Hammasini ko‘rish uchun menyudagi «Barcha bo‘limlar» tugmasini bosing.",
+        "Kompaniya rahbari «Kompaniya → Modullar» bo‘limida keraksiz ilovani o‘chirishi mumkin: u menyudan yo‘qoladi va serverda ham yopiladi (ma‘lumotlar saqlanadi). PTO yadrosi (obyekt, smeta, fakt, F2) doim yoqiq.",
+        "Rasmiy hujjat arxivi (oylik paket, F2, F3) endi to‘langan token bo‘lsa saqlanadi va beriladi; bir xil mazmunni qayta yuklash bepul.",
+        "Eski /admin/test/* va /boss/* manzillari endi asosiy sahifalarga yo‘naltiriladi."
+      ]
+    },
+    {
       "id": 94,
       "sana": "2026-11-04",
       "sarlavha": "Hujjat aylanishi — kiruvchi quti, tasdiq zanjiri, xatlar reestri, bildirishnomalar",

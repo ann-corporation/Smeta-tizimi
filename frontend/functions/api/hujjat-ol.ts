@@ -9,8 +9,9 @@
 import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
+import { hujjatTuri, legacyHujjatmi, pullikTurmi, tolovDalili, tolovRad } from '../_shared/hujjat-tolov';
 
-type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; R2_CANONICAL: R2Bucket };
+type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; R2_CANONICAL: R2Bucket; HUJJAT_TOLOV_MAJBURIY_SANA?: string };
 
 async function rpc(env: Env, name: string, args: Record<string, unknown>) {
   const r = await fetch(supabaseBaseUrl(env.SUPABASE_URL) + '/rest/v1/rpc/' + name, {
@@ -54,6 +55,15 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     }
 
     const row = res.body;
+
+    /* P0 (ekotizim): pullik arxiv hujjat (paket ZIP, F2/F3) P0 dan keyin saqlangan bo'lsa - to'langan token dalili shart
+       (bir xil mazmun xeshi bir marta to'langan bo'lsa qayta yuklash bepul). P0 dan oldingi hujjatlar avvalgidek beriladi.
+       Reyestr turini o'qib bo'lmasa - avvalgi xulq (faqat a'zolik tekshiruvi): bu yerda yangi to'siq qo'yilmaydi. */
+    const reg = await hujjatTuri(ctx.env, id);
+    if (reg && pullikTurmi(reg.document_type) && !legacyHujjatmi(ctx.env, reg.created_at)) {
+      const rad = tolovRad(await tolovDalili(ctx.env, reg.kompaniya_id, { turi: reg.document_type as string, sha256: reg.sha256 || row.sha256 || '', obyektId: reg.obyekt_id }));
+      if (rad) return rad;
+    }
     // blob_key — jismoniy obyekt (mazmun boshqa hujjat bilan baham ko'rilgan bo'lsa); aks holda r2_key ning o'zi.
     const obj = await ctx.env.R2_CANONICAL.get(row.blob_key || row.r2_key);
     if (!obj) {

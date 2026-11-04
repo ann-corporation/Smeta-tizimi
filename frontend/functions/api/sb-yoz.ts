@@ -22,6 +22,8 @@
  */
 import { tokenJavobTozala } from '../_shared/tizim-maxfiy';
 import { cachedAuthority, dataPermission } from '../_shared/permission-policy';
+import { ilovaDarvozasi } from '../_shared/ilova-darvoza';
+import { amalIlovasi } from '../../src/lib/ilova/ilovalar';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { xavfsizUpstream } from '../_shared/xato';
@@ -412,6 +414,10 @@ export const onRequestPost: PagesFunction<{
     if (!Object.prototype.hasOwnProperty.call(AMALLAR, amal)) {
       return Response.json({ ok: false, error: 'Noma\'lum amal: ' + String(so.amal) });
     }
+
+    /* Ilova darvozasi (ekotizim P1): o'chirilgan ilova amali serverda rad etiladi (menyu faqat ko'rinish edi). */
+    const ilovaRad = await ilovaDarvozasi(ctx.env, sess, amalIlovasi(amal), so.kompaniya_id ?? so.tenant_id);
+    if (ilovaRad) return ilovaRad;
 
     const MINDMAP_V2 = amal.startsWith('mindmap_');
     const RESURS_V2 = amal === 'resurs_yarat_v2' || amal === 'resurs_yangila_v2' || amal === 'resurs_bekor_v2';
