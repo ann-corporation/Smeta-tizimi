@@ -29,6 +29,7 @@
 import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
+import { pullikTurmi, tolovDalili, tolovRad } from '../_shared/hujjat-tolov';
 
 type Env = {
   SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string;
@@ -105,7 +106,15 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     if (sourceSlotKey && !['smeta_lrv', 'smeta_res'].includes(turi)) return Response.json({ ok: false, code: 'SOURCE_DOCUMENT_TYPE_INVALID', xato: 'Paket manbasi faqat LRV yoki RES bo‘lishi mumkin' }, { status: 400 });
 
     // ── PHASE 1: reserve ──────────────────────────────────────────────────
-    const reserve = await rpc(ctx.env, sourceSlotKey ? 't2_document_canonical_reserve_slot_v1' : 't2_document_canonical_reserve_v1',
+    /* P0 (ekotizim): tizim yasagan pullik hujjat (paket ZIP, F2/F3 arxivi) - server to'langan token dalilini tekshiradi.
+       Dalil yo'q bo'lsa R2 ga ham, reyestrga ham hech narsa yozilmaydi. Foydalanuvchining o'z fayllari (smeta, murojaat...) bepul. */
+    const pullik = pullikTurmi(turi);
+    if (pullik) {
+      const rad = tolovRad(await tolovDalili(ctx.env, kompaniyaId, { turi, sha256: clientSha, obyektId }));
+      if (rad) return rad;
+    }
+
+    const reserve = await rpc(ctx.env, sourceSlotKey ?'t2_document_canonical_reserve_slot_v1' : 't2_document_canonical_reserve_v1',
       sourceSlotKey
         ? {
             p_kompaniya_id: kompaniyaId, p_actor_id: actorId, p_loyiha_id: loyihaId, p_obyekt_id: obyektId,
@@ -133,7 +142,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     const mime = file.type || 'application/octet-stream';
     const meta = {
       httpMetadata: { contentType: mime },
-      customMetadata: { sha256: clientSha, document_id: String(documentId), operation_id: operationId, kompaniya_id: String(kompaniyaId) },
+      customMetadata: { sha256: clientSha, document_id: String(documentId), operation_id: operationId, kompaniya_id: String(kompaniyaId), ...(pullik ? { token_dalil: '1' } : {}) },
     };
     let serverSha: string | null = null;
     let verified = false;
