@@ -18,6 +18,7 @@
     "paths": {
       "xlsx": ["./node_modules/xlsx"],
       "fflate": ["./node_modules/fflate"],
+      "exceljs": ["./src/shims/exceljs.d.ts"],
       "react": ["./node_modules/@types/react"]
     }
   },

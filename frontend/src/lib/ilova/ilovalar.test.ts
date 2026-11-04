@@ -72,8 +72,11 @@ describe('menyu: ilova va ishga tushirgich', () => {
   it('ilova menyusi faqat shu ilova sahifalarini beradi, «Barcha bo\'limlar» (hammasi) — hammasini', () => {
     const faqatMoliya = menyuYollari(menyuQur(k({ ilova: 'moliya' })));
     expect(faqatMoliya.length).toBeGreaterThan(0);
-    for (const y of faqatMoliya) expect(NAV_SAHIFALAR.find((s) => s.yol === y)?.ilova, y).toBe('moliya');
+    for (const y of faqatMoliya) expect(['moliya', 'yadro', 'platforma'], y).toContain(NAV_SAHIFALAR.find((s) => s.yol === y)?.ilova);
+    expect(faqatMoliya.some((y) => NAV_SAHIFALAR.find((s) => s.yol === y)?.ilova === 'moliya')).toBe(true);
     expect(faqatMoliya).not.toContain('/admin/fakt');
+    /* Sozlamalar/akkaunt (yadro) har qaysi ilovada yo'qolmaydi. */
+    expect(faqatMoliya).toEqual(expect.arrayContaining(['/admin/sozlamalar', '/admin/akkaunt']));
     const hammasi = menyuYollari(menyuQur(k({ ilova: 'hammasi' })));
     expect(hammasi).toEqual(menyuYollari(menyuQur(k())));
     expect(hammasi).toEqual(expect.arrayContaining(['/admin/fakt', '/admin/qarzdorlik', '/admin/sotuv']));

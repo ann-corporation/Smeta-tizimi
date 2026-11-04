@@ -57,12 +57,19 @@ export function sahifaKorinadi(guruh: Pick<NavGuruh, 'qatlam'>, yol: string, k: 
   return r != null && ruxsatMos(r, ruxsatlar(k));
 }
 
+/** Ilova menyusida sahifa ko'rinadimi. Ishga tushirgichda yo'q umumiy ilovalar (yadro: kompaniya, sozlamalar,
+ *  akkaunt; platforma) har qaysi ilovada ko'rinadi — aks holda sozlamalarga yo'l yo'qoladi (egasi 2026-11-05). */
+function ilovaMenyusida(sahifaIlova: IlovaKod, tanlangan: NavKontekst['ilova']): boolean {
+  if (!tanlangan || tanlangan === 'hammasi' || sahifaIlova === tanlangan) return true;
+  return ILOVALAR.some((i) => i.kod === sahifaIlova && !i.ishgaTushirgich);
+}
+
 /** Kontekst bo'yicha filtrlangan menyu (bo'sh band va guruhlar tushib qoladi). */
 export function menyuQur(k: NavKontekst, guruhlar: readonly NavGuruh[] = NAV_GURUHLAR): MenyuGuruh[] {
   return guruhlar.map((g) => ({
     id: g.id, nom: g.nom, ikonka: g.ikonka, qatlam: g.qatlam,
     bandlar: g.bandlar.flatMap((b): MenyuBand[] => {
-      const sahifalar = b.sahifalar.filter((s) => (!k.ilova || k.ilova === 'hammasi' || s.ilova === k.ilova) && sahifaKorinadi(g, s.yol, k));
+      const sahifalar = b.sahifalar.filter((s) => ilovaMenyusida(s.ilova, k.ilova) && sahifaKorinadi(g, s.yol, k));
       if (!sahifalar.length) return [];
       const band: MenyuBand = { yol: sahifalar[0].yol, nom: b.sahifalar.length > 1 ? b.nom : sahifalar[0].nom, ikonka: b.ikonka };
       /* Tabli band: tablar faqat ko'ringan sahifalardan; bittasi qolsa ham tab-guruh saqlanadi (BolimTablari 2+ da chizadi). */

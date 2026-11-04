@@ -2,6 +2,14 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 96,
+      "sana": "2026-11-05",
+      "sarlavha": "Sozlamalar har qaysi ilovada yon menyuda",
+      "bandlar": [
+        "«⚙ Kompaniya» (a‘zolar, sozlamalar, hujjatlar dizayni, tokenlar) va «Shaxsiy» (akkaunt, Sozlamalar markazi) bo‘limlari endi qaysi ilova tanlangan bo‘lmasin yon menyuda ko‘rinadi — ilgari faqat «Barcha bo‘limlar» bosilganda chiqardi."
+      ]
+    },
+    {
       "id": 95,
       "sana": "2026-11-04",
       "sarlavha": "Ilovalar: faqat kerakli bo‘limlar ko‘rinadi",
