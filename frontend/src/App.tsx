@@ -61,6 +61,7 @@ const KompaniyaPage = lazy(() => import('./admin/pages/KompaniyaPage'));
 const ShartnomaLiniya = lazy(() => import('./admin/sahifalar/ShartnomaLiniya'));
 const Qarzdorlik = lazy(() => import('./admin/sahifalar/Qarzdorlik'));
 const Hr = lazy(() => import('./admin/sahifalar/Hr'));
+const Buxgalteriya = lazy(() => import('./admin/sahifalar/Buxgalteriya'));
 const SotuvSahifa = lazy(() => import('./admin/sotuv/SotuvSahifa'));
 const HujjatDizayni = lazy(() => import('./admin/sahifalar/HujjatDizayni'));
 const SmetaStudio = lazy(() => import('./admin/sahifalar/SmetaStudio'));
@@ -171,6 +172,7 @@ export default function App() {
             <Route path="shartnoma-liniya" element={<Suspense fallback={<SahifaYuklanmoqda />}><ShartnomaLiniya /></Suspense>} />
             <Route path="qarzdorlik" element={<Suspense fallback={<SahifaYuklanmoqda />}><Qarzdorlik /></Suspense>} />
             <Route path="hr" element={<Suspense fallback={<SahifaYuklanmoqda />}><Hr /></Suspense>} />
+            <Route path="buxgalteriya" element={<Suspense fallback={<SahifaYuklanmoqda />}><Buxgalteriya /></Suspense>} />
             <Route path="nakrutka" element={<NakrutkaNative />} />
             <Route path="narx-manbalari" element={<Suspense fallback={<SahifaYuklanmoqda />}><NarxManbalari /></Suspense>} />
             <Route path="narx-dalil" element={<Suspense fallback={<SahifaYuklanmoqda />}><NarxDalil /></Suspense>} />

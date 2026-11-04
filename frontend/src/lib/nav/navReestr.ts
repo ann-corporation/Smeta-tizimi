@@ -131,6 +131,7 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
       { nom: 'Shartnomalar va tomonlar', ikonka: 'Users', sahifalar: [
         { yol: '/admin/shartnoma-liniya', nom: 'Shartnomalar va tomonlar', ruxsat: [RAHBARIYAT, 'financial.read', ...ICHKI_ISH], modul: 'module.loyiha' },
         { yol: '/admin/qarzdorlik', nom: 'Qarzdorlik (postavshik, subpudrat)', ruxsat: [RAHBARIYAT, 'financial.write'], modul: 'module.erp' },
+        { yol: '/admin/buxgalteriya', nom: 'Buxgalteriya (provodka, hisob-kitob)', ruxsat: [RAHBARIYAT, 'accounting.write'], modul: 'module.erp' },
         { yol: '/admin/crm', nom: 'Kontragentlar (CRM/EDO)', ruxsat: [RAHBARIYAT, 'financial.write', ...ICHKI_ISH], modul: 'module.loyiha' },
         { yol: '/admin/aloqalar', nom: 'Tomonlar aloqasi', ruxsat: [RAHBARIYAT, 'financial.write', ...ICHKI_ISH], modul: 'module.loyiha' },
       ] },
