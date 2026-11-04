@@ -16,12 +16,19 @@ export class DesktopPacketRefresh {
   private previous?: { id: number; etag: string; f2SummaYoq: ReadonlyArray<number | null> };
   private closed = false;
   private busy = false;
+  private readonly companyId: number;
+  private readonly store: ObyektOmbor;
+  private readonly read: (id: number, etag?: string) => Promise<CheckedPacket>;
 
   constructor(
-    private readonly companyId: number,
-    private readonly store: ObyektOmbor,
-    private readonly read: (id: number, etag?: string) => Promise<CheckedPacket>,
-  ) {}
+    companyId: number,
+    store: ObyektOmbor,
+    read: (id: number, etag?: string) => Promise<CheckedPacket>,
+  ) {
+    this.companyId = companyId;
+    this.store = store;
+    this.read = read;
+  }
 
   async refresh(id: number) {
     if (this.busy) throw new Error('DESKTOP_PACKET_BUSY');
