@@ -2,7 +2,15 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-<<<<<<< HEAD
+      "id": 92,
+      "sana": "2026-11-04",
+      "sarlavha": "Baza hajmi nazorati (superadmin)",
+      "bandlar": [
+        "Fayl menejerida platforma superadmini uchun «Baza hajmi» paneli: joriy hajm, chegaraga nisbati va eng katta jadvallar. 80% da ogohlantirish, 90% da xavf belgisi.",
+        "Eski snapshot mazmunini R2 ga xavfsiz ko'chirish tayyorlandi: nusxa R2 dan qayta o'qib tekshirilmaguncha bazadan hech narsa olinmaydi; snapshot qaytarish kerak bo'lsa mazmun R2 dan o'zi tiklanadi."
+      ]
+    },
+    {
       "id": 91,
       "sana": "2026-11-04",
       "sarlavha": "Buxgalteriya — hujjatlardan avtomatik provodka",
@@ -35,14 +43,6 @@
         "Jarima (nuqson, kechikish, xavfsizlik) va qo'lda bonus: qoralama yaratiladi, ish haqi huquqiga ega shaxs tasdiqlagandan keyingina hisobga kiradi.",
         "Ish kalendari (bayramlar tahrirlanadi), tatil rejasi, oylik norma (kun va soat) va tabel; oylik ish haqi qoralamasi: baza + KPI + bonus - jarima, NDFL/INPS stavkalari sozlanadi, Excel vedomost.",
         "Noma'lum qiymat (tabel yoki stavka yo'q, F2 summasi yo'q) 0 deb olinmaydi — ogohlantirish bilan ko'rsatiladi va shunday hisobni tasdiqlab bo'lmaydi."
-=======
-      "id": 82,
-      "sana": "2026-11-04",
-      "sarlavha": "Baza hajmi nazorati (superadmin)",
-      "bandlar": [
-        "Fayl menejerida platforma superadmini uchun «Baza hajmi» paneli: joriy hajm, chegaraga nisbati va eng katta jadvallar. 80% da ogohlantirish, 90% da xavf belgisi.",
-        "Eski snapshot mazmunini R2 ga xavfsiz ko'chirish tayyorlandi: nusxa R2 dan qayta o'qib tekshirilmaguncha bazadan hech narsa olinmaydi; snapshot qaytarish kerak bo'lsa mazmun R2 dan o'zi tiklanadi."
->>>>>>> eb8e321262334ec058eb153692dcdf9688428ca8
       ]
     },
     {
