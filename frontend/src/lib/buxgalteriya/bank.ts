@@ -77,7 +77,7 @@ export function bankParse(grid: Grid, opts: { kreditKirim?: boolean } = {}): Ban
     if (d != null && d !== 0 && (k == null || k === 0)) { summa = Math.abs(d); yon = kreditKirim ? 'chiqim' : 'kirim'; }
     else if (k != null && k !== 0 && (d == null || d === 0)) { summa = Math.abs(k); yon = kreditKirim ? 'kirim' : 'chiqim'; }
     else if (u.summa !== undefined) { const s = sonOl(row[u.summa]); if (s != null && s !== 0) { summa = Math.abs(s); yon = s > 0 ? 'kirim' : 'chiqim'; } }
-    if (sana == null && summa == null) continue; // bo'sh/jami qatori
+    if (summa == null) continue; // summasiz qator (bo'sh/jami) - yozilmaydi
     qatorlar.push({
       i: r + 1, sana, summa: summa == null ? null : yaxlit2(summa), yonalish: yon,
       hujjat_raqam: u.hujjat !== undefined ? (String(row[u.hujjat] ?? '').trim() || null) : null,
