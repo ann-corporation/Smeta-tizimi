@@ -3,6 +3,74 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "DESKTOP-D2-ETAG-20261031",
+      "owner": "codex",
+      "machine": "noutbuk",
+      "title": "D2 triggersiz obyekt paketi ETag, snapshot va HTTP304",
+      "branch": "codex/desktop-d2-etag",
+      "base_sha": "fc65e64582c4b1fa792d556c2a073540f6ad1ebc",
+      "status": "ready_for_review",
+      "owns": [
+        "supabase/migrations/*t2_obyekt_paket_muhr_v1*.sql",
+        "supabase/tests/desktop-etag-pglite.mjs",
+        "frontend/functions/api/obyekt-paket.ts",
+        "frontend/functions/api/obyekt-paket.etag.test.ts",
+        "frontend/functions/_shared/obyekt-etag.ts",
+        "frontend/src/api/t2-obyekt-paket.ts",
+        "frontend/src/api/t2-obyekt-paket.etag.test.ts",
+        "ops/handoff/DESKTOP_D2_ETAG_20261031.md",
+        "supabase/migrations/20261122000100_t2_obyekt_paket_f2_summa_yoq_v1.sql",
+        "supabase/migrations/20261122000100_t2_obyekt_paket_f2_summa_yoq_v1.rollback.sql",
+        "supabase/migrations/20261122000100_t2_obyekt_paket_f2_summa_yoq_v1.acceptance.sql"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "docs/architecture/OBYEKT_PAKET_OFFLINE_DESKTOP_V1.md"
+      ],
+      "production_write_allowed": false,
+      "note": "2026-11-03 L0: PR216 exact main adaptation incl. new additive package migration f2_summa_yoq + akt_podval; full/build scheduled by parent only. Local commit, no push before parent review. Deployed historical migrations immutable.",
+      "verification": "2026-11-03 exact main fc65e645 merged: PGlite88PASS, focused Vitest35PASS, app/functions TS PASS, lint PASS with existing warnings, diff PASS. Full/build deferred to parent single-process schedule. Governance FAIL existing C11 ledger/contract overlap. No production SQL, no push."
+    },
+    {
+      "id": "DESKTOP-D3-WORKER-20261031",
+      "title": "Desktop D3 Worker read-model foundation",
+      "owner": "codex",
+      "machine": "noutbuk",
+      "branch": "codex/desktop-d3-retained",
+      "base_sha": "c785517dcddebca333df932ee8d0fc4d883f62f8",
+      "status": "active",
+      "production_write_allowed": false,
+      "owns": [
+        "frontend/src/lib/hisob-yadro/holat.ts",
+        "frontend/src/lib/hisob-yadro/holat.paritet.test.ts",
+        "frontend/src/lib/hisob-yadro/daraxt-yigish*",
+        "frontend/src/ombor/paket.ts",
+        "frontend/src/ombor/hisob*",
+        "frontend/package.json",
+        "frontend/package-lock.json",
+        "supabase/tests/desktop-hisob-parity.mjs",
+        "ops/handoff/DESKTOP_D3_WORKER_20261031.md",
+        "frontend/src/ombor/paket.test.ts",
+        "frontend/src/api/t2-daraxt-ustunlar.ts (optional-field comment only)"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "docs/architecture/OBYEKT_PAKET_OFFLINE_DESKTOP_V1.md"
+      ],
+      "production_write_allowed": false,
+      "note": "PR217 D3a aligned to exact main; shared signed/null core, optional f2_summa_yoq transport; no push, SQL extension and final D3b integration owned by parent L0. Parent bounded extension: packet null fixture/test wording, one optional-field comment, quantity-only precision helper and fail-closed missing zero-amount guard with own regressions; Obsidian note logged by parent."
+    },
+    {
+      "id": "DESKTOP-D1B-AUTH-20261103", "owner": "codex", "machine": "noutbuk",
+      "title": "Bounded D1b online object authorization, ephemeral key lifecycle and native command ACL",
+      "branch": "codex/desktop-d1b-auth-20261103", "base_sha": "fc65e645", "status": "ready_for_review",
+      "owns": ["frontend/src/ombor/sessiya.ts", "frontend/src/ombor/sessiya.test.ts", "docs/architecture/DESKTOP_SESSION_LIFECYCLE.md", "ops/handoff/DESKTOP_D1B_AUTH_20261103.md"],
+      "runtime_sublease": { "from_tasks": ["DESKTOP-D1-STORE-20261031", "DESKTOP-TAURI-SHELL-20261031"], "paths": ["frontend/src/ombor/oqish.ts", "frontend/src/ombor/oqish.test.ts", "frontend/src-tauri/src/maxfiy.rs", "frontend/src-tauri/build.rs", "frontend/src-tauri/capabilities/default.json", "frontend/src-tauri/permissions/"], "basis": "Explicit parent bounded D1b assignment 2026-11-03 under Claude L0. Original author ownership retained; no runtime hook/auth integration." },
+      "production_write_allowed": false, "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/architecture/OBYEKT_PAKET_OFFLINE_DESKTOP_V1.md"],
+      "note": "Explicit parent sublease under Claude L0 Desktop03.11, old D1 oqish and native shell ownership retained. Own task entry only. No hook/auth/server integration, D7 lease, external session writes or production writes. Commit only; parent reviews before push."
+    },
+    {
       "id": "PTO-RECONCILIATION-20261026",
       "title": "Preserve certified unknown and amount-only F2 reconciliation evidence",
       "owner": "codex",
@@ -10,10 +78,19 @@
       "branch": "codex/pto-reconciliation-20261026",
       "base_sha": "a4fe8b65",
       "status": "ready_for_review",
-      "owns": ["frontend/src/lib/pereraschet.ts", "frontend/src/lib/pereraschet-export.ts", "frontend/src/lib/pereraschet-null.test.ts", "frontend/src/i18n/lugat/qism/pereraschet-semantika-20261026.json"],
+      "owns": [
+        "frontend/src/lib/pereraschet.ts",
+        "frontend/src/lib/pereraschet-export.ts",
+        "frontend/src/lib/pereraschet-null.test.ts",
+        "frontend/src/i18n/lugat/qism/pereraschet-semantika-20261026.json"
+      ],
       "production_write_allowed": false,
       "depends_on": [],
-      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/OWNER_AUTHORIZATION.md"],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/governance/OWNER_AUTHORIZATION.md"
+      ],
       "note": "L0 request 2026-10-26 17:40: separate narrow PR for JQA01/02 after integration sandbox. PereraschetBolimi UI uses retained DIZAYN author ownership with scoped integration sublease for two review reasons and shared SummaJuft only. Unknown F2 stays NULL; amount-only balance review-only, no automatic correction. No DB/DDL. Baseline main has unrelated historical overlapping locks; guard remains unchanged."
     },
     {
@@ -24,27 +101,68 @@
       "branch": "codex/fakt-windowing-20261026",
       "base_sha": "a4fe8b65",
       "status": "ready_for_review",
-      "owns": ["frontend/testlar/pto-integration-20261026/", "frontend/src/i18n/lugat/qism/fakt-ish-maydoni-20261026.json"],
+      "owns": [
+        "frontend/testlar/pto-integration-20261026/",
+        "frontend/src/i18n/lugat/qism/fakt-ish-maydoni-20261026.json"
+      ],
       "production_write_allowed": false,
       "depends_on": [],
-      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/OWNER_AUTHORIZATION.md"],
-      "runtime_sublease": { "from_task": "DIZAYN-FIRUZA-V1-20261025", "paths": ["frontend/src/admin/sahifalar/FaktJurnal.tsx", "frontend/src/admin/sahifalar/FaktNative.tsx"], "basis": "L0 17:40 and18:50 asks for isolated small PR on current main after154. Runtime author ownership retained, no transfer of other files; L0 review/merge." },
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/governance/OWNER_AUTHORIZATION.md"
+      ],
+      "runtime_sublease": {
+        "from_task": "DIZAYN-FIRUZA-V1-20261025",
+        "paths": [
+          "frontend/src/admin/sahifalar/FaktJurnal.tsx",
+          "frontend/src/admin/sahifalar/FaktNative.tsx"
+        ],
+        "basis": "L0 17:40 and18:50 asks for isolated small PR on current main after154. Runtime author ownership retained, no transfer of other files; L0 review/merge."
+      },
       "note": "Windowing/header/search on main95e9f743 compatibility: preserve whole-object Fakt=F2, chosen month, factless-F2 filter and resource replacement/exclusion. Six focused files49PASS incl300eligible factless+Cyrillic without200cap, app/functionsTS,lint/build pass; final static gate rerun after materializing missing trackedMCP build file. Guard23baseline errors unchanged;163separate own-lock release. No business writer or main promotion. Historical a2a41073 CI5PASS precedes this merge, newheadneedsfreshCI."
     },
     {
-      "id": "DESKTOP-D1-STORE-20261031", "owner": "codex", "machine": "noutbuk",
+      "id": "DESKTOP-D1-STORE-20261031",
+      "owner": "codex",
+      "machine": "noutbuk",
       "title": "D1a shifrlangan mijoz ombori va server tasdiq holati",
-      "branch": "codex/desktop-d1-store", "base_sha": "fc4f0eab8bba5e24d9752f5e1d27618742999ee7", "status": "ready_for_review",
-      "owns": ["frontend/src/ombor/saqlash.ts", "frontend/src/ombor/ombor-idb.ts", "frontend/src/ombor/obyekt-ombor.ts", "frontend/src/ombor/obyekt-ombor.test.ts", "frontend/src/ombor/oqish.ts", "frontend/src/ombor/oqish.test.ts", "frontend/src/ombor/bayroq.ts", "ops/handoff/DESKTOP_D1_STORE_20261031.md"],
-      "depends_on": [], "must_read": ["docs/architecture/OBYEKT_PAKET_OFFLINE_DESKTOP_V1.md"],
+      "branch": "codex/desktop-d1-store",
+      "base_sha": "fc4f0eab8bba5e24d9752f5e1d27618742999ee7",
+      "status": "ready_for_review",
+      "owns": [
+        "frontend/src/ombor/saqlash.ts",
+        "frontend/src/ombor/ombor-idb.ts",
+        "frontend/src/ombor/obyekt-ombor.ts",
+        "frontend/src/ombor/obyekt-ombor.test.ts",
+        "frontend/src/ombor/oqish.ts",
+        "frontend/src/ombor/oqish.test.ts",
+        "frontend/src/ombor/bayroq.ts",
+        "ops/handoff/DESKTOP_D1_STORE_20261031.md"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "docs/architecture/OBYEKT_PAKET_OFFLINE_DESKTOP_V1.md"
+      ],
       "production_write_allowed": false
     },
     {
-      "id": "DESKTOP-TAURI-SHELL-20261031", "owner": "codex", "machine": "noutbuk",
+      "id": "DESKTOP-TAURI-SHELL-20261031",
+      "owner": "codex",
+      "machine": "noutbuk",
       "title": "Qabul qilingan D6 Tauri Windows qobig‘i va lokal build",
-      "branch": "codex/desktop-tauri-shell", "base_sha": "fc4f0eab8bba5e24d9752f5e1d27618742999ee7", "status": "active",
-      "owns": ["frontend/src-tauri/", "frontend/src/desktop/", "ops/handoff/DESKTOP_TAURI_SHELL_20261031.md"],
-      "depends_on": [], "must_read": ["docs/architecture/OBYEKT_PAKET_OFFLINE_DESKTOP_V1.md"],
+      "branch": "codex/desktop-tauri-shell",
+      "base_sha": "fc4f0eab8bba5e24d9752f5e1d27618742999ee7",
+      "status": "active",
+      "owns": [
+        "frontend/src-tauri/",
+        "frontend/src/desktop/",
+        "ops/handoff/DESKTOP_TAURI_SHELL_20261031.md"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "docs/architecture/OBYEKT_PAKET_OFFLINE_DESKTOP_V1.md"
+      ],
       "production_write_allowed": false
     },
     {
@@ -55,18 +173,38 @@
       "branch": "codex/signed-dava-20261027",
       "base_sha": "8b596fb820dca6204a27fd2963331ca3fb64de3f",
       "status": "ready_for_review",
-      "owns": ["frontend/src/lib/smeta-versiya/hisob.ts", "frontend/src/lib/smeta-versiya/dava-export.ts", "frontend/src/lib/smeta-versiya/hisob-signed.test.ts", "frontend/src/lib/smeta-versiya/dava-export.test.ts"],
+      "owns": [
+        "frontend/src/lib/smeta-versiya/hisob.ts",
+        "frontend/src/lib/smeta-versiya/dava-export.ts",
+        "frontend/src/lib/smeta-versiya/hisob-signed.test.ts",
+        "frontend/src/lib/smeta-versiya/dava-export.test.ts"
+      ],
       "depends_on": [],
-      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/AGENT_CAPABILITY_POLICY.md"],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/governance/AGENT_CAPABILITY_POLICY.md"
+      ],
       "production_write_allowed": false,
       "note": "Explicit C6 sublease by Claude L0 in Obsidian KOORDINATSIYA 2026-10-27. Only signed nonzero denominators and signed export inclusion; source pricing and P1 SQL trust stay L0. Synthetic tests, no DB writes/migrations; final main integration L0."
     },
     {
-      "id": "C11-WAREHOUSE-CONTRACT-20261027", "owner": "codex", "machine": "Anvar",
+      "id": "C11-WAREHOUSE-CONTRACT-20261027",
+      "owner": "codex",
+      "machine": "Anvar",
       "title": "C11 warehouse/supply canonical map and first-release contract",
-      "branch": "codex/c11-warehouse-contract-20261027", "base_sha": "4fd84562a2aee44a145f6f79da67e8d4622cb23b", "status": "ready_for_review",
-      "owns": ["docs/architecture/warehouse/"], "depends_on": [],
-      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/architecture/ekotizim/E3_DOMEN_CHEGARALARI.md"],
+      "branch": "codex/c11-warehouse-contract-20261027",
+      "base_sha": "4fd84562a2aee44a145f6f79da67e8d4622cb23b",
+      "status": "ready_for_review",
+      "owns": [
+        "docs/architecture/warehouse/"
+      ],
+      "depends_on": [],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/architecture/ekotizim/E3_DOMEN_CHEGARALARI.md"
+      ],
       "production_write_allowed": false,
       "note": "L0 kech(5) and directowner assign onlyC11 warehouse/supply toCodex. Docs/owner guide only; single-ledger evolution, receipt-onlypreview first. No DB mutation or commercial source published; separate model/RPC PR reviewed/appliedL0."
     },
@@ -78,12 +216,17 @@
       "branch": "codex/ownership-coord-20261026",
       "base_sha": "a4fe8b6583556c725ae0aab00db392cd48fcc9ec",
       "status": "ready_for_review",
-      "owns": ["ops/handoff/OWNERSHIP_COORD_20261026.md"],
+      "owns": [
+        "ops/handoff/OWNERSHIP_COORD_20261026.md"
+      ],
       "depends_on": [],
-      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/governance/OWNER_AUTHORIZATION.md"],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/governance/OWNER_AUTHORIZATION.md"
+      ],
       "production_write_allowed": false,
       "note": "Human asks continued work with parallel agents. Only four Codex-owned editor-slot records are changed; all original statuses/backlogs and every Claude task stay unchanged. Main remains unchanged until L0 review/merge. Guard remains enabled, foreign overlaps and production flag policy error are explicitly open."
-
     },
     {
       "id": "ARCHITECTURE-PACK-20261026",
@@ -93,7 +236,19 @@
       "branch": "codex/architecture-registry-review-20261026",
       "base_sha": "69db8d45050cc82dfd67baae6dec7153b727a219",
       "status": "ready_for_review",
-      "owns": ["docs/architecture/DATA_MODEL_REGISTRY.yaml", "docs/architecture/DATA_MODEL_CLASSIFICATION_OVERRIDES.json", "docs/architecture/CURRENT_SYSTEM_MAP.md", "docs/architecture/DOMAIN_MAP.md", "docs/architecture/PTO_STATE_MACHINE.md", "docs/architecture/ROUTE_RPC_MAP.md", "docs/architecture/RISK_REGISTER.md", "docs/architecture/GOLDEN_FLOWS.md", "docs/architecture/SCHEMA_METADATA_20261026.json", "docs/architecture/ROUTINE_TABLE_REFERENCES_20261026.json", "docs/architecture/generate-architecture-pack.mjs"],
+      "owns": [
+        "docs/architecture/DATA_MODEL_REGISTRY.yaml",
+        "docs/architecture/DATA_MODEL_CLASSIFICATION_OVERRIDES.json",
+        "docs/architecture/CURRENT_SYSTEM_MAP.md",
+        "docs/architecture/DOMAIN_MAP.md",
+        "docs/architecture/PTO_STATE_MACHINE.md",
+        "docs/architecture/ROUTE_RPC_MAP.md",
+        "docs/architecture/RISK_REGISTER.md",
+        "docs/architecture/GOLDEN_FLOWS.md",
+        "docs/architecture/SCHEMA_METADATA_20261026.json",
+        "docs/architecture/ROUTINE_TABLE_REFERENCES_20261026.json",
+        "docs/architecture/generate-architecture-pack.mjs"
+      ],
       "depends_on": [],
       "must_read": [
         "AGENTS.md",
@@ -3197,9 +3352,22 @@
       "branch": "claude/telegram-bot-v1",
       "base_sha": "f0eddfc05253717e6c259fad86d68fc7cafcbfbc",
       "status": "ready_for_review",
-      "owns": ["frontend/functions/_shared/telegram.ts", "frontend/functions/api/telegram/", "frontend/src/telegram/", "frontend/src/api/t2-telegram.ts", "frontend/src/api/t2-telegram.test.ts", "frontend/src/i18n/lugat/qism/telegram-bot.json", "supabase/migrations/20261114100000_t2_telegram_v1*", "docs/product/TELEGRAM_BOT_REJA.md"],
+      "owns": [
+        "frontend/functions/_shared/telegram.ts",
+        "frontend/functions/api/telegram/",
+        "frontend/src/telegram/",
+        "frontend/src/api/t2-telegram.ts",
+        "frontend/src/api/t2-telegram.test.ts",
+        "frontend/src/i18n/lugat/qism/telegram-bot.json",
+        "supabase/migrations/20261114100000_t2_telegram_v1*",
+        "docs/product/TELEGRAM_BOT_REJA.md"
+      ],
       "depends_on": [],
-      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md", "docs/product/TELEGRAM_BOT_REJA.md"],
+      "must_read": [
+        "AGENTS.md",
+        "docs/governance/CONSTITUTION.md",
+        "docs/product/TELEGRAM_BOT_REJA.md"
+      ],
       "production_write_allowed": false,
       "note": "Migratsiya faqat fayl (L0 qo'llaydi). Boshqa lane larga minimal additiv tegish: App.tsx (/tg route), components/akkaunt/Bolimlar.tsx (Kanallar kartasida TelegramKarta), BoshqaruvPanel.tsx (Telegram bot bo'limi), api/topshiriq.ts (ber muvaffaqiyatidan keyin opt-in xabar), tsconfig.functions.json (resolveJsonModule), sayt-xaritasi/generated.ts (generator). Eski stub functions/tg/webhook.ts (matnni log qilardi) o'chirildi."
     },
@@ -3246,7 +3414,13 @@
         "frontend/src/umumiy/ui/SummaJuft.tsx (PR2: server paket + kesim)",
         "frontend/src/umumiy/ui/QiymatUchlik.tsx (PR2: kesim + kiritilmagan)",
         "frontend/src/umumiy/ui/SummaKesimi.tsx",
-        "frontend/public/yangiliklar.json (PR2 yozuvi)"
+        "frontend/public/yangiliklar.json (PR2 yozuvi)",
+        "frontend/src/admin/sahifalar/BossDashboard.tsx (PR3: boshqaruv markazi)",
+        "frontend/src/components/rahbar-panel/RahbarMarkaz.tsx",
+        "frontend/src/lib/rahbar-panel/markaz.ts",
+        "frontend/src/i18n/lugat/qism/rahbar-markaz.json",
+        "frontend/src/components/rahbar-panel/RahbarTahlil.tsx (PR4)",
+        "frontend/src/lib/rahbar-panel/eksport.ts (PR4)"
       ],
       "depends_on": [],
       "must_read": [
@@ -3256,5 +3430,124 @@
       "production_write_allowed": false,
       "note": "Issue #195 (L0 → cloud, egasi 2026-10-29). Migratsiyani prodga faqat L0 qo'llaydi. Keyingi PR'lar: (2) SummaJuft kengaytirish + inventarizatsiya, (3) panel §1–§5, (4) §6–§7."
     }
-  ]
+  ,
+{
+  "id": "STUDIO-EASY-ESTIMATE-20261102",
+  "title": "Shared norm picker: quantity-first, inline expression, expandable recipe",
+  "owner": "codex",
+  "machine": "Anvar",
+  "branch": "codex/studio-easy-estimate-20261102",
+  "base_sha": "09f6c483ae371f831f5d8f15a99f3f6a4b0cd3f1",
+  "status": "in_progress",
+  "owns": [
+    "frontend/src/admin/sahifalar/NormKatalogPanel.tsx",
+    "frontend/src/admin/sahifalar/NormKatalogPanel.test.tsx",
+    "frontend/src/i18n/lugat/qism/studio-easy-estimate.json",
+    "frontend/src/lib/smeta-studio/source-measure-basis.ts",
+    "frontend/src/lib/smeta-studio/source-measure-basis.test.ts",
+    "ops/mailbox/STUDIO-EASY-ESTIMATE-20261102/"
+  ],
+  "depends_on": [],
+  "must_read": [
+    "AGENTS.md",
+    "docs/governance/CONSTITUTION.md"
+  ],
+  "production_write_allowed": false,
+  "note": "Owner resumes UX request 02.11: reduce re-entry and scrolling from selection to quantity and shared command. Existing exact parseQuantityInput reused. SmetaStudio/Claude design and calc/catalog-bridge/commands untouched. No production business writes."
+},
+{
+  "id": "TRANSPORT-V1-20261103",
+  "title": "Transport logistika moduli: park, reys, tannarx, narxlash, rentabellik, xarita",
+  "owner": "claude",
+  "machine": "cloud",
+  "branch": "claude/logistika-v1",
+  "status": "in_progress",
+  "owns": [
+    "supabase/migrations/20261123000000_t2_transport_v1.sql",
+    "supabase/migrations/20261123000000_t2_transport_v1.rollback.sql",
+    "supabase/migrations/20261123000000_t2_transport_v1.acceptance.sql",
+    "frontend/src/api/t2-transport.ts",
+    "frontend/src/lib/transport/",
+    "frontend/src/i18n/lugat/qism/transport.json",
+    "frontend/src/transport/",
+    "frontend/functions/api/sb.ts",
+    "frontend/functions/api/sb-yoz.ts",
+    "frontend/functions/_shared/write-command-policy.ts",
+    "frontend/testlar/t2_kompaniya.test.cjs",
+    "frontend/src/lib/nav/navReestr.ts",
+    "frontend/public/yangiliklar.json",
+    "frontend/src/lib/sayt-xaritasi/generated.ts"
+  ],
+  "depends_on": [],
+  "must_read": ["AGENTS.md", "ops/mailbox/KOORDINATSIYA-L0-CLOUD-20261028/01-kelishuv.md"],
+  "production_write_allowed": false,
+  "note": "Yangi /admin/transport. Ombor (C11, Codex) kodiga tegilmaydi; /admin/logistika sahifasi o'zgarmaydi. Migratsiya 20261123xxxxxx (koordinator ajratgan oraliq). Xarajat obyektga faqat mavjud t2_xarajat_kirit_v1 orqali. Prodga faqat L0."
+},
+{
+  "id": "UY-SOTUV-V1-20261103",
+  "title": "Uy sotish moduli: inventar (shaxmatka), narx, CRM bitim/bron, to'lov grafigi, tushum/qarz paneli",
+  "owner": "claude@cloud",
+  "machine": "cloud",
+  "branch": "claude/uy-sotuv-v1",
+  "base_sha": "c7f437e02d76e9449402755f84a4247be512f13d",
+  "status": "in_progress",
+  "owns": [
+    "supabase/migrations/20261124000000_t2_uy_sotuv_v1*.sql",
+    "frontend/functions/_shared/sotuv-yuk.ts",
+    "frontend/functions/_shared/sotuv-yuk.test.ts",
+    "frontend/src/api/t2-sotuv.ts",
+    "frontend/src/lib/sotuv/",
+    "frontend/src/admin/sotuv/",
+    "frontend/src/i18n/lugat/qism/sotuv.json"
+  ],
+  "depends_on": [],
+  "must_read": [
+    "AGENTS.md",
+    "docs/governance/CONSTITUTION.md"
+  ],
+  "production_write_allowed": false,
+  "note": "Egasi 2026-11-03: «uy ham sotadi — 0 dan 100 gacha, sotuvchi ham oluvchi uchun». Umumiy fayllarga faqat qo'shimcha qatorlar: sb.ts/sb-yoz.ts (sotuv_* ro'yxati), write-command-policy, permission-policy (sotuv_ → sales.*), tenant-yozish (ID_JADVAL), effective-authorization/permission-labels (sales.*, rol sotuvchi), t2_kompaniya.test.cjs KUTILGAN. S2 (UI) umumiy fayllari: App.tsx (sotuv marshruti), lib/nav/navReestr.ts + navFiltr.test.ts (Uy sotish guruhi), route-permission.ts (sotuv → sales.read), umumiy/marshrutTekshir.ts, sayt-xaritasi/pageCatalog.ts + generated.ts. Migratsiya prodga — faqat L0."
+}
+  ,
+  {
+    "id": "TENDER-V1-20261103",
+    "title": "Tender / xarid protsessi: tasdiq zanjiri, muhrlangan takliflar, baholash, g'olib, yetkazuvchi portali",
+    "owner": "claude",
+    "machine": "cloud",
+    "branch": "claude/tender-v1",
+    "base_sha": "c7f437e0",
+    "status": "in_progress",
+    "owns": [
+      "supabase/migrations/20261122000200_t2_tender_protsess_v1.sql",
+      "supabase/migrations/20261122000200_t2_tender_protsess_v1.rollback.sql",
+      "supabase/migrations/20261122000200_t2_tender_protsess_v1.acceptance.sql",
+      "frontend/functions/_shared/tender-yuk.ts",
+      "frontend/functions/_shared/tender-yuk.test.ts",
+      "frontend/functions/_shared/permission-policy.ts",
+      "frontend/functions/_shared/write-command-policy.ts",
+      "frontend/functions/api/sb.ts",
+      "frontend/functions/api/sb-yoz.ts",
+      "frontend/testlar/t2_kompaniya.test.cjs",
+      "frontend/src/api/t2-tender.ts",
+      "frontend/src/lib/tender/",
+      "frontend/src/admin/sahifalar/Tender*",
+      "frontend/src/admin/tender/",
+      "frontend/src/i18n/lugat/qism/tender.json",
+      "frontend/src/lib/nav/navReestr.ts",
+      "frontend/src/lib/nav/navFiltr.ts",
+      "frontend/src/admin/AdminShell.tsx",
+      "frontend/src/lib/sayt-xaritasi/generated.ts",
+      "frontend/public/yangiliklar.json",
+      "ops/mailbox/INBOX.md",
+      "ops/ACTIVE_TASKS.json"
+    ],
+    "depends_on": [],
+    "must_read": [
+      "AGENTS.md",
+      "ops/mailbox/KOORDINATSIYA-L0-CLOUD-20261028/01-kelishuv.md"
+    ],
+    "production_write_allowed": false,
+    "note": "Egasi 2026-11-03: «tendr ... mukammal jarayon». P2/P3 (t2_birja_*, t2_buyurtma) ustiga additiv; migratsiya 20261122000200 prodga FAQAT L0 qo'llaydi. PR-T1 (claude/tender-v1): baza + shlyuz + api + lib; PR-T2 (claude/tender-v1-ui): UI. v1 RPC lar (elon/golib/yop/tafsilot) service_role dan yig'iladi (muhr va tasdiq aylanib o'tilmasin)."
+  }
+]
 }

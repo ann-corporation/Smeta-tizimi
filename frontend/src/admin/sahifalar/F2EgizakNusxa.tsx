@@ -5,7 +5,7 @@ import { egizakQatorlarOl } from '../../api/t2-egizak';
 import { f2DavomRoyxatOl, type T2F2DavomQator } from '../../api/t2-f2-davom';
 import { f2ServerOl } from '../../lib/f2-ishchi-qoralama';
 import {
-  aslXarita, egizakAktRaqami, boglanishKochir, egizakHolat, egizakObyektlar, egizakOpId, egizakQoshimchaYoz, f2Mosligi, idXarita, qoshimchaReja,
+  aslKorinish, type AslKorinish, egizakAktRaqami, boglanishKochir, egizakHolat, egizakObyektlar, egizakOpId, egizakQoshimchaYoz, f2Mosligi, idXarita, qoshimchaReja,
   type KochmaganSabab, type QoshimchaReja,
 } from '../../lib/f2-moslash-v3/egizak';
 import type { F2Indeks, IshJoyi } from '../../lib/f2-moslash-v3/ishJoyi';
@@ -38,6 +38,8 @@ type Tahlil = {
   aIj: IshJoyi; aslMap: Map<number, number>; imzo: string;
   reja: QoshimchaReja; bQosh: YozilganQator[]; qoshMap: Map<number, number>; qolganSoni: number;
   hozir: number; jami: number; bogKochmadi: number;
+  /** Rad etilmaydi: ogohlantirishlar va moslanmagan asl qatorlar (sabab kodi bilan) - ko'rinishda ko'rsatiladi. */
+  ogoh: string[]; moslanmadi: AslKorinish['moslanmadi']; hajmFarq: AslKorinish['hajmFarq']; moslandi: number;
 };
 
 const SABAB: Record<KochmaganSabab, string> = {
@@ -50,6 +52,7 @@ export function F2EgizakNusxa(p: F2EgizakNusxaProps) {
   const [nomzodlar, setNomzodlar] = useState<T2F2DavomQator[]>([]);
   const [tahlil, setTahlil] = useState<Tahlil | null>(null);
   const [rad, setRad] = useState<string[]>([]);
+  const [ogohlar, setOgohlar] = useState<string[]>([]);
   const [izoh, setIzoh] = useState('');
   const [ish, setIsh] = useState(false);
   const qatorSoni = p.ind.qatorlar.length;
@@ -57,7 +60,7 @@ export function F2EgizakNusxa(p: F2EgizakNusxaProps) {
 
   useEffect(() => {
     let faol = true;
-    setNomzodlar([]); setTahlil(null); setRad([]); setIzoh('');
+    setNomzodlar([]); setTahlil(null); setRad([]); setOgohlar([]); setIzoh('');
     if (loyiha == null) return () => { faol = false; };
     const egizak = new Set(egizakObyektlar(p.objects, p.objectId).map((o) => o.id));
     if (!egizak.size) return () => { faol = false; };
@@ -65,7 +68,7 @@ export function F2EgizakNusxa(p: F2EgizakNusxaProps) {
       if (!faol || !r.ok) return;
       setNomzodlar(r.qatorlar
         .filter((q) => egizak.has(q.obyekt_id) && q.job_id !== p.jobId && !['cancelled', 'failed'].includes(q.status)
-          && q.jami === qatorSoni && q.jami - q.topilmadi > 0)
+          && q.jami - q.topilmadi > 0)
         .sort((a, b) => (b.jami - b.topilmadi) - (a.jami - a.topilmadi) || String(b.yangilandi).localeCompare(String(a.yangilandi)))
         .slice(0, 3));
     }).catch(() => undefined);
@@ -73,20 +76,26 @@ export function F2EgizakNusxa(p: F2EgizakNusxaProps) {
   }, [p.companyId, p.objectId, p.jobId, loyiha, qatorSoni, p.objects]);
 
   async function tekshir(job: T2F2DavomQator): Promise<Tahlil | null> {
-    setIsh(true); setRad([]); setIzoh(t('Egizak obyekt tekshirilmoqda…'));
+    setIsh(true); setRad([]); setOgohlar([]); setIzoh(t('Egizak obyekt tekshirilmoqda…'));
     try {
       const [aRows, bRows, aD] = await Promise.all([qatorlar(job.obyekt_id), qatorlar(p.objectId), f2ServerOl(job.job_id)]);
       if (aD.objectId !== job.obyekt_id) throw new Error(t('Egizak obyekt ma’lumotlari o‘qilmadi.'));
       const aNom = p.objects.find((o) => o.id === job.obyekt_id)?.nom ?? job.obyekt_nom ?? `#${job.obyekt_id}`;
       const f2 = f2Mosligi(aD.sourceRows, p.ind);
       if (!f2.ok) { setRad([t('F2 fayli egizak qoralamaga mos emas ({n} qator farq qiladi) — nusxa olinmaydi.', { n: f2.farqlar.length })]); setTahlil(null); return null; }
-      const x = aslXarita(aRows, bRows);
-      if (!x.ok) {
+      const ogoh: string[] = [];
+      // Qatorlar SONI farqi - rad emas, ogohlantirish (kod EGIZAK_SONI).
+      const sonA = f2.soniFarq ?? (job.jami !== qatorSoni ? { a: job.jami, b: qatorSoni } : null);
+      if (sonA) ogoh.push(t('Ogohlantirish [EGIZAK_SONI]: F2 qatorlari soni farq qiladi ({a} va {b}) — nusxa olinadi, mos kelmaganlari pastda ko‘rsatilgan.', sonA));
+      // Yumshoq moslash (Fakt egizaklari bilan bir xil): tur|kod|nom|birlik + takror tartibi + ota mosligi. Bitta farq butun egizakni rad etmaydi.
+      const x = aslKorinish(aRows, bRows);
+      if (!x.map.size) {
         setRad([t('Asl smeta egizak obyektnikiga tuzilma bo‘yicha mos emas — nusxa olinmaydi.'),
-          t('Qatorlar soni: {a} va {b}.', { a: x.aSoni, b: x.bSoni }), t('Imzo: {a} / {b}', { a: x.imzoA, b: x.imzoB }),
-          ...x.farqlar.slice(0, 5).map((f) => t('Farq: {orin}-qator ({maydon}).', { orin: f.orin, maydon: f.maydon }))]);
+          t('Qatorlar soni: {a} va {b}.', { a: x.soni.a, b: x.soni.b }), t('Imzo: {a} / {b}', { a: x.imzo.a, b: x.imzo.b })]);
         setTahlil(null); return null;
       }
+      if (!x.qatiy) ogoh.push(t('Ogohlantirish [EGIZAK_MOSLASH]: asl smeta qisman mos ({n} qator moslandi, {m} tasi moslanmadi, {h} tasida hajm farqi bor). Moslanmaganlari ko‘chirilmaydi.', { n: x.map.size, m: x.moslanmadi.length, h: x.hajmFarq.length }));
+      if (x.soni.a !== x.soni.b) ogoh.push(t('Ogohlantirish [EGIZAK_ASL_SONI]: asl qatorlar soni farq qiladi ({a} va {b}).', { a: x.soni.a, b: x.soni.b }));
       const ops = new Map(await Promise.all(aRows.filter((q) => q.qoshimcha).map(async (q) => [q.id, await egizakOpId(q.id, p.objectId)] as const)));
       const reja = qoshimchaReja(aRows, x.map, ops, `Egizak obyektdan nusxa: ${aNom} (#${job.obyekt_id})`);
       const bQosh = bRows.filter((q) => q.qoshimcha).map((q) => ({ id: q.id, ota_id: q.ota_id, operation_id: q.operation_id ?? null, tur: q.tur, nom: q.nom, tartib: q.tartib ?? null }));
@@ -94,9 +103,9 @@ export function F2EgizakNusxa(p: F2EgizakNusxaProps) {
       const hozir = boglanishKochir(aD.ij, p.ind, idXarita(x.map, h.map));
       const rejadagi = new Set(reja.buyruqlar.flatMap((b) => [b.tempId, ...b.resursTempIds]));
       const jami = boglanishKochir(aD.ij, p.ind, (id) => x.map.get(id) ?? (rejadagi.has(-id) ? id : undefined));
-      const r: Tahlil = { job, aNom, aRaqam: egizakAktRaqami(aD.cursor), aIj: aD.ij, aslMap: x.map, imzo: x.imzo, reja, bQosh, qoshMap: h.map, qolganSoni: h.qolgan.length,
-        hozir: hozir.kochdi, jami: jami.kochdi, bogKochmadi: jami.kochmadi.length };
-      setTahlil(r); setIzoh('');
+      const r: Tahlil = { job, aNom, aRaqam: egizakAktRaqami(aD.cursor), aIj: aD.ij, aslMap: x.map, imzo: x.imzo.a, reja, bQosh, qoshMap: h.map, qolganSoni: h.qolgan.length,
+        hozir: hozir.kochdi, jami: jami.kochdi, bogKochmadi: jami.kochmadi.length, ogoh, moslanmadi: x.moslanmadi, hajmFarq: x.hajmFarq, moslandi: x.map.size };
+      setTahlil(r); setOgohlar(ogoh); setIzoh('');
       return r;
     } catch (e) { setRad([e instanceof Error ? e.message : t('Egizak obyekt ma’lumotlari o‘qilmadi.')]); setTahlil(null); return null; }
     finally { setIsh(false); }
@@ -147,11 +156,18 @@ export function F2EgizakNusxa(p: F2EgizakNusxaProps) {
         ))}
         {izoh && <span role="status" className="text-text-dim">{izoh}</span>}
       </div>
+      {ogohlar.length > 0 && <div role="status" className="text-warn">{ogohlar.map((m) => <p key={m}>{m}</p>)}</div>}
       {rad.length > 0 && <div role="alert" className="text-danger">{rad.map((m) => <p key={m}>{m}</p>)}</div>}
       {tahlil && (
         <div className="space-y-1">
           <p className="font-semibold text-text">{t('Egizak obyektdan nusxa')}: {tahlil.aNom} → {p.objects.find((o) => o.id === p.objectId)?.nom}</p>
           <p className="text-text-dim">{t('Asl smeta mos: {n} qator (imzo {imzo}).', { n: tahlil.aslMap.size, imzo: tahlil.imzo })}</p>
+          {tahlil.moslanmadi.length > 0 && (
+            <details open className="text-warn" aria-label={t('Moslanmagan qatorlar')}>
+              <summary>{t('Moslanmagan asl qatorlar ({n}) — ko‘chirilmaydi:', { n: tahlil.moslanmadi.length })}</summary>
+              <ul className="ml-4 list-disc">{tahlil.moslanmadi.slice(0, 50).map((k) => <li key={k.id}>{t('{orin}-qator', { orin: k.orin })} · {k.kod} {k.nom} — [{k.sabab}] {t(k.sabab === 'EGIZAK_OTA' ? 'ota qatori moslanmadi' : 'egizakda shu qator topilmadi')}</li>)}</ul>
+            </details>)}
+          {tahlil.hajmFarq.length > 0 && <p className="text-warn">{t('Hajmi farq qiluvchi qatorlar: {n} (ko‘chiriladi, hajm egizakning o‘zida qoladi).', { n: tahlil.hajmFarq.length })}</p>}
           <p>{t('Qo‘shimcha/zamena: {buyruq} ta amal ({qator} qator: {qosh} qo‘shimcha, {zam} zamena, {bolim} bo‘lim); smetada allaqachon bor: {oldin}.', {
             buyruq: tahlil.reja.buyruqlar.length, qator: tahlil.reja.qatorSoni, qosh: tahlil.reja.qoshimchaSoni, zam: tahlil.reja.zamenaSoni,
             bolim: tahlil.reja.bolimSoni, oldin: tahlil.reja.buyruqlar.length - tahlil.qolganSoni })}</p>

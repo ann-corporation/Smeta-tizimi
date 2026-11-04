@@ -44,3 +44,11 @@ Release installer build ishga tushirildi: `C:/Temp/desktop-tauri-installer-build
 - NSIS qayta bundle qilganda `__TAURI_BUNDLE_TYPE variable not found` warning chiqdi; updater hali yozilmagan, updater acceptance OPEN. Installer imzosiz (`NotSigned`); sertifikat hali yo‘q.
 
 GOAL ACTIVE. To‘liq vazifa D1–D8 bo‘yicha tugamagan. Keyingi: Claude bilan D1b/session kontrakti, desktop bootstrap/serverBearer/CORS, keyin offline/delta/worker/commands/licensing/catalog acceptance. Shu installer daily-use yoki offline-ready deb tarqatilmaydi.
+
+## 04.11.2026 — проверка файла Windows перед публикацией
+
+`frontend/src-tauri/desktop-release-verify.ps1` принимает путь к EXE, ожидаемый SHA-256 и отпечаток одобренного сертификата. Оба значения поступают из независимой записи релиза L0, а не вычисляются из скачанного файла для проверки самого себя. Успех возвращает JSON; несовпадение хеша, недействительная подпись или чужой сертификат останавливают проверку. Скрипт ничего не публикует.
+
+Контроль: текущий локальный Smeta 0.1.0 отвергнут с неверным SHA и с верным SHA, но без подписи. Подписанный Microsoft bootstrapper использован только как контроль проверки подписи; неверный отпечаток отвергнут. Production installer, реальный login и публичная ссылка остаются открыты. CTA на intro согласуется с владельцем PublicEntry после готовности релиза.
+
+Дальше: Android SDK/NDK и проверка на устройстве; macOS — сборка на Mac и подпись/нотаризация; iOS — Xcode и TestFlight. Повторное использование Tauri/React — предложение на согласование L0. https://v2.tauri.app/start/prerequisites/ и https://v2.tauri.app/distribute/

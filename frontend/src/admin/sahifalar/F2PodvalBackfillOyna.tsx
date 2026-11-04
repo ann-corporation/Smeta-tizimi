@@ -6,7 +6,7 @@ import { davrNomi } from '../../lib/f2-hujjat-korinish';
 import { t, tilLocale } from '../../i18n/til';
 import { f2AktlarniOqiFonda } from '../../lib/f2-moslash-v3/fonda';
 import type { F2Akt } from '../../lib/smeta-anatomiya/f2';
-import { aktPodvalYoz, podvalNomzodlari, type PodvalNomzod } from '../../api/t2-akt-podval';
+import { aktPodvalYoz, aktPodvalStornoQoralamalarga, podvalNomzodlari, type PodvalNomzod, type StornoTarqatNatija } from '../../api/t2-akt-podval';
 import { podvalMoslash } from '../../lib/akt-podval-moslash';
 
 type Yorliq = { cls: string; matn: string };
@@ -34,6 +34,8 @@ export function F2PodvalBackfillOyna(p: { obyektId: number; kompaniyaId: number;
   /** varaq → tanlangan akt id (bo'sh — o'tkazib yuboriladi). */
   const [tanlov, setTanlov] = useState<Record<string, number | null>>({});
   const [natija, setNatija] = useState<Record<string, 'ok' | 'xato'>>({});
+  /** varaq → storno qoralamalariga tarqatish natijasi (null — o'qib bo'lmadi). */
+  const [storno, setStorno] = useState<Record<string, StornoTarqatNatija | null>>({});
 
   const yukla = async () => {
     const r = await podvalNomzodlari(p.obyektId);
@@ -44,7 +46,7 @@ export function F2PodvalBackfillOyna(p: { obyektId: number; kompaniyaId: number;
 
   async function faylTanlandi(file: File | undefined) {
     if (!file) return;
-    setXato(''); setBand(true); setAktlar(null); setNatija({});
+    setXato(''); setBand(true); setAktlar(null); setNatija({}); setStorno({});
     try {
       const a = await f2AktlarniOqiFonda(file.name, file);
       setFayl(file.name); setAktlar(a);
@@ -67,8 +69,13 @@ export function F2PodvalBackfillOyna(p: { obyektId: number; kompaniyaId: number;
     setBand(true); setXato('');
     try {
       for (const m of saqlashga) {
-        const r = await aktPodvalYoz({ kompaniyaId: p.kompaniyaId, aktId: tanlov[m.varaq.varaq] as number, manba: 'backfill', podval: m.varaq.podval! }).catch(() => null);
+        const aktId = tanlov[m.varaq.varaq] as number;
+        const r = await aktPodvalYoz({ kompaniyaId: p.kompaniyaId, aktId, manba: 'backfill', podval: m.varaq.podval! }).catch(() => null);
         setNatija((s) => ({ ...s, [m.varaq.varaq]: r?.ok ? 'ok' : 'xato' }));
+        if (!r?.ok) continue;
+        // Podval endi bor: aktning mavjud tasdiqlanmagan storno qoralamalariga ishora-teskari nusxalanadi.
+        const sn = await aktPodvalStornoQoralamalarga({ kompaniyaId: p.kompaniyaId, obyektId: p.obyektId, manbaAktId: aktId }).catch(() => null);
+        setStorno((s) => ({ ...s, [m.varaq.varaq]: sn }));
       }
       await yukla(); p.onTugadi?.();
     } finally { setBand(false); }
@@ -115,7 +122,16 @@ export function F2PodvalBackfillOyna(p: { obyektId: number; kompaniyaId: number;
                         </select>
                       </td>
                       <td>{reestrHolat ? <span className={reestrHolat.cls}>{reestrHolat.matn}</span> : '—'}</td>
-                      <td>{natija[m.varaq.varaq] === 'ok' ? <span className="text-ok">{t('saqlandi')}</span> : natija[m.varaq.varaq] === 'xato' ? <span className="text-danger">{t('xato')}</span> : null}</td>
+                      <td>
+                        {natija[m.varaq.varaq] === 'ok' ? <span className="text-ok">{t('saqlandi')}</span> : natija[m.varaq.varaq] === 'xato' ? <span className="text-danger">{t('xato')}</span> : null}
+                        {m.varaq.varaq in storno && (
+                          <span data-testid="podval-backfill-storno" className={storno[m.varaq.varaq] && !storno[m.varaq.varaq]!.xato ? 'block text-text-dim' : 'block text-warn'}>
+                            {storno[m.varaq.varaq]
+                              ? t('Storno qoralamalari yangilandi: {n} ta', { n: storno[m.varaq.varaq]!.yangilandi }) + (storno[m.varaq.varaq]!.xato ? ` · ${t('xato')}: ${storno[m.varaq.varaq]!.xato}` : '')
+                              : t('Storno qoralamalari tekshirilmadi — qayta urinib ko‘ring')}
+                          </span>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}

@@ -3,7 +3,7 @@ import { t } from '../../i18n/til';
 import { KATAK_BELGI, TAYYORGARLIK_USTUNLARI, type Katak, type KatakHolat, type TayyorgarlikQator, type TayyorgarlikUstun } from '../../lib/f2-oylik-paket/shartnoma';
 
 const SARLAVHA: Record<TayyorgarlikUstun, string> = {
-  fakt: 'Fakt kiritilgan', f2: 'F2 holati', forma3: 'Forma-3', nakopitelniy: 'Nakopitelniy', m29: 'M-29', summa: 'Summa / narx',
+  fakt: 'Fakt kiritilgan', f2: 'F2 holati', forma3: 'Forma-3', nakopitelniy: 'Nakopitelniy', m29: 'M-29', ostatka: 'Ostatka', slichitelniy: 'Slichitelniy', summa: 'Summa / narx',
 };
 const RANG: Record<KatakHolat, string> = { ok: 'text-ok', yoq: 'text-danger', ogoh: 'text-warn', nom: 'text-text-mute', na: 'text-text-mute' };
 const NOM: Record<KatakHolat, string> = { ok: 'tayyor', yoq: 'yo‘q', ogoh: 'diqqat', nom: 'noma’lum', na: 'tegishli emas' };

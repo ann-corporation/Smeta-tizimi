@@ -3,5 +3,7 @@
   "identifier": "main-local",
   "description": "Mahalliy interfeys; fayl tizimi va shell uchun umumiy huquq berilmaydi",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "webviews": ["main"],
+  "local": true,
+  "permissions": ["core:default", "session-local"]
 }
