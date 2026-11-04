@@ -106,7 +106,7 @@ export async function managementWorkbook(data:BossDashboard,scope:ReportScope,ev
     }
     a.qator('oddiy',['Листья без суммы / Ф2',`${summary.missing} / ${summary.f2Missing}`]);
     const d=new RasmiyVaraq({nom:'Строки',sarlavha:scope.kind==='section'?'СТРОКИ ВЫБРАННОГО РАЗДЕЛА':'СТРОКИ ОБЪЕКТА',kattaHarf:false,ostSarlavha:['Строки родителей не складываются с дочерними. Объёмы разных единиц не суммируются.'],yonalish:'landscape',ustunlar:[
-      {sarlavha:'ID / родитель',kenglik:19,tur:'matn'},{sarlavha:'Тип',kenglik:8,tur:'matn'},{sarlavha:'Наименование',kenglik:70,tur:'matn'},
+      {sarlavha:'ID / родитель',kenglik:19,tur:'matn'},{sarlavha:'Тип',kenglik:8,tur:'matn',belgi:true},{sarlavha:'Наименование',kenglik:70,tur:'matn'},
       {sarlavha:'Ед.',kenglik:9,tur:'birlik'},{sarlavha:'Объём',kenglik:14,tur:'hajm'},{sarlavha:'Цена',kenglik:18,tur:'narx'},
       {sarlavha:'Прямая сумма строки',kenglik:22,tur:'pul'},{sarlavha:'Ф2 прямая сумма',kenglik:22,tur:'pul'},{sarlavha:'Основание',kenglik:30,tur:'matn'}]});
     rows.forEach(r=>{const s=map.get(r.id);d.qator(r.tur==='rz'?'bolim':'oddiy',[`${r.id} / ${r.ota_id??'NULL'}`,r.tur,r.nom,r.birlik,r.hajm,r.narx,s?.smeta_summa??r.summa,s?.f2_summa_nomalum?null:s?.f2_summa,`t2_qator #${r.id}; v${r.versiya}`]);});

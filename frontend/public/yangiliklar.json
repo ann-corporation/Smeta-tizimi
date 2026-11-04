@@ -2,6 +2,29 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 91,
+      "sana": "2026-11-04",
+      "sarlavha": "Buxgalteriya — hujjatlardan avtomatik provodka",
+      "bandlar": [
+        "Yangi «Buxgalteriya» sahifasi: hisoblar rejasi (NSBU № 21 asosida namuna, tahrirlanadi) va o‘zgarmas provodka jurnali. Xato bo‘lsa tahrir emas — «Storno» (teskari yozuv).",
+        "«Hujjatlardan yangilash»: Forma-3 realizatsiyasi (QQS ajratilgan), to‘lovlar, ombor kirimi va subpudrat aktlaridan provodka o‘zi yoziladi. Qayta bosish zarar qilmaydi; hujjat o‘zgarsa farqi yoziladi, bekor bo‘lsa storno.",
+        "«Kontragent bilan hisob-kitob» — kim bizga qarz, biz kimga qarz, hujjatlargacha; akt-sverka Excel (ruscha) bir bosishda. Oborot-saldo vedomost, QQS reyestri (sotuv va xarid).",
+        "«Bank va kassa»: bank ko‘chirmasini (CSV/Excel) yuklang — tizim shartnomaga moslaydi, moslanmaganini o‘zingiz tanlaysiz; takror yozilmaydi.",
+        "Davrni yopish ogohlantirish bilan (bloklamaydi). Kadrlar moduli uchun ilgak tayyor. Summa noma‘lum bo‘lsa 0 deb yozilmaydi."
+      ]
+    },
+    {
+      "id": 90,
+      "sana": "2026-11-04",
+      "sarlavha": "Hujjat dizayni: darajalar aniq ajralib turadi, matn va sonlar katakka sig‘adi",
+      "bandlar": [
+        "Barcha rasmiy hujjatlarda (Ф-2, Форма-3, накопительная, остатка, ЛРВ, М-29, обоснование va boshqalar) «Тип» belgisi ustuni endi yashirin — chop etilmaydi (kerak bo‘lsa sozlamada yoqiladi).",
+        "Ish (BL) qalin, resurs (RS) kursiv va kichikroq, material (MAT) va uskuna (OB) qalin va o‘z foni bilan; razdel — rangli keng tasma, jami va ВСЕГО — alohida fon va qo‘sh yuqori chiziq. Nomlar daraja bo‘yicha surilgan, har katak ramkada, ranglar kulrang chopda ham farqlanadi.",
+        "Ustun eni mazmundan hisoblanadi: sonlar («###» siz) va uzun so‘zlar kesilmaydi, nom ustunlarida matn o‘raladi va qator balandligi shunga moslanadi, sarlavha qatori ham o‘raladi.",
+        "«Hujjatlar dizayni» sahifasida yangi bo‘lim: shrift, daraja uslublari, Тип ustuni, son xonalari, chegara, zebra, chekka va yo‘nalish — jonli namuna va «Klassik / Kontrastli / Minimal» andozalari bilan; kompaniya sozlamasi sifatida saqlanadi."
+      ]
+    },
+    {
       "id": 82,
       "sana": "2026-11-04",
       "sarlavha": "Kadrlar, KPI va ish haqi",
@@ -14,17 +37,6 @@
       ]
     },
     {
-      "id": 91,
-      "sana": "2026-11-04",
-      "sarlavha": "Buxgalteriya — hujjatlardan avtomatik provodka",
-      "bandlar": [
-        "Yangi «Buxgalteriya» sahifasi: hisoblar rejasi (NSBU № 21 asosida namuna, tahrirlanadi) va o‘zgarmas provodka jurnali. Xato bo‘lsa tahrir emas — «Storno» (teskari yozuv).",
-        "«Hujjatlardan yangilash»: Forma-3 realizatsiyasi (QQS ajratilgan), to‘lovlar, ombor kirimi va subpudrat aktlaridan provodka o‘zi yoziladi. Qayta bosish zarar qilmaydi; hujjat o‘zgarsa farqi yoziladi, bekor bo‘lsa storno.",
-        "«Kontragent bilan hisob-kitob» — kim bizga qarz, biz kimga qarz, hujjatlargacha; akt-sverka Excel (ruscha) bir bosishda. Oborot-saldo vedomost, QQS reyestri (sotuv va xarid).",
-        "«Bank va kassa»: bank ko‘chirmasini (CSV/Excel) yuklang — tizim shartnomaga moslaydi, moslanmaganini o‘zingiz tanlaysiz; takror yozilmaydi.",
-        "Davrni yopish ogohlantirish bilan (bloklamaydi). Kadrlar moduli uchun ilgak tayyor. Summa noma‘lum bo‘lsa 0 deb yozilmaydi."
-      ]
-    },    {
       "id": 81,
       "sana": "2026-11-04",
       "sarlavha": "Eski tizim (LRV_PLUS) F2 podvali endi tiklanadi",

@@ -16,6 +16,8 @@ const DIQQAT_RU: Record<string, string> = {
 };
 const NV = 'не введено';
 
+import { exceljsJadvalUslubi } from '../hujjat-yozuvchi/exceljs-dizayn';
+
 export async function rahbarXlsx(p: RahbarPanel, o: { qamrovNomi: string; sana?: string }): Promise<{ bytes: Uint8Array; faylNomi: string }> {
   const sana = o.sana ?? new Date().toISOString().slice(0, 10);
   const ExcelJS = (await import('exceljs')).default; // og'ir kutubxona — faqat eksportda yuklanadi
@@ -65,6 +67,10 @@ export async function rahbarXlsx(p: RahbarPanel, o: { qamrovNomi: string; sana?:
   [5, 42, 36, 20, 10].forEach((w, i) => { s4.getColumn(i + 1).width = w; });
   s4.getColumn(4).numFmt = '#,##0.00';
 
+  exceljsJadvalUslubi(s1, { sarlavha: 4, pulUstunlari: [2, 3, 4] });
+  exceljsJadvalUslubi(s2, { sarlavha: 1, pulUstunlari: [3, 4, 8, 9, 11] });
+  exceljsJadvalUslubi(s3, { sarlavha: 1, pulUstunlari: [2, 3, 4] });
+  exceljsJadvalUslubi(s4, { sarlavha: 1, pulUstunlari: [4], yonalish: 'portrait' });
   const buf = await wb.xlsx.writeBuffer();
   const toza = o.qamrovNomi.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || 'kompaniya';
   return { bytes: new Uint8Array(buf as ArrayBuffer), faylNomi: `Panel_rukovoditelya_${toza}_${sana.replace(/-/g, '')}.xlsx` };

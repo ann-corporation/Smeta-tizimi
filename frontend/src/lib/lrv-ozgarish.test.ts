@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { T2Qator, T2QatorHolat } from '../api/supabase';
 import { lrvHujjat } from './lrv-hujjat';
 import { lrvPlusFaylBaytlari } from './lrv-plus-export';
-import { hujjatTekshir, RANG_TARTIB } from './hujjat-yozuvchi';
+import { hujjatTekshir, uslubniOch } from './hujjat-yozuvchi';
 import { lrvPozitsiyaRaqamlari, ozgarishXaritasi, OZGARISH_HEX } from './lrv-ozgarish';
 import { podvalliKaskad, NAKRUTKA_KATLAR, type KatSummalar } from './nakrutka-podval';
 import { NAMUNA_NAKRUTKA } from './f2-hujjat.fixture';
@@ -66,7 +66,7 @@ describe('lrv-ozgarish — tasnif', () => {
 });
 
 /** Uslub indeksi → qator rangi (rasmiy.ts: baza + 29 × (1 + rang tartibi)). */
-const rangi = (xml: string) => { const s = Number(/ s="(\d+)"/.exec(xml)?.[1] ?? 0); return s < 29 ? null : RANG_TARTIB[Math.floor(s / 29) - 1]; };
+const rangi = (xml: string) => { const s = Number(/ s="(\d+)"/.exec(xml)?.[1] ?? 0); return uslubniOch(s).rang; };
 
 describe('LRV Excel — qo‘shimcha / zamena belgilari', () => {
   const r = lrvHujjat(ROWS, HOLAT, { obyektNom: 'Sinov', nakrutka: NAMUNA_NAKRUTKA, ndsFoiz: 12 });
@@ -92,7 +92,8 @@ describe('LRV Excel — qo‘shimcha / zamena belgilari', () => {
     expect(rangi(k(`C${qatorMatn('ГРУНТОВКА')}`)!.xml)).toBe('qoshimcha');
     expect(rangi(k(`C${qatorMatn('УСТРОЙСТВО НАЛИВНОГО ПОЛА')}`)!.xml)).toBe('zamena');
     expect(rangi(k(`C${qatorMatn('УСТРОЙСТВО СТЯЖКИ')}`)!.xml)).toBe('almashtirilgan');
-    expect(rangi(k(`C${qatorMatn('ПЕСОК')}`)!.xml)).toBe('МАТ');
+    // MAT darajasi: o'z foni dizayn darajasidan (toifa rangi emas)
+    expect(uslubniOch(Number(/ s="(\d+)"/.exec(k(`C${qatorMatn('ПЕСОК')}`)!.xml)?.[1])).daraja).toBe('mat');
   });
 
   it('pastdagi jamlar: har guruh = shu turdagi barglar yig‘indisi; uchtasi = ИТОГО; ustamali — mavjud kaskad', () => {

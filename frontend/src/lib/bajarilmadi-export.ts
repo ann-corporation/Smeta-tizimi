@@ -18,6 +18,8 @@ export const bajarilmadiSababRu = (kod: string) => SABAB_RU[kod] ?? kod;
 const yaxlit = (x: number) => Math.round(x * 1e6) / 1e6;
 
 /** Faqat faol yozuvlar; tartib: kod/nom bo'yicha. */
+import { exceljsJadvalUslubi } from './hujjat-yozuvchi/exceljs-dizayn';
+
 export function bajarilmadiQatorlari(royxat: readonly BajarilmadiQator[]): BajarilmadiQator[] {
   return royxat.filter((x) => x.holat === 'faol').slice().sort((a, b) => String(a.kod ?? '').localeCompare(String(b.kod ?? ''), 'ru') || String(a.nom ?? '').localeCompare(String(b.nom ?? ''), 'ru'));
 }
@@ -39,6 +41,7 @@ export async function bajarilmadiXlsx(royxat: readonly BajarilmadiQator[], o: { 
   });
   [6, 14, 60, 9, 15, 15, 15, 32, 40, 28, 12, 18].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
   for (const c of [5, 6, 7]) ws.getColumn(c).numFmt = '#,##0.000';
+  exceljsJadvalUslubi(ws, { sarlavha: bosh.number, hajmUstunlari: [5, 6, 7] });
   const buf = await wb.xlsx.writeBuffer();
   const sana = (o.sana ?? new Date().toISOString().slice(0, 10)).replace(/-/g, '');
   const toza = o.obyektNomi.replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 60) || 'obyekt';

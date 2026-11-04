@@ -5,8 +5,10 @@ import { Check, Palette } from 'lucide-react';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import {
   HUJJAT_TURLARI, MAVZU_HEX, RANG_MAVZULARI, RANG_MAVZU_NOMI, hujjatMavzusi, hujjatMavzusiniSaqla,
-  type HujjatTuri, type QatorRangi, type RangMavzusi,
+  dizaynTozala, hujjatDizayniniSaqla, joriyHujjatDizayni,
+  type HujjatDizayn, type HujjatTuri, type QatorRangi, type RangMavzusi,
 } from '../../lib/hujjat-yozuvchi';
+import { UslubTahrir } from '../../components/hujjat-dizayn/UslubTahrir';
 
 const fon = (m: RangMavzusi, r: QatorRangi | null) => {
   const h = r ? MAVZU_HEX[m][r] : null;
@@ -47,12 +49,16 @@ export function HujjatDizayni() {
   const taymer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const oxirgi = useRef(tanlov);
   oxirgi.current = tanlov;
+  /* Daraja uslubi (shrift, BL/RS/MAT/OB, Тип ustuni …) — hujjat.dizayn sozlamasining _uslub maydoni. */
+  const [uslub, setUslub] = useState<HujjatDizayn>(() => joriyHujjatDizayni());
+  const uslubRef = useRef(uslub);
+  uslubRef.current = uslub;
   const serverga = useCallback((x: Record<string, string>) => {
     if (kompaniyaId == null || !yozish.current) return;
     if (taymer.current) clearTimeout(taymer.current);
     taymer.current = setTimeout(() => {
       taymer.current = null;
-      void kompaniyaSozlamaYoz({ kompaniya_id: kompaniyaId, kalit: 'hujjat.dizayn', qiymat: { ...x } }).catch(() => { /* jim — mahalliy saqlangan */ });
+      void kompaniyaSozlamaYoz({ kompaniya_id: kompaniyaId, kalit: 'hujjat.dizayn', qiymat: { ...x, _uslub: uslubRef.current } }).catch(() => { /* jim — mahalliy saqlangan */ });
     }, 800);
   }, [kompaniyaId]);
   useEffect(() => () => { if (taymer.current) clearTimeout(taymer.current); }, []);
@@ -64,6 +70,8 @@ export function HujjatDizayni() {
       if (bekor) return;
       yozish.current = s.yozish_mumkin;
       const sv = s.sozlamalar['hujjat.dizayn']?.qiymat;
+      const svUslub = sv && typeof sv === 'object' ? (sv as Record<string, unknown>)._uslub : null;
+      if (svUslub && typeof svUslub === 'object') { const d = dizaynTozala(svUslub); hujjatDizayniniSaqla(d); uslubRef.current = d; setUslub(d); }
       if (sv && typeof sv === 'object') {
         const yangi = { ...oxirgi.current };
         for (const tur of Object.keys(HUJJAT_TURLARI) as HujjatTuri[]) {
@@ -77,6 +85,7 @@ export function HujjatDizayni() {
     }).catch(() => { /* jim — mahalliy rejim */ });
     return () => { bekor = true; };
   }, [kompaniyaId, serverga]);
+  const uslubOzgardi = (d: HujjatDizayn) => { hujjatDizayniniSaqla(d); uslubRef.current = d; setUslub(d); serverga(oxirgi.current); };
   const tanla = (t: HujjatTuri, m: RangMavzusi) => { hujjatMavzusiniSaqla(t, m); setTanlov((o) => ({ ...o, [t]: m })); serverga({ ...oxirgi.current, [t]: m }); };
   const hammasiga = (m: RangMavzusi) => { for (const t of Object.keys(HUJJAT_TURLARI) as HujjatTuri[]) hujjatMavzusiniSaqla(t, m); serverga(Object.fromEntries(Object.keys(HUJJAT_TURLARI).map((t) => [t, m]))); setTanlov((o) => Object.fromEntries(Object.keys(o).map((t) => [t, m])) as Record<HujjatTuri, RangMavzusi>); };
 
@@ -118,6 +127,7 @@ export function HujjatDizayni() {
           <p className="text-[11px] text-text-mute">Tanlov shu brauzerda saqlanadi va keyingi yuklab olishdan boshlab qo'llanadi. Ranglar chop etishda ham yengil.</p>
         </section>
       </div>
+      <div className="mt-3"><UslubTahrir dizayn={uslub} onChange={uslubOzgardi} /></div>
     </Sahifa>
   );
 }
