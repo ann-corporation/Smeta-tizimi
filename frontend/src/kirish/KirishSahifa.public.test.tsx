@@ -7,6 +7,8 @@ import { tilQoy } from '../i18n/til';
 const m = vi.hoisted(() => ({ navigate: vi.fn() }));
 vi.mock('react-router-dom', async (original) => ({ ...(await original<typeof import('react-router-dom')>()), useNavigate: () => m.navigate }));
 vi.mock('./GoogleKirish', () => ({ default: () => null }));
+// Desktop yuklab olish bloki mount paytida /desktop-release.json ni fetch qiladi; bu testlar faqat kirish API chaqiruvlarini sanaydi.
+vi.mock('../components/public-entry/DesktopDownload', () => ({ DesktopDownload: () => null }));
 vi.mock('../umumiy/ui/Toast', () => ({ toast: vi.fn() }));
 import KirishSahifa from './KirishSahifa';
 

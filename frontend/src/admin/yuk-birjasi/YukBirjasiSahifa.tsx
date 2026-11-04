@@ -68,7 +68,7 @@ export default function YukBirjasiSahifa() {
                 <tbody>{korinadi.map((q) => (
                   <tr key={q.id} className="cursor-pointer" onClick={() => ochish(q.id)}>
                     <td className="font-medium">{q.nom}</td>
-                    <td>{q.a_nom ?? '—'} → {q.b_nom ?? '—'}{q.masofa_km != null && <span className="text-text-mute"> · <FmtN val={q.masofa_km} /> km</span>}</td>
+                    <td>{q.a_nom ?? '—'} → {q.b_nom ?? '—'}{q.masofa_km != null && <span className="text-text-mute"> · <FmtN val={q.masofa_km} />{' km'}</span>}</td>
                     <td className="fz-c-num">{q.tonna != null ? <FmtN val={q.tonna} /> : '—'}</td>
                     <td>{sanaKun(q.sana_dan)}</td>
                     <td>{t(TOLOV_SHAKLI_NOM[q.tolov_shakli])}</td>

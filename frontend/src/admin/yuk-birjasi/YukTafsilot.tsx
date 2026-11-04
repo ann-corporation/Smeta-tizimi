@@ -36,7 +36,7 @@ export function YukTafsilot({ kompaniyaId, yukId, orqaga }: { kompaniyaId: numbe
   }, [kompaniyaId, yukId]);
   useEffect(() => { void yukla(); }, [yukla]);
 
-  const yoz = async (a: Parameters<typeof ybYoz>[1], data: Record<string, unknown>, xabar: string) => {
+  const yoz = async (a: Parameters<typeof ybYoz>[1], data: { [k: string]: unknown }, xabar: string) => {
     setBand(true);
     const r = await ybYoz(kompaniyaId, a, data, yangiOperationId());
     setBand(false);
@@ -86,7 +86,7 @@ export function YukTafsilot({ kompaniyaId, yukId, orqaga }: { kompaniyaId: numbe
       </div>
 
       <div className="fz-card"><div className="grid gap-2 p-3 text-[12.5px] sm:grid-cols-3">
-        <div><div className="text-text-mute">{t('Marshrut')}</div>{yuk.a_nom ?? '—'} → {yuk.b_nom ?? '—'}{yuk.masofa_km != null && <> · <FmtN val={yuk.masofa_km} /> km</>}</div>
+        <div><div className="text-text-mute">{t('Marshrut')}</div>{yuk.a_nom ?? '—'} → {yuk.b_nom ?? '—'}{yuk.masofa_km != null && <> · <FmtN val={yuk.masofa_km} />{' km'}</>}</div>
         <div><div className="text-text-mute">{t('Yuk')}</div>{t(YUK_TURI_NOM[yuk.yuk_turi])} · {yuk.tonna != null ? <><FmtN val={yuk.tonna} /> t</> : '—'}</div>
         <div><div className="text-text-mute">{t('Sana')}</div>{sanaKun(yuk.sana_dan)}{yuk.sana_gacha ? ` – ${sanaKun(yuk.sana_gacha)}` : ''}</div>
         <div><div className="text-text-mute">{t('Qat’iy narx')}</div><YukPul qqsSiz={yuk.narx_taklif_qqs_siz} foiz={yuk.qqs_foiz} /></div>
