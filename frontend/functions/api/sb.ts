@@ -31,6 +31,8 @@ import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { xavfsizUpstream } from '../_shared/xato';
 import { azoKompaniyalar, oqishQarori, rpcKompaniyasi } from '../_shared/tenant-oqish';
+import { ilovaDarvozasi } from '../_shared/ilova-darvoza';
+import { soroIlovasi } from '../../src/lib/ilova/ilovalar';
 import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shared/role-authority';
 import { oraliqgaQosh, oraliqlarniRejala, prefiksYigi } from '../_shared/kalit-oraliq';
 /* Ota yozuv kompaniyasi (60 s kesh) — `_shared/ota-kompaniya` (obyekt-paket.ts bilan umumiy). */
@@ -179,6 +181,10 @@ export const onRequestPost: PagesFunction<{
       /* C11 ombor kirimi ro'yxati (2026-10-29). */
       sklad_id?: number; offset?: number;
     }>();
+
+    /* Ilova darvozasi (ekotizim P1): o'chirilgan ilovaning o'qish so'rovlari serverda rad etiladi. */
+    const ilovaRad = await ilovaDarvozasi(ctx.env, sess, soroIlovasi(so.soro), so.kompaniya_id);
+    if (ilovaRad) return ilovaRad;
 
     if (sess.permissionsByCompany && sess.rol!=='superadmin') {
       const permission=dataPermission(String(so.jadval||so.soro||''),false);
