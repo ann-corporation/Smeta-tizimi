@@ -19,6 +19,12 @@ export function desktopFetch(original: typeof fetch, invoke: NativeInvoke, local
     const combined = new Request(request, init);
     if (combined.signal.aborted) throw new DOMException('Aborted', 'AbortError');
     if (!['GET', 'POST'].includes(combined.method)) throw new Error('DESKTOP_METHOD_DENIED');
+    if (url.pathname === '/api/chiqish') {
+      if (combined.method !== 'POST' || url.search) throw new Error('DESKTOP_METHOD_DENIED');
+      await invoke<void>('desktop_session_clear');
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('desktop-session-ended'));
+      return Response.json({ ok: true });
+    }
     const result = await invoke<NativeHttpResponse>('desktop_request', {
       path: url.pathname + url.search, method: combined.method,
       body: combined.method === 'GET' ? null : await combined.text(),

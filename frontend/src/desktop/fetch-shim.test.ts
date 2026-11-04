@@ -3,6 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { desktopFetch, type NativeInvoke } from './fetch-shim';
 
 describe('native-only Desktop transport', () => {
+  it('clears the native credential for the existing app logout even without network', async () => {
+    const original = vi.fn(), invoke = vi.fn(async () => undefined);
+    expect((await desktopFetch(original, invoke as NativeInvoke)('/api/chiqish', { method: 'POST' })).status).toBe(200);
+    expect(invoke).toHaveBeenCalledExactlyOnceWith('desktop_session_clear');
+    expect(original).not.toHaveBeenCalled();
+  });
   it('passes no cookie or Authorization to renderer HTTP transport', async () => {
     const original = vi.fn(), invoke = vi.fn(async () => ({ status: 200, body: '{}', etag: null }));
     const response = await desktopFetch(original, invoke as NativeInvoke)('/api/sb', { method: 'POST', body: '{"x":1}',
