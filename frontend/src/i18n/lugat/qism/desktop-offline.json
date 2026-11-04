@@ -1,0 +1,18 @@
+{
+  "Oflayn obyektlar": { "ru": "Объекты офлайн", "en": "Offline projects" },
+  "Avval tizimga kiring.": { "ru": "Сначала войдите в систему.", "en": "Sign in first." },
+  "Oflayn ruxsat yoki saqlangan obyekt topilmadi.": { "ru": "Нет действующего офлайн-доступа или сохранённых объектов.", "en": "No valid offline access or saved projects." },
+  "Obyektni ochib boʻlmadi. Ruxsat va aloqani tekshiring.": { "ru": "Не удалось открыть объект. Проверьте доступ и соединение.", "en": "Could not open the project. Check access and connection." },
+  "Ish joyi #{id}": { "ru": "Рабочее пространство №{id}", "en": "Workspace #{id}" },
+  "Obyekt #{id}": { "ru": "Объект №{id}", "en": "Project #{id}" },
+  "Oflayn rejimda faqat oʻqish mumkin.": { "ru": "Офлайн доступно только чтение.", "en": "Offline access is read-only." },
+  "Qurilmadan chiqish": { "ru": "Выйти на устройстве", "en": "Sign out on this device" },
+  "Obyektni tanlang.": { "ru": "Выберите объект.", "en": "Select a project." },
+  "Oflayn · saqlangan nusxa": { "ru": "Офлайн · сохранённая копия", "en": "Offline · saved copy" },
+  "Server tasdiqlagan nusxa": { "ru": "Копия подтверждена сервером", "en": "Server-verified copy" },
+  "Ruxsat muddati: {sana}": { "ru": "Доступ действует до: {sana}", "en": "Access expires: {sana}" },
+  "Nomaʼlum": { "ru": "Неизвестно", "en": "Unknown" },
+  "{son} qator": { "ru": "Строк: {son}", "en": "{son} rows" },
+  "F2 hujjatlarining oʻz podvali": { "ru": "Собственные итоги документов Ф2", "en": "F2 document-specific totals" },
+  "Akt #{id}": { "ru": "Акт №{id}", "en": "Certificate #{id}" }
+}
