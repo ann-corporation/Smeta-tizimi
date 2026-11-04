@@ -36,7 +36,9 @@ describe('role integration architecture',()=>{
       'kirish-email',
       /* Sozlamalar markazi (2026-10-26): kompaniya sozlamalari (imzo tomonlari, hujjat dizayni, F2 tasdiq rejimi). Actor sessiyadan;
          o'qish company.read, yozish company.profile.update — har RPC ichida t2_effective_authorization_v1 (kompaniya-sozlama.test.ts). */
-      'kompaniya-sozlama']);
+      'kompaniya-sozlama',
+      /* Yuk birjasi (2026-11-04): faqat sessiya + masofa hisobi (kompaniya ma'lumotiga tegmaydi); O'zbekiston ramkasi, foydalanuvchi bo'yicha 30/daqiqa limit, kalit mijozda yo'q (yuk-marshrut.test.ts). */
+      'yuk-marshrut']);
     const routes=readdirSync(resolve(root,'frontend/functions/api')).filter(n=>n.endsWith('.ts')&&!n.endsWith('.test.ts')&&!n.startsWith('_')).map(n=>n.slice(0,-3));
     expect(routes.filter(n=>!SCOPED_APIS.has(n)&&!exceptions.has(n))).toEqual([]);
   });

@@ -67,7 +67,7 @@ const FAKT = a('fakt', 'm29');
 const F2 = a('f2-tayyorlash', 'f2', 'f2-tarix', 'f2-reestr', 'nakopitelniy');
 const MOLIYA = a('moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'crm', 'aloqalar');
 const HUJJAT = a('documents', 'hujjat-nazorat', 'aosr', 'storage', 'zakazchik', 'taqdimlar', 'murojaatlar');
-const TAMINOT = a('logistika', 'zayavka', 'tender', 'erp', 'hr');
+const TAMINOT = a('logistika', 'zayavka', 'tender', 'yuk-birjasi', 'erp', 'hr');
 const ISH = [...OBYEKT, ...SMETA, ...FAKT, ...F2, ...MOLIYA, ...HUJJAT, ...TAMINOT];
 /* Uy sotish (20261124000000): alohida domen — sales.* (PTO da yo'q). */
 const SOTUV = a('sotuv');
@@ -84,12 +84,12 @@ const KUTILGAN: Record<string, string[]> = {
   admin: [...ISH, ...SOTUV, ...KOMPANIYA, ...SHAXSIY],
   pto: [...ISH, ...SHAXSIY],
   bugalter: [...a('dashboard', 'obyektlar', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'crm', 'aloqalar',
-    'documents', 'hujjat-nazorat', 'storage', 'logistika', 'zayavka', 'tender', 'erp', 'hr', 'sotuv'), ...SHAXSIY],
+    'documents', 'hujjat-nazorat', 'storage', 'logistika', 'zayavka', 'tender', 'yuk-birjasi', 'erp', 'hr', 'sotuv'), ...SHAXSIY],
   prorab: [...bez(ISH, 'dashboard', 'moliya', 'buxgalteriya', 'qarzdorlik'), ...SHAXSIY],
   usta: [...a('fakt'), ...SHAXSIY],
   buyurtmachi: [...a('obyektlar', 'loyiha', 'participants', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'shartnoma-liniya',
     'documents', 'hujjat-nazorat', 'storage', 'zakazchik', 'taqdimlar', 'murojaatlar'), ...SHAXSIY],
-  omborchi: [...a('m29', 'logistika', 'zayavka', 'tender'), ...SHAXSIY],
+  omborchi: [...a('m29', 'logistika', 'zayavka', 'tender', 'yuk-birjasi'), ...SHAXSIY],
   haydovchi: [...a('logistika', 'erp'), ...SHAXSIY],
   /* sotuvchi: project.read (S1 rol ta'rifi) tufayli loyiha/hujjat/kiruvchi bandlari ham ko'rinadi — rol ko'lami alohida qaror. */
   sotuvchi: [...a('loyiha', 'participants', 'documents', 'hujjat-nazorat', 'storage', 'zakazchik', 'taqdimlar', 'murojaatlar', 'sotuv'), ...SHAXSIY],
@@ -258,7 +258,7 @@ describe('yagona manba — boshqa iste‘molchilar o‘zgarmagan', () => {
       '/admin/loyiha': 'module.loyiha', '/admin/shartnoma-liniya': 'module.loyiha', '/admin/qarzdorlik': 'module.erp', '/admin/buxgalteriya': 'module.erp', '/admin/documents': 'module.loyiha',
       '/admin/hujjat-nazorat': 'module.loyiha', '/admin/participants': 'module.loyiha', '/admin/crm': 'module.loyiha',
       '/admin/zakazchik': 'module.loyiha', '/admin/taqdimlar': 'module.loyiha', '/admin/murojaatlar': 'module.loyiha', '/admin/aloqalar': 'module.loyiha',
-      '/admin/dashboard': 'module.erp', '/admin/moliya': 'module.erp', '/admin/logistika': 'module.erp', '/admin/zayavka': 'module.erp', '/admin/tender': 'module.erp',
+      '/admin/dashboard': 'module.erp', '/admin/moliya': 'module.erp', '/admin/logistika': 'module.erp', '/admin/zayavka': 'module.erp', '/admin/tender': 'module.erp', '/admin/yuk-birjasi': 'module.erp',
       '/admin/erp': 'module.erp', '/admin/hr': 'module.erp', '/admin/mindmap': 'module.erp',
     });
   });

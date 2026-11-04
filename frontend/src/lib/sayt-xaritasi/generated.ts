@@ -37,6 +37,7 @@ export const GENERATED_SITE_MAP = {
     "/admin/logistika",
     "/admin/zayavka",
     "/admin/tender",
+    "/admin/yuk-birjasi",
     "/admin/erp",
     "/admin/hr",
     "/admin/sotuv",
@@ -151,6 +152,7 @@ export const GENERATED_SITE_MAP = {
     "taminot",
     "sifat",
     "tender",
+    "yuk-birjasi",
     "shartnoma",
     "kalkulyator",
     "*",
@@ -977,6 +979,34 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "transport_xarajat_otkaz_v1",
       "rpc": "t2_tr_xarajat_otkaz_v1"
+    },
+    {
+      "amal": "yb_yuk_saqla_v1",
+      "rpc": "t2_yb_yuk_saqla_v1"
+    },
+    {
+      "amal": "yb_yuk_elon_v1",
+      "rpc": "t2_yb_yuk_elon_v1"
+    },
+    {
+      "amal": "yb_yuk_javob_v1",
+      "rpc": "t2_yb_yuk_javob_v1"
+    },
+    {
+      "amal": "yb_yuk_bekor_v1",
+      "rpc": "t2_yb_yuk_bekor_v1"
+    },
+    {
+      "amal": "yb_yuk_tasdiq_v1",
+      "rpc": "t2_yb_yuk_tasdiq_v1"
+    },
+    {
+      "amal": "yb_yuk_baho_v1",
+      "rpc": "t2_yb_yuk_baho_v1"
+    },
+    {
+      "amal": "yb_yuk_nizo_v1",
+      "rpc": "t2_yb_yuk_nizo_v1"
     },
     {
       "amal": "moliya_qolda_yoz_v1",

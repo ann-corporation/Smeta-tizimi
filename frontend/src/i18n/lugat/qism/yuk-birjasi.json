@@ -1,0 +1,662 @@
+{
+  "1 t·km": {
+    "ru": "1 т·км",
+    "en": "1 t·km"
+  },
+  "Baho (1–5)": {
+    "ru": "Оценка (1–5)",
+    "en": "Rating (1–5)"
+  },
+  "Baho 1 dan 5 gacha bo‘lishi kerak.": {
+    "ru": "Оценка должна быть от 1 до 5.",
+    "en": "The rating must be from 1 to 5."
+  },
+  "Baho allaqachon berilgan.": {
+    "ru": "Оценка уже выставлена.",
+    "en": "The rating has already been given."
+  },
+  "Baho berildi": {
+    "ru": "Оценка выставлена",
+    "en": "Rating given"
+  },
+  "Baho saqlandi.": {
+    "ru": "Оценка сохранена.",
+    "en": "Rating saved."
+  },
+  "Bekor qilindi": {
+    "ru": "Отменено",
+    "en": "Cancelled"
+  },
+  "Bekor qilingan": {
+    "ru": "Отменён",
+    "en": "Cancelled"
+  },
+  "Bor — qaytishda yuk topiladi": {
+    "ru": "Есть — на обратном пути найдётся груз",
+    "en": "Yes — a return load will be found"
+  },
+  "Bo‘sh qoldirsangiz tashuvchilar o‘z narxini taklif qiladi": {
+    "ru": "Если оставить пустым, перевозчики предложат свою цену",
+    "en": "If left empty, carriers will offer their own price"
+  },
+  "Bron": {
+    "ru": "Бронь",
+    "en": "Booking"
+  },
+  "Bron bekor qilindi": {
+    "ru": "Бронь отменена",
+    "en": "Booking cancelled"
+  },
+  "Bron qilindi": {
+    "ru": "Забронировано",
+    "en": "Booked"
+  },
+  "Bron qilingan": {
+    "ru": "Забронирован",
+    "en": "Booked"
+  },
+  "Bu amal hozirgi holatda mumkin emas.": {
+    "ru": "Это действие сейчас невозможно.",
+    "en": "This action is not possible in the current state."
+  },
+  "Bu amal uchun ruxsatingiz yo‘q.": {
+    "ru": "У вас нет прав на это действие.",
+    "en": "You do not have permission for this action."
+  },
+  "Bu faqat tavsiya: yakuniy narx va to‘lovni tomonlar o‘zaro kelishadi.": {
+    "ru": "Это лишь рекомендация: итоговую цену и оплату стороны согласовывают между собой.",
+    "en": "This is only a suggestion: the parties agree the final price and payment between themselves."
+  },
+  "Diapazon": {
+    "ru": "Диапазон",
+    "en": "Range"
+  },
+  "E’lon qilindi": {
+    "ru": "Объявление опубликовано",
+    "en": "Published"
+  },
+  "E’lon qilingan": {
+    "ru": "Опубликован",
+    "en": "Published"
+  },
+  "E’lon qilish": {
+    "ru": "Опубликовать",
+    "en": "Publish"
+  },
+  "Faol": {
+    "ru": "Активные",
+    "en": "Active"
+  },
+  "Firma": {
+    "ru": "Фирма",
+    "en": "Company"
+  },
+  "Hisoblash": {
+    "ru": "Рассчитать",
+    "en": "Calculate"
+  },
+  "Holat": {
+    "ru": "Статус",
+    "en": "Status"
+  },
+  "Hozircha taklif yo‘q.": {
+    "ru": "Предложений пока нет.",
+    "en": "No offers yet."
+  },
+  "Ikkala nuqta koordinatasini «41.3111, 69.2797» ko‘rinishida kiriting.": {
+    "ru": "Введите координаты обеих точек в виде «41.3111, 69.2797».",
+    "en": "Enter both points as coordinates like “41.3111, 69.2797”."
+  },
+  "Isbot (foto / hujjat)": {
+    "ru": "Подтверждение (фото / документ)",
+    "en": "Proof (photo / document)"
+  },
+  "Isbot yuklandi": {
+    "ru": "Подтверждение загружено",
+    "en": "Proof uploaded"
+  },
+  "Ixtiyoriy; masofani hisoblash uchun": {
+    "ru": "Необязательно; для расчёта расстояния",
+    "en": "Optional; for distance calculation"
+  },
+  "Izoh": {
+    "ru": "Комментарий",
+    "en": "Comment"
+  },
+  "Kelishilgan narx": {
+    "ru": "Согласованная цена",
+    "en": "Agreed price"
+  },
+  "Komissiya": {
+    "ru": "Комиссия",
+    "en": "Commission"
+  },
+  "Kompaniya tanlang.": {
+    "ru": "Выберите компанию.",
+    "en": "Select a company."
+  },
+  "Marshrut": {
+    "ru": "Маршрут",
+    "en": "Route"
+  },
+  "Masalan: sement M400": {
+    "ru": "Например: цемент М400",
+    "en": "E.g.: cement M400"
+  },
+  "Mashina": {
+    "ru": "Машина",
+    "en": "Vehicle"
+  },
+  "Mashina sig‘imi yuk uchun yetmaydi.": {
+    "ru": "Грузоподъёмности машины недостаточно для груза.",
+    "en": "The vehicle capacity is not enough for the load."
+  },
+  "Masofa va og‘irlikni kiriting.": {
+    "ru": "Введите расстояние и вес.",
+    "en": "Enter the distance and weight."
+  },
+  "Masofa, km": {
+    "ru": "Расстояние, км",
+    "en": "Distance, km"
+  },
+  "Masofani hisoblab bo‘lmadi.": {
+    "ru": "Не удалось рассчитать расстояние.",
+    "en": "Could not calculate the distance."
+  },
+  "Materialni tez yetkazish: yuk e’lon qiling, tashuvchilar takliflarini ko‘ring, narxni kelishing, yo‘ldagi yukni kuzating.": {
+    "ru": "Быстрая доставка материалов: разместите груз, смотрите предложения перевозчиков, согласуйте цену, следите за грузом в пути.",
+    "en": "Fast material delivery: post a load, view carrier offers, agree the price and follow the load on its way."
+  },
+  "Ma’lumot boshqa joyda o‘zgargan. Sahifani yangilang.": {
+    "ru": "Данные изменены в другом месте. Обновите страницу.",
+    "en": "The data was changed elsewhere. Refresh the page."
+  },
+  "Minimal reys narxi qo‘llandi.": {
+    "ru": "Применена минимальная цена рейса.",
+    "en": "The minimum trip price was applied."
+  },
+  "Mo‘rt": {
+    "ru": "Хрупкий",
+    "en": "Fragile"
+  },
+  "Muddati tugadi": {
+    "ru": "Срок истёк",
+    "en": "Expired"
+  },
+  "Naqd": {
+    "ru": "Наличные",
+    "en": "Cash"
+  },
+  "Naqd yoki o‘tkazma": {
+    "ru": "Наличные или перечисление",
+    "en": "Cash or bank transfer"
+  },
+  "Narx": {
+    "ru": "Цена",
+    "en": "Price"
+  },
+  "Narx stavkasi hali kiritilmagan — narxni o‘zingiz belgilang yoki tashuvchilar taklifini kuting.": {
+    "ru": "Ставка цены ещё не введена — задайте цену сами или дождитесь предложений перевозчиков.",
+    "en": "The price rate has not been entered yet — set the price yourself or wait for carrier offers."
+  },
+  "Narxni kiriting.": {
+    "ru": "Введите цену.",
+    "en": "Enter the price."
+  },
+  "Navoiy, bog‘ obyekti": {
+    "ru": "Навои, объект «Парк»",
+    "en": "Navoi, park site"
+  },
+  "Negabarit / uzun": {
+    "ru": "Негабарит / длинномер",
+    "en": "Oversized / long"
+  },
+  "Nizo": {
+    "ru": "Спор",
+    "en": "Dispute"
+  },
+  "Nizo ochildi": {
+    "ru": "Спор открыт",
+    "en": "Dispute opened"
+  },
+  "Nizo ochildi. Moderator ko‘rib chiqadi.": {
+    "ru": "Спор открыт. Его рассмотрит модератор.",
+    "en": "Dispute opened. A moderator will review it."
+  },
+  "Nizo ochish": {
+    "ru": "Открыть спор",
+    "en": "Open a dispute"
+  },
+  "Nizo — pul muzlatilgan": {
+    "ru": "Спор — деньги заморожены",
+    "en": "Dispute — funds frozen"
+  },
+  "Obyekt sizning kompaniyangizniki emas.": {
+    "ru": "Объект не принадлежит вашей компании.",
+    "en": "The site does not belong to your company."
+  },
+  "Og‘irlik, tonna": {
+    "ru": "Вес, тонн",
+    "en": "Weight, tonnes"
+  },
+  "Orqaga": {
+    "ru": "Назад",
+    "en": "Back"
+  },
+  "O‘tkazma (perechisleniye)": {
+    "ru": "Перечисление (безналичный расчёт)",
+    "en": "Bank transfer"
+  },
+  "Platforma orqali to‘lov faqat o‘tkazma bilan ishlaydi.": {
+    "ru": "Оплата через платформу работает только с перечислением.",
+    "en": "Payment through the platform works only with bank transfer."
+  },
+  "Platforma orqali to‘lov: pul litsenziyali to‘lov provayderida ushlab turiladi va yetkazish tasdiqlangach tashuvchiga o‘tadi": {
+    "ru": "Оплата через платформу: деньги удерживает лицензированный платёжный провайдер и передаёт перевозчику после подтверждения доставки",
+    "en": "Payment through the platform: a licensed payment provider holds the money and releases it to the carrier once delivery is confirmed"
+  },
+  "Pul ushlab turilibdi": {
+    "ru": "Деньги удерживаются",
+    "en": "Funds held"
+  },
+  "QQS bilan": {
+    "ru": "с НДС",
+    "en": "incl. VAT"
+  },
+  "QQS siz": {
+    "ru": "без НДС",
+    "en": "excl. VAT"
+  },
+  "QQS stavkasi noma’lum": {
+    "ru": "Ставка НДС неизвестна",
+    "en": "VAT rate unknown"
+  },
+  "QQS, %": {
+    "ru": "НДС, %",
+    "en": "VAT, %"
+  },
+  "Qabul": {
+    "ru": "Принять",
+    "en": "Accept"
+  },
+  "Qabul kodi (qabul qiluvchiga ayting)": {
+    "ru": "Код приёмки (сообщите получателю)",
+    "en": "Receiving code (tell the recipient)"
+  },
+  "Qabul kodi noto‘g‘ri kiritildi": {
+    "ru": "Введён неверный код приёмки",
+    "en": "A wrong receiving code was entered"
+  },
+  "Qarshi narx": {
+    "ru": "Встречная цена",
+    "en": "Counter price"
+  },
+  "Qarshi narx taklif qilish": {
+    "ru": "Предложить встречную цену",
+    "en": "Offer a counter price"
+  },
+  "Qarshi taklif yuborildi": {
+    "ru": "Встречное предложение отправлено",
+    "en": "Counter-offer sent"
+  },
+  "Qarshi taklif yuborildi.": {
+    "ru": "Встречное предложение отправлено.",
+    "en": "Counter-offer sent."
+  },
+  "Qat’iy narx": {
+    "ru": "Фиксированная цена",
+    "en": "Fixed price"
+  },
+  "Qat’iy narx (QQS siz), so‘m": {
+    "ru": "Фиксированная цена (без НДС), сум",
+    "en": "Fixed price (excl. VAT), UZS"
+  },
+  "Qayerdan": {
+    "ru": "Откуда",
+    "en": "From"
+  },
+  "Qayerdan va qayerga manzilini kiriting.": {
+    "ru": "Укажите адреса «откуда» и «куда».",
+    "en": "Enter the “from” and “to” addresses."
+  },
+  "Qayerga": {
+    "ru": "Куда",
+    "en": "To"
+  },
+  "Qaytarildi": {
+    "ru": "Возвращено",
+    "en": "Refunded"
+  },
+  "Qaytarilmoqda": {
+    "ru": "Возвращается",
+    "en": "Being refunded"
+  },
+  "Qaytishda yuk": {
+    "ru": "Груз на обратном пути",
+    "en": "Return load"
+  },
+  "Qoplangan / paketli": {
+    "ru": "Упакованный / в упаковке",
+    "en": "Packaged"
+  },
+  "Qoralama": {
+    "ru": "Черновик",
+    "en": "Draft"
+  },
+  "Qoralama saqlandi.": {
+    "ru": "Черновик сохранён.",
+    "en": "Draft saved."
+  },
+  "Qoralama yaratildi": {
+    "ru": "Черновик создан",
+    "en": "Draft created"
+  },
+  "Raund": {
+    "ru": "Раунд",
+    "en": "Round"
+  },
+  "Sabab": {
+    "ru": "Причина",
+    "en": "Reason"
+  },
+  "Sababni yozing.": {
+    "ru": "Укажите причину.",
+    "en": "Enter the reason."
+  },
+  "Sana": {
+    "ru": "Дата",
+    "en": "Date"
+  },
+  "Sana oralig‘i noto‘g‘ri.": {
+    "ru": "Неверный диапазон дат.",
+    "en": "Invalid date range."
+  },
+  "Sizning bahoyingiz": {
+    "ru": "Ваша оценка",
+    "en": "Your rating"
+  },
+  "Sizning narxingiz (QQS siz), so‘m": {
+    "ru": "Ваша цена (без НДС), сум",
+    "en": "Your price (excl. VAT), UZS"
+  },
+  "Sochma (qum, shag‘al, sement)": {
+    "ru": "Сыпучий (песок, щебень, цемент)",
+    "en": "Bulk (sand, gravel, cement)"
+  },
+  "Taklif keldi": {
+    "ru": "Получено предложение",
+    "en": "Offer received"
+  },
+  "Taklif qabul qilindi — yuk bron qilindi.": {
+    "ru": "Предложение принято — груз забронирован.",
+    "en": "Offer accepted — the load is booked."
+  },
+  "Taklif qabul qilish muddati (gacha)": {
+    "ru": "Приём предложений до",
+    "en": "Accept offers until"
+  },
+  "Taklif rad etildi": {
+    "ru": "Предложение отклонено",
+    "en": "Offer rejected"
+  },
+  "Taklif rad etildi.": {
+    "ru": "Предложение отклонено.",
+    "en": "Offer rejected."
+  },
+  "Taklif topilmadi yoki eskirgan.": {
+    "ru": "Предложение не найдено или устарело.",
+    "en": "The offer was not found or is outdated."
+  },
+  "Takliflar": {
+    "ru": "Предложения",
+    "en": "Offers"
+  },
+  "Takliflar bor": {
+    "ru": "Есть предложения",
+    "en": "Has offers"
+  },
+  "Tarix": {
+    "ru": "История",
+    "en": "History"
+  },
+  "Tarmoq xatosi. Qayta urining.": {
+    "ru": "Ошибка сети. Повторите попытку.",
+    "en": "Network error. Please try again."
+  },
+  "Tasdiqlash": {
+    "ru": "Подтвердить",
+    "en": "Confirm"
+  },
+  "Tashuvchi": {
+    "ru": "Перевозчик",
+    "en": "Carrier"
+  },
+  "Tashuvchi bahosi": {
+    "ru": "Оценка перевозчика",
+    "en": "Carrier rating"
+  },
+  "Tashuvchiga": {
+    "ru": "Перевозчику",
+    "en": "To the carrier"
+  },
+  "Tashuvchiga o‘tkazildi": {
+    "ru": "Переведено перевозчику",
+    "en": "Paid out to the carrier"
+  },
+  "Tashuvchiga o‘tkazilmoqda": {
+    "ru": "Переводится перевозчику",
+    "en": "Being paid out to the carrier"
+  },
+  "Tashuvchini baholash": {
+    "ru": "Оценить перевозчика",
+    "en": "Rate the carrier"
+  },
+  "Tavsiya narx": {
+    "ru": "Рекомендуемая цена",
+    "en": "Suggested price"
+  },
+  "Tavsiya narx (t·km)": {
+    "ru": "Рекомендуемая цена (т·км)",
+    "en": "Suggested price (t·km)"
+  },
+  "Tavsiyadan farq": {
+    "ru": "Отличие от рекомендации",
+    "en": "Difference from suggestion"
+  },
+  "Taxminiy (yo‘l xizmati javob bermadi)": {
+    "ru": "Приблизительно (сервис маршрутов не ответил)",
+    "en": "Approximate (the routing service did not respond)"
+  },
+  "Tonna": {
+    "ru": "Тонн",
+    "en": "Tonnes"
+  },
+  "Tonna yoki hajmni kiriting.": {
+    "ru": "Введите вес или объём.",
+    "en": "Enter the weight or volume."
+  },
+  "Toshkent, Sergeli": {
+    "ru": "Ташкент, Сергели",
+    "en": "Tashkent, Sergeli"
+  },
+  "To‘lov": {
+    "ru": "Оплата",
+    "en": "Payment"
+  },
+  "To‘lov kutilmoqda": {
+    "ru": "Ожидается оплата",
+    "en": "Awaiting payment"
+  },
+  "To‘lov shakli": {
+    "ru": "Форма оплаты",
+    "en": "Payment method"
+  },
+  "To‘lov shakli noto‘g‘ri.": {
+    "ru": "Неверная форма оплаты.",
+    "en": "Invalid payment method."
+  },
+  "To‘lov xatosi": {
+    "ru": "Ошибка оплаты",
+    "en": "Payment error"
+  },
+  "Tushirish nuqtasi (lat, lng)": {
+    "ru": "Точка разгрузки (широта, долгота)",
+    "en": "Unloading point (lat, lng)"
+  },
+  "Xavfli": {
+    "ru": "Опасный",
+    "en": "Hazardous"
+  },
+  "Yakka haydovchi": {
+    "ru": "Водитель-одиночка",
+    "en": "Individual driver"
+  },
+  "Yangi yuk": {
+    "ru": "Новый груз",
+    "en": "New load"
+  },
+  "Yangi yuk e’loni": {
+    "ru": "Новое объявление о грузе",
+    "en": "New load listing"
+  },
+  "Yangilash": {
+    "ru": "Обновить",
+    "en": "Refresh"
+  },
+  "Yetkazildi": {
+    "ru": "Доставлено",
+    "en": "Delivered"
+  },
+  "Yetkazildi — tasdiqlayman": {
+    "ru": "Доставлено — подтверждаю",
+    "en": "Delivered — I confirm"
+  },
+  "Yetkazish": {
+    "ru": "Доставка",
+    "en": "Delivery"
+  },
+  "Yetkazish tasdiqlandi. Yuk yopildi.": {
+    "ru": "Доставка подтверждена. Груз закрыт.",
+    "en": "Delivery confirmed. The load is closed."
+  },
+  "Yopildi": {
+    "ru": "Закрыт",
+    "en": "Closed"
+  },
+  "Yopilgan": {
+    "ru": "Закрытые",
+    "en": "Closed"
+  },
+  "Yo‘l bo‘yicha": {
+    "ru": "По дороге",
+    "en": "By road"
+  },
+  "Yo‘lda": {
+    "ru": "В пути",
+    "en": "In transit"
+  },
+  "Yo‘lga chiqdi": {
+    "ru": "Выехал",
+    "en": "Departed"
+  },
+  "Yo‘q — mashina bo‘sh qaytadi": {
+    "ru": "Нет — машина вернётся порожняком",
+    "en": "No — the vehicle returns empty"
+  },
+  "Yuk": {
+    "ru": "Груз",
+    "en": "Load"
+  },
+  "Yuk bekor qilindi.": {
+    "ru": "Груз отменён.",
+    "en": "The load was cancelled."
+  },
+  "Yuk birjasi": {
+    "ru": "Биржа грузов",
+    "en": "Freight exchange"
+  },
+  "Yuk e’lon qilindi. Tashuvchilar takliflari shu yerda chiqadi.": {
+    "ru": "Груз опубликован. Предложения перевозчиков появятся здесь.",
+    "en": "The load is published. Carrier offers will appear here."
+  },
+  "Yuk nomi": {
+    "ru": "Название груза",
+    "en": "Load name"
+  },
+  "Yuk nomini kiriting.": {
+    "ru": "Введите название груза.",
+    "en": "Enter the load name."
+  },
+  "Yuk topilmadi.": {
+    "ru": "Груз не найден.",
+    "en": "Load not found."
+  },
+  "Yuk turi": {
+    "ru": "Тип груза",
+    "en": "Load type"
+  },
+  "Yuk yoki manzil bo‘yicha qidirish": {
+    "ru": "Поиск по грузу или адресу",
+    "en": "Search by load or address"
+  },
+  "Yuk yo‘q. «Yangi yuk» tugmasi bilan birinchi e’lonni bering.": {
+    "ru": "Грузов нет. Нажмите «Новый груз», чтобы разместить первое объявление.",
+    "en": "No loads yet. Use “New load” to post your first listing."
+  },
+  "Yuklanmoqda…": {
+    "ru": "Загрузка…",
+    "en": "Loading…"
+  },
+  "Yuklar": {
+    "ru": "Грузы",
+    "en": "Loads"
+  },
+  "Yuklash": {
+    "ru": "Погрузка",
+    "en": "Loading"
+  },
+  "Yuklash nuqtasi (lat, lng)": {
+    "ru": "Точка погрузки (широта, долгота)",
+    "en": "Loading point (lat, lng)"
+  },
+  "Yuklash sanasi": {
+    "ru": "Дата погрузки",
+    "en": "Loading date"
+  },
+  "Yuklash sanasini kiriting.": {
+    "ru": "Введите дату погрузки.",
+    "en": "Enter the loading date."
+  },
+  "Yukni bekor qilish": {
+    "ru": "Отменить груз",
+    "en": "Cancel the load"
+  },
+  "daraja": {
+    "ru": "уровень",
+    "en": "level"
+  },
+  "kiritilmagan": {
+    "ru": "не введено",
+    "en": "not entered"
+  },
+  "komissiya": {
+    "ru": "комиссия",
+    "en": "commission"
+  },
+  "moderator ko‘rib chiqmoqda": {
+    "ru": "рассматривает модератор",
+    "en": "under moderator review"
+  },
+  "platforma orqali": {
+    "ru": "через платформу",
+    "en": "via the platform"
+  },
+  "qaror": {
+    "ru": "решение",
+    "en": "decision"
+  },
+  "sizning qarshi taklifingiz": {
+    "ru": "ваше встречное предложение",
+    "en": "your counter-offer"
+  }
+}
