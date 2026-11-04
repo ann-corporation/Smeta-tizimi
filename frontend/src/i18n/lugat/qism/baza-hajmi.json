@@ -1,0 +1,18 @@
+{
+  "Baza hajmi": { "ru": "Размер базы данных", "en": "Database size" },
+  "Baza hajmi (superadmin)": { "ru": "Размер базы данных (суперадмин)", "en": "Database size (superadmin)" },
+  "Baza hajmi olinmadi: {x}": { "ru": "Не удалось получить размер базы: {x}", "en": "Could not load database size: {x}" },
+  "{h} / {l} · {f}%": { "ru": "{h} / {l} · {f}%", "en": "{h} / {l} · {f}%" },
+  "Diqqat: baza 90% dan oshdi — zudlik bilan joy bo‘shating (snapshot sovuq mazmunini R2 ga ko‘chirish).": {
+    "ru": "Внимание: база заполнена более чем на 90% — срочно освободите место (перенос холодного содержимого снимков в R2).",
+    "en": "Warning: the database is over 90% full — free up space now (move cold snapshot content to R2)."
+  },
+  "Ogohlantirish: baza 80% dan oshdi — snapshot sovuq mazmunini R2 ga ko‘chirishni rejalashtiring.": {
+    "ru": "Предупреждение: база заполнена более чем на 80% — запланируйте перенос холодного содержимого снимков в R2.",
+    "en": "Notice: the database is over 80% full — plan moving cold snapshot content to R2."
+  },
+  "Snapshot: bazada {i} · R2 da (sovuq) {s} blok": {
+    "ru": "Снимки: в базе {i} · в R2 (холодные) {s} блоков",
+    "en": "Snapshots: {i} in the database · {s} blocks in R2 (cold)"
+  }
+}

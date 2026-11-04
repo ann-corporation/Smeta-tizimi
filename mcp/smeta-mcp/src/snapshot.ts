@@ -4,6 +4,7 @@
  * Prodda hali bo'lmasligi mumkin — «mavjud bo'lsa chaqir, bo'lmasa ogohlantir». Named notation, turlar Postgres'ga qoldiriladi.
  */
 import type { Mijoz } from './db';
+import { snapshotSovuqTikla } from './snapshot-r2';
 
 export const SNAPSHOT_YOQ = 'snapshot sxemasi (snapshot.ol) bazada hali yo\'q — amal SNAPSHOTSIZ bajarildi. Qaytarish uchun qo\'lda nusxa yoki tranzaksiya tarixiga tayaning.';
 
@@ -26,6 +27,9 @@ export async function snapshotOl(m: Mijoz, obyektId: number, sabab: string, izoh
 
 export async function snapshotChaqir(m: Mijoz, nom: 'royxat' | 'farq' | 'qaytar', args: Record<string, unknown>): Promise<unknown> {
   if (!(await snapshotFunksiyaBor(m, nom))) throw new Error(`snapshot.${nom} bazada hali yo'q (snapshot sxemasi prodga qo'llanmagan).`);
+  // Saqlash dietasi: eski snapshot bloklari R2 da bo'lishi mumkin — farq/qaytar o'qishdan oldin shu tranzaksiyada tiklanadi
+  // (farq — doim ROLLBACK: tiklash ham qaytariladi, keyingi chaqiruvda yana R2 dan olinadi; qaytar — COMMIT bilan qoladi).
+  if ((nom === 'farq' || nom === 'qaytar') && Number.isSafeInteger(args.p_snapshot_id)) await snapshotSovuqTikla(m, args.p_snapshot_id as number);
   const params: unknown[] = [];
   const qism = Object.entries(args).filter(([, v]) => v !== undefined).map(([k, v]) => {
     if (!/^p_[a-z_]+$/.test(k)) throw new Error(`Yaroqsiz argument: ${k}`);

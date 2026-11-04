@@ -10,6 +10,8 @@ describe('role integration architecture',()=>{
     const exceptions=new Set(['didox-webhook','t2-bridge','hujjat-r2','kirish','kirish-google','chiqish','royxat','royxat-ozi','royxat-email-kod','soglik','xato','kontekst-diag','catalog-release','norm-katalog','koef-katalog','hour-price-catalog','mash-katalog','narx-katalog','narx-katalog-nashr',
       /* superadminActor: har chaqiruvda bazada qayta tekshiriladi (r2-dublikat.test.ts — superadmin bo'lmasa 403, R2 ga tegmaydi). */
       'r2-dublikat',
+      /* superadminActor: har chaqiruvda bazada qayta tekshiriladi (db-hajm.test.ts — superadmin bo'lmasa 403). */
+      'db-hajm',
       /* Global immutable reference data, not tenant rows: session + pinned file whitelist;
          norm-library.test.ts proves auth fails closed before any R2 access. */
       'norm-library',
