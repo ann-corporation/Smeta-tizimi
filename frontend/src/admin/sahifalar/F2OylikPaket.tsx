@@ -17,10 +17,13 @@ import { Forma3ShaklTanlagich } from '../../components/forma3/Forma3ShaklTanlagi
 import { f3PaketTanlovOl, f3PaketTanlovSaqla, forma3SotuvFayllari, type PaketF3Tanlov } from '../../lib/forma3-shakl-tanlov';
 import { hujjatFaylNomi } from '../../lib/hujjat-yozuvchi';
 import { oylikReestrXlsx, paketTarkibiMatni, paketZip, tarkibBaytlari, TARKIB_FAYL_NOMI } from '../../lib/f2-oylik-paket/eksport';
-import { sverkaXlsx } from '../../lib/nakopitelniy-vedomost-export';
+import { NDS_SUKUT_FOIZ, sverkaXlsx } from '../../lib/nakopitelniy-vedomost-export';
+import { obyektHujjatlariniYigish, type ObyektHujjatlariNatija } from '../../lib/oylik-hujjat/paket';
+import { paketImzosiOl } from '../../lib/oylik-hujjat/ostatka-slichitelniy';
+import { pudratchiNomiOl } from '../../lib/oylik-hujjat/m29';
 import {
   barchaShartnomalar, manifestQur, shartnomaObyektlari, shartnomaPaketYigish, sha256Hex, tayyorgarlikHisobla,
-  type Forma3Holat, type KirishFayl, type M29Holat,
+  type Forma3Holat, type KirishFayl, type M29Holat, type YaratilganHujjatlar,
 } from '../../lib/f2-oylik-paket/shartnoma';
 import type { SvodShartnoma } from '../../lib/nakopitelniy-svod';
 import { oyFaktSoni, oyM29Holati, oylikPaketniTopshir, paketZipniSaqla, yangiTopshirishId } from '../../api/t2-shartnoma-oylik-paket';
@@ -89,10 +92,13 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot }: { kompaniyaId: number; m
   const [m29, setM29] = useState<Map<number, M29Holat>>(new Map());
   const [svod, setSvod] = useState<SvodShartnoma[] | null | undefined>(undefined);
   const [arxivVer, setArxivVer] = useState(0);
+  /** Paketda HAQIQATAN yaratilgan obyekt hujjatlari (Nakopitelniy / M-29 / Ostatka / Slichitelniy): «Tayyorgarlik» katagi shundan. */
+  const [yaratilgan, setYaratilgan] = useState<YaratilganHujjatlar>(new Map());
   const topshirishId = useRef<string | null>(null);
   const sh = rejim === 'shartnoma';
 
   useEffect(() => { obyektKesh.current = new Map(); setHisoblar(new Map()); }, [kompaniyaId, malumot]);
+  useEffect(() => { setYaratilgan(new Map()); }, [oy, shartnomaId, rejim, kompaniyaId]);
 
   const loyihalar = useMemo(() => [...malumot.loyihalar].map(([id, nom]) => ({ id, nom })).sort((a, b) => a.nom.localeCompare(b.nom, 'ru')), [malumot]);
   const shartnomalar = useMemo(() => {
@@ -186,8 +192,8 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot }: { kompaniyaId: number; m
     const f = oyF3lar(svod, new Set([shartnomaId]), oy);
     return { tayyor: f.tayyor.length, qoralama: f.qoralama };
   }, [sh, shartnomaId, svod, oy]);
-  const tayyorgarlik = useMemo(() => (sh ? tayyorgarlikHisobla({ obyektlar: shObyektlar, aktlar: rows, faktSoni, m29, forma3: f3Holat, tekshiruvlar }) : null),
-    [sh, shObyektlar, rows, faktSoni, m29, f3Holat, tekshiruvlar]);
+  const tayyorgarlik = useMemo(() => (sh ? tayyorgarlikHisobla({ obyektlar: shObyektlar, aktlar: rows, faktSoni, m29, forma3: f3Holat, tekshiruvlar, yaratilgan }) : null),
+    [sh, shObyektlar, rows, faktSoni, m29, f3Holat, tekshiruvlar, yaratilgan]);
 
   /** Shartnoma paketini yig'adi (hujjatlar token bilan; xatolar paketni to'xtatmaydi - ПАКЕТ_СОСТАВ.txt ga yoziladi). */
   async function shartnomaPaketiniYigish() {
@@ -203,6 +209,20 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot }: { kompaniyaId: number; m
         else otkazilgan.push(`${belgi}: ${x.xato}`);
       } catch { otkazilgan.push(`${belgi}: ${t('Ф-2 hujjatini yaratib bo‘lmadi.')}`); }
     }
+    // Obyekt hujjatlari (Nakopitelniy, M-29, Ostatka, Slichitelniy): sahifalar bilan bir xil yuklagich/quruvchi (lib/oylik-hujjat), token bilan.
+    const yangiYaratilgan = new Map<number, ObyektHujjatlariNatija['kataklar']>();
+    const hujjatObyektlari = shObyektlar.filter((o) => tanlanganlar.some((r) => r.akt.obyekt_id === o.id));
+    const pudratchi = await pudratchiNomiOl(kompaniyaId).catch(() => null);
+    for (const o of hujjatObyektlari) {
+      const imzo = await paketImzosiOl(kompaniyaId, o.id);
+      const x = await obyektHujjatlariniYigish({ kompaniyaId, obyekt: { id: o.id, nom: o.nom }, oy, imzo, ndsFoiz: NDS_SUKUT_FOIZ, pudratchi,
+        tokenla: async (q) => { const r = await hujjatTokenBilan({ kompaniyaId, bytes: q.bytes, hujjat: q.hujjat, sabab: q.sabab, obyekt: q.obyektId }, () => undefined); return r.ok ? { ok: true } : { ok: false, xabar: r.xabar }; } });
+      if (x.fayllar.length) obyektFayllari.set(o.id, [...(obyektFayllari.get(o.id) ?? []), ...x.fayllar]);
+      otkazilgan.push(...x.otkazilgan);
+      yangiYaratilgan.set(o.id, x.kataklar);
+    }
+    setYaratilgan(yangiYaratilgan);
+    const tayyorgarlikQatorlari = tayyorgarlikHisobla({ obyektlar: shObyektlar, aktlar: rows, faktSoni, m29, forma3: f3Holat, tekshiruvlar, yaratilgan: yangiYaratilgan }).qatorlar;
     const reestr = oylikReestrXlsx(tanlanganlar, { oy, tashkilot, loyiha: null });
     const rt = await hujjatTokenBilan({ kompaniyaId, bytes: reestr.bytes, hujjat: 'F2_OYLIK_REESTR', sabab: `Реестр и свод Ф-2 · договор № ${tanlanganShartnoma.raqam} · ${oy}` }, () => undefined);
     if (rt.ok) ildiz.push({ nom: reestr.faylNomi, bytes: reestr.bytes, tur: 'reestr' }); else otkazilgan.push(`${t('Oylik reestr')}: ${rt.xabar}`);
@@ -226,7 +246,7 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot }: { kompaniyaId: number; m
     if (!jamlangan.length) return { bosh: true as const, otkazilgan };
     const tarkib = paketTarkibiMatni({ oy, fayllar: jamlangan, tekshiruvlar: tekshiruvlar.filter((x) => tanlov.has(x.aktId)), otkazilgan, shartnoma: { raqam: tanlanganShartnoma.raqam, nom: tanlanganShartnoma.nom } });
     const manifest = await manifestQur({ oy, shartnoma: tanlanganShartnoma, fayllar: jamlangan, tarkib: { yol: TARKIB_FAYL_NOMI, bytes: tarkibBaytlari(tarkib) },
-      aktlar: tanlanganlar, obyektlar: shObyektlar, tayyorgarlik: tayyorgarlik?.qatorlar ?? [], kirmadi: otkazilgan });
+      aktlar: tanlanganlar, obyektlar: shObyektlar, tayyorgarlik: tayyorgarlikQatorlari, kirmadi: otkazilgan });
     const zip = paketZip(jamlangan, tarkib);
     const zipNom = hujjatFaylNomi({ obyekt: tashkilot ?? undefined, hujjat: `ПАКЕТ_${tanlanganShartnoma.raqam}`, davr: oy, kengaytma: 'zip' });
     manifest.zip = { sha256: await sha256Hex(zip), olcham: zip.byteLength, nom: zipNom };

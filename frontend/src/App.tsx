@@ -36,6 +36,7 @@ const TestNarxlar   = lazy(() => import('./test02/TestNarxlar'));
 const TestF2        = lazy(() => import('./test02/TestF2'));
 const TestSklad     = lazy(() => import('./test02/TestSklad'));
 const TestZayavka   = lazy(() => import('./test02/TestZayavka'));
+const TenderSahifa  = lazy(() => import('./admin/tender/TenderSahifa'));
 const TestBirja     = lazy(() => import('./test02/TestBirja'));
 const TestInvite    = lazy(() => import('./test02/TestInvite'));
 const TestTolov     = lazy(() => import('./test02/TestTolov'));
@@ -59,6 +60,7 @@ const SystemControlPage = lazy(() => import('./admin/pages/SystemControlPage'));
 const KompaniyaPage = lazy(() => import('./admin/pages/KompaniyaPage'));
 const ShartnomaLiniya = lazy(() => import('./admin/sahifalar/ShartnomaLiniya'));
 const Qarzdorlik = lazy(() => import('./admin/sahifalar/Qarzdorlik'));
+const SotuvSahifa = lazy(() => import('./admin/sotuv/SotuvSahifa'));
 const HujjatDizayni = lazy(() => import('./admin/sahifalar/HujjatDizayni'));
 const SmetaStudio = lazy(() => import('./admin/sahifalar/SmetaStudio'));
 const Tokenlar = lazy(() => import('./admin/sahifalar/Tokenlar'));
@@ -206,6 +208,8 @@ export default function App() {
           <Route path="boshqaruv" element={<Suspense fallback={<SahifaYuklanmoqda />}><BoshqaruvPanel /></Suspense>} />
           <Route path="smeta-studio" element={<Suspense fallback={<SahifaYuklanmoqda />}><SmetaStudio /></Suspense>} />
           <Route path="m29" element={<M29Native />} />
+          {/* Uy sotish (egasi 2026-11-03): shaxmatka, bitimlar, bron, grafik, to'lovlar, panel. */}
+          <Route path="sotuv" element={<Suspense fallback={<SahifaYuklanmoqda />}><SotuvSahifa /></Suspense>} />
           {/* Tizim1 sahifalari olib tashlandi (egasi 2026-10-21/22); eski havolalar zamonaviy sahifaga yo'naltiriladi. */}
           <Route path="buxgalteriya" element={<Navigate to="/admin/moliya" replace />} />
           <Route path="shartnomalar" element={<Navigate to="/admin/shartnoma-liniya" replace />} />
@@ -283,6 +287,7 @@ export default function App() {
           <Route path="moliya" element={<WrapperMoliya />} />
           <Route path="logistika" element={<WrapperLogistika />} />
           <Route path="zayavka" element={<TestZayavka />} />
+          <Route path="tender" element={<Suspense fallback={<SahifaYuklanmoqda />}><TenderSahifa /></Suspense>} />
           <Route path="erp" element={<TestErp />} />
           {/* `sozlamalar` (T1) allaqachon band — bu T2 sozlamalari. */}
 

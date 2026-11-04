@@ -1,8 +1,8 @@
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useEffect, useMemo, useState } from 'react';
 import { Download, Eye, RefreshCw, AlertTriangle, Building2, ShieldAlert, FileSignature, Inbox } from 'lucide-react';
-import { sbOqi, sbT2DaraxtOl, sbT2KompaniyalarOl, sbT2ObyektlarOlKomp, type T2Kompaniya, type T2Obyekt } from '../../api/supabase';
-import { sbT2F2TafsilotOl } from '../../api/t2-narx';
+import { sbT2ObyektlarOlKomp, type T2Obyekt } from '../../api/supabase';
+import { m29HujjatQur, m29KirishOl, m29Oylari, pudratchiNomiOl } from '../../lib/oylik-hujjat/m29';
 import { t, tilLocale } from '../../i18n/til';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
@@ -10,8 +10,7 @@ import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
-import { m29Hisobla, type M29Kirish, type M29Natija, type M29SmetaQator, type M29SkladQator } from '../../lib/m29';
-import { m29Hujjat } from '../../lib/m29/export';
+import { m29Hisobla, type M29Kirish, type M29Natija } from '../../lib/m29';
 import { davrNomi } from '../../lib/f2-hujjat-korinish';
 import { M29Korinish } from '../../components/m29/M29Korinish';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
@@ -40,11 +39,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   useEffect(() => {
     let a = true;
     void sbT2ObyektlarOlKomp(companyId).then((r) => { if (a && r.ok) setObjects((r.qatorlar || []) as T2Obyekt[]); });
-    void sbT2KompaniyalarOl().then((r) => {
-      if (!a || !r.ok) return;
-      const k = ((r.qatorlar || []) as T2Kompaniya[]).find((x) => x.id === companyId);
-      setPudratchi(k?.toliq_nom || k?.nom || null);
-    });
+    void pudratchiNomiOl(companyId).then((nom) => { if (a) setPudratchi(nom); }).catch(() => undefined);
     return () => { a = false; };
   }, [companyId]);
   useEffect(() => {
@@ -54,24 +49,11 @@ function Sessiya({ companyId }: { companyId: number }) {
   async function yukla(oid: number) {
     setBusy(true); setXato(''); setOgoh(''); setKirish(null);
     try {
-      const [d, f, s] = await Promise.all([
-        sbT2DaraxtOl(oid),
-        sbT2F2TafsilotOl({ obyektId: oid, tur: 'f2' }),
-        sbOqi<M29SkladQator>({ jadval: 't2_sklad_harakat', filtr: `obyekt_id=eq.${oid}&holat=eq.faol`, ustunlar: 'operatsiya,sana,nomi,birligi,obyomi', limit: 100000 }),
-      ]);
-      if (!d.ok) throw new Error(t('Smeta o‘qilmadi.'));
-      if (!f.ok || f.toliq === false) throw new Error(t('F2 qatorlari to‘liq o‘qilmadi — M-29 chala ma’lumot ustida tuzilmaydi.'));
-      if (!s.ok) setOgoh(t('Sklad harakatlari o‘qilmadi — «Фактически» ustuni bo‘sh (noma’lum) qoladi.'));
-      const smeta = (d.qatorlar || []) as unknown as M29SmetaQator[];
-      const f2 = (f.qatorlar || []).map((q) => ({ qator_id: q.qator_id, oy: String(q.oy), hajm: q.certified_quantity ?? q.hajm, akt_holat: q.akt_holat }));
-      const sklad = s.ok ? (s.qatorlar || []) : [];
-      setKirish({ smeta, f2, sklad });
-      const oylar = [...new Set([
-        ...f2.filter((x) => x.akt_holat === 'tasdiqlangan').map((x) => x.oy.slice(0, 7)),
-        ...sklad.map((x) => String(x.sana).slice(0, 7)),
-      ])].filter((x) => /^\d{4}-\d{2}$/.test(x)).sort();
-      setDavr((old) => (old && oylar.includes(old) ? old : oylar[oylar.length - 1] ?? ''));
-      if (!oylar.length) setOgoh(t('Bu obyektda tasdiqlangan F2 ham, sklad harakati ham yo‘q — M-29 bo‘sh bo‘ladi.'));
+      const y = await m29KirishOl(oid);
+      if (y.ogoh) setOgoh(y.ogoh);
+      setKirish(y.kirish);
+      setDavr((old) => (old && y.oylar.includes(old) ? old : y.oylar[y.oylar.length - 1] ?? ''));
+      if (!y.oylar.length) setOgoh(t('Bu obyektda tasdiqlangan F2 ham, sklad harakati ham yo‘q — M-29 bo‘sh bo‘ladi.'));
     } catch (e) { setXato(e instanceof Error ? e.message : t('Yuklanmadi.')); }
     finally { setBusy(false); }
   }
@@ -79,19 +61,16 @@ function Sessiya({ companyId }: { companyId: number }) {
 
   const oylar = useMemo(() => {
     if (!kirish) return [];
-    return [...new Set([
-      ...kirish.f2.filter((x) => x.akt_holat === 'tasdiqlangan').map((x) => x.oy.slice(0, 7)),
-      ...kirish.sklad.map((x) => String(x.sana).slice(0, 7)),
-    ])].filter((x) => /^\d{4}-\d{2}$/.test(x)).sort().reverse();
+    return m29Oylari(kirish).reverse();
   }, [kirish]);
   const natija: M29Natija | null = useMemo(() => (kirish && davr ? m29Hisobla(kirish, davr) : null), [kirish, davr]);
   const obyektNom = objects.find((o) => String(o.id) === objectId)?.nom ?? '';
   async function eksport(korish: boolean) {
     if (!natija) return;
     try {
-      // Egasi 2026-09-30: hisobot oyidan oldingi har oy — alohida ustun (bitta M-29 hisobi har oy uchun).
-      const oldingiOylar = kirish ? [...oylar].filter((m) => m < davr).sort().map((oy) => ({ oy, natija: m29Hisobla(kirish, oy) })) : [];
-      const h = m29Hujjat(natija, { obyektNom, pudratchi, imzo: tomonlar, oldingiOylar });
+      // Egasi 2026-09-30: hisobot oyidan oldingi har oy — alohida ustun (lib/oylik-hujjat/m29: paket bilan bir xil quruvchi).
+      if (!kirish) return;
+      const h = m29HujjatQur({ kirish, davr, obyektNom, pudratchi, imzo: tomonlar });
       const tk = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'M-29', sabab: `М-29 · ${obyektNom} · ${davr}`, obyekt: objectId },
         () => { if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi); });
       if (!tk.ok) toast(tk.xabar, 'danger'); else if (tk.xabar) toast(tk.xabar, 'ok');

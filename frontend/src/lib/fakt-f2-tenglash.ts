@@ -332,7 +332,7 @@ export type TenglashJami = {
   bolimlar: TenglashBolimJami[];
 };
 
-const kesimQosh = (a: KatKesim, b: KatKesim | undefined) => {
+export const kesimQosh = (a: KatKesim, b: KatKesim | undefined) => {
   if (!b) return;
   for (const [k, v] of Object.entries(b.summalar) as [keyof KatKesim['summalar'], number][]) a.summalar[k] = (a.summalar[k] ?? 0) + v;
   a.nomalum += b.nomalum; a.nomalumSoni += b.nomalumSoni; a.summasizSoni += b.summasizSoni;

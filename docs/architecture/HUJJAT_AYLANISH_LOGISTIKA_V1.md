@@ -34,7 +34,7 @@ flowchart LR
 
 Har juftlik faqat **faol aloqa** (`t2_tomon_aloqa.holat='faol'`) bo'lganda ishlaydi — bu tenant izolyatsiyasining yagona eshigi.
 
-## 3. Ma'lumot modeli (migratsiya `20261122100000_t2_hujjat_aylanish_v1`)
+## 3. Ma'lumot modeli (migratsiya `20261127000000_t2_hujjat_aylanish_v1`)
 
 Faqat 5 jadval, matn/raqam, **fayl yo'q** (Supabase 421/500 MB — fayllar `t2_document_registry.id` → R2).
 
@@ -114,7 +114,7 @@ Keyingi shablonlar (ro'yxat, kod yo'q): исполнительная схема,
 Park, reys, tannarx, narxlash va rentabellik PR #235 (`claude/logistika-v1`) da. Bu branchda logistika kodi/jadvali yo'q; keyingi integratsiya nuqtalari: (1) reys hujjatlari (yo'l varag'i, yuk xati) shu hujjat aylanishi zanjiriga `hujjat_turi='yol_varagi'` bilan kiritilishi mumkin; (2) yetkazish talabi — mavjud `yetkazish_talabi` murojaat turi.
 
 ## 8. Qo'llash tartibi va keyingi qadamlar
-1. Migratsiya `20261122100000_t2_hujjat_aylanish_v1.sql` (oldin prod'da acceptance'ni **branch**'da `BEGIN..ROLLBACK` bilan yurgizing; keyin prod, keyin merge). Boshqa migratsiyaga bog'liq emas (`t2_tomon_*`, `t2_outbox`, `t2_document_registry` allaqachon bor).
+1. Migratsiya `20261127000000_t2_hujjat_aylanish_v1.sql` (oldin prod'da acceptance'ni **branch**'da `BEGIN..ROLLBACK` bilan yurgizing; keyin prod, keyin merge). Boshqa migratsiyaga bog'liq emas (`t2_tomon_*`, `t2_outbox`, `t2_document_registry` allaqachon bor).
 2. Cron: kuniga bir `t2_hujjat_eslatma_v1(2)`.
 3. Bildirishnoma UI (qo'ng'iroqcha): RPC va BFF bo'limi (`bolim=bildirishnomalar`) tayyor, i18n kalitlari qo'shilgan; ko'rsatish komponenti keyingi ish.
 4. АОСР/lab protokoli reestrlaridan «tasdiqqa yuborish» tugmasi (`manba_jadval/manba_id` allaqachon qo'llab-quvvatlanadi).

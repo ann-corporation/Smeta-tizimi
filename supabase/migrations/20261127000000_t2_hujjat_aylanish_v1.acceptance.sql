@@ -1,4 +1,4 @@
--- ACCEPTANCE: 20261122100000 (hujjat aylanishi v1) - BEGIN..ROLLBACK, FAQAT sintetik fixture. Prodda ishlatilmaydi.
+-- ACCEPTANCE: 20261127000000 (hujjat aylanishi v1) - BEGIN..ROLLBACK, FAQAT sintetik fixture. Prodda ishlatilmaydi.
 -- Tekshiradi: (1) RLS/huquqlar; (2) zanjir: yaratish, tartib, begona kompaniya navbatsiz tasdiqlay olmaydi, rad/qaytarish izohi, qayta yuborish raundi;
 -- (3) faol aloqasiz zanjir/xat rad; (4) xat raqamlari ketma-ket, javob xati ota xatni yopadi, kiruvchi raqam; (5) kiruvchi quti; (6) eslatma idempotent;
 -- (7) hujjat jurnali o'zgarmas. Natija oxirgi exception matnida "ACC_HUJJAT ...".

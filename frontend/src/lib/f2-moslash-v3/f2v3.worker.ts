@@ -18,7 +18,7 @@ self.onmessage = async (e: MessageEvent<F2IshchiKirish>) => {
     if (d.tur === 'oqi') {
       const bytes = d.source instanceof ArrayBuffer ? d.source : await d.source.arrayBuffer();
       const wb = await readXlsx(bytes);
-      const aktlar = f2AktlarniOqi({ fayl: d.fayl, varaqlar: wb.sheets.map((s) => ({ nom: s.name, rows: s.rows, merges: s.merges })) });
+      const aktlar = f2AktlarniOqi({ fayl: d.fayl, varaqlar: wb.sheets.map((s) => ({ nom: s.name, rows: s.rows, merges: s.merges, formulalar: s.formulalar })) });
       javob({ ok: true, aktlar });
     } else {
       javob({ ok: true, natija: f2MoslashV3(d.daraxt, d.smeta, d.opts) });

@@ -25,6 +25,11 @@ import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { useRahbarPanel, type RahbarPanel } from '../../api/t2-rahbar-panel';
 import { DavrTanlov, DiqqatRoyxati, ObyektlarMatritsa, PulOqimi, RahbarKartalar, TasdiqNavbati } from '../../components/rahbar-panel/RahbarMarkaz';
 import { davrOraligi, type DavrTur } from '../../lib/rahbar-panel/markaz';
+import { ObyektPaneli, TahlilYorliqlari } from '../../components/rahbar-panel/RahbarTahlil';
+import { rahbarXlsx } from '../../lib/rahbar-panel/eksport';
+import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
+import { toast } from '../../umumiy/ui/Toast';
 import { paketUchligi, type SummaPaket } from '../../lib/summa-paket';
 import { ustamasizUchlik } from '../../lib/ustamali-summa';
 import type { TafsilQism } from '../../lib/summa-tafsilot';
@@ -239,7 +244,17 @@ function Obyektlar({ e, onAsos, ph }: { e: BossExecutive; onAsos: (objectId: num
 function Portfolio({ data }: { data: Dashboard }) {
   const e = trustedExecutive(data);
   const [davr, setDavr] = useState<DavrTur>('hammasi');
-  const rp = useRahbarPanel(data.kompaniya.kompaniya_id, davrOraligi(davr));
+  const davrQ = davrOraligi(davr);
+  const rp = useRahbarPanel(data.kompaniya.kompaniya_id, davrQ);
+  const [tanlangan, setTanlangan] = useState<{ id: number; nom: string } | null>(null);
+  const eksport = async () => {
+    if (!rp.data) return;
+    const nom = data.kompaniya.nom ?? String(data.kompaniya.kompaniya_id);
+    const { bytes, faylNomi } = await rahbarXlsx(rp.data, { qamrovNomi: nom });
+    const r = await hujjatTokenBilan({ kompaniyaId: data.kompaniya.kompaniya_id, bytes, hujjat: 'RAHBAR_PANEL', sabab: `Панель руководителя · ${nom}` },
+      () => downloadBlob(bytes, faylNomi));
+    if (!r.ok) toast(t(r.xabar), 'danger'); else if (r.xabar) toast(t(r.xabar), 'ok');
+  };
   const ph: PanelHolat = { panel: rp.data, yuklanmoqda: rp.isPending && rp.fetchStatus !== 'idle' };
   const [reports, setReports] = useState(false);
   const [reportObject, setReportObject] = useState<number | undefined>();
@@ -257,7 +272,10 @@ function Portfolio({ data }: { data: Dashboard }) {
     {/* Boshqaruv markazi (issue #195 §1–§5): server paketi — bitta manba. */}
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h2 className="fz-card__title">{t('Boshqaruv markazi')}</h2>
-      <DavrTanlov qiymat={davr} onChange={setDavr} />
+      <div className="flex flex-wrap items-center gap-2">
+        <DavrTanlov qiymat={davr} onChange={setDavr} />
+        <button type="button" className="fz-btn fz-btn--sm" disabled={!markaz} onClick={() => void eksport()}><FileDown size={14} aria-hidden="true" />{t('Excel')}</button>
+      </div>
     </div>
     {rp.isError && <div role="alert" className="fz-note fz-note--danger"><AlertTriangle aria-hidden="true" /><span>{t('Boshqaruv markazi yuklanmadi.')}</span>
       <button type="button" className="fz-btn fz-btn--sm ml-auto" onClick={() => void rp.refetch()}>{t('Qayta urinish')}</button></div>}
@@ -269,7 +287,10 @@ function Portfolio({ data }: { data: Dashboard }) {
         <DiqqatRoyxati diqqat={markaz.diqqat} />
         <TasdiqNavbati royxat={markaz.tasdiq_kutmoqda} obyektNomi={obyektNomi} />
       </div>
-      <ObyektlarMatritsa p={markaz} />
+      <ObyektlarMatritsa p={markaz} onTanla={(o) => { setTanlangan({ id: o.obyekt_id, nom: o.nom });
+        requestAnimationFrame(() => document.getElementById('obyekt-paneli')?.scrollIntoView({ behavior: 'smooth', block: 'start' })); }} />
+      {tanlangan && <div id="obyekt-paneli"><ObyektPaneli key={tanlangan.id} kompaniyaId={data.kompaniya.kompaniya_id} obyektId={tanlangan.id} nom={tanlangan.nom} davr={davrQ} onYop={() => setTanlangan(null)} /></div>}
+      <TahlilYorliqlari p={markaz} />
     </>}
 
     <details className="fz-card" open>

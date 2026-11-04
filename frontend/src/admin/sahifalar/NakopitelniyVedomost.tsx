@@ -13,7 +13,7 @@ import type { Forma3Rekvizit } from '../../lib/forma3-export';
 import { shartnomaSvodOl, sverkaXato, sverkaYozuvYoz, t2NakopitelniyToliq, tolovYoz, type NakopitelniyProgress, type NakopitelniyQator, type NakopitelniyDavr, type NakopitelniyJami, type SverkaYozuvTur } from '../../api/t2-nakopitelniy';
 import { shartnomaSvodi, somga, sverkaHisobla, sverkaMatniniOqi, tiyin, type F3Holat, type SvodShartnoma, type SverkaImportNatija, type TolovTur } from '../../lib/nakopitelniy-svod';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
-import { HujjatToliqEmasXato, NDS_SUKUT_FOIZ, nakopitelniyVedomostHujjat, shartnomaSvodXlsx, sverkaXlsx } from '../../lib/nakopitelniy-vedomost-export';
+import { HujjatToliqEmasXato, NDS_SUKUT_FOIZ, shartnomaSvodXlsx, sverkaXlsx } from '../../lib/nakopitelniy-vedomost-export';
 import { t } from '../../i18n/til';
 import PulTahlil from '../../components/boss-decision/PulTahlil';
 import { forma3Hujjat, forma3SotuvdanXlsx, type Forma3ExportOptions, type Forma3Shakl } from '../../lib/forma3-export';
@@ -22,17 +22,14 @@ import { f3ShaklOl, f3ShaklSaqla } from '../../lib/forma3-shakl-tanlov';
 import { sbT2F2TafsilotOl } from '../../api/t2-narx';
 import { ozgarishRoyxatOl } from '../../api/t2-document-control';
 import { t2ObyektNakrutka, type NakrutkaKaskad, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
-import { obyektPodvaliOqi } from '../../api/t2-nakrutka-podval';
 import type { Podval } from '../../lib/hisob-yadro';
-import type { SmetaNakrutka } from '../../api/t2-nakopitelniy';
-import { obyektSmetaKOplate } from '../../lib/ustamali-summa';
-import type { SvodYaxlit } from '../../lib/svod-yaxlit';
+import { nakopitelniyHujjatQur, nakopitelniyOylarOl, nakopitelniyQatorlarniTayyorla, nakopitelniySmetaNakrutka, nakopitelniyUstamaOl, nakopitelniyUstamaTayyorEmas, nakopitelniyYukla, type NakopitelniyUstama } from '../../lib/oylik-hujjat/nakopitelniy';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { hujjatArxivla } from '../../api/t2-hujjat-arxiv';
 import { toast } from '../../umumiy/ui/Toast';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
-import { ozgarishIzohi, smetaModeliniYukla, tartibla, type SmetaModel } from '../../lib/smeta-model';
+import type { SmetaModel } from '../../lib/smeta-model';
 import { validatePtoHierarchy, type PtoF3LineageInput, type PtoLineageScope } from '../../lib/pto-document-lineage';
 import { f3CertifiedHajm, f3CertifiedSources, f2OyKesimi } from '../../lib/pto-document-lineage/f3-sources';
 import { Maydon, Sahifa } from '../../umumiy/ui/Sahifa';
@@ -76,7 +73,6 @@ function Sessiya({ companyId }: { companyId: number }) {
   /** Katta obyekt: sahifalab yuklash progressi (prod 2026-10-27 — foydalanuvchi kutayotganini ko'rsin). */
   const [progress, setProgress] = useState<NakopitelniyProgress | null>(null);
   const [xato, setXato] = useState('');
-  const [treeMeta, setTreeMeta] = useState<Map<number, { ota_id: number | null; daraja: number | null }>>(new Map());
   /** Egasi 2026-09-30: jadvalda ham har tasdiqlangan F2 oyi alohida ustun (+ ИТОГО). */
   const [oyKesim, setOyKesim] = useState<ReturnType<typeof f2OyKesimi> | null>(null);
 
@@ -94,7 +90,6 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [podval, setPodval] = useState<Podval | null>(null);
   /** Server kesimi (cats / cats_kaskad / svod_yaxlit) — obyekt ustamalisi yagona obyektUstamali orqali. */
   const [nakrutkaJavob, setNakrutkaJavob] = useState<Awaited<ReturnType<typeof t2ObyektNakrutka>> | null>(null);
-  const svodYaxlit: SvodYaxlit | null = nakrutkaJavob?.svod_yaxlit ?? null;
   /** Podval o'qildi (null — standart kaskad); o'qilmaguncha smeta к оплате hisoblanmaydi (standart bilan «miltillamasin»). */
   const [podvalOqildi, setPodvalOqildi] = useState(false);
   /** Nakrutka o'qish xatosi — jim yutilmaydi, ekranda ko'rsatiladi. */
@@ -108,18 +103,12 @@ function Sessiya({ companyId }: { companyId: number }) {
     setNakrutkaJavob(null);
     setNakrutkaXato(null);
     if (!objectId) return;
-    void t2ObyektNakrutka(Number(objectId)).then(async (r) => {
+    // Yagona yuklagich (lib/oylik-hujjat/nakopitelniy): oylik paket ham aynan shuni chaqiradi.
+    void nakopitelniyUstamaOl(companyId, Number(objectId)).then((u) => {
       if (!active) return;
-      if (!r.ok) { setNakrutkaXato(r.error || r.code || 'Nakrutka o‘qilmadi'); return; }
-      if (r.koeffitsientlar) setNakrutka(r.koeffitsientlar);
-      if (r.nakrutka) setNakrutkaKaskadi(r.nakrutka);
-      if (r.cats) setNakrutkaJavob(r);
-      // «Podval yo'q» (standart) va «o'qilmadi» farqlanadi; o'qilmasa — xato ko'rsatiladi, eksport bloklanadi.
-      const p = await obyektPodvaliOqi(companyId, Number(objectId), r.shartnoma_id ?? null, r.nakrutka_podval_id ?? null);
-      if (!active) return;
-      if (!p.ok) { setNakrutkaXato(p.xato); return; }
-      setPodval(p.podval); setPodvalOqildi(true);
-    }).catch(() => { if (active) setNakrutkaXato('Nakrutka o‘qilmadi (tarmoq xatosi)'); });
+      setNakrutkaXato(u.xato); setNakrutka(u.koeffitsientlar as NakrutkaKoeffitsientlar | null); setNakrutkaKaskadi(u.kaskad); setNakrutkaJavob(u.javob);
+      setPodval(u.podval); setPodvalOqildi(u.podvalOqildi);
+    });
     return () => { active = false; };
   }, [objectId]);
 
@@ -176,21 +165,14 @@ function Sessiya({ companyId }: { companyId: number }) {
     setBusy(true); setXato('');
     try {
       // Yagona smeta modeli (lib/smeta-model): daraxt, zamena bog'lanishi va o'zgarish izohlari bir joydan.
-      const [r, model, taf] = await Promise.all([
-        t2NakopitelniyToliq(objId, tanlanganDavr || null, false, { onProgress: (p) => { if (currentRequest === requestId.current) setProgress(p); } }),
-        smetaModeliniYukla(objId),
-        sbT2F2TafsilotOl({ obyektId: objId, tur: 'f2' }).catch(() => null),
-      ]);
+      const y = await nakopitelniyYukla(objId, tanlanganDavr || null, { onProgress: (p) => { if (currentRequest === requestId.current) setProgress(p); } });
       if (currentRequest !== requestId.current) return;
-      if (!r.ok) { setXato(r.xato || r.code || 'Yuklanmadi'); setQatorlar([]); return; }
-      const meta = new Map<number, { ota_id: number | null; daraja: number | null }>();
-      for (const q of model.byId.values()) meta.set(q.id, { ota_id: q.ota_id, daraja: q.daraja });
-      setTreeMeta(meta);
+      if ('xato' in y) { setXato(y.xato); setQatorlar([]); return; }
+      const { r, model } = y;
       modelRef.current = model;
-      // Egasi 2026-09-29: qo'shimcha/zamena qatorlarining tartib raqami smeta oxirida — hujjatlar
-      // ularni oxirgi razdelga yozardi. Barcha hujjatlar shu ro'yxatdan: DARAXT tartibida.
-      setQatorlar(tartibla(r.qatorlar.map(q => ({ ...q, ...(meta.get(q.qator_id) ?? {}), ozgarish_izoh: ozgarishIzohi(q, model), norma: model.byId.get(q.qator_id)?.norma ?? null })), model));
-      setOyKesim(taf?.ok && taf.toliq !== false && taf.qatorlar && r.davr ? f2OyKesimi(taf.qatorlar, String(r.davr).slice(0, 7)) : null);
+      // Egasi 2026-09-29: qo'shimcha/zamena qatorlarining tartib raqami smeta oxirida — barcha hujjatlar DARAXT tartibida.
+      setQatorlar(y.qatorlar);
+      setOyKesim(y.oyKesim);
       setJami(r.jami); setDavrlar(r.davrlar); setDavr(r.davr); setObyektNom(r.obyekt.nom);
       setLoyihaId(r.obyekt.loyiha_id);
       setObyektKompaniyaId(r.obyekt.kompaniya_id);
@@ -201,7 +183,7 @@ function Sessiya({ companyId }: { companyId: number }) {
 
   useEffect(() => {
     ++requestId.current;
-    setQatorlar([]); setJami(null); setDavrlar([]); setTreeMeta(new Map()); setDavr(''); setXato('');
+    setQatorlar([]); setJami(null); setDavrlar([]); setDavr(''); setXato('');
     if (!objectId) { setBusy(false); return; }
     void yukla(Number(objectId), workspace.scope.periodId || '');
     return () => { ++requestId.current; };
@@ -242,14 +224,11 @@ function Sessiya({ companyId }: { companyId: number }) {
    * Smeta «к оплате» — BITTA yadro hisobi (`obyektUstamali`: server kesimi + svod yaxlit + podval/koeffitsientlar), hujjat bilan
    * bir xil. Muqobil manbalar (server kaskadi / jami.smeta_nakrutka) yo'q: kirish yetishmasa — «не определена» va sababi.
    */
-  const smetaNakrutkaHisob = useMemo((): { qiymat: SmetaNakrutka | null; sabab: string | null } => {
-    if (nakrutkaXato) return { qiymat: null, sabab: nakrutkaXato };
-    if (!podvalOqildi) return { qiymat: null, sabab: null }; // hali o'qilmoqda
-    // Kategoriyasi ko'rsatilmagan smeta qismi (jami − kesim) tashlanmaydi — ИТОГО-4 ga ustamasiz, taxminiy (≈).
-    return obyektSmetaKOplate(nakrutkaJavob, podval, nakrutka, jami?.smeta_summa ?? null);
-  }, [nakrutka, podval, podvalOqildi, nakrutkaJavob, nakrutkaXato, jami?.smeta_summa]);
+  const ustama = useMemo((): NakopitelniyUstama => ({ koeffitsientlar: nakrutka, kaskad: nakrutkaKaskadi, javob: nakrutkaJavob, podval, podvalOqildi, xato: nakrutkaXato }),
+    [nakrutka, nakrutkaKaskadi, nakrutkaJavob, podval, podvalOqildi, nakrutkaXato]);
+  const smetaNakrutkaHisob = useMemo(() => nakopitelniySmetaNakrutka(ustama, jami), [ustama, jami]);
   /** Eksport darvozasi: ustama/podval o'qilmagan yoki xato — hujjat yasalmaydi (sababi bilan). */
-  const ustamaTayyorEmas = (): string | null => (nakrutkaXato ? `Hujjat yasalmadi: ${nakrutkaXato}.` : !podvalOqildi ? 'Hujjat yasalmadi: ustama (nakrutka) va podval hali o‘qilmoqda — biroz kuting.' : null);
+  const ustamaTayyorEmas = (): string | null => nakopitelniyUstamaTayyorEmas(ustama);
   const smetaNakrutka = smetaNakrutkaHisob.qiymat;
 
   /** Hujjat faqat TO'LIQ ro'yxatdan yasaladi: ekrandagi ro'yxat qisqa bo'lsa
@@ -266,7 +245,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         return null;
       }
       if (r.truncated) { setXato('Hujjat yasalmadi: server ro‘yxatni to‘liq bermadi — chala hujjat chiqarilmaydi.'); return null; }
-      return tartibla(r.qatorlar.map(q => ({ ...q, ...(treeMeta.get(q.qator_id) ?? {}), ozgarish_izoh: ozgarishIzohi(q, modelRef.current), norma: modelRef.current?.byId.get(q.qator_id)?.norma ?? null })), modelRef.current);
+      return nakopitelniyQatorlarniTayyorla(r.qatorlar, modelRef.current);
     } finally { setEksportBusy(false); setProgress(null); }
   };
   const stavkaOl = (): number | null => {
@@ -405,9 +384,8 @@ function Sessiya({ companyId }: { companyId: number }) {
       const rows = await toliqQatorlar();
       if (!rows) return;
       // Egasi 2026-09-30: har tasdiqlangan F2 oyi alohida ustun + ИТОГО (manba — F3 bilan bir xil certified F2).
-      const taf = await sbT2F2TafsilotOl({ obyektId: Number(objectId), tur: 'f2' });
-      const oylar = taf.ok && taf.toliq !== false && taf.qatorlar && davr ? f2OyKesimi(taf.qatorlar, davr.slice(0, 7)) : null;
-      const h = nakopitelniyVedomostHujjat(rows, { obyektNom, davr, imzo: tomonlar, ndsFoiz: stavkaOl(), smetaNakrutka, nakrutka, podval, nkManba: nakrutkaJavob?.nk_manba ?? null, oylar, svodYaxlit });
+      const oylar = await nakopitelniyOylarOl(Number(objectId), davr);
+      const h = nakopitelniyHujjatQur({ qatorlar: rows, jami, obyektNom, davr, ustama, oylar, imzo: tomonlar, ndsFoiz: stavkaOl() });
       const t = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'NAKOPITELNIY', sabab: `Накопительная ведомость · ${obyektNom} · ${davr}`, obyekt: objectId },
         () => { if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi); });
       if (!t.ok) toast(t.xabar, 'danger'); else if (t.xabar) toast(t.xabar, 'ok');

@@ -1,4 +1,4 @@
--- ROLLBACK: 20261122100000_t2_hujjat_aylanish_v1 (faqat shu migratsiya qo'shgan narsalar; boshqa jadvallarga tegmaydi).
+-- ROLLBACK: 20261127000000_t2_hujjat_aylanish_v1 (faqat shu migratsiya qo'shgan narsalar; boshqa jadvallarga tegmaydi).
 -- Diqqat: jadvallar tushirilsa zanjir/xat ma'lumoti yo'qoladi; avval nusxa oling.
 drop function if exists public.t2_hujjat_eslatma_v1(integer);
 drop function if exists public.t2_hujjat_aylanish_hujjat_ol_v1(bigint, bigint);
