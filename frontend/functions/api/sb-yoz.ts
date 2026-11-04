@@ -30,6 +30,7 @@ import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob, mayWriteCompani
 import { egaQarori, egalarniOqi, yozishTalablari } from '../_shared/tenant-yozish';
 import { katalogSnapshotlari } from '../_shared/narx-katalog-snapshot';
 import { sotuvAmalmi, sotuvYuk } from '../_shared/sotuv-yuk';
+import { ybAmalmi, ybYuk } from '../_shared/yuk-birjasi-yuk';
 import { TENDER_AMALLAR, tenderYuk } from '../_shared/tender-yuk';
 
 /** Har amal → qaysi RPC va uni kim chaqira oladi. */
@@ -259,6 +260,14 @@ const AMALLAR = {
   transport_reys_bekor_v1: { rpc: 't2_tr_reys_bekor_v1' },
   transport_xarajat_otkaz_v1: { rpc: 't2_tr_xarajat_otkaz_v1' },
   /* Egasi 2026-10-27: moliyaviy tahlil — tizimda yo'q ko'rsatkichni qo'lda kiritish/almashtirish/bekor (append-only, idempotent). */
+  /* YUK BIRJASI v1 (20261201000000): egasi tomoni. Yuk: _shared/yuk-birjasi-yuk.ts (oq ro'yxat). Tashuvchi/haydovchi amallari BU YERDA YO'Q (service_role, bot). */
+  yb_yuk_saqla_v1: { rpc: 't2_yb_yuk_saqla_v1' },
+  yb_yuk_elon_v1: { rpc: 't2_yb_yuk_elon_v1' },
+  yb_yuk_javob_v1: { rpc: 't2_yb_yuk_javob_v1' },
+  yb_yuk_bekor_v1: { rpc: 't2_yb_yuk_bekor_v1' },
+  yb_yuk_tasdiq_v1: { rpc: 't2_yb_yuk_tasdiq_v1' },
+  yb_yuk_baho_v1: { rpc: 't2_yb_yuk_baho_v1' },
+  yb_yuk_nizo_v1: { rpc: 't2_yb_yuk_nizo_v1' },
   moliya_qolda_yoz_v1: { rpc: 't2_moliya_qolda_yoz_v1' },
   fakt_yoz_v2: { rpc: 't2_fakt_yoz_v2' },
   fakt_belgila_v2: { rpc: 't2_fakt_belgila_v2' },
@@ -3072,6 +3081,11 @@ export const onRequestPost: PagesFunction<{
        RPC darajasida ham hali bazada YO'Q (tekshirildi). Aniq xato
        xabari — soxta muvaffaqiyatdan yaxshiroq. Har amal o'z egasi
        tomonidan tegishli parametrlar bilan to'ldirilishi kerak. */
+    } else if (ybAmalmi(amal)) {
+      /* Yuk birjasi (egasi tomoni): yuk oq ro'yxatdan (_shared/yuk-birjasi-yuk.ts); actor sessiyadan. */
+      const y = ybYuk(amal, so as Record<string, unknown>, Number(sess.foydalanuvchi_id));
+      if (typeof y === 'string') return Response.json({ ok: false, error: y }, { status: 400 });
+      yuk = y;
     } else if (sotuvAmalmi(amal)) {
       /* Uy sotish: yuk oq ro'yxatdan (_shared/sotuv-yuk.ts); actor sessiyadan. */
       const y = sotuvYuk(amal, so as Record<string, unknown>, Number(sess.foydalanuvchi_id));

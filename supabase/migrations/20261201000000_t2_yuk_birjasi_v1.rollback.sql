@@ -1,0 +1,43 @@
+-- ROLLBACK: 20261201000000 (yuk birjasi v1). Faqat t2_yb_* jadvallari va funksiyalari. t2_outbox / t2_bildirishnoma ga yozilgan hodisalar
+-- (mavzu 'yuk.%') O'CHIRILMAYDI - ular xabar jurnali. Escrow bo'yicha ochiq (ushlangan) to'lovlar bo'lsa, rollbackdan OLDIN provayderda qaytariladi.
+begin;
+drop function if exists public.t2_yb_tashuvchi_ol_v1(bigint, text, jsonb);
+drop function if exists public.t2_yb_ol_v1(bigint, bigint, text, jsonb);
+drop function if exists public.t2_yb_muddat_v1();
+drop function if exists public.t2_yb_nizo_hal_v1(bigint, uuid, jsonb);
+drop function if exists public.t2_yb_tolov_hodisa_v1(uuid, jsonb);
+drop function if exists public.t2_yb_bron_bekor_v1(bigint, uuid, jsonb);
+drop function if exists public.t2_yb_tashuvchi_nizo_v1(bigint, uuid, jsonb);
+drop function if exists public.t2_yb_tashuvchi_baho_v1(bigint, uuid, jsonb);
+drop function if exists public.t2_yb_dalil_qosh_v1(bigint, uuid, jsonb);
+drop function if exists public.t2_yb_yuritish_v1(bigint, uuid, jsonb);
+drop function if exists public.t2_yb_taklif_ber_v1(bigint, uuid, jsonb);
+drop function if exists public.t2_yb_tashuvchi_saqla_v1(bigint, uuid, jsonb);
+drop function if exists public.t2_yb_yuk_nizo_v1(bigint, bigint, uuid, jsonb);
+drop function if exists public.t2_yb_yuk_baho_v1(bigint, bigint, uuid, jsonb);
+drop function if exists public.t2_yb_yuk_tasdiq_v1(bigint, bigint, uuid, jsonb);
+drop function if exists public.t2_yb_yuk_bekor_v1(bigint, bigint, uuid, jsonb);
+drop function if exists public.t2_yb_yuk_javob_v1(bigint, bigint, uuid, jsonb);
+drop function if exists public.t2_yb_yuk_elon_v1(bigint, bigint, uuid, jsonb);
+drop function if exists public.t2_yb_yuk_saqla_v1(bigint, bigint, uuid, jsonb);
+drop function if exists public._t2_yb_nizo_och(bigint, text, bigint, jsonb, uuid);
+drop function if exists public._t2_yb_baho_yoz(bigint, text, bigint, jsonb);
+drop function if exists public._t2_yb_yop(bigint, bigint, uuid, text);
+drop function if exists public._t2_yb_bron_yarat(bigint, bigint, bigint, uuid);
+drop function if exists public._t2_yb_tashuvchi_foydalanuvchilar(bigint);
+drop function if exists public._t2_yb_tolov_qaytar(bigint);
+drop function if exists public._t2_yb_tolov_chiqarish(bigint);
+drop function if exists public._t2_yb_tashuvchi_tanla(bigint, jsonb);
+drop function if exists public._t2_yb_tashuvchi_ruxsat(public.t2_yb_tashuvchi, bigint);
+drop function if exists public._t2_yb_outbox(public.t2_yb_yuk, text, bigint, uuid, bigint[], jsonb);
+drop function if exists public._t2_yb_hodisa(bigint, bigint, text, bigint, jsonb);
+drop function if exists public._t2_yb_param(text);
+drop function if exists public._t2_yb_saqla_op(bigint, uuid, text, jsonb);
+drop function if exists public._t2_yb_takror(bigint, uuid, text);
+drop function if exists public._t2_yb_sana(jsonb, text);
+drop function if exists public._t2_yb_matn(jsonb, text, integer);
+drop function if exists public._t2_yb_son(jsonb, text);
+drop table if exists public.t2_yb_hodisa, public.t2_yb_tolov_hodisa, public.t2_yb_tolov, public.t2_yb_nizo, public.t2_yb_baho, public.t2_yb_dalil, public.t2_yb_bron,
+  public.t2_yb_taklif, public.t2_yb_yuk, public.t2_yb_mashina, public.t2_yb_tashuvchi, public.t2_yb_sozlama, public.t2_yb_operation cascade;
+drop function if exists public._t2_yb_hodisa_ozgarmas();
+commit;

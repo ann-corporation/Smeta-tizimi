@@ -278,6 +278,8 @@ export const onRequestPost: PagesFunction<{
         sklad_kirim_royxat_v1: 'kompaniya_actor',
         /* TRANSPORT v1 (20261123000000): park, reyslar, tannarx, KPI. `stable`; a'zolik + logistics.read/machinery.read RPC ichida. */
         transport_ol_v1: 'kompaniya_actor',
+        /* YUK BIRJASI v1 (20261201000000): egasi tomoni ro'yxati/tafsiloti/narx sozlamasi. `stable`; a'zolik + procurement.read RPC ichida. */
+        yb_ol_v1: 'kompaniya_actor',
         /* Egasi 2026-11-03: UY SOTISH (20261124000000) — shaxmatka, bitimlar, bitim kartasi, mijozlar, sotuv paneli. `stable`;
            a'zolik + sales.read/sales.write RPC ichida; obyekt/bitim kompaniyaga tegishliligi ham RPC da. */
         sotuv_shaxmatka_v1: 'kompaniya_actor',
@@ -583,6 +585,26 @@ export const onRequestPost: PagesFunction<{
           if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return Response.json({ ok: false, error: `${kalit} YYYY-MM-DD bo'lishi kerak` });
           q.set(param, v);
         }
+      }
+      if (so.soro === 'yb_ol_v1') {
+        const bolim = String((so as { bolim?: unknown }).bolim ?? '');
+        if (!['yuklarim', 'yuk', 'sozlama'].includes(bolim)) return Response.json({ ok: false, error: "bolim noto'g'ri" });
+        const xf = (so as { filtr?: unknown }).filtr;
+        const f = xf && typeof xf === 'object' && !Array.isArray(xf) ? xf as Record<string, unknown> : {};
+        const filtr: Record<string, string | number> = {};
+        for (const [k, v] of Object.entries(f)) {
+          if (v == null || v === '') continue;
+          if (['id', 'limit'].includes(k)) {
+            const n = Number(v);
+            if (!Number.isSafeInteger(n) || n <= 0) return Response.json({ ok: false, error: `${k} noto'g'ri` });
+            filtr[k] = n;
+          } else if (k === 'holat') {
+            if (typeof v !== 'string' || !['qoralama', 'elon', 'takliflar', 'bron', 'yolda', 'yetkazildi', 'yopildi', 'bekor', 'muddat_tugadi', 'nizo'].includes(v)) return Response.json({ ok: false, error: "holat noto'g'ri" });
+            filtr[k] = v;
+          }
+        }
+        q.set('p_bolim', bolim);
+        q.set('p_filtr', JSON.stringify(filtr));
       }
       if (so.soro === 'hodisa_obyekt_lenta') {
         const lim = Math.min(100, Math.max(1, Number(so.limit || 20)));

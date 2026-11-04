@@ -185,6 +185,9 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   transport_reys_yop_v1: 'logistics.dispatch',
   transport_reys_bekor_v1: 'logistics.dispatch',
   transport_xarajat_otkaz_v1: 'financial.write',
+  /* YUK BIRJASI v1: e'lon/bekor/baho/nizo — procurement.write; taklifga javob (qabul/qarshi) va yetkazishni tasdiqlash — procurement.approve (RPC ham shuni tekshiradi). */
+  yb_yuk_saqla_v1: 'procurement.write', yb_yuk_elon_v1: 'procurement.write', yb_yuk_bekor_v1: 'procurement.write', yb_yuk_baho_v1: 'procurement.write', yb_yuk_nizo_v1: 'procurement.write',
+  yb_yuk_javob_v1: 'procurement.approve', yb_yuk_tasdiq_v1: 'procurement.approve',
   moliya_qolda_yoz_v1: 'financial.write',
   fakt_yoz_v2: 'fakt.write',
   fakt_belgila_v2: 'fakt.write',
