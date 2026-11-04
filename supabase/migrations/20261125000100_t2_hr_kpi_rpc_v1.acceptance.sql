@@ -93,8 +93,9 @@ begin
   insert into public.t2_akt (obyekt_id, kompaniya_id, tur, raqam, oy, holat, lifecycle_status, lifecycle_approved_at) values (o1, k, 'f2', 'HR-3', date '2026-04-01', 'tasdiqlangan', 'approved', timestamptz '2026-04-05 12:00+05') returning id into a3;
   insert into public.t2_akt (obyekt_id, kompaniya_id, tur, raqam, oy, holat, lifecycle_status) values (o1, k, 'f2', 'HR-4', date '2026-03-01', 'qoralama', 'draft') returning id into a4;
   insert into public.t2_akt (obyekt_id, kompaniya_id, tur, raqam, oy, holat, lifecycle_status, lifecycle_approved_at) values (o2, k, 'f2', 'HR-5', date '2026-03-01', 'tasdiqlangan', 'approved', timestamptz '2026-03-12 12:00+05') returning id into a5;
-  insert into public.t2_akt_qator (akt_id, qator_id, obyekt_id, kompaniya_id, hajm, narx, summa) values
-    (a1, qa, o1, k, 1, 10000000, 10000000), (a2, qa, o1, k, 1, 5000000, 5000000), (a3, qa, o1, k, 1, 99, 99), (a4, qa, o1, k, 1, 77, 77), (a5, qb, o2, k, 1, 55, 55);
+  -- summa - GENERATED (narx NULL bo'lsa NULL, aks holda coalesce(certified_amount, hajm*narx)): faqat hajm va narx yoziladi.
+  insert into public.t2_akt_qator (akt_id, qator_id, obyekt_id, kompaniya_id, hajm, narx) values
+    (a1, qa, o1, k, 1, 10000000), (a2, qa, o1, k, 1, 5000000), (a3, qa, o1, k, 1, 99), (a4, qa, o1, k, 1, 77), (a5, qb, o2, k, 1, 55);
   set local session_replication_role = origin;
 
   -- 6. Jarima/bonus oqimi
@@ -164,7 +165,7 @@ begin
   -- 10. Noma'lum F2 summasi: akt qatori summasiz -> KPI mavjud qismdan, to'liq emas, ogohlantirish
   set local session_replication_role = replica;
   insert into public.t2_akt (obyekt_id, kompaniya_id, tur, raqam, oy, holat, lifecycle_status, lifecycle_approved_at) values (o1, k, 'f2', 'HR-6', date '2026-03-01', 'tasdiqlangan', 'approved', timestamptz '2026-03-28 12:00+05') returning id into a6;
-  insert into public.t2_akt_qator (akt_id, qator_id, obyekt_id, kompaniya_id, hajm, narx, summa) values (a6, qa, o1, k, 1, null, null);
+  insert into public.t2_akt_qator (akt_id, qator_id, obyekt_id, kompaniya_id, hajm, narx) values (a6, qa, o1, k, 1, null);
   set local session_replication_role = origin;
   l := public.t2_hr_kpi_v1(k, u_buh, '2026-03');
   select e into rw from jsonb_array_elements(l->'qatorlar') e where (e->>'kadr_id')::bigint = ka;
