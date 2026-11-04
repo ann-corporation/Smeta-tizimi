@@ -1,3 +1,5 @@
+import { desktopSessiya, type DesktopEnv } from './desktop-device';
+
 export type Rol = 'superadmin' | 'admin' | 'boss' | 'rahbar' | 'bugalter' | 'pto' | 'prorab';
 
 /* ⚡ 2026-08-27 (Claude, foydalanuvchi tasdig'i bilan — "Auth Session ->
@@ -180,4 +182,11 @@ function teng(a: string, b: string) {
   let r = 0;
   for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return r === 0;
+}
+
+/** ADR-DESKTOP-AUTH: transport only; roleAuthority still supplies all live authority.
+ * An explicit Authorization header never falls back to a cookie on failure. */
+export async function sessiyaOl(request: Request, env: DesktopEnv): Promise<Sess | null> {
+  if (request.headers.has('Authorization')) return desktopSessiya(request, env);
+  return tekshir(request.headers.get('Cookie'), env.SESSIYA_KALIT);
 }
