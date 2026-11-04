@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-desktop-cache-write"
+description = "Enables the desktop_cache_write command without any pre-configured scope."
+commands.allow = ["desktop_cache_write"]
+
+[[permission]]
+identifier = "deny-desktop-cache-write"
+description = "Denies the desktop_cache_write command without any pre-configured scope."
+commands.deny = ["desktop_cache_write"]
