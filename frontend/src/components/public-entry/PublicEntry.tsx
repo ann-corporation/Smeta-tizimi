@@ -20,6 +20,7 @@ import { GirihField } from './intro/GirihField';
 import { Magnetic } from './intro/Magnetic';
 import { useScrollStory } from './intro/hooks';
 import { Reveal } from './intro/Reveal';
+import { DesktopDownload } from './DesktopDownload';
 export type { ProductScreenshot } from './ProductShowcase';
 
 export const OWNER_PHONE = '+998505012566';
@@ -113,6 +114,7 @@ export function PublicEntry({ children, onChooseAuth, screenshots = [], supportP
           <span className="entry-free"><i className="entry-rhomb" aria-hidden="true" />{local(ic.free)}</span>
           <a className="entry-hero-contact" href={`tel:${OWNER_PHONE}`}><Phone size={15} aria-hidden="true" />{PHONE_LABEL}<span>{text(c.contact)}</span></a>
         </div>
+        <DesktopDownload />
       </Hero>
 
       <section id="entry-chain" className="entry-band entry-band--chain" aria-labelledby="entry-chain-title">
