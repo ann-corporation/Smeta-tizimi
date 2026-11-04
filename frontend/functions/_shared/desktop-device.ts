@@ -11,7 +11,7 @@ export const desktopFail = (status: number, code: string) => Response.json({ ok:
 export function base64url(bytes: Uint8Array): string {
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
-export function unbase64url(value: string): Uint8Array {
+export function unbase64url(value: string): Uint8Array<ArrayBuffer> {
   if (!/^[A-Za-z0-9_-]+$/.test(value)) throw new Error('BASE64URL_INVALID');
   const bytes = Uint8Array.from(atob(value.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
   if (base64url(bytes) !== value) throw new Error('BASE64URL_INVALID');
