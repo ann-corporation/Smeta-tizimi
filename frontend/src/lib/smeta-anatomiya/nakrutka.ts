@@ -34,7 +34,9 @@ export const NAKRUTKA_FOIZ_KODLARI: readonly NakrutkaKoefKodi[] = [
 
 export type PodvalQatorKodi =
   | 'pryamye' | 'tr_mat' | 'skl_mat' | 'tr_kab' | 'itogo1' | 'prochie' | 'itogo2' | 'tr_ob' | 'zag_ob'
-  | 'itogo3' | 'strax' | 'risk' | 'itogo4' | 'nds' | 'vsego' | 'zimnee' | 'kf';
+  | 'itogo3' | 'strax' | 'risk' | 'itogo4' | 'nds' | 'vsego' | 'zimnee' | 'kf'
+  /** «Tizim 1» (eski LRV_PLUS) podvali: kategoriya bazasi qatorlari (foizlar shularga qo'llanadi) — faqat isbot uchun, saqlanmaydi. */
+  | 'chel' | 'mash' | 'mat' | 'kab' | 'ob';
 
 /** `kolvo_ustun` — ALL RES podvali: foiz КОЛ-ВО ustunida, summa СУММА da, blok ИТОГО ga isbotlangan. */
 export type NakrutkaDalilTuri = 'formula' | 'yorliq' | 'summa_nisbati' | 'kolvo_ustun';
@@ -125,6 +127,12 @@ function yorliqTuri(k: string): PodvalQatorKodi | null {
   }
   if (/^(ИТОГО\s+)?(ЗАГОТОВИТЕЛЬНО|СКЛАДСК)/.test(k) && !/С УЧЕТОМ/.test(k)) return OB_SOZ.test(k) ? 'zag_ob' : 'skl_mat';
   if (/^ИТОГО\s+ПРЯМЫЕ|^ПРЯМЫЕ\s+ЗАТРАТЫ/.test(k)) return 'pryamye';
+  // «Tizim 1» (eski LRV_PLUS) podvali: kategoriya bazasi qatorlari — foiz qatorlari shularning ustiga turadi.
+  if (/^ЗАТРАТЫ ТРУДА/.test(k)) return 'chel';
+  if (/^ЗАТРАТЫ МАШИН/.test(k)) return 'mash';
+  if (/^МАТЕРИАЛЫ(\s*\(.*\))?$/.test(k)) return 'mat';
+  if (/^КАБЕЛИ( И ПРОВОДА)?(\s*\(.*\))?$/.test(k)) return 'kab';
+  if (/^ОБОРУДОВАНИ[ЕЯ](\s*\(.*\))?$/.test(k)) return 'ob';
   if (/^(ВСЕГО|ИТОГО|ВСЕГОГО)/.test(k) && /С\s+НДС|К\s+ОПЛАТЕ/.test(k)) return 'vsego';
   if (/^ВСЕГО\s+(СТОИМОСТЬ|К ОПЛАТЕ)/.test(k)) return 'vsego';
   if (/^(ИТОГО|ВСЕГО)/.test(k) && /БЕЗ\s+НДС/.test(k)) return 'itogo4';
@@ -132,6 +140,8 @@ function yorliqTuri(k: string): PodvalQatorKodi | null {
   if (/^ИТОГО\s+СТОИМОСТ/.test(k)) return 'itogo4';
   return null;
 }
+
+const BAZA_KODLARI: ReadonlySet<PodvalQatorKodi> = new Set<PodvalQatorKodi>(['chel', 'mash', 'mat', 'kab', 'ob']);
 
 /** Qator kodi → koeffitsient kodi (skl_mat qatorida М/К alohida). */
 const KOEF: Partial<Record<PodvalQatorKodi, NakrutkaKoefKodi>> = {
@@ -186,8 +196,18 @@ function katakQiymati(kitob: Kitob, varaq: string, manzil: string): number | nul
   const v = kitob.get(varaq);
   if (!m || !v) return null;
   const x = v.rows[Number(m[2]) - 1]?.[harfDan(m[1])];
-  return typeof x === 'number' ? x : x == null || x === '' ? 0 : son(x as Katak);
+  if (typeof x === 'number') return x;
+  if (x == null || x === '') {
+    // Natijasi saqlanmagan formula («=G61*0.015»): oddiy chiziqli havolalar hisoblanadi; tushunilmasa — noma'lum (0 EMAS).
+    const f = v.formulalar?.[Number(m[2]) - 1]?.[harfDan(m[1])];
+    if (!f) return 0;
+    if (f.startsWith('#') || formulaChuqurligi >= 40) return null;
+    formulaChuqurligi++;
+    try { return formulaniHisobla(kitob, varaq, f); } finally { formulaChuqurligi--; }
+  }
+  return son(x as Katak);
 }
+let formulaChuqurligi = 0;
 
 /**
  * Kichik formula hisoblagich (faqat isbot uchun): sonlar, kataklar (`A1`, `Varaq!A1`, `'Varaq nom'!A1`),
@@ -366,6 +386,8 @@ export function nakrutkaPodvaliniOqi(kitob: KirishKitob, o: NakrutkaOqishOpsiya 
   const resBloklar: NonNullable<NakrutkaPodvalOqish['resBloklar']> = [];
   for (const v of varaqlar) {
     const mv = masshtabi(v);
+    const aniqItogo = v.rows.some((row) => { const t = kalit((row ?? []).find(harfli) ?? ''); return /^ИТОГО\s*[-–—]?\s*[1-4](?!\d)/.test(t); });
+    const bosh0 = qatorlar.length;
     // ALL RES bloklari: foiz КОЛ-ВО ustunidan, blok kategoriyasi guruh/sarlavha/zagotdan (res-blok.ts).
     const rb = resBloklari(v.rows);
     review.push(...rb.review.map((x) => ({ ...x, izoh: `«${v.nom}»: ${x.izoh}` })));
@@ -403,7 +425,14 @@ export function nakrutkaPodvaliniOqi(kitob: KirishKitob, o: NakrutkaOqishOpsiya 
         continue;
       }
       let kod = yorliqTuri(k);
+      // «Tizim 1» podvalida ИТОГО-1..4 raqamsiz: yalang «ИТОГО» qatori o'zidan oldingi podval qatoriga qarab belgilanadi.
+      if (!kod && k === 'ИТОГО' && !aniqItogo) kod = yalangItogo(qatorlar, v.nom, r + 1);
       if (!kod) continue;
+      // Kategoriya bazasi qatorlari faqat ИТОГО ПРЯМЫЕ dan keyingi (40 qator ichidagi) podvaldagina — ish qatorlari nomlari bilan aralashmasin.
+      if (BAZA_KODLARI.has(kod)) {
+        const pr = qatorlar.slice(bosh0).filter((q) => q.kod === 'pryamye').pop();
+        if (!pr || r + 1 - pr.manzil.qator > 40) continue;
+      }
       // Summa: yorliqdan o'ngdagi birinchi son katagi.
       let su = -1;
       for (let c = yorliqU + 1; c < row.length; c++) {
@@ -412,10 +441,21 @@ export function nakrutkaPodvaliniOqi(kitob: KirishKitob, o: NakrutkaOqishOpsiya 
         if (typeof x === 'number') { su = c; break; }
       }
       if (su === -2) continue; // xatoli (#REF!) ishchi nusxa — dalil emas
+      // Natijasi saqlanmagan formula (keshsiz katak): oddiy chiziqli formula hisoblanadi; tushunilmasa — summa noma'lum (null, 0 emas).
+      let hisoblangan: number | null = null;
+      if (su === -1) {
+        for (let c = yorliqU + 1; c < row.length; c++) {
+          const f = v.formulalar?.[r]?.[c];
+          if (row[c] != null || !f || f.startsWith('#')) continue;
+          const h = formulaniHisobla(xarita, v.nom, f);
+          if (h != null) { su = c; hisoblangan = h; }
+          break;
+        }
+      }
       if (kod === 'tr_mat' && obKontekst(v, r)) kod = 'tr_ob';
       if (kod === 'skl_mat' && !/М\/К/.test(k) && obKontekst(v, r)) kod = 'zag_ob';
       const manzil: Manzil = { fayl: kitob.fayl, varaq: v.nom, qator: r + 1, ustun: (su >= 0 ? su : yorliqU) + 1 };
-      const summa = su >= 0 ? (row[su] as number) : null;
+      const summa = su >= 0 ? (hisoblangan ?? (row[su] as number)) : null;
       const formula = su >= 0 ? v.formulalar?.[r]?.[su] ?? undefined : undefined;
       const yf = yorliqFoizlari(yorliq);
       const q: NakrutkaPodvalQatori = { kod, xom: yorliq, summa, foizlar: [], manzil, masshtab: mv, formulaIsbot: null };
@@ -435,7 +475,7 @@ export function nakrutkaPodvaliniOqi(kitob: KirishKitob, o: NakrutkaOqishOpsiya 
       let ff: ReturnType<typeof formulaFoizlari> = { foizlar: [], ndsKoef: null };
       for (let c = Math.max(su, yorliqU + 1); c < row.length; c++) {
         const f = v.formulalar?.[r]?.[c];
-        if (!f || f.startsWith('#') || typeof row[c] !== 'number') continue;
+        if (!f || f.startsWith('#') || (typeof row[c] !== 'number' && row[c] != null)) continue;
         const x = formulaFoizlari(f, (m) => katakQiymati(xarita, v.nom, m));
         if (x.foizlar.length || x.ndsKoef != null) { ff = x; if (c !== su) q.formula ??= f; break; }
       }
@@ -449,7 +489,9 @@ export function nakrutkaPodvaliniOqi(kitob: KirishKitob, o: NakrutkaOqishOpsiya 
         if (ikki) {
           // «… =2% И М/К=0,75%»: asosiy — birinchi, М/К — ikkinchi (formulada ham shu tartib).
           if (manba[0] != null) q.foizlar.push({ koefKod: 'СКЛАДСКИЕ_МАТЕРИАЛ', foiz: manba[0], dalil });
-          if (manba[1] != null) q.foizlar.push({ koefKod: 'СКЛАДСКИЕ_МК', foiz: manba[1], dalil });
+          // Formulada faqat asosiy foiz bo'lsa («=(G58)*0.02») М/К foizi yorliqdan («… И М/К 0,75%»).
+          const mk = manba[1] ?? (dalil === 'formula' ? yf[1] : undefined);
+          if (mk != null) q.foizlar.push({ koefKod: 'СКЛАДСКИЕ_МК', foiz: mk, dalil: manba[1] != null ? dalil : 'yorliq' });
         } else if (manba.length) {
           q.foizlar.push({ koefKod, foiz: manba[0], dalil });
         }
@@ -462,6 +504,13 @@ export function nakrutkaPodvaliniOqi(kitob: KirishKitob, o: NakrutkaOqishOpsiya 
       }
       if (q.formulaIsbot === false) review.push({ kod: 'nakrutka_formula_nomos', izoh: `«${yorliq.slice(0, 60)}»: formula qayta hisobi hujjat summasiga teng emas`, manzil });
       qatorlar.push(q);
+    }
+    // Bo'sh «КОЭФФИЦЕНТ РИСКА» (summa ham, foiz ham yo'q) — risk yo'q = 0%: faqat podval ИТОГО-4 bilan tugagan bo'lsa.
+    const buVaraq = qatorlar.slice(bosh0);
+    if (buVaraq.some((q) => q.kod === 'itogo4' && q.summa != null)) {
+      for (const q of buVaraq) {
+        if (q.kod === 'risk' && q.summa == null && !q.foizlar.length && !yorliqFoizlari(q.xom).length) q.foizlar.push({ koefKod: 'РИСК', foiz: 0, dalil: 'yorliq' });
+      }
     }
   }
 
@@ -493,12 +542,12 @@ export function nakrutkaPodvaliniOqi(kitob: KirishKitob, o: NakrutkaOqishOpsiya 
   }
 
   const masshtab = (qatorlar.find((q) => (q.kod === 'vsego' || q.kod === 'nds') && q.summa != null) ?? qatorlar.find((q) => q.summa != null))?.masshtab ?? 1;
-  const isbot = zanjirIsboti(qatorlar, koeffitsientlar, manba);
   // НДС yorliq/formulasiz bo'lsa — summa nisbatidan (ИТОГО-4 → НДС) isbotlanadi.
   if (koeffitsientlar.НДС == null) {
     const n = ndsNisbati(qatorlar);
     if (n) { koeffitsientlar.НДС = n.foiz; manba.НДС = { dalil: 'summa_nisbati', manzil: n.manzil, xom: n.xom }; }
   }
+  const isbot = zanjirIsboti(qatorlar, koeffitsientlar, manba);
   for (const b of isbot) if (!b.mos) review.push({ kod: 'nakrutka_isbot_nomos', izoh: `${b.nom}: qayta hisob ${b.kutilgan} ≠ hujjat ${b.hujjat} (farq ${b.farq})`, manzil: b.manzil });
   const soni = Object.keys(koeffitsientlar).length;
   // Lokal smeta podvali (faqat material/uskuna bloklari): prochie/НДС bu hujjatda yo'q — meros qoladi, «topilmadi» emas.
@@ -512,6 +561,27 @@ export function nakrutkaPodvaliniOqi(kitob: KirishKitob, o: NakrutkaOqishOpsiya 
   }
   const holat = soni === 0 ? 'topilmadi' : (['ПРОЧИЕ_ПОДРЯДЧИК', 'НДС'] as const).every((x) => koeffitsientlar[x] != null) ? 'topildi' : 'qisman';
   return { fayl: kitob.fayl, varaqlar: varaqlar.map((v) => v.nom), masshtab, qatorlar, koeffitsientlar, manba, resursKf, nostandart, isbot, review, holat, ...(lokal ? { lokal } : {}), ...(resBloklar.length ? { resBloklar } : {}) };
+}
+
+/**
+ * Yalang «ИТОГО» (raqamsiz) qatori qaysi bosqich jami ekani: shu varaqdagi eng oxirgi podval qatoriga qarab
+ * (kategoriya/transport/склад → ИТОГО-1; ПРОЧИЕ → ИТОГО-2; оборудование → ИТОГО-3; страхование/риск → ИТОГО-4).
+ * Faqat ИТОГО ПРЯМЫЕ dan keyin va 12 qator ichida; boshqa holatda — null (qator e'tiborsiz).
+ */
+function yalangItogo(qatorlar: readonly NakrutkaPodvalQatori[], varaq: string, qator: number): PodvalQatorKodi | null {
+  const barchasi = qatorlar.filter((q) => q.manzil.varaq === varaq && q.manzil.qator < qator);
+  const bosh = barchasi.map((q) => q.kod).lastIndexOf('pryamye');
+  if (bosh < 0) return null;
+  const oldingi = barchasi.slice(bosh); // oxirgi ИТОГО ПРЯМЫЕ dan boshlangan podval bloki
+  const oxirgi = oldingi[oldingi.length - 1];
+  if (qator - oxirgi.manzil.qator > 12) return null;
+  switch (oxirgi.kod) {
+    case 'tr_mat': case 'skl_mat': case 'tr_kab': case 'mat': case 'kab': return oldingi.some((q) => q.kod === 'itogo1') ? null : 'itogo1';
+    case 'prochie': return oldingi.some((q) => q.kod === 'itogo2') ? null : 'itogo2';
+    case 'tr_ob': case 'zag_ob': case 'ob': return oldingi.some((q) => q.kod === 'itogo3') ? null : 'itogo3';
+    case 'strax': case 'risk': return oldingi.some((q) => q.kod === 'itogo4') ? null : 'itogo4';
+    default: return null;
+  }
 }
 
 /** Bir varaq/ustundagi oldingi jami qator (НДС bazasi): yaqin 4 qator ichida, summali. */
@@ -546,10 +616,13 @@ function zanjirIsboti(
 ): NakrutkaIsbot[] {
   void _manba;
   const isbot: NakrutkaIsbot[] = [];
-  const tekshir = (nom: string, kutilgan: number, q: NakrutkaPodvalQatori) => {
-    if (q.summa == null) return;
+  /** `nisbiy` — «tizim 1» kategoriya tekshiruvlari: ±1 yoki 0,01% (qaysi biri katta). */
+  const tekshir = (nom: string, kutilgan: number, q: NakrutkaPodvalQatori, nisbiy = false): boolean | null => {
+    if (q.summa == null) return null;
     const farq = yaxlit2(q.summa - kutilgan);
-    isbot.push({ nom, kutilgan: yaxlit2(kutilgan), hujjat: q.summa, farq, mos: Math.abs(farq) <= 1, manzil: q.manzil });
+    const mos = Math.abs(farq) <= (nisbiy ? Math.max(1, Math.abs(kutilgan) * 1e-4) : 1);
+    isbot.push({ nom, kutilgan: yaxlit2(kutilgan), hujjat: q.summa, farq, mos, manzil: q.manzil });
+    return mos;
   };
   // Bir varaq + ustun bo'yicha guruhlab, ketma-ketlikdagi qatorlarni bog'laymiz.
   const guruhlar = new Map<string, NakrutkaPodvalQatori[]>();
@@ -572,6 +645,47 @@ function zanjirIsboti(
     if (baza?.summa != null && nd && N != null) tekshir(`ИТОГО-4 × НДС ${nk.НДС}%`, baza.summa * N, nd);
     if (baza?.summa != null && nd?.summa != null && vs) tekshir('ИТОГО-4 + НДС = ВСЕГО', baza.summa + nd.summa, vs);
     else if (baza?.summa != null && vs && N != null && !nd) tekshir(`ИТОГО-4 × (1 + НДС ${nk.НДС}%) = ВСЕГО`, baza.summa * (1 + N), vs);
+
+    // «Tizim 1» kaskadi: har foiz o'z kategoriya bazasiga (МАТЕРИАЛЫ / КАБЕЛИ / ОБОРУДОВАНИЯ) qo'llanadi; ±1 so'm yoki 0,01%.
+    const oldin = (q: NakrutkaPodvalQatori, kod: PodvalQatorKodi): NakrutkaPodvalQatori | undefined => {
+      let b: NakrutkaPodvalQatori | undefined;
+      for (const p of g) { if (p === q) break; if (p.kod === kod && q.manzil.qator - p.manzil.qator <= 12) b = p; }
+      return b;
+    };
+    const BAZALI: Array<[PodvalQatorKodi, PodvalQatorKodi, NakrutkaKoefKodi]> = [
+      ['tr_mat', 'mat', 'ТРАНСПОРТ_МАТЕРИАЛ'], ['skl_mat', 'mat', 'СКЛАДСКИЕ_МАТЕРИАЛ'], ['tr_kab', 'kab', 'ТРАНСПОРТ_КАБЕЛЬ'],
+      ['tr_ob', 'ob', 'ТРАНСПОРТ_ОБОРУД'], ['zag_ob', 'ob', 'ЗАГОТ_СКЛАД_ОБОРУД'],
+    ];
+    for (const q of g) {
+      for (const [kod, bk, kk] of BAZALI) {
+        const f = nk[kk];
+        if (q.kod !== kod || q.summa == null || f == null) continue;
+        const b = oldin(q, bk);
+        if (!b || b.summa == null) continue; // baza noma'lum (keshsiz/formulasiz) — isbot yo'q, lekin podval yiqilmaydi
+        const kut = yaxlit2((b.summa * f) / 100);
+        const nom = `${bk === 'mat' ? 'МАТЕРИАЛЫ' : bk === 'kab' ? 'КАБЕЛИ' : 'ОБОРУДОВАНИЯ'} × ${f}% = ${kod}`;
+        // «2% И М/К 0,75%»: М/К ulushi bazada ajratilmagan — mos kelmasa nomos emas, tekshirib bo'lmadi.
+        if (kod === 'skl_mat' && q.foizlar.some((x) => x.koefKod === 'СКЛАДСКИЕ_МК') && Math.abs(q.summa - kut) > Math.max(1, Math.abs(kut) * 1e-4)) continue;
+        tekshir(nom, kut, q, true);
+      }
+    }
+    if (i1) {
+      const qat = (kod: PodvalQatorKodi) => oldin(i1, kod);
+      const [chel, mash, mat, trm, skl, trk, kab] = (['chel', 'mash', 'mat', 'tr_mat', 'skl_mat', 'tr_kab', 'kab'] as const).map(qat);
+      const hammasi = [chel, mash, mat, trm, skl, trk];
+      if (chel && mash && mat && i1.summa != null && hammasi.every((x) => !x || x.summa != null) && (!kab || kab.summa != null)) {
+        const s = hammasi.reduce((t, x) => t + (x?.summa ?? 0), 0);
+        const kabsiz = Math.abs(i1.summa - s) <= Math.max(1, Math.abs(s) * 1e-4);
+        tekshir('ЧЕЛ + МАШ + МАТ + транспорт + склад = ИТОГО-1', kabsiz || !kab ? s : s + (kab.summa ?? 0), i1, true);
+      }
+    }
+    if (i2 && i3 && i2.summa != null) {
+      const [ob, tro, zgo] = (['ob', 'tr_ob', 'zag_ob'] as const).map((kod) => oldin(i3, kod));
+      // Оборудование qatorlari bo'lmasa (ИТОГО-3 boshqa tarkibda) — bu tekshiruv ma'nosiz, o'tkaziladi.
+      if ((ob || tro || zgo) && [ob, tro, zgo].every((x) => !x || x.summa != null)) {
+        tekshir('ИТОГО-2 + ОБОРУДОВАНИЯ + транспорт + заготовительно-складские = ИТОГО-3', i2.summa + (ob?.summa ?? 0) + (tro?.summa ?? 0) + (zgo?.summa ?? 0), i3, true);
+      }
+    }
   }
   return isbot;
 }

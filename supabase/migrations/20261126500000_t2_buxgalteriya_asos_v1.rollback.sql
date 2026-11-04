@@ -1,4 +1,4 @@
--- ROLLBACK: 20261122000000_t2_buxgalteriya_asos_v1. Avval 20261122000100 (RPC) rollback qilinadi.
+-- ROLLBACK: 20261126500000_t2_buxgalteriya_asos_v1. Avval 20261126500100 (RPC) rollback qilinadi.
 -- DIQQAT: jurnal (t2_bux_provodka) va reja jadvallari O'CHIRILADI - kerak bo'lsa avval eksport qiling. Hujjat jadvallari (t2_tolov, t2_forma3 ...) tegilmaydi.
 begin;
 

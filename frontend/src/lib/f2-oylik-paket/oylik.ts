@@ -187,7 +187,7 @@ export function paketTekshiruvlari(rows: readonly PaketAkt[]): Tekshiruv[] {
 
 /* ───────────── paket tarkibi ───────────── */
 
-export type PaketFaylTuri = 'f2' | 'reestr' | 'forma3' | 'sverka';
+export type PaketFaylTuri = 'f2' | 'reestr' | 'forma3' | 'sverka' | 'nakopitelniy' | 'm29' | 'ostatka' | 'slichitelniy';
 export type PaketFayl = { yol: string; bytes: Uint8Array; tur: PaketFaylTuri; obyektId?: number | null };
 
 /** ZIP ichida takrorlanmas yo'l: bir xil nom bo'lsa «_2», «_3» qo'shiladi (kengaytmadan oldin). */

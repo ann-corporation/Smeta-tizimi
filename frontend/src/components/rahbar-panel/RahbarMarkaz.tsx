@@ -186,7 +186,7 @@ const SIGNAL_NOM: Record<string, () => string> = {
   missing_price: () => t('Narx asosi yetishmaydi'), data_quality: () => t('Smeta ma’lumotini tekshirish kerak'), document_missing: () => t('Majburiy hujjat qayd etilmagan'),
 };
 
-export function ObyektlarMatritsa({ p }: { p: RahbarPanel }) {
+export function ObyektlarMatritsa({ p, onTanla }: { p: RahbarPanel; onTanla?: (o: RahbarObyekt) => void }) {
   const ustunlar = useMemo<Ustun<RahbarObyekt>[]>(() => [
     { kalit: 'nom', nom: t('Obyekt'), tur: 'matn', qiymat: (o) => o.nom },
     { kalit: 'loyiha', nom: t('Loyiha'), tur: 'matn', qiymat: (o) => o.loyiha_nom ?? t('Loyihasiz') },
@@ -222,7 +222,8 @@ export function ObyektlarMatritsa({ p }: { p: RahbarPanel }) {
           <tbody>
             {f.natija.map((o) => (
               <tr key={o.obyekt_id}>
-                <td className="max-w-56"><Link className="inline-flex items-center gap-1 font-medium hover:underline" to={`/admin/holat/${o.obyekt_id}?obyekt=${o.obyekt_id}`}>{o.nom}<ArrowUpRight size={12} aria-hidden="true" /></Link></td>
+                <td className="max-w-56"><Link className="inline-flex items-center gap-1 font-medium hover:underline" to={`/admin/holat/${o.obyekt_id}?obyekt=${o.obyekt_id}`}>{o.nom}<ArrowUpRight size={12} aria-hidden="true" /></Link>
+                  {onTanla && <button type="button" className="block text-[10.5px] text-accent underline" onClick={() => onTanla(o)} data-testid="obyekt-panel-och">{t('▸ obyekt paneli')}</button>}</td>
                 <td className="text-[12px] text-text-dim">{o.loyiha_nom ?? '—'}</td>
                 <td className="fz-c-num">{o.shartnoma?.qqs_bilan != null ? <><FmtN val={o.shartnoma.qqs_bilan} />{o.shartnoma.umumiy && <span className="block text-[10px] text-text-mute">{t('bir nechta obyekt uchun')}</span>}</> : <span className="text-text-mute">{t('kiritilmagan')}</span>}</td>
                 <td className="fz-c-num"><SummaJuft paket={o.smeta} kichik kesimYoq className="items-end text-right" /></td>
@@ -244,6 +245,7 @@ export function ObyektlarMatritsa({ p }: { p: RahbarPanel }) {
         {f.natija.map((o) => (
           <li key={o.obyekt_id} className="fz-panel flex flex-col gap-1">
             <Link className="font-medium hover:underline" to={`/admin/holat/${o.obyekt_id}?obyekt=${o.obyekt_id}`}>{o.nom}</Link>
+            {onTanla && <button type="button" className="self-start text-[11px] text-accent underline" onClick={() => onTanla(o)}>{t('▸ obyekt paneli')}</button>}
             <SummaJuft paket={o.f2} kichik kesimYoq yorliq={t('F2, QQS bilan')} />
             <Bosqichlar o={o} />
             <span className="text-[11px] text-text-dim">{t('Qarz')}: {o.qarz != null ? <FmtN val={o.qarz} /> : t('kiritilmagan')}</span>

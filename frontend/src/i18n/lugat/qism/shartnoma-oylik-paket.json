@@ -33,5 +33,8 @@
   "topshirilgandan keyin o‘zgargan": { "ru": "изменено после сдачи", "en": "changed after submission" },
   "Topshirilgandan keyin fakt yoki F2 o‘zgargan — yangi versiya kerak bo‘lishi mumkin": { "ru": "После сдачи изменился факт или Ф-2 — может понадобиться новая версия", "en": "Actuals or F2 changed after submission — a new version may be needed" },
   "ZIP yuklab olish": { "ru": "Скачать ZIP", "en": "Download ZIP" },
-  "Bu oy paketi topshirilgan (v{n}, {sana}). O‘zgarish paketga kirmaydi — yangi versiya kerak bo‘ladi.": { "ru": "Пакет за этот месяц уже сдан (v{n}, {sana}). Изменение в пакет не войдёт — потребуется новая версия.", "en": "This month's package was already submitted (v{n}, {sana}). The change will not be in the package — a new version will be needed." }
+  "Bu oy paketi topshirilgan (v{n}, {sana}). O‘zgarish paketga kirmaydi — yangi versiya kerak bo‘ladi.": { "ru": "Пакет за этот месяц уже сдан (v{n}, {sana}). Изменение в пакет не войдёт — потребуется новая версия.", "en": "This month's package was already submitted (v{n}, {sana}). The change will not be in the package — a new version will be needed." },
+  "Ostatka": { "ru": "Остаток работ", "en": "Remaining work" },
+  "Slichitelniy": { "ru": "Сличительная ведомость", "en": "Reconciliation statement" },
+  "Bu oyda M-29 uchun ma’lumot yo‘q": { "ru": "Нет данных для М-29 за этот месяц", "en": "No data for M-29 in this month" }
 }

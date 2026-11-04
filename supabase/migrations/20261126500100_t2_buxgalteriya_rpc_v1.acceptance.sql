@@ -1,4 +1,4 @@
--- ACCEPTANCE: 20261122000000 + 20261122000100 (buxgalteriya) - migratsiya qo'llangan bazada; BEGIN..ROLLBACK, FAQAT sintetik fixture (haqiqiy summa/INN/nom yo'q).
+-- ACCEPTANCE: 20261126500000 + 20261126500100 (buxgalteriya) - migratsiya qo'llangan bazada; BEGIN..ROLLBACK, FAQAT sintetik fixture (haqiqiy summa/INN/nom yo'q).
 -- Tekshiradi: boshlash (reja+moslik), avto-provodka (F3 realizatsiya+QQS, to'lov, kreditor asoslari), idempotentlik (ikkinchi yurgizish = 0),
 -- hujjat o'zgarsa delta, hujjat bekor bo'lsa storno, jurnal o'zgarmasligi (UPDATE/DELETE taqiq), qo'lda provodka + storno, ОСВ (Dt = Kt),
 -- kontragent hisob-kitobi, QQS reyestri, davr yopish (ogohlantirish), bank importi (takrorsiz), HR ilgagi, ruxsatlar.

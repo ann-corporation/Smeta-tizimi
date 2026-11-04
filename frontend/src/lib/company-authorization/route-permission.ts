@@ -20,6 +20,7 @@ export function routePermission(path:string):PermissionCode {
   // «Ish joylarim» — har a'zoning o'z ish joylari markazi (ma'lumot faqat o'z a'zoliklaridan, bazada).
   if(p==='kompaniya'||p==='tokenlar'||p==='tizim-sozlama'||p==='ish-joylarim'||p==='mutaxassis') return 'company.read';
   if(p==='loyiha'||p==='participants') return 'project.read';
+  if(p==='sotuv') return 'sales.read';
   return 'document.read';
 }
 

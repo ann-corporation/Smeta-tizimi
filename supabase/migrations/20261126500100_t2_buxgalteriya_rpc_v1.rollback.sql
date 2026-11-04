@@ -1,4 +1,4 @@
--- ROLLBACK: 20261122000100_t2_buxgalteriya_rpc_v1 (faqat funksiyalar; jadvallar 20261122000000 rollback ida). Jurnal ma'lumoti tegilmaydi.
+-- ROLLBACK: 20261126500100_t2_buxgalteriya_rpc_v1 (faqat funksiyalar; jadvallar 20261126500000 rollback ida). Jurnal ma'lumoti tegilmaydi.
 begin;
 
 drop function if exists public.t2_bux_tashqi_sync_v1(bigint, bigint, text, jsonb, uuid);
