@@ -32,11 +32,13 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
   'machinery.read': 'Texnikani ko‘rish', 'machinery.write': 'Texnikani tahrirlash', 'machinery.log': 'Texnika jurnaliga yozish',
   'accounting.read': 'Buxgalteriyani ko‘rish', 'accounting.write': 'Buxgalteriya yozuvlarini kiritish', 'accounting.approve': 'To‘lovni tasdiqlash',
   'self.work.read': 'O‘z topshiriqlarini ko‘rish', 'self.work.write': 'O‘z topshiriqlarini bajarish',
+  'sales.read': 'Uy sotuvini ko‘rish (shaxmatka, hisobot)', 'sales.write': 'Mijoz, bitim va bron bilan ishlash',
+  'sales.price': 'Narx va sotuv holatini o‘zgartirish', 'sales.payment': 'Xaridor to‘lovlarini kiritish',
 };
 export const ROLE_LABELS: Record<string, string> = {
   superadmin: 'Superadmin (platforma)', admin: 'Kompaniya administratori', boss: 'Kompaniya rahbari',
   rahbar: 'Kuzatuvchi rahbar', pto: 'PTO muhandisi', prorab: 'Prorab', bugalter: 'Buxgalter',
   buyurtmachi: 'Buyurtmachi', pudratchi: 'Pudratchi', kuzatuvchi: 'Kuzatuvchi',
   omborchi: 'Omborchi', mexanik: 'Mexanik', kadr: 'Kadrlar xodimi', taminotchi: 'Ta’minotchi', usta: 'Usta',
-  brigadir: 'Brigadir', haydovchi: 'Haydovchi', inspektor: 'Inspektor', loyihachi: 'Loyihachi',
+  brigadir: 'Brigadir', haydovchi: 'Haydovchi', inspektor: 'Inspektor', loyihachi: 'Loyihachi', sotuvchi: 'Sotuv menejeri',
 };

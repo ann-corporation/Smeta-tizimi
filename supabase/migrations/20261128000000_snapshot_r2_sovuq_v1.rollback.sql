@@ -1,4 +1,4 @@
--- Rollback 20261122100000 (snapshot R2 sovuq). XAVFSIZLIK: sovuq (qatorlar IS NULL) blok bo'lsa rollback RAD ETILADI —
+-- Rollback 20261128000000 (snapshot R2 sovuq). XAVFSIZLIK: sovuq (qatorlar IS NULL) blok bo'lsa rollback RAD ETILADI —
 -- avval hammasini tiklang: node ops/scripts/snapshot-r2-sovut.mjs --hammasini-tikla (R2 dan o'qiydi, sha256 tekshiradi).
 -- R2 obyektlari o'chirilmaydi (yetim qolsa zarar yo'q, faqat joy).
 begin;

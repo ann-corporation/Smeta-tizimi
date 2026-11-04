@@ -1,4 +1,4 @@
--- ACCEPTANCE: 20261122100000 (snapshot R2 sovuq) — BEGIN..ROLLBACK, FAQAT sintetik fixture (haqiqiy snapshotga tegmaydi).
+-- ACCEPTANCE: 20261128000000 (snapshot R2 sovuq) — BEGIN..ROLLBACK, FAQAT sintetik fixture (haqiqiy snapshotga tegmaydi).
 -- Tekshiradi: (1) NULL mazmun — ko'rsatkichsiz CHECK rad etadi; (2) sovuq_sovut tasdiqsiz/mos bo'lmagan sha256 bilan RAD;
 -- (3) sovuq_yoz noto'g'ri sha256 / kalit shaklini RAD; (4) to'liq yo'l: yoz → tasdiq → sovut → mazmun NULL; (5) sovuq_tikla noto'g'ri matn
 -- (sha256 yoki xesh) RAD, to'g'ri matn bilan mazmun aynan tiklanadi; (6) _yukla sovuq blok bo'lsa ANIQ xato beradi;

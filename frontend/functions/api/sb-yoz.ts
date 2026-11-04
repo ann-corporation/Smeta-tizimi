@@ -29,6 +29,8 @@ import { azoKompaniyalar } from '../_shared/tenant-oqish';
 import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob, mayWriteCompanies } from '../_shared/role-authority';
 import { egaQarori, egalarniOqi, yozishTalablari } from '../_shared/tenant-yozish';
 import { katalogSnapshotlari } from '../_shared/narx-katalog-snapshot';
+import { sotuvAmalmi, sotuvYuk } from '../_shared/sotuv-yuk';
+import { TENDER_AMALLAR, tenderYuk } from '../_shared/tender-yuk';
 
 /** Har amal → qaysi RPC va uni kim chaqira oladi. */
 const AMALLAR = {
@@ -56,6 +58,18 @@ const AMALLAR = {
   qarzdorlik_import_v1: { rpc: 't2_qarzdorlik_import_v1' },
   /* Egasi 2026-11-03: shartnoma oylik paketi - «Topshirildi» (versiya, manifest, ZIP kanonik saqlashda). RPC a'zolik + document.write ni o'zi tekshiradi; idempotent (operation_id). */
   shartnoma_oylik_paket_saqla_v1: { rpc: 't2_shartnoma_oylik_paket_saqla_v1' },
+  /* Egasi 2026-11-03: UY SOTISH (20261124000000) — inventar, narx, bitim, bron, grafik, to'lov. Yuk: _shared/sotuv-yuk.ts (oq ro'yxat);
+     RPC a'zolik + sales.* ni o'zi tekshiradi; idempotent (operation_id). */
+  sotuv_loyiha_saqla_v1: { rpc: 't2_sotuv_loyiha_saqla_v1' },
+  sotuv_birlik_saqla_v1: { rpc: 't2_sotuv_birlik_saqla_v1' },
+  sotuv_narx_ozgartir_v1: { rpc: 't2_sotuv_narx_ozgartir_v1' },
+  sotuv_birlik_holat_v1: { rpc: 't2_sotuv_birlik_holat_v1' },
+  sotuv_bitim_saqla_v1: { rpc: 't2_sotuv_bitim_saqla_v1' },
+  sotuv_bron_v1: { rpc: 't2_sotuv_bron_v1' },
+  sotuv_bron_bekor_v1: { rpc: 't2_sotuv_bron_bekor_v1' },
+  sotuv_grafik_saqla_v1: { rpc: 't2_sotuv_grafik_saqla_v1' },
+  sotuv_tolov_yoz_v1: { rpc: 't2_sotuv_tolov_yoz_v1' },
+  sotuv_tolov_bekor_v1: { rpc: 't2_sotuv_tolov_bekor_v1' },
   /* Egasi 2026-10-23: shartnoma svodi/akt-sverka yozuvlari — DS, F2 reestri, sotuv (F3 summasi). RPC a'zolik + financial.write ni o'zi tekshiradi. */
   sverka_yozuv_v1: { rpc: 't2_sverka_yozuv_v1' },
   /* Egasi 2026-10-26: 1C akt-sverka importi (partiya ≤ 200: to'lov + F3 sotuv + F2 to'plami), to'lov taqsimoti, Продажа ↔ F2.
@@ -141,6 +155,20 @@ const AMALLAR = {
   taklif_qabul: { rpc: 't2_taklif_qabul' },
   birja_rfq_yarat: { rpc: 't2_birja_rfq_yarat' },
   birja_taklif_ber: { rpc: 't2_birja_taklif_ber' },
+  /* TENDER protsessi (2026-11-03, 20261122000200_t2_tender_protsess_v1): qoralama → tasdiq → e'lon → ochish → baholash → g'olib. Argumentlar `_shared/tender-yuk.ts` da. */
+  tender_saqla_v1: { rpc: 't2_tender_saqla_v1' },
+  tender_otish_v1: { rpc: 't2_tender_otish_v1' },
+  tender_raund_v1: { rpc: 't2_tender_raund_v1' },
+  tender_taklif_v2: { rpc: 't2_tender_taklif_v2' },
+  tender_taklif_qaytar_v2: { rpc: 't2_tender_taklif_qaytar_v2' },
+  tender_savol_ber_v1: { rpc: 't2_tender_savol_ber_v1' },
+  tender_javob_v1: { rpc: 't2_tender_javob_v1' },
+  tender_baholash_saqla_v1: { rpc: 't2_tender_baholash_saqla_v1' },
+  tender_golib_v2: { rpc: 't2_tender_golib_v2' },
+  tender_baho_ber_v1: { rpc: 't2_tender_baho_ber_v1' },
+  /* Fayl R2 da (hujjat-yukla); bu yerda faqat hujjat havolasi (metadata). */
+  tender_fayl_bogla_v1: { rpc: 't2_tender_fayl_bogla_v1' },
+  tender_taklif_fayl_bogla_v1: { rpc: 't2_tender_taklif_fayl_bogla_v1' },
   viborka_smetadan_toldir: { rpc: 't2_viborka_smetadan_toldir' },
   viborka_qabul_yoz: { rpc: 't2_viborka_qabul_yoz' },
   shartnoma_saqla: { rpc: 't2_shartnoma_saqla' },
@@ -219,6 +247,17 @@ const AMALLAR = {
   /* Egasi 2026-10-24 (pul tahlili P1): haqiqiy xarajatni kategoriya/obyekt bilan qo'lda kiritish (idempotent) va bekor qilish. */
   xarajat_kirit_v1: { rpc: 't2_xarajat_kirit_v1' },
   xarajat_bekor_v1: { rpc: 't2_xarajat_bekor_v1' },
+  /* TRANSPORT v1 (20261123000000): park/reys/tarif yozuvlari. Hammasi (kompaniya, actor, operation_id, data) — a'zolik + ruxsat RPC ichida. */
+  transport_mashina_saqla_v1: { rpc: 't2_tr_mashina_saqla_v1' },
+  transport_haydovchi_saqla_v1: { rpc: 't2_tr_haydovchi_saqla_v1' },
+  transport_hujjat_saqla_v1: { rpc: 't2_tr_hujjat_saqla_v1' },
+  transport_yoqilgi_narx_saqla_v1: { rpc: 't2_tr_yoqilgi_narx_saqla_v1' },
+  transport_tarif_saqla_v1: { rpc: 't2_tr_tarif_saqla_v1' },
+  transport_reys_saqla_v1: { rpc: 't2_tr_reys_saqla_v1' },
+  transport_reys_yurish_v1: { rpc: 't2_tr_reys_yurish_v1' },
+  transport_reys_yop_v1: { rpc: 't2_tr_reys_yop_v1' },
+  transport_reys_bekor_v1: { rpc: 't2_tr_reys_bekor_v1' },
+  transport_xarajat_otkaz_v1: { rpc: 't2_tr_xarajat_otkaz_v1' },
   /* Egasi 2026-10-27: moliyaviy tahlil — tizimda yo'q ko'rsatkichni qo'lda kiritish/almashtirish/bekor (append-only, idempotent). */
   moliya_qolda_yoz_v1: { rpc: 't2_moliya_qolda_yoz_v1' },
   fakt_yoz_v2: { rpc: 't2_fakt_yoz_v2' },
@@ -2347,6 +2386,17 @@ export const onRequestPost: PagesFunction<{
       }
       yuk = { p_kompaniya_id: kompaniyaId, p_actor_id: sess.foydalanuvchi_id, p_xarajat_id: id,
         p_kutilgan_versiya: so.versiya == null ? null : Number(so.versiya) };
+    } else if (amal.startsWith('transport_')) {
+      /* TRANSPORT v1: bitta umumiy shakl. ID lar `data` ichida — egalik (kompaniya) RPC ichida tekshiriladi. */
+      const kompaniyaId = Number(so.kompaniya_id);
+      if (!Number.isInteger(kompaniyaId) || kompaniyaId <= 0) return Response.json({ ok: false, error: 'kompaniya_id noto\'g\'ri' });
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(so.operation_id || ''))) {
+        return Response.json({ ok: false, error: 'operation_id UUID bo\'lishi kerak' });
+      }
+      const data = (so as { data?: unknown }).data;
+      if (!data || typeof data !== 'object' || Array.isArray(data)) return Response.json({ ok: false, error: 'data obyekt bo\'lishi kerak' });
+      if (JSON.stringify(data).length > 200_000) return Response.json({ ok: false, error: 'data juda katta' });
+      yuk = { p_kompaniya_id: kompaniyaId, p_actor_id: sess.foydalanuvchi_id, p_operation_id: String(so.operation_id), p_data: data };
     } else if (amal === 'bajarilmadi_bekor') {
       const kompaniyaId = Number(so.kompaniya_id);
       const id = Number(so.id);
@@ -2875,6 +2925,12 @@ export const onRequestPost: PagesFunction<{
         p_lat: lat, p_lng: lng,
       };
 
+    /* ══════════ TENDER PROTSESSI ══════════ */
+    } else if (TENDER_AMALLAR.has(amal)) {
+      const t = tenderYuk(amal, so as Record<string, unknown>, sess.foydalanuvchi_id);
+      if (!t.ok) return Response.json({ ok: false, code: 'REQUIRED_FIELD', error: t.error }, { status: 400 });
+      yuk = t.yuk;
+
     /* ══════════ B2B BIRJA ══════════
        ⚠️ IDEMPOTENTLIK MAJBURIY — RFQ va taklif narxga bog'liq. */
     } else if (amal === 'birja_rfq_yarat') {
@@ -3016,6 +3072,11 @@ export const onRequestPost: PagesFunction<{
        RPC darajasida ham hali bazada YO'Q (tekshirildi). Aniq xato
        xabari — soxta muvaffaqiyatdan yaxshiroq. Har amal o'z egasi
        tomonidan tegishli parametrlar bilan to'ldirilishi kerak. */
+    } else if (sotuvAmalmi(amal)) {
+      /* Uy sotish: yuk oq ro'yxatdan (_shared/sotuv-yuk.ts); actor sessiyadan. */
+      const y = sotuvYuk(amal, so as Record<string, unknown>, Number(sess.foydalanuvchi_id));
+      if (typeof y === 'string') return Response.json({ ok: false, error: y }, { status: 400 });
+      yuk = y;
     } else {
       return Response.json({ ok: false,
         error: 'Amal "' + amal + '" ro\'yxatda bor, lekin hali parametr moslashtirilmagan (TODO)' });

@@ -1,4 +1,4 @@
--- 20261122100000 — SAQLASH DIETASI (R2): snapshot.bolak_mazmun sovuq mazmuni R2 ga (egasi qoidasi: katta/o'zgarmas ma'lumot R2 da,
+-- 20261128000000 — SAQLASH DIETASI (R2): snapshot.bolak_mazmun sovuq mazmuni R2 ga (egasi qoidasi: katta/o'zgarmas ma'lumot R2 da,
 -- bazada faqat kalit + sha256 + metadata). Supabase Free = 500 MB, baza 421 MB; snapshot.bolak_mazmun = 89 MB (jsonb TOAST).
 --
 -- XAVFSIZLIK TARTIBI (ma'lumot yo'qolmaydi):

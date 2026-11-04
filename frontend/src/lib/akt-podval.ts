@@ -23,7 +23,7 @@ export type AktPodvalYuk = {
   itogo1: number | null; itogo2: number | null; itogo3: number | null; itogo4: number | null;
   hujjat: { pryamye: number | null; itogo4: number | null; nds: number | null; vsego: number | null };
   masshtab: 1 | 1000;
-  tekshiruv: { holat: NakrutkaPodvalOqish['holat']; toliq: boolean; isbotsiz: string[]; isbotNomos: number; nisbatdan: string[] };
+  tekshiruv: { holat: NakrutkaPodvalOqish['holat']; toliq: boolean; isbotsiz: string[]; isbotNomos: number; nisbatdan: string[]; /** Qayta hisoblangan kaskad tekshiruvlari soni (ИТОГО-1→4, НДС, ВСЕГО). */ isbotSoni?: number };
 };
 
 /** Saqlangan qator (RPC `t2_akt_podval_ol_v1`). */
@@ -88,7 +88,7 @@ export function aktPodvalYuki(o: NakrutkaPodvalOqish, jami: { pryamye: number | 
     itogo1: summaSom(bor('itogo1')), itogo2: summaSom(bor('itogo2')), itogo3: summaSom(bor('itogo3')), itogo4: summaSom(bor('itogo4')),
     hujjat: { pryamye: som(jami?.pryamye), itogo4: summaSom(bor('itogo4')), nds: som(jami?.nds), vsego: som(jami?.vsego) },
     masshtab: ms,
-    tekshiruv: { holat: o.holat, toliq: isbotsiz.length === 0 && isbotNomos === 0 && Object.keys(nk).length > 0, isbotsiz: [...new Set(isbotsiz)], isbotNomos, nisbatdan },
+    tekshiruv: { holat: o.holat, toliq: isbotsiz.length === 0 && isbotNomos === 0 && Object.keys(nk).length > 0, isbotsiz: [...new Set(isbotsiz)], isbotNomos, nisbatdan, isbotSoni: o.isbot.length },
   };
 }
 
