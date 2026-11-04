@@ -25,6 +25,8 @@ export const PERMISSIONS = [
   'machinery.read','machinery.write','machinery.log',
   'accounting.read','accounting.write','accounting.approve',
   'self.work.read','self.work.write',
+  // Uy sotish (SQL: 20261124000000_t2_uy_sotuv_v1)
+  'sales.read','sales.write','sales.price','sales.payment',
 ] as const;
 export type PermissionCode = typeof PERMISSIONS[number];
 
@@ -33,6 +35,8 @@ export const MEMBERSHIP_ROLES = [
   'buyurtmachi', 'pudratchi', 'kuzatuvchi',
   // Ekotizim rollari (E2 §3.2)
   'omborchi', 'mexanik', 'kadr', 'taminotchi', 'usta', 'brigadir', 'haydovchi', 'inspektor', 'loyihachi',
+  // Uy sotish menejeri (20261124000000)
+  'sotuvchi',
 ] as const;
 export type CompanyMembershipRole = typeof MEMBERSHIP_ROLES[number];
 /**
@@ -120,13 +124,14 @@ export const ROLE_PERMISSIONS: Record<CompanyMembershipRole, PermissionCode[]> =
   haydovchi: ['company.read','self.work.read','self.work.write','logistics.trip','machinery.log'],
   inspektor: ['company.read','object.read','document.read','quality.read','quality.inspect','quality.decide'],
   loyihachi: ['company.read','object.read','document.read','document.write','design.read','design.write','design.issue'],
+  sotuvchi: ['company.read','project.read','object.read','sales.read','sales.write'],
 };
 
-const EKOTIZIM_ROLLARI = new Set<string>(['omborchi','mexanik','kadr','taminotchi','usta','brigadir','haydovchi','inspektor','loyihachi']);
+const EKOTIZIM_ROLLARI = new Set<string>(['omborchi','mexanik','kadr','taminotchi','usta','brigadir','haydovchi','inspektor','loyihachi','sotuvchi']);
 /** Mavjud rollarga faqat yangi domen capability lari (SQL bilan bir xil). */
 const ESKI_ROLGA_QOSHIMCHA: Partial<Record<CompanyMembershipRole, PermissionCode[]>> = {
-  rahbar: ['procurement.read','logistics.read','warehouse.read','quality.read','design.read','hr.read','payroll.read','machinery.read'],
-  bugalter: ['accounting.approve','payroll.read','payroll.write','procurement.read','warehouse.read','hr.read'],
+  rahbar: ['procurement.read','logistics.read','warehouse.read','quality.read','design.read','hr.read','payroll.read','machinery.read','sales.read'],
+  bugalter: ['accounting.approve','payroll.read','payroll.write','procurement.read','warehouse.read','hr.read','sales.read','sales.payment'],
   pto: ['procurement.read','procurement.write','warehouse.read','logistics.read','quality.read','design.read','hr.read','machinery.read'],
   prorab: ['procurement.read','procurement.write','warehouse.read','warehouse.receive','logistics.read','quality.read','design.read','hr.read','hr.tabel.write','machinery.read'],
 };

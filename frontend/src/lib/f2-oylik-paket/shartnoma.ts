@@ -73,12 +73,15 @@ export type KatakHolat = 'ok' | 'yoq' | 'ogoh' | 'nom' | 'na';
 export type Katak = { holat: KatakHolat; izoh?: string };
 export type TayyorgarlikQator = {
   obyektId: number; obyektNom: string;
-  fakt: Katak; f2: Katak; forma3: Katak; nakopitelniy: Katak; m29: Katak; summa: Katak;
+  fakt: Katak; f2: Katak; forma3: Katak; nakopitelniy: Katak; m29: Katak; ostatka: Katak; slichitelniy: Katak; summa: Katak;
 };
 export type TayyorgarlikUstun = Exclude<keyof TayyorgarlikQator, 'obyektId' | 'obyektNom'>;
-export const TAYYORGARLIK_USTUNLARI: readonly TayyorgarlikUstun[] = ['fakt', 'f2', 'forma3', 'nakopitelniy', 'm29', 'summa'];
+export const TAYYORGARLIK_USTUNLARI: readonly TayyorgarlikUstun[] = ['fakt', 'f2', 'forma3', 'nakopitelniy', 'm29', 'ostatka', 'slichitelniy', 'summa'];
 export type M29Holat = 'bajarildi' | 'yoq' | 'nom';
 export type Forma3Holat = { tayyor: number; qoralama: number };
+/** Paketda HAQIQATAN yaratilgan (yoki yaratilmagan) obyekt hujjatlari: katak qiymati shu natijadan oladi. */
+export type YaratilganTuri = 'nakopitelniy' | 'm29' | 'ostatka' | 'slichitelniy';
+export type YaratilganHujjatlar = ReadonlyMap<number, Partial<Record<YaratilganTuri, Katak>>>;
 
 export const KATAK_BELGI: Record<KatakHolat, string> = { ok: '✓', yoq: '✗', ogoh: '⚠', nom: '…', na: '—' };
 
@@ -89,6 +92,8 @@ export const KATAK_BELGI: Record<KatakHolat, string> = { ok: '✓', yoq: '✗', 
  *  - Forma-3: shartnoma darajasida (har qatorda bir xil): tayyor ✓, faqat qoralama ⚠, yo'q ✗;
  *  - nakopitelniy faqat TASDIQLANGAN F2 lardan hisoblanadi: tasdiqlangan bor ✓, faqat qoralama ⚠, F2 yo'q ✗;
  *  - M-29: shu oy bajarilgan ✓, yo'q ✗;
+ *  - ostatka / slichitelniy: paket yig'ilgunga qadar noma'lum (…), F2 yo'q bo'lsa —; yig'ilgach yaratilgan natijasi (✓ fayl bor, ✗ yaratilmadi);
+ *  - yaratilgan berilsa nakopitelniy / M-29 katagi ham haqiqiy fayl holatini ko'rsatadi (hisoblangan taxmin ustidan);
  *  - summa: narxsiz qator yoki noma'lum summa/NDS bor ⚠ (NULL != 0 - hech qachon 0 deb sanalmaydi), F2 yo'q —.
  */
 export function tayyorgarlikHisobla(i: {
@@ -98,6 +103,7 @@ export function tayyorgarlikHisobla(i: {
   m29: ReadonlyMap<number, M29Holat>;
   forma3: Forma3Holat | null;
   tekshiruvlar: readonly Tekshiruv[];
+  yaratilgan?: YaratilganHujjatlar;
 }): { qatorlar: TayyorgarlikQator[]; shartnoma: { forma3: Katak; sverka: Katak } } {
   const forma3 = forma3Katak(i.forma3);
   const qatorlar = i.obyektlar.map((o): TayyorgarlikQator => {
@@ -118,7 +124,10 @@ export function tayyorgarlikHisobla(i: {
     const summa: Katak = !mening.length ? { holat: 'na' }
       : muammo.length ? { holat: 'ogoh', izoh: String(muammo.length) }
         : hisoblanmagan ? { holat: 'nom' } : { holat: 'ok' };
-    return { obyektId: o.id, obyektNom: o.nom, fakt, f2, forma3, nakopitelniy, m29, summa };
+    const y = i.yaratilgan?.get(o.id);
+    const ostatka: Katak = y?.ostatka ?? (mening.length ? { holat: 'nom' } : { holat: 'na' });
+    const slichitelniy: Katak = y?.slichitelniy ?? (mening.length ? { holat: 'nom' } : { holat: 'na' });
+    return { obyektId: o.id, obyektNom: o.nom, fakt, f2, forma3, nakopitelniy: y?.nakopitelniy ?? nakopitelniy, m29: y?.m29 ?? m29, ostatka, slichitelniy, summa };
   });
   return { qatorlar, shartnoma: { forma3, sverka: { holat: 'ok' } } };
 }
@@ -167,7 +176,7 @@ export async function manifestQur(i: {
     fayllar,
     aktlar: i.aktlar.map((r) => ({ akt_id: r.akt.id, obyekt_id: r.akt.obyekt_id, raqam: r.akt.raqam, bosqich: r.bosqich })),
     obyektlar: i.obyektlar.map((o) => ({ id: o.id, nom: o.nom })),
-    tayyorgarlik: i.tayyorgarlik.map((q) => ({ obyekt_id: q.obyektId, fakt: q.fakt.holat, f2: q.f2.holat, forma3: q.forma3.holat, nakopitelniy: q.nakopitelniy.holat, m29: q.m29.holat, summa: q.summa.holat })),
+    tayyorgarlik: i.tayyorgarlik.map((q) => ({ obyekt_id: q.obyektId, fakt: q.fakt.holat, f2: q.f2.holat, forma3: q.forma3.holat, nakopitelniy: q.nakopitelniy.holat, m29: q.m29.holat, ostatka: q.ostatka.holat, slichitelniy: q.slichitelniy.holat, summa: q.summa.holat })),
     kirmadi: [...i.kirmadi], zip: null,
   };
 }

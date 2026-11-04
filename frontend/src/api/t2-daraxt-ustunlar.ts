@@ -8,7 +8,7 @@
 export const T2_HOLAT_DARAXT_USTUNLARI = 'qator_id,tur,kod,nom,birlik,kat,smeta_hajm,smeta_summa,fakt_hajm,fakt_summa,f2_hajm,f2_summa,qoldiq_hajm,qoldiq_summa,f2_mumkin_hajm,f2_mumkin_summa';
 
 /** Fakt F2 narxida baholanganda F2 summasi NOMA'LUM qatorlarni ajratish uchun (migratsiya 20261117400000 dan KEYIN mavjud).
- *  Paket (ombor/paket.ts) shu ustunni hali olib kelmaydi — T2_HOLAT_DARAXT_USTUNLARI paket kontrakti bilan bir xil qoladi. */
+ *  Paket (ombor/paket.ts) bu ustunni SQL kengaytmasigacha ixtiyoriy qabul qiladi; asosiy ustunlar kontrakti saqlanadi. */
 export const T2_HOLAT_F2_YOQ_USTUN = 'f2_summa_yoq';
 export const T2_HOLAT_DARAXT_USTUNLARI_YOQ = `${T2_HOLAT_DARAXT_USTUNLARI},${T2_HOLAT_F2_YOQ_USTUN}`;
 

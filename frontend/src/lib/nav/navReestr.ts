@@ -162,11 +162,24 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
       { nom: 'Zayavkalar', ikonka: 'ClipboardList', sahifalar: [
         { yol: '/admin/zayavka', nom: 'Zayavkalar', ruxsat: [RAHBARIYAT, ...ICHKI_ISH, 'procurement.read', 'warehouse.write'], modul: 'module.erp' },
       ] },
+      { nom: 'Tender (xarid)', ikonka: 'ClipboardList', sahifalar: [
+        { yol: '/admin/tender', nom: 'Tender / xarid', ruxsat: [RAHBARIYAT, ...ICHKI_ISH, 'procurement.read', 'supply.offer'], modul: 'module.erp' },
+      ] },
       { nom: 'Kadrlar va texnika', ikonka: 'Users', sahifalar: [
         { yol: '/admin/erp', nom: 'Kadrlar va texnika', ruxsat: [RAHBARIYAT, ...ICHKI_ISH, 'hr.read', 'machinery.read', 'machinery.log'], modul: 'module.erp' },
       ] },
       { nom: 'Kadrlar, KPI va ish haqi', ikonka: 'Users', sahifalar: [
         { yol: '/admin/hr', nom: 'Kadrlar, KPI va ish haqi', ruxsat: ['hr.read', 'hr.tabel.write', 'payroll.read'], modul: 'module.erp' },
+      ] },
+    ],
+  },
+  {
+    /* Uy sotish (egasi 2026-11-03): ko'chmas mulk sotuvi — qurilish zanjiridan alohida domen (sales.*). PTO da sales.* yo'q,
+     * shuning uchun «PTO ish qatlamining hammasini ko'radi» qoidasi bu guruhga taalluqli emas (navFiltr.test.ts). */
+    id: 'sotuv', nom: 'Uy sotish', ikonka: 'Building2', qatlam: 'ish',
+    bandlar: [
+      { nom: 'Uy sotish', ikonka: 'Building2', sahifalar: [
+        { yol: '/admin/sotuv', nom: 'Uy sotish', ruxsat: ['sales.read'], scope: 'COMPANY_SCOPED' },
       ] },
     ],
   },

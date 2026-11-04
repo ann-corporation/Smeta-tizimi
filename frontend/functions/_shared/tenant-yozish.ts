@@ -32,9 +32,11 @@ export const ID_JADVAL: Readonly<Record<string, string>> = {
   p_papka_id: 't2_fayl_papka', p_ota_papka_id: 't2_fayl_papka',
   /* C11 markaziy ombor kirimi (2026-10-29): ombor va jurnal qatori ham shlyuzda kompaniya bo'yicha tekshiriladi. */
   p_sklad_id: 't2_sklad_mustaqil', p_harakat_id: 't2_sklad_harakat',
+  /* Uy sotish (20261124000000): RPC lar kompaniyani o'zi ham tekshiradi — bu ikkinchi qatlam. */
+  p_bitim_id: 't2_sotuv_bitim', p_birlik_id: 't2_sotuv_birlik', p_bron_id: 't2_sotuv_bron', p_sotuv_tolov_id: 't2_sotuv_tolov',
 };
 /** Massiv argumentlar. */
-export const IDLAR_JADVAL: Readonly<Record<string, string>> = { p_aosr_ids: 't2_aosr', p_qator_ids: 't2_qator', p_obyektlar: 't2_obyekt' };
+export const IDLAR_JADVAL: Readonly<Record<string, string>> = { p_aosr_ids: 't2_aosr', p_qator_ids: 't2_qator', p_obyektlar: 't2_obyekt', p_birlik_ids: 't2_sotuv_birlik' };
 
 /** `p_id` — amalga qarab qaysi jadval (null = p_id bu amalda ishlatilmaydi / mindmap kabi o'zi tekshiradi). */
 export const P_ID_JADVAL: Readonly<Record<string, string>> = {

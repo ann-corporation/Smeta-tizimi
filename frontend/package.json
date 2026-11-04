@@ -24,6 +24,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-query": "^5.101.4",
     "@tanstack/react-virtual": "^3.14.8",
+    "decimal.js": "10.6.0",
     "exceljs": "^4.4.0",
     "fflate": "^0.8.3",
     "framer-motion": "^12.43.0",

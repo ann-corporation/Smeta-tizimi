@@ -23,18 +23,19 @@ describe('obyekt o‘qish oqimi', () => {
     const {port,t,ombor} = setup(); t[flag]=false; await obyektOqi(t,port);
     expect(port.eski).toHaveBeenCalledOnce(); expect(port.paket).not.toHaveBeenCalled(); expect(ombor.och).not.toHaveBeenCalled();
   });
-  it('faqat server javobi tasdiqlangan natija beradi', async () => {
-    const {port,t,korsat} = setup(); await obyektOqi(t,port);
+  it('session authorizer yo‘q: boolean ruxsat keshni ochmaydi yoki yozmaydi', async () => {
+    const {port,t,korsat,ombor} = setup(); await obyektOqi(t,port);
     expect(korsat.mock.calls.at(-1)?.[0]).toMatchObject({serverTasdiq:true,manba:'paket'});
-    for (const [x] of korsat.mock.calls) if (x.manba==='kesh') expect(x.serverTasdiq).toBe(false);
+    expect(korsat).toHaveBeenCalledOnce();
+    expect(ombor.och).not.toHaveBeenCalled(); expect(ombor.serverdan).not.toHaveBeenCalled();
   });
   it('403 keshni yopadi va ruxsatli eski readerni sinaydi', async () => {
     const {port,t,ombor,korsat}=setup(); port.paket=async()=>({ok:false,status:403,error:'internal'}); await obyektOqi(t,port);
-    expect(ombor.yop).toHaveBeenCalledOnce(); expect(port.eski).toHaveBeenCalledOnce(); expect(korsat.mock.calls.at(-1)?.[0].manba).toBe('eski');
+    expect(ombor.och).not.toHaveBeenCalled(); expect(ombor.yop).toHaveBeenCalledOnce(); expect(port.eski).toHaveBeenCalledOnce(); expect(korsat.mock.calls.at(-1)?.[0].manba).toBe('eski');
   });
   it('401 canonical fallback bermaydi', async () => {
     const {port,t,ombor}=setup(); port.paket=async()=>({ok:false,status:401,error:'internal'});
-    await expect(obyektOqi(t,port)).rejects.toThrow('READ_FAILED'); expect(ombor.yop).toHaveBeenCalledOnce(); expect(port.eski).not.toHaveBeenCalled();
+    await expect(obyektOqi(t,port)).rejects.toThrow('READ_FAILED'); expect(ombor.och).not.toHaveBeenCalled(); expect(ombor.yop).toHaveBeenCalledOnce(); expect(port.eski).not.toHaveBeenCalled();
   });
   it('begona kompaniya javobi UI yoki diskka tushmaydi', async () => {
     const {port,t,ombor,korsat}=setup(); ombor.och.mockResolvedValue(undefined as never);
@@ -45,18 +46,6 @@ describe('obyekt o‘qish oqimi', () => {
     const {port,t,korsat,ombor}=setup(); let active=true; t.joriy=()=>active;
     ombor.och.mockResolvedValue(undefined as never); port.paket=async()=>{active=false;return {ok:true,paket:paket()};};
     await obyektOqi(t,port); expect(korsat).not.toHaveBeenCalled(); expect(ombor.serverdan).not.toHaveBeenCalled();
-  });
-  it('disk yozish xatosi server natijasini buzmaydi', async () => {
-    const {port,t,korsat,ombor}=setup(); ombor.serverdan.mockRejectedValue(new Error('quota'));
-    await obyektOqi(t,port); expect(korsat.mock.calls.at(-1)?.[0].serverTasdiq).toBe(true);
-  });
-  it('qotgan disk o‘qishi server javobini kutdirmaydi', async () => {
-    const {port,t,korsat,ombor}=setup(); ombor.och.mockImplementation(()=>new Promise(()=>{}));
-    await obyektOqi(t,port); expect(korsat.mock.calls.at(-1)?.[0]).toMatchObject({serverTasdiq:true,manba:'paket'});
-  });
-  it('qotgan disk yozishi o‘qish oqimini to‘xtatmaydi', async () => {
-    const {port,t,korsat,ombor}=setup(); ombor.serverdan.mockImplementation(()=>new Promise(()=>{}));
-    await obyektOqi(t,port); expect(korsat.mock.calls.at(-1)?.[0]).toMatchObject({serverTasdiq:true,manba:'paket'});
   });
   it('bayroq browsersiz sukut o‘chiq',()=>{expect(omborYoqilgan()).toBe(false);});
 });

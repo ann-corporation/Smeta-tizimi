@@ -78,3 +78,16 @@ Har biri `.rollback.sql` va `.acceptance.sql` (sintetik fixture; `BEGIN..ROLLBAC
 ## 6. Keyingi bosqichlar
 
 Otpusk/kasal haqi, qo'shimcha soat/tungi koeffitsient, ish haqi uchun ommaviy tasdiq oqimi, buxgalteriya provodkasi, jarimaga dalil faylini yuklash UI (mavjud fayl yo'lidan), eski GAS tabelidan import.
+
+## 7. Bulutli reja bilan farqlar (`docs/architecture/cloud-rejalar/HR_KPI_BUXGALTERIYA.md`)
+
+Shu hujjatdan olindi: mavjud kadr jadvallari (`t2_kadr_mustaqil`, `t2_kadr_bog`) ustiga qurish, `hr.*`/`payroll.*` ruxsatlari, PII ni alohida ruxsat bilan yopish, bonus/jarima oylik hisobiga QATOR bo'lib tushishi, yopilgan davr o'zgarmasligi (tuzatish keyin), «noma'lum = 0 emas», har summa asosi (aktlar bo'yicha taqsimot) ko'rinishi, soliq stavkalari kodda emas.
+
+Farqlar (v1 qasddan tor):
+- **KPI**: reja — qoida konstruktori (rol -> ko'rsatkich -> og'irlik -> maqsad). v1 — bitta aniq sxema: tasdiqlangan F2 summasining X% i (+ qo'lda bonus/jarima). Konstruktor keyingi bosqich.
+- **Oylik jadvallari**: reja — `t2_payroll_davr/varaqa/qator/hujjat`. v1 — bitta `t2_hr_oylik` (xodim-oy) + `tafsilot` jsonb (akt va jarima taqsimoti); Supabase hajmi (421/500 MB) uchun ixcham.
+- **Tabel**: reja — grafik, ortiqcha soat, ta'til arizalari. v1 — oy bo'yicha bitta jsonb qator (K/N/O/B/D), tatil rejalashtiruvchisi; ortiqcha soat, tungi koeffitsient, ta'til/kasallik haqi keyinga.
+- **Soliqlar**: reja — sanalik versiyali `t2_hr_soliq_sozlama` va ijtimoiy soliq. v1 — kompaniya bo'yicha bitta qator (`t2_hr_sozlama`: NDFL, INPS); sanalik versiya va ish beruvchi ijtimoiy badali yo'q [T: buxgalter tasdig'i].
+- **Jarima oqimi**: reja — taklif -> komissiya -> apellyatsiya. v1 — qoralama -> `payroll.write` egasi tasdiqlaydi/rad etadi (o'z yozuvini tasdiqlamaydi).
+- **Ruxsat**: v1 yangi ruxsat qo'shmaydi (F1 katalogidagilar yetadi).
+- **Buxgalteriya**: BU hujjat doirasida emas (buxgalteriya agenti). Ilgak: `t2_hr_oylik_buxgalteriya_v1` va `provodka_holat/provodka_id`; hisob kodlari va provodka sxemasi buxgalteriya modulida.

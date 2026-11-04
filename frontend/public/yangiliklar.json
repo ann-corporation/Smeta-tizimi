@@ -2,7 +2,7 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 77,
+      "id": 82,
       "sana": "2026-11-04",
       "sarlavha": "Kadrlar, KPI va ish haqi",
       "bandlar": [
@@ -11,6 +11,58 @@
         "Jarima (nuqson, kechikish, xavfsizlik) va qo'lda bonus: qoralama yaratiladi, ish haqi huquqiga ega shaxs tasdiqlagandan keyingina hisobga kiradi.",
         "Ish kalendari (bayramlar tahrirlanadi), tatil rejasi, oylik norma (kun va soat) va tabel; oylik ish haqi qoralamasi: baza + KPI + bonus - jarima, NDFL/INPS stavkalari sozlanadi, Excel vedomost.",
         "Noma'lum qiymat (tabel yoki stavka yo'q, F2 summasi yo'q) 0 deb olinmaydi — ogohlantirish bilan ko'rsatiladi va shunday hisobni tasdiqlab bo'lmaydi."
+      ]
+    },
+    {
+      "id": 81,
+      "sana": "2026-11-04",
+      "sarlavha": "Eski tizim (LRV_PLUS) F2 podvali endi tiklanadi",
+      "bandlar": [
+        "«F2 podvalini fayldan tiklash» eski tizimda yaratilgan F2 fayllarini ham o‘qiydi: foizlar qator nomidan (5%, 2%, 18%, 0,32%), ИТОГО-1…4 qatorlari joyiga qarab aniqlanadi, НДС foizi ИТОГО-4 ga nisbatan topiladi.",
+        "Natijasi saqlanmagan formulalar («=G61*0.015») oddiy hisoblanadi; bo‘sh «КОЭФФИЦЕНТ РИСКА» — 0%. Har foiz o‘z bazasiga (МАТЕРИАЛЫ, КАБЕЛИ, ОБОРУДОВАНИЯ) ±1 so‘m yoki 0,01% aniqlikda tekshiriladi; kaskad ИТОГО-4 va ВСЕГО ni aynan hosil qilsa — «isbotlangan».",
+        "Podval saqlangach, shu aktning tasdiqlanmagan storno qoralamalariga ham ishorasi teskari nusxada yoziladi; nechta qoralama yangilangani ko‘rsatiladi."
+      ]
+    },
+    {
+      "id": 80,
+      "sana": "2026-11-04",
+      "sarlavha": "Shartnoma oylik paketida endi Nakopitelniy, M-29, Ostatka va Slichitelniy ham bor; egizakka F2 nusxasi qattiq emas",
+      "bandlar": [
+        "Shartnoma oylik paketida har obyekt papkasiga Nakopitelniy vedomost, M-29, Ostatka va Slichitelniy vedomosti qo‘shiladi — sahifadagi Excel bilan aynan bir xil fayl, har biri token bilan. «Tayyorgarlik» jadvalida katak haqiqatan yaratilgan faylga qarab ✓ yoki ✗ bo‘ladi; ma’lumot yo‘q hujjat paketni to‘xtatmaydi.",
+        "Egizak obyektga F2 nusxasi bitta farq tufayli butunlay rad etilmaydi: mos kelgan qatorlar ko‘chadi, moslanmaganlari sababi (EGIZAK_KALIT / EGIZAK_OTA) bilan ko‘rinishda chiqadi. Qatorlar soni farqi ogohlantirish bo‘ldi. Tasdiqlangan F2 o‘zgarmaydi — egizakda faqat qoralama yaratiladi.",
+        "Nakopitelniy, M-29, Ostatka va Slichitelniy Excel: tur belgisi ustuni chop etilmaydi va ko‘rinmaydi; ish (BL), material (MAT) va jihoz (OB) qalin, resurs (RS) kursiv va ochroq; raqam ustunlari kengaytirildi."
+      ]
+    },
+    {
+      "id": 79,
+      "sana": "2026-11-03",
+      "sarlavha": "Tender / xarid — tasdiqdan g‘olibgacha",
+      "bandlar": [
+        "Yangi «Tender / xarid» sahifasi (Ta’minot bo‘limida): tovar, xizmat va subpudrat uchun tender — qoralama, tasdiq, e’lon.",
+        "Takliflar muhrlangan: muddat tugaguncha va siz «Takliflarni ochish» ni bosmaguncha faqat soni ko‘rinadi. Byudjet yetkazuvchidan yashirin.",
+        "Solishtirish jadvali: pozitsiya × yetkazuvchi, eng arzoni yashil, jami QQS bilan (asosiy) va QQS siz; ball bilan baholash va qayta raund (BAFO).",
+        "G‘olib pozitsiya bo‘yicha tanlanadi (asos majburiy), har g‘olibga alohida buyurtma; savol-javob, audit jurnali, yetkazuvchi reytingi va tejam tahlili.",
+        "Yetkazuvchi tomoni: «Menga taklif qilingan» va ochiq e’lonlar, taklifni muddatgacha o‘zgartirish yoki qaytarib olish."
+      ]
+    },
+    {
+      "id": 78,
+      "sana": "2026-11-03",
+      "sarlavha": "Rahbar paneli: obyekt paneli, resurslar tahlili va Excel",
+      "bandlar": [
+        "Obyektlar jadvalida «▸ obyekt paneli» — o'sha obyekt uchun xuddi shu kartalar, pul oqimi, diqqat, tasdiq navbati va resurslar.",
+        "«Tahlil» yorliqlari: Resurslar (ЧЕЛ / МАШ / МАТ / ОБ / subpudrat — smeta, fakt, F2, chel-soat va mash-soat), Subpudratchilar, Yetkazuvchilar, Jamoa. Manbasi hali yo'q bo'limlar «kiritilmagan» deb yoziladi.",
+        "Excel: panelni 4 varaqda (Сводка, Объекты, Ресурсы, Внимание) yuklab olish; kiritilmagan qiymat bo'sh katak va «не введено»."
+      ]
+    },
+    {
+      "id": 77,
+      "sana": "2026-11-03",
+      "sarlavha": "«Fakt tiklash»: yetishmayotgan faktni dalil bilan qaytarish",
+      "bandlar": [
+        "Fakt jurnalida yangi «Fakt tiklash» tugmasi: tasdiqlangan F2 va qoralama F2 hajmi fakt dan ko‘p bo‘lgan qatorlar ro‘yxati — hozirgi fakt, taklif, farq, manba hujjat (F2 №…) va pul ta’siri (QQS bilan · ustamali · to‘g‘ri) bilan.",
+        "Tasdiqlangan F2 qatorlari oldindan belgilangan, qoralama qatorlar belgilanmagan (kuchsizroq dalil). Belgilab, bitta tasdiq bilan yozasiz — faqat farq (delta) fakt ga qo‘shiladi, tasdiqlangan F2 o‘zgarmaydi.",
+        "Pastda «Kompaniya bo‘yicha» xulosa: har obyektda tasdiqlangan F2 dan va qoralama F2 dan fakt qancha yetishmayotgani."
       ]
     },
     {

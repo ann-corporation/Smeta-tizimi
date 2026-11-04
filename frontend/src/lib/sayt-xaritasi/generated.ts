@@ -36,8 +36,10 @@ export const GENERATED_SITE_MAP = {
     "/admin/murojaatlar",
     "/admin/logistika",
     "/admin/zayavka",
+    "/admin/tender",
     "/admin/erp",
     "/admin/hr",
+    "/admin/sotuv",
     "/admin/kompaniya",
     "/admin/system-control",
     "/admin/tizim-sozlama",
@@ -106,6 +108,7 @@ export const GENERATED_SITE_MAP = {
     "boshqaruv",
     "smeta-studio",
     "m29",
+    "sotuv",
     "buxgalteriya",
     "shartnomalar",
     "fakturalar",
@@ -147,6 +150,7 @@ export const GENERATED_SITE_MAP = {
     "texnika",
     "taminot",
     "sifat",
+    "tender",
     "shartnoma",
     "kalkulyator",
     "*",
@@ -337,6 +341,46 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "shartnoma_oylik_paket_saqla_v1",
       "rpc": "t2_shartnoma_oylik_paket_saqla_v1"
+    },
+    {
+      "amal": "sotuv_loyiha_saqla_v1",
+      "rpc": "t2_sotuv_loyiha_saqla_v1"
+    },
+    {
+      "amal": "sotuv_birlik_saqla_v1",
+      "rpc": "t2_sotuv_birlik_saqla_v1"
+    },
+    {
+      "amal": "sotuv_narx_ozgartir_v1",
+      "rpc": "t2_sotuv_narx_ozgartir_v1"
+    },
+    {
+      "amal": "sotuv_birlik_holat_v1",
+      "rpc": "t2_sotuv_birlik_holat_v1"
+    },
+    {
+      "amal": "sotuv_bitim_saqla_v1",
+      "rpc": "t2_sotuv_bitim_saqla_v1"
+    },
+    {
+      "amal": "sotuv_bron_v1",
+      "rpc": "t2_sotuv_bron_v1"
+    },
+    {
+      "amal": "sotuv_bron_bekor_v1",
+      "rpc": "t2_sotuv_bron_bekor_v1"
+    },
+    {
+      "amal": "sotuv_grafik_saqla_v1",
+      "rpc": "t2_sotuv_grafik_saqla_v1"
+    },
+    {
+      "amal": "sotuv_tolov_yoz_v1",
+      "rpc": "t2_sotuv_tolov_yoz_v1"
+    },
+    {
+      "amal": "sotuv_tolov_bekor_v1",
+      "rpc": "t2_sotuv_tolov_bekor_v1"
     },
     {
       "amal": "sverka_yozuv_v1",
@@ -569,6 +613,54 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "birja_taklif_ber",
       "rpc": "t2_birja_taklif_ber"
+    },
+    {
+      "amal": "tender_saqla_v1",
+      "rpc": "t2_tender_saqla_v1"
+    },
+    {
+      "amal": "tender_otish_v1",
+      "rpc": "t2_tender_otish_v1"
+    },
+    {
+      "amal": "tender_raund_v1",
+      "rpc": "t2_tender_raund_v1"
+    },
+    {
+      "amal": "tender_taklif_v2",
+      "rpc": "t2_tender_taklif_v2"
+    },
+    {
+      "amal": "tender_taklif_qaytar_v2",
+      "rpc": "t2_tender_taklif_qaytar_v2"
+    },
+    {
+      "amal": "tender_savol_ber_v1",
+      "rpc": "t2_tender_savol_ber_v1"
+    },
+    {
+      "amal": "tender_javob_v1",
+      "rpc": "t2_tender_javob_v1"
+    },
+    {
+      "amal": "tender_baholash_saqla_v1",
+      "rpc": "t2_tender_baholash_saqla_v1"
+    },
+    {
+      "amal": "tender_golib_v2",
+      "rpc": "t2_tender_golib_v2"
+    },
+    {
+      "amal": "tender_baho_ber_v1",
+      "rpc": "t2_tender_baho_ber_v1"
+    },
+    {
+      "amal": "tender_fayl_bogla_v1",
+      "rpc": "t2_tender_fayl_bogla_v1"
+    },
+    {
+      "amal": "tender_taklif_fayl_bogla_v1",
+      "rpc": "t2_tender_taklif_fayl_bogla_v1"
     },
     {
       "amal": "viborka_smetadan_toldir",
@@ -845,6 +937,46 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "xarajat_bekor_v1",
       "rpc": "t2_xarajat_bekor_v1"
+    },
+    {
+      "amal": "transport_mashina_saqla_v1",
+      "rpc": "t2_tr_mashina_saqla_v1"
+    },
+    {
+      "amal": "transport_haydovchi_saqla_v1",
+      "rpc": "t2_tr_haydovchi_saqla_v1"
+    },
+    {
+      "amal": "transport_hujjat_saqla_v1",
+      "rpc": "t2_tr_hujjat_saqla_v1"
+    },
+    {
+      "amal": "transport_yoqilgi_narx_saqla_v1",
+      "rpc": "t2_tr_yoqilgi_narx_saqla_v1"
+    },
+    {
+      "amal": "transport_tarif_saqla_v1",
+      "rpc": "t2_tr_tarif_saqla_v1"
+    },
+    {
+      "amal": "transport_reys_saqla_v1",
+      "rpc": "t2_tr_reys_saqla_v1"
+    },
+    {
+      "amal": "transport_reys_yurish_v1",
+      "rpc": "t2_tr_reys_yurish_v1"
+    },
+    {
+      "amal": "transport_reys_yop_v1",
+      "rpc": "t2_tr_reys_yop_v1"
+    },
+    {
+      "amal": "transport_reys_bekor_v1",
+      "rpc": "t2_tr_reys_bekor_v1"
+    },
+    {
+      "amal": "transport_xarajat_otkaz_v1",
+      "rpc": "t2_tr_xarajat_otkaz_v1"
     },
     {
       "amal": "moliya_qolda_yoz_v1",

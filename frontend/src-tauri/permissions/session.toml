@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "session-local"
+description = "Fixed application session credential; local main webview only, runtime origin checked."
+commands.allow = ["sessiya_token_saqla", "sessiya_token_ol", "sessiya_token_ochir"]

@@ -21,11 +21,8 @@ import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { NDS_SUKUT_FOIZ } from '../../lib/nakopitelniy-vedomost-export';
 import { t } from '../../i18n/til';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
-import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
-import { obyektPodvaliOqi, ustamaKontekstXatosi } from '../../api/t2-nakrutka-podval';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
-import { ostatkaHujjatModeli, ostatkaHujjatXlsx } from '../../lib/ostatka-export';
-import { slichitelniyHujjatXlsx, slichitelniyModeli } from '../../lib/slichitelniy-vedomost';
+import { ostatkaHujjatQur, slichitelniyHujjatQur, ustamaManbaOl } from '../../lib/oylik-hujjat/ostatka-slichitelniy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { toast } from '../../umumiy/ui/Toast';
@@ -229,21 +226,15 @@ export function HolatNative() {
     }
     setEksportBolmoqda(true);
     try {
-      // Svod yaxlit va ustama — model qurishdan OLDIN (qator taqsimi va QQS bilan svod qoidasi modelda). O'qilmasa — jim emas.
-      const nk = await t2ObyektNakrutka(obyektId).catch(() => null);
-      // «Podval yo'q» va «o'qilmadi» farqlanadi; server ko'rsatgan podval o'qilmasa — bloklanadi.
-      const pod = nk?.ok ? await obyektPodvaliOqi(joriy.id, obyektId, nk.shartnoma_id ?? null, nk.nakrutka_podval_id ?? null) : null;
-      const xato = ustamaKontekstXatosi(nk, pod);
-      if (xato || !nk?.ok || !pod?.ok) { setError(`Ostatka: ${xato} — hujjat tuzilmadi. Qayta urinib ko‘ring.`); return; }
-      const podval = pod.podval;
-      const svodYaxlit = nk.svod_yaxlit ?? null;
-      const model = ostatkaHujjatModeli(daraxtXom, holatXom, istisnolar, svodYaxlit);
-      if (!model.barglar) {
+      // Ustama/podval o'qilmasa - jim emas (lib/oylik-hujjat: sahifa va oylik paket bir xil yuklagich va quruvchidan foydalanadi).
+      const u = await ustamaManbaOl(joriy.id, obyektId);
+      if (!u.ok) { setError(`Ostatka: ${u.xato} — hujjat tuzilmadi. Qayta urinib ko‘ring.`); return; }
+      const { model, fayl } = ostatkaHujjatQur({ rows: daraxtXom, states: holatXom, istisnolar, ustama: u.ustama, obyektNom, imzo: tomonlar });
+      if (!fayl) {
         toast(`Ostatka yo‘q: barcha ishlar bajarilgan${model.oshibKetgan.length ? `, ${model.oshibKetgan.length} ta qatorda fakt smetadan oshgan` : ''}.`, 'warn');
         return;
       }
-      const { bytes, faylNomi } = ostatkaHujjatXlsx(model, { obyektNomi: obyektNom, imzo: tomonlar, nakrutka: nk.koeffitsientlar ?? null, podval, nkManba: nk.nk_manba ?? null,
-        yaxlitIdlar: yaxlitQatorIdlari(daraxtXom, svodYaxlit) });
+      const { bytes, faylNomi } = fayl;
       const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes, hujjat: 'OSTATKA', sabab: `Ведомость остатка · ${obyektNom}`, obyekt: obyektId },
         () => { if (korish) korinish.ochish(bytes, faylNomi); else downloadBlob(bytes, faylNomi); });
       if (!t.ok) { toast(t.xabar, 'danger'); return; }
@@ -276,17 +267,11 @@ export function HolatNative() {
     }
     setEksportBolmoqda(true);
     try {
-      // Svod yaxlit model qurishdan OLDIN — bo'lim qatorlari yaxlit summaga taqsimlanadi (ekran/hujjat bir model).
-      const nk = await t2ObyektNakrutka(obyektId).catch(() => null);
-      const pod = nk?.ok ? await obyektPodvaliOqi(joriy.id, obyektId, nk.shartnoma_id ?? null, nk.nakrutka_podval_id ?? null) : null;
-      const xato = ustamaKontekstXatosi(nk, pod);
-      if (xato || !nk?.ok || !pod?.ok) { setError(`Slichitelniy: ${xato} — hujjat tuzilmadi. Qayta urinib ko‘ring.`); return; }
-      const podval = pod.podval;
-      const svodYaxlit = nk.svod_yaxlit ?? null;
-      const model = slichitelniyModeli(daraxtXom, holatXom, { faqatFarq: slichFaqatFarq, istisnolar, svodYaxlit });
-      if (!model.barglar) { toast(slichFaqatFarq ? 'Farq yo‘q: barcha pozitsiyalarda fakt smeta bilan teng.' : 'Solishtiriladigan pozitsiya yo‘q.', 'warn'); return; }
-      const { bytes, faylNomi } = slichitelniyHujjatXlsx(model, { obyektNomi: obyektNom, imzo: tomonlar, faqatFarq: slichFaqatFarq, istisnolar, nakrutka: nk.koeffitsientlar ?? null, podval, nkManba: nk.nk_manba ?? null,
-        svodYaxlit, yaxlitIdlar: yaxlitQatorIdlari(daraxtXom, svodYaxlit) });
+      const u = await ustamaManbaOl(joriy.id, obyektId);
+      if (!u.ok) { setError(`Slichitelniy: ${u.xato} — hujjat tuzilmadi. Qayta urinib ko‘ring.`); return; }
+      const { model, fayl } = slichitelniyHujjatQur({ rows: daraxtXom, states: holatXom, istisnolar, ustama: u.ustama, obyektNom, imzo: tomonlar, faqatFarq: slichFaqatFarq });
+      if (!fayl) { toast(slichFaqatFarq ? 'Farq yo‘q: barcha pozitsiyalarda fakt smeta bilan teng.' : 'Solishtiriladigan pozitsiya yo‘q.', 'warn'); return; }
+      const { bytes, faylNomi } = fayl;
       const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes, hujjat: 'SLICHITELNIY', sabab: `Сличительная ведомость · ${obyektNom}`, obyekt: obyektId },
         () => { if (korish) korinish.ochish(bytes, faylNomi); else downloadBlob(bytes, faylNomi); });
       if (!t.ok) { toast(t.xabar, 'danger'); return; }

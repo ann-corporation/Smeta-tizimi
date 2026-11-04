@@ -24,5 +24,14 @@
   "ota qatori ko‘chmadi": { "ru": "родительская строка не скопирована", "en": "parent row was not copied" },
   "almashtirilgan qator topilmadi": { "ru": "заменяемая строка не найдена", "en": "replaced row not found" },
   "hajmi yo‘q": { "ru": "нет объёма", "en": "no quantity" },
-  "birligi yo‘q": { "ru": "нет единицы", "en": "no unit" }
+  "birligi yo‘q": { "ru": "нет единицы", "en": "no unit" },
+  "Ogohlantirish [EGIZAK_SONI]: F2 qatorlari soni farq qiladi ({a} va {b}) — nusxa olinadi, mos kelmaganlari pastda ko‘rsatilgan.": { "ru": "Предупреждение [EGIZAK_SONI]: количество строк Ф-2 различается ({a} и {b}) — копия делается, несовпавшие строки показаны ниже.", "en": "Warning [EGIZAK_SONI]: the F2 row count differs ({a} vs {b}) — the copy proceeds; unmatched rows are listed below." },
+  "Ogohlantirish [EGIZAK_MOSLASH]: asl smeta qisman mos ({n} qator moslandi, {m} tasi moslanmadi, {h} tasida hajm farqi bor). Moslanmaganlari ko‘chirilmaydi.": { "ru": "Предупреждение [EGIZAK_MOSLASH]: исходная смета совпадает частично (сопоставлено строк: {n}, не сопоставлено: {m}, с разным объёмом: {h}). Несопоставленные строки не копируются.", "en": "Warning [EGIZAK_MOSLASH]: the original estimate matches partially ({n} rows matched, {m} unmatched, {h} with a quantity difference). Unmatched rows are not copied." },
+  "Ogohlantirish [EGIZAK_ASL_SONI]: asl qatorlar soni farq qiladi ({a} va {b}).": { "ru": "Предупреждение [EGIZAK_ASL_SONI]: количество исходных строк различается ({a} и {b}).", "en": "Warning [EGIZAK_ASL_SONI]: the original row count differs ({a} vs {b})." },
+  "Moslanmagan qatorlar": { "ru": "Несопоставленные строки", "en": "Unmatched rows" },
+  "Moslanmagan asl qatorlar ({n}) — ko‘chirilmaydi:": { "ru": "Несопоставленные исходные строки ({n}) — не копируются:", "en": "Unmatched original rows ({n}) — not copied:" },
+  "{orin}-qator": { "ru": "строка {orin}", "en": "row {orin}" },
+  "ota qatori moslanmadi": { "ru": "родительская строка не сопоставлена", "en": "parent row not matched" },
+  "egizakda shu qator topilmadi": { "ru": "такая строка у близнеца не найдена", "en": "this row was not found in the twin" },
+  "Hajmi farq qiluvchi qatorlar: {n} (ko‘chiriladi, hajm egizakning o‘zida qoladi).": { "ru": "Строки с разным объёмом: {n} (копируются, объём близнеца остаётся своим).", "en": "Rows with a different quantity: {n} (copied; the twin keeps its own quantity)." }
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aslImzo, aslXarita, boglanishKochir, egizakOpId, egizakQoshimchaYoz, f2Mosligi, idXarita, qoshimchaReja, type EgizakQator } from './egizak';
+import { aslImzo, aslKorinish, aslXarita, boglanishKochir, egizakOpId, egizakQoshimchaYoz, f2Mosligi, idXarita, qoshimchaReja, type EgizakQator } from './egizak';
 import { BOLIM_ILDIZ, type RejaliYaratish, type YozilganQator } from './rejali';
 import type { F2Indeks, IshJoyi } from './ishJoyi';
 import type { F2Tugun } from '../smeta-anatomiya/f2';
@@ -200,5 +200,41 @@ describe('egizak: F2 mosligi va bog‘lanish nusxasi', () => {
     // qo'shimchalar hali yozilmagan bo'lsa — ularga bog'lanish ko'chmaydi
     const r2 = boglanishKochir(a, bInd, idXarita(new Map([[2, 102], [4, 104]]), new Map()));
     expect(r2.kochmadi).toEqual(['u2', 'u3', 'u9']);
+  });
+});
+
+describe('egizak: yumshoq moslash (rad etish o‘rniga ko‘rinish)', () => {
+  it('bitta nom farq qilsa — qolgani moslanadi, farqli qator sabab kodi bilan ro‘yxatda', () => {
+    const b = asl(100).map((x) => (x.id === 106 ? { ...x, nom: 'Boshqa ish' } : x));
+    const k = aslKorinish(A, b);
+    expect(k.qatiy).toBe(false);
+    expect(k.map.get(2)).toBe(102);
+    expect(k.map.has(6)).toBe(false);
+    expect(k.moslanmadi).toEqual([{ id: 6, orin: 6, nom: 'Ish 2', kod: '', sabab: 'EGIZAK_KALIT' }]);
+  });
+  it('ota mos kelmasa — EGIZAK_OTA; hajm farqi ko‘chirishni to‘xtatmaydi', () => {
+    const b = asl(100).map((x) => (x.id === 103 ? { ...x, ota_id: 101 } : x)).map((x) => (x.id === 102 ? { ...x, hajm: 99 } : x));
+    const k = aslKorinish(A, b);
+    expect(k.moslanmadi.map((m) => [m.id, m.sabab])).toEqual([[3, 'EGIZAK_OTA']]);
+    expect(k.hajmFarq.map((h) => h.id)).toEqual([2]);
+    expect(k.map.get(2)).toBe(102);
+  });
+  it('qatorlar soni farq qilsa ham moslangani ko‘chadi (avval butunlay rad edi)', () => {
+    const k = aslKorinish(A, asl(100).slice(0, 4));
+    expect(k.soni).toEqual({ a: 6, b: 4 });
+    expect(k.map.size).toBe(4);
+    expect(k.moslanmadi.map((m) => m.id)).toEqual([5, 6]);
+  });
+  it('bir xil tuzilma — qat‘iy', () => {
+    const k = aslKorinish(A, B);
+    expect(k.qatiy).toBe(true);
+    expect(k.moslanmadi).toEqual([]);
+  });
+  it('f2Mosligi: qatorlar SONI farqi ogohlantirish (rad emas), uid/hajm farqi esa rad', () => {
+    const bInd = { qatorlar: [{ uid: 'u1', kod: 'K', hajm: 1 }, { uid: 'u2', kod: 'K', hajm: 1 }], byUid: new Map([['u1', { uid: 'u1', kod: 'K', hajm: 1 }], ['u2', { uid: 'u2', kod: 'K', hajm: 1 }]]) } as unknown as F2Indeks;
+    const f = f2Mosligi([{ uid: 'u1', kod: 'K', hajm: 1 }], bInd);
+    expect(f.ok).toBe(true);
+    expect(f.soniFarq).toEqual({ a: 1, b: 2 });
+    expect(f2Mosligi([{ uid: 'u1', kod: 'K', hajm: 2 }], bInd).ok).toBe(false);
   });
 });
