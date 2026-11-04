@@ -1,6 +1,6 @@
 # Yuk birjasi (Freight marketplace) — arxitektura V1
 
-Holat: LOYIHA (kod va migratsiya YO'Q). Rezerv migratsiya versiyasi: `20261201000000`.
+Holat: V1 qurilmoqda — PR1 (migratsiya `20261201000000_t2_yuk_birjasi_v1`), PR2 (narx dvigateli), PR3 (yuk egasi veb) shu hujjat bilan birga; PR4 (Telegram bot) keyin. Migratsiya L0 tomonidan qo'llanadi.
 Maqsad: «Yandex Dostavka, lekin yuk uchun» — Toshkentdagi materialni Navoiy bog'iga tez yetkazish; o'tkazma (perechisleniye) bilan ishlaydigan tashuvchini topish.
 
 ## 1. Bozor tadqiqoti (qisqa, manbali)
@@ -136,7 +136,7 @@ Telegram kirishi va yakka haydovchi: `t2_telegram_ulanish` orqali `t2_foydalanuv
 | Boost | Tashuvchi profili/taklifi yoki egasi e'loni yuqorida | MVP 3 | Faqat reklama belgisi bilan |
 | Loyiha qoidasi | Hujjat/paket natijasi token yechadi («har ish pul ishlasin») | Yuk hujjatlari (yuk xati, akt) pullik tokenda | Bepul qilish taklif qilinmaydi |
 
-Boshlang'ich bosqichda komissiyasiz (likvidlik uchun), keyin yoqiladi — Diip.uz komissiyasiz deydi [9].
+Egasi qarori: pilotda 0%, keyin 3% (`t2_yb_sozlama.komissiya_foiz`); Diip.uz komissiyasiz deydi [9].
 
 ## 8. Mobil va Telegram-first UX (haydovchi)
 
@@ -179,8 +179,45 @@ Pilot: park obyekti snabjeni (Toshkent -> Navoiy) 10–20 haydovchi bilan, qo'ld
 | R9 | Telegram'ga qaramlik | Veb zaxira, SMS kod keyinroq |
 | R10 | Raqobat (E-Logistika davlat platformasi, Diip.uz) | Farq: ishonch + to'lov shakli + Telegram-first |
 
-## 11. Ochiq savollar (egasiga)
-1. Yakka haydovchi uchun alohida profil (tavsiya) yoki har biriga yashirin kompaniya?
-2. Boshlang'ich komissiya: 0% (pilot) yoki 3–5%?
-3. Platforma pul ushlaydimi (escrow) yoki faqat bog'laydimi? (tavsiya: MVP da faqat bog'laydi)
-4. Faqat ichki yo'nalishlar (O'zbekiston) yoki tashqi ham?
+## 11. Egasi qarorlari (2026-11-04) — yopilgan savollar
+
+| # | Savol | Qaror | Natija dizaynda |
+|---|---|---|---|
+| 1 | Yakka haydovchi | Alohida profil (telefon + mashina), kompaniyasiz; firma tashuvchi kompaniya a'zosi sifatida | ``t2_yb_tashuvchi.kompaniya_id`` NULL = yakka. Haydovchi RPC lari faqat service_role (bot/API), ``p_actor_id`` = foydalanuvchi. Firma xodimi ``logistics.dispatch`` bilan firma profili nomidan ishlaydi |
+| 2 | Komissiya | Pilotda 0%, keyin 3%; sozlanadigan | ``t2_yb_sozlama.komissiya_foiz`` (hozir 0). Bron paytida ``t2_yb_tolov.komissiya_foiz`` ga qotiriladi (keyingi o'zgarish eski bronga tegmaydi) |
+| 3 | Pul | Platforma orqali (escrow), lekin pulni O'ZIMIZ ushlamaymiz (to'lov tashkiloti litsenziyasi kerak — tekshirish kerak) | 12-bo'lim: provayder-noma'lum interfeys + STUB; haqiqiy provayder (Click / Payme / Uzum) keyin |
+| 4 | Doira | Faqat O'zbekiston ichki | ``/api/yuk-marshrut`` O'zbekiston ramkasidan tashqarini rad etadi |
+
+Jadval nomlari: ``yb_*`` qatlami repoda ``t2_yb_*`` prefiksi bilan (``t2_outbox.entity_jadval`` regex ``^t2_`` talabi). Mavjud ``t2_birja_taklif`` kompaniya-markazli (``kompaniya_id NOT NULL``) — yakka haydovchiga sig'maydi, shuning uchun raund/g'olib MEXANIKASI qayta ishlatildi, jadval emas (``t2_yb_taklif``). Qayta ishlatilganlar: ``t2_outbox`` (``yuk.*`` mavzulari), ``t2_actor_kompaniya_azo_tekshir`` + ``t2_permission_allowed_v2`` (``procurement.*`` / ``logistics.dispatch`` — yangi capability yo'q), ``t2_document_registry`` (isbot hujjati), ``t2_obyekt``, ``t2_tr_mashina`` / ``t2_tr_reys`` (ixtiyoriy havola).
+
+## 12. To'lov (escrow) — provayder-noma'lum
+
+Platforma pul ushlamaydi: litsenziyali provayder marketplace/split yoki escrow sxemasida pulni ushlab turadi va chiqaradi. Bazada ``t2_yb_tolov`` — provayder holatining KO'ZGUSI; holatni faqat provayder callback RPC (``t2_yb_tolov_hodisa_v1``, service_role, idempotent ``operation_id``) o'zgartiradi. TS: ``lib/yuk-birjasi/tolov.ts`` (``TolovProvayder`` interfeysi: ``hold`` / ``release`` / ``refund``) + ``StubTolovProvayder`` (testlar/dev).
+
+```
+bron (escrow) -> kutilmoqda --hold_ok--> ushlab_turibdi --(yetkazildi, ega tasdiqi / 48 soat / nizo -> tashuvchiga)--> chiqarish_sorovi --release_ok--> chiqarildi
+     |                |                        |--(nizo)--> muzlatilgan --(moderator: egaga)--> qaytarish_sorovi --refund_ok--> qaytarildi
+     |                +--hold_xato--> xato      +--(bron bekor)-----------------------------------^
+     +--(hold oldin bekor)--> bekor
+```
+
+| Qoida | Tafsilot |
+|---|---|
+| Faqat o'tkazma | ``escrow`` faqat ``tolov_shakli = otkazma`` da (CHECK). Naqd — platformadan tashqarida, faqat hujjat |
+| Yo'lga chiqish sharti | Escrow bo'lsa ``ushlab_turibdi`` bo'lmaguncha ``yukladim`` rad (TOLOV_USHLANMAGAN); yuklash isboti (foto/kod) majburiy |
+| Komissiya | ``komissiya = QQS siz summa x foiz``; ``tashuvchiga = QQS bilan jami - komissiya``; chiqarish so'rovi paytida hisoblanadi (SQL va ``tolovSumma`` bir xil) |
+| Nizo | Pul muzlaydi; qarorni faqat superadmin moderator beradi (``t2_yb_nizo_hal_v1``): tashuvchiga (chiqarish) yoki egaga (qaytarish) |
+| Idempotentlik | Provayder hodisasi ``operation_id`` bilan bir marta qo'llanadi (``t2_yb_tolov_hodisa``) |
+| Yuridik (tekshirish kerak) | Litsenziya talabi, soliq agenti vazifasi, QQS hisob-fakturasi, naqd/o'tkazma soliq oqibati, tashuvchi YaTT/o'zini o'zi band qilgan maqomi |
+
+### Provayderga savollar (egasi tanlaganda)
+1. Marketplace/split (komissiyani avtomatik ajratish) yoki sof escrow (hold -> capture/release) — qaysi biri mavjud va qaysi shartnoma shakli bilan?
+2. Hold muddati (karta/hisob blokirovkasi necha kun) va uzaytirish; yuk 1–3 kun yo'lda bo'ladi.
+3. Qisman chiqarish/qaytarish (nizoda bo'lib berish) mumkinmi?
+4. Yuridik shaxs va YaTT/o'zini o'zi band qilgan tashuvchiga to'lov: qabul qiluvchi (payee) onboarding, KYC, hisob raqam yoki karta?
+5. Komissiya: provayder o'z haqini qanday oladi (alohida) va bizning 0% / 3% ni split bilan qanday ajratamiz?
+6. Webhook xavfsizligi (imzo), hodisa takrorlanishi (idempotency kaliti), sandbox va test kartalari.
+7. QQS: chek/hisob-faktura kim chiqaradi; B2B (kompaniya) to'lovi o'tkazma bilan ushlab turilishi mumkinmi (bank rekvizit orqali)?
+8. Qaytarish (refund) muddati va komissiyasi; chargeback qoidalari.
+9. Hisobotlar: kunlik reestr/solishtirma (sverka) fayli.
+10. Narx: bir tranzaksiya limiti, oylik limitlar, yo'l qo'yilgan MCC / faoliyat turi (yuk tashish).

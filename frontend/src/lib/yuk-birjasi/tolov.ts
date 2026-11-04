@@ -43,7 +43,8 @@ export function tolovSumma(summaQqsSiz: number, qqsFoiz: number, komissiyaFoiz: 
 export class StubTolovProvayder implements TolovProvayder {
   readonly nom = 'stub';
   readonly jurnal: Array<{ amal: 'hold' | 'release' | 'refund'; tolovId: number; operationId: string }> = [];
-  constructor(private readonly sozlama: { xatoHold?: boolean } = {}) {}
+  private readonly sozlama: { xatoHold?: boolean };
+  constructor(sozlama: { xatoHold?: boolean } = {}) { this.sozlama = sozlama; }
   private yoz(amal: 'hold' | 'release' | 'refund', s: TolovSorovi, hodisa: TolovHodisa): TolovHodisaYozuv {
     this.jurnal.push({ amal, tolovId: s.tolovId, operationId: s.operationId });
     return { operationId: s.operationId, tolovId: s.tolovId, hodisa, provider: this.nom, providerRef: `STUB-${amal}-${s.tolovId}` };
