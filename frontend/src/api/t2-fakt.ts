@@ -1,4 +1,5 @@
 import { yozAmali, sbOqi } from './supabase';
+import { t2ToliqOqiParallel } from './t2-toliq-oqish';
 
 /* ⚡ 2026-08-28 (Claude) — YURAK ORGANI: «nima bajarildi».
  *
@@ -159,12 +160,16 @@ export type QatorHolat = {
   f2_narx?: number | null;
 };
 
+/**
+ * Obyekt holati TO'LIQ (qator_id oynalari bilan, parallel). Avval bitta so'rov edi — server qator chegarasi katta obyektda
+ * (masalan 11 942 qator) holatning bir qismini kesardi va F2 tayyorlash ishlarni taklif qilmasdi (egasi 2026-11-05, Amfiteatr).
+ */
 export function sbQatorHolatOl(obyektId: number) {
-  return sbOqi<QatorHolat>({
+  return t2ToliqOqiParallel<QatorHolat>(sbOqi, {
     jadval: 't2_qator_holat',
     filtr: 'obyekt_id=eq.' + obyektId,
-    limit: 100000,
-  });
+    limit: 200000,
+  }, 'qator_id');
 }
 
 /** Tasdiqlanmagan (qoralama) F2 aktlaridagi hajmlar: qator_id -> jami hajm (ikki marta F2 qilish xavfini ko'rsatish uchun). */
