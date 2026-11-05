@@ -1,10 +1,12 @@
 import { desktopFetch, nativeInvoke } from './fetch-shim';
 import { base64urlDecode } from './offline-lease';
 import { t } from '../i18n/til';
+import { desktopBootstrap } from './bootstrap';
+import { desktopSessionFetch } from './session-fetch';
 
 // Same application and routes. Only the installed transport supplies offline reads.
 let banner: HTMLElement | undefined;
-const invalidate = () => { document.documentElement.style.visibility = 'hidden'; window.location.reload(); };
+const invalidate = () => { try { resume.clear(); } finally { history.replaceState(null, '', '/'); document.documentElement.style.visibility = 'hidden'; window.location.reload(); } };
 const status = (offline: boolean) => {
   if (!banner && document.body) {
     banner = document.createElement('div'); banner.setAttribute('role', 'status');
@@ -15,11 +17,23 @@ const status = (offline: boolean) => {
 };
 let publicKey = new Uint8Array();
 try { publicKey = base64urlDecode(import.meta.env.VITE_DESKTOP_LEASE_PK ?? ''); } catch { /* missing pin denies cache */ }
-const pages = desktopFetch(window.fetch.bind(window), nativeInvoke, window.location.origin, { publicKey, kid: import.meta.env.VITE_DESKTOP_LEASE_KID ?? '', status, invalidate });
+const original = window.fetch.bind(window);
+const pages = desktopSessionFetch(events => desktopFetch(original, nativeInvoke, window.location.origin,
+  { publicKey, kid: import.meta.env.VITE_DESKTOP_LEASE_KID ?? '', ...events }),
+  { status, invalidate, ended: () => window.dispatchEvent(new Event('desktop-session-ended')) });
+const resume = desktopBootstrap({ invoke: nativeInvoke, request: desktopFetch(window.fetch.bind(window), nativeInvoke),
+  publicKey, kid: import.meta.env.VITE_DESKTOP_LEASE_KID ?? '', storage: {
+    getItem: k => localStorage.getItem(k), setItem: (k, v) => localStorage.setItem(k, v), removeItem: k => localStorage.removeItem(k),
+  } });
 window.fetch = async (input, init) => {
   const response = await pages(input, init);
-  if (response.status === 401) window.dispatchEvent(new Event('desktop-session-ended'));
+  if (response.ok) await resume.remember(window.location.pathname);
   return response;
 };
-window.addEventListener('desktop-session-ended', invalidate);
-void import('../main');
+void (async () => {
+  const route = await resume.restore();
+  // No arbitrary URL/query/hash is restored and no React page mounts before validation.
+  history.replaceState(null, '', route ?? '/');
+  window.addEventListener('desktop-session-ended', invalidate);
+  await import('../main');
+})();
