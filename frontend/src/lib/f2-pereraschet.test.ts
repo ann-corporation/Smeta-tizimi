@@ -1,12 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { bosKesim, kesimgaQosh, type AktPodvalNk } from './hisob-yadro';
-import { pereraschetBaholash, pereraschetBloklari, stornoManbaId } from './f2-pereraschet';
+import { pereraschetBaholash, pereraschetBloklari, stornosizQatorlar, stornoManbaId } from './f2-pereraschet';
 
 const NK0: AktPodvalNk = { ЗТР_СОЦСТРАХ: 0, ТРАНСПОРТ_МАТЕРИАЛ: 0, СКЛАДСКИЕ_МАТЕРИАЛ: 0, СКЛАДСКИЕ_МК: 0, ТРАНСПОРТ_КАБЕЛЬ: 0, ПРОЧИЕ_ПОДРЯДЧИК: 10, ТРАНСПОРТ_ОБОРУД: 0, ЗАГОТ_СКЛАД_ОБОРУД: 0, СТРАХОВАНИЕ: 0, РИСК: 0, НДС: 12 };
 const NK_A: AktPodvalNk = { ...NK0, ПРОЧИЕ_ПОДРЯДЧИК: 15 };
 const SMETA = { koef: { ТРАНСПОРТ_МАТЕРИАЛ: 5, СКЛАДСКИЕ_МАТЕРИАЛ: 2, СКЛАДСКИЕ_МК: 0.75, ТРАНСПОРТ_КАБЕЛЬ: 1.5, ПРОЧИЕ_ПОДРЯДЧИК: 18, ТРАНСПОРТ_ОБОРУД: 2, ЗАГОТ_СКЛАД_ОБОРУД: 1.2, СТРАХОВАНИЕ: 0.32, РИСК: 0, НДС: 12 } };
 const storno = (qatorId: number, of: number, summa: number | null) => ({ qator_id: qatorId, certified_quantity: -1, certified_unit_price: summa == null ? null : -summa, certified_amount: summa == null ? null : -summa, raw_snapshot: { source: 'storno', stornoOf: of } });
 const SMETA_QATORLAR = new Map([[1, { id: 1, kat: 'ЧЕЛ', nom: 'mehnat' }], [2, { id: 2, kat: 'МАТ', nom: 'material' }], [3, { id: 3, kat: 'ЧЕЛ', nom: 'boshqa' }]]);
+
+describe('saqlangan pereraschet akti eksporti', () => {
+  it('bir qator storno (−40) va plyus (+60): faqat storno nusxasi chiqariladi, plyus qoladi', () => {
+    const [b] = pereraschetBloklari([{ qator_id: 1, certified_quantity: -40, certified_amount: -400, raw_snapshot: { source: 'storno', stornoOf: 10 } }], SMETA_QATORLAR);
+    const q = [{ id: 1, hajm: 60 }, { id: 1, hajm: -40 }, { id: 2, hajm: 5 }];
+    expect(stornosizQatorlar(q, [b])).toEqual([{ id: 1, hajm: 60 }, { id: 2, hajm: 5 }]);
+  });
+});
 
 describe('storno bloki manba F2 tuzilmasida (rz → bl → rs), DB id tartibi emas', () => {
   it('tasodifiy tartibda kelgan qatorlar smeta daraxti tartibida chiqadi', () => {

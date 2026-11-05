@@ -76,6 +76,22 @@ export function pereraschetBloklari(
   return [...bloklar.values()];
 }
 
+/**
+ * Saqlangan pereraschet aktining «yangi» qatorlari: storno bloki qatorlari BITTADAN chiqariladi (qator_id bo'yicha butunlay emas) —
+ * bir smeta qatori storno blokida (minus) va yangi blokda (plyus) bir vaqtda bo'la oladi. Juftlik: shu qator_id, avval aynan
+ * shu hajmli nusxa. Asl tartib saqlanadi.
+ */
+export function stornosizQatorlar<T extends { id: number; hajm: number }>(qatorlar: readonly T[], bloklar: readonly PereraschetBlok[]): T[] {
+  const olinadi = new Set<number>();
+  for (const q of bloklar.flatMap((b) => b.qatorlar)) {
+    const mos = (x: T, i: number) => !olinadi.has(i) && x.id === q.qatorId;
+    let i = qatorlar.findIndex((x, j) => mos(x, j) && q.hajm != null && Math.abs(x.hajm - q.hajm) < 1e-9);
+    if (i < 0) i = qatorlar.findIndex(mos);
+    if (i >= 0) olinadi.add(i);
+  }
+  return qatorlar.filter((_, i) => !olinadi.has(i));
+}
+
 export type PereraschetBaho = {
   /** Har blok o'z podvali bilan (eski, minus). */
   bloklar: Array<{ blok: PereraschetBlok; hujjatPodvali: boolean; baho: F2Baho }>;
