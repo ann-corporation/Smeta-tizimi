@@ -4,21 +4,20 @@
     {
       "id": 104,
       "sana": "2026-11-05",
-      "sarlavha": "Bo‘lim jamisi qo‘shimcha ish va zamenadan keyin darhol yangilanadi",
+      "sarlavha": "F2: minus (chegirma) qatorlar endi tushib qolmaydi",
       "bandlar": [
-        "Bo‘limga qo‘shimcha ish yoki zamena qo‘shsangiz (yoki uni o‘chirsangiz), bo‘lim summasi va obyekt jamisi endi shu zahoti qayta hisoblanadi. Avval ish summasi to‘g‘ri chiqib, bo‘lim summasi eski qolardi.",
-        "Asl smeta qatorlari o‘zgarmaydi — faqat bo‘lim jamisi yangilanadi.",
-        "Ishning ichidagi material summasi ham ish jamisiga to‘liq kiradi va keyingi qayta hisoblashda tushib qolmaydi."
+        "Fakti manfiy bo‘lgan qatorlar (qalinlik tuzatishi, «исключить», К=2 kabi) F2 tayyorlashda ishorasi bilan olinadi — resurslari ham minus.",
+        "Tekshiruv saqlanadi: F2 hajmi faktdan (modul bo‘yicha) oshmaydi va ishorasi bir xil."
       ]
     },
     {
       "id": 103,
       "sana": "2026-11-05",
-      "sarlavha": "Hujjat muddatlari endi o‘zi eslatiladi",
+      "sarlavha": "Bo‘lim jamisi qo‘shimcha ish va zamenadan keyin darhol yangilanadi",
       "bandlar": [
-        "Har kuni ertalab tizim xat, murojaat va tasdiq zanjirlarining muddatini tekshiradi: muddat yaqinlashsa yoki o‘tib ketsa, mas’ul kompaniyaga bildirishnoma keladi.",
-        "Yuqoridagi qo‘ng‘iroqcha bildirishnomani oddiy tilda va muddati bilan ko‘rsatadi. Bosilsa — o‘sha xat yoki hujjat darhol ochiladi.",
-        "Telegram ulangan bo‘lsa, shu xabar Telegramga ham keladi (bir marta, takrorlanmaydi)."
+        "Bo‘limga qo‘shimcha ish yoki zamena qo‘shsangiz (yoki uni o‘chirsangiz), bo‘lim summasi va obyekt jamisi endi shu zahoti qayta hisoblanadi. Avval ish summasi to‘g‘ri chiqib, bo‘lim summasi eski qolardi.",
+        "Asl smeta qatorlari o‘zgarmaydi — faqat bo‘lim jamisi yangilanadi.",
+        "Ishning ichidagi material summasi ham ish jamisiga to‘liq kiradi va keyingi qayta hisoblashda tushib qolmaydi."
       ]
     },
     {
