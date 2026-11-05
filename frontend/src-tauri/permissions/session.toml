@@ -1,4 +1,4 @@
 [[permission]]
 identifier = "session-local"
 description = "Native BFF and encrypted cache; local main webview only, runtime origin checked."
-commands.allow = ["desktop_request", "desktop_session_info", "desktop_session_clear", "desktop_cache_read", "desktop_cache_write", "desktop_cache_delete", "desktop_cache_keys"]
+commands.allow = ["desktop_request", "desktop_logout", "desktop_session_info", "desktop_session_clear", "desktop_cache_read", "desktop_cache_write", "desktop_cache_delete", "desktop_cache_keys"]

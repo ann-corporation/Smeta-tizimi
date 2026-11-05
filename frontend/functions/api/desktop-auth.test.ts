@@ -20,6 +20,8 @@ let revoked = false;
 let expires = 0;
 let objectCompany = 8;
 let permissions = [...rights];
+let deviceLimit = false;
+let leaseLimit = false;
 let calls: { path: string; body: any }[] = [];
 beforeAll(async () => {
   const pair = await crypto.subtle.generateKey('Ed25519', true, ['sign','verify']) as CryptoKeyPair;
@@ -27,7 +29,7 @@ beforeAll(async () => {
   pk = base64url(new Uint8Array(await crypto.subtle.exportKey('raw', pair.publicKey) as ArrayBuffer));
 });
 beforeEach(() => {
-  revoked = false; expires = Date.now() + 7 * 86400_000; objectCompany = 8; permissions = [...rights]; calls = [];
+  revoked = false; expires = Date.now() + 7 * 86400_000; objectCompany = 8; permissions = [...rights]; calls = []; deviceLimit = false; leaseLimit = false;
   vakolatKeshTozala(); otaKeshTozala();
   vi.stubGlobal('fetch', vi.fn(async (raw: string, init?: RequestInit) => {
     const u = new URL(String(raw));
@@ -35,8 +37,9 @@ beforeEach(() => {
     calls.push({ path: u.pathname, body: b });
     if (u.pathname.endsWith('/t2_desktop_qurilma_tekshir_v1')) return Response.json(!revoked && b.p_token_hash === await deviceHash(token) ?
       { ok: true, device_id: deviceId, foydalanuvchi_id: 7, tugaydi: expires, sessiya_exp: expires, versiya: 1 } : { ok: false });
-    if (u.pathname.endsWith('/t2_desktop_qurilma_yarat_v1')) return Response.json({ ok: true, device_id: b.p_device_id, tugaydi: b.p_sessiya_exp });
-    if (u.pathname.endsWith('/t2_desktop_qurilma_bekor_v1')) { revoked = true; return Response.json({ ok: true }); }
+    if (u.pathname.endsWith('/t2_desktop_qurilma_yarat_v1')) return Response.json(deviceLimit ? { ok: false, code: 'DEVICE_LIMIT' } : { ok: true, device_id: b.p_device_id, tugaydi: b.p_sessiya_exp });
+    if (u.pathname.endsWith('/t2_desktop_qurilma_bekor_v1')) { if (b.p_device_id !== deviceId) return Response.json({ ok: false }); revoked = true; return Response.json({ ok: true }); }
+    if (u.pathname.endsWith('/t2_desktop_lease_chegara_v1')) return Response.json(leaseLimit ? { ok: false, code: 'LEASE_RATE_LIMIT' } : { ok: true });
     if (u.pathname.endsWith('/t2_men_v1')) return Response.json({ ok: true, platform_role: 'none', foydalanuvchi: { holat: 'faol' },
       context_kompaniyalar: [{ kompaniya_id: 8, effective_role: 'pto', permissions }] });
     if (u.pathname === '/rest/v1/t2_obyekt') return Response.json([{ kompaniya_id: objectCompany }]);
@@ -45,8 +48,8 @@ beforeEach(() => {
   }));
 });
 afterEach(() => { vi.unstubAllGlobals(); vakolatKeshTozala(); otaKeshTozala(); });
-function native(path: string, body?: unknown, origin = DESKTOP_ORIGIN) {
-  return new Request('https://site.test' + path, { method: 'POST', headers: { Authorization: 'Bearer ' + token, Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify(body ?? {}) });
+function native(path: string, body?: unknown, origin = DESKTOP_ORIGIN, method = 'POST') {
+  return new Request('https://site.test' + path, { method, headers: { Authorization: 'Bearer ' + token, Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify(body ?? {}) });
 }
 const ctx = (request: Request, overrides = {}) => ({ request, env: { ...env, ...overrides }, data: {}, next: vi.fn() } as never);
 const bff = (path: string, method = 'GET', body?: unknown) => gateway(ctx(native('/api/desktop/bff', { path, method, ...(body == null ? {} : { body }) })));
@@ -99,7 +102,7 @@ describe('M3 native bearer and unchanged BFF gates', () => {
   });
 });
 
-describe('M3 cookie-only enrollment/revoke and CSRF', () => {
+describe('M3 web enrollment, self revoke and CSRF', () => {
   it('issues random 256-bit token and sends only hash/server actor to DB', async () => {
     const r = await issue(ctx(await web({ operation_id: op, foydalanuvchi_id: 999, rol: 'superadmin' })));
     expect(r.status).toBe(200);
@@ -113,9 +116,21 @@ describe('M3 cookie-only enrollment/revoke and CSRF', () => {
   it.each([null,'https://evil.test',DESKTOP_ORIGIN])('refuses cookie command origin %s', async origin => {
     expect((await issue(ctx(await web({ operation_id: op },origin)))).status).toBe(403);
   });
-  it('bearer cannot enroll or revoke; missing operation is rejected', async () => {
-    expect((await issue(ctx(native('/api/desktop/qurilma',{ operation_id: op })))).status).toBe(403);
+  it('bearer cannot enroll; missing operation is rejected', async () => {
+    expect((await issue(ctx(native('/api/desktop/qurilma',{ operation_id: op })))).status).toBe(401);
     expect((await issue(ctx(await web({})))).status).toBe(400);
+  });
+  it('allows bearer self revoke, rejects foreign revoke, and rejects bad origin', async () => {
+    const own = ctx(native('/api/desktop/qurilma',{ operation_id: op, device_id: deviceId }, DESKTOP_ORIGIN, 'DELETE'));
+    expect((await revoke(own)).status).toBe(200); expect((await bff('/api/sessiya')).status).toBe(401);
+    revoked = false;
+    expect((await revoke(ctx(native('/api/desktop/qurilma',{ operation_id: op, device_id: '00000000-0000-4000-8000-000000000003' }, DESKTOP_ORIGIN, 'DELETE')))).status).toBe(403);
+    expect((await bff('/api/sessiya')).status).toBe(200);
+    expect((await revoke(ctx(native('/api/desktop/qurilma',{ operation_id: op, device_id: deviceId }, 'https://evil.test', 'DELETE')))).status).toBe(401);
+  });
+  it('returns 429 when the device enrollment cap is reached', async () => {
+    deviceLimit = true;
+    expect((await issue(ctx(await web({ operation_id: op })))).status).toBe(429);
   });
   it('cookie revoke invalidates subsequent bearer requests without cache', async () => {
     expect((await bff('/api/sessiya')).status).toBe(200);
@@ -153,6 +168,10 @@ describe('M3 signed offline lease', () => {
     objectCompany = 9; expect((await issued()).status).toBe(403);
     objectCompany = 8; otaKeshTozala(); permissions = ['company.read','smeta.read']; vakolatKeshTozala();
     expect((await issued()).status).toBe(403);
+  });
+  it('returns rate-limit 429 without a lease envelope', async () => {
+    leaseLimit = true;
+    const r = await issued(); expect(r.status).toBe(429); expect(await r.json()).not.toHaveProperty('lease');
   });
   it('has no key/kid fallback and clamps lease to device/session expiry', async () => {
     expect((await issued({ DESKTOP_LEASE_SK: '' })).status).toBe(503);

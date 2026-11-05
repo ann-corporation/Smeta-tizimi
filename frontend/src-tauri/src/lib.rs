@@ -4,6 +4,7 @@ mod transport;
 fn builder() -> tauri::Builder<tauri::Wry> {
     tauri::Builder::default().invoke_handler(tauri::generate_handler![
         transport::desktop_request,
+        transport::desktop_logout,
         maxfiy::desktop_session_info,
         maxfiy::desktop_session_clear,
         cache::desktop_cache_read,

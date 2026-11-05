@@ -21,9 +21,10 @@ export function desktopFetch(original: typeof fetch, invoke: NativeInvoke, local
     if (!['GET', 'POST'].includes(combined.method)) throw new Error('DESKTOP_METHOD_DENIED');
     if (url.pathname === '/api/chiqish') {
       if (combined.method !== 'POST' || url.search) throw new Error('DESKTOP_METHOD_DENIED');
-      await invoke<void>('desktop_session_clear');
+      let confirmed = true;
+      try { await invoke<void>('desktop_logout'); } catch { confirmed = false; }
       if (typeof window !== 'undefined') window.dispatchEvent(new Event('desktop-session-ended'));
-      return Response.json({ ok: true });
+      return Response.json({ ok: confirmed, ...(confirmed ? {} : { code: 'DESKTOP_REVOKE_UNCONFIRMED', local_cleared: true }) }, { status: confirmed ? 200 : 503 });
     }
     const result = await invoke<NativeHttpResponse>('desktop_request', {
       path: url.pathname + url.search, method: combined.method,

@@ -1,5 +1,5 @@
 import { sessiyaOl } from '../../_shared/auth';
-import { desktopCsrfAllowed, desktopFail, positiveId, verifiedDesktopDevice, type DesktopEnv } from '../../_shared/desktop-device';
+import { desktopCsrfAllowed, desktopFail, desktopRpc, positiveId, verifiedDesktopDevice, type DesktopEnv } from '../../_shared/desktop-device';
 import { LEASE_MAX_MS, signDesktopLease, type DesktopLeaseEnv } from '../../_shared/desktop-lease';
 import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../../_shared/role-authority';
 import { azoKompaniyalar } from '../../_shared/tenant-oqish';
@@ -34,6 +34,8 @@ export const onRequestPost: PagesFunction<DesktopEnv & DesktopLeaseEnv> = async 
   } catch { return desktopFail(503, 'SCOPE_UNAVAILABLE'); }
   const now = Date.now();
   try {
+    const quota = await desktopRpc(ctx.env, 't2_desktop_lease_chegara_v1', { p_actor_id: device.foydalanuvchi_id, p_device_id: device.device_id });
+    if (quota.ok !== true) return desktopFail(quota.code === 'DEVICE_AUTH_REQUIRED' ? 401 : 429, String(quota.code || 'LEASE_RATE_LIMIT'));
     const lease = await signDesktopLease({
       format: 'smeta-desktop-lease/1', foydalanuvchi_id: device.foydalanuvchi_id, kompaniya_id: kid,
       obyekt_idlar: b.obyekt_idlar, permissions: ['company.read', ...PAKET_RUXSATLARI],

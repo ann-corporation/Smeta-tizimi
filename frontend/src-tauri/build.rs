@@ -3,6 +3,7 @@ fn main() {
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(
         tauri_build::AppManifest::new().commands(&[
             "desktop_request",
+            "desktop_logout",
             "desktop_session_info",
             "desktop_session_clear",
             "desktop_cache_read",

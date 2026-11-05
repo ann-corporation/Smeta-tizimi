@@ -3,11 +3,18 @@ import { describe, expect, it, vi } from 'vitest';
 import { desktopFetch, type NativeInvoke } from './fetch-shim';
 
 describe('native-only Desktop transport', () => {
-  it('clears the native credential for the existing app logout even without network', async () => {
+  it('uses native logout IPC and reports confirmed revocation', async () => {
     const original = vi.fn(), invoke = vi.fn(async () => undefined);
-    expect((await desktopFetch(original, invoke as NativeInvoke)('/api/chiqish', { method: 'POST' })).status).toBe(200);
-    expect(invoke).toHaveBeenCalledExactlyOnceWith('desktop_session_clear');
+    const r = await desktopFetch(original, invoke as NativeInvoke)('/api/chiqish', { method: 'POST' });
+    expect(r.status).toBe(200); expect(await r.json()).toEqual({ ok: true });
+    expect(invoke).toHaveBeenCalledExactlyOnceWith('desktop_logout');
     expect(original).not.toHaveBeenCalled();
+  });
+  it('reports unconfirmed revocation after locally clearing credentials', async () => {
+    const invoke = vi.fn(async () => { throw new Error('offline'); });
+    const r = await desktopFetch(vi.fn(), invoke as NativeInvoke)('/api/chiqish', { method: 'POST' });
+    expect(r.status).toBe(503); expect(await r.json()).toMatchObject({ ok: false, local_cleared: true });
+    expect(invoke).toHaveBeenCalledExactlyOnceWith('desktop_logout');
   });
   it('passes no cookie or Authorization to renderer HTTP transport', async () => {
     const original = vi.fn(), invoke = vi.fn(async () => ({ status: 200, body: '{}', etag: null }));

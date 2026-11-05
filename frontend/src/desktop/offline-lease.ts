@@ -37,7 +37,7 @@ export async function verifyDesktopLease(
       p.foydalanuvchi_id !== scope.foydalanuvchiId || p.kompaniya_id !== scope.kompaniyaId ||
       typeof p.device_id !== 'string' || p.device_id !== scope.deviceId || !p.device_id ||
       !positive(p.versiya) || !positive(p.berildi) || !positive(p.tugaydi) ||
-      !Number.isSafeInteger(now) || p.berildi > now || p.tugaydi <= now ||
+      !Number.isSafeInteger(now) || p.berildi > now + 5 * 60_000 || p.tugaydi <= now ||
       p.tugaydi <= p.berildi || p.tugaydi - p.berildi > DESKTOP_LEASE_TTL ||
       !Array.isArray(p.obyekt_idlar) || p.obyekt_idlar.length === 0 || p.obyekt_idlar.length > 100 ||
       !p.obyekt_idlar.every(positive) || new Set(p.obyekt_idlar).size !== p.obyekt_idlar.length ||
@@ -56,8 +56,8 @@ export class DesktopLeaseGuard {
   private readonly monotonic: () => number;
   constructor(lease: DesktopLease, highWater: number, clock = Date.now, monotonic = () => performance.now()) {
     this.lease = lease; this.clock = clock; this.monotonic = monotonic;
-    this.invalid = !Number.isSafeInteger(highWater) || highWater < lease.berildi;
-    this.highWater = Math.max(highWater, lease.berildi);
+    this.invalid = !Number.isSafeInteger(highWater) || highWater < lease.berildi - 5 * 60_000;
+    this.highWater = highWater;
     this.monotonicExpiry = monotonic() + Math.max(0, lease.tugaydi - clock());
   }
   allow(objectId: number): number {
