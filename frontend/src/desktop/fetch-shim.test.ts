@@ -1,27 +1,46 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest';
-import { desktopFetch } from './fetch-shim';
+import { desktopFetch, type NativeInvoke } from './fetch-shim';
 
-describe('Desktop API transport', () => {
-  it('faqat lokal /api ni Cloudflarega Bearer bilan yuboradi', async () => {
-    const fetcher = vi.fn(async () => new Response('{}')), token = vi.fn(async () => 'SYNTHETIC_TOKEN');
-    await desktopFetch(fetcher, {token})('/api/sb?x=1', {method:'POST',body:'{"x":1}',headers:{'content-type':'application/json','authorization':'forged','cookie':'forged'}});
-    const [url, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe('https://smeta-tizimi.pages.dev/api/sb?x=1');
-    const headers = new Headers(init.headers);
-    expect(headers.get('authorization')).toBe('Bearer SYNTHETIC_TOKEN'); expect(headers.has('cookie')).toBe(false);
-    expect(new TextDecoder().decode(init.body as ArrayBuffer)).toBe('{"x":1}');
-    expect(init.credentials).toBe('omit'); expect(init.redirect).toBe('error');
+describe('native-only Desktop transport', () => {
+  it('uses native logout IPC and reports confirmed revocation', async () => {
+    const original = vi.fn(), invoke = vi.fn(async () => undefined);
+    const r = await desktopFetch(original, invoke as NativeInvoke)('/api/chiqish', { method: 'POST' });
+    expect(r.status).toBe(200); expect(await r.json()).toEqual({ ok: true });
+    expect(invoke).toHaveBeenCalledExactlyOnceWith('desktop_logout');
+    expect(original).not.toHaveBeenCalled();
   });
-  it.each(['https://example.org/api/sb','https://smeta-tizimi.pages.dev/api/sb','/assets/app.js','//example.org/api/steal','/api/../assets/x'])('tashqi yoki asset so‘rovda tokenni o‘qimaydi: %s', async url => {
-    const fetcher = vi.fn(async()=>new Response()),token=vi.fn(async()=> 'SYNTHETIC_TOKEN');
-    await desktopFetch(fetcher,{token})(url); expect(fetcher).toHaveBeenCalledWith(url, undefined); expect(token).not.toHaveBeenCalled();
+  it('reports unconfirmed revocation after locally clearing credentials', async () => {
+    const invoke = vi.fn(async () => { throw new Error('offline'); });
+    const r = await desktopFetch(vi.fn(), invoke as NativeInvoke)('/api/chiqish', { method: 'POST' });
+    expect(r.status).toBe(503); expect(await r.json()).toMatchObject({ ok: false, local_cleared: true });
+    expect(invoke).toHaveBeenCalledExactlyOnceWith('desktop_logout');
   });
-  it('Request body/header va caller override saqlanadi', async()=>{
-    const fetcher=vi.fn(async()=>new Response());
-    const req=new Request('http://tauri.localhost/api/save',{method:'POST',body:'original',headers:{'x-test':'yes'}});
-    await desktopFetch(fetcher,{token:async()=>null})(req,{body:'override'});
-    const init=(fetcher.mock.calls[0] as unknown as [string,RequestInit])[1];
-    expect(new TextDecoder().decode(init.body as ArrayBuffer)).toBe('override'); expect(new Headers(init.headers).get('x-test')).toBe('yes'); expect(new Headers(init.headers).has('authorization')).toBe(false);
+  it('passes no cookie or Authorization to renderer HTTP transport', async () => {
+    const original = vi.fn(), invoke = vi.fn(async () => ({ status: 200, body: '{}', etag: null }));
+    const response = await desktopFetch(original, invoke as NativeInvoke)('/api/sb', { method: 'POST', body: '{"x":1}',
+      headers: { Cookie: 'forged', Authorization: 'forged', 'X-Caller-Authority': 'forged' } });
+    expect(response.status).toBe(200);
+    expect(original).not.toHaveBeenCalled();
+    expect(invoke).toHaveBeenCalledExactlyOnceWith('desktop_request', { path: '/api/sb', method: 'POST', body: '{"x":1}', etag: null });
+  });
+  it.each(['https://example.org/api/sb', 'https://smeta-tizimi.pages.dev/api/sb', '/assets/app.js', '//example.org/api/x', '/api/../assets/x'])('does not acquire credentials for %s', async url => {
+    const original = vi.fn(async () => new Response()), invoke = vi.fn();
+    await desktopFetch(original, invoke as NativeInvoke)(url);
+    expect(original).toHaveBeenCalledWith(url, undefined);
+    expect(invoke).not.toHaveBeenCalled();
+  });
+  it('preserves matching conditional GET without inventing a body for 304', async () => {
+    const invoke = vi.fn(async () => ({ status: 304, body: '', etag: 'v1' }));
+    const r = await desktopFetch(vi.fn(), invoke as NativeInvoke)('/api/obyekt-paket?obyekt_id=4', { headers: { 'If-None-Match': 'v1' } });
+    expect(r.status).toBe(304); expect(r.headers.get('ETag')).toBe('v1');
+    expect(invoke.mock.calls[0]).toEqual(['desktop_request', { path: '/api/obyekt-paket?obyekt_id=4', method: 'GET', body: null, etag: 'v1' }]);
+  });
+  it('blocks aborted work and unsupported methods', async () => {
+    const invoke = vi.fn(), fetcher = desktopFetch(vi.fn(), invoke as NativeInvoke);
+    const controller = new AbortController(); controller.abort();
+    await expect(fetcher('/api/sessiya', { signal: controller.signal })).rejects.toThrow('Aborted');
+    await expect(fetcher('/api/sb', { method: 'DELETE' })).rejects.toThrow('METHOD_DENIED');
+    expect(invoke).not.toHaveBeenCalled();
   });
 });

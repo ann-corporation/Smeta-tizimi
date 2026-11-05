@@ -1,6 +1,13 @@
-import { sbOqi, sbT2AktYaratV2, yangiOperationId, type AktNatija } from './supabase';
+import { sbOqi, sbT2AktYaratV2, sbT2DaraxtOl, yangiOperationId, type AktNatija } from './supabase';
 import { sbFaktYoz, sbQatorHolatOl, type FaktNatija } from './t2-fakt';
-import type { StornoFaktHolat, StornoFaktYozuv, StornoManbaQator, StornoYukQator } from '../lib/f2-storno';
+import type { StornoDaraxtTugun, StornoFaktHolat, StornoFaktYozuv, StornoManbaQator, StornoYukQator } from '../lib/f2-storno';
+
+/** Bo'lim bo'yicha tanlash uchun smeta daraxti (faqat ierarxiya ustunlari). */
+export async function f2StornoDaraxtOl(obyektId: number): Promise<{ ok: boolean; qatorlar: StornoDaraxtTugun[] }> {
+  const r = await sbT2DaraxtOl(obyektId, 'id,ota_id,tur,kod,nom,tartib');
+  if (!r.ok) return { ok: false, qatorlar: [] };
+  return { ok: true, qatorlar: (r.qatorlar ?? []).map((x) => ({ id: x.id, ota_id: x.ota_id ?? null, tur: x.tur ?? '', kod: x.kod ?? null, nom: x.nom ?? null, tartib: x.tartib ?? null })) };
+}
 
 /** Storno qilinadigan aktning barcha qatorlari (aniq hujjat qiymatlari: certified_*, bo'lmasa hajm/narx/summa). */
 export async function f2StornoManbaOl(aktId: number, obyektId: number): Promise<{ ok: boolean; qatorlar: StornoManbaQator[]; error?: string }> {

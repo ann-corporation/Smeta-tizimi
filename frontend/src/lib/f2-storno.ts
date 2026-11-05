@@ -95,6 +95,45 @@ export function stornoQur(manba: readonly StornoManbaQator[], aktId: number, tan
   return { qatorlar, jami: yigindi2(qatorlar.map((q) => q.certifiedAmount)), nomalum, nolHajm, hajmsiz };
 }
 
+/* ── Bo'lim bo'yicha tanlash (egasi 2026-11-05) ─────────────────────────────────────────────────────────────────── */
+/** Smeta daraxti tuguni (t2_daraxt: id, ota_id, tur, nom, kod, tartib). */
+export type StornoDaraxtTugun = { id: number; ota_id: number | null; tur: string; nom?: string | null; kod?: string | null; tartib?: number | null };
+export type StornoBolim = { id: number; nom: string; yol: string; daraja: number; /** shu bo'lim (avlodlari bilan) ichidagi storno nomzod qatorlari */ qatorlar: number[] };
+
+/**
+ * Storno nomzodlari bor bo'limlar (rz), smeta tartibida, har biri BUTUN avlodi bilan: ishlar, ularning rs/mat/ob farzandlari,
+ * qo'shimcha/zamena qatorlari — hammasi ota zanjiri bo'yicha shu bo'lim ostida. Ichki bo'lim ota bo'limda ham sanaladi.
+ */
+export function stornoBolimlar(daraxt: readonly StornoDaraxtTugun[], nomzodlar: Iterable<number>): StornoBolim[] {
+  const byId = new Map(daraxt.map((r) => [r.id, r]));
+  const bolalar = new Map<number | null, StornoDaraxtTugun[]>();
+  for (const r of daraxt) { const k = r.ota_id ?? null; if (!bolalar.has(k)) bolalar.set(k, []); bolalar.get(k)!.push(r); }
+  for (const a of bolalar.values()) a.sort((p, q) => (p.tartib ?? 0) - (q.tartib ?? 0) || p.id - q.id);
+  const nomzod = new Set(nomzodlar);
+  const yigilgan = new Map<number, number[]>();
+  /** Nomzodni barcha rz ajdodlariga yozadi (sikldan himoya bilan). */
+  for (const id of nomzod) {
+    const kor = new Set<number>();
+    for (let o = byId.get(id)?.ota_id ?? null; o != null && !kor.has(o); o = byId.get(o)?.ota_id ?? null) {
+      kor.add(o);
+      if (byId.get(o)?.tur === 'rz') { if (!yigilgan.has(o)) yigilgan.set(o, []); yigilgan.get(o)!.push(id); }
+    }
+  }
+  const out: StornoBolim[] = []; const kor = new Set<number>();
+  const yur = (ota: number | null, yol: string[], daraja: number) => {
+    for (const r of bolalar.get(ota) ?? []) {
+      if (kor.has(r.id)) continue; kor.add(r.id);
+      if (r.tur !== 'rz') { yur(r.id, yol, daraja); continue; }
+      const nom = (r.nom ?? '').trim() || `#${r.id}`; const y = [...yol, nom];
+      const qs = yigilgan.get(r.id);
+      if (qs?.length) out.push({ id: r.id, nom, yol: y.join(' › '), daraja, qatorlar: qs });
+      yur(r.id, y, daraja + 1);
+    }
+  };
+  yur(null, [], 0);
+  return out;
+}
+
 /* ── Ikki marta storno qilishdan himoya ─────────────────────────────────────────────────────────────────────────── */
 export type StornoReestrAkt = { id: number; raqam?: string | null; holat?: string | null; lifecycle_status?: string | null };
 
