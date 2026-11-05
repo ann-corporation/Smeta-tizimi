@@ -1,19 +1,21 @@
-import { Activity, AlertOctagon, Boxes, ClipboardList, Database, Gauge, HardDrive, LayoutDashboard, Network, ScrollText, ServerCog, ShieldAlert } from 'lucide-react';
+import { Activity, AlertOctagon, Boxes, ClipboardList, Database, Gauge, HardDrive, LayoutDashboard, Laptop, Network, ScrollText, ServerCog, ShieldAlert } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { AuditTable, CapabilityTable, Empty, IncidentTable, IntegrationCard, JobTable, SystemHealthCard, SystemStatusBadge, type SystemControlCallbacks, type SystemControlData } from '../../components/system-control';
 import { GrafikPanel, Legenda, Tasma } from '../../components/boshqaruv-grafik/Grafiklar';
 import { t } from '../../i18n/til';
 
-type Tab = 'umumiy' | 'modullar' | 'integratsiyalar' | 'jobs' | 'xatolar' | 'audit';
+type Tab = 'umumiy' | 'modullar' | 'integratsiyalar' | 'jobs' | 'xatolar' | 'audit' | 'desktop';
 const tabs: Array<{ id: Tab; label: string; Icon: typeof LayoutDashboard }> = [
   { id: 'umumiy', label: 'UMUMIY', Icon: LayoutDashboard }, { id: 'modullar', label: 'MODULLAR', Icon: Boxes },
   { id: 'integratsiyalar', label: 'INTEGRATSIYALAR', Icon: Network }, { id: 'jobs', label: 'ISHLAR / JOBS', Icon: ClipboardList },
   { id: 'xatolar', label: 'XATOLAR', Icon: AlertOctagon }, { id: 'audit', label: 'AUDIT', Icon: ScrollText },
+  { id: 'desktop', label: 'WINDOWS DASTUR', Icon: Laptop },
 ];
 
-export type SystemControlCenterProps = SystemControlCallbacks & { data: SystemControlData; demo?: boolean; className?: string };
+/** `desktop` — «Windows dastur» bo'limi (o'z ma'lumotini o'zi oladi); berilmasa tab ko'rinmaydi (demo). */
+export type SystemControlCenterProps = SystemControlCallbacks & { data: SystemControlData; demo?: boolean; className?: string; desktop?: ReactNode };
 
-export function SystemControlCenter({ data, demo = false, className = '', ...actions }: SystemControlCenterProps) {
+export function SystemControlCenter({ data, demo = false, className = '', desktop, ...actions }: SystemControlCenterProps) {
   const [tab, setTab] = useState<Tab>('umumiy');
   const summary = useMemo(() => ({ active: data.capabilities.filter((item) => item.enabled === 'on').length, warnings: data.health.filter((item) => item.status === 'warning').length + data.incidents.filter((item) => item.severity === 'warning').length, failedJobs: data.jobs.filter((item) => item.status === 'failed').length, openIncidents: data.incidents.filter((item) => item.status === 'open').length }), [data]);
   return <section className={`min-h-full bg-bg text-text ${className}`}>
@@ -28,7 +30,7 @@ export function SystemControlCenter({ data, demo = false, className = '', ...act
       </div>
       <div className="fz-pagehead__actions text-[12px] text-text-dim"><Activity size={15} className="text-ok" aria-hidden="true" />{t('Nazorat paneli')} · {data.version.environment || t('Muhit aniqlanmagan')}</div>
       <nav className="-mb-4 flex w-full gap-1 overflow-x-auto" aria-label={t('System Control Center tablari')}>
-        {tabs.map(({ id, label, Icon }) => <button key={id} type="button" onClick={() => setTab(id)} aria-current={tab === id ? 'page' : undefined}
+        {tabs.filter((x) => x.id !== 'desktop' || desktop).map(({ id, label, Icon }) => <button key={id} type="button" onClick={() => setTab(id)} aria-current={tab === id ? 'page' : undefined}
           className={`inline-flex shrink-0 items-center gap-2 border-b-2 px-3 py-3 text-[12px] font-semibold tracking-wide transition-colors ${tab === id ? 'border-accent text-text' : 'border-transparent text-text-dim hover:text-text'}`}><Icon size={15} aria-hidden="true" />{t(label)}</button>)}
       </nav>
     </header>
@@ -38,6 +40,7 @@ export function SystemControlCenter({ data, demo = false, className = '', ...act
       {tab === 'integratsiyalar' && <Section title={t('Integratsiyalar')} subtitle={t('Ulanish holati backenddan keladi. Sozlanmagan integratsiya hech qachon connected deb ko‘rsatilmaydi.')}><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{data.integrations.length ? data.integrations.map((item) => <IntegrationCard key={item.id} integration={item} onAction={(action) => actions.onIntegrationAction?.(item, action)} />) : <Empty label={t('Integratsiya qaydlari mavjud emas.')} />}</div></Section>}
       {tab === 'jobs' && <Section title={t('Ishlar / Jobs')} subtitle={t('Asinxron operatsiyalar, jarayon va qayta urinish nazorati.')}><JobTable jobs={data.jobs} onRetry={(job) => actions.onRetry?.({ type: 'job', id: job.id })} onPause={actions.onPause} onResume={actions.onResume} onCancel={actions.onCancel} /></Section>}
       {tab === 'xatolar' && <Section title={t('Xatolar va incidentlar')} subtitle={t('Kritik incidentlar birinchi navbatda ko‘rinadi; filterlar faqat UI qatlami.')}><IncidentTable incidents={data.incidents} onAction={actions.onIncidentAction} /></Section>}
+      {tab === 'desktop' && desktop && <Section title={t('Windows dastur')} subtitle={t('Qurilmalar, siyosat (kill switch, limit, oflayn, minimal versiya) va yangilanish. Barcha qoidalar serverda tekshiriladi.')}>{desktop}</Section>}
       {tab === 'audit' && <Section title={t('Audit jurnali')} subtitle={t('Amal manbasi va operation ID bilan o‘qiladigan tarix.')}><AuditTable events={data.auditEvents} /></Section>}
     </main>
   </section>;

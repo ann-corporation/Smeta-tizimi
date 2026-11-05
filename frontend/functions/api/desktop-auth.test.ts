@@ -35,11 +35,11 @@ beforeEach(() => {
     const u = new URL(String(raw));
     const b = init?.body ? JSON.parse(String(init.body)) : {};
     calls.push({ path: u.pathname, body: b });
-    if (u.pathname.endsWith('/t2_desktop_qurilma_tekshir_v1')) return Response.json(!revoked && b.p_token_hash === await deviceHash(token) ?
+    if (u.pathname.endsWith('/t2_desktop_qurilma_tekshir_v2')) return Response.json(!revoked && b.p_token_hash === await deviceHash(token) ?
       { ok: true, device_id: deviceId, foydalanuvchi_id: 7, tugaydi: expires, sessiya_exp: expires, versiya: 1 } : { ok: false });
-    if (u.pathname.endsWith('/t2_desktop_qurilma_yarat_v1')) return Response.json(deviceLimit ? { ok: false, code: 'DEVICE_LIMIT' } : { ok: true, device_id: b.p_device_id, tugaydi: b.p_sessiya_exp });
+    if (u.pathname.endsWith('/t2_desktop_qurilma_yarat_v2')) return Response.json(deviceLimit ? { ok: false, code: 'DEVICE_LIMIT' } : { ok: true, device_id: b.p_device_id, tugaydi: b.p_sessiya_exp });
     if (u.pathname.endsWith('/t2_desktop_qurilma_bekor_v1')) { if (b.p_device_id !== deviceId) return Response.json({ ok: false }); revoked = true; return Response.json({ ok: true }); }
-    if (u.pathname.endsWith('/t2_desktop_lease_chegara_v1')) return Response.json(leaseLimit ? { ok: false, code: 'LEASE_RATE_LIMIT' } : { ok: true });
+    if (u.pathname.endsWith('/t2_desktop_lease_chegara_v2')) return Response.json(leaseLimit ? { ok: false, code: 'LEASE_RATE_LIMIT' } : { ok: true });
     if (u.pathname.endsWith('/t2_men_v1')) return Response.json({ ok: true, platform_role: 'none', foydalanuvchi: { holat: 'faol' },
       context_kompaniyalar: [{ kompaniya_id: 8, effective_role: 'pto', permissions }] });
     if (u.pathname === '/rest/v1/t2_obyekt') return Response.json([{ kompaniya_id: objectCompany }]);
@@ -108,7 +108,7 @@ describe('M3 web enrollment, self revoke and CSRF', () => {
     expect(r.status).toBe(200);
     const issued = await r.json() as any;
     expect(issued).toMatchObject({ ok: true }); expect(issued.token).toMatch(/^[A-Za-z0-9_-]{43}$/);
-    const args = calls.find(c => c.path.endsWith('/t2_desktop_qurilma_yarat_v1'))!.body;
+    const args = calls.find(c => c.path.endsWith('/t2_desktop_qurilma_yarat_v2'))!.body;
     expect(args.p_actor_id).toBe(7); expect(args.p_token_hash).toBe(await deviceHash(issued.token));
     expect(JSON.stringify(args)).not.toContain(issued.token);
     expect(r.headers.get('Cache-Control')).toBe('no-store');
