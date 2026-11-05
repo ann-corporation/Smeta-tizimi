@@ -255,6 +255,34 @@ describe('F2 tayyorlash', () => {
     expect(m.yangila).not.toHaveBeenCalled();
   });
 
+  describe('davom: shu oyning qoralamasi jim yangi akt o‘rniga ochiladi', () => {
+    const J = () => <output data-testid="joy2">{useLocation().search}</output>;
+    const royxat = (holat: string) => m.oqi.mockImplementation(async (q: { jadval: string; filtr?: string }) => {
+      if (q.jadval === 't2_akt' && !String(q.filtr).includes('id=eq.')) return { ok: true, qatorlar: [
+        { id: 700, raqam: '534', oy: '2026-09-01', holat: 'qoralama', lifecycle_status: 'draft', hujjat_jami: 1 },
+        { id: 714, raqam: '535-С', oy: '2026-09-01', holat, lifecycle_status: holat === 'qoralama' ? 'draft' : 'approved', hujjat_jami: 1 },
+        { id: 720, raqam: '536', oy: '2026-10-01', holat: 'qoralama', lifecycle_status: 'draft', hujjat_jami: 1 },
+      ] };
+      if (q.jadval === 't2_akt') return { ok: true, qatorlar: [{ id: 714, raqam: '535-С', oy: '2026-09-01', holat: 'qoralama', lifecycle_status: 'draft', versiya: 1 }] };
+      return { ok: true, qatorlar: [] };
+    });
+    it('?akt siz: shu oyning eng yangi qoralamasi ochiladi, xabar va «Yangi alohida F2 boshlash»', async () => {
+      royxat('qoralama');
+      render(<MemoryRouter initialEntries={['/admin/f2-tayyorlash?obyekt=8&oy=2026-09']}><F2TayyorlashNative /><J /></MemoryRouter>);
+      await waitFor(() => expect(screen.getByTestId('joy2').textContent).toContain('akt=714'));
+      expect(screen.getByTestId('joy2').textContent).toContain('davom=1');
+      const yangi = await screen.findByTestId('yangi-alohida-f2');
+      expect(yangi.getAttribute('href')).toBe('/admin/f2-tayyorlash?obyekt=8&yangi=1');
+    });
+    it('?yangi=1 — qoralama ochilmaydi (alohida yangi F2)', async () => {
+      royxat('qoralama');
+      render(<MemoryRouter initialEntries={['/admin/f2-tayyorlash?obyekt=8&oy=2026-09&yangi=1']}><F2TayyorlashNative /><J /></MemoryRouter>);
+      await screen.findByLabelText('F2 raqami');
+      await new Promise((r) => setTimeout(r, 50));
+      expect(screen.getByTestId('joy2').textContent).not.toContain('akt=');
+    });
+  });
+
   describe('eski F2 ni storno qilish (F2 tayyorlash oynasida)', () => {
     const akt = (o: Record<string, unknown>) => ({ tur: 'f2', oy: '2026-09-01', holat: 'tasdiqlangan', lifecycle_status: 'approved', qator_soni: 3, hujjat_jami: 1000, ...o });
     const ochishJoy = (url = '/admin/f2-tayyorlash?obyekt=8') => render(<MemoryRouter initialEntries={[url]}><F2TayyorlashNative /><Joy /></MemoryRouter>);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { sbT2AktReestrOl, type T2AktReestr } from '../../api/supabase';
 import { f2ImportQilinganmi } from '../../lib/f2-manba';
 import { FmtN } from '../../lib/format';
@@ -37,12 +38,15 @@ export function TayyorlanganF2lar({ kompaniyaId, obyektId, yangilash = 0 }: { ko
             <span className="text-text-dim">{a.oy?.slice(0, 7)}</span>
             <span className="tabular-nums text-text-dim"><FmtN val={a.hujjat_jami} /></span>
             <span className={a.lifecycle_status === 'approved' ? 'text-ok' : 'text-warn'}>
-              {a.lifecycle_status === 'approved' ? t('tasdiqlangan') : a.holat === 'qoralama' ? t('qoralama — avval F2 tarixida tasdiqlang') : a.lifecycle_status ?? a.holat}
+              {a.lifecycle_status === 'approved' ? t('tasdiqlangan') : a.holat === 'qoralama' ? t('qoralama') : a.lifecycle_status ?? a.holat}
             </span>
             <span className="ml-auto flex items-center gap-2">
               {a.lifecycle_status === 'approved'
                 ? <ZakazchigaYuborish kompaniyaId={kompaniyaId} aktId={a.id} />
-                : <a className="underline text-accent" href={`/admin/f2-tarix?obyekt=${obyektId}`}>{t('Tasdiqlashga')}</a>}
+                : <>
+                    <Link data-testid="f2-davom" className="fz-btn fz-btn--sm" to={`/admin/f2-tayyorlash?obyekt=${obyektId}&akt=${a.id}`}>{t('Davom ettirish')}</Link>
+                    <Link data-testid="f2-tasdiqlash" className="underline text-accent" to={`/admin/f2-tarix?obyekt=${obyektId}`}>{t('Tasdiqlash')}</Link>
+                  </>}
             </span>
           </li>
         ))}

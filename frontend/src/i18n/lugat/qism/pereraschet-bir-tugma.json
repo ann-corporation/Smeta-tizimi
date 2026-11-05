@@ -1,0 +1,18 @@
+{
+  "Pereraschet": { "ru": "Перерасчёт", "en": "Recalculation" },
+  "Pereraschet: F2 №{r}": { "ru": "Перерасчёт: Ф2 №{r}", "en": "Recalculation: F2 No. {r}" },
+  "Hujjat podvali o‘qilmadi. Qayta urinib ko‘ring.": { "ru": "Подвал документа не прочитан. Повторите попытку.", "en": "The document footer could not be read. Try again." },
+  "F2 №{r} ning hujjat podvali (ustama foizlari) saqlanmagan. Eski F2 minus bloki to‘g‘ri hisoblanishi uchun avval podvalni asl F2 faylidan tiklang.": { "ru": "Подвал документа Ф2 №{r} (проценты начислений) не сохранён. Чтобы минусовой блок старой Ф2 посчитался верно, сначала восстановите подвал из исходного файла Ф2.", "en": "The footer (markup percentages) of F2 No. {r} is not saved. Restore it from the original F2 file first so the old F2 minus block is calculated correctly." },
+  "Podvalsiz davom etaman: eski F2 minus bloki SMETA podvali bilan hisoblanadi va asl F2 summasidan farq qilishi mumkin.": { "ru": "Продолжить без подвала: минусовой блок старой Ф2 будет посчитан по подвалу СМЕТЫ и может отличаться от суммы исходной Ф2.", "en": "Continue without the footer: the old F2 minus block will use the ESTIMATE footer and may differ from the original F2 total." },
+  "Podvalsiz davom etish": { "ru": "Продолжить без подвала", "en": "Continue without footer" },
+  "Eski F2 minus (tepada) + yangi hajmlar faktdan (pastda) — bitta hujjat; fakt o‘zgarmaydi": { "ru": "Старая Ф2 минусом (сверху) + новые объёмы из факта (снизу) — один документ; факт не меняется", "en": "Old F2 as minus (top) + new volumes from fact (below) — one document; the fact is unchanged" },
+  "Bu oy uchun F2 qoralama bor — u ochildi, yangi akt yaratilmadi. Qatorlarni shu yerda davom ettiring.": { "ru": "Для этого месяца есть черновик Ф2 — он открыт, новый акт не создан. Продолжайте строки здесь.", "en": "An F2 draft exists for this month — it was opened, no new act was created. Continue the rows here." },
+  "Yangi alohida F2 boshlash": { "ru": "Начать отдельную новую Ф2", "en": "Start a separate new F2" },
+  "Pereraschet: eski F2 №{r} minus (tepada) + yangi hajmlar (pastda)": { "ru": "Перерасчёт: старая Ф2 №{r} минусом (сверху) + новые объёмы (снизу)", "en": "Recalculation: old F2 No. {r} as minus (top) + new volumes (below)" },
+  "Minus blok — eski F2 lar": { "ru": "Минусовой блок — старые Ф2", "en": "Minus block — old F2s" },
+  "Plyus blok — yangi hajmlar (smeta podvali)": { "ru": "Плюсовой блок — новые объёмы (подвал сметы)", "en": "Plus block — new volumes (estimate footer)" },
+  "Sof jami (plyus − minus)": { "ru": "Чистый итог (плюс − минус)", "en": "Net total (plus − minus)" },
+  "qoralama": { "ru": "черновик", "en": "draft" },
+  "Davom ettirish": { "ru": "Продолжить", "en": "Continue" },
+  "Tasdiqlash": { "ru": "Утвердить", "en": "Approve" }
+}
