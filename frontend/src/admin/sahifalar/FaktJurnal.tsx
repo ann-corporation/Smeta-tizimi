@@ -14,6 +14,7 @@ import { FaktAiYordamchi } from './FaktAiYordamchi';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { bosKatKesim, katKesimgaQosh, type KatKesim } from '../../lib/ustamali-summa';
 import { yaxlit2, yigindi2 } from '../../lib/hisob-yadro';
+import { faktSummaF2Narxda } from '../../lib/hisob-yadro/korinish';
 import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 import { yangiOperationId, type T2Obyekt, type T2Qator } from '../../api/supabase';
 import { FaktEgizakOyna } from './FaktEgizakOyna';
@@ -252,6 +253,15 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
     const bolalar = 'resurslar' in q ? [...(q as JurnalIsh).resurslar, ...(q as JurnalIsh).avtomatik] : [];
     const qismlar = q.tur === 'bl' ? bolalar : [q];
     const asos = yigindi2(qismlar.map(sm));
+    // Smeta narxi yo'q (F2 importida qo'shilgan resurs) — fakt summasi F2 narxida (yadro faktSummaF2Narxda; bo'lim jami bilan bir xil).
+    if (!(asos > 0) && q.tur !== 'bl') {
+      const h = holatMap.get(q.id);
+      const f = faktSummaF2Narxda(q.fakt, h?.f2_hajm, h?.f2_summa, h?.fakt_summa, h?.f2_summa_yoq).summa;
+      if (f == null) return null;
+      const fakt = bosKatKesim(), smeta = bosKatKesim();
+      katKesimgaQosh(fakt, rowById.get(q.id)?.kat, f);
+      return { fakt, smeta, faktSumma: f, smetaSumma: 0 };
+    }
     if (!(asos > 0) || q.ulush == null) return null;
     const ulush = q.ulush;
     const fakt = bosKatKesim(), smeta = bosKatKesim();
@@ -522,6 +532,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
     const r = rowById.get(q.id); const h = holatMap.get(q.id);
     const narx = h?.smeta_narx != null ? Number(h.smeta_narx) : r?.narx != null ? Number(r.narx) : null;
     if (narx != null) return <span title={t('Birlik narxi (NDS siz)')}>× {fmt(narx)}</span>;
+    // Smeta narxi yo'q, lekin tasdiqlangan F2 narxi bor (F2 importidagi qo'shimcha resurs) — F2 narxi ko'rsatiladi.
+    const f2n = h?.f2_narx != null && Number.isFinite(Number(h.f2_narx)) ? Number(h.f2_narx) : null;
+    if (f2n != null && q.tur !== 'bl') return <span title={t('F2 narxi (smetada narx yo‘q, NDS siz)')} data-testid="f2-narx-belgi">× {fmt(f2n)} <span className="text-[10px] text-text-mute">{t('F2')}</span></span>;
     if (narxlashMumkin(q.tur, narx)) return <button type="button" tabIndex={-1} onClick={() => setNarxModal({ id: q.id, nom: q.nom, birlik: q.birlik, kat: r?.kat ?? null, fakt: q.fakt, smeta: q.smeta })}
       className="fz-chip fz-chip--danger hover:brightness-110" title={t('Narxi noma‘lum - narxlash')} data-testid="narxsiz-belgi">{t('narxsiz')}</button>;
     if (q.tur === 'bl') { const ts = taxminKesim(q); if (ts && q.smeta) return <span title={t('Ish birlik narxi = resurslar summasi / ish hajmi')}>× {fmt(ts.smetaSumma / q.smeta)}</span>; }
