@@ -33,9 +33,9 @@ export function PereraschetPanel({ baho }: { baho: PereraschetBaho }) {
             <Qator key={blok.manbaAktId} testid={`pereraschet-blok-${blok.manbaAktId}`} b={b}
               nom={`${t('Сторно Ф-2 №{r}', { r: blok.raqam || String(blok.manbaAktId) })} · ${t('{n} qator', { n: blok.qatorlar.length })} · ${hujjatPodvali ? t('hujjat podvali') : t('smeta podvali')}`} />
           ))}
-          <Qator testid="pereraschet-eski" nom={t('Eski F2 lar (minus)')} b={baho.eski} kuchli />
-          <Qator testid="pereraschet-yangi" nom={t('Yangi qatorlar (smeta podvali)')} b={baho.yangi} kuchli />
-          <Qator testid="pereraschet-sof" nom={t('Sof jami (yangi − eski)')} b={baho.sof} kuchli />
+          <Qator testid="pereraschet-eski" nom={t('Minus blok — eski F2 lar')} b={baho.eski} kuchli />
+          <Qator testid="pereraschet-yangi" nom={t('Plyus blok — yangi hajmlar (smeta podvali)')} b={baho.yangi} kuchli />
+          <Qator testid="pereraschet-sof" nom={t('Sof jami (plyus − minus)')} b={baho.sof} kuchli />
         </tbody>
       </table>
       {baho.sof.nomalumBirlik > 0 && <p className="m-0 text-warn">{t('Ba‘zi qismlar uchun ustama foizi noma‘lum — jami hisoblanmadi.')}</p>}

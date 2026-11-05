@@ -14,7 +14,7 @@ export function useObyektF2Aktlari(objectId: number | null, yangila = 0): { aktl
   useEffect(() => {
     if (!objectId) return;
     let faol = true;
-    void Promise.resolve(sbOqi<DAkt>({ jadval: 't2_akt', filtr: `obyekt_id=eq.${objectId}&tur=eq.f2`, ustunlar: 'id,raqam,oy,holat,hujjat_jami,manba', limit: 5000 }))
+    void Promise.resolve(sbOqi<DAkt>({ jadval: 't2_akt', filtr: `obyekt_id=eq.${objectId}&tur=eq.f2`, ustunlar: 'id,raqam,oy,holat,lifecycle_status,hujjat_jami,manba', limit: 5000 }))
       .then((r) => { if (faol) setH({ kalit, aktlar: r?.ok ? r.qatorlar ?? [] : [] }); })
       .catch(() => { if (faol) setH({ kalit, aktlar: [] }); });
     return () => { faol = false; };

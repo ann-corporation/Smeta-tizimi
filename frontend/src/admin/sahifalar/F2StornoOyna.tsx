@@ -42,6 +42,8 @@ export function F2StornoOyna(p: {
   onYop: () => void;
   /** Qoralama (va fakt 0 ga) tayyor bo'lgach yangi qoralama id si bilan chaqiriladi. */
   onYaratildi?: (yangiAktId: number) => void;
+  /** Fakt tanlovining boshlang'ich qiymati (pereraschet oqimida «o'zgartirma»). */
+  faktRejimSukut?: StornoFaktRejim;
   /** Eski nom (F2 tarixi): `onYaratildi` bilan bir vaqtda chaqiriladi. */
   onTugadi?: (yangiAktId: number) => void;
 }) {
@@ -59,7 +61,7 @@ export function F2StornoOyna(p: {
   const [oy, setOy] = useState(oyBosh());
   const [takrorTasdiq, setTakrorTasdiq] = useState(false);
   /** Fakt bilan nima qilinadi (sukut — eski oqim: 0 ga). */
-  const [faktRejim, setFaktRejim] = useState<StornoFaktRejim>('nolga');
+  const [faktRejim, setFaktRejim] = useState<StornoFaktRejim>(p.faktRejimSukut ?? 'nolga');
   const [band, setBand] = useState(false);
   const [xato, setXato] = useState('');
   /** Qoralama yaratilgach shu yerda saqlanadi: podval nusxasi / fakt yozuvi yiqilsa, faqat shu qadamlar qayta uriniladi (qoralama takrorlanmaydi). */
