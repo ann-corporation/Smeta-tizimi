@@ -86,6 +86,11 @@ begin
   update public.t2_smeta_versiya_moslik set tasdiq = 'tasdiqlandi' where versiya_id = v1 and qator_id = nb2;
 
   -- K4: ikkinchi faollashtirish (zanjir).
+  -- Faollashtirish yo'li (t2_smeta_import_yakunla_unlocked_v1 va yordamchilari) `on commit drop` vaqtinchalik jadvallar
+  -- yaratadi; bitta tranzaksiyada ikkinchi chaqiriq «already exists» beradi. Faqat test: pg_temp dagilarni tozalaymiz
+  -- (pg_temp. prefiksi — doimiy jadvalga tegmaydi; prod funksiyalar o'zgarmaydi).
+  drop table if exists pg_temp.t2_imp_qator, pg_temp.t2_pkg_imp_qator, pg_temp.t2_smeta_import_map, pg_temp._muhr_eksp,
+    pg_temp._ier_k, pg_temp._ier_t, pg_temp._snap_s, pg_temp._snap_j, pg_temp._sv_moslik, pg_temp._sv_qaror, pg_temp._sv_rad;
   r := public.t2_smeta_versiya_faollashtir_v1(c, a, o, jsonb_build_array(
     jsonb_build_object('local_id','rz','tur','rz','nom','_TEST_F2VK_ ЭКСПЕРТИЗА 2'),
     jsonb_build_object('local_id','b1','parent_local_id','rz','tur','bl','kod','T1-1','nom','ИШ БИР СИНОВ','birlik','М3','hajm','9'),
