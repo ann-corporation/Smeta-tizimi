@@ -368,3 +368,13 @@ describe('pereraschet: yangi qatorlar smeta narxida (eski F2 arzon narxda bo‘l
     expect(res(qur(false), 6)).toBeUndefined();
   });
 });
+
+describe('chang qoldiq (egasi 2026-11-06)', () => {
+  it('1e-7 kabi kasr qoldiq F2 ga taklif qilinmaydi (0); 1e-5 qoladi', () => {
+    const h2: F2Holat[] = holat.map((x) => (x.qator_id === 7 ? { ...x, f2_mumkin_hajm: 3.77e-7 } : x.qator_id === 6 ? { ...x, f2_mumkin_hajm: 1e-5 } : x));
+    const b = f2Qur(rows, h2);
+    expect(b[0].alohida.map((r) => r.id)).not.toContain(7);
+    const mat = b[0].ishlar[0].resurslar.find((r) => r.id === 6);
+    expect(mat?.mumkin).toBe(0.00001);
+  });
+});
