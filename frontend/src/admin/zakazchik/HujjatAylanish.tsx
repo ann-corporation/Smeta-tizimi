@@ -5,7 +5,7 @@
  * Dizayn: docs/architecture/HUJJAT_AYLANISH_LOGISTIKA_V1.md. Ruxsat, tartib va raqamlash serverda; fayllar — R2 (hujjat reyestri).
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Paperclip } from 'lucide-react';
 import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
@@ -350,6 +350,13 @@ export default function HujjatAylanish() {
   const [aloqalar, setAloqalar] = useState<Aloqa[]>([]);
   useEffect(() => { if (kompaniyaId) void aloqalarOl(kompaniyaId).then((r) => { if (r.ok) setAloqalar(r.natija); }); }, [kompaniyaId]);
   const ochish = (yangi: Tab, id: number) => { setTab(yangi); if (yangi === 'zanjir') setZanjirId(id); else setXatId(id); };
+  // Qo'ng'iroqcha/Telegram havolasi: ?xat=ID yoki ?zanjir=ID — kerakli bo'lim va hujjat darhol ochiladi.
+  const [sp] = useSearchParams();
+  useEffect(() => {
+    const id = (k: string) => { const v = sp.get(k); return v && /^\d{1,15}$/.test(v) && Number(v) > 0 ? Number(v) : null; };
+    const x = id('xat'); const z = id('zanjir');
+    if (x) { setTab('xat'); setXatId(x); } else if (z) { setTab('zanjir'); setZanjirId(z); }
+  }, [sp]);
   const tablar = useMemo((): [Tab, string][] => [['kiruvchi', 'Kiruvchi hujjatlar'], ['zanjir', 'Tasdiq zanjirlari'], ['xat', 'Xatlar reestri'], ['shablon', 'Shablonlar']], []);
   if (!kompaniyaId) return <KompaniyaKerak nima={t('Hujjat aylanishi')} />;
   return (

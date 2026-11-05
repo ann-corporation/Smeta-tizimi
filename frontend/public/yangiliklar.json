@@ -14,13 +14,11 @@
     {
       "id": 103,
       "sana": "2026-11-05",
-      "sarlavha": "Shartnoma oylik paketi — F2 portfeli bilan bir xil va topshirishga tayyor",
+      "sarlavha": "Hujjat muddatlari endi o‘zi eslatiladi",
       "bandlar": [
-        "Paketdagi summalar endi F2 portfeli va F2 tarixi bilan aynan bir xil: har F2 o‘z podvali bilan (storno bloklari ham), podvali bo‘lmasa smeta podvali; QQS bilan summa birinchi.",
-        "Oy oralig‘i yoki «Barcha oylar»: bitta shartnoma bo‘yicha butun lot bitta ZIP da, har oy o‘z papkasida (pereraschet uchun).",
-        "ZIP ichida «00_MUNDARIJA.xlsx» — har hujjat va F2 summalari; F2 fayllari bir xil nomda: oy_shartnoma_obyekt_F2_raqam.xlsx.",
-        "Qoralamalar sukut bo‘yicha kirmaydi; «Qoralamalarni ham qo‘shish» belgisi bilan QORALAMA deb belgilanib qo‘shiladi. Bekor qilinganlar kirmaydi.",
-        "Topshirilgan paketdan keyin F2 o‘zgarsa — «Paket eskirgan — qayta yig‘ing» va bir bosishda «Qayta yig‘ish»; eski nusxa arxivda qoladi."
+        "Har kuni ertalab tizim xat, murojaat va tasdiq zanjirlarining muddatini tekshiradi: muddat yaqinlashsa yoki o‘tib ketsa, mas’ul kompaniyaga bildirishnoma keladi.",
+        "Yuqoridagi qo‘ng‘iroqcha bildirishnomani oddiy tilda va muddati bilan ko‘rsatadi. Bosilsa — o‘sha xat yoki hujjat darhol ochiladi.",
+        "Telegram ulangan bo‘lsa, shu xabar Telegramga ham keladi (bir marta, takrorlanmaydi)."
       ]
     },
     {
