@@ -14,3 +14,13 @@ Sessiya, company?me=1 и существующий route guard company?authorize=
 Обычный PERMISSION_DENIED/TENANT_FORBIDDEN/DEVICE_FORBIDDEN 403 сохраняет сессию. Только 401 либо явный AUTH_REQUIRED/DEVICE_AUTH_REQUIRED/DEVICE_REVOKED/DEVICE_EXPIRED/DEVICE_INVALID/DEVICE_SESSION_INVALID/DEVICE_TOKEN_INVALID закрывает её. Lease/packet 403 удаляет packet/pages только запрошенного объекта и сохраняет зашифрованную отметку denied/company/object; перезапуск офлайн не возвращает запрещённый объект. Другой объект остаётся доступен. Успешная повторная серверная авторизация снимает запрет; native allowlist принимает строго scoped denied-ключи.
 
 25 focused тестов проверяют обычные 403 обоих endpoint, повторный офлайн запуск, другой объект, восстановление разрешения и существующую цепь 200/offline/304/401. Полный native/GUI E2E нового потока остаётся M5 после приёмки #247. Main/prod/R2/БД не изменялись.
+
+## Повторный review L0: MAJOR и три малых пункта
+
+Batch lease403 сам по себе не идентифицирует запрещённый объект: клиент повторяет запрос только с текущим objectId. Denied/удаление packet/pages применяется только после одиночного403 или403 конкретного packet. При успешном одиночном ответе сохраняется новый подписанный scope; прежние объекты не объявляются запрещёнными по предположению. Повторный401/явный auth-invalid закрывает сессию.
+
+Lease429/503 допускает только проверенный ранее подписанный scope с прежним expiry/high-water/generation и без denied-метки. Выдача не продлевается; нет подходящего lease, объекта или packet — чтение закрыто. Прямые403/503 бизнес-запросов по-прежнему не маскируются успехом. Навигационные строки сохраняются только для объектов в криптографически проверенном scope; чужой, просроченный, forged или denied scope не создаёт навигационный кэш.
+
+После native logout и crypto-erasure под generation mutex удаляется завершённая папка и оставшиеся app-local native-cache-v1/32hex папки. Только распознанные плоские ciphertext/tmp; canonical-path граница, reparse/symlink и вложенные каталоги отклоняются. Ошибка удаления возвращается явно и не восстанавливает ключ. Неизвестные имена вне namespace не удаляются.
+
+Локальная проверка: app/functions TS, scoped lint,106 focused (33 runtime/page-cache),23 native release,fmt/all-feature clippy,desktop Vite PASS. Regression: batch403→current200, current403, retry401,429/503 с expiry, navigation scope/forgery/denied и scoped file cleanup. Governance остаётся FAIL по прежним task-lock/base_sha вне desktop. Fullsuite/manual CI rerun не запускались. Это не M5/production-login acceptance.

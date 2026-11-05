@@ -40,7 +40,7 @@ async function setup() {
     if (phase === 'revoked') return Response.json({ ok: false }, { status: 401 });
     if (String(input) === '/api/desktop/lease') {
       const bytes = new TextEncoder().encode(JSON.stringify({ format: 'smeta-desktop-lease/1', foydalanuvchi_id: 2,
-        kompaniya_id: 3, obyekt_idlar: [4, 5], permissions: ['smeta.read', 'f2.read', 'narx.read'], device_id: device,
+        kompaniya_id: 3, obyekt_idlar: JSON.parse(String(_init?.body)).obyekt_idlar, permissions: ['smeta.read', 'f2.read', 'narx.read'], device_id: device,
         berildi: now, tugaydi: now + 3600_000, versiya: 1 }));
       return Response.json({ ok: true, lease: { alg: 'Ed25519', kid: 'test', payload: b64(bytes),
         imzo: b64(new Uint8Array(await crypto.subtle.sign('Ed25519', pair.privateKey, bytes))) } });
@@ -64,6 +64,7 @@ describe('M3 lease to M4 native package lifecycle', () => {
     const h = await setup(), r = h.create(); await r.open(3, 4); await r.open(3, 5);
     if (endpoint === 'packet') h.request.mockImplementationOnce(h.request.getMockImplementation()!);
     h.request.mockResolvedValueOnce(Response.json({ ok: false, code }, { status: 403 }));
+    if (endpoint === 'lease') h.request.mockResolvedValueOnce(Response.json({ ok: false, code }, { status: 403 }));
     await expect(r.open(3, 4)).rejects.toThrow('DESKTOP_OBJECT_FORBIDDEN');
     expect(h.invoke).not.toHaveBeenCalledWith('desktop_session_clear'); expect(h.session.foydalanuvchi_id).toBe(2);
     expect(h.disk.has('packet/3/4')).toBe(false); expect(h.disk.has('packet/3/5')).toBe(true);
@@ -74,6 +75,35 @@ describe('M3 lease to M4 native package lifecycle', () => {
     const leaseCall = h.request.mock.calls.filter(([url]) => url === '/api/desktop/lease').at(-1)!;
     expect(JSON.parse(String(leaseCall[1]?.body)).obyekt_idlar).toEqual([5]);
     expect((await r.open(3, 4)).offline).toBe(false);
+  });
+  it('batch403 retries current B, preserves B, and only marks A after A is individually denied', async () => {
+    const h = await setup(), r = h.create(); await r.open(3, 4); await r.open(3, 5);
+    const live = h.request.getMockImplementation()!;
+    h.request.mockImplementation(async (input, init) => String(input) === '/api/desktop/lease' &&
+      JSON.parse(String(init?.body)).obyekt_idlar.includes(5) ? Response.json({ code: 'PERMISSION_DENIED' }, { status: 403 }) : live(input, init));
+    expect((await r.open(3, 4)).offline).toBe(false);
+    const scopes = h.request.mock.calls.filter(([u]) => u === '/api/desktop/lease').map(([, i]) => JSON.parse(String(i?.body)).obyekt_idlar);
+    expect(scopes.slice(-2)).toEqual([[5, 4], [4]]);
+    expect(h.disk.has('denied/3/4')).toBe(false); expect(h.disk.has('denied/3/5')).toBe(false);
+    await expect(r.open(3, 5)).rejects.toThrow('DESKTOP_OBJECT_FORBIDDEN');
+    expect(h.disk.has('packet/3/4')).toBe(true); expect(h.disk.has('packet/3/5')).toBe(false);
+    expect(h.session.foydalanuvchi_id).toBe(2); h.phase('offline');
+    expect((await h.create().open(3, 4)).offline).toBe(true);
+  });
+  it.each([429, 503])('lease%s uses only an unexpired verified cached lease, without extending it', async status => {
+    const h = await setup(), r = h.create(), opened = await r.open(3, 4);
+    h.request.mockResolvedValueOnce(Response.json({ code: 'TEMPORARY' }, { status }));
+    const cached = await r.open(3, 4);
+    expect(cached.offline).toBe(true); expect(cached.leaseUntil).toBe(opened.leaseUntil);
+    h.advance(3600_001); h.request.mockResolvedValueOnce(Response.json({}, { status }));
+    await expect(r.open(3, 4)).rejects.toThrow('DESKTOP_LEASE_TEMPORARY');
+    const fresh = await setup(); fresh.request.mockResolvedValueOnce(Response.json({}, { status }));
+    await expect(fresh.create().open(3, 4)).rejects.toThrow('DESKTOP_LEASE_TEMPORARY');
+  });
+  it('batch403 retry401 revokes rather than using cached data', async () => {
+    const h = await setup(), r = h.create(); await r.open(3, 4); await r.open(3, 5);
+    h.request.mockResolvedValueOnce(Response.json({}, { status: 403 })).mockResolvedValueOnce(Response.json({}, { status: 401 }));
+    await expect(r.open(3, 4)).rejects.toThrow('DESKTOP_ACCESS_REVOKED'); expect(h.session.device_id).toBeNull(); expect(h.disk.size).toBe(0);
   });
   it('opens 200, resumes offline with the same native cache, then refreshes via authorized 304', async () => {
     const h = await setup(), online = h.create();

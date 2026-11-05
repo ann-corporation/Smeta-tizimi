@@ -155,6 +155,94 @@ fn root(app: &tauri::AppHandle) -> NativeResult<PathBuf> {
     fs::create_dir_all(&root).map_err(|_| "DESKTOP_CACHE_IO")?;
     Ok(root)
 }
+fn cache_id_valid(id: &str) -> bool {
+    id.len() == 32 && id.bytes().all(|b| b.is_ascii_hexdigit())
+}
+fn reparse(meta: &fs::Metadata) -> bool {
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        meta.file_attributes() & 0x400 != 0
+    }
+    #[cfg(not(windows))]
+    {
+        meta.file_type().is_symlink()
+    }
+}
+fn cleanup_retired_cache(app_data: &Path, id: &str) -> NativeResult<()> {
+    if !cache_id_valid(id) || !app_data.is_absolute() {
+        return Err("DESKTOP_CACHE_PATH_DENIED");
+    }
+    let app_data = fs::canonicalize(app_data).map_err(|_| "DESKTOP_CACHE_IO")?;
+    let base = app_data.join("native-cache-v1");
+    let base_meta = match fs::symlink_metadata(&base) {
+        Ok(meta) => meta,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(_) => return Err("DESKTOP_CACHE_IO"),
+    };
+    if reparse(&base_meta) || !base_meta.is_dir() {
+        return Err("DESKTOP_CACHE_PATH_DENIED");
+    }
+    let base = fs::canonicalize(&base).map_err(|_| "DESKTOP_CACHE_IO")?;
+    if base.parent() != Some(app_data.as_path()) {
+        return Err("DESKTOP_CACHE_PATH_DENIED");
+    }
+    let dir = base.join(id);
+    let meta = match fs::symlink_metadata(&dir) {
+        Ok(meta) => meta,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(_) => return Err("DESKTOP_CACHE_IO"),
+    };
+    if reparse(&meta) || !meta.is_dir() {
+        return Err("DESKTOP_CACHE_PATH_DENIED");
+    }
+    if fs::canonicalize(&dir).map_err(|_| "DESKTOP_CACHE_IO")? != dir {
+        return Err("DESKTOP_CACHE_PATH_DENIED");
+    }
+    for item in fs::read_dir(&dir).map_err(|_| "DESKTOP_CACHE_IO")? {
+        let item = item.map_err(|_| "DESKTOP_CACHE_IO")?;
+        let name = item.file_name();
+        let name = name.to_str().ok_or("DESKTOP_CACHE_PATH_DENIED")?;
+        let meta = fs::symlink_metadata(item.path()).map_err(|_| "DESKTOP_CACHE_IO")?;
+        if reparse(&meta)
+            || !meta.is_file()
+            || !(name
+                .strip_suffix(".bin")
+                .is_some_and(|n| cache_key(&n.replace('_', "/")).is_ok())
+                || name.strip_suffix(".tmp").is_some_and(cache_id_valid))
+        {
+            return Err("DESKTOP_CACHE_PATH_DENIED");
+        }
+        fs::remove_file(item.path()).map_err(|_| "DESKTOP_CACHE_IO")?;
+    }
+    fs::remove_dir(dir).map_err(|_| "DESKTOP_CACHE_IO")
+}
+pub(crate) fn cleanup_retired_cache_for_app(app: &tauri::AppHandle, id: &str) -> NativeResult<()> {
+    let app_data = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|_| "DESKTOP_CACHE_IO")?;
+    cleanup_retired_cache(&app_data, id)?;
+    // Caller holds the generation mutex after key erasure: no live cache generation remains.
+    let base = fs::canonicalize(&app_data)
+        .map_err(|_| "DESKTOP_CACHE_IO")?
+        .join("native-cache-v1");
+    let meta = match fs::symlink_metadata(&base) {
+        Ok(meta) => meta,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(_) => return Err("DESKTOP_CACHE_IO"),
+    };
+    if reparse(&meta) || !meta.is_dir() {
+        return Err("DESKTOP_CACHE_PATH_DENIED");
+    }
+    for entry in fs::read_dir(base).map_err(|_| "DESKTOP_CACHE_IO")? {
+        let entry = entry.map_err(|_| "DESKTOP_CACHE_IO")?;
+        if let Some(id) = entry.file_name().to_str().filter(|id| cache_id_valid(id)) {
+            cleanup_retired_cache(&app_data, id)?;
+        }
+    }
+    Ok(())
+}
 #[tauri::command]
 pub fn desktop_cache_read(
     webview: tauri::Webview,
@@ -295,6 +383,38 @@ mod tests {
         ] {
             assert!(cache_key(key).is_err(), "{key}");
         }
+    }
+    #[test]
+    fn retired_cache_cleanup_is_scoped_and_fails_closed() {
+        let id = "0123456789abcdef0123456789abcdef";
+        let root =
+            std::env::temp_dir().join(format!("smeta-cleanup-test-{}-{id}", std::process::id()));
+        fs::create_dir(&root).unwrap();
+        let base = root.join("native-cache-v1");
+        let dir = base.join(id);
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(dir.join("packet_1_2.bin"), b"synthetic ciphertext").unwrap();
+        let outside = root.join("outside.bin");
+        fs::write(&outside, b"preserve").unwrap();
+        cleanup_retired_cache(&root, id).unwrap();
+        assert!(!dir.exists());
+        assert_eq!(fs::read(&outside).unwrap(), b"preserve");
+
+        fs::create_dir(&dir).unwrap();
+        #[cfg(unix)]
+        let linked = std::os::unix::fs::symlink(&outside, dir.join("linked.bin")).is_ok();
+        #[cfg(windows)]
+        let linked = std::os::windows::fs::symlink_file(&outside, dir.join("linked.bin")).is_ok();
+        if linked {
+            assert_eq!(
+                cleanup_retired_cache(&root, id),
+                Err("DESKTOP_CACHE_PATH_DENIED")
+            );
+        }
+        assert_eq!(fs::read(&outside).unwrap(), b"preserve");
+        assert!(cleanup_retired_cache(&root, "../outside").is_err());
+        // This test created the entire tree under its unique synthetic root.
+        fs::remove_dir_all(&root).unwrap();
     }
     #[test]
     fn aes_authenticated_scope_nonce_tamper_and_rotation() {

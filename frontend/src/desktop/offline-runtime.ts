@@ -106,16 +106,23 @@ export class DesktopOfflineRuntime {
       }
       ids.push(objectId);
       if (ids.length > 100) ids.splice(0, ids.length - 100);
-      const response = await this.request('/api/desktop/lease', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kompaniya_id: company, obyekt_idlar: ids }) });
-      if (await invalidatesDesktopSession(response)) { await this.revoke(); throw new Error('DESKTOP_ACCESS_REVOKED'); }
+      const renew = async (objects: number[]) => {
+        const response = await this.request('/api/desktop/lease', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kompaniya_id: company, obyekt_idlar: objects }) });
+        if (await invalidatesDesktopSession(response)) { await this.revoke(); throw new Error('DESKTOP_ACCESS_REVOKED'); }
+        return response;
+      };
+      let response = await renew(ids);
+      // A batch denial identifies no individual object. Revalidate only the current one.
+      if (response.status === 403 && ids.length > 1) response = await renew([objectId]);
       if (response.status === 403) { await this.denyObject(company, objectId); throw new Error('DESKTOP_OBJECT_FORBIDDEN'); }
+      if (response.status === 429 || response.status === 503) throw new Error('DESKTOP_LEASE_TEMPORARY');
       if (!response.ok) throw new Error('DESKTOP_LEASE_SERVER_REJECTED');
       const body = await response.json();
       if (body?.ok !== true) throw new Error('DESKTOP_LEASE_INVALID');
       active = await this.bind(scope, session.generation, { envelope: body.lease, highWater: this.clock() }, revision);
     } catch (e) {
-      if (!networkError(e) || !active) throw e;
+      if ((!networkError(e) && !(e instanceof Error && e.message === 'DESKTOP_LEASE_TEMPORARY')) || !active) throw e;
       if (await this.cache.get('denied/' + company + '/' + objectId)) throw new Error('DESKTOP_OBJECT_FORBIDDEN');
       offline = true;
     }

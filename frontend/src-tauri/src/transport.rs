@@ -387,7 +387,7 @@ async fn revoke_remote(client: &Client, c: &Credential) -> NativeResult<()> {
     Ok(())
 }
 #[tauri::command]
-pub async fn desktop_logout(webview: tauri::Webview) -> NativeResult<()> {
+pub async fn desktop_logout(webview: tauri::Webview, app: tauri::AppHandle) -> NativeResult<()> {
     maxfiy::runtime_tekshir(&webview)?;
     let (record, generation) = {
         let mut g = maxfiy::state()?;
@@ -396,9 +396,9 @@ pub async fn desktop_logout(webview: tauri::Webview) -> NativeResult<()> {
             g.generation,
         )
     };
-    let result = match record {
+    let result = match &record {
         Some(c) => match client() {
-            Ok(http) => revoke_remote(&http, &c).await,
+            Ok(http) => revoke_remote(&http, c).await,
             Err(e) => Err(e),
         },
         None => Ok(()),
@@ -406,6 +406,11 @@ pub async fn desktop_logout(webview: tauri::Webview) -> NativeResult<()> {
     let mut guard = maxfiy::state()?;
     guard.ticket(generation)?; // Never clear a newer concurrent login.
     guard.revoke(&OsVault)?; // Always crypto-erase locally, including a network failure.
+    let cleanup = match record {
+        Some(c) => crate::cache::cleanup_retired_cache_for_app(&app, &c.cache_id),
+        None => Ok(()),
+    };
+    cleanup?; // Report failure; key erasure has already happened and is never rolled back.
     result
 }
 #[tauri::command]

@@ -3,6 +3,7 @@ import { NativeDesktopCache } from './native-cache';
 import { DesktopOfflineRuntime, invalidatesDesktopSession, type NativeSessionInfo } from './offline-runtime';
 import type { NativeInvoke } from './fetch-shim';
 import { t } from '../i18n/til';
+import { DesktopLeaseGuard, verifyDesktopLease, type LeaseEnvelope } from './offline-lease';
 
 type Json = Record<string, unknown>;
 type Context = { company: number; object: number; paket: Paket; offline: boolean; permissions: readonly string[] };
@@ -167,8 +168,24 @@ export function desktopPageFetch(base: typeof fetch, invoke: NativeInvoke, optio
           await save('pages/' + c.company + '/' + object, signature, j, before, signature, sequence);
           if (!c.offline) setStatus(false);
         } else if (body?.jadval === 't2_obyekt_jami' && Array.isArray(j.qatorlar)) {
+          const guards = new Map<number, DesktopLeaseGuard | undefined>();
           for (const o of j.qatorlar) if (positive(o.id) && positive(o.kompaniya_id)) {
-            // Navigation rows are stored only for objects actually opened and leased.
+            // Navigation rows are stored only inside the independently verified cached lease.
+            if (!guards.has(o.kompaniya_id)) {
+              let guard: DesktopLeaseGuard | undefined;
+              try {
+                const saved = await cache.get<{ envelope: LeaseEnvelope; highWater: number }>('lease/' + o.kompaniya_id);
+                if (saved && positive(before.foydalanuvchi_id) && before.device_id) {
+                  const lease = await verifyDesktopLease(saved.envelope, { kompaniyaId: o.kompaniya_id,
+                    foydalanuvchiId: before.foydalanuvchi_id, deviceId: before.device_id }, options.publicKey, options.kid);
+                  guard = new DesktopLeaseGuard(lease, saved.highWater);
+                }
+              } catch { /* No verified scope, no navigation cache. */ }
+              guards.set(o.kompaniya_id, guard);
+            }
+            const guard = guards.get(o.kompaniya_id);
+            if (!guard || await cache.get('denied/' + o.kompaniya_id + '/' + o.id)) continue;
+            try { guard.allow(o.id); } catch { continue; }
             await save('pages/' + o.kompaniya_id + '/' + o.id, 'object', o, before, signature, sequence);
           }
         }

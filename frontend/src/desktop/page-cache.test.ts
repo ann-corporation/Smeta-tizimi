@@ -100,3 +100,16 @@ it('scope lookup403 preserves the session and a later permitted read', async () 
   expect(vi.mocked(h.invoke).mock.calls.some(([c]) => c === 'desktop_session_clear')).toBe(false);
   expect((await sb(f, tree)).ok).toBe(true);
 });
+it.each(['valid', 'expired', 'forged', 'denied'])('navigation caches only verified leased rows: %s', async state => {
+  const h = await setup(), f = h.create(); await sb(f, tree);
+  if (state === 'expired') vi.setSystemTime(Date.now() + 3600_001);
+  if (state === 'denied') h.disk.set('denied/3/4', Array.from(new TextEncoder().encode('true')));
+  if (state === 'forged') {
+    const saved = JSON.parse(new TextDecoder().decode(Uint8Array.from(h.disk.get('lease/3')!)));
+    saved.envelope.imzo = 'A'.repeat(86); h.disk.set('lease/3', Array.from(new TextEncoder().encode(JSON.stringify(saved))));
+  }
+  h.base.mockResolvedValueOnce(Response.json({ ok: true, qatorlar: [{ id: 4, kompaniya_id: 3 }, { id: 5, kompaniya_id: 3 }, { id: 6, kompaniya_id: 9 }] }));
+  await sb(f, { jadval: 't2_obyekt_jami', filtr: 'kompaniya_id=eq.3' });
+  const row = JSON.parse(new TextDecoder().decode(Uint8Array.from(h.disk.get('pages/3/4')!))).object;
+  expect(Boolean(row)).toBe(state === 'valid'); expect(h.disk.has('pages/3/5')).toBe(false); expect(h.disk.has('pages/9/6')).toBe(false);
+});
