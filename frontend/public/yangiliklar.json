@@ -2,6 +2,15 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 104,
+      "sana": "2026-11-05",
+      "sarlavha": "F2: minus (chegirma) qatorlar endi tushib qolmaydi",
+      "bandlar": [
+        "Fakti manfiy bo‘lgan qatorlar (qalinlik tuzatishi, «исключить», К=2 kabi) F2 tayyorlashda ishorasi bilan olinadi — resurslari ham minus.",
+        "Tekshiruv saqlanadi: F2 hajmi faktdan (modul bo‘yicha) oshmaydi va ishorasi bir xil."
+      ]
+    },
+    {
       "id": 103,
       "sana": "2026-11-05",
       "sarlavha": "Bo‘lim jamisi qo‘shimcha ish va zamenadan keyin darhol yangilanadi",
