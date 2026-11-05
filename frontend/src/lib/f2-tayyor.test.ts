@@ -182,3 +182,25 @@ describe('F2 tayyorlash mantig‘i', () => {
     expect(ishBirlikNarxi(b[0].ishlar[0])).toEqual({ summa: 947600, narxsiz: 1 });
   });
 });
+
+describe('pereraschet: shu qoralamadagi storno eski F2 ni sof 0 qiladi', () => {
+  const r2 = (o: Partial<T2Qator> & { id: number; tur: string }): T2Qator => ({ obyekt_id: 1, ota_id: null, tartib: o.id, kod: null, nom: 'q' + o.id, birlik: 'м3', hajm: null, narx: null, ...o } as T2Qator);
+  const qs = [r2({ id: 1, tur: 'rz', nom: 'B' }), r2({ id: 2, tur: 'bl', ota_id: 1, hajm: 20 }), r2({ id: 3, tur: 'bl', ota_id: 1, hajm: 20 })];
+  // Fakt to'g'rilangan: 12. Tasdiqlangan F2: eski (stornolanadigan) 10 + boshqa 3 = 13 → server f2_mumkin = max(0, 12 − 13) = 0.
+  const h: F2Holat[] = [{ qator_id: 2, fakt_hajm: 12, f2_hajm: 13, f2_mumkin_hajm: 0, smeta_hajm: 20 }, { qator_id: 3, fakt_hajm: 5, f2_hajm: 2, f2_mumkin_hajm: 3, smeta_hajm: 20 }];
+  const ish = (b: ReturnType<typeof f2Qur>, id: number) => b.flatMap((x) => x.ishlar).find((i) => i.id === id);
+  it('yangi hajm = to‘liq fakt − BOSHQA tasdiqlangan F2 (eski F2 sof 0); storno yo‘q qator o‘zgarmaydi', () => {
+    const b = f2Qur(qs, h, undefined, 'fakt', undefined, { stornoQaytar: new Map([[2, 10]]) });
+    expect(ish(b, 2)).toMatchObject({ mumkin: 9, olingan: 3 }); // 12 − 3
+    expect(ish(b, 3)).toMatchObject({ mumkin: 3, olingan: 2 });
+  });
+  it('storno bo‘lmasa — avvalgidek server qoldig‘i', () => {
+    const b = f2Qur(qs, h, undefined, 'fakt');
+    expect(ish(b, 2)).toBeUndefined(); // mumkin 0 — ro'yxatda yo'q
+    expect(ish(b, 3)).toMatchObject({ mumkin: 3 });
+  });
+  it('faktsiz (smeta) rejim: smeta − BOSHQA F2', () => {
+    const b = f2Qur(qs, h, undefined, 'smeta', undefined, { stornoQaytar: new Map([[2, 10]]) });
+    expect(ish(b, 2)).toMatchObject({ mumkin: 17 }); // 20 − 3
+  });
+});
