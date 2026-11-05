@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-desktop-cache-keys"
+description = "Enables the desktop_cache_keys command without any pre-configured scope."
+commands.allow = ["desktop_cache_keys"]
+
+[[permission]]
+identifier = "deny-desktop-cache-keys"
+description = "Denies the desktop_cache_keys command without any pre-configured scope."
+commands.deny = ["desktop_cache_keys"]

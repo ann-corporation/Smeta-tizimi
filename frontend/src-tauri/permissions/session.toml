@@ -1,4 +1,4 @@
 [[permission]]
 identifier = "session-local"
-description = "Fixed application session credential; local main webview only, runtime origin checked."
-commands.allow = ["sessiya_token_saqla", "sessiya_token_ol", "sessiya_token_ochir"]
+description = "Native BFF and encrypted cache; local main webview only, runtime origin checked."
+commands.allow = ["desktop_request", "desktop_logout", "desktop_session_info", "desktop_session_clear", "desktop_cache_read", "desktop_cache_write", "desktop_cache_delete", "desktop_cache_keys"]
