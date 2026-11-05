@@ -1,5 +1,5 @@
 import { imzola, sessiyaOl, SESSIYA_MUDDAT_MS } from '../../_shared/auth';
-import { desktopFail, verifiedDesktopDevice, type DesktopEnv } from '../../_shared/desktop-device';
+import { desktopDenyCode, desktopFail, verifiedDesktopDevice, type DesktopEnv } from '../../_shared/desktop-device';
 import { onRequest as existingMiddleware } from '../_middleware';
 import { onRequestGet as sessionGet } from '../sessiya';
 import { onRequestGet as packetGet } from '../obyekt-paket';
@@ -45,7 +45,7 @@ async function boundedBody(request: Request): Promise<string> {
  * External Cookie/headers/actor/authority are never forwarded. Nothing signs offline writes. */
 export const onRequestPost: PagesFunction<Env> = async ctx => {
   const sess = await sessiyaOl(ctx.request, ctx.env);
-  if (!sess || !verifiedDesktopDevice(ctx.request)) return desktopFail(401, 'DEVICE_AUTH_REQUIRED');
+  if (!sess || !verifiedDesktopDevice(ctx.request)) return desktopFail(401, desktopDenyCode(ctx.request));
   let b: Record<string, unknown>;
   try { b = JSON.parse(await boundedBody(ctx.request)); }
   catch (err) { return desktopFail(err instanceof Error && err.message === 'BODY_TOO_LARGE' ? 413 : 400, 'BODY_INVALID'); }

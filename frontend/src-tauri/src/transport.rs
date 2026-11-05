@@ -29,6 +29,9 @@ fn validated_origin(origin: &str, allow_loopback: bool) -> NativeResult<bool> {
     Ok(!loopback)
 }
 const LOCAL: &str = "http://tauri.localhost";
+// Reported app version: server policy (Tizim nazorati → Desktop, min version) decides; never an authority.
+const VERSION_HEADER: &str = "X-Smeta-Desktop-Version";
+const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 const RESPONSE_LIMIT: usize = 32 * 1024 * 1024;
 const AUTH_LIMIT: usize = 32 * 1024;
 const BODY_LIMIT: usize = 8 * 1024 * 1024;
@@ -87,6 +90,7 @@ fn authenticated_request(
     let mut req = client
         .request(Method::POST, format!("{BFF}/api/desktop/lease"))
         .header(header::ORIGIN, LOCAL)
+        .header(VERSION_HEADER, APP_VERSION)
         .bearer_auth(&credential.token);
     if let Some(body) = body {
         req = req
@@ -122,6 +126,7 @@ fn gateway_request(
     client
         .post(format!("{BFF}/api/desktop/bff"))
         .header(header::ORIGIN, LOCAL)
+        .header(VERSION_HEADER, APP_VERSION)
         .header(header::CONTENT_TYPE, "application/json")
         .bearer_auth(token)
         .body(serde_json::json!({"path":path,"method":method,"body":body,"etag":etag}).to_string())
@@ -309,7 +314,14 @@ async fn login(
         .header(header::ORIGIN, BFF)
         .header(header::COOKIE, cookie.as_str())
         .header(header::CONTENT_TYPE, "application/json")
-        .body(serde_json::json!({"operation_id": operation_id()?}).to_string())
+        .body(
+            serde_json::json!({
+                "operation_id": operation_id()?,
+                "os": std::env::consts::OS,
+                "ilova_versiya": APP_VERSION,
+            })
+            .to_string(),
+        )
         .send()
         .await
         .map_err(|_| "DESKTOP_HTTP_FAILED")?;
@@ -560,6 +572,7 @@ mod tests {
             .unwrap();
             assert_eq!(req.url().origin().ascii_serialization(), BFF);
             assert_eq!(req.headers()[header::ORIGIN], LOCAL);
+            assert_eq!(req.headers()[VERSION_HEADER], APP_VERSION);
             assert_eq!(
                 req.headers()[header::AUTHORIZATION],
                 format!("Bearer {}", c.token)

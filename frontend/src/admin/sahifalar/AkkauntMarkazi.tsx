@@ -5,12 +5,13 @@
 import { useCallback, useRef, type KeyboardEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { Bell, Building2, CreditCard, KeyRound, LayoutGrid, Palette, ShieldCheck, UserRound } from 'lucide-react';
+import { Bell, Building2, CreditCard, KeyRound, LaptopMinimal, LayoutGrid, Palette, ShieldCheck, UserRound } from 'lucide-react';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { t } from '../../i18n/til';
 import {
   BildirishnomaBolimi, HubBolimi, KirishBolimi, KompaniyalarBolimi, KorinishBolimi, ProfilBolimi, TarifBolimi, XavfsizlikBolimi,
 } from '../../components/akkaunt/Bolimlar';
+import { DesktopBolimi } from '../../components/akkaunt/DesktopBolimi';
 
 const BOLIMLAR = [
   { id: 'kirish', nom: 'Kirish usullari', Ikon: KeyRound, Korinish: KirishBolimi },
@@ -18,6 +19,7 @@ const BOLIMLAR = [
   { id: 'kompaniyalar', nom: 'Kompaniyalar va rollar', Ikon: Building2, Korinish: KompaniyalarBolimi },
   { id: 'xavfsizlik', nom: 'Xavfsizlik', Ikon: ShieldCheck, Korinish: XavfsizlikBolimi },
   { id: 'bildirishnoma', nom: 'Bildirishnomalar', Ikon: Bell, Korinish: BildirishnomaBolimi },
+  { id: 'desktop', nom: 'Windows dastur', Ikon: LaptopMinimal, Korinish: DesktopBolimi },
   { id: 'korinish', nom: 'Ko‘rinish', Ikon: Palette, Korinish: KorinishBolimi },
   { id: 'tarif', nom: 'Tarif va hisob', Ikon: CreditCard, Korinish: TarifBolimi },
   { id: 'hub', nom: 'Sozlamalar markazi', Ikon: LayoutGrid, Korinish: HubBolimi },

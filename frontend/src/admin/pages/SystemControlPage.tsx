@@ -9,6 +9,7 @@ import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ServerCog, Info, ArrowRight } from 'lucide-react';
 import { SystemControlCenter } from '../system-control/SystemControlCenter';
+import { DesktopNazorat } from '../system-control/DesktopNazorat';
 import type { SystemControlData } from '../../components/system-control';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
@@ -73,6 +74,7 @@ export default function SystemControlPage() {
       <SystemControlCenter
         data={data}
         demo={false}
+        desktop={<DesktopNazorat kompaniyaId={globalRejim && !joriy?.id ? null : (joriy?.id ?? null)} />}
         onToggle={(o) => {
           const cap = data.capabilities.find((c) => c.id === o.capabilityId);
           cmd.overrideSet.mutate({
