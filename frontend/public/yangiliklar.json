@@ -12,21 +12,15 @@
       ]
     },
     {
-      "id": 106,
+      "id": 109,
       "sana": "2026-11-05",
-      "sarlavha": "Fakt jurnali: F2 importidagi qo‘shimcha resurslarda narx va summa",
+      "sarlavha": "Oylik paketda Forma-3 doim bor",
       "bandlar": [
-        "Smetada narxi yo‘q, lekin F2 da narxi bor qatorlarda endi «narxsiz» emas — F2 narxi («F2» belgisi bilan) va fakt summasi shu narxda ko‘rinadi.",
-        "Bo‘lim jamilari bilan bir xil hisob; smeta narxi bor qatorlar o‘zgarmaydi."
-      ]
-    },
-    {
-      "id": 107,
-      "sana": "2026-11-05",
-      "sarlavha": "F2: minus (chegirma) qatorlar endi tushib qolmaydi",
-      "bandlar": [
-        "Fakti manfiy bo‘lgan qatorlar (qalinlik tuzatishi, «исключить», К=2 kabi) F2 tayyorlashda ishorasi bilan olinadi — resurslari ham minus.",
-        "Tekshiruv saqlanadi: F2 hajmi faktdan (modul bo‘yicha) oshmaydi va ishorasi bir xil."
+        "Shartnoma va oy uchun saqlangan Forma-3 bo‘lmasa, paketga shu oyning tasdiqlangan F2 laridan avtomatik Forma-3 qo‘shiladi («Ф3 (автоматически по Ф-2, не сохранён)»), to‘liq va/yoki bir qatorli.",
+        "Avtomatik Forma-3 summasi paket reestridagi tasdiqlangan F2 jamisiga teng (QQS bilan, F2 ning o‘z podvali bilan).",
+        "Saqlangan Forma-3 bo‘lsa — o‘sha ishlatiladi, MUNDARIJA da esa F2 jami bilan solishtiruv va farq ko‘rsatiladi.",
+        "Shartnoma rekvizitlari yetishmasa ham Forma-3 yasaladi; nima yetishmasligi ekranda va ПАКЕТ_СОСТАВ.txt da yoziladi.",
+        "Paket oynasida har oy uchun Forma-3 holati («saqlangan», «avto (F2 dan)», «qoralama bor») va «Forma-3 ni saqlash» havolasi."
       ]
     },
     {
@@ -41,15 +35,21 @@
       ]
     },
     {
-      "id": 109,
+      "id": 107,
       "sana": "2026-11-05",
-      "sarlavha": "Oylik paketda Forma-3 doim bor",
+      "sarlavha": "F2: minus (chegirma) qatorlar endi tushib qolmaydi",
       "bandlar": [
-        "Shartnoma va oy uchun saqlangan Forma-3 bo‘lmasa, paketga shu oyning tasdiqlangan F2 laridan avtomatik Forma-3 qo‘shiladi («Ф3 (автоматически по Ф-2, не сохранён)»), to‘liq va/yoki bir qatorli.",
-        "Avtomatik Forma-3 summasi paket reestridagi tasdiqlangan F2 jamisiga teng (QQS bilan, F2 ning o‘z podvali bilan).",
-        "Saqlangan Forma-3 bo‘lsa — o‘sha ishlatiladi, MUNDARIJA da esa F2 jami bilan solishtiruv va farq ko‘rsatiladi.",
-        "Shartnoma rekvizitlari yetishmasa ham Forma-3 yasaladi; nima yetishmasligi ekranda va ПАКЕТ_СОСТАВ.txt da yoziladi.",
-        "Paket oynasida har oy uchun Forma-3 holati («saqlangan», «avto (F2 dan)», «qoralama bor») va «Forma-3 ni saqlash» havolasi."
+        "Fakti manfiy bo‘lgan qatorlar (qalinlik tuzatishi, «исключить», К=2 kabi) F2 tayyorlashda ishorasi bilan olinadi — resurslari ham minus.",
+        "Tekshiruv saqlanadi: F2 hajmi faktdan (modul bo‘yicha) oshmaydi va ishorasi bir xil."
+      ]
+    },
+    {
+      "id": 106,
+      "sana": "2026-11-05",
+      "sarlavha": "Fakt jurnali: F2 importidagi qo‘shimcha resurslarda narx va summa",
+      "bandlar": [
+        "Smetada narxi yo‘q, lekin F2 da narxi bor qatorlarda endi «narxsiz» emas — F2 narxi («F2» belgisi bilan) va fakt summasi shu narxda ko‘rinadi.",
+        "Bo‘lim jamilari bilan bir xil hisob; smeta narxi bor qatorlar o‘zgarmaydi."
       ]
     },
     {
@@ -295,13 +295,13 @@
       ]
     },
     {
-      "id": 73,
+      "id": 75,
       "sana": "2026-11-03",
-      "sarlavha": "Loyihasiz obyekt endi hech qayerda yashirilmaydi",
+      "sarlavha": "F2 hujjati endi o‘z podvali bilan hisoblanadi; pereraschet — bitta hujjatda",
       "bandlar": [
-        "Loyihaga biriktirilmagan obyekt navigatorda va ish doirasi tanlovida «Loyihasiz obyektlar» guruhida ko‘rinadi; har biriga bitta bosishda «Loyihaga biriktirish» bor.",
-        "Yangi obyekt yaratishda loyiha tanlovi hozirgi tanlangan loyihadan boshlanadi, «Yangi loyiha» varianti bor; loyiha tanlanmasa ogohlantiradi. Kompaniyada xuddi shu nomli obyekt bo‘lsa (defis atrofidagi bo‘shliqlar hisobga olinmaydi) dublikat haqida ogohlantiradi.",
-        "Obyektda smeta podvali bo‘lmasa «Smeta podvali kiritilmagan — kompaniya sukut foizlari ishlatilmoqda» deb aniq ko‘rsatiladi; qayta importda podval yo‘q bo‘lsa smetadagi foizlar avtomatik yoziladi."
+        "Import qilingan F2 ning o‘z podvali (ustama foizlari) bazada saqlanadi va panel, tarix, qoralama, Excel hamda storno hammasida shu foizlar bilan hisoblanadi. Tasdiqlangan F2 ning asl faylini qayta yuklab, faqat podvalni tiklash mumkin (F2 tarixi).",
+        "Pereraschet: bir nechta eski F2 ni birga tanlab, ularni hujjat tepasida alohida «Сторно Ф-2 №…» bloklari (har biri o‘z podvali bilan), pastda yangi smeta qatorlarini qo‘shasiz. Jami: yangi − eski, QQS bilan / ustamali / ustamasiz.",
+        "Forma-2 Excel qoralamasi ham shu bloklarni va sof jamini ko‘rsatadi; QQS stavkasi bo‘sh qolsa tizim stavkasi olinadi."
       ]
     },
     {
@@ -315,13 +315,13 @@
       ]
     },
     {
-      "id": 75,
+      "id": 73,
       "sana": "2026-11-03",
-      "sarlavha": "F2 hujjati endi o‘z podvali bilan hisoblanadi; pereraschet — bitta hujjatda",
+      "sarlavha": "Loyihasiz obyekt endi hech qayerda yashirilmaydi",
       "bandlar": [
-        "Import qilingan F2 ning o‘z podvali (ustama foizlari) bazada saqlanadi va panel, tarix, qoralama, Excel hamda storno hammasida shu foizlar bilan hisoblanadi. Tasdiqlangan F2 ning asl faylini qayta yuklab, faqat podvalni tiklash mumkin (F2 tarixi).",
-        "Pereraschet: bir nechta eski F2 ni birga tanlab, ularni hujjat tepasida alohida «Сторно Ф-2 №…» bloklari (har biri o‘z podvali bilan), pastda yangi smeta qatorlarini qo‘shasiz. Jami: yangi − eski, QQS bilan / ustamali / ustamasiz.",
-        "Forma-2 Excel qoralamasi ham shu bloklarni va sof jamini ko‘rsatadi; QQS stavkasi bo‘sh qolsa tizim stavkasi olinadi."
+        "Loyihaga biriktirilmagan obyekt navigatorda va ish doirasi tanlovida «Loyihasiz obyektlar» guruhida ko‘rinadi; har biriga bitta bosishda «Loyihaga biriktirish» bor.",
+        "Yangi obyekt yaratishda loyiha tanlovi hozirgi tanlangan loyihadan boshlanadi, «Yangi loyiha» varianti bor; loyiha tanlanmasa ogohlantiradi. Kompaniyada xuddi shu nomli obyekt bo‘lsa (defis atrofidagi bo‘shliqlar hisobga olinmaydi) dublikat haqida ogohlantiradi.",
+        "Obyektda smeta podvali bo‘lmasa «Smeta podvali kiritilmagan — kompaniya sukut foizlari ishlatilmoqda» deb aniq ko‘rsatiladi; qayta importda podval yo‘q bo‘lsa smetadagi foizlar avtomatik yoziladi."
       ]
     },
     {
@@ -371,21 +371,21 @@
       ]
     },
     {
-      "id": 60,
-      "sana": "2026-11-03",
-      "sarlavha": "Katta fakt jurnali uchun kengroq va tezroq ish maydoni",
-      "bandlar": [
-        "Katta jurnalda faqat ko‘rinayotgan qatorlar chiziladi; saqlanmagan kiritishlar qator ekrandan chiqib qaytganda ham saqlanadi.",
-        "Qidiruv va fakt kiritilmagan ishlar filtri to‘liq ro‘yxatda ishlaydi. Obyekt, oy va Fakt=F2 boshqaruvlari saqlangan; jadval ustidagi takror sarlavha ixchamlashtirilgan."
-      ]
-    },
-    {
       "id": 61,
       "sana": "2026-11-03",
       "sarlavha": "Qayta hisobda noma’lum summa va hajmsiz F2 alohida ko‘rsatiladi",
       "bandlar": [
         "Tasdiqlangan F2 summasi noma’lum bo‘lsa, narx farqi nol deb hisoblanmaydi. Hajmi nol, summasi bor qatorlar avtomatik tuzatishga kirmaydi — avval aktlarni tekshirish uchun ajratiladi.",
         "Qayta hisobdagi pul ko‘rinishi umumiy ustamali va ustamasiz ko‘rsatishga moslashtirildi."
+      ]
+    },
+    {
+      "id": 60,
+      "sana": "2026-11-03",
+      "sarlavha": "Katta fakt jurnali uchun kengroq va tezroq ish maydoni",
+      "bandlar": [
+        "Katta jurnalda faqat ko‘rinayotgan qatorlar chiziladi; saqlanmagan kiritishlar qator ekrandan chiqib qaytganda ham saqlanadi.",
+        "Qidiruv va fakt kiritilmagan ishlar filtri to‘liq ro‘yxatda ishlaydi. Obyekt, oy va Fakt=F2 boshqaruvlari saqlangan; jadval ustidagi takror sarlavha ixchamlashtirilgan."
       ]
     },
     {
