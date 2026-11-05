@@ -10,10 +10,11 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Activity, Ban, Building2, Clock, Download, Laptop, Loader2, Search, ShieldAlert, ShieldCheck, UserX, WifiOff } from 'lucide-react';
 import { useDesktopBuyruq, useDesktopNazorat, type DesktopBuyruq } from '../../api/t2-desktop';
 import {
-  localDanMs, msDanLocal, qurilmaFiltrla, qurilmaKompaniyalari, sababYaroqli, siyosatShakldan, siyosatShaklga, vaqtMatn, versiyaEskimi,
+  bekorQilaOladimi, localDanMs, msDanLocal, qurilmalarChiqadimi, qurilmaFiltrla, qurilmaKompaniyalari, sababYaroqli, siyosatShakldan, siyosatShaklga, vaqtMatn, versiyaEskimi,
   type DesktopFiltr, type DesktopHolat, type DesktopQurilma, type DesktopSiyosat, type SiyosatShakl,
 } from '../../lib/desktop-nazorat';
 import { t } from '../../i18n/til';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 
 const HOLAT_NOMI: Record<DesktopHolat, string> = { faol: 'Faol', bekor: 'Bekor qilingan', muddati_otgan: 'Muddati o‘tgan' };
 const HOLAT_MUHR: Record<DesktopHolat, string> = { faol: 'fz-stamp--ok', bekor: 'fz-stamp--danger', muddati_otgan: 'fz-stamp--warn' };
@@ -24,6 +25,9 @@ const XATO_MATNI: Record<string, string> = {
   TENANT_FORBIDDEN: 'Bu foydalanuvchi sizning kompaniyangiz a’zosi emas.', SABAB_REQUIRED: 'Sababni yozing (kamida 3 belgi).',
   STALE_VERSION: 'Siyosatni boshqa kishi o‘zgartirgan — sahifani yangilab qayta urinib ko‘ring.', EXPIRY_INVALID: 'Muddat noto‘g‘ri: hozirdan keyin va kirish sessiyasi tugashidan oldin bo‘lsin.',
   POLICY_VALUE_INVALID: 'Siyosat qiymati noto‘g‘ri.', DEVICE_REVOKED: 'Qurilma allaqachon bekor qilingan.',
+  MULTI_COMPANY_SUPERADMIN_REQUIRED: 'Bu foydalanuvchi boshqa kompaniyalarda ham ishlaydi — uning qurilmalarini faqat platforma superadmini bekor qila oladi.',
+  BOSS_PROTECTED: 'Kompaniya rahbarining (boss) qurilmalarini faqat rahbarning o‘zi yoki superadmin bekor qila oladi.',
+  VERSION_REQUIRED: 'Siyosatni boshqa kishi o‘zgartirgan — sahifani yangilab qayta urinib ko‘ring.',
 };
 const xatoMatni = (e: unknown) => { const c = (e as { code?: string })?.code ?? ''; return XATO_MATNI[c] ? t(XATO_MATNI[c]) : t('Amal bajarilmadi: {x}.', { x: c || t('xato') }); };
 
@@ -105,7 +109,7 @@ export function DesktopNazorat({ kompaniyaId }: { kompaniyaId: number | null }) 
             <tbody>
               {royxat.map((x) => (
                 <tr key={x.device_id}>
-                  <td><div className="font-medium">{x.ism || x.login || '#' + x.foydalanuvchi_id}</div>{x.login && <div className="text-[11.5px] text-text-mute">{x.login}</div>}</td>
+                  <td><div className="font-medium">{x.ism || x.login || '#' + x.foydalanuvchi_id}</div>{x.login && <div className="text-[11.5px] text-text-mute">{x.login}</div>}{x.kop_kompaniya && <span className="fz-stamp fz-stamp--info mt-1">{t('Bir nechta kompaniya')}</span>}</td>
                   <td>{x.kompaniyalar.map((k) => k.nom).join(', ') || '—'}</td>
                   <td>
                     <div>{x.qurilma_nomi || t('Nomsiz qurilma')}</div>
@@ -119,8 +123,10 @@ export function DesktopNazorat({ kompaniyaId }: { kompaniyaId: number | null }) 
                   <td>{x.lease_faol ? <span className="fz-stamp fz-stamp--info">{t('{n} obyekt', { n: x.oxirgi_lease_obyekt_soni ?? 0 })}</span> : <span className="text-text-mute">—</span>}</td>
                   <td>
                     <div className="flex flex-wrap gap-1">
-                      {x.holat === 'faol' && <button type="button" className="fz-btn fz-btn--sm fz-btn--danger" onClick={() => setAmal({ tur: 'bekor', q: x })}><Ban size={13} aria-hidden="true" /> {t('Bekor qilish')}</button>}
-                      <button type="button" className="fz-btn fz-btn--sm" onClick={() => setAmal({ tur: 'foydalanuvchi_bekor', q: x })} title={t('Foydalanuvchining barcha qurilmalarini bekor qilib, qayta kirishga majburlash')}><UserX size={13} aria-hidden="true" /> {t('Qayta kirishga majburlash')}</button>
+                      {bekorQilaOladimi(x, superadmin, d.mening_rolim) ? <>
+                        {x.holat === 'faol' && <button type="button" className="fz-btn fz-btn--sm fz-btn--danger" onClick={() => setAmal({ tur: 'bekor', q: x })}><Ban size={13} aria-hidden="true" /> {t('Bekor qilish')}</button>}
+                        <button type="button" className="fz-btn fz-btn--sm" onClick={() => setAmal({ tur: 'foydalanuvchi_bekor', q: x })} title={t('Foydalanuvchining barcha qurilmalarini bekor qilib, qayta kirishga majburlash')}><UserX size={13} aria-hidden="true" /> {t('Qayta kirishga majburlash')}</button>
+                      </> : <span className="text-[11.5px] text-text-mute">{x.kop_kompaniya ? t('Bir nechta kompaniya a’zosi — faqat superadmin') : t('Rahbar qurilmasi — faqat rahbar yoki superadmin')}</span>}
                       {superadmin && x.holat === 'faol' && <button type="button" className="fz-btn fz-btn--sm" onClick={() => setAmal({ tur: 'muddat', q: x })}><Clock size={13} aria-hidden="true" /> {t('Muddat')}</button>}
                     </div>
                   </td>
@@ -213,10 +219,15 @@ function SiyosatBolimi({ kompaniyaId, superadmin, siyosat, samarali, band, saqla
       )}
       <div className="grid gap-3 px-4 pb-4 lg:grid-cols-2">
         {superadmin && !kompaniyaId && <SiyosatForma sarlavha={t('Global siyosat (platforma)')} izoh={t('«Yoqilgan: yo‘q» — butun platforma uchun kill switch.')} global joriy={global} band={band}
-          saqla={(q, s) => saqla('platforma', null, q, s, global?.versiya ?? null)} />}
+          saqla={async (q, s) => {
+            // Kill switch yoki minimal versiyani ko'tarish ulangan qurilmalarni chiqarib yuboradi — oldin ogohlantirish.
+            if (qurilmalarChiqadimi(global, q) && !(await tasdiqSora({ sarlavha: t('Qurilmalar chiqarib yuboriladi'), xavfli: true,
+              matn: t('Bu o‘zgarishdan keyin ta’sir qilingan barcha qurilmalar keyingi so‘rovda chiqarib yuboriladi va qayta kirishi kerak bo‘ladi. Davom etasizmi?') }))) return false;
+            return saqla('platforma', null, q, s, global?.versiya ?? null);
+          }} />}
         {superadmin && kompaniyaId && <SiyosatForma sarlavha={t('Platforma qoidasi shu kompaniya uchun')} izoh={t('Bo‘sh maydon — global qiymat. Faqat superadmin.')} joriy={platformaK} band={band}
           saqla={(q, s) => saqla('platforma', kompaniyaId, q, s, platformaK?.versiya ?? null)} />}
-        {kompaniyaId && <SiyosatForma sarlavha={t('Kompaniya cheklovi')} izoh={t('Kompaniya rahbari faqat qattiqroq qila oladi: platforma ruxsat berganidan ortig‘ini ochmaydi.')} joriy={ozK} band={band}
+        {kompaniyaId && <SiyosatForma limit={false} sarlavha={t('Kompaniya cheklovi')} izoh={t('Kompaniya rahbari faqat qattiqroq qila oladi: platforma ruxsat berganidan ortig‘ini ochmaydi. Minimal versiya faqat shu kompaniyaning oflayn ruxsatiga ta’sir qiladi, qurilma limitini faqat platforma qo‘yadi; «o‘chirilgan» — faqat shu kompaniyadagina ishlaydigan a’zolarni to‘xtatadi, boshqa kompaniyalarda ham ishlaydiganlar uchun faqat oflayn ruxsatni cheklaydi.')} joriy={ozK} band={band}
           saqla={(q, s) => saqla('kompaniya', kompaniyaId, q, s, ozK?.versiya ?? null)} />}
         {superadmin && !kompaniyaId && (
           <div className="rounded-md border border-border p-3">
@@ -236,7 +247,7 @@ function SiyosatBolimi({ kompaniyaId, superadmin, siyosat, samarali, band, saqla
 
 function Qiymat({ nom, q }: { nom: string; q: ReactNode }) { return <div className="rounded-md border border-border px-2 py-1.5"><dt className="text-[11.5px] text-text-dim">{nom}</dt><dd className="font-medium">{q}</dd></div>; }
 
-function SiyosatForma({ sarlavha, izoh, joriy, global = false, band, saqla }: { sarlavha: string; izoh: string; joriy: DesktopSiyosat | undefined; global?: boolean; band: boolean; saqla: (q: Record<string, unknown>, sabab: string) => OkVaad }) {
+function SiyosatForma({ sarlavha, izoh, joriy, global = false, limit = true, band, saqla }: { sarlavha: string; izoh: string; joriy: DesktopSiyosat | undefined; global?: boolean; limit?: boolean; band: boolean; saqla: (q: Record<string, unknown>, sabab: string) => OkVaad }) {
   const [s, setS] = useState<SiyosatShakl>(() => siyosatShaklga(joriy));
   const [sabab, setSabab] = useState('');
   const [xato, setXato] = useState<string | null>(null);
@@ -256,7 +267,7 @@ function SiyosatForma({ sarlavha, izoh, joriy, global = false, band, saqla }: { 
   return (
     <form className="flex flex-col gap-2 rounded-md border border-border p-3" aria-label={sarlavha} onSubmit={async (e) => {
       e.preventDefault(); setXato(null);
-      const r = siyosatShakldan(s, global);
+      const r = siyosatShakldan(s, global, limit);
       if ('xato' in r) { setXato(t(r.xato)); return; }
       if (!sababYaroqli(sabab)) { setXato(t('Sababni yozing (kamida 3 belgi).')); return; }
       if (await saqla(r.qiymat, sabab.trim())) setSabab('');
@@ -266,7 +277,7 @@ function SiyosatForma({ sarlavha, izoh, joriy, global = false, band, saqla }: { 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {tri('yoqilgan', t('Yoqilgan'))}
         {tri('oflayn', t('Oflayn ishlash'))}
-        {matn('max_qurilma', t('Qurilma limiti (1 kishiga)'), global ? '10' : merosNomi)}
+        {limit && matn('max_qurilma', t('Qurilma limiti (1 kishiga)'), global ? '10' : merosNomi)}
         {matn('lease_soat', t('Oflayn muddati, soat (≤72)'), global ? '72' : merosNomi)}
         {matn('min_versiya', t('Minimal versiya'), '1.2.0')}
       </div>

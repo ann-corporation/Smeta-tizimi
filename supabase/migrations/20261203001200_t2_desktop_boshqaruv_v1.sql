@@ -67,7 +67,7 @@ create table if not exists public.t2_desktop_audit (
   vaqt timestamptz not null default clock_timestamp(),
   actor_id bigint not null,
   kompaniya_id bigint,
-  amal text not null check (amal in ('bekor','foydalanuvchi_bekor','muddat','siyosat')),
+  amal text not null check (amal in ('bekor','foydalanuvchi_bekor','muddat','siyosat','siyosat_rad')),
   device_id uuid,
   nishon_foydalanuvchi_id bigint,
   sabab text not null check (length(btrim(sabab)) between 3 and 500),
@@ -101,10 +101,13 @@ begin
   ), e as (
     select c.id,
       coalesce(p.yoqilgan,true) and coalesce(s.yoqilgan,true) as yoq,
-      least(coalesce(p.max_qurilma,g.max_qurilma,10), coalesce(s.max_qurilma,100)) as mx,
-      least(coalesce(p.lease_soat,g.lease_soat,72), coalesce(s.lease_soat,72)) as ls,
+      -- Security review M1: a company's self-restriction ('kompaniya' row) is company-scoped (lease) only. At user
+      -- level (enroll/verify) it must not cap devices or raise the version bar: a boss can add any existing user to
+      -- the company, so it would otherwise lock a foreign account out platform-wide.
+      least(coalesce(p.max_qurilma,g.max_qurilma,10), case when p_kompaniya_id is not null then coalesce(s.max_qurilma,100) else 100 end) as mx,
+      least(coalesce(p.lease_soat,g.lease_soat,72), case when p_kompaniya_id is not null then coalesce(s.lease_soat,72) else 72 end) as ls,
       coalesce(p.oflayn,g.oflayn,true) and coalesce(s.oflayn,true) as ofl,
-      (select v from unnest(array[coalesce(p.min_versiya,g.min_versiya), s.min_versiya]) v
+      (select v from unnest(array[coalesce(p.min_versiya,g.min_versiya), case when p_kompaniya_id is not null then s.min_versiya end]) v
         where v is not null order by public.t2_desktop_versiya_kalit(v) desc limit 1) as mv
     from c
     left join public.t2_desktop_siyosat p on p.kompaniya_id=c.id and p.manba='platforma'
@@ -127,8 +130,10 @@ end $$;
 
 create or replace function public.t2_desktop_versiya_eski(p_versiya text, p_min text)
 returns boolean language sql immutable set search_path = public, pg_temp as $$
-  select p_min is not null and (public.t2_desktop_versiya_kalit(p_versiya) is null
-    or public.t2_desktop_versiya_kalit(p_versiya) < public.t2_desktop_versiya_kalit(p_min));
+  -- Unknown version (NULL: pre-migration device / old client without the header) is allowed: the reported version is
+  -- a nudge, never a security boundary (a client can send any header). Only a KNOWN lower version is refused.
+  select p_min is not null and public.t2_desktop_versiya_kalit(p_versiya) is not null
+    and public.t2_desktop_versiya_kalit(p_versiya) < public.t2_desktop_versiya_kalit(p_min);
 $$;
 
 -- 5. Credential RPCs (policy enforced). _v1 signatures kept as wrappers for callers on the old code.
@@ -184,7 +189,7 @@ $$;
 create or replace function public.t2_desktop_qurilma_tekshir_v2(p_token_hash text, p_ilova_versiya text)
 returns jsonb language plpgsql security invoker set search_path = public, pg_temp as $$
 declare
-  v public.t2_desktop_qurilma%rowtype; v_pol jsonb; v_ver text; v_code text;
+  v public.t2_desktop_qurilma%rowtype; v_pol jsonb; v_ver text; v_code text; v_op uuid;
 begin
   if p_token_hash is null or p_token_hash !~ '^[0-9a-f]{64}$' then return jsonb_build_object('ok',false); end if;
   select d.* into v from public.t2_desktop_qurilma d
@@ -200,15 +205,25 @@ begin
   end if;
   if v_code is not null then
     -- The client drops its credential on 401; retire it server-side too so it never occupies a device slot.
+    -- Audited as a system action (actor = device owner, meta.tizim) so admins see why devices disappeared.
+    v_op := gen_random_uuid();
     update public.t2_desktop_qurilma set versiya=versiya+1, bekor=clock_timestamp(), bekor_sabab=v_code,
-      bekor_operation_id=coalesce(bekor_operation_id,gen_random_uuid())
+      bekor_operation_id=coalesce(bekor_operation_id,v_op)
       where device_id=v.device_id and bekor is null;
+    if found then
+      insert into public.t2_desktop_audit(actor_id,kompaniya_id,amal,device_id,nishon_foydalanuvchi_id,sabab,meta,operation_id)
+        values(v.foydalanuvchi_id,null,'siyosat_rad',v.device_id,v.foydalanuvchi_id,v_code,
+          jsonb_build_object('tizim',true,'ilova_versiya',v_ver,'min_versiya',v_pol->>'min_versiya'),v_op);
+    end if;
     return jsonb_build_object('ok',false,'code',v_code,'min_versiya',v_pol->>'min_versiya');
   end if;
-  -- Atomic validation/touch: never cache a bearer lookup, including revocation.
+  -- Atomic validation/touch: never cache a bearer lookup, including revocation. The user/session predicate is
+  -- repeated here so a revocation committed between the SELECT above and this UPDATE is still honoured.
   update public.t2_desktop_qurilma d set oxirgi_kirish=clock_timestamp(), ilova_versiya=v_ver
     where d.device_id=v.device_id and d.token_hash=p_token_hash and d.bekor is null
       and d.tugaydi > extract(epoch from clock_timestamp())*1000
+      and exists (select 1 from public.t2_foydalanuvchi f where f.id=d.foydalanuvchi_id and f.holat='faol'
+        and (f.sessiya_bekor_dan is null or d.sessiya_exp - 7776000000 + 2000 >= extract(epoch from f.sessiya_bekor_dan)*1000))
     returning d.* into v;
   if not found then return jsonb_build_object('ok',false); end if;
   return jsonb_build_object('ok',true,'device_id',v.device_id,'foydalanuvchi_id',v.foydalanuvchi_id,
@@ -227,7 +242,8 @@ declare
   v_now bigint := floor(extract(epoch from clock_timestamp()) * 1000)::bigint;
   v_pol jsonb; v_tug bigint; v_device uuid;
 begin
-  if p_kompaniya_id is null or p_obyekt_soni is null or p_obyekt_soni not between 1 and 100 then
+  -- NULL company = legacy v1 caller (no scope): user-level policy, no object count.
+  if (p_kompaniya_id is null) <> (p_obyekt_soni is null) or p_obyekt_soni not between 1 and 100 then
     return jsonb_build_object('ok',false,'code','SCOPE_INVALID');
   end if;
   if not exists(select 1 from public.t2_desktop_qurilma where device_id=p_device_id and foydalanuvchi_id=p_actor_id
@@ -237,6 +253,11 @@ begin
   v_pol := public.t2_desktop_siyosat_v1(p_actor_id, p_kompaniya_id);
   if (v_pol->>'yoqilgan')::boolean is not true then return jsonb_build_object('ok',false,'code','DESKTOP_DISABLED'); end if;
   if (v_pol->>'oflayn')::boolean is not true then return jsonb_build_object('ok',false,'code','DESKTOP_OFFLINE_DISABLED'); end if;
+  -- Company-scoped minimum version (incl. a company's own row) gates only offline leases for that company.
+  if p_kompaniya_id is not null and public.t2_desktop_versiya_eski(
+      (select ilova_versiya from public.t2_desktop_qurilma where device_id=p_device_id), v_pol->>'min_versiya') then
+    return jsonb_build_object('ok',false,'code','DESKTOP_UPDATE_REQUIRED','min_versiya',v_pol->>'min_versiya');
+  end if;
   update public.t2_desktop_qurilma set
     lease_soni=case when lease_oyna is null or lease_oyna < clock_timestamp()-interval '1 minute' then 1 else lease_soni+1 end,
     lease_oyna=case when lease_oyna is null or lease_oyna < clock_timestamp()-interval '1 minute' then clock_timestamp() else lease_oyna end,
@@ -248,6 +269,12 @@ begin
   if v_device is null then return jsonb_build_object('ok',false,'code','LEASE_RATE_LIMIT'); end if;
   return jsonb_build_object('ok',true,'lease_ms',(v_pol->>'lease_soat')::bigint*3600000,'tugaydi',v_tug);
 end $$;
+
+-- Legacy signature (old BFF code): same policy + rate limit via v2, user-level scope.
+create or replace function public.t2_desktop_lease_chegara_v1(p_actor_id bigint, p_device_id uuid)
+returns jsonb language sql security invoker set search_path = public, pg_temp as $$
+  select public.t2_desktop_lease_chegara_v2(p_actor_id, p_device_id, null, null);
+$$;
 
 -- 6. Admin authorization: platform superadmin (all) or active company boss/admin (own company only).
 create or replace function public.t2_desktop_admin_rol(p_actor_id bigint, p_kompaniya_id bigint)
@@ -274,7 +301,13 @@ begin
     return jsonb_build_object('ok',false,'code','AUTHORIZATION_DENIED');
   end if;
   with d as (
-    select d.*, f.ism, f.login from public.t2_desktop_qurilma d join public.t2_foydalanuvchi f on f.id=d.foydalanuvchi_id
+    select d.*, f.ism, f.login,
+      -- Security review M1: a boss may have added an account that also lives in other companies; for such
+      -- multi-company members a non-superadmin viewer gets no device name / last-seen / revoke reason.
+      (v_rol <> 'superadmin' and (select count(*) from public.t2_azolik a2 join public.t2_kompaniya k2 on k2.id=a2.kompaniya_id and k2.faol
+        where a2.foydalanuvchi_id=d.foydalanuvchi_id and a2.holat='faol') > 1) as yashir,
+      (select max(a3.rol) from public.t2_azolik a3 where a3.foydalanuvchi_id=d.foydalanuvchi_id and a3.kompaniya_id=p_kompaniya_id and a3.holat='faol') as nishon_rol
+    from public.t2_desktop_qurilma d join public.t2_foydalanuvchi f on f.id=d.foydalanuvchi_id
     where p_kompaniya_id is null or exists(select 1 from public.t2_azolik a where a.foydalanuvchi_id=d.foydalanuvchi_id
       and a.kompaniya_id=p_kompaniya_id and a.holat='faol')
       -- A company boss never sees (or acts on) a platform superadmin's devices.
@@ -283,9 +316,10 @@ begin
   )
   select coalesce(jsonb_agg(jsonb_build_object(
       'device_id',d.device_id,'foydalanuvchi_id',d.foydalanuvchi_id,'ism',d.ism,'login',d.login,
-      'qurilma_nomi',d.qurilma_nomi,'os',d.os,'ilova_versiya',d.ilova_versiya,
-      'yaratildi',d.yaratildi,'oxirgi_kirish',d.oxirgi_kirish,'tugaydi',d.tugaydi,'sessiya_exp',d.sessiya_exp,
-      'bekor',d.bekor,'bekor_sabab',d.bekor_sabab,
+      'qurilma_nomi',case when d.yashir then null else d.qurilma_nomi end,'os',d.os,'ilova_versiya',d.ilova_versiya,
+      'yaratildi',d.yaratildi,'oxirgi_kirish',case when d.yashir then null else d.oxirgi_kirish end,'tugaydi',d.tugaydi,'sessiya_exp',d.sessiya_exp,
+      'bekor',d.bekor,'bekor_sabab',case when d.yashir then null else d.bekor_sabab end,
+      'kop_kompaniya',d.yashir,'nishon_rol',d.nishon_rol,
       'holat',case when d.bekor is not null then 'bekor' when d.tugaydi<=v_now then 'muddati_otgan' else 'faol' end,
       -- Lease trace only for the company being viewed (a boss never learns another company's activity).
       'oxirgi_lease',case when p_kompaniya_id is null or d.oxirgi_lease_kompaniya_id=p_kompaniya_id then d.oxirgi_lease end,
@@ -318,6 +352,7 @@ begin
   from (select * from public.t2_desktop_audit a where p_kompaniya_id is null or a.kompaniya_id=p_kompaniya_id order by a.vaqt desc limit 200) x
   left join public.t2_foydalanuvchi f on f.id=x.actor_id;
   return jsonb_build_object('ok',true,'rol',v_rol,'kompaniya_id',p_kompaniya_id,'umumiy',v_umumiy,'qurilmalar',v_q,
+    'mening_rolim',(select max(a.rol) from public.t2_azolik a where a.foydalanuvchi_id=p_actor_id and a.kompaniya_id=p_kompaniya_id and a.holat='faol'),
     'siyosat',v_siyosat,
     'samarali',case when p_kompaniya_id is not null then public.t2_desktop_siyosat_v1(null, p_kompaniya_id) end,
     'audit',v_audit);
@@ -359,6 +394,17 @@ begin
       return jsonb_build_object('ok',false,'code','TENANT_FORBIDDEN');
     end if;
     if public.t2_platforma_superadmin(v_target) then return jsonb_build_object('ok',false,'code','AUTHORIZATION_DENIED'); end if;
+    -- Security review M1: a boss can add any existing account to the company without its consent, so a
+    -- non-superadmin may revoke only accounts whose ONLY active company is this one (precedent: t2_parol_belgila_v1).
+    if exists(select 1 from public.t2_azolik a join public.t2_kompaniya k on k.id=a.kompaniya_id and k.faol
+      where a.foydalanuvchi_id=v_target and a.holat='faol' and a.kompaniya_id<>p_kompaniya_id) then
+      return jsonb_build_object('ok',false,'code','MULTI_COMPANY_SUPERADMIN_REQUIRED');
+    end if;
+    -- A company admin never revokes a boss's devices (a boss only by a boss or the superadmin).
+    if exists(select 1 from public.t2_azolik where foydalanuvchi_id=v_target and kompaniya_id=p_kompaniya_id and holat='faol' and rol='boss')
+      and not exists(select 1 from public.t2_azolik where foydalanuvchi_id=p_actor_id and kompaniya_id=p_kompaniya_id and holat='faol' and rol='boss') then
+      return jsonb_build_object('ok',false,'code','BOSS_PROTECTED');
+    end if;
   end if;
   if p_amal = 'bekor' then
     update public.t2_desktop_qurilma set versiya=case when bekor is null then versiya+1 else versiya end,
@@ -393,8 +439,11 @@ create or replace function public.t2_desktop_siyosat_saqla_v1(
 declare
   v_rol text := public.t2_desktop_admin_rol(p_actor_id, p_kompaniya_id);
   v_sabab text := btrim(coalesce(p_sabab,''));
+  -- A company's own row cannot carry a device cap: the cap is user-level (a device spans companies), so only the
+  -- platform (global / per-company 'platforma' row) sets it. Installer fields are global only.
   v_ruxsat text[] := case when p_kompaniya_id is null
     then array['yoqilgan','max_qurilma','lease_soat','oflayn','min_versiya','joriy_versiya','yuklab_olish_url','yangilanish_izoh']
+    when p_manba = 'kompaniya' then array['yoqilgan','lease_soat','oflayn','min_versiya']
     else array['yoqilgan','max_qurilma','lease_soat','oflayn','min_versiya'] end;
   v_old public.t2_desktop_siyosat%rowtype; v_new public.t2_desktop_siyosat%rowtype; k text;
 begin
@@ -425,7 +474,11 @@ begin
     return jsonb_build_object('ok',true,'takror',true);
   end if;
   select * into v_old from public.t2_desktop_siyosat where coalesce(kompaniya_id,0)=coalesce(p_kompaniya_id,0) and manba=p_manba;
-  if found and p_expected_versiya is not null and p_expected_versiya <> v_old.versiya then
+  -- Compare-and-swap: an existing row can only be changed against the version the editor saw.
+  if found and p_expected_versiya is null then
+    return jsonb_build_object('ok',false,'code','VERSION_REQUIRED','versiya',v_old.versiya);
+  end if;
+  if found and p_expected_versiya <> v_old.versiya then
     return jsonb_build_object('ok',false,'code','STALE_VERSION','versiya',v_old.versiya);
   end if;
   begin
@@ -436,10 +489,16 @@ begin
         nullif(p_qiymat->>'yuklab_olish_url',''),nullif(btrim(p_qiymat->>'yangilanish_izoh'),''),p_actor_id)
       returning * into v_new;
     else
-      update public.t2_desktop_siyosat set yoqilgan=(p_qiymat->>'yoqilgan')::boolean, max_qurilma=(p_qiymat->>'max_qurilma')::integer,
-        lease_soat=(p_qiymat->>'lease_soat')::integer, oflayn=(p_qiymat->>'oflayn')::boolean, min_versiya=nullif(p_qiymat->>'min_versiya',''),
-        joriy_versiya=nullif(p_qiymat->>'joriy_versiya',''), yuklab_olish_url=nullif(p_qiymat->>'yuklab_olish_url',''),
-        yangilanish_izoh=nullif(btrim(p_qiymat->>'yangilanish_izoh'),''),
+      -- Partial update: a key absent from p_qiymat keeps its stored value; a key present with null resets it.
+      update public.t2_desktop_siyosat set
+        yoqilgan=case when p_qiymat ? 'yoqilgan' then (p_qiymat->>'yoqilgan')::boolean else yoqilgan end,
+        max_qurilma=case when p_qiymat ? 'max_qurilma' then (p_qiymat->>'max_qurilma')::integer else max_qurilma end,
+        lease_soat=case when p_qiymat ? 'lease_soat' then (p_qiymat->>'lease_soat')::integer else lease_soat end,
+        oflayn=case when p_qiymat ? 'oflayn' then (p_qiymat->>'oflayn')::boolean else oflayn end,
+        min_versiya=case when p_qiymat ? 'min_versiya' then nullif(p_qiymat->>'min_versiya','') else min_versiya end,
+        joriy_versiya=case when p_qiymat ? 'joriy_versiya' then nullif(p_qiymat->>'joriy_versiya','') else joriy_versiya end,
+        yuklab_olish_url=case when p_qiymat ? 'yuklab_olish_url' then nullif(p_qiymat->>'yuklab_olish_url','') else yuklab_olish_url end,
+        yangilanish_izoh=case when p_qiymat ? 'yangilanish_izoh' then nullif(btrim(p_qiymat->>'yangilanish_izoh'),'') else yangilanish_izoh end,
         versiya=versiya+1, yangilandi=clock_timestamp(), yangiladi=p_actor_id
       where id=v_old.id returning * into v_new;
     end if;
@@ -478,7 +537,7 @@ do $$ declare f text; begin
     'public.t2_desktop_qurilma_yarat_v2(bigint,uuid,text,bigint,uuid,text,text,text)',
     'public.t2_desktop_qurilma_yarat_v1(bigint,uuid,text,bigint,uuid)',
     'public.t2_desktop_qurilma_tekshir_v2(text,text)','public.t2_desktop_qurilma_tekshir_v1(text)',
-    'public.t2_desktop_lease_chegara_v2(bigint,uuid,bigint,integer)',
+    'public.t2_desktop_lease_chegara_v2(bigint,uuid,bigint,integer)','public.t2_desktop_lease_chegara_v1(bigint,uuid)',
     'public.t2_desktop_admin_rol(bigint,bigint)','public.t2_desktop_boshqaruv_v1(bigint,bigint)',
     'public.t2_desktop_boshqaruv_buyruq_v1(bigint,text,bigint,uuid,bigint,bigint,text,uuid)',
     'public.t2_desktop_siyosat_saqla_v1(bigint,bigint,text,jsonb,text,integer,uuid)',

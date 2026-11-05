@@ -24,7 +24,7 @@ describe('desktop-nazorat lib', () => {
     expect(versiyaTaqqosla('1.2.0', '1.2.0')).toBe(0);
     expect(versiyaTaqqosla('x', '1.2.0')).toBeNull();
     expect(versiyaEskimi('1.1.9', '1.2.0')).toBe(true);
-    expect(versiyaEskimi(null, '1.2.0')).toBe(true);
+    expect(versiyaEskimi(null, '1.2.0')).toBe(false); // unknown = allowed (server: nudge only)
     expect(versiyaEskimi('1.10.0', '1.2.0')).toBe(false);
     expect(versiyaEskimi(null, null)).toBe(false);
   });
@@ -37,6 +37,7 @@ describe('desktop-nazorat lib', () => {
     expect(siyosatShakldan({ yoqilgan: 'ha', oflayn: 'ha', max_qurilma: '', lease_soat: '', min_versiya: '', yuklab_olish_url: 'javascript:alert(1)' }, true)).toHaveProperty('xato');
     const g = siyosatShakldan({ yoqilgan: 'ha', oflayn: 'ha', max_qurilma: '10', lease_soat: '72', min_versiya: '0.1.0', joriy_versiya: '0.2.0', yuklab_olish_url: 'https://example.invalid/s.exe', yangilanish_izoh: '' }, true);
     expect(g).toEqual({ qiymat: { yoqilgan: true, oflayn: true, max_qurilma: 10, lease_soat: 72, min_versiya: '0.1.0', joriy_versiya: '0.2.0', yuklab_olish_url: 'https://example.invalid/s.exe', yangilanish_izoh: null } });
+    expect(Object.keys((siyosatShakldan(siyosatShaklga(undefined), false, false) as { qiymat: object }).qiymat)).not.toContain('max_qurilma');
     // Company form never sends installer fields (server would refuse them).
     expect(Object.keys((siyosatShakldan({ ...siyosatShaklga(undefined), joriy_versiya: '9.9.9' }, false) as { qiymat: object }).qiymat)).not.toContain('joriy_versiya');
   });

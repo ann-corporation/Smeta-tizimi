@@ -40,7 +40,7 @@ try {
     insert into t2_azolik(foydalanuvchi_id,kompaniya_id,rol) select f.id,k.id,'superadmin' from t2_foydalanuvchi f, t2_kompaniya k where f.login='synthetic_sa';`);
   await db.exec('begin; set local role service_role');
   const saved = await db.query(`select public.t2_desktop_siyosat_saqla_v1((select id from t2_foydalanuvchi where login='synthetic_sa'),null,'platforma',
-    '{"yoqilgan":true,"max_qurilma":10,"lease_soat":72,"oflayn":true,"joriy_versiya":"0.2.0","yuklab_olish_url":"https://example.invalid/setup.exe"}','reliz',null,gen_random_uuid()) r`);
+    '{"yoqilgan":true,"max_qurilma":10,"lease_soat":72,"oflayn":true,"joriy_versiya":"0.2.0","yuklab_olish_url":"https://example.invalid/setup.exe"}','reliz',(select versiya from t2_desktop_siyosat where kompaniya_id is null and manba='platforma'),gen_random_uuid()) r`);
   assert.equal(saved.rows[0].r.ok, true);
   const read = await db.query(`select public.t2_desktop_boshqaruv_v1((select id from t2_foydalanuvchi where login='synthetic_sa'),null) r`);
   assert.equal(read.rows[0].r.ok, true);

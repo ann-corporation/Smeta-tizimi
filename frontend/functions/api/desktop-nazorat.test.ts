@@ -118,8 +118,15 @@ describe('/api/desktop/nazorat', () => {
     expect(calls.find(c => c.path.endsWith('/t2_desktop_siyosat_saqla_v1'))!.body).toEqual({ p_actor_id: 7, p_kompaniya_id: null, p_manba: 'platforma',
       p_qiymat: { yoqilgan: false }, p_sabab: 'avariya', p_expected_versiya: 3, p_operation_id: op });
   });
-  it('download info needs a web session', async () => {
+  it('download info needs a live web session (revoked/merged account → 401 via roleAuthority)', async () => {
     expect((await yangilanish(ctx(new Request('https://site.test/api/desktop/yangilanish')))).status).toBe(401);
+    const asl = fetch;
+    vi.stubGlobal('fetch', vi.fn(async (raw: string, init?: RequestInit) => new URL(String(raw)).pathname.endsWith('/t2_men_v1')
+      ? Response.json({ ok: false, code: 'ACTOR_NOT_FOUND' }) : (asl as any)(raw, init)));
+    vakolatKeshTozala();
+    expect((await yangilanish(ctx(await web('/api/desktop/yangilanish', 'GET')))).status).toBe(401);
+    expect(calls.some(c => c.path.endsWith('/t2_desktop_yangilanish_v1'))).toBe(false);
+    vi.stubGlobal('fetch', asl); vakolatKeshTozala();
     rpc = { ok: true, joriy_versiya: '0.2.0', yuklab_olish_url: 'https://example.invalid/setup.exe' };
     expect(await (await yangilanish(ctx(await web('/api/desktop/yangilanish', 'GET')))).json()).toMatchObject({ joriy_versiya: '0.2.0' });
   });

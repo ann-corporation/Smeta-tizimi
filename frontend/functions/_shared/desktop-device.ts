@@ -45,7 +45,8 @@ export const verifiedDesktopDevice = (request: Request) => devices.get(request);
 export const DESKTOP_DENY_CODES: ReadonlySet<string> = new Set(['DESKTOP_DISABLED', 'DESKTOP_UPDATE_REQUIRED']);
 const denials = new WeakMap<Request, string>();
 export const desktopDenyCode = (request: Request) => denials.get(request) ?? 'DEVICE_AUTH_REQUIRED';
-/** App version reported by the native client (optional header). Old clients send nothing: policy treats it as unknown. */
+/** App version reported by the native client (optional header). It is a NUDGE, never a security boundary: a client can
+ *  send any value. Unknown (absent) is allowed by the server; only a known lower version is refused. */
 export const DESKTOP_VERSION_HEADER = 'X-Smeta-Desktop-Version';
 export const ilovaVersiya = (v: unknown): string | null => typeof v === 'string' && /^\d{1,4}\.\d{1,4}\.\d{1,6}$/.test(v) ? v : null;
 

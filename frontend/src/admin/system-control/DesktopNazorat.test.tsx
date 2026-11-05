@@ -25,6 +25,7 @@ let posts: any[];
 let postResult: { status: number; body: unknown };
 beforeEach(() => {
   posts = []; postResult = { status: 200, body: { ok: true, soni: 1 } };
+  vi.stubGlobal('confirm', vi.fn(() => true));
   vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
     if (init?.method === 'POST') { posts.push({ url, body: JSON.parse(String(init.body)) }); return new Response(JSON.stringify(postResult.body), { status: postResult.status }); }
     return new Response(JSON.stringify(read), { status: (read as { ok?: boolean }).ok ? 200 : 403 });
@@ -87,8 +88,33 @@ describe('DesktopNazorat', () => {
     fireEvent.change(within(form).getByLabelText('O‘zgartirish sababi'), { target: { value: 'avariya' } });
     fireEvent.click(within(form).getByRole('button', { name: 'Saqlash' }));
     await waitFor(() => expect(posts).toHaveLength(1));
+    expect(window.confirm).toHaveBeenCalledTimes(1); // kill switch warns: all devices must sign in again
     expect(posts[0].body).toMatchObject({ action: 'siyosat', manba: 'platforma', kompaniya_id: null, expected_versiya: 4,
       qiymat: { yoqilgan: false, max_qurilma: 10, lease_soat: 72, oflayn: true, min_versiya: '0.2.0', joriy_versiya: '0.2.0' } });
+  });
+
+  it('kill switch is not saved when the warning is declined', async () => {
+    read = javob('superadmin'); setup(null);
+    (window.confirm as any).mockReturnValue(false);
+    const form = await screen.findByRole('form', { name: 'Global siyosat (platforma)' });
+    fireEvent.change(within(form).getAllByRole('combobox')[0], { target: { value: 'yoq' } });
+    fireEvent.change(within(form).getByLabelText('O‘zgartirish sababi'), { target: { value: 'avariya' } });
+    fireEvent.click(within(form).getByRole('button', { name: 'Saqlash' }));
+    await waitFor(() => expect(window.confirm).toHaveBeenCalled());
+    expect(posts).toHaveLength(0);
+  });
+
+  it('boss: multi-company member and (for an admin) the boss have no revoke buttons; company form has no device cap', async () => {
+    read = javob('kompaniya', { mening_rolim: 'admin', qurilmalar: [
+      qurilma({ kop_kompaniya: true, qurilma_nomi: null, oxirgi_kirish: null }),
+      qurilma({ device_id: '00000000-0000-4000-8000-000000000003', foydalanuvchi_id: 6, ism: 'Synthetic Boss', nishon_rol: 'boss' }),
+    ] });
+    setup(8);
+    expect(await screen.findByText('Bir nechta kompaniya a’zosi — faqat superadmin')).toBeTruthy();
+    expect(screen.getByText('Rahbar qurilmasi — faqat rahbar yoki superadmin')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Bekor qilish/ })).toBeNull();
+    const form = screen.getByRole('form', { name: 'Kompaniya cheklovi' });
+    expect(within(form).queryByText('Qurilma limiti (1 kishiga)')).toBeNull();
   });
 
   it('denied read renders an explicit no-permission message', async () => {

@@ -11,6 +11,10 @@ export type DesktopQurilma = {
   bekor: string | null; bekor_sabab: string | null; holat: DesktopHolat;
   oxirgi_lease: string | null; oxirgi_lease_kompaniya_id: number | null; oxirgi_lease_obyekt_soni: number | null; lease_faol: boolean;
   kompaniyalar: { id: number; nom: string }[];
+  /** Boshqa kompaniyalarda ham a'zo — kompaniya rahbariga nom/oxirgi faollik yashiriladi, bekor qilish faqat superadmin. */
+  kop_kompaniya?: boolean;
+  /** Ko'rilayotgan kompaniyadagi roli (boss/admin/…). */
+  nishon_rol?: string | null;
 };
 export type DesktopSiyosat = {
   id: number; kompaniya_id: number | null; kompaniya_nom: string | null; manba: 'platforma' | 'kompaniya';
@@ -26,7 +30,7 @@ export type DesktopAudit = {
 export type DesktopUmumiy = { faol: number; oxirgi_24s: number; bugun_bekor: number; lease_faol: number; kompaniyalar: number };
 export type DesktopNazoratJavob = {
   ok: true; rol: 'superadmin' | 'kompaniya'; kompaniya_id: number | null; umumiy: DesktopUmumiy;
-  qurilmalar: DesktopQurilma[]; siyosat: DesktopSiyosat[]; samarali: DesktopSamarali | null; audit: DesktopAudit[];
+  qurilmalar: DesktopQurilma[]; siyosat: DesktopSiyosat[]; mening_rolim?: string | null; samarali: DesktopSamarali | null; audit: DesktopAudit[];
 };
 
 export type DesktopFiltr = { qidiruv: string; holat: DesktopHolat | 'hammasi'; kompaniyaId: number | null };
@@ -56,9 +60,23 @@ export function versiyaTaqqosla(a: string | null | undefined, b: string | null |
   for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] < y[i] ? -1 : 1;
   return 0;
 }
-/** Qurilma versiyasi minimal talabdan pastmi (yoki noma'lummi) — server bilan bir xil qoida. */
+/** Ma'lum versiya minimal talabdan pastmi — server bilan bir xil qoida (noma'lum versiya = ruxsat, faqat eslatma). */
 export const versiyaEskimi = (v: string | null | undefined, min: string | null | undefined): boolean =>
-  !!min && (!v || !VERSIYA_RE.test(v) || (versiyaTaqqosla(v, min) ?? -1) < 0);
+  !!min && !!v && VERSIYA_RE.test(v) && (versiyaTaqqosla(v, min) ?? 0) < 0;
+
+/** Bekor qilish tugmasini ko'rsatish kerakmi (server baribir tekshiradi — bu faqat halol UI). */
+export function bekorQilaOladimi(q: DesktopQurilma, superadmin: boolean, meningRolim: string | null | undefined): boolean {
+  if (superadmin) return true;
+  if (q.kop_kompaniya) return false;
+  return !(q.nishon_rol === 'boss' && meningRolim !== 'boss');
+}
+
+/** Global siyosatdagi o'zgarish ulangan qurilmalarni chiqarib yuboradimi (kill switch yoki minimal versiya ko'tarildi). */
+export function qurilmalarChiqadimi(eski: DesktopSiyosat | undefined, yangi: Record<string, unknown>): boolean {
+  if (yangi.yoqilgan === false && eski?.yoqilgan !== false) return true;
+  const mv = typeof yangi.min_versiya === 'string' ? yangi.min_versiya : null;
+  return !!mv && (!eski?.min_versiya || (versiyaTaqqosla(mv, eski.min_versiya) ?? 0) > 0);
+}
 
 /** Siyosat shakli (matn maydonlari) → server `qiymat` obyekti. Bo'sh = meros (null). Xato bo'lsa — xato kaliti. */
 export type SiyosatShakl = {
@@ -66,7 +84,8 @@ export type SiyosatShakl = {
   max_qurilma: string; lease_soat: string; min_versiya: string;
   joriy_versiya?: string; yuklab_olish_url?: string; yangilanish_izoh?: string;
 };
-export function siyosatShakldan(s: SiyosatShakl, global: boolean): { qiymat: Record<string, unknown> } | { xato: string } {
+/** `limit=false` — kompaniyaning o'z cheklovi: qurilma limiti yuborilmaydi (u foydalanuvchi darajasida, faqat platforma qo'yadi). */
+export function siyosatShakldan(s: SiyosatShakl, global: boolean, limit = true): { qiymat: Record<string, unknown> } | { xato: string } {
   const bool = (v: SiyosatShakl['yoqilgan']) => v === 'meros' ? null : v === 'ha';
   const son = (v: string, min: number, max: number): number | null | 'xato' => {
     const t = v.trim(); if (!t) return null;
@@ -75,7 +94,7 @@ export function siyosatShakldan(s: SiyosatShakl, global: boolean): { qiymat: Rec
   const mx = son(s.max_qurilma, 1, 100); if (mx === 'xato') return { xato: 'Qurilmalar soni 1–100 oralig‘ida butun son bo‘lsin.' };
   const ls = son(s.lease_soat, 1, 72); if (ls === 'xato') return { xato: 'Oflayn ruxsat muddati 1–72 soat bo‘lsin.' };
   const mv = s.min_versiya.trim(); if (mv && !VERSIYA_RE.test(mv)) return { xato: 'Versiya 1.2.3 ko‘rinishida bo‘lsin.' };
-  const qiymat: Record<string, unknown> = { yoqilgan: bool(s.yoqilgan), oflayn: bool(s.oflayn), max_qurilma: mx, lease_soat: ls, min_versiya: mv || null };
+  const qiymat: Record<string, unknown> = { yoqilgan: bool(s.yoqilgan), oflayn: bool(s.oflayn), ...(limit ? { max_qurilma: mx } : {}), lease_soat: ls, min_versiya: mv || null };
   if (global) {
     const jv = (s.joriy_versiya ?? '').trim(); if (jv && !VERSIYA_RE.test(jv)) return { xato: 'Versiya 1.2.3 ko‘rinishida bo‘lsin.' };
     const url = (s.yuklab_olish_url ?? '').trim();

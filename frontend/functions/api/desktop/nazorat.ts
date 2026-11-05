@@ -16,8 +16,8 @@ import { desktopCsrfAllowed, desktopFail, desktopRpc, positiveId, uuid, type Des
 
 const AMALLAR = new Set(['bekor', 'foydalanuvchi_bekor', 'muddat', 'siyosat']);
 const STATUS: Record<string, number> = {
-  AUTHORIZATION_DENIED: 403, SUPERADMIN_REQUIRED: 403, TENANT_FORBIDDEN: 403,
-  DEVICE_NOT_FOUND: 404, TARGET_NOT_FOUND: 404, COMPANY_NOT_FOUND: 404, STALE_VERSION: 409,
+  AUTHORIZATION_DENIED: 403, SUPERADMIN_REQUIRED: 403, TENANT_FORBIDDEN: 403, MULTI_COMPANY_SUPERADMIN_REQUIRED: 403, BOSS_PROTECTED: 403,
+  DEVICE_NOT_FOUND: 404, TARGET_NOT_FOUND: 404, COMPANY_NOT_FOUND: 404, STALE_VERSION: 409, VERSION_REQUIRED: 409,
 };
 const nostore = { 'Cache-Control': 'no-store' };
 
