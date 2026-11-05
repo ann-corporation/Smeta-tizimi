@@ -7,7 +7,7 @@ export type NativeSessionInfo = { device_id: string | null; foydalanuvchi_id: nu
 type StoredLease = { envelope: LeaseEnvelope; highWater: number };
 type StoredPacket = { raw: PaketXom; etag: string | null };
 type Active = { scope: LeaseScope; generation: number; stored: StoredLease; lease: DesktopLease; guard: DesktopLeaseGuard };
-export type DesktopOpenedPacket = { paket: Paket; offline: boolean; etag: string | null; leaseUntil: number };
+export type DesktopOpenedPacket = { paket: Paket; offline: boolean; etag: string | null; leaseUntil: number; permissions: readonly string[] };
 const id = (v: number | null): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v > 0;
 const networkError = (e: unknown) => e instanceof TypeError || /DESKTOP_HTTP_(FAILED|UNAVAILABLE)/.test(String(e));
 
@@ -139,7 +139,7 @@ export class DesktopOfflineRuntime {
     }
     const paket = this.decode(raw, company, objectId);
     await this.checkpoint(active, objectId, revision);
-    return { paket, offline, etag, leaseUntil: active.lease.tugaydi };
+    return { paket, offline, etag, leaseUntil: active.lease.tugaydi, permissions: active.lease.permissions };
   }
   dispose() { this.invalidate(); }
   async revoke() {

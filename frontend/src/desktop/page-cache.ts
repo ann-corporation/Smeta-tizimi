@@ -5,7 +5,7 @@ import type { NativeInvoke } from './fetch-shim';
 import { t } from '../i18n/til';
 
 type Json = Record<string, unknown>;
-type Context = { company: number; object: number; paket: Paket; offline: boolean };
+type Context = { company: number; object: number; paket: Paket; offline: boolean; permissions: readonly string[] };
 type Snapshot = { body: Json; until: number };
 const positive = (v: unknown): v is number => Number.isSafeInteger(v) && Number(v) > 0;
 const network = (e: unknown) => e instanceof TypeError || /DESKTOP_HTTP_(FAILED|UNAVAILABLE)/.test(String(e));
@@ -63,7 +63,7 @@ export function desktopPageFetch(base: typeof fetch, invoke: NativeInvoke, optio
       const expiryKey = company + '/' + object;
       clearTimeout(expiry.get(expiryKey));
       expiry.set(expiryKey, setTimeout(() => options.invalidate?.(), Math.max(1, opened.leaseUntil - Date.now())));
-      return { company, object, paket: opened.paket, offline: opened.offline };
+      return { company, object, paket: opened.paket, offline: opened.offline, permissions: opened.permissions };
     });
     pending.set(key, task); try { return await task; } finally { pending.delete(key); }
   }
@@ -76,7 +76,11 @@ export function desktopPageFetch(base: typeof fetch, invoke: NativeInvoke, optio
     return out;
   }
   function readBody(url: URL, method: string, body: Json | null) {
+    const q = url.searchParams;
+    const companyRead = q.get('authorize') === '1' && q.get('permission') === 'company.read' && positive(Number(q.get('kompaniya_id'))) &&
+      [...q.keys()].length === 3 && [...q.keys()].every(k => ['authorize', 'permission', 'kompaniya_id'].includes(k));
     if (method === 'GET') return url.pathname === '/api/sessiya' && !url.search || url.pathname === '/api/company' && url.search === '?me=1' ||
+      url.pathname === '/api/company' && companyRead ||
       url.pathname === '/api/obyekt-paket' && /^\?obyekt_id=[1-9]\d*$/.test(url.search);
     return method === 'POST' && url.pathname === '/api/sb' && !url.search && body &&
       (tables.has(String(body.jadval)) && Object.keys(body).every(k => ['jadval', 'filtr', 'ustunlar', 'tartib', 'limit', 'versiya'].includes(k)) ||
@@ -120,6 +124,11 @@ export function desktopPageFetch(base: typeof fetch, invoke: NativeInvoke, optio
     if (url.pathname === '/api/sessiya') {
       if (j.foydalanuvchi_id !== info.foydalanuvchi_id) return failure('DESKTOP_SCOPE_REQUIRED');
       j.kompaniyalar = (Array.isArray(j.kompaniyalar) ? j.kompaniyalar : []).filter(c => companies.has(Number(c.kompaniya_id))); j.yozaOladi = false;
+    } else if (url.searchParams.get('authorize') === '1') {
+      const company = Number(url.searchParams.get('kompaniya_id'));
+      if (!allowed.some(c => c.company === company && c.permissions.includes('company.read')) || j.allowed !== true ||
+        j.company_id !== undefined && j.company_id !== company) return failure('DESKTOP_SCOPE_REQUIRED');
+      j.permissions = ['company.read']; // Only this signed read claim; never restore write authorization.
     } else {
       if ((j.foydalanuvchi as Json)?.id !== info.foydalanuvchi_id) return failure('DESKTOP_SCOPE_REQUIRED');
       for (const k of ['azoliklar', 'context_kompaniyalar']) if (Array.isArray(j[k])) j[k] = (j[k] as Json[]).filter(c => companies.has(Number(c.kompaniya_id)));

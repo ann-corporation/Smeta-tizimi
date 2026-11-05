@@ -35,11 +35,12 @@ async function setup() {
     const r = new Request(input instanceof Request ? input : new URL(String(input), 'http://tauri.localhost'), init), path = new URL(r.url).pathname;
     if (path === '/api/desktop/lease') {
       const payload = new TextEncoder().encode(JSON.stringify({ format: 'smeta-desktop-lease/1', foydalanuvchi_id: 2, kompaniya_id: 3, obyekt_idlar: [4],
-        permissions: ['smeta.read', 'f2.read', 'narx.read'], device_id: info.device_id, berildi: Date.now(), tugaydi: Date.now() + 3600_000, versiya: 1 }));
+        permissions: ['company.read', 'smeta.read', 'f2.read', 'narx.read'], device_id: info.device_id, berildi: Date.now(), tugaydi: Date.now() + 3600_000, versiya: 1 }));
       return Response.json({ ok: true, lease: { alg: 'Ed25519', kid: 'test', payload: b64(payload), imzo: b64(new Uint8Array(await crypto.subtle.sign('Ed25519', pair.privateKey, payload))) } });
     }
     if (path === '/api/obyekt-paket') return Response.json(raw, { headers: { ETag: 'v1' } });
     if (path === '/api/sessiya') return Response.json({ ok: true, foydalanuvchi_id: 2, tugaydi: Date.now() + 7200_000, yozaOladi: true, kompaniyalar: [{ kompaniya_id: 3 }, { kompaniya_id: 9 }] });
+    if (path === '/api/company' && new URL(r.url).searchParams.has('authorize')) return Response.json({ ok: true, allowed: true, company_id: 3, permissions: ['company.read', 'document.write'] });
     if (path === '/api/company') return Response.json({ ok: true, foydalanuvchi: { id: 2 }, azoliklar: [{ kompaniya_id: 3 }, { kompaniya_id: 9 }] });
     const q = r.method === 'POST' ? await r.json() : {};
     return Response.json({ ok: true, qatorlar: q.jadval === 't2_obyekt_jami' ? [{ id: 4, kompaniya_id: 3, nom: 'SYNTHETIC' }] : q.jadval === 't2_daraxt' ? paketdanQatorlar(paketDekod(raw)) : [{ id: 8, hujjat_jami: null }], toliq: true, jamiServerda: 1 });
@@ -52,6 +53,7 @@ const sb = (f: typeof fetch, body: unknown) => f('/api/sb', { method: 'POST', bo
 const tree = { jadval: 't2_daraxt', filtr: 'obyekt_id=eq.4', ustunlar: 'id,hajm,narx,summa', limit: 200000 };
 it('existing SB reader works after restart: scoped bootstrap, F2 exact response, NULL and own footer', async () => {
   const h = await setup(), live = h.create(); await live('/api/sessiya'); await live('/api/company?me=1');
+  const guard = '/api/company?authorize=1&permission=company.read&kompaniya_id=3'; await live(guard);
   await sb(live, { jadval: 't2_obyekt_jami', filtr: 'kompaniya_id=eq.3', tartib: 'nom.asc', limit: 5000 });
   await sb(live, tree); const f2 = { jadval: 't2_akt_reestr', filtr: 'obyekt_id=eq.4', tartib: 'oy.desc', limit: 500 };
   await sb(live, f2); h.phase('offline'); const cached = h.create();
@@ -60,6 +62,8 @@ it('existing SB reader works after restart: scoped bootstrap, F2 exact response,
   expect((await sb(cached, { jadval: 't2_qator_holat', filtr: 'obyekt_id=eq.4', ustunlar: 'qator_id,f2_summa,f2_summa_yoq' })).qatorlar).toEqual([{ qator_id: 7, f2_summa: null, f2_summa_yoq: 1 }]);
   expect((await (await cached('/api/sessiya')).json()).kompaniyalar).toEqual([{ kompaniya_id: 3 }]);
   expect((await (await cached('/api/company?me=1')).json()).azoliklar).toEqual([{ kompaniya_id: 3 }]);
+  expect(await (await cached(guard)).json()).toMatchObject({ allowed: true, company_id: 3, permissions: ['company.read'], platform_role: 'none' });
+  expect((await cached('/api/company?authorize=1&permission=document.write&kompaniya_id=3')).status).toBe(503);
   expect((await sb(cached, f2)).qatorlar).toEqual([{ id: 8, hujjat_jami: null }]);
   expect((await sb(cached, { soro: 'akt_podval_ol_v1', obyekt_id: 4 })).natija.podvallar).toEqual(raw.meta.akt_podval);
   const calls = h.base.mock.calls.length;
