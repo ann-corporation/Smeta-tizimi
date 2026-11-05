@@ -2,6 +2,17 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 105,
+      "sana": "2026-11-05",
+      "sarlavha": "Pereraschet — bitta tugma",
+      "bandlar": [
+        "F2 tarixida tasdiqlangan F2 da «Pereraschet» tugmasi: podval yo‘q bo‘lsa avval fayldan tiklash, keyin eski F2 minus qoralamasi (fakt o‘zgarmaydi) va to‘g‘ri F2 tayyorlashga o‘tadi — yangi hajmlar pastda.",
+        "F2 tayyorlash shu oy uchun qoralama bo‘lsa yangi akt boshlamaydi — o‘sha qoralamani ochadi («Yangi alohida F2 boshlash» tugmasi bor).",
+        "«Shu obyektda tayyorlangan F2 lar» ro‘yxatida qoralamaga «Davom ettirish» va «Tasdiqlash».",
+        "Pereraschet jami: minus blok, plyus blok va sof jami — QQS bilan birinchi."
+      ]
+    },
+    {
       "id": 103,
       "sana": "2026-11-05",
       "sarlavha": "Bo‘lim jamisi qo‘shimcha ish va zamenadan keyin darhol yangilanadi",

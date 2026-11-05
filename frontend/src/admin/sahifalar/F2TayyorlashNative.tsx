@@ -299,7 +299,24 @@ export function F2TayyorlashNative() {
   const narxniQollash = (ids: number[], narx: number) => setK((o) => { const n = { ...o.narx }; const ns = { ...o.narxsiz }; for (const id of ids) { n[id] = String(narx); delete ns[id]; } return { ...o, narx: n, narxsiz: ns }; });
   const tayyor = qatorlar.length > 0 && jami.xato === 0;
   /** DUBLIKAT HIMOYASI (egasi 2026-10-25): shu obyektda shu raqam bor — BLOK; summasi ±0,5% teng F2 / pereraschet — ogohlantirish. */
-  const { aktlar: obyektAktlari } = useObyektF2Aktlari(validId ? obyektId : null, saving ? 1 : 0);
+  const { aktlar: obyektAktlari, yuklandi: obyektAktlariYuklandi } = useObyektF2Aktlari(validId ? obyektId : null, saving ? 1 : 0);
+  /**
+   * DAVOM (egasi 2026-11-05): ?akt siz ochilganda shu oy uchun F2 QORALAMA bor bo'lsa — jim yangi akt boshlanmaydi, o'sha qoralama
+   * ochiladi (eng yangisi). «Yangi alohida F2 boshlash» — `?yangi=1`. Har obyekt+oy uchun bir marta.
+   */
+  const davomTekshirildi = useRef<string | null>(null);
+  useEffect(() => {
+    if (!validId || aktId != null || params.get('yangi') === '1' || !obyektAktlariYuklandi) return;
+    const kalit = `${obyektId}:${oy.slice(0, 7)}`;
+    if (davomTekshirildi.current === kalit) return;
+    davomTekshirildi.current = kalit;
+    const qoralama = obyektAktlari
+      .filter((a) => a.holat === 'qoralama' && ((a as { lifecycle_status?: string | null }).lifecycle_status ?? 'draft') === 'draft' && String(a.oy ?? '').slice(0, 7) === oy.slice(0, 7))
+      .sort((a, b) => b.id - a.id)[0];
+    if (!qoralama) return;
+    setParams((p) => { const x = new URLSearchParams(p); x.set('akt', String(qoralama.id)); x.set('davom', '1'); return x; }, { replace: true });
+  }, [validId, aktId, params, obyektAktlariYuklandi, obyektAktlari, obyektId, oy, setParams]);
+  const davomOchildi = aktId != null && params.get('davom') === '1';
   /** Storno qoralamasi qaysi eski F2 ni storno qilishi: storno qatorlaridagi `raw_snapshot.stornoOf`. */
   const stornoManbaAkt = useMemo(() => {
     const q = (akt?.qatorlar ?? []).find((x) => stornoQatorimi(x) && Number((x.raw_snapshot as { stornoOf?: unknown }).stornoOf) > 0);
@@ -315,6 +332,10 @@ export function F2TayyorlashNative() {
     const raqamlar = new Map(obyektAktlari.map((a) => [a.id, a.raqam ?? null] as const));
     return pereraschetBloklari(akt?.qatorlar ?? [], sm, raqamlar);
   }, [akt, rows, obyektAktlari]);
+  /** Pereraschet sarlavhasi: qaysi eski F2 lar minus (storno bloklari) — tepada, yangi hajmlar pastda. */
+  const pereraschetSarlavha = aktId != null && eskiBloklar.length > 0
+    ? t('Pereraschet: eski F2 №{r} minus (tepada) + yangi hajmlar (pastda)', { r: eskiBloklar.map((b) => b.raqam || String(b.manbaAktId)).join(', №') })
+    : null;
   /** Blok foizlari: shu aktdagi blok nusxasi, bo'lmasa manba aktning o'z podvali; yo'q — null (smeta podvali). */
   const blokNk = useCallback((manbaId: number) => aktPodval.nkOl(aktId ?? -1, String(manbaId)) ?? aktPodval.nkOl(manbaId, ''), [aktPodval, aktId]);
   const pereraschetBaho = useMemo(
@@ -836,8 +857,13 @@ export function F2TayyorlashNative() {
       }} />}
       {validId && aktId != null && <section role="status" aria-label={t('F2 qoralamani tahrirlash')} className={`fz-note ${aktXato || aktKorish ? 'fz-note--warn' : 'fz-note--info'} flex-wrap`} style={{ alignItems: 'center' }}>
         {tahrirHolati}
-        <Link className="ml-auto text-accent underline" to={`/admin/f2-tayyorlash?obyekt=${obyektId}`}>{t('Yangi F2 tayyorlash')}</Link>
+        <Link className="ml-auto text-accent underline" to={`/admin/f2-tayyorlash?obyekt=${obyektId}&yangi=1`}>{t('Yangi F2 tayyorlash')}</Link>
       </section>}
+      {validId && davomOchildi && <section role="status" data-testid="davom-qoralama" className="fz-note fz-note--info flex-wrap" style={{ alignItems: 'center' }}>
+        <span className="flex-1">{t('Bu oy uchun F2 qoralama bor — u ochildi, yangi akt yaratilmadi. Qatorlarni shu yerda davom ettiring.')}</span>
+        <Link data-testid="yangi-alohida-f2" className="fz-btn fz-btn--sm" to={`/admin/f2-tayyorlash?obyekt=${obyektId}&yangi=1`}>{t('Yangi alohida F2 boshlash')}</Link>
+      </section>}
+      {validId && pereraschetSarlavha && <section role="status" data-testid="pereraschet-sarlavha" className="fz-note fz-note--info"><b>{pereraschetSarlavha}</b></section>}
       {validId && aktId != null && stornoBlok.soni > 0 && <section aria-label={t('Сторно (eski F2)')} data-testid="storno-blok" className="fz-note fz-note--info flex-wrap" style={{ alignItems: 'center' }}>
         <b>{t('Сторно (eski F2)')}</b>
         <span>{t('{n} qator, Σ (minus):', { n: String(stornoBlok.soni) })} <FmtN val={stornoBlok.jami} /> — {t('hujjat boshida saqlanadi; yangi pozitsiyalar shu blok ostiga qo‘shiladi.')}</span>
