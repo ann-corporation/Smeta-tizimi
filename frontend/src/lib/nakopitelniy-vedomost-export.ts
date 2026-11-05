@@ -35,7 +35,7 @@ import {
   type KatSummalar, type NakrutkaHisobJS,
 } from './nakrutka-podval';
 import { serverMerosKoefQoy, yaxlitKOplate, yaxlitKOplateTaqsim, yaxlitQatorlarga, type Podval } from './hisob-yadro';
-import { narxBildirishnomaKerak } from './narx-bildirishnoma';
+import { narxBildirishnomaKerak, narxsizSoni } from './narx-bildirishnoma';
 import { bargUslubi } from './qator-uslubi';
 import { YAXLIT_IZOH, YAXLIT_KAT, svodYaxlitQqs, yaxlitQatorIdlari, type SvodYaxlit } from './svod-yaxlit';
 
@@ -507,6 +507,8 @@ export function nakopitelniyVedomostHujjat(
     if (p.bosh !== podvalBosh) throw new Error('NAKOPITELNIY_PODVAL_SILJIDI');
     kaskad = p.kaskad;
   }
+  // Egasi qoidasi (2026-11-06): smeta narxi/summasi yo'q barglar — jamilar yonida «итог неполный» (smeta summa katagi formulalarda — bo'sh qoladi, ro'yxat diqqat da).
+  v.narxsizOgoh(narxsizSoni(bargRows.map((i) => reja[i].q!), (q) => q.smeta_narx ?? q.smeta_summa));
   v.bosh();
   v.izoh(oyKesimi
     ? 'Принято по утвержденным актам формы № 2 — отдельно за каждый месяц; «С начала строительства» — итог за все месяцы (формула). «Можно предъявить» = выполнено по факту − принято с начала строительства. Суммы по разделам подводятся по ресурсам.'

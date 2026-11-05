@@ -188,6 +188,18 @@ describe('oylik F2 paketi — tarkib, reestr, ZIP, Forma-3', () => {
     expect(Object.keys(z).filter((k) => /worksheets\/sheet\d+\.xml$/.test(k))).toHaveLength(2);
   });
 
+  // Egasi (2026-11-06): narxsiz qatorlar paket hujjatida ham bildiriladi — ИТОГО yonida «итог неполный» (faqat N > 0).
+  it('oylik reestr + svod: narxsiz qator bor — «Внимание: N строк без цены — итог неполный»; yo‘q — ogohlantirish yo‘q', () => {
+    const mol = (narxsizQator: number) => ({ ustamasiz: 1000, ustamali: 1300, taxminiy: false, nds: 156, jami: 1456, narxsizQator, qatorSoni: 3, sabab: null });
+    const matnOl = (bytes: Uint8Array) => Object.entries(unzipSync(bytes)).filter(([k]) => /worksheets\/sheet/.test(k)).map(([, v]) => strFromU8(v));
+    const toza = matnOl(oylikReestrXlsx([row(akt(1), { moliya: mol(0) })], { oy: '2026-09' }).bytes);
+    for (const x of toza) expect(x).not.toContain('итог неполный');
+    const [reestr, svod] = matnOl(oylikReestrXlsx([row(akt(1), { moliya: mol(2) }), row(akt(2), { moliya: mol(1) })], { oy: '2026-09' }).bytes);
+    expect(reestr).toContain('Внимание: 3 строки без цены — итог неполный');
+    expect(svod).toContain('Внимание: 3 строки без цены — итог неполный');
+    expect(svod).toMatch(/строк без цены: 3/i);
+  });
+
   it('ZIP: F2 fayllari, reestr, Forma-3 va ПАКЕТ_СОСТАВ.txt (ogohlantirishlar bilan)', () => {
     const fayllar = paketFayllari([
       { papka: 'F2', nom: 'A_F2.xlsx', bytes: new Uint8Array([1, 2]), tur: 'f2' },

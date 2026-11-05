@@ -73,6 +73,8 @@ export function portfelSvodVaraq(p: Portfel, o: PortfelSvodOpsiya): RasmiyVaraq 
     if (j.qoralama.soni) jamiQator(`${sarlavha} — всего (без аннулированных)`, q.hammasi, j.hammasi, tur);
   };
   let no = 0;
+  /** Bekor bo'lmagan aktlardagi narxsiz qatorlar — ИТОГО yonida ogohlantirish (egasi 2026-11-06). */
+  let narxsizN = 0;
   for (const ob of p.obyektlar) {
     v.bolim(ob.nom);
     const oq = { tasdiqlangan: bosQ(), qoralama: bosQ(), hammasi: bosQ() };
@@ -80,7 +82,9 @@ export function portfelSvodVaraq(p: Portfel, o: PortfelSvodOpsiya): RasmiyVaraq 
       for (const r of oy.aktlar) {
         const bekor = r.bosqich === 'bekor';
         const izoh = [o.varaqlar.get(r.akt.id) ? `лист «${o.varaqlar.get(r.akt.id)}»` : '', bekor ? 'аннулирован — в итоги не входит' : '',
-          o.kirmadi?.get(r.akt.id) ?? '', r.moliya?.taxminiy ? 'приблизительно' : '', r.moliyaXato ? 'строки акта не прочитаны' : ''].filter(Boolean).join('; ');
+          o.kirmadi?.get(r.akt.id) ?? '', r.moliya?.taxminiy ? 'приблизительно' : '', r.moliyaXato ? 'строки акта не прочитаны' : '',
+          r.moliya && r.moliya.narxsizQator > 0 ? `строк без цены: ${r.moliya.narxsizQator}` : ''].filter(Boolean).join('; ');
+        if (!bekor) narxsizN += r.moliya?.narxsizQator ?? 0;
         const qiymat: Array<string | number | null> = [++no, davrMatni(r.akt.oy ?? ''), r.akt.raqam ?? '', BOSQICH_RU[r.bosqich], null, null, null, null, izoh];
         for (const [k, i] of KOLON) qiymat[i] = aktQiymat(r, k);
         const n = v.qator('oddiy', qiymat, bekor ? { rang: 'almashtirilgan' } : undefined);
@@ -96,6 +100,7 @@ export function portfelSvodVaraq(p: Portfel, o: PortfelSvodOpsiya): RasmiyVaraq 
     v.bosh();
   }
   guruhJamilari('ИТОГО', umumiy, p.jami, 'vsego');
+  v.narxsizOgoh(narxsizN);
   v.bosh();
   v.izoh('«ВСЕГО с НДС» — основная сумма; «с накрутками» = ИТОГО-4 без НДС; «прямые» — без накрутки. Накрутка — по подвалу самого акта (если сохранён), иначе по подвалу сметы объекта. Сторно и минусовые строки учтены со своим знаком.');
   if (p.jami.bekorSoni) v.izoh(`Аннулированных Ф-2: ${p.jami.bekorSoni} — показаны серым, в итоги не входят.`);

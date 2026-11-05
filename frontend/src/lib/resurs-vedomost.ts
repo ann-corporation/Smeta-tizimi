@@ -18,6 +18,7 @@
  * resurs narxi bilan ikki marta hisoblangan bo'lardi.
  */
 import type { T2QatorHolat } from '../api/supabase';
+import { NARX_ANIQLANMAGAN, narxBildirishnomaKerak } from './narx-bildirishnoma';
 import { RasmiyVaraq, bugunSana, sumRefs, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, type ImzoNomlar } from './hujjat-yozuvchi';
 
 export type ResursVedomostQator = {
@@ -33,6 +34,8 @@ export type ResursVedomostQator = {
   qoldiqSumma: number;
   /** Nechta smeta qatorida shu resurs ishlatilgan (bir xil nom/birlik/kat kelib qo'shilgan). */
   qatorSoni: number;
+  /** Shu resursning nechta smeta qatorida smeta summasi NOMA'LUM (narx yo'q; mashinist sanalmaydi). = qatorSoni — summa umuman noma'lum. */
+  narxsizQator: number;
 };
 
 const RESURS_TUR = new Set(['rs', 'mat', 'ob']);
@@ -78,7 +81,7 @@ export function resursVedomostQur(qatorlar: readonly T2QatorHolat[]): ResursVedo
     const kalit = kat + '|' + nom + '|' + birlik;
     let r = guruh.get(kalit);
     if (!r) {
-      r = { kat, kod: q.kod, nom, birlik: q.birlik, smetaHajm: 0, smetaSumma: 0, f2Hajm: 0, f2Summa: 0, qoldiqHajm: 0, qoldiqSumma: 0, qatorSoni: 0 };
+      r = { kat, kod: q.kod, nom, birlik: q.birlik, smetaHajm: 0, smetaSumma: 0, f2Hajm: 0, f2Summa: 0, qoldiqHajm: 0, qoldiqSumma: 0, qatorSoni: 0, narxsizQator: 0 };
       guruh.set(kalit, r);
     }
     r.smetaHajm += son(q.smeta_hajm);
@@ -88,6 +91,7 @@ export function resursVedomostQur(qatorlar: readonly T2QatorHolat[]): ResursVedo
     r.qoldiqHajm += son(q.qoldiq_hajm);
     r.qoldiqSumma += son(q.qoldiq_summa);
     r.qatorSoni += 1;
+    if (narxBildirishnomaKerak(q, q.smeta_summa)) r.narxsizQator += 1;
     if (!r.kod && q.kod) r.kod = q.kod;
   }
   return [...guruh.values()].sort((a, b) => katTaqqosla(a.kat, b.kat) || a.nom.localeCompare(b.nom));
@@ -207,7 +211,10 @@ export function resursVedomostHujjat(holatlar: readonly T2QatorHolat[], o: Resur
     guruhlar.push(v.qator('ish', [null, null, resursKategoriyaSarlavha(k.kat, k.qatorlar.length), null,
       null, { f: sum('F', a, b), v: k.jamiSmetaSumma }, null, { f: sum('H', a, b), v: k.jamiF2Summa }, null, { f: sum('J', a, b), v: k.jamiQoldiqSumma }]));
     for (const r of k.qatorlar) {
-      v.qator('oddiy', [++no, r.kod ?? '', r.nom, r.birlik ?? '', r.smetaHajm, r.smetaSumma, r.f2Hajm, r.f2Summa, r.qoldiqHajm, r.qoldiqSumma], { daraja: 1 });
+      // Egasi qoidasi (2026-11-06): smeta summasi umuman noma'lum resurs — 0 emas, «цена не определена» (F/J faqat SUM ga kiradi);
+      // qoldiq summasi ham noma'lum — bo'sh.
+      const nomalum = r.narxsizQator > 0 && r.narxsizQator === r.qatorSoni;
+      v.qator('oddiy', [++no, r.kod ?? '', r.nom, r.birlik ?? '', r.smetaHajm, nomalum ? NARX_ANIQLANMAGAN : r.smetaSumma, r.f2Hajm, r.f2Summa, r.qoldiqHajm, nomalum ? null : r.qoldiqSumma], { daraja: 1 });
     }
   }
   if (guruhlar.length) {
@@ -215,6 +222,8 @@ export function resursVedomostHujjat(holatlar: readonly T2QatorHolat[], o: Resur
     const j = (f: (k: ResursVedomostKategoriya) => number) => kategoriyalar.reduce((x, k) => x + f(k), 0);
     v.qator('vsego', [null, null, 'ВСЕГО ПО ВЕДОМОСТИ', null, null, { f: s('F'), v: j((k) => k.jamiSmetaSumma) }, null, { f: s('H'), v: j((k) => k.jamiF2Summa) }, null, { f: s('J'), v: j((k) => k.jamiQoldiqSumma) }]);
   }
+  // N — smeta qatorlari bo'yicha (bitta resurs bir nechta qatorda bo'lishi mumkin).
+  v.narxsizOgoh(kategoriyalar.reduce((s, k) => s + k.qatorlar.reduce((t, r) => t + r.narxsizQator, 0), 0));
   v.bosh();
   v.izoh('Количество по разделам и объекту не суммируется (разные единицы измерения). Затраты труда машинистов учтены в стоимости машино-часа.');
   v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СОСТАВИЛ'], o.imzo));

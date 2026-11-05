@@ -25,7 +25,7 @@ import { faktSummaF2Narxda, faktSummaF2NarxFormula, kaskad as yadroKaskad, podva
 import { lrvKalitYoz } from './lrv-qayta-import';
 import { davrMatni } from './nakopitelniy-vedomost-export';
 import { pivotQosh, type PivotKatak } from './hujjat-yozuvchi/pivot';
-import { NARX_YOQ_SABAB, narxBildirishnomaKerak } from './narx-bildirishnoma';
+import { NARX_YOQ_SABAB, narxBildirishnomaKerak, narxsizSoni } from './narx-bildirishnoma';
 import { YAXLIT_IZOH, YAXLIT_KAT, svodYaxlitQqs, type SvodYaxlit } from './svod-yaxlit';
 
 export type LrvHujjatOpsiya = {
@@ -148,6 +148,9 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
   const nomJS: Record<(typeof PUL)[number], number> = { H: 0, L: 0, N: 0 };
   let yaxBor = false;
   const diqqat: Array<{ nom: string; sabab: string; joy?: string }> = [];
+  /** Narxsiz barglar (mashinist sanalmaydi) — ИТОГО yonida «итог неполный» (egasi 2026-11-06). Summa katagi bo'sh qoladi:
+   *  H ga ROUND(H−L) tayanadi, matn #VALUE! berardi — qator belgisi «ПОЗИЦИИ, ТРЕБУЮЩИЕ ВНИМАНИЯ» ro'yxatida. */
+  let narxsizN = 0;
   let n = 0;
   const birinchi = v.r;
   /** Pivot uchun tekis jadval: har barg — bitta qator, qiymatlar LRV kataklariga formula. */
@@ -196,7 +199,7 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
     const fr = faktSummaF2Narxda(fakt, f2, f2Summa, faktAsl, son(hq?.f2_summa_yoq));
     const faktSumma = fr.summa;
     const summa = narx != null ? yaxlit2(smetaHajm * narx) : null;
-    if (narxBildirishnomaKerak(q, narx)) diqqat.push({ nom: `${q.kod ? `${q.kod} ` : ''}${q.nom ?? ''}`.trim(), sabab: NARX_YOQ_SABAB });
+    if (narxBildirishnomaKerak(q, narx)) { narxsizN++; diqqat.push({ nom: `${q.kod ? `${q.kod} ` : ''}${q.nom ?? ''}`.trim(), sabab: NARX_YOQ_SABAB }); }
     const yx = !!o.yaxlitIdlar?.has(q.id);
     if (yx) yaxBor = true;
     const gj = oz ? guruhJS[oz.get(q.id)?.guruh ?? 'asl'] : null;
@@ -207,7 +210,7 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
     }
     if (gj && summa != null) { if (yx) gj.yax = yaxlit2(gj.yax + summa); else if (!kat) gj.nom = yaxlit2(gj.nom + summa); else gj.ks[kat] = yaxlit2(gj.ks[kat] + summa); }
     const rk = `${kat ?? ''}|${(q.kod ?? '').trim()}|${(q.nom ?? '').trim()}|${(q.birlik ?? '').trim()}`;
-    const res = resurslar.get(rk) ?? { kalit: `Р${resurslar.size + 1}`, kat, kod: (q.kod ?? '').trim(), nom: (q.nom ?? '').trim() || 'Nomsiz', birlik: (q.birlik ?? '').trim(), narxlar: new Set<number>(), hajm: 0, summa: 0, fakt: 0, faktSumma: 0 };
+    const res = resurslar.get(rk) ?? { kalit: `Р${resurslar.size + 1}`, kat, kod: (q.kod ?? '').trim(), nom: (q.nom ?? '').trim() || 'Nomsiz', birlik: (q.birlik ?? '').trim(), narxlar: new Set<number>(), hajm: 0, summa: null, fakt: 0, faktSumma: 0 };
     res.hajm = y6(res.hajm + smetaHajm); res.fakt = y6(res.fakt + fakt);
     if (summa != null) res.summa = yaxlit2((res.summa ?? 0) + summa);
     if (faktSumma != null) res.faktSumma = yaxlit2((res.faktSumma ?? 0) + faktSumma);
@@ -253,6 +256,7 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
   const nomalum = Object.values(nomJS).some((x) => Math.abs(x) >= 0.005) ? { ...nomJS } : null;
   nakrutkaPodvaliYoz(v, { podval, katUstun: 'J', oraliq: [birinchi, oxirgi], pulUstunlar: [...PUL], foizUstun: 'G', nk, katSummalar: ks, kfJadval: false, yaxlit, nomalum });
   if (yaxBor) v.izoh(YAXLIT_IZOH);
+  v.narxsizOgoh(narxsizN);
   if (oz) ozgarishJamlari(v, { a: birinchi, b: oxirgi, itogoR, jami: jamiJS.H, guruhJS, nk, podval, ustamaBor: o.nakrutka != null || o.podval != null });
   v.diqqat(diqqat);
   v.imzo(imzoTomonlari(o.imzo?.subpudratchi ? ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СУБПОДРЯДЧИК', 'ТЕХНАДЗОР'] : ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР'], o.imzo));
@@ -427,6 +431,7 @@ function resursVedomosti(rs: Resurs[], o: { nom: string; a: number; b: number; i
   w.qator('jami', (): Qiymat[] => [null, null, 'Сверка с ЛРВ: ведомость − итого по смете (должно быть 0,00)', null, null, null,
     { f: `IF(OR(G${vR}="",'${o.nom}'!H${o.itogoR}=""),"",ROUND(G${vR}-'${o.nom}'!H${o.itogoR},2))`, v: jami == null || o.jami == null ? '' : yaxlit2(jami - o.jami) },
     null, null, null, null, null]);
+  w.narxsizOgoh(narxsizSoni(rs, (x) => x.summa));
   return w;
 }
 

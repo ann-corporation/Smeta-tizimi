@@ -146,4 +146,17 @@ describe('F2 portfeli — Excel kitob', () => {
     expect(s1).toContain('1601.6');
     expect(s1).not.toContain('2710.4');
   });
+
+  // Egasi (2026-11-06): narxsiz qatorlar svodda ham bildiriladi; bekor akt sanalmaydi.
+  it('svod: narxsiz qatorli akt — izohda «строк без цены», ИТОГО yonida «итог неполный»; yo‘q — ogohlantirish yo‘q', () => {
+    const svodXml = (m: Record<number, AktMoliya | null>) => {
+      const p = portfelGuruhla(hisobla(portfelAktlari(malumot, { tur: 'shartnoma', id: 7 }), m));
+      const svod = portfelSvodVaraq(p, { kesimMatni: 'по договору № 7', varaqlar: new Map() });
+      return strFromU8(unzipSync(portfelKitob(svod, [], { nom: 'T' }).bytes)['xl/worksheets/sheet1.xml']);
+    };
+    expect(svodXml({ 11: mol(1000, 1232) })).not.toContain('итог неполный');
+    const x = svodXml({ 11: { ...mol(1000, 1232), narxsizQator: 2 }, 14: { ...mol(900, 1108.8), narxsizQator: 5 } });
+    expect(x).toMatch(/строк без цены: 2/i);
+    expect(x).toContain('Внимание: 2 строки без цены — итог неполный');
+  });
 });

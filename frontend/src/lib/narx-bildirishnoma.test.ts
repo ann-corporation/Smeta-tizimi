@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mashinistMehnati, narxBildirishnomaKerak } from './narx-bildirishnoma';
+import { NARX_ANIQLANMAGAN, mashinistMehnati, narxBildirishnomaKerak, narxsizItogMatni, narxsizSoni } from './narx-bildirishnoma';
 import { ostatkaHujjatModeli } from './ostatka-export';
 import type { T2Qator } from '../api/supabase';
 
@@ -31,5 +31,21 @@ describe('egasi qoidasi (2026-10-08): summalar doim ko‘rinadi, bildirishnoma f
     const m = ostatkaHujjatModeli(rows, holat);
     expect(m.jami).toBe(1000);
     expect(m.diqqat.filter((d) => d.sabab.includes('нет сметной цены'))).toEqual([]);
+  });
+});
+
+describe('egasi qoidasi (2026-11-06): hujjatda narxsiz qatorlar bildiriladi', () => {
+  it('N = 0 — ogohlantirish yo‘q; N > 0 — «итог неполный» (rus tilida, son bilan kelishgan)', () => {
+    expect(narxsizItogMatni(0)).toBeNull();
+    expect(narxsizItogMatni(null)).toBeNull();
+    expect(narxsizItogMatni(1)).toBe('Внимание: 1 строка без цены — итог неполный');
+    expect(narxsizItogMatni(3)).toBe('Внимание: 3 строки без цены — итог неполный');
+    expect(narxsizItogMatni(11)).toBe('Внимание: 11 строк без цены — итог неполный');
+    expect(narxsizItogMatni(21)).toBe('Внимание: 21 строка без цены — итог неполный');
+    expect(NARX_ANIQLANMAGAN).toBe('цена не определена');
+  });
+  it('narxsizSoni: narx 0 va mashinist sanalmaydi', () => {
+    const q = [{ nom: 'ПЕСОК', narx: null }, { nom: 'ВОДА', narx: 0 }, { nom: 'ЗАТРАТЫ ТРУДА МАШИНИСТОВ', narx: null }, { nom: 'ЩЕБЕНЬ', narx: 5 }];
+    expect(narxsizSoni(q, (x) => x.narx)).toBe(1);
   });
 });
