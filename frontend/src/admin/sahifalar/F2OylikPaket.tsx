@@ -43,6 +43,7 @@ import { avtoForma3, f3F2Farq, minimalSvod, oyF3Holati, type OyF3Holati } from '
 import { F3_AVTO_BELGI } from '../../lib/forma3-export';
 import type { MundarijaQator } from '../../lib/f2-oylik-paket/eksport';
 import type { Summa } from '../../lib/f2-reestr/reestr';
+import { yaxlit2 } from '../../lib/hisob-yadro';
 
 const pul = (n: number) => n.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const BOSQICH_NOMI = { tasdiqlangan: 'Tasdiqlangan', jarayonda: 'Tekshirilmoqda / qoralama', rad: 'Rad etilgan', bekor: 'Bekor qilingan' } as const;
@@ -241,7 +242,7 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot, yangila }: { kompaniyaId: 
     const o = shObyektlar[0];
     if (!o) return null;
     const j = oyJami(rows.filter((r) => r.bosqich === 'tasdiqlangan' && oyKaliti(r.akt.oy) === m)).jami;
-    const summa = j.soni - j.nomalum > 0 ? String(Math.round(j.malum * 100) / 100) : '';
+    const summa = j.soni - j.nomalum > 0 ? String(yaxlit2(j.malum)) : '';
     return `/admin/nakopitelniy?obyekt=${o.id}&f3_sana=${oyOxiri(m)}${summa ? `&f3_summa=${summa}` : ''}#shartnoma-svod`;
   };
   const eskirish = useMemo(() => (oxirgi ? paketEskirganmi(oxirgi, oy) : null), [oxirgi, oy]);
