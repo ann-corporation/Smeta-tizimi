@@ -20,7 +20,7 @@
       ]
     },
     {
-      "id": 105,
+      "id": 107,
       "sana": "2026-11-05",
       "sarlavha": "Pereraschet — bitta tugma",
       "bandlar": [
@@ -31,13 +31,35 @@
       ]
     },
     {
-      "id": 103,
+      "id": 105,
+      "sana": "2026-11-05",
+      "sarlavha": "Oylik paketda Forma-3 doim bor",
+      "bandlar": [
+        "Shartnoma va oy uchun saqlangan Forma-3 bo‘lmasa, paketga shu oyning tasdiqlangan F2 laridan avtomatik Forma-3 qo‘shiladi («Ф3 (автоматически по Ф-2, не сохранён)»), to‘liq va/yoki bir qatorli.",
+        "Avtomatik Forma-3 summasi paket reestridagi tasdiqlangan F2 jamisiga teng (QQS bilan, F2 ning o‘z podvali bilan).",
+        "Saqlangan Forma-3 bo‘lsa — o‘sha ishlatiladi, MUNDARIJA da esa F2 jami bilan solishtiruv va farq ko‘rsatiladi.",
+        "Shartnoma rekvizitlari yetishmasa ham Forma-3 yasaladi; nima yetishmasligi ekranda va ПАКЕТ_СОСТАВ.txt da yoziladi.",
+        "Paket oynasida har oy uchun Forma-3 holati («saqlangan», «avto (F2 dan)», «qoralama bor») va «Forma-3 ni saqlash» havolasi."
+      ]
+    },
+    {
+      "id": 104,
       "sana": "2026-11-05",
       "sarlavha": "Bo‘lim jamisi qo‘shimcha ish va zamenadan keyin darhol yangilanadi",
       "bandlar": [
         "Bo‘limga qo‘shimcha ish yoki zamena qo‘shsangiz (yoki uni o‘chirsangiz), bo‘lim summasi va obyekt jamisi endi shu zahoti qayta hisoblanadi. Avval ish summasi to‘g‘ri chiqib, bo‘lim summasi eski qolardi.",
         "Asl smeta qatorlari o‘zgarmaydi — faqat bo‘lim jamisi yangilanadi.",
         "Ishning ichidagi material summasi ham ish jamisiga to‘liq kiradi va keyingi qayta hisoblashda tushib qolmaydi."
+      ]
+    },
+    {
+      "id": 103,
+      "sana": "2026-11-05",
+      "sarlavha": "Hujjat muddatlari endi o‘zi eslatiladi",
+      "bandlar": [
+        "Har kuni ertalab tizim xat, murojaat va tasdiq zanjirlarining muddatini tekshiradi: muddat yaqinlashsa yoki o‘tib ketsa, mas’ul kompaniyaga bildirishnoma keladi.",
+        "Yuqoridagi qo‘ng‘iroqcha bildirishnomani oddiy tilda va muddati bilan ko‘rsatadi. Bosilsa — o‘sha xat yoki hujjat darhol ochiladi.",
+        "Telegram ulangan bo‘lsa, shu xabar Telegramga ham keladi (bir marta, takrorlanmaydi)."
       ]
     },
     {

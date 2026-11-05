@@ -193,7 +193,8 @@ export function paketTekshiruvlari(rows: readonly PaketAkt[]): Tekshiruv[] {
 
 export type PaketFaylTuri = 'f2' | 'reestr' | 'forma3' | 'sverka' | 'nakopitelniy' | 'm29' | 'ostatka' | 'slichitelniy';
 /** MUNDARIJA uchun fayl tavsifi (rus tilida): hujjat turi, obyekt, oy, holat; F2 bo'lsa — akt (summalar). */
-export type FaylMeta = { hujjat: string; obyekt?: string | null; oy?: string | null; holat?: string | null; akt?: PaketAkt | null; qoralama?: boolean };
+export type FaylMeta = { hujjat: string; obyekt?: string | null; oy?: string | null; holat?: string | null; akt?: PaketAkt | null; qoralama?: boolean;
+  /** F2 bo'lmagan hujjat summasi (QQS bilan; masalan Forma-3) — faqat ko'rsatiladi, F2 jamisiga kirmaydi. */ summa?: number | null };
 export type PaketFayl = { yol: string; bytes: Uint8Array; tur: PaketFaylTuri; obyektId?: number | null; meta?: FaylMeta };
 
 /** ZIP ichida takrorlanmas yo'l: bir xil nom bo'lsa «_2», «_3» qo'shiladi (kengaytmadan oldin). */

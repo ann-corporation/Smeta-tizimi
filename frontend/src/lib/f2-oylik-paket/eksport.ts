@@ -127,7 +127,7 @@ export function mundarijaXlsx(qatorlar: readonly MundarijaQator[], o: { sarlavha
   const aktlar: Record<'t' | 'q', PaketAkt[]> = { t: [], q: [] };
   let no = 0;
   for (const x of qatorlar) {
-    const r = v.qator('oddiy', [++no, x.yol, x.hujjat, x.obyekt ?? '', x.oy ? davrMatni(x.oy) : '', x.holat ?? '', ...PUL_TARTIB.map((k) => (x.akt ? aktPul(x.akt, k) : null))],
+    const r = v.qator('oddiy', [++no, x.yol, x.hujjat, x.obyekt ?? '', x.oy ? davrMatni(x.oy) : '', x.holat ?? '', ...PUL_TARTIB.map((k) => (x.akt ? aktPul(x.akt, k) : k === 'jami' ? x.summa ?? null : null))],
       x.qoralama ? { rang: 'almashtirilgan' } : undefined);
     if (!x.akt) continue;
     const b = x.qoralama ? 'q' : 't';
@@ -159,9 +159,12 @@ export function paketTarkibiMatni(o: {
   oy: string; fayllar: readonly PaketFayl[]; tekshiruvlar: readonly Tekshiruv[]; otkazilgan: readonly string[];
   /** Shartnoma rejimi: sarlavha shartnoma bilan (loyiha rejimida yo'q). */
   shartnoma?: { raqam: string; nom?: string | null } | null;
+  /** Ogohlantirishlar (masalan, Forma-3 uchun yetishmagan shartnoma rekvizitlari) — paket yig'iladi, lekin aytiladi. */
+  ogohlantirish?: readonly string[];
 }): string {
   const q = [o.shartnoma ? `ПАКЕТ ПО ДОГОВОРУ № ${o.shartnoma.raqam}${o.shartnoma.nom ? ` (${o.shartnoma.nom})` : ''} ЗА ${o.oy}` : `ПАКЕТ Ф-2 ЗА ${o.oy}`, '', 'Состав пакета:'];
   for (const f of o.fayllar) q.push(`  ${f.yol}`);
+  if (o.ogohlantirish?.length) { q.push('', 'Внимание (документ сформирован, но данных не хватает):'); for (const s of o.ogohlantirish) q.push(`  ${s}`); }
   if (o.otkazilgan.length) { q.push('', 'Не включено (ошибка при формировании):'); for (const s of o.otkazilgan) q.push(`  ${s}`); }
   if (o.tekshiruvlar.length) {
     q.push('', 'Замечания (не блокируют выпуск пакета):');
