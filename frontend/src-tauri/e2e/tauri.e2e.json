@@ -1,0 +1,1 @@
+{"identifier":"uz.anncorp.smeta.e2e","productName":"Smeta M5 LOCAL SYNTHETIC","build":{"beforeBuildCommand":"npx vite build --config src-tauri/vite.desktop.config.ts"}}
