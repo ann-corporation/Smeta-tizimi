@@ -1,0 +1,11 @@
+{
+  "tasdiqlangan F2 (ma’lum summa) yo‘q — avtomatik F3 yasalmadi": { "ru": "нет утверждённых Ф-2 с известной суммой — Ф3 автоматически не сформирован", "en": "no approved F2 with a known amount — automatic F3 not generated" },
+  "Forma-3 yasaldi, lekin rekvizitlar yetishmaydi: {x}": { "ru": "Форма № 3 сформирована, но не хватает реквизитов: {x}", "en": "Form 3 generated, but details are missing: {x}" },
+  "Forma-3 holati": { "ru": "Статус Формы № 3", "en": "Form 3 status" },
+  "Forma-3:": { "ru": "Форма № 3:", "en": "Form 3:" },
+  "Forma-3 ni saqlash": { "ru": "Сохранить Форму № 3", "en": "Save Form 3" },
+  "Forma-3 rekvizitlari yetishmaydi (hujjat mavjud ma’lumot bilan yasaldi):": { "ru": "Не хватает реквизитов для Формы № 3 (документ сформирован по имеющимся данным):", "en": "Form 3 details are missing (the document was generated with the available data):" },
+  "saqlangan": { "ru": "сохранена", "en": "saved" },
+  "avto (F2 dan)": { "ru": "авто (по Ф-2)", "en": "auto (from F2)" },
+  "qoralama bor — avto (F2 dan)": { "ru": "есть черновик — авто (по Ф-2)", "en": "draft exists — auto (from F2)" }
+}

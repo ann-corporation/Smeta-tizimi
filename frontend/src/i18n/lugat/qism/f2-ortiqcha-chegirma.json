@@ -1,0 +1,11 @@
+{
+  "Tasdiqlangan F2 fakt hajmidan ko‘p — ortiqchasi minus qator bilan chegiriladi": { "ru": "Утверждённый Ф2 больше фактического объёма — излишек вычитается строкой с минусом", "en": "Approved F2 exceeds the actual volume — the excess is deducted with a minus line" },
+  "F2 faktdan ko‘p — chegirma (fakt 0)": { "ru": "Ф2 больше факта — вычет (факт 0)", "en": "F2 exceeds actual — deduction (actual 0)" },
+  "F2 faktdan ko‘p — chegirma": { "ru": "Ф2 больше факта — вычет", "en": "F2 exceeds actual — deduction" },
+  "Fakt F2 dan kam qatorlarni minus bilan chegirish": { "ru": "Вычесть с минусом строки, где факт меньше Ф2", "en": "Deduct with minus the lines where actual is less than F2" },
+  "{n} ta qatorda F2 faktdan ko‘p — jami ≈": { "ru": "В {n} строках Ф2 больше факта — итого ≈", "en": "{n} lines have F2 above actual — total ≈" },
+  "so‘m ustamasiz": { "ru": "сум без накруток", "en": "sum without markups" },
+  "{n} qatorda narx noma‘lum — summaga kirmagan": { "ru": "в {n} строках цена неизвестна — не вошли в сумму", "en": "{n} lines have unknown price — not included in the total" },
+  "{n} qatorda fakt 0 — F2 to‘liq chegiriladi": { "ru": "в {n} строках факт 0 — Ф2 вычитается полностью", "en": "{n} lines have actual 0 — F2 is deducted in full" },
+  "F2 faktdan oldinda bo‘lishi normal (avans) — faqat ongli ravishda yoqing.": { "ru": "Ф2 впереди факта — это нормально (аванс); включайте только осознанно.", "en": "F2 ahead of actual is normal (advance) — enable only deliberately." }
+}
