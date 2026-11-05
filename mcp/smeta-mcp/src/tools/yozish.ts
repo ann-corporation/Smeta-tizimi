@@ -106,7 +106,7 @@ async function ustunTurlari(m: Mijoz, jadval: string): Promise<Map<string, strin
 export const qatorTahrir = tool({
   nom: 'qator_tahrir',
   tavsif: 't2_qator qatorini to\'g\'ridan-to\'g\'ri tahrirlash (`maydonlar`: {ustun: qiymat}; har qanday ustun). Triggerlar (versiya, o\'zgarish jurnali) ishlaydi, '
-    + 't2.manba=mcp. Asl smeta qatorining hajm/narx/kod/nom… o\'zgarsa — rad etilmaydi, ogohlantirish qaytadi (snapshot_id bilan qaytarish mumkin). '
+    + 't2.manba=baza, t2.kim=mcp:actor.Asl smeta qatorining hajm/narx/kod/nom… o\'zgarsa — rad etilmaydi, ogohlantirish qaytadi (snapshot_id bilan qaytarish mumkin). '
     + '`kutilgan_versiya` — optimistik qulf (ixtiyoriy).',
   kirish: { id: z.number().int().positive(), maydonlar: z.record(z.any()), kutilgan_versiya: z.number().int().optional(), dry_run: dryRun },
   yozadi: true,

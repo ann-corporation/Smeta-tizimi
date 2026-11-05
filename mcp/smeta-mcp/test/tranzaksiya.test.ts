@@ -4,11 +4,13 @@ import { SNAPSHOT_YOQ } from '../src/snapshot';
 import { ishSorovlari, mockMuhit } from './mock';
 
 describe('kontekst', () => {
-  it('service_role claims, t2.manba=mcp, t2.kim=mcp:actor:<id>, statement_timeout; READ ONLY', () => {
+  it('service_role claims, t2.manba=baza (audit check ruxsat etgan), t2.kim=mcp:actor:<id>, statement_timeout; READ ONLY', () => {
     const s = kontekstSorovlari({ readOnly: true, kontekst: { aktorId: 42 }, timeoutMs: 9000 });
     expect(s[0].sql).toBe('BEGIN TRANSACTION READ ONLY');
     expect(s[1].sql).toContain("set_config('request.jwt.claims'");
-    expect(s[1].sql).toContain("set_config('t2.manba', 'mcp', true)");
+    expect(s[1].sql).toContain("set_config('t2.manba', 'baza', true)");
+    // t2_ozgarish_manba_check: frontend/sheets/baza/import/markirovka/narxlash/rollup/ai/kopruk — 'mcp' yo'q.
+    expect(s[1].sql).not.toContain("'t2.manba', 'mcp'");
     expect(s[1].params).toEqual(['9000', JSON.stringify({ role: 'service_role', t2_actor_id: 42 }), 'mcp:actor:42']);
   });
   it('dbRol — set local role', () => {

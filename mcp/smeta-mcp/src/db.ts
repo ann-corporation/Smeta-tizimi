@@ -4,7 +4,8 @@
  * Kontekst mavjud Cloudflare API (functions/api/sb-yoz.ts) bilan bir xil: RPC'lar service_role kaliti bilan chaqiriladi,
  * aktor esa parametr sifatida (p_actor_id / p_kim) uzatiladi — prod RPC'larning birortasi auth.uid() ishlatmaydi.
  * Shunga qaramay `request.jwt.claims` service_role bilan o'rnatiladi (auth.role() ga tayanadigan kod uchun), va
- * triggerlar «kim/qayerdan» ni bilishi uchun `t2.manba='mcp'`, `t2.kim='mcp:actor:<id>'`.
+ * triggerlar «kim/qayerdan» ni bilishi uchun `t2.manba='baza'` (t2_ozgarish_manba_check ruxsat etgan qiymat — 'mcp' rad etiladi; to'g'ridan-to'g'ri baza yozuvi),
+ * MCP ekanligi esa `t2.kim='mcp:actor:<id>'` da saqlanadi.
  */
 import pg from 'pg';
 import type { Sozlama } from './config';
@@ -59,7 +60,7 @@ export function kontekstSorovlari(o: TxOpsiya): Array<{ sql: string; params: unk
   const claims = JSON.stringify({ role: 'service_role', ...(aktor ? { t2_actor_id: aktor } : {}) });
   const out: Array<{ sql: string; params: unknown[] }> = [
     { sql: o.readOnly ? 'BEGIN TRANSACTION READ ONLY' : 'BEGIN', params: [] },
-    { sql: "select set_config('statement_timeout', $1, true), set_config('request.jwt.claims', $2, true), set_config('request.jwt.claim.role', 'service_role', true), set_config('t2.manba', 'mcp', true), set_config('t2.kim', $3, true)",
+    { sql: "select set_config('statement_timeout', $1, true), set_config('request.jwt.claims', $2, true), set_config('request.jwt.claim.role', 'service_role', true), set_config('t2.manba', 'baza', true), set_config('t2.kim', $3, true)",
       params: [String(Math.max(1000, Math.floor(o.timeoutMs))), claims, aktor ? `mcp:actor:${aktor}` : 'mcp'] },
   ];
   if (o.dbRol) out.push({ sql: `set local role "${o.dbRol.replace(/"/g, '')}"`, params: [] });
