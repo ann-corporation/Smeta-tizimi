@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 113,
+      "sana": "2026-11-06",
+      "sarlavha": "Hujjatlarda narxsiz qatorlar bildiriladi",
+      "bandlar": [
+        "Ф-2 akti, Ведомость ресурсов, Forma-3, LRV, Ресурсная ведомость, ABC RES, Накопительная, Сличительная, Остаток va oylik paket (reestr, svod, mundarija, portfel) hujjatlarida narxi yo‘q qatorlar bo‘lsa, jamilar yonida qalin yozuv chiqadi: «Внимание: N строк без цены — итог неполный». Narxsiz qator bo‘lmasa — yozuv yo‘q.",
+        "Narxsiz qatorning narx katagi bo‘sh qoladi (0 yozilmaydi); Ф-2, Ведомость ресурсов, Ресурсная ведомость va ABC RES da summa katagida «цена не определена» belgisi turadi. Formulalarga bog‘langan hujjatlarda katak bo‘sh, qator «ПОЗИЦИИ, ТРЕБУЮЩИЕ ВНИМАНИЯ» ro‘yxatida.",
+        "Saytdagi ko‘rinish va chop etish shu fayldan o‘qiladi — ogohlantirish ekranda ham, qog‘ozda ham bir xil. Mashinistlar mehnati (narxi mashina ichida) narxsiz sanalmaydi."
+      ]
+    },
+    {
       "id": 112,
       "sana": "2026-11-05",
       "sarlavha": "Tizim nazoratida Windows dasturini to‘liq boshqarish",

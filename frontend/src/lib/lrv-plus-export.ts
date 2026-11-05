@@ -47,7 +47,7 @@ import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { lrvKalitYoz } from './lrv-qayta-import';
 import { resursVedomostAoa } from './resurs-vedomost';
 import { boshKeshQoy, chopNomlariAbsolyut, ogohlantirishlarniOchir, bugunSana, hujjatFaylNomi, imzoMatni, imzoMuhrli, imzoTomonlari, IMZO_IMZO_CHIZIQ, IMZO_IZOH, IMZO_IZOH_SHAXS, IMZO_MP, IMZO_PODPIS, type ImzoNomlar } from './hujjat-yozuvchi';
-import { narxBildirishnomaKerak } from './narx-bildirishnoma';
+import { narxBildirishnomaKerak, narxsizItogMatni, narxsizSoni } from './narx-bildirishnoma';
 import { downloadBlob } from './construction-document-control/export/download-helper';
 
 import { kattaHarfga } from './hujjat-yozuvchi/rasmiy';
@@ -1035,6 +1035,9 @@ export async function lrvPlusFaylBaytlari(
       for (const [rang, izoh] of OZGARISH_LEGENDA) { matn(r, 3, izoh.toLocaleUpperCase('ru-RU'), rang === 'almashtirilgan' ? { italic: true } : undefined); boya(r, OZGARISH_HEX[rang], rang === 'almashtirilgan'); r++; }
       r++;
     }
+    // Egasi qoidasi (2026-11-06): hujjatda narxsiz qatorlar soni — «итог неполный» (yagona matn; mashinist sanalmaydi).
+    const narxsizOgoh = narxsizItogMatni(narxsizSoni(hisob.filter((q) => LEAF_TUR.has(q.tur) && q.summaQiymat == null), (q) => q.narx));
+    if (narxsizOgoh) { matn(r++, 3, narxsizOgoh, { bold: true }); r++; }
     if (nomalumlar.length) {
       matn(r++, 3, `ПОЗИЦИИ, ТРЕБУЮЩИЕ ВНИМАНИЯ (${nomalumlar.length})`, { bold: true });
       const LIMIT = 500;

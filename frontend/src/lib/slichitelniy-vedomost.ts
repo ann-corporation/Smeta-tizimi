@@ -8,7 +8,7 @@ import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { NAKRUTKA_KATLAR, NOMALUM_KAT, kOplate, kategoriyaKf, nakrutkaKat, nakrutkaPodvaliYoz, podvalKfQatorlari, podvalNdsFoiz, podvalQatorRaqami, type KatSummalar } from './nakrutka-podval';
 import { YAXLIT_IZOH, YAXLIT_KAT, bolimBarglari, bolimQqsBilan, svodYaxlitQqs, type SvodYaxlit } from './svod-yaxlit';
 import { NDS_SUKUT_FOIZ, faktSummaF2Narxda, faktSummaF2NarxFormula, qatorSumma, serverMerosKoefQoy, yaxlitBolimJami, yaxlitKOplate, yaxlitKOplateTaqsim, yaxlitKorinish, yaxlitQatorlarga, yigindi2, yigindi2Qatiy, type Podval } from './hisob-yadro';
-import { mashinistMehnati, narxBildirishnomaKerak } from './narx-bildirishnoma';
+import { mashinistMehnati, narxBildirishnomaKerak, narxsizSoni } from './narx-bildirishnoma';
 import { bargUslubi } from './qator-uslubi';
 
 /**
@@ -464,6 +464,8 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
     const nomalumF = nomalumBor ? Object.fromEntries(['G', 'I', 'K', 'M'].map((col) => [col, sumif(NOMALUM_KAT, col)])) : null;
     const p = nakrutkaPodvaliYoz(v, { podval, katUstun: 'R', oraliq: [a1, b1], pulUstunlar: ['G', 'I', 'K', 'M'], foizUstun: 'F', nk, katSummalar, yaxlit, yaxlitF, nomalum: nomalumP, nomalumF });
     if (p.kfQator.ЧЕЛ !== kfQ.ЧЕЛ) throw new Error('SLICHITELNIY_PODVAL_SILJIDI');
+    // Egasi qoidasi (2026-11-06): narxsiz barglar — jamilar yonida «итог неполный» (summa kataklari formulali — bo'sh qoladi, ro'yxat diqqat da).
+    v.narxsizOgoh(narxsizSoni(model.qatorlar.filter((q) => q.tur === 'barg'), (q) => q.narx ?? q.smetaSumma));
   }
   v.bosh();
   v.izoh('Отклонение = фактически выполнено − по смете: «+» — выполнено сверх сметы, «−» — не выполнено. Стоимость граф 7, 9 и 13 — по сметным ценам (прямые затраты), без накладных расходов и НДС; графа 11 — по утвержденным актам формы № 2. Ведомость фиксирует расхождения и не изменяет сметные и фактические данные.');

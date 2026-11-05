@@ -32,6 +32,7 @@ import { nomIzohBilan } from './smeta-model';
  * qiymat qatori sifatida hujjatga kiradi va nazoratga kiritiladi.
  */
 import type { NakopitelniyQator, SmetaNakrutka } from '../api/t2-nakopitelniy';
+import { narxsizSoni } from './narx-bildirishnoma';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import type { PtoF3LineageInput } from './pto-document-lineage';
 import { assertF3Lineage } from './pto-document-lineage';
@@ -300,6 +301,17 @@ type QatorReja =
   | { tur: 'qiymat'; x: F3Qiymat }
   | { tur: 'itogo'; nom: string }
   | { tur: 'jami'; nom: string };
+
+/**
+ * Egasi qoidasi (2026-11-06): Forma-3 da smeta qiymati noma'lum (narxsiz) barglar soni — jamilar yonida
+ * «Внимание: N строк без цены — итог неполный». Tasdiqlangan olib_tashlash qatorlari sanalmaydi (СМЕТНАЯ dan chiqqan),
+ * mashinist mehnati sanalmaydi (yagona qoida: `narxsizSoni`). Shart f3Model diqqat («нет стоимости по смете») bilan bir xil.
+ */
+export function f3NarxsizSoni(model: F3Model, chiq: ReadonlySet<number>): number {
+  const barglar = model.razdellar.flatMap((rz) => rz.ishlar.flatMap((x) => ('bolalar' in x ? x.bolalar : [x])))
+    .filter((b) => !chiq.has(b.q.qator_id)).map((b) => b.q);
+  return narxsizSoni(barglar, (q) => q.smeta_summa);
+}
 
 /** Hujjat qatorlari (flat): guruh → razdel → ish → qiymatlar → ИТОГО → jami. */
 export function f3ModelQatorlar(model: F3Model): QatorReja[] {
@@ -819,6 +831,7 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
     { c1: 2, c2: bir ? 3 : 4, matn: { f: `${davrUstun}${vq}`, v: oyTolov ?? '' }, tur: 'qalin' },
     { c1: bir ? 4 : 5, c2: bir ? 6 : 15, matn: oyTolov == null ? 'не определено — проценты накладных расходов не заданы' : `${summaSozBilan(oyTolov)} с НДС`, tur: 'qalin' },
   ], 20);
+  v.narxsizOgoh(f3NarxsizSoni(model, olibTashlanganlar(o.ozgarishlar)));
 
   // ── Izoh, diqqat, imzo ──
   v.bosh();

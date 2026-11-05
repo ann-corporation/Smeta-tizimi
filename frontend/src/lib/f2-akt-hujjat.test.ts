@@ -63,7 +63,19 @@ describe('F2 tarixi → yangi Ф-2 shabloni', () => {
   });
 
   // Egasi (2026-10-02): tasdiqlangan F2 — faqat qiymatlar, formulasiz; ongli narxsiz (машинисты) ИТОГО ni bo'shatmaydi.
-  it('formulasiz: bitta ham <f> yo‘q, jami o‘zgarmaydi; narxsiz resurs «—», ИТОГО bor', () => {
+  it('narxsiz qator yo‘q — «итог неполный» ogohlantirishi ham, «цена не определена» belgisi ham yo‘q', () => {
+    const { lines } = saqlanganAkt();
+    const k = f2AktKirish(AKT246_ROWS, lines);
+    const h = f2Hujjat(k.bolimlar, k.qatorlar, { obyektNom: 'X', davr: '2026-10', raqam: '1', formulasiz: true });
+    const z = unzipSync(h.bytes);
+    for (const f of Object.keys(z).filter((x) => x.startsWith('xl/worksheets/'))) {
+      expect(strFromU8(z[f])).not.toContain('итог неполный');
+      expect(strFromU8(z[f])).not.toContain('цена не определена');
+    }
+  });
+
+  // Egasi (2026-11-06): narxsiz qator hujjatda belgilanadi — narx bo'sh, summa «цена не определена» (0 emas), jamilar yonida ogohlantirish.
+  it('formulasiz: bitta ham <f> yo‘q, jami o‘zgarmaydi; narxsiz resurs «цена не определена», ИТОГО bor + «итог неполный»', () => {
     const { lines } = saqlanganAkt();
     const l = lines.find((x) => x.qator_id === 678865)!;
     const ayirma = Number(l.certified_amount);
@@ -75,7 +87,13 @@ describe('F2 tarixi → yangi Ф-2 shabloni', () => {
     const z = unzipSync(h.bytes);
     for (const f of Object.keys(z).filter((x) => x.startsWith('xl/worksheets/'))) expect(strFromU8(z[f])).not.toContain('<f>');
     const xml = strFromU8(z['xl/worksheets/sheet1.xml']);
-    expect(xml).toContain('<t xml:space="preserve">—</t>');
+    // Narx katagi bo'sh (0 emas), summa katagida belgi.
+    expect(xml).toMatch(/<c r="G(\d+)" s="\d+"\/><c r="H\1" s="\d+" t="inlineStr"><is><t xml:space="preserve">цена не определена<\/t>/);
+    expect(xml).toContain('Внимание: 1 строка без цены — итог неполный');
+    // Ведомость ресурсов — o'sha resurs ham belgilanadi, ogohlantirish ham bor.
+    const ved = strFromU8(z['xl/worksheets/sheet2.xml']);
+    expect(ved).toContain('цена не определена');
+    expect(ved).toContain('Внимание: 1 строка без цены — итог неполный');
     expect(xml).toContain(`<v>${kut}</v>`);
   });
 });
