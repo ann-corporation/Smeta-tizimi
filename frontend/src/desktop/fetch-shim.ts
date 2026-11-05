@@ -10,8 +10,8 @@ export function nativeInvoke<T>(command: string, args?: Record<string, unknown>)
 }
 
 /** Only local /api calls go through Rust, which supplies credential/Origin and refuses redirects. */
-export function desktopFetch(original: typeof fetch, invoke: NativeInvoke, localOrigin = 'http://tauri.localhost'): typeof fetch {
-  return async (input, init) => {
+export function desktopFetch(original: typeof fetch, invoke: NativeInvoke, localOrigin = 'http://tauri.localhost', offline?: Parameters<typeof desktopPageFetch>[2]): typeof fetch {
+  const transport: typeof fetch = async (input, init) => {
     const raw = input instanceof Request ? input.url : String(input);
     const url = new URL(raw, localOrigin);
     if (url.origin !== localOrigin || !url.pathname.startsWith('/api/')) return original(input, init);
@@ -36,4 +36,6 @@ export function desktopFetch(original: typeof fetch, invoke: NativeInvoke, local
     if (result.etag) headers.set('ETag', result.etag);
     return new Response([204, 205, 304].includes(result.status) ? null : result.body, { status: result.status, headers });
   };
+  return offline ? desktopPageFetch(transport, invoke, offline) : transport;
 }
+import { desktopPageFetch } from './page-cache';
