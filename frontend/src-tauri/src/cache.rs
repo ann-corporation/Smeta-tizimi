@@ -18,6 +18,8 @@ const LIMIT: usize = 32 * 1024 * 1024;
 fn cache_key(key: &str) -> NativeResult<String> {
     let p: Vec<_> = key.split('/').collect();
     if !matches!(p.as_slice(),["packet",c,o] if maxfiy::positive(c) && maxfiy::positive(o))
+        && !matches!(p.as_slice(),["pages",c,o] if maxfiy::positive(c) && maxfiy::positive(o))
+        && !matches!(p.as_slice(),["bootstrap",a] if maxfiy::positive(a))
         && !matches!(p.as_slice(),["lease",c] if maxfiy::positive(c))
     {
         return Err("DESKTOP_CACHE_KEY_DENIED");
@@ -157,10 +159,14 @@ pub fn desktop_cache_read(
     webview: tauri::Webview,
     app: tauri::AppHandle,
     key: String,
+    expected_generation: Option<u64>,
 ) -> NativeResult<Option<Vec<u8>>> {
     maxfiy::runtime_tekshir(&webview)?;
     cache_key(&key)?;
     let mut s = maxfiy::state()?;
+    if let Some(g) = expected_generation {
+        s.ticket(g)?;
+    }
     let c = s
         .load(&OsVault, maxfiy::now()?, Instant::now())?
         .ok_or("DESKTOP_SESSION_REQUIRED")?;
@@ -176,10 +182,14 @@ pub fn desktop_cache_write(
     app: tauri::AppHandle,
     key: String,
     value: Vec<u8>,
+    expected_generation: Option<u64>,
 ) -> NativeResult<()> {
     maxfiy::runtime_tekshir(&webview)?;
     cache_key(&key)?;
     let mut s = maxfiy::state()?;
+    if let Some(g) = expected_generation {
+        s.ticket(g)?;
+    }
     let c = s
         .load(&OsVault, maxfiy::now()?, Instant::now())?
         .ok_or("DESKTOP_SESSION_REQUIRED")?;
@@ -194,10 +204,14 @@ pub fn desktop_cache_delete(
     webview: tauri::Webview,
     app: tauri::AppHandle,
     key: String,
+    expected_generation: Option<u64>,
 ) -> NativeResult<()> {
     maxfiy::runtime_tekshir(&webview)?;
     let filename = cache_key(&key)?;
     let mut s = maxfiy::state()?;
+    if let Some(g) = expected_generation {
+        s.ticket(g)?;
+    }
     let c = s
         .load(&OsVault, maxfiy::now()?, Instant::now())?
         .ok_or("DESKTOP_SESSION_REQUIRED")?;
@@ -213,9 +227,13 @@ pub fn desktop_cache_delete(
 pub fn desktop_cache_keys(
     webview: tauri::Webview,
     app: tauri::AppHandle,
+    expected_generation: Option<u64>,
 ) -> NativeResult<Vec<String>> {
     maxfiy::runtime_tekshir(&webview)?;
     let mut s = maxfiy::state()?;
+    if let Some(g) = expected_generation {
+        s.ticket(g)?;
+    }
     let c = s
         .load(&OsVault, maxfiy::now()?, Instant::now())?
         .ok_or("DESKTOP_SESSION_REQUIRED")?;
@@ -248,7 +266,7 @@ mod tests {
     };
     #[test]
     fn cache_keys_are_not_paths_or_authority() {
-        for key in ["packet/1/2", "lease/1"] {
+        for key in ["packet/1/2", "lease/1", "pages/1/2", "bootstrap/1"] {
             assert!(cache_key(key).is_ok());
         }
         for key in [
@@ -261,6 +279,9 @@ mod tests {
             "packet/1/2\\x",
             "packet/9007199254740992/1",
             "lease/1%2f2",
+            "pages/1/../2",
+            "bootstrap/0",
+            "bootstrap/1/2",
             "",
         ] {
             assert!(cache_key(key).is_err(), "{key}");

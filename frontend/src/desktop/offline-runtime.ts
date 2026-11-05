@@ -18,6 +18,7 @@ export class DesktopOfflineRuntime {
   private readonly publicKey: Uint8Array;
   private readonly kid: string;
   private readonly onInvalidate: () => void;
+  private readonly onExpire: () => void;
   private readonly clock: () => number;
   private readonly cache: NativeDesktopCache;
   private active?: Active;
@@ -26,10 +27,11 @@ export class DesktopOfflineRuntime {
   private blocked = false;
   private timer?: ReturnType<typeof setTimeout>;
 
-  constructor(options: { invoke: NativeInvoke; request: typeof fetch; publicKey: Uint8Array; kid: string; onInvalidate: () => void; clock?: () => number }) {
+  constructor(options: { invoke: NativeInvoke; request: typeof fetch; publicKey: Uint8Array; kid: string; onInvalidate: () => void; onExpire?: () => void; clock?: () => number }) {
     this.invoke = options.invoke; this.request = options.request; this.publicKey = options.publicKey;
     this.kid = options.kid; this.onInvalidate = options.onInvalidate; this.clock = options.clock ?? Date.now;
     this.cache = new NativeDesktopCache(options.invoke);
+    this.onExpire = options.onExpire ?? options.onInvalidate;
   }
   private invalidate() {
     this.revision++;
@@ -51,7 +53,7 @@ export class DesktopOfflineRuntime {
     const active = { scope, generation, stored: saved, lease, guard: new DesktopLeaseGuard(lease, saved.highWater, this.clock) };
     this.active = active;
     if (this.timer) clearTimeout(this.timer);
-    this.timer = setTimeout(() => this.invalidate(), Math.max(1, lease.tugaydi - this.clock()));
+    this.timer = setTimeout(() => { this.invalidate(); this.onExpire(); }, Math.max(1, lease.tugaydi - this.clock()));
     return active;
   }
   private async checkpoint(active: Active, objectId: number, revision: number) {
@@ -138,30 +140,6 @@ export class DesktopOfflineRuntime {
     const paket = this.decode(raw, company, objectId);
     await this.checkpoint(active, objectId, revision);
     return { paket, offline, etag, leaseUntil: active.lease.tugaydi };
-  }
-  async cachedObjects(company: number): Promise<Array<{ id: number; nom: string | null }>> {
-    if (this.busy) throw new Error('DESKTOP_BUSY');
-    this.busy = true;
-    try { return await this.cachedObjectsOnce(company); }
-    finally { this.busy = false; }
-  }
-  private async cachedObjectsOnce(company: number): Promise<Array<{ id: number; nom: string | null }>> {
-    this.invalidate(); const revision = this.revision;
-    const { session, scope } = await this.session(company);
-    const saved = await this.cache.get<StoredLease>('lease/' + company);
-    if (!saved) return [];
-    const active = await this.bind(scope, session.generation, saved, revision);
-    const rows: Array<{ id: number; nom: string | null }> = [];
-    for (const objectId of active.lease.obyekt_idlar) {
-      await this.checkpoint(active, objectId, revision);
-      const savedPacket = await this.cache.get<StoredPacket>('packet/' + company + '/' + objectId);
-      if (savedPacket) rows.push({ id: objectId, nom: this.decode(savedPacket.raw, company, objectId).obyekt_nom });
-    }
-    await this.checkpoint(active, active.lease.obyekt_idlar[0], revision);
-    return rows;
-  }
-  async companies(): Promise<number[]> {
-    return [...new Set((await this.cache.keys()).filter(k => /^lease\/[1-9]\d*$/.test(k)).map(k => Number(k.split('/')[1])))];
   }
   dispose() { this.invalidate(); }
   async revoke() {
