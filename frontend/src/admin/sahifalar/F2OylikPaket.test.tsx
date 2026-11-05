@@ -5,7 +5,7 @@ import type { ReestrMalumot } from '../../api/t2-f2-reestr';
 
 vi.mock('../../api/f2-oylik-paket', () => ({
   // Qatorlari bo'sh obyekt: ustamasiz = reestr hujjat jami, ustamali noma'lum (QATOR_YOQ) — 0 emas.
-  oyObyektOl: vi.fn(async () => ({ smeta: [], tafsilot: [], kontekst: { imzo: {}, shartnoma: null, nakrutka: null, podval: null } })),
+  portfelObyektOl: vi.fn(async () => ({ smeta: [], tafsilot: [], kontekst: { imzo: {}, shartnoma: null, nakrutka: null, podval: null }, aktQatorlar: new Map(), podvallar: new Map() })),
   f3SvodOl: vi.fn(async () => []),
 }));
 vi.mock('../../api/t2-token', () => ({ tokenBilan: vi.fn(), mazmunXeshi: vi.fn() }));

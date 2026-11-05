@@ -8,7 +8,7 @@ import type { SvodShartnoma } from '../../lib/nakopitelniy-svod';
 
 const m = vi.hoisted(() => ({ dl: vi.fn(), token: vi.fn(), svod: [] as unknown[] }));
 vi.mock('../../api/f2-oylik-paket', () => ({
-  oyObyektOl: vi.fn(async () => ({ smeta: [], tafsilot: [], kontekst: { imzo: {}, shartnoma: null, nakrutka: null, podval: null } })),
+  portfelObyektOl: vi.fn(async () => ({ smeta: [], tafsilot: [], kontekst: { imzo: {}, shartnoma: null, nakrutka: null, podval: null }, aktQatorlar: new Map(), podvallar: new Map() })),
   f3SvodOl: vi.fn(async () => m.svod),
 }));
 vi.mock('../../api/t2-token', () => ({ tokenBilan: vi.fn(), mazmunXeshi: vi.fn() }));
