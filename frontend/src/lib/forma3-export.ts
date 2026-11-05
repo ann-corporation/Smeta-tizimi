@@ -910,16 +910,27 @@ const F3_SOTUV_BIR_USTUN: RasmiyUstun[] = [
   { sarlavha: 'за отчётный период, сум', kenglik: 22, tur: 'pul' },
 ];
 
-export function forma3SotuvdanXlsx(sh: SvodShartnoma, f3Id: number, o: { tashkilot?: string | null; imzo?: ImzoNomlar; shakl?: Forma3Shakl } = {}): { bytes: Uint8Array; faylNomi: string } | null {
+/** Avtomatik (saqlanmagan) F3 belgisi — sarlavhada, fayl nomida va MUNDARIJA da (egasi 2026-11-05). */
+export const F3_AVTO_BELGI = 'Ф3 (автоматически по Ф-2, не сохранён)';
+
+export function forma3SotuvdanXlsx(sh: SvodShartnoma, f3Id: number, o: {
+  tashkilot?: string | null; imzo?: ImzoNomlar; shakl?: Forma3Shakl;
+  /** Saqlanmagan F3 (oylik paket: oy F2 laridan). `izoh` — hujjat izohi (manba va yetishmagan rekvizitlar). */
+  avto?: { izoh: readonly string[] } | null;
+} = {}): { bytes: Uint8Array; faylNomi: string } | null {
   const h = f3SotuvdanHisobla(sh, f3Id);
   if (!h) return null;
+  const avto = o.avto ?? null;
+  const raqamQ = avto ? F3_AVTO_BELGI : `Документ № ${h.f3.raqam ?? '—'} от ${sanaRuF3(h.f3.sotuv_sana)}`;
+  const avtoIzoh = (v: RasmiyVaraq) => { if (avto) for (const s of avto.izoh) v.izoh(s); };
+  const avtoNom = (asl: string) => (avto ? `Ф3_АВТО_ПО_Ф-2${asl.includes('ОДНОСТРОЧНАЯ') ? '_ОДНОСТРОЧНАЯ' : ''}` : asl);
   const nds = h.f3.nds_foiz ?? F3_NDS_SUKUT;
   if (o.shakl === 'bir_qatorli') {
     // Bitta yig'ma qator + podval; summalar to'liq shakl bilan BIR XIL (`h.davr`: NDS siz, NDS, NDS bilan — tiyingacha).
     const vb = new RasmiyVaraq({
       nom: 'Форма 3', kattaHarf: false,
-      sarlavha: 'СПРАВКА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ И ЗАТРАТ (ФОРМА № 3)',
-      ostSarlavha: [`Документ № ${h.f3.raqam ?? '—'} от ${sanaRuF3(h.f3.sotuv_sana)}`, `Отчётный период: с ${sanaRuF3(h.davrBoshi)} по ${sanaRuF3(h.davrOxiri)}`],
+      sarlavha: `СПРАВКА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ И ЗАТРАТ (ФОРМА № 3)${avto ? ' — ' + F3_AVTO_BELGI.toUpperCase() : ''}`,
+      ostSarlavha: [raqamQ, `Отчётный период: с ${sanaRuF3(h.davrBoshi)} по ${sanaRuF3(h.davrOxiri)}`],
       titul: [['Подрядчик:', o.tashkilot ?? null], ['Договор:', `№ ${sh.raqam}${sh.nom ? ` (${sh.nom})` : ''}`], ['Объекты:', sh.obyektlar.map((x) => x.nom).join(', ') || null]],
       ustunlar: F3_SOTUV_BIR_USTUN, yonalish: 'landscape',
     });
@@ -930,15 +941,16 @@ export function forma3SotuvdanXlsx(sh: SvodShartnoma, f3Id: number, o: { tashkil
     const ndsQ = vb.qator('oddiy', ['', 'НДС', { n: nds, uslub: 'foiz' }, somga(h.davr[1])]);
     vb.qator('vsego', ['', 'ВСЕГО К ОПЛАТЕ (с НДС)', null, { f: `D${bez}+D${ndsQ}`, v: somga(h.davr[2]) }]);
     vb.bosh();
-    vb.izoh(`Сокращенная (однострочная) форма: перечень видов работ и объемов не приводится. Сумма за отчётный период равна сумме реализации от ${sanaRuF3(h.f3.sotuv_sana)}; НДС выделен из суммы с НДС (ставка ${nds}%).`);
+    vb.izoh(avto ? `Сокращенная (однострочная) форма: перечень видов работ и объемов не приводится. НДС выделен из суммы с НДС (ставка ${nds}%).` : `Сокращенная (однострочная) форма: перечень видов работ и объемов не приводится. Сумма за отчётный период равна сумме реализации от ${sanaRuF3(h.f3.sotuv_sana)}; НДС выделен из суммы с НДС (ставка ${nds}%).`);
+    avtoIzoh(vb);
     vb.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК'], o.imzo));
     const { bytes } = rasmiyKitob([vb], { tur: 'f3' });
-    return { bytes, faylNomi: hujjatFaylNomi({ obyekt: `№${sh.raqam}`, hujjat: `Ф3_ОДНОСТРОЧНАЯ_${h.f3.raqam ?? h.f3.id}`, davr: h.f3.sotuv_sana }) };
+    return { bytes, faylNomi: hujjatFaylNomi({ obyekt: `№${sh.raqam}`, hujjat: avtoNom(`Ф3_ОДНОСТРОЧНАЯ_${h.f3.raqam ?? h.f3.id}`), davr: h.f3.sotuv_sana }) };
   }
   const v = new RasmiyVaraq({
     nom: 'Форма 3', kattaHarf: false,
-    sarlavha: 'СПРАВКА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ И ЗАТРАТ (ФОРМА № 3)',
-    ostSarlavha: [`Документ № ${h.f3.raqam ?? '—'} от ${sanaRuF3(h.f3.sotuv_sana)}`, `Отчётный период: с ${sanaRuF3(h.davrBoshi)} по ${sanaRuF3(h.davrOxiri)}`],
+    sarlavha: `СПРАВКА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ И ЗАТРАТ (ФОРМА № 3)${avto ? ' — ' + F3_AVTO_BELGI.toUpperCase() : ''}`,
+    ostSarlavha: [raqamQ, `Отчётный период: с ${sanaRuF3(h.davrBoshi)} по ${sanaRuF3(h.davrOxiri)}`],
     titul: [['Подрядчик:', o.tashkilot ?? null], ['Договор:', `№ ${sh.raqam}${sh.nom ? ` (${sh.nom})` : ''}`], ['Объекты:', sh.obyektlar.map((x) => x.nom).join(', ') || null]],
     ustunlar: F3_SOTUV_USTUN, yonalish: 'landscape',
   });
@@ -950,8 +962,9 @@ export function forma3SotuvdanXlsx(sh: SvodShartnoma, f3Id: number, o: { tashkil
   const jamiF = (c: number, val: number | null): Qiymat => (val == null ? null : { f: `${harf(c)}${r1}+${harf(c)}${r2}`, v: somga(val) });
   v.qator('vsego', ['', 'ВСЕГО с НДС', jamiF(2, shT), jamiF(3, h.boshidan[2]), jamiF(4, h.yilBoshidan[2]), jamiF(5, h.davr[2])]);
   v.bosh();
-  v.izoh(`Сумма за отчётный период равна сумме реализации от ${sanaRuF3(h.f3.sotuv_sana)}; НДС выделен из суммы с НДС (ставка ${nds}%).`);
+  v.izoh(avto ? `НДС выделен из суммы с НДС (ставка ${nds}%).` : `Сумма за отчётный период равна сумме реализации от ${sanaRuF3(h.f3.sotuv_sana)}; НДС выделен из суммы с НДС (ставка ${nds}%).`);
+  avtoIzoh(v);
   v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК'], o.imzo));
   const { bytes } = rasmiyKitob([v], { tur: 'f3' });
-  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: `№${sh.raqam}`, hujjat: `Ф3_${h.f3.raqam ?? h.f3.id}`, davr: h.f3.sotuv_sana }) };
+  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: `№${sh.raqam}`, hujjat: avtoNom(`Ф3_${h.f3.raqam ?? h.f3.id}`), davr: h.f3.sotuv_sana }) };
 }

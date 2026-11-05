@@ -2,6 +2,15 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 108,
+      "sana": "2026-11-05",
+      "sarlavha": "Fakt jurnali: F2 importidagi qo‘shimcha resurslarda narx va summa",
+      "bandlar": [
+        "Smetada narxi yo‘q, lekin F2 da narxi bor qatorlarda endi «narxsiz» emas — F2 narxi («F2» belgisi bilan) va fakt summasi shu narxda ko‘rinadi.",
+        "Bo‘lim jamilari bilan bir xil hisob; smeta narxi bor qatorlar o‘zgarmaydi."
+      ]
+    },
+    {
       "id": 107,
       "sana": "2026-11-05",
       "sarlavha": "Barcha narxsiz qatorlarni bir bosishda narxlash",

@@ -1,5 +1,6 @@
 {
   "qoldiqdan oshdi": { "ru": "превышен остаток", "en": "exceeds remainder" },
+  "F2 narxi (smetada narx yo‘q, NDS siz)": { "ru": "Цена Ф-2 (в смете цены нет, без НДС)", "en": "F-2 price (no estimate price, excl. VAT)" },
   "Birlik narxi (NDS siz)": { "ru": "Цена за единицу (без НДС)", "en": "Unit price (excl. VAT)" },
   "Ish birlik narxi = resurslar summasi / ish hajmi": { "ru": "Цена единицы работы = сумма ресурсов / объём работы", "en": "Work unit price = resources total / work quantity" },
   "Zamena: asl qator — {nom}": { "ru": "Замена: исходная строка — {nom}", "en": "Replacement: original line — {nom}" },
