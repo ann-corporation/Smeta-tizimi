@@ -2,6 +2,14 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 100,
+      "sana": "2026-11-05",
+      "sarlavha": "Egizak obyektlarga qo‘shimcha ishlar fakti ham ko‘chadi",
+      "bandlar": [
+        "Fakt egizaklarga belgilanganda qo‘shimcha (smetada yo‘q) ishlar ham ko‘chadi — egizakda o‘sha ish alohida qo‘shilgan bo‘lsa ham (shifr, nom, birlik, hajm va bo‘lim bo‘yicha bir xil bo‘lsa). Bir nechta bir xil qator bo‘lsa — taxmin qilinmaydi, sababi ko‘rsatiladi."
+      ]
+    },
+    {
       "id": 99,
       "sana": "2026-11-05",
       "sarlavha": "F2 portfeli — shartnoma va obyekt bo‘yicha barcha F2",

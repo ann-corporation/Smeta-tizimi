@@ -59,6 +59,18 @@ describe('fakt egizak: reja', () => {
     const r = faktEgizakReja([...A, aq], { 50: { rejim: '+', qiymat: '3' } }, tomon(10, [...asl(100), bq], { 150: 5 }), x);
     expect(r.paket).toEqual([{ qator_id: 150, hajm: 3 }]);
   });
+  it('qo‘shimcha qator egizakda alohida qo‘shilgan (operation_id yo‘q) — mazmun kaliti bo‘yicha, faqat yagona mos bo‘lsa', async () => {
+    const aq = q(50, 1, 'bl', 'ЗАСЫПКА ТРАНШЕЙ', { qoshimcha: true, kod: 'E1-1-33', hajm: 0.66 });
+    const bq = q(150, 101, 'bl', 'ЗАСЫПКА  ТРАНШЕЙ', { qoshimcha: true, kod: 'E1-1-33', hajm: '0.66' });
+    const x = await qoshimchaXarita([...A, aq], [...asl(100), bq], 10);
+    expect(x.get(50)).toBe(150);
+    // egizakda ikkita bir xil qo'shimcha — taxmin qilinmaydi
+    const bq2 = q(151, 101, 'bl', 'ЗАСЫПКА ТРАНШЕЙ', { qoshimcha: true, kod: 'E1-1-33', hajm: 0.66 });
+    expect((await qoshimchaXarita([...A, aq], [...asl(100), bq, bq2], 10)).has(50)).toBe(false);
+    // hajm farq qilsa — bog'lanmaydi
+    const bq3 = q(152, 101, 'bl', 'ЗАСЫПКА ТРАНШЕЙ', { qoshimcha: true, kod: 'E1-1-33', hajm: 0.7 });
+    expect((await qoshimchaXarita([...A, aq], [...asl(100), bq3], 10)).has(50)).toBe(false);
+  });
   it('faktdanKiritmalar: faqat bl/mat/ob va fakt ≠ 0', () => {
     expect(faktdanKiritmalar([{ id: 1, tur: 'bl', fakt: 4 }, { id: 2, tur: 'rs', fakt: 4 }, { id: 3, tur: 'mat', fakt: 0 }, { id: 4, tur: 'ob', fakt: -2 }]))
       .toEqual({ 1: { rejim: '=', qiymat: '4' }, 4: { rejim: '=', qiymat: '-2' } });
