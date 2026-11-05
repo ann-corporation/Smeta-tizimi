@@ -25,7 +25,7 @@ export async function seed(db) {
     create function public.t2_men_v1(p_actor_id bigint) returns jsonb language sql stable as $$
       select case when p_actor_id in (1,2) then jsonb_build_object('ok',true,'platform_role','none',
         'foydalanuvchi',jsonb_build_object('id',p_actor_id,'login','m5-synthetic','ism','M5 SYNTHETIC ACTOR','holat',f.holat,'sessiya_bekor_dan',f.sessiya_bekor_dan),
-        'context_kompaniyalar',jsonb_build_array(jsonb_build_object('kompaniya_id',p_actor_id,'kompaniya_nom','M5 SYNTHETIC COMPANY','nom','M5 SYNTHETIC COMPANY','effective_role','pto',
+        'context_kompaniyalar',jsonb_build_array(jsonb_build_object('kompaniya_id',p_actor_id,'kompaniya_nom','M5 SYNTHETIC COMPANY','nom','M5 SYNTHETIC COMPANY','effective_role','pto','faol',true,'membership_role','pto','is_director',false,'kod','M5',
           'permissions',jsonb_build_array('company.read','smeta.read','f2.read','narx.read','object.read','project.read'),'explicit_denials','[]'::jsonb,'modullar_off','[]'::jsonb)),
         'azoliklar',jsonb_build_array(jsonb_build_object('kompaniya_id',p_actor_id,'kompaniya_nom','M5 SYNTHETIC COMPANY','nom','M5 SYNTHETIC COMPANY','rol','pto','faol',true)))
       else jsonb_build_object('ok',false,'code','ACTOR_NOT_FOUND') end from public.t2_foydalanuvchi f where f.id=p_actor_id;

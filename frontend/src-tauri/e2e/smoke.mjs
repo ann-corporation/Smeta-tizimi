@@ -17,7 +17,8 @@ const nativeHeaders={...jsonHeaders,Origin:nativeOrigin,Authorization:'Bearer '+
 const gateway=(path,etag=null)=>fetch(base+'/api/desktop/bff',{method:'POST',headers:nativeHeaders,body:JSON.stringify({path,method:'GET',body:null,etag}),signal:AbortSignal.timeout(5000)});
 const lease=(company,object)=>fetch(base+'/api/desktop/lease',{method:'POST',headers:nativeHeaders,body:JSON.stringify({kompaniya_id:company,obyekt_idlar:[object]}),signal:AbortSignal.timeout(5000)});
 const session=await gateway('/api/sessiya');assert.equal(session.status,200);assert.equal((await session.json()).foydalanuvchi_id,1);
-const company=await gateway('/api/company?me=1');assert.equal(company.status,200);assert.equal((await company.json()).ok,true);
+const company=await gateway('/api/company?me=1');assert.equal(company.status,200);const membership=await company.json();assert.equal(membership.ok,true);
+assert.equal(membership.context_kompaniyalar[0].faol,true);assert.equal(membership.context_kompaniyalar[0].membership_role,'pto');
 const list=body=>fetch(base+'/api/desktop/bff',{method:'POST',headers:nativeHeaders,body:JSON.stringify({path:'/api/sb',method:'POST',body:JSON.stringify(body),etag:null}),signal:AbortSignal.timeout(5000)});
 const sb=async body=>{const response=await list(body);assert.equal(response.status,200,await response.clone().text());return response.json();};
 const listing={jadval:'t2_obyekt_jami',filtr:'kompaniya_id=eq.1',ustunlar:'id,nom,kompaniya_id',tartib:'nom.asc',limit:5000};
