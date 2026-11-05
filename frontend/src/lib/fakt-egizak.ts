@@ -10,6 +10,8 @@ import { aslMoslash, egizakOpId, type EgizakQator } from './f2-moslash-v3/egizak
 import { casZiddiyat, jamiIdlari } from './fakt-foiz-grid';
 import { jurnalPaket, kiritmaSoni, type JurnalXato, type Kiritma } from './fakt-jurnal';
 import { faktQoldaKiritiladimi } from './fakt-input-policy';
+import { tuzatishBoglanishlari } from './smeta-anatomiya/tuzatish';
+import { tuzatishPaketi } from './fakt-tuzatish';
 
 export type EgizakRadSabab = 'topilmadi' | 'qoshimcha_yoq' | 'tur' | JurnalXato;
 export const RAD_SABAB_MATN: Record<EgizakRadSabab, string> = {
@@ -79,11 +81,17 @@ export function faktEgizakReja(manba: readonly EgizakQator[], kirit: Readonly<Re
   }
   const faktlar = new Map<number, number>(); const smetalar = new Map<number, number | null>();
   for (const q of e.qatorlar) { faktlar.set(q.id, e.fakt.get(q.id) ?? 0); smetalar.set(q.id, e.smeta.get(q.id) ?? null); }
-  const p = jurnalPaket(bKirit, faktlar, smetalar);
+  const p0 = jurnalPaket(bKirit, faktlar, smetalar);
+  // Egizakning tuzatish qatorlari (qalinlik/norma tuzatishi) — o'z asosiy ishiga ergashadi (smeta yadrosi bog'laydi).
+  const xarita = tuzatishBoglanishlari(e.qatorlar.map((q) => ({ ...q, zamena: q.replaces_line_id != null })));
+  const tz = tuzatishPaketi(p0.qatorlar, xarita, faktlar, smetalar);
+  const tzIdlar = new Set(tz.tuzatishlar);
+  const p = { ...p0, qatorlar: tz.qatorlar };
   const delta = new Map(p.qatorlar.map((x) => [x.qator_id, x.hajm]));
   const moslar: EgizakMos[] = [];
   const bById = new Map(e.qatorlar.map((q) => [q.id, q]));
   for (const [bId, aId] of aOf) {
+    if (xarita.asos.has(bId)) continue; // tuzatish qatori — hosila, kiritmasi olinmaydi
     const xato = p.xatolar.get(bId);
     const a = aById.get(aId)!;
     if (xato) { radlar.push({ aId, nom: a.nom?.trim() || `#${aId}`, sabab: xato }); continue; }
@@ -95,7 +103,7 @@ export function faktEgizakReja(manba: readonly EgizakQator[], kirit: Readonly<Re
     moslar.push({ aId, bId, nom: a.nom?.trim() || `#${aId}`, birlik: bById.get(bId)?.birlik ?? null, rejim: k.rejim, qiymat: k.qiymat, smeta: sm, joriy, delta: d,
       yangi: k.rejim === '+' ? joriy + (typeof n === 'number' ? n : 0) : (typeof n === 'number' ? n : joriy), hajmFarq: m.hajmFarq.includes(aId) });
   }
-  return { obyektId: e.id, nom: e.nom, qatiy: m.qatiy, moslar, radlar, paket: p.qatorlar.filter((x) => aOf.has(x.qator_id)), kirit: bKirit, faktlar, smetalar };
+  return { obyektId: e.id, nom: e.nom, qatiy: m.qatiy, moslar, radlar, paket: p.qatorlar.filter((x) => (aOf.has(x.qator_id) && !xarita.asos.has(x.qator_id)) || tzIdlar.has(x.qator_id)), kirit: bKirit, faktlar, smetalar };
 }
 
 export type EgizakNatija = {

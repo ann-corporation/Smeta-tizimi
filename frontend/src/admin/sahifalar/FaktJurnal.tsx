@@ -37,6 +37,8 @@ import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 import { sarlavhaBilan } from '../../lib/hotkeys/core';
 import { JURNAL_XATO_MATN, bolimSummalari, bolimTarkibi, jurnalPaket, jurnalQur, kiritmaSoni, ochiqBor, qoldiqUlushi, type BolimSumma, type JurnalBolim, type JurnalHolat, type JurnalIsh, type JurnalQator, type Kiritma, type Rejim, type ZamenaBoglanish } from '../../lib/fakt-jurnal';
 import { zamenaBoglanishOl } from '../../lib/fakt-zamena-boglanish';
+import { tuzatishBoglanishlari } from '../../lib/smeta-anatomiya/tuzatish';
+import { tuzatishPaketi } from '../../lib/fakt-tuzatish';
 import { almashtirildiMatn, ochiqdanOrtiqcha, ochiqQoldiq } from '../../lib/zamena-qoldiq';
 import { KatNishon } from '../../umumiy/ui/KatNishon';
 import { ishMateriallari, materialTaklifi } from '../../lib/fakt-material-taklif';
@@ -221,7 +223,19 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   useEffect(() => { if (bolimId == null && bolimlar.length) setBolimId(bolimlar[0].id); }, [bolimId, bolimlar]);
 
   const smetalar = useMemo(() => { const h = new Map(states.map((x) => [x.qator_id, x.smeta_hajm == null ? null : Number(x.smeta_hajm)])); return new Map(rows.map((r) => [r.id, h.get(r.id) ?? (r.hajm == null ? null : Number(r.hajm))])); }, [rows, states]);
-  const paket = useMemo(() => jurnalPaket(kiritmalar, faktlar, smetalar), [kiritmalar, faktlar, smetalar]);
+  // Tuzatish qatorlari (qalinlik/norma tuzatishi) — smeta yadrosi bog'laydi; fakti asosiy ishga ergashadi (hosila, qo'lda kiritilmaydi).
+  const tuzatish = useMemo(() => tuzatishBoglanishlari(rows), [rows]);
+  const paket = useMemo(() => {
+    const p = jurnalPaket(kiritmalar, faktlar, smetalar);
+    const tz = tuzatishPaketi(p.qatorlar, tuzatish, faktlar, smetalar);
+    return { ...p, qatorlar: tz.qatorlar, tuzatishlar: tz.tuzatishlar, ok: p.xatolar.size === 0 && tz.qatorlar.length > 0 };
+  }, [kiritmalar, faktlar, smetalar, tuzatish]);
+  /** Tuzatish qatorining kutilayotgan fakti (asos kiritmasi bilan) — faqat ko'rsatish. */
+  const tuzatishKutilgan = (q: JurnalQator): number | null => {
+    const asosId = tuzatish.asos.get(q.id); if (asosId == null) return null;
+    const x = paket.qatorlar.find((p) => p.qator_id === q.id);
+    return x ? Math.round((q.fakt + x.hajm) * 1e6) / 1e6 : null;
+  };
   const ozgarishSoni = Object.values(kiritmalar).filter((k) => k.qiymat.trim()).length;
 
   // ── «Fakt = F2»: F2 hajmi fakt dan ko'p bo'lgan ishlarga farqni yozish (oldindan ko'rish + bekor qilish). ──
@@ -380,7 +394,8 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
     setBand(true);
     try {
       // CAS: «jami» (=) kiritmalari brauzerdagi faktga nisbatan delta — server fakti o'zgargan bo'lsa yozilmaydi.
-      const jamiIdlar = jamiIdlari(kiritmalar, smetalar);
+      // Tuzatish deltalari ham joriy faktga nisbatan — ular ham CAS bilan tekshiriladi.
+      const jamiIdlar = [...new Set([...jamiIdlari(kiritmalar, smetalar), ...paket.tuzatishlar])];
       if (jamiIdlar.length) {
         const h = await sbT2QatorHolatQisman(obyektId, jamiIdlar);
         if (!h.ok) { toast(t('Joriy faktni tekshirib bo‘lmadi — saqlanmadi. Qayta urinib ko‘ring.'), 'danger'); return false; }
@@ -461,6 +476,13 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
 
   // Oddiy render funksiyasi (komponent emas) — input fokusini yo'qotmaslik uchun.
   const kiritish = (q: JurnalQator, kichik?: boolean) => {
+    if (tuzatish.asos.has(q.id)) {
+      // Hosila: fakt asosiy ish faktidan (tuzatish.hajm × asos.fakt / asos.hajm), qo'lda kiritilmaydi.
+      const kut = tuzatishKutilgan(q);
+      return <div className="text-right text-[11px] text-text-mute" data-testid="tuzatish-hosila" title={t('Fakt asosiy ish faktidan avtomatik hisoblanadi')}>
+        {kut != null ? <span className="font-mono text-[12px] text-text">→ {fmt(kut)}</span> : t('avtomatik')}
+      </div>;
+    }
     const k = kiritmalar[q.id] ?? { rejim: '+' as Rejim, qiymat: '' };
     const xato = paket.xatolar.get(q.id);
     const yangiFakt = (() => { const n = kiritmaSoni(k.qiymat, q.smeta); if (typeof n !== 'number' || !Number.isFinite(n)) return null; return k.rejim === '+' ? q.fakt + n : n; })();
@@ -507,7 +529,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   };
   const almMatn = (q: JurnalQator) => almashtirildiMatn(q.almashtirilgan, q.smeta, q.birlik, fmt);
   /** Qatorda belgi bormi (ikkinchi satr faqat kerak bo'lsa chiziladi). */
-  const belgiBor = (q: JurnalQator) => q.zamena || q.qoshimcha || !!almMatn(q) || saqlangan.has(q.id) || (bajHajm.get(q.id) ?? 0) > 0;
+  const belgiBor = (q: JurnalQator) => tuzatish.asos.has(q.id) || q.zamena || q.qoshimcha || !!almMatn(q) || saqlangan.has(q.id) || (bajHajm.get(q.id) ?? 0) > 0;
   /**
    * BITTA belgi guruhi: zamena (info) · qo'shimcha (firuza) · almashtirildi (neytral) · bajarilmaydi (qizil, bosilsa bekor).
    * Sariq rang faqat «smetadan/qoldiqdan oshdi» uchun.
@@ -515,6 +537,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   const belgilar = (q: JurnalQator) => {
     const m = almMatn(q);
     return <>
+      {tuzatish.asos.has(q.id) && <span className="fz-chip" data-testid="tuzatish-belgi" title={t('Fakt asosiy ish faktidan avtomatik hisoblanadi')}>{t('qalinlik tuzatishi — asosiy ishga bog‘liq')}</span>}
       {q.zamena && <span className="fz-chip bg-[var(--info-soft)] text-[var(--info)]" data-testid="zamena-belgi" title={q.aslNom ? t('Zamena: asl qator — {nom}', { nom: q.aslNom }) : t('Zamena')}>↻ {t('zamena')}{q.aslNom ? `: ${t('asl')} ${q.aslNom}` : ''}</span>}
       {q.qoshimcha && <span className="fz-chip fz-chip--accent" data-testid="qoshimcha-belgi">+ {t('qo‘shimcha')}</span>}
       {m && <span className="fz-chip" data-testid="almashtirildi-belgi" title={t('Shu hajmni zamena qatorlari qoplagan')}>{t('almashtirildi')} {m}</span>}
@@ -640,7 +663,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   // eslint-disable-next-line react-hooks/exhaustive-deps -- ishOchiq/bolaKor: hammaYopiq, teskari, bolaKorinadi dan hosil
   }, [korinadi, bolaKorinadi, hammaYopiq, teskari]);
   const satrIndeks = useMemo(() => new Map(satrlar.flatMap((s, i) => s.tur === 'bolim' ? [] : [[s.qator.id, i] as const])), [satrlar]);
-  const kirishTartib = useMemo(() => satrlar.flatMap(s => s.tur === 'ish' || s.tur === 'resurs' && !s.avto ? [s.qator.id] : []), [satrlar]);
+  const kirishTartib = useMemo(() => satrlar.flatMap(s => (s.tur === 'ish' || s.tur === 'resurs' && !s.avto) && !tuzatish.asos.has(s.qator.id) ? [s.qator.id] : []), [satrlar, tuzatish]);
   const kirishIndeks = useMemo(() => new Map(kirishTartib.map((id, i) => [id, i])), [kirishTartib]);
   const kattaJurnal = satrlar.length > 100;
   const fokusSatr = fokusId == null ? undefined : satrIndeks.get(fokusId);
