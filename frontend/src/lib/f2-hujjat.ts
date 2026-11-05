@@ -75,13 +75,23 @@ const yaxlit6 = (x: number) => Math.round(x * 1e6) / 1e6;
 
 /** Ф-2 hujjati: `bolimlar` — F2 tayyorlash daraxti, `qatorlar` — shu aktga tanlangan qatorlar (f2Qatorlar natijasi). */
 export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qator[], o: F2HujjatOpsiya): { bytes: Uint8Array; faylNomi: string; jami: number | null; yacheykalar: number } {
+  const x = f2HujjatVaraqlar(bolimlar, qatorlar, o);
+  const { bytes, yacheykalar } = rasmiyKitob(x.varaqlar, { mavzu: o.mavzu, tur: 'f2', formulasiz: o.formulasiz });
+  return { bytes, yacheykalar, faylNomi: x.faylNomi, jami: x.jami };
+}
+
+/**
+ * Ф-2 varaqlari (Ф-2 + ведомость ресурсов) kitobga yig'ilmasdan — bir nechta aktni BITTA kitobga jamlash uchun
+ * (F2 portfeli, egasi 2026-11-05). `varaqNomi` — Ф-2 varag'i nomi (sukut «Ф-2»). Mazmun `f2Hujjat` bilan aynan bir xil.
+ */
+export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qator[], o: F2HujjatOpsiya & { varaqNomi?: string }): { varaqlar: RasmiyVaraq[]; faylNomi: string; jami: number | null } {
   const tanlangan = new Map(qatorlar.filter((x) => !x.xato).map((x) => [x.id, x]));
   const eski = o.eskiBloklar ?? [];
   const yangiBor = tanlangan.size > 0;
   if (!yangiBor && !eski.some((b) => b.qatorlar.length)) throw new Error('F2_HUJJAT_BOSH');
   const raqam = (o.raqam ?? '').trim();
   const v = new RasmiyVaraq({
-    nom: 'Ф-2',
+    nom: o.varaqNomi || 'Ф-2',
     sarlavha: `АКТ ПРИЕМКИ ВЫПОЛНЕННЫХ РАБОТ${raqam ? ` № ${raqam}` : ''} (ФОРМА № 2)`,
     ostSarlavha: [`за отчетный период: ${davrMatni(o.davr)}`],
     titul: [['Объект:', o.obyektNom], ['Заказчик:', o.imzo?.zakazchik], ['Подрядчик:', o.imzo?.pudratchi], ...(o.imzo?.subpudratchi ? [['Субподрядчик:', o.imzo.subpudratchi] as const] : []), ['Договор:', o.shartnoma]],
@@ -259,9 +269,8 @@ export function f2Hujjat(bolimlar: readonly F2Bolim[], qatorlar: readonly F2Qato
   for (const x of ved) if (x.narx != null) narxlari.set(nk2(x), (narxlari.get(nk2(x)) ?? 0) + 1);
   for (const x of ved) x.narxFarqli = x.narx != null && (narxlari.get(nk2(x)) ?? 0) > 1;
   const rv = yangiBor ? resursVedomosti(ved, { nom: v.nom, itogoR, jami: jamiJS, raqam, davr: o.davr, obyektNom: o.obyektNom }) : null;
-  const { bytes, yacheykalar } = rasmiyKitob(rv ? [v, rv] : [v], { mavzu: o.mavzu, tur: 'f2', formulasiz: o.formulasiz });
   return {
-    bytes, yacheykalar,
+    varaqlar: rv ? [v, rv] : [v],
     faylNomi: hujjatFaylNomi({ obyekt: o.obyektNom, hujjat: `АКТ_Ф-2${raqam ? `_№${raqam}` : ''}`, davr: o.davr.slice(0, 7) }),
     jami: jamiJS == null ? null : yaxlit2(jamiJS),
   };

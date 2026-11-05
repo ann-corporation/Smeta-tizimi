@@ -27,6 +27,7 @@ import { paketlarJami, type TafsilQism } from '../../lib/summa-tafsilot';
 import { F2ReestrOylik } from '../../components/f2-hujjat/F2ReestrOylik';
 import { F2DavomRoyxat } from './F2DavomRoyxat';
 import { F2OylikPaket } from './F2OylikPaket';
+import { F2Portfel } from './F2Portfel';
 import { F2Takrorlar } from './F2Takrorlar';
 import { f2ReestrOl, obyektF2Fayllari, type ReestrMalumot } from '../../api/t2-f2-reestr';
 import type { CenterDocument } from '../../api/t2-hujjat-canonical';
@@ -219,6 +220,8 @@ export default function F2Reestr() {
     finally { if (version === requestVersion.current) setYuklanmoqda(false); }
   }, [kompaniyaId]);
   useEffect(() => { setMalumot(null); setOchiq(new Set()); setFayllar(new Map()); void yukla(); }, [yukla]);
+  /** F2 portfeli uchun: joriy aktlarni qayta o'qish (sahifa holati saqlanadi). */
+  const yangilaJim = useCallback(() => { void yukla(); }, [yukla]);
 
   const reestr = useMemo(() => (malumot ? reestrQur(malumot) : null), [malumot]);
   const qatorlar = useMemo(() => (reestr ? tartibla(filtrla(reestr.qatorlar, filtr)) : []), [reestr, filtr]);
@@ -273,6 +276,7 @@ export default function F2Reestr() {
       {reestr && <XulosaTasma jami={reestr.jami} qatorlar={reestr.qatorlar} f2Paket={f2Paket} f2Jami={f2Jami} />}
       <F2DavomRoyxat kompaniyaId={kompaniyaId} />
       {malumot && <F2Takrorlar malumot={malumot} />}
+      {malumot && kompaniyaId != null && <F2Portfel kompaniyaId={kompaniyaId} malumot={malumot} tashkilot={joriy?.nom ?? null} yangila={yangilaJim} />}
       {malumot && kompaniyaId != null && <F2OylikPaket kompaniyaId={kompaniyaId} malumot={malumot} tashkilot={joriy?.nom ?? null} />}
       {reestr && <F2ReestrOylik aktlar={reestr.qatorlar.flatMap(q => q.aktlar)} />}
       {malumot && malumot.manbaXato > 0 && <div role="status" className="fz-note fz-note--warn"><AlertTriangle aria-hidden="true" /><span>{t('{n} ta aktning manbasi o‘qilmadi — ular «aniqlanmadi» deb ko‘rsatilgan.', { n: malumot.manbaXato })}</span></div>}
