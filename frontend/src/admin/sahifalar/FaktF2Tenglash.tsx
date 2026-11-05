@@ -4,7 +4,7 @@ import { yangiOperationId } from '../../api/supabase';
 import { tenglashJami, type AktBekorFn, type EskiF2Akt, type TenglashReja } from '../../lib/fakt-f2-tenglash';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { toast } from '../../umumiy/ui/Toast';
-import { qamrovBolaklari } from '../../lib/fakt-qamrov';
+import { QAMROV_BOLAK, qamrovBolaklari } from '../../lib/fakt-qamrov';
 import { urinishYarat } from '../../lib/fakt-qamrov-urinish';
 import type { JurnalHolat } from '../../lib/fakt-jurnal';
 import { t } from '../../i18n/til';
@@ -103,7 +103,7 @@ export function FaktF2Tenglash({ sarlavha, reja, eskiAktlar = [], obyektId, komp
               {jami.faktOrtiq.soni > 0 && <span className="text-text-mute" data-testid="f2-tenglash-fakt-ortiq">{t('Fakt F2 dan ko‘p: {n} qator ({s}) — topshirilmagan ish, o‘zgartirilmaydi.', { n: String(jami.faktOrtiq.soni), s: fmt(jami.faktOrtiq.summa) })}</span>}
               {reja.otkazildi.manfiyReja > 0 && <span className="text-text-mute">{reja.otkazildi.manfiyReja} {t('chegirma qatori o‘tkazib yuborildi')}</span>}
               {(chiqQator.size > 0 || chiqBolim.size > 0) && <span className="text-text-mute">{t('olib tashlangan: {n}', { n: String(reja.qatorlar.length - jami.paket.length) })}</span>}
-              {jami.paket.length > 3000 && <span className="text-text-mute">{t('{n} ta hujjatga bo‘linadi', { n: String(qamrovBolaklari(jami.paket).length) })}</span>}
+              {jami.paket.length > QAMROV_BOLAK &&<span className="text-text-mute">{t('{n} ta hujjatga bo‘linadi', { n: String(qamrovBolaklari(jami.paket).length) })}</span>}
             </div>
             <div className="min-h-0 flex-1 overflow-auto">
               {bolimli && <table className="fz-table mb-3 w-full text-[12px]" data-testid="f2-tenglash-bolimlar">

@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import { yangiOperationId } from '../../api/supabase';
 import type { AktBekorFn } from '../../lib/fakt-f2-tenglash';
 import type { JurnalHolat, JurnalIsh } from '../../lib/fakt-jurnal';
-import { QAMROV_ISTISNOLAR, foizOqi, ishlarniYangila, qamrovBolaklari, qamrovJami, qamrovReja, type QamrovIstisno } from '../../lib/fakt-qamrov';
+import { QAMROV_BOLAK, QAMROV_ISTISNOLAR, foizOqi, ishlarniYangila, qamrovBolaklari, qamrovJami, qamrovReja, type QamrovIstisno } from '../../lib/fakt-qamrov';
 import { urinishYarat } from '../../lib/fakt-qamrov-urinish';
 import { FaktUrinishPanel, useFaktUrinish } from './useFaktUrinish';
 import { t } from '../../i18n/til';
@@ -103,7 +103,7 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
           {reja.smetasiz > 0 && <span className="text-text-mute">{t('smetasi noma’lum: {n}', { n: String(reja.smetasiz) })}</span>}
           {reja.oshganlar.length > 0 && <span className="fz-chip fz-chip--warn" data-testid="qamrov-oshgan-soni">{t('allaqachon ≥100% (smetadan oshgan, o‘zgarmaydi): {n}', { n: String(reja.oshganlar.length) })}</span>}
           {chiqarilgan.size > 0 && <span className="text-text-mute">{t('olib tashlangan: {n}', { n: String(chiqarilgan.size) })}</span>}
-          {jami.paket.length > 3000 && <span className="text-text-mute">{t('{n} ta hujjatga bo‘linadi', { n: String(qamrovBolaklari(jami.paket).length) })}</span>}
+          {jami.paket.length > QAMROV_BOLAK &&<span className="text-text-mute">{t('{n} ta hujjatga bo‘linadi', { n: String(qamrovBolaklari(jami.paket).length) })}</span>}
         </div>
 
         <div className="min-h-0 flex-1 overflow-auto">

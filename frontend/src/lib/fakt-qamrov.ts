@@ -180,7 +180,10 @@ export function qamrovJami(reja: QamrovReja, chiqarilgan: ReadonlySet<number>): 
 }
 
 /** Bitta fakt hujjatiga sig'adigan qatorlar (undan katta qamrov — bir nechta hujjat, har biri o'z operation_id bilan). */
-export const QAMROV_BOLAK = 3000;
+/** Bitta fakt hujjatidagi qatorlar soni. Yozish shlyuzi (functions/_shared/tenant-yozish.ts, egalarniOqi) bir so'rovda
+ *  ko'pi bilan 2000 qator egasini tekshiradi — undan katta bo'lak «Yozuv egasini tekshirib bo'lmadi» bilan rad etilardi
+ *  (egasi 2026-11-05, Sun'iy ko'l «Fakt = F2»). Zaxira bilan 1500. */
+export const QAMROV_BOLAK = 1500;
 export function qamrovBolaklari<T>(paket: readonly T[], hajm = QAMROV_BOLAK): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < paket.length; i += hajm) out.push(paket.slice(i, i + hajm));

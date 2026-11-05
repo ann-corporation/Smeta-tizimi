@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { T2Qator } from '../api/supabase';
 import { jurnalQur, type JurnalHolat } from './fakt-jurnal';
-import { foizOqi, markirovkaIshlari, qamrovBolaklari, qamrovJami, qamrovReja } from './fakt-qamrov';
+import { QAMROV_BOLAK, foizOqi, markirovkaIshlari, qamrovBolaklari, qamrovJami, qamrovReja } from './fakt-qamrov';
 import { bolimIshlariYigish } from './fakt-f2-tenglash';
 
 const q = (o: Partial<T2Qator> & { id: number; tur: string }): T2Qator => ({
@@ -79,6 +79,9 @@ describe('qamrov % (Tiklash rejimi)', () => {
   });
   it('bo‘laklash va foiz o‘qish', () => {
     expect(qamrovBolaklari([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
+    // Yozish shlyuzi bir so'rovda ≤ 2000 qator egasini tekshiradi (tenant-yozish.ts egalarniOqi) — bo'lak undan oshmasin.
+    expect(QAMROV_BOLAK).toBeLessThanOrEqual(2000);
+    expect(qamrovBolaklari(Array.from({ length: 4200 }, (_, i) => i)).map((b) => b.length)).toEqual([1500, 1500, 1200]);
     expect(foizOqi('70%')).toBe(70);
     expect(foizOqi('12,5')).toBe(12.5);
     expect(foizOqi('0')).toBeNull();
