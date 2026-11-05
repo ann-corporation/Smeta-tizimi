@@ -20,6 +20,8 @@ import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { sbOqi, sbT2AktYaratV2, sbT2F2QoralamaYangila, sbT2DaraxtOl, sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt, type T2Qator } from '../../api/supabase';
 import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
 import { sbQatorHolatOl, sbF2QoralamaHajmlar, type QatorHolat } from '../../api/t2-fakt';
+import { f2VersiyaKochirmaOl } from '../../api/t2-f2-versiya-kochirma';
+import { avvalgiF2Xaritasi, type F2VersiyaKochirma } from '../../lib/f2-versiya-kochirma';
 import { f2Hujjat } from '../../lib/f2-hujjat';
 import { stornoBlokniSaqla, stornoQaytarHajm, stornoQatorimi } from '../../lib/f2-storno';
 import { yigindi2 } from '../../lib/hisob-yadro';
@@ -122,6 +124,9 @@ export function F2TayyorlashNative() {
   const [rows, setRows] = useState<T2Qator[]>([]);
   const [holat, setHolat] = useState<QatorHolat[]>([]);
   const [qoralamaHajm, setQoralamaHajm] = useState<ReadonlyMap<number, number>>(new Map());
+  /** Smeta versiyasi faollashtirilgan obyekt: eski qatorlardagi tasdiqlangan F2 → yangi qator (faqat belgi; «mumkin» va jamiga kirmaydi). */
+  const [kochirma, setKochirma] = useState<F2VersiyaKochirma | null>(null);
+  const avvalgiF2 = useMemo(() => avvalgiF2Xaritasi(kochirma), [kochirma]);
   /** Протокол согласования цен qatorlari (tasdiqlangan — kuchga kirgan oydan narx ustuvor). */
   const [protokolQ, setProtokolQ] = useState<NarxProtokolQator[]>([]);
   const [k, setK] = useState<F2Kiritma>(bosKiritma);
@@ -202,6 +207,7 @@ export function F2TayyorlashNative() {
       }
       void Promise.resolve().then(() => narxProtokolQatorlariOl(obyektId)).then((r) => { if (dolzarb()) setProtokolQ(r.ok ? (r.qatorlar || []).filter((x) => x.holat === 'tasdiqlangan') : []); }).catch(() => { if (dolzarb()) setProtokolQ([]); });
       void sbAosrCoverageOl(obyektId).then((c) => { if (dolzarb()) { setAosrsiz(c.ok ? (c.qatorlar || []).filter((x) => x.yashirin && !x.akt_bor) : []); setAosrKoz(new Map(c.ok ? (c.qatorlar || []).map((x) => [x.qator_id, aosrIshora(x)] as const) : [])); } }).catch(() => { if (dolzarb()) setAosrsiz([]); });
+      void Promise.resolve().then(() => f2VersiyaKochirmaOl(obyektId)).then((r) => { if (dolzarb()) setKochirma(r.ok ? r.natija : null); }).catch(() => { if (dolzarb()) setKochirma(null); });
       void Promise.resolve().then(() => sbF2QoralamaHajmlar(obyektId, aktId)).then((qh) => { if (dolzarb()) setQoralamaHajm(qh.ok ? qh.hajm : new Map()); }).catch(() => { if (dolzarb()) setQoralamaHajm(new Map()); });
       const [d, h] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbQatorHolatOl(obyektId)]);
       if (!dolzarb()) return;
@@ -801,6 +807,14 @@ export function F2TayyorlashNative() {
           {i.storno != null
             ? <span data-testid="ish-storno-olingan">{t('tasdiqlangan F2')} <FmtN val={i.olingan} /> ({t('storno qilingan')}: <FmtN val={i.storno} />)</span>
             : i.olingan > 0 && <span>{t('tasdiqlangan F2')} <FmtN val={i.olingan} /></span>}
+          {(() => {
+            const av = avvalgiF2.get(i.id); const resSoni = i.resurslar.filter((r) => avvalgiF2.has(r.id)).length;
+            if (!av && resSoni === 0) return null;
+            return <span className="fz-chip bg-[var(--info-soft)] text-[var(--info)]" data-testid="ish-avvalgi-f2"
+              title={t('Tasdiqlangan F2 avvalgi smeta versiyasining qatorida: obyekt jamisida bir marta sanaladi; bu yerdagi «mumkin» hajmiga ta’sir qilmaydi.')}>
+              {t('avvalgi versiya F2')}{av ? <>: <FmtN val={av.hajm ?? 0} /> {i.birlik ?? ''}</> : null}
+              {resSoni > 0 ? ` · ${t('{n} ta resursda', { n: String(resSoni) })}` : ''}</span>;
+          })()}
           {(i.qoralama ?? 0) > 0 && <span className="text-warn">{t('qoralamada')} <b><FmtN val={i.qoralama ?? 0} /></b></span>}
           {(bn.summa > 0 || bn.narxsiz > 0) && <span className="inline-flex items-center gap-1">{t('narx (1 birlik, NDS siz)')} {birlikNarx}{birlikNarxsiz}</span>}
           <span className="text-text-mute">{t('{n} ta resurs', { n: i.resurslar.length })}</span>
