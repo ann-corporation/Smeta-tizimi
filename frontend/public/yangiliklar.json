@@ -2,6 +2,47 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 106,
+      "sana": "2026-11-05",
+      "sarlavha": "Fakt jurnali: F2 importidagi qo‘shimcha resurslarda narx va summa",
+      "bandlar": [
+        "Smetada narxi yo‘q, lekin F2 da narxi bor qatorlarda endi «narxsiz» emas — F2 narxi («F2» belgisi bilan) va fakt summasi shu narxda ko‘rinadi.",
+        "Bo‘lim jamilari bilan bir xil hisob; smeta narxi bor qatorlar o‘zgarmaydi."
+      ]
+    },
+    {
+      "id": 107,
+      "sana": "2026-11-05",
+      "sarlavha": "F2: minus (chegirma) qatorlar endi tushib qolmaydi",
+      "bandlar": [
+        "Fakti manfiy bo‘lgan qatorlar (qalinlik tuzatishi, «исключить», К=2 kabi) F2 tayyorlashda ishorasi bilan olinadi — resurslari ham minus.",
+        "Tekshiruv saqlanadi: F2 hajmi faktdan (modul bo‘yicha) oshmaydi va ishorasi bir xil."
+      ]
+    },
+    {
+      "id": 108,
+      "sana": "2026-11-05",
+      "sarlavha": "Pereraschet — bitta tugma",
+      "bandlar": [
+        "F2 tarixida tasdiqlangan F2 da «Pereraschet» tugmasi: podval yo‘q bo‘lsa avval fayldan tiklash, keyin eski F2 minus qoralamasi (fakt o‘zgarmaydi) va to‘g‘ri F2 tayyorlashga o‘tadi — yangi hajmlar pastda.",
+        "F2 tayyorlash shu oy uchun qoralama bo‘lsa yangi akt boshlamaydi — o‘sha qoralamani ochadi («Yangi alohida F2 boshlash» tugmasi bor).",
+        "«Shu obyektda tayyorlangan F2 lar» ro‘yxatida qoralamaga «Davom ettirish» va «Tasdiqlash».",
+        "Pereraschet jami: minus blok, plyus blok va sof jami — QQS bilan birinchi."
+      ]
+    },
+    {
+      "id": 109,
+      "sana": "2026-11-05",
+      "sarlavha": "Oylik paketda Forma-3 doim bor",
+      "bandlar": [
+        "Shartnoma va oy uchun saqlangan Forma-3 bo‘lmasa, paketga shu oyning tasdiqlangan F2 laridan avtomatik Forma-3 qo‘shiladi («Ф3 (автоматически по Ф-2, не сохранён)»), to‘liq va/yoki bir qatorli.",
+        "Avtomatik Forma-3 summasi paket reestridagi tasdiqlangan F2 jamisiga teng (QQS bilan, F2 ning o‘z podvali bilan).",
+        "Saqlangan Forma-3 bo‘lsa — o‘sha ishlatiladi, MUNDARIJA da esa F2 jami bilan solishtiruv va farq ko‘rsatiladi.",
+        "Shartnoma rekvizitlari yetishmasa ham Forma-3 yasaladi; nima yetishmasligi ekranda va ПАКЕТ_СОСТАВ.txt da yoziladi.",
+        "Paket oynasida har oy uchun Forma-3 holati («saqlangan», «avto (F2 dan)», «qoralama bor») va «Forma-3 ni saqlash» havolasi."
+      ]
+    },
+    {
       "id": 105,
       "sana": "2026-11-05",
       "sarlavha": "Boshqaruv markazida bajarilgan ish (fakt) endi alohida ko‘rinadi",

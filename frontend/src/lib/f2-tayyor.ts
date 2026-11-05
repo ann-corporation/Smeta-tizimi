@@ -98,6 +98,16 @@ export function daraxtTartibida<T>(items: readonly T[], id: (x: T) => number, ta
   return items.map((x, i) => ({ x, i, k: tartib.get(id(x)) })).sort((a, b) => (a.k ?? Infinity) - (b.k ?? Infinity) || a.i - b.i).map((e) => e.x);
 }
 
+/**
+ * Ishorali qoldiq (chegirma qatori, chegara < 0): chegara − olingan, lekin chegaradan oshmaydi va ishorasi o'zgarmaydi —
+ * |F2| ≤ |fakt|, ishorasi bir xil. Masalan fakt −4,6535, olingan 0 → −4,6535; olingan −5 → 0.
+ */
+export function ishoraliQoldiq(chegara: number, olingan: number): number {
+  return Math.min(0, Math.max(chegara, chegara - olingan));
+}
+/** Nolga teng emas (minus ham F2 ga olinadi). */
+const nol = (x: number) => Math.abs(x) > 1e-9;
+
 /** Smeta daraxti → F2 uchun bo'limlar/ishlar/resurslar (faqat F2 olish mumkin bo'lganlar). */
 export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarxlari, manba: F2Manba = 'fakt', qoralama?: ReadonlyMap<number, number>, ktx?: F2QurKontekst): F2Bolim[] {
   const h = new Map(holat.map((x) => [x.qator_id, x]));
@@ -115,17 +125,23 @@ export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarx
   const faktBaza = (id: number) => {
     const s0 = sq(id);
     const mum = son(h.get(id)?.f2_mumkin_hajm);
+    // CHEGIRMA (egasi 2026-11-05): manfiy fakt (qalinlik/istisno tuzatish) — manfiy F2 qatori; server f2_mumkin (>= 0) uni 0 qiladi.
+    const faktM = son(h.get(id)?.fakt_hajm);
+    if (faktM != null && faktM < 0) return ishoraliQoldiq(faktM, olinganF2(id));
     if (s0 === 0) return Math.max(0, mum ?? 0);
     // Storno bor: server f2_mumkin (= max(0, fakt − f2)) eski F2 ni ham ayirgan — fakt va f2 dan qayta: fakt − (f2 − storno).
     const fakt = son(h.get(id)?.fakt_hajm);
     return Math.max(0, fakt != null ? fakt - olinganF2(id) : (mum ?? 0) + s0);
   };
-  const baza = (id: number) => erkin
-    ? Math.max(0, (son(h.get(id)?.smeta_hajm) ?? son(rowById.get(id)?.hajm) ?? 0) - olinganF2(id))
-    : faktBaza(id);
+  const baza = (id: number) => {
+    if (!erkin) return faktBaza(id);
+    const sm = son(h.get(id)?.smeta_hajm) ?? son(rowById.get(id)?.hajm) ?? 0;
+    return sm < 0 ? ishoraliQoldiq(sm, olinganF2(id)) : Math.max(0, sm - olinganF2(id));
+  };
   // Qoralamadagi (tasdiqlanmagan) F2 hajmi qoldiqdan AYIRILADI - bir ishni ikki marta F2 qilish xavfi bo'lmasin.
   const qor = (id: number) => Math.max(0, qoralama?.get(id) ?? 0);
-  const mumkin = (id: number) => Math.max(0, baza(id) - qor(id));
+  /** Manfiy (chegirma) qoldiqda qoralamadagi manfiy hajm ayiriladi, ishora o'zgarmaydi. */
+  const mumkin = (id: number) => { const b0 = baza(id); return b0 < 0 ? Math.min(0, b0 - Math.min(0, qoralama?.get(id) ?? 0)) : Math.max(0, b0 - qor(id)); };
   const smetaHajm = (id: number) => son(h.get(id)?.smeta_hajm) ?? son(rowById.get(id)?.hajm);
   const resurs = (r: T2Qator, avto: boolean): F2Resurs => {
     const p = protokol?.get(r.id);
@@ -168,9 +184,9 @@ export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarx
         const hh = h.get(r.id);
         const ish: F2Ish = { id: r.id, kod: r.kod, nom: r.nom || 'Nomsiz', birlik: r.birlik, mumkin: mumkin(r.id), smeta: son(hh?.smeta_hajm) ?? son(r.hajm), olingan: olinganF2(r.id), resurslar: res, ...(erkin ? { erkin: true } : {}), ...(sq(r.id) !== 0 ? { storno: sq(r.id) } : {}), ...(qor(r.id) > 0 ? { qoralama: qor(r.id) } : {}) };
         // Fakt rejimida qoralama qoldiqni 0 ga tushirsa ham ish ro'yxatda qoladi (tasdiqlangan va qoralama alohida ko'rinsin).
-        if (erkin ? (smetaHajm(r.id) ?? 0) > 0 : (baza(r.id) > 0 || res.some((x) => !x.avto && !x.chiqarilgan && baza(x.id) > 0))) b.ishlar.push(ish);
+        if (erkin ? (smetaHajm(r.id) ?? 0) !== 0 : (nol(baza(r.id)) || res.some((x) => !x.avto && !x.chiqarilgan && nol(baza(x.id))))) b.ishlar.push(ish);
       } else if (r.tur === 'mat' || r.tur === 'ob') {
-        const x = resurs(r, false); if (!x.chiqarilgan && (erkin ? (smetaHajm(r.id) ?? 0) > 0 : baza(r.id) > 0)) b.alohida.push(x);
+        const x = resurs(r, false); if (!x.chiqarilgan && (erkin ? (smetaHajm(r.id) ?? 0) !== 0 : nol(baza(r.id)))) b.alohida.push(x);
       }
     }
   };
@@ -205,6 +221,8 @@ export type F2Qator = {
 
 /** Kiritilgan hajm qoldiqdan oshsa - faqat ogohlantirish kodi (blok emas). */
 function oshOgoh(v: number, x: { mumkin: number; qoralama?: number; erkin?: boolean }): F2Qator['ogoh'] {
+  // Chegirma (manfiy qoldiq): undan «ko'proq manfiy» yoki ishorasi teskari bo'lsa — oshdi.
+  if (x.mumkin < -1e-9) return v >= x.mumkin - 1e-9 && v <= 1e-9 ? undefined : (x.erkin ? 'SMETADAN_OSHDI' : 'QOLDIQDAN_OSHDI');
   if (v <= x.mumkin + 1e-9) return undefined;
   if ((x.qoralama ?? 0) > 0 && v <= x.mumkin + (x.qoralama ?? 0) + 1e-9) return 'QORALAMA_TAKROR';
   return x.erkin ? 'SMETADAN_OSHDI' : 'QOLDIQDAN_OSHDI';
@@ -251,11 +269,11 @@ export function f2Qatorlar(bolimlar: F2Bolim[], k: F2Kiritma): F2Qator[] {
         if (v === 'xato' || v === 0) out.push({ id: ish.id, ishId: null, tur: 'bl', kat: null, nom: ish.nom, birlik: ish.birlik, hajm: 0, narx: null, summa: null, manba: 'yoq', narxsiz: true, xato: 'HAJM' });
         else {
           const bl: F2Qator = { id: ish.id, ishId: null, tur: 'bl', kat: null, nom: ish.nom, birlik: ish.birlik, hajm: v, narx: null, summa: null, manba: 'yoq', narxsiz: true };
-          if (ish.smeta != null && ish.olingan + (ish.qoralama ?? 0) + v > ish.smeta + 1e-9) bl.ogoh = 'SMETADAN_OSHDI';
+          if (ish.smeta != null && (ish.smeta < 0 ? ish.olingan + v < ish.smeta - 1e-9 : ish.olingan + (ish.qoralama ?? 0) + v > ish.smeta + 1e-9)) bl.ogoh = 'SMETADAN_OSHDI';
           else bl.ogoh = oshOgoh(v, ish);
           out.push(bl);
           // Ish hajmi qoldiqdan oshgan bo'lsa (ongli) - resurslar normadan to'liq; aks holda fakt qoldig'i bilan cheklanadi.
-          const ustida = v > ish.mumkin + 1e-9;
+          const ustida = ish.mumkin < 0 ? v < ish.mumkin - 1e-9 : v > ish.mumkin + 1e-9;
           const minus = v < 0; // minus ish: resurslari ham minus (norma bo'yicha), qoldiqqa bog'lanmaydi
           for (const r of ish.resurslar) {
             if (!r.avto || r.chiqarilgan || r.norma == null || r.norma <= 0 || (!minus && r.mumkin + (r.qoralama ?? 0) <= 0 && !r.erkin)) continue;

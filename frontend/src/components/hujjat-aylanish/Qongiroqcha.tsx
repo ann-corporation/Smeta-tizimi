@@ -1,23 +1,17 @@
 /**
  * Qongiroqcha.tsx — bildirishnomalar qo'ng'irog'i (AdminShell sarlavhasida): o'qilmagan soni + ochiladigan ro'yxat.
  * Manba: t2_outbox → t2_bildirishnoma (t2_bildirishnomalar_v1), shlyuz /api/hujjat-aylanish (bolim=bildirishnomalar).
- * O'qilgan deb belgilash: t2_bildirishnoma_oqildi_v1. Sarlavha — i18n kaliti (`bildirishnoma.<mavzu>`), topilmasa mavzu matni.
+ * O'qilgan deb belgilash: t2_bildirishnoma_oqildi_v1. Sarlavha va havola — lib/bildirishnoma-matn (Telegram yetkazuvchisi bilan bitta manba):
+ * matn o'zbek lotin kaliti, noma'lum mavzuda eski kalit (`bildirishnoma.<mavzu>`); havola — hujjatning o'zi (?xat= / ?zanjir=).
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { bildirishnomaOqildi, bildirishnomalarOl, type Bildirishnoma } from '../../api/t2-hujjat-aylanish';
 import { t } from '../../i18n/til';
+import { MUDDAT_MATN, bildirishnomaHavolasi, bildirishnomaMatnKaliti, muddatKorinishi } from '../../lib/bildirishnoma-matn';
 
 const YANGILASH_MS = 60_000;
-
-/** Bildirishnoma bosilganda o'tadigan sahifa: aniq havola yoki mavzu bo'yicha. */
-export function bildirishnomaHavolasi(b: Pick<Bildirishnoma, 'havola' | 'mavzu'>): string | null {
-  if (b.havola) return b.havola;
-  if (b.mavzu.startsWith('hujjat.')) return '/admin/hujjat-aylanish';
-  if (b.mavzu.startsWith('tomon.')) return '/admin/murojaatlar';
-  return null;
-}
 
 export function Qongiroqcha() {
   const [ochiq, setOchiq] = useState(false);
@@ -59,7 +53,8 @@ export function Qongiroqcha() {
     const h = bildirishnomaHavolasi(b);
     if (h) { setOchiq(false); navigate(h); }
   };
-  const sarlavha = (b: Bildirishnoma) => t(b.sarlavha_kalit.startsWith('bildirishnoma.') ? b.sarlavha_kalit : `bildirishnoma.${b.mavzu}`);
+  const sarlavha = (b: Bildirishnoma) => t(bildirishnomaMatnKaliti(b.mavzu) ?? (b.sarlavha_kalit.startsWith('bildirishnoma.') ? b.sarlavha_kalit : `bildirishnoma.${b.mavzu}`));
+  const muddat = (b: Bildirishnoma) => muddatKorinishi(b.parametrlar?.muddat);
 
   return (
     <div className="relative" ref={ref}>
@@ -79,6 +74,7 @@ export function Qongiroqcha() {
               <li key={b.id}>
                 <button type="button" role="menuitem" className={`w-full rounded px-2 py-1.5 text-left text-xs hover:bg-surface-2 ${b.oqildi ? 'text-text-dim' : 'font-semibold text-text'}`} onClick={() => bos(b)}>
                   <span className="block">{sarlavha(b)}</span>
+                  {muddat(b) && <span className="block text-[11px] font-normal">{t(MUDDAT_MATN, { muddat: muddat(b) ?? '' })}</span>}
                   <span className="block text-[11px] font-normal text-text-dim">{new Date(b.yaratildi).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' })}</span>
                 </button>
               </li>))}

@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { Qongiroqcha, bildirishnomaHavolasi } from './Qongiroqcha';
+import { Qongiroqcha } from './Qongiroqcha';
+import { bildirishnomaHavolasi } from '../../lib/bildirishnoma-matn';
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
@@ -48,5 +49,15 @@ describe('Qongiroqcha', () => {
     expect(bildirishnomaHavolasi({ havola: null, mavzu: 'hujjat.muddat_otdi' })).toBe('/admin/hujjat-aylanish');
     expect(bildirishnomaHavolasi({ havola: null, mavzu: 'tomon.murojaat' })).toBe('/admin/murojaatlar');
     expect(bildirishnomaHavolasi({ havola: null, mavzu: 'buyurtma.yangi' })).toBeNull();
+    expect(bildirishnomaHavolasi({ havola: null, mavzu: 'hujjat.muddat_otdi', parametrlar: { xat_id: 12 } })).toBe('/admin/hujjat-aylanish?xat=12');
+  });
+  it('sarlavha odam tilida (kalit emas) va muddat ko‘rinadi', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => javob({ ok: true, oqilmagan: 1, qatorlar: [{ ...qator(5, null, 'hujjat.muddat_yaqin'), parametrlar: { xat_id: 1, muddat: '2026-11-07' } }] })));
+    render(<MemoryRouter><Qongiroqcha /></MemoryRouter>);
+    await waitFor(() => screen.getByTestId('qongiroq-soni'));
+    fireEvent.click(screen.getByRole('button', { name: /Bildirishnomalar|Уведомления|Notifications/ }));
+    const band = (await screen.findAllByRole('menuitem'))[0];
+    expect(band.textContent).not.toContain('bildirishnoma.');
+    expect(band.textContent).toMatch(/07\.11\.2026/);
   });
 });
