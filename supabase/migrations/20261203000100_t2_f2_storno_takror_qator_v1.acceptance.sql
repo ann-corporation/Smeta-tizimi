@@ -21,7 +21,7 @@ begin
   insert into public.t2_akt_qator(akt_id,qator_id,obyekt_id,kompaniya_id,hajm,narx,certified_quantity,certified_unit_price,certified_amount)
     values(s,x,o,c,40,10,40,10,400);
   update public.t2_akt set holat='tasdiqlangan' where id=s;
-  insert into public.t2_akt(obyekt_id,kompaniya_id,tur,oy,holat) values(o,c,'f2','2026-09-01','qoralama') returning id into dr;
+  insert into public.t2_akt(obyekt_id,kompaniya_id,tur,oy,holat) values(o,c,'f2','2026-08-01','qoralama') returning id into dr;
   insert into public.t2_akt_qator(akt_id,qator_id,obyekt_id,kompaniya_id,hajm,narx) values(dr,x,o,c,40,10);
   insert into public.t2_akt(obyekt_id,kompaniya_id,tur,oy,holat) values(o2,c,'f2','2026-09-01','qoralama') returning id into s2;
   insert into public.t2_akt_qator(akt_id,qator_id,obyekt_id,kompaniya_id,hajm,narx) values(s2,x2,o2,c,5,10);
