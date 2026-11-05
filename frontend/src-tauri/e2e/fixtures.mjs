@@ -6,8 +6,9 @@ export function packet() {
     format:'t2-paket/1',obyekt_id:101,obyekt_nom:'M5 SYNTHETIC OBJECT',kompaniya_id:1,soni:3,
     lugat:{nom:['M5 SYNTHETIC SECTION','M5 SYNTHETIC WORK','M5 SYNTHETIC MATERIAL'],kod:['M5-W','M5-M'],birlik:['m3','kg'],tur:['rz','bl','rs'],kat:['МАТ']},
     q:{id:[1001,1002,1003],ota_id:[null,1001,1002],daraja:[0,1,2],tartib:[1,2,3],tur:[0,1,2],kat:[null,null,0],kod:[null,0,1],nom:[0,1,2],birlik:[null,0,1],hajm:[null,10,20],narx:[null,null,5],summa:[100,100,100],norma:[null,null,2],narx_usul:[null,null,'qolda'],versiya:[1,1,1],qoshimcha:[0,0,0],zamena:[0,0,0],xom_qator:{}},
-    h:{fakt_hajm:[0,0,0],fakt_summa:[0,0,0],f2_hajm:[0,0,0],f2_summa:[0,0,0],f2_summa_yoq:[0,0,0],f2_summa_nomalum:[0,0,0],direct_fakt_hajm:[0,0,0],fakt_manbasi:[0,0,0],almashtirilgan_hajm:{},almashtirilgan_summa:{}},
-    f2:[],meta:{fixture:'M5-SYNTHETIC-NON-PII',ustama:{},akt_podval:[]},
+    h:{fakt_hajm:[0,2,0],fakt_summa:[0,null,0],f2_hajm:[0,2,0],f2_summa:[0,null,0],f2_summa_yoq:[0,1,0],f2_summa_nomalum:[0,1,0],direct_fakt_hajm:[0,2,0],fakt_manbasi:[0,0,0],almashtirilgan_hajm:{},almashtirilgan_summa:{}},
+    f2:[{akt_id:501,raqam:'M5-1',oy:'2026-11',holat:'qoralama',lifecycle_status:'draft',versiya:1,hujjat_jami:null,muhr_xesh:null}],
+    meta:{fixture:'M5-SYNTHETIC-NON-PII',ustama:{},akt_podval:[{akt_id:501,manba:'fixture',podval:{НДС:null,transport:null}}]},
   };
 }
 export async function seed(db) {
@@ -50,4 +51,5 @@ export const rpcArgs = Object.freeze({
   t2_desktop_qurilma_bekor_v1:['p_actor_id','p_device_id','p_operation_id'],
   t2_men_v1:['p_actor_id'],t2_obyekt_paket_v1:['p_obyekt_id','p_actor_id'],t2_obyekt_paket_etag_v1:['p_obyekt_id','p_actor_id'],t2_obyekt_paket_muhr_v1:['p_obyekt_id','p_actor_id'],
   t2_effective_authorization_v1:['p_actor_id','p_kompaniya_id','p_loyiha_id','p_obyekt_id','p_permission','p_capability_kod'],
+  t2_desktop_lease_chegara_v1:['p_actor_id','p_device_id'],
 });

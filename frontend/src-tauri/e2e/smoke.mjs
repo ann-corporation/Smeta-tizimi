@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { randomUUID, webcrypto } from 'node:crypto';
-const base='http://127.0.0.1:5214';
+const base=`http://127.0.0.1:${process.env.SMETA_M5_PORT||5216}`;
 const nativeOrigin='http://tauri.localhost';
 const jsonHeaders={'Content-Type':'application/json'};
 const control=(path,body)=>fetch(base+'/_test/'+path,{method:'POST',headers:{...jsonHeaders,'X-M5-Control':'local-synthetic'},body:JSON.stringify(body),signal:AbortSignal.timeout(5000)});
@@ -19,6 +19,7 @@ const lease=(company,object)=>fetch(base+'/api/desktop/lease',{method:'POST',hea
 const session=await gateway('/api/sessiya');assert.equal(session.status,200);assert.equal((await session.json()).foydalanuvchi_id,1);
 const company=await gateway('/api/company?me=1');assert.equal(company.status,200);assert.equal((await company.json()).ok,true);
 const list=body=>fetch(base+'/api/desktop/bff',{method:'POST',headers:nativeHeaders,body:JSON.stringify({path:'/api/sb',method:'POST',body:JSON.stringify(body),etag:null}),signal:AbortSignal.timeout(5000)});
+const sb=async body=>{const response=await list(body);assert.equal(response.status,200,await response.clone().text());return response.json();};
 const listing={jadval:'t2_obyekt_jami',filtr:'kompaniya_id=eq.1',ustunlar:'id,nom,kompaniya_id',tartib:'nom.asc',limit:5000};
 const listed=await list(listing);assert.equal(listed.status,200);
 const listBody=await listed.json();assert.equal(listBody.ok,true);assert.equal(listBody.toliq,true);
@@ -26,16 +27,26 @@ assert.deepEqual(listBody.qatorlar,[{id:101,nom:'M5 SYNTHETIC OBJECT',kompaniya_
 const unfiltered=await list({...listing,filtr:''});assert.equal(unfiltered.status,200);
 assert.deepEqual((await unfiltered.json()).qatorlar.map(row=>row.id),[101]);
 assert.equal((await list({...listing,filtr:'kompaniya_id=eq.2'})).status,403);
+const blockedWorkplace=await gateway('/api/ish-joyi?bolim=joylarim');assert.equal(blockedWorkplace.status,400);
+const tree=await sb({jadval:'t2_daraxt',filtr:'obyekt_id=eq.101',ustunlar:'id,ota_id,tur,nom,hajm,narx,summa',tartib:'tartib.asc,id.asc',limit:200000});
+assert.equal(tree.qatorlar.length,3);assert.equal(tree.qatorlar[1].nom,'M5 SYNTHETIC WORK');assert.equal(tree.qatorlar[1].narx,null);
+const states=await sb({jadval:'t2_qator_holat',filtr:'obyekt_id=eq.101',ustunlar:'qator_id,f2_hajm,f2_summa,f2_summa_yoq',limit:200000});
+assert.equal(states.qatorlar.find(row=>row.qator_id===1002).f2_hajm,2);assert.equal(states.qatorlar.find(row=>row.qator_id===1002).f2_summa,null);assert.equal(states.qatorlar.find(row=>row.qator_id===1002).f2_summa_yoq,1);
 const packet=await gateway('/api/obyekt-paket?obyekt_id=101');assert.equal(packet.status,200);
 const etag=packet.headers.get('ETag');assert.ok(etag);const packetBody=await packet.json();
 assert.equal(packetBody.format,'t2-paket/1');assert.equal(packetBody.obyekt_id,101);assert.equal(packetBody.soni,3);
+assert.equal(packetBody.h.f2_summa[1],null);assert.equal(packetBody.h.f2_summa_yoq[1],1);
+assert.deepEqual(packetBody.f2[0],{akt_id:501,raqam:'M5-1',oy:'2026-11',holat:'qoralama',lifecycle_status:'draft',versiya:1,hujjat_jami:null,muhr_xesh:null});
+assert.equal(packetBody.meta.akt_podval[0].podval.НДС,null);
 const cached=await gateway('/api/obyekt-paket?obyekt_id=101',etag);assert.equal(cached.status,304);assert.equal(cached.headers.get('ETag'),etag);
 const foreignPacket=await gateway('/api/obyekt-paket?obyekt_id=202');assert.equal(foreignPacket.status,403);
 assert.equal((await lease(2,202)).status,403);
 assert.equal((await lease(1,202)).status,403);
 const signedResponse=await lease(1,101);assert.equal(signedResponse.status,200);
+for(let i=1;i<30;i++)assert.equal((await lease(1,101)).status,200);
+assert.equal((await lease(1,101)).status,429);
 const {lease:envelope}=await signedResponse.json();assert.equal(envelope.alg,'Ed25519');
-const env=await readFile('C:/Temp/GAS-M5-local-public.ps1','utf8');
+const env=await readFile('C:/Temp/GAS-M5-current-public.ps1','utf8');
 const pk=env.match(/VITE_DESKTOP_LEASE_PK='([^']+)'/)[1];
 const kid=env.match(/VITE_DESKTOP_LEASE_KID='([^']+)'/)[1];assert.equal(envelope.kid,kid);
 const key=await webcrypto.subtle.importKey('raw',Buffer.from(pk,'base64url'),{name:'Ed25519'},false,['verify']);
@@ -52,10 +63,10 @@ try {
   await assert.rejects(gateway('/api/sessiya'));
 } finally { await control('offline',{mode:'online'}); }
 assert.equal((await gateway('/api/sessiya')).status,200);
-const revoked=await control('revoke',{actor:1});assert.equal(revoked.status,200);assert.ok((await revoked.json()).revoked>=1);
+const selfRevoke=await fetch(base+'/api/desktop/qurilma',{method:'DELETE',headers:nativeHeaders,body:JSON.stringify({device_id:issued.device_id,operation_id:randomUUID()})});assert.equal(selfRevoke.status,200);
 assert.equal((await gateway('/api/sessiya')).status,401);assert.equal((await lease(1,101)).status,401);
 const statsResponse=await fetch(base+'/_test/stats');const stats=await statsResponse.json();
 assert.equal(stats.blockedEgress,0);assert.equal(stats.unimplementedDb,0);assert.equal(stats.handlerErrors,0);assert.equal(stats.offlineMode,'online');
-assert.ok(stats.rpc.t2_desktop_qurilma_yarat_v1>=1&&stats.rpc.t2_desktop_qurilma_bekor_v1>=1);
+assert.ok(stats.rpc.t2_desktop_qurilma_yarat_v1>=1&&stats.rpc.t2_desktop_qurilma_bekor_v1>=1&&stats.rpc.t2_desktop_lease_chegara_v1>=1);
 assert.ok(!JSON.stringify(stats).includes(issued.token));assert.ok(!JSON.stringify(stats).includes(cookie));
-console.log(JSON.stringify({pass:true,authMode:'authstub',liveAcceptance:false,checks:['real-device-issuance','real-gateway-session','real-company-handler','real-sb-object-view-list','unfiltered-list-server-tenant-restriction','foreign-company-list-403','real-packet-handler-with-canonical-fixture','HTTP-304','wrong-tenant-packet-403','wrong-company-lease-403','cross-company-object-lease-403','Ed25519-public-key-verification','tampered-signature-rejected','offline-503','offline-network-abort','online-recovery','real-DB-revoke-401'],stats},null,2));
+console.log(JSON.stringify({pass:true,authMode:'authstub',liveAcceptance:false,checks:['real-device-issuance','real-gateway-session','real-company-handler','real-sb-object-view-list','real-decoder-backed-t2-daraxt-null-price','real-decoder-backed-t2-qator-holat-null-f2','unfiltered-list-server-tenant-restriction','foreign-company-list-403','real-packet-handler-with-null-f2-and-footer-fixtures','HTTP-304','wrong-tenant-packet-403','wrong-company-lease-403','cross-company-object-lease-403','migration-quota-30-allowed-31st-429','Ed25519-public-key-verification','tampered-signature-rejected','offline-503','offline-network-abort','online-recovery','real-HTTP-self-revoke-401','ish-joyi-reported-blocked-by-real-bff-allowlist-400'],stats},null,2));

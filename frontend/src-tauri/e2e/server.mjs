@@ -8,9 +8,11 @@ import { fixture, etag, seed, rpcArgs } from './fixtures.mjs';
 const here=dirname(fileURLToPath(import.meta.url));
 const repo=resolve(here,'../../..');
 const frontend=resolve(repo,'frontend');
-export const ORIGIN='http://127.0.0.1:5214';
+export const PORT=Number(process.env.SMETA_M5_PORT||5216);
+if(!Number.isInteger(PORT)||PORT<1024||PORT>65535)throw new Error('M5_PORT_INVALID');
+export const ORIGIN=`http://127.0.0.1:${PORT}`;
 const DB_ORIGIN='https://m5-db.invalid';
-const publicFile='C:/Temp/GAS-M5-local-public.ps1';
+const publicFile='C:/Temp/GAS-M5-current-public.ps1';
 const pgliteDir=process.env.PGLITE_DIR || 'C:/Temp/hr-pglite/node_modules/@electric-sql/pglite';
 const {PGlite}=await import(pathToFileURL(resolve(pgliteDir,'dist/index.js')).href);
 const {createServer}=await import(pathToFileURL(resolve(frontend,'node_modules/vite/dist/node/index.js')).href);
@@ -30,16 +32,15 @@ const vite=await createServer({root:frontend,configFile:false,envFile:false,cach
 const modules={};
 for(const name of ['qurilma','lease','bff']) modules[name]=await vite.ssrLoadModule(`/functions/api/desktop/${name}.ts`);
 const auth=await vite.ssrLoadModule('/functions/_shared/auth.ts');
-const authority=await vite.ssrLoadModule('/functions/_shared/role-authority.ts');
 const leaseTools=await vite.ssrLoadModule('/functions/_shared/desktop-lease.ts');
 // Ensure the fixture packet is accepted by the real columnar decoder at startup.
 const packetTools=await vite.ssrLoadModule('/src/ombor/paket.ts');
 const packetFixture=(await db.query('select paket from public.m5_packet_fixture')).rows[0].paket;
-packetTools.paketDekod(packetFixture);
+const decodedFixture=packetTools.paketDekod(packetFixture);
 let offlineMode='online';
-const stats={authMode:'authstub',fixtureMode:'canonical-business-fixture',fixture,startedAt:new Date().toISOString(),pid:process.pid,
+const stats={authMode:'authstub',fixtureMode:'canonical-business-fixture',fixture,startedAt:new Date().toISOString(),pid:process.pid,port:PORT,
   migration:'20261202000000_t2_desktop_auth_v1.sql',migrationSha256:createHash('sha256').update(migration).digest('hex'),
-  handlers:{},rpc:{},rest:{},httpStatus:{},blockedEgress:0,unimplementedDb:0,handlerErrors:0,offlineRequests:0,
+  handlers:{},rpc:{},rest:{},adapterErrors:{},httpStatus:{},blockedEgress:0,unimplementedDb:0,handlerErrors:0,offlineRequests:0,
   actualHandlers:['desktop/qurilma','desktop/lease','desktop/bff','api/_middleware (via bff)','api/sessiya (via bff)','api/company (via bff)','api/sb (via bff)','api/obyekt-paket (via bff)'],
   database:'PGlite in-memory; real desktop migration; synthetic actor/business SQL fixtures'};
 function count(map,key){map[key]=(map[key]||0)+1;}
@@ -80,6 +81,30 @@ async function objectView(url){
   count(stats.rest,'t2_obyekt_jami');
   return Response.json(result.rows,{headers:{'Content-Range':result.rows.length?`${offset}-${offset+result.rows.length-1}/${result.total}`:`*/${result.total}`}});
 }
+async function packetView(url,table){
+  const raw=packetTools.paketdanQatorlar(decodedFixture).map(r=>({...r,kompaniya_id:fixture.company}));
+  const state=packetTools.paketdanHolatlar(decodedFixture).map(r=>({...r,obyekt_id:fixture.object,kompaniya_id:fixture.company}));
+  let rows=table==='t2_daraxt'?raw:state;
+  const keys=table==='t2_daraxt'?new Set(Object.keys(raw[0])):new Set(Object.keys(state[0]));
+  for(const [col,filter]of url.searchParams){
+    if(['select','order','limit','offset'].includes(col))continue;
+    const m=filter.match(/^(eq|gt|gte|lte)\.([1-9][0-9]*)$/),inside=filter.match(/^in\.\(([1-9][0-9]*(?:,[1-9][0-9]*)*)\)$/);
+    if((!m&&!inside)||!keys.has(col)||!['obyekt_id','kompaniya_id','id','qator_id'].includes(col))throw new Error('M5_PACKET_FILTER_UNSUPPORTED');
+    if(inside){const ids=inside[1].split(',').map(Number);rows=rows.filter(row=>ids.includes(row[col]));}
+    else {const value=Number(m[2]);rows=rows.filter(row=>m[1]==='eq'?row[col]===value:m[1]==='gt'?row[col]>value:m[1]==='gte'?row[col]>=value:row[col]<=value);}
+  }
+  const select=url.searchParams.get('select')||'*',selected=select==='*'?[...keys]:select.split(',');
+  if(!selected.every(c=>keys.has(c)))throw new Error('M5_PACKET_SELECT_UNSUPPORTED');
+  const order=url.searchParams.get('order')||(table==='t2_qator_holat'?'qator_id.asc':'id.asc');
+  const orderCols=order.split(',').map(s=>s.match(/^(id|qator_id|tartib)\.(asc|desc)$/));
+  if(orderCols.some(m=>!m||!keys.has(m[1])))throw new Error('M5_PACKET_ORDER_UNSUPPORTED');
+  rows.sort((a,b)=>{for(const m of orderCols){const d=(a[m[1]]??Infinity)-(b[m[1]]??Infinity);if(d)return m[2]==='desc'?-d:d;}return 0;});
+  const limit=Number(url.searchParams.get('limit')||200000),offset=Number(url.searchParams.get('offset')||0);
+  if(!Number.isSafeInteger(limit)||limit<1||limit>200000||!Number.isSafeInteger(offset)||offset<0)throw new Error('M5_PACKET_PAGE_UNSUPPORTED');
+  const total=rows.length;rows=rows.slice(offset,offset+limit).map(row=>Object.fromEntries(selected.map(c=>[c,row[c]])));
+  count(stats.rest,table);
+  return Response.json(rows,{headers:{'Content-Range':rows.length?`${offset}-${offset+rows.length-1}/${total}`:`*/${total}`} });
+}
 async function rpc(name,args){
   if(!Object.hasOwn(rpcArgs,name)){stats.unimplementedDb++;return Response.json({ok:false,code:'M5_FIXTURE_RPC_UNIMPLEMENTED'},{status:501});}
   count(stats.rpc,name);
@@ -102,6 +127,10 @@ globalThis.fetch=async(input,init)=>{
     return rpc(match[1],args);
   }
   if(url.pathname==='/rest/v1/t2_obyekt_jami'&&req.method==='GET')return objectView(url);
+  if(['t2_daraxt','t2_qator_holat'].includes(url.pathname.split('/').pop())&&req.method==='GET'){
+    try{return await packetView(url,url.pathname.split('/').pop());}
+    catch(error){const code=error instanceof Error&&/^M5_[A-Z_]+$/.test(error.message)?error.message:'M5_PACKET_ADAPTER_ERROR';count(stats.adapterErrors,code);throw error;}
+  }
   if(url.pathname==='/rest/v1/t2_obyekt' && req.method==='GET'){
     const id=url.searchParams.get('id')?.match(/^eq\.(\d+)$/)?.[1];
     if(!id)return Response.json([]);
@@ -124,14 +153,6 @@ async function control(request,url){
     if(!['online','503','abort'].includes(mode))return Response.json({ok:false},{status:400});
     offlineMode=mode;return Response.json({ok:true,offlineMode});
   }
-  if(url.pathname==='/_test/revoke'){
-    const actor=body.actor??body.foydalanuvchi_id;
-    if(![1,2].includes(actor))return Response.json({ok:false},{status:400});
-    const rows=await db.query('select device_id from public.t2_desktop_qurilma where foydalanuvchi_id=$1 and bekor is null',[actor]);
-    for(const row of rows.rows){const r=await rpc('t2_desktop_qurilma_bekor_v1',{p_actor_id:actor,p_device_id:row.device_id,p_operation_id:randomUUID()});if(!(await r.json()).ok)throw new Error('M5_REVOKE_FAILED');}
-    authority.vakolatKeshTozala(actor);
-    return Response.json({ok:true,actor,revoked:rows.rows.length});
-  }
   return Response.json({ok:false},{status:404});
 }
 async function dispatch(request){
@@ -152,7 +173,7 @@ async function dispatch(request){
 }
 const server=httpServer(async(req,res)=>{
   try{
-    if(req.headers.host!=='127.0.0.1:5214'){res.writeHead(400);res.end();return;}
+    if(req.headers.host!==`127.0.0.1:${PORT}`){res.writeHead(400);res.end();return;}
     const url=new URL(req.url,ORIGIN);
     if(url.origin!==ORIGIN){res.writeHead(400);res.end();return;}
     if(req.headers.origin && ![ORIGIN,'http://tauri.localhost'].includes(req.headers.origin)){res.writeHead(403);res.end();return;}
@@ -172,9 +193,9 @@ const server=httpServer(async(req,res)=>{
     res.end(Buffer.from(await response.arrayBuffer()));
   }catch{stats.handlerErrors++;if(!res.headersSent)res.writeHead(500,{'Content-Type':'application/json'});res.end('{"ok":false,"code":"M5_LOCAL_HANDLER_ERROR"}');}
 });
-await new Promise((ok,fail)=>{server.once('error',fail);server.listen(5214,'127.0.0.1',ok);});
+await new Promise((ok,fail)=>{server.once('error',fail);server.listen(PORT,'127.0.0.1',ok);});
 await writeFile(publicFile,[`# SYNTHETIC M5 LOCAL public build settings. Private keys are only in the running server.`,
   `$env:SMETA_DESKTOP_BFF_ORIGIN='${ORIGIN}'`,`$env:VITE_DESKTOP_LEASE_PK='${pk}'`,`$env:VITE_DESKTOP_LEASE_KID='${env.DESKTOP_LEASE_KID}'`,''].join('\r\n'));
-console.log(JSON.stringify({ready:true,origin:ORIGIN,pid:process.pid,authMode:'authstub',fixture,publicBuildEnvFile:publicFile,liveAcceptance:false}));
+console.log(JSON.stringify({ready:true,origin:ORIGIN,port:PORT,pid:process.pid,authMode:'authstub',fixture,publicBuildEnvFile:publicFile,liveAcceptance:false}));
 async function stop(){server.closeAllConnections();await new Promise(ok=>server.close(ok));await vite.close();await db.close();process.exit(0);}
 process.on('SIGTERM',()=>void stop());process.on('SIGINT',()=>void stop());
