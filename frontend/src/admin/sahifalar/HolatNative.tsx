@@ -36,6 +36,7 @@ import { SmetaAnatomiya } from '../../components/smeta-hujjat/SmetaAnatomiya';
 import { SmetaVersiyaFarq, VersiyaAlmashtirilganBelgi } from './SmetaVersiyaFarq';
 import { yaxlitQatorIdlari } from '../../lib/svod-yaxlit';
 import { MuhrFarqXulosa, useMuhrFarq } from '../../umumiy/daraxt/MuhrFarqXulosa';
+import { KeyingiQadamPanel } from '../../components/qollanma/KeyingiQadamPanel';
 
 /**
  * Kundalik ISHCHI SMETA/LRV sahifasi. Bu komponentda Sheet nomi, Drive
@@ -331,6 +332,9 @@ export function HolatNative() {
             </select>
           </label>
         </div>
+
+        {/* Egasi (2026-11-05): «Keyingi qadam» murabbiyi — smeta → podval → fakt → F2 → tasdiqlash → portfel. */}
+        {validId && selected && <KeyingiQadamPanel obyektId={obyektId} smetaBor={loading || daraxtXato ? null : daraxtXom.length > 0} />}
 
         {exportsOpen && selected && <section className="fz-card" aria-label={t('Hujjatlar va eksport')}>
           <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}>

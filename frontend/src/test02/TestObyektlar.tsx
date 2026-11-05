@@ -13,6 +13,7 @@ import { toast } from '../umumiy/ui/Toast';
 import { useKompaniya } from './KompaniyaTanlov';
 import { usePTOWorkspace } from '../umumiy/kontekst/PTOWorkspaceContext';
 import { ObyektUlash } from '../components/ulash/ObyektUlash';
+import { KeyingiQadamPanel } from '../components/qollanma/KeyingiQadamPanel';
 import { YangiObyektMaydonlari, YANGI_LOYIHA } from '../components/pto-workspace/YangiObyektMaydonlari';
 
 const ObjectLocationMap = lazy(() => import('../components/pto-workspace/ObjectLocationMap'));
@@ -291,6 +292,12 @@ export default function TestObyektlar() {
               </div>
             </div>} />
         )}
+
+        {/* Egasi (2026-11-05): oxirgi ochilgan obyekt uchun «Keyingi qadam» — PTO bosh sahifasi shu ro'yxat. */}
+        {(() => {
+          const o = currentRows?.find((x) => x.id === workspace.scope.objectId);
+          return o ? <KeyingiQadamPanel obyektId={o.id} obyektNom={o.nom} smetaBor={o.qator_soni == null ? null : o.qator_soni > 0} /> : null;
+        })()}
 
         {/* ProjectNavigator sums narxsiz at every level and marks incomplete financial totals. */}
         {joriy?.id && currentRows && currentRows.length > 0 && <ProjectNavigator key={joriy.id} companyId={joriy.id} objects={currentRows}
