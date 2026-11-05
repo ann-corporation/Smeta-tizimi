@@ -388,6 +388,8 @@ describe('pul changi (egasi 2026-11-06)', () => {
     expect(pulChangmi(ishQoldiqQiymati(ish))).toBe(true);
     expect(resursQoldiqQiymati({ mumkin: 0.001, taklifNarx: 50000 })).toBe(50);
     expect(resursQoldiqQiymati({ mumkin: 3, taklifNarx: null })).toBeNull();
+  });
+});
 
 describe('chang qoldiq (egasi 2026-11-06)', () => {
   it('1e-7 kabi kasr qoldiq F2 ga taklif qilinmaydi (0); 1e-5 qoladi', () => {
