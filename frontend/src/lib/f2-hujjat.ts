@@ -23,6 +23,7 @@ import { kodlarMatni, resursGuruhKaliti, shifrKorinish } from './f2-resurs-guruh
 import { BOLIMSIZ_KALIT, f2BolimIerarxiya } from './f2-bolim-daraxti';
 import { sumRefs } from './hujjat-yozuvchi/formula';
 import type { T2Qator } from '../api/supabase';
+import { NARX_ANIQLANMAGAN, mashinistMehnati } from './narx-bildirishnoma';
 
 /** Vedomost qatori: bitta resurs (kat + nom kaliti + birlik kaliti) va bitta narx; narxi farqli guruhlar alohida qatorlarga ajraladi. */
 type VedQator = { guruh: string; kat: NakrutkaKat | null; kodlar: string[]; nom: string; birlik: string; qatorlar: number[]; summaQatorlar: number[]; hajm: number; summa: number | null; narx: number | null; narxFarqli: boolean; /** Eng yuqori razdel (uchastka/fayl) - vedomost shu bo'yicha bo'limlanadi (iyerarxiya bo'lsa). */ ildiz: number | null; ildizNom: string };
@@ -103,6 +104,8 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
   let jamiJS: number | null = 0;
   const ks = Object.fromEntries(NAKRUTKA_KATLAR.map((k) => [k, 0])) as KatSummalar;
   let nomJS = 0; // kategoriyasi ko'rsatilmagan summa
+  /** Narxsiz qatorlar soni (mashinist mehnati sanalmaydi) — hujjat oxirida «Внимание: N строк без цены» (egasi 2026-11-06). */
+  let narxsizN = 0;
   const bolimJamiQatorlari: number[] = [];
   let birinchi = v.r;
 
@@ -125,6 +128,10 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
      * lekin bu MA'LUMOT YETISHMASLIGI EMAS — jami bo'sh bo'lmaydi (Game Club F2 №249: 31 shunday qator ИТОГО ni yo'qotardi).
      * Egasi qoidasi (2026-10-08): narxsiz qator jamini HECH QACHON bo'shatmaydi — faqat o'zi bo'sh qoladi. */
     const ongliNarxsiz = x.narxsiz;
+    /* Egasi qoidasi (2026-11-06): haqiqiy narxsiz qator hujjatda BELGILANADI — narx bo'sh, summa katagida «цена не определена»
+     * (matn: SUM o'tkazadi, F2 qayta importi bo'sh katak bilan bir xil o'qiydi). Mashinist mehnati — «—» (narxi mashina ichida). */
+    const narxsizBelgi = !narxBor && !mashinistMehnati(x);
+    if (narxsizBelgi) narxsizN++;
     oxirgiSumma = narxBor && x.summa != null ? x.summa : null;
     if (oxirgiSumma != null) { jamiJS = (jamiJS ?? 0) + oxirgiSumma; if (kat) ks[kat] += oxirgiSumma; else nomJS += oxirgiSumma; }
     const qatorR = v.r;
@@ -142,7 +149,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
       ishgaBogliq ? { f: `ROUND(E${r}*F${ishQator},6)`, v: yaxlit6(x.hajm) } : x.hajm,
       narxBor ? x.narx : null,
       // «—» (matn): SUM uni o'tkazib yuboradi, ИТОГО dagi «bo'sh summa» tekshiruvi esa uni yetishmovchilik deb sanamaydi.
-      !narxBor ? (ongliNarxsiz ? '—' : null) : summaQiymat ? x.summa : { f: `ROUND(F${r}*G${r},2)`, v: hisob },
+      !narxBor ? (narxsizBelgi ? NARX_ANIQLANMAGAN : ongliNarxsiz ? '—' : null) : summaQiymat ? x.summa : { f: `ROUND(F${r}*G${r},2)`, v: hisob },
       x.tur, kat ?? '', lrvKalitYoz(x.id, kod, x.nom, x.birlik),
     ], { daraja: 2, rang: kat && (RANG_TARTIB as readonly string[]).includes(kat) ? kat as QatorRangi : null });
   };
@@ -191,7 +198,9 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     for (const q of b.qatorlar) {
       const kat = nakrutkaKat(q.kat);
       if (q.summa != null) { bJami += q.summa; if (kat) bks[kat] += q.summa; else bNom += q.summa; }
-      tarkib.push(v.qator('oddiy', (): Qiymat[] => [++n, shifrKorinish(q.kod), q.nom, q.birlik ?? '', null, q.hajm, q.narx, q.summa == null ? '—' : q.summa, q.tur, kat ?? '', null],
+      const belgi = q.summa == null && !mashinistMehnati(q);
+      if (belgi) narxsizN++;
+      tarkib.push(v.qator('oddiy', (): Qiymat[] => [++n, shifrKorinish(q.kod), q.nom, q.birlik ?? '', null, q.hajm, q.narx, q.summa == null ? (belgi ? NARX_ANIQLANMAGAN : '—') : q.summa, q.tur, kat ?? '', null],
         { daraja: 2, rang: kat && (RANG_TARTIB as readonly string[]).includes(kat) ? kat as QatorRangi : null }));
     }
     const bOxirgi = v.r - 1;
@@ -262,6 +271,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     v.qator('vsego', (): Qiymat[] => [null, null, 'ИТОГО ПЕРЕРАСЧЕТ К ОПЛАТЕ (новые − сторно), с НДС', null, null, null, null,
       { f: sumRefs('H', qismlar), v: yaxlit2(yangiVsegoJS + eskiVsegoJS) }, null, null]);
   }
+  if (narxsizN) { v.bosh(); v.narxsizOgoh(narxsizN); }
   v.imzo(imzoTomonlari(o.imzo?.subpudratchi ? ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СУБПОДРЯДЧИК', 'ТЕХНАДЗОР'] : ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР'], o.imzo));
   const ved = [...vedomost.values()];
   const narxlari = new Map<string, number>();
@@ -309,6 +319,7 @@ function resursVedomosti(
     yonalish: 'portrait',
   });
   let n = 0;
+  let narxsizN = 0;
   const guruhJami: number[] = [];
   let jamiJS: number | null = 0;
   const tartib = [...NAKRUTKA_KATLAR, null] as const;
@@ -329,11 +340,13 @@ function resursVedomosti(
     let gJS: number | null = 0;
     for (const x of guruh) {
       if (x.summa != null) gJS = yaxlit2((gJS ?? 0) + x.summa);
+      const belgi = x.summa == null && !mashinistMehnati(x);
+      if (belgi) narxsizN++;
       w.qator('oddiy', (r): Qiymat[] => [
         ++n, kodlarMatni(x.kodlar), x.narxFarqli ? `${x.nom} [ЦЕНА ОТЛИЧАЕТСЯ]` : x.nom, x.birlik,
         { f: `ROUND(${x.qatorlar.map((q) => ref('F', q)).join('+')},6)`, v: x.hajm },
         x.narx != null ? { f: ref('G', x.qatorlar[0]), v: x.narx } : null,
-        x.summa == null ? null : { f: `ROUND(${x.summaQatorlar.map((q) => ref('H', q)).join('+')},2)`, v: x.summa },
+        x.summa == null ? (belgi ? NARX_ANIQLANMAGAN : null) : { f: `ROUND(${x.summaQatorlar.map((q) => ref('H', q)).join('+')},2)`, v: x.summa },
       ], { rang });
     }
     const oxiri = w.r - 1;
@@ -351,5 +364,6 @@ function resursVedomosti(
     { f: sumRefs('G', bolimli ? bolimJami : guruhJami), v: jamiJS ?? '' }]);
   w.qator('jami', (): Qiymat[] => [null, null, 'Сверка с актом Ф-2: ведомость − итого по акту (должно быть 0,00)', null, null, null,
     { f: `IF(${ref('H', o.itogoR)}="","",ROUND(G${vR}-${ref('H', o.itogoR)},2))`, v: jamiJS == null || o.jami == null ? '' : yaxlit2(jamiJS - o.jami) }]);
+  if (narxsizN) { w.bosh(); w.narxsizOgoh(narxsizN); }
   return w;
 }

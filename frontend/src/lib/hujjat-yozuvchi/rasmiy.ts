@@ -30,6 +30,7 @@ import { num, sheetRef, ustunHarfi, xmlEsc } from './ooxml';
 import { sumRefs } from './formula';
 import { yaxlit2 as yadroYaxlit2 } from '../hisob-yadro/yaxlit';
 import { IMZO_IMZO_CHIZIQ, IMZO_IZOH, IMZO_IZOH_SHAXS, IMZO_MP, IMZO_PODPIS, imzoMatni, imzoMuhrli, type ImzoTomon } from './imzo';
+import { narxsizItogMatni } from '../narx-bildirishnoma';
 import { DARAJALAR, darajaAniqla, joriyHujjatDizayni, sonUzunligi, type DarajaKalit, type HujjatDizayn } from './dizayn';
 
 /** Barcha rasmiy hujjatlar kolontituli — tizim nomi (egasi: hujjatlarda tizim reklamasi bo'lsin). */
@@ -726,6 +727,17 @@ export class RasmiyVaraq {
     this.bosh();
     this.sarlavhaMatn(`${sarlavha} (${bandlar.length})`);
     bandlar.forEach((b, i) => this.izoh(`${i + 1}. ${b.nom}${b.joy ? ` — ${b.joy}` : ''}: ${b.sabab}`));
+  }
+
+  /**
+   * Egasi qoidasi (2026-11-06): hujjatda narxsiz qatorlar bo'lsa — jamilar yonida qalin ogohlantirish
+   * «Внимание: N строк без цены — итог неполный» (matn — `narxsizItogMatni`, yagona manba). N = 0 — hech narsa yozilmaydi.
+   * Qaytaradi: yozilgan qator raqami yoki null.
+   */
+  narxsizOgoh(n: number | null | undefined): number | null {
+    const matn = narxsizItogMatni(n);
+    if (!matn) return null;
+    return this.sarlavhaMatn(matn);
   }
 
   /** Imzo bloki (H3): har tomon — "РОЛЬ:  Nom yoki chiziq" | "____" | "(подпись)" | "М.П.". */

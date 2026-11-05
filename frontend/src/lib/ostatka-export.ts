@@ -7,7 +7,7 @@ import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { NAKRUTKA_KATLAR, NOMALUM_KAT, kOplate, kategoriyaKf, nakrutkaKat, nakrutkaPodvaliYoz, podvalKfQatorlari, podvalNdsFoiz, podvalQatorRaqami, type KatSummalar } from './nakrutka-podval';
 import { YAXLIT_IZOH, YAXLIT_KAT, bolimBarglari, bolimJamilari, bolimQqsBilan, type SvodYaxlit } from './svod-yaxlit';
 import { NDS_SUKUT_FOIZ, ayirma2, faktSummaF2Narxda, qatorSumma, serverMerosKoefQoy, yaxlit2 as yadroYaxlit2, yaxlitBolimJami, yaxlitKOplateTaqsim, yaxlitQatorlarga, yigindi2, yigindi2Qatiy, type Podval } from './hisob-yadro';
-import { mashinistMehnati, narxBildirishnomaKerak } from './narx-bildirishnoma';
+import { mashinistMehnati, narxBildirishnomaKerak, narxsizSoni } from './narx-bildirishnoma';
 import { bargUslubi } from './qator-uslubi';
 
 /**
@@ -530,6 +530,8 @@ export function ostatkaHujjatXlsx(model: OstatkaModel, o: OstatkaHujjatOpsiya): 
     const p = nakrutkaPodvaliYoz(v, { podval, katUstun: 'L', oraliq: [a1, b1], pulUstunlar: ['I'], foizUstun: 'H', nk, katSummalar: { I: ks }, yaxlit, yaxlitF: yaxlit ? { I: `SUMIF(L${a1}:L${b1},"${YAXLIT_KAT}",K${a1}:K${b1})` } : null, nomalum, nomalumF });
     if (p.kfQator.ЧЕЛ !== kfQ.ЧЕЛ) throw new Error('OSTATKA_PODVAL_SILJIDI');
     kOplataVsego = model.jami == null ? null : p.natija.I.vsego;
+    // Egasi qoidasi (2026-11-06): narxsiz barglar — jamilar yonida «итог неполный» (summa katagi formulali — bo'sh qoladi, ro'yxat diqqat da).
+    v.narxsizOgoh(narxsizSoni(model.qatorlar.filter((q) => q.tur === 'barg'), (q) => q.narx ?? q.summa));
   }
   if (model.chiqarilgan.length) {
     // «ИСКЛЮЧЕНО ИЗ ОСТАТКА» — ВСЕГО dan KEYIN, unga kirmaydi. Графа 5 — объем по

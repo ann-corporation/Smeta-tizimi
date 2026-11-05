@@ -27,6 +27,9 @@ const izohRu = (r: PaketAkt): string => {
   return q.join('; ');
 };
 
+/** Aktlardagi narxsiz qatorlar jami (`AktMoliya.narxsizQator` — yadro bahosi; o'qilmagan akt sanalmaydi). */
+export const narxsizJami = (rows: readonly PaketAkt[]): number => rows.reduce((s, r) => s + (r.moliya?.narxsizQator ?? 0), 0);
+
 /** Summa ustunlari tartibi — QQS bilan BIRINCHI (egasi qoidasi «QQS bilan asosiy»): ВСЕГО с НДС, НДС, с накруткой, без накрутки. */
 const PUL_USTUN = (k: number): RasmiyUstun[] => [
   { sarlavha: 'ВСЕГО с НДС', kenglik: k + 1, tur: 'pul', guruh: 'СУММА, сум' },
@@ -75,6 +78,8 @@ export function oylikReestrXlsx(rows: readonly PaketAkt[], o: { oy: string; tash
   const j = oyJami(rows);
   const jamiKatak = (harf: number, qs: number[], val: number) => { const f = sumFormula(r1.harf(harf), qs); return f ? { f, v: yaxlit2(val) } : null; };
   r1.qator('vsego', ['', oraliq ? 'ИТОГО за период (суммы известных Ф-2)' : 'ИТОГО за месяц (суммы известных Ф-2)', '', '', '', ...PUL_TARTIB.map((k, i) => jamiKatak(5 + i, pulQ[k], j[k].malum)), '']);
+  // Egasi qoidasi (2026-11-06): jamilar yonida — aktlardagi narxsiz qatorlar soni (yagona matn: narxsizItogMatni).
+  r1.narxsizOgoh(narxsizJami(rows));
   r1.bosh();
   const nom = [['с НДС', j.jami.nomalum], ['без накрутки', j.ustamasiz.nomalum]] as const;
   r1.izoh(`Всего Ф-2: ${rows.length}. Основная сумма — «ВСЕГО с НДС»; «с накруткой» = ИТОГО-4 без НДС. Ф-2 с неизвестной суммой в итог не включены (в графе пусто): ${nom.map(([n, c]) => `${n} — ${c}`).join('; ')}.`);
@@ -89,12 +94,14 @@ export function oylikReestrXlsx(rows: readonly PaketAkt[], o: { oy: string; tash
   for (const nom2 of obyektlar) {
     const js = oyJami(rows.filter((r) => r.obyektNom === nom2));
     const bor = (s: { soni: number; nomalum: number }) => s.soni - s.nomalum > 0;
+    const nN = narxsizJami(rows.filter((r) => r.obyektNom === nom2));
     const q = r2.qator('oddiy', [++n2, nom2, js.soni, ...PUL_TARTIB.map((k) => (bor(js[k]) ? js[k].malum : null)),
-      js.jami.nomalum > 0 ? `сумма неизвестна у Ф-2: ${js.jami.nomalum}` : '']);
+      [js.jami.nomalum > 0 ? `сумма неизвестна у Ф-2: ${js.jami.nomalum}` : '', nN > 0 ? `строк без цены: ${nN}` : ''].filter(Boolean).join('; ')]);
     for (const k of PUL_TARTIB) if (bor(js[k])) svodQ[k].push(q);
   }
   const jk = (harf: number, qs: number[], val: number) => { const f = sumFormula(r2.harf(harf), qs); return f ? { f, v: yaxlit2(val) } : null; };
   r2.qator('vsego', ['', oraliq ? 'ИТОГО за период' : 'ИТОГО за месяц', j.soni, ...PUL_TARTIB.map((k, i) => jk(3 + i, svodQ[k], j[k].malum)), '']);
+  r2.narxsizOgoh(narxsizJami(rows));
   r2.bosh();
   r2.izoh('«ВСЕГО с НДС» — основная сумма; «с накруткой» = ИТОГО-4 без НДС; «без накрутки» — прямые затраты. Накрутка — по подвалу самого акта (если сохранён), иначе по подвалу сметы объекта.');
   r2.imzo(imzoTomonlari(['СОСТАВИЛ', 'ПРОВЕРИЛ'], o.imzo));
@@ -140,6 +147,7 @@ export function mundarijaXlsx(qatorlar: readonly MundarijaQator[], o: { sarlavha
   };
   jamiQ('ИТОГО Ф-2 — утверждённые', 't');
   if (aktlar.q.length) jamiQ('ИТОГО Ф-2 — черновики (QORALAMA, не утверждены)', 'q');
+  v.narxsizOgoh(narxsizJami([...aktlar.t, ...aktlar.q]));
   v.bosh();
   v.izoh('Суммы — только по Ф-2 (основная — «ВСЕГО с НДС»). Ф-2 с неизвестной суммой в итог не включены (в графе пусто). Черновики выделены серым и в итог утверждённых не входят.');
   v.imzo(imzoTomonlari(['СОСТАВИЛ', 'ПРОВЕРИЛ'], o.imzo));
