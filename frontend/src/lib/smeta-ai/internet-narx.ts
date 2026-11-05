@@ -205,7 +205,7 @@ export function manbaniBahola(v: InternetDavo, s: InternetSorov, domen: string, 
   const o = narxBirlikKoef(v.birlik, s.birlik, v.qadoq ?? null);
   const koef = o.koef;
   const asos: InternetManba = { ...v, domen, koef, birlikIzoh: o.koef == null ? null : o.izoh,
-    smetaNarx: koef == null ? null : Math.round(qqsSiz(v) * koef * 100) / 100, tekshirildi: false, sabab: null, ishonch: null };
+    smetaNarx: koef == null ? null : yaxlit2(qqsSiz(v) * koef), tekshirildi: false, sabab: null, ishonch: null };
   if (!/^https:\/\/[^\s]+$/i.test(v.url) || !domen) return { ...asos, sabab: 'havola yo‘q yoki https emas' };
   if (o.koef == null) return { ...asos, sabab: o.sabab };
   const matn = p.ok ? p.matn : '';
