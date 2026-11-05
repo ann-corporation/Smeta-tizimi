@@ -328,7 +328,7 @@ async fn login(
     let (status, issued, _) = bounded(response, AUTH_LIMIT).await?;
     let issued = Zeroizing::new(issued);
     if status != 200 {
-        return Err("DESKTOP_DEVICE_EXCHANGE_REJECTED");
+        return Err(enroll_refusal(&issued));
     }
     let issued: Value = serde_json::from_str(&issued).map_err(|_| "DESKTOP_AUTH_INVALID")?;
     let token = Zeroizing::new(
@@ -353,6 +353,19 @@ async fn login(
     guard.persist(&OsVault, &credential, generation, maxfiy::now()?)?;
     // Explicit safe projection; never relay login/exchange bodies or Set-Cookie.
     Ok(DesktopResponse { status:200, body:serde_json::json!({"ok":true,"device_id":credential.device,"foydalanuvchi_id":credential.actor,"tugaydi":credential.expires}).to_string(),etag:None })
+}
+/// Server policy refusals (Tizim nazorati) surface as fixed codes; anything else stays generic.
+fn enroll_refusal(body: &str) -> &'static str {
+    match serde_json::from_str::<Value>(body)
+        .ok()
+        .as_ref()
+        .and_then(|v| v["code"].as_str())
+    {
+        Some("DESKTOP_DISABLED") => "DESKTOP_DISABLED",
+        Some("DESKTOP_UPDATE_REQUIRED") => "DESKTOP_UPDATE_REQUIRED",
+        Some("DEVICE_LIMIT") => "DEVICE_LIMIT",
+        _ => "DESKTOP_DEVICE_EXCHANGE_REJECTED",
+    }
 }
 fn response_current(
     guard: &mut maxfiy::SessiyaBusena,
@@ -671,6 +684,27 @@ mod tests {
             )
             .is_err());
         });
+    }
+    #[test]
+    fn enroll_refusal_maps_only_known_policy_codes() {
+        assert_eq!(
+            enroll_refusal(r#"{"ok":false,"code":"DESKTOP_DISABLED"}"#),
+            "DESKTOP_DISABLED"
+        );
+        assert_eq!(
+            enroll_refusal(
+                r#"{"ok":false,"code":"DESKTOP_UPDATE_REQUIRED","min_versiya":"1.2.0"}"#
+            ),
+            "DESKTOP_UPDATE_REQUIRED"
+        );
+        assert_eq!(
+            enroll_refusal(r#"{"ok":false,"code":"anything"}"#),
+            "DESKTOP_DEVICE_EXCHANGE_REJECTED"
+        );
+        assert_eq!(
+            enroll_refusal("not json"),
+            "DESKTOP_DEVICE_EXCHANGE_REJECTED"
+        );
     }
     #[test]
     fn revoke_is_fixed_own_device_bearer_delete() {
