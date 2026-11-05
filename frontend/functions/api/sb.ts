@@ -225,6 +225,9 @@ export const onRequestPost: PagesFunction<{
         /* 20261203001000: smeta versiyasi faollashtirilgandan keyin eski qatorlardagi tasdiqlangan F2 → yangi faol qator
            (faqat o'qish, hech qanday jamiga qo'shilmaydi). `stable`; a'zolik (t2_actor_kompaniya_azo_tekshir) + f2.read RPC ichida. */
         f2_versiya_kochirma_v1: 'obyekt_actor',
+        /* 20261203001300 (egasi 2026-11-06 «smeta — const»): asl smeta + asoslangan o'zgarishlar (qo'shimcha, zamena farqi,
+           bajarilmaydi) + «smeta + o'zgarishlar» hosilasi. `stable`; a'zolik + smeta.read RPC ichida. */
+        smeta_ozgarish_qatlam_v1: 'obyekt_actor',
         /* T2-GAS-EXIT-001 §5/§6: resumable F2 import job — resumption reads.
            Both RPCs are `stable` (read-only) and membership-checked inside
            the function itself via job_id -> kompaniya_id, same law as above. */
