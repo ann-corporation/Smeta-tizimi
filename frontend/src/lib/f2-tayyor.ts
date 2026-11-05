@@ -11,12 +11,13 @@
  */
 import type { T2Qator } from '../api/supabase';
 import { pulYaxlit } from './ish-abc';
+import { qatorSumma, yaxlit2, yigindi2 } from './hisob-yadro';
 import { katKesimYigish, type KatKesim } from './ustamali-summa';
 import type { F2NativePayloadRow } from './f2-native-preparation';
 import { mashinistMehnati } from './narx-bildirishnoma';
 import { qoralamaAlmashtirilgan, type QoralamaQator } from './zamena-qoldiq';
 
-export type F2Holat = { qator_id: number; f2_mumkin_hajm?: number | null; f2_hajm?: number | null; fakt_hajm?: number | null; smeta_hajm?: number | null; f2_narx?: number | null };
+export type F2Holat = { qator_id: number; f2_mumkin_hajm?: number | null; f2_hajm?: number | null; fakt_hajm?: number | null; smeta_hajm?: number | null; f2_narx?: number | null; smeta_narx?: number | null };
 /** Hajm manbai: akt — Fakt jurnali qoldig'i (sukut); smeta — faktsiz rejim: chegara = smeta qoldig'i, oshsa faqat ogohlantirish (egasi 2026-10-24: hajm bo'yicha blok yo'q). */
 export type F2Manba = 'fakt' | 'smeta';
 export type NarxManba = 'protokol' | 'oldingi_f2' | 'smeta' | 'qolda' | 'yoq';
@@ -44,6 +45,10 @@ export type F2Resurs = {
   ortiqchaF2?: boolean;
   /** Ortiqcha F2 qatorida fakt aynan 0 — butun F2 chegiriladi (operator alohida tekshirsin). */
   faktNol?: boolean;
+  /** `smetaNarxda`: shu qatorning oldingi (tasdiqlangan) F2 narxi — eski narx ↔ yangi narx solishtirish uchun; yo'q — null. */
+  eskiNarx?: number | null;
+  /** `smetaNarxda` va smeta narxi NULL: operator tanlashi mumkin bo'lgan zaxira (oldingi F2 narxi); avtomatik QO'YILMAYDI. */
+  zaxiraNarx?: number | null;
 };
 /** f2Qur qo'shimcha kontekst: chiqarilgan resurslar va zamena → asl bog'lanishi (zamena asl yonida turishi uchun). */
 export type F2QurKontekst = {
@@ -59,6 +64,13 @@ export type F2QurKontekst = {
    * qatorda qoldiq = fakt − F2 (manfiy) — ortiqcha F2 minus qator bilan chegiriladi. Fakt NULL — qator yo'q (NULL ≠ 0).
    */
   ortiqchaChegir?: boolean;
+  /**
+   * «Yangi qatorlar smeta narxida» (egasi 2026-11-05, pereraschet): eski F2 arzon material narxida bo'lgan — storno (eski narxda minus)
+   * dan keyin yangi hajmlar SMETA narxida olinadi. Taklif narxi: protokol → smeta (oldingi F2 narxi taklif qilinmaydi).
+   * Smeta narxi NULL — taklif yo'q (xato NARX, 0 emas); oldingi F2 narxi `zaxiraNarx` da ochiq ko'rsatiladi, operator tanlaydi.
+   * Storno qatorlari bunga tegmaydi (o'z eski narxida saqlanadi — lib/f2-storno).
+   */
+  smetaNarxda?: boolean;
 };
 export type F2Ish = { id: number; kod: string | null; nom: string; birlik: string | null; mumkin: number; smeta: number | null; olingan: number; resurslar: F2Resurs[]; erkin?: boolean; /** qoralamadagi F2 hajmi (mumkin dan ayirilgan) */ qoralama?: number;
   /** Shu qoralamada storno qilinayotgan eski F2 hajmi (`olingan` dan allaqachon chiqarilgan; ko'rsatish uchun). */
@@ -174,9 +186,16 @@ export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarx
     ortiqcha(id) == null ? {} : { ortiqchaF2: true, ...(son(h.get(id)?.fakt_hajm) === 0 ? { faktNol: true as const } : {}) };
   const resurs = (r: T2Qator, avto: boolean): F2Resurs => {
     const p = protokol?.get(r.id);
-    const t = narxTaklif(son(h.get(r.id)?.f2_narx), son(r.narx), p?.narx);
+    const f2Narx = son(h.get(r.id)?.f2_narx);
+    const smetaNarx = son(r.narx) ?? (ktx?.smetaNarxda ? son(h.get(r.id)?.smeta_narx) : null);
+    // Smeta narxida: oldingi F2 narxi taklif zanjiridan chiqariladi (null beriladi), lekin eski/zaxira sifatida ko'rinadi.
+    const t = narxTaklif(ktx?.smetaNarxda ? null : f2Narx, smetaNarx, p?.narx);
     const x: F2Resurs = { id: r.id, tur: r.tur as F2Resurs['tur'], kat: r.kat, kod: r.kod, nom: r.nom || 'Nomsiz', birlik: r.birlik, norma: son((r as T2Qator & { norma?: number | null }).norma), mumkin: mumkin(r.id), avto, taklifNarx: t.narx, taklifManba: t.manba, ...(erkin ? { erkin: true } : {}), ...(qor(r.id) > 0 ? { qoralama: qor(r.id) } : {}), ...ortiqchaBelgi(r.id) };
     if (p && t.manba === 'protokol') x.protokol = `№ ${p.raqam} от ${p.sana.slice(0, 10).split('-').reverse().join('.')}`;
+    if (ktx?.smetaNarxda) {
+      x.eskiNarx = f2Narx != null && f2Narx > 0 ? y6(f2Narx) : null;
+      if (t.narx == null) x.zaxiraNarx = x.eskiNarx;
+    }
     if (ktx) {
       x.smeta = smetaHajm(r.id);
       if (r.zamena) { x.zamena = true; x.almashtiradi = ktx.zamenaAsl?.get(r.id) ?? null; } else if (r.qoshimcha) x.qoshimcha = true;
@@ -444,6 +463,30 @@ export function ortiqchaXulosa(bolimlar: readonly F2Bolim[]): { soni: number; fa
     for (const r of b.alohida) resurs(r);
   }
   return { soni, faktNol, summa: pulYaxlit(summa), nomalum };
+}
+
+/**
+ * «Yangi qatorlar smeta narxida» xulosasi (pereraschet): storno jami (eski narxda, minus), yangi qatorlar jami (smeta narxida),
+ * farq = yangi + storno (egasi: narx farqi ataylab — pul 0 bo'lishi shart emas). Eski narx ma'lum yangi qatorlar uchun
+ * «eski narxda bo'lganida» summasi va narx farqi alohida. Narxi noma'lum qatorlar summaga 0 deb QO'SHILMAYDI — `smetaNarxsiz`.
+ * Pul faqat yadro (`qatorSumma`, `yigindi2`).
+ */
+export type SmetaNarxXulosa = { storno: number; yangi: number; farq: number; eskiNarxda: number; yangiSolishtirma: number; narxFarqi: number; solishtirildi: number; smetaNarxsiz: number };
+export function smetaNarxXulosa(qatorlar: readonly F2Qator[], bolimlar: readonly F2Bolim[], stornoJami: number): SmetaNarxXulosa {
+  const res = new Map<number, F2Resurs>();
+  for (const b of bolimlar) { for (const i of b.ishlar) for (const r of i.resurslar) res.set(r.id, r); for (const r of b.alohida) res.set(r.id, r); }
+  const yangiS: number[] = []; const eskiS: number[] = []; const solS: number[] = []; let smetaNarxsiz = 0;
+  for (const q of qatorlar) {
+    if (q.tur === 'bl' || (q.xato != null && q.xato !== 'NARX')) continue;
+    const r = res.get(q.id);
+    if (q.summa != null) yangiS.push(q.summa);
+    if (r && r.zaxiraNarx !== undefined && q.manba !== 'qolda' && !q.narxsiz && q.summa == null) smetaNarxsiz++;
+    const eski = r?.eskiNarx;
+    if (eski != null && q.summa != null) { const s = qatorSumma(q.hajm, eski); if (s != null) { eskiS.push(s); solS.push(q.summa); } }
+  }
+  const yangi = yigindi2(yangiS); const storno = yaxlit2(stornoJami);
+  const eskiNarxda = yigindi2(eskiS); const yangiSolishtirma = yigindi2(solS);
+  return { storno, yangi, farq: yigindi2([yangi, storno]), eskiNarxda, yangiSolishtirma, narxFarqi: yigindi2([yangiSolishtirma, -eskiNarxda]), solishtirildi: eskiS.length, smetaNarxsiz };
 }
 
 /** Bo'limlar yig'iq daraxti: har bo'lim uchun ota kaliti va farzandi bor-yo'qligi (`daraja` bo'yicha ketma-ket ro'yxatdan). Kalit: id ?? -1. */

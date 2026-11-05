@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 109,
+      "sana": "2026-11-05",
+      "sarlavha": "Pereraschet: yangi qatorlar smeta narxida, storno bo‘lim bo‘yicha",
+      "bandlar": [
+        "Pereraschet qoralamasida yangi belgi: «Yangi qatorlar smeta narxida» (sukut yoqiq). Storno qatorlari eski F2 narxida qoladi, yangi hajmlar smeta narxida taklif qilinadi.",
+        "Har qatorda oldingi F2 narxi ko‘rinadi; tepada storno, yangi summa va farq. Smeta narxi yo‘q qator belgilanadi — oldingi F2 narxini ongli qo‘llash yoki «narxsiz» tanlash mumkin (0 qo‘yilmaydi).",
+        "Storno oynasida «Bo‘lim bo‘yicha tanlash»: bo‘limning barcha qatorlari (resurslar va qo‘shimcha qatorlar bilan) bir bosishda belgilanadi yoki olib tashlanadi."
+      ]
+    },
+    {
       "id": 108,
       "sana": "2026-11-05",
       "sarlavha": "Fakt jurnali: F2 importidagi qo‘shimcha resurslarda narx va summa",
