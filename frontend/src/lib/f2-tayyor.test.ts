@@ -289,6 +289,12 @@ describe('fakt F2 dan kam: ortiqcha F2 ni minus bilan chegirish (ixtiyoriy)', ()
     expect(ish(f2Qur(qs, hol(80), undefined, 'fakt', new Map([[2, -5]]), ON), 2)?.mumkin).toBe(-15);
     expect(ish(f2Qur(qs, hol(80), undefined, 'fakt', new Map([[2, -25]]), ON), 2)?.mumkin ?? 0).toBe(0);
   });
+  it('qoralamada +10 bor → −30 (sof F2 = fakt: 100 + 10 − 30 = 80); manfiy fakt qatori musbat qoralamani avvalgidek e’tiborsiz qoldiradi', () => {
+    expect(ish(f2Qur(qs, hol(80), undefined, 'fakt', new Map([[2, 10]]), ON), 2)).toMatchObject({ mumkin: -30, ortiqchaF2: true, qoralama: 10 });
+    expect(ish(f2Qur(qs, hol(0), undefined, 'fakt', new Map([[2, 10]]), ON), 2)?.mumkin).toBe(-110); // |…| ≤ olingan + qoralama
+    const h = hol(-4); h[0].f2_hajm = 0;
+    expect(ish(f2Qur(qs, h, undefined, 'fakt', new Map([[2, 10]]), ON), 2)?.mumkin).toBe(-4);
+  });
   it('storno bilan: stornolanayotgan eski F2 chiqarilgach hisoblanadi', () => {
     // F2 130, shundan 30 shu qoralamada storno → boshqa F2 100 > fakt 80 → −20.
     expect(ish(f2Qur(qs, hol(80, 130), undefined, 'fakt', undefined, { ...ON, stornoQaytar: new Map([[2, 30]]) }), 2)).toMatchObject({ mumkin: -20, ortiqchaF2: true });

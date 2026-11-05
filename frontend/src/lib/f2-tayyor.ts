@@ -163,7 +163,11 @@ export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarx
   // Qoralamadagi (tasdiqlanmagan) F2 hajmi qoldiqdan AYIRILADI - bir ishni ikki marta F2 qilish xavfi bo'lmasin.
   const qor = (id: number) => Math.max(0, qoralama?.get(id) ?? 0);
   /** Manfiy (chegirma) qoldiqda qoralamadagi manfiy hajm ayiriladi, ishora o'zgarmaydi. */
-  const mumkin = (id: number) => { const b0 = baza(id); return b0 < 0 ? Math.min(0, b0 - Math.min(0, qoralama?.get(id) ?? 0)) : Math.max(0, b0 - qor(id)); };
+  const mumkin = (id: number) => {
+    const b0 = baza(id);
+    // Ortiqcha F2 chegirmasi: qoralamadagi hajm ishorasidan qat'i nazar ayiriladi (sof F2 = fakt); natija ≤ 0, ishora o'zgarmaydi.
+    if (b0 < 0 && ortiqcha(id) != null) return Math.min(0, y6(b0 - (qoralama?.get(id) ?? 0)));
+    return b0 < 0 ? Math.min(0, b0 - Math.min(0, qoralama?.get(id) ?? 0)) : Math.max(0, b0 - qor(id)); };
   const smetaHajm = (id: number) => son(h.get(id)?.smeta_hajm) ?? son(rowById.get(id)?.hajm);
   /** Ortiqcha F2 belgilari (UI: «F2 faktdan ko'p — chegirma»). */
   const ortiqchaBelgi = (id: number): { ortiqchaF2?: true; faktNol?: true } =>
