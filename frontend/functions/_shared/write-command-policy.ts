@@ -46,6 +46,9 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   bux_bank_import_v1: 'financial.write',
   bux_tashqi_v1: 'financial.write',
   shartnoma_oylik_paket_saqla_v1: 'document.write',
+  /* Shartnoma / DS asl fayli bog'i (20261203000900): RPC ham document.write ni tekshiradi. */
+  shartnoma_hujjat_bogla_v1: 'document.write',
+  shartnoma_hujjat_ajrat_v1: 'document.write',
   /* Uy sotish (20261124000000): RPC ham aynan shu capability ni tekshiradi. */
   sotuv_loyiha_saqla_v1: 'sales.price', sotuv_narx_ozgartir_v1: 'sales.price', sotuv_birlik_holat_v1: 'sales.price',
   sotuv_birlik_saqla_v1: 'sales.write', sotuv_bitim_saqla_v1: 'sales.write', sotuv_bron_v1: 'sales.write', sotuv_bron_bekor_v1: 'sales.write',

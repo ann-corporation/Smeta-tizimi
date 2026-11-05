@@ -93,6 +93,9 @@ const AMALLAR = {
   bux_tashqi_v1: { rpc: 't2_bux_tashqi_sync_v1' },
   /* Egasi 2026-11-03: shartnoma oylik paketi - «Topshirildi» (versiya, manifest, ZIP kanonik saqlashda). RPC a'zolik + document.write ni o'zi tekshiradi; idempotent (operation_id). */
   shartnoma_oylik_paket_saqla_v1: { rpc: 't2_shartnoma_oylik_paket_saqla_v1' },
+  /* Egasi 2026-11-05: shartnoma / DS asl fayli (kanonik R2, /api/hujjat-yukla) ↔ shartnoma bog'i. RPC a'zolik + document.write ni o'zi tekshiradi; idempotent. */
+  shartnoma_hujjat_bogla_v1: { rpc: 't2_shartnoma_hujjat_bogla_v1' },
+  shartnoma_hujjat_ajrat_v1: { rpc: 't2_shartnoma_hujjat_ajrat_v1' },
   /* Egasi 2026-11-03: UY SOTISH (20261124000000) — inventar, narx, bitim, bron, grafik, to'lov. Yuk: _shared/sotuv-yuk.ts (oq ro'yxat);
      RPC a'zolik + sales.* ni o'zi tekshiradi; idempotent (operation_id). */
   sotuv_loyiha_saqla_v1: { rpc: 't2_sotuv_loyiha_saqla_v1' },
@@ -1046,6 +1049,27 @@ export const onRequestPost: PagesFunction<{
         p_manifest: mf, p_hujjat_id: hid, p_zip_sha256: so.zip_sha256 == null ? null : String(so.zip_sha256),
         p_zip_olcham: so.zip_olcham == null ? null : Number(so.zip_olcham), p_operation_id: so.operation_id,
       };
+    } else if (amal === 'shartnoma_hujjat_bogla_v1') {
+      /* Shartnoma / DS asl fayli: fayl avval kanonik /api/hujjat-yukla bilan saqlanadi (document_id), keyin shu bog'. */
+      const dsId = so.ds_id == null || so.ds_id === '' ? null : Number(so.ds_id);
+      const tur = so.tur == null || so.tur === '' ? null : String(so.tur);
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || ''))
+          || !Number.isSafeInteger(Number(so.shartnoma_id)) || Number(so.shartnoma_id) <= 0
+          || !Number.isSafeInteger(Number(so.document_id)) || Number(so.document_id) <= 0
+          || (dsId != null && (!Number.isSafeInteger(dsId) || dsId <= 0))
+          || (tur != null && !['asosiy', 'ds', 'ilova', 'boshqa'].includes(tur))
+          || (so.izoh != null && (typeof so.izoh !== 'string' || so.izoh.length > 500))) {
+        return Response.json({ ok: false, error: 'Shartnoma hujjati: shartnoma, hujjat, tur (asosiy | ds | ilova | boshqa) va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = {
+        p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_shartnoma_id: Number(so.shartnoma_id), p_ds_id: dsId,
+        p_document_id: Number(so.document_id), p_tur: tur, p_izoh: so.izoh == null ? null : String(so.izoh), p_operation_id: so.operation_id,
+      };
+    } else if (amal === 'shartnoma_hujjat_ajrat_v1') {
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isSafeInteger(Number(so.id)) || Number(so.id) <= 0) {
+        return Response.json({ ok: false, error: 'Shartnoma hujjati: bog\' va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_id: Number(so.id), p_operation_id: so.operation_id };
     } else if (amal === 'qarzdorlik_import_v1') {
       /* Qarzdorlik Excel importi: ≤300 shartnoma, jami ≤5000 asos qatori; maydonlar oq ro'yxatdan. */
       const shs = so.shartnomalar;

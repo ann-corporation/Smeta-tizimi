@@ -17,6 +17,7 @@ import { shartnomaSvodi, svodJami, type ShartnomaSvodi } from '../../lib/nakopit
 import { PortfelSummaJuft } from '../../umumiy/ui/PortfelSummaJuft';
 import { usePortfelUstamali } from '../../umumiy/ui/usePortfelUstamali';
 import { HisobMeterIxcham, ShartnomaZanjir, ZanjirKpi } from '../../components/shartnoma-liniya/ShartnomaZanjir';
+import { ShartnomaHujjatlar } from '../../components/shartnoma-liniya/ShartnomaHujjatlar';
 
 const kirit = 'w-full rounded-md border border-border bg-surface px-2 py-1.5 text-[13px] text-text outline-none focus:border-accent';
 const yorliq = 'mb-1 block text-[11px] font-medium uppercase tracking-wide text-text-mute';
@@ -146,6 +147,7 @@ export function ShartnomaLiniya() {
         </header>
         <div className="min-h-0 flex-1 space-y-4 overflow-auto p-4">
           {s.id != null && svod?.get(s.id) && <ShartnomaZanjir sv={svod.get(s.id)!} />}
+          {s.id != null && <ShartnomaHujjatlar kompaniyaId={kid} shartnomaId={s.id} />}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label><span className={yorliq}>{tr('Loyiha')} *</span>
               <select aria-label="Loyiha" className={kirit} value={s.loyiha_id ?? ''} onChange={(e) => ozgar({ loyiha_id: e.target.value ? Number(e.target.value) : null })}>
