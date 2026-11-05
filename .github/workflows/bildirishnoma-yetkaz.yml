@@ -1,0 +1,37 @@
+name: bildirishnoma-yetkaz
+
+# Hujjat aylanishi: muddat eslatmalari va tasdiq/xat bildirishnomalarini Telegram'ga yetkazish (har 15 daqiqada).
+# Eslatma yaratish va ilova ichidagi qo'ng'iroqcha bazada pg_cron bilan ishlaydi (migratsiya 20261203000500) — bu ish faqat
+# tashqi Telegram yuborishni bajaradi (bot tokeni bazaga yozilmaydi). Navbat bazada: qayta ishga tushsa ham xabar ikki marta ketmaydi.
+# Yoqish: GitHub sir BILDIRISHNOMA_CRON_KALIT (kamida 24 belgi) + repo o'zgaruvchisi PROD_URL (masalan https://smeta-tizimi.pages.dev);
+# Cloudflare Pages sirlari: BILDIRISHNOMA_CRON_KALIT (shu qiymat) va TELEGRAM_BOT_TOKEN (mavjud). Sozlanmasa ish jim o'tkazib yuboriladi.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bildirishnoma-yetkaz
+  cancel-in-progress: false
+
+jobs:
+  yetkaz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      BILDIRISHNOMA_CRON_KALIT: ${{ secrets.BILDIRISHNOMA_CRON_KALIT }}
+      PROD_URL: ${{ vars.PROD_URL }}
+    steps:
+      - name: Telegram bildirishnomalari
+        run: |
+          if [ -z "$BILDIRISHNOMA_CRON_KALIT" ] || [ -z "$PROD_URL" ]; then
+            echo "BILDIRISHNOMA_CRON_KALIT yoki PROD_URL sozlanmagan — o'tkazib yuborildi."; exit 0
+          fi
+          code=$(curl -sS -o resp.json -w '%{http_code}' -X POST "$PROD_URL/api/bildirishnoma-yetkaz" \
+            -H 'Content-Type: application/json' -H "X-Cron-Kalit: $BILDIRISHNOMA_CRON_KALIT" \
+            --data '{}' --max-time 60 || echo 000)
+          echo "HTTP $code"; head -c 400 resp.json; echo
+          if [ "$code" != "200" ]; then echo "::warning::bildirishnoma-yetkaz muvaffaqiyatsiz (HTTP $code)"; fi
