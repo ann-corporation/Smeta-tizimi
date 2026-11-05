@@ -1,0 +1,10 @@
+{
+ "qalinlik tuzatishi — asosiy ishga bog‘liq": {
+  "ru": "поправка на толщину — зависит от основной работы",
+  "en": "thickness correction — follows the base work"
+ },
+ "Fakt asosiy ish faktidan avtomatik hisoblanadi": {
+  "ru": "Факт рассчитывается автоматически из факта основной работы",
+  "en": "Actual is calculated automatically from the base work's actual"
+ }
+}

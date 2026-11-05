@@ -127,3 +127,4 @@ export { sarlavhaBlokiniTop, ustunXaritasi, tartibRaqamlariQatorimi, type Sarlav
 export { arifmetikUchlik, uchlikniMoslashtir, qoshimchaUstunlar, type MoslashuvNatija, type UstunUchlik } from './ustun-dalil';
 export type * from './turlar';
 export { formatAniqla, nomNaqshi, profilMos, varaqProfili, type SmetaFormat, type VaraqProfili } from './profil';
+export { tuzatishSababi, tuzatishQatorimi, tuzatishBoglanishlari, tuzatishFakti, type TuzatishManba, type TuzatishSabab, type TuzatishBoglanish, type TuzatishXarita } from './tuzatish';
