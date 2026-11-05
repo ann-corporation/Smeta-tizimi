@@ -80,7 +80,7 @@ begin
   if r->>'ok' is distinct from 'true' then raise exception 'reset company row: %',r; end if;
   -- The superadmin may act on multi-company accounts.
   if public.t2_desktop_boshqaruv_buyruq_v1(sa,'bekor',null,(select device_id from public.t2_desktop_qurilma where token_hash=md5('b2')||md5('b2')),null,null,'superadmin',gen_random_uuid())->>'ok' is distinct from 'true' then raise exception 'superadmin multi-company revoke'; end if;
-  update public.t2_azolik set holat='chiqgan' where foydalanuvchi_id=usr_b and kompaniya_id=ka;
+  update public.t2_azolik set holat='bekor' where foydalanuvchi_id=usr_b and kompaniya_id=ka;
 
   -- Revoke by boss (single-company member): audited, idempotent, verify refuses.
   op := gen_random_uuid();
