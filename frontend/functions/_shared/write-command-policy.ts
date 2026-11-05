@@ -25,6 +25,9 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   qator_ish_abc_tahrir_v2: 'smeta.write',
   qator_resurs_ish_zamena_v1: 'smeta.write',
   smeta_bolim_yarat_v1: 'smeta.write',
+  ish_kartasi_saqla_v1: 'smeta.write',
+  ish_kartasi_arxiv_v1: 'smeta.write',
+  ish_kartasi_ulush_saqla_v1: 'smeta.write',
   shartnoma_saqla_v2: 'document.write',
   qarzdorlik_saqla_v1: 'financial.write',
   qarzdorlik_import_v1: 'financial.write',
@@ -46,6 +49,9 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   bux_bank_import_v1: 'financial.write',
   bux_tashqi_v1: 'financial.write',
   shartnoma_oylik_paket_saqla_v1: 'document.write',
+  /* Shartnoma / DS asl fayli bog'i (20261203000900): RPC ham document.write ni tekshiradi. */
+  shartnoma_hujjat_bogla_v1: 'document.write',
+  shartnoma_hujjat_ajrat_v1: 'document.write',
   /* Uy sotish (20261124000000): RPC ham aynan shu capability ni tekshiradi. */
   sotuv_loyiha_saqla_v1: 'sales.price', sotuv_narx_ozgartir_v1: 'sales.price', sotuv_birlik_holat_v1: 'sales.price',
   sotuv_birlik_saqla_v1: 'sales.write', sotuv_bitim_saqla_v1: 'sales.write', sotuv_bron_v1: 'sales.write', sotuv_bron_bekor_v1: 'sales.write',

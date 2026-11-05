@@ -11,6 +11,7 @@ export const GENERATED_SITE_MAP = {
     "/admin/holat",
     "/admin/smeta-narxlash",
     "/admin/narx-dalil",
+    "/admin/narx-tekshiruv",
     "/admin/nakrutka",
     "/admin/narxlar",
     "/admin/narx-manbalari",
@@ -86,6 +87,7 @@ export const GENERATED_SITE_MAP = {
     "nakrutka",
     "narx-manbalari",
     "narx-dalil",
+    "narx-tekshiruv",
     "smeta-narxlash",
     "oferta",
     "narxlar",
@@ -304,6 +306,18 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_smeta_bolim_yarat_v1"
     },
     {
+      "amal": "ish_kartasi_saqla_v1",
+      "rpc": "t2_ish_kartasi_saqla_v1"
+    },
+    {
+      "amal": "ish_kartasi_arxiv_v1",
+      "rpc": "t2_ish_kartasi_arxiv_v1"
+    },
+    {
+      "amal": "ish_kartasi_ulush_saqla_v1",
+      "rpc": "t2_ish_kartasi_ulush_saqla_v1"
+    },
+    {
       "amal": "shartnoma_saqla_v2",
       "rpc": "t2_shartnoma_saqla_v2"
     },
@@ -382,6 +396,14 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "shartnoma_oylik_paket_saqla_v1",
       "rpc": "t2_shartnoma_oylik_paket_saqla_v1"
+    },
+    {
+      "amal": "shartnoma_hujjat_bogla_v1",
+      "rpc": "t2_shartnoma_hujjat_bogla_v1"
+    },
+    {
+      "amal": "shartnoma_hujjat_ajrat_v1",
+      "rpc": "t2_shartnoma_hujjat_ajrat_v1"
     },
     {
       "amal": "sotuv_loyiha_saqla_v1",

@@ -6,8 +6,8 @@ import { FmtN } from '../../lib/format';
 import { davrNomi } from '../../lib/f2-hujjat-korinish';
 import { t, tilLocale } from '../../i18n/til';
 import { yigindi2 } from '../../lib/hisob-yadro';
-import { faolStornolar, stornoFaktReja, stornoQilinadiAkt, stornoQator, stornoQur, type StornoFaktRejim, type StornoManbaQator, type StornoReestrAkt, type StornoYukQator } from '../../lib/f2-storno';
-import { f2StornoAktIdlari, f2StornoFaktYoz, f2StornoHolatOl, f2StornoManbaOl, f2StornoQoralamaYarat, yangiOperationId, type StornoQatorKorinish } from '../../api/t2-f2-storno';
+import { faolStornolar, stornoBolimlar, stornoFaktReja, stornoQilinadiAkt, stornoQator, stornoQur, type StornoDaraxtTugun, type StornoFaktRejim, type StornoManbaQator, type StornoReestrAkt, type StornoYukQator } from '../../lib/f2-storno';
+import { f2StornoAktIdlari, f2StornoDaraxtOl, f2StornoFaktYoz, f2StornoHolatOl, f2StornoManbaOl, f2StornoQoralamaYarat, yangiOperationId, type StornoQatorKorinish } from '../../api/t2-f2-storno';
 import { aktPodvalStornoNusxa } from '../../api/t2-akt-podval';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 
@@ -121,6 +121,34 @@ export function F2StornoOyna(p: {
     });
   }, [qatorlar, qidir, nomlar]);
 
+  /* Bo'lim bo'yicha tanlash (egasi 2026-11-05): tanlangan rz ning BUTUN avlodi — ishlar, rs/mat/ob, qo'shimcha qatorlar.
+   * Daraxt o'qilmasa — bu tanlov ko'rinmaydi, qolgan oqim o'zgarmaydi. */
+  const [daraxt, setDaraxt] = useState<StornoDaraxtTugun[] | null>(null);
+  useEffect(() => {
+    let jonli = true;
+    void (async () => {
+      try { const r = await f2StornoDaraxtOl(p.obyektId); if (jonli) setDaraxt(r.ok ? r.qatorlar : null); } catch { if (jonli) setDaraxt(null); }
+    })();
+    return () => { jonli = false; };
+  }, [p.obyektId]);
+  const bolimlar = useMemo(() => (daraxt && qatorlar.length ? stornoBolimlar(daraxt, qatorlar.map(({ x }) => x.qator_id)) : []), [daraxt, qatorlar]);
+  const [bolimId, setBolimId] = useState<number | null>(null);
+  const bolimBelgila = (rejim: 'qosh' | 'ol' | 'faqat') => {
+    const b = bolimlar.find((x) => x.id === bolimId);
+    if (!b) return;
+    const ichida = new Set(b.qatorlar);
+    setTanlangan((s) => {
+      const n = rejim === 'faqat' ? new Set<string>() : new Set(s);
+      for (const { akt, x } of qatorlar) {
+        if (!ichida.has(x.qator_id) || stornoQator(x, akt.id).tur !== 'qator') continue;
+        if (rejim === 'ol') n.delete(kalit(akt.id, x.qator_id)); else n.add(kalit(akt.id, x.qator_id));
+      }
+      return n;
+    });
+  };
+  const bolimTanlovBor = bolimlar.length > 0;
+  const bolimTanlanmagan = bolimId == null || band || yaratilganAkt != null;
+
   const kesilgan = korinadigan.length > KORSATISH_LIMIT;
   const belgila = (k: string, on: boolean) => setTanlangan((s) => { const n = new Set(s); if (on) n.add(k); else n.delete(k); return n; });
   const hammasi = (on: boolean) => setTanlangan((s) => {
@@ -201,6 +229,19 @@ export function F2StornoOyna(p: {
               <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" onClick={() => hammasi(false)}>{t('Ko‘ringanlardan belgini olish')}</button>
               <span className="text-text-dim">{t('Saqlab qolinadigan qatorlardan belgini oling.')}</span>
             </div>
+            {bolimTanlovBor && (
+              <div className="flex flex-wrap items-center gap-2" data-testid="storno-bolim-tanlov">
+                <label className="text-text-dim">{t('Bo‘lim bo‘yicha tanlash')}
+                  <select aria-label={t('Bo‘lim bo‘yicha tanlash')} className="ml-2 max-w-[28rem]" value={bolimId ?? ''} onChange={(e) => setBolimId(e.target.value === '' ? null : Number(e.target.value))}>
+                    <option value="">{t('— bo‘limni tanlang —')}</option>
+                    {bolimlar.map((b) => <option key={b.id} value={b.id}>{`${' '.repeat(Math.min(b.daraja, 6) * 2)}${b.yol} (${b.qatorlar.length})`}</option>)}
+                  </select>
+                </label>
+                <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" disabled={bolimTanlanmagan} onClick={() => bolimBelgila('faqat')}>{t('Faqat shu bo‘lim')}</button>
+                <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" disabled={bolimTanlanmagan} onClick={() => bolimBelgila('qosh')}>{t('Bo‘limni qo‘shish')}</button>
+                <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" disabled={bolimTanlanmagan} onClick={() => bolimBelgila('ol')}>{t('Bo‘limdan belgini olish')}</button>
+              </div>
+            )}
             <div className="max-h-[38dvh] overflow-auto rounded border border-border/60">
               <table className="w-full text-[12.5px]">
                 <thead className="sticky top-0 bg-surface-2 text-left text-text-dim"><tr><th className="w-8 p-1.5" />{kop && <th>{t('F2 №')}</th>}<th>{t('Kod')}</th><th>{t('Nomi')}</th><th className="text-right">{t('Hajm')}</th><th className="text-right">{t('Summa')}</th><th className="p-1.5 text-right">{t('Fakt')}</th></tr></thead>

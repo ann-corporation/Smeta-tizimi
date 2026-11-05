@@ -52,6 +52,12 @@ describe('Excel eksport', () => {
     const tolov = s.getRows(1, s.rowCount)!.find((r) => String(r.getCell(1).value).startsWith('Оплачено'))!;
     expect(tolov.getCell(2).value).toBeNull();
     expect(tolov.getCell(5).value).toBe('не введено');
+    const qator = (bosh: string) => s.getRows(1, s.rowCount)!.find((r) => String(r.getCell(1).value).startsWith(bosh))!;
+    expect(qator('Выполнено (факт').getCell(2).value).toBe(112);
+    expect(qator('Выполнено, но не сдано').getCell(2).value).toBe(0);
+    expect(qator('Сдано заказчику (утверждённые Ф2, всего)').getCell(2).value).toBe(112);
+    const ob = wb.getWorksheet('Объекты')!;
+    expect(ob.getRow(1).getCell(8).value).toBe('Факт, с НДС');
   });
 });
 

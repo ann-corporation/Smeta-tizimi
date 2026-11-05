@@ -39,6 +39,8 @@ export const ADMIN_MARSHRUTLARI = [
   'sotuv',
   /* 2026-11-04: HR + KPI. */
   'hr',
+  /* 2026-11-05: ish kartasi + narx tekshiruvi. */
+  'narx-tekshiruv',
 ] as const;
 
 /**

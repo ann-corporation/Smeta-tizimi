@@ -20,6 +20,8 @@ import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { sbOqi, sbT2AktYaratV2, sbT2F2QoralamaYangila, sbT2DaraxtOl, sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt, type T2Qator } from '../../api/supabase';
 import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
 import { sbQatorHolatOl, sbF2QoralamaHajmlar, type QatorHolat } from '../../api/t2-fakt';
+import { f2VersiyaKochirmaOl } from '../../api/t2-f2-versiya-kochirma';
+import { avvalgiF2Xaritasi, type F2VersiyaKochirma } from '../../lib/f2-versiya-kochirma';
 import { f2Hujjat } from '../../lib/f2-hujjat';
 import { stornoBlokniSaqla, stornoQaytarHajm, stornoQatorimi } from '../../lib/f2-storno';
 import { yigindi2 } from '../../lib/hisob-yadro';
@@ -49,7 +51,7 @@ import { sbAosrCoverageOl, type AosrCoverage } from '../../api/t2-aosr';
 import { aosrIshora, AOSR_ISHORA_MATNI, type AosrIshora } from '../../lib/nazorat/aosr-holat';
 import { amaldagiProtokolNarxlari, narxProtokolQatorlariOl, type NarxProtokolQator } from '../../api/t2-narx-protokol';
 import {
-  bosKiritma, f2Jami, f2KatKesim, f2Qatorlar, f2Qur, f2Yacheykalar, f2Yuk, f2ZamenaQolla, ishBirlikNarxi, narxsizNomzodlar, ortiqchaXulosa, sonOqi, ulushHajm,
+  bosKiritma, f2Jami, f2KatKesim, f2Qatorlar, f2Qur, f2Yacheykalar, f2Yuk, f2ZamenaQolla, ishBirlikNarxi, narxsizNomzodlar, ortiqchaXulosa, smetaNarxXulosa, sonOqi, ulushHajm,
   type F2Bolim, type F2Ish, type F2Kiritma, type F2Manba, type F2Qator, type F2Resurs, type F2ZamenaKontekst,
 } from '../../lib/f2-tayyor';
 import { MinusCircle, Repeat2, RotateCcw } from 'lucide-react';
@@ -122,6 +124,9 @@ export function F2TayyorlashNative() {
   const [rows, setRows] = useState<T2Qator[]>([]);
   const [holat, setHolat] = useState<QatorHolat[]>([]);
   const [qoralamaHajm, setQoralamaHajm] = useState<ReadonlyMap<number, number>>(new Map());
+  /** Smeta versiyasi faollashtirilgan obyekt: eski qatorlardagi tasdiqlangan F2 → yangi qator (faqat belgi; «mumkin» va jamiga kirmaydi). */
+  const [kochirma, setKochirma] = useState<F2VersiyaKochirma | null>(null);
+  const avvalgiF2 = useMemo(() => avvalgiF2Xaritasi(kochirma), [kochirma]);
   /** Протокол согласования цен qatorlari (tasdiqlangan — kuchga kirgan oydan narx ustuvor). */
   const [protokolQ, setProtokolQ] = useState<NarxProtokolQator[]>([]);
   const [k, setK] = useState<F2Kiritma>(bosKiritma);
@@ -129,6 +134,8 @@ export function F2TayyorlashNative() {
   const [manbaTanlov, setManbaTanlov] = useState<F2Manba | null>(null);
   /** Fakt F2 dan kam qatorlarni minus bilan chegirish — ixtiyoriy, sukut o'chiq (F2 faktdan oldinda bo'lishi normal); faqat shu sahifa holati. */
   const [ortiqchaChegir, setOrtiqchaChegir] = useState(false);
+  /** «Yangi qatorlar smeta narxida» (pereraschet qoralamasida sukut YOQIQ): null — operator tanlamagan. */
+  const [smetaNarxTanlov, setSmetaNarxTanlov] = useState<boolean | null>(null);
   /** «Faktdan F2» (Fakt jurnalidan ?oy=YYYY-MM): davr fakt sahifasida tanlangan bo'lsa — shu oy. */
   const [oy, setOy] = useState(() => { const p = params.get('oy'); return p && /^\d{4}-\d{2}$/.test(p) ? `${p}-01` : oyBoshlanishi(); });
   const [raqam, setRaqam] = useState('');
@@ -200,6 +207,7 @@ export function F2TayyorlashNative() {
       }
       void Promise.resolve().then(() => narxProtokolQatorlariOl(obyektId)).then((r) => { if (dolzarb()) setProtokolQ(r.ok ? (r.qatorlar || []).filter((x) => x.holat === 'tasdiqlangan') : []); }).catch(() => { if (dolzarb()) setProtokolQ([]); });
       void sbAosrCoverageOl(obyektId).then((c) => { if (dolzarb()) { setAosrsiz(c.ok ? (c.qatorlar || []).filter((x) => x.yashirin && !x.akt_bor) : []); setAosrKoz(new Map(c.ok ? (c.qatorlar || []).map((x) => [x.qator_id, aosrIshora(x)] as const) : [])); } }).catch(() => { if (dolzarb()) setAosrsiz([]); });
+      void Promise.resolve().then(() => f2VersiyaKochirmaOl(obyektId)).then((r) => { if (dolzarb()) setKochirma(r.ok ? r.natija : null); }).catch(() => { if (dolzarb()) setKochirma(null); });
       void Promise.resolve().then(() => sbF2QoralamaHajmlar(obyektId, aktId)).then((qh) => { if (dolzarb()) setQoralamaHajm(qh.ok ? qh.hajm : new Map()); }).catch(() => { if (dolzarb()) setQoralamaHajm(new Map()); });
       const [d, h] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbQatorHolatOl(obyektId)]);
       if (!dolzarb()) return;
@@ -207,7 +215,7 @@ export function F2TayyorlashNative() {
       setRows((d.qatorlar || []) as T2Qator[]); setHolat((h.qatorlar || []) as QatorHolat[]);
       sessObyekt.current = aktId == null ? obyektId : null;
       const sess = aktId == null ? f2SessiyaOqi(obyektId) : null; // saqlanmagan kiritmalar (yangilashdan keyin ham)
-      setK(sess?.k ?? bosKiritma()); if (sess?.raqam) setRaqam(sess.raqam); setBolimId(undefined); setManbaTanlov(null); setOrtiqchaChegir(false);
+      setK(sess?.k ?? bosKiritma()); if (sess?.raqam) setRaqam(sess.raqam); setBolimId(undefined); setManbaTanlov(null); setOrtiqchaChegir(false); setSmetaNarxTanlov(null);
       operationId.current = yangiOperationId();
     } catch { if (dolzarb()) { setRows([]); setHolat([]); setError('F2 uchun ma’lumotlar o‘qilmadi. Qayta urinib ko‘ring.'); } }
     finally { if (dolzarb()) setLoading(false); }
@@ -283,7 +291,10 @@ export function F2TayyorlashNative() {
     return akt.qatorlar.some((x) => { if (stornoQatorimi(x)) return false; const q = sonQ(x.certified_quantity) ?? sonQ(x.hajm); const f = fakt.get(x.qator_id); return q != null && q < 0 && f != null && f >= 0; });
   }, [akt, holat]);
   useEffect(() => { if (aktdaOrtiqcha) setOrtiqchaChegir(true); }, [aktdaOrtiqcha]);
-  const f2QurOrtiqcha = useCallback((yoq: boolean) => f2Qur(rows, holat, protokolNarx, manba, qoralamaHajm, { chiqarilgan, zamenaAsl, stornoQaytar, ortiqchaChegir: yoq }), [rows, holat, protokolNarx, manba, qoralamaHajm, chiqarilgan, zamenaAsl, stornoQaytar]);
+  /** Pereraschet qoralamasi (storno bloki bor): yangi qatorlar sukut bo'yicha SMETA narxida (eski F2 narxi taklif qilinmaydi). */
+  const pereraschetQoralama = aktId != null && stornoBlok.soni > 0;
+  const smetaNarxda = pereraschetQoralama && (smetaNarxTanlov ?? true);
+  const f2QurOrtiqcha = useCallback((yoq: boolean) => f2Qur(rows, holat, protokolNarx, manba, qoralamaHajm, { chiqarilgan, zamenaAsl, stornoQaytar, ortiqchaChegir: yoq, smetaNarxda }), [rows, holat, protokolNarx, manba, qoralamaHajm, chiqarilgan, zamenaAsl, stornoQaytar, smetaNarxda]);
   const bolimlar = useMemo(() => f2QurOrtiqcha(ortiqchaChegir), [f2QurOrtiqcha, ortiqchaChegir]);
   /** «N ta qatorda F2 faktdan ko'p (≈ X so'm)» — chegirish yoqilgan holatdagi qurilishdan (o'chiq bo'lsa alohida hisoblanadi). Smeta rejimida — yo'q. */
   const ortiqchaX = useMemo(() => (manba !== 'fakt' || !rows.length ? null : ortiqchaXulosa(ortiqchaChegir ? bolimlar : f2QurOrtiqcha(true))), [manba, rows.length, ortiqchaChegir, bolimlar, f2QurOrtiqcha]);
@@ -311,6 +322,8 @@ export function F2TayyorlashNative() {
   const zamenaNatija = useMemo(() => f2ZamenaQolla(xomQatorlar, bolimlar, k, zamenaKtx), [xomQatorlar, bolimlar, k, zamenaKtx]);
   const qatorlar = zamenaNatija.qatorlar;
   const jami = useMemo(() => f2Jami(qatorlar), [qatorlar]);
+  /** Storno (eski narxda) ↔ yangi (smeta narxida) jamilari va farqi. */
+  const smetaX = useMemo(() => (smetaNarxda ? smetaNarxXulosa(qatorlar, bolimlar, stornoBlok.jami) : null), [smetaNarxda, qatorlar, bolimlar, stornoBlok.jami]);
   const katKesim = useMemo(() => f2KatKesim(qatorlar), [qatorlar]);
   const byId = useMemo(() => new Map(qatorlar.map((x) => [x.id, x])), [qatorlar]);
   const narxsizlar = useMemo(() => narxsizNomzodlar(qatorlar), [qatorlar]);
@@ -691,6 +704,10 @@ export function F2TayyorlashNative() {
     const amal = resursAmallari(r, ish);
     const zb2 = zamenaBelgi(r);
     const orqBelgi = r.ortiqchaF2 && !r.avto ? ortiqchaChip(!!r.faktNol) : null;
+    /* Smeta narxida (pereraschet): eski F2 narxi ↔ yangi narx; smeta narxi NULL — belgi + zaxirani ongli qo'llash (avtomatik emas). */
+    const eskiNarxBor = smetaNarxda && r.eskiNarx != null;
+    const smetaNarxYoq = smetaNarxda && r.zaxiraNarx !== undefined;
+    const zaxiraBor = smetaNarxYoq && r.zaxiraNarx != null && !k.narxsiz[r.id];
     return (
       <tr key={r.id} data-qator={r.id} className={`border-t border-border align-top ${r.chiqarilgan ? 'opacity-60' : ''} ${r.zamena ? 'border-l-2 border-l-[var(--info)]' : ''}`}>
         <td className="py-1.5 pl-9 pr-2">
@@ -707,6 +724,11 @@ export function F2TayyorlashNative() {
         <td className="px-2 py-1.5 text-right">
           <MoneyInput aria-label={`F2 narxi: ${r.nom}`} inputMode="decimal" disabled={k.narxsiz[r.id] === true || !!r.chiqarilgan} value={k.narx[r.id] ?? ''} onValueChange={(moneyValue) => yoz('narx', r.id, moneyValue)} placeholder={taklif || t('narx')} className={`${kirit} w-28 disabled:opacity-40`} />
           {x && <div className="mt-1 flex items-center justify-end gap-1"><NarxManbaChip manba={x.manba} protokol={x.protokol} />{x.protokol && <span className="text-[11px] text-text-mute">{x.protokol}</span>}</div>}
+          {eskiNarxBor && <div className="text-[11px] text-text-mute" data-testid="eski-f2-narx">{t('oldingi F2 narxi')} <FmtN val={r.eskiNarx ?? 0} /></div>}
+          {smetaNarxYoq && <div className="mt-0.5 flex flex-wrap items-center justify-end gap-1" data-testid="smeta-narx-yoq">
+            <span className="fz-chip fz-chip--warn">{t('smeta narxi yo‘q')}</span>
+            {zaxiraBor && <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" onClick={() => yoz('narx', r.id, String(r.zaxiraNarx))}>{t('oldingi F2 narxini qo‘llash')}</button>}
+          </div>}
         </td>
         <td className="px-2 py-1.5 text-right">
           <MoneyInput aria-label={`F2 summasi: ${r.nom}`} inputMode="decimal" disabled={k.narxsiz[r.id] === true || !!r.chiqarilgan} value={k.summa[r.id] ?? ''} onValueChange={(moneyValue) => yoz('summa', r.id, moneyValue)} placeholder={x?.summa != null ? x.summa.toFixed(2) : ''} className={`${kirit} w-32 disabled:opacity-40`} />
@@ -785,6 +807,14 @@ export function F2TayyorlashNative() {
           {i.storno != null
             ? <span data-testid="ish-storno-olingan">{t('tasdiqlangan F2')} <FmtN val={i.olingan} /> ({t('storno qilingan')}: <FmtN val={i.storno} />)</span>
             : i.olingan > 0 && <span>{t('tasdiqlangan F2')} <FmtN val={i.olingan} /></span>}
+          {(() => {
+            const av = avvalgiF2.get(i.id); const resSoni = i.resurslar.filter((r) => avvalgiF2.has(r.id)).length;
+            if (!av && resSoni === 0) return null;
+            return <span className="fz-chip bg-[var(--info-soft)] text-[var(--info)]" data-testid="ish-avvalgi-f2"
+              title={t('Tasdiqlangan F2 avvalgi smeta versiyasining qatorida: obyekt jamisida bir marta sanaladi; bu yerdagi «mumkin» hajmiga ta’sir qilmaydi.')}>
+              {t('avvalgi versiya F2')}{av ? <>: <FmtN val={av.hajm ?? 0} /> {i.birlik ?? ''}</> : null}
+              {resSoni > 0 ? ` · ${t('{n} ta resursda', { n: String(resSoni) })}` : ''}</span>;
+          })()}
           {(i.qoralama ?? 0) > 0 && <span className="text-warn">{t('qoralamada')} <b><FmtN val={i.qoralama ?? 0} /></b></span>}
           {(bn.summa > 0 || bn.narxsiz > 0) && <span className="inline-flex items-center gap-1">{t('narx (1 birlik, NDS siz)')} {birlikNarx}{birlikNarxsiz}</span>}
           <span className="text-text-mute">{t('{n} ta resurs', { n: i.resurslar.length })}</span>
@@ -841,6 +871,8 @@ export function F2TayyorlashNative() {
   const ortiqchaKorinadi = validId && !loading && manba === 'fakt' && ortiqchaX != null && (ortiqchaX.soni > 0 || ortiqchaChegir);
   const ortiqchaNomalum = (ortiqchaX?.nomalum ?? 0) > 0;
   const ortiqchaFaktNol = (ortiqchaX?.faktNol ?? 0) > 0;
+  const smetaSolishtirildi = (smetaX?.solishtirildi ?? 0) > 0;
+  const smetaNarxsizBor = (smetaX?.smetaNarxsiz ?? 0) > 0;
   const saqlaMatn = aktId != null
     ? (saving ? t('Yangilanmoqda…') : `${t('F2 qoralamani yangilash')} (${qatorlar.length})`)
     : saving ? t('Yaratilmoqda…') : `${t('F2 qoralama yaratish')} (${qatorlar.length})`;
@@ -886,6 +918,16 @@ export function F2TayyorlashNative() {
             {ortiqchaFaktNol && <> · {t('{n} qatorda fakt 0 — F2 to‘liq chegiriladi', { n: ortiqchaX.faktNol })}</>}
           </div>
           <div className="mt-0.5 text-[11px] font-normal text-text-mute">{t('F2 faktdan oldinda bo‘lishi normal (avans) — faqat ongli ravishda yoqing.')}</div>
+        </div>}
+        {validId && !loading && pereraschetQoralama && <div className="max-w-[26rem] text-[12px] font-medium text-text-dim" data-testid="smeta-narxda">
+          <label className="flex items-start gap-1.5"><input type="checkbox" className="mt-0.5" checked={smetaNarxda} disabled={aktKorish} onChange={(e) => setSmetaNarxTanlov(e.target.checked)} />{t('Yangi qatorlar smeta narxida')}</label>
+          <div className="mt-0.5 text-[11px] font-normal text-text-mute">{t('Storno qatorlari eski F2 narxida qoladi; yangi hajmlar smeta narxida taklif qilinadi.')}</div>
+          {smetaX && <div className="mt-1 text-[11.5px] font-normal" data-testid="smeta-narx-xulosa">
+            <div>{t('Storno (eski narxda)')}: <FmtN val={smetaX.storno} /> · {t('Yangi (smeta narxida)')}: <FmtN val={smetaX.yangi} /></div>
+            <div><b>{t('Farq')}: <FmtN val={smetaX.farq} /></b> {t('so‘m ustamasiz')}</div>
+            {smetaSolishtirildi && <div className="text-text-mute">{t('Narx farqi ({n} qator, eski narxga nisbatan)', { n: smetaX.solishtirildi })}: <FmtN val={smetaX.narxFarqi} /></div>}
+            {smetaNarxsizBor && <div className="text-warn">{t('{n} qatorda smeta narxi yo‘q — summaga kirmagan; narx kiriting, oldingi F2 narxini qo‘llang yoki «narxsiz» belgilang', { n: smetaX.smetaNarxsiz })}</div>}
+          </div>}
         </div>}
         {validId && bolimlar.length > 0 && <label className="relative min-w-[200px] flex-1 text-[12px] font-medium text-text-dim">{t('Qidirish')}
           <Search size={14} className="pointer-events-none absolute bottom-2.5 left-2.5 text-text-mute" />

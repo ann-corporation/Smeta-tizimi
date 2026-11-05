@@ -28,12 +28,16 @@ export const ID_JADVAL: Readonly<Record<string, string>> = {
   p_protokol_id: 't2_lab_protokol',
   p_azolik_id: 't2_azolik',
   p_document_id: 't2_document_registry',
+  /* Shartnoma DS (qo'shimcha kelishuv) — 20261203000900 shartnoma hujjati bog'i. */
+  p_ds_id: 't2_shartnoma_ds',
   /* Fayl menejeri o'z papkalari (p_ota_id emas — u t2_qator uchun band). */
   p_papka_id: 't2_fayl_papka', p_ota_papka_id: 't2_fayl_papka',
   /* C11 markaziy ombor kirimi (2026-10-29): ombor va jurnal qatori ham shlyuzda kompaniya bo'yicha tekshiriladi. */
   p_sklad_id: 't2_sklad_mustaqil', p_harakat_id: 't2_sklad_harakat',
   /* Uy sotish (20261124000000): RPC lar kompaniyani o'zi ham tekshiradi — bu ikkinchi qatlam. */
   p_bitim_id: 't2_sotuv_bitim', p_birlik_id: 't2_sotuv_birlik', p_bron_id: 't2_sotuv_bron', p_sotuv_tolov_id: 't2_sotuv_tolov',
+  /* Ish kartasi (20261203000600): karta kompaniyasi shlyuzda ham tekshiriladi (RPC — birinchi qatlam). */
+  p_karta_id: 't2_ish_kartasi',
 };
 /** Massiv argumentlar. */
 export const IDLAR_JADVAL: Readonly<Record<string, string>> = { p_aosr_ids: 't2_aosr', p_qator_ids: 't2_qator', p_obyektlar: 't2_obyekt', p_birlik_ids: 't2_sotuv_birlik' };
@@ -55,6 +59,7 @@ export const P_ID_JADVAL: Readonly<Record<string, string>> = {
   faktura_yoz: 't2_faktura',
   ish_turi_yoz: 't2_ish_turi', ish_turi_saqla_v1: 't2_ish_turi',
   shartnoma_saqla_v2: 't2_shartnoma',
+  shartnoma_hujjat_ajrat_v1: 't2_shartnoma_hujjat',
   grafik_yangilash: 't2_grafik_qator', grafik_sozlama_saqla: 't2_grafik_qator',
   kompaniya_yangila: 't2_kompaniya',
   narx_protokol_tasdiqla: 't2_price_basis', narx_protokol_bekor: 't2_price_basis',
@@ -100,8 +105,9 @@ export function yozishTalablari(amal: string, xom: Record<string, unknown>): Yoz
     if (Array.isArray(v)) for (const x of v) { const id = musbat(x); if (id) qosh(jadval, id); }
   }
   // p_qatorlar: [{qator_id}] — smeta qatorlari ham tekshiriladi (fakt/akt/F2 qoralama).
-  if (Array.isArray(yuk.p_qatorlar)) {
-    for (const q of yuk.p_qatorlar) {
+  // p_bog: [{qator_id}] — ish kartasi bog'lari (har smeta qatori shu kompaniyaniki bo'lishi shart).
+  for (const ro of [yuk.p_qatorlar, yuk.p_bog]) if (Array.isArray(ro)) {
+    for (const q of ro) {
       const id = q && typeof q === 'object' ? musbat((q as Record<string, unknown>).qator_id) : null;
       if (id) qosh('t2_qator', id);
     }
@@ -135,14 +141,19 @@ export const EGA_JADVALLARI: ReadonlySet<string> = new Set([
   ...Object.values(RESURS_JADVAL), 't2_shaxsiy_smeta', 't2_sklad_harakat',
 ]);
 
+/** Bitta so'rovda egaligi tekshiriladigan id lar chegarasi va o'qish bo'lagi. */
+export const EGA_MAX_ID = 10_000;
+export const EGA_BOLAK = 500;
+
 /** Egalarni bazadan o'qiydi (service_role, faqat o'qish). Xato bo'lsa — null (chaqiruvchi fail-closed qiladi). */
 export async function egalarniOqi(baseUrl: string, kalit: string, sorovlar: readonly EgaSorov[]): Promise<Map<string, Map<number, number | null>> | null> {
   const topilgan = new Map<string, Map<number, number | null>>();
   for (const s of sorovlar) {
-    if (!EGA_JADVALLARI.has(s.jadval) || s.idlar.length > 2000) return null;
+    // Chegara: katta F2 qoralamasi (pereraschet: storno + yangi bloklar) 2 000 dan oshadi — 10 000 gacha, 500 talik bo'laklarda (≤20 so'rov).
+    if (!EGA_JADVALLARI.has(s.jadval) || s.idlar.length > EGA_MAX_ID) return null;
     const m = new Map<number, number | null>();
-    for (let i = 0; i < s.idlar.length; i += 300) {
-      const bolak = s.idlar.slice(i, i + 300);
+    for (let i = 0; i < s.idlar.length; i += EGA_BOLAK) {
+      const bolak = s.idlar.slice(i, i + EGA_BOLAK);
       const r = await fetch(`${baseUrl}/rest/v1/${s.jadval}?select=id,kompaniya_id&id=in.(${bolak.join(',')})`,
         { headers: { apikey: kalit, Authorization: 'Bearer ' + kalit } });
       if (!r.ok) return null;

@@ -1,0 +1,22 @@
+{
+  "{n} ta fayl R2 ga saqlandi va bog‘landi": { "ru": "{n} файл(ов) сохранено в R2 и привязано", "en": "{n} file(s) stored in R2 and linked" },
+  "Fayl shartnomadan ajratildi (R2 da saqlanib qoladi)": { "ru": "Файл отвязан от договора (остаётся в R2)", "en": "File unlinked from the contract (kept in R2)" },
+  "Fayl biriktirilmagan": { "ru": "Файл не прикреплён", "en": "No file attached" },
+  "Yuklab olish": { "ru": "Скачать", "en": "Download" },
+  "saqlanmoqda": { "ru": "сохраняется", "en": "saving" },
+  "Shartnomadan ajratish": { "ru": "Отвязать от договора", "en": "Unlink from contract" },
+  "Asl hujjatlar va qo‘shimcha kelishuvlar": { "ru": "Оригиналы документов и дополнительные соглашения", "en": "Original documents and supplementary agreements" },
+  "Fayl tanlash": { "ru": "Выбор файла", "en": "Choose file" },
+  "Yuklanmoqda…": { "ru": "Загрузка…", "en": "Uploading…" },
+  "Shartnoma faylini yuklash": { "ru": "Загрузить файл договора", "en": "Upload contract file" },
+  "Shartnoma": { "ru": "Договор", "en": "Contract" },
+  "Joriy summa (QQS bilan)": { "ru": "Текущая сумма (с НДС)", "en": "Current amount (incl. VAT)" },
+  "Qo‘shimcha kelishuvlar (DS)": { "ru": "Дополнительные соглашения (ДС)", "en": "Supplementary agreements (SA)" },
+  "DS qo‘shish / tahrirlash — Nakopitelniy": { "ru": "Добавить / изменить ДС — Накопительная", "en": "Add / edit SA — Cumulative statement" },
+  "DS kiritilmagan": { "ru": "ДС не внесены", "en": "No supplementary agreements" },
+  "DS faylini yuklash": { "ru": "Загрузить файл ДС", "en": "Upload SA file" },
+  "Yuklangan, lekin bog‘lanmagan fayl": { "ru": "Загруженный, но не привязанный файл", "en": "Uploaded but unlinked file" },
+  "Bog‘lanmagan fayl…": { "ru": "Непривязанный файл…", "en": "Unlinked file…" },
+  "Bog‘lash": { "ru": "Привязать", "en": "Link" },
+  "Fayllar kompaniyaning yopiq R2 omborida saqlanadi; yuklab olish faqat kompaniya a’zolariga.": { "ru": "Файлы хранятся в закрытом хранилище R2 компании; скачивание — только для участников компании.", "en": "Files are stored in the company's private R2 storage; download is available to company members only." }
+}

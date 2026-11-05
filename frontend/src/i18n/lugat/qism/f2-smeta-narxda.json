@@ -1,0 +1,16 @@
+{
+  "Bo‘lim bo‘yicha tanlash": { "ru": "Выбор по разделу", "en": "Select by section" },
+  "— bo‘limni tanlang —": { "ru": "— выберите раздел —", "en": "— choose a section —" },
+  "Faqat shu bo‘lim": { "ru": "Только этот раздел", "en": "Only this section" },
+  "Bo‘limni qo‘shish": { "ru": "Добавить раздел", "en": "Add section" },
+  "Bo‘limdan belgini olish": { "ru": "Снять отметки раздела", "en": "Unselect section" },
+  "oldingi F2 narxi": { "ru": "цена предыдущей Ф-2", "en": "previous F2 price" },
+  "smeta narxi yo‘q": { "ru": "нет сметной цены", "en": "no estimate price" },
+  "oldingi F2 narxini qo‘llash": { "ru": "применить цену предыдущей Ф-2", "en": "apply previous F2 price" },
+  "Yangi qatorlar smeta narxida": { "ru": "Новые строки по сметной цене", "en": "New lines at estimate price" },
+  "Storno qatorlari eski F2 narxida qoladi; yangi hajmlar smeta narxida taklif qilinadi.": { "ru": "Строки сторно остаются по цене старой Ф-2; новые объёмы предлагаются по сметной цене.", "en": "Storno lines keep the old F2 price; new volumes are offered at the estimate price." },
+  "Storno (eski narxda)": { "ru": "Сторно (по старой цене)", "en": "Storno (at old price)" },
+  "Yangi (smeta narxida)": { "ru": "Новые (по сметной цене)", "en": "New (at estimate price)" },
+  "Narx farqi ({n} qator, eski narxga nisbatan)": { "ru": "Разница цен ({n} строк, к старой цене)", "en": "Price difference ({n} lines, vs old price)" },
+  "{n} qatorda smeta narxi yo‘q — summaga kirmagan; narx kiriting, oldingi F2 narxini qo‘llang yoki «narxsiz» belgilang": { "ru": "В {n} строках нет сметной цены — не вошли в сумму; введите цену, примените цену предыдущей Ф-2 или отметьте «без цены»", "en": "{n} lines have no estimate price — not in the total; enter a price, apply the previous F2 price or mark «no price»" }
+}

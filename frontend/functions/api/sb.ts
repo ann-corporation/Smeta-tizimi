@@ -222,6 +222,9 @@ export const onRequestPost: PagesFunction<{
         /* Egasi 2026-11-03: F2 hujjat podvali (akt, blok) va backfill nomzodlari. stable; a'zolik + f2.read RPC ichida. */
         akt_podval_ol_v1: 'obyekt_actor',
         akt_podval_nomzod_v1: 'obyekt_actor',
+        /* 20261203001000: smeta versiyasi faollashtirilgandan keyin eski qatorlardagi tasdiqlangan F2 → yangi faol qator
+           (faqat o'qish, hech qanday jamiga qo'shilmaydi). `stable`; a'zolik (t2_actor_kompaniya_azo_tekshir) + f2.read RPC ichida. */
+        f2_versiya_kochirma_v1: 'obyekt_actor',
         /* T2-GAS-EXIT-001 §5/§6: resumable F2 import job — resumption reads.
            Both RPCs are `stable` (read-only) and membership-checked inside
            the function itself via job_id -> kompaniya_id, same law as above. */
@@ -268,6 +271,8 @@ export const onRequestPost: PagesFunction<{
         bux_tolov_v1: 'kompaniya_actor',
         /* Egasi 2026-11-03: shartnoma oylik paketi arxivi (versiyalar + manifest + hozirgi iz) va fakt/F2 saqlashdan oldingi ogohlantirish. `stable`; a'zolik RPC ichida. */
         shartnoma_oylik_paket_royxat_v1: 'kompaniya_actor',
+        /* Egasi 2026-11-05: shartnoma kartasi — DS lar va asl fayllar (kanonik R2; yuklab olish /api/hujjat-ol). stable; a'zolik + document.read. */
+        shartnoma_hujjat_royxat_v1: 'kompaniya_actor',
         shartnoma_oylik_paket_tekshir_v1: 'obyekt_actor',
         /* Egasi 2026-10-23: shartnoma svodi (nakopitelniy F2 nazorati) va akt-sverka — DS, F2 reestri, sotuv, to'lov. `stable`, a'zolik + f2.read ichida. */
         shartnoma_svod_v1: 'kompaniya_actor',
@@ -298,6 +303,9 @@ export const onRequestPost: PagesFunction<{
         transport_ol_v1: 'kompaniya_actor',
         /* YUK BIRJASI v1 (20261201000000): egasi tomoni ro'yxati/tafsiloti/narx sozlamasi. `stable`; a'zolik + procurement.read RPC ichida. */
         yb_ol_v1: 'kompaniya_actor',
+        /* ISH KARTASI v1 (20261203000600): kartalar, bog'langan smeta qatorlari (+ qo'shnilar), smetadan ish qidirish. `stable`;
+           a'zolik + smeta.read RPC ichida; smeta qatorlari faqat faol versiya va shu kompaniyaniki. */
+        ish_kartasi_ol_v1: 'kompaniya_actor',
         /* Egasi 2026-11-03: UY SOTISH (20261124000000) — shaxmatka, bitimlar, bitim kartasi, mijozlar, sotuv paneli. `stable`;
            a'zolik + sales.read/sales.write RPC ichida; obyekt/bitim kompaniyaga tegishliligi ham RPC da. */
         sotuv_shaxmatka_v1: 'kompaniya_actor',
@@ -423,6 +431,11 @@ export const onRequestPost: PagesFunction<{
           if (!Number.isSafeInteger(sid) || sid <= 0) return Response.json({ ok: false, error: "shartnoma_id noto'g'ri" });
           q.set('p_shartnoma_id', String(sid));
         }
+      }
+      if (so.soro === 'shartnoma_hujjat_royxat_v1') {
+        const sid = Number(so.shartnoma_id);
+        if (!Number.isSafeInteger(sid) || sid <= 0) return Response.json({ ok: false, error: "shartnoma_id majburiy" });
+        q.set('p_shartnoma_id', String(sid));
       }
       if (so.soro === 'hr_oy_v1' || so.soro === 'hr_kpi_v1' || so.soro === 'hr_oylik_buxgalteriya_v1') {
         const oy = (so as { oy?: unknown }).oy;
@@ -635,6 +648,28 @@ export const onRequestPost: PagesFunction<{
           if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return Response.json({ ok: false, error: `${kalit} YYYY-MM-DD bo'lishi kerak` });
           q.set(param, v);
         }
+      }
+      if (so.soro === 'ish_kartasi_ol_v1') {
+        const bolim = String((so as { bolim?: unknown }).bolim ?? '');
+        if (!['kartalar', 'qatorlar', 'qidir'].includes(bolim)) return Response.json({ ok: false, error: "bolim noto'g'ri" });
+        const xf = (so as { filtr?: unknown }).filtr;
+        const f = xf && typeof xf === 'object' && !Array.isArray(xf) ? xf as Record<string, unknown> : {};
+        const filtr: Record<string, unknown> = {};
+        if (bolim === 'kartalar' && f.holat != null && f.holat !== '') {
+          if (f.holat !== 'faol' && f.holat !== 'arxiv') return Response.json({ ok: false, error: "holat noto'g'ri" });
+          filtr.holat = f.holat;
+        }
+        if (bolim === 'qatorlar') {
+          const ids = Array.isArray(f.ids) ? f.ids : null;
+          if (!ids || ids.length === 0 || ids.length > 200 || ids.some((x) => !Number.isSafeInteger(Number(x)) || Number(x) <= 0)) {
+            return Response.json({ ok: false, error: "ids noto'g'ri (1–200 ta musbat butun son)" });
+          }
+          filtr.ids = ids.map(Number);
+          filtr.qoshni = f.qoshni === true;
+        }
+        if (bolim === 'qidir') filtr.q = String(f.q ?? '').slice(0, 100);
+        q.set('p_bolim', bolim);
+        q.set('p_filtr', JSON.stringify(filtr));
       }
       if (so.soro === 'yb_ol_v1') {
         const bolim = String((so as { bolim?: unknown }).bolim ?? '');
