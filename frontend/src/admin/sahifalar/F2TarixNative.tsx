@@ -25,11 +25,10 @@ import { f2AktKirish } from '../../lib/f2-akt-hujjat';
 import { f2Hujjat } from '../../lib/f2-hujjat';
 import { aktPodvallariniOl } from '../../api/t2-akt-podval';
 import { aktPodvalXaritasi } from '../../lib/akt-podval';
-import { eskiBloklarHujjat, pereraschetBloklari, stornosizQatorlar } from '../../lib/f2-pereraschet';
+import { f2AktTayyorla } from '../../lib/f2-akt-eksport';
 import { f2HujjatKaliti, f2HujjatKonteksti } from '../../api/f2-hujjat-kontekst';
 import { mazmunXeshi, tokenBilan } from '../../api/t2-token';
 import { hujjatArxivla } from '../../api/t2-hujjat-arxiv';
-import { NDS_SUKUT_FOIZ } from '../../lib/nakopitelniy-vedomost-export';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { t, tilLocale } from '../../i18n/til';
@@ -241,9 +240,7 @@ export function F2TarixNative() {
     const object = obyektlar.find((o) => o.id === obyektId);
     setChiqarilmoqda(true);
     try {
-      const k = f2AktKirish(smetaRows, selectedLines);
-      if (!k.qatorlar.length) { toast('Bu hujjatda chiqariladigan qator yo‘q.', 'danger'); return; }
-      if (k.topilmagan) toast(t('{n} ta qator smetada topilmadi — hujjatga kirmadi', { n: k.topilmagan }), 'warn');
+      if (!f2AktKirish(smetaRows, selectedLines).qatorlar.length) { toast('Bu hujjatda chiqariladigan qator yo‘q.', 'danger'); return; }
       const ctx = await f2HujjatKonteksti(kompaniyaId, obyektId);
       // Ustama/podval o'qilmasa F2 hujjati jimgina standart podval yoki ustamasiz chiqmaydi.
       if (ctx.xato) { toast(`F2 hujjati tuzilmadi: ${ctx.xato}`, 'danger'); return; }
@@ -254,19 +251,12 @@ export function F2TarixNative() {
           jadval: 't2_akt_qator', filtr: `akt_id=eq.${akt.id}&obyekt_id=eq.${obyektId}`, ustunlar: 'qator_id,hajm,certified_quantity,certified_unit_price,certified_amount,raw_snapshot', limit: 50000 }),
       ]);
       if (!pv.ok || !aq.ok) { toast(`F2 hujjati tuzilmadi: ${t('hujjat podvali o‘qilmadi')}`, 'danger'); return; }
-      const xarita = aktPodvalXaritasi(pv.podvallar);
-      const eskiB = pereraschetBloklari(aq.qatorlar ?? [], new Map(smetaRows.map((r) => [r.id, r] as const)), new Map(f2Reestr.map((a) => [a.id, a.raqam ?? null] as const)));
-      const ozNk = xarita.get(`${akt.id}:`)?.nk ?? null;
-      const blokNk = (m: number) => xarita.get(`${akt.id}:${m}`)?.nk ?? xarita.get(`${m}:`)?.nk ?? null;
-      const ozNakrutka = ozNk ? (Object.fromEntries(Object.entries(ozNk).filter(([, v]) => v != null).map(([kk, v]) => [kk, Number(v)])) as typeof ctx.nakrutka) : null;
-      const h = f2Hujjat(k.bolimlar, stornosizQatorlar(k.qatorlar, eskiB), {
-        obyektNom: object?.nom || '', davr: akt.oy || '', raqam: akt.raqam, imzo: ctx.imzo, shartnoma: ctx.shartnoma,
-        // Hujjatning o'z podvali bo'lsa - uning foizlari (QQS ham o'ziniki); yo'q - obyekt podvali va tizim QQS stavkasi.
-        ndsFoiz: ozNk ? null : NDS_SUKUT_FOIZ, nakrutka: ozNakrutka ?? ctx.nakrutka, podval: ozNk ? null : ctx.podval, nkManba: ozNk ? null : ctx.nkManba ?? null,
-        eskiBloklar: eskiB.length ? eskiBloklarHujjat(eskiB, blokNk) : undefined,
-        // Saqlangan akt — tarix: faqat sertifikatlangan qiymatlar, formulasiz (Excel hech narsani qayta hisoblamaydi).
-        formulasiz: true, rows: smetaRows,
-      });
+      // Yagona tayyorlash (lib/f2-akt-eksport): F2 portfeli ham aynan shu yo'ldan foydalanadi.
+      const k = f2AktTayyorla({ smeta: smetaRows, lines: selectedLines, aktQatorlar: aq.qatorlar ?? [], podvallar: aktPodvalXaritasi(pv.podvallar), kontekst: ctx,
+        akt: { id: akt.id, oy: akt.oy, raqam: akt.raqam }, obyektNom: object?.nom || '', raqamlar: new Map(f2Reestr.map((a) => [a.id, a.raqam ?? null] as const)) });
+      if (!k) { toast('Bu hujjatda chiqariladigan qator yo‘q.', 'danger'); return; }
+      if (k.topilmagan) toast(t('{n} ta qator smetada topilmadi — hujjatga kirmadi', { n: k.topilmagan }), 'warn');
+      const h = f2Hujjat(k.bolimlar, k.qatorlar, k.opsiya);
       const xesh = f2HujjatKaliti(obyektId, akt.oy || '', akt.raqam) ?? `akt:${akt.id}:${await mazmunXeshi(h.bytes)}`;
       const r = await tokenBilan({ kompaniyaId, amal: 'f2_hujjat', birlikSoni: h.yacheykalar,
         meta: { hujjat: 'F2', sabab: `F2 №${akt.raqam || '—'} · ${object?.nom || ''} · ${(akt.oy || '').slice(0, 7)}`.slice(0, 200), obyekt: obyektId, akt: akt.id, yacheyka: h.yacheykalar, xesh } }, async () => {

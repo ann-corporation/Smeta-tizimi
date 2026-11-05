@@ -825,7 +825,7 @@ export type KitobKuzatuvchi = (bytes: Uint8Array, dizayn: HujjatDizayn, varaqNom
 let kitobKuzatuvchi: KitobKuzatuvchi | null = null;
 export function kitobKuzatuvchiniOrnat(f: KitobKuzatuvchi | null): void { kitobKuzatuvchi = f; }
 
-export function rasmiyKitob(varaqlar: readonly RasmiyVaraq[], o?: { mavzu?: RangMavzusi; tur?: HujjatTuri; formulasiz?: boolean; dizayn?: HujjatDizayn }): RasmiyKitobNatija {
+export function rasmiyKitob(varaqlar: readonly RasmiyVaraq[], o?: { mavzu?: RangMavzusi; tur?: HujjatTuri; formulasiz?: boolean; dizayn?: HujjatDizayn; /** Faqat shu indeksdagi varaqlar formulasiz (qiymat) — aralash kitob (F2 portfeli: svod formulali, aktlar muzlatilgan). */ formulasizVaraqlar?: readonly number[] }): RasmiyKitobNatija {
   if (!varaqlar.length) throw new Error('RASMIY_KITOB_BOSH');
   const nomlar: string[] = [];
   for (const v of varaqlar) {
@@ -857,7 +857,7 @@ export function rasmiyKitob(varaqlar: readonly RasmiyVaraq[], o?: { mavzu?: Rang
   let yacheykalar = 0;
   varaqlar.forEach((v, i) => {
     const xom = v.xml();
-    const x = o?.formulasiz ? formulalarniQiymatga(xom) : xom;
+    const x = o?.formulasiz || o?.formulasizVaraqlar?.includes(i) ? formulalarniQiymatga(xom) : xom;
     // Faqat formula bor kataklar — tizim hisoblaganlari (qiymatga aylantirishdan oldin).
     yacheykalar += xom.match(/<c [^>]*[^/]><f\b/g)?.length ?? 0;
     files[`xl/worksheets/sheet${i + 1}.xml`] = strToU8(x);

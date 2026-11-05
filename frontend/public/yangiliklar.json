@@ -2,6 +2,18 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 99,
+      "sana": "2026-11-05",
+      "sarlavha": "F2 portfeli — shartnoma va obyekt bo‘yicha barcha F2",
+      "bandlar": [
+        "F2 reestri sahifasida yangi «F2 portfeli» bo‘limi: shartnoma yoki obyektning barcha F2 lari obyekt → oy bo‘yicha, holati va raqami bilan.",
+        "Har F2 va har obyekt uchun summa: QQS bilan (asosiy), ustamali, ustamasiz; tepada doim «Tasdiqlangan jami», «Qoralamalar» va «Hammasi».",
+        "Bekor qilingan F2 kulrang ko‘rinadi va jamiga kirmaydi; storno (minus) qatorlar ishorasi bilan hisoblanadi.",
+        "Summalar jonli: F2 ni boshqa joyda o‘zgartirib qaytsangiz, portfel o‘zi yangilanadi.",
+        "«Yuklab olish» — bitta Excel: «Свод» varag‘i (jamilar bilan) va har tasdiqlangan F2 o‘z Ф-2 varag‘ida; xohlasangiz qoralamalarni ham qo‘shing."
+      ]
+    },
+    {
       "id": 98,
       "sana": "2026-11-05",
       "sarlavha": "Storno (pereraschet) tuzatildi",

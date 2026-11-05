@@ -27,7 +27,7 @@ export function oyKaliti(s: string | null | undefined): string | null {
   return m ? `${m[1]}-${m[2]}` : null;
 }
 
-export type NomalumSabab = 'QATOR_YOQ' | 'KOEF_YOQ' | 'PODVAL_TOLIQ_EMAS' | 'KAT_NOMALUM';
+export type NomalumSabab = 'QATOR_YOQ' | 'KOEF_YOQ' | 'PODVAL_TOLIQ_EMAS' | 'KAT_NOMALUM' | 'QQS_STAVKA_YOQ';
 
 /** Bitta F2 ning pul ko'rsatkichlari. `null` — noma'lum (0 emas). */
 export type AktMoliya = {
