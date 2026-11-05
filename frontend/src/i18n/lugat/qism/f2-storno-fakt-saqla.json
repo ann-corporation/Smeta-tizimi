@@ -1,10 +1,38 @@
 {
-  "{n} ta qator ham storno blokida (minus), ham yangi blokda (plyus). Server hozircha bitta hujjatda bir qatorni ikki marta qabul qilmaydi. Bu qatorlarning yangi plyus hajmisiz saqlaymizmi? (Ular keyingi F2 da olinadi.)": { "ru": "{n} строк(и) есть и в блоке сторно (минус), и в новом блоке (плюс). Сервер пока не принимает одну строку дважды в одном документе. Сохранить без нового плюсового объёма этих строк? (Их можно взять в следующей Ф2.)", "en": "{n} line(s) are in both the storno block (minus) and the new block (plus). The server does not yet accept the same line twice in one document. Save without the new plus volume of these lines? (They can go into the next F2.)" },
-  "{n} ta qatorning yangi plyus hajmi saqlanmadi (server cheklovi) — storno bloki saqlandi.": { "ru": "Новый плюсовой объём {n} строк(и) не сохранён (ограничение сервера) — блок сторно сохранён.", "en": "The new plus volume of {n} line(s) was not saved (server limitation) — the storno block was saved." },
-  "Fakt bilan nima qilinadi?": { "ru": "Что делать с фактом?", "en": "What happens to the fact?" },
-  "Faktni 0 ga tushirish": { "ru": "Обнулить факт", "en": "Reset the fact to 0" },
-  "Faktni o‘zgartirma (fakt allaqachon to‘g‘rilangan)": { "ru": "Не менять факт (факт уже исправлен)", "en": "Do not change the fact (already corrected)" },
-  "Fakt allaqachon to‘g‘rilangan bo‘lsa «o‘zgartirma» ni tanlang: eski F2 minus tepada, yangi plyus hajmlar to‘g‘rilangan faktdan pastda qo‘shiladi.": { "ru": "Если факт уже исправлен, выберите «не менять»: старая Ф2 минусом сверху, новые плюсовые объёмы из исправленного факта добавляются ниже.", "en": "If the fact is already corrected, choose «do not change»: the old F2 goes on top as minus, new plus volumes from the corrected fact are added below." },
-  "Fakt o‘zgarmaydi: hech qanday fakt yozuvi qo‘shilmaydi.": { "ru": "Факт не меняется: записи факта не добавляются.", "en": "The fact is unchanged: no fact entries are added." },
-  "Podvalni qayta urinish": { "ru": "Повторить подвал", "en": "Retry the footer" }
+  "{n} ta qator ham storno blokida (minus), ham yangi blokda (plyus). Server hozircha bitta hujjatda bir qatorni ikki marta qabul qilmaydi. Bu qatorlarning yangi plyus hajmisiz saqlaymizmi? (Ular keyingi F2 da olinadi.)": {
+    "ru": "{n} строк(и) есть и в блоке сторно (минус), и в новом блоке (плюс). Сервер пока не принимает одну строку дважды в одном документе. Сохранить без нового плюсового объёма этих строк? (Их можно взять в следующей Ф2.)",
+    "en": "{n} line(s) are in both the storno block (minus) and the new block (plus). The server does not yet accept the same line twice in one document. Save without the new plus volume of these lines? (They can go into the next F2.)"
+  },
+  "{n} ta qatorning yangi plyus hajmi saqlanmadi (server cheklovi) — storno bloki saqlandi.": {
+    "ru": "Новый плюсовой объём {n} строк(и) не сохранён (ограничение сервера) — блок сторно сохранён.",
+    "en": "The new plus volume of {n} line(s) was not saved (server limitation) — the storno block was saved."
+  },
+  "Fakt bilan nima qilinadi?": {
+    "ru": "Что делать с фактом?",
+    "en": "What happens to the fact?"
+  },
+  "Faktni 0 ga tushirish": {
+    "ru": "Обнулить факт",
+    "en": "Reset the fact to 0"
+  },
+  "Faktni o‘zgartirma (fakt allaqachon to‘g‘rilangan)": {
+    "ru": "Не менять факт (факт уже исправлен)",
+    "en": "Do not change the fact (already corrected)"
+  },
+  "Fakt allaqachon to‘g‘rilangan bo‘lsa «o‘zgartirma» ni tanlang: eski F2 minus tepada, yangi plyus hajmlar to‘g‘rilangan faktdan pastda qo‘shiladi.": {
+    "ru": "Если факт уже исправлен, выберите «не менять»: старая Ф2 минусом сверху, новые плюсовые объёмы из исправленного факта добавляются ниже.",
+    "en": "If the fact is already corrected, choose «do not change»: the old F2 goes on top as minus, new plus volumes from the corrected fact are added below."
+  },
+  "Fakt o‘zgarmaydi: hech qanday fakt yozuvi qo‘shilmaydi.": {
+    "ru": "Факт не меняется: записи факта не добавляются.",
+    "en": "The fact is unchanged: no fact entries are added."
+  },
+  "Podvalni qayta urinish": {
+    "ru": "Повторить подвал",
+    "en": "Retry the footer"
+  },
+  "storno qilingan": {
+    "ru": "сторнировано",
+    "en": "reversed"
+  }
 }

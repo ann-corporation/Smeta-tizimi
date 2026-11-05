@@ -25,6 +25,20 @@ export interface ZamenaQator {
   almashtirish_hajm?: number | null;
 }
 
+/**
+ * ZAMENA «KUCHDA»LIGI (egasi 2026-11-05, pereraschet). Zamena aslni faqat BAJARILGAN qismi bo'yicha yopadi:
+ *   progress = max(sof F2, fakt)  (SQL t2_zamena_qoplash.progress_hajm bilan aynan bir xil);
+ *   sof F2   = tasdiqlangan F2 qatorlarining ISHORALI yig'indisi (tasdiqlangan storno o'zini o'chiradi)
+ *              + faol (bekor/rad/almashtirilmagan) F2 qoralamalaridagi STORNO qatorlari (raw_snapshot.source='storno').
+ * Natija: zamena to'liq stornolangan (sof F2 = 0) va fakti 0/NULL bo'lsa progress 0 — asl qator to'liq hajmiga qaytadi
+ * (fakt % va F2 uchun). Fakti bor zamena kuchda qoladi. Hech qachon bajarilmagan rejali zamena aslni yopmaydi (2026-10-24).
+ * NULL fakt / NULL F2 — yozuv yo'q (0 hajm), SQL COALESCE bilan bir xil; ishora SQL greatest() dagidek.
+ */
+export function zamenaProgress(p: { f2Tasdiq?: number | null; stornoKutilayotgan?: number | null; fakt?: number | null }): number {
+  const f2 = Number(p.f2Tasdiq ?? 0) + Number(p.stornoKutilayotgan ?? 0);
+  return Math.max(f2, Number(p.fakt ?? 0));
+}
+
 const birlikKalit = (q: ZamenaQator): string => (q.birlik_key ?? (q.birlik ?? '').trim().toLowerCase());
 
 /** Qoldiq rejimi: 'fakt' — fakt kiritish ekranlari (ochiq qoldiq); 'f2' — F2 hujjatlari (F2 qoldig'i). */

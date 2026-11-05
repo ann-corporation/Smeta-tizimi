@@ -280,11 +280,12 @@ export function F2TayyorlashNative() {
     if (!zamenaAsl.size) return null;
     const oldingi = new Map<number, number>(); const serverAlm = new Map<number, number>();
     for (const h of holat) {
-      const f2 = Number(h.f2_hajm ?? 0); if (Number.isFinite(f2) && f2 !== 0) oldingi.set(h.qator_id, f2);
+      // Shu qoralamada stornolanayotgan eski F2 chiqariladi (sof F2): stornolangan zamena aslni yopmaydi.
+      const f2 = Number(h.f2_hajm ?? 0) - (stornoQaytar.get(h.qator_id) ?? 0); if (Number.isFinite(f2) && f2 !== 0) oldingi.set(h.qator_id, f2);
       const a = Number((h as QatorHolat & { almashtirilgan_hajm?: number | null }).almashtirilgan_hajm ?? 0); if (Number.isFinite(a) && a > 0) serverAlm.set(h.qator_id, a);
     }
     return { rows: rows.map((r) => ({ id: r.id, ota_id: r.ota_id ?? null, tur: r.tur, birlik: r.birlik, hajm: r.hajm == null ? null : Number(r.hajm) })), zamenaAsl, miqdor, oldingi, serverAlm };
-  }, [rows, holat, zamenaAsl, miqdor]);
+  }, [rows, holat, zamenaAsl, miqdor, stornoQaytar]);
   const xomQatorlar = useMemo(() => f2Qatorlar(bolimlar, k), [bolimlar, k]);
   const zamenaNatija = useMemo(() => f2ZamenaQolla(xomQatorlar, bolimlar, k, zamenaKtx), [xomQatorlar, bolimlar, k, zamenaKtx]);
   const qatorlar = zamenaNatija.qatorlar;
@@ -730,7 +731,9 @@ export function F2TayyorlashNative() {
           {meter.oshish != null && <span className="fz-chip fz-chip--warn">{t('smetadan {p}% oshdi', { p: meter.oshish })}</span>}
           <span>{chegaraNom} <b className="text-text"><FmtN val={i.mumkin} /></b></span>
           {i.smeta != null && <span>{t('smeta')} <FmtN val={i.smeta} /></span>}
-          {i.olingan > 0 && <span>{t('tasdiqlangan F2')} <FmtN val={i.olingan} /></span>}
+          {i.storno != null
+            ? <span data-testid="ish-storno-olingan">{t('tasdiqlangan F2')} <FmtN val={i.olingan} /> ({t('storno qilingan')}: <FmtN val={i.storno} />)</span>
+            : i.olingan > 0 && <span>{t('tasdiqlangan F2')} <FmtN val={i.olingan} /></span>}
           {(i.qoralama ?? 0) > 0 && <span className="text-warn">{t('qoralamada')} <b><FmtN val={i.qoralama ?? 0} /></b></span>}
           {(bn.summa > 0 || bn.narxsiz > 0) && <span className="inline-flex items-center gap-1">{t('narx (1 birlik, NDS siz)')} {birlikNarx}{birlikNarxsiz}</span>}
           <span className="text-text-mute">{t('{n} ta resurs', { n: i.resurslar.length })}</span>
