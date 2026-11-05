@@ -13,6 +13,9 @@ import { faktQoldaKiritiladimi } from './fakt-input-policy';
 import { tuzatishBoglanishlari } from './smeta-anatomiya/tuzatish';
 import { tuzatishPaketi } from './fakt-tuzatish';
 
+const matn = (x: unknown) => (x == null ? '' : String(x)).replace(/\s+/g, ' ').trim();
+const son = (x: unknown): number | null => (x == null || x === '' ? null : Number.isFinite(Number(x)) ? Number(x) : null);
+
 export type EgizakRadSabab = 'topilmadi' | 'qoshimcha_yoq' | 'tur' | JurnalXato;
 export const RAD_SABAB_MATN: Record<EgizakRadSabab, string> = {
   topilmadi: 'egizak smetasida mos qator topilmadi',
@@ -47,10 +50,34 @@ export async function qoshimchaXarita(manba: readonly EgizakQator[], egizak: rea
   const byOp = new Map<string, number>();
   for (const q of egizak) if (q.qoshimcha && q.operation_id) byOp.set(q.operation_id.toLowerCase(), q.id);
   const out = new Map<number, number>();
+  const band = new Set<number>();
+  const qolgan: EgizakQator[] = [];
   for (const q of manba) {
     if (!q.qoshimcha) continue;
     const b = byOp.get((await egizakOpId(q.id, egizakId)).toLowerCase());
-    if (b != null) out.set(q.id, b);
+    if (b != null) { out.set(q.id, b); band.add(b); } else qolgan.push(q);
+  }
+  // Egizakda qo'shimcha qator «F2 egizak nusxasi»siz (alohida) qo'shilgan bo'lsa: mazmun kaliti bo'yicha — tur, shifr, nom,
+  // birlik, hajm va ota qatorning shifr+nomi. Faqat ikkala tomonda ham YAGONA mos bo'lsa bog'lanadi (egasi 2026-11-05, FF 2-etaj).
+  if (qolgan.length) {
+    const kalit = (q: EgizakQator, byId: ReadonlyMap<number, EgizakQator>) => {
+      const ota = q.ota_id != null ? byId.get(q.ota_id) : undefined;
+      const h = son(q.hajm);
+      return [q.tur, matn(q.kod), matn(q.nom), matn(q.birlik), h == null ? '' : h.toFixed(6), ota ? `${matn(ota.kod)}|${matn(ota.nom)}` : ''].join('§').toUpperCase();
+    };
+    const aById = new Map(manba.map((q) => [q.id, q]));
+    const bById = new Map(egizak.map((q) => [q.id, q]));
+    const bKalit = new Map<string, number[]>();
+    for (const q of egizak) {
+      if (!q.qoshimcha || band.has(q.id)) continue;
+      const k = kalit(q, bById); const a = bKalit.get(k); if (a) a.push(q.id); else bKalit.set(k, [q.id]);
+    }
+    const aSoni = new Map<string, number>();
+    for (const q of qolgan) { const k = kalit(q, aById); aSoni.set(k, (aSoni.get(k) ?? 0) + 1); }
+    for (const q of qolgan) {
+      const k = kalit(q, aById); const bs = bKalit.get(k);
+      if (bs?.length === 1 && aSoni.get(k) === 1) out.set(q.id, bs[0]);
+    }
   }
   return out;
 }
