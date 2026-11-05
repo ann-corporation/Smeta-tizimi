@@ -14,16 +14,6 @@
     {
       "id": 110,
       "sana": "2026-11-05",
-      "sarlavha": "Pereraschet: yangi qatorlar smeta narxida, storno bo‘lim bo‘yicha",
-      "bandlar": [
-        "Pereraschet qoralamasida yangi belgi: «Yangi qatorlar smeta narxida» (sukut yoqiq). Storno qatorlari eski F2 narxida qoladi, yangi hajmlar smeta narxida taklif qilinadi.",
-        "Har qatorda oldingi F2 narxi ko‘rinadi; tepada storno, yangi summa va farq. Smeta narxi yo‘q qator belgilanadi — oldingi F2 narxini ongli qo‘llash yoki «narxsiz» tanlash mumkin (0 qo‘yilmaydi).",
-        "Storno oynasida «Bo‘lim bo‘yicha tanlash»: bo‘limning barcha qatorlari (resurslar va qo‘shimcha qatorlar bilan) bir bosishda belgilanadi yoki olib tashlanadi."
-      ]
-    },
-    {
-      "id": 109,
-      "sana": "2026-11-05",
       "sarlavha": "Oylik paketda Forma-3 doim bor",
       "bandlar": [
         "Shartnoma va oy uchun saqlangan Forma-3 bo‘lmasa, paketga shu oyning tasdiqlangan F2 laridan avtomatik Forma-3 qo‘shiladi («Ф3 (автоматически по Ф-2, не сохранён)»), to‘liq va/yoki bir qatorli.",
@@ -34,7 +24,46 @@
       ]
     },
     {
+      "id": 109,
+      "sana": "2026-11-05",
+      "sarlavha": "Pereraschet: yangi qatorlar smeta narxida, storno bo‘lim bo‘yicha",
+      "bandlar": [
+        "Pereraschet qoralamasida yangi belgi: «Yangi qatorlar smeta narxida» (sukut yoqiq). Storno qatorlari eski F2 narxida qoladi, yangi hajmlar smeta narxida taklif qilinadi.",
+        "Har qatorda oldingi F2 narxi ko‘rinadi; tepada storno, yangi summa va farq. Smeta narxi yo‘q qator belgilanadi — oldingi F2 narxini ongli qo‘llash yoki «narxsiz» tanlash mumkin (0 qo‘yilmaydi).",
+        "Storno oynasida «Bo‘lim bo‘yicha tanlash»: bo‘limning barcha qatorlari (resurslar va qo‘shimcha qatorlar bilan) bir bosishda belgilanadi yoki olib tashlanadi."
+      ]
+    },
+    {
       "id": 108,
+      "sana": "2026-11-05",
+      "sarlavha": "Fakt jurnali: F2 importidagi qo‘shimcha resurslarda narx va summa",
+      "bandlar": [
+        "Smetada narxi yo‘q, lekin F2 da narxi bor qatorlarda endi «narxsiz» emas — F2 narxi («F2» belgisi bilan) va fakt summasi shu narxda ko‘rinadi.",
+        "Bo‘lim jamilari bilan bir xil hisob; smeta narxi bor qatorlar o‘zgarmaydi."
+      ]
+    },
+    {
+      "id": 107,
+      "sana": "2026-11-05",
+      "sarlavha": "Narx tekshiruvi: usta narxini smeta bilan darhol solishtiring",
+      "bandlar": [
+        "Smeta → Narxlash → «Narx tekshiruvi» ichida ish kartasi yaratasiz (masalan «Rigel 300×500», metrda) va uni smetadagi qatorlarga bog‘laysiz: asosiy norma, armatura, minusli istisno qatorlari.",
+        "«Smetadan ish topish»: «ригел» deb yozsangiz, barcha obyektlardagi mos ishlar 1 smeta birligiga mehnat bilan chiqadi; asosiy normani tanlasangiz, shu bo‘limdagi armatura va istisno qatorlari avtomatik taklif qilinadi.",
+        "Usta narxini kiritasiz — jadvalda smeta mehnati, tanlangan qamrov va to‘liq ish 1 birlikka (ustamasiz, ustama bilan, QQS bilan) va farq chiqadi. Opalubka / armatura / beton bosqichlari va «material kimdan» belgilanadi.",
+        "Eslatma: bazadagi yangi jadvallar egasi tomonidan qo‘llangandan keyin ishlaydi."
+      ]
+    },
+    {
+      "id": 106,
+      "sana": "2026-11-05",
+      "sarlavha": "F2: minus (chegirma) qatorlar endi tushib qolmaydi",
+      "bandlar": [
+        "Fakti manfiy bo‘lgan qatorlar (qalinlik tuzatishi, «исключить», К=2 kabi) F2 tayyorlashda ishorasi bilan olinadi — resurslari ham minus.",
+        "Tekshiruv saqlanadi: F2 hajmi faktdan (modul bo‘yicha) oshmaydi va ishorasi bir xil."
+      ]
+    },
+    {
+      "id": 105,
       "sana": "2026-11-05",
       "sarlavha": "Pereraschet — bitta tugma",
       "bandlar": [
@@ -45,54 +74,13 @@
       ]
     },
     {
-      "id": 107,
-      "sana": "2026-11-05",
-      "sarlavha": "F2: minus (chegirma) qatorlar endi tushib qolmaydi",
-      "bandlar": [
-        "Fakti manfiy bo‘lgan qatorlar (qalinlik tuzatishi, «исключить», К=2 kabi) F2 tayyorlashda ishorasi bilan olinadi — resurslari ham minus.",
-        "Tekshiruv saqlanadi: F2 hajmi faktdan (modul bo‘yicha) oshmaydi va ishorasi bir xil."
-      ]
-    },
-    {
-      "id": 106,
-      "sana": "2026-11-05",
-      "sarlavha": "Fakt jurnali: F2 importidagi qo‘shimcha resurslarda narx va summa",
-      "bandlar": [
-        "Smetada narxi yo‘q, lekin F2 da narxi bor qatorlarda endi «narxsiz» emas — F2 narxi («F2» belgisi bilan) va fakt summasi shu narxda ko‘rinadi.",
-        "Bo‘lim jamilari bilan bir xil hisob; smeta narxi bor qatorlar o‘zgarmaydi."
-      ]
-    },
-    {
-      "id": 105,
-      "sana": "2026-11-05",
-      "sarlavha": "Boshqaruv markazida bajarilgan ish (fakt) endi alohida ko‘rinadi",
-      "bandlar": [
-        "Yangi karta «Bajarildi (fakt)»: haqiqatda bajarilgan ish summasi QQS bilan, ostida ustamali (QQS siz) va to‘g‘ri xarajat, smetadan necha foiz.",
-        "Avvalgi «Bajarildi» kartasi endi «Topshirildi (F2)» deb ataladi — bu buyurtmachiga topshirilgan, tasdiqlangan F2.",
-        "Shu kartada yangi qator: «Bajarildi, lekin topshirilmagan» = fakt − tasdiqlangan F2. Bosilsa, diqqat ro‘yxatidagi obyektlarga o‘tadi.",
-        "Obyektlar jadvalida F2 yonida «Fakt» ustuni qo‘shildi. Excel eksportida ham fakt summalari bor."
-      ]
-    },
-    {
-      "id": 104,
+      "id": 103,
       "sana": "2026-11-05",
       "sarlavha": "Bo‘lim jamisi qo‘shimcha ish va zamenadan keyin darhol yangilanadi",
       "bandlar": [
         "Bo‘limga qo‘shimcha ish yoki zamena qo‘shsangiz (yoki uni o‘chirsangiz), bo‘lim summasi va obyekt jamisi endi shu zahoti qayta hisoblanadi. Avval ish summasi to‘g‘ri chiqib, bo‘lim summasi eski qolardi.",
         "Asl smeta qatorlari o‘zgarmaydi — faqat bo‘lim jamisi yangilanadi.",
         "Ishning ichidagi material summasi ham ish jamisiga to‘liq kiradi va keyingi qayta hisoblashda tushib qolmaydi."
-      ]
-    },
-    {
-      "id": 103,
-      "sana": "2026-11-05",
-      "sarlavha": "Shartnoma oylik paketi — F2 portfeli bilan bir xil va topshirishga tayyor",
-      "bandlar": [
-        "Paketdagi summalar endi F2 portfeli va F2 tarixi bilan aynan bir xil: har F2 o‘z podvali bilan (storno bloklari ham), podvali bo‘lmasa smeta podvali; QQS bilan summa birinchi.",
-        "Oy oralig‘i yoki «Barcha oylar»: bitta shartnoma bo‘yicha butun lot bitta ZIP da, har oy o‘z papkasida (pereraschet uchun).",
-        "ZIP ichida «00_MUNDARIJA.xlsx» — har hujjat va F2 summalari; F2 fayllari bir xil nomda: oy_shartnoma_obyekt_F2_raqam.xlsx.",
-        "Qoralamalar sukut bo‘yicha kirmaydi; «Qoralamalarni ham qo‘shish» belgisi bilan QORALAMA deb belgilanib qo‘shiladi. Bekor qilinganlar kirmaydi.",
-        "Topshirilgan paketdan keyin F2 o‘zgarsa — «Paket eskirgan — qayta yig‘ing» va bir bosishda «Qayta yig‘ish»; eski nusxa arxivda qoladi."
       ]
     },
     {

@@ -36,6 +36,8 @@ export const ID_JADVAL: Readonly<Record<string, string>> = {
   p_sklad_id: 't2_sklad_mustaqil', p_harakat_id: 't2_sklad_harakat',
   /* Uy sotish (20261124000000): RPC lar kompaniyani o'zi ham tekshiradi — bu ikkinchi qatlam. */
   p_bitim_id: 't2_sotuv_bitim', p_birlik_id: 't2_sotuv_birlik', p_bron_id: 't2_sotuv_bron', p_sotuv_tolov_id: 't2_sotuv_tolov',
+  /* Ish kartasi (20261203000600): karta kompaniyasi shlyuzda ham tekshiriladi (RPC — birinchi qatlam). */
+  p_karta_id: 't2_ish_kartasi',
 };
 /** Massiv argumentlar. */
 export const IDLAR_JADVAL: Readonly<Record<string, string>> = { p_aosr_ids: 't2_aosr', p_qator_ids: 't2_qator', p_obyektlar: 't2_obyekt', p_birlik_ids: 't2_sotuv_birlik' };
@@ -103,8 +105,9 @@ export function yozishTalablari(amal: string, xom: Record<string, unknown>): Yoz
     if (Array.isArray(v)) for (const x of v) { const id = musbat(x); if (id) qosh(jadval, id); }
   }
   // p_qatorlar: [{qator_id}] — smeta qatorlari ham tekshiriladi (fakt/akt/F2 qoralama).
-  if (Array.isArray(yuk.p_qatorlar)) {
-    for (const q of yuk.p_qatorlar) {
+  // p_bog: [{qator_id}] — ish kartasi bog'lari (har smeta qatori shu kompaniyaniki bo'lishi shart).
+  for (const ro of [yuk.p_qatorlar, yuk.p_bog]) if (Array.isArray(ro)) {
+    for (const q of ro) {
       const id = q && typeof q === 'object' ? musbat((q as Record<string, unknown>).qator_id) : null;
       if (id) qosh('t2_qator', id);
     }

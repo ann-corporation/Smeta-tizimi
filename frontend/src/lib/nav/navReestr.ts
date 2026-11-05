@@ -92,6 +92,8 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
       { nom: 'Narxlash', ikonka: 'Tags', sahifalar: [
         { yol: '/admin/smeta-narxlash', ilova: 'pto', nom: 'Smetani narxlash (RES)', ruxsat: [RAHBARIYAT, 'narx.write'], modul: 'module.narx', scope: 'OBJECT_SCOPED' },
         { yol: '/admin/narx-dalil', ilova: 'pto', nom: 'Narx dalili (Обоснование цен)', ruxsat: [RAHBARIYAT, 'narx.write'], modul: 'module.narx' },
+        /* Egasi 2026-11-05: ish kartasi + usta narxi tekshiruvi (smeta 1 amaliy birlikka nima beradi). */
+        { yol: '/admin/narx-tekshiruv', ilova: 'pto', nom: 'Narx tekshiruvi (usta narxi)', ruxsat: [RAHBARIYAT, 'smeta.write', 'narx.write'] },
         { yol: '/admin/nakrutka', ilova: 'pto', nom: 'Nakrutka (ustama)', ruxsat: [RAHBARIYAT, 'narx.write'], modul: 'module.narx' },
         { yol: '/admin/narxlar', ilova: 'pto', nom: 'Narxlar nazorati', ruxsat: [RAHBARIYAT, 'narx.write'], modul: 'module.narx', scope: 'OBJECT_SCOPED' },
         { yol: '/admin/narx-manbalari', ilova: 'pto', nom: 'Narx manbalari (katalog, faktura, КП)', ruxsat: [RAHBARIYAT, 'narx.write'], modul: 'module.narx' },
