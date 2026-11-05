@@ -1,90 +1,61 @@
-# Cloud sessiya holati (Claude@cloud → L0)
+# Cloud sessiya holati (Claude@cloud → L0) — YAKUNIY
 
-Sessiya: https://claude.ai/code/session_01RZTNHRQ7RnNsEZxefQtyva · yangilandi: 2026-11-03 (2).
-L0 shu faylni o'qib, egasining koordinatsiya yozuvlariga ko'chiradi.
+Sessiya: https://claude.ai/code/session_01RZTNHRQ7RnNsEZxefQtyva · yakunlandi: 2026-11-04.
 
-## Boshqaruv (egasi 2026-11-03)
-Boshqaruv to'liq **L0 (lokal agent)** da. Cloud ishni faqat L0 dan oladi, boshlanganlarini tugatadi, parallel ish qilmaydi.
+## Qaror (egasi 05.11, L0 orqali)
+Cloud sessiya **to'xtadi** va yangi ish olmaydi. Qolgan barcha ish lokal L0 sessiyasi va Codex'da. Cloud'da ochiq ish, ishlayotgan sub-agent yoki migratsiya qolmadi.
 
-## Yakuniy taqsimot (L0 2026-11-03)
-- **Cloud:**
-  1. Uy sotish — #236: S1 + S2 tayyor; S3 (xaridor) — L0 ruxsati bilan.
-  2. Tender — #239: server + UI tayyor.
-  3. Logistika #235 — 2 CI xatosi tuzatildi, yashil; cloud to'xtadi.
-  4. 3D — keyinroq, faqat tadqiqot.
-- **To'xtatildi:** HR/KPI, buxgalteriya, hujjat/laboratoriya rejalash agentlari, asfalt.
-  - Rejalash agentlari to'xtatishdan oldin tugagan edi. Rejalar `claude/cloud-rejalar` tarmog'ida, `docs/architecture/cloud-rejalar/`: `IJRO_HUJJATLARI_LAB_TOMONLAR.md`, `HR_KPI_BUXGALTERIYA.md`. O'zgarishsiz — lokal quruvchilar uchun kirish material.
-  - Asfalt Excel egasiga berilgan; tekshiruvni lokal agent qiladi.
-- **130 test tokeni** — egasining qarori, cloud tegmaydi.
+## Bajarildi (hammasi main'da — PR ann-corporation/Smeta-tizimi#243 orqali; migratsiyalar prodda)
 
-## Yo'llar (L0 2026-11-03)
-- Cloud: **uy sotish** (0→100), **tender** (mavjud `t2_birja_*` modelini kengaytirish), **3D / virtual sayohat** (keyin; avval faqat tadqiqot + reja).
-- Lokal agentlar: R2 ga ko'chirish, asfalt kalkulyatsiyasi, HR/KPI, buxgalteriya, hujjat oqimi (laboratoriya/ekspertiza/xat/tasdiq), logistika.
-- Qoidalar:
-  - Supabase Free 421/500 MB — katta va o'zgarmas ma'lumot R2 da (DB da kalit + sha256).
-  - Migratsiya faqat fayl (+rollback +acceptance), prodga L0 qo'llaydi.
-  - Gitda real summa, INN va ism yo'q.
+| Vazifa | PR | Migratsiya |
+|---|---|---|
+| Rahbar paneli — tahlil (resurs, subpudrat, obyekt paneli, XLSX) | #234 | — |
+| Logistika L1 — park, reys, tannarx, taqsim, narxlash | #235 | `20261123000000_t2_transport_v1` |
+| Uy sotish S1 (server) + S2 (sotuvchi UI `/admin/sotuv`) | #236 | `20261124000000_t2_uy_sotuv_v1` |
+| Tender — mavjud `t2_birja_*` ustida protsess + UI `/admin/tender` | #239 | `20261122000200_t2_tender_protsess_v1` (L0 qayta raqamladi) |
+| Loyihalash hujjatlari (ijro hujjatlari/lab; HR-KPI/buxgalteriya) | #241 | — (`docs/architecture/cloud-rejalar/`) |
+| Asfalt pirogi m² Excel | — (egasiga fayl) | — (faqat o'qish) |
+| Egasi g'oyalari ro'yxati | issue #238, ann-corporation/anvar-brain#2 | — |
 
-## Vazifalar
+## Boshlanmagan (egasi: «keyinroq» — lokal quriladi)
+- **Uy sotish S3 (xaridor tomoni):**
+  - ochiq katalog — PII siz alohida endpoint va migratsiya kerak;
+  - xonadon sahifasi, ipoteka kalkulyatori (`lib/sotuv/hisob.ts` tayyor), shaxsiy kabinet;
+  - shartnoma shablonlari; Telegram/SMS eslatma; Payme/Click.
+- **3D / virtual sayohat** — faqat dastlabki tavsiya bor: Twinmotion/Lumion fasl renderlari + 360° panorama (R2) → three.js interaktiv bino → dron/Gaussian Splatting.
+- **Logistika L2 UI** — `claude/logistika-v1-ui` tarmog'ida tekshirilmagan qoralama. Rebase'dan keyin to'liq darvozalar kerak; PR yo'q.
+- **Uy sotish, kichik:** birliklarni Excel/CSV dan import qilish; kanban drag-drop.
 
-### 1. Uy sotish — `claude/uy-sotuv-v1` · PR ann-corporation/Smeta-tizimi#236 (draft) — ✅ S1 server + S2 sotuvchi UI
-- **Migratsiya** `20261124000000_t2_uy_sotuv_v1` (+rollback, self-seeding acceptance; lokal PG16 da o'tdi). RPC: 10 yozish + 5 o'qish; ruxsatlar `sales.*`, rol `sotuvchi`.
-  - Loyiha sozlamasi qisman yangilanadi (eski || yangi).
-- **UI** `/admin/sotuv`:
-  - shaxmatka (generator, bron, ommaviy narx);
-  - kanban; bitim kartasi (grafik generatori, to'lovlar, ipoteka);
-  - mijozlar, panel, sozlama (reyestr / eskrou, PP-4732).
-- **Darvozalar:** tsc, oxlint, site-map, tekshir, to'liq vitest (634 fayl) — yashil.
-- **L0 dan kerak:** migratsiyani BEGIN..ROLLBACK da sinab qo'llash.
-- **Ochiq qarorlar:**
-  - `sotuvchi` roli `project.read` orqali hujjat menyularini ham ko'radi;
-  - annuitet (foizli) grafik saqlanmaydi — server Σ = summa talab qiladi.
-- **Keyingi (L0 ruxsati bilan):** S3 xaridor tomoni — ochiq katalog (PII siz alohida endpoint + migratsiya), xonadon sahifasi, kabinet.
+## Ochiq savollar (egasiga)
+1. **Uy sotish:**
+   - `sotuvchi` roli `project.read` orqali hujjat menyularini ham ko'radi — shunday qolsinmi?
+   - Foizli (annuitet) bo'lib to'lash kerakmi? Server hozir grafik Σ = shartnoma summasi talab qiladi.
+2. **Tender:**
+   - yuboruvchi = tasdiqlovchi mumkinmi, yoki ikki kishi qoidasi kerakmi?
+   - ro'yxatdan o'tmagan yetkazuvchiga havola-portal kerakmi?
+   - eski `t2_tender_elon_v1` yopilsinmi?
+   - reytingsiz yetkazuvchiga 50 ball berish to'g'rimi?
+   - davlat xaridi qoidalari majburiymi?
+3. **Logistika:**
+   - haydovchi ijtimoiy solig'i 12% va oylik ÷ 26 to'g'rimi?
+   - yoqilg'i narxi QQSsiz kiritiladimi?
+   - ijaradagi mashina ham obyektlarga taqsimlanadimi?
+   - kategoriya МАШ bo'lsinmi?
+   - `haydovchi` roliga `machinery.read` berilsinmi?
+4. **Ijro hujjatlari:**
+   - E-IMZO majburiymi?
+   - `t2_aosr_yoz_v2` yozuvchining o'ziga «tasdiqlangan» qo'yishiga ruxsat bermoqda — bu cheklansinmi?
+   - prodda `t2_tomon_resurs` dagi `aosr`/`remark`/`foto`/`grafik`/`fakt` resurslari `faol=false` — yoqilsinmi?
+5. **HR / buxgalteriya:**
+   - tushum F2 ning ustamali summasidan olinadimi yoki ustamasizidan?
+   - prorab bonusining foizi qancha, F2 bekor bo'lsa bonus qaytariladimi?
+   - jarimani oylikdan ushlash tartibi qanday?
+6. **Tokenlar:** eksport testida sarflangan 130 test tokeni — egasining qarori; cloud tegmadi.
+7. **Asfalt:**
+   - ko'lda alohida asfalt yo'l yo'q;
+   - yo'ldagi 8 sm «asos» qatlami aslida asfaltbeton — ayirilsinmi?
 
-### 2. Tender — `claude/tender-v1` · PR ann-corporation/Smeta-tizimi#239 (draft) — ✅ server + UI tayyor
-- **Asos:** mavjud `t2_birja_*` / `t2_buyurtma*` / `t2_tender_*_v1` kengaytirildi. v1 RPC buzilmagan; `supabase/tests/t2_tender_contract.sql` o'tadi.
-- **Migratsiya** `20261122000200_t2_tender_protsess_v1` (+rollback, acceptance — 66 tekshiruv).
-  - Yangi jadvallar: `t2_tender_jurnal` (o'zgarmas, payload ≤1 KB), `t2_tender_savol`, `t2_tender_baho`; fayllar R2 da (`t2_primitiv_dalil`).
-  - RPC: 12 yozish + 4 o'qish.
-  - Ruxsatlar: `procurement.*`, `supply.offer` (yangi capability yo'q).
-- **Oqim:** qoralama → tasdiq → e'lon → muhrlangan takliflar → ochish → baholash (narx / ball) → BAFO raund → g'olib (qator bo'yicha bo'linma, asos majburiy) → buyurtma → yopish.
-- **UI** `/admin/tender`: mening tenderlarim, menga taklif qilinganlar, ochiq e'lonlar, tahlil.
-- **Darvozalar:** tsc, oxlint, site-map, tekshir va to'liq vitest (636 fayl / 4675 test) — yashil.
-- **Qoldiqlar:**
-  - fayl yuklash UI;
-  - to'lov va ombor havolasi UI'da;
-  - outbox → Telegram fan-out;
-  - yetkazuvchi o'qishi `procurement.read` talab qiladi;
-  - brauzerda qo'lda ko'rilmagan.
-- **L0 dan kerak:** migratsiyani BEGIN..ROLLBACK da sinab qo'llash; egasiga 5 savol (PR tavsifida).
-
-### 3. 3D / virtual sayohat — navbatda (uy sotish S2 dan keyin)
-- Faqat tadqiqot + reja.
-- Dastlabki tavsiya: Twinmotion / Lumion fasl renderlari + 360° panorama (R2) → three.js interaktiv bino (shaxmatkaga bog'langan) → dron / Gaussian Splatting. Pixel Streaming — faqat premium.
-
-## L0 yo'liga o'tkaziladi (cloud boshlagan edi — egasi to'g'ridan-to'g'ri so'ragan edi)
-- **Logistika** — `claude/logistika-v1`, PR ann-corporation/Smeta-tizimi#235 — ✅ CI yashil (7d2c96b9). Cloud ishi TUGADI, L0 ga topshirildi.
-  - Migratsiya `20261123000000_t2_transport_v1`: jadvallar `t2_tr_*`, 10 yozish RPC + `t2_transport_ol_v1`. Tannarx, ob'ektlarga taqsim, `t2_xarajat_kirit_v1` ga МАШ provodka, narxlash va marja.
-    - GPS trek, marshrut geometriyasi va fayllar Supabase'ga yozilmaydi.
-  - **Acceptance** real `t2_azolik` / `t2_foydalanuvchi` ga sintetik qator yozadi. Faqat stub ustida sinalgan — real schema'da NOT NULL va CHECK larni BEGIN..ROLLBACK da tekshiring.
-  - **UI qoralamasi** `claude/logistika-v1-ui` tarmog'ida (PR yo'q, TEKSHIRILMAGAN): rebase'dan keyin to'liq darvozalar kerak.
-  - **Qilinmagan:**
-    - ombor / xarid → reys bog'lash;
-    - yetkazish isboti (R2);
-    - pullik routing adapteri (hozir OSRM demo; `VITE_ROUTING_URL`);
-    - haydovchi tanlagich;
-    - `haydovchi` roliga `machinery.read`;
-    - yoqilg'i xaridi daftari.
-  - **Egasiga savollar:**
-    - ijtimoiy soliq 12% to'g'rimi;
-    - oylik ÷ 26 to'g'rimi;
-    - yoqilg'i narxi QQSsiz kiritiladimi;
-    - ijaradagi mashina ham ob'ektlarga taqsimlanadimi;
-    - МАШ kategoriyasimi.
-- **Asfalt pirogi m² kalkulyatsiyasi** — ✅ Excel egasiga berildi (9 ta shubhali joy faylda); tekshiruv — lokal agent.
-- **Ijro hujjatlari / laboratoriya** va **HR-KPI + buxgalteriya** — ✅ loyihalash hujjatlari tayyor: PR ann-corporation/Smeta-tizimi#241 (`docs/architecture/cloud-rejalar/`).
-
-## Boshqa ochiq PR'lar
-- ann-corporation/Smeta-tizimi#234 — rahbar paneli tahlil (L0 merge kutmoqda).
-- ann-corporation/anvar-brain#2 — egasi g'oyalari 2026-11-03 + AGENT_LOG.
-- Issue ann-corporation/Smeta-tizimi#238 — egasi g'oyalari ro'yxati.
+## Eslatmalar L0 uchun
+- `t2_kompaniya.test.cjs` dagi `KUTILGAN` ro'yxati har yangi yozish RPC bilan yangilanishi shart. Main bir necha marta shu sabab qizil bo'lgan.
+- Pul yaxlitlash faqat `lib/hisob-yadro` dan olinadi — qo'riqchi test lokal `Math.round(x*100)/100` ni rad etadi.
+- `write-command-policy.test.ts` dagi `KATALOG` — har yangi capability shu ro'yxatga qo'shiladi.
