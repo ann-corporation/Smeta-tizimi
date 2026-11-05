@@ -2,6 +2,17 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 107,
+      "sana": "2026-11-05",
+      "sarlavha": "Narx tekshiruvi: usta narxini smeta bilan darhol solishtiring",
+      "bandlar": [
+        "Smeta → Narxlash → «Narx tekshiruvi» ichida ish kartasi yaratasiz (masalan «Rigel 300×500», metrda) va uni smetadagi qatorlarga bog‘laysiz: asosiy norma, armatura, minusli istisno qatorlari.",
+        "«Smetadan ish topish»: «ригел» deb yozsangiz, barcha obyektlardagi mos ishlar 1 smeta birligiga mehnat bilan chiqadi; asosiy normani tanlasangiz, shu bo‘limdagi armatura va istisno qatorlari avtomatik taklif qilinadi.",
+        "Usta narxini kiritasiz — jadvalda smeta mehnati, tanlangan qamrov va to‘liq ish 1 birlikka (ustamasiz, ustama bilan, QQS bilan) va farq chiqadi. Opalubka / armatura / beton bosqichlari va «material kimdan» belgilanadi.",
+        "Eslatma: bazadagi yangi jadvallar egasi tomonidan qo‘llangandan keyin ishlaydi."
+      ]
+    },
+    {
       "id": 106,
       "sana": "2026-11-05",
       "sarlavha": "F2: minus (chegirma) qatorlar endi tushib qolmaydi",

@@ -62,7 +62,7 @@ const bez = (xs: string[], ...yoq: string[]) => xs.filter((x) => !a(...yoq).incl
 
 /* ── Kutilgan menyular (tartib — sidebar tartibi) ── */
 const OBYEKT = a('dashboard', 'obyektlar', 'loyiha', 'participants', 'mindmap');
-const SMETA = a('smeta-studio', 'holat', 'smeta-narxlash', 'narx-dalil', 'nakrutka', 'narxlar', 'narx-manbalari', 'oferta');
+const SMETA = a('smeta-studio', 'holat', 'smeta-narxlash', 'narx-dalil', 'narx-tekshiruv', 'nakrutka', 'narxlar', 'narx-manbalari', 'oferta');
 const FAKT = a('fakt', 'm29');
 const F2 = a('f2-tayyorlash', 'f2', 'f2-tarix', 'f2-reestr', 'nakopitelniy');
 const MOLIYA = a('moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'crm', 'aloqalar');

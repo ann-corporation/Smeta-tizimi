@@ -67,6 +67,11 @@ const AMALLAR = {
   qator_resurs_ish_zamena_v1: { rpc: 't2_resurs_ish_zamena_v1' },
   /* Egasi 2026-10-21: smetaga bo'lim (razdel) yaratish; o'chirish — qator_ish_abc_ochir_v2 (qo'shilgan qator). */
   smeta_bolim_yarat_v1: { rpc: 't2_smeta_bolim_yarat_v1' },
+  /* Egasi 2026-11-05: ish kartasi (amaliy ish birligi ↔ smeta qatorlari, ishora va koef bilan) + bosqich ulushlari.
+     RPC a'zolik + smeta.write ni o'zi tekshiradi; idempotent (operation_id), CAS (kutilgan_versiya). */
+  ish_kartasi_saqla_v1: { rpc: 't2_ish_kartasi_saqla_v1' },
+  ish_kartasi_arxiv_v1: { rpc: 't2_ish_kartasi_arxiv_v1' },
+  ish_kartasi_ulush_saqla_v1: { rpc: 't2_ish_kartasi_ulush_saqla_v1' },
   /* Egasi 2026-10-01: shartnoma kartasi — loyiha, erkin turdagi tomonlar, obyektlar to'plami (asosiy: obyektda bitta). */
   shartnoma_saqla_v2: { rpc: 't2_shartnoma_saqla_v2' },
   /* Egasi 2026-11-02: qarzdorlik - asoslar saqlash (CAS) va Excel importi (idempotent operation_id). RPC a'zolik + financial.write ni o'zi tekshiradi. */
@@ -939,6 +944,57 @@ export const onRequestPost: PagesFunction<{
         })),
         p_obyektlar: so.obyektlar == null ? null : so.obyektlar.map(Number), p_operation_id: so.operation_id,
       };
+    } else if (amal === 'ish_kartasi_saqla_v1' || amal === 'ish_kartasi_arxiv_v1' || amal === 'ish_kartasi_ulush_saqla_v1') {
+      /* Ish kartasi: maydonlar oq ro'yxatdan (skalyar / tipli), biznes qoidalari va tenant (har smeta qatori) — RPC da. */
+      const xato400 = (x: string) => Response.json({ ok: false, error: 'Ish kartasi: ' + x }, { status: 400 });
+      const kv = so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya);
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || (kv != null && !Number.isSafeInteger(kv))) return xato400('operatsiya yoki versiya noto‘g‘ri.');
+      const asos = { p_kompaniya_id: so.kompaniya_id, p_actor_id: sess.foydalanuvchi_id, p_operation_id: so.operation_id };
+      const ulushOl = (u: unknown): Record<string, number> | null | false => {
+        if (u == null) return null;
+        if (typeof u !== 'object' || Array.isArray(u)) return false;
+        const r: Record<string, number> = {};
+        for (const k of ['opalubka', 'armatura', 'beton']) { const x = (u as Record<string, unknown>)[k]; if (typeof x !== 'number' || !Number.isFinite(x)) return false; r[k] = x; }
+        return r;
+      };
+      if (amal === 'ish_kartasi_ulush_saqla_v1') {
+        const u = ulushOl(so.ulush);
+        if (!u || !['rigel', 'balka', 'kolonna', 'plita', 'devor', 'armatura', 'boshqa'].includes(String(so.tur))) return xato400('tur va ulush talab qilinadi.');
+        yuk = { ...asos, p_tur: String(so.tur), p_ulush: u, p_kutilgan_versiya: kv };
+      } else {
+        const kid = so.karta_id == null ? null : Number(so.karta_id);
+        if (kid != null && (!Number.isSafeInteger(kid) || kid <= 0)) return xato400('karta noto‘g‘ri.');
+        if (amal === 'ish_kartasi_arxiv_v1') {
+          if (kid == null || kv == null) return xato400('karta va versiya talab qilinadi.');
+          yuk = { ...asos, p_karta_id: kid, p_kutilgan_versiya: kv };
+        } else {
+          const k = so.karta; const bog = so.bog;
+          if (!k || typeof k !== 'object' || Array.isArray(k) || !Array.isArray(bog) || bog.length > 60) return xato400('karta va ≤60 bog‘ talab qilinadi.');
+          const km = k as Record<string, unknown>;
+          const matnK = (x: unknown, n: number) => (x == null || x === '' ? null : typeof x === 'string' ? x.slice(0, n) : undefined);
+          const sonK = (x: unknown) => (x == null || x === '' ? null : typeof x === 'number' && Number.isFinite(x) ? x : undefined);
+          const obj = (x: unknown) => (x == null ? null : typeof x === 'object' && !Array.isArray(x) ? x : undefined);
+          const ul = ulushOl(km.bosqich_ulush);
+          const karta = {
+            nom: matnK(km.nom, 300), tur: matnK(km.tur, 20), birlik: matnK(km.birlik, 20), parametrlar: obj(km.parametrlar) ?? {}, bosqich_ulush: ul,
+            qamrov: obj(km.qamrov) ?? {}, naryad_narx: sonK(km.naryad_narx), naryad_sana: matnK(km.naryad_sana, 10), usta_nom: matnK(km.usta_nom, 200),
+            usta_kontragent_id: sonK(km.usta_kontragent_id), manba: matnK(km.manba, 20) ?? 'qolda', ishonch: sonK(km.ishonch),
+            manba_hujjat_id: sonK(km.manba_hujjat_id), manba_sahifa: sonK(km.manba_sahifa), izoh: matnK(km.izoh, 2000),
+          };
+          if (ul === false || Object.values(karta).some((v) => v === undefined)) return xato400('karta maydoni noto‘g‘ri turda.');
+          if (karta.naryad_sana != null && !/^\d{4}-\d{2}-\d{2}$/.test(karta.naryad_sana)) return xato400('naryad sanasi YYYY-MM-DD.');
+          const boglar: Record<string, unknown>[] = [];
+          for (const b of bog) {
+            if (!b || typeof b !== 'object' || Array.isArray(b)) return xato400('bog‘ obyekt bo‘lishi kerak.');
+            const x = b as Record<string, unknown>;
+            const qid = Number(x.qator_id);
+            if (!Number.isSafeInteger(qid) || qid <= 0 || sonK(x.koef) === undefined || sonK(x.ishonch) === undefined) return xato400('bog‘ maydoni noto‘g‘ri.');
+            boglar.push({ qator_id: qid, rol: matnK(x.rol, 30) ?? 'asosiy', koef: sonK(x.koef), koef_usul: matnK(x.koef_usul, 20) ?? 'qolda',
+              bosqich: matnK(x.bosqich, 20), material_guruh: matnK(x.material_guruh, 20), manba: matnK(x.manba, 20) ?? 'qolda', ishonch: sonK(x.ishonch) });
+          }
+          yuk = { ...asos, p_karta_id: kid, p_kutilgan_versiya: kv, p_karta: karta, p_bog: boglar };
+        }
+      }
     } else if (amal === 'qarzdorlik_saqla_v1') {
       /* Qarzdorlik: bitta shartnoma asoslari (CAS) - qator maydonlari oq ro'yxatdan, qolganini RPC tekshiradi. */
       const qs = so.qatorlar; const och = so.ochirilgan; const sp = so.spravka;

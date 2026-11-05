@@ -298,6 +298,9 @@ export const onRequestPost: PagesFunction<{
         transport_ol_v1: 'kompaniya_actor',
         /* YUK BIRJASI v1 (20261201000000): egasi tomoni ro'yxati/tafsiloti/narx sozlamasi. `stable`; a'zolik + procurement.read RPC ichida. */
         yb_ol_v1: 'kompaniya_actor',
+        /* ISH KARTASI v1 (20261203000600): kartalar, bog'langan smeta qatorlari (+ qo'shnilar), smetadan ish qidirish. `stable`;
+           a'zolik + smeta.read RPC ichida; smeta qatorlari faqat faol versiya va shu kompaniyaniki. */
+        ish_kartasi_ol_v1: 'kompaniya_actor',
         /* Egasi 2026-11-03: UY SOTISH (20261124000000) — shaxmatka, bitimlar, bitim kartasi, mijozlar, sotuv paneli. `stable`;
            a'zolik + sales.read/sales.write RPC ichida; obyekt/bitim kompaniyaga tegishliligi ham RPC da. */
         sotuv_shaxmatka_v1: 'kompaniya_actor',
@@ -635,6 +638,28 @@ export const onRequestPost: PagesFunction<{
           if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return Response.json({ ok: false, error: `${kalit} YYYY-MM-DD bo'lishi kerak` });
           q.set(param, v);
         }
+      }
+      if (so.soro === 'ish_kartasi_ol_v1') {
+        const bolim = String((so as { bolim?: unknown }).bolim ?? '');
+        if (!['kartalar', 'qatorlar', 'qidir'].includes(bolim)) return Response.json({ ok: false, error: "bolim noto'g'ri" });
+        const xf = (so as { filtr?: unknown }).filtr;
+        const f = xf && typeof xf === 'object' && !Array.isArray(xf) ? xf as Record<string, unknown> : {};
+        const filtr: Record<string, unknown> = {};
+        if (bolim === 'kartalar' && f.holat != null && f.holat !== '') {
+          if (f.holat !== 'faol' && f.holat !== 'arxiv') return Response.json({ ok: false, error: "holat noto'g'ri" });
+          filtr.holat = f.holat;
+        }
+        if (bolim === 'qatorlar') {
+          const ids = Array.isArray(f.ids) ? f.ids : null;
+          if (!ids || ids.length === 0 || ids.length > 200 || ids.some((x) => !Number.isSafeInteger(Number(x)) || Number(x) <= 0)) {
+            return Response.json({ ok: false, error: "ids noto'g'ri (1–200 ta musbat butun son)" });
+          }
+          filtr.ids = ids.map(Number);
+          filtr.qoshni = f.qoshni === true;
+        }
+        if (bolim === 'qidir') filtr.q = String(f.q ?? '').slice(0, 100);
+        q.set('p_bolim', bolim);
+        q.set('p_filtr', JSON.stringify(filtr));
       }
       if (so.soro === 'yb_ol_v1') {
         const bolim = String((so as { bolim?: unknown }).bolim ?? '');

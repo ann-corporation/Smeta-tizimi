@@ -162,7 +162,9 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       't2_bux_boshlash_v1', 't2_bux_hisob_saqla_v1', 't2_bux_moslik_saqla_v1', 't2_bux_avto_provodka_v1',
                       't2_bux_qolda_provodka_v1', 't2_bux_storno_v1', 't2_bux_davr_v1', 't2_bux_bank_import_v1', 't2_bux_tashqi_sync_v1',
                       /* 2026-11-04: yuk birjasi (egasi tomoni; procurement.write/approve RPC ichida; yuk _shared/yuk-birjasi-yuk.ts oq ro'yxati). */
-                      't2_yb_yuk_saqla_v1', 't2_yb_yuk_elon_v1', 't2_yb_yuk_javob_v1', 't2_yb_yuk_bekor_v1', 't2_yb_yuk_tasdiq_v1', 't2_yb_yuk_baho_v1', 't2_yb_yuk_nizo_v1'].sort();
+                      't2_yb_yuk_saqla_v1', 't2_yb_yuk_elon_v1', 't2_yb_yuk_javob_v1', 't2_yb_yuk_bekor_v1', 't2_yb_yuk_tasdiq_v1', 't2_yb_yuk_baho_v1', 't2_yb_yuk_nizo_v1',
+                      /* 2026-11-05: ish kartasi (smeta.write RPC ichida; idempotent operation_id, CAS). */
+                      't2_ish_kartasi_saqla_v1', 't2_ish_kartasi_arxiv_v1', 't2_ish_kartasi_ulush_saqla_v1'].sort();
     T('RPC ro\'yxati AYNAN belgilangan ' + KUTILGAN.length + ' ta domen amali',
       JSON.stringify(amallar) === JSON.stringify(KUTILGAN),
       'topildi: ' + amallar.join(', '));
