@@ -52,8 +52,7 @@ import { aosrIshora, AOSR_ISHORA_MATNI, type AosrIshora } from '../../lib/nazora
 import { amaldagiProtokolNarxlari, narxProtokolQatorlariOl, type NarxProtokolQator } from '../../api/t2-narx-protokol';
 import {
   bosKiritma, f2Jami, f2KatKesim, f2Qatorlar, f2Qur, f2Yacheykalar, f2Yuk, f2ZamenaQolla, ishBirlikNarxi, narxsizNomzodlar, ortiqchaXulosa, smetaNarxXulosa, sonOqi, ulushHajm,
-  type F2Bolim, type F2Ish, type F2Kiritma, type F2Manba, type F2Qator, type F2Resurs, type F2ZamenaKontekst,
-} from '../../lib/f2-tayyor';
+  type F2Bolim, type F2Ish, type F2Kiritma, type F2Manba, type F2Qator, type F2Resurs, type F2ZamenaKontekst, ishQoldiqQiymati, pulChangmi, resursQoldiqQiymati } from '../../lib/f2-tayyor';
 import { MinusCircle, Repeat2, RotateCcw } from 'lucide-react';
 import { rolF2YozishYopiq } from '../../lib/nav/menyuRolYopiq';
 import { F2StornoTanlov } from './F2StornoTanlov';
@@ -442,8 +441,9 @@ export function F2TayyorlashNative() {
   const bolimniOl = (bs: F2Bolim[]) => setK((o) => {
     const hajm = { ...o.hajm };
     for (const b of bs) {
-      for (const i of b.ishlar) { if (i.mumkin !== 0) hajm[i.id] = String(i.mumkin); for (const r of i.resurslar) if (!r.avto && r.mumkin !== 0) hajm[r.id] = String(r.mumkin); }
-      for (const r of b.alohida) hajm[r.id] = String(r.mumkin);
+      // Pul changi (egasi 2026-11-06): qiymati < 1 000 so'm ish — resurslari bilan BIRGA olinmaydi (resurs sug'urilmaydi); narxi noma'lum — olinadi.
+      for (const i of b.ishlar) { if (pulChangmi(ishQoldiqQiymati(i))) continue; if (i.mumkin !== 0) hajm[i.id] = String(i.mumkin); for (const r of i.resurslar) if (!r.avto && r.mumkin !== 0) hajm[r.id] = String(r.mumkin); }
+      for (const r of b.alohida) if (!pulChangmi(resursQoldiqQiymati(r))) hajm[r.id] = String(r.mumkin);
     }
     return { ...o, hajm };
   });
