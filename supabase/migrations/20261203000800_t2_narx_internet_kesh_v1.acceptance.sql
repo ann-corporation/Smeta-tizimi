@@ -2,12 +2,19 @@
 -- Sintetik yozuvlar; oxirida ROLLBACK — hech narsa saqlanmaydi. Muvaffaqiyat: NOTICE 'NARX_INTERNET_KESH_ACCEPTANCE_PASS'.
 begin;
 do $test$
-declare c bigint; a bigint; boshqa bigint; oy text := to_char(now() at time zone 'Asia/Tashkent', 'YYYY-MM'); v jsonb;
+declare c bigint; a bigint; boshqa bigint; sa bigint; oy text := to_char(now() at time zone 'Asia/Tashkent', 'YYYY-MM'); v jsonb;
 begin
-  select kompaniya_id, foydalanuvchi_id into c, a from public.t2_azolik where holat = 'faol' and rol <> 'kuzatuvchi' order by id limit 1;
+  -- Oddiy a'zo (platforma superadmini EMAS — superadmin dizayn bo'yicha har kompaniyaga kiradi, tenant tekshiruvini sinamaydi).
+  select z.kompaniya_id, z.foydalanuvchi_id into c, a from public.t2_azolik z
+    join public.t2_foydalanuvchi f on f.id = z.foydalanuvchi_id and f.holat = 'faol'
+    join public.t2_kompaniya k on k.id = z.kompaniya_id and k.faol
+   where z.holat = 'faol' and z.rol not in ('kuzatuvchi', 'superadmin') and not public.t2_platforma_superadmin(z.foydalanuvchi_id)
+   order by z.id limit 1;
   if a is null then raise exception 'ACCEPTANCE_ACTOR_REQUIRED'; end if;
-  select id into boshqa from public.t2_kompaniya where id <> c
+  select id into boshqa from public.t2_kompaniya where id <> c and faol
      and not exists (select 1 from public.t2_azolik z where z.kompaniya_id = t2_kompaniya.id and z.foydalanuvchi_id = a and z.holat = 'faol') order by id limit 1;
+  if boshqa is null then raise exception 'ACCEPTANCE_SECOND_COMPANY_REQUIRED'; end if;
+  select id into sa from public.t2_foydalanuvchi where holat = 'faol' and public.t2_platforma_superadmin(id) order by id limit 1;
 
   -- 0) Tuzilma: RLS yoqilgan, anon/authenticated ga funksiya va jadval yopiq.
   if not (select relrowsecurity from pg_class where oid = 'public.t2_narx_internet_kesh'::regclass) then raise exception '0: kesh RLS yo''q'; end if;
@@ -29,10 +36,22 @@ begin
     jsonb_build_object('kalit', '_TEST_SEMENT|Т|UZ|' || oy, 'natija', jsonb_build_object('id', 'r0', 'narx', 120, 'manbalar', '[]'::jsonb, 'izoh', ''))));
   if (select count(*) from public.t2_narx_internet_kesh where kompaniya_id = c and kalit like '\_TEST\_SEMENT%') <> 1 then raise exception '2: takror'; end if;
 
-  -- 3) Tenant: boshqa kompaniya keshini o'qib/yozib bo'lmaydi.
-  if boshqa is not null then
-    v := public.t2_narx_internet_kesh_ol_v1(a, boshqa, array['_TEST_SEMENT|Т|UZ|' || oy]);
-    if coalesce((v->>'ok')::boolean, false) then raise exception '3: begona kompaniya o''qildi'; end if;
+  -- 3) Tenant: a'zo bo'lmagan kompaniyaga o'qish/yozish rad; ruxsatli aktor (superadmin) bilan ham boshqa kompaniya
+  --    so'rovida c kompaniyasining kesh/domen qatorlari HECH QACHON qaytmaydi (har o'qish p_kompaniya_id bilan filtrlanadi).
+  v := public.t2_narx_internet_kesh_ol_v1(a, boshqa, array['_TEST_SEMENT|Т|UZ|' || oy]);
+  if coalesce((v->>'ok')::boolean, false) then raise exception '3: begona kompaniya o''qildi'; end if;
+  v := public.t2_narx_internet_kesh_yoz_v1(a, boshqa, jsonb_build_array(
+    jsonb_build_object('kalit', '_TEST_BEGONA|Т|UZ|' || oy, 'natija', jsonb_build_object('id', 'r0', 'narx', 1, 'manbalar', '[]'::jsonb, 'izoh', ''))));
+  if coalesce((v->>'ok')::boolean, false) or exists (select 1 from public.t2_narx_internet_kesh where kalit like '\_TEST\_BEGONA%') then raise exception '3: begona kompaniyaga yozildi'; end if;
+  if coalesce((public.t2_narx_internet_domen_yoz_v1(a, boshqa, array['uzex.uz'])->>'ok')::boolean, false)
+     or coalesce((public.t2_narx_internet_domen_ol_v1(a, boshqa)->>'ok')::boolean, false) then raise exception '3: begona kompaniya domenlari'; end if;
+  perform public.t2_narx_internet_domen_yoz_v1(a, c, array['prom.uz']);
+  if sa is not null then
+    v := public.t2_narx_internet_kesh_ol_v1(sa, boshqa, array['_TEST_SEMENT|Т|UZ|' || oy]);
+    if not coalesce((v->>'ok')::boolean, false) or v->'natijalar' <> '{}'::jsonb then raise exception '3: kesh kompaniyalar orasida oqdi %', v; end if;
+    -- Company B's answer is exactly B's own row (null when B saved none) — never company c's list.
+    if (public.t2_narx_internet_domen_ol_v1(sa, boshqa)->'domenlar') is distinct from
+       coalesce((select to_jsonb(domenlar) from public.t2_narx_internet_sozlama where kompaniya_id = boshqa), 'null'::jsonb) then raise exception '3: domen oqdi'; end if;
   end if;
 
   -- 4) Domenlar: yozish/o'qish, noto'g'ri domen rad, bo'sh ro'yxat — standartga qaytish (null).
