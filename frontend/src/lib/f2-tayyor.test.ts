@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { T2Qator } from '../api/supabase';
-import { bolimDaraxti, bosKiritma, f2Jami, f2Qatorlar, f2Qur, f2Yuk, ishBirlikNarxi, korinadiganBolimlar, narxsizNomzodlar, ulushHajm, type F2Holat } from './f2-tayyor';
+import { bolimDaraxti, bosKiritma, f2Jami, f2Qatorlar, f2Qur, f2Yuk, ishBirlikNarxi, korinadiganBolimlar, narxsizNomzodlar, ulushHajm, ishoraliQoldiq, type F2Holat } from './f2-tayyor';
 
 const q = (o: Partial<T2Qator> & { id: number; tur: string; norma?: number | null }): T2Qator => ({
   obyekt_id: 8, obyekt: null, kompaniya_id: 1, ota_id: null, daraja: 0, tartib: o.id, kod: null, nom: `q${o.id}`, birlik: 'м3',
@@ -202,5 +202,42 @@ describe('pereraschet: shu qoralamadagi storno eski F2 ni sof 0 qiladi', () => {
   it('faktsiz (smeta) rejim: smeta − BOSHQA F2', () => {
     const b = f2Qur(qs, h, undefined, 'smeta', undefined, { stornoQaytar: new Map([[2, 10]]) });
     expect(ish(b, 2)).toMatchObject({ mumkin: 17 }); // 20 − 3
+  });
+});
+
+describe('chegirma (manfiy fakt) qatorlari F2 ga ishorasi bilan kiradi', () => {
+  const r3 = (o: Partial<T2Qator> & { id: number; tur: string }): T2Qator => ({ obyekt_id: 1, ota_id: null, tartib: o.id, kod: null, nom: 'q' + o.id, birlik: 'м2', hajm: null, narx: null, ...o } as T2Qator);
+  // A — asosiy ish (fakt 10); C — qalinlik tuzatishi (smeta −5, fakt −4,6535) va uning rs bolasi (norma 2, narx 100).
+  const qs = [r3({ id: 1, tur: 'rz', nom: 'B' }), r3({ id: 2, tur: 'bl', ota_id: 1, hajm: 10, nom: 'A' }), r3({ id: 3, tur: 'bl', ota_id: 1, hajm: -5, nom: 'C' }),
+    r3({ id: 4, tur: 'rs', ota_id: 3, kat: 'ЧЕЛ', nom: 'Ishchi', norma: 2, narx: 100 } as Partial<T2Qator> & { id: number; tur: string }),
+    r3({ id: 5, tur: 'rs', ota_id: 2, kat: 'ЧЕЛ', nom: 'Ishchi A', norma: 2, narx: 100 } as Partial<T2Qator> & { id: number; tur: string })];
+  const holat = (f2C = 0): F2Holat[] => [
+    { qator_id: 2, fakt_hajm: 10, f2_hajm: 0, f2_mumkin_hajm: 10, smeta_hajm: 10 },
+    { qator_id: 3, fakt_hajm: -4.6535, f2_hajm: f2C, f2_mumkin_hajm: 0, smeta_hajm: -5 }, // server f2_mumkin >= 0 — manfiyni 0 qiladi
+    { qator_id: 4, fakt_hajm: -9.307, f2_hajm: 0, f2_mumkin_hajm: 0, smeta_hajm: -10 },
+    { qator_id: 5, fakt_hajm: 20, f2_hajm: 0, f2_mumkin_hajm: 20, smeta_hajm: 20 },
+  ];
+  it('yangi F2 da asosiy ham, manfiy tuzatish ham (rs bolasi bilan); sof to‘g‘ri', () => {
+    const b = f2Qur(qs, holat());
+    const ishlar = new Map(b.flatMap((x) => x.ishlar).map((i) => [i.id, i]));
+    expect(ishlar.get(3)?.mumkin).toBe(-4.6535);
+    const k = bosKiritma(); k.hajm[2] = ulushHajm(ishlar.get(2)!.mumkin, 100); k.hajm[3] = ulushHajm(ishlar.get(3)!.mumkin, 100);
+    const q = f2Qatorlar(b, k);
+    const by = new Map(q.map((x) => [x.id, x]));
+    expect(by.get(3)).toMatchObject({ hajm: -4.6535 });
+    expect(by.get(3)!.ogoh).toBeUndefined();
+    expect(by.get(4)).toMatchObject({ hajm: -9.307, summa: -930.7 }); // rs ishorasi bilan
+    expect(by.get(5)).toMatchObject({ hajm: 20, summa: 2000 });
+    expect(f2Jami(q).summa).toBe(1069.3); // 2000 − 930,7
+  });
+  it('|F2| ≤ |fakt|, ishora bir xil: qisman olingan qoldiq; to‘liq/ortiq olingan — chiqmaydi', () => {
+    expect(f2Qur(qs, holat(-2)).flatMap((x) => x.ishlar).find((i) => i.id === 3)?.mumkin).toBeCloseTo(-2.6535, 9);
+    expect(f2Qur(qs, holat(-5)).flatMap((x) => x.ishlar).find((i) => i.id === 3)).toBeUndefined();
+    expect(ishoraliQoldiq(-4, 3)).toBe(-4); // teskari ishorali olingan — chegaradan oshmaydi
+  });
+  it('chegirmadan «ko‘proq manfiy» yoki teskari ishorali kiritma — ogohlantirish', () => {
+    const b = f2Qur(qs, holat());
+    const k = bosKiritma(); k.hajm[3] = '-6';
+    expect(f2Qatorlar(b, k).find((x) => x.id === 3)?.ogoh).toBeTruthy();
   });
 });

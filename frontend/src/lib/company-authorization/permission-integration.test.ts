@@ -38,7 +38,10 @@ describe('role integration architecture',()=>{
          o'qish company.read, yozish company.profile.update — har RPC ichida t2_effective_authorization_v1 (kompaniya-sozlama.test.ts). */
       'kompaniya-sozlama',
       /* Yuk birjasi (2026-11-04): faqat sessiya + masofa hisobi (kompaniya ma'lumotiga tegmaydi); O'zbekiston ramkasi, foydalanuvchi bo'yicha 30/daqiqa limit, kalit mijozda yo'q (yuk-marshrut.test.ts). */
-      'yuk-marshrut']);
+      'yuk-marshrut',
+      /* Bildirishnoma yetkazish (2026-11-05): sessiyasiz FON ISHI (GitHub Actions). Kirish faqat X-Cron-Kalit == BILDIRISHNOMA_CRON_KALIT
+         (sozlanmagan → 503, noto'g'ri → 403); kompaniya ma'lumoti qaytmaydi, faqat service_role navbat RPC lari (bildirishnoma-yetkaz.test.ts). */
+      'bildirishnoma-yetkaz']);
     const routes=readdirSync(resolve(root,'frontend/functions/api')).filter(n=>n.endsWith('.ts')&&!n.endsWith('.test.ts')&&!n.startsWith('_')).map(n=>n.slice(0,-3));
     expect(routes.filter(n=>!SCOPED_APIS.has(n)&&!exceptions.has(n))).toEqual([]);
   });

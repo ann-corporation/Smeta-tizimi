@@ -36,13 +36,13 @@ type Ulush = { kat: string | null; summa: number };
 function bolimUlushlari(b: F2Bolim): Ulush[] {
   const out: Ulush[] = [];
   for (const i of b.ishlar) {
-    if (i.mumkin <= 0) continue;
+    if (i.mumkin === 0) continue; // chegirma (manfiy) ham summaga ishorasi bilan
     for (const r of i.resurslar) {
       if (!r.avto || r.norma == null || r.norma <= 0 || r.taklifNarx == null) continue;
       out.push({ kat: r.kat, summa: i.mumkin * r.norma * r.taklifNarx });
     }
   }
-  for (const r of b.alohida) if (r.mumkin > 0 && r.taklifNarx != null) out.push({ kat: r.kat, summa: r.mumkin * r.taklifNarx });
+  for (const r of b.alohida) if (r.mumkin !== 0 && r.taklifNarx != null) out.push({ kat: r.kat, summa: r.mumkin * r.taklifNarx });
   return out;
 }
 
