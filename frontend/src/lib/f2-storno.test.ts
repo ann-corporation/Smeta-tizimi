@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { faolStornolar, stornoNomzodAktlar, stornoBlokniSaqla, stornoFaktReja, stornoQaytarHajm, stornoQator, stornoQatorimi, stornoQur, type StornoManbaQator } from './f2-storno';
+import { faolStornolar, stornoBolimlar, stornoNomzodAktlar, stornoBlokniSaqla, stornoFaktReja, stornoQaytarHajm, stornoQator, stornoQatorimi, stornoQur, type StornoManbaQator } from './f2-storno';
 
 const manba: StornoManbaQator[] = [
   { qator_id: 1, hajm: 4, certified_quantity: 4, certified_unit_price: 25, certified_amount: 100 },
@@ -135,5 +135,32 @@ describe('storno tanlagichi nomzodlari', () => {
       { id: 6, tur: 'boshqa', holat: 'qoralama' },
     ];
     expect(stornoNomzodAktlar([...r, { id: 7, tur: 'f2', holat: 'tasdiqlangan' }, { id: 8, tur: 'f2', holat: 'qoralama', lifecycle_status: 'submitted' as const }]).map((a) => a.id)).toEqual([7, 1]);
+  });
+});
+
+describe('bo‘lim bo‘yicha storno tanlovi', () => {
+  // rz 1 (guruh) → rz 10 (1-bo'lim: ish 11 + rs 12 + qo'shimcha mat 13 + ichki rz 15 → ish 16), rz 20 (2-bo'lim: ish 21); rz 2 → ish 31.
+  const d = [
+    { id: 1, ota_id: null, tur: 'rz', nom: 'Poydevor', tartib: 1 }, { id: 10, ota_id: 1, tur: 'rz', nom: '1-bo‘lim', tartib: 2 },
+    { id: 11, ota_id: 10, tur: 'bl', tartib: 3 }, { id: 12, ota_id: 11, tur: 'rs', tartib: 4 }, { id: 13, ota_id: 11, tur: 'mat', tartib: 5 },
+    { id: 15, ota_id: 10, tur: 'rz', nom: 'Ichki', tartib: 6 }, { id: 16, ota_id: 15, tur: 'bl', tartib: 7 },
+    { id: 20, ota_id: 1, tur: 'rz', nom: '2-bo‘lim', tartib: 8 }, { id: 21, ota_id: 20, tur: 'bl', tartib: 9 },
+    { id: 2, ota_id: null, tur: 'rz', nom: 'Ustunlar', tartib: 10 }, { id: 31, ota_id: 2, tur: 'bl', tartib: 11 },
+  ];
+  it('har bo‘lim butun avlodi bilan (rs, qo‘shimcha mat, ichki bo‘lim), smeta tartibida, yo‘l bilan', () => {
+    const b = stornoBolimlar(d, [11, 12, 13, 16, 21, 31]);
+    expect(b.map((x) => [x.id, x.daraja, [...x.qatorlar].sort((p, q) => p - q)])).toEqual([
+      [1, 0, [11, 12, 13, 16, 21]], [10, 1, [11, 12, 13, 16]], [15, 2, [16]], [20, 1, [21]], [2, 0, [31]],
+    ]);
+    expect(b.find((x) => x.id === 15)?.yol).toBe('Poydevor › 1-bo‘lim › Ichki');
+  });
+  it('nomzodi yo‘q bo‘lim ro‘yxatda yo‘q; bo‘lim tanlovi bilan storno rejasi faqat shu bo‘lim qatorlari', () => {
+    const b = stornoBolimlar(d, [21, 31]);
+    expect(b.map((x) => x.id)).toEqual([1, 20, 2]);
+    const manba = [11, 12, 13, 21, 31].map((id) => ({ qator_id: id, certified_quantity: 2, certified_unit_price: 10, certified_amount: 20 }));
+    const bolim10 = new Set(stornoBolimlar(d, manba.map((x) => x.qator_id)).find((x) => x.id === 10)!.qatorlar);
+    const r = stornoQur(manba, 5, bolim10);
+    expect(r.qatorlar.map((q) => q.qatorId)).toEqual([11, 12, 13]);
+    expect(r.jami).toBe(-60);
   });
 });

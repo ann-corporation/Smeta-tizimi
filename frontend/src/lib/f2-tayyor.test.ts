@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { T2Qator } from '../api/supabase';
-import { bolimDaraxti, bosKiritma, f2Jami, f2Qatorlar, f2Qur, f2Yuk, ishBirlikNarxi, korinadiganBolimlar, narxsizNomzodlar, ulushHajm, ishoraliQoldiq, type F2Holat } from './f2-tayyor';
+import { bolimDaraxti, bosKiritma, f2Jami, f2Qatorlar, f2Qur, f2Yuk, ishBirlikNarxi, korinadiganBolimlar, narxsizNomzodlar, ulushHajm, ishoraliQoldiq, ortiqchaXulosa, smetaNarxXulosa, type F2Holat } from './f2-tayyor';
 
 const q = (o: Partial<T2Qator> & { id: number; tur: string; norma?: number | null }): T2Qator => ({
   obyekt_id: 8, obyekt: null, kompaniya_id: 1, ota_id: null, daraja: 0, tartib: o.id, kod: null, nom: `q${o.id}`, birlik: 'м3',
@@ -239,5 +239,132 @@ describe('chegirma (manfiy fakt) qatorlari F2 ga ishorasi bilan kiradi', () => {
     const b = f2Qur(qs, holat());
     const k = bosKiritma(); k.hajm[3] = '-6';
     expect(f2Qatorlar(b, k).find((x) => x.id === 3)?.ogoh).toBeTruthy();
+  });
+});
+
+describe('fakt F2 dan kam: ortiqcha F2 ni minus bilan chegirish (ixtiyoriy)', () => {
+  const r4 = (o: Partial<T2Qator> & { id: number; tur: string; norma?: number | null }): T2Qator => ({ obyekt_id: 1, ota_id: null, tartib: o.id, kod: null, nom: 'q' + o.id, birlik: 'м3', hajm: null, narx: null, ...o } as T2Qator);
+  // Ish (smeta 100) + avto rs (norma 2; smeta narxi 100, F2 narxi 120) + bo'lim darajasidagi mat (smeta 50, F2 70).
+  const qs = [r4({ id: 1, tur: 'rz', nom: 'B' }), r4({ id: 2, tur: 'bl', ota_id: 1, hajm: 100 }),
+    r4({ id: 3, tur: 'rs', ota_id: 2, kat: 'ЧЕЛ', norma: 2, narx: 100 }), r4({ id: 4, tur: 'mat', ota_id: 1, kat: 'МАТ', narx: 50, hajm: 10 })];
+  const hol = (fakt: number | null, f2 = 100): F2Holat[] => [
+    { qator_id: 2, fakt_hajm: fakt, f2_hajm: f2, f2_mumkin_hajm: 0, smeta_hajm: 100 },
+    { qator_id: 3, fakt_hajm: 160, f2_hajm: 200, f2_mumkin_hajm: 0, f2_narx: 120 },
+    { qator_id: 4, fakt_hajm: 8, f2_hajm: 10, f2_mumkin_hajm: 0, f2_narx: 70, smeta_hajm: 10 },
+  ];
+  const ON = { ortiqchaChegir: true };
+  const ish = (b: ReturnType<typeof f2Qur>, id: number) => b.flatMap((x) => x.ishlar).find((i) => i.id === id);
+  const mat = (b: ReturnType<typeof f2Qur>, id: number) => b.flatMap((x) => x.alohida).find((r) => r.id === id);
+
+  it('sukut (o‘chiq): F2 faktdan oldinda — normal, hech narsa chegirilmaydi', () => {
+    const b = f2Qur(qs, hol(80));
+    expect(ish(b, 2)).toBeUndefined();
+    expect(mat(b, 4)).toBeUndefined();
+  });
+  it('yoqilgan: fakt 80, F2 100 → −20 (belgi bilan); mustaqil mat ham', () => {
+    const b = f2Qur(qs, hol(80), undefined, 'fakt', undefined, ON);
+    expect(ish(b, 2)).toMatchObject({ mumkin: -20, ortiqchaF2: true });
+    expect(ish(b, 2)?.faktNol).toBeUndefined();
+    expect(mat(b, 4)).toMatchObject({ mumkin: -2, ortiqchaF2: true });
+  });
+  it('minus qator narxi — F2 narxi (smeta narxi emas); rs ishorasi bilan, summa = hajm × narx', () => {
+    const b = f2Qur(qs, hol(80), undefined, 'fakt', undefined, ON);
+    const k = bosKiritma(); k.hajm[2] = ulushHajm(ish(b, 2)!.mumkin, 100); k.hajm[4] = ulushHajm(mat(b, 4)!.mumkin, 100);
+    const by = new Map(f2Qatorlar(b, k).map((x) => [x.id, x]));
+    expect(by.get(2)).toMatchObject({ hajm: -20 }); expect(by.get(2)?.ogoh).toBeUndefined();
+    expect(by.get(3)).toMatchObject({ hajm: -40, narx: 120, manba: 'oldingi_f2', summa: -4800 });
+    expect(by.get(4)).toMatchObject({ hajm: -2, narx: 70, manba: 'oldingi_f2', summa: -140 });
+    expect(by.get(4)?.ogoh).toBeUndefined();
+    expect(ortiqchaXulosa(b)).toEqual({ soni: 2, faktNol: 0, summa: -4940, nomalum: 0 });
+  });
+  it('fakt NULL — qator yo‘q (NULL ≠ 0); fakt 0 — butun F2 minus (faktNol belgisi)', () => {
+    expect(ish(f2Qur(qs, hol(null), undefined, 'fakt', undefined, ON), 2)).toBeUndefined();
+    expect(ish(f2Qur(qs, hol(0), undefined, 'fakt', undefined, ON), 2)).toMatchObject({ mumkin: -100, ortiqchaF2: true, faktNol: true });
+  });
+  it('F2 ≤ fakt — chegirma yo‘q (avvalgi musbat qoldiq)', () => {
+    const h = hol(100); h[0].f2_mumkin_hajm = 0;
+    expect(ish(f2Qur(qs, h, undefined, 'fakt', undefined, ON), 2)).toBeUndefined();
+  });
+  it('qoralamada −5 bor → −15; ishora teskariga o‘tmaydi', () => {
+    expect(ish(f2Qur(qs, hol(80), undefined, 'fakt', new Map([[2, -5]]), ON), 2)?.mumkin).toBe(-15);
+    expect(ish(f2Qur(qs, hol(80), undefined, 'fakt', new Map([[2, -25]]), ON), 2)?.mumkin ?? 0).toBe(0);
+  });
+  it('qoralamada +10 bor → −30 (sof F2 = fakt: 100 + 10 − 30 = 80); manfiy fakt qatori musbat qoralamani avvalgidek e’tiborsiz qoldiradi', () => {
+    expect(ish(f2Qur(qs, hol(80), undefined, 'fakt', new Map([[2, 10]]), ON), 2)).toMatchObject({ mumkin: -30, ortiqchaF2: true, qoralama: 10 });
+    expect(ish(f2Qur(qs, hol(0), undefined, 'fakt', new Map([[2, 10]]), ON), 2)?.mumkin).toBe(-110); // |…| ≤ olingan + qoralama
+    const h = hol(-4); h[0].f2_hajm = 0;
+    expect(ish(f2Qur(qs, h, undefined, 'fakt', new Map([[2, 10]]), ON), 2)?.mumkin).toBe(-4);
+  });
+  it('storno bilan: stornolanayotgan eski F2 chiqarilgach hisoblanadi', () => {
+    // F2 130, shundan 30 shu qoralamada storno → boshqa F2 100 > fakt 80 → −20.
+    expect(ish(f2Qur(qs, hol(80, 130), undefined, 'fakt', undefined, { ...ON, stornoQaytar: new Map([[2, 30]]) }), 2)).toMatchObject({ mumkin: -20, ortiqchaF2: true });
+    // F2 100, storno 30 → boshqa F2 70 < fakt 80 → +10 (chegirma emas).
+    const b = ish(f2Qur(qs, hol(80, 100), undefined, 'fakt', undefined, { ...ON, stornoQaytar: new Map([[2, 30]]) }), 2);
+    expect(b).toMatchObject({ mumkin: 10 }); expect(b?.ortiqchaF2).toBeUndefined();
+  });
+  it('manfiy fakt (chegirma) qatori va smeta rejimi o‘zgarmaydi', () => {
+    const h = hol(-4); h[0].f2_hajm = 0;
+    expect(ish(f2Qur(qs, h, undefined, 'fakt', undefined, ON), 2)).toMatchObject({ mumkin: -4 });
+    expect(ish(f2Qur(qs, h, undefined, 'fakt', undefined, ON), 2)?.ortiqchaF2).toBeUndefined();
+    const s = ish(f2Qur(qs, hol(80), undefined, 'smeta', undefined, ON), 2);
+    expect(s?.mumkin).toBe(0); expect(s?.ortiqchaF2).toBeUndefined();
+  });
+});
+
+describe('pereraschet: yangi qatorlar smeta narxida (eski F2 arzon narxda bo‘lgan)', () => {
+  const r5 = (o: Partial<T2Qator> & { id: number; tur: string; norma?: number | null }): T2Qator => ({ obyekt_id: 1, ota_id: null, tartib: o.id, kod: null, nom: 'q' + o.id, birlik: 'м3', hajm: null, narx: null, ...o } as T2Qator);
+  // Ish 2 (avto rs 3: smeta 100, eski F2 60), mat 4 (smeta 50, eski 30), mat 5 (smeta narxi NULL, eski 40), qo'shimcha mat 6 (fakt 0 ga tushgan).
+  const qs = [r5({ id: 1, tur: 'rz' }), r5({ id: 2, tur: 'bl', ota_id: 1, hajm: 100 }), r5({ id: 3, tur: 'rs', ota_id: 2, kat: 'ЧЕЛ', norma: 2, narx: 100 }),
+    r5({ id: 4, tur: 'mat', ota_id: 1, kat: 'МАТ', narx: 50, hajm: 10 }), r5({ id: 5, tur: 'mat', ota_id: 1, kat: 'МАТ', narx: null, hajm: 5 }),
+    r5({ id: 6, tur: 'mat', ota_id: 1, kat: 'МАТ', narx: 70, hajm: 10, qoshimcha: true })];
+  const hol: F2Holat[] = [
+    { qator_id: 2, fakt_hajm: 80, f2_hajm: 100, f2_mumkin_hajm: 0, smeta_hajm: 100 },
+    { qator_id: 3, fakt_hajm: 160, f2_hajm: 200, f2_mumkin_hajm: 0, f2_narx: 60 },
+    { qator_id: 4, fakt_hajm: 8, f2_hajm: 10, f2_mumkin_hajm: 0, f2_narx: 30 },
+    { qator_id: 5, fakt_hajm: 5, f2_hajm: 5, f2_mumkin_hajm: 0, f2_narx: 40 },
+    { qator_id: 6, fakt_hajm: 0, f2_hajm: 10, f2_mumkin_hajm: 0, f2_narx: 20 },
+  ];
+  const stornoQaytar = new Map([[2, 100], [3, 200], [4, 10], [5, 5], [6, 10]]);
+  const STORNO = -(200 * 60 + 10 * 30 + 5 * 40 + 10 * 20); // eski narxda minus = −12 700
+  const res = (b: ReturnType<typeof f2Qur>, id: number) => b.flatMap((x) => [...x.alohida, ...x.ishlar.flatMap((i) => i.resurslar)]).find((r) => r.id === id);
+  const qur = (smetaNarxda: boolean) => f2Qur(qs, hol, undefined, 'fakt', undefined, { stornoQaytar, smetaNarxda });
+  const kirit = () => { const k = bosKiritma(); k.hajm[2] = '80'; k.hajm[4] = '8'; k.hajm[5] = '5'; return k; };
+
+  it('yoqilgan: taklif — smeta narxi (oldingi F2 emas), eski narx ko‘rinadi', () => {
+    const b = qur(true);
+    expect(res(b, 3)).toMatchObject({ taklifNarx: 100, taklifManba: 'smeta', eskiNarx: 60 });
+    expect(res(b, 4)).toMatchObject({ taklifNarx: 50, taklifManba: 'smeta', eskiNarx: 30 });
+    expect(res(b, 3)?.zaxiraNarx).toBeUndefined();
+  });
+  it('o‘chiq — eski xatti-harakat: oldingi F2 narxi taklif, qo‘shimcha maydonlar yo‘q', () => {
+    const b = qur(false);
+    expect(res(b, 3)).toMatchObject({ taklifNarx: 60, taklifManba: 'oldingi_f2' });
+    expect(res(b, 3)?.eskiNarx).toBeUndefined();
+    expect(res(b, 5)).toMatchObject({ taklifNarx: 40, taklifManba: 'oldingi_f2' });
+  });
+  it('smeta narxi NULL — taklif yo‘q (xato NARX, 0 emas), zaxira (oldingi F2) ochiq, avtomatik qo‘yilmaydi', () => {
+    const b = qur(true);
+    expect(res(b, 5)).toMatchObject({ taklifNarx: null, taklifManba: 'yoq', zaxiraNarx: 40 });
+    const q = new Map(f2Qatorlar(b, kirit()).map((x) => [x.id, x]));
+    expect(q.get(5)).toMatchObject({ narx: null, summa: null, xato: 'NARX' });
+  });
+  it('jamilar: storno (eski narx), yangi (smeta narx), farq; narx farqi eski narxga nisbatan', () => {
+    const b = qur(true);
+    const q = f2Qatorlar(b, kirit());
+    const by = new Map(q.map((x) => [x.id, x]));
+    expect(by.get(3)).toMatchObject({ hajm: 160, narx: 100, summa: 16000, manba: 'smeta' });
+    expect(by.get(4)).toMatchObject({ hajm: 8, narx: 50, summa: 400 });
+    expect(smetaNarxXulosa(q, b, STORNO)).toEqual({ storno: -12700, yangi: 16400, farq: 3700, eskiNarxda: 9840, yangiSolishtirma: 16400, narxFarqi: 6560, solishtirildi: 2, smetaNarxsiz: 1 });
+  });
+  it('operator zaxira narxni ongli qo‘llaydi — qo‘lda narx, summaga kiradi', () => {
+    const b = qur(true);
+    const k = kirit(); k.narx[5] = '40';
+    const q = f2Qatorlar(b, k);
+    expect(q.find((x) => x.id === 5)).toMatchObject({ narx: 40, summa: 200, manba: 'qolda' });
+    expect(smetaNarxXulosa(q, b, STORNO)).toMatchObject({ yangi: 16600, farq: 3900, smetaNarxsiz: 0 });
+  });
+  it('storno qilingan qo‘shimcha mat (fakt 0 ga tushgan) qayta taklif qilinmaydi — ikkala rejimda', () => {
+    expect(res(qur(true), 6)).toBeUndefined();
+    expect(res(qur(false), 6)).toBeUndefined();
   });
 });
