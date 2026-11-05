@@ -138,14 +138,19 @@ export const EGA_JADVALLARI: ReadonlySet<string> = new Set([
   ...Object.values(RESURS_JADVAL), 't2_shaxsiy_smeta', 't2_sklad_harakat',
 ]);
 
+/** Bitta so'rovda egaligi tekshiriladigan id lar chegarasi va o'qish bo'lagi. */
+export const EGA_MAX_ID = 10_000;
+export const EGA_BOLAK = 500;
+
 /** Egalarni bazadan o'qiydi (service_role, faqat o'qish). Xato bo'lsa — null (chaqiruvchi fail-closed qiladi). */
 export async function egalarniOqi(baseUrl: string, kalit: string, sorovlar: readonly EgaSorov[]): Promise<Map<string, Map<number, number | null>> | null> {
   const topilgan = new Map<string, Map<number, number | null>>();
   for (const s of sorovlar) {
-    if (!EGA_JADVALLARI.has(s.jadval) || s.idlar.length > 2000) return null;
+    // Chegara: katta F2 qoralamasi (pereraschet: storno + yangi bloklar) 2 000 dan oshadi — 10 000 gacha, 500 talik bo'laklarda (≤20 so'rov).
+    if (!EGA_JADVALLARI.has(s.jadval) || s.idlar.length > EGA_MAX_ID) return null;
     const m = new Map<number, number | null>();
-    for (let i = 0; i < s.idlar.length; i += 300) {
-      const bolak = s.idlar.slice(i, i + 300);
+    for (let i = 0; i < s.idlar.length; i += EGA_BOLAK) {
+      const bolak = s.idlar.slice(i, i + EGA_BOLAK);
       const r = await fetch(`${baseUrl}/rest/v1/${s.jadval}?select=id,kompaniya_id&id=in.(${bolak.join(',')})`,
         { headers: { apikey: kalit, Authorization: 'Bearer ' + kalit } });
       if (!r.ok) return null;
