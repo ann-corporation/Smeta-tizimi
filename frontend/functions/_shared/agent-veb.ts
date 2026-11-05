@@ -73,6 +73,8 @@ export async function vebOl(
   xom: string,
   domenRuxsat: (domen: string) => Promise<boolean>,
   fetchImpl: typeof fetch = fetch,
+  /** Text kept for the caller (default 20 000 chars; the price agent scans long listing pages, so it asks for more). */
+  maxMatn = MAX_MATN,
 ): Promise<VebNatija> {
   let joriy = vebUrlTekshir(xom);
   for (let hop = 0; hop <= MAX_REDIRECT; hop += 1) {
@@ -98,8 +100,8 @@ export async function vebOl(
     const { bytes, kesilgan } = await tanaOl(res);
     const xomMatn = new TextDecoder().decode(bytes);
     const toza = /html/i.test(tur) ? htmlniMatnga(xomMatn) : xomMatn.trim();
-    const matn = toza.slice(0, MAX_MATN);
-    return { ok: true, url: joriy.url.toString(), domen: joriy.domen, status: res.status, bayt: bytes.length, sha256: await sha256Hex(bytes), matn, qisqartirildi: kesilgan || toza.length > MAX_MATN };
+    const matn = toza.slice(0, maxMatn);
+    return { ok: true, url: joriy.url.toString(), domen: joriy.domen, status: res.status, bayt: bytes.length, sha256: await sha256Hex(bytes), matn, qisqartirildi: kesilgan || toza.length > maxMatn };
   }
   return { ok: false, xato: 'Juda ko‘p yo‘naltirish' };
 }

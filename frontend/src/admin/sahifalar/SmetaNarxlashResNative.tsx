@@ -10,6 +10,7 @@ import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
 import { t } from '../../i18n/til';
 import { bolaklar } from '../../lib/narx-korinish';
 import { QamrovChizigi } from '../../components/narx/NarxKorinish';
+import { OmmaviyNarxlash } from '../../components/narx/OmmaviyNarxlash';
 
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
 
@@ -230,6 +231,10 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
           className="input mt-1.5 block h-9 w-full px-2 py-1.5 text-[12px] file:mr-2 file:rounded file:border-0 file:bg-surface-3 file:px-2 file:py-1 file:text-[12px] file:text-text" />
       </label>}
     </div>
+
+    {/* Egasi 2026-11-05: RES faylisiz — reestr → katalog → КП → internet bilan barcha narxsiz qatorlar bitta ko'rib chiqishda. */}
+    {objectId && qatorlar.length > 0 && <OmmaviyNarxlash key={`${objectId}:${nolHam}`} kompaniyaId={companyId} obyektId={Number(objectId)}
+      qatorlar={qatorlar} nolHam={nolHam} onYangilandi={() => obyektniYukla(objectId)} />}
 
     {busy && <p role="status" className="text-[13px] text-text-dim">{t('Hisoblanmoqda…')}</p>}
     {error && <p role="alert" className="fz-note fz-note--danger">{error}</p>}

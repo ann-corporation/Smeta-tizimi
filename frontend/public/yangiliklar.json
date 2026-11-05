@@ -4,11 +4,11 @@
     {
       "id": 111,
       "sana": "2026-11-05",
-      "sarlavha": "Smeta versiyasidan keyin F2 yo‘qolmaydi",
+      "sarlavha": "Pereraschet: yangi qatorlar smeta narxida, storno bo‘lim bo‘yicha",
       "bandlar": [
-        "Yangi smeta versiyasi faollashtirilgandan keyin avvalgi versiyadagi tasdiqlangan F2 yangi qatorlarda «avvalgi versiya F2» belgisi bilan ko‘rinadi (fakt jurnali va F2 tayyorlash).",
-        "Belgi faqat ma’lumot: obyekt jamisida eski F2 bir marta sanaladi, qator ustunlari va «F2 ga olish mumkin» o‘zgarmaydi.",
-        "Moslik tasdig‘ini kutayotgan yoki yangi smetada topilmagan eski F2 bo‘lsa — fakt jurnalida ogohlantirish chiqadi («Versiyalar va farq» panelida ko‘rish mumkin)."
+        "Pereraschet qoralamasida yangi belgi: «Yangi qatorlar smeta narxida» (sukut yoqiq). Storno qatorlari eski F2 narxida qoladi, yangi hajmlar smeta narxida taklif qilinadi.",
+        "Har qatorda oldingi F2 narxi ko‘rinadi; tepada storno, yangi summa va farq. Smeta narxi yo‘q qator belgilanadi — oldingi F2 narxini ongli qo‘llash yoki «narxsiz» tanlash mumkin (0 qo‘yilmaydi).",
+        "Storno oynasida «Bo‘lim bo‘yicha tanlash»: bo‘limning barcha qatorlari (resurslar va qo‘shimcha qatorlar bilan) bir bosishda belgilanadi yoki olib tashlanadi."
       ]
     },
     {
@@ -26,11 +26,11 @@
     {
       "id": 109,
       "sana": "2026-11-05",
-      "sarlavha": "Pereraschet: yangi qatorlar smeta narxida, storno bo‘lim bo‘yicha",
+      "sarlavha": "Smeta versiyasidan keyin F2 yo‘qolmaydi",
       "bandlar": [
-        "Pereraschet qoralamasida yangi belgi: «Yangi qatorlar smeta narxida» (sukut yoqiq). Storno qatorlari eski F2 narxida qoladi, yangi hajmlar smeta narxida taklif qilinadi.",
-        "Har qatorda oldingi F2 narxi ko‘rinadi; tepada storno, yangi summa va farq. Smeta narxi yo‘q qator belgilanadi — oldingi F2 narxini ongli qo‘llash yoki «narxsiz» tanlash mumkin (0 qo‘yilmaydi).",
-        "Storno oynasida «Bo‘lim bo‘yicha tanlash»: bo‘limning barcha qatorlari (resurslar va qo‘shimcha qatorlar bilan) bir bosishda belgilanadi yoki olib tashlanadi."
+        "Yangi smeta versiyasi faollashtirilgandan keyin avvalgi versiyadagi tasdiqlangan F2 yangi qatorlarda «avvalgi versiya F2» belgisi bilan ko‘rinadi (fakt jurnali va F2 tayyorlash).",
+        "Belgi faqat ma’lumot: obyekt jamisida eski F2 bir marta sanaladi, qator ustunlari va «F2 ga olish mumkin» o‘zgarmaydi.",
+        "Moslik tasdig‘ini kutayotgan yoki yangi smetada topilmagan eski F2 bo‘lsa — fakt jurnalida ogohlantirish chiqadi («Versiyalar va farq» panelida ko‘rish mumkin)."
       ]
     },
     {
@@ -45,12 +45,13 @@
     {
       "id": 107,
       "sana": "2026-11-05",
-      "sarlavha": "Narx tekshiruvi: usta narxini smeta bilan darhol solishtiring",
+      "sarlavha": "Barcha narxsiz qatorlarni bir bosishda narxlash",
       "bandlar": [
-        "Smeta → Narxlash → «Narx tekshiruvi» ichida ish kartasi yaratasiz (masalan «Rigel 300×500», metrda) va uni smetadagi qatorlarga bog‘laysiz: asosiy norma, armatura, minusli istisno qatorlari.",
-        "«Smetadan ish topish»: «ригел» deb yozsangiz, barcha obyektlardagi mos ishlar 1 smeta birligiga mehnat bilan chiqadi; asosiy normani tanlasangiz, shu bo‘limdagi armatura va istisno qatorlari avtomatik taklif qilinadi.",
-        "Usta narxini kiritasiz — jadvalda smeta mehnati, tanlangan qamrov va to‘liq ish 1 birlikka (ustamasiz, ustama bilan, QQS bilan) va farq chiqadi. Opalubka / armatura / beton bosqichlari va «material kimdan» belgilanadi.",
-        "Eslatma: bazadagi yangi jadvallar egasi tomonidan qo‘llangandan keyin ishlaydi."
+        "«Smetani narxlash» sahifasida yangi tugma: obyektning barcha narxsiz resurslari (bir xil nom va birlik — bitta qator) navbatga olinadi.",
+        "Tartib: avval kompaniya reestri (oldin qabul qilingan narxlar), katalog va КП — bepul; qolganlari internetdan, har biri alohida qidiruv bilan (rus va o‘zbek tilida, O‘zbekiston saytlari birinchi, obyekt hududi bilan).",
+        "Boshlashdan oldin taxminiy token narxi ko‘rinadi; shu oy qidirilgan resurs qayta qidirilsa — bepul.",
+        "Bitta jadvalda: narx (QQS siz), havolali manbalar, ishonch, bir necha manba bo‘lsa o‘rtacha va 30 % dan katta tarqoqlik belgisi; har qatorni qabul, rad yoki tahrir qiling, «Yuqori ishonchlilarni qabul qilish» tugmasi bor.",
+        "Qabul qilingan internet narxlari kompaniya narx reestriga havola va sana bilan yoziladi — keyingi safar darhol va bepul; har smeta qatoriga narx dalili bog‘lanadi."
       ]
     },
     {
