@@ -36,6 +36,33 @@ it('mehnat (ЧЕЛ) internetga yuborilmaydi; begona kompaniya 403', async () => 
   expect((await run({ amal: 'narx_internet', kompaniya_id: 99, sorovlar: [{ id: 'r0', nom: 'Цемент М400', birlik: 'т', kat: 'МАТ' }] })).status).toBe(403);
   expect(m.ai).not.toHaveBeenCalled();
 });
+it('har resurs — alohida veb-qidiruv (ikki tilli so‘rov, web plagin); shu oy keshidagi resurs AI chaqirmaydi', async () => {
+  const rpc: Record<string, unknown> = {
+    t2_narx_internet_domen_ol_v1: { ok: true, domenlar: ['beton.uz'] },
+    t2_narx_internet_kesh_ol_v1: { ok: true, natijalar: { [`ГВОЗДИ|Т|UZ|${new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 7)}`]: { id: 'x', narx: 5, izoh: '', manbalar: [] } } },
+    t2_narx_internet_kesh_yoz_v1: { ok: true, yozildi: 1 },
+  };
+  const yozildi: unknown[] = [];
+  vi.stubGlobal('fetch', vi.fn(async (u: string, init?: RequestInit) => {
+    const nom = String(u).split('/rpc/')[1];
+    if (nom) { if (nom === 't2_narx_internet_kesh_yoz_v1') yozildi.push(JSON.parse(String(init?.body))); return Response.json(rpc[nom] ?? { ok: true }); }
+    return SAHIFA[u] ? new Response(SAHIFA[u], { status: 200, headers: { 'content-type': 'text/html' } }) : new Response('nf', { status: 404, headers: { 'content-type': 'text/html' } });
+  }));
+  m.ai.mockResolvedValue({ provider: 'openrouter', model: INTERNET_MODEL, text: JSON.stringify({ natijalar: [{ id: 'q', izoh: '', manbalar: [
+    { url: 'https://beton.uz/armatura-a500c-10', nom: 'Арматура', narx: 9_072_000, birlik: 'т', nds: 'bilan', sotuvchi: 'B', qadoq_miqdor: null, qadoq_birlik: null, iqtibos: '' }] }] }) });
+  const j = await (await run({ amal: 'narx_internet', kompaniya_id: 17, sorovlar: [
+    { id: 'r0', nom: 'Арматура А500С Д10', birlik: 'т', kat: 'МАТ' }, { id: 'r1', nom: 'Гвозди', birlik: 'т', kat: 'МАТ' }] })).json() as
+    { natijalar: Array<{ id: string; narx: number | null; kesh?: boolean; ishonch?: string }> };
+  expect(m.ai).toHaveBeenCalledTimes(1);
+  const req = m.ai.mock.calls[0][5] as { text: string; system: string; web?: { maxResults: number } };
+  expect(req.web?.maxResults).toBeGreaterThan(0);
+  expect(req.text).toContain('Узбекистан');
+  expect(req.text).toContain('armatura');
+  expect(req.system).toContain('AFZAL DOMENLAR: beton.uz');
+  expect(j.natijalar.map(n => [n.id, n.narx, n.kesh ?? false])).toEqual([['r0', 8_100_000, false], ['r1', 5, true]]);
+  expect(j.natijalar[0].ishonch).toBe('yuqori');   // one page-verified source on a preferred domain
+  expect(yozildi).toHaveLength(1);
+});
 it('birligi aniq o‘tmaydigan manba tekshirilmaydi va hisobga olinmaydi', async () => {
   m.ai.mockResolvedValue({ provider: 'openrouter', model: INTERNET_MODEL, text: JSON.stringify({ natijalar: [{ id: 'r0', izoh: '', manbalar: [
     { url: 'https://beton.uz/armatura-a500c-10', nom: 'x', narx: 9_072_000, birlik: 'м2', nds: 'bilan', sotuvchi: 'B' }] }] }) });

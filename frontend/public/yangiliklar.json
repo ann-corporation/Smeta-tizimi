@@ -2,6 +2,18 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 107,
+      "sana": "2026-11-05",
+      "sarlavha": "Barcha narxsiz qatorlarni bir bosishda narxlash",
+      "bandlar": [
+        "«Smetani narxlash» sahifasida yangi tugma: obyektning barcha narxsiz resurslari (bir xil nom va birlik — bitta qator) navbatga olinadi.",
+        "Tartib: avval kompaniya reestri (oldin qabul qilingan narxlar), katalog va КП — bepul; qolganlari internetdan, har biri alohida qidiruv bilan (rus va o‘zbek tilida, O‘zbekiston saytlari birinchi, obyekt hududi bilan).",
+        "Boshlashdan oldin taxminiy token narxi ko‘rinadi; shu oy qidirilgan resurs qayta qidirilsa — bepul.",
+        "Bitta jadvalda: narx (QQS siz), havolali manbalar, ishonch, bir necha manba bo‘lsa o‘rtacha va 30 % dan katta tarqoqlik belgisi; har qatorni qabul, rad yoki tahrir qiling, «Yuqori ishonchlilarni qabul qilish» tugmasi bor.",
+        "Qabul qilingan internet narxlari kompaniya narx reestriga havola va sana bilan yoziladi — keyingi safar darhol va bepul; har smeta qatoriga narx dalili bog‘lanadi."
+      ]
+    },
+    {
       "id": 106,
       "sana": "2026-11-05",
       "sarlavha": "F2: minus (chegirma) qatorlar endi tushib qolmaydi",
