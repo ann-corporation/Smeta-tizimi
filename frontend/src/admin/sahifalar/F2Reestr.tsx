@@ -277,7 +277,7 @@ export default function F2Reestr() {
       <F2DavomRoyxat kompaniyaId={kompaniyaId} />
       {malumot && <F2Takrorlar malumot={malumot} />}
       {malumot && kompaniyaId != null && <F2Portfel kompaniyaId={kompaniyaId} malumot={malumot} tashkilot={joriy?.nom ?? null} yangila={yangilaJim} />}
-      {malumot && kompaniyaId != null && <F2OylikPaket kompaniyaId={kompaniyaId} malumot={malumot} tashkilot={joriy?.nom ?? null} />}
+      {malumot && kompaniyaId != null && <F2OylikPaket kompaniyaId={kompaniyaId} malumot={malumot} tashkilot={joriy?.nom ?? null} yangila={yangilaJim} />}
       {reestr && <F2ReestrOylik aktlar={reestr.qatorlar.flatMap(q => q.aktlar)} />}
       {malumot && malumot.manbaXato > 0 && <div role="status" className="fz-note fz-note--warn"><AlertTriangle aria-hidden="true" /><span>{t('{n} ta aktning manbasi o‘qilmadi — ular «aniqlanmadi» deb ko‘rsatilgan.', { n: malumot.manbaXato })}</span></div>}
 
