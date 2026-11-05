@@ -130,7 +130,9 @@ export function ishoraliQoldiq(chegara: number, olingan: number): number {
   return Math.min(0, Math.max(chegara, chegara - olingan));
 }
 /** Nolga teng emas (minus ham F2 ga olinadi). */
-const nol = (x: number) => Math.abs(x) > 1e-9;
+/** Chang chegarasi: eski F2 hisobidan qolgan 1e-7 kabi kasr qoldiqlar (egasi 2026-11-06, Amfiteatr) F2 ga taklif qilinmaydi. */
+const CHANG = 1e-6;
+const nol = (x: number) => Math.abs(x) > CHANG;
 
 /** Smeta daraxti → F2 uchun bo'limlar/ishlar/resurslar (faqat F2 olish mumkin bo'lganlar). */
 export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarxlari, manba: F2Manba = 'fakt', qoralama?: ReadonlyMap<number, number>, ktx?: F2QurKontekst): F2Bolim[] {
@@ -175,7 +177,8 @@ export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarx
   // Qoralamadagi (tasdiqlanmagan) F2 hajmi qoldiqdan AYIRILADI - bir ishni ikki marta F2 qilish xavfi bo'lmasin.
   const qor = (id: number) => Math.max(0, qoralama?.get(id) ?? 0);
   /** Manfiy (chegirma) qoldiqda qoralamadagi manfiy hajm ayiriladi, ishora o'zgarmaydi. */
-  const mumkin = (id: number) => {
+  const mumkin = (id: number) => { const m = mumkinXom(id); return Math.abs(m) < CHANG ? 0 : y6(m); };
+  const mumkinXom = (id: number) => {
     const b0 = baza(id);
     // Ortiqcha F2 chegirmasi: qoralamadagi hajm ishorasidan qat'i nazar ayiriladi (sof F2 = fakt); natija ≤ 0, ishora o'zgarmaydi.
     if (b0 < 0 && ortiqcha(id) != null) return Math.min(0, y6(b0 - (qoralama?.get(id) ?? 0)));
