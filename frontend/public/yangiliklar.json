@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 109,
+      "sana": "2026-11-05",
+      "sarlavha": "Shartnoma kartasi: asl hujjatlar va qo‘shimcha kelishuvlar",
+      "bandlar": [
+        "Shartnoma liniyasida shartnomani ochsangiz — yangi «Asl hujjatlar va qo‘shimcha kelishuvlar» bo‘limi: shartnoma va har DS ning PDF/skan faylini yuklash va istalgan vaqtda yuklab olish.",
+        "Fayllar kompaniyaning yopiq R2 omborida saqlanadi, yuklab olish faqat kompaniya a’zolariga; faylni ajratish uni o‘chirmaydi.",
+        "Har DS raqami, sanasi va summasi (QQS bilan) ko‘rinadi, joriy shartnoma summasi — eng so‘nggi DS bo‘yicha. Hamma kompaniyalar uchun."
+      ]
+    },
+    {
       "id": 108,
       "sana": "2026-11-05",
       "sarlavha": "Fakt jurnali: F2 importidagi qo‘shimcha resurslarda narx va summa",

@@ -384,6 +384,14 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_shartnoma_oylik_paket_saqla_v1"
     },
     {
+      "amal": "shartnoma_hujjat_bogla_v1",
+      "rpc": "t2_shartnoma_hujjat_bogla_v1"
+    },
+    {
+      "amal": "shartnoma_hujjat_ajrat_v1",
+      "rpc": "t2_shartnoma_hujjat_ajrat_v1"
+    },
+    {
       "amal": "sotuv_loyiha_saqla_v1",
       "rpc": "t2_sotuv_loyiha_saqla_v1"
     },

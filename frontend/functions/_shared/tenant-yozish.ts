@@ -28,6 +28,8 @@ export const ID_JADVAL: Readonly<Record<string, string>> = {
   p_protokol_id: 't2_lab_protokol',
   p_azolik_id: 't2_azolik',
   p_document_id: 't2_document_registry',
+  /* Shartnoma DS (qo'shimcha kelishuv) — 20261203000900 shartnoma hujjati bog'i. */
+  p_ds_id: 't2_shartnoma_ds',
   /* Fayl menejeri o'z papkalari (p_ota_id emas — u t2_qator uchun band). */
   p_papka_id: 't2_fayl_papka', p_ota_papka_id: 't2_fayl_papka',
   /* C11 markaziy ombor kirimi (2026-10-29): ombor va jurnal qatori ham shlyuzda kompaniya bo'yicha tekshiriladi. */
@@ -55,6 +57,7 @@ export const P_ID_JADVAL: Readonly<Record<string, string>> = {
   faktura_yoz: 't2_faktura',
   ish_turi_yoz: 't2_ish_turi', ish_turi_saqla_v1: 't2_ish_turi',
   shartnoma_saqla_v2: 't2_shartnoma',
+  shartnoma_hujjat_ajrat_v1: 't2_shartnoma_hujjat',
   grafik_yangilash: 't2_grafik_qator', grafik_sozlama_saqla: 't2_grafik_qator',
   kompaniya_yangila: 't2_kompaniya',
   narx_protokol_tasdiqla: 't2_price_basis', narx_protokol_bekor: 't2_price_basis',
