@@ -44,6 +44,8 @@ export type AiRequest = {
   workload?: 'utility' | 'primary';
   /** Independent thinking budget; a short answer limit alone can starve the final JSON. */
   reasoning?: { effort: 'none' | 'minimal' | 'low' | 'medium' | 'high' };
+  /** OpenRouter web-search plugin: the user message is the search query; `maxResults` pages are given to the model. */
+  web?: { maxResults: number };
   /** Butun chaqiruv (barcha provider va urinishlar) uchun umumiy muddat, ms. Berilmasa: workload bo'lsa 180 s, aks holda 60 s. */
   totalTimeoutMs?: number;
 };
@@ -373,6 +375,7 @@ function providerPayload(provider: AiProvider, model: string, request: AiRequest
     /* OpenRouter: javobda haqiqiy narx (usage.cost) — xarajat hisobi uchun. */
     ...(provider === 'openrouter' ? { usage: { include: true } } : {}),
     ...(provider === 'openrouter' && request.reasoning ? { reasoning: request.reasoning } : {}),
+    ...(provider === 'openrouter' && request.web ? { plugins: [{ id: 'web', max_results: Math.min(10, Math.max(1, Math.round(request.web.maxResults))) }] } : {}),
   };
 }
 

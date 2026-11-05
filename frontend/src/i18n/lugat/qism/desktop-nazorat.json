@@ -1,0 +1,422 @@
+{
+  "Amal bajarilmadi: {x}.": {
+    "ru": "Действие не выполнено: {x}.",
+    "en": "Action failed: {x}."
+  },
+  "Windows dastur boshqaruviga ruxsatingiz yo‘q. Bu bo‘lim kompaniya rahbari (boss/admin) yoki platforma superadmini uchun.": {
+    "ru": "Нет доступа к управлению приложением Windows. Раздел для руководителя компании (boss/admin) или суперадмина платформы.",
+    "en": "You cannot manage the Windows app. This section is for a company head (boss/admin) or the platform superadmin."
+  },
+  "Ma’lumotni o‘qib bo‘lmadi: {x}.": {
+    "ru": "Не удалось прочитать данные: {x}.",
+    "en": "Could not load data: {x}."
+  },
+  "Bu amal avval bajarilgan.": {
+    "ru": "Это действие уже выполнено.",
+    "en": "This action was already performed."
+  },
+  "Windows dastur butun platformada o‘chirilgan (kill switch).": {
+    "ru": "Приложение Windows отключено на всей платформе (kill switch).",
+    "en": "The Windows app is disabled platform-wide (kill switch)."
+  },
+  "Yangi qurilma ulanmaydi, ulangan qurilmalar keyingi so‘rovda chiqarib yuboriladi.": {
+    "ru": "Новые устройства не подключаются, подключённые будут отключены при следующем запросе.",
+    "en": "New devices cannot enroll; enrolled devices are signed out on their next request."
+  },
+  "Windows dastur ko‘rsatkichlari": {
+    "ru": "Показатели приложения Windows",
+    "en": "Windows app metrics"
+  },
+  "Faol qurilmalar": {
+    "ru": "Активные устройства",
+    "en": "Active devices"
+  },
+  "Oxirgi 24 soatda faol": {
+    "ru": "Активны за 24 часа",
+    "en": "Active in last 24 h"
+  },
+  "Bugun bekor qilingan": {
+    "ru": "Отозвано сегодня",
+    "en": "Revoked today"
+  },
+  "Faol oflayn ruxsatlar": {
+    "ru": "Активные офлайн-доступы",
+    "en": "Active offline leases"
+  },
+  "Desktopdan foydalanayotgan kompaniyalar": {
+    "ru": "Компании с приложением",
+    "en": "Companies using desktop"
+  },
+  "Qurilmalar": {
+    "ru": "Устройства",
+    "en": "Devices"
+  },
+  "Windows dasturiga kirgan qurilmalar. Token o‘zi hech qachon ko‘rsatilmaydi.": {
+    "ru": "Устройства, вошедшие в приложение Windows. Сам токен никогда не показывается.",
+    "en": "Devices signed in to the Windows app. The token itself is never shown."
+  },
+  "Foydalanuvchi, qurilma, versiya yoki kompaniya": {
+    "ru": "Пользователь, устройство, версия или компания",
+    "en": "User, device, version or company"
+  },
+  "Qurilmalarni qidirish": {
+    "ru": "Поиск устройств",
+    "en": "Search devices"
+  },
+  "Holat bo‘yicha": {
+    "ru": "По статусу",
+    "en": "By status"
+  },
+  "{n} ta qurilma": {
+    "ru": "Устройств: {n}",
+    "en": "{n} devices"
+  },
+  "Qurilma bekor qilindi. Dastur keyingi so‘rovda kirish oynasiga qaytadi.": {
+    "ru": "Устройство отозвано. Приложение вернётся к окну входа при следующем запросе.",
+    "en": "Device revoked. The app returns to the sign-in screen on its next request."
+  },
+  "Foydalanuvchining barcha qurilmalari bekor qilindi — qayta kirishi shart.": {
+    "ru": "Все устройства пользователя отозваны — требуется повторный вход.",
+    "en": "All of the user's devices were revoked — sign-in required again."
+  },
+  "Qurilma muddati o‘zgartirildi.": {
+    "ru": "Срок устройства изменён.",
+    "en": "Device expiry changed."
+  },
+  "Qurilma": {
+    "ru": "Устройство",
+    "en": "Device"
+  },
+  "Oflayn": {
+    "ru": "Офлайн",
+    "en": "Offline"
+  },
+  "Nomsiz qurilma": {
+    "ru": "Устройство без имени",
+    "en": "Unnamed device"
+  },
+  "versiya noma’lum": {
+    "ru": "версия неизвестна",
+    "en": "version unknown"
+  },
+  "Yangilash kerak": {
+    "ru": "Нужно обновить",
+    "en": "Update required"
+  },
+  "{n} obyekt": {
+    "ru": "Объектов: {n}",
+    "en": "{n} objects"
+  },
+  "Foydalanuvchining barcha qurilmalarini bekor qilib, qayta kirishga majburlash": {
+    "ru": "Отозвать все устройства пользователя и потребовать повторный вход",
+    "en": "Revoke all of the user's devices and force sign-in again"
+  },
+  "Qayta kirishga majburlash": {
+    "ru": "Принудительный повторный вход",
+    "en": "Force re-login"
+  },
+  "Mos qurilma topilmadi.": {
+    "ru": "Подходящих устройств нет.",
+    "en": "No matching devices."
+  },
+  "Siyosat saqlandi. Server keyingi so‘rovdan boshlab qo‘llaydi.": {
+    "ru": "Политика сохранена. Сервер применяет её со следующего запроса.",
+    "en": "Policy saved. The server applies it from the next request."
+  },
+  "Amallar jurnali": {
+    "ru": "Журнал действий",
+    "en": "Action log"
+  },
+  "Kim, qachon, nima uchun — har amal sabab bilan yoziladi.": {
+    "ru": "Кто, когда, зачем — каждое действие записывается с причиной.",
+    "en": "Who, when, why — every action is recorded with a reason."
+  },
+  "Hali amal yo‘q.": {
+    "ru": "Действий пока нет.",
+    "en": "No actions yet."
+  },
+  "«{q}» qurilmasini bekor qilish ({k})": {
+    "ru": "Отозвать устройство «{q}» ({k})",
+    "en": "Revoke device “{q}” ({k})"
+  },
+  "{k}: barcha qurilmalarni bekor qilish va qayta kirishga majburlash": {
+    "ru": "{k}: отозвать все устройства и потребовать повторный вход",
+    "en": "{k}: revoke all devices and force sign-in again"
+  },
+  "{k}: qurilma muddatini o‘zgartirish": {
+    "ru": "{k}: изменить срок устройства",
+    "en": "{k}: change device expiry"
+  },
+  "Amalni tasdiqlash": {
+    "ru": "Подтверждение действия",
+    "en": "Confirm action"
+  },
+  "Muddat kirish sessiyasi tugashidan ({x}) oshmaydi.": {
+    "ru": "Срок не может превышать окончание сессии входа ({x}).",
+    "en": "Expiry cannot exceed the sign-in session end ({x})."
+  },
+  "Dastur keyingi so‘rovda chiqarib yuboriladi va qayta kirish talab qilinadi. Oflayn ruxsatlar ham bekor bo‘ladi.": {
+    "ru": "Приложение будет отключено при следующем запросе и потребует повторный вход. Офлайн-доступы тоже аннулируются.",
+    "en": "The app is signed out on its next request and must sign in again. Offline leases are invalidated too."
+  },
+  "Sabab (majburiy): masalan, noutbuk yo‘qolgan": {
+    "ru": "Причина (обязательно): например, ноутбук утерян",
+    "en": "Reason (required): e.g. laptop lost"
+  },
+  "Siyosat": {
+    "ru": "Политика",
+    "en": "Policy"
+  },
+  "Server har kirish, har so‘rov va har oflayn ruxsatda tekshiradi — faqat ekranda emas.": {
+    "ru": "Сервер проверяет при каждом входе, запросе и офлайн-доступе — не только на экране.",
+    "en": "The server checks on every enrollment, request and offline lease — not just in the UI."
+  },
+  "Desktop": {
+    "ru": "Десктоп",
+    "en": "Desktop"
+  },
+  "Taqiqlangan": {
+    "ru": "Запрещено",
+    "en": "Forbidden"
+  },
+  "Qurilma limiti": {
+    "ru": "Лимит устройств",
+    "en": "Device limit"
+  },
+  "Oflayn muddati": {
+    "ru": "Срок офлайн",
+    "en": "Offline duration"
+  },
+  "{n} soat": {
+    "ru": "{n} ч",
+    "en": "{n} h"
+  },
+  "Minimal versiya": {
+    "ru": "Минимальная версия",
+    "en": "Minimum version"
+  },
+  "Global siyosat (platforma)": {
+    "ru": "Глобальная политика (платформа)",
+    "en": "Global policy (platform)"
+  },
+  "«Yoqilgan: yo‘q» — butun platforma uchun kill switch.": {
+    "ru": "«Включено: нет» — kill switch для всей платформы.",
+    "en": "“Enabled: no” is the platform-wide kill switch."
+  },
+  "Platforma qoidasi shu kompaniya uchun": {
+    "ru": "Правило платформы для этой компании",
+    "en": "Platform rule for this company"
+  },
+  "Bo‘sh maydon — global qiymat. Faqat superadmin.": {
+    "ru": "Пустое поле — глобальное значение. Только суперадмин.",
+    "en": "Empty field means the global value. Superadmin only."
+  },
+  "Kompaniya cheklovi": {
+    "ru": "Ограничение компании",
+    "en": "Company restriction"
+  },
+  "Kompaniya qoidalari": {
+    "ru": "Правила компаний",
+    "en": "Company rules"
+  },
+  "platforma": {
+    "ru": "платформа",
+    "en": "platform"
+  },
+  "oflayn yopiq": {
+    "ru": "офлайн закрыт",
+    "en": "offline off"
+  },
+  "limit {n}": {
+    "ru": "лимит {n}",
+    "en": "limit {n}"
+  },
+  "meros": {
+    "ru": "наследуется",
+    "en": "inherit"
+  },
+  "Kompaniya bo‘yicha alohida qoida yo‘q. Qoida qo‘yish uchun kompaniyani tanlang.": {
+    "ru": "Отдельных правил по компаниям нет. Чтобы задать правило, выберите компанию.",
+    "en": "No per-company rules. Select a company to set one."
+  },
+  "ha": {
+    "ru": "да",
+    "en": "yes"
+  },
+  "Sababni yozing (kamida 3 belgi).": {
+    "ru": "Укажите причину (минимум 3 символа).",
+    "en": "Enter a reason (at least 3 characters)."
+  },
+  "v{n} · {x}": {
+    "ru": "v{n} · {x}",
+    "en": "v{n} · {x}"
+  },
+  "Oflayn ishlash": {
+    "ru": "Работа офлайн",
+    "en": "Offline use"
+  },
+  "Qurilma limiti (1 kishiga)": {
+    "ru": "Лимит устройств (на человека)",
+    "en": "Device limit (per user)"
+  },
+  "Oflayn muddati, soat (≤72)": {
+    "ru": "Срок офлайн, ч (≤72)",
+    "en": "Offline duration, h (≤72)"
+  },
+  "Yangilanish (foydalanuvchilarga ko‘rsatiladi)": {
+    "ru": "Обновление (показывается пользователям)",
+    "en": "Update (shown to users)"
+  },
+  "Joriy o‘rnatuvchi versiyasi": {
+    "ru": "Текущая версия установщика",
+    "en": "Current installer version"
+  },
+  "Yuklab olish havolasi (https://)": {
+    "ru": "Ссылка на скачивание (https://)",
+    "en": "Download link (https://)"
+  },
+  "Izoh (nima yangi)": {
+    "ru": "Примечание (что нового)",
+    "en": "Note (what's new)"
+  },
+  "O‘zgartirish sababi (majburiy)": {
+    "ru": "Причина изменения (обязательно)",
+    "en": "Reason for change (required)"
+  },
+  "O‘zgartirish sababi": {
+    "ru": "Причина изменения",
+    "en": "Reason for change"
+  },
+  "Qurilma bekor qilindi": {
+    "ru": "Устройство отозвано",
+    "en": "Device revoked"
+  },
+  "Foydalanuvchining barcha qurilmalari bekor qilindi": {
+    "ru": "Все устройства пользователя отозваны",
+    "en": "All user devices revoked"
+  },
+  "Muddat o‘zgartirildi": {
+    "ru": "Срок изменён",
+    "en": "Expiry changed"
+  },
+  "Siyosat o‘zgartirildi": {
+    "ru": "Политика изменена",
+    "en": "Policy changed"
+  },
+  "Bu amal faqat platforma superadminiga ruxsat etilgan.": {
+    "ru": "Это действие разрешено только суперадмину платформы.",
+    "en": "Only the platform superadmin may do this."
+  },
+  "Bu foydalanuvchi sizning kompaniyangiz a’zosi emas.": {
+    "ru": "Этот пользователь не состоит в вашей компании.",
+    "en": "This user is not a member of your company."
+  },
+  "Siyosatni boshqa kishi o‘zgartirgan — sahifani yangilab qayta urinib ko‘ring.": {
+    "ru": "Политику изменил кто-то другой — обновите страницу и повторите.",
+    "en": "Someone else changed the policy — refresh and try again."
+  },
+  "Muddat noto‘g‘ri: hozirdan keyin va kirish sessiyasi tugashidan oldin bo‘lsin.": {
+    "ru": "Неверный срок: должен быть позже текущего момента и раньше окончания сессии входа.",
+    "en": "Invalid expiry: must be after now and before the sign-in session ends."
+  },
+  "Siyosat qiymati noto‘g‘ri.": {
+    "ru": "Неверное значение политики.",
+    "en": "Invalid policy value."
+  },
+  "Qurilma allaqachon bekor qilingan.": {
+    "ru": "Устройство уже отозвано.",
+    "en": "Device is already revoked."
+  },
+  "Windows dastur": {
+    "ru": "Приложение Windows",
+    "en": "Windows app"
+  },
+  "Kompyuterga o‘rnatiladigan dastur: internet bo‘lmaganda ham obyektlarni ko‘rish mumkin.": {
+    "ru": "Приложение для компьютера: объекты можно просматривать и без интернета.",
+    "en": "Desktop app: view your objects even without internet."
+  },
+  "Ma’lumotni o‘qib bo‘lmadi.": {
+    "ru": "Не удалось загрузить данные.",
+    "en": "Could not load data."
+  },
+  "Windows dastur hozircha sizning kompaniyangiz uchun o‘chirilgan.": {
+    "ru": "Приложение Windows сейчас отключено для вашей компании.",
+    "en": "The Windows app is currently disabled for your company."
+  },
+  "Joriy versiya": {
+    "ru": "Текущая версия",
+    "en": "Current version"
+  },
+  "Qurilmalaringiz": {
+    "ru": "Ваши устройства",
+    "en": "Your devices"
+  },
+  "{n} / {m}": {
+    "ru": "{n} / {m}",
+    "en": "{n} / {m}"
+  },
+  "Yuklab olish havolasi hali e’lon qilinmagan.": {
+    "ru": "Ссылка на скачивание пока не опубликована.",
+    "en": "The download link has not been published yet."
+  },
+  "Eski versiya ulanmaydi: dastur yangilashni so‘raydi.": {
+    "ru": "Старая версия не подключится: приложение попросит обновиться.",
+    "en": "Older versions cannot connect: the app asks to update."
+  },
+  "Qurilmalar, siyosat (kill switch, limit, oflayn, minimal versiya) va yangilanish. Barcha qoidalar serverda tekshiriladi.": {
+    "ru": "Устройства, политика (kill switch, лимит, офлайн, минимальная версия) и обновления. Все правила проверяются на сервере.",
+    "en": "Devices, policy (kill switch, limit, offline, minimum version) and updates. All rules are enforced server-side."
+  },
+  "WINDOWS DASTUR": {
+    "ru": "ПРИЛОЖЕНИЕ WINDOWS",
+    "en": "WINDOWS APP"
+  },
+  "Qurilmalar soni 1–100 oralig‘ida butun son bo‘lsin.": {
+    "ru": "Число устройств — целое от 1 до 100.",
+    "en": "Device count must be a whole number from 1 to 100."
+  },
+  "Oflayn ruxsat muddati 1–72 soat bo‘lsin.": {
+    "ru": "Срок офлайн-доступа — от 1 до 72 часов.",
+    "en": "Offline lease must be 1–72 hours."
+  },
+  "Versiya 1.2.3 ko‘rinishida bo‘lsin.": {
+    "ru": "Версия в формате 1.2.3.",
+    "en": "Version must look like 1.2.3."
+  },
+  "Yuklab olish havolasi https:// bilan boshlansin.": {
+    "ru": "Ссылка на скачивание должна начинаться с https://.",
+    "en": "The download link must start with https://."
+  },
+  "Bir nechta kompaniya": {
+    "ru": "Несколько компаний",
+    "en": "Several companies"
+  },
+  "Bir nechta kompaniya a’zosi — faqat superadmin": {
+    "ru": "Состоит в нескольких компаниях — только суперадмин",
+    "en": "Member of several companies — superadmin only"
+  },
+  "Rahbar qurilmasi — faqat rahbar yoki superadmin": {
+    "ru": "Устройство руководителя — только руководитель или суперадмин",
+    "en": "Boss device — boss or superadmin only"
+  },
+  "Qurilmalar chiqarib yuboriladi": {
+    "ru": "Устройства будут отключены",
+    "en": "Devices will be signed out"
+  },
+  "Bu o‘zgarishdan keyin ta’sir qilingan barcha qurilmalar keyingi so‘rovda chiqarib yuboriladi va qayta kirishi kerak bo‘ladi. Davom etasizmi?": {
+    "ru": "После этого изменения все затронутые устройства будут отключены при следующем запросе, и им потребуется повторный вход. Продолжить?",
+    "en": "After this change every affected device is signed out on its next request and must sign in again. Continue?"
+  },
+  "Kompaniya rahbari faqat qattiqroq qila oladi: platforma ruxsat berganidan ortig‘ini ochmaydi. Minimal versiya faqat shu kompaniyaning oflayn ruxsatiga ta’sir qiladi, qurilma limitini faqat platforma qo‘yadi; «o‘chirilgan» — faqat shu kompaniyadagina ishlaydigan a’zolarni to‘xtatadi, boshqa kompaniyalarda ham ishlaydiganlar uchun faqat oflayn ruxsatni cheklaydi.": {
+    "ru": "Руководитель может только ужесточить: больше, чем разрешила платформа, не открыть. Минимальная версия влияет только на офлайн-доступ этой компании, лимит устройств задаёт только платформа; «выключено» останавливает только тех, кто работает лишь в этой компании, а для состоящих и в других компаниях ограничивает только офлайн-доступ.",
+    "en": "A company head can only tighten: nothing beyond what the platform allows. The minimum version affects only this company's offline leases and only the platform sets the device limit; \"off\" stops members who work only in this company, and for members of other companies too it limits offline leases only."
+  },
+  "Bu foydalanuvchi boshqa kompaniyalarda ham ishlaydi — uning qurilmalarini faqat platforma superadmini bekor qila oladi.": {
+    "ru": "Пользователь работает и в других компаниях — его устройства может отозвать только суперадмин платформы.",
+    "en": "This user also works in other companies — only the platform superadmin can revoke their devices."
+  },
+  "Kompaniya rahbarining (boss) qurilmalarini faqat rahbarning o‘zi yoki superadmin bekor qila oladi.": {
+    "ru": "Устройства руководителя (boss) может отозвать только он сам или суперадмин.",
+    "en": "Only the boss themself or the superadmin can revoke the boss's devices."
+  }
+}

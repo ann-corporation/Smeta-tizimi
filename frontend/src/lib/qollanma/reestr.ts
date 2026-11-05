@@ -70,6 +70,16 @@ export const QOLLANMA_REESTR: readonly QollanmaKarta[] = [
     ],
   },
   {
+    kalit: 'ommaviy-narxlash', yollar: ['/admin/smeta-narxlash'], ikon: 'smeta',
+    sarlavha: 'Barcha narxsiz qatorlarni narxlash',
+    nimaBeradi: 'Smetadagi narxsiz resurslar bir bosishda narxlanadi: avval kompaniya reestri, katalog va КП, qolganlari internetdan havolalari bilan.',
+    qadamlar: [
+      'Obyektni tanlang va «Barcha narxsiz qatorlarni narxlash» tugmasini bosing.',
+      'Taxminiy token narxini ko‘ring va internetdan qidirishni boshlang.',
+      'Jadvalda har narxni qabul, rad yoki tahrir qiling — qabul qilinganlar dalili bilan yoziladi.',
+    ],
+  },
+  {
     kalit: 'podval', yollar: ['/admin/nakrutka'], ikon: 'podval',
     sarlavha: 'Nakrutka podvali',
     nimaBeradi: 'Smeta oxiridagi ustama foizlari (podval) obyektga yoziladi — shunda har summa ustamali va ustamasiz to‘g‘ri chiqadi.',

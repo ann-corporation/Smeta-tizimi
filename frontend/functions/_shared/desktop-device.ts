@@ -23,7 +23,9 @@ export async function deviceHash(token: string): Promise<string> {
 }
 
 /** Fixed server-side RPC family only. Never forwards caller-selected RPC names or credentials. */
-export async function desktopRpc(env: DesktopEnv, command: 't2_desktop_qurilma_yarat_v1' | 't2_desktop_qurilma_tekshir_v1' | 't2_desktop_qurilma_bekor_v1' | 't2_desktop_lease_chegara_v1', args: Record<string, unknown>): Promise<Record<string, unknown>> {
+export type DesktopRpc = 't2_desktop_qurilma_yarat_v2' | 't2_desktop_qurilma_tekshir_v2' | 't2_desktop_qurilma_bekor_v1' | 't2_desktop_lease_chegara_v2'
+  | 't2_desktop_boshqaruv_v1' | 't2_desktop_boshqaruv_buyruq_v1' | 't2_desktop_siyosat_saqla_v1' | 't2_desktop_yangilanish_v1';
+export async function desktopRpc(env: DesktopEnv, command: DesktopRpc, args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const r = await fetch(supabaseBaseUrl(env.SUPABASE_URL) + '/rest/v1/rpc/' + command, {
     method: 'POST', headers: { apikey: env.SUPABASE_KEY, Authorization: 'Bearer ' + env.SUPABASE_KEY, 'Content-Type': 'application/json' },
     body: JSON.stringify(args),
@@ -38,15 +40,28 @@ export type VerifiedDevice = { device_id: string; foydalanuvchi_id: number; tuga
 // Request identity, not a caller flag, proves the native credential was checked.
 const devices = new WeakMap<Request, VerifiedDevice>();
 export const verifiedDesktopDevice = (request: Request) => devices.get(request);
+/** Explicit server policy refusal from the verify RPC (kill switch / update required). Endpoints answer it with 401
+ *  so the native client takes its existing credential-revoke path; the code tells the user why. */
+export const DESKTOP_DENY_CODES: ReadonlySet<string> = new Set(['DESKTOP_DISABLED', 'DESKTOP_UPDATE_REQUIRED']);
+const denials = new WeakMap<Request, string>();
+export const desktopDenyCode = (request: Request) => denials.get(request) ?? 'DEVICE_AUTH_REQUIRED';
+/** App version reported by the native client (optional header). It is a NUDGE, never a security boundary: a client can
+ *  send any value. Unknown (absent) is allowed by the server; only a known lower version is refused. */
+export const DESKTOP_VERSION_HEADER = 'X-Smeta-Desktop-Version';
+export const ilovaVersiya = (v: unknown): string | null => typeof v === 'string' && /^\d{1,4}\.\d{1,4}\.\d{1,6}$/.test(v) ? v : null;
 
 export async function desktopSessiya(request: Request, env: DesktopEnv): Promise<Sess | null> {
   devices.delete(request);
+  denials.delete(request);
   if (request.headers.get('Origin') !== DESKTOP_ORIGIN) return null;
   const token = request.headers.get('Authorization')?.match(/^Bearer ([A-Za-z0-9_-]{43})$/)?.[1];
   if (!token) return null;
   try {
     if (unbase64url(token).length !== 32) return null;
-    const r = await desktopRpc(env, 't2_desktop_qurilma_tekshir_v1', { p_token_hash: await deviceHash(token) });
+    const r = await desktopRpc(env, 't2_desktop_qurilma_tekshir_v2', {
+      p_token_hash: await deviceHash(token), p_ilova_versiya: ilovaVersiya(request.headers.get(DESKTOP_VERSION_HEADER)),
+    });
+    if (r.ok !== true && typeof r.code === 'string' && DESKTOP_DENY_CODES.has(r.code)) { denials.set(request, r.code); return null; }
     if (r.ok !== true || !uuid(r.device_id) || !positiveId(r.foydalanuvchi_id) ||
       typeof r.tugaydi !== 'number' || r.tugaydi <= Date.now() ||
       typeof r.sessiya_exp !== 'number' || r.sessiya_exp <= Date.now() || !positiveId(r.versiya)) return null;

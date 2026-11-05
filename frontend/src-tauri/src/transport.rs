@@ -29,6 +29,9 @@ fn validated_origin(origin: &str, allow_loopback: bool) -> NativeResult<bool> {
     Ok(!loopback)
 }
 const LOCAL: &str = "http://tauri.localhost";
+// Reported app version: server policy (Tizim nazorati → Desktop, min version) decides; never an authority.
+const VERSION_HEADER: &str = "X-Smeta-Desktop-Version";
+const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 const RESPONSE_LIMIT: usize = 32 * 1024 * 1024;
 const AUTH_LIMIT: usize = 32 * 1024;
 const BODY_LIMIT: usize = 8 * 1024 * 1024;
@@ -87,6 +90,7 @@ fn authenticated_request(
     let mut req = client
         .request(Method::POST, format!("{BFF}/api/desktop/lease"))
         .header(header::ORIGIN, LOCAL)
+        .header(VERSION_HEADER, APP_VERSION)
         .bearer_auth(&credential.token);
     if let Some(body) = body {
         req = req
@@ -122,6 +126,7 @@ fn gateway_request(
     client
         .post(format!("{BFF}/api/desktop/bff"))
         .header(header::ORIGIN, LOCAL)
+        .header(VERSION_HEADER, APP_VERSION)
         .header(header::CONTENT_TYPE, "application/json")
         .bearer_auth(token)
         .body(serde_json::json!({"path":path,"method":method,"body":body,"etag":etag}).to_string())
@@ -309,14 +314,21 @@ async fn login(
         .header(header::ORIGIN, BFF)
         .header(header::COOKIE, cookie.as_str())
         .header(header::CONTENT_TYPE, "application/json")
-        .body(serde_json::json!({"operation_id": operation_id()?}).to_string())
+        .body(
+            serde_json::json!({
+                "operation_id": operation_id()?,
+                "os": std::env::consts::OS,
+                "ilova_versiya": APP_VERSION,
+            })
+            .to_string(),
+        )
         .send()
         .await
         .map_err(|_| "DESKTOP_HTTP_FAILED")?;
     let (status, issued, _) = bounded(response, AUTH_LIMIT).await?;
     let issued = Zeroizing::new(issued);
     if status != 200 {
-        return Err("DESKTOP_DEVICE_EXCHANGE_REJECTED");
+        return Err(enroll_refusal(&issued));
     }
     let issued: Value = serde_json::from_str(&issued).map_err(|_| "DESKTOP_AUTH_INVALID")?;
     let token = Zeroizing::new(
@@ -341,6 +353,19 @@ async fn login(
     guard.persist(&OsVault, &credential, generation, maxfiy::now()?)?;
     // Explicit safe projection; never relay login/exchange bodies or Set-Cookie.
     Ok(DesktopResponse { status:200, body:serde_json::json!({"ok":true,"device_id":credential.device,"foydalanuvchi_id":credential.actor,"tugaydi":credential.expires}).to_string(),etag:None })
+}
+/// Server policy refusals (Tizim nazorati) surface as fixed codes; anything else stays generic.
+fn enroll_refusal(body: &str) -> &'static str {
+    match serde_json::from_str::<Value>(body)
+        .ok()
+        .as_ref()
+        .and_then(|v| v["code"].as_str())
+    {
+        Some("DESKTOP_DISABLED") => "DESKTOP_DISABLED",
+        Some("DESKTOP_UPDATE_REQUIRED") => "DESKTOP_UPDATE_REQUIRED",
+        Some("DEVICE_LIMIT") => "DEVICE_LIMIT",
+        _ => "DESKTOP_DEVICE_EXCHANGE_REJECTED",
+    }
 }
 fn response_current(
     guard: &mut maxfiy::SessiyaBusena,
@@ -560,6 +585,7 @@ mod tests {
             .unwrap();
             assert_eq!(req.url().origin().ascii_serialization(), BFF);
             assert_eq!(req.headers()[header::ORIGIN], LOCAL);
+            assert_eq!(req.headers()[VERSION_HEADER], APP_VERSION);
             assert_eq!(
                 req.headers()[header::AUTHORIZATION],
                 format!("Bearer {}", c.token)
@@ -658,6 +684,27 @@ mod tests {
             )
             .is_err());
         });
+    }
+    #[test]
+    fn enroll_refusal_maps_only_known_policy_codes() {
+        assert_eq!(
+            enroll_refusal(r#"{"ok":false,"code":"DESKTOP_DISABLED"}"#),
+            "DESKTOP_DISABLED"
+        );
+        assert_eq!(
+            enroll_refusal(
+                r#"{"ok":false,"code":"DESKTOP_UPDATE_REQUIRED","min_versiya":"1.2.0"}"#
+            ),
+            "DESKTOP_UPDATE_REQUIRED"
+        );
+        assert_eq!(
+            enroll_refusal(r#"{"ok":false,"code":"anything"}"#),
+            "DESKTOP_DEVICE_EXCHANGE_REJECTED"
+        );
+        assert_eq!(
+            enroll_refusal("not json"),
+            "DESKTOP_DEVICE_EXCHANGE_REJECTED"
+        );
     }
     #[test]
     fn revoke_is_fixed_own_device_bearer_delete() {

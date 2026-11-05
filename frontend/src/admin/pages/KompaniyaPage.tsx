@@ -18,9 +18,10 @@ import { Fragment, useMemo, useState } from 'react';
 import {
   Building2, Crown, ShieldCheck, Loader2, AlertTriangle, Trash2, Users, LogOut,
   User, KeyRound, Layers, FolderKanban, Plug, History, Save, RefreshCw,
-  Send, Clock, CheckCircle2, XCircle, Check, Info, Settings2,
+  Send, Clock, CheckCircle2, XCircle, Check, Info, Settings2, Laptop,
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
+import { DesktopNazorat } from '../system-control/DesktopNazorat';
 import { KompaniyaSozlamaPanel } from '../../components/kompaniya-sozlama/KompaniyaSozlamaPanel';
 import { useMen, useOnboardingCommands, useKompaniyaAzolari, useKompaniyaProfil, useProfilYangila, useKompaniyaRoyxatlar, useAzolikRuxsatlari, type Azolik, type KompaniyaProfil, type KompaniyaRoyxat } from '../../api/t2-men';
 import { useSystemControl } from '../../api/t2-control';
@@ -564,16 +565,19 @@ const TABS = [
   { key: 'integratsiya', nom: 'Integratsiyalar', Ikonka: Plug },
   { key: 'audit', nom: 'Audit', Ikonka: History },
   { key: 'sozlamalar', nom: 'Sozlamalar', Ikonka: Settings2 },
+  { key: 'desktop', nom: 'Windows dastur', Ikonka: Laptop },
 ] as const;
 type TabKey = typeof TABS[number]['key'];
 const TIZIM_TABLAR: ReadonlySet<TabKey> = new Set<TabKey>(['integratsiya']);
+/** «Windows dastur» — kompaniya rahbari (boss/admin) o'z a'zolarining qurilmalarini boshqaradi; server ham shuni tekshiradi. */
+const RAHBAR_TABLAR: ReadonlySet<TabKey> = new Set<TabKey>(['desktop']);
 
 function ControlCenterTabs({ kompaniyaId, kompaniyaNom, isDirector }: { kompaniyaId: number; kompaniyaNom: string; isDirector: boolean }) {
   const [params, setParams] = useSearchParams();
   const { superadmin } = useKompaniya();
   /* «Integratsiyalar» (tizim integratsiyalari sog'lig'i) — tizimga oid, faqat platforma superadmini (egasi 2026-10-27).
    * «Audit» — kompaniyaning o'z biznes amallari jurnali, rahbariyatda qoladi. */
-  const tablar = TABS.filter((x) => superadmin || !TIZIM_TABLAR.has(x.key));
+  const tablar = TABS.filter((x) => (superadmin || !TIZIM_TABLAR.has(x.key)) && (isDirector || !RAHBAR_TABLAR.has(x.key)));
   const tabParam = params.get('tab');
   const tab: TabKey = tablar.some((x) => x.key === tabParam) ? tabParam as TabKey : 'profil';
   const setTab = (k: TabKey) => setParams((p) => { const n = new URLSearchParams(p); n.set('tab', k); return n; }, { replace: true });
@@ -596,6 +600,7 @@ function ControlCenterTabs({ kompaniyaId, kompaniyaNom, isDirector }: { kompaniy
         {tab === 'integratsiya' && <IntegratsiyalarTab kompaniyaId={kompaniyaId} />}
         {tab === 'audit' && <AuditTab kompaniyaId={kompaniyaId} />}
         {tab === 'sozlamalar' && <KompaniyaSozlamaPanel kompaniyaId={kompaniyaId} />}
+        {tab === 'desktop' && <DesktopNazorat kompaniyaId={kompaniyaId} />}
       </div>
     </div>
   );

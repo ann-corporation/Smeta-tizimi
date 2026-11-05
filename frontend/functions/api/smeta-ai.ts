@@ -36,9 +36,9 @@ import { aiHisobli, AiByudjetXatosi, type HisobEnv } from '../_shared/ai-hisobli
 import { exactPriceChoice, priceLane, utilityPriceAccepted, type RoutedPriceRequest } from '../_shared/smeta-ai-routing';
 import { F2_NIYAT_TIZIM, KOEF_TANLOV_TIZIM, KP_OQISH_TIZIM, NARX_TANLOV_TIZIM, SMETACHI_TIZIM, SMETACHI_VERSIYA, TANLOV_TIZIM } from '../../src/lib/smeta-ai/prompt';
 import { foundationSourceContext, contradictsFoundationSource } from '../../src/lib/smeta-ai/normative-reference';
-import { INTERNET_NARX_SXEMA, INTERNET_NARX_TIZIM, internetJavobiniTekshir, internetNarxi, qqsSiz, sahifadaMahsulotBor, sahifadaNarxBor,
-  type InternetManba, type InternetNatija, type InternetSorov } from '../../src/lib/smeta-ai/internet-narx';
-import { priceUnitFactor } from '../../src/lib/smeta-studio/resource-match';
+import { domenlarniTozala, INTERNET_NARX_SXEMA, internetJavobiniTekshir, internetQidiruvMatni, internetTizimMatni, internetXulosa, manbaniBahola,
+  UZ_DOMENLAR_SUKUT, type InternetManba, type InternetNatija, type InternetSorov } from '../../src/lib/smeta-ai/internet-narx';
+import { keshKalit } from '../../src/lib/smeta-ai/ommaviy-narx';
 import { oqishNatijalari, sahifaJavobiniTekshir, sahifaSxema, sahifaTuri } from '../../src/lib/ai-yordamchi/protokol';
 import { SAHIFA_TIZIM, SAHIFA_YORDAM_VERSIYA } from '../../src/lib/ai-yordamchi/prompt';
 import { vebOl, vebUrlTekshir } from '../_shared/agent-veb';
@@ -49,7 +49,40 @@ import { F2_NIYAT_SXEMA, f2NiyatlariniTekshir, KOEF_TANLOV_SXEMA, KP_SXEMA, hajm
 /** Tanlash/moslash vazifalari: OpenRouter tahlili (2026-10-19) — chiqishning ~80% ko'rinmas fikrlash edi; past daraja yetarli. */
 export const TANLOV_FIKR = { effort: 'low' } as const;
 
-export const INTERNET_MODEL = 'google/gemini-2.5-flash:online';
+/** Web search through the OpenRouter `web` plugin (one query per resource), not the `:online` suffix (one query per call). */
+export const INTERNET_MODEL = 'google/gemini-2.5-flash';
+export const INTERNET_NATIJA = 6;
+
+/** Run `fn` over `l` with at most `n` in flight; results keep the input order. */
+export async function parallel<T, R>(l: readonly T[], n: number, fn: (x: T, i: number) => Promise<R>): Promise<R[]> {
+  const out = new Array<R>(l.length);
+  let i = 0;
+  await Promise.all(Array.from({ length: Math.min(n, l.length) }, async () => { while (i < l.length) { const j = i++; out[j] = await fn(l[j], j); } }));
+  return out;
+}
+
+type RpcEnv = { SUPABASE_URL?: string; SUPABASE_KEY?: string };
+/** Company list of preferred domains; null when none is saved or the migration is not applied yet. */
+async function domenOqi(env: RpcEnv, actor: number, kompaniyaId: number): Promise<string[] | null> {
+  const r = await rpcData(env, 't2_narx_internet_domen_ol_v1', { p_actor_id: actor, p_kompaniya_id: kompaniyaId }).catch(() => null);
+  const l = r?.ok && Array.isArray(r.data.domenlar) ? domenlarniTozala(r.data.domenlar) : null;
+  return l && l.length ? l : null;
+}
+export async function internetDomenlari(env: RpcEnv, actor: number, kompaniyaId: number): Promise<string[]> {
+  return (await domenOqi(env, actor, kompaniyaId)) ?? [...UZ_DOMENLAR_SUKUT];
+}
+/** Monthly cache read; an unavailable cache only means «search again» (never an error, never a guessed price). */
+async function keshOqi(env: RpcEnv, actor: number, kompaniyaId: number, kalitlar: string[]): Promise<Map<string, InternetNatija>> {
+  const r = await rpcData(env, 't2_narx_internet_kesh_ol_v1', { p_actor_id: actor, p_kompaniya_id: kompaniyaId, p_kalitlar: kalitlar }).catch(() => null);
+  const m = new Map<string, InternetNatija>();
+  const d = r?.ok && r.data.natijalar && typeof r.data.natijalar === 'object' ? r.data.natijalar as Record<string, InternetNatija> : {};
+  for (const [k, v] of Object.entries(d)) if (v && Array.isArray(v.manbalar)) m.set(k, v);
+  return m;
+}
+async function keshYoz(env: RpcEnv, actor: number, kompaniyaId: number, yozuvlar: Array<{ kalit: string; natija: InternetNatija }>): Promise<void> {
+  await rpcData(env, 't2_narx_internet_kesh_yoz_v1', { p_actor_id: actor, p_kompaniya_id: kompaniyaId,
+    p_yozuvlar: yozuvlar.map(y => ({ kalit: y.kalit, natija: y.natija })) }).catch(() => null);
+}
 
 /**
  * Har qanday model bilan ishonchli chaqiruv (egasi 2026-10-09: "nima yozsam ham tushunilmadi deyapdi — professional
@@ -371,30 +404,51 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         return { id: clip(x.id, 60), nom: clip(x.nom, 300), birlik: clip(x.birlik, 30) || null, kat: clip(x.kat, 20) || null }; })
         .filter(s => /^[A-Za-z0-9_-]{1,60}$/.test(s.id) && s.nom.length >= 3 && s.kat !== 'ЧЕЛ');
       if (!sorovlar.length) return fail('SOROV_INVALID');
-      const hudud = clip(so.hudud, 80);
-      const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_narx_internet', { ...req, model: INTERNET_MODEL });
-      const { r, obj } = await ishonchliChaqir(chaqir,
-        { system: INTERNET_NARX_TIZIM, text: `${hudud ? `Obyekt hududi: ${hudud}\n` : ''}<RESURSLAR>\n${JSON.stringify(sorovlar)}\n</RESURSLAR>`,
-          tier: 'fast' as AiTier, temperature: 0, reasoning: TANLOV_FIKR, maxOutputTokens: 4000, jsonSchema: INTERNET_NARX_SXEMA }, ['natijalar']);
-      const davolar = internetJavobiniTekshir(obj, sorovlar);
-      const natijalar: InternetNatija[] = await Promise.all(sorovlar.map(async s => {
-        const d = davolar.get(s.id) ?? { davolar: [], izoh: 'model javob bermadi' };
+      const hudud = clip(so.hudud, 80) || null;
+      const actor = sess.foydalanuvchi_id as number;
+      // Diagnosis 2026-11-05: one web search shared by 8 resources found pages for 6 of 24 — now ONE search per resource
+      // (bilingual query, preferred UZ domains, region), in parallel; each priced resource is one metered call.
+      const chaqir = (req: AiRequest) => aiHisobli(ctx.env, actor, kompaniyaId, 'smeta_ai', 'smeta_narx_internet', { ...req, model: INTERNET_MODEL, web: { maxResults: INTERNET_NATIJA } });
+      const domenlar = await internetDomenlari(ctx.env, actor, kompaniyaId);
+      // Monthly cache (Supabase — mutable business data): a repeat within the month is free; `qayta: true` re-searches.
+      const kalitlar = sorovlar.map(s => keshKalit(s.nom, s.birlik ?? '', hudud));
+      const kesh = so.qayta === true ? new Map<string, InternetNatija>() : await keshOqi(ctx.env, actor, kompaniyaId, kalitlar);
+      let model: string = INTERNET_MODEL;
+      const yangi: Array<{ kalit: string; natija: InternetNatija }> = [];
+      const natijalar: InternetNatija[] = await parallel(sorovlar, 4, async (s, i): Promise<InternetNatija> => {
+        const k = kesh.get(kalitlar[i]);
+        if (k) return { ...k, id: s.id, kesh: true };
+        const { r, obj } = await ishonchliChaqir(chaqir,
+          { system: internetTizimMatni(s, hudud, domenlar), text: internetQidiruvMatni(s, hudud),
+            tier: 'fast' as AiTier, temperature: 0, reasoning: TANLOV_FIKR, maxOutputTokens: 3000, jsonSchema: INTERNET_NARX_SXEMA }, ['natijalar']);
+        model = r.model;
+        const d = internetJavobiniTekshir(obj && Array.isArray(obj.natijalar) ? { natijalar: (obj.natijalar as Array<Record<string, unknown>>).map(x => ({ ...x, id: s.id })) } : obj, [s])
+          .get(s.id) ?? { davolar: [], izoh: 'model javob bermadi' };
         const manbalar: InternetManba[] = await Promise.all(d.davolar.map(async (v): Promise<InternetManba> => {
           const u = vebUrlTekshir(v.url);
-          const koef = priceUnitFactor(v.birlik, s.birlik);
-          const asos = { ...v, domen: u.ok ? u.domen : '', koef, smetaNarx: koef == null ? null : Math.round(qqsSiz(v) * koef * 100) / 100 };
-          if (!u.ok) return { ...asos, tekshirildi: false, sabab: u.xato };
-          if (koef == null) return { ...asos, tekshirildi: false, sabab: `birlik mos emas (${v.birlik ?? '—'} → ${s.birlik ?? '—'})` };
+          if (!u.ok) return manbaniBahola(v, s, '', { ok: false, xato: u.xato });
           // Any public https page (SSRF-checked, text only, 1 MB, 8 s); its text is scanned by code only, never sent to a model.
-          const p = await vebOl(v.url, async () => true);
-          if (!p.ok) return { ...asos, tekshirildi: false, sabab: p.xato };
-          if (!sahifadaNarxBor(p.matn, v.narx)) return { ...asos, url: p.url, tekshirildi: false, sabab: 'sahifada bu narx topilmadi' };
-          if (!sahifadaMahsulotBor(p.matn, s.nom)) return { ...asos, url: p.url, tekshirildi: false, sabab: 'sahifada mahsulot belgilari (marka/o‘lcham) topilmadi' };
-          return { ...asos, url: p.url, tekshirildi: true, sabab: null };
+          const p = await vebOl(v.url, async () => true, fetch, 200_000);
+          return manbaniBahola(v, s, u.domen, p.ok ? { ok: true, url: p.url, matn: p.matn } : { ok: false, xato: p.xato });
         }));
-        return { id: s.id, narx: internetNarxi(manbalar), manbalar, izoh: d.izoh };
-      }));
-      return Response.json({ ok: true, natijalar, model: r.model }, { headers: { 'Cache-Control': 'no-store' } });
+        const x = internetXulosa(manbalar, domenlar);
+        const natija: InternetNatija = { id: s.id, narx: x.narx, ishonch: x.ishonch, tarqoq: x.tarqoq, manbalar, izoh: d.izoh };
+        yangi.push({ kalit: kalitlar[i], natija });
+        return natija;
+      });
+      if (yangi.length) await keshYoz(ctx.env, actor, kompaniyaId, yangi);
+      return Response.json({ ok: true, natijalar, model }, { headers: { 'Cache-Control': 'no-store' } });
+    }
+    // Preferred internet price domains (company-editable; the default list when nothing is saved).
+    if (so.amal === 'narx_domenlar') {
+      if (Array.isArray(so.domenlar) || typeof so.domenlar === 'string') {
+        const domenlar = domenlarniTozala(so.domenlar);
+        const r = await rpcData(ctx.env, 't2_narx_internet_domen_yoz_v1', { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: kompaniyaId, p_domenlar: domenlar }).catch(() => null);
+        if (!r?.ok) return fail('DOMEN_YOZILMADI', r?.status ?? 503, 'Domenlar saqlanmadi (migratsiya qo‘llanmagan bo‘lishi mumkin)');
+        return Response.json({ ok: true, domenlar, sukut: false }, { headers: { 'Cache-Control': 'no-store' } });
+      }
+      const saqlangan = await domenOqi(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId);
+      return Response.json({ ok: true, domenlar: saqlangan ?? [...UZ_DOMENLAR_SUKUT], sukut: saqlangan == null }, { headers: { 'Cache-Control': 'no-store' } });
     }
     if (so.amal === 'kp_oqi') {
       const f = (so.fayl ?? null) as { mimeType?: unknown; data?: unknown } | null;

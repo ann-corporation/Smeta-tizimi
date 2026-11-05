@@ -2,17 +2,18 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 111,
+      "id": 112,
       "sana": "2026-11-05",
-      "sarlavha": "Smeta versiyasidan keyin F2 yo‘qolmaydi",
+      "sarlavha": "Tizim nazoratida Windows dasturini to‘liq boshqarish",
       "bandlar": [
-        "Yangi smeta versiyasi faollashtirilgandan keyin avvalgi versiyadagi tasdiqlangan F2 yangi qatorlarda «avvalgi versiya F2» belgisi bilan ko‘rinadi (fakt jurnali va F2 tayyorlash).",
-        "Belgi faqat ma’lumot: obyekt jamisida eski F2 bir marta sanaladi, qator ustunlari va «F2 ga olish mumkin» o‘zgarmaydi.",
-        "Moslik tasdig‘ini kutayotgan yoki yangi smetada topilmagan eski F2 bo‘lsa — fakt jurnalida ogohlantirish chiqadi («Versiyalar va farq» panelida ko‘rish mumkin)."
+        "«Tizim nazorati → Windows dastur»: barcha qurilmalar ro‘yxati (kim, qaysi kompaniya, qurilma nomi, OS, dastur versiyasi, ulangan va oxirgi faol vaqti, muddati, holati, oflayn ruxsat) — qidiruv va filtr bilan. Kompaniya rahbari (boss/admin) «Kompaniya → Windows dastur» bo‘limida faqat o‘z a’zolarining qurilmalarini ko‘radi.",
+        "Amallar: bitta qurilmani bekor qilish, foydalanuvchining barcha qurilmalarini bekor qilib qayta kirishga majburlash, superadmin uchun muddatni qisqartirish/uzaytirish. Har amal sabab bilan jurnalga yoziladi (kim, qachon, nima uchun).",
+        "Siyosat: global kill switch, kompaniya bo‘yicha o‘chirish, bir kishiga qurilma limiti, oflayn ruxsat muddati (≤72 soat), oflaynni o‘chirish va minimal dastur versiyasi. Qoidalar serverda har kirish va har so‘rovda tekshiriladi; o‘chirilgan yoki eski versiyadagi dastur kirish oynasiga qaytadi.",
+        "Yangilanish: superadmin joriy o‘rnatuvchi versiyasi va yuklab olish havolasini kiritadi — foydalanuvchilar «Akkaunt → Windows dastur» bo‘limida ko‘radi."
       ]
     },
     {
-      "id": 110,
+      "id": 111,
       "sana": "2026-11-05",
       "sarlavha": "Pereraschet: yangi qatorlar smeta narxida, storno bo‘lim bo‘yicha",
       "bandlar": [
@@ -22,7 +23,7 @@
       ]
     },
     {
-      "id": 109,
+      "id": 110,
       "sana": "2026-11-05",
       "sarlavha": "Oylik paketda Forma-3 doim bor",
       "bandlar": [
@@ -34,7 +35,47 @@
       ]
     },
     {
+      "id": 109,
+      "sana": "2026-11-05",
+      "sarlavha": "Smeta versiyasidan keyin F2 yo‘qolmaydi",
+      "bandlar": [
+        "Yangi smeta versiyasi faollashtirilgandan keyin avvalgi versiyadagi tasdiqlangan F2 yangi qatorlarda «avvalgi versiya F2» belgisi bilan ko‘rinadi (fakt jurnali va F2 tayyorlash).",
+        "Belgi faqat ma’lumot: obyekt jamisida eski F2 bir marta sanaladi, qator ustunlari va «F2 ga olish mumkin» o‘zgarmaydi.",
+        "Moslik tasdig‘ini kutayotgan yoki yangi smetada topilmagan eski F2 bo‘lsa — fakt jurnalida ogohlantirish chiqadi («Versiyalar va farq» panelida ko‘rish mumkin)."
+      ]
+    },
+    {
       "id": 108,
+      "sana": "2026-11-05",
+      "sarlavha": "Fakt jurnali: F2 importidagi qo‘shimcha resurslarda narx va summa",
+      "bandlar": [
+        "Smetada narxi yo‘q, lekin F2 da narxi bor qatorlarda endi «narxsiz» emas — F2 narxi («F2» belgisi bilan) va fakt summasi shu narxda ko‘rinadi.",
+        "Bo‘lim jamilari bilan bir xil hisob; smeta narxi bor qatorlar o‘zgarmaydi."
+      ]
+    },
+    {
+      "id": 107,
+      "sana": "2026-11-05",
+      "sarlavha": "Barcha narxsiz qatorlarni bir bosishda narxlash",
+      "bandlar": [
+        "«Smetani narxlash» sahifasida yangi tugma: obyektning barcha narxsiz resurslari (bir xil nom va birlik — bitta qator) navbatga olinadi.",
+        "Tartib: avval kompaniya reestri (oldin qabul qilingan narxlar), katalog va КП — bepul; qolganlari internetdan, har biri alohida qidiruv bilan (rus va o‘zbek tilida, O‘zbekiston saytlari birinchi, obyekt hududi bilan).",
+        "Boshlashdan oldin taxminiy token narxi ko‘rinadi; shu oy qidirilgan resurs qayta qidirilsa — bepul.",
+        "Bitta jadvalda: narx (QQS siz), havolali manbalar, ishonch, bir necha manba bo‘lsa o‘rtacha va 30 % dan katta tarqoqlik belgisi; har qatorni qabul, rad yoki tahrir qiling, «Yuqori ishonchlilarni qabul qilish» tugmasi bor.",
+        "Qabul qilingan internet narxlari kompaniya narx reestriga havola va sana bilan yoziladi — keyingi safar darhol va bepul; har smeta qatoriga narx dalili bog‘lanadi."
+      ]
+    },
+    {
+      "id": 106,
+      "sana": "2026-11-05",
+      "sarlavha": "F2: minus (chegirma) qatorlar endi tushib qolmaydi",
+      "bandlar": [
+        "Fakti manfiy bo‘lgan qatorlar (qalinlik tuzatishi, «исключить», К=2 kabi) F2 tayyorlashda ishorasi bilan olinadi — resurslari ham minus.",
+        "Tekshiruv saqlanadi: F2 hajmi faktdan (modul bo‘yicha) oshmaydi va ishorasi bir xil."
+      ]
+    },
+    {
+      "id": 105,
       "sana": "2026-11-05",
       "sarlavha": "Pereraschet — bitta tugma",
       "bandlar": [
@@ -45,54 +86,13 @@
       ]
     },
     {
-      "id": 107,
-      "sana": "2026-11-05",
-      "sarlavha": "F2: minus (chegirma) qatorlar endi tushib qolmaydi",
-      "bandlar": [
-        "Fakti manfiy bo‘lgan qatorlar (qalinlik tuzatishi, «исключить», К=2 kabi) F2 tayyorlashda ishorasi bilan olinadi — resurslari ham minus.",
-        "Tekshiruv saqlanadi: F2 hajmi faktdan (modul bo‘yicha) oshmaydi va ishorasi bir xil."
-      ]
-    },
-    {
-      "id": 106,
-      "sana": "2026-11-05",
-      "sarlavha": "Fakt jurnali: F2 importidagi qo‘shimcha resurslarda narx va summa",
-      "bandlar": [
-        "Smetada narxi yo‘q, lekin F2 da narxi bor qatorlarda endi «narxsiz» emas — F2 narxi («F2» belgisi bilan) va fakt summasi shu narxda ko‘rinadi.",
-        "Bo‘lim jamilari bilan bir xil hisob; smeta narxi bor qatorlar o‘zgarmaydi."
-      ]
-    },
-    {
-      "id": 105,
-      "sana": "2026-11-05",
-      "sarlavha": "Boshqaruv markazida bajarilgan ish (fakt) endi alohida ko‘rinadi",
-      "bandlar": [
-        "Yangi karta «Bajarildi (fakt)»: haqiqatda bajarilgan ish summasi QQS bilan, ostida ustamali (QQS siz) va to‘g‘ri xarajat, smetadan necha foiz.",
-        "Avvalgi «Bajarildi» kartasi endi «Topshirildi (F2)» deb ataladi — bu buyurtmachiga topshirilgan, tasdiqlangan F2.",
-        "Shu kartada yangi qator: «Bajarildi, lekin topshirilmagan» = fakt − tasdiqlangan F2. Bosilsa, diqqat ro‘yxatidagi obyektlarga o‘tadi.",
-        "Obyektlar jadvalida F2 yonida «Fakt» ustuni qo‘shildi. Excel eksportida ham fakt summalari bor."
-      ]
-    },
-    {
-      "id": 104,
+      "id": 103,
       "sana": "2026-11-05",
       "sarlavha": "Bo‘lim jamisi qo‘shimcha ish va zamenadan keyin darhol yangilanadi",
       "bandlar": [
         "Bo‘limga qo‘shimcha ish yoki zamena qo‘shsangiz (yoki uni o‘chirsangiz), bo‘lim summasi va obyekt jamisi endi shu zahoti qayta hisoblanadi. Avval ish summasi to‘g‘ri chiqib, bo‘lim summasi eski qolardi.",
         "Asl smeta qatorlari o‘zgarmaydi — faqat bo‘lim jamisi yangilanadi.",
         "Ishning ichidagi material summasi ham ish jamisiga to‘liq kiradi va keyingi qayta hisoblashda tushib qolmaydi."
-      ]
-    },
-    {
-      "id": 103,
-      "sana": "2026-11-05",
-      "sarlavha": "Shartnoma oylik paketi — F2 portfeli bilan bir xil va topshirishga tayyor",
-      "bandlar": [
-        "Paketdagi summalar endi F2 portfeli va F2 tarixi bilan aynan bir xil: har F2 o‘z podvali bilan (storno bloklari ham), podvali bo‘lmasa smeta podvali; QQS bilan summa birinchi.",
-        "Oy oralig‘i yoki «Barcha oylar»: bitta shartnoma bo‘yicha butun lot bitta ZIP da, har oy o‘z papkasida (pereraschet uchun).",
-        "ZIP ichida «00_MUNDARIJA.xlsx» — har hujjat va F2 summalari; F2 fayllari bir xil nomda: oy_shartnoma_obyekt_F2_raqam.xlsx.",
-        "Qoralamalar sukut bo‘yicha kirmaydi; «Qoralamalarni ham qo‘shish» belgisi bilan QORALAMA deb belgilanib qo‘shiladi. Bekor qilinganlar kirmaydi.",
-        "Topshirilgan paketdan keyin F2 o‘zgarsa — «Paket eskirgan — qayta yig‘ing» va bir bosishda «Qayta yig‘ish»; eski nusxa arxivda qoladi."
       ]
     },
     {

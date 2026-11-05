@@ -14,6 +14,7 @@
  */
 import { birlikKalit } from '../narx-katalog/kalit';
 import type { KatalogQatori } from '../narx-katalog/types';
+import { narxBirlikKoef } from '../smeta-ai/narx-birlik';
 
 /** Minimal catalogue view the matcher needs (PriceCatalog satisfies it via `matchView`). */
 export type MatchCatalog = {
@@ -148,10 +149,8 @@ export function priceUnitFactor(source: string | null, target: string | null): n
   const from = unitKey(source), to = unitKey(target);
   if (!from || !to) return null;
   if (from === to) return 1;
-  if ((from === 'Т' && to === 'КГ') || (from === 'КМ' && to === 'М')) return 0.001;
-  if ((from === 'КГ' && to === 'Т') || (from === 'М' && to === 'КМ') || (from === 'ШТ' && to === 'ТЫСШТ')) return 1000;
-  if (from === 'ТЫСШТ' && to === 'ШТ') return 0.001;
-  return null;
+  // The single unit-conversion function (lib/smeta-ai/narx-birlik): exact multiples only, never a package without its content.
+  return narxBirlikKoef(source, target).koef;
 }
 
 /** "6.3-6.5" → [6.3, 6.5]; "12" → [12, 12]; anything else → null. */
