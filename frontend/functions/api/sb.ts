@@ -268,6 +268,8 @@ export const onRequestPost: PagesFunction<{
         bux_tolov_v1: 'kompaniya_actor',
         /* Egasi 2026-11-03: shartnoma oylik paketi arxivi (versiyalar + manifest + hozirgi iz) va fakt/F2 saqlashdan oldingi ogohlantirish. `stable`; a'zolik RPC ichida. */
         shartnoma_oylik_paket_royxat_v1: 'kompaniya_actor',
+        /* Egasi 2026-11-05: shartnoma kartasi — DS lar va asl fayllar (kanonik R2; yuklab olish /api/hujjat-ol). stable; a'zolik + document.read. */
+        shartnoma_hujjat_royxat_v1: 'kompaniya_actor',
         shartnoma_oylik_paket_tekshir_v1: 'obyekt_actor',
         /* Egasi 2026-10-23: shartnoma svodi (nakopitelniy F2 nazorati) va akt-sverka — DS, F2 reestri, sotuv, to'lov. `stable`, a'zolik + f2.read ichida. */
         shartnoma_svod_v1: 'kompaniya_actor',
@@ -426,6 +428,11 @@ export const onRequestPost: PagesFunction<{
           if (!Number.isSafeInteger(sid) || sid <= 0) return Response.json({ ok: false, error: "shartnoma_id noto'g'ri" });
           q.set('p_shartnoma_id', String(sid));
         }
+      }
+      if (so.soro === 'shartnoma_hujjat_royxat_v1') {
+        const sid = Number(so.shartnoma_id);
+        if (!Number.isSafeInteger(sid) || sid <= 0) return Response.json({ ok: false, error: "shartnoma_id majburiy" });
+        q.set('p_shartnoma_id', String(sid));
       }
       if (so.soro === 'hr_oy_v1' || so.soro === 'hr_kpi_v1' || so.soro === 'hr_oylik_buxgalteriya_v1') {
         const oy = (so as { oy?: unknown }).oy;
