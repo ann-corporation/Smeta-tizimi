@@ -546,7 +546,15 @@ function ShartnomaSvodBolimi({ companyId, shartnomaId, tashkilot }: { companyId:
   const [band, setBand] = useState(false);
   const [dan, setDan] = useState('');
   const [gacha, setGacha] = useState('');
-  const [shakl, setShakl] = useState<SvodShakl>(SVOD_BOSH);
+  // Oylik paketdan «Forma-3 ni saqlash» (egasi 2026-11-05): ?f3_sana=…&f3_summa=… — F3 kiritish shakli oldindan to'ldiriladi (saqlash — foydalanuvchi).
+  const [shakl, setShakl] = useState<SvodShakl>(() => {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      const sana = /^\d{4}-\d{2}-\d{2}$/.test(p.get('f3_sana') ?? '') ? p.get('f3_sana')! : '';
+      const summa = /^-?\d+(\.\d+)?$/.test(p.get('f3_summa') ?? '') ? p.get('f3_summa')! : '';
+      return sana ? { ...SVOD_BOSH, tur: 'f3', sana, summa } : SVOD_BOSH;
+    } catch { return SVOD_BOSH; }
+  });
   const [joylash, setJoylash] = useState('');
   const [f3Shakl, setF3Shakl] = useState<Forma3Shakl>(() => f3ShaklOl(companyId));
   useEffect(() => { setF3Shakl(f3ShaklOl(companyId)); }, [companyId]);
@@ -616,7 +624,7 @@ function ShartnomaSvodBolimi({ companyId, shartnomaId, tashkilot }: { companyId:
   const qoldiqRang = (x: number): CSSProperties | undefined => (x > 0 ? { color: 'var(--ok)' } : x < 0 ? { color: 'var(--danger)' } : undefined);
   const nom0 = t('Boshlang‘ich qoldiq');
   return (
-    <section className="fz-card" aria-label={t('Shartnoma bo‘yicha: F3, to‘lov va akt-sverka')}>
+    <section id="shartnoma-svod" className="fz-card" aria-label={t('Shartnoma bo‘yicha: F3, to‘lov va akt-sverka')}>
       <div className="fz-card__head">
         <div>
           <h2 className="fz-card__title">{t('Shartnoma bo‘yicha: F3, to‘lov va akt-sverka')} — № {sh.raqam}</h2>

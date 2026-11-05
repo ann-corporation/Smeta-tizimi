@@ -2,6 +2,18 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 105,
+      "sana": "2026-11-05",
+      "sarlavha": "Oylik paketda Forma-3 doim bor",
+      "bandlar": [
+        "Shartnoma va oy uchun saqlangan Forma-3 bo‘lmasa, paketga shu oyning tasdiqlangan F2 laridan avtomatik Forma-3 qo‘shiladi («Ф3 (автоматически по Ф-2, не сохранён)»), to‘liq va/yoki bir qatorli.",
+        "Avtomatik Forma-3 summasi paket reestridagi tasdiqlangan F2 jamisiga teng (QQS bilan, F2 ning o‘z podvali bilan).",
+        "Saqlangan Forma-3 bo‘lsa — o‘sha ishlatiladi, MUNDARIJA da esa F2 jami bilan solishtiruv va farq ko‘rsatiladi.",
+        "Shartnoma rekvizitlari yetishmasa ham Forma-3 yasaladi; nima yetishmasligi ekranda va ПАКЕТ_СОСТАВ.txt da yoziladi.",
+        "Paket oynasida har oy uchun Forma-3 holati («saqlangan», «avto (F2 dan)», «qoralama bor») va «Forma-3 ni saqlash» havolasi."
+      ]
+    },
+    {
       "id": 104,
       "sana": "2026-11-05",
       "sarlavha": "Bo‘lim jamisi qo‘shimcha ish va zamenadan keyin darhol yangilanadi",
