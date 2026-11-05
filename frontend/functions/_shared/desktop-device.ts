@@ -23,7 +23,7 @@ export async function deviceHash(token: string): Promise<string> {
 }
 
 /** Fixed server-side RPC family only. Never forwards caller-selected RPC names or credentials. */
-export async function desktopRpc(env: DesktopEnv, command: 't2_desktop_qurilma_yarat_v1' | 't2_desktop_qurilma_tekshir_v1' | 't2_desktop_qurilma_bekor_v1', args: Record<string, unknown>): Promise<Record<string, unknown>> {
+export async function desktopRpc(env: DesktopEnv, command: 't2_desktop_qurilma_yarat_v1' | 't2_desktop_qurilma_tekshir_v1' | 't2_desktop_qurilma_bekor_v1' | 't2_desktop_lease_chegara_v1', args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const r = await fetch(supabaseBaseUrl(env.SUPABASE_URL) + '/rest/v1/rpc/' + command, {
     method: 'POST', headers: { apikey: env.SUPABASE_KEY, Authorization: 'Bearer ' + env.SUPABASE_KEY, 'Content-Type': 'application/json' },
     body: JSON.stringify(args),

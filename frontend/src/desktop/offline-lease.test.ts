@@ -30,7 +30,7 @@ describe('signed offline lease boundary', () => {
     await expect(verifyDesktopLease(lease, scope, publicKey, 'test', now)).rejects.toThrow('SIGNATURE');
   });
   it.each([
-    { tugaydi: now }, { berildi: now + 1 }, { tugaydi: now + 73 * 3600_000 },
+    { tugaydi: now }, { berildi: now + 300001 }, { tugaydi: now + 73 * 3600_000 },
     { kompaniya_id: 9 }, { foydalanuvchi_id: 9 }, { device_id: 'other-device' },
     { obyekt_idlar: [] }, { obyekt_idlar: [4, 4] }, { permissions: ['smeta.read'] },
   ])('rejects expired, overlong or foreign scope %j', async patch => {
@@ -39,6 +39,13 @@ describe('signed offline lease boundary', () => {
   it('rejects unknown signing key id and missing build key', async () => {
     await expect(verifyDesktopLease(await signed(), scope, publicKey, 'other', now)).rejects.toThrow();
     await expect(verifyDesktopLease(await signed(), scope, new Uint8Array(), 'test', now)).rejects.toThrow('CONFIG');
+  });
+  it('tolerates up to five minutes of issuer clock skew without extending expiry', async () => {
+    const e = await signed({ ...payload, berildi: now + 300000, tugaydi: now + 600000 });
+    const lease = await verifyDesktopLease(e, scope, publicKey, 'test', now);
+    expect(lease.berildi).toBe(now + 300000);
+    expect(new DesktopLeaseGuard(lease, now, () => now, () => 0).allow(4)).toBe(now);
+    await expect(verifyDesktopLease(e, scope, publicKey, 'test', now + 600000)).rejects.toThrow();
   });
   it('blocks unlisted object and never resurrects a revoked lease', () => {
     const guard = new DesktopLeaseGuard(payload, now, () => now, () => 0);

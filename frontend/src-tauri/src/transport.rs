@@ -360,6 +360,54 @@ fn response_current(
     }
     Ok(())
 }
+fn revoke_request(client: &Client, c: &Credential) -> NativeResult<reqwest::Request> {
+    client
+        .delete(format!("{BFF}/api/desktop/qurilma"))
+        .header(header::ORIGIN, LOCAL)
+        .header(header::CONTENT_TYPE, "application/json")
+        .bearer_auth(&c.token)
+        .timeout(Duration::from_secs(10))
+        .body(serde_json::json!({"device_id":c.device,"operation_id":operation_id()?}).to_string())
+        .build()
+        .map_err(|_| "DESKTOP_REQUEST_INVALID")
+}
+async fn revoke_remote(client: &Client, c: &Credential) -> NativeResult<()> {
+    let response = client
+        .execute(revoke_request(client, c)?)
+        .await
+        .map_err(|_| "DESKTOP_REVOKE_UNCONFIRMED")?;
+    if response.status().as_u16() == 401 {
+        return Ok(());
+    }
+    let (status, body, _) = bounded(response, AUTH_LIMIT).await?;
+    let result: Value = serde_json::from_str(&body).map_err(|_| "DESKTOP_REVOKE_UNCONFIRMED")?;
+    if status != 200 || result["ok"] != true || result["device_id"] != c.device {
+        return Err("DESKTOP_REVOKE_UNCONFIRMED");
+    }
+    Ok(())
+}
+#[tauri::command]
+pub async fn desktop_logout(webview: tauri::Webview) -> NativeResult<()> {
+    maxfiy::runtime_tekshir(&webview)?;
+    let (record, generation) = {
+        let mut g = maxfiy::state()?;
+        (
+            g.load(&OsVault, maxfiy::now()?, Instant::now())?,
+            g.generation,
+        )
+    };
+    let result = match record {
+        Some(c) => match client() {
+            Ok(http) => revoke_remote(&http, &c).await,
+            Err(e) => Err(e),
+        },
+        None => Ok(()),
+    };
+    let mut guard = maxfiy::state()?;
+    guard.ticket(generation)?; // Never clear a newer concurrent login.
+    guard.revoke(&OsVault)?; // Always crypto-erase locally, including a network failure.
+    result
+}
 #[tauri::command]
 pub async fn desktop_request(
     webview: tauri::Webview,
@@ -372,8 +420,19 @@ pub async fn desktop_request(
     request_path(&path, &method, body.as_deref(), etag.as_deref())?;
     let client = client()?;
     if path == "/api/kirish" {
+        let (previous, ticket) = {
+            let mut g = maxfiy::state()?;
+            (
+                g.load(&OsVault, maxfiy::now()?, Instant::now())?,
+                g.generation,
+            )
+        };
+        if let Some(c) = previous {
+            revoke_remote(&client, &c).await?;
+        } // Do not enroll a replacement while old revocation is unconfirmed.
         let generation = {
             let mut guard = maxfiy::state()?;
+            guard.ticket(ticket)?;
             guard.revoke(&OsVault)?;
             guard.generation
         };
@@ -593,6 +652,25 @@ mod tests {
                 "SYNTHETIC"
             )
             .is_err());
+        });
+    }
+    #[test]
+    fn revoke_is_fixed_own_device_bearer_delete() {
+        tauri::async_runtime::block_on(async {
+            let c = credential(100);
+            let req = revoke_request(&client().unwrap(), &c).unwrap();
+            assert_eq!(req.method(), reqwest::Method::DELETE);
+            assert_eq!(req.url().as_str(), format!("{BFF}/api/desktop/qurilma"));
+            assert_eq!(req.headers()[header::ORIGIN], LOCAL);
+            assert_eq!(
+                req.headers()[header::AUTHORIZATION],
+                format!("Bearer {}", c.token)
+            );
+            let body: Value =
+                serde_json::from_slice(req.body().unwrap().as_bytes().unwrap()).unwrap();
+            assert_eq!(body["device_id"], c.device);
+            assert_eq!(body.as_object().unwrap().len(), 2);
+            assert_eq!(body["operation_id"].as_str().unwrap().len(), 36);
         });
     }
     // Loopback HTTP exists only in this test helper. Production client remains HTTPS-only.

@@ -11,6 +11,7 @@ try {
     create table public.t2_foydalanuvchi(id bigint generated always as identity primary key,login text unique,ism text,holat text,sessiya_bekor_dan timestamptz);
     grant select on public.t2_foydalanuvchi to service_role;`);
   await db.exec(await file(''));
+  await db.exec(await file(''));
   await db.exec(await file('.acceptance'));
   assert.equal((await db.query('select count(*)::int n from public.t2_desktop_qurilma')).rows[0].n,0);
   for (const role of ['anon','authenticated']) {
