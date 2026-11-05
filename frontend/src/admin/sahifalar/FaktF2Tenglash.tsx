@@ -37,6 +37,7 @@ export function FaktF2Tenglash({ sarlavha, reja, eskiAktlar = [], obyektId, komp
   const [chiqQator, setChiqQator] = useState<Set<number>>(new Set());
   const [chiqBolim, setChiqBolim] = useState<Set<string>>(new Set());
   const jami = useMemo(() => tenglashJami(reja, chiqQator, chiqBolim), [reja, chiqQator, chiqBolim]);
+  const bolaklanadi = jami.paket.length > QAMROV_BOLAK;
   const bolimli = jami.bolimlar.length > 1 || (jami.bolimlar[0]?.nom ?? '') !== '';
   const korinadi = useMemo(() => reja.qatorlar.filter((q) => !chiqBolim.has(q.bolim ?? '')), [reja, chiqBolim]);
   const qatorAlmashtir = (k: number) => setChiqQator((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
@@ -103,7 +104,7 @@ export function FaktF2Tenglash({ sarlavha, reja, eskiAktlar = [], obyektId, komp
               {jami.faktOrtiq.soni > 0 && <span className="text-text-mute" data-testid="f2-tenglash-fakt-ortiq">{t('Fakt F2 dan ko‘p: {n} qator ({s}) — topshirilmagan ish, o‘zgartirilmaydi.', { n: String(jami.faktOrtiq.soni), s: fmt(jami.faktOrtiq.summa) })}</span>}
               {reja.otkazildi.manfiyReja > 0 && <span className="text-text-mute">{reja.otkazildi.manfiyReja} {t('chegirma qatori o‘tkazib yuborildi')}</span>}
               {(chiqQator.size > 0 || chiqBolim.size > 0) && <span className="text-text-mute">{t('olib tashlangan: {n}', { n: String(reja.qatorlar.length - jami.paket.length) })}</span>}
-              {jami.paket.length > QAMROV_BOLAK &&<span className="text-text-mute">{t('{n} ta hujjatga bo‘linadi', { n: String(qamrovBolaklari(jami.paket).length) })}</span>}
+              {bolaklanadi && <span className="text-text-mute">{t('{n} ta hujjatga bo‘linadi', { n: String(qamrovBolaklari(jami.paket).length) })}</span>}
             </div>
             <div className="min-h-0 flex-1 overflow-auto">
               {bolimli && <table className="fz-table mb-3 w-full text-[12px]" data-testid="f2-tenglash-bolimlar">

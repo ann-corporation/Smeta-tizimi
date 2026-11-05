@@ -44,6 +44,7 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
   const ishlarJoriy = useMemo(() => ishlarniYangila(ishlar, holatMap), [ishlar, holatMap]);
   const reja = useMemo(() => qamrovReja(ishlarJoriy, foiz ?? 0, holatMap, { ichkiResurslar: ichki, narxOl }), [ishlarJoriy, foiz, holatMap, ichki, narxOl]);
   const jami = useMemo(() => qamrovJami(reja, chiqarilgan), [reja, chiqarilgan]);
+  const bolaklanadi = jami.paket.length > QAMROV_BOLAK;
   const istisnoli = useMemo(() => reja.qatorlar.filter((q) => q.istisnolar.length > 0), [reja]);
   /** Alohida «Tuzatish» (JQA-03): faqat oshgan qatorlar, faqat egasi ochib tasdiqlaganda; 100%/foiz yo'li hech qachon kamaytirmaydi. */
   const [tuzatishOchiq, setTuzatishOchiq] = useState(false);
@@ -103,7 +104,7 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
           {reja.smetasiz > 0 && <span className="text-text-mute">{t('smetasi noma’lum: {n}', { n: String(reja.smetasiz) })}</span>}
           {reja.oshganlar.length > 0 && <span className="fz-chip fz-chip--warn" data-testid="qamrov-oshgan-soni">{t('allaqachon ≥100% (smetadan oshgan, o‘zgarmaydi): {n}', { n: String(reja.oshganlar.length) })}</span>}
           {chiqarilgan.size > 0 && <span className="text-text-mute">{t('olib tashlangan: {n}', { n: String(chiqarilgan.size) })}</span>}
-          {jami.paket.length > QAMROV_BOLAK &&<span className="text-text-mute">{t('{n} ta hujjatga bo‘linadi', { n: String(qamrovBolaklari(jami.paket).length) })}</span>}
+          {bolaklanadi && <span className="text-text-mute">{t('{n} ta hujjatga bo‘linadi', { n: String(qamrovBolaklari(jami.paket).length) })}</span>}
         </div>
 
         <div className="min-h-0 flex-1 overflow-auto">
