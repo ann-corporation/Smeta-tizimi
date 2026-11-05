@@ -56,6 +56,8 @@ export function desktopBootstrap(options: {
         const saved = await cache.get<Record<string, unknown>>(key) ?? {};
         await cache.set(key, { ...saved, object: { id: hint.object, kompaniya_id: hint.company, nom: opened.paket.obyekt_nom } });
         if (!same(before, await info())) throw new Error('DESKTOP_RESUME_CHANGED');
+        // Existing provider revalidates this UI selection against current membership. It grants no rights.
+        options.storage.setItem('t2_kompaniya_kontekst', JSON.stringify({ uid: hint.actor, id: hint.company, global: false }));
         return '/admin/holat/' + hint.object;
       } catch { try { clear(); } catch { /* Storage may be unavailable. */ } return null; }
       finally { runtime?.dispose(); }

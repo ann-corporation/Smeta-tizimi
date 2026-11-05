@@ -41,6 +41,7 @@ async function setup() {
 it('cold native session + signed scoped snapshot restores only the existing object route', async () => {
   const h = await setup(); expect(await h.create().restore()).toBe('/admin/holat/4');
   expect(h.disk.get('pages/3/4')).toEqual({ object: { id: 4, kompaniya_id: 3, nom: 'SYNTHETIC' } });
+  expect(JSON.parse(h.store.get('t2_kompaniya_kontekst')!)).toEqual({ uid: 2, id: 3, global: false });
   expect((h.disk.get('packet/3/4') as { raw: { q: { narx: null[] } } }).raw.q.narx).toEqual([null]);
   h.phase('online'); expect(await h.create().restore()).toBe('/admin/holat/4');
   expect(h.request.mock.calls.some(([p]) => String(p).includes('obyekt-paket'))).toBe(true);
