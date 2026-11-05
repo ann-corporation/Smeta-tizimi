@@ -32,6 +32,8 @@ import { FaktQamrov } from './FaktQamrov';
 import { faktQamrovBekor } from '../../lib/fakt-qamrov';
 import { casZiddiyat, foizQoll, jamiIdlari, tarixgaQosh, ustunJoylash, ustunOqi, type Kiritmalar } from '../../lib/fakt-foiz-grid';
 import { sbT2QatorHolatQisman } from '../../api/t2-holat-qisman';
+import { f2VersiyaKochirmaOl } from '../../api/t2-f2-versiya-kochirma';
+import { avvalgiBilanF2Qoldiq, avvalgiF2Xaritasi, kochmaganBor, type F2VersiyaKochirma } from '../../lib/f2-versiya-kochirma';
 import { t } from '../../i18n/til';
 import { qidiruvKaliti } from '../../i18n/lotin-kirill';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
@@ -204,6 +206,14 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
     void zamenaBoglanishOl(obyektId).then((z) => { if (tirik) setZb(z); }).catch(() => undefined);
     return () => { tirik = false; };
   }, [obyektId, zamenaBor, rows, states]);
+  // Smeta versiyasi faollashtirilgan bo'lsa: eski qatorlardagi tasdiqlangan F2 → yangi faol qator (faqat belgi; jamilarga qo'shilmaydi).
+  const [kochirma, setKochirma] = useState<F2VersiyaKochirma | null>(null);
+  useEffect(() => {
+    let tirik = true;
+    void f2VersiyaKochirmaOl(obyektId).then((r) => { if (tirik) setKochirma(r.ok ? r.natija : null); }).catch(() => undefined);
+    return () => { tirik = false; };
+  }, [obyektId]);
+  const avvalgiF2 = useMemo(() => avvalgiF2Xaritasi(kochirma), [kochirma]);
   const { bolimlar, bolimIshlari, ildizIshlari } = useMemo(() => jurnalQur(rows, states, zb, bajHajm), [rows, states, zb, bajHajm]);
   /** Ishdan chiqarilgan resurslar to'plami — bo'lim/obyekt fakt jamisiga qo'shilmaydi. */
   const chiqarilganlar = useMemo(() => {
@@ -542,17 +552,20 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   };
   const almMatn = (q: JurnalQator) => almashtirildiMatn(q.almashtirilgan, q.smeta, q.birlik, fmt);
   /** Qatorda belgi bormi (ikkinchi satr faqat kerak bo'lsa chiziladi). */
-  const belgiBor = (q: JurnalQator) => tuzatish.asos.has(q.id) || q.zamena || q.qoshimcha || !!almMatn(q) || saqlangan.has(q.id) || (bajHajm.get(q.id) ?? 0) > 0;
+  const belgiBor = (q: JurnalQator) => tuzatish.asos.has(q.id) || q.zamena || q.qoshimcha || !!almMatn(q) || saqlangan.has(q.id) || (bajHajm.get(q.id) ?? 0) > 0 || avvalgiF2.has(q.id);
   /**
    * BITTA belgi guruhi: zamena (info) · qo'shimcha (firuza) · almashtirildi (neytral) · bajarilmaydi (qizil, bosilsa bekor).
    * Sariq rang faqat «smetadan/qoldiqdan oshdi» uchun.
    */
   const belgilar = (q: JurnalQator) => {
-    const m = almMatn(q);
+    const m = almMatn(q); const av = avvalgiF2.get(q.id);
     return <>
       {tuzatish.asos.has(q.id) && <span className="fz-chip" data-testid="tuzatish-belgi" title={t('Fakt asosiy ish faktidan avtomatik hisoblanadi')}>{t('qalinlik tuzatishi — asosiy ishga bog‘liq')}</span>}
       {q.zamena && <span className="fz-chip bg-[var(--info-soft)] text-[var(--info)]" data-testid="zamena-belgi" title={q.aslNom ? t('Zamena: asl qator — {nom}', { nom: q.aslNom }) : t('Zamena')}>↻ {t('zamena')}{q.aslNom ? `: ${t('asl')} ${q.aslNom}` : ''}</span>}
       {q.qoshimcha && <span className="fz-chip fz-chip--accent" data-testid="qoshimcha-belgi">+ {t('qo‘shimcha')}</span>}
+      {av && <span className="fz-chip bg-[var(--info-soft)] text-[var(--info)]" data-testid="avvalgi-f2-belgi"
+        title={t('Tasdiqlangan F2 avvalgi smeta versiyasining qatorida: obyekt jamisida bir marta sanaladi, shu qator ustunlariga qo‘shilmaydi. F2 qoldig‘i avvalgi F2 bilan: {q}', { q: fmt(avvalgiBilanF2Qoldiq({ smeta: q.smeta, ozF2: Number(holatMap.get(q.id)?.f2_hajm ?? 0), avvalgi: av, almashtirilgan: q.almashtirilgan })) })}>
+        {t('avvalgi versiya F2')}: {fmt(av.hajm)} {q.birlik ?? ''}</span>}
       {m && <span className="fz-chip" data-testid="almashtirildi-belgi" title={t('Shu hajmni zamena qatorlari qoplagan')}>{t('almashtirildi')} {m}</span>}
       {(bajHajm.get(q.id) ?? 0) > 0 && (q.tur !== 'bl' && chiq(q)
         ? <button type="button" tabIndex={-1} onClick={() => void bajBekor(q.id, q.nom)} className="fz-chip fz-chip--danger hover:brightness-110" title={t('Resurs ishdan chiqarilgan — F2 ga kirmaydi (bosing - bekor qilish)')} data-testid="chiqarilgan-belgi"><MinusCircle size={11} aria-hidden="true" />{t('ishdan chiqarilgan')}</button>
@@ -866,6 +879,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
         <div className="border-t border-border p-2"><FaktXulosaPanel x={xulosa} obyekt={obyektUlushi} /></div>
       </details>}
 
+      {kochmaganBor(kochirma) && <div className="fz-card flex shrink-0 flex-wrap items-center gap-2 px-3 py-1.5 text-[12px] text-warn" data-testid="avvalgi-f2-kochmagan" role="status">
+        {t('Avvalgi smeta versiyasidagi tasdiqlangan F2: {k} qator yangi qatorlarga ko‘rsatildi, {w} tasi moslik tasdig‘ini kutmoqda, {n} tasi yangi smetada topilmadi — «Versiyalar va farq» panelida ko‘ring.', { k: String(kochirma!.jami.kochdi_soni), w: String(kochirma!.jami.kutilmoqda_soni), n: String(kochirma!.jami.moslanmagan_soni) })}
+      </div>}
       <FaktStudioBar yigindi={yigindi} obyektId={obyektId} kompaniyaId={kompaniyaId} onF2={f2Otish} band={band} jami={summalar.get(0)} />
 
       {bolimlar.length === 0

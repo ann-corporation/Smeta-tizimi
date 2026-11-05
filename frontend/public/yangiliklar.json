@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 111,
+      "sana": "2026-11-05",
+      "sarlavha": "Smeta versiyasidan keyin F2 yo‘qolmaydi",
+      "bandlar": [
+        "Yangi smeta versiyasi faollashtirilgandan keyin avvalgi versiyadagi tasdiqlangan F2 yangi qatorlarda «avvalgi versiya F2» belgisi bilan ko‘rinadi (fakt jurnali va F2 tayyorlash).",
+        "Belgi faqat ma’lumot: obyekt jamisida eski F2 bir marta sanaladi, qator ustunlari va «F2 ga olish mumkin» o‘zgarmaydi.",
+        "Moslik tasdig‘ini kutayotgan yoki yangi smetada topilmagan eski F2 bo‘lsa — fakt jurnalida ogohlantirish chiqadi («Versiyalar va farq» panelida ko‘rish mumkin)."
+      ]
+    },
+    {
       "id": 110,
       "sana": "2026-11-05",
       "sarlavha": "Pereraschet: yangi qatorlar smeta narxida, storno bo‘lim bo‘yicha",

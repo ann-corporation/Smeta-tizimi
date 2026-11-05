@@ -1,0 +1,16 @@
+{
+  "avvalgi versiya F2": { "ru": "Ф2 предыдущей версии", "en": "F2 from previous version" },
+  "Tasdiqlangan F2 avvalgi smeta versiyasining qatorida: obyekt jamisida bir marta sanaladi, shu qator ustunlariga qo‘shilmaydi. F2 qoldig‘i avvalgi F2 bilan: {q}": {
+    "ru": "Утверждённая Ф2 находится в строке предыдущей версии сметы: в итоге объекта учитывается один раз и не добавляется в колонки этой строки. Остаток Ф2 с учётом предыдущей Ф2: {q}",
+    "en": "Approved F2 is on the previous estimate version's line: counted once in the object total and not added to this line's columns. F2 balance including previous F2: {q}"
+  },
+  "Avvalgi smeta versiyasidagi tasdiqlangan F2: {k} qator yangi qatorlarga ko‘rsatildi, {w} tasi moslik tasdig‘ini kutmoqda, {n} tasi yangi smetada topilmadi — «Versiyalar va farq» panelida ko‘ring.": {
+    "ru": "Утверждённая Ф2 предыдущей версии сметы: {k} строк показаны на новых строках, {w} ждут подтверждения соответствия, {n} не найдены в новой смете — см. панель «Версии и различия».",
+    "en": "Approved F2 of the previous estimate version: {k} lines shown on new lines, {w} await match confirmation, {n} not found in the new estimate — see the «Versions and differences» panel."
+  },
+  "Tasdiqlangan F2 avvalgi smeta versiyasining qatorida: obyekt jamisida bir marta sanaladi; bu yerdagi «mumkin» hajmiga ta’sir qilmaydi.": {
+    "ru": "Утверждённая Ф2 находится в строке предыдущей версии сметы: в итоге объекта учитывается один раз; на доступный здесь объём не влияет.",
+    "en": "Approved F2 is on the previous estimate version's line: counted once in the object total; does not affect the available volume here."
+  },
+  "{n} ta resursda": { "ru": "в {n} ресурсах", "en": "in {n} resources" }
+}
