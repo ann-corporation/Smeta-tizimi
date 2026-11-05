@@ -1,0 +1,11 @@
+{
+  "Hujjat tasdiqingizni kutmoqda": { "ru": "Документ ждёт вашего согласования", "en": "A document awaits your approval" },
+  "Hujjat tasdiqlandi": { "ru": "Документ согласован", "en": "Document approved" },
+  "Hujjat rad etildi": { "ru": "Документ отклонён", "en": "Document rejected" },
+  "Hujjat qayta ishlashga qaytarildi": { "ru": "Документ возвращён на доработку", "en": "Document returned for rework" },
+  "Sizga yangi xat keldi": { "ru": "Вам пришло новое письмо", "en": "You have received a new letter" },
+  "Hujjat muddati yaqinlashmoqda": { "ru": "Срок по документу истекает", "en": "A document deadline is approaching" },
+  "Hujjat muddati o‘tib ketdi": { "ru": "Срок по документу истёк", "en": "A document deadline has passed" },
+  "Muddat: {muddat}": { "ru": "Срок: {muddat}", "en": "Deadline: {muddat}" },
+  "Hujjatni ochish": { "ru": "Открыть документ", "en": "Open the document" }
+}

@@ -1,0 +1,15 @@
+{
+  "barcha oylar": { "ru": "все месяцы", "en": "all months" },
+  "Summalar: QQS bilan asosiy; ustamali va ustamasiz yonida (F2 portfeli bilan bir xil hisob)": { "ru": "Суммы: основная — с НДС; с накрутками и без накрутки рядом (тот же расчёт, что в портфеле Ф-2)", "en": "Amounts: VAT-inclusive is primary; with and without markups alongside (same calculation as the F2 portfolio)" },
+  "gacha (oraliq)": { "ru": "по (диапазон)", "en": "to (range)" },
+  "Oraliq oxiri": { "ru": "Конец диапазона", "en": "Range end" },
+  "Barcha oylar": { "ru": "Все месяцы", "en": "All months" },
+  "Qoralamalarni ham qo‘shish (QORALAMA)": { "ru": "Включить черновики (QORALAMA)", "en": "Include drafts (QORALAMA)" },
+  "Topshirish faqat bitta oy uchun": { "ru": "Сдача — только за один месяц", "en": "Submission is for a single month only" },
+  "Davr: {d} — {n} oy; ZIP da har oy o‘z papkasida, akt-sverka va davr svodi ildizda.": { "ru": "Период: {d} — месяцев: {n}; в ZIP каждый месяц в своей папке, акт сверки и свод за период — в корне.", "en": "Period: {d} — {n} months; in the ZIP each month has its own folder, reconciliation act and period summary at the root." },
+  "Paket eskirgan — qayta yig‘ing": { "ru": "Пакет устарел — соберите заново", "en": "Package is outdated — rebuild it" },
+  "v{n} topshirilgandan keyin {k} ta obyektda F2 yoki fakt o‘zgargan. Eski nusxa arxivda qoladi.": { "ru": "После сдачи v{n} изменились Ф-2 или факт на объектах: {k}. Старая копия остаётся в архиве.", "en": "Since v{n} was submitted, F2 or actuals changed on {k} objects. The old copy stays in the archive." },
+  "Qayta yig‘ish": { "ru": "Собрать заново", "en": "Rebuild" },
+  "Topshirilgan paket (v{n}) dolzarb — manba F2 o‘zgarmagan.": { "ru": "Сданный пакет (v{n}) актуален — исходные Ф-2 не менялись.", "en": "Submitted package (v{n}) is up to date — source F2 unchanged." },
+  "Davr jami — barcha F2 ({n} ta)": { "ru": "Итого за период — все Ф-2 ({n})", "en": "Period total — all F2 ({n})" }
+}

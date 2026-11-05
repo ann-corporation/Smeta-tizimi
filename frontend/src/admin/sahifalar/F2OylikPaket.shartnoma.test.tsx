@@ -5,7 +5,7 @@ import type { ReestrMalumot } from '../../api/t2-f2-reestr';
 
 const m = vi.hoisted(() => ({ arxiv: vi.fn() }));
 vi.mock('../../api/f2-oylik-paket', () => ({
-  oyObyektOl: vi.fn(async () => ({ smeta: [], tafsilot: [], kontekst: { imzo: {}, shartnoma: null, nakrutka: null, podval: null } })),
+  portfelObyektOl: vi.fn(async () => ({ smeta: [], tafsilot: [], kontekst: { imzo: {}, shartnoma: null, nakrutka: null, podval: null }, aktQatorlar: new Map(), podvallar: new Map() })),
   f3SvodOl: vi.fn(async () => []),
 }));
 vi.mock('../../api/t2-token', () => ({ tokenBilan: vi.fn(), mazmunXeshi: vi.fn() }));
@@ -43,6 +43,9 @@ it('shartnoma rejimi: tayyorgarlik jadvali obyektlar kesimida, arxiv, «Topshiri
   // Arxiv: versiya va «o'zgargan» belgisi
   expect(await screen.findByText('topshirilgandan keyin o‘zgargan')).toBeTruthy();
   expect(screen.getByText('v2')).toBeTruthy();
+  // Joriy oy paketi eskirgan: aniq belgi va bir bosishda «Qayta yig'ish» (eski nusxa arxivda qoladi).
+  expect(await screen.findByText('Paket eskirgan — qayta yig‘ing')).toBeTruthy();
+  expect((screen.getByRole('button', { name: 'Qayta yig‘ish' }) as HTMLButtonElement).disabled).toBe(false);
   // Tugmalar bloklanmagan (qoralama ham bor, fakt yo'q bo'lsa ham)
   expect((screen.getByRole('button', { name: 'Topshirildi' }) as HTMLButtonElement).disabled).toBe(false);
 });
