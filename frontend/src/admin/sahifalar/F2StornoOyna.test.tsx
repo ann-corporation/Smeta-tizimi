@@ -23,10 +23,21 @@ vi.mock('../../umumiy/kontekst/KompaniyaKontekst', () => ({ useKompaniya: () => 
 import { F2StornoOyna } from './F2StornoOyna';
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
-const ochish = (onYaratildi = vi.fn()) => {
-  render(<F2StornoOyna obyektId={8} akt={{ id: 11, raqam: '5', oy: '2026-09-01', hujjat_jami: 120 }} reestr={[]} onYop={vi.fn()} onYaratildi={onYaratildi} />);
+const TASDIQ = [{ id: 11, raqam: '5', holat: 'tasdiqlangan', lifecycle_status: 'approved' }];
+const ochish = (onYaratildi = vi.fn(), reestr: Array<{ id: number; raqam: string; holat: string; lifecycle_status: string }> = TASDIQ) => {
+  render(<F2StornoOyna obyektId={8} akt={{ id: 11, raqam: '5', oy: '2026-09-01', hujjat_jami: 120 }} reestr={reestr} onYop={vi.fn()} onYaratildi={onYaratildi} />);
   return onYaratildi;
 };
+
+describe('F2StornoOyna: faqat tasdiqlangan F2 manba', () => {
+  it('qoralama F2 storno qilinmaydi: xabar va tugma o‘chiq', async () => {
+    ochish(vi.fn(), [{ id: 11, raqam: '5', holat: 'qoralama', lifecycle_status: 'draft' }]);
+    expect((await screen.findByTestId('storno-tasdiqlanmagan')).textContent).toContain('№5');
+    await screen.findByRole('radio', { name: 'Faktni 0 ga tushirish' });
+    expect((screen.getByRole('button', { name: /qatorni storno qilish/ }) as HTMLButtonElement).disabled).toBe(true);
+    expect(m.yarat).not.toHaveBeenCalled();
+  });
+});
 
 describe('F2StornoOyna: fakt tanlovi', () => {
   it('sukut — «Faktni 0 ga tushirish»: minus fakt yozuvlari yoziladi (eski oqim)', async () => {

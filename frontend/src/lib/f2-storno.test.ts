@@ -125,7 +125,7 @@ describe('qoralamani qayta saqlashda storno bloki', () => {
 });
 
 describe('storno tanlagichi nomzodlari', () => {
-  it('bekor, rad, superseded va F2 emas aktlar chiqmaydi; yangisi tepada', () => {
+  it('FAQAT tasdiqlangan F2: qoralama, bekor, rad, superseded va F2 emas aktlar chiqmaydi; yangisi tepada', () => {
     const r = [
       { id: 1, tur: 'f2', holat: 'tasdiqlangan', lifecycle_status: 'approved' as const },
       { id: 2, tur: 'f2', holat: 'bekor', lifecycle_status: 'cancelled' as const },
@@ -134,6 +134,6 @@ describe('storno tanlagichi nomzodlari', () => {
       { id: 5, tur: 'f2', holat: 'qoralama', lifecycle_status: 'draft' as const },
       { id: 6, tur: 'boshqa', holat: 'qoralama' },
     ];
-    expect(stornoNomzodAktlar(r).map((a) => a.id)).toEqual([5, 1]);
+    expect(stornoNomzodAktlar([...r, { id: 7, tur: 'f2', holat: 'tasdiqlangan' }, { id: 8, tur: 'f2', holat: 'qoralama', lifecycle_status: 'submitted' as const }]).map((a) => a.id)).toEqual([7, 1]);
   });
 });

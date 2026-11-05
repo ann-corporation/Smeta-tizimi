@@ -34,5 +34,13 @@
   "storno qilingan": {
     "ru": "сторнировано",
     "en": "reversed"
+  },
+  "Faqat tasdiqlangan F2 storno qilinadi: {r} tasdiqlanmagan (qoralama yoki bekor).": {
+    "ru": "Сторнируется только утверждённая Ф2: {r} не утверждена (черновик или отменена).",
+    "en": "Only an approved F2 can be reversed: {r} is not approved (draft or cancelled)."
+  },
+  "Bu obyektda tasdiqlangan F2 yo‘q — storno qilinadigan hujjat yo‘q.": {
+    "ru": "На этом объекте нет утверждённой Ф2 — нечего сторнировать.",
+    "en": "This object has no approved F2 — there is nothing to reverse."
   }
 }

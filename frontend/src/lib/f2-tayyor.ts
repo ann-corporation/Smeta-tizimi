@@ -70,6 +70,34 @@ function narxTaklif(f2Narx: number | null, smetaNarx: number | null, protokolNar
   return { narx: null, manba: 'yoq' };
 }
 
+/** Smeta daraxtidagi aka-uka tartibi (YAGONA: f2Qur va storno bloklari shu bilan): `tartib`, keyin id. */
+export type DaraxtTugun = { id: number; ota_id?: number | null; tartib?: number | null };
+export const daraxtSolishtir = (p: DaraxtTugun, q: DaraxtTugun): number => (p.tartib ?? 0) - (q.tartib ?? 0) || p.id - q.id;
+
+/**
+ * Smeta daraxti tartibi: qator id → o'rin (chuqurlik bo'yicha: rz → bl → uning rs/mat/ob → keyingi bl …), f2Qur bilan aynan bir xil.
+ * Daraxtda yo'q (ota zanjiri uzilgan) qatorlar kalitsiz qoladi — chaqiruvchi ularni oxirida asl tartibda qoldiradi.
+ */
+export function smetaDaraxtTartibi(rows: Iterable<DaraxtTugun>): Map<number, number> {
+  const bolalar = new Map<number | null, DaraxtTugun[]>();
+  for (const r of rows) { const k = r.ota_id ?? null; if (!bolalar.has(k)) bolalar.set(k, []); bolalar.get(k)!.push(r); }
+  for (const a of bolalar.values()) a.sort(daraxtSolishtir);
+  const out = new Map<number, number>();
+  const stek: DaraxtTugun[] = [...(bolalar.get(null) ?? [])].reverse();
+  while (stek.length) {
+    const r = stek.pop()!;
+    if (out.has(r.id)) continue;
+    out.set(r.id, out.size);
+    for (const b of [...(bolalar.get(r.id) ?? [])].reverse()) stek.push(b);
+  }
+  return out;
+}
+
+/** Elementlarni smeta daraxti tartibida (barqaror); daraxtda yo'qlari oxirida asl tartibda. */
+export function daraxtTartibida<T>(items: readonly T[], id: (x: T) => number, tartib: ReadonlyMap<number, number>): T[] {
+  return items.map((x, i) => ({ x, i, k: tartib.get(id(x)) })).sort((a, b) => (a.k ?? Infinity) - (b.k ?? Infinity) || a.i - b.i).map((e) => e.x);
+}
+
 /** Smeta daraxti → F2 uchun bo'limlar/ishlar/resurslar (faqat F2 olish mumkin bo'lganlar). */
 export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarxlari, manba: F2Manba = 'fakt', qoralama?: ReadonlyMap<number, number>, ktx?: F2QurKontekst): F2Bolim[] {
   const h = new Map(holat.map((x) => [x.qator_id, x]));
@@ -78,7 +106,7 @@ export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarx
   const rowById = new Map(rows.map((r) => [r.id, r]));
   const bolalar = new Map<number | null, T2Qator[]>();
   for (const r of rows) { const k = r.ota_id ?? null; if (!bolalar.has(k)) bolalar.set(k, []); bolalar.get(k)!.push(r); }
-  for (const a of bolalar.values()) a.sort((p, q) => (p.tartib ?? 0) - (q.tartib ?? 0) || p.id - q.id);
+  for (const a of bolalar.values()) a.sort(daraxtSolishtir);
   /** Shu qoralamadagi storno qaytaradigan eski F2 hajmi (0 — storno yo'q). */
   const sq = (id: number) => ktx?.stornoQaytar?.get(id) ?? 0;
   /** Tasdiqlangan F2 hajmi, shu qoralamada stornolanayotgan eski F2 chiqarilgan holda (= BOSHQA tasdiqlangan F2 lar). */

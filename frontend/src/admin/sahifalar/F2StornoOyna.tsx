@@ -6,7 +6,7 @@ import { FmtN } from '../../lib/format';
 import { davrNomi } from '../../lib/f2-hujjat-korinish';
 import { t, tilLocale } from '../../i18n/til';
 import { yigindi2 } from '../../lib/hisob-yadro';
-import { faolStornolar, stornoFaktReja, stornoQator, stornoQur, type StornoFaktRejim, type StornoManbaQator, type StornoReestrAkt, type StornoYukQator } from '../../lib/f2-storno';
+import { faolStornolar, stornoFaktReja, stornoQilinadiAkt, stornoQator, stornoQur, type StornoFaktRejim, type StornoManbaQator, type StornoReestrAkt, type StornoYukQator } from '../../lib/f2-storno';
 import { f2StornoAktIdlari, f2StornoFaktYoz, f2StornoHolatOl, f2StornoManbaOl, f2StornoQoralamaYarat, yangiOperationId, type StornoQatorKorinish } from '../../api/t2-f2-storno';
 import { aktPodvalStornoNusxa } from '../../api/t2-akt-podval';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
@@ -127,8 +127,10 @@ export function F2StornoOyna(p: {
     return n;
   });
 
+  /** Storno manbai faqat TASDIQLANGAN F2 (reestrda tekshiriladi; topilmasa — ruxsat yo'q). */
+  const tasdiqlanmagan = useMemo(() => aktlar.filter((a) => { const r = p.reestr.find((x) => x.id === a.id); return !r || !stornoQilinadiAkt(r); }), [aktlar, p.reestr]);
   const takrorKerak = (faol?.length ?? 0) > 0;
-  const tayyor = !!reja && reja.qatorlar.length > 0 && !!/^\d{4}-\d{2}-\d{2}$/.test(oy) && (!takrorKerak || takrorTasdiq) && faol !== null;
+  const tayyor = !!reja && reja.qatorlar.length > 0 && !!/^\d{4}-\d{2}-\d{2}$/.test(oy) && (!takrorKerak || takrorTasdiq) && faol !== null && tasdiqlanmagan.length === 0;
 
   const bitdi = (aktId: number) => { p.onYaratildi?.(aktId); p.onTugadi?.(aktId); };
 
@@ -179,6 +181,7 @@ export function F2StornoOyna(p: {
           <p key={a.id} className="text-text-dim">{t('F2 №{r} · {d} — tanlangan qatorlar minus qilib YANGI qoralamaga yoziladi (narx o‘sha). Asl F2 o‘zgarmaydi.', { r: aktNomi(a), d: davrNomi(a.oy ?? '', tilLocale()) || '—' })}</p>
         ))}
         {kop && <p data-testid="storno-kop" className="fz-note fz-note--info">{t('{n} ta eski F2: har biri hujjatda alohida «Сторно Ф-2 №…» bloki bo‘ladi va o‘z podvali bilan hisoblanadi.', { n: aktlar.length })}</p>}
+        {tasdiqlanmagan.length > 0 && <p role="alert" data-testid="storno-tasdiqlanmagan" className="fz-note fz-note--danger"><ShieldAlert />{t('Faqat tasdiqlangan F2 storno qilinadi: {r} tasdiqlanmagan (qoralama yoki bekor).', { r: tasdiqlanmagan.map((a) => `№${aktNomi(a)}`).join(', ') })}</p>}
         {yuklashXato && <p role="alert" className="fz-note fz-note--danger"><ShieldAlert />{yuklashXato}</p>}
         {!yuklashXato && !yuk && <div className="skel min-h-[120px] rounded-xl" />}
         {takrorKerak && (

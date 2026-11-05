@@ -105,12 +105,14 @@ export function faolStornolar(stornoAktIdlar: readonly number[], reestr: readonl
     && a.lifecycle_status !== 'cancelled' && a.lifecycle_status !== 'rejected' && a.lifecycle_status !== 'superseded');
 }
 
-/** Aktning storno qilinadigan-qilinmasligi: bekor / rad / almashtirilgan (superseded) aktlar storno qilinmaydi. */
+/**
+ * Aktni storno qilish mumkinmi (egasi 2026-11-05): FAQAT TASDIQLANGAN F2 (`holat='tasdiqlangan'`, lifecycle bo'lsa `approved`).
+ * Qoralama / yuborilgan / bekor / rad / almashtirilgan (superseded) — storno manbai emas (imzolanmagan hujjatni «stornolash» yo'q).
+ */
 export const stornoQilinadiAkt = (a: StornoReestrAkt & { tur?: string | null }): boolean =>
-  (a.tur == null || a.tur === 'f2') && a.holat !== 'bekor' && a.holat !== 'rad'
-  && a.lifecycle_status !== 'cancelled' && a.lifecycle_status !== 'rejected' && a.lifecycle_status !== 'superseded';
+  (a.tur == null || a.tur === 'f2') && a.holat === 'tasdiqlangan' && (a.lifecycle_status == null || a.lifecycle_status === 'approved');
 
-/** Storno tanlagichi uchun obyekt F2 aktlari: bekor qilinmaganlari, yangisi tepada. */
+/** Storno tanlagichi uchun obyekt F2 aktlari: faqat tasdiqlanganlari, yangisi tepada. */
 export function stornoNomzodAktlar<T extends StornoReestrAkt & { tur?: string | null }>(reestr: readonly T[]): T[] {
   return reestr.filter(stornoQilinadiAkt).sort((a, b) => b.id - a.id);
 }

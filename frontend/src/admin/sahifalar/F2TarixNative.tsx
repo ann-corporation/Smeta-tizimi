@@ -38,6 +38,7 @@ import { f2ImportAktlari, f2ImportQilinganmi } from '../../lib/f2-manba';
 import { f2BekorMumkin } from '../../lib/f2-bekor';
 import { F2BekorOyna, type F2BekorOynaAkt } from './F2BekorOyna';
 import { F2StornoOyna, type F2StornoAkt } from './F2StornoOyna';
+import { stornoQilinadiAkt } from '../../lib/f2-storno';
 import { F2PodvalBackfillOyna } from './F2PodvalBackfillOyna';
 import { useIxtiyoriyQueryClient } from '../../api/t2-obyektlar-kesh';
 import { daraxtKaliti } from '../../umumiy/daraxt/useT2Daraxt';
@@ -409,7 +410,7 @@ export function F2TarixNative() {
                     </>}
                     {selectedAkt.holat === 'tasdiqlangan' && selectedAkt.oy && <Link to={`/admin/nakopitelniy?obyekt=${obyektId}&davr=${encodeURIComponent(selectedAkt.oy)}&f3=1`} title={t('Shu davr uchun СПРАВКА-СЧЕТ-ФАКТУРА (Форма №3) ni ochadi')} className="fz-btn"><FileText />{t('Форма №3 (счёт-фактура)')}</Link>}
                     {selectedAkt.lifecycle_status === 'approved' && importAkt?.id === selectedAkt.id && !importAkt.import && <ZakazchigaYuborish kompaniyaId={workspace.companyId ?? joriy?.id} aktId={selectedAkt.id} />}
-                    {mayPrepare && statusOf(selectedAkt) !== 'cancelled' && <button type="button" className="fz-btn" title={t('Shu F2 qatorlaridan minus (storno) qoralama yaratadi; asl F2 o‘zgarmaydi')} onClick={() => setStornoOyna({ id: selectedAkt.id, raqam: selectedAkt.raqam, oy: selectedAkt.oy, hujjat_jami: selectedAkt.hujjat_jami })} disabled={savingId != null}><RotateCcw />{t('Storno (minus) F2 yaratish')}</button>}
+                    {mayPrepare && stornoQilinadiAkt(selectedAkt) && <button type="button" className="fz-btn" title={t('Shu F2 qatorlaridan minus (storno) qoralama yaratadi; asl F2 o‘zgarmaydi')} onClick={() => setStornoOyna({ id: selectedAkt.id, raqam: selectedAkt.raqam, oy: selectedAkt.oy, hujjat_jami: selectedAkt.hujjat_jami })} disabled={savingId != null}><RotateCcw />{t('Storno (minus) F2 yaratish')}</button>}
                     {bekorMumkin(selectedAkt) && <button type="button" className="fz-btn fz-btn--danger" onClick={() => setBekorOyna([bekorAkt(selectedAkt)])} disabled={savingId != null}><Ban />{t('Bekor qilish')}</button>}
                   </>}
                   ostida={<>

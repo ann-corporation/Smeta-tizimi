@@ -278,7 +278,7 @@ describe('F2 tayyorlash', () => {
       expect(screen.queryByTestId('storno-tanlov-tugma')).toBeNull();
     });
 
-    it('tanlagich bekor/rad/superseded aktlarni chiqarmaydi; tanlash F2StornoOyna ni ochadi; yaratilgach ?akt=yangi ga o‘tadi', async () => {
+    it('tanlagich faqat tasdiqlangan F2 ni chiqaradi (qoralama/bekor/rad/superseded yo‘q); tanlash F2StornoOyna ni ochadi; yaratilgach ?akt=yangi ga o‘tadi', async () => {
       m.komp.joriy = { id: 1, permissions: ['f2.prepare'] };
       m.reestr.mockResolvedValue({ ok: true, qatorlar: [
         akt({ id: 11, raqam: '1' }),
@@ -291,9 +291,8 @@ describe('F2 tayyorlash', () => {
       ochishJoy();
       fireEvent.click(await screen.findByTestId('storno-tanlov-tugma'));
       const qatorlar = await screen.findAllByTestId('storno-tanlov-akt');
-      expect(qatorlar.map((x) => x.querySelector('td')?.textContent)).toEqual(['5', '1']);
-      expect(qatorlar[0].textContent).toContain('noma‘lum');
-      fireEvent.click(qatorlar[1].querySelector('button') as HTMLElement);
+      expect(qatorlar.map((x) => x.querySelector('td')?.textContent)).toEqual(['1']);
+      fireEvent.click(qatorlar[0].querySelector('button') as HTMLElement);
       fireEvent.click(await screen.findByText('storno-oyna-11'));
       await waitFor(() => expect(screen.getByTestId('joy').textContent).toBe('?obyekt=8&akt=555'));
       expect(screen.queryByText('storno-oyna-11')).toBeNull();
