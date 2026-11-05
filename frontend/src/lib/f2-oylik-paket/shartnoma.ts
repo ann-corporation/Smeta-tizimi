@@ -5,7 +5,7 @@
  * (summalar `oylik.ts` / hisob-yadrodan keladi); tayyorgarlik hech narsani BLOKLAMAYDI.
  */
 import type { ReestrObyekt, ReestrShartnoma } from '../f2-reestr/reestr';
-import { takrorsizYol, type PaketAkt, type PaketFayl, type PaketFaylTuri, type Tekshiruv } from './oylik';
+import { takrorsizYol, type FaylMeta, type PaketAkt, type PaketFayl, type PaketFaylTuri, type Tekshiruv } from './oylik';
 
 export const MANIFEST_FORMAT = 't2-shartnoma-oylik-paket/1';
 /** Kanonik fayl saqlashdagi hujjat turi (`/api/hujjat-yukla`, `turi`). */
@@ -30,7 +30,7 @@ export function barchaShartnomalar(m: { shartnomalar: ReadonlyMap<number, readon
 
 /* ───────────── ZIP tarkibi: obyekt papkalari ───────────── */
 
-export type KirishFayl = { nom: string; bytes: Uint8Array; tur: PaketFaylTuri; obyektId?: number | null };
+export type KirishFayl = { nom: string; bytes: Uint8Array; tur: PaketFaylTuri; obyektId?: number | null; meta?: FaylMeta };
 
 /** ZIP papka nomi: taqiqlangan belgilar olib tashlanadi; bir xil nom bo'lsa obyekt id si qo'shiladi. */
 export function obyektPapkaNomi(nom: string, id: number, band: ReadonlySet<string>): string {
@@ -52,7 +52,7 @@ export function shartnomaPaketYigish(i: {
   const qosh = (yol: string, f: KirishFayl, obyektId: number | null) => {
     const y = takrorsizYol(yol, bandYol);
     bandYol.add(y.toLowerCase());
-    out.push({ yol: y, bytes: f.bytes, tur: f.tur, obyektId });
+    out.push({ yol: y, bytes: f.bytes, tur: f.tur, obyektId, ...(f.meta ? { meta: f.meta } : {}) });
   };
   for (const f of i.shartnomaFayllari) qosh(f.nom, f, null);
   const bandPapka = new Set<string>();
@@ -211,3 +211,42 @@ export function izFarqi(saqlangan: readonly OyIz[] | null | undefined, hozirgi: 
 }
 
 export const topshirilganDanKeyinOzgargan = (saqlangan: readonly OyIz[] | null | undefined, hozirgi: readonly OyIz[] | null | undefined): boolean => izFarqi(saqlangan, hozirgi).length > 0;
+
+/* ───────────── fayl nomlari va oy papkalari (egasi 2026-11-05) ───────────── */
+
+/** Fayl nomi bo'lagi: taqiqlangan belgilar va bo'shliqlar «_», 40 belgigacha. */
+export function nomBolagi(s: string | null | undefined, uzunlik = 40): string {
+  return String(s ?? '').replace(/[\\/:*?"<>|\u0000-\u001f№]/g, ' ').trim().replace(/\s+/g, '_').replace(/_+/g, '_').replace(/^\.+/, '').slice(0, uzunlik).replace(/_+$/, '');
+}
+
+/** Ф-2 fayli: `<oy>_<shartnoma>_<obyekt>_F2_<raqam>.xlsx`; qoralama — `_QORALAMA` bilan. */
+export function paketF2FaylNomi(i: { oy: string | null | undefined; shartnoma?: string | null; obyekt: string; raqam: string | null | undefined; aktId: number; qoralama?: boolean }): string {
+  const oy = /^\d{4}-\d{2}/.exec(String(i.oy ?? ''))?.[0] ?? 'oy';
+  const q = [oy, i.shartnoma ? nomBolagi(i.shartnoma, 20) : '', nomBolagi(i.obyekt, 40) || `obyekt`, 'F2', nomBolagi(i.raqam, 20) || `id${i.aktId}`].filter(Boolean);
+  return `${q.join('_')}${i.qoralama ? '_QORALAMA' : ''}.xlsx`;
+}
+
+/** Oy papkasi bilan: har oyning fayllari `<oy>/…` ichida, ildiz fayllari (sverka, mundarija) yuqorida. Takror yo'l — «_2». */
+export function oyPapkalarigaYigish(oylar: ReadonlyArray<{ oy: string; fayllar: readonly PaketFayl[] }>, ildiz: readonly KirishFayl[]): PaketFayl[] {
+  const band = new Set<string>();
+  const out: PaketFayl[] = [];
+  const qosh = (yol: string, f: { bytes: Uint8Array; tur: PaketFaylTuri; obyektId?: number | null; meta?: FaylMeta }) => {
+    const y = takrorsizYol(yol, band);
+    band.add(y.toLowerCase());
+    out.push({ yol: y, bytes: f.bytes, tur: f.tur, obyektId: f.obyektId ?? null, ...(f.meta ? { meta: f.meta } : {}) });
+  };
+  for (const f of ildiz) qosh(f.nom, f);
+  for (const o of [...oylar].sort((a, b) => a.oy.localeCompare(b.oy))) for (const f of o.fayllar) qosh(`${o.oy}/${f.yol}`, f);
+  return out;
+}
+
+/**
+ * «Paket eskirgan»: shu shartnoma + oy uchun ENG SO'NGGI topshirilgan versiya va undan keyin manba F2/fakt o'zgarganmi
+ * (server izi: akt versiyasi/holati, fakt). Topshirilmagan — null.
+ */
+export function paketEskirganmi<T extends { oy: string; versiya: number; manifest?: { iz?: OyIz[] } | null; hozirgi_iz?: OyIz[] | null }>(paketlar: readonly T[], oy: string): { paket: T; eskirgan: boolean; farq: IzFarq[] } | null {
+  const shu = paketlar.filter((p) => p.oy === oy).sort((a, b) => b.versiya - a.versiya)[0];
+  if (!shu) return null;
+  const farq = izFarqi(shu.manifest?.iz, shu.hozirgi_iz);
+  return { paket: shu, eskirgan: farq.length > 0, farq };
+}

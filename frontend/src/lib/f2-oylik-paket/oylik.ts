@@ -105,7 +105,8 @@ export type PaketAkt = {
   uchastkalar: number | null;
 };
 
-export type PaketSozlama = { oy: string; loyihaId: number | null; shartnomaId: number | null };
+/** `oy` — oy (yoki oraliq boshi); `gacha` — oraliq oxiri (shu oy ham kiradi); `barcha` — barcha oylar (egasi 2026-11-05: pereraschet uchun butun lot). */
+export type PaketSozlama = { oy: string; loyihaId: number | null; shartnomaId: number | null; gacha?: string | null; barcha?: boolean };
 
 /** Tanlangan oy (+ loyiha/shartnoma) F2 lari, obyekt nomi va F2 raqami bo'yicha tartiblangan. Bekor qilinganlar kirmaydi. */
 export function oyAktlari(p: {
@@ -115,7 +116,8 @@ export function oyAktlari(p: {
   const ob = new Map(p.obyektlar.map((o) => [o.id, o]));
   const out: PaketAkt[] = [];
   for (const a of p.aktlar) {
-    if (oyKaliti(a.oy) !== s.oy) continue;
+    const ak = oyKaliti(a.oy);
+    if (!s.barcha && (s.gacha ? !ak || ak < s.oy || ak > s.gacha : ak !== s.oy)) continue;
     const b = bosqich(a);
     if (b === 'bekor') continue;
     const o = ob.get(a.obyekt_id);
@@ -124,7 +126,7 @@ export function oyAktlari(p: {
     out.push({ akt: a, obyektNom: o?.nom ?? String(a.obyekt_id), loyiha: o?.loyiha_id != null ? p.loyihalar.get(o.loyiha_id) ?? null : null,
       bosqich: b, moliya: null, moliyaXato: false, uchastkalar: null });
   }
-  return out.sort((x, y) => x.obyektNom.localeCompare(y.obyektNom, 'ru') || String(x.akt.raqam ?? '').localeCompare(String(y.akt.raqam ?? ''), 'ru', { numeric: true }) || x.akt.id - y.akt.id);
+  return out.sort((x, y) => (oyKaliti(x.akt.oy) ?? '').localeCompare(oyKaliti(y.akt.oy) ?? '') || x.obyektNom.localeCompare(y.obyektNom, 'ru') || String(x.akt.raqam ?? '').localeCompare(String(y.akt.raqam ?? ''), 'ru', { numeric: true }) || x.akt.id - y.akt.id);
 }
 
 /** Reestrdagi oylar (yangisi birinchi). */
@@ -168,12 +170,14 @@ export function paketTekshiruvlari(rows: readonly PaketAkt[]): Tekshiruv[] {
   const out: Tekshiruv[] = [];
   const t = (r: PaketAkt, kod: TekshiruvKodi, tafsilot?: string) => out.push({ kod, aktId: r.akt.id, obyektNom: r.obyektNom, raqam: r.akt.raqam?.trim() || null, tafsilot });
   const takror = new Map<string, number>();
-  for (const r of rows) { const k = raqamKalit(r.akt.raqam); if (k) takror.set(`${r.akt.obyekt_id}|${k}`, (takror.get(`${r.akt.obyekt_id}|${k}`) ?? 0) + 1); }
+  // Kalit: obyekt + oy + raqam (oraliq paketida turli oylardagi bir xil raqam takror emas).
+  const tk = (r: PaketAkt, k: string) => `${r.akt.obyekt_id}|${oyKaliti(r.akt.oy) ?? ''}|${k}`;
+  for (const r of rows) { const k = raqamKalit(r.akt.raqam); if (k) takror.set(tk(r, k), (takror.get(tk(r, k)) ?? 0) + 1); }
   for (const r of rows) {
     if (r.bosqich !== 'tasdiqlangan') t(r, 'qoralama', r.bosqich);
     const k = raqamKalit(r.akt.raqam);
     if (!k) t(r, 'raqamsiz');
-    else if ((takror.get(`${r.akt.obyekt_id}|${k}`) ?? 0) > 1) t(r, 'raqam_takror');
+    else if ((takror.get(tk(r, k)) ?? 0) > 1) t(r, 'raqam_takror');
     if (r.akt.hujjat_jami == null) t(r, 'summa_nomalum', 'hujjat_jami');
     else if (r.moliya) {
       if (r.moliya.sabab) t(r, 'summa_nomalum', r.moliya.sabab);
@@ -188,7 +192,9 @@ export function paketTekshiruvlari(rows: readonly PaketAkt[]): Tekshiruv[] {
 /* ───────────── paket tarkibi ───────────── */
 
 export type PaketFaylTuri = 'f2' | 'reestr' | 'forma3' | 'sverka' | 'nakopitelniy' | 'm29' | 'ostatka' | 'slichitelniy';
-export type PaketFayl = { yol: string; bytes: Uint8Array; tur: PaketFaylTuri; obyektId?: number | null };
+/** MUNDARIJA uchun fayl tavsifi (rus tilida): hujjat turi, obyekt, oy, holat; F2 bo'lsa — akt (summalar). */
+export type FaylMeta = { hujjat: string; obyekt?: string | null; oy?: string | null; holat?: string | null; akt?: PaketAkt | null; qoralama?: boolean };
+export type PaketFayl = { yol: string; bytes: Uint8Array; tur: PaketFaylTuri; obyektId?: number | null; meta?: FaylMeta };
 
 /** ZIP ichida takrorlanmas yo'l: bir xil nom bo'lsa «_2», «_3» qo'shiladi (kengaytmadan oldin). */
 export function takrorsizYol(yol: string, band: ReadonlySet<string>): string {
@@ -200,12 +206,12 @@ export function takrorsizYol(yol: string, band: ReadonlySet<string>): string {
 }
 
 /** Fayllarni takrorsiz yo'llar bilan jamlaydi (kirish tartibi saqlanadi). */
-export function paketFayllari(fayllar: ReadonlyArray<{ papka: string; nom: string; bytes: Uint8Array; tur: PaketFaylTuri; obyektId?: number | null }>): PaketFayl[] {
+export function paketFayllari(fayllar: ReadonlyArray<{ papka: string; nom: string; bytes: Uint8Array; tur: PaketFaylTuri; obyektId?: number | null; meta?: FaylMeta }>): PaketFayl[] {
   const band = new Set<string>();
   return fayllar.map((f) => {
     const yol = takrorsizYol(f.papka ? `${f.papka}/${f.nom}` : f.nom, band);
     band.add(yol.toLowerCase());
-    return { yol, bytes: f.bytes, tur: f.tur, obyektId: f.obyektId ?? null };
+    return { yol, bytes: f.bytes, tur: f.tur, obyektId: f.obyektId ?? null, ...(f.meta ? { meta: f.meta } : {}) };
   });
 }
 
@@ -213,7 +219,7 @@ export function paketFayllari(fayllar: ReadonlyArray<{ papka: string; nom: strin
 
 export type OyObyekt = { smeta: readonly T2Qator[]; tafsilot: readonly F2Tafsilot[]; kontekst: F2HujjatKonteksti };
 
-/** Aktning pul ko'rsatkichlari va uchastkalar soni (F2 tarixidagi `f2AktKirish` bilan bir xil qatorlar). */
+/** @deprecated Faqat smeta podvali bilan (eski). Paket endi `portfel.ts` dagi `paketAktHisobi` dan (aktning o'z podvali) foydalanadi. */
 export function aktHisob(m: OyObyekt, akt: Pick<ReestrAkt, 'id' | 'hujjat_jami'>): { moliya: AktMoliya; uchastkalar: number } {
   const k = f2AktKirish(m.smeta, m.tafsilot.filter((l) => l.akt_id === akt.id));
   return {
@@ -223,6 +229,7 @@ export function aktHisob(m: OyObyekt, akt: Pick<ReestrAkt, 'id' | 'hujjat_jami'>
 }
 
 /**
+ * @deprecated Storno bloklari va o'z podvalisiz (eski). Paket endi `portfel.ts` dagi `paketAktExcel` dan foydalanadi.
  * Saqlangan aktning Ф-2 Excel i — F2 tarixidagi «Ф-2 Excel» bilan bir xil (sertifikatlangan qiymatlar, formulasiz).
  * Chiqariladigan qator yo'q bo'lsa null.
  */
