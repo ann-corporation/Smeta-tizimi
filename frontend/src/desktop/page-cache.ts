@@ -1,6 +1,6 @@
 import { paketdanHolatlar, paketdanQatorlar, type Paket } from '../ombor/paket';
 import { NativeDesktopCache } from './native-cache';
-import { DesktopOfflineRuntime, type NativeSessionInfo } from './offline-runtime';
+import { DesktopOfflineRuntime, invalidatesDesktopSession, type NativeSessionInfo } from './offline-runtime';
 import type { NativeInvoke } from './fetch-shim';
 import { t } from '../i18n/til';
 
@@ -54,7 +54,8 @@ export function desktopPageFetch(base: typeof fetch, invoke: NativeInvoke, optio
         if (keys.length === 1) company = Number(keys[0].split('/')[1]);
         else {
           const r = await base('/api/sb', { method: 'POST', body: JSON.stringify({ jadval: 't2_obyekt_jami', filtr: 'id=eq.' + object, ustunlar: 'id,kompaniya_id', limit: 1 }) });
-          if (r.status === 401 || r.status === 403) { await runtime.revoke(); throw new Error('DESKTOP_REVOKED'); }
+          if (await invalidatesDesktopSession(r)) { await runtime.revoke(); throw new Error('DESKTOP_REVOKED'); }
+          if (r.status === 403) throw new Error('DESKTOP_OBJECT_FORBIDDEN');
           const j = await r.json(); company = j.ok === true && j.qatorlar?.length === 1 ? j.qatorlar[0].kompaniya_id : undefined;
         }
       }
@@ -150,7 +151,7 @@ export function desktopPageFetch(base: typeof fetch, invoke: NativeInvoke, optio
     if (offline && !readable && url.pathname !== '/api/kirish') return failure('DESKTOP_OFFLINE_READ_ONLY');
     try {
       const before = await session(), response = await base(req);
-      if (response.status === 401 || response.status === 403) { await runtime.revoke(); return response; }
+      if (await invalidatesDesktopSession(response)) { await runtime.revoke(); return response; }
       // A background session ping must not relabel the currently displayed saved object as fresh.
       if (!readable || !response.ok || !same(before, await session())) return response;
       const j = await response.clone().json(); if (j?.ok === false) return response;

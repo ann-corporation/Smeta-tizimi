@@ -10,6 +10,12 @@ type Active = { scope: LeaseScope; generation: number; stored: StoredLease; leas
 export type DesktopOpenedPacket = { paket: Paket; offline: boolean; etag: string | null; leaseUntil: number; permissions: readonly string[] };
 const id = (v: number | null): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v > 0;
 const networkError = (e: unknown) => e instanceof TypeError || /DESKTOP_HTTP_(FAILED|UNAVAILABLE)/.test(String(e));
+export async function invalidatesDesktopSession(response: Response): Promise<boolean> {
+  if (response.status === 401) return true;
+  if (response.ok) return false;
+  const body = await response.clone().json().catch(() => null);
+  return /^(AUTH_REQUIRED|DEVICE_(AUTH_REQUIRED|REVOKED|EXPIRED|INVALID|SESSION_INVALID|TOKEN_INVALID))$/.test(String(body?.code));
+}
 
 /** Desktop-only, read-only package lifecycle. Every disk read follows a verified scoped lease. */
 export class DesktopOfflineRuntime {
@@ -94,17 +100,23 @@ export class DesktopOfflineRuntime {
     // Reconnect always renews/revalidates before exposing any business snapshot.
     let offline = false;
     try {
-      const ids = [...new Set([...(active?.lease.obyekt_idlar ?? []), objectId])];
+      const ids: number[] = [];
+      for (const priorId of active?.lease.obyekt_idlar ?? []) {
+        if (priorId !== objectId && !await this.cache.get('denied/' + company + '/' + priorId)) ids.push(priorId);
+      }
+      ids.push(objectId);
       if (ids.length > 100) ids.splice(0, ids.length - 100);
       const response = await this.request('/api/desktop/lease', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ kompaniya_id: company, obyekt_idlar: ids }) });
-      if (response.status === 401 || response.status === 403) { await this.revoke(); throw new Error('DESKTOP_ACCESS_REVOKED'); }
+      if (await invalidatesDesktopSession(response)) { await this.revoke(); throw new Error('DESKTOP_ACCESS_REVOKED'); }
+      if (response.status === 403) { await this.denyObject(company, objectId); throw new Error('DESKTOP_OBJECT_FORBIDDEN'); }
       if (!response.ok) throw new Error('DESKTOP_LEASE_SERVER_REJECTED');
       const body = await response.json();
       if (body?.ok !== true) throw new Error('DESKTOP_LEASE_INVALID');
       active = await this.bind(scope, session.generation, { envelope: body.lease, highWater: this.clock() }, revision);
     } catch (e) {
       if (!networkError(e) || !active) throw e;
+      if (await this.cache.get('denied/' + company + '/' + objectId)) throw new Error('DESKTOP_OBJECT_FORBIDDEN');
       offline = true;
     }
     if (!active) throw new Error('DESKTOP_OFFLINE_DENIED');
@@ -121,7 +133,8 @@ export class DesktopOfflineRuntime {
         const response = await this.request('/api/obyekt-paket?obyekt_id=' + objectId, {
           cache: 'no-store', ...(cached?.etag ? { headers: { 'If-None-Match': cached.etag } } : {}),
         });
-        if (response.status === 401 || response.status === 403) { await this.revoke(); throw new Error('DESKTOP_ACCESS_REVOKED'); }
+        if (await invalidatesDesktopSession(response)) { await this.revoke(); throw new Error('DESKTOP_ACCESS_REVOKED'); }
+        if (response.status === 403) { await this.denyObject(company, objectId); throw new Error('DESKTOP_OBJECT_FORBIDDEN'); }
         if (response.status === 304) {
           if (!cached?.etag || response.headers.get('ETag') !== cached.etag) throw new Error('DESKTOP_PACKET_ETAG');
           raw = cached.raw; etag = cached.etag;
@@ -139,9 +152,15 @@ export class DesktopOfflineRuntime {
     }
     const paket = this.decode(raw, company, objectId);
     await this.checkpoint(active, objectId, revision);
+    if (!offline) await this.cache.delete('denied/' + company + '/' + objectId);
     return { paket, offline, etag, leaseUntil: active.lease.tugaydi, permissions: active.lease.permissions };
   }
   dispose() { this.invalidate(); }
+  private async denyObject(company: number, objectId: number) {
+    this.invalidate();
+    await this.cache.set('denied/' + company + '/' + objectId, true);
+    for (const prefix of ['packet/', 'pages/']) await this.cache.delete(prefix + company + '/' + objectId);
+  }
   async revoke() {
     this.blocked = true;
     this.invalidate();

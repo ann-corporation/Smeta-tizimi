@@ -19,6 +19,7 @@ fn cache_key(key: &str) -> NativeResult<String> {
     let p: Vec<_> = key.split('/').collect();
     if !matches!(p.as_slice(),["packet",c,o] if maxfiy::positive(c) && maxfiy::positive(o))
         && !matches!(p.as_slice(),["pages",c,o] if maxfiy::positive(c) && maxfiy::positive(o))
+        && !matches!(p.as_slice(),["denied",c,o] if maxfiy::positive(c) && maxfiy::positive(o))
         && !matches!(p.as_slice(),["bootstrap",a] if maxfiy::positive(a))
         && !matches!(p.as_slice(),["lease",c] if maxfiy::positive(c))
     {
@@ -266,7 +267,13 @@ mod tests {
     };
     #[test]
     fn cache_keys_are_not_paths_or_authority() {
-        for key in ["packet/1/2", "lease/1", "pages/1/2", "bootstrap/1"] {
+        for key in [
+            "packet/1/2",
+            "lease/1",
+            "pages/1/2",
+            "denied/1/2",
+            "bootstrap/1",
+        ] {
             assert!(cache_key(key).is_ok());
         }
         for key in [
@@ -281,6 +288,8 @@ mod tests {
             "lease/1%2f2",
             "pages/1/../2",
             "bootstrap/0",
+            "denied/0/2",
+            "denied/1/2/3",
             "bootstrap/1/2",
             "",
         ] {

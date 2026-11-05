@@ -18,7 +18,7 @@ const raw: PaketXom = { format: 't2-paket/1', obyekt_id: 4, obyekt_nom: 'SYNTHET
 async function setup() {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
   const disk = new Map<string, number[]>(), info = { foydalanuvchi_id: 2 as number | null, device_id: '00000000-0000-4000-8000-000000000001', generation: 0 };
-  let phase: 'online' | 'offline' | '403' | '503' = 'online';
+  let phase: 'online' | 'offline' | '401' | '403' | '503' = 'online';
   const invoke: NativeInvoke = vi.fn(async (command, args) => {
     if (command === 'desktop_session_info') return { ...info } as never;
     if (args?.expectedGeneration !== undefined && args.expectedGeneration !== info.generation) throw new Error('DESKTOP_SESSION_STALE');
@@ -31,7 +31,7 @@ async function setup() {
   });
   const base = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     if (phase === 'offline') throw new TypeError('offline');
-    if (phase === '403' || phase === '503') return Response.json({ ok: false }, { status: Number(phase) });
+    if (phase === '401' || phase === '403' || phase === '503') return Response.json({ ok: false, code: 'PERMISSION_DENIED' }, { status: Number(phase) });
     const r = new Request(input instanceof Request ? input : new URL(String(input), 'http://tauri.localhost'), init), path = new URL(r.url).pathname;
     if (path === '/api/desktop/lease') {
       const payload = new TextEncoder().encode(JSON.stringify({ format: 'smeta-desktop-lease/1', foydalanuvchi_id: 2, kompaniya_id: 3, obyekt_idlar: [4],
@@ -78,8 +78,25 @@ it('does not replace server403/503 or missing/expired/foreign data with cached s
   await expect(sb(f, { ...tree, filtr: 'obyekt_id=eq.5' })).rejects.toThrow();
   vi.setSystemTime(Date.now() + 3600_001); await expect(sb(f, tree)).rejects.toThrow();
 });
-it('server403 closes native access and old renderer generation cannot restore data', async () => {
+it.each(['PERMISSION_DENIED', 'TENANT_FORBIDDEN', 'DEVICE_FORBIDDEN'])('server403 %s preserves session and a permitted read', async code => {
   const h = await setup(), f = h.create(); await sb(f, tree);
-  h.phase('403'); expect((await f('/api/sb', { method: 'POST', body: JSON.stringify(tree) })).status).toBe(403);
+  h.base.mockResolvedValueOnce(Response.json({ ok: false, code }, { status: 403 }));
+  const denied = await f('/api/sb', { method: 'POST', body: JSON.stringify(tree) });
+  expect(denied.status).toBe(403); expect(await denied.json()).toEqual({ ok: false, code });
+  expect(vi.mocked(h.invoke).mock.calls.some(([c]) => c === 'desktop_session_clear')).toBe(false); expect(h.info.foydalanuvchi_id).toBe(2);
+  expect((await sb(f, { jadval: 't2_akt_reestr', filtr: 'obyekt_id=eq.4' })).ok).toBe(true);
+});
+it.each([[401, 'PERMISSION_DENIED'], [403, 'AUTH_REQUIRED'], [403, 'DEVICE_REVOKED']] as const)('server%s %s closes native access and old renderer generation cannot restore data', async (status, code) => {
+  const h = await setup(), f = h.create(); await sb(f, tree);
+  h.base.mockResolvedValueOnce(Response.json({ ok: false, code }, { status }));
+  expect((await f('/api/sb', { method: 'POST', body: JSON.stringify(tree) })).status).toBe(status);
+  expect(h.invoke).toHaveBeenCalledWith('desktop_session_clear', undefined);
   expect(h.info.foydalanuvchi_id).toBeNull(); h.phase('offline'); await expect(sb(f, tree)).rejects.toThrow('DESKTOP_SESSION_CHANGED');
+});
+it('scope lookup403 preserves the session and a later permitted read', async () => {
+  const h = await setup(), f = h.create();
+  h.base.mockRejectedValueOnce(new TypeError('offline')).mockResolvedValueOnce(Response.json({ code: 'TENANT_FORBIDDEN' }, { status: 403 }));
+  await expect(sb(f, tree)).rejects.toThrow('DESKTOP_OBJECT_FORBIDDEN');
+  expect(vi.mocked(h.invoke).mock.calls.some(([c]) => c === 'desktop_session_clear')).toBe(false);
+  expect((await sb(f, tree)).ok).toBe(true);
 });

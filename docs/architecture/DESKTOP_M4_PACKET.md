@@ -8,3 +8,9 @@ Sessiya, company?me=1 и существующий route guard company?authorize=
 Ограничения L0: #246 native/BFF не включает /api/ish-joyi?bolim=joylarim — обычный home требует отдельного read-handler решения; #246 здесь не менялся. Session/company/object-list и прежние объектные маршруты сохранены. История t2_smeta_versiya, akt_id-only и неизвестные RPC закрыты офлайн. Не открытый онлайн F2 не обещается. Shared useT2Daraxt трактует ok как serverTasdiq; семантика экспорта/«сервер подтверждён» требует решения L0, сам хук не изменён.
 Проверки: related17PASS; с i18n21PASS (4файла), существующий keyset reader после нового runtime, scoped bootstrap, F2/NULL/footer, readonly write без вызова сети,503/403/чужой объект/expiry/generation. Native AES/files/keychain проверяются Rust отдельно. Fake-native unit не является Windows E2E. Итоговые gate/SHA — KOORDINATSIYA.
 Новых таблиц/миграций/API/формул нет, main/prod/R2 не менялись. M5 #248 — после приёмки этого потока L0; прежние снимки отдельного окна не доказывают новый UI.
+
+## B2 — review L0 05.11
+
+Обычный PERMISSION_DENIED/TENANT_FORBIDDEN/DEVICE_FORBIDDEN 403 сохраняет сессию. Только 401 либо явный AUTH_REQUIRED/DEVICE_AUTH_REQUIRED/DEVICE_REVOKED/DEVICE_EXPIRED/DEVICE_INVALID/DEVICE_SESSION_INVALID/DEVICE_TOKEN_INVALID закрывает её. Lease/packet 403 удаляет packet/pages только запрошенного объекта и сохраняет зашифрованную отметку denied/company/object; перезапуск офлайн не возвращает запрещённый объект. Другой объект остаётся доступен. Успешная повторная серверная авторизация снимает запрет; native allowlist принимает строго scoped denied-ключи.
+
+25 focused тестов проверяют обычные 403 обоих endpoint, повторный офлайн запуск, другой объект, восстановление разрешения и существующую цепь 200/offline/304/401. Полный native/GUI E2E нового потока остаётся M5 после приёмки #247. Main/prod/R2/БД не изменялись.

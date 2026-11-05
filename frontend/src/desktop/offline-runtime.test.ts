@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { DesktopOfflineRuntime } from './offline-runtime';
+import { DesktopOfflineRuntime, invalidatesDesktopSession } from './offline-runtime';
 import type { NativeInvoke } from './fetch-shim';
 import { son, type PaketXom } from '../ombor/paket';
 
@@ -35,17 +35,17 @@ async function setup() {
     if (command === 'desktop_session_clear') { session.generation++; session.device_id = null; session.foydalanuvchi_id = null; return; }
     throw new Error('UNEXPECTED_IPC');
   });
-  const request = vi.fn(async (input: RequestInfo | URL) => {
+  const request = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
     if (phase === 'offline') throw new TypeError('network offline');
     if (phase === 'revoked') return Response.json({ ok: false }, { status: 401 });
     if (String(input) === '/api/desktop/lease') {
       const bytes = new TextEncoder().encode(JSON.stringify({ format: 'smeta-desktop-lease/1', foydalanuvchi_id: 2,
-        kompaniya_id: 3, obyekt_idlar: [4], permissions: ['smeta.read', 'f2.read', 'narx.read'], device_id: device,
+        kompaniya_id: 3, obyekt_idlar: [4, 5], permissions: ['smeta.read', 'f2.read', 'narx.read'], device_id: device,
         berildi: now, tugaydi: now + 3600_000, versiya: 1 }));
       return Response.json({ ok: true, lease: { alg: 'Ed25519', kid: 'test', payload: b64(bytes),
         imzo: b64(new Uint8Array(await crypto.subtle.sign('Ed25519', pair.privateKey, bytes))) } });
     }
-    return phase === '304' ? new Response(null, { status: 304, headers: { ETag: 'v1' } }) : Response.json(raw(), { headers: { ETag: 'v1' } });
+    return phase === '304' ? new Response(null, { status: 304, headers: { ETag: 'v1' } }) : Response.json({ ...raw(), obyekt_id: Number(new URL(String(input), 'http://tauri.localhost').searchParams.get('obyekt_id')) }, { headers: { ETag: 'v1' } });
   });
   const invalidate = vi.fn();
   const create = () => {
@@ -57,6 +57,24 @@ async function setup() {
 }
 
 describe('M3 lease to M4 native package lifecycle', () => {
+  it.each(['AUTH_REQUIRED', 'DEVICE_AUTH_REQUIRED', 'DEVICE_REVOKED', 'DEVICE_EXPIRED', 'DEVICE_INVALID'])('recognizes explicit invalidation %s', async code => {
+    expect(await invalidatesDesktopSession(Response.json({ code }, { status: 403 }))).toBe(true);
+  });
+  it.each(['lease', 'packet'].flatMap(endpoint => ['PERMISSION_DENIED', 'TENANT_FORBIDDEN', 'DEVICE_FORBIDDEN'].map(code => [endpoint, code])))('ordinary %s403 %s only denies the requested object and preserves another cached object', async (endpoint, code) => {
+    const h = await setup(), r = h.create(); await r.open(3, 4); await r.open(3, 5);
+    if (endpoint === 'packet') h.request.mockImplementationOnce(h.request.getMockImplementation()!);
+    h.request.mockResolvedValueOnce(Response.json({ ok: false, code }, { status: 403 }));
+    await expect(r.open(3, 4)).rejects.toThrow('DESKTOP_OBJECT_FORBIDDEN');
+    expect(h.invoke).not.toHaveBeenCalledWith('desktop_session_clear'); expect(h.session.foydalanuvchi_id).toBe(2);
+    expect(h.disk.has('packet/3/4')).toBe(false); expect(h.disk.has('packet/3/5')).toBe(true);
+    h.phase('offline');
+    await expect(h.create().open(3, 4)).rejects.toThrow('DESKTOP_OBJECT_FORBIDDEN');
+    expect((await r.open(3, 5)).offline).toBe(true);
+    h.phase('200'); expect((await r.open(3, 5)).offline).toBe(false);
+    const leaseCall = h.request.mock.calls.filter(([url]) => url === '/api/desktop/lease').at(-1)!;
+    expect(JSON.parse(String(leaseCall[1]?.body)).obyekt_idlar).toEqual([5]);
+    expect((await r.open(3, 4)).offline).toBe(false);
+  });
   it('opens 200, resumes offline with the same native cache, then refreshes via authorized 304', async () => {
     const h = await setup(), online = h.create();
     expect((await online.open(3, 4)).offline).toBe(false);
