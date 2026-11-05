@@ -19,7 +19,7 @@ describe('AI hisob qoidasi', () => {
     expect(buzilgan).toEqual([]);
   });
   it('har model endpointi hisobli o‘ramni ishlatadi (ai-parse, ai-savol, smeta-ai, smeta-narx-agent, agent-ish)', () => {
-    for (const f of ['api/ai-parse.ts', 'api/ai-savol.ts', 'api/smeta-ai.ts', 'api/smeta-narx-agent.ts', 'api/agent-ish.ts']) {
+    for (const f of ['api/ai-parse.ts', 'api/ai-loyiha.ts', 'api/ai-savol.ts', 'api/smeta-ai.ts', 'api/smeta-narx-agent.ts', 'api/agent-ish.ts']) {
       expect(readFileSync(join(ILDIZ, f), 'utf8'), f).toMatch(/aiHisobli/);
     }
   });
