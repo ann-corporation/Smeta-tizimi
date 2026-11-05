@@ -2,7 +2,7 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 111,
+      "id": 110,
       "sana": "2026-11-05",
       "sarlavha": "Pereraschet: yangi qatorlar smeta narxida, storno bo‘lim bo‘yicha",
       "bandlar": [
@@ -12,7 +12,19 @@
       ]
     },
     {
-      "id": 110,
+      "id": 109,
+      "sana": "2026-11-05",
+      "sarlavha": "Oylik paketda Forma-3 doim bor",
+      "bandlar": [
+        "Shartnoma va oy uchun saqlangan Forma-3 bo‘lmasa, paketga shu oyning tasdiqlangan F2 laridan avtomatik Forma-3 qo‘shiladi («Ф3 (автоматически по Ф-2, не сохранён)»), to‘liq va/yoki bir qatorli.",
+        "Avtomatik Forma-3 summasi paket reestridagi tasdiqlangan F2 jamisiga teng (QQS bilan, F2 ning o‘z podvali bilan).",
+        "Saqlangan Forma-3 bo‘lsa — o‘sha ishlatiladi, MUNDARIJA da esa F2 jami bilan solishtiruv va farq ko‘rsatiladi.",
+        "Shartnoma rekvizitlari yetishmasa ham Forma-3 yasaladi; nima yetishmasligi ekranda va ПАКЕТ_СОСТАВ.txt da yoziladi.",
+        "Paket oynasida har oy uchun Forma-3 holati («saqlangan», «avto (F2 dan)», «qoralama bor») va «Forma-3 ni saqlash» havolasi."
+      ]
+    },
+    {
+      "id": 108,
       "sana": "2026-11-05",
       "sarlavha": "Pereraschet — bitta tugma",
       "bandlar": [
@@ -23,36 +35,7 @@
       ]
     },
     {
-      "id": 109,
-      "sana": "2026-11-05",
-      "sarlavha": "Shartnoma kartasi: asl hujjatlar va qo‘shimcha kelishuvlar",
-      "bandlar": [
-        "Shartnoma liniyasida shartnomani ochsangiz — yangi «Asl hujjatlar va qo‘shimcha kelishuvlar» bo‘limi: shartnoma va har DS ning PDF/skan faylini yuklash va istalgan vaqtda yuklab olish.",
-        "Fayllar kompaniyaning yopiq R2 omborida saqlanadi, yuklab olish faqat kompaniya a’zolariga; faylni ajratish uni o‘chirmaydi.",
-        "Har DS raqami, sanasi va summasi (QQS bilan) ko‘rinadi, joriy shartnoma summasi — eng so‘nggi DS bo‘yicha. Hamma kompaniyalar uchun."
-      ]
-    },
-    {
-      "id": 108,
-      "sana": "2026-11-05",
-      "sarlavha": "Fakt jurnali: F2 importidagi qo‘shimcha resurslarda narx va summa",
-      "bandlar": [
-        "Smetada narxi yo‘q, lekin F2 da narxi bor qatorlarda endi «narxsiz» emas — F2 narxi («F2» belgisi bilan) va fakt summasi shu narxda ko‘rinadi.",
-        "Bo‘lim jamilari bilan bir xil hisob; smeta narxi bor qatorlar o‘zgarmaydi."
-      ]
-    },
-    {
       "id": 107,
-      "sana": "2026-11-05",
-      "sarlavha": "F2: fakt F2 dan kam bo‘lsa — ixtiyoriy minus chegirma",
-      "bandlar": [
-        "F2 tayyorlashda (Fakt rejimi) yangi belgi: «Fakt F2 dan kam qatorlarni minus bilan chegirish». Sukut bo‘yicha o‘chiq — F2 faktdan oldinda bo‘lishi normal.",
-        "Yoqishdan oldin nechta qatorda F2 faktdan ko‘pligi va taxminiy summa (ustamasiz) ko‘rinadi.",
-        "Yoqilsa, ortiqcha hajm minus qator bo‘lib F2 ga kiradi (oldingi F2 narxida, resurslari ham minus), qator «F2 faktdan ko‘p — chegirma» belgisi bilan; har qatorni odatdagidek o‘zgartirish yoki olib tashlash mumkin."
-      ]
-    },
-    {
-      "id": 106,
       "sana": "2026-11-05",
       "sarlavha": "F2: minus (chegirma) qatorlar endi tushib qolmaydi",
       "bandlar": [
@@ -61,15 +44,23 @@
       ]
     },
     {
+      "id": 106,
+      "sana": "2026-11-05",
+      "sarlavha": "Fakt jurnali: F2 importidagi qo‘shimcha resurslarda narx va summa",
+      "bandlar": [
+        "Smetada narxi yo‘q, lekin F2 da narxi bor qatorlarda endi «narxsiz» emas — F2 narxi («F2» belgisi bilan) va fakt summasi shu narxda ko‘rinadi.",
+        "Bo‘lim jamilari bilan bir xil hisob; smeta narxi bor qatorlar o‘zgarmaydi."
+      ]
+    },
+    {
       "id": 105,
       "sana": "2026-11-05",
-      "sarlavha": "Oylik paketda Forma-3 doim bor",
+      "sarlavha": "Boshqaruv markazida bajarilgan ish (fakt) endi alohida ko‘rinadi",
       "bandlar": [
-        "Shartnoma va oy uchun saqlangan Forma-3 bo‘lmasa, paketga shu oyning tasdiqlangan F2 laridan avtomatik Forma-3 qo‘shiladi («Ф3 (автоматически по Ф-2, не сохранён)»), to‘liq va/yoki bir qatorli.",
-        "Avtomatik Forma-3 summasi paket reestridagi tasdiqlangan F2 jamisiga teng (QQS bilan, F2 ning o‘z podvali bilan).",
-        "Saqlangan Forma-3 bo‘lsa — o‘sha ishlatiladi, MUNDARIJA da esa F2 jami bilan solishtiruv va farq ko‘rsatiladi.",
-        "Shartnoma rekvizitlari yetishmasa ham Forma-3 yasaladi; nima yetishmasligi ekranda va ПАКЕТ_СОСТАВ.txt da yoziladi.",
-        "Paket oynasida har oy uchun Forma-3 holati («saqlangan», «avto (F2 dan)», «qoralama bor») va «Forma-3 ni saqlash» havolasi."
+        "Yangi karta «Bajarildi (fakt)»: haqiqatda bajarilgan ish summasi QQS bilan, ostida ustamali (QQS siz) va to‘g‘ri xarajat, smetadan necha foiz.",
+        "Avvalgi «Bajarildi» kartasi endi «Topshirildi (F2)» deb ataladi — bu buyurtmachiga topshirilgan, tasdiqlangan F2.",
+        "Shu kartada yangi qator: «Bajarildi, lekin topshirilmagan» = fakt − tasdiqlangan F2. Bosilsa, diqqat ro‘yxatidagi obyektlarga o‘tadi.",
+        "Obyektlar jadvalida F2 yonida «Fakt» ustuni qo‘shildi. Excel eksportida ham fakt summalari bor."
       ]
     },
     {
@@ -85,11 +76,13 @@
     {
       "id": 103,
       "sana": "2026-11-05",
-      "sarlavha": "Hujjat muddatlari endi o‘zi eslatiladi",
+      "sarlavha": "Shartnoma oylik paketi — F2 portfeli bilan bir xil va topshirishga tayyor",
       "bandlar": [
-        "Har kuni ertalab tizim xat, murojaat va tasdiq zanjirlarining muddatini tekshiradi: muddat yaqinlashsa yoki o‘tib ketsa, mas’ul kompaniyaga bildirishnoma keladi.",
-        "Yuqoridagi qo‘ng‘iroqcha bildirishnomani oddiy tilda va muddati bilan ko‘rsatadi. Bosilsa — o‘sha xat yoki hujjat darhol ochiladi.",
-        "Telegram ulangan bo‘lsa, shu xabar Telegramga ham keladi (bir marta, takrorlanmaydi)."
+        "Paketdagi summalar endi F2 portfeli va F2 tarixi bilan aynan bir xil: har F2 o‘z podvali bilan (storno bloklari ham), podvali bo‘lmasa smeta podvali; QQS bilan summa birinchi.",
+        "Oy oralig‘i yoki «Barcha oylar»: bitta shartnoma bo‘yicha butun lot bitta ZIP da, har oy o‘z papkasida (pereraschet uchun).",
+        "ZIP ichida «00_MUNDARIJA.xlsx» — har hujjat va F2 summalari; F2 fayllari bir xil nomda: oy_shartnoma_obyekt_F2_raqam.xlsx.",
+        "Qoralamalar sukut bo‘yicha kirmaydi; «Qoralamalarni ham qo‘shish» belgisi bilan QORALAMA deb belgilanib qo‘shiladi. Bekor qilinganlar kirmaydi.",
+        "Topshirilgan paketdan keyin F2 o‘zgarsa — «Paket eskirgan — qayta yig‘ing» va bir bosishda «Qayta yig‘ish»; eski nusxa arxivda qoladi."
       ]
     },
     {

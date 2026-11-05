@@ -13,7 +13,7 @@ import { useJadvalFiltr } from '../../umumiy/jadval-filtr/useJadvalFiltr';
 import { FiltrHolatQatori, UstunFiltrTugma } from '../../umumiy/jadval-filtr/UstunFiltrTugma';
 import type { Ustun } from '../../umumiy/jadval-filtr/ustunFiltr';
 import type { RahbarDiqqat, RahbarObyekt, RahbarPanel, RahbarTasdiq } from '../../api/t2-rahbar-panel';
-import { bosqichFoizlari, diqqatYoli, kartaHolati, trendNuqtalari, type DavrTur, type KartaHolat } from '../../lib/rahbar-panel/markaz';
+import { bosqichFoizlari, diqqatYoli, faktKarta, kartaHolati, trendNuqtalari, type DavrTur, type KartaHolat } from '../../lib/rahbar-panel/markaz';
 
 const KIRITISH_YOL = '/admin/moliya';
 const HOLAT_RANG: Record<KartaHolat, string> = { yaxshi: 'var(--ok)', etibor: 'var(--warn)', xavf: 'var(--danger)', nomalum: 'var(--border)' };
@@ -71,22 +71,49 @@ function Kiritilmagan({ manbalar }: { manbalar?: string[] }) {
   );
 }
 
+export const DIQQAT_ID = 'rahbar-diqqat';
+const diqqatgaOt = () => document.getElementById(DIQQAT_ID)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
 export function RahbarKartalar({ p }: { p: RahbarPanel }) {
   const k = p.kartalar;
   const trend = trendNuqtalari(p.pul_oqimi.oylar, 'bajarildi');
   const tolovTrend = trendNuqtalari(p.pul_oqimi.oylar, 'tolov');
   const yosh = k.debitor.yosh;
+  const fk = faktKarta(p);
+  // Shartlar JSX dan oldin (til qo'riqchisi: JSX ichida `>`/`<` taqqoslash bo'lmasin).
+  const faktFoizBor = fk.foizSmeta != null;
+  const davrTanlangan = p.davr?.dan != null || p.davr?.gacha != null;
+  const f2FoizBor = k.bajarildi.foiz_smeta != null;
+  const reestrFarqBor = k.bajarildi.reestr != null && Math.abs(k.bajarildi.reestr.farq) > 1;
+  const topshirilmaganBor = fk.topshirilmagan != null;
+  const topshirilmaganMusbat = fk.topshirilmagan != null && fk.topshirilmagan > 1;
+  const topshirilmaganDiqqat = fk.diqqatSoni > 0;
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6" aria-label={t('Asosiy ko‘rsatkichlar')}>
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7" aria-label={t('Asosiy ko‘rsatkichlar')}>
       <Karta nom={t('Portfel')} savol={t('Jami qancha ishim bor?')} holat={kartaHolati('portfel', p)} href="/admin/shartnoma-liniya"
         ost={<>{t('Shartnomalar (QQS bilan)')}: {k.portfel.shartnoma_qqs_bilan != null ? <FmtN val={k.portfel.shartnoma_qqs_bilan} /> : t('kiritilmagan')} · {k.portfel.shartnoma_soni}</>}>
         <SummaJuft paket={k.portfel.smeta} yorliq={t('Smeta, QQS bilan')} kiritishYoli={{ yol: '/admin/smeta-studio' }} />
       </Karta>
-      <Karta nom={t('Bajarildi')} savol={t('Qanchasini qildim va topshirdim?')} holat={kartaHolati('bajarildi', p)} trend={trend} href="/admin/f2-reestr"
+      <Karta nom={t('Bajarildi (fakt)')} savol={t('Haqiqatda qancha ish bajarildi?')} holat={kartaHolati('fakt', p)} href="/admin/fakt"
+        ost={<span data-testid="fakt-karta-ost">
+          {faktFoizBor && <>{t('smetadan {f}%', { f: fk.foizSmeta ?? 0 })}</>}
+          {davrTanlangan && <span className="block text-text-mute">{t('jami, davrdan qat’i nazar')}</span>}
+        </span>}>
+        <SummaJuft paket={fk.fakt} yorliq={t('Fakt, QQS bilan')} kiritishYoli={{ yol: '/admin/fakt' }} />
+      </Karta>
+      <Karta nom={t('Topshirildi (F2)')} savol={t('Buyurtmachiga qanchasini topshirdim?')} holat={kartaHolati('bajarildi', p)} trend={trend} href="/admin/f2-reestr"
         ost={<>
           {t('Tasdiqlangan F2')}: {k.bajarildi.akt_soni}
-          {k.bajarildi.foiz_smeta != null && <> · {t('smetadan {f}%', { f: k.bajarildi.foiz_smeta })}</>}
-          {k.bajarildi.reestr && Math.abs(k.bajarildi.reestr.farq) > 1 && <span className="block text-warn">{t('Reestr bilan farq')}: <FmtN val={k.bajarildi.reestr.farq} /></span>}
+          {f2FoizBor && <> · {t('smetadan {f}%', { f: k.bajarildi.foiz_smeta ?? 0 })}</>}
+          {reestrFarqBor && <span className="block text-warn">{t('Reestr bilan farq')}: <FmtN val={k.bajarildi.reestr?.farq ?? 0} /></span>}
+          {topshirilmaganBor && (
+            <span className={`mt-1 block border-t border-border/60 pt-1 ${topshirilmaganMusbat ? 'text-warn' : ''}`} data-testid="topshirilmagan">
+              {t('Bajarildi, lekin topshirilmagan')}: <b className="tabular-nums"><FmtN val={fk.topshirilmagan ?? 0} /></b>
+              <span className="block text-[10.5px] text-text-mute">{t('fakt − tasdiqlangan F2, QQS bilan')}</span>
+              {topshirilmaganDiqqat && <button type="button" className="text-[10.5px] text-accent underline" onClick={diqqatgaOt} data-testid="topshirilmagan-diqqat">
+                {t('Diqqat ro‘yxatida: {n} obyekt →', { n: fk.diqqatSoni })}</button>}
+            </span>
+          )}
         </>}>
         <SummaJuft paket={k.bajarildi.davr} yorliq={t('F2, QQS bilan')} />
       </Karta>
@@ -192,6 +219,7 @@ export function ObyektlarMatritsa({ p, onTanla }: { p: RahbarPanel; onTanla?: (o
     { kalit: 'loyiha', nom: t('Loyiha'), tur: 'matn', qiymat: (o) => o.loyiha_nom ?? t('Loyihasiz') },
     { kalit: 'shartnoma', nom: t('Shartnoma (QQS bilan)'), tur: 'son', qiymat: (o) => o.shartnoma?.qqs_bilan ?? null },
     { kalit: 'smeta', nom: t('Smeta (QQS bilan)'), tur: 'son', qiymat: (o) => o.smeta?.qqs_bilan ?? null },
+    { kalit: 'fakt', nom: t('Fakt (QQS bilan)'), tur: 'son', qiymat: (o) => o.fakt?.qqs_bilan ?? null },
     { kalit: 'f2', nom: t('F2 (QQS bilan)'), tur: 'son', qiymat: (o) => o.f2?.qqs_bilan ?? null },
     { kalit: 'tolangan', nom: t('To‘langan %'), tur: 'son', qiymat: (o) => o.tolangan_foiz },
     { kalit: 'qarz', nom: t('Qarz'), tur: 'son', qiymat: (o) => o.qarz },
@@ -207,12 +235,13 @@ export function ObyektlarMatritsa({ p, onTanla }: { p: RahbarPanel; onTanla?: (o
       </div></div>
       <FiltrHolatQatori soni={f.soni} natija={f.natija.length} jami={p.obyektlar.length} tozala={f.tozala} />
       <div className="fz-table-wrap hidden md:block">
-        <table className="fz-table min-w-[1100px]" data-testid="obyekt-matritsa">
+        <table className="fz-table min-w-[1220px]" data-testid="obyekt-matritsa">
           <thead><tr>
             <th>{t('Obyekt')}{F('nom')}</th><th>{t('Loyiha')}{F('loyiha')}</th>
             <th className="fz-c-num">{t('Shartnoma (QQS bilan)')}{F('shartnoma')}</th>
             <th className="fz-c-num">{t('Smeta')}{F('smeta')}</th>
             <th>{t('Bajarilish')}</th>
+            <th className="fz-c-num">{t('Fakt')}{F('fakt')}</th>
             <th className="fz-c-num">{t('Tasdiqlangan F2')}{F('f2')}</th>
             <th className="fz-c-num">{t('Qoralama F2')}</th>
             <th className="fz-c-num">{t('To‘langan %')}{F('tolangan')}</th>
@@ -228,6 +257,7 @@ export function ObyektlarMatritsa({ p, onTanla }: { p: RahbarPanel; onTanla?: (o
                 <td className="fz-c-num">{o.shartnoma?.qqs_bilan != null ? <><FmtN val={o.shartnoma.qqs_bilan} />{o.shartnoma.umumiy && <span className="block text-[10px] text-text-mute">{t('bir nechta obyekt uchun')}</span>}</> : <span className="text-text-mute">{t('kiritilmagan')}</span>}</td>
                 <td className="fz-c-num"><SummaJuft paket={o.smeta} kichik kesimYoq className="items-end text-right" /></td>
                 <td><Bosqichlar o={o} /></td>
+                <td className="fz-c-num" data-testid="matritsa-fakt"><SummaJuft paket={o.fakt} kichik kesimYoq className="items-end text-right" /></td>
                 <td className="fz-c-num"><SummaJuft paket={o.f2} kichik kesimYoq className="items-end text-right" /></td>
                 <td className="fz-c-num">{o.f2_qoralama.soni > 0 ? <><FmtN val={o.f2_qoralama.qqs_bilan} /><span className="block text-[10px] text-text-mute">{o.f2_qoralama.soni} {t('ta')}</span></> : '—'}</td>
                 <td className="fz-c-num">{o.tolangan_foiz != null ? `${o.tolangan_foiz}%` : <span className="text-text-mute">{t('kiritilmagan')}</span>}</td>
@@ -246,6 +276,7 @@ export function ObyektlarMatritsa({ p, onTanla }: { p: RahbarPanel; onTanla?: (o
           <li key={o.obyekt_id} className="fz-panel flex flex-col gap-1">
             <Link className="font-medium hover:underline" to={`/admin/holat/${o.obyekt_id}?obyekt=${o.obyekt_id}`}>{o.nom}</Link>
             {onTanla && <button type="button" className="self-start text-[11px] text-accent underline" onClick={() => onTanla(o)}>{t('▸ obyekt paneli')}</button>}
+            <SummaJuft paket={o.fakt} kichik kesimYoq yorliq={t('Fakt, QQS bilan')} />
             <SummaJuft paket={o.f2} kichik kesimYoq yorliq={t('F2, QQS bilan')} />
             <Bosqichlar o={o} />
             <span className="text-[11px] text-text-dim">{t('Qarz')}: {o.qarz != null ? <FmtN val={o.qarz} /> : t('kiritilmagan')}</span>
@@ -259,7 +290,7 @@ export function ObyektlarMatritsa({ p, onTanla }: { p: RahbarPanel; onTanla?: (o
 /* ───────────── §4 Diqqat ───────────── */
 export function DiqqatRoyxati({ diqqat }: { diqqat: RahbarDiqqat[] }) {
   return (
-    <section className="fz-card" aria-label={t('Diqqat talab qiladi')}>
+    <section className="fz-card" id={DIQQAT_ID} aria-label={t('Diqqat talab qiladi')}>
       <div className="fz-card__head">
         <h2 className="fz-card__title inline-flex items-center gap-2"><AlertTriangle size={16} aria-hidden="true" />{t('Diqqat talab qiladi')}</h2>
         <span className="fz-chip">{diqqat.length}</span>
