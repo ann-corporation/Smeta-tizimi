@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Archive, Plus, Save, Search, Wand2, X } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { toast } from '../../umumiy/ui/Toast';
 import { FmtN } from '../../lib/format';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
@@ -418,7 +419,7 @@ function KartaSolishtirish({ nom, birlik, n, ulush, ulushManba, s, onSol }: {
       <div className="mb-2 flex flex-wrap items-end gap-3">
         <h3 className="text-[15px] font-semibold">{nom} <span className="text-text-mute">/ {birlik}</span></h3>
         <label className="w-40"><span className={yorliq}>{t('Usta narxi, 1 birlikka')}</span>
-          <input className={kirit} inputMode="decimal" value={s.narx} onChange={(e) => onSol({ narx: e.target.value })} aria-label={t('Usta narxi, 1 birlikka')} /></label>
+          <MoneyInput className={kirit} inputMode="decimal" value={s.narx} onValueChange={(v) => onSol({ narx: v })} aria-label={t('Usta narxi, 1 birlikka')} /></label>
         <label className="w-32"><span className={yorliq}>{t('Rejadagi miqdor')}</span>
           <input className={kirit} inputMode="decimal" value={s.miqdor} onChange={(e) => onSol({ miqdor: e.target.value })} aria-label={t('Rejadagi miqdor')} /></label>
       </div>
