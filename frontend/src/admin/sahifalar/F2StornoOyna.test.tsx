@@ -13,6 +13,10 @@ vi.mock('../../api/t2-f2-storno', () => ({
     { qator_id: 2, tur: 'mat', fakt_hajm: 2, kod: 'K2', nom: 'Mat 2', birlik: 'т' },
   ] })),
   f2StornoAktIdlari: vi.fn(async () => []),
+  f2StornoDaraxtOl: vi.fn(async () => ({ ok: true, qatorlar: [
+    { id: 10, ota_id: null, tur: 'rz', nom: 'Bo‘lim A', tartib: 1 }, { id: 1, ota_id: 10, tur: 'bl', tartib: 2 },
+    { id: 20, ota_id: null, tur: 'rz', nom: 'Bo‘lim B', tartib: 3 }, { id: 2, ota_id: 20, tur: 'mat', tartib: 4 },
+  ] })),
   f2StornoQoralamaYarat: m.yarat,
   f2StornoFaktYoz: m.fakt,
   yangiOperationId: () => '00000000-0000-4000-8000-000000000009',
@@ -76,5 +80,26 @@ describe('F2StornoOyna: fakt tanlovi', () => {
     await waitFor(() => expect(tayyor).toHaveBeenCalledWith(557));
     expect(m.yarat).toHaveBeenCalledTimes(1);
     expect(m.fakt).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('F2StornoOyna: bo‘lim bo‘yicha tanlash', () => {
+  it('«Faqat shu bo‘lim» — faqat shu bo‘lim qatorlari stornoga yoziladi', async () => {
+    m.yarat.mockResolvedValue({ ok: true, akt_id: 558 }); m.podval.mockResolvedValue({ ok: true }); m.fakt.mockResolvedValue({ ok: true });
+    const tayyor = ochish();
+    const sel = await screen.findByRole('combobox', { name: 'Bo‘lim bo‘yicha tanlash' }) as HTMLSelectElement;
+    expect([...sel.options].map((o) => o.textContent)).toEqual(['— bo‘limni tanlang —', 'Bo‘lim A (1)', 'Bo‘lim B (1)']);
+    fireEvent.change(sel, { target: { value: '20' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Faqat shu bo‘lim' }));
+    expect(screen.getByTestId('storno-soni').textContent).toBe('1');
+    fireEvent.click(screen.getByRole('button', { name: /1 qatorni storno qilish/ }));
+    await waitFor(() => expect(tayyor).toHaveBeenCalledWith(558));
+    expect(m.yarat.mock.calls[0][0].qatorlar.map((q: { qatorId: number }) => q.qatorId)).toEqual([2]);
+  });
+  it('«Bo‘limdan belgini olish» — shu bo‘lim qatorlari saqlab qolinadi', async () => {
+    ochish();
+    fireEvent.change(await screen.findByRole('combobox', { name: 'Bo‘lim bo‘yicha tanlash' }), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Bo‘limdan belgini olish' }));
+    expect(screen.getByTestId('storno-soni').textContent).toBe('1');
   });
 });
