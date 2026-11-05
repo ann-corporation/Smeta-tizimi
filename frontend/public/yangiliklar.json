@@ -2,6 +2,17 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 105,
+      "sana": "2026-11-05",
+      "sarlavha": "Boshqaruv markazida bajarilgan ish (fakt) endi alohida ko‘rinadi",
+      "bandlar": [
+        "Yangi karta «Bajarildi (fakt)»: haqiqatda bajarilgan ish summasi QQS bilan, ostida ustamali (QQS siz) va to‘g‘ri xarajat, smetadan necha foiz.",
+        "Avvalgi «Bajarildi» kartasi endi «Topshirildi (F2)» deb ataladi — bu buyurtmachiga topshirilgan, tasdiqlangan F2.",
+        "Shu kartada yangi qator: «Bajarildi, lekin topshirilmagan» = fakt − tasdiqlangan F2. Bosilsa, diqqat ro‘yxatidagi obyektlarga o‘tadi.",
+        "Obyektlar jadvalida F2 yonida «Fakt» ustuni qo‘shildi. Excel eksportida ham fakt summalari bor."
+      ]
+    },
+    {
       "id": 104,
       "sana": "2026-11-05",
       "sarlavha": "Bo‘lim jamisi qo‘shimcha ish va zamenadan keyin darhol yangilanadi",

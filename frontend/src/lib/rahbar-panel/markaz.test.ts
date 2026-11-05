@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bosqichFoizlari, davrOraligi, diqqatYoli, kartaHolati, resursJadvali, subpudratchilar, trendNuqtalari } from './markaz';
+import { bosqichFoizlari, davrOraligi, diqqatYoli, faktKarta, kartaHolati, resursJadvali, subpudratchilar, trendNuqtalari } from './markaz';
 import type { RahbarPanel } from '../../api/t2-rahbar-panel';
 
 const paket = { qqs_bilan: 112, qqs: 12, ustamali: 100, ustamasiz: 80, qqs_foiz: 12, ustamasiz_qism: 0,
@@ -45,6 +45,17 @@ describe('rahbar markazi yordamchilari', () => {
     expect(diqqatYoli({ kod: 'fakt_topshirilmagan', obyekt_id: 7, nom: 'x', summa_tasir: 1, soni: null })).toBe('/admin/f2-tayyorlash?obyekt=7');
     expect(diqqatYoli({ kod: 'narxsiz', obyekt_id: null, nom: null, summa_tasir: null, soni: 3 })).toBe('/admin/smeta-narxlash');
     expect(diqqatYoli({ kod: 'nomalum_kod', obyekt_id: 4, nom: null, summa_tasir: null, soni: null })).toBe('/admin/holat/4');
+  });
+  it('fakt kartasi: fakt % smeta va fakt − tasdiqlangan F2 (jami); fakt yo‘q — null (0 emas)', () => {
+    const p = { ...panel(), fakt: { ...paket, qqs_bilan: 168 },
+      diqqat: [{ kod: 'fakt_topshirilmagan', obyekt_id: 1, nom: 'A', summa_tasir: 56, soni: null }, { kod: 'narxsiz', obyekt_id: null, nom: null, summa_tasir: null, soni: 2 }] } as RahbarPanel;
+    expect(faktKarta(p)).toEqual({ fakt: p.fakt, foizSmeta: 150, topshirilmagan: 56, diqqatSoni: 1 });
+    expect(kartaHolati('fakt', p)).toBe('yaxshi');
+    const yoq = { ...panel(), fakt: null, diqqat: [] } as unknown as RahbarPanel;
+    expect(faktKarta(yoq)).toEqual({ fakt: null, foizSmeta: null, topshirilmagan: null, diqqatSoni: 0 });
+    expect(kartaHolati('fakt', yoq)).toBe('nomalum');
+    const f2siz = { ...p, kartalar: { ...p.kartalar, bajarildi: { ...p.kartalar.bajarildi, jami: null } } } as RahbarPanel;
+    expect(faktKarta(f2siz).topshirilmagan).toBe(168);
   });
   it('bosqich foizlari 0–100 ga cheklanadi, null saqlanadi', () => {
     expect(bosqichFoizlari({ fakt: 140, f2: -3, f3: null })).toEqual([{ kalit: 'fakt', foiz: 100 }, { kalit: 'f2', foiz: 0 }, { kalit: 'f3', foiz: null }]);

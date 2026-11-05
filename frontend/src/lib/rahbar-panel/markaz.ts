@@ -21,10 +21,11 @@ export function davrOraligi(tur: DavrTur, bugun: Date = new Date()): Davr {
 export type KartaHolat = 'yaxshi' | 'etibor' | 'xavf' | 'nomalum';
 
 /** Karta rangi: ma'lumot yo'q — kulrang (nomalum), hech qachon «yaxshi» deb taxmin qilinmaydi. */
-export function kartaHolati(kod: 'portfel' | 'bajarildi' | 'tolandi' | 'debitor' | 'kreditor' | 'rentabellik', p: RahbarPanel): KartaHolat {
+export function kartaHolati(kod: 'portfel' | 'fakt' | 'bajarildi' | 'tolandi' | 'debitor' | 'kreditor' | 'rentabellik', p: RahbarPanel): KartaHolat {
   const k = p.kartalar;
   switch (kod) {
     case 'portfel': return k.portfel.smeta ? 'yaxshi' : 'nomalum';
+    case 'fakt': return p.fakt ? 'yaxshi' : 'nomalum';
     case 'bajarildi': {
       if (!k.bajarildi.jami) return 'nomalum';
       return k.bajarildi.reestr && Math.abs(k.bajarildi.reestr.farq) > 1 ? 'etibor' : 'yaxshi';
@@ -42,6 +43,35 @@ export function kartaHolati(kod: 'portfel' | 'bajarildi' | 'tolandi' | 'debitor'
       return f < 0 ? 'xavf' : f < 10 ? 'etibor' : 'yaxshi';
     }
   }
+}
+
+export type FaktKarta = {
+  /** Haqiqatda bajarilgan ish (fakt) — jami paket (davrdan qat'i nazar, server shunday beradi). null — fakt kiritilmagan. */
+  fakt: SummaPaket | null;
+  /** Fakt (QQS bilan) / smeta (QQS bilan), %. */
+  foizSmeta: number | null;
+  /** Bajarilgan, lekin buyurtmachiga topshirilmagan: fakt − tasdiqlangan F2 (jami), QQS bilan. Fakt yo'q — null. */
+  topshirilmagan: number | null;
+  /** Diqqat ro'yxatidagi `fakt_topshirilmagan` bandlari (obyektlar bo'yicha). */
+  diqqatSoni: number;
+};
+
+/**
+ * «Bajarildi (fakt)» va «Topshirildi (F2)» kartalarini ajratish — faqat serverdagi mavjud maydonlar:
+ * `p.fakt` (j_fk), `kartalar.bajarildi.jami` (j_f2), `kartalar.portfel.smeta` (j_sm). Ayirma serverdagi
+ * `fakt_topshirilmagan` qoidasi bilan bir xil: F2 yo'q — 0 deb olinadi, fakt yo'q — null (0 emas).
+ */
+export function faktKarta(p: RahbarPanel): FaktKarta {
+  const fakt = p.fakt ?? null;
+  const smeta = p.kartalar.portfel.smeta?.qqs_bilan ?? null;
+  const f2 = p.kartalar.bajarildi.jami?.qqs_bilan ?? 0;
+  const yaxlit = (v: number, n: number) => Math.round(v * n) / n;
+  return {
+    fakt,
+    foizSmeta: fakt && smeta ? yaxlit((fakt.qqs_bilan / smeta) * 100, 10) : null,
+    topshirilmagan: fakt ? yaxlit(fakt.qqs_bilan - f2, 100) : null,
+    diqqatSoni: p.diqqat.filter((d) => d.kod === 'fakt_topshirilmagan').length,
+  };
 }
 
 /** Trend (sparkline) nuqtalari — null (kiritilmagan) oy chizilmaydi, 0 emas. */

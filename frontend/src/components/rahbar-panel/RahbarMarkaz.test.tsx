@@ -33,11 +33,26 @@ const p = rahbarPanelTozala({
 const r = (ui: React.ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
 
 describe('Rahbar markazi', () => {
-  it('6 karta; kiritilmagan to‘lov/debitor/kreditor/tannarx — «kiritilmagan» (0 emas)', () => {
+  it('7 karta; kiritilmagan to‘lov/debitor/kreditor/tannarx — «kiritilmagan» (0 emas); fakt yo‘q — fakt kartasi nomalum', () => {
     r(<RahbarKartalar p={p} />);
-    expect(screen.getAllByTestId('rahbar-karta')).toHaveLength(6);
+    expect(screen.getAllByTestId('rahbar-karta')).toHaveLength(7);
     expect(screen.getAllByTestId('karta-kiritilmagan')).toHaveLength(4);
-    expect(screen.getAllByTestId('rahbar-karta').filter((k) => k.dataset.holat === 'nomalum')).toHaveLength(4);
+    expect(screen.getAllByTestId('rahbar-karta').filter((k) => k.dataset.holat === 'nomalum')).toHaveLength(5);
+    expect(screen.queryByTestId('topshirilmagan')).toBeNull();
+  });
+  it('fakt kartasi (fakt) va F2 kartasi (topshirildi) ajralgan; «bajarildi, lekin topshirilmagan» = fakt − F2', () => {
+    const fp = rahbarPanelTozala({ ...p, davr: { dan: '2026-11-01', gacha: '2026-11-05' }, fakt: { ...paket, qqs_bilan: 168, ustamali: 150, ustamasiz: 120 } } as unknown as Record<string, unknown>);
+    r(<RahbarKartalar p={fp} />);
+    const kartalar = screen.getAllByTestId('rahbar-karta');
+    expect(kartalar[1].textContent).toContain('Bajarildi (fakt)');
+    expect(kartalar[1].dataset.holat).toBe('yaxshi');
+    expect(screen.getByTestId('fakt-karta-ost').textContent).toContain('smetadan 150%');
+    expect(screen.getByTestId('fakt-karta-ost').textContent).toContain('davrdan qat’i nazar');
+    expect(kartalar[2].textContent).toContain('Topshirildi (F2)');
+    const ts = screen.getByTestId('topshirilmagan');
+    expect(ts.textContent).toMatch(/56/);
+    expect(ts.className).toContain('text-warn');
+    expect(screen.getByTestId('topshirilmagan-diqqat').textContent).toContain('1');
   });
   it('pul oqimi: oylar va prognoz; kiritilmagan tushum', () => {
     r(<PulOqimi p={p} />);
@@ -59,5 +74,7 @@ describe('Rahbar markazi', () => {
     const t = screen.getByTestId('obyekt-matritsa');
     expect(within(t).getAllByRole('row')).toHaveLength(3);
     expect(t.textContent).toContain('Sintetik B');
+    expect(within(t).getAllByRole('columnheader').map((h) => h.textContent)).toContain('Fakt');
+    expect(within(t).getAllByTestId('matritsa-fakt')).toHaveLength(2);
   });
 });

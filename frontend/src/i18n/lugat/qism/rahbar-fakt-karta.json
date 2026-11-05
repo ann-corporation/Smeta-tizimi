@@ -1,0 +1,38 @@
+{
+  "Bajarildi (fakt)": {
+    "ru": "Выполнено (факт)",
+    "en": "Done (actual)"
+  },
+  "Haqiqatda qancha ish bajarildi?": {
+    "ru": "Сколько работы фактически выполнено?",
+    "en": "How much work is actually done?"
+  },
+  "jami, davrdan qat’i nazar": {
+    "ru": "всего, без учёта периода",
+    "en": "total, regardless of period"
+  },
+  "Topshirildi (F2)": {
+    "ru": "Сдано заказчику (Ф2)",
+    "en": "Submitted to client (F2)"
+  },
+  "Buyurtmachiga qanchasini topshirdim?": {
+    "ru": "Сколько сдано заказчику?",
+    "en": "How much is submitted to the client?"
+  },
+  "Bajarildi, lekin topshirilmagan": {
+    "ru": "Выполнено, но не сдано",
+    "en": "Done, but not submitted"
+  },
+  "fakt − tasdiqlangan F2, QQS bilan": {
+    "ru": "факт − утверждённые Ф2, с НДС",
+    "en": "actual − approved F2, incl. VAT"
+  },
+  "Diqqat ro‘yxatida: {n} obyekt →": {
+    "ru": "В списке внимания: {n} объект(ов) →",
+    "en": "In attention list: {n} object(s) →"
+  },
+  "Fakt (QQS bilan)": {
+    "ru": "Факт (с НДС)",
+    "en": "Actual (incl. VAT)"
+  }
+}
