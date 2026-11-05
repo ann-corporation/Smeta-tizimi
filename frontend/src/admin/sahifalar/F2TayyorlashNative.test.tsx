@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import type { T2Qator } from '../../api/supabase';
 
-const m = vi.hoisted(() => ({ yarat: vi.fn(), toast: vi.fn(), yangila: vi.fn(), oqi: vi.fn(), belgila: vi.fn(), baj: [] as unknown[], reestr: vi.fn(), komp: { joriy: { id: 1 } as Record<string, unknown>, superadmin: false } }));
+const m = vi.hoisted(() => ({ yarat: vi.fn(), toast: vi.fn(), yangila: vi.fn(), oqi: vi.fn(), belgila: vi.fn(), baj: [] as unknown[], reestr: vi.fn(), tasdiq: vi.fn(async () => true), komp: { joriy: { id: 1 } as Record<string, unknown>, superadmin: false } }));
 const q = (o: Partial<T2Qator> & { id: number; tur: string; norma?: number | null }): T2Qator => ({
   obyekt_id: 8, obyekt: null, kompaniya_id: 1, ota_id: null, daraja: 0, tartib: o.id, kod: null, nom: `q${o.id}`, birlik: 'м3',
   hajm: null, narx: null, summa: null, kat: null, narx_usul: null, qoshimcha: false, zamena: false,
@@ -52,6 +52,7 @@ vi.mock('../../api/t2-shartnoma-liniya', () => ({ shartnomaLiniyaOl: vi.fn(async
   ],
 } })) }));
 vi.mock('../../umumiy/ui/Toast', () => ({ toast: m.toast }));
+vi.mock('../../umumiy/ui/Tasdiq', () => ({ tasdiqSora: m.tasdiq }));
 vi.mock('../../test02/KompaniyaTanlov', () => ({ useKompaniya: () => m.komp }));
 vi.mock('./F2StornoOyna', () => ({ F2StornoOyna: (p: { akt: { id: number }; onYaratildi?: (id: number) => void }) => <button type="button" onClick={() => p.onYaratildi?.(555)}>storno-oyna-{p.akt.id}</button> }));
 vi.mock('../../umumiy/kontekst/PTOWorkspaceContext', () => ({ usePTOWorkspace: () => ({ scope: { objectId: null }, setObjectId: vi.fn() }) }));
@@ -277,7 +278,7 @@ describe('F2 tayyorlash', () => {
       expect(screen.queryByTestId('storno-tanlov-tugma')).toBeNull();
     });
 
-    it('tanlagich bekor/rad/superseded aktlarni chiqarmaydi; tanlash F2StornoOyna ni ochadi; yaratilgach ?akt=yangi ga o‘tadi', async () => {
+    it('tanlagich faqat tasdiqlangan F2 ni chiqaradi (qoralama/bekor/rad/superseded yo‘q); tanlash F2StornoOyna ni ochadi; yaratilgach ?akt=yangi ga o‘tadi', async () => {
       m.komp.joriy = { id: 1, permissions: ['f2.prepare'] };
       m.reestr.mockResolvedValue({ ok: true, qatorlar: [
         akt({ id: 11, raqam: '1' }),
@@ -290,9 +291,8 @@ describe('F2 tayyorlash', () => {
       ochishJoy();
       fireEvent.click(await screen.findByTestId('storno-tanlov-tugma'));
       const qatorlar = await screen.findAllByTestId('storno-tanlov-akt');
-      expect(qatorlar.map((x) => x.querySelector('td')?.textContent)).toEqual(['5', '1']);
-      expect(qatorlar[0].textContent).toContain('noma‘lum');
-      fireEvent.click(qatorlar[1].querySelector('button') as HTMLElement);
+      expect(qatorlar.map((x) => x.querySelector('td')?.textContent)).toEqual(['1']);
+      fireEvent.click(qatorlar[0].querySelector('button') as HTMLElement);
       fireEvent.click(await screen.findByText('storno-oyna-11'));
       await waitFor(() => expect(screen.getByTestId('joy').textContent).toBe('?obyekt=8&akt=555'));
       expect(screen.queryByText('storno-oyna-11')).toBeNull();
@@ -306,5 +306,54 @@ describe('F2 tayyorlash', () => {
           : { ok: true, qatorlar: [] });
       ochishJoy('/admin/f2-tayyorlash?obyekt=8&akt=77');
       expect((await screen.findByTestId('storno-manba')).textContent).toContain('№11');
+    });
+
+    /** Storno qoralamasi: qator 2 eski F2 da 6 (tasdiqlangan), storno −6; fakt to'g'rilangan 9 → yangi plyus 9 (fakt − BOSHQA F2). */
+    const stornoQoralama = () => {
+      const h2 = holat[0] as Record<string, unknown>;
+      const eski = { ...h2 };
+      Object.assign(h2, { f2_hajm: 6, fakt_hajm: 9, f2_mumkin_hajm: 3 });
+      m.oqi.mockImplementation(async (s: { jadval: string }) => s.jadval === 't2_akt'
+        ? { ok: true, qatorlar: [{ id: 77, raqam: '5-С', oy: '2026-09-01', holat: 'qoralama', lifecycle_status: 'draft', versiya: 3 }] }
+        : s.jadval === 't2_akt_qator'
+          ? { ok: true, qatorlar: [{ qator_id: 2, hajm: -6, certified_quantity: -6, certified_unit_price: 100, certified_amount: -600, provenance_status: 'source_certified', raw_snapshot: { source: 'storno', stornoOf: 11 } }] }
+          : { ok: true, qatorlar: [] });
+      return () => { for (const k of Object.keys(h2)) delete h2[k]; Object.assign(h2, eski); };
+    };
+    const yuboriladi = async () => {
+      ochishJoy('/admin/f2-tayyorlash?obyekt=8&akt=77');
+      expect((await screen.findByTestId('ish-storno-olingan')).textContent).toMatch(/0.*storno qilingan.*6/);
+      fireEvent.click(screen.getAllByRole('button', { name: '100%' })[0]);
+      expect((screen.getByLabelText('F2 hajmi: Beton quyish') as HTMLInputElement).value).toBe('9');
+      fireEvent.click(screen.getByRole('button', { name: 'Resurslarni ko‘rish: Beton quyish' }));
+      fireEvent.click(screen.getByRole('button', { name: /«narxsiz» belgilash/ }));
+      const saqla = await screen.findByRole('button', { name: /F2 qoralamani yangilash/ }) as HTMLButtonElement;
+      await waitFor(() => expect(saqla.disabled).toBe(false));
+      fireEvent.click(saqla);
+    };
+    const juft = (x: { qatorId: number; certifiedQuantity: number }) => [x.qatorId, x.certifiedQuantity];
+
+    it('bir qator storno blokida (minus, tepada) VA yangi blokda (plyus, pastda) saqlanadi; yangi hajm = fakt − boshqa F2', async () => {
+      const tikla = stornoQoralama();
+      m.yangila.mockResolvedValue({ ok: true, akt_id: 77 });
+      try {
+        await yuboriladi();
+        await waitFor(() => expect(m.yangila).toHaveBeenCalledTimes(1));
+        expect(m.yangila.mock.calls[0][0].qatorlar.map(juft).slice(0, 2)).toEqual([[2, -6], [2, 9]]);
+        expect(m.tasdiq).not.toHaveBeenCalled();
+      } finally { tikla(); }
+    });
+
+    it('server DUPLICATE_F2_SOURCE_LINE desa: jim tashlanmaydi — rozilik so‘raladi, keyin plyus qatorsiz saqlanadi', async () => {
+      const tikla = stornoQoralama();
+      m.yangila.mockResolvedValueOnce({ ok: false, code: 'DUPLICATE_F2_SOURCE_LINE' }).mockResolvedValueOnce({ ok: true, akt_id: 77 });
+      try {
+        await yuboriladi();
+        await waitFor(() => expect(m.yangila).toHaveBeenCalledTimes(2));
+        expect(m.tasdiq).toHaveBeenCalledTimes(1);
+        const ikkinchi = m.yangila.mock.calls[1][0].qatorlar.map(juft);
+        expect(ikkinchi.filter(([id]: number[]) => id === 2)).toEqual([[2, -6]]);
+        expect(m.toast.mock.calls.some((c) => String(c[0]).includes('server cheklovi'))).toBe(true);
+      } finally { tikla(); }
     });
   });});

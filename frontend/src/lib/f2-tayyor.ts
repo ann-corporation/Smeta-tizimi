@@ -42,8 +42,17 @@ export type F2Resurs = {
   qoshimcha?: boolean; zamena?: boolean; almashtiradi?: number | null;
 };
 /** f2Qur qo'shimcha kontekst: chiqarilgan resurslar va zamena → asl bog'lanishi (zamena asl yonida turishi uchun). */
-export type F2QurKontekst = { chiqarilgan?: ReadonlySet<number>; zamenaAsl?: ReadonlyMap<number, number> };
-export type F2Ish = { id: number; kod: string | null; nom: string; birlik: string | null; mumkin: number; smeta: number | null; olingan: number; resurslar: F2Resurs[]; erkin?: boolean; /** qoralamadagi F2 hajmi (mumkin dan ayirilgan) */ qoralama?: number };
+export type F2QurKontekst = {
+  chiqarilgan?: ReadonlySet<number>; zamenaAsl?: ReadonlyMap<number, number>;
+  /**
+   * Pereraschet: tahrirlanayotgan qoralamadagi storno bloki qaytaradigan eski F2 hajmi (qator_id → hajm; `stornoQaytarHajm`).
+   * Shu hajm «tasdiqlangan F2» (f2_hajm) dan chiqariladi: stornolanayotgan eski F2 sof 0, yangi hajm = fakt − BOSHQA tasdiqlangan F2.
+   */
+  stornoQaytar?: ReadonlyMap<number, number>;
+};
+export type F2Ish = { id: number; kod: string | null; nom: string; birlik: string | null; mumkin: number; smeta: number | null; olingan: number; resurslar: F2Resurs[]; erkin?: boolean; /** qoralamadagi F2 hajmi (mumkin dan ayirilgan) */ qoralama?: number;
+  /** Shu qoralamada storno qilinayotgan eski F2 hajmi (`olingan` dan allaqachon chiqarilgan; ko'rsatish uchun). */
+  storno?: number };
 export type F2Bolim = { id: number | null; nom: string; daraja: number; ishlar: F2Ish[]; alohida: F2Resurs[] };
 
 const son = (v: unknown): number | null => (v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
@@ -61,6 +70,34 @@ function narxTaklif(f2Narx: number | null, smetaNarx: number | null, protokolNar
   return { narx: null, manba: 'yoq' };
 }
 
+/** Smeta daraxtidagi aka-uka tartibi (YAGONA: f2Qur va storno bloklari shu bilan): `tartib`, keyin id. */
+export type DaraxtTugun = { id: number; ota_id?: number | null; tartib?: number | null };
+export const daraxtSolishtir = (p: DaraxtTugun, q: DaraxtTugun): number => (p.tartib ?? 0) - (q.tartib ?? 0) || p.id - q.id;
+
+/**
+ * Smeta daraxti tartibi: qator id → o'rin (chuqurlik bo'yicha: rz → bl → uning rs/mat/ob → keyingi bl …), f2Qur bilan aynan bir xil.
+ * Daraxtda yo'q (ota zanjiri uzilgan) qatorlar kalitsiz qoladi — chaqiruvchi ularni oxirida asl tartibda qoldiradi.
+ */
+export function smetaDaraxtTartibi(rows: Iterable<DaraxtTugun>): Map<number, number> {
+  const bolalar = new Map<number | null, DaraxtTugun[]>();
+  for (const r of rows) { const k = r.ota_id ?? null; if (!bolalar.has(k)) bolalar.set(k, []); bolalar.get(k)!.push(r); }
+  for (const a of bolalar.values()) a.sort(daraxtSolishtir);
+  const out = new Map<number, number>();
+  const stek: DaraxtTugun[] = [...(bolalar.get(null) ?? [])].reverse();
+  while (stek.length) {
+    const r = stek.pop()!;
+    if (out.has(r.id)) continue;
+    out.set(r.id, out.size);
+    for (const b of [...(bolalar.get(r.id) ?? [])].reverse()) stek.push(b);
+  }
+  return out;
+}
+
+/** Elementlarni smeta daraxti tartibida (barqaror); daraxtda yo'qlari oxirida asl tartibda. */
+export function daraxtTartibida<T>(items: readonly T[], id: (x: T) => number, tartib: ReadonlyMap<number, number>): T[] {
+  return items.map((x, i) => ({ x, i, k: tartib.get(id(x)) })).sort((a, b) => (a.k ?? Infinity) - (b.k ?? Infinity) || a.i - b.i).map((e) => e.x);
+}
+
 /** Smeta daraxti → F2 uchun bo'limlar/ishlar/resurslar (faqat F2 olish mumkin bo'lganlar). */
 export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarxlari, manba: F2Manba = 'fakt', qoralama?: ReadonlyMap<number, number>, ktx?: F2QurKontekst): F2Bolim[] {
   const h = new Map(holat.map((x) => [x.qator_id, x]));
@@ -69,11 +106,23 @@ export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarx
   const rowById = new Map(rows.map((r) => [r.id, r]));
   const bolalar = new Map<number | null, T2Qator[]>();
   for (const r of rows) { const k = r.ota_id ?? null; if (!bolalar.has(k)) bolalar.set(k, []); bolalar.get(k)!.push(r); }
-  for (const a of bolalar.values()) a.sort((p, q) => (p.tartib ?? 0) - (q.tartib ?? 0) || p.id - q.id);
+  for (const a of bolalar.values()) a.sort(daraxtSolishtir);
+  /** Shu qoralamadagi storno qaytaradigan eski F2 hajmi (0 — storno yo'q). */
+  const sq = (id: number) => ktx?.stornoQaytar?.get(id) ?? 0;
+  /** Tasdiqlangan F2 hajmi, shu qoralamada stornolanayotgan eski F2 chiqarilgan holda (= BOSHQA tasdiqlangan F2 lar). */
+  const olinganF2 = (id: number) => (son(h.get(id)?.f2_hajm) ?? 0) - sq(id);
   // Faktsiz rejim: smeta hajmi − shu qatorning barcha F2 lari (RPC o'zgarmaydi: smeta_hajm/f2_hajm bor).
+  const faktBaza = (id: number) => {
+    const s0 = sq(id);
+    const mum = son(h.get(id)?.f2_mumkin_hajm);
+    if (s0 === 0) return Math.max(0, mum ?? 0);
+    // Storno bor: server f2_mumkin (= max(0, fakt − f2)) eski F2 ni ham ayirgan — fakt va f2 dan qayta: fakt − (f2 − storno).
+    const fakt = son(h.get(id)?.fakt_hajm);
+    return Math.max(0, fakt != null ? fakt - olinganF2(id) : (mum ?? 0) + s0);
+  };
   const baza = (id: number) => erkin
-    ? Math.max(0, (son(h.get(id)?.smeta_hajm) ?? son(rowById.get(id)?.hajm) ?? 0) - (son(h.get(id)?.f2_hajm) ?? 0))
-    : Math.max(0, son(h.get(id)?.f2_mumkin_hajm) ?? 0);
+    ? Math.max(0, (son(h.get(id)?.smeta_hajm) ?? son(rowById.get(id)?.hajm) ?? 0) - olinganF2(id))
+    : faktBaza(id);
   // Qoralamadagi (tasdiqlanmagan) F2 hajmi qoldiqdan AYIRILADI - bir ishni ikki marta F2 qilish xavfi bo'lmasin.
   const qor = (id: number) => Math.max(0, qoralama?.get(id) ?? 0);
   const mumkin = (id: number) => Math.max(0, baza(id) - qor(id));
@@ -117,7 +166,7 @@ export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarx
       if (r.tur === 'bl') {
         const res = zamenaYonida((bolalar.get(r.id) ?? []).filter((x) => x.tur === 'rs' || x.tur === 'mat' || x.tur === 'ob').map((x) => resurs(x, x.tur === 'rs')));
         const hh = h.get(r.id);
-        const ish: F2Ish = { id: r.id, kod: r.kod, nom: r.nom || 'Nomsiz', birlik: r.birlik, mumkin: mumkin(r.id), smeta: son(hh?.smeta_hajm) ?? son(r.hajm), olingan: son(hh?.f2_hajm) ?? 0, resurslar: res, ...(erkin ? { erkin: true } : {}), ...(qor(r.id) > 0 ? { qoralama: qor(r.id) } : {}) };
+        const ish: F2Ish = { id: r.id, kod: r.kod, nom: r.nom || 'Nomsiz', birlik: r.birlik, mumkin: mumkin(r.id), smeta: son(hh?.smeta_hajm) ?? son(r.hajm), olingan: olinganF2(r.id), resurslar: res, ...(erkin ? { erkin: true } : {}), ...(sq(r.id) !== 0 ? { storno: sq(r.id) } : {}), ...(qor(r.id) > 0 ? { qoralama: qor(r.id) } : {}) };
         // Fakt rejimida qoralama qoldiqni 0 ga tushirsa ham ish ro'yxatda qoladi (tasdiqlangan va qoralama alohida ko'rinsin).
         if (erkin ? (smetaHajm(r.id) ?? 0) > 0 : (baza(r.id) > 0 || res.some((x) => !x.avto && !x.chiqarilgan && baza(x.id) > 0))) b.ishlar.push(ish);
       } else if (r.tur === 'mat' || r.tur === 'ob') {

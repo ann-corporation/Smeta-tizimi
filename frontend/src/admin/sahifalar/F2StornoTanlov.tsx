@@ -20,7 +20,7 @@ function holatMatni(a: T2AktReestr): string {
 }
 
 /**
- * F2 tayyorlash oynasidan «Eski F2 ni storno qilish (pereraschet)»: obyektning bekor qilinmagan F2 aktlari ro‘yxati.
+ * F2 tayyorlash oynasidan «Eski F2 ni storno qilish (pereraschet)»: obyektning FAQAT tasdiqlangan F2 aktlari ro‘yxati (qoralama/bekor — yo‘q).
  * Bitta aktni «Tanlash» yoki BIR NECHTA aktni «Birga» bilan belgilab davom etish (egasi 2026-11-03) → `F2StornoOyna`.
  * Har eski F2 hujjatda alohida blok bo‘ladi (o‘z podvali bilan). Qoralama yaratilgach `onYaratildi(aktId)` chaqiriladi.
  */
@@ -62,7 +62,7 @@ export function F2StornoTanlov(p: { obyektId: number; onYop: () => void; onYarat
         <p className="text-text-dim">{t('Bir nechta eski F2 ni «Birga» bilan belgilang: ularning qatorlari bitta hujjatda alohida bloklar bo‘lib tepada turadi, har biri o‘z podvali bilan.')}</p>
         {xato && <p role="alert" className="fz-note fz-note--danger"><ShieldAlert />{xato}</p>}
         {!xato && !reestr && <div className="skel min-h-[120px] rounded-xl" />}
-        {reestr && nomzod.length === 0 && <p data-testid="storno-tanlov-bosh" className="text-text-dim">{t('Storno qilinadigan F2 yo‘q (bekor qilinganlar ko‘rsatilmaydi).')}</p>}
+        {reestr && nomzod.length === 0 && <p data-testid="storno-tanlov-bosh" className="text-text-dim">{t('Bu obyektda tasdiqlangan F2 yo‘q — storno qilinadigan hujjat yo‘q.')}</p>}
         {nomzod.length > 0 && (
           <div className="max-h-[50dvh] overflow-auto rounded border border-border/60">
             <table className="w-full text-[12.5px]">

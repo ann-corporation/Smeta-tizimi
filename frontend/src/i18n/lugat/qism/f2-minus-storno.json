@@ -35,7 +35,6 @@
   "{n} qatorni storno qilish": { "ru": "Сторнировать строк: {n}", "en": "Storno {n} rows" },
   "Storno qoralamasi yaratildi. Tasdiqlash — shu sahifada; yangi pozitsiyalarni «F2 tayyorlash»da shu qoralama ostiga qo‘shing.": { "ru": "Черновик сторно создан. Утверждение — на этой странице; новые позиции добавьте под ним в «Подготовке Ф2».", "en": "Storno draft created. Approve it on this page; add the new positions below it in \"F2 preparation\"." },
   "Shu F2 qatorlaridan minus (storno) qoralama yaratadi; asl F2 o‘zgarmaydi": { "ru": "Создаёт черновик с минусом (сторно) из строк этой Ф2; исходная Ф2 не меняется", "en": "Creates a minus (storno) draft from this F2's rows; the original F2 is untouched" },
-  "{n} ta yangi qator storno bloki bilan bir xil pozitsiya - tashlandi.": { "ru": "Новых строк, совпавших с блоком сторно, отброшено: {n}.", "en": "{n} new rows duplicated a storno-block position and were dropped." },
   "Сторно (eski F2)": { "ru": "Сторно (старая Ф2)", "en": "Storno (old F2)" },
   "{n} qator, Σ (minus):": { "ru": "Строк: {n}, Σ (минус):", "en": "{n} rows, Σ (minus):" },
   "hujjat boshida saqlanadi; yangi pozitsiyalar shu blok ostiga qo‘shiladi.": { "ru": "хранится в начале документа; новые позиции добавляются под этим блоком.", "en": "kept at the top of the document; new positions are added below this block." },

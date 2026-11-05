@@ -6,7 +6,7 @@ import { FmtN } from '../../lib/format';
 import { davrNomi } from '../../lib/f2-hujjat-korinish';
 import { t, tilLocale } from '../../i18n/til';
 import { yigindi2 } from '../../lib/hisob-yadro';
-import { faolStornolar, stornoFaktReja, stornoQator, stornoQur, type StornoManbaQator, type StornoReestrAkt, type StornoYukQator } from '../../lib/f2-storno';
+import { faolStornolar, stornoFaktReja, stornoQilinadiAkt, stornoQator, stornoQur, type StornoFaktRejim, type StornoManbaQator, type StornoReestrAkt, type StornoYukQator } from '../../lib/f2-storno';
 import { f2StornoAktIdlari, f2StornoFaktYoz, f2StornoHolatOl, f2StornoManbaOl, f2StornoQoralamaYarat, yangiOperationId, type StornoQatorKorinish } from '../../api/t2-f2-storno';
 import { aktPodvalStornoNusxa } from '../../api/t2-akt-podval';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
@@ -31,7 +31,8 @@ const kalit = (aktId: number, qatorId: number) => `${aktId}:${qatorId}`;
 /**
  * «Storno (minus) F2 yaratish»: tanlangan F2 aktning (BIR NECHTA bo'lishi mumkin — egasi 2026-11-03) qatorlari (hammasi belgilangan;
  * SAQLAB QOLINADIGANLARNI belgidan oling) minus qilib YANGI qoralamaga yoziladi, har eski F2 alohida blok (qator `stornoOf` = shu akt id),
- * har blok o'z hujjat podvalini (`t2_akt_podval`) ishora-teskari nusxada oladi. Shu qatorlarning fakti ham minus yozuv bilan 0 ga tushiriladi.
+ * har blok o'z hujjat podvalini (`t2_akt_podval`) ishora-teskari nusxada oladi. Fakt — aniq tanlov (egasi 2026-11-05): sukut bo'yicha shu qatorlarning
+ * fakti minus yozuv bilan 0 ga tushiriladi; «Faktni o'zgartirma» — fakt allaqachon to'g'rilangan, hech qanday fakt yozuvi yo'q.
  * Asl akt va o'tgan fakt yozuvlari o'zgarmaydi. Yangi pozitsiyalar keyin F2 tayyorlashda shu qoralama ostiga qo'shiladi.
  */
 export function F2StornoOyna(p: {
@@ -57,6 +58,8 @@ export function F2StornoOyna(p: {
   const [raqam, setRaqam] = useState(`${aktlar.map(aktNomi).join('+')}-С`);
   const [oy, setOy] = useState(oyBosh());
   const [takrorTasdiq, setTakrorTasdiq] = useState(false);
+  /** Fakt bilan nima qilinadi (sukut — eski oqim: 0 ga). */
+  const [faktRejim, setFaktRejim] = useState<StornoFaktRejim>('nolga');
   const [band, setBand] = useState(false);
   const [xato, setXato] = useState('');
   /** Qoralama yaratilgach shu yerda saqlanadi: podval nusxasi / fakt yozuvi yiqilsa, faqat shu qadamlar qayta uriniladi (qoralama takrorlanmaydi). */
@@ -124,8 +127,10 @@ export function F2StornoOyna(p: {
     return n;
   });
 
+  /** Storno manbai faqat TASDIQLANGAN F2 (reestrda tekshiriladi; topilmasa — ruxsat yo'q). */
+  const tasdiqlanmagan = useMemo(() => aktlar.filter((a) => { const r = p.reestr.find((x) => x.id === a.id); return !r || !stornoQilinadiAkt(r); }), [aktlar, p.reestr]);
   const takrorKerak = (faol?.length ?? 0) > 0;
-  const tayyor = !!reja && reja.qatorlar.length > 0 && !!/^\d{4}-\d{2}-\d{2}$/.test(oy) && (!takrorKerak || takrorTasdiq) && faol !== null;
+  const tayyor = !!reja && reja.qatorlar.length > 0 && !!/^\d{4}-\d{2}-\d{2}$/.test(oy) && (!takrorKerak || takrorTasdiq) && faol !== null && tasdiqlanmagan.length === 0;
 
   const bitdi = (aktId: number) => { p.onYaratildi?.(aktId); p.onTugadi?.(aktId); };
 
@@ -144,7 +149,8 @@ export function F2StornoOyna(p: {
 
   async function faktYoz(aktId: number) {
     if (!await podvalNusxa(aktId)) return;
-    if (!faktReja || faktReja.yozuvlar.length === 0) { bitdi(aktId); return; }
+    // «Faktni o'zgartirma»: fakt allaqachon to'g'rilangan — hech qanday fakt yozuvi yo'q, bu muvaffaqiyat.
+    if (faktRejim === 'ozgartirma' || !faktReja || faktReja.yozuvlar.length === 0) { bitdi(aktId); return; }
     const r = await f2StornoFaktYoz({ obyektId: p.obyektId, sana: bugun(), yozuvlar: faktReja.yozuvlar, operationId: opFakt.current, raqam: undefined, izoh: `Сторно F2 №${aktlar.map(aktNomi).join('+')}: fakt 0 ga` });
     if (!r.ok) { setXato(`${t('Storno qoralamasi yaratildi, lekin fakt 0 ga tushmadi')}: ${r.error || r.xabar || ''} ${t('— qayta urinib ko‘ring (qoralama takrorlanmaydi).')}`); return; }
     bitdi(aktId);
@@ -175,6 +181,7 @@ export function F2StornoOyna(p: {
           <p key={a.id} className="text-text-dim">{t('F2 №{r} · {d} — tanlangan qatorlar minus qilib YANGI qoralamaga yoziladi (narx o‘sha). Asl F2 o‘zgarmaydi.', { r: aktNomi(a), d: davrNomi(a.oy ?? '', tilLocale()) || '—' })}</p>
         ))}
         {kop && <p data-testid="storno-kop" className="fz-note fz-note--info">{t('{n} ta eski F2: har biri hujjatda alohida «Сторно Ф-2 №…» bloki bo‘ladi va o‘z podvali bilan hisoblanadi.', { n: aktlar.length })}</p>}
+        {tasdiqlanmagan.length > 0 && <p role="alert" data-testid="storno-tasdiqlanmagan" className="fz-note fz-note--danger"><ShieldAlert />{t('Faqat tasdiqlangan F2 storno qilinadi: {r} tasdiqlanmagan (qoralama yoki bekor).', { r: tasdiqlanmagan.map((a) => `№${aktNomi(a)}`).join(', ') })}</p>}
         {yuklashXato && <p role="alert" className="fz-note fz-note--danger"><ShieldAlert />{yuklashXato}</p>}
         {!yuklashXato && !yuk && <div className="skel min-h-[120px] rounded-xl" />}
         {takrorKerak && (
@@ -223,9 +230,17 @@ export function F2StornoOyna(p: {
               <div className="fz-card px-3 py-2"><p className="text-[10px] uppercase text-text-mute">{t('Saqlab qolinadi')}</p><p className="text-lg font-semibold tabular-nums">{qatorlar.length - reja.qatorlar.length}</p></div>
             </div>
             {reja.toqnashdi > 0 && <p data-testid="storno-toqnashuv" className="fz-note fz-note--warn"><ShieldAlert />{t('{n} ta qator bir nechta eski F2 da bor: bitta hujjatda bir pozitsiya ikki marta bo‘lmaydi — keyingi F2 dagisi tashlandi.', { n: reja.toqnashdi })}</p>}
-            <p data-testid="storno-fakt" className="fz-note fz-note--info">{t('Fakt ham 0 ga tushiriladi: {n} qator', { n: faktReja?.yozuvlar.length ?? 0 })}
-              {faktReja && faktReja.hosila > 0 ? ` · ${t('{n} qatorning fakti ish normasidan hosil bo‘ladi (qo‘lda yozilmaydi)', { n: faktReja.hosila })}` : ''}
-              {' — '}{t('o‘tgan fakt yozuvlari o‘chirilmaydi, minus yozuv qo‘shiladi.')}</p>
+            <fieldset data-testid="storno-fakt-rejim" className="fz-card space-y-1 px-3 py-2" disabled={band}>
+              <legend className="text-xs font-semibold">{t('Fakt bilan nima qilinadi?')}</legend>
+              <label className="flex items-center gap-1.5"><input type="radio" name="storno-fakt-rejim" checked={faktRejim === 'nolga'} onChange={() => setFaktRejim('nolga')} />{t('Faktni 0 ga tushirish')}</label>
+              <label className="flex items-center gap-1.5"><input type="radio" name="storno-fakt-rejim" checked={faktRejim === 'ozgartirma'} onChange={() => setFaktRejim('ozgartirma')} />{t('Faktni o‘zgartirma (fakt allaqachon to‘g‘rilangan)')}</label>
+              <p className="text-text-dim">{t('Fakt allaqachon to‘g‘rilangan bo‘lsa «o‘zgartirma» ni tanlang: eski F2 minus tepada, yangi plyus hajmlar to‘g‘rilangan faktdan pastda qo‘shiladi.')}</p>
+            </fieldset>
+            {faktRejim === 'nolga'
+              ? <p data-testid="storno-fakt" className="fz-note fz-note--info">{t('Fakt ham 0 ga tushiriladi: {n} qator', { n: faktReja?.yozuvlar.length ?? 0 })}
+                {faktReja && faktReja.hosila > 0 ? ` · ${t('{n} qatorning fakti ish normasidan hosil bo‘ladi (qo‘lda yozilmaydi)', { n: faktReja.hosila })}` : ''}
+                {' — '}{t('o‘tgan fakt yozuvlari o‘chirilmaydi, minus yozuv qo‘shiladi.')}</p>
+              : <p data-testid="storno-fakt" className="fz-note fz-note--info">{t('Fakt o‘zgarmaydi: hech qanday fakt yozuvi qo‘shilmaydi.')}</p>}
             {reja.nomalum > 0 && <p className="fz-note fz-note--warn"><ShieldAlert />{t('{n} qatorda summa noma‘lum: noma‘lum bo‘lib qoladi (0 emas), narx «ataylab yo‘q» deb belgilanadi.', { n: reja.nomalum })}</p>}
             <div className="flex flex-wrap items-end gap-3">
               <label className="text-xs text-text-dim">{t('Storno F2 raqami')}<input value={raqam} onChange={(e) => setRaqam(e.target.value)} maxLength={100} className="mt-1 block w-48" disabled={band || yaratilganAkt != null} /></label>
@@ -237,7 +252,7 @@ export function F2StornoOyna(p: {
         <div className="flex justify-end gap-2">
           <button type="button" className="fz-btn fz-btn--ghost" onClick={p.onYop} disabled={band}>{t('Yopish')}</button>
           <button type="button" className="fz-btn fz-btn--primary" onClick={() => void bajar()} disabled={!tayyor || band}>
-            {band ? '…' : yaratilganAkt != null ? t('Podval va faktni qayta urinish') : t('{n} qatorni storno qilish', { n: reja?.qatorlar.length ?? 0 })}
+            {band ? '…' : yaratilganAkt != null ? (faktRejim === 'nolga' ? t('Podval va faktni qayta urinish') : t('Podvalni qayta urinish')) : t('{n} qatorni storno qilish', { n: reja?.qatorlar.length ?? 0 })}
           </button>
         </div>
       </div>

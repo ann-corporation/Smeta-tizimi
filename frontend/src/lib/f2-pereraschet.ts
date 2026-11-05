@@ -5,6 +5,7 @@
  */
 import { bosKesim, f2Baholash, kesimgaQosh, yaxlit2, type AktPodvalNk, type F2Baho, type F2Blok, type HisobKirish, type Kesim } from './hisob-yadro';
 import { STORNO_MANBA } from './f2-storno';
+import { daraxtTartibida, smetaDaraxtTartibi } from './f2-tayyor';
 
 export type PereraschetAktQator = {
   qator_id: number;
@@ -16,7 +17,7 @@ export type PereraschetAktQator = {
 };
 
 /** Smeta qatorining hujjat uchun maydonlari. */
-export type PereraschetSmetaQator = { id: number; kod?: string | null; nom?: string | null; birlik?: string | null; kat?: string | null; tur?: string | null };
+export type PereraschetSmetaQator = { id: number; kod?: string | null; nom?: string | null; birlik?: string | null; kat?: string | null; tur?: string | null; ota_id?: number | null; tartib?: number | null };
 
 export type PereraschetBlokQator = {
   qatorId: number; kod: string | null; nom: string; birlik: string | null; kat: string | null; tur: string;
@@ -44,7 +45,11 @@ export function stornoManbaId(x: { raw_snapshot?: unknown }): number | null {
   return Number.isSafeInteger(id) && id > 0 ? id : null;
 }
 
-/** Aktning storno qatorlarini manba akt bo'yicha bloklarga ajratadi (tartib: manba akt id ning birinchi uchrashuvi). */
+/**
+ * Aktning storno qatorlarini manba akt bo'yicha bloklarga ajratadi (bloklar tartibi: manba akt id ning birinchi uchrashuvi).
+ * Blok ichidagi qatorlar MANBA F2 tuzilmasida: smeta daraxti tartibi (rz → bl → uning rs/mat; `smetaDaraxtTartibi`, f2Qur bilan bir xil) —
+ * DB qaytargan tasodifiy id tartibi emas. Smetada topilmagan qatorlar blok oxirida asl tartibda.
+ */
 export function pereraschetBloklari(
   aktQatorlar: readonly PereraschetAktQator[], smeta: ReadonlyMap<number, PereraschetSmetaQator>, raqamlar: ReadonlyMap<number, string | null> = new Map(),
 ): PereraschetBlok[] {
@@ -63,8 +68,28 @@ export function pereraschetBloklari(
     if (summa == null) b.nomalum++; else b.jami += summa;
     bloklar.set(manba, b);
   }
-  for (const b of bloklar.values()) b.jami = yaxlit2(b.jami); // faqat ko'rsatish; pul jami yadro f2Baholash dan
+  const tartib = smetaDaraxtTartibi(smeta.values());
+  for (const b of bloklar.values()) {
+    b.qatorlar = daraxtTartibida(b.qatorlar, (q) => q.qatorId, tartib);
+    b.jami = yaxlit2(b.jami); // faqat ko'rsatish; pul jami yadro f2Baholash dan
+  }
   return [...bloklar.values()];
+}
+
+/**
+ * Saqlangan pereraschet aktining «yangi» qatorlari: storno bloki qatorlari BITTADAN chiqariladi (qator_id bo'yicha butunlay emas) —
+ * bir smeta qatori storno blokida (minus) va yangi blokda (plyus) bir vaqtda bo'la oladi. Juftlik: shu qator_id, avval aynan
+ * shu hajmli nusxa. Asl tartib saqlanadi.
+ */
+export function stornosizQatorlar<T extends { id: number; hajm: number }>(qatorlar: readonly T[], bloklar: readonly PereraschetBlok[]): T[] {
+  const olinadi = new Set<number>();
+  for (const q of bloklar.flatMap((b) => b.qatorlar)) {
+    const mos = (x: T, i: number) => !olinadi.has(i) && x.id === q.qatorId;
+    let i = qatorlar.findIndex((x, j) => mos(x, j) && q.hajm != null && Math.abs(x.hajm - q.hajm) < 1e-9);
+    if (i < 0) i = qatorlar.findIndex(mos);
+    if (i >= 0) olinadi.add(i);
+  }
+  return qatorlar.filter((_, i) => !olinadi.has(i));
 }
 
 export type PereraschetBaho = {

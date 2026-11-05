@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { faolStornolar, stornoNomzodAktlar, stornoBlokniSaqla, stornoFaktReja, stornoQator, stornoQatorimi, stornoQur, type StornoManbaQator } from './f2-storno';
+import { faolStornolar, stornoNomzodAktlar, stornoBlokniSaqla, stornoFaktReja, stornoQaytarHajm, stornoQator, stornoQatorimi, stornoQur, type StornoManbaQator } from './f2-storno';
 
 const manba: StornoManbaQator[] = [
   { qator_id: 1, hajm: 4, certified_quantity: 4, certified_unit_price: 25, certified_amount: 100 },
@@ -94,10 +94,28 @@ describe('qoralamani qayta saqlashda storno bloki', () => {
     expect(r.qatorlar[0]).toMatchObject({ certifiedQuantity: -4, certifiedUnitPrice: 25, certifiedAmount: -100 });
     expect(r.stornoSoni).toBe(1);
   });
-  it('storno bilan bir xil pozitsiyadagi yangi qator tashlanadi', () => {
-    const r = stornoBlokniSaqla(saqlangan, [{ qatorId: 1 }, { qatorId: 20 }]);
+  it('bloklar mustaqil: bir qator storno blokida (minus) VA yangi blokda (plyus) bo‘la oladi', () => {
+    const r = stornoBlokniSaqla(saqlangan, [{ qatorId: 1, certifiedQuantity: 6 }, { qatorId: 20, certifiedQuantity: 1 }]);
+    expect(r.qatorlar.map((q) => [q.qatorId, (q as { certifiedQuantity: number }).certifiedQuantity])).toEqual([[1, -4], [1, 6], [20, 1]]);
+    expect(r.ikkalasida).toBe(1);
+    expect(r.tashlandi).toBe(0);
+    expect(stornoQatorimi({ raw_snapshot: (r.qatorlar[0] as { rawSnapshot: unknown }).rawSnapshot })).toBe(true);
+  });
+  it('takror faqat blok ICHIDA olib tashlanadi', () => {
+    const ikki = [...saqlangan, { qator_id: 1, certified_quantity: -4, certified_unit_price: 25, certified_amount: -100, raw_snapshot: { source: 'storno', stornoOf: 3 } }];
+    const r = stornoBlokniSaqla(ikki, [{ qatorId: 1 }, { qatorId: 1 }, { qatorId: 20 }]);
+    expect(r.qatorlar.map((q) => q.qatorId)).toEqual([1, 1, 20]);
+    expect(r.stornoSoni).toBe(1);
+    expect(r.ichkiTakror).toBe(2);
+  });
+  it('server cheklovi uchun ongli rejim: ikkala blokdagi yangi qator tashlanadi', () => {
+    const r = stornoBlokniSaqla(saqlangan, [{ qatorId: 1 }, { qatorId: 20 }], { birXilQatorTashla: true });
     expect(r.qatorlar.map((q) => q.qatorId)).toEqual([1, 20]);
-    expect(r.toqnashdi).toBe(1);
+    expect(r.tashlandi).toBe(1);
+  });
+  it('storno qaytaradigan eski F2 hajmi: qator_id → −Σ storno hajmi; oddiy qatorlar kirmaydi', () => {
+    const m = stornoQaytarHajm([...saqlangan, { qator_id: 7, certified_quantity: 2, raw_snapshot: { source: 'storno', stornoOf: 3 } }, { qator_id: 8, certified_quantity: 0, raw_snapshot: { source: 'storno' } }]);
+    expect([...m]).toEqual([[1, 4], [7, -2]]);
   });
   it('narxsiz storno qatori narxsiz qoladi', () => {
     const r = stornoBlokniSaqla([{ qator_id: 9, certified_quantity: -2, provenance_status: 'price_intentionally_absent', raw_snapshot: { source: 'storno' } }], []);
@@ -107,7 +125,7 @@ describe('qoralamani qayta saqlashda storno bloki', () => {
 });
 
 describe('storno tanlagichi nomzodlari', () => {
-  it('bekor, rad, superseded va F2 emas aktlar chiqmaydi; yangisi tepada', () => {
+  it('FAQAT tasdiqlangan F2: qoralama, bekor, rad, superseded va F2 emas aktlar chiqmaydi; yangisi tepada', () => {
     const r = [
       { id: 1, tur: 'f2', holat: 'tasdiqlangan', lifecycle_status: 'approved' as const },
       { id: 2, tur: 'f2', holat: 'bekor', lifecycle_status: 'cancelled' as const },
@@ -116,6 +134,6 @@ describe('storno tanlagichi nomzodlari', () => {
       { id: 5, tur: 'f2', holat: 'qoralama', lifecycle_status: 'draft' as const },
       { id: 6, tur: 'boshqa', holat: 'qoralama' },
     ];
-    expect(stornoNomzodAktlar(r).map((a) => a.id)).toEqual([5, 1]);
+    expect(stornoNomzodAktlar([...r, { id: 7, tur: 'f2', holat: 'tasdiqlangan' }, { id: 8, tur: 'f2', holat: 'qoralama', lifecycle_status: 'submitted' as const }]).map((a) => a.id)).toEqual([7, 1]);
   });
 });

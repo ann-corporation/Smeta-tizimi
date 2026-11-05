@@ -21,7 +21,7 @@ import { sbOqi, sbT2AktYaratV2, sbT2F2QoralamaYangila, sbT2DaraxtOl, sbT2Obyektl
 import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
 import { sbQatorHolatOl, sbF2QoralamaHajmlar, type QatorHolat } from '../../api/t2-fakt';
 import { f2Hujjat } from '../../lib/f2-hujjat';
-import { stornoBlokniSaqla, stornoQatorimi } from '../../lib/f2-storno';
+import { stornoBlokniSaqla, stornoQaytarHajm, stornoQatorimi } from '../../lib/f2-storno';
 import { yigindi2 } from '../../lib/hisob-yadro';
 import { f2QatorniOlibTashla, f2SessiyaOqi, f2SessiyaSaqla, f2SessiyaTozala } from '../../lib/f2-tayyor-sessiya';
 import { useObyektF2Aktlari } from './F2DublikatPanel';
@@ -272,17 +272,20 @@ export function F2TayyorlashNative() {
     return s;
   }, [rows, holat, bajHajm]);
   const zamenaAsl = useMemo<ReadonlyMap<number, number>>(() => zb?.almashtiradi ?? new Map(), [zb]);
-  const bolimlar = useMemo(() => f2Qur(rows, holat, protokolNarx, manba, qoralamaHajm, { chiqarilgan, zamenaAsl }), [rows, holat, protokolNarx, manba, qoralamaHajm, chiqarilgan, zamenaAsl]);
+  /** Pereraschet: shu qoralamadagi storno bloki qaytaradigan eski F2 hajmi — yangi hajm = fakt − BOSHQA tasdiqlangan F2 (eski F2 sof 0). */
+  const stornoQaytar = useMemo(() => stornoQaytarHajm(akt?.qatorlar ?? []), [akt]);
+  const bolimlar = useMemo(() => f2Qur(rows, holat, protokolNarx, manba, qoralamaHajm, { chiqarilgan, zamenaAsl, stornoQaytar }), [rows, holat, protokolNarx, manba, qoralamaHajm, chiqarilgan, zamenaAsl, stornoQaytar]);
   /** Zamena qoldig'i: shu F2 dagi zamena hajmi asl resurs/ishning F2 hajmidan ayiriladi (yagona zamena-qoldiq formulasi). */
   const zamenaKtx = useMemo((): F2ZamenaKontekst | null => {
     if (!zamenaAsl.size) return null;
     const oldingi = new Map<number, number>(); const serverAlm = new Map<number, number>();
     for (const h of holat) {
-      const f2 = Number(h.f2_hajm ?? 0); if (Number.isFinite(f2) && f2 !== 0) oldingi.set(h.qator_id, f2);
+      // Shu qoralamada stornolanayotgan eski F2 chiqariladi (sof F2): stornolangan zamena aslni yopmaydi.
+      const f2 = Number(h.f2_hajm ?? 0) - (stornoQaytar.get(h.qator_id) ?? 0); if (Number.isFinite(f2) && f2 !== 0) oldingi.set(h.qator_id, f2);
       const a = Number((h as QatorHolat & { almashtirilgan_hajm?: number | null }).almashtirilgan_hajm ?? 0); if (Number.isFinite(a) && a > 0) serverAlm.set(h.qator_id, a);
     }
     return { rows: rows.map((r) => ({ id: r.id, ota_id: r.ota_id ?? null, tur: r.tur, birlik: r.birlik, hajm: r.hajm == null ? null : Number(r.hajm) })), zamenaAsl, miqdor, oldingi, serverAlm };
-  }, [rows, holat, zamenaAsl, miqdor]);
+  }, [rows, holat, zamenaAsl, miqdor, stornoQaytar]);
   const xomQatorlar = useMemo(() => f2Qatorlar(bolimlar, k), [bolimlar, k]);
   const zamenaNatija = useMemo(() => f2ZamenaQolla(xomQatorlar, bolimlar, k, zamenaKtx), [xomQatorlar, bolimlar, k, zamenaKtx]);
   const qatorlar = zamenaNatija.qatorlar;
@@ -491,10 +494,19 @@ export function F2TayyorlashNative() {
     await topshirilganPaketOgohi(obyektId, oy); // topshirilgan oylik paket bo'lsa - ogohlantirish (saqlashni to'smaydi)
     setSaving(true);
     try {
-      /* Сторно (eski F2) bloki hujjat BOSHIDA aynan o'zi bilan qayta yuboriladi, yangi qatorlar ular ostida (qatorlar to'liq almashtiriladi). */
-      const yuk = stornoBlokniSaqla(akt.qatorlar, f2Yuk(qatorlar, akt.raqam ?? raqam));
-      if (yuk.toqnashdi > 0) toast(t('{n} ta yangi qator storno bloki bilan bir xil pozitsiya - tashlandi.', { n: String(yuk.toqnashdi) }), 'warn');
-      const r = await sbT2F2QoralamaYangila({ kompaniyaId: joriy.id, aktId: akt.id, kutilganVersiya: akt.versiya, operationId: yangiOperationId(), qatorlar: yuk.qatorlar });
+      /* Сторно (eski F2) bloki hujjat BOSHIDA aynan o'zi bilan qayta yuboriladi, yangi qatorlar ular ostida (qatorlar to'liq almashtiriladi).
+         Bloklar mustaqil: bir smeta qatori storno blokida (minus) va yangi blokda (plyus) bir vaqtda bo'la oladi. */
+      const yangiQ = f2Yuk(qatorlar, akt.raqam ?? raqam);
+      const yuk = stornoBlokniSaqla(akt.qatorlar, yangiQ);
+      let r = await sbT2F2QoralamaYangila({ kompaniyaId: joriy.id, aktId: akt.id, kutilganVersiya: akt.versiya, operationId: yangiOperationId(), qatorlar: yuk.qatorlar });
+      // Server hozircha bir hujjatda bir qatorni ikki marta qabul qilmasa — jim tashlanmaydi: foydalanuvchi ongli tanlaydi.
+      if (!r.ok && r.code === 'DUPLICATE_F2_SOURCE_LINE' && yuk.ikkalasida > 0) {
+        const rozi = await tasdiqSora(t('{n} ta qator ham storno blokida (minus), ham yangi blokda (plyus). Server hozircha bitta hujjatda bir qatorni ikki marta qabul qilmaydi. Bu qatorlarning yangi plyus hajmisiz saqlaymizmi? (Ular keyingi F2 da olinadi.)', { n: String(yuk.ikkalasida) }));
+        if (!rozi) return;
+        const yuk2 = stornoBlokniSaqla(akt.qatorlar, yangiQ, { birXilQatorTashla: true });
+        r = await sbT2F2QoralamaYangila({ kompaniyaId: joriy.id, aktId: akt.id, kutilganVersiya: akt.versiya, operationId: yangiOperationId(), qatorlar: yuk2.qatorlar });
+        if (r.ok) toast(t('{n} ta qatorning yangi plyus hajmi saqlanmadi (server cheklovi) — storno bloki saqlandi.', { n: String(yuk2.tashlandi) }), 'warn');
+      }
       if (!r.ok) {
         if (r.code === 'STALE_VERSION') { toast(t('F2 qoralama boshqa joyda o‘zgargan - yangi holati o‘qildi. Tekshirib, qayta saqlang.'), 'warn'); await yuklash(); }
         else toast(r.xabar || r.error || t('F2 qoralama yangilanmadi.'), 'danger');
@@ -719,7 +731,9 @@ export function F2TayyorlashNative() {
           {meter.oshish != null && <span className="fz-chip fz-chip--warn">{t('smetadan {p}% oshdi', { p: meter.oshish })}</span>}
           <span>{chegaraNom} <b className="text-text"><FmtN val={i.mumkin} /></b></span>
           {i.smeta != null && <span>{t('smeta')} <FmtN val={i.smeta} /></span>}
-          {i.olingan > 0 && <span>{t('tasdiqlangan F2')} <FmtN val={i.olingan} /></span>}
+          {i.storno != null
+            ? <span data-testid="ish-storno-olingan">{t('tasdiqlangan F2')} <FmtN val={i.olingan} /> ({t('storno qilingan')}: <FmtN val={i.storno} />)</span>
+            : i.olingan > 0 && <span>{t('tasdiqlangan F2')} <FmtN val={i.olingan} /></span>}
           {(i.qoralama ?? 0) > 0 && <span className="text-warn">{t('qoralamada')} <b><FmtN val={i.qoralama ?? 0} /></b></span>}
           {(bn.summa > 0 || bn.narxsiz > 0) && <span className="inline-flex items-center gap-1">{t('narx (1 birlik, NDS siz)')} {birlikNarx}{birlikNarxsiz}</span>}
           <span className="text-text-mute">{t('{n} ta resurs', { n: i.resurslar.length })}</span>

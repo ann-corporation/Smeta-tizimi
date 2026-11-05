@@ -25,7 +25,7 @@ import { f2AktKirish } from '../../lib/f2-akt-hujjat';
 import { f2Hujjat } from '../../lib/f2-hujjat';
 import { aktPodvallariniOl } from '../../api/t2-akt-podval';
 import { aktPodvalXaritasi } from '../../lib/akt-podval';
-import { eskiBloklarHujjat, pereraschetBloklari } from '../../lib/f2-pereraschet';
+import { eskiBloklarHujjat, pereraschetBloklari, stornosizQatorlar } from '../../lib/f2-pereraschet';
 import { f2HujjatKaliti, f2HujjatKonteksti } from '../../api/f2-hujjat-kontekst';
 import { mazmunXeshi, tokenBilan } from '../../api/t2-token';
 import { hujjatArxivla } from '../../api/t2-hujjat-arxiv';
@@ -38,6 +38,7 @@ import { f2ImportAktlari, f2ImportQilinganmi } from '../../lib/f2-manba';
 import { f2BekorMumkin } from '../../lib/f2-bekor';
 import { F2BekorOyna, type F2BekorOynaAkt } from './F2BekorOyna';
 import { F2StornoOyna, type F2StornoAkt } from './F2StornoOyna';
+import { stornoQilinadiAkt } from '../../lib/f2-storno';
 import { F2PodvalBackfillOyna } from './F2PodvalBackfillOyna';
 import { useIxtiyoriyQueryClient } from '../../api/t2-obyektlar-kesh';
 import { daraxtKaliti } from '../../umumiy/daraxt/useT2Daraxt';
@@ -255,11 +256,10 @@ export function F2TarixNative() {
       if (!pv.ok || !aq.ok) { toast(`F2 hujjati tuzilmadi: ${t('hujjat podvali o‘qilmadi')}`, 'danger'); return; }
       const xarita = aktPodvalXaritasi(pv.podvallar);
       const eskiB = pereraschetBloklari(aq.qatorlar ?? [], new Map(smetaRows.map((r) => [r.id, r] as const)), new Map(f2Reestr.map((a) => [a.id, a.raqam ?? null] as const)));
-      const stornoIds = new Set(eskiB.flatMap((b) => b.qatorlar.map((q) => q.qatorId)));
       const ozNk = xarita.get(`${akt.id}:`)?.nk ?? null;
       const blokNk = (m: number) => xarita.get(`${akt.id}:${m}`)?.nk ?? xarita.get(`${m}:`)?.nk ?? null;
       const ozNakrutka = ozNk ? (Object.fromEntries(Object.entries(ozNk).filter(([, v]) => v != null).map(([kk, v]) => [kk, Number(v)])) as typeof ctx.nakrutka) : null;
-      const h = f2Hujjat(k.bolimlar, k.qatorlar.filter((x) => !stornoIds.has(x.id)), {
+      const h = f2Hujjat(k.bolimlar, stornosizQatorlar(k.qatorlar, eskiB), {
         obyektNom: object?.nom || '', davr: akt.oy || '', raqam: akt.raqam, imzo: ctx.imzo, shartnoma: ctx.shartnoma,
         // Hujjatning o'z podvali bo'lsa - uning foizlari (QQS ham o'ziniki); yo'q - obyekt podvali va tizim QQS stavkasi.
         ndsFoiz: ozNk ? null : NDS_SUKUT_FOIZ, nakrutka: ozNakrutka ?? ctx.nakrutka, podval: ozNk ? null : ctx.podval, nkManba: ozNk ? null : ctx.nkManba ?? null,
@@ -409,7 +409,7 @@ export function F2TarixNative() {
                     </>}
                     {selectedAkt.holat === 'tasdiqlangan' && selectedAkt.oy && <Link to={`/admin/nakopitelniy?obyekt=${obyektId}&davr=${encodeURIComponent(selectedAkt.oy)}&f3=1`} title={t('Shu davr uchun СПРАВКА-СЧЕТ-ФАКТУРА (Форма №3) ni ochadi')} className="fz-btn"><FileText />{t('Форма №3 (счёт-фактура)')}</Link>}
                     {selectedAkt.lifecycle_status === 'approved' && importAkt?.id === selectedAkt.id && !importAkt.import && <ZakazchigaYuborish kompaniyaId={workspace.companyId ?? joriy?.id} aktId={selectedAkt.id} />}
-                    {mayPrepare && statusOf(selectedAkt) !== 'cancelled' && <button type="button" className="fz-btn" title={t('Shu F2 qatorlaridan minus (storno) qoralama yaratadi; asl F2 o‘zgarmaydi')} onClick={() => setStornoOyna({ id: selectedAkt.id, raqam: selectedAkt.raqam, oy: selectedAkt.oy, hujjat_jami: selectedAkt.hujjat_jami })} disabled={savingId != null}><RotateCcw />{t('Storno (minus) F2 yaratish')}</button>}
+                    {mayPrepare && stornoQilinadiAkt(selectedAkt) && <button type="button" className="fz-btn" title={t('Shu F2 qatorlaridan minus (storno) qoralama yaratadi; asl F2 o‘zgarmaydi')} onClick={() => setStornoOyna({ id: selectedAkt.id, raqam: selectedAkt.raqam, oy: selectedAkt.oy, hujjat_jami: selectedAkt.hujjat_jami })} disabled={savingId != null}><RotateCcw />{t('Storno (minus) F2 yaratish')}</button>}
                     {bekorMumkin(selectedAkt) && <button type="button" className="fz-btn fz-btn--danger" onClick={() => setBekorOyna([bekorAkt(selectedAkt)])} disabled={savingId != null}><Ban />{t('Bekor qilish')}</button>}
                   </>}
                   ostida={<>
