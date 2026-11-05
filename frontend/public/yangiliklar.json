@@ -2,6 +2,14 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 102,
+      "sana": "2026-11-05",
+      "sarlavha": "Katta obyektlarda «Fakt = F2», «Qamrov %» va «Tiklash» ishlaydi",
+      "bandlar": [
+        "Qatori ko‘p obyektlarda (masalan Sun‘iy ko‘l) fakt 3000 qatorlik bo‘lak bilan yuborilib, server «Yozuv egasini tekshirib bo‘lmadi» deb rad etardi. Endi 1500 qatorlik bo‘laklarga bo‘linadi — yozish ishlaydi."
+      ]
+    },
+    {
       "id": 101,
       "sana": "2026-11-05",
       "sarlavha": "Tizim endi o‘zi o‘rgatadi: «Bu sahifa nima beradi» va «Keyingi qadam»",

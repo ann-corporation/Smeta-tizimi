@@ -96,12 +96,12 @@ describe('Fakt = F2 oynasi', () => {
     m.yoz.mockImplementation(async (x: { operationId: string }) => { n++; if (n === 2) throw new Error('timeout'); return { ok: true, akt_id: Number(x.operationId.slice(3)) + 100 }; });
     render(<FaktF2Tenglash sarlavha="Butun obyekt" reja={katta} {...props} onYop={vi.fn()} onBajarildi={vi.fn()} aktBekor={vi.fn()} />);
     fireEvent.click(yozBtn());
-    await waitFor(() => expect(m.yoz).toHaveBeenCalledTimes(3));
-    expect(m.yoz.mock.calls.map((c) => c[0].qatorlar.length)).toEqual([3000, 3000, 500]);
+    await waitFor(() => expect(m.yoz).toHaveBeenCalledTimes(5));
+    expect(m.yoz.mock.calls.map((c) => c[0].qatorlar.length)).toEqual([1500, 1500, 1500, 1500, 500]);
     await waitFor(() => expect(screen.getByTestId('qamrov-urinish')).toBeTruthy());
     const ids = m.yoz.mock.calls.map((c) => c[0].operationId);
     fireEvent.click(screen.getByRole('button', { name: 'Qo‘llash' }));
-    await waitFor(() => expect(m.yoz).toHaveBeenCalledTimes(6));
-    expect(m.yoz.mock.calls.slice(3).map((c) => c[0].operationId)).toEqual(ids); // yangi UUID yo'q — ikkinchi hujjat yaratilmaydi
+    await waitFor(() => expect(m.yoz).toHaveBeenCalledTimes(10));
+    expect(m.yoz.mock.calls.slice(5).map((c) => c[0].operationId)).toEqual(ids); // yangi UUID yo'q — ikkinchi hujjat yaratilmaydi
   });
 });

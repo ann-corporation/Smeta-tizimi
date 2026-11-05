@@ -36,7 +36,7 @@ afterEach(cleanup);
 
 describe('FaktQamrov — JQA-09', () => {
   it('qisman tasdiqlangan urinish tashlansa — tasdiqlangan qism qayta yozilmaydi; yangi urinish yangilangan holatdan; jami 100, 200 emas', async () => {
-    const ishlar = Array.from({ length: 3001 }, (_, i) => ish(i + 10));
+    const ishlar = Array.from({ length: 1501 }, (_, i) => ish(i + 10));
     const fakt = server(new Set([2]));
     const onYop = vi.fn(); const yangila = vi.fn();
     function Parent() {
@@ -50,7 +50,7 @@ describe('FaktQamrov — JQA-09', () => {
     save();
     await waitFor(() => expect(screen.getByTestId('urinish-tashla')).toBeTruthy());
     expect(fakt.get(10)).toBe(100);
-    expect(fakt.get(3010)).toBeUndefined();
+    expect(fakt.get(1510)).toBeUndefined();
     fireEvent.click(screen.getByTestId('urinish-tashla'));
     // Tasdiqlangan akt ro'yxati va bekor qilish qoladi.
     expect(screen.getByTestId('qamrov-yozilgan').textContent).toMatch(/№1/);
@@ -60,7 +60,7 @@ describe('FaktQamrov — JQA-09', () => {
     save();
     await waitFor(() => expect(onYop).toHaveBeenCalled());
     expect(fakt.get(10)).toBe(100);
-    expect(fakt.get(3010)).toBe(100);
+    expect(fakt.get(1510)).toBe(100);
   });
 
   it('jadval yozuvni hali ko‘rsatmasa (yangilanmagan) — yangi urinish yopiq; «Jadvalni yangilash» dan keyin ochiladi', async () => {
