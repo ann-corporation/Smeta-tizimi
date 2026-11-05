@@ -9,7 +9,7 @@ export function desktopSessionFetch(create: (events: { status: (offline: boolean
   let current = bind();
   return async (input, init) => {
     const request = current, response = await request(input, init);
-    if (request !== current) return response; // A late response belongs to the retired identity.
+    if (request !== current) throw new Error('DESKTOP_SESSION_CHANGED'); // Never deliver a retired identity's body.
     const url = new URL(input instanceof Request ? input.url : String(input), 'http://tauri.localhost');
     if (response.ok && url.origin === 'http://tauri.localhost' && url.pathname === '/api/kirish') current = bind();
     else if (response.status === 401) events.ended();
