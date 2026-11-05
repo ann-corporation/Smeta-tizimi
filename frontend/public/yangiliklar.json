@@ -2,6 +2,17 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 101,
+      "sana": "2026-11-05",
+      "sarlavha": "Tizim endi o‘zi o‘rgatadi: «Bu sahifa nima beradi» va «Keyingi qadam»",
+      "bandlar": [
+        "Asosiy sahifani (obyektlar, smeta, podval, fakt, F2, F2 tarixi, reestr, F2 portfeli, nakopitelniy, hujjat dizayni, sozlamalar) birinchi marta ochganingizda kichik oyna chiqadi: bu sahifa nima beradi va 3 qadamda qanday ishlatiladi.",
+        "Oyna faqat bir marta chiqadi. «Tushunarli» — yopiladi, «Keyinroq» — keyingi safar yana chiqadi, «Ko‘rsatmang» — boshqa o‘zi chiqmaydi. Tepadagi «?» tugmasi bilan istalgan payt qayta ochasiz.",
+        "Obyekt sahifasida va obyektlar ro‘yxatida yangi «Keyingi qadam» paneli: obyekt holatiga qarab keyingi ishni aytadi — smetani yuklang → podvalni qo‘ying → faktni kiriting → F2 tayyorlang → qoralamalarni tasdiqlang → F2 portfelida Excel oling.",
+        "Panel tugmasi kerakli sahifani shu obyekt tanlangan holda ochadi va o‘sha sahifaning qisqa yo‘riqnomasini ko‘rsatadi."
+      ]
+    },
+    {
       "id": 100,
       "sana": "2026-11-05",
       "sarlavha": "Egizak obyektlarga qo‘shimcha ishlar fakti ham ko‘chadi",

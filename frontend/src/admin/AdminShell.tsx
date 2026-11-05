@@ -22,6 +22,7 @@ import { OrqaOldinga } from '../umumiy/ui/OrqaOldinga';
 import { SIDEBAR_HODISA } from '../components/akkaunt/korinish-sozlama';
 import { AiHelper } from '../umumiy/ui/AiHelper';
 import { CommandPalette } from '../umumiy/ui/CommandPalette';
+import { QollanmaBoshqaruv } from '../components/qollanma/QollanmaKarta';
 import { BolimTablariKontekst } from './bolimTablariKontekst';
 import { NAV_GURUHLAR, NAV_SAHIFALAR, navSahifa, type NavIkonka } from '../lib/nav/navReestr';
 import { menyuQur, ilovalarRoyxati, type NavKontekst } from '../lib/nav/navFiltr';
@@ -329,7 +330,7 @@ function AdminShellInner() {
           {k.superadmin && <span className="hidden rounded-md border border-accent/25 px-2 py-1 text-[10px] text-accent 2xl:inline">{t('Platforma roli')}: superadmin</span>}
           {k.superadmin && k.joriy?.membershipRole && <span className="hidden text-[10px] text-text-dim 2xl:inline">{t('Kompaniyadagi rol')}: {k.joriy.membershipRole}</span>}
           <PTOWorkspaceBar />
-          <div className="ml-auto flex items-center gap-2"><TilTanlagich ixcham /><Qongiroqcha /><AkkauntTugmasi /></div>
+          <div className="ml-auto flex items-center gap-2"><QollanmaBoshqaruv foydalanuvchi={sess.data?.email} /><TilTanlagich ixcham /><Qongiroqcha /><AkkauntTugmasi /></div>
         </div>
 
         {/* ⚠️ 2026-09-07 (Claude, P0): AVVAL bu yerda `sess.data.yozaOladi`
