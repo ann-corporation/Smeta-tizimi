@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 107,
+      "sana": "2026-11-05",
+      "sarlavha": "F2: fakt F2 dan kam bo‘lsa — ixtiyoriy minus chegirma",
+      "bandlar": [
+        "F2 tayyorlashda (Fakt rejimi) yangi belgi: «Fakt F2 dan kam qatorlarni minus bilan chegirish». Sukut bo‘yicha o‘chiq — F2 faktdan oldinda bo‘lishi normal.",
+        "Yoqishdan oldin nechta qatorda F2 faktdan ko‘pligi va taxminiy summa (ustamasiz) ko‘rinadi.",
+        "Yoqilsa, ortiqcha hajm minus qator bo‘lib F2 ga kiradi (oldingi F2 narxida, resurslari ham minus), qator «F2 faktdan ko‘p — chegirma» belgisi bilan; har qatorni odatdagidek o‘zgartirish yoki olib tashlash mumkin."
+      ]
+    },
+    {
       "id": 106,
       "sana": "2026-11-05",
       "sarlavha": "F2: minus (chegirma) qatorlar endi tushib qolmaydi",

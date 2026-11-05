@@ -49,7 +49,7 @@ import { sbAosrCoverageOl, type AosrCoverage } from '../../api/t2-aosr';
 import { aosrIshora, AOSR_ISHORA_MATNI, type AosrIshora } from '../../lib/nazorat/aosr-holat';
 import { amaldagiProtokolNarxlari, narxProtokolQatorlariOl, type NarxProtokolQator } from '../../api/t2-narx-protokol';
 import {
-  bosKiritma, f2Jami, f2KatKesim, f2Qatorlar, f2Qur, f2Yacheykalar, f2Yuk, f2ZamenaQolla, ishBirlikNarxi, narxsizNomzodlar, sonOqi, ulushHajm,
+  bosKiritma, f2Jami, f2KatKesim, f2Qatorlar, f2Qur, f2Yacheykalar, f2Yuk, f2ZamenaQolla, ishBirlikNarxi, narxsizNomzodlar, ortiqchaXulosa, sonOqi, ulushHajm,
   type F2Bolim, type F2Ish, type F2Kiritma, type F2Manba, type F2Qator, type F2Resurs, type F2ZamenaKontekst,
 } from '../../lib/f2-tayyor';
 import { MinusCircle, Repeat2, RotateCcw } from 'lucide-react';
@@ -127,6 +127,8 @@ export function F2TayyorlashNative() {
   const [k, setK] = useState<F2Kiritma>(bosKiritma);
   /** Hajm manbai: operator tanlamaguncha — obyektda fakt qoldig'i bo'lsa `fakt`, bo'lmasa `smeta` (faktsiz F2). */
   const [manbaTanlov, setManbaTanlov] = useState<F2Manba | null>(null);
+  /** Fakt F2 dan kam qatorlarni minus bilan chegirish — ixtiyoriy, sukut o'chiq (F2 faktdan oldinda bo'lishi normal); faqat shu sahifa holati. */
+  const [ortiqchaChegir, setOrtiqchaChegir] = useState(false);
   /** «Faktdan F2» (Fakt jurnalidan ?oy=YYYY-MM): davr fakt sahifasida tanlangan bo'lsa — shu oy. */
   const [oy, setOy] = useState(() => { const p = params.get('oy'); return p && /^\d{4}-\d{2}$/.test(p) ? `${p}-01` : oyBoshlanishi(); });
   const [raqam, setRaqam] = useState('');
@@ -205,7 +207,7 @@ export function F2TayyorlashNative() {
       setRows((d.qatorlar || []) as T2Qator[]); setHolat((h.qatorlar || []) as QatorHolat[]);
       sessObyekt.current = aktId == null ? obyektId : null;
       const sess = aktId == null ? f2SessiyaOqi(obyektId) : null; // saqlanmagan kiritmalar (yangilashdan keyin ham)
-      setK(sess?.k ?? bosKiritma()); if (sess?.raqam) setRaqam(sess.raqam); setBolimId(undefined); setManbaTanlov(null);
+      setK(sess?.k ?? bosKiritma()); if (sess?.raqam) setRaqam(sess.raqam); setBolimId(undefined); setManbaTanlov(null); setOrtiqchaChegir(false);
       operationId.current = yangiOperationId();
     } catch { if (dolzarb()) { setRows([]); setHolat([]); setError('F2 uchun ma’lumotlar o‘qilmadi. Qayta urinib ko‘ring.'); } }
     finally { if (dolzarb()) setLoading(false); }
@@ -274,7 +276,26 @@ export function F2TayyorlashNative() {
   const zamenaAsl = useMemo<ReadonlyMap<number, number>>(() => zb?.almashtiradi ?? new Map(), [zb]);
   /** Pereraschet: shu qoralamadagi storno bloki qaytaradigan eski F2 hajmi — yangi hajm = fakt − BOSHQA tasdiqlangan F2 (eski F2 sof 0). */
   const stornoQaytar = useMemo(() => stornoQaytarHajm(akt?.qatorlar ?? []), [akt]);
-  const bolimlar = useMemo(() => f2Qur(rows, holat, protokolNarx, manba, qoralamaHajm, { chiqarilgan, zamenaAsl, stornoQaytar }), [rows, holat, protokolNarx, manba, qoralamaHajm, chiqarilgan, zamenaAsl, stornoQaytar]);
+  /** Ochilgan qoralamada fakt ≥ 0 qatorga minus hajm bor (oldin ortiqcha F2 chegirilgan) — chegirish yoqiladi, aks holda qator yo'qolib qoladi. */
+  const aktdaOrtiqcha = useMemo(() => {
+    if (!akt) return false;
+    const fakt = new Map(holat.map((h) => [h.qator_id, h.fakt_hajm == null ? null : Number(h.fakt_hajm)]));
+    return akt.qatorlar.some((x) => { if (stornoQatorimi(x)) return false; const q = sonQ(x.certified_quantity) ?? sonQ(x.hajm); const f = fakt.get(x.qator_id); return q != null && q < 0 && f != null && f >= 0; });
+  }, [akt, holat]);
+  useEffect(() => { if (aktdaOrtiqcha) setOrtiqchaChegir(true); }, [aktdaOrtiqcha]);
+  const f2QurOrtiqcha = useCallback((yoq: boolean) => f2Qur(rows, holat, protokolNarx, manba, qoralamaHajm, { chiqarilgan, zamenaAsl, stornoQaytar, ortiqchaChegir: yoq }), [rows, holat, protokolNarx, manba, qoralamaHajm, chiqarilgan, zamenaAsl, stornoQaytar]);
+  const bolimlar = useMemo(() => f2QurOrtiqcha(ortiqchaChegir), [f2QurOrtiqcha, ortiqchaChegir]);
+  /** «N ta qatorda F2 faktdan ko'p (≈ X so'm)» — chegirish yoqilgan holatdagi qurilishdan (o'chiq bo'lsa alohida hisoblanadi). Smeta rejimida — yo'q. */
+  const ortiqchaX = useMemo(() => (manba !== 'fakt' || !rows.length ? null : ortiqchaXulosa(ortiqchaChegir ? bolimlar : f2QurOrtiqcha(true))), [manba, rows.length, ortiqchaChegir, bolimlar, f2QurOrtiqcha]);
+  /** O'chirilganda chegirma qatorlarining kiritmalari tozalanadi (F2 ga tushib qolmasin). */
+  const ortiqchaAlmashtir = (yoq: boolean) => {
+    if (!yoq) {
+      const ids: number[] = [];
+      for (const b of bolimlar) { for (const i of b.ishlar) { if (i.ortiqchaF2) ids.push(i.id); for (const r of i.resurslar) if (r.ortiqchaF2 && !r.avto) ids.push(r.id); } for (const r of b.alohida) if (r.ortiqchaF2) ids.push(r.id); }
+      if (ids.length) setK((o) => ids.reduce((acc, id) => f2QatorniOlibTashla(acc, id), o));
+    }
+    setOrtiqchaChegir(yoq);
+  };
   /** Zamena qoldig'i: shu F2 dagi zamena hajmi asl resurs/ishning F2 hajmidan ayiriladi (yagona zamena-qoldiq formulasi). */
   const zamenaKtx = useMemo((): F2ZamenaKontekst | null => {
     if (!zamenaAsl.size) return null;
@@ -457,6 +478,7 @@ export function F2TayyorlashNative() {
   const [korinmaganQator, setKorinmaganQator] = useState(0);
   useEffect(() => {
     if (!akt || loading || !bolimlar.length) return;
+    if (aktdaOrtiqcha && !ortiqchaChegir) return; // chegirma qatorlari bo'limlarda paydo bo'lishini kutamiz
     const kalit = `${akt.id}:${akt.versiya}`;
     if (aktQollandi.current === kalit) return;
     aktQollandi.current = kalit;
@@ -481,7 +503,7 @@ export function F2TayyorlashNative() {
     setK(nk); setKorinmaganQator(yoq);
     if (akt.raqam) setRaqam(akt.raqam);
     if (akt.oy) setOy(String(akt.oy).slice(0, 10));
-  }, [akt, loading, bolimlar]);
+  }, [akt, loading, bolimlar, aktdaOrtiqcha, ortiqchaChegir]);
 
   /** BITTA tekshiruv ro'yxati: xato, dublikat, oshgan hajm, АОСР, uchastka, narxsiz — hammasi bir joyda (qarorlar o'zgarmaydi). */
   const bandlar = useMemo(() => tekshiruvBandlari({ qatorlar, dublikatlar, aosrsizSoni: aosrsiz.length, uchastkalar, korinmagan: aktId != null ? korinmaganQator : 0, raqam, raqamQulf: aktId != null }),
@@ -655,6 +677,12 @@ export function F2TayyorlashNative() {
       : <span className="fz-chip" data-testid="f2-zamena-yopdi" title={t('Shu F2 dagi zamena qoplagan hajm (asl birlikda) ayirildi')}>{t('zamena yopdi')}: −<FmtN val={y} /></span>;
   }
 
+  /** «F2 faktdan ko'p — chegirma» belgisi (ixtiyoriy chegirish yoqilganda; operator qatorni odatdagidek tahrirlaydi/olib tashlaydi). */
+  function ortiqchaChip(faktNol: boolean) {
+    return <span className="fz-chip fz-chip--warn" data-testid="ortiqcha-f2-belgi" title={t('Tasdiqlangan F2 fakt hajmidan ko‘p — ortiqchasi minus qator bilan chegiriladi')}>
+      {faktNol ? t('F2 faktdan ko‘p — chegirma (fakt 0)') : t('F2 faktdan ko‘p — chegirma')}</span>;
+  }
+
   function resursQatori(r: F2Resurs, ish: F2Ish | null = null) {
     const x = byId.get(r.id);
     const taklif = r.taklifNarx != null ? String(Math.round(r.taklifNarx * 1e6) / 1e6) : '';
@@ -662,12 +690,13 @@ export function F2TayyorlashNative() {
     const katBelgi = kat ? <KatNishon kat={kat} /> : <span className="fz-kat">{'rs'}</span>;
     const amal = resursAmallari(r, ish);
     const zb2 = zamenaBelgi(r);
+    const orqBelgi = r.ortiqchaF2 && !r.avto ? ortiqchaChip(!!r.faktNol) : null;
     return (
       <tr key={r.id} data-qator={r.id} className={`border-t border-border align-top ${r.chiqarilgan ? 'opacity-60' : ''} ${r.zamena ? 'border-l-2 border-l-[var(--info)]' : ''}`}>
         <td className="py-1.5 pl-9 pr-2">
           <div className="flex items-center gap-1.5">{katBelgi}<span className={`truncate text-text ${r.chiqarilgan ? 'line-through' : ''}`}>{r.nom}</span></div>
           {r.norma != null && r.avto && <div className="pl-1 text-[11px] text-text-mute">{t('norma')} {r.norma}</div>}
-          {(amal || zb2) && <div className="mt-0.5 flex flex-wrap items-center gap-1 pl-1">{zb2}{amal}</div>}
+          {(amal || zb2 || orqBelgi) && <div className="mt-0.5 flex flex-wrap items-center gap-1 pl-1">{orqBelgi}{zb2}{amal}</div>}
         </td>
         <td className="px-2 py-1.5 text-right text-text-mute">{r.birlik}</td>
         <td className="px-2 py-1.5 text-right tabular-nums">
@@ -737,6 +766,7 @@ export function F2TayyorlashNative() {
               <span className="min-w-0 truncate text-[13.5px] font-semibold text-text">{i.nom}</span>
               {aosrBelgi}
               {aosrsizId.has(i.id) && <span className="fz-chip fz-chip--warn">{t('yashirin · АОСР yo‘q')}</span>}
+              {i.ortiqchaF2 && ortiqchaChip(!!i.faktNol)}
             </div>
           </div>
           <div className="flex items-center gap-1.5">
@@ -807,6 +837,10 @@ export function F2TayyorlashNative() {
     if (b.kod === 'aosr') return <Link to="/admin/aosr" className="fz-btn fz-btn--sm">{t('АОСР yaratish')}</Link>;
     return null;
   };
+  /** Chegirish tugmasi: fakt rejimida, ortiqcha F2 li qator bor bo'lsa (yoki allaqachon yoqilgan). */
+  const ortiqchaKorinadi = validId && !loading && manba === 'fakt' && ortiqchaX != null && (ortiqchaX.soni > 0 || ortiqchaChegir);
+  const ortiqchaNomalum = (ortiqchaX?.nomalum ?? 0) > 0;
+  const ortiqchaFaktNol = (ortiqchaX?.faktNol ?? 0) > 0;
   const saqlaMatn = aktId != null
     ? (saving ? t('Yangilanmoqda…') : `${t('F2 qoralamani yangilash')} (${qatorlar.length})`)
     : saving ? t('Yaratilmoqda…') : `${t('F2 qoralama yaratish')} (${qatorlar.length})`;
@@ -844,6 +878,15 @@ export function F2TayyorlashNative() {
         {validId && !loading && holat.length > 0 && <div role="group" aria-label={t('Hajm manbai')} className="text-[12px] font-medium text-text-dim">{t('Hajm manbai')}
           <div className="mt-1.5 flex overflow-hidden rounded-lg border border-border">{(['fakt', 'smeta'] as const).map((m) => <button key={m} type="button" aria-pressed={manba === m} onClick={() => { setManbaTanlov(m); setK(bosKiritma()); }}
             className={`px-3 py-2 ${manba === m ? 'bg-accent/15 font-semibold text-text' : 'bg-surface-2 text-text-dim hover:text-text'}`}>{m === 'fakt' ? t('Fakt') : t('Smeta qoldig‘i')}</button>)}</div></div>}
+        {ortiqchaKorinadi && ortiqchaX && <div className="max-w-[22rem] text-[12px] font-medium text-text-dim" data-testid="ortiqcha-chegir">
+          <label className="flex items-start gap-1.5"><input type="checkbox" className="mt-0.5" checked={ortiqchaChegir} disabled={aktKorish} onChange={(e) => ortiqchaAlmashtir(e.target.checked)} />{t('Fakt F2 dan kam qatorlarni minus bilan chegirish')}</label>
+          <div className="mt-1 text-[11.5px] font-normal text-warn" data-testid="ortiqcha-xulosa">
+            {t('{n} ta qatorda F2 faktdan ko‘p — jami ≈', { n: ortiqchaX.soni })} <FmtN val={ortiqchaX.summa} /> {t('so‘m ustamasiz')}
+            {ortiqchaNomalum && <> · {t('{n} qatorda narx noma‘lum — summaga kirmagan', { n: ortiqchaX.nomalum })}</>}
+            {ortiqchaFaktNol && <> · {t('{n} qatorda fakt 0 — F2 to‘liq chegiriladi', { n: ortiqchaX.faktNol })}</>}
+          </div>
+          <div className="mt-0.5 text-[11px] font-normal text-text-mute">{t('F2 faktdan oldinda bo‘lishi normal (avans) — faqat ongli ravishda yoqing.')}</div>
+        </div>}
         {validId && bolimlar.length > 0 && <label className="relative min-w-[200px] flex-1 text-[12px] font-medium text-text-dim">{t('Qidirish')}
           <Search size={14} className="pointer-events-none absolute bottom-2.5 left-2.5 text-text-mute" />
           <input aria-label="Qidirish" value={qidir} onChange={(e) => setQidir(e.target.value)} placeholder={t('ish, resurs, kod…')} className="mt-1.5 block w-full rounded-lg border border-border bg-surface-2 py-2 pl-8 pr-3 text-text" /></label>}
