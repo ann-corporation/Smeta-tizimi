@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 103,
+      "sana": "2026-11-05",
+      "sarlavha": "Bo‘lim jamisi qo‘shimcha ish va zamenadan keyin darhol yangilanadi",
+      "bandlar": [
+        "Bo‘limga qo‘shimcha ish yoki zamena qo‘shsangiz (yoki uni o‘chirsangiz), bo‘lim summasi va obyekt jamisi endi shu zahoti qayta hisoblanadi. Avval ish summasi to‘g‘ri chiqib, bo‘lim summasi eski qolardi.",
+        "Asl smeta qatorlari o‘zgarmaydi — faqat bo‘lim jamisi yangilanadi.",
+        "Ishning ichidagi material summasi ham ish jamisiga to‘liq kiradi va keyingi qayta hisoblashda tushib qolmaydi."
+      ]
+    },
+    {
       "id": 102,
       "sana": "2026-11-05",
       "sarlavha": "Katta obyektlarda «Fakt = F2», «Qamrov %» va «Tiklash» ishlaydi",

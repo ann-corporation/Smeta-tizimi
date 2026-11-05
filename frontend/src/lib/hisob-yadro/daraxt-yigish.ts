@@ -96,7 +96,8 @@ export class DaraxtHisob {
     if(r.ota_id==null)return;
     if(init){
       const otaTur=this.q.get(r.ota_id)?.tur;
-      const bl=r.tur==='rs'&&otaTur==='bl';
+      // 20261203000300 t2_rollup bilan bir xil: bl = Σ rs + mat + ob (qo'shimcha ishning materiali tushib qolmasin).
+      const bl=barg.has(r.tur)&&otaTur==='bl';
       if(bl||(rzBola.has(r.tur)&&otaTur==='rz')){
         const sums=bl?this.blSum:this.rzSum,s=sums.get(r.ota_id)??bos();
         s.count++;sums.set(r.ota_id,s);this.guruhlar.set(r.id,{s,ota:r.ota_id,bl});

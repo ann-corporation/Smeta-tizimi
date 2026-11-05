@@ -30,6 +30,12 @@ describe('retained daraxt — amaldagi SQL rollup/norma',()=>{
     expect(h.xulosa().jami).toBe('40');
     expect(h.razdelKorinish()).toEqual([{id:2,summa:'30'},{id:1,summa:'40'}]);
   });
+  it('BL jamisiga rs bilan birga mat/ob ham kiradi (t2_rollup 20261203000300); RZ ota yangilanadi',()=>{
+    const h=new DaraxtHisob([q(1,null,'rz',null,null,23),q(2,1,'bl',2,null,23),q(3,2,'rs',2,4,8,1),q(4,2,'mat',3,5,15)]);
+    h.tahrir({qator_id:4,maydon:'narx',qiymat:'6',kutilgan_versiya:1});
+    expect(h.ol([2,1]).map(r=>r.summa)).toEqual(['26','26']);
+    expect(h.xulosa().jami).toBe('26');
+  });
   it('ziddiyat/unknown maydon/qator xatoda snapshot o‘zgarmaydi',()=>{
     const h=new DaraxtHisob(base()), before=h.ol([1,2,3,4]);
     for(const t of [{qator_id:3,maydon:'narx',qiymat:'5',kutilgan_versiya:0},{qator_id:3,maydon:'f2_summa',qiymat:'5',kutilgan_versiya:1},{qator_id:3,maydon:'narx',qiymat:'NaN',kutilgan_versiya:1}])
