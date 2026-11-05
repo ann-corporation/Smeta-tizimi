@@ -18,9 +18,9 @@ const {PGlite}=await import(pathToFileURL(resolve(pgliteDir,'dist/index.js')).hr
 const {createServer}=await import(pathToFileURL(resolve(frontend,'node_modules/vite/dist/node/index.js')).href);
 const db=new PGlite();
 await seed(db);
-const migrationFile=resolve(repo,'supabase/migrations/20261202000000_t2_desktop_auth_v1.sql');
-const migration=await readFile(migrationFile,'utf8');
-await db.exec(migration);
+const migrationFiles=['20261202000000_t2_desktop_auth_v1.sql','20261203001200_t2_desktop_boshqaruv_v1.sql'];
+const migrations=[];
+for(const name of migrationFiles){const sql=await readFile(resolve(repo,'supabase/migrations',name),'utf8');await db.exec(sql);migrations.push({name,sha256:createHash('sha256').update(sql).digest('hex')});}
 const pair=await webcrypto.subtle.generateKey({name:'Ed25519'},true,['sign','verify']);
 const pk=Buffer.from(await webcrypto.subtle.exportKey('raw',pair.publicKey)).toString('base64url');
 // Private PKCS8 and HMAC secret remain in memory, never written or included in stats.
@@ -39,17 +39,17 @@ const packetFixture=(await db.query('select paket from public.m5_packet_fixture'
 const decodedFixture=packetTools.paketDekod(packetFixture);
 let offlineMode='online';
 const stats={authMode:'authstub',fixtureMode:'canonical-business-fixture',fixture,startedAt:new Date().toISOString(),pid:process.pid,port:PORT,
-  migration:'20261202000000_t2_desktop_auth_v1.sql',migrationSha256:createHash('sha256').update(migration).digest('hex'),
-  handlers:{},rpc:{},rest:{},adapterErrors:{},httpStatus:{},blockedEgress:0,unimplementedDb:0,handlerErrors:0,offlineRequests:0,
+  migrations,handlers:{},rpc:{},rest:{},adapterErrors:{},unimplementedDbNames:{},unimplementedRoutes:{},httpStatus:{},blockedEgress:0,unimplementedDb:0,handlerErrors:0,offlineRequests:0,
   actualHandlers:['desktop/qurilma','desktop/lease','desktop/bff','api/_middleware (via bff)','api/sessiya (via bff)','api/company (via bff)','api/sb (via bff)','api/obyekt-paket (via bff)'],
   database:'PGlite in-memory; real desktop migration; synthetic actor/business SQL fixtures'};
 function count(map,key){map[key]=(map[key]||0)+1;}
+function unimplemented(map,name){if(/^[a-z][a-z0-9_]*$/.test(name))count(map,name);stats.unimplementedDb++;}
 // Minimal PostgREST DB adapter, not a handler response mock. Preserve every
 // duplicate eq/in predicate (caller filter AND the real /sb tenant restriction).
 async function objectView(url){
-  const columns=new Set(['id','nom','kompaniya_id']);
+  const columns=new Set(['id','nom','kompaniya_id','loyiha_id','asosiy_shartnoma_id']);
   const select=url.searchParams.get('select')||'*';
-  const selected=select==='*'?['id','nom','kompaniya_id']:select.split(',');
+  const selected=select==='*'?[...columns]:select.split(',');
   const values=[],where=[];
   if(!selected.length||!selected.every(c=>columns.has(c)))throw new Error('M5_VIEW_SELECT_UNSUPPORTED');
   for(const [column,filter]of url.searchParams){
@@ -84,21 +84,24 @@ async function objectView(url){
 async function packetView(url,table){
   const raw=packetTools.paketdanQatorlar(decodedFixture).map(r=>({...r,kompaniya_id:fixture.company}));
   const state=packetTools.paketdanHolatlar(decodedFixture).map(r=>({...r,obyekt_id:fixture.object,kompaniya_id:fixture.company}));
-  let rows=table==='t2_daraxt'?raw:state;
-  const keys=table==='t2_daraxt'?new Set(Object.keys(raw[0])):new Set(Object.keys(state[0]));
+  const acts=decodedFixture.f2.map(a=>({id:a.akt_id,obyekt_id:fixture.object,kompaniya_id:fixture.company,obyekt:'M5 SYNTHETIC OBJECT',tur:'f2',raqam:a.raqam,oy:a.oy,holat:a.holat,lifecycle_status:a.lifecycle_status,fayl_id:null,izoh:null,yaratildi:'2026-11-05T00:00:00Z',hujjat_jami:a.hujjat_jami,yozilgan_jami:null,qator_soni:1,narxsiz_qator:null,manfiy_qator:null,farq:null,reestr_holat:'noaniq',versiya:a.versiya,manba_bor:false,manba:null,import_job_id:null,hujjat_id:null}));
+  const projects=[{id:301,kompaniya_id:fixture.company,nom:'M5 SYNTHETIC PROJECT',izoh:null,hudud:null,byudjet:null,holat:'faol',versiya:1,yaratildi:'2026-11-05T00:00:00Z',obyektlar:[{obyekt_id:fixture.object,obyekt_nom:'M5 SYNTHETIC OBJECT'}],obyekt_soni:1,qatnashchilar:[]}];
+  let rows=table==='t2_daraxt'?raw:table==='t2_qator_holat'?state:table==='t2_akt_reestr'?acts:projects;
+  const keys=new Set(Object.keys(rows[0]||{}));
   for(const [col,filter]of url.searchParams){
     if(['select','order','limit','offset'].includes(col))continue;
-    const m=filter.match(/^(eq|gt|gte|lte)\.([1-9][0-9]*)$/),inside=filter.match(/^in\.\(([1-9][0-9]*(?:,[1-9][0-9]*)*)\)$/);
-    if((!m&&!inside)||!keys.has(col)||!['obyekt_id','kompaniya_id','id','qator_id'].includes(col))throw new Error('M5_PACKET_FILTER_UNSUPPORTED');
+    const m=filter.match(/^(eq|gt|gte|lte)\.([1-9][0-9]*)$/),inside=filter.match(/^in\.\(([1-9][0-9]*(?:,[1-9][0-9]*)*)\)$/),textEq=filter.match(/^eq\.([a-z0-9_-]+)$/);
+    if((!m&&!inside&&!textEq)||!keys.has(col)||!['obyekt_id','kompaniya_id','id','qator_id','tur'].includes(col))throw new Error('M5_PACKET_FILTER_UNSUPPORTED');
     if(inside){const ids=inside[1].split(',').map(Number);rows=rows.filter(row=>ids.includes(row[col]));}
+    else if(textEq&&!m)rows=rows.filter(row=>row[col]===textEq[1]);
     else {const value=Number(m[2]);rows=rows.filter(row=>m[1]==='eq'?row[col]===value:m[1]==='gt'?row[col]>value:m[1]==='gte'?row[col]>=value:row[col]<=value);}
   }
   const select=url.searchParams.get('select')||'*',selected=select==='*'?[...keys]:select.split(',');
   if(!selected.every(c=>keys.has(c)))throw new Error('M5_PACKET_SELECT_UNSUPPORTED');
-  const order=url.searchParams.get('order')||(table==='t2_qator_holat'?'qator_id.asc':'id.asc');
-  const orderCols=order.split(',').map(s=>s.match(/^(id|qator_id|tartib)\.(asc|desc)$/));
+  const order=url.searchParams.get('order')||(table==='t2_qator_holat'?'qator_id.asc':table==='t2_akt_reestr'?'oy.desc':table==='t2_loyiha_royxat'?'yaratildi.desc':'id.asc');
+  const orderCols=order.split(',').map(s=>s.match(/^(id|qator_id|tartib|oy|yaratildi)\.(asc|desc)$/));
   if(orderCols.some(m=>!m||!keys.has(m[1])))throw new Error('M5_PACKET_ORDER_UNSUPPORTED');
-  rows.sort((a,b)=>{for(const m of orderCols){const d=(a[m[1]]??Infinity)-(b[m[1]]??Infinity);if(d)return m[2]==='desc'?-d:d;}return 0;});
+  rows.sort((a,b)=>{for(const m of orderCols){const av=a[m[1]],bv=b[m[1]],d=typeof av==='string'?String(av).localeCompare(String(bv)):((av??Infinity)-(bv??Infinity));if(d)return m[2]==='desc'?-d:d;}return 0;});
   const limit=Number(url.searchParams.get('limit')||200000),offset=Number(url.searchParams.get('offset')||0);
   if(!Number.isSafeInteger(limit)||limit<1||limit>200000||!Number.isSafeInteger(offset)||offset<0)throw new Error('M5_PACKET_PAGE_UNSUPPORTED');
   const total=rows.length;rows=rows.slice(offset,offset+limit).map(row=>Object.fromEntries(selected.map(c=>[c,row[c]])));
@@ -106,7 +109,7 @@ async function packetView(url,table){
   return Response.json(rows,{headers:{'Content-Range':rows.length?`${offset}-${offset+rows.length-1}/${total}`:`*/${total}`} });
 }
 async function rpc(name,args){
-  if(!Object.hasOwn(rpcArgs,name)){stats.unimplementedDb++;return Response.json({ok:false,code:'M5_FIXTURE_RPC_UNIMPLEMENTED'},{status:501});}
+  if(!Object.hasOwn(rpcArgs,name)){unimplemented(stats.unimplementedDbNames,name);return Response.json({ok:false,code:'M5_FIXTURE_RPC_UNIMPLEMENTED'},{status:501});}
   count(stats.rpc,name);
   const keys=rpcArgs[name];
   const values=keys.map(k=>args[k]??null);
@@ -127,7 +130,7 @@ globalThis.fetch=async(input,init)=>{
     return rpc(match[1],args);
   }
   if(url.pathname==='/rest/v1/t2_obyekt_jami'&&req.method==='GET')return objectView(url);
-  if(['t2_daraxt','t2_qator_holat'].includes(url.pathname.split('/').pop())&&req.method==='GET'){
+  if(['t2_daraxt','t2_qator_holat','t2_akt_reestr','t2_loyiha_royxat'].includes(url.pathname.split('/').pop())&&req.method==='GET'){
     try{return await packetView(url,url.pathname.split('/').pop());}
     catch(error){const code=error instanceof Error&&/^M5_[A-Z_]+$/.test(error.message)?error.message:'M5_PACKET_ADAPTER_ERROR';count(stats.adapterErrors,code);throw error;}
   }
@@ -137,7 +140,7 @@ globalThis.fetch=async(input,init)=>{
     const result=await db.query('select id::int,kompaniya_id::int,nom from public.t2_obyekt where id=$1',[id]);
     return Response.json(result.rows);
   }
-  stats.unimplementedDb++;
+  unimplemented(stats.unimplementedDbNames,url.pathname.split('/').pop()||'unknown_table');
   return Response.json({ok:false,code:'M5_FIXTURE_TABLE_UNIMPLEMENTED'},{status:501});
 };
 async function snapshot(){
@@ -167,7 +170,7 @@ async function dispatch(request){
   }
   const name=url.pathname.match(/^\/api\/desktop\/(qurilma|lease|bff)$/)?.[1];
   const handler=name&&modules[name][request.method==='POST'?'onRequestPost':request.method==='DELETE'?'onRequestDelete':''];
-  if(!handler)return Response.json({ok:false,code:'M5_ROUTE_NOT_IMPLEMENTED'},{status:404});
+  if(!handler){const route=url.pathname.replace(/^\/api\//,'').replace(/[^a-z0-9_]/g,'_');if(/^[a-z][a-z0-9_]*$/.test(route))count(stats.unimplementedRoutes,route);return Response.json({ok:false,code:'M5_ROUTE_NOT_IMPLEMENTED'},{status:404});}
   count(stats.handlers,name);
   return handler({request,env,data:{},params:{},waitUntil(p){p.catch(()=>{stats.handlerErrors++;});},next(){throw new Error('M5_UNEXPECTED_NEXT');}});
 }
