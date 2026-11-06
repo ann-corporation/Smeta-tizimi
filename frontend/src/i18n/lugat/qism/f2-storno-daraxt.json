@@ -1,0 +1,54 @@
+{
+  "Hammasi belgilangan. Saqlab qolinadigan bo‘lim, ish yoki qatordan belgini oling — masalan, «ЗЕМЛЯНЫЕ РАБОТЫ» ni qoldirish uchun shu bo‘lim belgisini bir marta bosing.": {
+    "ru": "Отмечено всё. Снимите отметку с раздела, работы или строки, которые нужно оставить — например, чтобы оставить «ЗЕМЛЯНЫЕ РАБОТЫ», один раз нажмите на отметку этого раздела.",
+    "en": "Everything is selected. Untick the section, work or row you want to keep — e.g. to keep «ЗЕМЛЯНЫЕ РАБОТЫ», click that section’s checkbox once."
+  },
+  "Hammasidan olish": {
+    "ru": "Снять все отметки",
+    "en": "Clear all"
+  },
+  "Tanlanmaganlarni ko‘rsatish": {
+    "ru": "Показать неотмеченные",
+    "en": "Show unselected"
+  },
+  "Storno qatorlari daraxti": {
+    "ru": "Дерево строк сторно",
+    "en": "Storno rows tree"
+  },
+  "Yopish: {n}": {
+    "ru": "Свернуть: {n}",
+    "en": "Collapse: {n}"
+  },
+  "Ochish: {n}": {
+    "ru": "Развернуть: {n}",
+    "en": "Expand: {n}"
+  },
+  "Storno bo‘limi: {n}": {
+    "ru": "Сторно раздела: {n}",
+    "en": "Storno section: {n}"
+  },
+  "qisman noma‘lum: {n}": {
+    "ru": "частично неизвестно: {n}",
+    "en": "partly unknown: {n}"
+  },
+  "Yana ko‘rsatish ({n} qoldi)": {
+    "ru": "Показать ещё (осталось {n})",
+    "en": "Show more ({n} left)"
+  },
+  "{n} ta ish o‘z resurslaridan ajratildi (bir qismi storno, bir qismi qoladi): {r}. Ataylab bo‘lsa — davom eting.": {
+    "ru": "{n} работ(ы) отделены от своих ресурсов (часть в сторно, часть остаётся): {r}. Если так задумано — продолжайте.",
+    "en": "{n} work item(s) split from their resources (part reversed, part kept): {r}. If intentional, continue."
+  },
+  "Saqlab qolinadi: {n} qator": {
+    "ru": "Остаётся: {n} строк",
+    "en": "Kept: {n} rows"
+  },
+  "Storno: {n} qator": {
+    "ru": "Сторно: {n} строк",
+    "en": "Storno: {n} rows"
+  },
+  "qoladi: {n}": {
+    "ru": "остаётся: {n}",
+    "en": "kept: {n}"
+  }
+}

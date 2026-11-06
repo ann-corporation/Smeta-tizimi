@@ -14,7 +14,7 @@
       ]
     },
     {
-      "id": 119,
+      "id": 121,
       "sana": "2026-11-06",
       "sarlavha": "F2 tayyorlash: saqlash nega yopiqligi har doim ko‘rinadi, narxsiz resurs qoralamani to‘smaydi",
       "bandlar": [
@@ -33,7 +33,7 @@
       ]
     },
     {
-      "id": 118,
+      "id": 119,
       "sana": "2026-11-06",
       "sarlavha": "F2 tayyorlash: «Barcha mumkin hajmni olish» endi saqlashni yopmaydi",
       "bandlar": [
@@ -46,6 +46,17 @@
       "sarlavha": "Fakt jurnali: material takliflari endi faqat ishiga mos materiallarga",
       "bandlar": [
         "Ish bajarilganda materiallar taklifi endi ish va material maʼnosi hamda birligiga qaraydi: sinov, yuvish, demontaj kabi materialsiz ishlardan keyingi materiallar, oʻrnatish boʻlmagan ishdan keyingi uskunalar, mebel, MDF panellar va elektronika boshqa ishga taklif qilinmaydi. Ish ichidagi va unga mos materiallar avvalgidek taklif qilinadi; hech narsa avtomatik yozilmaydi."
+      ]
+    },
+    {
+      "id": 118,
+      "sana": "2026-11-06",
+      "sarlavha": "Storno (minus) F2: qatorlar endi daraxtda — razdel → ish → resurs",
+      "bandlar": [
+        "Storno oynasida qatorlar yassi ro‘yxat emas, smeta tartibidagi daraxt: УЧАСТОК/РАЗДЕЛ (ichki razdellar bilan) → ish → uning resurslari va materiallari. Razdellarni ochib-yopish, «Hammasini ochish/yopish».",
+        "Har darajada belgi: razdel belgisi uning ostidagi hamma narsani belgilaydi yoki oladi, qisman tanlov «—» bilan ko‘rinadi. Masalan, faqat «ЗЕМЛЯНЫЕ РАБОТЫ» ni qoldirish uchun shu razdel belgisini bir marta bosing — qolgani stornoga ketadi.",
+        "Har razdel va ish yonida tanlangan qatorlar soni va Σ minus summa; summa noma‘lum qatorlar 0 deb olinmaydi — «qisman noma‘lum» deb ko‘rsatiladi. Resurslari bor ishning bo‘sh summasi endi «noma‘lum» emas.",
+        "Pastda «Saqlab qolinadi: N qator · Σ» va razdellar kesimi; ish resurslaridan qisman ajratilsa yumshoq ogohlantirish. Qidiruv razdel yo‘lini saqlaydi, «Tanlanmaganlarni ko‘rsatish» tugmasi bor."
       ]
     },
     {

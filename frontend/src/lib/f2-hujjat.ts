@@ -329,9 +329,9 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
 
 /* ───────────── Storno bloki tuzilmasi (razdel → ish → resurs) ───────────── */
 
-type EskiIsh = { bl: EskiBlokQator; resurslar: EskiBlokQator[] };
-type EskiTugun = { id: number; nom: string; yol: string[]; ichki: EskiEl[] };
-type EskiEl = { k: 'tugun'; t: EskiTugun } | { k: 'ish'; ish: EskiIsh } | { k: 'qator'; q: EskiBlokQator };
+export type EskiIsh = { bl: EskiBlokQator; resurslar: EskiBlokQator[] };
+export type EskiTugun = { id: number; nom: string; yol: string[]; ichki: EskiEl[] };
+export type EskiEl ={ k: 'tugun'; t: EskiTugun } | { k: 'ish'; ish: EskiIsh } | { k: 'qator'; q: EskiBlokQator };
 
 /**
  * Storno qatorlarini smeta daraxtiga joylaydi: har qator ota zanjiridagi razdellar (rz) ostiga, resurs — o'z ishi (BL)
