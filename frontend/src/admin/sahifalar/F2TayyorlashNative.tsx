@@ -31,7 +31,7 @@ import { bloklarmi, dublikatTekshiruv, pereraschetBelgisi } from '../../lib/f2-d
 import { shifrKorinish } from '../../lib/f2-resurs-guruh';
 import { F2ResursVedomosti } from './F2ResursVedomosti';
 import { mazmunXeshi, tokenBilan } from '../../api/t2-token';
-import { f2HujjatKaliti } from '../../api/f2-hujjat-kontekst';
+import { f2HujjatKaliti, hujjatDizayniniYukla } from '../../api/f2-hujjat-kontekst';
 import { shartnomaLiniyaOl } from '../../api/t2-shartnoma-liniya';
 import { imzoNomlariTomonlardan } from '../../lib/shartnoma-liniya';
 import type { ImzoNomlar } from '../../lib/hujjat-yozuvchi';
@@ -609,7 +609,8 @@ export function F2TayyorlashNative() {
       // QQS stavkasi bo'sh qolsa ham tizim stavkasi (NDS_SUKUT_FOIZ) olinadi - hujjat QQS siz chiqmaydi.
       const stavkaXom = ndsFoiz.trim() === '' ? NDS_SUKUT_FOIZ : Number(ndsFoiz.replace(',', '.'));
       const stavka = Number.isFinite(stavkaXom) ? stavkaXom : NDS_SUKUT_FOIZ;
-      const nk = await t2ObyektNakrutka(obyektId).catch(() => null);
+      // Kompaniya «Hujjat dizayni» (qator balandligi, shrift, Тип …) — server qiymati hujjatdan oldin qo'llanadi.
+      const [nk] = await Promise.all([t2ObyektNakrutka(obyektId).catch(() => null), hujjatDizayniniYukla(joriy?.id)]);
       const podval = await obyektPodvali(joriy?.id, obyektId, nk?.ok ? nk.shartnoma_id : null);
       // Qo'lda kiritilgan imzo (panel) — shartnomadagidan ustun; bo'sh maydon — shartnomadagi qoladi.
       const qolda = Object.fromEntries(Object.entries(tomonlar).filter(([, x]) => typeof x === 'string' && x.trim())) as ImzoNomlar;

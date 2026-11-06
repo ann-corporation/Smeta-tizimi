@@ -57,8 +57,10 @@ export type F2HujjatOpsiya = {
 const USTUNLAR: RasmiyUstun[] = [
   { sarlavha: '№ п/п', kenglik: 6, tur: 'tartib' },
   { sarlavha: 'Шифр, код', kenglik: 17, tur: 'kod' },
-  { sarlavha: 'Наименование работ и затрат', kenglik: 58, tur: 'matn' },
-  { sarlavha: 'Ед. изм.', kenglik: 16, tur: 'birlik' },
+  /* Egasi (2026-11-06, «qatorlar semiz»): nom ustuni kengroq, birlik torroq (mazmun talab qilsa `kerak` o'zi kengaytiradi) —
+     uzun nom kamroq qatorga o'raladi; qator balandligi chegarasi — «Hujjat dizayni» `qatorMaks`. */
+  { sarlavha: 'Наименование работ и затрат', kenglik: 66, tur: 'matn' },
+  { sarlavha: 'Ед. изм.', kenglik: 10, tur: 'birlik' },
   { sarlavha: 'Расход на ед.', kenglik: 12, tur: 'norma' },
   { sarlavha: 'Количество', kenglik: 14, tur: 'hajm' },
   { sarlavha: 'Цена за ед., сум', kenglik: 16, tur: 'narx' },
@@ -185,26 +187,39 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
   const jamiQator = (matn: string, tarkib: readonly number[], js: number): number =>
     v.qator('jami', (): Qiymat[] => [null, null, matn, null, null, null, null, { f: sumRefs('H', tarkib), v: yaxlit2(js) }, null, null]);
 
-  /* PERERASCHET: eski F2 bloklari (minus) hujjat TEPASIDA - har biri o'z qatorlari, jami va O'Z hujjat podvali bilan. */
+  /* PERERASCHET: eski F2 bloklari (minus) hujjat TEPASIDA - har biri o'z qatorlari, jami va O'Z hujjat podvali bilan.
+   * Egasi (2026-11-06): qatorlar eski F2 dan AYNAN ko'chiriladi (qiymat, formula emas), lekin yangi blok kabi
+   * TUZILMADA — razdel sarlavhalari (ichki razdelda to'liq yo'l), ish (BL) ostida resurslari, har razdel jami; smeta daraxti tartibida. */
   const eskiVsegoQatorlar: number[] = [];
   let eskiVsegoJS = 0;
+  const rowById = new Map((o.rows ?? []).map((r) => [r.id, r] as const));
   for (const b of eski) {
     if (!b.qatorlar.length) continue;
     v.bolim(`Сторно Ф-2 № ${b.nom}`, { daraja: 0 });
     const bBosh = v.r;
     const bks = Object.fromEntries(NAKRUTKA_KATLAR.map((k) => [k, 0])) as KatSummalar;
     let bNom = 0; let bJami = 0;
-    const tarkib: number[] = [];
     for (const q of b.qatorlar) {
       const kat = nakrutkaKat(q.kat);
       if (q.summa != null) { bJami += q.summa; if (kat) bks[kat] += q.summa; else bNom += q.summa; }
-      const belgi = q.summa == null && !mashinistMehnati(q);
-      if (belgi) narxsizN++;
-      tarkib.push(v.qator('oddiy', (): Qiymat[] => [++n, shifrKorinish(q.kod), q.nom, q.birlik ?? '', null, q.hajm, q.narx, q.summa == null ? (belgi ? NARX_ANIQLANMAGAN : '—') : q.summa, q.tur, kat ?? '', null],
-        { daraja: 2, rang: kat && (RANG_TARTIB as readonly string[]).includes(kat) ? kat as QatorRangi : null }));
     }
+    const tarkib = eskiDaraxtYoz(eskiDaraxt(b.qatorlar, rowById), {
+      qator: (q, daraja) => {
+        const kat = nakrutkaKat(q.kat);
+        const belgi = q.summa == null && !mashinistMehnati(q);
+        if (belgi) narxsizN++;
+        return v.qator('oddiy', (): Qiymat[] => [++n, shifrKorinish(q.kod), q.nom, q.birlik ?? '', null, q.hajm, q.narx, q.summa == null ? (belgi ? NARX_ANIQLANMAGAN : '—') : q.summa, q.tur, kat ?? '', null],
+          { daraja, rang: kat && (RANG_TARTIB as readonly string[]).includes(kat) ? kat as QatorRangi : null });
+      },
+      ish: (q, resSoni, resJS) => v.qator('ish', (r): Qiymat[] => [++n, shifrKorinish(q.kod), q.nom, q.birlik ?? '', null, q.hajm, null,
+        // Ishning o'z summasi bo'lsa — aynan o'zi; bo'lmasa — resurslari yig'indisi (qiymatlar ustida formula: natija eski F2 bilan bir xil).
+        q.summa != null ? q.summa : resSoni ? { f: `SUM(H${r + 1}:H${r + resSoni})`, v: yaxlit2(resJS) } : null,
+        'bl', '', null], { daraja: 1 }),
+      jami: (matn, t, js) => jamiQator(matn, t, js),
+      bolim: (matn) => v.bolim(matn, { daraja: 0 }),
+    });
     const bOxirgi = v.r - 1;
-    jamiQator(`Итого по Сторно Ф-2 № ${b.nom}`, tarkib, bJami);
+    jamiQator(`Итого по Сторно Ф-2 № ${b.nom}`, tarkib.satrlar, bJami);
     v.bosh();
     const bnk: Partial<NakrutkaKoeffitsientlar> = { ...(b.nk ?? o.nakrutka ?? {}) };
     if (b.nk == null && o.ndsFoiz != null && Number.isFinite(o.ndsFoiz) && o.ndsFoiz >= 0) bnk.НДС = o.ndsFoiz;
@@ -284,6 +299,96 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     faylNomi: hujjatFaylNomi({ obyekt: o.obyektNom, hujjat: `АКТ_Ф-2${raqam ? `_№${raqam}` : ''}`, davr: o.davr.slice(0, 7) }),
     jami: jamiJS == null ? null : yaxlit2(jamiJS),
   };
+}
+
+/* ───────────── Storno bloki tuzilmasi (razdel → ish → resurs) ───────────── */
+
+type EskiIsh = { bl: EskiBlokQator; resurslar: EskiBlokQator[] };
+type EskiTugun = { id: number; nom: string; yol: string[]; ichki: EskiEl[] };
+type EskiEl = { k: 'tugun'; t: EskiTugun } | { k: 'ish'; ish: EskiIsh } | { k: 'qator'; q: EskiBlokQator };
+
+/**
+ * Storno qatorlarini smeta daraxtiga joylaydi: har qator ota zanjiridagi razdellar (rz) ostiga, resurs — o'z ishi (BL)
+ * ostiga (ish shu blokda bo'lsa). Tartib — qatorlar kelgan tartib (`pereraschetBloklari` smeta daraxti tartibida beradi),
+ * razdel birinchi uchragan joyida. Smetada topilmagan qator yoki `rows` berilmagan — blokning yuqori darajasida (yassi).
+ */
+export function eskiDaraxt(qatorlar: readonly EskiBlokQator[], rowById: ReadonlyMap<number, Pick<T2Qator, 'id' | 'ota_id' | 'tur' | 'nom'>>): EskiEl[] {
+  const ildiz: EskiEl[] = [];
+  const tugunlar = new Map<number, EskiTugun>();
+  const ishlar = new Map<number, EskiIsh>();
+  /** Ota zanjiridagi razdellar (ildizdan bargacha); ish (bl) va boshqa tugunlar o'tkaziladi. */
+  const zanjir = (otaId: number | null | undefined): Array<Pick<T2Qator, 'id' | 'nom'>> => {
+    const out: Array<Pick<T2Qator, 'id' | 'nom'>> = [];
+    const korildi = new Set<number>();
+    for (let id = otaId ?? null; id != null && !korildi.has(id);) {
+      korildi.add(id);
+      const r = rowById.get(id);
+      if (!r) break;
+      if (r.tur === 'rz') out.unshift(r);
+      id = r.ota_id ?? null;
+    }
+    return out;
+  };
+  const joy = (otaId: number | null | undefined): EskiEl[] => {
+    let ichki = ildiz;
+    const yol: string[] = [];
+    for (const rz of zanjir(otaId)) {
+      const nom = (rz.nom || '').trim() || 'Раздел';
+      yol.push(nom);
+      let t = tugunlar.get(rz.id);
+      if (!t) { t = { id: rz.id, nom, yol: [...yol], ichki: [] }; tugunlar.set(rz.id, t); ichki.push({ k: 'tugun', t }); }
+      ichki = t.ichki;
+    }
+    return ichki;
+  };
+  for (const q of qatorlar) {
+    const r = rowById.get(q.id);
+    if (!r) { ildiz.push({ k: 'qator', q }); continue; }
+    if (q.tur === 'bl') {
+      const ish: EskiIsh = { bl: q, resurslar: [] };
+      if (!ishlar.has(q.id)) ishlar.set(q.id, ish);
+      joy(r.ota_id).push({ k: 'ish', ish });
+      continue;
+    }
+    const ota = r.ota_id != null ? rowById.get(r.ota_id) : undefined;
+    const ish = ota?.tur === 'bl' ? ishlar.get(ota.id) : undefined;
+    if (ish) { ish.resurslar.push(q); continue; }
+    joy(ota?.tur === 'bl' ? ota.ota_id : r.ota_id).push({ k: 'qator', q });
+  }
+  return ildiz;
+}
+
+/**
+ * Storno daraxtini varaqqa yozadi. Qaytaradi: yuqori darajadagi yig'iladigan qatorlar (blok jami uchun) va ularning
+ * keshlangan yig'indisi. Pul qoidasi (yadro bilan bir xil): har qatorning O'Z summasi bir marta — ish summasi bo'lmasa,
+ * ish katagi resurslari yig'indisi (SUM) va jamiga faqat ish qatori kiradi; ish summasi bo'lsa — ish ham, resurslar ham.
+ */
+function eskiDaraxtYoz(
+  els: readonly EskiEl[],
+  y: { qator: (q: EskiBlokQator, daraja: number) => number; ish: (bl: EskiBlokQator, resSoni: number, resJS: number) => number;
+    jami: (matn: string, tarkib: readonly number[], js: number) => number; bolim: (matn: string) => number },
+): { satrlar: number[]; js: number } {
+  const yoz = (xs: readonly EskiEl[]): { satrlar: number[]; js: number } => {
+    const satrlar: number[] = [];
+    let js = 0;
+    for (const el of xs) {
+      if (el.k === 'qator') { satrlar.push(y.qator(el.q, 2)); js += el.q.summa ?? 0; continue; }
+      if (el.k === 'ish') {
+        const { bl, resurslar } = el.ish;
+        const resJS = resurslar.reduce((s, q) => s + (q.summa ?? 0), 0);
+        satrlar.push(y.ish(bl, resurslar.length, resJS));
+        for (const q of resurslar) { const r = y.qator(q, 2); if (bl.summa != null) satrlar.push(r); }
+        js += (bl.summa ?? 0) + resJS;
+        continue;
+      }
+      y.bolim(el.t.yol.length > 1 ? el.t.yol.join(' / ') : el.t.nom);
+      const c = yoz(el.t.ichki);
+      satrlar.push(y.jami(el.t.yol.length > 1 ? `Итого по разделу «${el.t.nom}»` : `Итого по «${el.t.nom}»`, c.satrlar, c.js));
+      js += c.js;
+    }
+    return { satrlar, js: yaxlit2(js) };
+  };
+  return yoz(els);
 }
 
 const VED_USTUNLAR: RasmiyUstun[] = [

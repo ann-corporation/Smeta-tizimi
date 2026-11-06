@@ -7,8 +7,25 @@ import { t2ObyektNakrutka, type NakrutkaKoeffitsientlar } from './t2-nakrutka';
 import { obyektPodvaliOqi, ustamaKontekstXatosi } from './t2-nakrutka-podval';
 import { obyektImzoNomlari, shartnomaImzoNomlari } from '../lib/obyekt-imzochi';
 import { obyektImzochilarOl } from './obyekt-imzochi';
-import { kompaniyaSozlamaOl } from './kompaniya-sozlama';
-import type { ImzoNomlar } from '../lib/hujjat-yozuvchi';
+import { kompaniyaSozlamaOl, type KompaniyaSozlama } from './kompaniya-sozlama';
+import { dizaynTozala, hujjatDizayniniSaqla, type ImzoNomlar } from '../lib/hujjat-yozuvchi';
+
+/**
+ * Kompaniya «Hujjat dizayni» (`hujjat.dizayn._uslub`) → hujjat yozuvchining brauzer nusxasi (egasi 2026-11-06:
+ * «dizayn sozlamasi bu hujjatga ta'sir qilmayapti»). Ilgari faqat «Hujjatlar dizayni» sahifasi ochilganda sinxronlanardi —
+ * boshqa qurilmada/sessiyada F2 sukut dizayn bilan chiqardi. Endi har hujjat konteksti o'qilganda server qiymati qo'llanadi.
+ */
+export function kompaniyaDizayniniQoy(soz: Pick<KompaniyaSozlama, 'sozlamalar'> | null | undefined): void {
+  const sv = soz?.sozlamalar['hujjat.dizayn']?.qiymat;
+  const u = sv && typeof sv === 'object' ? (sv as Record<string, unknown>)._uslub : null;
+  if (u && typeof u === 'object') hujjatDizayniniSaqla(dizaynTozala(u));
+}
+
+/** Faqat dizaynni sinxronlash (kontekstsiz eksport yo'llari uchun, masalan F2 tayyorlash). Xato — jim (joriy nusxa qoladi). */
+export async function hujjatDizayniniYukla(kompaniyaId: number | null | undefined): Promise<void> {
+  if (kompaniyaId == null) return;
+  kompaniyaDizayniniQoy(await kompaniyaSozlamaOl(kompaniyaId).catch(() => null));
+}
 import type { Podval } from '../lib/nakrutka-konstruktor';
 import type { SvodYaxlit } from '../lib/svod-yaxlit';
 
@@ -32,6 +49,7 @@ export async function f2HujjatKonteksti(kompaniyaId: number, obyektId: number): 
     const asosiy = liniya.natija.shartnomalar.find((s) => s.id === ob?.asosiy_shartnoma_id);
     shartnoma = asosiy ? `№ ${asosiy.raqam}${asosiy.nom ? ` — ${asosiy.nom}` : ''}` : null;
   }
+  kompaniyaDizayniniQoy(soz);
   const sukut = soz?.sozlamalar['hujjat.imzo_tomonlari']?.qiymat;
   const imzo = obyektImzoNomlari({
     imzochilar: imz?.ok ? imz.natija.imzochilar : null,

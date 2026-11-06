@@ -53,15 +53,19 @@ export function HujjatDizayni() {
   const [uslub, setUslub] = useState<HujjatDizayn>(() => joriyHujjatDizayni());
   const uslubRef = useRef(uslub);
   uslubRef.current = uslub;
+  /** Kutilayotgan server yozuvi (sahifadan tez chiqilsa ham yo'qolmasin — aks holda keyingi ochilishda eski server qiymati mahalliy tanlovni bosib ketardi). */
+  const kutilmoqda = useRef<(() => void) | null>(null);
   const serverga = useCallback((x: Record<string, string>) => {
     if (kompaniyaId == null || !yozish.current) return;
     if (taymer.current) clearTimeout(taymer.current);
-    taymer.current = setTimeout(() => {
-      taymer.current = null;
+    const yoz = () => {
+      taymer.current = null; kutilmoqda.current = null;
       void kompaniyaSozlamaYoz({ kompaniya_id: kompaniyaId, kalit: 'hujjat.dizayn', qiymat: { ...x, _uslub: uslubRef.current } }).catch(() => { /* jim — mahalliy saqlangan */ });
-    }, 800);
+    };
+    kutilmoqda.current = yoz;
+    taymer.current = setTimeout(yoz, 800);
   }, [kompaniyaId]);
-  useEffect(() => () => { if (taymer.current) clearTimeout(taymer.current); }, []);
+  useEffect(() => () => { if (taymer.current) clearTimeout(taymer.current); kutilmoqda.current?.(); }, []);
   /* Server qiymati (butun kompaniya uchun bir xil) → localStorage (rasmiy.ts sinxron o'quvchilari o'zgarmaydi). */
   useEffect(() => {
     if (kompaniyaId == null) return;

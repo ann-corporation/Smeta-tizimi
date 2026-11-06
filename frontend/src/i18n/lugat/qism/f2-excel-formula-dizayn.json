@@ -1,0 +1,4 @@
+{
+  "Uzun nomli qator shu sondan ortiq matn qatoriga shishmaydi (0 — cheklovsiz)": { "ru": "Строка с длинным наименованием не растягивается больше этого числа строк текста (0 — без ограничения)", "en": "A row with a long name does not grow beyond this many text lines (0 — no limit)" },
+  "Qator balandligi (matn qatori, 0 — cheklovsiz)": { "ru": "Высота строки (строк текста, 0 — без ограничения)", "en": "Row height (text lines, 0 — no limit)" }
+}
