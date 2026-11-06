@@ -95,6 +95,35 @@ tool_timeout_sec = 600
 
 `env_vars` — muhit o'zgaruvchilarini nomi bo'yicha uzatadi (qiymat config'ga yozilmaydi). Parolni `env = {…}` ichiga yozmang.
 
+## Ish oqimlari (chatdan kundalik PTO ishi)
+
+Yuqori darajali toollar — UI'dagi amallar bilan bir xil RPC'lar orqali. **`dry_run` standart `true`**: server tekshiruvlari
+(RPC ham) to'liq ishlaydi, so'ng ROLLBACK; yozish uchun `dry_run:false` (obyekt bo'yicha alohida tranzaksiya → snapshot → amal →
+audit → COMMIT). Javob ixcham: sonlar, summa **ustamasiz / ustamali (ИТОГО-4) / QQS bilan** (`t2_obyekt_nakrutka` kf_*), namuna qatorlar
+(`korsat`). `operation_id` (uuid) — idempotentlik (ko'p obyektda har biriga barqaror hosila). Tasdiqlangan F2 tahrirlanmaydi; null ≠ 0.
+
+| Tool | RPC | Nima qiladi |
+|---|---|---|
+| `yoyilma(obyekt_idlar \| shartnoma_id, narx_override?)` | — (o'qish) | fakt / F2-mumkin / F2 qoralama / F2 tasdiqlangan — «summa qayerdan» jadvali |
+| `f2_qoralama_yarat(obyekt_idlar, oy, raqam?, narx_override?, chang_pul?)` | `t2_akt_yarat_v2` | fakt qoldig'idan (f2_mumkin) F2 qoralama; ish narxsiz, resurs smeta narxida, narxsiz — avto |
+| `f2_holat(akt_idlar, holat, sabab?, toliq_tasdiq?)` | `t2_akt_lifecycle_transition_v1` | draft→submitted→checked→approved, rad/bekor; xato kodlari izohli |
+| `f2_qoralama_tahrir(akt_id, ozgartir?, olib_tashla?, qosh_mumkindan?)` | `t2_f2_qoralama_yangila_v1` | qoralama qatorlari: hajm/narx/narxsiz, olib tashlash, qoldiqdan qo'shish (storno tegilmaydi) |
+| `podval_tahrir(obyekt_idlar, foizlar, baza?, dalil?, katak?)` | `t2_nakrutka_podval_saqla_v1` | podval foizlari (tr_mat, skl_mat, skl_mk, tr_kab, prochie, tr_ob, zag_ob, strax, risk, nds); kf/ИТОГО-4 oldin→keyin |
+| `narx_tuzat(sabab, narxlar? \| nusxa?)` | t2_qator (to'g'ridan) | narx → summa = hajm×narx, ish (bl) summasi qayta; boshqa versiyadan × koef |
+| `bajarilmadi(obyekt_id, amal, qatorlar, sabab_kod, faktni_nol?)` | `t2_bajarilmadi_belgila_v1` / `_bekor_v1` | «bajarilmadi» belgisi (+ faktni −delta bilan nolga) |
+| `qoshimcha_ish(obyekt_id, ish, resurslar, fakt_hajm?, sabab)` | `t2_ish_abc_saqla_v1` (additional) | smetadan tashqari ish + resurslar (+ fakt) |
+| `fakt_yoz(obyekt_id, qatorlar[{qator_id,hajm}], sana?, izoh?)` | `t2_fakt_yoz_v2` | fakt delta (minus — kamaytirish) |
+
+Namunalar:
+
+- Oy yopish: `yoyilma {obyekt_idlar:[11,12]}` → `f2_qoralama_yarat {obyekt_idlar:[11,12], oy:"2026-10", chang_pul:1000}` (preview) →
+  `… dry_run:false` → narxsizlar bo'lsa `f2_qoralama_tahrir {akt_id, ozgartir:[{qator_id, narx}]}` → `f2_holat {akt_idlar:[…], holat:"approved", toliq_tasdiq:true, dry_run:false}`.
+- Rad etish: `f2_holat {akt_idlar:[5], holat:"rejected", sabab:"hajm qayta tekshirilsin", dry_run:false}`.
+- Podval: `podval_tahrir {obyekt_idlar:[11], foizlar:{tr_mat:4.5, prochie:8, nds:12}, dalil:"smeta podvali, 1-varaq"}`.
+- Narx: `narx_tuzat {sabab:"protokol №3", narxlar:[{qator_id:101, narx:12500}]}` yoki
+  `narx_tuzat {sabab:"eski versiya narxi", nusxa:{obyekt_idlar:[11], koef:1.07}}`.
+- Bajarilmadi: `bajarilmadi {obyekt_id:11, qator_idlar:[201,202], sabab_kod:"loyiha_ozgardi", faktni_nol:true}`.
+
 ## Ishlatish namunalari
 
 - «153 obyekt holati, 2-darajagacha» → `obyekt_holat {obyekt_id:153, daraja:2}`
