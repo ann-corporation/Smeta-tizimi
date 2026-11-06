@@ -41,6 +41,23 @@ describe('t2ToliqOqiParallel — kalit oynalari bilan parallel o‘qish', () => 
     expect(par.qatorlar).toEqual(rows);
   });
 
+  it('shlyuz butun obyektni bersa — bitta chaqiruv (zondlar va oynalar yo‘q)', async () => {
+    const sim = serverSim(rows, 40000);
+    const par = await t2ToliqOqiParallel(sim, { jadval: 't2_daraxt', filtr: 'obyekt_id=eq.153', limit: 200000 }, 'id');
+    expect(par).toMatchObject({ ok: true, toliq: true, soni: 25201, jamiServerda: 25201 });
+    expect(par.qatorlar).toEqual(rows);
+    expect(sim).toHaveBeenCalledTimes(1);
+    expect(sim.mock.calls[0][0]).toMatchObject({ filtr: 'obyekt_id=eq.153', tartib: 'id.asc' });
+  });
+
+  it('shlyuz to‘liq bermasa — birinchi sahifa saqlanadi, qoldiq oynalarda, natija aynan bir xil', async () => {
+    const sim = serverSim(rows, 3000);
+    const par = await t2ToliqOqiParallel(sim, { jadval: 't2_daraxt', filtr: 'obyekt_id=eq.153', limit: 200000 }, 'id');
+    expect(par).toMatchObject({ ok: true, toliq: true, soni: 25201 });
+    expect(par.qatorlar).toEqual(rows);
+    expect(sim.mock.calls.slice(1).every((c) => /id=(gt|gte)\.\d+/.test(c[0].filtr as string))).toBe(true);
+  });
+
   it('kichik jadval — oddiy ketma-ket yo‘l', async () => {
     const kichik = rows.slice(0, 3000);
     const sim = serverSim(kichik, 5000);

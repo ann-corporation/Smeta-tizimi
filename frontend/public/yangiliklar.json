@@ -1,6 +1,7 @@
 {
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
+    {"id":123,"sana":"2026-11-06","sarlavha":"Katta obyektlar tezroq ochiladi","bandlar":["26 mingdan ortiq qatorli smeta (masalan, Sun'iy ko'l) endi serverdan bitta so'rovda to'liq keladi — avval 6 va undan ko'p ketma-ket so'rov kerak edi. Qatorlar soni va summalar avvalgidek to'liq tekshiriladi."]},
     {"id":122,"sana":"2026-11-06","sarlavha":"F2 tayyorlash: «Zamena bog‘lanishlari o‘qilmadi» xatosi tuzatildi","bandlar":["Zamena miqdorlari so‘rovidagi «bo‘sh emas» filtri server tomonidan rad etilardi va F2 qoralamani saqlash yopilib qolardi. Endi filtr qabul qilinadi; o‘zgarishlar ro‘yxati va pereraschet bo‘limidagi shunday so‘rovlar ham ishlaydi."]},
     {
       "id": 120,

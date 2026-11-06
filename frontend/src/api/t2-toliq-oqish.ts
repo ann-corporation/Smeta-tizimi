@@ -36,6 +36,7 @@ export async function t2ToliqOqi<T>(
  * Katta jadval (25k+ qator) — kalit oralig'i oynalarga bo'linib PARALLEL o'qiladi (prod profil 2026-10-24: Sun'iy ko'l
  * smetasi 6 ta ketma-ket /api/sb chaqiruvi, ~32 s). Sabab: proksi bir chaqiruvda chekli sub-so'rov qiladi va obyekt id lari
  * notekis (boshqa obyektlar id lari aralash) bo'lgani uchun har chaqiruv faqat ~5k qatorlik uzluksiz prefiks qaytaradi.
+ * 2026-11-06: shlyuz bir chaqiruvda ~26k+ qator beradi — avval bitta oddiy chaqiruv, oynalar faqat qolgan qism uchun.
  * Har oyna `t2ToliqOqi` bilan o'z ichida to'liq tekshiriladi; yig'indi umumiy server soniga teng bo'lmasa yoki biror oyna
  * xato bersa — oddiy ketma-ket o'qishga qaytiladi (natija har doim bir xil: kalit bo'yicha o'sish tartibida, to'liq).
  */
@@ -50,28 +51,44 @@ export async function t2ToliqOqiParallel<T>(
     return t2ToliqOqi(oqi, s, kalit);
   };
   try {
-    const [boshi, oxiri] = await Promise.all([
-      oqi({ ...s, ustunlar: kalit, tartib: kalit + '.asc', limit: 1 }),
-      oqi({ ...s, ustunlar: kalit, tartib: kalit + '.desc', limit: 1 }),
-    ]);
-    const jami = boshi.ok ? boshi.jamiServerda ?? null : null;
-    const min = Number((boshi.qatorlar?.[0] as Record<string, unknown> | undefined)?.[kalit]);
-    const max = Number((oxiri.qatorlar?.[0] as Record<string, unknown> | undefined)?.[kalit]);
-    if (!boshi.ok || !oxiri.ok || jami == null || !Number.isSafeInteger(min) || !Number.isSafeInteger(max) || max < min
-      || jami < (opts.minQator ?? 6000) || jami > (s.limit ?? 200000)) {
-      if (boshi.ok && oxiri.ok && jami != null && jami < (opts.minQator ?? 6000)) return t2ToliqOqi(oqi, s, kalit);
-      return zaxira(`probe ok=${boshi.ok}/${oxiri.ok} jami=${jami} min=${min} max=${max} xato=${boshi.error ?? oxiri.error ?? ''}`);
+    /* 2026-11-06: shlyuz endi bitta chaqiruvda ~26k+ qatorni o'zi parallel yig'adi (kalit oraliqlari, 40 sub-so'rov).
+       Shuning uchun avval ODDIY to'liq chaqiruv: ko'p obyekt 1 ta borib-kelishda tugaydi (avval: 2 zond + 6 oyna).
+       Oynalar faqat qoldiq uchun — shlyuz byudjetidan katta jadvalda. */
+    const birinchi = await oqi({ ...s, tartib: kalit + '.asc' });
+    if (!birinchi.ok) return { ...birinchi, qatorlar: [], toliq: false };
+    const bosh = birinchi.qatorlar ?? [];
+    let last = 0;
+    for (const row of bosh) {
+      const key = Number((row as Record<string, unknown>)[kalit]);
+      if (!Number.isSafeInteger(key) || key <= last) return zaxira('birinchi sahifa tartibi buzilgan');
+      last = key;
     }
-    const kenglik = Math.ceil((max - min + 1) / oynaSoni);
-    const oynalar: Array<[number, number]> = [];
-    for (let a = min; a <= max; a += kenglik) oynalar.push([a, Math.min(a + kenglik - 1, max)]);
-    const natijalar = await Promise.all(oynalar.map(([a, b]) =>
-      t2ToliqOqi(oqi, { ...s, filtr: `${s.filtr}&${kalit}=gte.${a}&${kalit}=lte.${b}` }, kalit)));
-    const yomon = natijalar.find((n) => !n.ok);
+    const jami = birinchi.jamiServerda ?? null;
+    if (bosh.length > (s.limit ?? 200000)) return zaxira('limitdan oshdi');
+    if (birinchi.toliq !== false) {
+      if (jami != null && bosh.length !== jami) return zaxira(`soni ${bosh.length} != ${jami}`);
+      return { ...birinchi, qatorlar: bosh, soni: bosh.length, jamiServerda: jami, toliq: true };
+    }
+    if (!bosh.length || jami == null || jami > (s.limit ?? 200000)) return zaxira(`davom: soni=${bosh.length} jami=${jami}`);
+    const davom: SbSoro = { ...s, filtr: `${s.filtr}&${kalit}=gt.${last}` };
+    const qoldiqlar: SbJavob<T>[] = [];
+    if (jami - bosh.length < (opts.minQator ?? 6000)) {
+      qoldiqlar.push(await t2ToliqOqi(oqi, davom, kalit));
+    } else {
+      const oxiri = await oqi({ ...davom, ustunlar: kalit, tartib: kalit + '.desc', limit: 1 });
+      const max = Number((oxiri.qatorlar?.[0] as Record<string, unknown> | undefined)?.[kalit]);
+      if (!oxiri.ok || !Number.isSafeInteger(max) || max <= last) return zaxira(`zond ok=${oxiri.ok} max=${max} xato=${oxiri.error ?? ''}`);
+      const kenglik = Math.ceil((max - last) / oynaSoni);
+      const oynalar: Array<[number, number]> = [];
+      for (let a = last + 1; a <= max; a += kenglik) oynalar.push([a, Math.min(a + kenglik - 1, max)]);
+      qoldiqlar.push(...await Promise.all(oynalar.map(([a, b]) =>
+        t2ToliqOqi(oqi, { ...s, filtr: `${s.filtr}&${kalit}=gte.${a}&${kalit}=lte.${b}` }, kalit))));
+    }
+    const yomon = qoldiqlar.find((n) => !n.ok);
     if (yomon) return zaxira(`oyna xato: ${yomon.error ?? ''}`);
-    const qatorlar = natijalar.flatMap((n) => n.qatorlar ?? []);
+    const qatorlar = bosh.concat(qoldiqlar.flatMap((n) => n.qatorlar ?? []));
     if (qatorlar.length !== jami) return zaxira(`soni ${qatorlar.length} != ${jami}`);
-    return { ...natijalar[0], qatorlar, soni: qatorlar.length, jamiServerda: jami, toliq: true };
+    return { ...birinchi, qatorlar, soni: qatorlar.length, jamiServerda: jami, toliq: true };
   } catch (e) {
     return zaxira(`istisno: ${e instanceof Error ? e.message : String(e)}`);
   }
