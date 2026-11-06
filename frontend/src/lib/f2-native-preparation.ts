@@ -35,7 +35,11 @@ export type F2NativePayloadRow = {
   certifiedUnitPrice?: number;
   certifiedAmount?: number;
   priceIntentionallyAbsent: boolean;
-  rawSnapshot: { source: 'native_f2_preparation'; sourceReference: string; enteredQuantity: number; enteredUnitPrice?: number; enteredAmount?: number };
+  rawSnapshot: { source: 'native_f2_preparation'; sourceReference: string; enteredQuantity: number; enteredUnitPrice?: number; enteredAmount?: number;
+    /** Narxi topilmagan resurs qoralamada avtomatik narxsiz (egasi 2026-11-06); tasdiqlashda server bloklaydi. */
+    narxsizSabab?: 'avto_qoralama';
+    /** F2 tayyorlashdagi hajm manbai (qoralama qayta ochilganda tiklanadi). */
+    hajmManba?: 'fakt' | 'smeta' };
 };
 
 const numberOrUndefined = (value: string) => {

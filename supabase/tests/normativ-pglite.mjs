@@ -38,5 +38,16 @@ try {
  await db.exec('savepoint guard');await assert.rejects(db.exec(await file('.rollback')),/NORMATIV_ROLLBACK_NONEMPTY/);
  await db.exec('rollback to savepoint guard;rollback');
  await db.exec(await file('.rollback'));await db.exec(await file('.rollback'));await db.exec(await file(''));await db.exec(await file('.acceptance'));
+ const k3=s=>readFile(new URL('../migrations/20261203001400_t2_normativ_qidir_v1'+s+'.sql',import.meta.url),'utf8');
+ // Match the Supabase service_role grant on the shared extensions schema.
+ await db.exec('grant usage on schema extensions to service_role');
+ await db.exec(await k3('')); await db.exec(await k3('')); await db.exec(await k3('.acceptance'));
+ for(const role of ['anon','authenticated']) {
+  await db.exec('begin;set local role '+role);
+  await assert.rejects(db.query("select t2_normativ_qidir_v1(1,1,'test',null,null,null,1)"),/permission denied/);
+  await db.exec('rollback');
+ }
+ await db.exec(await k3('.rollback')); await db.exec(await k3('.rollback')); await db.exec(await k3('')); await db.exec(await k3('.acceptance'));
+ console.log('PASS K3: exact, lexical, trigram, edition collision, citation, published-only, actor/tenant, grants and rollback');
  console.log('PASS normativ: replay, actor/member/admin/CAS/review, FTS/trigram, public deny, grants, rollback/reapply');
 } catch(error) {console.error(error.message,error.detail||'');process.exitCode=1;} finally {await db.close();}
