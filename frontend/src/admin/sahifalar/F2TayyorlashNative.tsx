@@ -232,16 +232,21 @@ export function F2TayyorlashNative() {
   const [miqdor, setMiqdor] = useState<ReadonlyMap<number, number>>(new Map());
   const [qoshTayyor, setQoshTayyor] = useState(false);
   const [bajXato, setBajXato] = useState(false);
+  /**
+   * O'z hisoblagichi: asosiy `yuklash` (`sorov`) qayta boshlanganda (masalan, qoralamaga avto «davom» o'tishi) bu so'rov
+   * tashlab yuborilmasin — aks holda `qoshTayyor` abadiy false qolib, saqlash sababsiz yopiq turardi.
+   */
+  const qoshSorov = useRef(0);
   const qoshimchaYukla = useCallback(async () => {
     if (!validId || !joriy?.id) { setBaj([]); setZb(null); setMiqdor(new Map()); setBajXato(false); setQoshTayyor(true); return; }
-    const raqam = sorov.current;
+    const raqam = ++qoshSorov.current;
     setQoshTayyor(false);
     const [b, z, m] = await Promise.all([
       bajarilmadiRoyxatOl(joriy.id, obyektId).catch(() => null),
       zamenaBoglanishOl(obyektId).catch(() => null),
       zamenaMiqdorOl(obyektId).catch(() => new Map<number, number>()),
     ]);
-    if (raqam !== sorov.current) return;
+    if (raqam !== qoshSorov.current) return;
     setBaj(b?.ok ? b.qatorlar : []); setBajXato(!b?.ok); setZb(z); setMiqdor(m); setQoshTayyor(true);
   }, [validId, joriy?.id, obyektId]);
   useEffect(() => { void qoshimchaYukla(); }, [qoshimchaYukla]);
