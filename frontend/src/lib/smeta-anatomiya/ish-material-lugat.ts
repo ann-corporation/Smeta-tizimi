@@ -95,6 +95,8 @@ export const mustaqilMaterialmi = (nom: string | null | undefined) => MUSTAQIL_M
  */
 export const OLCHAM_ORALIQ: Readonly<Record<string, readonly [number, number]>> = {
   'Т/М3': [0.005, 0.3],
+  /** Qoplama/metall massasi yuzaga: asfaltobeton ~0,1 т/м², bitum ~0,001 т/м². */
+  'Т/М2': [0.0005, 0.5],
   'М3/М2': [0.001, 0.3],
   'ШТ/М3': [5, 1000],
 };

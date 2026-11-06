@@ -172,6 +172,12 @@ describe('ish–material: yolg\'on-musbat naqshlar (signal YO\'Q)', () => {
     tashlandi(rows, h([[10, 500], [11, 3], [12, 0]]), [11, 12], 'dum_blok');
   });
 
+  it('bo\'lim oxiridagi farqli o\'lcham, lekin ma\'lum nisbat (т/м²) — dum emas, shubhali (taklifda qoladi)', () => {
+    const rows = [rz(1), bl(10, 1, 'Asfalt yotqizish', 'М2', 1000), mat(11, 1, 'Asfaltobeton', 'Т', 120), mat(12, 1, 'Bitum', 'Т', 2)];
+    expect(bogOl(rows, 11)).toMatchObject({ ishonch: 'shubhali', sabab: 'faqat_tartib', bl_id: 10 });
+    expect(bogOl(rows, 12)).toMatchObject({ ishonch: 'shubhali', bl_id: 10 });
+  });
+
   it('shubhali bog\'lanish (faqat tartib) — signal yo\'q', () => {
     const rows = [rz(1), bl(10, 1, 'ГРУНТОВАНИЕ ПОВЕРХНОСТЕЙ', 'М2', 500), mat(11, 1, 'ЛЕНТА СЕРПЯНКА', 'М', 10), mat(12, 1, 'ЛЕНТА ДЕМПФЕРНАЯ', 'М', 6), bl(13, 1, 'ОКРАСКА', 'М2', 500)];
     expect(bogOl(rows, 11)).toMatchObject({ ishonch: 'shubhali', sabab: 'faqat_tartib', bl_id: 10, n: 2, orin: 1 });

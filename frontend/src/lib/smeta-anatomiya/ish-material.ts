@@ -264,7 +264,9 @@ export function ishMaterialBoglanishlari(qatorlar: readonly IshMatQator[], qaror
     if (n === 1 && !uskunami(mat) && kh.k != null && kh.birOlcham && kh.k >= 0.5 && kh.k <= 3) {
       return yangi(mat.id, { ...bog, ishonch: 'ishonchli', sabab: 'yagona_mos' });
     }
-    if (oxirgiBlok && n >= 2 && !kh.birOlcham) return yangi(mat.id, { ...asos, sabab: 'dum_blok' });
+    // Dum: birlik ham mos emas — bir o'lcham emas va farqli o'lcham nisbati ma'lum oraliqda emas (asfalt т/м² — mos).
+    const birlikMos = kh.birOlcham || (kh.k != null && oraliqda(kh.k, kh.matAsos, kh.blAsos) === true);
+    if (oxirgiBlok && n >= 2 && !birlikMos) return yangi(mat.id, { ...asos, sabab: 'dum_blok' });
     return yangi(mat.id, { ...bog, ishonch: 'shubhali', sabab: 'faqat_tartib' });
   }
 }
