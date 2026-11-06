@@ -1,0 +1,26 @@
+[
+  {
+    "phase": "before-abort",
+    "mode": "online",
+    "aborted_requests": 2,
+    "http_304": 1,
+    "tree_reads": 5,
+    "state_reads": 5
+  },
+  {
+    "phase": "cold",
+    "mode": "abort",
+    "aborted_requests": 24,
+    "http_304": 1,
+    "tree_reads": 5,
+    "state_reads": 5
+  },
+  {
+    "phase": "reconnect",
+    "mode": "online",
+    "aborted_requests": 24,
+    "http_304": 2,
+    "tree_reads": 9,
+    "state_reads": 9
+  }
+]

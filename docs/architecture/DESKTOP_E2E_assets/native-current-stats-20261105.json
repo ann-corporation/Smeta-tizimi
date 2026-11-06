@@ -1,0 +1,68 @@
+{
+  "authMode": "authstub",
+  "fixtureMode": "canonical-business-fixture",
+  "fixture": {
+    "actor": 1,
+    "company": 1,
+    "object": 101,
+    "wrongTenantObject": 202
+  },
+  "startedAt": "2026-11-05T18:48:11.427Z",
+  "pid": 9424,
+  "port": 5216,
+  "migration": "20261202000000_t2_desktop_auth_v1.sql",
+  "migrationSha256": "589f393fd3643fedab813648353e02d62184763ef7dcc9fd273a38fba9feb96c",
+  "handlers": {
+    "kirish-authstub": 2,
+    "qurilma": 4,
+    "bff": 53,
+    "lease": 35
+  },
+  "rpc": {
+    "t2_men_v1": 5,
+    "t2_desktop_qurilma_yarat_v1": 2,
+    "t2_desktop_qurilma_tekshir_v1": 90,
+    "t2_obyekt_paket_etag_v1": 2,
+    "t2_obyekt_paket_muhr_v1": 1,
+    "t2_desktop_lease_chegara_v1": 32,
+    "t2_desktop_qurilma_bekor_v1": 1,
+    "t2_effective_authorization_v1": 1
+  },
+  "rest": {
+    "t2_obyekt_jami": 5,
+    "t2_daraxt": 5,
+    "t2_qator_holat": 5
+  },
+  "adapterErrors": {},
+  "httpStatus": {
+    "200": 73,
+    "304": 1,
+    "400": 2,
+    "401": 3,
+    "403": 15,
+    "429": 1,
+    "502": 10,
+    "503": 1
+  },
+  "blockedEgress": 0,
+  "unimplementedDb": 17,
+  "handlerErrors": 0,
+  "offlineRequests": 14,
+  "actualHandlers": [
+    "desktop/qurilma",
+    "desktop/lease",
+    "desktop/bff",
+    "api/_middleware (via bff)",
+    "api/sessiya (via bff)",
+    "api/company (via bff)",
+    "api/sb (via bff)",
+    "api/obyekt-paket (via bff)"
+  ],
+  "database": "PGlite in-memory; real desktop migration; synthetic actor/business SQL fixtures",
+  "offlineMode": "online",
+  "devices": 2,
+  "revoked": 1,
+  "publicBuildEnvFile": "C:/Temp/GAS-M5-current-public.ps1",
+  "localOnly": true,
+  "liveAcceptance": false
+}

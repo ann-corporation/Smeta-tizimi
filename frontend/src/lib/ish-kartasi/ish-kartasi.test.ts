@@ -5,10 +5,35 @@
 import { describe, expect, it } from 'vitest';
 import { standartPodval } from '../hisob-yadro';
 import {
-  armaturaKgM3, avtoYigish, birlikAylantir, birlikTahlil, farq, fizikMiqdor, hukm, kartaNatija, kartaObyektlar, koefParametrdan,
+  armaturaKgM3, asosgaAylantir, avtoYigish, birlikAylantir, birOlcham, birlikTahlil, farq, fizikMiqdor, hukm, kartaNatija, kartaObyektlar, koefParametrdan,
   materialGuruhi, nisbatKoef, qamrovToldir, qatorHissalari, SUKUT_QAMROV, SUKUT_ULUSH, taqsimot, ulushTanla, ulushYaroqli,
   type KartaBog, type SmetaQator,
 } from './index';
+
+describe('birlik — kengaytma (ish–material muvofiqligi)', () => {
+  it('ПМ/ПОГ.М → М, КМ = 1000 М, ТЫС.ШТ = 1000 ШТ, 10/100/1000 karrali', () => {
+    expect(birlikTahlil('ПОГ.М')).toEqual({ asos: 'М', kopaytuvchi: 1 });
+    expect(birlikTahlil('п.м')).toEqual({ asos: 'М', kopaytuvchi: 1 });
+    expect(birlikTahlil('КМ')).toEqual({ asos: 'М', kopaytuvchi: 1000 });
+    expect(birlikTahlil('ТЫС.ШТ')).toEqual({ asos: 'ШТ', kopaytuvchi: 1000 });
+    expect(birlikTahlil('10 ТЫС.ШТ')).toEqual({ asos: 'ШТ', kopaytuvchi: 10000 });
+    expect(birlikTahlil('10М')).toEqual({ asos: 'М', kopaytuvchi: 10 });
+    expect(birlikAylantir(2, 'КМ', 'М')).toBe(2000);
+    expect(birlikAylantir(1500, 'М', '100 ПОГ.М')).toBe(15);
+    expect(birlikAylantir(3, 'ТЫС.ШТ', 'ШТ')).toBe(3000);
+    expect(birlikAylantir(1, 'КМ', 'М2')).toBeNull();
+  });
+  it('birOlcham va asosgaAylantir: massa Т ga, karralisiz asos', () => {
+    expect(birOlcham('Т', 'КГ')).toBe(true);
+    expect(birOlcham('100М2', 'М2')).toBe(true);
+    expect(birOlcham('М3', 'Т')).toBe(false);
+    expect(birOlcham(null, 'М')).toBe(false);
+    expect(asosgaAylantir(0.5, '100М2')).toEqual({ qiymat: 50, asos: 'М2' });
+    expect(asosgaAylantir(250, 'КГ')?.qiymat).toBeCloseTo(0.25, 12);
+    expect(asosgaAylantir(250, 'КГ')?.asos).toBe('Т');
+    expect(asosgaAylantir(1, 'ЧЕЛ-Ч')).toBeNull();
+  });
+});
 
 describe('birlik', () => {
   it('smeta birliklarini tahlil qiladi', () => {

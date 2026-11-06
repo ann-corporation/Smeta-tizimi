@@ -8,7 +8,9 @@
  * Hech narsa avtomatik yozilmaydi: taklifni foydalanuvchi tugma bilan kiritmaga oladi va o'zi saqlaydi.
  * Qo'shimcha/zamena qatorlar bog'lanishga kirmaydi (asl smeta tuzilmasi bo'yicha); hajm bloklanmaydi; NULL ≠ 0.
  */
-export type TaklifQator = { id: number; ota_id: number | null; tur: string | null; tartib?: number | null; qoshimcha?: boolean | null; zamena?: boolean | null };
+import { ishMaterialBoglanishlari, type IshMatBoglanish, type IshMatQator } from './smeta-anatomiya/ish-material';
+
+export type TaklifQator = IshMatQator & { ota_id: number | null; tartib?: number | null; qoshimcha?: boolean | null; zamena?: boolean | null };
 
 const RESURS = new Set(['mat', 'ob']);
 
@@ -36,25 +38,23 @@ export function ishKeyingiMateriallari(rows: readonly TaklifQator[]): Map<number
 
 /**
  * Ish (bl) id → shu ishga ERGASHADIGAN barcha mat/ob (tadqiqot 02, birinchi navbat #3; egasi: «ish bajarildi, materiallari
- * ergashmadi»): (1) ishning o'z ichidagi mat/ob bolalari (ota = ish; ichki rs/mat orqali ham, boshqa ishdan o'tmaydi) —
- * smeta importida `rs` emas `mat` deb belgilangan resurslar ham shu yerda; (2) ishdan keyingi alohida mat/ob
- * (`ishKeyingiMateriallari`). Qo'shimcha/zamena qatorlar kirmaydi (asl smeta tuzilmasi bo'yicha). Tartib: avval ichkilar.
+ * ergashmadi»). Bog'lanish — smeta yadrosining yagona aniqlagichi `ishMaterialBoglanishlari` (2026-11-06, ish–material
+ * muvofiqligi): (1) ishning o'z ichidagi mat/ob bolalari (tuzilma); (2) ishdan keyingi alohida mat/ob — «ishonchli» yoki
+ * «shubhali» bog'langanlari. «Bog'lanmaydi» (sinov/demontaj kabi materialsiz ish, o'rnatish bo'lmagan ishdan keyingi uskuna,
+ * mebel/MDF/elektronika kabi mustaqil material, bo'lim oxiridagi dum) taklif qilinmaydi. Qo'shimcha/zamena qatorlar
+ * kirmaydi; faqat faol versiya. Tartib: avval ichkilar, keyin keyingilar (har biri smeta tartibida).
  */
 export function ishMateriallari(rows: readonly TaklifQator[]): Map<number, number[]> {
   const byId = new Map(rows.map((r) => [r.id, r]));
+  const tartib = (id: number) => byId.get(id)?.tartib ?? Number.MAX_SAFE_INTEGER;
+  const bog = ishMaterialBoglanishlari(rows).filter((b) => {
+    const m = byId.get(b.mat_id); const ish = b.bl_id != null ? byId.get(b.bl_id) : undefined;
+    return !!m && !!ish && b.ishonch !== 'boglanmaydi' && b.manba !== 'zamena' && !m.qoshimcha && !m.zamena && !ish.qoshimcha && !ish.zamena;
+  });
+  const ichki = (b: IshMatBoglanish) => (b.manba === 'tuzilma' ? 0 : 1);
+  bog.sort((a, b) => ichki(a) - ichki(b) || tartib(a.mat_id) - tartib(b.mat_id) || a.mat_id - b.mat_id);
   const out = new Map<number, number[]>();
-  const tartibli = [...rows].sort((a, b) => (a.tartib ?? Number.MAX_SAFE_INTEGER) - (b.tartib ?? Number.MAX_SAFE_INTEGER) || a.id - b.id);
-  for (const r of tartibli) {
-    if (!RESURS.has(r.tur ?? '') || r.qoshimcha || r.zamena) continue;
-    let p = r.ota_id != null ? byId.get(r.ota_id) : undefined; let n = 0; let ish: TaklifQator | undefined;
-    while (p && n++ < 20) {
-      if (p.qoshimcha || p.zamena || p.tur === 'rz') break;
-      if (p.tur === 'bl') { ish = p; break; }
-      p = p.ota_id != null ? byId.get(p.ota_id) : undefined;
-    }
-    if (ish) { const a = out.get(ish.id); if (a) a.push(r.id); else out.set(ish.id, [r.id]); }
-  }
-  for (const [ish, ms] of ishKeyingiMateriallari(rows)) out.set(ish, [...(out.get(ish) ?? []), ...ms]);
+  for (const b of bog) { const a = out.get(b.bl_id!); if (a) a.push(b.mat_id); else out.set(b.bl_id!, [b.mat_id]); }
   return out;
 }
 
