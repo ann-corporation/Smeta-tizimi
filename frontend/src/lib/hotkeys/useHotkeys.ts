@@ -46,6 +46,12 @@ export function useHotkeys(scope: string, nom: string, defs: readonly HotkeyDef[
   useEffect(() => { bildir(); }, [faol, defs.length]);
 }
 
+/** Yordam oynasini tugma bilan ochish (`?` bilan bir xil): HotkeyYordam shu hodisani tinglaydi. */
+export const YORDAM_HODISA = 'hotkey-yordam-och';
+export function yordamOch(): void {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(YORDAM_HODISA));
+}
+
 /** Yordam oynasi qayta chizilishi uchun. */
 export function useHotkeyVersiya(): number {
   return useSyncExternalStore((f) => { kuzatuvchilar.add(f); return () => { kuzatuvchilar.delete(f); }; }, () => versiya, () => 0);

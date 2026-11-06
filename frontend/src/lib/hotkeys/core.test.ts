@@ -17,6 +17,9 @@ describe('tugma kaliti', () => {
     expect(tugmaKaliti(ev('Escape'))).toBe('esc');
     expect(kalitNorm('Shift+ArrowDown')).toBe('shift+arrowdown');
     expect(kalitNorm('Ctrl+Shift+Z')).toBe('ctrl+shift+z');
+    expect(kalitNorm('+')).toBe('+'); // «+» tugmaning o'zi
+    expect(kalitNorm('ctrl++')).toBe('ctrl++');
+    expect(tugmaMatni('+')).toBe('+');
   });
   it('kirill klaviaturada jismoniy harf tugmasi (KeyN) lotincha qoidaga mos', () => {
     expect(tugmaKaliti({ ...ev('т'), code: 'KeyN' } as never)).toBe('n');

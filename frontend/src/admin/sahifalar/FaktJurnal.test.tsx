@@ -33,7 +33,7 @@ const rows = [
 const states = [{ qator_id: 2, smeta_hajm: 100, fakt_hajm: 40 }, { qator_id: 3, smeta_hajm: 10, fakt_hajm: 0 }, { qator_id: 5, smeta_hajm: 30, fakt_hajm: 0 }];
 const props = () => ({ kompaniyaId: 1, obyektId: 8, rows, states, holatniYangila: vi.fn(), tuzilmaniYangila: vi.fn() });
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); urinishOchir(1, 8); yozilganOchir(1, 8); });
+afterEach(() => { cleanup(); vi.clearAllMocks(); urinishOchir(1, 8); yozilganOchir(1, 8); localStorage.clear(); });
 
 describe('FaktJurnal', () => {
   it('bo‘lim ishlari, "+" va "=" bitta paketda, fokus yo‘qolmaydi', async () => {
@@ -217,16 +217,18 @@ describe('FaktJurnal', () => {
   });
 
 
-  it('klaviatura: qidiruvdan ↓ — birinchi hajm katagiga; Esc (bo‘sh) — qidiruvga qaytadi; Ctrl+Enter saqlaydi', async () => {
+  it('klaviatura: qidiruvdan ↓ — birinchi qatorga, Enter — hajm katagi; Esc — qatorga qaytadi; Ctrl+Enter saqlaydi', async () => {
     m.yoz.mockResolvedValue({ ok: true });
     render(<FaktJurnal {...props()} />);
     const qid = screen.getByLabelText('Qidirish') as HTMLInputElement;
     qid.focus();
     fireEvent.keyDown(qid, { key: 'ArrowDown' });
+    expect((document.activeElement as HTMLElement).getAttribute('data-satr')).toBe('q-2');
+    fireEvent.keyDown(document.activeElement!, { key: 'Enter' });
     const grunt = screen.getByLabelText('Bugun bajarildi: Grunt') as HTMLInputElement;
     expect(document.activeElement).toBe(grunt);
     fireEvent.keyDown(grunt, { key: 'Escape' });
-    expect(document.activeElement).toBe(qid);
+    expect((document.activeElement as HTMLElement).getAttribute('data-satr')).toBe('q-2');
     grunt.focus();
     fireEvent.change(grunt, { target: { value: '3' } });
     fireEvent.keyDown(grunt, { key: 'Enter', ctrlKey: true });

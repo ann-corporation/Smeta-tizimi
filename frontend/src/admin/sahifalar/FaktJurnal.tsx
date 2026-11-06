@@ -36,8 +36,9 @@ import { f2VersiyaKochirmaOl } from '../../api/t2-f2-versiya-kochirma';
 import { avvalgiBilanF2Qoldiq, avvalgiF2Xaritasi, kochmaganBor, type F2VersiyaKochirma } from '../../lib/f2-versiya-kochirma';
 import { t } from '../../i18n/til';
 import { qidiruvKaliti } from '../../i18n/lotin-kirill';
-import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
-import { sarlavhaBilan } from '../../lib/hotkeys/core';
+import { useHotkeys, yordamOch } from '../../lib/hotkeys/useHotkeys';
+import { inputdami, sarlavhaBilan } from '../../lib/hotkeys/core';
+import { HOLAT_FILTRLAR, holatFiltrMos, keyingiMoslik, qoldimOl, qoldimYoz, type HolatFiltr } from '../../lib/fakt-klaviatura';
 import { JURNAL_XATO_MATN, bolimSummalari, bolimTarkibi, jurnalPaket, jurnalQur, kiritmaSoni, ochiqBor, qoldiqUlushi, type BolimSumma, type JurnalBolim, type JurnalHolat, type JurnalIsh, type JurnalQator, type Kiritma, type Rejim, type ZamenaBoglanish } from '../../lib/fakt-jurnal';
 import { zamenaBoglanishOl } from '../../lib/fakt-zamena-boglanish';
 import { tuzatishBoglanishlari } from '../../lib/smeta-anatomiya/tuzatish';
@@ -114,6 +115,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   /** Qator ostidagi inline panel (zamena / qo'shimcha ish / material) va «Faqat zamena va qo'shimchalar» filtri. */
   const [inline, setInline] = useState<{ qatorId: number; tur: InlineTur } | null>(null);
   const [faqatOzgarish, setFaqatOzgarish] = useState(false);
+  /** Klaviatura filtri (Alt+1…4): hammasi / kiritilganlar (yoqilgan paytdagi qoralama) / boshlanmagan / chala. */
+  const [holatFiltr, setHolatFiltr] = useState<HolatFiltr>('hammasi');
+  const [kiritilganIdlar, setKiritilganIdlar] = useState<ReadonlySet<number>>(new Set());
   /** Ish resurslarini ochish/yopish: `hammaYopiq` — umumiy holat, `teskari` — undan farq qiladigan ishlar. */
   const [hammaYopiq, setHammaYopiq] = useState(false);
   const [teskari, setTeskari] = useState<Set<number>>(new Set());
@@ -380,7 +384,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
     const mos = (x: JurnalQator) => qidiruvKaliti(`${x.kod ?? ''} ${x.nom}`).includes(q);
     // «Fakti yo'q, lekin F2 olingan» (pereraschet → fakt jurnali): tasdiqlangan F2 bor, fakt 0.
     const faktsiz = (x: JurnalQator) => { const h = holatMap.get(x.id); return Number(h?.f2_hajm ?? 0) > 1e-9 && !(Number(h?.fakt_hajm ?? 0) > 1e-9); };
+    const hf = (x: JurnalQator) => holatFiltrMos(holatFiltr, x, kiritilganIdlar);
     const filtr = (ish: JurnalIsh) => (!faqatQoldiq || ochiqBor(ish) || ish.resurslar.some(ochiqBor))
+      && (holatFiltr === 'hammasi' || hf(ish) || ish.resurslar.some(hf))
       && (!faktsizF2 || faktsiz(ish) || ish.resurslar.some(faktsiz) || ish.avtomatik.some(faktsiz))
       && (!q || mos(ish) || ish.resurslar.some(mos) || ish.avtomatik.some(mos))
       && (!faqatOzgarish || ozgarishBor(ish, juftlar.zamenalar));
@@ -398,7 +404,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
     const toliq = new Set<number>();
     for (let i = tarkib.length - 1; i >= 0; i--) { const x = tarkib[i]; if (x.ishlar.length || toliq.has(x.bolim.id)) { toliq.add(x.bolim.id); if (x.bolim.otaId != null) toliq.add(x.bolim.otaId); } }
     return tarkib.filter((x) => x.nisbiy === 0 || toliq.has(x.bolim.id)).map((x) => ({ bolim: x.nisbiy === 0 ? null : x.bolim, nisbiy: x.nisbiy, ishlar: x.ishlar }));
-  }, [qidiruv, faqatQoldiq, faktsizF2, faqatOzgarish, juftlar, holatMap, bolimId, bolimlar, bolimIshlari]);
+  }, [qidiruv, faqatQoldiq, faktsizF2, faqatOzgarish, juftlar, holatMap, bolimId, bolimlar, bolimIshlari, holatFiltr, kiritilganIdlar]);
 
   const kirit = (id: number, patch: Partial<Kiritma>) => setKiritmalar((o) => {
     const eski = o[id] ?? { rejim: '+' as Rejim, qiymat: '' };
@@ -484,16 +490,18 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
     return () => { saqlashRef.current = null; };
   });
 
+  /** Jurnal tugmalari faqat ustida oyna ochiq bo'lmaganda ishlaydi. */
+  const jurnalFaol = !modal && !tenglash && !tiklash && !bajModal && !narxModal && !qamrov && !chiqModal && !egizakOyna;
   // Yagona klaviatura moduli (lib/hotkeys): Ctrl+S saqlash, / qidiruv, F — Fakt = F2 (tanlangan bo'lim), Esc — kiritmalarni tozalash.
   useHotkeys('fakt', t('Fakt jurnali'), [
-    { id: 'fakt.saqla', keys: 'ctrl+s', nom: t('Saqlash'), inInput: true, run: () => { void saqla(); } },
+    { id: 'fakt.saqla', keys: ['ctrl+s', 'ctrl+enter'], nom: t('Saqlash'), inInput: true, run: () => { saqlaKlav(); } },
     { id: 'fakt.qidiruv', keys: '/', nom: t('Qidirish'), run: () => { qidiruvRef.current?.focus(); } },
     { id: 'fakt.f2', keys: 'f', nom: t('Fakt = F2 (tanlangan bo‘lim)'), run: () => { const b = bolimlar.find((x) => x.id === bolimId); if (!b) return false; void tenglashOch(b.nom, bolimIshlariYigish(b.id, bolimIshlari, bolimBolalari, true)); } },
     { id: 'fakt.f2.obyekt', keys: 'shift+f', nom: t('Fakt = F2 (butun obyekt)'), run: () => { if (!bolimlar.length && !ildizIshlari.length) return false; void tenglashObyekt(); } },
     { id: 'fakt.tozala', keys: 'esc', nom: t('Kiritilganlarni bekor qilish'), run: () => { if (!ozgarishSoni) return false; ommaviy({}); } },
     { id: 'fakt.orqaga', keys: 'ctrl+z', nom: t('Orqaga (ommaviy kiritma)'), run: () => orqaga() },
-    { id: 'fakt.qamrov', keys: '%', nom: t('Qamrov % (tanlangan bo‘lim)'), run: () => { const b = bolimlar.find((x) => x.id === bolimId); if (!b || qidiruv) return false; qamrovBolim(b); } },
-  ], !modal && !tenglash && !tiklash && !bajModal && !narxModal && !qamrov && !chiqModal && !egizakOyna);
+    { id: 'fakt.qamrov', keys: '%', nom: t('Qamrov % (tanlangan bo‘lim)'), run: () => { if (faolQamrov() !== false) return; const b = bolimlar.find((x) => x.id === bolimId); if (!b || qidiruv) return false; qamrovBolim(b); } },
+  ], jurnalFaol);
   useEffect(() => {
     if (!ozgarishSoni) return;
     const k = (e: BeforeUnloadEvent) => { e.preventDefault(); };
@@ -503,11 +511,13 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
 
   const klaviatura = (e: KeyboardEvent<HTMLInputElement>, id: number) => {
     const i = kirishIndeks.get(id) ?? -1;
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void saqla(); }
-    else if (e.key === 'Enter' || e.key === 'ArrowDown') { e.preventDefault(); fokusgaOt(kirishTartib[i + 1]); }
+    // Ctrl+Enter / Ctrl+S — yagona modul (fakt-klaviatura bloki), shu yerda emas: ikki marta saqlanmasin.
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') return;
+    if (e.key === 'Enter' || e.key === 'ArrowDown') { e.preventDefault(); fokusgaOt(kirishTartib[i + 1]); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); if (i > 0) fokusgaOt(kirishTartib[i - 1]); else qidiruvRef.current?.focus(); }
     else if (e.key === 'Tab') { const next = kirishTartib[i + (e.shiftKey ? -1 : 1)]; if (next != null) { e.preventDefault(); fokusgaOt(next); } }
-    else if (e.key === 'Escape') { e.preventDefault(); if (kiritmalar[id]?.qiymat) kirit(id, { qiymat: '' }); else qidiruvRef.current?.focus(); }
+    // Esc — tahrirni bekor qilish: katak kirishdagi qiymatiga qaytadi, fokus qatorning o'ziga (navigatsiya rejimi).
+    else if (e.key === 'Escape') { e.preventDefault(); tahrirBekor(id); }
     else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') { e.preventDefault(); const q = barchaById.get(id); if (q) bajOch(q); }
     // Egasi 2026-10-31: katakda «%» endi oyna ochmaydi — «50%» yoziladi (smeta foizi, shu qatorning o'zi; Qamrov % — qator tugmasi).
     else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && tarix.length) { e.preventDefault(); orqaga(); }
@@ -525,7 +535,8 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
 
   /** Qidiruv maydonidan: ↓ / Enter — birinchi ko'rinadigan qatorning hajm katagiga; Esc — qidiruvni tozalash. */
   const qidiruvKlav = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'ArrowDown' || e.key === 'Enter') { if (kirishTartib.length) { e.preventDefault(); fokusgaOt(kirishTartib[0]); } }
+    // ↓ / Enter — birinchi mos qatorga (navigatsiya rejimi; Enter yoki raqam — tahrir).
+    if (e.key === 'ArrowDown' || e.key === 'Enter') { const i = birinchiMos(); if (i != null) { e.preventDefault(); faolQil(satrlar[i].key, { fokus: true }); } }
     else if (e.key === 'Escape' && qidiruv) { e.preventDefault(); setQidiruv(''); }
   };
 
@@ -553,7 +564,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
         {(['+', '='] as Rejim[]).map((r) => <button key={r} type="button" tabIndex={-1} aria-pressed={k.rejim === r} title={r === '+' ? t('Bugun bajarilgan hajm (qo‘shiladi)') : t('Jami fakt (shu qiymatga tenglashtiriladi)')} onClick={() => kirit(q.id, { rejim: r })} className={`w-6 font-semibold ${k.rejim === r ? 'bg-accent text-[var(--on-accent)]' : 'text-text-dim hover:bg-surface-3'}`}>{r}</button>)}
       </div>
       <div className="relative">
-        <input ref={(el) => { if (el) inputlar.current.set(q.id, el); else inputlar.current.delete(q.id); }} onFocus={(e) => { e.currentTarget.select(); setFokusId(q.id); }} value={k.qiymat} onChange={(e) => kirit(q.id, { qiymat: e.target.value })} onKeyDown={(e) => klaviatura(e, q.id)} onPaste={(e) => joyla(e, q.id)} inputMode="decimal"
+        <input ref={(el) => { if (el) inputlar.current.set(q.id, el); else inputlar.current.delete(q.id); }} onFocus={(e) => { e.currentTarget.select(); setFokusId(q.id); tahrirBosh(q.id); }} value={k.qiymat} onChange={(e) => kirit(q.id, { qiymat: e.target.value })} onKeyDown={(e) => klaviatura(e, q.id)} onPaste={(e) => joyla(e, q.id)} inputMode="decimal"
           placeholder={k.rejim === '+' ? t('bugun') : t('jami')} title={t('Son yoki foiz (masalan 50% — smeta hajmining yarmi). Enter — pastga, Excel ustunini joylash mumkin.')} aria-label={`${k.rejim === '+' ? 'Bugun bajarildi' : 'Jami fakt'}: ${q.nom}`}
           className={`h-7 w-[80px] rounded-[var(--radius-sm)] border bg-bg px-2 text-right font-mono text-[13px] tabular-nums outline-none focus:border-accent ${xato || oshdi ? 'border-warn' : k.qiymat ? 'border-accent' : 'border-border-strong'}`} />
         {xato ? <div className="absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap text-[10.5px] font-semibold text-warn">{t(JURNAL_XATO_MATN[xato])}</div> : izoh}
@@ -738,9 +749,15 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   const kirishIndeks = useMemo(() => new Map(kirishTartib.map((id, i) => [id, i])), [kirishTartib]);
   const kattaJurnal = satrlar.length > 100;
   const fokusSatr = fokusId == null ? undefined : satrIndeks.get(fokusId);
+  /** satr.key → indeks (faol qator ref'da; virtual ro'yxat uni doim chizadi — fokus yo'qolmaydi). */
+  const keyIndeks = useMemo(() => new Map(satrlar.map((s, i) => [s.key, i])), [satrlar]);
+  const keyIndeksRef = useRef(keyIndeks); keyIndeksRef.current = keyIndeks;
+  const faolRef = useRef<string | null>(null);
   const rangeExtractor = useCallback((range: Parameters<typeof defaultRangeExtractor>[0]) => {
     const indices = defaultRangeExtractor(range);
-    return fokusSatr == null || indices.includes(fokusSatr) ? indices : [...indices, fokusSatr].sort((a, b) => a - b);
+    const faolI = faolRef.current == null ? undefined : keyIndeksRef.current.get(faolRef.current);
+    const qosh = [fokusSatr, faolI].filter((x): x is number => x != null && !indices.includes(x));
+    return qosh.length ? [...new Set([...indices, ...qosh])].sort((a, b) => a - b) : indices;
   }, [fokusSatr]);
   const virtual = useVirtualizer<HTMLDivElement, HTMLDivElement>({
     count: satrlar.length, enabled: kattaJurnal, getScrollElement: () => jadvalRef.current,
@@ -749,7 +766,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   });
   useEffect(() => {
     if (jadvalRef.current) jadvalRef.current.scrollTop = 0;
-  }, [bolimId, qidiruv, faqatQoldiq]);
+  }, [bolimId, qidiruv, faqatQoldiq, holatFiltr]);
   useEffect(() => {
     const id = fokusSorov.current;
     if (id != null && inputlar.current.has(id)) { fokusSorov.current = null; inputlar.current.get(id)!.focus(); }
@@ -764,6 +781,206 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
     virtual.scrollToIndex(index, { align: 'auto' });
     setFokusId(id);
   };
+
+  // ══ KLAVIATURA NAVIGATSIYASI (egasi 2026-11-07: «to'liq klaviaturada») — alohida blok. ══
+  // Faol qator ref'da (roving tabindex + aria-selected DOM'da almashtiriladi): o'q tugmalari daraxtni qayta chizmaydi.
+  // Navigatsiya rejimi — fokus qatorda; tahrir rejimi — fokus hajm katagida (Enter/raqam kiradi, Esc chiqadi).
+  const satrEl = (key: string) => jadvalRef.current?.querySelector<HTMLElement>(`[data-satr="${key}"]`) ?? null;
+  const kutishFokus = useRef<string | null>(null);
+  const kutishJoy = useRef<{ key: string; zaxira: string | null; fokus: boolean; urinish: number } | null>(null);
+  const qoldimRef = useRef<number | null>(null);
+  const [qoldimXabar, setQoldimXabar] = useState<string | null>(null);
+  const gVaqt = useRef(0);
+  const tahrirOldi = useRef<{ id: number; k: Kiritma | null; yangi: boolean } | null>(null);
+  const satrId = (s: Satr | undefined) => (s && s.tur !== 'bolim' ? s.qator.id : null);
+  const faolQil = (key: string | undefined, o: { fokus?: boolean; scroll?: boolean } = {}) => {
+    if (key == null) return;
+    const eski = faolRef.current; faolRef.current = key;
+    if (eski && eski !== key) { const e = satrEl(eski); if (e) { e.setAttribute('aria-selected', 'false'); e.tabIndex = -1; } }
+    const el = satrEl(key);
+    if (el) { el.setAttribute('aria-selected', 'true'); el.tabIndex = 0; }
+    const i = keyIndeks.get(key);
+    const id = satrId(i == null ? undefined : satrlar[i]);
+    if (id != null) qoldimYoz(kompaniyaId, obyektId, id);
+    if (o.scroll !== false) { if (kattaJurnal && i != null) virtual.scrollToIndex(i, { align: 'auto' }); else el?.scrollIntoView?.({ block: 'nearest' }); }
+    if (o.fokus) { if (el) el.focus({ preventScroll: true }); else kutishFokus.current = key; }
+  };
+  const faolIndeks = () => (faolRef.current == null ? null : keyIndeks.get(faolRef.current) ?? null);
+  const faolSatr = () => { const i = faolIndeks(); return i == null ? undefined : satrlar[i]; };
+  /** Navigatsiya faqat jadval ichida yoki sahifada fokus yo'q paytda (boshqa tugma/maydon ustidagi o'q tugmalariga tegilmaydi). */
+  const navMumkin = () => {
+    if (!satrlar.length) return false;
+    const a = document.activeElement;
+    return !a || a === document.body || (!!jadvalRef.current?.contains(a) && !inputdami(a));
+  };
+  const sahifaQadam = () => { const h = jadvalRef.current?.clientHeight ?? 0; return h > 0 ? Math.max(1, Math.floor(h / 72)) : 10; };
+  const siljit = (d: number | 'bosh' | 'oxir') => {
+    if (!navMumkin()) return false;
+    const i = faolIndeks(); const oxir = satrlar.length - 1;
+    const n = d === 'bosh' ? 0 : d === 'oxir' ? oxir : i == null ? (d > 0 ? 0 : oxir) : Math.max(0, Math.min(oxir, i + d));
+    if (qoldimXabar) setQoldimXabar(null);
+    faolQil(satrlar[n].key, { fokus: true });
+  };
+  const bolaSoniOl = (s: Satr) => (s.tur === 'ish' ? s.qator.resurslar.length + s.qator.avtomatik.length : 0);
+  /** ← : ochiq ishni yig'ish, aks holda ota qatorga (resurs → ish → bo'lim sarlavhasi). */
+  const chapga = () => {
+    if (!navMumkin()) return false;
+    const i = faolIndeks(); if (i == null) return siljit(1);
+    const s = satrlar[i];
+    if (s.tur === 'ish' && bolaSoniOl(s) > 0 && ishOchiq(s.qator.id)) { ishAlmashtir(s.qator.id); return; }
+    const otaTur = s.tur === 'resurs' ? 'ish' : s.tur === 'ish' ? 'bolim' : null;
+    if (!otaTur) return;
+    for (let k = i - 1; k >= 0; k--) if (satrlar[k].tur === otaTur) { faolQil(satrlar[k].key, { fokus: true }); return; }
+  };
+  /** → : yopiq ishni ochish, aks holda ichiga (keyingi qator). */
+  const ongga = () => {
+    if (!navMumkin()) return false;
+    const i = faolIndeks(); if (i == null) return siljit(1);
+    const s = satrlar[i];
+    if (s.tur === 'ish' && bolaSoniOl(s) > 0 && !ishOchiq(s.qator.id)) { ishAlmashtir(s.qator.id); return; }
+    if (s.tur !== 'resurs' && i < satrlar.length - 1) faolQil(satrlar[i + 1].key, { fokus: true });
+  };
+  /** Enter/F2 — faol qatorning hajm katagiga; raqam — katakni shu raqam bilan almashtirib boshlaydi. */
+  const tahrirla = (bosh?: string) => {
+    if (!navMumkin()) return false;
+    const s = faolSatr(); if (!s) return false;
+    if (s.tur === 'bolim') { if (bosh != null || !s.bolak.bolim) return false; setBolimId(s.bolak.bolim.id); return; }
+    const id = s.qator.id;
+    if (!kirishIndeks.has(id)) {
+      if (bosh == null && bolaSoniOl(s) > 0) { ishAlmashtir(id); return; }
+      toast(t('Bu qatorga fakt qo‘lda kiritilmaydi (avtomatik).'), 'warn'); return;
+    }
+    tahrirOldi.current = { id, k: kiritmalar[id] ?? null, yangi: true };
+    if (bosh != null) kirit(id, { qiymat: bosh });
+    fokusgaOt(id);
+  };
+  /** Katakka kirish: Esc qaytaradigan qiymat eslab qolinadi; qator faol bo'ladi. */
+  const tahrirBosh = (id: number) => {
+    const o = tahrirOldi.current;
+    if (o?.id === id && o.yangi) o.yangi = false;
+    else tahrirOldi.current = { id, k: kiritmalar[id] ?? null, yangi: false };
+    faolQil(`q-${id}`, { scroll: false });
+  };
+  const tahrirBekor = (id: number) => {
+    const o = tahrirOldi.current; tahrirOldi.current = null;
+    if (o?.id === id) setKiritmalar((x) => { const n = { ...x }; if (o.k) n[id] = o.k; else delete n[id]; return n; });
+    faolQil(`q-${id}`, { fokus: true, scroll: false });
+  };
+  const faolQator = () => { if (!navMumkin()) return null; const s = faolSatr(); return s && s.tur !== 'bolim' && kirishIndeks.has(s.qator.id) ? s.qator : null; };
+  const qoldiqToldir = () => {
+    const q = faolQator(); if (!q) return false;
+    const v = qoldiqUlushi(q, 100);
+    if (!v) { toast(t('Ochiq qoldiq yo‘q — to‘ldiriladigan hajm yo‘q.'), 'warn'); return; }
+    kirit(q.id, { rejim: '+', qiymat: v });
+  };
+  const kiritmaTozala = () => { const q = faolQator(); if (!q || !kiritmalar[q.id]) return false; kirit(q.id, { qiymat: '' }); };
+  const rejimQoy = (r: Rejim) => { const q = faolQator(); if (!q) return false; kirit(q.id, { rejim: r }); };
+  /** «%» faol qatorga: bo'lim sarlavhasi — shu bo'lim; ish yoki uning resursi — shu ish. Faol qator yo'q — false (tanlangan bo'lim). */
+  const faolQamrov = (): boolean | void => {
+    const s = navMumkin() ? faolSatr() : undefined; if (!s) return false;
+    if (s.tur === 'bolim') { if (!s.bolak.bolim) return false; qamrovBolim(s.bolak.bolim); return; }
+    const ish = s.tur === 'ish' ? s.qator : s.qator.otaId != null ? jurnalById.get(s.qator.otaId) as JurnalIsh | undefined : undefined;
+    if (!ish || ish.tur !== 'bl') return false;
+    qamrovIsh(ish);
+  };
+  /** Ctrl+Enter / Ctrl+S: mavjud saqlash yo'li; to'silsa — sababi ko'rsatiladi (xatoli birinchi qatorga o'tadi). */
+  const saqlaKlav = () => {
+    if (band) return;
+    if (!ozgarishSoni) { toast(t('Saqlanadigan o‘zgarish yo‘q.'), 'warn'); return; }
+    if (paket.xatolar.size) { toast(t('{n} tasida xato — tuzating', { n: String(paket.xatolar.size) }), 'warn'); fokusgaOt([...paket.xatolar.keys()][0]); return; }
+    if (!paket.ok) { toast(t('Saqlanadigan o‘zgarish yo‘q.'), 'warn'); return; }
+    void saqla();
+  };
+  // Qidiruv mosliklari: ish yoki resursning o'z kodi/nomi (lotin/kirill bir xil).
+  const qKalit = qidiruvKaliti(qidiruv.trim());
+  const moslar = () => {
+    if (!qKalit) return [];
+    const out: number[] = [];
+    satrlar.forEach((s, i) => { if (s.tur !== 'bolim' && qidiruvKaliti(`${s.qator.kod ?? ''} ${s.qator.nom}`).includes(qKalit)) out.push(i); });
+    return out;
+  };
+  const birinchiMos = (): number | null => { const m = moslar(); if (m.length) return m[0]; const i = satrlar.findIndex((s) => s.tur !== 'bolim'); return i >= 0 ? i : null; };
+  const moslikka = (yon: 1 | -1) => {
+    if (!qKalit) return false;
+    const n = keyingiMoslik(moslar(), faolIndeks(), yon);
+    if (n == null) { toast(t('Mos qator topilmadi.'), 'warn'); return; }
+    faolQil(satrlar[n].key, { fokus: true });
+  };
+  const filtrQoy = (f: HolatFiltr) => {
+    setHolatFiltr(f);
+    setKiritilganIdlar(f === 'kiritilgan' ? new Set(Object.entries(kiritmalar).filter(([, k]) => k.qiymat.trim()).map(([id]) => Number(id))) : new Set());
+  };
+  /** Qatorga borish: bo'limini ochadi (yopiq ish — ochiladi), chizilgach faol qiladi. */
+  const joyga = (id: number, o: { xabar?: boolean; fokus?: boolean }) => {
+    const q = barchaById.get(id); if (!q) return false;
+    let bolim: number | null = null; let ishId: number | null = null;
+    for (const [bid, ishlar] of bolimIshlari) {
+      const ish = ishlar.find((x) => x.id === id || x.resurslar.some((r) => r.id === id) || x.avtomatik.some((r) => r.id === id));
+      if (ish) { bolim = bid; ishId = ish.id; break; }
+    }
+    if (bolim == null) return false;
+    setQidiruv(''); setBolimId(bolim);
+    if (ishId != null && ishId !== id && !ishOchiq(ishId)) ishAlmashtir(ishId);
+    kutishJoy.current = { key: `q-${id}`, zaxira: ishId != null ? `q-${ishId}` : null, fokus: !!o.fokus, urinish: 0 };
+    if (o.xabar) setQoldimXabar(q.nom);
+    return true;
+  };
+  const qoldimgaQayt = () => { const id = qoldimRef.current; if (id == null || !joyga(id, { fokus: true })) toast(t('Eslab qolingan joy yo‘q.'), 'warn'); };
+  // «Qayerda qoldim»: obyekt ochilganda oxirgi faol qator tiklanadi (URL da aniq bo'lim/filtr bo'lsa — tegilmaydi).
+  const tiklanganObyekt = useRef<number | null>(null);
+  useEffect(() => {
+    if (tiklanganObyekt.current === obyektId || !bolimlar.length) return;
+    tiklanganObyekt.current = obyektId;
+    const id = qoldimOl(kompaniyaId, obyektId); qoldimRef.current = id;
+    if (id == null || boshBolimId != null || boshFaktsizF2) return;
+    joyga(id, { xabar: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- faqat obyekt ochilganda bir marta
+  }, [bolimlar, obyektId]);
+  // Kutilayotgan joy/fokus: virtual qator (yoki yangi bo'lim) chizilgach qo'llanadi.
+  useEffect(() => {
+    const j = kutishJoy.current;
+    if (j) {
+      const key = keyIndeks.has(j.key) ? j.key : j.zaxira && keyIndeks.has(j.zaxira) ? j.zaxira : null;
+      if (key) { kutishJoy.current = null; faolQil(key, { fokus: j.fokus }); }
+      else if (++j.urinish > 3) kutishJoy.current = null;
+    }
+    const k = kutishFokus.current;
+    if (k) { const el = satrEl(k); if (el) { kutishFokus.current = null; el.focus({ preventScroll: true }); } }
+  });
+  const RAQAMLAR = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'] as const;
+  useHotkeys('fakt-klaviatura', t('Fakt jurnali: qatorlar bo‘ylab'), [
+    { id: 'fk.past', keys: 'arrowdown', nom: t('Keyingi qator'), run: () => siljit(1) },
+    { id: 'fk.tepa', keys: 'arrowup', nom: t('Oldingi qator'), run: () => siljit(-1) },
+    { id: 'fk.sahifa.past', keys: 'pagedown', nom: t('Bir sahifa pastga'), run: () => siljit(sahifaQadam()) },
+    { id: 'fk.sahifa.tepa', keys: 'pageup', nom: t('Bir sahifa tepaga'), run: () => siljit(-sahifaQadam()) },
+    { id: 'fk.bosh', keys: 'home', nom: t('Birinchi qator'), run: () => siljit('bosh') },
+    { id: 'fk.oxir', keys: 'end', nom: t('Oxirgi qator'), run: () => siljit('oxir') },
+    { id: 'fk.yig', keys: 'arrowleft', nom: t('Yig‘ish / ota qatorga'), run: () => chapga() },
+    { id: 'fk.och', keys: 'arrowright', nom: t('Ochish / ichiga'), run: () => ongga() },
+    { id: 'fk.tahrir', keys: ['enter', 'f2'], nom: t('Hajmni tahrirlash (Enter — keyingi qator, Esc — bekor)'), run: () => tahrirla() },
+    { id: 'fk.raqam', keys: RAQAMLAR, nom: t('Raqam — hajmni yozishni boshlash'), run: (e) => tahrirla(e.key) },
+    { id: 'fk.qoldiq', keys: '*', nom: t('Ochiq qoldiqni to‘liq yozish'), run: () => qoldiqToldir() },
+    { id: 'fk.ochir', keys: ['delete', 'backspace'], nom: t('Kiritilgan (saqlanmagan) qiymatni o‘chirish'), run: () => kiritmaTozala() },
+    { id: 'fk.plus', keys: '+', nom: t('Rejim «+» (bugun)'), run: () => rejimQoy('+') },
+    { id: 'fk.teng', keys: '=', nom: t('Rejim «=» (jami)'), run: () => rejimQoy('=') },
+    { id: 'fk.keyingi', keys: ['n', 'f3'], nom: t('Keyingi topilgan qator'), inInput: true, run: () => moslikka(1) },
+    { id: 'fk.oldingi', keys: ['shift+n', 'shift+f3'], nom: t('Oldingi topilgan qator'), inInput: true, run: () => moslikka(-1) },
+    ...HOLAT_FILTRLAR.map((f) => ({ id: `fk.filtr.${f.kalit}`, keys: f.tugma, nom: t('Filtr: {nom}', { nom: t(f.nom) }), run: () => { filtrQoy(f.kalit); } })),
+    { id: 'fk.g', keys: 'g', nom: t('g, keyin l — to‘xtagan joyga qaytish'), run: () => { gVaqt.current = Date.now(); } },
+    { id: 'fk.l', keys: 'l', nom: t('l (g dan keyin) — to‘xtagan joy'), run: () => { if (Date.now() - gVaqt.current > 1500) return false; gVaqt.current = 0; qoldimgaQayt(); } },
+  ], jurnalFaol);
+  /** Qator o'rami atributlari: roving tabindex, aria-selected (faol qator ref'dan), treegrid darajasi. */
+  const satrAttr = (s: Satr) => {
+    const faol = faolRef.current === s.key;
+    const bolalar = bolaSoniOl(s);
+    return {
+      'data-satr': s.key, role: 'row' as const, 'aria-selected': faol, tabIndex: faol ? 0 : -1,
+      'aria-level': s.tur === 'bolim' ? 1 : s.tur === 'ish' ? 2 : 3,
+      'aria-expanded': bolalar > 0 && s.tur === 'ish' ? ishOchiq(s.qator.id) : undefined,
+      onClick: (e: { target: EventTarget }) => { const ichki = (e.target as HTMLElement).closest?.('input,button,select,textarea,a,summary'); faolQil(s.key, { fokus: !ichki, scroll: false }); },
+    };
+  };
+  const SATR_FAOL = 'outline-none aria-selected:bg-accent/[.08] aria-selected:shadow-[inset_3px_0_0_var(--accent)] focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent/60';
 
 
   const satrFon = (q: JurnalQator) => `transition-colors focus-within:bg-accent/[.07] ${saqlangan.has(q.id) ? 'bg-ok/10' : kiritmalar[q.id]?.qiymat ? 'bg-accent/[.05]' : ''} border-l-2 ${q.zamena ? 'border-l-[var(--info)]' : q.qoshimcha ? 'border-l-accent' : 'border-l-transparent'}`;
@@ -908,6 +1125,11 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
         <label className="flex items-center gap-1.5 text-[12px] text-text-dim"><input type="checkbox" checked={faqatQoldiq} onChange={(e) => setFaqatQoldiq(e.target.checked)} /> {t('faqat bajarilmaganlar')}</label>
         <label className="flex items-center gap-1.5 text-[12px] text-text-dim" title={t('Pereraschet uchun: tasdiqlangan F2 olingan, lekin fakt belgilanmagan qatorlar (butun obyekt bo‘yicha)')}><input type="checkbox" checked={faktsizF2} onChange={(e) => setFaktsizF2(e.target.checked)} /> {t('fakti yo‘q, F2 olingan')}</label>
         <label className="flex items-center gap-1.5 text-[12px] text-text-dim" title={t('Butun obyekt bo‘yicha: zamena qilingan, almashtirilgan va qo‘shimcha qatorlar')}><input type="checkbox" checked={faqatOzgarish} onChange={(e) => setFaqatOzgarish(e.target.checked)} data-testid="faqat-ozgarish" /> {t('Faqat zamena va qo‘shimchalar')}</label>
+        <span className="inline-flex items-center gap-0.5 rounded-[var(--radius-sm)] border border-border bg-surface-2 p-0.5" role="group" aria-label={t('Holat filtri')} data-testid="holat-filtr">
+          {HOLAT_FILTRLAR.map((f) => <button key={f.kalit} type="button" aria-pressed={holatFiltr === f.kalit} onClick={() => filtrQoy(f.kalit)} title={sarlavhaBilan(t(f.nom), f.tugma)}
+            className={`fz-btn fz-btn--sm ${holatFiltr === f.kalit ? 'border-transparent bg-accent/15 text-text' : 'fz-btn--ghost'}`}>{t(f.nom)}</button>)}
+        </span>
+        <button type="button" onClick={() => yordamOch()} className="fz-btn fz-btn--ghost fz-btn--sm" title={t('Klaviatura tugmalari')} data-testid="klaviatura-yordam">{t('Klaviatura')} <kbd className="fz-kbd">?</kbd></button>
         {tanlanganBolim && <button type="button" onClick={() => void tenglashOch(tanlanganBolim.nom, bolimIshlariYigish(tanlanganBolim.id, bolimIshlari, bolimBolalari, true))} disabled={tenglashYuk}
           title={sarlavhaBilan(t('Shu bo‘lim (ichki bo‘limlari bilan): F2 hajmi fakt dan ko‘p ishlarga farqni yozish'), 'f')} aria-label={t('Fakt = F2: bo‘lim')}
           className="fz-btn">{t('Fakt = F2')} <kbd className="fz-kbd">F</kbd></button>}
@@ -997,10 +1219,15 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
                 </div>
               </div>
               <MeterLegenda />
+              {qoldimXabar && <div role="status" data-testid="qoldim-xabar" className="flex flex-wrap items-center gap-2 text-[12px] text-[var(--info)]">
+                <span>{t('Siz shu yerda to‘xtagansiz: {nom}', { nom: qoldimXabar })}</span>
+                <span className="text-text-mute">{t('qaytish: g, keyin l')}</span>
+                <button type="button" onClick={() => setQoldimXabar(null)} className="fz-btn fz-btn--ghost fz-btn--sm" aria-label={t('Xabarni yopish')}><X size={12} /></button>
+              </div>}
               <FiltrHolatQatori soni={jf.soni} natija={korinadiIshSoni} jami={asosIshSoni} tozala={jf.tozala} />
             </header>
             <div ref={jadvalRef} tabIndex={0} role="region" aria-label={t('Fakt jadvali')} className="min-h-0 flex-1 overflow-auto pb-16 focus-visible:outline focus-visible:outline-accent" data-testid="fakt-jadval">
-              <div className="min-w-[980px]">
+              <div className="min-w-[980px]" role="treegrid" aria-label={t('Fakt qatorlari')}>
                 <div className={`${USTUN} sticky top-0 z-10 h-16 border-b border-border-strong bg-surface-2 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-dim`} role="row">
                   {ustunSarlavha(t('Ish / resurs'), t('holat · belgilar'), { maydonlar: <>{FN(t('kod'), 'kod')}{FN(t('nom'), 'nom')}{FN(t('tur'), 'tur')}{FN(t('holat'), 'holat')}</> })}
                   {ustunSarlavha(t('Smeta'), t('hajm · birlik narxi'), { ong: true, maydonlar: <>{FN(t('hajm'), 'hajm')}{FN(t('birlik'), 'birlik')}{FN(t('narx'), 'narx')}</> })}
@@ -1013,11 +1240,11 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
                 </div>
                 {korinadiIshSoni === 0 && <p className="p-6 text-center text-[13px] text-text-mute">{qidiruv || jf.soni ? t('Hech narsa topilmadi.') : t('Bu bo‘limda (ichki bo‘limlari bilan) ish yo‘q.')}</p>}
                 {kattaJurnal ? <div className="relative" style={{ height: virtual.getTotalSize() }} data-testid="fakt-virtual-royxat">
-                  {virtual.getVirtualItems().map(v => <div key={v.key} data-index={v.index} ref={virtual.measureElement}
-                    className="absolute left-0 top-0 w-full border-b border-border" style={{ transform: `translateY(${v.start - 64}px)` }}>
+                  {virtual.getVirtualItems().map(v => <div key={v.key} data-index={v.index} ref={virtual.measureElement} {...satrAttr(satrlar[v.index])}
+                    className={`absolute left-0 top-0 w-full border-b border-border ${SATR_FAOL}`} style={{ transform: `translateY(${v.start - 64}px)` }}>
                     {satrChiz(satrlar[v.index])}
                   </div>)}
-                </div> : satrlar.map(s => <div key={s.key} className="border-b border-border">{satrChiz(s)}</div>)}
+                </div> : satrlar.map(s => <div key={s.key} {...satrAttr(s)} className={`border-b border-border ${SATR_FAOL}`}>{satrChiz(s)}</div>)}
               </div>
             </div>
           </section>
@@ -1055,7 +1282,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
         manbaSaqla={() => (ozgarishSoni ? saqla() : Promise.resolve(true))} onYop={() => setEgizakOyna(false)} onYozildi={() => holatniYangila()} />}
 
       {qamrov && <FaktQamrov sarlavha={qamrov.sarlavha} ishlar={qamrov.ishlar} holatMap={holatMap} narxOl={narxOl} obyektId={obyektId} kompaniyaId={kompaniyaId} sana={sana}
-        onYop={() => setQamrov(null)} onBajarildi={() => holatniYangila()} aktBekor={faktQamrovBekor} />}
+        onYop={() => { setQamrov(null); kutishFokus.current = faolRef.current; }} onBajarildi={() => holatniYangila()} aktBekor={faktQamrovBekor} />}
 
       {narxModal && <FaktNarxlash kompaniyaId={kompaniyaId} obyektId={obyektId} qator={narxModal} onYop={() => setNarxModal(null)}
         onSaqlandi={(xabar) => { setNarxModal(null); toast(xabar, 'ok'); void tuzilmaniYangila(); }} />}
