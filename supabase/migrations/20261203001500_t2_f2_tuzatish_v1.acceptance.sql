@@ -74,7 +74,7 @@ begin
   if (select count(*) from public.t2_akt_qator where akt_id=d) <> 3 then raise exception '6e: rad etilgan saqlash qatorlarni o''zgartirdi'; end if;
 
   -- 4) Almashtirilgan qatorga storno yoziladi, oddiy qator — QATOR_ALMASHTIRILGAN.
-  update public.t2_qator set versiya_holat='almashtirilgan' where id=z;
+  update public.t2_qator set versiya_holat='almashtirilgan', almashtirgan_versiya_id=(select id from public.t2_smeta_versiya order by id limit 1) where id=z;
   r := public.t2_akt_yarat_v2(o,'2026-11-01',jsonb_build_array(yq),a,'_T_F2T_D2',gen_random_uuid());
   d2 := (r->>'akt_id')::bigint;
   select versiya into v from public.t2_akt where id=d2;
