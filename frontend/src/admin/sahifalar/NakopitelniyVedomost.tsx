@@ -20,6 +20,8 @@ import { forma3Hujjat, forma3SotuvdanXlsx, type Forma3ExportOptions, type Forma3
 import { Forma3ShaklTanlagich } from '../../components/forma3/Forma3ShaklTanlagich';
 import { f3ShaklOl, f3ShaklSaqla } from '../../lib/forma3-shakl-tanlov';
 import { sbT2F2TafsilotOl } from '../../api/t2-narx';
+import { portfelObyektOl } from '../../api/f2-oylik-paket';
+import { oyAktlarBahosi } from '../../lib/f2-oylik-paket/portfel';
 import { ozgarishRoyxatOl } from '../../api/t2-document-control';
 import { t2ObyektNakrutka, type NakrutkaKaskad, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
 import type { Podval } from '../../lib/hisob-yadro';
@@ -335,11 +337,23 @@ function Sessiya({ companyId }: { companyId: number }) {
               .map((z) => ({ qator_id: Number(z.qator_id), amal: String(z.amal) })),
           }));
       } catch { /* ro‘yxat o‘qilmasa СМЕТНАЯ o‘zgarmaydi — davom etamiz */ }
+      /* EGASI QARORI (2026-11-06, audit C M12): «за отчетный месяц» — har F2 O'Z podvali bilan (F2 hujjati ВСЕГО lari yig'indisi).
+       * Yagona hisob: f2AktTayyorla → f2AktBaho (F2 tarixi / portfel bilan bir xil). O'qilmasa — F3 tuzilmaydi (jim smeta podvali yo'q). */
+      const oyKalit = davr.slice(0, 7);
+      const oyAktlar = new Map<number, { id: number; oy: string; raqam: string | null }>();
+      for (const l of taf.qatorlar) if (l.akt_holat === 'tasdiqlangan' && String(l.oy).slice(0, 7) === oyKalit) oyAktlar.set(l.akt_id, { id: l.akt_id, oy: l.oy, raqam: l.raqam ?? null });
+      let davrAktlari: Forma3ExportOptions['davrAktlari'];
+      try {
+        const pm = await portfelObyektOl(companyId, Number(objectId), [...oyAktlar.keys()]);
+        davrAktlari = oyAktlarBahosi(pm, [...oyAktlar.values()], obyektNom, new Map([...oyAktlar.values()].map((a) => [a.id, a.raqam] as const)));
+      } catch {
+        setXato('F2 hujjatlarining o‘z podvali bo‘yicha oy summasi hisoblanmadi — F3 tuzilmadi. Qayta urinib ko‘ring.'); return;
+      }
       const h = forma3Hujjat(
         { nakopitelniy: [{ obyekt_id: Number(objectId), obyektNom, qatorlar: rows }], f2Oylik, f2Hajm: f3CertifiedHajm(taf.qatorlar, companyId, Number(objectId), davr.slice(0, 7)) },
         {
           shakl: f3Shakl, obyektNom, davr, asosiyObyektId: Number(objectId), imzo: tomonlar, nakrutka, podval, nkManba: nakrutkaJavob?.nk_manba ?? null, ndsFoiz: stavkaOl(),
-          smetaNakrutka, ozgarishlar, lineage, lineageRequired: Boolean(lineage),
+          smetaNakrutka, ozgarishlar, lineage, lineageRequired: Boolean(lineage), davrAktlari,
           pudratchi: pudratchiRek, zakazchik: zakazchikRek,
           shartnomaRaqam: shartnoma?.raqam ?? null, shartnomaSana: shartnoma?.sana ?? null, shartnomaSumma: shartnoma?.summa ?? null,
         },

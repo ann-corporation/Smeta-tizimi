@@ -36,6 +36,7 @@ import { narxsizSoni } from './narx-bildirishnoma';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import type { PtoF3LineageInput } from './pto-document-lineage';
 import { assertF3Lineage } from './pto-document-lineage';
+import { sumRefs } from './hujjat-yozuvchi/formula';
 import {
   RasmiyVaraq, bugunSana, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, yaxlit2,
   summaSozBilan, type ImzoNomlar, type Qiymat, type RasmiyUstun, type SarlavhaKatak,
@@ -112,10 +113,26 @@ export interface Forma3ExportOptions {
   smetaNakrutka?: SmetaNakrutka | null;
   /** Tasdiqlangan o'zgarishlar (tur='olib_tashlash') — СМЕТНАЯ dan chiqadi. */
   ozgarishlar?: ReadonlyArray<{ holat: string; tur: string; qatorlar: ReadonlyArray<{ qator_id: number; amal: string }> }>;
+  /**
+   * EGASI QARORI (2026-11-06, audit C M12): «за отчетный месяц» K OPLATE — HAR akt O'Z F2 podvali bilan (t2_akt_podval: nk /
+   * storno bloki podvali; yo'q bo'lsa smeta podvali) — F3 oy jami = shu oy F2 hujjatlari ВСЕГО yig'indisi. Hisob yagona
+   * `f2AktBaho` (lib/f2-akt-eksport) dan; bu yerda faqat yoziladi. Berilmasa — eski xulq (smeta podvali kaskadi).
+   */
+  davrAktlari?: ReadonlyArray<F3DavrAkt>;
   /** Canonical company → project → object → contract → period scope. */
   lineage?: PtoF3LineageInput;
   /** Real UI uchun scope majburiy; eski unit fixturelar backward-compatible qoladi. */
   lineageRequired?: boolean;
+}
+
+/** Hisobot oyining bitta tasdiqlangan F2 akti — yadro bahosi (`f2AktBaho`) natijasi. null — noma'lum (0 emas). */
+export type F3DavrAkt = { aktId: number; raqam: string | null; hujjatPodvali: boolean; ustamasiz: number; ustamali: number | null; qqs: number | null; qqsBilan: number | null };
+
+/** Davr aktlari jami (QQS bilan): birortasi noma'lum — null (NULL ≠ 0). */
+export function f3DavrAktlarJami(aktlar: ReadonlyArray<F3DavrAkt>): number | null {
+  let s = 0;
+  for (const a of aktlar) { if (a.qqsBilan == null) return null; s += a.qqsBilan; }
+  return yaxlit2(s);
 }
 
 /** НДС sukuti (egasi qarori Q2) — Nakopitelniy bilan bir xil. */
@@ -285,9 +302,34 @@ export function f3Model(m: Forma3Manba, o: Pick<Forma3ExportOptions, 'davr' | 'o
       nom: nomOf(x.q), sabab: `объем по утвержденным Ф-2 (${accepted} ${x.q.birlik ?? ''}) превышает объем сметы (${base}); проверьте привязку, единицы и корректировочные акты — процент не ограничен искусственно`,
     });
   }
-  if (yetim.length) {
-    const nam = yetim.slice(0, 3).map((x) => `«${x.akt_raqam ?? 'akt'}» ${x.oy}: ${x.summa.toFixed(2)}`).join('; ');
-    diqqat.push({ nom: 'Акт Ф-2', sabab: `${yetim.length} ta qator hujjat strukturasida topilmadi (obyekt/qator mos emas) — kirmadi: ${nam}${yetim.length > 3 ? ' …' : ''}` });
+  /* m9 (audit C): yetim summa endi F3 dan JIM TUSHMAYDI. Ikki holat:
+   *  - qator strukturada ISH (bolasi bor bl) — server barg qoidasi: ish o'z summasini sanamaydi (resurslarida) → sanalmaydi, izoh;
+   *  - qator strukturada umuman yo'q — alohida «ВНЕ СТРУКТУРЫ СМЕТЫ» razdelida qiymat qatori (jamilar va podvalga kiradi). */
+  const ishYetim = yetim.filter((x) => ishJoylar.has(`${x.obyekt_id}:${x.qator_id}`));
+  const tashqi = yetim.filter((x) => !ishJoylar.has(`${x.obyekt_id}:${x.qator_id}`));
+  if (ishYetim.length) {
+    diqqat.push({ nom: 'Акт Ф-2', sabab: `${ishYetim.length} сумм(ы) указаны на строке работы, у которой есть ресурсы — по правилу «лист сметы» учитываются только ресурсы (как на сервере), сумма работы не суммируется повторно` });
+  }
+  if (tashqi.length) {
+    const qiymatlar = new Map<string, F3Qiymat>();
+    for (const r of tashqi) {
+      const kalit = `${r.obyekt_id}:${r.qator_id}`;
+      let x = qiymatlar.get(kalit);
+      if (!x) {
+        const q = { qator_id: r.qator_id, tartib: 0, kod: null, nom: `Строка Ф-2 #${r.qator_id} (вне структуры сметы)`, birlik: null, tur: 'mat', kat: null, qoshimcha: false, zamena: false,
+          smeta_hajm: null, smeta_narx: null, smeta_summa: null } as unknown as NakopitelniyQator;
+        x = { obyekt_id: r.obyekt_id, q, f2: { boshidan: 0, yildan: 0, davr: 0 }, f2H: { boshidan: 0, yildan: 0, davr: 0 }, smetnaya: null };
+        qiymatlar.set(kalit, x);
+      }
+      if (r.oy < o.davr) x.f2.boshidan += r.summa;
+      if (r.oy < o.davr && r.oy.startsWith(yil)) x.f2.yildan += r.summa;
+      if (r.oy === o.davr) x.f2.davr += r.summa;
+    }
+    const byOb = new Map<number, F3Qiymat[]>();
+    for (const x of qiymatlar.values()) byOb.set(x.obyekt_id, [...(byOb.get(x.obyekt_id) ?? []), x]);
+    for (const [obId, xs] of byOb) razdellar.push({ obyekt_id: obId, nom: 'ВНЕ СТРУКТУРЫ СМЕТЫ (строки Ф-2 без привязки)', ishlar: xs });
+    const nam = tashqi.slice(0, 3).map((x) => `«${x.akt_raqam ?? 'akt'}» ${x.oy}: ${x.summa.toFixed(2)}`).join('; ');
+    diqqat.push({ nom: 'Акт Ф-2', sabab: `${tashqi.length} строк(и) не найдены в структуре сметы — включены отдельным разделом «вне структуры сметы», вид затрат не указан (без накрутки): ${nam}${tashqi.length > 3 ? ' …' : ''}` });
   }
   return { guruhlar, razdellar, diqqat };
 }
@@ -519,6 +561,8 @@ export interface Forma3Natija {
   kaskad: Record<F3PulUstun, KaskadNatija>;
   /** Eng pastki qatori — «ИТОГО К ОПЛАТЕ» (kaskad natijasi); null — foiz noma'lum. */
   vsegoKOplate: Record<F3PulUstun, number | null>;
+  /** ИТОГО К ОПЛАТЕ ЗА ОТЧЕТНЫЙ МЕСЯЦ: davrAktlari berilsa — Σ aktlar o'z podvali bilan (M12), aks holda podval kaskadi. */
+  oyKOplate: number | null;
   /** F2 tenglik nazorati: Σ ROUND(qiymat × Kf, 2). */
   kOplate: Record<F3PulUstun, number | null>;
   /** Kategoriya fizik ko'rsatkichlari: ЧЕЛ — чел.-ч (rabochiylar), МАШ — маш.-ч. */
@@ -824,11 +868,43 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
   });
   }
   // «ИТОГО: 7620061020,12  Семь миллиардов … сум 12 тийин с НДС» — shu oy to'lovi.
-  const oyTolov = kaskadLog.J.vsego;
+  let oyTolov = kaskadLog.J.vsego;
+  let oyTolovRef = `${davrUstun}${vq}`;
+  const davrDiqqat: Array<{ nom: string; sabab: string }> = [];
+  if (o.davrAktlari) {
+    /* M12 (egasi qarori): oy to'lovi — har F2 o'z podvali bilan (yadro), smeta podvali kaskadi emas. Har akt alohida qator. */
+    v.bosh();
+    v.bolim('РАСЧЕТ К ОПЛАТЕ ЗА ОТЧЕТНЫЙ МЕСЯЦ ПО АКТАМ Ф-2 (накрутка и НДС — по подвалу каждого акта)', { daraja: 0 });
+    const ustunSoni = (bir ? USTUNLAR_BIR : USTUNLAR).length;
+    const di = davrUstun.charCodeAt(0) - 65;
+    const qatorlar: number[] = [];
+    for (const a of o.davrAktlari) {
+      qatorlar.push(v.qator('oddiy', () => {
+        const c: Qiymat[] = Array(ustunSoni).fill(null);
+        c[0] = qatorlar.length + 1;
+        c[1] = `Акт Ф-2 № ${a.raqam || a.aktId} (${a.hujjatPodvali ? 'подвал документа' : 'подвал сметы'}): прямые ${fmt2(a.ustamasiz)}; с накрутками без НДС ${a.ustamali == null ? 'не определено' : fmt2(a.ustamali)}; НДС ${a.qqs == null ? 'не определено' : fmt2(a.qqs)}`;
+        c[di] = a.qqsBilan == null ? null : r2(a.qqsBilan);
+        return c;
+      }));
+    }
+    const jami = f3DavrAktlarJami(o.davrAktlari);
+    const jq = v.qator('vsego', () => {
+      const c: Qiymat[] = Array(ustunSoni).fill(null);
+      c[1] = 'ИТОГО К ОПЛАТЕ ЗА ОТЧЕТНЫЙ МЕСЯЦ ПО АКТАМ Ф-2 (с НДС)';
+      c[di] = jami == null ? null : { f: qatorlar.length ? sumRefs(davrUstun, qatorlar) : '0', v: jami };
+      return c;
+    });
+    if (jami == null) davrDiqqat.push({ nom: 'ИТОГО К ОПЛАТЕ ЗА ОТЧЕТНЫЙ МЕСЯЦ', sabab: 'сумма хотя бы одного акта Ф-2 не определена (проценты подвала неизвестны) — итог оставлен пустым, а не нулевым' });
+    else if (oyTolov != null && Math.abs(jami - oyTolov) >= 0.005) {
+      davrDiqqat.push({ nom: 'ИТОГО К ОПЛАТЕ ЗА ОТЧЕТНЫЙ МЕСЯЦ', sabab: `расчет подвала по смете (${fmt2(oyTolov)}) отличается от суммы актов Ф-2 по их собственным подвалам (${fmt2(jami)}); к оплате принята сумма актов Ф-2` });
+    }
+    oyTolov = jami;
+    oyTolovRef = `${davrUstun}${jq}`;
+  }
   v.bosh();
   v.blok([
     { c1: 0, c2: 1, matn: 'ИТОГО К ОПЛАТЕ ЗА ОТЧЕТНЫЙ МЕСЯЦ:', tur: 'qalin' },
-    { c1: 2, c2: bir ? 3 : 4, matn: { f: `${davrUstun}${vq}`, v: oyTolov ?? '' }, tur: 'qalin' },
+    { c1: 2, c2: bir ? 3 : 4, matn: { f: oyTolovRef, v: oyTolov ?? '' }, tur: 'qalin' },
     { c1: bir ? 4 : 5, c2: bir ? 6 : 15, matn: oyTolov == null ? 'не определено — проценты накладных расходов не заданы' : `${summaSozBilan(oyTolov)} с НДС`, tur: 'qalin' },
   ], 20);
   v.narxsizOgoh(f3NarxsizSoni(model, olibTashlanganlar(o.ozgarishlar)));
@@ -841,7 +917,7 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
   v.izoh('Графы 8–16 — по УТВЕРЖДЕННЫМ актам формы № 2: графы 8–13 — акты, закрытые ДО отчетного месяца (с начала строительства / в том числе текущего года); графы 14–16 — акт за отчетный месяц (переходит в графы 8–13 в справке следующего месяца). Графы 6–7 — стоимость по утвержденной смете (прямые затраты по разделам); итог к оплате — с транспортными, складскими, прочими расходами, страхованием и НДС по ставкам объекта. График производства работ на текущий год не задан — графы 5 и 7 приняты равными графам 4 и 6.');
   v.izoh('Физические показатели по видам затрат: затраты труда рабочих-строителей — чел.-ч; эксплуатация машин и механизмов — маш.-ч (по утвержденным актам формы № 2).');
   }
-  const diqqat = [...model.diqqat];
+  const diqqat = [...model.diqqat, ...davrDiqqat];
   const farqlar: string[] = [];
   for (const c of F3_PUL) {
     const ko = ustunlar.kOplate[c];
@@ -893,6 +969,7 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
     kat: ustunlar.kat,
     kaskad: kaskadLog,
     vsegoKOplate: Object.fromEntries(F3_PUL.map((c) => [c, kaskadLog[c].vsego])) as Record<F3PulUstun, number | null>,
+    oyKOplate: oyTolov ?? null,
     kOplate: ustunlar.kOplate,
     soatlar: {
       ЧЕЛ: { smeta: r2(s.ЧЕЛ.smeta), boshidan: r2(s.ЧЕЛ.boshidan), yildan: r2(s.ЧЕЛ.yildan), davr: r2(s.ЧЕЛ.davr) },

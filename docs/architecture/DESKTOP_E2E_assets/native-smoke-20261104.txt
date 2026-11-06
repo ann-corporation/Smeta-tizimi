@@ -1,0 +1,1 @@
+Native installed app opened: http://tauri.localhost/. PublicEntry rendered, no authenticated object; login/offline/reconnect NOT tested.

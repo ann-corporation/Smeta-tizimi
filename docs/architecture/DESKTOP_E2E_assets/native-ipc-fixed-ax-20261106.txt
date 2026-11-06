@@ -1,0 +1,33 @@
+[online]
+9 документ PTO workbench | SMETA TIZIM 02 Value: http://tauri.localhost/admin/holat/101?loyiha=301&obyekt=101 ID: RootWebArea
+718 текстовый M5 SYNTHETIC SECTION
+798 текстовый M5 SYNTHETIC SECTION
+[cold]
+15 документ PTO workbench | SMETA TIZIM 02 Value: http://tauri.localhost/admin/holat/101 ID: RootWebArea
+63 оповещение Description: Oflayn rejimda faqat oʻqish mumkin.
+64 текстовый Oflayn rejimda faqat oʻqish mumkin.
+172 текстовый M5 SYNTHETIC SECTION
+252 текстовый M5 SYNTHETIC SECTION
+309 текстовый Oflayn rejimda faqat oʻqish mumkin.
+Oflayn rejimda faqat oʻqish mumkin.
+M5 SYNTHETIC SECTION
+[offline-export]
+15 документ PTO workbench | SMETA TIZIM 02 Value: http://tauri.localhost/admin/holat/101 ID: RootWebArea
+63 оповещение Description: Oflayn rejimda faqat oʻqish mumkin.
+64 текстовый Oflayn rejimda faqat oʻqish mumkin.
+172 текстовый M5 SYNTHETIC SECTION
+252 текстовый M5 SYNTHETIC SECTION
+309 текстовый Oflayn rejimda faqat oʻqish mumkin.
+Oflayn rejimda faqat oʻqish mumkin.
+Excel eksporti hozir mumkin emas. qo‘shimcha/zamena belgilari o‘qilmadi — sahifani yangilang.
+M5 SYNTHETIC SECTION
+[reconnect]
+15 документ PTO workbench | SMETA TIZIM 02 Value: http://tauri.localhost/admin/holat/101 ID: RootWebArea
+63 оповещение Description: Oflayn rejimda faqat oʻqish mumkin.
+64 текстовый Oflayn rejimda faqat oʻqish mumkin.
+319 текстовый Excel eksporti hozir mumkin emas
+172 текстовый M5 SYNTHETIC SECTION
+252 текстовый M5 SYNTHETIC SECTION
+Oflayn rejimda faqat oʻqish mumkin.
+Excel eksporti hozir mumkin emas. qo‘shimcha/zamena belgilari o‘qilmadi — sahifani yangilang.
+M5 SYNTHETIC SECTION
