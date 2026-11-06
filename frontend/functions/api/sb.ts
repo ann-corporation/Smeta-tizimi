@@ -34,7 +34,7 @@ import { azoKompaniyalar, oqishQarori, rpcKompaniyasi } from '../_shared/tenant-
 import { ilovaDarvozasi } from '../_shared/ilova-darvoza';
 import { soroIlovasi } from '../../src/lib/ilova/ilovalar';
 import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shared/role-authority';
-import { oraliqgaQosh, oraliqlarniRejala, prefiksYigi } from '../_shared/kalit-oraliq';
+import { boshlangichReja, oraliqgaQosh, prefiksYigi, qaytaBol } from '../_shared/kalit-oraliq';
 /* Ota yozuv kompaniyasi (60 s kesh) — `_shared/ota-kompaniya` (obyekt-paket.ts bilan umumiy). */
 import { otaKompaniyasi } from '../_shared/ota-kompaniya';
 import { versiyaFiltri } from '../_shared/versiya-oqish';
@@ -790,11 +790,15 @@ export const onRequestPost: PagesFunction<{
     const SORALADI = Math.min(kerak, 10000);
     let SAHIFA = SORALADI;        // birinchi javobdan keyin aniqlanadi
     /* ⚠️ Cloudflare Worker BITTA so'rov ichida chekli sonda tashqi so'rov
-       qila oladi (bepul rejada 50 ta). Shuning uchun 20 bilan cheklaymiz —
-       ya'ni bir marta 20 000 qatorgacha. Undan kattasi kerak bo'lsa
-       `toliq:false` qaytadi va chaqiruvchi buni KO'RADI (jim kesilmaydi).
-       Eng katta obyekt hozir ~5000 qator, ya'ni zaxira 4 barobar. */
-    const MAX_SORO = 20;
+       qila oladi (bepul rejada 50 ta). Byudjetdan kattasi kerak bo'lsa
+       `toliq:false` qaytadi va chaqiruvchi buni KO'RADI (jim kesilmaydi). */
+    const MAX_SORO_OFFSET = 20;
+    /* 2026-11-06 (egasi: katta obyekt sekin) — KALIT ORALIQLARI yo'li uchun byudjet 40. Hisob: PostgREST max-rows = 1000
+       (prod log: `limit=10000` → `content-range 0-999/…`), ya'ni 26 475 qatorlik obyektga kamida 27 ta sahifa kerak.
+       Cloudflare bepul rejada bir chaqiruvga 50 tashqi so'rov; sessiya/rol/ilova/ota tekshiruvlari ≤ 4 (va ular
+       60/20/60 s keshda) — 40 + 4 = 44 < 50, zaxira qoladi. OFFSET yo'li (noyob kalitsiz tartib) eski 20 da qoladi:
+       u moliyaviy view'da o'tkazib yuborilgan qatorlarni ham hisoblaydi — chuqurroq OFFSET bazaga og'ir. */
+    const MAX_SORO_KALIT = 40;
 
     const baza = supabaseBaseUrl(ctx.env.SUPABASE_URL) + '/rest/v1/' + jadval;
     const boshHeaders = {
@@ -854,12 +858,15 @@ export const onRequestPost: PagesFunction<{
     let qatorlar: unknown[] = [];
     let jamiServerda: number | null = null;
     let soro = 0;
+    /** Ketma-ket raundlar soni (kalit oraliqlari) — kutish vaqti shunga proporsional. */
+    let raund = 0;
 
     /* Bosqichma-bosqich vaqt — sekinlik QAYERDA ekanini bilish uchun.
        Taxmin qilmaymiz: birinchi so'rov (aloqa o'rnatish + tarmoq yo'li)
        va qolgan sahifalar (parallel) alohida o'lchanadi. */
     const kalitM = /^(id|qator_id)\.asc$/.exec(so.tartib || '');
     const kalit = kalitM ? kalitM[1] : null;
+    const MAX_SORO = kalit ? MAX_SORO_KALIT : MAX_SORO_OFFSET;
     const tBir = Date.now();
     /* Baza uzoqda (ap-southeast-2): har ketma-ket borib-kelish ~0.3 s. Eng katta kalit birinchi sahifa bilan
        PARALLEL so'raladi (arzon: faqat kalit ustuni, indeks bo'yicha teskari) — kerak bo'lmasa e'tiborsiz qoladi. */
@@ -900,11 +907,17 @@ export const onRequestPost: PagesFunction<{
       if ('failed' in maksJ) return xavfsizUpstream(maksJ.status, maksJ.detail);
       const maks = maksJ.bolak.length ? kalitQiymati(maksJ.bolak[0]) : null;
       if (maks == null) return xavfsizUpstream(502, 'KALIT_MAKS_OQILMADI');
-      const reja = oraliqlarniRejala(oxirgiKalit, maks, jamiServerda - qatorlar.length, SAHIFA, MAX_SORO - soro);
+      /* Birinchi sahifaning mahalliy zichligi (qator / kalit birligi): zich blok boshidagi bo'laklar sahifaga sig'sin. */
+      const birinchiKalit = kalitQiymati(qatorlar[0]);
+      const mahalliy = birinchiKalit != null && oxirgiKalit > birinchiKalit
+        ? qatorlar.length / (oxirgiKalit - birinchiKalit + 1) : null;
+      const reja = boshlangichReja(oxirgiKalit, maks, jamiServerda - qatorlar.length, SAHIFA, MAX_SORO - soro, mahalliy);
       while (soro < MAX_SORO) {
         const ochiq = reja.oraliqlar.filter((o) => !o.tugadi).slice(0, MAX_SORO - soro);
         if (!ochiq.length) break;
         soro += ochiq.length;
+        raund++;
+        const boshlar = new Map(ochiq.map((o) => [o, o.kursor] as const));
         const natijalar = await Promise.all(ochiq.map((o) => sahifaOl(0, SAHIFA,
           { sana: false, qoshimchaFiltr: kalit + '=gt.' + o.kursor + '&' + kalit + '=lte.' + o.yuqori })));
         for (let i = 0; i < ochiq.length; i++) {
@@ -912,6 +925,9 @@ export const onRequestPost: PagesFunction<{
           if ('failed' in nat) return xavfsizUpstream(nat.status, nat.detail);
           if (!oraliqgaQosh(ochiq[i], nat.bolak, kalit, SAHIFA)) return xavfsizUpstream(502, 'KALIT_TARTIBI_BUZILDI');
         }
+        /* To'lib qolgan oraliqlar — qolgan qismi o'zi ko'rsatgan zichlik bo'yicha keyingi raundga bo'linadi. */
+        const olingan = reja.oraliqlar.reduce((s, o) => s + o.qatorlar.length, qatorlar.length);
+        qaytaBol(reja, boshlar, SAHIFA, MAX_SORO - soro, jamiServerda - olingan);
       }
       const yig = prefiksYigi(reja);
       qatorlar = qatorlar.concat(yig.qatorlar);
@@ -952,7 +968,7 @@ export const onRequestPost: PagesFunction<{
     if (sekin) {
       console.warn(JSON.stringify({
         hodisa: 'sb_sekin_oqish', jadval, obyekt_id: mosObyekt ? Number(mosObyekt[1]) : null,
-        soni: qatorlar.length, soro, msBirinchi, msQolgan, ms, byudjet: TEZLIK_BYUDJETI_MS,
+        soni: qatorlar.length, soro, raund, msBirinchi, msQolgan, ms, byudjet: TEZLIK_BYUDJETI_MS,
       }));
     }
 
@@ -963,6 +979,7 @@ export const onRequestPost: PagesFunction<{
       jamiServerda,
       toliq,
       soro,
+      raund,
       /* Vaqt taqsimoti — optimallashtirishni taxmin bilan emas, o'lchov
          bilan qilish uchun. msBirinchi katta bo'lsa muammo TARMOQ
          MASOFASIDA (Supabase regioni), msQolgan katta bo'lsa — HAJMDA. */

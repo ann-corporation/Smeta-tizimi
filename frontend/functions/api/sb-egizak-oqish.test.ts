@@ -77,20 +77,20 @@ describe('sb.ts: katta obyekt (5380 qator) t2_qator o‘qishi — egizak yuklagi
     expect(new Set(ids).size).toBe(5380);
     expect(ids).toEqual([...ids].sort((a, b) => a - b));
     expect(sorovlar.some((p) => p.get('versiya_holat'))).toBe(false);
-    expect(json.soro).toBeLessThanOrEqual(20);
+    expect(json.soro).toBeLessThanOrEqual(40);
   });
 
   it('toliq:false bo‘lsa — kalit=gt.<oxirgi> bilan davom etish mumkin va birlashganda 5380 ga teng', async () => {
     // Worker byudjeti yetmaydigan holat: juda ko‘p qator, ketma-ket davom.
     const katta: Row[] = [];
-    for (let i = 0; i < 25030; i++) katta.push({ id: 1 + i, obyekt_id: 167, kompaniya_id: 123, versiya_holat: 'faol', nom: '' });
+    for (let i = 0; i < 60000; i++) katta.push({ id: 1 + i, obyekt_id: 167, kompaniya_id: 123, versiya_holat: 'faol', nom: '' });
     const a = await oqi({ rows: katta });
     expect(a.json).toMatchObject({ ok: true, toliq: false });
     const oxirgi = a.json.qatorlar![a.json.qatorlar!.length - 1].id;
     const b = await oqi({ rows: katta, so: { filtr: `obyekt_id=eq.167&id=gt.${oxirgi}` } });
     expect(b.json.ok).toBe(true);
-    expect(a.json.soni + b.json.soni).toBeGreaterThanOrEqual(25030);
-    expect([...a.json.qatorlar!, ...b.json.qatorlar!].map((r) => r.id).slice(0, 25030)).toEqual(katta.map((r) => r.id));
+    expect(a.json.soni + b.json.soni).toBeGreaterThanOrEqual(50000);
+    expect([...a.json.qatorlar!, ...b.json.qatorlar!].map((r) => r.id)).toEqual(katta.map((r) => r.id).slice(0, a.json.soni + b.json.soni));
   });
 
   it('upstream xato jim yarim natijaga aylanmaydi (ok:false)', async () => {

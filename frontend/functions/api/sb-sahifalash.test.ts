@@ -75,12 +75,13 @@ describe('large financial reads count once', () => {
     expect(response.status).toBe(403); expect(json.ok).toBe(false); expect(pages).toEqual([]);
   });
   it('still exposes incompleteness beyond worker budget: an ordered prefix, never a smaller financial total', async () => {
-    const { json, pages } = await read({ ids: oraliq(1, 25030) });
-    expect(json).toMatchObject({ ok: true, toliq: false, jamiServerda: 25030 });
-    expect(json.soni).toBeGreaterThan(10000);
+    const { json, pages } = await read({ ids: oraliq(1, 60000) });
+    expect(json).toMatchObject({ ok: true, toliq: false, jamiServerda: 60000 });
+    expect(json.soni).toBeGreaterThan(25000);
+    expect(json.soni).toBeLessThan(60000);
     expect(kalitlar(json.qatorlar)).toEqual(oraliq(1, json.soni));
     expect(pages.filter((p) => p.count)).toHaveLength(1);
-    expect(pages.length).toBeLessThanOrEqual(20);
+    expect(pages.length).toBeLessThanOrEqual(40);
   });
   it('does not turn a failed continuation into financial success', async () => {
     const { json } = await read({ ids: oraliq(1, 2503), failWhen: (s) => s.params.getAll('id').length > 0 });
@@ -90,6 +91,41 @@ describe('large financial reads count once', () => {
     const { json, pages } = await read({ ids: oraliq(1, 2503), tartib: 'tartib.asc' });
     expect(json).toMatchObject({ ok: true, toliq: true, soni: 2503 });
     expect(pages.map((p) => p.offset)).toEqual([0, 1000, 2000]);
+  });
+});
+
+/* Sun'iy ko'l (obyekt 153) id taqsimotining sintetik nusxasi: ~25 000 lik zich blok, 38 120 va 19 094 lik bo'shliqlar,
+   kichik dum bloklari — jami 26 475 qator (prod 2026-11-06). Eski bir tekis reja bunda ~5000 qatorlik prefiks berardi. */
+const sunIyKol = () => [...oraliq(887725, 912754), ...oraliq(950874, 951262), ...oraliq(970356, 971103), ...oraliq(974445, 974752)];
+
+describe('one /api/sb call returns a whole ~26k-row object', () => {
+  it.each([
+    ['Sun\'iy ko\'l taqsimoti (zich blok + katta bo\'shliqlar)', sunIyKol()],
+    ['26 475 zich ketma-ket id', oraliq(1, 26475)],
+    ['siyrak boshlanish, zich dum', [...oraliq(1, 2000).map((x) => x * 40), ...oraliq(200000, 223999)]],
+  ])('%s: toliq, tartibli, takrorsiz, byudjet ichida', async (_nom, ids) => {
+    const { json, pages } = await read({ ids, table: 't2_qator_holat', tartib: 'qator_id.asc' });
+    expect(json).toMatchObject({ ok: true, toliq: true, jamiServerda: ids.length, soni: ids.length });
+    const k = kalitlar(json.qatorlar, 'qator_id');
+    expect(new Set(k).size).toBe(ids.length);
+    expect(k).toEqual(ids);
+    expect(pages.length).toBeLessThanOrEqual(40);
+    expect(pages.filter((p) => p.count)).toHaveLength(1);
+    expect(pages.every((p) => p.params.get('obyekt_id') === 'eq.127')).toBe(true);
+  });
+  it('tenant filter (kompaniya_id) is forced on every key-range subrequest', async () => {
+    const { json, pages } = await read({ ids: sunIyKol() });
+    expect(json).toMatchObject({ ok: true, toliq: true, soni: 26475 });
+    expect(pages.length).toBeGreaterThan(26);
+    expect(pages.every((p) => p.params.get('kompaniya_id') === 'in.(17)' && p.params.get('obyekt_id') === 'eq.127')).toBe(true);
+  });
+  it('toliq is false only when truly partial: a failed range in the middle fails the whole read', async () => {
+    let bir = true;
+    const { json } = await read({ ids: sunIyKol(), failWhen: (s) => {
+      if (bir && s.params.getAll('id').some((f) => f === 'gt.900000' || /^gt\.90\d{4}$/.test(f))) { bir = false; return true; }
+      return false;
+    } });
+    expect(json.ok).toBe(false); expect(json.qatorlar).toBeUndefined();
   });
 });
 
