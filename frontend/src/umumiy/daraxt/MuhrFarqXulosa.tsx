@@ -22,7 +22,9 @@ export function useMuhrFarq(obyektId: number | null, qatorlar: readonly { id?: n
   useEffect(() => {
     let faol = true;
     setRoyxat((p) => (p.length ? [] : p));
-    if (obyektId == null) return;
+    // Tezlik (2026-11-06): daraxt hali yuklanmagan (bo'sh) paytda o'qilmaydi — avval har ochilishda 2 marta o'qilardi
+    // (bo'sh imzo, keyin qatorlar kelgach). Qatorlar kelishi bilan bir marta o'qiladi.
+    if (obyektId == null || imzo.startsWith('0:')) return;
     void qatorMuhrFarqOl(obyektId).then((r) => { if (faol && r.ok) setRoyxat((r.qatorlar || []) as QatorMuhrFarq[]); }).catch(() => { /* jim */ });
     return () => { faol = false; };
   }, [obyektId, imzo]);

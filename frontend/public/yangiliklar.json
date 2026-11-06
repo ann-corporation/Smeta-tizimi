@@ -1,6 +1,7 @@
 {
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
+    {"id":123,"sana":"2026-11-06","sarlavha":"Katta obyektlar tezroq ochiladi: F2 tayyorlash endi qotmaydi","bandlar":["F2 tayyorlashda ТН·КМ (transport) takliflari har bosishda butun smetani qayta ko‘rib chiqardi — Sun’iy ko‘l kabi obyektlarda brauzer qotib qolardi. Endi bir marta hisoblanadi; natija o‘sha.","Ishlar ro‘yxati qismlab chiziladi: avval 120 ta, pastga tushganda keyingilari o‘zi qo‘shiladi. Hisob, jami va saqlash butun F2 bo‘yicha — o‘zgarmagan.","Ortiqcha so‘rovlar olib tashlandi: obyektlar ro‘yxati umumiy keshdan, zamena ma’lumoti bitta so‘rovda, asl smeta farqi bir marta o‘qiladi."]},
     {"id":122,"sana":"2026-11-06","sarlavha":"F2 tayyorlash: «Zamena bog‘lanishlari o‘qilmadi» xatosi tuzatildi","bandlar":["Zamena miqdorlari so‘rovidagi «bo‘sh emas» filtri server tomonidan rad etilardi va F2 qoralamani saqlash yopilib qolardi. Endi filtr qabul qilinadi; o‘zgarishlar ro‘yxati va pereraschet bo‘limidagi shunday so‘rovlar ham ishlaydi."]},
     {
       "id": 120,

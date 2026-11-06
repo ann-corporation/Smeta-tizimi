@@ -63,7 +63,10 @@ import { rolF2YozishYopiq } from '../../lib/nav/menyuRolYopiq';
 import { F2StornoTanlov } from './F2StornoTanlov';
 import { bajarilmadiBekor, bajarilmadiRoyxatOl, bajarilmadiXato, type BajarilmadiQator } from '../../api/t2-bajarilmadi';
 import { bajarilmadiHajmlar } from '../../lib/fakt-studio';
-import { zamenaBoglanishOqi, zamenaMiqdorOqi } from '../../lib/fakt-zamena-boglanish';
+import { zamenaToliqOqi } from '../../lib/fakt-zamena-boglanish';
+import { obyektlarKeshdan, useIxtiyoriyQueryClient } from '../../api/t2-obyektlar-kesh';
+import { tezlikBelgisi } from '../../lib/tezlik-belgi';
+import { F2_KORSAT_BOSH, F2_KORSAT_QADAM, f2ElementOrni, f2KorinadiQism } from '../../lib/f2-korinadi-qism';
 import type { ZamenaBoglanish } from '../../lib/fakt-jurnal';
 import { chiqarilganmi, chiqarishRuxsat, zamenaRuxsat } from '../../lib/resurs-amal';
 import { IshAbcModal, type AbcRejim } from './IshAbcModal';
@@ -157,7 +160,7 @@ export function F2TayyorlashNative() {
   const [bolimId, setBolimId] = useState<number | undefined>(undefined);
   /** Chap daraxtda faqat F2 ga olish mumkin ishi bor razdellar. */
   const [faqatMumkin, setFaqatMumkin] = useState(false);
-  const [korsatLimit, setKorsatLimit] = useState(300);
+  const [korsatLimit, setKorsatLimit] = useState(F2_KORSAT_BOSH);
   const [ochiq, setOchiq] = useState<Set<number>>(new Set());
   /** Bo'lim daraxti yig'iq: faqat shu kalitli (id ?? -1) bo'limlarning farzandlari ochilgan; tanlangan bo'lim ajdodlari doim ochiq. */
   const [kengaygan, setKengaygan] = useState<Set<number>>(new Set());
@@ -193,20 +196,25 @@ export function F2TayyorlashNative() {
     return { soni: qs.length, jami: yigindi2(qs.map((x) => sonQ(x.certified_amount))), nomalum: qs.filter((x) => sonQ(x.certified_amount) == null).length };
   }, [aktQatorlar]);
 
+  const qc = useIxtiyoriyQueryClient();
   useEffect(() => {
     if (!joriy?.id) return;
-    void sbT2ObyektlarOlKomp(joriy.id).then((result) => setObyektlar((result.ok ? result.qatorlar : []) as T2Obyekt[]));
-  }, [joriy?.id]);
+    // Umumiy kesh (60 s): Holat/Fakt/PTO kontekst bilan bir kalit — sahifaga o'tganda qayta o'qilmaydi.
+    void (qc ? obyektlarKeshdan(qc, joriy.id) : sbT2ObyektlarOlKomp(joriy.id)).then((result) => setObyektlar((result.ok ? result.qatorlar : []) as T2Obyekt[]));
+  }, [joriy?.id, qc]);
 
 
   /** Loads are numbered: rows of an object the user already left must never stay under the new object (an F2 act is written from them). */
   const sorov = useRef(0);
   const sessObyekt = useRef<number | null>(null);
+  /** [tezlik] belgisi: yuklash boshidan daraxt ekranga chizilguncha (konsol + Performance panel). */
+  const tezlik = useRef<ReturnType<typeof tezlikBelgisi> | null>(null);
   const yuklash = useCallback(async () => {
     sessObyekt.current = null;
     const raqam = ++sorov.current;
     const dolzarb = () => raqam === sorov.current;
     if (!validId) { setRows([]); setHolat([]); setProtokolQ([]); setAosrsiz([]); setAosrKoz(new Map()); return; }
+    tezlik.current = tezlikBelgisi('f2-tayyorlash');
     setLoading(true); setError(''); setRows([]); setHolat([]); setAkt(null); setAktXato(''); setStornoTahrir(null); setStornoTahrirOchiq(false); aktQollandi.current = null;
     setProtokolXato(false); setQoralamaXato(false); yukKalit.current = '';
     try {
@@ -248,6 +256,12 @@ export function F2TayyorlashNative() {
     finally { if (dolzarb()) setLoading(false); }
   }, [obyektId, validId, aktId]);
   useEffect(() => { void yuklash(); }, [yuklash]);
+  useEffect(() => {
+    if (loading || !rows.length || !tezlik.current) return;
+    const b = tezlik.current; tezlik.current = null;
+    const izoh = `${rows.length} qator (obyekt ${obyektId})`;
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => setTimeout(() => b.tugadi(izoh), 0)); else b.tugadi(izoh);
+  }, [loading, rows.length, obyektId]);
   /** Saqlanmagan kiritmalar sessionStorage da (faqat shu obyekt yuklangach — eski obyekt kiritmasi yangisiga yozilmasin). */
   useEffect(() => { if (validId && aktId == null && sessObyekt.current === obyektId) f2SessiyaSaqla(obyektId, { k, raqam }); }, [k, raqam, validId, aktId, obyektId]);
 
@@ -271,15 +285,14 @@ export function F2TayyorlashNative() {
     if (!validId || !joriy?.id) { setBaj([]); setZb(null); setMiqdor(new Map()); setBajXato(false); setZamenaXato(false); setQoshTayyor(true); return; }
     const raqam = ++qoshSorov.current;
     setQoshTayyor(false); setBajXato(false); setZamenaXato(false);
-    const [b, z, m] = await Promise.all([
+    const [b, z] = await Promise.all([
       bajarilmadiRoyxatOl(joriy.id, obyektId).catch(() => null),
-      zamenaBoglanishOqi(obyektId).catch(() => null),
-      zamenaMiqdorOqi(obyektId).catch(() => null),
+      zamenaToliqOqi(obyektId).catch(() => null), // t2_qator (zamena) bir marta — bog'lanish + miqdor
     ]);
     if (raqam !== qoshSorov.current) return;
-    const zOk = !!z?.ok && !!m?.ok;
+    const zOk = !!z?.ok;
     setBaj(b?.ok ? b.qatorlar : []); setBajXato(!b?.ok);
-    setZb(z?.ok ? z.natija : null); setMiqdor(m?.ok ? m.natija : new Map()); setZamenaXato(!zOk); setQoshTayyor(true);
+    setZb(z?.ok ? z.natija.boglanish : null); setMiqdor(z?.ok ? z.natija.miqdor : new Map()); setZamenaXato(!zOk); setQoshTayyor(true);
   }, [validId, joriy?.id, obyektId]);
   useEffect(() => { void qoshimchaYukla(); }, [qoshimchaYukla]);
   /** Zamena/chiqarishdan keyin: daraxt va holat qayta o'qiladi, operator kiritmalari (hajm/narx) SAQLANADI. */
@@ -312,7 +325,8 @@ export function F2TayyorlashNative() {
    * Sukut manba (A-10): obyektda fakt bor bo'lsa — `fakt` (hamma fakt allaqachon F2 qilingan bo'lsa ham; jim `smeta` ga o'tib,
    * butun smeta qoldig'ini taklif qilmaydi). Fakt umuman yo'q — `smeta` (faktsiz F2). Qoralamada saqlangan manba tiklanadi.
    */
-  const manba: F2Manba = manbaTanlov ?? (holat.some((h) => h.fakt_hajm != null && Number(h.fakt_hajm) !== 0) || holat.some((h) => Number(h.f2_mumkin_hajm) > 0) ? 'fakt' : 'smeta');
+  const faktBor = useMemo(() => holat.some((h) => h.fakt_hajm != null && Number(h.fakt_hajm) !== 0) || holat.some((h) => Number(h.f2_mumkin_hajm) > 0), [holat]);
+  const manba: F2Manba = manbaTanlov ?? (faktBor ? 'fakt' : 'smeta');
   const bajHajm = useMemo(() => bajarilmadiHajmlar(baj), [baj]);
   /** Ishdan chiqarilgan resurslar (faol «bajarilmaydi» butun smeta hajmini qoplaydi) — F2 ga kirmaydi. */
   const chiqarilgan = useMemo(() => {
@@ -564,6 +578,31 @@ export function F2TayyorlashNative() {
   const resursUstunlar = useMemo(() => f2ResursUstunlar(filtrKtx), [filtrKtx]);
   const uf = useJadvalFiltr(elementlar, elementUstunlar);
   const korinadiF = useMemo(() => (uf.soni ? f2QaytaQur(korinadi, uf.natija) : korinadi), [uf.soni, uf.natija, korinadi]);
+  /**
+   * ТН·КМ takliflari (tezlik 2026-11-06): avval HAR т·км kartasi HAR renderda barcha ishlarni (Sun'iy ko'l: 2569) qayta yig'ib
+   * normalizatsiya qilardi — Chrome qotardi. Endi ro'yxatlar bir marta, taklif faqat ko'rinadigan т·км ishlar uchun.
+   * Natija aynan o'sha: т·км ishning o'zi tkmTaklif ichida baribir chiqariladi (т·км birlikli qatorlar hisobga olinmaydi).
+   */
+  /** Chegaralangan render (tezlik): ish kartalari VA alohida material qatorlari umumiy byudjetga kiradi (avval alohida cheksiz edi). */
+  const korinadiQism = useMemo(() => f2KorinadiQism(korinadiF, korsatLimit), [korinadiF, korsatLimit]);
+  /** «Yana ko'rsatish» ko'rinishga kelganda keyingi qism o'zi qo'shiladi (lazy render; IntersectionObserver bo'lmasa — tugma). */
+  const yanaRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    const el = yanaRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver((e) => { if (e.some((x) => x.isIntersecting)) setKorsatLimit((n) => n + F2_KORSAT_QADAM); }, { rootMargin: '400px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [korinadiQism]);
+  const tkmSmetaM = useMemo(() => bolimlar.flatMap((b) => b.ishlar).map((x) => ({ nom: x.nom, birlik: x.birlik, hajm: x.smeta })), [bolimlar]);
+  const tkmTakliflar = useMemo(() => {
+    const m = new Map<number, ReturnType<typeof tkmTaklif>>();
+    const tkmIshlar = korinadiF.flatMap((b) => b.ishlar).filter((i) => tkmBirlikmi(i.birlik));
+    if (!tkmIshlar.length) return m;
+    const f2 = bolimlar.flatMap((b) => b.ishlar).map((x) => { const h = sonOqi(k.hajm[x.id]); return { nom: x.nom, birlik: x.birlik, hajm: typeof h === 'number' ? h : null }; });
+    for (const i of tkmIshlar) m.set(i.id, tkmTaklif({ nom: i.nom }, f2, { materiallar: tkmSmetaM, tkmHajm: i.smeta }));
+    return m;
+  }, [korinadiF, bolimlar, k.hajm, tkmSmetaM]);
 
   const yoz = (maydon: keyof F2Kiritma, id: number, qiymat: string | boolean | undefined) => setK((o) => {
     const m = { ...o[maydon] } as Record<number, string | boolean>;
@@ -684,7 +723,10 @@ export function F2TayyorlashNative() {
     setQidir(''); uf.tozala();
     if (qatorBolim.has(ish)) setBolimId(qatorBolim.get(ish) ?? -1);
     if (q && q.tur !== 'bl' && q.ishId != null) setOchiq((o) => new Set(o).add(q.ishId!));
-    setKorsatLimit((n) => Math.max(n, 5000));
+    // Faqat maqsad qatorigacha chiziladi (avval 5000 element — katta obyektda qotish).
+    const bolimK = qatorBolim.has(ish) ? qatorBolim.get(ish) ?? -1 : tanlanganBolim;
+    const avlod = bolimK == null ? new Set<number>() : avlodKalitlari(bolimIer, bolimK);
+    setKorsatLimit((n) => Math.max(n, f2ElementOrni(bolimlar.filter((b) => avlod.has(b.id ?? -1)), ish) + F2_KORSAT_QADAM));
     setSakrash(id);
   };
   const tekshiruvgaOtish = () => { const el = document.getElementById('f2-tekshiruv'); el?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }); el?.focus({ preventScroll: true }); };
@@ -934,12 +976,7 @@ export function F2TayyorlashNative() {
 
   /** ТН·КМ qatori yonida taklif (blok emas): A = shu F2 dagi tonnali mos material Σ tonna × km; B = F2/smeta ulushi × smeta т·км. */
   function tkmTaklifQator(ish: F2Ish) {
-    const taklif = (() => {
-      const hamma = bolimlar.flatMap((b) => b.ishlar);
-      const f2 = hamma.filter((x) => x.id !== ish.id).map((x) => ({ nom: x.nom, birlik: x.birlik, hajm: sonOqi(k.hajm[x.id]) })).map((x) => ({ ...x, hajm: typeof x.hajm === 'number' ? x.hajm : null }));
-      const smetaM = hamma.filter((x) => x.id !== ish.id).map((x) => ({ nom: x.nom, birlik: x.birlik, hajm: x.smeta }));
-      return tkmTaklif({ nom: ish.nom }, f2, { materiallar: smetaM, tkmHajm: ish.smeta });
-    })();
+    const taklif = tkmTakliflar.get(ish.id) ?? null;
     if (!taklif) return null;
     return <div className="flex flex-wrap items-center gap-2 px-10 pb-2 text-[12px] text-text-dim" aria-label={t('ТН·КМ taklifi')}>
       <span>{t('Taklif')}:</span>
@@ -1037,7 +1074,7 @@ export function F2TayyorlashNative() {
       {bolimKorinadi.map((tg) => { const kalit = tg.kalit; const tanl = kalit === tanlanganBolim && !royxatRejimi; const ochiqmi = kengaygan.has(kalit); const farzand = tg.farzandlar.length > 0; return (
         <li key={kalit} className="flex items-start" style={{ paddingLeft: Math.min(tg.daraja, 5) * 10 }}>
           {farzand ? <button type="button" aria-label={`${ochiqmi ? t('Yopish') : t('Ochish')}: ${tg.nom}`} aria-expanded={ochiqmi} onClick={() => setKengaygan((o) => { const n = new Set(o); if (n.has(kalit)) n.delete(kalit); else n.add(kalit); return n; })} className="mt-1.5 shrink-0 rounded p-0.5 text-text-mute hover:text-text">{ochiqmi ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</button> : <span className="w-[17px] shrink-0" />}
-          <button type="button" title={tg.yol.join(' › ')} aria-current={tanl ? 'true' : undefined} onClick={() => { setBolimId(kalit); setQidir(''); setKorsatLimit(300); }}
+          <button type="button" title={tg.yol.join(' › ')} aria-current={tanl ? 'true' : undefined} onClick={() => { setBolimId(kalit); setQidir(''); setKorsatLimit(F2_KORSAT_BOSH); }}
             className={`flex min-w-0 flex-1 flex-col gap-0.5 rounded-md border py-1.5 pl-1.5 pr-2 text-left text-[12.5px] ${tanl ? 'border-accent/40 bg-accent/10 text-text' : tg.mumkin > 0 ? 'border-transparent text-text-dim hover:bg-surface-2' : 'border-transparent text-text-mute hover:bg-surface-2'}`}>
             <span className="flex min-w-0 items-center gap-2"><span className="min-w-0 flex-1 break-words">{tg.nom}</span>
               <span className="shrink-0 text-[11px] tabular-nums text-text-mute" title={t('fakt bor / jami')}>{tg.mumkin}/{tg.jami}</span></span>
@@ -1189,12 +1226,12 @@ export function F2TayyorlashNative() {
             </div>}
             <div className="min-h-0 flex-1 space-y-2 overflow-auto p-3">
               {uf.soni > 0 && korinadiF.length === 0 && <div className="p-3 text-[12.5px] text-text-mute">{t('Filtr bo‘yicha qator topilmadi.')}</div>}
-              {(() => { let qolgan = korsatLimit; return korinadiF.map((b) => { const kes = b.ishlar.slice(0, Math.max(0, qolgan)); qolgan -= kes.length; return <div key={b.id ?? 'yoq'} className="space-y-2">
+              {korinadiQism.bolimlar.map((b) => <div key={b.id ?? 'yoq'} className="space-y-2" data-testid="f2-bolim-blok">
                 {royxatRejimi && <div className="fz-panel__h pt-1">{b.nom}</div>}
-                {kes.map(ishKartasi)}
+                {b.ishlar.map(ishKartasi)}
                 {b.alohida.length > 0 && <div className="rounded-lg border border-border"><div className="px-3 py-1.5 text-[12px] font-semibold text-text-dim">{t('Alohida materiallar')}</div><table className="w-full text-[12.5px]"><tbody>{b.alohida.map((r) => resursQatori(r))}</tbody></table></div>}
-              </div>; }); })()}
-              {korinadiF.reduce((s, b) => s + b.ishlar.length, 0) > korsatLimit && <button type="button" onClick={() => setKorsatLimit((n) => n + 500)} className="fz-btn w-full">{t('Yana ko‘rsatish')}</button>}
+              </div>)}
+              {korinadiQism.qolgan > 0 && <button ref={yanaRef} type="button" data-testid="f2-yana" onClick={() => setKorsatLimit((n) => n + F2_KORSAT_QADAM)} className="fz-btn w-full">{t('Yana ko‘rsatish')}</button>}
             </div>
           </section>
           <div className="order-first grid min-h-0 content-start gap-3 lg:col-span-2 lg:grid-cols-2 xl:order-none xl:col-span-1 xl:grid-cols-1 xl:overflow-auto">
