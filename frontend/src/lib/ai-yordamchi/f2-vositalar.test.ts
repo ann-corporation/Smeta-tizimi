@@ -48,7 +48,7 @@ describe('F2 AI vositalari — sahifa hisobidan, to‘qimasdan', () => {
   it('tekshir: narx yo‘q xatosi, uchastka aralashuvi, summa ustamasiz+ustamali va NDS oxirida', () => {
     const k = bosKiritma(); k.hajm[2] = '6'; k.hajm[6] = '30';
     const r = f2Tekshir(qur(k));
-    expect(r).toContain('UCHASTKA ARALASHUVI'); expect(r).toMatch(/Xatolar[^\n]*\(1\):\n- \[#4\]/);
+    expect(r).toContain('UCHASTKA ARALASHUVI'); expect(r).toMatch(/Narx yo‘q[^\n]*\(1\):\n- \[#4\]/); expect(r).toContain('Xatolar (saqlashni to‘sadi): yo‘q');
     expect(r).toMatch(/ustamasiz [\d\s ]+,?\d* so‘m; ustamali/); expect(r).toContain('NDS 12% faqat oxirida');
   });
   it('bolim: uchastka avlodlari', () => {

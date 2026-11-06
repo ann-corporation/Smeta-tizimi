@@ -11,7 +11,7 @@ import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 import type { SahifaVositalar } from '../../lib/ai-yordamchi/sikl';
 import type { SahifaAmal } from '../../lib/ai-yordamchi/protokol';
 import { F2_AMAL_NOMI, f2AmalTafsiloti, f2AmalTekshir, f2Indeks, f2Kalit, f2Kontekst, f2OlinadiganBolimlar, f2Oqi, type F2Malumot, type F2NarxVarianti, type F2UstamaliFn, type NarxRuxsat } from '../../lib/ai-yordamchi/f2-vositalar';
-import type { F2Bolim, F2Resurs } from '../../lib/f2-tayyor';
+import { sonMatn, type F2Bolim, type F2Resurs } from '../../lib/f2-tayyor';
 import { narxTakliflari, type NarxManba } from '../../api/t2-ish-abc';
 
 const MANBA: Record<NarxManba, string> = { smeta_obyekt: 'shu obyekt smetasi', smeta_shartnoma: 'shu shartnoma smetalari', smeta: 'kompaniya smetalari', katalog: 'narx katalogi', qolda: 'qo‘lda' };
@@ -64,10 +64,10 @@ export function F2AiYordamchi({ kompaniyaId, obyektId, malumot, amallar }: {
           }
           const j = a.qator != null ? ind.get(a.qator) : undefined;
           if (!j) continue;
-          if (a.tur === 'f2_hajm') { A.hajm(a.qator!, String(Number(String(a.qiymat).replace(/\s/g, '').replace(',', '.')))); hajm++; }
+          if (a.tur === 'f2_hajm') { A.hajm(a.qator!, sonMatn(Number(String(a.qiymat).replace(/\s/g, '').replace(',', '.')))); hajm++; }
           else if (a.tur === 'narx') {
             if ((a.qiymat ?? '').trim().toLowerCase() === 'narxsiz') A.narxsiz(a.qator!);
-            else A.narx(a.qator!, String(Number(String(a.qiymat).replace(/\s/g, '').replace(',', '.'))));
+            else A.narx(a.qator!, sonMatn(Number(String(a.qiymat).replace(/\s/g, '').replace(',', '.'))));
             narx++;
           } else if (a.tur === 'korsat') A.korsat(j.tur === 'ish' ? (j.ish.kod || j.ish.nom) : (j.r.kod || j.r.nom));
         }

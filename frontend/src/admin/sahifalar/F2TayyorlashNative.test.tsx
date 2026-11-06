@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import type { T2Qator } from '../../api/supabase';
@@ -25,7 +25,7 @@ const holat = [
 ];
 
 vi.mock('../../api/supabase', () => ({
-  sbT2ObyektlarOlKomp: vi.fn(async () => ({ ok: true, qatorlar: [{ id: 8, nom: 'Ko‘l' }] })),
+  sbT2ObyektlarOlKomp: vi.fn(async () => ({ ok: true, qatorlar: [{ id: 8, nom: 'Ko‘l' }, { id: 9, nom: 'Ikkinchi' }] })),
   sbT2DaraxtOl: vi.fn(async () => ({ ok: true, qatorlar: rows })),
   sbT2AktYaratV2: m.yarat,
   sbT2F2QoralamaYangila: m.yangila,
@@ -60,8 +60,11 @@ vi.mock('../../umumiy/hujjat/HujjatTomonlari', () => ({ useHujjatTomonlari: () =
 vi.mock('../../umumiy/hujjat/HujjatKorinish', () => ({ useHujjatKorinish: () => ({ oyna: null, ochish: vi.fn() }) }));
 
 import { F2TayyorlashNative } from './F2TayyorlashNative';
+import { bajarilmadiRoyxatOl } from '../../api/t2-bajarilmadi';
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); sessionStorage.clear(); m.komp.joriy = { id: 1 }; m.komp.superadmin = false; });
+// sbOqi sukut: bo'sh, lekin MUVAFFAQIYATLI javob (o'qilmagan ro'yxat endi jim bo'sh emas — sabab bo'lib saqlashni to'xtatadi).
+beforeEach(() => { m.oqi.mockReset(); m.oqi.mockImplementation(async () => ({ ok: true, qatorlar: [] })); });
 const Joy = () => <output data-testid="joy">{useLocation().search}</output>;
 const ochish = () => render(<MemoryRouter initialEntries={['/admin/f2-tayyorlash?obyekt=8']}><F2TayyorlashNative /></MemoryRouter>);
 
@@ -73,9 +76,10 @@ describe('F2 tayyorlash', () => {
     fireEvent.click(screen.getAllByRole('button', { name: '100%' })[0]);
     expect((hajm as HTMLInputElement).value).toBe('6');
     fireEvent.click(screen.getByRole('button', { name: 'Resurslarni ko‘rish: Beton quyish' }));
-    expect(screen.getByText('Narx kerak (yoki «narxsiz» belgilang)')).toBeTruthy();       // Kran — smetada narx yo'q
+    // Egasi 2026-11-06: Kran (smetada narx yo'q) qoralamani TO'SMAYDI — ogohlantirish, ongli «narxsiz» bir bosishda.
+    expect(screen.getByTestId('avto-narxsiz')).toBeTruthy();
     const saqla = screen.getByRole('button', { name: /F2 qoralama yaratish/ }) as HTMLButtonElement;
-    expect(saqla.disabled).toBe(true);
+    await waitFor(() => expect(saqla.disabled).toBe(false));
     fireEvent.click(screen.getByRole('button', { name: /«narxsiz» belgilash/ }));
     fireEvent.change(screen.getByLabelText('F2 raqami'), { target: { value: '7' } });
     expect(saqla.disabled).toBe(false);
@@ -223,9 +227,9 @@ describe('F2 tayyorlash', () => {
   it('?akt=ID: qoralama akt qatorlari yuklanadi, saqlash yangi akt yaratmaydi - sbT2F2QoralamaYangila (versiya, raqam saqlanadi)', async () => {
     const akt = { id: 77, raqam: '5', oy: '2026-09-01', holat: 'qoralama', lifecycle_status: 'draft', versiya: 4 };
     m.oqi.mockImplementation(async (s: { jadval: string }) => s.jadval === 't2_akt' ? { ok: true, qatorlar: [akt] } : { ok: true, qatorlar: [
-      { qator_id: 2, hajm: 6, certified_quantity: 6, certified_unit_price: null, certified_amount: null, provenance_status: 'price_intentionally_absent' },
-      { qator_id: 3, hajm: 12, certified_quantity: 12, certified_unit_price: 25000, certified_amount: 300000, provenance_status: 'source_certified' },
-      { qator_id: 4, hajm: 3, certified_quantity: 3, certified_unit_price: null, certified_amount: null, provenance_status: 'price_intentionally_absent' },
+      { id: 901, qator_id: 2, hajm: 6, certified_quantity: 6, certified_unit_price: null, certified_amount: null, provenance_status: 'price_intentionally_absent' },
+      { id: 902, qator_id: 3, hajm: 12, certified_quantity: 12, certified_unit_price: 25000, certified_amount: 300000, provenance_status: 'source_certified' },
+      { id: 903, qator_id: 4, hajm: 3, certified_quantity: 3, certified_unit_price: null, certified_amount: null, provenance_status: 'price_intentionally_absent' },
     ] });
     m.yangila.mockResolvedValue({ ok: true, akt_id: 77 });
     render(<MemoryRouter initialEntries={['/admin/f2-tayyorlash?obyekt=8&akt=77']}><F2TayyorlashNative /></MemoryRouter>);
@@ -247,7 +251,7 @@ describe('F2 tayyorlash', () => {
   it('?akt=ID: tasdiqlangan akt - faqat ko‘rish, saqlash o‘chiq', async () => {
     m.oqi.mockImplementation(async (s: { jadval: string }) => s.jadval === 't2_akt'
       ? { ok: true, qatorlar: [{ id: 78, raqam: '6', oy: '2026-09-01', holat: 'tasdiqlangan', lifecycle_status: 'approved', versiya: 2 }] }
-      : { ok: true, qatorlar: [{ qator_id: 2, hajm: 6, certified_quantity: 6, certified_unit_price: null, certified_amount: null, provenance_status: 'price_intentionally_absent' }] });
+      : { ok: true, qatorlar: [{ id: 904, qator_id: 2, hajm: 6, certified_quantity: 6, certified_unit_price: null, certified_amount: null, provenance_status: 'price_intentionally_absent' }] });
     render(<MemoryRouter initialEntries={['/admin/f2-tayyorlash?obyekt=8&akt=78']}><F2TayyorlashNative /></MemoryRouter>);
     expect(await screen.findByText(/faqat ko‘rish/)).toBeTruthy();
     const saqla = screen.getByRole('button', { name: /F2 qoralamani yangilash/ }) as HTMLButtonElement;
@@ -330,7 +334,7 @@ describe('F2 tayyorlash', () => {
       m.oqi.mockImplementation(async (s: { jadval: string }) => s.jadval === 't2_akt'
         ? { ok: true, qatorlar: [{ id: 77, raqam: '5-С', oy: '2026-09-01', holat: 'qoralama', lifecycle_status: 'draft', versiya: 1, manba: null }] }
         : s.jadval === 't2_akt_qator'
-          ? { ok: true, qatorlar: [{ qator_id: 2, hajm: -6, certified_quantity: -6, certified_unit_price: 100, certified_amount: -600, provenance_status: 'source_certified', raw_snapshot: { source: 'storno', stornoOf: 11 } }] }
+          ? { ok: true, qatorlar: [{ id: 905, qator_id: 2, hajm: -6, certified_quantity: -6, certified_unit_price: 100, certified_amount: -600, provenance_status: 'source_certified', raw_snapshot: { source: 'storno', stornoOf: 11 } }] }
           : { ok: true, qatorlar: [] });
       ochishJoy('/admin/f2-tayyorlash?obyekt=8&akt=77');
       expect((await screen.findByTestId('storno-manba')).textContent).toContain('№11');
@@ -342,11 +346,10 @@ describe('F2 tayyorlash', () => {
       const eski = { ...h2 };
       Object.assign(h2, { f2_hajm: 6, fakt_hajm: 9, f2_mumkin_hajm: 3 });
       m.oqi.mockImplementation(async (s: { jadval: string; filtr?: string }) => s.jadval === 't2_akt'
-        ? { ok: true, qatorlar: [{ id: 77, raqam: '5-С', oy: '2026-09-01', holat: 'qoralama', lifecycle_status: 'draft', versiya: 3 },
-          // Obyekt F2 reestri: storno manbasi №11 — tasdiqlangan (aks holda qoralama saqlanmaydi).
-          ...(String(s.filtr ?? '').includes('tur=eq.f2') ? [{ id: 11, raqam: '1', oy: '2026-08-01', holat: 'tasdiqlangan', lifecycle_status: 'approved', versiya: 1 }] : [])] }
+        // Obyekt F2 reestri (keyset o'qish — id o'sish tartibida): storno manbasi №11 — tasdiqlangan (aks holda qoralama saqlanmaydi).
+        ? { ok: true, qatorlar: !/(^|&)id=eq\./.test(String(s.filtr ?? '')) ? [{ id: 11, raqam: '1', oy: '2026-08-01', holat: 'tasdiqlangan', lifecycle_status: 'approved', versiya: 1 }, { id: 77, raqam: '5-С', oy: '2026-09-01', holat: 'qoralama', lifecycle_status: 'draft', versiya: 3 }] : [{ id: 77, raqam: '5-С', oy: '2026-09-01', holat: 'qoralama', lifecycle_status: 'draft', versiya: 3 }] }
         : s.jadval === 't2_akt_qator'
-          ? { ok: true, qatorlar: [{ qator_id: 2, hajm: -6, certified_quantity: -6, certified_unit_price: 100, certified_amount: -600, provenance_status: 'source_certified', raw_snapshot: { source: 'storno', stornoOf: 11 } }] }
+          ? { ok: true, qatorlar: [{ id: 905, qator_id: 2, hajm: -6, certified_quantity: -6, certified_unit_price: 100, certified_amount: -600, provenance_status: 'source_certified', raw_snapshot: { source: 'storno', stornoOf: 11 } }] }
           : { ok: true, qatorlar: [] });
       return () => { for (const k of Object.keys(h2)) delete h2[k]; Object.assign(h2, eski); };
     };
@@ -369,19 +372,22 @@ describe('F2 tayyorlash', () => {
         ochishJoy('/admin/f2-tayyorlash?obyekt=8&akt=77');
         fireEvent.click(await screen.findByTestId('storno-blok-tahrirla'));
         expect(await screen.findByTestId('storno-blok-tahrir')).toBeTruthy();
-        expect(screen.queryByTestId('storno-manba-tasdiqlanmagan')).toBeNull();
+        expect(screen.queryByText(/Storno manbasi F2 №/)).toBeNull();
       } finally { tikla(); }
     });
 
     it('storno manbasi tasdiqlanmagan F2 — aniq bloklovchi sabab ko‘rinadi (saqlashdan keyin toast emas)', async () => {
       m.oqi.mockImplementation(async (s: { jadval: string; filtr?: string }) => s.jadval === 't2_akt'
-        ? { ok: true, qatorlar: [{ id: 77, raqam: '5-С', oy: '2026-09-01', holat: 'qoralama', lifecycle_status: 'draft', versiya: 3 },
-          ...(String(s.filtr ?? '').includes('tur=eq.f2') ? [{ id: 11, raqam: '1', oy: '2026-08-01', holat: 'qoralama', lifecycle_status: 'draft', versiya: 1 }] : [])] }
+        ? { ok: true, qatorlar: !/(^|&)id=eq\./.test(String(s.filtr ?? '')) ? [{ id: 11, raqam: '1', oy: '2026-08-01', holat: 'qoralama', lifecycle_status: 'draft', versiya: 1 }, { id: 77, raqam: '5-С', oy: '2026-09-01', holat: 'qoralama', lifecycle_status: 'draft', versiya: 3 }] : [{ id: 77, raqam: '5-С', oy: '2026-09-01', holat: 'qoralama', lifecycle_status: 'draft', versiya: 3 }] }
         : s.jadval === 't2_akt_qator'
-          ? { ok: true, qatorlar: [{ qator_id: 2, hajm: -6, certified_quantity: -6, certified_unit_price: 100, certified_amount: -600, provenance_status: 'source_certified', raw_snapshot: { source: 'storno', stornoOf: 11 } }] }
+          ? { ok: true, qatorlar: [{ id: 905, qator_id: 2, hajm: -6, certified_quantity: -6, certified_unit_price: 100, certified_amount: -600, provenance_status: 'source_certified', raw_snapshot: { source: 'storno', stornoOf: 11 } }] }
           : { ok: true, qatorlar: [] });
       ochishJoy('/admin/f2-tayyorlash?obyekt=8&akt=77');
-      expect((await screen.findByTestId('storno-manba-tasdiqlanmagan')).textContent).toContain('№1 tasdiqlanmagan');
+      const sabab = await screen.findByText(/Storno manbasi F2 №1 tasdiqlanmagan/);
+      expect(sabab.closest('[data-sabab]')?.getAttribute('data-sabab')).toBe('storno_manba');
+      expect(screen.getAllByText(/Storno manbasi F2 №1 tasdiqlanmagan/)).toHaveLength(1); // bir marta
+      expect((screen.getByRole('button', { name: /F2 qoralamani yangilash/ }) as HTMLButtonElement).getAttribute('aria-disabled') === 'true'
+        || (screen.getByRole('button', { name: /F2 qoralamani yangilash/ }) as HTMLButtonElement).disabled).toBe(true);
     });
 
     it('bir qator storno blokida (minus, tepada) VA yangi blokda (plyus, pastda) saqlanadi; yangi hajm = fakt − boshqa F2', async () => {
@@ -408,3 +414,140 @@ describe('F2 tayyorlash', () => {
       } finally { tikla(); }
     });
   });});
+
+/** Audit A (2026-11-06) tuzatish paketi: har BLOCKER/MAJOR uchun UI sinovi (sintetik ma'lumot). */
+describe('F2 tayyorlash — tuzatish paketi A', () => {
+  const saqlaTugma = () => screen.getByRole('button', { name: /F2 qoralama( yaratish|ni yangilash)/ }) as HTMLButtonElement;
+  const aktRejim = (qatorlar: unknown, aktQ?: (s: { filtr?: string }) => unknown) => m.oqi.mockImplementation(async (s: { jadval: string; filtr?: string }) => {
+    if (s.jadval === 't2_akt' && String(s.filtr).startsWith('id=eq.')) return { ok: true, qatorlar: [{ id: 77, raqam: '5', oy: '2026-09-01', holat: 'qoralama', lifecycle_status: 'draft', versiya: 4 }] };
+    if (s.jadval === 't2_akt_qator') return aktQ ? aktQ(s) : { ok: true, qatorlar };
+    return { ok: true, qatorlar: [] };
+  });
+
+  it('narxsiz resurs qoralamani to‘smaydi: priceIntentionallyAbsent + narxsizSabab avto_qoralama, summa yo‘q (0 emas)', async () => {
+    m.yarat.mockResolvedValue({ ok: true, akt_id: 1 });
+    ochish();
+    await screen.findByLabelText('F2 hajmi: Beton quyish');
+    fireEvent.click(screen.getAllByRole('button', { name: '100%' })[0]);
+    await waitFor(() => expect(saqlaTugma().disabled).toBe(false));
+    expect(screen.queryByTestId('saqlash-sabab')).toBeNull();
+    fireEvent.click(saqlaTugma());
+    await waitFor(() => expect(m.yarat).toHaveBeenCalledTimes(1));
+    const kran = m.yarat.mock.calls[0][0].qatorlar.find((x: { qatorId: number }) => x.qatorId === 4);
+    expect(kran).toMatchObject({ certifiedQuantity: 3, priceIntentionallyAbsent: true, rawSnapshot: { narxsizSabab: 'avto_qoralama', hajmManba: 'fakt' } });
+    expect(kran.certifiedAmount).toBeUndefined();
+  });
+
+  it('zamena/chiqarilgan resurslar kutilayotganda — sababi tugma yonida va Tekshiruv tepasida; «toza» yo‘q; qayta urinish', async () => {
+    vi.mocked(bajarilmadiRoyxatOl).mockImplementationOnce(() => new Promise(() => undefined));
+    ochish();
+    await screen.findByLabelText('F2 hajmi: Beton quyish');
+    fireEvent.click(screen.getAllByRole('button', { name: '100%' })[0]);
+    expect((await screen.findByTestId('saqlash-sabab')).textContent).toContain('o‘qilmoqda');
+    expect(saqlaTugma().disabled).toBe(true);
+    expect(screen.getByTestId('tekshiruv-sabablar').textContent).toContain('Zamena va ishdan chiqarilgan resurslar o‘qilmoqda');
+    expect(screen.queryByText('Tekshiruv: toza')).toBeNull();
+    expect(screen.queryByText('Saqlashni to‘suvchi xato yo‘q')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Qayta urinib ko‘rish' }));
+    await waitFor(() => expect(saqlaTugma().disabled).toBe(false));
+  });
+
+  it('zamena bog‘lanishi o‘qilmasa — jim bo‘sh xarita emas: saqlash yopiq, sababi ko‘rinadi', async () => {
+    m.oqi.mockImplementation(async (s: { jadval: string }) => (s.jadval === 't2_qator' ? { ok: false, error: 'x' } : { ok: true, qatorlar: [] }));
+    ochish();
+    await screen.findByLabelText('F2 hajmi: Beton quyish');
+    fireEvent.click(screen.getAllByRole('button', { name: '100%' })[0]);
+    expect((await screen.findByTestId('saqlash-sabab')).textContent).toContain('Zamena bog‘lanishlari o‘qilmadi');
+    expect(saqlaTugma().disabled).toBe(true);
+    fireEvent.click(saqlaTugma());
+    expect(m.yarat).not.toHaveBeenCalled();
+  });
+
+  it('qoralama 1e-7 hajm bilan ochiladi — «0.0000001», yolg‘on «0 bo‘lmasin» xatosi yo‘q', async () => {
+    aktRejim([{ id: 1, qator_id: 2, hajm: 1e-7, certified_quantity: 1e-7, certified_unit_price: null, certified_amount: null, provenance_status: 'price_intentionally_absent', raw_snapshot: { source: 'native_f2_preparation' } }]);
+    render(<MemoryRouter initialEntries={['/admin/f2-tayyorlash?obyekt=8&akt=77']}><F2TayyorlashNative /></MemoryRouter>);
+    const hajm = await screen.findByLabelText('F2 hajmi: Beton quyish') as HTMLInputElement;
+    await waitFor(() => expect(hajm.value).toBe('0.0000001'));
+    expect(screen.queryByText('Hajm 0 bo‘lmasligi kerak (minus ham mumkin)')).toBeNull();
+  });
+
+  it('akt qatorlari to‘liq o‘qilmasa (shlyuz sahifasi) — saqlash yopiq, qisman qoralama yozilmaydi', async () => {
+    let n = 0;
+    aktRejim([], () => (++n === 1 ? { ok: true, qatorlar: [{ id: 1, qator_id: 2, hajm: 6, certified_quantity: 6, provenance_status: 'price_intentionally_absent' }], toliq: false } : { ok: false, error: 'limit' }));
+    m.yangila.mockResolvedValue({ ok: true });
+    render(<MemoryRouter initialEntries={['/admin/f2-tayyorlash?obyekt=8&akt=77']}><F2TayyorlashNative /></MemoryRouter>);
+    expect((await screen.findAllByText(/F2 akti o‘qilmadi/)).length).toBeGreaterThan(0);
+    await screen.findByLabelText('F2 hajmi: Beton quyish');
+    fireEvent.click(screen.getAllByRole('button', { name: '100%' })[0]);
+    expect(saqlaTugma().disabled).toBe(true);
+    expect(m.yangila).not.toHaveBeenCalled();
+  });
+
+  it('obyekt almashtirilganda F2 raqami tozalanadi (eski raqam yangi obyektga o‘tmaydi)', async () => {
+    ochish();
+    await screen.findByLabelText('F2 hajmi: Beton quyish');
+    fireEvent.change(screen.getByLabelText('F2 raqami'), { target: { value: '7' } });
+    fireEvent.change(screen.getByLabelText('Obyekt'), { target: { value: '9' } });
+    await waitFor(() => expect((screen.getByLabelText('F2 raqami') as HTMLInputElement).value).toBe(''));
+  });
+
+  it('hamma fakt allaqachon F2 qilingan obyekt — jim «smeta qoldig‘i» ga o‘tmaydi (manba fakt)', async () => {
+    const eski = holat.map((h) => ({ ...h }));
+    holat.forEach((h) => { h.f2_mumkin_hajm = 0; (h as Record<string, unknown>).fakt_hajm = 5; (h as Record<string, unknown>).f2_hajm = 5; });
+    try {
+      ochish();
+      await screen.findByLabelText('F2 raqami');
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Fakt', pressed: true })).toBeTruthy());
+    } finally { holat.forEach((h, i) => { for (const k of Object.keys(h)) delete (h as Record<string, unknown>)[k]; Object.assign(h, eski[i]); }); }
+  });
+
+  it('«Barcha mumkin hajmni olish» natijasini aytadi (olindi / chang / qoldiq 0)', async () => {
+    ochish();
+    await screen.findByLabelText('F2 hajmi: Beton quyish');
+    fireEvent.click(screen.getByRole('button', { name: 'Barcha mumkin hajmni olish' }));
+    await waitFor(() => expect(m.toast.mock.calls.some((c) => /ta olindi/.test(String(c[0])))).toBe(true));
+  });
+
+  it('ikki marta tez bosish — bitta akt (qulf tasdiq/paket ogohidan oldin)', async () => {
+    let tugat: (v: unknown) => void = () => undefined;
+    m.yarat.mockImplementation(() => new Promise((ok) => { tugat = ok; }));
+    ochish();
+    await screen.findByLabelText('F2 hajmi: Beton quyish');
+    fireEvent.click(screen.getAllByRole('button', { name: '100%' })[0]);
+    await waitFor(() => expect(saqlaTugma().disabled).toBe(false));
+    const b = saqlaTugma();
+    fireEvent.click(b); fireEvent.click(b); fireEvent.click(b);
+    await waitFor(() => expect(m.yarat).toHaveBeenCalledTimes(1));
+    tugat({ ok: true, akt_id: 1 });
+    await new Promise((r) => setTimeout(r, 30));
+    expect(m.yarat).toHaveBeenCalledTimes(1);
+  });
+
+  it('STALE_VERSION — jim qayta yuklanmaydi/ustidan yozilmaydi: xabar va «Qayta yuklash» amali', async () => {
+    aktRejim([{ id: 1, qator_id: 2, hajm: 6, certified_quantity: 6, certified_unit_price: null, certified_amount: null, provenance_status: 'price_intentionally_absent', raw_snapshot: { source: 'native_f2_preparation' } }]);
+    m.yangila.mockResolvedValue({ ok: false, code: 'STALE_VERSION' });
+    render(<MemoryRouter initialEntries={['/admin/f2-tayyorlash?obyekt=8&akt=77']}><F2TayyorlashNative /></MemoryRouter>);
+    const hajm = await screen.findByLabelText('F2 hajmi: Beton quyish') as HTMLInputElement;
+    await waitFor(() => expect(hajm.value).toBe('6'));
+    fireEvent.change(hajm, { target: { value: '5' } });
+    await waitFor(() => expect(saqlaTugma().disabled).toBe(false));
+    fireEvent.click(saqlaTugma());
+    await waitFor(() => expect(m.toast.mock.calls.some((c) => String(c[0]).includes('qayta yuklang'))).toBe(true));
+    const c = m.toast.mock.calls.find((x) => String(x[0]).includes('qayta yuklang'))!;
+    expect(c[4]).toMatchObject({ label: 'Qayta yuklash' });
+    expect(hajm.value).toBe('5'); // operator kiritmasi saqlanib qoldi
+  });
+
+  it('importdan kelgan qoralama avtomatik «davom» bilan ochilmaydi', async () => {
+    const J = () => <output data-testid="joy3">{useLocation().search}</output>;
+    m.oqi.mockImplementation(async (q: { jadval: string; filtr?: string; ustunlar?: string }) => {
+      if (q.jadval === 't2_akt') return { ok: true, qatorlar: [{ id: 714, raqam: '9', oy: '2026-09-01', holat: 'qoralama', lifecycle_status: 'draft', hujjat_jami: 1 }] };
+      if (q.jadval === 't2_akt_qator') return { ok: true, qatorlar: [{ raw_snapshot: { manba: 'f2_v3' } }] };
+      return { ok: true, qatorlar: [] };
+    });
+    render(<MemoryRouter initialEntries={['/admin/f2-tayyorlash?obyekt=8&oy=2026-09']}><F2TayyorlashNative /><J /></MemoryRouter>);
+    await screen.findByLabelText('F2 hajmi: Beton quyish');
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.getByTestId('joy3').textContent).not.toContain('akt=');
+  });
+});

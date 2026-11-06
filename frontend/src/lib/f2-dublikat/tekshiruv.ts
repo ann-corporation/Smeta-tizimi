@@ -58,6 +58,11 @@ export function dublikatTekshiruv(k: DublikatKirish): Masala[] {
     const boshqaOy = bir.filter((a) => oyOnly(a.oy) !== k.oy);
     if (boshqaOy.length) out.push({ daraja: 'blok', kod: 'raqam', aktIdlar: boshqaOy.map((a) => a.id),
       matn: t('Shu obyektda №{raqam} raqamli F2 allaqachon bor: {akt}. Bir raqam ikki marta berilmaydi — yangi raqam kiriting.', { raqam: k.raqam.trim(), akt: boshqaOy.map(yorliq).join('; ') }) });
+  } else {
+    // (ii-b) raqamsiz: baza kaliti (obyekt+tur+oy+coalesce(raqam,'')) shu oyda ikkinchi raqamsiz faol F2 ni rad etadi (23505) — oldindan BLOK.
+    const raqamsiz = faolAktlar.filter((a) => !raqamKaliti(a.raqam) && oyOnly(a.oy) === k.oy);
+    if (raqamsiz.length) out.push({ daraja: 'blok', kod: 'oy_raqam', aktIdlar: raqamsiz.map((a) => a.id),
+      matn: t('Shu oyda raqamsiz F2 allaqachon bor: {akt}. Ikkinchi raqamsiz F2 yozilmaydi — F2 raqamini kiriting.', { akt: raqamsiz.map(yorliq).join('; ') }) });
   }
   // (iii) shu obyektda summasi ±0,5% teng boshqa F2 — OGOHLANTIRISH.
   const yaqin = faolAktlar.filter((a) => summaYaqin(a.hujjat_jami, k.jami) && a.manba !== 'tuzatish');

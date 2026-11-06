@@ -37,6 +37,24 @@ describe('ish → keyingi alohida materiallar (Yo‘l 2,5 km)', () => {
     expect(m.has(5)).toBe(false);
   });
 
+  // XULQ O'ZGARDI (2026-11-06, ish–material muvofiqligi): `ishMateriallari` endi smeta yadrosining bog'lanishiga
+  // (`ishMaterialBoglanishlari`) yo'naltirilgan. Avval bo'limda ishdan keyingi HAR mat/ob taklif qilinardi — sinov ishidan
+  // keyingi kranlar, aloqasiz ishdan keyingi uskuna, mebel/MDF/elektronika ham. Endi «bog'lanmaydi» deb topilganlari taklif
+  // qilinmaydi; tuzilmadagi va ma'nosi/birligi mos (yoki shubhali) materiallar avvalgidek taklif qilinadi.
+  it('aloqasiz material (sinovdan keyingi kran, uskuna dumi, mebel) taklif qilinmaydi; mosi qoladi', () => {
+    const q = (id: number, tur: string, tartib: number, nom: string, birlik: string, hajm: number) => ({ id, ota_id: 1, tur, tartib, nom, birlik, hajm });
+    const rows = [
+      r(1, null, 'rz', 1),
+      q(2, 'bl', 2, 'ПРОКЛАДКА КАБЕЛЯ', 'М', 100), q(3, 'mat', 3, 'КАБЕЛЬ ВВГ', 'М', 102),
+      q(4, 'bl', 4, 'ГИДРАВЛИЧЕСКОЕ ИСПЫТАНИЕ ТРУБОПРОВОДА', 'М', 50), q(5, 'mat', 5, 'КРАН ШАРОВОЙ', 'ШТ', 3),
+      q(6, 'bl', 6, 'ОКРАСКА СТЕН', 'М2', 200), q(7, 'ob', 7, 'КОНДИЦИОНЕР', 'ШТ', 2), q(8, 'mat', 8, 'СТОЛ ОФИСНЫЙ', 'ШТ', 4),
+    ];
+    const m = ishMateriallari(rows);
+    expect(m.get(2)).toEqual([3]);
+    expect(m.has(4)).toBe(false);
+    expect(m.has(6)).toBe(false);
+  });
+
   it('taklif asosi: material smetasidan zamena/bajarilmaydi qismi ayriladi', () => {
     expect(materialTaklifi(50, 100, 40, 0, 10)).toBe(15);
     expect(materialTaklifi(50, 100, 40, 0, 40)).toBeNull();
