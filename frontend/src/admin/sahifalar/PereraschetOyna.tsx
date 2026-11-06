@@ -5,7 +5,7 @@ import { F2Oyna } from './F2Oyna';
 import { F2StornoOyna, type F2StornoAkt } from './F2StornoOyna';
 import { F2PodvalBackfillOyna } from './F2PodvalBackfillOyna';
 import { aktPodvallariniOl } from '../../api/t2-akt-podval';
-import type { StornoReestrAkt } from '../../lib/f2-storno';
+import { stornoQilinadiAkt, type StornoReestrAkt } from '../../lib/f2-storno';
 import { t } from '../../i18n/til';
 
 type PodvalHolat = 'tekshir' | 'bor' | 'yoq' | 'xato';
@@ -39,6 +39,18 @@ export function PereraschetOyna(p: { obyektId: number; kompaniyaId: number | nul
   useEffect(() => { void tekshir(); }, [tekshir]);
 
   const raqam = p.akt.raqam || String(p.akt.id);
+  /** Faqat shu obyektning TASDIQLANGAN F2 si pereraschet manbai (qoralama manbadan yaratilgan storno keyin saqlanmaydi). */
+  const manba = p.reestr.find((x) => x.id === p.akt.id);
+  if (!manba || !stornoQilinadiAkt(manba)) {
+    return (
+      <F2Oyna label={t('Pereraschet')} onYop={p.onYop} kenglik={640}>
+        <div className="space-y-3 p-4 text-[13px]">
+          <p role="alert" data-testid="pereraschet-tasdiqlanmagan" className="fz-note fz-note--danger"><ShieldAlert />{t('Storno faqat shu obyektning tasdiqlangan F2 sidan qilinadi: №{r} tasdiqlanmagan. Avval uni tasdiqlang.', { r: raqam })}</p>
+          <div className="flex justify-end"><button type="button" className="fz-btn fz-btn--ghost" onClick={p.onYop}>{t('Yopish')}</button></div>
+        </div>
+      </F2Oyna>
+    );
+  }
   if (tiklash && p.kompaniyaId) {
     return <F2PodvalBackfillOyna obyektId={p.obyektId} kompaniyaId={p.kompaniyaId} onYop={() => setTiklash(false)} onTugadi={() => { setTiklash(false); void tekshir(); }} />;
   }

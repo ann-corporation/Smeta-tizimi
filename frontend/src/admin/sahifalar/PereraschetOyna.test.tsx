@@ -17,12 +17,22 @@ import { PereraschetOyna } from './PereraschetOyna';
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 const Joy = () => <output data-testid="joy">{useLocation().pathname + useLocation().search}</output>;
-const ochish = () => render(
+const TASDIQ = [{ id: 535, raqam: '535', holat: 'tasdiqlangan', lifecycle_status: 'approved' }];
+const ochish = (reestr: Array<{ id: number; raqam: string; holat: string; lifecycle_status: string }> = TASDIQ) => render(
   <MemoryRouter initialEntries={['/admin/f2-tarix?obyekt=8']}>
-    <PereraschetOyna obyektId={8} kompaniyaId={1} akt={{ id: 535, raqam: '535', oy: '2026-09-01', hujjat_jami: 100 }} reestr={[]} onYop={vi.fn()} />
+    <PereraschetOyna obyektId={8} kompaniyaId={1} akt={{ id: 535, raqam: '535', oy: '2026-09-01', hujjat_jami: 100 }} reestr={reestr} onYop={vi.fn()} />
     <Joy />
   </MemoryRouter>,
 );
+
+describe('Pereraschet — faqat tasdiqlangan manba', () => {
+  it('qoralama F2 dan pereraschet ochilmaydi: aniq sabab, storno oynasi yo‘q', async () => {
+    m.podvallar.mockResolvedValue({ ok: true, podvallar: [{ akt_id: 535, blok: '' }] });
+    ochish([{ id: 535, raqam: '535', holat: 'qoralama', lifecycle_status: 'draft' }]);
+    expect((await screen.findByTestId('pereraschet-tasdiqlanmagan')).textContent).toContain('tasdiqlangan F2 sidan');
+    expect(screen.queryByTestId('storno-oyna')).toBeNull();
+  });
+});
 
 describe('Pereraschet — bitta tugma', () => {
   it('podval yo‘q: avval «fayldan tiklash» oynasi; tiklangach storno oynasi ochiladi', async () => {

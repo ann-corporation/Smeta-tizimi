@@ -44,7 +44,29 @@ export function f2HolatYorligi(status: PtoLifecycleStatus, rejim: F2TasdiqRejimi
   return status === 'approved' && rejim === 'shaxsiy' ? 'Yakunlangan (shaxsiy)' : f2LifecycleLabels[status];
 }
 
+/**
+ * Rad etish rejasi (audit C M5): korporativ rejimda rad etish faqat TEKSHIRILGAN hujjatda va bitta qadam (`rejected`) —
+ * avval draft/submitted dan «yuborish → tekshirish → rad» zanjiri SoD da yarim yo'lda to'xtab, hujjatni boshqa holatda
+ * qoldirardi. Shaxsiy rejim — avvalgidek (bitta foydalanuvchi zanjiri). null — rad etib bo'lmaydi.
+ */
+export function f2RadRejasi(rejim: F2TasdiqRejimi, current: PtoLifecycleStatus): PtoLifecycleStatus[] | null {
+  if (rejim === 'korporativ') return current === 'checked' ? ['rejected'] : null;
+  const p = f2LifecyclePlan(current, 'rejected');
+  return p && p.length ? p : null;
+}
+
+/** Saqlangan qatorning `raw_snapshot.narxsizSabab = 'avto_qoralama'` — narxsiz avtomatik qoralama (server tasdiqni NARXSIZ_QATOR_BOR bilan rad etadi). */
+export function avtoNarxsizSoni(qatorlar: ReadonlyArray<{ raw_snapshot?: unknown }>): number {
+  let n = 0;
+  for (const q of qatorlar) {
+    const s = q.raw_snapshot as { narxsizSabab?: unknown } | null | undefined;
+    if (s && typeof s === 'object' && s.narxsizSabab === 'avto_qoralama') n++;
+  }
+  return n;
+}
+
 export function f2LifecycleError(code?: string): string {
+  if (code === 'NARXSIZ_QATOR_BOR') return 'Hujjatda narxi aniqlanmagan qatorlar bor — «F2 tayyorlash»da narx kiriting yoki ongli «narxsiz» deb belgilang, so‘ng tasdiqlang.';
   if (code === 'SOD_TEKSHIRUVCHI_YUBORUVCHI') return 'Hujjatni yuborgan odam uni o‘zi tekshira olmaydi — boshqa xodim tekshirishi kerak.';
   if (code === 'SOD_TASDIQLOVCHI_TAKRORLANDI') return 'Hujjatni yuborgan yoki tekshirgan odam uni tasdiqlay olmaydi — uchinchi xodim tasdiqlashi kerak.';
   if (code === 'STALE_VERSION') return 'Hujjat boshqa joyda yangilangan. Joriy holat qayta yuklandi; tekshirib, amalni davom ettiring.';

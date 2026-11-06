@@ -21,22 +21,49 @@ export function birlikKaliti(b: string | null | undefined): string {
 const ASOS: ReadonlyArray<readonly [RegExp, AsosBirlik]> = [
   [/^(М3|КУБМ|КУБ)$/, 'М3'],
   [/^(М2|КВМ|МКВ)$/, 'М2'],
-  [/^(М|ПМ|ПОГМ|МП)$/, 'М'],
+  [/^(М|ПМ|ПОГМ|МП|ПОГОНМ|МПОГ)$/, 'М'],
   [/^(Т|ТН|ТОНН|ТОННА)$/, 'Т'],
   [/^(КГ)$/, 'КГ'],
-  [/^(ШТ|ШТУК)$/, 'ШТ'],
+  [/^(ШТ|ШТУК|ШТУКА|ШТУКИ)$/, 'ШТ'],
   [/^(КОМПЛЕКТ|КОМПЛ|КОМП)$/, 'КОМПЛЕКТ'],
 ];
+/** Ko'paytuvchili asos nomlari: КМ = 1000 М. */
+const KARRALI: ReadonlyArray<readonly [RegExp, AsosBirlik, number]> = [[/^КМ$/, 'М', 1000]];
 
-/** «100М3» → {М3, 100}; «М3» → {М3, 1}; «1 000 м2» → {М2, 1000}; notanish → null. */
+/**
+ * «100М3» → {М3, 100}; «М3» → {М3, 1}; «1 000 м2» → {М2, 1000}; «ПОГ.М» → {М, 1}; «КМ» → {М, 1000};
+ * «ТЫС.ШТ» → {ШТ, 1000}; «10 ТЫС.ШТ» → {ШТ, 10000}; notanish → null.
+ */
 export function birlikTahlil(b: string | null | undefined): BirlikTahlil | null {
   const k = birlikKaliti(b);
   const m = /^(\d+)?(.+)$/.exec(k);
   if (!m) return null;
-  const kop = m[1] ? Number(m[1]) : 1;
+  let kop = m[1] ? Number(m[1]) : 1;
   if (!Number.isFinite(kop) || kop <= 0) return null;
-  const asos = ASOS.find(([re]) => re.test(m[2]))?.[1];
+  let qism = m[2];
+  const tys = /^(ТЫСЯЧ|ТЫС)(.+)$/.exec(qism);
+  if (tys) { kop *= 1000; qism = tys[2]; }
+  const karrali = KARRALI.find(([re]) => re.test(qism));
+  if (karrali) return { asos: karrali[1], kopaytuvchi: kop * karrali[2] };
+  const asos = ASOS.find(([re]) => re.test(qism))?.[1];
   return asos ? { asos, kopaytuvchi: kop } : null;
+}
+
+/** Bir o'lcham: asoslar bir xil yoki ikkalasi massa (Т ↔ КГ). Noma'lum birlik — false. */
+export function birOlcham(a: string | null | undefined, b: string | null | undefined): boolean {
+  const x = birlikTahlil(a); const y = birlikTahlil(b);
+  if (!x || !y) return false;
+  const massa = (t: BirlikTahlil) => t.asos === 'Т' || t.asos === 'КГ';
+  return x.asos === y.asos || (massa(x) && massa(y));
+}
+
+/** Qiymatni o'z asos birligiga (ko'paytuvchisiz; massa — Т ga) o'giradi: 0,5 «100М2» → {50, М2}; 250 КГ → {0,25, Т}. */
+export function asosgaAylantir(qiymat: number | null | undefined, birlik: string | null | undefined): { qiymat: number; asos: AsosBirlik } | null {
+  const t = birlikTahlil(birlik);
+  if (!t) return null;
+  const asos: AsosBirlik = t.asos === 'КГ' ? 'Т' : t.asos;
+  const q = birlikAylantir(qiymat, birlik, asos);
+  return q == null ? null : { qiymat: q, asos };
 }
 
 /**

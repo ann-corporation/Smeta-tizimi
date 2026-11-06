@@ -109,9 +109,14 @@ export function portfelSvodVaraq(p: Portfel, o: PortfelSvodOpsiya): RasmiyVaraq 
   return v;
 }
 
-/** Kitob: Свод (formulali) + har akt Ф-2 varag'i (formulasiz — muzlatilgan qiymatlar). */
-export function portfelKitob(svod: RasmiyVaraq, aktVaraqlar: readonly RasmiyVaraq[], o: { nom: string; tashkilot?: string | null }): { bytes: Uint8Array; faylNomi: string } {
-  const varaqlar = [svod, ...aktVaraqlar];
-  const { bytes } = rasmiyKitob(varaqlar, { tur: 'f2', formulasizVaraqlar: aktVaraqlar.map((_, i) => i + 1) });
+/** Portfel akt varag'i: `formulali` — qoralama (tirik formulalar, F2 tarixi bilan bir xil); sukut — muzlatilgan (formulasiz). */
+export type PortfelAktVaraq = RasmiyVaraq | { varaq: RasmiyVaraq; formulali: boolean };
+
+/** Kitob: Свод (formulali) + har akt Ф-2 varag'i (tasdiqlangan — formulasiz; qoralama — formulali, audit C M11). */
+export function portfelKitob(svod: RasmiyVaraq, aktVaraqlar: readonly PortfelAktVaraq[], o: { nom: string; tashkilot?: string | null }): { bytes: Uint8Array; faylNomi: string } {
+  const vs = aktVaraqlar.map((x) => (x instanceof RasmiyVaraq ? { varaq: x, formulali: false } : x));
+  const varaqlar = [svod, ...vs.map((x) => x.varaq)];
+  const formulasizVaraqlar = vs.flatMap((x, i) => (x.formulali ? [] : [i + 1]));
+  const { bytes } = rasmiyKitob(varaqlar, { tur: 'f2', formulasizVaraqlar });
   return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.tashkilot ?? undefined, hujjat: `ПОРТФЕЛЬ_Ф-2_${o.nom}`.slice(0, 80), kengaytma: 'xlsx' }) };
 }

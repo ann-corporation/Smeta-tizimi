@@ -135,13 +135,16 @@ export function f2Tekshir(m: F2Malumot): string {
   if (!m.qatorlar.length) return ['Hali hech qanday hajm kiritilmagan.', f2Kontekst(m)].join('\n');
   const xatolar = m.qatorlar.filter((q) => q.xato);
   const ogohlar = m.qatorlar.filter((q) => q.ogoh && q.ogoh !== 'AXBOROT_NARXSIZ');
-  const narxsiz = m.qatorlar.filter((q) => q.tur !== 'bl' && q.narxsiz && q.ogoh !== 'AXBOROT_NARXSIZ');
+  const narxsiz = m.qatorlar.filter((q) => q.tur !== 'bl' && q.narxsiz && !q.avtoNarxsiz && q.ogoh !== 'AXBOROT_NARXSIZ');
+  // Egasi 2026-11-06: narxi topilmagan resurs qoralamani to'smaydi (avto narxsiz), lekin tasdiqlashda narx yoki ongli «narxsiz» kerak.
+  const avtoNarxsiz = m.qatorlar.filter((q) => q.avtoNarxsiz);
   const satr = (q: F2Qator, sabab: string) => `- [#${q.id}] ${q.tur === 'bl' ? 'ISH' : q.kat ?? q.tur} ${q.nom} | hajm ${raqam(q.hajm)} ${q.birlik ?? ''} | narx ${q.narx == null ? '—' : raqam(q.narx, 2)} (${NARX_MANBA_NOMI[q.manba]}) | ${sabab}`;
   const royxat = (sar: string, l: F2Qator[], sabab: (q: F2Qator) => string) => (l.length ? [`${sar} (${l.length}):`, ...l.slice(0, 20).map((q) => satr(q, sabab(q))), ...(l.length > 20 ? [`… yana ${l.length - 20}`] : [])] : [`${sar}: yo‘q`]);
   const manba = Object.entries(m.jami.manba).filter(([, v]) => v > 0).map(([k, v]) => `${NARX_MANBA_NOMI[k as keyof typeof NARX_MANBA_NOMI]} ${v}`).join(', ');
   return [`Joriy F2: ${m.jami.ish} ish, ${m.jami.qator} qator. Narx manbalari: ${manba || '—'}.`,
     m.uchastkalar.length > 1 ? `UCHASTKA ARALASHUVI: ${m.uchastkalar.map((u) => `${u.nom} (${u.soni} qator)`).join('; ')} — odatda har uchastka alohida F2.` : `Uchastka: ${m.uchastkalar[0]?.nom ?? '—'} (aralashuv yo‘q)`,
     ...royxat('Xatolar (saqlashni to‘sadi)', xatolar, (q) => XATO[q.xato!] ?? q.xato!), ...royxat('Ogohlantirishlar', ogohlar, (q) => OGOH[q.ogoh!] ?? q.ogoh!),
+    ...royxat('Narx yo‘q (qoralamada narxsiz; tasdiqlashda narx yoki «narxsiz» kerak)', avtoNarxsiz, () => 'NARX YO‘Q (narx kiriting yoki «narxsiz» belgilang)'),
     ...royxat('Ongli narxsiz', narxsiz, () => 'narxsiz'), summaMatn(m)].join('\n');
 }
 

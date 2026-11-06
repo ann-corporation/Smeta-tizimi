@@ -7,6 +7,7 @@ import { onRequestPost as sbPost } from '../sb';
 import { onRequestGet as companyGet, onRequestPost as companyPost } from '../company';
 import { onRequestPost as writePost } from '../sb-yoz';
 import { onRequestPost as gasPost } from '../gas';
+import { onRequestGet as workplaceGet } from '../ish-joyi';
 
 type Env = DesktopEnv & { GAS_URL: string; GAS_TOKEN: string; R2_CANONICAL?: R2Bucket; OBYEKT_PAKET_ETAG?: string };
 // Static imports only. This is not a network proxy and cannot reach arbitrary URLs.
@@ -17,6 +18,7 @@ const handlers: Record<string, Record<string, PagesFunction<Env>>> = {
   '/api/company': { GET: companyGet, POST: companyPost },
   '/api/sb-yoz': { POST: writePost },
   '/api/gas': { POST: gasPost },
+  '/api/ish-joyi': { GET: workplaceGet },
 };
 export const DESKTOP_BFF_MAX_BYTES = 2 * 1024 * 1024;
 
@@ -50,11 +52,12 @@ export const onRequestPost: PagesFunction<Env> = async ctx => {
   try { b = JSON.parse(await boundedBody(ctx.request)); }
   catch (err) { return desktopFail(err instanceof Error && err.message === 'BODY_TOO_LARGE' ? 413 : 400, 'BODY_INVALID'); }
   if (!b || typeof b !== 'object' || Array.isArray(b) || Object.keys(b).some(k => !['path','method','body','etag'].includes(k)) ||
-    typeof b.path !== 'string' || b.path.length > 8192 || !/^\/api\/(sessiya|obyekt-paket|sb|company|sb-yoz|gas)(?:\?[^#\s]*)?$/.test(b.path) ||
+    typeof b.path !== 'string' || b.path.length > 8192 || !/^\/api\/(sessiya|obyekt-paket|sb|company|sb-yoz|gas|ish-joyi)(?:\?[^#\s]*)?$/.test(b.path) ||
     typeof b.method !== 'string' || !['GET','POST'].includes(b.method)) return desktopFail(400, 'TARGET_INVALID');
   const target = new URL(b.path, new URL(ctx.request.url).origin);
   const handler = Object.hasOwn(handlers, target.pathname) ? handlers[target.pathname][b.method] : undefined;
   if (!handler || (b.method === 'GET' && b.body != null) ||
+    (target.pathname === '/api/ish-joyi' && (b.path !== '/api/ish-joyi?bolim=joylarim' || b.etag != null)) ||
     (b.etag != null && (typeof b.etag !== 'string' || b.etag.length > 512 || /[\x00-\x1f\x7f]/.test(b.etag)))) return desktopFail(400, 'TARGET_INVALID');
   try {
     // Same iat and expiry as the web session that enrolled this device. Fresh roles come from middleware.

@@ -127,4 +127,10 @@ export { sarlavhaBlokiniTop, ustunXaritasi, tartibRaqamlariQatorimi, type Sarlav
 export { arifmetikUchlik, uchlikniMoslashtir, qoshimchaUstunlar, type MoslashuvNatija, type UstunUchlik } from './ustun-dalil';
 export type * from './turlar';
 export { formatAniqla, nomNaqshi, profilMos, varaqProfili, type SmetaFormat, type VaraqProfili } from './profil';
+export {
+  ishMaterialBoglanishlari, muvofiqlikTekshir,
+  type IshMatQator, type IshMatQaror, type IshMatBoglanish, type IshMatIshonch, type IshMatSinf, type IshMatSabab,
+  type IshMatHolat, type IshMatSignal, type IshMatYorliq, type IshMatTaraf, type IshMatTuzatish, type IshMatOpsiya,
+} from './ish-material';
+export { manoKaliti, nomKaliti, MANO_GURUHLARI, OLCHAM_ORALIQ, type ManoGuruh } from './ish-material-lugat';
 export { tuzatishSababi, tuzatishQatorimi, tuzatishBoglanishlari, tuzatishFakti, type TuzatishManba, type TuzatishSabab, type TuzatishBoglanish, type TuzatishXarita } from './tuzatish';

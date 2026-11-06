@@ -99,6 +99,8 @@ fn authenticated_request(
     }
     req.build().map_err(|_| "DESKTOP_REQUEST_INVALID")
 }
+const WORKPLACE_READ_PATH: &str = "/api/ish-joyi?bolim=joylarim";
+
 fn gateway_request(
     client: &Client,
     path: &str,
@@ -108,17 +110,19 @@ fn gateway_request(
     token: &str,
 ) -> NativeResult<reqwest::Request> {
     request_path(path, method, body.as_deref(), etag.as_deref())?;
-    if !matches!(
-        path.split('?').next(),
-        Some(
-            "/api/sessiya"
-                | "/api/company"
-                | "/api/sb"
-                | "/api/sb-yoz"
-                | "/api/gas"
-                | "/api/obyekt-paket"
+    if path != WORKPLACE_READ_PATH
+        && !matches!(
+            path.split('?').next(),
+            Some(
+                "/api/sessiya"
+                    | "/api/company"
+                    | "/api/sb"
+                    | "/api/sb-yoz"
+                    | "/api/gas"
+                    | "/api/obyekt-paket"
+            )
         )
-    ) {
+    {
         return Err("DESKTOP_PATH_DENIED");
     }
     // The BFF returns the handler's real HTTP status, body and ETag. No JSON
@@ -155,6 +159,13 @@ fn request_path(
         return Err("DESKTOP_PATH_DENIED");
     }
     let route = path.split('?').next().ok_or("DESKTOP_PATH_DENIED")?;
+    if route == "/api/ish-joyi" {
+        return if path == WORKPLACE_READ_PATH && method == "GET" && etag.is_none() {
+            Ok(())
+        } else {
+            Err("DESKTOP_PATH_DENIED")
+        };
+    }
     // Deny encoded separators/dot-segments and all credential-issuing routes.
     if !matches!(
         route,
@@ -526,6 +537,30 @@ pub async fn desktop_request(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn workplace_read_accepts_only_the_exact_get() {
+        assert!(request_path(WORKPLACE_READ_PATH, "GET", None, None).is_ok());
+        for path in [
+            "/api/ish-joyi",
+            "/api/ish-joyi?bolim=takliflar",
+            "/api/ish-joyi?bolim=joylarim&kompaniya_id=8",
+            "/api/ish-joyi?bolim=joylarim&bolim=takliflar",
+        ] {
+            assert!(request_path(path, "GET", None, None).is_err());
+        }
+        assert!(request_path(WORKPLACE_READ_PATH, "POST", Some("{}"), None).is_err());
+        assert!(request_path(WORKPLACE_READ_PATH, "GET", None, Some("tag")).is_err());
+        assert!(gateway_request(
+            &Client::new(),
+            WORKPLACE_READ_PATH,
+            "GET",
+            None,
+            None,
+            "synthetic"
+        )
+        .is_ok());
+    }
     use crate::maxfiy::{
         tests::{credential, MemoryVault},
         SessiyaBusena,

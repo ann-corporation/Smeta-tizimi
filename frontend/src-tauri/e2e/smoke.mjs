@@ -28,7 +28,7 @@ assert.deepEqual(listBody.qatorlar,[{id:101,nom:'M5 SYNTHETIC OBJECT',kompaniya_
 const unfiltered=await list({...listing,filtr:''});assert.equal(unfiltered.status,200);
 assert.deepEqual((await unfiltered.json()).qatorlar.map(row=>row.id),[101]);
 assert.equal((await list({...listing,filtr:'kompaniya_id=eq.2'})).status,403);
-const blockedWorkplace=await gateway('/api/ish-joyi?bolim=joylarim');assert.equal(blockedWorkplace.status,400);
+const blockedWorkplace=await gateway('/api/ish-joyi?bolim=joylarim&kompaniya_id=1');assert.equal(blockedWorkplace.status,400);
 assert.equal((await gateway('/api/hujjat-royxat?kompaniya_id=1&obyekt_id=101&limit=500')).status,400);
 const projectRows=await sb({jadval:'t2_loyiha_royxat',filtr:'kompaniya_id=eq.1',tartib:'yaratildi.desc',limit:500});
 assert.equal(projectRows.qatorlar[0].id,301);assert.equal(projectRows.qatorlar[0].byudjet,null);

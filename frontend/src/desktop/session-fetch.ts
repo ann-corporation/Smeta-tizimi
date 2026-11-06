@@ -16,3 +16,14 @@ export function desktopSessionFetch(create: (events: { status: (offline: boolean
     return response;
   };
 }
+/** Tauri's IPC uses window.fetch too. Only application requests may trigger native work. */
+export function desktopEntryFetch(original: typeof fetch, pages: typeof fetch, origin: string,
+  remember: () => Promise<void>): typeof fetch {
+  return async (input, init) => {
+    const url = new URL(input instanceof Request ? input.url : String(input), origin);
+    if (url.origin !== origin || !url.pathname.startsWith('/api/')) return original(input, init);
+    const response = await pages(input, init);
+    if (response.ok) await remember();
+    return response;
+  };
+}

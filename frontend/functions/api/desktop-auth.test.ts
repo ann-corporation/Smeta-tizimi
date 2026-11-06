@@ -35,6 +35,7 @@ beforeEach(() => {
     const u = new URL(String(raw));
     const b = init?.body ? JSON.parse(String(init.body)) : {};
     calls.push({ path: u.pathname, body: b });
+    if (u.pathname.endsWith('/t2_ish_joylarim_v1')) return Response.json({ ok: true, ish_joylari: [], ishlar: [] });
     if (u.pathname.endsWith('/t2_desktop_qurilma_tekshir_v2')) return Response.json(!revoked && b.p_token_hash === await deviceHash(token) ?
       { ok: true, device_id: deviceId, foydalanuvchi_id: 7, tugaydi: expires, sessiya_exp: expires, versiya: 1 } : { ok: false });
     if (u.pathname.endsWith('/t2_desktop_qurilma_yarat_v2')) return Response.json(deviceLimit ? { ok: false, code: 'DEVICE_LIMIT' } : { ok: true, device_id: b.p_device_id, tugaydi: b.p_sessiya_exp });
@@ -99,6 +100,23 @@ describe('M3 native bearer and unchanged BFF gates', () => {
   });
   it('bounds envelope size', async () => {
     expect((await gateway(ctx(native('/api/desktop/bff',{ path: '/api/sb', method: 'POST', body: 'a'.repeat(2 * 1024 * 1024) })))).status).toBe(413);
+  });
+  it('dispatches the exact workplace read with the verified device actor', async () => {
+    const res = await bff('/api/ish-joyi?bolim=joylarim');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Cache-Control')).toBe('no-store');
+    expect(calls.find(c => c.path.endsWith('/t2_ish_joylarim_v1'))?.body).toEqual({ p_actor_id: 7 });
+  });
+  it.each([
+    { path: '/api/ish-joyi?bolim=joylarim&kompaniya_id=8', method: 'GET' },
+    { path: '/api/ish-joyi?bolim=joylarim&bolim=takliflar', method: 'GET' },
+    { path: '/api/ish-joyi?bolim=takliflar', method: 'GET' },
+    { path: '/api/ish-joyi', method: 'GET' },
+    { path: '/api/ish-joyi?bolim=joylarim', method: 'POST', body: { amal: 'yarat' } },
+    { path: '/api/ish-joyi?bolim=joylarim', method: 'GET', etag: 'tag' },
+  ])('refuses an extended workplace request %j', async body => {
+    expect((await gateway(ctx(native('/api/desktop/bff', body)))).status).toBe(400);
+    expect(calls.some(c => c.path.includes('/t2_ish_'))).toBe(false);
   });
 });
 
