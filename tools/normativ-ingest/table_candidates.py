@@ -8,7 +8,7 @@ from prepare import atomic, digest, encoded, private_output
 
 CODE = r'\d{2}-\d{2}-\d{3}'
 HEADER = re.compile(
-    rf'^[ \t]*(?:таблица[ \t]+({CODE})|({CODE})[ \t]+жадвал)'
+    rf'^[ \t]*(?:таблица[ \t]+(?:срн[ \t]+)?({CODE})|({CODE})[ \t]+жадвал)'
     r'[ \t]*(?:[.\-–][ \t]*)?(?:\r?\n[ \t]*)?([^\r\n]{0,150})',
     re.IGNORECASE | re.MULTILINE,
 )
