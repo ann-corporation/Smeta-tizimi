@@ -85,4 +85,11 @@ describe('filtrXavfsizmi — jsonb bitta kalit', () => {
     expect(filtrXavfsizmi('raw_snapshot->>x;drop=eq.1')).toBe(false);
     expect(filtrXavfsizmi('or=(a.eq.1)')).toBe(false);
   });
+  it('not. inkori (not.is.null) qabul qilinadi, boshqa operatorsiz not. — yo‘q', () => {
+    expect(filtrXavfsizmi('obyekt_id=eq.162&zamena=is.true&almashtirish_hajm=not.is.null')).toBe(true);
+    expect(filtrXavfsizmi('obyekt_id=eq.162&replaces_line_id=not.is.null')).toBe(true);
+    expect(filtrXavfsizmi('a=not.eq.1')).toBe(true);
+    expect(filtrXavfsizmi('a=not.or.(b.eq.1)')).toBe(false);
+    expect(filtrXavfsizmi('a=not.not.is.null')).toBe(false);
+  });
 });

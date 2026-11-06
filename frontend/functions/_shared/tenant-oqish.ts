@@ -69,7 +69,8 @@ export const OQISH_SIYOSATI: Readonly<Record<string, OqishSiyosat>> = {
 export function filtrXavfsizmi(f: string): boolean {
   if (!f) return true;
   // Ustun, yoki jsonb ustunning BITTA kaliti (`raw_snapshot->>stornoOf`) — kalit ham faqat [a-z0-9_].
-  return f.split('&').every((qism) => /^[a-z_][a-z0-9_]*(->>[a-z_][a-z0-9_]*)?=(eq|neq|gt|gte|lt|lte|like|ilike|in|is)\.[^&]*$/i.test(qism));
+  // `not.` inkori (masalan `replaces_line_id=not.is.null`) — PostgREST operatori; tenant filtri baribir alohida AND bilan qo'shiladi.
+  return f.split('&').every((qism) => /^[a-z_][a-z0-9_]*(->>[a-z_][a-z0-9_]*)?=(not\.)?(eq|neq|gt|gte|lt|lte|like|ilike|in|is)\.[^&]*$/i.test(qism));
 }
 /** `select` — faqat ustun nomlari (embedding `x(*)`, alias `a:b`, cast `::` yo'q). */
 export const ustunlarXavfsizmi = (s: string) => !s || /^[a-z0-9_*,\s]+$/i.test(s);
