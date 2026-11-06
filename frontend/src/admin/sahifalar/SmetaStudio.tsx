@@ -37,6 +37,7 @@ import { HUDUD_KALIT, lsGet, lsSet, unitTextOf } from './studio-sozlama';
 import { KoeffitsientlarPaneli, NarxlashBosqichi, ResBosqichi } from './StudioBosqichlar';
 import { MateriallarPaneli } from './StudioMateriallar';
 import { SmetaAiChat } from './SmetaAiChat';
+import { ShnkQidiruv } from './ShnkQidiruv';
 import { KatalogPanel } from './NormKatalogPanel';
 import { useStudioKontekst } from '../../lib/jarvis/useStudioKontekst';
 import { Undo2, Redo2, Search, TriangleAlert, CircleCheck, Plus } from 'lucide-react';
@@ -402,6 +403,7 @@ export default function SmetaStudio() {
         <StudioSections doc={doc} target={nishon} onTarget={setNishon} command={amal}/>
         <div className="studio-pane-scroll">
           <details className="studio-context"><summary>{t('Smeta va obyekt sozlamalari')}</summary><ObjectBinding doc={doc} company={joriyId ?? null} command={amal}/></details>
+        {joriyId != null && <details className="studio-context"><summary>{t('ShNK normativlari')}</summary><ShnkQidiruv key={joriyId} kompaniyaId={joriyId}/></details>}
         {katalogHolat === 'yuklanmoqda' && <p className="text-text-dim">{t('Normativ katalog yuklanmoqda...')}</p>}
         {katalogHolat === 'yoq' && <p className="text-warn">{t('Platforma normativ katalogi hali yuklanmagan.')}</p>}
         {katalogHolat === 'xato' && <p className="text-danger">{t('Katalog ochilmadi. Sahifani yangilab qayta urinib ko‘ring.')}</p>}
@@ -437,7 +439,11 @@ export default function SmetaStudio() {
             <div className="studio-lrv-bar"><div className="studio-seg"><button aria-pressed={worksheet} onClick={()=>setWorksheet(true)}>{t('Jadval')}</button><button aria-pressed={!worksheet} onClick={()=>setWorksheet(false)}>{t('Tarkib va bo‘limlar')}</button></div><button className="fz-btn fz-btn--sm" style={{marginLeft:'auto'}} onClick={()=>{setPanels(3);setBosqich('lrv');}}><Plus aria-hidden="true"/>{t('Ish qo‘shish')}</button></div>
             {worksheet && <WorkSheet docked unitText={unitText} activeWorkId={selectedWorkId} revealToken={revealToken} doc={doc} calculation={hisob} command={amal} onWork={openWork} renderDetails={()=>null}/>}
         <div hidden={worksheet} className="studio-docview">
-        <SmetaDocumentPanel focusWorkId={focusWorkId} renderWorkDetails={id=><KoeffitsientlarPaneli doc={doc} command={amal} kompaniyaId={joriyId ?? null} workId={id} />} doc={doc} total={hisob.total} calculation={hisob} targetSectionId={nishon}
+        <SmetaDocumentPanel focusWorkId={focusWorkId} renderWorkDetails={id => {
+          const shifr = doc.occurrences[id]?.source.code;
+          return <>{joriyId != null && shifr && <ShnkQidiruv key={joriyId + ":" + shifr} kompaniyaId={joriyId} shifr={shifr}/>}
+            <KoeffitsientlarPaneli doc={doc} command={amal} kompaniyaId={joriyId ?? null} workId={id} /></>;
+        }} doc={doc} total={hisob.total} calculation={hisob} targetSectionId={nishon}
           setTargetSection={setNishon} command={amal} labels={studioPanelLabels()}
           pricing={{ source: narxKat, unitText, region: hudud || null }} />
         </div>
