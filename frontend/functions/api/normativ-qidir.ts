@@ -42,16 +42,20 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     : q;
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    const result = await fetch(supabaseBaseUrl(env.SUPABASE_URL) + '/rest/v1/rpc/t2_normativ_qidir_v1', {
+    const query = async (reference: string | null) => {
+      const result = await fetch(supabaseBaseUrl(env.SUPABASE_URL) + '/rest/v1/rpc/t2_normativ_qidir_v1', {
       method: 'POST', redirect: 'error', signal: AbortSignal.timeout(5000),
       headers: { apikey: env.SUPABASE_KEY, Authorization: 'Bearer ' + env.SUPABASE_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        p_actor_id: authority.foydalanuvchi_id, p_kompaniya_id: company, p_q: search, p_tahrir: edition,
+        p_actor_id: authority.foydalanuvchi_id, p_kompaniya_id: company, p_q: reference, p_tahrir: edition,
         p_hujjat_id: doc, p_sha: sha, p_limit: limit,
       }),
     });
-    if (!result.ok) return fail('SEARCH_UNAVAILABLE', 502);
-    const data = await result.json() as { ok?: boolean; code?: string; natijalar?: NormativCandidate[] };
+    if (!result.ok) throw new Error('SEARCH_UNAVAILABLE');
+    return await result.json() as { ok?: boolean; code?: string; natijalar?: NormativCandidate[] };
+    };
+    let data = await query(q);
+    if (search !== q && data.ok === true && data.natijalar?.length === 0 && !data.code) data = await query(search);
     if (data.ok === false && data.code === 'FORBIDDEN') return fail('FORBIDDEN', 403);
     if (data.ok !== true || !Array.isArray(data.natijalar) || data.natijalar.length > limit) {
       return fail('SEARCH_UNAVAILABLE', 502);

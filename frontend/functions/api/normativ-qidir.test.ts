@@ -83,7 +83,9 @@ it('includes a reviewed anchor beyond the first 800 characters', async () => {
 it.each([['Е6-1-34', '06-01-034'], ['E6-1-34', '06-01-034'], ['Е6-1-34-2', 'Е6-1-34-2']])(
   'uses exact table reference for %s without dropping work suffixes', async (input, expected) => {
     const h = await setup();
+    h.db({ ok: true, natijalar: [] });
     expect((await h.call('kompaniya_id=3&q=' + encodeURIComponent(input))).status).toBe(200);
-    expect(JSON.parse(String(h.rpc.mock.calls.at(-1)?.[1]?.body))).toMatchObject({ p_q: expected });
+    const queries = h.rpc.mock.calls.slice(1).map(call => JSON.parse(String(call[1]?.body)).p_q);
+    expect(queries).toEqual(input === expected ? [input] : [input, expected]);
   },
 );
