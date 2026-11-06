@@ -30,5 +30,17 @@
   "Normativlar": {
     "ru": "Нормативы",
     "en": "Standards"
+  },
+  "Normativ tahriri": {
+    "ru": "Редакция норматива",
+    "en": "Standard edition"
+  },
+  "Bir nechta tahrir topildi. Kerakli tahrirni kiriting va qayta qidiring.": {
+    "ru": "Найдено несколько редакций. Укажите нужную редакцию и повторите поиск.",
+    "en": "Multiple editions found. Enter the edition and search again."
+  },
+  "Shifr bir nechta normativga mos. Hujjatning to‘liq kodini qidiring.": {
+    "ru": "Шифр относится к нескольким нормативам. Ищите по полному коду документа.",
+    "en": "The reference matches multiple standards. Search by the full document code."
   }
 }

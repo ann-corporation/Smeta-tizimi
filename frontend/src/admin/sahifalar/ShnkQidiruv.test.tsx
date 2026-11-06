@@ -30,3 +30,17 @@ it('submits free text and shows an explicit empty result', async () => {
   fireEvent.keyDown(input, { key: 'Enter' });
   expect(await screen.findByText('Mos nashr qilingan normativ topilmadi.')).toBeTruthy();
 });
+
+it('lets the user retry an ambiguous edition with an explicit edition', async () => {
+  const fetcher = vi.fn(async (_url: string) => Response.json({
+    ok: true, sabab: 'EDITION_REQUIRED', natijalar: [],
+  }));
+  vi.stubGlobal('fetch', fetcher);
+  render(<ShnkQidiruv kompaniyaId={7} shifr="SYN-1" />);
+  fireEvent.click(screen.getByRole('button', { name: 'Normani ko‘rish' }));
+  const edition = await screen.findByRole('textbox', { name: 'Normativ tahriri' });
+  fireEvent.change(edition, { target: { value: 'Test' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Normani ko‘rish' }));
+  expect(fetcher.mock.calls[1][0]).toContain('tahrir=Test');
+  await screen.findByRole('textbox', { name: 'Normativ tahriri' });
+});
