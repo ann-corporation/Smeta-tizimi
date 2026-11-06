@@ -26,6 +26,15 @@ class FakeS3:
                 'ContentLength': len(self.calls[-1]['Body'])}
 
 class UploadTests(unittest.TestCase):
+    def test_readback_checks_bytes_not_metadata(self):
+        class Readback:
+            def get_object(self, **kwargs):
+                return {'Body': io.BytesIO(b'abc')}
+
+        uploader.verify_original(Readback(), 'b', 'k', 3, uploader.sha(b'abc'))
+        with self.assertRaisesRegex(ValueError, 'R2_ORIGINAL_INTEGRITY'):
+            uploader.verify_original(Readback(), 'b', 'k', 3, uploader.sha(b'xyz'))
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(); self.root = Path(self.tmp.name)
         self.job = self.root/'private'
