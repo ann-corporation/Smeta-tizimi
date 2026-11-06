@@ -443,7 +443,8 @@ export function F2TayyorlashNative() {
     for (const b of bs) {
       // Pul changi (egasi 2026-11-06): qiymati < 1 000 so'm ish — resurslari bilan BIRGA olinmaydi (resurs sug'urilmaydi); narxi noma'lum — olinadi.
       for (const i of b.ishlar) { if (pulChangmi(ishQoldiqQiymati(i))) continue; if (i.mumkin !== 0) hajm[i.id] = String(i.mumkin); for (const r of i.resurslar) if (!r.avto && r.mumkin !== 0) hajm[r.id] = String(r.mumkin); }
-      for (const r of b.alohida) if (!pulChangmi(resursQoldiqQiymati(r))) hajm[r.id] = String(r.mumkin);
+      // Olinadigan qoldig'i yo'q (mumkin 0) material olinmaydi — narxsiz bo'lsa ham (aks holda «hajm 0 bo'lmasin» saqlashni yopadi).
+      for (const r of b.alohida) if (r.mumkin !== 0 && !pulChangmi(resursQoldiqQiymati(r))) hajm[r.id] = String(r.mumkin);
     }
     return { ...o, hajm };
   });
