@@ -41,13 +41,20 @@ begin
        where hujjat_id=d.id order by tartib limit p_limit) b
    union all select hujjat_id, sha256, rank from chunks
    union all select p_hujjat_id, p_sha, 0 where p_hujjat_id is not null
+ ), visible as (
+   select d.id, d.norma_kod, c.rank, b.tartib
+   from candidates c join public.t2_normativ_hujjat d on d.id=c.id
+   join public.t2_normativ_bolak b on b.hujjat_id=c.id and b.sha256=c.sha256
+   where d.holat='PUBLISHED' and (p_tahrir is null or lower(d.tahrir)=lower(btrim(p_tahrir)))
  )
- select d.id, d.norma_kod, c.rank into best
- from candidates c join public.t2_normativ_hujjat d on d.id=c.id
- join public.t2_normativ_bolak b on b.hujjat_id=c.id and b.sha256=c.sha256
- where d.holat='PUBLISHED' and (p_tahrir is null or lower(d.tahrir)=lower(btrim(p_tahrir)))
- order by c.rank, d.norma_kod, d.id, b.tartib limit 1;
+ select v.*, case when v.rank <= 1 then
+   (select count(distinct lower(m.norma_kod)) from visible m where m.rank=v.rank)
+   else 1 end as code_count into best
+ from visible v order by v.rank, v.norma_kod, v.id, v.tartib limit 1;
  if not found then return jsonb_build_object('ok',true,'natijalar','[]'::jsonb); end if;
+ if best.code_count > 1 then
+   return jsonb_build_object('ok',true,'code','REFERENCE_AMBIGUOUS','natijalar','[]'::jsonb);
+ end if;
  if p_hujjat_id is null and p_tahrir is null and (
    select count(distinct lower(tahrir)) from public.t2_normativ_hujjat
    where holat='PUBLISHED' and lower(norma_kod)=lower(best.norma_kod)

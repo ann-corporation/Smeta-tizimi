@@ -52,7 +52,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       return fail('SEARCH_UNAVAILABLE', 502);
     }
     if (data.natijalar.length === 0) {
-      return json({ ok: true, code: 'UNKNOWN', sabab: data.code === 'EDITION_REQUIRED' ? data.code : 'NOT_FOUND', natijalar: [] });
+      const reason = data.code === 'EDITION_REQUIRED' || data.code === 'REFERENCE_AMBIGUOUS' ? data.code : 'NOT_FOUND';
+      return json({ ok: true, code: 'UNKNOWN', sabab: reason, natijalar: [] });
     }
     if (!env.NORMATIV_R2) return fail('SOURCE_UNAVAILABLE', 503);
     const bucket = env.NORMATIV_R2;

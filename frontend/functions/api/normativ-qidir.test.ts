@@ -55,7 +55,7 @@ it('rejects foreign tenant, unsigned access, and injected client URLs before sto
   expect(h.rpc.mock.calls.every(([url]) => url.endsWith('/t2_men_v1'))).toBe(true);
 });
 
-it.each(['NOT_FOUND', 'EDITION_REQUIRED'])('returns UNKNOWN on %s', async reason => {
+it.each(['NOT_FOUND', 'EDITION_REQUIRED', 'REFERENCE_AMBIGUOUS'])('returns UNKNOWN on %s', async reason => {
   const h = await setup();
   h.db({ ok: true, natijalar: [], code: reason });
   expect(await (await h.call()).json()).toEqual({ ok: true, code: 'UNKNOWN', sabab: reason, natijalar: [] });
