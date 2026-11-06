@@ -216,6 +216,14 @@ def run(source, output, meta=None, ocr=None, lang='rus+uzb_cyrl', threshold=90, 
                   versions=package_versions(), reader_code_sha=digest(Path(__file__).read_bytes()),
                   ocr_version=tool_version(ocr), converter_version=tool_version(converter))
     annotations = config['meta'].get('annotations', {})
+    limits = {'qidiruv_yorliq': 500, 'jadval_kod': 120, 'bob_punkt': 120, 'iqtibos_anchor': 160}
+    if not isinstance(annotations, dict) or any(
+        not isinstance(fields, dict) or not fields or any(
+            key not in limits or not isinstance(value, str) or not value.strip() or len(value) > limits[key]
+            for key, value in fields.items()
+        ) for fields in annotations.values()
+    ):
+        raise ValueError('INVALID_REVIEWED_ANNOTATION')
     chunk_meta = {k: v for k, v in config['meta'].items() if k != 'annotations'}
     job = output / digest(encoded([sha, READER, config]))
     job.mkdir(exist_ok=True)

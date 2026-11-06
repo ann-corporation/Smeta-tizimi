@@ -30,3 +30,5 @@ norma_kod, tahrir, title. Для ZIP добавьте точное имя member
    переходов не нужна.
 
 Для отбора кандидатов таблиц: python tools/normativ-ingest/table_candidates.py <ingest-queue.json> <private-output.json>. Заголовки сверяются с PDF перед добавлением в annotations.
+
+Поле iqtibos_anchor (до 160 символов) должно дословно присутствовать в извлечённом тексте. table_candidates.py проверяет только PDF units формата page-N.
