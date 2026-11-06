@@ -215,6 +215,8 @@ def run(source, output, meta=None, ocr=None, lang='rus+uzb_cyrl', threshold=90, 
     config = dict(meta=meta or {}, ocr=ocr, lang=lang, threshold=threshold, converter=converter,
                   versions=package_versions(), reader_code_sha=digest(Path(__file__).read_bytes()),
                   ocr_version=tool_version(ocr), converter_version=tool_version(converter))
+    annotations = config['meta'].get('annotations', {})
+    chunk_meta = {k: v for k, v in config['meta'].items() if k != 'annotations'}
     job = output / digest(encoded([sha, READER, config]))
     job.mkdir(exist_ok=True)
     manifest = job / 'job.json'
@@ -306,15 +308,21 @@ def run(source, output, meta=None, ocr=None, lang='rus+uzb_cyrl', threshold=90, 
                             if unit is not None and not exists(key):
                                 if 'total_units' in unit:
                                     state['total'] = unit.pop('total_units')
-                                chunk = dict(config['meta'], **unit, source_sha=sha, reader=READER, unit=key,
+                                chunk = dict(chunk_meta, **unit, source_sha=sha, reader=READER, unit=key,
                                     norma_kod=config['meta'].get('norma_kod'), tahrir=config['meta'].get('tahrir'),
                                     bob_punkt=None, jadval_kod=None, original_kind=original.suffix.lower(), derivative_sha=state.get('derivative_sha'))
+                                if key in annotations:
+                                    if unit['method'] == 'unread':
+                                        raise ValueError('ANNOTATION_ON_UNREAD_UNIT')
+                                    chunk.update(annotations[key])
                                 chunk['sha'] = digest(encoded(chunk)); atomic(job/(key+'.json'), chunk)
                             saved = json.loads((job/(key+'.json')).read_text(encoding='utf-8'))
                             state['flags'] = sorted(set(state['flags'] + saved['flags']))
                             if key not in state['units']:
                                 state['units'].append(key)
                             state['completed'] = len(state['units']); atomic(manifest, state)
+            if set(annotations) - set(state['units']):
+                raise ValueError('ANNOTATION_UNIT_NOT_FOUND')
             state['total'] = state.get('total', state['completed'])
             state['extracted_units'] = sum(json.loads((job/(k+'.json')).read_text(encoding='utf-8'))['method'] != 'unread' for k in state['units']) + sum(c['extracted_units'] for c in state['children'])
             if state['extracted_units']:

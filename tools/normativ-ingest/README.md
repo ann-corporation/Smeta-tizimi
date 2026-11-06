@@ -9,3 +9,5 @@ norma_kod, tahrir, title. Для ZIP добавьте точное имя member
 Проверьте ingest-queue.json и flags перед регистрацией. Каждая запись
 содержит job_dir, source и title для scripts/normativ/r2_upload.py.
 Неподтверждённые коды, редакции и OCR остаются на проверке.
+
+Для подтверждённого блока добавьте annotations: объект с ключом unit (например page-1) и полями jadval_kod, bob_punkt, qidiruv_yorliq. Исходный SHA и разметка входят в идентичность задания; отсутствующая страница отклоняется.

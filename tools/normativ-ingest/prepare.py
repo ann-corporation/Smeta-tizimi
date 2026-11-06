@@ -47,12 +47,21 @@ def prepare(root, manifest, output, **options):
         if identity in seen:
             raise ValueError('DUPLICATE_REVIEWED_IDENTITY')
         seen.add(identity)
+        annotations = item.get('annotations', {})
+        limits = {'qidiruv_yorliq': 500, 'jadval_kod': 120, 'bob_punkt': 120}
+        for fields in annotations.values():
+            if not fields or any(key not in limits or not isinstance(value, str)
+                                 or not value.strip() or len(value) > limits[key]
+                                 for key, value in fields.items()):
+                raise ValueError('INVALID_REVIEWED_ANNOTATION')
+        if annotations:
+            meta['annotations'] = annotations
         state = run(str(source), str(output), meta=meta, **options)
         if state['source_sha'] != expected_sha:
             raise ValueError('EXTRACTED_SHA_MISMATCH')
         job = output / digest(encoded([expected_sha, state['reader'], state['config']]))
         queue.append(dict(path=item['path'], member=item.get('member'), source=str(source), job_dir=str(job),
-                          **meta, sha256=expected_sha, state=state['state'],
+                          norma_kod=meta['norma_kod'], tahrir=meta['tahrir'], title=meta['title'], sha256=expected_sha, state=state['state'],
                           extracted_units=state['extracted_units'], flags=state['flags']))
     atomic(output / 'ingest-queue.json', queue)
     return queue
