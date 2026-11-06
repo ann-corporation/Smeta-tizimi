@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { T2_HOLAT_DARAXT_USTUNLARI_YOQ } from '../../api/t2-daraxt-ustunlar';
 import { daraxtVaHolatOl } from '../../lib/oylik-hujjat/ostatka-slichitelniy';
 import { sbT2QatorHolatOl, sbT2TreeQur, type T2Qator, type T2QatorHolat } from '../../api/supabase';
@@ -9,6 +9,7 @@ import type { TreeNode } from '../../api/types';
 import { avvalgiVersiyaOl, ozgarishMalumotOl, type AvvalgiVersiya } from '../../api/t2-ozgarish';
 import { ozgarishniQosh, type OzgarishMalumot } from '../../lib/lrv-ozgarish';
 import { useIxtiyoriyQueryClient } from '../../api/t2-obyektlar-kesh';
+import { desktopReadStatus, subscribeDesktopReadStatus } from '../../desktop/read-status';
 
 /** Sahifalar orasida umumiy daraxt keshi: ochilganda darhol ko'rsatiladi, lekin DOIM fonda serverdan tekshiriladi. */
 export const daraxtKaliti = (obyektId: number) => ['daraxt', obyektId] as const;
@@ -55,7 +56,9 @@ export function useT2Daraxt(obyektId: number | null) {
   const [price, setPriceS] = useState<PriceControlLine[]>([]);
   const [avvalgi, setAvvalgiS] = useState<AvvalgiVersiya | null>(null);
   const [qoshimchaHolat, setQoshimchaHolat] = useState<QoshimchaHolat>('yuklanmoqda');
-  const [serverTasdiq, setServerTasdiq] = useState(false);
+  const desktopStatus = useSyncExternalStore(subscribeDesktopReadStatus, desktopReadStatus);
+  const [tasdiqDavri, setTasdiqDavri] = useState<number | null>(null);
+  const serverTasdiq = !desktopStatus.offline && tasdiqDavri === desktopStatus.offlineEpoch;
   const [loading, setLoading] = useState(false);
   const [yangilanmoqda, setYangilanmoqda] = useState(false);
   const [error, setError] = useState('');
@@ -146,7 +149,9 @@ export function useT2Daraxt(obyektId: number | null) {
     setError('');
     setQoshimchaHolat('yuklanmoqda');
     // Qo'shimchalar parallel boshlanadi, lekin daraxtni kutdirmaydi.
-    const qoshP = qoshimchalarniOl(obyektId);
+    const readStart = desktopReadStatus();
+    // Offline transport blocks secondary reads until the core object read reconnects.
+    const qoshP = readStart.offline ? null : qoshimchalarniOl(obyektId);
     const jarayon = (async (): Promise<boolean> => {
       try {
         // Yagona o'qish (lib/oylik-hujjat): oylik paket ham aynan shu funksiyadan foydalanadi.
@@ -160,7 +165,8 @@ export function useT2Daraxt(obyektId: number | null) {
         // Avvalgi belgilar darhol (miltillamasin); yangisi kelguncha qoshimchaHolat='yuklanmoqda' — eksport kutadi.
         setRows(ozgarishniQosh(d.rows, ozRef.current));
         setStates(d.states);
-        setServerTasdiq(true);
+        const readEnd = desktopReadStatus();
+        setTasdiqDavri(!readEnd.offline && readEnd.offlineEpoch === readStart.offlineEpoch ? readEnd.offlineEpoch : null);
         keshgaYoz(obyektId, e);
         void narxNazorati(obyektId, e);
         return true;
@@ -175,7 +181,7 @@ export function useT2Daraxt(obyektId: number | null) {
     const joriy = toliq === toliqNavbat.current && tirik(e, obyektId);
     if (joriy) setLoading(false);
     tugat();
-    if (ok) await qoshimchalarniQosh(obyektId, toliq, e, qoshP);
+    if (ok && joriy && (qoshP || !desktopReadStatus().offline)) await qoshimchalarniQosh(obyektId, toliq, e, qoshP ?? qoshimchalarniOl(obyektId));
     else if (joriy) setQoshimchaHolat('xato');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [obyektId, narxNazorati, keshgaYoz, qoshimchalarniQosh]);
@@ -274,7 +280,7 @@ export function useT2Daraxt(obyektId: number | null) {
     davr.current++; joriyObyekt.current = obyektId; narxNavbat.current++;
     qatorKut.current.clear(); holatKut.current = { ids: new Set(), hammasi: false };
     toliqJarayon.current = null; ishchi.current = null;
-    setServerTasdiq(false); setError('');
+    setTasdiqDavri(null); setError('');
     const kesh = qc && obyektId != null ? qc.getQueryData<DaraxtKesh>(daraxtKaliti(obyektId)) : undefined;
     if (kesh && kesh.rows.length) {
       ozRef.current = kesh.oz;

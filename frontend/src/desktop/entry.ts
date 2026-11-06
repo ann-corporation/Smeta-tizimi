@@ -2,12 +2,14 @@ import { desktopFetch, nativeInvoke } from './fetch-shim';
 import { base64urlDecode } from './offline-lease';
 import { t } from '../i18n/til';
 import { desktopBootstrap } from './bootstrap';
+import { updateDesktopReadStatus } from './read-status';
 import { desktopEntryFetch, desktopSessionFetch } from './session-fetch';
 
 // Same application and routes. Only the installed transport supplies offline reads.
 let banner: HTMLElement | undefined;
 const invalidate = () => { try { resume.clear(); } finally { history.replaceState(null, '', '/'); document.documentElement.style.visibility = 'hidden'; window.location.reload(); } };
 const status = (offline: boolean) => {
+  updateDesktopReadStatus(offline);
   if (!banner && document.body) {
     banner = document.createElement('div'); banner.setAttribute('role', 'status');
     banner.style.cssText = 'position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:2147483647;padding:10px 18px;background:#fff3cc;color:#503b00;border:1px solid #bd922c;border-radius:6px;pointer-events:none';

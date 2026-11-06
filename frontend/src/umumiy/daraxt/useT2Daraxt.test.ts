@@ -21,6 +21,7 @@ vi.mock('../../api/t2-ozgarish', () => ({
   avvalgiVersiyaOl: async () => ({ qatorlar: [{ ...q(90, null, 'rz'), almashtirgan_versiya_id: 5 }, { ...q(91, 90, 'bl'), almashtirgan_versiya_id: 5 }], versiyaNomi: new Map([[5, 'V2']]) }),
 }));
 
+import { updateDesktopReadStatus } from '../../desktop/read-status';
 import { daraxtKaliti, useT2Daraxt } from './useT2Daraxt';
 
 function q(id: number, ota_id: number | null, tur: string): T2Qator {
@@ -45,6 +46,46 @@ beforeEach(() => {
   api.holat.mockResolvedValue({ ok: true, qatorlar: ROWS.map((r) => h(r.id, 0)) });
   api.narx.mockResolvedValue({ ok: true, qatorlar: [] });
   api.oz.mockResolvedValue(new Map([[4, { change_type: 'ADDITIONAL', replaces_line_id: null }]]));
+});
+
+it('keeps cached desktop data visible while export waits for a fresh full server read', async () => {
+  const { result } = renderHook(() => useT2Daraxt(7));
+  await waitFor(() => expect(result.current.serverTasdiq).toBe(true));
+  try {
+    await act(async () => {
+      updateDesktopReadStatus(true);
+      await result.current.yuklash();
+    });
+    expect(result.current.tree.length).toBe(1);
+    expect(result.current.serverTasdiq).toBe(false);
+
+    // An unrelated successful request cannot confirm this cached tree.
+    act(() => updateDesktopReadStatus(false));
+    expect(result.current.serverTasdiq).toBe(false);
+
+    // Mixed read: one request falls back while another reconnects.
+    api.holat.mockImplementationOnce(async () => {
+      updateDesktopReadStatus(true);
+      updateDesktopReadStatus(false);
+      return { ok: true, qatorlar: ROWS.map(r => h(r.id, 0)) };
+    });
+    await act(async () => { await result.current.yuklash(); });
+    expect(result.current.serverTasdiq).toBe(false);
+
+    // If the next complete read reconnects, secondary reads wait for it.
+    act(() => updateDesktopReadStatus(true));
+    api.oz.mockClear();
+    api.holat.mockImplementationOnce(async () => {
+      expect(api.oz).not.toHaveBeenCalled();
+      updateDesktopReadStatus(false);
+      return { ok: true, qatorlar: ROWS.map(r => h(r.id, 0)) };
+    });
+    await act(async () => { await result.current.yuklash(); });
+    expect(result.current.serverTasdiq).toBe(true);
+    expect(result.current.qoshimchaTayyor).toBe(true);
+  } finally {
+    act(() => updateDesktopReadStatus(false));
+  }
 });
 
 describe('useT2Daraxt — katta smetada qotmaslik', () => {
