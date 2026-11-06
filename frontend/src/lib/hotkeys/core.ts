@@ -43,9 +43,12 @@ export function tugmaKaliti(e: KeyLike): string {
   return parts.join('+');
 }
 
+/** `ctrl+shift+z` → qismlar; `+` tugmaning o'zi (`+`, `ctrl++`) ajratuvchi emas. */
+const bolaklar = (s: string): string[] => (s.endsWith('+') ? [...s.slice(0, -1).split('+').filter(Boolean), '+'] : s.split('+'));
+
 /** Ta'rifdagi kalit satrini ham xuddi shu shaklga keltiradi (`Shift+ArrowDown` → `shift+arrowdown`). */
 export function kalitNorm(s: string): string {
-  const p = s.toLowerCase().split('+').map((x) => NOM[x] ?? x);
+  const p = bolaklar(s.toLowerCase()).map((x) => NOM[x] ?? x);
   const tugma = p[p.length - 1];
   const mods = new Set(p.slice(0, -1).map((m) => (m === 'cmd' || m === 'meta' ? 'ctrl' : m)));
   return [...['ctrl', 'alt', 'shift'].filter((m) => mods.has(m)), tugma].join('+');
@@ -66,7 +69,7 @@ export function inputdami(target: EventTarget | null): boolean {
 
 /** Qisqa tugma = modifikatorsiz (yoki faqat Shift) harf/raqam/belgi — yozish bilan to'qnashadi. */
 export function qisqaTugmami(kalit: string): boolean {
-  const p = kalit.split('+');
+  const p = bolaklar(kalit);
   const tugma = p[p.length - 1];
   const mods = p.slice(0, -1).filter((m) => m !== 'shift');
   return mods.length === 0 && (tugma.length === 1 || tugma === 'space');
@@ -98,7 +101,7 @@ export function tugmaniBajar(ustuvorlik: readonly (readonly HotkeyDef[])[], e: K
 const BELGI: Record<string, string> = { arrowup: '↑', arrowdown: '↓', arrowleft: '←', arrowright: '→', enter: 'Enter', esc: 'Esc', space: 'Space', tab: 'Tab', delete: 'Del', backspace: '⌫' };
 /** Ko'rinadigan yozuv: `shift+arrowdown` → `Shift+↓`. */
 export function tugmaMatni(kalit: string): string {
-  return kalitNorm(kalit).split('+').map((x) => BELGI[x] ?? (x.length === 1 ? x.toUpperCase() : x[0].toUpperCase() + x.slice(1))).join('+');
+  return bolaklar(kalitNorm(kalit)).map((x) => BELGI[x] ?? (x.length === 1 ? x.toUpperCase() : x[0].toUpperCase() + x.slice(1))).join('+');
 }
 /** Tooltip uchun: «Bog‘lash (B)». */
 export const sarlavhaBilan = (nom: string, keys: string | readonly string[]): string =>

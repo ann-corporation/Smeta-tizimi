@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { kalitlar, tugmaMatni, type HotkeyDef } from './core';
-import { faolSohalar, useHotkeys, useHotkeyVersiya } from './useHotkeys';
+import { faolSohalar, useHotkeys, useHotkeyVersiya, YORDAM_HODISA } from './useHotkeys';
 
 /**
  * `?` — barcha faol tugmalar ro'yxati (ixcham oyna). Ilovada BIR marta (AdminShell) ulanadi: sahifalar o'z qoidalarini
@@ -11,6 +11,11 @@ import { faolSohalar, useHotkeys, useHotkeyVersiya } from './useHotkeys';
 export function HotkeyYordam() {
   const [ochiq, setOchiq] = useState(false);
   useHotkeyVersiya();
+  useEffect(() => {
+    const och = () => setOchiq(true);
+    window.addEventListener(YORDAM_HODISA, och);
+    return () => window.removeEventListener(YORDAM_HODISA, och);
+  }, []);
   useHotkeys('yordam', t('Yordam'), [{ id: 'yordam.och', keys: '?', nom: t('Barcha tugmalar ro‘yxati'), run: () => { setOchiq((v) => !v); } }]);
   useHotkeys('yordam-oyna', t('Yordam oynasi'), [{ id: 'yordam.yop', keys: 'esc', nom: t('Yopish'), inInput: true, run: () => { setOchiq(false); } }], ochiq);
   if (!ochiq) return null;
