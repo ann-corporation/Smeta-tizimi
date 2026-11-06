@@ -46,10 +46,11 @@ export function dataPermission(name: string, write: boolean, body: Record<string
 export const SCOPED_APIS = new Set(['object-financials','contract-scope','sb','sb-yoz','company','sessiya','smeta-studio','smeta-yukla','smeta-ai','smeta-narx-agent','f2-moslash',
   'hujjat-nazorat','hujjat-ol','hujjat-royxat','hujjat-yukla','boss-dashboard','boss-documents','system-control','tomon','hujjat-aylanish','agent-ish','ai-savol','ai-parse','gas','boshqaruv','agent-control',
   /* Obyekt paketi (ADR OBYEKT_PAKET §1.4): smeta + holat + F2 ro'yxati + nakrutka — faqat o'qish. */
-  'obyekt-paket']);
+  'obyekt-paket','normativ-qidir']);
 
 export function requestPermission(api: string, method: string, b: Record<string, unknown>, q: URLSearchParams): string | null {
   if (!SCOPED_APIS.has(api) || api === 'sessiya') return null;
+  if (api === 'normativ-qidir' && method === 'GET') return 'company.read';
   if (api === 'object-financials') return 'object.read';
   if (api === 'obyekt-paket') return 'smeta.read'; // shlyuz qo'shimcha f2.read + narx.read ni ham talab qiladi
 
