@@ -1,5 +1,5 @@
 import { yozAmali, sbOqi } from './supabase';
-import { t2ToliqOqiParallel } from './t2-toliq-oqish';
+import { t2ToliqOqi, t2ToliqOqiParallel } from './t2-toliq-oqish';
 
 /* ⚡ 2026-08-28 (Claude) — YURAK ORGANI: «nima bajarildi».
  *
@@ -173,15 +173,19 @@ export function sbQatorHolatOl(obyektId: number) {
 }
 
 /** Tasdiqlanmagan (qoralama) F2 aktlaridagi hajmlar: qator_id -> jami hajm (ikki marta F2 qilish xavfini ko'rsatish uchun). */
+/**
+ * Natija to'liq bo'lmasa `ok: false` (QORALAMA_TAKROR himoyasi jim o'chmasin — audit 2026-11-06, A-14): ikkala o'qish ham
+ * sahifalab (t2ToliqOqi; shlyuz bir chaqiruvda ~5k qator beradi).
+ */
 export async function sbF2QoralamaHajmlar(obyektId: number, istisnoAktId?: number | null): Promise<{ ok: boolean; hajm: Map<number, number>; aktSoni: number }> {
   const bosh = { ok: false, hajm: new Map<number, number>(), aktSoni: 0 };
-  const a = await sbOqi<{ id: number }>({ jadval: 't2_akt', filtr: `obyekt_id=eq.${obyektId}&tur=eq.f2&holat=eq.qoralama`, ustunlar: 'id', limit: 500 }); // faqat F2 qoralamalari (fakt qoralamasi o'zini ayirmasin)
-  if (!a.ok) return bosh;
+  const a = await t2ToliqOqi<{ id: number }>(sbOqi, { jadval: 't2_akt', filtr: `obyekt_id=eq.${obyektId}&tur=eq.f2&holat=eq.qoralama`, ustunlar: 'id', limit: 20000 }, 'id'); // faqat F2 qoralamalari (fakt qoralamasi o'zini ayirmasin)
+  if (!a.ok || a.toliq === false) return bosh;
   // Tahrirlanayotgan qoralamaning o'z hajmi «mumkin» dan ayirilmaydi (istisnoAktId).
-  const ids = (a.qatorlar || []).map((x) => x.id).filter((x) => Number.isSafeInteger(x) && x !== istisnoAktId);
+  const ids = (a.qatorlar || []).map((x) => Number(x.id)).filter((x) => Number.isSafeInteger(x) && x !== istisnoAktId);
   if (!ids.length) return { ok: true, hajm: new Map(), aktSoni: 0 };
-  const q = await sbOqi<{ qator_id: number; hajm: number | null; certified_quantity: number | null }>({ jadval: 't2_akt_qator', filtr: `akt_id=in.(${ids.join(',')})`, ustunlar: 'qator_id,hajm,certified_quantity', limit: 20000 });
-  if (!q.ok) return bosh;
+  const q = await t2ToliqOqi<{ id: number; qator_id: number; hajm: number | null; certified_quantity: number | null }>(sbOqi, { jadval: 't2_akt_qator', filtr: `akt_id=in.(${ids.join(',')})`, ustunlar: 'id,qator_id,hajm,certified_quantity', limit: 200000 }, 'id');
+  if (!q.ok || q.toliq === false) return bosh;
   const hajm = new Map<number, number>();
   for (const x of q.qatorlar || []) hajm.set(x.qator_id, (hajm.get(x.qator_id) ?? 0) + Number(x.certified_quantity ?? x.hajm ?? 0));
   return { ok: true, hajm, aktSoni: ids.length };

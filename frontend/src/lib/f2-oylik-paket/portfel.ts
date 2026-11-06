@@ -10,6 +10,7 @@ import { f2Hujjat } from '../f2-hujjat';
 import type { F2Tafsilot } from '../../api/t2-narx';
 import type { PereraschetAktQator } from '../f2-pereraschet';
 import { bahoMoliya, f2AktBaho, f2AktTayyorla, type F2AktEksportKirish, type F2AktTayyor } from '../f2-akt-eksport';
+import type { F3DavrAkt } from '../forma3-export';
 
 export type PortfelKesim = { tur: 'shartnoma'; id: number } | { tur: 'obyekt'; id: number };
 
@@ -84,16 +85,42 @@ export type PortfelObyektKirish = Pick<F2AktEksportKirish, 'smeta' | 'kontekst' 
   tafsilot: readonly F2Tafsilot[]; aktQatorlar: ReadonlyMap<number, readonly PereraschetAktQator[]>;
 };
 
-export function portfelAktTayyor(m: PortfelObyektKirish, akt: Pick<ReestrAkt, 'id' | 'oy' | 'raqam'>, obyektNom: string, raqamlar: ReadonlyMap<number, string | null>): F2AktTayyor | null {
-  return f2AktTayyorla({ smeta: m.smeta, lines: m.tafsilot.filter((l) => l.akt_id === akt.id), aktQatorlar: m.aktQatorlar.get(akt.id) ?? [],
-    podvallar: m.podvallar, kontekst: m.kontekst, akt: { id: akt.id, oy: akt.oy, raqam: akt.raqam }, obyektNom, raqamlar });
+/**
+ * Bitta akt. M11 (audit C): akt holati uzatiladi — qoralama Ф-2 TIRIK formulalar bilan (F2 tarixidagi bilan bir xil),
+ * tasdiqlangan — formulasiz. B2: akt qatori smetada (eski versiya ham) topilmasa — throw (yarim hujjat/summa chiqmaydi).
+ */
+export function portfelAktTayyor(m: PortfelObyektKirish, akt: Pick<ReestrAkt, 'id' | 'oy' | 'raqam'> & { holat?: string | null }, obyektNom: string, raqamlar: ReadonlyMap<number, string | null>): F2AktTayyor | null {
+  const k = f2AktTayyorla({ smeta: m.smeta, lines: m.tafsilot.filter((l) => l.akt_id === akt.id), aktQatorlar: m.aktQatorlar.get(akt.id) ?? [],
+    podvallar: m.podvallar, kontekst: m.kontekst, akt: { id: akt.id, oy: akt.oy, raqam: akt.raqam, holat: akt.holat ?? null }, obyektNom, raqamlar });
+  if (k && k.topilmagan > 0) throw new Error(`F2_QATOR_TOPILMADI:${k.topilmagan}`);
+  return k;
 }
 
 /** Akt summalari (yadro): qator yo'q bo'lsa — faqat hujjat jami (ustamasiz), qolgani noma'lum. */
 export function portfelAktMoliya(m: PortfelObyektKirish, akt: Pick<ReestrAkt, 'id' | 'oy' | 'raqam' | 'hujjat_jami'>, obyektNom: string, raqamlar: ReadonlyMap<number, string | null>): AktMoliya {
-  const k = portfelAktTayyor(m, akt, obyektNom, raqamlar);
+  let k: F2AktTayyor | null;
+  try { k = portfelAktTayyor(m, akt, obyektNom, raqamlar); } catch (e) {
+    if (!(e instanceof Error) || !e.message.startsWith('F2_QATOR_TOPILMADI')) throw e;
+    return { ustamasiz: null, ustamali: null, taxminiy: false, nds: null, jami: null, narxsizQator: 0, qatorSoni: 0, sabab: 'QATOR_TOPILMADI' };
+  }
   if (!k) return bahoMoliya({ birliklar: [], qqsBilan: null, qqs: null, ustamali: null, ustamasiz: 0, nomalumBirlik: 0, qatorSoni: 0, narxsizQator: 0 }, akt.hujjat_jami);
   return bahoMoliya(f2AktBaho(k, m.kontekst), akt.hujjat_jami);
+}
+
+/**
+ * F3 «за отчетный месяц» (EGASI QARORI 2026-11-06, audit C M12): hisobot oyining HAR tasdiqlangan F2 akti O'Z podvali bilan
+ * (`f2AktTayyorla` → `f2AktBaho`; storno bloki o'z podvali, yo'q — smeta podvali). F3 oy jami = shu F2 hujjatlari ВСЕГО yig'indisi.
+ * Akt qatori smetada topilmasa — throw (F3 yarim summa bilan tuzilmaydi).
+ */
+export function oyAktlarBahosi(m: PortfelObyektKirish, aktlar: ReadonlyArray<Pick<ReestrAkt, 'id' | 'oy' | 'raqam'>>, obyektNom: string, raqamlar: ReadonlyMap<number, string | null>): F3DavrAkt[] {
+  const out: F3DavrAkt[] = [];
+  for (const a of aktlar) {
+    const k = portfelAktTayyor(m, { ...a, holat: 'tasdiqlangan' }, obyektNom, raqamlar);
+    if (!k) continue;
+    const b = f2AktBaho(k, m.kontekst);
+    out.push({ aktId: a.id, raqam: a.raqam, hujjatPodvali: b.birliklar.some((u) => u.manba === 'hujjat'), ustamasiz: b.ustamasiz, ustamali: b.ustamali, qqs: b.qqs, qqsBilan: b.qqsBilan });
+  }
+  return out;
 }
 
 /* ───────────── oylik paket: portfel bilan AYNAN bir xil hisob va Ф-2 (egasi 2026-11-05) ───────────── */

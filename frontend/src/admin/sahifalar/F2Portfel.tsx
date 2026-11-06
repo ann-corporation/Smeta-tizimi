@@ -20,7 +20,7 @@ import { f2HujjatKaliti } from '../../api/f2-hujjat-kontekst';
 import { mazmunXeshi, tokenBilan } from '../../api/t2-token';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
-import { rasmiyKitob, type RasmiyVaraq } from '../../lib/hujjat-yozuvchi';
+import { rasmiyKitob } from '../../lib/hujjat-yozuvchi';
 import { f2HujjatVaraqlar } from '../../lib/f2-hujjat';
 import { davrNomi } from '../../lib/f2-hujjat-korinish';
 import { barchaShartnomalar } from '../../lib/f2-oylik-paket/shartnoma';
@@ -28,7 +28,7 @@ import type { OyJami, PaketAkt } from '../../lib/f2-oylik-paket/oylik';
 import {
   aktVaraqNomi, portfelAktlari, portfelAktMoliya, portfelAktTayyor, portfelEksportAktlari, portfelGuruhla, type PortfelJami, type PortfelKesim,
 } from '../../lib/f2-oylik-paket/portfel';
-import { portfelKitob, portfelSvodVaraq } from '../../lib/f2-oylik-paket/portfel-eksport';
+import { portfelKitob, portfelSvodVaraq, type PortfelAktVaraq } from '../../lib/f2-oylik-paket/portfel-eksport';
 import type { Summa } from '../../lib/f2-reestr/reestr';
 
 const pul = (n: number) => n.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -159,7 +159,7 @@ function PortfelIchi({ kompaniyaId, malumot, tashkilot, yangila }: { kompaniyaId
     if (!eksport.length) { toast(t('Yuklab olish uchun tasdiqlangan F2 yo‘q'), 'warn'); return; }
     setBand(true);
     try {
-      const aktVaraqlar: RasmiyVaraq[] = [];
+      const aktVaraqlar: PortfelAktVaraq[] = [];
       const varaqNomi = new Map<number, string>();
       const kirmadi = new Map<number, string>();
       let imzo: PortfelObyektMalumot['kontekst']['imzo'] | undefined;
@@ -177,7 +177,7 @@ function PortfelIchi({ kompaniyaId, malumot, tashkilot, yangila }: { kompaniyaId
           const q = await tokenBilan({ kompaniyaId, amal: 'f2_hujjat', birlikSoni: yakka.yacheykalar,
             meta: { hujjat: 'F2', sabab: `F2 №${r.akt.raqam || '—'} · ${r.obyektNom} · ${(r.akt.oy || '').slice(0, 7)}`.slice(0, 200), obyekt: r.akt.obyekt_id, akt: r.akt.id, yacheyka: yakka.yacheykalar, xesh } }, async () => true);
           if (!q.ok) { kirmadi.set(r.akt.id, `лист не сформирован: ${q.xabar}`); continue; }
-          aktVaraqlar.push(x.varaqlar[0]);
+          aktVaraqlar.push({ varaq: x.varaqlar[0], formulali: !k.opsiya.formulasiz });
           varaqNomi.set(r.akt.id, nom);
         } catch { kirmadi.set(r.akt.id, 'лист не сформирован: строки акта не прочитаны'); }
       }

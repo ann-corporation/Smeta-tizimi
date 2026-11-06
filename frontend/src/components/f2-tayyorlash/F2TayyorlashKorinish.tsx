@@ -13,6 +13,7 @@ import { NARX_MANBA_NOMI, type F2Jami, type NarxManba } from '../../lib/f2-tayyo
 import {
   NARX_MANBA_CHIP, NARX_MANBA_TARTIB, tekshiruvSanoq, type IshMeterQiymat, type TekshiruvBand, type TekshiruvKod, type qoralamaKatTaqsimot,
 } from '../../lib/f2-tayyorlash-korinish';
+import type { SaqlashSabab } from '../../lib/f2-tayyor-sabab';
 
 const fmt = (n: number | null | undefined) => (n == null ? '—' : n.toLocaleString('ru-RU', { maximumFractionDigits: 3 }));
 
@@ -115,7 +116,9 @@ function bandMatni(b: TekshiruvBand): string {
   const n = b.soni;
   const M: Record<TekshiruvKod, () => string> = {
     xato_hajm: () => t('{n} ta qatorda hajm noto‘g‘ri — son bo‘lsin va 0 bo‘lmasin (minus mumkin)', { n }),
-    xato_narx: () => t('{n} ta resursda narx yo‘q — narx kiriting yoki narxsiz deb belgilang', { n }),
+    xato_narx: () => t('{n} ta resursda narx noto‘g‘ri (son va manfiy emas bo‘lsin)', { n }),
+    avto_narxsiz: () => t('{n} ta resursda narx yo‘q — qoralamada narxsiz saqlanadi; tasdiqlashdan oldin narx kiriting yoki «narxsiz» deb belgilang.', { n }),
+    avvalgi_versiya: () => t('{n} ta qatorda avvalgi smeta versiyasida tasdiqlangan F2 bor — smeta qoldig‘i ikki marta olinmasin, tekshiring', { n }),
     xato_summa: () => t('{n} ta qatorda summa son emas', { n }),
     dublikat_blok: () => b.matn ?? '',
     dublikat_ogoh: () => b.matn ?? '',
@@ -136,8 +139,11 @@ function bandMatni(b: TekshiruvBand): string {
 }
 
 /** Yagona tekshiruv paneli: hamma xato/ogohlantirish bir joyda, soni bilan; qatorga o'tish va tezkor amal. */
-export function F2TekshiruvPanel({ bandlar, onOtish, amal, obyektId, yangilaHref }: {
+export function F2TekshiruvPanel({ bandlar, onOtish, amal, obyektId, yangilaHref, sabablar = [], onSababAmal }: {
   bandlar: readonly TekshiruvBand[];
+  /** «Nega saqlanmaydi» — yagona ro'yxat (lib/f2-tayyor-sabab); panel tepasida, amali bilan. */
+  sabablar?: readonly SaqlashSabab[];
+  onSababAmal?: (s: SaqlashSabab) => void;
   onOtish: (id: number) => void;
   /** Band uchun qo'shimcha tugma (masalan «narxsiz» belgilash, АОСР yaratish). */
   amal?: (b: TekshiruvBand) => ReactNode;
@@ -147,12 +153,21 @@ export function F2TekshiruvPanel({ bandlar, onOtish, amal, obyektId, yangilaHref
   const { bad: xato, warn: ogoh } = tekshiruvSanoq(bandlar);
   const xatoChip = xato > 0 ? <span className="fz-chip fz-chip--danger">{t('{n} ta to‘siq', { n: xato })}</span> : null;
   const ogohChip = ogoh > 0 ? <span className="fz-chip fz-chip--warn">{t('{n} ta ogohlantirish', { n: ogoh })}</span> : null;
-  const tozaChip = !xato && !ogoh ? <span className="fz-chip fz-chip--accent">{t('toza')}</span> : null;
+  const blokSabab = sabablar.filter((s) => s.daraja === 'blok');
+  // «toza» faqat hech qanday sabab yo'q bo'lganda (avval yuklash kutilayotganda ham «toza» derdi).
+  const tozaChip = !xato && !ogoh && !blokSabab.length ? <span className="fz-chip fz-chip--accent">{t('toza')}</span> : null;
   return (
     <section className="fz-panel" aria-label={t('Tekshiruv')} id="f2-tekshiruv" tabIndex={-1}>
       <div className="fz-panel__h"><span>{t('Tekshiruv')}</span><span className="flex flex-wrap justify-end gap-1 whitespace-nowrap normal-case tracking-normal">{xatoChip}{ogohChip}{tozaChip}</span></div>
+      {blokSabab.length > 0 && <div className="fz-check" data-testid="tekshiruv-sabablar" role="alert">
+        {blokSabab.map((s) => <div key={s.kod} className="fz-check__q fz-check__q--bad" data-sabab={s.kod}>
+          <OctagonAlert aria-hidden="true" />
+          <span className="flex min-w-0 flex-1 flex-col gap-1"><span>{s.matn}</span>
+            {s.amal && onSababAmal && <span><button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" onClick={() => onSababAmal(s)}>{s.amalMatn ?? t('Tuzatish')}</button></span>}</span>
+        </div>)}
+      </div>}
       <div className="fz-check">
-        {!xato && !ogoh && !bandlar.some((b) => b.kod === 'bosh') && <div className="fz-check__q fz-check__q--ok"><CheckCircle2 aria-hidden="true" /><span>{t('Saqlashni to‘suvchi xato yo‘q')}</span></div>}
+        {!xato && !ogoh && !blokSabab.length && !bandlar.some((b) => b.kod === 'bosh') && <div className="fz-check__q fz-check__q--ok"><CheckCircle2 aria-hidden="true" /><span>{t('Saqlashni to‘suvchi xato yo‘q')}</span></div>}
         {bandlar.map((b, i) => {
           const Ikon = b.kod === 'narxsiz' || b.kod === 'axborot' ? CircleSlash : IKON[b.daraja];
           const matn = bandMatni(b);

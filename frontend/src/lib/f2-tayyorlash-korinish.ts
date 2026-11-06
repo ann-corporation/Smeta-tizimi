@@ -64,6 +64,7 @@ export type TekshiruvDaraja = 'bad' | 'warn' | 'info';
 export type TekshiruvKod =
   | 'xato_hajm' | 'xato_narx' | 'xato_summa' | 'dublikat_blok'
   | 'smetadan_oshdi' | 'qoldiqdan_oshdi' | 'qoralama_takror' | 'resurs_chegara' | 'arifmetika' | 'dublikat_ogoh' | 'aosr' | 'uchastka' | 'korinmagan'
+  | 'avto_narxsiz' | 'avvalgi_versiya'
   | 'narxsiz' | 'axborot' | 'raqamsiz' | 'bosh';
 export type TekshiruvBand = {
   kod: TekshiruvKod; daraja: TekshiruvDaraja; soni: number;
@@ -83,11 +84,11 @@ const OGOH_KOD: Record<NonNullable<F2Qator['ogoh']>, TekshiruvKod> = {
 const DARAJA: Record<TekshiruvKod, TekshiruvDaraja> = {
   xato_hajm: 'bad', xato_narx: 'bad', xato_summa: 'bad', dublikat_blok: 'bad',
   smetadan_oshdi: 'warn', qoldiqdan_oshdi: 'warn', qoralama_takror: 'warn', resurs_chegara: 'warn', arifmetika: 'warn',
-  dublikat_ogoh: 'warn', aosr: 'warn', uchastka: 'warn', korinmagan: 'warn',
+  dublikat_ogoh: 'warn', aosr: 'warn', uchastka: 'warn', korinmagan: 'warn', avto_narxsiz: 'warn', avvalgi_versiya: 'warn',
   narxsiz: 'info', axborot: 'info', raqamsiz: 'info', bosh: 'info',
 };
 const TARTIB: TekshiruvKod[] = ['xato_hajm', 'xato_narx', 'xato_summa', 'dublikat_blok', 'smetadan_oshdi', 'qoldiqdan_oshdi', 'qoralama_takror',
-  'resurs_chegara', 'arifmetika', 'dublikat_ogoh', 'aosr', 'uchastka', 'korinmagan', 'narxsiz', 'axborot', 'raqamsiz', 'bosh'];
+  'resurs_chegara', 'arifmetika', 'avto_narxsiz', 'avvalgi_versiya', 'dublikat_ogoh', 'aosr', 'uchastka', 'korinmagan', 'narxsiz', 'axborot', 'raqamsiz', 'bosh'];
 
 /**
  * Barcha xato/ogohlantirishlar BITTA ro'yxatda (avval sahifada tarqoq bannerlar edi). Qarorlar o'zgarmaydi:
@@ -102,6 +103,8 @@ export function tekshiruvBandlari(p: {
   raqam?: string;
   /** Tahrir rejimida raqam o'zgarmaydi — «raqamsiz» bandi chiqmaydi. */
   raqamQulf?: boolean;
+  /** Smeta rejimida avvalgi smeta versiyasida tasdiqlangan F2 si bor qatorlar (A-28: smeta qoldig'i ikki marta olinishi mumkin). */
+  avvalgiVersiya?: readonly number[];
 }): TekshiruvBand[] {
   const acc = new Map<TekshiruvKod, TekshiruvBand>();
   const qosh = (kod: TekshiruvKod, id?: number) => {
@@ -113,8 +116,11 @@ export function tekshiruvBandlari(p: {
     // Mashinistlar mehnati (narxi mashina narxi ichida) — f2Jami dagi kabi ogohlantirishga kirmaydi.
     const mashinist = x.tur !== 'bl' && x.ogoh === 'AXBOROT_NARXSIZ' && mashinistMehnati({ nom: x.nom });
     if (x.ogoh && !mashinist) qosh(OGOH_KOD[x.ogoh], x.id);
-    if (x.tur !== 'bl' && x.narxsiz && !x.ogoh) qosh('narxsiz', x.id);
+    // Qoralamada avtomatik narxsiz (egasi 2026-11-06) — ogohlantirish: saqlashni to'smaydi, tasdiqlashda narx kerak.
+    if (x.avtoNarxsiz) qosh('avto_narxsiz', x.id);
+    else if (x.tur !== 'bl' && x.narxsiz && !x.ogoh) qosh('narxsiz', x.id);
   }
+  for (const id of p.avvalgiVersiya ?? []) qosh('avvalgi_versiya', id);
   const out: TekshiruvBand[] = [];
   for (const kod of TARTIB) { const b = acc.get(kod); if (b) out.push(b); }
   const dub = (p.dublikatlar ?? []).map((m): TekshiruvBand => ({ kod: m.daraja === 'blok' ? 'dublikat_blok' : 'dublikat_ogoh', daraja: m.daraja === 'blok' ? 'bad' : 'warn', soni: 1, ids: [], matn: m.matn, aktIdlar: [...m.aktIdlar] }));
