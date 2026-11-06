@@ -16,6 +16,13 @@ import { katKesimYigish, type KatKesim } from './ustamali-summa';
 import type { F2NativePayloadRow } from './f2-native-preparation';
 import { mashinistMehnati } from './narx-bildirishnoma';
 import { qoralamaAlmashtirilgan, type QoralamaQator } from './zamena-qoldiq';
+import { moneyValueToRaw } from './money-input';
+
+/**
+ * Son → kiritma matni (egasi 2026-11-06): `String(1e-7)` = «1e-7» — kiritma tahlilchisi (sonOqi/MoneyInput) uni rad etib,
+ * yolg'on «0 bo'lmasin» xatosini berardi. Har son→matn shu orqali: ilmiy yozuv o'nlik yozuvga yoyiladi (yaxlitlanmaydi).
+ */
+export const sonMatn = (x: number): string => (Number.isFinite(x) ? moneyValueToRaw(x) : String(x));
 
 export type F2Holat = { qator_id: number; f2_mumkin_hajm?: number | null; f2_hajm?: number | null; fakt_hajm?: number | null; smeta_hajm?: number | null; f2_narx?: number | null; smeta_narx?: number | null };
 /** Hajm manbai: akt — Fakt jurnali qoldig'i (sukut); smeta — faktsiz rejim: chegara = smeta qoldig'i, oshsa faqat ogohlantirish (egasi 2026-10-24: hajm bo'yicha blok yo'q). */
@@ -130,7 +137,9 @@ export function ishoraliQoldiq(chegara: number, olingan: number): number {
   return Math.min(0, Math.max(chegara, chegara - olingan));
 }
 /** Nolga teng emas (minus ham F2 ga olinadi). */
-const nol = (x: number) => Math.abs(x) > 1e-9;
+/** Chang chegarasi: eski F2 hisobidan qolgan 1e-7 kabi kasr qoldiqlar (egasi 2026-11-06, Amfiteatr) F2 ga taklif qilinmaydi. */
+const CHANG = 1e-6;
+const nol = (x: number) => Math.abs(x) > CHANG;
 
 /** Smeta daraxti → F2 uchun bo'limlar/ishlar/resurslar (faqat F2 olish mumkin bo'lganlar). */
 export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarxlari, manba: F2Manba = 'fakt', qoralama?: ReadonlyMap<number, number>, ktx?: F2QurKontekst): F2Bolim[] {
@@ -175,7 +184,8 @@ export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarx
   // Qoralamadagi (tasdiqlanmagan) F2 hajmi qoldiqdan AYIRILADI - bir ishni ikki marta F2 qilish xavfi bo'lmasin.
   const qor = (id: number) => Math.max(0, qoralama?.get(id) ?? 0);
   /** Manfiy (chegirma) qoldiqda qoralamadagi manfiy hajm ayiriladi, ishora o'zgarmaydi. */
-  const mumkin = (id: number) => {
+  const mumkin = (id: number) => { const m = mumkinXom(id); return Math.abs(m) < CHANG ? 0 : y6(m); };
+  const mumkinXom = (id: number) => {
     const b0 = baza(id);
     // Ortiqcha F2 chegirmasi: qoralamadagi hajm ishorasidan qat'i nazar ayiriladi (sof F2 = fakt); natija ≤ 0, ishora o'zgarmaydi.
     if (b0 < 0 && ortiqcha(id) != null) return Math.min(0, y6(b0 - (qoralama?.get(id) ?? 0)));
@@ -254,7 +264,7 @@ export const bosKiritma = (): F2Kiritma => ({ hajm: {}, narx: {}, summa: {}, nar
 export const sonOqi = (s: string | undefined): number | null | 'xato' => {
   const t = (s ?? '').replace(/\s/g, '').replace(',', '.');
   if (!t) return null;
-  if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(t)) return 'xato';
+  if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(t)) return 'xato';
   return Number(t);
 };
 
@@ -262,6 +272,11 @@ export type F2Qator = {
   id: number; ishId: number | null; tur: 'bl' | 'rs' | 'mat' | 'ob'; kat: string | null; nom: string; birlik: string | null;
   hajm: number; narx: number | null; summa: number | null; manba: NarxManba; narxsiz: boolean;
   protokol?: string;
+  /**
+   * Narxi topilmagan resurs (egasi 2026-11-06): QORALAMA saqlashni to'smaydi — `narxsiz` bo'lib yuboriladi
+   * (`rawSnapshot.narxsizSabab = 'avto_qoralama'`, summa NULL, 0 EMAS). Tasdiqlashda narx yoki ongli «narxsiz» talab qilinadi (server).
+   */
+  avtoNarxsiz?: true;
   /** Hajm hech qachon xato emas (egasi: hajmni bloklama) - oshsa `ogoh`. */
   xato?: 'HAJM' | 'NARX' | 'SUMMA';
   ogoh?: 'RESURS_CHEGARA' | 'ARIFMETIKA' | 'SMETADAN_OSHDI' | 'QOLDIQDAN_OSHDI' | 'QORALAMA_TAKROR' | 'AXBOROT_NARXSIZ';
@@ -290,7 +305,8 @@ function resursQator(r: F2Resurs, hajm: number, ishId: number | null, k: F2Kirit
   const q: F2Qator = { id: r.id, ishId, tur: r.tur, kat: r.kat, nom: r.nom, birlik: r.birlik, hajm, narx, summa: null, manba, narxsiz };
   if (manba === 'protokol' && r.protokol) q.protokol = r.protokol;
   if (narxsiz) { if (avtoAxborot) q.ogoh = 'AXBOROT_NARXSIZ'; return q; }
-  if (qolNarx === 'xato' || narx == null || narx < 0) { q.xato = 'NARX'; return q; }
+  if (qolNarx === 'xato' || (narx != null && narx < 0)) { q.xato = 'NARX'; return q; }
+  if (narx == null) { q.narxsiz = true; q.avtoNarxsiz = true; q.manba = 'yoq'; return q; }
   if (qolSumma === 'xato') { q.xato = 'SUMMA'; return q; }
   q.summa = qolSumma ?? pulYaxlit(hajm * narx);
   if (qolSumma != null && Math.abs(hajm * narx - qolSumma) > 0.005) q.ogoh = 'ARIFMETIKA';
@@ -327,6 +343,8 @@ export function f2Qatorlar(bolimlar: F2Bolim[], k: F2Kiritma): F2Qator[] {
             if (!r.avto || r.chiqarilgan || r.norma == null || r.norma <= 0 || (!minus && r.mumkin + (r.qoralama ?? 0) <= 0 && !r.erkin)) continue;
             const talab = y6(v * r.norma);
             const hajm = r.erkin || ustida || minus ? talab : Math.min(talab, r.mumkin);
+            // Chang (egasi 2026-11-06): 5e-7 dan kichik talab yoki qoldig'i 0 resurs (min(talab, 0) = 0) — hajm 0 serverga yuborilmaydi (CHECK 23514).
+            if (Math.abs(hajm) < CHANG) continue;
             const q = resursQator(r, hajm, ish.id, k);
             if (talab > r.mumkin + 1e-9 && !q.ogoh) q.ogoh = r.erkin || ustida ? oshOgoh(talab, r) : 'RESURS_CHEGARA';
             out.push(q);
@@ -378,7 +396,7 @@ export function f2ZamenaQolla(q: F2Qator[], bolimlar: readonly F2Bolim[], k: F2K
     if (y == null || y <= 1e-9 || x.xato || x.hajm <= 0 || (x.tur !== 'bl' && !r)) { out.push(x); continue; }
     const qoldi = y6(x.hajm - y);
     yopildi.set(x.id, y6(Math.min(y, x.hajm)));
-    if (qoldi <= 1e-9) { tashlandi.add(x.id); continue; }
+    if (qoldi < CHANG) { tashlandi.add(x.id); continue; }
     if (x.tur === 'bl') { out.push({ ...x, hajm: qoldi }); continue; }
     const n = resursQator(r!, qoldi, x.ishId, k);
     if (!n.ogoh && x.ogoh && x.ogoh !== 'RESURS_CHEGARA') n.ogoh = x.ogoh;
@@ -417,14 +435,20 @@ export function f2Yacheykalar(yuk: readonly F2NativePayloadRow[]): number {
   return yuk.reduce((s, r) => s + [r.certifiedQuantity, r.certifiedUnitPrice, r.certifiedAmount].filter((v) => v != null).length, 0);
 }
 
-export function f2Yuk(q: F2Qator[], hujjatRaqam: string): F2NativePayloadRow[] {
+/**
+ * Xato qatorlar (HAJM/SUMMA/noto'g'ri narx) bu yerga yetmasligi kerak: sahifa `saqlashSabablari` xato bo'lsa saqlashni
+ * to'xtatadi (jim tashlash emas). Narxi topilmagan resurs — xato emas: narxsiz + `narxsizSabab: 'avto_qoralama'`.
+ * `hajmManba` — qoralama qayta ochilganda hajm manbai (fakt/smeta) tiklanishi uchun.
+ */
+export function f2Yuk(q: F2Qator[], hujjatRaqam: string, hajmManba?: F2Manba): F2NativePayloadRow[] {
   const manba = hujjatRaqam.trim() ? `Ф-2 № ${hujjatRaqam.trim()}` : 'Ф-2 (сформирована в системе)';
   return q.filter((x) => !x.xato).map((x) => ({
     qatorId: x.id, certifiedQuantity: x.hajm,
     certifiedUnitPrice: x.narxsiz ? undefined : x.narx ?? undefined,
     certifiedAmount: x.narxsiz ? undefined : x.summa ?? undefined,
     priceIntentionallyAbsent: x.narxsiz,
-    rawSnapshot: { source: 'native_f2_preparation', sourceReference: x.tur === 'bl' ? manba : `${manba}; ${NARX_MANBA_HUJJAT[x.manba]}${x.protokol ? ` ${x.protokol}` : ''}`, enteredQuantity: x.hajm, enteredUnitPrice: x.narxsiz ? undefined : x.narx ?? undefined, enteredAmount: x.narxsiz ? undefined : x.summa ?? undefined },
+    rawSnapshot: { source: 'native_f2_preparation', sourceReference: x.tur === 'bl' ? manba : `${manba}; ${NARX_MANBA_HUJJAT[x.manba]}${x.protokol ? ` ${x.protokol}` : ''}`, enteredQuantity: x.hajm, enteredUnitPrice: x.narxsiz ? undefined : x.narx ?? undefined, enteredAmount: x.narxsiz ? undefined : x.summa ?? undefined,
+      ...(x.avtoNarxsiz ? { narxsizSabab: 'avto_qoralama' as const } : {}), ...(hajmManba ? { hajmManba } : {}) },
   }));
 }
 
@@ -480,7 +504,7 @@ export function smetaNarxXulosa(qatorlar: readonly F2Qator[], bolimlar: readonly
     if (q.tur === 'bl' || (q.xato != null && q.xato !== 'NARX')) continue;
     const r = res.get(q.id);
     if (q.summa != null) yangiS.push(q.summa);
-    if (r && r.zaxiraNarx !== undefined && q.manba !== 'qolda' && !q.narxsiz && q.summa == null) smetaNarxsiz++;
+    if (r && r.zaxiraNarx !== undefined && q.manba !== 'qolda' && (!q.narxsiz || q.avtoNarxsiz) && q.summa == null) smetaNarxsiz++;
     const eski = r?.eskiNarx;
     if (eski != null && q.summa != null) { const s = qatorSumma(q.hajm, eski); if (s != null) { eskiS.push(s); solS.push(q.summa); } }
   }
@@ -512,15 +536,74 @@ export function korinadiganBolimlar(d: readonly BolimDaraxtGuruh[], kengaygan: R
 
 /** Ish bo'yicha ulush tugmalari (25/50/100% — F2 mumkin hajmdan). */
 export function ulushHajm(mumkin: number, foiz: number): string {
-  return String(y6(mumkin * foiz / 100));
+  return sonMatn(y6(mumkin * foiz / 100));
 }
 
-/** Narxi topilmagan resurslar — ommaviy "narxsiz" belgilash uchun. */
+/** Narxi topilmagan (qoralamada avtomatik narxsiz) resurslar — ommaviy ongli "narxsiz" belgilash uchun (tasdiqlash shuni talab qiladi). */
 export function narxsizNomzodlar(q: F2Qator[]): number[] {
-  return q.filter((x) => x.tur !== 'bl' && x.xato === 'NARX').map((x) => x.id);
+  return q.filter((x) => x.tur !== 'bl' && x.avtoNarxsiz).map((x) => x.id);
 }
 
 /** Ustamali jami uchun kategoriya kesimi (egasi 2026-10-24): kat - smeta qatoridan; kat'siz qator "kat noma'lum" bo'lib qoladi (yagona qatlam: lib/ustamali-summa). */
 export function f2KatKesim(q: F2Qator[]): KatKesim {
   return katKesimYigish(q.filter((x) => x.tur !== 'bl' && x.summa != null), (x) => x.kat, (x) => x.summa);
+}
+
+/** Pul bo'yicha chang chegarasi (egasi 2026-11-06): «Barcha / bo'limni to'liq olish» bundan kichik qiymatli ishni olmaydi. */
+export const F2_CHANG_PUL = 1000;
+/**
+ * Ish qolgan qiymati (ustamasiz, taxmin): avtomatik resurslar (ish mumkin × norma × narx) + ichidagi mustaqil materiallar
+ * (mumkin × narx). Resurs ishdan sug'urib olinmaydi — qaror BUTUN ish uchun. Biror pulli qism narxi noma'lum → null
+ * (qiymati noma'lum: pul bo'yicha tashlanmaydi, NULL ≠ 0). Mashinist mehnati (smetada narxsiz) hisobga olinmaydi.
+ */
+export function ishQoldiqQiymati(i: Pick<F2Ish, 'mumkin' | 'resurslar'>): number | null {
+  let s = 0;
+  for (const r of i.resurslar) {
+    if (r.chiqarilgan) continue;
+    const h = r.avto ? (r.norma == null ? null : i.mumkin * r.norma) : r.mumkin;
+    if (h == null || Math.abs(h) < 1e-9) continue;
+    if (r.taklifNarx == null) { if (mashinistMehnati(r)) continue; return null; }
+    s += h * r.taklifNarx;
+  }
+  return s;
+}
+/** Mustaqil material/jihoz qolgan qiymati: narx noma'lum → null. */
+export function resursQoldiqQiymati(r: Pick<F2Resurs, 'mumkin' | 'taklifNarx'>): number | null {
+  return r.taklifNarx == null ? null : r.mumkin * r.taklifNarx;
+}
+/** Pul changi: qiymati ma'lum va |qiymat| < chegara. Noma'lum qiymat chang emas. */
+export function pulChangmi(qiymat: number | null, chegara = F2_CHANG_PUL): boolean {
+  return qiymat != null && Math.abs(qiymat) < chegara;
+}
+
+/**
+ * «Bo'limni / barcha mumkin hajmni olish» rejasi (egasi 2026-11-06: nima tashlangani jim qolmasin).
+ * `hajm` — kiritmaga yoziladigan qiymatlar; `olindi` — olingan ish/material soni; `chang` — qiymati < F2_CHANG_PUL bo'lgani
+ * uchun olinmagan ishlar/materiallar; `nol` — olinadigan qoldig'i yo'q (mumkin 0). Resurs ishdan sug'urilmaydi.
+ */
+export type BolimOlReja = { hajm: Record<number, string>; olindi: number; chang: number; nol: number };
+export function bolimOlRejasi(bs: readonly F2Bolim[]): BolimOlReja {
+  const hajm: Record<number, string> = {}; let olindi = 0; let chang = 0; let nol = 0;
+  for (const b of bs) {
+    for (const i of b.ishlar) {
+      if (pulChangmi(ishQoldiqQiymati(i))) { chang++; continue; }
+      let bor = false;
+      if (i.mumkin !== 0) { hajm[i.id] = sonMatn(i.mumkin); bor = true; }
+      for (const r of i.resurslar) if (!r.avto && r.mumkin !== 0) { hajm[r.id] = sonMatn(r.mumkin); bor = true; }
+      if (bor) olindi++; else nol++;
+    }
+    for (const r of b.alohida) {
+      if (r.mumkin === 0) { nol++; continue; }
+      if (pulChangmi(resursQoldiqQiymati(r))) { chang++; continue; }
+      hajm[r.id] = sonMatn(r.mumkin); olindi++;
+    }
+  }
+  return { hajm, olindi, chang, nol };
+}
+/**
+ * Bo'limdagi mumkin hajmlarni qo'shadi, avvalgi kiritmalarni saqlaydi (PR #293 nomi). Qoida — yagona `bolimOlRejasi`
+ * (chang/qoldiq 0 sanog'i bilan); bu faqat kiritmaga qo'llash qobig'i.
+ */
+export function f2MumkinHajmlarniOl(bolimlar: readonly F2Bolim[], k: F2Kiritma): F2Kiritma {
+  return { ...k, hajm: { ...k.hajm, ...bolimOlRejasi(bolimlar).hajm } };
 }

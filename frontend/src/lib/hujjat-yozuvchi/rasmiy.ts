@@ -409,7 +409,7 @@ function katakXml(col: number, s: number, q: Qiymat): Katak {
 
 /** Matn uzunligi bo'yicha qator balandligi (pt) — Excel yuklashda o'ralgan
  * matn uchun balandlikni o'zi kattalashtirmaydi, shuning uchun oldindan. */
-function balandlik(matn: string, kenglik: number, ptQator = 13): number | undefined {
+function balandlik(matn: string, kenglik: number, ptQator = 13, maks = 0): number | undefined {
   if (!matn) return undefined;
   const sigadi = Math.max(8, Math.floor(kenglik * 1.15));
   // So'z bo'yicha o'rash (Excel kabi): sig'magan uzun so'z harf bo'yicha bo'linadi.
@@ -424,7 +424,9 @@ function balandlik(matn: string, kenglik: number, ptQator = 13): number | undefi
     }
     return n;
   };
-  const qatorlar = matn.split('\n').reduce((a, s) => a + qatorSoni(s), 0);
+  const xom = matn.split('\n').reduce((a, s) => a + qatorSoni(s), 0);
+  // Dizayn chegarasi (qatorMaks): uzun nom qatorni cheksiz shishirmaydi — matn o'ralgan qoladi, balandlik N qatorgacha.
+  const qatorlar = maks > 0 ? Math.min(maks, xom) : xom;
   return qatorlar > 1 ? Math.min(409, qatorlar * ptQator + 2) : undefined;
 }
 
@@ -666,7 +668,7 @@ export class RasmiyVaraq {
     for (const x of m) {
       const katta = x.matn.length > 8 && x.matn === x.matn.toUpperCase() && /[А-ЯЁ]/.test(x.matn);
       const eni = Math.max(4, this.kenglik(x.col) - x.otstup * 1.5) * (10 / x.sz) * (x.qalin ? 0.88 : 1) * (katta ? 0.72 : 1);
-      const b = balandlik(x.matn, eni, 13 * (x.sz / 10));
+      const b = balandlik(x.matn, eni, 13 * (x.sz / 10), this.dizayn.qatorMaks);
       if (b) ht = Math.max(ht ?? 0, b);
     }
     return ht;

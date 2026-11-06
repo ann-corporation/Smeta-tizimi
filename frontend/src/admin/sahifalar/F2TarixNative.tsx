@@ -17,16 +17,19 @@ import {
 } from '../../api/supabase';
 import { sbT2F2TafsilotOl, type F2Tafsilot } from '../../api/t2-narx';
 import { t2AktLifecycleTransition, type PtoLifecycleStatus } from '../../api/t2-akt-lifecycle';
-import { f2HolatYorligi, f2KeyingiQadam, f2LifecyclePlan, f2LifecycleError, f2QadamTugmasi, f2TasdiqRejimi, type F2TasdiqRejimi } from '../../lib/f2-lifecycle-workflow';
+import { avtoNarxsizSoni, f2HolatYorligi, f2KeyingiQadam, f2LifecyclePlan, f2LifecycleError, f2QadamTugmasi, f2RadRejasi, f2TasdiqRejimi, type F2TasdiqRejimi } from '../../lib/f2-lifecycle-workflow';
 import { f2Ierarxiya, type F2IerSmeta } from '../../lib/f2-ierarxiya';
 import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
 import type { T2Qator } from '../../api/supabase';
-import { f2AktKirish } from '../../lib/f2-akt-hujjat';
 import { f2Hujjat } from '../../lib/f2-hujjat';
 import { aktPodvallariniOl } from '../../api/t2-akt-podval';
-import { aktPodvalXaritasi } from '../../lib/akt-podval';
-import { f2AktTayyorla } from '../../lib/f2-akt-eksport';
-import { f2HujjatKaliti, f2HujjatKonteksti } from '../../api/f2-hujjat-kontekst';
+import { aktPodvalXaritasi, type AktPodvalQator } from '../../lib/akt-podval';
+import { bahoMoliya, f2AktBaho, f2AktTayyorla } from '../../lib/f2-akt-eksport';
+import type { AktMoliya } from '../../lib/f2-oylik-paket/oylik';
+import { aktQatorlariOl, smetaTarixBilan, type AktQatorXom } from '../../api/f2-oylik-paket';
+import { QiymatUchlik } from '../../umumiy/ui/QiymatUchlik';
+import { serverUchligi } from '../../lib/ustamali-summa';
+import { f2HujjatKaliti, f2HujjatKonteksti, type F2HujjatKonteksti } from '../../api/f2-hujjat-kontekst';
 import { mazmunXeshi, tokenBilan } from '../../api/t2-token';
 import { hujjatArxivla } from '../../api/t2-hujjat-arxiv';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
@@ -55,6 +58,35 @@ const pul = (line: F2Detail) => line.gorunish_summa ?? line.certified_amount ?? 
 
 function xavfsizXato() {
   return 'F2 reestri yoki tafsiloti o‘qilmadi. Birozdan so‘ng qayta urinib ko‘ring.';
+}
+/** Saqlangan akt → Ф-2 kirishi (yagona `f2AktTayyorla`; F2 portfeli bilan bir xil). */
+function aktTayyor(akt: T2AktReestr, smeta: readonly T2Qator[], lines: readonly F2Detail[], aq: readonly AktQatorXom[],
+  podvallar: ReadonlyMap<string, Pick<AktPodvalQator, 'nk'>>, ctx: F2HujjatKonteksti, raqamlar: ReadonlyMap<number, string | null>, obyektNom = '') {
+  return f2AktTayyorla({ smeta, lines, aktQatorlar: aq, podvallar, kontekst: ctx, akt: { id: akt.id, oy: akt.oy, raqam: akt.raqam, holat: akt.holat }, obyektNom, raqamlar });
+}
+/** Foydalanuvchiga aynan ko'rsatiladigan yuklash xatosi (audit C M2/B5: smeta yoki F2 qatorlari to'liq o'qilmadi). */
+class YuklashXato extends Error {}
+
+const son = (v: unknown): number | null => (v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
+
+/**
+ * Bekor qilingan akt qatorlari (audit C m8): `t2_f2_tafsilot` bekor aktni ko'rsatmaydi — `t2_akt_qator` + smeta (tarix bilan)
+ * dan faqat KO'RISH uchun tafsilot shakli (qiymatlar aynan, qayta hisob yo'q).
+ */
+function bekorQatorlari(akt: T2AktReestr, aq: readonly AktQatorXom[], smeta: ReadonlyMap<number, T2Qator>): F2Detail[] {
+  return aq.map((q) => {
+    const r = smeta.get(q.qator_id);
+    const hajm = son(q.certified_quantity) ?? son(q.hajm);
+    const narx = son(q.certified_unit_price) ?? son(q.narx);
+    const summa = son(q.certified_amount) ?? son(q.summa);
+    return {
+      akt_id: akt.id, obyekt_id: akt.obyekt_id, kompaniya_id: akt.kompaniya_id, tur: 'f2', oy: akt.oy, akt_holat: akt.holat, raqam: akt.raqam,
+      akt_kim: null, akt_sana: akt.yaratildi, akt_qator_id: q.id, qator_id: q.qator_id, kod: r?.kod ?? null, nom: r?.nom ?? null, birlik: r?.birlik ?? null,
+      kat: r?.kat ?? null, qator_tur: r?.tur ?? null, hajm: hajm as number, narx, summa, izoh: null,
+      certified_quantity: son(q.certified_quantity), certified_unit_price: son(q.certified_unit_price), certified_amount: son(q.certified_amount),
+      gorunish_hajm: hajm, gorunish_narx: narx, gorunish_summa: summa,
+    };
+  });
 }
 
 /**
@@ -89,7 +121,14 @@ export function F2TarixNative() {
   const [reestr, setReestr] = useState<T2AktReestr[]>([]);
   const [tafsilot, setTafsilot] = useState<F2Detail[]>([]);
   // Tanlangan akt F2 importdan (o'tgan davr fayli) kelganmi — unda «Zakazchikka yuborish» bo'lmaydi.
-  const [importAkt, setImportAkt] = useState<{ id: number; import: boolean } | null>(null);
+  // m5: o'qib bo'lmasa — 'xato' (yuborish tugmasi ko'rsatilmaydi; import aktni zakazchikka yuborish xavfi yo'q).
+  const [importAkt, setImportAkt] = useState<{ id: number; import: boolean | 'xato' } | null>(null);
+  /** Akt id → `t2_akt_qator` (noyob tartib, to'liq; audit C M1) — storno bloklari, avto-narxsiz belgisi, bekor akt ko'rinishi. */
+  const [aktQatorlar, setAktQatorlar] = useState<ReadonlyMap<number, AktQatorXom[]>>(new Map());
+  /** Ro'yxat summalari (m3): har akt yadro bahosi — QQS bilan, ustamali, ustamasiz (o'z podvali bilan). */
+  const [moliya, setMoliya] = useState<ReadonlyMap<number, AktMoliya>>(new Map());
+  /** m6: bitta o'tish (akt, bosqich, versiya) uchun BIR operation_id — javob yo'qolib qayta bosilsa server takrorni taniydi. */
+  const opIdlar = useRef(new Map<string, string>());
   /** Smeta daraxti — F2 qatorlari ierarxiyada (bo'lim → ish → resurs) ko'rsatiladi. */
   const [smeta, setSmeta] = useState<F2IerSmeta[]>([]);
   /** To'liq smeta qatorlari (norma, kat) — Ф-2 hujjatini qayta chiqarish uchun. */
@@ -122,7 +161,7 @@ export function F2TarixNative() {
     const id = selectedAkt?.id;
     if (id == null) return;
     let faol = true;
-    void f2ImportQilinganmi(id).then((v) => { if (faol) setImportAkt({ id, import: v }); }).catch(() => { if (faol) setImportAkt({ id, import: false }); });
+    void f2ImportQilinganmi(id).then((v) => { if (faol) setImportAkt({ id, import: v }); }).catch(() => { if (faol) setImportAkt({ id, import: 'xato' }); });
     return () => { faol = false; };
   }, [selectedAkt?.id]);
   /** Qoralama aktlardan qaysilari import orqali yaratilgan: bitta so'rov (null - hali o'qilmagan; xato - eski xulq: import sahifasi). */
@@ -135,10 +174,14 @@ export function F2TarixNative() {
     void f2ImportAktlari(qoralamaIdlar).then((s) => { if (faol) setImportSet(s); }).catch(() => { if (faol) setImportSet('xato'); });
     return () => { faol = false; };
   }, [qoralamaIdlar]);
-  const selectedLines = useMemo(
-    () => selectedAkt ? tafsilot.filter((line) => line.akt_id === selectedAkt.id) : [],
-    [selectedAkt, tafsilot],
-  );
+  const smetaById = useMemo(() => new Map(smetaRows.map((r) => [r.id, r] as const)), [smetaRows]);
+  const selectedLines = useMemo(() => {
+    if (!selectedAkt) return [];
+    if (selectedAkt.holat === 'bekor') return bekorQatorlari(selectedAkt, aktQatorlar.get(selectedAkt.id) ?? [], smetaById);
+    return tafsilot.filter((line) => line.akt_id === selectedAkt.id);
+  }, [selectedAkt, tafsilot, aktQatorlar, smetaById]);
+  /** NARXSIZ_QATOR_BOR: avtomatik narxsiz qoralama qatorlari — server tasdiqni rad etadi, oldindan sababi va yo'li ko'rsatiladi. */
+  const avtoNarxsiz = useMemo(() => (selectedAkt?.holat === 'qoralama' ? avtoNarxsizSoni(aktQatorlar.get(selectedAkt.id) ?? []) : 0), [selectedAkt, aktQatorlar]);
   const ierarxiya = useMemo(() => f2Ierarxiya(selectedLines, smeta, pul), [selectedLines, smeta]);
   const selectedArithmeticIssues = useMemo(() => selectedLines.filter((line) => {
     const quantity = line.gorunish_hajm ?? line.certified_quantity ?? line.hajm;
@@ -158,31 +201,58 @@ export function F2TarixNative() {
   const sorov = useRef(0);
   const yuklash = useCallback(async () => {
     const raqam = ++sorov.current;
-    if (!validId) { setReestr([]); setTafsilot([]); setSmeta([]); setSmetaRows([]); setSelectedAktId(null); return; }
+    if (!validId) { setReestr([]); setTafsilot([]); setSmeta([]); setSmetaRows([]); setAktQatorlar(new Map()); setMoliya(new Map()); setSelectedAktId(null); return; }
     setLoading(true); setError('');
+    const kompaniyaId = workspace.companyId ?? joriy?.id ?? null;
     try {
-      const [r, d, t] = await Promise.all([
-        sbT2AktReestrOl(obyektId),
+      const [r, d, tr] = await Promise.all([
+        sbT2AktReestrOl(obyektId, 'f2'),
         sbT2F2TafsilotOl({ obyektId, tur: 'f2' }),
         sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI),
       ]);
       if (raqam !== sorov.current) return;
-      setSmeta(t.ok ? ((t.qatorlar || []) as unknown as F2IerSmeta[]) : []);
-      setSmetaRows(t.ok ? ((t.qatorlar || []) as unknown as T2Qator[]) : []);
       if (!r.ok) throw new Error(xavfsizXato());
-      setReestr((r.qatorlar || []) as T2AktReestr[]);
-      if (!d.ok) throw new Error(xavfsizXato());
-      setTafsilot((d.qatorlar || []) as F2Detail[]);
-      setSelectedAktId((old) => {
-        const available = ((r.qatorlar || []) as T2AktReestr[]).filter((a) => a.tur === 'f2');
-        return old && available.some((a) => a.id === old) ? old : (available[0]?.id ?? null);
-      });
+      // B5: F2 qatorlari to'liq bo'lmasa (eski 20000 chegarasi) — ko'rinadigan xato, yarim ro'yxat emas.
+      if (!d.ok) throw new YuklashXato(t('F2 qatorlari to‘liq o‘qilmadi — hujjat va summalar ko‘rsatilmaydi. Qayta yangilang.'));
+      // M2: smeta daraxti o'qilmasa — jim bo'sh daraxt emas (hujjat/ierarxiya noto'g'ri chiqardi).
+      if (!tr.ok || tr.toliq === false) throw new YuklashXato(t('Smeta daraxti o‘qilmadi — F2 ierarxiyasi va hujjati tuzilmaydi. Qayta yangilang.'));
+      const akts = ((r.qatorlar || []) as T2AktReestr[]).filter((a) => a.tur === 'f2');
+      const lines = (d.qatorlar || []) as F2Detail[];
+      // M1: barcha F2 akt qatorlari — noyob tartib, to'liq (storno bloki, avto-narxsiz, bekor akt ko'rinishi).
+      const aq = await aktQatorlariOl(obyektId, akts.map((a) => a.id)).catch(() => { throw new YuklashXato(t('F2 akt qatorlari to‘liq o‘qilmadi. Qayta yangilang.')); });
+      // B2: eski smeta versiyasidagi qatorlar tarixdan (t2_daraxt faqat faol).
+      const ids = [...lines.map((l) => l.qator_id), ...[...aq.values()].flat().map((q) => q.qator_id)];
+      const smetaT = await smetaTarixBilan(obyektId, (tr.qatorlar || []) as unknown as T2Qator[], ids).catch(() => { throw new YuklashXato(t('Eski smeta versiyasi qatorlari o‘qilmadi — F2 hujjati tuzilmaydi. Qayta yangilang.')); });
+      if (raqam !== sorov.current) return;
+      setSmeta(smetaT as unknown as F2IerSmeta[]);
+      setSmetaRows(smetaT);
+      setReestr(akts);
+      setTafsilot(lines);
+      setAktQatorlar(aq);
+      setSelectedAktId((old) => (old && akts.some((a) => a.id === old) ? old : (akts[0]?.id ?? null)));
+      // m3: ro'yxat summalari (QQS bilan → ustamali → ustamasiz) — yadro, o'z podvali bilan. O'qilmasa — faqat ustamasiz (reestr).
+      setMoliya(new Map());
+      if (kompaniyaId) {
+        void (async () => {
+          const [ctx, pv] = await Promise.all([f2HujjatKonteksti(kompaniyaId, obyektId), aktPodvallariniOl(obyektId)]);
+          if (raqam !== sorov.current || ctx.xato || !pv.ok) return;
+          const podvallar = aktPodvalXaritasi(pv.podvallar);
+          const raqamlar = new Map(akts.map((a) => [a.id, a.raqam ?? null] as const));
+          const m = new Map<number, AktMoliya>();
+          for (const a of akts) {
+            if (a.holat === 'bekor') continue;
+            const k = aktTayyor(a, smetaT, lines.filter((l) => l.akt_id === a.id), aq.get(a.id) ?? [], podvallar, ctx, raqamlar);
+            if (k && !k.topilmagan) m.set(a.id, bahoMoliya(f2AktBaho(k, ctx), a.hujjat_jami));
+          }
+          if (raqam === sorov.current) setMoliya(m);
+        })().catch(() => { /* ro'yxatda faqat ustamasiz qoladi */ });
+      }
     } catch (e) {
       if (raqam !== sorov.current) return;
-      setReestr([]); setTafsilot([]); setSelectedAktId(null);
-      setError(e instanceof Error && e.message === xavfsizXato() ? e.message : xavfsizXato());
+      setReestr([]); setTafsilot([]); setAktQatorlar(new Map()); setMoliya(new Map()); setSelectedAktId(null);
+      setError(e instanceof YuklashXato ? e.message : xavfsizXato());
     } finally { if (raqam === sorov.current) setLoading(false); }
-  }, [obyektId, validId]);
+  }, [obyektId, validId, workspace.companyId, joriy?.id]);
 
   useEffect(() => { void yuklash(); }, [yuklash]);
 
@@ -194,6 +264,7 @@ export function F2TarixNative() {
       if (!sabab) { toast('Rad etish/bekor qilish sababi majburiy.', 'danger'); return; }
     }
     setSavingId(akt.id); setError('');
+    let bajarildi = false;
     try {
       const kompaniyaId = workspace.companyId ?? joriy?.id;
       if (!kompaniyaId) { toast('Faol kompaniya tanlanmagan.', 'danger'); return; }
@@ -208,22 +279,30 @@ export function F2TarixNative() {
       /* Korporativ rejim: faqat keyingi BITTA bosqich (yuborish / tekshirish / tasdiqlash) — har birini boshqa xodim bajaradi. */
       const plan = birQadam
         ? (target != null && f2KeyingiQadam(current.lifecycle_status) === target ? [target] : null)
-        : (target === 'approved' || target === 'rejected' || target === 'cancelled' ? f2LifecyclePlan(current.lifecycle_status, target) : null);
+        : target === 'rejected' ? f2RadRejasi(rejim, current.lifecycle_status)
+        : (target === 'approved' || target === 'cancelled' ? f2LifecyclePlan(current.lifecycle_status, target) : null);
       if (plan === null) { toast('Bu hujjatning joriy holatida ushbu amal bajarilmaydi.', 'danger'); return; }
       let expectedVersion = current.versiya;
       for (const toStatus of plan) {
+        // m6: shu (akt, bosqich, versiya) uchun avvalgi urinish operation_id si qayta ishlatiladi (javob yo'qolgan bo'lsa — idempotent).
+        const opKalit = `${akt.id}:${toStatus}:${expectedVersion}`;
+        const operationId = opIdlar.current.get(opKalit) ?? yangiOperationId();
+        opIdlar.current.set(opKalit, operationId);
         const result = await t2AktLifecycleTransition({
           kompaniyaId,
           aktId: akt.id,
           toStatus,
           expectedVersion,
-          operationId: yangiOperationId(),
+          operationId,
           reason: sabab,
         });
         if (!result.ok) {
+          if (result.code !== 'NETWORK' && result.code !== 'TIMEOUT') opIdlar.current.delete(opKalit);
           toast(f2LifecycleError(result.code), 'danger', undefined, 9000);
           return;
         }
+        opIdlar.current.delete(opKalit);
+        bajarildi = true;
         expectedVersion = result.version ?? expectedVersion + 1;
       }
       toast(statuses.at(-1) === 'approved'
@@ -232,7 +311,11 @@ export function F2TarixNative() {
       setActionReason('');
     } catch {
       toast('F2 tasdiqlash javobi olinmadi. Shu hujjatni qayta yubormang; avval yangilang.', 'danger', undefined, 9000);
-    } finally { await yuklash(); setSavingId(null); }
+    } finally {
+      // M6: holat o'zgardi — daraxt (f2_hajm/qoldiq) keshi eskirdi; F2 tayyorlash eski qoldiqdan ikkinchi F2 taklif qilmasin.
+      if (bajarildi) { qc?.removeQueries({ queryKey: daraxtKaliti(obyektId) }); void qc?.invalidateQueries({ queryKey: ['t2-obyektlar'] }); }
+      await yuklash(); setSavingId(null);
+    }
   }
 
   /* Egasi (2026-10-02): tasdiqlangan F2 ham yangi Ф-2 shablonida chiqadi. Sertifikatlangan raqamlar aynan
@@ -243,22 +326,27 @@ export function F2TarixNative() {
     const object = obyektlar.find((o) => o.id === obyektId);
     setChiqarilmoqda(true);
     try {
-      if (!f2AktKirish(smetaRows, selectedLines).qatorlar.length) { toast('Bu hujjatda chiqariladigan qator yo‘q.', 'danger'); return; }
       const ctx = await f2HujjatKonteksti(kompaniyaId, obyektId);
       // Ustama/podval o'qilmasa F2 hujjati jimgina standart podval yoki ustamasiz chiqmaydi.
       if (ctx.xato) { toast(`F2 hujjati tuzilmadi: ${ctx.xato}`, 'danger'); return; }
       // F2 hujjati O'Z podvali bilan (egasi 2026-11-03): podval/qator o'qilmasa jim smeta podvaliga o'tilmaydi.
-      const [pv, aq] = await Promise.all([
+      // B4: shu aktning qatorlari — akt_id filtri, noyob tartib, to'liq (bekor akt — t2_akt_qator dan ko'rinish).
+      const [pv, aqM, d] = await Promise.all([
         aktPodvallariniOl(obyektId),
-        sbOqi<{ qator_id: number; hajm: number | null; certified_quantity: number | null; certified_unit_price: number | null; certified_amount: number | null; raw_snapshot: unknown }>({
-          jadval: 't2_akt_qator', filtr: `akt_id=eq.${akt.id}&obyekt_id=eq.${obyektId}`, ustunlar: 'qator_id,hajm,certified_quantity,certified_unit_price,certified_amount,raw_snapshot', limit: 50000 }),
+        aktQatorlariOl(obyektId, [akt.id]).catch(() => null),
+        akt.holat === 'bekor' ? Promise.resolve(null) : sbT2F2TafsilotOl({ obyektId, tur: 'f2', aktId: akt.id }),
       ]);
-      if (!pv.ok || !aq.ok) { toast(`F2 hujjati tuzilmadi: ${t('hujjat podvali o‘qilmadi')}`, 'danger'); return; }
+      if (!pv.ok || !aqM) { toast(`F2 hujjati tuzilmadi: ${t('hujjat podvali o‘qilmadi')}`, 'danger'); return; }
+      if (d && !d.ok) { toast(t('F2 qatorlari to‘liq o‘qilmadi — hujjat tuzilmadi. Qayta yangilang.'), 'danger'); return; }
+      const aq = aqM.get(akt.id) ?? [];
+      const lines = d ? ((d.qatorlar ?? []) as F2Detail[]) : bekorQatorlari(akt, aq, smetaById);
+      // B2: yangi o'qilgan qatorlar uchun ham eski versiya smeta qatorlari.
+      const smeta = await smetaTarixBilan(obyektId, smetaRows, lines.map((l) => l.qator_id));
       // Yagona tayyorlash (lib/f2-akt-eksport): F2 portfeli ham aynan shu yo'ldan foydalanadi.
-      const k = f2AktTayyorla({ smeta: smetaRows, lines: selectedLines, aktQatorlar: aq.qatorlar ?? [], podvallar: aktPodvalXaritasi(pv.podvallar), kontekst: ctx,
-        akt: { id: akt.id, oy: akt.oy, raqam: akt.raqam }, obyektNom: object?.nom || '', raqamlar: new Map(f2Reestr.map((a) => [a.id, a.raqam ?? null] as const)) });
+      const k = aktTayyor(akt, smeta, lines, aq, aktPodvalXaritasi(pv.podvallar), ctx, new Map(f2Reestr.map((a) => [a.id, a.raqam ?? null] as const)), object?.nom || '');
       if (!k) { toast('Bu hujjatda chiqariladigan qator yo‘q.', 'danger'); return; }
-      if (k.topilmagan) toast(t('{n} ta qator smetada topilmadi — hujjatga kirmadi', { n: k.topilmagan }), 'warn');
+      // B2: topilmagan qator bor — hujjat BLOKLANADI (yarim Ф-2 summasi yadro/serverdan farq qiladi).
+      if (k.topilmagan) { toast(t('{n} ta qator smetada (eski versiyalarda ham) topilmadi — Ф-2 hujjati tuzilmadi', { n: k.topilmagan }), 'danger', undefined, 9000); return; }
       const h = f2Hujjat(k.bolimlar, k.qatorlar, k.opsiya);
       const xesh = f2HujjatKaliti(obyektId, akt.oy || '', akt.raqam) ?? `akt:${akt.id}:${await mazmunXeshi(h.bytes)}`;
       const r = await tokenBilan({ kompaniyaId, amal: 'f2_hujjat', birlikSoni: h.yacheykalar,
@@ -372,7 +460,12 @@ export function F2TarixNative() {
                         <span className="fz-list__nom block truncate">{davrNomi(akt.oy, tilLocale()) || t('Davr noma’lum')}</span>
                         <span className="fz-list__sub">№ {akt.raqam || '—'} · {t('{n} qator', { n: akt.qator_soni ?? '—' })}</span>
                       </span>
-                      <span className="fz-list__sum" title={t('ustamasiz, NDS siz — ustamali summa hujjat ichida')}><FmtN val={akt.hujjat_jami} kasr={0} /></span>
+                      <span className="fz-list__sum">{(() => {
+                        // m3: QQS bilan — asosiy, ostida ustamali va ustamasiz (yadro `f2AktBaho`, aktning o'z podvali bilan).
+                        const m = moliya.get(akt.id);
+                        return m ? <QiymatUchlik q={serverUchligi({ itogo4: m.ustamali, vsego: m.jami }, m.ustamasiz)} kichik tafsilYoq />
+                          : <span title={t('ustamasiz, NDS siz — ustamali summa hujjat ichida')}><FmtN val={akt.hujjat_jami} kasr={0} /></span>;
+                      })()}</span>
                       <span className="fz-list__sub" style={{ gridColumn: '1 / -1' }}>
                         <span className={`fz-stamp ${stampCls(st)}`}>{t(holatYorligi(akt))}</span>
                         {!!akt.narxsiz_qator && <span className="fz-chip fz-chip--warn">{t('{n} narxsiz', { n: akt.narxsiz_qator })}</span>}
@@ -395,30 +488,34 @@ export function F2TarixNative() {
                   obyektId={obyektId} obyektNom={obyektNom}
                   lines={selectedLines} barchaQatorlar={tafsilot} aktlar={f2Reestr} ierarxiya={ierarxiya} smetaHajm={smetaHajm}
                   amallar={<>
-                    {!f2YozishYopiq && selectedAkt.holat === 'qoralama' && tugmaMatni(selectedAkt) && <button type="button" title={tugmaRuxsat(selectedAkt) ? (rejim === 'korporativ' ? t('Har bosqichni boshqa xodim bajaradi (tayyorlovchi ≠ tekshiruvchi ≠ tasdiqlovchi)') : '') : t('F2 tasdiqlash ruxsati berilmagan')} onClick={() => void tasdiqlash(selectedAkt)} disabled={savingId != null || !tugmaRuxsat(selectedAkt)} className="fz-btn fz-btn--primary"><CheckCircle2 />{savingId === selectedAkt.id ? '…' : t(tugmaMatni(selectedAkt) ?? '')}</button>}
+                    {!f2YozishYopiq && selectedAkt.holat === 'qoralama' && tugmaMatni(selectedAkt) && <button type="button" title={avtoNarxsiz > 0 ? t('{n} ta qator narxsiz (avtomatik) — avval narx kiriting yoki «narxsiz» deb belgilang', { n: avtoNarxsiz }) : tugmaRuxsat(selectedAkt) ? (rejim === 'korporativ' ? t('Har bosqichni boshqa xodim bajaradi (tayyorlovchi ≠ tekshiruvchi ≠ tasdiqlovchi)') : '') : t('F2 tasdiqlash ruxsati berilmagan')} onClick={() => void tasdiqlash(selectedAkt)} disabled={savingId != null || !tugmaRuxsat(selectedAkt) || avtoNarxsiz > 0} className="fz-btn fz-btn--primary"><CheckCircle2 />{savingId === selectedAkt.id ? '…' : t(tugmaMatni(selectedAkt) ?? '')}</button>}
                     {tahrirHavolalari(selectedAkt)}
                     {selectedLines.length > 0 && <>
                       <button type="button" onClick={() => void hujjatChiqar(selectedAkt, true)} disabled={chiqarilmoqda} className="fz-btn"><Eye />{t('Koʻrish')}</button>
                       <button type="button" onClick={() => void hujjatChiqar(selectedAkt, false)} disabled={chiqarilmoqda} className="fz-btn"><Download />{t('Ф-2 Excel')}</button>
                     </>}
                     {selectedAkt.holat === 'tasdiqlangan' && selectedAkt.oy && <Link to={`/admin/nakopitelniy?obyekt=${obyektId}&davr=${encodeURIComponent(selectedAkt.oy)}&f3=1`} title={t('Shu davr uchun СПРАВКА-СЧЕТ-ФАКТУРА (Форма №3) ni ochadi')} className="fz-btn"><FileText />{t('Форма №3 (счёт-фактура)')}</Link>}
-                    {selectedAkt.lifecycle_status === 'approved' && importAkt?.id === selectedAkt.id && !importAkt.import && <ZakazchigaYuborish kompaniyaId={workspace.companyId ?? joriy?.id} aktId={selectedAkt.id} />}
+                    {selectedAkt.lifecycle_status === 'approved' && importAkt?.id === selectedAkt.id && importAkt.import === false && <ZakazchigaYuborish kompaniyaId={workspace.companyId ?? joriy?.id} aktId={selectedAkt.id} />}
                     {mayPrepare && stornoQilinadiAkt(selectedAkt) && <button type="button" data-testid="pereraschet-tugma" className="fz-btn fz-btn--primary" title={t('Eski F2 minus (tepada) + yangi hajmlar faktdan (pastda) — bitta hujjat; fakt o‘zgarmaydi')} onClick={() => setPereraschetOyna({ id: selectedAkt.id, raqam: selectedAkt.raqam, oy: selectedAkt.oy, hujjat_jami: selectedAkt.hujjat_jami })} disabled={savingId != null}><Calculator />{t('Pereraschet')}</button>}
                     {mayPrepare && stornoQilinadiAkt(selectedAkt) && <button type="button" className="fz-btn" title={t('Shu F2 qatorlaridan minus (storno) qoralama yaratadi; asl F2 o‘zgarmaydi')} onClick={() => setStornoOyna({ id: selectedAkt.id, raqam: selectedAkt.raqam, oy: selectedAkt.oy, hujjat_jami: selectedAkt.hujjat_jami })} disabled={savingId != null}><RotateCcw />{t('Storno (minus) F2 yaratish')}</button>}
                     {bekorMumkin(selectedAkt) && <button type="button" className="fz-btn fz-btn--danger" onClick={() => setBekorOyna([bekorAkt(selectedAkt)])} disabled={savingId != null}><Ban />{t('Bekor qilish')}</button>}
                   </>}
                   ostida={<>
-                    {importAkt?.id === selectedAkt.id && importAkt.import && <p className="fz-note fz-note--info"><FileText />{t('F2 importdan kiritilgan (o‘tgan davr) — zakazchikka yuborilmaydi. Yangi F2 ni «F2 tayyorlash»da yarating va o‘sha yerdan yuboring.')}</p>}
+                    {importAkt?.id === selectedAkt.id && importAkt.import === 'xato' && selectedAkt.lifecycle_status === 'approved' && <p className="fz-note fz-note--warn"><ShieldAlert />{t('Hujjat manbasi (import yoki tizim) o‘qilmadi — zakazchikka yuborish yashirildi. Sahifani yangilang.')}</p>}
+                    {avtoNarxsiz > 0 && <p className="fz-note fz-note--danger" data-testid="avto-narxsiz-ogoh"><ShieldAlert />{t('{n} ta qator narxsiz (avtomatik qoralama) — bunday F2 tasdiqlanmaydi. «Tizimda tahrirlash» orqali narx kiriting yoki qatorni ongli «narxsiz» deb belgilang.', { n: avtoNarxsiz })}{' '}<Link to={`/admin/f2-tayyorlash?obyekt=${obyektId}&akt=${selectedAkt.id}`}>{t('Narx kiritish / narxsiz belgilash')}</Link></p>}
+                    {importAkt?.id === selectedAkt.id && importAkt.import === true && <p className="fz-note fz-note--info"><FileText />{t('F2 importdan kiritilgan (o‘tgan davr) — zakazchikka yuborilmaydi. Yangi F2 ni «F2 tayyorlash»da yarating va o‘sha yerdan yuboring.')}</p>}
                     {selectedAkt.holat === 'tasdiqlangan' && <p className="fz-note fz-note--info"><ShieldAlert />{t('Tasdiqlangan davr · tarix muzlatilgan')}</p>}
                     {selectedArithmeticIssues.length > 0 && <p className="fz-note fz-note--warn"><ShieldAlert />{t('{n} ta arifmetik farq', { n: selectedArithmeticIssues.length })}</p>}
                     {selectedLines.length === 0 && <p className="fz-note fz-note--warn"><ShieldAlert />{t('Bu hujjatda qator tafsiloti yo‘q. Tasdiqlashdan oldin manba va moslashtirishni tekshiring.')}</p>}
                     {selectedAkt.holat === 'qoralama' && !f2YozishYopiq && <>
-                      <p className="fz-note fz-note--warn"><ShieldAlert />{t('Qoralama hali LRVning tasdiqlangan F2 tarixiga kirmaydi. Tasdiqlash amaldagi ma’lumot va hajm chegaralarini qayta tekshiradi.')}</p>
+                      {/* m1: avvalgi matn «tasdiq hajm chegarasini qayta tekshiradi» yolg'on edi — hajm bloklanmaydi (egasi qoidasi). */}
+                      <p className="fz-note fz-note--warn"><ShieldAlert />{t('Qoralama hali LRVning tasdiqlangan F2 tarixiga kirmaydi. Tasdiqlash hujjat holati va versiyasini tekshiradi; hajmning qoldiqdan oshishi bloklanmaydi — oshgan qatorlarni tasdiqlashdan oldin o‘zingiz ko‘rib chiqing.')}</p>
                       <div className="fz-panel" style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end' }}>
                         <label className="min-w-[260px] flex-1 text-xs text-text-dim">{t('Rad etish yoki bekor qilish sababi')}
                           <input aria-label="F2 lifecycle sababi" value={actionReason} onChange={(event) => setActionReason(event.target.value)} placeholder={t('Sababni yozing')} className="mt-1 block w-full" />
                         </label>
-                        <button type="button" onClick={() => void holatniOzgartir(selectedAkt, ['submitted', 'checked', 'rejected'], actionReason)} disabled={savingId != null || !mayApprove} className="fz-btn fz-btn--danger">{t('Rad etish')}</button>
+                        {/* M5: korporativda rad etish faqat tekshirilgan hujjatda (bitta qadam) — yarim yo'l o'tish yo'q. */}
+                        {f2RadRejasi(rejim, statusOf(selectedAkt)) && <button type="button" onClick={() => void holatniOzgartir(selectedAkt, ['rejected'], actionReason)} disabled={savingId != null || !mayApprove} className="fz-btn fz-btn--danger">{t('Rad etish')}</button>}
                         <button type="button" onClick={() => void holatniOzgartir(selectedAkt, ['cancelled'], actionReason)} disabled={savingId != null || !mayCancel} className="fz-btn fz-btn--ghost">{t('Bekor qilish')}</button>
                       </div>
                     </>}

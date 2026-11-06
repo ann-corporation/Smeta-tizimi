@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { T2Qator } from '../api/supabase';
-import { bolimDaraxti, bosKiritma, f2Jami, f2Qatorlar, f2Qur, f2Yuk, ishBirlikNarxi, korinadiganBolimlar, narxsizNomzodlar, ulushHajm, ishoraliQoldiq, ortiqchaXulosa, smetaNarxXulosa, type F2Holat } from './f2-tayyor';
+import { bolimDaraxti, ishQoldiqQiymati, pulChangmi, resursQoldiqQiymati, bosKiritma, f2Jami, f2Qatorlar, f2Qur, f2Yuk, ishBirlikNarxi, korinadiganBolimlar, narxsizNomzodlar, ulushHajm, ishoraliQoldiq, ortiqchaXulosa, smetaNarxXulosa, type F2Holat } from './f2-tayyor';
 
 const q = (o: Partial<T2Qator> & { id: number; tur: string; norma?: number | null }): T2Qator => ({
   obyekt_id: 8, obyekt: null, kompaniya_id: 1, ota_id: null, daraja: 0, tartib: o.id, kod: null, nom: `q${o.id}`, birlik: 'м3',
@@ -38,7 +38,8 @@ describe('F2 tayyorlash mantig‘i', () => {
   it('ish hajmi → resurslar hajm × norma, narx manbasi bilan, summa avtomatik', () => {
     const b = f2Qur(rows, holat);
     const k = bosKiritma(); k.hajm[2] = '6';
-    expect(f2Qatorlar(b, k).find((x) => x.id === 4)?.xato).toBe('NARX');   // narxsiz — faqat ongli tanlov
+    // Egasi 2026-11-06: narxi yo'q resurs qoralamani to'smaydi — avtomatik narxsiz (xato emas), summa NULL (0 emas).
+    expect(f2Qatorlar(b, k).find((x) => x.id === 4)).toMatchObject({ narxsiz: true, avtoNarxsiz: true, narx: null, summa: null, manba: 'yoq' });
     expect(narxsizNomzodlar(f2Qatorlar(b, k))).toEqual([4]);
     k.narxsiz[4] = true;
     const r = f2Qatorlar(b, k);
@@ -346,7 +347,8 @@ describe('pereraschet: yangi qatorlar smeta narxida (eski F2 arzon narxda bo‘l
     const b = qur(true);
     expect(res(b, 5)).toMatchObject({ taklifNarx: null, taklifManba: 'yoq', zaxiraNarx: 40 });
     const q = new Map(f2Qatorlar(b, kirit()).map((x) => [x.id, x]));
-    expect(q.get(5)).toMatchObject({ narx: null, summa: null, xato: 'NARX' });
+    expect(q.get(5)).toMatchObject({ narx: null, summa: null, avtoNarxsiz: true });
+    expect(q.get(5)?.xato).toBeUndefined();
   });
   it('jamilar: storno (eski narx), yangi (smeta narx), farq; narx farqi eski narxga nisbatan', () => {
     const b = qur(true);
@@ -366,5 +368,37 @@ describe('pereraschet: yangi qatorlar smeta narxida (eski F2 arzon narxda bo‘l
   it('storno qilingan qo‘shimcha mat (fakt 0 ga tushgan) qayta taklif qilinmaydi — ikkala rejimda', () => {
     expect(res(qur(true), 6)).toBeUndefined();
     expect(res(qur(false), 6)).toBeUndefined();
+  });
+});
+
+describe('pul changi (egasi 2026-11-06)', () => {
+  it('ish qiymati = avto rs (hajm × norma × narx) + ichki mat; butun ish bo‘yicha qaror', () => {
+    const b = f2Qur(rows, holat);
+    const ish = b[0].ishlar[0];
+    const v = ishQoldiqQiymati(ish);
+    // Kran (МАШ) narxi noma'lum → qiymat noma'lum (null) — pul bo'yicha tashlanmaydi
+    expect(v).toBeNull();
+    expect(pulChangmi(v)).toBe(false);
+  });
+  it('kichik qiymatli ish chang; noma’lum chang emas; mustaqil resurs alohida', () => {
+    expect(pulChangmi(999.99)).toBe(true);
+    expect(pulChangmi(-500)).toBe(true);
+    expect(pulChangmi(1000)).toBe(false);
+    expect(pulChangmi(null)).toBe(false);
+    const ish = { mumkin: 0.0001, resurslar: [{ avto: true, norma: 2, taklifNarx: 25000, mumkin: 0, nom: 'Ishchi' }, { avto: false, norma: null, taklifNarx: 900000, mumkin: 0.0005, nom: 'Mat' }] } as never;
+    expect(ishQoldiqQiymati(ish)).toBeCloseTo(0.0001 * 2 * 25000 + 0.0005 * 900000, 6);
+    expect(pulChangmi(ishQoldiqQiymati(ish))).toBe(true);
+    expect(resursQoldiqQiymati({ mumkin: 0.001, taklifNarx: 50000 })).toBe(50);
+    expect(resursQoldiqQiymati({ mumkin: 3, taklifNarx: null })).toBeNull();
+  });
+});
+
+describe('chang qoldiq (egasi 2026-11-06)', () => {
+  it('1e-7 kabi kasr qoldiq F2 ga taklif qilinmaydi (0); 1e-5 qoladi', () => {
+    const h2: F2Holat[] = holat.map((x) => (x.qator_id === 7 ? { ...x, f2_mumkin_hajm: 3.77e-7 } : x.qator_id === 6 ? { ...x, f2_mumkin_hajm: 1e-5 } : x));
+    const b = f2Qur(rows, h2);
+    expect(b[0].alohida.map((r) => r.id)).not.toContain(7);
+    const mat = b[0].ishlar[0].resurslar.find((r) => r.id === 6);
+    expect(mat?.mumkin).toBe(0.00001);
   });
 });
