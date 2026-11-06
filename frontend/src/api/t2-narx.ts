@@ -248,12 +248,24 @@ export type F2Tafsilot = {
   gorunish_summa?: number | null;
 };
 
-export function sbT2F2TafsilotOl(p: { obyektId: number; oy?: string; tur?: 'fakt' | 'f2' }) {
+/**
+ * F2/fakt tafsilot qatorlari. Audit C B4/B5 (2026-11-06):
+ *  - tartib NOYOB (`akt_qator_id`): avvalgi `oy,nom` noyob emas edi — parallel OFFSET sahifalash > 1000 qatorda
+ *    qatorlarni takrorlar/yo'qotardi (F2 tarixi, F3, portfel);
+ *  - `aktId` — bitta akt (F2 tarixi eksporti);
+ *  - to'liq bo'lmagan javob (`toliq: false`, eski 20000 chegarasi) MUVAFFAQIYAT EMAS: `ok: false` (yarim ma'lumotdan summa yo'q).
+ */
+export async function sbT2F2TafsilotOl(p: { obyektId: number; oy?: string; tur?: 'fakt' | 'f2'; aktId?: number }): Promise<SbJavob<F2Tafsilot>> {
   const f = ['obyekt_id=eq.' + p.obyektId];
+  if (p.aktId != null) f.push('akt_id=eq.' + p.aktId);
   if (p.oy) f.push('oy=eq.' + p.oy);
   if (p.tur) f.push('tur=eq.' + p.tur);
-  return sbOqi<F2Tafsilot>({
+  const r = await sbOqi<F2Tafsilot>({
     jadval: 't2_f2_tafsilot', filtr: f.join('&'),
-    tartib: 'oy.asc,nom.asc', limit: 20000,
+    tartib: 'akt_qator_id.asc', limit: 200000,
   });
+  if (r.ok && r.toliq === false) {
+    return { ...r, ok: false, qatorlar: [], code: 'TOLIQ_EMAS', error: 'F2 qatorlari to‘liq o‘qilmadi — hisob to‘xtatildi, qayta yangilang.' };
+  }
+  return r;
 }

@@ -13,6 +13,7 @@ const BOSQICH_RU: Record<F2Bosqich, string> = { tasdiqlangan: 'утверждё�
 const MANBA_RU = (m: PaketAkt['akt']['manba']) => (m === 'import' ? 'импорт из файла' : m === 'tizim' ? 'создан в системе' : 'не определён');
 const SABAB_RU: Record<string, string> = {
   QATOR_YOQ: 'нет строк акта — накрутка неизвестна', KOEF_YOQ: 'не заданы проценты накрутки объекта', PODVAL_TOLIQ_EMAS: 'подвал накрутки неполный',
+  QATOR_TOPILMADI: 'строки акта не найдены в смете — сумма не определена',
   KAT_NOMALUM: 'категория затрат неизвестна — накрутка неизвестна',
 };
 const izohRu = (r: PaketAkt): string => {
