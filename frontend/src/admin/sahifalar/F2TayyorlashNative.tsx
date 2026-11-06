@@ -232,16 +232,21 @@ export function F2TayyorlashNative() {
   const [miqdor, setMiqdor] = useState<ReadonlyMap<number, number>>(new Map());
   const [qoshTayyor, setQoshTayyor] = useState(false);
   const [bajXato, setBajXato] = useState(false);
+  /**
+   * O'z hisoblagichi: asosiy `yuklash` (`sorov`) qayta boshlanganda (masalan, qoralamaga avto «davom» o'tishi) bu so'rov
+   * tashlab yuborilmasin — aks holda `qoshTayyor` abadiy false qolib, saqlash sababsiz yopiq turardi.
+   */
+  const qoshSorov = useRef(0);
   const qoshimchaYukla = useCallback(async () => {
     if (!validId || !joriy?.id) { setBaj([]); setZb(null); setMiqdor(new Map()); setBajXato(false); setQoshTayyor(true); return; }
-    const raqam = sorov.current;
+    const raqam = ++qoshSorov.current;
     setQoshTayyor(false);
     const [b, z, m] = await Promise.all([
       bajarilmadiRoyxatOl(joriy.id, obyektId).catch(() => null),
       zamenaBoglanishOl(obyektId).catch(() => null),
       zamenaMiqdorOl(obyektId).catch(() => new Map<number, number>()),
     ]);
-    if (raqam !== sorov.current) return;
+    if (raqam !== qoshSorov.current) return;
     setBaj(b?.ok ? b.qatorlar : []); setBajXato(!b?.ok); setZb(z); setMiqdor(m); setQoshTayyor(true);
   }, [validId, joriy?.id, obyektId]);
   useEffect(() => { void qoshimchaYukla(); }, [qoshimchaYukla]);
@@ -443,7 +448,8 @@ export function F2TayyorlashNative() {
     for (const b of bs) {
       // Pul changi (egasi 2026-11-06): qiymati < 1 000 so'm ish — resurslari bilan BIRGA olinmaydi (resurs sug'urilmaydi); narxi noma'lum — olinadi.
       for (const i of b.ishlar) { if (pulChangmi(ishQoldiqQiymati(i))) continue; if (i.mumkin !== 0) hajm[i.id] = String(i.mumkin); for (const r of i.resurslar) if (!r.avto && r.mumkin !== 0) hajm[r.id] = String(r.mumkin); }
-      for (const r of b.alohida) if (!pulChangmi(resursQoldiqQiymati(r))) hajm[r.id] = String(r.mumkin);
+      // Olinadigan qoldig'i yo'q (mumkin 0) material olinmaydi — narxsiz bo'lsa ham (aks holda «hajm 0 bo'lmasin» saqlashni yopadi).
+      for (const r of b.alohida) if (r.mumkin !== 0 && !pulChangmi(resursQoldiqQiymati(r))) hajm[r.id] = String(r.mumkin);
     }
     return { ...o, hajm };
   });
