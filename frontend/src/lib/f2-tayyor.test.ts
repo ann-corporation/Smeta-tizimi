@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { T2Qator } from '../api/supabase';
-import { bolimDaraxti, bosKiritma, f2Jami, f2Qatorlar, f2Qur, f2Yuk, ishBirlikNarxi, korinadiganBolimlar, narxsizNomzodlar, ulushHajm, ishoraliQoldiq, ortiqchaXulosa, smetaNarxXulosa, type F2Holat } from './f2-tayyor';
+import { bolimDaraxti, ishQoldiqQiymati, pulChangmi, resursQoldiqQiymati, bosKiritma, f2Jami, f2Qatorlar, f2Qur, f2Yuk, ishBirlikNarxi, korinadiganBolimlar, narxsizNomzodlar, ulushHajm, ishoraliQoldiq, ortiqchaXulosa, smetaNarxXulosa, type F2Holat } from './f2-tayyor';
 
 const q = (o: Partial<T2Qator> & { id: number; tur: string; norma?: number | null }): T2Qator => ({
   obyekt_id: 8, obyekt: null, kompaniya_id: 1, ota_id: null, daraja: 0, tartib: o.id, kod: null, nom: `q${o.id}`, birlik: 'м3',
@@ -366,6 +366,28 @@ describe('pereraschet: yangi qatorlar smeta narxida (eski F2 arzon narxda bo‘l
   it('storno qilingan qo‘shimcha mat (fakt 0 ga tushgan) qayta taklif qilinmaydi — ikkala rejimda', () => {
     expect(res(qur(true), 6)).toBeUndefined();
     expect(res(qur(false), 6)).toBeUndefined();
+  });
+});
+
+describe('pul changi (egasi 2026-11-06)', () => {
+  it('ish qiymati = avto rs (hajm × norma × narx) + ichki mat; butun ish bo‘yicha qaror', () => {
+    const b = f2Qur(rows, holat);
+    const ish = b[0].ishlar[0];
+    const v = ishQoldiqQiymati(ish);
+    // Kran (МАШ) narxi noma'lum → qiymat noma'lum (null) — pul bo'yicha tashlanmaydi
+    expect(v).toBeNull();
+    expect(pulChangmi(v)).toBe(false);
+  });
+  it('kichik qiymatli ish chang; noma’lum chang emas; mustaqil resurs alohida', () => {
+    expect(pulChangmi(999.99)).toBe(true);
+    expect(pulChangmi(-500)).toBe(true);
+    expect(pulChangmi(1000)).toBe(false);
+    expect(pulChangmi(null)).toBe(false);
+    const ish = { mumkin: 0.0001, resurslar: [{ avto: true, norma: 2, taklifNarx: 25000, mumkin: 0, nom: 'Ishchi' }, { avto: false, norma: null, taklifNarx: 900000, mumkin: 0.0005, nom: 'Mat' }] } as never;
+    expect(ishQoldiqQiymati(ish)).toBeCloseTo(0.0001 * 2 * 25000 + 0.0005 * 900000, 6);
+    expect(pulChangmi(ishQoldiqQiymati(ish))).toBe(true);
+    expect(resursQoldiqQiymati({ mumkin: 0.001, taklifNarx: 50000 })).toBe(50);
+    expect(resursQoldiqQiymati({ mumkin: 3, taklifNarx: null })).toBeNull();
   });
 });
 

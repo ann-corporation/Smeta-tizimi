@@ -527,3 +527,30 @@ export function narxsizNomzodlar(q: F2Qator[]): number[] {
 export function f2KatKesim(q: F2Qator[]): KatKesim {
   return katKesimYigish(q.filter((x) => x.tur !== 'bl' && x.summa != null), (x) => x.kat, (x) => x.summa);
 }
+
+/** Pul bo'yicha chang chegarasi (egasi 2026-11-06): «Barcha / bo'limni to'liq olish» bundan kichik qiymatli ishni olmaydi. */
+export const F2_CHANG_PUL = 1000;
+/**
+ * Ish qolgan qiymati (ustamasiz, taxmin): avtomatik resurslar (ish mumkin × norma × narx) + ichidagi mustaqil materiallar
+ * (mumkin × narx). Resurs ishdan sug'urib olinmaydi — qaror BUTUN ish uchun. Biror pulli qism narxi noma'lum → null
+ * (qiymati noma'lum: pul bo'yicha tashlanmaydi, NULL ≠ 0). Mashinist mehnati (smetada narxsiz) hisobga olinmaydi.
+ */
+export function ishQoldiqQiymati(i: Pick<F2Ish, 'mumkin' | 'resurslar'>): number | null {
+  let s = 0;
+  for (const r of i.resurslar) {
+    if (r.chiqarilgan) continue;
+    const h = r.avto ? (r.norma == null ? null : i.mumkin * r.norma) : r.mumkin;
+    if (h == null || Math.abs(h) < 1e-9) continue;
+    if (r.taklifNarx == null) { if (mashinistMehnati(r)) continue; return null; }
+    s += h * r.taklifNarx;
+  }
+  return s;
+}
+/** Mustaqil material/jihoz qolgan qiymati: narx noma'lum → null. */
+export function resursQoldiqQiymati(r: Pick<F2Resurs, 'mumkin' | 'taklifNarx'>): number | null {
+  return r.taklifNarx == null ? null : r.mumkin * r.taklifNarx;
+}
+/** Pul changi: qiymati ma'lum va |qiymat| < chegara. Noma'lum qiymat chang emas. */
+export function pulChangmi(qiymat: number | null, chegara = F2_CHANG_PUL): boolean {
+  return qiymat != null && Math.abs(qiymat) < chegara;
+}
