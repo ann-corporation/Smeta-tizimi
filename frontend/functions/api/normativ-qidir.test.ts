@@ -75,7 +75,7 @@ it.each(['missing', 'size', 'tamper', 'key'])('fails closed on %s source', async
 it('includes a reviewed anchor beyond the first 800 characters', async () => {
   const h = await setup('x'.repeat(1200) + 'Synthetic target clause.', 'Synthetic target clause.');
   const response = await h.call();
-  const { natijalar: [citation] } = await response.json();
+  const { natijalar: [citation] } = await response.json() as { natijalar: { iqtibos: string; qisqartirilgan: boolean }[] };
   expect(citation.iqtibos).toContain('Synthetic target clause.');
   expect(citation.iqtibos.length).toBeLessThanOrEqual(800);
   expect(citation.qisqartirilgan).toBe(true);
