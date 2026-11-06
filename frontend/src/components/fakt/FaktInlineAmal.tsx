@@ -9,6 +9,7 @@ import type { AlmashtirishBelgilaFn } from '../../lib/fakt-studio';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 import { sarlavhaBilan } from '../../lib/hotkeys/core';
 import { KatNishon } from '../../umumiy/ui/KatNishon';
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import {
   birlikFarqli, bosForma, INLINE_TAB, INLINE_TURLAR, inlineTekshir, inlineXato, inlineYuklama, normaQollanadi, zamenaRejim,
   type InlineForma, type InlineKontekst, type InlineQator, type InlineTur,
@@ -193,7 +194,7 @@ export function FaktInlineAmal({ kompaniyaId, obyektId, sana, qator, kontekst, t
           <label className={lab}>{ishNarxli ? t('Birlik narxi (tarkibdan)') : t('Birlik narxi (NDS siz)')}
             {ishNarxli
               ? <span className="flex h-8 items-center justify-end rounded-[var(--radius-sm)] border border-border bg-surface-2 px-2 font-mono tabular-nums text-text-dim" data-testid="inline-ish-narx">{narxsiz ? t('narxsiz') : fmt(sostavHisob.ishNarxi, 2)}</span>
-              : <input value={forma.narx} onChange={(e) => ozgar({ narx: e.target.value, manba: 'qolda' })} inputMode="decimal" placeholder={t('bo‘sh = narxsiz')} aria-label={t('Birlik narxi')} className={num} />}
+              : <MoneyInput value={forma.narx} onValueChange={(raw) => ozgar({ narx: raw, manba: 'qolda' })} placeholder={t('bo‘sh = narxsiz')} aria-label={t('Birlik narxi')} className={num} />}
             {!ishNarxli && son(forma.narx) != null && <span className="text-[10.5px] font-normal text-text-mute">{t('manba: {m}', { m: t(MANBA_NOMI[forma.manba]) })}</span>}
           </label>
           {!resursZamena && <label className={lab}>{t('Bugun bajarildi (fakt)')}<input value={forma.fakt} onChange={(e) => ozgar({ fakt: e.target.value })} inputMode="decimal" placeholder={t('ixtiyoriy')} aria-label={t('Bugun bajarildi (fakt)')} className={num} /></label>}

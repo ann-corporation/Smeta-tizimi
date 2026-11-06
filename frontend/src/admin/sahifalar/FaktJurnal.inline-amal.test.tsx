@@ -122,7 +122,7 @@ describe('Fakt jurnali — inline zamena / qo‘shimcha (oynasiz)', () => {
     const variant = within(await within(panel()).findByRole('listbox', {}, { timeout: 2000 })).getByRole('option');
     fireEvent.mouseDown(variant);
     expect(maydon('Birlik').value).toBe('т');
-    expect(maydon('Birlik narxi').value).toBe('7000');
+    expect(maydon('Birlik narxi').value.replace(/\s/g, '')).toBe('7000');
     expect((within(panel()).getByLabelText('Qayerga qo‘shiladi') as HTMLSelectElement).value).toBe('shu');
     fireEvent.change(maydon('Hajm'), { target: { value: '2' } });
     fireEvent.change(maydon('Bugun bajarildi (fakt)'), { target: { value: '2' } });
