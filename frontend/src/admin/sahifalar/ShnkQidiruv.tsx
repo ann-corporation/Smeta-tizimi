@@ -42,7 +42,7 @@ export function ShnkQidiruv({ kompaniyaId, shifr }: { kompaniyaId: number; shifr
   const query = (shifr ?? q).trim();
   return <section className="space-y-2">
     {!shifr && <input className="inp w-full" aria-label={t('Normativ shifri yoki nomi')}
-      value={q} maxLength={120} onChange={e => setQ(e.target.value)}
+      value={q} maxLength={120} onChange={e => { active.current?.abort(); setQ(e.target.value); setEdition(''); setCitations([]); setState('idle'); }}
       onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void search(); } }} />}
     {state === 'done' && reason === 'EDITION_REQUIRED' && <input className="inp w-full"
       aria-label={t('Normativ tahriri')} value={edition} maxLength={120} onChange={e => setEdition(e.target.value)} />}
