@@ -314,6 +314,9 @@ def run(source, output, meta=None, ocr=None, lang='rus+uzb_cyrl', threshold=90, 
                                 if key in annotations:
                                     if unit['method'] == 'unread':
                                         raise ValueError('ANNOTATION_ON_UNREAD_UNIT')
+                                    anchor = annotations[key].get('iqtibos_anchor')
+                                    if anchor and anchor not in chunk['matn']:
+                                        raise ValueError('CITATION_ANCHOR_NOT_FOUND')
                                     chunk.update(annotations[key])
                                 chunk['sha'] = digest(encoded(chunk)); atomic(job/(key+'.json'), chunk)
                             saved = json.loads((job/(key+'.json')).read_text(encoding='utf-8'))

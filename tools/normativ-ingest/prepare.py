@@ -48,7 +48,7 @@ def prepare(root, manifest, output, **options):
             raise ValueError('DUPLICATE_REVIEWED_IDENTITY')
         seen.add(identity)
         annotations = item.get('annotations', {})
-        limits = {'qidiruv_yorliq': 500, 'jadval_kod': 120, 'bob_punkt': 120}
+        limits = {'qidiruv_yorliq': 500, 'jadval_kod': 120, 'bob_punkt': 120, 'iqtibos_anchor': 160}
         for fields in annotations.values():
             if not fields or any(key not in limits or not isinstance(value, str)
                                  or not value.strip() or len(value) > limits[key]
