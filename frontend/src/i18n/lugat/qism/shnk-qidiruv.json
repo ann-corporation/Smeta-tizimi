@@ -1,9 +1,34 @@
 {
-  "Normativ shifri yoki nomi": {"ru": "Шифр или название норматива", "en": "Standard code or title"},
-  "Normani ko‘rish": {"ru": "Посмотреть норму", "en": "View standard"},
-  "Normativ qidirilmoqda…": {"ru": "Поиск норматива…", "en": "Searching standards…"},
-  "Normativ qidiruvini ochib bo‘lmadi.": {"ru": "Поиск нормативов недоступен.", "en": "Standard search is unavailable."},
-  "Mos nashr qilingan normativ topilmadi.": {"ru": "Подходящий опубликованный норматив не найден.", "en": "No matching published standard found."},
-  "PDF sahifa {n}": {"ru": "Страница PDF {n}", "en": "PDF page {n}"},
-  "ShNK normativlari": {"ru": "Нормативы ШНК", "en": "ShNK standards"}
+  "Normativ shifri yoki nomi": {
+    "ru": "Шифр или название норматива",
+    "en": "Standard code or title"
+  },
+  "Normani ko‘rish": {
+    "ru": "Посмотреть норму",
+    "en": "View standard"
+  },
+  "Normativ qidirilmoqda…": {
+    "ru": "Поиск норматива…",
+    "en": "Searching standards…"
+  },
+  "Normativ qidiruvini ochib bo‘lmadi.": {
+    "ru": "Поиск нормативов недоступен.",
+    "en": "Standard search is unavailable."
+  },
+  "Mos nashr qilingan normativ topilmadi.": {
+    "ru": "Подходящий опубликованный норматив не найден.",
+    "en": "No matching published standard found."
+  },
+  "PDF sahifa {n}": {
+    "ru": "Страница PDF {n}",
+    "en": "PDF page {n}"
+  },
+  "ShNK normativlari": {
+    "ru": "Нормативы ШНК",
+    "en": "ShNK standards"
+  },
+  "Normativlar": {
+    "ru": "Нормативы",
+    "en": "Standards"
+  }
 }

@@ -91,7 +91,7 @@ export default function SmetaStudio() {
   useEffect(()=>{lsSet('studio:panels',String(panels));lsSet('studio:left-width',String(leftWidth));lsSet('studio:right-width',String(rightWidth));},[panels,leftWidth,rightWidth]);
   const [inspectorTab,setInspectorTab]=useState<InspectorTab>('work');
   const [reviewOpen, setReviewOpen] = useState(false);
-  const [workspaceView,setWorkspaceView]=useState<'overview'|'editor'|'calculator'>('editor');
+  const [workspaceView,setWorkspaceView]=useState<'overview'|'editor'|'calculator'|'normativ'>('editor');
   const [worksheet,setWorksheet]=useState(true);
   const [cloudOpen,setCloudOpen]=useState(false);
   const [autoSave,setAutoSave]=useState<{company:number;draft:string}|null>(null);
@@ -403,7 +403,6 @@ export default function SmetaStudio() {
         <StudioSections doc={doc} target={nishon} onTarget={setNishon} command={amal}/>
         <div className="studio-pane-scroll">
           <details className="studio-context"><summary>{t('Smeta va obyekt sozlamalari')}</summary><ObjectBinding doc={doc} company={joriyId ?? null} command={amal}/></details>
-        {joriyId != null && <details className="studio-context"><summary>{t('ShNK normativlari')}</summary><ShnkQidiruv key={joriyId} kompaniyaId={joriyId}/></details>}
         {katalogHolat === 'yuklanmoqda' && <p className="text-text-dim">{t('Normativ katalog yuklanmoqda...')}</p>}
         {katalogHolat === 'yoq' && <p className="text-warn">{t('Platforma normativ katalogi hali yuklanmagan.')}</p>}
         {katalogHolat === 'xato' && <p className="text-danger">{t('Katalog ochilmadi. Sahifani yangilab qayta urinib ko‘ring.')}</p>}
@@ -427,9 +426,15 @@ export default function SmetaStudio() {
       </section>
       <main className="studio-workarea studio-pane" aria-label={t('Smeta jadvali')}>
         <div className="studio-pane-title"><span className="studio-step">02</span><strong>{t('Smeta')}</strong><nav aria-label={t('Smeta ish joyi')} className="studio-center-tabs">
-          {([['lrv','Ishlar'],['narx','Narxlar'],['review','Tekshiruv'],['res','Hujjatlar']] as const).map(([key,label])=><button key={key} aria-current={(key==='review' ? reviewOpen : !reviewOpen && bosqich===key) ? 'page' : undefined} onClick={()=>{setWorkspaceView('editor');if(key==='review')setReviewOpen(true);else setBosqich(key);}}>{t(label)}</button>)}
+          {([['lrv','Ishlar'],['narx','Narxlar'],['review','Tekshiruv'],['res','Hujjatlar']] as const).map(([key,label])=><button key={key} aria-current={workspaceView==='editor' && (key==='review' ? reviewOpen : !reviewOpen && bosqich===key) ? 'page' : undefined} onClick={()=>{setWorkspaceView('editor');if(key==='review')setReviewOpen(true);else setBosqich(key);}}>{t(label)}</button>)}
+          {joriyId != null && <button type="button" aria-current={workspaceView==='normativ' ? 'page' : undefined}
+            onClick={() => setWorkspaceView('normativ')}>{t('Normativlar')}</button>}
         </nav></div>
         <div className="studio-center-content">
+        {workspaceView==='normativ' && joriyId != null && <div className="p-4">
+          <h2 className="mb-3 font-medium">{t('ShNK normativlari')}</h2>
+          <ShnkQidiruv key={joriyId} kompaniyaId={joriyId}/>
+        </div>}
         {workspaceView==='editor' && reviewOpen && <WorkspaceReview doc={doc} calculation={hisob} onPrices={()=>setBosqich('narx')} onWork={openWork} />}
         {openedViews.includes('narx') && <div hidden={workspaceView!=='editor' || reviewOpen || bosqich!=='narx'}><NarxlashBosqichi key={`${joriyId}:${doc.draftId}`}  doc={doc} hisob={hisob} command={amal} kompaniyaId={joriyId ?? null} hudud={hudud} setHudud={setHudud} unitText={unitText} onNext={() => setBosqich('res')} /></div>}
         {openedViews.includes('res') && <div hidden={workspaceView!=='editor' || reviewOpen || bosqich!=='res'}><DocumentCenter doc={doc} calculation={hisob} onReview={()=>{setWorkspaceView('editor');setReviewOpen(true);}}><ResBosqichi key={`${joriyId}:${doc.draftId}`} doc={doc} hisob={hisob} unitText={unitText} katalog={katalog} kompaniyaId={joriyId ?? null} onBack={() => setBosqich('narx')} /></DocumentCenter></div>}
