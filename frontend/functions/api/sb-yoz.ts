@@ -1274,7 +1274,7 @@ export const onRequestPost: PagesFunction<{
           certified_amount: q.price_intentionally_absent === true ? null : q.certified_amount,
           price_intentionally_absent: q.price_intentionally_absent === true,
           certified_source_hash: q.certified_source_hash ? String(q.certified_source_hash).slice(0, 200) : null,
-          raw_snapshot: q.raw_snapshot ?? null, izoh: q.izoh ? String(q.izoh).slice(0, 500) : null,
+          raw_snapshot: f2RawSnapshot(q), izoh: q.izoh ? String(q.izoh).slice(0, 500) : null,
         })),
         p_operation_id: so.operation_id, p_manba: 'frontend_v2',
       };
@@ -1315,7 +1315,7 @@ export const onRequestPost: PagesFunction<{
         certified_amount: q.price_intentionally_absent === true ? null : q.certified_amount,
         price_intentionally_absent: q.price_intentionally_absent === true,
         certified_source_hash: q.certified_source_hash ? String(q.certified_source_hash).slice(0, 200) : null,
-        raw_snapshot: q.raw_snapshot ?? null,
+        raw_snapshot: f2RawSnapshot(q),
         izoh: q.izoh ? String(q.izoh).slice(0, 500) : null,
       }));
       if (v2Qatorlar.some((q: any) => !Number.isFinite(q.qator_id) || q.qator_id <= 0)) {
@@ -3414,4 +3414,15 @@ export function f2AktRaqamZiddiyati(amal: string, matn: string): boolean {
     const j = JSON.parse(matn) as { code?: string; message?: string };
     return j.code === '23505' && typeof j.message === 'string' && /\bt2_akt_(kalit_uniq|raqam_takror)\b/.test(j.message);
   } catch { return false; }
+}
+
+/** F2 qatori raw_snapshot: storno manba qatori (manba_akt_qator_id) yuqori darajada kelsa raw_snapshot ichiga ko'chiriladi.
+ * Server (20261203001500) storno takrori va himoyasini shu kalit bo'yicha tekshiradi; t2_akt_qator.manba_akt_qator_id
+ * USTUNIGA yozilmaydi (u «Fakt = F2» nusxa izi). Boshqa hollarda raw_snapshot o'zgarishsiz o'tadi. */
+function f2RawSnapshot(q: any): unknown {
+  const raw = q?.raw_snapshot ?? null;
+  const m = Number(q?.manba_akt_qator_id);
+  if (!Number.isSafeInteger(m) || m <= 0) return raw;
+  const asos = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  return { ...asos, manba_akt_qator_id: m };
 }
