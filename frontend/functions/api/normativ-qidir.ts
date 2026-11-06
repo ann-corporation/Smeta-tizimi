@@ -35,13 +35,18 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   if (authority.rol !== 'superadmin' && !authority.permissionsByCompany?.[company]?.includes('company.read')) {
     return fail('FORBIDDEN', 403);
   }
+  // Three-part estimate table references share the canonical 00-00-000 table format.
+  const tableAlias = q?.match(/^[EЕ](\d{1,2})-(\d{1,2})-(\d{1,3})$/i);
+  const search = tableAlias
+    ? tableAlias.slice(1).map((part, index) => part.padStart(index === 2 ? 3 : 2, '0')).join('-')
+    : q;
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const result = await fetch(supabaseBaseUrl(env.SUPABASE_URL) + '/rest/v1/rpc/t2_normativ_qidir_v1', {
       method: 'POST', redirect: 'error', signal: AbortSignal.timeout(5000),
       headers: { apikey: env.SUPABASE_KEY, Authorization: 'Bearer ' + env.SUPABASE_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        p_actor_id: authority.foydalanuvchi_id, p_kompaniya_id: company, p_q: q, p_tahrir: edition,
+        p_actor_id: authority.foydalanuvchi_id, p_kompaniya_id: company, p_q: search, p_tahrir: edition,
         p_hujjat_id: doc, p_sha: sha, p_limit: limit,
       }),
     });

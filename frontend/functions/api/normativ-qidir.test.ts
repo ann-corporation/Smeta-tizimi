@@ -80,3 +80,10 @@ it('includes a reviewed anchor beyond the first 800 characters', async () => {
   expect(citation.iqtibos.length).toBeLessThanOrEqual(800);
   expect(citation.qisqartirilgan).toBe(true);
 });
+it.each([['Е6-1-34', '06-01-034'], ['E6-1-34', '06-01-034'], ['Е6-1-34-2', 'Е6-1-34-2']])(
+  'uses exact table reference for %s without dropping work suffixes', async (input, expected) => {
+    const h = await setup();
+    expect((await h.call('kompaniya_id=3&q=' + encodeURIComponent(input))).status).toBe(200);
+    expect(JSON.parse(String(h.rpc.mock.calls.at(-1)?.[1]?.body))).toMatchObject({ p_q: expected });
+  },
+);
