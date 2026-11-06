@@ -2,6 +2,17 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 125,
+      "sana": "2026-11-07",
+      "sarlavha": "Fakt kiritish endi to'liq klaviaturada",
+      "bandlar": [
+        "Fakt jurnalida qatorlar bo'ylab ↑/↓, PgUp/PgDn, Home/End bilan yuring; ←/→ ishni yig'adi va ochadi. Enter yoki raqam — hajmni yozish, Enter — keyingi qator, Esc — bekor.",
+        "«*» — ochiq qoldiqni to'liq yozadi, Delete — kiritilganni o'chiradi, «%» — faol bo'lim yoki ish uchun Qamrov %. Ctrl+Enter yoki Ctrl+S — saqlash (to'silsa sababi ko'rsatiladi).",
+        "«/» — qidiruv, Enter — birinchi topilganga, n / Shift+N — keyingi/oldingi. Alt+1…4 — hammasi, kiritilganlar, boshlanmagan, chala.",
+        "Sahifa qayerda to'xtaganingizni eslab qoladi va qayta ochganda shu qatorga qaytaradi («g», keyin «l»). «?» — barcha tugmalar ro'yxati."
+      ]
+    },
+    {
       "id": 124,
       "sana": "2026-11-06",
       "sarlavha": "Excel hujjatlar ixchamroq: shifr qatorni shishirmaydi",

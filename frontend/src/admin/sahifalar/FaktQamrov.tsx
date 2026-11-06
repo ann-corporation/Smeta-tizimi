@@ -88,7 +88,13 @@ export function FaktQamrov({ sarlavha, ishlar, holatMap, narxOl, obyektId, kompa
         <div className="flex flex-wrap items-center gap-3 text-[12px]">
           <label className="flex items-center gap-2 font-medium text-text-dim">{t('Bajarilish foizi')}
             <input autoFocus value={foizMatn} disabled={!!urinish} onChange={(e) => setFoizMatn(e.target.value)} onFocus={(e) => e.currentTarget.select()} inputMode="decimal"
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.ctrlKey) { e.preventDefault(); void yoz(); } }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.ctrlKey) { e.preventDefault(); void yoz(); return; }
+                // Klaviatura (egasi 2026-11-07): ↑/↓ — ±5%, PgUp/PgDn — ±25% (0…100 oralig'ida).
+                const qadam = ({ ArrowUp: 5, ArrowDown: -5, PageUp: 25, PageDown: -25 } as Record<string, number>)[e.key];
+                if (qadam) { e.preventDefault(); setFoizMatn(String(Math.max(0, Math.min(100, (foiz ?? 0) + qadam)))); }
+              }}
+              title={t('↑/↓ — ±5%, PgUp/PgDn — ±25%, Enter — yozish, Esc — yopish')}
               aria-label={t('Bajarilish foizi')} className={`input h-8 w-20 px-2 text-right font-mono ${foiz == null ? 'border-warn' : ''}`} />%</label>
           <div className="flex gap-1">{[25, 50, 70, 100].map((p) => <button key={p} type="button" disabled={!!urinish} onClick={() => setFoizMatn(String(p))}
             className={`fz-btn fz-btn--sm ${foiz === p ? 'border-transparent bg-accent/15 text-text' : 'fz-btn--ghost'}`}>{p}%</button>)}</div>
