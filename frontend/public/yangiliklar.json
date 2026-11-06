@@ -4,19 +4,17 @@
     {
       "id": 124,
       "sana": "2026-11-06",
-      "sarlavha": "Katta obyektlar tezroq ochiladi",
+      "sarlavha": "Excel hujjatlar ixchamroq: shifr qatorni shishirmaydi",
       "bandlar": [
-        "26 mingdan ortiq qatorli smeta (masalan, Sun'iy ko'l) endi serverdan bitta so'rovda to'liq keladi — avval 6 va undan ko'p ketma-ket so'rov kerak edi. Qatorlar soni va summalar avvalgidek to'liq tekshiriladi."
+        "F2 va boshqa rasmiy Excel hujjatlarida qator balandligi faqat nomga qarab olinadi; uzun shifr, kod va birlik katakka shriftni kichraytirib sig'adi. Varaqlar soni kamayadi."
       ]
     },
     {
       "id": 123,
       "sana": "2026-11-06",
-      "sarlavha": "Katta obyektlar tezroq ochiladi: F2 tayyorlash endi qotmaydi",
+      "sarlavha": "Katta obyektlar tezroq ochiladi",
       "bandlar": [
-        "F2 tayyorlashda ТН·КМ (transport) takliflari har bosishda butun smetani qayta ko‘rib chiqardi — Sun’iy ko‘l kabi obyektlarda brauzer qotib qolardi. Endi bir marta hisoblanadi; natija o‘sha.",
-        "Ishlar ro‘yxati qismlab chiziladi: avval 120 ta, pastga tushganda keyingilari o‘zi qo‘shiladi. Hisob, jami va saqlash butun F2 bo‘yicha — o‘zgarmagan.",
-        "Ortiqcha so‘rovlar olib tashlandi: obyektlar ro‘yxati umumiy keshdan, zamena ma’lumoti bitta so‘rovda, asl smeta farqi bir marta o‘qiladi."
+        "26 mingdan ortiq qatorli smeta (masalan, Sun'iy ko'l) endi serverdan bitta so'rovda to'liq keladi — avval 6 va undan ko'p ketma-ket so'rov kerak edi. Qatorlar soni va summalar avvalgidek to'liq tekshiriladi."
       ]
     },
     {

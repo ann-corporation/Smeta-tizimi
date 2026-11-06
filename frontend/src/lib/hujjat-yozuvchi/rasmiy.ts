@@ -338,7 +338,7 @@ export function rasmiyStylesXml(mavzu: RangMavzusi = 'kulrang', d: HujjatDizayn 
   const pf = pulFmtId(d);
   const fmtOf: Record<LevKind, number> = { matn: 0, markaz: 0, pul: pf, hajm: 165, norma: 166, foiz: 2 };
   const alOf = (k: LevKind, otstup: number): string => (k === 'matn' ? `horizontal="left" vertical="top" wrapText="1"${otstup > 0 ? ` indent="${otstup}"` : ''}`
-    : k === 'markaz' ? 'horizontal="center" vertical="top" wrapText="1"' : R);
+    : k === 'markaz' ? 'horizontal="center" vertical="top" shrinkToFit="1"' : R);
   const levXfs: string[] = [];
   DARAJALAR.forEach((lv, li) => {
     const u = d.daraja[lv];
@@ -616,7 +616,9 @@ export class RasmiyVaraq {
       const v = q[i];
       const ku = v != null && typeof v === 'object' ? v.uslub : undefined;
       this.kerakYangila(i, u, v, ku, qalin, sz);
-      if (typeof v === 'string' && (u.tur === 'matn' || u.tur === 'kod' || u.tur === 'birlik')) {
+      // Qator balandligi faqat nom (matn) ustunidan: uzun shifr/birlik tor katakda qatorni shishirib, varaqlarni ko'paytirmasin
+      // (egasi 2026-11-07) — ular shrinkToFit bilan katakka sig'adi.
+      if (typeof v === 'string' && u.tur === 'matn') {
         matnlar.push({ matn: v, col: i, qalin, otstup: u.tur === 'matn' ? dz?.otstup ?? 0 : 0, sz });
       }
       if (!lv) return katakXml(i, rangli(ku === 'norma' ? RS.norma : ku === 'foiz' ? RS.foiz : uslub(tur, u.tur), rang), v);
@@ -656,7 +658,9 @@ export class RasmiyVaraq {
       const soz = Math.max(0, ...son.split(/\s+/).map((s) => s.length));
       len = soz * (son === son.toUpperCase() && /[А-ЯЁ]/.test(son) ? 1.25 : 1);
     }
-    if (len > 0) this.kerak[i] = Math.max(this.kerak[i], Math.min(45, Math.ceil(len * ol + 2)));
+    // Shifr/kod ustuni 18 belgidan kengaymaydi — uzun shifr shrinkToFit bilan sig'adi, jadval varaq eniga sig'sin.
+    const chek = u.tur === 'kod' ? 18 : 45;
+    if (len > 0) this.kerak[i] = Math.max(this.kerak[i], Math.min(chek, Math.ceil(len * ol + 2)));
   }
 
   /** Ustunning yakuniy eni: belgilangan eni va mazmun talabidan kattasi. */
