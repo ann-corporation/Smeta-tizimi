@@ -73,6 +73,22 @@ def upload_one(client, bucket, key, body, digest):
         if existing.get('Metadata', {}).get('sha256') != digest or existing.get('ContentLength') != len(body):
             raise ValueError('IMMUTABLE_OBJECT_MISMATCH') from None
 
+def verify_original(client, bucket, key, expected_size, expected_sha):
+    digest = hashlib.sha256()
+    size = 0
+    stream = client.get_object(Bucket=bucket, Key=key)['Body']
+    try:
+        while block := stream.read(1024 * 1024):
+            size += len(block)
+            if size > expected_size:
+                raise ValueError('R2_ORIGINAL_INTEGRITY')
+            digest.update(block)
+    finally:
+        stream.close()
+    if size != expected_size or digest.hexdigest() != expected_sha:
+        raise ValueError('R2_ORIGINAL_INTEGRITY')
+
+
 def register(plan, actor, operation_id, url, token):
     payload = {'p_actor_id':int(actor),'p_operation_id':operation_id,'p_doc':plan['doc'],'p_bolaklar':plan['chunks']}
     request = Request(url.rstrip('/')+'/rest/v1/rpc/t2_normativ_hujjat_qosh_v1', data=canonical(payload),
@@ -92,7 +108,10 @@ def apply_plan(plan, env):
     import boto3
     client = boto3.client('s3', endpoint_url='https://'+env['R2_ACCOUNT_ID']+'.r2.cloudflarestorage.com',
         aws_access_key_id=env['AWS_ACCESS_KEY_ID'], aws_secret_access_key=env['AWS_SECRET_ACCESS_KEY'],region_name='auto')
-    for key, body, digest in plan['objects']: upload_one(client, env['R2_BUCKET'], key, body, digest)
+    for key, body, digest in plan['objects']:
+        upload_one(client, env['R2_BUCKET'], key, body, digest)
+        if key.startswith('normativ/original/'):
+            verify_original(client, env['R2_BUCKET'], key, len(body), digest)
     operation = str(uuid.uuid5(uuid.NAMESPACE_URL, plan['job_sha']+':'+env['actor']))
     return register(plan, env['actor'], operation, base, env['SUPABASE_SERVICE_ROLE_KEY'])
 
