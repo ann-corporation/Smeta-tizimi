@@ -5,7 +5,7 @@
  *   2. daraja shrifti: BL qalin, RS kursiv, MAT/OB qalin (dizayn sozlamasiga ko'ra);
  *   3. har daraja katagida to'rt tomonlama ramka (dizaynda ramka yoqilgan bo'lsa);
  *   4. hech bir ustun o'z sonidan tor emas (formatlangan son, minglik ajratgich bilan);
- *   5. uzun matn katagi o'ralgan (wrap).
+ *   5. uzun matn katagi o'ralgan (wrap) yoki katakka sig'dirilgan (shrinkToFit — shifr/birlik).
  */
 import { strFromU8, unzipSync } from 'fflate';
 import { sonUzunligi, type DarajaKalit, type HujjatDizayn } from './dizayn';
@@ -49,7 +49,7 @@ export function dizaynOqi(bytes: Uint8Array): DizaynOqildi {
   });
   const xflar = [...blok('cellXfs').matchAll(/<xf\b([^>]*?)(?:\/>|>([\s\S]*?)<\/xf>)/g)].map((m) => ({
     numFmtId: Number(attr(m[1], 'numFmtId') ?? 0), fontId: Number(attr(m[1], 'fontId') ?? 0), fillId: Number(attr(m[1], 'fillId') ?? 0), borderId: Number(attr(m[1], 'borderId') ?? 0),
-    wrap: /wrapText="1"/.test(m[2] ?? ''), indent: Number(/indent="(\d+)"/.exec(m[2] ?? '')?.[1] ?? 0), horizontal: /horizontal="(\w+)"/.exec(m[2] ?? '')?.[1] ?? null,
+    wrap: /wrapText="1"|shrinkToFit="1"/.test(m[2] ?? ''), indent: Number(/indent="(\d+)"/.exec(m[2] ?? '')?.[1] ?? 0), horizontal: /horizontal="(\w+)"/.exec(m[2] ?? '')?.[1] ?? null,
   }));
   const varaqlar: DizaynVaraq[] = Object.keys(z).filter((k) => /^xl\/worksheets\/sheet\d+\.xml$/.test(k)).sort((a, b) => Number(/(\d+)/.exec(a)![1]) - Number(/(\d+)/.exec(b)![1])).map((k) => {
     const x = strFromU8(z[k]);
