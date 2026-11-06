@@ -28,3 +28,5 @@ norma_kod, tahrir, title. Для ZIP добавьте точное имя member
    ответа и новым UUID операции. Затем проверить PTO-поиск, включая
    страницу, таблицу и фактический текст цитаты. Миграция для этих
    переходов не нужна.
+
+Для отбора кандидатов таблиц: python tools/normativ-ingest/table_candidates.py <ingest-queue.json> <private-output.json>. Заголовки сверяются с PDF перед добавлением в annotations.
