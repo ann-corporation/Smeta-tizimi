@@ -130,7 +130,9 @@ export function ishoraliQoldiq(chegara: number, olingan: number): number {
   return Math.min(0, Math.max(chegara, chegara - olingan));
 }
 /** Nolga teng emas (minus ham F2 ga olinadi). */
-const nol = (x: number) => Math.abs(x) > 1e-9;
+/** Chang chegarasi: eski F2 hisobidan qolgan 1e-7 kabi kasr qoldiqlar (egasi 2026-11-06, Amfiteatr) F2 ga taklif qilinmaydi. */
+const CHANG = 1e-6;
+const nol = (x: number) => Math.abs(x) > CHANG;
 
 /** Smeta daraxti → F2 uchun bo'limlar/ishlar/resurslar (faqat F2 olish mumkin bo'lganlar). */
 export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarxlari, manba: F2Manba = 'fakt', qoralama?: ReadonlyMap<number, number>, ktx?: F2QurKontekst): F2Bolim[] {
@@ -175,7 +177,8 @@ export function f2Qur(rows: T2Qator[], holat: F2Holat[], protokol?: ProtokolNarx
   // Qoralamadagi (tasdiqlanmagan) F2 hajmi qoldiqdan AYIRILADI - bir ishni ikki marta F2 qilish xavfi bo'lmasin.
   const qor = (id: number) => Math.max(0, qoralama?.get(id) ?? 0);
   /** Manfiy (chegirma) qoldiqda qoralamadagi manfiy hajm ayiriladi, ishora o'zgarmaydi. */
-  const mumkin = (id: number) => {
+  const mumkin = (id: number) => { const m = mumkinXom(id); return Math.abs(m) < CHANG ? 0 : y6(m); };
+  const mumkinXom = (id: number) => {
     const b0 = baza(id);
     // Ortiqcha F2 chegirmasi: qoralamadagi hajm ishorasidan qat'i nazar ayiriladi (sof F2 = fakt); natija ≤ 0, ishora o'zgarmaydi.
     if (b0 < 0 && ortiqcha(id) != null) return Math.min(0, y6(b0 - (qoralama?.get(id) ?? 0)));
@@ -523,4 +526,31 @@ export function narxsizNomzodlar(q: F2Qator[]): number[] {
 /** Ustamali jami uchun kategoriya kesimi (egasi 2026-10-24): kat - smeta qatoridan; kat'siz qator "kat noma'lum" bo'lib qoladi (yagona qatlam: lib/ustamali-summa). */
 export function f2KatKesim(q: F2Qator[]): KatKesim {
   return katKesimYigish(q.filter((x) => x.tur !== 'bl' && x.summa != null), (x) => x.kat, (x) => x.summa);
+}
+
+/** Pul bo'yicha chang chegarasi (egasi 2026-11-06): «Barcha / bo'limni to'liq olish» bundan kichik qiymatli ishni olmaydi. */
+export const F2_CHANG_PUL = 1000;
+/**
+ * Ish qolgan qiymati (ustamasiz, taxmin): avtomatik resurslar (ish mumkin × norma × narx) + ichidagi mustaqil materiallar
+ * (mumkin × narx). Resurs ishdan sug'urib olinmaydi — qaror BUTUN ish uchun. Biror pulli qism narxi noma'lum → null
+ * (qiymati noma'lum: pul bo'yicha tashlanmaydi, NULL ≠ 0). Mashinist mehnati (smetada narxsiz) hisobga olinmaydi.
+ */
+export function ishQoldiqQiymati(i: Pick<F2Ish, 'mumkin' | 'resurslar'>): number | null {
+  let s = 0;
+  for (const r of i.resurslar) {
+    if (r.chiqarilgan) continue;
+    const h = r.avto ? (r.norma == null ? null : i.mumkin * r.norma) : r.mumkin;
+    if (h == null || Math.abs(h) < 1e-9) continue;
+    if (r.taklifNarx == null) { if (mashinistMehnati(r)) continue; return null; }
+    s += h * r.taklifNarx;
+  }
+  return s;
+}
+/** Mustaqil material/jihoz qolgan qiymati: narx noma'lum → null. */
+export function resursQoldiqQiymati(r: Pick<F2Resurs, 'mumkin' | 'taklifNarx'>): number | null {
+  return r.taklifNarx == null ? null : r.mumkin * r.taklifNarx;
+}
+/** Pul changi: qiymati ma'lum va |qiymat| < chegara. Noma'lum qiymat chang emas. */
+export function pulChangmi(qiymat: number | null, chegara = F2_CHANG_PUL): boolean {
+  return qiymat != null && Math.abs(qiymat) < chegara;
 }

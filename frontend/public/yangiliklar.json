@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 114,
+      "sana": "2026-11-06",
+      "sarlavha": "Smeta qiymati endi o‘zgarmas — qo‘shimcha ish va zamena alohida, asosi bilan",
+      "bandlar": [
+        "Obyekt, shartnoma, F2 reestri, rahbar paneli va portfeldagi «smeta» faqat asl smeta qatorlaridan: qo‘shimcha ishlar va zamenalar qo‘shilganda smeta qiymati o‘smaydi.",
+        "«Smeta va o‘zgarishlar» paneli (Holat → Smeta): Smeta (asl) · O‘zgarishlar — qo‘shimcha ishlar (+), zamena farqi (zamena summasi − almashtirilgan asl qism, endi ikki marta sanalmaydi), bajarilmaydi (−) · Smeta + o‘zgarishlar (alohida hosila).",
+        "Har o‘zgarish asosi ko‘rinadi: qator, sabab, hujjat, F2/fakt akti, kim va qachon; asossiz va narxsiz zamenalar alohida ogohlantiriladi. F2, fakt va Nakopitelniy summalari o‘zgarmaydi."
+      ]
+    },
+    {
       "id": 113,
       "sana": "2026-11-06",
       "sarlavha": "Hujjatlarda narxsiz qatorlar bildiriladi",

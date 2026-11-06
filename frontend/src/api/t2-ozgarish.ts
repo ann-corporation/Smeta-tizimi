@@ -6,6 +6,64 @@
 import { sbOqi, type T2Qator } from './supabase';
 import { t2ToliqOqi } from './t2-toliq-oqish';
 import { ozgarishTuri, type OzgarishMalumot } from '../lib/lrv-ozgarish';
+import { vaqtliOqish } from './vaqtli-fetch';
+import type { SummaPaket } from '../lib/summa-paket';
+
+/* ══════════════════════════════════════════════════════════════════
+ * SMETA (ASL) CONST + ASOSLANGAN O'ZGARISHLAR (egasi 2026-11-06, migratsiya 20261203001300).
+ * Hisob faqat bazada (`t2_smeta_ozgarish_qatlam_v1` ← `_t2_smeta_qatlam_qator_v1`); bu yerda faqat o'qish va tur.
+ * ══════════════════════════════════════════════════════════════════ */
+export type OzgarishKesimQismi = { kat: string | null; summa: number };
+export type OzgarishAsos = {
+  change_id?: number; tur?: string; sabab?: string; holat?: string; izoh?: string; hujjat_id?: number; hujjat_nom?: string;
+  kim?: string; qachon?: string; tasdiqlandi?: string; sana?: string; zamena_qator_id?: number;
+};
+export type OzgarishAkt = { akt_id: number; tur: string; raqam: string | null; oy: string | null };
+export type QoshimchaGuruh = {
+  qator_id: number; tur: string; kod?: string; nom?: string; birlik?: string; hajm?: number; ota_id?: number; ota_nom?: string;
+  summa?: number; barg_soni: number; narxsiz_soni: number; asos?: OzgarishAsos; asosli: boolean; akt?: OzgarishAkt;
+};
+export type ZamenaGuruh = {
+  qator_id: number; tur: string; kod?: string; nom?: string; birlik?: string; hajm?: number; almashtirish_hajm?: number;
+  summa?: number; narxsiz: boolean; barg_soni: number;
+  asl_id?: number; asl_kod?: string; asl_nom?: string; asl_birlik?: string; asl_hajm?: number; asl_summa?: number;
+  /** Aslning almashtirilgan qismi (reja); `farq` = summa − almashtirilgan. Narxsiz zamenada ikkalasi ham yo'q (noma'lum). */
+  almashtirilgan_summa?: number; farq?: number; almashtirish_noaniq?: boolean;
+  asos?: OzgarishAsos; asosli: boolean; akt?: OzgarishAkt;
+};
+export type BajarilmadiGuruh = {
+  id: number; qator_id: number; tur: string; kod?: string; nom?: string; birlik?: string; smeta_hajm?: number;
+  bajarilmagan_hajm?: number; summa?: number; asos?: OzgarishAsos;
+};
+export type SmetaOzgarishQatlam = {
+  ok: true; obyekt_id: number;
+  asl: { paket: SummaPaket | null; ustamasiz: number; narxsiz_soni: number };
+  joriy: { paket: SummaPaket | null; ustamasiz: number };
+  ozgarish: {
+    ustamasiz: number; ustamali: number | null; qqs_bilan: number | null;
+    qoshimcha: number; zamena_summa: number; almashtirilgan_summa: number; zamena_farq: number; bajarilmadi: number;
+    narx_farqi: number | null; narx_farqi_izoh: string; avvalgi_jami: number; ikki_marta_sanalgan: number; invariant_ok: boolean;
+    kesim: { qoshimcha: OzgarishKesimQismi[]; zamena: OzgarishKesimQismi[]; bajarilmadi: OzgarishKesimQismi[] };
+  };
+  qoshimcha: { soni: number; summa: number; narxsiz_soni: number; asossiz_soni: number; qisqartirildi: boolean; qatorlar: QoshimchaGuruh[] };
+  zamena: {
+    soni: number; zamena_summa: number; almashtirilgan_summa: number; farq: number; narxsiz_soni: number; noaniq_soni: number;
+    asossiz_soni: number; qisqartirildi: boolean; qatorlar: ZamenaGuruh[];
+  };
+  bajarilmadi: { soni: number; summa: number; narxsiz_soni: number; qatorlar: BajarilmadiGuruh[] };
+};
+
+/** Obyekt smetasi: asl (CONST) · o'zgarishlar (asosi bilan) · smeta + o'zgarishlar. Xato — `ok:false` (NULL ≠ «o'zgarish yo'q»). */
+export async function smetaOzgarishQatlamOl(obyektId: number): Promise<{ ok: true; natija: SmetaOzgarishQatlam } | { ok: false; error: string }> {
+  const r = await vaqtliOqish('/api/sb', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ soro: 'smeta_ozgarish_qatlam_v1', obyekt_id: obyektId }),
+  });
+  const j = await r.json() as { ok: boolean; natija?: (Omit<SmetaOzgarishQatlam, 'ok'> & { ok?: boolean; code?: string }); error?: string };
+  const n = j.natija;
+  if (!j.ok || !n || n.ok !== true) return { ok: false, error: j.error || n?.code || 'SMETA_OZGARISH_OQILMADI' };
+  return { ok: true, natija: { ...n, ok: true } };
+}
 
 export async function ozgarishMalumotOl(obyektId: number): Promise<OzgarishMalumot | null> {
   const r = await t2ToliqOqi<{ id: number; change_type: string | null; replaces_line_id: number | null }>(sbOqi, {

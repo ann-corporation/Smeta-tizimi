@@ -10,7 +10,8 @@ import { ayirma2 } from '../../lib/hisob-yadro';
 import { KAT_GURUH_NOMI } from '../../lib/f2-hujjat-korinish';
 import { birlikOgohi } from '../../lib/fakt-birlik-ogoh';
 import { BirlikOgohBlok } from '../fakt/BirlikOgoh';
-import { barglar, bolimlarKorinishi, katSmeta, oshganQatorlar, umumiyKesim, type Kesim } from '../../lib/smeta-korinish';
+import { aslBarglar, aslSmeta, barglar, bolimlarKorinishi, katSmeta, oshganQatorlar, umumiyKesim, type Kesim } from '../../lib/smeta-korinish';
+import { SmetaOzgarishQatlam } from './SmetaOzgarishQatlam';
 
 /**
  * SMETA ANATOMIYASI (egasi 2026-10-25: «har bir smetani vizual ko'rib tushunish»): smeta qanday tuzilgan va qancha
@@ -36,7 +37,7 @@ export function SmetaAnatomiya({ tree, obyektId }: { tree: readonly TreeNode[]; 
   const bolimlar = useMemo(() => bolimlarKorinishi(tree), [tree]);
   const kat = useMemo(() => katSmeta(tree), [tree]);
   const diqqat = useMemo(() => oshganQatorlar(tree), [tree]);
-  const daraxtKesim = useMemo(() => katKesimYigish([...barglar(tree)].filter((b) => b.type !== 'rz' && b.type !== 'bl'), (b) => b.kat, (b) => b.smeta), [tree]);
+  const daraxtKesim = useMemo(() => katKesimYigish([...aslBarglar(tree)].filter((b) => b.type !== 'rz' && b.type !== 'bl'), (b) => b.kat, (b) => b.smeta), [tree]);
   // Svod yaxlit belgili obyektda butun smeta ustamalisi — server kesimi (yaxlit bo'limlar ustamasiz, QQS bir marta).
   const ust = useUstamaliSumma(obyektId);
   const kesim = ust.obyektKesim ?? daraxtKesim;
@@ -54,7 +55,8 @@ export function SmetaAnatomiya({ tree, obyektId }: { tree: readonly TreeNode[]; 
       : katKesimJamiBilan(qs, (b) => b.kat, summa, jami));
     return {
       /** Bo'lim jami (bo'lim darajasi) — tree[i] ↔ bolimlar[i]. */
-      bolim: tree.map((r) => yig([...barglar([r])].filter((b) => b.type !== 'rz' && b.type !== 'bl'), (b) => son(b.smeta), son(r.smeta))),
+      // Bo'lim smetasi — ASL (CONST); qo'shimcha/zamena «O'zgarishlar» qatlamida alohida.
+      bolim: tree.map((r) => yig([...aslBarglar([r])].filter((b) => b.type !== 'rz' && b.type !== 'bl'), (b) => son(b.smeta), aslSmeta(r))),
       fakt: yig(bs, (b) => son(b.stFakt), umumiy.fakt),
       f2: yig(bs, (b) => son(b.stF2), umumiy.f2, false, true),
       // Qoldiq = smeta − F2 AYNAN (fakt ≥ F2 qoidasi yo'q); F2 yo'q — 0. Yadro `ayirma2`.
@@ -70,7 +72,7 @@ export function SmetaAnatomiya({ tree, obyektId }: { tree: readonly TreeNode[]; 
     <section className="fz-doc" aria-label={t('Smeta anatomiyasi')}>
       <div className="fz-doc__sheet">
         <div className="fz-kpis">
-          <div className="fz-kpi"><span className="fz-kpi__label">{t('Smeta qiymati')}</span><SummaJuft obyektId={obyektId} ustamasiz={umumiy.smeta} katKesim={kesim} className="[&_[data-testid=summa-qqs]]:text-[20px] [&_[data-testid=summa-qqs]]:font-semibold" />{nomalumBelgi(umumiy.nomalum.smeta)}</div>
+          <div className="fz-kpi"><span className="fz-kpi__label">{t('Smeta qiymati (asl)')}</span><SummaJuft obyektId={obyektId} ustamasiz={umumiy.smeta} katKesim={kesim} className="[&_[data-testid=summa-qqs]]:text-[20px] [&_[data-testid=summa-qqs]]:font-semibold" />{nomalumBelgi(umumiy.nomalum.smeta)}</div>
           <div className="fz-kpi"><span className="fz-kpi__label"><i className="fz-bg-nomalum" style={{ background: 'var(--info)' }} />{t('Bajarilgan (fakt)')}</span><SummaJuft obyektId={obyektId} ustamasiz={umumiy.fakt} katKesim={kartaKesim.fakt} yorliq={t('Fakt, QQS bilan')} />{nomalumBelgi(umumiy.nomalum.fakt)}<span className="fz-kpi__sub">{pct(umumiy.faktUlush)} {t('smetadan')}</span></div>
           <div className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: 'var(--accent)' }} />{t('F2 bilan topshirilgan')}</span><SummaJuft obyektId={obyektId} ustamasiz={umumiy.f2} katKesim={kartaKesim.f2} yorliq={t('F2, QQS bilan')} />{nomalumBelgi(umumiy.nomalum.f2)}<span className="fz-kpi__sub">{pct(umumiy.f2Ulush)} {t('smetadan')}</span></div>
           <div className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: 'var(--surface-3)', boxShadow: 'inset 0 0 0 1px var(--border-strong)' }} />{t('Qoldiq')}</span><SummaJuft obyektId={obyektId} ustamasiz={umumiy.qoldiq} katKesim={kartaKesim.qoldiq} yorliq={t('Qoldiq, QQS bilan')} />{nomalumBelgi(umumiy.nomalum.smeta + umumiy.nomalum.fakt + umumiy.nomalum.f2)}<span className="fz-kpi__sub">{t('bajarilmagan qism')}</span></div>
@@ -79,6 +81,9 @@ export function SmetaAnatomiya({ tree, obyektId }: { tree: readonly TreeNode[]; 
         {toliqEmas && <p className="fz-note fz-note--warn" role="note"><AlertTriangle aria-hidden="true" />{toliqEmas}</p>}
         <div className="fz-doc__meta"><span>{t('{n} bo‘lim', { n: bolimlar.length })}</span><span>{t('{n} ish', { n: bolimlar.reduce((a, b) => a + b.ishSoni, 0) })}</span><span>{t('{n} resurs', { n: bolimlar.reduce((a, b) => a + b.resursSoni, 0) })}</span>{diqqat.length > 0 && <span className="fz-chip fz-chip--warn">{t('{n} qator smetadan oshgan', { n: bolimlar.reduce((a, b) => a + b.oshgan, 0) })}</span>}</div>
       </div>
+
+      {/* Egasi 2026-11-06: smeta — const; qo'shimcha / zamena / bajarilmaydi — alohida, asosi bilan. */}
+      <SmetaOzgarishQatlam obyektId={obyektId} />
 
       <div className="fz-doc__panels">
         <section className="fz-panel" aria-label={t('Kategoriyalar')}>
