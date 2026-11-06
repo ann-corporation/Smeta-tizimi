@@ -341,8 +341,10 @@ describe('F2 tayyorlash', () => {
       const h2 = holat[0] as Record<string, unknown>;
       const eski = { ...h2 };
       Object.assign(h2, { f2_hajm: 6, fakt_hajm: 9, f2_mumkin_hajm: 3 });
-      m.oqi.mockImplementation(async (s: { jadval: string }) => s.jadval === 't2_akt'
-        ? { ok: true, qatorlar: [{ id: 77, raqam: '5-С', oy: '2026-09-01', holat: 'qoralama', lifecycle_status: 'draft', versiya: 3 }] }
+      m.oqi.mockImplementation(async (s: { jadval: string; filtr?: string }) => s.jadval === 't2_akt'
+        ? { ok: true, qatorlar: [{ id: 77, raqam: '5-С', oy: '2026-09-01', holat: 'qoralama', lifecycle_status: 'draft', versiya: 3 },
+          // Obyekt F2 reestri: storno manbasi №11 — tasdiqlangan (aks holda qoralama saqlanmaydi).
+          ...(String(s.filtr ?? '').includes('tur=eq.f2') ? [{ id: 11, raqam: '1', oy: '2026-08-01', holat: 'tasdiqlangan', lifecycle_status: 'approved', versiya: 1 }] : [])] }
         : s.jadval === 't2_akt_qator'
           ? { ok: true, qatorlar: [{ qator_id: 2, hajm: -6, certified_quantity: -6, certified_unit_price: 100, certified_amount: -600, provenance_status: 'source_certified', raw_snapshot: { source: 'storno', stornoOf: 11 } }] }
           : { ok: true, qatorlar: [] });
@@ -360,6 +362,27 @@ describe('F2 tayyorlash', () => {
       fireEvent.click(saqla);
     };
     const juft = (x: { qatorId: number; certifiedQuantity: number }) => [x.qatorId, x.certifiedQuantity];
+
+    it('qoralamadagi storno bloki ko‘rinadi va tahrirlash oynasi ochiladi (tasdiqlangan F2 da tugma yo‘q)', async () => {
+      const tikla = stornoQoralama();
+      try {
+        ochishJoy('/admin/f2-tayyorlash?obyekt=8&akt=77');
+        fireEvent.click(await screen.findByTestId('storno-blok-tahrirla'));
+        expect(await screen.findByTestId('storno-blok-tahrir')).toBeTruthy();
+        expect(screen.queryByTestId('storno-manba-tasdiqlanmagan')).toBeNull();
+      } finally { tikla(); }
+    });
+
+    it('storno manbasi tasdiqlanmagan F2 — aniq bloklovchi sabab ko‘rinadi (saqlashdan keyin toast emas)', async () => {
+      m.oqi.mockImplementation(async (s: { jadval: string; filtr?: string }) => s.jadval === 't2_akt'
+        ? { ok: true, qatorlar: [{ id: 77, raqam: '5-С', oy: '2026-09-01', holat: 'qoralama', lifecycle_status: 'draft', versiya: 3 },
+          ...(String(s.filtr ?? '').includes('tur=eq.f2') ? [{ id: 11, raqam: '1', oy: '2026-08-01', holat: 'qoralama', lifecycle_status: 'draft', versiya: 1 }] : [])] }
+        : s.jadval === 't2_akt_qator'
+          ? { ok: true, qatorlar: [{ qator_id: 2, hajm: -6, certified_quantity: -6, certified_unit_price: 100, certified_amount: -600, provenance_status: 'source_certified', raw_snapshot: { source: 'storno', stornoOf: 11 } }] }
+          : { ok: true, qatorlar: [] });
+      ochishJoy('/admin/f2-tayyorlash?obyekt=8&akt=77');
+      expect((await screen.findByTestId('storno-manba-tasdiqlanmagan')).textContent).toContain('№1 tasdiqlanmagan');
+    });
 
     it('bir qator storno blokida (minus, tepada) VA yangi blokda (plyus, pastda) saqlanadi; yangi hajm = fakt − boshqa F2', async () => {
       const tikla = stornoQoralama();

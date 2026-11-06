@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { faolStornolar, stornoBolimlar, stornoNomzodAktlar, stornoBlokniSaqla, stornoFaktReja, stornoQaytarHajm, stornoQator, stornoQatorimi, stornoQur, stornoManbaNetto, type StornoManbaQator } from './f2-storno';
+import { faolStornolar, stornoBolimlar, stornoNomzodAktlar, stornoBlokniSaqla, stornoFaktReja, stornoQaytarHajm, stornoQator, stornoQatorimi, stornoQur, stornoManbaNetto, stornoManbaTasdiqlanmagan, type StornoManbaQator } from './f2-storno';
 
 const manba: StornoManbaQator[] = [
   { qator_id: 1, hajm: 4, certified_quantity: 4, certified_unit_price: 25, certified_amount: 100 },
@@ -198,5 +198,11 @@ describe('bo‘lim bo‘yicha storno tanlovi', () => {
     const r = stornoQur(manba, 5, bolim10);
     expect(r.qatorlar.map((q) => q.qatorId)).toEqual([11, 12, 13]);
     expect(r.jami).toBe(-60);
+  });
+});
+describe('stornoManbaTasdiqlanmagan — faqat tasdiqlangan F2 manba', () => {
+  it('qoralama yoki reestrda yo‘q manba — tasdiqlanmagan', () => {
+    const r = stornoManbaTasdiqlanmagan([1, 2, 3], [{ id: 1, raqam: 'A', holat: 'tasdiqlangan', lifecycle_status: 'approved' }, { id: 2, raqam: 'B', holat: 'qoralama', lifecycle_status: 'draft' }]);
+    expect(r).toEqual([{ id: 2, raqam: 'B' }, { id: 3, raqam: null }]);
   });
 });

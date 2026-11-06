@@ -8,6 +8,7 @@ import {
 } from '../../lib/f2-storno-daraxt';
 
 const KORSATISH_LIMIT = 400;
+type Tanlov = ReadonlySet<string>;
 
 /** Storno hajmini tahrirlash (qoralama tahriri): mutlaq qiymat, 0 < h ≤ eski F2 hajmi. */
 export type StornoHajmTahrir = {
@@ -25,7 +26,7 @@ export function F2StornoDaraxtRoyxat(p: {
   tree: StornoDaraxt;
   jam: ReadonlyMap<string, StornoJam>;
   tanlangan: ReadonlySet<string>;
-  onTanlangan: (f: (s: ReadonlySet<string>) => ReadonlySet<string>) => void;
+  onTanlangan: (f: (s: Tanlov) => Tanlov) => void;
   qulf: boolean;
   faktOl?: (qatorId: number) => number | null;
   hajm?: StornoHajmTahrir;

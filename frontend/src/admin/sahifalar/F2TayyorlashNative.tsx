@@ -25,6 +25,8 @@ import { avvalgiF2Xaritasi, type F2VersiyaKochirma } from '../../lib/f2-versiya-
 import { f2Hujjat } from '../../lib/f2-hujjat';
 import { stornoBlokniSaqla, stornoQaytarHajm, stornoQatorimi, type SaqlanganAktQator } from '../../lib/f2-storno';
 import { F2StornoBlokTahrir } from './F2StornoBlokTahrir';
+import { f2StornoQatorTarixOl, type StornoTarixQator } from '../../api/t2-f2-storno';
+import { stornoManbaTasdiqlanmagan, type StornoYukQator } from '../../lib/f2-storno';
 import { yigindi2 } from '../../lib/hisob-yadro';
 import { f2QatorniOlibTashla, f2SessiyaOqi, f2SessiyaSaqla, f2SessiyaTozala } from '../../lib/f2-tayyor-sessiya';
 import { useObyektF2Aktlari } from './F2DublikatPanel';
@@ -45,7 +47,7 @@ import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { useAktPodvallar } from '../../umumiy/ui/useAktPodvallar';
 import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
-import { eskiBloklarHujjat, pereraschetBaholash, pereraschetBloklari } from '../../lib/f2-pereraschet';
+import { eskiBloklarHujjat, pereraschetBaholash, pereraschetBloklari, type PereraschetSmetaQator as PereraschetSmetaQatorT } from '../../lib/f2-pereraschet';
 import { PereraschetPanel } from '../../components/f2-tayyorlash/PereraschetPanel';
 import { obyektPodvali } from '../../api/t2-nakrutka-podval';
 import { sbAosrCoverageOl, type AosrCoverage } from '../../api/t2-aosr';
@@ -365,22 +367,65 @@ export function F2TayyorlashNative() {
     setParams((p) => { const x = new URLSearchParams(p); x.set('akt', String(qoralama.id)); x.set('davom', '1'); return x; }, { replace: true });
   }, [validId, aktId, params, obyektAktlariYuklandi, obyektAktlari, obyektId, oy, setParams]);
   const davomOchildi = aktId != null && params.get('davom') === '1';
-  /** Storno qoralamasi qaysi eski F2 ni storno qilishi: storno qatorlaridagi `raw_snapshot.stornoOf`. */
-  const stornoManbaAkt = useMemo(() => {
-    const q = aktQatorlar.find((x) => stornoQatorimi(x) && Number((x.raw_snapshot as { stornoOf?: unknown }).stornoOf) > 0);
-    if (!q) return null;
-    const id = Number((q.raw_snapshot as { stornoOf?: unknown }).stornoOf);
-    return { id, raqam: obyektAktlari.find((a) => a.id === id)?.raqam ?? null };
+  /** Storno qoralamasi qaysi eski F2 larni storno qilishi (audit m8: hammasi, faqat birinchisi emas): `raw_snapshot.stornoOf`. */
+  const stornoManbaAktlar = useMemo(() => {
+    const ids: number[] = [];
+    for (const x of aktQatorlar) {
+      if (!stornoQatorimi(x)) continue;
+      const id = Number((x.raw_snapshot as { stornoOf?: unknown }).stornoOf);
+      if (Number.isSafeInteger(id) && id > 0 && !ids.includes(id)) ids.push(id);
+    }
+    return ids.map((id) => ({ id, raqam: obyektAktlari.find((a) => a.id === id)?.raqam ?? null }));
   }, [aktQatorlar, obyektAktlari]);
+  /** B1 (audit): storno qatorlari eski smeta versiyasida bo'lishi mumkin — metama'lumoti tarixdan (kat, nom, razdel). */
+  const [stornoTarix, setStornoTarix] = useState<StornoTarixQator[]>([]);
+  const stornoIdKalit = useMemo(() => aktQatorlar.filter(stornoQatorimi).map((x) => x.qator_id).join(','), [aktQatorlar]);
+  useEffect(() => {
+    if (!validId || !stornoIdKalit) { setStornoTarix([]); return; }
+    const bor = new Set(rows.map((r) => r.id));
+    const kerak = stornoIdKalit.split(',').map(Number).filter((id) => !bor.has(id));
+    if (!kerak.length) { setStornoTarix([]); return; }
+    let jonli = true;
+    void f2StornoQatorTarixOl(obyektId, kerak, bor).then((r) => { if (jonli) setStornoTarix(r.qatorlar); }).catch(() => undefined);
+    return () => { jonli = false; };
+  }, [validId, obyektId, stornoIdKalit, rows]);
+  /** Storno bloki manbasi tasdiqlanmagan F2 bo'lsa — saqlash server tomonidan rad etiladi; oldindan aniq sabab bilan bloklanadi. */
+  const stornoManbaXato = useMemo(() => (obyektAktlariYuklandi ? stornoManbaTasdiqlanmagan(stornoManbaAktlar.map((a) => a.id), obyektAktlari) : []), [obyektAktlariYuklandi, stornoManbaAktlar, obyektAktlari]);
   const stornoAktRaqami = useCallback((id: number) => obyektAktlari.find((a) => a.id === id)?.raqam ?? null, [obyektAktlari]);
   /* PERERASCHET (egasi 2026-11-03): eski F2 bloklari — har biri O'Z hujjat podvali bilan; yangi qatorlar — smeta podvali bilan. */
   const aktPodval = useAktPodvallar(validId && aktId != null ? obyektId : null);
   const ustama = useUstamaliSumma(validId && aktId != null ? obyektId : null, { kompaniyaId: joriy?.id });
   const eskiBloklar = useMemo(() => {
-    const sm = new Map(rows.map((r) => [r.id, r] as const));
+    const sm = new Map<number, PereraschetSmetaQatorT>(rows.map((r) => [r.id, r] as const));
+    for (const x of stornoTarix) if (!sm.has(x.id)) sm.set(x.id, x);
     const raqamlar = new Map(obyektAktlari.map((a) => [a.id, a.raqam ?? null] as const));
     return pereraschetBloklari(aktQatorlar, sm, raqamlar);
-  }, [aktQatorlar, rows, obyektAktlari]);
+  }, [aktQatorlar, rows, stornoTarix, obyektAktlari]);
+  /** Haqiqiy noma'lum summa (audit M1): ish (bl) va mashinist mehnati sanalmaydi (f2-pereraschet qoidasi). */
+  const stornoNomalum = useMemo(() => eskiBloklar.reduce((n, b) => n + b.nomalum, 0), [eskiBloklar]);
+  /** Ochiq qoralamaga tanlov oynasidan storno qatorlari qo'shiladi (audit M8): yangi qoralama yaratilmaydi, kiritmalar saqlanadi. */
+  const stornoQoralamagaQosh = useCallback((qs: StornoYukQator[], ogoh?: string) => {
+    const mavjud = aktQatorlar.filter(stornoQatorimi);
+    const band = new Set(mavjud.map((x) => x.qator_id));
+    const yangi: SaqlanganAktQator[] = [];
+    let takror = 0;
+    for (const q of qs) {
+      if (band.has(q.qatorId)) { takror++; continue; }
+      band.add(q.qatorId);
+      yangi.push({ qator_id: q.qatorId, hajm: q.certifiedQuantity, certified_quantity: q.certifiedQuantity, certified_unit_price: q.certifiedUnitPrice ?? null,
+        certified_amount: q.certifiedAmount ?? null, provenance_status: q.priceIntentionallyAbsent ? 'price_intentionally_absent' : null, raw_snapshot: q.rawSnapshot });
+    }
+    setStornoTahrir([...mavjud, ...yangi]);
+    setStornoTanlovOchiq(false);
+    toast(t('{n} qator storno blokiga qo‘shildi — «Saqlash» bilan yozing.', { n: String(yangi.length) }), 'ok');
+    if (takror) toast(t('{n} qator storno blokida allaqachon bor — qayta qo‘shilmadi.', { n: String(takror) }), 'warn');
+    if (ogoh) toast(ogoh, 'warn');
+  }, [aktQatorlar]);
+  /** Yangi (saqlanmagan) F2 kiritmalari bor bo'lsa — storno yangi qoralama ochadi, kiritmalar yo'qolishi aniq aytiladi (audit M8). */
+  const stornoTanlovOch = async () => {
+    if (aktId == null && qatorlar.length > 0 && !await tasdiqSora(t('Kiritilgan {n} qator hali saqlanmagan. Storno yangi qoralama ochadi va bu kiritmalar shu sahifada qolmaydi. Avval saqlash tavsiya etiladi. Baribir davom etasizmi?', { n: String(qatorlar.length) }))) return;
+    setStornoTanlovOchiq(true);
+  };
   /** Pereraschet sarlavhasi: qaysi eski F2 lar minus (storno bloklari) — tepada, yangi hajmlar pastda. */
   const pereraschetSarlavha = aktId != null && eskiBloklar.length > 0
     ? t('Pereraschet: eski F2 №{r} minus (tepada) + yangi hajmlar (pastda)', { r: eskiBloklar.map((b) => b.raqam || String(b.manbaAktId)).join(', №') })
@@ -399,7 +444,7 @@ export function F2TayyorlashNative() {
       pereraschet: pereraschetBelgisi(rows, yuk.map((r) => r.qatorId)) });
   }, [validId, aktId, qatorlar, raqam, oy, obyektAktlari, rows]);
   const dublikatBlok = bloklarmi(dublikatlar);
-  const saqlashMumkin = saqlashTayyor && !dublikatBlok && qoshTayyor && !bajXato && (aktId == null || (!!akt && !aktKorish));
+  const saqlashMumkin = saqlashTayyor && stornoManbaXato.length === 0 && !dublikatBlok && qoshTayyor && !bajXato && (aktId == null || (!!akt && !aktKorish));
   const bolimIer = useMemo(() => f2BolimIerarxiya(rows, bolimlar), [rows, bolimlar]);
   const tanlanganBolim: number | null = bolimId !== undefined ? bolimId : bolimlar[0] ? bolimlar[0].id ?? -1 : null;
   const tanlanganAvlod = useMemo(() => (tanlanganBolim == null ? new Set<number>() : avlodKalitlari(bolimIer, tanlanganBolim)), [bolimIer, tanlanganBolim]);
@@ -951,9 +996,9 @@ export function F2TayyorlashNative() {
           <Search size={14} className="pointer-events-none absolute bottom-2.5 left-2.5 text-text-mute" />
           <input aria-label="Qidirish" value={qidir} onChange={(e) => setQidir(e.target.value)} placeholder={t('ish, resurs, kod…')} className="mt-1.5 block w-full rounded-lg border border-border bg-surface-2 py-2 pl-8 pr-3 text-text" /></label>}
         {validId && bolimlar.length > 0 && <label className="flex items-center gap-1.5 pb-2.5 text-[12px] text-text-dim"><input type="checkbox" checked={faqatKiritilgan} onChange={(e) => setFaqatKiritilgan(e.target.checked)} />{t('Faqat kiritilganlar')}</label>}
-        {validId && mayPrepare && <button type="button" data-testid="storno-tanlov-tugma" className="fz-btn" title={t('Eski F2 qatorlaridan minus (storno) qoralama yaratadi; asl F2 o‘zgarmaydi')} onClick={() => setStornoTanlovOchiq(true)} disabled={saving}><RotateCcw aria-hidden="true" />{t('Eski F2 ni storno qilish (pereraschet)')}</button>}
+        {validId && mayPrepare && <button type="button" data-testid="storno-tanlov-tugma" className="fz-btn" title={t('Eski F2 qatorlaridan minus (storno) qoralama yaratadi; asl F2 o‘zgarmaydi')} onClick={() => void stornoTanlovOch()} disabled={saving}><RotateCcw aria-hidden="true" />{t('Eski F2 ni storno qilish (pereraschet)')}</button>}
       </section>
-      {validId && stornoTanlovOchiq && <F2StornoTanlov obyektId={obyektId} onYop={() => setStornoTanlovOchiq(false)} onYaratildi={(yangiId) => {
+      {validId && stornoTanlovOchiq && <F2StornoTanlov obyektId={obyektId} faktRejimSukut="ozgartirma" qoralamaga={akt && !aktKorish ? { aktId: akt.id, onQosh: stornoQoralamagaQosh } : undefined} onYop={() => setStornoTanlovOchiq(false)} onYaratildi={(yangiId) => {
         setStornoTanlovOchiq(false);
         toast(t('Storno qoralamasi yaratildi. Yangi smeta qatorlarini pastda qo‘shib, saqlang.'), 'ok');
         navigate(`/admin/f2-tayyorlash?obyekt=${obyektId}&akt=${yangiId}`);
@@ -970,12 +1015,14 @@ export function F2TayyorlashNative() {
       {validId && aktId != null && stornoBlok.soni > 0 && <section aria-label={t('Сторно (eski F2)')} data-testid="storno-blok" className="fz-note fz-note--info flex-wrap" style={{ alignItems: 'center' }}>
         <b>{t('Сторно (eski F2)')}</b>
         <span>{t('{n} qator, Σ (minus):', { n: String(stornoBlok.soni) })} <FmtN val={stornoBlok.jami} /> — {t('hujjat boshida saqlanadi; yangi pozitsiyalar shu blok ostiga qo‘shiladi.')}</span>
-        {stornoManbaAkt && <span data-testid="storno-manba">{t('Storno qilinayotgan F2: №{r}', { r: stornoManbaAkt.raqam || String(stornoManbaAkt.id) })}</span>}
-        {stornoBlok.nomalum > 0 && <span className="text-warn">{t('{n} qatorda summa noma‘lum', { n: String(stornoBlok.nomalum) })}</span>}
+        {stornoManbaAktlar.length > 0 && <span data-testid="storno-manba">{t('Storno qilinayotgan F2: №{r}', { r: stornoManbaAktlar.map((a) => a.raqam || String(a.id)).join(', №') })}</span>}
+        {stornoNomalum > 0 && <span className="text-warn">{t('{n} qatorda summa noma‘lum', { n: String(stornoNomalum) })}</span>}
         {stornoOzgardi && <span data-testid="storno-blok-saqlanmagan" className="text-warn">{t('Storno bloki o‘zgardi — «Saqlash» bilan yozing.')}</span>}
         {akt && !aktKorish && !stornoTahrirOchiq && <button type="button" data-testid="storno-blok-tahrirla" className="fz-btn fz-btn--sm" onClick={() => setStornoTahrirOchiq(true)}>{t('Storno blokini ko‘rish va tahrirlash')}</button>}
         {stornoOzgardi && <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" onClick={() => { setStornoTahrir(null); setStornoTahrirOchiq(false); }}>{t('Storno o‘zgarishlarini bekor qilish')}</button>}
       </section>}
+      {validId && aktId != null && stornoManbaXato.length > 0 && <section role="alert" data-testid="storno-manba-tasdiqlanmagan" className="fz-note fz-note--danger"><AlertTriangle />
+        <span>{t('Storno manbasi F2 №{r} tasdiqlanmagan — avval uni tasdiqlang yoki storno blokini olib tashlang. Bu holatda qoralama saqlanmaydi.', { r: stornoManbaXato.map((a) => a.raqam || String(a.id)).join(', №') })}</span></section>}
       {validId && akt && !aktKorish && stornoTahrirOchiq && stornoBlok.soni > 0 && (
         <F2StornoBlokTahrir obyektId={obyektId} saqlangan={aktQatorlar.filter(stornoQatorimi)} asl={aslStorno} aktRaqami={stornoAktRaqami}
           onBekor={() => setStornoTahrirOchiq(false)} onOzgar={(q) => { setStornoTahrir(q); setStornoTahrirOchiq(false); }} />

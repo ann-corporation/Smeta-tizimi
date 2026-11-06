@@ -186,6 +186,12 @@ export function faolStornolar(stornoAktIdlar: readonly number[], reestr: readonl
 export const stornoQilinadiAkt = (a: StornoReestrAkt & { tur?: string | null }): boolean =>
   (a.tur == null || a.tur === 'f2') && a.holat === 'tasdiqlangan' && (a.lifecycle_status == null || a.lifecycle_status === 'approved');
 
+/** Storno bloki manbalaridan tasdiqlanmaganlari (reestrda yo'q ham — tasdiqlanmagan). Server har saqlashda shuni rad etadi. */
+export function stornoManbaTasdiqlanmagan<T extends StornoReestrAkt & { tur?: string | null }>(manbaIdlar: readonly number[], reestr: readonly T[]): Array<{ id: number; raqam: string | null }> {
+  return manbaIdlar.filter((id) => { const a = reestr.find((x) => x.id === id); return !a || !stornoQilinadiAkt(a); })
+    .map((id) => ({ id, raqam: reestr.find((x) => x.id === id)?.raqam ?? null }));
+}
+
 /** Storno tanlagichi uchun obyekt F2 aktlari: faqat tasdiqlanganlari, yangisi tepada. */
 export function stornoNomzodAktlar<T extends StornoReestrAkt & { tur?: string | null }>(reestr: readonly T[]): T[] {
   return reestr.filter(stornoQilinadiAkt).sort((a, b) => b.id - a.id);

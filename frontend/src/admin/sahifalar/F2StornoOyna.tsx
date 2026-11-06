@@ -34,7 +34,7 @@ const kalit = (aktId: number, qatorId: number) => `${aktId}:${qatorId}`;
 const snap = (x: { raw_snapshot?: unknown }) => (x.raw_snapshot && typeof x.raw_snapshot === 'object' ? x.raw_snapshot as Record<string, unknown> : {});
 
 /** Server xatosi — kodi bilan o'qiladigan matn (audit B2: umumiy xabar emas). */
-export function stornoServerXato(r: { code?: string; error?: string; xabar?: string; sabab?: string }, sukut: string): string {
+function stornoServerXato(r: { code?: string; error?: string; xabar?: string; sabab?: string }, sukut: string): string {
   const kod = r.code || r.sabab;
   if (kod === 'DUPLICATE_F2_SOURCE_LINE') return t('Server bitta hujjatda bir qatorni ikki marta qabul qilmadi (DUPLICATE_F2_SOURCE_LINE). Takror qatorlar belgisini oling yoki eski F2 larni alohida storno qiling.');
   if (kod === 'STORNO_SOURCE_NOT_APPROVED') return t('Storno manbai tasdiqlangan F2 emas (STORNO_SOURCE_NOT_APPROVED).');
@@ -241,6 +241,8 @@ export function F2StornoOyna(p: {
   }));
 
   async function bajar() {
+    // Manba F2 tasdiqlanmagan bo'lsa — serverga umuman chiqilmaydi (keyingi har saqlash yiqilardi).
+    if (tasdiqlanmagan.length) { setXato(t('Storno faqat shu obyektning tasdiqlangan F2 sidan qilinadi: {r} tasdiqlanmagan.', { r: tasdiqlanmagan.map((a) => `№${aktNomi(a)}`).join(', ') })); return; }
     if (!tayyor || !reja || band) return;
     setBand(true); setXato('');
     try {

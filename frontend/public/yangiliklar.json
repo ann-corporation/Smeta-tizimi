@@ -1,6 +1,18 @@
 {
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
+    {
+      "id": 119,
+      "sana": "2026-11-06",
+      "sarlavha": "Pereraschet qoralamasida storno bloki endi ko‘rinadi va tahrirlanadi",
+      "bandlar": [
+        "F2 tayyorlashda ochilgan pereraschet qoralamasida «Storno blokini ko‘rish va tahrirlash»: storno qatorlari razdel → ish → resurs daraxtida. Qatorni yoki butun razdelni stornodan olish, qayta qo‘shish, storno hajmini qisman qilish (eski F2 hajmidan oshmaydi). «Saqlash» bilan yoziladi.",
+        "Ochiq qoralamada «Eski F2 ni storno qilish» endi yangi qoralama ochmaydi — storno qatorlari shu qoralamaga qo‘shiladi. Saqlanmagan kiritmalar bo‘lsa, oldin ogohlantiriladi.",
+        "Storno faqat tasdiqlangan F2 dan: qoralama F2 tanlanmaydi; manbasi tasdiqlanmagan qoralamada saqlashdan oldin aniq sabab ko‘rsatiladi.",
+        "«Faktni 0 ga» endi faqat stornolangan hajmni qaytaradi (butun faktni emas); yarim qolgan storno qoralamasini davom ettirish mumkin; avval stornolangan qatorlar sukut bo‘yicha belgisiz.",
+        "Eski smeta versiyasidagi storno qatorlari nomi, kategoriyasi va razdeli to‘g‘ri chiqadi; ish va mashinist mehnati «summa noma‘lum» deb sanalmaydi; taxminiy summalar ≈ bilan."
+      ]
+    },
     {"id":117,"sana":"2026-11-06","sarlavha":"F2 tayyorlash: qoralama ochilganda saqlash tugmasi sababsiz yopiq qolmaydi","bandlar":["Oyning qoralamasi avtomatik ochilganda zamena va «bajarilmaydi» ro‘yxati yuklanishi tashlab yuborilardi — tugma hech qanday xabarsiz yopiq turardi. Endi yuklash oxirigacha yetadi."]},
     {"id":116,"sana":"2026-11-06","sarlavha":"F2 tayyorlash: «Barcha mumkin hajmni olish» endi saqlashni yopmaydi","bandlar":["Olinadigan qoldig‘i 0 bo‘lgan alohida materiallar endi avtomatik tanlanmaydi. Avval ular hajm 0 bilan qo‘shilib, «hajm 0 bo‘lmasin» xatosi bilan qoralamani saqlashni yopib qo‘yardi."]},
     {

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-const m = vi.hoisted(() => ({ yarat: vi.fn(), fakt: vi.fn(), podval: vi.fn() }));
+const m = vi.hoisted(() => ({ yarat: vi.fn(), fakt: vi.fn(), podval: vi.fn(), ids: vi.fn(async () => [] as number[]), aktQ: vi.fn(async () => ({ ok: true, qatorlar: [] as unknown[] })) }));
 vi.mock('../../api/supabase', () => ({ sbT2AktReestrOl: vi.fn(async () => ({ ok: true, qatorlar: [] })) }));
 vi.mock('../../api/t2-f2-storno', () => ({
   f2StornoManbaOl: vi.fn(async () => ({ ok: true, qatorlar: [
@@ -12,7 +12,9 @@ vi.mock('../../api/t2-f2-storno', () => ({
     { qator_id: 1, tur: 'bl', fakt_hajm: 4, kod: 'K1', nom: 'Ish 1', birlik: 'м3' },
     { qator_id: 2, tur: 'mat', fakt_hajm: 2, kod: 'K2', nom: 'Mat 2', birlik: 'т' },
   ] })),
-  f2StornoAktIdlari: vi.fn(async () => []),
+  f2StornoAktIdlari: m.ids,
+  f2StornoAktQatorlariOl: m.aktQ,
+  f2StornoQatorTarixOl: vi.fn(async () => ({ ok: true, qatorlar: [] })),
   f2StornoDaraxtOl: vi.fn(async () => ({ ok: true, qatorlar: [
     { id: 10, ota_id: null, tur: 'rz', nom: 'Bo‘lim A', tartib: 1 }, { id: 1, ota_id: 10, tur: 'bl', tartib: 2 },
     { id: 20, ota_id: null, tur: 'rz', nom: 'Bo‘lim B', tartib: 3 }, { id: 2, ota_id: 20, tur: 'mat', tartib: 4 },
@@ -26,7 +28,7 @@ vi.mock('../../umumiy/kontekst/KompaniyaKontekst', () => ({ useKompaniya: () => 
 
 import { F2StornoOyna } from './F2StornoOyna';
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
+afterEach(() => { cleanup(); vi.clearAllMocks(); m.ids.mockImplementation(async () => []); m.aktQ.mockImplementation(async () => ({ ok: true, qatorlar: [] })); });
 const TASDIQ = [{ id: 11, raqam: '5', holat: 'tasdiqlangan', lifecycle_status: 'approved' }];
 const ochish = (onYaratildi = vi.fn(), reestr: Array<{ id: number; raqam: string; holat: string; lifecycle_status: string }> = TASDIQ) => {
   render(<F2StornoOyna obyektId={8} akt={{ id: 11, raqam: '5', oy: '2026-09-01', hujjat_jami: 120 }} reestr={reestr} onYop={vi.fn()} onYaratildi={onYaratildi} />);
@@ -117,5 +119,56 @@ describe('F2StornoOyna: daraxt (bo‘lim → ish → resurs)', () => {
     expect(screen.getByTestId('storno-soni').textContent).toBe('2');
     fireEvent.click(screen.getByRole('button', { name: 'Tanlanmaganlarni ko‘rsatish' }));
     expect(screen.getByText('Hech narsa topilmadi.')).toBeTruthy();
+  });
+});
+
+describe('F2StornoOyna: audit tuzatishlari', () => {
+  it('M11: storno qatorlari raw_snapshot ida fakt rejimi va fakt operatsiya id si', async () => {
+    m.yarat.mockResolvedValue({ ok: true, akt_id: 560 }); m.podval.mockResolvedValue({ ok: true }); m.fakt.mockResolvedValue({ ok: true });
+    const tayyor = ochish();
+    fireEvent.click(await screen.findByRole('button', { name: /2 qatorni storno qilish/ }));
+    await waitFor(() => expect(tayyor).toHaveBeenCalledWith(560));
+    const rs = m.yarat.mock.calls[0][0].qatorlar[0].rawSnapshot;
+    expect(rs).toMatchObject({ source: 'storno', stornoOf: 11, stornoFaktRejim: 'nolga', stornoFaktOp: m.fakt.mock.calls[0][0].operationId });
+  });
+  it('B2: server xato kodi o‘qiladigan matnda ko‘rinadi', async () => {
+    m.yarat.mockResolvedValue({ ok: false, code: 'DUPLICATE_F2_SOURCE_LINE', error: 'x' });
+    ochish();
+    fireEvent.click(await screen.findByRole('button', { name: /2 qatorni storno qilish/ }));
+    expect((await screen.findByRole('alert')).textContent).toContain('DUPLICATE_F2_SOURCE_LINE');
+  });
+  it('M10: avval stornolangan qator sukut bo‘yicha belgisiz', async () => {
+    m.ids.mockImplementation(async () => [90]);
+    m.aktQ.mockImplementation(async () => ({ ok: true, qatorlar: [{ qator_id: 1, certified_quantity: -4, raw_snapshot: { source: 'storno', stornoOf: 11 } }] }));
+    ochish(vi.fn(), [...TASDIQ, { id: 90, raqam: '5-С', holat: 'tasdiqlangan', lifecycle_status: 'approved' }]);
+    expect((await screen.findByTestId('storno-avval')).textContent).toContain('1 qator avval stornolangan');
+    expect(screen.getByTestId('storno-soni').textContent).toBe('1');
+  });
+  it('M9: yarim qolgan storno qoralamasi saqlangan fakt operatsiyasi bilan davom ettiriladi (yangi qoralama yo‘q)', async () => {
+    m.podval.mockResolvedValue({ ok: true }); m.fakt.mockResolvedValue({ ok: true });
+    m.ids.mockImplementation(async () => [91]);
+    m.aktQ.mockImplementation(async () => ({ ok: true, qatorlar: [{ qator_id: 1, certified_quantity: -4, raw_snapshot: { source: 'storno', stornoOf: 11, stornoFaktRejim: 'nolga', stornoFaktOp: 'op-saqlangan' } }] }));
+    const tayyor = ochish(vi.fn(), [...TASDIQ, { id: 91, raqam: '5-С', holat: 'qoralama', lifecycle_status: 'draft' }]);
+    fireEvent.click(await screen.findByRole('button', { name: '№5-С ni davom ettirish' }));
+    await waitFor(() => expect(tayyor).toHaveBeenCalledWith(91));
+    expect(m.yarat).not.toHaveBeenCalled();
+    expect(m.fakt.mock.calls[0][0]).toMatchObject({ operationId: 'op-saqlangan' });
+    expect(m.fakt.mock.calls[0][0].yozuvlar.map((y: { qator_id: number; hajm: number }) => [y.qator_id, y.hajm])).toEqual([[1, -4]]);
+  });
+  it('M8: ochiq qoralamaga qo‘shish — yangi qoralama va fakt yozuvi yo‘q', async () => {
+    m.podval.mockResolvedValue({ ok: true });
+    const onQosh = vi.fn();
+    render(<F2StornoOyna obyektId={8} akt={{ id: 11, raqam: '5', oy: '2026-09-01', hujjat_jami: 120 }} reestr={TASDIQ} onYop={vi.fn()} qoralamaga={{ aktId: 77, onQosh }} />);
+    fireEvent.click(await screen.findByRole('button', { name: /2 qatorni ochiq qoralamaga qo‘shish/ }));
+    await waitFor(() => expect(onQosh).toHaveBeenCalledTimes(1));
+    expect(onQosh.mock.calls[0][0].map((q: { qatorId: number }) => q.qatorId)).toEqual([1, 2]);
+    expect(m.podval.mock.calls[0][0]).toMatchObject({ aktId: 77, manbaAktId: 11 });
+    expect(m.yarat).not.toHaveBeenCalled(); expect(m.fakt).not.toHaveBeenCalled();
+  });
+  it('m3: tugma o‘chiq bo‘lsa sababi yoziladi', async () => {
+    ochish();
+    await screen.findByRole('checkbox', { name: 'Storno bo‘limi: Bo‘lim A' });
+    fireEvent.click(screen.getByRole('button', { name: 'Hammasidan olish' }));
+    expect(screen.getByTestId('storno-sabab').textContent).toContain('hech qator belgilanmagan');
   });
 });

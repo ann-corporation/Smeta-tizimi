@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { RotateCcw, ShieldAlert } from 'lucide-react';
 import { F2Oyna } from './F2Oyna';
 import { F2StornoOyna, type F2StornoAkt } from './F2StornoOyna';
 import { FmtN } from '../../lib/format';
 import { davrNomi } from '../../lib/f2-hujjat-korinish';
-import { stornoNomzodAktlar } from '../../lib/f2-storno';
+import { stornoNomzodAktlar, type StornoFaktRejim, type StornoYukQator } from '../../lib/f2-storno';
 import { t, tilLocale } from '../../i18n/til';
 import { sbT2AktReestrOl, type T2AktReestr } from '../../api/supabase';
 
@@ -24,13 +24,21 @@ function holatMatni(a: T2AktReestr): string {
  * Bitta aktni «Tanlash» yoki BIR NECHTA aktni «Birga» bilan belgilab davom etish (egasi 2026-11-03) → `F2StornoOyna`.
  * Har eski F2 hujjatda alohida blok bo‘ladi (o‘z podvali bilan). Qoralama yaratilgach `onYaratildi(aktId)` chaqiriladi.
  */
-export function F2StornoTanlov(p: { obyektId: number; onYop: () => void; onYaratildi: (aktId: number) => void }) {
+export function F2StornoTanlov(p: {
+  obyektId: number; onYop: () => void; onYaratildi: (aktId: number) => void;
+  /** F2 tayyorlashdan: sukut «Faktni o'zgartirma» (audit M8). */
+  faktRejimSukut?: StornoFaktRejim;
+  /** Ochiq qoralama bo'lsa — storno shu qoralamaga qo'shiladi (yangi qoralama yaratilmaydi, kiritmalar yo'qolmaydi). */
+  qoralamaga?: { aktId: number; onQosh: (qatorlar: StornoYukQator[], ogoh?: string) => void };
+}) {
   const [reestr, setReestr] = useState<T2AktReestr[] | null>(null);
   const [xato, setXato] = useState('');
   const [tanlangan, setTanlangan] = useState<F2StornoAkt | null>(null);
   /** Birga storno qilinadigan eski F2 lar (id). */
   const [belgi, setBelgi] = useState<ReadonlySet<number>>(new Set());
   const [birga, setBirga] = useState<F2StornoAkt[] | null>(null);
+  /** Barqaror (audit M6): har renderda yangi massiv — oyna qayta yuklanib, belgilar tiklanib ketardi. */
+  const birgaQolgan = useMemo(() => birga?.slice(1) ?? [], [birga]);
 
   useEffect(() => {
     let jonli = true;
@@ -46,10 +54,10 @@ export function F2StornoTanlov(p: { obyektId: number; onYop: () => void; onYarat
   }, [p.obyektId]);
 
   if (birga && birga.length > 0 && reestr) {
-    return <F2StornoOyna obyektId={p.obyektId} akt={birga[0]} qoshimcha={birga.slice(1)} reestr={reestr} onYop={p.onYop} onYaratildi={p.onYaratildi} />;
+    return <F2StornoOyna obyektId={p.obyektId} akt={birga[0]} qoshimcha={birgaQolgan} reestr={reestr} onYop={p.onYop} onYaratildi={p.onYaratildi} faktRejimSukut={p.faktRejimSukut} qoralamaga={p.qoralamaga} />;
   }
   if (tanlangan && reestr) {
-    return <F2StornoOyna obyektId={p.obyektId} akt={tanlangan} reestr={reestr} onYop={p.onYop} onYaratildi={p.onYaratildi} />;
+    return <F2StornoOyna obyektId={p.obyektId} akt={tanlangan} reestr={reestr} onYop={p.onYop} onYaratildi={p.onYaratildi} faktRejimSukut={p.faktRejimSukut} qoralamaga={p.qoralamaga} />;
   }
 
   const nomzod = reestr ? stornoNomzodAktlar(reestr) : [];
