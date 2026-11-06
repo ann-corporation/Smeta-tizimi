@@ -312,26 +312,29 @@ def run(source, output, meta=None, ocr=None, lang='rus+uzb_cyrl', threshold=90, 
                         state['flags'].append('CONVERTER_REQUIRED' if suffix == '.doc' else 'UNSUPPORTED_SOURCE')
                     else:
                         units = pdf_units(source, config, exists) if suffix == '.pdf' else docx_units(source)
-                        for key, unit in units:
-                            if unit is not None and not exists(key):
-                                if 'total_units' in unit:
-                                    state['total'] = unit.pop('total_units')
-                                chunk = dict(chunk_meta, **unit, source_sha=sha, reader=READER, unit=key,
-                                    norma_kod=config['meta'].get('norma_kod'), tahrir=config['meta'].get('tahrir'),
-                                    bob_punkt=None, jadval_kod=None, original_kind=original.suffix.lower(), derivative_sha=state.get('derivative_sha'))
-                                if key in annotations:
-                                    if unit['method'] == 'unread':
-                                        raise ValueError('ANNOTATION_ON_UNREAD_UNIT')
-                                    anchor = annotations[key].get('iqtibos_anchor')
-                                    if anchor and anchor not in chunk['matn']:
-                                        raise ValueError('CITATION_ANCHOR_NOT_FOUND')
-                                    chunk.update(annotations[key])
-                                chunk['sha'] = digest(encoded(chunk)); atomic(job/(key+'.json'), chunk)
-                            saved = json.loads((job/(key+'.json')).read_text(encoding='utf-8'))
-                            state['flags'] = sorted(set(state['flags'] + saved['flags']))
-                            if key not in state['units']:
-                                state['units'].append(key)
-                            state['completed'] = len(state['units']); atomic(manifest, state)
+                        try:
+                            for key, unit in units:
+                                if unit is not None and not exists(key):
+                                    if 'total_units' in unit:
+                                        state['total'] = unit.pop('total_units')
+                                    chunk = dict(chunk_meta, **unit, source_sha=sha, reader=READER, unit=key,
+                                        norma_kod=config['meta'].get('norma_kod'), tahrir=config['meta'].get('tahrir'),
+                                        bob_punkt=None, jadval_kod=None, original_kind=original.suffix.lower(), derivative_sha=state.get('derivative_sha'))
+                                    if key in annotations:
+                                        if unit['method'] == 'unread':
+                                            raise ValueError('ANNOTATION_ON_UNREAD_UNIT')
+                                        anchor = annotations[key].get('iqtibos_anchor')
+                                        if anchor and anchor not in chunk['matn']:
+                                            raise ValueError('CITATION_ANCHOR_NOT_FOUND')
+                                        chunk.update(annotations[key])
+                                    chunk['sha'] = digest(encoded(chunk)); atomic(job/(key+'.json'), chunk)
+                                saved = json.loads((job/(key+'.json')).read_text(encoding='utf-8'))
+                                state['flags'] = sorted(set(state['flags'] + saved['flags']))
+                                if key not in state['units']:
+                                    state['units'].append(key)
+                                state['completed'] = len(state['units']); atomic(manifest, state)
+                        finally:
+                            units.close()
             if set(annotations) - set(state['units']):
                 raise ValueError('ANNOTATION_UNIT_NOT_FOUND')
             state['total'] = state.get('total', state['completed'])
