@@ -10,11 +10,15 @@
  *    (mavjud `sbFaktYoz` yo'li); «o'zgartirma» — fakt allaqachon to'g'rilangan, hech narsa yozilmaydi.
  *    O'tgan fakt yozuvlari hech qachon o'chirilmaydi va o'zgartirilmaydi.
  */
-import { yigindi2 } from './hisob-yadro';
+import { yigindi2, yigindi2Qatiy } from './hisob-yadro';
 
 export const STORNO_MANBA = 'storno';
 
 export type StornoManbaQator = {
+  /** t2_akt_qator.id — storno qatorining `manba_akt_qator_id` (server B2 qoidasi uchun). */
+  id?: number | null;
+  /** Netto (bir aktda bir qator_id bir necha marta): barcha manba t2_akt_qator.id lar. */
+  manbaIdlar?: readonly number[];
   qator_id: number;
   hajm?: number | string | null;
   certified_quantity?: number | string | null;
@@ -65,6 +69,8 @@ export function stornoQator(x: StornoManbaQator, aktId: number): StornoQatorNati
       rawSnapshot: {
         source: STORNO_MANBA, stornoOf: aktId, sourceReference: `storno:${aktId}`,
         enteredQuantity: hajm, enteredUnitPrice: aniq ? narx : undefined, enteredAmount: summaMinus,
+        ...(x.id != null ? { manba_akt_qator_id: x.id } : {}),
+        ...(x.manbaIdlar && x.manbaIdlar.length > 1 ? { manba_akt_qator_idlar: [...x.manbaIdlar] } : {}),
       },
       izoh: 'Сторно (eski F2)',
     },
@@ -93,6 +99,35 @@ export function stornoQur(manba: readonly StornoManbaQator[], aktId: number, tan
     qatorlar.push(n.qator);
   }
   return { qatorlar, jami: yigindi2(qatorlar.map((q) => q.certifiedAmount)), nomalum, nolHajm, hajmsiz };
+}
+
+/**
+ * Vaqtincha (audit B2/B3, server qoidasi kelguncha): bir aktda bir qator_id bir necha marta bo'lsa (pereraschet F2 — storno −10
+ * va plyus +12) — storno uchun BITTA netto qatorga birlashtiriladi (server bitta hujjatda bir qatorni ikki storno qatori
+ * sifatida qabul qilmaydi). Hajm — yig'indi; summa — yadro `yigindi2Qatiy` (birorta noma'lum — noma'lum); narx — hammasida
+ * bir xil bo'lsa shu, aks holda noma'lum (summa to'qilmaydi, «narx ataylab yo'q» — `narxFarq`).
+ */
+export function stornoManbaNetto(qatorlar: readonly StornoManbaQator[]): { qatorlar: StornoManbaQator[]; nettolandi: number; narxFarq: number } {
+  const guruh = new Map<number, StornoManbaQator[]>();
+  for (const x of qatorlar) { const g = guruh.get(x.qator_id); if (g) g.push(x); else guruh.set(x.qator_id, [x]); }
+  const out: StornoManbaQator[] = []; let nettolandi = 0; let narxFarq = 0;
+  for (const g of guruh.values()) {
+    if (g.length === 1) { out.push(g[0]); continue; }
+    nettolandi++;
+    const hajmlar = g.map((x) => son(x.certified_quantity) ?? son(x.hajm));
+    const hajm = hajmlar.some((h) => h == null) ? null : Number(hajmlar.reduce<number>((a, h) => a + (h as number), 0).toPrecision(15));
+    const narxlar = g.map((x) => (x.provenance_status === 'price_intentionally_absent' ? null : son(x.certified_unit_price) ?? son(x.narx)));
+    const birXil = narxlar.every((n) => n != null && n === narxlar[0]);
+    const summa = g.some((x) => x.provenance_status === 'price_intentionally_absent') ? null : yigindi2Qatiy(g.map((x) => son(x.certified_amount) ?? son(x.summa)));
+    if (!birXil && summa != null) narxFarq++;
+    const aniq = birXil && summa != null;
+    out.push({
+      id: g[0].id ?? null, manbaIdlar: g.map((x) => x.id).filter((i): i is number => i != null), qator_id: g[0].qator_id,
+      hajm, certified_quantity: hajm, certified_unit_price: aniq ? narxlar[0] : null, certified_amount: aniq ? summa : null,
+      provenance_status: aniq ? null : 'price_intentionally_absent',
+    });
+  }
+  return { qatorlar: out, nettolandi, narxFarq };
 }
 
 /* ── Bo'lim bo'yicha tanlash (egasi 2026-11-05) ─────────────────────────────────────────────────────────────────── */
@@ -165,25 +200,30 @@ export type StornoFaktReja = {
   yozuvlar: StornoFaktYozuv[];
   /** Fakti bor, lekin qo'lda yozib bo'lmaydigan (rs — fakt BL normasidan hosil bo'ladi) qatorlar. */
   hosila: number;
+  /** Storno hajmi musbat (storno-of-storno / minus qatorni stornolash) — fakt tegilmaydi (audit B4). */
+  musbat: number;
 };
 
 /** Faktni qo'lda yozish mumkin bo'lgan turlar (server: t2_fakt_yoz_v2 — faqat bl/mat/ob). */
 const FAKT_TURLAR = new Set(['bl', 'mat', 'ob']);
 
 /**
- * Tanlangan qatorlar uchun joriy fakt hajmiga teng MINUS yozuv → sof fakt 0. Fakt noma'lum/0 bo'lsa yozuv yo'q.
- * Tanlanmagan qatorlar umuman kirmaydi (ularning fakti saqlanadi).
+ * «Faktni 0 ga» (audit B4): har storno qatori uchun MINUS fakt yozuvi = min(joriy fakt, eski F2 hajmi) — faqat stornolangan
+ * hajm qaytariladi (butun fakt emas). `stornoHajm` — qator_id → storno hajmi (minus). Storno hajmi musbat (minus qatorni
+ * stornolash) — fakt tegilmaydi (`musbat`). Fakt noma'lum/≤0 — yozuv yo'q. Tanlanmagan qatorlar kirmaydi.
  */
-export function stornoFaktReja(tanlanganIdlar: ReadonlySet<number>, holat: readonly StornoFaktHolat[], aktRaqam: string): StornoFaktReja {
-  const yozuvlar: StornoFaktYozuv[] = []; let hosila = 0;
+export function stornoFaktReja(stornoHajm: ReadonlyMap<number, number>, holat: readonly StornoFaktHolat[], aktRaqam: string): StornoFaktReja {
+  const yozuvlar: StornoFaktYozuv[] = []; let hosila = 0; let musbat = 0;
   for (const h of holat) {
-    if (!tanlanganIdlar.has(h.qator_id)) continue;
+    const s = stornoHajm.get(h.qator_id);
+    if (s == null) continue;
+    if (s >= 0) { if (s > 0) musbat++; continue; }
     const f = son(h.fakt_hajm);
-    if (f == null || f === 0) continue;
+    if (f == null || f <= 0) continue;
     if (!FAKT_TURLAR.has(String(h.tur ?? ''))) { hosila++; continue; }
-    yozuvlar.push({ qator_id: h.qator_id, hajm: neg(f), izoh: `Сторно F2 №${aktRaqam}: fakt 0 ga` });
+    yozuvlar.push({ qator_id: h.qator_id, hajm: neg(Math.min(f, -s)), izoh: `Сторно F2 №${aktRaqam}: fakt 0 ga` });
   }
-  return { yozuvlar, hosila };
+  return { yozuvlar, hosila, musbat };
 }
 
 /* ── Qoralamani qayta saqlashda storno blokini saqlab qolish ────────────────────────────────────────────────────── */
