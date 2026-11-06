@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { xavfsizUpstream } from './xato';
+import { bazaBiznesKodi, xavfsizUpstream, xavfsizXato } from './xato';
 
 describe('xavfsizUpstream', () => {
   it('hides PostgREST internals while keeping the stable response shape', async () => {
@@ -39,6 +39,19 @@ describe('xavfsizUpstream', () => {
     expect(response.status).toBe(403);
     expect(body).toMatchObject({ ok: false, code: 'AUTHORIZATION_DENIED' });
     expect(JSON.stringify(body)).not.toContain('internal relation detail');
+    log.mockRestore();
+  });
+});
+
+describe('bazaBiznesKodi — F2 baza qoidalari sababli kod bilan (audit A-8)', () => {
+  it('23514 hajm CHECK → F2_HAJM_NOL; P0001 QATOR_ALMASHTIRILGAN → o‘z kodi; boshqalari — null', async () => {
+    expect(bazaBiznesKodi(JSON.stringify({ code: '23514', message: 'new row violates check constraint "t2_akt_qator_hajm_check"' }))).toBe('F2_HAJM_NOL');
+    expect(bazaBiznesKodi(JSON.stringify({ code: 'P0001', message: 'QATOR_ALMASHTIRILGAN: qator 5 yangi smeta versiyasi bilan almashtirilgan' }))).toBe('QATOR_ALMASHTIRILGAN');
+    expect(bazaBiznesKodi(JSON.stringify({ code: '23514', message: 'other_check' }))).toBeNull();
+    expect(bazaBiznesKodi('<html>')).toBeNull();
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const j = await xavfsizXato('F2_HAJM_NOL', 409, 'xom').json() as { code: string; error: string };
+    expect(j.code).toBe('F2_HAJM_NOL'); expect(j.error).toMatch(/hajm 0/); expect(JSON.stringify(j)).not.toContain('xom');
     log.mockRestore();
   });
 });

@@ -375,6 +375,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   // Kalit obyekt + oy + RAQAM: shu oyda boshqa raqamli F2 bo'lsa u tegilmaydi — yangi akt yaratiladi.
   // Aynan shu raqamdagi QORALAMA akt bo'lsa saqlash uning qatorlarini almashtiradi — faqat operator aniq tasdiqlagach;
   // tasdiqlangan/yuborilgan akt bo'lsa yangi akt saqlanmaydi.
+  /** Qoralama id → server qaytargan oxirgi versiya (t2_f2_qoralama_yangila_v1, PR #294). */
+  const qoralamaVersiya = useRef(new Map<number, number>());
   const mavjudQoralama = qoralamaAktmi(joriyAvvalgi?.akt) ? joriyAvvalgi!.akt! as AvvalgiF2 & { versiya: number } : null;
   const almashtirishKutilmoqda = !!mavjudQoralama && almashtirTasdiq !== mavjudQoralama.id;
   /** Boshqa qoralamalarda band hajm (tahrirlanayotgan qoralama o'zi hisobga olinmaydi). */
@@ -1346,7 +1348,8 @@ function Sessiya({ companyId }: { companyId: number }) {
             unresolved_count: yozish.qolgan.length },
         }));
       const r = mavjudQoralama
-        ? await sbT2F2QoralamaYangila({ kompaniyaId: companyId, aktId: mavjudQoralama.id, kutilganVersiya: mavjudQoralama.versiya, operationId: yangiOperationId(), qatorlar })
+        // PR #294 shartnomasi: server har saqlashda versiyani oshiradi — keyingi saqlash qaytgan versiya bilan (eski serverda versiya qaytmaydi).
+        ? await sbT2F2QoralamaYangila({ kompaniyaId: companyId, aktId: mavjudQoralama.id, kutilganVersiya: Math.max(qoralamaVersiya.current.get(mavjudQoralama.id) ?? 0, mavjudQoralama.versiya), operationId: yangiOperationId(), qatorlar })
         : await sbT2AktYaratV2({ obyektId: Number(objectId), oy: davr + '-01', operationId: operation.current, qatorlar, raqam: raqamN || undefined });
       if (!r.ok) {
         const code = (r as { code?: string }).code;
@@ -1354,10 +1357,11 @@ function Sessiya({ companyId }: { companyId: number }) {
           const m = t('Shu obyekt va oy uchun bu raqamdagi F2 allaqachon mavjud. Tasdiqlangan aktni qayta import bilan almashtirib bo‘lmaydi.');
           setAktZiddiyat(true); setXato(m); qadam('akt', 'xato', m);
         }
-        else if (code === 'STALE_VERSION') { setTekshiruv((v) => v + 1); qadam('akt', 'xato', t('F2 qoralama boshqa joyda o‘zgargan — yangi holati o‘qildi, «Qayta urinish»ni bosing.')); }
+        else if (code === 'STALE_VERSION') { setTekshiruv((v) => v + 1); qadam('akt', 'xato', t('Qoralama boshqa oynada o‘zgargan — qayta yuklang.')); }
         else qadam('akt', 'xato', `${r.xabar || r.error || r.sabab || t('xato')}`);
         return;
       }
+      { const v = (r as { versiya?: unknown }).versiya; if (mavjudQoralama && typeof v === 'number') qoralamaVersiya.current.set(mavjudQoralama.id, v); }
       // Hujjatning O'Z podvali (egasi 2026-11-03): foizlari isbotlangan bo'lsa t2_akt_podval ga yoziladi, aks holda smeta podvali qoladi.
       let podvalIzoh = '';
       if (akt.podval && r.akt_id) {
