@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 125,
+      "sana": "2026-11-07",
+      "sarlavha": "Fakt: zamena va qo'shimcha ish/material — endi shu qatorning o'zida",
+      "bandlar": [
+        "Fakt kiritishda qator yonidagi ↻ tugma (yoki Z / Q / M, katakda Alt+Z / Alt+Q / Alt+M) alohida oyna ochmaydi — panel shu qatorning ostida chiqadi: «Boshqasi bilan almashtirildi (zamena)», «Qo'shimcha ish», «Qo'shimcha material».",
+        "Nom yoki shifr bo'yicha qidiruv narxni smeta/katalogdan to'ldiradi; narx bo'sh bo'lsa qator narxsiz saqlanadi (0 emas). Saqlash — Ctrl+Enter, yopish — Esc.",
+        "Asl qatorda «zamena →», yangisida «← o'rniga» belgisi — bosilsa juftiga o'tadi. «Faqat zamena va qo'shimchalar» filtri ularni bir joyda ko'rsatadi. Resurslar tarkibi va normativ katalog — «Kengaytirilgan oyna» havolasida."
+      ]
+    },
+    {
       "id": 124,
       "sana": "2026-11-06",
       "sarlavha": "Excel hujjatlar ixchamroq: shifr qatorni shishirmaydi",
