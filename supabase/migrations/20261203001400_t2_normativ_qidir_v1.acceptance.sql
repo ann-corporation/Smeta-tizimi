@@ -1,6 +1,6 @@
 begin;
 insert into public.t2_foydalanuvchi(login,ism,holat)
-values ('k3-reader','K3 synthetic reader','faol'),('k3-inactive','K3 synthetic inactive','bloklangan');
+values ('k3-reader','K3 synthetic reader','faol'),('k3-inactive','K3 synthetic inactive','bekor');
 insert into public.t2_kompaniya(nom,kod) values ('K3 synthetic','K3-SYN');
 insert into public.t2_azolik(foydalanuvchi_id,kompaniya_id,rol,holat)
 select u.id,k.id,'pto','faol' from public.t2_foydalanuvchi u
