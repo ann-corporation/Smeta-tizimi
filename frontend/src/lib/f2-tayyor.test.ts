@@ -38,7 +38,8 @@ describe('F2 tayyorlash mantig‘i', () => {
   it('ish hajmi → resurslar hajm × norma, narx manbasi bilan, summa avtomatik', () => {
     const b = f2Qur(rows, holat);
     const k = bosKiritma(); k.hajm[2] = '6';
-    expect(f2Qatorlar(b, k).find((x) => x.id === 4)?.xato).toBe('NARX');   // narxsiz — faqat ongli tanlov
+    // Egasi 2026-11-06: narxi yo'q resurs qoralamani to'smaydi — avtomatik narxsiz (xato emas), summa NULL (0 emas).
+    expect(f2Qatorlar(b, k).find((x) => x.id === 4)).toMatchObject({ narxsiz: true, avtoNarxsiz: true, narx: null, summa: null, manba: 'yoq' });
     expect(narxsizNomzodlar(f2Qatorlar(b, k))).toEqual([4]);
     k.narxsiz[4] = true;
     const r = f2Qatorlar(b, k);
@@ -346,7 +347,8 @@ describe('pereraschet: yangi qatorlar smeta narxida (eski F2 arzon narxda bo‘l
     const b = qur(true);
     expect(res(b, 5)).toMatchObject({ taklifNarx: null, taklifManba: 'yoq', zaxiraNarx: 40 });
     const q = new Map(f2Qatorlar(b, kirit()).map((x) => [x.id, x]));
-    expect(q.get(5)).toMatchObject({ narx: null, summa: null, xato: 'NARX' });
+    expect(q.get(5)).toMatchObject({ narx: null, summa: null, avtoNarxsiz: true });
+    expect(q.get(5)?.xato).toBeUndefined();
   });
   it('jamilar: storno (eski narx), yangi (smeta narx), farq; narx farqi eski narxga nisbatan', () => {
     const b = qur(true);

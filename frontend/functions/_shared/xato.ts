@@ -16,7 +16,25 @@ const XABAR: Record<string, string> = {
   REPLICA_CONFLICT: 'Nusxa va kanonik ma’lumot o‘rtasida ziddiyat bor — tekshirish kerak.',
   SHEETS_CONFLICT: 'Sheets nusxasi va kanonik ma’lumot o‘rtasida ziddiyat bor — tekshirish kerak.',
   UPSTREAM: 'Ma’lumotni yuklab bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.',
+  /* F2 yozish (audit 2026-11-06, A-8): baza CHECK/trigger xatolari umumiy «yuklab bo‘lmadi» emas, sababi bilan. */
+  F2_HAJM_NOL: 'F2 qatorida hajm 0 — bunday qator yozilmaydi. Hajmi 0 qatorni olib tashlang yoki hajm kiriting.',
+  QATOR_ALMASHTIRILGAN: 'Qator yangi smeta versiyasi bilan almashtirilgan — F2 faqat faol qatorlarga yoziladi. Sahifani yangilang.',
 };
+
+/**
+ * Baza xatosidan F2 biznes kodi (faqat xabar/kod bo‘yicha; xom matn brauzerga chiqmaydi):
+ *  - 23514 + t2_akt_qator_hajm_check → F2_HAJM_NOL;
+ *  - P0001 «QATOR_ALMASHTIRILGAN: …» (versiya qo‘riqchisi triggeri) → QATOR_ALMASHTIRILGAN.
+ */
+export function bazaBiznesKodi(matn: string): 'F2_HAJM_NOL' | 'QATOR_ALMASHTIRILGAN' | null {
+  try {
+    const j = JSON.parse(matn) as { code?: unknown; message?: unknown };
+    const m = typeof j.message === 'string' ? j.message : '';
+    if (j.code === '23514' && /\bt2_akt_qator_hajm_check\b/.test(m)) return 'F2_HAJM_NOL';
+    if (j.code === 'P0001' && /^QATOR_ALMASHTIRILGAN\b/.test(m)) return 'QATOR_ALMASHTIRILGAN';
+  } catch { /* JSON emas */ }
+  return null;
+}
 
 /** Upstream payloaddan foydalanuvchiga chiqishi mumkin bo‘lgan barqaror kodlar.
  * PostgREST/SQL/HTTP ichki kodlari hech qachon tashqariga ko‘chirilmaydi. */

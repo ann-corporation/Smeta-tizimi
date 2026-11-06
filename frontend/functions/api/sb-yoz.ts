@@ -26,7 +26,7 @@ import { ilovaDarvozasi } from '../_shared/ilova-darvoza';
 import { amalIlovasi } from '../../src/lib/ilova/ilovalar';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
-import { xavfsizUpstream } from '../_shared/xato';
+import { bazaBiznesKodi, xavfsizUpstream, xavfsizXato } from '../_shared/xato';
 import { azoKompaniyalar } from '../_shared/tenant-oqish';
 import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob, mayWriteCompanies } from '../_shared/role-authority';
 import { egaQarori, egalarniOqi, yozishTalablari } from '../_shared/tenant-yozish';
@@ -3389,6 +3389,9 @@ export const onRequestPost: PagesFunction<{
         error: 'Shu raqam bilan F2 allaqachon mavjud (shu obyekt yoki shartnoma doirasida). Mavjud aktni tekshiring. Tasdiqlangan akt oddiy import bilan almashtirilmaydi.' }, { status: 409 });
     }
     if (!r.ok) {
+      // F2 baza qoidalari (CHECK hajm 0, versiya qo'riqchisi) — sababli kod; xom matn faqat logga.
+      const biznes = bazaBiznesKodi(matn);
+      if (biznes) return xavfsizXato(biznes, 409, matn);
       return xavfsizUpstream(r.status, matn);
     }
     let natija: any;

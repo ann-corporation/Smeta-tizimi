@@ -66,7 +66,8 @@ describe('F2 independent working draft', () => {
     m.preflight.mockResolvedValue({ok:true,qatorlar:[{id:99,oy:'2026-10-01',raqam:null,holat:'tasdiqlangan',lifecycle_status:'approved'}]});
     await start();
     await screen.findByText('Bu obyekt va oy uchun F2 akt allaqachon bor. Bog‘lashni davom ettirishingiz mumkin — faqat yangi akt saqlanmaydi.');
-    expect(screen.getByRole('link',{name:'Mavjud F2 tarixini boshqa oynada ochish'}).getAttribute('target')).toBe('_blank');
+    // Raqamsiz akt shu oyda bor — dublikat paneli ham (A-15) bloklaydi; har ikki havola yangi oynada ochiladi.
+    for (const l of screen.getAllByRole('link',{name:'Mavjud F2 tarixini boshqa oynada ochish'})) expect(l.getAttribute('target')).toBe('_blank');
     const button=screen.getByRole('button',{name:'Mos qatorlarni bog‘lash'}) as HTMLButtonElement;
     expect(button.disabled).toBe(false); fireEvent.click(button);
     await waitFor(() => expect(m.match).toHaveBeenCalledTimes(1));
