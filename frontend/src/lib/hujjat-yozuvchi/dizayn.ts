@@ -48,6 +48,11 @@ export type HujjatDizayn = {
   zebraFon: string;
   chekka: { chap: number; ong: number; yuqori: number; past: number };
   yonalish: 'auto' | 'portrait' | 'landscape';
+  /**
+   * Jadval qatorining eng ko'p matn qatori (egasi 2026-11-06: «qatorlar semiz» — uzun nom har qatorni shishirmasin).
+   * 0 — cheklovsiz (to'liq o'raladi); N — qator balandligi ko'pi bilan N matn qatori (matn o'ralgan qoladi).
+   */
+  qatorMaks: number;
   daraja: Record<DarajaKalit, DarajaUslubi>;
 };
 
@@ -69,6 +74,7 @@ const BAZA: Omit<HujjatDizayn, 'preset' | 'daraja'> = {
   zebraFon: 'F7F7F7',
   chekka: { chap: 0.4, ong: 0.4, yuqori: 0.5, past: 0.6 },
   yonalish: 'auto',
+  qatorMaks: 3,
 };
 
 export const DIZAYN_PRESETLAR: Record<DizaynPreset, HujjatDizayn> = {
@@ -160,6 +166,7 @@ export function dizaynTozala(xom: unknown): HujjatDizayn {
       yuqori: son(ch.yuqori, 0, 2, p.chekka.yuqori), past: son(ch.past, 0, 2, p.chekka.past),
     },
     yonalish: r.yonalish === 'portrait' || r.yonalish === 'landscape' ? r.yonalish : 'auto',
+    qatorMaks: Math.round(son(r.qatorMaks, 0, 20, p.qatorMaks)),
     daraja,
   };
 }

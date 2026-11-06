@@ -256,7 +256,7 @@ export function F2TarixNative() {
       if (!pv.ok || !aq.ok) { toast(`F2 hujjati tuzilmadi: ${t('hujjat podvali o‘qilmadi')}`, 'danger'); return; }
       // Yagona tayyorlash (lib/f2-akt-eksport): F2 portfeli ham aynan shu yo'ldan foydalanadi.
       const k = f2AktTayyorla({ smeta: smetaRows, lines: selectedLines, aktQatorlar: aq.qatorlar ?? [], podvallar: aktPodvalXaritasi(pv.podvallar), kontekst: ctx,
-        akt: { id: akt.id, oy: akt.oy, raqam: akt.raqam }, obyektNom: object?.nom || '', raqamlar: new Map(f2Reestr.map((a) => [a.id, a.raqam ?? null] as const)) });
+        akt: { id: akt.id, oy: akt.oy, raqam: akt.raqam, holat: akt.holat }, obyektNom: object?.nom || '', raqamlar: new Map(f2Reestr.map((a) => [a.id, a.raqam ?? null] as const)) });
       if (!k) { toast('Bu hujjatda chiqariladigan qator yo‘q.', 'danger'); return; }
       if (k.topilmagan) toast(t('{n} ta qator smetada topilmadi — hujjatga kirmadi', { n: k.topilmagan }), 'warn');
       const h = f2Hujjat(k.bolimlar, k.qatorlar, k.opsiya);

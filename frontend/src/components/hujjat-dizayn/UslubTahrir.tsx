@@ -140,6 +140,9 @@ export function UslubTahrir({ dizayn, onChange, oqish = false }: { dizayn: Hujja
           <label className={lbl}>
             <input type="checkbox" checked={dizayn.jamiQosChiziq} onChange={(e) => o({ jamiQosChiziq: e.target.checked })} />{t('Jami ustida qosh chiziq')}
           </label>
+          <label className={lbl} title={t('Uzun nomli qator shu sondan ortiq matn qatoriga shishmaydi (0 — cheklovsiz)')}>{t('Qator balandligi (matn qatori, 0 — cheklovsiz)')}
+            <input type="number" min={0} max={20} className={`${inp} w-14`} value={dizayn.qatorMaks} onChange={(e) => o({ qatorMaks: Math.max(0, Math.min(20, Math.round(Number(e.target.value) || 0))) })} />
+          </label>
           <label className={lbl}>{t('Varaq yonalishi')}
             <select className={inp} value={dizayn.yonalish} onChange={(e) => o({ yonalish: e.target.value as HujjatDizayn['yonalish'] })}>
               <option value="auto">{t('Hujjatga qarab')}</option>
