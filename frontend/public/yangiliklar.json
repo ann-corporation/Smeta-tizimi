@@ -2,6 +2,14 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 116,
+      "sana": "2026-11-06",
+      "sarlavha": "Fakt jurnali: material takliflari endi faqat ishiga mos materiallarga",
+      "bandlar": [
+        "Ish bajarilganda materiallar taklifi endi ish va material maʼnosi hamda birligiga qaraydi: sinov, yuvish, demontaj kabi materialsiz ishlardan keyingi materiallar, oʻrnatish boʻlmagan ishdan keyingi uskunalar, mebel, MDF panellar va elektronika boshqa ishga taklif qilinmaydi. Ish ichidagi va unga mos materiallar avvalgidek taklif qilinadi; hech narsa avtomatik yozilmaydi."
+      ]
+    },
+    {
       "id": 115,
       "sana": "2026-11-06",
       "sarlavha": "Ф-2 pereraschet Excel: tirik formulalar, tartibli storno va ixcham qatorlar",
