@@ -6,10 +6,10 @@ import { onRequestGet } from './normativ-qidir';
 
 afterEach(() => { vi.unstubAllGlobals(); vakolatKeshTozala(); });
 
-async function setup() {
+async function setup(matn = 'Synthetic clause.', iqtibos_anchor?: string) {
   const secret = 'synthetic-k3-cookie-secret';
   const source = 'a'.repeat(64);
-  const bytes = new TextEncoder().encode(JSON.stringify({ source_sha: source, matn: 'Synthetic clause.' }));
+  const bytes = new TextEncoder().encode(JSON.stringify({ source_sha: source, matn, iqtibos_anchor }));
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
   const sha = Array.from(digest, b => b.toString(16).padStart(2, '0')).join('');
   const row = {
@@ -70,4 +70,13 @@ it.each(['missing', 'size', 'tamper', 'key'])('fails closed on %s source', async
   if (defect === 'key') h.row.r2_key = 'other/private';
   expect(await (await h.call()).json()).toEqual({ ok: false, code: 'SOURCE_UNAVAILABLE' });
   if (defect === 'key') expect(h.get).not.toHaveBeenCalled();
+});
+
+it('includes a reviewed anchor beyond the first 800 characters', async () => {
+  const h = await setup('x'.repeat(1200) + 'Synthetic target clause.', 'Synthetic target clause.');
+  const response = await h.call();
+  const { natijalar: [citation] } = await response.json();
+  expect(citation.iqtibos).toContain('Synthetic target clause.');
+  expect(citation.iqtibos.length).toBeLessThanOrEqual(800);
+  expect(citation.qisqartirilgan).toBe(true);
 });
