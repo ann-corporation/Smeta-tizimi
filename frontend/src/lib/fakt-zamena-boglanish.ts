@@ -30,10 +30,14 @@ export async function zamenaBoglanishOqi(obyektId: number): Promise<ZamenaOqish<
   } catch { return { ok: false, xato: XATO }; }
 }
 
-/** Zamena → almashtirish_hajm (aslning birligida). Ustun bo'lmasa kalit yo'q — qoida proporsional ulushga qaytadi (to'qilmaydi). */
+/**
+ * Zamena → almashtirish_hajm (aslning birligida). Ustun bo'lmasa kalit yo'q — qoida proporsional ulushga qaytadi (to'qilmaydi).
+ * 
+ot.is.null filtri shlyuzda rad etiladi (FILTR) — null qiymatlar shu yerda tashlanadi.
+ */
 export async function zamenaMiqdorOqi(obyektId: number): Promise<ZamenaOqish<Map<number, number>>> {
   try {
-    const r = await t2ToliqOqi<{ id: number; almashtirish_hajm: number | null }>(sbOqi, { jadval: 't2_qator', filtr: `obyekt_id=eq.${obyektId}&zamena=is.true&almashtirish_hajm=not.is.null`, ustunlar: 'id,almashtirish_hajm', limit: 200000 }, 'id');
+    const r = await t2ToliqOqi<{ id: number; almashtirish_hajm: number | null }>(sbOqi, { jadval: 't2_qator', filtr: `obyekt_id=eq.${obyektId}&zamena=is.true`, ustunlar: 'id,almashtirish_hajm', limit: 200000 }, 'id');
     if (!r.ok || r.toliq === false) return { ok: false, xato: XATO };
     const m = new Map<number, number>();
     for (const x of r.qatorlar ?? []) { const v = Number(x.almashtirish_hajm); if (x.almashtirish_hajm != null && Number.isFinite(v) && v >= 0) m.set(Number(x.id), v); }
