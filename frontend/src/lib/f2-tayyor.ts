@@ -554,3 +554,20 @@ export function resursQoldiqQiymati(r: Pick<F2Resurs, 'mumkin' | 'taklifNarx'>):
 export function pulChangmi(qiymat: number | null, chegara = F2_CHANG_PUL): boolean {
   return qiymat != null && Math.abs(qiymat) < chegara;
 }
+/** Boʻlimdagi mumkin hajmlarni qoʻshadi, avvalgi kiritmalarni saqlaydi. */
+export function f2MumkinHajmlarniOl(bolimlar: readonly F2Bolim[], k: F2Kiritma): F2Kiritma {
+  const hajm = { ...k.hajm };
+  for (const b of bolimlar) {
+    for (const i of b.ishlar) {
+      if (pulChangmi(ishQoldiqQiymati(i))) continue;
+      if (i.mumkin !== 0) hajm[i.id] = String(i.mumkin);
+      for (const r of i.resurslar) {
+        if (!r.avto && r.mumkin !== 0) hajm[r.id] = String(r.mumkin);
+      }
+    }
+    for (const r of b.alohida) {
+      if (r.mumkin !== 0 && !pulChangmi(resursQoldiqQiymati(r))) hajm[r.id] = String(r.mumkin);
+    }
+  }
+  return { ...k, hajm };
+}
