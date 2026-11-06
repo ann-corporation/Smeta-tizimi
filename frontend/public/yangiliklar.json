@@ -1,6 +1,7 @@
 {
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
+    {"id":116,"sana":"2026-11-06","sarlavha":"F2 tayyorlash: «Barcha mumkin hajmni olish» endi saqlashni yopmaydi","bandlar":["Olinadigan qoldig‘i 0 bo‘lgan alohida materiallar endi avtomatik tanlanmaydi. Avval ular hajm 0 bilan qo‘shilib, «hajm 0 bo‘lmasin» xatosi bilan qoralamani saqlashni yopib qo‘yardi."]},
     {
       "id": 115,
       "sana": "2026-11-06",
