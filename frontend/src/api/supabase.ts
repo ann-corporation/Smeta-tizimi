@@ -385,15 +385,21 @@ export type T2AktReestr = {
   manba_bor?: boolean; manba?: string | null; import_job_id?: number | null; hujjat_id?: number | null;
 };
 
-export async function sbT2AktReestrOl(obyektId: number) {
+/**
+ * Audit C m2 (2026-11-06): avval `limit 500` tur filtrsiz edi — fakt aktlari ko'p obyektda F2 lar kesilardi. Endi `tur`
+ * filtri (ixtiyoriy), tartib noyob (oy.desc, id.desc) va to'liq bo'lmagan javob — `ok: false` (jim kesish yo'q).
+ */
+export async function sbT2AktReestrOl(obyektId: number, tur?: 'f2' | 'fakt'): Promise<SbJavob<T2AktReestr>> {
   // Nakopitelniy to'liq yuklanayotgan bo'lsa — tugashini kutadi (prod 2026-10-27: parallel og'ir so'rovlar 30 s timeout).
   await ogirYuklashKut();
-  return sbOqi<T2AktReestr>({
+  const r = await sbOqi<T2AktReestr>({
     jadval: 't2_akt_reestr',
-    filtr: 'obyekt_id=eq.' + obyektId,
-    tartib: 'oy.desc',
-    limit: 500,
+    filtr: 'obyekt_id=eq.' + obyektId + (tur ? '&tur=eq.' + tur : ''),
+    tartib: 'oy.desc,id.desc',
+    limit: 5000,
   });
+  if (r.ok && r.toliq === false) return { ...r, ok: false, qatorlar: [], code: 'TOLIQ_EMAS', error: 'Akt reestri to‘liq o‘qilmadi — qayta yangilang.' };
+  return r;
 }
 export async function sbT2DaraxtOl(obyektId: number, ustunlar?: string) {
   const result = await t2ToliqOqiParallel<T2Qator>(sbOqi, {

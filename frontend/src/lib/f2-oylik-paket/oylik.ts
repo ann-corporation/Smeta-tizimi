@@ -27,7 +27,8 @@ export function oyKaliti(s: string | null | undefined): string | null {
   return m ? `${m[1]}-${m[2]}` : null;
 }
 
-export type NomalumSabab = 'QATOR_YOQ' | 'KOEF_YOQ' | 'PODVAL_TOLIQ_EMAS' | 'KAT_NOMALUM' | 'QQS_STAVKA_YOQ';
+/** `QATOR_TOPILMADI` — akt qatori smetada (eski versiyada ham) topilmadi: summa noma'lum (audit C B2, yarim summa ko'rsatilmaydi). */
+export type NomalumSabab = 'QATOR_YOQ' | 'KOEF_YOQ' | 'PODVAL_TOLIQ_EMAS' | 'KAT_NOMALUM' | 'QQS_STAVKA_YOQ' | 'QATOR_TOPILMADI';
 
 /** Bitta F2 ning pul ko'rsatkichlari. `null` — noma'lum (0 emas). */
 export type AktMoliya = {
