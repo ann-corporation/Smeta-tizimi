@@ -5,6 +5,7 @@
  */
 import { bosKesim, f2Baholash, kesimgaQosh, yaxlit2, type AktPodvalNk, type F2Baho, type F2Blok, type HisobKirish, type Kesim } from './hisob-yadro';
 import { STORNO_MANBA } from './f2-storno';
+import { mashinistMehnati } from './narx-bildirishnoma';
 import { daraxtTartibida, smetaDaraxtTartibi } from './f2-tayyor';
 
 export type PereraschetAktQator = {
@@ -65,7 +66,8 @@ export function pereraschetBloklari(
       hajm: son(x.certified_quantity) ?? son(x.hajm), narx: son(x.certified_unit_price), summa,
     });
     kesimgaQosh(b.kesim, sq?.kat, summa);
-    if (summa == null) b.nomalum++; else b.jami += summa;
+    // Audit M1: ish (bl) puli resurslarida, mashinist mehnati — mashina-soatda: «summa noma'lum» sanalmaydi.
+    if (summa == null) { if ((sq?.tur ?? 'rs') !== 'bl' && !mashinistMehnati({ nom: sq?.nom ?? null } as Parameters<typeof mashinistMehnati>[0])) b.nomalum++; } else b.jami += summa;
     bloklar.set(manba, b);
   }
   const tartib = smetaDaraxtTartibi(smeta.values());

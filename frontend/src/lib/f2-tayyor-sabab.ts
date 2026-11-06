@@ -14,7 +14,7 @@ export type SababKod =
   | 'bosh' | 'xato_hajm' | 'xato_narx' | 'xato_summa' | 'pul'
   | 'dublikat' | 'aktlar_oqilmoqda' | 'aktlar_xato'
   | 'qosh_kutilmoqda' | 'baj_xato' | 'zamena_xato' | 'protokol_xato' | 'qoralama_xato'
-  | 'avto_narxsiz';
+  | 'avto_narxsiz' | 'storno_manba';
 export type SaqlashSabab = {
   kod: SababKod; matn: string;
   /** `blok` — saqlashni to‘xtatadi; `ogoh` — ko‘rinadi, lekin saqlashni to‘smaydi (egasi qarori: qoralamada narxsiz). */
@@ -40,6 +40,10 @@ export type SababKirish = {
   protokolXato: boolean; qoralamaXato: boolean;
   /** Qoralamada avtomatik narxsiz resurslar (blok emas — ogohlantirish). */
   avtoNarxsiz: readonly number[];
+  /** Faqat storno bloki tahrirlangan (yangi plyus qatorsiz) — «bo'sh» sabab bo'lmaydi. */
+  stornoOzgardi?: boolean;
+  /** Storno manbasi tasdiqlanmagan F2 — server rad etadi, shuning uchun blok (matn tayyor). */
+  stornoManbaXato?: string | null;
 };
 
 export function saqlashSabablari(k: SababKirish): SaqlashSabab[] {
@@ -55,7 +59,8 @@ export function saqlashSabablari(k: SababKirish): SaqlashSabab[] {
     else if (!k.aktBor) blok('akt_oqilmoqda', t('F2 akti o‘qilmoqda…'));
     else if (k.aktKorish) blok('muhr', t('Bu F2 qoralama emas (tasdiqlangan yoki yuborilgan) — o‘zgartirib bo‘lmaydi.'));
   }
-  if (!k.loading && !k.error && k.qatorSoni === 0) blok('bosh', t('Hali birorta ish hajmi kiritilmagan.'));
+  if (!k.loading && !k.error && k.qatorSoni === 0 && !k.stornoOzgardi) blok('bosh', t('Hali birorta ish hajmi kiritilmagan.'));
+  if (k.stornoManbaXato) blok('storno_manba', k.stornoManbaXato);
   if (k.xatoHajm.length) blok('xato_hajm', t('{n} ta qatorda hajm noto‘g‘ri (son bo‘lsin, 0 bo‘lmasin).', { n: k.xatoHajm.length }), { amal: 'qatorga', amalMatn: t('Qatorga o‘tish'), id: k.xatoHajm[0] });
   if (k.xatoNarx.length) blok('xato_narx', t('{n} ta resursda narx noto‘g‘ri (son va manfiy emas bo‘lsin).', { n: k.xatoNarx.length }), { amal: 'qatorga', amalMatn: t('Qatorga o‘tish'), id: k.xatoNarx[0] });
   if (k.xatoSumma.length) blok('xato_summa', t('{n} ta qatorda summa son emas.', { n: k.xatoSumma.length }), { amal: 'qatorga', amalMatn: t('Qatorga o‘tish'), id: k.xatoSumma[0] });

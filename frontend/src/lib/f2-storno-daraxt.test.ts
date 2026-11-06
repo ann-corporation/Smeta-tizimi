@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stornoBelgiHolat, stornoBolinganIshlar, stornoDaraxtQur, stornoJamlar, stornoQidir, stornoTugunAlmashtir, stornoUmumiy } from './f2-storno-daraxt';
+import { stornoBelgiHolat, stornoBlokHolati, stornoBlokQur, stornoBolinganIshlar, stornoDaraxtQur, stornoJamlar, stornoQidir, stornoTugunAlmashtir, stornoUmumiy } from './f2-storno-daraxt';
 import type { StornoDaraxtTugun, StornoManbaQator } from './f2-storno';
 
 const kalit = (a: number, q: number) => `${a}:${q}`;
@@ -102,5 +102,44 @@ describe('katta akt (4000 qator)', () => {
     for (let i = 0; i < 5; i++) stornoJamlar(t.ildiz, tan);
     expect(tan.size).toBe(4000);
     expect(performance.now() - t0).toBeLessThan(1500);
+  });
+});
+describe('stornoBlokQur — qoralamadagi storno blokini tahrirlash', () => {
+  const manba = [{ aktId: 7, qatorlar: [q(1, 50, 5), q(2, 30, 3), q(3, null, 2)] }];
+  const saqlangan = [
+    { qator_id: 1, hajm: -5, certified_quantity: -5, certified_unit_price: 10, certified_amount: -50, provenance_status: null, raw_snapshot: { source: 'storno', stornoOf: 7, belgi: 'asl' } },
+    { qator_id: 2, hajm: -3, certified_quantity: -3, certified_unit_price: 10, certified_amount: -30, provenance_status: null, raw_snapshot: { source: 'storno', stornoOf: 7 } },
+    { qator_id: 9, hajm: -1, certified_quantity: -1, certified_unit_price: 1, certified_amount: -1, provenance_status: null, raw_snapshot: { source: 'storno', stornoOf: 8 } },
+  ];
+  it('holat: saqlangan storno qatorlaridan tanlov va mutlaq hajm', () => {
+    const h = stornoBlokHolati(saqlangan, kalit);
+    expect([...h.tanlangan]).toEqual(['7:1', '7:2', '8:9']);
+    expect(h.hajm.get('7:1')).toBe(5);
+    expect(h.manbaAktlar).toEqual([7, 8]);
+  });
+  it('o‘zgarmagan qator aynan qoladi; olingan qator chiqadi; qayta qo‘shilgani eski F2 qiymatida; manbasi o‘qilmagani yo‘qolmaydi', () => {
+    const r = stornoBlokQur(manba, new Set(['7:1', '7:3']), new Map([['7:1', 5]]), saqlangan, kalit);
+    expect(r.qatorlar.map((x) => x.qator_id)).toEqual([1, 3, 9]);
+    expect(r.qatorlar[0]).toBe(saqlangan[0]);
+    expect(r.qatorlar[1]).toMatchObject({ certified_quantity: -2, certified_amount: null, provenance_status: 'price_intentionally_absent' });
+    expect(r.qatorlar[2]).toBe(saqlangan[2]);
+  });
+  it('qisman hajm: summa yadro qatorSumma(−h, narx); |h| eski hajmdan oshmaydi', () => {
+    const r = stornoBlokQur(manba, new Set(['7:1', '7:2']), new Map([['7:1', 2], ['7:2', 99]]), saqlangan, kalit);
+    expect(r.qisman).toBe(1);
+    expect(r.qatorlar[0]).toMatchObject({ certified_quantity: -2, certified_unit_price: 50, certified_amount: -100 });
+    expect((r.qatorlar[0].raw_snapshot as Record<string, unknown>).stornoAslHajm).toBe(-5);
+    expect(r.qatorlar[1]).toBe(saqlangan[1]);
+  });
+  it('bir qator ikki eski F2 da — hujjatda bitta storno qatori (toqnashdi)', () => {
+    const r = stornoBlokQur([{ aktId: 7, qatorlar: [q(1, 5)] }, { aktId: 8, qatorlar: [q(1, 5)] }], new Set(['7:1', '8:1']), new Map(), [], kalit);
+    expect([r.qatorlar.length, r.toqnashdi]).toEqual([1, 1]);
+  });
+});
+
+describe('M1: ish (bl) va mashinist mehnati «summa noma‘lum» emas', () => {
+  it('resurssiz bl ham noma‘lum sanalmaydi', () => {
+    const t = stornoDaraxtQur({ bloklar: [{ aktId: 1, aktNom: '1', qatorlar: [q(1, null)] }], daraxt: [{ id: 1, ota_id: null, tur: 'bl', tartib: 1 }], nomlar: new Map(), kalit });
+    expect(stornoUmumiy(t.ildiz, stornoJamlar(t.ildiz, hammasi(t))).nomalum).toBe(0);
   });
 });

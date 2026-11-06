@@ -142,3 +142,15 @@ describe('dublikat: raqamsiz F2 (A-15)', () => {
     expect(dublikatTekshiruv({ aktlar, oy: '2026-10', raqam: '', jami: null, ozAktId: null, manbaAktIdlar: [] })).toEqual([]);
   });
 });
+
+describe('saqlashSabablari — pereraschet storno bloki', () => {
+  it('faqat storno bloki tahrirlangan (plyus qator yo‘q) — «bo‘sh» sabab yo‘q, saqlash ochiq', () => {
+    expect(bloklovchi(saqlashSabablari({ ...toza, tahrir: true, aktBor: true, qatorSoni: 0, stornoOzgardi: true })).map((x) => x.kod)).not.toContain('bosh');
+    expect(bloklovchi(saqlashSabablari({ ...toza, qatorSoni: 0 })).map((x) => x.kod)).toContain('bosh');
+  });
+  it('storno manbasi tasdiqlanmagan — storno_manba bloklovchi sabab, matn aynan', () => {
+    const s = bloklovchi(saqlashSabablari({ ...toza, stornoManbaXato: 'Storno manbasi F2 №1 tasdiqlanmagan' }));
+    expect(s.find((x) => x.kod === 'storno_manba')?.matn).toBe('Storno manbasi F2 №1 tasdiqlanmagan');
+    expect(saqlashSabablari({ ...toza, stornoManbaXato: null })).toEqual([]);
+  });
+});
