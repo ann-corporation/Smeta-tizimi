@@ -8,5 +8,5 @@ Prerequisites: frontend/node_modules, MSVC developer shell, PGlite (PGLITE_DIR �
 Fixture login: m5-synthetic / M5-synthetic-only!; company1, object101; чужой202. Войти штатной формой и выбрать объект через существующую Smeta/Fakt страницу.
 `& frontend/src-tauri/e2e/control.ps1 abort` закрывает только тестовые TCP; `online` восстанавливает; `offline` возвращает503 (это другой тест); `stats` показывает обезличенные счётчики.
 Сценарий: online object→abort→refresh→cold restart→тот же объект→online→refresh/304. Никакого отдельного offline UI. Записывать exact SHA/installer hash/screenshots; HTTP smoke и native acceptance различать.
-Неизвестные RPC/таблицы/маршруты регистрируются в stats; markup/source gaps не скрыты успешной заглушкой. /api/ish-joyi и /api/hujjat-royxat вне текущего BFF allowlist. Production policy не меняется.
+Неизвестные RPC/таблицы/маршруты регистрируются в stats. /api/ish-joyi принимает только GET с точным ?bolim=joylarim; список рабочих мест не входит в этот fixture. /api/hujjat-royxat вне BFF allowlist.
 Протокол и текущие пределы приёмки: docs/architecture/DESKTOP_E2E_2026-11.md (отдельная evidence-поставка). Никаких Bearer/cookie/private key/реальных сумм в артефактах.
