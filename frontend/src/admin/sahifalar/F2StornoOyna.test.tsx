@@ -83,23 +83,39 @@ describe('F2StornoOyna: fakt tanlovi', () => {
   });
 });
 
-describe('F2StornoOyna: bo‘lim bo‘yicha tanlash', () => {
-  it('«Faqat shu bo‘lim» — faqat shu bo‘lim qatorlari stornoga yoziladi', async () => {
+describe('F2StornoOyna: daraxt (bo‘lim → ish → resurs)', () => {
+  it('bitta bo‘limni qoldirish: bo‘lim belgisini bir bosish — qolgan hammasi stornoga, payload o‘zgarmaydi', async () => {
     m.yarat.mockResolvedValue({ ok: true, akt_id: 558 }); m.podval.mockResolvedValue({ ok: true }); m.fakt.mockResolvedValue({ ok: true });
     const tayyor = ochish();
-    const sel = await screen.findByRole('combobox', { name: 'Bo‘lim bo‘yicha tanlash' }) as HTMLSelectElement;
-    expect([...sel.options].map((o) => o.textContent)).toEqual(['— bo‘limni tanlang —', 'Bo‘lim A (1)', 'Bo‘lim B (1)']);
-    fireEvent.change(sel, { target: { value: '20' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Faqat shu bo‘lim' }));
+    const a = await screen.findByRole('checkbox', { name: 'Storno bo‘limi: Bo‘lim A' }) as HTMLInputElement;
+    expect(a.checked).toBe(true);
+    fireEvent.click(a);
+    expect(a.checked).toBe(false);
     expect(screen.getByTestId('storno-soni').textContent).toBe('1');
+    expect(screen.getByTestId('storno-qoladi-soni').textContent).toBe('1');
+    expect(screen.getByTestId('storno-qoladi').textContent).toContain('Bo‘lim A');
     fireEvent.click(screen.getByRole('button', { name: /1 qatorni storno qilish/ }));
     await waitFor(() => expect(tayyor).toHaveBeenCalledWith(558));
     expect(m.yarat.mock.calls[0][0].qatorlar.map((q: { qatorId: number }) => q.qatorId)).toEqual([2]);
   });
-  it('«Bo‘limdan belgini olish» — shu bo‘lim qatorlari saqlab qolinadi', async () => {
+  it('qidiruv ajdod bo‘limni ko‘rsatadi; qidiruv natijasidan belgilash ishlaydi', async () => {
     ochish();
-    fireEvent.change(await screen.findByRole('combobox', { name: 'Bo‘lim bo‘yicha tanlash' }), { target: { value: '10' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Bo‘limdan belgini olish' }));
+    await screen.findByRole('checkbox', { name: 'Storno bo‘limi: Bo‘lim A' });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Qator qidirish' }), { target: { value: 'mat' } });
+    expect(screen.queryByRole('checkbox', { name: 'Storno bo‘limi: Bo‘lim A' })).toBeNull();
+    expect(screen.getByRole('checkbox', { name: 'Storno bo‘limi: Bo‘lim B' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Storno: K2' }));
     expect(screen.getByTestId('storno-soni').textContent).toBe('1');
+  });
+  it('«Hammasidan olish» / «Hammasini belgilash» va qisman holat (indeterminate)', async () => {
+    ochish();
+    await screen.findByRole('checkbox', { name: 'Storno bo‘limi: Bo‘lim A' });
+    fireEvent.click(screen.getByRole('button', { name: 'Hammasidan olish' }));
+    expect(screen.getByTestId('storno-soni').textContent).toBe('0');
+    expect((screen.getByRole('button', { name: /qatorni storno qilish/ }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Hammasini belgilash' }));
+    expect(screen.getByTestId('storno-soni').textContent).toBe('2');
+    fireEvent.click(screen.getByRole('button', { name: 'Tanlanmaganlarni ko‘rsatish' }));
+    expect(screen.getByText('Hech narsa topilmadi.')).toBeTruthy();
   });
 });

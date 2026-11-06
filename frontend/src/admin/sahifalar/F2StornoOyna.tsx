@@ -6,7 +6,8 @@ import { FmtN } from '../../lib/format';
 import { davrNomi } from '../../lib/f2-hujjat-korinish';
 import { t, tilLocale } from '../../i18n/til';
 import { yigindi2 } from '../../lib/hisob-yadro';
-import { faolStornolar, stornoBolimlar, stornoFaktReja, stornoQilinadiAkt, stornoQator, stornoQur, type StornoDaraxtTugun, type StornoFaktRejim, type StornoManbaQator, type StornoReestrAkt, type StornoYukQator } from '../../lib/f2-storno';
+import { faolStornolar, stornoFaktReja, stornoQilinadiAkt, stornoQator, stornoQur, type StornoDaraxtTugun, type StornoFaktRejim, type StornoManbaQator, type StornoReestrAkt, type StornoYukQator } from '../../lib/f2-storno';
+import { stornoBelgiHolat, stornoBolinganIshlar, stornoDaraxtQur, stornoJamlar, stornoQidir, stornoTugunAlmashtir, stornoUmumiy, type StornoTugun } from '../../lib/f2-storno-daraxt';
 import { f2StornoAktIdlari, f2StornoDaraxtOl, f2StornoFaktYoz, f2StornoHolatOl, f2StornoManbaOl, f2StornoQoralamaYarat, yangiOperationId, type StornoQatorKorinish } from '../../api/t2-f2-storno';
 import { aktPodvalStornoNusxa } from '../../api/t2-akt-podval';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
@@ -111,18 +112,8 @@ export function F2StornoOyna(p: {
   const stornolanadi = useMemo(() => new Set((reja?.qatorlar ?? []).map((q) => q.qatorId)), [reja]);
   const faktReja = useMemo(() => (holat ? stornoFaktReja(stornolanadi, holat, aktlar.map(aktNomi).join('+')) : null), [holat, stornolanadi, aktlar]);
 
-  const qatorlar = useMemo(() => (yuk ?? []).flatMap((e) => e.qatorlar.map((x) => ({ akt: e.akt, x }))), [yuk]);
-  const korinadigan = useMemo(() => {
-    const q = qidir.trim().toLowerCase();
-    return qatorlar.filter(({ x }) => {
-      if (!q) return true;
-      const n = nomlar.get(x.qator_id);
-      return `${n?.kod ?? ''} ${n?.nom ?? ''}`.toLowerCase().includes(q);
-    });
-  }, [qatorlar, qidir, nomlar]);
-
-  /* Bo'lim bo'yicha tanlash (egasi 2026-11-05): tanlangan rz ning BUTUN avlodi — ishlar, rs/mat/ob, qo'shimcha qatorlar.
-   * Daraxt o'qilmasa — bu tanlov ko'rinmaydi, qolgan oqim o'zgarmaydi. */
+  /* Daraxt (egasi 2026-11-06): УЧАСТОК/РАЗДЕЛ → ish → resurs/material, uch holatli belgilar. Smeta daraxti o'qilmasa —
+   * qatorlar yassi ro'yxatda (tanlov va storno yuki o'zgarmaydi). */
   const [daraxt, setDaraxt] = useState<StornoDaraxtTugun[] | null>(null);
   useEffect(() => {
     let jonli = true;
@@ -131,31 +122,42 @@ export function F2StornoOyna(p: {
     })();
     return () => { jonli = false; };
   }, [p.obyektId]);
-  const bolimlar = useMemo(() => (daraxt && qatorlar.length ? stornoBolimlar(daraxt, qatorlar.map(({ x }) => x.qator_id)) : []), [daraxt, qatorlar]);
-  const [bolimId, setBolimId] = useState<number | null>(null);
-  const bolimBelgila = (rejim: 'qosh' | 'ol' | 'faqat') => {
-    const b = bolimlar.find((x) => x.id === bolimId);
-    if (!b) return;
-    const ichida = new Set(b.qatorlar);
-    setTanlangan((s) => {
-      const n = rejim === 'faqat' ? new Set<string>() : new Set(s);
-      for (const { akt, x } of qatorlar) {
-        if (!ichida.has(x.qator_id) || stornoQator(x, akt.id).tur !== 'qator') continue;
-        if (rejim === 'ol') n.delete(kalit(akt.id, x.qator_id)); else n.add(kalit(akt.id, x.qator_id));
+  const tree = useMemo(() => (yuk ? stornoDaraxtQur({
+    bloklar: yuk.map((e) => ({ aktId: e.akt.id, aktNom: aktNomi(e.akt), qatorlar: e.qatorlar })), daraxt, nomlar, kalit,
+  }) : null), [yuk, daraxt, nomlar]);
+  const jam = useMemo(() => stornoJamlar(tree?.ildiz ?? [], tanlangan), [tree, tanlangan]);
+  const umumiy = useMemo(() => (tree ? stornoUmumiy(tree.ildiz, jam) : null), [tree, jam]);
+  const bolingan = useMemo(() => (tree ? stornoBolinganIshlar(tree.byId, jam) : []), [tree, jam]);
+  const qidiruv = useMemo(() => (tree ? stornoQidir(tree.ildiz, tree.byId, qidir) : null), [tree, qidir]);
+  /** Ochiq tugunlar: sukut — F2 bloklari va 1-daraja bo'limlar (ichki bo'limlar va ishlar yopiq). */
+  const [ochiq, setOchiq] = useState<ReadonlySet<string> | null>(null);
+  const ochiqlar = useMemo(() => ochiq ?? new Set((tree ? [...tree.byId.values()] : []).filter((t) => t.k === 'akt' || (t.k === 'bolim' && (t.ota == null || tree?.byId.get(t.ota)?.k === 'akt'))).map((t) => t.id)), [ochiq, tree]);
+  const [faqatQolgan, setFaqatQolgan] = useState(false);
+  const [limit, setLimit] = useState(KORSATISH_LIMIT);
+  const satrlar = useMemo(() => {
+    const out: StornoTugun[] = [];
+    if (!tree) return out;
+    const yur = (ns: readonly StornoTugun[]) => {
+      for (const n of ns) {
+        if (qidiruv && !qidiruv.korinadi.has(n.id)) continue;
+        if (faqatQolgan && stornoBelgiHolat(jam.get(n.id)) === 'bor' && (jam.get(n.id)?.barchasi ?? 0) > 0) continue;
+        out.push(n);
+        if (n.bolalar.length && (ochiqlar.has(n.id) || qidiruv?.ochiq.has(n.id))) yur(n.bolalar);
       }
-      return n;
-    });
-  };
-  const bolimTanlovBor = bolimlar.length > 0;
-  const bolimTanlanmagan = bolimId == null || band || yaratilganAkt != null;
-
-  const kesilgan = korinadigan.length > KORSATISH_LIMIT;
-  const belgila = (k: string, on: boolean) => setTanlangan((s) => { const n = new Set(s); if (on) n.add(k); else n.delete(k); return n; });
-  const hammasi = (on: boolean) => setTanlangan((s) => {
-    const n = new Set(s);
-    for (const { akt, x } of korinadigan) { if (stornoQator(x, akt.id).tur !== 'qator') continue; if (on) n.add(kalit(akt.id, x.qator_id)); else n.delete(kalit(akt.id, x.qator_id)); }
-    return n;
-  });
+    };
+    yur(tree.ildiz);
+    return out;
+  }, [tree, qidiruv, faqatQolgan, jam, ochiqlar]);
+  const yanaSoni = satrlar.length - limit;
+  const ochYop = (id: string) => setOchiq(() => { const n = new Set(ochiqlar); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const hammasiniOch = (on: boolean) => setOchiq(on && tree ? new Set([...tree.byId.values()].filter((t) => t.bolalar.length).map((t) => t.id)) : new Set());
+  const tugunBelgila = (n: StornoTugun) => setTanlangan((s) => stornoTugunAlmashtir(n, jam.get(n.id), s));
+  const hammasi = (on: boolean) => setTanlangan(on && tree ? new Set(tree.ildiz.flatMap((n) => n.barglar)) : new Set());
+  const qulf = band || yaratilganAkt != null;
+  /** Saqlab qolinadigan qism — 1-daraja bo'limlar kesimida. */
+  /** Haqiqiy noma'lum summa soni: resurslari bor ishning bo'sh o'z summasi noma'lum emas (puli resurslarida). Daraxt bo'lmasa — reja. */
+  const nomalumSoni = umumiy?.nomalum ?? reja?.nomalum ?? 0;
+  const qolganBolimlar = useMemo(() => (tree ? [...tree.byId.values()].filter((t) => t.k === 'bolim' && (t.ota == null || tree.byId.get(t.ota)?.k === 'akt') && (jam.get(t.id)?.qolganSoni ?? 0) > 0) : []), [tree, jam]);
 
   /** Storno manbai faqat TASDIQLANGAN F2 (reestrda tekshiriladi; topilmasa — ruxsat yo'q). */
   const tasdiqlanmagan = useMemo(() => aktlar.filter((a) => { const r = p.reestr.find((x) => x.id === a.id); return !r || !stornoQilinadiAkt(r); }), [aktlar, p.reestr]);
@@ -223,55 +225,81 @@ export function F2StornoOyna(p: {
         )}
         {yuk && reja && (
           <>
+            <p className="text-text-dim">{t('Hammasi belgilangan. Saqlab qolinadigan bo‘lim, ish yoki qatordan belgini oling — masalan, «ЗЕМЛЯНЫЕ РАБОТЫ» ni qoldirish uchun shu bo‘lim belgisini bir marta bosing.')}</p>
             <div className="flex flex-wrap items-center gap-2">
-              <input aria-label={t('Qator qidirish')} value={qidir} onChange={(e) => setQidir(e.target.value)} placeholder={t('Kod yoki nom bo‘yicha qidirish')} className="w-64" />
-              <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" onClick={() => hammasi(true)}>{t('Ko‘ringanlarni belgilash')}</button>
-              <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" onClick={() => hammasi(false)}>{t('Ko‘ringanlardan belgini olish')}</button>
-              <span className="text-text-dim">{t('Saqlab qolinadigan qatorlardan belgini oling.')}</span>
+              <input aria-label={t('Qator qidirish')} value={qidir} onChange={(e) => { setQidir(e.target.value); setLimit(KORSATISH_LIMIT); }} placeholder={t('Kod yoki nom bo‘yicha qidirish')} className="w-full sm:w-64" />
+              <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" disabled={qulf} onClick={() => hammasi(true)}>{t('Hammasini belgilash')}</button>
+              <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" disabled={qulf} onClick={() => hammasi(false)}>{t('Hammasidan olish')}</button>
+              <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" aria-pressed={faqatQolgan} onClick={() => setFaqatQolgan((v) => !v)}>{faqatQolgan ? t('Hammasini ko‘rsatish') : t('Tanlanmaganlarni ko‘rsatish')}</button>
+              <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" onClick={() => hammasiniOch(true)}>{t('Hammasini ochish')}</button>
+              <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" onClick={() => hammasiniOch(false)}>{t('Hammasini yopish')}</button>
             </div>
-            {bolimTanlovBor && (
-              <div className="flex flex-wrap items-center gap-2" data-testid="storno-bolim-tanlov">
-                <label className="text-text-dim">{t('Bo‘lim bo‘yicha tanlash')}
-                  <select aria-label={t('Bo‘lim bo‘yicha tanlash')} className="ml-2 max-w-[28rem]" value={bolimId ?? ''} onChange={(e) => setBolimId(e.target.value === '' ? null : Number(e.target.value))}>
-                    <option value="">{t('— bo‘limni tanlang —')}</option>
-                    {bolimlar.map((b) => <option key={b.id} value={b.id}>{`${' '.repeat(Math.min(b.daraja, 6) * 2)}${b.yol} (${b.qatorlar.length})`}</option>)}
-                  </select>
-                </label>
-                <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" disabled={bolimTanlanmagan} onClick={() => bolimBelgila('faqat')}>{t('Faqat shu bo‘lim')}</button>
-                <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" disabled={bolimTanlanmagan} onClick={() => bolimBelgila('qosh')}>{t('Bo‘limni qo‘shish')}</button>
-                <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" disabled={bolimTanlanmagan} onClick={() => bolimBelgila('ol')}>{t('Bo‘limdan belgini olish')}</button>
-              </div>
+            <div role="tree" aria-label={t('Storno qatorlari daraxti')} data-testid="storno-daraxt" className="max-h-[46dvh] overflow-auto rounded border border-border/60 text-[12.5px]">
+              {satrlar.slice(0, limit).map((n) => {
+                const j = jam.get(n.id);
+                const holat = stornoBelgiHolat(j);
+                const q = n.q;
+                const guruh = n.k === 'akt' || n.k === 'bolim';
+                const ochilgan = ochiqlar.has(n.id) || !!qidiruv?.ochiq.has(n.id);
+                const tanlanmaydi = (j?.barchasi ?? 0) === 0;
+                const fakt = q ? nomlar.get(q.qatorId)?.fakt_hajm : null;
+                return (
+                  <div key={n.id} role="treeitem" aria-level={n.daraja + 1} aria-expanded={n.bolalar.length ? ochilgan : undefined} aria-selected={holat === 'bor'}
+                    data-testid={guruh ? 'storno-bolim' : 'f2-storno-qator'}
+                    className={`flex items-center gap-1.5 border-t border-border/40 py-1 pr-2 ${guruh ? 'bg-surface-2/60 font-semibold' : ''} ${holat === 'yoq' && !tanlanmaydi ? 'text-text-dim' : ''}`}
+                    style={{ paddingLeft: 6 + Math.min(n.daraja, 8) * 14 }}>
+                    {n.bolalar.length
+                      ? <button type="button" className="w-5 shrink-0 text-text-dim" aria-label={ochilgan ? t('Yopish: {n}', { n: n.nom }) : t('Ochish: {n}', { n: n.nom })} onClick={() => ochYop(n.id)}>{ochilgan ? '▾' : '▸'}</button>
+                      : <span className="w-5 shrink-0" />}
+                    <input type="checkbox" className="shrink-0" disabled={tanlanmaydi || qulf} checked={holat === 'bor'}
+                      ref={(el) => { if (el) el.indeterminate = holat === 'qisman'; }}
+                      onChange={() => tugunBelgila(n)}
+                      aria-label={guruh ? t('Storno bo‘limi: {n}', { n: n.nom }) : t('Storno: {n}', { n: q?.kod || n.nom })} />
+                    <span className="min-w-0 flex-1 truncate" title={n.nom}>
+                      {q?.kod && <span className="mr-1.5 font-mono text-[11.5px] text-text-mute">{q.kod}</span>}
+                      {n.nom}
+                      {q?.otkaz && <span className="ml-1 text-warn">({q.otkaz === 'nol' ? t('hajm 0 — stornolanmaydi') : t('hajm noma‘lum — stornolanmaydi')})</span>}
+                    </span>
+                    {q && q.hajm != null && <span className="hidden w-28 shrink-0 text-right tabular-nums sm:inline"><FmtN val={q.hajm} /> {q.birlik ?? ''}</span>}
+                    {n.k === 'qator' && q && (
+                      <span className="w-28 shrink-0 text-right tabular-nums">{q.otkaz ? '—' : q.summa == null ? <span className="text-warn">{t('noma‘lum')}</span> : <FmtN val={q.summa} />}</span>
+                    )}
+                    {n.k !== 'qator' && j && (
+                      <span className="shrink-0 text-right text-[11.5px] tabular-nums" data-testid="storno-tugun-jam">
+                        <span className="text-text-mute">{j.soni}/{j.barchasi} · </span><FmtN val={j.jami} />
+                        {j.nomalum > 0 && <span className="ml-1 text-warn">({t('qisman noma‘lum: {n}', { n: j.nomalum })})</span>}
+                      </span>
+                    )}
+                    {n.k === 'qator' && <span className="hidden w-16 shrink-0 text-right tabular-nums text-text-mute sm:inline">{fakt != null ? <FmtN val={Number(fakt)} /> : ''}</span>}
+                  </div>
+                );
+              })}
+              {satrlar.length === 0 && <p className="p-2 text-text-dim">{t('Hech narsa topilmadi.')}</p>}
+              {yanaSoni > 0 && (
+                <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm m-2" onClick={() => setLimit((l) => l + KORSATISH_LIMIT)}>
+                  {t('Yana ko‘rsatish ({n} qoldi)', { n: yanaSoni })}
+                </button>
+              )}
+            </div>
+            {bolingan.length > 0 && (
+              <p data-testid="storno-bolingan" className="fz-note fz-note--warn"><ShieldAlert />
+                {t('{n} ta ish o‘z resurslaridan ajratildi (bir qismi storno, bir qismi qoladi): {r}. Ataylab bo‘lsa — davom eting.', { n: bolingan.length, r: bolingan.slice(0, 3).map((x) => x.q?.kod || x.nom).join(', ') + (bolingan.length > 3 ? '…' : '') })}
+              </p>
             )}
-            <div className="max-h-[38dvh] overflow-auto rounded border border-border/60">
-              <table className="w-full text-[12.5px]">
-                <thead className="sticky top-0 bg-surface-2 text-left text-text-dim"><tr><th className="w-8 p-1.5" />{kop && <th>{t('F2 №')}</th>}<th>{t('Kod')}</th><th>{t('Nomi')}</th><th className="text-right">{t('Hajm')}</th><th className="text-right">{t('Summa')}</th><th className="p-1.5 text-right">{t('Fakt')}</th></tr></thead>
-                <tbody>
-                  {korinadigan.slice(0, KORSATISH_LIMIT).map(({ akt, x }) => {
-                    const n = stornoQator(x, akt.id);
-                    const h = nomlar.get(x.qator_id);
-                    const k = kalit(akt.id, x.qator_id);
-                    return (
-                      <tr key={k} data-testid="f2-storno-qator" className="border-t border-border/40">
-                        <td className="p-1.5"><input type="checkbox" disabled={n.tur !== 'qator' || band || yaratilganAkt != null} checked={tanlangan.has(k)} onChange={(e) => belgila(k, e.target.checked)} aria-label={t('Storno: {n}', { n: h?.kod || h?.nom || String(x.qator_id) })} /></td>
-                        {kop && <td>{aktNomi(akt)}</td>}
-                        <td>{h?.kod || '—'}</td>
-                        <td>{h?.nom || `#${x.qator_id}`}{n.tur === 'otkaz' && <span className="ml-1 text-warn">({n.sabab === 'nol' ? t('hajm 0 — stornolanmaydi') : t('hajm noma‘lum — stornolanmaydi')})</span>}</td>
-                        <td className="text-right tabular-nums">{n.tur === 'qator' ? <FmtN val={n.qator.certifiedQuantity} /> : '—'}</td>
-                        <td className="text-right tabular-nums">{n.tur === 'qator' ? (n.qator.certifiedAmount == null ? <span className="text-warn">{t('noma‘lum')}</span> : <FmtN val={n.qator.certifiedAmount} />) : '—'}</td>
-                        <td className="p-1.5 text-right tabular-nums">{h?.fakt_hajm != null ? <FmtN val={Number(h.fakt_hajm)} /> : '—'}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              {kesilgan && <p className="p-2 text-text-dim">{t('Ro‘yxat {n} qatorgacha ko‘rsatildi — qidiruv bilan toraytiring (belgilar hammasi uchun amal qiladi).', { n: KORSATISH_LIMIT })}</p>}
-            </div>
-            <div className="grid gap-2 sm:grid-cols-4" aria-label={t('Storno jami')}>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label={t('Storno jami')}>
               <div className="fz-card px-3 py-2"><p className="text-[10px] uppercase text-text-mute">{t('Qatorlar')}</p><p data-testid="storno-soni" className="text-lg font-semibold tabular-nums">{reja.qatorlar.length}</p></div>
               <div className="fz-card px-3 py-2"><p className="text-[10px] uppercase text-text-mute">{t('Σ summa (minus)')}</p><p data-testid="storno-jami" className="text-lg font-semibold tabular-nums"><FmtN val={reja.jami} /></p></div>
-              <div className="fz-card px-3 py-2"><p className="text-[10px] uppercase text-text-mute">{t('Summasi noma‘lum')}</p><p data-testid="storno-nomalum" className={`text-lg font-semibold tabular-nums ${reja.nomalum ? 'text-warn' : ''}`}>{reja.nomalum}</p></div>
-              <div className="fz-card px-3 py-2"><p className="text-[10px] uppercase text-text-mute">{t('Saqlab qolinadi')}</p><p className="text-lg font-semibold tabular-nums">{qatorlar.length - reja.qatorlar.length}</p></div>
+              <div className="fz-card px-3 py-2"><p className="text-[10px] uppercase text-text-mute">{t('Summasi noma‘lum')}</p><p data-testid="storno-nomalum" className={`text-lg font-semibold tabular-nums ${nomalumSoni ? 'text-warn' : ''}`}>{nomalumSoni}</p></div>
+              <div className="fz-card px-3 py-2"><p className="text-[10px] uppercase text-text-mute">{t('Saqlab qolinadi')}</p><p data-testid="storno-qoladi-soni" className="text-lg font-semibold tabular-nums">{umumiy?.qolganSoni ?? 0}</p></div>
             </div>
+            {umumiy && umumiy.qolganSoni > 0 && (
+              <div data-testid="storno-qoladi" className="fz-card space-y-0.5 px-3 py-2">
+                <p className="text-xs font-semibold">{t('Saqlab qolinadi: {n} qator', { n: umumiy.qolganSoni })} · <FmtN val={umumiy.qolganJami} />{umumiy.qolganNomalum > 0 && <span className="ml-1 text-warn">({t('qisman noma‘lum: {n}', { n: umumiy.qolganNomalum })})</span>}</p>
+                {qolganBolimlar.map((b) => { const j = jam.get(b.id)!; return (
+                  <p key={b.id} className="text-text-dim">{kop && b.ota ? `${tree?.byId.get(b.ota)?.nom ?? ''} › ` : ''}{b.nom}: {t('{n} qator', { n: j.qolganSoni })} · <FmtN val={j.qolganJami} /></p>
+                ); })}
+              </div>
+            )}
             {reja.toqnashdi > 0 && <p data-testid="storno-toqnashuv" className="fz-note fz-note--warn"><ShieldAlert />{t('{n} ta qator bir nechta eski F2 da bor: bitta hujjatda bir pozitsiya ikki marta bo‘lmaydi — keyingi F2 dagisi tashlandi.', { n: reja.toqnashdi })}</p>}
             <fieldset data-testid="storno-fakt-rejim" className="fz-card space-y-1 px-3 py-2" disabled={band}>
               <legend className="text-xs font-semibold">{t('Fakt bilan nima qilinadi?')}</legend>
@@ -284,7 +312,7 @@ export function F2StornoOyna(p: {
                 {faktReja && faktReja.hosila > 0 ? ` · ${t('{n} qatorning fakti ish normasidan hosil bo‘ladi (qo‘lda yozilmaydi)', { n: faktReja.hosila })}` : ''}
                 {' — '}{t('o‘tgan fakt yozuvlari o‘chirilmaydi, minus yozuv qo‘shiladi.')}</p>
               : <p data-testid="storno-fakt" className="fz-note fz-note--info">{t('Fakt o‘zgarmaydi: hech qanday fakt yozuvi qo‘shilmaydi.')}</p>}
-            {reja.nomalum > 0 && <p className="fz-note fz-note--warn"><ShieldAlert />{t('{n} qatorda summa noma‘lum: noma‘lum bo‘lib qoladi (0 emas), narx «ataylab yo‘q» deb belgilanadi.', { n: reja.nomalum })}</p>}
+            {nomalumSoni > 0 && <p className="fz-note fz-note--warn"><ShieldAlert />{t('{n} qatorda summa noma‘lum: noma‘lum bo‘lib qoladi (0 emas), narx «ataylab yo‘q» deb belgilanadi.', { n: nomalumSoni })}</p>}
             <div className="flex flex-wrap items-end gap-3">
               <label className="text-xs text-text-dim">{t('Storno F2 raqami')}<input value={raqam} onChange={(e) => setRaqam(e.target.value)} maxLength={100} className="mt-1 block w-48" disabled={band || yaratilganAkt != null} /></label>
               <label className="text-xs text-text-dim">{t('Davr')}<input type="month" value={oy.slice(0, 7)} onChange={(e) => setOy(`${e.target.value}-01`)} className="mt-1 block" disabled={band || yaratilganAkt != null} /></label>
@@ -292,7 +320,8 @@ export function F2StornoOyna(p: {
           </>
         )}
         {xato && <p role="alert" className="fz-note fz-note--danger"><ShieldAlert />{xato}</p>}
-        <div className="flex justify-end gap-2">
+        <div data-testid="storno-footer" className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center justify-end gap-2 border-t border-border/60 bg-surface px-4 py-2">
+          {reja && <span className="mr-auto text-xs tabular-nums text-text-dim">{t('Storno: {n} qator', { n: reja.qatorlar.length })} · <FmtN val={reja.jami} />{umumiy ? <> · {t('qoladi: {n}', { n: umumiy.qolganSoni })}</> : null}</span>}
           <button type="button" className="fz-btn fz-btn--ghost" onClick={p.onYop} disabled={band}>{t('Yopish')}</button>
           <button type="button" className="fz-btn fz-btn--primary" onClick={() => void bajar()} disabled={!tayyor || band}>
             {band ? '…' : yaratilganAkt != null ? (faktRejim === 'nolga' ? t('Podval va faktni qayta urinish') : t('Podvalni qayta urinish')) : t('{n} qatorni storno qilish', { n: reja?.qatorlar.length ?? 0 })}
