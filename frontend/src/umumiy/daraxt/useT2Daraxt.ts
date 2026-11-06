@@ -10,6 +10,7 @@ import { avvalgiVersiyaOl, ozgarishMalumotOl, type AvvalgiVersiya } from '../../
 import { ozgarishniQosh, type OzgarishMalumot } from '../../lib/lrv-ozgarish';
 import { useIxtiyoriyQueryClient } from '../../api/t2-obyektlar-kesh';
 import { desktopReadStatus, subscribeDesktopReadStatus } from '../../desktop/read-status';
+import { tezlikBelgisi, type TezlikBelgi } from '../../lib/tezlik-belgi';
 
 /** Sahifalar orasida umumiy daraxt keshi: ochilganda darhol ko'rsatiladi, lekin DOIM fonda serverdan tekshiriladi. */
 export const daraxtKaliti = (obyektId: number) => ['daraxt', obyektId] as const;
@@ -83,6 +84,8 @@ export function useT2Daraxt(obyektId: number | null) {
   const priceRef = useRef<PriceControlLine[]>([]);
   const avvalgiRef = useRef<AvvalgiVersiya | null>(null);
   const ozRef = useRef<OzgarishMalumot | null>(null);
+  /** [tezlik] belgisi: obyekt ochilishidan server tasdiqlagan daraxt ekranga chiqquncha (keshdan bo'lsa ham). */
+  const tezlik = useRef<{ b: TezlikBelgi; kesh: boolean } | null>(null);
 
   // Ref va state birga (kesh darhol to'g'ri yozilsin).
   const setRows = (v: T2Qator[]) => { rowsRef.current = v; setRowsS(v); };
@@ -181,6 +184,11 @@ export function useT2Daraxt(obyektId: number | null) {
     const joriy = toliq === toliqNavbat.current && tirik(e, obyektId);
     if (joriy) setLoading(false);
     tugat();
+    if (ok && joriy && tezlik.current) {
+      const tz = tezlik.current; tezlik.current = null;
+      const izoh = `${rowsRef.current.length} qator (obyekt ${obyektId}${tz.kesh ? ', keshdan darhol ko‘rsatildi' : ''})`;
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => setTimeout(() => tz.b.tugadi(izoh), 0)); else tz.b.tugadi(izoh);
+    }
     if (ok && joriy && (qoshP || !desktopReadStatus().offline)) await qoshimchalarniQosh(obyektId, toliq, e, qoshP ?? qoshimchalarniOl(obyektId));
     else if (joriy) setQoshimchaHolat('xato');
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -282,6 +290,7 @@ export function useT2Daraxt(obyektId: number | null) {
     toliqJarayon.current = null; ishchi.current = null;
     setTasdiqDavri(null); setError('');
     const kesh = qc && obyektId != null ? qc.getQueryData<DaraxtKesh>(daraxtKaliti(obyektId)) : undefined;
+    tezlik.current = obyektId != null ? { b: tezlikBelgisi('smeta daraxti'), kesh: !!kesh?.rows.length } : null;
     if (kesh && kesh.rows.length) {
       ozRef.current = kesh.oz;
       setRows(kesh.rows); setStates(kesh.states); setPrice(kesh.price); setAvvalgi(kesh.avvalgi);

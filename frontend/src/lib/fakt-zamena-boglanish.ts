@@ -45,6 +45,29 @@ export async function zamenaMiqdorOqi(obyektId: number): Promise<ZamenaOqish<Map
   } catch { return { ok: false, xato: XATO }; }
 }
 
+/**
+ * F2 tayyorlash uchun (tezlik 2026-11-06): `zamenaBoglanishOqi` + `zamenaMiqdorOqi` natijasi aynan, lekin `t2_qator` (zamena=true)
+ * BIR marta o'qiladi (avval ikki marta, faqat ustunlari farqli). Qat'iylik o'sha: biror o'qish to'liq bo'lmasa — `ok: false`.
+ */
+export async function zamenaToliqOqi(obyektId: number): Promise<ZamenaOqish<{ boglanish: ZamenaBoglanish; miqdor: Map<number, number> }>> {
+  try {
+    const [z, h] = await Promise.all([
+      t2ToliqOqi<{ id: number; replaces_line_id: number | null; almashtirish_hajm: number | null }>(sbOqi, { jadval: 't2_qator', filtr: `obyekt_id=eq.${obyektId}&zamena=is.true`, ustunlar: 'id,replaces_line_id,almashtirish_hajm', limit: 200000 }, 'id'),
+      t2ToliqOqi<{ qator_id: number; almashtirilgan_hajm: number | null }>(sbOqi, { jadval: 't2_qator_holat', filtr: `obyekt_id=eq.${obyektId}&almashtirilgan_hajm=gt.0`, ustunlar: 'qator_id,almashtirilgan_hajm', limit: 200000 }, 'qator_id'),
+    ]);
+    if (!z.ok || z.toliq === false || !h.ok || h.toliq === false) return { ok: false, xato: XATO };
+    const almashtiradi = new Map<number, number>();
+    const miqdor = new Map<number, number>();
+    for (const r of z.qatorlar ?? []) {
+      if (r.replaces_line_id != null) almashtiradi.set(Number(r.id), Number(r.replaces_line_id));
+      const v = Number(r.almashtirish_hajm); if (r.almashtirish_hajm != null && Number.isFinite(v) && v >= 0) miqdor.set(Number(r.id), v);
+    }
+    const almashtirilgan = new Map<number, number>();
+    for (const r of h.qatorlar ?? []) { const v = Number(r.almashtirilgan_hajm); if (Number.isFinite(v) && v > 0) almashtirilgan.set(Number(r.qator_id), v); }
+    return { ok: true, natija: { boglanish: { almashtiradi, almashtirilgan }, miqdor } };
+  } catch { return { ok: false, xato: XATO }; }
+}
+
 /** Fakt jurnali (yumshoq): xato bo'lsa bo'sh xarita — jurnal ishlashda davom etadi. F2 uchun `zamenaBoglanishOqi`. */
 export async function zamenaBoglanishOl(obyektId: number): Promise<ZamenaBoglanish> {
   const r = await zamenaBoglanishOqi(obyektId);

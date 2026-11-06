@@ -8,7 +8,23 @@
  *  - B = (shu material F2 hajmi ÷ smeta hajmi) × smeta т·км hajmi;
  *  ikkalasi izoh bilan; operator tanlaydi yoki o'zi yozadi. Kalit/masofa aniqlanmasa — taklif yo'q.
  */
-import { normBir, normNom } from '../f2-match-engine';
+import { normBir as normBirXom, normNom as normNomXom } from '../f2-match-engine';
+
+/**
+ * Tezlik (egasi 2026-11-06, Sun'iy ko'l 2569 ish): har ТН·КМ kartasi har renderda barcha ish nomlarini regex bilan
+ * normalizatsiya qilardi (kartalar × ishlar) — Chrome qotardi. Natija aynan bir xil: toza funksiya, faqat keshlangan.
+ */
+const keshli = (f: (s: unknown) => string) => {
+  const m = new Map<string, string>();
+  return (s: unknown): string => {
+    const k = String(s == null ? '' : s);
+    let v = m.get(k);
+    if (v === undefined) { if (m.size > 50_000) m.clear(); v = f(k); m.set(k, v); }
+    return v;
+  };
+};
+const normNom = keshli(normNomXom);
+const normBir = keshli(normBirXom);
 
 export interface TkmQator { nom: string; birlik: string | null; hajm: number | null }
 export interface TkmVariant { qiymat: number; izoh: string }
