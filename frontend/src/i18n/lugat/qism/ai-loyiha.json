@@ -1,0 +1,20 @@
+{
+  "Uzunlik {uzunlik_m} m / qadam {qadam_m} m = {oraliqlar} oraliq; tayanchlar: {tayanchlar}": { "ru": "Длина {uzunlik_m} м / шаг {qadam_m} м = {oraliqlar} пролётов; опор: {tayanchlar}", "en": "Length {uzunlik_m} m / step {qadam_m} m = {oraliqlar} spans; supports: {tayanchlar}" },
+  "Uzunlik qadamga karrali emas: {uzunlik_m} / {qadam_m} = {nisbat}; {oraliqlar} oraliq olindi": { "ru": "Длина не кратна шагу: {uzunlik_m} / {qadam_m} = {nisbat}; принято {oraliqlar} пролётов", "en": "Length is not a multiple of the step: {uzunlik_m} / {qadam_m} = {nisbat}; {oraliqlar} spans assumed" },
+  "Varaqlarda «{parametr}» har xil: {qiymatlar}": { "ru": "На листах «{parametr}» различается: {qiymatlar}", "en": "Sheets disagree on «{parametr}»: {qiymatlar}" },
+  "Varaqdagi seksiyalar soni {yozilgan}, uzunlik/qadam bo‘yicha {hisoblangan}": { "ru": "Количество секций на листе {yozilgan}, по длине/шагу {hisoblangan}", "en": "Section count on the sheet {yozilgan}, from length/step {hisoblangan}" },
+  "Tayanchlar soni: chizmada {topilgan}, geometriya bo‘yicha {kutilgan}": { "ru": "Количество опор: на чертеже {topilgan}, по геометрии {kutilgan}", "en": "Support count: drawing {topilgan}, geometry {kutilgan}" },
+  "Oraliq spetsifikatsiyasida {oraliqda} ta tayanch — qo‘shni oraliq bilan umumiy: {sodda} emas, {tuzatilgan}": { "ru": "В спецификации на пролёт {oraliqda} опоры — они общие с соседним пролётом: не {sodda}, а {tuzatilgan}", "en": "The per-span specification lists {oraliqda} supports, shared with the neighbouring span: {tuzatilgan}, not {sodda}" },
+  "Ustunlar ({ustun}) va stakanlar ({stakan}) soni teng bo‘lishi kerak": { "ru": "Количество стоек ({ustun}) и стаканов ({stakan}) должно совпадать", "en": "Post count ({ustun}) and socket-footing count ({stakan}) must match" },
+  "Lenta uzunligi oraliqda: {topilgan} m (kutilgan {kutilgan} m)": { "ru": "Длина ленты в пролёте: {topilgan} м (ожидается {kutilgan} м)", "en": "Strip length per span: {topilgan} m (expected {kutilgan} m)" },
+  "Lenta {topilgan} m — stakan eni ({stakan_eni} m) ayirilmagan; kutilgan {kutilgan} m": { "ru": "Лента {topilgan} м — не вычтена ширина стакана ({stakan_eni} м); ожидается {kutilgan} м", "en": "Strip {topilgan} m — footing width ({stakan_eni} m) not subtracted; expected {kutilgan} m" },
+  "Profil massasi: jadvalda {topilgan} kg, hisob bo‘yicha {hisoblangan} kg ({farq_foiz} %)": { "ru": "Масса профиля: в таблице {topilgan} кг, по расчёту {hisoblangan} кг ({farq_foiz} %)", "en": "Profile mass: table {topilgan} kg, calculated {hisoblangan} kg ({farq_foiz} %)" },
+  "Hajm: jadvalda {topilgan} m3, o‘lchamlar bo‘yicha {kutilgan} m3": { "ru": "Объём: в таблице {topilgan} м3, по размерам {kutilgan} м3", "en": "Volume: table {topilgan} m3, from dimensions {kutilgan} m3" },
+  "Yig‘ma birlik «{ota_marka}» varaqda topilmadi": { "ru": "Сборочная единица «{ota_marka}» на листе не найдена", "en": "Assembly «{ota_marka}» not found on the sheet" },
+  "Oraliqda {oraliqda} dona {tayanch} tayanchga bo‘linmaydi — oraliq detali deb hisoblandi": { "ru": "{oraliqda} шт на пролёт не делится на {tayanch} опоры — считается деталью пролёта", "en": "{oraliqda} pcs per span do not divide among {tayanch} supports — treated as a span item" },
+  "Miqdor {miqdor} birliksiz": { "ru": "Количество {miqdor} без единицы измерения", "en": "Quantity {miqdor} has no unit" },
+  "«{birlik}» birligi bu element turiga mos emas": { "ru": "Единица «{birlik}» не подходит для этого типа элемента", "en": "Unit «{birlik}» does not fit this element type" },
+  "Oraliq spetsifikatsiyasi bor, lekin umumiy uzunlik yoki qadam topilmadi": { "ru": "Есть спецификация на пролёт, но общая длина или шаг не найдены", "en": "A per-span specification exists, but the total length or step was not found" },
+  "AI ishonchi past ({ishonch}) — varaqni ko‘zdan kechiring": { "ru": "Низкая уверенность ИИ ({ishonch}) — проверьте лист", "en": "Low AI confidence ({ishonch}) — check the sheet" },
+  "Raqamning varaq/pozitsiyasi ko‘rsatilmagan (sahifa {sahifa})": { "ru": "Не указан лист/позиция для числа (страница {sahifa})", "en": "No sheet/position reference for this number (page {sahifa})" }
+}

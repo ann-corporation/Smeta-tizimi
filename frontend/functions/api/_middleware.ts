@@ -63,7 +63,7 @@ export const onRequest: PagesFunction<Env> = async ctx => {
   const modul=yopiqModul(permission,candidates,authority.modullarOffByCompany);
   if (modul) return Response.json({ok:false,code:'MODULE_DISABLED',modul,error:'Bu modul ish joyingizda o‘chirilgan. Uni Kompaniya → Modullar bo‘limida yoqish mumkin.'},{status:403});
   // General AI/GAS can aggregate several domains. Explicitly restricted staff cannot use it to bypass a deny.
-  if (['agent-ish','agent-control','ai-savol','ai-parse','smeta-ai','smeta-narx-agent'].includes(api)) {
+  if (['agent-ish','agent-control','ai-savol','ai-parse','ai-loyiha','smeta-ai','smeta-narx-agent'].includes(api)) {
     const readOnly=['savol','kasb_savol','veb_tahlil','veb_ol','rivojlanish_tahlil','qadam_taklif','bilim_yigish','royxat','ol','holat'];
     const mayAct=(api==='agent-control'||api==='agent-ish')&&ctx.request.method!=='GET'&&!readOnly.includes(String(b.amal||b.action||''));
     if(candidates.some(id=>(authority.explicitDenialsByCompany?.[id]??[]).some(p=>p.endsWith('.read')||mayAct))) return fail('SCOPED_AI_REQUIRED');
