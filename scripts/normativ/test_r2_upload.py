@@ -26,6 +26,15 @@ class FakeS3:
                 'ContentLength': len(self.calls[-1]['Body'])}
 
 class UploadTests(unittest.TestCase):
+    def test_readback_checks_bytes_not_metadata(self):
+        class Readback:
+            def get_object(self, **kwargs):
+                return {'Body': io.BytesIO(b'abc')}
+
+        uploader.verify_original(Readback(), 'b', 'k', 3, uploader.sha(b'abc'))
+        with self.assertRaisesRegex(ValueError, 'R2_ORIGINAL_INTEGRITY'):
+            uploader.verify_original(Readback(), 'b', 'k', 3, uploader.sha(b'xyz'))
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(); self.root = Path(self.tmp.name)
         self.job = self.root/'private'
@@ -77,6 +86,29 @@ class UploadTests(unittest.TestCase):
         with patch.dict(sys.modules,{'boto3':types.SimpleNamespace(client=lambda *a,**k:BadClient())}), patch.object(uploader,'register') as rpc:
             with self.assertRaisesRegex(RuntimeError,'upload failed'): uploader.apply_plan(self.plan(),env)
             rpc.assert_not_called()
+    def test_no_registration_when_r2_readback_has_wrong_hash(self):
+        from types import SimpleNamespace
+
+        plan = self.plan()
+        original = plan['objects'][0][1]
+        corrupt = bytes([original[0] ^ 1]) + original[1:]
+        env = {'R2_ACCOUNT_ID': '0' * 32, 'AWS_ACCESS_KEY_ID': 'test',
+               'AWS_SECRET_ACCESS_KEY': 'test', 'R2_BUCKET': 'test',
+               'SUPABASE_URL': 'https://synthetic.supabase.co',
+               'SUPABASE_SERVICE_ROLE_KEY': 'test', 'actor': '7'}
+
+        class CorruptReadback(FakeS3):
+            def get_object(self, **kwargs):
+                return {'Body': io.BytesIO(corrupt)}
+
+        client = CorruptReadback()
+        with patch.dict(sys.modules, {'boto3': SimpleNamespace(client=lambda *a, **k: client)}), \
+             patch.object(uploader, 'register') as register:
+            with self.assertRaisesRegex(ValueError, 'R2_ORIGINAL_INTEGRITY'):
+                uploader.apply_plan(plan, env)
+            register.assert_not_called()
+        self.assertEqual(len(client.calls), 1)
+
     def test_zip_parent_children_rejected_and_tamper_detected(self):
         self.state['children']=[{'job_id':'f'*64,'sha':self.source_sha}]
         (self.job/'job.json').write_text(json.dumps(self.state),encoding='utf-8')

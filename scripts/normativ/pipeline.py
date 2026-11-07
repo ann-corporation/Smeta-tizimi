@@ -215,6 +215,16 @@ def run(source, output, meta=None, ocr=None, lang='rus+uzb_cyrl', threshold=90, 
     config = dict(meta=meta or {}, ocr=ocr, lang=lang, threshold=threshold, converter=converter,
                   versions=package_versions(), reader_code_sha=digest(Path(__file__).read_bytes()),
                   ocr_version=tool_version(ocr), converter_version=tool_version(converter))
+    annotations = config['meta'].get('annotations', {})
+    limits = {'qidiruv_yorliq': 500, 'jadval_kod': 120, 'bob_punkt': 120, 'iqtibos_anchor': 160}
+    if not isinstance(annotations, dict) or any(
+        not isinstance(fields, dict) or not fields or any(
+            key not in limits or not isinstance(value, str) or not value.strip() or len(value) > limits[key]
+            for key, value in fields.items()
+        ) for fields in annotations.values()
+    ):
+        raise ValueError('INVALID_REVIEWED_ANNOTATION')
+    chunk_meta = {k: v for k, v in config['meta'].items() if k != 'annotations'}
     job = output / digest(encoded([sha, READER, config]))
     job.mkdir(exist_ok=True)
     manifest = job / 'job.json'
@@ -302,19 +312,31 @@ def run(source, output, meta=None, ocr=None, lang='rus+uzb_cyrl', threshold=90, 
                         state['flags'].append('CONVERTER_REQUIRED' if suffix == '.doc' else 'UNSUPPORTED_SOURCE')
                     else:
                         units = pdf_units(source, config, exists) if suffix == '.pdf' else docx_units(source)
-                        for key, unit in units:
-                            if unit is not None and not exists(key):
-                                if 'total_units' in unit:
-                                    state['total'] = unit.pop('total_units')
-                                chunk = dict(config['meta'], **unit, source_sha=sha, reader=READER, unit=key,
-                                    norma_kod=config['meta'].get('norma_kod'), tahrir=config['meta'].get('tahrir'),
-                                    bob_punkt=None, jadval_kod=None, original_kind=original.suffix.lower(), derivative_sha=state.get('derivative_sha'))
-                                chunk['sha'] = digest(encoded(chunk)); atomic(job/(key+'.json'), chunk)
-                            saved = json.loads((job/(key+'.json')).read_text(encoding='utf-8'))
-                            state['flags'] = sorted(set(state['flags'] + saved['flags']))
-                            if key not in state['units']:
-                                state['units'].append(key)
-                            state['completed'] = len(state['units']); atomic(manifest, state)
+                        try:
+                            for key, unit in units:
+                                if unit is not None and not exists(key):
+                                    if 'total_units' in unit:
+                                        state['total'] = unit.pop('total_units')
+                                    chunk = dict(chunk_meta, **unit, source_sha=sha, reader=READER, unit=key,
+                                        norma_kod=config['meta'].get('norma_kod'), tahrir=config['meta'].get('tahrir'),
+                                        bob_punkt=None, jadval_kod=None, original_kind=original.suffix.lower(), derivative_sha=state.get('derivative_sha'))
+                                    if key in annotations:
+                                        if unit['method'] == 'unread':
+                                            raise ValueError('ANNOTATION_ON_UNREAD_UNIT')
+                                        anchor = annotations[key].get('iqtibos_anchor')
+                                        if anchor and anchor not in chunk['matn']:
+                                            raise ValueError('CITATION_ANCHOR_NOT_FOUND')
+                                        chunk.update(annotations[key])
+                                    chunk['sha'] = digest(encoded(chunk)); atomic(job/(key+'.json'), chunk)
+                                saved = json.loads((job/(key+'.json')).read_text(encoding='utf-8'))
+                                state['flags'] = sorted(set(state['flags'] + saved['flags']))
+                                if key not in state['units']:
+                                    state['units'].append(key)
+                                state['completed'] = len(state['units']); atomic(manifest, state)
+                        finally:
+                            units.close()
+            if set(annotations) - set(state['units']):
+                raise ValueError('ANNOTATION_UNIT_NOT_FOUND')
             state['total'] = state.get('total', state['completed'])
             state['extracted_units'] = sum(json.loads((job/(k+'.json')).read_text(encoding='utf-8'))['method'] != 'unread' for k in state['units']) + sum(c['extracted_units'] for c in state['children'])
             if state['extracted_units']:
