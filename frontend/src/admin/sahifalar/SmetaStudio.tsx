@@ -37,6 +37,7 @@ import { HUDUD_KALIT, lsGet, lsSet, unitTextOf } from './studio-sozlama';
 import { KoeffitsientlarPaneli, NarxlashBosqichi, ResBosqichi } from './StudioBosqichlar';
 import { MateriallarPaneli } from './StudioMateriallar';
 import { SmetaAiChat } from './SmetaAiChat';
+import { ShnkQidiruv } from './ShnkQidiruv';
 import { KatalogPanel } from './NormKatalogPanel';
 import { useStudioKontekst } from '../../lib/jarvis/useStudioKontekst';
 import { Undo2, Redo2, Search, TriangleAlert, CircleCheck, Plus } from 'lucide-react';
@@ -90,7 +91,7 @@ export default function SmetaStudio() {
   useEffect(()=>{lsSet('studio:panels',String(panels));lsSet('studio:left-width',String(leftWidth));lsSet('studio:right-width',String(rightWidth));},[panels,leftWidth,rightWidth]);
   const [inspectorTab,setInspectorTab]=useState<InspectorTab>('work');
   const [reviewOpen, setReviewOpen] = useState(false);
-  const [workspaceView,setWorkspaceView]=useState<'overview'|'editor'|'calculator'>('editor');
+  const [workspaceView,setWorkspaceView]=useState<'overview'|'editor'|'calculator'|'normativ'>('editor');
   const [worksheet,setWorksheet]=useState(true);
   const [cloudOpen,setCloudOpen]=useState(false);
   const [autoSave,setAutoSave]=useState<{company:number;draft:string}|null>(null);
@@ -425,9 +426,15 @@ export default function SmetaStudio() {
       </section>
       <main className="studio-workarea studio-pane" aria-label={t('Smeta jadvali')}>
         <div className="studio-pane-title"><span className="studio-step">02</span><strong>{t('Smeta')}</strong><nav aria-label={t('Smeta ish joyi')} className="studio-center-tabs">
-          {([['lrv','Ishlar'],['narx','Narxlar'],['review','Tekshiruv'],['res','Hujjatlar']] as const).map(([key,label])=><button key={key} aria-current={(key==='review' ? reviewOpen : !reviewOpen && bosqich===key) ? 'page' : undefined} onClick={()=>{setWorkspaceView('editor');if(key==='review')setReviewOpen(true);else setBosqich(key);}}>{t(label)}</button>)}
+          {([['lrv','Ishlar'],['narx','Narxlar'],['review','Tekshiruv'],['res','Hujjatlar']] as const).map(([key,label])=><button key={key} aria-current={workspaceView==='editor' && (key==='review' ? reviewOpen : !reviewOpen && bosqich===key) ? 'page' : undefined} onClick={()=>{setWorkspaceView('editor');if(key==='review')setReviewOpen(true);else setBosqich(key);}}>{t(label)}</button>)}
+          {joriyId != null && <button type="button" aria-current={workspaceView==='normativ' ? 'page' : undefined}
+            onClick={() => setWorkspaceView('normativ')}>{t('Normativlar')}</button>}
         </nav></div>
         <div className="studio-center-content">
+        {workspaceView==='normativ' && joriyId != null && <div className="p-4">
+          <h2 className="mb-3 font-medium">{t('ShNK normativlari')}</h2>
+          <ShnkQidiruv key={joriyId} kompaniyaId={joriyId}/>
+        </div>}
         {workspaceView==='editor' && reviewOpen && <WorkspaceReview doc={doc} calculation={hisob} onPrices={()=>setBosqich('narx')} onWork={openWork} />}
         {openedViews.includes('narx') && <div hidden={workspaceView!=='editor' || reviewOpen || bosqich!=='narx'}><NarxlashBosqichi key={`${joriyId}:${doc.draftId}`}  doc={doc} hisob={hisob} command={amal} kompaniyaId={joriyId ?? null} hudud={hudud} setHudud={setHudud} unitText={unitText} onNext={() => setBosqich('res')} /></div>}
         {openedViews.includes('res') && <div hidden={workspaceView!=='editor' || reviewOpen || bosqich!=='res'}><DocumentCenter doc={doc} calculation={hisob} onReview={()=>{setWorkspaceView('editor');setReviewOpen(true);}}><ResBosqichi key={`${joriyId}:${doc.draftId}`} doc={doc} hisob={hisob} unitText={unitText} katalog={katalog} kompaniyaId={joriyId ?? null} onBack={() => setBosqich('narx')} /></DocumentCenter></div>}
@@ -437,7 +444,11 @@ export default function SmetaStudio() {
             <div className="studio-lrv-bar"><div className="studio-seg"><button aria-pressed={worksheet} onClick={()=>setWorksheet(true)}>{t('Jadval')}</button><button aria-pressed={!worksheet} onClick={()=>setWorksheet(false)}>{t('Tarkib va bo‘limlar')}</button></div><button className="fz-btn fz-btn--sm" style={{marginLeft:'auto'}} onClick={()=>{setPanels(3);setBosqich('lrv');}}><Plus aria-hidden="true"/>{t('Ish qo‘shish')}</button></div>
             {worksheet && <WorkSheet docked unitText={unitText} activeWorkId={selectedWorkId} revealToken={revealToken} doc={doc} calculation={hisob} command={amal} onWork={openWork} renderDetails={()=>null}/>}
         <div hidden={worksheet} className="studio-docview">
-        <SmetaDocumentPanel focusWorkId={focusWorkId} renderWorkDetails={id=><KoeffitsientlarPaneli doc={doc} command={amal} kompaniyaId={joriyId ?? null} workId={id} />} doc={doc} total={hisob.total} calculation={hisob} targetSectionId={nishon}
+        <SmetaDocumentPanel focusWorkId={focusWorkId} renderWorkDetails={id => {
+          const shifr = doc.occurrences[id]?.source.code;
+          return <>{joriyId != null && shifr && <ShnkQidiruv key={joriyId + ":" + shifr} kompaniyaId={joriyId} shifr={shifr}/>}
+            <KoeffitsientlarPaneli doc={doc} command={amal} kompaniyaId={joriyId ?? null} workId={id} /></>;
+        }} doc={doc} total={hisob.total} calculation={hisob} targetSectionId={nishon}
           setTargetSection={setNishon} command={amal} labels={studioPanelLabels()}
           pricing={{ source: narxKat, unitText, region: hudud || null }} />
         </div>

@@ -2,6 +2,14 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 127,
+      "sana": "2026-11-07",
+      "sarlavha": "Smeta studiyasida ShNK qidiruvi",
+      "bandlar": [
+        "Normativlar bo‘limidan shifr yoki nom bo‘yicha qidiring. Ish kartasida norma sahifasi, jadvali va iqtibosini ko‘rish mumkin."
+      ]
+    },
+    {
       "id": 125,
       "sana": "2026-11-07",
       "sarlavha": "Fakt kiritish endi to'liq klaviaturada",

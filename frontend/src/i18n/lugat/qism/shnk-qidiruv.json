@@ -1,0 +1,46 @@
+{
+  "Normativ shifri yoki nomi": {
+    "ru": "Шифр или название норматива",
+    "en": "Standard code or title"
+  },
+  "Normani ko‘rish": {
+    "ru": "Посмотреть норму",
+    "en": "View standard"
+  },
+  "Normativ qidirilmoqda…": {
+    "ru": "Поиск норматива…",
+    "en": "Searching standards…"
+  },
+  "Normativ qidiruvini ochib bo‘lmadi.": {
+    "ru": "Поиск нормативов недоступен.",
+    "en": "Standard search is unavailable."
+  },
+  "Mos nashr qilingan normativ topilmadi.": {
+    "ru": "Подходящий опубликованный норматив не найден.",
+    "en": "No matching published standard found."
+  },
+  "PDF sahifa {n}": {
+    "ru": "Страница PDF {n}",
+    "en": "PDF page {n}"
+  },
+  "ShNK normativlari": {
+    "ru": "Нормативы ШНК",
+    "en": "ShNK standards"
+  },
+  "Normativlar": {
+    "ru": "Нормативы",
+    "en": "Standards"
+  },
+  "Normativ tahriri": {
+    "ru": "Редакция норматива",
+    "en": "Standard edition"
+  },
+  "Bir nechta tahrir topildi. Kerakli tahrirni kiriting va qayta qidiring.": {
+    "ru": "Найдено несколько редакций. Укажите нужную редакцию и повторите поиск.",
+    "en": "Multiple editions found. Enter the edition and search again."
+  },
+  "Shifr bir nechta normativga mos. Hujjatning to‘liq kodini qidiring.": {
+    "ru": "Шифр относится к нескольким нормативам. Ищите по полному коду документа.",
+    "en": "The reference matches multiple standards. Search by the full document code."
+  }
+}
