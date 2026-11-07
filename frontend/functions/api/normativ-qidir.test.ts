@@ -6,10 +6,10 @@ import { onRequestGet } from './normativ-qidir';
 
 afterEach(() => { vi.unstubAllGlobals(); vakolatKeshTozala(); });
 
-async function setup() {
+async function setup(matn = 'Synthetic clause.', iqtibos_anchor?: string) {
   const secret = 'synthetic-k3-cookie-secret';
   const source = 'a'.repeat(64);
-  const bytes = new TextEncoder().encode(JSON.stringify({ source_sha: source, matn: 'Synthetic clause.' }));
+  const bytes = new TextEncoder().encode(JSON.stringify({ source_sha: source, matn, iqtibos_anchor }));
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
   const sha = Array.from(digest, b => b.toString(16).padStart(2, '0')).join('');
   const row = {
@@ -70,4 +70,30 @@ it.each(['missing', 'size', 'tamper', 'key'])('fails closed on %s source', async
   if (defect === 'key') h.row.r2_key = 'other/private';
   expect(await (await h.call()).json()).toEqual({ ok: false, code: 'SOURCE_UNAVAILABLE' });
   if (defect === 'key') expect(h.get).not.toHaveBeenCalled();
+});
+
+it('includes a reviewed anchor beyond the first 800 characters', async () => {
+  const h = await setup('x'.repeat(1200) + 'Synthetic target clause.', 'Synthetic target clause.');
+  const response = await h.call();
+  const { natijalar: [citation] } = await response.json() as { natijalar: { iqtibos: string; qisqartirilgan: boolean }[] };
+  expect(citation.iqtibos).toContain('Synthetic target clause.');
+  expect(citation.iqtibos.length).toBeLessThanOrEqual(800);
+  expect(citation.qisqartirilgan).toBe(true);
+});
+it.each([['е6-1-34', '06-01-034'], ['e6-1-34', '06-01-034'], ['Е6-1-34', '06-01-034'], ['E6-1-34', '06-01-034'], ['Е6-1-34-2', 'Е6-1-34-2']])(
+  'uses exact table reference for %s without dropping work suffixes', async (input, expected) => {
+    const h = await setup();
+    h.db({ ok: true, natijalar: [] });
+    expect((await h.call('kompaniya_id=3&q=' + encodeURIComponent(input))).status).toBe(200);
+    const queries = h.rpc.mock.calls.slice(1).map(call => JSON.parse(String(call[1]?.body)).p_q);
+    expect(queries).toEqual(input === expected ? [input] : [input, expected]);
+  },
+);
+
+it.each(['EDITION_REQUIRED', 'REFERENCE_AMBIGUOUS'])('does not bypass %s with an alias fallback', async code => {
+  const h = await setup();
+  h.db({ ok: true, code, natijalar: [] });
+  const response = await h.call('kompaniya_id=3&q=' + encodeURIComponent('е6-1-34'));
+  expect(await response.json()).toMatchObject({ code: 'UNKNOWN', sabab: code });
+  expect(h.rpc.mock.calls).toHaveLength(2);
 });

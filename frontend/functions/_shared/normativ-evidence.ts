@@ -33,10 +33,15 @@ export async function normativEvidence(bucket: Pick<R2Bucket, 'get'>, row: Norma
   const sha = Array.from(digest, b => b.toString(16).padStart(2, '0')).join('');
   if (sha !== row.sha256) throw new Error('CHUNK_SHA_INVALID');
   const unit = JSON.parse(new TextDecoder('utf-8', { fatal: true, ignoreBOM: false }).decode(bytes)) as
-    { source_sha?: unknown; matn?: unknown } | null;
+    { source_sha?: unknown; matn?: unknown; iqtibos_anchor?: unknown } | null;
   if (unit?.source_sha !== row.source_sha || typeof unit.matn !== 'string' || !unit.matn.trim()) {
     throw new Error('CHUNK_TEXT_UNAVAILABLE');
   }
+  const anchor = unit.iqtibos_anchor;
+  const anchorIndex = typeof anchor === 'string' && anchor.length <= 160 && anchor.trim()
+    ? unit.matn.indexOf(anchor) : -1;
+  const start = Math.max(0, anchorIndex - 160);
+  const end = start + 800;
   const params = new URLSearchParams({ kompaniya_id: String(company), hujjat_id: row.hujjat_id, sha256: row.sha256 });
   return {
     hujjat_id: row.hujjat_id,
@@ -51,8 +56,8 @@ export async function normativEvidence(bucket: Pick<R2Bucket, 'get'>, row: Norma
     sahifa_bosma: row.sahifa_bosma,
     bob_punkt: row.bob_punkt,
     jadval_kod: row.jadval_kod,
-    iqtibos: unit.matn.slice(0, 800),
-    qisqartirilgan: unit.matn.length > 800,
+    iqtibos: unit.matn.slice(start, end),
+    qisqartirilgan: start > 0 || unit.matn.length > end,
     havola: '/api/normativ-qidir?' + params,
   };
 }
