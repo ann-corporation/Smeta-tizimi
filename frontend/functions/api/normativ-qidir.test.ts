@@ -80,7 +80,7 @@ it('includes a reviewed anchor beyond the first 800 characters', async () => {
   expect(citation.iqtibos.length).toBeLessThanOrEqual(800);
   expect(citation.qisqartirilgan).toBe(true);
 });
-it.each([['Е6-1-34', '06-01-034'], ['E6-1-34', '06-01-034'], ['Е6-1-34-2', 'Е6-1-34-2']])(
+it.each([['е6-1-34', '06-01-034'], ['e6-1-34', '06-01-034'], ['Е6-1-34', '06-01-034'], ['E6-1-34', '06-01-034'], ['Е6-1-34-2', 'Е6-1-34-2']])(
   'uses exact table reference for %s without dropping work suffixes', async (input, expected) => {
     const h = await setup();
     h.db({ ok: true, natijalar: [] });
@@ -89,3 +89,11 @@ it.each([['Е6-1-34', '06-01-034'], ['E6-1-34', '06-01-034'], ['Е6-1-34-2', 'Е
     expect(queries).toEqual(input === expected ? [input] : [input, expected]);
   },
 );
+
+it.each(['EDITION_REQUIRED', 'REFERENCE_AMBIGUOUS'])('does not bypass %s with an alias fallback', async code => {
+  const h = await setup();
+  h.db({ ok: true, code, natijalar: [] });
+  const response = await h.call('kompaniya_id=3&q=' + encodeURIComponent('е6-1-34'));
+  expect(await response.json()).toMatchObject({ code: 'UNKNOWN', sabab: code });
+  expect(h.rpc.mock.calls).toHaveLength(2);
+});
