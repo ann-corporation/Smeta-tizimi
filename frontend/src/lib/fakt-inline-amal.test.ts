@@ -32,6 +32,16 @@ describe('fakt-inline-amal', () => {
     expect(y.resurslar).toEqual([{ kat: 'МАТ', kod: null, nom: 'Material', birlik: 'т', norma: 1, hajm: null, narx: null, narx_manba: 'qolda' }]);
   });
 
+  it('qo‘shimcha material МАШ/ЧЕЛ qatoridan ochilsa ham МАТ bo‘ladi; zamena kategoriyani saqlaydi', () => {
+    for (const kat of ['МАШ', 'ЧЕЛ'] as const) {
+      const q = { ...res, kat };
+      expect(bosForma(q, 'qoshimcha_material').kat).toBe('МАТ');
+      const f = { ...bosForma(q, 'qoshimcha_material'), nom: 'Material', birlik: 'т', hajm: '1', izoh: 's' };
+      expect(inlineYuklama({ ...asos, tur: 'qoshimcha_material', q, f, k }).resurslar[0].kat).toBe('МАТ');
+      expect(bosForma(q, 'zamena').kat).toBe(kat);
+    }
+  });
+
   it('tekshiruv: manfiy narx, sabab yo‘q, zamena taqiqlangan', () => {
     const f = { ...bosForma(ish, 'qoshimcha_ish'), nom: 'X', birlik: 'м2', hajm: '1', narx: '-5' };
     expect(inlineTekshir('qoshimcha_ish', ish, f, k).join(' | ')).toMatch(/Narx noto‘g‘ri.*Sababini yozing/);

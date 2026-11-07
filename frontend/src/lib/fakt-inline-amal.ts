@@ -59,7 +59,8 @@ export type InlineForma = {
 export const bosForma = (q: InlineQator, tur: InlineTur): InlineForma => ({
   kod: '', nom: '', birlik: tur === 'zamena' ? q.birlik ?? '' : '', hajm: '', narx: '', manba: 'qolda',
   norma: tur === 'zamena' && q.tur !== 'bl' && q.norma != null && q.norma > 0 ? String(q.norma) : '',
-  kat: q.kat === 'ЧЕЛ' || q.kat === 'МАШ' || q.kat === 'МАТ' || q.kat === 'ОБ' ? q.kat : 'МАТ',
+  // Kategoriya faqat zamenada asl qatordan olinadi; qo'shimcha material doim МАТ (ЧЕЛ/МАШ qatoridan ham).
+  kat: tur === 'zamena' && (q.kat === 'ЧЕЛ' || q.kat === 'МАШ' || q.kat === 'МАТ' || q.kat === 'ОБ') ? q.kat : 'МАТ',
   izoh: '', fakt: '', almHajm: '', joy: 'shu', sostav: [],
 });
 
