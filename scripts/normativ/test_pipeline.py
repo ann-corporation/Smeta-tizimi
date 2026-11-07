@@ -45,6 +45,35 @@ class PipelineTests(unittest.TestCase):
         b = pipeline.run(src, self.out, meta={'norma_kod': 'SYN-1', 'tahrir': 'B'}, worker=True)
         self.assertNotEqual(a['reader'] + str(a['config']), b['reader'] + str(b['config']))
 
+    def test_reviewed_annotation_and_source_integrity(self):
+        src = self.pdf(self.root / 'source.pdf', 'Synthetic clause')
+        meta = {'annotations': {'page-1': {'jadval_kod': '01-01-001',
+                                           'iqtibos_anchor': 'Synthetic clause'}}}
+        pipeline.run(src, self.out, meta=meta, worker=True)
+        chunk = json.loads(next(self.out.rglob('page-1.json')).read_text())
+        self.assertEqual(chunk['jadval_kod'], '01-01-001')
+        self.assertEqual(chunk['iqtibos_anchor'], 'Synthetic clause')
+        self.assertEqual(chunk['source_sha'], pipeline.digest(src.read_bytes()))
+        self.assertIn('Synthetic clause', chunk['matn'])
+
+    def test_invalid_annotation_rejected(self):
+        src = self.pdf(self.root / 'source.pdf', 'Synthetic clause')
+        cases = [
+            ('page-1', {'matn': 'overwritten'}, 'INVALID_REVIEWED_ANNOTATION'),
+            ('page-1', {'iqtibos_anchor': 'missing'}, 'CITATION_ANCHOR_NOT_FOUND'),
+            ('page-2', {'jadval_kod': '01-01-001'}, 'ANNOTATION_UNIT_NOT_FOUND'),
+        ]
+        for key, annotation, error in cases:
+            with self.subTest(error=error), self.assertRaisesRegex(ValueError, error):
+                pipeline.run(src, self.out, meta={'annotations': {key: annotation}}, worker=True)
+
+    def test_annotation_rejected_on_unread_page(self):
+        src = self.pdf(self.root / 'blank.pdf', '')
+        with self.assertRaisesRegex(ValueError, 'ANNOTATION_ON_UNREAD_UNIT'):
+            pipeline.run(src, self.out, meta={'annotations': {
+                'page-1': {'jadval_kod': '01-01-001'},
+            }}, worker=True)
+
     def test_docx_order_cells_and_vertical_merge(self):
         result = pipeline.run(self.docx(self.root/'x.docx'), self.out, worker=True)
         units = [json.loads(next(self.out.rglob(k+'.json')).read_text()) for k in result['units']]
