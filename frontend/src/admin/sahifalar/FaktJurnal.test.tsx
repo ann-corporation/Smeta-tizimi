@@ -276,19 +276,21 @@ describe('FaktJurnal', () => {
   it('zamena qator TURIGA mos: alohida resurs va ish ichidagi resurs — «Resurs zamenasi», ish — «Ish zamenasi»', () => {
     const r2 = [...rows, q({ id: 30, tur: 'mat', ota_id: 1, daraja: 1, nom: 'Ж/Б БЛОКИ РАЗМ.БР100.20.12', birlik: 'шт', hajm: 40, kat: 'МАТ' })];
     render(<FaktJurnal {...props()} rows={r2} states={[...states, { qator_id: 30, smeta_hajm: 40, fakt_hajm: 0 }]} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Zamena: Ж/Б БЛОКИ РАЗМ.БР100.20.12' }));
+    // Qator tugmasi endi qator OSTIDA inline panel ochadi; eski oyna — «Kengaytirilgan oyna» orqali.
+    const kengaytir = (nom: string) => { fireEvent.click(screen.getByRole('button', { name: `Zamena: ${nom}` })); fireEvent.click(screen.getByTestId('inline-kengaytirilgan')); };
+    kengaytir('Ж/Б БЛОКИ РАЗМ.БР100.20.12');
     let dlg = screen.getByRole('dialog', { name: 'Resurs zamenasi' });
     expect(screen.queryByLabelText('Ish shifri')).toBeNull();
     expect(dlg.querySelector('[data-testid="zamena-asl"]')?.textContent).toMatch(/Almashtiriladigan resurs:.*МАТ.*Ж\/Б БЛОКИ/);
     expect(screen.queryByLabelText('1-resurs normasi')).toBeNull(); // ishsiz resurs — aniq hajm
     expect(screen.getByLabelText('1-resurs aniq hajmi')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Bekor qilish' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Zamena: Qum' }));
+    kengaytir('Qum');
     dlg = screen.getByRole('dialog', { name: 'Resurs zamenasi' });
     expect(dlg.textContent).toMatch(/Ish: Grunt/);
     expect(screen.getByLabelText('1-resurs normasi')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Bekor qilish' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Zamena: Grunt' }));
+    kengaytir('Grunt');
     expect(screen.getByRole('dialog', { name: 'Ish zamenasi' })).toBeTruthy();
     expect(screen.getByLabelText('Ish shifri')).toBeTruthy();
   });

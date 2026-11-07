@@ -24,10 +24,11 @@ export type AbcRejim =
 const fmt = (v: number | null | undefined, d = 2) => (v == null ? '—' : Number(v).toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: d }));
 const MANBA_RANG: Record<NarxManba, string> = { smeta_obyekt: 'bg-ok/15 text-ok', smeta_shartnoma: 'bg-ok/10 text-ok', smeta: 'bg-accent/15 text-accent', katalog: 'bg-warn/15 text-warn', qolda: 'bg-surface-2 text-text-dim' };
 
-/** Yozish bilan kutubxonadan taklif beradigan maydon (debounce 300 ms, ↑↓ Enter Esc). */
-function Taklifli<T>({ qiymat, onChange, qidir, render, tanla, placeholder, ariaLabel, className }: {
+/** Yozish bilan kutubxonadan taklif beradigan maydon (debounce 300 ms, ↑↓ Enter Esc). Fakt inline paneli ham ishlatadi. */
+export function Taklifli<T>({ qiymat, onChange, qidir, render, tanla, placeholder, ariaLabel, className, inputRef }: {
   qiymat: string; onChange: (v: string) => void; qidir: (q: string) => Promise<T[]>;
   render: (x: T) => ReactNode; tanla: (x: T) => void; placeholder?: string; ariaLabel: string; className?: string;
+  inputRef?: (el: HTMLInputElement | null) => void;
 }) {
   const [variantlar, setVariantlar] = useState<T[]>([]);
   const [ochiq, setOchiq] = useState(false);
@@ -51,7 +52,7 @@ function Taklifli<T>({ qiymat, onChange, qidir, render, tanla, placeholder, aria
     else if (e.key === 'Escape') setOchiq(false);
   };
   return <div className="relative">
-    <input value={qiymat} onChange={(e) => { onChange(e.target.value); setOchiq(true); }} onFocus={() => setOchiq(true)} onBlur={() => setTimeout(() => setOchiq(false), 150)} onKeyDown={klav}
+    <input ref={inputRef} value={qiymat} onChange={(e) => { onChange(e.target.value); setOchiq(true); }} onFocus={() => setOchiq(true)} onBlur={() => setTimeout(() => setOchiq(false), 150)} onKeyDown={klav}
       placeholder={placeholder} aria-label={ariaLabel} aria-autocomplete="list" className={className} />
     {ochiq && (yuklanmoqda || variantlar.length > 0) && <div role="listbox" className="absolute left-0 top-full z-50 mt-1 max-h-80 w-[min(720px,80vw)] overflow-auto rounded-lg border border-border bg-surface shadow-2xl">
       {yuklanmoqda && !variantlar.length && <div className="px-3 py-2 text-[12px] text-text-mute">{t('Kutubxonadan qidirilmoqda…')}</div>}
