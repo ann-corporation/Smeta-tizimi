@@ -20,3 +20,9 @@ binding = "AI"
 [[r2_buckets]]
 binding = "R2_CANONICAL"
 bucket_name = "smeta-tizimi-canonical"
+
+# ShNK normativlari (K2/K3, #304-#310): asl PDF va bo'laklar shu yopiq bucket'da (normativ/ prefiksi).
+# Kod `NORMATIV_R2` nomi bilan o'qiydi; bucket R2_CANONICAL bilan bir xil, faqat alohida binding nomi.
+[[r2_buckets]]
+binding = "NORMATIV_R2"
+bucket_name = "smeta-tizimi-canonical"
