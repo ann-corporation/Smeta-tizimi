@@ -44,14 +44,16 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   try {
     const query = async (reference: string | null) => {
       const result = await fetch(supabaseBaseUrl(env.SUPABASE_URL) + '/rest/v1/rpc/t2_normativ_qidir_v1', {
-      method: 'POST', redirect: 'error', signal: AbortSignal.timeout(5000),
+      // Cloudflare Workers fetch faqat 'follow' | 'manual' ni qabul qiladi ('error' -> TypeError, so'rov yuborilmaydi).
+      // 'manual' + 3xx ni xato deb hisoblash — o'sha xavfsizlik (redirect'ga ergashilmaydi).
+      method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(5000),
       headers: { apikey: env.SUPABASE_KEY, Authorization: 'Bearer ' + env.SUPABASE_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         p_actor_id: authority.foydalanuvchi_id, p_kompaniya_id: company, p_q: reference, p_tahrir: edition,
         p_hujjat_id: doc, p_sha: sha, p_limit: limit,
       }),
     });
-    if (!result.ok) throw new Error('SEARCH_UNAVAILABLE');
+    if (!result.ok || result.status >= 300) throw new Error('SEARCH_UNAVAILABLE');
     return await result.json() as { ok?: boolean; code?: string; natijalar?: NormativCandidate[] };
     };
     let data = await query(q);
