@@ -76,7 +76,7 @@ end $fn$;
 revoke all on function public.t2_zamena_reja_hajm(bigint) from public, anon, authenticated;
 grant execute on function public.t2_zamena_reja_hajm(bigint) to service_role;
 comment on function public.t2_zamena_reja_hajm(bigint) is
-  'Zamena «umumiy qozon» (2026-11-08): birlik bir xil, almashtirish_hajm NULL zamenaning samarali reja hajmi = greatest(asl.hajm - asl F2 - boshqa zamenalar, zamena.hajm). NULL = qo''llanmaydi.';
+  'Zamena «umumiy qozon» (2026-11-08): birlik bir xil, almashtirish_hajm NULL zamenaning samarali reja hajmi = greatest(asl.hajm - asl F2 - boshqa zamenalar, zamena.hajm). NULL = qo''llanmaydi. versiya: texnik (bitta qator id bo''yicha hisoblaydi; versiya filtri chaqiruvchi view t2_qator_holat/t2_nakopitelniy_v2 da).';
 
 -- 2) Narx qoidasi: narx 0 lekin summa != 0 (pul bolalarda) -> summa/hajm.
 create or replace function public.t2_almashtirilgan_summa_hisob(p_alm numeric, p_hajm numeric, p_narx numeric, p_summa numeric) returns numeric
@@ -85,6 +85,8 @@ language sql immutable set search_path = public, pg_temp as $fn$
               when p_narx is not null and not (p_narx = 0 and coalesce(p_summa, 0) <> 0) then p_alm * p_narx
               when p_hajm is not null and p_hajm <> 0 and p_summa is not null then p_alm * p_summa / p_hajm end
 $fn$;
+comment on function public.t2_almashtirilgan_summa_hisob(numeric, numeric, numeric, numeric) is
+  'Almashtirilgan summa: narx 0 lekin summa <> 0 bo''lsa summa/hajm. versiya: texnik (sof hisob, t2_qator o''qimaydi).';
 
 -- 3) t2_qator_holat: zamena smeta/qoldiq hajmi samarali reja bo'yicha; almashtirilgan summa narx=0 qoidasi.
 do $do$
