@@ -3,7 +3,7 @@ begin;
 do $test$
 declare c bigint; a bigint; o bigint; rz bigint; f2 bigint; fk bigint; snap jsonb; row jsonb; r1 jsonb; r2 jsonb; r3 jsonb;
   bl bigint; ch bigint; zbl bigint; o2 bigint; z2 bigint; o3 bigint; z3 bigint; o4 bigint; za bigint; zb bigint; o5 bigint; z5 bigint;
-  o6 bigint; v integer; n integer;
+  o6 bigint; v integer; n integer; zc1 bigint; zc2 bigint; f3 bigint;
 begin
   insert into public.t2_kompaniya(nom,kod) values('_TEST_ZQZ_',gen_random_uuid()::text) returning id into c;
   insert into public.t2_foydalanuvchi(login) values('_TEST_ZQZ_'||gen_random_uuid()) returning id into a;
@@ -36,6 +36,24 @@ begin
   if (row->>'almashtirilgan_summa')::numeric <> 950 or (row->>'qoldiq_summa')::numeric <> 50 then raise exception 'A7: nakopitelniy asl summa: %', row; end if;
   if (select hajm from public.t2_qator where id = zbl) <> 20 then raise exception 'A8: zamena t2_qator.hajm o''zgargan'; end if;
   if snap is distinct from (select jsonb_agg(to_jsonb(q) order by q.id) from public.t2_qator q where q.id in (bl, ch)) then raise exception 'A9: asl qator o''zgargan'; end if;
+
+  -- I) zamena ishining BOLA resurslari ish rejasi foizida: ish 20 -> reja 100 (×5).
+  --    rs 40 (narxsiz) F2 190 -> reja 200, qoldiq 10; mat 10 (summa 500, narx NULL) F2 40/2000 -> reja 50, qoldiq 10, qoldiq summa 2500-2000=500.
+  insert into public.t2_qator(obyekt_id,kompaniya_id,ota_id,tur,nom,birlik,hajm,tartib,qoshimcha,change_type) values(o,c,zbl,'rs','_TEST_ZQZ_zc1','kg',40,5,true,'ADDITIONAL') returning id into zc1;
+  insert into public.t2_qator(obyekt_id,kompaniya_id,ota_id,tur,nom,birlik,hajm,summa,tartib,qoshimcha,change_type) values(o,c,zbl,'mat','_TEST_ZQZ_zc2','m3',10,500,6,true,'ADDITIONAL') returning id into zc2;
+  insert into public.t2_akt(obyekt_id,tur,oy,holat) values(o,'f2','2026-09-01','qoralama') returning id into f3;
+  insert into public.t2_akt_qator(akt_id,qator_id,obyekt_id,hajm,narx) values(f3,zc1,o,190,null),(f3,zc2,o,40,50);  -- summa = hajm × narx (2000)
+  update public.t2_akt set holat='tasdiqlangan' where id=f3;
+  if public.t2_zamena_reja_hajm(zc1) <> 200 or public.t2_zamena_reja_hajm(zc2) <> 50 then
+    raise exception 'I1: bola rejalari 200/50 emas: % %', public.t2_zamena_reja_hajm(zc1), public.t2_zamena_reja_hajm(zc2); end if;
+  select to_jsonb(h) into row from public.t2_qator_holat h where h.qator_id = zc1;
+  if (row->>'smeta_hajm')::numeric <> 200 or (row->>'qoldiq_hajm')::numeric <> 10 or (row->>'asl_smeta_hajm')::numeric <> 40 then raise exception 'I2: rs bola holati: %', row; end if;
+  select to_jsonb(h) into row from public.t2_qator_holat h where h.qator_id = zc2;
+  if (row->>'smeta_hajm')::numeric <> 50 or (row->>'qoldiq_hajm')::numeric <> 10 or (row->>'qoldiq_summa')::numeric <> 500 then raise exception 'I3: mat bola holati: %', row; end if;
+  row := (select e from jsonb_array_elements(public.t2_nakopitelniy_v2(o,a)->'qatorlar') e where (e->>'qator_id')::bigint = zc2);
+  if (row->>'smeta_hajm')::numeric <> 50 or (row->>'qoldiq_hajm')::numeric <> 10 or (row->>'qoldiq_summa')::numeric <> 500 then raise exception 'I4: nakopitelniy mat bola: %', row; end if;
+  if public.t2_zamena_reja_hajm(ch) is not null then raise exception 'I5: asl ishning bolasi o''zgarmasligi kerak'; end if;
+  if (select hajm from public.t2_qator where id = zc1) <> 40 then raise exception 'I6: bola t2_qator.hajm o''zgargan'; end if;
 
   -- B) birlik farqli -> qoida qo'llanmaydi (zamena o'z hajmi).
   insert into public.t2_qator(obyekt_id,kompaniya_id,ota_id,tur,nom,birlik,hajm,narx,summa,tartib) values(o,c,rz,'rs','_TEST_ZQZ_o2','m3',100,10,1000,5) returning id into o2;

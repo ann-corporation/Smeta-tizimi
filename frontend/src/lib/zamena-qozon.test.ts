@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { almashtirilganHajmlar, almashtirilganSumma, ochiqQoldiq, qoldiqHajmi, zamenaRejaHajm, zamenaRejaHajmlar, type ZamenaQator } from './zamena-qoldiq';
+import {
+  almashtirilganHajmlar, almashtirilganSumma, ochiqQoldiq, qoldiqHajmi, zamenaBolaRejaHajm, zamenaRejaHajm, zamenaRejaHajmlar, zamenaRejaSumma, type ZamenaQator,
+} from './zamena-qoldiq';
 import { zamenaQaytaMatn } from './fakt-inline-amal';
 
 // SQL qabul testi (20261203001700_t2_zamena_qozon_v1.acceptance.sql) bilan bir xil sintetik raqamlar.
@@ -49,6 +51,38 @@ describe('zamena «umumiy qozon» (egasi 2026-11-08)', () => {
 
   it('zamena hajmi NULL — qozon rejasi baribir hisoblanadi (NULL ≠ 0 emas, pastki chegara 0)', () => {
     expect(zamenaRejaHajm(zam({ id: 2, replaces_line_id: 1, hajm: null }), asl({ id: 1 }))).toBe(100);
+  });
+});
+
+describe('zamena ishining bola resurslari ish rejasi foizida', () => {
+  it('ish 20 → reja 100 (×5): rs 40 → 200, mat 10 → 50; qoldiq summa ham shu nisbatda', () => {
+    const rows: ZamenaQator[] = [
+      asl({ id: 1 }),
+      zam({ id: 2, replaces_line_id: 1, progress: 95 }),
+      { id: 3, ota_id: 2, tur: 'rs', birlik: 'kg', hajm: 40, change_type: 'ADDITIONAL' },
+      { id: 4, ota_id: 2, tur: 'mat', birlik: 'm3', hajm: 10, change_type: 'ADDITIONAL' },
+      { id: 5, ota_id: 1, tur: 'rs', birlik: 'kg', hajm: 50 },
+    ];
+    const reja = zamenaRejaHajmlar(rows);
+    expect(reja.get(3)).toBe(200);
+    expect(reja.get(4)).toBe(50);
+    expect(reja.has(5)).toBe(false); // asl ishning bolasi o'zgarmaydi
+    expect(qoldiqHajmi(reja.get(3), 190)).toBe(10);
+    expect(qoldiqHajmi(reja.get(4), 40)).toBe(10);
+    expect((zamenaRejaSumma(500, 10, reja.get(4) ?? null) ?? 0) - 2000).toBe(500);
+  });
+  it('pastki chegara va noma\'lumlar', () => {
+    expect(zamenaBolaRejaHajm(40, 20, 20)).toBe(40);
+    expect(zamenaBolaRejaHajm(-4, 20, 100)).toBe(-4);
+    expect(zamenaBolaRejaHajm(null, 20, 100)).toBeNull();
+    expect(zamenaBolaRejaHajm(40, 0, 100)).toBeNull();
+    expect(zamenaBolaRejaHajm(40, 20, null)).toBeNull();
+    expect(zamenaRejaSumma(null, 10, 50)).toBeNull();
+    expect(zamenaRejaSumma(500, 10, null)).toBe(500);
+  });
+  it('birlik farqli zamena ishining bolasi o\'zgarmaydi', () => {
+    const r = zamenaRejaHajmlar([asl({ id: 1 }), zam({ id: 2, replaces_line_id: 1, birlik: 'm3' }), { id: 3, ota_id: 2, tur: 'rs', hajm: 40, change_type: 'ADDITIONAL' }]);
+    expect(r.size).toBe(0);
   });
 });
 

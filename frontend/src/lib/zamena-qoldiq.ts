@@ -135,7 +135,27 @@ export function zamenaRejaHajmlar(rows: readonly ZamenaQator[]): Map<number, num
     const asl = byId.get(aslId)!;
     for (const z of list) { const v = zamenaRejaHajm(z, asl, list); if (v != null) out.set(z.id, v); }
   }
+  // Zamena ISHINING bola resurslari ish rejasi foizida (egasi 2026-11-08; SQL t2_zamena_reja_hajm bola tarmog'i).
+  for (const r of rows) {
+    if (r.ota_id == null || r.change_type === 'REPLACEMENT' || r.tur == null || !['rs', 'mat', 'ob'].includes(r.tur)) continue;
+    const ota = byId.get(r.ota_id);
+    if (!ota || ota.tur !== 'bl' || ota.change_type !== 'REPLACEMENT' || ota.replaces_line_id == null) continue;
+    const v = zamenaBolaRejaHajm(r.hajm, ota.hajm, out.get(ota.id) ?? null);
+    if (v != null) out.set(r.id, v);
+  }
   return out;
+}
+
+/** Zamena ishining bola resursi rejasi: max(bola × ishReja / ishHajm, bola); ish hajmi ≤ 0/noma'lum yoki ish rejasi yo'q → null. */
+export function zamenaBolaRejaHajm(bolaHajm: number | null, ishHajm: number | null, ishReja: number | null): number | null {
+  if (bolaHajm == null || ishHajm == null || !(ishHajm > 0) || ishReja == null) return null;
+  return Math.max(bolaHajm * ishReja / ishHajm, bolaHajm);
+}
+
+/** Qoldiq summasi uchun reja summasi (SQL holat/nakopitelniy bilan bir xil): summa × reja / hajm; reja yo'q yoki hajm 0 → summa. */
+export function zamenaRejaSumma(summa: number | null, hajm: number | null, reja: number | null): number | null {
+  if (reja == null || summa == null || hajm == null || hajm === 0) return summa;
+  return summa * reja / hajm;
 }
 
 /**
