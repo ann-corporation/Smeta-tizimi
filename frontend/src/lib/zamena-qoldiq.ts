@@ -135,27 +135,37 @@ export function zamenaRejaHajmlar(rows: readonly ZamenaQator[]): Map<number, num
     const asl = byId.get(aslId)!;
     for (const z of list) { const v = zamenaRejaHajm(z, asl, list); if (v != null) out.set(z.id, v); }
   }
-  // Zamena ISHINING bola resurslari ish rejasi foizida (egasi 2026-11-08; SQL t2_zamena_reja_hajm bola tarmog'i).
+  // Zamena ISHINING bola resurslari: bajarilish foizi ishnikiga teng (egasi 2026-11-08; SQL t2_zamena_reja_hajm bola tarmog'i).
+  // `progress` — bola/ishning max(sof F2, fakt) hajmi (zamenaProgress bilan).
   for (const r of rows) {
     if (r.ota_id == null || r.change_type === 'REPLACEMENT' || r.tur == null || !['rs', 'mat', 'ob'].includes(r.tur)) continue;
     const ota = byId.get(r.ota_id);
     if (!ota || ota.tur !== 'bl' || ota.change_type !== 'REPLACEMENT' || ota.replaces_line_id == null) continue;
-    const v = zamenaBolaRejaHajm(r.hajm, ota.hajm, out.get(ota.id) ?? null);
+    const v = zamenaBolaRejaHajm({ bolaHajm: r.hajm, bolaProgress: r.progress ?? 0, ishHajm: ota.hajm, ishReja: out.get(ota.id) ?? null, ishProgress: ota.progress ?? 0 });
     if (v != null) out.set(r.id, v);
   }
   return out;
 }
 
-/** Zamena ishining bola resursi rejasi: max(bola × ishReja / ishHajm, bola); ish hajmi ≤ 0/noma'lum yoki ish rejasi yo'q → null. */
-export function zamenaBolaRejaHajm(bolaHajm: number | null, ishHajm: number | null, ishReja: number | null): number | null {
-  if (bolaHajm == null || ishHajm == null || !(ishHajm > 0) || ishReja == null) return null;
-  return Math.max(bolaHajm * ishReja / ishHajm, bolaHajm);
+/**
+ * Zamena ishining bola resursi rejasi — bolaning bajarilish foizi ishnikiga TENG (soxta ostatka to'qilmaydi):
+ *   f = min(ishProgress / ishReja, 1); f > 0 va bolaProgress > 0 → bolaProgress / f;
+ *   aks holda max(bolaHajm × ishReja / ishHajm, bolaHajm) (ish hajmi ≤ 0/noma'lum yoki bola hajmi noma'lum → null).
+ * Ish rejasi yo'q (qoida qo'llanmaydi) → null.
+ */
+export function zamenaBolaRejaHajm(p: { bolaHajm: number | null; bolaProgress?: number | null; ishHajm: number | null; ishReja: number | null; ishProgress?: number | null }): number | null {
+  if (p.ishReja == null) return null;
+  const f = p.ishReja > 0 ? Math.min(Number(p.ishProgress ?? 0) / p.ishReja, 1) : 0;
+  const bp = Number(p.bolaProgress ?? 0);
+  if (f > 0 && bp > 0) return bp / f;
+  if (p.bolaHajm == null || p.ishHajm == null || !(p.ishHajm > 0)) return null;
+  return Math.max(p.bolaHajm * p.ishReja / p.ishHajm, p.bolaHajm);
 }
 
-/** Qoldiq summasi uchun reja summasi (SQL holat/nakopitelniy bilan bir xil): summa × reja / hajm; reja yo'q yoki hajm 0 → summa. */
-export function zamenaRejaSumma(summa: number | null, hajm: number | null, reja: number | null): number | null {
-  if (reja == null || summa == null || hajm == null || hajm === 0) return summa;
-  return summa * reja / hajm;
+/** Bola resurs qoldiq summasi (SQL holat/nakopitelniy bilan bir xil): summa / hajm × qoldiq hajm; summa/hajm noma'lum yoki hajm 0 → null. */
+export function zamenaBolaQoldiqSumma(summa: number | null, hajm: number | null, qoldiqHajm: number | null): number | null {
+  if (summa == null || hajm == null || hajm === 0 || qoldiqHajm == null) return null;
+  return summa / hajm * qoldiqHajm;
 }
 
 /**

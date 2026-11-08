@@ -7,8 +7,9 @@
 --      Birlik bir xil va almashtirish_hajm NULL bo'lgan zamenaning SAMARALI reja hajmi =
 --        greatest( asl.hajm - aslning o'z tasdiqlangan F2 - BOSHQA zamenalar qoplagani , zamenaning o'z hajmi ).
 --      Birlik farqli yoki almashtirish_hajm kiritilgan -> o'zgarmaydi (zamena.hajm; mavjud proporsional qoida).
---      Zamena ishining BOLA resurslari (rs/mat/ob) ish rejasi FOIZIDA ergashadi (egasi 2026-11-08):
---        bola reja = max(bola.hajm × reja(zamena_bl) / zamena_bl.hajm, bola.hajm); qoldiq summa = summa × shu nisbat.
+--      Zamena ishining BOLA resurslari (rs/mat/ob): bajarilish FOIZI ishnikiga TENG (egasi 2026-11-08):
+--        f = min(ish_progress / ish_reja, 1); f > 0 va bola_progress > 0 -> bola reja = bola_progress / f;
+--        aks holda bola reja = bola.hajm × ish_reja / ish.hajm. Bola qoldiq summa = summa / hajm × qoldiq hajm.
 --      t2_qator.hajm O'ZGARMAYDI -- samarali hajm holat/nakopitelniy qatlamida hisoblanadi (t2_zamena_reja_hajm).
 --   2) Pul: asl narxi 0 yoki NULL, summasi != 0 bo'lsa almashtirilgan summa = alm * summa / hajm (narx=0 -> NULL kabi).
 --   3) t2_ish_abc_saqla_v1 'replacement': shu asl qatorga shu kod+birlikdagi faol zamena allaqachon bo'lsa YANGI qator
@@ -20,18 +21,32 @@ begin;
 -- 1) Zamenaning samarali reja hajmi (o'z birligida). NULL = qoida qo'llanmaydi (q.hajm ishlatiladi).
 create or replace function public.t2_zamena_reja_hajm(p_qator_id bigint) returns numeric
 language plpgsql stable set search_path = public, pg_temp set plan_cache_mode = force_generic_plan as $fn$
-declare z record; v_rem numeric; v_boshqa numeric; bb record; v_bl numeric;
+declare z record; v_rem numeric; v_boshqa numeric; bb record; v_bl numeric; v_f numeric; v_bola_pr numeric;
 begin
-  -- Zamena ISH (bl) ning BOLA resursi (rs/mat/ob, o'zi zamena emas): ish rejasi foizida (egasi 2026-11-08).
-  --   reja = max(bola.hajm × reja(zamena_bl) / zamena_bl.hajm, bola.hajm); zamena_bl.hajm <= 0/NULL yoki ish rejasi NULL -> NULL.
+  -- Zamena ISH (bl) ning BOLA resursi (rs/mat/ob, o'zi zamena emas): bajarilish FOIZI ishnikiga TENG (egasi 2026-11-08).
+  --   f = least(ish_progress / ish_reja, 1);  f > 0 va bola_progress > 0 -> reja = bola_progress / f
+  --   (bola qoldig'i ishniki bilan bir xil ulushda; soxta ostatka to'qilmaydi);
+  --   aks holda reja = bola.hajm × ish_reja / ish.hajm (ish.hajm <= 0/NULL yoki bola.hajm NULL -> o'zgarmaydi).
+  --   progress = max(sof F2, fakt) -- t2_zamena_qoplash.progress_hajm bilan aynan bir xil.
   select c.hajm as bola_hajm, p.id as bl_id, p.hajm as bl_hajm into bb
     from public.t2_qator c join public.t2_qator p on p.id = c.ota_id
    where c.id = p_qator_id and c.tur in ('rs', 'mat', 'ob') and c.change_type is distinct from 'REPLACEMENT'
      and p.tur = 'bl' and p.change_type = 'REPLACEMENT' and p.replaces_line_id is not null;
   if found then
-    if bb.bola_hajm is null or bb.bl_hajm is null or bb.bl_hajm <= 0 then return null; end if;
     v_bl := public.t2_zamena_reja_hajm(bb.bl_id);
     if v_bl is null then return null; end if;
+    select case when v_bl > 0 then least(zq.progress_hajm / v_bl, 1) end into v_f
+      from public.t2_zamena_qoplash zq where zq.zamena_qator_id = bb.bl_id;
+    select greatest(
+             coalesce(sum(coalesce(aq.certified_quantity, aq.hajm)) filter (where a.tur = 'f2' and (a.holat = 'tasdiqlangan'
+               or (a.holat <> all (array['bekor', 'rad']) and coalesce(a.lifecycle_status, 'draft') <> all (array['cancelled', 'rejected', 'superseded'])
+                   and (aq.raw_snapshot ->> 'source') = 'storno'))), 0),
+             coalesce(sum(aq.hajm) filter (where a.tur = 'fakt' and a.holat <> 'bekor'), 0))
+      into v_bola_pr
+      from public.t2_akt_qator aq join public.t2_akt a on a.id = aq.akt_id
+     where aq.qator_id = p_qator_id;
+    if coalesce(v_f, 0) > 0 and coalesce(v_bola_pr, 0) > 0 then return v_bola_pr / v_f; end if;
+    if bb.bola_hajm is null or bb.bl_hajm is null or bb.bl_hajm <= 0 then return null; end if;
     return greatest(bb.bola_hajm * v_bl / bb.bl_hajm, bb.bola_hajm);
   end if;
   select zq.asl_qator_id, zq.zamena_hajm, zq.almashtirish_hajm, zq.ayni_birlik, o.hajm as asl_hajm
@@ -80,7 +95,8 @@ begin
   n := regexp_replace(n, 'ELSE q\.hajm\s+END AS smeta_hajm', 'ELSE COALESCE(zr.v, q.hajm) END AS smeta_hajm');
   n := replace(n, 'ELSE q.hajm - d.f2_hajm - al.v', 'ELSE COALESCE(zr.v, q.hajm) - d.f2_hajm - al.v');
   n := replace(n, 'ELSE q.summa - d.f2_summa_malum - COALESCE(als.s, 0::numeric)',
-                  'ELSE CASE WHEN zr.v IS NOT NULL AND q.hajm <> 0::numeric AND q.summa IS NOT NULL THEN q.summa * zr.v / q.hajm ELSE q.summa END - d.f2_summa_malum - COALESCE(als.s, 0::numeric)');
+                  'ELSE CASE WHEN zr.v IS NOT NULL AND q.change_type IS DISTINCT FROM ''REPLACEMENT''::text THEN CASE WHEN q.hajm <> 0::numeric AND q.summa IS NOT NULL THEN q.summa / q.hajm * (zr.v - d.f2_hajm - al.v) ELSE NULL::numeric END'
+               || ' ELSE CASE WHEN zr.v IS NOT NULL AND q.hajm <> 0::numeric AND q.summa IS NOT NULL THEN q.summa * zr.v / q.hajm ELSE q.summa END - d.f2_summa_malum - COALESCE(als.s, 0::numeric) END');
   n := replace(n, 'WHEN q.narx IS NOT NULL THEN al.v * q.narx',
                   'WHEN q.narx IS NOT NULL AND NOT (q.narx = 0::numeric AND COALESCE(q.summa, 0::numeric) <> 0::numeric) THEN al.v * q.narx');
   n := regexp_replace(n, '\) al\s+CROSS JOIN LATERAL \( SELECT',
@@ -89,7 +105,8 @@ begin
      or position('COALESCE(zr.v, q.hajm) - d.f2_hajm - al.v' in n) = 0
      or position('NOT (q.narx = 0::numeric AND COALESCE(q.summa, 0::numeric) <> 0::numeric) THEN al.v * q.narx' in n) = 0
      or position('t2_zamena_reja_hajm(q.id) ELSE NULL::numeric END AS v) zr' in n) = 0
-     or position('THEN q.summa * zr.v / q.hajm ELSE q.summa END - d.f2_summa_malum' in n) = 0 then
+     or position('THEN q.summa * zr.v / q.hajm ELSE q.summa END - d.f2_summa_malum' in n) = 0
+     or position('q.summa / q.hajm * (zr.v - d.f2_hajm - al.v)' in n) = 0 then
     raise exception 'ZAMENA_QOZON: t2_qator_holat langari topilmadi (view ta''rifi o''zgargan)';
   end if;
   execute 'create or replace view public.t2_qator_holat as ' || rtrim(n, E'; \n');
@@ -107,6 +124,12 @@ begin
                       $b$case when coalesce(zr.v, q.hajm, 0) <> 0 then round((coalesce(p.oldingi_hajm,0) + coalesce(p.joriy_hajm,0)) / coalesce(zr.v, q.hajm) * 100, 1) end$b$);
   n := replace(n, $a$else coalesce(q.summa,0) end - (coalesce(p.oldingi_summa,0)$a$,
                   $b$else coalesce(case when zr.v is not null and q.hajm <> 0 and q.summa is not null then q.summa * zr.v / q.hajm else q.summa end, 0) end - (coalesce(p.oldingi_summa,0)$b$);
+  -- bola resurs: qoldiq summa = summa / hajm × qoldiq hajm (ishniki bilan bir xil ulush; NULL-xavfsiz)
+  n := replace(n, $a$'qoldiq_summa', case when q.versiya_holat$a$,
+                  $b$'qoldiq_summa', case when zr.v is not null and q.change_type is distinct from 'REPLACEMENT' and q.versiya_holat is distinct from 'almashtirilgan'
+        then case when q.hajm <> 0 and q.summa is not null then q.summa / q.hajm * (zr.v - (coalesce(p.oldingi_hajm,0) + coalesce(p.joriy_hajm,0)) - coalesce(al.v,0)) end
+        else case when q.versiya_holat$b$);
+  n := regexp_replace(n, $a$,(\s*)'jami_baseline_summa'$a$, $b$ end,\1'jami_baseline_summa'$b$);
   n := replace(n, ') al on true', ') al on true' || E'\n    left join lateral (select case when (q.change_type = ''REPLACEMENT'' and q.replaces_line_id is not null and q.almashtirish_hajm is null)' ||
                   E'\n        or (q.tur in (''rs'',''mat'',''ob'') and q.ota_id is not null and exists (select 1 from public.t2_qator zp where zp.id = q.ota_id and zp.change_type = ''REPLACEMENT'' and zp.replaces_line_id is not null and zp.almashtirish_hajm is null))' ||
                   E'\n        then public.t2_zamena_reja_hajm(q.id) end as v) zr on true');
@@ -114,7 +137,9 @@ begin
      or position('else coalesce(zr.v, q.hajm, 0) end' in n) = 0
      or position('/ coalesce(zr.v, q.hajm) * 100, 1) end' in n) = 0
      or position('public.t2_zamena_reja_hajm(q.id) end as v) zr on true' in n) = 0
-     or position('then q.summa * zr.v / q.hajm else q.summa end, 0) end' in n) = 0 then
+     or position('then q.summa * zr.v / q.hajm else q.summa end, 0) end' in n) = 0
+     or position($x$,0) end,$x$ in n) = 0
+     or position('q.summa / q.hajm * (zr.v - (coalesce(p.oldingi_hajm,0)' in n) = 0 then
     raise exception 'ZAMENA_QOZON: t2_nakopitelniy_v2 langari topilmadi (funksiya ta''rifi o''zgargan)';
   end if;
   execute n;
