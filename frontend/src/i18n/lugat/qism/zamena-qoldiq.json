@@ -8,5 +8,6 @@
   "yozilgan": { "ru": "записано", "en": "written" },
   "shu F2": { "ru": "этот Ф2", "en": "this F2" },
   "asl ham, zamenasi ham olinmoqda — ikki marta bo‘lishi mumkin": { "ru": "берётся и исходная строка, и её замена — возможен двойной учёт", "en": "both the original and its replacement are taken — may be counted twice" },
-  "almashtirildi": { "ru": "заменено", "en": "replaced" }
+  "almashtirildi": { "ru": "заменено", "en": "replaced" },
+  "Bu zamena avval kiritilgan — yangi qator ochilmadi, fakt mavjud zamenaga qo‘shildi (asl qator hajmi bilan bitta qozonda).": { "ru": "Эта замена уже была введена — новая строка не создана, факт добавлен к существующей замене (общий объём с исходной строкой).", "en": "This replacement already exists — no new line was created, the actual was added to the existing replacement (shared volume with the original line)." }
 }

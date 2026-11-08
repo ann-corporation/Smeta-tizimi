@@ -84,22 +84,58 @@ export function qoldiqHajmi(smeta: number | null | undefined, tasdiqlangan: numb
   return ochiqQoldiq({ smeta, f2: tasdiqlangan, almashtirilgan }, 'f2');
 }
 
+/** Bitta zamenaning aslni qoplagan hajmi (aslning birligida; cheklovsiz) -- SQL t2_almashtirilgan_oz_hajm CASE bilan bir xil. */
+function qoplash(asl: ZamenaQator, z: ZamenaQator): number {
+  const miq = z.almashtirish_hajm;
+  const zh = z.hajm ?? 0;
+  const pr = z.progress ?? 0;
+  if (miq != null) return zh > 0 ? pr / zh * miq : 0;
+  if (birlikKalit(z) === birlikKalit(asl)) return pr;
+  // Egasi qarori 2026-10-25: birlik farqli, miqdorsiz -> zamenaning bajarilgan ulushida (zamena hajmi noma'lum -> 0).
+  return zh > 0 ? Math.min(pr / zh, 1) * (asl.hajm ?? 0) : 0;
+}
+
 /** Bir asl qatorning O'Z zamenalaridan qoplangan hajmi (aslning birligida), aslning qolgan qoldig'i bilan cheklangan. */
 function ozHajm(asl: ZamenaQator, zamenalar: readonly ZamenaQator[]): number {
   if (zamenalar.length === 0) return 0;
   const rem = Math.max((asl.hajm ?? 0) - (asl.f2Hajm ?? 0), 0);
   let yigindi = 0;
-  for (const z of zamenalar) {
-    const miq = z.almashtirish_hajm;
-    const zh = z.hajm ?? 0;
-    const ayni = birlikKalit(z) === birlikKalit(asl);
-    const pr = z.progress ?? 0;
-    if (miq != null) { if (zh > 0) yigindi += pr / zh * miq; }
-    else if (ayni) yigindi += pr;
-    // Egasi qarori 2026-10-25: birlik farqli, miqdorsiz -> zamenaning bajarilgan ulushida (zamena hajmi noma'lum -> 0).
-    else if (zh > 0) yigindi += Math.min(pr / zh, 1) * (asl.hajm ?? 0);
-  }
+  for (const z of zamenalar) yigindi += qoplash(asl, z);
   return Math.min(yigindi, rem);
+}
+
+/**
+ * ZAMENA «UMUMIY QOZON» (egasi 2026-11-08; SQL t2_zamena_reja_hajm bilan AYNAN bir xil).
+ * Asl qator va uning zamenalari bitta hajm qozonini bo'lishadi = asl smeta hajmi. Birlik bir xil va `almashtirish_hajm`
+ * NULL bo'lgan zamenaning samarali reja hajmi (qoldiq, fakt %, «smetadan oshdi», F2 qoldig'i, nakopitelniy «по смете»):
+ *   max(asl.hajm − aslning tasdiqlangan F2 − BOSHQA zamenalar qoplagani, zamenaning o'z hajmi).
+ * Birlik farqli / miqdor kiritilgan / asl hajmi ≤ 0 yoki noma'lum / zamena hajmi manfiy → null (zamena.hajm o'zgarmaydi).
+ * t2_qator.hajm hech qachon o'zgartirilmaydi — bu faqat hisob qatlami.
+ */
+export function zamenaRejaHajm(zamena: ZamenaQator, asl: ZamenaQator, boshqalar: readonly ZamenaQator[] = []): number | null {
+  if (zamena.almashtirish_hajm != null || birlikKalit(zamena) !== birlikKalit(asl)) return null;
+  if (asl.hajm == null || !(asl.hajm > 0) || (zamena.hajm != null && zamena.hajm < 0)) return null;
+  const rem = Math.max(asl.hajm - (asl.f2Hajm ?? 0), 0);
+  let boshqa = 0;
+  for (const b of boshqalar) if (b.id !== zamena.id) boshqa += qoplash(asl, b);
+  return Math.max(rem - boshqa, zamena.hajm ?? 0);
+}
+
+/** Barcha zamenalar uchun samarali reja hajmi xaritasi (zamena id -> reja; qoida qo'llanmaydiganlar kirmaydi). */
+export function zamenaRejaHajmlar(rows: readonly ZamenaQator[]): Map<number, number> {
+  const byId = new Map(rows.map((r) => [r.id, r] as const));
+  const zam = new Map<number, ZamenaQator[]>();
+  for (const r of rows) {
+    if (r.change_type === 'REPLACEMENT' && r.replaces_line_id != null && byId.has(r.replaces_line_id)) {
+      const a = zam.get(r.replaces_line_id) ?? []; a.push(r); zam.set(r.replaces_line_id, a);
+    }
+  }
+  const out = new Map<number, number>();
+  for (const [aslId, list] of zam) {
+    const asl = byId.get(aslId)!;
+    for (const z of list) { const v = zamenaRejaHajm(z, asl, list); if (v != null) out.set(z.id, v); }
+  }
+  return out;
 }
 
 /**
@@ -172,10 +208,13 @@ export function qoralamaAlmashtirilgan(
   return out;
 }
 
-/** Narx qoidasi (SQL: t2_almashtirilgan_summa_hisob): summa to'qilmaydi. */
+/**
+ * Narx qoidasi (SQL: t2_almashtirilgan_summa_hisob): summa to'qilmaydi.
+ * Narx 0, lekin summa != 0 (pul bola resurslarda, ish qatori) -> narx NULL kabi: alm × summa / hajm (2026-11-08).
+ */
 export function almashtirilganSumma(alm: number, hajm: number | null, narx: number | null, summa: number | null): number | null {
   if (!alm) return 0;
-  if (narx != null) return alm * narx;
+  if (narx != null && !(narx === 0 && (summa ?? 0) !== 0)) return alm * narx;
   if (hajm != null && hajm !== 0 && summa != null) return alm * summa / hajm;
   return null;
 }
