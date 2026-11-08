@@ -46,6 +46,13 @@ it('returns verified citation with null page fields and a protected chunk lookup
   expect(JSON.parse(String(h.rpc.mock.calls.at(-1)?.[1]?.body))).toMatchObject({ p_q: null, p_hujjat_id: h.row.hujjat_id, p_sha: h.row.sha256 });
 });
 
+it('uses a redirect mode supported by Cloudflare Workers fetch (follow|manual, never error)', async () => {
+  const h = await setup();
+  await h.call();
+  const search = h.rpc.mock.calls.find(([url]) => String(url).endsWith('/t2_normativ_qidir_v1'));
+  expect(search?.[1]?.redirect).toBe('manual');
+});
+
 it('rejects foreign tenant, unsigned access, and injected client URLs before storage access', async () => {
   const h = await setup();
   expect((await h.call('kompaniya_id=4&q=06-01-01')).status).toBe(403);
