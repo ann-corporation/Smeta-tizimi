@@ -3,6 +3,20 @@
   "_izoh": "Task ownership only. This is not domain ownership; each active task locks only its owns paths.",
   "tasks": [
     {
+      "id": "FAKT-ROOT-NODE-20261108",
+      "title": "Virtual root work group in Fakt journal",
+      "owner": "codex",
+      "machine": "Anvar",
+      "branch": "codex/fakt-root-node",
+      "base_sha": "3122a8d01fb99a0106105dcff7521b5fce4d9828",
+      "status": "ready_for_review",
+      "owns": ["frontend/src/admin/sahifalar/FaktJurnal.tsx", "frontend/src/admin/sahifalar/FaktJurnal.root-node.test.tsx"],
+      "depends_on": [],
+      "must_read": ["AGENTS.md", "docs/governance/CONSTITUTION.md"],
+      "production_write_allowed": false,
+      "note": "L0 assignment in KOORDINATSIYA 07.11 evening: virtual Bo‘limsiz, search and restore; one PR <=400 lines, no financial/RPC/F2 changes. Shared registry entry and news129 explicitly assigned by L0; no broad shared-file lock."
+    },
+    {
       "id": "DESKTOP-D2-ETAG-20261031",
       "owner": "codex",
       "machine": "noutbuk",

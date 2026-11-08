@@ -2,6 +2,14 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 129,
+      "sana": "2026-11-08",
+      "sarlavha": "Fakt: bo‘limsiz ishlar ham ko‘rinadi",
+      "bandlar": [
+        "Bo‘limga kiritilmagan ishlar va resurslari «Bo‘limsiz» tugunida ko‘rinadi, qidiruvda topiladi va to‘xtagan joyga qaytishda tiklanadi."
+      ]
+    },
+    {
       "id": 128,
       "sana": "2026-11-07",
       "sarlavha": "Fakt: zamena va qo'shimcha ish/material — endi shu qatorning o'zida",
