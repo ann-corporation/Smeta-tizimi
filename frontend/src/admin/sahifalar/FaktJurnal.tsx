@@ -75,6 +75,9 @@ const fmt = (v: number | null | undefined) => (v == null ? '—' : Number(v).toL
 export type SaqlashNatija = Promise<boolean>;
 export type SaqlashFn = () => SaqlashNatija;
 type SaqlashVaqda = SaqlashNatija | null;
+// UI-only: null is autoselection; this sentinel never goes to the server.
+const BOLIMSIZ = -1;
+
 export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holatniYangila, tuzilmaniYangila, saqlashRef, f2Otish, boshBolimId = null, boshFaktsizF2 = false }: {
   kompaniyaId: number; obyektId: number;
   /** Kompaniya obyektlari (egizaklarni aniqlash uchun; yo'q bo'lsa «Egizaklarga ham yozish» ko'rinmaydi). */
@@ -239,11 +242,11 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   // Ish ichidagi mat/ob bolalari va ishdan keyingi alohida mat/ob — ish ulushida TAKLIF (ergashish qoidasi; avtomatik yozilmaydi).
   const keyingiMat = useMemo(() => ishMateriallari(rows), [rows]);
   const matIshi = useMemo(() => { const m = new Map<number, number>(); for (const [ish, ms] of keyingiMat) for (const x of ms) m.set(x, ish); return m; }, [keyingiMat]);
-  const jurnalById = useMemo(() => { const m = new Map<number, JurnalQator>(); for (const arr of bolimIshlari.values()) for (const x of arr) m.set(x.id, x); return m; }, [bolimIshlari]);
+  const jurnalById = useMemo(() => { const m = new Map<number, JurnalQator>(); for (const arr of [...bolimIshlari.values(), ildizIshlari]) for (const x of arr) m.set(x.id, x); return m; }, [bolimIshlari, ildizIshlari]);
   /** Barcha jurnal qatorlari (ishlar va ularning resurslari). */
-  const barchaById = useMemo(() => { const m = new Map<number, JurnalQator>(); for (const arr of bolimIshlari.values()) for (const x of arr) { m.set(x.id, x); for (const r of x.resurslar) m.set(r.id, r); } return m; }, [bolimIshlari]);
+  const barchaById = useMemo(() => { const m = new Map<number, JurnalQator>(); for (const arr of [...bolimIshlari.values(), ildizIshlari]) for (const x of arr) { m.set(x.id, x); for (const r of [...x.resurslar, ...x.avtomatik]) m.set(r.id, r); } return m; }, [bolimIshlari, ildizIshlari]);
   const faktlar = useMemo(() => { const h = new Map(states.map((x) => [x.qator_id, Number(x.fakt_hajm ?? 0)])); return new Map(rows.map((r) => [r.id, h.get(r.id) ?? 0])); }, [rows, states]);
-  useEffect(() => { if (bolimId == null && bolimlar.length) setBolimId(bolimlar[0].id); }, [bolimId, bolimlar]);
+  useEffect(() => { if (bolimId == null) { if (bolimlar.length) setBolimId(bolimlar[0].id); else if (ildizIshlari.length) setBolimId(BOLIMSIZ); } }, [bolimId, bolimlar, ildizIshlari]);
 
   const smetalar = useMemo(() => { const h = new Map(states.map((x) => [x.qator_id, x.smeta_hajm == null ? null : Number(x.smeta_hajm)])); return new Map(rows.map((r) => [r.id, h.get(r.id) ?? (r.hajm == null ? null : Number(r.hajm))])); }, [rows, states]);
   // Tuzatish qatorlari (qalinlik/norma tuzatishi) — smeta yadrosi bog'laydi; fakti asosiy ishga ergashadi (hosila, qo'lda kiritilmaydi).
@@ -396,15 +399,18 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
         const ishlar = (bolimIshlari.get(b.id) ?? []).filter(filtr);
         if (ishlar.length) out.push({ bolim: null, nisbiy: 0, yol: b.nom, ishlar });
       }
+      const ildiz = ildizIshlari.filter(filtr);
+      if (ildiz.length) out.push({ bolim: null, nisbiy: 0, yol: t('Bo‘limsiz'), ishlar: ildiz });
       return out;
     }
+    if (bolimId === BOLIMSIZ) return [{ bolim: null, nisbiy: 0, ishlar: ildizIshlari.filter(filtr) }];
     if (bolimId == null) return [];
     const tarkib = bolimTarkibi(bolimId, bolimlar, bolimIshlari).map((x) => ({ ...x, ishlar: x.ishlar.filter(filtr) }));
     // Filtrdan keyin bo'sh qolgan shoxlar tashlanadi (ishli avlodi bor bo'lim sarlavhasi qoladi).
     const toliq = new Set<number>();
     for (let i = tarkib.length - 1; i >= 0; i--) { const x = tarkib[i]; if (x.ishlar.length || toliq.has(x.bolim.id)) { toliq.add(x.bolim.id); if (x.bolim.otaId != null) toliq.add(x.bolim.otaId); } }
     return tarkib.filter((x) => x.nisbiy === 0 || toliq.has(x.bolim.id)).map((x) => ({ bolim: x.nisbiy === 0 ? null : x.bolim, nisbiy: x.nisbiy, ishlar: x.ishlar }));
-  }, [qidiruv, faqatQoldiq, faktsizF2, faqatOzgarish, juftlar, holatMap, bolimId, bolimlar, bolimIshlari, holatFiltr, kiritilganIdlar]);
+  }, [qidiruv, faqatQoldiq, faktsizF2, faqatOzgarish, juftlar, holatMap, bolimId, bolimlar, bolimIshlari, ildizIshlari, holatFiltr, kiritilganIdlar]);
 
   const kirit = (id: number, patch: Partial<Kiritma>) => setKiritmalar((o) => {
     const eski = o[id] ?? { rejim: '+' as Rejim, qiymat: '' };
@@ -914,7 +920,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   const joyga = (id: number, o: { xabar?: boolean; fokus?: boolean }) => {
     const q = barchaById.get(id); if (!q) return false;
     let bolim: number | null = null; let ishId: number | null = null;
-    for (const [bid, ishlar] of bolimIshlari) {
+    for (const [bid, ishlar] of [...bolimIshlari, [BOLIMSIZ, ildizIshlari] as const]) {
       const ish = ishlar.find((x) => x.id === id || x.resurslar.some((r) => r.id === id) || x.avtomatik.some((r) => r.id === id));
       if (ish) { bolim = bid; ishId = ish.id; break; }
     }
@@ -929,13 +935,13 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   // «Qayerda qoldim»: obyekt ochilganda oxirgi faol qator tiklanadi (URL da aniq bo'lim/filtr bo'lsa — tegilmaydi).
   const tiklanganObyekt = useRef<number | null>(null);
   useEffect(() => {
-    if (tiklanganObyekt.current === obyektId || !bolimlar.length) return;
+    if (tiklanganObyekt.current === obyektId || (!bolimlar.length && !ildizIshlari.length)) return;
     tiklanganObyekt.current = obyektId;
     const id = qoldimOl(kompaniyaId, obyektId); qoldimRef.current = id;
     if (id == null || boshBolimId != null || boshFaktsizF2) return;
     joyga(id, { xabar: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- faqat obyekt ochilganda bir marta
-  }, [bolimlar, obyektId]);
+  }, [bolimlar, ildizIshlari, obyektId]);
   // Kutilayotgan joy/fokus: virtual qator (yoki yangi bo'lim) chizilgach qo'llanadi.
   useEffect(() => {
     const j = kutishJoy.current;
@@ -1070,7 +1076,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   const xulosa = useMemo(() => jurnalXulosa(bolimlar, bolimIshlari), [bolimlar, bolimIshlari]);
   const bolimKorinadi = (b: (typeof bolimlar)[number]) => { let p = b.otaId; while (p != null) { if (yopiqBolim.has(p)) return false; p = bolimlar.find((x) => x.id === p)?.otaId ?? null; } return true; };
   const bolaliBolim = useMemo(() => new Set(bolimlar.map((b) => b.otaId).filter((x): x is number => x != null)), [bolimlar]);
-  const sarlavha = qidiruv ? t('Qidiruv: «{q}»', { q: qidiruv }) : tanlanganBolim?.nom ?? t('Bo‘limni tanlang');
+  const sarlavha = qidiruv ? t('Qidiruv: «{q}»', { q: qidiruv }) : tanlanganBolim?.nom ?? (bolimId === BOLIMSIZ ? t('Bo‘limsiz') : t('Bo‘limni tanlang'));
   const bolimMaterialIdlar = korinadi.flatMap((b) => b.ishlar.map((i) => i.id));
   const bolimTakliflar = takliflarSoni(bolimMaterialIdlar);
   /** `filtr` — nom yonida bitta filtr tugmasi; `maydonlar` — bir nechta maydonli ustunda uchinchi satr (nom + tugma). */
@@ -1144,7 +1150,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
           className="fz-btn">{t('Qamrov %')} <kbd className="fz-kbd">%</kbd></button>}
         {egizaklar.length > 0 && <button type="button" onClick={() => setEgizakOyna(true)} data-testid="fakt-egizak-och" className="fz-btn"
           title={t('Shu faktni bir loyihadagi egizak obyektlarga ham yozish — oldindan ko‘rish bilan')}>{t('Egizaklarga ham yozish')}</button>}
-        <button onClick={() => setModal({ rejim: { tur: 'additional', bolimId } })} className="fz-btn"><Plus size={14} className="text-accent" /> {t('Smetadan tashqari ish')}</button>
+        <button onClick={() => setModal({ rejim: { tur: 'additional', bolimId: bolimId === BOLIMSIZ ? null : bolimId } })} className="fz-btn"><Plus size={14} className="text-accent" /> {t('Smetadan tashqari ish')}</button>
       </section>
 
       {bolimlar.length > 0 && <details className="group rounded-[var(--radius-md)] border border-border bg-surface-1" data-testid="fakt-tahlil">
@@ -1160,7 +1166,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
       </div>}
       <FaktStudioBar yigindi={yigindi} obyektId={obyektId} kompaniyaId={kompaniyaId} onF2={f2Otish} band={band} jami={summalar.get(0)} />
 
-      {bolimlar.length === 0
+      {bolimlar.length === 0 && ildizIshlari.length === 0
         ? <section className="fz-card flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
             <p className="max-w-md text-[13px] text-text-dim">{t('Bu obyektda smeta yo‘q. Bajarilgan ishlarni resurslari bilan to‘g‘ridan-to‘g‘ri kiriting — ular faktga yoziladi va F2 ga tayyor bo‘ladi.')}</p>
             <button onClick={() => setModal({ rejim: { tur: 'additional' } })} className="fz-btn fz-btn--primary fz-btn--lg"><Plus size={16} /> {t('Bajarilgan ishni kiritish')}</button>
@@ -1186,6 +1192,12 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
                   <div className="mt-1"><BolimMeter ulush={b.ulush} /></div>
                 </button>
               </div>; })}
+              {ildizIshlari.length > 0 && <button type="button" data-testid="bolimsiz-node"
+                aria-current={bolimId === BOLIMSIZ && !qidiruv ? 'true' : undefined}
+                onClick={() => { setBolimId(BOLIMSIZ); setQidiruv(''); }}
+                className={`w-full border-l-2 px-6 py-2 text-left text-[12.5px] ${bolimId === BOLIMSIZ && !qidiruv ? 'border-l-accent bg-accent/10 font-semibold text-text' : 'border-l-transparent text-text-dim hover:bg-surface-3'}`}>
+                {t('Bo‘limsiz')} · {t('{n} ish', { n: String(ildizIshlari.length) })}
+              </button>}
             </nav>
           </aside>
 
