@@ -1,0 +1,7 @@
+{
+  "Tizimning yangi versiyasi chiqdi — o‘zgarishlaringiz saqlab qo‘yildi, sahifani yangilang.": { "ru": "Вышла новая версия системы — ваши изменения сохранены, обновите страницу.", "en": "A new version of the system is available — your changes have been kept, please reload the page." },
+  "Saqlanmagan {n} ta o‘zgarish tiklandi": { "ru": "Восстановлено несохранённых изменений: {n}", "en": "Restored {n} unsaved changes" },
+  "{n} ta qator tiklanmadi — qator o‘chirilgan yoki fakti boshqa joyda o‘zgargan:": { "ru": "Не восстановлено строк: {n} — строка удалена или её факт изменён в другом месте:", "en": "{n} rows were not restored — the row was deleted or its actual volume changed elsewhere:" },
+  "O‘zgarishlaringiz brauzerda saqlab qo‘yildi.": { "ru": "Ваши изменения сохранены в браузере.", "en": "Your changes have been kept in the browser." },
+  "Qoralama tiklanmadi: fakt boshqa joyda o‘zgargan (qoralama: {q})": { "ru": "Черновик не восстановлен: факт изменён в другом месте (черновик: {q})", "en": "Draft not restored: actual volume changed elsewhere (draft: {q})" }
+}

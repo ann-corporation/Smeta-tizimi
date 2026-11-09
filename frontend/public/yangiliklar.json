@@ -2,7 +2,7 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 131,
+      "id": 132,
       "sana": "2026-11-09",
       "sarlavha": "F2 import: aniqroq bog'lash va moslash hisoboti",
       "bandlar": [
@@ -11,6 +11,15 @@
         "Ikkita alohida manba bloki bitta smeta qatoriga jim qo'shilmaydi; resurs qo'shni ishga bog'lanmaydi; ishi yuklanmagan resurs aktga kirmaydi.",
         "Birlik farqli zamenada asl qatorning almashtiriladigan hajmi majburiy — qoldiq minusga tushmaydi.",
         "Yozishdan oldin «Moslash hisoboti»: har qator — manba yo'li, smeta qatori, ishonch (aniq / ehtimol / topilmadi) va sabab."
+      ]
+    },
+    {
+      "id": 131,
+      "sana": "2026-11-09",
+      "sarlavha": "Fakt jurnali kiritmalari brauzerda saqlanadi",
+      "bandlar": [
+        "Fakt jurnalida kiritilgan o‘zgarishlar endi brauzerda saqlanib turadi — yangi versiya chiqsa ham yo‘qolmaydi.",
+        "Sahifa qayta ochilganda saqlanmagan o‘zgarishlar tiklanadi: «Saqlash» yoki «Bekor qilish». Fakti boshqa joyda o‘zgargan qator jim qo‘llanmaydi — belgilab ko‘rsatiladi."
       ]
     },
     {
