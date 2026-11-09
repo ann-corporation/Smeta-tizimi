@@ -11,7 +11,7 @@ import { sarlavhaBilan } from '../../lib/hotkeys/core';
 import { KatNishon } from '../../umumiy/ui/KatNishon';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import {
-  birlikFarqli, bosForma, INLINE_TAB, INLINE_TURLAR, inlineTekshir, inlineXato, inlineYuklama, normaQollanadi, zamenaRejim,
+  birlikFarqli, bosForma, INLINE_TAB, INLINE_TURLAR, inlineTekshir, inlineXato, inlineYuklama, normaQollanadi, zamenaQaytaMatn, zamenaRejim,
   type InlineForma, type InlineKontekst, type InlineQator, type InlineTur,
 } from '../../lib/fakt-inline-amal';
 
@@ -115,7 +115,9 @@ export function FaktInlineAmal({ kompaniyaId, obyektId, sana, qator, kontekst, t
         const m = await almashtirishBelgila(yangiId, alm).catch(() => null);
         qosh = m?.ok ? ` ${t('Almashtirilgan hajm: {n} {birlik}.', { n: String(alm), birlik: qator.birlik ?? '' })}` : ` ${t('Almashtirilgan hajm yozilmadi — keyin belgilang.')}`;
       }
-      const asos = tur === 'zamena' ? t('Zamena saqlandi: «{nom}» → «{yangi}».', { nom: qator.nom, yangi: forma.nom.trim() })
+      const qayta = tur === 'zamena' ? zamenaQaytaMatn(r as { qayta_ishlatildi?: unknown }) : null;
+      const asos = qayta ? qayta
+        : tur === 'zamena' ? t('Zamena saqlandi: «{nom}» → «{yangi}».', { nom: qator.nom, yangi: forma.nom.trim() })
         : tur === 'qoshimcha_ish' ? t('Qo‘shimcha ish saqlandi: «{nom}».', { nom: forma.nom.trim() })
         : t('Qo‘shimcha material saqlandi: «{nom}».', { nom: forma.nom.trim() });
       await onSaqlandi(`${asos}${narxsiz ? ` ${t('Narxsiz — summa keyin narxlanganda chiqadi.')}` : ''}${qosh}`, yangiId);

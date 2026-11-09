@@ -165,6 +165,16 @@ export function inlineXato(r: { ok?: boolean; code?: string; error?: string; xab
   return abcXato(r);
 }
 
+/**
+ * Takror zamena (egasi 2026-11-08, «umumiy qozon»): shu asl qatorga shu kod+birlikdagi zamena avval kiritilgan bo'lsa server
+ * yangi qator ochmaydi — mavjud zamena qayta ishlatiladi, faqat fakt qo'shiladi (`qayta_ishlatildi: true`). Aks holda null.
+ */
+export function zamenaQaytaMatn(r: { qayta_ishlatildi?: unknown } | null | undefined): string | null {
+  return r?.qayta_ishlatildi === true
+    ? t('Bu zamena avval kiritilgan — yangi qator ochilmadi, fakt mavjud zamenaga qo‘shildi (asl qator hajmi bilan bitta qozonda).')
+    : null;
+}
+
 /** Zamena juftlari: zamena → asl (serverdagi replaces_line_id) va teskarisi asl → zamenalar. */
 export function zamenaJuftlari(zb: ZamenaBoglanish | null | undefined): { asl: ReadonlyMap<number, number>; zamenalar: ReadonlyMap<number, readonly number[]> } {
   const zamenalar = new Map<number, number[]>();

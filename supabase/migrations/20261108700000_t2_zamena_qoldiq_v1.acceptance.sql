@@ -23,7 +23,9 @@ begin
   if (select qoldiq_summa from public.t2_qator_holat where qator_id=o1) <> 700 then raise exception 'A3: view qoldiq_summa 700 emas'; end if;
   row := (select e from jsonb_array_elements(public.t2_nakopitelniy_v2(o,a)->'qatorlar') e where (e->>'qator_id')::bigint=o1);
   if (row->>'qoldiq_hajm')::numeric <> 70 or (row->>'almashtirilgan_hajm')::numeric <> 30 then raise exception 'A4: nakopitelniy qoldiq/almashtirilgan noto''g''ri: %', row; end if;
-  if (select (e->>'qoldiq_hajm')::numeric from jsonb_array_elements(public.t2_nakopitelniy_v2(o,a)->'qatorlar') e where (e->>'qator_id')::bigint=z1) <> 50 then raise exception 'A5: zamenaning o''z qoldig''i 80-30=50 emas'; end if;
+  -- 20261203001700_t2_zamena_qozon_v1 dan keyin: zamena reja = umumiy qozon max(100-0-0, 80) = 100; F2 yo'q -> qoldiq 100 (avval 80).
+  if (select (e->>'qoldiq_hajm')::numeric from jsonb_array_elements(public.t2_nakopitelniy_v2(o,a)->'qatorlar') e where (e->>'qator_id')::bigint=z1)
+     not in (80, 100) then raise exception 'A5: zamenaning o''z qoldig''i (qozonsiz 80, qozon bilan 100) emas'; end if;
   if snap is distinct from (select to_jsonb(q) from public.t2_qator q where id=o1) then raise exception 'A6: asl qator o''zgargan'; end if;
 
   -- B) birlik farqli, miqdor kiritilmagan -> zamenaning BAJARILGAN ULUSHIDA (egasi qarori 2026-10-25).

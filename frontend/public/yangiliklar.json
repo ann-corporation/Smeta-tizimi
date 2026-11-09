@@ -2,6 +2,15 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 130,
+      "sana": "2026-11-08",
+      "sarlavha": "Zamena asl qator bilan bitta qozonda",
+      "bandlar": [
+        "Zamena endi asl qator hajmi bilan bitta qozonda: takror kiritishda minus chiqmaydi, asl qatorning pul qoldig'i ham kamayadi.",
+        "Shu asl qatorga shu shifr va birlikdagi zamena qayta kiritilsa yangi qator ochilmaydi — fakt mavjud zamenaga qo'shiladi."
+      ]
+    },
+    {
       "id": 129,
       "sana": "2026-11-08",
       "sarlavha": "Fakt: bo‘limsiz ishlar ham ko‘rinadi",
