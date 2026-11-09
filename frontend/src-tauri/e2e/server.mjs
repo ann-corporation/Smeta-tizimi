@@ -12,7 +12,7 @@ export const PORT=Number(process.env.SMETA_M5_PORT||5216);
 if(!Number.isInteger(PORT)||PORT<1024||PORT>65535)throw new Error('M5_PORT_INVALID');
 export const ORIGIN=`http://127.0.0.1:${PORT}`;
 const DB_ORIGIN='https://m5-db.invalid';
-const publicFile=process.env.SMETA_M5_PUBLIC_ENV_FILE || 'C:/Temp/GAS-M5-current-public.ps1';
+const publicFile=process.env.SMETA_M5_PUBLIC_ENV_FILE || `C:/Temp/GAS-M5-${PORT}-public.ps1`;
 const pgliteDir=process.env.PGLITE_DIR || 'C:/Temp/hr-pglite/node_modules/@electric-sql/pglite';
 const {PGlite}=await import(pathToFileURL(resolve(pgliteDir,'dist/index.js')).href);
 const {createServer}=await import(pathToFileURL(resolve(frontend,'node_modules/vite/dist/node/index.js')).href);
@@ -27,7 +27,7 @@ const pk=Buffer.from(await webcrypto.subtle.exportKey('raw',pair.publicKey)).toS
 const env={SUPABASE_URL:DB_ORIGIN,SUPABASE_KEY:randomBytes(32).toString('base64url'),SESSIYA_KALIT:randomBytes(48).toString('base64url'),
   DESKTOP_LEASE_SK:Buffer.from(await webcrypto.subtle.exportKey('pkcs8',pair.privateKey)).toString('base64url'),
   DESKTOP_LEASE_KID:`m5-local-${randomUUID()}`,OBYEKT_PAKET_ETAG:'1',GAS_URL:'https://m5-egress-denied.invalid',GAS_TOKEN:'LOCAL-UNUSED'};
-const vite=await createServer({root:frontend,configFile:false,envFile:false,cacheDir:'C:/Temp/Smeta-M5-vite-cache',logLevel:'error',
+const vite=await createServer({root:frontend,configFile:false,envFile:false,cacheDir:`C:/Temp/Smeta-M5-vite-cache-${PORT}`,logLevel:'error',
   server:{middlewareMode:true,ws:false,hmr:false,watch:null},appType:'custom'});
 const modules={};
 for(const name of ['qurilma','lease','bff']) modules[name]=await vite.ssrLoadModule(`/functions/api/desktop/${name}.ts`);
