@@ -5,7 +5,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import type { T2Qator } from '../../api/supabase';
 import type { F2Akt, F2Tugun } from '../../lib/smeta-anatomiya/f2';
 import { qidiruvMatni, qidiruvMoslagich } from '../../lib/f2-moslash-v3/qidiruv';
-import { BOSHQA_BOLIM_USUL, type F2MoslashNatija, type Nomzod, type SmetaQator } from '../../lib/f2-moslash-v3';
+import { type F2MoslashNatija, type Nomzod, type SmetaQator } from '../../lib/f2-moslash-v3';
 import {
   bogIdlari, bogla, f2HajmiSmetaBirligida, guruhHisobla, guruhHolati, guruhIldizi, hisobla, ishniBogla, ishniTasdiqla, korinish, narxFarqiFoiz, oshaQatormi, otkazibYubor, rzTaklifHisobla, tasdiqla, taqsimHisobla, taqsimlabBogla, taqsimNomzodlari, TARKIB_USUL, uz,
   type F2Indeks, type IshJoyi, type KorinishHolat, type SmetaIndeks,
@@ -18,6 +18,8 @@ import { katAniqla, type AbcResurs } from '../../lib/ish-abc';
 import { qoshilganmi, smetaQatorTuri, type SmetaQatorTuri } from '../../lib/f2-moslash-v3/qoshilgan';
 import { podvalTakrori } from '../../lib/f2-moslash-v3/podval';
 import { otadiganResurslar, qolganBoglanmagan } from '../../lib/f2-moslash-v3/rejali';
+import { zamenaBirlikFarqli } from '../../lib/f2-moslash-v3/zamenaReja';
+import { shubhaliUsulmi } from '../../lib/f2-moslash-v3/moslashHisoboti';
 import { ketmaKetBogla, pastdagilarniBogla } from '../../lib/f2-moslash-v3/ketmaKet';
 import { moslikIndeksiPercent } from '../../lib/f2-link-review/compatibility';
 import { reconcileF2Links } from '../../lib/f2-link-review/reconciliation';
@@ -1072,6 +1074,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
       const resurslar = ish ? resursRoyxat(f.bolalar) : [];
       const umumiy = { nom: f.nom, birlik: f.birlik || 'шт', hajm, kod: f.kod ?? undefined, resurslar, operationId: yangiOperationId(),
         sabab: rejim === 'taklif' ? 'F2 import: tizim taklifi (ommaviy)' : 'F2 import: qo‘shimcha (ommaviy)' };
+      // P6: birlik farqli zamena ommaviy yaratilmaydi — almashtiriladigan hajm (aslning birligida) qo'lda kiritiladi.
+      if (eski && eskiOta && zamenaBirlikFarqli(eski.birlik, f.birlik)) { otkazildi.push(`${f.nom.slice(0, 40)} (${tarj('birlik farqli zamena — alohida, almashtirish hajmi bilan yarating')})`); continue; }
       if (eski && eskiOta) {
         p.onRejali(f, { ...umumiy, kind: 'replacement', tur: ish ? 'bl' : resTuri(f.birlik), otaQatorId: eskiOta.id, almashtirilayotganQatorId: eski.id, keyinQatorId: eski.id });
         qolQosh(f0, f.bolalar);
@@ -1173,15 +1177,16 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     let ehtiyotOtkazildi = 0;
     if (amal === 'tasdiq') {
       // «Boshqa bo'limda shifr mos» ◐ lari jim tasdiqlanmaydi (zamena/qo'shimcha bo'lishi mumkin) — alohida sanaladi va so'raladi.
-      const ehtiyot = tugunlar.filter((x) => { const b = ij.bog.get(x.uid); return b?.holat === 'taklif' && b.usul === BOSHQA_BOLIM_USUL; });
-      const ruxsat = ehtiyot.length > 0 && await tasdiqSora({ matn: `${ehtiyot.length} ${tarj('ta ◐ taklif BOSHQA bo‘limdagi shifr mos ish — zamena yoki qo‘shimcha ham bo‘lishi mumkin. Ularni ham tasdiqlaysizmi?')}`, tasdiqMatni: t('Ha, hammasini tasdiqlash'), bekorMatni: t('Faqat qolganlarini') });
+      // F2 import auditi 2026-11-09: К=/qalinlik farqli (P3/P5), ikkinchi alohida blok (P2) va boshqa razdel (P7) ◐ lari ham.
+      const ehtiyot = tugunlar.filter((x) => { const b = ij.bog.get(x.uid); return b?.holat === 'taklif' && shubhaliUsulmi(b.usul); });
+      const ruxsat = ehtiyot.length > 0 && await tasdiqSora({ matn: `${ehtiyot.length} ${tarj('ta ◐ taklif shubhali (boshqa bo‘lim, К=/qalinlik farqi yoki ikkinchi alohida blok) — zamena yoki qo‘shimcha ham bo‘lishi mumkin. Ularni ham tasdiqlaysizmi?')}`, tasdiqMatni: t('Ha, hammasini tasdiqlash'), bekorMatni: t('Faqat qolganlarini') });
       const olib = new Set(ruxsat ? [] : ehtiyot.map((x) => x.uid));
       ehtiyotOtkazildi = olib.size;
       // Ish tanlansa resurslari ham tasdiqlanadi/bog'lanadi (guruh).
       for (const x of tugunlar) if (!olib.has(x.uid)) next = x.tur === 'bl' ? ishniTasdiqla(next, x, S).ij : tasdiqla(next, [x.uid]);
     } else for (const x of tugunlar) next = amal === 'uz' ? uz(next, x) : otkazibYubor(next, x, amal === 'otkaz');
     p.onIj(next);
-    xab(`${tugunlar.length - ehtiyotOtkazildi} ${tarj('ta qatorga amal bajarildi. Kerak bo‘lsa «Orqaga» bilan qaytaring.')}${ehtiyotOtkazildi ? ` ${ehtiyotOtkazildi} ${tarj('ta boshqa bo‘limdagi ◐ tasdiqlanmadi — alohida ko‘ring.')}` : ''}`);
+    xab(`${tugunlar.length - ehtiyotOtkazildi} ${tarj('ta qatorga amal bajarildi. Kerak bo‘lsa «Orqaga» bilan qaytaring.')}${ehtiyotOtkazildi ? ` ${ehtiyotOtkazildi} ${tarj('ta shubhali ◐ tasdiqlanmadi — alohida ko‘ring.')}` : ''}`);
     setBelgi(new Set());
   }
 

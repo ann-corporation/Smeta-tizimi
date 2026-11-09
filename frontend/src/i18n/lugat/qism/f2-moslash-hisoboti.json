@@ -1,0 +1,44 @@
+{
+ "aniq": { "ru": "точно", "en": "exact" },
+ "ehtimol": { "ru": "вероятно", "en": "probable" },
+ "topilmadi": { "ru": "не найдено", "en": "not found" },
+ "o‘tkazildi": { "ru": "пропущено", "en": "skipped" },
+ "Moslash hisoboti": { "ru": "Отчёт сопоставления", "en": "Matching report" },
+ "shubhali": { "ru": "сомнительно", "en": "doubtful" },
+ "xato": { "ru": "ошибка", "en": "error" },
+ "Shubhali qatorlar (bir xil shifr, lekin К=/qalinlik farqli; bir nechta manba bloki bitta qatorga; boshqa bo‘lim; birlik farqi) PTO tasdig‘isiz aktga kirmasligi kerak — har birini tekshiring.": {
+  "ru": "Сомнительные строки (тот же шифр, но другой К=/толщина; несколько блоков источника в одну строку; другой раздел; другая единица) не должны попадать в акт без подтверждения ПТО — проверьте каждую.",
+  "en": "Doubtful lines (same code but different K=/thickness; several source blocks into one line; another section; different unit) must not enter the act without PTO confirmation — check each one."
+ },
+ "Barcha qatorlarni ko‘rsatish": { "ru": "Показать все строки", "en": "Show all lines" },
+ "Manzil": { "ru": "Адрес", "en": "Address" },
+ "Manba yo‘li": { "ru": "Путь в источнике", "en": "Source path" },
+ "Manba qatori": { "ru": "Строка источника", "en": "Source line" },
+ "Smeta qatori": { "ru": "Строка сметы", "en": "Estimate line" },
+ "Ishonch": { "ru": "Уверенность", "en": "Confidence" },
+ "Sabab": { "ru": "Причина", "en": "Reason" },
+ "Yana {n} ta qator": { "ru": "Ещё {n} строк", "en": "{n} more lines" },
+ "Muammoli qator yo‘q.": { "ru": "Проблемных строк нет.", "en": "No problem lines." },
+ "Moslash hisoboti: shubhali {s}, xato {x} — PTO tekshirmaguncha jim yozilmasin": {
+  "ru": "Отчёт сопоставления: сомнительных {s}, ошибок {x} — не записывать молча до проверки ПТО",
+  "en": "Matching report: doubtful {s}, errors {x} — do not write silently until PTO has checked"
+ },
+ "Birlik farqli zamena: asl qatorning qancha hajmini ({birlik}) almashtirishini kiriting — aks holda qoldiq minusga tushadi.": {
+  "ru": "Замена в другой единице: укажите, какой объём исходной строки ({birlik}) она заменяет — иначе остаток уйдёт в минус.",
+  "en": "Replacement in a different unit: enter how much of the original line ({birlik}) it replaces — otherwise the remainder goes negative."
+ },
+ "Almashtiriladigan hajm asl qator hajmidan katta.": { "ru": "Заменяемый объём больше объёма исходной строки.", "en": "The replaced quantity exceeds the original line quantity." },
+ "Asl qatorning qancha hajmini almashtiradi ({birlik}, majburiy — birlik farqli)": {
+  "ru": "Какой объём исходной строки заменяет ({birlik}, обязательно — единица отличается)",
+  "en": "How much of the original line it replaces ({birlik}, required — unit differs)"
+ },
+ "Asl qator hajmi: {h}": { "ru": "Объём исходной строки: {h}", "en": "Original line quantity: {h}" },
+ "Zamena birligi asl qatorniki bilan bir xil emas: reja bitta F2 hajmidan emas, asl qatorning almashtiriladigan hajmidan hisoblanadi.": {
+  "ru": "Единица замены отличается от исходной: план считается не по объёму одной Ф2, а по заменяемому объёму исходной строки.",
+  "en": "The replacement unit differs from the original: the plan is based on the replaced quantity of the original line, not on one F2 quantity."
+ },
+ "birlik farqli zamena — alohida, almashtirish hajmi bilan yarating": {
+  "ru": "замена в другой единице — создайте отдельно, с заменяемым объёмом",
+  "en": "replacement in a different unit — create it separately, with the replaced quantity"
+ }
+}

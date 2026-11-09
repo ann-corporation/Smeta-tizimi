@@ -1,5 +1,5 @@
 import type { OchirishBuyruq, RejaliBuyruq } from './f2-moslash-v3/rejali';
-import type { F2Akt } from './smeta-anatomiya/f2';
+import type { F2Akt, F2Tugun } from './smeta-anatomiya/f2';
 import { f2Imzo, rzKalit, type F2MoslashNatija } from './f2-moslash-v3';
 import { bogIdlari, f2Indeks, taqsimTekshir, yozishManbasi, type F2Indeks, type IshJoyi, type SmetaIndeks } from './f2-moslash-v3/ishJoyi';
 import { sbT2F2ImportDraftRoyxat, sbT2F2ImportDraftSaqla, sbT2F2ImportJobHolat, sbT2F2ImportJobIlgarilash, sbT2F2ImportJobYarat } from '../api/supabase';
@@ -78,12 +78,59 @@ export function f2BuzilganniBoshat(ij: IshJoyi, buzilgan: ReadonlySet<string>): 
 
 /** Проекция чернового акта: только подтверждённые связи. Исходник и решения не изменяются. */
 export function f2QoralamaYozish(ind: F2Indeks, ij: IshJoyi, S?: SmetaIndeks) {
+  const halmi = (uid: string) => { const b = ij.bog.get(uid); return !!b && b.holat !== 'taklif'; };
+  // P8 (F2 import auditi 2026-11-09): ishi (BL) hal qilinmagan resurs aktga yolg'iz kirmaydi — aks holda akt «BL yo'q,
+  // resurslari bor» bo'lib qoladi (hajm 0, resurslar to'liq). Ish ongli o'tkazib yuborilgan (otkaz) bo'lsa — qaror operatorniki.
+  const blsiz = new Set(ind.qatorlar.filter((n) => {
+    if (n.tur === 'bl' || ij.otkaz.has(n.uid) || !halmi(n.uid)) return false;
+    const o = ind.ota.get(n.uid);
+    return !!o && o.tur === 'bl' && !ij.otkaz.has(o.uid) && !halmi(o.uid);
+  }).map((n) => n.uid));
   const qolgan = ind.qatorlar.filter((n) => !ij.otkaz.has(n.uid) && !(n.podval && !ij.bog.has(n.uid)) &&
-    (!ij.bog.has(n.uid) || ij.bog.get(n.uid)!.holat === 'taklif'));
+    (!ij.bog.has(n.uid) || ij.bog.get(n.uid)!.holat === 'taklif' || blsiz.has(n.uid)));
   const tanlangan = ind.qatorlar.filter((n) => !ij.otkaz.has(n.uid) &&
-    ij.bog.has(n.uid) && ij.bog.get(n.uid)!.holat !== 'taklif');
+    ij.bog.has(n.uid) && ij.bog.get(n.uid)!.holat !== 'taklif' && !blsiz.has(n.uid));
   // Сохраняем полный индекс родителей: ресурс остаётся ресурсом даже без связи его работы.
-  return { ...yozishManbasi({ ...ind, qatorlar: tanlangan }, ij, S), qolgan };
+  const y = yozishManbasi({ ...ind, qatorlar: tanlangan }, ij, S);
+  if (blsiz.size) {
+    const misol = [...blsiz].slice(0, 5).map((u) => { const n = ind.byUid.get(u)!; return `«${n.nom.slice(0, 50)}» (${n.manzil.varaq}!${n.manzil.qator})`; });
+    y.ogohlantirish.push(`${blsiz.size} ta resurs bloklandi: ularning ishi (BL) hal qilinmagan — ish bog‘lanmaguncha resurslar aktga kirmaydi: ${misol.join('; ')}${blsiz.size > 5 ? ' …' : ''}`);
+  }
+  if (S) {
+    const qoshni = qoshniIshResurslari(ind, ij, S, tanlangan);
+    if (qoshni.length) y.toxtatish.push(`${qoshni.length} ta resurs boshqa (qo‘shni) ishning resursiga bog‘langan — resurs faqat o‘z ishi ostiga bog‘lanadi, minus/chegirma ishining resursi asosiy ishga qo‘shilmaydi: ${qoshni.slice(0, 5).join('; ')}${qoshni.length > 5 ? ' …' : ''}`);
+  }
+  return { ...y, qolgan };
+}
+
+/**
+ * P4: resurs o'z manba ishi (BL) ostida emas, shu hujjatdagi BOSHQA manba ishi bog'langan smeta ishining resursiga
+ * bog'langan (masalan «… исключить 8 см» ishining betoni asosiy qatlam ishining betoniga). Qatorlar ro'yxati (matn).
+ */
+export function qoshniIshResurslari(ind: F2Indeks, ij: IshJoyi, S: SmetaIndeks, qatorlar: readonly F2Tugun[] = ind.qatorlar): string[] {
+  const ishEgasi = new Map<number, string>();
+  for (const n of qatorlar) if (n.tur === 'bl') { const b = ij.bog.get(n.uid); if (b) for (const id of bogIdlari(b)) ishEgasi.set(id, n.uid); }
+  const out: string[] = [];
+  for (const n of qatorlar) {
+    if (n.tur === 'bl') continue;
+    const o = ind.ota.get(n.uid);
+    const b = ij.bog.get(n.uid);
+    if (!o || o.tur !== 'bl' || !b) continue;
+    const ob = ij.bog.get(o.uid);
+    const ozIshlari = new Set(ob ? bogIdlari(ob) : []);
+    for (const id of bogIdlari(b)) {
+      if (ozIshlari.has(id)) continue;
+      const ota = S.byId.get(id)?.otaId;
+      if (ota == null || ozIshlari.has(ota) || S.byId.get(ota)?.tur !== 'bl') continue;
+      const egasi = ishEgasi.get(ota);
+      if (egasi && egasi !== o.uid) {
+        const qoshniIsh = S.byId.get(ota);
+        out.push(`«${n.nom.slice(0, 50)}» (${n.manzil.varaq}!${n.manzil.qator}) → «${(qoshniIsh?.kod ?? '')} ${(qoshniIsh?.nom ?? '').slice(0, 40)}» ishining resursi`);
+        break;
+      }
+    }
+  }
+  return out;
 }
 
 /** Сохраняет ВСЕ исходные строки, включая неразрешённые/отрицательные. Не создаёт акт. */

@@ -331,7 +331,7 @@ describe('F2 moslash V3 — qavatma-qavat ball (Tizim1 himoyalari bilan)', () =>
     expect(result.natijalar.get(source.uid)?.qatorId).not.toBe(wrongWork);
     expect(result.natijalar.get(source.bolalar[0].uid)).toMatchObject({ holat: 'aniq' });
   });
-it('bitta F2 da o‘sha ish bir necha qism (smetada bitta qator) — takror qism o‘sha qatorga, resurslari bilan; qoldiqdan oshsa ◐', () => {
+it('bitta F2 da o‘sha ish bir necha qism (smetada bitta qator) — takror qism o‘sha qatorga ◐ (P2: alohida blok jim qo‘shilmaydi), resurslari bilan; qoldiqdan oshsa ogohlantirish', () => {
     const yol = ['СМЕТА № 01-01 НА ОБЪЕДИНЁННЫЙ ВОДОПРОВОД'];
     const mk = (h: number) => f('bl', 'E1-1-195-19 ШHК.ДОП.11', 'РАЗРАБОТКА ГРУНТА В ОТВАЛ', '1000М3', h, yol, [
       f('rs', '000001', 'ЗАТРАТЫ ТРУДА', 'ЧЕЛ-Ч', 3.72 * h, [...yol, 'x'], [], 3.72),
@@ -340,7 +340,8 @@ it('bitta F2 da o‘sha ish bir necha qism (smetada bitta qator) — takror qism
     const a = mk(1.5), b = mk(2), c = mk(1);
     const n = f2MoslashV3([rzF(yol[0], [], [a, b, c])], S);
     expect(n.natijalar.get(a.uid)).toMatchObject({ holat: 'aniq', qatorId: W1 });
-    expect(n.natijalar.get(b.uid)).toMatchObject({ holat: 'aniq', qatorId: W1, usul: 'takror' });
+    expect(n.natijalar.get(b.uid)).toMatchObject({ holat: 'taklif', qatorId: W1, usul: 'takror' });
+    expect(n.natijalar.get(b.uid)!.sabab).toMatch(/alohida blok/);
     expect(n.natijalar.get(b.bolalar[1].uid)).toMatchObject({ holat: 'aniq' });
     // 1,5 + 2 + 1 = 4,5 > 4,3524 — operator tasdiqlaydi, ogohlantirish bilan.
     const r = n.natijalar.get(c.uid)!;
