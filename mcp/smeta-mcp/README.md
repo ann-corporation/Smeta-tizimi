@@ -124,6 +124,22 @@ Namunalar:
   `narx_tuzat {sabab:"eski versiya narxi", nusxa:{obyekt_idlar:[11], koef:1.07}}`.
 - Bajarilmadi: `bajarilmadi {obyekt_id:11, qator_idlar:[201,202], sabab_kod:"loyiha_ozgardi", faktni_nol:true}`.
 
+### PTO qamrovi v1 (to'liq xarita — `docs/mcp/QAMROV_AUDIT.md`)
+
+| Tool | RPC | Nima qiladi |
+|---|---|---|
+| `zamena_qosh(obyekt_id, almashtirilayotgan_qator_id, rejim?, ish?, resurslar?, almashtirish_hajm?, sabab)` | `t2_ish_abc_saqla_v1` (replacement / resurs_zamena) | ish yoki resurs zamenasi, resurslar bilan; ota/versiya avtomatik |
+| `ish_ochir(obyekt_id, qator_id, sabab, fakt_bilan?)` | `t2_ish_abc_ochir_v2` / `_v1` | qo'shilgan ish/zamenani o'chirish; sof nol fakt xavfsiz arxivlanadi, F2 da — rad |
+| `f2_qoralama_yangila(akt_idlar, narxlar?, narx_qoida?, qosh_yangi?)` | `t2_f2_qoralama_yangila_v1` | qoralama hajmi = joriy fakt qoldig'i (boshqa qoralamalar ayirilgan), narx = max(smeta, xarid) |
+| `f2_yarat(obyekt_id, oy, qatorlar[{qator_id,hajm,narx?,summa?}], raqam?)` | `t2_akt_yarat_v2` | aniq certified_* qatorli F2; bl/narx 0 — price_intentionally_absent |
+| `akt_bekor(akt_idlar, sabab)` | `t2_akt_bekor` / lifecycle cancelled | fakt hujjati yoki F2 qoralamani bekor qilish |
+| `forma3(amal, obyekt_id \| loyiha_id, davr_boshi?, davr_oxiri?, akt_idlar?)` | `t2_forma3_royxat_v1` / `t2_forma3_yarat_v1` | Форма 3 ro'yxati / yaratish |
+| `nakopitelniy(obyekt_id, davr?, bolim_id?, matn?)` | `t2_nakopitelniy_v2` (o'qish) | barcha sahifalar, server jami, bo'lim kesimi |
+| `ostatka(obyekt_id, bolim_id?, faqat?)` | `t2_qator_holat` (o'qish) | qoldiq / ortiqcha / zamena / almashtirilgan — qator va bo'lim bo'yicha |
+| `shartnoma_moslash(obyekt_idlar \| shartnoma_id, pozitsiyalar)` | — (o'qish) | shartnoma/hisob-faktura pozitsiyalari → smeta qatori nomzodlari (ishonch bilan) |
+| `fakt_jurnal(obyekt_id, qator_idlar? \| bolim_id?, sana_dan?, sana_gacha?)` | — (o'qish) | fakt yozuvlari tarixi va qator bo'yicha sof fakt |
+| `normativ_qidir(obyekt_id, matn, tur?)` | `t2_normativ_qidir_v1` / `t2_resurs_qidir_v1` / `t2_ish_turi_qidir_v1` | ShNK, resurs va ish turi variantlari |
+
 ## Ishlatish namunalari
 
 - «153 obyekt holati, 2-darajagacha» → `obyekt_holat {obyekt_id:153, daraja:2}`
