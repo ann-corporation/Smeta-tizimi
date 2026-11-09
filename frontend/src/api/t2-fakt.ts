@@ -82,7 +82,7 @@ export function sbFaktYoz(p: {
     izoh: p.izoh,
     raqam: p.raqam,
     operation_id: p.operationId,
-  }) as Promise<FaktNatija & { error?: string }>;
+  }) as Promise<FaktNatija & { error?: string; code?: string }>;
 }
 
 /**

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { htmldanKirishSkripti, korilmaganlar, reloadQoriqchisiniTozala, saqlanmaganIsh, saqlanmaganIshBormi, versiyaKuzatuvi, yangiliklarniAjrat } from './versiya';
+import { chunkXatosimi, htmldanKirishSkripti, korilmaganlar, reloadQoriqchisiniTozala, saqlanmaganIsh, saqlanmaganIshBormi, versiyaKuzatuvi, yangiliklarniAjrat, yangiVersiyaChiqdimi } from './versiya';
 
 describe('«Nima yangi» (egasi 2026-10-25: versiya almashganda nima o‘zgarganini aytsin)', () => {
   const r = yangiliklarniAjrat({ yozuvlar: [{ id: 1, sana: 'a', sarlavha: 'eski', bandlar: ['x'] }, { id: 3, sana: 'c', sarlavha: 'yangi', bandlar: ['z'] }, { id: 'yomon' }, { id: 2, sana: 'b', sarlavha: 'o‘rta', bandlar: ['y', 5] }] });
@@ -73,5 +73,27 @@ describe('saqlanmagan ish himoyasi (egasi sinovi 2026-10-06: deploy F2 import is
     const e2 = new Event('beforeunload', { cancelable: true });
     window.dispatchEvent(e2);
     expect(e2.defaultPrevented).toBe(false);
+  });
+});
+
+describe('yangi versiya va eski chunk xatosi (hodisa 2026-11-09: Fakt jurnali saqlanmadi)', () => {
+  it('chunk xatolari taniladi; oddiy tarmoq xatosi chunk emas', () => {
+    expect(chunkXatosimi(new TypeError('Failed to fetch dynamically imported module: https://x/assets/FaktNative-abc.js'))).toBe(true);
+    expect(chunkXatosimi(new TypeError('Importing a module script failed.'))).toBe(true);
+    expect(chunkXatosimi(new Error('error loading dynamically imported module'))).toBe(true);
+    expect(chunkXatosimi(new Error('Unable to preload CSS for /assets/a.css'))).toBe(true);
+    expect(chunkXatosimi({ name: 'ChunkLoadError', message: 'x' })).toBe(true);
+    expect(chunkXatosimi(new TypeError('Failed to fetch'))).toBe(false);
+    expect(chunkXatosimi(undefined)).toBe(false);
+  });
+  it('qoralamasi bor saqlanmagan ish: avto-reload yo‘q, banner «o‘zgarishlaringiz saqlab qo‘yildi» deydi', () => {
+    const reload = vi.fn();
+    vi.stubGlobal('location', { ...window.location, reload });
+    versiyaKuzatuvi();
+    saqlanmaganIsh('test', true, { qoralama: true });
+    window.dispatchEvent(new Event('vite:preloadError'));
+    expect(reload).not.toHaveBeenCalled();
+    expect(yangiVersiyaChiqdimi()).toBe(true);
+    expect(document.getElementById('yangi-versiya-banner')?.textContent).toContain('o‘zgarishlaringiz saqlab qo‘yildi, sahifani yangilang');
   });
 });
