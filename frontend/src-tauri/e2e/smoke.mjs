@@ -73,6 +73,19 @@ assert.equal(packetBody.h.f2_summa[1],null);assert.equal(packetBody.h.f2_summa_y
 assert.deepEqual(packetBody.f2[0],{akt_id:501,raqam:'M5-1',oy:'2026-11',holat:'qoralama',lifecycle_status:'draft',versiya:1,hujjat_jami:null,muhr_xesh:null});
 assert.equal(packetBody.meta.akt_podval[0].hujjat_nds,null);assert.equal(packetBody.meta.akt_podval[0].qatorlar[0].summa,null);
 const cached=await gateway('/api/obyekt-paket?obyekt_id=101',etag);assert.equal(cached.status,304);assert.equal(cached.headers.get('ETag'),etag);
+const fakt={amal:'fakt_yoz_v2',obyekt_id:101,sana:'2026-11-09',operation_id:randomUUID(),qatorlar:[{qator_id:1002,hajm:1}]};
+const written=await command(fakt);assert.equal(written.status,200,await written.clone().text());
+const receipt=await written.json();assert.equal(receipt.ok,true,JSON.stringify(receipt));assert.equal(receipt.actor_id,1);
+const retry=await command(fakt);assert.equal(retry.status,200);const retried=await retry.json();
+assert.equal(retried.takror,true);assert.equal(retried.akt_id,receipt.akt_id);
+const wrongLine=await command({...fakt,operation_id:randomUUID(),qatorlar:[{qator_id:902,hajm:1}]});
+assert.equal(wrongLine.status,403);assert.equal((await wrongLine.json()).code,'TENANT_FORBIDDEN');
+const derivedLine=await command({...fakt,operation_id:randomUUID(),qatorlar:[{qator_id:1003,hajm:1}]});
+assert.equal((await derivedLine.json()).code,'FAKT_DERIVED_OR_ROLLUP_LINE');
+const fresh=await gateway('/api/obyekt-paket?obyekt_id=101',etag);assert.equal(fresh.status,200);
+assert.notEqual(fresh.headers.get('ETag'),etag);assert.equal((await fresh.json()).h.fakt_hajm[1],3);
+const reread=await sb({jadval:'t2_qator_holat',filtr:'obyekt_id=eq.101&qator_id=eq.1002',ustunlar:'qator_id,fakt_hajm,f2_hajm,f2_summa'});
+assert.deepEqual(reread.qatorlar,[{qator_id:1002,fakt_hajm:3,f2_hajm:2,f2_summa:null}]);
 const foreignPacket=await gateway('/api/obyekt-paket?obyekt_id=202');assert.equal(foreignPacket.status,403);
 assert.equal((await lease(2,202)).status,403);
 assert.equal((await lease(1,202)).status,403);
@@ -103,4 +116,4 @@ const statsResponse=await fetch(base+'/_test/stats');const stats=await statsResp
 assert.equal(stats.blockedEgress,0);assert.equal(stats.unimplementedDb,0);assert.equal(stats.handlerErrors,0);assert.equal(stats.offlineMode,'online');
 assert.ok(stats.rpc.t2_desktop_qurilma_yarat_v2>=1&&stats.rpc.t2_desktop_qurilma_tekshir_v2>=1&&stats.rpc.t2_desktop_qurilma_bekor_v1>=1&&stats.rpc.t2_desktop_lease_chegara_v2>=1);
 assert.ok(!JSON.stringify(stats).includes(issued.token));assert.ok(!JSON.stringify(stats).includes(cookie));
-console.log(JSON.stringify({pass:true,coverage:'partial-fixtures-explicit-gaps',authMode:'authstub',liveAcceptance:false,checks:['real-v2-device-and-lease-migration-rpcs','real-gateway-session-company-sb-packet-handlers','synthetic-project-and-shartnoma-line-sql-shape','pto-period-row-null-source-and-financials','f2-footer-null-financials','decoder-backed-tree-and-holat-null-values','active-and-archived-export-rows','export-coefficients-and-real-sql-cascade','export-token-charge-finalize-deduplication','source-document-bff-path-400','migration-quota-30-allowed-31st-429','tenant-permission-forbidden-cases','Ed25519-tamper-offline-recovery-self-revoke'],stats},null,2));
+console.log(JSON.stringify({pass:true,coverage:'partial-fixtures-explicit-gaps',authMode:'authstub',liveAcceptance:false,checks:['real-v2-device-and-lease-migration-rpcs','real-gateway-session-company-sb-packet-handlers','synthetic-project-and-shartnoma-line-sql-shape','pto-period-row-null-source-and-financials','f2-footer-null-financials','decoder-backed-tree-and-holat-null-values','active-and-archived-export-rows','export-coefficients-and-real-sql-cascade','export-token-charge-finalize-deduplication','fakt-write-retry-tenant-and-packet-revision','source-document-bff-path-400','migration-quota-30-allowed-31st-429','tenant-permission-forbidden-cases','Ed25519-tamper-offline-recovery-self-revoke'],stats},null,2));
