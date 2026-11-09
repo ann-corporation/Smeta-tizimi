@@ -4,7 +4,7 @@ import { randomBytes, randomUUID, webcrypto, createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { fixture, etag, seed, seedExport, seedExportBilling, rpcArgs } from './fixtures.mjs';
+import { fixture, seed, seedExport, seedExportBilling, seedFakt, rpcArgs } from './fixtures.mjs';
 const here=dirname(fileURLToPath(import.meta.url));
 const repo=resolve(here,'../../..');
 const frontend=resolve(repo,'frontend');
@@ -50,6 +50,13 @@ for(const [sql,names] of [[defaultsSql,['t2_nakrutka_default_v1']],
 }
 await seedExport(db,packetTools.paketdanQatorlar(decodedFixture));
 await seedExportBilling(db,name=>readFile(resolve(repo,'supabase/migrations',name),'utf8'));
+await seedFakt(db,async(file,name)=>{
+  const sql=await readFile(resolve(repo,'supabase/migrations',file),'utf8');
+  const start=sql.toLowerCase().indexOf(`create or replace function public.${name}(`);
+  const definition=start<0?null:sql.slice(start).match(/^.*?as (\$\w*\$)[\s\S]*?\1;/is)?.[0];
+  if(!definition)throw new Error(`M5_FAKT_FUNCTION_MISSING: ${name}`);
+  await db.exec(definition);
+});
 let offlineMode='online';
 const stats={authMode:'authstub',fixtureMode:'canonical-business-fixture',fixture,startedAt:new Date().toISOString(),pid:process.pid,port:PORT,
   migrations,handlers:{},rpc:{},rest:{},adapterErrors:{},unimplementedDbNames:{},unimplementedRoutes:{},httpStatus:{},blockedEgress:0,unimplementedDb:0,handlerErrors:0,offlineRequests:0,
@@ -60,6 +67,7 @@ function unimplemented(map,name){if(/^[a-z][a-z0-9_]*$/.test(name))count(map,nam
 // Minimal PostgREST DB adapter, not a handler response mock. Preserve every
 // duplicate eq/in predicate (caller filter AND the real /sb tenant restriction).
 const sqlReadModels={
+  t2_obyekt:{columns:['id','nom','kompaniya_id','loyiha_id','asosiy_shartnoma_id'], ids:['id','kompaniya_id'], order:['id','nom','kompaniya_id']},
   t2_obyekt_jami:{columns:['id','nom','kompaniya_id','loyiha_id','asosiy_shartnoma_id'], ids:['id','kompaniya_id'], order:['id','nom','kompaniya_id']},
   t2_qator:{columns:['id','obyekt_id','kompaniya_id','ota_id','daraja','tartib','tur','kod','nom','birlik','hajm','narx','summa','kat','norma','versiya','change_type','replaces_line_id','versiya_holat','almashtirgan_versiya_id'],
     ids:['id','obyekt_id','kompaniya_id'], order:['id','tartib']},
@@ -111,7 +119,8 @@ async function sqlRead(url,table){
 }
 async function packetView(url,table){
   const raw=packetTools.paketdanQatorlar(decodedFixture).map(r=>({...r,kompaniya_id:fixture.company}));
-  const state=packetTools.paketdanHolatlar(decodedFixture).map(r=>({...r,obyekt_id:fixture.object,kompaniya_id:fixture.company}));
+  const current=table==='t2_qator_holat'?packetTools.paketDekod((await db.query('select paket from public.m5_packet_fixture where obyekt_id=$1',[fixture.object])).rows[0].paket):decodedFixture;
+  const state=packetTools.paketdanHolatlar(current).map(r=>({...r,obyekt_id:fixture.object,kompaniya_id:fixture.company}));
   const acts=decodedFixture.f2.map(a=>({id:a.akt_id,obyekt_id:fixture.object,kompaniya_id:fixture.company,obyekt:'M5 SYNTHETIC OBJECT',tur:'f2',raqam:a.raqam,oy:a.oy,holat:a.holat,lifecycle_status:a.lifecycle_status,fayl_id:null,izoh:null,yaratildi:'2026-11-05T00:00:00Z',hujjat_jami:a.hujjat_jami,yozilgan_jami:null,qator_soni:1,narxsiz_qator:null,manfiy_qator:null,farq:null,reestr_holat:'noaniq',versiya:a.versiya,manba_bor:false,manba:null,import_job_id:null,hujjat_id:null}));
   const projects=[{id:301,kompaniya_id:fixture.company,nom:'M5 SYNTHETIC PROJECT',izoh:null,hudud:null,byudjet:null,holat:'faol',versiya:1,yaratildi:'2026-11-05T00:00:00Z',obyektlar:[{obyekt_id:fixture.object,obyekt_nom:'M5 SYNTHETIC OBJECT'}],obyekt_soni:1,qatnashchilar:[]}];
   let rows=table==='t2_daraxt'?raw:table==='t2_qator_holat'?state:table==='t2_akt_reestr'?acts:projects;
@@ -143,10 +152,12 @@ async function rpc(name,args){
   const values=keys.map(k=>args[k]??null);
   const result=await db.transaction(async tx=>{
     await tx.exec('set local role service_role');
-    return tx.query(`select public.${name}(${keys.map((_,i)=>'$'+(i+1)).join(',')}) result`,values);
+    const tag=name==='t2_obyekt_paket_etag_v1'?', public.t2_obyekt_paket_muhr_v1($1,$2) etag':'';
+    return tx.query(`select public.${name}(${keys.map((_,i)=>'$'+(i+1)).join(',')}) result${tag}`,values);
   });
   const value=result.rows[0]?.result;
-  return Response.json(value??null,{headers:name==='t2_obyekt_paket_etag_v1'?{ETag:etag}:{}});
+  const etag=result.rows[0]?.etag;
+  return Response.json(value??null,{headers:etag?{ETag:etag}:{}});
 }
 // No outbound network fallback, including accidental GAS or production URLs.
 globalThis.fetch=async(input,init)=>{
@@ -162,12 +173,6 @@ globalThis.fetch=async(input,init)=>{
   if(['t2_daraxt','t2_qator_holat','t2_akt_reestr','t2_loyiha_royxat'].includes(url.pathname.split('/').pop())&&req.method==='GET'){
     try{return await packetView(url,url.pathname.split('/').pop());}
     catch(error){const code=error instanceof Error&&/^M5_[A-Z_]+$/.test(error.message)?error.message:'M5_PACKET_ADAPTER_ERROR';count(stats.adapterErrors,code);throw error;}
-  }
-  if(url.pathname==='/rest/v1/t2_obyekt' && req.method==='GET'){
-    const id=url.searchParams.get('id')?.match(/^eq\.(\d+)$/)?.[1];
-    if(!id)return Response.json([]);
-    const result=await db.query('select id::int,kompaniya_id::int,nom from public.t2_obyekt where id=$1',[id]);
-    return Response.json(result.rows);
   }
   unimplemented(stats.unimplementedDbNames,url.pathname.split('/').pop()||'unknown_table');
   return Response.json({ok:false,code:'M5_FIXTURE_TABLE_UNIMPLEMENTED'},{status:501});
