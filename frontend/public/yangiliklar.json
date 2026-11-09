@@ -2,6 +2,18 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 131,
+      "sana": "2026-11-09",
+      "sarlavha": "F2 import: aniqroq bog'lash va moslash hisoboti",
+      "bandlar": [
+        "Bo'lim sarlavhalari endi to'g'ri yopiladi: «ТИП 2» qatorlari oldingi «ТИП 1» bo'limi ostida qolib ketmaydi.",
+        "Shifri bir xil, lekin К=, ШНК.ДОП yoki qalinligi (см/мм) farqli qator endi avtomatik ✓ emas — «shubhali» bo'lib, PTO tasdig'ini kutadi.",
+        "Ikkita alohida manba bloki bitta smeta qatoriga jim qo'shilmaydi; resurs qo'shni ishga bog'lanmaydi; ishi yuklanmagan resurs aktga kirmaydi.",
+        "Birlik farqli zamenada asl qatorning almashtiriladigan hajmi majburiy — qoldiq minusga tushmaydi.",
+        "Yozishdan oldin «Moslash hisoboti»: har qator — manba yo'li, smeta qatori, ishonch (aniq / ehtimol / topilmadi) va sabab."
+      ]
+    },
+    {
       "id": 130,
       "sana": "2026-11-08",
       "sarlavha": "Zamena asl qator bilan bitta qozonda",

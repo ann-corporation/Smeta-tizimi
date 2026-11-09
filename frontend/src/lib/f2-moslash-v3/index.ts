@@ -27,6 +27,7 @@ import { kodKanon, normBir, normKod, normNom, normRz, rzKodlar } from '../f2-mat
 import type { F2Tugun } from '../smeta-anatomiya/f2';
 import { guruhRzTanla } from './guruh';
 import { mustaqilIndeks, mustaqilQatorlarniTop, type MustaqilIndeks } from './mustaqil';
+import { modifikatorFarqlari, modifikatorIzoh } from './modifikator';
 
 // ─── Kirish/chiqish ──────────────────────────────────────────────────────────
 
@@ -59,7 +60,10 @@ export type F2Holat = 'aniq' | 'xotira' | 'taklif' | 'topilmadi';
 /** ◐ boshqa bo'limdagi shifr mos nomzod — ommaviy tasdiqlashda alohida so'raladi (zamena/qo'shimcha bo'lishi mumkin). */
 export const BOSHQA_BOLIM_USUL = 'boshqa_bolim_shifr';
 
-export interface Qavat { nom: 'razdel' | 'shifr' | 'nom' | 'birlik' | 'hajm' | 'resurslar' | 'marka' | 'texnik_tafsilot' | 'tartib'; ball: number; izoh: string }
+export interface Qavat { nom: 'razdel' | 'shifr' | 'nom' | 'birlik' | 'hajm' | 'resurslar' | 'marka' | 'texnik_tafsilot' | 'modifikator' | 'tartib'; ball: number; izoh: string }
+
+/** ◐ shifr mos, lekin К=/ШНК.ДОП/qalinlik/ДОБАВЛЯТЬ-ИСКЛЮЧАТЬ farqli — shubhali, PTO tasdiqlaydi (P3/P5). */
+export const MODIFIKATOR_USUL = 'modifikator_farq';
 
 export interface Nomzod {
   qatorId: number;
@@ -590,6 +594,9 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
       nom: 'texnik_tafsilot', ball: -100,
       izoh: `texnik spetsifikatsiya farqli (${specConflicts.join(', ')}) — avtomatik bog‘lash bloklandi`,
     });
+    // P3/P5: bir xil shifr, lekin norma modifikatori (К=, ШНК.ДОП, qalinlik, ДОБАВЛЯТЬ/ИСКЛЮЧАТЬ) farqli — aniq emas.
+    const modF = modifikatorFarqlari(f, t);
+    if (modF.length) q.push({ nom: 'modifikator', ball: -20, izoh: `modifikator farqli (${modifikatorIzoh(modF)}) — shubhali` });
     if (oxirgiTartib >= 0 && (t.tartib ?? t.id) > oxirgiTartib) q.push({ nom: 'tartib', ball: 2, izoh: 'tartib ✓' });
     const ball = q.reduce((s, x) => s + x.ball, 0);
     return { qatorId: t.id, ball, yol: t.yol, qavatlar: q, sabab: q.filter((x) => x.nom !== 'tartib').map((x) => x.izoh) };
@@ -642,8 +649,9 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     const xt = x != null ? S.byId.get(x) : undefined;
     // Tasdiqlangan xotira kuchli dalil, lekin joriy importning qator turi,
     // birlik va tanlangan canonical razdel chegarasini chetlab o'tmaydi.
+    // Imzo kod-kanon bo'yicha (К= ni bilmaydi) — xotiradagi qator modifikatori farqli bo'lsa xotira qabul qilinmaydi (P3).
     if (xt && !band.has(xt.id) && birMos(f.birlik, xt.birlik)
-      && f2TuriMos(f, xt) && (!d.rzlar || doiradami(d, xt))) {
+      && f2TuriMos(f, xt) && (!d.rzlar || doiradami(d, xt)) && !modifikatorFarqlari(f, xt).length) {
       yoz(f.uid, { uid: f.uid, holat: 'xotira', qatorId: xt.id, usul: 'xotira', nomzodlar: [], sabab: 'o‘tgan oylarda tasdiqlangan bog‘lanish' });
       return xt;
     }
@@ -654,7 +662,7 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
       .sort((a, b) => b.ball - a.ball || (S.byId.get(a.qatorId)!.tartib ?? a.qatorId) - (S.byId.get(b.qatorId)!.tartib ?? b.qatorId)).slice(0, 12);
     const [b1, b2] = nz;
     const toza = (n: Nomzod) => {
-      if (n.qavatlar.some((q) => (q.nom === 'birlik' || q.nom === 'marka' || q.nom === 'texnik_tafsilot') && q.ball < 0)) return false;
+      if (n.qavatlar.some((q) => (q.nom === 'birlik' || q.nom === 'marka' || q.nom === 'texnik_tafsilot' || q.nom === 'modifikator') && q.ball < 0)) return false;
       const target = S.byId.get(n.qatorId);
       // Legacy F2 rows without a row-type marker may be offered against any
       // canonical leaf for review, but a work row must not auto-certify as MAT/OB.
@@ -667,7 +675,7 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
     // nom + birlik aynan, razdel doirasida. Jami F2 hajmi qoldiqdan oshsa — ◐ va ogohlantirish.
     {
       const fKod = normKod(f.kod), fKan = kodKanon(f.kod), fNb = nb(f.nom, f.birlik);
-      const aynanmi = (t: STugun) => t.kNb === fNb && (!fKod || t.kKod === fKod || (!!fKan && t.kKanon === fKan));
+      const aynanmi = (t: STugun) => t.kNb === fNb && (!fKod || t.kKod === fKod || (!!fKan && t.kKanon === fKan)) && !modifikatorFarqlari(f, t).length;
       const doirada = (t: STugun) => !d.rzlar || doiradami(d, t);
       if (!hovuz.some((t) => aynanmi(t) && doirada(t))) {
         const takror = [...ishHajm.keys()].map((id) => S.byId.get(id)).filter((t): t is STugun => !!t && aynanmi(t) && doirada(t))
@@ -678,9 +686,10 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
           const jami = (ishHajm.get(t.id) ?? 0) + (f.hajm ?? 0);
           const sigadi = chegara == null || f.hajm == null || sigadimi(jami, chegara);
           const fmtH = (n: number) => +n.toFixed(4);
-          const holat = takror.length === 1 && sigadi ? 'aniq' as const : 'taklif' as const;
-          yoz(f.uid, { uid: f.uid, holat, qatorId: t.id, usul: 'takror', nomzodlar: nz,
-            sabab: `shu ish hujjatda yana bir qism: smeta qatori bitta, F2 jami ${fmtH(jami)}${chegara != null ? ` / ${sigadi ? 'qoldiq' : '⚠ qoldiqdan oshdi'} ${fmtH(chegara)}` : ''}${takror.length > 1 ? ` · ${takror.length} ta egizakdan birinchisi — tasdiqlang` : ''}` });
+          // P2 (F2 import auditi 2026-11-09): ikkita ALOHIDA manba bloki (masalan ikki «ПГС 10 см» qatlami) jim bitta smeta
+          // qatoriga qo'shilib, hajm ikki baravar bo'lib ketgan. Ikkinchi qism hech qachon avtomatik ✓ emas — PTO tasdiqlaydi.
+          yoz(f.uid, { uid: f.uid, holat: 'taklif', qatorId: t.id, usul: 'takror', nomzodlar: nz,
+            sabab: `shu ish hujjatda yana bir alohida blok: smeta qatori bitta — ikkala blok shu qatorga QO‘SHILADI, F2 jami ${fmtH(jami)}${chegara != null ? ` / ${sigadi ? 'qoldiq' : '⚠ qoldiqdan oshdi'} ${fmtH(chegara)}` : ''}${takror.length > 1 ? ` · ${takror.length} ta egizakdan birinchisi` : ''} — haqiqatan bitta ish bo‘lsa tasdiqlang, aks holda zamena/qo‘shimcha` });
           return t;
         }
       }
@@ -795,6 +804,18 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
       yoz(f.uid, { uid: f.uid, holat: 'taklif', qatorId: b1.qatorId, usul: 'ball', nomzodlar: nz, sabab: `${izoh}: ${b1.sabab.join(', ')} — tasdiqlang` });
       return S.byId.get(b1.qatorId)!;
     }
+    // P3/P5: shifr va birlik mos, faqat norma modifikatori (К=, qalinlik …) farqli — shubhali ◐, hech qachon ✓ emas.
+    {
+      const mod = nz.find((n) => n.qavatlar.some((q) => q.nom === 'modifikator' && q.ball < 0)
+        && n.qavatlar.some((q) => q.nom === 'shifr' && q.ball >= 18)
+        && !n.qavatlar.some((q) => (q.nom === 'birlik' || q.nom === 'marka' || q.nom === 'texnik_tafsilot') && q.ball < 0));
+      if (mod && (!d.rzlar || doiradami(d, S.byId.get(mod.qatorId)!))) {
+        const izoh = mod.qavatlar.find((q) => q.nom === 'modifikator')!.izoh;
+        yoz(f.uid, { uid: f.uid, holat: 'taklif', qatorId: mod.qatorId, usul: MODIFIKATOR_USUL, nomzodlar: nz,
+          sabab: `shifr mos, lekin ${izoh}: boshqa norma bo‘lishi mumkin — PTO tekshirib tasdiqlasin (aks holda zamena)` });
+        return S.byId.get(mod.qatorId)!;
+      }
+    }
     // ZAMENA NOMZODI (egasi 2026-10-23): o'sha razdelda nomi faqat raqamlarda farq qiladigan (masofa 11 km ↔ 20 km,
     // o'lcham), birligi va hajmi teng YAGONA qator — parametri o'zgargan o'sha ish. ◐ taklif, ✕ emas.
     if (ichida.length && f.hajm != null) {
@@ -823,6 +844,8 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
   const guruhOlingan = new Set<number>();
   /** Razdel darajasidagi mustaqil resurs qatorlari (ishdan tashqari) — bir necha F2 ishi bo'lishishi mumkin. */
   const razdelResBand = new Set<number>();
+  /** Mustaqil qatorga birinchi tushgan manba resursining kaliti — farqli manba qatorlari jim qo'shilmasin (P2). */
+  const razdelResEgasi = new Map<number, string>();
   const guruhXotira = new Map<string, STugun | null>();
   function guruhRzTop(sIsh: STugun, r: F2Tugun): STugun | null {
     const kalit = `${sIsh.id}|${r.guruhUid ?? r.guruh}`;
@@ -900,6 +923,13 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
       }
       if (topildi && birMos(r.birlik, topildi.birlik) && !gradeFarq(r.nom, topildi.nom)) {
         lokalBand.add(topildi.id);
+        // P5: kod mos, lekin qalinlik/o'lcham farqli material («Т.1,8СМ» ↔ «30 ММ») — ✓ emas, PTO tasdiqlaydi (yoki zamena).
+        const modR = modifikatorFarqlari(r, topildi);
+        if (modR.length) {
+          yoz(r.uid, { uid: r.uid, holat: 'taklif', qatorId: topildi.id, usul: `ish_ichida:${usul}:modifikator`, nomzodlar: [],
+            sabab: `ish ichida kod mos, lekin ${modifikatorIzoh(modR)} — boshqa material bo‘lishi mumkin, tasdiqlang yoki zamena qiling` });
+          continue;
+        }
         yoz(r.uid, { uid: r.uid, holat: 'aniq', qatorId: topildi.id, usul: `ish_ichida:${usul}`, nomzodlar: [], sabab: 'ish ichida yagona' });
         continue;
       }
@@ -912,9 +942,18 @@ export function f2MoslashV3(f2: readonly F2Tugun[], smeta: readonly SmetaQator[]
       const zaxira = tashqi && !ishDoirada ? tashqi.qator : undefined;
       if (tashqi && ishDoirada) {
         razdelResBand.add(tashqi.qator.id);
-        yoz(r.uid, { uid: r.uid, holat: tashqi.aniq ? 'aniq' : 'taklif', qatorId: tashqi.qator.id, usul: tashqi.aniq ? 'razdel_ichida' : 'razdel_ichida_taklif', nomzodlar: [],
-          sabab: tashqi.aniq ? 'smetada bu resurs ish ostida emas, shu razdelda mustaqil qator — kod/nom va birlik aynan, yagona'
-            : 'shu razdelda aynan bir xil mustaqil resurs bir nechta — ishga eng yaqini taklif qilindi, tasdiqlang' });
+        // P2: bir mustaqil qatorni bir necha F2 resursi bo'lishishi mumkin — faqat ular bir xil narsa bo'lsa (plita ≠ bruschatka).
+        const begona = razdelResEgasi.get(tashqi.qator.id);
+        // Kalit — nom + birlik (kod bir xil bo'lishi mumkin: bitta kodda plita ham, bruschatka ham kelgan).
+        const ozi = nb(r.nom, r.birlik);
+        if (begona == null) razdelResEgasi.set(tashqi.qator.id, ozi);
+        const modT = modifikatorFarqlari(r, tashqi.qator);
+        const aniq = tashqi.aniq && (begona == null || begona === ozi) && !modT.length;
+        yoz(r.uid, { uid: r.uid, holat: aniq ? 'aniq' : 'taklif', qatorId: tashqi.qator.id, usul: aniq ? 'razdel_ichida' : 'razdel_ichida_taklif', nomzodlar: [],
+          sabab: aniq ? 'smetada bu resurs ish ostida emas, shu razdelda mustaqil qator — kod/nom va birlik aynan, yagona'
+            : begona != null && begona !== ozi ? 'bu mustaqil smeta qatoriga boshqa (farqli) manba resursi allaqachon tushgan — ikki xil manba qatori bitta qatorga qo‘shilmasin: tekshirib tasdiqlang yoki zamena/qo‘shimcha'
+              : modT.length ? `shu razdeldagi mustaqil qator, lekin ${modifikatorIzoh(modT)} — tasdiqlang yoki zamena`
+                : 'shu razdelda aynan bir xil mustaqil resurs bir nechta — ishga eng yaqini taklif qilindi, tasdiqlang' });
         continue;
       }
       const nz: Nomzod[] = ichki.map((t) => {

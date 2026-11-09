@@ -56,6 +56,8 @@ import { F2V3Workbench } from './F2V3Workbench';
 import { F2DavomRoyxat } from './F2DavomRoyxat';
 import { F2EgizakNusxa } from './F2EgizakNusxa';
 import { F2DublikatPanel } from './F2DublikatPanel';
+import { F2MoslashHisoboti } from './F2MoslashHisoboti';
+import { moslashHisoboti } from '../../lib/f2-moslash-v3/moslashHisoboti';
 import { bloklarmi, dublikatTekshiruv, pereraschetBelgisi, type DAkt } from '../../lib/f2-dublikat/tekshiruv';
 import { egizakRaqamMasalasi } from '../../lib/f2-moslash-v3/egizak';
 import { abcXato, ishAbcOchir, ishAbcSaqla, resursIshZamena, type ResursIshInput } from '../../api/t2-ish-abc';
@@ -714,6 +716,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   const oldingiYozilgan = oldingi.size > 0 || band.size > 0;
   const indYoz = useMemo(() => (ind && kumReja && kumRejim ? kumulyativQolla(ind, kumReja) : ind), [ind, kumReja, kumRejim]);
   const yozish = useMemo(() => (indYoz && ij ? f2QoralamaYozish(indYoz, ij, S) : null), [indYoz, ij, S]);
+  /** Yozishdan oldingi moslash hisoboti: har manba qatori — yo'li, smeta qatori, ishonch, sabab (shubhali/xato jim o'tmaydi). */
+  const hisobot = useMemo(() => (ind && ij ? moslashHisoboti({ ind, ij, S, natija }) : null), [ind, ij, S, natija]);
   const payload = useMemo(() => {
     if (!yozish || yozish.toxtatish.length) return null;
     try {
@@ -1399,6 +1403,9 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (takrorTekshirilmoqda) tekshiruvBandlari.push({ id: 'takror', daraja: 'bad', matn: t('Avvalgi F2 tekshirilmoqda — bir lahzadan so‘ng qayta urinib ko‘ring.') });
     else if (almashtirishKutilmoqda) tekshiruvBandlari.push({ id: 'almashtir', daraja: 'bad', matn: t('Shu raqamdagi F2 qoralamasini almashtirish tasdiqlanmagan. Boshqa F2 bo‘lsa, uning raqamini kiriting.'), amal: { nom: t('Ko‘rsatish'), run: sakra('Allaqachon kiritilgan') } });
     else if (saqlashBlok) tekshiruvBandlari.push({ id: 'blok', daraja: 'bad', matn: maqsadMosEmas ? t('Maqsad qoralama topilmadi yoki o‘zgargan - saqlash to‘xtatildi (yangi akt yaratilmaydi). Sahifani qayta oching.') : t('Bu obyekt va oy uchun tasdiqlangan F2 bor — yangi akt yozilmaydi. F2 tarixini oching.') });
+    if (yozish && yozish.toxtatish.length > 0) tekshiruvBandlari.push({ id: 'toxtatish', daraja: 'bad', matn: yozish.toxtatish.join(' '), amal: { nom: t('Ko‘rsatish'), run: sakra('Moslash hisoboti') } });
+    if (hisobot && (hisobot.stat.shubhali > 0 || hisobot.stat.xato > 0)) tekshiruvBandlari.push({ id: 'hisobot', daraja: hisobot.stat.xato > 0 ? 'bad' : 'warn',
+      matn: t('Moslash hisoboti: shubhali {s}, xato {x} — PTO tekshirmaguncha jim yozilmasin', { s: hisobot.stat.shubhali, x: hisobot.stat.xato }), amal: { nom: t('Ko‘rsatish'), run: sakra('Moslash hisoboti') } });
     if (yozish && yozish.qolgan.length > 0) tekshiruvBandlari.push({ id: 'qolgan', daraja: 'warn', matn: t('Bog‘lanmagan qatorlar aktga kirmaydi: {n}', { n: yozish.qolgan.length }), amal: { nom: t('Qatorga o‘tish'), run: () => { sakra('F2 akt')(); keyingiHalRef.current?.(); } } });
     if (taklifSoni > 0) tekshiruvBandlari.push({ id: 'taklif', daraja: 'warn', matn: t('Tasdiq kutayotgan takliflar (aktga faqat tasdiqlanganlar kiradi): {n}', { n: taklifSoni }), amal: { nom: t('Qatorga o‘tish'), run: () => { sakra('F2 akt')(); keyingiHalRef.current?.(); } } });
     if (oshishlar.length > 0) tekshiruvBandlari.push({ id: 'oshish', daraja: 'warn', matn: t('Smeta qoldig‘idan oshadigan qatorlar: {n}', { n: oshishlar.length }), amal: { nom: t('Ko‘rsatish'), run: sakra('Dublikat hajm nazorati') } });
@@ -1681,6 +1688,7 @@ function Sessiya({ companyId }: { companyId: number }) {
           </ul>
         </section>
       )}
+      {akt && ij && !done && hisobot && <F2MoslashHisoboti hisobot={hisobot} />}
 
       {akt && ind && natija && ij && (
         <F2V3Workbench keyingiRef={keyingiHalRef} akt={akt} ind={ind} natija={natija} S={S} raw={raw} oldingi={oldingi} almashtirilgan={almashtirilgan} band={band}
