@@ -648,6 +648,8 @@ export type AktNatija = {
   qator_soni?: number; narxsiz?: number; jami?: number | null; toliq?: boolean;
   buzilish?: AktBuzilish[] | null; maslahat?: string;
   sizning_versiya?: number; bazadagi_versiya?: number;
+  /** Klient tomonida so'rov serverga yetmadi: 'NETWORK' (fetch rad etildi) yoki 'TIMEOUT' (vaqt chegarasi). */
+  code?: string;
   ms?: number;
 };
 
@@ -683,7 +685,7 @@ export async function yozAmali(yuk: Record<string, unknown>): Promise<AktNatija>
     if (!r.ok && !j.error) j.error = `HTTP ${r.status}: yozish so'rovi rad etildi`;
     return { ...j, ms: Math.round(performance.now() - t0) };
   } catch (e) {
-    return { ok: false, error: chegaraOtdimi(e)
+    return { ok: false, code: chegaraOtdimi(e) ? 'TIMEOUT' : 'NETWORK', error: chegaraOtdimi(e)
       ? 'Server 90 soniyada javob bermadi — amal serverda bajarilgan bo‘lishi mumkin. Sahifani yangilab tekshiring; qayta saqlash xavfsiz (bir xil amal ID, ikkinchi hujjat yaratilmaydi).'
       : 'Internet aloqasi uzildi — o‘zgarish serverga yetmadi. Aloqani tekshirib qayta bosing (takror yozilmaydi).',
              ms: Math.round(performance.now() - t0) };

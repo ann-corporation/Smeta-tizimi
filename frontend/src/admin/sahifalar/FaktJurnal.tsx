@@ -61,6 +61,9 @@ import { FAKT_DARAXT, faktFiltrQatorlar, faktFiltrQoll, type FaktFiltrQator } fr
 import { FaktInlineAmal, ZamenaJuftBelgi } from '../../components/fakt/FaktInlineAmal';
 import { useFaktInlineTugmalar } from '../../components/fakt/useFaktInlineTugmalar';
 import { bolimTop, ozgarishBor, zamenaJuftlari, zamenaYoqSabab, type InlineKontekst, type InlineTur } from '../../lib/fakt-inline-amal';
+import { FaktQoralamaBanner } from '../../components/fakt/FaktQoralamaBanner';
+import { brauzerXotirasi, qoralamaOchir, qoralamaOqi, qoralamaQur, qoralamaTikla, qoralamaYoz, type QoralamaZiddiyat } from '../../lib/fakt-jurnal-qoralama';
+import { chunkXatosimi, saqlanmaganIsh, yangiVersiyaChiqdimi, yangiVersiyaniTekshir, yangiVersiyaQoralamaMatni } from '../../_shared/versiya';
 
 const MANBALAR: readonly NarxManba[] = ['smeta_obyekt', 'smeta_shartnoma', 'smeta', 'katalog', 'qolda'];
 
@@ -247,6 +250,49 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   const barchaById = useMemo(() => { const m = new Map<number, JurnalQator>(); for (const arr of [...bolimIshlari.values(), ildizIshlari]) for (const x of arr) { m.set(x.id, x); for (const r of [...x.resurslar, ...x.avtomatik]) m.set(r.id, r); } return m; }, [bolimIshlari, ildizIshlari]);
   const faktlar = useMemo(() => { const h = new Map(states.map((x) => [x.qator_id, Number(x.fakt_hajm ?? 0)])); return new Map(rows.map((r) => [r.id, h.get(r.id) ?? 0])); }, [rows, states]);
   useEffect(() => { if (bolimId == null) { if (bolimlar.length) setBolimId(bolimlar[0].id); else if (ildizIshlari.length) setBolimId(BOLIMSIZ); } }, [bolimId, bolimlar, ildizIshlari]);
+
+  // ── Brauzer qoralamasi (hodisa 2026-11-09: deploydan keyin saqlash o'tmadi, ~30 qator kiritma faqat xotirada edi). ──
+  // Kiritmalar kompaniya+obyekt bo'yicha localStorage'ga yoziladi; sahifa ochilganda tiklanadi. Qator yo'q yoki server fakti
+  // qoralamadagidan farq qilsa — JIM qo'llanmaydi, ziddiyat sifatida belgilanadi.
+  const qoralamaKalit = `${kompaniyaId}:${obyektId}`;
+  const [tiklandi, setTiklandi] = useState<{ kiritmalar: Record<number, Kiritma>; ziddiyatlar: QoralamaZiddiyat[] } | null>(null);
+  /** Joriy kiritmalar qaysi kompaniya:obyekt qoralamasiga tegishli (tiklash bajarilgach o'rnatiladi; undan oldin yozilmaydi). */
+  const [qoralamaEgasi, setQoralamaEgasi] = useState<string | null>(null);
+  const ziddiyatMap = useMemo(() => new Map((tiklandi?.ziddiyatlar ?? []).filter((z) => z.sabab === 'ozgargan').map((z) => [z.yozuv.id, z])), [tiklandi]);
+  useEffect(() => {
+    if (qoralamaEgasi === qoralamaKalit || !rows.length) return;
+    const boshqaObyekt = qoralamaEgasi != null; // obyekt almashdi — eski obyekt kiritmalari o'z qoralamasida qoladi
+    const q = qoralamaOqi(brauzerXotirasi(), kompaniyaId, obyektId);
+    const r = q ? qoralamaTikla(q, faktlar) : null;
+    if (boshqaObyekt) setTarix([]);
+    setKiritmalar((o) => ({ ...(boshqaObyekt ? {} : o), ...(r?.kiritmalar ?? {}) }));
+    if (r?.sana) setSana(r.sana);
+    setTiklandi(r && (Object.keys(r.kiritmalar).length || r.ziddiyatlar.length) ? { kiritmalar: r.kiritmalar, ziddiyatlar: r.ziddiyatlar } : null);
+    setQoralamaEgasi(qoralamaKalit);
+  }, [qoralamaKalit, qoralamaEgasi, rows.length, faktlar, kompaniyaId, obyektId]);
+  /** Qoralamani hozir yozadi (debounce kutmasdan) — saqlash xatosida va sahifani tark etishda. */
+  const qoralamaYozDarhol = () => {
+    if (qoralamaEgasi !== qoralamaKalit) return;
+    qoralamaYoz(brauzerXotirasi(), kompaniyaId, obyektId, qoralamaQur(kiritmalar, faktlar, Date.now(), sana, tiklandi?.ziddiyatlar.map((z) => z.yozuv)));
+  };
+  const qoralamaYozRef = useRef(qoralamaYozDarhol);
+  qoralamaYozRef.current = qoralamaYozDarhol;
+  useEffect(() => {
+    if (qoralamaEgasi !== qoralamaKalit) return;
+    const h = setTimeout(() => qoralamaYozRef.current(), 400);
+    return () => clearTimeout(h);
+  }, [kiritmalar, faktlar, sana, tiklandi, qoralamaEgasi, qoralamaKalit]);
+  useEffect(() => {
+    const yoz = () => qoralamaYozRef.current();
+    window.addEventListener('pagehide', yoz);
+    return () => { window.removeEventListener('pagehide', yoz); yoz(); };
+  }, []);
+  const qoralamaBekor = () => {
+    const tk = tiklandi?.kiritmalar ?? {};
+    // Faqat tiklangan (o'zgartirilmagan) kiritmalar olib tashlanadi; keyin qo'lda yozilganlarga tegilmaydi.
+    setKiritmalar((o) => { const n = { ...o }; for (const [id, k] of Object.entries(tk)) { const x = n[Number(id)]; if (x && x.rejim === k.rejim && x.qiymat === k.qiymat) delete n[Number(id)]; } return n; });
+    setTiklandi(null);
+  };
 
   const smetalar = useMemo(() => { const h = new Map(states.map((x) => [x.qator_id, x.smeta_hajm == null ? null : Number(x.smeta_hajm)])); return new Map(rows.map((r) => [r.id, h.get(r.id) ?? (r.hajm == null ? null : Number(r.hajm))])); }, [rows, states]);
   // Tuzatish qatorlari (qalinlik/norma tuzatishi) — smeta yadrosi bog'laydi; fakti asosiy ishga ergashadi (hosila, qo'lda kiritilmaydi).
@@ -477,19 +523,34 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
       }
       await topshirilganPaketOgohi(obyektId, sana); // topshirilgan oylik paket bo'lsa - ogohlantirish (saqlashni to'smaydi)
       const r = await sbFaktYoz({ obyektId, sana, operationId: operationId.current, qatorlar: paket.qatorlar, izoh: `Fakt jurnali: ${paket.qatorlar.length} qator` });
-      if (!r.ok) { toast(r.error || r.xabar || 'Fakt saqlanmadi.', 'danger'); return false; }
+      if (!r.ok) { await saqlashXatosi(r.error || r.xabar || 'Fakt saqlanmadi.', r.code === 'NETWORK'); return false; }
       const ids = new Set(paket.qatorlar.map((x) => x.qator_id));
       setSaqlangan(ids); setTimeout(() => setSaqlangan(new Set()), 2500);
       tozala(); operationId.current = yangiOperationId();
+      setTiklandi(null); qoralamaOchir(brauzerXotirasi(), kompaniyaId, obyektId);
       toast(`${ids.size} ta qator saqlandi — F2 qoldig‘i yangilandi.`, 'ok');
       // Saqlash tugadi — tugma darhol bo'shaydi; holat fonda yangilanadi (sekin o'qish tugmani qotirmasin).
       setBand(false);
       void Promise.resolve(holatniYangila([...ids])).catch(() => toast('Saqlandi, lekin jadvalni yangilab bo‘lmadi — sahifani yangilang.', 'warn'));
       return true;
-    } catch { toast('Javob olinmadi. Qayta saqlang — takror xavfsiz (bir xil amal ID).', 'danger'); }
+    } catch (e) { await saqlashXatosi('Javob olinmadi. Qayta saqlang — takror xavfsiz (bir xil amal ID).', true, e); }
     finally { setBand(false); }
     return false;
   };
+  /**
+   * Saqlash muvaffaqiyatsiz: avval qoralama darhol yoziladi. So'rov serverga yetmagan bo'lsa (tarmoq/eski chunk) va
+   * yangi versiya chiqqani aniqlansa — umumiy «internet uzildi» o'rniga aniq xabar (hodisa 2026-11-09). Avto-reload YO'Q.
+   */
+  const saqlashXatosi = async (matn: string, yetmadi: boolean, e?: unknown) => {
+    qoralamaYozDarhol();
+    if (chunkXatosimi(e) || (yetmadi && (yangiVersiyaChiqdimi() || await yangiVersiyaniTekshir()))) { toast(yangiVersiyaQoralamaMatni(), 'warn', undefined, 15000); return; }
+    toast(yetmadi ? `${matn} ${t('O‘zgarishlaringiz brauzerda saqlab qo‘yildi.')}` : matn, 'danger');
+  };
+  // Saqlanmagan kiritma bor — yangi versiya chiqsa sahifa avtomatik yangilanmaydi (banner qoralama saqlanganini aytadi).
+  useEffect(() => {
+    saqlanmaganIsh('fakt-jurnal', ozgarishSoni > 0, { qoralama: brauzerXotirasi() != null });
+    return () => saqlanmaganIsh('fakt-jurnal', false);
+  }, [ozgarishSoni]);
   useEffect(() => {
     if (!saqlashRef) return;
     saqlashRef.current = async () => (ishdaRef.current ? ishdaRef.current : (ozgarishSoni ? saqla() : true));
@@ -577,7 +638,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
       </div>
     </div>;
     // Doim bir xil o'ram: ogohlantirish paydo bo'lganda input qayta yaratilmaydi (fokus yo'qolmaydi).
-    return <div className="flex flex-col gap-1">{asosiy}{birlikOgoh && <BirlikOgohBlok ogoh={birlikOgoh} onTuzat={(v) => kirit(q.id, { qiymat: v })} className="mt-4 w-[300px] self-end" />}</div>;
+    const zd = ziddiyatMap.get(q.id);
+    const zdBelgi = zd && <div className="mt-3 self-end text-right text-[10.5px] font-semibold text-warn" data-testid="qoralama-ziddiyat">{t('Qoralama tiklanmadi: fakt boshqa joyda o‘zgargan (qoralama: {q})', { q: `${zd.yozuv.rejim} ${zd.yozuv.qiymat}` })}</div>;
+    return <div className="flex flex-col gap-1">{asosiy}{zdBelgi}{birlikOgoh && <BirlikOgohBlok ogoh={birlikOgoh} onTuzat={(v) => kirit(q.id, { qiymat: v })} className="mt-4 w-[300px] self-end" />}</div>;
   };
 
   /**
@@ -1164,6 +1227,8 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
       {kochmaganBor(kochirma) && <div className="fz-card flex shrink-0 flex-wrap items-center gap-2 px-3 py-1.5 text-[12px] text-warn" data-testid="avvalgi-f2-kochmagan" role="status">
         {t('Avvalgi smeta versiyasidagi tasdiqlangan F2: {k} qator yangi qatorlarga ko‘rsatildi, {w} tasi moslik tasdig‘ini kutmoqda, {n} tasi yangi smetada topilmadi — «Versiyalar va farq» panelida ko‘ring.', { k: String(kochirma!.jami.kochdi_soni), w: String(kochirma!.jami.kutilmoqda_soni), n: String(kochirma!.jami.moslanmagan_soni) })}
       </div>}
+      {tiklandi && <FaktQoralamaBanner soni={Object.keys(tiklandi.kiritmalar).length} ziddiyatlar={tiklandi.ziddiyatlar} band={band}
+        nomi={(id) => barchaById.get(id)?.nom} onSaqla={() => void saqla()} onBekor={qoralamaBekor} />}
       <FaktStudioBar yigindi={yigindi} obyektId={obyektId} kompaniyaId={kompaniyaId} onF2={f2Otish} band={band} jami={summalar.get(0)} />
 
       {bolimlar.length === 0 && ildizIshlari.length === 0

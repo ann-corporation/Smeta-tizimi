@@ -2,6 +2,15 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 131,
+      "sana": "2026-11-09",
+      "sarlavha": "Fakt jurnali kiritmalari brauzerda saqlanadi",
+      "bandlar": [
+        "Fakt jurnalida kiritilgan o‘zgarishlar endi brauzerda saqlanib turadi — yangi versiya chiqsa ham yo‘qolmaydi.",
+        "Sahifa qayta ochilganda saqlanmagan o‘zgarishlar tiklanadi: «Saqlash» yoki «Bekor qilish». Fakti boshqa joyda o‘zgargan qator jim qo‘llanmaydi — belgilab ko‘rsatiladi."
+      ]
+    },
+    {
       "id": 130,
       "sana": "2026-11-08",
       "sarlavha": "Zamena asl qator bilan bitta qozonda",

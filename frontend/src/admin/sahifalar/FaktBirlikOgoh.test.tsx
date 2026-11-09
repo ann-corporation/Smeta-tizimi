@@ -33,7 +33,8 @@ const states = [{ qator_id: 2, smeta_hajm: 2.791, fakt_hajm: 0 }, { qator_id: 3,
 const props = () => ({ kompaniyaId: 1, obyektId: 8, rows, states, holatniYangila: vi.fn(), tuzilmaniYangila: vi.fn() });
 const kirit = (nom: string, v: string) => fireEvent.change(screen.getByLabelText(`Bugun bajarildi: ${nom}`), { target: { value: v } });
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
+// Fakt jurnali qoralamasi (localStorage) testlar orasida tiklanmasin.
+afterEach(() => { cleanup(); vi.clearAllMocks(); localStorage.clear(); });
 
 describe('Fakt jurnali: birlik xatosi ogohlantirishi', () => {
   it('«100 М3» ishga 300 — qatorda matn va 3,00 taklifi; oddiy 120 — ogoh yo‘q', () => {
