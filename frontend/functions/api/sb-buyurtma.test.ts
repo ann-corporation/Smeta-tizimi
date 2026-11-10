@@ -19,6 +19,7 @@ async function chaqir(body: unknown, { rol = 'boss', rpcJavob = { ok: true, id: 
     if (url.pathname.endsWith('/rpc/t2_men_v1')) return Response.json({ ok: true, platform_role: 'none', foydalanuvchi: { holat: 'faol' }, azoliklar: [{ kompaniya_id: 17, rol, faol: true }], context_kompaniyalar: [{ kompaniya_id: 17, effective_role: rol }] });
     if (url.pathname.endsWith('/rpc/t2_modul_holat_v1')) return Response.json({ ok: true, modullar: [{ kod: 'module.xarid', holat: modul }] });
     if (url.pathname === '/rest/v1/t2_obyekt') return Response.json([{ id: 5, kompaniya_id: 17 }]);
+    if (url.pathname === '/rest/v1/t2_shartnoma') return Response.json([{ id: 31, kompaniya_id: 17 }]);   // shlyuz p_shartnoma_id egaligini tekshiradi
     if (url.pathname === '/rest/v1/t2_erp_taminot') {
       // 44 - o'z kompaniyasiniki, 55 - begona kompaniyaniki
       const idlar = (url.searchParams.get('id') ?? '').replace(/[^0-9,]/g, '').split(',').filter(Boolean).map(Number);
@@ -123,6 +124,20 @@ describe('buyurtma_otish_v1 / olish_yoz / qabul', () => {
       expect(r.rpc).toHaveLength(0);
     }
   });
+  it('qabul_yakunla: faqat id lar RPC ga boradi (miqdor/narx mijozdan olinmaydi); operation_id va buyurtma_id majburiy', async () => {
+    const asos = { amal: 'buyurtma_qabul_yakunla_v1', kompaniya_id: 17, operation_id: OP, buyurtma_id: 9 };
+    const yaxshi = await chaqir({ ...asos, shartnoma_id: 31, qabul_miqdor: 999, narx: 1, p_actor_id: 1 });
+    expect(yaxshi.res.status).toBe(200);
+    expect(yaxshi.rpc[0].yol).toBe('/rest/v1/rpc/t2_buyurtma_qabul_yakunla_v1');
+    expect(yaxshi.rpc[0].body).toEqual({ p_actor_id: 7, p_kompaniya_id: 17, p_operation_id: OP, p_buyurtma_id: 9, p_shartnoma_id: 31 });
+    const shartnomasiz = await chaqir(asos);
+    expect(shartnomasiz.rpc[0].body.p_shartnoma_id).toBeNull();
+    for (const buzuq of [{ operation_id: 'uuid-emas' }, { buyurtma_id: 0 }, { buyurtma_id: undefined }, { shartnoma_id: -3 }]) {
+      const r = await chaqir({ ...asos, ...buzuq });
+      expect(r.res.status, JSON.stringify(buzuq)).toBe(400);
+      expect(r.rpc).toHaveLength(0);
+    }
+  });
   it('qabul: har qator uchun miqdor (0 mumkin) va holat; yaroqsiz holat rad etiladi', async () => {
     const asos = { amal: 'buyurtma_qabul_v1', kompaniya_id: 17, operation_id: OP, buyurtma_id: 9, kutilgan_versiya: 4 };
     const yaxshi = await chaqir({ ...asos, qatorlar: [{ buyurtma_qator_id: 21, qabul_miqdor: 0, holat: 'kam' }, { buyurtma_qator_id: 22, qabul_miqdor: 5 }] });
@@ -171,6 +186,7 @@ describe('ruxsat siyosati (RPC dagi capability lar bilan)', () => {
     expect(writeCommandPermission('buyurtma_olish_yoz_v1')).toBe('supply.fulfil');
     expect(writeCommandPermission('buyurtma_yarat_v1')).toBe('procurement.write');
     expect(writeCommandPermission('buyurtma_qabul_v1')).toBe('procurement.write');
+    expect(writeCommandPermission('buyurtma_qabul_yakunla_v1')).toBe('procurement.write');
     expect(writeCommandPermission('buyurtma_royxat_v1')).toBe('procurement.read');
     expect(writeCommandPermission('buyurtma_tafsilot_v1')).toBe('procurement.read');
     expect(writeCommandPermission('buyurtma_nomalum')).toBe('command.unregistered');
