@@ -9,16 +9,37 @@
 import type { Kiritma, Rejim } from './fakt-jurnal';
 
 export const QORALAMA_VERSIYA = 1 as const;
-const PREFIKS = 't2.fakt.jurnal.qoralama:v1';
+const PREFIKS_UMUMIY = 't2.fakt.jurnal.qoralama';
+/** v2: foydalanuvchi id si kalitda — bir profilda (desktop/brauzer) ikki hisob bir-birining qoralamasini ko'rmaydi. */
+const PREFIKS = `${PREFIKS_UMUMIY}:v2`;
+/** v1 kalitda egasi yo'q edi: hech kimga ko'chirilmaydi, o'chiriladi. */
+const PREFIKS_V1 = `${PREFIKS_UMUMIY}:v1:`;
 /** Juda eski qoralama (30 kun) tiklanmaydi — o'chiriladi. */
 export const QORALAMA_MUDDAT_MS = 30 * 24 * 3600_000;
 const EPS = 1e-9;
 
-export const qoralamaKaliti = (kompaniyaId: number, obyektId: number): string => `${PREFIKS}:${kompaniyaId}:${obyektId}`;
+export const qoralamaKaliti = (kompaniyaId: number, obyektId: number, foydalanuvchiId: number): string => `${PREFIKS}:${kompaniyaId}:${foydalanuvchiId}:${obyektId}`;
 
 export type QoralamaYozuv = { id: number; rejim: Rejim; qiymat: string; /** Kiritish paytidagi server fakti. */ asos: number };
 export type Qoralama = { v: typeof QORALAMA_VERSIYA; ts: number; sana?: string; yozuvlar: QoralamaYozuv[] };
-export type Xotira = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+export type Xotira = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> & Partial<Pick<Storage, 'key' | 'length'>>;
+
+/** Prefiks bilan boshlanadigan kalitlarni o'chiradi (key/length bo'lmagan xotirada — hech narsa). */
+function kalitlarniOchir(xotira: Xotira | null, mos: (k: string) => boolean): number {
+  if (!xotira || typeof xotira.key !== 'function' || typeof xotira.length !== 'number') return 0;
+  try {
+    const kalitlar: string[] = [];
+    for (let i = 0; i < xotira.length; i++) { const k = xotira.key(i); if (k && mos(k)) kalitlar.push(k); }
+    for (const k of kalitlar) xotira.removeItem(k);
+    return kalitlar.length;
+  } catch { return 0; }
+}
+
+/** Egasi noma'lum eski (v1) qoralamalarni o'chiradi — boshqa foydalanuvchiga ko'rinmasligi uchun. */
+export const qoralamaEskilariniOchir = (xotira: Xotira | null): number => kalitlarniOchir(xotira, (k) => k.startsWith(PREFIKS_V1));
+
+/** Chiqishda: shu profildagi barcha fakt qoralamalari (v1 va v2) o'chiriladi. */
+export const qoralamaHammasiniOchir = (xotira: Xotira | null): number => kalitlarniOchir(xotira, (k) => k.startsWith(`${PREFIKS_UMUMIY}:`));
 
 /** localStorage — yopiq/taqiqlangan bo'lsa null (qoralama shunchaki ishlamaydi, sahifa ishlaydi). */
 export function brauzerXotirasi(): Xotira | null {
@@ -43,16 +64,16 @@ export function qoralamaQur(kiritmalar: Readonly<Record<number, Kiritma>>, faktl
 }
 
 /** Qoralamani yozadi (null — o'chiradi). Xotira to'lgan/yopiq bo'lsa jim o'tadi; muvaffaqiyat — true. */
-export function qoralamaYoz(xotira: Xotira | null, kompaniyaId: number, obyektId: number, q: Qoralama | null): boolean {
+export function qoralamaYoz(xotira: Xotira | null, kompaniyaId: number, obyektId: number, foydalanuvchiId: number, q: Qoralama | null): boolean {
   if (!xotira) return false;
   try {
-    const k = qoralamaKaliti(kompaniyaId, obyektId);
+    const k = qoralamaKaliti(kompaniyaId, obyektId, foydalanuvchiId);
     if (q) xotira.setItem(k, JSON.stringify(q)); else xotira.removeItem(k);
     return true;
   } catch { return false; }
 }
 
-export const qoralamaOchir = (xotira: Xotira | null, kompaniyaId: number, obyektId: number): boolean => qoralamaYoz(xotira, kompaniyaId, obyektId, null);
+export const qoralamaOchir = (xotira: Xotira | null, kompaniyaId: number, obyektId: number, foydalanuvchiId: number): boolean => qoralamaYoz(xotira, kompaniyaId, obyektId, foydalanuvchiId, null);
 
 function yozuvmi(x: unknown): x is QoralamaYozuv {
   if (!x || typeof x !== 'object') return false;
@@ -61,15 +82,15 @@ function yozuvmi(x: unknown): x is QoralamaYozuv {
 }
 
 /** Qoralamani o'qiydi va tekshiradi. Buzilgan/boshqa versiya/muddati o'tgan bo'lsa — null. */
-export function qoralamaOqi(xotira: Xotira | null, kompaniyaId: number, obyektId: number, hozir = Date.now()): Qoralama | null {
+export function qoralamaOqi(xotira: Xotira | null, kompaniyaId: number, obyektId: number, foydalanuvchiId: number, hozir = Date.now()): Qoralama | null {
   if (!xotira) return null;
   let matn: string | null;
-  try { matn = xotira.getItem(qoralamaKaliti(kompaniyaId, obyektId)); } catch { return null; }
+  try { matn = xotira.getItem(qoralamaKaliti(kompaniyaId, obyektId, foydalanuvchiId)); } catch { return null; }
   if (!matn) return null;
   try {
     const j = JSON.parse(matn) as Partial<Qoralama>;
     if (!j || j.v !== QORALAMA_VERSIYA || typeof j.ts !== 'number' || !Array.isArray(j.yozuvlar)) return null;
-    if (hozir - j.ts > QORALAMA_MUDDAT_MS) { qoralamaOchir(xotira, kompaniyaId, obyektId); return null; }
+    if (hozir - j.ts > QORALAMA_MUDDAT_MS) { qoralamaOchir(xotira, kompaniyaId, obyektId, foydalanuvchiId); return null; }
     const yozuvlar = j.yozuvlar.filter(yozuvmi).filter((y) => y.qiymat.trim());
     if (!yozuvlar.length) return null;
     return { v: QORALAMA_VERSIYA, ts: j.ts, ...(typeof j.sana === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(j.sana) ? { sana: j.sana } : {}), yozuvlar };

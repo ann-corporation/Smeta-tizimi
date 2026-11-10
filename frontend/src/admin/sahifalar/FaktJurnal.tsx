@@ -62,7 +62,8 @@ import { FaktInlineAmal, ZamenaJuftBelgi } from '../../components/fakt/FaktInlin
 import { useFaktInlineTugmalar } from '../../components/fakt/useFaktInlineTugmalar';
 import { bolimTop, ozgarishBor, zamenaJuftlari, zamenaYoqSabab, type InlineKontekst, type InlineTur } from '../../lib/fakt-inline-amal';
 import { FaktQoralamaBanner } from '../../components/fakt/FaktQoralamaBanner';
-import { brauzerXotirasi, qoralamaOchir, qoralamaOqi, qoralamaQur, qoralamaTikla, qoralamaYoz, type QoralamaZiddiyat } from '../../lib/fakt-jurnal-qoralama';
+import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
+import { brauzerXotirasi, qoralamaEskilariniOchir, qoralamaOchir, qoralamaOqi, qoralamaQur, qoralamaTikla, qoralamaYoz, type QoralamaZiddiyat } from '../../lib/fakt-jurnal-qoralama';
 import { chunkXatosimi, saqlanmaganIsh, yangiVersiyaChiqdimi, yangiVersiyaniTekshir, yangiVersiyaQoralamaMatni } from '../../_shared/versiya';
 
 const MANBALAR: readonly NarxManba[] = ['smeta_obyekt', 'smeta_shartnoma', 'smeta', 'katalog', 'qolda'];
@@ -254,26 +255,30 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   // ── Brauzer qoralamasi (hodisa 2026-11-09: deploydan keyin saqlash o'tmadi, ~30 qator kiritma faqat xotirada edi). ──
   // Kiritmalar kompaniya+obyekt bo'yicha localStorage'ga yoziladi; sahifa ochilganda tiklanadi. Qator yo'q yoki server fakti
   // qoralamadagidan farq qilsa — JIM qo'llanmaydi, ziddiyat sifatida belgilanadi.
-  const qoralamaKalit = `${kompaniyaId}:${obyektId}`;
+  // Foydalanuvchi id kalitda (bir profilda ikki hisob almashsa, B A ning saqlanmagan qoralamasini ko'rmaydi);
+  // id hali noma'lum bo'lsa qoralama o'qilmaydi ham, yozilmaydi ham.
+  const foydalanuvchiId = useKompaniya().foydalanuvchi?.id ?? null;
+  useEffect(() => { qoralamaEskilariniOchir(brauzerXotirasi()); }, []); // v1 (egasiz) qoralamalar hech kimga ko'chirilmaydi
+  const qoralamaKalit = `${kompaniyaId}:${foydalanuvchiId}:${obyektId}`;
   const [tiklandi, setTiklandi] = useState<{ kiritmalar: Record<number, Kiritma>; ziddiyatlar: QoralamaZiddiyat[] } | null>(null);
   /** Joriy kiritmalar qaysi kompaniya:obyekt qoralamasiga tegishli (tiklash bajarilgach o'rnatiladi; undan oldin yozilmaydi). */
   const [qoralamaEgasi, setQoralamaEgasi] = useState<string | null>(null);
   const ziddiyatMap = useMemo(() => new Map((tiklandi?.ziddiyatlar ?? []).filter((z) => z.sabab === 'ozgargan').map((z) => [z.yozuv.id, z])), [tiklandi]);
   useEffect(() => {
-    if (qoralamaEgasi === qoralamaKalit || !rows.length) return;
-    const boshqaObyekt = qoralamaEgasi != null; // obyekt almashdi — eski obyekt kiritmalari o'z qoralamasida qoladi
-    const q = qoralamaOqi(brauzerXotirasi(), kompaniyaId, obyektId);
+    if (qoralamaEgasi === qoralamaKalit || !rows.length || foydalanuvchiId == null) return;
+    const boshqaObyekt = qoralamaEgasi != null; // obyekt (yoki foydalanuvchi) almashdi — eski kiritmalar o'z qoralamasida qoladi
+    const q = qoralamaOqi(brauzerXotirasi(), kompaniyaId, obyektId, foydalanuvchiId);
     const r = q ? qoralamaTikla(q, faktlar) : null;
     if (boshqaObyekt) setTarix([]);
     setKiritmalar((o) => ({ ...(boshqaObyekt ? {} : o), ...(r?.kiritmalar ?? {}) }));
     if (r?.sana) setSana(r.sana);
     setTiklandi(r && (Object.keys(r.kiritmalar).length || r.ziddiyatlar.length) ? { kiritmalar: r.kiritmalar, ziddiyatlar: r.ziddiyatlar } : null);
     setQoralamaEgasi(qoralamaKalit);
-  }, [qoralamaKalit, qoralamaEgasi, rows.length, faktlar, kompaniyaId, obyektId]);
+  }, [qoralamaKalit, qoralamaEgasi, rows.length, faktlar, kompaniyaId, obyektId, foydalanuvchiId]);
   /** Qoralamani hozir yozadi (debounce kutmasdan) — saqlash xatosida va sahifani tark etishda. */
   const qoralamaYozDarhol = () => {
-    if (qoralamaEgasi !== qoralamaKalit) return;
-    qoralamaYoz(brauzerXotirasi(), kompaniyaId, obyektId, qoralamaQur(kiritmalar, faktlar, Date.now(), sana, tiklandi?.ziddiyatlar.map((z) => z.yozuv)));
+    if (qoralamaEgasi !== qoralamaKalit || foydalanuvchiId == null) return;
+    qoralamaYoz(brauzerXotirasi(), kompaniyaId, obyektId, foydalanuvchiId, qoralamaQur(kiritmalar, faktlar, Date.now(), sana, tiklandi?.ziddiyatlar.map((z) => z.yozuv)));
   };
   const qoralamaYozRef = useRef(qoralamaYozDarhol);
   qoralamaYozRef.current = qoralamaYozDarhol;
@@ -527,7 +532,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
       const ids = new Set(paket.qatorlar.map((x) => x.qator_id));
       setSaqlangan(ids); setTimeout(() => setSaqlangan(new Set()), 2500);
       tozala(); operationId.current = yangiOperationId();
-      setTiklandi(null); qoralamaOchir(brauzerXotirasi(), kompaniyaId, obyektId);
+      setTiklandi(null); if (foydalanuvchiId != null) qoralamaOchir(brauzerXotirasi(), kompaniyaId, obyektId, foydalanuvchiId);
       toast(`${ids.size} ta qator saqlandi — F2 qoldig‘i yangilandi.`, 'ok');
       // Saqlash tugadi — tugma darhol bo'shaydi; holat fonda yangilanadi (sekin o'qish tugmani qotirmasin).
       setBand(false);
