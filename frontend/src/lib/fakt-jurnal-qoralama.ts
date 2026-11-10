@@ -35,8 +35,23 @@ function kalitlarniOchir(xotira: Xotira | null, mos: (k: string) => boolean): nu
   } catch { return 0; }
 }
 
-/** Egasi noma'lum eski (v1) qoralamalarni o'chiradi — boshqa foydalanuvchiga ko'rinmasligi uchun. */
-export const qoralamaEskilariniOchir = (xotira: Xotira | null): number => kalitlarniOchir(xotira, (k) => k.startsWith(PREFIKS_V1));
+/**
+ * Bir martalik migratsiya: shu kompaniya+obyekt uchun v1 qoralama bor va joriy foydalanuvchining v2 si YO'Q bo'lsa —
+ * v1 mazmuni v2 ga ko'chiriladi, so'ng v1 o'chiriladi. v2 allaqachon bo'lsa v1 ga tegilmaydi. Ko'chirilgan bo'lsa true.
+ */
+export function qoralamaV1Kochir(xotira: Xotira | null, kompaniyaId: number, obyektId: number, foydalanuvchiId: number): boolean {
+  if (!xotira) return false;
+  try {
+    const v1 = `${PREFIKS_V1}${kompaniyaId}:${obyektId}`;
+    const matn = xotira.getItem(v1);
+    if (!matn) return false;
+    const v2 = qoralamaKaliti(kompaniyaId, obyektId, foydalanuvchiId);
+    if (xotira.getItem(v2) != null) return false;
+    xotira.setItem(v2, matn);
+    xotira.removeItem(v1);
+    return true;
+  } catch { return false; }
+}
 
 /** Chiqishda: shu profildagi barcha fakt qoralamalari (v1 va v2) o'chiriladi. */
 export const qoralamaHammasiniOchir = (xotira: Xotira | null): number => kalitlarniOchir(xotira, (k) => k.startsWith(`${PREFIKS_UMUMIY}:`));

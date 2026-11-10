@@ -34,15 +34,21 @@ const qoralama = (yozuvlar: unknown[], kalit = KALIT) => localStorage.setItem(ka
 afterEach(() => { cleanup(); vi.clearAllMocks(); localStorage.clear(); m.uid = 7; });
 
 describe('FaktJurnal brauzer qoralamasi (hodisa 2026-11-09)', () => {
-  it('boshqa foydalanuvchi (bir profil) A ning qoralamasini ko‘rmaydi; eski v1 kalit o‘chiriladi', async () => {
+  it('boshqa foydalanuvchi (bir profil) A ning v2 qoralamasini ko‘rmaydi', () => {
     qoralama([{ id: 2, rejim: '+', qiymat: '5', asos: 40 }]);
-    localStorage.setItem('t2.fakt.jurnal.qoralama:v1:1:8', JSON.stringify({ v: 1, ts: Date.now(), yozuvlar: [{ id: 2, rejim: '+', qiymat: '9', asos: 40 }] }));
     m.uid = 8;
     render(<FaktJurnal {...props()} />);
     expect(screen.queryByTestId('fakt-qoralama-banner')).toBeNull();
     expect((screen.getByLabelText('Bugun bajarildi: Ish A') as HTMLInputElement).value).toBe('');
+    expect(localStorage.getItem(KALIT)).not.toBeNull();
+  });
+
+  it('deploydan oldingi v1 qoralama joriy foydalanuvchining v2 siga ko‘chib tiklanadi, v1 o‘chadi', () => {
+    localStorage.setItem('t2.fakt.jurnal.qoralama:v1:1:8', JSON.stringify({ v: 1, ts: Date.now(), yozuvlar: [{ id: 2, rejim: '+', qiymat: '9', asos: 40 }] }));
+    render(<FaktJurnal {...props()} />);
+    expect((screen.getByLabelText('Bugun bajarildi: Ish A') as HTMLInputElement).value).toBe('9');
     expect(localStorage.getItem('t2.fakt.jurnal.qoralama:v1:1:8')).toBeNull();
-    expect(localStorage.getItem(KALIT)).not.toBeNull(); // A ning qoralamasi joyida
+    expect(localStorage.getItem(KALIT)).not.toBeNull();
   });
 
   it('kiritma localStorage ga yoziladi va qayta ochilganda banner bilan tiklanadi', async () => {

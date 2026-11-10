@@ -63,7 +63,7 @@ import { useFaktInlineTugmalar } from '../../components/fakt/useFaktInlineTugmal
 import { bolimTop, ozgarishBor, zamenaJuftlari, zamenaYoqSabab, type InlineKontekst, type InlineTur } from '../../lib/fakt-inline-amal';
 import { FaktQoralamaBanner } from '../../components/fakt/FaktQoralamaBanner';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
-import { brauzerXotirasi, qoralamaEskilariniOchir, qoralamaOchir, qoralamaOqi, qoralamaQur, qoralamaTikla, qoralamaYoz, type QoralamaZiddiyat } from '../../lib/fakt-jurnal-qoralama';
+import { brauzerXotirasi, qoralamaV1Kochir,qoralamaOchir, qoralamaOqi, qoralamaQur, qoralamaTikla, qoralamaYoz, type QoralamaZiddiyat } from '../../lib/fakt-jurnal-qoralama';
 import { chunkXatosimi, saqlanmaganIsh, yangiVersiyaChiqdimi, yangiVersiyaniTekshir, yangiVersiyaQoralamaMatni } from '../../_shared/versiya';
 
 const MANBALAR: readonly NarxManba[] = ['smeta_obyekt', 'smeta_shartnoma', 'smeta', 'katalog', 'qolda'];
@@ -258,7 +258,6 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   // Foydalanuvchi id kalitda (bir profilda ikki hisob almashsa, B A ning saqlanmagan qoralamasini ko'rmaydi);
   // id hali noma'lum bo'lsa qoralama o'qilmaydi ham, yozilmaydi ham.
   const foydalanuvchiId = useKompaniya().foydalanuvchi?.id ?? null;
-  useEffect(() => { qoralamaEskilariniOchir(brauzerXotirasi()); }, []); // v1 (egasiz) qoralamalar hech kimga ko'chirilmaydi
   const qoralamaKalit = `${kompaniyaId}:${foydalanuvchiId}:${obyektId}`;
   const [tiklandi, setTiklandi] = useState<{ kiritmalar: Record<number, Kiritma>; ziddiyatlar: QoralamaZiddiyat[] } | null>(null);
   /** Joriy kiritmalar qaysi kompaniya:obyekt qoralamasiga tegishli (tiklash bajarilgach o'rnatiladi; undan oldin yozilmaydi). */
@@ -267,6 +266,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   useEffect(() => {
     if (qoralamaEgasi === qoralamaKalit || !rows.length || foydalanuvchiId == null) return;
     const boshqaObyekt = qoralamaEgasi != null; // obyekt (yoki foydalanuvchi) almashdi — eski kiritmalar o'z qoralamasida qoladi
+    qoralamaV1Kochir(brauzerXotirasi(), kompaniyaId, obyektId, foydalanuvchiId); // deploydagi eski (v1) saqlanmagan ish yo'qolmasin
     const q = qoralamaOqi(brauzerXotirasi(), kompaniyaId, obyektId, foydalanuvchiId);
     const r = q ? qoralamaTikla(q, faktlar) : null;
     if (boshqaObyekt) setTarix([]);

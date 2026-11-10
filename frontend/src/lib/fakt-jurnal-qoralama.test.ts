@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { QORALAMA_MUDDAT_MS, qoralamaEskilariniOchir, qoralamaHammasiniOchir, qoralamaKaliti, qoralamaOchir, qoralamaOqi, qoralamaQur, qoralamaTikla, qoralamaYoz, type Xotira } from './fakt-jurnal-qoralama';
+import { QORALAMA_MUDDAT_MS, qoralamaV1Kochir,qoralamaHammasiniOchir, qoralamaKaliti, qoralamaOchir, qoralamaOqi, qoralamaQur, qoralamaTikla, qoralamaYoz, type Xotira } from './fakt-jurnal-qoralama';
 
 /** Sintetik xotira (localStorage o'rniga). */
 function xotira(): Xotira & { m: Map<string, string> } {
@@ -23,18 +23,28 @@ describe('fakt jurnali qoralamasi (hodisa 2026-11-09)', () => {
     expect(qoralamaOqi(x, 1, 2, 10, 2000)).not.toBeNull();
   });
 
-  it('eski v1 qoralamalar hech kimga ko‘chirilmaydi: o‘qilmaydi va o‘chiriladi; chiqishda hammasi tozalanadi', () => {
-    const m = new Map<string, string>([
-      ['t2.fakt.jurnal.qoralama:v1:1:2', JSON.stringify({ v: 1, ts: 1000, yozuvlar: [{ id: 10, rejim: '+', qiymat: '2', asos: 4 }] })],
-      ['t2.fakt.jurnal.qoralama:v2:1:5:2', '{}'],
-      ['boshqa.kalit', 'x'],
-    ]);
-    const x: Xotira = { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => { m.set(k, v); }, removeItem: (k) => { m.delete(k); }, key: (i) => [...m.keys()][i] ?? null, get length() { return m.size; } };
-    expect(qoralamaOqi(x, 1, 2, 5, 2000)).toBeNull(); // v2 kalit buzuq/bo'sh; v1 hech qachon o'qilmaydi
-    expect(qoralamaOqi(x, 1, 2, 1, 2000)).toBeNull();
-    expect(qoralamaEskilariniOchir(x)).toBe(1);
-    expect([...m.keys()].sort()).toEqual(['boshqa.kalit', 't2.fakt.jurnal.qoralama:v2:1:5:2']);
-    expect(qoralamaHammasiniOchir(x)).toBe(1);
+  const V1 = 't2.fakt.jurnal.qoralama:v1:1:2';
+  const v1Matn = JSON.stringify({ v: 1, ts: 1000, yozuvlar: [{ id: 10, rejim: '+', qiymat: '2', asos: 4 }] });
+  const xotiraKalitli = (m: Map<string, string>): Xotira => ({ getItem: (k) => m.get(k) ?? null, setItem: (k, v) => { m.set(k, v); }, removeItem: (k) => { m.delete(k); }, key: (i) => [...m.keys()][i] ?? null, get length() { return m.size; } });
+
+  it('v1 → v2: v2 yo‘q bo‘lsa mazmun joriy foydalanuvchiga ko‘chadi va v1 o‘chadi (bir martalik)', () => {
+    const m = new Map<string, string>([[V1, v1Matn], ['boshqa.kalit', 'x']]);
+    const x = xotiraKalitli(m);
+    expect(qoralamaV1Kochir(x, 1, 2, 5)).toBe(true);
+    expect(m.has(V1)).toBe(false);
+    expect(qoralamaOqi(x, 1, 2, 5, 2000)?.yozuvlar).toEqual([{ id: 10, rejim: '+', qiymat: '2', asos: 4 }]);
+    expect(qoralamaV1Kochir(x, 1, 2, 6)).toBe(false); // ikkinchi foydalanuvchiga hech narsa qolmadi
+    expect(qoralamaOqi(x, 1, 2, 6, 2000)).toBeNull();
+  });
+
+  it('v2 allaqachon bor bo‘lsa v1 ga tegilmaydi; chiqishda hammasi tozalanadi', () => {
+    const v2 = 't2.fakt.jurnal.qoralama:v2:1:5:2';
+    const m = new Map<string, string>([[V1, v1Matn], [v2, '{}'], ['boshqa.kalit', 'x']]);
+    const x = xotiraKalitli(m);
+    expect(qoralamaV1Kochir(x, 1, 2, 5)).toBe(false);
+    expect(m.get(V1)).toBe(v1Matn);
+    expect(m.get(v2)).toBe('{}');
+    expect(qoralamaHammasiniOchir(x)).toBe(2);
     expect([...m.keys()]).toEqual(['boshqa.kalit']);
   });
 
