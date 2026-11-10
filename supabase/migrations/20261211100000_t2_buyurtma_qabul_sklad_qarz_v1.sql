@@ -110,8 +110,8 @@ begin
     end if;
   end loop;
 
-  if v_qarz_kutilmoqda > 0 then v_ogoh := v_ogoh || 'SHARTNOMA_YOQ'; end if;
-  if v_narxsiz then v_ogoh := v_ogoh || 'NARX_YOQ'; end if;
+  if v_qarz_kutilmoqda > 0 then v_ogoh := array_append(v_ogoh, 'SHARTNOMA_YOQ'::text); end if;
+  if v_narxsiz then v_ogoh := array_append(v_ogoh, 'NARX_YOQ'::text); end if;
   perform public.t2_audit_yoz(p_kompaniya_id, 'buyurtma_qabul_yakunla', 'taminot', v_b.obyekt_id,
     'buyurtma #' || v_b.id::text || ': sklad ' || v_yangi_h::text || ' yangi/' || v_eski_h::text || ' mavjud, qarz ' || v_qarz::text, v_kim, null);
   return jsonb_build_object('ok', true, 'takror', (v_yangi_h = 0 and v_qarz = 0), 'sklad_soni', v_yangi_h, 'sklad_mavjud', v_eski_h, 'qarz_soni', v_qarz,
