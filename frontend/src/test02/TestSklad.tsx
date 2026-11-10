@@ -15,6 +15,7 @@ import { PrixodKitobPreview } from '../components/ombor/PrixodKitobPreview';
 import { KirimKunlikForm } from '../components/ombor/KirimKunlikForm';
 import { KirimKunlikJurnal } from '../components/ombor/KirimKunlikJurnal';
 import { OmborTanlov } from '../components/ombor/OmborTanlov';
+import { MarkaziyBerdimForm } from '../components/ombor/MarkaziyBerdimForm';
 import { OmborKirimJadval, OmborQoldiqJadval } from '../components/ombor/OmborKirimJadval';
 import { kirimRuxsat } from '../lib/ombor-prixod/yozish';
 
@@ -39,6 +40,7 @@ export default function TestSklad() {
   const [activeTab, setActiveTab] = useState<Tab>('ombor-kirim');
   const ruxsat = kirimRuxsat(joriy?.permissions);
   const [excelOchiq, setExcelOchiq] = useState(false);
+  const [berdimOchiq, setBerdimOchiq] = useState(false);
   const [kirimYangilash, setKirimYangilash] = useState(0);
   const [skladYaratilmoqda, setSkladYaratilmoqda] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -178,6 +180,8 @@ export default function TestSklad() {
               {activeTab === 'ombor-kirim' && tanlanganSklad && ruxsat.yozish && <button type="button" className={`fz-btn ${excelOchiq ? '' : 'fz-btn--primary'} min-h-[56px] justify-center text-[15px] font-semibold`}
                 aria-expanded={excelOchiq} onClick={() => setExcelOchiq((v) => !v)}>
                 <FileSpreadsheet size={18} aria-hidden="true" />{excelOchiq ? t('Yuklashni yopish') : t('Excel’dan yuklash')}</button>}
+              {tanlanganSklad && ruxsat.yozish && <button type="button" className="fz-btn min-h-[56px] justify-center text-[15px] font-semibold" disabled={obyektlar.length === 0}
+                onClick={() => setBerdimOchiq(true)}><ArrowUpFromLine size={18} aria-hidden="true" />{t('Berdim → obyekt')}</button>}
             </div>
             {!ruxsat.korish && <p className="m-0 text-[12px] text-warn">{t('Omborni ko‘rish uchun «Hujjatlarni ko‘rish» huquqi kerak.')}</p>}
             {!tanlanganSklad && <div className="rounded-md border border-dashed border-[var(--border-strong)] px-4 py-8 text-center text-[13px] text-text-mute">
@@ -185,6 +189,9 @@ export default function TestSklad() {
             {tanlanganSklad && activeTab === 'ombor-kirim' && excelOchiq && ruxsat.yozish && <PrixodKitobPreview kompaniyaId={aktKomp} skladId={tanlanganSklad.id}
               skladNomi={tanlanganSklad.nomi} yozishMumkin={ruxsat.yozish} onYozildi={() => setKirimYangilash((n) => n + 1)} />}
             {tanlanganSklad && ruxsat.korish && activeTab === 'ombor-kirim' && <OmborKirimJadval kompaniyaId={aktKomp} skladId={tanlanganSklad.id} yozishMumkin={ruxsat.yozish} yangilash={kirimYangilash} />}
+            {tanlanganSklad && berdimOchiq && ruxsat.yozish && <MarkaziyBerdimForm key={`${aktKomp}:${tanlanganSklad.id}`} kompaniyaId={aktKomp} skladId={tanlanganSklad.id}
+              skladNomi={tanlanganSklad.nomi} obyektlar={obyektlar} boshObyektId={tanlanganObyekt?.id ?? null} onYop={() => setBerdimOchiq(false)}
+              onYozildi={() => { setBerdimOchiq(false); setKirimYangilash((n) => n + 1); setHarakatYangilash((n) => n + 1); toast(t('Obyektga berildi — obyekt qoldigʻiga tushdi.'), 'ok'); }} />}
             {tanlanganSklad && ruxsat.korish && activeTab === 'ombor-qoldiq' && <OmborQoldiqJadval kompaniyaId={aktKomp} skladId={tanlanganSklad.id} yangilash={kirimYangilash} />}
           </div>
         )}
