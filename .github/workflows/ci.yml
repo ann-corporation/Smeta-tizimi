@@ -66,3 +66,28 @@ jobs:
         run: npx vitest run
       - name: Build
         run: node build.mjs
+
+  # Masofaviy MCP (mcp/smeta-mcp-remote, Cloudflare Worker): umumiy tool yadrosi ../smeta-mcp/src. Deploy QILINMAYDI —
+  # faqat typecheck, test va wrangler --dry-run bundle (sirsiz).
+  mcp-remote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: mcp/smeta-mcp-remote
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mcp/smeta-mcp-remote/package-lock.json
+      - run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Testlar (mock pg, ulanishsiz)
+        run: npx vitest run
+      - name: Worker bundle (wrangler --dry-run, deploy emas)
+        run: npx wrangler deploy --dry-run --outdir dist/wr
+        env:
+          WRANGLER_SEND_METRICS: 'false'

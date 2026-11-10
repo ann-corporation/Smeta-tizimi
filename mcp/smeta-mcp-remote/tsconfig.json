@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": false,
+    "jsx": "react-jsx",
+    "noUnusedLocals": false,
+    "typeRoots": ["./node_modules/@types"],
+    "paths": {
+      "zod": ["./node_modules/zod"],
+      "pg": ["./node_modules/@types/pg"],
+      "xlsx": ["./node_modules/xlsx"],
+      "fflate": ["./node_modules/fflate"],
+      "@modelcontextprotocol/sdk/*": ["./node_modules/@modelcontextprotocol/sdk/dist/esm/*"],
+      "exceljs": ["../smeta-mcp/src/shims/exceljs.d.ts"],
+      "react": ["./node_modules/@types/react"]
+    }
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts", "../smeta-mcp/src/types/*.d.ts", "../smeta-mcp/src/shims/*.d.ts"]
+}

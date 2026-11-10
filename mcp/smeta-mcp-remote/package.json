@@ -1,0 +1,35 @@
+{
+  "name": "smeta-mcp-remote",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Smeta tizimi masofaviy MCP server (Cloudflare Worker, OAuth 2.1). Tool mantig'i — ../smeta-mcp/src (umumiy yadro).",
+  "scripts": {
+    "build": "node build-worker.mjs",
+    "bundle:check": "wrangler deploy --dry-run --outdir dist/wr",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "dev": "wrangler dev",
+    "smoke": "node smoke.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@cloudflare/workers-oauth-provider": "1.2.4",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "fflate": "^0.8.3",
+    "pg": "8.23.1",
+    "xlsx": "^0.18.5",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19.3.0",
+    "esbuild": "0.28.2",
+    "typescript": "~6.0.2",
+    "vitest": "^4.1.12",
+    "wrangler": "4.159.0"
+  }
+}
