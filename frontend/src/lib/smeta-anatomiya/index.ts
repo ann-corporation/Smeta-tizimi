@@ -116,12 +116,12 @@ export function kitobAnatomiyasi(kitob: KirishKitob): KitobAnatomiyasi {
 
 export { sarlavhaYoli } from './ierarxiya';
 export { moddaliSvodniOqi, svodVaraqlari } from './svod';
-export { nakrutkaPodvaliniOqi, nakrutkaVaraqlari, formulaniHisobla, NAKRUTKA_FOIZ_KODLARI, type NakrutkaPodvalOqish, type NakrutkaPodvalQatori, type NakrutkaIsbot } from './nakrutka';
+export { nakrutkaPodvaliniOqi, nakrutkaVaraqlari, formulaniHisobla, transportIkkiMarta, TRANSPORT_MATERIAL_BAZA, NAKRUTKA_FOIZ_KODLARI, type TransportIkkiMartaOpsiya, type NakrutkaPodvalOqish, type NakrutkaPodvalQatori, type NakrutkaIsbot, type TransportQatorKirish, type TransportIkkiMartaNatija } from './nakrutka';
 export { transportQatorlari } from './erkin';
 export { allToplamRollari, type AllToplam, type AllRol, type AllTeg } from './all-toplam';
 export { resBloklari, podvalFoizSumma, type ResBlok, type ResBlokKat, type ResBloklarNatija } from './res-blok';
 export { tushunilmaganVaraqlar, sonliQatorlar } from './darvoza';
-export { hamrohDaraxti, xatQatoriNarxi, type HamrohTanlov } from './yuklash';
+export { hamrohDaraxti, perevozkaNomi, ruSon, xatQatoriNarxi, type HamrohTanlov } from './yuklash';
 export { varaqRoliniAniqla, varaqNomiRoli, nomTokenlari, type VaraqRol, type VaraqRolXulosa } from './rol';
 export { sarlavhaBlokiniTop, ustunXaritasi, tartibRaqamlariQatorimi, type SarlavhaBloki } from './ustun';
 export { arifmetikUchlik, uchlikniMoslashtir, qoshimchaUstunlar, type MoslashuvNatija, type UstunUchlik } from './ustun-dalil';
