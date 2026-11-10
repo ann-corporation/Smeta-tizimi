@@ -29,6 +29,8 @@ export type PaketXom = {
     hajm: (number | null)[]; narx: (number | null)[]; summa: (number | null)[]; norma: (number | null)[];
     narx_usul: (string | null)[]; versiya: number[]; qoshimcha: number[]; zamena: number[];
     xom_qator: Record<string, number>;
+    /** Qo'shimcha (F2 tayyorlash/import): siyrak {id: raqam}. Eski serverda yo'q. */
+    raqam?: Record<string, string>;
   };
   h: {
     fakt_hajm: (number | null)[]; fakt_summa: (number | null)[]; f2_hajm: (number | null)[]; f2_summa: (number | null)[];
@@ -36,6 +38,10 @@ export type PaketXom = {
     f2_summa_yoq?: (number | null)[];
     f2_summa_nomalum: (number | null)[]; direct_fakt_hajm: (number | null)[]; fakt_manbasi: number[];
     almashtirilgan_hajm: Record<string, number>; almashtirilgan_summa: Record<string, number | null>;
+    /** Qo'shimcha (F2 tayyorlash), eski serverda yo'q: oldingi tasdiqlangan F2 narxi (view f2_narx; NULL = F2 hajmi 0). */
+    f2_narx?: (number | null)[];
+    /** Siyrak {id: view smeta_hajm}: faqat q.hajm dan farqlisi (zamena reja hajmi); yo'q kalit = q.hajm. */
+    smeta_hajm?: Record<string, number>;
   };
   f2: Array<{ akt_id: number; raqam: string | null; oy: string | null; holat: string; lifecycle_status: string | null;
     versiya: number; hujjat_jami: number | null; muhr_xesh: string | null }>;
@@ -60,6 +66,11 @@ export type Paket = {
   fakt_hajm: SonUstun; fakt_summa: SonUstun; f2_hajm: SonUstun; f2_summa: SonUstun;
   f2_summa_yoq?: SonUstun;
   f2_summa_nomalum: SonUstun; direct_fakt_hajm: SonUstun;
+  /** F2 tayyorlash qo'shimchalari (eski serverda undefined: chaqiruvchi eski yo'lga qaytadi). */
+  raqam?: (string | null)[];
+  f2_narx?: SonUstun;
+  /** Faqat farqli qatorlarda `bor`; qolganida q.hajm. */
+  smeta_hajm_farq?: SonUstun;
   /** 0 — DIRECT, 1 — BL_NORMA. */
   fakt_manbasi: Uint8Array;
   /** Siyrak: yo'q kalit — 0. */
@@ -162,8 +173,49 @@ export function paketDekod(x: PaketXom): Paket {
     fakt_manbasi: bitlar(n, 'fakt_manbasi', x.h?.fakt_manbasi),
     almashtirilgan_hajm: siyrakUstun(n, 'almashtirilgan_hajm', x.h?.almashtirilgan_hajm, indeks, 0),
     almashtirilgan_summa: siyrakUstun(n, 'almashtirilgan_summa', x.h?.almashtirilgan_summa, indeks, 0),
+    ...(x.q.raqam === undefined ? {} : { raqam: raqamUstun(n, x.q.raqam, indeks) }),
+    ...(x.h?.f2_narx === undefined ? {} : { f2_narx: sonUstun(n, 'f2_narx', x.h.f2_narx) }),
+    ...(x.h?.smeta_hajm === undefined ? {} : { smeta_hajm_farq: siyrakUstun(n, 'smeta_hajm', x.h.smeta_hajm, indeks, null) }),
     f2: Array.isArray(x.f2) ? x.f2 : [], meta: x.meta ?? {},
   };
+}
+
+function raqamUstun(n: number, xom: Record<string, string>, indeks: Map<number, number>): (string | null)[] {
+  const out: (string | null)[] = new Array(n).fill(null);
+  for (const [k, v] of Object.entries(xom ?? {})) {
+    const i = indeks.get(Number(k));
+    if (i == null) throw new PaketXato(`paket: raqam, noma'lum id ${k}`);
+    out[i] = v == null ? null : String(v);
+  }
+  return out;
+}
+
+/** F2 tayyorlash o'qiydigan `t2_qator_holat` ustunlari (sbQatorHolatOl(F2_HOLAT_USTUNLAR) bilan bir xil qiymatlar). */
+export type F2Holat = {
+  qator_id: number; smeta_hajm: number | null; smeta_narx: number | null; fakt_hajm: number | null; f2_hajm: number | null;
+  f2_mumkin_hajm: number; f2_narx: number | null; almashtirilgan_hajm: number; fakt_manbasi: 'DIRECT' | 'BL_NORMA';
+};
+
+/**
+ * F2 tayyorlash holati paketdan (qator_id o'sish tartibida, view kabi). Yangi ustunlar yo'q (eski server) — null:
+ * chaqiruvchi eski yo'lga qaytadi. Qoidalar view bilan: smeta_hajm = zamena reja hajmi yoki q.hajm; smeta_narx = q.narx;
+ * f2_mumkin_hajm = GREATEST(fakt - f2, 0) (NULL fakt -> 0, postgres GREATEST NULL ni tashlaydi); fakt_manbasi bit -> matn.
+ */
+export function paketdanF2Holatlar(p: Paket): F2Holat[] | null {
+  if (!p.f2_narx || !p.smeta_hajm_farq) return null;
+  const tartib = Array.from({ length: p.soni }, (_, i) => i).sort((a, b) => p.id[a] - p.id[b]);
+  return tartib.map((i) => {
+    const fakt = son(p.fakt_hajm, i), f2 = son(p.f2_hajm, i);
+    return {
+      qator_id: p.id[i],
+      smeta_hajm: bormi(p.smeta_hajm_farq!, i) ? son(p.smeta_hajm_farq!, i) : son(p.hajm, i),
+      smeta_narx: son(p.narx, i), fakt_hajm: fakt, f2_hajm: f2,
+      f2_mumkin_hajm: fakt == null ? 0 : Math.max(fakt - (f2 ?? 0), 0),
+      f2_narx: son(p.f2_narx!, i),
+      almashtirilgan_hajm: son(p.almashtirilgan_hajm, i) ?? 0,
+      fakt_manbasi: p.fakt_manbasi[i] === 1 ? 'BL_NORMA' : 'DIRECT',
+    };
+  });
 }
 
 /** `T2_DARAXT_USTUNLARI` shaklidagi qatorlar (tartib, id bo'yicha — `sbT2DaraxtOl` bilan bir xil). */
