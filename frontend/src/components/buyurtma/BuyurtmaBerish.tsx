@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Truck } from 'lucide-react';
 import { OpsMaydon, OpsOyna } from '../kompaniya-ops/OpsUi';
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { toast } from '../../umumiy/ui/Toast';
 import { t } from '../../i18n/til';
 import { buyurtmaXatosi, buyurtmaYarat } from '../../api/t2-buyurtma';
@@ -69,7 +70,7 @@ export function BuyurtmaBerish({ kompaniyaId, zayavka, yetkazuvchilar, onYop, on
             <input type="number" min="0" step="any" value={miqdor} onChange={(e) => setMiqdor(e.target.value)} className="text-right tabular-nums" aria-label={t('Miqdor')} />
           </OpsMaydon>
           <OpsMaydon nom={t('Narx (so‘m, QQS siz)')} izoh={t('Bo‘sh qoldirsangiz — narx noma’lum')}>
-            <input type="number" min="0" step="any" value={narx} onChange={(e) => setNarx(e.target.value)} className="text-right tabular-nums" aria-label={t('Narx (so‘m, QQS siz)')} />
+            <MoneyInput value={narx} onValueChange={setNarx} className="text-right tabular-nums" aria-label={t('Narx (so‘m, QQS siz)')} />
           </OpsMaydon>
         </div>
       </>)}
