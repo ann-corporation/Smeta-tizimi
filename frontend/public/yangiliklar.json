@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 137,
+      "sana": "2026-11-11",
+      "sarlavha": "Obyekt ekranida 4 qadam: Fakt → F2 yasash → F2 import → Hujjatlar",
+      "bandlar": [
+        "Smeta, Fakt, F2 yasash, F2 import va Nakopitelniy sahifalari tepasida endi bitta qator: 4 qadam. Joriy qadam belgilanadi, bir bosishda keyingisiga o‘tasiz.",
+        "Har qadamda kichik holat: fakt qoralamalari soni, F2 qoralama/tasdiqlangan soni, tugallanmagan import. Ma’lumot o‘qilmasa belgi ko‘rinmaydi — taxmin qilinmaydi.",
+        "Bitta «Keyingi qadam» tugmasi eng kerakli ishni ko‘rsatadi (masalan, «Faktni yakunlang» yoki «F2 yasang»). Tanlangan obyekt va davr o‘tishda saqlanadi."
+      ]
+    },
+    {
       "id": 135,
       "sana": "2026-11-11",
       "sarlavha": "Fakt qoralamasi hisobga xos; internet qaytganda ro'yxatlar yangilanadi",
