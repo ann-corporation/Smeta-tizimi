@@ -1,4 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { KORSATMA } from './korsatma';
 import type { Muhit } from './muhit';
 import { toolChaqir, type ToolTarif } from './tool';
 import { f2Import } from './tools/f2-import';
@@ -26,11 +27,7 @@ export const TOOLLAR: ToolTarif[] = [
 ];
 
 export function serverYasa(mu: Muhit): McpServer {
-  const s = new McpServer({ name: 'smeta', version: VERSIYA }, {
-    instructions: 'Smeta tizimi (T2) bazasi bilan to\'g\'ridan-to\'g\'ri ishlash. Pul: NDS siz; ustamasiz + ustamali (ИТОГО-4), NDS alohida; null — noma\'lum (0 emas). '
-      + 'Yozuvchi toollar avtomatik snapshot oladi (snapshot sxemasi bo\'lsa), bazaga audit yozadi; dry_run:true — preview + ROLLBACK. '
-      + 'RPC aktori: SMETA_AKTOR_ID yoki aktor_tanla. Sxema: `sxema` tooli.',
-  });
+  const s = new McpServer({ name: 'smeta', version: VERSIYA }, { instructions: KORSATMA });
   for (const t of TOOLLAR) {
     s.registerTool(t.nom, {
       description: t.tavsif + (t.yozadi ? ' [YOZADI]' : ' [faqat o\'qish]'),

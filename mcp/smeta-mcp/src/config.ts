@@ -7,7 +7,8 @@ export type Sozlama = {
   dbUrl: string | null;
   /** RPC'larga uzatiladigan aktor (t2_foydalanuvchi.id). Bo'lmasa — `aktor_tanla` bilan sessiyada o'rnatiladi. */
   aktorId: number | null;
-  auditFayl: string;
+  /** Lokal JSONL audit fayli; null — lokal audit yo'q (Cloudflare Worker: audit bazada + Workers Logs). */
+  auditFayl: string | null;
   /** Ixtiyoriy: tranzaksiyada `set local role` (masalan service_role). Standart — ulanish roli. */
   dbRol: string | null;
   /** Bitta so'rov uchun vaqt chegarasi (ms). */

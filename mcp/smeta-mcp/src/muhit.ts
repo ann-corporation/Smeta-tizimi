@@ -27,6 +27,11 @@ export function pgTurlariniOrnat(): void {
 export class Muhit {
   private _hovuz: Hovuz | null = null;
   aktorId: number | null;
+  /**
+   * Tenant doirasi: null — cheklovsiz (lokal stdio, egasining o'z kaliti). Masofaviy (Worker) serverda — OAuth bilan kirgan
+   * foydalanuvchining kompaniyalari; ro'yxat beruvchi toollar (obyektlar) shu bilan filtrlanadi.
+   */
+  kompaniyaDoira: number[] | null = null;
   constructor(readonly sozlama: Sozlama, private readonly hovuzYasa: (s: Sozlama) => Hovuz = (s) => { pgTurlariniOrnat(); return pgHovuz(s); }) {
     this.aktorId = sozlama.aktorId;
   }

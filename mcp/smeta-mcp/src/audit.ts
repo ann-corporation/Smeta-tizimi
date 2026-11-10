@@ -19,7 +19,8 @@ export function auditQator(y: Omit<AuditYozuv, 'args' | 'natija'> & { args: unkn
 }
 
 /** Lokal audit — hech qachon xato tashlamaydi (audit ishlamasa ham tool ishlaydi). */
-export async function lokalAudit(fayl: string, y: Parameters<typeof auditQator>[0]): Promise<void> {
+export async function lokalAudit(fayl: string | null, y: Parameters<typeof auditQator>[0]): Promise<void> {
+  if (!fayl) return;
   try {
     await mkdir(path.dirname(fayl), { recursive: true });
     await appendFile(fayl, auditQator(y), 'utf8');
