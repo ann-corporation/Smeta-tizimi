@@ -1,0 +1,174 @@
+{
+ "Yetkazuvchini tanlang": {
+  "ru": "Выберите поставщика",
+  "en": "Choose a supplier"
+ },
+ "Miqdor musbat son bo‘lishi kerak.": {
+  "ru": "Количество должно быть положительным числом.",
+  "en": "Quantity must be a positive number."
+ },
+ "Narx noto‘g‘ri": {
+  "ru": "Некорректная цена",
+  "en": "Invalid price"
+ },
+ "Buyurtma yuborildi": {
+  "ru": "Заказ отправлен",
+  "en": "Order sent"
+ },
+ "Yetkazuvchiga buyurtma berish": {
+  "ru": "Сделать заказ поставщику",
+  "en": "Place an order with a supplier"
+ },
+ "Buyurtma yuborildi, lekin zayavka holatini yangilab bo‘lmadi. Holatni qo‘lda o‘zgartiring.": {
+  "ru": "Заказ отправлен, но статус заявки обновить не удалось. Измените статус вручную.",
+  "en": "Order sent, but the request status could not be updated. Change the status manually."
+ },
+ "Yetkazuvchi tizimga ulanmagan — taklif yuboring": {
+  "ru": "Поставщик не подключён к системе — отправьте приглашение",
+  "en": "The supplier is not connected to the system — send an invitation"
+ },
+ "Narx (so‘m, QQS siz)": {
+  "ru": "Цена (сум, без НДС)",
+  "en": "Price (UZS, excl. VAT)"
+ },
+ "Bo‘sh qoldirsangiz — narx noma’lum": {
+  "ru": "Если оставить пустым — цена неизвестна",
+  "en": "If left empty, the price is unknown"
+ },
+ "Qayerdan olib ketilishini kiriting.": {
+  "ru": "Укажите, откуда забирать товар.",
+  "en": "Enter where the goods are picked up."
+ },
+ "Menga kelgan buyurtmalar": {
+  "ru": "Входящие заказы",
+  "en": "Orders sent to me"
+ },
+ "Hozircha sizga buyurtma kelmagan.": {
+  "ru": "Пока заказов для вас нет.",
+  "en": "No orders for you yet."
+ },
+ "Qatorlar: {n}": {
+  "ru": "Позиций: {n}",
+  "en": "Lines: {n}"
+ },
+ "so‘m, QQS siz": {
+  "ru": "сум, без НДС",
+  "en": "UZS, excl. VAT"
+ },
+ "Xaridor qabul qilishini kutmoqda": {
+  "ru": "Ожидает приёмки покупателем",
+  "en": "Waiting for the buyer to accept"
+ },
+ "Qayerdan olib ketiladi (ombor, manzil)": {
+  "ru": "Откуда забирать (склад, адрес)",
+  "en": "Pickup point (warehouse, address)"
+ },
+ "Saqlash va tayyor": {
+  "ru": "Сохранить и «Готов»",
+  "en": "Save and mark ready"
+ },
+ "Kelgan miqdor noto‘g‘ri": {
+  "ru": "Некорректное принятое количество",
+  "en": "Invalid received quantity"
+ },
+ "Qabul saqlandi: nizo belgilandi": {
+  "ru": "Приёмка сохранена: отмечен спор",
+  "en": "Receipt saved: dispute flagged"
+ },
+ "Qabul saqlandi: qisman": {
+  "ru": "Приёмка сохранена: частично",
+  "en": "Receipt saved: partial"
+ },
+ "Buyurtmani qabul qilish": {
+  "ru": "Приёмка заказа",
+  "en": "Receive order"
+ },
+ "Qabulni saqlash": {
+  "ru": "Сохранить приёмку",
+  "en": "Save receipt"
+ },
+ "Hammasi to‘liq keldi": {
+  "ru": "Всё пришло полностью",
+  "en": "Everything arrived in full"
+ },
+ "Kelgan miqdor": {
+  "ru": "Пришло",
+  "en": "Received"
+ },
+ "Butun": {
+  "ru": "Целое",
+  "en": "Intact"
+ },
+ "Kam keldi": {
+  "ru": "Пришло меньше",
+  "en": "Short"
+ },
+ "Shikastlangan": {
+  "ru": "Повреждено",
+  "en": "Damaged"
+ },
+ "Qisman yoki muammo bor": {
+  "ru": "Частично или есть проблема",
+  "en": "Partial or there is a problem"
+ },
+ "Berilgan buyurtmalar": {
+  "ru": "Выданные заказы",
+  "en": "Orders placed"
+ },
+ "narx noma’lum": {
+  "ru": "цена неизвестна",
+  "en": "price unknown"
+ },
+ "Qabul qildim": {
+  "ru": "Принял",
+  "en": "Received"
+ },
+ "Yetkazuvchi bilan kelishiladi": {
+  "ru": "Согласуется с поставщиком",
+  "en": "To be settled with the supplier"
+ },
+ "Xaridor qabul qildi": {
+  "ru": "Покупатель принял",
+  "en": "Buyer accepted"
+ },
+ "Qisman qabul qilindi": {
+  "ru": "Принят частично",
+  "en": "Partially accepted"
+ },
+ "Bajarishni boshlash": {
+  "ru": "Начать выполнение",
+  "en": "Start fulfilment"
+ },
+ "Topshirdim": {
+  "ru": "Передал",
+  "en": "Handed over"
+ },
+ "Buyurtma boshqa joyda o‘zgargan. Sahifani yangilang.": {
+  "ru": "Заказ изменён в другом месте. Обновите страницу.",
+  "en": "The order was changed elsewhere. Refresh the page."
+ },
+ "Bu yetkazuvchi bilan faol aloqa yo‘q. Avval taklif yuboring.": {
+  "ru": "Нет активной связи с этим поставщиком. Сначала отправьте приглашение.",
+  "en": "No active connection with this supplier. Send an invitation first."
+ },
+ "Yetkazuvchi bilan aloqa yopilgan.": {
+  "ru": "Связь с поставщиком закрыта.",
+  "en": "The connection with the supplier is closed."
+ },
+ "Yetkazuvchi tanlanmadi.": {
+  "ru": "Поставщик не выбран.",
+  "en": "No supplier selected."
+ },
+ "Bu qadamni hozir bajarib bo‘lmaydi.": {
+  "ru": "Этот шаг сейчас выполнить нельзя.",
+  "en": "This step cannot be performed now."
+ },
+ "Buyurtma holati bu amalga mos emas.": {
+  "ru": "Статус заказа не подходит для этого действия.",
+  "en": "The order status does not allow this action."
+ },
+ "Buyurtma topilmadi.": {
+  "ru": "Заказ не найден.",
+  "en": "Order not found."
+ }
+}

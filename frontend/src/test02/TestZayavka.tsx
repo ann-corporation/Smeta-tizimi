@@ -10,6 +10,9 @@ import { FmtN } from '../lib/format';
 import { t } from '../i18n/til';
 import { kunYoshi, taqsimot, ZAYAVKA_TARTIB, zayavkaXulosa, zayavkaYetkazish } from '../lib/kompaniya-ops-korinish';
 import { OpsBoshQator, OpsChiziq, OpsKpi, OpsKpiQator, OpsMaydon, OpsOyna, OpsQidiruv, OpsTaqsimot } from '../components/kompaniya-ops/OpsUi';
+import { BuyurtmaBerish } from '../components/buyurtma/BuyurtmaBerish';
+import { BuyurtmaRoyxati } from '../components/buyurtma/BuyurtmaRoyxati';
+import { useFaolAloqalar } from '../components/buyurtma/aloqalar';
 
 /**
  * Zayavkalar — obyektdan ta'minotga talabnoma (egasi 2026-10-25: Firuza ko'rinishi).
@@ -62,6 +65,24 @@ export default function TestZayavka() {
   const [formIzoh, setFormIzoh] = useState('');
 
   const [amalId, setAmalId] = useState<number | null>(null);
+  /* Buyurtma berish (ta'minotdagi zayavka -> yetkazuvchi): faqat tizimga ulangan (faol aloqali) kompaniyalar. */
+  const yetkazuvchilar = useFaolAloqalar(joriy?.id);
+  const [buyurtmaZ, setBuyurtmaZ] = useState<T2Zayavka | null>(null);
+  const [buyurtmaKalit, setBuyurtmaKalit] = useState(0);
+
+  /** Buyurtma yuborildi: zayavka «Buyurtma berildi» holatiga o'tadi (mavjud holat mashinasi), ro'yxatlar yangilanadi. */
+  const buyurtmaBerildi = async (z: T2Zayavka) => {
+    setBuyurtmaZ(null);
+    setBuyurtmaKalit((k) => k + 1);
+    if (!joriy) return;
+    try {
+      const natija = await sbZayavkaHolatYoz(joriy.id, z, 'ordered');
+      if (!natija.ok) toast(t('Buyurtma yuborildi, lekin zayavka holatini yangilab bo‘lmadi. Holatni qo‘lda o‘zgartiring.'), 'warn');
+    } catch {
+      toast(t('Buyurtma yuborildi, lekin zayavka holatini yangilab bo‘lmadi. Holatni qo‘lda o‘zgartiring.'), 'warn');
+    }
+    void yukla();
+  };
 
   const yukla = async () => {
     if (!joriy) return;
@@ -224,7 +245,10 @@ export default function TestZayavka() {
                         <span className="animate-pulse text-[12px] text-text-mute">{t('Kuting…')}</span>
                       ) : (
                         <span className="inline-flex flex-wrap items-center justify-end gap-1">
-                          {QADAMLAR.filter((q) => q.dan.includes(z.status)).map((q) => (
+                          {z.status === 'procurement' && (
+                            <button type="button" onClick={() => setBuyurtmaZ(z)} className="fz-btn fz-btn--sm fz-btn--primary" title={t('Yetkazuvchiga buyurtma berish')}>{t('Buyurtma berish')}</button>
+                          )}
+                          {QADAMLAR.filter((q) => q.dan.includes(z.status) && q.ga !== 'ordered').map((q) => (
                             <button key={q.ga} type="button" onClick={() => void holatOzgartir(z.id, q.ga)} className={`fz-btn fz-btn--sm ${q.cls}`} title={t(q.title)}>{t(q.nom)}</button>
                           ))}
                         </span>
@@ -236,7 +260,14 @@ export default function TestZayavka() {
             </tbody>
           </table>
         </div>
+
+        {joriy && <BuyurtmaRoyxati kompaniyaId={joriy.id} yetkazuvchilar={yetkazuvchilar} yangilash={buyurtmaKalit} />}
       </div>
+
+      {joriy && buyurtmaZ && (
+        <BuyurtmaBerish kompaniyaId={joriy.id} zayavka={buyurtmaZ} yetkazuvchilar={yetkazuvchilar}
+          onYop={() => setBuyurtmaZ(null)} onBerildi={() => void buyurtmaBerildi(buyurtmaZ)} />
+      )}
 
       <OpsOyna ochiq={isModalOpen} onYop={() => setIsModalOpen(false)} band={yuklanmoqda} ikon={<ClipboardList />} sarlavha={t('Yangi zayavka')}
         amallar={<>

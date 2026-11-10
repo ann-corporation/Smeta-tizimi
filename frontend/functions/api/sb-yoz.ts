@@ -34,6 +34,7 @@ import { katalogSnapshotlari } from '../_shared/narx-katalog-snapshot';
 import { sotuvAmalmi, sotuvYuk } from '../_shared/sotuv-yuk';
 import { ybAmalmi, ybYuk } from '../_shared/yuk-birjasi-yuk';
 import { TENDER_AMALLAR, tenderYuk } from '../_shared/tender-yuk';
+import { BUYURTMA_AMALLAR, buyurtmaYuk } from '../_shared/buyurtma-yuk';
 
 /** HR: jsonb obyektidan oq ro'yxatdagi skalyar maydonlarni oladi (matn ≤500); noto'g'ri tur yoki obyekt emas - null. */
 function hrPick(src: unknown, kalitlar: readonly string[]): Record<string, unknown> | null {
@@ -198,6 +199,14 @@ const AMALLAR = {
   taklif_qabul: { rpc: 't2_taklif_qabul' },
   birja_rfq_yarat: { rpc: 't2_birja_rfq_yarat' },
   birja_taklif_ber: { rpc: 't2_birja_taklif_ber' },
+  /* BUYURTMA (zayavka -> yetkazuvchi, 20261108410000_t2_buyurtma_p3_v1): yaratish, holat o'tishi, olib ketish joyi, qabul. Argumentlar `_shared/buyurtma-yuk.ts` da.
+     royxat/tafsilot - FAQAT O'QIYDI, lekin RPC prodda VOLATILE bo'lgani uchun /api/sb (GET) emas, shu yerda (POST). */
+  buyurtma_yarat_v1: { rpc: 't2_buyurtma_yarat_v1' },
+  buyurtma_otish_v1: { rpc: 't2_buyurtma_otish_v1' },
+  buyurtma_olish_yoz_v1: { rpc: 't2_buyurtma_olish_yoz_v1' },
+  buyurtma_qabul_v1: { rpc: 't2_buyurtma_qabul_v1' },
+  buyurtma_royxat_v1: { rpc: 't2_buyurtmalar_v1' },
+  buyurtma_tafsilot_v1: { rpc: 't2_buyurtma_tafsilot_v1' },
   /* TENDER protsessi (2026-11-03, 20261122000200_t2_tender_protsess_v1): qoralama → tasdiq → e'lon → ochish → baholash → g'olib. Argumentlar `_shared/tender-yuk.ts` da. */
   tender_saqla_v1: { rpc: 't2_tender_saqla_v1' },
   tender_otish_v1: { rpc: 't2_tender_otish_v1' },
@@ -3177,6 +3186,12 @@ export const onRequestPost: PagesFunction<{
       const t = tenderYuk(amal, so as Record<string, unknown>, sess.foydalanuvchi_id);
       if (!t.ok) return Response.json({ ok: false, code: 'REQUIRED_FIELD', error: t.error }, { status: 400 });
       yuk = t.yuk;
+
+    /* BUYURTMA: yuk oq ro'yxatdan (_shared/buyurtma-yuk.ts); actor sessiyadan; kompaniya a'zoligi va egalik quyidagi umumiy blokda. */
+    } else if (BUYURTMA_AMALLAR.has(amal)) {
+      const b = buyurtmaYuk(amal, so as Record<string, unknown>, sess.foydalanuvchi_id);
+      if (!b.ok) return Response.json({ ok: false, code: 'REQUIRED_FIELD', error: b.error }, { status: 400 });
+      yuk = b.yuk;
 
     /* ══════════ B2B BIRJA ══════════
        ⚠️ IDEMPOTENTLIK MAJBURIY — RFQ va taklif narxga bog'liq. */
