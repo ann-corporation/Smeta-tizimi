@@ -28,8 +28,10 @@ ${o.xato ? `<p class="x">${esc(o.xato)}</p>` : ''}
 <p class="k">Ruxsatni bekor qilish: saytda parolni almashtiring yoki «boshqa qurilmalardan chiqish» — barcha AI ulanishlari ham to'xtaydi.</p></main></body></html>`;
 }
 
-const html = (s: string, status = 200, cookie?: string) => new Response(s, {
-  status, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Frame-Options': 'DENY', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'", ...(cookie ? { 'Set-Cookie': cookie } : {}) },
+/** CSP form-action yo'naltirishlarga ham amal qiladi (Chrome): login POST → 302 → AI ilova callback'i bloklanmasin. */
+export const formManba = (redirectUri: string): string | undefined => { try { const u = new URL(redirectUri); return u.protocol === 'https:' || u.hostname === 'localhost' ? u.origin : undefined; } catch { return undefined; } };
+const html = (s: string, status = 200, cookie?: string, redirectOrigin?: string) => new Response(s, {
+  status, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Frame-Options': 'DENY', 'Content-Security-Policy': `default-src 'none'; style-src 'unsafe-inline'; form-action 'self'${redirectOrigin ? ' ' + redirectOrigin : ''}; frame-ancestors 'none'`, ...(cookie ? { 'Set-Cookie': cookie } : {}) },
 });
 const holatCookie = (id: string) => `mcp_holat=${id}; HttpOnly; Secure; SameSite=Lax; Path=/authorize; Max-Age=${HOLAT_TTL}`;
 
@@ -43,7 +45,7 @@ export async function authorizeGet(request: Request, env: Env): Promise<Response
   const id = crypto.randomUUID();
   const s: Saqlangan = { soriq, klient: klient.clientName || 'AI ilova', redirectHost: new URL(soriq.redirectUri).host };
   await env.OAUTH_KV.put(`mcp_login:${id}`, JSON.stringify(s), { expirationTtl: HOLAT_TTL });
-  return html(sahifa({ klient: s.klient, redirectHost: s.redirectHost, holat: id }), 200, holatCookie(id));
+  return html(sahifa({ klient: s.klient, redirectHost: s.redirectHost, holat: id }), 200, holatCookie(id), formManba(soriq.redirectUri));
 }
 
 type ParolJavob = { ok?: boolean; code?: string; foydalanuvchi_id?: number; login?: string };
@@ -68,7 +70,7 @@ export async function authorizePost(request: Request, env: Env): Promise<Respons
   const xom = await env.OAUTH_KV.get(`mcp_login:${id}`);
   if (!xom) return html('<p>Sessiya muddati o\'tdi — AI ilovada ulanishni qaytadan boshlang.</p>', 400);
   const s = JSON.parse(xom) as Saqlangan;
-  const qayta = (xato: string, status = 401) => html(sahifa({ klient: s.klient, redirectHost: s.redirectHost, holat: id, xato, login }), status, holatCookie(id));
+  const qayta = (xato: string, status = 401) => html(sahifa({ klient: s.klient, redirectHost: s.redirectHost, holat: id, xato, login }), status, holatCookie(id), formManba(s.soriq.redirectUri));
   const ip = request.headers.get('CF-Connecting-IP') ?? 'nomalum';
   const rl = await env.LOGIN_RATE.limit({ key: `ip:${ip}` });
   const rl2 = await env.LOGIN_RATE.limit({ key: `login:${login.toLowerCase()}` });
