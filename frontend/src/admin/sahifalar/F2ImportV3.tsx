@@ -36,6 +36,7 @@ import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 import { qolganSummaMatni } from './f2-qolgan-summa';
 import { katKesimNomalumBilan, katKesimYigish } from '../../lib/ustamali-summa';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
+import { ObyektQadamlari } from '../components/ObyektQadamlari';
 import { tiyingaYaxlitla, type F2Akt, type F2Tugun } from '../../lib/smeta-anatomiya/f2';
 import { f2AktlarniOqiFonda, f2MoslashV3Fonda } from '../../lib/f2-moslash-v3/fonda';
 import type { F2MoslashNatija, SmetaQator } from '../../lib/f2-moslash-v3';
@@ -1425,7 +1426,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   return (
     <Sahifa sarlavha="F2 import" tavsif="Fayl → akt → moslash → qoralamaga yozish. Har bosqichda nimani tekshirish kerakligi ko‘rsatiladi.">
     <div className="w-full space-y-3">
-      {routerda && <F2UrlSinxron faol={!!ij} jobId={Number.isSafeInteger(Number(serverId)) && Number(serverId) > 0 ? Number(serverId) : null} aktId={tahrirAkt} />}
+      <ObyektQadamlari joriy="f2-import" />
+      {routerda &&<F2UrlSinxron faol={!!ij} jobId={Number.isSafeInteger(Number(serverId)) && Number(serverId) > 0 ? Number(serverId) : null} aktId={tahrirAkt} />}
       <p role="status" className="m-0 text-[13px] text-text-dim">{holat}</p>
       <section className="fz-card flex flex-wrap items-center gap-2 p-4 text-[12px]" aria-label={t('Ish holati')}>
         <ol className="fz-yol m-0 w-full list-none p-0" aria-label={t('Qadamlar')}>

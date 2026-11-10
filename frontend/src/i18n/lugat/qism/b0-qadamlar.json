@@ -1,0 +1,154 @@
+{
+  "Obyekt qadamlari": {
+    "ru": "Шаги по объекту",
+    "en": "Object steps"
+  },
+  "F2 yasash": {
+    "ru": "Создание Ф-2",
+    "en": "Build F2"
+  },
+  "Smeta yo‘q": {
+    "ru": "Сметы нет",
+    "en": "No estimate"
+  },
+  "Smeta tayyor": {
+    "ru": "Смета готова",
+    "en": "Estimate ready"
+  },
+  "{n} qoralama": {
+    "ru": "Черновиков: {n}",
+    "en": "{n} drafts"
+  },
+  "Oxirgi: {sana}": {
+    "ru": "Последний: {sana}",
+    "en": "Last: {sana}"
+  },
+  "Hali yo‘q": {
+    "ru": "Пока нет",
+    "en": "None yet"
+  },
+  "{n} ochiq import": {
+    "ru": "Открытых импортов: {n}",
+    "en": "{n} open imports"
+  },
+  "Ochiq yo‘q": {
+    "ru": "Открытых нет",
+    "en": "None open"
+  },
+  "{n} qoralama · {m} tasdiq": {
+    "ru": "Черновиков: {n} · утверждено: {m}",
+    "en": "{n} drafts · {m} approved"
+  },
+  "{n} tasdiqlangan": {
+    "ru": "Утверждено: {n}",
+    "en": "{n} approved"
+  },
+  "{n} ta Forma 3": {
+    "ru": "Форм № 3: {n}",
+    "en": "{n} Form 3"
+  },
+  "Forma 3 yo‘q": {
+    "ru": "Формы № 3 нет",
+    "en": "No Form 3"
+  },
+  "F2 kutilmoqda": {
+    "ru": "Ждём Ф-2",
+    "en": "Awaiting F2"
+  },
+  "{n} F2 tayyor": {
+    "ru": "Ф-2 готово: {n}",
+    "en": "{n} F2 ready"
+  },
+  "Eksport": {
+    "ru": "Экспорт",
+    "en": "Export"
+  },
+  "Avval smetani yuklang": {
+    "ru": "Сначала загрузите смету",
+    "en": "Upload the estimate first"
+  },
+  "Bu obyektda smeta summasi hali yo‘q.": {
+    "ru": "У этого объекта ещё нет суммы сметы.",
+    "en": "This object has no estimate total yet."
+  },
+  "Smetani yuklash": {
+    "ru": "Загрузить смету",
+    "en": "Upload estimate"
+  },
+  "Faktni yakunlang": {
+    "ru": "Завершите факт",
+    "en": "Finish the actuals"
+  },
+  "{n} ta fakt qoralamada turibdi.": {
+    "ru": "Черновиков факта: {n}.",
+    "en": "{n} actuals are still drafts."
+  },
+  "Faktga o‘tish": {
+    "ru": "Перейти к факту",
+    "en": "Go to actuals"
+  },
+  "F2 importni davom ettiring": {
+    "ru": "Продолжите импорт Ф-2",
+    "en": "Continue the F2 import"
+  },
+  "{n} ta F2 import ishi tugallanmagan.": {
+    "ru": "Незавершённых импортов Ф-2: {n}.",
+    "en": "{n} F2 imports are unfinished."
+  },
+  "Importga o‘tish": {
+    "ru": "Перейти к импорту",
+    "en": "Go to import"
+  },
+  "F2 qoralamasini tugating": {
+    "ru": "Завершите черновик Ф-2",
+    "en": "Finish the F2 draft"
+  },
+  "{n} ta F2 qoralamada — tekshirib tasdiqlang.": {
+    "ru": "Черновиков Ф-2: {n} — проверьте и утвердите.",
+    "en": "{n} F2 drafts — review and approve."
+  },
+  "F2 yasashga o‘tish": {
+    "ru": "Перейти к созданию Ф-2",
+    "en": "Go to F2 builder"
+  },
+  "Fakt kiriting": {
+    "ru": "Введите факт",
+    "en": "Enter actuals"
+  },
+  "Bu obyektda hali bajarilgan ish kiritilmagan.": {
+    "ru": "По объекту ещё не внесены выполненные работы.",
+    "en": "No completed work has been entered for this object yet."
+  },
+  "F2 yasang": {
+    "ru": "Создайте Ф-2",
+    "en": "Build the F2"
+  },
+  "Fakt saqlangan, {oy} uchun F2 hali yo‘q.": {
+    "ru": "Факт сохранён, Ф-2 за {oy} ещё нет.",
+    "en": "Actuals are saved, no F2 for {oy} yet."
+  },
+  "Forma 3 tayyorlang": {
+    "ru": "Подготовьте форму № 3",
+    "en": "Prepare Form 3"
+  },
+  "F2 tasdiqlangan, Forma 3 hali yo‘q.": {
+    "ru": "Ф-2 утверждено, формы № 3 ещё нет.",
+    "en": "F2 is approved, no Form 3 yet."
+  },
+  "Forma 3 ga o‘tish": {
+    "ru": "Перейти к форме № 3",
+    "en": "Go to Form 3"
+  },
+  "Hammasi joyida": {
+    "ru": "Всё в порядке",
+    "en": "All set"
+  },
+  "Oylik F2 paketini olishingiz mumkin.": {
+    "ru": "Можно получить месячный пакет Ф-2.",
+    "en": "You can get the monthly F2 package."
+  },
+  "F2 paketi": {
+    "ru": "Пакет Ф-2",
+    "en": "F2 package"
+  }
+}
