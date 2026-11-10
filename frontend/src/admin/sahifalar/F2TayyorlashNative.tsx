@@ -20,6 +20,9 @@ import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { sbOqi, sbT2AktYaratV2, sbT2F2QoralamaYangila, sbT2DaraxtOl, sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt, type T2Qator } from '../../api/supabase';
 import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
 import { sbQatorHolatOl, sbF2QoralamaHajmlar, type QatorHolat } from '../../api/t2-fakt';
+
+/** Sahifa/f2Qur o'qiydigan holat ustunlari (view ~36 ustun; qolganlari kerak emas — javob ~2-3x kichik). */
+const F2_HOLAT_USTUNLAR = 'qator_id,smeta_hajm,smeta_narx,fakt_hajm,f2_hajm,f2_mumkin_hajm,f2_narx,almashtirilgan_hajm,fakt_manbasi';
 import { f2VersiyaKochirmaOl } from '../../api/t2-f2-versiya-kochirma';
 import { avvalgiF2Xaritasi, type F2VersiyaKochirma } from '../../lib/f2-versiya-kochirma';
 import { f2Hujjat } from '../../lib/f2-hujjat';
@@ -243,7 +246,7 @@ export function F2TayyorlashNative() {
       void Promise.resolve().then(() => f2VersiyaKochirmaOl(obyektId)).then((r) => { if (dolzarb()) setKochirma(r.ok ? r.natija : null); }).catch(() => { if (dolzarb()) setKochirma(null); });
       // Boshqa qoralamalardagi hajm o'qilmasa (A-14) — QORALAMA_TAKROR himoyasi jim o'chmaydi: xato holati.
       void Promise.resolve().then(() => sbF2QoralamaHajmlar(obyektId, aktId)).then((qh) => { if (dolzarb()) { setQoralamaHajm(qh.ok ? qh.hajm : new Map()); setQoralamaXato(!qh.ok); } }).catch(() => { if (dolzarb()) { setQoralamaHajm(new Map()); setQoralamaXato(true); } });
-      const [d, h] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbQatorHolatOl(obyektId)]);
+      const [d, h] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbQatorHolatOl(obyektId, F2_HOLAT_USTUNLAR)]);
       if (!dolzarb()) return;
       if (!d.ok || !h.ok) { setRows([]); setHolat([]); setError('F2 uchun smeta va fakt qoldig‘i o‘qilmadi.'); return; }
       setRows((d.qatorlar || []) as T2Qator[]); setHolat((h.qatorlar || []) as QatorHolat[]);
@@ -298,7 +301,7 @@ export function F2TayyorlashNative() {
   /** Zamena/chiqarishdan keyin: daraxt va holat qayta o'qiladi, operator kiritmalari (hajm/narx) SAQLANADI. */
   const tuzilmaYangila = async () => {
     const raqam = sorov.current;
-    const [d, h] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbQatorHolatOl(obyektId)]).catch(() => [null, null] as const);
+    const [d, h] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbQatorHolatOl(obyektId, F2_HOLAT_USTUNLAR)]).catch(() => [null, null] as const);
     if (raqam !== sorov.current) return;
     if (d?.ok && h?.ok) { setRows((d.qatorlar || []) as T2Qator[]); setHolat((h.qatorlar || []) as QatorHolat[]); }
     else toast(t('Saqlandi, lekin jadvalni yangilab bo‘lmadi — sahifani yangilang.'), 'warn');
