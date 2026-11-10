@@ -15,7 +15,7 @@
 import { qqsSizNarx, yaxlit2 } from '../hisob-yadro';
 import { varaqniTahlilQil } from './varaq';
 import { anatomiyadanAktDaraxt } from './akt-daraxt';
-import type { ErkinVaraq, Katak, SvodQatori, SvodVaraq, UstunXaritasi, VaraqAnatomiyasi } from './turlar';
+import type { ErkinVaraq, Katak, SvodQatori, SvodVaraq, TransportQatori, UstunXaritasi, VaraqAnatomiyasi } from './turlar';
 import type { AktNode } from '../f2-match-engine';
 import { resBolimKategoriya } from '../res-kategoriya';
 
@@ -136,9 +136,84 @@ export interface HamrohTanlov {
 }
 
 /**
+ * Rus hujjat son formati (smeta nomlari uchun): bo'sh joy — minglik, vergul — kasr, oxirgi nollar kesiladi.
+ * `7469.8158` → «7 469,8158», `14.5` → «14,5», `1000` → «1 000». Kasr 4 xonagacha (Excel float shovqini kesiladi).
+ * `toLocaleString` ishlatilmaydi: ICU turli muhitda NBSP/U+202F beradi, nom esa bazada barqaror bo'lishi kerak.
+ */
+export function ruSon(x: number, kasr = 4): string {
+  const m = 10 ** kasr;
+  const y = Math.round(Math.abs(x) * m) / m;
+  const [butun, qoldiq = ''] = y.toFixed(kasr).split('.');
+  const minglik = butun.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  const k = qoldiq.replace(/0+$/, '');
+  return `${x < 0 && y !== 0 ? '-' : ''}${minglik}${k ? `,${k}` : ''}`;
+}
+
+const TONNA_BIRLIK = /^(Т|ТН|ТОНН[АЫ]?|T|TN)\.?$/;
+
+/** tn·km qatori nomi: «ПЕРЕВОЗКА: ГПС — 7 469,8158 М3 = 11 204,7237 Т × 14,5 КМ» (birlik tonna bo'lsa « = … Т» yo'q). */
+export function perevozkaNomi(q: Pick<TransportQatori, 'xom' | 'birlik' | 'miqdor' | 'tonna' | 'masofa'>): string {
+  const material = q.xom.replace(/\s+/g, ' ').trim().toUpperCase();
+  const birlik = (q.birlik ?? '').replace(/\s+/g, ' ').trim().toUpperCase();
+  const tonnada = TONNA_BIRLIK.test(birlik);
+  const qismlar: string[] = [];
+  if (q.miqdor != null && q.miqdor !== 0 && birlik) qismlar.push(`${ruSon(q.miqdor)} ${birlik}`);
+  if (q.tonna != null && q.tonna !== 0 && !(tonnada && qismlar.length)) qismlar.push(`${ruSon(q.tonna)} Т`);
+  let tavsif = qismlar.join(' = ');
+  if (q.masofa != null && q.masofa !== 0) tavsif = tavsif ? `${tavsif} × ${ruSon(q.masofa)} КМ` : `${ruSon(q.masofa)} КМ`;
+  return tavsif ? `ПЕРЕВОЗКА: ${material} — ${tavsif}` : `ПЕРЕВОЗКА: ${material}`;
+}
+
+type HamrohTugun = AktNode & { norma?: number; kat?: string; kat_manba?: 'hujjat_blok' };
+
+/**
+ * Bitta tn·km varag'i → bitta perevozka ishi (egasi: «perevozka hech qachon 1 komplekt yoki shtukda emas — aniq
+ * o'lchovlari bilan, smetadagidek»): `bl` hajm = Σ т·км, summa = Σ qator summasi (= varaq ИТОГО, tiyin yaxlitlash farqi
+ * eng katta qatorga), ostida har material `rs` (т·км, narx, summa, norma = ulush). tn·km 0/bo'sh — kirmaydi.
+ */
+function transportIshi(e: ErkinVaraq, yorliq: string | null): { ish: HamrohTugun | null; otkazildi: number } {
+  let otkazildi = 0;
+  const rs: HamrohTugun[] = [];
+  for (const q of e.qatorlar ?? []) {
+    if (!q.tnKm) { otkazildi++; continue; }
+    rs.push({
+      uid: `hamroh_t_${e.varaq}_${q.manzil.qator}`, type: 'rs', kod: 'Т·КМ', nom: perevozkaNomi(q), bir: 'Т·КМ', hajm: q.tnKm,
+      ...(q.narx != null ? { narx: q.narx } : {}), ...(q.summa != null ? { summa: yaxlit2(q.summa) } : {}),
+      kat: 'М/К', kat_manba: 'hujjat_blok', children: [],
+    });
+  }
+  if (!rs.length) return { ish: null, otkazildi };
+  const hajm = Math.round(rs.reduce((s, x) => s + (x.hajm ?? 0), 0) * 1e6) / 1e6;
+  for (const x of rs) x.norma = Math.round(((x.hajm ?? 0) / hajm) * 1e10) / 1e10;
+  const summali = rs.filter((x) => x.summa != null);
+  let summa: number | undefined = summali.length ? yaxlit2(summali.reduce((s, x) => s + x.summa!, 0)) : undefined;
+  // Varaq ИТОГО — hujjat summasi: qatorlar yig'indisi undan faqat yaxlitlash qadar farq qilsa, farq eng katta qatorga.
+  const itogo = e.yakuniy?.qiymat;
+  if (summa != null && itogo != null && summali.length === rs.length) {
+    const farq = yaxlit2(itogo - summa);
+    if (farq !== 0 && Math.abs(farq) <= Math.max(1, rs.length)) {
+      const eng = summali.reduce((a, b) => (Math.abs(b.summa!) > Math.abs(a.summa!) ? b : a));
+      eng.summa = yaxlit2(eng.summa! + farq);
+      summa = yaxlit2(itogo);
+    }
+  }
+  const narxlar = [...new Set(rs.map((x) => x.narx))];
+  const umumiy = narxlar.length === 1 && narxlar[0] != null ? narxlar[0] : null;
+  const narx = umumiy ?? (summa != null && hajm ? yaxlit2(summa / hajm) : undefined);
+  const narxMatn = narx == null ? '' : `, ${umumiy == null ? 'СРЕДНЯЯ ' : ''}${ruSon(narx, 2)} СУМ ЗА 1 Т·КМ`;
+  const ish: HamrohTugun = {
+    uid: `hamroh_t_${e.varaq}_ish`, type: 'bl', kod: 'РАСЧЁТ Т·КМ',
+    nom: `ПЕРЕВОЗКА МЕСТНЫХ МАТЕРИАЛОВ АВТОСАМОСВАЛАМИ (РАСЧЁТ ЗАТРАТ ТРАНСПОРТА${narxMatn})${yorliq ? ` — ${yorliq}` : ''}`,
+    bir: 'Т·КМ', hajm, ...(narx != null ? { narx } : {}), ...(summa != null ? { summa } : {}), norma: 0, children: rs,
+  };
+  return { ish, otkazildi };
+}
+
+/**
  * Operator tanlagan hamroh qatorlari → import daraxti (`AktNode`), LRV daraxtiga QO'SHIMCHA ildizlar.
- *  - tn·km: `rz «ПЕРЕВОЗКА ГРУЗОВ (<varaq>)»` → har material `rs` (birlik т·км, hajm = tn·km, narx/summa hujjatdan);
- *    tn·km bo'sh yoki 0 bo'lgan qator kirmaydi (`otkazildi`).
+ *  - tn·km: `rz «ПЕРЕВОЗКА ГРУЗОВ (<varaq>)»` → bitta `bl` «ПЕРЕВОЗКА МЕСТНЫХ МАТЕРИАЛОВ …» (hajm Σ т·км, summa = ИТОГО)
+ *    → har material `rs` («ПЕРЕВОЗКА: <MATERIAL> — <miqdor> <birlik> = <tonna> Т × <km> КМ», т·км, narx/summa hujjatdan);
+ *    tn·km bo'sh yoki 0 bo'lgan qator kirmaydi (`otkazildi`). Bir nechta varaq tanlansa — ish nomi oxirida varaq nomi.
  *  - xat lump-sum: `rz «СВОДНЫЕ ПОЗИЦИИ … (<varaq>)»` → har xat `bl` (resurssiz yaxlit ish, f2-yaxlit odati: birlik «сум»,
  *    hajm 1, narx = НДС siz summa). Belgisi kod ustunida: «ПИСЬМО ЗАКАЗЧИКА №133 ОТ 02.05.2026» (qoshimcha = false,
  *    change_type NULL — smeta tarkibi, qo'shimcha ish EMAS). Narxi dalilsiz bo'lsa yoki nusxa bo'lsa — kirmaydi.
@@ -147,16 +222,11 @@ export interface HamrohTanlov {
 export function hamrohDaraxti(tanlov: HamrohTanlov): { tree: AktNode[]; otkazildi: number } {
   const tree: AktNode[] = [];
   let otkazildi = 0;
+  const kopVaraq = tanlov.transport.length > 1;
   for (const e of tanlov.transport) {
-    const children: AktNode[] = [];
-    for (const q of e.qatorlar ?? []) {
-      if (!q.tnKm) { otkazildi++; continue; }
-      children.push({
-        uid: `hamroh_t_${e.varaq}_${q.manzil.qator}`, type: 'rs', kod: '', nom: `ПЕРЕВОЗКА: ${q.xom}`, bir: 'т·км', hajm: q.tnKm,
-        ...(q.narx != null ? { narx: q.narx } : {}), ...(q.summa != null ? { summa: q.summa } : {}), children: [],
-      });
-    }
-    if (children.length) tree.push({ uid: `hamroh_t_${e.varaq}`, type: 'rz', nom: `ПЕРЕВОЗКА ГРУЗОВ (${e.varaq})`, children });
+    const t = transportIshi(e, kopVaraq ? e.varaq.toUpperCase() : null);
+    otkazildi += t.otkazildi;
+    if (t.ish) tree.push({ uid: `hamroh_t_${e.varaq}`, type: 'rz', nom: `ПЕРЕВОЗКА ГРУЗОВ (${e.varaq})`, children: [t.ish] });
   }
   const svodlar = new Map<string, AktNode>();
   for (const { svod, qator: q } of tanlov.xatlar) {

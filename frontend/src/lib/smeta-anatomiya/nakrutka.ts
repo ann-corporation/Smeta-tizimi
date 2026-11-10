@@ -21,6 +21,7 @@ import { kalit, son, xom } from './matn';
 import type { Katak, KirishKitob, KirishVaraq, Manzil, ReviewBand } from './turlar';
 import { resBloklari, type ResBlok, type ResBlokKat } from './res-blok';
 import { allToplamRollari } from './all-toplam';
+import { transportQatorlari } from './erkin';
 
 /** `t2_nakrutka_koef` / `NakrutkaKoeffitsientlar` kodlari (server bilan bir xil). */
 export type NakrutkaKoefKodi =
@@ -373,9 +374,98 @@ export function nakrutkaVaraqlari(
     .map((v) => v.varaq);
 }
 
+// ─── Transport ikki marta (aniq qator + podval foizi) ───────────────────────
+
+/** Obyekt/smeta qatori (t2_qator yoki import tugunining yengil shakli) — transport qo'riqchisi uchun. */
+export interface TransportQatorKirish {
+  tur?: string | null;
+  kod?: string | null;
+  nom?: string | null;
+  birlik?: string | null;
+  summa?: number | null;
+}
+
+export interface TransportIkkiMartaNatija {
+  kod: 'transport_ikki_marta';
+  izoh: string;
+  /** Qaysi podval foizlari aniq qatorlar bilan ustma-ust tushdi. */
+  koefKodlari: Array<'ТРАНСПОРТ_МАТЕРИАЛ' | 'ТРАНСПОРТ_ОБОРУД'>;
+  /** Aniq transport qatorlari soni va summasi (summasi noma'lumlari qo'shilmaydi — null ≠ 0). */
+  material: { soni: number; summa: number | null };
+  uskuna: { soni: number; summa: number | null };
+}
+
+const TKM_BIRLIK = /^Т(Н|ОНН)?\s*[.·*×/-]?\s*КМ\.?$/;
+const TRANSPORT_MATERIAL_NOM = /ТРАНСПОРТНЫЕ\s+РАСХОДЫ\s+НА\s+ПРИВОЗН|ПЕРЕВОЗК[АИ]\s+(МЕСТНЫХ\s+)?МАТЕРИАЛ/;
+const TRANSPORT_USKUNA_NOM = /(ТРАНСПОРТНЫЕ\s+РАСХОДЫ\s+НА|РАСХОДЫ\s+НА)\s+ПЕРЕВОЗКУ\s+ОБОРУДОВАН/;
+
+/**
+ * Transport ikki marta sanalganmi (egasi: perevozka smetadagidek aniq т·км qatorlar bilan): obyektda transport BIR
+ * vaqtda aniq qatorlar (т·км ishi/resursi, «Транспортные расходы на привозные материалы», «… на перевозку
+ * оборудования») VA podvalda noldan katta foiz (ТРАНСПОРТ_МАТЕРИАЛ / ТРАНСПОРТ_ОБОРУД) bo'lsa — ogohlantirish.
+ * Sof funksiya, bloklamaydi: yo'l smetalarida mahalliy materiallar т·км bilan, привозные esa % bilan hisoblanishi
+ * mumkin — operator foiz faqat boshqa materiallarga tushishini tekshiradi. Ustma-ust yo'q — null.
+ */
+export function transportIkkiMarta(
+  qatorlar: readonly TransportQatorKirish[],
+  koef: Partial<Record<NakrutkaKoefKodi, number | null>>,
+): TransportIkkiMartaNatija | null {
+  const mat = { soni: 0, summa: 0, nomalum: false };
+  const ob = { soni: 0, summa: 0, nomalum: false };
+  for (const q of qatorlar) {
+    if (q.tur === 'rz') continue;
+    const nom = kalit(q.nom ?? '');
+    const birlik = kalit(q.birlik ?? '');
+    const kod = kalit(q.kod ?? '');
+    const tkm = TKM_BIRLIK.test(birlik) || /(^|\s)Т·КМ$/.test(kod);
+    const uskuna = TRANSPORT_USKUNA_NOM.test(nom);
+    if (!uskuna && !tkm && !TRANSPORT_MATERIAL_NOM.test(nom)) continue;
+    // т·км ishi va uning resurslari — bitta transport: ish (bl) summasi resurslarnikini takrorlaydi, faqat resurs sanaladi.
+    if (tkm && q.tur === 'bl' && /РАСЧ[ЁЕ]Т\s+Т·КМ/.test(kod)) continue;
+    const g = uskuna ? ob : mat;
+    g.soni++;
+    if (q.summa == null) g.nomalum = true; else g.summa += q.summa;
+  }
+  const trMat = Number(koef.ТРАНСПОРТ_МАТЕРИАЛ ?? 0);
+  const trOb = Number(koef.ТРАНСПОРТ_ОБОРУД ?? 0);
+  const koefKodlari: TransportIkkiMartaNatija['koefKodlari'] = [];
+  if (mat.soni && trMat > 0) koefKodlari.push('ТРАНСПОРТ_МАТЕРИАЛ');
+  if (ob.soni && trOb > 0) koefKodlari.push('ТРАНСПОРТ_ОБОРУД');
+  if (!koefKodlari.length) return null;
+  const qism: string[] = [];
+  if (koefKodlari.includes('ТРАНСПОРТ_МАТЕРИАЛ')) qism.push(`materiallar: ${mat.soni} ta aniq transport qatori (т·км / «Транспортные расходы на привозные материалы») + podvalda ТРАНСПОРТ_МАТЕРИАЛ ${trMat}%`);
+  if (koefKodlari.includes('ТРАНСПОРТ_ОБОРУД')) qism.push(`uskuna: ${ob.soni} ta aniq «перевозка оборудования» qatori + podvalda ТРАНСПОРТ_ОБОРУД ${trOb}%`);
+  return {
+    kod: 'transport_ikki_marta',
+    izoh: `Transport ikki marta sanalishi mumkin — ${qism.join('; ')}. Foiz faqat aniq qatorlarga kirmagan (masalan привозные) materiallarga tushsa — to'g'ri; bir xil materiallarga bo'lsa — foizni 0 qiling yoki aniq qatorlarni olib tashlang.`,
+    koefKodlari,
+    material: { soni: mat.soni, summa: mat.soni && !mat.nomalum ? yaxlit2(mat.summa) : null },
+    uskuna: { soni: ob.soni, summa: ob.soni && !ob.nomalum ? yaxlit2(ob.summa) : null },
+  };
+}
+
+/** Kitobdagi tn·km varaqlarining aniq transport qatorlari (arifmetika isbotlangan, т·км > 0). */
+function kitobTransportQatorlari(kitob: KirishKitob): TransportQatorKirish[] {
+  const chiq: TransportQatorKirish[] = [];
+  for (const v of kitob.varaqlar) {
+    let t: ReturnType<typeof transportQatorlari> = null;
+    try { t = transportQatorlari(kitob.fayl, v); } catch { t = null; }
+    for (const q of t?.qatorlar ?? []) {
+      if (!q.tnKm || !(q.isbot.tnKm || q.isbot.summa)) continue;
+      chiq.push({ tur: 'rs', kod: 'Т·КМ', nom: q.xom, birlik: 'Т·КМ', summa: q.summa });
+    }
+  }
+  return chiq;
+}
+
 export interface NakrutkaOqishOpsiya {
   /** Faqat shu varaqlar (import tanlagan LRV/RES va svod). Berilmasa — kitobdagi hammasi. */
   varaqlar?: readonly string[];
+  /**
+   * Transport ikki marta qo'riqchisi uchun obyekt qatorlari (t2_qator / import daraxti). Berilmasa — kitobdagi tn·km
+   * varaqlari (aniq т·км qatorlari) olinadi.
+   */
+  transportQatorlari?: readonly TransportQatorKirish[];
 }
 
 export function nakrutkaPodvaliniOqi(kitob: KirishKitob, o: NakrutkaOqishOpsiya = {}): NakrutkaPodvalOqish {
@@ -549,6 +639,11 @@ export function nakrutkaPodvaliniOqi(kitob: KirishKitob, o: NakrutkaOqishOpsiya 
   }
   const isbot = zanjirIsboti(qatorlar, koeffitsientlar, manba);
   for (const b of isbot) if (!b.mos) review.push({ kod: 'nakrutka_isbot_nomos', izoh: `${b.nom}: qayta hisob ${b.kutilgan} ≠ hujjat ${b.hujjat} (farq ${b.farq})`, manzil: b.manzil });
+  const ikki = transportIkkiMarta(o.transportQatorlari ?? kitobTransportQatorlari(kitob), koeffitsientlar);
+  if (ikki) {
+    const m = manba[ikki.koefKodlari[0]]?.manzil;
+    review.push({ kod: ikki.kod, izoh: ikki.izoh, ...(m ? { manzil: m } : {}) });
+  }
   const soni = Object.keys(koeffitsientlar).length;
   // Lokal smeta podvali (faqat material/uskuna bloklari): prochie/НДС bu hujjatda yo'q — meros qoladi, «topilmadi» emas.
   const lokal = soni > 0 && koeffitsientlar.ПРОЧИЕ_ПОДРЯДЧИК == null && koeffitsientlar.НДС == null && !qatorlar.some((q) => q.kod === 'prochie' || q.kod === 'nds');
