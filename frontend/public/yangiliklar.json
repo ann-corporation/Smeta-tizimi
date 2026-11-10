@@ -2,6 +2,15 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 135,
+      "sana": "2026-11-11",
+      "sarlavha": "Fakt qoralamasi hisobga xos; internet qaytganda ro'yxatlar yangilanadi",
+      "bandlar": [
+        "Fakt jurnalining saqlanmagan qoralamasi endi har foydalanuvchiga alohida: bir kompyuterda hisob almashsa, boshqa odam sizning qoralamangizni ko'rmaydi. Tizimdan chiqqanda qoralamalar tozalanadi.",
+        "Internet o'chiq holda ochilgan ilovada internet qaytgach yuqoridagi eski xato yo'qoladi, loyiha va obyekt ro'yxati o'zi qayta yuklanadi."
+      ]
+    },
+    {
       "id": 136,
       "sana": "2026-11-11",
       "sarlavha": "Katta obyektlar tezroq ochiladi",
