@@ -2,6 +2,15 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 136,
+      "sana": "2026-11-11",
+      "sarlavha": "Katta obyektlar tezroq ochiladi",
+      "bandlar": [
+        "Smeta daraxti va fakt/F2 holati endi bitta so'rovda yuklanadi (avval o'nlab sahifa) — katta obyektda ochilish bir necha barobar tez.",
+        "F2 tayyorlash faqat kerakli ustunlarni o'qiydi — kamroq ma'lumot uzatiladi. Hisob-kitob va summalar o'zgarmagan."
+      ]
+    },
+    {
       "id": 133,
       "sana": "2026-11-11",
       "sarlavha": "Perevozka smetadagidek: т·км bilan, aniq o'lchovlari bilan",

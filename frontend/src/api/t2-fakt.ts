@@ -164,11 +164,12 @@ export type QatorHolat = {
  * Obyekt holati TO'LIQ (qator_id oynalari bilan, parallel). Avval bitta so'rov edi — server qator chegarasi katta obyektda
  * (masalan 11 942 qator) holatning bir qismini kesardi va F2 tayyorlash ishlarni taklif qilmasdi (egasi 2026-11-05, Amfiteatr).
  */
-export function sbQatorHolatOl(obyektId: number) {
+export function sbQatorHolatOl(obyektId: number, ustunlar?: string) {
   return t2ToliqOqiParallel<QatorHolat>(sbOqi, {
     jadval: 't2_qator_holat',
     filtr: 'obyekt_id=eq.' + obyektId,
     limit: 200000,
+    ...(ustunlar ? { ustunlar } : {}),
   }, 'qator_id');
 }
 
