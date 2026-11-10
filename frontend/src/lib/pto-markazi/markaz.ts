@@ -63,7 +63,7 @@ function yigindi(aktlar: readonly MarkazAkt[], qiymat: (a: MarkazAkt) => number 
     if (v == null || !Number.isFinite(Number(v))) continue;
     s += Number(v); bor = true;
   }
-  return bor ? Math.round(s * 100) / 100 : null;
+  return bor ? s : null;
 }
 
 export function markazHolati(k: MarkazKirish): MarkazHolat {
