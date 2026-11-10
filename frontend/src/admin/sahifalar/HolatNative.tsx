@@ -22,6 +22,7 @@ import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { NDS_SUKUT_FOIZ } from '../../lib/nakopitelniy-vedomost-export';
 import { t } from '../../i18n/til';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
+import { useQaytaUlanish } from '../../desktop/qayta-ulanish';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { ostatkaHujjatQur, slichitelniyHujjatQur, ustamaManbaOl } from '../../lib/oylik-hujjat/ostatka-slichitelniy';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
@@ -72,6 +73,8 @@ export function HolatNative() {
     rows: daraxtXom, states: holatXom, tree, price: priceControlLines,
     loading, yangilanmoqda, error: daraxtXato, yuklash, qatorniYangila, avvalgi, avvalgiTree, qoshimchaHolat, serverTasdiq,
   } = useT2Daraxt(validId ? obyektId : null);
+  /* Tarmoq qaytdi (oflayn boshlangan ilova): eski xato tozalanadi, daraxt qayta o'qiladi (obyektlar/PTO ro'yxati o'zlari yangilanadi). */
+  useQaytaUlanish(useCallback(() => { setError(''); if (validId) void yuklash(); }, [validId, yuklash]));
   /* SMETA CONST (egasi 2026-10-27): asl smeta muhridan farq — daraxt qayta yuklanganda yangilanadi. */
   const muhr = useMuhrFarq(validId ? obyektId : null, daraxtXom);
   useEffect(() => { setOchiqPanel(null); setExportsOpen(false); setActiveTab(panelTab); setError(''); }, [obyektId, joriy?.id, requestedPanel, panelTab]);

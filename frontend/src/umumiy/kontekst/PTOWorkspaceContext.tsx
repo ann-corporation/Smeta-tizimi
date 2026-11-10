@@ -9,6 +9,7 @@ import { obyektlarKeshdan, useIxtiyoriyQueryClient } from '../../api/t2-obyektla
 import { sbT2LoyihalarOl, type Loyiha } from '../../api/t2-loyiha';
 import { hujjatRoyxatOl, type DocRegistry } from '../../api/t2-hujjat-canonical';
 import type { CenterDocument } from '../../components/document-center';
+import { useQaytaUlanish } from '../../desktop/qayta-ulanish';
 
 /**
  * PTO uchun yagona tenant scope.
@@ -422,6 +423,8 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
 
   const clearScope = useCallback(() => updateScope(() => EMPTY_SCOPE, true), [updateScope]);
   const refresh = useCallback(() => setRefreshToken((value) => value + 1), []);
+  // Tarmoq qaytdi (oflayn boshlangan ilova): eski xato tozalanadi, loyiha/obyekt/davrlar qayta o'qiladi.
+  useQaytaUlanish(useCallback(() => { setError(null); setRefreshToken((value) => value + 1); }, []));
   /** Query string for navigating to another route with the current scope and a different object. */
   const scopeSearch = useCallback((objectId: number | null) => {
     const base = latest.current;
