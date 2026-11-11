@@ -41,6 +41,7 @@ import { labYetishmaydi, LAB_TALAB_NOM, aktSifatMuammolari, aktDublikatlari, AKT
 import { zipSync } from 'fflate';
 import { AosrYetishmaydi } from './AosrYetishmaydi';
 import { ZakazchigaYuborish } from '../admin/zakazchik/ZakazchigaYuborish';
+import { AosrFotoBiriktir } from '../admin/nazorat/AosrFotoBiriktir';
 import { OpsKpi, OpsKpiQator, OpsTablar } from '../components/kompaniya-ops/OpsUi';
 
 const ROL_NOMI: Record<string, string> = {
@@ -458,6 +459,7 @@ export default function TestAosr() {
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
                           {a.holat === 'yangi' && kompaniyaId && <span onClick={(e) => e.stopPropagation()}><ZakazchigaYuborish kompaniyaId={kompaniyaId} aktId={a.id} resurs="aosr" /></span>}
+                  {a.holat !== 'bekor' && kompaniyaId && <span onClick={(e) => e.stopPropagation()}><AosrFotoBiriktir kompaniyaId={kompaniyaId} aosrId={a.id} /></span>}
                           <button type="button" onClick={(e) => { e.stopPropagation(); void excel(a); }} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" title={t('Excel (blank)')} aria-label={t('Excel (blank)')}><FileSpreadsheet /></button>
                           <button type="button" onClick={(e) => { e.stopPropagation(); void bekorQil(a); }} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" title={t('Bekor qilish')} aria-label={t('Bekor qilish')}><Unlink /></button>
                         </div>
