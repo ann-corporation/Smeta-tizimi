@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 143,
+      "sana": "2026-11-11",
+      "sarlavha": "Ijro hujjatlari: «Nima yetishmayapti» va butun paket",
+      "bandlar": [
+        "АОСР sahifasi tepasida «Nima yetishmayapti» paneli: yashirin ish bajarilgan, lekin АОСР yo‘q qatorlar smeta razdeli bo‘yicha. Razdel yonidagi bitta tugma — shu razdel uchun АОСР qoralamasi tayyor (ish nomi, hajm, materiallar, fakt sanalari, imzochilar). Holat doim «Qoralama» — tasdiqlashni o‘zingiz qilasiz.",
+        "Akt reestri endi bir xil tartibda: razdel → ish sanasi → raqam; tartib raqami uzilishsiz. Raqamlarda bo‘shliq/takror va beton, grunt zichlash, payvand kabi ishlarda ulanmagan laboratoriya protokoli ogohlantirish bo‘lib chiqadi (bloklamaydi).",
+        "«Butun paket» tugmasi: reestr + hamma АОСР (va protokollar reestri) bitta ZIP faylda."
+      ]
+    },
+    {
       "id": 142,
       "sana": "2026-11-11",
       "sarlavha": "Obyekt sahifasida «Ish varag‘i» rejimi (sinov)",
