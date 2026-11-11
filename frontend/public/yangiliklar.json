@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 154,
+      "sana": "2026-11-11",
+      "sarlavha": "Aqliy xarita — boshqaruv pulti",
+      "bandlar": [
+        "Aqliy xarita endi boshqaruv pulti: kompaniya → loyiha → shartnoma → obyekt daraxti, nomlar to‘liq ko‘rinadi, tomonlar va resurslar yonida; obyektda fakt, F2, qoldiq va muammolar (takrorsiz).",
+        "Tugundan «⋯» orqali yangi loyiha, obyekt, shartnoma yaratish, biriktirish, uzish va nomini o‘zgartirish mumkin — har amal avval ko‘rsatiladi, tasdiqlagandan keyingina bajariladi.",
+        "Obyektda «Keyingi qadam» tugmasi (smeta, fakt, F2, F3, АОСР) va smeta bo‘limlari; 3D graf olib tashlandi, qolgan ko‘rinishlar «Boshqa ko‘rinishlar» ostida."
+      ]
+    },
+    {
       "id": 153,
       "sana": "2026-11-11",
       "sarlavha": "Matnlar sodda tilga o‘tkazildi",

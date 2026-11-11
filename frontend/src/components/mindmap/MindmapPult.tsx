@@ -20,7 +20,7 @@ import { Bajarilish, HolatChiziq, Romb } from './belgilar';
 import { foizMatn, holatNomi, pulQ } from './holat';
 import { rolNomi } from '../../lib/mindmap-pult';
 
-export type BolimlarOl = (obyektId: number) => Promise<{ ok: true; bolimlar: ObyektBolimi[] } | { ok: false; error: string }>;
+export type BolimlarOl = { (obyektId: number): Promise<{ ok: true; bolimlar: ObyektBolimi[] } | { ok: false; error: string }> };
 
 type Props = {
   ildiz: PultTugun;

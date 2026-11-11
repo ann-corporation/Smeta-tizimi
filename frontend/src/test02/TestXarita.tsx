@@ -634,10 +634,14 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
     kontekst: { tahrir: ruxsat, yozuvchi: pultYoz },
     bolimlarOl: obyektBolimlariOl,
     onTugadi: ({ yamoq }: PultTugatdi) => {
-      if (yamoq) { setGrafToliq((g) => grafgaYamoq(g, yamoq)); setGraf((g) => grafgaYamoq(g, yamoq)); }
+      if (yamoq) {
+        // Xotira keshi ham yamoqlanadi: qayta ochilganda eski bog'lanish ko'rinib qolmasin.
+        setGrafToliq((g) => { const n = grafgaYamoq(g, yamoq); grafKesh.set(aktKomp, { g: n, t: Date.now() }); return n; });
+        setGraf((g) => grafgaYamoq(g, yamoq));
+      }
       void yangila();
     },
-  }), [ruxsat, pultYoz, yangila]);
+  }), [ruxsat, pultYoz, yangila, aktKomp]);
 
   const tugunMuammolari = (t: MindmapTugun) => (Array.isArray(t.meta?.belgi) ? t.meta.belgi : []) as MindmapBelgi[];
   const qidiruvKalit = qidiruv.trim().toLocaleLowerCase('uz-UZ');

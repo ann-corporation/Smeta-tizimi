@@ -44,7 +44,6 @@ beforeAll(() => {
   if (!('ResizeObserver' in globalThis)) (globalThis as any).ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
 });
 beforeEach(() => {
-  window.sessionStorage.clear();
   m.graf.mockReset();
   m.graf.mockImplementation(async () => ({ ok: true, graf: grafFixture() }));
   m.kompaniya.current = kontekst(joriy());
