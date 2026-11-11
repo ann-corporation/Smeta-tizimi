@@ -63,7 +63,7 @@ export function F2ResursVedomosti({ qatorlar, kodOl, obyektId, kompaniyaId, onQo
         {tk.xabar && <span className="text-warn">{t(tk.xabar)}</span>}
         <button type="button" onClick={() => onQollash(x.qatorIds, tk.narx)} className="ml-auto rounded-md border border-accent/40 px-2 py-0.5 font-semibold text-text hover:bg-accent/10">{t('Narxni qo‘llash')}</button>
       </div>)}
-      {chetda > 0 && <div className="text-[10px] text-text-mute">{t('NDS bilan/noma’lum narxlar ko‘rsatilmadi: {n}', { n: String(chetda) })}</div>}
+      {chetda > 0 && <div className="text-[10px] text-text-mute">{t('QQS bilan/noma’lum narxlar ko‘rsatilmadi: {n}', { n: String(chetda) })}</div>}
     </div>;
   };
 
@@ -91,6 +91,6 @@ export function F2ResursVedomosti({ qatorlar, kodOl, obyektId, kompaniyaId, onQo
         })}
       </tbody></table>
     </section>)}
-    <div className="text-[10px] text-text-mute">{t('Narx NDS siz. Taklif avtomatik yozilmaydi — «Narxni qo‘llash» faqat F2 qatoriga yozadi (asl smeta o‘zgarmaydi).')}</div>
+    <div className="text-[10px] text-text-mute">{t('Narx QQS siz. Taklif avtomatik yozilmaydi — «Narxni qo‘llash» faqat F2 qatoriga yozadi (asl smeta o‘zgarmaydi).')}</div>
   </div>;
 }

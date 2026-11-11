@@ -2,6 +2,7 @@
 import type { TizimHodisa } from '../../../api/t2-tizim-xaritasi';
 import { t } from '../../../i18n/til';
 import { modulNomi, oldin } from '../../../lib/tizim-xaritasi';
+import { kimMatni } from '../../../lib/raqam-belgi';
 
 const DARAJA_RANG: Record<string, string> = { critical: 'var(--danger)', error: 'var(--danger)', warning: 'var(--warn)' };
 
@@ -12,7 +13,7 @@ export function HodisaLenta({ hodisalar, onTanla, hozir }: { hodisalar: TizimHod
       {hodisalar.map((h, i) => {
         const nishon = h.kompaniya_id != null && h.modul ? `modul:${h.kompaniya_id}:${h.modul}` : h.kompaniya_id != null ? `kompaniya:${h.kompaniya_id}` : null;
         const rang = DARAJA_RANG[h.daraja] ?? 'var(--border-strong)';
-        const kimdan = h.kim_nom || h.kim || '';
+        const kimdan = kimMatni(h.kim, h.kim_nom) || '';
         const joy = [h.kompaniya_nom, h.modul ? modulNomi(h.modul) : null].filter(Boolean).join(' · ');
         return (
           <li key={i}>

@@ -4,6 +4,7 @@ import { t } from '../../i18n/til';
 import { AiQadamlar } from './AiQadamlar';
 import { HARAKAT_NOMI } from './ai-harakat';
 import { harakatMuhr, tokenMatn } from '../../lib/ai-korinish';
+import { kimMatni } from '../../lib/raqam-belgi';
 
 const TUR: Record<string, string> = { savol: 'Savol', rad: 'Doiradan tashqari (rad)', salom: 'Salomlashuv', xato: 'Xato' };
 const HOLAT: Record<string, string> = { kutilmoqda: 'Tasdiq kutmoqda', tasdiqlandi: 'Tasdiqlandi', rad: 'Rad etildi', bajarildi: 'Bajarildi', xato: 'Xato' };
@@ -32,7 +33,7 @@ export function AiJurnal({ kompaniyaId, admin }: { kompaniyaId: number; admin: b
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-text-mute">
             <span className={`fz-stamp ${j.rad ? 'fz-stamp--warn' : j.tur === 'xato' ? 'fz-stamp--danger' : 'fz-stamp--info'}`}>{t(TUR[j.tur] ?? j.tur)}</span>
             <span>{new Date(j.vaqt).toLocaleString('ru-RU')}</span>
-            {j.kim && <span>· {j.kim}</span>}
+            {kimMatni(j.kim) && <span>· {kimMatni(j.kim)}</span>}
             <span className="ml-auto tabular-nums">{j.model && j.model !== 'local' ? `${j.model} · ${j.kirish_token + j.chiqish_token} ${t('token')}` : t('token sarflanmadi')}</span>
           </div>
           {j.model && j.model !== 'local' && (() => { const kir = tokenMatn(j.kirish_token), chiq = tokenMatn(j.chiqish_token); return (

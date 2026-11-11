@@ -9,6 +9,7 @@ import { bosqich, type F2Bosqich, type ReestrAkt, type ReestrQator } from '../..
 import { reestrUlush } from '../../lib/f2-reestr/reestr-korinish';
 import type { F2Bolim, F2Ish, F2Resurs } from '../../lib/f2-tayyor';
 import type { Ustun } from '../../umumiy/jadval-filtr/ustunFiltr';
+import { raqamTozala } from '../../lib/raqam-belgi';
 
 export const BOSQICH_NOMI: Record<F2Bosqich, string> = { tasdiqlangan: 'Tasdiqlangan', jarayonda: 'Jarayonda', rad: 'Rad etilgan', bekor: 'Bekor qilingan' };
 export const davrMatni = (oy: string | null | undefined): string => (oy ? davrNomi(oy, tilLocale()) || oy.slice(0, 7) : '');
@@ -25,7 +26,7 @@ export function reestrHolatMatni(q: ReestrQator): string | null {
   return s.length ? s.join(', ') : null;
 }
 export function shartnomaMatni(q: ReestrQator): string | null {
-  return q.shartnomalar.length ? q.shartnomalar.map((s) => `№ ${s.raqam}${s.nom ? ` · ${s.nom}` : ''}`).join('; ') : null;
+  return q.shartnomalar.length ? q.shartnomalar.map((s) => `№ ${raqamTozala(s.raqam)}${s.nom ? ` · ${s.nom}` : ''}`).join('; ') : null;
 }
 /** Summa ustuni: akt bo'lmasa — bo'sh (katakda «—»). Ma'lum qism (noma'lumlar chip bilan alohida). */
 const summaQiymat = (s: { malum: number; soni: number }): number | null => (s.soni ? s.malum : null);

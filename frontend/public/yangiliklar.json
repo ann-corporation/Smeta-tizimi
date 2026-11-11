@@ -2,12 +2,23 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 153,
+      "id": 154,
       "sana": "2026-11-11",
       "sarlavha": "Tizim axlatdan tozalandi",
       "bandlar": [
         "Hech qayerda ishlatilmaydigan eski sahifalar, bir martalik skriptlar va nusxalar olib tashlandi: ishlaydigan funksiyalar o'zgarmadi.",
         "Tizim yengilroq va tartiblirog' bo'ldi; foydalanuvchi ma'lumotlari va hisob-kitoblarga tegilmadi."
+      ]
+    },
+    {
+      "id": 153,
+      "sana": "2026-11-11",
+      "sarlavha": "Matnlar sodda tilga o‘tkazildi",
+      "bandlar": [
+        "Ekrandagi texnik so‘zlar (kanonik, NULL, DS, actor:4, «Basis», jadval nomlari) oddiy o‘zbekchaga almashtirildi: DS — «qo‘shimcha kelishuv», NDS — «QQS».",
+        "Shartnoma raqami endi «№ №5» emas, «№ 5» ko‘rinadi. Loyiha ishtirokchilari sahifasi to‘liq o‘zbekcha; ishlamaydigan taklif tugmasi o‘chirib qo‘yildi va sababi aytilgan.",
+        "«Tizimda nima yangi» oynasi endi jadvalni yopmaydi: yuqorida kichik chip, batafsil — «Batafsil» bosilganda; 15 soniyadan keyin o‘zi yo‘qoladi.",
+        "Bo‘sh holatlar keyingi qadamni aytadi (obyekt tanlang, smeta yuklang, ikkinchi smeta faylini yuklang). «Smetadan oshgan» ro‘yxatida uzun nomlar kesilmaydi."
       ]
     },
     {

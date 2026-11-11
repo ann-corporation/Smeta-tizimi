@@ -88,16 +88,16 @@ function Overview({ data, summary, demo }: { data: SystemControlData; summary: {
           <div className="mt-3 flex items-center gap-3">
             <div className="rounded-md p-3" style={{ color: tone, background: `color-mix(in srgb, ${tone} 14%, transparent)` }}><Gauge size={28} aria-hidden="true" /></div>
             <div><h2 className="fz-card__title">{t('Markaziy operatsion ko‘rinish')}</h2>
-              {demo && <p className="fz-card__sub">{t('Holat real transport contracti ulanmaguncha demo data bilan belgilangan.')}</p>}</div>
+              {demo && <p className="fz-card__sub">{t('Haqiqiy ma’lumot ulanmaguncha namunaviy (demo) qiymatlar ko‘rsatiladi.')}</p>}</div>
           </div>
         </div>
         <div className="flex items-center justify-start lg:justify-end"><SystemStatusBadge status={overall} className="px-3 py-1.5 text-[13px]" /></div>
       </div>
       <div className="grid grid-cols-2 border-t border-border sm:grid-cols-4">
-        <SummaryCard label={t('Active modules')} value={summary.active} rang="var(--accent)" Icon={Boxes} />
-        <SummaryCard label={t('Warnings')} value={summary.warnings} rang="var(--warn)" Icon={ShieldAlert} />
-        <SummaryCard label={t('Failed jobs')} value={summary.failedJobs} rang="var(--danger)" Icon={AlertOctagon} />
-        <SummaryCard label={t('Open incidents')} value={summary.openIncidents} rang="var(--danger)" Icon={AlertOctagon} />
+        <SummaryCard label={t('Faol modullar')} value={summary.active} rang="var(--accent)" Icon={Boxes} />
+        <SummaryCard label={t('Ogohlantirishlar')} value={summary.warnings} rang="var(--warn)" Icon={ShieldAlert} />
+        <SummaryCard label={t('Xato bilan tugagan ishlar')} value={summary.failedJobs} rang="var(--danger)" Icon={AlertOctagon} />
+        <SummaryCard label={t('Ochiq muammolar')} value={summary.openIncidents} rang="var(--danger)" Icon={AlertOctagon} />
       </div>
     </section>
     <section className="grid gap-3 md:grid-cols-3">
@@ -106,17 +106,17 @@ function Overview({ data, summary, demo }: { data: SystemControlData; summary: {
       <GrafikPanel sarlavha={t('Fon ishlari')} ong={data.jobs.length}><Tasma label={t('Fon ishlari')} qismlar={ishlar} /><Legenda qatorlar={ishlar.map((h) => ({ ...h, qiymat: h.qiymat }))} /></GrafikPanel>
     </section>
     <section>
-      <div className="mb-4 flex items-center gap-2"><HardDrive size={18} className="text-[var(--accent-text)]" aria-hidden="true" /><h2 className="fz-card__title">{t('System health')}</h2></div>
+      <div className="mb-4 flex items-center gap-2"><HardDrive size={18} className="text-[var(--accent-text)]" aria-hidden="true" /><h2 className="fz-card__title">{t('Tizim qismlarining holati')}</h2></div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{data.health.map((item) => <SystemHealthCard health={item} key={item.id} />)}</div>
     </section>
     <section className="grid gap-5 lg:grid-cols-[1fr_.9fr]">
       <div className="fz-card">
-        <div className="fz-card__head"><div><h2 className="fz-card__title">{t('Versiya va muhit')}</h2><p className="fz-card__sub">{t('Release ma’lumotlari frontend contractidan olinadi.')}</p></div></div>
+        <div className="fz-card__head"><div><h2 className="fz-card__title">{t('Versiya va muhit')}</h2><p className="fz-card__sub">{t('Ilova versiyasi haqida ma’lumot.')}</p></div></div>
         <dl className="divide-y divide-border text-[13px]">
-          <VersionRow icon={<Database size={15} />} label="Frontend commit" value={data.version.frontendCommit} />
-          <VersionRow icon={<ServerCog size={15} />} label="Backend / schema" value={data.version.backendSchemaVersion} />
-          <VersionRow icon={<HardDrive size={15} />} label="GAS deployment" value={data.version.gasDeploymentVersion} />
-          <VersionRow icon={<Network size={15} />} label="Environment" value={data.version.environment} />
+          <VersionRow icon={<Database size={15} />} label={t('Ilova versiyasi')} value={data.version.frontendCommit} />
+          <VersionRow icon={<ServerCog size={15} />} label={t('Server va baza versiyasi')} value={data.version.backendSchemaVersion} />
+          <VersionRow icon={<HardDrive size={15} />} label={t('Eski skript versiyasi')} value={data.version.gasDeploymentVersion} />
+          <VersionRow icon={<Network size={15} />} label={t('Muhit')} value={data.version.environment} />
         </dl>
       </div>
       <div className="fz-card p-5">
@@ -126,7 +126,7 @@ function Overview({ data, summary, demo }: { data: SystemControlData; summary: {
             <div className="flex w-full justify-between gap-2"><span className="font-mono text-[12px] text-danger">{item.code}</span><SystemStatusBadge status={item.severity} /></div>
             <p className="text-[13px]">{item.message}</p>
           </div>)}
-          {!data.incidents.length && <p className="text-[13px] text-text-dim">{t('Ochiq incidentlar yo‘q.')}</p>}
+          {!data.incidents.length && <p className="text-[13px] text-text-dim">{t('Ochiq muammolar yo‘q.')}</p>}
         </div>
       </div>
     </section>
