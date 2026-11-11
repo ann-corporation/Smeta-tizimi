@@ -12,7 +12,7 @@ import { sha256Hex, type Db, type Log, type R2 } from '../snapshot-r2/sovuq';
 export type R2Oqish = Pick<R2, 'get'>;
 
 const enc = new TextEncoder();
-const dec = new TextDecoder('utf-8', { fatal: true });
+const dec = new TextDecoder('utf-8', { fatal: true } as unknown as ConstructorParameters<typeof TextDecoder>[1]);
 const gz = (matn: string): Uint8Array => gzipSync(enc.encode(matn), { level: 9 });
 const gunzipMatn = (b: Uint8Array): string => dec.decode(gunzipSync(b));
 
