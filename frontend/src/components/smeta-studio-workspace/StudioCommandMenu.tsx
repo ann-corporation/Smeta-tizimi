@@ -4,11 +4,13 @@ import { indexEstimate } from '../smeta-studio-pro/hierarchy';
 import { t } from '../../i18n/til';
 
 export type DeskAction='catalog'|'coefficients'|'resources'|'ai'|'calculator'|'review'|'save';
+/** Studio tez amallari — Ctrl+K endi yagona yordamchi (Jarvis): shu ro'yxat u yerga reestr orqali beriladi (lib/yordamchi/sahifa-amal-store). */
+export const studioAmallar=():{id:DeskAction;label:string}[]=>[{id:'catalog',label:t('Katalogdan ish qo‘shish')},{id:'coefficients',label:t('Tanlangan ish koeffitsientlari')},{id:'resources',label:t('Tanlangan ish resurslari')},{id:'ai',label:t('Smetachi AI bilan ishlash')},{id:'calculator',label:t('Hajm kalkulyatori')},{id:'review',label:t('Smetani tekshirish')},{id:'save',label:t('Serverga saqlash')}];
 export function StudioCommandMenu({doc,onWork,onAction,onClose}:{doc:EstimateDoc;onWork:(id:string)=>void;onAction:(action:DeskAction)=>void;onClose:()=>void}) {
   const dialog=useRef<HTMLDialogElement>(null),input=useRef<HTMLInputElement>(null);
   const [query,setQuery]=useState(''),[index,setIndex]=useState(0);
   const works=useMemo(()=>indexEstimate(doc).rows.filter(r=>r.kind==='work'),[doc]);
-  const actions: {id:DeskAction;label:string}[]=[{id:'catalog',label:t('Katalogdan ish qo‘shish')},{id:'coefficients',label:t('Tanlangan ish koeffitsientlari')},{id:'resources',label:t('Tanlangan ish resurslari')},{id:'ai',label:t('Smetachi AI bilan ishlash')},{id:'calculator',label:t('Hajm kalkulyatori')},{id:'review',label:t('Smetani tekshirish')},{id:'save',label:t('Serverga saqlash')}];
+  const actions=studioAmallar();
   const q=query.trim().toLocaleLowerCase();
   const options=[...actions.filter(a=>a.label.toLocaleLowerCase().includes(q)).map(a=>({key:a.id,label:a.label,kind:t('Amal'),run:()=>onAction(a.id)})),...works.filter(w=>`${w.code} ${w.label}`.toLocaleLowerCase().includes(q)).slice(0,40).map(w=>({key:w.key,label:`${w.code} · ${w.label}`,kind:t('Ish'),run:()=>onWork(w.occurrenceId!)}))];
   useEffect(()=>{const previous=document.activeElement;dialog.current?.showModal?.();input.current?.focus();return()=>{if(previous instanceof HTMLElement)previous.focus();};},[]);
