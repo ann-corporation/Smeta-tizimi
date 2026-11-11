@@ -280,7 +280,7 @@ export default function NarxlarNative() {
   return (
     <Sahifa
       sarlavha="Narxlar markazi"
-      tavsif="Supabase registri: narx manbasi va uning hisobga olinishi aniq ko‘rinadi"
+      tavsif="Narx manbasi va uning hisobga olinishi aniq ko‘rinadi"
       amallar={<button onClick={() => void yukla()} disabled={yuklanmoqda} className="fz-btn fz-btn--ghost">
         <RefreshCw size={15} className={yuklanmoqda ? 'animate-spin' : ''} /> {t('Yangilash')}
       </button>}

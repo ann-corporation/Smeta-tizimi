@@ -45,6 +45,9 @@ const vaqt = (iso: string | null | undefined, sana = false) => {
 export default function BossDashboard() {
   const { joriy } = useKompaniya();
   const q = useBossDashboard(joriy?.id);
+  /* Tezlik: Portfolio faqat boss paneli kelgach ochiladi — rahbar paneli so'rovi shu paytgacha kutardi (ketma-ket).
+     Shu kalit (davr = hammasi) bilan parallel boshlanadi; Portfolio va ProjectNavigator keshdan oladi. */
+  useRahbarPanel(joriy?.id, davrOraligi('hammasi'));
   if (!joriy?.id) return <KompaniyaKerak nima={t('Rahbar paneli')} />;
   const data = q.data?.kompaniya.kompaniya_id === joriy.id ? q.data : undefined;
   const yangila = () => void q.refetch();

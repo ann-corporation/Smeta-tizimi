@@ -394,7 +394,7 @@ export function HolatNative() {
         </section>}
 
         {!validId && (
-          <div className="fz-note fz-note--warn"><AlertTriangle aria-hidden="true" /><span>{t('Eski matnli obyekt havolasi kanonik identity emas. Yuqoridan obyektni tanlang — sahifa keyin faqat raqamli `t2_obyekt.id` bilan ishlaydi.')}</span></div>
+          <div className="fz-note fz-note--warn"><AlertTriangle aria-hidden="true" /><span>{t('Havoladagi obyekt aniqlanmadi. Yuqoridan obyektni ro‘yxatdan tanlang.')}</span></div>
         )}
         {error && <div role="alert" className="fz-note fz-note--danger"><AlertTriangle aria-hidden="true" /><span>{error}</span></div>}
         {eksportXato && <div role="alert" className="fz-note fz-note--danger"><AlertTriangle aria-hidden="true" /><span>{eksportXato}</span></div>}
@@ -405,7 +405,7 @@ export function HolatNative() {
         {daraxtKorinadi && !loading && !error && tree.length === 0 && (
           <div className="fz-note fz-note--info items-center">
             <Info aria-hidden="true" />
-            <span className="flex-1">{t('Bu obyektda kanonik smeta qatorlari yo‘q.')}</span>
+            <span className="flex-1">{t('Bu obyektda hali smeta yuklanmagan. Smeta faylini yuklang — qatorlar shu yerda paydo bo‘ladi.')}</span>
             <button type="button" className="fz-btn fz-btn--sm fz-btn--primary" onClick={() => setActiveTab('yuklash')}><Upload aria-hidden="true" />{t('Smeta yuklash')}</button>
           </div>
         )}

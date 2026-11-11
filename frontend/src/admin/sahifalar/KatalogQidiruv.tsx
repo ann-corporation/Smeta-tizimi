@@ -66,7 +66,7 @@ export function KatalogQidiruv() {
         <div className="overflow-auto rounded-lg border border-border">
           <table className="w-full min-w-[900px] text-[12px]">
             <thead className="bg-white/[.03] text-left text-[11px] text-text-mute">
-              <tr><th className="p-2">{t('Nomi')}</th><th className="p-2">{t('Birlik')}</th><th className="p-2 text-right">{t('Narx')}</th><th className="p-2">{t('NDS')}</th><th className="p-2">{t('Ishlab chiqaruvchi')}</th><th className="p-2">{t('Hudud')}</th><th className="p-2">{t('Davr')}</th></tr>
+              <tr><th className="p-2">{t('Nomi')}</th><th className="p-2">{t('Birlik')}</th><th className="p-2 text-right">{t('Narx')}</th><th className="p-2">{t('QQS')}</th><th className="p-2">{t('Ishlab chiqaruvchi')}</th><th className="p-2">{t('Hudud')}</th><th className="p-2">{t('Davr')}</th></tr>
             </thead>
             <tbody>
               {natija.map((q) => (
@@ -74,7 +74,7 @@ export function KatalogQidiruv() {
                   <td className="max-w-[420px] p-2 text-text">{q.nom}{q.guruh && <div className="text-[10px] text-text-mute">{q.guruh}</div>}</td>
                   <td className="p-2 text-text-dim">{q.birlik}</td>
                   <td className="p-2 text-right tabular-nums text-text">{pul(q.narx)}</td>
-                  <td className="p-2 text-text-dim">{q.nds_holati === 'nds_siz' ? t('NDS siz') : q.nds_holati === 'nds_bilan' ? t('NDS bilan') : (q.nds_izoh ?? '')}</td>
+                  <td className="p-2 text-text-dim">{q.nds_holati === 'nds_siz' ? t('QQS siz') : q.nds_holati === 'nds_bilan' ? t('QQS bilan') : (q.nds_izoh ?? '')}</td>
                   <td className="max-w-[220px] p-2 text-text-dim">{q.ishlab_chiqaruvchi}</td>
                   <td className="p-2 text-text-dim">{q.hudud}</td>
                   <td className="p-2 text-text-dim">{q.yil ? `${q.yil}${q.kvartal ? `-${q.kvartal}` : ''}` : ''}</td>

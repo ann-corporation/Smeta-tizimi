@@ -17,6 +17,7 @@ import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { toast } from '../../umumiy/ui/Toast';
 import type { ImzoNomlar } from '../../lib/hujjat-yozuvchi';
+import { raqamTozala } from '../../lib/raqam-belgi';
 
 export type F3Rejim = 'obyekt' | 'shartnoma';
 
@@ -125,7 +126,7 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
         return;
       }
       const tk = await hujjatTokenBilan(
-        { kompaniyaId: companyId, bytes: h.bytes, hujjat: 'F3', sabab: `Форма №3 (договор) · № ${sh.raqam} · ${oy}` },
+        { kompaniyaId: companyId, bytes: h.bytes, hujjat: 'F3', sabab: `Форма №3 (договор) · № ${raqamTozala(sh.raqam)} · ${oy}` },
         () => downloadBlob(h.bytes, h.faylNomi),
       );
       if (!tk.ok) { toast(tk.xabar, 'danger'); return; }
@@ -151,7 +152,7 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
           <select className="input" aria-label={t('Shartnoma')} value={shartnomaId ?? ''} disabled={!!ishlayapti}
             onChange={(e) => setShartnomaId(e.target.value ? Number(e.target.value) : null)}>
             <option value="">{t('— tanlang —')}</option>
-            {shartnomalar.map((s) => <option key={s.id} value={s.id}>№ {s.raqam}{s.nom ? ` — ${s.nom}` : ''}</option>)}
+            {shartnomalar.map((s) => <option key={s.id} value={s.id}>№ {raqamTozala(s.raqam)}{s.nom ? ` — ${s.nom}` : ''}</option>)}
           </select>
         </label>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

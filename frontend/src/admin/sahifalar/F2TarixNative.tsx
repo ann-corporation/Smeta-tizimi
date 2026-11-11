@@ -464,7 +464,7 @@ export function F2TarixNative() {
                         // m3: QQS bilan — asosiy, ostida ustamali va ustamasiz (yadro `f2AktBaho`, aktning o'z podvali bilan).
                         const m = moliya.get(akt.id);
                         return m ? <QiymatUchlik q={serverUchligi({ itogo4: m.ustamali, vsego: m.jami }, m.ustamasiz)} kichik tafsilYoq />
-                          : <span title={t('ustamasiz, NDS siz — ustamali summa hujjat ichida')}><FmtN val={akt.hujjat_jami} kasr={0} /></span>;
+                          : <span title={t('ustamasiz, QQS siz — ustamali summa hujjat ichida')}><FmtN val={akt.hujjat_jami} kasr={0} /></span>;
                       })()}</span>
                       <span className="fz-list__sub" style={{ gridColumn: '1 / -1' }}>
                         <span className={`fz-stamp ${stampCls(st)}`}>{t(holatYorligi(akt))}</span>

@@ -11,6 +11,7 @@ import { f2ReestrYoz, sverkaImportXato } from '../../api/t2-sverka-import';
 import { reestrCsvOqi, reestrMosla, type ReestrTahlil } from '../../lib/sverka-1c/reestr-csv';
 import type { MoslashShartnoma, TizimShartnoma } from '../../lib/sverka-1c/turlar';
 import { pul, raqamUstun } from './yordamchi';
+import { raqamTozala } from '../../lib/raqam-belgi';
 
 export function F2ReestrBolimi({ companyId, shartnomalar, moslash, yangila }: { companyId: number; shartnomalar: TizimShartnoma[]; moslash: MoslashShartnoma[]; yangila: () => unknown }) {
   const [tahlil, setTahlil] = useState<ReestrTahlil | null>(null);
@@ -62,7 +63,7 @@ export function F2ReestrBolimi({ companyId, shartnomalar, moslash, yangila }: { 
                 <td>
                   <select aria-label={t('Shartnoma')} className="input" style={{ height: 28, fontSize: 12 }} value={q.shartnomaId ?? ''} onChange={(e) => setTanlov({ ...tanlov, [q.qator]: e.target.value ? Number(e.target.value) : null })}>
                     <option value="">{t('— tanlang —')}</option>
-                    {shartnomalar.map((s) => <option key={s.id} value={s.id}>№ {s.raqam}</option>)}
+                    {shartnomalar.map((s) => <option key={s.id} value={s.id}>№ {raqamTozala(s.raqam)}</option>)}
                   </select>
                 </td>
                 <td>{q.aktId != null ? <span className="fz-chip fz-chip--accent">{t('topildi')}</span> : <span className="fz-chip fz-chip--warn">{t('tizimda F2 yo‘q')}</span>}</td>

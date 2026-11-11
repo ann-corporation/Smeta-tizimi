@@ -23,6 +23,7 @@ import { RESURS_YOLI } from '../../lib/mindmap-yollar';
 import { Avatar, JamoaPanel, MasullarBlok, OdamPanel, type MasulBoshqaruv } from './XaritaJamoa';
 import { guruhNomi as guruhNomiOl } from './jamoa-nomlar';
 import { resursNishoni, tugunNishoni, type AmalNishon } from '../../lib/mindmap-amallar';
+import { kimMatni } from '../../lib/raqam-belgi';
 
 export type HodisaHolati = { qatorlar: Hodisa[]; yuklanmoqda: boolean; xato: string };
 
@@ -274,7 +275,7 @@ export function XaritaPanel({ daraxt, graf, tanlangan, onTanla, guruhNomi, hodis
                   <li key={h.id} className="relative text-[12px]">
                     <span aria-hidden className="absolute -left-[16.5px] top-1.5 h-[7px] w-[7px] rotate-45 bg-[var(--accent)]" />
                     <div className="text-text">{h.satr || h.tafsilot || h.amal_turi}</div>
-                    <div className="text-text-mute">{qachon(h.yaratilgan_vaqt) + (h.kim ? ' · ' + h.kim : '')}</div>
+                    <div className="text-text-mute">{qachon(h.yaratilgan_vaqt) + (kimMatni(h.kim) ? ' · ' + kimMatni(h.kim) : '')}</div>
                   </li>
                 ))}
               </ol>
