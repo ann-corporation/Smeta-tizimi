@@ -89,7 +89,7 @@ export function amalIlovasi(amal: string | null | undefined): IlovaKod | null {
 
 /** `/api/sb` o'qish RPC (`soro`) → ilova. */
 export const SORO_ILOVA: Readonly<Record<string, IlovaKod>> = {
-  qarzdorlik_royxat_v1: 'moliya',
+  qarzdorlik_royxat_v1: 'moliya', qarz_svod_v1: 'moliya',
   sklad_kirim_royxat_v1: 'logistika',
   hr_xodimlar_v1: 'hr', hr_oy_v1: 'hr', hr_kpi_v1: 'hr', hr_oylik_buxgalteriya_v1: 'hr',
   bux_holat_v1: 'moliya', bux_jurnal_v1: 'moliya', bux_osv_v1: 'moliya', bux_kontragent_v1: 'moliya', bux_nds_v1: 'moliya', bux_tolov_v1: 'moliya',
