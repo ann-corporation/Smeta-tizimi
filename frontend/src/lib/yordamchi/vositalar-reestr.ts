@@ -35,9 +35,10 @@ export const STATIK_VOSITALAR: readonly YordamchiVosita[] = [
   { id: 'yozuv.korsat', tur: 'oqish', nom: 'Qatorni ko‘rsatish', misol: ['shu qatorni ko‘rsat'], tasdiq: 'yoq', manba: 'AI buyruq: korsat (hech narsa yozilmaydi)', modelNomi: 'korsat' },
   { id: 'qoralama.f2', tur: 'navigatsiya', nom: 'F2 qoralamasi (oy uchun): F2 tayyorlash sahifasini obyekt va oy bilan ochadi', misol: ['Amfiteatr oktabr F2 tayyorla'], tasdiq: 'yoq', manba: '/admin/f2-tayyorlash?obyekt&oy — tasdiqlash faqat sahifada, qo‘lda' },
   { id: 'qoralama.aosr', tur: 'navigatsiya', nom: 'АОСР qoralamasi: АОСР sahifasini ochadi', misol: ['АОСР tayyorla'], tasdiq: 'yoq', manba: '/admin/aosr — tasdiqlash faqat sahifada, qo‘lda' },
+  { id: 'foto.hisobot', tur: 'navigatsiya', nom: 'Foto-dalil va foto-hisobot: foto sahifasini obyekt bilan ochadi (yuklash, lenta, Excel/PDF hisobot)', misol: ['Amfiteatr foto hisobot', 'foto yukla'], tasdiq: 'yoq', manba: '/admin/foto?obyekt — yuklash va AI tavsifi sahifada (AI faqat taklif, token yechadi)' },
 ];
 
-const slug = (yol: string) => yol.replace(/^\/admin\//, '').replace(/[^a-z0-9]+/gi, '_');
+const slug =(yol: string) => yol.replace(/^\/admin\//, '').replace(/[^a-z0-9]+/gi, '_');
 
 /** Navigatsiya vositalari: ro'yxatdagi (yoki berilgan ruxsatli) HAR sahifa uchun bittadan. */
 export function navVositalar(sahifalar: readonly YordamchiSahifa[] = NAV_SAHIFALAR.map((s) => ({ yol: s.yol, nom: s.nom }))): YordamchiVosita[] {
