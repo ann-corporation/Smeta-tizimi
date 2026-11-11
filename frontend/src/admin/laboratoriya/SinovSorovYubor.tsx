@@ -12,7 +12,7 @@ import { inp, tugma, tugmaAsosiy } from '../zakazchik/tomon-yordam';
 
 export type SorovKontekst = { obyektId: number; aosrId?: number | null; aosrNom?: string | null; qatorId?: number | null; qatorNom?: string | null; aslSorovId?: number | null; sinovTuri?: string };
 
-export const turNomi = (x: Pick<SinovTuri, 'nom' | 'nom_ru'>) => (tilOl() === 'ru' && x.nom_ru ? x.nom_ru : x.nom);
+const turNomi = (x: Pick<SinovTuri, 'nom' | 'nom_ru'>) => (tilOl() === 'ru' && x.nom_ru ? x.nom_ru : x.nom);
 
 export function SinovSorovYubor({ kompaniyaId, kontekst, onYuborildi, onYopish }: { kompaniyaId: number; kontekst: SorovKontekst; onYuborildi: () => void; onYopish?: () => void }) {
   const [aloqalar, setAloqalar] = useState<Aloqa[] | null>(null);

@@ -4,6 +4,7 @@ vi.mock('../_shared/auth', () => ({ tekshir: vi.fn(async () => ({ foydalanuvchi_
 
 import { maydonTozala, onRequestGet, onRequestPost, oqishYuki, yozishYuki } from './laboratoriya';
 import { xatoJavobi } from './tomon';
+import { SCOPED_APIS, requestPermission } from '../_shared/permission-policy';
 
 const ENV = { SUPABASE_URL: 'https://proj.supabase.co', SUPABASE_KEY: 'service-key', SESSIYA_KALIT: 'a'.repeat(32) };
 const post = (body: unknown) => ({ request: new Request('https://x/api/laboratoriya', { method: 'POST', headers: { Cookie: 's=1' }, body: JSON.stringify(body) }), env: ENV }) as never;
@@ -46,6 +47,16 @@ describe('laboratoriya shlyuzi — yuklar', () => {
     expect(oqishYuki('aosr_holat', new URLSearchParams('kompaniya_id=3&obyekt_id=2'))).toMatchObject({ p_obyekt_id: 2 });
     expect(oqishYuki('yoq', new URLSearchParams('kompaniya_id=3'))).toMatch(/Bo‘lim/);
     expect(oqishYuki('turlar', new URLSearchParams(''))).toMatch(/kompaniya_id/);
+  });
+});
+
+describe('laboratoriya shlyuzi — ruxsat', () => {
+  it('kompaniya doirasida; so‘rov yuborish document.write, qolganlari document.read', () => {
+    const q = new URLSearchParams();
+    expect(SCOPED_APIS.has('laboratoriya')).toBe(true);
+    expect(requestPermission('laboratoriya', 'GET', {}, q)).toBe('document.read');
+    expect(requestPermission('laboratoriya', 'POST', { amal: 'sorov_yarat' }, q)).toBe('document.write');
+    expect(requestPermission('laboratoriya', 'POST', { amal: 'natija' }, q)).toBe('document.read');
   });
 });
 
