@@ -1,0 +1,10 @@
+{
+  "id": 81,
+  "sana": "2026-11-04",
+  "sarlavha": "Eski tizim (LRV_PLUS) F2 podvali endi tiklanadi",
+  "bandlar": [
+    "«F2 podvalini fayldan tiklash» eski tizimda yaratilgan F2 fayllarini ham o‘qiydi: foizlar qator nomidan (5%, 2%, 18%, 0,32%), ИТОГО-1…4 qatorlari joyiga qarab aniqlanadi, НДС foizi ИТОГО-4 ga nisbatan topiladi.",
+    "Natijasi saqlanmagan formulalar («=G61*0.015») oddiy hisoblanadi; bo‘sh «КОЭФФИЦЕНТ РИСКА» — 0%. Har foiz o‘z bazasiga (МАТЕРИАЛЫ, КАБЕЛИ, ОБОРУДОВАНИЯ) ±1 so‘m yoki 0,01% aniqlikda tekshiriladi; kaskad ИТОГО-4 va ВСЕГО ni aynan hosil qilsa — «isbotlangan».",
+    "Podval saqlangach, shu aktning tasdiqlanmagan storno qoralamalariga ham ishorasi teskari nusxada yoziladi; nechta qoralama yangilangani ko‘rsatiladi."
+  ]
+}
