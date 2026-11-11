@@ -69,6 +69,7 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
     id: 'obyekt', nom: 'Obyektlar', ikonka: 'Building2', qatlam: 'ish',
     bandlar: [
       { nom: 'Rahbar paneli', ikonka: 'BarChart', sahifalar: [
+        { yol: '/admin/pult', ilova: 'yadro', nom: 'Direktor pulti', ruxsat: [RAHBARIYAT, 'financial.write'], modul: 'module.erp', scope: 'COMPANY_SCOPED' },
         { yol: '/admin/dashboard', ilova: 'yadro', nom: 'Rahbar paneli', ruxsat: [RAHBARIYAT, 'financial.write'], modul: 'module.erp', scope: 'COMPANY_SCOPED' },
       ] },
       { nom: 'Obyektlar va loyihalar', ikonka: 'FolderKanban', sahifalar: [

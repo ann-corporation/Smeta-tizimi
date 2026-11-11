@@ -2,6 +2,7 @@
 export const GENERATED_SITE_MAP = {
   "generatedAt": "source",
   "menuRoutes": [
+    "/admin/pult",
     "/admin/dashboard",
     "/admin/obyektlar",
     "/admin/loyiha",
@@ -67,10 +68,11 @@ export const GENERATED_SITE_MAP = {
     "/ulash/:kod",
     "/tg",
     "/admin",
-    "dashboard",
     "holat",
     "holat/:id",
     "fakt",
+    "pult",
+    "dashboard",
     "f2-tayyorlash",
     "f2",
     "f2-tarix",

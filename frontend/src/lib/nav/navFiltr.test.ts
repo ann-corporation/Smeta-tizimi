@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+﻿import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { menyuQur, menyuYollari, sahifaKorinadi, type NavKontekst } from './navFiltr';
@@ -61,7 +61,7 @@ const a = (...s: string[]) => s.map((x) => `/admin/${x}`);
 const bez = (xs: string[], ...yoq: string[]) => xs.filter((x) => !a(...yoq).includes(x));
 
 /* ── Kutilgan menyular (tartib — sidebar tartibi) ── */
-const OBYEKT = a('dashboard', 'obyektlar', 'loyiha', 'participants', 'mindmap');
+const OBYEKT = a('pult', 'dashboard', 'obyektlar', 'loyiha', 'participants', 'mindmap');
 const SMETA = a('smeta-studio', 'holat', 'smeta-narxlash', 'narx-dalil', 'narx-tekshiruv', 'nakrutka', 'narxlar', 'narx-manbalari', 'oferta');
 const FAKT = a('fakt', 'm29');
 const F2 = a('f2-tayyorlash', 'f2', 'f2-tarix', 'f2-reestr', 'nakopitelniy');
@@ -83,9 +83,9 @@ const KUTILGAN: Record<string, string[]> = {
   boss: [...ISH, ...SOTUV, ...KOMPANIYA, ...SHAXSIY],
   admin: [...ISH, ...SOTUV, ...KOMPANIYA, ...SHAXSIY],
   pto: [...ISH, ...SHAXSIY],
-  bugalter: [...a('dashboard', 'obyektlar', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'crm', 'aloqalar',
+  bugalter: [...a('pult', 'dashboard', 'obyektlar', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'crm', 'aloqalar',
     'documents', 'hujjat-nazorat', 'storage', 'logistika', 'zayavka', 'tender', 'yuk-birjasi', 'erp', 'hr', 'sotuv'), ...SHAXSIY],
-  prorab: [...bez(ISH, 'dashboard', 'moliya', 'buxgalteriya', 'qarzdorlik'), ...SHAXSIY],
+  prorab: [...bez(ISH, 'pult', 'dashboard', 'moliya', 'buxgalteriya', 'qarzdorlik'), ...SHAXSIY],
   usta: [...a('fakt'), ...SHAXSIY],
   buyurtmachi: [...a('obyektlar', 'loyiha', 'participants', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'shartnoma-liniya',
     'documents', 'hujjat-nazorat', 'storage', 'zakazchik', 'taqdimlar', 'murojaatlar', 'hujjat-aylanish'), ...SHAXSIY],
@@ -126,7 +126,7 @@ describe('egasi qarori 2026-10-26: PTO qurilishdagi pulga aloqador HAMMA joyni k
   it('pulga oid asosiy bo‘limlar ro‘yxati qat‘iy (smeta, narx, fakt, F2, nakopitelniy, moliya, shartnoma, ta‘minot)', () => {
     const m = menyu('pto');
     for (const y of a('smeta-studio', 'holat', 'smeta-narxlash', 'nakrutka', 'narx-dalil', 'narxlar', 'narx-manbalari', 'oferta', 'fakt', 'm29',
-      'f2-tayyorlash', 'f2', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'moliya', 'dashboard', 'shartnoma-liniya', 'crm', 'logistika', 'zayavka', 'erp', 'aosr')) {
+      'f2-tayyorlash', 'f2', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'moliya', 'pult', 'dashboard', 'shartnoma-liniya', 'crm', 'logistika', 'zayavka', 'erp', 'aosr')) {
       expect(m, y).toContain(y);
     }
   });
@@ -239,7 +239,7 @@ describe('yagona manba — boshqa iste‘molchilar o‘zgarmagan', () => {
   it('ROUTE_SCOPE (RuxsatGuard) avvalgi xarita bilan aynan bir xil', () => {
     expect(ROUTE_SCOPE).toEqual({
       '/': 'USER_SCOPED', '/admin/kompaniya': 'GLOBAL', '/admin/system-control': 'GLOBAL',
-      '/admin/dashboard': 'COMPANY_SCOPED', '/admin/documents': 'COMPANY_SCOPED', '/admin/loyiha': 'COMPANY_SCOPED', '/admin/obyektlar': 'COMPANY_SCOPED',
+      '/admin/pult': 'COMPANY_SCOPED', '/admin/dashboard': 'COMPANY_SCOPED', '/admin/documents': 'COMPANY_SCOPED', '/admin/loyiha': 'COMPANY_SCOPED', '/admin/obyektlar': 'COMPANY_SCOPED',
       '/admin/f2-reestr': 'COMPANY_SCOPED', '/admin/mindmap': 'COMPANY_SCOPED', '/admin/sotuv': 'COMPANY_SCOPED', '/admin/test/portfel': 'COMPANY_SCOPED', '/admin/test/moliya': 'COMPANY_SCOPED',
       '/admin/test/logistika': 'COMPANY_SCOPED', '/admin/test/crm': 'COMPANY_SCOPED', '/admin/test/smeta': 'COMPANY_SCOPED', '/admin/test/zayavka': 'COMPANY_SCOPED',
       '/admin/test/erp': 'COMPANY_SCOPED', '/admin/test/xarita': 'COMPANY_SCOPED', '/admin/test/kontragent': 'COMPANY_SCOPED', '/admin/test/sozlama': 'COMPANY_SCOPED',
@@ -258,7 +258,7 @@ describe('yagona manba — boshqa iste‘molchilar o‘zgarmagan', () => {
       '/admin/loyiha': 'module.loyiha', '/admin/shartnoma-liniya': 'module.loyiha', '/admin/qarzdorlik': 'module.erp', '/admin/buxgalteriya': 'module.erp', '/admin/documents': 'module.loyiha',
       '/admin/hujjat-nazorat': 'module.loyiha', '/admin/participants': 'module.loyiha', '/admin/crm': 'module.loyiha',
       '/admin/zakazchik': 'module.loyiha', '/admin/taqdimlar': 'module.loyiha', '/admin/murojaatlar': 'module.loyiha', '/admin/hujjat-aylanish': 'module.loyiha', '/admin/aloqalar': 'module.loyiha',
-      '/admin/dashboard': 'module.erp', '/admin/moliya': 'module.erp', '/admin/logistika': 'module.erp', '/admin/zayavka': 'module.erp', '/admin/tender': 'module.erp', '/admin/yuk-birjasi': 'module.erp',
+      '/admin/pult': 'module.erp', '/admin/dashboard': 'module.erp', '/admin/moliya': 'module.erp', '/admin/logistika': 'module.erp', '/admin/zayavka': 'module.erp', '/admin/tender': 'module.erp', '/admin/yuk-birjasi': 'module.erp',
       '/admin/erp': 'module.erp', '/admin/hr': 'module.erp', '/admin/mindmap': 'module.erp',
     });
   });

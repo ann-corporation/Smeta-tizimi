@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 import { rolBoshSahifasi, ZAXIRA_BOSH_SAHIFA } from './boshSahifa';
 
 describe('rolBoshSahifasi', () => {
@@ -9,8 +9,8 @@ describe('rolBoshSahifasi', () => {
     }
   });
   it('boss/rahbar — redirect emas, rahbar paneli', () => {
-    expect(rolBoshSahifasi('boss')).toBe('/admin/dashboard');
-    expect(rolBoshSahifasi('rahbar')).toBe('/admin/dashboard');
+    expect(rolBoshSahifasi('boss')).toBe('/admin/pult');
+    expect(rolBoshSahifasi('rahbar')).toBe('/admin/pult');
   });
   it('yangi rollar o‘z ishiga tushadi', () => {
     expect(rolBoshSahifasi('buyurtmachi')).toBe('/admin/zakazchik');
