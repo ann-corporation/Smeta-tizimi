@@ -58,14 +58,69 @@ drop table if exists public.t2_aosr_foto;
 drop table if exists public.t2_tekshiruv;
 update public.t2_tomon_resurs set faol = false where kalit = 'fakt';
 
--- rol qoidasi: 20261212500000 holatiga qaytadi ('murojaat' yo'q - bu o'sha migratsiyaning nuqsoni edi)
+-- rol qoidasi: hotfix (20261214990000) holati saqlanadi - 'murojaat' amali QAYTA TUSHIRILMAYDI
 create or replace function public._t2_tomon_rol_ok(p_rol text, p_amal text) returns boolean
 language sql immutable as $$
   select case p_amal
     when 'boshqarish' then p_rol in ('superadmin','admin','boss','rahbar','director')
     when 'taqdim'     then p_rol in ('superadmin','admin','boss','rahbar','director','pto')
     when 'qaror'      then p_rol in ('superadmin','admin','boss','rahbar','director','buyurtmachi','inspektor')
+    when 'murojaat'   then p_rol in ('superadmin','admin','boss','rahbar','director','pto','prorab','buyurtmachi','inspektor','loyihachi')
     when 'izoh'       then p_rol not in ('kuzatuvchi')
     when 'korish'     then true
     else false end
 $$;
+
+-- grant_saqla: avto-fakt siz (asl holat). Avto berilgan 'fakt' grantlar qoladi; kerak bo'lsa bekor qiling.
+create or replace function public.t2_tomon_grant_saqla_v1(p_actor_id bigint, p_kompaniya_id bigint, p_aloqa_id bigint, p_grantlar jsonb)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  a public.t2_tomon_aloqa; v_qarshi bigint; e jsonb; r public.t2_tomon_resurs; v_amallar text[]; v_loyiha bigint; v_obyekt bigint; v_shart bigint;
+  v_son integer := 0; v_id bigint;
+begin
+  perform public._t2_tomon_azo(p_actor_id, p_kompaniya_id, 'boshqarish');
+  if jsonb_typeof(p_grantlar) <> 'array' or jsonb_array_length(p_grantlar) not between 1 and 200 then
+    return jsonb_build_object('ok', false, 'code', 'GRANT_KERAK', 'error', 'grantlar: 1–200 ta element');
+  end if;
+  select * into a from public.t2_tomon_aloqa where id = p_aloqa_id;
+  if not found or (a.taklif_kompaniya_id <> p_kompaniya_id and a.qabul_kompaniya_id is distinct from p_kompaniya_id) then
+    return jsonb_build_object('ok', false, 'code', 'TOPILMADI', 'error', 'Aloqa topilmadi');
+  end if;
+  if a.holat <> 'faol' then return jsonb_build_object('ok', false, 'code', 'HOLAT', 'error', 'Ruxsat faqat faol aloqada beriladi'); end if;
+  v_qarshi := public._t2_tomon_qarshi(a, p_kompaniya_id);
+  for e in select * from jsonb_array_elements(p_grantlar) loop
+    select * into r from public.t2_tomon_resurs where kalit = e->>'resurs' and faol;
+    if not found then return jsonb_build_object('ok', false, 'code', 'RESURS_YOQ', 'error', 'Resurs ochiq emas: ' || coalesce(e->>'resurs', '?')); end if;
+    select array_agg(distinct x) into v_amallar from jsonb_array_elements_text(coalesce(e->'amallar', '[]'::jsonb)) x;
+    if v_amallar is null or not (v_amallar <@ r.amallar) then
+      return jsonb_build_object('ok', false, 'code', 'AMAL_NOTOGRI', 'error', 'Amallar resursga mos emas: ' || r.kalit);
+    end if;
+    v_loyiha := nullif(e->>'loyiha_id', '')::bigint; v_obyekt := nullif(e->>'obyekt_id', '')::bigint; v_shart := nullif(e->>'shartnoma_id', '')::bigint;
+    if (v_loyiha is not null)::int + (v_obyekt is not null)::int + (v_shart is not null)::int <> 1 then
+      return jsonb_build_object('ok', false, 'code', 'DOIRA_KERAK', 'error', 'Aynan bitta doira kerak: loyiha_id YOKI obyekt_id YOKI shartnoma_id');
+    end if;
+    if v_obyekt is not null and not exists (select 1 from public.t2_obyekt where id = v_obyekt and kompaniya_id = p_kompaniya_id and holat = 'faol') then
+      return jsonb_build_object('ok', false, 'code', 'DOIRA_BEGONA', 'error', 'Obyekt sizning kompaniyangizniki emas');
+    end if;
+    if v_loyiha is not null and not exists (select 1 from public.t2_loyiha where id = v_loyiha and kompaniya_id = p_kompaniya_id) then
+      return jsonb_build_object('ok', false, 'code', 'DOIRA_BEGONA', 'error', 'Loyiha sizning kompaniyangizniki emas');
+    end if;
+    if v_shart is not null and not exists (select 1 from public.t2_shartnoma where id = v_shart and kompaniya_id = p_kompaniya_id) then
+      return jsonb_build_object('ok', false, 'code', 'DOIRA_BEGONA', 'error', 'Shartnoma sizning kompaniyangizniki emas');
+    end if;
+    select g.id into v_id from public.t2_tomon_grant g
+     where g.aloqa_id = a.id and g.beruvchi_kompaniya_id = p_kompaniya_id and g.resurs = r.kalit and g.holat = 'faol'
+       and coalesce(g.loyiha_id, 0) = coalesce(v_loyiha, 0) and coalesce(g.obyekt_id, 0) = coalesce(v_obyekt, 0) and coalesce(g.shartnoma_id, 0) = coalesce(v_shart, 0);
+    if found then
+      update public.t2_tomon_grant set amallar = v_amallar where id = v_id;
+    else
+      insert into public.t2_tomon_grant (aloqa_id, beruvchi_kompaniya_id, oluvchi_kompaniya_id, resurs, amallar, loyiha_id, obyekt_id, shartnoma_id, berdi_actor_id)
+      values (a.id, p_kompaniya_id, v_qarshi, r.kalit, v_amallar, v_loyiha, v_obyekt, v_shart, p_actor_id) returning id into v_id;
+    end if;
+    perform public._t2_tomon_hodisa_yoz(a.id, null, p_kompaniya_id, p_actor_id, 'grant', null,
+      jsonb_build_object('grant_id', v_id, 'resurs', r.kalit, 'amallar', v_amallar, 'loyiha_id', v_loyiha, 'obyekt_id', v_obyekt, 'shartnoma_id', v_shart));
+    v_son := v_son + 1;
+  end loop;
+  return jsonb_build_object('ok', true, 'saqlandi', v_son);
+end $$;
+

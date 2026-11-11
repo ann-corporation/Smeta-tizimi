@@ -7,7 +7,7 @@ set local statement_timeout = '300s';
 do $$
 declare
   p bigint; z bigint;                     -- pudratchi, texnadzor tenanti
-  up bigint; ui bigint; ukz bigint;       -- pudratchi boss, texnadzor (inspektor), pudratchi pto
+  up bigint; ui bigint; ukz bigint; uzb bigint;       -- pudratchi boss, texnadzor (inspektor), pudratchi pto
   o1 bigint; al bigint; d1 bigint; d2 bigint; tk bigint; mid bigint; r jsonb; rep text[] := array[]::text[]; h text;
   ar bigint;
 begin
@@ -16,17 +16,18 @@ begin
   insert into t2_foydalanuvchi (login, ism, holat) values ('acc_n_up', 'P boss', 'faol') returning id into up;
   insert into t2_foydalanuvchi (login, ism, holat) values ('acc_n_ui', 'N inspektor', 'faol') returning id into ui;
   insert into t2_foydalanuvchi (login, ism, holat) values ('acc_n_pto', 'P pto', 'faol') returning id into ukz;
-  insert into t2_azolik (foydalanuvchi_id, kompaniya_id, rol, holat) values (up, p, 'boss', 'faol'), (ui, z, 'inspektor', 'faol'), (ukz, p, 'pto', 'faol');
+  insert into t2_foydalanuvchi (login, ism, holat) values ('acc_n_zb', 'N boss', 'faol') returning id into uzb;
+  insert into t2_azolik (foydalanuvchi_id, kompaniya_id, rol, holat) values (up, p, 'boss', 'faol'), (ui, z, 'inspektor', 'faol'), (ukz, p, 'pto', 'faol'), (uzb, z, 'boss', 'faol');
   insert into t2_obyekt (nom, kompaniya_id) values ('ACC-N-OBYEKT', p) returning id into o1;
   r := t2_tomon_taklif_v1(up, p, z, '900000022', null, 'pudratchi', 'texnadzor', 'shartnoma', 'ACC nazorat aloqa', null, null, gen_random_uuid());
   al := (r->>'id')::bigint;
-  r := t2_tomon_javob_v1(ui, z, al, 'qabul', null);
+  r := t2_tomon_javob_v1(uzb, z, al, 'qabul', null);
   rep := rep || (case when r->>'holat' = 'faol' then 'OK   aloqa faol' else 'FAIL aloqa: ' || r::text end);
-  insert into t2_document_registry (kompaniya_id, document_type, status, canonical_storage_status) values (z, 'tekshiruv_foto', 'active', 'stored') returning id into d1;
-  insert into t2_document_registry (kompaniya_id, document_type, status, canonical_storage_status) values (p, 'predpisaniya_foto', 'active', 'stored') returning id into d2;
+  insert into t2_document_registry (kompaniya_id, document_type, status, canonical_storage_status, operation_id) values (z, 'tekshiruv_foto', 'active', 'stored', gen_random_uuid()) returning id into d1;
+  insert into t2_document_registry (kompaniya_id, document_type, status, canonical_storage_status, operation_id) values (p, 'predpisaniya_foto', 'active', 'stored', gen_random_uuid()) returning id into d2;
 
   -- 1. rol qoidasi
-  rep := rep || (case when _t2_tomon_rol_ok('inspektor', 'murojaat') and _t2_tomon_rol_ok('pto', 'murojaat') and _t2_tomon_rol_ok('prorab', 'murojaat') and not _t2_tomon_rol_ok('kuzatuvchi', 'murojaat')
+  rep := rep || (case when _t2_tomon_rol_ok('inspektor', 'murojaat') and _t2_tomon_rol_ok('pto', 'murojaat') and _t2_tomon_rol_ok('prorab', 'murojaat') and _t2_tomon_rol_ok('loyihachi', 'murojaat') and not _t2_tomon_rol_ok('kuzatuvchi', 'murojaat')
                       then 'OK   murojaat roli tiklandi (inspektor, pto, prorab)' else 'FAIL murojaat roli' end);
   rep := rep || (case when (select faol from t2_tomon_resurs where kalit = 'fakt') then 'OK   fakt resursi faol' else 'FAIL fakt resursi' end);
 
@@ -34,6 +35,9 @@ begin
   r := t2_nazorat_tekshiruv_yoz_v1(ui, z, gen_random_uuid(), null, al, o1, current_date, 'Beton', 'A-o''q', '[{"kod":"b1","nom":"Armatura qadami","natija":"mos"}]'::jsonb, null, false, null);
   rep := rep || (case when r->>'code' = 'OBYEKT_YOPIQ' then 'OK   ochilmagan obyektga tekshiruv yozilmaydi' else 'FAIL obyekt yopiq: ' || r::text end);
   perform t2_tomon_grant_saqla_v1(up, p, al, jsonb_build_array(jsonb_build_object('resurs', 'obyekt_holat', 'amallar', jsonb_build_array('korish'), 'obyekt_id', o1)));
+  rep := rep || (case when exists (select 1 from t2_tomon_grant where aloqa_id = al and resurs = 'fakt' and obyekt_id = o1 and holat = 'faol' and oluvchi_kompaniya_id = z and amallar = array['korish']) then 'OK   obyekt ochilganda fakt (korish) avto-grant' else 'FAIL avto-grant fakt' end);
+  r := t2_nazorat_f2_tekshiruv_v1(ui, z, 0, null);
+  rep := rep || (case when r->>'code' = 'TOPILMADI' then 'OK   begona F2 taqdimi rad' else 'FAIL f2 begona: ' || r::text end);
 
   -- 3. qoralama -> yakunlash (nomuvofiq band fotosiz rad; fotoli -> predpisaniya)
   r := t2_nazorat_tekshiruv_yoz_v1(ui, z, gen_random_uuid(), null, al, o1, current_date, 'Beton', 'A-o''q',
@@ -65,7 +69,7 @@ begin
   rep := rep || (case when jsonb_array_length(r) = 1 then 'OK   jurnal' else 'FAIL jurnal: ' || r::text end);
 
   -- 5. АОСР foto + ko'rik (taqdim qabul qiluvchisi)
-  r := t2_aosr_yoz_v2(p, o1, '{"ish_nomi":"ACC ish","raqam":"ACC-N1"}'::jsonb, null, null, gen_random_uuid(), 'acc');
+  r := t2_aosr_yoz_v2(p, o1, '{"ish_nomi":"ACC ish","raqam":"ACC-N1","sana":"2026-11-01"}'::jsonb, null, null, gen_random_uuid(), 'acc');
   ar := (r->>'id')::bigint;
   r := t2_aosr_foto_biriktir_v1(ukz, p, ar, array[d2]);
   rep := rep || (case when (r->>'ok')::boolean and (r->>'qoshildi')::int = 1 then 'OK   АОСР foto biriktirildi' else 'FAIL АОСР foto: ' || r::text end);
