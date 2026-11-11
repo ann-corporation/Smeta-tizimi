@@ -23,7 +23,29 @@ export function AgentQadamlar({ qadamlar, band, sarlavha }: { qadamlar: readonly
   </details>;
 }
 
-export type AgentAmalQatori = { nom: ReactNode; tafsilot?: string; izoh?: string | null; ogoh?: string | null; tanlangan: boolean };
+export type AgentAmalQatori = {
+  nom: ReactNode; tafsilot?: string; izoh?: string | null; ogoh?: string | null; tanlangan: boolean;
+  /** Pul/huquqiy ta'sirli amal — «Bajarish»dan keyin alohida «Tasdiqlayman» talab qilinadi. */
+  pul?: boolean;
+  /** Taklif kartasidagi qo'shimcha: masalan pul farqi (SummaJuft). */
+  qoshimcha?: ReactNode;
+};
+
+/** Pul/huquqiy ta'sirli amallar uchun IKKINCHI aniq tasdiq. Faqat sichqoncha/klaviatura tugmasi; ovoz bilan tasdiqlanmaydi. */
+export function AgentPulTasdiq({ amallar, band, onTasdiq, onOrqaga }: {
+  amallar: readonly AgentAmalQatori[]; band: boolean; onTasdiq: () => void; onOrqaga: () => void;
+}) {
+  const pul = amallar.filter(a => a.tanlangan && a.pul);
+  return <div className="karta space-y-1 border-warn/60 p-2 text-[12px]" role="alertdialog" aria-label={t('Pul ta’sirli amalni tasdiqlash')} data-testid="ai-pul-tasdiq-blok">
+    <strong className="text-[11px] font-semibold uppercase tracking-wide text-warn">{t('Pul yoki huquqiy ta’sirli amal — ikkinchi tasdiq')}</strong>
+    {pul.map((a, i) => <div key={i} className="space-y-0.5"><b>{a.nom}</b>{a.tafsilot ?? ''}{a.qoshimcha}</div>)}
+    <p className="text-[11px] text-text-mute">{t('Ovoz bilan tasdiqlanmaydi: faqat tugma bosing.')}</p>
+    <div className="flex gap-2">
+      <button type="button" className="tugma tugma-asosiy h-8 px-3 text-[12px]" disabled={band} onClick={onTasdiq} data-testid="ai-pul-tasdiq">{t('Tasdiqlayman')}</button>
+      <button type="button" className="tugma h-8 px-3 text-[12px]" onClick={onOrqaga}>{t('Orqaga')}</button>
+    </div>
+  </div>;
+}
 
 /** «AI taklif qilgan amallar»: har biri belgilanadi; «Bajarish» faqat tanlanganlarni ishga tushiradi. */
 export function AgentAmallar({ amallar, band, onTanla, onBajar, onBekor }: {
@@ -34,7 +56,8 @@ export function AgentAmallar({ amallar, band, onTanla, onBajar, onBekor }: {
     <strong className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">{t('AI taklif qilgan amallar')}</strong>
     {amallar.map((a, i) => <label key={i} className="flex items-start gap-2">
       <input type="checkbox" className="mt-0.5" checked={a.tanlangan} onChange={e => onTanla(i, e.target.checked)} />
-      <span><b>{a.nom}</b>{a.tafsilot ?? ''}
+      <span><b>{a.nom}</b>{a.tafsilot ?? ''}{a.pul && <span className="ml-1.5 rounded bg-warn/15 px-1 text-[10px] font-semibold text-warn">{t('PUL')}</span>}
+        {a.qoshimcha}
         {a.izoh && <span className="block text-[11px] text-text-mute">{a.izoh}</span>}
         {a.ogoh && <span className="block text-[11px] text-warn">{a.ogoh}</span>}</span>
     </label>)}
