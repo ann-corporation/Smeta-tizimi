@@ -2,7 +2,7 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 154,
+      "id": 155,
       "sana": "2026-11-11",
       "sarlavha": "Oylik ish bir yo‘lda: Fakt → F2 → Forma 3 → Hujjatlar",
       "bandlar": [
@@ -10,6 +10,15 @@
         "F2 tayyorlashda davr va F2 raqami o‘zi to‘ldiriladi (o‘zgartirsangiz — sizniki qoladi), tanlangan oyda fakt bor-yo‘qligi aytiladi.",
         "АОСР: eski aktlar uchun mos smeta ishlari taklif qilinadi — bir bosishda tasdiqlaysiz, o‘zi hech narsa bog‘lanmaydi. Laboratoriyani protokol formasida qo‘shish mumkin; zayavkada birlik va qoldiq smetadan olinadi.",
         "Forma 3 va boshqa hujjatlar: raqam, buyurtmachi rekvizitlari va rahbar F.I.Sh o‘zi to‘ldiriladi, yetishmaydigan narsalar yuklashdan oldin ro‘yxatda ko‘rsatiladi; F2 da summa so‘z bilan. O‘zgarmagan hujjatni qayta yuklash qayta token yechmaydi; АОСР paketi bitta yechim bilan, narxi oldindan ko‘rsatiladi."
+      ]
+    },
+    {
+      "id": 154,
+      "sana": "2026-11-11",
+      "sarlavha": "Tizim axlatdan tozalandi",
+      "bandlar": [
+        "Hech qayerda ishlatilmaydigan eski sahifalar, bir martalik skriptlar va nusxalar olib tashlandi: ishlaydigan funksiyalar o'zgarmadi.",
+        "Tizim yengilroq va tartiblirog' bo'ldi; foydalanuvchi ma'lumotlari va hisob-kitoblarga tegilmadi."
       ]
     },
     {
