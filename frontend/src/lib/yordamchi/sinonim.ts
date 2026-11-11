@@ -66,5 +66,4 @@ export const SAHIFA_SINONIM: Readonly<Record<string, Sinonim>> = {
   '/admin/boshqaruv': { uz: ['platforma', 'boshqaruv'], ru: ['платформа', 'управление платформой'], en: ['platform', 'platform admin'] },
   '/admin/tizim-xaritasi': { uz: ['tizim xaritasi'], ru: ['карта системы'], en: ['system map'] },
   '/admin/fayl-boglash': { uz: ['fayl boglash'], ru: ['привязка файлов'], en: ['file linking'] },
-  '/admin/test': { uz: ['sinov', 'test'], ru: ['тест', 'песочница'], en: ['sandbox', 'test shell'] },
 };

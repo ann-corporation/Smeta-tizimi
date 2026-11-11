@@ -33,7 +33,7 @@ describe('MindmapXarita', () => {
     const onTanla = vi.fn();
     const { rerender } = render(<MemoryRouter><MindmapXarita graf={graf()} yuklanmoqda={false} xato="" oxirgiYangilanish={null} onYangila={() => {}}
       tanlangan={null} onTanla={onTanla} korinish="royxat" onKorinish={() => {}} /></MemoryRouter>);
-    expect(screen.getByRole('heading', { name: 'Kompaniya xaritasi' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Boshqaruv pulti' })).toBeTruthy();
     // Smetasiz obyekt — foiz yo‘q, 0% emas.
     expect(screen.getByText(/Xavf · smeta yo‘q · F2 \(tasdiqlangan\) —/)).toBeTruthy();
     fireEvent.click(screen.getByText('Amfiteatr'));

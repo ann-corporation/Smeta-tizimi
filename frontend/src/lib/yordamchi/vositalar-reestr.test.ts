@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { NAV_SAHIFALAR } from '../nav/navReestr';
-import { barchaVositalar, modelSxemasidaYoqlari, navVositalar, STATIK_VOSITALAR, yordamMatni } from './vositalar-reestr';
+import { pultAsboblar } from '../mindmap-pult';
+import { barchaVositalar, pultVositalar, modelSxemasidaYoqlari, navVositalar, STATIK_VOSITALAR, yordamMatni } from './vositalar-reestr';
 
 describe('vositalar reestri', () => {
   it('navReestrning har sahifasi uchun navigatsiya vositasi bor (avtomatik)', () => {
@@ -21,5 +22,16 @@ describe('vositalar reestri', () => {
   });
   it('yordam matni reestrdan quriladi', () => {
     expect(yordamMatni([{ yol: '/admin/fakt', nom: 'Fakt' }])).toContain('1 ta bo‘lim');
+  });
+});
+
+describe('mindmap pult amallari reestrda', () => {
+  it('pultAsboblar() ning har amali yozuv vositasi sifatida (tasdiqli) reestrda', () => {
+    const v = pultVositalar();
+    expect(v.length).toBe(pultAsboblar().length);
+    expect(v.length).toBeGreaterThan(0);
+    for (const x of v) { expect(x.tur).toBe('yozuv'); expect(x.tasdiq).not.toBe('yoq'); expect(x.id.startsWith('mindmap.')).toBe(true); }
+    const id = barchaVositalar().map((x) => x.id);
+    expect(new Set(id).size).toBe(id.length);
   });
 });

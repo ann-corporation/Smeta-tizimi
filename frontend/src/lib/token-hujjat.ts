@@ -14,6 +14,7 @@
  * Hisob yo'q hujjat (AOSR, reestr — faqat kiritilgan maʼlumot) uchun faqat toifaning asosiy narxi olinadi.
  */
 import { unzipSync, strFromU8 } from 'fflate';
+import { toast } from '../umumiy/ui/Toast';
 import { mazmunXeshi, tokenBilan, type NarxTafsilot, type TokenAmal } from '../api/t2-token';
 
 const VARAQ = /^xl\/worksheets\/[^/]+\.xml$/;
@@ -74,6 +75,8 @@ export async function hujjatTokenBilan(
   yetkaz: () => void | Promise<void>,
   d: { tokenBilan: typeof tokenBilan; mazmunXeshi: typeof mazmunXeshi } = { tokenBilan, mazmunXeshi },
 ): Promise<HujjatTokenNatija> {
+  /* Yuklab olish 8–15 s hech narsa ko'rsatmasdi: bosilgan zahoti «tayyorlanmoqda», natija esa chaqiruvchi toast'ida (token narxi bilan). */
+  toast('Hujjat tayyorlanmoqda… (token narxi tayyor bo‘lgach ko‘rsatiladi)', 'ok');
   const yacheykalar = p.yacheykalar ?? xlsxYacheykaSoni(p.bytes, p.manba);
   const xesh = await d.mazmunXeshi(p.bytes);
   const meta: Record<string, string | number> = { hujjat: p.hujjat, sabab: p.sabab.slice(0, 200), yacheyka: yacheykalar, sanoq: 'formula', xesh };

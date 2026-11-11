@@ -9,6 +9,7 @@
  */
 import { NAV_SAHIFALAR } from '../nav/navReestr';
 import { SAHIFA_VOSITALARI } from '../ai-yordamchi/protokol';
+import { pultAsboblar } from '../mindmap-pult';
 import type { YordamchiSahifa } from './sahifa-qidiruv';
 
 export type VositaTur = 'navigatsiya' | 'oqish' | 'yozuv';
@@ -43,8 +44,16 @@ export function navVositalar(sahifalar: readonly YordamchiSahifa[] = NAV_SAHIFAL
   return sahifalar.map((s) => ({ id: `nav.${slug(s.yol)}`, tur: 'navigatsiya' as const, nom: s.nom, misol: [`${s.nom} sahifasini och`], tasdiq: 'yoq' as const, manba: s.yol }));
 }
 
-/** Hamma vositalar: berilgan sahifalar uchun navigatsiya + statik o'qish/yozuv. */
-export const barchaVositalar = (sahifalar?: readonly YordamchiSahifa[]): YordamchiVosita[] => [...navVositalar(sahifalar), ...STATIK_VOSITALAR];
+/**
+ * Mindmap «Boshqaruv pulti» amallari (lib/mindmap-pult.ts pultAsboblar() — UI va yordamchi uchun yagona modul): har biri yozuv vositasi,
+ * DOIM oldindan ko'rish (PultReja) + tasdiq bilan; 	ayyorla hech narsa yozmaydi. Yangi pult amali qo'shilsa shu yerga o'zi tushadi.
+ */
+export function pultVositalar(): YordamchiVosita[] {
+  return pultAsboblar().map((a) => ({ id: a.nom, tur: 'yozuv' as const, nom: a.tavsif, misol: [a.tavsif.split(' — ')[0]], tasdiq: 'karta' as const, manba: 'lib/mindmap-pult.ts (' + a.nishonTuri + ') -> mindmap_* /api/sb-yoz' }));
+}
+
+/** Hamma vositalar: berilgan sahifalar uchun navigatsiya + statik o'qish/yozuv + mindmap pult amallari. */
+export const barchaVositalar = (sahifalar?: readonly YordamchiSahifa[]): YordamchiVosita[] => [...navVositalar(sahifalar), ...STATIK_VOSITALAR, ...pultVositalar()];
 
 /** «Nima qila olasan?» javobi — reestrdan (qo'lda matn emas, shuning uchun eskirmaydi). */
 export function yordamMatni(sahifalar: readonly YordamchiSahifa[]): string {
@@ -54,7 +63,8 @@ export function yordamMatni(sahifalar: readonly YordamchiSahifa[]): string {
     `**Sahifalarni ochaman** (${sahifalar.length} ta bo‘lim): «mindmapni och», «Yevropa 1 ning F2 sini och», «АОСР sahifasi», «qarzdorlik».`,
     '**Ma’lumotni aytaman** (obyekt tanlangan bo‘lsa):', ...oqish,
     '**Yozishni taklif qilaman** — avval ko‘rsataman, siz «Tasdiqlash» bosganingizdagina yoziladi:', ...yozuv,
-    '- F2 va АОСР qoralamasi uchun sahifani tayyor holda ochaman; tasdiqlashni o‘zingiz qilasiz.',
+    '- F2 va АОСР qoralamasini tayyorlab ko‘rsataman («Bajarish» dan keyin yoziladi); tasdiqlashni o‘zingiz qilasiz.',
+    '- Mindmapda tuzilma qurish (loyiha, obyekt, shartnoma, bog‘lash) — xarita sahifasida, har amal oldindan ko‘rsatiladi.',
     'Tushunmasam — rad etmayman, eng yaqin sahifa va amallarni taklif qilaman. Ovoz bilan ham gapirishingiz mumkin (mikrofon tugmasi).',
   ].join('\n');
 }

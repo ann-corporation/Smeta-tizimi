@@ -54,10 +54,12 @@ export function HolatNative() {
   const [exportsOpen,setExportsOpen] = useState(false);
   const panelTab = requestedPanel === 'smeta' ? 'yuklash' : requestedPanel === 'versiya' ? 'versiya' : 'smeta';
   const [activeTab, setActiveTab] = useState(panelTab);
+  /** Yuklash ustasidan «Yangi versiya sifatida saqlash» — fayl «Versiyalar va farq» formasiga oldindan qo'yiladi. */
+  const [versiyaFayli, setVersiyaFayli] = useState<File | null>(null);
   /* Ish varag'i rejimi (egasi 2026-11-11): URL `?rejim=varaq` (route emas); sukut — Daraxt. Og'ir panellar — bitta «Boshqa» tugmasi ortida. */
   const varaq = searchParams.get('rejim') === 'varaq';
   const [boshqaOchiq, setBoshqaOchiq] = useState(false);
-  const rejimQoy = (r: 'daraxt' | 'varaq') => setSearchParams((p) => { const n = new URLSearchParams(p); if (r === 'varaq') n.set('rejim', 'varaq'); else n.delete('rejim'); return n; }, { replace: true });
+  const rejimQoy = (r: 'daraxt' | 'varaq') => setSearchParams((p) => { const n = new URLSearchParams(p); if (r === 'varaq') { n.set('rejim', 'varaq'); n.delete('panel'); setBoshqaOchiq(false); } else n.delete('rejim'); return n; }, { replace: true }); /* panel parametri qolsa (masalan «Smeta va bajarilish» tabi) varaq pastga tushib, tugma «ishlamayotgandek» ko'rinardi */
   /* Daraxt rejimida hamma panel ko'rinadi; varaq rejimida — faqat «Boshqa» ochiq bo'lganda (yoki ?panel= bilan aniq so'ralganda). */
   const panellar = !varaq || boshqaOchiq || requestedPanel != null;
   const { joriy } = useKompaniya();
@@ -143,6 +145,12 @@ export function HolatNative() {
    * tepadan qo'lda qayta tanlashi kerak edi. Scope setter'larining o'zi
    * kompaniya/loyiha chegarasini tekshiradi -- bu yerda hech qanday
    * ruxsat kengaytirilmaydi, faqat ochilgan obyekt bilan moslashtiriladi. */
+  /* Navigatsiya oqimi: yuqoridagi (yagona) tanlovda obyekt bor, lekin sahifa obyektsiz ochilgan (/admin/holat) — sahifa
+   * o'sha obyektni o'zi ochadi; «Obyektni tanlang» ikkinchi marta so'ralmaydi. */
+  useEffect(() => {
+    if (validId || !workspace.isProvider || workspace.scope.objectId == null || workspace.loading.hierarchy) return;
+    navigate(`/admin/holat/${workspace.scope.objectId}${workspace.scopeSearch(workspace.scope.objectId)}`, { replace: true });
+  }, [validId, workspace, navigate]);
   const yangilanganObyekt = useRef<number | null>(null);
   useEffect(() => {
     if (!validId || workspace.loading.hierarchy) return;
@@ -341,13 +349,13 @@ export function HolatNative() {
               style={{ height: 28, cursor: 'pointer', border: 0, fontWeight: varaq === (r === 'varaq') ? 600 : 500, background: varaq === (r === 'varaq') ? 'var(--surface)' : 'transparent', color: varaq === (r === 'varaq') ? 'var(--accent-text)' : 'var(--text-dim)' }}>{nom}</button>)}
           </div>}
           {varaq && validId && <button type="button" className="fz-btn fz-btn--sm" aria-expanded={boshqaOchiq} onClick={() => setBoshqaOchiq((v) => !v)} data-testid="boshqa-tugma"><MoreHorizontal aria-hidden="true" />{t('Boshqa')}</button>}
-          <label className="ml-auto flex min-w-[240px] max-w-[420px] flex-1 items-center gap-2 text-[12px] font-medium text-text-dim">
+          {!(workspace.isProvider && workspace.companyId != null) && <label className="ml-auto flex min-w-[240px] max-w-[420px] flex-1 items-center gap-2 text-[12px] font-medium text-text-dim">
             <span className="shrink-0">{t('Obyekt')}</span>
             <select value={validId ? String(obyektId) : ''} onChange={(e) => { const nextId = Number(e.target.value); if (Number.isSafeInteger(nextId) && nextId > 0) navigate(`/admin/holat/${nextId}${workspace.scopeSearch(nextId)}`); else { workspace.setObjectId(null); navigate('/admin/holat'); } }} className="h-8 min-w-0 flex-1 rounded-md border border-[var(--border-strong)] bg-surface-2 px-2 text-[13px] text-text">
               <option value="">{t('-- obyektni tanlang --')}</option>
               <ObyektOptionlari obyektlar={obyektlar} />
             </select>
-          </label>
+          </label>}
         </div>
 
         {/* Egasi (2026-11-05): «Keyingi qadam» murabbiyi — smeta → podval → fakt → F2 → tasdiqlash → portfel. */}
@@ -445,26 +453,30 @@ export function HolatNative() {
         {panellar && activeTab === 'shartnoma' && daraxtKorinadi && !loading && !error && <ContractScopePanel key={`${joriy?.id}:${obyektId}`} objectId={obyektId} lines={daraxtXom.map(q => ({ id: q.id, ota_id: q.ota_id, tur: q.tur, nom: q.nom ?? '', summa: q.summa, versiya: q.versiya }))} />}
         {panellar && activeTab === 'narx' && daraxtKorinadi && !loading && !error && <MarketPriceComparison lines={marketLines} objectId={obyektId} companyId={joriy?.id ?? null} />}
 
-        {panellar && daraxtKorinadi && !loading && !error && (
+        {/* Yuklash ustasi import paytida yuklanish (loading) belgisi bilan UNMOUNT bo'lmaydi — aks holda natija ekrani yo'qolib, bo'sh «Fayl» bosqichiga qaytardi. */}
+        {panellar && daraxtKorinadi && !error && (
           <div key={`${joriy?.id}|${obyektId}`} className="shrink-0 space-y-3" aria-label="LRV kundalik boshqaruv panellari">
             <section hidden={activeTab !== 'yuklash'} className="fz-card">
               <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}><h3 className="fz-card__title" style={{ fontSize: 14, lineHeight: '20px' }}>{t('Smeta XLSX yuklash')}</h3></div>
-              {activeTab === 'yuklash' && <div className="p-4"><SmetaYuklaNative obyektId={obyektId} onImportlandi={yuklash} /></div>}
+              {activeTab === 'yuklash' && <div className="p-4"><SmetaYuklaNative obyektId={obyektId} onImportlandi={yuklash}
+                onSmetaOchish={() => setActiveTab('smeta')}
+                onFaktgaOtish={() => navigate(`/admin/fakt?obyekt=${obyektId}`)}
+                onVersiyaSaqla={(fayl) => { setVersiyaFayli(fayl); setActiveTab('versiya'); }} /></div>}
             </section>
             {/* PTO-CORE-001: tashqi smeta versiyasi (ekspertizagacha …) → farq → da'vo; joriy smeta o'zgarmaydi. */}
-            {activeTab === 'versiya' && joriy?.id != null && (
+            {activeTab === 'versiya' && !loading && joriy?.id != null && (
               <section className="fz-card">
                 <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}><h3 className="fz-card__title" style={{ fontSize: 14, lineHeight: '20px' }}>{t('Versiyalar va farq')}</h3></div>
-                <div className="p-4"><SmetaVersiyaFarq kompaniyaId={joriy.id} obyektId={obyektId} obyektNom={obyektNom} joriyQatorlar={daraxtXom} tomonlar={tomonlar} /></div>
+                <div className="p-4"><SmetaVersiyaFarq kompaniyaId={joriy.id} obyektId={obyektId} obyektNom={obyektNom} joriyQatorlar={daraxtXom} tomonlar={tomonlar} boshlangichFayl={versiyaFayli} /></div>
               </section>
             )}
             <section hidden={activeTab !== 'resurs'} className="fz-card">
               <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}><h3 className="fz-card__title" style={{ fontSize: 14, lineHeight: '20px' }}>{t('Resurs vedomosti')}</h3></div>
-              {activeTab === 'resurs' && <div className="p-4"><ResursVedomostNative obyektId={obyektId} /></div>}
+              {activeTab === 'resurs' && !loading && <div className="p-4"><ResursVedomostNative obyektId={obyektId} /></div>}
             </section>
             <section hidden={activeTab !== 'narx'} className="fz-card">
               <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}><h3 className="fz-card__title" style={{ fontSize: 14, lineHeight: '20px' }}>{t('Narx nazorati')}</h3></div>
-              {activeTab === 'narx' && <div className="p-4"><NarxNazoratNative obyektId={obyektId} /></div>}
+              {activeTab === 'narx' && !loading && <div className="p-4"><NarxNazoratNative obyektId={obyektId} /></div>}
             </section>
           </div>
         )}
