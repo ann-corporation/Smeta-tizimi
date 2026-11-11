@@ -34,6 +34,7 @@ export const STATIK_VOSITALAR: readonly YordamchiVosita[] = [
   { id: 'yozuv.narx_tuzat', tur: 'yozuv', nom: 'Narx tuzatish (protokol qoralamasi)', misol: ['bu qator narxini 120000 qil'], tasdiq: 'kartaPul', manba: 'narxProtokolYarat -> narx_protokol_yarat', modelNomi: 'narx_tuzat' },
   { id: 'yozuv.korsat', tur: 'oqish', nom: 'Qatorni ko‘rsatish', misol: ['shu qatorni ko‘rsat'], tasdiq: 'yoq', manba: 'AI buyruq: korsat (hech narsa yozilmaydi)', modelNomi: 'korsat' },
   { id: 'qoralama.f2', tur: 'navigatsiya', nom: 'F2 qoralamasi (oy uchun): F2 tayyorlash sahifasini obyekt va oy bilan ochadi', misol: ['Amfiteatr oktabr F2 tayyorla'], tasdiq: 'yoq', manba: '/admin/f2-tayyorlash?obyekt&oy — tasdiqlash faqat sahifada, qo‘lda' },
+  { id: 'navigatsiya.grafik', tur: 'navigatsiya', nom: 'Ish grafigi (reja va fakt, kechikayotgan razdellar) va oylik hisob prognozi: grafik sahifasini obyekt bilan ochadi', misol: ['Amfiteatr grafigi', 'kechikayotgan ishlar', 'pul oqimi prognozi'], tasdiq: 'yoq', manba: '/admin/grafik?obyekt&tab - hisob sahifada (hisob yadrosi), yozuvsiz' },
   { id: 'qoralama.aosr', tur: 'navigatsiya', nom: 'АОСР qoralamasi: АОСР sahifasini ochadi', misol: ['АОСР tayyorla'], tasdiq: 'yoq', manba: '/admin/aosr — tasdiqlash faqat sahifada, qo‘lda' },
 ];
 

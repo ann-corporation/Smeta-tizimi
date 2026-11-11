@@ -78,6 +78,8 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
         { yol: '/admin/loyiha', ilova: 'pto', nom: 'Loyihalar', ruxsat: ['project.read'], modul: 'module.loyiha', scope: 'COMPANY_SCOPED' },
         { yol: '/admin/participants', ilova: 'hujjat', nom: 'Loyiha ishtirokchilari', ruxsat: ['project.read'], modul: 'module.loyiha', scope: 'PROJECT_SCOPED' },
         { yol: '/admin/mindmap', ilova: 'pto', nom: 'Mindmap (xarita)', ruxsat: [RAHBARIYAT, ...ICHKI_ISH], modul: 'module.erp', scope: 'COMPANY_SCOPED' },
+        /* P6/P7: smetadan avto grafik (Gantt) + oylik pul oqimi prognozi; direktor, PTO va prorab. */
+        { yol: '/admin/grafik', ilova: 'pto', nom: 'Ish grafigi va pul oqimi', ruxsat: [RAHBARIYAT, ...ICHKI_ISH], scope: 'COMPANY_SCOPED' },
       ] },
     ],
   },

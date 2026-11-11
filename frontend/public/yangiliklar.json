@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 160,
+      "sana": "2026-11-12",
+      "sarlavha": "Ish grafigi va oylik pul oqimi prognozi",
+      "bandlar": [
+        "Yangi «Ish grafigi» sahifasi: grafik smetadagi mehnatdan (chel-soat) avtomatik tuziladi — razdel davomiyligi = mehnat / (brigada × smena), razdellar smeta tartibida ketma-ket, boshlanish — shartnoma sanasidan. Brigada, smena va sanalarni o'zgartirish mumkin.",
+        "Reja va fakt yonma-yon: fakt kiritilgan ish foizi reja bilan solishtiriladi, orqada qolgan razdel «kechikmoqda» deb belgilanadi. Mehnati yo'q razdellarga muddat o'ylab topilmaydi.",
+        "«Pul oqimi» yorlig'i: oylar bo'yicha reja (QQS bilan, ustamali va ustamasiz), F2 reestridagi haqiqiy hisoblangan summa, to'lovlar va kutilayotgan hisob prognozi — direktor va buyurtmachi uchun. Jarvis: «grafik», «pul oqimi prognozi»."
+      ]
+    },
+    {
       "id": 159,
       "sana": "2026-11-11",
       "sarlavha": "Bitta yordamchi: Jarvis butun tizimni gaplashib boshqaradi",

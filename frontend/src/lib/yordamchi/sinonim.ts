@@ -23,6 +23,7 @@ export const SAHIFA_SINONIM: Readonly<Record<string, Sinonim>> = {
   '/admin/narxlar': { uz: ['narxlar nazorati', 'narxlar'], ru: ['контроль цен', 'цены'], en: ['price control', 'prices'] },
   '/admin/narx-manbalari': { uz: ['narx manbalari', 'katalog', 'faktura'], ru: ['источники цен', 'каталог'], en: ['price sources', 'catalog'] },
   '/admin/oferta': { uz: ['oferta', 'tender oferta'], ru: ['оферта', 'тендерная оферта'], en: ['offer', 'tender offer'] },
+  '/admin/grafik': { uz: ['grafik', 'ish grafigi', 'gantt', 'pul oqimi', 'cashflow', 'kechikish'], ru: ['график', 'график работ', 'диаграмма ганта', 'денежный поток'], en: ['schedule', 'gantt', 'cash flow', 'work schedule'] },
   '/admin/fakt': { uz: ['fakt kiritish', 'fakt', 'fakt jurnali'], ru: ['факт', 'ввод факта'], en: ['actuals', 'fact entry'] },
   '/admin/m29': { uz: ['m29', 'material sarfi'], ru: ['м29', 'расход материалов'], en: ['m29', 'material consumption'] },
   '/admin/f2-tayyorlash': { uz: ['f2 tayyorlash', 'f2 tayyorla', 'f2 yarat', 'f2 tuz', 'f2 qoralama'], ru: ['подготовка ф2', 'ф2 подготовка', 'ф2 черновик'], en: ['f2 prepare', 'f2 draft'] },
