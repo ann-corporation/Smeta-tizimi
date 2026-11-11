@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { rolBoshSahifasi, ZAXIRA_BOSH_SAHIFA } from './boshSahifa';
 
 describe('rolBoshSahifasi', () => {

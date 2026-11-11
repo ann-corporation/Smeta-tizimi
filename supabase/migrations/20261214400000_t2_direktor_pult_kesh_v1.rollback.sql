@@ -1,4 +1,4 @@
-﻿-- Rollback t2_direktor_pult_kesh_v1: panelni eski (jonli) hisobga qaytaradi, kesh va triggerlarni olib tashlaydi.
+-- Rollback t2_direktor_pult_kesh_v1: panelni eski (jonli) hisobga qaytaradi, kesh va triggerlarni olib tashlaydi.
 -- Panel natijasi o'zgarmaydi (faqat sekinlashadi). Hisob yadrosi (_t2_summa_*) tegilmagan.
 do $cron$
 begin

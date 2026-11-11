@@ -1,4 +1,4 @@
-﻿/**
+/**
  * DIREKTOR PULTI (V3) — bitta ekran, 6 katta plitka; har biri tegishli sahifani ochadi.
  * Raqamlar serverdan (`t2_rahbar_pult_v1`, «tayyor hisoblar» orqali tez); bu yerda hisob YO'Q.
  * Pul — har doim uchlik (QQS bilan birinchi · ustamali QQS siz · ustamasiz). Noma'lum — «—», nol emas.

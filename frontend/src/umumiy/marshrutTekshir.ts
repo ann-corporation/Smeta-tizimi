@@ -1,4 +1,4 @@
-﻿/**
+/**
  * marshrutTekshir.ts — MENYU HAVOLASI ↔ MARSHRUT MOSLIGI
  * ═══════════════════════════════════════════════════════════════════
  *

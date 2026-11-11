@@ -1,4 +1,4 @@
-﻿-- t2_direktor_pult_v1 (2026-11-11): DIREKTOR PULTI + «TAYYOR HISOBLAR» (t2_obyekt_kesh) — rahbar paneli tezligi.
+-- t2_direktor_pult_v1 (2026-11-11): DIREKTOR PULTI + «TAYYOR HISOBLAR» (t2_obyekt_kesh) — rahbar paneli tezligi.
 --
 -- MUAMMO: t2_rahbar_panel_v1 butun kompaniya (38 obyekt, ~140k qator) uchun smeta/fakt/F2/F2-qoralama paketlarini har so'rovda
 --   qayta hisoblaydi (o'lchov, read-only EXPLAIN ANALYZE: smeta 7,6 s + fakt 16,1 s + F2 11,2 s = ~35 s bazada).
@@ -314,17 +314,17 @@ begin
       'kechikkan', (select count(*) from public.t2_topshiriq t where t.kompaniya_id = p_kompaniya_id and t.holat in ('berildi', 'qabul_qilindi', 'bajarilmoqda', 'qaytarildi') and t.muddat < v_bugun)));
 
   -- Xavfli obyektlar: kritik signal va diqqat sabablari bo'yicha top-5.
-  select coalesce(jsonb_agg(z.j order by z.ball desc, z.nom), '[]'::jsonb) into v_xavfli
+  select coalesce(jsonb_agg(z.j order by z.pul desc, z.ball desc, z.nom), '[]'::jsonb) into v_xavfli
     from (
-      select o->>'nom' as nom, (coalesce((o->'signal'->>'kritik')::int, 0) * 100 + coalesce(dq.n, 0) * 10 + least(coalesce((o->'signal'->>'soni')::int, 0), 9)) as ball,
+      select o->>'nom' as nom, (coalesce(dq.pul, 0) + greatest(coalesce((o->>'qarz')::numeric, 0), 0)) as pul, (coalesce((o->'signal'->>'kritik')::int, 0) * 100 + coalesce(dq.n, 0) * 10 + least(coalesce((o->'signal'->>'soni')::int, 0), 9)) as ball,
              jsonb_build_object('obyekt_id', (o->>'obyekt_id')::bigint, 'nom', o->>'nom', 'kritik', coalesce((o->'signal'->>'kritik')::int, 0),
                'signal_soni', coalesce((o->'signal'->>'soni')::int, 0), 'sabablar', coalesce(dq.kodlar, '[]'::jsonb),
-               'qarz', o->'qarz', 'f2_qqs_bilan', o->'f2'->'qqs_bilan') as j
+               'qarz', o->'qarz', 'f2_qqs_bilan', o->'f2'->'qqs_bilan', 'pul_tasiri', coalesce(dq.pul, 0) + greatest(coalesce((o->>'qarz')::numeric, 0), 0)) as j
         from jsonb_array_elements(v_p->'obyektlar') o
-        left join lateral (select jsonb_agg(d->>'kod') as kodlar, count(*) as n
+        left join lateral (select jsonb_agg(d->>'kod') as kodlar, count(*) as n, coalesce(sum((d->>'summa_tasir')::numeric) filter (where d->>'kod' = 'f2_faktdan_oshgan'), 0) as pul
                              from jsonb_array_elements(v_p->'diqqat') d where d->>'obyekt_id' = o->>'obyekt_id') dq on true
        where coalesce((o->'signal'->>'kritik')::int, 0) > 0 or coalesce(dq.n, 0) > 0
-       order by 2 desc, 1 limit 5) z;
+       order by 2 desc, 3 desc, 1 limit 5) z;
 
   -- Kesh holati (shaffoflik): nechta obyekt tayyor hisobdan o'qildi.
   select jsonb_build_object('obyekt_soni', count(*),
