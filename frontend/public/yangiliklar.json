@@ -13,6 +13,24 @@
       ]
     },
     {
+      "id": 138,
+      "sana": "2026-11-11",
+      "sarlavha": "Ombor: markaziy ombordan obyektga «Berdim»",
+      "bandlar": [
+        "Ombor → Kirim/Qoldiq bo'limida yangi «Berdim → obyekt» tugmasi: obyekt, markaziy ombordagi material va miqdorni tanlang — bitta tugma.",
+        "Berilgan material obyekt qoldig'iga tushadi, markaziy qoldiq shuncha kamayadi (ikki marta sanalmaydi). M-29 endi shu obyekt qoldig'idan yecha oladi.",
+        "Qoldiqdan ortiq berib bo'lmaydi; tugmani qayta bosish ikkinchi yozuv yaratmaydi."
+      ]
+    },
+    {
+      "id": 139,
+      "sana": "2026-11-11",
+      "sarlavha": "F2 tayyorlash tezroq ochiladi",
+      "bandlar": [
+        "F2 tayyorlash sahifasi smeta daraxti va oldingi F2 narxlarini bitta so'rovda oladi — katta obyektda ochilish sezilarli tez. Hisob-kitob va summalar o'zgarmagan."
+      ]
+    },
+    {
       "id": 140,
       "sana": "2026-11-11",
       "sarlavha": "Buyurtma berish: zayavkadan yetkazuvchigacha",

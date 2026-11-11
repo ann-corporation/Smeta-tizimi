@@ -1,0 +1,19 @@
+{
+  "Berdim → obyekt": { "ru": "Выдано → на объект", "en": "Issue → to site" },
+  "Markaziy omborda bu miqdor yoʻq — qoldiqni tekshiring.": { "ru": "На центральном складе нет такого количества — проверьте остаток.", "en": "The central warehouse does not have this quantity — check the balance." },
+  "Obyekt shu kompaniyaga tegishli emas.": { "ru": "Объект не принадлежит этой компании.", "en": "The site does not belong to this company." },
+  "Ombor topilmadi yoki faol emas.": { "ru": "Склад не найден или не активен.", "en": "Warehouse not found or inactive." },
+  "Maʼlumot oʻzgargan — oynani yopib, qaytadan oching.": { "ru": "Данные изменились — закройте окно и откройте заново.", "en": "The data has changed — close the window and open it again." },
+  "Berish uchun ruxsat yoʻq.": { "ru": "Нет права на выдачу.", "en": "You do not have permission to issue." },
+  "Natija nomaʼlum — qayta bosing: takroriy yozuv yaratilmaydi.": { "ru": "Результат неизвестен — нажмите ещё раз: повторная запись не создаётся.", "en": "Result unknown — press again: no duplicate entry is created." },
+  "Markaziy ombor: {nom}. Berilgan material obyekt qoldigʻiga tushadi — M-29 shu qoldiqdan yechadi.": { "ru": "Центральный склад: {nom}. Выданный материал попадает в остаток объекта — М-29 списывает из этого остатка.", "en": "Central warehouse: {nom}. The issued material goes to the site balance — M-29 draws from it." },
+  "Material (markaziy ombor qoldigʻidan)": { "ru": "Материал (из остатка центрального склада)", "en": "Material (from central warehouse balance)" },
+  "Masalan: sement": { "ru": "Например: цемент", "en": "For example: cement" },
+  "Qoldiqni oʻqib boʻlmadi.": { "ru": "Не удалось прочитать остаток.", "en": "Could not read the balance." },
+  "Markaziy omborda qoldiq topilmadi.": { "ru": "На центральном складе остаток не найден.", "en": "No balance found in the central warehouse." },
+  "Miqdor ({birlik})": { "ru": "Количество ({birlik})", "en": "Quantity ({birlik})" },
+  "Markaziy omborda faqat {q} {birlik} bor.": { "ru": "На центральном складе только {q} {birlik}.", "en": "Only {q} {birlik} in the central warehouse." },
+  "Kimga berildi (ixtiyoriy)": { "ru": "Кому выдано (необязательно)", "en": "Issued to (optional)" },
+  "Yozilmoqda…": { "ru": "Записывается…", "en": "Saving…" },
+  "Obyektga berildi — obyekt qoldigʻiga tushdi.": { "ru": "Выдано на объект — поступило в остаток объекта.", "en": "Issued to the site — added to the site balance." }
+}

@@ -63,7 +63,7 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       't2_obyekt_hujjat_yoz', 't2_obyekt_hujjat_ochir',
                       't2_sklad_yarat', 't2_kadr_yarat', 't2_texnika_yarat',
                       /* 2026-10-29 C11 PR-B: markaziy ombor kirimi (≤1000 qator, idempotent) va storno; RPC ichida a'zolik + document.write. */
-                      't2_sklad_markaziy_prixod_import_v1', 't2_sklad_markaziy_prixod_storno_v1',
+                      't2_sklad_markaziy_berdim_v1', 't2_sklad_markaziy_prixod_import_v1', 't2_sklad_markaziy_prixod_storno_v1',
                       't2_resurs_yarat_v2', 't2_resurs_yangila_v2', 't2_resurs_bekor_v2',
                       't2_resurs_bog_saqla', 't2_resurs_bog_ochir',
                       't2_loyiha_yarat', 't2_loyiha_yangila', 't2_loyiha_ochir',
@@ -160,7 +160,7 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       't2_tender_fayl_bogla_v1', 't2_tender_taklif_fayl_bogla_v1',
                       /* 2026-11-11: buyurtma (zayavka -> yetkazuvchi; 20261108410000). Yozuvchi 4 ta (procurement.write / supply.fulfil, RPC ichida a'zolik + ruxsat + faol aloqa);
                          t2_buyurtmalar_v1 / t2_buyurtma_tafsilot_v1 - FAQAT O'QIYDI, lekin prodda VOLATILE bo'lgani uchun /api/sb (GET) o'rniga shu yerda (yuk _shared/buyurtma-yuk.ts oq ro'yxati). */
-                      't2_buyurtma_yarat_v1', 't2_buyurtma_otish_v1', 't2_buyurtma_olish_yoz_v1', 't2_buyurtma_qabul_v1', 't2_buyurtmalar_v1', 't2_buyurtma_tafsilot_v1',
+                      't2_buyurtma_yarat_v1', 't2_buyurtma_otish_v1', 't2_buyurtma_olish_yoz_v1', 't2_buyurtma_qabul_v1', 't2_buyurtma_qabul_yakunla_v1', 't2_buyurtmalar_v1', 't2_buyurtma_tafsilot_v1',
                       /* 2026-11-04: HR + KPI (hr.* / payroll.* RPC ichida tekshiriladi). */
                       't2_hr_kalendar_saqla_v1', 't2_hr_oylik_hisobla_v1', 't2_hr_sxema_saqla_v1', 't2_hr_tabel_saqla_v1', 't2_hr_tuzatma_qaror_v1', 't2_hr_tuzatma_saqla_v1', 't2_hr_xodim_saqla_v1',
                       /* 2026-11-04: buxgalteriya (accounting.write/approve RPC ichida tekshiriladi; idempotent operation_id). */

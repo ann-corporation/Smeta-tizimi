@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { MemoryRouter } from 'react-router-dom';
 
 const zay = vi.hoisted(() => ({ sbZayavkalarOl: vi.fn(), sbZayavkaYoz: vi.fn(), sbZayavkaHolatYoz: vi.fn() }));
-const buy = vi.hoisted(() => ({ buyurtmalarOl: vi.fn(), buyurtmaTafsilotOl: vi.fn(), buyurtmaYarat: vi.fn(), buyurtmaQabul: vi.fn() }));
+const buy = vi.hoisted(() => ({ buyurtmalarOl: vi.fn(), buyurtmaTafsilotOl: vi.fn(), buyurtmaYarat: vi.fn(), buyurtmaQabul: vi.fn(), buyurtmaQabulYakunla: vi.fn() }));
 const tomon = vi.hoisted(() => ({ aloqalarOl: vi.fn() }));
 vi.mock('./KompaniyaTanlov', () => ({ useKompaniya: () => ({ joriy: { id: 17, nom: 'Xaridor MChJ' } }) }));
 vi.mock('../api/t2-zayavka', () => zay);
@@ -90,6 +90,7 @@ describe('Zayavka sahifasi: Buyurtma berish', () => {
     buy.buyurtmalarOl.mockResolvedValue({ ok: true, qatorlar: [buyurtma({ id: 9, holat: 'topshirildi', versiya: 6 }), buyurtma({ id: 10, holat: 'qabul_qilindi' })], keyingi_id: null });
     buy.buyurtmaTafsilotOl.mockResolvedValue({ ok: true, tomon: 'xaridor', buyurtma: { id: 9, versiya: 6 }, qatorlar: [{ id: 91, qator_no: 1, nom: 'Sement M400', birlik: 'tonna', miqdor: 15, narx: null }] });
     buy.buyurtmaQabul.mockResolvedValue({ ok: true, holat: 'qabul_qilindi_yakuniy' });
+    buy.buyurtmaQabulYakunla.mockResolvedValue({ ok: true, sklad_soni: 1, qarz_soni: 0, ogohlantirish: [] });
     ochish();
     const panel = await screen.findByRole('region', { name: 'Berilgan buyurtmalar' });
     expect(buy.buyurtmalarOl).toHaveBeenCalledWith({ kompaniyaId: 17, yonalish: 'meniki', limit: 100 });
@@ -102,7 +103,26 @@ describe('Zayavka sahifasi: Buyurtma berish', () => {
     await waitFor(() => expect(buy.buyurtmaQabul).toHaveBeenCalledWith(17, {
       buyurtmaId: 9, kutilganVersiya: 6, qatorlar: [{ buyurtma_qator_id: 91, qabul_miqdor: 15, holat: 'butun' }],
     }, expect.any(String)));
+    // bitta amal: qabul o'tgach darhol sklad kirimi + qarz asosi
+    await waitFor(() => expect(buy.buyurtmaQabulYakunla).toHaveBeenCalledWith(17, { buyurtmaId: 9 }, expect.any(String)));
     await waitFor(() => expect(buy.buyurtmalarOl).toHaveBeenCalledTimes(2));
+  });
+
+  it('qabul o\'tdi, yakunlash yiqildi: ogohlantirish, oyna ochiq qoladi; qayta bosilganda qabul QAYTA yuborilmaydi, faqat yakunlash', async () => {
+    buy.buyurtmalarOl.mockResolvedValue({ ok: true, qatorlar: [buyurtma({ id: 9, holat: 'topshirildi', versiya: 6 })], keyingi_id: null });
+    buy.buyurtmaTafsilotOl.mockResolvedValue({ ok: true, tomon: 'xaridor', buyurtma: { id: 9, versiya: 6 }, qatorlar: [{ id: 91, qator_no: 1, nom: 'Sement M400', birlik: 'tonna', miqdor: 15, narx: null }] });
+    buy.buyurtmaQabul.mockClear();
+    buy.buyurtmaQabul.mockResolvedValue({ ok: true, holat: 'qabul_qilindi_yakuniy' });
+    buy.buyurtmaQabulYakunla.mockClear();
+    buy.buyurtmaQabulYakunla.mockResolvedValueOnce({ ok: false, error: 'tarmoq' }).mockResolvedValueOnce({ ok: true, sklad_soni: 1, qarz_soni: 0 });
+    ochish();
+    fireEvent.click(await screen.findByRole('button', { name: 'Qabul qildim' }));
+    const tugma = await screen.findByRole('button', { name: 'Hammasi to‘liq keldi' });
+    fireEvent.click(tugma);
+    await waitFor(() => expect(buy.buyurtmaQabulYakunla).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: 'Hammasi to‘liq keldi' }));
+    await waitFor(() => expect(buy.buyurtmaQabulYakunla).toHaveBeenCalledTimes(2));
+    expect(buy.buyurtmaQabul).toHaveBeenCalledTimes(1);
   });
 
   it('qisman / muammo: har qator miqdori va holati yuboriladi (server nizo/qisman ni o\'zi hal qiladi)', async () => {

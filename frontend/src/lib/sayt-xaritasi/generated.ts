@@ -486,6 +486,10 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_sklad_markaziy_prixod_storno_v1"
     },
     {
+      "amal": "sklad_berdim_v1",
+      "rpc": "t2_sklad_markaziy_berdim_v1"
+    },
+    {
       "amal": "token_sarfla_v1",
       "rpc": "t2_token_sarfla_v1"
     },
@@ -692,6 +696,10 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "buyurtma_qabul_v1",
       "rpc": "t2_buyurtma_qabul_v1"
+    },
+    {
+      "amal": "buyurtma_qabul_yakunla_v1",
+      "rpc": "t2_buyurtma_qabul_yakunla_v1"
     },
     {
       "amal": "buyurtma_royxat_v1",
