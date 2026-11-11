@@ -2,13 +2,31 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 143,
+      "id": 145,
       "sana": "2026-11-11",
       "sarlavha": "Ijro hujjatlari: «Nima yetishmayapti» va butun paket",
       "bandlar": [
         "АОСР sahifasi tepasida «Nima yetishmayapti» paneli: yashirin ish bajarilgan, lekin АОСР yo‘q qatorlar smeta razdeli bo‘yicha. Razdel yonidagi bitta tugma — shu razdel uchun АОСР qoralamasi tayyor (ish nomi, hajm, materiallar, fakt sanalari, imzochilar). Holat doim «Qoralama» — tasdiqlashni o‘zingiz qilasiz.",
         "Akt reestri endi bir xil tartibda: razdel → ish sanasi → raqam; tartib raqami uzilishsiz. Raqamlarda bo‘shliq/takror va beton, grunt zichlash, payvand kabi ishlarda ulanmagan laboratoriya protokoli ogohlantirish bo‘lib chiqadi (bloklamaydi).",
         "«Butun paket» tugmasi: reestr + hamma АОСР (va protokollar reestri) bitta ZIP faylda."
+      ]
+    },
+    {
+      "id": 144,
+      "sana": "2026-11-11",
+      "sarlavha": "Ish hajmi va materiallar hajmi muvofiqligi tekshiruvi",
+      "bandlar": [
+        "Ish hajmi materiallar hajmiga mos kelmasa (masalan, gazobeton kladka 173,83 m³, lekin bloklar jami 151,065 m³) tizim ogohlantiradi va «Tuzatish taklifi» tugmasini beradi. Ogohlantirish F2 importida, F2 tayyorlashda, Fakt jurnali va Ish varag‘ida chiqadi.",
+        "Faqat ogohlantirish: hajm hech qachon bloklanmaydi, taklif avtomatik yozilmaydi — qiymat kiritmaga qo‘yiladi, tekshirib o‘zingiz saqlaysiz. Tom yopish (profnastil) uchun ≈5 % ustma-ust, 100 m² ↔ m² o‘girish hisobga olinadi."
+      ]
+    },
+    {
+      "id": 143,
+      "sana": "2026-11-11",
+      "sarlavha": "Fakt saqlashda xato sababi aniq aytiladi",
+      "bandlar": [
+        "Saqlash o‘tmaganda tizim endi har holatda «internet uzildi» demaydi: qurilma oflayn, server ko‘rinmayapti, so‘rov brauzerdan chiqmadi, kirish muddati tugagan, server xatosi yoki yangi versiya chiqqani — har biri o‘z xabari bilan chiqadi.",
+        "Xatodan keyin sahifani yangilamasdan qayta saqlash mumkin: kiritganlaringiz brauzerda saqlanib turadi, qayta bosish ikkinchi hujjat yaratmaydi. Saqlash qotib qolsa, 4 daqiqadan keyin o‘zi to‘xtaydi va qayta urinish mumkin bo‘ladi."
       ]
     },
     {
