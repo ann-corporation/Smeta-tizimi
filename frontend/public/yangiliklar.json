@@ -2,6 +2,34 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 144,
+      "sana": "2026-11-11",
+      "sarlavha": "Ish hajmi va materiallar hajmi muvofiqligi tekshiruvi",
+      "bandlar": [
+        "Ish hajmi materiallar hajmiga mos kelmasa (masalan, gazobeton kladka 173,83 m³, lekin bloklar jami 151,065 m³) tizim ogohlantiradi va «Tuzatish taklifi» tugmasini beradi. Ogohlantirish F2 importida, F2 tayyorlashda, Fakt jurnali va Ish varag‘ida chiqadi.",
+        "Faqat ogohlantirish: hajm hech qachon bloklanmaydi, taklif avtomatik yozilmaydi — qiymat kiritmaga qo‘yiladi, tekshirib o‘zingiz saqlaysiz. Tom yopish (profnastil) uchun ≈5 % ustma-ust, 100 m² ↔ m² o‘girish hisobga olinadi."
+      ]
+    },
+    {
+      "id": 143,
+      "sana": "2026-11-11",
+      "sarlavha": "Fakt saqlashda xato sababi aniq aytiladi",
+      "bandlar": [
+        "Saqlash o‘tmaganda tizim endi har holatda «internet uzildi» demaydi: qurilma oflayn, server ko‘rinmayapti, so‘rov brauzerdan chiqmadi, kirish muddati tugagan, server xatosi yoki yangi versiya chiqqani — har biri o‘z xabari bilan chiqadi.",
+        "Xatodan keyin sahifani yangilamasdan qayta saqlash mumkin: kiritganlaringiz brauzerda saqlanib turadi, qayta bosish ikkinchi hujjat yaratmaydi. Saqlash qotib qolsa, 4 daqiqadan keyin o‘zi to‘xtaydi va qayta urinish mumkin bo‘ladi."
+      ]
+    },
+    {
+      "id": 142,
+      "sana": "2026-11-11",
+      "sarlavha": "Obyekt sahifasida «Ish varag‘i» rejimi (sinov)",
+      "bandlar": [
+        "Obyekt sahifasida «Daraxt | Ish varag‘i» kaliti paydo bo‘ldi. «Ish varag‘i» — Excel kabi bitta jadval: nomi, birligi, smeta hajmi, fakt, F2, qoldiq va summa. Bo‘limlarni yig‘ish mumkin, «/» bilan qidiriladi.",
+        "Faktni to‘g‘ridan-to‘g‘ri katakka yozing: +5 — bugun, =40 — jami, 50% — smeta foizi. Enter — keyingi qator, Esc — bekor, Ctrl+Z — qaytarish, Ctrl+S — hammasini BIR MARTA saqlash. Pastda jami summalar doim ko‘rinib turadi.",
+        "Boshqa panellar «Boshqa» tugmasi ortiga yig‘ilgan. Sukut bo‘yicha avvalgi «Daraxt» ko‘rinishi qoladi; Fakt jurnali o‘zgarmagan."
+      ]
+    },
+    {
       "id": 141,
       "sana": "2026-11-11",
       "sarlavha": "AI buyruq satri (Ctrl+K)",

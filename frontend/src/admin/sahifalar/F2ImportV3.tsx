@@ -58,6 +58,9 @@ import { F2DavomRoyxat } from './F2DavomRoyxat';
 import { F2EgizakNusxa } from './F2EgizakNusxa';
 import { F2DublikatPanel } from './F2DublikatPanel';
 import { F2MoslashHisoboti } from './F2MoslashHisoboti';
+import { toast } from '../../umumiy/ui/Toast';
+import { moslikHisobla, moslikTuzilma, type MoslikNatija } from '../../lib/ish-material-moslik';
+import { IshMaterialOgohRoyxat } from '../../components/fakt/IshMaterialOgoh';
 import { moslashHisoboti } from '../../lib/f2-moslash-v3/moslashHisoboti';
 import { bloklarmi, dublikatTekshiruv, pereraschetBelgisi, type DAkt } from '../../lib/f2-dublikat/tekshiruv';
 import { egizakRaqamMasalasi } from '../../lib/f2-moslash-v3/egizak';
@@ -742,6 +745,21 @@ function Sessiya({ companyId }: { companyId: number }) {
     const ozgarish = new Set(rowsK.filter((r) => (r as { qoshimcha?: boolean }).qoshimcha || (r as { zamena?: boolean }).zamena).map((r) => r.id));
     return qoldiqOshishlari(payload.rows.map((r) => ({ qatorId: r.qatorId, hajm: r.certifiedQuantity })), smetaH, oldingi, band, ozgarish);
   }, [payload, rowsK, oldingi, band]);
+  /** Ish ↔ material hajm muvofiqligi (egasi 2026-11-11; lib/ish-material-moslik): F2 ga kiradigan ish hajmi shu F2 dagi materiallar hajmiga mosmi.
+   *  FAQAT KO'RSATISH (hajm bloklanmaydi); F2 hujjat manbasi o'zgarmaydi — taklif qiymati nusxalanadi, tuzatish manbada/fakt jurnalida. */
+  const moslikTuz = useMemo(() => moslikTuzilma(rowsK), [rowsK]);
+  const moslikOgoh = useMemo(() => {
+    if (!payload || payload.error) return [] as MoslikNatija[];
+    const h = new Map<number, number>();
+    for (const r of payload.rows) if (r.certifiedQuantity != null && Number.isFinite(r.certifiedQuantity)) h.set(r.qatorId, (h.get(r.qatorId) ?? 0) + r.certifiedQuantity);
+    return moslikHisobla(moslikTuz, h);
+  }, [payload, moslikTuz]);
+  const moslikNusxa = (n: MoslikNatija) => {
+    const v = String(n.taklif).replace('.', ',');
+    const yoz = navigator.clipboard?.writeText(v);
+    if (!yoz) { toast(t('Taklifni nusxalash bajarilmadi.'), 'warn'); return; }
+    void yoz.then(() => toast(t('Taklif nusxalandi: {v}. F2 manbasida ish hajmini shu qiymatga tuzating.', { v }), 'ok'), () => toast(t('Taklifni nusxalash bajarilmadi.'), 'warn'));
+  };
   /** DUBLIKAT HIMOYASI (egasi 2026-10-25): yozishdan oldin tekshiruv. Blok — faqat aniq takror (shu fayl varag‘i allaqachon yozilgan,
    *  shu obyektda shu raqam bor); summa / pereraschet — ogohlantirish. */
   const dublikatlar = useMemo(() => {
@@ -1409,6 +1427,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       matn: t('Moslash hisoboti: shubhali {s}, xato {x} — PTO tekshirmaguncha jim yozilmasin', { s: hisobot.stat.shubhali, x: hisobot.stat.xato }), amal: { nom: t('Ko‘rsatish'), run: sakra('Moslash hisoboti') } });
     if (yozish && yozish.qolgan.length > 0) tekshiruvBandlari.push({ id: 'qolgan', daraja: 'warn', matn: t('Bog‘lanmagan qatorlar aktga kirmaydi: {n}', { n: yozish.qolgan.length }), amal: { nom: t('Qatorga o‘tish'), run: () => { sakra('F2 akt')(); keyingiHalRef.current?.(); } } });
     if (taklifSoni > 0) tekshiruvBandlari.push({ id: 'taklif', daraja: 'warn', matn: t('Tasdiq kutayotgan takliflar (aktga faqat tasdiqlanganlar kiradi): {n}', { n: taklifSoni }), amal: { nom: t('Qatorga o‘tish'), run: () => { sakra('F2 akt')(); keyingiHalRef.current?.(); } } });
+    if (moslikOgoh.length > 0) tekshiruvBandlari.push({ id: 'moslik', daraja: 'warn', matn: t('Ish–material muvofiqligi: ogohlantirishlar {n} (bloklamaydi)', { n: moslikOgoh.length }), amal: { nom: t('Ko‘rsatish'), run: sakra('Ish va material hajmi muvofiqligi') } });
     if (oshishlar.length > 0) tekshiruvBandlari.push({ id: 'oshish', daraja: 'warn', matn: t('Smeta qoldig‘idan oshadigan qatorlar: {n}', { n: oshishlar.length }), amal: { nom: t('Ko‘rsatish'), run: sakra('Dublikat hajm nazorati') } });
     if (jamiFarq != null && tiyingaYaxlitla(jamiFarq) !== 0) tekshiruvBandlari.push({ id: 'jami', daraja: 'warn', matn: t('Manba jami va qatorlar yig‘indisi mos emas: {n} so‘m', { n: `${jamiFarq > 0 ? '+' : ''}${fmt(jamiFarq)}` }), amal: { nom: t('Ko‘rsatish'), run: sakra('Akt') } });
     if (eskiQoralama && ketmaKetBartaraf !== eskiQoralama.job_id) tekshiruvBandlari.push({ id: 'ketma', daraja: 'warn', matn: t('Avval {oy} F2 si yozilmagan — ochasizmi?', { oy: (eskiQoralama.oy ?? '').slice(0, 7) + (eskiQoralama.raqam ? ` №${eskiQoralama.raqam}` : '') }), amal: { nom: t('Ko‘rsatish'), run: sakra('F2 ketma-ketligi') } });
@@ -1691,6 +1710,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         </section>
       )}
       {akt && ij && !done && hisobot && <F2MoslashHisoboti hisobot={hisobot} />}
+        {akt && ij && !done && <IshMaterialOgohRoyxat natijalar={moslikOgoh} onTuzat={moslikNusxa} tuzatNomi={(n) => t('Nusxalash: {v}', { v: String(n.taklif).replace('.', ',') })} />}
 
       {akt && ind && natija && ij && (
         <F2V3Workbench keyingiRef={keyingiHalRef} akt={akt} ind={ind} natija={natija} S={S} raw={raw} oldingi={oldingi} almashtirilgan={almashtirilgan} band={band}
