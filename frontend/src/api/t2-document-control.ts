@@ -210,6 +210,10 @@ export type Forma3ShartnomaAkt = { akt_id: number; raqam: string | null; oy: str
 export type Forma3ShartnomaAktlar = { ok: true; shartnoma_id: number; obyektlar: Array<{ obyekt_id: number; nom: string | null }>; aktlar: Forma3ShartnomaAkt[] };
 export const forma3ShartnomaAktlarOl = (p: { shartnomaId: number; davrBoshi: string; davrOxiri: string }): Promise<Forma3ShartnomaAktlar> =>
   get({ amal: 'forma3-shartnoma-aktlar', shartnoma_id: p.shartnomaId, davr_boshi: p.davrBoshi, davr_oxiri: p.davrOxiri });
+export type Forma3ShartnomaRoyxatQator = { id: number; raqam: string | null; davr_boshi: string; davr_oxiri: string; holat: string | null; esf_holat: 'tayyor' | 'yuborildi' | 'qabul' | 'rad' | null; esf_tashqi_id: string | null; aktlar: number[] };
+/** P4: shartnomaning mavjud Forma 3 lari (ESF bo'limi har biri uchun). */
+export const forma3ShartnomaRoyxatOl = (shartnomaId: number): Promise<{ ok: true; forma3lar: Forma3ShartnomaRoyxatQator[] }> =>
+  get({ amal: 'forma3-shartnoma-royxat', shartnoma_id: shartnomaId });
 /** P4: shartnomaning ESF ID maydonlari (my3 / kapital.imv / kadastr). Bo'sh matn → NULL. */
 export const shartnomaEsfIdYoz = (p: { shartnomaId: number; idTuri: 'my3' | 'kapital' | 'kadastr' | null; my3?: string; kapital?: string; kadastr?: string }) =>
   post({ amal: 'shartnoma-esf-id', shartnoma_id: p.shartnomaId, id_turi: p.idTuri, my3: p.my3 ?? null, kapital: p.kapital ?? null, kadastr: p.kadastr ?? null });

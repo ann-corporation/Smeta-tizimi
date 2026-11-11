@@ -88,6 +88,13 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       return reply('t2_forma3_shartnoma_aktlar_v1', await rpc(ctx.env, 't2_forma3_shartnoma_aktlar_v1',
         { p_shartnoma_id: shartnomaId, p_actor_id: actorId, p_davr_boshi: boshi, p_davr_oxiri: oxiri }), 'FORMA3_SHARTNOMA_AKTLAR_FAILED');
     }
+    if (amal === 'forma3-shartnoma-royxat') {
+      // P4 ESF: shartnomaning mavjud Forma 3 lari (ESF bo'limi har biri uchun ochiladi).
+      const shartnomaId = num(u.searchParams.get('shartnoma_id'));
+      if (shartnomaId == null || !Number.isInteger(shartnomaId) || shartnomaId <= 0) return Response.json({ ok: false, code: 'PARAMS' }, { status: 400 });
+      return reply('t2_forma3_shartnoma_royxat_v1', await rpc(ctx.env, 't2_forma3_shartnoma_royxat_v1',
+        { p_shartnoma_id: shartnomaId, p_actor_id: actorId }), 'FORMA3_SHARTNOMA_ROYXAT_FAILED');
+    }
     if (obyektId == null) return Response.json({ ok: false, code: 'OBYEKT_REQUIRED' }, { status: 400 });
 
     switch (amal) {

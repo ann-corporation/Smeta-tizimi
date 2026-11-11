@@ -84,6 +84,33 @@ begin
   return jsonb_build_object('ok',true,'forma3_id',p_forma3_id,'esf_holat',p_holat);
 end $function$;
 
+-- Shartnomaning Forma 3 ro'yxati (ESF bo'limi har mavjud F3 uchun ochilishi uchun): davr, holat, ESF holati/tashqi ID, akt idlari.
+create or replace function public.t2_forma3_shartnoma_royxat_v1(p_shartnoma_id bigint, p_actor_id bigint)
+ returns jsonb
+ language plpgsql
+ stable
+ security definer
+ set search_path to 'public', 'pg_temp'
+as $function$
+declare v_komp bigint; v_rows jsonb;
+begin
+  select kompaniya_id into v_komp from public.t2_shartnoma where id = p_shartnoma_id and holat <> 'bekor';
+  if v_komp is null then return jsonb_build_object('ok',false,'code','SCOPE_NOT_FOUND'); end if;
+  if public.t2_actor_kompaniya_azo_tekshir(v_komp, p_actor_id) not in ('boss','superadmin','rahbar','bugalter') then
+    return jsonb_build_object('ok',false,'code','ESF_DENIED');
+  end if;
+  select coalesce(jsonb_agg(jsonb_build_object('id', f.id, 'raqam', f.raqam, 'davr_boshi', f.davr_boshi, 'davr_oxiri', f.davr_oxiri,
+           'holat', f.holat, 'esf_holat', f.esf_holat, 'esf_tashqi_id', f.esf_tashqi_id,
+           'aktlar', (select coalesce(jsonb_agg(x.akt_id order by x.akt_id), '[]'::jsonb) from public.t2_forma3_akt x where x.forma3_id = f.id))
+         order by f.davr_boshi desc, f.id desc), '[]'::jsonb) into v_rows
+    from public.t2_forma3 f
+   where f.shartnoma_id = p_shartnoma_id and f.obyekt_id is null and coalesce(f.holat,'') <> 'bekor';
+  return jsonb_build_object('ok',true,'forma3lar',v_rows);
+end $function$;
+
+revoke all on function public.t2_forma3_shartnoma_royxat_v1(bigint,bigint) from public, anon, authenticated;
+grant execute on function public.t2_forma3_shartnoma_royxat_v1(bigint,bigint) to service_role;
+
 revoke all on function public.t2_shartnoma_esf_id_v1(bigint,bigint,text,text,text,text) from public, anon, authenticated;
 revoke all on function public.t2_forma3_esf_holat_v1(bigint,bigint,text,text) from public, anon, authenticated;
 grant execute on function public.t2_shartnoma_esf_id_v1(bigint,bigint,text,text,text,text) to service_role;

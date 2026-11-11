@@ -14,12 +14,16 @@ import {
   type EsfIdTuri, type EsfKiritma,
 } from '../../lib/esf/esf-tayyorlash';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
+import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { toast } from '../../umumiy/ui/Toast';
 
 type Holat = 'tayyor' | 'yuborildi' | 'qabul' | 'rad';
 const HOLAT_NOMI: Record<Holat, string> = { tayyor: 'Tayyor', yuborildi: 'Yuborildi', qabul: 'Qabul qilindi', rad: 'Rad etildi' };
 
-export function Forma3EsfBolim({ forma3Id, forma3Raqam, oy, shartnoma, yigindi, pudratchi, zakazchik, qqsFoiz }: {
+export function Forma3EsfBolim({ kompaniyaId, boshHolat = null, boshTashqiId = '', forma3Id, forma3Raqam, oy, shartnoma, yigindi, pudratchi, zakazchik, qqsFoiz }: {
+  kompaniyaId: number;
+  boshHolat?: Holat | null;
+  boshTashqiId?: string | null;
   forma3Id: number | null;
   forma3Raqam?: string | null;
   oy: string;
@@ -35,9 +39,9 @@ export function Forma3EsfBolim({ forma3Id, forma3Raqam, oy, shartnoma, yigindi, 
   const [kadastr, setKadastr] = useState(shartnoma.kadastr_raqam ?? '');
   const [ikpu, setIkpu] = useState<Record<number, string>>({});
   const [birlik, setBirlik] = useState<Record<number, string>>({});
-  const [tashqiId, setTashqiId] = useState('');
+  const [tashqiId, setTashqiId] = useState(boshTashqiId ?? '');
   const [band, setBand] = useState(false);
-  const [holat, setHolat] = useState<Holat | null>(null);
+  const [holat, setHolat] = useState<Holat | null>(boshHolat);
 
   const kiritma: EsfKiritma = useMemo(() => {
     const qatorlar = esfQatorlarF3dan(yigindi).map((q, i) => ({ ...q, ikpu: ikpu[i] ?? null, birlikKodi: birlik[i] ?? null }));
@@ -69,13 +73,21 @@ export function Forma3EsfBolim({ forma3Id, forma3Raqam, oy, shartnoma, yigindi, 
     } catch { toast(t('ESF holati saqlanmadi.'), 'danger'); }
     finally { setBand(false); }
   };
-  const yuklab = (tur: 'json' | 'csv') => {
+  const yuklab = async (tur: 'json' | 'csv') => {
     const p = esfPaketQur(kiritma);
+    const json = esfJson(p);
     const nom = `ESF_${(shartnoma.raqam || 'shartnoma').replace(/[^\w.-]+/g, '_')}_${oy}`;
-    if (tur === 'json') downloadBlob(new TextEncoder().encode(esfJson(p)), `${nom}.json`, 'application/json');
-    else downloadBlob(new TextEncoder().encode(esfCsv(p)), `${nom}.csv`, 'text/csv;charset=utf-8');
+    // Token: yagona hujjat mexanizmi. Xesh KANONIK JSON dan olinadi (format fayldan mustaqil) — shu ESF qayta yuklansa (JSON yoki CSV) bepul.
+    const r = await hujjatTokenBilan(
+      { kompaniyaId, bytes: new TextEncoder().encode(json), hujjat: 'ESF', sabab: `ESF · Форма №3 ${forma3Raqam ?? forma3Id ?? ''} · № ${shartnoma.raqam} · ${oy}`, yacheykalar: 0 },
+      () => {
+        if (tur === 'json') downloadBlob(new TextEncoder().encode(json), `${nom}.json`, 'application/json');
+        else downloadBlob(new TextEncoder().encode(esfCsv(p)), `${nom}.csv`, 'text/csv;charset=utf-8');
+      },
+    );
+    if (!r.ok) { toast(r.xabar, 'danger'); return; }
+    if (r.xabar) toast(r.xabar, 'ok');
   };
-
   return (
     <section aria-label={t('E-faktura (ESF) tayyorlash')} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', borderTop: '1px solid var(--border)', paddingTop: 'var(--space-3)' }}>
       <div>
@@ -129,8 +141,8 @@ export function Forma3EsfBolim({ forma3Id, forma3Raqam, oy, shartnoma, yigindi, 
       )}
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        <button type="button" className="fz-btn fz-btn--primary" onClick={() => yuklab('json')}><FileJson /> {t('JSON yuklab olish')}</button>
-        <button type="button" className="fz-btn fz-btn--ghost" onClick={() => yuklab('csv')}><Download /> {t('Excel (CSV) yuklab olish')}</button>
+        <button type="button" className="fz-btn fz-btn--primary" onClick={() => void yuklab('json')}><FileJson /> {t('JSON yuklab olish')}</button>
+        <button type="button" className="fz-btn fz-btn--ghost" onClick={() => void yuklab('csv')}><Download /> {t('Excel (CSV) yuklab olish')}</button>
         <button type="button" className="fz-btn fz-btn--ghost" disabled={band || forma3Id == null || !tekshiruv.tayyor} onClick={() => void holatYoz('tayyor')}>{t('ESF tayyor deb belgilash')}</button>
       </div>
 

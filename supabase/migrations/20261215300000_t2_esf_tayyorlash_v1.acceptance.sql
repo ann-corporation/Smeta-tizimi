@@ -38,6 +38,12 @@ begin
   -- 4) mavjud bo'lmagan F3
   r := public.t2_forma3_esf_holat_v1(v_act, -1, 'tayyor', null);
   if (r->>'code') is distinct from 'SCOPE_NOT_FOUND' then raise exception 'FAIL scope: %', r; end if;
+  -- 5) shartnoma F3 ro'yxati: seed F3 ko'rinadi, ESF holati/tashqi ID bilan
+  r := public.t2_forma3_shartnoma_royxat_v1(v_sh, v_act);
+  if not coalesce((r->>'ok')::boolean,false) or jsonb_array_length(r->'forma3lar') <> 1 then raise exception 'FAIL royxat: %', r; end if;
+  if (r->'forma3lar'->0->>'esf_tashqi_id') is distinct from 'EXT-1' then raise exception 'FAIL royxat esf: %', r; end if;
+  r := public.t2_forma3_shartnoma_royxat_v1(-1, v_act);
+  if (r->>'code') is distinct from 'SCOPE_NOT_FOUND' then raise exception 'FAIL royxat scope: %', r; end if;
   raise notice 'OK t2_esf_tayyorlash_v1';
 end $$;
 rollback;

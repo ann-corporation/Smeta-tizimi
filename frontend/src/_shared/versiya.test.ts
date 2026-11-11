@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { yangiliklarniYig } from '../../scripts/yangiliklar-yigish.mjs';
 import { resolve } from 'node:path';
 import { chunkXatosimi, htmldanKirishSkripti, korilmaganlar, reloadQoriqchisiniTozala, saqlanmaganIsh, saqlanmaganIshBormi, versiyaKuzatuvi, yangiliklarniAjrat, yangiVersiyaChiqdimi } from './versiya';
 
@@ -15,8 +15,8 @@ describe('«Nima yangi» (egasi 2026-10-25: versiya almashganda nima o‘zgargan
     expect(korilmaganlar(r, 3)).toEqual([]);
     expect(korilmaganlar(r, null).map((x) => x.id)).toEqual([3]);
   });
-  it('public/yangiliklar.json yaroqli: id lar takrorlanmaydi, har yozuvda sarlavha va kamida bitta band bor', () => {
-    const json = JSON.parse(readFileSync(resolve(__dirname, '../../public/yangiliklar.json'), 'utf8'));
+  it('yangiliklar/*.json yaroqli: id lar takrorlanmaydi, har yozuvda sarlavha va kamida bitta band bor', () => {
+    const json = yangiliklarniYig(resolve(__dirname, '../../yangiliklar'));
     const y = yangiliklarniAjrat(json);
     expect(y.length).toBe(json.yozuvlar.length);
     expect(new Set(y.map((x) => x.id)).size).toBe(y.length);

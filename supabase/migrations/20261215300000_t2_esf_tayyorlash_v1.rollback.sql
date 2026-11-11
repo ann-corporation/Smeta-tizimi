@@ -1,5 +1,6 @@
 -- rollback 20261215300000_t2_esf_tayyorlash_v1
 -- Diqqat: ustunlarni o'chirish kiritilgan ESF ID/holat ma'lumotini yo'qotadi.
+drop function if exists public.t2_forma3_shartnoma_royxat_v1(bigint,bigint);
 drop function if exists public.t2_forma3_esf_holat_v1(bigint,bigint,text,text);
 drop function if exists public.t2_shartnoma_esf_id_v1(bigint,bigint,text,text,text,text);
 alter table public.t2_forma3 drop constraint if exists t2_forma3_esf_holat_chk;

@@ -9,7 +9,7 @@ import { AlertTriangle, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { sbT2ShartnomalarOl, zakazchikRekvizit, type Shartnoma } from '../../api/t2-shartnoma';
 import { yangiOperationId, type T2Kompaniya } from '../../api/supabase';
-import { forma3ShartnomaAktlarOl, forma3Yarat, type Forma3ShartnomaAktlar } from '../../api/t2-document-control';
+import { forma3ShartnomaAktlarOl, forma3ShartnomaRoyxatOl, forma3Yarat, type Forma3ShartnomaAktlar, type Forma3ShartnomaRoyxatQator } from '../../api/t2-document-control';
 import { forma3ShartnomaHujjat, type Forma3Rekvizit, type F3ShartnomaYigindi } from '../../lib/forma3-export';
 import { Forma3EsfBolim } from './Forma3EsfBolim';
 import { f3AktTanlov, f3OyChegarasi, f3YuboriladiganAktlar } from '../../lib/forma3-shartnoma';
@@ -65,7 +65,8 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
   const opId = useRef<{ kalit: string; id: string } | null>(null);
   /** ESF tayyorlash (P4): oxirgi yaratilgan F3 ning yig'indisi — ESF qatorlari shundan AYNAN ko'chiriladi. */
   const esfManba = useRef<{ yigindi: F3ShartnomaYigindi; zakazchik: Forma3Rekvizit } | null>(null);
-  const [esf, setEsf] = useState<{ yigindi: F3ShartnomaYigindi; zakazchik: Forma3Rekvizit; forma3Id: number | null; shartnomaId: number; oy: string } | null>(null);
+  const [esf, setEsf] = useState<{ yigindi: F3ShartnomaYigindi; zakazchik: Forma3Rekvizit; forma3Id: number | null; raqam?: string | null; holat?: Forma3ShartnomaRoyxatQator['esf_holat']; tashqiId?: string | null; shartnomaId: number; oy: string } | null>(null);
+  const [f3lar, setF3lar] = useState<Forma3ShartnomaRoyxatQator[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -88,6 +89,36 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
     } finally { setYuklanmoqda(false); }
   };
   useEffect(() => { void yukla(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [shartnomaId, oy]);
+  const f3Royxat = async () => {
+    if (shartnomaId == null) { setF3lar([]); return; }
+    try { const r = await forma3ShartnomaRoyxatOl(shartnomaId); setF3lar(r.forma3lar ?? []); } catch { setF3lar([]); }
+  };
+  useEffect(() => { setEsf(null); void f3Royxat(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [shartnomaId]);
+
+  /** Mavjud Forma 3 uchun ESF bo'limini ochadi: F3 ning o'z aktlari va davri bo'yicha manbalar qayta yig'iladi (summa yangidan o'ylab topilmaydi). */
+  const esfOch = async (f: Forma3ShartnomaRoyxatQator) => {
+    setXato('');
+    if (!shartnomaId) return;
+    const shartnoma = shartnomalar.find((x) => x.id === shartnomaId);
+    if (!shartnoma) return;
+    const fOy = f.davr_boshi.slice(0, 7);
+    setIshlayapti(t('Manbalar yig‘ilmoqda…'));
+    try {
+      const r = await forma3ShartnomaAktlarOl({ shartnomaId, davrBoshi: f.davr_boshi, davrOxiri: f.davr_oxiri });
+      const m = await forma3ShartnomaManbalari({
+        kompaniyaId: companyId,
+        obyektlar: r.obyektlar.map((o) => ({ id: o.obyekt_id, nom: o.nom ?? `#${o.obyekt_id}` })),
+        oy: fOy, tanlangan: new Set(f.aktlar),
+        onProgress: (n, jami, nom) => setIshlayapti(t('Obyektlar o‘qilmoqda: {n} / {jami} {nom}', { n, jami, nom })),
+      });
+      if (!m.ok) { setXato(m.xato); return; }
+      const zakazchik = zakazchikRekvizit(shartnoma, (id) => kompaniyalar.find((x) => x.id === id)) as Forma3Rekvizit;
+      const h = forma3ShartnomaHujjat(m.obyektlar, { davr: fOy, shartnomaRaqam: shartnoma.raqam, shartnomaNom: shartnoma.nom, shartnomaSumma: shartnoma.jami_nds_bilan ?? shartnoma.summa_bez_nds, imzo, pudratchi, zakazchik });
+      setEsf({ yigindi: h.yigindi, zakazchik, forma3Id: f.id, raqam: f.raqam, holat: f.esf_holat, tashqiId: f.esf_tashqi_id, shartnomaId, oy: fOy });
+    } catch {
+      setXato(t('Forma 3 fayli tuzilmadi. Hujjat manbalari va bog‘lanishlarini tekshiring.'));
+    } finally { setIshlayapti(''); }
+  };
 
   const tanlov = useMemo(() => (royxat ? f3AktTanlov(royxat.aktlar) : null), [royxat]);
   const yuboriladi = useMemo(() => (royxat ? f3YuboriladiganAktlar(royxat.aktlar, belgilangan) : []), [royxat, belgilangan]);
@@ -138,7 +169,7 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
       if (tk.xabar) toast(tk.xabar, 'ok');
       toast(f3Id ? t('Forma 3 yaratildi (№ {id}): {n} ta F2 akt', { id: f3Id, n: yuboriladi.length }) : t('Forma 3 yaratildi'), 'ok');
       if (esfManba.current) setEsf({ ...esfManba.current, forma3Id: f3Id, shartnomaId: sh.id, oy });
-      void yukla();
+      void yukla(); void f3Royxat();
     } catch (e) {
       setXato(e instanceof Error && e.message === 'MISSING_CERTIFIED_AMOUNT'
         ? t('Tasdiqlangan F2 manba summasi yetishmaydi. Manba hujjatni tekshiring; qiymat taxminan hisoblanmaydi.')
@@ -197,8 +228,19 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
         </div>
       )}
       {(yuklanmoqda || ishlayapti) && <p role="status" style={{ margin: 0 }}>{ishlayapti || t('Yuklanmoqda…')}</p>}
-      {esf && sh && esf.shartnomaId === sh.id && esf.oy === oy && (
-        <Forma3EsfBolim forma3Id={esf.forma3Id} oy={oy} shartnoma={sh} yigindi={esf.yigindi} pudratchi={pudratchi} zakazchik={esf.zakazchik}
+      {f3lar.length > 0 && (
+        <div role="group" aria-label={t('Shartnomaning Forma 3 lari')} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span className="fz-kpi__label">{t('Mavjud Forma 3 lar (ESF tayyorlash uchun tanlang)')}</span>
+          {f3lar.map((f) => (
+            <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+              <span>{t('Forma 3 № {id}', { id: f.raqam ?? f.id })} · {f.davr_boshi.slice(0, 7)}{f.esf_holat ? ` · ESF: ${f.esf_holat}` : ''}</span>
+              <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" disabled={!!ishlayapti} onClick={() => void esfOch(f)}>{t('ESF tayyorlash')}</button>
+            </div>
+          ))}
+        </div>
+      )}
+      {esf && sh && esf.shartnomaId === sh.id && (
+        <Forma3EsfBolim key={esf.forma3Id ?? 'yangi'} kompaniyaId={companyId} boshHolat={esf.holat ?? null} boshTashqiId={esf.tashqiId ?? ''} forma3Id={esf.forma3Id} forma3Raqam={esf.raqam} oy={esf.oy} shartnoma={sh} yigindi={esf.yigindi} pudratchi={pudratchi} zakazchik={esf.zakazchik}
           qqsFoiz={esf.yigindi.obyektlar.find((o) => o.ndsFoiz != null)?.ndsFoiz ?? null} />
       )}
       {xato && <div role="alert" className="fz-note fz-note--danger"><AlertTriangle /><span>{xato}</span></div>}
