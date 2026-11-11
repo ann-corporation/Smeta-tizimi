@@ -33,6 +33,7 @@ O'qish: `obyektlar, obyekt_holat, qator, qator_qidir, f2_royxat, f2, pereraschet
 shartnoma_moslash, yoyilma, snapshot_royxat, snapshot_farq`.
 Yozish (dry_run standart): `fakt_yoz, f2_qoralama_yarat, f2_qoralama_tahrir, f2_qoralama_yangila, f2_holat, f2_yarat, zamena_qosh,
 ish_ochir, akt_bekor, forma3, bajarilmadi, qoshimcha_ish, narx_tuzat, podval_tahrir, snapshot_ol, snapshot_qaytar`.
+ChatGPT uchun qo'shimcha (faqat o'qish): `search`, `fetch` (obyektlar bo'yicha; pastdagi «ChatGPT moslik»).
 Resurs: `smeta://qoidalar` — domen qoidalari (NDS siz, ustamasiz/ustamali, asl smeta const, F2 narxi = max(smeta, xarid), dry_run/tasdiq).
 
 **Ochilmagan:** `sql_yozish`, `rpc` (xom yozish), `sql_oqish` (xom SQL da tenant filtrini kafolatlab bo'lmaydi — v1 da admin uchun ham
@@ -75,7 +76,7 @@ npx wrangler deploy
 node smoke.mjs https://<MCP_PUBLIC_URL>             # faqat o'qish: discovery + 401 tekshiruvi
 ```
 
-Sirlar ro'yxati (faqat nomlar): `SUPABASE_URL`, `SUPABASE_KEY` (Worker secret); Hyperdrive ulanish satri — Hyperdrive sozlamasida;
+Sirlar ro'yxati (faqat nomlar): `SUPABASE_URL`, `SUPABASE_KEY` (Worker secret); ixtiyoriy «Google bilan kirish» uchun `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`; Hyperdrive ulanish satri — Hyperdrive sozlamasida;
 binding'lar: `OAUTH_KV`, `HYPERDRIVE`, `MCP_RATE`, `LOGIN_RATE`, `SNAPSHOT_R2` (R2 bucket `smeta-tizimi-canonical`); var: `MCP_PUBLIC_URL`, `SMETA_MCP_TIMEOUT_MS`, `SNAPSHOT_SOVUT_KUN`, `SNAPSHOT_SOVUT_LIMIT`.
 
 Custom domen (ixtiyoriy): Cloudflare dashboard → Workers → smeta-mcp → Settings → Domains & Routes → `mcp.<domen>`; keyin
@@ -104,15 +105,84 @@ dan import qilinadi (qo'lda skript `ops/scripts/snapshot-r2-sovut.mjs` bilan bir
 URL: `https://<MCP_PUBLIC_URL>/mcp` → *Add* → *Connect* → ochilgan sahifada Smeta tizimi login/paroli → ruxsat. Chatda «+» → connectorni yoqing.
 Team/Enterprise da avval admin Organization settings → Connectors da qo'shadi.
 
-**ChatGPT:** Settings → Apps & Connectors → Advanced → *Developer mode* yoqing → *Create* (yoki Add connector) → MCP server URL:
-`https://<MCP_PUBLIC_URL>/mcp`, Authentication: **OAuth** → login sahifasida Smeta tizimi hisobi. Developer mode yozuvchi toollarga ham ruxsat beradi;
-ChatGPT har yozuvdan oldin tasdiq so'raydi, server esa baribir `tasdiq:true` siz yozmaydi.
+**ChatGPT:** batafsil — pastdagi «Egasi uchun: ChatGPT va Claude ga ulash». Qisqacha: Settings → Apps → Advanced → *Developer mode* → *Create* → URL
+`https://<MCP_PUBLIC_URL>/mcp`, Authentication: **OAuth**. Developer mode yozuvchi toollarga ham ruxsat beradi; ChatGPT har yozuvdan oldin tasdiq so'raydi,
+server esa baribir `tasdiq:true` siz yozmaydi.
 
 **Boshqa MCP mijozlari (Claude Desktop, Cursor, MCP Inspector):** Streamable HTTP URL `https://<MCP_PUBLIC_URL>/mcp`, OAuth avtomatik
 (dinamik ro'yxat). Tekshirish: `npx @modelcontextprotocol/inspector` → URL.
 
-Login: faqat Supabase paroli o'rnatilgan hisoblar. Faqat Google bilan kiradigan yoki hali eski (GAS) parolda turgan hisob — avval saytga
-login/parol bilan bir marta kiring yoki profilda parol o'rnating.
+Login: login/parol (Supabase paroli o'rnatilgan hisoblar) yoki — yoqilgan bo'lsa — «Google bilan kirish» (pastda). Hali eski (GAS) parolda turgan hisob —
+avval saytga login/parol bilan bir marta kiring yoki profilda parol o'rnating.
+
+## ChatGPT moslik (texnik)
+
+OpenAI talablari (https://developers.openai.com/apps-sdk/build/auth va /api/docs/mcp, 2026-11) va bizdagi holat:
+
+| Talab | Holat |
+|---|---|
+| Remote MCP, HTTPS, Streamable HTTP | bor (`/mcp`, stateless JSON) |
+| OAuth 2.1 + PKCE `S256`, `/.well-known/oauth-protected-resource` va `oauth-authorization-server` | bor (workers-oauth-provider) |
+| Klient ro'yxati: **CIMD** (`https://chatgpt.com/oauth/client.json`, `none`/`private_key_jwt`) yoki **DCR** | ikkalasi: `clientIdMetadataDocumentEnabled: true` (`src/worker.ts`) + `/register`; `global_fetch_strictly_public` bayrog'i wrangler.toml da |
+| RFC 9207 `iss` (`authorization_response_iss_parameter_supported`) | provider yoqadi va redirectga `iss` qo'shadi |
+| `resource` parametri token auditoriyasiga | provider `resourceMetadata.resource` bilan |
+| Redirect URI `https://chatgpt.com/connector_platform_oauth_redirect` (yoki `/connector/oauth/<id>`) | allowlist kerak emas (DCR/CIMD redirectni mijoz hujjatidan oladi); login sahifasi CSP `form-action` ga redirect origin'i (`https://chatgpt.com`) qo'shiladi — testlangan |
+| Tool metadata `securitySchemes` (`oauth2`, scope `smeta`) | har toolda `_meta.securitySchemes` |
+| Deep research / company knowledge uchun `search` + `fetch` (faqat o'qish, `structuredContent` + JSON matn, `url` bo'sh emas) | bor (`src/chatgpt.ts`): `search` — foydalanuvchi obyektlari, `fetch` — `obyekt:<id>` bo'yicha `obyekt_holat`. Tenant doirasi mavjud toollar orqali (`masofaviyChaqir`) — yangi SQL yo'q |
+| Developer mode: to'liq tool to'plami, yozuvlarda tasdiq | bor; yozuvchilar `destructiveHint:true`, server `tasdiq:true` talab qiladi |
+
+Eslatma: `search`/`fetch` natijasidagi `url` — `SAYT_URL` (ixtiyoriy var, standart `https://smeta-tizimi.pages.dev`) + `/?obyekt=<id>`; bu faqat iqtibos havolasi.
+
+## Google bilan kirish (texnik)
+
+`GOOGLE_CLIENT_ID` va `GOOGLE_CLIENT_SECRET` (Worker sirlari) ikkalasi o'rnatilmaguncha tugma ko'rinmaydi va yo'llar 404 qaytaradi.
+Oqim: login sahifasidagi havola `/authorize/google?holat=<id>` → Google (`code` + PKCE S256 + `state` + `nonce`) → `/authorize/google/callback` →
+`code` Google token endpointida almashtiriladi → `id_token` imzosi Google JWKS bilan, `aud`, `iss`, `exp`, `email_verified` (web ilova bilan bir xil
+`frontend/functions/_shared/google-id.ts`) va `nonce` tekshiriladi → RPC `t2_google_mcp_kirish_v1(email, sub)`.
+
+Qonunlar (testlangan):
+- **Hech qachon hisob yaratilmaydi.** RPC faqat qidiradi (mavjud `t2_google_kirish_v1` dan farqli — u yangi hisob ochadi, MCP uchun ISHLATILMAYDI).
+- Google muvaffaqiyati ruxsat bermaydi: topilgan foydalanuvchi uchun parol bilan kirishdagi kabi jonli vakolat (`t2_men_v1`: hisob faol, kamida bitta kompaniya a'zoligi) tekshiriladi.
+- Moslik: avval `google_sub`; bo'lmasa `t2_foydalanuvchi.email` bo'yicha ANIQ BITTA faol foydalanuvchi (admin kiritgan email), shunda `google_sub` ulanadi (keyin email o'zgarsa ham shu Google hisob).
+  Bir nechta mos kelsa — rad. Email tasdiqlanmagan o'zi ro'yxatdan o'tgan hisob avtomatik ulanmaydi (birovning emailini oldindan band qilishdan himoya).
+- `state` bir martalik (KV, 10 daqiqa), login sessiyasi cookie'ga bog'langan; `nonce` id_tokenda tekshiriladi; tezlik chegarasi login bilan bir xil.
+- **Migratsiya:** `supabase/migrations/20261212100000_t2_google_mcp_kirish_v1.sql` (+ `.rollback.sql`, `.acceptance.sql`). Qo'llanmagan — faqat egasi tasdig'i bilan,
+  Worker deploydan OLDIN. Migratsiyasiz tugma bosilsa «Google bilan kirib bo'lmadi» xabari chiqadi (parol bilan kirish ta'sirlanmaydi).
+
+## Egasi uchun: ChatGPT va Claude ga ulash (oddiy yo'l-yo'riq)
+
+Ulanadigan manzil (hamma joyda bir xil): `https://smeta-mcp.anvar-ahatqulov.workers.dev/mcp`
+Ekrandagi yozuvlar ChatGPT/Claude yangilanishiga qarab biroz farq qilishi mumkin — ma'nosi bir xil.
+
+**Claude (claude.ai):**
+1. claude.ai ga kiring → pastki chapda ismingiz → **Settings** → **Connectors**.
+2. **Add custom connector** tugmasini bosing.
+3. Name: `Smeta tizimi`. URL: yuqoridagi manzil. **Add**.
+4. **Connect** ni bosing → ochilgan sahifada Smeta tizimidagi login va parolingizni kiriting (yoki «Google bilan kirish») → **Kirish va ruxsat berish**.
+5. Yangi suhbatda «+» tugmasi → `Smeta tizimi` ni yoqing. Tayyor.
+(Team/Enterprise rejasida avval tashkilot admini Organization settings → Connectors da qo'shadi.)
+
+**ChatGPT (chatgpt.com):**
+1. chatgpt.com ga kiring → ismingiz → **Settings** → **Apps** (ba'zan «Connectors») → **Advanced settings** → **Developer mode** ni yoqing.
+   (Business/Enterprise rejasida buni ish maydoni admini yoqib beradi.)
+2. **Create app** (yoki **Create**) ni bosing.
+3. Name: `Smeta tizimi`. **MCP server URL**: yuqoridagi manzil. **Authentication**: **OAuth**. Qolgan maydonlarga tegmang (avtomatik). Xavfsizlik katagini belgilab **Create**.
+4. **Connect** ni bosing → Smeta tizimi sahifasida login/parol (yoki «Google bilan kirish») → **Kirish va ruxsat berish**.
+5. Yangi suhbatda «+» → **More** (yoki Developer mode) → `Smeta tizimi` ni tanlang. ChatGPT har yozish oldidan sizdan tasdiq so'raydi — o'qing va faqat to'g'ri bo'lsa tasdiqlang.
+
+**«Google bilan kirish» ni yoqish (bir marta, Google Cloud Console da):**
+1. https://console.cloud.google.com ga o'zingizning Google hisobingiz bilan kiring. Yuqoridagi loyiha tanlagichdan mavjud loyihani (Smeta tizimi saytida Google kirishi uchun ishlatilgan) tanlang.
+2. Chapdagi menyu → **APIs & Services** → **OAuth consent screen** (yangi ko'rinishda **Google Auth platform**). Agar hali to'ldirilmagan bo'lsa: App name `Smeta tizimi`, User support email — o'zingizniki; Audience — **External**; **Publish app** (holat «In production» bo'lsin, aks holda faqat «test users» kira oladi).
+3. **Credentials** (yangi ko'rinishda **Clients**) → **Create credentials / Create client** → **OAuth client ID**.
+4. Application type: **Web application**. Name: `Smeta MCP`.
+5. **Authorized redirect URIs** → **Add URI** va aynan shuni kiriting (bir harf ham o'zgarmasin):
+   `https://smeta-mcp.anvar-ahatqulov.workers.dev/authorize/google/callback`
+   («Authorized JavaScript origins» ga hech narsa yozish shart emas.) **Create**.
+6. Chiqqan oynadan **Client ID** va **Client secret** ni nusxalang (secret — parol kabi, hech kimga yubormang, chatga yozmang).
+7. Terminalda `mcp/smeta-mcp-remote` papkasida ikki buyruq (qiymatni so'raydi, o'zingiz kiritasiz):
+   `npx wrangler secret put GOOGLE_CLIENT_ID` va `npx wrangler secret put GOOGLE_CLIENT_SECRET`. Keyin Worker qayta deploy qilinadi (buni Claude Code bajaradi — sizning tasdig'ingiz bilan).
+8. Ishlatuvchilar uchun: har bir odamning **emaili Smeta tizimidagi hisobiga yozilgan** bo'lishi kerak (admin tomonidan). Email yozilmagan odam Google bilan kira olmaydi — u login/parol bilan kiradi. Google orqali yangi hisob HECH QACHON ochilmaydi.
+9. Tekshirish: `https://smeta-mcp.anvar-ahatqulov.workers.dev/health` javobida `"google": true` bo'lsa, tugma yoqilgan.
 
 ## Lokal sinov (prodga yozmasdan)
 

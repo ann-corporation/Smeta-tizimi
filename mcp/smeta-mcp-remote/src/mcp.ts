@@ -4,7 +4,9 @@
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
+import { z } from 'zod';
 import { KORSATMA, QOIDALAR } from '../../smeta-mcp/src/korsatma';
+import { olish, qidir, SECURITY_META } from './chatgpt';
 import { Muhit } from '../../smeta-mcp/src/muhit';
 import type { Env, Props } from './env';
 import { hyperdriveHovuz } from './hovuz';
@@ -18,7 +20,7 @@ export const SOROV_MAX = 1_000_000;
 export const KORSATMA_MASOFAVIY = `${KORSATMA.replace(/ RPC aktori:.*$/, '')} Aktor — OAuth bilan kirgan foydalanuvchi; faqat uning kompaniyalari ko'rinadi. `
   + 'Yozuvchi toollar standart dry_run:true; haqiqiy yozish — dry_run:false + tasdiq:true (foydalanuvchi roziligidan keyin). Domen qoidalari: `smeta://qoidalar` resursi.';
 
-export function masofaviyServer(mu: Muhit, v: Vakolat): McpServer {
+export function masofaviyServer(mu: Muhit, v: Vakolat, sayt?: string): McpServer {
   const s = new McpServer({ name: 'smeta-remote', version: VERSIYA }, { instructions: KORSATMA_MASOFAVIY });
   s.registerResource('qoidalar', 'smeta://qoidalar', { title: 'Smeta tizimi domen qoidalari', description: 'NDS siz narx, ustamasiz/ustamali, asl smeta const, F2 narxi = max(smeta, xarid), dry_run/tasdiq.', mimeType: 'text/markdown' },
     async (uri) => ({ contents: [{ uri: uri.href, mimeType: 'text/markdown', text: QOIDALAR }] }));
@@ -27,8 +29,23 @@ export function masofaviyServer(mu: Muhit, v: Vakolat): McpServer {
       description: masofaviyTavsif(t),
       inputSchema: masofaviyKirish(t),
       annotations: { readOnlyHint: !t.yozadi, destructiveHint: t.yozadi, openWorldHint: false },
+      _meta: SECURITY_META,
     }, async (args: unknown) => masofaviyChaqir(t, mu, v, args));
   }
+  // ChatGPT deep research / company knowledge: ikkita o'qish tooli (tenant doirasi mavjud toollar orqali).
+  const ro = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
+  s.registerTool('search', {
+    title: 'Qidirish', description: 'Foydalanuvchi kompaniyalaridagi obyektlarni nom bo\'yicha qidiradi (id — fetch uchun). [faqat o\'qish]',
+    inputSchema: { query: z.string().min(1).max(200).describe('Obyekt nomi yoki so\'z') },
+    outputSchema: { results: z.array(z.object({ id: z.string(), title: z.string(), url: z.string() })) },
+    annotations: ro, _meta: SECURITY_META,
+  }, async ({ query }) => qidir(query, mu, v, sayt));
+  s.registerTool('fetch', {
+    title: 'Olish', description: 'Obyekt holati (smeta / fakt / F2 / qoldiq bo\'limlar bo\'yicha, NDS siz): `search` natijasidagi id bo\'yicha. [faqat o\'qish]',
+    inputSchema: { id: z.string().min(1).max(40).describe('search natijasidagi id («obyekt:<son>»)') },
+    outputSchema: { id: z.string(), title: z.string(), text: z.string(), url: z.string(), metadata: z.record(z.string()).optional() },
+    annotations: ro, _meta: SECURITY_META,
+  }, async ({ id }) => olish(id, mu, v, sayt));
   return s;
 }
 
@@ -68,7 +85,7 @@ export async function mcpFetch(request: Request, env: Env, ctx: McpCtx): Promise
   const t = Number(env.SMETA_MCP_TIMEOUT_MS);
   const mu = new Muhit({ dbUrl: null, aktorId: v.foydalanuvchiId, auditFayl: null, dbRol: null, timeoutMs: Number.isFinite(t) && t > 0 ? t : 25_000, sslVerify: false },
     () => hyperdriveHovuz(env.HYPERDRIVE.connectionString));
-  const server = masofaviyServer(mu, v);
+  const server = masofaviyServer(mu, v, env.SAYT_URL);
   const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   try {
     await server.connect(transport);
