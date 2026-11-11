@@ -11,6 +11,8 @@ import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { FaktQoralamaBanner } from '../../components/fakt/FaktQoralamaBanner';
+import { IshMaterialOgohRoyxat } from '../../components/fakt/IshMaterialOgoh';
+import { moslikHisobla, moslikTuzilma } from '../../lib/ish-material-moslik';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 import { inputdami } from '../../lib/hotkeys/core';
 import { t } from '../../i18n/til';
@@ -188,6 +190,20 @@ export function IshVaraq({ kompaniyaId, obyektId, rows, states, holatniYangila }
     kompaniyaId, obyektId, foydalanuvchiId, qatorSoni: rows.length, faktlar, kiritmalar, setKiritmalar, tarixTozala: () => setTarix([]), sana, setSana,
   });
   const paket = useMemo(() => faktPaketiQur(kiritmalar, faktlar, smetalar, tuzatish), [kiritmalar, faktlar, smetalar, tuzatish]);
+  // Ish ↔ material hajm muvofiqligi (egasi 2026-11-11; lib/ish-material-moslik): ish va uning materiallari shu sessiyada kiritilgan bo'lsa,
+  // ish jami faktini materiallardan hisoblangan bilan solishtiradi — faqat ogohlantirish + «tuzatish taklifi» (bloklamaydi).
+  const moslikTuz = useMemo(() => moslikTuzilma(rows), [rows]);
+  const moslikMatIsh = useMemo(() => { const m = new Map<number, number>(); for (const [ish, x] of moslikTuz) for (const mm of x.materiallar) if (mm.id != null) m.set(mm.id, ish); return m; }, [moslikTuz]);
+  const moslikOgoh = useMemo(() => {
+    if (!paket.qatorlar.length) return [];
+    const delta = new Map(paket.qatorlar.map((x) => [x.qator_id, x.hajm] as const));
+    const faqat = new Set<number>();
+    for (const id of delta.keys()) { const ish = moslikTuz.has(id) ? id : moslikMatIsh.get(id); if (ish != null) faqat.add(ish); }
+    const h = new Map<number, number>();
+    const qosh = (id: number) => h.set(id, (faktlar.get(id) ?? 0) + (delta.get(id) ?? 0));
+    for (const ish of faqat) { qosh(ish); for (const m of moslikTuz.get(ish)?.materiallar ?? []) if (m.id != null) qosh(m.id); }
+    return faqat.size ? moslikHisobla(moslikTuz, h, { faqat }) : [];
+  }, [paket, faktlar, moslikTuz, moslikMatIsh]);
   const { band, saqla, saqlaKlav } = useFaktSaqlash({
     obyektId, sana, kiritmalar, paket, faktlar, smetalar, ozgarishSoni, holatniYangila, tozala, qoralamaYozDarhol, qoralamaTozala,
     fokusgaOt: (id) => fokusgaOt(id), qatorOl: (id) => qatorMap.get(id), izoh: `Ish varag‘i: ${paket.qatorlar.length} qator`,
@@ -353,6 +369,7 @@ export function IshVaraq({ kompaniyaId, obyektId, rows, states, holatniYangila }
       </label>
       <span className="ml-auto text-[11.5px] text-text-mute" data-testid="ish-varaq-soni">{t('{n} satr', { n: String(satrlar.length) })}</span>
     </div>
+    {moslikOgoh.length > 0 && <div className="px-3 pt-2"><IshMaterialOgohRoyxat natijalar={moslikOgoh} onTuzat={(n) => { if (n.ishId == null) return; kirit(n.ishId, `=${n.taklif}`); toast(t('Ish hajmi {v} (jami fakt) qilib kiritmaga qo‘yildi — tekshirib saqlang (Ctrl+S).', { v: String(n.taklif) }), 'ok'); }} /></div>}
     {tiklandi && <div className="px-3 pt-2"><FaktQoralamaBanner soni={Object.keys(tiklandi.kiritmalar).length} ziddiyatlar={tiklandi.ziddiyatlar} band={band}
       nomi={(id) => qatorMap.get(id)?.nom} onSaqla={() => void saqla()} onBekor={qoralamaBekor} /></div>}
     <div className={`${USTUN} border-b border-border bg-surface py-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-mute`} role="row">
