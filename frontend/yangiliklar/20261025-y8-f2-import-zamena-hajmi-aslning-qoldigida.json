@@ -1,0 +1,10 @@
+{
+  "id": 8,
+  "sana": "2026-10-25",
+  "sarlavha": "F2 import: zamena hajmi aslning qoldig'idan ayriladi",
+  "bandlar": [
+    "Shu F2 qoralamasida zamena qatoriga hajm bog'lansangiz, asl qatorning qoldig'i darhol kamayadi — hali yozilmagan bo'lsa ham (hujjatda ostatka qolmaydi).",
+    "Asl qatorda «almashtiriladi (shu F2)» yozuvi va yozilgani bilan farqi ko'rinadi; ayrilgan hajm aslning qolgan qoldig'idan oshmaydi.",
+    "Asl ham, zamenasi ham shu F2 da olinsa — ikki marta bo'lishi mumkinligi haqida ogohlantirish chiqadi (bloklanmaydi)."
+  ]
+}
