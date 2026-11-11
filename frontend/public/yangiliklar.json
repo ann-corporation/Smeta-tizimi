@@ -2,7 +2,7 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 151,
+      "id": 152,
       "sana": "2026-11-11",
       "sarlavha": "Sahifalar tezroq ochiladi",
       "bandlar": [
@@ -10,6 +10,16 @@
         "Obyektlar sahifasi: zanjir va rahbar paneli ma’lumoti obyektlar ro‘yxati bilan bir vaqtda boshlanadi; ustama ma’lumoti 5 daqiqa eslab qolinadi.",
         "Aqliy xarita: qayta ochilganda oxirgi xarita darhol ko‘rinadi, yangisi fonda keladi.",
         "Obyektlar va F2 reestri: ustama hisobi har obyekt uchun alohida emas, bitta so‘rovda olinadi; aqliy xarita hisobidagi «ortiqcha» sanog‘i bazada bir necha baravar yengillashtirildi (natija o‘sha-o‘sha)."
+      ]
+    },
+    {
+      "id": 151,
+      "sana": "2026-11-12",
+      "sarlavha": "Buyurtmachi va texnik nazorat: F2 va АОСР ni yuborish, qabul qilish yoki qaytarish",
+      "bandlar": [
+        "АОСР sahifasida har bir qoralama aktning yonida «Zakazchikka yuborish» tugmasi: akt buyurtmachi yoki texnik nazoratning «Tomonlar hujjatlari» ro‘yxatiga tushadi, u yerda akt mazmuni, protokollar va komissiya ko‘rinadi. F2 va АОСР alohida filtr bilan ajratiladi, ochiqlari sanaladi.",
+        "Buyurtmachi / texnadzor «Qabul qilish» bossa — АОСР «Tasdiqlangan» bo‘ladi; izoh yozib «Tuzatish so‘rash» bossa — pudratchi o‘z ekranida (АОСР, F2 tarixi) «Qaytardi: izoh» belgisini ko‘radi, aktni tuzatadi va «Qayta yuborish» bosadi. F2 qatorlariga izoh avvalgidek qator yonida.",
+        "«Tasdiqlangan» holatni endi aktning muallifi o‘zi qo‘ya olmaydi — uni faqat qarshi tomon qarori qo‘yadi. Qog‘ozda imzolangan akt uchun «Qog‘ozda imzolangan» holati qoladi. Qaror kutilayotgan aktni tahrirlab bo‘lmaydi (avval yuborishni qaytarib oling)."
       ]
     },
     {

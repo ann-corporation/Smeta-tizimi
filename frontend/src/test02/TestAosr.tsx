@@ -39,6 +39,7 @@ import { aosrTartibMeta, aosrTartibla, raqamTekshiruv, razdelXaritasi, yetishmay
 import { labYetishmaydi, LAB_TALAB_NOM, aktSifatMuammolari, aktDublikatlari, AKT_SIFAT_NOM } from '../lib/ijro-qoida';
 import { zipSync } from 'fflate';
 import { AosrYetishmaydi } from './AosrYetishmaydi';
+import { ZakazchigaYuborish } from '../admin/zakazchik/ZakazchigaYuborish';
 import { OpsKpi, OpsKpiQator, OpsTablar } from '../components/kompaniya-ops/OpsUi';
 
 const ROL_NOMI: Record<string, string> = {
@@ -144,6 +145,8 @@ export default function TestAosr() {
     if (!String(forma.ish_nomi ?? '').trim()) { toast(t('Ish nomini kiriting'), 'warn'); return; }
     setSaqlanmoqda(true);
     const { id, versiya, ...malumot } = forma;
+    // «Tasdiqlangan» — qarshi tomon qarori natijasi: muallif yubormaydi (server ham rad etadi).
+    if (malumot.holat === 'tasdiqlangan') delete malumot.holat;
     const r = await sbAosrYozV2({ kompaniyaId, obyektId, malumot, id, kutilganVersiya: versiya, operationId: id ? undefined : yangiOperationId() });
     setSaqlanmoqda(false);
     if (!r.ok) { toast(r.sabab === 'versiya' ? t('Akt boshqa joyda o‘zgargan — qayta yuklang') : r.error || t('Xato'), 'danger'); return; }
@@ -412,7 +415,10 @@ export default function TestAosr() {
                     })}
                   </div>
                   <div className="flex items-center justify-between gap-2 pt-1">
-                    <select aria-label={t('Akt holati')} className={inp + ' max-w-[200px]'} value={forma.holat ?? 'yangi'} onChange={f('holat')}>{['yangi', 'tasdiqlangan', 'qogoz'].map((h) => <option key={h} value={h}>{t(HOLAT_NOMI[h])}</option>)}</select>
+                    {forma.holat === 'tasdiqlangan'
+                      ? <span className="fz-stamp fz-stamp--ok" title={t('Tasdiqlangan holatni buyurtmachi / texnadzor qarori qo‘yadi')}>{t(HOLAT_NOMI.tasdiqlangan)}</span>
+                      : <div className="flex flex-col gap-0.5"><select aria-label={t('Akt holati')} className={inp + ' max-w-[200px]'} value={forma.holat ?? 'yangi'} onChange={f('holat')}>{['yangi', 'qogoz'].map((h) => <option key={h} value={h}>{t(HOLAT_NOMI[h])}</option>)}</select>
+                        <span className="text-[10.5px] text-text-mute">{t('«Tasdiqlangan» — buyurtmachi / texnadzor qarori: ro‘yxatdan «Zakazchikka yuborish»')}</span></div>}
                     <button type="button" onClick={() => void saqla()} disabled={saqlanmoqda} className="fz-btn fz-btn--primary"><Save /> {t('Saqlash')}</button>
                   </div>
                 </div>
@@ -449,6 +455,7 @@ export default function TestAosr() {
                           </div>
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
+                          {a.holat === 'yangi' && kompaniyaId && <span onClick={(e) => e.stopPropagation()}><ZakazchigaYuborish kompaniyaId={kompaniyaId} aktId={a.id} resurs="aosr" /></span>}
                           <button type="button" onClick={(e) => { e.stopPropagation(); void excel(a); }} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" title={t('Excel (blank)')} aria-label={t('Excel (blank)')}><FileSpreadsheet /></button>
                           <button type="button" onClick={(e) => { e.stopPropagation(); void bekorQil(a); }} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" title={t('Bekor qilish')} aria-label={t('Bekor qilish')}><Unlink /></button>
                         </div>
