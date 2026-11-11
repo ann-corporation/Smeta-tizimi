@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Lock, User, ArrowRight, KeyRound } from 'lucide-react';
@@ -25,6 +25,13 @@ export default function KirishSahifa() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigateAsl = useNavigate();
+  /* Allaqachon tizimda bo'lgan foydalanuvchi (navigatsiya oqimi): «Tizimga kirish» formaga siljitmaydi — bevosita rol/oxirgi obyekt sahifasiga olib boradi. */
+  const [kirgan, setKirgan] = useState(false);
+  useEffect(() => {
+    let tirik = true;
+    try { void fetch('/api/sessiya').then((r) => { if (tirik && r.ok) setKirgan(true); }).catch(() => undefined); } catch { /* tarmoq yo'q */ }
+    return () => { tirik = false; };
+  }, []);
   /* «Telegram modeli» (2026-10-22): taklif havolasidan kelgan odam kirgach/ro'yxatdan o'tgach o'sha havolaga qaytadi. */
   const navigate = (yol: string) => {
     const kod = kutilayotganTaklifKodi(), ulash = kutilayotganUlashKodi();
@@ -83,7 +90,7 @@ export default function KirishSahifa() {
 
   const field = 'entry-input';
   return (
-    <PublicEntry onChooseAuth={(mode) => { setIsLogin(mode === "login"); setError(""); }}>
+    <PublicEntry kirgan={kirgan} onOpenApp={() => navigate(MAVJUD_FOYDALANUVCHI_KIRISH)} onChooseAuth={(mode) => { setIsLogin(mode === "login"); setError(""); }}>
         <div className="entry-auth">
           <div className="entry-auth-switch">
             <button type="button" aria-pressed={isLogin} onClick={() => { setIsLogin(true); setError(''); }}>
