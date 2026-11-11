@@ -68,7 +68,9 @@ export const YOZISH_CHEGARA_MS = 90_000;
 export function vaqtliFetch(url: string, init: RequestInit, ms: number): Promise<Response> {
   const c = new AbortController();
   const t = setTimeout(() => c.abort(), ms);
-  return fetch(url, { ...init, signal: c.signal }).finally(() => clearTimeout(t));
+  // Taymer sarlavhalar kelganda TOZALANMAYDI: javob tanasi (r.text()/r.json()) yarimda to'xtab qolsa ham shu chegarada
+  // uziladi (aks holda «Saqlanmoqda…» abadiy qotardi). So'rov allaqachon tugagan bo'lsa abort() hech narsa qilmaydi.
+  return fetch(url, { ...init, signal: c.signal }).catch((e) => { clearTimeout(t); throw e; });
 }
 const chegaraOtdimi = (e: unknown) => e instanceof DOMException && e.name === 'AbortError';
 
@@ -82,6 +84,7 @@ export async function sbOqi<T = Record<string, unknown>>(s: SbSoro): Promise<SbJ
       body: JSON.stringify(s),
     }, OQISH_CHEGARA_MS);
     const j = (await r.json()) as SbJavob<T>;
+    if (r.status === 401) { j.ok = false; j.code = 'SESSION_EXPIRED'; }
     /* Server o'z ms ini beradi (Supabase gacha), biz TO'LIQ yo'lni
        o'lchaymiz — foydalanuvchi kutadigan vaqt aynan shu. */
     return { ...j, ms: Math.round(performance.now() - t0) };
@@ -648,8 +651,11 @@ export type AktNatija = {
   qator_soni?: number; narxsiz?: number; jami?: number | null; toliq?: boolean;
   buzilish?: AktBuzilish[] | null; maslahat?: string;
   sizning_versiya?: number; bazadagi_versiya?: number;
-  /** Klient tomonida so'rov serverga yetmadi: 'NETWORK' (fetch rad etildi) yoki 'TIMEOUT' (vaqt chegarasi). */
+  /** Klient tomonida: 'OFFLINE' (brauzer oflayn), 'NETWORK' (server ko'rinmaydi), 'SEND_FAILED' (server bor, lekin so'rov chiqmadi),
+   *  'TIMEOUT', 'SESSION_EXPIRED' (401), 'SERVER' (5xx), 'FORBIDDEN' (403), 'SERIALIZE' (dastur xatosi, so'rov tayyorlanmadi). */
   code?: string;
+  /** Texnik tashxis (xato nomi/xabari, probe holati) — hodisani tekshirish uchun. */
+  diag?: string;
   ms?: number;
 };
 
@@ -660,36 +666,97 @@ export type AktNatija = {
  * Mening domenimga tegishli emas, lekin BUTUN qurilishni bloklardi. */
 export async function yozAmali(yuk: Record<string, unknown>): Promise<AktNatija> {
   const t0 = performance.now();
+  const ms = () => Math.round(performance.now() - t0);
+  // Seriyalash xatosi (aylanma havola, BigInt) tarmoq xatosi EMAS — avval u «Internet uzildi» deb ko'rsatilardi.
+  let tana: string;
+  try { tana = JSON.stringify(yuk); }
+  catch (e) {
+    return { ok: false, code: 'SERIALIZE', error: 'So‘rovni tayyorlab bo‘lmadi (dastur xatosi) — serverga hech narsa yuborilmadi. Sahifani yangilamang: kiritilganlar brauzerda saqlangan, qayta urinib ko‘ring.', diag: yozDiag(e), ms: ms() };
+  }
   const yubor = () => vaqtliFetch('/api/sb-yoz', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(yuk),
+    body: tana,
   }, YOZISH_CHEGARA_MS);
   try {
     let r: Response;
     try { r = await yubor(); }
     catch (e) {
-      // Tarmoq bir lahza uzilsa (Suniy Ko'l, 2026-10-19): operation_id bor amal BIR MARTA qayta yuboriladi —
+      // Tarmoq bir lahza uzilsa (Suniy Ko'l, 2026-10-19): operation_id bor amal qayta yuboriladi —
       // server ayni amalni ikki marta bajarmaydi (idempotent). Vaqt chegarasi o'tgan so'rov qayta yuborilmaydi.
       if (chegaraOtdimi(e) || typeof yuk.operation_id !== 'string') throw e;
       await new Promise((ok) => setTimeout(ok, 800));
-      r = await yubor();
+      try { r = await yubor(); }
+      catch (e2) {
+        // Hodisa 2026-11-09: bitta varaqda fetch qayta-qayta rad etildi (so'rov serverga yetmadi), yangi varaqda ishladi.
+        // Oxirgi urinish — boshqa transport (XMLHttpRequest): fetch'ga xos varaq-darajasidagi nosozlikni chetlab o'tadi.
+        if (chegaraOtdimi(e2)) throw e2;
+        try { r = await xhrYubor('/api/sb-yoz', tana, YOZISH_CHEGARA_MS); }
+        catch (e3) { throw chegaraOtdimi(e3) ? e3 : e2; }
+      }
     }
     const matn = await r.text();
     let j: AktNatija;
     try { j = JSON.parse(matn) as AktNatija; }
-    catch { return { ok: false, error: r.status >= 500
+    catch {
+      if (r.status === 401) return { ok: false, code: 'SESSION_EXPIRED', error: SESSIYA_TUGAGAN, ms: ms() };
+      return { ok: false, code: r.status >= 500 ? 'SERVER' : undefined, error: r.status >= 500
       ? 'Server vaqtincha javob bermadi. Birozdan so‘ng qayta urinib ko‘ring.'
       : 'So‘rovni bajarib bo‘lmadi. Kiritilgan ma’lumotlarni tekshiring.',
-      ms: Math.round(performance.now() - t0) }; }
-    if (!r.ok && !j.error) j.error = `HTTP ${r.status}: yozish so'rovi rad etildi`;
-    return { ...j, ms: Math.round(performance.now() - t0) };
+      ms: ms() }; }
+    if (r.status === 401) { j.ok = false; j.code = 'SESSION_EXPIRED'; j.error = SESSIYA_TUGAGAN; }
+    else if (!r.ok) { j.ok = false; if (!j.error) j.error = `HTTP ${r.status}: yozish so'rovi rad etildi`; if (!j.code) j.code = r.status >= 500 ? 'SERVER' : r.status === 403 ? 'FORBIDDEN' : undefined; }
+    return { ...j, ms: ms() };
   } catch (e) {
-    return { ok: false, code: chegaraOtdimi(e) ? 'TIMEOUT' : 'NETWORK', error: chegaraOtdimi(e)
-      ? 'Server 90 soniyada javob bermadi — amal serverda bajarilgan bo‘lishi mumkin. Sahifani yangilab tekshiring; qayta saqlash xavfsiz (bir xil amal ID, ikkinchi hujjat yaratilmaydi).'
-      : 'Internet aloqasi uzildi — o‘zgarish serverga yetmadi. Aloqani tekshirib qayta bosing (takror yozilmaydi).',
-             ms: Math.round(performance.now() - t0) };
+    if (chegaraOtdimi(e)) return { ok: false, code: 'TIMEOUT', error: 'Server 90 soniyada javob bermadi — amal serverda bajarilgan bo‘lishi mumkin. Sahifani yangilab tekshiring; qayta saqlash xavfsiz (bir xil amal ID, ikkinchi hujjat yaratilmaydi).', ms: ms() };
+    return { ...(await tarmoqXatosi(e)), ms: ms() };
   }
+}
+
+const SESSIYA_TUGAGAN = 'Kirish muddati tugagan — o‘zgarish saqlanmadi. Yangi varaqda tizimga qayta kiring, so‘ng bu yerda qayta saqlang (sahifani yangilamang: kiritilganlar brauzerda saqlangan).';
+
+const yozDiag = (e: unknown): string => e instanceof Error ? `${e.name}: ${e.message}`.slice(0, 160) : String(e).slice(0, 160);
+
+type XhrLike = {
+  open(m: string, u: string): void; setRequestHeader(k: string, v: string): void; send(b: string): void;
+  timeout: number; status: number; responseText: string;
+  onload: (() => void) | null; onerror: (() => void) | null; ontimeout: (() => void) | null;
+};
+
+/** Alohida transport: fetch bilan bir xil Response beradi. Faqat oxirgi urinish uchun. */
+function xhrYubor(url: string, tana: string, ms: number): Promise<Response> {
+  return new Promise((ok, yoq) => {
+    // Bu fayl Cloudflare functions type-gate'iga ham tushadi (DOM tiplari yo'q) — brauzer API'lari globalThis orqali.
+    const XHR = (globalThis as { XMLHttpRequest?: new () => XhrLike }).XMLHttpRequest;
+    if (!XHR) { yoq(new TypeError('XMLHttpRequest yo‘q')); return; }
+    const x = new XHR();
+    x.open('POST', url);
+    x.setRequestHeader('Content-Type', 'application/json');
+    x.timeout = ms;
+    x.onload = () => ok(new Response(x.responseText, { status: x.status >= 200 && x.status <= 599 ? x.status : 502 }));
+    x.onerror = () => yoq(new TypeError('XHR: tarmoq xatosi'));
+    x.ontimeout = () => yoq(new DOMException('timeout', 'AbortError'));
+    x.send(tana);
+  });
+}
+
+/**
+ * Yozish so'rovi serverga yetmadi: sababni TASHXIS qiladi (har holatda «internet uzildi» deb aytmaydi):
+ * brauzer oflayn → OFFLINE; server boshqa (yengil) so'rovga javob beryapti → SEND_FAILED (nosozlik shu varaq/so'rovda);
+ * 401 → SESSION_EXPIRED; aks holda server ko'rinmaydi → NETWORK.
+ */
+export async function tarmoqXatosi(e: unknown): Promise<AktNatija> {
+  const diag = yozDiag(e);
+  if ((globalThis as { navigator?: { onLine?: boolean } }).navigator?.onLine === false) {
+    return { ok: false, code: 'OFFLINE', diag, error: 'Qurilma internetga ulanmagan — o‘zgarish serverga yetmadi. Aloqa qaytgach qayta bosing (takror yozilmaydi).' };
+  }
+  let probe: number | null = null;
+  try { probe = (await vaqtliFetch('/api/sessiya', { headers: { 'Cache-Control': 'no-cache' } }, 8_000)).status; } catch { probe = null; }
+  if (probe === 401) return { ok: false, code: 'SESSION_EXPIRED', diag, error: SESSIYA_TUGAGAN };
+  if (probe != null) {
+    return { ok: false, code: 'SEND_FAILED', diag: `${diag}; probe=${probe}`, error: `Server javob beryapti, lekin saqlash so‘rovi brauzerdan chiqmadi (${diag}). Internet aloqasi sababchi emas. Qayta bosing; takrorlansa shu sahifani yangi varaqda oching (kiritilganlar brauzerda saqlangan).` };
+  }
+  return { ok: false, code: 'NETWORK', diag, error: `Serverga ulanib bo‘lmadi (${diag}) — o‘zgarish serverga yetmadi. Aloqani tekshirib qayta bosing (takror yozilmaydi).` };
 }
 
 /**

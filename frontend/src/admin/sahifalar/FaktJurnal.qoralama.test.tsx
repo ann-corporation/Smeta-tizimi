@@ -106,6 +106,6 @@ describe('FaktJurnal brauzer qoralamasi (hodisa 2026-11-09)', () => {
     render(<FaktJurnal {...props()} />);
     fireEvent.change(screen.getByLabelText('Bugun bajarildi: Ish A'), { target: { value: '7' } });
     fireEvent.keyDown(window, { key: 's', ctrlKey: true });
-    await waitFor(() => expect(m.toast).toHaveBeenCalledWith(expect.stringMatching(/Internet aloqasi uzildi.*brauzerda saqlab qo‘yildi/), 'danger'));
+    await waitFor(() => expect(m.toast).toHaveBeenCalledWith(expect.stringMatching(/Internet aloqasi uzildi.*brauzerda saqlab qo‘yildi/), 'danger', undefined, 12000));
   });
 });
