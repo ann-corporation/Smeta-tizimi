@@ -15,6 +15,10 @@ export { boshlangich, f2Indeks, smetaIndeks, type IshJoyi } from '../../../front
 export { dvigatelDaraxti, podvalTaklifQosh } from '../../../frontend/src/lib/f2-moslash-v3/podval';
 export { nakQoldiqXaritalari } from '../../../frontend/src/lib/f2-moslash-v3/nakQoldiq';
 export { qoralamaBandi } from '../../../frontend/src/lib/f2-moslash-v3/band';
+export {
+  aktualQator, bogniAktualla, vorisXaritasi, xotiraniAktualla, faktMavjudYigish, faktDeltaReja, ESKI_VERSIYA_SABAB, FAKT_BOR_SABAB,
+  type AQator, type FaktSatr, type FaktReja,
+} from '../../../frontend/src/lib/f2-moslash-v3/aktual';
 export { f2RaqamNormal } from '../../../frontend/src/lib/f2-moslash-v3/takror';
 export { f2QoralamaYozish } from '../../../frontend/src/lib/f2-ishchi-qoralama';
 export { exactWrite, exactWriteIzohlar } from '../../../frontend/src/lib/f2-exact-write';
