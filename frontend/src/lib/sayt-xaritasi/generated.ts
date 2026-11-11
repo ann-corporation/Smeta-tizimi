@@ -694,6 +694,10 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_buyurtma_qabul_v1"
     },
     {
+      "amal": "buyurtma_qabul_yakunla_v1",
+      "rpc": "t2_buyurtma_qabul_yakunla_v1"
+    },
+    {
       "amal": "buyurtma_royxat_v1",
       "rpc": "t2_buyurtmalar_v1"
     },
