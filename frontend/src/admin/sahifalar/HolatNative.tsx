@@ -54,6 +54,8 @@ export function HolatNative() {
   const [exportsOpen,setExportsOpen] = useState(false);
   const panelTab = requestedPanel === 'smeta' ? 'yuklash' : requestedPanel === 'versiya' ? 'versiya' : 'smeta';
   const [activeTab, setActiveTab] = useState(panelTab);
+  /** Yuklash ustasidan «Yangi versiya sifatida saqlash» — fayl «Versiyalar va farq» formasiga oldindan qo'yiladi. */
+  const [versiyaFayli, setVersiyaFayli] = useState<File | null>(null);
   /* Ish varag'i rejimi (egasi 2026-11-11): URL `?rejim=varaq` (route emas); sukut — Daraxt. Og'ir panellar — bitta «Boshqa» tugmasi ortida. */
   const varaq = searchParams.get('rejim') === 'varaq';
   const [boshqaOchiq, setBoshqaOchiq] = useState(false);
@@ -445,26 +447,30 @@ export function HolatNative() {
         {panellar && activeTab === 'shartnoma' && daraxtKorinadi && !loading && !error && <ContractScopePanel key={`${joriy?.id}:${obyektId}`} objectId={obyektId} lines={daraxtXom.map(q => ({ id: q.id, ota_id: q.ota_id, tur: q.tur, nom: q.nom ?? '', summa: q.summa, versiya: q.versiya }))} />}
         {panellar && activeTab === 'narx' && daraxtKorinadi && !loading && !error && <MarketPriceComparison lines={marketLines} objectId={obyektId} companyId={joriy?.id ?? null} />}
 
-        {panellar && daraxtKorinadi && !loading && !error && (
+        {/* Yuklash ustasi import paytida yuklanish (loading) belgisi bilan UNMOUNT bo'lmaydi — aks holda natija ekrani yo'qolib, bo'sh «Fayl» bosqichiga qaytardi. */}
+        {panellar && daraxtKorinadi && !error && (
           <div key={`${joriy?.id}|${obyektId}`} className="shrink-0 space-y-3" aria-label="LRV kundalik boshqaruv panellari">
             <section hidden={activeTab !== 'yuklash'} className="fz-card">
               <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}><h3 className="fz-card__title" style={{ fontSize: 14, lineHeight: '20px' }}>{t('Smeta XLSX yuklash')}</h3></div>
-              {activeTab === 'yuklash' && <div className="p-4"><SmetaYuklaNative obyektId={obyektId} onImportlandi={yuklash} /></div>}
+              {activeTab === 'yuklash' && <div className="p-4"><SmetaYuklaNative obyektId={obyektId} onImportlandi={yuklash}
+                onSmetaOchish={() => setActiveTab('smeta')}
+                onFaktgaOtish={() => navigate(`/admin/fakt?obyekt=${obyektId}`)}
+                onVersiyaSaqla={(fayl) => { setVersiyaFayli(fayl); setActiveTab('versiya'); }} /></div>}
             </section>
             {/* PTO-CORE-001: tashqi smeta versiyasi (ekspertizagacha …) → farq → da'vo; joriy smeta o'zgarmaydi. */}
-            {activeTab === 'versiya' && joriy?.id != null && (
+            {activeTab === 'versiya' && !loading && joriy?.id != null && (
               <section className="fz-card">
                 <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}><h3 className="fz-card__title" style={{ fontSize: 14, lineHeight: '20px' }}>{t('Versiyalar va farq')}</h3></div>
-                <div className="p-4"><SmetaVersiyaFarq kompaniyaId={joriy.id} obyektId={obyektId} obyektNom={obyektNom} joriyQatorlar={daraxtXom} tomonlar={tomonlar} /></div>
+                <div className="p-4"><SmetaVersiyaFarq kompaniyaId={joriy.id} obyektId={obyektId} obyektNom={obyektNom} joriyQatorlar={daraxtXom} tomonlar={tomonlar} boshlangichFayl={versiyaFayli} /></div>
               </section>
             )}
             <section hidden={activeTab !== 'resurs'} className="fz-card">
               <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}><h3 className="fz-card__title" style={{ fontSize: 14, lineHeight: '20px' }}>{t('Resurs vedomosti')}</h3></div>
-              {activeTab === 'resurs' && <div className="p-4"><ResursVedomostNative obyektId={obyektId} /></div>}
+              {activeTab === 'resurs' && !loading && <div className="p-4"><ResursVedomostNative obyektId={obyektId} /></div>}
             </section>
             <section hidden={activeTab !== 'narx'} className="fz-card">
               <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}><h3 className="fz-card__title" style={{ fontSize: 14, lineHeight: '20px' }}>{t('Narx nazorati')}</h3></div>
-              {activeTab === 'narx' && <div className="p-4"><NarxNazoratNative obyektId={obyektId} /></div>}
+              {activeTab === 'narx' && !loading && <div className="p-4"><NarxNazoratNative obyektId={obyektId} /></div>}
             </section>
           </div>
         )}
