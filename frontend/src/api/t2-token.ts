@@ -9,6 +9,7 @@
  *   token       = ceil(yakuniy_som / token_som)
  * Server (t2_token_hisobla_v2) yakuniy; bu yerdagi `narxHisob` — oldindan ko'rsatish uchun AYNAN o'sha formula.
  */
+import { unzipSync } from 'fflate';
 import { yaxlit2 } from '../lib/hisob-yadro';
 import { vaqtliOqish } from './vaqtli-fetch';
 import { yangiOperationId, yozAmali, type AktNatija } from './supabase';
@@ -98,9 +99,34 @@ export function tolovSorovYarat(p: { kompaniyaId: number; paketKod: string; usul
 }
 
 /** Hujjat mazmunining qisqa xeshi — bir xil hujjat qayta yuklanganda qayta to'lov olinmasligi uchun. */
+const onaltilik = (x: ArrayBuffer): string => [...new Uint8Array(x)].slice(0, 16).map((b) => b.toString(16).padStart(2, '0')).join('');
+
+/**
+ * Hujjat MAZMUNI xeshi uchun barqaror baytlar: xlsx/zip — ichki fayllar (nom + mazmun, tartiblangan); har yasalganda
+ * o'zgaradigan qismlar (docProps/* — yaratilgan vaqt, zip yozuvlarining sanasi) hisobga olinmaydi, ichki zip (paket)
+ * rekursiv. Shu tufayli aynan bir xil o'zgarmagan hujjatni qayta yuklash xeshni o'zgartirmaydi → qayta yechilmaydi.
+ * Zip bo'lmagan fayl — o'z baytlari bilan.
+ */
+export function mazmunBaytlari(bytes: Uint8Array, chuqurlik = 0): Uint8Array {
+  let fayllar: Record<string, Uint8Array> | null = null;
+  try { fayllar = chuqurlik < 3 ? unzipSync(bytes) : null; } catch { fayllar = null; }
+  if (!fayllar) return bytes;
+  const enc = new TextEncoder();
+  const qismlar: Uint8Array[] = [];
+  for (const nom of Object.keys(fayllar).sort()) {
+    if (/^docProps\//i.test(nom)) continue;
+    const ichki = mazmunBaytlari(fayllar[nom], chuqurlik + 1);
+    qismlar.push(enc.encode(`\n#${nom}:${ichki.length}\n`), ichki);
+  }
+  const out = new Uint8Array(qismlar.reduce((s, q) => s + q.length, 0));
+  let o = 0;
+  for (const q of qismlar) { out.set(q, o); o += q.length; }
+  return out;
+}
+
 export async function mazmunXeshi(bytes: Uint8Array): Promise<string> {
-  const x = await crypto.subtle.digest('SHA-256', bytes as unknown as ArrayBuffer);
-  return [...new Uint8Array(x)].slice(0, 16).map((b) => b.toString(16).padStart(2, '0')).join('');
+  const barqaror = mazmunBaytlari(bytes);
+  return onaltilik(await crypto.subtle.digest('SHA-256', barqaror as unknown as ArrayBuffer));
 }
 
 /** Xatoni foydalanuvchi tiliga. */

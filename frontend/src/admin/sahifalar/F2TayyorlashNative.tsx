@@ -20,6 +20,8 @@ import { FmtN } from '../../lib/format';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { ObyektQadamlari } from '../components/ObyektQadamlari';
+import { useIshOyi } from '../../lib/pto-markazi/useQadamMalumot';
+import { oydaFaktSoni } from '../../lib/pto-markazi/oy';
 import { sbOqi, sbT2AktYaratV2, sbT2F2QoralamaYangila, sbT2DaraxtOl, sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt, type T2Qator } from '../../api/supabase';
 import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
 import { sbQatorHolatOl, sbF2QoralamaHajmlar, type QatorHolat } from '../../api/t2-fakt';
@@ -565,6 +567,21 @@ export function F2TayyorlashNative() {
   /** Ko'rinish (egasi 2026-10-25: F2 ni tayyorlash paytida hujjat sifatida ko'rish) — faqat ko'rsatish, hisob o'zgarmaydi. */
   const katTaq = useMemo(() => qoralamaKatTaqsimot(qatorlar), [qatorlar]);
   const raqamTaklif = useMemo(() => (aktId == null ? keyingiF2Raqam(obyektAktlari) : null), [aktId, obyektAktlari]);
+  /* Avtomatlashtirish (audit 2026-11-11): davr — obyektning oxirgi fakt/F2 oyi (URL/kontekstda aniq oy bo'lmasa), F2 raqami — keyingi bo'sh raqam.
+   * Operator o'zi o'zgartirsa, avtomatik qiymat uni bosmaydi. Hech narsa tasdiqlanmaydi — faqat bo'sh maydonlar to'ldiriladi. */
+  const ishOy = useIshOyi(validId ? obyektId : null);
+  const oyAvto = useRef(!params.get('oy'));
+  useEffect(() => {
+    if (!oyAvto.current || !ishOy.aniq || aktId != null) return;
+    oyAvto.current = false;
+    setOy(`${ishOy.oy}-01`);
+  }, [ishOy.aniq, ishOy.oy, aktId]);
+  const raqamQoyil = useRef(false);
+  useEffect(() => {
+    if (raqamQoyil.current || aktId != null || !raqamTaklif) return;
+    setRaqam((r) => (r.trim() ? r : raqamTaklif));
+  }, [raqamTaklif, aktId]);
+  const oyFaktSoni = oydaFaktSoni(ishOy.malumot.aktlar, oy);
 
 
 
@@ -1132,9 +1149,10 @@ export function F2TayyorlashNative() {
             <option value="">{t('-- obyektni tanlang --')}</option>{validId && !obyektlar.some((item) => item.id === obyektId) && <option value={obyektId}>{t('Obyekt')} {'#'}{obyektId}</option>}<ObyektOptionlari obyektlar={obyektlar} />
           </select>
         </label>
-        <label className="text-[12px] font-medium text-text-dim">{t('Davr')}<input aria-label="F2 davri" type="month" disabled={aktId != null} title={aktId != null ? t('Qoralama davri tahrirda o‘zgarmaydi') : undefined} value={oy.slice(0, 7)} onChange={(event) => setOy(`${event.target.value}-01`)} className="mt-1.5 block rounded-lg border border-border bg-surface-2 px-3 py-2 text-text" /></label>
+        <label className="text-[12px] font-medium text-text-dim">{t('Davr')}<input aria-label="F2 davri" type="month" disabled={aktId != null} title={aktId != null ? t('Qoralama davri tahrirda o‘zgarmaydi') : undefined} value={oy.slice(0, 7)} onChange={(event) => { oyAvto.current = false; setOy(`${event.target.value}-01`); }} className="mt-1.5 block rounded-lg border border-border bg-surface-2 px-3 py-2 text-text" /></label>
+        {validId && aktId == null && oyFaktSoni != null && <p className="m-0 max-w-[20rem] self-center text-[12px] text-text-dim" role="status" data-testid="oy-fakt-xabar">{oyFaktSoni > 0 ? t('Shu oyda {n} ta fakt yozuvi bor.', { n: oyFaktSoni }) : ishOy.manba === 'faollik' && ishOy.oy !== oy.slice(0, 7) ? t('Shu oyda fakt yozuvi yo‘q. Oxirgi faollik oyi: {oy}.', { oy: ishOy.oy }) : t('Shu oyda fakt yozuvi yo‘q.')}</p>}
         <div className="text-[12px] font-medium text-text-dim">
-          <label>{t('F2 raqami')}<input aria-label="F2 raqami" value={raqam} disabled={aktId != null} onChange={(e) => setRaqam(e.target.value)} placeholder={raqamTaklif ? t('masalan {r}', { r: raqamTaklif }) : t('masalan 7')} className="mt-1.5 block w-28 rounded-lg border border-border bg-surface-2 px-3 py-2 text-text" /></label>
+          <label>{t('F2 raqami')}<input aria-label="F2 raqami" value={raqam} disabled={aktId != null} onChange={(e) => { raqamQoyil.current = true; setRaqam(e.target.value); }} placeholder={raqamTaklif ? t('masalan {r}', { r: raqamTaklif }) : t('masalan 7')} className="mt-1.5 block w-28 rounded-lg border border-border bg-surface-2 px-3 py-2 text-text" /></label>
           {raqamTaklif && !raqam.trim() && aktId == null && <button type="button" onClick={() => setRaqam(raqamTaklif)} className="fz-btn fz-btn--ghost fz-btn--sm mt-1" title={t('Shu obyektdagi eng katta F2 raqamidan keyingisi')}><Sparkles aria-hidden="true" />{t('Keyingi: № {r}', { r: raqamTaklif })}</button>}
         </div>
         {validId && !loading && holat.length > 0 && <div role="group" aria-label={t('Hajm manbai')} className="text-[12px] font-medium text-text-dim">{t('Hajm manbai')}

@@ -48,6 +48,9 @@ export type MarkazHolat = {
   f2TasdiqJami: number | null;
   /** Shu oyda bekor qilinmagan F2 (qoralama ham, tasdiqlangan ham) bormi. */
   f2BuOyda: boolean | null;
+  /** Shu oyda tasdiqlangan F2 lar soni (Forma 3 shu oy uchun tuziladi); aktlar o'qilmasa null. */
+  f2TasdiqBuOyda: number | null;
+  /** Shu oy uchun tuzilgan Forma 3 soni; null — noma'lum (o'qilmadi). */
   forma3: number | null;
   oy: string;
 };
@@ -72,7 +75,7 @@ export function markazHolati(k: MarkazKirish): MarkazHolat {
     smetaJami: k.smetaJami, narxsiz: k.narxsiz,
     faktQoralama: null, faktSaqlangan: null, faktJami: null, faktOxirgiSana: null,
     importQoralama: k.importQoralama,
-    f2Qoralama: null, f2Tasdiq: null, f2TasdiqJami: null, f2BuOyda: null,
+    f2Qoralama: null, f2Tasdiq: null, f2TasdiqJami: null, f2BuOyda: null, f2TasdiqBuOyda: null,
     forma3: k.forma3, oy: k.oy,
   };
   if (!a) return bosh;
@@ -91,6 +94,7 @@ export function markazHolati(k: MarkazKirish): MarkazHolat {
     f2Tasdiq: f2Tasdiq.length,
     f2TasdiqJami: yigindi(f2Tasdiq, (x) => x.hujjat_jami),
     f2BuOyda: f2.some((x) => oyKaliti(x.oy) === oyKaliti(k.oy)),
+    f2TasdiqBuOyda: f2Tasdiq.filter((x) => oyKaliti(x.oy) === oyKaliti(k.oy)).length,
   };
 }
 

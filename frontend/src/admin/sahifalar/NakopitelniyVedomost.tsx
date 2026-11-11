@@ -298,7 +298,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   const f3ShaklOzgar = (x: Forma3Shakl) => { setF3Shakl(x); f3ShaklSaqla(companyId, x); };
   const [forma3Diqqat, setForma3Diqqat] = useState<Array<{ nom: string; sabab: string }>>([]);
   /** Forma 3 rejimi (egasi 2026-12-11): «Obyekt» — shu obyekt F3 si (eski xulq); «Shartnoma» — bitta F3, shartnomaning barcha obyektlari. */
-  const [f3Rejim, setF3Rejim] = useState<F3Rejim>('obyekt');
+  const [f3Rejim, setF3Rejim] = useState<F3Rejim>(() => (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('f3') === 'shartnoma' ? 'shartnoma' : 'obyekt'));
   const forma3EksportQil = async (korish = false) => {
     setXato(''); setForma3Diqqat([]);
     const ux = ustamaTayyorEmas(); if (ux) { setXato(ux); return; }
@@ -446,7 +446,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     <Sahifa sarlavha={t('Nakopitelniy vedomost')} tavsif={t('Tasdiqlangan F2 aktlarining oyma-oy kumulyativ reestri: smeta, fakt va topshirilgan ish bir joyda.')} amallar={amallar}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         {korinish.oyna}
-        <ObyektQadamlari joriy="hujjatlar" />
+        <ObyektQadamlari joriy="forma3" />
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 'var(--space-4)' }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 220 }}>
             <span className="fz-kpi__label">{t('Obyekt')}</span>
@@ -484,7 +484,7 @@ function Sessiya({ companyId }: { companyId: number }) {
             </label>
           )}
         </div>
-        <DavrChiziq davrlar={davrlar} davr={davr} onTanla={davrOzgartir} band={busy} />
+        {f3Rejim !== 'shartnoma' && <DavrChiziq davrlar={davrlar} davr={davr} onTanla={davrOzgartir} band={busy} />}
 
         {!!davrQator && !sertifikat && (
           <div className="fz-note fz-note--warn"><AlertTriangle />
@@ -509,14 +509,14 @@ function Sessiya({ companyId }: { companyId: number }) {
           </details>
         )}
 
-        {jami && <NakopitelniyKpi jami={jami} qatorlar={qatorlar} truncated={truncated} obyektId={Number(objectId)} kompaniyaId={companyId}
+        {f3Rejim !== 'shartnoma' && jami && <NakopitelniyKpi jami={jami} qatorlar={qatorlar} truncated={truncated} obyektId={Number(objectId)} kompaniyaId={companyId}
           smetaNakrutka={smetaNakrutka} smetaNakrutkaSabab={smetaNakrutkaHisob.sabab} kaskadBor={!!nakrutkaKaskadi} davr={davrQator} />}
 
         {/* Firuza (egasi 2026-10-25): oyma-oy F2 va jamlanma grafigi. */}
         {/* Fakt — sahifadagi yagona jami (KPI/jadval bilan bir xil, F2 narxida). */}
-        {jami && <NakopitelniyGrafik kesim={oyKesim} smeta={jami.smeta_summa} fakt={nakFaktJami(qatorlar, jami.fakt_summa, truncated).summa} />}
+        {f3Rejim !== 'shartnoma' && jami && <NakopitelniyGrafik kesim={oyKesim} smeta={jami.smeta_summa} fakt={nakFaktJami(qatorlar, jami.fakt_summa, truncated).summa} />}
 
-        {qatorlar.length > 0 && (
+        {f3Rejim !== 'shartnoma' && qatorlar.length > 0 && (
           <NakopitelniyJadval qatorlar={qatorlar} korinadigan={gorunumRows} oyKesim={oyKesim} jami={jami} truncated={truncated} filtrBor={!!filtr} />
         )}
 
