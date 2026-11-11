@@ -1,6 +1,10 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { resolve } from 'node:path'
+import { yangiliklarniYig } from './scripts/yangiliklar-yigish.mjs'
+
+const YANGILIKLAR_DIR = resolve(__dirname, 'yangiliklar')
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -9,6 +13,20 @@ export default defineConfig(({ mode }) => {
     plugins: [
       tailwindcss(),
       react(),
+      {
+        /* «Nima yangi»: frontend/yangiliklar/*.json (har yangilik alohida fayl — PR to'qnashuvi yo'q) →
+         * build paytida /yangiliklar.json ga yig'iladi; dev'da shu yo'l o'sha zahoti yig'ib beriladi. */
+        name: 'yangiliklar-yigish',
+        configureServer(server) {
+          server.middlewares.use('/yangiliklar.json', (_req, res) => {
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(JSON.stringify(yangiliklarniYig(YANGILIKLAR_DIR)));
+          });
+        },
+        generateBundle() {
+          this.emitFile({ type: 'asset', fileName: 'yangiliklar.json', source: JSON.stringify(yangiliklarniYig(YANGILIKLAR_DIR), null, 2) });
+        },
+      },
       {
         /* ⚠️ 2026-08-17 — FAQAT DEV. Produksiyada sessiyani Cloudflare
          * Pages Function (`functions/api/sessiya.ts`) beradi, bu kod

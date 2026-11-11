@@ -1,0 +1,10 @@
+{
+  "id": 41,
+  "sana": "2026-10-27",
+  "sarlavha": "Xarita: tugundan to'g'ridan-to'g'ri amal",
+  "bandlar": [
+    "Xaritada tugunni o'ng tugma bilan bosing (yoki panel sarlavhasidagi «Amallar», klaviaturada Shift+F10) — shu tugun uchun amallar menyusi ochiladi.",
+    "Obyektda: LRV, fakt kiritish, F2 tayyorlash va tarixi, Nakopitelniy, smeta yuklash, zayavka, mas'ul biriktirish va topshiriq berish. Odamda: mas'ul qilish, topshiriq berish, rolni o'zgartirish. Shartnomada: to'lov va akt-sverka; skladda: prixod/rasxod.",
+    "Ruxsatingiz yo'q amal qulf bilan ko'rinadi va sababi yoziladi; moliyaviy ruxsat bo'lmasa pulga oid amallar chiqmaydi. Har yozuvchi amal mavjud server buyrug'i orqali — ruxsat va audit serverda."
+  ]
+}
