@@ -1,0 +1,10 @@
+{
+  "id": 33,
+  "sana": "2026-10-27",
+  "sarlavha": "Svod yaxlit bo'limlari — barcha ekran va hujjatlarda ustamasiz",
+  "bandlar": [
+    "Svodda (письмо заказчика / ekspertiza) yaxlit summa bilan berilgan bo'limlarga endi hech qaysi ekranda ustama qo'shilmaydi: smeta qiymati, Nakopitelniy ko'rsatkichlari va «к оплате» paneli, Resurs vedomosti, Pereraschet, nakrutka podvali konstruktori va smeta podvali preview'i server ВСЕГО bilan bir xil raqam ko'rsatadi.",
+    "Nakopitelniy, Ostatka, Slichitelniy va LRV Excel hujjatlarida bu bo'limlar qatorlarida «к оплате» = to'g'ri xarajat (koeffitsientsiz), podvalda esa alohida «Разделы по своду целой суммой (без накладных расходов, без НДС)» qatori ИТОГО-4 ga qo'shiladi, НДС bir marta.",
+    "Tasdiqlangan F2 aktlari va F2 hujjati o'zgarmaydi."
+  ]
+}
