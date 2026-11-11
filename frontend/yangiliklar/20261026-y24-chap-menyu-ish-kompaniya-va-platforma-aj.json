@@ -1,0 +1,12 @@
+{
+  "id": 24,
+  "sana": "2026-10-26",
+  "sarlavha": "Chap menyu: ish, kompaniya va platforma ajratildi",
+  "bandlar": [
+    "Menyu qurilish zanjiri tartibida: Obyektlar → Smeta → Fakt → F2 va Nakopitelniy → Moliya va shartnomalar → Hujjatlar → Ta'minot. PTO pulga aloqador hamma bandni avvalgidek ko'radi.",
+    "Takroriy bandlar bittaga yig'ildi: narx (6 ta) — «Narxlash», tomonlar — «Shartnomalar va tomonlar» va «Kiruvchi», sozlamalar — «⚙ Kompaniya». Har sahifa eski manzilida, tepada tablar bilan.",
+    "«Fakt kiritish» menyuga qo'shildi (usta, brigadir, prorab, PTO).",
+    "Platforma boshqaruvi, sayt xaritasi va sinov yo'llari endi faqat platforma superadminiga ko'rinadi; kompaniya rahbari ularni ko'rmaydi.",
+    "Har rol faqat o'z ishiga oid bandni ko'radi: usta, omborchi, haydovchi va buyurtmachiga «AI ishchilar», «Korzinka», «Sayt xaritasi», nakrutka va narx manbalari ko'rinmaydi."
+  ]
+}

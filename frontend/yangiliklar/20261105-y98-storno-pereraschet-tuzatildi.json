@@ -1,0 +1,12 @@
+{
+  "id": 98,
+  "sana": "2026-11-05",
+  "sarlavha": "Storno (pereraschet) tuzatildi",
+  "bandlar": [
+    "Storno oynasida «Faktni o‘zgartirma» tanlovi: fakt allaqachon to‘g‘rilangan bo‘lsa, u 0 ga tushirilmaydi (sukut bo‘yicha avvalgidek 0 ga).",
+    "Eski F2 minus tepada, o‘sha qatorlar yangi plyus bilan pastda bo‘la oladi; yangi hajm = fakt − boshqa tasdiqlangan F2 lar.",
+    "Storno qilingan zamena va qo‘shimcha qatorlar endi «olingan» hisoblanmaydi: zamena to‘liq storno bo‘lsa va fakti yo‘q bo‘lsa, asl qator yana to‘liq ochiladi.",
+    "Storno faqat tasdiqlangan F2 dan qilinadi: qoralama yoki bekor qilingan F2 ro‘yxatda chiqmaydi.",
+    "Storno bloki Ф-2 da eski F2 tuzilmasida chiqadi: bo‘lim → ish → uning resurslari."
+  ]
+}
