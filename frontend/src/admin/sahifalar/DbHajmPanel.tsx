@@ -31,7 +31,7 @@ export function DbHajmPanel() {
   return (
     <section className="karta space-y-2 p-3 text-[12px]" aria-label={t('Baza hajmi')}>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-semibold text-text">{t('Baza hajmi (superadmin)')}</span>
+        <span className="font-semibold text-text">{t('Ma’lumotlar bazasi hajmi (faqat administrator)')}</span>
         <span className={`tabular-nums font-semibold ${rang}`}>{t('{h} / {l} · {f}%', { h: hajmMatni(h.db_bytes), l: hajmMatni(h.limit_bytes), f: String(h.foiz).replace('.', ',') })}</span>
       </div>
       <div className="h-2 w-full overflow-hidden rounded bg-border/40" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, Math.round(h.foiz))} aria-label={t('Baza hajmi')}>
@@ -40,20 +40,23 @@ export function DbHajmPanel() {
       {h.daraja !== 'ok' && (
         <p role="alert" className={rang}>
           {h.daraja === 'xavf'
-            ? t('Diqqat: baza 90% dan oshdi — zudlik bilan joy bo‘shating (snapshot sovuq mazmunini R2 ga ko‘chirish).')
-            : t('Ogohlantirish: baza 80% dan oshdi — snapshot sovuq mazmunini R2 ga ko‘chirishni rejalashtiring.')}
+            ? t('Diqqat: ma’lumotlar bazasi 90% dan oshdi — joy bo‘shatish kerak. Tizim administratoriga xabar bering.')
+            : t('Ogohlantirish: ma’lumotlar bazasi 80% dan oshdi — joy bo‘shatishni rejalashtiring.')}
         </p>
       )}
-      <ul className="space-y-0.5">
-        {h.top.map((x) => (
-          <li key={x.sxema + '.' + x.jadval} className="flex items-center gap-2">
-            <span className="w-56 truncate text-text-dim">{x.sxema === 'public' ? x.jadval : `${x.sxema}.${x.jadval}`}</span>
-            <span className="h-1.5 flex-1 overflow-hidden rounded bg-border/30"><span className="block h-full bg-accent/60" style={{ width: `${eng ? Math.max(2, (x.bytes / eng) * 100) : 0}%` }} /></span>
-            <span className="w-20 text-right tabular-nums text-text">{hajmMatni(x.bytes)}</span>
-          </li>
-        ))}
-      </ul>
-      {h.snapshot_sovuq && <p className="text-[11px] text-text-mute">{t('Snapshot: bazada {i} · R2 da (sovuq) {s} blok', { i: hajmMatni(Number(h.snapshot_sovuq.issiq_bayt ?? 0)), s: Number(h.snapshot_sovuq.sovuq_blok ?? 0) })}</p>}
+      <details>
+        <summary className="cursor-pointer text-text-dim">{t('Eng ko‘p joy egallagan ma’lumotlar (texnik ro‘yxat)')}</summary>
+        <ul className="mt-1 space-y-0.5">
+          {h.top.map((x) => (
+            <li key={x.sxema + '.' + x.jadval} className="flex items-center gap-2">
+              <span className="w-56 truncate text-text-dim">{x.sxema === 'public' ? x.jadval : `${x.sxema}.${x.jadval}`}</span>
+              <span className="h-1.5 flex-1 overflow-hidden rounded bg-border/30"><span className="block h-full bg-accent/60" style={{ width: `${eng ? Math.max(2, (x.bytes / eng) * 100) : 0}%` }} /></span>
+              <span className="w-20 text-right tabular-nums text-text">{hajmMatni(x.bytes)}</span>
+            </li>
+          ))}
+        </ul>
+      </details>
+      {h.snapshot_sovuq && <p className="text-[11px] text-text-mute">{t('Zaxira nusxalar: bazada {i} · arxivda {s} blok',{ i: hajmMatni(Number(h.snapshot_sovuq.issiq_bayt ?? 0)), s: Number(h.snapshot_sovuq.sovuq_blok ?? 0) })}</p>}
     </section>
   );
 }

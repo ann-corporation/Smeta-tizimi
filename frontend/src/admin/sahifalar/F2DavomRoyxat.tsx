@@ -8,6 +8,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import { f2DavomRoyxatOl, type T2F2DavomQator } from '../../api/t2-f2-davom';
 import { t } from '../../i18n/til';
 import { navbatdagilar, tartiblangan } from '../../lib/f2-ketma-ketlik';
+import { kimMatni } from '../../lib/raqam-belgi';
 
 type Props = {
   kompaniyaId: number | null | undefined;
@@ -79,11 +80,11 @@ export function F2DavomRoyxat({ kompaniyaId, obyektId, onOchish, band, yangilash
       <td className="px-1 font-semibold">{q.raqam ? `№ ${q.raqam}` : '—'}{navbat.has(q.job_id) && <span className="ml-1 rounded bg-accent/20 px-1 text-[10px] font-semibold text-text">{t('Navbatdagi')}</span>}</td>
       <td className="px-1 tabular-nums">{q.oy ?? '—'}</td>
       <td className="px-1" title={q.fayl ?? ''}>{faylQisqa(q.fayl)}{q.akt_idx != null && q.akt_idx > 0 ? ` · ${t('varaq')} ${q.akt_idx + 1}` : ''}</td>
-      <td className="px-1 text-right tabular-nums">
+      <td className="px-1 text-right tabular-nums" title={t('✓ aniq moslangan qatorlar · ◐ taxminiy (tekshirib tasdiqlang) · ✕ mos qator topilmadi · foiz — aniq moslangan qatorlar ulushi')}>
         <span className="text-ok">{'✓ '}{q.aniq}</span>{' · '}<span className="text-warn">{'◐ '}{q.taklif}</span>{' · '}<span className="text-danger">{'✕ '}{q.topilmadi}</span>
         <span className="ml-1 text-text-dim">{`(${foiz(q.aniq, q.jami)}%)`}</span>
       </td>
-      <td className="px-1 text-text-dim">{sana(q.yangilandi)}{q.kim ? ` · ${q.kim}` : ''}</td>
+      <td className="px-1 text-text-dim">{sana(q.yangilandi)}{kimMatni(q.kim) ? ` · ${kimMatni(q.kim)}` : ''}</td>
       <td className="px-1 text-right">{amal(q)}</td>
     </tr>
   );
@@ -103,7 +104,7 @@ export function F2DavomRoyxat({ kompaniyaId, obyektId, onOchish, band, yangilash
           <table className="w-full">
             <thead><tr className="border-b border-border text-left text-text-mute">
               <th className="px-1">{t('F2 №')}</th><th className="px-1">{t('Oy')}</th><th className="px-1">{t('Fayl')}</th>
-              <th className="px-1 text-right">{t('Bog‘langan')}</th><th className="px-1">{t('O‘zgardi')}</th><th className="px-1" />
+              <th className="px-1 text-right" title={t('✓ aniq moslangan qatorlar · ◐ taxminiy (tekshirib tasdiqlang) · ✕ mos qator topilmadi · foiz — aniq moslangan qatorlar ulushi')}>{t('Bog‘langan')}</th><th className="px-1">{t('O‘zgardi')}</th><th className="px-1" />
             </tr></thead>
             <tbody>{guruhlar.map(([oid, g]) => (
               <Fragment key={oid}>

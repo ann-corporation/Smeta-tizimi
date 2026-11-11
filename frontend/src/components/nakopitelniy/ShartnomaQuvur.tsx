@@ -25,7 +25,7 @@ export function ShartnomaQuvur({ shartnoma, f2, f3, tolov, qoldiq, pul }: {
   const asos = shartnoma != null && shartnoma > 0 ? shartnoma : null;
   const nisbat = (x: number): number | null => (asos == null ? null : foizOl(x, asos));
   const bosqichlar: Bosqich[] = [
-    { kalit: 'ds', nom: t('Shartnoma summasi (DS bilan)'), tiyin: shartnoma, rang: 'var(--border-strong)', foiz: asos == null ? null : 100 },
+    { kalit: 'ds', nom: t('Shartnoma summasi (qo‘shimcha kelishuvlar bilan)'), tiyin: shartnoma, rang: 'var(--border-strong)', foiz: asos == null ? null : 100 },
     { kalit: 'f2', nom: t('F2 tasdiqlangan'), tiyin: f2, rang: 'var(--accent)', izoh: t('nakrutkasiz — shartnomaga foiz berilmaydi'), uchlik: ustamasizUchlik(somga(f2)) },
     { kalit: 'f3', nom: t('Sotuv (F3)'), tiyin: f3, rang: 'var(--info)', foiz: nisbat(f3), izoh: t('shartnomaning {p}%', { p: nisbat(f3) ?? '—' }) },
     { kalit: 'tolov', nom: t('To‘lov'), tiyin: tolov, rang: 'var(--ok)', foiz: nisbat(tolov), izoh: t('sotuvning {p}%', { p: foizOl(tolov, f3) ?? '—' }) },
@@ -33,7 +33,7 @@ export function ShartnomaQuvur({ shartnoma, f2, f3, tolov, qoldiq, pul }: {
   ];
   const chiziq = (b: Bosqich): CSSProperties => ({ width: `${Math.max(0, Math.min(100, b.foiz ?? 0))}%` });
   return (
-    <div role="group" aria-label={t('Shartnoma quvuri: DS, F2, F3, to‘lov, qoldiq')} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'stretch', gap: 6 }}>
+    <div role="group" aria-label={t('Shartnoma quvuri: qo‘shimcha kelishuv, F2, F3, to‘lov, qoldiq')} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'stretch', gap: 6 }}>
       {bosqichlar.map((b, i) => (
         <Fragment key={b.kalit}>
           {i > 0 && <ChevronRight aria-hidden size={18} style={{ alignSelf: 'center', color: 'var(--text-mute)', flexShrink: 0 }} />}

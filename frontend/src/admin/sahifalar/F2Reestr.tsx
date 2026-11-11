@@ -37,6 +37,7 @@ import type { Ustun } from '../../umumiy/jadval-filtr/ustunFiltr';
 import { useJadvalFiltr } from '../../umumiy/jadval-filtr/useJadvalFiltr';
 import { FiltrHolatQatori, UstunFiltrTugma } from '../../umumiy/jadval-filtr/UstunFiltrTugma';
 import { aktUstunlar, BOSQICH_NOMI, reestrUstunlar } from './F2JadvalFiltr';
+import { raqamTozala } from '../../lib/raqam-belgi';
 /** Holat — rang bilan emas, SO'Z bilan (shtamp): tasdiqlangan — muhrlangan, jarayonda — qoralama chizig'i. */
 const BOSQICH_STAMP: Record<F2Bosqich, string> = { tasdiqlangan: 'fz-stamp--ok', jarayonda: 'fz-stamp--warn fz-stamp--draft', rad: 'fz-stamp--danger', bekor: '' };
 
@@ -330,12 +331,12 @@ export default function F2Reestr() {
                   <td><div className="font-medium text-text">{q.obyekt.nom}</div>
                     {q.loyiha && <div className="text-[12px] text-text-mute">{q.loyiha}</div>}
                     {q.ogohlar.length > 0 && <div className="mt-1 flex flex-wrap gap-1">{q.ogohlar.map((g, i) => <span key={i} className="fz-chip fz-chip--warn" style={{ height: 'auto', minHeight: 18, whiteSpace: 'normal', padding: '2px 6px' }}>{ogohMatni(g)}</span>)}</div>}</td>
-                  <td>{q.shartnomalar.length ? q.shartnomalar.map(s => <div key={s.id}>№ {s.raqam}{s.nom ? ` · ${s.nom}` : ''}
+                  <td>{q.shartnomalar.length ? q.shartnomalar.map(s => <div key={s.id}>№ {raqamTozala(s.raqam)}{s.nom ? ` · ${s.nom}` : ''}
                     <span className="ml-1 text-[12px] text-text-mute">{s.jami_nds_bilan != null ? pulQisqa(s.jami_nds_bilan) : t('summa yo‘q')}</span></div>)
                     : <span className="text-text-mute">{t('biriktirilmagan')}</span>}</td>
                   <td className="fz-c-num">{summaTur !== 'ustamasiz'
                     ? (() => { const v = (summaTur === 'qqs' ? portfelUstamali.qqsBoYicha : portfelUstamali.boYicha).get(q.obyekt.id);
-                      return v != null ? <span title={summaTur === 'qqs' ? t('QQS bilan') : t('ustamali, NDS siz')}>{pulQisqa(v)}</span> : <span className="text-text-mute" title={portfelUstamali.holat === 'yuklanmoqda' ? t('Hisoblanmoqda…') : t('ustamali noma’lum')}>—</span>; })()
+                      return v != null ? <span title={summaTur === 'qqs' ? t('QQS bilan') : t('ustamali, QQS siz')}>{pulQisqa(v)}</span> : <span className="text-text-mute" title={portfelUstamali.holat === 'yuklanmoqda' ? t('Hisoblanmoqda…') : t('ustamali noma’lum')}>—</span>; })()
                     : q.obyekt.jami != null ? pulQisqa(q.obyekt.jami) : <span className="text-text-mute">—</span>}
                     {(q.obyekt.narxsiz ?? 0) > 0 && <div><span className="fz-chip fz-chip--warn">{t('{n} narxsiz qator', { n: q.obyekt.narxsiz ?? 0 })}</span></div>}
                     <SummaKesimi q={{ qqsBilan: portfelUstamali.qqsBoYicha.get(q.obyekt.id) ?? null, ustamali: portfelUstamali.boYicha.get(q.obyekt.id) ?? null, ustamasiz: q.obyekt.jami ?? null, taxminiy: false, nomalum: 0, sabab: null }} nomalumSoni={q.obyekt.narxsiz ?? 0} /></td>
