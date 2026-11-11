@@ -11,6 +11,8 @@ import { Sparkles } from 'lucide-react';
 import { t } from '../i18n/til';
 import { yangiOperationId, type T2Qator, type T2QatorHolat } from '../api/supabase';
 import { sbFaktYoz } from '../api/t2-fakt';
+import { chizmaTaasiriOl, chizmalarOl } from '../api/t2-loyihachi';
+import { chizmaXulosaMatni } from '../lib/loyihachi/chizma-yadro';
 import { narxProtokolYarat } from '../api/t2-narx-protokol';
 import { tokenHolatOl, type TokenHolat } from '../api/t2-token';
 import { daraxtVaHolatOl } from '../lib/oylik-hujjat/ostatka-slichitelniy';
@@ -30,6 +32,8 @@ export type BuyruqDeps = {
   malumotOl: { (obyektId: number): Promise<MalumotNatija> };
   yoz: Pick<BuyruqYoz, 'faktYoz' | 'narxProtokol' | 'yangiOperationId'>;
   tokenOl: { (kompaniyaId: number): Promise<TokenHolat | null> };
+  /** Loyihachi/chizma xulosasi (AI `chizma` vositasi uchun, faqat o'qish); xato bo'lsa null. */
+  chizmaOl?: { (kompaniyaId: number, obyektId: number): Promise<string | null> };
 };
 
 /** Haqiqiy bog'lanishlar: mavjud o'qish va yozish yo'llari (yangi RPC yo'q). */
@@ -41,6 +45,10 @@ const HAQIQIY_DEPS: BuyruqDeps = {
     yangiOperationId,
   },
   tokenOl: async (kompaniyaId) => { const r = await tokenHolatOl(kompaniyaId).catch(() => null); return r && r.ok ? r.natija : null; },
+  chizmaOl: async (kompaniyaId, obyektId) => {
+    const [a, b] = await Promise.all([chizmalarOl(kompaniyaId, obyektId), chizmaTaasiriOl(kompaniyaId, obyektId)]).catch(() => [null, null] as const);
+    return a && a.ok ? chizmaXulosaMatni(a.natija.toplamlar, b && b.ok ? b.natija.boglanishlar : []) : null;
+  },
 };
 
 const KALIT_YORLIQ = 'Ctrl+K';
@@ -69,6 +77,7 @@ export function AiBuyruqSatriIchki({ kompaniyaId, obyektId, obyektNomi, ochiq, o
   };
 
   const [data, setData] = useState<{ obyektId: number; rows: T2Qator[]; states: T2QatorHolat[] } | null>(null);
+  const [chizmaMatni, setChizmaMatni] = useState<{ obyektId: number; matn: string } | null>(null);
   const [xato, setXato] = useState('');
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [versiya, setVersiya] = useState(0);
@@ -88,6 +97,13 @@ export function AiBuyruqSatriIchki({ kompaniyaId, obyektId, obyektNomi, ochiq, o
   }, [ochiq, obyektId, versiya]);
 
   useEffect(() => {
+    if (!ochiq || obyektId == null || !depsRef.current.chizmaOl) return undefined;
+    let tirik = true;
+    void depsRef.current.chizmaOl(kompaniyaId, obyektId).then((matn) => { if (tirik && matn) setChizmaMatni({ obyektId, matn }); }).catch(() => null);
+    return () => { tirik = false; };
+  }, [ochiq, kompaniyaId, obyektId, versiya]);
+
+  useEffect(() => {
     if (!ochiq) return undefined;
     let tirik = true;
     void depsRef.current.tokenOl(kompaniyaId).then((r) => { if (tirik) setToken(r); }).catch(() => null);
@@ -95,8 +111,8 @@ export function AiBuyruqSatriIchki({ kompaniyaId, obyektId, obyektNomi, ochiq, o
   }, [ochiq, kompaniyaId, versiya]);
 
   const m: BuyruqMalumot | null = useMemo(
-    () => (data && data.obyektId === obyektId ? buyruqMalumotQur(data.rows, data.states, { obyektNomi, ustamali: (s) => ustamaliRef.current(s) }) : null),
-    [data, obyektId, obyektNomi]);
+    () => (data && data.obyektId === obyektId ? buyruqMalumotQur(data.rows, data.states, { obyektNomi, ustamali: (s) => ustamaliRef.current(s), chizmaMatni: chizmaMatni && chizmaMatni.obyektId === obyektId ? chizmaMatni.matn : undefined }) : null),
+    [data, obyektId, obyektNomi, chizmaMatni]);
   const mRef = useRef<BuyruqMalumot | null>(m); mRef.current = m;
   const bos = useMemo(() => buyruqMalumotQur([], []), []);
 

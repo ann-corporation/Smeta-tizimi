@@ -68,6 +68,30 @@ export function aosrLoyihaHujjatiMatni(chizmalar: readonly AosrChizma[]): string
   return [...chizmalar].sort((a, b) => a.marka.localeCompare(b.marka) || a.varaq.localeCompare(b.varaq, undefined, { numeric: true })).map(chizmaBolagi).join('; ');
 }
 
+type XulosaBoglanish = { toplam_id: number; ishlatilgan: number; joriy: number | null; qator_id: number | null; aosr_raqam: string | null; aosr_id: number | null };
+
+/** AI `chizma` vositasi uchun qisqa matn: har varaq — joriy revizya, qaror holati, bog'lanishlar (eskirgan belgisi), kutilayotgan takliflar. Summa YO'Q. */
+export type XulosaToplam = Omit<ToplamLike, 'revizyalar'> & {
+  revizyalar: ReadonlyArray<ToplamLike['revizyalar'][number] & { taqdim_holat?: TaqdimHolatiK | null; taklif_yangi?: number }>;
+};
+export function chizmaXulosaMatni(toplamlar: readonly XulosaToplam[],
+  boglanishlar: readonly XulosaBoglanish[] = [], limit = 40): string {
+  if (toplamlar.length === 0) return 'Bu obyektda chizma yo‘q.';
+  const hol = revizyaHolatlari(toplamlar);
+  const satr = toplamlar.slice(0, limit).map((x) => {
+    const j = joriyRevizyasi(x.revizyalar);
+    const taqdim = j && 'taqdim_holat' in j && j.taqdim_holat ? TAQDIM_NOMI[j.taqdim_holat as TaqdimHolatiK] : null;
+    const eskirgan = x.revizyalar.filter((r) => hol.get(r.id) === 'eskirgan').length;
+    const qoralama = x.revizyalar.filter((r) => r.holat === 'qoralama').length;
+    const bog = boglanishlar.filter((b) => b.toplam_id === x.id);
+    const eski = bog.filter((b) => b.joriy != null && b.ishlatilgan < b.joriy);
+    const taklif = x.revizyalar.reduce((s, r) => s + (r.taklif_yangi ?? 0), 0);
+    return `- ${x.marka}-${x.varaq} (${x.bosqich}): ${j ? `joriy rev. ${j.revizya}${taqdim ? `, ${taqdim}` : ''}` : 'chiqarilmagan'}${qoralama ? `, qoralama ${qoralama}` : ''}${eskirgan ? `, eskirgan revizya ${eskirgan}` : ''}`
+      + `${bog.length ? `, tayangan: ${bog.length}` : ''}${eski.length ? ` (ESKIRGAN revizyaga: ${eski.length})` : ''}${taklif ? `, smeta taklifi kutmoqda: ${taklif}` : ''}`;
+  });
+  return [`Chizmalar: ${toplamlar.length}${toplamlar.length > limit ? `, birinchi ${limit} tasi` : ''}`, ...satr].join('\n');
+}
+
 /* ───────────── Rol uyi «Bugun» ───────────── */
 export type BugunTomon = 'loyihachi' | 'pudratchi' | 'texnadzor';
 export type BugunSanoqLike = Partial<Record<

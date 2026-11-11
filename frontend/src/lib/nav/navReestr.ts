@@ -155,8 +155,8 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
       ] },
       /* Loyihachi / mualliflik nazorati (2026-11-11): chizma reyestri + revizyalar; rol uyi «Bugun». Pudratchi/texnadzor ham o'qiydi (design.read). */
       { nom: 'Chizmalar', ikonka: 'FileStack', sahifalar: [
-        { yol: '/admin/chizmalar', ilova: 'hujjat', nom: 'Chizmalar va revizyalar', ruxsat: [RAHBARIYAT, 'design.read', 'design.write', 'document.write'], modul: 'module.loyiha' },
-        { yol: '/admin/loyihachi', ilova: 'hujjat', nom: 'Loyihachi: bugun', ruxsat: ['design.write', 'design.issue', RAHBARIYAT, ...ICHKI_ISH], modul: 'module.loyiha' },
+        { yol: '/admin/chizmalar', ilova: 'hujjat', nom: 'Chizmalar va revizyalar', ruxsat: [RAHBARIYAT, 'design.read', 'design.write', 'document.write'] },
+        { yol: '/admin/loyihachi', ilova: 'hujjat', nom: 'Loyihachi: bugun', ruxsat: ['design.write', 'design.issue', RAHBARIYAT, ...ICHKI_ISH] },
       ] },
       /* Kiruvchi: buyurtmachi kabineti, tomonlar taqdimi va murojaatlar — bitta band. */
       { nom: 'Kiruvchi (tomonlar)', ikonka: 'Inbox', sahifalar: [

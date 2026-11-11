@@ -28,7 +28,7 @@ export const SAHIFA_VOSITALARI: Record<SahifaTuri, { oqish: readonly string[]; a
   /** Ctrl+K buyruq satri (butun obyekt bo'yicha): qidir/holat — umumiy; narxsiz — narxi yo'q qatorlar; qoldiq — smeta/F2/fakt qoldig'i.
    *  Amallar: fakt_hajm (+5 / =40, oddiy yozish), narx_tuzat (qiymat = yangi narx NDS siz, PUL: ikkinchi «Tasdiqlayman»), korsat. */
   buyruq: {
-    oqish: ['qidir', 'holat', 'narxsiz', 'qoldiq'],
+    oqish: ['qidir', 'holat', 'narxsiz', 'qoldiq', 'chizma'],
     amal: ['fakt_hajm', 'narx_tuzat', 'korsat'],
   },
 };

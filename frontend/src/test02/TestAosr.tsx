@@ -41,6 +41,7 @@ import { labYetishmaydi, LAB_TALAB_NOM, aktSifatMuammolari, aktDublikatlari, AKT
 import { zipSync } from 'fflate';
 import { AosrYetishmaydi } from './AosrYetishmaydi';
 import { ZakazchigaYuborish } from '../admin/zakazchik/ZakazchigaYuborish';
+import { AosrChizmaTanlash } from '../admin/loyihachi/AosrChizmaTanlash';
 import { OpsKpi, OpsKpiQator, OpsTablar } from '../components/kompaniya-ops/OpsUi';
 
 const ROL_NOMI: Record<string, string> = {
@@ -390,7 +391,8 @@ export default function TestAosr() {
                   <div><span className={lbl}>{t('1. Taqdim etilgan ishlar (har qator — alohida band)')}</span><textarea rows={3} className={inpKop} value={forma.ish_tavsifi ?? ''} onChange={f('ish_tavsifi')} /></div>
                   <div className="grid grid-cols-2 gap-2">
                     <div><span className={lbl}>{t('2. Loyiha tashkiloti')}</span><input className={inp} value={forma.loyiha_tashkiloti ?? ''} onChange={f('loyiha_tashkiloti')} /></div>
-                    <div><span className={lbl}>{t('Chizmalar № / sana')}</span><input className={inp} value={forma.loyiha_hujjati ?? ''} onChange={f('loyiha_hujjati')} /></div>
+                    <div><span className={lbl}>{t('Chizmalar № / sana')}</span><input className={inp} value={forma.loyiha_hujjati ?? ''} onChange={f('loyiha_hujjati')} />
+                      {kompaniyaId && obyektId && <AosrChizmaTanlash kompaniyaId={kompaniyaId} obyektId={obyektId} aosrId={forma.id} onToldir={(m) => setForma((x) => (x ? { ...x, loyiha_hujjati: m } : x))} />}</div>
                   </div>
                   <div><span className={lbl}>{t('3. Qo‘llangan materiallar (sertifikat/hujjat havolasi bilan)')}</span><textarea rows={2} className={inpKop} value={forma.materiallar ?? ''} onChange={f('materiallar')} /></div>
                   <div><span className={lbl}>{t('4. Loyihadan chetlanishlar')}</span><input className={inp} value={forma.chetlanishlar ?? ''} onChange={f('chetlanishlar')} /></div>
