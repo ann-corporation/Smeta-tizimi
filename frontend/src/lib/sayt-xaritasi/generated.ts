@@ -222,6 +222,7 @@ export const GENERATED_SITE_MAP = {
     "t2_aosr_coverage",
     "t2_aosr_qator_holat",
     "t2_aosr_reestr_v2",
+    "t2_aosr_bog",
     "t2_lab_protokol_reestr",
     "t2_kompaniya_logo",
     "t2_nakrutka_podval_royxat",
