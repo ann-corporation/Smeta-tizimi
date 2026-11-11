@@ -29,6 +29,8 @@ export type VaraqKirish = {
   hosila: ReadonlyMap<number, number>;
   /** Qidiruv matni (bo'sh — filtr yo'q). */
   qidiruv: string;
+  /** Holat filtri (Alt+1…4): qator (yoki resursi) mos bo'lsa ish ko'rinadi; undefined — filtr yo'q. */
+  filtr?: (x: JurnalQator) => boolean;
 };
 
 /** Tekislash: bo'lim sarlavhasi → uning ishlari → (ochiq ish) resurslari → ichki bo'limlar (daraxt tartibida). */
@@ -36,7 +38,11 @@ export function varaqSatrlari(k: VaraqKirish): VSatr[] {
   const out: VSatr[] = [];
   const q = qidiruvKaliti(k.qidiruv.trim());
   const mos = (x: JurnalQator) => qidiruvKaliti(`${x.kod ?? ''} ${x.nom}`).includes(q);
-  const ishMos = (ish: JurnalIsh) => !q || mos(ish) || ish.resurslar.some(mos) || ish.avtomatik.some(mos);
+  const ishQidiruvMos = (ish: JurnalIsh) => !q || mos(ish) || ish.resurslar.some(mos) || ish.avtomatik.some(mos);
+  const f = k.filtr;
+  const ishMos = (ish: JurnalIsh) => ishQidiruvMos(ish) && (!f || f(ish) || ish.resurslar.some(f) || ish.avtomatik.some(f));
+  /** Qidiruv yoki filtr yoqilgan: yig'ish hisobga olinmaydi (mos qatorlar yashirin bo'lib qolmasin). */
+  const suz = !!q || !!f;
   const daraja = new Map<number, number>();
   const yashirin = new Set<number>();
   const ishlarYoz = (ishlar: readonly JurnalIsh[], d: number) => {
@@ -55,15 +61,15 @@ export function varaqSatrlari(k: VaraqKirish): VSatr[] {
     daraja.set(b.id, d);
     // Qidiruvda yig'ish hisobga olinmaydi (mos qatorlar yashirin bo'lib qolmasin).
     const ota = b.otaId;
-    if (!q && ota != null && (k.yopiqBolim.has(ota) || yashirin.has(ota))) { yashirin.add(b.id); continue; }
+    if (!suz && ota != null && (k.yopiqBolim.has(ota) || yashirin.has(ota))) { yashirin.add(b.id); continue; }
     const ishlar = k.bolimIshlari.get(b.id) ?? [];
-    const yopiq = !q && k.yopiqBolim.has(b.id);
-    if (q && !ishlar.some(ishMos)) continue;
+    const yopiq = !suz && k.yopiqBolim.has(b.id);
+    if (suz && !ishlar.some(ishMos)) continue;
     out.push({ key: `b-${b.id}`, tur: 'bolim', id: b.id, nom: b.nom, daraja: d, yopiq, ishSoni: b.ishSoni });
     if (!yopiq) ishlarYoz(ishlar, d + 1);
   }
-  if (k.ildizIshlari.length && (!q || k.ildizIshlari.some(ishMos))) {
-    const yopiq = !q && k.yopiqBolim.has(BOLIMSIZ_ID);
+  if (k.ildizIshlari.length && (!suz || k.ildizIshlari.some(ishMos))) {
+    const yopiq = !suz && k.yopiqBolim.has(BOLIMSIZ_ID);
     out.push({ key: `b-${BOLIMSIZ_ID}`, tur: 'bolim', id: BOLIMSIZ_ID, nom: '', daraja: 0, yopiq, ishSoni: k.ildizIshlari.length });
     if (!yopiq) ishlarYoz(k.ildizIshlari, 1);
   }
