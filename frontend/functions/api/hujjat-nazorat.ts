@@ -9,6 +9,7 @@
  *   GET  /api/hujjat-nazorat?amal=closeout&obyekt_id=<n>
  *   GET  /api/hujjat-nazorat?amal=ozgarish-royxat&obyekt_id=<n>[&limit=<n>]
  *   GET  /api/hujjat-nazorat?amal=forma3-royxat&obyekt_id=<n>[&loyiha_id=<n>]
+ *   GET  /api/hujjat-nazorat?amal=forma3-shartnoma-aktlar&shartnoma_id=<n>&davr_boshi=YYYY-MM-DD&davr_oxiri=YYYY-MM-DD
  *   POST /api/hujjat-nazorat   { amal: 'ozgarish-yarat'|'ozgarish-tasdiqlash'|'ozgarish-qaytar'
  *                                     |'forma3-yarat'|'forma3-qoida', ... }
  *
@@ -19,6 +20,7 @@ import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { xavfsizUpstream, xavfsizXato } from '../_shared/xato';
+import { forma3YaratTekshir } from '../_shared/forma3-skop';
 
 type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string };
 
@@ -75,6 +77,16 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       if (obyektId == null && loyihaId == null) return Response.json({ ok: false, code: 'SCOPE_REQUIRED' }, { status: 400 });
       return reply('t2_forma3_royxat_v1', await rpc(ctx.env, 't2_forma3_royxat_v1',
         { p_loyiha_id: loyihaId, p_obyekt_id: obyektId, p_actor_id: actorId }), 'FORMA3_LIST_FAILED');
+    }
+    if (amal === 'forma3-shartnoma-aktlar') {
+      // Shartnoma rejimi (20261211300000): shartnomaning barcha faol obyektlari tasdiqlangan F2 aktlari + band belgisi.
+      const shartnomaId = num(u.searchParams.get('shartnoma_id'));
+      const boshi = u.searchParams.get('davr_boshi') || '';
+      const oxiri = u.searchParams.get('davr_oxiri') || '';
+      if (shartnomaId == null || !Number.isInteger(shartnomaId) || shartnomaId <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(boshi) || !/^\d{4}-\d{2}-\d{2}$/.test(oxiri))
+        return Response.json({ ok: false, code: 'PARAMS' }, { status: 400 });
+      return reply('t2_forma3_shartnoma_aktlar_v1', await rpc(ctx.env, 't2_forma3_shartnoma_aktlar_v1',
+        { p_shartnoma_id: shartnomaId, p_actor_id: actorId, p_davr_boshi: boshi, p_davr_oxiri: oxiri }), 'FORMA3_SHARTNOMA_AKTLAR_FAILED');
     }
     if (obyektId == null) return Response.json({ ok: false, code: 'OBYEKT_REQUIRED' }, { status: 400 });
 
@@ -134,14 +146,16 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         return reply('t2_smeta_ozgarish_qaytar_v1', await rpc(ctx.env, 't2_smeta_ozgarish_qaytar_v1', {
           p_ozgarish_id: Number(b.ozgarish_id), p_actor_id: actorId, p_sabab: b.sabab ?? null, p_operation_id: opId,
         }), 'OZGARISH_QAYTAR_FAILED');
-      case 'forma3-yarat':
-        if (!b.obyekt_id || !Array.isArray(b.akt_ids) || !b.davr_boshi || !b.davr_oxiri)
-          return Response.json({ ok: false, code: 'PARAMS' }, { status: 400 });
+      case 'forma3-yarat': {
+        // Obyekt rejimi (obyekt_id) YOKI shartnoma rejimi (obyekt_id yo'q + shartnoma_id): bitta F3, shartnomaning barcha obyektlari.
+        const t = forma3YaratTekshir(b);
+        if (!t.ok) return Response.json({ ok: false, code: t.code }, { status: 400 });
         return reply('t2_forma3_yarat_v1', await rpc(ctx.env, 't2_forma3_yarat_v1', {
-          p_actor_id: actorId, p_loyiha_id: b.loyiha_id ?? null, p_obyekt_id: Number(b.obyekt_id),
-          p_shartnoma_id: b.shartnoma_id ?? null, p_davr_boshi: b.davr_boshi, p_davr_oxiri: b.davr_oxiri,
-          p_akt_ids: b.akt_ids.map(Number), p_raqam: b.raqam ?? null, p_operation_id: opId,
+          p_actor_id: actorId, p_loyiha_id: t.p.loyihaId, p_obyekt_id: t.p.obyektId,
+          p_shartnoma_id: t.p.shartnomaId, p_davr_boshi: t.p.davrBoshi, p_davr_oxiri: t.p.davrOxiri,
+          p_akt_ids: t.p.aktIds, p_raqam: b.raqam ?? null, p_operation_id: opId,
         }), 'FORMA3_YARAT_FAILED');
+      }
       case 'forma3-qoida':
         if (!b.forma3_id || !b.qoida_manba) return Response.json({ ok: false, code: 'PARAMS' }, { status: 400 });
         return reply('t2_forma3_qoida_belgila_v1', await rpc(ctx.env, 't2_forma3_qoida_belgila_v1', {

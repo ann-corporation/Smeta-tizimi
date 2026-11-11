@@ -75,7 +75,7 @@ const RUXSAT_JADVALLAR = new Set([
   /* АОСР — yashirin ishlar akti (2026-08-27, hujjat domeni) */
   't2_aosr_reestr', 't2_aosr_coverage', 't2_aosr_qator_holat',
   /* Ijro hujjatlari v2 (2026-10-01): АОСР blank maydonlari, laboratoriya, logo */
-  't2_aosr_reestr_v2', 't2_lab_protokol_reestr', 't2_kompaniya_logo',
+  't2_aosr_reestr_v2', 't2_aosr_bog', 't2_lab_protokol_reestr', 't2_kompaniya_logo',
   /* Nakrutka podval konstruktori (2026-10-01) */
   't2_nakrutka_podval_royxat',
   /* Narx manbalari va dalil (2026-10-01) */
@@ -203,7 +203,7 @@ export const onRequestPost: PagesFunction<{
      *
      * Rol: `boss`/`rahbar` ham CHAQIRA OLADI — bu faqat o'qish. */
     if (so.soro) {
-      const OQISH_RPC: Record<string, 'obyekt' | 'kompaniya' | 'obyekt_kompaniya' | 'obyekt_actor' | 'akt_actor' | 'job_actor' | 'kompaniya_actor' | 'akt_kompaniya_actor' | 'shartnoma_actor' | 'tizim_actor'> = {
+      const OQISH_RPC: Record<string, 'obyekt' | 'kompaniya' | 'obyekt_kompaniya' | 'obyekt_actor' | 'obyekt_paket_actor' | 'akt_actor' | 'job_actor' | 'kompaniya_actor' | 'akt_kompaniya_actor' | 'shartnoma_actor' | 'tizim_actor'> = {
         ai_kontekst: 'obyekt',
         ai_umumiy: 'kompaniya',
         /* ⚡ 2026-08-28: mindmap butun grafni (tugunlar + bog'lanishlar)
@@ -243,6 +243,8 @@ export const onRequestPost: PagesFunction<{
            t2_actor_kompaniya_azo_tekshir. */
         nakrutka_koef_ol_v1: 'kompaniya_actor',
         obyekt_nakrutka_v1: 'obyekt_actor',
+        /* Tezlik (20261212800000): bir nechta obyekt nakrutkasi BITTA so'rovda. Tenant: kompaniya a'zoligi + har obyekt shu kompaniyaniki; RPC ichida actor a'zoligi qayta tekshiriladi. */
+        obyekt_nakrutka_paket_v1: 'obyekt_paket_actor',
         shartnoma_qamrov_ol_v1: 'shartnoma_actor',
         /* HERM-001 WP-1: F2 lifecycle approval-chain history. `stable`,
            membership-checked inside the RPC itself
@@ -260,6 +262,8 @@ export const onRequestPost: PagesFunction<{
         shartnoma_liniya_v1: 'kompaniya_actor',
         /* Egasi 2026-11-02: qarzdorlik (postavshik/subpudrat kreditor qarzi) - shartnoma + asoslar + hisob. stable, a'zolik + financial.read ichida. */
         qarzdorlik_royxat_v1: 'kompaniya_actor',
+        /* Egasi 2026-11-04 (#4): buyurtmachi (debitor) qarzi = F3(sotuv) - to'lov, F2 yonida. stable; a'zolik + f2.read RPC ichida. */
+        qarz_svod_v1: 'kompaniya_actor',
         /* 2026-11-04: HR + KPI (stable; a'zolik + hr.* / payroll.* RPC ichida). */
         hr_xodimlar_v1: 'kompaniya_actor',
         hr_oy_v1: 'kompaniya_actor',
@@ -302,6 +306,8 @@ export const onRequestPost: PagesFunction<{
         /* C11 PR-B (2026-10-29): markaziy ombor kirimi ro'yxati — qatorlar + material bo'yicha jami. `stable`
            (20261114400000), a'zolik + document.read RPC ichida; sklad kompaniyasi ham RPC da tekshiriladi. */
         sklad_kirim_royxat_v1: 'kompaniya_actor',
+        /* C11 BERDIM (20261211110000): markaziy ombor qoldig'i (berish uchun material tanlovi). `stable`; a'zolik + document.read RPC ichida. */
+        sklad_markaziy_qoldiq_v1: 'kompaniya_actor',
         /* TRANSPORT v1 (20261123000000): park, reyslar, tannarx, KPI. `stable`; a'zolik + logistics.read/machinery.read RPC ichida. */
         transport_ol_v1: 'kompaniya_actor',
         /* YUK BIRJASI v1 (20261201000000): egasi tomoni ro'yxati/tafsiloti/narx sozlamasi. `stable`; a'zolik + procurement.read RPC ichida. */
@@ -366,11 +372,30 @@ export const onRequestPost: PagesFunction<{
         }
         q.set('p_shartnoma_id', String(id));
       }
-      if (tur === 'obyekt_actor' || tur === 'akt_actor' || tur === 'job_actor' || tur === 'kompaniya_actor' || tur === 'akt_kompaniya_actor' || tur === 'shartnoma_actor' || tur === 'tizim_actor') {
+      if (tur === 'obyekt_actor' || tur === 'obyekt_paket_actor' || tur === 'akt_actor' || tur === 'job_actor' || tur === 'kompaniya_actor' || tur === 'akt_kompaniya_actor' || tur === 'shartnoma_actor' || tur === 'tizim_actor') {
         if (!Number.isInteger(sess.foydalanuvchi_id) || (sess.foydalanuvchi_id as number) <= 0) {
           return Response.json({ ok: false, error: 'Sessiyada foydalanuvchi yo\'q' }, { status: 401 });
         }
         q.set('p_actor_id', String(sess.foydalanuvchi_id));
+      }
+      if (tur === 'obyekt_paket_actor') {
+        const k = rpcKompaniyasi(sess, so.kompaniya_id);
+        if (!k.ok) return Response.json({ ok: false, code: 'TENANT_FORBIDDEN', error: k.error }, { status: k.status });
+        const xom = (so as { juftlar?: unknown }).juftlar;
+        if (!Array.isArray(xom) || xom.length < 1 || xom.length > 60) return Response.json({ ok: false, error: 'juftlar 1..60 ta bo\'lishi kerak' });
+        const juftlar: Array<{ obyekt_id: number; shartnoma_id: number | null }> = [];
+        for (const j of xom) {
+          const o = Number((j as { obyekt_id?: unknown })?.obyekt_id);
+          const sRaw = (j as { shartnoma_id?: unknown })?.shartnoma_id;
+          const s = sRaw == null || sRaw === '' ? null : Number(sRaw);
+          if (!Number.isSafeInteger(o) || o <= 0 || (s !== null && (!Number.isSafeInteger(s) || s <= 0))) return Response.json({ ok: false, error: 'juftlar noto\'g\'ri' });
+          juftlar.push({ obyekt_id: o, shartnoma_id: s });
+        }
+        let egalar: Array<number | null>;
+        try { egalar = await Promise.all([...new Set(juftlar.map((j) => j.obyekt_id))].map((id) => otaKompaniyasi(ctx.env, 't2_obyekt', id))); }
+        catch { return Response.json({ ok: false, code: 'TENANT_CHECK_FAILED', error: 'Obyekt tegishliligini tekshirib bo\'lmadi' }, { status: 502 }); }
+        if (egalar.some((e) => e !== k.id)) return Response.json({ ok: false, code: 'TENANT_FORBIDDEN', error: 'Bu obyektga ruxsat yo\'q' }, { status: 403 });
+        q.set('p_juftlar', JSON.stringify(juftlar));
       }
       /* 2026-10-02 izolyatsiya auditi: avval `obyekt` turidagi RPC (ai_kontekst) obyektning kimga tegishliligini
          tekshirmasdi, `kompaniya` turida esa kompaniya berilmasa BARCHA kompaniyalar qaytardi. Endi:
@@ -593,6 +618,19 @@ export const onRequestPost: PagesFunction<{
         q.set('p_filtr', JSON.stringify(filtr));
         q.set('p_limit', String(lim));
         q.set('p_offset', String(off));
+      }
+      if (so.soro === 'sklad_markaziy_qoldiq_v1') {
+        const sid = Number(so.sklad_id);
+        const lim = Number(so.limit ?? 50);
+        if (!Number.isSafeInteger(sid) || sid <= 0) return Response.json({ ok: false, error: 'sklad_id noto\'g\'ri' });
+        if (!Number.isInteger(lim) || lim < 1 || lim > 200) return Response.json({ ok: false, error: 'limit noto\'g\'ri' });
+        q.set('p_sklad_id', String(sid));
+        q.set('p_limit', String(lim));
+        const qd = (so as { qidir?: unknown }).qidir;
+        if (qd != null && qd !== '') {
+          if (typeof qd !== 'string') return Response.json({ ok: false, error: 'qidir noto\'g\'ri' });
+          q.set('p_qidir', qd.trim().slice(0, 200));
+        }
       }
       if (so.soro === 'transport_ol_v1') {
         const bolim = String((so as { bolim?: unknown }).bolim ?? '');

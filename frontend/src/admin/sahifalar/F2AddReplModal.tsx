@@ -6,6 +6,7 @@ import { yangiOperationId } from '../../api/supabase';
 import { t } from '../../i18n/til';
 import { sbT2ZamenaAlmashtirishBelgila, sbT2IshResurslarBilanYarat, sbT2QoshimchaIshYarat, sbT2ZamenaIshYarat, sbT2ResursBolaQosh } from '../../api/t2-additional-replacement';
 import type { RejaliBuyruq } from '../../lib/f2-moslash-v3/rejali';
+import { zamenaBirlikFarqli, zamenaRejaXatosi } from '../../lib/f2-moslash-v3/zamenaReja';
 
 /** Modal REJALI rejimda serverga yozmaydi — buyruqni sahifaga beradi (oxirida «Saqlash» bilan bittada yoziladi). */
 export type ModalRejali = Omit<RejaliBuyruq, 'tempId' | 'resursTempIds' | 'f2Uid' | 'f2ResursUidlar'>;
@@ -68,7 +69,9 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
   /** Birlik farqli zamena: aslning qancha hajmini almashtiradi (aslning birligida; ixtiyoriy -- bo'sh = asl to'liq almashtirilgan). */
   const [almHajm, setAlmHajm] = useState('');
   const aslBirlik = action.kind === 'replacement' ? (action.oldRow.birlik ?? '') : '';
-  const birlikFarqli = action.kind === 'replacement' && birlik.trim() !== '' && birlik.trim().toLowerCase() !== aslBirlik.trim().toLowerCase();
+  // P6 (F2 import auditi 2026-11-09): birlik farqli zamenada almashtiriladigan hajm (aslning birligida) MAJBURIY —
+  // bitta F2 hajmi boshqa birlikda reja bo'lib qolsa, asl qatorning qoldig'i minusga tushadi.
+  const birlikFarqli = action.kind === 'replacement' && zamenaBirlikFarqli(aslBirlik, birlik);
   /* Qayta urinishda AYNI operatsiya — tarmoq uzilsa ham dublikat yaratilmaydi. */
   const opRef = useRef(yangiOperationId());
   const resurslar = action.kind !== 'resource' ? (p.resurslar ?? []) : [];
@@ -94,6 +97,12 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
     }
     const almSoni = birlikFarqli && almHajm.trim() !== '' ? Number(almHajm.replace(',', '.')) : null;
     if (almSoni != null && (!Number.isFinite(almSoni) || almSoni < 0)) { setError(t('Almashtiriladigan hajm manfiy bo‘lmagan son bo‘lishi shart.')); return; }
+    if (action.kind === 'replacement' && zamenaRejaXatosi({ aslBirlik, aslHajm: action.oldRow.hajm, birlik, almashtirishHajm: almSoni })) {
+      setError(almSoni == null
+        ? t('Birlik farqli zamena: asl qatorning qancha hajmini ({birlik}) almashtirishini kiriting — aks holda qoldiq minusga tushadi.', { birlik: aslBirlik })
+        : t('Almashtiriladigan hajm asl qator hajmidan katta.'));
+      return;
+    }
     if (p.onRejali) {
       p.onRejali({
         kind: action.kind, tur: action.kind === 'resource' ? resTur : (resurslar.length ? 'bl' : qTur),
@@ -191,9 +200,10 @@ export function F2AddReplModal(p: F2AddReplModalProps) {
         </div>
         {birlikFarqli && (
           <label className="mb-3 block text-[13px]">
-            <span className="text-[12px] text-text-dim">{t('Asl qatorning qancha hajmini almashtiradi ({birlik}, ixtiyoriy)', { birlik: aslBirlik })}</span>
-            <input type="number" min="0" value={almHajm} onChange={e => setAlmHajm(e.target.value)}
-              placeholder={t('Bo‘sh = asl qator to‘liq almashtirilgan')} className="mt-1 block h-9 w-full px-2.5 text-[13px]" />
+            <span className="text-[12px] text-text-dim">{t('Asl qatorning qancha hajmini almashtiradi ({birlik}, majburiy — birlik farqli)', { birlik: aslBirlik })}</span>
+            <input type="number" min="0" value={almHajm} onChange={e => setAlmHajm(e.target.value)} required
+              placeholder={t('Asl qator hajmi: {h}', { h: action.kind === 'replacement' ? String(action.oldRow.hajm ?? '—') : '—' })} className="mt-1 block h-9 w-full px-2.5 text-[13px]" />
+            <span className="mt-1 block text-[11px] text-warn">{t('Zamena birligi asl qatorniki bilan bir xil emas: reja bitta F2 hajmidan emas, asl qatorning almashtiriladigan hajmidan hisoblanadi.')}</span>
           </label>
         )}
         <label className="mb-3 block text-[13px]">

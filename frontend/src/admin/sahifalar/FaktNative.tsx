@@ -3,6 +3,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, RefreshCw, Target } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
+import { ObyektQadamlari } from '../components/ObyektQadamlari';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { SmetaTree } from '../../umumiy/daraxt/SmetaTree';
 import { useT2Daraxt } from '../../umumiy/daraxt/useT2Daraxt';
@@ -37,7 +38,7 @@ export function FaktNative() {
   // Obyektlar ro'yxati umumiy keshdan (Holat/Nakopitelniy bilan bitta so'rov).
   const { obyektlar } = useT2ObyektlarRoyxati(joriy?.id ?? null);
   const faktSaqlash = useCallback(async (node: TreeNode, mode: 'qoshish' | 'jami', value: number) => {
-    if (!valid || node.id == null) return { ok: false, message: 'Kanonik qator ID topilmadi.' };
+    if (!valid || node.id == null) return { ok: false, message: 'Qator topilmadi. Sahifani yangilang.' };
     if (!faktQoldaKiritiladimi(node.type)) return { ok: false, message: 'Bu qatorga Fakt qo‘lda kiritilmaydi.' };
     const sana = new Date().toISOString().slice(0, 10); const operationId = yangiOperationId();
     if (mode === 'qoshish') { const r = await sbFaktYoz({ obyektId, sana, operationId, qatorlar: [{ qator_id: node.id, hajm: value }], izoh: 'Fakt daraxtidan kanonik qo‘shish' }); if (!r.ok) return { ok: false, message: r.error || r.xabar || 'Fakt qo‘shilmadi.' }; }
@@ -69,7 +70,7 @@ export function FaktNative() {
   const korinishlar = [['tezkor', t('Fakt jurnali')], ['xotira', t('Xotiradan')], ['daraxt', t('Daraxt')]] as const;
   const jurnal = valid && joriy?.id && !birinchiYuklash && !error && (korinish === 'tezkor' || (korinish === 'daraxt' && tree.length === 0));
   const amallar = <>
-    {valid && <button onClick={() => navigate(`/admin/holat/${obyektId}${workspace.scopeSearch(obyektId)}`)} className="fz-btn">{t('LRVga qaytish')}</button>}
+    {valid && <button onClick={() => navigate(`/admin/holat/${obyektId}${workspace.scopeSearch(obyektId)}`)} className="fz-btn">{t('Obyekt holatiga qaytish')}</button>}
     {valid && <button onClick={() => void yuklash()} disabled={loading || yangilanmoqda || saving} className="fz-btn"><RefreshCw size={14} className={yangilanmoqda ? 'animate-spin' : undefined}/> {t('Yangilash')}</button>}
     {valid && <button disabled={otmoqda} onClick={() => void f2gaOt()} className="fz-btn fz-btn--primary">{t('F2 tayyorlash →')}</button>}
     {yangilanmoqda && <span role="status" className="text-[11px] text-text-mute">{t('Yangilanmoqda…')}</span>}
@@ -79,6 +80,7 @@ export function FaktNative() {
   </>;
   return <Sahifa sarlavha="Bajarilgan ishlar (Fakt)" tavsif="Smeta hajmi va Faktni RZ → BL → RS/MAT/OB daraxtida boshqaring" amallar={workspace.isProvider && valid ? amallar : undefined}>
     <div className="flex h-full min-h-0 flex-col gap-3">
+      <ObyektQadamlari joriy="fakt" obyektId={valid ? obyektId : null} />
       {!workspace.isProvider && <section className="fz-card flex flex-wrap items-end gap-2 p-3">
         <label className="min-w-[260px] flex-1 text-[12px] font-medium text-text-dim">{t('Obyekt')}
           <select aria-label={t('Obyekt')} value={valid ? obyektId : ''} onChange={e => { const o = obyektlar.find(x => x.id === Number(e.target.value)); if (workspace.isProvider) workspace.setObjectId(o?.id ?? null); else setParams(o ? { obyekt: String(o.id) } : {}); }} className="input mt-1.5 block h-9 w-full px-2 text-[13px] text-text">
@@ -97,7 +99,7 @@ export function FaktNative() {
         <button onClick={() => void yuz()} disabled={!marker || saving} className="fz-btn fz-btn--primary"><Target size={14}/> {saving ? t('Belgilanmoqda…') : t('100% qilish')}</button>
         <span className="text-[11px] text-text-mute">{t('Faqat BL/MAT/OB; RS avtomatik hisoblanadi.')}</span>
       </section>}
-      {!valid && <section className="fz-note fz-note--info"><span>{t('Avval kanonik obyektni tanlang.')}</span></section>}
+      {!valid && <section className="fz-note fz-note--info"><span>{t('Avval yuqoridan obyektni tanlang — shundan keyin bajarilgan ishlar ro‘yxati ochiladi.')}</span></section>}
       {error && valid && <section role="alert" className="fz-note fz-note--danger"><AlertTriangle aria-hidden="true"/><span>{error}</span></section>}
       {birinchiYuklash && <div className="skel min-h-[280px] flex-1 rounded-[var(--radius-md)]"/>}
       {jurnal && joriy?.id && <FaktJurnal boshFaktsizF2={boshFaktsizF2} boshBolimId={boshBolimId} saqlashRef={jurnalSaqlash} f2Otish={(oy) => void f2gaOt(true, oy)} kompaniyaId={joriy.id} obyektId={obyektId} objects={obyektlar} rows={rows} states={states} holatniYangila={(idlar) => holatniYangila(idlar)} tuzilmaniYangila={() => yuklash()} />}

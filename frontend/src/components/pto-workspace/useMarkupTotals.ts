@@ -1,21 +1,25 @@
+import { useEffect } from 'react';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import type { T2Obyekt } from '../../api/supabase';
 import type { Liniya } from '../../api/t2-shartnoma-liniya';
 import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
 import { sbPodvallarOl } from '../../api/t2-nakrutka-podval';
+import { t2NakrutkaOldindan } from '../../api/t2-nakrutka-paket';
+import { USTAMA_STALE_MS } from '../../umumiy/ui/ustama-kesh';
 import { aggregateMarkup, effectiveContract, markupAmount, markupKey } from './markup';
 
 // Small server aggregates only. Keep at most four reads in flight; the main estimate is never blocked.
+const MARKUP_PARALLEL = 4; // DB CPU himoyasi (2026-10-27 hodisasi): oshirilmaydi
 let active = 0;
 const waiting: Array<() => void> = [];
 export async function limitedRead<T>(read: () => Promise<T>, signal: AbortSignal): Promise<T> {
-  await new Promise<void>(resolve => {const start=()=>{active++;resolve();};if(active<4) start();else waiting.push(start);});
+  await new Promise<void>(resolve => {const start=()=>{active++;resolve();};if(active<MARKUP_PARALLEL) start();else waiting.push(start);});
   try {if(signal.aborted) throw new Error('MARKUP_CANCELLED');return await read();}
   finally {active--;waiting.shift()?.();}
 }
 
 export function useMarkupTotals(companyId: number, line: Liniya | undefined, objects: T2Obyekt[]) {
-  const podvals = useQuery({queryKey:['pto-markup-podvals',companyId],enabled:!!line,staleTime:60_000,retry:false,
+  const podvals = useQuery({queryKey:['pto-markup-podvals',companyId],enabled:companyId>0,staleTime:USTAMA_STALE_MS,retry:false,
     queryFn:async()=>{const r=await sbPodvallarOl(companyId);if(!r.ok || r.toliq===false || !Array.isArray(r.qatorlar)) throw new Error('PODVAL_READ_FAILED');return r.qatorlar;}});
   const pairs=new Map<string,{object:T2Obyekt;contractId:number|null}>();
   if(line) for(const object of objects) {
@@ -26,9 +30,12 @@ export function useMarkupTotals(companyId: number, line: Liniya | undefined, obj
     for(const contract of line.shartnomalar.filter(s=>s.loyiha_id===canonical.loyiha_id && s.obyektlar.includes(object.id))) pairs.set(markupKey(object.id,contract.id),{object,contractId:contract.id});
   }
   const entries=[...pairs.entries()];
+  const oldindanImzo=entries.map(([k])=>k).join('|');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(()=>{ if(companyId>0) t2NakrutkaOldindan(companyId,entries.map(([,p])=>({obyektId:p.object.id,shartnomaId:p.contractId}))); },[companyId,oldindanImzo]);
   const queries=useQueries({queries:entries.map(([key,pair])=>({
     queryKey:['pto-markup',companyId,key,pair.object.versiya,pair.object.yangilandi],
-    enabled:podvals.isSuccess,staleTime:60_000,retry:false,
+    enabled:podvals.isSuccess,staleTime:USTAMA_STALE_MS,retry:false,
     queryFn:({signal}:{signal:AbortSignal})=>limitedRead(async()=>{
       const r=await t2ObyektNakrutka(pair.object.id,pair.contractId);
       if(!r.ok) throw new Error('MARKUP_READ_FAILED');

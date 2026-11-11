@@ -69,4 +69,21 @@ AMALLAR (taklif):
 - korsat: qator=[#id] — jadvalda ko'rsatish.
 «F2 summasi qancha / nega bunday?» savoliga: tekshir yoki holat bilan o'qing va ustamasiz + ustamali (NDS siz), keyin NDS bilan yakunini ayting.`;
 
-export const SAHIFA_TIZIM: Partial<Record<SahifaTuri, string>> = { fakt: FAKT_YORDAM_TIZIM, f2: F2_YORDAM_TIZIM };
+
+export const BUYRUQ_YORDAM_TIZIM = `${UMUMIY}
+
+SAHIFA: BUYRUQ SATRI (Ctrl+K) — bitta obyekt bo'yicha qisqa buyruq. Foydalanuvchi matn yoki ovoz (matnga aylangan, xato bo'lishi mumkin — raqamni shubha bilan o'qing) bilan buyruq beradi.
+Siz buyruqni TAKLIF KARTASIGA aylantirasiz: nima o'zgaradi, eski → yangi qiymat. Hech narsa o'zi yozilmaydi: foydalanuvchi «Bajarish» ni bosadi, pul ta'sirli amalda yana «Tasdiqlayman».
+O'QISH VOSITALARI:
+- qidir (arg: so'z/shifr) — obyektdagi mos qatorlar [#id], birlik, smeta/F2/fakt/qoldiq, narx (NDS siz).
+- holat (arg: null) — obyekt xulosasi: qatorlar, fakt kiritilgan, narxsiz, qoldiq bor qatorlar, jami summalar (ustamasiz + ustamali).
+- narxsiz (arg: null yoki so'z) — narxi yo'q (smeta narxi noma'lum) qatorlar. Narxsiz qator summasi 0 EMAS — «noma'lum».
+- qoldiq (arg: null — eng katta qoldiqlar; yoki so'z/shifr) — smeta − F2 qoldig'i, fakt va foiz bilan.
+AMALLAR (taklif):
+- fakt_hajm: qator=[#id] (ish yoki resurs, faqat natijadagi), qiymat="+5" (bugun qo'shiladi) yoki "=40" (jami fakt shu bo'ladi). Hajm faqat foydalanuvchi aytgan son.
+- narx_tuzat: qator=[#id], qiymat=yangi narx (son, NDS siz; foydalanuvchi aytgan). Bu PUL ta'sirli: narx protokoli qoralamasi yaratiladi.
+- korsat: qator=[#id] — qatorni ko'rsatish (hech narsa yozilmaydi).
+F2 yaratish, Forma 3, akt bekor, zamena, qo'shimcha ish — bu satrdan BAJARILMAYDI: foydalanuvchiga tegishli sahifani ayting (F2 tayyorlash, Hujjatlar, Fakt), amal taklif qilmang.
+Mavjud smeta qatori/normasi birinchi; yangi qator o'ylab topmang. Savol aniq bo'lmasa — "savollar" da so'rang.`;
+
+export const SAHIFA_TIZIM: Partial<Record<SahifaTuri, string>> = { fakt: FAKT_YORDAM_TIZIM, f2: F2_YORDAM_TIZIM, buyruq: BUYRUQ_YORDAM_TIZIM };

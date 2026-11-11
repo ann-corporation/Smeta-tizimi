@@ -1,10 +1,12 @@
-import { useContext, useMemo } from 'react';
+import { useContext, useEffect, useMemo } from 'react';
 import { QueryClient, QueryClientContext, useQueries, useQuery } from '@tanstack/react-query';
 import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
+import { t2NakrutkaOldindan } from '../../api/t2-nakrutka-paket';
 import { podvalTanla, sbPodvallarOl } from '../../api/t2-nakrutka-podval';
 import { limitedRead } from '../../components/pto-workspace/useMarkupTotals';
 import { obyektKesimi, ustamaliHisobla } from '../../lib/ustamali-summa';
 import { useKompaniya } from '../kontekst/KompaniyaKontekst';
+import { USTAMA_STALE_MS } from './ustama-kesh';
 
 export type PortfelObyekt = { obyektId: number; shartnomaId?: number | null; /** Tafsilotda ko‘rsatiladigan nom (ixtiyoriy). */ nom?: string | null };
 export type PortfelUstamali = {
@@ -48,6 +50,8 @@ export function usePortfelUstamali(obyektlar: readonly PortfelObyekt[], opts: { 
     for (const o of obyektlar) if (o.obyektId > 0 && Number.isFinite(o.obyektId)) m.set(`${o.obyektId}:${o.shartnomaId ?? ''}`, o);
     return [...m.values()];
   }, [obyektlar]);
+  /* Tezlik: butun ro'yxat uchun ustama BITTA paket so'rovida (yo'q bo'lsa - eski yo'l, har obyekt alohida). */
+  useEffect(() => { if (bor && kid != null) t2NakrutkaOldindan(kid, royxat); }, [bor, kid, royxat]);
   const pod = useQuery({
     queryKey: ['pto-markup-podvals', kid], enabled: bor && kid != null, staleTime: 60_000, retry: false,
     queryFn: async () => {
@@ -58,7 +62,7 @@ export function usePortfelUstamali(obyektlar: readonly PortfelObyekt[], opts: { 
   }, klient);
   const nak = useQueries({
     queries: royxat.map((o) => ({
-      queryKey: ['ustama-nakrutka', o.obyektId, o.shartnomaId ?? null], enabled: bor, staleTime: 60_000, retry: false,
+      queryKey: ['ustama-nakrutka', o.obyektId, o.shartnomaId ?? null], enabled: bor, staleTime: USTAMA_STALE_MS, retry: false,
       queryFn: ({ signal }: { signal: AbortSignal }) => limitedRead(async () => {
         const r = await t2ObyektNakrutka(o.obyektId, o.shartnomaId ?? null);
         if (!r.ok || !r.koeffitsientlar) throw new Error('USTAMA_KOEF_OQILMADI');

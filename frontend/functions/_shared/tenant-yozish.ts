@@ -38,6 +38,8 @@ export const ID_JADVAL: Readonly<Record<string, string>> = {
   p_bitim_id: 't2_sotuv_bitim', p_birlik_id: 't2_sotuv_birlik', p_bron_id: 't2_sotuv_bron', p_sotuv_tolov_id: 't2_sotuv_tolov',
   /* Ish kartasi (20261203000600): karta kompaniyasi shlyuzda ham tekshiriladi (RPC — birinchi qatlam). */
   p_karta_id: 't2_ish_kartasi',
+  /* Buyurtma (20261108410000): p_qatorlar[].zayavka_id (t2_erp_taminot) shlyuzda ham kompaniya bo'yicha tekshiriladi (RPC faqat FK tekshiradi). */
+  p_zayavka_id: 't2_erp_taminot',
 };
 /** Massiv argumentlar. */
 export const IDLAR_JADVAL: Readonly<Record<string, string>> = { p_aosr_ids: 't2_aosr', p_qator_ids: 't2_qator', p_obyektlar: 't2_obyekt', p_birlik_ids: 't2_sotuv_birlik' };
@@ -110,6 +112,8 @@ export function yozishTalablari(amal: string, xom: Record<string, unknown>): Yoz
     for (const q of ro) {
       const id = q && typeof q === 'object' ? musbat((q as Record<string, unknown>).qator_id) : null;
       if (id) qosh('t2_qator', id);
+      const zid = q && typeof q === 'object' ? musbat((q as Record<string, unknown>).zayavka_id) : null;
+      if (zid) qosh('t2_erp_taminot', zid);
     }
   }
   const pId = musbat(yuk.p_id);

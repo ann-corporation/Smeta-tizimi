@@ -222,6 +222,7 @@ export const GENERATED_SITE_MAP = {
     "t2_aosr_coverage",
     "t2_aosr_qator_holat",
     "t2_aosr_reestr_v2",
+    "t2_aosr_bog",
     "t2_lab_protokol_reestr",
     "t2_kompaniya_logo",
     "t2_nakrutka_podval_royxat",
@@ -486,6 +487,10 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_sklad_markaziy_prixod_storno_v1"
     },
     {
+      "amal": "sklad_berdim_v1",
+      "rpc": "t2_sklad_markaziy_berdim_v1"
+    },
+    {
       "amal": "token_sarfla_v1",
       "rpc": "t2_token_sarfla_v1"
     },
@@ -676,6 +681,34 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "birja_taklif_ber",
       "rpc": "t2_birja_taklif_ber"
+    },
+    {
+      "amal": "buyurtma_yarat_v1",
+      "rpc": "t2_buyurtma_yarat_v1"
+    },
+    {
+      "amal": "buyurtma_otish_v1",
+      "rpc": "t2_buyurtma_otish_v1"
+    },
+    {
+      "amal": "buyurtma_olish_yoz_v1",
+      "rpc": "t2_buyurtma_olish_yoz_v1"
+    },
+    {
+      "amal": "buyurtma_qabul_v1",
+      "rpc": "t2_buyurtma_qabul_v1"
+    },
+    {
+      "amal": "buyurtma_qabul_yakunla_v1",
+      "rpc": "t2_buyurtma_qabul_yakunla_v1"
+    },
+    {
+      "amal": "buyurtma_royxat_v1",
+      "rpc": "t2_buyurtmalar_v1"
+    },
+    {
+      "amal": "buyurtma_tafsilot_v1",
+      "rpc": "t2_buyurtma_tafsilot_v1"
     },
     {
       "amal": "tender_saqla_v1",

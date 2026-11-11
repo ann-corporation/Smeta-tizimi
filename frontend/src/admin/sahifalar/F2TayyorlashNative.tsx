@@ -14,12 +14,31 @@ import { AlertTriangle, ChevronDown, ChevronRight, Download, Eye, Save, Search, 
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { toast } from '../../umumiy/ui/Toast';
+import { moslikHisobla, moslikTuzilma } from '../../lib/ish-material-moslik';
+import { IshMaterialOgohRoyxat } from '../../components/fakt/IshMaterialOgoh';
 import { FmtN } from '../../lib/format';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
+import { ObyektQadamlari } from '../components/ObyektQadamlari';
 import { sbOqi, sbT2AktYaratV2, sbT2F2QoralamaYangila, sbT2DaraxtOl, sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt, type T2Qator } from '../../api/supabase';
 import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
 import { sbQatorHolatOl, sbF2QoralamaHajmlar, type QatorHolat } from '../../api/t2-fakt';
+import { paketdanF2DaraxtHolatOl, paketTezYoliYoqilgan } from '../../api/t2-paket-oqish';
+
+/** Sahifa/f2Qur o'qiydigan holat ustunlari (view ~36 ustun; qolganlari kerak emas — javob ~2-3x kichik). */
+const F2_HOLAT_USTUNLAR = 'qator_id,smeta_hajm,smeta_narx,fakt_hajm,f2_hajm,f2_mumkin_hajm,f2_narx,almashtirilgan_hajm,fakt_manbasi';
+
+/** Daraxt + holat: avval obyekt paketi (1 so'rov); har qanday nosozlikda (eski server, 403, tarmoq, shakl) jim eski sahifalab yo'l. */
+async function daraxtHolatOl(obyektId: number): Promise<{ ok: true; rows: T2Qator[]; holat: QatorHolat[] } | { ok: false }> {
+  if (paketTezYoliYoqilgan()) {
+    const p = await paketdanF2DaraxtHolatOl(obyektId);
+    if (p) return { ok: true, rows: p.rows, holat: p.f2Holat as unknown as QatorHolat[] };
+  }
+  const [d, h] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbQatorHolatOl(obyektId, F2_HOLAT_USTUNLAR)]);
+  if (!d.ok || !h.ok) return { ok: false };
+  return { ok: true, rows: (d.qatorlar || []) as T2Qator[], holat: (h.qatorlar || []) as QatorHolat[] };
+}
+import { aktdanKiritma } from '../../lib/f2-akt-kiritma';
 import { f2VersiyaKochirmaOl } from '../../api/t2-f2-versiya-kochirma';
 import { avvalgiF2Xaritasi, type F2VersiyaKochirma } from '../../lib/f2-versiya-kochirma';
 import { f2Hujjat } from '../../lib/f2-hujjat';
@@ -243,10 +262,10 @@ export function F2TayyorlashNative() {
       void Promise.resolve().then(() => f2VersiyaKochirmaOl(obyektId)).then((r) => { if (dolzarb()) setKochirma(r.ok ? r.natija : null); }).catch(() => { if (dolzarb()) setKochirma(null); });
       // Boshqa qoralamalardagi hajm o'qilmasa (A-14) — QORALAMA_TAKROR himoyasi jim o'chmaydi: xato holati.
       void Promise.resolve().then(() => sbF2QoralamaHajmlar(obyektId, aktId)).then((qh) => { if (dolzarb()) { setQoralamaHajm(qh.ok ? qh.hajm : new Map()); setQoralamaXato(!qh.ok); } }).catch(() => { if (dolzarb()) { setQoralamaHajm(new Map()); setQoralamaXato(true); } });
-      const [d, h] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbQatorHolatOl(obyektId)]);
+      const dh = await daraxtHolatOl(obyektId);
       if (!dolzarb()) return;
-      if (!d.ok || !h.ok) { setRows([]); setHolat([]); setError('F2 uchun smeta va fakt qoldig‘i o‘qilmadi.'); return; }
-      setRows((d.qatorlar || []) as T2Qator[]); setHolat((h.qatorlar || []) as QatorHolat[]);
+      if (!dh.ok) { setRows([]); setHolat([]); setError('F2 uchun smeta va fakt qoldig‘i o‘qilmadi.'); return; }
+      setRows(dh.rows); setHolat(dh.holat);
       sessObyekt.current = aktId == null ? obyektId : null;
       const sess = aktId == null ? f2SessiyaOqi(obyektId) : null; // saqlanmagan kiritmalar (yangilashdan keyin ham)
       // Raqam har yuklashda tiklanadi (A-9): obyekt almashtirilganda eski obyekt raqami yangisiga o'tib qolmasin.
@@ -298,9 +317,9 @@ export function F2TayyorlashNative() {
   /** Zamena/chiqarishdan keyin: daraxt va holat qayta o'qiladi, operator kiritmalari (hajm/narx) SAQLANADI. */
   const tuzilmaYangila = async () => {
     const raqam = sorov.current;
-    const [d, h] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbQatorHolatOl(obyektId)]).catch(() => [null, null] as const);
+    const dh = await daraxtHolatOl(obyektId).catch(() => null);
     if (raqam !== sorov.current) return;
-    if (d?.ok && h?.ok) { setRows((d.qatorlar || []) as T2Qator[]); setHolat((h.qatorlar || []) as QatorHolat[]); }
+    if (dh?.ok) { setRows(dh.rows); setHolat(dh.holat); }
     else toast(t('Saqlandi, lekin jadvalni yangilab bo‘lmadi — sahifani yangilang.'), 'warn');
     await qoshimchaYukla();
   };
@@ -383,6 +402,13 @@ export function F2TayyorlashNative() {
   const zamenaNatija = useMemo(() => f2ZamenaQolla(xomQatorlar, bolimlar, k, zamenaKtx), [xomQatorlar, bolimlar, k, zamenaKtx]);
   const qatorlar = zamenaNatija.qatorlar;
   const jami = useMemo(() => f2Jami(qatorlar), [qatorlar]);
+  // Ish ↔ material hajm muvofiqligi (egasi 2026-11-11): qoralamadagi ish hajmi materiallar hajmiga mosmi — faqat ogohlantirish (bloklamaydi).
+  const moslikTuz = useMemo(() => moslikTuzilma(rows), [rows]);
+  const moslikOgoh = useMemo(() => {
+    const h = new Map<number, number>();
+    for (const x of qatorlar) if ((x.tur === 'bl' || x.tur === 'mat' || x.tur === 'ob') && x.hajm > 0) h.set(x.id, x.hajm);
+    return h.size ? moslikHisobla(moslikTuz, h) : [];
+  }, [moslikTuz, qatorlar]);
   /** Storno (eski narxda) ↔ yangi (smeta narxida) jamilari va farqi. */
   const smetaX = useMemo(() => (smetaNarxda ? smetaNarxXulosa(qatorlar, bolimlar, stornoBlok.jami) : null), [smetaNarxda, qatorlar, bolimlar, stornoBlok.jami]);
   const katKesim = useMemo(() => f2KatKesim(qatorlar), [qatorlar]);
@@ -677,34 +703,7 @@ export function F2TayyorlashNative() {
     if (!bolimlar.length) return;
     if (aktdaOrtiqcha && !ortiqchaChegir) return; // chegirma qatorlari bo'limlarda paydo bo'lishini kutamiz
     aktQollandi.current = kalit;
-    const hajmQ = new Set<number>(); const avtoOta = new Map<number, number>(); const resQ = new Map<number, F2Resurs>();
-    for (const b of bolimlar) {
-      for (const i of b.ishlar) { hajmQ.add(i.id); for (const r of i.resurslar) { resQ.set(r.id, r); if (r.avto) avtoOta.set(r.id, i.id); else hajmQ.add(r.id); } }
-      for (const r of b.alohida) { hajmQ.add(r.id); resQ.set(r.id, r); }
-    }
-    const nk = bosKiritma(); let yoq = 0;
-    const avtoAktda: Array<{ id: number; ota: number }> = [];
-    for (const x of akt.qatorlar) {
-      if (stornoQatorimi(x)) continue; // Сторно (eski F2) bloki alohida saqlanadi (aktniYangila), kiritmalarga tushmaydi
-      const snap = (x.raw_snapshot ?? {}) as { narxsizSabab?: unknown };
-      const id = x.qator_id; const qty = sonQ(x.certified_quantity) ?? sonQ(x.hajm);
-      // Son → matn faqat sonMatn orqali (A-4): String(1e-7) = «1e-7» edi va yolg'on «0 bo'lmasin» xatosini berardi.
-      if (hajmQ.has(id)) { if (qty != null) nk.hajm[id] = sonMatn(qty); }
-      else if (avtoOta.has(id)) avtoAktda.push({ id, ota: avtoOta.get(id)! });
-      else { yoq++; continue; }
-      const r = resQ.get(id);
-      if (!r) continue;
-      const narx = sonQ(x.certified_unit_price); const summa = sonQ(x.certified_amount);
-      // Avtomatik narxsiz (qoralamada narx topilmagan) ongli «narxsiz» ga aylanmaydi — tasdiqlash uni baribir so'raydi.
-      if (x.provenance_status === 'price_intentionally_absent') { if (snap.narxsizSabab !== 'avto_qoralama') nk.narxsiz[id] = true; }
-      else if (narx != null) {
-        // A-20: narx taklif bilan bir xil bo'lsa kiritmaga yozilmaydi — manba «qo'lda» emas, asl manbasi (smeta/oldingi F2/protokol) qoladi.
-        if (r.taklifNarx == null || Math.abs(y6(r.taklifNarx) - narx) > 1e-9) nk.narx[id] = sonMatn(narx);
-        if (qty != null && summa != null && Math.abs(qty * narx - summa) > 0.005) nk.summa[id] = sonMatn(summa);
-      }
-    }
-    // A-27: ishi aktda yo'q (yoki hajmi o'qilmagan) avtomatik resurs jim yo'qolmaydi — «ro'yxatda topilmadi» sanog'iga.
-    for (const a of avtoAktda) if (nk.hajm[a.ota] === undefined) yoq++;
+    const { k: nk, yoq } = aktdanKiritma(akt.qatorlar, bolimlar);
     setK(nk); setKorinmaganQator(yoq);
     setRaqam(akt.raqam ?? ''); // A-22
     if (akt.oy) setOy(String(akt.oy).slice(0, 10));
@@ -1043,7 +1042,7 @@ export function F2TayyorlashNative() {
               {resSoni > 0 ? ` · ${t('{n} ta resursda', { n: String(resSoni) })}` : ''}</span>;
           })()}
           {(i.qoralama ?? 0) > 0 && <span className="text-warn">{t('qoralamada')} <b><FmtN val={i.qoralama ?? 0} /></b></span>}
-          {(bn.summa > 0 || bn.narxsiz > 0) && <span className="inline-flex items-center gap-1">{t('narx (1 birlik, NDS siz)')} {birlikNarx}{birlikNarxsiz}</span>}
+          {(bn.summa > 0 || bn.narxsiz > 0) && <span className="inline-flex items-center gap-1">{t('narx (1 birlik, QQS siz)')} {birlikNarx}{birlikNarxsiz}</span>}
           <span className="text-text-mute">{t('{n} ta resurs', { n: i.resurslar.length })}</span>
         </div>
         {x?.xato && <div className="px-10 pb-1.5 text-[12px] text-danger">{XATO_MATN[x.xato]}</div>}
@@ -1125,6 +1124,7 @@ export function F2TayyorlashNative() {
   return <Sahifa sarlavha="F2 tayyorlash" tavsif="Ishni tanlang — resurslar, narx va summa avtomatik; har narx manbasi ko‘rinadi">
     {korinish.oyna}
     <div ref={moneyScope} className="flex min-h-full flex-col gap-3">
+      {validId && <ObyektQadamlari joriy="f2-yasash" obyektId={obyektId} />}
       {validId && <TayyorlanganF2lar kompaniyaId={joriy?.id} obyektId={obyektId} />}
       <section className="fz-card flex flex-wrap items-end gap-3 p-3" aria-label={t('F2 parametrlari')}>
         <label className="min-w-[240px] flex-1 text-[12px] font-medium text-text-dim">{t('Obyekt')}
@@ -1163,7 +1163,7 @@ export function F2TayyorlashNative() {
           <Search size={14} className="pointer-events-none absolute bottom-2.5 left-2.5 text-text-mute" />
           <input aria-label="Qidirish" value={qidir} onChange={(e) => setQidir(e.target.value)} placeholder={t('ish, resurs, kod…')} className="mt-1.5 block w-full rounded-lg border border-border bg-surface-2 py-2 pl-8 pr-3 text-text" /></label>}
         {validId && bolimlar.length > 0 && <label className="flex items-center gap-1.5 pb-2.5 text-[12px] text-text-dim"><input type="checkbox" checked={faqatKiritilgan} onChange={(e) => setFaqatKiritilgan(e.target.checked)} />{t('Faqat kiritilganlar')}</label>}
-        {validId && mayPrepare && <button type="button" data-testid="storno-tanlov-tugma" className="fz-btn" title={t('Eski F2 qatorlaridan minus (storno) qoralama yaratadi; asl F2 o‘zgarmaydi')} onClick={() => void stornoTanlovOch()} disabled={saving}><RotateCcw aria-hidden="true" />{t('Eski F2 ni storno qilish (pereraschet)')}</button>}
+        {validId && mayPrepare && <button type="button" data-testid="storno-tanlov-tugma" className="fz-btn" title={t('Eski F2 qatorlaridan minus (storno) qoralama yaratadi; asl F2 o‘zgarmaydi')} onClick={() => void stornoTanlovOch()} disabled={saving}><RotateCcw aria-hidden="true" />{t('Eski F2 ni bekor qilib qayta hisoblash (storno)')}</button>}
       </section>
       {validId && stornoTanlovOchiq && <F2StornoTanlov obyektId={obyektId} faktRejimSukut="ozgartirma" qoralamaga={akt && !aktKorish ? { aktId: akt.id, onQosh: stornoQoralamagaQosh } : undefined} onYop={() => setStornoTanlovOchiq(false)} onYaratildi={(yangiId) => {
         setStornoTanlovOchiq(false);
@@ -1225,6 +1225,7 @@ export function F2TayyorlashNative() {
               <span className="text-[11px] text-text-mute">{t('Pastdagi «Jami» — butun F2 qoralama bo‘yicha (filtrga bog‘liq emas); «Topilganlarni to‘liq olish» faqat ko‘rinadiganlarga qo‘llanadi.')}</span>
             </div>}
             <div className="min-h-0 flex-1 space-y-2 overflow-auto p-3">
+              <IshMaterialOgohRoyxat natijalar={moslikOgoh} onTuzat={(n) => { if (n.ishId == null) return; yoz('hajm', n.ishId, sonMatn(n.taklif)); toast(t('Ish hajmi {v} qilib qo‘yildi — tekshirib saqlang.', { v: sonMatn(n.taklif) }), 'ok'); }} />
               {uf.soni > 0 && korinadiF.length === 0 && <div className="p-3 text-[12.5px] text-text-mute">{t('Filtr bo‘yicha qator topilmadi.')}</div>}
               {korinadiQism.bolimlar.map((b) => <div key={b.id ?? 'yoq'} className="space-y-2" data-testid="f2-bolim-blok">
                 {royxatRejimi && <div className="fz-panel__h pt-1">{b.nom}</div>}

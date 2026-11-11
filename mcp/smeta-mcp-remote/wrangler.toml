@@ -1,0 +1,60 @@
+# smeta-mcp-remote — masofaviy MCP (Streamable HTTP) + OAuth 2.1. Deploy — faqat egasi tasdig'i bilan (docs/mcp/REMOTE.md).
+# Sirlar (wrangler secret put): SUPABASE_URL, SUPABASE_KEY. Repoda hech qanday kalit/ulanish satri yo'q.
+name = "smeta-mcp"
+main = "dist/worker.mjs"
+compatibility_date = "2026-10-01"
+# global_fetch_strictly_public — CIMD (Client ID Metadata Document) mijozlari uchun (workers-oauth-provider talabi).
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+
+# 1-bosqich (umumiy yadro + stub'lar) har dev/deploy oldidan.
+[build]
+command = "node build-worker.mjs"
+watch_dir = ["src", "../smeta-mcp/src"]
+
+# Supabase bazasi Sidneyda — Worker bazaga yaqin joyda ishlasin.
+[placement]
+mode = "smart"
+
+[observability]
+enabled = true
+
+# OAuth holati (mijozlar, grantlar, token xeshlari, login holati). `wrangler kv namespace create OAUTH_KV` → id ni shu yerga.
+[[kv_namespaces]]
+binding = "OAUTH_KV"
+id = "REPLACE_WITH_OAUTH_KV_ID"
+
+# Supabase Postgres (to'g'ridan-to'g'ri yoki session pooler, 5432). `wrangler hyperdrive create smeta-db --connection-string=...` → id.
+# localConnectionString faqat `wrangler dev` uchun (lokal/sinov baza); prod satri Hyperdrive ichida saqlanadi.
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "REPLACE_WITH_HYPERDRIVE_ID"
+localConnectionString = "postgres://postgres:postgres@127.0.0.1:54322/postgres"
+
+# Snapshot sovutish (kunlik cron): snapshot.bolak_mazmun sovuq mazmuni shu bucket'ga (mavjud bucket; yangi yaratilmaydi).
+[[r2_buckets]]
+binding = "SNAPSHOT_R2"
+bucket_name = "smeta-tizimi-canonical"
+
+# Tezlik chegaralari: MCP — foydalanuvchiga 120/daqiqa; login — IP va login bo'yicha 10/daqiqa.
+[[ratelimits]]
+name = "MCP_RATE"
+namespace_id = "41001"
+simple = { limit = 120, period = 60 }
+
+[[ratelimits]]
+name = "LOGIN_RATE"
+namespace_id = "41002"
+simple = { limit = 10, period = 60 }
+
+[vars]
+SMETA_MCP_TIMEOUT_MS = "25000"
+# Snapshot sovutish: N kundan eski (har obyektning so'nggi snapshotidan tashqari), partiya chegarasi.
+SNAPSHOT_SOVUT_KUN = "2"
+SNAPSHOT_SOVUT_LIMIT = "200"
+# Barqaror ommaviy URL (OAuth resource = <URL>/mcp). workers.dev yoki custom domen — deploy oldidan egasi o'rnatadi.
+# Lokal `wrangler dev`: .dev.vars faylida MCP_PUBLIC_URL=http://localhost:8787 (repoga kirmaydi).
+MCP_PUBLIC_URL = "https://smeta-mcp.REPLACE_WITH_SUBDOMAIN.workers.dev"
+
+# Muddati o'tgan OAuth yozuvlarini kunlik tozalash.
+[triggers]
+crons = ["17 3 * * *"]

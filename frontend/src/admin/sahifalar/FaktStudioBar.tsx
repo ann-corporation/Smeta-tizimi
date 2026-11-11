@@ -58,7 +58,7 @@ export function FaktStudioBar({ yigindi, obyektId, kompaniyaId, onF2, onYangiIsh
         title={t('Shu davr uchun F2 qoralama: fakt − F2 > 0 bo‘lgan barcha ishlar avtomatik olinadi; tasdiq — F2 tarixida (egasi)')} className="fz-btn fz-btn--primary">{t('Fakt bo‘yicha F2 qoralama')} →</button>}
     </div>
     {jami && ml && jami.qoshimcha.ustamasiz != null && <div className="w-full text-[11px] text-text-mute" data-testid="fs-nak-smeta">
-      {t('Nakopitelniy smeta')} = {t('daraxt smeta')} <FmtN val={jami.smeta.ustamasiz} /> + {t('qo‘shimcha ishlar')} (<FmtN val={jami.qoshimcha.ustamasiz} />) = <b className="text-text"><FmtN val={ml.smetaJami} /></b> {t('(ustamasiz, NDS siz)')}</div>}
+      {t('Nakopitelniy smeta')} = {t('daraxt smeta')} <FmtN val={jami.smeta.ustamasiz} /> + {t('qo‘shimcha ishlar')} (<FmtN val={jami.qoshimcha.ustamasiz} />) = <b className="text-text"><FmtN val={ml.smetaJami} /></b> {t('(ustamasiz, QQS siz)')}</div>}
     {nak && ml && !ml.mos && <div className="fz-note fz-note--warn w-full text-[11px]" role="status" data-testid="fs-nak-farq">
       {t('Nakopitelniy bilan farq')}: {ml.smetaFarq != null && Math.abs(ml.smetaFarq) > 1 && <>{t('smeta')} <FmtN val={ml.smetaFarq} /> </>}
       {ml.f2Farq != null && Math.abs(ml.f2Farq) > 1 && <>{t('F2')} <FmtN val={ml.f2Farq} /> </>}

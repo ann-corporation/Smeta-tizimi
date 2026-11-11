@@ -145,8 +145,22 @@ export class IerarxiyaQuruvchi {
       dalillar = this.raqamliJoy(t.segs);
     } else if (t.tur === 'harf') {
       dalillar = this.harfliJoy(t.segs[0]);
+    } else if (ketmaKet && this.oilaTepada(xomMatn)) {
+      // D6 (F2 import auditi 2026-11-09, P1): «ТИП 1» dan darhol keyin «ТИП 2» — bir seriyaning qo'shnisi, bolasi emas.
+      this.stek.pop();
+      dalillar = [dalil('D6', 'yuqori', "oldingi sarlavha bilan bir seriya (o'sha so'z + boshqa raqam) — qo'shni")];
     } else if (ketmaKet) {
       dalillar = [dalil('D4', 'yuqori', "oldingi qator ham sarlavha — ichki daraja")];
+    } else if (this.oiladoshIndeks(xomMatn) >= 0) {
+      // D6: ishlardan keyin kelgan «ТИП 4» — stekdagi «ПАРКОВКА ТИП1» seriyasining qo'shnisi; oradagi chuqurroq
+      // darajalar (oldingi seriya a'zosining ichki bo'limlari) yopiladi — yo'l eskirib qolmaydi.
+      this.stek.length = this.oiladoshIndeks(xomMatn);
+      dalillar = [dalil('D6', 'yuqori', "bir seriya sarlavhasi (o'sha so'z + boshqa raqam) — oldingi a'zoning qo'shnisi, ichki darajalar yopildi")];
+    } else if (this.seriyaYopiladimi(xomMatn)) {
+      // D6: «ТРОТУАР → ТИП 1 … ТИП 4» seriyasidan keyin seriyaga kirmaydigan oddiy sarlavha («ДЕТСКАЯ ПЛОЩАДКА») —
+      // seriya tugadi: u ТИП 4 ning emas, seriya otasining qo'shnisi.
+      this.stek.length -= 2;
+      dalillar = [dalil('D6', 'orta', "raqamli seriya tugadi — seriya otasining qo'shnisi")];
     } else {
       const g = keyingisiSarlavha ? this.oxirgiGuruh() : -1;
       const i = g >= 0 ? g : this.oxirgiOddiy();
@@ -164,6 +178,34 @@ export class IerarxiyaQuruvchi {
     if (keyingisiSarlavha && t.tur === 'oddiy') this.tepa().guruh = true;
     this.oxirgiQatorSarlavha = true;
     return s;
+  }
+
+  /** Stek tepasidagi sarlavha yangi sarlavha bilan bir seriyadami (D6). */
+  private oilaTepada(xomMatn: string): boolean {
+    const b = this.stek.length ? this.tepa() : null;
+    return !!b && b.tur === 'oddiy' && oiladoshmi(b.s.xom, xomMatn);
+  }
+
+  /** Stekdagi (lokal/obyekt chegarasidan o'tmay) eng yaqin bir seriyali oddiy sarlavha indeksi; yo'q — -1. */
+  private oiladoshIndeks(xomMatn: string): number {
+    if (!seriyaKaliti(xomMatn)) return -1;
+    for (let i = this.stek.length - 1; i >= 0; i--) {
+      const b = this.stek[i];
+      if (b.tur === 'kalit' && b.rang <= 2) return -1;
+      if (b.tur === 'oddiy' && oiladoshmi(b.s.xom, xomMatn)) return i;
+    }
+    return -1;
+  }
+
+  /** Stek tepasi — oddiy ota ostidagi raqamli seriya a'zosi (kamida 2 a'zo), yangi sarlavha esa seriyaga kirmaydi. */
+  private seriyaYopiladimi(xomMatn: string): boolean {
+    if (this.stek.length < 2) return false;
+    const tepa = this.tepa(), ota = this.stek[this.stek.length - 2];
+    if (tepa.tur !== 'oddiy' || ota.tur !== 'oddiy') return false;
+    const k = seriyaKaliti(tepa.s.xom);
+    if (!k || seriyaKaliti(xomMatn)?.soz === k.soz) return false;
+    const azolar = this.sarlavhalar.filter((s) => s.ota === ota.s.id && seriyaKaliti(s.xom)?.soz === k.soz);
+    return azolar.length >= 2;
   }
 
   /** Stekda (kalit/raqamli chegaradan o'tmay) eng yuqoridagi guruh ochuvchi oddiy sarlavha. */
@@ -285,6 +327,22 @@ export class IerarxiyaQuruvchi {
     this.yetimKeyingi = false;
     return s;
   }
+}
+
+/**
+ * Seriya kaliti (D6): raqamdan oldingi so'z va raqam — «ТИП 4» → {ТИП, 4}, «ПАРКОВКА ТИП1» → {ТИП, 1},
+ * «ФУНДАМЕНТ -1(АСО-11)» → {ФУНДАМЕНТ, 1}. Raqamsiz sarlavha seriyaga kirmaydi.
+ */
+export function seriyaKaliti(xomMatn: string): { soz: string; raqam: string } | null {
+  const m = kalit(xomMatn).match(/([А-ЯA-Z]{2,})[^А-ЯA-Z0-9]{0,3}(\d+(?:[.,-]\d+)*)/);
+  return m ? { soz: m[1], raqam: m[2].replace(',', '.') } : null;
+}
+
+/** Ikki oddiy sarlavha bir seriyadan (o'sha so'z + raqam): qo'shni. «БЛОК 1» → «БЛОК 1.2» — bola (o'nlik ichki raqam). */
+export function oiladoshmi(a: string, b: string): boolean {
+  const x = seriyaKaliti(a), y = seriyaKaliti(b);
+  if (!x || !y || x.soz !== y.soz) return false;
+  return !y.raqam.startsWith(`${x.raqam}.`) && !x.raqam.startsWith(`${y.raqam}.`);
 }
 
 /** Ildizdan berilgan sarlavhagacha yo'l. */

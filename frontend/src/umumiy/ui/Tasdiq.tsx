@@ -31,6 +31,12 @@ export function TasdiqContainer() {
     return () => { tinglovchi = null; };
   }, []);
 
+  // Konteyner o'chirilsa (marshrut almashishi, qayta o'rnatish) kutayotgan so'rovlar «bekor» bilan yakunlanadi — aks holda
+  // ularni kutgan amal (masalan fakt saqlash) abadiy osilib qoladi va keyingi bosishlar jim e'tiborsiz qoladi.
+  const navbatRef = useRef<Ichki[]>([]);
+  navbatRef.current = navbat;
+  useEffect(() => () => { for (const s of navbatRef.current) s.javob(false); }, []);
+
   const yop = (ha: boolean) => {
     if (!joriy) return;
     joriy.javob(ha);

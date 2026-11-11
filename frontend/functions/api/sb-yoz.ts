@@ -34,6 +34,7 @@ import { katalogSnapshotlari } from '../_shared/narx-katalog-snapshot';
 import { sotuvAmalmi, sotuvYuk } from '../_shared/sotuv-yuk';
 import { ybAmalmi, ybYuk } from '../_shared/yuk-birjasi-yuk';
 import { TENDER_AMALLAR, tenderYuk } from '../_shared/tender-yuk';
+import { BUYURTMA_AMALLAR, buyurtmaYuk } from '../_shared/buyurtma-yuk';
 
 /** HR: jsonb obyektidan oq ro'yxatdagi skalyar maydonlarni oladi (matn ≤500); noto'g'ri tur yoki obyekt emas - null. */
 function hrPick(src: unknown, kalitlar: readonly string[]): Record<string, unknown> | null {
@@ -131,6 +132,8 @@ const AMALLAR = {
      hujjat, idempotent operation_id) va 24 soat ichida storno (sabab majburiy). RPC a'zolik + document.write. */
   sklad_kirim_import_v1: { rpc: 't2_sklad_markaziy_prixod_import_v1' },
   sklad_kirim_storno_v1: { rpc: 't2_sklad_markaziy_prixod_storno_v1' },
+  /* C11 BERDIM (20261211110000): markaziy ombor -> obyekt qoldig'i (t2_skladga_yozish orqali), bitta tranzaksiya, operation_id idempotent. */
+  sklad_berdim_v1: { rpc: 't2_sklad_markaziy_berdim_v1' },
   /* Egasi 2026-10-02: token daftari (o'zgarmas): sarf/qaytarish — a'zo; to'ldirish/obuna/demo — faqat superadmin (RPC ichida). */
   token_sarfla_v1: { rpc: 't2_token_sarfla_v1' },
   token_qaytar_v1: { rpc: 't2_token_qaytar_v1' },
@@ -198,6 +201,15 @@ const AMALLAR = {
   taklif_qabul: { rpc: 't2_taklif_qabul' },
   birja_rfq_yarat: { rpc: 't2_birja_rfq_yarat' },
   birja_taklif_ber: { rpc: 't2_birja_taklif_ber' },
+  /* BUYURTMA (zayavka -> yetkazuvchi, 20261108410000_t2_buyurtma_p3_v1): yaratish, holat o'tishi, olib ketish joyi, qabul. Argumentlar `_shared/buyurtma-yuk.ts` da.
+     royxat/tafsilot - FAQAT O'QIYDI, lekin RPC prodda VOLATILE bo'lgani uchun /api/sb (GET) emas, shu yerda (POST). */
+  buyurtma_yarat_v1: { rpc: 't2_buyurtma_yarat_v1' },
+  buyurtma_otish_v1: { rpc: 't2_buyurtma_otish_v1' },
+  buyurtma_olish_yoz_v1: { rpc: 't2_buyurtma_olish_yoz_v1' },
+  buyurtma_qabul_v1: { rpc: 't2_buyurtma_qabul_v1' },
+  buyurtma_qabul_yakunla_v1: { rpc: 't2_buyurtma_qabul_yakunla_v1' },
+  buyurtma_royxat_v1: { rpc: 't2_buyurtmalar_v1' },
+  buyurtma_tafsilot_v1: { rpc: 't2_buyurtma_tafsilot_v1' },
   /* TENDER protsessi (2026-11-03, 20261122000200_t2_tender_protsess_v1): qoralama → tasdiq → e'lon → ochish → baholash → g'olib. Argumentlar `_shared/tender-yuk.ts` da. */
   tender_saqla_v1: { rpc: 't2_tender_saqla_v1' },
   tender_otish_v1: { rpc: 't2_tender_otish_v1' },
@@ -785,6 +797,19 @@ export const onRequestPost: PagesFunction<{
         p_qatorlar: q.map((x: any) => ({ source_row: Number(x.source_row), sana: String(x.sana), nomi: String(x.nomi).trim().slice(0, 500),
           birligi: String(x.birligi).trim().slice(0, 100), obyomi: String(x.obyomi), postavshik: matn(x.postavshik, 500),
           manba_turi: matn(x.manba_turi, 200), sf_tasdiq: matn(x.sf_tasdiq, 200) })),
+        p_operation_id: so.operation_id };
+    } else if (amal === 'sklad_berdim_v1') {
+      const butun = (v: unknown) => Number.isSafeInteger(Number(v)) && Number(v) > 0;
+      const matn = (v: unknown, n: number) => (v == null || String(v).trim() === '' ? null : String(v).trim().slice(0, n));
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !butun(so.sklad_id) || !butun(so.obyekt_id)
+          || typeof so.nomi !== 'string' || !so.nomi.trim() || typeof so.birligi !== 'string' || !so.birligi.trim()
+          || !/^[0-9]+(\.[0-9]{1,6})?$/.test(String(so.miqdor ?? '')) || !(Number(so.miqdor) > 0)
+          || (so.sana != null && so.sana !== '' && !/^\d{4}-\d{2}-\d{2}$/.test(String(so.sana)))) {
+        return Response.json({ ok: false, code: 'BERDIM_INVALID', error: 'Berdim: ombor, obyekt, material, birlik, miqdor > 0 va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_sklad_id: Number(so.sklad_id), p_obyekt_id: Number(so.obyekt_id),
+        p_nomi: String(so.nomi).trim().slice(0, 500), p_birligi: String(so.birligi).trim().slice(0, 100), p_miqdor: String(so.miqdor),
+        p_sana: so.sana ? String(so.sana) : null, p_qabul_qiluvchi: matn(so.qabul_qiluvchi, 300), p_izoh: matn(so.izoh, 1000),
         p_operation_id: so.operation_id };
     } else if (amal === 'sklad_kirim_storno_v1') {
       if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isSafeInteger(Number(so.harakat_id)) || Number(so.harakat_id) <= 0
@@ -3177,6 +3202,12 @@ export const onRequestPost: PagesFunction<{
       const t = tenderYuk(amal, so as Record<string, unknown>, sess.foydalanuvchi_id);
       if (!t.ok) return Response.json({ ok: false, code: 'REQUIRED_FIELD', error: t.error }, { status: 400 });
       yuk = t.yuk;
+
+    /* BUYURTMA: yuk oq ro'yxatdan (_shared/buyurtma-yuk.ts); actor sessiyadan; kompaniya a'zoligi va egalik quyidagi umumiy blokda. */
+    } else if (BUYURTMA_AMALLAR.has(amal)) {
+      const b = buyurtmaYuk(amal, so as Record<string, unknown>, sess.foydalanuvchi_id);
+      if (!b.ok) return Response.json({ ok: false, code: 'REQUIRED_FIELD', error: b.error }, { status: 400 });
+      yuk = b.yuk;
 
     /* ══════════ B2B BIRJA ══════════
        ⚠️ IDEMPOTENTLIK MAJBURIY — RFQ va taklif narxga bog'liq. */

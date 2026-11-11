@@ -16,8 +16,8 @@ import { downloadBlob } from '../lib/construction-document-control/export/downlo
  * Qiymat yo'q bo'lsa — bo'sh qoladi (o'ylab topilmaydi); Excel'da to'ldirish chizig'i.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { ClipboardList, Plus, Link2, Unlink, AlertTriangle, CheckCircle2, FileSpreadsheet, Save, FlaskConical, X, ShieldCheck } from 'lucide-react';
-import { sbAosrCoverageOl, sbAosrBekor, sbAosrBogSaqla, type AosrCoverage } from '../api/t2-aosr';
+import { ClipboardList, Plus, Link2, Unlink, AlertTriangle, CheckCircle2, FileSpreadsheet, Save, FlaskConical, X, ShieldCheck, FileArchive } from 'lucide-react';
+import { sbAosrCoverageOl, sbAosrBekor, sbAosrBogSaqla, sbAosrBogOl, sbQatorMetaOl, type AosrCoverage, type QatorMetaYozuv } from '../api/t2-aosr';
 import {
   sbAosrV2Ol, sbAosrYozV2, sbLabProtokollarOl, sbLabProtokolYoz, sbLabProtokolBekor, sbLabProtokolBogSaqla,
   sbKompaniyaLogoOl, SINOV_TURI_NOM, SINOV_NATIJA_NOM,
@@ -35,6 +35,11 @@ import { t } from '../i18n/til';
 import { Sahifa } from '../umumiy/ui/Sahifa';
 import { tasdiqSora } from '../umumiy/ui/Tasdiq';
 import { aosrQoplama, protokolXulosa } from '../lib/aosr-korinish';
+import { aosrTartibMeta, aosrTartibla, raqamTekshiruv, razdelXaritasi, yetishmayotganlar } from '../lib/ijro-tayyorla';
+import { labYetishmaydi, LAB_TALAB_NOM, aktSifatMuammolari, aktDublikatlari, AKT_SIFAT_NOM } from '../lib/ijro-qoida';
+import { zipSync } from 'fflate';
+import { AosrYetishmaydi } from './AosrYetishmaydi';
+import { ZakazchigaYuborish } from '../admin/zakazchik/ZakazchigaYuborish';
 import { OpsKpi, OpsKpiQator, OpsTablar } from '../components/kompaniya-ops/OpsUi';
 
 const ROL_NOMI: Record<string, string> = {
@@ -68,6 +73,10 @@ export default function TestAosr() {
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [saqlanmoqda, setSaqlanmoqda] = useState(false);
   const [faqatAktsiz, setFaqatAktsiz] = useState(false);
+  const [qatorMeta, setQatorMeta] = useState<QatorMetaYozuv[]>([]);
+  const [bog, setBog] = useState<Map<number, number[]>>(new Map());
+  const [bekorKorsat, setBekorKorsat] = useState(false);
+  const [paketBand, setPaketBand] = useState(false);
 
   useEffect(() => {
     if (!kompaniyaId) { setObyektlar([]); return; }
@@ -84,8 +93,11 @@ export default function TestAosr() {
     setYuklanmoqda(true);
     Promise.all([sbAosrV2Ol(kompaniyaId, obyektId), sbAosrCoverageOl(obyektId), sbLabProtokollarOl(kompaniyaId, obyektId)]).then(([a, c, p]) => {
       setYuklanmoqda(false);
-      setAktlar(a.ok ? a.qatorlar ?? [] : []);
+      const aq = a.ok ? a.qatorlar ?? [] : [];
+      setAktlar(aq);
       setCoverage(c.ok ? c.qatorlar ?? [] : []);
+      // Tartib uchun razdel ma'lumoti (olinmasa — faqat sana bo'yicha tartib).
+      void Promise.all([sbQatorMetaOl(obyektId), sbAosrBogOl(kompaniyaId, aq.map((x) => x.id))]).then(([m, b]) => { setQatorMeta(m); setBog(b); });
       setProtokollar(p.ok ? p.qatorlar ?? [] : []);
       setBelgilangan(new Set());
     });
@@ -94,6 +106,17 @@ export default function TestAosr() {
   useEffect(() => { yukla(); setForma(null); setPForma(null); }, [obyektId, kompaniyaId]);
 
   const faolAktlar = aktlar.filter((a) => a.holat !== 'bekor');
+  /* Reestr tartibi (bir xil hamma joyda): razdel tartibi → ish sanasi → raqam; laboratoriya talabi kalit so'z qoidasidan. */
+  const rz = useMemo(() => razdelXaritasi(qatorMeta), [qatorMeta]);
+  const tartibMeta = useMemo(() => new Map(aktlar.map((a) => [a.id, aosrTartibMeta(a, bog.get(a.id) ?? [], rz)] as const)), [aktlar, bog, rz]);
+  const labYoq = useMemo(() => new Map(aktlar.map((a) => [a.id, labYetishmaydi(a, protokollar.filter((p) => p.aosr_ids?.includes(a.id)).map((p) => p.sinov_turi))] as const)), [aktlar, protokollar]);
+  const tartiblangan = useMemo(() => aosrTartibla(aktlar.filter((a) => bekorKorsat || a.holat !== 'bekor'), tartibMeta), [aktlar, tartibMeta, bekorKorsat]);
+  const raqamHolati = useMemo(() => raqamTekshiruv(faolAktlar), [aktlar]); // eslint-disable-line react-hooks/exhaustive-deps
+  const sifat = useMemo(() => new Map(aktlar.map((a) => [a.id, aktSifatMuammolari(a)] as const)), [aktlar]);
+  const dublikat = useMemo(() => new Set(aktDublikatlari(aktlar)), [aktlar]);
+  const tartibNomi = useMemo(() => { const m = new Map<number, number>(); let n = 0; for (const a of tartiblangan) if (a.holat !== 'bekor') m.set(a.id, ++n); return m; }, [tartiblangan]);
+  const reestrTartib = useMemo(() => new Map([...tartibMeta].map(([id, m]) => [id, { ...m, labYetishmaydi: labYoq.get(id) ?? [] }] as const)), [tartibMeta, labYoq]);
+  const guruhlar = useMemo(() => yetishmayotganlar(coverage, qatorMeta), [coverage, qatorMeta]);
   const yashirinAktsiz = coverage.filter((c) => c.yashirin && !c.akt_bor).length;
   const korinadiganIshlar = faqatAktsiz ? coverage.filter((c) => !c.akt_bor) : coverage;
 
@@ -122,6 +145,8 @@ export default function TestAosr() {
     if (!String(forma.ish_nomi ?? '').trim()) { toast(t('Ish nomini kiriting'), 'warn'); return; }
     setSaqlanmoqda(true);
     const { id, versiya, ...malumot } = forma;
+    // «Tasdiqlangan» — qarshi tomon qarori natijasi: muallif yubormaydi (server ham rad etadi).
+    if (malumot.holat === 'tasdiqlangan') delete malumot.holat;
     const r = await sbAosrYozV2({ kompaniyaId, obyektId, malumot, id, kutilganVersiya: versiya, operationId: id ? undefined : yangiOperationId() });
     setSaqlanmoqda(false);
     if (!r.ok) { toast(r.sabab === 'versiya' ? t('Akt boshqa joyda o‘zgargan — qayta yuklang') : r.error || t('Xato'), 'danger'); return; }
@@ -132,20 +157,22 @@ export default function TestAosr() {
     yukla();
   };
 
+  const aktBaytlari = (a: AosrV2, logo: Awaited<ReturnType<typeof sbKompaniyaLogoOl>>) => aosrExcel({
+    tur: a.tur, raqam: a.raqam, sana: a.sana, ishNomi: a.ish_nomi, obyektNomi: a.obyekt,
+    ishTavsifi: a.ish_tavsifi, smoNomi: joriy?.nom ?? null, loyihaTashkiloti: a.loyiha_tashkiloti,
+    loyihaHujjati: a.loyiha_hujjati, materiallar: a.materiallar, chetlanishlar: a.chetlanishlar,
+    boshlanishSana: a.boshlanish_sana, tugashSana: a.tugash_sana, keyingiIshlar: a.keyingi_ishlar,
+    blankVarianti: a.blank_varianti, komissiya: a.komissiya ?? [],
+    protokollar: protokollar.filter((p) => p.aosr_ids?.includes(a.id)).map((p) => ({
+      raqam: p.raqam, sana: p.sana, laboratoriya: p.laboratoriya, sinovTuri: p.sinov_turi, natija: p.natija,
+    })),
+    logo: logo ? { base64: logo.data_b64, ext: logo.mime === 'image/png' ? 'png' : 'jpeg' } : null,
+  });
+
   const excel = async (a: AosrV2) => {
     try {
       const logo = kompaniyaId ? await sbKompaniyaLogoOl(kompaniyaId) : null;
-      const bytes = await aosrExcel({
-        tur: a.tur, raqam: a.raqam, sana: a.sana, ishNomi: a.ish_nomi, obyektNomi: a.obyekt,
-        ishTavsifi: a.ish_tavsifi, smoNomi: joriy?.nom ?? null, loyihaTashkiloti: a.loyiha_tashkiloti,
-        loyihaHujjati: a.loyiha_hujjati, materiallar: a.materiallar, chetlanishlar: a.chetlanishlar,
-        boshlanishSana: a.boshlanish_sana, tugashSana: a.tugash_sana, keyingiIshlar: a.keyingi_ishlar,
-        blankVarianti: a.blank_varianti, komissiya: a.komissiya ?? [],
-        protokollar: protokollar.filter((p) => p.aosr_ids?.includes(a.id)).map((p) => ({
-          raqam: p.raqam, sana: p.sana, laboratoriya: p.laboratoriya, sinovTuri: p.sinov_turi, natija: p.natija,
-        })),
-        logo: logo ? { base64: logo.data_b64, ext: logo.mime === 'image/png' ? 'png' : 'jpeg' } : null,
-      });
+      const bytes = await aktBaytlari(a, logo);
       if (!kompaniyaId) { toast(t('Kompaniyani tanlang'), 'warn'); return; }
       const tk = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'AOSR', sabab: `АОСР № ${a.raqam ?? ''} · ${a.obyekt ?? ''}` }, () => {
         downloadBlob(bytes, aosrFaylNomi(a.obyekt, a.raqam, a.sana)); // tizim imzosi shu yo'lda qo'yiladi
@@ -162,7 +189,7 @@ export default function TestAosr() {
       if (!kompaniyaId) { toast(t('Kompaniyani tanlang'), 'warn'); return; }
       const obyektNomi = obyektlar.find((o) => o.id === obyektId)?.nom ?? 'Объект';
       const imzo = { pudratchi: joriy?.nom };
-      const { bytes, faylNomi } = tur === 'aosr' ? aosrReestrXlsx(aktlar, { obyektNomi, imzo }) : labReestrXlsx(protokollar, { obyektNomi, imzo });
+      const { bytes, faylNomi } = tur === 'aosr' ? aosrReestrXlsx(aktlar, { obyektNomi, imzo, tartib: reestrTartib }) : labReestrXlsx(protokollar, { obyektNomi, imzo });
       const tk = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: tur === 'aosr' ? 'REESTR_AOSR' : 'REESTR_LAB', sabab: `${tur === 'aosr' ? 'Реестр АОСР' : 'Реестр протоколов'} · ${obyektNomi}`, obyekt: obyektId }, () => {
         downloadBlob(bytes, faylNomi);
       });
@@ -170,6 +197,41 @@ export default function TestAosr() {
     } catch (e) {
       toast(t('Reestr yasalmadi: {x}', { x: e instanceof Error ? e.message : String(e) }), 'danger');
     }
+  };
+
+  /** Butun obyekt ijro paketi (bitta ZIP): reestr (tartib bilan) + hamma АОСР + protokollar reestri. Mavjud eksportchilar; har fayl o'z yo'lida token oladi. */
+  const paket = async () => {
+    if (!kompaniyaId || !obyektId) { toast(t('Kompaniyani tanlang'), 'warn'); return; }
+    if (!tartiblangan.some((a) => a.holat !== 'bekor')) { toast(t('Paket uchun akt yo‘q'), 'warn'); return; }
+    setPaketBand(true);
+    try {
+      const obyektNomi = obyektlar.find((o) => o.id === obyektId)?.nom ?? 'Объект';
+      const imzo = { pudratchi: joriy?.nom };
+      const logo = await sbKompaniyaLogoOl(kompaniyaId);
+      const fayllar: Record<string, Uint8Array> = {};
+      const sana = new Date().toISOString().slice(0, 10);
+      const qosh = async (bytes: Uint8Array, nom: string, hujjat: string, sabab: string) => {
+        const tk = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat, sabab, obyekt: obyektId }, () => { fayllar[nom] = bytes; });
+        if (!tk.ok) { toast(tk.xabar, 'danger'); return false; }
+        return true;
+      };
+      const r = aosrReestrXlsx(aktlar, { obyektNomi, imzo, tartib: reestrTartib });
+      if (!(await qosh(r.bytes, `00_${r.faylNomi}`, 'REESTR_AOSR', `Реестр АОСР · ${obyektNomi}`))) return;
+      if (protokollar.length) {
+        const l = labReestrXlsx(protokollar, { obyektNomi, imzo });
+        if (!(await qosh(l.bytes, `00_${l.faylNomi}`, 'REESTR_LAB', `Реестр протоколов · ${obyektNomi}`))) return;
+      }
+      let no = 0;
+      for (const a of tartiblangan.filter((x) => x.holat !== 'bekor')) {
+        no++;
+        const bytes = await aktBaytlari(a, logo);
+        if (!(await qosh(bytes, `${String(no).padStart(3, '0')}_${aosrFaylNomi(a.obyekt, a.raqam, a.sana)}`, 'AOSR', `АОСР № ${a.raqam ?? ''} · ${a.obyekt ?? ''}`))) return;
+      }
+      downloadBlob(zipSync(fayllar, { level: 6 }), `${obyektNomi.replace(/[\\/:*?"<>|]+/g, '_')}_ИСПОЛНИТЕЛЬНАЯ_ДОКУМЕНТАЦИЯ_${sana}.zip`, 'application/zip');
+      toast(t('✓ Ijro paketi tayyor: {n} fayl', { n: Object.keys(fayllar).length }), 'ok');
+    } catch (e) {
+      toast(t('Paket yasalmadi: {x}', { x: e instanceof Error ? e.message : String(e) }), 'danger');
+    } finally { setPaketBand(false); }
   };
 
   const ulash = async () => {
@@ -261,8 +323,11 @@ export default function TestAosr() {
           { id: 'lab', nom: t('Laboratoriya'), ikon: <FlaskConical />, soni: protokollar.length },
         ]} />
 
+        {varaq === 'akt' && !yuklanmoqda && kompaniyaId && obyektId && (
+          <AosrYetishmaydi kompaniyaId={kompaniyaId} obyektId={obyektId} guruhlar={guruhlar} aktlar={aktlar} onTayyor={yukla} />
+        )}
         {yashirinAktsiz > 0 && varaq === 'akt' && (
-          <section className="fz-note fz-note--warn"><AlertTriangle /><span>{t('{n} ta yashirin ish bajarilgan, lekin АОСР yo‘q. F2 bloklanmaydi — faqat ogohlantirish.', { n: yashirinAktsiz })}</span></section>
+          <p className="text-[11.5px] text-text-mute">{t('F2 bloklanmaydi — АОСР yo‘qligi faqat ogohlantirish.')}</p>
         )}
 
         {yuklanmoqda ? <div className="skel h-48 rounded-xl" /> : varaq === 'akt' ? (
@@ -300,7 +365,9 @@ export default function TestAosr() {
             <section className="fz-card" aria-label={t('Akt reestri')}>
               <div className="fz-card__head">
                 <h2 className="fz-card__title">{t('Akt reestri ({n})', { n: faolAktlar.length })}</h2>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <label className="inline-flex items-center gap-1 text-[12px] text-text-dim"><input type="checkbox" checked={bekorKorsat} onChange={(e) => setBekorKorsat(e.target.checked)} /> {t('bekor qilinganlar')}</label>
+                  <button type="button" onClick={() => void paket()} disabled={!faolAktlar.length || paketBand} className="fz-btn fz-btn--sm" title={t('Butun obyekt ijro paketi (ZIP): reestr + hamma АОСР')}><FileArchive /> {paketBand ? t('Yig‘ilmoqda…') : t('Butun paket')}</button>
                   <button type="button" onClick={() => void reestr('aosr')} disabled={!faolAktlar.length} className="fz-btn fz-btn--sm fz-btn--ghost" title={t('РЕЕСТР АОСР (Excel)')}><FileSpreadsheet /> {t('Reestr')}</button>
                   <button type="button" onClick={() => yangiAkt(false)} className="fz-btn fz-btn--sm fz-btn--primary"><Plus /> {t('Yangi akt')}</button>
                 </div>
@@ -348,18 +415,28 @@ export default function TestAosr() {
                     })}
                   </div>
                   <div className="flex items-center justify-between gap-2 pt-1">
-                    <select aria-label={t('Akt holati')} className={inp + ' max-w-[200px]'} value={forma.holat ?? 'yangi'} onChange={f('holat')}>{['yangi', 'tasdiqlangan', 'qogoz'].map((h) => <option key={h} value={h}>{t(HOLAT_NOMI[h])}</option>)}</select>
+                    {forma.holat === 'tasdiqlangan'
+                      ? <span className="fz-stamp fz-stamp--ok" title={t('Tasdiqlangan holatni buyurtmachi / texnadzor qarori qo‘yadi')}>{t(HOLAT_NOMI.tasdiqlangan)}</span>
+                      : <div className="flex flex-col gap-0.5"><select aria-label={t('Akt holati')} className={inp + ' max-w-[200px]'} value={forma.holat ?? 'yangi'} onChange={f('holat')}>{['yangi', 'qogoz'].map((h) => <option key={h} value={h}>{t(HOLAT_NOMI[h])}</option>)}</select>
+                        <span className="text-[10.5px] text-text-mute">{t('«Tasdiqlangan» — buyurtmachi / texnadzor qarori: ro‘yxatdan «Zakazchikka yuborish»')}</span></div>}
                     <button type="button" onClick={() => void saqla()} disabled={saqlanmoqda} className="fz-btn fz-btn--primary"><Save /> {t('Saqlash')}</button>
                   </div>
                 </div>
               ) : (
                 <div className="max-h-[70vh] divide-y divide-border overflow-y-auto">
                   {faolAktlar.length === 0 && <div className="p-4 text-center text-[13px] text-text-mute">{t('Akt yo‘q — chapdan ishlarni belgilab akt yarating')}</div>}
-                  {faolAktlar.map((a) => (
-                    <div key={a.id} className="cursor-pointer px-4 py-2.5 hover:bg-surface-2" onClick={() => setForma({ ...a, komissiya: Array.isArray(a.komissiya) ? a.komissiya : [], holat: a.holat === 'bekor' ? 'yangi' : a.holat })}>
+                  {(raqamHolati.yoq.length > 0 || raqamHolati.takror.length > 0) && (
+                    <div className="fz-note fz-note--warn m-3"><AlertTriangle /><span>
+                      {raqamHolati.yoq.length > 0 && t('Raqamlarda bo‘shliq: {x}. ', { x: raqamHolati.yoq.slice(0, 12).join(', ') })}
+                      {raqamHolati.takror.length > 0 && t('Takror raqamlar: {x}.', { x: raqamHolati.takror.join(', ') })}
+                    </span></div>
+                  )}
+                  {tartiblangan.map((a) => (
+                    <div key={a.id} className={`cursor-pointer px-4 py-2.5 hover:bg-surface-2 ${a.holat === 'bekor' ? 'opacity-60' : ''}`} onClick={() => setForma({ ...a, komissiya: Array.isArray(a.komissiya) ? a.komissiya : [], holat: a.holat === 'bekor' ? 'yangi' : a.holat })}>
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
+                            <span className="w-6 shrink-0 text-right text-[11.5px] tabular-nums text-text-mute">{a.holat === 'bekor' ? '' : tartibNomi.get(a.id)}</span>
                             <span className="truncate text-[13px] font-medium text-text">№ {a.raqam || '—'} · {a.ish_nomi || '—'}</span>
                             <span className={`fz-stamp ${HOLAT_STAMP[a.holat] ?? ''}`}>{t(HOLAT_NOMI[a.holat] ?? a.holat)}</span>
                           </div>
@@ -367,9 +444,18 @@ export default function TestAosr() {
                             <span>{t(TUR_NOMI[a.tur])}</span><span>·</span><span>{a.sana ?? t('sana yo‘q')}</span>
                             <span className="fz-chip">{t('{n} ish', { n: a.boglangan_ish_soni })}</span>
                             <span className={`fz-chip ${a.protokol_soni ? 'fz-chip--accent' : ''}`}>{t('{n} protokol', { n: a.protokol_soni })}</span>
+                            {tartibMeta.get(a.id)?.razdel.nom && <span className="truncate" title={tartibMeta.get(a.id)?.razdel.nom}>{tartibMeta.get(a.id)?.razdel.nom}</span>}
+                            {a.holat !== 'bekor' && (sifat.get(a.id) ?? []).length > 0 && (
+                              <span className="fz-chip" title={(sifat.get(a.id) ?? []).map((x) => t(AKT_SIFAT_NOM[x])).join('; ')}>{t('{n} kamchilik', { n: (sifat.get(a.id) ?? []).length })}</span>
+                            )}
+                            {dublikat.has(a.id) && <span className="fz-chip fz-chip--warn" title={t('Shu obyektda bir xil ish nomli akt bor')}>{t('dublikat?')}</span>}
+                            {a.holat !== 'bekor' && (labYoq.get(a.id) ?? []).length > 0 && (
+                              <span className="fz-chip fz-chip--warn" title={t('Bu ish turiga laboratoriya protokoli kerak, lekin ulanmagan')}><AlertTriangle size={11} />{t('protokol yo‘q: {x}', { x: (labYoq.get(a.id) ?? []).map((x) => LAB_TALAB_NOM[x]).join(', ') })}</span>
+                            )}
                           </div>
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
+                          {a.holat === 'yangi' && kompaniyaId && <span onClick={(e) => e.stopPropagation()}><ZakazchigaYuborish kompaniyaId={kompaniyaId} aktId={a.id} resurs="aosr" /></span>}
                           <button type="button" onClick={(e) => { e.stopPropagation(); void excel(a); }} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" title={t('Excel (blank)')} aria-label={t('Excel (blank)')}><FileSpreadsheet /></button>
                           <button type="button" onClick={(e) => { e.stopPropagation(); void bekorQil(a); }} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" title={t('Bekor qilish')} aria-label={t('Bekor qilish')}><Unlink /></button>
                         </div>

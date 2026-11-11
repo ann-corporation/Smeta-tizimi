@@ -7,6 +7,7 @@ import { obyektKesimi, ustamaliHisobla, type KatKesim, type UstamaNatija } from 
 import { svodKorinishKesimi, yaxlitQatorIdlari, type SvodYaxlit } from '../../lib/svod-yaxlit';
 import type { Podval } from '../../lib/nakrutka-konstruktor';
 import { useKompaniya } from '../kontekst/KompaniyaKontekst';
+import { USTAMA_STALE_MS } from './ustama-kesh';
 
 export type UstamaHolat = 'yuklanmoqda' | 'tayyor' | 'xato';
 
@@ -30,7 +31,7 @@ export function useUstamaliSumma(obyektId: number | null | undefined, opts: { ko
   const sid = opts.shartnomaId ?? null;
   const oid = obyektId != null && Number.isFinite(obyektId) && obyektId > 0 ? obyektId : null;
   const nak = useQuery({
-    queryKey: ['ustama-nakrutka', oid, sid], enabled: bor && oid != null, staleTime: 60_000, retry: false,
+    queryKey: ['ustama-nakrutka', oid, sid], enabled: bor && oid != null, staleTime: USTAMA_STALE_MS, retry: false,
     queryFn: ({ signal }) => limitedRead(async () => {
       const r = await t2ObyektNakrutka(oid!, sid);
       if (!r.ok || !r.koeffitsientlar) throw new Error('USTAMA_KOEF_OQILMADI');

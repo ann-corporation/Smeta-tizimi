@@ -1,4 +1,5 @@
 import { NDS_SUKUT_FOIZ, qqsAjratTiyin } from './hisob-yadro';
+import { raqamTozala } from './raqam-belgi';
 /**
  * Nakopitelniy — SHARTNOMA darajasi (CODEMAP «Nakopitelniy + F3 + Akt TN» qatorining kengaytmasi, yangi modul emas):
  * shartnoma (+ DS) → tasdiqlangan F2 (t2_akt) → F3 sotuv summasidan (t2_forma3.manba='sotuv') → to'lov (t2_tolov) → akt-sverka qoldig'i.
@@ -94,7 +95,7 @@ export function sverkaHisobla(sh: Pick<SvodShartnoma, 'f3' | 'tolovlar'>, o?: { 
   type Hod = { sana: string; tartib: number; id: number; tur: SverkaQator['tur']; hujjat: string; debet: number; kredit: number };
   const hodisalar: Hod[] = [
     ...sotuvF3lar(sh).map((s) => ({ sana: sanaKalit(s.sotuv_sana), tartib: 0, id: s.id, tur: 'sotuv' as const,
-      hujjat: `Продажа${s.raqam ? ` № ${s.raqam}` : ''}`, debet: tiyin(s.sotuv_summa), kredit: 0 })),
+      hujjat: `Продажа${s.raqam ? ` № ${raqamTozala(s.raqam)}` : ''}`, debet: tiyin(s.sotuv_summa), kredit: 0 })),
     ...sh.tolovlar.map((t) => ({ sana: sanaKalit(t.sana), tartib: 1, id: t.id, tur: t.tur,
       hujjat: TOLOV_NOM[t.tur] ?? t.tur, debet: 0, kredit: tolovTiyin(t) })),
   ].sort((a, b) => a.sana.localeCompare(b.sana) || a.tartib - b.tartib || a.id - b.id);

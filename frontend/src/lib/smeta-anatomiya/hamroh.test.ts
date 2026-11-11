@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { kitobAnatomiyasi, kitobHamrohlari } from './index';
-import { hamrohDaraxti, varaqRoli, xatQatoriNarxi } from './yuklash';
+import { hamrohDaraxti, perevozkaNomi, ruSon, varaqRoli, xatQatoriNarxi } from './yuklash';
 import type { Katak } from './turlar';
 
 // ─── tn·km varag'i (`трансп.`) ───────────────────────────────────────────────
@@ -102,16 +102,69 @@ describe('perevozka: tn·km varag‘i', () => {
     expect(varaqRoli('сводн.', SVODN).rol).toBe('hamroh');
   });
 
-  it('hamroh daraxti: har material ALOHIDA perevozka resursi (т·км); tn·km 0 — kirmaydi; bo‘sh tanlov — bo‘sh', () => {
+  it('hamroh daraxti: bitta т·км ishi (Σ т·км, ИТОГО) → har material ALOHIDA perevozka resursi; tn·km 0 — kirmaydi; bo‘sh tanlov — bo‘sh', () => {
     expect(hamrohDaraxti({ transport: [], xatlar: [] }).tree).toEqual([]);
     const h = hamrohDaraxti({ transport: [e], xatlar: [] });
     expect(h.tree).toHaveLength(1);
     expect(h.tree[0]).toMatchObject({ type: 'rz', nom: 'ПЕРЕВОЗКА ГРУЗОВ (трансп.)' });
-    expect(h.tree[0].children!.map((c) => [c.type, c.nom, c.bir, c.hajm, c.narx, c.summa])).toEqual([
-      ['rs', 'ПЕРЕВОЗКА: Материал А', 'т·км', 1000, 1000, 1_000_000],
-      ['rs', 'ПЕРЕВОЗКА: Материал Б', 'т·км', 300, 1000, 300_000],
+    expect(h.tree[0].children).toHaveLength(1);
+    const ish = h.tree[0].children![0];
+    expect(ish).toMatchObject({
+      type: 'bl', kod: 'РАСЧЁТ Т·КМ', bir: 'Т·КМ', hajm: 1300, narx: 1000, summa: 1_300_000,
+      nom: 'ПЕРЕВОЗКА МЕСТНЫХ МАТЕРИАЛОВ АВТОСАМОСВАЛАМИ (РАСЧЁТ ЗАТРАТ ТРАНСПОРТА, 1 000 СУМ ЗА 1 Т·КМ)',
+    });
+    expect(ish.children!.map((c) => [c.type, c.kod, c.nom, c.bir, c.hajm, c.narx, c.summa])).toEqual([
+      ['rs', 'Т·КМ', 'ПЕРЕВОЗКА: МАТЕРИАЛ А — 100 ТН × 10 КМ', 'Т·КМ', 1000, 1000, 1_000_000],
+      ['rs', 'Т·КМ', 'ПЕРЕВОЗКА: МАТЕРИАЛ Б — 10 М3 = 15 Т × 20 КМ', 'Т·КМ', 300, 1000, 300_000],
     ]);
+    const ext = ish.children!.map((c) => c as typeof c & { norma?: number; kat?: string; kat_manba?: string });
+    expect(ext.map((c) => [c.kat, c.kat_manba])).toEqual([['М/К', 'hujjat_blok'], ['М/К', 'hujjat_blok']]);
+    expect(ext[0].norma! + ext[1].norma!).toBeCloseTo(1, 9);
+    expect(ext[1].norma).toBeCloseTo(300 / 1300, 9);
     expect(h.otkazildi).toBe(1);
+  });
+
+  it('yaxlitlash farqi ИТОГО ga eng katta qatorda yopiladi; turli narx — ish narxi = summa / hajm', () => {
+    const rows = TKM.map((r) => [...r]);
+    rows[5][9] = 1_000_000.4; // qator summalari yig'indisi ИТОГО dan 0,4 so'm farq qiladi
+    rows[6][8] = 1200; rows[6][9] = 360_000; rows[8][9] = 1_360_000;
+    const b = kitobAnatomiyasi({ fayl: 'r.xlsx', varaqlar: [{ nom: 'трансп.', rows }] });
+    const ish = hamrohDaraxti({ transport: [b.erkin[0]], xatlar: [] }).tree[0].children![0];
+    expect(ish.summa).toBe(1_360_000);
+    expect(ish.children!.reduce((s, c) => s + c.summa!, 0)).toBeCloseTo(1_360_000, 6);
+    expect(ish.children![0].summa).toBe(1_000_000);
+    expect(ish.narx).toBe(yaxlit(1_360_000 / 1300));
+    expect(ish.nom).toContain('СРЕДНЯЯ 1 046,15 СУМ ЗА 1 Т·КМ');
+  });
+
+  it('bir nechta tn·km varag‘i — ish nomida varaq yorlig‘i', () => {
+    const b = kitobAnatomiyasi({ fayl: 'k.xlsx', varaqlar: [{ nom: 'трансп.', rows: TKM }, { nom: 'трансп.2', rows: TKM }] });
+    const h = hamrohDaraxti({ transport: b.erkin, xatlar: [] });
+    expect(h.tree.map((r) => r.children![0].nom)).toEqual([
+      'ПЕРЕВОЗКА МЕСТНЫХ МАТЕРИАЛОВ АВТОСАМОСВАЛАМИ (РАСЧЁТ ЗАТРАТ ТРАНСПОРТА, 1 000 СУМ ЗА 1 Т·КМ) — ТРАНСП.',
+      'ПЕРЕВОЗКА МЕСТНЫХ МАТЕРИАЛОВ АВТОСАМОСВАЛАМИ (РАСЧЁТ ЗАТРАТ ТРАНСПОРТА, 1 000 СУМ ЗА 1 Т·КМ) — ТРАНСП.2',
+    ]);
+  });
+});
+
+const yaxlit = (x: number) => Math.round(x * 100) / 100;
+
+describe('perevozka nomi — rus son formati', () => {
+  it('bo‘sh joy minglik, vergul kasr, oxirgi nollar yo‘q', () => {
+    expect(ruSon(7469.8158)).toBe('7 469,8158');
+    expect(ruSon(11204.72370000001)).toBe('11 204,7237');
+    expect(ruSon(14.5)).toBe('14,5');
+    expect(ruSon(1000)).toBe('1 000');
+    expect(ruSon(1234567.1)).toBe('1 234 567,1');
+    expect(ruSon(0.25)).toBe('0,25');
+  });
+
+  it('miqdor + birlik = tonna × km; birlik tonna bo‘lsa tonna takrorlanmaydi; yo‘q qiymat tushiriladi', () => {
+    expect(perevozkaNomi({ xom: 'Гпс', birlik: 'м3', miqdor: 7469.8158, tonna: 11204.7237, masofa: 14.5 }))
+      .toBe('ПЕРЕВОЗКА: ГПС — 7 469,8158 М3 = 11 204,7237 Т × 14,5 КМ');
+    expect(perevozkaNomi({ xom: 'Щебень', birlik: 'т', miqdor: 250, tonna: 250, masofa: 30 })).toBe('ПЕРЕВОЗКА: ЩЕБЕНЬ — 250 Т × 30 КМ');
+    expect(perevozkaNomi({ xom: 'Песок', birlik: null, miqdor: null, tonna: 12.5, masofa: 8 })).toBe('ПЕРЕВОЗКА: ПЕСОК — 12,5 Т × 8 КМ');
+    expect(perevozkaNomi({ xom: 'Песок', birlik: null, miqdor: null, tonna: null, masofa: null })).toBe('ПЕРЕВОЗКА: ПЕСОК');
   });
 });
 

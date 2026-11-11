@@ -193,7 +193,7 @@ export function FaktInlineAmal({ kompaniyaId, obyektId, sana, qator, kontekst, t
             ? <label className={lab}>{t('Norma (ish birligiga)')}<input value={forma.norma} onChange={(e) => ozgar({ norma: e.target.value })} inputMode="decimal" aria-label={t('Norma')} className={num} />
                 <span className="text-[10.5px] font-normal text-text-mute">{t('hajm = norma × ish hajmi ({h})', { h: fmt(kontekst.otaIshHajm) })}</span></label>
             : <label className={lab}>{t('Hajm')}<input value={forma.hajm} onChange={(e) => ozgar({ hajm: e.target.value })} inputMode="decimal" aria-label={t('Hajm')} className={num} /></label>}
-          <label className={lab}>{ishNarxli ? t('Birlik narxi (tarkibdan)') : t('Birlik narxi (NDS siz)')}
+          <label className={lab}>{ishNarxli ? t('Birlik narxi (tarkibdan)') : t('Birlik narxi (QQS siz)')}
             {ishNarxli
               ? <span className="flex h-8 items-center justify-end rounded-[var(--radius-sm)] border border-border bg-surface-2 px-2 font-mono tabular-nums text-text-dim" data-testid="inline-ish-narx">{narxsiz ? t('narxsiz') : fmt(sostavHisob.ishNarxi, 2)}</span>
               : <MoneyInput value={forma.narx} onValueChange={(raw) => ozgar({ narx: raw, manba: 'qolda' })} placeholder={t('bo‘sh = narxsiz')} aria-label={t('Birlik narxi')} className={num} />}
@@ -215,7 +215,7 @@ export function FaktInlineAmal({ kompaniyaId, obyektId, sana, qator, kontekst, t
             <input value={forma.izoh} onChange={(e) => ozgar({ izoh: e.target.value })} placeholder={t('masalan: loyihachi xati № …, buyurtmachi topshirig‘i')} aria-label={t('Sabab / izoh')} className={inp} /></label>
         </div>
 
-        {ishNarxli && forma.sostav.length > 0 && <p className="text-[11px] text-text-mute" data-testid="inline-sostav">{t('Tarkib: {n} resurs, jami {s} so‘m (NDS siz).', { n: String(forma.sostav.length), s: fmt(sostavHisob.jami, 2) })}</p>}
+        {ishNarxli && forma.sostav.length > 0 && <p className="text-[11px] text-text-mute" data-testid="inline-sostav">{t('Tarkib: {n} resurs, jami {s} so‘m (QQS siz).', { n: String(forma.sostav.length), s: fmt(sostavHisob.jami, 2) })}</p>}
         {narxsiz && <p className="text-[11px] text-warn" data-testid="inline-narxsiz">{ishNarxli
           ? t('Narx tarkibdan olinadi: ro‘yxatdan tanlansa — resurslari bilan narxlanadi; qo‘lda yozilsa narxsiz saqlanadi (keyin «Kengaytirilgan oyna»da narxlash mumkin).')
           : t('Narx kiritilmagan — narxsiz saqlanadi (0 emas); summa narxlanganda chiqadi.')}</p>}

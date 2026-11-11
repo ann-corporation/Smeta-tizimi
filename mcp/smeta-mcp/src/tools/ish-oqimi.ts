@@ -22,18 +22,18 @@ import { rpcChaqir } from './yozish';
 
 // ───────────────────────────── umumiy ─────────────────────────────
 
-const dryRunT = z.boolean().optional().describe('STANDART true — to\'liq preview (server RPC tekshiruvlari bilan) + ROLLBACK; false — haqiqiy yozish (snapshot + audit).');
-const quruq = (v: boolean | undefined) => v !== false;
-const oyS = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).describe('YYYY-MM');
-const sanaS = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe('YYYY-MM-DD');
-const opS = z.string().uuid().optional().describe('idempotentlik kaliti (takroriy chaqiruv — o\'sha natija); berilmasa yangi UUID');
-const korsatS = z.number().int().min(0).max(500).optional().describe('javobdagi namuna qatorlar soni (standart 10)');
-const obyektlarS = z.array(z.number().int().positive()).min(1).max(200);
-const KAT = ['ЧЕЛ', 'МАШ', 'МАТ', 'ОБ', 'М/К', 'КАБ', 'БЕЗСКЛАД'] as const;
-const qisqa = (s: unknown, n = 70) => { const t = s == null ? '' : String(s); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
+export const dryRunT = z.boolean().optional().describe('STANDART true — to\'liq preview (server RPC tekshiruvlari bilan) + ROLLBACK; false — haqiqiy yozish (snapshot + audit).');
+export const quruq = (v: boolean | undefined) => v !== false;
+export const oyS = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).describe('YYYY-MM');
+export const sanaS = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe('YYYY-MM-DD');
+export const opS = z.string().uuid().optional().describe('idempotentlik kaliti (takroriy chaqiruv — o\'sha natija); berilmasa yangi UUID');
+export const korsatS = z.number().int().min(0).max(500).optional().describe('javobdagi namuna qatorlar soni (standart 10)');
+export const obyektlarS = z.array(z.number().int().positive()).min(1).max(200);
+export const KAT = ['ЧЕЛ', 'МАШ', 'МАТ', 'ОБ', 'М/К', 'КАБ', 'БЕЗСКЛАД'] as const;
+export const qisqa = (s: unknown, n = 70) => { const t = s == null ? '' : String(s); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
 
 /** RPC chaqirib, {ok:false} yoki exception'ni o'qiladigan xatoga aylantiradi. */
-async function rpcOk(m: Mijoz, nom: string, args: Record<string, unknown>, aktor: number): Promise<Record<string, unknown>> {
+export async function rpcOk(m: Mijoz, nom: string, args: Record<string, unknown>, aktor: number): Promise<Record<string, unknown>> {
   let r: unknown;
   try { r = (await rpcChaqir(m, nom, args, () => aktor)).natija; } catch (e) { throw new Error(`${nom}: ${xatoIzoh(xatoMatni(e))}`); }
   const o = r && typeof r === 'object' && !Array.isArray(r) ? r as Record<string, unknown> : { natija: r };
@@ -41,27 +41,27 @@ async function rpcOk(m: Mijoz, nom: string, args: Record<string, unknown>, aktor
   return o;
 }
 
-async function jadvalBor(m: Mijoz, nom: string): Promise<boolean> {
+export async function jadvalBor(m: Mijoz, nom: string): Promise<boolean> {
   return !!(await m.query<{ bor: boolean }>('select to_regclass($1) is not null as bor', [nom])).rows[0]?.bor;
 }
 
 /** Aktor shu kompaniya a'zosimi (tenant chegarasi; server funksiyasi rad etsa — exception). */
-async function azoTekshir(m: Mijoz, kompaniyaId: number, aktor: number): Promise<void> {
+export async function azoTekshir(m: Mijoz, kompaniyaId: number, aktor: number): Promise<void> {
   try { await m.query('select public.t2_actor_kompaniya_azo_tekshir($1::bigint, $2::bigint)', [kompaniyaId, aktor]); } catch (e) { throw new Error(`aktor #${aktor} kompaniya #${kompaniyaId} a'zosi emas: ${xatoMatni(e)}`); }
 }
 
-type NkRow = Kf & { pryamye: number | null; itogo4: number | null; nds: number | null; vsego: number | null; nk_manba: string | null; nakrutka_podval_id: number | null; koeffitsientlar: Record<string, unknown> | null };
-async function nkOl(m: Mijoz, obyektId: number): Promise<NkRow | null> {
+export type NkRow = Kf & { pryamye: number | null; itogo4: number | null; nds: number | null; vsego: number | null; nk_manba: string | null; nakrutka_podval_id: number | null; koeffitsientlar: Record<string, unknown> | null };
+export async function nkOl(m: Mijoz, obyektId: number): Promise<NkRow | null> {
   const r = await m.query<NkRow>(`select kf_chel, kf_mash, kf_mat, kf_ob, kf_mk, kf_kab, kf_bezsklad, pryamye, itogo4, nds, vsego, nk_manba, nakrutka_podval_id, koeffitsientlar
                                     from public.t2_obyekt_nakrutka where obyekt_id = $1 limit 1`, [obyektId]);
   return r.rows[0] ?? null;
 }
 const ndsFoiz = (nk: NkRow | null) => { const v = nk?.koeffitsientlar?.['НДС']; return v == null || v === '' ? null : Number(v); };
 const kfQism = (nk: NkRow | null) => nk ? { ЧЕЛ: nk.kf_chel, МАШ: nk.kf_mash, МАТ: nk.kf_mat, ОБ: nk.kf_ob, 'М/К': nk.kf_mk, КАБ: nk.kf_kab, БЕЗСКЛАД: nk.kf_bezsklad } : null;
-const uch = (k: Kesim, nk: NkRow | null): Uch => kfUch(k, nk, ndsFoiz(nk));
+export const uch = (k: Kesim, nk: NkRow | null): Uch => kfUch(k, nk, ndsFoiz(nk));
 
 /** Ko'p obyekt: har biri alohida tranzaksiya; biri yiqilsa qolganlari davom etadi. */
-async function harBiri<T>(idlar: readonly number[], fn: (id: number) => Promise<{ snapshot_id: number | null; audit_baza: boolean; ogohlantirishlar: string[]; natija: T }>) {
+export async function harBiri<T>(idlar: readonly number[], fn: (id: number) => Promise<{ snapshot_id: number | null; audit_baza: boolean; ogohlantirishlar: string[]; natija: T }>) {
   const out: Array<Record<string, unknown>> = [];
   for (const id of idlar) {
     try {
@@ -74,7 +74,7 @@ async function harBiri<T>(idlar: readonly number[], fn: (id: number) => Promise<
   return out;
 }
 
-const javob = (dry: boolean, natijalar: Array<Record<string, unknown>>, qoshimcha: Record<string, unknown> = {}) => ({
+export const javob = (dry: boolean, natijalar: Array<Record<string, unknown>>, qoshimcha: Record<string, unknown> = {}) => ({
   dry_run: dry, ...(dry ? { izoh: 'dry_run: server tekshiruvlari o\'tdi/yiqildi, hammasi ROLLBACK — bazaga yozilmadi. Yozish uchun dry_run:false.' } : {}),
   ...qoshimcha, obyektlar: natijalar,
   ...(natijalar.length > 1 ? { xulosa: { jami: natijalar.length, xato: natijalar.filter((x) => x.xato).length } } : {}),
@@ -88,7 +88,7 @@ const MUMKIN_SQL = (baj: boolean) => `
      ${baj ? "and not exists (select 1 from public.t2_qator_bajarilmadi b where b.qator_id = q.id and b.holat = 'faol')" : ''}
    order by q.tartib nulls last, q.id`;
 
-async function mumkinOl(m: Mijoz, obyektId: number, idlar: number[] | null = null): Promise<{ rows: MumkinQator[]; bajHisobda: boolean }> {
+export async function mumkinOl(m: Mijoz, obyektId: number, idlar: number[] | null = null): Promise<{ rows: MumkinQator[]; bajHisobda: boolean }> {
   const baj = await jadvalBor(m, 'public.t2_qator_bajarilmadi');
   const r = await m.query<MumkinQator>(MUMKIN_SQL(baj), [obyektId, idlar]);
   return { rows: r.rows.map((x) => ({ ...x, mumkin: Number(x.mumkin), smeta_narx: x.smeta_narx == null ? null : Number(x.smeta_narx) })), bajHisobda: baj };
@@ -97,8 +97,8 @@ async function mumkinOl(m: Mijoz, obyektId: number, idlar: number[] | null = nul
 const namuna = (yuk: readonly F2YukQator[], meta: Map<number, { tur: string; kod: string | null; nom: string | null }>, n: number) =>
   yuk.slice(0, n).map((q) => { const s = meta.get(q.qator_id); return { qator_id: q.qator_id, tur: s?.tur, kod: s?.kod, nom: qisqa(s?.nom, 60), hajm: q.certified_quantity, narx: q.certified_unit_price, summa: q.certified_amount }; });
 
-type AktRow = { id: number; obyekt_id: number; kompaniya_id: number; tur: string; holat: string | null; lifecycle_status: string | null; versiya: number; raqam: string | null; oy: string | null };
-async function aktOl(m: Mijoz, id: number): Promise<AktRow> {
+export type AktRow = { id: number; obyekt_id: number; kompaniya_id: number; tur: string; holat: string | null; lifecycle_status: string | null; versiya: number; raqam: string | null; oy: string | null };
+export async function aktOl(m: Mijoz, id: number): Promise<AktRow> {
   const r = await m.query<AktRow>('select id, obyekt_id, kompaniya_id, tur, holat, lifecycle_status, versiya, raqam, oy::text as oy from public.t2_akt where id = $1', [id]);
   if (!r.rows[0]) throw new Error(`Akt #${id} topilmadi.`);
   return { ...r.rows[0], id: Number(r.rows[0].id), obyekt_id: Number(r.rows[0].obyekt_id), kompaniya_id: Number(r.rows[0].kompaniya_id), versiya: Number(r.rows[0].versiya) };

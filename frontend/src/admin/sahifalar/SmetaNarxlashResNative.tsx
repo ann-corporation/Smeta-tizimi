@@ -208,7 +208,7 @@ function Sessiya({ companyId, fixedObjectId }: { companyId: number; fixedObjectI
       </div>)}
     </div>
     <p className="fz-note fz-note--info">
-      {t('Bu ekran narxi yo‘q (NULL) RS/MAT/OB qatorlarini RES bilan to‘ldiradi. Narxi 0 bo‘lgan qatorlar — faqat pastdagi belgini qo‘ysangiz. Mavjud narx, F2 va tarixiy certified qiymatlar o‘zgarmaydi.')}
+      {t('Bu ekran narxi kiritilmagan (bo‘sh) mehnat, mashina va material qatorlariga RES bo‘yicha narx qo‘yadi. Narxi 0 bo‘lgan qatorlar — faqat pastdagi belgini qo‘ysangiz. Mavjud narxlar, F2 va avval tasdiqlangan qiymatlar o‘zgarmaydi.')}
     </p>
     <label className="flex items-start gap-2 text-[12px]">
       <input type="checkbox" className="mt-0.5" checked={nolHam} onChange={(e) => setNolHam(e.target.checked)} />

@@ -21,7 +21,8 @@ export const obyektlar = tool({
     const r = await m.query(`select o.id, o.nom, o.kompaniya_id, k.nom as kompaniya, o.holat, o.loyiha_id, j.qator_soni, j.jami as smeta_jami_ustamasiz, j.narxsiz
                                from public.t2_obyekt o left join public.t2_kompaniya k on k.id = o.kompaniya_id left join public.t2_obyekt_jami j on j.id = o.id
                               where ($1::bigint is null or o.kompaniya_id = $1) and ($2::text is null or o.nom ilike '%'||$2||'%')
-                              order by o.kompaniya_id, o.id limit $3`, [a.kompaniya_id ?? null, a.qidir ?? null, a.limit ?? 500]);
+                                and ($4::bigint[] is null or o.kompaniya_id = any($4::bigint[]))
+                              order by o.kompaniya_id, o.id limit $3`, [a.kompaniya_id ?? null, a.qidir ?? null, a.limit ?? 500, mu.kompaniyaDoira]);
     return { soni: r.rows.length, obyektlar: r.rows.map(qatorTozala) };
   }),
 });

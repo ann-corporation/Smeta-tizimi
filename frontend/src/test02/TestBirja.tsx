@@ -7,6 +7,7 @@ import { useKompaniya } from './KompaniyaTanlov';
 import { t } from '../i18n/til';
 import { Sahifa } from '../umumiy/ui/Sahifa';
 import { BirjaTaqqoslash } from './BirjaTaqqoslash';
+import { BuyurtmaKabinet } from '../components/buyurtma/BuyurtmaKabinet';
 import { sbBirjaSorovOl, sbBirjaTakliflarOl, sbBirjaRfqYarat, sbBirjaTaklifBer, type BirjaRfq, type BirjaTaklif } from '../api/t2-birja';
 import { OpsChiziq, OpsMaydon, OpsOyna, OpsTablar } from '../components/kompaniya-ops/OpsUi';
 
@@ -197,9 +198,9 @@ export default function TestBirja() {
                 ))}
               </ul>
             )}
-            <p className="text-[11.5px] text-text-mute">{t("Mahsulot katalogi, ombor joylashuvi va buyurtmalar yetkazuvchi kabinetiga keyingi bosqichda qo'shiladi.")}</p>
           </section>
         )}
+        {activeTab === 'taklif' && joriy && <BuyurtmaKabinet kompaniyaId={joriy.id} />}
         {activeTab === 'tarix' && <section className="fz-note"><Clock /><span>{t('Yopilgan va hal qilingan tenderlar tarixi shu yerda ko‘rinadi (keyingi bosqich).')}</span></section>}
       </div>
 

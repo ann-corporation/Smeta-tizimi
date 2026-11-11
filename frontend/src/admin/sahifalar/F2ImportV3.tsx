@@ -36,6 +36,7 @@ import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 import { qolganSummaMatni } from './f2-qolgan-summa';
 import { katKesimNomalumBilan, katKesimYigish } from '../../lib/ustamali-summa';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
+import { ObyektQadamlari } from '../components/ObyektQadamlari';
 import { tiyingaYaxlitla, type F2Akt, type F2Tugun } from '../../lib/smeta-anatomiya/f2';
 import { f2AktlarniOqiFonda, f2MoslashV3Fonda } from '../../lib/f2-moslash-v3/fonda';
 import type { F2MoslashNatija, SmetaQator } from '../../lib/f2-moslash-v3';
@@ -56,6 +57,11 @@ import { F2V3Workbench } from './F2V3Workbench';
 import { F2DavomRoyxat } from './F2DavomRoyxat';
 import { F2EgizakNusxa } from './F2EgizakNusxa';
 import { F2DublikatPanel } from './F2DublikatPanel';
+import { F2MoslashHisoboti } from './F2MoslashHisoboti';
+import { toast } from '../../umumiy/ui/Toast';
+import { moslikHisobla, moslikTuzilma, type MoslikNatija } from '../../lib/ish-material-moslik';
+import { IshMaterialOgohRoyxat } from '../../components/fakt/IshMaterialOgoh';
+import { moslashHisoboti } from '../../lib/f2-moslash-v3/moslashHisoboti';
 import { bloklarmi, dublikatTekshiruv, pereraschetBelgisi, type DAkt } from '../../lib/f2-dublikat/tekshiruv';
 import { egizakRaqamMasalasi } from '../../lib/f2-moslash-v3/egizak';
 import { abcXato, ishAbcOchir, ishAbcSaqla, resursIshZamena, type ResursIshInput } from '../../api/t2-ish-abc';
@@ -71,6 +77,9 @@ import { nakQoldiqXaritalari } from '../../lib/f2-moslash-v3/nakQoldiq';
 import { bolimXato, smetaBolimYarat } from '../../api/t2-smeta-bolim';
 import type { Fayl } from '../../lib/fayl-daraxt';
 import { t } from '../../i18n/til';
+import { aktualVorisOl, faktYozuvlariOl } from '../../api/t2-f2-aktual';
+import { sbFaktYoz } from '../../api/t2-fakt';
+import { faktDeltaReja, faktMavjudYigish, xotiraniAktualla, type FaktReja } from '../../lib/f2-moslash-v3/aktual';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { AlertTriangle, CheckCircle2, XCircle, Info } from 'lucide-react';
@@ -153,6 +162,10 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [tahrirAkt, setTahrirAkt] = useState<number | null>(null);
   /** Kumulyativ varaq rejimi (operator yoqadi): oldingi F2 lar hajmi shu varaqdan ayriladi — faqat yozish proyeksiyasi. */
   const [kumRejim, setKumRejim] = useState(false);
+  /** Maqsad: F2 qoralama (standart) yoki FAKT delta (ekspertizadan oldingi qo'lda F2/LRV fayllari). */
+  const [faktRejim, setFaktRejim] = useState(false);
+  const [faktMavjud, setFaktMavjud] = useState<{ map: Map<number, number>; yetim: number } | null>(null);
+  const [faktXato, setFaktXato] = useState('');
   /** Shu obyektning server qoralamalari (ketma-ketlik nazorati: eskiroq yozilmagan F2 bo'lsa ogohlantirish). */
   const [davomRoyxat, setDavomRoyxat] = useState<T2F2DavomQator[]>([]);
   const [ketmaKetBartaraf, setKetmaKetBartaraf] = useState<number | null>(null);
@@ -172,9 +185,9 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [jarayon, setJarayon] = useState<Qadam[] | null>(null);
   const qadam = (id: QadamId, holat: QadamHolat, izoh?: string) =>
     setJarayon((old) => (old ?? BOSH_QADAMLAR()).map((q) => (q.id === id ? { ...q, holat, izoh } : q)));
-  const [oldingi, setOldingi] = useState(new Map<number, number>());
+  const [oldingi, setOldingi] = useState(new Map());
   /** Zamena qoplagan hajm (asl qator id -> hajm): asl qoldig'idan ayriladi (lib/zamena-qoldiq). */
-  const [almashtirilgan, setAlmashtirilgan] = useState(new Map<number, number>());
+  const [almashtirilgan, setAlmashtirilgan] = useState(new Map());
   // Dublikat qo'riqchi: boshqa (bekor qilinmagan) F2 qoralamalaridagi hajmlar va shu faylning avvalgi importlari.
   const [bandLines, setBandLines] = useState<BandManba[]>([]);
   const [avvalKiritilgan, setAvvalKiritilgan] = useState<Array<{ aktId: number; fayl: string; varaq: string; sha?: string }>>([]);
@@ -184,7 +197,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   // Har varaq = alohida F2 (egasi 2026-10-23): reestr summasi bo'yicha varaqni topish va ketma-ket import.
   const [reestrMatn, setReestrMatn] = useState('');
   const [sessiyaKiritilgan, setSessiyaKiritilgan] = useState<ReadonlySet<string>>(new Set());
-  const [qoldiq, setQoldiq] = useState(new Map<number, number>());
+  const [qoldiq, setQoldiq] = useState(new Map());
   const [xotira, setXotira] = useState(new Map<string, number>());
   const [rzBog, setRzBog] = useState(new Map<string, number>());
   const [natija, setNatija] = useState<F2MoslashNatija | null>(null);
@@ -376,7 +389,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   // Aynan shu raqamdagi QORALAMA akt bo'lsa saqlash uning qatorlarini almashtiradi — faqat operator aniq tasdiqlagach;
   // tasdiqlangan/yuborilgan akt bo'lsa yangi akt saqlanmaydi.
   /** Qoralama id → server qaytargan oxirgi versiya (t2_f2_qoralama_yangila_v1, PR #294). */
-  const qoralamaVersiya = useRef(new Map<number, number>());
+  const qoralamaVersiya = useRef(new Map());
   const mavjudQoralama = qoralamaAktmi(joriyAvvalgi?.akt) ? joriyAvvalgi!.akt! as AvvalgiF2 & { versiya: number } : null;
   const almashtirishKutilmoqda = !!mavjudQoralama && almashtirTasdiq !== mavjudQoralama.id;
   /** Boshqa qoralamalarda band hajm (tahrirlanayotgan qoralama o'zi hisobga olinmaydi). */
@@ -532,7 +545,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (!d.ok) throw new Error('Smeta o‘qilmadi.');
     const r = (d.qatorlar || []) as T2Qator[];
     // Smetasi yo'q obyekt ham ochiladi (egasi 2026-10-20): F2 ishlari «Smetadan tashqari ishlar» ga qo'shimcha bo'lib yoziladi.
-    let old = new Map<number, number>(), qol = new Map<number, number>(), alm = new Map<number, number>();
+    let old = new Map(), qol = new Map(), alm = new Map();
     if (!joriymi()) return { r, qol, x: new Map<string, number>() };
     if (nak && nak.ok) {
       // Tasdiqlangan F2 — davrgacha VA shu davrdagi (bir oyda bir necha F2 bo'lishi mumkin): jami_hajm.
@@ -543,6 +556,15 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (xot && xot.ok) for (const q of xot.qatorlar || []) {
       const s = q.raw_snapshot;
       if (s?.manba === 'f2_v3') for (const m of s.qatorlar ?? []) if (m.imzo) x.set(m.imzo, q.qator_id);
+    }
+    // Aktual smeta: o'tgan F2 imzolari eski (almashtirilgan) qatorga ishora qilsa — voris zanjiri bo'yicha faol qatorga (lib/f2-moslash-v3/aktual).
+    {
+      const faolIds = new Set(r.map((q) => q.id));
+      if ([...x.values()].some((id) => !faolIds.has(id))) {
+        const v = await aktualVorisOl(oid, r.map((q) => ({ id: q.id, otaId: q.ota_id ?? null, kod: q.kod ?? null, nom: q.nom ?? null, birlik: q.birlik ?? null, faol: true }))).catch(() => new Map());
+        const ak = xotiraniAktualla(x, faolIds, v);
+        x.clear(); for (const [k, id] of ak.xotira) x.set(k, id);
+      }
     }
     // Qoralamalar (bekor qilinmagan, tasdiqlanmagan) — bir-birini ko'rmasdi; endi band hajm sifatida hisoblanadi.
     const aktlarMap = new Map<number, { raqam: string | null; oy: string | null; holat: string }>();
@@ -714,6 +736,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   const oldingiYozilgan = oldingi.size > 0 || band.size > 0;
   const indYoz = useMemo(() => (ind && kumReja && kumRejim ? kumulyativQolla(ind, kumReja) : ind), [ind, kumReja, kumRejim]);
   const yozish = useMemo(() => (indYoz && ij ? f2QoralamaYozish(indYoz, ij, S) : null), [indYoz, ij, S]);
+  /** Yozishdan oldingi moslash hisoboti: har manba qatori — yo'li, smeta qatori, ishonch, sabab (shubhali/xato jim o'tmaydi). */
+  const hisobot = useMemo(() => (ind && ij ? moslashHisoboti({ ind, ij, S, natija }) : null), [ind, ij, S, natija]);
   const payload = useMemo(() => {
     if (!yozish || yozish.toxtatish.length) return null;
     try {
@@ -729,6 +753,45 @@ function Sessiya({ companyId }: { companyId: number }) {
     }
     catch (e) { return { rows: [], izohlar: [] as string[], error: e instanceof Error ? e.message : 'Tekshiruv kerak.' }; }
   }, [yozish, tkmQosh, raw]);
+  // FAKT rejimi: mavjud fakt (eski qatordagisi ham, faol vorisga yig'ilgan) — rejim yoqilganda o'qiladi.
+  useEffect(() => {
+    if (!faktRejim || !objectId) { setFaktMavjud(null); return; }
+    let jonli = true;
+    setFaktXato('');
+    void (async () => {
+      try {
+        const yoz = await faktYozuvlariOl(Number(objectId));
+        const faolIds = new Set(rows.map((r) => r.id));
+        const v = yoz.some((y) => !faolIds.has(y.qatorId))
+          ? await aktualVorisOl(Number(objectId), rows.map((q) => ({ id: q.id, otaId: q.ota_id ?? null, kod: q.kod ?? null, nom: q.nom ?? null, birlik: q.birlik ?? null, faol: true })))
+          : new Map();
+        const y = faktMavjudYigish(yoz, faolIds, v);
+        if (jonli) setFaktMavjud({ map: y.mavjud, yetim: y.yetim });
+      } catch (e) { if (jonli) setFaktXato(e instanceof Error ? e.message : t('Mavjud fakt o‘qilmadi.')); }
+    })();
+    return () => { jonli = false; };
+  }, [faktRejim, objectId, rows, done]);
+  /** delta = fayl hajmi − tizimdagi fakt; faqat musbat deltalar yoziladi (resurs qatorlari ish normasidan ergashadi). */
+  const faktReja = useMemo<FaktReja | null>(() => {
+    if (!faktRejim || !faktMavjud || !payload || payload.error) return null;
+    const bogOf = new Map([...(ij?.bog ?? [])].map(([, b]) => [b.qatorId, b]));
+    return faktDeltaReja(payload.rows.map((x) => {
+      const q = raw.get(x.qatorId);
+      const b = bogOf.get(x.qatorId);
+      return { qatorId: x.qatorId, tur: q?.tur ?? null, kod: q?.kod ?? null, nom: q?.nom ?? null, birlik: q?.birlik ?? null, faylHajm: Number(x.certifiedQuantity ?? 0), smetaHajm: q?.hajm ?? null, ishonch: b?.holat ?? null, usul: b?.usul ?? null };
+    }), faktMavjud.map);
+  }, [faktRejim, faktMavjud, payload, raw, ij]);
+  async function faktgaYoz() {
+    if (!faktReja || !akt || busy || done || !faktReja.yoziladi.length) return;
+    setBusy(true); setFaktXato('');
+    try {
+      const r = await sbFaktYoz({ obyektId: Number(objectId), sana: new Date().toISOString().slice(0, 10), operationId: yangiOperationId(),
+        qatorlar: faktReja.yoziladi.map((x) => ({ qator_id: x.qatorId, hajm: x.delta })), izoh: `F2/LRV fayldan fakt: ${akt.fayl} / ${akt.varaq} / ${davr} (delta)` });
+      if (!r.ok) { setFaktXato(`${r.xabar || r.error || t('Fakt yozilmadi.')}`); return; }
+      setDone(`${t('Fakt yozildi')} (akt #${r.akt_id ?? '?'}, ${faktReja.yoziladi.length} ${t('qator')}). ${faktReja.bor.length} ${t('tasi tizimda bor — yozilmadi.')}`);
+    } catch (e) { setFaktXato(e instanceof Error ? e.message : t('Fakt yozilmadi.')); }
+    finally { setBusy(false); }
+  }
   /** Qoldiqdan oshgan qatorlar — FAQAT KO'RSATISH (egasi 2026-10-23: loyiha hajmlari xato bo'lishi normal, blok yo'q).
    *  smeta − tasdiqlangan − boshqa qoralamalar − shu F2. Qo'shimcha/zamena qatorlari ko'rsatilmaydi. */
   const oshishlar = useMemo(() => {
@@ -737,6 +800,21 @@ function Sessiya({ companyId }: { companyId: number }) {
     const ozgarish = new Set(rowsK.filter((r) => (r as { qoshimcha?: boolean }).qoshimcha || (r as { zamena?: boolean }).zamena).map((r) => r.id));
     return qoldiqOshishlari(payload.rows.map((r) => ({ qatorId: r.qatorId, hajm: r.certifiedQuantity })), smetaH, oldingi, band, ozgarish);
   }, [payload, rowsK, oldingi, band]);
+  /** Ish ↔ material hajm muvofiqligi (egasi 2026-11-11; lib/ish-material-moslik): F2 ga kiradigan ish hajmi shu F2 dagi materiallar hajmiga mosmi.
+   *  FAQAT KO'RSATISH (hajm bloklanmaydi); F2 hujjat manbasi o'zgarmaydi — taklif qiymati nusxalanadi, tuzatish manbada/fakt jurnalida. */
+  const moslikTuz = useMemo(() => moslikTuzilma(rowsK), [rowsK]);
+  const moslikOgoh = useMemo(() => {
+    if (!payload || payload.error) return [] as MoslikNatija[];
+    const h = new Map<number, number>();
+    for (const r of payload.rows) if (r.certifiedQuantity != null && Number.isFinite(r.certifiedQuantity)) h.set(r.qatorId, (h.get(r.qatorId) ?? 0) + r.certifiedQuantity);
+    return moslikHisobla(moslikTuz, h);
+  }, [payload, moslikTuz]);
+  const moslikNusxa = (n: MoslikNatija) => {
+    const v = String(n.taklif).replace('.', ',');
+    const yoz = navigator.clipboard?.writeText(v);
+    if (!yoz) { toast(t('Taklifni nusxalash bajarilmadi.'), 'warn'); return; }
+    void yoz.then(() => toast(t('Taklif nusxalandi: {v}. F2 manbasida ish hajmini shu qiymatga tuzating.', { v }), 'ok'), () => toast(t('Taklifni nusxalash bajarilmadi.'), 'warn'));
+  };
   /** DUBLIKAT HIMOYASI (egasi 2026-10-25): yozishdan oldin tekshiruv. Blok — faqat aniq takror (shu fayl varag‘i allaqachon yozilgan,
    *  shu obyektda shu raqam bor); summa / pereraschet — ogohlantirish. */
   const dublikatlar = useMemo(() => {
@@ -1006,7 +1084,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     const nomK = (x: string | null | undefined) => (x ?? '').toUpperCase().replace(/Ё/g, 'Е').replace(/\s+/g, ' ').trim();
       const bolimlar = new Map<string, number>();
     for (const r of rowsK) if (r.tur === 'rz') bolimlar.set(`${r.ota_id ?? 0}|${nomK(r.nom)}`, r.id);
-    const oxirgiBolim = new Map<number, number>();
+    const oxirgiBolim = new Map();
     let qoshildi = 0, bolimSoni = 0; const otkazildi: string[] = [];
     const oxirgiTemp = () => rejaliRef.current[rejaliRef.current.length - 1]?.tempId;
     const rzOl = (f: F2Tugun, ota: number | null): number | null => {
@@ -1229,7 +1307,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   useHotkeys('f2-import', t('F2 import'), [
     { id: 'f2import.undo', keys: 'ctrl+z', nom: t('Oxirgi bog‘lash amalini qaytarish'), run: () => { if (!tarix.current.length) return false; orqaga(); } },
     { id: 'f2import.yoz', keys: 'ctrl+enter', nom: t('F2 ni yozish'), inInput: true,
-      run: () => { if (busy || !payload || saqlashBlok || dublikatBlok || done) return false; void saqla(); } },
+      run: () => { if (busy || !payload || saqlashBlok || dublikatBlok || done || faktRejim) return false; void saqla(); } },
   ]);
    /** «F2 ni yozish»: ish davomidagi barcha qoralama amallari shu yerda, qadam-baqadam, ko'rinib turgan holda yoziladi. */
   async function saqla() {
@@ -1399,8 +1477,12 @@ function Sessiya({ companyId }: { companyId: number }) {
     if (takrorTekshirilmoqda) tekshiruvBandlari.push({ id: 'takror', daraja: 'bad', matn: t('Avvalgi F2 tekshirilmoqda — bir lahzadan so‘ng qayta urinib ko‘ring.') });
     else if (almashtirishKutilmoqda) tekshiruvBandlari.push({ id: 'almashtir', daraja: 'bad', matn: t('Shu raqamdagi F2 qoralamasini almashtirish tasdiqlanmagan. Boshqa F2 bo‘lsa, uning raqamini kiriting.'), amal: { nom: t('Ko‘rsatish'), run: sakra('Allaqachon kiritilgan') } });
     else if (saqlashBlok) tekshiruvBandlari.push({ id: 'blok', daraja: 'bad', matn: maqsadMosEmas ? t('Maqsad qoralama topilmadi yoki o‘zgargan - saqlash to‘xtatildi (yangi akt yaratilmaydi). Sahifani qayta oching.') : t('Bu obyekt va oy uchun tasdiqlangan F2 bor — yangi akt yozilmaydi. F2 tarixini oching.') });
+    if (yozish && yozish.toxtatish.length > 0) tekshiruvBandlari.push({ id: 'toxtatish', daraja: 'bad', matn: yozish.toxtatish.join(' '), amal: { nom: t('Ko‘rsatish'), run: sakra('Moslash hisoboti') } });
+    if (hisobot && (hisobot.stat.shubhali > 0 || hisobot.stat.xato > 0)) tekshiruvBandlari.push({ id: 'hisobot', daraja: hisobot.stat.xato > 0 ? 'bad' : 'warn',
+      matn: t('Moslash hisoboti: shubhali {s}, xato {x} — PTO tekshirmaguncha jim yozilmasin', { s: hisobot.stat.shubhali, x: hisobot.stat.xato }), amal: { nom: t('Ko‘rsatish'), run: sakra('Moslash hisoboti') } });
     if (yozish && yozish.qolgan.length > 0) tekshiruvBandlari.push({ id: 'qolgan', daraja: 'warn', matn: t('Bog‘lanmagan qatorlar aktga kirmaydi: {n}', { n: yozish.qolgan.length }), amal: { nom: t('Qatorga o‘tish'), run: () => { sakra('F2 akt')(); keyingiHalRef.current?.(); } } });
     if (taklifSoni > 0) tekshiruvBandlari.push({ id: 'taklif', daraja: 'warn', matn: t('Tasdiq kutayotgan takliflar (aktga faqat tasdiqlanganlar kiradi): {n}', { n: taklifSoni }), amal: { nom: t('Qatorga o‘tish'), run: () => { sakra('F2 akt')(); keyingiHalRef.current?.(); } } });
+    if (moslikOgoh.length > 0) tekshiruvBandlari.push({ id: 'moslik', daraja: 'warn', matn: t('Ish–material muvofiqligi: ogohlantirishlar {n} (bloklamaydi)', { n: moslikOgoh.length }), amal: { nom: t('Ko‘rsatish'), run: sakra('Ish va material hajmi muvofiqligi') } });
     if (oshishlar.length > 0) tekshiruvBandlari.push({ id: 'oshish', daraja: 'warn', matn: t('Smeta qoldig‘idan oshadigan qatorlar: {n}', { n: oshishlar.length }), amal: { nom: t('Ko‘rsatish'), run: sakra('Dublikat hajm nazorati') } });
     if (jamiFarq != null && tiyingaYaxlitla(jamiFarq) !== 0) tekshiruvBandlari.push({ id: 'jami', daraja: 'warn', matn: t('Manba jami va qatorlar yig‘indisi mos emas: {n} so‘m', { n: `${jamiFarq > 0 ? '+' : ''}${fmt(jamiFarq)}` }), amal: { nom: t('Ko‘rsatish'), run: sakra('Akt') } });
     if (eskiQoralama && ketmaKetBartaraf !== eskiQoralama.job_id) tekshiruvBandlari.push({ id: 'ketma', daraja: 'warn', matn: t('Avval {oy} F2 si yozilmagan — ochasizmi?', { oy: (eskiQoralama.oy ?? '').slice(0, 7) + (eskiQoralama.raqam ? ` №${eskiQoralama.raqam}` : '') }), amal: { nom: t('Ko‘rsatish'), run: sakra('F2 ketma-ketligi') } });
@@ -1418,7 +1500,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   return (
     <Sahifa sarlavha="F2 import" tavsif="Fayl → akt → moslash → qoralamaga yozish. Har bosqichda nimani tekshirish kerakligi ko‘rsatiladi.">
     <div className="w-full space-y-3">
-      {routerda && <F2UrlSinxron faol={!!ij} jobId={Number.isSafeInteger(Number(serverId)) && Number(serverId) > 0 ? Number(serverId) : null} aktId={tahrirAkt} />}
+      <ObyektQadamlari joriy="f2-import" />
+      {routerda &&<F2UrlSinxron faol={!!ij} jobId={Number.isSafeInteger(Number(serverId)) && Number(serverId) > 0 ? Number(serverId) : null} aktId={tahrirAkt} />}
       <p role="status" className="m-0 text-[13px] text-text-dim">{holat}</p>
       <section className="fz-card flex flex-wrap items-center gap-2 p-4 text-[12px]" aria-label={t('Ish holati')}>
         <ol className="fz-yol m-0 w-full list-none p-0" aria-label={t('Qadamlar')}>
@@ -1653,10 +1736,48 @@ function Sessiya({ companyId }: { companyId: number }) {
           {done && keyingi != null && <button type="button" className="fz-btn fz-btn--primary ml-auto" disabled={busy} onClick={() => varaqniTanla(keyingi)}>
             {t('Keyingi varaq → yangi F2')}: {aktlar[keyingi]?.varaq}</button>}
           {done ? (!jarayon && <p className="ml-auto text-[13px] text-ok">{done}</p>) : (
+            <>
+            {faktRejim && (
+            <button type="button" className="fz-btn fz-btn--primary ml-auto" disabled={busy || !faktReja || !faktReja.yoziladi.length} onClick={() => void faktgaYoz()}>
+              {t('Faktga yozish')}{faktReja ? ` (${faktReja.yoziladi.length} ${t('qator')})` : ''}
+            </button>
+          )}
+            {!faktRejim && (
             <button type="button" className="fz-btn fz-btn--primary ml-auto" disabled={busy || !payload || saqlashBlok || dublikatBlok}
               onClick={() => void saqla()}>
               {t('F2 ni yozish')}{payload && !payload.error ? ` (${payload.rows.length} ${t('qator')}${rejali.length + ochirish.length ? ` + ${rejali.length + ochirish.length} ${t('o‘zgarish')}` : ''})` : ''}
             </button>
+            )}
+            </>
+          )}
+        </section>
+      )}
+
+      {akt && ij && !done && (
+        <section className="fz-card p-4" aria-label={t('Maqsad')}>
+          <label className="flex items-center gap-2 text-[13px]">
+            <input type="checkbox" checked={faktRejim} disabled={busy} onChange={(e) => setFaktRejim(e.target.checked)} />
+            <span>{t('Fakt sifatida kiritish (F2 qoralama yaratilmaydi): faqat tizimdagi fakt ustiga qo‘shimcha hajm yoziladi')}</span>
+          </label>
+          {faktRejim && (
+            <div className="mt-2 text-[12px]" data-fakt-reja>
+              {faktXato && <p className="text-bad">{faktXato}</p>}
+              {!faktReja && !faktXato && <p className="text-text-dim">{t('Mavjud fakt o‘qilmoqda…')}</p>}
+              {faktMavjud && faktMavjud.yetim > 0 && <p className="text-warn">{`${faktMavjud.yetim} `}{t('ta fakt yozuvi eski qatorda, aktual vorisi yo‘q — hisobga olinmadi.')}</p>}
+              {faktReja && (
+                <>
+                  <p>{`✓ ${faktReja.yoziladi.length} ${t('qator yoziladi (delta)')} · ${faktReja.bor.length} ${t('tizimda bor — yozilmaydi')}`}</p>
+                  <ul className="m-0 max-h-60 list-none overflow-auto p-0">
+                    {faktReja.yoziladi.slice(0, 200).map((x) => (
+                      <li key={`y${x.qatorId}`}>{`+${x.delta} (${t('fayl')} ${x.faylHajm}, ${t('tizimda')} ${x.mavjud}) ${x.kod ?? ''} ${x.nom ?? ''}${x.ishonch ? ` [${x.ishonch}]` : ''}`}{x.ogohlantirish ? <span className="text-warn">{` ⚠ ${x.ogohlantirish}`}</span> : null}</li>
+                    ))}
+                    {faktReja.bor.slice(0, 200).map((x) => (
+                      <li key={`b${x.qatorId}`} className="text-text-dim">{`– ${x.kod ?? ''} ${x.nom ?? ''}: ${x.sabab}`}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
           )}
         </section>
       )}
@@ -1681,6 +1802,8 @@ function Sessiya({ companyId }: { companyId: number }) {
           </ul>
         </section>
       )}
+      {akt && ij && !done && hisobot && <F2MoslashHisoboti hisobot={hisobot} />}
+        {akt && ij && !done && <IshMaterialOgohRoyxat natijalar={moslikOgoh} onTuzat={moslikNusxa} tuzatNomi={(n) => t('Nusxalash: {v}', { v: String(n.taklif).replace('.', ',') })} />}
 
       {akt && ind && natija && ij && (
         <F2V3Workbench keyingiRef={keyingiHalRef} akt={akt} ind={ind} natija={natija} S={S} raw={raw} oldingi={oldingi} almashtirilgan={almashtirilgan} band={band}

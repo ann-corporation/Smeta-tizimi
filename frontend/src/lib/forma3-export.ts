@@ -47,6 +47,7 @@ import {
   type KatSummalar,
 } from './nakrutka-podval';
 import { NDS_SUKUT_FOIZ, qqsAjratTiyin, qqsSumma, kaskad as yadroKaskad, kOplate, podvalNdsFoizi, serverMerosKoefQoy, standartPodval, type KaskadNatija, type Podval } from './hisob-yadro';
+import { raqamTozala } from './raqam-belgi';
 
 /**
  * Bir tomonning TO'LIQ rekvizitlari — haqiqiy SPRAVKA-SCHET-FAKTURA blankasi
@@ -199,6 +200,15 @@ export interface F3Qiymat {
 export interface F3Ish { obyekt_id: number; q: NakopitelniyQator; bolalar: F3Qiymat[]; f2H: F3LeafF2 }
 export interface F3Razdel { obyekt_id: number; nom: string; q?: NakopitelniyQator; ishlar: Array<F3Ish | F3Qiymat> }
 export interface F3Guruh { obyekt_id: number; nom: string; asosiy: boolean }
+
+/** Rasmiy blankaga yuzlab bir xil texnik «замечание» qatori chiqmasin: bir xil sababli qatorlar bitta qatorga (soni bilan, 3 tagacha nom misol). To‘liq ro‘yxat modelda (`diqqat`) qoladi. */
+function diqqatGuruh(d: ReadonlyArray<{ nom: string; sabab: string }>): Array<{ nom: string; sabab: string }> {
+  const g = new Map<string, string[]>();
+  for (const x of d) { const a = g.get(x.sabab) ?? []; a.push(x.nom); g.set(x.sabab, a); }
+  return [...g.entries()].map(([sabab, noms]) => noms.length === 1
+    ? { nom: noms[0], sabab }
+    : { nom: `${noms.length} позиций (например: ${noms.slice(0, 3).join('; ')}${noms.length > 3 ? ' …' : ''})`, sabab });
+}
 
 export interface F3Model {
   guruhlar: F3Guruh[];
@@ -609,7 +619,7 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
   if (!zak.toliqNom && !o.imzo?.zakazchik) model.diqqat.push({ nom: 'Заказчик', sabab: 'реквизиты заказчика не заданы (нет договора с привязкой к заказчику) — строки заказчика оставлены для заполнения' });
   const obyektToliqNom = o.obyektManzil ? `${o.obyektNom}, ${o.obyektManzil}` : o.obyektNom;
   const dogovorMatn = o.shartnomaRaqam
-    ? `№ ${o.shartnomaRaqam}${sanaMatni(o.shartnomaSana) ? ` от ${sanaMatni(o.shartnomaSana)}` : ''}${o.shartnomaSumma != null ? `${sanaMatni(o.shartnomaSana) ? '' : '.'} Общая стоимость в договорных текущих ценах: ${fmt2(o.shartnomaSumma)} сум` : ''}`
+    ? `№ ${raqamTozala(o.shartnomaRaqam)}${sanaMatni(o.shartnomaSana) ? ` от ${sanaMatni(o.shartnomaSana)}` : ''}${o.shartnomaSumma != null ? `${sanaMatni(o.shartnomaSana) ? '' : '.'} Общая стоимость в договорных текущих ценах: ${fmt2(o.shartnomaSumma)} сум` : ''}`
     : null;
   const raqamMatn = o.raqam ?? '';
   const sana = sanaMatni(o.hujjatSana) ?? sanaMatni(bugunSana()) ?? '';
@@ -930,7 +940,7 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
     if (nomalum.length) diqqat.push({ nom: 'ИТОГО К ОПЛАТЕ', sabab: 'сумма не определена (не заданы проценты накладных расходов или НДС) — ячейки оставлены пустыми, а не нулевыми' });
   }
   if (farqlar.length) diqqat.push({ nom: 'ИТОГО К ОПЛАТЕ', sabab: `сумма по строкам и расчет расходятся: ${farqlar.join('; ')}` });
-  v.diqqat(diqqat);
+  v.diqqat(diqqatGuruh(diqqat));
   v.bosh();
   const imzoQator = (rol: string, nom?: string | null) => {
     v.blok([
@@ -979,6 +989,317 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
   };
 }
 
+/* ═══════════ F3 — SHARTNOMA DARAJASI (egasi 2026-12-11) ═══════════
+ * «F3 shartnoma doirasida ishlashi kerak»: BITTA Forma 3 — shartnomaning barcha obyektlari, bir hujjatda.
+ * Har obyekt summasi — O'Z nakrutkasi/podvali bilan (obyektlar kf lari har xil bo'lishi mumkin); F2 aktlar o'z podvalini
+ * saqlaydi («за отчетный месяц» — shu obyektning aktlari O'Z podvali bilan, M12 qoidasi), tasdiqlangan F2 summalari o'zgarmaydi.
+ * Hisob — yagona yadro (f3Model → f3UstunlarNatijasi → hisob-yadro kaskad); bu yerda faqat obyektlar bo'yicha yig'indi.
+ * Har obyektning to'liq (razdel/ish) F3 si obyekt rejimida; shartnoma rejimida — obyekt qatorlari + akt ro'yxati (ikkinchi varaq).
+ * NULL ≠ 0: obyekt summasi noma'lum bo'lsa — uning katagi bo'sh, jami ham bo'sh (qisman yig'indi yozilmaydi), sababi diqqatda. */
+
+/** Shartnoma F3 ning bitta obyekti uchun kirish (UI/yuklagich yig'adi; hisob bu yerda). */
+export interface Forma3ShartnomaObyekt {
+  obyekt_id: number;
+  obyektNom: string;
+  /** Faqat shu obyekt: nakopitelniy qatorlari + tasdiqlangan F2 oylik summalari (f2Oylik da akt_id bo'lsa — aktlar filtri ishlaydi). */
+  manba: Forma3Manba;
+  /** Shu obyektning O'Z nakrutka foizlari / meros izohi / maxsus podvali / НДС stavkasi. */
+  nakrutka?: Partial<NakrutkaKoeffitsientlar> | null;
+  nkManba?: string | null;
+  podval?: Podval | null;
+  ndsFoiz?: number | null;
+  ozgarishlar?: Forma3ExportOptions['ozgarishlar'];
+  /** Hisobot oyining shu obyekt aktlari — har biri O'Z F2 podvali bilan (f2AktBaho). */
+  davrAktlari?: ReadonlyArray<F3DavrAkt>;
+}
+
+export interface Forma3ShartnomaOptions {
+  /** Hisobot davri «YYYY-MM». */
+  davr: string;
+  shartnomaRaqam: string;
+  shartnomaNom?: string | null;
+  shartnomaSana?: string | null;
+  shartnomaSumma?: number | null;
+  raqam?: string | null;
+  hujjatSana?: string | null;
+  imzo?: ImzoNomlar;
+  pudratchi?: Forma3Rekvizit | null;
+  zakazchik?: Forma3Rekvizit | null;
+}
+
+/** Bitta pul ustuni, bitta obyekt: ustamasiz (прямые), ustamali (ИТОГО-4, NDS siz), NDS, NDS bilan. null — noma'lum. */
+export type F3ShartnomaSumma = { pryamye: number; itogo4: number | null; qqs: number | null; vsego: number | null };
+
+export interface F3ShartnomaObyektNatija {
+  obyekt_id: number;
+  nom: string;
+  ndsFoiz: number | null;
+  ustun: Record<F3PulUstun, F3ShartnomaSumma>;
+  aktlar: ReadonlyArray<F3DavrAkt>;
+  diqqat: Array<{ nom: string; sabab: string }>;
+}
+
+export interface F3ShartnomaYigindi {
+  obyektlar: F3ShartnomaObyektNatija[];
+  /** Shartnoma jami (barcha obyektlar). Birorta obyekt noma'lum bo'lsa — shu maydon null (NULL ≠ 0). */
+  jami: Record<F3PulUstun, F3ShartnomaSumma>;
+  diqqat: Array<{ nom: string; sabab: string }>;
+}
+
+/** Hisobot oyiga tegishli, TANLANMAGAN aktlar summasini manbadan chiqaradi (ro'yxatdan olib tashlangan F2 davr ustuniga kirmaydi). */
+export function f3AktlarniFiltrla(m: Forma3Manba, davr: string, tanlangan: ReadonlySet<number> | null | undefined): Forma3Manba {
+  if (!tanlangan) return m;
+  const olib = (r: { oy: string; akt_id?: number }) => r.oy === davr && r.akt_id != null && !tanlangan.has(r.akt_id);
+  return { ...m, f2Oylik: m.f2Oylik.filter((r) => !olib(r)) };
+}
+
+const nolSumma = (): F3ShartnomaSumma => ({ pryamye: 0, itogo4: 0, qqs: 0, vsego: 0 });
+const qoshSumma = (a: F3ShartnomaSumma, b: F3ShartnomaSumma): F3ShartnomaSumma => ({
+  pryamye: yaxlit2(a.pryamye + b.pryamye),
+  itogo4: a.itogo4 == null || b.itogo4 == null ? null : yaxlit2(a.itogo4 + b.itogo4),
+  qqs: a.qqs == null || b.qqs == null ? null : yaxlit2(a.qqs + b.qqs),
+  vsego: a.vsego == null || b.vsego == null ? null : yaxlit2(a.vsego + b.vsego),
+});
+
+/**
+ * Shartnoma F3 hisobi (toza). Har obyekt — o'z nakrutka/podvali (`f3UstunlarNatijasi`), davr ustuni (J) — aktlar o'z podvali bilan
+ * (davrAktlari berilsa), so'ng obyektlar bo'yicha yig'indi. Nakrutka foizlari yo'q obyekt — summalari null (0 emas).
+ */
+export function f3ShartnomaYigish(obyektlar: ReadonlyArray<Forma3ShartnomaObyekt>, davr: string): F3ShartnomaYigindi {
+  const natija: F3ShartnomaObyektNatija[] = [];
+  const diqqat: Array<{ nom: string; sabab: string }> = [];
+  for (const ob of obyektlar) {
+    const manba: Forma3Manba = { ...ob.manba, nakopitelniy: ob.manba.nakopitelniy.filter((x) => x.obyekt_id === ob.obyekt_id) };
+    const model = f3Model(manba, { davr, ozgarishlar: ob.ozgarishlar, asosiyObyektId: ob.obyekt_id });
+    const rows = f3ModelQatorlar(model);
+    const idx = f3QiymatIndekslar(rows);
+    const nk: Partial<NakrutkaKoeffitsientlar> = { ...(ob.nakrutka ?? {}) };
+    if (ob.ndsFoiz != null && Number.isFinite(ob.ndsFoiz) && ob.ndsFoiz >= 0) nk.НДС = ob.ndsFoiz;
+    const nkYoq = !ob.nakrutka || !Object.keys(ob.nakrutka).length;
+    const podval = ob.podval ? serverMerosKoefQoy(ob.podval, nk, ob.nkManba) : null;
+    const u = f3UstunlarNatijasi(rows, idx, nk, podval);
+    const od: Array<{ nom: string; sabab: string }> = model.diqqat.map((d) => ({ nom: `${ob.obyektNom}: ${d.nom}`, sabab: d.sabab }));
+    if (nkYoq) od.push({ nom: ob.obyektNom, sabab: 'проценты накладных и прочих расходов не заданы для объекта — стоимость к оплате не определена (не принимаются равными 0)' });
+    const ustun = {} as Record<F3PulUstun, F3ShartnomaSumma>;
+    for (const c of F3_PUL) {
+      const k = u.kaskad[c];
+      ustun[c] = nkYoq ? { pryamye: k.pryamye, itogo4: null, qqs: null, vsego: null } : { pryamye: k.pryamye, itogo4: k.itogo4, qqs: k.qqs, vsego: k.vsego };
+    }
+    const aktlar = ob.davrAktlari ?? [];
+    if (ob.davrAktlari && aktlar.length) {
+      // M12: «за отчетный месяц» — har akt O'Z podvali (F2 hujjati ВСЕГО) yig'indisi.
+      let itogo4: number | null = 0, qqs: number | null = 0, vsego: number | null = 0, pr = 0;
+      for (const a of aktlar) {
+        pr += a.ustamasiz;
+        itogo4 = itogo4 == null || a.ustamali == null ? null : itogo4 + a.ustamali;
+        qqs = qqs == null || a.qqs == null ? null : qqs + a.qqs;
+        vsego = vsego == null || a.qqsBilan == null ? null : vsego + a.qqsBilan;
+      }
+      ustun.J = { pryamye: yaxlit2(pr), itogo4: itogo4 == null ? null : yaxlit2(itogo4), qqs: qqs == null ? null : yaxlit2(qqs), vsego: vsego == null ? null : yaxlit2(vsego) };
+      if (ustun.J.vsego == null) od.push({ nom: ob.obyektNom, sabab: 'сумма хотя бы одного акта Ф-2 не определена (проценты подвала неизвестны) — итог по объекту оставлен пустым, а не нулевым' });
+    }
+    const ndsFoiz = (podval ? podvalNdsFoizi(podval) : null) ?? (nk.НДС ?? null);
+    natija.push({ obyekt_id: ob.obyekt_id, nom: ob.obyektNom, ndsFoiz, ustun, aktlar, diqqat: od });
+    diqqat.push(...od);
+  }
+  const jami = {} as Record<F3PulUstun, F3ShartnomaSumma>;
+  for (const c of F3_PUL) jami[c] = natija.reduce((s, o) => qoshSumma(s, o.ustun[c]), nolSumma());
+  if (F3_PUL.some((c) => jami[c].vsego == null)) {
+    diqqat.push({ nom: 'ИТОГО ПО ДОГОВОРУ', sabab: 'сумма по договору не определена — у части объектов нет процентов накладных расходов или актов без подвала; итог оставлен пустым, а не частичным' });
+  }
+  return { obyektlar: natija, jami, diqqat };
+}
+
+export interface Forma3ShartnomaNatija {
+  bytes: Uint8Array;
+  faylNomi: string;
+  yigindi: F3ShartnomaYigindi;
+  /** ИТОГО К ОПЛАТЕ ЗА ОТЧЕТНЫЙ МЕСЯЦ (QQS bilan) va uning so'zlarda yozilishi (propis). */
+  oyKOplate: number | null;
+  propis: string | null;
+  diqqat: Array<{ nom: string; sabab: string }>;
+}
+
+const SH_USTUNLAR: RasmiyUstun[] = [
+  { sarlavha: '№ п/п', kenglik: 6, tur: 'tartib' },
+  { sarlavha: 'Наименование объекта', kenglik: 50, tur: 'matn' },
+  { sarlavha: 'Акты Ф-2 за месяц', kenglik: 12, tur: 'birlik' },
+  { sarlavha: 'Ставка НДС, %', kenglik: 10, tur: 'birlik' },
+  { sarlavha: 'Стоимость по смете (договору)', kenglik: 20, tur: 'pul' },
+  { sarlavha: 'с начала строительства (до отчетного месяца)', kenglik: 20, tur: 'pul', guruh: 'ВЫПОЛНЕННЫЕ РАБОТЫ (ПОНЕСЕННЫЕ ЗАТРАТЫ), сум' },
+  { sarlavha: 'в том числе текущего года (до отчетного месяца)', kenglik: 20, tur: 'pul', guruh: 'ВЫПОЛНЕННЫЕ РАБОТЫ (ПОНЕСЕННЫЕ ЗАТРАТЫ), сум' },
+  { sarlavha: 'за отчетный месяц', kenglik: 20, tur: 'pul', guruh: 'ВЫПОЛНЕННЫЕ РАБОТЫ (ПОНЕСЕННЫЕ ЗАТРАТЫ), сум' },
+];
+/** Mantiqiy pul ustuni → varaq harfi (E..H). */
+const SH_HARF: Record<F3PulUstun, string> = { G: 'E', H: 'F', I: 'G', J: 'H' };
+const SH_AKT_USTUNLAR: RasmiyUstun[] = [
+  { sarlavha: '№ п/п', kenglik: 6, tur: 'tartib' },
+  { sarlavha: 'Объект', kenglik: 44, tur: 'matn' },
+  { sarlavha: 'Акт Ф-2', kenglik: 14, tur: 'kod' },
+  { sarlavha: 'Подвал', kenglik: 14, tur: 'birlik' },
+  { sarlavha: 'Прямые затраты (без накруток)', kenglik: 20, tur: 'pul' },
+  { sarlavha: 'С накрутками, без НДС', kenglik: 20, tur: 'pul' },
+  { sarlavha: 'НДС', kenglik: 18, tur: 'pul' },
+  { sarlavha: 'Всего с НДС', kenglik: 20, tur: 'pul' },
+];
+
+/**
+ * Shartnoma darajasidagi Форма № 3 (Excel): har obyekt — bitta qator (o'z nakrutkasi bilan), shartnoma jami, NDS, ВСЕГО К ОПЛАТЕ,
+ * oy jami so'zlarda, imzolar; 2-varaq — hujjatga kirgan F2 aktlar (o'z podvali bilan). Jonli formulalar: jami = obyekt qatorlari yig'indisi.
+ */
+export function forma3ShartnomaHujjat(obyektlar: ReadonlyArray<Forma3ShartnomaObyekt>, o: Forma3ShartnomaOptions): Forma3ShartnomaNatija {
+  const y = f3ShartnomaYigish(obyektlar, o.davr);
+  const r2 = (x: number) => yaxlit2(x);
+  const sanaMatni = (iso: string | null | undefined): string | null => {
+    const x = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+    return x ? `${x[3]}.${x[2]}.${x[1]} г.` : null;
+  };
+  const dm = /^(\d{4})-(\d{2})$/.exec(o.davr || '');
+  const davrOraligi = dm ? { boshi: `01.${dm[2]}.${dm[1]} г.`, oxiri: `${String(new Date(Number(dm[1]), Number(dm[2]), 0).getDate()).padStart(2, '0')}.${dm[2]}.${dm[1]} г.` } : null;
+  const oyMatni = dm ? `ЗА ${OYLAR_KATTA[Number(dm[2]) - 1]} МЕСЯЦ ${dm[1]} ГОДА` : `ЗА ОТЧЕТНЫЙ ПЕРИОД ${f3DavrMatni(o.davr)}`;
+  const pud = o.pudratchi ?? {};
+  const zak = o.zakazchik ?? {};
+  const diqqat = [...y.diqqat];
+  if (!zak.toliqNom && !o.imzo?.zakazchik) diqqat.push({ nom: 'Заказчик', sabab: 'реквизиты заказчика не заданы — строки заказчика оставлены для заполнения' });
+  const dogovorMatn = `№ ${raqamTozala(o.shartnomaRaqam)}${o.shartnomaNom ? ` (${o.shartnomaNom})` : ''}${sanaMatni(o.shartnomaSana) ? ` от ${sanaMatni(o.shartnomaSana)}` : ''}${o.shartnomaSumma != null ? `. Общая стоимость в договорных текущих ценах: ${fmt2(o.shartnomaSumma)} сум` : ''}`;
+  const sana = sanaMatni(o.hujjatSana) ?? sanaMatni(bugunSana()) ?? '';
+
+  const v = new RasmiyVaraq({
+    nom: 'Форма № 3 (договор)',
+    sarlavha: 'СПРАВКА-СЧЕТ-ФАКТУРА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ (ПОНЕСЕННЫХ ЗАТРАТ) ПО ДОГОВОРУ',
+    ostSarlavha: [oyMatni],
+    oldBloklar: [
+      [{ c1: 0, c2: 1, matn: 'Номер документа', tur: 'qutiQalin' }, { c1: 2, c2: 3, matn: 'Дата составления', tur: 'qutiQalin' }, { c1: 4, c2: 7, matn: 'Отчетный период', tur: 'qutiQalin' }],
+      [{ c1: 0, c2: 1, matn: '', tur: 'quti' }, { c1: 2, c2: 3, matn: '', tur: 'quti' }, { c1: 4, c2: 5, matn: 'с', tur: 'quti' }, { c1: 6, c2: 7, matn: 'по', tur: 'quti' }],
+      [{ c1: 0, c2: 1, matn: o.raqam ?? '', tur: 'quti' }, { c1: 2, c2: 3, matn: sana, tur: 'quti' }, { c1: 4, c2: 5, matn: davrOraligi?.boshi ?? '', tur: 'quti' }, { c1: 6, c2: 7, matn: davrOraligi?.oxiri ?? '', tur: 'quti' }],
+    ],
+    ikkiTomonRekvizit: [
+      ['Подрядчик:', pud.toliqNom ?? o.imzo?.pudratchi ?? '________________', 'Заказчик:', zak.toliqNom ?? o.imzo?.zakazchik ?? '________________'],
+      ['Адрес:', pud.manzil ?? '________________', 'Адрес:', zak.manzil ?? '________________'],
+      ['Телефон:', pud.telefon, 'Телефон:', zak.telefon],
+      ['Расчетный счет:', pud.hisobRaqam ?? '________________', 'Расчетный счет:', zak.hisobRaqam ?? '________________'],
+      ['Банк:', pud.bank ?? '________________', 'Банк:', zak.bank ?? '________________'],
+      ['МФО:', pud.mfo ?? '________', 'МФО:', zak.mfo ?? '________'],
+      ['ИНН:', pud.inn ?? '________', 'ИНН:', zak.inn ?? '________'],
+      ['ОКЭД:', pud.oked, 'ОКЭД:', zak.oked],
+    ],
+    titul: [
+      ['Договор', dogovorMatn],
+      ['Объекты договора:', `${y.obyektlar.length} шт.: ${y.obyektlar.map((x) => x.nom).join('; ')}`],
+    ],
+    ustunlar: SH_USTUNLAR,
+    yonalish: 'landscape',
+  });
+
+  const col = (L: string) => L.charCodeAt(0) - 65;
+  const pulUstunlar = (fill: (c: F3PulUstun, L: string) => Qiymat): Qiymat[] => {
+    const out: Qiymat[] = Array(SH_USTUNLAR.length).fill(null);
+    for (const c of F3_PUL) out[col(SH_HARF[c])] = fill(c, SH_HARF[c]);
+    return out;
+  };
+  const obyektQatorlar: number[] = [];
+  y.obyektlar.forEach((ob, i) => {
+    const q = v.qator('oddiy', () => {
+      const out = pulUstunlar((c) => (ob.ustun[c].itogo4 == null ? null : r2(ob.ustun[c].itogo4!)));
+      out[0] = i + 1; out[1] = ob.nom; out[2] = ob.aktlar.length ? String(ob.aktlar.length) : '—';
+      out[3] = ob.ndsFoiz == null ? null : { n: ob.ndsFoiz, uslub: 'foiz' };
+      return out;
+    });
+    obyektQatorlar.push(q);
+  });
+  const bezQ = v.qator('jami', () => {
+    const out = pulUstunlar((c, L) => (y.jami[c].itogo4 == null ? null : { f: obyektQatorlar.length ? sumRefs(L, obyektQatorlar) : '0', v: r2(y.jami[c].itogo4!) }));
+    out[1] = 'ИТОГО ПО ДОГОВОРУ БЕЗ НДС (с накрутками объектов)';
+    return out;
+  });
+  // НДС — obyektlar bo'yicha yig'indi (stavkalar obyektlarda farq qilishi mumkin) — qiymat, formula emas.
+  const ndsQ = v.qator('oddiy', () => {
+    const out = pulUstunlar((c) => (y.jami[c].qqs == null ? null : r2(y.jami[c].qqs!)));
+    out[1] = 'НДС (сумма по объектам, по ставкам каждого объекта)';
+    return out;
+  });
+  const vsegoQ = v.qator('vsego', () => {
+    const out = pulUstunlar((c, L) => {
+      const t = y.jami[c];
+      if (t.vsego == null) return null;
+      return t.itogo4 != null && t.qqs != null && r2(t.itogo4 + t.qqs) === t.vsego ? { f: `${L}${bezQ}+${L}${ndsQ}`, v: r2(t.vsego) } : r2(t.vsego);
+    });
+    out[1] = 'ВСЕГО К ОПЛАТЕ ПО ДОГОВОРУ (С УЧЕТОМ НДС)';
+    return out;
+  });
+  v.qator('oddiy', () => {
+    const out = pulUstunlar((c) => r2(y.jami[c].pryamye));
+    out[1] = 'в том числе прямые затраты (без накруток и НДС)';
+    return out;
+  });
+  const oyTolov = y.jami.J.vsego;
+  const propis = oyTolov == null ? null : `${summaSozBilan(oyTolov)} с НДС`;
+  v.bosh();
+  v.blok([
+    { c1: 0, c2: 1, matn: 'ИТОГО К ОПЛАТЕ ЗА ОТЧЕТНЫЙ МЕСЯЦ:', tur: 'qalin' },
+    { c1: 2, c2: 3, matn: { f: `${SH_HARF.J}${vsegoQ}`, v: oyTolov ?? '' }, tur: 'qalin' },
+    { c1: 4, c2: 7, matn: propis ?? 'не определено — проценты накладных расходов не заданы или суммы актов не определены', tur: 'qalin' },
+  ], 20);
+  const narxsiz = obyektlar.reduce((s, ob) => {
+    const model = f3Model({ ...ob.manba, nakopitelniy: ob.manba.nakopitelniy.filter((x) => x.obyekt_id === ob.obyekt_id) }, { davr: o.davr, ozgarishlar: ob.ozgarishlar, asosiyObyektId: ob.obyekt_id });
+    return s + f3NarxsizSoni(model, olibTashlanganlar(ob.ozgarishlar));
+  }, 0);
+  v.narxsizOgoh(narxsiz);
+  v.bosh();
+  v.izoh('Справка составлена по договору в целом: по одной строке на объект. Стоимость каждого объекта — по его утвержденным актам формы № 2 с накрутками и ставкой НДС ЭТОГО объекта (проценты у объектов могут различаться); «за отчетный месяц» — сумма актов Ф-2 по их собственным подвалам. Графы «с начала строительства» и «в том числе текущего года» — акты, закрытые ДО отчетного месяца. Утвержденные суммы Ф-2 не изменяются. Подробная справка по каждому объекту (разделы и виды работ) формируется в режиме «Объект».');
+  v.diqqat(diqqatGuruh(diqqat));
+  v.bosh();
+  const imzoQator = (rol: string, nom?: string | null) => {
+    v.blok([
+      { c1: 0, c2: 1, matn: rol, tur: 'imzo' }, { c1: 2, c2: 4, matn: '____________________', tur: 'imzo' },
+      { c1: 5, c2: 6, matn: nom?.trim() || 'Ф.И.О. ____________________', tur: 'imzo' },
+    ], 22);
+    v.blok([{ c1: 2, c2: 4, matn: '(подпись)', tur: 'izoh' }]);
+  };
+  v.blok([{ c1: 0, c2: 6, matn: `ПОДРЯДЧИК:  ${pud.toliqNom ?? o.imzo?.pudratchi ?? ''}`.trim(), tur: 'qalin' }]);
+  imzoQator('Руководитель', null);
+  imzoQator('Главный бухгалтер', null);
+  v.blok([{ c1: 0, c2: 1, matn: 'М.П.', tur: 'izoh' }]);
+  v.bosh();
+  v.blok([{ c1: 0, c2: 6, matn: `ЗАКАЗЧИК:  ${zak.toliqNom ?? o.imzo?.zakazchik ?? ''}`.trim(), tur: 'qalin' }]);
+  imzoQator('Руководитель', null);
+  imzoQator('Главный бухгалтер', null);
+  v.blok([{ c1: 0, c2: 1, matn: 'М.П.', tur: 'izoh' }]);
+
+  // 2-varaq: hujjatga kirgan F2 aktlar (o'z podvali bilan).
+  const av = new RasmiyVaraq({
+    nom: 'Акты Ф-2 (в справке)',
+    sarlavha: 'АКТЫ ФОРМЫ № 2, ВОШЕДШИЕ В СПРАВКУ ПО ДОГОВОРУ',
+    ostSarlavha: [`за отчетный месяц ${f3DavrMatni(o.davr)}; каждый акт — по собственному подвалу`],
+    titul: [['Договор', dogovorMatn]],
+    ustunlar: SH_AKT_USTUNLAR,
+    yonalish: 'landscape',
+  });
+  const aktQ: number[] = [];
+  let n = 0;
+  for (const ob of y.obyektlar) for (const a of ob.aktlar) {
+    n++;
+    aktQ.push(av.qator('oddiy', () => [n, ob.nom, a.raqam || String(a.aktId), a.hujjatPodvali ? 'документа' : 'сметы', r2(a.ustamasiz),
+      a.ustamali == null ? null : r2(a.ustamali), a.qqs == null ? null : r2(a.qqs), a.qqsBilan == null ? null : r2(a.qqsBilan)]));
+  }
+  if (aktQ.length) {
+    const jamiAkt = f3DavrAktlarJami(y.obyektlar.flatMap((x) => x.aktlar));
+    av.qator('vsego', () => ['', 'ИТОГО ПО АКТАМ Ф-2', '', '', { f: sumRefs('E', aktQ), v: r2(y.obyektlar.flatMap((x) => x.aktlar).reduce((s, a) => s + a.ustamasiz, 0)) },
+      null, null, jamiAkt == null ? null : { f: sumRefs('H', aktQ), v: jamiAkt }]);
+  } else {
+    av.izoh('В отчетном месяце нет утвержденных актов Ф-2, включенных в справку.');
+  }
+  const { bytes } = rasmiyKitob(aktQ.length ? [v, av] : [v], { tur: 'f3' });
+  return {
+    bytes,
+    faylNomi: hujjatFaylNomi({ obyekt: `Договор_${o.shartnomaRaqam}`, hujjat: 'ФОРМА_3_ПО_ДОГОВОРУ', davr: o.davr }),
+    yigindi: y,
+    oyKOplate: oyTolov,
+    propis,
+    diqqat,
+  };
+}
+
 /* ═══════════ F3 — SOTUV SUMMASIDAN (egasi qoidasi 2026-10-23) ═══════════
  * F3 = akt-sverkadagi har «Продажа» summasi (t2_forma3.manba='sotuv'); F2 qatorlari bilan bog'lash talab qilinmaydi.
  * Summa QQS bilan; QQSsiz = ROUND(summa / (1 + НДС), 2), НДС = summa − QQSsiz. Hisob — `nakopitelniy-svod.ts`. */
@@ -1021,11 +1342,11 @@ export function forma3SotuvdanXlsx(sh: SvodShartnoma, f3Id: number, o: {
       nom: 'Форма 3', kattaHarf: false,
       sarlavha: `СПРАВКА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ И ЗАТРАТ (ФОРМА № 3)${avto ? ' — ' + F3_AVTO_BELGI.toUpperCase() : ''}`,
       ostSarlavha: [raqamQ, `Отчётный период: с ${sanaRuF3(h.davrBoshi)} по ${sanaRuF3(h.davrOxiri)}`],
-      titul: [['Подрядчик:', o.tashkilot ?? null], ['Договор:', `№ ${sh.raqam}${sh.nom ? ` (${sh.nom})` : ''}`], ['Объекты:', sh.obyektlar.map((x) => x.nom).join(', ') || null]],
+      titul: [['Подрядчик:', o.tashkilot ?? null], ['Договор:', `№ ${raqamTozala(sh.raqam)}${sh.nom ? ` (${sh.nom})` : ''}`], ['Объекты:', sh.obyektlar.map((x) => x.nom).join(', ') || null]],
       ustunlar: F3_SOTUV_BIR_USTUN, yonalish: 'landscape',
     });
     const objNom = sh.obyektlar.map((x) => x.nom).join(', ');
-    const satr = vb.qator('oddiy', [1, `Выполненные строительно-монтажные работы${objNom ? ` по объекту ${objNom}` : ` по договору № ${sh.raqam}`} за период с ${sanaRuF3(h.davrBoshi)} по ${sanaRuF3(h.davrOxiri)}`, null, somga(h.davr[0])]);
+    const satr = vb.qator('oddiy', [1, `Выполненные строительно-монтажные работы${objNom ? ` по объекту ${objNom}` : ` по договору № ${raqamTozala(sh.raqam)}`} за период с ${sanaRuF3(h.davrBoshi)} по ${sanaRuF3(h.davrOxiri)}`, null, somga(h.davr[0])]);
     const bez = vb.qator('jami', ['', 'СУММА БЕЗ НДС', null, { f: `D${satr}`, v: somga(h.davr[0]) }]);
     // НДС sotuv summasidan AJRATILGAN (jami − NDS siz) — to'liq shakldagi kabi qiymat, formula emas.
     const ndsQ = vb.qator('oddiy', ['', 'НДС', { n: nds, uslub: 'foiz' }, somga(h.davr[1])]);
@@ -1035,13 +1356,13 @@ export function forma3SotuvdanXlsx(sh: SvodShartnoma, f3Id: number, o: {
     avtoIzoh(vb);
     vb.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК'], o.imzo));
     const { bytes } = rasmiyKitob([vb], { tur: 'f3' });
-    return { bytes, faylNomi: hujjatFaylNomi({ obyekt: `№${sh.raqam}`, hujjat: avtoNom(`Ф3_ОДНОСТРОЧНАЯ_${h.f3.raqam ?? h.f3.id}`), davr: h.f3.sotuv_sana }) };
+    return { bytes, faylNomi: hujjatFaylNomi({ obyekt: `№${raqamTozala(sh.raqam)}`, hujjat: avtoNom(`Ф3_ОДНОСТРОЧНАЯ_${h.f3.raqam ?? h.f3.id}`), davr: h.f3.sotuv_sana }) };
   }
   const v = new RasmiyVaraq({
     nom: 'Форма 3', kattaHarf: false,
     sarlavha: `СПРАВКА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ И ЗАТРАТ (ФОРМА № 3)${avto ? ' — ' + F3_AVTO_BELGI.toUpperCase() : ''}`,
     ostSarlavha: [raqamQ, `Отчётный период: с ${sanaRuF3(h.davrBoshi)} по ${sanaRuF3(h.davrOxiri)}`],
-    titul: [['Подрядчик:', o.tashkilot ?? null], ['Договор:', `№ ${sh.raqam}${sh.nom ? ` (${sh.nom})` : ''}`], ['Объекты:', sh.obyektlar.map((x) => x.nom).join(', ') || null]],
+    titul: [['Подрядчик:', o.tashkilot ?? null], ['Договор:', `№ ${raqamTozala(sh.raqam)}${sh.nom ? ` (${sh.nom})` : ''}`], ['Объекты:', sh.obyektlar.map((x) => x.nom).join(', ') || null]],
     ustunlar: F3_SOTUV_USTUN, yonalish: 'landscape',
   });
   const shT = h.shartnoma;
@@ -1056,5 +1377,5 @@ export function forma3SotuvdanXlsx(sh: SvodShartnoma, f3Id: number, o: {
   avtoIzoh(v);
   v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК'], o.imzo));
   const { bytes } = rasmiyKitob([v], { tur: 'f3' });
-  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: `№${sh.raqam}`, hujjat: avtoNom(`Ф3_${h.f3.raqam ?? h.f3.id}`), davr: h.f3.sotuv_sana }) };
+  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: `№${raqamTozala(sh.raqam)}`, hujjat: avtoNom(`Ф3_${h.f3.raqam ?? h.f3.id}`), davr: h.f3.sotuv_sana }) };
 }

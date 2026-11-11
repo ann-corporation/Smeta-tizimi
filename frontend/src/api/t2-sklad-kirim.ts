@@ -72,3 +72,34 @@ export async function sbSkladKirimStorno(p: { kompaniyaId: number; harakatId: nu
     sabab: p.sabab, operation_id: p.operationId ?? yangiOperationId(),
   }) as Promise<{ ok: boolean; code?: string; error?: string; storno_id?: number }>;
 }
+
+/** C11 BERDIM: markaziy ombordagi qoldiq (>0) — berish uchun material tanlovi. Qoldiq = kirim - storno - berdim (server hisoblaydi). */
+export type MarkaziyQoldiqQator = { nomi: string; birligi: string; qoldiq: number };
+export async function sbSkladMarkaziyQoldiq(p: { kompaniyaId: number; skladId: number; qidir?: string; limit?: number }):
+  Promise<{ ok: true; qatorlar: MarkaziyQoldiqQator[] } | KirimXato> {
+  try {
+    const r = await vaqtliOqish('/api/sb', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ soro: 'sklad_markaziy_qoldiq_v1', kompaniya_id: p.kompaniyaId, sklad_id: p.skladId,
+        qidir: (p.qidir ?? '').trim(), limit: p.limit ?? 50 }),
+    });
+    const j = await r.json().catch(() => null) as { ok?: boolean; natija?: { ok: boolean; qatorlar?: MarkaziyQoldiqQator[]; code?: string }; error?: string; code?: string } | null;
+    if (!j?.ok || !j.natija) return { ok: false, code: j?.code ?? 'HTTP_' + r.status, error: j?.error };
+    if (!j.natija.ok) return { ok: false, code: j.natija.code };
+    return { ok: true, qatorlar: j.natija.qatorlar ?? [] };
+  } catch {
+    return { ok: false, code: 'NETWORK' };
+  }
+}
+
+export type BerdimNatija = { ok: boolean; code?: string; error?: string; takror?: boolean; qoldiq?: number; qoldiq_keyin?: number; obyekt_harakat_id?: number; markaz_harakat_id?: number };
+/** C11 BERDIM: markaziy ombor -> obyekt. `operationId` ekran ochilganda bir marta yaratiladi; qayta bosish ikkinchi yozuv yaratmaydi. */
+export async function sbSkladBerdim(p: {
+  kompaniyaId: number; skladId: number; obyektId: number; nomi: string; birligi: string; miqdor: string;
+  sana?: string; qabulQiluvchi?: string; izoh?: string; operationId: string;
+}): Promise<BerdimNatija> {
+  return await yozAmali({
+    amal: 'sklad_berdim_v1', kompaniya_id: p.kompaniyaId, sklad_id: p.skladId, obyekt_id: p.obyektId, nomi: p.nomi, birligi: p.birligi,
+    miqdor: p.miqdor, sana: p.sana || null, qabul_qiluvchi: p.qabulQiluvchi || null, izoh: p.izoh || null, operation_id: p.operationId,
+  }) as BerdimNatija;
+}

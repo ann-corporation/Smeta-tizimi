@@ -1,0 +1,13 @@
+{
+  "kirish muddati tugagan — yangi varaqda qayta kiring": { "ru": "срок входа истёк — войдите заново в новой вкладке", "en": "login expired — sign in again in a new tab" },
+  "server 60 soniyada javob bermadi": { "ru": "сервер не ответил за 60 секунд", "en": "the server did not respond within 60 seconds" },
+  "server bilan aloqa bo‘lmadi": { "ru": "нет связи с сервером", "en": "could not reach the server" },
+  "server rad etdi": { "ru": "сервер отклонил запрос", "en": "the server rejected the request" },
+  "Joriy faktni tekshirib bo‘lmadi — saqlanmadi": { "ru": "Не удалось проверить текущий факт — не сохранено", "en": "Could not check the current fact — not saved" },
+  "Qayta urinib ko‘ring.": { "ru": "Повторите попытку.", "en": "Please try again." },
+  "Oldingi urinish serverda allaqachon bajarilgan edi — yangi kiritmalaringiz saqlanmadi. Jadval yangilandi: «jami» va farqlarni tekshirib qayta saqlang.": { "ru": "Предыдущая попытка уже выполнена на сервере — ваши новые значения не сохранены. Таблица обновлена: проверьте «итого» и разницы и сохраните снова.", "en": "The previous attempt was already completed on the server — your new entries were not saved. The table was refreshed: check the totals and differences, then save again." },
+  "Server javob bermadi — saqlash tugamadi. Qayta saqlash xavfsiz (bir xil amal ID).": { "ru": "Сервер не ответил — сохранение не завершилось. Повторное сохранение безопасно (тот же ID операции).", "en": "The server did not respond — saving did not finish. Saving again is safe (same operation ID)." },
+  "Saqlash so‘rovi serverga yetmadi. Qayta saqlang — takror xavfsiz (bir xil amal ID).": { "ru": "Запрос сохранения не дошёл до сервера. Сохраните снова — повтор безопасен (тот же ID операции).", "en": "The save request did not reach the server. Save again — repeating is safe (same operation ID)." },
+  "Kutilmagan dastur xatosi": { "ru": "Непредвиденная ошибка программы", "en": "Unexpected application error" },
+  "Qayta saqlang — takror xavfsiz (bir xil amal ID).": { "ru": "Сохраните снова — повтор безопасен (тот же ID операции).", "en": "Save again — repeating is safe (same operation ID)." }
+}
