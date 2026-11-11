@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 151,
+      "sana": "2026-11-11",
+      "sarlavha": "Sahifalar tezroq ochiladi",
+      "bandlar": [
+        "Rahbar paneli: ko‘rsatkichlar endi ketma-ket emas, parallel yuklanadi; og‘ir kompaniya xaritasi oyna ko‘ringandagina yuklanadi.",
+        "Obyektlar sahifasi: zanjir va rahbar paneli ma’lumoti obyektlar ro‘yxati bilan bir vaqtda boshlanadi; ustama ma’lumoti 5 daqiqa eslab qolinadi.",
+        "Aqliy xarita: qayta ochilganda oxirgi xarita darhol ko‘rinadi, yangisi fonda keladi."
+      ]
+    },
+    {
       "id": 150,
       "sana": "2026-11-11",
       "sarlavha": "Qarzdorlik sahifasida buyurtmachi qarzi",

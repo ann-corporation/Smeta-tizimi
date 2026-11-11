@@ -17,6 +17,7 @@ export function ustamaKeshiniUla(qc: QueryClient): () => void {
   const f = () => {
     void qc.invalidateQueries({ queryKey: ['ustama-nakrutka'] });
     void qc.invalidateQueries({ queryKey: ['pto-markup-podvals'] });
+    void qc.invalidateQueries({ queryKey: ['pto-markup'] });
   };
   window.addEventListener(HODISA, f);
   return () => window.removeEventListener(HODISA, f);
