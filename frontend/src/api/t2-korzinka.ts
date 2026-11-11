@@ -1,1 +1,0 @@
-// Ushbu fayl vaqtincha API funksiyalarini mock qilish yoki aniq yozish uchun.
