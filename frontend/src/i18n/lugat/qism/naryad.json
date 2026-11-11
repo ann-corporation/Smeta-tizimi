@@ -1,5 +1,7 @@
 {
   "Naryad": { "ru": "Наряд", "en": "Work order" },
+  "Naryad (brigada)": { "ru": "Наряд (бригада)", "en": "Work order (crew)" },
+  "Naryad (brigada topshirig‘i)": { "ru": "Наряд (задание бригаде)", "en": "Work order (crew assignment)" },
   "Brigada (usta) topshirig‘i: smeta ishlari, kelishilgan narx, qabul, fakt va xarajat": { "ru": "Задание бригаде (мастеру): работы по смете, согласованная расценка, приёмка, факт и затраты", "en": "Crew (foreman) work order: estimate works, agreed rate, acceptance, actuals and cost" },
   "Avval yuqoridan obyektni tanlang.": { "ru": "Сначала выберите объект сверху.", "en": "Select an object at the top first." },
   "Bajarildi": { "ru": "Выполнено", "en": "Done" },

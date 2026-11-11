@@ -10,6 +10,7 @@ import { Download, Plus, RefreshCw, X } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { toast } from '../../umumiy/ui/Toast';
+import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { yangiOperationId } from '../../api/supabase';
@@ -22,7 +23,7 @@ import {
   type NaryadYaratQator,
 } from '../../api/t2-naryad';
 import type { SmetaQator, UstamaKirish } from '../../lib/ish-kartasi';
-import { HOLAT_NOMI, NARYAD_HOLATLAR, faktTaklif, mehnatUchlik, naryadJami, qatorSurati, satrTahlil, tolovHajmi, ustaNarxTaklif, type Naryad, type NaryadHolat, type NaryadQisqa } from '../../lib/naryad';
+import { HOLAT_NOMI, NARYAD_HOLATLAR, faktTaklif, mehnatUchlik, naryadJami, qatorSurati, satrTahlil, ustaNarxTaklif, type Harakat, type Naryad, type NaryadHolat, type NaryadQisqa } from '../../lib/naryad';
 import { naryadHujjat } from '../../lib/naryad/hujjat';
 import { birlikOdam, lugatKengaytir, lugatOrnat, odamNomi } from '../../lib/qurilish-lugat';
 
@@ -101,7 +102,7 @@ export default function Naryad() {
   const och = async (id: number) => { if (!kid) return; const n = await naryadOl(kid, id); if (n) setOchiq(n); else toast(t('Naryad o‘qilmadi'), 'danger'); };
   const yangilash = async (id: number) => { await yukla(); await och(id); };
 
-  const harakat = async (f: () => Promise<{ ok: boolean; error?: string; code?: string }>, id: number, ok: string) => {
+  const harakat = async (f: Harakat, id: number, ok: string) => {
     setBand(true);
     try {
       const r = await f();
@@ -152,7 +153,7 @@ export default function Naryad() {
             onHujjat={async () => {
               const { bytes, faylNomi } = naryadHujjat(ochiq, { obyektNom });
               const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'NARYAD', sabab: `Наряд ${ochiq.raqam}`, obyekt: ochiq.obyekt_id }, () => {
-                const url = URL.createObjectURL(new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+                const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
                 const a = document.createElement('a'); a.href = url; a.download = faylNomi; document.body.appendChild(a); a.click(); a.remove();
                 setTimeout(() => URL.revokeObjectURL(url), 2000);
               });
@@ -209,7 +210,7 @@ function NaryadTafsilot({ n, band, ustama, obyektNom: _obyektNom, onQabul, onNar
                   <td className="p-1 text-right">{tahrir ? <input aria-label={t('Bajarilgan hajm')} className={`${kirit} w-24 text-right`} value={qiymat(q.id, q.bajarilgan_hajm)} onChange={(e) => setKirit1((x) => ({ ...x, [q.id]: e.target.value }))} /> : <span className="num">{hajmFmt(q.bajarilgan_hajm)}</span>}</td>
                   <td className="p-1 text-right num">{hajmFmt(q.qabul_hajm)}</td>
                   <td className="p-1 text-right num">{hajmFmt(s.chelSoat)}</td>
-                  <td className="p-1 text-right num">{q.usta_narx == null && narxYozilgan ? <input aria-label={t('Usta narxi')} className={` w-24 text-right`} placeholder={t('kelishilmagan')} value={narxKirit[q.id] ?? ''} onChange={(e) => setNarxKirit((x) => ({ ...x, [q.id]: e.target.value }))} /> : pul(q.usta_narx)}</td>
+                  <td className="p-1 text-right num">{q.usta_narx == null && narxYozilgan ? <MoneyInput aria-label={t('Usta narxi')} className={`${kirit} w-24 text-right`} placeholder={t('kelishilmagan')} value={narxKirit[q.id] ?? ''} onValueChange={(v) => setNarxKirit((x) => ({ ...x, [q.id]: v }))} /> : pul(q.usta_narx)}</td>
                   <td className="p-1 text-right num">{pul(s.summa)}</td>
                   <td className="p-1 text-right num">{pul(s.smetaMehnat)}</td>
                   <td className={`p-1 text-right num ${s.foyda != null && s.foyda < 0 ? 'text-danger' : ''}`}>{pul(s.foyda)}</td>
@@ -226,7 +227,7 @@ function NaryadTafsilot({ n, band, ustama, obyektNom: _obyektNom, onQabul, onNar
         <div className={j.foyda != null && j.foyda < 0 ? 'text-danger' : ''}>{t('Smeta − usta (foyda +, zarar −)')}: <b className="num">{pul(j.foyda)}</b>{j.foiz != null ? ` (${j.foiz.toFixed(1)}%)` : ''}</div>
       </div>
 
-      {takliflarOldindan.length > 0 && tahrir && <div className="mt-2 text-[12px] text-text-dim">{t('Qabulda faktga yoziladigan farq')}: {takliflarOldindan.length} {t('ish')}</div>}
+      {takliflarOldindan.length !== 0 && tahrir ? <div className="mt-2 text-[12px] text-text-dim">{t('Qabulda faktga yoziladigan farq')}: {takliflarOldindan.length} {t('ish')}</div> : null}
       {n.holat === 'qabul' && n.fakt_holat !== 'yozildi' && faktTakliflari.length > 0 && (
         <div className="mt-2 rounded-md border border-border p-2" data-testid="naryad-fakt-taklif">
           <div className="mb-1 font-medium">{t('Faktga yoziladigan farq (faqat yetishmagan qism)')}</div>
@@ -251,7 +252,7 @@ function NaryadTafsilot({ n, band, ustama, obyektNom: _obyektNom, onQabul, onNar
   );
 }
 
-function YangiNaryad({ kid, obyektId, kartalar, onYop, onYaratildi }: { kid: number; obyektId: number; kartalar: IshKarta[]; onYop: () => void; onYaratildi: (id: number) => void | Promise<void> }) {
+function YangiNaryad({ kid, obyektId, kartalar, onYop, onYaratildi }: { kid: number; obyektId: number; kartalar: IshKarta[]; onYop: () => void; onYaratildi: (id: number) => unknown }) {
   const [usta, setUsta] = useState(''); const [brigada, setBrigada] = useState(''); const [dan, setDan] = useState(''); const [gacha, setGacha] = useState('');
   const [qidiruv, setQidiruv] = useState(''); const [topilgan, setTopilgan] = useState<SmetaQator[] | null>(null);
   const [tanlangan, setTanlangan] = useState<Tanlangan[]>([]);
@@ -314,7 +315,7 @@ function YangiNaryad({ kid, obyektId, kartalar, onYop, onYaratildi }: { kid: num
           <tbody>{tanJami.map(({ x, h, n }) => (
             <tr key={x.q.id} className="border-t border-border"><td className="p-1">{odamNomi(x.q, 'uz')}<div className="text-[11px] text-text-dim">{x.q.nom}</div></td>
               <td className="p-1"><input aria-label={t('Hajm')} className={`${kirit} w-24`} value={x.hajm} onChange={(e) => setTanlangan((l) => l.map((y) => (y.q.id === x.q.id ? { ...y, hajm: e.target.value } : y)))} /> {birlikOdam(x.q.birlik, 'uz')}</td>
-              <td className="p-1"><input aria-label={t('Usta narxi')} className={`${kirit} w-28`} value={x.narx} onChange={(e) => setTanlangan((l) => l.map((y) => (y.q.id === x.q.id ? { ...y, narx: e.target.value } : y)))} />
+              <td className="p-1"><MoneyInput aria-label={t('Usta narxi')} className={`${kirit} w-28`} value={x.narx} onValueChange={(v) => setTanlangan((l) => l.map((y) => (y.q.id === x.q.id ? { ...y, narx: v } : y)))} />
                 <span className="ml-2 num">{h != null && n != null ? pul(h * n) : '—'}</span></td>
               <td className="p-1"><button type="button" aria-label={t('Olib tashlash')} onClick={() => setTanlangan((l) => l.filter((y) => y.q.id !== x.q.id))}><X size={14} /></button></td></tr>))}</tbody></table>}
         <div className="mt-3 flex justify-end gap-2"><button type="button" className={tugma} onClick={onYop}>{t('Bekor')}</button><button type="button" className={asosiyTugma} disabled={band} onClick={() => void saqla()}>{t('Naryad berish')}</button></div>

@@ -8,6 +8,10 @@ import { bosKesim, kesimgaQosh } from '../hisob-yadro';
 import { farq, qatorHissalari, taqsimot, SUKUT_ULUSH, uchlik, type Farq, type SmetaQator, type Uchlik, type UstamaKirish } from '../ish-kartasi';
 import type { IshKarta } from '../../api/t2-ish-kartasi';
 
+/** Sahifa harakati natijasi (UI harakat yordamchisi). */
+export type HarakatNatija = { ok: boolean; error?: string; code?: string };
+export type Harakat = () => Promise<HarakatNatija>;
+
 export const NARYAD_HOLATLAR = ['berildi', 'bajarildi', 'qabul', 'hisoblandi', 'bekor'] as const;
 export type NaryadHolat = typeof NARYAD_HOLATLAR[number];
 
