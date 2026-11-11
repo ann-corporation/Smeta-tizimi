@@ -1,4 +1,4 @@
--- Rollback t2_direktor_pult_kesh_v1: panelni eski (jonli) hisobga qaytaradi, kesh va triggerlarni olib tashlaydi.
+﻿-- Rollback t2_direktor_pult_kesh_v1: panelni eski (jonli) hisobga qaytaradi, kesh va triggerlarni olib tashlaydi.
 -- Panel natijasi o'zgarmaydi (faqat sekinlashadi). Hisob yadrosi (_t2_summa_*) tegilmagan.
 do $cron$
 begin
@@ -39,7 +39,7 @@ drop function if exists public._t2_kesh_oy_paket_v1(bigint, date);
 do $drop$
 declare j text; op text;
 begin
-  foreach j in array array['t2_qator', 't2_akt', 't2_akt_qator', 't2_svod_yaxlit', 't2_nakrutka_podval', 't2_nakrutka_koef', 't2_shartnoma_bog', 't2_shartnoma'] loop
+  foreach j in array array['t2_qator', 't2_akt', 't2_akt_qator', 't2_akt_podval', 't2_svod_yaxlit', 't2_nakrutka_podval', 't2_nakrutka_koef', 't2_shartnoma_bog', 't2_shartnoma'] loop
     foreach op in array array['ins', 'upd', 'del'] loop
       execute format('drop trigger if exists %I on public.%I', 't2_kesh_' || j || '_' || op, j);
       execute format('drop function if exists public.%I()', '_t2_kesh_' || j || '_' || op);

@@ -1,12 +1,12 @@
--- Acceptance t2_direktor_pult_kesh_v1: haqiqiy ma'lumot, BEGIN..ROLLBACK (yozuv qolmaydi). Migratsiyadan KEYIN ishlaydi.
+﻿-- Acceptance t2_direktor_pult_kesh_v1: haqiqiy ma'lumot, BEGIN..ROLLBACK (yozuv qolmaydi). Migratsiyadan KEYIN ishlaydi.
 -- Kesh cron bilan to'lgach (migratsiyadan ~10 daqiqa keyin) ishga tushiring. Kutiladi: hamma tekshiruv `bad = 0`.
 -- Asosiy talab: HAR toza obyekt uchun kesh == jonli hisob (smeta / fakt / f2 / f2_qoralama / joriy oy F2) — farq 0.
 -- Vaqt: jonli hisob butun kompaniya uchun ~35 s (4 o'lchov) + oy ~11 s; umumiy < 3 daqiqa.
 begin;
 set local statement_timeout = '300s';
 
--- 0) Triggerlar: 8 jadval x 3 hodisa = 24.
-select 'trigger_soni' as tekshiruv, case when count(*) = 24 then 0 else 1 end as bad
+-- 0) Triggerlar: 9 jadval x 3 hodisa = 27.
+select 'trigger_soni' as tekshiruv, case when count(*) = 27 then 0 else 1 end as bad
   from pg_trigger t where t.tgname like 't2\_kesh\_%' and not t.tgisinternal;
 
 -- 1) Kesh to'lganmi (cron ishlagan).

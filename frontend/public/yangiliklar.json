@@ -2,6 +2,15 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 159,
+      "sana": "2026-11-12",
+      "sarlavha": "Direktor pulti: bitta ekranda oltita ko‘rsatkich",
+      "bandlar": [
+        "Rahbar uchun yangi bosh ekran: portfel, bu oy bajarilgani, F2/F3 holati, qarzlar, kechikkan predpisaniya va topshiriqlar, xavfli obyektlar — har biri o‘z sahifasini ochadi.",
+        "Obyektlar summalari endi oldindan tayyor hisoblanadi (o‘zgarish bo‘lsa avtomatik yangilanadi), shuning uchun rahbar paneli bir necha soniyada ochiladi; raqamlar o‘sha-o‘sha."
+      ]
+    },
+    {
       "id": 158,
       "sana": "2026-11-12",
       "sarlavha": "Rahbar paneli va hisobotlar yana tezlashdi",

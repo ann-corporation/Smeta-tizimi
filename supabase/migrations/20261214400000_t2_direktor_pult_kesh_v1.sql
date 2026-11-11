@@ -1,11 +1,11 @@
--- t2_direktor_pult_v1 (2026-11-11): DIREKTOR PULTI + «TAYYOR HISOBLAR» (t2_obyekt_kesh) — rahbar paneli tezligi.
+﻿-- t2_direktor_pult_v1 (2026-11-11): DIREKTOR PULTI + «TAYYOR HISOBLAR» (t2_obyekt_kesh) — rahbar paneli tezligi.
 --
 -- MUAMMO: t2_rahbar_panel_v1 butun kompaniya (38 obyekt, ~140k qator) uchun smeta/fakt/F2/F2-qoralama paketlarini har so'rovda
 --   qayta hisoblaydi (o'lchov, read-only EXPLAIN ANALYZE: smeta 7,6 s + fakt 16,1 s + F2 11,2 s = ~35 s bazada).
 -- YECHIM (hisob YADROSI O'ZGARMAYDI): har obyekt uchun tayyor paket jadvali t2_obyekt_kesh. Paketni HISOBLAGAN funksiya shu
 --   _t2_summa_paket_v1 — ya'ni formula ikkinchi marta yozilmagan; kesh faqat uning natijasini saqlaydi.
 -- TOZALIK (kesh hech qachon eskirgan raqam ko'rsatmaydi):
---   1) Manba jadvallarga (t2_qator, t2_akt, t2_akt_qator, t2_svod_yaxlit, t2_nakrutka_koef, t2_nakrutka_podval, t2_shartnoma_bog,
+--   1) Manba jadvallarga (t2_qator, t2_akt, t2_akt_qator, t2_akt_podval, t2_svod_yaxlit, t2_nakrutka_koef, t2_nakrutka_podval, t2_shartnoma_bog,
 --      t2_shartnoma) STATEMENT-darajali AFTER trigger: o'zgargan obyektlarni t2_obyekt_kesh_iflos («iflos» belgisi, versiya hisoblagich)
 --      ga yozadi. Trigger qator emas, so'rov bo'yicha BIR marta ishlaydi (import 100k qator = bitta upsert).
 --   2) O'qish funksiyasi (_t2_summa_paket_kesh_v1) iflos belgisi bor yoki keshi yo'q obyektni KESHDAN O'QIMAYDI — shu obyekt uchun
@@ -77,6 +77,7 @@ begin
       ('t2_qator',            'select t.obyekt_id from {T} t', false),
       ('t2_akt',              'select t.obyekt_id from {T} t', false),
       ('t2_akt_qator',        'select coalesce(t.obyekt_id, a.obyekt_id) from {T} t left join public.t2_akt a on a.id = t.akt_id', false),
+      ('t2_akt_podval',       'select a.obyekt_id from {T} t join public.t2_akt a on a.id = t.akt_id', true),
       ('t2_svod_yaxlit',      'select t.obyekt_id from {T} t', true),
       ('t2_nakrutka_podval',  'select t.obyekt_id from {T} t where t.obyekt_id is not null union select o.id from {T} t join public.t2_obyekt o on o.kompaniya_id = t.kompaniya_id where t.obyekt_id is null', true),
       ('t2_nakrutka_koef',    'select o.id from {T} t join public.t2_obyekt o on o.kompaniya_id = t.kompaniya_id where t.shartnoma_id is null union select b.obyekt_id from {T} t join public.t2_shartnoma_bog b on b.shartnoma_id = t.shartnoma_id', true),
