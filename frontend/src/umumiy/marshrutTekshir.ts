@@ -41,6 +41,8 @@ export const ADMIN_MARSHRUTLARI = [
   'hr',
   /* 2026-11-05: ish kartasi + narx tekshiruvi. */
   'narx-tekshiruv',
+  /* 2026-11-12: Texnik nazorat (texnadzor). */
+  'nazorat', 'nazorat/tekshiruv', 'nazorat/jurnal',
 ] as const;
 
 /**

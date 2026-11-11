@@ -66,7 +66,7 @@ const SMETA = a('smeta-studio', 'holat', 'smeta-narxlash', 'narx-dalil', 'narx-t
 const FAKT = a('fakt', 'm29');
 const F2 = a('f2-tayyorlash', 'f2', 'f2-tarix', 'f2-reestr', 'nakopitelniy');
 const MOLIYA = a('moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'crm', 'aloqalar');
-const HUJJAT = a('documents', 'hujjat-nazorat', 'aosr', 'storage', 'zakazchik', 'taqdimlar', 'murojaatlar', 'hujjat-aylanish');
+const HUJJAT = a('documents', 'hujjat-nazorat', 'aosr', 'storage', 'nazorat', 'zakazchik', 'taqdimlar', 'murojaatlar', 'hujjat-aylanish');
 const TAMINOT = a('logistika', 'zayavka', 'tender', 'yuk-birjasi', 'erp', 'hr');
 const ISH = [...OBYEKT, ...SMETA, ...FAKT, ...F2, ...MOLIYA, ...HUJJAT, ...TAMINOT];
 /* Uy sotish (20261124000000): alohida domen — sales.* (PTO da yo'q). */
@@ -257,7 +257,7 @@ describe('yagona manba — boshqa iste‘molchilar o‘zgarmagan', () => {
       '/admin/narx-dalil': 'module.narx', '/admin/nakrutka': 'module.narx', '/admin/narxlar': 'module.narx',
       '/admin/loyiha': 'module.loyiha', '/admin/shartnoma-liniya': 'module.loyiha', '/admin/qarzdorlik': 'module.erp', '/admin/buxgalteriya': 'module.erp', '/admin/documents': 'module.loyiha',
       '/admin/hujjat-nazorat': 'module.loyiha', '/admin/participants': 'module.loyiha', '/admin/crm': 'module.loyiha',
-      '/admin/zakazchik': 'module.loyiha', '/admin/taqdimlar': 'module.loyiha', '/admin/murojaatlar': 'module.loyiha', '/admin/hujjat-aylanish': 'module.loyiha', '/admin/aloqalar': 'module.loyiha',
+      '/admin/nazorat': 'module.loyiha', '/admin/zakazchik': 'module.loyiha', '/admin/taqdimlar': 'module.loyiha', '/admin/murojaatlar': 'module.loyiha', '/admin/hujjat-aylanish': 'module.loyiha', '/admin/aloqalar': 'module.loyiha',
       '/admin/dashboard': 'module.erp', '/admin/moliya': 'module.erp', '/admin/logistika': 'module.erp', '/admin/zayavka': 'module.erp', '/admin/tender': 'module.erp', '/admin/yuk-birjasi': 'module.erp',
       '/admin/erp': 'module.erp', '/admin/hr': 'module.erp', '/admin/mindmap': 'module.erp',
     });

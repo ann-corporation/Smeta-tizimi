@@ -155,9 +155,7 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
       ] },
       /* Texnik nazorat (texnadzor): uy, sayt tekshiruvi, jurnal. Qaror/predpisaniya — pastdagi 'Kiruvchi' bandida (mavjud sahifalar). */
       { nom: 'Texnik nazorat', ikonka: 'ShieldCheck', sahifalar: [
-        { yol: '/admin/nazorat', ilova: 'hujjat', nom: 'Texnik nazorat', ruxsat: [RAHBARIYAT, 'quality.inspect'], modul: 'module.loyiha' },
-        { yol: '/admin/nazorat/tekshiruv', ilova: 'hujjat', nom: 'Yangi tekshiruv', ruxsat: [RAHBARIYAT, 'quality.inspect'], modul: 'module.loyiha' },
-        { yol: '/admin/nazorat/jurnal', ilova: 'hujjat', nom: 'Tekshiruvlar jurnali', ruxsat: [RAHBARIYAT, 'quality.inspect'], modul: 'module.loyiha' },
+        { yol: '/admin/nazorat', ilova: 'hujjat', nom: 'Texnik nazorat', ruxsat: [RAHBARIYAT, ...ICHKI_ISH, 'quality.inspect'], modul: 'module.loyiha', qoshimcha: true },
       ] },
       /* Kiruvchi: buyurtmachi kabineti, tomonlar taqdimi va murojaatlar — bitta band. */
       { nom: 'Kiruvchi (tomonlar)', ikonka: 'Inbox', sahifalar: [

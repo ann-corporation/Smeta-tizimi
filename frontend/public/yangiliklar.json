@@ -2,6 +2,18 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 159,
+      "sana": "2026-11-12",
+      "sarlavha": "Texnik nazorat: sayt tekshiruvi, foto bilan predpisaniya, АОСР va F2 qarori",
+      "bandlar": [
+        "Texnik nazorat uchun yangi bosh sahifa: yangi tekshiruv, АОСР qarori, F2 qarori, predpisaniyalar va tekshiruvlar jurnali — hammasi bir joyda.",
+        "Tekshiruv: ish turi bo‘yicha tayyor ro‘yxat, har bandga Mos / Mos emas. Nomuvofiq bandga izoh va foto shart; yakunlaganda pudratchiga muddatli predpisaniya avtomatik beriladi.",
+        "Pudratchi predpisaniyani foto bilan bajaradi; muddati o‘tsa, tepada qizil ogohlantirish chiqadi. Texnadzor qayta tekshiradi: qabul qiladi yoki qayta ochadi.",
+        "АОСР qaror oynasida endi bog‘langan laboratoriya protokollari va fotolar ko‘rinadi. F2 qarorida fakt va yashirin ishlar uchun АОСР qamrovi tekshiriladi (ogohlantirish).",
+        "Tekshiruvlar jurnali Excelga yuklanadi."
+      ]
+    },
+                     {
       "id": 158,
       "sana": "2026-11-12",
       "sarlavha": "Rahbar paneli va hisobotlar yana tezlashdi",
