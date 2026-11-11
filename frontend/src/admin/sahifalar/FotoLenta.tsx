@@ -13,8 +13,9 @@ import { useT2ObyektlarRoyxati } from '../../api/t2-obyektlar-kesh';
 import { useT2Daraxt } from '../../umumiy/daraxt/useT2Daraxt';
 import { fotoBlobOl, fotoRoyxatOl, type FotoRoyxat } from '../../api/t2-foto-dalil';
 import { FotoDalil, type FotoNomzod } from '../../components/foto-dalil/FotoDalil';
-import { fotoGuruhla, fotoIzohi, fotoUrl, manbaNomi, oyOraligi } from '../../lib/foto-dalil';
-import { fotoHisobotHtml, fotoHisobotXlsx } from '../../lib/foto-hisobot';
+import { fotoGuruhla, fotoIzohi, fotoUrl, manbaNomi, oyOraligi, type FotoElement } from '../../lib/foto-dalil';
+import { fotoHisobotHtml, fotoHisobotXlsx, hisobotKalit } from '../../lib/foto-hisobot';
+import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { toast } from '../../umumiy/ui/Toast';
 import { t } from '../../i18n/til';
 
@@ -53,19 +54,30 @@ export function FotoLenta() {
   /* Hisobot uchun tanlangan davrning BARCHA fotosi (lenta sahifalangan bo'lishi mumkin) */
   const hisobotFotolari = async () => (joriy?.id ? (await fotoRoyxatOl(joriy.id, obyektId, { razdelId, dan: oraliq?.[0] ?? null, gacha: oraliq?.[1] ?? null, limit: 500 })).fotolar : []);
 
+  /* Hisobot chiqarish PULLIK (mavjud hujjat-token yo'li: hujjatTokenBilan); xesh barqaror kalitdan — qayta yuklash bepul. Yuklash (upload) bepul. */
+  const tokenBilanBer = async (fotolar: FotoElement[], hujjat: string, yetkaz: Parameters<typeof hujjatTokenBilan>[1]) => {
+    if (!joriy?.id) return false;
+    const r = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes: hisobotKalit(fotolar, { obyektId, dan: oraliq?.[0] ?? null, gacha: oraliq?.[1] ?? null }),
+      hujjat, sabab: `Foto-hisobot: ${obyektNomi}`, obyekt: obyektId, yacheykalar: 0 }, yetkaz);
+    toast(r.ok ? (r.xabar || t('Foto-hisobot tayyor')) : r.xabar, r.ok ? 'ok' : 'warn');
+    return r.ok;
+  };
   const excel = async () => {
     setEksport(true);
     try {
-      const r = await fotoHisobotXlsx(await hisobotFotolari(), { obyektNomi, dan: oraliq?.[0] ?? null, gacha: oraliq?.[1] ?? null }, fotoBlobOl);
-      yuklab(r.bytes, r.faylNomi); toast(t('Foto-hisobot tayyor: {n} ta foto', { n: r.soni }), 'ok');
+      const fotolar = await hisobotFotolari();
+      const r = await fotoHisobotXlsx(fotolar, { obyektNomi, dan: oraliq?.[0] ?? null, gacha: oraliq?.[1] ?? null }, fotoBlobOl);
+      await tokenBilanBer(fotolar, 'Foto-hisobot (Excel)', () => yuklab(r.bytes, r.faylNomi));
     } catch (e) { toast((e as Error).message, 'warn'); } finally { setEksport(false); }
   };
   const chop = async () => {
     const w = window.open('', '_blank'); if (!w) { toast(t('Oyna ochilmadi — brauzerda oynalarga ruxsat bering'), 'warn'); return; }
     setEksport(true);
     try {
-      const r = await fotoHisobotHtml(await hisobotFotolari(), { obyektNomi, dan: oraliq?.[0] ?? null, gacha: oraliq?.[1] ?? null }, fotoBlobOl);
-      w.document.open(); w.document.write(r.html); w.document.close(); setTimeout(() => w.print(), 400);
+      const fotolar = await hisobotFotolari();
+      const r = await fotoHisobotHtml(fotolar, { obyektNomi, dan: oraliq?.[0] ?? null, gacha: oraliq?.[1] ?? null }, fotoBlobOl);
+      const ok = await tokenBilanBer(fotolar, 'Foto-hisobot (PDF)', () => { w.document.open(); w.document.write(r.html); w.document.close(); setTimeout(() => w.print(), 400); });
+      if (!ok) w.close();
     } catch (e) { w.close(); toast((e as Error).message, 'warn'); } finally { setEksport(false); }
   };
 

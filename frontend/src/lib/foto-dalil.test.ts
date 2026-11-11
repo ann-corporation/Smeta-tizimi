@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { faylSanasi, fotoGuruhla, hisobotQatorlari, olchamHisobla, oyOraligi, type FotoElement } from './foto-dalil';
-import { hisobotTanla, HISOBOT_MAX_FOTO } from './foto-hisobot';
+import { hisobotKalit, hisobotTanla, HISOBOT_MAX_FOTO } from './foto-hisobot';
 
 const f = (id: number, sana: string, rid: number | null, nom: string | null, extra: Partial<FotoElement> = {}): FotoElement => ({
   id, document_id: id + 100, manba_turi: 'qator', manba_id: 5, razdel_id: rid, razdel_nom: nom, sana, lat: null, lng: null, izoh: null, ai_izoh: null,
@@ -35,6 +35,14 @@ describe('foto-dalil', () => {
     const q = hisobotQatorlari(l, '2026-11-01', '2026-11-30');
     expect(q.map((x) => x.fotoId)).toEqual([3, 2]);
     expect(q[1].izoh).toBe('beton'); expect(q[0].izoh).toBe('qo‘lda');
+  });
+  it('hisobotKalit: tartibga bog‘liq emas (qayta yuklash bepul), davr/foto o‘zgarsa boshqa', () => {
+    const o = { obyektId: 5, dan: '2026-11-01', gacha: '2026-11-30' };
+    const a = [f(1, '2026-11-02', 1, 'A'), f(2, '2026-11-03', 1, 'A')];
+    const kalit = (l: FotoElement[], x = o) => new TextDecoder().decode(hisobotKalit(l, x));
+    expect(kalit(a)).toBe(kalit([...a].reverse()));
+    expect(kalit(a)).not.toBe(kalit([...a, f(3, '2026-11-04', 1, 'A')]));
+    expect(kalit(a)).not.toBe(kalit(a, { ...o, gacha: '2026-11-15' }));
   });
   it('hisobotTanla: limitdan oshganini sanaydi', () => {
     const l = Array.from({ length: HISOBOT_MAX_FOTO + 5 }, (_, i) => f(i + 1, '2026-11-01', 1, 'A'));

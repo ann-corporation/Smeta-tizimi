@@ -28,5 +28,6 @@
   "AI ishlamadi": { "ru": "ИИ не сработал", "en": "AI failed" },
   "Fotoni kattalashtirish": { "ru": "Увеличить фото", "en": "Enlarge photo" },
   "Foto": { "ru": "Фото", "en": "Photo" },
+  "Foto-hisobot tayyor": { "ru": "Фотоотчёт готов", "en": "Photo report ready" },
   "Avval obyektni tanlang.": { "ru": "Сначала выберите объект.", "en": "Select an object first." }
 }

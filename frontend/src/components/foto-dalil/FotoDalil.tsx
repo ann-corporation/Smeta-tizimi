@@ -37,6 +37,8 @@ export type FotoDalilProps = {
   onChange?: (soni: number) => void;
 };
 
+const JOY_KALIT = 'foto-dalil.joylashuv';
+
 function joyOl(): Promise<{ lat: number; lng: number } | null> {
   return new Promise((res) => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) return res(null);
@@ -49,7 +51,9 @@ export function FotoDalil({ kompaniyaId, obyektId, loyihaId, manba, nomzodlar = 
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [band, setBand] = useState<number | null>(null);
   const [katta, setKatta] = useState<FotoElement | null>(null);
-  const [joyBelgisi, setJoyBelgisi] = useState(false);
+  /* Geotag tanlovi eslab qolinadi (localStorage; ochilmasa — o'chiq). */
+  const [joyBelgisi, setJoyBelgisiS] = useState<boolean>(() => { try { return localStorage.getItem(JOY_KALIT) === '1'; } catch { return false; } });
+  const setJoyBelgisi = (v: boolean) => { setJoyBelgisiS(v); try { localStorage.setItem(JOY_KALIT, v ? '1' : '0'); } catch { /* xotira yopiq */ } };
   const [taklif, setTaklif] = useState<Record<number, { izoh: string; taklif: FotoTaklif | null }>>({});
   const input = useRef<HTMLInputElement>(null);
   const manbaTuri = manba?.turi ?? null; const manbaId = manba?.id ?? null;

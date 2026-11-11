@@ -11,6 +11,16 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 export type HisobotOpts = { obyektNomi: string; dan: string | null; gacha: string | null; sana?: string };
 export type BlobOl = (documentId: number) => Promise<Blob | null>;
 
+/**
+ * Hisobotning BARQAROR mazmun kaliti (token xeshi uchun): obyekt + davr + tanlangan foto id lari. Fayl baytlari har safar
+ * boshqacha (sana, exceljs metadata), shuning uchun «qayta yuklash bepul» shu kalit xeshi bo'yicha ishlaydi.
+ */
+export function hisobotKalit(fotolar: readonly FotoElement[], o: { obyektId: number; dan: string | null; gacha: string | null }): Uint8Array {
+  const { qatorlar } = hisobotTanla(fotolar, o.dan, o.gacha);
+  const s = `foto-hisobot|${o.obyektId}|${o.dan ?? ''}|${o.gacha ?? ''}|${qatorlar.map((q) => q.fotoId).sort((a, b) => a - b).join(',')}`;
+  return new TextEncoder().encode(s);
+}
+
 export const davrMatni = (dan: string | null, gacha: string | null) => (dan || gacha ? `${dan ?? '…'} — ${gacha ?? '…'}` : 'весь период');
 
 /** Hisobotga kiradigan qatorlar (davr bo'yicha) va ortiqcha sonini qaytaradi. */
