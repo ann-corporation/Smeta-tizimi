@@ -75,7 +75,7 @@ const RUXSAT_JADVALLAR = new Set([
   /* АОСР — yashirin ishlar akti (2026-08-27, hujjat domeni) */
   't2_aosr_reestr', 't2_aosr_coverage', 't2_aosr_qator_holat',
   /* Ijro hujjatlari v2 (2026-10-01): АОСР blank maydonlari, laboratoriya, logo */
-  't2_aosr_reestr_v2', 't2_lab_protokol_reestr', 't2_kompaniya_logo',
+  't2_aosr_reestr_v2', 't2_aosr_bog', 't2_lab_protokol_reestr', 't2_kompaniya_logo',
   /* Nakrutka podval konstruktori (2026-10-01) */
   't2_nakrutka_podval_royxat',
   /* Narx manbalari va dalil (2026-10-01) */

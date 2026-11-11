@@ -2,7 +2,7 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 146,
+      "id": 147,
       "sana": "2026-11-11",
       "sarlavha": "Ish varag‘i: F2 rejimi, jami (saqlanmagan bilan), filtrlar va «?» yordam",
       "bandlar": [
@@ -10,6 +10,16 @@
         "F2 faktdan yoki smetadan oshib ketsa, qatorda sariq belgi chiqadi — bu faqat ogohlantirish, hajm bloklanmaydi.",
         "Pastki panelda saqlanmagan kiritmalar bilan jami va farq (Δ) ko‘rinadi — ham fakt, ham F2 uchun; ustamali summa asosiy, ustamasiz yonida. Narxi noma’lum qator 0 deb hisoblanmaydi.",
         "Alt+1…4 — filtr: hammasi / qoldig‘i bor / smetadan oshgan / narxsiz. «?» — barcha tugmalar ro‘yxati. Sukut bo‘yicha Fakt rejimi o‘zgarmagan."
+      ]
+    },
+    {
+      "id": 146,
+      "sana": "2026-11-11",
+      "sarlavha": "Ijro hujjatlari: «Nima yetishmayapti» va butun paket",
+      "bandlar": [
+        "АОСР sahifasi tepasida «Nima yetishmayapti» paneli: yashirin ish bajarilgan, lekin АОСР yo‘q qatorlar smeta razdeli bo‘yicha. Razdel yonidagi bitta tugma — shu razdel uchun АОСР qoralamasi tayyor (ish nomi, hajm, materiallar, fakt sanalari, imzochilar). Holat doim «Qoralama» — tasdiqlashni o‘zingiz qilasiz.",
+        "Akt reestri endi bir xil tartibda: razdel → ish sanasi → raqam; tartib raqami uzilishsiz. Raqamlarda bo‘shliq/takror va beton, grunt zichlash, payvand kabi ishlarda ulanmagan laboratoriya protokoli ogohlantirish bo‘lib chiqadi (bloklamaydi).",
+        "«Butun paket» tugmasi: reestr + hamma АОСР (va protokollar reestri) bitta ZIP faylda."
       ]
     },
     {
