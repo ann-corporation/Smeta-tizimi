@@ -2,6 +2,17 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 156,
+      "sana": "2026-11-12",
+      "sarlavha": "Buyurtmachi uchun «Bugun»: portfel, qaror kutayotganlar va to‘lov xabari",
+      "bandlar": [
+        "Buyurtmachi kabineti tepasida 6 ta katta tugma: hujjatlarni qabul/qaytarish, murojaatlar, predpisaniya berish (muddat va foto bilan), to‘lov xabari, oylik hisobot va aloqalar. Har tugmada sizdan nima kutilayotgani soni ko‘rinadi.",
+        "Portfel obyektlar bo‘yicha: shartnoma, smeta, pudratchi hisoboti bo‘yicha fakt, tasdiqlangan F2 (QQS bilan, ustamali, ustamasiz), Forma-3, to‘langan va qarz. Noma‘lum yoki pudratchi ochmagan ko‘rsatkich «—» bo‘ladi, nol emas.",
+        "Forma-3 bo‘yicha to‘lagan summangizni pudratchiga xabar qilasiz; pudratchi tasdiqlasa u to‘lovlar va qarz hisobiga yoziladi, rad etsa sababi sizga ko‘rinadi.",
+        "Butun portfelning oylik hisoboti bitta Excel faylda yuklanadi."
+      ]
+    },
+    {
       "id": 155,
       "sana": "2026-11-12",
       "sarlavha": "Smeta yuklash endi 3 qadamda: fayl, tekshiruv, yuklash",

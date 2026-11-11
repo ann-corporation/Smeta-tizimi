@@ -27,6 +27,8 @@ const OQISH: Record<string, string> = {
   murojaat: 't2_tomon_murojaat_tafsilot_v1',
   murojaat_turlari: 't2_tomon_murojaat_turlari_v1',
   ulashlar: 't2_obyekt_ulashlar_v1',
+  bugun: 't2_zakazchik_bugun_v1',
+  tolovlar: 't2_tomon_tolov_royxat_v1',
   izohlar: 't2_izohlar_v1',
   imzochilar: 't2_obyekt_imzochilar_v1',
   imzochi_tarix: 't2_imzochi_tarix_v1',
@@ -48,6 +50,9 @@ const YOZISH: Record<string, string> = {
   murojaat_hujjat: 't2_tomon_murojaat_hujjat_v1',
   murojaat_qaror: 't2_tomon_murojaat_qaror_v1',
   murojaat_bekor: 't2_tomon_murojaat_bekor_v1',
+  tolov_xabar: 't2_zakazchik_tolov_yoz_v1',
+  tolov_xabar_bekor: 't2_zakazchik_tolov_bekor_v1',
+  tolov_qaror: 't2_tomon_tolov_qaror_v1',
   loyiha_umumiy: 't2_loyiha_umumiy_v1',
   ulash: 't2_obyekt_ulash_v1',
   qator_izoh: 't2_izoh_yoz_v1',
@@ -191,6 +196,21 @@ export function yozishYuki(amal: string, so: Yuk): Yuk | string {
       return { p_kompaniya_id, p_obyekt_id: son(so.obyekt_id), p_rol: String(so.rol), p_daraja: daraja, p_razdel_id: daraja === 'razdel' ? son(so.razdel_id) : null,
                p_tashkilot: matn(so.tashkilot, 200), p_lavozim: matn(so.lavozim, 200), p_fio: matn(so.fio, 200), p_operation_id: opId(so.operation_id) };
     }
+    case 'tolov_xabar': {
+      if (!sonmi(so.obyekt_id)) return 'obyekt_id kerak';
+      const summa = Number(so.summa);
+      if (!Number.isFinite(summa) || summa <= 0 || summa >= 1e15) return 'Summa noldan katta bo‘lishi kerak';
+      const sana = String(so.sana ?? '');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(sana)) return 'sana YYYY-MM-DD bo‘lishi kerak';
+      return { p_kompaniya_id, p_obyekt_id: son(so.obyekt_id), p_forma3_id: ixtSon(so.forma3_id), p_summa: summa, p_sana: sana,
+               p_hujjat_raqam: matn(so.hujjat_raqam, 60), p_izoh: matn(so.izoh, 1000), p_operation_id: opId(so.operation_id) };
+    }
+    case 'tolov_xabar_bekor':
+      if (!sonmi(so.tolov_id)) return 'tolov_id kerak';
+      return { p_kompaniya_id, p_id: son(so.tolov_id) };
+    case 'tolov_qaror':
+      if (!sonmi(so.tolov_id) || !['tasdiq', 'rad'].includes(String(so.qaror))) return 'tolov_id va qaror (tasdiq/rad) kerak';
+      return { p_kompaniya_id, p_id: son(so.tolov_id), p_qaror: String(so.qaror), p_izoh: matn(so.izoh, 1000) };
     case 'loyiha_umumiy':
       return { p_kompaniya_id };
     case 'murojaat_bekor':
@@ -211,7 +231,11 @@ export function oqishYuki(bolim: string, q: URLSearchParams): Yuk | string {
   if (!sonmi(k)) return 'kompaniya_id kerak';
   const p_kompaniya_id = Number(k);
   switch (bolim) {
-    case 'aloqalar': case 'obyektlar': case 'resurslar': case 'murojaat_turlari': case 'imzochi_tarix': return { p_kompaniya_id };
+    case 'aloqalar': case 'obyektlar': case 'resurslar': case 'murojaat_turlari': case 'imzochi_tarix': case 'bugun': return { p_kompaniya_id };
+    case 'tolovlar': {
+      const y = q.get('yonalish'), h = q.get('holat');
+      return { p_kompaniya_id, p_yonalish: y === 'menga' || y === 'mendan' ? y : null, p_holat: h && /^[a-z_]{3,20}$/.test(h) ? h : null, p_limit: ixtSon(q.get('limit')) ?? 100 };
+    }
     case 'murojaat': return sonmi(q.get('murojaat_id')) ? { p_kompaniya_id, p_id: Number(q.get('murojaat_id')) } : 'murojaat_id kerak';
     case 'murojaatlar': {
       const y = q.get('yonalish'), h = q.get('holat');

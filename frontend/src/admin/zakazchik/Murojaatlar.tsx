@@ -5,15 +5,14 @@
  */
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Paperclip } from 'lucide-react';
-import { kechikkanKun } from '../../lib/nazorat/predpisaniya';
+import { Paperclip } from 'lucide-react';import { kechikkanKun } from '../../lib/nazorat/predpisaniya';
 import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { toast } from '../../umumiy/ui/Toast';
 import { sbT2ObyektlarOlKomp, type T2Obyekt } from '../../api/supabase';
-import { sbLoyihaUmumiy } from '../../api/t2-loyiha';
-import { hujjatYukla, hujjatYuklabOlishUrl } from '../../api/t2-hujjat-canonical';
+import { hujjatYuklabOlishUrl } from '../../api/t2-hujjat-canonical';
+import { murojaatDalilYukla } from './murojaat-dalil';
 import {
   aloqalarOl, murojaatBekor, murojaatHujjat, murojaatJavob, murojaatQarori, murojaatTafsilotOl, murojaatTurlariOl, murojaatYarat, murojaatlarOl, zakazchikObyektlarOl,
   type Aloqa, type Muhimlik, type MurojaatQisqa, type MurojaatTafsilot, type MurojaatTuri, type ZakazchikObyekt,
@@ -31,7 +30,9 @@ const turNomi = (k: string, turlar: readonly MurojaatTuri[]) => { const x = turl
 function Yaratish({ kompaniyaId, aloqalar, turlar, onYaratildi }: { kompaniyaId: number; aloqalar: Aloqa[]; turlar: MurojaatTuri[]; onYaratildi: () => void }) {
   const faol = aloqalar.filter((a) => a.holat === 'faol');
   const [aloqaId, setAloqaId] = useState<number | ''>('');
-  const [turi, setTuri] = useState('remark');
+  // ?yangi=predpisaniya — «Bugun» dagi katta tugmadan kelganda tur oldindan tanlangan (Router talab qilinmaydi).
+  const [turi, setTuri] = useState(() => (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('yangi') === 'predpisaniya' ? 'predpisaniya' : 'remark'));
+  const [foto, setFoto] = useState<File[]>([]);
   const [sarlavha, setSarlavha] = useState('');
   const [matn, setMatn] = useState('');
   const [muhimlik, setMuhimlik] = useState<Muhimlik>('oddiy');
@@ -53,10 +54,16 @@ function Yaratish({ kompaniyaId, aloqalar, turlar, onYaratildi }: { kompaniyaId:
   const yubor = async () => {
     if (aloqaId === '') return;
     setBand(true);
+    // Foto-dalil avval yuklanadi (xato bo'lsa murojaat yaratilmaydi); keyin murojaatga biriktiriladi.
+    const y = await murojaatDalilYukla(kompaniyaId, foto);
+    if (!y.ok) { setBand(false); toast(t(y.xato), 'danger'); return; }
     const r = await murojaatYarat(kompaniyaId, { aloqaId, turi, sarlavha, matn, muhimlik, muddat, joy, obyektId: obyektId === '' ? null : obyektId });
+    if (!r.ok) { setBand(false); toast(r.error, 'danger'); return; }
+    let biriktirilmadi = 0;
+    for (const id of y.idlar) { const h = await murojaatHujjat(kompaniyaId, r.natija.id, id); if (!h.ok) biriktirilmadi++; }
     setBand(false);
-    if (!r.ok) { toast(r.error, 'danger'); return; }
-    toast(t('Murojaat yuborildi'), 'ok'); setSarlavha(''); setMatn(''); setJoy(''); setMuddat(''); onYaratildi();
+    toast(biriktirilmadi ? t('Murojaat yuborildi, lekin {n} ta foto biriktirilmadi — murojaatni ochib qayta qo‘shing', { n: biriktirilmadi }) : t('Murojaat yuborildi'), biriktirilmadi ? 'warn' : 'ok');
+    setSarlavha(''); setMatn(''); setJoy(''); setMuddat(''); setFoto([]); onYaratildi();
   };
   if (!faol.length) return <p className="text-sm text-text-dim">{t('Murojaat yozish uchun avval faol aloqa kerak (Tomonlar aloqasi).')}</p>;
   return (
@@ -75,6 +82,8 @@ function Yaratish({ kompaniyaId, aloqalar, turlar, onYaratildi }: { kompaniyaId:
           <option value="">{t('— obyektsiz —')}</option><ObyektOptionlari obyektlar={obyektlar} /></select></label>
       <label className="text-xs text-text-dim">{t('Joy (qavat, o‘q, uchastka)')}<input className={`${inp} mt-1 block w-full`} value={joy} onChange={(e) => setJoy(e.target.value)} /></label>
       <label className="text-xs text-text-dim md:col-span-3">{t('Tavsif')}<textarea className={`${inp} mt-1 block h-16 w-full`} value={matn} onChange={(e) => setMatn(e.target.value)} /></label>
+      <label className="text-xs text-text-dim md:col-span-3">{t('Foto / fayl dalil (ixtiyoriy)')}
+        <input type="file" multiple accept="image/*,application/pdf" capture="environment" className="mt-1 block text-xs" onChange={(e) => setFoto(Array.from(e.target.files ?? []))} aria-label={t('Foto dalil')} /></label>
       <div className="flex items-end"><button type="button" className={tugmaAsosiy} disabled={band || aloqaId === '' || sarlavha.trim().length < 3} onClick={() => void yubor()}>{t('Murojaat yuborish')}</button></div>
     </div>
   );
@@ -92,17 +101,9 @@ function Tafsilot({ kompaniyaId, id, turlar, yangila }: { kompaniyaId: number; i
 
   /** Fayllarni R2 ga yuklaydi (kompaniyaning birinchi loyihasi ostida) va hujjat ID larini qaytaradi. */
   async function yukla(): Promise<number[] | null> {
-    if (!fayllar.length) return [];
-    const lr = await sbLoyihaUmumiy(kompaniyaId);
-    if (!lr.ok || !lr.id) { toast(lr.error || t('Fayl uchun loyiha topilmadi'), 'danger'); return null; }
-    const loyiha = { id: lr.id };
-    const idlar: number[] = [];
-    for (const file of fayllar) {
-      const r = await hujjatYukla({ file, kompaniyaId, loyihaId: loyiha.id, documentType: 'murojaat_dalil' });
-      if (!r.ok) { toast(r.xato || t('Fayl yuklanmadi'), 'danger'); return null; }
-      idlar.push(r.data.document_id);
-    }
-    return idlar;
+    const r = await murojaatDalilYukla(kompaniyaId, fayllar);
+    if (!r.ok) { toast(t(r.xato), 'danger'); return null; }
+    return r.idlar;
   }
   const javob = async () => {
     setBand(true);
