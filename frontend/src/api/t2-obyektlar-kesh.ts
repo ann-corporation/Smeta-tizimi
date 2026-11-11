@@ -1,4 +1,5 @@
-import { useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
+import { useQaytaUlanish } from '../desktop/qayta-ulanish';
 import { QueryClientContext, type QueryClient } from '@tanstack/react-query';
 import { sbT2ObyektlarOlKomp, type SbJavob, type T2Obyekt } from './supabase';
 import { obyektlarKlientiQayd } from './obyektlar-kesh-belgi';
@@ -46,19 +47,22 @@ export function useT2ObyektlarRoyxati(kompaniyaId: number | null | undefined) {
     const b = boshlangich();
     return { kid: kompaniyaId ?? null, obyektlar: b ?? [], xato: '', yuklanmoqda: kompaniyaId != null && !b };
   });
+  /** Tarmoq qaytganda ro'yxat keshni chetlab qayta o'qiladi va eski xato tozalanadi. */
+  const [qayta, setQayta] = useState(0);
+  useQaytaUlanish(useCallback(() => setQayta((n) => n + 1), []));
   useEffect(() => {
     let faol = true;
     if (kompaniyaId == null) { setHolat({ kid: null, obyektlar: [], xato: '', yuklanmoqda: false }); return; }
     const b = qc?.getQueryData<T2Obyekt[]>(obyektlarKaliti(kompaniyaId));
     setHolat((eski) => (eski.kid === kompaniyaId ? { ...eski, yuklanmoqda: !b && !eski.obyektlar.length }
       : { kid: kompaniyaId, obyektlar: b ?? [], xato: '', yuklanmoqda: !b }));
-    void obyektlarKeshdan(qc, kompaniyaId).then((r) => {
+    void obyektlarKeshdan(qc, kompaniyaId, qayta > 0).then((r) => {
       if (!faol) return;
       if (r.ok) setHolat({ kid: kompaniyaId, obyektlar: (r.qatorlar || []) as T2Obyekt[], xato: '', yuklanmoqda: false });
       else setHolat((eski) => ({ ...eski, kid: kompaniyaId, xato: 'Obyektlar kanonik ro‘yxatdan o‘qilmadi.', yuklanmoqda: false }));
     }).catch(() => { if (faol) setHolat((eski) => ({ ...eski, xato: 'Obyektlar kanonik ro‘yxatdan o‘qilmadi.', yuklanmoqda: false })); });
     return () => { faol = false; };
-  }, [qc, kompaniyaId]);
+  }, [qc, kompaniyaId, qayta]);
   const mos = holat.kid === (kompaniyaId ?? null);
   return { obyektlar: mos ? holat.obyektlar : [], xato: mos ? holat.xato : '', yuklanmoqda: mos ? holat.yuklanmoqda : kompaniyaId != null };
 }

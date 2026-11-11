@@ -15,6 +15,8 @@ vi.mock('../../api/supabase', async (asl) => ({
   sbT2QatorHolatOl: api.holat,
 }));
 vi.mock('../../api/t2-holat-qisman', () => ({ sbT2QatorHolatQisman: api.qisman, sbT2DaraxtQisman: api.daraxtQisman }));
+// Paket (tez yo'l) bu testlarda o'chiq — eski sahifalab yo'l sinaladi (paket alohida: api/t2-paket-oqish.test.ts).
+vi.mock('../../api/t2-paket-oqish', () => ({ paketdanDaraxtHolatOl: async () => null, paketTezYoliYoqilgan: () => false }));
 vi.mock('../../api/t2-price-control', () => ({ priceControlOl: api.narx }));
 vi.mock('../../api/t2-ozgarish', () => ({
   ozgarishMalumotOl: (...a: unknown[]) => api.oz(...a),
@@ -242,7 +244,7 @@ describe('useT2Daraxt — sahifalar orasida umumiy kesh', () => {
     // Keshdan — hali server tasdiqlamagan: eksport yopiq bo'lishi kerak.
     expect(ikkinchi.result.current.serverTasdiq).toBe(false);
     expect(ikkinchi.result.current.yangilanmoqda).toBe(true);
-    expect(api.daraxt).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(api.daraxt).toHaveBeenCalledTimes(2)); // paket tez yo'li (null) dan keyin eski yo'l
     await act(async () => { tugat({ ok: true, qatorlar: ROWS }); });
     await waitFor(() => expect(ikkinchi.result.current.serverTasdiq).toBe(true));
     await waitFor(() => expect(ikkinchi.result.current.yangilanmoqda).toBe(false));

@@ -4,6 +4,7 @@
  * (bir xil kirishdan bir xil bayt). Pul hisobi yo'q - ostatka-export / slichitelniy-vedomost yadrosidan.
  */
 import { sbT2DaraxtOl, sbT2QatorHolatOl, type T2Qator, type T2QatorHolat } from '../../api/supabase';
+import { paketdanDaraxtHolatOl, paketTezYoliYoqilgan } from '../../api/t2-paket-oqish';
 import { T2_DARAXT_USTUNLARI, T2_HOLAT_DARAXT_USTUNLARI_YOQ } from '../../api/t2-daraxt-ustunlar';
 import { ozgarishMalumotOl } from '../../api/t2-ozgarish';
 import { ozgarishRoyxatOl } from '../../api/t2-document-control';
@@ -24,6 +25,9 @@ export type DaraxtManba = { rows: T2Qator[]; states: T2QatorHolat[] };
 
 /** Daraxt va holat jadvalini bir marta o'qiydi (useT2Daraxt ham, paket ham shuni chaqiradi). Xato - sabab matni bilan. */
 export async function daraxtVaHolatOl(obyektId: number): Promise<{ ok: true; rows: T2Qator[]; states: T2QatorHolat[] } | { ok: false; xato: string }> {
+  // Tez yo'l: obyekt paketi — bitta so'rov (sahifalab ~10+ so'rov o'rniga). Ishlamasa — eski yo'l, natija bir xil.
+  const paket = paketTezYoliYoqilgan() ? await paketdanDaraxtHolatOl(obyektId) : null;
+  if (paket) return { ok: true, rows: paket.rows, states: paket.states };
   try {
     const [d, h] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbT2QatorHolatOl(obyektId, T2_HOLAT_DARAXT_USTUNLARI_YOQ)]);
     if (!d.ok || !h.ok) return { ok: false, xato: d.error || h.error || 'Kanonik daraxt o‘qilmadi.' };

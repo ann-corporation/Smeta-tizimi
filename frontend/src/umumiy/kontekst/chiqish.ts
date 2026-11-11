@@ -3,6 +3,8 @@
  * JavaScript o'chira olmaydi), keyin kompaniya konteksti va kesh tozalanadi. Har qanday qobiq shu funksiyani ishlatsin —
  * aks holda keyingi foydalanuvchi oldingi kompaniya kontekstini ko'radi.
  */
+import { qoralamaHammasiniOchir } from '../../lib/fakt-jurnal-qoralama';
+
 const KONTEKST_KALITLAR = ['t2_kompaniya_kontekst', 't2_active_kompaniya', 't2_global_rejim', 't2_kompaniya_id'];
 
 export async function tizimdanChiq() {
@@ -10,6 +12,7 @@ export async function tizimdanChiq() {
   try {
     document.cookie = 'sess=; Max-Age=0; path=/';
     for (const k of KONTEKST_KALITLAR) localStorage.removeItem(k);
+    qoralamaHammasiniOchir(localStorage); // saqlanmagan fakt qoralamalari keyingi hisobga o'tib ketmasin
   } catch { /* private mode */ }
   window.location.href = '/';
 }
