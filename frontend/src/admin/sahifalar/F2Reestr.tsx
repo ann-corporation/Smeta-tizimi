@@ -231,7 +231,8 @@ export default function F2Reestr() {
   const portfelHammasi = useMemo(() => (reestr ? reestr.qatorlar.map(q => ({ obyektId: q.obyekt.id })) : []), [reestr]);
   const portfelUstamali = usePortfelUstamali(portfelHammasi);
   /** F2 uchligi — server paketi (rahbar paneli): obyekt bo'yicha va kompaniya jami. Panel o'qilmasa bo'sh (UI «hisoblanmadi» deydi). */
-  const rp = useRahbarPanel(kompaniyaId);
+  /* Tezlik: og'ir rahbar paketi reestr jadvali (asosiy ko'rinish) kelgach so'raladi - u bilan raqobatlashmaydi (prod: reestr ~16 s -> 21 s edi). */
+  const rp = useRahbarPanel(reestr ? kompaniyaId : null);
   const f2Paket = useMemo(() => new Map((rp.data?.obyektlar ?? []).map(o => [o.obyekt_id, o.f2] as const)), [rp.data]);
   const f2Jami = rp.data?.kartalar.bajarildi.jami ?? null;
   /* Excel uslubidagi ustun filtrlari (egasi 2026-10-27): yuqoridagi qidiruv/holat filtri bilan VA; tekis — saralash mumkin. */
