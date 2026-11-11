@@ -12,6 +12,7 @@ import { qarzdorlikImport, qarzdorlikRoyxatOl, qarzdorlikSaqla, qarzdorlikXato, 
 import { ASOS_TURLAR, qarzHisobla, qatorSumma, royxatJami, type AsosQator, type AsosTur, type OgohKod, type QarzNatija } from '../../lib/qarzdorlik/hisob';
 import { parseVaraqlar, readWorkbookGrids, sonOl, type ImportNatija } from '../../lib/qarzdorlik/parse';
 import { qarzdorlikXlsxYarat } from '../../lib/qarzdorlik/eksport';
+import { DebitorPanel } from './DebitorPanel';
 
 const kirit = 'w-full rounded-md border border-border bg-surface px-2 py-1 text-[12.5px] text-text outline-none focus:border-accent';
 const yorliq = 'mb-1 block text-[11px] font-medium uppercase tracking-wide text-text-mute';
@@ -332,6 +333,7 @@ export function Qarzdorlik() {
     >
       <div className="space-y-3">
         {xato && <p role="alert" className="text-[13px] text-danger">{xato}</p>}
+        {kid != null && <DebitorPanel kid={kid} />}
         {import_ && kid && <ImportOyna kid={kid} obyektlar={royxat?.obyektlar ?? []} onYop={() => setImport(false)} onTayyor={() => { setImport(false); void yukla(); }} />}
 
         <div className="flex flex-wrap items-center gap-2">

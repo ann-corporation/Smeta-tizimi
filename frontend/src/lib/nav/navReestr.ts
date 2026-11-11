@@ -191,24 +191,34 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
     id: 'sotuv', nom: 'Uy sotish', ikonka: 'Building2', qatlam: 'ish',
     bandlar: [
       { nom: 'Uy sotish', ikonka: 'Building2', sahifalar: [
-        { yol: '/admin/sotuv', ilova: 'sotuv', nom: 'Uy sotish', ruxsat: ['sales.read'], scope: 'COMPANY_SCOPED', qoshimcha: true },
+        { yol: '/admin/sotuv', ilova: 'sotuv', nom: 'Uy sotish', ruxsat: ['sales.read'], scope: 'COMPANY_SCOPED' },
       ] },
     ],
   },
   {
     id: 'kompaniya', nom: '⚙ Kompaniya', ikonka: 'Settings', qatlam: 'kompaniya',
     bandlar: [
-      /* Sozlamalar 5 joyda, audit 4, AI 3 (M7) → bitta «Kompaniya» bandi, tepada tablar. */
-      { nom: 'Kompaniya boshqaruvi', ikonka: 'Settings', sahifalar: [
-        { yol: '/admin/kompaniya', ilova: 'yadro', nom: 'Kompaniya, a‘zolar va modullar', ruxsat: [RAHBARIYAT, 'company.member.manage', 'company.profile.update'], scope: 'GLOBAL' },
-        /* Tizim sog'lig'i, integratsiyalar, fon ishlari, imkoniyat bayroqlari — tizimga oid (egasi 2026-10-27). Kompaniyaning
-         * o'z audit jurnali «Kompaniya → Audit» tabida qoladi. */
-        { yol: '/admin/system-control', ilova: 'platforma', nom: 'Integratsiyalar va audit', ruxsat: [RAHBARIYAT], scope: 'GLOBAL', faqatSuperadmin: true },
-        { yol: '/admin/tizim-sozlama', ilova: 'yadro', nom: 'Sozlamalar', ruxsat: [RAHBARIYAT] },
-        { yol: '/admin/hujjat-dizayn', ilova: 'yadro', nom: 'Hujjatlar dizayni', ruxsat: [RAHBARIYAT, 'company.profile.update'] },
-        { yol: '/admin/tokenlar', ilova: 'yadro', nom: 'Tokenlar va obuna', ruxsat: [RAHBARIYAT, 'company.member.manage'] },
-        { yol: '/admin/ai-agentlar', ilova: 'yadro', nom: 'AI ishchilar', ruxsat: [RAHBARIYAT] },
-        { yol: '/admin/korzinka', ilova: 'yadro', nom: 'Korzinka', ruxsat: [RAHBARIYAT] },
+      /* Navigatsiya oqimi (2026-11-11): avval bitta band + tepada 7 tab edi, sahifa ichida yana tablar (ikki qavat tab). Endi har sahifa — yon menyuda o'z bandi (bitta tab darajasi: sahifa ichidagi). */
+      { nom: 'Kompaniya, a‘zolar va modullar', ikonka: 'Settings', sahifalar: [
+          { yol: '/admin/kompaniya', ilova: 'yadro', nom: 'Kompaniya, a‘zolar va modullar', ruxsat: [RAHBARIYAT, 'company.member.manage', 'company.profile.update'], scope: 'GLOBAL' },
+      ] },
+      { nom: 'Integratsiyalar va audit', ikonka: 'ShieldCheck', sahifalar: [
+          { yol: '/admin/system-control', ilova: 'platforma', nom: 'Integratsiyalar va audit', ruxsat: [RAHBARIYAT], scope: 'GLOBAL', faqatSuperadmin: true },
+      ] },
+      { nom: 'Sozlamalar', ikonka: 'Settings', sahifalar: [
+          { yol: '/admin/tizim-sozlama', ilova: 'yadro', nom: 'Sozlamalar', ruxsat: [RAHBARIYAT] },
+      ] },
+      { nom: 'Hujjatlar dizayni', ikonka: 'FileText', sahifalar: [
+          { yol: '/admin/hujjat-dizayn', ilova: 'yadro', nom: 'Hujjatlar dizayni', ruxsat: [RAHBARIYAT, 'company.profile.update'] },
+      ] },
+      { nom: 'Tokenlar va obuna', ikonka: 'Briefcase', sahifalar: [
+          { yol: '/admin/tokenlar', ilova: 'yadro', nom: 'Tokenlar va obuna', ruxsat: [RAHBARIYAT, 'company.member.manage'] },
+      ] },
+      { nom: 'AI ishchilar', ikonka: 'Box', sahifalar: [
+          { yol: '/admin/ai-agentlar', ilova: 'yadro', nom: 'AI ishchilar', ruxsat: [RAHBARIYAT] },
+      ] },
+      { nom: 'Korzinka', ikonka: 'Trash2', sahifalar: [
+          { yol: '/admin/korzinka', ilova: 'yadro', nom: 'Korzinka', ruxsat: [RAHBARIYAT] },
       ] },
     ],
   },
@@ -235,8 +245,6 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
        * tasdiqlasa (`NavKontekst.tizimXaritasi`, navFiltr); sahifa va RPC ham alohida tekshiradi. Kompaniya roli bilan EMAS. */
       { nom: 'Tizim xaritasi', ikonka: 'Gauge', sahifalar: [{ yol: '/admin/tizim-xaritasi', ilova: 'platforma', nom: 'Tizim xaritasi', ruxsat: [] }] },
       { nom: 'Fayl bog‘lash (texnik)', ikonka: 'Link2', sahifalar: [{ yol: '/admin/fayl-boglash', ilova: 'platforma', nom: 'Fayl bog‘lash (texnik)', ruxsat: [] }] },
-      /* Eski SINOV qobig'i (/admin/test/*) — yo'llar o'chirilmagan, menyuda faqat superadmin uchun. _demo/* menyuda yo'q. */
-      { nom: 'Sinov qobig‘i (eski)', ikonka: 'FlaskConical', sahifalar: [{ yol: '/admin/test', ilova: 'platforma', nom: 'Sinov qobig‘i (eski)', ruxsat: [] }] },
     ],
   },
 ];

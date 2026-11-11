@@ -6,10 +6,11 @@
   "Qancha bajarildi": { "ru": "Сколько выполнено", "en": "Progress so far" },
   "Yashirin ish akti": { "ru": "Акт скрытых работ", "en": "Hidden works act" },
   "Ombor (kirim, chiqim)": { "ru": "Склад (приход, расход)", "en": "Warehouse (in, out)" },
-  "AI ga so‘rash: «{q}»": { "ru": "Спросить ИИ: «{q}»", "en": "Ask AI: “{q}”" },
-  "AI buyruq satri (Ctrl+Shift+K)": { "ru": "Командная строка ИИ (Ctrl+Shift+K)", "en": "AI command bar (Ctrl+Shift+K)" },
   "Hujjat tayyorlanmoqda… (token narxi tayyor bo‘lgach ko‘rsatiladi)": { "ru": "Документ готовится… (стоимость в токенах — после готовности)", "en": "Preparing the document… (token cost shown when ready)" },
   "Boshqaruv markazi hali yuklanmadi — Excel tayyor bo‘lgach yoqiladi": { "ru": "Центр управления ещё не загружен — Excel включится после загрузки", "en": "Control center is still loading — Excel will be enabled when ready" },
   "Fayl yuklamaydi: Nakopitelniy sahifasida shu davr uchun Forma 3 ochiladi": { "ru": "Файл не скачивается: откроется Форма № 3 за этот период на странице накопительной", "en": "Does not download: opens Form 3 for this period on the cumulative page" },
-  "Forma 3 ga o‘tish": { "ru": "Перейти к Форме № 3", "en": "Go to Form 3" }
+  "Forma 3 ga o‘tish": { "ru": "Перейти к Форме № 3", "en": "Go to Form 3" },
+  "Tizimda nima yangi": { "ru": "Что нового в системе", "en": "What's new" },
+  "Yagona oy: F2, nakopitelniy va hujjatlar shu oy bilan ishlaydi": { "ru": "Единый месяц: Ф-2, накопительная и документы работают с этим месяцем", "en": "Shared month: F2, cumulative statement and documents use this month" },
+  "Oyni yuqoridagi «Davr» dan o‘zgartiring": { "ru": "Меняйте месяц в «Периоде» сверху", "en": "Change the month in the top «Period» field" }
 }

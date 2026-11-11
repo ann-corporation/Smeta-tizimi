@@ -223,6 +223,8 @@ export function scopeToParams(base: URLSearchParams, next: PtoScope): URLSearchP
   return params;
 }
 
+export const OY_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+
 const sameScope = (a: PtoScope, b: PtoScope) => a.projectId === b.projectId && a.objectId === b.objectId
   && a.periodId === b.periodId && a.sourceDocumentId === b.sourceDocumentId && a.revisionId === b.revisionId;
 
@@ -252,7 +254,8 @@ export type PtoObjectDetail = { objectId: number; periods: PtoPeriod[]; document
  */
 export function validateDetail(cur: PtoScope, d: PtoObjectDetail): PtoScope {
   if (cur.objectId !== d.objectId) return cur;
-  const periodId = cur.periodId && d.periods.some((row) => row.id === cur.periodId) ? cur.periodId : null;
+  /* Yagona oy: istalgan haqiqiy oy (YYYY-MM) qabul qilinadi — yangi oy uchun F2 hali yo'q bo'lishi mumkin (egasi 2026-11-11). */
+  const periodId = cur.periodId && (OY_RE.test(cur.periodId) || d.periods.some((row) => row.id === cur.periodId)) ? cur.periodId : null;
   const chosenDoc = cur.sourceDocumentId && d.documents.some((row) => row.id === cur.sourceDocumentId) ? cur.sourceDocumentId : null;
   const sourceDocumentId = chosenDoc ?? (d.documents.length === 1 ? d.documents[0].id : null);
   const docRevisions = sourceDocumentId == null ? [] : d.revisions.filter((row) => row.documentId === sourceDocumentId);
@@ -410,6 +413,12 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
     updateScope((cur) => validateDetail(cur, current));
   }, [current, scope.periodId, scope.sourceDocumentId, scope.revisionId, updateScope]);
 
+  /* Oy tanlanmagan bo'lsa — obyektda oxirgi faollik (F2 akti) oyi; keyin foydalanuvchi istalgan oyni tanlay oladi. */
+  useEffect(() => {
+    if (!current || scope.periodId != null || !current.periods.length || !isPtoRoute(location.pathname)) return;
+    updateScope((cur) => (cur.periodId == null ? { ...cur, periodId: current.periods[0].id } : cur));
+  }, [current, scope.periodId, location.pathname, updateScope]);
+
   const periods = useMemo(() => current?.periods ?? [], [current]);
   const sourceDocuments = useMemo(() => current?.documents ?? [], [current]);
   const revisions = useMemo(() => current?.revisions ?? [], [current]);
@@ -435,7 +444,7 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
   }, [companyId, objects, updateScope]);
 
   const setPeriodId = useCallback((id: string | null) => {
-    if (id != null && !periods.some((row) => row.id === id)) return;
+    if (id != null && !OY_RE.test(id) && !periods.some((row) => row.id === id)) return;
     updateScope((cur) => ({ ...cur, periodId: id }));
   }, [periods, updateScope]);
 
@@ -541,10 +550,7 @@ export function PTOWorkspaceBar() {
         <ObyektOptionlari obyektlar={objects} kompaniyaId={workspace.companyId} />
       </select>
       <label className="sr-only" htmlFor="pto-period-select">Davr</label>
-      <select id="pto-period-select" aria-label="PTO davr" value={workspace.scope.periodId ?? ''} onChange={(event) => workspace.setPeriodId(event.target.value || null)} disabled={!workspace.periods.length} className={`${tanlov} w-[112px]`}>
-        <option value="">Davr tanlang</option>
-        {workspace.periods.map((row) => <option key={row.id} value={row.id}>{row.label}</option>)}
-      </select>
+      <input id="pto-period-select" type="month" aria-label="PTO davr" title={t('Yagona oy: F2, nakopitelniy va hujjatlar shu oy bilan ishlaydi')} value={workspace.scope.periodId ?? ''} onChange={(event) => workspace.setPeriodId(event.target.value || null)} className={`${tanlov} w-[132px]`} />
       <details className="relative">
         <summary className={`flex h-8 cursor-pointer list-none items-center gap-1 rounded-md border px-2 text-xs ${manbaTanlangan ? 'border-accent/40 text-accent' : 'border-border text-text-dim'}`}>{t('Manba')} ▾</summary>
         <div className="absolute left-0 top-9 z-40 flex w-[280px] flex-col gap-2 rounded-lg border border-border bg-surface p-2 shadow-lg">

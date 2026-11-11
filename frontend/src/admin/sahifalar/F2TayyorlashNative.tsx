@@ -170,7 +170,10 @@ export function F2TayyorlashNative() {
   /** «Yangi qatorlar smeta narxida» (pereraschet qoralamasida sukut YOQIQ): null — operator tanlamagan. */
   const [smetaNarxTanlov, setSmetaNarxTanlov] = useState<boolean | null>(null);
   /** «Faktdan F2» (Fakt jurnalidan ?oy=YYYY-MM): davr fakt sahifasida tanlangan bo'lsa — shu oy. */
-  const [oy, setOy] = useState(() => { const p = params.get('oy'); return p && /^\d{4}-\d{2}$/.test(p) ? `${p}-01` : oyBoshlanishi(); });
+  /* Yagona oy (egasi 2026-11-11): F2 oyi yuqoridagi umumiy oydan olinadi; sahifaning o'z oy tanlovi yo'q. Provider bo'lmasa — mahalliy holat. */
+  const [oyMahalliy, setOyMahalliy] = useState(() => { const p = params.get('oy'); return p && /^\d{4}-\d{2}$/.test(p) ? `${p}-01` : oyBoshlanishi(); });
+  const oy = workspace.isProvider && workspace.scope.periodId ? `${workspace.scope.periodId}-01` : oyMahalliy;
+  const setOy = (v: string) => { setOyMahalliy(v); if (workspace.isProvider && /^\d{4}-\d{2}/.test(v)) workspace.setPeriodId(v.slice(0, 7)); };
   const [raqam, setRaqam] = useState('');
   const [qidir, setQidir] = useState('');
   /** Bitta almashtirgich: faqat shu davrda hajmi kiritilgan ishlar (hamma bo'limlardan). */
@@ -1132,7 +1135,7 @@ export function F2TayyorlashNative() {
             <option value="">{t('-- obyektni tanlang --')}</option>{validId && !obyektlar.some((item) => item.id === obyektId) && <option value={obyektId}>{t('Obyekt')} {'#'}{obyektId}</option>}<ObyektOptionlari obyektlar={obyektlar} />
           </select>
         </label>
-        <label className="text-[12px] font-medium text-text-dim">{t('Davr')}<input aria-label="F2 davri" type="month" disabled={aktId != null} title={aktId != null ? t('Qoralama davri tahrirda o‘zgarmaydi') : undefined} value={oy.slice(0, 7)} onChange={(event) => setOy(`${event.target.value}-01`)} className="mt-1.5 block rounded-lg border border-border bg-surface-2 px-3 py-2 text-text" /></label>
+        {workspace.isProvider ? <div className="text-[12px] font-medium text-text-dim" title={t('Oyni yuqoridagi «Davr» dan o‘zgartiring')}>{t('Davr')}<div aria-label="F2 davri" className="mt-1.5 block rounded-lg border border-border bg-surface-2 px-3 py-2 text-text">{oy.slice(0, 7)}</div></div> : <label className="text-[12px] font-medium text-text-dim">{t('Davr')}<input aria-label="F2 davri" type="month" disabled={aktId != null} title={aktId != null ? t('Qoralama davri tahrirda o‘zgarmaydi') : undefined} value={oy.slice(0, 7)} onChange={(event) => setOy(`${event.target.value}-01`)} className="mt-1.5 block rounded-lg border border-border bg-surface-2 px-3 py-2 text-text" /></label>}
         <div className="text-[12px] font-medium text-text-dim">
           <label>{t('F2 raqami')}<input aria-label="F2 raqami" value={raqam} disabled={aktId != null} onChange={(e) => setRaqam(e.target.value)} placeholder={raqamTaklif ? t('masalan {r}', { r: raqamTaklif }) : t('masalan 7')} className="mt-1.5 block w-28 rounded-lg border border-border bg-surface-2 px-3 py-2 text-text" /></label>
           {raqamTaklif && !raqam.trim() && aktId == null && <button type="button" onClick={() => setRaqam(raqamTaklif)} className="fz-btn fz-btn--ghost fz-btn--sm mt-1" title={t('Shu obyektdagi eng katta F2 raqamidan keyingisi')}><Sparkles aria-hidden="true" />{t('Keyingi: № {r}', { r: raqamTaklif })}</button>}

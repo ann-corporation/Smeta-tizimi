@@ -1,18 +1,16 @@
 import { useState, useEffect, useId, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Building, CornerDownLeft, Sparkles } from 'lucide-react';
+import { Search, Building, CornerDownLeft } from 'lucide-react';
 import { useKompaniya } from '../kontekst/KompaniyaKontekst';
 import { sbT2ObyektlarOlKomp, type T2Obyekt } from '../../api/supabase';
 import { t } from '../../i18n/til';
 import { qidiruvMos } from './commandPaletteQidiruv';
-import { isPtoRoute } from '../kontekst/PTOWorkspaceContext';
-import { AI_BUYRUQ_OCH_HODISA } from './aiBuyruqHodisa';
 
 /** Sidebar bilan BIR manba: AdminShell rol/ruxsat/modul filtridan o'tgan bandlarni beradi (qattiq havola yo'q). */
 export type PaletteBand = { yol: string; nom: string; guruh: string };
 
-type Natija = { kalit: string; yol: string; nom: string; izoh: string; tur: 'sahifa' | 'obyekt' | 'ai' };
+type Natija = { kalit: string; yol: string; nom: string; izoh: string; tur: 'sahifa' | 'obyekt' };
 
 const OBYEKT_CHEGARA = 8;
 
@@ -41,7 +39,7 @@ export function CommandPalette({ bandlar }: { bandlar: PaletteBand[] }) {
   const studiyada = pathname.startsWith('/admin/smeta-studio');
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k' && !e.shiftKey && !studiyada) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k' && !studiyada) {
         e.preventDefault();
         setIsOpen((prev) => !prev);
       }
@@ -66,17 +64,9 @@ export function CommandPalette({ bandlar }: { bandlar: PaletteBand[] }) {
     ? (obyektlar.data || []).filter((o) => qidiruvMos(o.nom || '', query)).slice(0, OBYEKT_CHEGARA)
       .map((o) => ({ kalit: `obyekt-${o.id}`, yol: `/admin/holat/${o.id}`, nom: o.nom, izoh: t('Obyekt'), tur: 'obyekt' }))
     : [];
-  /* AI buyruq satri (PTO sahifalarida) — alohida oyna emas, shu palitradagi bitta band (Ctrl+K endi bitta oyna ochadi). */
-  const aiBand: Natija[] = query.trim().length >= 3 && isPtoRoute(pathname)
-    ? [{ kalit: 'ai-buyruq', yol: 'ai:buyruq', nom: t('AI ga so‘rash: «{q}»', { q: query.trim() }), izoh: t('AI buyruq satri'), tur: 'ai' }] : [];
-  const natijalar = [...sahifalar, ...obyektNatija, ...aiBand];
+  const natijalar = [...sahifalar, ...obyektNatija];
 
   const handleSelect = (route: string) => {
-    if (route === 'ai:buyruq') {
-      setIsOpen(false); setQuery('');
-      setTimeout(() => window.dispatchEvent(new CustomEvent(AI_BUYRUQ_OCH_HODISA)), 0);
-      return;
-    }
     navigate(route);
     setIsOpen(false);
     setQuery('');
@@ -98,7 +88,7 @@ export function CommandPalette({ bandlar }: { bandlar: PaletteBand[] }) {
       role="option"
       className={`w-full flex items-center gap-3 px-3 py-2 text-left rounded-[var(--radius-sm)] transition-colors ${i === faol ? 'bg-[var(--accent-soft)] text-text' : 'text-text-dim hover:bg-surface-3 hover:text-text'}`}
     >
-      {n.tur === 'ai' ? <Sparkles size={16} className="text-accent flex-shrink-0" /> : n.tur === 'obyekt' ? <Building size={16} className="text-text-dim flex-shrink-0" /> : <Search size={16} className="text-accent flex-shrink-0" />}
+      {n.tur === 'obyekt' ? <Building size={16} className="text-text-dim flex-shrink-0" /> : <Search size={16} className="text-accent flex-shrink-0" />}
       <span className="flex-1 truncate">{n.nom}</span>
       <span className="text-[11px] text-text-dim truncate max-w-[40%]">{n.izoh}</span>
       {i === faol && <CornerDownLeft size={14} className="text-text-dim flex-shrink-0" />}
@@ -135,7 +125,6 @@ export function CommandPalette({ bandlar }: { bandlar: PaletteBand[] }) {
             <div className="px-3 py-2 text-[11px] font-semibold text-text-mute uppercase tracking-[.06em] mb-1 mt-2">{t('Obyektlar')}</div>
           )}
           {obyektNatija.map((n, i) => qator(n, sahifalar.length + i))}
-          {aiBand.map((n, i) => qator(n, sahifalar.length + obyektNatija.length + i))}
           {natijalar.length === 0 && (
             <div className="px-4 py-8 text-center text-text-dim">{t('Hech narsa topilmadi')}</div>
           )}

@@ -4,7 +4,7 @@ import { useSessiya } from '../api/hooks';
 import { HotkeyYordam } from '../lib/hotkeys/HotkeyYordam';
 import { AlertTriangle, ChevronDown, ChevronRight, ShieldCheck, Crown } from 'lucide-react';
 import { Map, LogOut, Building2, Tags, Calculator, FileOutput, HardHat, ShieldAlert, Settings, FileText, Link2, FileStack, Gauge, FlaskConical, LayoutDashboard, BarChart, ClipboardList, Briefcase, Box, Trash2, Users, FolderKanban, Menu, X, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
-import { Inbox, Truck, User } from 'lucide-react';
+import { Inbox, Truck, User, Search } from 'lucide-react';
 import F2NavbatChip from '../umumiy/ui/F2NavbatChip';
 import { menyuTekshirDev } from '../umumiy/marshrutTekshir';
 import { KompaniyaProvider, useKompaniya } from '../umumiy/kontekst/KompaniyaKontekst';
@@ -24,6 +24,7 @@ import { SIDEBAR_HODISA } from '../components/akkaunt/korinish-sozlama';
 import { AiHelper } from '../umumiy/ui/AiHelper';
 import { CommandPalette } from '../umumiy/ui/CommandPalette';
 import { QollanmaBoshqaruv } from '../components/qollanma/QollanmaKarta';
+import { NimaYangiBelgi } from '../components/qollanma/NimaYangiBelgi';
 import { BolimTablariKontekst } from './bolimTablariKontekst';
 import { NAV_GURUHLAR, NAV_SAHIFALAR, navSahifa, type NavIkonka } from '../lib/nav/navReestr';
 import { menyuQur, ilovalarRoyxati, kundalikIshlar, type NavKontekst } from '../lib/nav/navFiltr';
@@ -344,7 +345,7 @@ function AdminShellInner() {
           {k.superadmin && k.joriy?.membershipRole && <span className="hidden text-[10px] text-text-dim 2xl:inline">{t('Kompaniyadagi rol')}: {k.joriy.membershipRole}</span>}
           <PTOWorkspaceBar />
           <AiBuyruqSatri />
-          <div className="ml-auto flex items-center gap-2"><QollanmaBoshqaruv foydalanuvchi={sess.data?.email} /><TilTanlagich ixcham /><Qongiroqcha /><AkkauntTugmasi /></div>
+          <div className="ml-auto flex items-center gap-2"><button type="button" onClick={() => window.dispatchEvent(new CustomEvent('palitra:och'))} aria-label={t('Sahifa yoki obyekt izlash...')} title={t('Sahifa yoki obyekt izlash...')} className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2 text-[12px] text-text-dim hover:text-text"><Search size={14} aria-hidden="true" /><span className="hidden xl:inline">{t('Qidirish')}</span></button><NimaYangiBelgi /><QollanmaBoshqaruv foydalanuvchi={sess.data?.email} /><TilTanlagich ixcham /><Qongiroqcha /><AkkauntTugmasi /></div>
         </div>
 
         {/* ⚠️ 2026-09-07 (Claude, P0): AVVAL bu yerda `sess.data.yozaOladi`

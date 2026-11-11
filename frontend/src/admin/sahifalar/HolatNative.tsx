@@ -57,7 +57,7 @@ export function HolatNative() {
   /* Ish varag'i rejimi (egasi 2026-11-11): URL `?rejim=varaq` (route emas); sukut — Daraxt. Og'ir panellar — bitta «Boshqa» tugmasi ortida. */
   const varaq = searchParams.get('rejim') === 'varaq';
   const [boshqaOchiq, setBoshqaOchiq] = useState(false);
-  const rejimQoy = (r: 'daraxt' | 'varaq') => setSearchParams((p) => { const n = new URLSearchParams(p); if (r === 'varaq') n.set('rejim', 'varaq'); else n.delete('rejim'); return n; }, { replace: true });
+  const rejimQoy = (r: 'daraxt' | 'varaq') => setSearchParams((p) => { const n = new URLSearchParams(p); if (r === 'varaq') { n.set('rejim', 'varaq'); n.delete('panel'); setBoshqaOchiq(false); } else n.delete('rejim'); return n; }, { replace: true }); /* panel parametri qolsa (masalan «Smeta va bajarilish» tabi) varaq pastga tushib, tugma «ishlamayotgandek» ko'rinardi */
   /* Daraxt rejimida hamma panel ko'rinadi; varaq rejimida — faqat «Boshqa» ochiq bo'lganda (yoki ?panel= bilan aniq so'ralganda). */
   const panellar = !varaq || boshqaOchiq || requestedPanel != null;
   const { joriy } = useKompaniya();
