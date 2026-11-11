@@ -14,6 +14,8 @@ import { AlertTriangle, ChevronDown, ChevronRight, Download, Eye, Save, Search, 
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { toast } from '../../umumiy/ui/Toast';
+import { moslikHisobla, moslikTuzilma } from '../../lib/ish-material-moslik';
+import { IshMaterialOgohRoyxat } from '../../components/fakt/IshMaterialOgoh';
 import { FmtN } from '../../lib/format';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
@@ -399,6 +401,13 @@ export function F2TayyorlashNative() {
   const zamenaNatija = useMemo(() => f2ZamenaQolla(xomQatorlar, bolimlar, k, zamenaKtx), [xomQatorlar, bolimlar, k, zamenaKtx]);
   const qatorlar = zamenaNatija.qatorlar;
   const jami = useMemo(() => f2Jami(qatorlar), [qatorlar]);
+  // Ish ↔ material hajm muvofiqligi (egasi 2026-11-11): qoralamadagi ish hajmi materiallar hajmiga mosmi — faqat ogohlantirish (bloklamaydi).
+  const moslikTuz = useMemo(() => moslikTuzilma(rows), [rows]);
+  const moslikOgoh = useMemo(() => {
+    const h = new Map<number, number>();
+    for (const x of qatorlar) if ((x.tur === 'bl' || x.tur === 'mat' || x.tur === 'ob') && x.hajm > 0) h.set(x.id, x.hajm);
+    return h.size ? moslikHisobla(moslikTuz, h) : [];
+  }, [moslikTuz, qatorlar]);
   /** Storno (eski narxda) ↔ yangi (smeta narxida) jamilari va farqi. */
   const smetaX = useMemo(() => (smetaNarxda ? smetaNarxXulosa(qatorlar, bolimlar, stornoBlok.jami) : null), [smetaNarxda, qatorlar, bolimlar, stornoBlok.jami]);
   const katKesim = useMemo(() => f2KatKesim(qatorlar), [qatorlar]);
@@ -1242,6 +1251,7 @@ export function F2TayyorlashNative() {
               <span className="text-[11px] text-text-mute">{t('Pastdagi «Jami» — butun F2 qoralama bo‘yicha (filtrga bog‘liq emas); «Topilganlarni to‘liq olish» faqat ko‘rinadiganlarga qo‘llanadi.')}</span>
             </div>}
             <div className="min-h-0 flex-1 space-y-2 overflow-auto p-3">
+              <IshMaterialOgohRoyxat natijalar={moslikOgoh} onTuzat={(n) => { if (n.ishId == null) return; yoz('hajm', n.ishId, sonMatn(n.taklif)); toast(t('Ish hajmi {v} qilib qo‘yildi — tekshirib saqlang.', { v: sonMatn(n.taklif) }), 'ok'); }} />
               {uf.soni > 0 && korinadiF.length === 0 && <div className="p-3 text-[12.5px] text-text-mute">{t('Filtr bo‘yicha qator topilmadi.')}</div>}
               {korinadiQism.bolimlar.map((b) => <div key={b.id ?? 'yoq'} className="space-y-2" data-testid="f2-bolim-blok">
                 {royxatRejimi && <div className="fz-panel__h pt-1">{b.nom}</div>}
