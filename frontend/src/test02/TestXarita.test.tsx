@@ -9,7 +9,6 @@ const m = vi.hoisted(() => ({
 }));
 
 vi.mock('./KompaniyaTanlov', () => ({ useKompaniya: () => m.kompaniya.current }));
-vi.mock('./Graf3D', () => ({ Graf3D: () => <div data-testid="graf3d" /> }));
 vi.mock('./Graf2D', () => ({ Graf2D: () => <div data-testid="graf2d" /> }));
 vi.mock('../api/t2-hodisa', () => ({
   sbObyektHodisalariOl: vi.fn(async () => ({ qatorlar: [] })), qachon: () => '', MODUL_RANG: {},
@@ -37,7 +36,9 @@ const kontekst = (j: any, superadmin = false) => ({ joriy: j, superadmin });
 function mount(url = '/', props: Parameters<typeof TestXarita>[0] = {}) {
   return render(<MemoryRouter initialEntries={[url]}><TestXarita {...props} /></MemoryRouter>);
 }
-const yuklandi = () => waitFor(() => expect(screen.getByRole('heading', { name: 'Kompaniya xaritasi' })).toBeTruthy());
+/** Asosiy ko'rinish — «Boshqaruv»; qolganlari (Xarita, Ro'yxat, 2D, Tahrir) «Boshqa ko'rinishlar» ostida. */
+const boshqaKorinishlar = () => fireEvent.click(screen.getByTestId('boshqa-korinishlar'));
+const yuklandi = () => waitFor(() => expect(screen.getByRole('heading', { name: 'Boshqaruv pulti' })).toBeTruthy());
 
 beforeAll(() => {
   if (!('ResizeObserver' in globalThis)) (globalThis as any).ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
@@ -53,6 +54,7 @@ describe('TestXarita: tahrir ruxsati', () => {
   it('document.write bor — Tahrir yorlig‘i bor; ochilganda «Yangi qo‘shish» va bog‘lash tugmalari chiqadi', async () => {
     mount();
     await yuklandi();
+    boshqaKorinishlar();
     fireEvent.click(screen.getByRole('tab', { name: /Tahrir/ }));
     expect(await screen.findByText('Yangi qo\'shish:')).toBeTruthy();
     expect(screen.queryByTestId('mindmap-faqat-oqish')).toBeNull();
@@ -62,6 +64,7 @@ describe('TestXarita: tahrir ruxsati', () => {
     m.kompaniya.current = kontekst(joriy({ permissions: ['document.read'] }));
     mount();
     await yuklandi();
+    boshqaKorinishlar();
     expect(screen.queryByRole('tab', { name: /Tahrir/ })).toBeNull();
     expect(screen.getByTestId('mindmap-faqat-oqish').textContent).toMatch(/document\.write/);
     fireEvent.click(screen.getByRole('tab', { name: '2D graf' }));
@@ -75,6 +78,7 @@ describe('TestXarita: tahrir ruxsati', () => {
     m.kompaniya.current = kontekst(joriy({ rol: 'rahbar' }));
     mount();
     await yuklandi();
+    boshqaKorinishlar();
     expect(screen.queryByRole('tab', { name: /Tahrir/ })).toBeNull();
     expect(screen.getByTestId('mindmap-faqat-oqish').textContent).toMatch(/rahbar/);
   });
@@ -83,6 +87,7 @@ describe('TestXarita: tahrir ruxsati', () => {
     mount('/', { ichki: true, kompaniyaId: 99 });
     await yuklandi();
     expect(m.graf).toHaveBeenCalledWith(99);
+    boshqaKorinishlar();
     expect(screen.queryByRole('tab', { name: /Tahrir/ })).toBeNull();
   });
 });
