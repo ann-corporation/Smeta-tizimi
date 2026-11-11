@@ -30,6 +30,11 @@ binding = "HYPERDRIVE"
 id = "REPLACE_WITH_HYPERDRIVE_ID"
 localConnectionString = "postgres://postgres:postgres@127.0.0.1:54322/postgres"
 
+# Snapshot sovutish (kunlik cron): snapshot.bolak_mazmun sovuq mazmuni shu bucket'ga (mavjud bucket; yangi yaratilmaydi).
+[[r2_buckets]]
+binding = "SNAPSHOT_R2"
+bucket_name = "smeta-tizimi-canonical"
+
 # Tezlik chegaralari: MCP — foydalanuvchiga 120/daqiqa; login — IP va login bo'yicha 10/daqiqa.
 [[ratelimits]]
 name = "MCP_RATE"
@@ -43,6 +48,9 @@ simple = { limit = 10, period = 60 }
 
 [vars]
 SMETA_MCP_TIMEOUT_MS = "25000"
+# Snapshot sovutish: N kundan eski (har obyektning so'nggi snapshotidan tashqari), partiya chegarasi.
+SNAPSHOT_SOVUT_KUN = "2"
+SNAPSHOT_SOVUT_LIMIT = "200"
 # Barqaror ommaviy URL (OAuth resource = <URL>/mcp). workers.dev yoki custom domen — deploy oldidan egasi o'rnatadi.
 # Lokal `wrangler dev`: .dev.vars faylida MCP_PUBLIC_URL=http://localhost:8787 (repoga kirmaydi).
 MCP_PUBLIC_URL = "https://smeta-mcp.REPLACE_WITH_SUBDOMAIN.workers.dev"
