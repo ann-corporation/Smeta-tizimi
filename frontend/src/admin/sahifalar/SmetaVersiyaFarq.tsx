@@ -395,7 +395,7 @@ export function SmetaVersiyaFarq({ kompaniyaId, obyektId, obyektNom, joriyQatorl
             <table className="w-full border-collapse text-[11.5px]" onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); void saqla(); } }}>
               <thead className="sticky top-0 z-[1] bg-surface-2 text-text-mute"><tr>
                 <th className="px-2 py-1 text-left">{t('Holat')}</th><th className="px-2 text-left">{t('Pozitsiya (eski → joriy)')}</th><th className="px-2">{t('Birlik')}</th>
-                <th className="px-2 text-right">{t('Eski hajm')}</th><th className="px-2 text-right">{t('Joriy hajm')}</th><th className="px-2 text-right">{t('Farq (ustamasiz)')}</th>
+                <th className="px-2 text-right">{t('Eski versiya hajmi')}</th><th className="px-2 text-right">{t('Yangi (joriy) versiya hajmi')}</th><th className="px-2 text-right">{t('Farq (ustamasiz)')}</th>
                 <th className="px-2 text-left">{t('Qaror')}</th><th className="px-2 text-right">{t('Qurilgan hajm')}</th><th className="px-2 text-right">{t('Da’vo (ustamasiz)')}</th>
               </tr></thead>
               <tbody ref={jadval} onKeyDown={klaviatura}>
@@ -403,7 +403,7 @@ export function SmetaVersiyaFarq({ kompaniyaId, obyektId, obyektNom, joriyQatorl
                   <Fragment key={q.m.id}>
                     <tr data-qator tabIndex={0} onFocus={() => setFokus(i)}
                       className={`border-t border-border/50 outline-none focus:bg-accent/10 ${ozgarish.has(q.m.id) ? 'bg-warn/5' : ''}`}>
-                      <td className={`px-2 py-1 ${HOLAT_RANG[q.m.holat]}`}>{holatNomi(q.m.holat)}{q.m.ishonch != null && q.m.ishonch < 100 ? ` · ${q.m.ishonch}%` : ''}
+                      <td className={`px-2 py-1 ${HOLAT_RANG[q.m.holat]}`}>{holatNomi(q.m.holat)}{q.m.ishonch != null && q.m.ishonch < 100 ? ` · ${t('moslik ishonchi')} ${q.m.ishonch}%` : ''}
                         {q.tasdiq === 'kutilmoqda' && <div className="text-warn">{t('tasdiq kutilmoqda')}</div>}
                         {q.tasdiq === 'tasdiqlandi' && <div className="text-success">{t('tasdiqlangan')}</div>}
                         {q.tasdiq === 'rad' && <div className="text-danger">{t('rad etilgan')}</div>}</td>

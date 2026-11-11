@@ -8,7 +8,7 @@ import { hujjatOl, hujjatRoyxatOl } from '../../api/t2-hujjat-canonical';
 import { yangiOperationId } from '../../api/supabase';
 import type { NakrutkaPodvalOqish } from '../../lib/smeta-anatomiya/nakrutka';
 import { kaskadCats, type SvodYaxlit } from '../../lib/svod-yaxlit';
-import { catsKat, fayldanNakrutkaOqi, koefFarqi, smetadanPodval, SMETA_PODVAL_NOMI, ustamaTasiri } from '../../lib/nakrutka-smetadan';
+import { catsKat, excelBilanTizim, fayldanNakrutkaOqi, koefFarqi, oqishNolBilan, smetadanPodval, SMETA_PODVAL_NOMI, ustamaTasiri } from '../../lib/nakrutka-smetadan';
 
 /** Koeffitsient manbai yorlig'i (UI): smeta podvalidan / shartnoma / kompaniya / sukut. */
 export function NakrutkaManbaChip({ manba }: { manba: NakrutkaManba | null | undefined }) {
@@ -36,6 +36,28 @@ export function ObyektPodvalOgohi({ obyektId }: { obyektId: number }) {
     return () => { faol = false; };
   }, [obyektId]);
   return <PodvalYoqOgoh manba={manba} />;
+}
+
+/**
+ * Import tugagach (YANGI smeta) fayl podvalini obyektga yozadi. Sahifa import tugashi bilan qayta chizilib (tashqi ro'yxat yangilanadi)
+ * SmetaPodvalNakrutka ichidagi avtomatik yozuv ishlamay qolardi — obyekt kompaniya sukut foizlarida qolardi (sayt auditi, band 100).
+ * Qoida (egasi): foizlar DOIM smeta podvalidan; mavjud podval ustidan yozilmaydi (preview + tasdiq).
+ */
+export async function podvalniAvtoYoz(p: { kompaniyaId: number; obyektId: number; oqish: NakrutkaPodvalOqish | null; fayl?: string; mavjudSmeta: boolean }): Promise<{ holat: 'yozildi' | 'otkazildi' | 'xato'; sabab?: string; taxminiy?: boolean }> {
+  const { oqish } = p;
+  if (!oqish || oqish.holat === 'topilmadi' || !Object.keys(oqish.koeffitsientlar).length) return { holat: 'otkazildi', sabab: 'faylda nakrutka podvali topilmadi' };
+  if (oqish.review.some((r) => r.bloklovchi)) return { holat: 'otkazildi', sabab: 'hal qilinmagan podval bloklari — operator tasdiqlaydi' };
+  try {
+    const [n, pv] = await Promise.all([t2ObyektNakrutka(p.obyektId), sbPodvallarOl(p.kompaniyaId)]);
+    if (!n.ok || !n.koeffitsientlar || !n.cats) return { holat: 'xato', sabab: n.error || 'joriy nakrutka o‘qilmadi' };
+    const mavjud = (pv.ok ? pv.qatorlar ?? [] : []).find((x) => x.obyekt_id === p.obyektId) ?? null;
+    if (p.mavjudSmeta && mavjud) return { holat: 'otkazildi', sabab: 'obyektda podval bor' };
+    const tq = excelBilanTizim(oqish, catsKat(kaskadCats(n) ?? n.cats), n.koeffitsientlar);
+    const pod = smetadanPodval(oqishNolBilan(oqish, tq.nolTaklif), n.koeffitsientlar, p.fayl);
+    const r = await sbPodvalSaqla({ kompaniyaId: p.kompaniyaId, doira: { obyektId: p.obyektId }, nom: pod.nom ?? SMETA_PODVAL_NOMI, qatorlar: pod.qatorlar,
+      ...(mavjud ? { id: mavjud.id, kutilganVersiya: mavjud.versiya } : { operationId: yangiOperationId() }) });
+    return r.ok ? { holat: 'yozildi', taxminiy: tq.taxminiy } : { holat: 'xato', sabab: r.error || 'saqlanmadi' };
+  } catch (e) { return { holat: 'xato', sabab: e instanceof Error ? e.message : String(e) }; }
 }
 
 type Holat = {
@@ -92,6 +114,9 @@ export function SmetaPodvalNakrutka({ kompaniyaId, obyektId, oqish: tashqi, fayl
     return ustamaTasiri(catsKat(holat.cats), joriy, yangi, holat.svodYaxlit);
   }, [oqish, holat, joriy]);
 
+  // «Excel jami ↔ tizim jami»: faylning o'z jami bilan tizim jami (qator-baqator, farq sababi bilan). Yo'q foizlar nolga isbotlansa — taklif.
+  const taqqos = useMemo(() => (oqish && holat && oqish.holat !== 'topilmadi' ? excelBilanTizim(oqish, catsKat(holat.cats), holat.koef) : null), [oqish, holat]);
+
   const r2danOqi = async () => {
     setBand(true); setXato('');
     try {
@@ -113,7 +138,8 @@ export function SmetaPodvalNakrutka({ kompaniyaId, obyektId, oqish: tashqi, fayl
     setBand(true); setXato('');
     try {
       // Meros qatorlar (smetada topilmagan kodlar) — amaldagi qiymat; server ularni hisobga olmaydi (manba='meros').
-      const p = smetadanPodval(oqish, holat.koef, faylNomi);
+      const nolBilan = oqish && holat ? excelBilanTizim(oqish, catsKat(holat.cats), holat.koef).nolTaklif : null;
+      const p = smetadanPodval(oqishNolBilan(oqish, nolBilan), holat.koef, faylNomi);
       const oldingi = holat.podval;
       const r = await sbPodvalSaqla({
         kompaniyaId, doira: { obyektId }, nom: p.nom ?? SMETA_PODVAL_NOMI, qatorlar: p.qatorlar,
@@ -243,6 +269,17 @@ export function SmetaPodvalNakrutka({ kompaniyaId, obyektId, oqish: tashqi, fayl
                 <span className="text-text-dim">{t('Farq (ВСЕГО)')}</span>
                 <span />
                 <span className="text-right tabular-nums"><FmtN val={tasir.yangi.vsego == null || tasir.eski.vsego == null ? null : tasir.yangi.vsego - tasir.eski.vsego} /></span>
+              </div>
+            )}
+            {taqqos && taqqos.excelVsego != null && (
+              <div className={`fz-note ${taqqos.mos ? 'fz-note--info' : 'fz-note--warn'} flex-col items-stretch`} role="status" data-testid="excel-tizim-taqqos">
+                <b>{taqqos.mos ? t('Excel jami = tizim jami') : t('Excel jami tizim jamiga teng emas')}: Excel <FmtN val={taqqos.excelVsego} /> · {t('tizim')} <FmtN val={taqqos.tizimVsego} />{taqqos.farq != null && !taqqos.mos && <> · {t('farq')} <FmtN val={taqqos.farq} /></>}</b>
+                {taqqos.nolTaklif && <span>{t('Faylda {kodlar} yo‘q: ular 0% bo‘lganda tizim jami faylnikiga aynan teng chiqadi — bu isbot, shuning uchun saqlashda 0% yoziladi (kompaniya foizi emas).', { kodlar: Object.keys(taqqos.nolTaklif).join(', ') })}</span>}
+                {taqqos.taxminiy && <span className="text-warn">{t('taxminiy: faylda yo‘q foizlar kompaniya/sukut qiymatidan olingan — jami faylnikidan farq qilishi mumkin')}</span>}
+                <details open={!taqqos.mos}><summary className="cursor-pointer">{t('Qator-baqator farq')}</summary>
+                  <table className="fz-table mt-1"><thead><tr><th>{t('Qator')}</th><th className="fz-c-num">{'Excel'}</th><th className="fz-c-num">{t('Tizim')}</th><th className="fz-c-num">{t('Farq')}</th><th>{t('Sabab')}</th></tr></thead>
+                    <tbody>{taqqos.qatorlar.map((q) => <tr key={q.kod}><td>{q.nom}</td><td className="fz-c-num"><FmtN val={q.excel} /></td><td className="fz-c-num"><FmtN val={q.tizim} /></td><td className="fz-c-num"><FmtN val={q.farq} /></td><td className="text-[12px] text-text-dim">{q.izoh}</td></tr>)}</tbody></table>
+                </details>
               </div>
             )}
             {(isbotNomos.length > 0 || oqish.review.length > 0) && (

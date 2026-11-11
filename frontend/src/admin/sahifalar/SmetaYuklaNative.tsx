@@ -21,7 +21,7 @@ import { varaqniTahlilQil } from '../../lib/smeta-anatomiya/varaq';
 import { hamrohDaraxti, hamrohTanlovniYig, lrvDaraxti, ustunSozlamasi, ustunXaritasigaQayt, varaqRoli, type HamrohTanlovKalitlari } from '../../lib/smeta-anatomiya/yuklash';
 import { kitobHamrohlari } from '../../lib/smeta-anatomiya';
 import { nakrutkaPodvaliniOqi, nakrutkaVaraqlari } from '../../lib/smeta-anatomiya/nakrutka';
-import { SmetaPodvalNakrutka } from './SmetaPodvalNakrutka';
+import { SmetaPodvalNakrutka, podvalniAvtoYoz } from './SmetaPodvalNakrutka';
 import type { Katak, KirishKitob } from '../../lib/smeta-anatomiya/turlar';
 import { HamrohVaraqlarPaneli } from './HamrohVaraqlarPaneli';
 import { smetaQaytaImportDiff, type SmetaReimportDiff, type SmetaReimportLine } from '../../lib/smeta-reimport-diff';
@@ -808,7 +808,8 @@ export function narxlarniDaraxtgaQoll(
   const narxsizlar: NarxsizQator[] = [];
   const resBosh = idx.nomlar.size === 0;
   const belgila = (n: AktNode, sabab: NarxsizSabab) => {
-    mosEmasSoni++;
+    // Mashinist mehnati narxi mashina-soat stavkasi ichida: ma'lumot, «narxsiz» emas (yagona qoida, lib/narx-bildirishnoma).
+    if (sabab !== 'mashinist_normativ') mosEmasSoni++;
     const taklif = (sabab === 'res_da_yoq' || sabab === 'birlik_mos_emas') && idx.yozuvlar ? narxTaklifiniTop(n, idx.yozuvlar) : null;
     narxsizlar.push({ uid: n.uid, kod: n.kod, nom: n.nom, bir: n.bir, hajm: n.hajm, sabab, ...(taklif ? { taklif } : {}) });
   };
@@ -1195,6 +1196,8 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
   const [result, setResult] = useState<{ qator_soni: number } | null>(null);
   /** Import boshlanishida obyektda smeta bor edimi: yo'q bo'lsa (YANGI smeta) — podval foizlari avtomatik saqlanadi. */
   const smetaOldinBor = useRef<boolean | null>(null);
+  /** Import tugashi bilan fayl podvali obyektga yozildi (sahifa qayta chizilsa ham podval yo'qolmaydi) — ichki avto-yozuv takrorlanmasin. */
+  const podvalYozildi = useRef(false);
   // JONLI_SINOV_TOPILMALARI #15: yakunlash yiqilsa sessiya «ochiq» qoladi (bo'laklar bazada) — qayta yubormasdan
   // shu sessiyani yakunlash yoki toza bekor qilish; katta importda rollup yiqilsa — faqat rollupni qayta chaqirish.
   const [ochiqImport, setOchiqImport] = useState<{ sessiyaId: number; paket: boolean; obyektId: number } | null>(null);
@@ -1680,7 +1683,9 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       if (done.rollup_xato) setRollupObyekt(objId);
       setResult({ qator_soni: done.qator_soni || 0 });
       setObjects((prev) => prev.map((o) => o.id === objId ? { ...o, qator_soni: done.qator_soni ?? o.qator_soni } : o));
-      setPhase('Smeta paketi tayyor'); onImportlandi?.();
+      const pvP = await podvalniAvtoYoz({ kompaniyaId: companyId, obyektId: objId, oqish: nakrutkaOqish, fayl: rawFile.current?.name, mavjudSmeta: smetaOldinBor.current === true });
+      podvalYozildi.current = pvP.holat === 'yozildi';
+      setPhase(pvP.holat === 'yozildi' ? 'Smeta paketi tayyor — smeta podvali obyektga yozildi' : 'Smeta paketi tayyor'); onImportlandi?.();
     } catch (e) { setError(e instanceof Error ? e.message : 'Smeta paketi import qilinmadi.'); }
     finally { setBusy(false); setPaketBand(false); }
   }
@@ -1966,6 +1971,10 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       yakunla('tayyor', (j.qator_soni || 0) + ' qator yozildi' + (j.rollup_xato ? ' — jamlar hisoblanmadi, «Jamlarni qayta hisoblash» ni bosing' : ''));
       setResult({ qator_soni: j.qator_soni || 0 }); setPhase('Tayyor');
       setObjects(prev => prev.map(o => o.id === Number(objectId) ? { ...o, qator_soni: j.qator_soni ?? o.qator_soni } : o));
+      // Foizlar DOIM smeta podvalidan (egasi): import tugagach fayl podvali darhol yoziladi; tashqi sahifa qayta chizilganda yo'qolmaydi.
+      const pv = await podvalniAvtoYoz({ kompaniyaId: companyId, obyektId: Number(objectId), oqish: nakrutkaOqish, fayl: rawFile.current?.name, mavjudSmeta: smetaOldinBor.current === true });
+      podvalYozildi.current = pv.holat === 'yozildi';
+      if (pv.holat === 'yozildi') setPhase(pv.taxminiy ? 'Tayyor — smeta podvali yozildi (ba‘zi foizlar taxminiy)' : 'Tayyor — smeta podvali yozildi');
       // Bu sahifa ko'pincha boshqa "asosiy" sahifa (masalan HolatNative)
       // ichida kichik panel sifatida ochiladi -- import muvaffaqiyatli
       // bo'lgach o'sha tashqi sahifa o'z daraxtini/summasini avtomatik
@@ -2245,7 +2254,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       )}
       {objectId && (book ? nakrutkaOqish : alreadyHasSmeta) && (
         <SmetaPodvalNakrutka kompaniyaId={companyId} obyektId={Number(objectId)} oqish={book ? nakrutkaOqish : null} fayl={rawFile.current?.name}
-          avtoSaqla={!!book && !!result && smetaOldinBor.current != null} mavjudSmeta={smetaOldinBor.current === true} />
+          avtoSaqla={!!book && !!result && smetaOldinBor.current != null && !podvalYozildi.current} mavjudSmeta={smetaOldinBor.current === true} />
       )}
       {book && cols && !result && (
         <>
@@ -2498,11 +2507,14 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
                 qatorlarni bildirishi va sababini keltirib bera olishi kerak" --
                 avval faqat "N ta narxsiz qoldi" degan SON chiqardi. */}
             {narxsizlar.length > 0 && (
-              <div className="fz-panel" style={{ borderColor: "color-mix(in srgb, var(--danger) 40%, transparent)" }} data-testid="narxsiz-royxat">
-                <p className="text-[12px]">
-                  <b className="text-danger">{narxsizlar.length} ta qator narxsiz qoldi.</b>{' '}
+              <div className="fz-panel" style={{ borderColor: narxsizlar.some(x => x.sabab !== 'mashinist_normativ') ? "color-mix(in srgb, var(--danger) 40%, transparent)" : undefined }} data-testid="narxsiz-royxat">
+                {narxsizlar.some(x => x.sabab !== 'mashinist_normativ') && <p className="text-[12px]">
+                  <b className="text-danger">{narxsizlar.filter(x => x.sabab !== 'mashinist_normativ').length} ta qator narxsiz qoldi.</b>{' '}
                   Bu qatorlar smetaga <b>narxsiz</b> yozildi — obyekt jami summasi shu qadar to‘liq emas.
-                </p>
+                </p>}
+                {narxsizlar.some(x => x.sabab === 'mashinist_normativ') && <p className="text-[11.5px] text-text-mute" data-testid="mashinist-axborot">
+                  {narxsizlar.filter(x => x.sabab === 'mashinist_normativ').length} ta «mashinist mehnati» qatori — narxi mashina-soat stavkasi ichida (ogohlantirish emas, jamga ta’sir qilmaydi).
+                </p>}
                 <p className="text-[11px] text-text-mute">
                   {(Object.keys(NARXSIZ_SABAB_MATN) as NarxsizSabab[])
                     .map(s => ({ s, n: narxsizlar.filter(x => x.sabab === s).length }))

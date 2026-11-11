@@ -8,11 +8,11 @@
  * Avtomatik ommaviy yozish yo'q — saqlash faqat operator tasdig'i bilan.
  */
 import type { NakrutkaKoeffitsientlar, NakrutkaKoefKod } from '../api/t2-nakrutka';
-import { NAKRUTKA_FOIZ_KODLARI, nakrutkaPodvaliniOqi, nakrutkaVaraqlari, type NakrutkaPodvalOqish } from './smeta-anatomiya/nakrutka';
+import { NAKRUTKA_FOIZ_KODLARI, nakrutkaPodvaliniOqi, nakrutkaVaraqlari, type NakrutkaKoefKodi, type NakrutkaPodvalOqish } from './smeta-anatomiya/nakrutka';
 import { kitobHamrohlari } from './smeta-anatomiya';
 import type { Katak, KirishKitob } from './smeta-anatomiya/turlar';
 import { readXlsxFonda } from './f2-import-parse/xlsxFonda';
-import { kaskad, kategoriyaKf, podvalNdsFoizi, serverCatsdan, standartPodval, type Kat as NakrutkaKat, type KatSummalar, type Podval, type ServerCats } from './hisob-yadro';
+import { kaskad, kategoriyaKf, podvalNdsFoizi, qqsBilan as yadroQqsBilan, serverCatsdan, standartPodval, yaxlit2, type Kat as NakrutkaKat, type KatSummalar, type Podval, type ServerCats } from './hisob-yadro';
 import { svodYaxlitQqs, type SvodYaxlit } from './svod-yaxlit';
 
 export const SMETA_PODVAL_NOMI = 'Smeta podvali';
@@ -125,4 +125,92 @@ export async function fayldanNakrutkaOqi(nom: string, bytes: ArrayBuffer): Promi
   const h = kitobHamrohlari(kitob);
   const lrv = h.varaqlar.filter((v) => v.rol === 'lrv' && v.ishlar.length).map((v) => v.varaq);
   return nakrutkaPodvaliniOqi(kitob, { varaqlar: nakrutkaVaraqlari(kitob, { varaqlar: h.varaqlar, asosiyLrv: null, dublikat: [] }, lrv) });
+}
+
+/* ───────────── «Excel jami ↔ tizim jami» (HISOB_YADRO_V1, sayt auditi band 100) ───────────── */
+
+export type ExcelTizimQator = {
+  kod: string; nom: string; excel: number | null; tizim: number | null; farq: number | null;
+  /** Farq sababi (bo'sh — mos). */
+  izoh: string;
+};
+export type ExcelTizimTaqqoslash = {
+  qatorlar: ExcelTizimQator[];
+  excelVsego: number | null; tizimVsego: number | null; farq: number | null; mos: boolean;
+  /**
+   * Faylda podval zanjiri bor, lekin ba'zi qadam (ПРОЧИЕ/СТРАХОВАНИЕ/РИСК) yo'q: shu qadamlar 0 bo'lsa tizim jami faylnikiga TENG bo'ladimi.
+   * Teng bo'lsa — bu isbot (summa nisbati): yo'q qadam = 0%, kompaniya sukut foizi emas. Teng bo'lmasa — null.
+   */
+  nolTaklif: Partial<Record<NakrutkaKoefKodi, number>> | null;
+  /** Ba'zi foizlar faylda yo'q va nolga ham isbotlanmagan: tizim jami kompaniya/sukut foizidan — taxminiy. */
+  taxminiy: boolean;
+};
+
+const KASKAD_QATORLARI: ReadonlyArray<readonly [string, string, NakrutkaKoefKodi | null]> = [
+  ['tr_mat', 'Транспортные расходы (материалы)', 'ТРАНСПОРТ_МАТЕРИАЛ'],
+  ['skl_mat', 'Заготовительно-складские расходы (материалы)', 'СКЛАДСКИЕ_МАТЕРИАЛ'],
+  ['tr_kab', 'Транспортные расходы (кабель)', 'ТРАНСПОРТ_КАБЕЛЬ'],
+  ['prochie', 'Прочие расходы подрядчика', 'ПРОЧИЕ_ПОДРЯДЧИК'],
+  ['tr_ob', 'Транспортные расходы (оборудование)', 'ТРАНСПОРТ_ОБОРУД'],
+  ['zag_ob', 'Заготовительно-складские расходы (оборудование)', 'ЗАГОТ_СКЛАД_ОБОРУД'],
+  ['strax', 'Страхование', 'СТРАХОВАНИЕ'],
+  ['risk', 'Риск', 'РИСК'],
+];
+const NOL_ADAYOR: readonly NakrutkaKoefKodi[] = ['ПРОЧИЕ_ПОДРЯДЧИК', 'СТРАХОВАНИЕ', 'РИСК'];
+
+/**
+ * Faylning O'Z jami bilan tizim jamini qator-baqator solishtiradi. Tizim — kategoriya summalari (`cats`) × podval
+ * (fayl foizlari, yo'q joyda joriy kompaniya/shartnoma foizi). Farq sababi har qatorda yoziladi; yagona hisob — yadro `kaskad`.
+ */
+export function excelBilanTizim(o: NakrutkaPodvalOqish, cats: KatSummalar, joriy: Partial<NakrutkaKoeffitsientlar>): ExcelTizimTaqqoslash {
+  const nk: Partial<NakrutkaKoeffitsientlar> = { ...joriy, ...o.koeffitsientlar };
+  const k = kaskad(cats, standartPodval(nk));
+  const hujjat = (kod: string): number | null => {
+    const q = o.qatorlar.filter((x) => x.kod === kod && x.summa != null);
+    return q.length ? q.reduce((s, x) => s + (x.summa as number) * x.masshtab, 0) : null;
+  };
+  const yaxlit = (x: number | null) => (x == null ? null : yaxlit2(x));
+  const qatorlar: ExcelTizimQator[] = [];
+  for (const [kod, nom, koef] of KASKAD_QATORLARI) {
+    const tizim = k.qiymat[kod] ?? null;
+    const excel = hujjat(kod);
+    if (excel == null && (tizim == null || Math.abs(tizim) < 0.005)) continue;
+    const farq = excel != null && tizim != null ? yaxlit(tizim - excel) : excel == null ? tizim : null;
+    const foizFaylda = koef != null ? o.koeffitsientlar[koef] : undefined;
+    let izoh = '';
+    if (excel == null) izoh = `в файле строки нет; в системе применён ${koef ? `${nk[koef] ?? 0}%` : ''} (${foizFaylda == null ? 'процент компании/по умолчанию, в подвале сметы его нет' : 'из файла'})`;
+    else if (farq != null && Math.abs(farq) > 1) izoh = `в файле ${foizFaylda ?? '?'}%, в системе ${koef ? nk[koef] ?? 0 : '?'}%`;
+    qatorlar.push({ kod, nom, excel, tizim, farq, izoh });
+  }
+  const nds = hujjat('nds');
+  let excelVsego = hujjat('vsego');
+  const ndsFoiz = o.koeffitsientlar.НДС;
+  if (excelVsego == null && nds != null && ndsFoiz) excelVsego = yadroQqsBilan(yaxlit2(nds * 100 / ndsFoiz), ndsFoiz);
+  const tizimVsego = k.vsego;
+  qatorlar.push({ kod: 'nds', nom: 'НДС', excel: nds, tizim: k.qqs, farq: nds != null && k.qqs != null ? yaxlit(k.qqs - nds) : null, izoh: '' });
+  qatorlar.push({
+    kod: 'vsego', nom: 'ВСЕГО С НДС', excel: excelVsego, tizim: tizimVsego,
+    farq: excelVsego != null && tizimVsego != null ? yaxlit(tizimVsego - excelVsego) : null, izoh: '',
+  });
+  const farq = excelVsego != null && tizimVsego != null ? yaxlit(tizimVsego - excelVsego) : null;
+  const mos = farq != null && Math.abs(farq) <= Math.max(1, Math.abs(excelVsego ?? 0) * 1e-6);
+  // Yo'q ПРОЧИЕ/СТРАХОВАНИЕ/РИСK = 0 bo'lsa jami faylnikiga tengmi?
+  const yoq = NOL_ADAYOR.filter((x) => o.koeffitsientlar[x] == null && Number(nk[x] ?? 0) !== 0);
+  let nolTaklif: ExcelTizimTaqqoslash['nolTaklif'] = null;
+  if (!mos && yoq.length && excelVsego != null) {
+    const nol = Object.fromEntries(yoq.map((x) => [x, 0])) as Partial<Record<NakrutkaKoefKodi, number>>;
+    const k0 = kaskad(cats, standartPodval({ ...nk, ...nol }));
+    if (k0.vsego != null && Math.abs(k0.vsego - excelVsego) <= Math.max(1, excelVsego * 1e-6)) nolTaklif = nol;
+  }
+  const taxminiy = !mos && !nolTaklif && NAKRUTKA_FOIZ_KODLARI.some((x) => o.koeffitsientlar[x] == null);
+  return { qatorlar, excelVsego, tizimVsego, farq, mos, nolTaklif, taxminiy };
+}
+
+/** Isbotlangan nol foizlarni (excelBilanTizim.nolTaklif) fayl o'qishiga qo'shadi: dalil — «summa nisbati» (Excel jami = tizim jami). */
+export function oqishNolBilan(o: NakrutkaPodvalOqish, nol: Partial<Record<NakrutkaKoefKodi, number>> | null): NakrutkaPodvalOqish {
+  if (!nol) return o;
+  const manzil = o.qatorlar.find((q) => q.kod === 'vsego' || q.kod === 'nds')?.manzil ?? o.qatorlar[0]?.manzil;
+  const manba = { ...o.manba };
+  if (manzil) for (const kod of Object.keys(nol) as NakrutkaKoefKodi[]) manba[kod] = { dalil: 'summa_nisbati', manzil, xom: 'ВСЕГО С НДС (jami nisbati)' };
+  return { ...o, koeffitsientlar: { ...o.koeffitsientlar, ...nol }, manba };
 }

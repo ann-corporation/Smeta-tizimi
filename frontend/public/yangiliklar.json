@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 152,
+      "sana": "2026-11-12",
+      "sarlavha": "Smeta, fakt va qoldiq raqamlari hamma sahifada bir xil",
+      "bandlar": [
+        "Bir obyektning smetasi endi hamma joyda (boshqaruv paneli, obyektlar, loyiha, xarita, F2 reestri, obyekt holati) bitta qoida bilan hisoblanadi — asl smeta qatorlari yig‘indisi. Qo‘shimcha va zamena alohida «Smeta va o‘zgarishlar» blokida ko‘rinadi.",
+        "Ish varag‘ida fakt endi ikki marta sanalmaydi (ishning o‘z fakti va uning resurslari). «Smetadan oshgan» ro‘yxatida endi ishlar ko‘rinadi, ularning har bir resursi alohida qator bo‘lib takrorlanmaydi.",
+        "To‘lov hali kiritilmagan bo‘lsa, «To‘langan 0» va «qarzdorlik = butun F2» o‘rniga «—» ko‘rinadi. F3 va F2 Excel hujjatlarida bir necha tiyinlik yaxlitlash farqi endi alohida «Округление» qatorida ochiq ko‘rsatiladi."
+      ]
+    },
+    {
       "id": 149,
       "sana": "2026-11-11",
       "sarlavha": "Tizim tezlashtirildi: rahbar paneli, aqliy xarita, nakrutka",
