@@ -8,6 +8,7 @@ import { OAuthProvider } from '@cloudflare/workers-oauth-provider';
 import type { Env } from './env';
 import { authorizeGet, authorizePost } from './kirish';
 import { mcpFetch, VERSIYA, type McpCtx } from './mcp';
+import { healthDbMb, sovutishCron } from './sovutish';
 import { resursUrl } from './url';
 
 const defaultHandler = {
@@ -19,7 +20,8 @@ const defaultHandler = {
       return new Response('Method Not Allowed', { status: 405 });
     }
     if (u.pathname === '/' || u.pathname === '/health') {
-      return Response.json({ ok: true, nom: 'smeta-mcp-remote', versiya: VERSIYA, mcp: `${u.origin}/mcp`, izoh: 'AI chatda «custom connector» sifatida /mcp URL ni qo\'shing.' }, { headers: { 'Cache-Control': 'no-store' } });
+      const db_mb = await healthDbMb(env);
+      return Response.json({ ok: true, nom: 'smeta-mcp-remote', versiya: VERSIYA, db_mb, mcp: `${u.origin}/mcp`, izoh: 'AI chatda «custom connector» sifatida /mcp URL ni qo\'shing.' }, { headers: { 'Cache-Control': 'no-store' } });
     }
     return new Response('Not found', { status: 404 });
   },
@@ -48,5 +50,8 @@ function provider(env: Env): OAuthProvider<Env> {
 export default {
   fetch: (request: Request, env: Env, ctx: never) => provider(env).fetch(request, env, ctx),
   /** Kunlik: muddati o'tgan OAuth yozuvlarini tozalash (wrangler.toml [triggers]). */
-  scheduled: (_e: unknown, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }) => { ctx.waitUntil(provider(env).purgeExpiredData(env)); },
+  scheduled: (_e: unknown, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }) => {
+    ctx.waitUntil(provider(env).purgeExpiredData(env));
+    ctx.waitUntil(sovutishCron(env)); // + snapshot sovuq bloklarini R2 ga ko'chirish (sovutish.ts)
+  },
 };

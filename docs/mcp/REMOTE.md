@@ -76,11 +76,28 @@ node smoke.mjs https://<MCP_PUBLIC_URL>             # faqat o'qish: discovery + 
 ```
 
 Sirlar ro'yxati (faqat nomlar): `SUPABASE_URL`, `SUPABASE_KEY` (Worker secret); Hyperdrive ulanish satri — Hyperdrive sozlamasida;
-binding'lar: `OAUTH_KV`, `HYPERDRIVE`, `MCP_RATE`, `LOGIN_RATE`; var: `MCP_PUBLIC_URL`, `SMETA_MCP_TIMEOUT_MS`.
+binding'lar: `OAUTH_KV`, `HYPERDRIVE`, `MCP_RATE`, `LOGIN_RATE`, `SNAPSHOT_R2` (R2 bucket `smeta-tizimi-canonical`); var: `MCP_PUBLIC_URL`, `SMETA_MCP_TIMEOUT_MS`, `SNAPSHOT_SOVUT_KUN`, `SNAPSHOT_SOVUT_LIMIT`.
 
 Custom domen (ixtiyoriy): Cloudflare dashboard → Workers → smeta-mcp → Settings → Domains & Routes → `mcp.<domen>`; keyin
 `MCP_PUBLIC_URL` ni shu domenga o'zgartirib qayta deploy (eski tokenlar boshqa resource uchun bo'lgani sababli qayta ulanish kerak).
 
+## Kunlik snapshot sovutish (baza 500 MB dan oshmasligi uchun)
+
+Yozuvchi toollar har yozuvdan oldin snapshot oladi, shu sabab `snapshot.bolak_mazmun` har kuni o'sadi. Worker'dagi kunlik cron
+(`17 3 * * *`, `src/sovutish.ts`) 2 kundan eski bloklarni R2 ga ko'chiradi — noutbuksiz. Mantiq `frontend/src/lib/snapshot-r2/sovuq.ts`
+dan import qilinadi (qo'lda skript `ops/scripts/snapshot-r2-sovut.mjs` bilan bir xil kod, fork emas).
+
+- Nomzodlar `snapshot.sovuq_nomzod(2, 200, false)`: har obyektning ENG SO'NGGI snapshoti bloklari issiq qoladi; 2 kundan yangilari ham.
+- Xavfsizlik tartibi (har blok): R2 ga yoz → R2 dan QAYTA o'qi → gunzip → sha256 solishtir → `sovuq_yoz` → `sovuq_tasdiq` → `sovuq_sovut`
+  (DB o'zi sha256 ni yana tekshirib, faqat shundan keyin mazmunni NULL qiladi). Nomuvofiqlikda blok bazada tegilmagan qoladi.
+- Partiya ≤ `SNAPSHOT_SOVUT_LIMIT` (200) blok, ≈20 s devor-soat byudjeti, 5 ta xatodan keyin to'xtaydi. Idempotent: sovutilgan blok qayta nomzod bo'lmaydi.
+- Natija Worker logida (`wrangler tail` / dashboard Logs): `{"amal":"snapshot_sovutish","db_mb_oldin":..,"sovutildi":..,"xato":..}`.
+- `SNAPSHOT_R2` binding yo'q bo'lsa sovutish jimgina o'tkazib yuboriladi (OAuth tozalash davom etadi).
+- Hajm qo'riqchisi: `pg_database_size` > 450 MB bo'lsa cron logiga `DB_HAJM_OGOHLANTIRISH` yoziladi; `/health` JSON da `db_mb` (MB, 5 daqiqa keshlanadi, xatoda `null`).
+- Bo'shagan joy: NULL qilingan TOAST sahifalari autovacuum orqali jadvalning o'zida QAYTA ISHLATILADI (fayl hajmi kichraymasa ham yangi
+  snapshotlar shu joyga yoziladi). `VACUUM FULL snapshot.bolak_mazmun` Worker'da ishlamaydi; ixtiyoriy, qo'lda (jadval qisqa muddat qulflanadi)
+  va faqat diskni darhol kichraytirish kerak bo'lganda.
+- Qo'lda ishga tushirish (sinov): `npx wrangler dev --test-scheduled` → `curl "http://localhost:8787/__scheduled?cron=17+3+*+*+*"` (prod bazaga ulanmang).
 ## Ulanish
 
 **claude.ai (web va mobil, Pro/Max/Team/Enterprise):** Settings → Connectors → *Add custom connector* → Name: `Smeta tizimi`,

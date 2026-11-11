@@ -2,13 +2,23 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 145,
+      "id": 146,
       "sana": "2026-11-11",
       "sarlavha": "Ijro hujjatlari: «Nima yetishmayapti» va butun paket",
       "bandlar": [
         "АОСР sahifasi tepasida «Nima yetishmayapti» paneli: yashirin ish bajarilgan, lekin АОСР yo‘q qatorlar smeta razdeli bo‘yicha. Razdel yonidagi bitta tugma — shu razdel uchun АОСР qoralamasi tayyor (ish nomi, hajm, materiallar, fakt sanalari, imzochilar). Holat doim «Qoralama» — tasdiqlashni o‘zingiz qilasiz.",
         "Akt reestri endi bir xil tartibda: razdel → ish sanasi → raqam; tartib raqami uzilishsiz. Raqamlarda bo‘shliq/takror va beton, grunt zichlash, payvand kabi ishlarda ulanmagan laboratoriya protokoli ogohlantirish bo‘lib chiqadi (bloklamaydi).",
         "«Butun paket» tugmasi: reestr + hamma АОСР (va protokollar reestri) bitta ZIP faylda."
+      ]
+    },
+    {
+      "id": 145,
+      "sana": "2026-11-11",
+      "sarlavha": "Forma 3 endi shartnoma bo'yicha",
+      "bandlar": [
+        "Nakopitelniy sahifasida «Forma 3: Obyekt | Shartnoma» almashtirgichi. «Shartnoma» rejimida shartnoma va oyni tanlang — shartnomaning barcha obyektlari tasdiqlangan F2 aktlari ro'yxati oldindan belgilanadi.",
+        "Bitta tugma «Forma 3 yaratish»: shartnoma bo'yicha bitta Forma 3 yoziladi va Excel beriladi — har obyekt o'z nakrutkasi bilan, jami va summa so'z bilan.",
+        "Boshqa Forma 3 ga allaqachon kirgan F2 aktlar belgilanmaydi — bir F2 ikki Forma 3 ga tushmaydi. Tasdiqlangan F2 summalari o'zgarmaydi."
       ]
     },
     {
