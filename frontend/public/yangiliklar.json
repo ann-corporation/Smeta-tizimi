@@ -2,6 +2,17 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 143,
+      "sana": "2026-11-11",
+      "sarlavha": "Ish varag‘i: F2 rejimi, jami (saqlanmagan bilan), filtrlar va «?» yordam",
+      "bandlar": [
+        "F3 bosing — «Ish varag‘i» Fakt va F2 rejimi orasida almashadi. F2 rejimida F2 hajmini katakka yozasiz, Ctrl+S esa uni joriy oyning F2 QORALAMASIga bitta so‘rov bilan yozadi (qoralama yo‘q bo‘lsa yangisi ochiladi). F2 hech qachon tasdiqlanmaydi — tasdiqlash F2 tarixida. Narx qoidasi F2 tayyorlashdagi bilan bir xil.",
+        "F2 faktdan yoki smetadan oshib ketsa, qatorda sariq belgi chiqadi — bu faqat ogohlantirish, hajm bloklanmaydi.",
+        "Pastki panelda saqlanmagan kiritmalar bilan jami va farq (Δ) ko‘rinadi — ham fakt, ham F2 uchun; ustamali summa asosiy, ustamasiz yonida. Narxi noma’lum qator 0 deb hisoblanmaydi.",
+        "Alt+1…4 — filtr: hammasi / qoldig‘i bor / smetadan oshgan / narxsiz. «?» — barcha tugmalar ro‘yxati. Sukut bo‘yicha Fakt rejimi o‘zgarmagan."
+      ]
+    },
+    {
       "id": 142,
       "sana": "2026-11-11",
       "sarlavha": "Obyekt sahifasida «Ish varag‘i» rejimi (sinov)",
