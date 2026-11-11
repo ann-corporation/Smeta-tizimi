@@ -4,7 +4,7 @@
  * YANGI hujjat turi qo'shish = shu yerga BITTA yozuv (+ eksportyor kodi). Taqdim resursi, token narxi kaliti,
  * eksportdan oldingi tekshiruv va imzo tomonlari boshqa joyda qayta yozilmaydi — shu reestrdan olinadi.
  * Guard testlar (reestr.test.ts): har taqdim resursining reestrda turi bor; har eksportyorli turda tekshiruv bor;
- * kodda ishlatilgan har token kaliti (`hujjat: 'X'`) shu yerda ro'yxatdan o'tgan.
+ * kodda ishlatilgan har token kaliti (hujjatTokenBilan parametri) shu yerda ro'yxatdan o'tgan.
  */
 import type { HujjatKalit, HujjatTuri, TekshiruvQadam } from './turlar';
 
