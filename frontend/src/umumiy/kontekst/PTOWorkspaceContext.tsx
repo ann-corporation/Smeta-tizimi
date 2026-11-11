@@ -108,6 +108,7 @@ const PTO_ROUTE_PREFIXES = [
   '/admin/nakrutka',
   '/admin/narx-dalil',
   '/admin/narx-tekshiruv',
+  '/admin/foto',
   '/admin/logistika',
   '/admin/storage',
 ];

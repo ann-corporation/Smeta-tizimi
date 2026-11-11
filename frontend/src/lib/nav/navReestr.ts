@@ -110,6 +110,10 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
       { nom: 'Fakt kiritish', ikonka: 'HardHat', sahifalar: [
         { yol: '/admin/fakt', ilova: 'ff', nom: 'Fakt kiritish', ruxsat: [RAHBARIYAT, 'fakt.write', 'fakt.read+self.work.write'], scope: 'OBJECT_SCOPED' },
       ] },
+      /* Ekotizim P2: foto-dalil (lenta, yuklash, foto-hisobot). */
+      { nom: 'Foto-dalil', ikonka: 'HardHat', sahifalar: [
+        { yol: '/admin/foto', ilova: 'ff', nom: 'Foto-dalil', ruxsat: [RAHBARIYAT, 'fakt.write', 'fakt.read+self.work.write'] },
+      ] },
       { nom: 'M-29 (material sarfi)', ikonka: 'Box', sahifalar: [
         { yol: '/admin/m29', ilova: 'ff', nom: 'M-29 (material sarfi)', ruxsat: [RAHBARIYAT, 'smeta.write', 'warehouse.write'] },
       ] },

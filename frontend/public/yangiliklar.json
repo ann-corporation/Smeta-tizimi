@@ -2,6 +2,17 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 160,
+      "sana": "2026-11-12",
+      "sarlavha": "Foto-dalil: ish fotosi smetaga, faktga va aktga bog‘lanadi",
+      "bandlar": [
+        "Yangi «Foto-dalil» sahifasi: obyekt fotolari sana va razdel bo‘yicha lentada; telefondan yoki kompyuterdan yuklanadi (rasm avtomatik kichraytiriladi).",
+        "Foto smeta qatoriga, fakt yozuviga, АОСР yoki predpisaniyaga bog‘lanadi — dalil kerak joyda shu komponent ishlaydi.",
+        "«Foto-hisobot» (Excel yoki PDF) tanlangan oy uchun rasmlar bilan tayyorlanadi.",
+        "AI rasmga qisqa izoh yozadi va qaysi ishga tegishli ekanini taklif qiladi (token yechiladi); bog‘lashni siz tasdiqlaysiz."
+      ]
+    },
+    {
       "id": 158,
       "sana": "2026-11-12",
       "sarlavha": "Rahbar paneli va hisobotlar yana tezlashdi",
