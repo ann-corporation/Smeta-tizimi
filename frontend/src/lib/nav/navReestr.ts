@@ -151,11 +151,16 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
         { yol: '/admin/aosr', ilova: 'hujjat', nom: 'АОСР va laboratoriya', ruxsat: [RAHBARIYAT, 'document.write', 'quality.read'], modul: 'module.aosr' },
         { yol: '/admin/storage', ilova: 'hujjat', nom: 'Fayllar (saqlash)', ruxsat: [RAHBARIYAT, 'project.read', 'document.write', 'financial.write'], scope: 'OBJECT_SCOPED' },
       ] },
+      /* Loyihachi / mualliflik nazorati (2026-11-11): chizma reyestri + revizyalar; rol uyi «Bugun». Pudratchi/texnadzor ham o'qiydi (design.read). */
+      { nom: 'Chizmalar', ikonka: 'FileStack', sahifalar: [
+        { yol: '/admin/chizmalar', ilova: 'hujjat', nom: 'Chizmalar va revizyalar', ruxsat: [RAHBARIYAT, 'design.read', 'design.write', 'document.write'], modul: 'module.loyiha' },
+        { yol: '/admin/loyihachi', ilova: 'hujjat', nom: 'Loyihachi: bugun', ruxsat: ['design.write', 'design.issue', RAHBARIYAT, ...ICHKI_ISH], modul: 'module.loyiha' },
+      ] },
       /* Kiruvchi: buyurtmachi kabineti, tomonlar taqdimi va murojaatlar — bitta band. */
       { nom: 'Kiruvchi (tomonlar)', ikonka: 'Inbox', sahifalar: [
         { yol: '/admin/zakazchik', ilova: 'hujjat', nom: 'Buyurtmachi kabineti', ruxsat: [RAHBARIYAT, 'project.read'], modul: 'module.loyiha' },
-        { yol: '/admin/taqdimlar', ilova: 'hujjat', nom: 'Tomonlar hujjatlari', ruxsat: [RAHBARIYAT, 'project.read'], modul: 'module.loyiha' },
-        { yol: '/admin/murojaatlar', ilova: 'hujjat', nom: 'Murojaatlar (remark, so‘rov)', ruxsat: [RAHBARIYAT, 'project.read'], modul: 'module.loyiha' },
+        { yol: '/admin/taqdimlar', ilova: 'hujjat', nom: 'Tomonlar hujjatlari', ruxsat: [RAHBARIYAT, 'project.read', 'design.read'], modul: 'module.loyiha' },
+        { yol: '/admin/murojaatlar', ilova: 'hujjat', nom: 'Murojaatlar (remark, so‘rov)', ruxsat: [RAHBARIYAT, 'project.read', 'design.read'], modul: 'module.loyiha' },
         { yol: '/admin/hujjat-aylanish', ilova: 'hujjat', nom: 'Hujjat aylanishi (kiruvchi, xat, tasdiq)', ruxsat: [RAHBARIYAT, 'project.read', 'quality.read'], modul: 'module.loyiha' },
       ] },
     ],
