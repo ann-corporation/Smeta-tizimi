@@ -47,3 +47,6 @@ Gate'lar (`CODEMAP.md` oxirida) → commit → push → deploy tekshiruvi → Ob
 
 ## 4. Tarixiy materiallar
 `ops/handoff/`, `docs/reviews/`, `docs/audit/`, `tizim02/MULOQOT.md` (append-only historical journal) — faqat tarix/dalil, joriy holat EMAS (not current state). Repo ildizidagi eski reja/brif hujjatlari 2026-10-02 da kanonik Obsidian hujjatlariga birlashtirilib o'chirildi (git tarixida bor).
+
+## 5. Yangi sahifa/amal qo'shish
+Yagona joy: `frontend/src/lib/reestr/` (reestr: sahifa, amal, ish joyi, tomon profili; `docs/architecture/EKOTIZIM_ARXITEKTURA_V2.md`). Yangi sahifa/menyu bandi/amal avval shu yerda e'lon qilinadi - menyu, route va ruxsat shundan hosil bo'ladi. `App.tsx`, `NAV_GURUHLAR` yoki boshqa joyga alohida qo'lda qo'shilmaydi; reestr yo'q bo'lsa (PR #355 main'ga tushmagan) - avval o'sha PR'ni kuting. Ildizga skript/ma'lumot tashlamang: skriptlar `scripts/`, katta ma'lumot R2.

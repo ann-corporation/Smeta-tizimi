@@ -191,6 +191,7 @@ export function sbDaraxtQur(qatorlar: SbHolatQator[]): SbTugun[] {
  * ══════════════════════════════════════════════════════════════════ */
 import type { TreeNode } from './types';
 import { f2MumkinIshorali, faktSummaF2Narxda } from '../lib/hisob-yadro';
+import { birlash } from './birlash';
 
 export function sbTreeQur(qatorlar: SbHolatQator[]): TreeNode[] {
   const son = (v: unknown) => Number(v) || 0;
@@ -392,7 +393,10 @@ export type T2AktReestr = {
  * Audit C m2 (2026-11-06): avval `limit 500` tur filtrsiz edi — fakt aktlari ko'p obyektda F2 lar kesilardi. Endi `tur`
  * filtri (ixtiyoriy), tartib noyob (oy.desc, id.desc) va to'liq bo'lmagan javob — `ok: false` (jim kesish yo'q).
  */
-export async function sbT2AktReestrOl(obyektId: number, tur?: 'f2' | 'fakt'): Promise<SbJavob<T2AktReestr>> {
+export function sbT2AktReestrOl(obyektId: number, tur?: 'f2' | 'fakt'): Promise<SbJavob<T2AktReestr>> {
+  return birlash('akt-reestr:' + obyektId + ':' + (tur ?? ''), () => sbT2AktReestrOlYakka(obyektId, tur));
+}
+async function sbT2AktReestrOlYakka(obyektId: number, tur?: 'f2' | 'fakt'): Promise<SbJavob<T2AktReestr>> {
   // Nakopitelniy to'liq yuklanayotgan bo'lsa — tugashini kutadi (prod 2026-10-27: parallel og'ir so'rovlar 30 s timeout).
   await ogirYuklashKut();
   const r = await sbOqi<T2AktReestr>({

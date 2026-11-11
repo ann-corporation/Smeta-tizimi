@@ -17,8 +17,9 @@ export const ZAXIRA_BOSH_SAHIFA = '/admin/ish-joylarim';
 export const MAVJUD_FOYDALANUVCHI_KIRISH = '/admin';
 
 const ROL_BOSH_SAHIFA: Readonly<Record<string, string>> = {
-  superadmin: '/admin/obyektlar',
-  admin: '/admin/obyektlar',
+  /* Navigatsiya oqimi (2026-11-11): admin/superadmin ham rahbar paneliga (avval Obyektlar sahifasiga tushardi). */
+  superadmin: '/admin/dashboard',
+  admin: '/admin/dashboard',
   pto: '/admin/obyektlar',
   bugalter: '/admin/obyektlar',
   prorab: '/admin/obyektlar',
