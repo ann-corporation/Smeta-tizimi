@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 const api = vi.hoisted(() => ({
-  buyurtmalarOl: vi.fn(), buyurtmaTafsilotOl: vi.fn(), buyurtmaOtish: vi.fn(), buyurtmaOlishYoz: vi.fn(),
+  buyurtmalarOl: vi.fn(), buyurtmaTolovHolatiOl: vi.fn(async () => ({ ok: true, qatorlar: [] })), buyurtmaTafsilotOl: vi.fn(), buyurtmaOtish: vi.fn(), buyurtmaOlishYoz: vi.fn(),
 }));
 const tomon = vi.hoisted(() => ({ aloqalarOl: vi.fn() }));
 vi.mock('../../api/t2-buyurtma', async (asl) => ({ ...(await asl<typeof import('../../api/t2-buyurtma')>()), ...api }));

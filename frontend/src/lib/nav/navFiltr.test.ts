@@ -67,8 +67,11 @@ const FAKT = a('fakt', 'm29');
 const F2 = a('f2-tayyorlash', 'f2', 'f2-tarix', 'f2-reestr', 'nakopitelniy');
 const MOLIYA = a('moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'kontragentlar');
 const HUJJAT = a('documents', 'hujjat-nazorat', 'aosr', 'storage', 'zakazchik', 'taqdimlar', 'murojaatlar', 'hujjat-aylanish');
-const TAMINOT = a('logistika', 'zayavka', 'tender', 'yuk-birjasi', 'yetkazuvchi', 'erp', 'hr');
+const TAMINOT = a('logistika', 'zayavka', 'tender', 'yuk-birjasi', 'erp', 'hr');
+/* «Yetkazuvchi: bugun» — faqat yetkazuvchi roli (supply.*) va rahbariyat; ichki xodim (PTO, prorab) ko'rmaydi (egasi 2026-11-12). */
+const TAMINOT_R = a('logistika', 'zayavka', 'tender', 'yuk-birjasi', 'yetkazuvchi', 'erp', 'hr');
 const ISH = [...OBYEKT, ...SMETA, ...FAKT, ...F2, ...MOLIYA, ...HUJJAT, ...TAMINOT];
+const ISH_R = [...OBYEKT, ...SMETA, ...FAKT, ...F2, ...MOLIYA, ...HUJJAT, ...TAMINOT_R];
 /* Uy sotish (20261124000000): alohida domen — sales.* (PTO da yo'q). */
 const SOTUV = a('sotuv');
 /* Egasi 2026-10-27: «Integratsiyalar va audit» (tizim boshqaruv markazi) — faqat platforma superadmini. */
@@ -79,9 +82,9 @@ const SHAXSIY = a('ish-joylarim', 'topshiriqlar', 'mutaxassis', 'akkaunt', 'sozl
 const PLATFORMA = a('boshqaruv', 'fayl-boglash'); // «Sinov qobig'i» menyu bandi olib tashlandi (2026-11-11); /admin/test yo'li superadmin-only qoladi
 
 const KUTILGAN: Record<string, string[]> = {
-  superadmin: [...ISH, ...SOTUV, ...KOMPANIYA_SA, ...SHAXSIY, ...PLATFORMA],
-  boss: [...ISH, ...SOTUV, ...KOMPANIYA, ...SHAXSIY],
-  admin: [...ISH, ...SOTUV, ...KOMPANIYA, ...SHAXSIY],
+  superadmin: [...ISH_R, ...SOTUV, ...KOMPANIYA_SA, ...SHAXSIY, ...PLATFORMA],
+  boss: [...ISH_R, ...SOTUV, ...KOMPANIYA, ...SHAXSIY],
+  admin: [...ISH_R, ...SOTUV, ...KOMPANIYA, ...SHAXSIY],
   pto: [...ISH, ...SHAXSIY],
   bugalter: [...a('dashboard', 'obyektlar', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'kontragentlar',
     'documents', 'hujjat-nazorat', 'storage', 'logistika', 'zayavka', 'tender', 'yuk-birjasi', 'erp', 'hr', 'sotuv'), ...SHAXSIY],
@@ -103,13 +106,13 @@ describe('rol menyusi — snapshot (yagona navigatsiya reestri)', () => {
   }
 
   it('rahbar: ish qatlami (F2 yozishsiz) + ⚙ Kompaniya, platformasiz', () => {
-    expect(menyu('rahbar')).toEqual([...bez(ISH, 'f2-tayyorlash', 'f2'), ...SOTUV, ...KOMPANIYA, ...SHAXSIY]);
+    expect(menyu('rahbar')).toEqual([...bez(ISH_R, 'f2-tayyorlash', 'f2'), ...SOTUV, ...KOMPANIYA, ...SHAXSIY]);
   });
 });
 
 describe('egasi qarori 2026-10-26: PTO qurilishdagi pulga aloqador HAMMA joyni ko‘radi', () => {
   /* «Uy sotish» — qurilish zanjiri emas (sales.* domeni, PTO roliga berilmagan): bu qoidaga kirmaydi. */
-  const ishYollari = NAV_SAHIFALAR.filter((s) => s.guruh.qatlam === 'ish' && s.guruh.id !== 'sotuv').map((s) => s.yol);
+  const ishYollari = NAV_SAHIFALAR.filter((s) => s.guruh.qatlam === 'ish' && s.guruh.id !== 'sotuv' && s.yol !== '/admin/yetkazuvchi').map((s) => s.yol);
 
   it('ish qatlamining har bandi PTO menyusida (ekotizim katalogi)', () => {
     const m = menyu('pto');

@@ -14,7 +14,7 @@ import { ilovaKeshTozala } from '../_shared/ilova-darvoza';
 const env = { SUPABASE_URL: 'https://test.supabase.co', SUPABASE_KEY: 'test-key', SESSIYA_KALIT: 'k'.repeat(32) };
 afterEach(() => { vi.unstubAllGlobals(); otaKeshTozala(); vakolatKeshTozala(); ilovaKeshTozala(); });
 
-async function chaqir(rpcJavob: { status: number; body: unknown }, sessiya: { email?: string } = {}) {
+async function chaqir(rpcJavob: { status: number; body: unknown }, sessiya: { email?: string } = {}, operatsiya = 'zayavka_yarat') {
   const rpc: { yol: string; body: Record<string, unknown> }[] = [];
   vi.stubGlobal('console', { ...console, error: () => undefined });
   vi.stubGlobal('fetch', vi.fn(async (raw: string, init?: RequestInit) => {
@@ -26,7 +26,7 @@ async function chaqir(rpcJavob: { status: number; body: unknown }, sessiya: { em
     throw new Error('Unexpected upstream ' + url.pathname);
   }));
   const token = await imzola({ rol: 'boss' as never, foydalanuvchi_id: 7, ...sessiya, kompaniyalar: [{ kompaniya_id: 17, rol: 'boss' }] } as never, env.SESSIYA_KALIT);
-  const body = { amal: 'erp_amal', kompaniya_id: 17, operatsiya: 'zayavka_yarat', payload: { obyekt_id: 5, item_text: 'Sement', requested_qty: 2, unit: 'tonna', priority: 'orta', operation_id: '11111111-1111-4111-8111-111111111111' } };
+  const body = { amal: 'erp_amal', kompaniya_id: 17, operatsiya, payload: { obyekt_id: 5, item_text: 'Sement', requested_qty: 2, unit: 'tonna', priority: 'orta', operation_id: '11111111-1111-4111-8111-111111111111' } };
   const res = await yozish({ request: new Request('https://test/api/sb-yoz', { method: 'POST', headers: { Cookie: 'sess=' + token, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), env } as never);
   return { res, rpc, json: await res.json() as Record<string, unknown> };
 }
@@ -54,5 +54,11 @@ describe('zayavka_yarat (erp_amal)', () => {
     const { json } = await chaqir({ status: 300, body: { code: 'PGRST203', message: 'Could not choose the best candidate function between: public.t2_erp_amal(...)' } });
     expect(json.code).toBe('BAZA_SOZLAMA');
     expect(JSON.stringify(json)).not.toContain('t2_erp_amal');
+  });
+  it('nomalum operatsiya (masalan prixod) bazaga yetmaydi - aniq sabab', async () => {
+    const { res, rpc, json } = await chaqir({ status: 200, body: { ok: true } }, {}, 'prixod');
+    expect(res.status).toBe(400);
+    expect(json.code).toBe('OPERATSIYA_NOMALUM');
+    expect(rpc).toHaveLength(0);
   });
 });

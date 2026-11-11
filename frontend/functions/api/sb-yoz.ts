@@ -210,6 +210,7 @@ const AMALLAR = {
   buyurtma_qabul_yakunla_v1: { rpc: 't2_buyurtma_qabul_yakunla_v1' },
   buyurtma_royxat_v1: { rpc: 't2_buyurtmalar_v1' },
   buyurtma_tafsilot_v1: { rpc: 't2_buyurtma_tafsilot_v1' },
+  buyurtma_tolov_holati_v1: { rpc: 't2_yet_tolov_holati_v1' },
   /* TENDER protsessi (2026-11-03, 20261122000200_t2_tender_protsess_v1): qoralama → tasdiq → e'lon → ochish → baholash → g'olib. Argumentlar `_shared/tender-yuk.ts` da. */
   tender_saqla_v1: { rpc: 't2_tender_saqla_v1' },
   tender_otish_v1: { rpc: 't2_tender_otish_v1' },
@@ -3317,6 +3318,11 @@ export const onRequestPost: PagesFunction<{
       };
 
     } else if (amal === 'erp_amal') {
+      /* Faqat zayavka operatsiyalari qoldi (t2_erp_amal jsonb nusxasi boshqasini bilmaydi; sklad kirim — alohida `skladga_yozish`).
+         Noma'lum operatsiya bazaga yetib «yuklab bo'lmadi» bo'lib qaytmasin — aniq sabab. */
+      if (!['zayavka_yarat', 'zayavka_holat', 'zayavka_ochir'].includes(String(so.operatsiya || ''))) {
+        return Response.json({ ok: false, code: 'OPERATSIYA_NOMALUM', error: 'Bu operatsiya qo‘llab-quvvatlanmaydi (faqat zayavka yaratish, holat va bekor qilish). Sklad kirimi uchun «skladga yozish» ishlatiladi.' }, { status: 400 });
+      }
       yuk = {
         p_kompaniya_id: Number(so.kompaniya_id || 0),
         p_operatsiya: String(so.operatsiya || ''),

@@ -574,8 +574,6 @@
             "nom": "Yetkazuvchi: bugun",
             "ruxsat": [
               "control.company.read",
-              "project.write",
-              "object.write",
               "supply.offer",
               "supply.fulfil"
             ]

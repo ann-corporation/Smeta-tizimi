@@ -712,6 +712,10 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_buyurtma_tafsilot_v1"
     },
     {
+      "amal": "buyurtma_tolov_holati_v1",
+      "rpc": "t2_yet_tolov_holati_v1"
+    },
+    {
       "amal": "tender_saqla_v1",
       "rpc": "t2_tender_saqla_v1"
     },

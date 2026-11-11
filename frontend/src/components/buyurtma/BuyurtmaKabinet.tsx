@@ -7,10 +7,12 @@ import { FmtN } from '../../lib/format';
 import { t } from '../../i18n/til';
 import { IJROCHI_QADAM } from '../../lib/yetkazuvchi/buyurtma-holat';
 import {
-  buyurtmaOlishYoz, buyurtmaOtish, buyurtmaTafsilotOl, buyurtmaXatosi, buyurtmalarOl, type BuyurtmaQator, type BuyurtmaRoyxatQator,
+  buyurtmaOlishYoz, buyurtmaOtish, buyurtmaTafsilotOl, buyurtmaTolovHolatiOl, buyurtmaXatosi, buyurtmalarOl, type BuyurtmaQator, type BuyurtmaRoyxatQator, type TolovHolatiQator,
 } from '../../api/t2-buyurtma';
 import { BuyurtmaChip } from './BuyurtmaChip';
 import { kompaniyaNomi, useFaolAloqalar } from './aloqalar';
+
+const TOLOV_NOMI = { tolangan: 'To‘langan', qisman: 'Qisman to‘langan', tolanmagan: 'To‘lanmagan' } as const;
 
 /**
  * «Menga kelgan buyurtmalar» (yetkazuvchi kabineti): har holatda BITTA asosiy tugma -
@@ -38,6 +40,13 @@ export function BuyurtmaKabinet({ kompaniyaId }: { kompaniyaId: number }) {
     return () => { bekor = true; };
   }, [kompaniyaId, kalit]);
   const qaytaYukla = () => setKalit((k) => k + 1);
+  /* To'lov holati (xaridor 	olov_holati grant bergan bo'lsa). Alohida so'rov: yiqilsa ro'yxat ishlayveradi. */
+  const [tolov, setTolov] = useState<Record<number, TolovHolatiQator>>({});
+  useEffect(() => {
+    let bekor = false;
+    void buyurtmaTolovHolatiOl(kompaniyaId).then((r) => { if (!bekor && r.ok) setTolov(Object.fromEntries(r.qatorlar.map((x) => [x.buyurtma_id, x]))); });
+    return () => { bekor = true; };
+  }, [kompaniyaId, kalit]);
 
   const tarkibniKoz = async (b: BuyurtmaRoyxatQator) => {
     if (ochiq === b.id) { setOchiq(null); return; }
@@ -110,6 +119,7 @@ export function BuyurtmaKabinet({ kompaniyaId }: { kompaniyaId: number }) {
                   </span>
                   <span className="inline-flex flex-wrap items-center gap-2">
                     <BuyurtmaChip holat={b.holat} />
+                    {tolov[b.id] && <span className="fz-chip" title={t('To‘lov holati xaridor ochgan ma’lumot bo‘yicha')}>{tolov[b.id].ruxsat ? (tolov[b.id].tolov_holati ? t(TOLOV_NOMI[tolov[b.id].tolov_holati as keyof typeof TOLOV_NOMI]) : t('To‘lov: ma’lumot yo‘q')) : t('To‘lov: xaridor ko‘rsatmagan')}</span>}
                     <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" onClick={() => void tarkibniKoz(b)}>{ochiq === b.id ? t('Yashirish') : t('Tarkibi')}</button>
                     {(b.holat === 'bajarilmoqda' || b.holat === 'tayyor') && (
                       <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" disabled={band} onClick={() => void transportSora(b)}>{t('Transport so‘rash')}</button>

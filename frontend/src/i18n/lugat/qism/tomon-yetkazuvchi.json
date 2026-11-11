@@ -27,5 +27,10 @@
   "O'rtachadan farq": { "ru": "Отличие от средней", "en": "Difference from average" },
   "Yetkazuvchi kabineti": { "ru": "Кабинет поставщика", "en": "Supplier cabinet" },
   "Narx bera oladigan ochiq so'rovlar (boshqa kompaniyalar e'lon qilgan)": { "ru": "Открытые запросы, на которые можно дать цену (опубликованы другими компаниями)", "en": "Open requests you can price (published by other companies)" },
-  "Hozircha sizga narx berish uchun ochiq so'rov yo'q.": { "ru": "Пока нет открытых запросов для вашей цены.", "en": "No open requests to price yet." }
+  "Hozircha sizga narx berish uchun ochiq so'rov yo'q.": { "ru": "Пока нет открытых запросов для вашей цены.", "en": "No open requests to price yet." },
+  "Qisman to‘langan": { "ru": "Оплачено частично", "en": "Partly paid" },
+  "To‘lanmagan": { "ru": "Не оплачено", "en": "Unpaid" },
+  "To‘lov holati xaridor ochgan ma’lumot bo‘yicha": { "ru": "Статус оплаты по данным, открытым покупателем", "en": "Payment status per data shared by the buyer" },
+  "To‘lov: ma’lumot yo‘q": { "ru": "Оплата: нет данных", "en": "Payment: no data" },
+  "To‘lov: xaridor ko‘rsatmagan": { "ru": "Оплата: покупатель не открыл", "en": "Payment: not shared by buyer" }
 }
