@@ -4,7 +4,8 @@ type QueryClient = { invalidateQueries(f: { queryKey: readonly unknown[] }): unk
 /** Ustama (nakrutka) so'rovi keshi: obyekt boshiga alohida so'rov (fan-out) 5 daqiqa yangi hisoblanadi. */
 export const USTAMA_STALE_MS = 5 * 60_000;
 
-const HODISA = 'ustama-ozgardi';
+export const USTAMA_HODISA = 'ustama-ozgardi';
+const HODISA = USTAMA_HODISA;
 
 /** Koeffitsient yoki podval o'zgarganda chaqiriladi — ustama keshlari darhol yangilanadi. */
 export function ustamaOzgardi(): void {
@@ -17,6 +18,7 @@ export function ustamaKeshiniUla(qc: QueryClient): () => void {
   const f = () => {
     void qc.invalidateQueries({ queryKey: ['ustama-nakrutka'] });
     void qc.invalidateQueries({ queryKey: ['pto-markup-podvals'] });
+    void qc.invalidateQueries({ queryKey: ['pto-markup'] });
   };
   window.addEventListener(HODISA, f);
   return () => window.removeEventListener(HODISA, f);

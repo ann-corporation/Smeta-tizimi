@@ -6,6 +6,7 @@
 import { vaqtliOqish } from './vaqtli-fetch';
 import { yozAmali, type AktNatija } from './supabase';
 import type { AsosQator } from '../lib/qarzdorlik/hisob';
+import type { DebitorQator } from '../lib/qarzdorlik/debitor';
 import { importYuk, type ImportShartnoma } from '../lib/qarzdorlik/parse';
 
 export type QarzObyekt = { id: number; nom: string };
@@ -70,4 +71,17 @@ export function qarzdorlikXato(r: { error?: string; xabar?: string; code?: strin
   if (/SHARTNOMALAR_1_300|IMPORT_QATORLAR_5000/.test(m)) return 'Import hajmi: ≤300 shartnoma, jami ≤5000 qator.';
   if (/PERMISSION_DENIED|insufficient_privilege/i.test(m)) return 'Bu amal uchun moliya (yozish) ruxsati kerak.';
   return r?.error || r?.xabar || r?.code || 'Saqlab bo‘lmadi.';
+}
+
+/** Buyurtmachi (debitor) qarzi: o'qish /api/sb `qarz_svod_v1` (stable, a'zolik + f2.read). */
+export async function qarzSvodOl(kompaniyaId: number): Promise<{ ok: true; qatorlar: DebitorQator[] } | { ok: false; error: string }> {
+  try {
+    const r = await vaqtliOqish('/api/sb', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ soro: 'qarz_svod_v1', kompaniya_id: kompaniyaId }),
+    });
+    const j = await r.json() as { ok: boolean; natija?: { ok: boolean; qatorlar?: DebitorQator[] }; error?: string };
+    if (!j.ok || !j.natija?.qatorlar) return { ok: false, error: j.error || 'Buyurtmachi qarzini o‘qib bo‘lmadi.' };
+    return { ok: true, qatorlar: j.natija.qatorlar };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : 'Tarmoq xatosi' }; }
 }
