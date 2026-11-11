@@ -21,9 +21,21 @@ import { ObyektQadamlari } from '../components/ObyektQadamlari';
 import { sbOqi, sbT2AktYaratV2, sbT2F2QoralamaYangila, sbT2DaraxtOl, sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt, type T2Qator } from '../../api/supabase';
 import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
 import { sbQatorHolatOl, sbF2QoralamaHajmlar, type QatorHolat } from '../../api/t2-fakt';
+import { paketdanF2DaraxtHolatOl, paketTezYoliYoqilgan } from '../../api/t2-paket-oqish';
 
 /** Sahifa/f2Qur o'qiydigan holat ustunlari (view ~36 ustun; qolganlari kerak emas — javob ~2-3x kichik). */
 const F2_HOLAT_USTUNLAR = 'qator_id,smeta_hajm,smeta_narx,fakt_hajm,f2_hajm,f2_mumkin_hajm,f2_narx,almashtirilgan_hajm,fakt_manbasi';
+
+/** Daraxt + holat: avval obyekt paketi (1 so'rov); har qanday nosozlikda (eski server, 403, tarmoq, shakl) jim eski sahifalab yo'l. */
+async function daraxtHolatOl(obyektId: number): Promise<{ ok: true; rows: T2Qator[]; holat: QatorHolat[] } | { ok: false }> {
+  if (paketTezYoliYoqilgan()) {
+    const p = await paketdanF2DaraxtHolatOl(obyektId);
+    if (p) return { ok: true, rows: p.rows, holat: p.f2Holat as unknown as QatorHolat[] };
+  }
+  const [d, h] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbQatorHolatOl(obyektId, F2_HOLAT_USTUNLAR)]);
+  if (!d.ok || !h.ok) return { ok: false };
+  return { ok: true, rows: (d.qatorlar || []) as T2Qator[], holat: (h.qatorlar || []) as QatorHolat[] };
+}
 import { f2VersiyaKochirmaOl } from '../../api/t2-f2-versiya-kochirma';
 import { avvalgiF2Xaritasi, type F2VersiyaKochirma } from '../../lib/f2-versiya-kochirma';
 import { f2Hujjat } from '../../lib/f2-hujjat';
@@ -247,10 +259,10 @@ export function F2TayyorlashNative() {
       void Promise.resolve().then(() => f2VersiyaKochirmaOl(obyektId)).then((r) => { if (dolzarb()) setKochirma(r.ok ? r.natija : null); }).catch(() => { if (dolzarb()) setKochirma(null); });
       // Boshqa qoralamalardagi hajm o'qilmasa (A-14) — QORALAMA_TAKROR himoyasi jim o'chmaydi: xato holati.
       void Promise.resolve().then(() => sbF2QoralamaHajmlar(obyektId, aktId)).then((qh) => { if (dolzarb()) { setQoralamaHajm(qh.ok ? qh.hajm : new Map()); setQoralamaXato(!qh.ok); } }).catch(() => { if (dolzarb()) { setQoralamaHajm(new Map()); setQoralamaXato(true); } });
-      const [d, h] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbQatorHolatOl(obyektId, F2_HOLAT_USTUNLAR)]);
+      const dh = await daraxtHolatOl(obyektId);
       if (!dolzarb()) return;
-      if (!d.ok || !h.ok) { setRows([]); setHolat([]); setError('F2 uchun smeta va fakt qoldig‘i o‘qilmadi.'); return; }
-      setRows((d.qatorlar || []) as T2Qator[]); setHolat((h.qatorlar || []) as QatorHolat[]);
+      if (!dh.ok) { setRows([]); setHolat([]); setError('F2 uchun smeta va fakt qoldig‘i o‘qilmadi.'); return; }
+      setRows(dh.rows); setHolat(dh.holat);
       sessObyekt.current = aktId == null ? obyektId : null;
       const sess = aktId == null ? f2SessiyaOqi(obyektId) : null; // saqlanmagan kiritmalar (yangilashdan keyin ham)
       // Raqam har yuklashda tiklanadi (A-9): obyekt almashtirilganda eski obyekt raqami yangisiga o'tib qolmasin.
@@ -302,9 +314,9 @@ export function F2TayyorlashNative() {
   /** Zamena/chiqarishdan keyin: daraxt va holat qayta o'qiladi, operator kiritmalari (hajm/narx) SAQLANADI. */
   const tuzilmaYangila = async () => {
     const raqam = sorov.current;
-    const [d, h] = await Promise.all([sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI), sbQatorHolatOl(obyektId, F2_HOLAT_USTUNLAR)]).catch(() => [null, null] as const);
+    const dh = await daraxtHolatOl(obyektId).catch(() => null);
     if (raqam !== sorov.current) return;
-    if (d?.ok && h?.ok) { setRows((d.qatorlar || []) as T2Qator[]); setHolat((h.qatorlar || []) as QatorHolat[]); }
+    if (dh?.ok) { setRows(dh.rows); setHolat(dh.holat); }
     else toast(t('Saqlandi, lekin jadvalni yangilab bo‘lmadi — sahifani yangilang.'), 'warn');
     await qoshimchaYukla();
   };

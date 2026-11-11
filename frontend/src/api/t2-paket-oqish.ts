@@ -9,7 +9,7 @@
  */
 import type { T2Qator, T2QatorHolat } from './supabase';
 import { obyektPaketOl } from './t2-obyekt-paket';
-import { paketDekod, paketdanHolatlar, paketdanQatorlar } from '../ombor/paket';
+import { paketDekod, paketdanF2Holatlar, paketdanHolatlar, paketdanQatorlar, type F2Holat } from '../ombor/paket';
 
 export type DaraxtHolat = { rows: T2Qator[]; states: T2QatorHolat[] };
 
@@ -35,5 +35,27 @@ export function paketdanDaraxtHolatOl(obyektId: number): Promise<DaraxtHolat | n
   if (bor) return bor;
   const p = oqi(obyektId).finally(() => { if (ketayotgan.get(obyektId) === p) ketayotgan.delete(obyektId); });
   ketayotgan.set(obyektId, p);
+  return p;
+}
+
+export type F2DaraxtHolat = { rows: T2Qator[]; f2Holat: F2Holat[] };
+const ketayotganF2 = new Map<number, Promise<F2DaraxtHolat | null>>();
+
+async function oqiF2(obyektId: number): Promise<F2DaraxtHolat | null> {
+  try {
+    const r = await obyektPaketOl(obyektId);
+    if (!r.ok || r.paket.obyekt_id !== obyektId) return null;
+    const p = paketDekod(r.paket);
+    const f2Holat = paketdanF2Holatlar(p);
+    return f2Holat ? { rows: paketdanQatorlar(p), f2Holat } : null; // f2_narx/smeta_hajm yo'q (eski server): eski yo'l
+  } catch { return null; }
+}
+
+/** F2 tayyorlash uchun daraxt + holat (F2_HOLAT_USTUNLAR shaklida) paketdan; `null`: eski yo'lga qayting. */
+export function paketdanF2DaraxtHolatOl(obyektId: number): Promise<F2DaraxtHolat | null> {
+  const bor = ketayotganF2.get(obyektId);
+  if (bor) return bor;
+  const p = oqiF2(obyektId).finally(() => { if (ketayotganF2.get(obyektId) === p) ketayotganF2.delete(obyektId); });
+  ketayotganF2.set(obyektId, p);
   return p;
 }
