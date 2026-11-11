@@ -63,7 +63,7 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       't2_obyekt_hujjat_yoz', 't2_obyekt_hujjat_ochir',
                       't2_sklad_yarat', 't2_kadr_yarat', 't2_texnika_yarat',
                       /* 2026-10-29 C11 PR-B: markaziy ombor kirimi (≤1000 qator, idempotent) va storno; RPC ichida a'zolik + document.write. */
-                      't2_sklad_markaziy_prixod_import_v1', 't2_sklad_markaziy_prixod_storno_v1',
+                      't2_sklad_markaziy_berdim_v1', 't2_sklad_markaziy_prixod_import_v1', 't2_sklad_markaziy_prixod_storno_v1',
                       't2_resurs_yarat_v2', 't2_resurs_yangila_v2', 't2_resurs_bekor_v2',
                       't2_resurs_bog_saqla', 't2_resurs_bog_ochir',
                       't2_loyiha_yarat', 't2_loyiha_yangila', 't2_loyiha_ochir',

@@ -67,6 +67,7 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   /* C11 PR-B: RPC (t2_sklad_markaziy_prixod_import_v1/_storno_v1) ham document.write talab qiladi. */
   sklad_kirim_import_v1: 'document.write',
   sklad_kirim_storno_v1: 'document.write',
+  sklad_berdim_v1: 'document.write',
   token_sarfla_v1: 'company.read',
   token_qaytar_v1: 'company.read',
   token_yakunla_v1: 'company.read',
