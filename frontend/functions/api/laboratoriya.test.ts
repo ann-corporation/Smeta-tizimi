@@ -73,6 +73,12 @@ describe('laboratoriya shlyuzi — so‘rovlar', () => {
     expect(JSON.parse(String(init.body))).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 3 });
   });
 
+  it('kutilayotgan sinov xatosi ham tushunarli', () => {
+    const e = xatoJavobi(JSON.stringify({ code: '23514', message: 'LAB_SINOV_KUTILMOQDA: sinov natijasi kutilmoqda (Beton)' }));
+    expect(e.status).toBe(409);
+    expect(e.body).toMatchObject({ ok: false, code: 'LAB_SINOV_KUTILMOQDA' });
+  });
+
   it('АОСР qorovuli xatosi tushunarli javob beradi (ichki matn sizdirilmaydi)', () => {
     const e = xatoJavobi(JSON.stringify({ code: '23514', message: 'LAB_MOS_EMAS: majburiy sinov natijasi mos emas (Beton)' }));
     expect(e.status).toBe(409);

@@ -2,15 +2,27 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 159,
+      "id": 160,
       "sana": "2026-11-12",
       "sarlavha": "Laboratoriya tizimda: sinov so‘rovi, protokol, АОСР bilan avtomatik bog‘lanish",
       "bandlar": [
         "АОСР ichidan yoki «Laboratoriya» sahifasidan sinov so‘rovi yuborasiz (beton kub, grunt zichligi, payvand, gidravlik, elektr). Laboratoriya o‘z «Bugun» ro‘yxatida ko‘radi, tur bo‘yicha maydonlarni to‘ldiradi, mos / mos emas deb belgilaydi va protokol faylini biriktiradi.",
-        "Protokol АОСР va ish qatoriga o‘zi ilova bo‘ladi. «Mos emas» bo‘lsa sizga predpisaniya keladi va majburiy sinovli АОСР qayta sinovdan mos chiqquncha tasdiqqa yuborilmaydi; qayta sinov mos bo‘lsa predpisaniya o‘zi yopiladi.",
+        "Protokol АОСР va ish qatoriga o‘zi ilova bo‘ladi. «Mos emas» yoki natijasi kutilayotgan majburiy sinov bo‘lsa АОСР tasdiqqa yuborilmaydi; qayta sinov mos bo‘lsa predpisaniya o‘zi yopiladi.",
         "Laboratoriya hisobi (QQS bilan) laboratoriya shartnomangiz bo‘lsa qarzdorlikka avtomatik tushadi."
       ]
     },    {
+      "id": 159,
+      "sana": "2026-11-11",
+      "sarlavha": "Bitta yordamchi: Jarvis butun tizimni gaplashib boshqaradi",
+      "bandlar": [
+        "Ctrl+K endi bitta yordamchi (Jarvis) ni ochadi: «mindmapni och», «Yevropa 1 ning F2 sini och», «АОСР sahifasi», «qarzdorlik» — tizimdagi istalgan sahifa o'zbek, rus yoki ingliz tilida ochiladi.",
+        "Obyekt va oy aytsangiz sahifa shu obyekt va oy bilan ochiladi. Sizga ruxsat etilmagan bo'limlar ochilmaydi.",
+        "«narxsiz qatorlar», «qoldiq», «Yevropa 1 holati» — javob bir zumda va tokensiz. Fakt kiritish va narx tuzatish avval ko'rsatiladi, «Tasdiqlash» bosganingizdagina yoziladi.",
+        "Jarvis endi qarzni, F2 ro'yxatini va АОСР da nima yetishmayotganini aytadi; «Yevropa 1 oktabr F2 tayyorla» yoki «АОСР tayyorla» desangiz qoralamani ko'rsatadi va faqat «Bajarish» dan keyin yaratadi (tasdiqlash doim qo'lda).",
+        "Tushunmasa rad etmaydi: eng yaqin sahifa va amallarni taklif qiladi. Suhbat tarixi saqlanadi, mikrofon bilan ovoz orqali ham yozish mumkin. Jarvis tugmasi sarlavha qatoriga ko'chdi — «Saqlash» tugmalari ustida hech narsa turmaydi."
+      ]
+    },
+    {
       "id": 158,
       "sana": "2026-11-12",
       "sarlavha": "Rahbar paneli va hisobotlar yana tezlashdi",

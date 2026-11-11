@@ -29,7 +29,7 @@ export function ProtokolForma({ kompaniyaId, id, onTayyor }: { kompaniyaId: numb
   const [summa, setSumma] = useState('');
   const [invRaqam, setInvRaqam] = useState('');
   const [invSana, setInvSana] = useState('');
-  const [muddat, setMuddat] = useState('');
+  const [muddat, setMuddat] = useState(() => new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
   const [fayllar, setFayllar] = useState<File[]>([]);
   const [band, setBand] = useState(false);
 

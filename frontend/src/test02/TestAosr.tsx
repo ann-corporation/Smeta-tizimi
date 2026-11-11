@@ -470,7 +470,7 @@ export default function TestAosr() {
                             )}
                             {dublikat.has(a.id) && <span className="fz-chip fz-chip--warn" title={t('Shu obyektda bir xil ish nomli akt bor')}>{t('dublikat?')}</span>}
                             {a.holat !== 'bekor' && aosrSinovMatni(sinovHolat.get(a.id)) && (
-                              <span className={`fz-chip ${sinovHolat.get(a.id)?.bloklangan ? 'fz-chip--warn' : ''}`} data-testid="aosr-sinov-chip" title={aosrSinovMatni(sinovHolat.get(a.id)) ?? ''}><AlertTriangle size={11} />{sinovHolat.get(a.id)?.bloklangan ? t('Sinov mos emas — yuborib bo‘lmaydi') : t('Sinov natijasi kutilmoqda')}</span>
+                              <span className={`fz-chip ${sinovHolat.get(a.id)?.bloklangan ? 'fz-chip--warn' : ''}`} data-testid="aosr-sinov-chip" title={aosrSinovMatni(sinovHolat.get(a.id)) ?? ''}><AlertTriangle size={11} />{sinovHolat.get(a.id)?.holat.nomos.length ? t('Sinov mos emas — yuborib bo‘lmaydi') : t('Sinov natijasi kutilmoqda — yuborib bo‘lmaydi')}</span>
                             )}
                             {a.holat !== 'bekor' && (labYoq.get(a.id) ?? []).length > 0 && (
                               <span className="fz-chip fz-chip--warn" title={t('Bu ish turiga laboratoriya protokoli kerak, lekin ulanmagan')}><AlertTriangle size={11} />{t('protokol yo‘q: {x}', { x: (labYoq.get(a.id) ?? []).map((x) => LAB_TALAB_NOM[x]).join(', ') })}</span>

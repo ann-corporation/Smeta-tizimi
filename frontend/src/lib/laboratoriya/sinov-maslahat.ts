@@ -57,9 +57,9 @@ export function maydonXatosi(maydonlar: readonly SinovMaydon[], qiymat: Record<s
 }
 
 /** АОСР uchun: bloklovchi / kutilayotgan sinovlar bo'yicha qisqa matn (null — hammasi joyida yoki so'rov yo'q). */
-export function aosrSinovMatni(h: { bloklangan: boolean; holat: { nomos: Array<{ nom: string }>; kutilmoqda: Array<{ nom: string }> } } | undefined): string | null {
+export function aosrSinovMatni(h: { bloklangan?: boolean; holat: { nomos: Array<{ nom: string }>; kutilmoqda: Array<{ nom: string }> } } | undefined): string | null {
   if (!h) return null;
-  if (h.bloklangan) return `Sinov mos emas: ${h.holat.nomos.map((x) => x.nom).join(', ')}`;
+  if (h.holat.nomos.length) return `Sinov mos emas: ${h.holat.nomos.map((x) => x.nom).join(', ')}`;
   if (h.holat.kutilmoqda.length) return `Sinov natijasi kutilmoqda: ${h.holat.kutilmoqda.map((x) => x.nom).join(', ')}`;
   return null;
 }

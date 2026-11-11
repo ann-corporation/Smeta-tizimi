@@ -44,6 +44,14 @@ begin
   if jsonb_array_length(royxat) <> 1 then raise exception 'ACC4: lab inbox'; end if;
   if (public.t2_lab_sorov_tafsilot_v1(ux, kx, s1)->>'ok')::boolean then raise exception 'ACC4b: begona kompaniya ko''rdi'; end if;
 
+  -- 4c. Natijasi kutilayotgan majburiy sinov ham АОСР yuborilishini bloklaydi
+  bloklandi := false;
+  begin
+    insert into public.t2_tomon_taqdim (aloqa_id, taqdim_etuvchi_kompaniya_id, qabul_qiluvchi_kompaniya_id, resurs, manba_jadval, manba_id, obyekt_id, nom, taqdim_actor_id)
+      values (aloqa, kp, kl, 'aosr', 't2_aosr', aosr, o, 'TEST', up);
+  exception when others then bloklandi := sqlerrm like 'LAB_SINOV_KUTILMOQDA%'; end;
+  if not bloklandi then raise exception 'ACC4c: kutilayotgan sinov bloklamadi'; end if;
+
   -- 5. Maydon tekshiruvi: majburiy maydon yo'q
   r := public.t2_lab_sorov_natija_v1(ul, kl, s1, 1, jsonb_build_object('natija', 'mos', 'protokol_raqam', 'P-1', 'maydon', '{}'::jsonb), array[doc]);
   if (r->>'ok')::boolean or r->>'code' <> 'MAYDON' then raise exception 'ACC5: %', r; end if;
@@ -72,6 +80,7 @@ begin
   s2 := (r->>'id')::bigint;
   r := public.t2_lab_sorov_natija_v1(ul, kl, s2, 1, jsonb_build_object('natija', 'mos', 'protokol_raqam', 'P-2', 'maydon', jsonb_build_object('marka_sinf', 'B25', 'yosh_kun', 28, 'olchangan_mpa', 30, 'talab_mpa', 25)), array[doc]);
   if not (r->>'ok')::boolean then raise exception 'ACC8b: %', r; end if;
+  if (select muddat from public.t2_tomon_murojaat where id = pred) is distinct from current_date + 7 then raise exception 'ACC6f: sukut muddat 7 kun emas'; end if;
   if (select holat from public.t2_tomon_murojaat where id = pred) <> 'yopildi' then raise exception 'ACC8c: predpisaniya yopilmadi'; end if;
   if (public.t2_lab_sorov_aosr_holat_v1(up, kp, o)->'aktlar'->0->>'bloklangan')::boolean then raise exception 'ACC8d: hamon bloklangan'; end if;
   insert into public.t2_tomon_taqdim (aloqa_id, taqdim_etuvchi_kompaniya_id, qabul_qiluvchi_kompaniya_id, resurs, manba_jadval, manba_id, obyekt_id, nom, taqdim_actor_id)

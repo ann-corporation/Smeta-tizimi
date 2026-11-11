@@ -8,7 +8,8 @@
 --        - t2_lab_protokol (ko'zgu yozuv) + t2_lab_protokol_bog (АОСР va ish qatori) yaratadi/yangilaydi -> АОСР va reestr o'zgarishsiz ishlaydi;
 --        - «mos emas» -> pudratchiga PREDPISANIYA (murojaat) ochadi; qayta sinov «mos» bo'lsa predpisaniya avtomat yopiladi;
 --        - summa bo'lsa va pudratchining shu laboratoriya bilan qo'shimcha (asosiy=false) shartnomasi aniq bitta bo'lsa -> t2_qarz_asos (bajarilgan_ish, QQS bilan).
---   4. АОСР qorovuli: majburiy sinovi «mos emas» (qayta sinovda mos chiqmagan) АОСР qarshi tomonga YUBORILMAYDI (trigger t2_tomon_taqdim).
+--   4. АОСР qorovuli: majburiy sinovi «mos emas» (qayta sinovda mos chiqmagan) YOKI natijasi kutilayotgan bo'lsa АОСР qarshi tomonga YUBORILMAYDI (trigger t2_tomon_taqdim).
+--      Predpisaniya muddati: laboratoriya kiritmasa — 7 kun (egasi qarori).
 -- DB hajmi: ~1 KB/so'rov (<= 8 KB maydon jsonb) -> 500 so'rov/oy ~ 0.5 MB/oy. Fayllar R2 da.
 -- versiya: tarix (t2_qator o'qilmaydi; faqat id bo'yicha tegishlilik tekshiruvi)
 
@@ -26,7 +27,7 @@ revoke all on table public.t2_lab_sinov_turi from anon, authenticated;
 
 insert into public.t2_lab_sinov_turi (kalit, nom, nom_ru, mirror_turi, standart, norma_izoh, maydonlar, tartib) values
  ('beton_kub', 'Beton mustahkamligi (kub namuna)', 'Прочность бетона (кубы)', 'beton', 'ГОСТ 10180, ГОСТ 18105, ГОСТ 22690',
-  'Norma/band raqamlarini PTO/yurist tasdiqlashi kerak (IJRO §7).',
+  'T — tekshirilsin: norma/band raqamlarini PTO/yurist tasdiqlashi kerak (IJRO §7).',
   '[{"kalit":"marka_sinf","nom":"Beton markasi / sinfi","tur":"matn","majburiy":true},
     {"kalit":"quyma_sana","nom":"Quyma sanasi","tur":"sana"},
     {"kalit":"namuna_soni","nom":"Namuna soni","tur":"son","birlik":"dona"},
@@ -35,7 +36,7 @@ insert into public.t2_lab_sinov_turi (kalit, nom, nom_ru, mirror_turi, standart,
     {"kalit":"talab_mpa","nom":"Loyiha talabi","tur":"son","birlik":"MPa","majburiy":true},
     {"kalit":"asbob","nom":"Asbob va kalibrovka","tur":"matn"}]'::jsonb, 10),
  ('grunt_zichlik', 'Grunt zichlanishi', 'Уплотнение грунта/основания', 'grunt', 'ГОСТ 22733, ШНК 3.02.01',
-  'Norma/band raqamlarini PTO/yurist tasdiqlashi kerak (IJRO §7).',
+  'T — tekshirilsin: norma/band raqamlarini PTO/yurist tasdiqlashi kerak (IJRO §7).',
   '[{"kalit":"qatlam","nom":"Qatlam / joy","tur":"matn","majburiy":true},
     {"kalit":"qalinlik_sm","nom":"Qatlam qalinligi","tur":"son","birlik":"sm"},
     {"kalit":"usul","nom":"Usul","tur":"matn"},
@@ -44,7 +45,7 @@ insert into public.t2_lab_sinov_turi (kalit, nom, nom_ru, mirror_turi, standart,
     {"kalit":"talab_k","nom":"Loyiha talabi (koeffitsient)","tur":"son","majburiy":true},
     {"kalit":"asbob","nom":"Asbob","tur":"matn"}]'::jsonb, 20),
  ('payvand', 'Payvand choklari', 'Сварные соединения', 'payvand', 'ГОСТ 5264, ГОСТ 14771, ГОСТ 7512/14782; ШНК 3.03.01',
-  'Norma/band raqamlarini PTO/yurist tasdiqlashi kerak (IJRO §7).',
+  'T — tekshirilsin: norma/band raqamlarini PTO/yurist tasdiqlashi kerak (IJRO §7).',
   '[{"kalit":"choklar","nom":"Choklar ro‘yxati / raqamlari","tur":"matn","majburiy":true},
     {"kalit":"payvandchi_attestat","nom":"Payvandchi attestat №","tur":"matn"},
     {"kalit":"usul","nom":"Nazorat usuli (vizual / UZK / rentgen)","tur":"matn","majburiy":true},
@@ -52,7 +53,7 @@ insert into public.t2_lab_sinov_turi (kalit, nom, nom_ru, mirror_turi, standart,
     {"kalit":"nuqson","nom":"Nuqson","tur":"matn"},
     {"kalit":"asbob","nom":"Asbob","tur":"matn"}]'::jsonb, 30),
  ('gidravlik', 'Gidravlik sinov (opressovka)', 'Гидравлическое испытание', 'boshqa', 'ШНК 3.05.01, ШНК 3.05.04',
-  'Norma/band raqamlarini PTO/yurist tasdiqlashi kerak (IJRO §7).',
+  'T — tekshirilsin: norma/band raqamlarini PTO/yurist tasdiqlashi kerak (IJRO §7).',
   '[{"kalit":"tizim","nom":"Tizim / uchastka","tur":"matn","majburiy":true},
     {"kalit":"sinov_bosimi_mpa","nom":"Sinov bosimi","tur":"son","birlik":"MPa","majburiy":true},
     {"kalit":"ushlab_turish_min","nom":"Ushlab turish vaqti","tur":"son","birlik":"min","majburiy":true},
@@ -60,7 +61,7 @@ insert into public.t2_lab_sinov_turi (kalit, nom, nom_ru, mirror_turi, standart,
     {"kalit":"ruxsat_pasayish_mpa","nom":"Ruxsat etilgan pasayish","tur":"son","birlik":"MPa"},
     {"kalit":"asbob","nom":"Asbob","tur":"matn"}]'::jsonb, 40),
  ('elektr', 'Elektr o‘lchovlari (izolyatsiya, zazemleniye)', 'Испытание электроустановок', 'boshqa', 'ПУЭ, ШНК 3.05.06',
-  'Norma/band raqamlarini PTO/yurist tasdiqlashi kerak (IJRO §7).',
+  'T — tekshirilsin: norma/band raqamlarini PTO/yurist tasdiqlashi kerak (IJRO §7).',
   '[{"kalit":"liniya","nom":"Tizim / liniya","tur":"matn","majburiy":true},
     {"kalit":"megger_kuchlanish_v","nom":"Megger kuchlanishi","tur":"son","birlik":"V"},
     {"kalit":"izolyatsiya_mom","nom":"Izolyatsiya qarshiligi","tur":"son","birlik":"MOm","majburiy":true},
@@ -175,6 +176,10 @@ begin
     if jsonb_array_length(v -> 'nomos') > 0 then
       raise exception 'LAB_MOS_EMAS: majburiy sinov natijasi mos emas (%) - qayta sinovdan mos chiqmaguncha АОСР tasdiqqa yuborilmaydi',
         (v -> 'nomos' -> 0 ->> 'nom') using errcode = '23514';
+    end if;
+    if jsonb_array_length(v -> 'kutilmoqda') > 0 then
+      raise exception 'LAB_SINOV_KUTILMOQDA: sinov natijasi kutilmoqda (%) - protokol kelmaguncha АОСР tasdiqqa yuborilmaydi',
+        (v -> 'kutilmoqda' -> 0 ->> 'nom') using errcode = '23514';
     end if;
   end if;
   return new;
@@ -357,7 +362,7 @@ begin
     if v_pred is null then
       insert into public.t2_tomon_murojaat (aloqa_id, turi, beruvchi_kompaniya_id, ijrochi_kompaniya_id, obyekt_id, joy, sarlavha, matn, muhimlik, muddat, beruvchi_actor_id)
       values (m.aloqa_id, 'predpisaniya', p_kompaniya_id, s.kompaniya_id, s.obyekt_id, m.joy, left('Sinov natijasi mos emas: ' || tt.nom || ' № ' || v_raqam, 200),
-              left(v_xul || E'\nSinov so‘rovi #' || s.murojaat_id || '. Qayta sinov so‘rang.', 4000), 'yuqori', v_muddat, p_actor_id)
+              left(v_xul || E'\nSinov so‘rovi #' || s.murojaat_id || '. Qayta sinov so‘rang.', 4000), 'yuqori', coalesce(v_muddat, current_date + 7), p_actor_id)
       returning id into v_pred;
       insert into public.t2_tomon_hodisa (aloqa_id, murojaat_id, kompaniya_id, actor_id, tur, matn, meta)
       values (m.aloqa_id, v_pred, p_kompaniya_id, p_actor_id, 'murojaat', 'Sinov mos emas: ' || tt.nom, jsonb_build_object('turi', 'predpisaniya', 'sorov_id', s.murojaat_id));
@@ -422,7 +427,7 @@ begin
     return jsonb_build_object('ok', false, 'code', 'TOPILMADI', 'error', 'Obyekt topilmadi');
   end if;
   return jsonb_build_object('ok', true, 'aktlar', coalesce((
-    select jsonb_agg(jsonb_build_object('aosr_id', q.aosr_id, 'holat', q.h, 'bloklangan', jsonb_array_length(q.h->'nomos') > 0))
+    select jsonb_agg(jsonb_build_object('aosr_id', q.aosr_id, 'holat', q.h, 'bloklangan', jsonb_array_length(q.h->'nomos') > 0 or jsonb_array_length(q.h->'kutilmoqda') > 0))
       from (select s.aosr_id, public._t2_lab_aosr_holat(s.aosr_id) h from public.t2_lab_sinov_sorov s
              where s.kompaniya_id = p_kompaniya_id and s.obyekt_id = p_obyekt_id and s.aosr_id is not null group by s.aosr_id) q), '[]'::jsonb));
 end $$;

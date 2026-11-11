@@ -32,6 +32,7 @@
   "Qayta sinov so‘rash": { "ru": "Запросить повторное испытание", "en": "Request retest" },
   "Sinov so‘rovi yuborilmagan": { "ru": "Запросы на испытание не отправлялись", "en": "No test requests sent" },
   "Sinov mos emas — yuborib bo‘lmaydi": { "ru": "Испытание не соответствует — отправка невозможна", "en": "Test failed — cannot send" },
+  "Sinov natijasi kutilmoqda — yuborib bo‘lmaydi": { "ru": "Результат испытания ожидается — отправка невозможна", "en": "Test result pending — cannot send" },
   "Sinov natijasi kutilmoqda": { "ru": "Ожидается результат испытания", "en": "Test result pending" },
   "Laboratoriya sinovi": { "ru": "Лабораторное испытание", "en": "Laboratory test" },
   "Sinov so‘rovlari: pudratchi so‘raydi → laboratoriya protokolni to‘ldiradi → protokol АОСР va ish qatoriga o‘zi ilova bo‘ladi": { "ru": "Запросы на испытания: подрядчик запрашивает → лаборатория заполняет протокол → протокол сам прикладывается к АОСР и строке работ", "en": "Test requests: contractor requests → laboratory fills the protocol → the protocol attaches itself to the AOSR and the work row" },
