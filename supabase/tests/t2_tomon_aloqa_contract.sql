@@ -61,8 +61,8 @@ begin
   rep := rep || (case when r->>'code' = 'DOIRA_BEGONA' then 'OK   begona obyektga grant — rad' else 'FAIL begona obyekt grant: ' || r::text end);
   r := t2_tomon_grant_saqla_v1(up, p, al, jsonb_build_array(jsonb_build_object('resurs', 'f2', 'amallar', jsonb_build_array('qaror'), 'obyekt_id', o1)));
   rep := rep || (case when r->>'code' = 'AMAL_NOTOGRI' then 'OK   resursga mos bo''lmagan amal — rad' else 'FAIL amal: ' || r::text end);
-  r := t2_tomon_grant_saqla_v1(up, p, al, jsonb_build_array(jsonb_build_object('resurs', 'aosr', 'amallar', jsonb_build_array('korish'), 'obyekt_id', o1)));
-  rep := rep || (case when r->>'code' = 'RESURS_YOQ' then 'OK   hali ochilmagan resurs (aosr) — rad' else 'FAIL aosr: ' || r::text end);
+  r := t2_tomon_grant_saqla_v1(up, p, al, jsonb_build_array(jsonb_build_object('resurs', 'remark', 'amallar', jsonb_build_array('korish'), 'obyekt_id', o1)));
+  rep := rep || (case when r->>'code' = 'RESURS_YOQ' then 'OK   hali ochilmagan resurs (remark) — rad' else 'FAIL remark: ' || r::text end);
   -- Zakazchik P ning obyektini o'z nomidan ocha olmaydi (doira — beruvchiniki)
   r := t2_tomon_grant_saqla_v1(uz, z, al, jsonb_build_array(jsonb_build_object('resurs', 'obyekt_holat', 'amallar', jsonb_build_array('korish'), 'obyekt_id', o1)));
   rep := rep || (case when r->>'code' = 'DOIRA_BEGONA' then 'OK   zakazchik pudratchi obyektini o''zi ocha olmaydi' else 'FAIL zakazchik grant: ' || r::text end);
