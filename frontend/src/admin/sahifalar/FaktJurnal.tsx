@@ -41,6 +41,8 @@ import { tuzatishBoglanishlari } from '../../lib/smeta-anatomiya/tuzatish';
 import { almashtirildiMatn, ochiqdanOrtiqcha, ochiqQoldiq } from '../../lib/zamena-qoldiq';
 import { KatNishon } from '../../umumiy/ui/KatNishon';
 import { ishMateriallari, materialTaklifi } from '../../lib/fakt-material-taklif';
+import { moslikHisobla, moslikTuzilma, type MoslikNatija } from '../../lib/ish-material-moslik';
+import { IshMaterialOgohBlok } from '../../components/fakt/IshMaterialOgoh';
 import { toast } from '../../umumiy/ui/Toast';
 import { IshAbcModal, type AbcRejim, type AbcTahrir } from './IshAbcModal';
 import { abcXato, ishAbcOchir, type NarxManba } from '../../api/t2-ish-abc';
@@ -434,6 +436,25 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
     toast(t('{n} ta material taklifi kiritildi — tekshirib saqlang (Ctrl+S).', { n: String(n) }), 'ok');
   };
   const takliflarSoni = (ishIdlar: readonly number[]) => ishIdlar.reduce((s, id) => s + (keyingiMat.get(id) ?? []).filter((m) => !kiritmalar[m]?.qiymat.trim() && matTaklifi(m)).length, 0);
+  // Ish ↔ material hajm muvofiqligi (egasi 2026-11-11; lib/ish-material-moslik): ish va materiallari shu sessiyada kiritilgan bo'lsa,
+  // ish hajmi materiallardan hisoblangandan >3 % farq qilsa — ogohlantirish + «tuzatish taklifi» (bloklamaydi, avtomatik yozilmaydi).
+  const moslikTuz = useMemo(() => moslikTuzilma(rows), [rows]);
+  const moslikOgoh = useMemo(() => {
+    const out = new Map<number, MoslikNatija>();
+    const faqat = new Set<number>();
+    for (const [id, k] of Object.entries(kiritmalar)) {
+      if (!k.qiymat.trim()) continue;
+      const q = Number(id); const ish = moslikTuz.has(q) ? q : matIshi.get(q);
+      if (ish != null && moslikTuz.has(ish)) faqat.add(ish);
+    }
+    if (!faqat.size) return out;
+    const hajm = new Map<number, number>();
+    const qosh = (id: number) => { const q = barchaById.get(id); if (q) hajm.set(id, samaraliFakt(q)); };
+    for (const ish of faqat) { qosh(ish); for (const m of moslikTuz.get(ish)?.materiallar ?? []) if (m.id != null) qosh(m.id); }
+    for (const n of moslikHisobla(moslikTuz, hajm, { faqat })) if (n.ishId != null) out.set(n.ishId, n);
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- samaraliFakt kiritmalar/barchaById ga bog'liq
+  }, [moslikTuz, kiritmalar, matIshi, barchaById]);
 
   const { band, saqla, saqlaKlav, ishda: ishdaRef } = useFaktSaqlash({
     obyektId, sana, kiritmalar, paket, faktlar, smetalar, ozgarishSoni, holatniYangila, tozala, qoralamaYozDarhol, qoralamaTozala, fokusgaOt: (id) => fokusgaOt(id),
@@ -528,7 +549,8 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
     // Doim bir xil o'ram: ogohlantirish paydo bo'lganda input qayta yaratilmaydi (fokus yo'qolmaydi).
     const zd = ziddiyatMap.get(q.id);
     const zdBelgi = zd && <div className="mt-3 self-end text-right text-[10.5px] font-semibold text-warn" data-testid="qoralama-ziddiyat">{t('Qoralama tiklanmadi: fakt boshqa joyda o‘zgargan (qoralama: {q})', { q: `${zd.yozuv.rejim} ${zd.yozuv.qiymat}` })}</div>;
-    return <div className="flex flex-col gap-1">{asosiy}{zdBelgi}{birlikOgoh && <BirlikOgohBlok ogoh={birlikOgoh} onTuzat={(v) => kirit(q.id, { qiymat: v })} className="mt-4 w-[300px] self-end" />}</div>;
+    const moslik = moslikOgoh.get(q.id);
+    return <div className="flex flex-col gap-1">{asosiy}{zdBelgi}{birlikOgoh && <BirlikOgohBlok ogoh={birlikOgoh} onTuzat={(v) => kirit(q.id, { qiymat: v })} className="mt-4 w-[300px] self-end" />}{moslik && <IshMaterialOgohBlok natija={moslik} onTuzat={(v) => { kirit(q.id, { rejim: '=', qiymat: v }); toast(t('Ish hajmi {v} (jami fakt) qilib kiritmaga qo‘yildi — tekshirib saqlang (Ctrl+S).', { v }), 'ok'); }} className="mt-4 w-[300px] self-end" />}</div>;
   };
 
   /**
