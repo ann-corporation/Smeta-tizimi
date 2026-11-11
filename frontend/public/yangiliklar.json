@@ -2,6 +2,15 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 156,
+      "sana": "2026-11-12",
+      "sarlavha": "Laboratoriya tizimda: sinov so‘rovi, protokol, АОСР bilan avtomatik bog‘lanish",
+      "bandlar": [
+        "АОСР ichidan yoki «Laboratoriya» sahifasidan sinov so‘rovi yuborasiz (beton kub, grunt zichligi, payvand, gidravlik, elektr). Laboratoriya o‘z «Bugun» ro‘yxatida ko‘radi, tur bo‘yicha maydonlarni to‘ldiradi, mos / mos emas deb belgilaydi va protokol faylini biriktiradi.",
+        "Protokol АОСР va ish qatoriga o‘zi ilova bo‘ladi. «Mos emas» bo‘lsa sizga predpisaniya keladi va majburiy sinovli АОСР qayta sinovdan mos chiqquncha tasdiqqa yuborilmaydi; qayta sinov mos bo‘lsa predpisaniya o‘zi yopiladi.",
+        "Laboratoriya hisobi (QQS bilan) laboratoriya shartnomangiz bo‘lsa qarzdorlikka avtomatik tushadi."
+      ]
+    },    {
       "id": 155,
       "sana": "2026-11-12",
       "sarlavha": "Smeta yuklash endi 3 qadamda: fayl, tekshiruv, yuklash",
