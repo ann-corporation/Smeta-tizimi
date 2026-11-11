@@ -11,7 +11,7 @@ import { KompaniyaProvider, useKompaniya } from '../umumiy/kontekst/KompaniyaKon
 import { KompaniyaLogoRasm } from '../umumiy/hujjat/KompaniyaLogo';
 import { KompaniyaTanlagich } from '../umumiy/kontekst/KompaniyaTanlagich';
 import { PTOWorkspaceBar, PTOWorkspaceProvider } from '../umumiy/kontekst/PTOWorkspaceContext';
-import { AiBuyruqSatri } from './AiBuyruqSatri';
+import { YordamchiSahifaYozuvchi } from '../lib/yordamchi/sahifa-store';
 import { RuxsatGuard } from '../umumiy/kontekst/RuxsatGuard';
 import { SahifaChegarasi } from '../umumiy/ui/XatoChegarasi';
 import { tizimdanChiq } from '../umumiy/kontekst/chiqish';
@@ -230,6 +230,7 @@ function AdminShellInner() {
     <div className="os-app-shell flex h-screen overflow-hidden text-text relative font-sans">
       <HotkeyYordam />
       <CommandPalette bandlar={palitraBandlari} />
+      <YordamchiSahifaYozuvchi bandlar={palitraBandlari} />
 
       {/* Firuza YonPanel (2026-10-25): rels (60px, faqat ikonka) yoki mahkamlangan ochiq panel (264px).
        * Rels holatda sichqoncha kelsa panel kontent USTIDA ochiladi — sahifa siljimaydi (avval kontent
@@ -331,7 +332,6 @@ function AdminShellInner() {
           {k.superadmin && <span className="hidden rounded-md border border-accent/25 px-2 py-1 text-[10px] text-accent 2xl:inline">{t('Platforma roli')}: superadmin</span>}
           {k.superadmin && k.joriy?.membershipRole && <span className="hidden text-[10px] text-text-dim 2xl:inline">{t('Kompaniyadagi rol')}: {k.joriy.membershipRole}</span>}
           <PTOWorkspaceBar />
-          <AiBuyruqSatri />
           <div className="ml-auto flex items-center gap-2"><QollanmaBoshqaruv foydalanuvchi={sess.data?.email} /><TilTanlagich ixcham /><Qongiroqcha /><AkkauntTugmasi /></div>
         </div>
 

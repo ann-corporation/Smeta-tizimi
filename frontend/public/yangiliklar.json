@@ -2,6 +2,17 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 153,
+      "sana": "2026-11-11",
+      "sarlavha": "Bitta yordamchi: Jarvis butun tizimni gaplashib boshqaradi",
+      "bandlar": [
+        "Ctrl+K endi bitta yordamchi (Jarvis) ni ochadi: «mindmapni och», «Yevropa 1 ning F2 sini och», «АОСР sahifasi», «qarzdorlik» — tizimdagi istalgan sahifa o'zbek, rus yoki ingliz tilida ochiladi.",
+        "Obyekt va oy aytsangiz sahifa shu obyekt va oy bilan ochiladi. Sizga ruxsat etilmagan bo'limlar ochilmaydi.",
+        "«narxsiz qatorlar», «qoldiq», «Yevropa 1 holati» — javob bir zumda va tokensiz. Fakt kiritish va narx tuzatish avval ko'rsatiladi, «Tasdiqlash» bosganingizdagina yoziladi.",
+        "Tushunmasa rad etmaydi: eng yaqin sahifa va amallarni taklif qiladi. Mikrofon tugmasi bilan ovoz orqali ham yozish mumkin."
+      ]
+    },
+    {
       "id": 152,
       "sana": "2026-11-11",
       "sarlavha": "Sahifalar tezroq ochiladi",

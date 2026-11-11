@@ -1,10 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Bot, Eye, EyeOff, Lightbulb, X } from 'lucide-react';
 import { kasbOl, type KasbIshchi } from '../../api/t2-agent-ish';
 import { t } from '../../i18n/til';
 import { yolNaqshi } from '../../lib/agent-faoliyat';
 import { useKompaniya } from '../kontekst/KompaniyaKontekst';
+import { usePTOWorkspace } from '../kontekst/PTOWorkspaceContext';
+import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
+import { useYordamchiSahifalar } from '../../lib/yordamchi/sahifa-store';
+import { useObyektMotor } from './yordamchi/useObyektMotor';
+import type { YordamchiUlanish } from './yordamchi/ishlov';
 import { AiChat, type TayyorSavol } from './AiChat';
 import { ModelChip } from './ModelChip';
 import { AiSelektsiya } from './AiSelektsiya';
@@ -32,7 +37,12 @@ export function AiHelper() {
   const [isOpen, setIsOpen] = useState(false);
   const [kasb, setKasb] = useState<KasbIshchi | null>(null);
   const kuzatuv = useAiKuzatuv(joriyId ?? undefined);
-
+  const sahifalar = useYordamchiSahifalar();
+  const ws = usePTOWorkspace();
+  const obyektlar = useMemo(() => (ws.isProvider ? ws.objects.map((o) => ({ id: o.id, nom: o.nom ?? '' })).filter((o) => o.nom) : []), [ws.isProvider, ws.objects]);
+  const joriyObyekt = obyektlar.find((o) => o.id === ws.scope.objectId) ?? null;
+  const motor = useObyektMotor({ kompaniyaId: joriyId ?? null, obyektId: ws.isProvider ? ws.scope.objectId : null, obyektNomi: joriyObyekt?.nom, faol: isOpen, sahifalar, och: (yol) => { navigate(yol); setIsOpen(false); } });
+  const yordamchi: YordamchiUlanish | undefined = useMemo(() => (sahifalar.length ? { sahifalar, obyektlar, joriyObyekt, obyektTanla: (id: number) => ws.setObjectId(id), motor } : undefined), [sahifalar, obyektlar, joriyObyekt, ws, motor]);
   const [tayyor, setTayyor] = useState<TayyorSavol | null>(null);
   /* Istalgan sahifa/komponent `window.dispatchEvent(new CustomEvent('ai:ochish', { detail: { savol } }))` bilan AI ni tayyor savol bilan ochadi. */
   useEffect(() => {
@@ -51,6 +61,13 @@ export function AiHelper() {
     if (joriyId && isOpen) void kasbOl(joriyId).then((r) => { if (tirik && r.ok) setKasb(r.natija); });
     return () => { tirik = false; };
   }, [joriyId, isOpen]);
+
+  /* Ctrl+K — YAGONA yordamchi (Jarvis). Smeta studiyasining o'z buyruqlar paneli bor — u yerda ikkinchi oyna ochilmasin. */
+  const hotkeyFaol = !location.pathname.startsWith('/boss') && !location.pathname.startsWith('/admin/smeta-studio');
+  useHotkeys('jarvis', t('Jarvis yordamchisi'), [
+    { id: 'jarvis.och', keys: 'ctrl+k', nom: t('Jarvis yordamchisini ochish / yopish'), inInput: true, run: () => { setIsOpen((o) => !o); setTab('chat'); } },
+    { id: 'jarvis.yop', keys: 'esc', nom: t('Jarvis yordamchisini yopish'), inInput: true, run: () => { if (!isOpen) return false; setIsOpen(false); } },
+  ], hotkeyFaol);
 
   if (location.pathname.startsWith('/boss')) return null;
 
@@ -89,7 +106,7 @@ export function AiHelper() {
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20 text-accent"><Bot size={20} /></div>
               <div>
                 <h3 className="text-sm font-semibold text-text">{kasb?.nom ?? 'Jarvis AI'}</h3>
-                <p className="flex items-center gap-1 text-xs text-text-dim"><span className="h-1.5 w-1.5 rounded-full bg-ok"></span> {t('Sizning lavozimingizga mos AI ishchi')}</p>
+                <p className="flex items-center gap-1 text-xs text-text-dim"><span className="h-1.5 w-1.5 rounded-full bg-ok"></span> {t('Sizning lavozimingizga mos AI ishchi')} · Ctrl+K</p>
               </div>
             </div>
             <div className="flex items-center">
@@ -111,7 +128,7 @@ export function AiHelper() {
           {taklifKarta && <div className="shrink-0 p-3">{taklifKarta}</div>}
 
           {tab === 'chat' && kasb && <ModelChip profil={kasb.profil} kompaniyaId={joriyId ?? null} />}
-          {tab === 'chat' && <AiChat kompaniyaId={joriyId ?? null} kasb={kasb} sahifa={yolNaqshi(location.pathname)} generatsiya={companyRef.current.generation} tayyorSavol={tayyor} onOqildi={() => setTayyor(null)} />}
+          {tab === 'chat' && <AiChat kompaniyaId={joriyId ?? null} kasb={kasb} sahifa={yolNaqshi(location.pathname)} generatsiya={companyRef.current.generation} tayyorSavol={tayyor} onOqildi={() => setTayyor(null)} yordamchi={yordamchi} onOtish={() => setIsOpen(false)} />}
           {tab === 'jurnal' && (joriyId ? <AiJurnal kompaniyaId={joriyId} admin={ADMIN_ROLLAR.includes(kasb?.rol ?? '')} /> : <p className="p-4 text-sm text-text-dim">{t('Avval kompaniyani tanlang')}</p>)}
           {tab === 'fikr' && <AiFikrPanel kompaniyaId={joriyId ?? undefined} sahifa={yolNaqshi(location.pathname)} />}
           {tab === 'sozlama' && <AiShaxsiy kasb={kasb} kuzatuvYoqilgan={kuzatuv.yoqilgan} kuzatuvAlmashtir={kuzatuv.almashtir} />}

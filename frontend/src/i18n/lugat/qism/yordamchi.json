@@ -1,0 +1,21 @@
+{
+  "Aniqroq ayting yoki quyidagi sahifalardan birini oching.": { "ru": "Уточните запрос или откройте одну из страниц ниже.", "en": "Please be more specific or open one of the pages below." },
+  "bo‘limi sizning rolingizga ochiq emas. Kerak bo‘lsa kompaniya administratoridan ruxsat so‘rang.": { "ru": "раздел недоступен для вашей роли. При необходимости попросите доступ у администратора компании.", "en": "section is not available for your role. Ask your company administrator for access if needed." },
+  "Bu sahifa mavjud emas yoki sizga ochiq emas": { "ru": "Такой страницы нет или она вам недоступна", "en": "This page does not exist or is not available to you" },
+  "F2 tarixini och": { "ru": "Открой историю Ф2", "en": "Open F2 history" },
+  "Jarvis yordamchisi": { "ru": "Помощник Jarvis", "en": "Jarvis assistant" },
+  "Jarvis yordamchisini ochish / yopish": { "ru": "Открыть / закрыть помощника Jarvis", "en": "Open / close the Jarvis assistant" },
+  "Jarvis yordamchisini yopish": { "ru": "Закрыть помощника Jarvis", "en": "Close the Jarvis assistant" },
+  "Masalan: «mindmapni och», «narxsiz qatorlar», «Yevropa 1 F2»": { "ru": "Например: «открой майндмап», «строки без цены», «Европа 1 Ф2»", "en": "For example: “open mindmap”, “unpriced rows”, “Europe 1 F2”" },
+  "Mindmapni och": { "ru": "Открой майндмап", "en": "Open mindmap" },
+  "Nima qila olasan?": { "ru": "Что ты умеешь?", "en": "What can you do?" },
+  "Obyekt ma’lumoti yuklanmadi. Obyektni yuqoridan tanlab, qayta urinib ko‘ring.": { "ru": "Данные объекта не загрузились. Выберите объект сверху и повторите.", "en": "Object data did not load. Select the object at the top and try again." },
+  "Obyekt ma’lumotini o‘qib bo‘lmadi.": { "ru": "Не удалось прочитать данные объекта.", "en": "Could not read the object data." },
+  "Obyekt ma’lumotini o‘qiyapman…": { "ru": "Читаю данные объекта…", "en": "Reading the object data…" },
+  "Ochaman": { "ru": "Открываю", "en": "Opening" },
+  "Ochildi": { "ru": "Открыто", "en": "Opened" },
+  "Qaysi birini ochay?": { "ru": "Какую открыть?", "en": "Which one should I open?" },
+  "Qaysi obyekt bo‘yicha? Tanlang — buyruqni shu obyektda bajaraman.": { "ru": "По какому объекту? Выберите — выполню команду на нём.", "en": "Which object? Pick one and I will run the command on it." },
+  "Qoralamani shu sahifada o‘zingiz tekshirib tasdiqlaysiz — men hujjatni o‘zim tasdiqlamayman.": { "ru": "Черновик вы проверяете и подтверждаете сами на этой странице — документ я не утверждаю.", "en": "You review and confirm the draft yourself on this page — I never approve documents." },
+  "Sahifani ochish": { "ru": "Открыть страницу", "en": "Open page" }
+}
