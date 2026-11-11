@@ -17,6 +17,11 @@ export interface Env {
   SUPABASE_KEY: string;
   /** Var: Worker'ning barqaror ommaviy URL i (OAuth resource identifikatori = <URL>/mcp). */
   MCP_PUBLIC_URL: string;
+  /** R2 bucket (smeta-tizimi-canonical): kunlik snapshot sovutish. Binding yo'q bo'lsa cron sovutishni o'tkazib yuboradi. */
+  SNAPSHOT_R2?: R2BucketLike;
+  /** Ixtiyoriy var: sovutish uchun snapshot yoshi (kun, standart 2) va partiya (standart 200). */
+  SNAPSHOT_SOVUT_KUN?: string;
+  SNAPSHOT_SOVUT_LIMIT?: string;
   /** Ixtiyoriy var: tranzaksiya vaqt chegarasi (ms). */
   SMETA_MCP_TIMEOUT_MS?: string;
 }
@@ -31,6 +36,12 @@ export type AuthRequest = { responseType: string; clientId: string; redirectUri:
 
 /** OAuth tokeniga shifrlangan holda yoziladigan «props» — faqat identifikator; vakolat har chaqiruvda bazadan. */
 export type Props = { foydalanuvchi_id: number; login: string; /** chiqarilgan vaqt (ms) — t2_foydalanuvchi.sessiya_bekor_dan bilan solishtiriladi */ iat: number };
+
+/** R2 bucket binding'ining ishlatiladigan qismi. */
+export interface R2BucketLike {
+  put(key: string, value: Uint8Array): Promise<unknown>;
+  get(key: string): Promise<{ arrayBuffer(): Promise<ArrayBuffer> } | null>;
+}
 
 export interface KVNamespace {
   get(key: string): Promise<string | null>;
