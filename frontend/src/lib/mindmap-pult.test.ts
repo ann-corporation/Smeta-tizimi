@@ -49,7 +49,7 @@ function yozuvchi(): PultYozuvchi & { chaqiruvlar: [string, unknown[]][] } {
   return {
     chaqiruvlar,
     loyihaYarat: f('loyihaYarat', { ok: true, id: 11 }), obyektYarat: f('obyektYarat', { ok: true, id: 12 }), shartnomaYarat: f('shartnomaYarat', { ok: true, id: 13, versiya: 1 }),
-    bog: f('bog'), bogOchir: f('bogOchir'), loyihaNomla: f('loyihaNomla'), obyektNomla: f('obyektNomla'),
+    bog: f('bog'), bogOchir: f('bogOchir'), loyihaNomla: f('loyihaNomla'), obyektNomla: f('obyektNomla'), imzochiSaqla: f('imzochiSaqla'),
   } as unknown as PultYozuvchi & { chaqiruvlar: [string, unknown[]][] };
 }
 const OCHIQ = { mumkin: true, sabab: null } as const;
@@ -279,6 +279,18 @@ describe('pult amallari: to‘g‘ri buyruq + tasdiqdan OLDIN hech narsa yozilma
     // Allaqachon biriktirilgan sklad nomzod emas.
     const maydon = PULT_AMALLAR.find((a) => a.kalit === 'obyekt.resurs-biriktir')!.maydonlar[0];
     expect(maydon.tanlovlar!(g, pultNishon(g, 'obyekt:5')!).map((v) => v.qiymat)).toEqual(['kadr:4']);
+  });
+
+  it('imzochi tayinlash/olib tashlash → imzochi_saqla (obyekt darajasi); majburiy maydonlar', async () => {
+    const g = graf(), y = yozuvchi();
+    const r = tayyor(g, 'obyekt:5', 'obyekt.imzochi-biriktir', { rol: 'pudratchi', fio: ' Aliyev A. ', lavozim: 'Direktor' }, y);
+    expect(r.buyruqlar).toEqual(['imzochi_saqla']);
+    expect(y.chaqiruvlar).toEqual([]);
+    await r.bajar();
+    await tayyor(g, 'obyekt:5', 'obyekt.imzochi-uz', { rol: 'texnadzor' }, y).bajar();
+    expect(y.chaqiruvlar).toEqual([['imzochiSaqla', [5, 'pudratchi', { tashkilot: '', lavozim: 'Direktor', fio: 'Aliyev A.' }]], ['imzochiSaqla', [5, 'texnadzor', { tashkilot: '', lavozim: '', fio: '' }]]]);
+    expect(pultTayyorla(g, 'obyekt:5', 'obyekt.imzochi-biriktir', { rol: 'pudratchi', fio: '' }, kontekst(y)).ok).toBe(false);
+    expect(pultTayyorla(g, 'obyekt:5', 'obyekt.imzochi-biriktir', { rol: 'x', fio: 'A' }, kontekst(y)).ok).toBe(false);
   });
 
   it('nomlash: loyiha → loyiha_yangila (versiya bilan), obyekt → obyekt_yangila; bir xil nom rad', async () => {

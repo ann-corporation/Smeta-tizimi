@@ -5,6 +5,8 @@ import type { MindmapGraf } from '../../api/t2-mindmap';
 import type { PultYozuvchi } from '../../lib/mindmap-pult';
 import { MindmapXarita, type PultBoshqaruv } from './MindmapXarita';
 
+vi.mock('../../umumiy/ui/SummaJuft', () => ({ SummaJuft: ({ ustamasiz }: { ustamasiz?: number | null }) => <span data-testid="summa-juft">{String(ustamasiz)}</span> }));
+
 beforeAll(() => {
   if (!('ResizeObserver' in globalThis)) {
     (globalThis as any).ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
@@ -68,13 +70,15 @@ describe('Boshqaruv pulti ko‘rinishi', () => {
     expect(qator('obyekt:5').querySelector('.truncate')).toBeNull();
   });
 
-  it('holat belgilari xaritaning yagona hisobidan: fakt/F2 foizi, qoldiq = smeta − F2; smetasiz obyektda qoldiq «—»', () => {
+  it('qatorda foizlar (summasiz); summalar faqat ochilganda SummaJuft (ustamali + ustamasiz) orqali: smeta va qoldiq = smeta − F2', () => {
     chiz();
     const b5 = within(qator('obyekt:5')).getByTestId('pult-belgilar').textContent!;
     expect(b5).toMatch(/F2 40%/);
-    expect(b5).toMatch(/Qoldiq 600/);
     expect(b5).toMatch(/3 signal/);
-    expect(within(qator('obyekt:6')).getByTestId('pult-belgilar').textContent).toMatch(/Qoldiq —/);
+    expect(b5).not.toMatch(/Qoldiq|600/);
+    expect(screen.queryByTestId('pult-summalar')).toBeNull();
+    fireEvent.click(within(qator('obyekt:5')).getByRole('button', { name: 'Yoyish' }));
+    expect(within(screen.getByTestId('pult-summalar')).getAllByTestId('summa-juft').map((e) => e.textContent)).toEqual(['1000', '600']);
   });
 
   it('obyekt ochilganda: takrorsiz muammolar, sahifa havolalari, smeta bo‘limlari LAZY yuklanadi', async () => {

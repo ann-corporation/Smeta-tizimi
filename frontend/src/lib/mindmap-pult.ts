@@ -57,6 +57,8 @@ export type PultYozuvchi = {
   bogOchir(tur: BogTur, manbaId: number, maqsadId: number, kutilganVersiya: number, rol?: string): Promise<PultNatija>;
   loyihaNomla(id: number, kutilganVersiya: number, nom: string): Promise<PultNatija>;
   obyektNomla(id: number, nom: string): Promise<PultNatija>;
+  /** Obyekt darajasidagi hujjat imzochisi (	2_obyekt_imzochi, /api/tomon imzochi_saqla). Uchala maydon bo'sh — qator o'chadi. */
+  imzochiSaqla(obyektId: number, rol: string, m: { tashkilot: string; lavozim: string; fio: string }): Promise<PultNatija>;
 };
 
 export type PultKontekst = {
@@ -409,7 +411,50 @@ export const PULT_AMALLAR: readonly PultTarif[] = [
       });
     },
   },
+  {
+    kalit: 'obyekt.imzochi-biriktir', tur: 'obyekt', nom: () => t('Imzochi tayinlash'), izoh: () => t('Obyekt darajasida hujjat imzochisini (F2, F3, АОСР) tayinlaydi yoki almashtiradi.'),
+    maydonlar: [
+      { kalit: 'rol', nom: () => t('Tomon'), majburiy: true, tur: 'tanlov', tanlovlar: () => IMZO_ROLLAR.map((r) => ({ qiymat: r, nom: imzoRolNomi(r) })) },
+      { kalit: 'fio', nom: () => t('F.I.Sh.'), majburiy: true, tur: 'matn' },
+      { kalit: 'lavozim', nom: () => t('Lavozim'), tur: 'matn' },
+      { kalit: 'tashkilot', nom: () => t('Tashkilot'), tur: 'matn' },
+    ],
+    tayyorla: (_g, n, q, k) => {
+      const fio = (q.fio ?? '').trim();
+      if (!(IMZO_ROLLAR as readonly string[]).includes(q.rol ?? '')) return xato(t('Imzochi tomoni tanlanmagan.'));
+      if (!fio) return xato(t('Imzochining F.I.Sh. majburiy.'));
+      if (n.entityId == null) return xato(t('Obyekt topilmadi.'));
+      const id = n.entityId, rol = q.rol, m = { tashkilot: (q.tashkilot ?? '').trim(), lavozim: (q.lavozim ?? '').trim(), fio };
+      return reja({
+        amal: 'obyekt.imzochi-biriktir', sarlavha: t('Obyektga imzochi tayinlash'), buyruqlar: ['imzochi_saqla'], tasdiq: t('Tayinlash'),
+        oqibat: [t('Obyekt: «{o}»', { o: n.nom }), t('Tomon: {r}', { r: imzoRolNomi(rol) }), t('Imzochi: {f}', { f: [fio, m.lavozim, m.tashkilot].filter(Boolean).join(', ') })],
+        ogoh: [t('Hujjatlar (F2, F3, АОСР) shu imzochini chiqaradi; hujjatlarning o‘zi qayta tasdiqlanmaydi.')],
+        bajar: () => k.yozuvchi.imzochiSaqla(id, rol, m),
+      });
+    },
+  },
+  {
+    kalit: 'obyekt.imzochi-uz', tur: 'obyekt', nom: () => t('Imzochini olib tashlash'), izoh: () => t('Obyekt darajasidagi imzochini o‘chiradi (loyiha darajasidagi imzochi qaytadi).'),
+    maydonlar: [{ kalit: 'rol', nom: () => t('Tomon'), majburiy: true, tur: 'tanlov', tanlovlar: () => IMZO_ROLLAR.map((r) => ({ qiymat: r, nom: imzoRolNomi(r) })) }],
+    tayyorla: (_g, n, q, k) => {
+      if (!(IMZO_ROLLAR as readonly string[]).includes(q.rol ?? '')) return xato(t('Imzochi tomoni tanlanmagan.'));
+      if (n.entityId == null) return xato(t('Obyekt topilmadi.'));
+      const id = n.entityId, rol = q.rol;
+      return reja({
+        amal: 'obyekt.imzochi-uz', sarlavha: t('Obyektdan imzochini olib tashlash'), buyruqlar: ['imzochi_saqla'], tasdiq: t('Olib tashlash'),
+        oqibat: [t('Obyekt: «{o}»', { o: n.nom }), t('Tomon: {r}', { r: imzoRolNomi(rol) })],
+        ogoh: [t('Faqat obyekt darajasidagi qator o‘chadi; loyiha darajasidagi imzochi (bo‘lsa) qaytadi.')],
+        bajar: () => k.yozuvchi.imzochiSaqla(id, rol, { tashkilot: '', lavozim: '', fio: '' }),
+      });
+    },
+  },
 ];
+
+const IMZO_ROLLAR = ['zakazchik', 'pudratchi', 'subpudratchi', 'texnadzor', 'loyihachi'] as const;
+const IMZO_NOMI: Record<(typeof IMZO_ROLLAR)[number], () => string> = {
+  zakazchik: () => t('Buyurtmachi'), pudratchi: () => t('Pudratchi'), subpudratchi: () => t('Subpudratchi'), texnadzor: () => t('Texnadzor'), loyihachi: () => t('Loyihachi'),
+};
+const imzoRolNomi = (r: string) => (IMZO_NOMI as Record<string, () => string>)[r]?.() ?? r;
 
 /* ───────────── Nomzodlar ───────────── */
 

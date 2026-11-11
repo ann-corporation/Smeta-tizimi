@@ -99,5 +99,20 @@
   "yana {n}": { "ru": "ещё {n}", "en": "{n} more" },
   "{tur}: «{x}»": { "ru": "{tur}: «{x}»", "en": "{tur}: “{x}”" },
   "АОСР": { "ru": "АОСР", "en": "AOSR" },
-  "АОСР yoz": { "ru": "Составить АОСР", "en": "Write AOSR" }
+  "АОСР yoz": { "ru": "Составить АОСР", "en": "Write AOSR" },
+  "Faqat obyekt darajasidagi qator o‘chadi; loyiha darajasidagi imzochi (bo‘lsa) qaytadi.": { "ru": "Удаляется только строка уровня объекта; подписант уровня проекта (если есть) возвращается.", "en": "Only the object-level row is removed; the project-level signatory (if any) applies again." },
+  "Hujjatlar (F2, F3, АОСР) shu imzochini chiqaradi; hujjatlarning o‘zi qayta tasdiqlanmaydi.": { "ru": "Документы (Ф-2, Ф-3, АОСР) будут выводить этого подписанта; сами документы заново не утверждаются.", "en": "Documents (F2, F3, AOSR) will show this signatory; the documents themselves are not re-approved." },
+  "Imzochi tayinlash": { "ru": "Назначить подписанта", "en": "Assign signatory" },
+  "Imzochi tomoni tanlanmagan.": { "ru": "Сторона подписанта не выбрана.", "en": "No signatory party selected." },
+  "Imzochi: {f}": { "ru": "Подписант: {f}", "en": "Signatory: {f}" },
+  "Imzochini olib tashlash": { "ru": "Снять подписанта", "en": "Remove signatory" },
+  "Imzochining F.I.Sh. majburiy.": { "ru": "Ф.И.О. подписанта обязательно.", "en": "The signatory’s full name is required." },
+  "Obyekt darajasida hujjat imzochisini (F2, F3, АОСР) tayinlaydi yoki almashtiradi.": { "ru": "Назначает или заменяет подписанта документов (Ф-2, Ф-3, АОСР) на уровне объекта.", "en": "Assigns or replaces the document signatory (F2, F3, AOSR) at object level." },
+  "Obyekt darajasidagi imzochini o‘chiradi (loyiha darajasidagi imzochi qaytadi).": { "ru": "Удаляет подписанта уровня объекта (подписант уровня проекта возвращается).", "en": "Removes the object-level signatory (the project-level one applies again)." },
+  "Obyektdan imzochini olib tashlash": { "ru": "Снятие подписанта с объекта", "en": "Remove signatory from object" },
+  "Obyektga imzochi tayinlash": { "ru": "Назначение подписанта объекту", "en": "Assign signatory to object" },
+  "Qoldiq = smeta − F2": { "ru": "Остаток = смета − Ф-2", "en": "Remainder = estimate − F2" },
+  "Tayinlash": { "ru": "Назначить", "en": "Assign" },
+  "Texnadzor": { "ru": "Технадзор", "en": "Technical supervision" },
+  "Tomon: {r}": { "ru": "Сторона: {r}", "en": "Party: {r}" }
 }

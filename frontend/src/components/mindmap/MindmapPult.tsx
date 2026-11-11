@@ -19,6 +19,7 @@ import type { ObyektBolimi } from '../../api/t2-mindmap-pult';
 import { Bajarilish, HolatChiziq, Romb } from './belgilar';
 import { foizMatn, holatNomi, pulQ } from './holat';
 import { rolNomi } from '../../lib/mindmap-pult';
+import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 
 export type BolimlarOl = { (obyektId: number): Promise<{ ok: true; bolimlar: ObyektBolimi[] } | { ok: false; error: string }> };
 
@@ -140,7 +141,7 @@ function Qator({ tg, daraja, tanlangan, yoyiq, onToggle, onTanla, pulYoq, amalOc
           )}
         </div>
       </div>
-      {obyekt && yoyiq && <ObyektIchi tg={tg} yolOch={yolOch} yolMumkin={yolMumkin} bolimlarOl={bolimlarOl} />}
+      {obyekt && yoyiq && <ObyektIchi tg={tg} yolOch={yolOch} yolMumkin={yolMumkin} pulYoq={pulYoq} bolimlarOl={bolimlarOl} />}
     </div>
   );
 }
@@ -183,7 +184,6 @@ function ObyektBelgilari({ b, pulYoq }: { b: NonNullable<ReturnType<typeof pultB
         <>
           <span className="w-24" title={t('Fakt / F2 smeta (ustamasiz) bo‘yicha')}><Bajarilish faktFoiz={b.faktFoiz} f2Foiz={b.f2Foiz} smetaBor={b.smeta != null} matn={foizMatn(b.faktFoiz)} /></span>
           <span className="text-text-dim" title={t('F2 (tasdiqlangan) smetadan')}>{t('F2')} {foizMatn(b.f2Foiz)}</span>
-          <span className="text-text-dim" title={t('Qoldiq = smeta − F2, ustamasiz, QQS siz')}>{t('Qoldiq')} {b.qoldiq == null ? '—' : pulQ(b.qoldiq)}</span>
         </>
       )}
       {(b.signalSoni ?? 0) > 0 && (
@@ -197,7 +197,7 @@ function ObyektBelgilari({ b, pulYoq }: { b: NonNullable<ReturnType<typeof pultB
 
 const keshB = new Map<number, ObyektBolimi[]>();
 
-function ObyektIchi({ tg, yolOch, yolMumkin, bolimlarOl }: { tg: PultTugun; yolOch: Props['yolOch']; yolMumkin: Props['yolMumkin']; bolimlarOl?: BolimlarOl }) {
+function ObyektIchi({ tg, yolOch, yolMumkin, pulYoq, bolimlarOl }: { tg: PultTugun; yolOch: Props['yolOch']; yolMumkin: Props['yolMumkin']; pulYoq: boolean; bolimlarOl?: BolimlarOl }) {
   const id = Number(tg.id.split(':')[1]);
   const belgi = pultBelgilari(tg.x);
   const [bolimlar, setBolimlar] = useState<ObyektBolimi[] | null>(() => keshB.get(id) ?? null);
@@ -223,6 +223,13 @@ function ObyektIchi({ tg, yolOch, yolMumkin, bolimlarOl }: { tg: PultTugun; yolO
       <div className="flex flex-wrap gap-1.5">
         {havolalar.map((h) => <button key={h.yol} type="button" className="fz-chip hover:bg-[var(--surface-3)] disabled:opacity-50" disabled={!yolMumkin(h.yol)} title={yolMumkin(h.yol) ? undefined : t('Bu sahifaga ruxsatingiz yo‘q')} onClick={() => yolOch(h.yol)}>{h.nom}</button>)}
       </div>
+      {belgi && !pulYoq && (belgi.smeta != null || belgi.qoldiq != null) && (
+        <div className="grid gap-x-6 gap-y-2 sm:grid-cols-2" data-testid="pult-summalar">
+          {/* Har summa: ustamali ham, ustamasiz ham (yagona SummaJuft; ustama ma'lumoti faqat obyekt ochilganda o'qiladi). */}
+          <div><div className="mb-0.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-text-mute">{t('Smeta')}</div><SummaJuft obyektId={id} ustamasiz={belgi.smeta} kichik /></div>
+          <div><div className="mb-0.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-text-mute" title={t('Qoldiq = smeta − F2')}>{t('Qoldiq')}</div><SummaJuft obyektId={id} ustamasiz={belgi.qoldiq} kichik /></div>
+        </div>
+      )}
       {belgi && belgi.muammolar.length > 0 && (
         <ul className="space-y-1" aria-label={t('Muammolar')} data-testid="pult-muammolar">
           {belgi.muammolar.map((m) => (

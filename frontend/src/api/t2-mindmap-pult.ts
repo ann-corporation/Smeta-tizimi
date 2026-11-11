@@ -7,6 +7,7 @@
 import type { PultNatija, PultYozuvchi } from '../lib/mindmap-pult';
 import { sbMindmapBog, sbMindmapBogOchir, sbMindmapTugunYarat } from './t2-mindmap';
 import { sbLoyihaYangila } from './t2-loyiha';
+import { obyektImzochiSaqla } from './obyekt-imzochi';
 import { sbObyektTahrirlash, sbOqi, sbT2ObyektYarat } from './supabase';
 
 type Xom = { ok?: boolean; error?: string; xato?: string; entity_id?: number; obyekt_id?: number; versiya?: number; version?: number };
@@ -37,6 +38,10 @@ export function pultYozuvchi(kompaniyaId: number): PultYozuvchi {
     },
     async loyihaNomla(id, kutilganVersiya, nom) {
       return natija((await sbLoyihaYangila(id, kutilganVersiya, { nom })) as Xom);
+    },
+    async imzochiSaqla(obyektId, rol, m) {
+      const r = (await obyektImzochiSaqla(kompaniyaId, obyektId, rol as never, 'obyekt', null, m)) as { ok?: boolean; error?: string; xato?: string };
+      return { ok: !!r?.ok, error: r?.error || r?.xato };
     },
     async obyektNomla(id, nom) {
       return natija((await sbObyektTahrirlash(id, nom, '')) as Xom);
