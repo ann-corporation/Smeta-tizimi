@@ -22,6 +22,10 @@ export interface Env {
   /** Ixtiyoriy var: sovutish uchun snapshot yoshi (kun, standart 2) va partiya (standart 200). */
   SNAPSHOT_SOVUT_KUN?: string;
   SNAPSHOT_SOVUT_LIMIT?: string;
+  /** Ixtiyoriy var: t2_qator_muhr yuklamasi sovutish — qator yoshi (kun, standart 2), kunlik blok limiti (standart 20), "1" — o'chirish. */
+  MUHR_SOVUT_KUN?: string;
+  MUHR_SOVUT_BLOK?: string;
+  MUHR_SOVUT_OFF?: string;
   /** Ixtiyoriy var: tranzaksiya vaqt chegarasi (ms). */
   SMETA_MCP_TIMEOUT_MS?: string;
 }
