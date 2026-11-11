@@ -14,6 +14,7 @@
 
 import { vaqtliOqish } from './vaqtli-fetch';
 import { yangiOperationId } from './supabase';
+import { ustamaOzgardi } from '../umumiy/ui/ustama-kesh';
 import type { SvodYaxlit } from '../lib/svod-yaxlit';
 
 export const NAKRUTKA_KOEF_KODLAR = [
@@ -79,7 +80,9 @@ export async function t2NakrutkaKoefSaqla(p: { kompaniyaId: number; shartnomaId?
       koef_kod: p.koefKod, qiymat: p.qiymat, operation_id: p.operationId || yangiOperationId(),
     }),
   });
-  return await res.json();
+  const natija = await res.json();
+  if (natija?.ok) ustamaOzgardi();
+  return natija;
 }
 
 export async function t2ObyektNakrutka(obyektId: number, shartnomaId?: number | null): Promise<{

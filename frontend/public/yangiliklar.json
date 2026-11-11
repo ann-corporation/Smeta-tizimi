@@ -2,12 +2,21 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 149,
+      "id": 150,
       "sana": "2026-11-11",
       "sarlavha": "Qarzdorlik sahifasida buyurtmachi qarzi",
       "bandlar": [
         "Qarzdorlik sahifasida yangi blok: buyurtmachi bizga qancha qarz (hisob-faktura F3 minus to‘lov, QQS bilan), yonida tasdiqlangan F2 (ustamasiz).",
         "F2 tasdiqlangan, lekin F3 chiqarilmagan yoki to‘lov kelmagan shartnomalar ogohlantirish bilan ko‘rsatiladi; noma‘lum summa jamiga kirmaydi."
+      ]
+    },
+    {
+      "id": 149,
+      "sana": "2026-11-11",
+      "sarlavha": "Tizim tezlashtirildi: rahbar paneli, aqliy xarita, nakrutka",
+      "bandlar": [
+        "Rahbar paneli, aqliy xarita va nakrutka hisobi bazada qayta yozildi: natijalar aynan avvalgidek, faqat bir necha baravar tezroq ochiladi.",
+        "Ustama (nakrutka) ma'lumoti 5 daqiqa eslab qolinadi; koeffitsient yoki podval saqlansa, darhol yangilanadi."
       ]
     },
     {
