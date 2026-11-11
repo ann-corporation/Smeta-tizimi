@@ -260,6 +260,8 @@ export const onRequestPost: PagesFunction<{
         shartnoma_liniya_v1: 'kompaniya_actor',
         /* Egasi 2026-11-02: qarzdorlik (postavshik/subpudrat kreditor qarzi) - shartnoma + asoslar + hisob. stable, a'zolik + financial.read ichida. */
         qarzdorlik_royxat_v1: 'kompaniya_actor',
+        /* Egasi 2026-11-04 (#4): buyurtmachi (debitor) qarzi = F3(sotuv) - to'lov, F2 yonida. stable; a'zolik + f2.read RPC ichida. */
+        qarz_svod_v1: 'kompaniya_actor',
         /* 2026-11-04: HR + KPI (stable; a'zolik + hr.* / payroll.* RPC ichida). */
         hr_xodimlar_v1: 'kompaniya_actor',
         hr_oy_v1: 'kompaniya_actor',
