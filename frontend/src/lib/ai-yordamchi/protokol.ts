@@ -9,7 +9,7 @@
  *      (kiritma + Ctrl+S, mavjud modal «Saqlash») orqali, egasining aniq tasdig'i bilan.
  * Har sahifaning vositalar ro'yxati shu yerda — ro'yxatda yo'q vosita/amal tashlanadi.
  */
-export const SAHIFALAR = ['fakt', 'f2'] as const;
+export const SAHIFALAR = ['fakt', 'f2', 'buyruq'] as const;
 export type SahifaTuri = typeof SAHIFALAR[number];
 
 export const SAHIFA_VOSITALARI: Record<SahifaTuri, { oqish: readonly string[]; amal: readonly string[] }> = {
@@ -24,6 +24,12 @@ export const SAHIFA_VOSITALARI: Record<SahifaTuri, { oqish: readonly string[]; a
   f2: {
     oqish: ['qidir', 'holat', 'bolim', 'tekshir', 'narx'],
     amal: ['f2_hajm', 'faktdan_ol', 'narx', 'korsat'],
+  },
+  /** Ctrl+K buyruq satri (butun obyekt bo'yicha): qidir/holat — umumiy; narxsiz — narxi yo'q qatorlar; qoldiq — smeta/F2/fakt qoldig'i.
+   *  Amallar: fakt_hajm (+5 / =40, oddiy yozish), narx_tuzat (qiymat = yangi narx NDS siz, PUL: ikkinchi «Tasdiqlayman»), korsat. */
+  buyruq: {
+    oqish: ['qidir', 'holat', 'narxsiz', 'qoldiq'],
+    amal: ['fakt_hajm', 'narx_tuzat', 'korsat'],
   },
 };
 
