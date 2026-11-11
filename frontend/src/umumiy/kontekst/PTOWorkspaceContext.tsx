@@ -2,8 +2,9 @@ import { t } from '../../i18n/til';
 import { ObyektOptionlari } from '../ui/ObyektOptionlari';
 import { loyihaBoyichaObyektlar } from '../../lib/loyihasiz-obyekt';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useKompaniya } from './KompaniyaKontekst';
+import { oxirgiObyektOl, oxirgiObyektYoz } from './oxirgiObyekt';
 import { sbT2AktReestrOl, type T2AktReestr, type T2Obyekt } from '../../api/supabase';
 import { obyektlarKeshdan, useIxtiyoriyQueryClient } from '../../api/t2-obyektlar-kesh';
 import { sbT2LoyihalarOl, type Loyiha } from '../../api/t2-loyiha';
@@ -100,6 +101,15 @@ const PTO_ROUTE_PREFIXES = [
   '/admin/smeta-narxlash',
   '/admin/documents',
   '/admin/smeta',
+  /* Navigatsiya oqimi (2026-11-11): obyekt bo'yicha ishlaydigan qolgan sahifalar ham BITTA yuqori tanlovdan foydalanadi
+   * (avval aosr/m29/nakrutka/logistika/... har biri o'z tanlovi bilan «10 kV liniya» dan boshlanardi). */
+  '/admin/m29',
+  '/admin/aosr',
+  '/admin/nakrutka',
+  '/admin/narx-dalil',
+  '/admin/narx-tekshiruv',
+  '/admin/logistika',
+  '/admin/storage',
 ];
 
 export function isPtoRoute(pathname: string): boolean {
@@ -345,6 +355,25 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
     updateScope((cur) => validateHierarchy(cur, companyId, projects, objects));
   }, [companyId, loading.hierarchy, loadedCompany, objects, projects, scope.objectId, scope.projectId, updateScope]);
 
+  /* Oxirgi obyekt (navigatsiya oqimi): ro'yxat kelgach, URL ham, shu tabning eslagan scope'i ham bo'sh bo'lsa — brauzerda
+   * saqlangan oxirgi obyekt (shu kompaniyada bor bo'lsa) tiklanadi. PTO marshrutida URL ga yoziladi, boshqa joyda faqat eslab qolinadi. */
+  useEffect(() => {
+    if (companyId == null || loading.hierarchy || loadedCompany !== companyId) return;
+    if (hasScopeParams(latest.current) || !sameScope(remembered.current, EMPTY_SCOPE)) return;
+    const s = oxirgiObyektOl(companyId);
+    const object = s ? objects.find((row) => row.id === s.objectId && row.kompaniya_id === companyId) : null;
+    if (!s || !object) return;
+    remembered.current = { projectId: object.loyiha_id ?? null, objectId: object.id, periodId: s.periodId, sourceDocumentId: null, revisionId: null };
+    if (isPtoRoute(location.pathname)) updateScope((cur) => cur, true);
+  }, [companyId, loading.hierarchy, loadedCompany, objects, location.pathname, updateScope]);
+
+  /* Tanlangan (tasdiqlangan) obyekt va davr eslab qolinadi. */
+  useEffect(() => {
+    if (companyId == null || loadedCompany !== companyId || scope.objectId == null) return;
+    if (!objects.some((row) => row.id === scope.objectId && row.kompaniya_id === companyId)) return;
+    oxirgiObyektYoz(companyId, scope.objectId, scope.periodId);
+  }, [companyId, loadedCompany, objects, scope.objectId, scope.periodId]);
+
   // Periods and source documents are loaded per object and tagged with it.
   useEffect(() => {
     if (companyId == null || scope.objectId == null) {
@@ -447,11 +476,42 @@ export function usePTOWorkspace(): PtoWorkspaceValue {
   return useContext(PtoWorkspaceContext);
 }
 
+/**
+ * Obyekt tanlovi sahifada o'z `useState` i bilan emas, YAGONA yuqori tanlovdan (URL scope) olinadi. Provider bo'lmasa
+ * (alohida test/ichki panel) — oddiy mahalliy holat. Sahifaning o'z tanlagichi bor bo'lsa ham `setObyekt` shu yagona
+ * manbani yangilaydi, shuning uchun yuqoridagi tanlov bilan hech qachon farq qilmaydi.
+ */
+export function useGlobalObyektId(): [number | null, (v: number | null | ((eski: number | null) => number | null)) => void] {
+  const ws = usePTOWorkspace();
+  const [mahalliy, setMahalliy] = useState<number | null>(null);
+  const global = ws.isProvider && ws.companyId != null;
+  const joriy = ws.scope.objectId;
+  const setObjectId = ws.setObjectId;
+  const setGlobal = useCallback((v: number | null | ((eski: number | null) => number | null)) => {
+    if (typeof v !== 'function') { setObjectId(v); return; }
+    /* Sahifaning «birinchi obyektni o'zi tanla» odati YAGONA tanlovni bosib ketmasin: funksiya faqat tanlangan obyektni tekshiradi. */
+    if (joriy == null) return;
+    const yangi = v(joriy);
+    if (yangi !== joriy) setObjectId(yangi);
+  }, [joriy, setObjectId]);
+  return global ? [joriy, setGlobal] : [mahalliy, setMahalliy];
+}
+
 /** AdminShell uchun umumiy, deep-link bilan birga ishlaydigan scope bar. */
 export function PTOWorkspaceBar() {
   const workspace = usePTOWorkspace();
   const location = useLocation();
+  const navigate = useNavigate();
   if (!workspace.companyId || !isPtoRoute(location.pathname)) return null;
+  /* Obyekt yo'lda turadigan sahifa (/admin/holat/:id): yuqoridagi tanlov sahifani o'zi ochadi — ikkinchi tanlov kerak emas. */
+  const obyektTanla = (id: number | null) => {
+    if (/^\/admin\/holat(\/|$)/.test(location.pathname)) {
+      if (id == null) workspace.setObjectId(null);
+      navigate(id == null ? '/admin/holat' :`/admin/holat/${id}${workspace.scopeSearch(id)}`, { replace: true });
+      return;
+    }
+    workspace.setObjectId(id);
+  };
 
   /* Egasi qoidasi: loyihasiz obyekt hech qachon yashirilmaydi — loyiha tanlanganda ham ro'yxatda («Loyihasiz obyektlar» guruhi). */
   const { loyihali, loyihasiz } = loyihaBoyichaObyektlar(workspace.objects, workspace.scope.projectId);
@@ -476,7 +536,7 @@ export function PTOWorkspaceBar() {
         {workspace.projects.map((row) => <option key={row.id} value={row.id}>{row.nom}</option>)}
       </select>
       <label className="sr-only" htmlFor="pto-object-select">Obyekt</label>
-      <select id="pto-object-select" aria-label="PTO obyekt" title={nomi(objects, workspace.scope.objectId)} value={workspace.scope.objectId ?? ''} onChange={(event) => workspace.setObjectId(event.target.value ? Number(event.target.value) : null)} disabled={!objects.length} className={`${tanlov} w-[clamp(130px,15vw,240px)]`}>
+      <select id="pto-object-select" aria-label="PTO obyekt" title={nomi(objects, workspace.scope.objectId)} value={workspace.scope.objectId ?? ''} onChange={(event) => obyektTanla(event.target.value ? Number(event.target.value) : null)} disabled={!objects.length} className={`${tanlov} w-[clamp(130px,15vw,240px)]`}>
         <option value="">Obyekt tanlang</option>
         <ObyektOptionlari obyektlar={objects} kompaniyaId={workspace.companyId} />
       </select>

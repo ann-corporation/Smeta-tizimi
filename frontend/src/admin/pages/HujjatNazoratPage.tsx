@@ -6,12 +6,13 @@
  * data. Forma-3 legal totals stay intentionally unavailable (FORMA3_RULE_UNRESOLVED).
  * EGALIK: Claude (integration lane).
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Info } from 'lucide-react';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ConstructionDocumentWorkbench } from '../../components/construction-document-control';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
+import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { Sahifa, Skelet } from '../../umumiy/ui/Sahifa';
 import { t } from '../../i18n/til';
 import { sbT2LoyihalarOl, type Loyiha } from '../../api/t2-loyiha';
@@ -26,18 +27,30 @@ export default function HujjatNazoratPage() {
   const [qidiruv, setQidiruv] = useState('');
   const [sectionId, setSectionId] = useState('');
   const [pageOffset, setPageOffset] = useState(0);
+  /* Navigatsiya oqimi: yuqoridagi yagona obyekt tanlovi sahifani ham boshqaradi (avval sahifa o'z loyiha/obyektidan boshlanardi). */
+  const ws = usePTOWorkspace();
+  const wsObyekt = useRef<number | null>(ws.scope.objectId);
+  wsObyekt.current = ws.scope.objectId;
 
   useEffect(() => {
     if (!joriy?.id) { setLoyihalar([]); setLoyihaId(null); setObyektId(null); return; }
     sbT2LoyihalarOl(joriy.id).then((r) => {
       const rows = (r.ok ? (r.qatorlar as Loyiha[]) : []) || [];
       setLoyihalar(rows);
-      setLoyihaId((p) => p ?? rows[0]?.id ?? null);
+      setLoyihaId((p) => p ?? rows.find((l) => wsObyekt.current != null && l.obyektlar.some((o) => o.obyekt_id === wsObyekt.current))?.id ?? rows[0]?.id ?? null);
     });
   }, [joriy?.id]);
 
   const loyiha = useMemo(() => loyihalar.find((l) => l.id === loyihaId) ?? null, [loyihalar, loyihaId]);
-  useEffect(() => { setObyektId((p) => (loyiha?.obyektlar.some((o) => o.obyekt_id === p) ? p : loyiha?.obyektlar[0]?.obyekt_id ?? null)); setDavr(''); setQidiruv(''); setSectionId(''); setPageOffset(0); }, [loyiha]);
+  useEffect(() => { setObyektId((p) => { const ids = loyiha?.obyektlar.map((o) => o.obyekt_id) ?? []; const g = wsObyekt.current; return ids.includes(p as number) ? p : g != null && ids.includes(g) ? g : ids[0] ?? null; }); setDavr(''); setQidiruv(''); setSectionId(''); setPageOffset(0); }, [loyiha]);
+
+  /* Yuqoridagi tanlov keyin o'zgarsa — sahifa ham shu obyektga o'tadi (loyihasi bilan). */
+  useEffect(() => {
+    const id = ws.scope.objectId;
+    if (id == null || id === obyektId) return;
+    const l = loyihalar.find((x) => x.obyektlar.some((o) => o.obyekt_id === id));
+    if (l) { setLoyihaId(l.id); setObyektId(id); }
+  }, [ws.scope.objectId, loyihalar]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const q = useHujjatNazoratModel(obyektId, davr || null);
   const model = q.data;
@@ -69,7 +82,7 @@ export default function HujjatNazoratPage() {
             </select>
           </label>
           <label className={yorliq}>{t('Obyekt')}
-            <select className={sel} value={obyektId ?? ''} onChange={(e) => { setObyektId(Number(e.target.value) || null); setPageOffset(0); }}>
+            <select className={sel} value={obyektId ?? ''} onChange={(e) => { const id = Number(e.target.value) || null; setObyektId(id); ws.setObjectId(id); setPageOffset(0); }}>
               {(loyiha?.obyektlar ?? []).length === 0 && <option value="">{t('— obyekt yo‘q —')}</option>}
               {(loyiha?.obyektlar ?? []).map((o) => <option key={o.obyekt_id} value={o.obyekt_id}>{o.obyekt_nom}</option>)}
             </select>

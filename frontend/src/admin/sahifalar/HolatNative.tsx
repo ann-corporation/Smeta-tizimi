@@ -143,6 +143,12 @@ export function HolatNative() {
    * tepadan qo'lda qayta tanlashi kerak edi. Scope setter'larining o'zi
    * kompaniya/loyiha chegarasini tekshiradi -- bu yerda hech qanday
    * ruxsat kengaytirilmaydi, faqat ochilgan obyekt bilan moslashtiriladi. */
+  /* Navigatsiya oqimi: yuqoridagi (yagona) tanlovda obyekt bor, lekin sahifa obyektsiz ochilgan (/admin/holat) — sahifa
+   * o'sha obyektni o'zi ochadi; «Obyektni tanlang» ikkinchi marta so'ralmaydi. */
+  useEffect(() => {
+    if (validId || !workspace.isProvider || workspace.scope.objectId == null || workspace.loading.hierarchy) return;
+    navigate(`/admin/holat/${workspace.scope.objectId}${workspace.scopeSearch(workspace.scope.objectId)}`, { replace: true });
+  }, [validId, workspace, navigate]);
   const yangilanganObyekt = useRef<number | null>(null);
   useEffect(() => {
     if (!validId || workspace.loading.hierarchy) return;
@@ -341,13 +347,13 @@ export function HolatNative() {
               style={{ height: 28, cursor: 'pointer', border: 0, fontWeight: varaq === (r === 'varaq') ? 600 : 500, background: varaq === (r === 'varaq') ? 'var(--surface)' : 'transparent', color: varaq === (r === 'varaq') ? 'var(--accent-text)' : 'var(--text-dim)' }}>{nom}</button>)}
           </div>}
           {varaq && validId && <button type="button" className="fz-btn fz-btn--sm" aria-expanded={boshqaOchiq} onClick={() => setBoshqaOchiq((v) => !v)} data-testid="boshqa-tugma"><MoreHorizontal aria-hidden="true" />{t('Boshqa')}</button>}
-          <label className="ml-auto flex min-w-[240px] max-w-[420px] flex-1 items-center gap-2 text-[12px] font-medium text-text-dim">
+          {!(workspace.isProvider && workspace.companyId != null) && <label className="ml-auto flex min-w-[240px] max-w-[420px] flex-1 items-center gap-2 text-[12px] font-medium text-text-dim">
             <span className="shrink-0">{t('Obyekt')}</span>
             <select value={validId ? String(obyektId) : ''} onChange={(e) => { const nextId = Number(e.target.value); if (Number.isSafeInteger(nextId) && nextId > 0) navigate(`/admin/holat/${nextId}${workspace.scopeSearch(nextId)}`); else { workspace.setObjectId(null); navigate('/admin/holat'); } }} className="h-8 min-w-0 flex-1 rounded-md border border-[var(--border-strong)] bg-surface-2 px-2 text-[13px] text-text">
               <option value="">{t('-- obyektni tanlang --')}</option>
               <ObyektOptionlari obyektlar={obyektlar} />
             </select>
-          </label>
+          </label>}
         </div>
 
         {/* Egasi (2026-11-05): «Keyingi qadam» murabbiyi — smeta → podval → fakt → F2 → tasdiqlash → portfel. */}

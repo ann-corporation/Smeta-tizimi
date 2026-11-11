@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 150,
+      "sana": "2026-11-11",
+      "sarlavha": "Menyu va obyekt tanlovi soddalashtirildi",
+      "bandlar": [
+        "Yon menyuda yozuvlar doim ko‘rinadi; tepada «Kundalik ishlar» (Fakt kiritish, F2 tayyorlash, F2 faylni yuklash, Forma 3, Qancha bajarildi, Yashirin ish akti, Ombor). Hali ishlatilmaydigan bo‘limlar «Qo‘shimcha bo‘limlar» ostiga yig‘ildi.",
+        "Obyekt bir marta tepada tanlanadi va barcha sahifalarga o‘tadi; keyingi kirishda oxirgi obyekt ochiladi. «Tizimga kirish» tizimda bo‘lgan foydalanuvchini «Boshqaruv paneliga o‘tish» ga olib boradi.",
+        "Brauzer sarlavhasi sahifaga mos; Ctrl+K bitta qidiruv oynasini ochadi (AI buyruq satri — Ctrl+Shift+K)."
+      ]
+    },
+    {
       "id": 149,
       "sana": "2026-11-11",
       "sarlavha": "Tizim tezlashtirildi: rahbar paneli, aqliy xarita, nakrutka",

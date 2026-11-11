@@ -51,6 +51,8 @@ export type NavSahifa = {
   scope?: RouteScope;
   /** Tizimga oid sahifa: faqat platforma superadmini (menyu ham, marshrut ham). Capability EMAS — `k.superadmin`. */
   faqatSuperadmin?: true;
+  /** Qo'shimcha bo'lim: hali ma'lumot/ishchi oqim yo'q yoki kundalik ishda ishlatilmaydi — yon menyuda asosiy ro'yxatdan chiqarilib Qo'shimcha bo'limlar ostiga yig'iladi (o'chirilmaydi; Ctrl+K va to'g'ridan-to'g'ri havola ishlaydi). */
+  qoshimcha?: true;
 };
 
 /** Sidebar bandi: bitta sahifa yoki bir nechta sahifa — tepada tablar (BolimTablari, App.tsx dagi layout). */
@@ -135,10 +137,10 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
       /* «Tomonlar 7 joyda» (M8) → shartnoma, kontragent va aloqa — bitta band, tablar. */
       { nom: 'Shartnomalar va tomonlar', ikonka: 'Users', sahifalar: [
         { yol: '/admin/shartnoma-liniya', ilova: 'moliya', nom: 'Shartnomalar va tomonlar', ruxsat: [RAHBARIYAT, 'financial.read', ...ICHKI_ISH], modul: 'module.loyiha' },
-        { yol: '/admin/qarzdorlik', ilova: 'moliya', nom: 'Qarzdorlik (postavshik, subpudrat)', ruxsat: [RAHBARIYAT, 'financial.write'], modul: 'module.erp' },
-        { yol: '/admin/buxgalteriya', ilova: 'moliya', nom: 'Buxgalteriya (provodka, hisob-kitob)', ruxsat: [RAHBARIYAT, 'accounting.write'], modul: 'module.erp' },
-        { yol: '/admin/crm', ilova: 'moliya', nom: 'Kontragentlar (CRM/EDO)', ruxsat: [RAHBARIYAT, 'financial.write', ...ICHKI_ISH], modul: 'module.loyiha' },
-        { yol: '/admin/aloqalar', ilova: 'hujjat', nom: 'Tomonlar aloqasi', ruxsat: [RAHBARIYAT, 'financial.write', ...ICHKI_ISH], modul: 'module.loyiha' },
+        { yol: '/admin/qarzdorlik', ilova: 'moliya', nom: 'Qarzdorlik (postavshik, subpudrat)', ruxsat: [RAHBARIYAT, 'financial.write'], modul: 'module.erp', qoshimcha: true },
+        { yol: '/admin/buxgalteriya', ilova: 'moliya', nom: 'Buxgalteriya (provodka, hisob-kitob)', ruxsat: [RAHBARIYAT, 'accounting.write'], modul: 'module.erp', qoshimcha: true },
+        { yol: '/admin/crm', ilova: 'moliya', nom: 'Kontragentlar (CRM/EDO)', ruxsat: [RAHBARIYAT, 'financial.write', ...ICHKI_ISH], modul: 'module.loyiha', qoshimcha: true },
+        { yol: '/admin/aloqalar', ilova: 'hujjat', nom: 'Tomonlar aloqasi', ruxsat: [RAHBARIYAT, 'financial.write', ...ICHKI_ISH], modul: 'module.loyiha', qoshimcha: true },
       ] },
     ],
   },
@@ -153,10 +155,10 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
       ] },
       /* Kiruvchi: buyurtmachi kabineti, tomonlar taqdimi va murojaatlar — bitta band. */
       { nom: 'Kiruvchi (tomonlar)', ikonka: 'Inbox', sahifalar: [
-        { yol: '/admin/zakazchik', ilova: 'hujjat', nom: 'Buyurtmachi kabineti', ruxsat: [RAHBARIYAT, 'project.read'], modul: 'module.loyiha' },
-        { yol: '/admin/taqdimlar', ilova: 'hujjat', nom: 'Tomonlar hujjatlari', ruxsat: [RAHBARIYAT, 'project.read'], modul: 'module.loyiha' },
-        { yol: '/admin/murojaatlar', ilova: 'hujjat', nom: 'Murojaatlar (remark, so‘rov)', ruxsat: [RAHBARIYAT, 'project.read'], modul: 'module.loyiha' },
-        { yol: '/admin/hujjat-aylanish', ilova: 'hujjat', nom: 'Hujjat aylanishi (kiruvchi, xat, tasdiq)', ruxsat: [RAHBARIYAT, 'project.read', 'quality.read'], modul: 'module.loyiha' },
+        { yol: '/admin/zakazchik', ilova: 'hujjat', nom: 'Buyurtmachi kabineti', ruxsat: [RAHBARIYAT, 'project.read'], modul: 'module.loyiha', qoshimcha: true },
+        { yol: '/admin/taqdimlar', ilova: 'hujjat', nom: 'Tomonlar hujjatlari', ruxsat: [RAHBARIYAT, 'project.read'], modul: 'module.loyiha', qoshimcha: true },
+        { yol: '/admin/murojaatlar', ilova: 'hujjat', nom: 'Murojaatlar (remark, so‘rov)', ruxsat: [RAHBARIYAT, 'project.read'], modul: 'module.loyiha', qoshimcha: true },
+        { yol: '/admin/hujjat-aylanish', ilova: 'hujjat', nom: 'Hujjat aylanishi (kiruvchi, xat, tasdiq)', ruxsat: [RAHBARIYAT, 'project.read', 'quality.read'], modul: 'module.loyiha', qoshimcha: true },
       ] },
     ],
   },
@@ -167,19 +169,19 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
         { yol: '/admin/logistika', ilova: 'logistika', nom: 'Ta‘minot va sklad', ruxsat: [RAHBARIYAT, ...ICHKI_ISH, 'warehouse.read', 'procurement.read', 'logistics.read', 'logistics.trip'], modul: 'module.erp' },
       ] },
       { nom: 'Zayavkalar', ikonka: 'ClipboardList', sahifalar: [
-        { yol: '/admin/zayavka', ilova: 'xarid', nom: 'Zayavkalar', ruxsat: [RAHBARIYAT, ...ICHKI_ISH, 'procurement.read', 'warehouse.write'], modul: 'module.erp' },
+        { yol: '/admin/zayavka', ilova: 'xarid', nom: 'Zayavkalar', ruxsat: [RAHBARIYAT, ...ICHKI_ISH, 'procurement.read', 'warehouse.write'], modul: 'module.erp', qoshimcha: true },
       ] },
       { nom: 'Tender (xarid)', ikonka: 'ClipboardList', sahifalar: [
-        { yol: '/admin/tender', ilova: 'xarid', nom: 'Tender / xarid', ruxsat: [RAHBARIYAT, ...ICHKI_ISH, 'procurement.read', 'supply.offer'], modul: 'module.erp' },
+        { yol: '/admin/tender', ilova: 'xarid', nom: 'Tender / xarid', ruxsat: [RAHBARIYAT, ...ICHKI_ISH, 'procurement.read', 'supply.offer'], modul: 'module.erp', qoshimcha: true },
       ] },
       { nom: 'Yuk birjasi', ikonka: 'Truck', sahifalar: [
-        { yol: '/admin/yuk-birjasi', ilova: 'logistika', nom: 'Yuk birjasi', ruxsat: [RAHBARIYAT, ...ICHKI_ISH, 'procurement.read'], modul: 'module.erp' },
+        { yol: '/admin/yuk-birjasi', ilova: 'logistika', nom: 'Yuk birjasi', ruxsat: [RAHBARIYAT, ...ICHKI_ISH, 'procurement.read'], modul: 'module.erp', qoshimcha: true },
       ] },
       { nom: 'Kadrlar va texnika', ikonka: 'Users', sahifalar: [
-        { yol: '/admin/erp', ilova: 'hr', nom: 'Kadrlar va texnika', ruxsat: [RAHBARIYAT, ...ICHKI_ISH, 'hr.read', 'machinery.read', 'machinery.log'], modul: 'module.erp' },
+        { yol: '/admin/erp', ilova: 'hr', nom: 'Kadrlar va texnika', ruxsat: [RAHBARIYAT, ...ICHKI_ISH, 'hr.read', 'machinery.read', 'machinery.log'], modul: 'module.erp', qoshimcha: true },
       ] },
       { nom: 'Kadrlar, KPI va ish haqi', ikonka: 'Users', sahifalar: [
-        { yol: '/admin/hr', ilova: 'hr', nom: 'Kadrlar, KPI va ish haqi', ruxsat: ['hr.read', 'hr.tabel.write', 'payroll.read'], modul: 'module.erp' },
+        { yol: '/admin/hr', ilova: 'hr', nom: 'Kadrlar, KPI va ish haqi', ruxsat: ['hr.read', 'hr.tabel.write', 'payroll.read'], modul: 'module.erp', qoshimcha: true },
       ] },
     ],
   },
@@ -189,7 +191,7 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
     id: 'sotuv', nom: 'Uy sotish', ikonka: 'Building2', qatlam: 'ish',
     bandlar: [
       { nom: 'Uy sotish', ikonka: 'Building2', sahifalar: [
-        { yol: '/admin/sotuv', ilova: 'sotuv', nom: 'Uy sotish', ruxsat: ['sales.read'], scope: 'COMPANY_SCOPED' },
+        { yol: '/admin/sotuv', ilova: 'sotuv', nom: 'Uy sotish', ruxsat: ['sales.read'], scope: 'COMPANY_SCOPED', qoshimcha: true },
       ] },
     ],
   },
@@ -215,7 +217,7 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
     bandlar: [
       /* «Telegram modeli»: barcha ish joylari va ulardagi navbatingiz — bitta ekranda. Hamma kirgan foydalanuvchiga. */
       { nom: 'Ish joylarim', ikonka: 'LayoutDashboard', sahifalar: [{ yol: '/admin/ish-joylarim', ilova: 'yadro', nom: 'Ish joylarim', ruxsat: [] }] },
-      { nom: 'Mening topshiriqlarim', ikonka: 'ClipboardList', sahifalar: [{ yol: '/admin/topshiriqlar', ilova: 'yadro', nom: 'Mening topshiriqlarim', ruxsat: [] }] },
+      { nom: 'Mening topshiriqlarim', ikonka: 'ClipboardList', sahifalar: [{ yol: '/admin/topshiriqlar', ilova: 'yadro', nom: 'Mening topshiriqlarim', ruxsat: [], qoshimcha: true }] },
       { nom: 'Mening xizmatlarim', ikonka: 'Briefcase', sahifalar: [{ yol: '/admin/mutaxassis', ilova: 'yadro', nom: 'Mening xizmatlarim', ruxsat: [] }] },
       /* Firuza (#150): o'ng yuqoridagi akkaunt menyusi ham shu sahifaga olib boradi (profil, til, bildirishnoma, ko'rinish). */
       { nom: 'Akkaunt markazi', ikonka: 'User', sahifalar: [{ yol: '/admin/akkaunt', ilova: 'yadro', nom: 'Akkaunt markazi', ruxsat: [] }] },
@@ -237,6 +239,21 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
       { nom: 'Sinov qobig‘i (eski)', ikonka: 'FlaskConical', sahifalar: [{ yol: '/admin/test', ilova: 'platforma', nom: 'Sinov qobig‘i (eski)', ruxsat: [] }] },
     ],
   },
+];
+
+/**
+ * KUNDALIK ISHLAR (navigatsiya oqimi, 2026-11-11: «PlayStation pulti»): yon menyuning eng tepasidagi qisqa ro'yxat — xodim
+ * har kuni qiladigan 7 ish, har biri o'z ISHI nomi bilan (bo'lim nomi bilan emas). Yangi sahifa YO'Q: har band mavjud reestr
+ * sahifasiga olib boradi; ko'rinishi navFiltr.kundalikIshlar orqali boshqa menyu bilan bir xil rol/ruxsat/modul filtridan o'tadi.
+ */
+export const KUNDALIK_ISHLAR: ReadonlyArray<{ yol: string; nom: string; ikonka: NavIkonka }> = [
+  { yol: '/admin/fakt', nom: 'Fakt kiritish', ikonka: 'HardHat' },
+  { yol: '/admin/f2-tayyorlash', nom: 'F2 tayyorlash', ikonka: 'FileOutput' },
+  { yol: '/admin/f2', nom: 'F2 faylni yuklash (Excel)', ikonka: 'FileOutput' },
+  { yol: '/admin/nakopitelniy', nom: 'Forma 3 va nakopitelniy', ikonka: 'FileStack' },
+  { yol: '/admin/holat', nom: 'Qancha bajarildi', ikonka: 'Gauge' },
+  { yol: '/admin/aosr', nom: 'Yashirin ish akti', ikonka: 'ShieldCheck' },
+  { yol: '/admin/logistika', nom: 'Ombor (kirim, chiqim)', ikonka: 'Box' },
 ];
 
 /** Menyuda YO'Q, lekin tizimga oid marshrutlar (prefiks; ichki yo'llari ham) — faqat platforma superadmini.

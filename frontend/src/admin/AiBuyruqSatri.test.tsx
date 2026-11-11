@@ -53,18 +53,18 @@ async function yubor(kirish: HTMLElement, matn: string) {
 beforeEach(() => { api.suhbat.mockReset(); localStorage.clear(); buyruqKeshTozala(); });
 afterEach(() => { cleanup(); delete (window as unknown as Record<string, unknown>).webkitSpeechRecognition; delete (window as unknown as Record<string, unknown>).SpeechRecognition; });
 
-describe('AI buyruq satri — Ctrl+K', () => {
-  it('Ctrl+K satrni ochadi (matn maydonida ham), Esc yopadi; PTO marshrutidan tashqarida ochilmaydi', async () => {
+describe('AI buyruq satri — Ctrl+Shift+K', () => {
+  it('Ctrl+Shift+K satrni ochadi (matn maydonida ham), Esc yopadi; PTO marshrutidan tashqarida ochilmaydi', async () => {
     const { deps } = depsQur();
     const { unmount } = render(<MemoryRouter initialEntries={['/admin/fakt']}><AiBuyruqSatri deps={deps} /></MemoryRouter>);
     expect(screen.queryByTestId('ai-buyruq-kirish')).toBeNull();
-    fireEvent.keyDown(document.body, { key: 'k', ctrlKey: true });
+    fireEvent.keyDown(document.body, { key: 'k', ctrlKey: true, shiftKey: true });
     expect(await screen.findByTestId('ai-buyruq-kirish')).toBeTruthy();
     fireEvent.keyDown(screen.getByTestId('ai-buyruq-kirish'), { key: 'Escape' });
     await waitFor(() => expect(screen.queryByTestId('ai-buyruq-kirish')).toBeNull());
     unmount();
     render(<MemoryRouter initialEntries={['/admin/boshqa']}><AiBuyruqSatri deps={deps} /></MemoryRouter>);
-    fireEvent.keyDown(document.body, { key: 'k', ctrlKey: true });
+    fireEvent.keyDown(document.body, { key: 'k', ctrlKey: true, shiftKey: true });
     expect(screen.queryByTestId('ai-buyruq-kirish')).toBeNull();
     expect(screen.queryByTestId('ai-buyruq-tugma')).toBeNull();
   });

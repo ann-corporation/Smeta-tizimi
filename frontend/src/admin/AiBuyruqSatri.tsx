@@ -1,5 +1,5 @@
 /**
- * AI buyruq satri (Ctrl+K) — PTO sahifalarida (PTOWorkspaceBar ko'rinadigan joyda) BITTA kiritish qatori.
+ * AI buyruq satri (Ctrl+Shift+K; Ctrl+K — umumiy qidiruv palitrasi) — PTO sahifalarida (PTOWorkspaceBar ko'rinadigan joyda) BITTA kiritish qatori.
  * Yangi marshrut/menyu yo'q va yangi AI dvigatel yo'q: mavjud `AiYordamchiPanel` (`satr` varianti) + `agentSikli` + `/api/smeta-ai`
  * (`sahifa_suhbat`, sahifa «buyruq»; hisob — `aiHisobli`, kompaniya hamyonidan token). Model faqat o'qiydi va TAKLIF KARTASI beradi
  * (nima o'zgaradi, eski → yangi, pul farqi SummaJuft bilan); «Bajarish» — mavjud yozish yo'llari (`sbFaktYoz`, `narxProtokolYarat`)
@@ -14,6 +14,7 @@ import { sbFaktYoz } from '../api/t2-fakt';
 import { narxProtokolYarat } from '../api/t2-narx-protokol';
 import { tokenHolatOl, type TokenHolat } from '../api/t2-token';
 import { daraxtVaHolatOl } from '../lib/oylik-hujjat/ostatka-slichitelniy';
+import { AI_BUYRUQ_OCH_HODISA } from '../umumiy/ui/aiBuyruqHodisa';
 import { useHotkeys } from '../lib/hotkeys/useHotkeys';
 import { isPtoRoute, usePTOWorkspace } from '../umumiy/kontekst/PTOWorkspaceContext';
 import { AiYordamchiPanel } from '../umumiy/ui/ai-yordamchi/AiYordamchiPanel';
@@ -43,7 +44,9 @@ const HAQIQIY_DEPS: BuyruqDeps = {
   tokenOl: async (kompaniyaId) => { const r = await tokenHolatOl(kompaniyaId).catch(() => null); return r && r.ok ? r.natija : null; },
 };
 
-const KALIT_YORLIQ = 'Ctrl+K';
+/* Ctrl+K — YAGONA qidiruv palitrasi (CommandPalette). AI buyruq satri unda ham taklif qilinadi va o'z tugmasi/Ctrl+Shift+K bilan ochiladi (ikki oyna bir vaqtda ochilmasin). */
+const KALIT_YORLIQ = 'AI';
+export { AI_BUYRUQ_OCH_HODISA };
 const NAMUNALAR = () => [t('Narxsiz qatorlarni ko‘rsat'), t('Qoldiq eng katta ishlar qaysi?'), t('Beton ishlarini top')];
 
 /** Yuborishdan oldin: taxminiy token narxi + balans. Haqiqiy sarf serverda (real foydalanishga qarab). */
@@ -140,15 +143,22 @@ export function AiBuyruqSatri({ deps }: { deps?: BuyruqDeps } = {}) {
   const faol = ws.isProvider && ws.companyId != null && isPtoRoute(location.pathname);
   const [ochiq, setOchiq] = useState(false);
   useHotkeys('ai-buyruq', t('AI buyruq satri'), [
-    { id: 'ai-buyruq.och', keys: 'ctrl+k', nom: t('AI buyruq satrini ochish / yopish'), inInput: true, run: () => { setOchiq((o) => !o); } },
+    { id: 'ai-buyruq.och', keys: 'ctrl+shift+k', nom: t('AI buyruq satrini ochish / yopish'), inInput: true, run: () => { setOchiq((o) => !o); } },
     { id: 'ai-buyruq.yop', keys: 'esc', nom: t('AI buyruq satrini yopish'), inInput: true, run: () => { if (!ochiq) return false; setOchiq(false); } },
   ], faol);
   useEffect(() => { if (!faol) setOchiq(false); }, [faol]);
+  /* Ctrl+K palitrasidagi «AI ga so'rash» bandi shu hodisa orqali satrni ochadi. */
+  useEffect(() => {
+    if (!faol) return undefined;
+    const och = () => setOchiq(true);
+    window.addEventListener(AI_BUYRUQ_OCH_HODISA, och);
+    return () => window.removeEventListener(AI_BUYRUQ_OCH_HODISA, och);
+  }, [faol]);
   if (!faol || ws.companyId == null) return null;
   const obyektNomi = ws.objects.find((o) => o.id === ws.scope.objectId)?.nom ?? undefined;
   return <>
     <button type="button" onClick={() => setOchiq((o) => !o)} aria-label={t('AI buyruq satrini ochish')} aria-expanded={ochiq} data-testid="ai-buyruq-tugma"
-      title={t('AI buyruq satri (Ctrl+K)')} className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md border border-border px-2 text-[11px] text-text-dim hover:text-text">
+      title={t('AI buyruq satri (Ctrl+Shift+K)')} className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md border border-border px-2 text-[11px] text-text-dim hover:text-text">
       <Sparkles size={13} className="text-accent" /> <span className="hidden xl:inline">{KALIT_YORLIQ}</span></button>
     <AiBuyruqSatriIchki kompaniyaId={ws.companyId} obyektId={ws.scope.objectId} obyektNomi={obyektNomi} ochiq={ochiq} onOchiq={setOchiq} deps={deps} />
   </>;
