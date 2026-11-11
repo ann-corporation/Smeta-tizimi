@@ -38,6 +38,8 @@ export const ID_JADVAL: Readonly<Record<string, string>> = {
   p_bitim_id: 't2_sotuv_bitim', p_birlik_id: 't2_sotuv_birlik', p_bron_id: 't2_sotuv_bron', p_sotuv_tolov_id: 't2_sotuv_tolov',
   /* Ish kartasi (20261203000600): karta kompaniyasi shlyuzda ham tekshiriladi (RPC — birinchi qatlam). */
   p_karta_id: 't2_ish_kartasi',
+  /* Naryad (20261214800000): naryad kompaniyasi shlyuzda ham tekshiriladi (RPC — birinchi qatlam). */
+  p_naryad_id: 't2_naryad',
   /* Buyurtma (20261108410000): p_qatorlar[].zayavka_id (t2_erp_taminot) shlyuzda ham kompaniya bo'yicha tekshiriladi (RPC faqat FK tekshiradi). */
   p_zayavka_id: 't2_erp_taminot',
 };

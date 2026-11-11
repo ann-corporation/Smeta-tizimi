@@ -3,6 +3,8 @@
  * 1) lotin -> kirill transliteratsiya; 2) kichik o'zbek -> rus qurilish sinonimlari (ildiz bo'yicha).
  * AI yo'q, tasodif yo'q: bir xil kirish - bir xil natija.
  */
+import { lugatKengaytir } from './qurilish-lugat';
+
 const IKKI: Array<[string, string]> = [['sh', 'ш'], ['ch', 'ч'], ['yo', 'ё'], ['yu', 'ю'], ['ya', 'я'], ['ts', 'ц'], ['ye', 'е'], ['ng', 'нг']];
 const BIR: Record<string, string> = {
   a: 'а', b: 'б', c: 'ц', d: 'д', e: 'е', f: 'ф', g: 'г', h: 'х', i: 'и', j: 'ж', k: 'к', l: 'л', m: 'м', n: 'н', o: 'о', p: 'п',
@@ -43,6 +45,8 @@ function soz(w: string): string[] {
     const n = normUz(w);
     for (const [uz, ru] of Object.entries(UZ_RU_LUGAT)) if (n.startsWith(uz) || uz.startsWith(n) && n.length >= 3) for (const r of ru) v.add(r);
   }
+  // Yagona qurilish lug'ati (o'zbekcha lotin/kirill, ruscha ish so'zlari): «g'isht» → кирпич, кладк …
+  for (const r of lugatKengaytir(w)) v.add(r.toLowerCase());
   return [...v];
 }
 

@@ -110,6 +110,10 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
       { nom: 'Fakt kiritish', ikonka: 'HardHat', sahifalar: [
         { yol: '/admin/fakt', ilova: 'ff', nom: 'Fakt kiritish', ruxsat: [RAHBARIYAT, 'fakt.write', 'fakt.read+self.work.write'], scope: 'OBJECT_SCOPED' },
       ] },
+      /* Egasi: naryad (brigada/usta topshirig'i) — smeta ishlaridan; qabul → fakt farqi → xarajat ЧЕЛ; usta narxi ↔ smeta mehnati. */
+      { nom: 'Naryad (brigada)', ikonka: 'ClipboardList', sahifalar: [
+        { yol: '/admin/naryad', ilova: 'ff', nom: 'Naryad (brigada topshirig‘i)', ruxsat: [RAHBARIYAT, 'smeta.write'] },
+      ] },
       { nom: 'M-29 (material sarfi)', ikonka: 'Box', sahifalar: [
         { yol: '/admin/m29', ilova: 'ff', nom: 'M-29 (material sarfi)', ruxsat: [RAHBARIYAT, 'smeta.write', 'warehouse.write'] },
       ] },

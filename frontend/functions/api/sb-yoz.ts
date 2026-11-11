@@ -73,6 +73,9 @@ const AMALLAR = {
   ish_kartasi_saqla_v1: { rpc: 't2_ish_kartasi_saqla_v1' },
   ish_kartasi_arxiv_v1: { rpc: 't2_ish_kartasi_arxiv_v1' },
   ish_kartasi_ulush_saqla_v1: { rpc: 't2_ish_kartasi_ulush_saqla_v1' },
+  /* Naryad (brigada/usta topshirig'i) + kompaniya lug'ati (20261214800000): bitta yozuvchi RPC, ichki amal (yarat/bajarildi/qabul/fakt_yozildi/hisobla/bekor/lugat_saqla).
+     RPC a'zolik + smeta.write (hisobla — yana financial.write) ni o'zi tekshiradi; idempotent (operation_id), CAS (kutilgan_versiya). */
+  naryad_yoz_v1: { rpc: 't2_naryad_yoz_v1' },
   /* Egasi 2026-10-01: shartnoma kartasi — loyiha, erkin turdagi tomonlar, obyektlar to'plami (asosiy: obyektda bitta). */
   shartnoma_saqla_v2: { rpc: 't2_shartnoma_saqla_v2' },
   /* Egasi 2026-11-02: qarzdorlik - asoslar saqlash (CAS) va Excel importi (idempotent operation_id). RPC a'zolik + financial.write ni o'zi tekshiradi. */
@@ -1023,6 +1026,48 @@ export const onRequestPost: PagesFunction<{
           yuk = { ...asos, p_karta_id: kid, p_kutilgan_versiya: kv, p_karta: karta, p_bog: boglar };
         }
       }
+    } else if (amal === 'naryad_yoz_v1') {
+      /* Naryad: ichki amal va yuk oq ro'yxatdan (faqat tipli maydonlar); biznes qoidalari va tenant (har smeta qatori, obyekt) — RPC da. */
+      const xato400 = (x: string) => Response.json({ ok: false, error: 'Naryad: ' + x }, { status: 400 });
+      const ichki = String(so.naryad_amal ?? '');
+      const kv = so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya);
+      const nid = so.naryad_id == null ? null : Number(so.naryad_id);
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || (kv != null && !Number.isSafeInteger(kv)) || (nid != null && (!Number.isSafeInteger(nid) || nid <= 0))) return xato400('operatsiya, versiya yoki naryad noto‘g‘ri.');
+      if (!['yarat', 'bajarildi', 'qabul', 'narx', 'fakt_yozildi', 'hisobla', 'bekor', 'lugat_saqla'].includes(ichki)) return xato400('amal noma’lum.');
+      if (ichki !== 'yarat' && ichki !== 'lugat_saqla' && (nid == null || kv == null)) return xato400('naryad va versiya talab qilinadi.');
+      const yx = so.yuk && typeof so.yuk === 'object' && !Array.isArray(so.yuk) ? so.yuk as Record<string, unknown> : {};
+      const sonN = (x: unknown) => (x == null || x === '' ? null : typeof x === 'number' && Number.isFinite(x) ? x : undefined);
+      const matnN = (x: unknown, n: number) => (x == null || x === '' ? null : typeof x === 'string' ? x.slice(0, n) : undefined);
+      const qs = yx.qatorlar;
+      if (qs != null && (!Array.isArray(qs) || qs.length > 200)) return xato400('≤200 qator.');
+      const yuk2: Record<string, unknown> = {};
+      if (ichki === 'yarat') {
+        for (const [k, v] of [['obyekt_id', sonN(yx.obyekt_id)], ['usta_kontragent_id', sonN(yx.usta_kontragent_id)], ['usta_nom', matnN(yx.usta_nom, 200)], ['brigada', matnN(yx.brigada, 200)],
+          ['izoh', matnN(yx.izoh, 2000)], ['davr_dan', matnN(yx.davr_dan, 10)], ['davr_gacha', matnN(yx.davr_gacha, 10)]] as const) {
+          if (v === undefined) return xato400(`${k} noto‘g‘ri turda.`);
+          yuk2[k] = v;
+        }
+        for (const k of ['davr_dan', 'davr_gacha']) if (yuk2[k] != null && !/^\d{4}-\d{2}-\d{2}$/.test(String(yuk2[k]))) return xato400('sana YYYY-MM-DD.');
+      }
+      if (qs) {
+        const kalitlar = ichki === 'yarat' ? ['qator_id', 'hajm', 'usta_narx', 'norma_chel_soat', 'smeta_mehnat_birlik', 'fakt_boshida']
+          : ichki === 'bajarildi' ? ['id', 'bajarilgan_hajm'] : ichki === 'narx' ? ['id', 'usta_narx'] : ichki === 'qabul' ? ['id', 'qabul_hajm', 'fakt_hozir'] : [];
+        const out: Record<string, unknown>[] = [];
+        for (const q of qs) {
+          if (!q || typeof q !== 'object' || Array.isArray(q)) return xato400('qator obyekt bo‘lishi kerak.');
+          const r: Record<string, unknown> = {};
+          for (const k of kalitlar) { const v = sonN((q as Record<string, unknown>)[k]); if (v === undefined) return xato400(`${k} son bo‘lishi kerak.`); r[k] = v; }
+          out.push(r);
+        }
+        yuk2.qatorlar = out;
+      }
+      if (ichki === 'fakt_yozildi') { const a = sonN(yx.akt_id); if (a === undefined) return xato400('akt_id son bo‘lishi kerak.'); yuk2.akt_id = a; }
+      if (ichki === 'lugat_saqla') {
+        const qv = yx.qiymat;
+        if (qv !== null && (typeof qv !== 'object' || Array.isArray(qv) || JSON.stringify(qv).length > 20000)) return xato400('lug‘at obyekt va ≤20 KB bo‘lishi kerak.');
+        yuk2.qiymat = qv;
+      }
+      yuk = { p_kompaniya_id: so.kompaniya_id, p_actor_id: sess.foydalanuvchi_id, p_operation_id: so.operation_id, p_amal: ichki, p_naryad_id: nid, p_kutilgan_versiya: kv, p_yuk: yuk2 };
     } else if (amal === 'qarzdorlik_saqla_v1') {
       /* Qarzdorlik: bitta shartnoma asoslari (CAS) - qator maydonlari oq ro'yxatdan, qolganini RPC tekshiradi. */
       const qs = so.qatorlar; const och = so.ochirilgan; const sp = so.spravka;
