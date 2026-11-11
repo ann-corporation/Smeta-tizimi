@@ -78,7 +78,7 @@ export const AMAL_ILOVA: Readonly<Record<string, IlovaKod>> = {
 };
 
 /** Prefiks qoidalari (amal va so'rov nomlari uchun): `sotuv_*`, `tender_*`, `transport_*`. */
-const PREFIKS_ILOVA: ReadonlyArray<readonly [string, IlovaKod]> = [['sotuv_', 'sotuv'], ['tender_', 'xarid'], ['transport_', 'logistika']];
+const PREFIKS_ILOVA: ReadonlyArray<readonly [string, IlovaKod]> = [['sotuv_', 'sotuv'], ['tender_', 'xarid'], ['buyurtma_', 'xarid'],['transport_', 'logistika']];
 
 /** `/api/sb-yoz` amali qaysi ilovaga tegishli (yo'q — ilovaga bog'lanmagan, hech qachon bloklanmaydi). */
 export function amalIlovasi(amal: string | null | undefined): IlovaKod | null {

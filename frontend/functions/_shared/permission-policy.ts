@@ -11,6 +11,15 @@ export function dataPermission(name: string, write: boolean, body: Record<string
     if (['tender_raund_v1','tender_golib_v2'].includes(n)) return 'procurement.approve';
     return 'procurement.write';
   }
+  /* BUYURTMA (20261108410000): yetkazuvchi bosqichlari (qabul/rad/bajarilmoqda/tayyor/topshirildi) - supply.fulfil; xaridor bekori - procurement.write;
+     olib ketish joyi - supply.fulfil; yaratish/qabul - procurement.write; o'qish - procurement.read. write-command-policy.ts bilan bir xil. */
+  if (/^buyurtma_/.test(n)) {
+    if (!write) return 'procurement.read';
+    if (n === 'buyurtma_royxat_v1' || n === 'buyurtma_tafsilot_v1') return 'procurement.read';
+    if (n === 'buyurtma_olish_yoz_v1') return 'supply.fulfil';
+    if (n === 'buyurtma_otish_v1') return ['qabul_qilindi','rad','bajarilmoqda','tayyor','topshirildi'].includes(String(body.holat || '')) ? 'supply.fulfil' : 'procurement.write';
+    return 'procurement.write';
+  }
   if (['erp_amal','sozlama_saqla','kirish_amal','taklif_yubor','taklif_qabul'].includes(n)) return 'control.company.write';
   if (n==='token_sarfla_v1'||n==='token_qaytar_v1'||n==='token_yakunla_v1') return 'company.read';
   /* M-29 bajarish (ombordan chiqim) — bajarish domeni; RPC ham fakt.write talab qiladi (ADR-3, 2026-10-21). */
