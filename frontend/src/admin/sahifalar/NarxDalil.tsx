@@ -9,6 +9,7 @@ import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useEffect, useMemo, useState } from 'react';
 import { FileSpreadsheet, Link2, Unlink } from 'lucide-react';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
+import { useGlobalObyektId, usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { sbT2DaraxtOl, sbT2ObyektlarOlKomp, type T2Obyekt } from '../../api/supabase';
 import {
   NARX_MANBA_TUR_NOMI, obyektHududBelgila, obyektHududOl, sbNarxDalilBogla, sbNarxDalilOchir, sbNarxDalillarOl, sbNarxTakliflarOl,
@@ -35,7 +36,8 @@ export default function NarxDalil() {
   const { joriy } = useKompaniya();
   const kompaniyaId = joriy?.id ?? null;
   const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
-  const [obyektId, setObyektId] = useState<number | null>(null);
+  const [obyektId, setObyektId] = useGlobalObyektId(); // yagona yuqori tanlov (navigatsiya oqimi)
+  const ws = usePTOWorkspace();
   const [tomonlar] = useHujjatTomonlari(kompaniyaId ?? undefined, obyektId);
   const [takliflar, setTakliflar] = useState<NarxTaklif[]>([]);
   const [dalillar, setDalillar] = useState<NarxDalilHolat[]>([]);
@@ -118,7 +120,7 @@ export default function NarxDalil() {
   const VARAQLAR = [['taklif', t('Takliflar ({n})', { n: String(natijalar.length) })], ['dalil', t('Bog‘langan dalillar ({n})', { n: String(dalillar.length) })], ['protokol', t('Протокол согласования цен')]] as const;
   const MOSLIK: Record<NarxTaklif['moslik'], string> = { kod: t('kod bo‘yicha'), nom_birlik: t('nom+birlik'), hudud: t('hudud bo‘yicha') };
   const amallar = <>
-    <select aria-label={t('Obyekt')} className="h-8 max-w-xs px-2 text-[13px]" value={obyektId ?? ''} onChange={(e) => setObyektId(Number(e.target.value))}><ObyektOptionlari obyektlar={obyektlar} /></select>
+    {!ws.isProvider && <select aria-label={t('Obyekt')} className="h-8 max-w-xs px-2 text-[13px]" value={obyektId ?? ''} onChange={(e) => setObyektId(Number(e.target.value))}><ObyektOptionlari obyektlar={obyektlar} /></select>}
     <button type="button" onClick={() => void excel()} disabled={!obyekt || !resurslar.length} className="fz-btn"><FileSpreadsheet size={14} /> Обоснование цен</button>
   </>;
 

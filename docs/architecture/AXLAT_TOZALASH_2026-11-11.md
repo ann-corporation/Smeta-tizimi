@@ -50,3 +50,18 @@ O'chirilgan API mijozlar chaqirgan RPC/jadvallar (frontenddan endi hech kim chaq
 ## 5. Asosiy ish nusxasi ildizidagi 0-bayt fayllar
 Ro'yxat: `C:\Users\anvar\AppData\Local\Temp\claude\64878c49480ed488\001994ce-5488-4c3d-91e4-71a835c0ceb6\scratchpad\axlat_fayllar.txt` (463 ta, hammasi untracked va 0 bayt; o'chirilmagan).
 **Sabab:** hook EMAS. `.claude/settings.json` hook'lari (`hook-handler.cjs pre-bash/post-bash/pre-edit/...`) faqat tekshiradi/metrika yozadi, ildizga fayl yaratmaydi (pre-bash faqat xavfli buyruq qidiradi). Nomlar JS parchalari (`!r.takror)`, `0)a.fh++`, `!x.ikkalasida))`, `'`) — ya'ni agent yuborgan Bash/`node -e` buyrug'idagi qo'shtirnoqsiz `>` (masalan `a>0)…`, `x=>…`) shell tomonidan «qayta yo'naltirish» deb o'qilgan va `>` dan keyingi bo'lak nomli bo'sh fayl yaratilgan. Tuzatish: inline JS o'rniga skript fayl yoki to'liq qo'shtirnoq; ildizda `.gitignore` ga ko'ra tozalash: `git clean -n` bilan ko'rib, so'ng egasi o'chiradi.
+
+## 6. Repo ildizini tozalash (2026-11-11, claude/ildiz-tozalash)
+Eslatma: ildizdagi ~137 ta bir martalik skript/axlat fayl (`fix_*.js`, `!r.ok`, `{}` ...) GIT'da kuzatilmaydi - ular faqat egasining lokal checkout'ida (untracked). Git'dagi ildiz allaqachon 3-bo'limdagi o'tishda tozalangan edi; shu o'tishda qolgan 13 ta fayl ko'rib chiqildi.
+
+| Fayl | Qaror | Dalil |
+|---|---|---|
+| `abc_parse_resur.js` | `scripts/legacy/` ga ko'chirildi | faqat o'zi; yo'llari eski mashinaga bog'langan; CI/paketda yo'q |
+| `abc_resurs.csv`, `abc_resurs.json` (43 MB) | git'dan olib tashlandi, **R2 ga ko'chirish kerak** | faqat `abc_parse_resur.js` chiqishi; kodda/CI'da havola yo'q |
+| `Jihozlar_Katalogi.docx`, `Jihozlar_Katalogi_Yangi.docx`, `Jihozlar_Smetasi.xlsx`, `Jihozlar_Smetasi_Yangi.xlsx` (16 MB) | git'dan olib tashlandi, **R2 ga ko'chirish kerak** | `*_Yangi` - `export_tool/generate.js` CHIQISHI (yozadi, o'qimaydi); eskilari havolasiz. Ichida haqiqiy smeta/narx ma'lumoti bo'lishi mumkin - egasi tekshirsin (repo PUBLIC), git tarixida qoladi |
+| `01_T2_LOYIHA_MIGRATSIYA.sql`, `GitHub smeta tizimi.pdf` | KEEP | `docs/`, `tizim02/MULOQOT.md`, `t2-loyiha.ts` izohlari nomi bilan havola qiladi |
+| `.gitattributes`, `.gitignore`, `AGENTS.md`, `CLAUDE.md` | KEEP | boot/konfiguratsiya |
+
+R2 ga yuklash BU PR da bajarilmagan (faqat ro'yxat). Fayllar git tarixida (oldingi commitlarda) saqlanadi.
+
+`.gitignore`: buzuq UTF-16 qatorlar (`_f2lab/`, `*.txt` ning NUL belgili nusxasi) tozalandi; `*.tmp`, `*.temp`, `*~`, ildizdagi tinish belgisi bilan boshlanuvchi nomlar (`/[#$%&'()+,;=@^{}~!]*`), `/tmp-*`, `/diag_log_*.txt`, `/Jihozlar_*`, `/abc_resurs.*` qo'shildi. `.github`, `.gitignore`, `_f2lab` kabi haqiqiy fayllarga tegmaydi.

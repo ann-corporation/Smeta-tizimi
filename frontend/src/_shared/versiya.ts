@@ -71,14 +71,14 @@ export function korilmaganlar(royxat: readonly Yangilik[], korilgan: number | nu
   return royxat.filter((x) => x.id > korilgan).slice(0, eng);
 }
 
-async function yangiliklarOl(): Promise<Yangilik[]> {
+export async function yangiliklarOl(): Promise<Yangilik[]> {
   try { const r = await fetch('/yangiliklar.json', { cache: 'no-store' }); return r.ok ? yangiliklarniAjrat(await r.json()) : []; }
   catch { return []; }
 }
-function korilganOl(): number | null {
+export function korilganOl(): number | null {
   try { const v = localStorage.getItem(KORILGAN); return v != null && /^\d+$/.test(v) ? Number(v) : null; } catch { return null; }
 }
-function korilganYoz(id: number) { try { localStorage.setItem(KORILGAN, String(id)); } catch { /* */ } }
+export function korilganYoz(id: number) { try { localStorage.setItem(KORILGAN, String(id)); } catch { /* */ } }
 
 function royxatEl(yozuvlar: readonly Yangilik[], rang: string): HTMLElement {
   const ul = document.createElement('div');
@@ -140,34 +140,8 @@ function nimaYangiOyna(): void {
     const korilgan = korilganOl();
     const eng = r[0].id;
     if (korilgan == null) { korilganYoz(eng); return; } // birinchi kirish — eski tarixni to'kib tashlamaymiz
-    const yangi = korilmaganlar(r, korilgan);
-    if (!yangi.length || document.getElementById('nima-yangi-oyna')) return;
-    const d = document.createElement('div');
-    d.id = 'nima-yangi-oyna';
-    d.setAttribute('role', 'dialog');
-    d.setAttribute('aria-label', 'Nima yangi');
-    /* Jadval va «Saqlash» tugmasini yopmasligi uchun: ixcham chip (faqat sarlavha), batafsil — bosilganda. 15 soniyadan keyin o'zi yo'qoladi
-     * (keyingi kirishda yana chiqadi — «Yopish» bosilmaguncha ko'rilgan hisoblanmaydi). */
-    d.style.cssText = 'position:fixed;right:16px;top:56px;z-index:99998;max-width:min(360px,calc(100vw - 32px));padding:8px 10px;'
-      + 'border-radius:10px;background:#0f172a;color:#e2e8f0;border:1px solid #1d4ed8;font:12.5px system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.4)';
-    const sar = document.createElement('div');
-    sar.style.cssText = 'display:flex;justify-content:space-between;gap:10px;align-items:center;font-weight:700;color:#93c5fd';
-    const t = document.createElement('span'); t.textContent = yangi.length > 1 ? `Yangi: ${yangi.length} ta o‘zgarish` : `Yangi: ${yangi[0].sarlavha}`;
-    const amal = document.createElement('span'); amal.style.cssText = 'display:flex;gap:6px;flex-shrink:0';
-    const tugmaStil = 'padding:2px 10px;border-radius:6px;border:1px solid #1d4ed8;background:transparent;color:#93c5fd;font-weight:700;cursor:pointer';
-    const batafsil = document.createElement('button');
-    batafsil.type = 'button'; batafsil.textContent = 'Batafsil'; batafsil.style.cssText = tugmaStil;
-    let ochiq: HTMLElement | null = null;
-    batafsil.onclick = () => { if (ochiq) { ochiq.remove(); ochiq = null; } else { ochiq = royxatEl(yangi, '#cbd5e1'); d.append(ochiq); } };
-    const yop = document.createElement('button');
-    yop.type = 'button'; yop.textContent = 'Yopish';
-    yop.style.cssText = 'padding:2px 10px;border-radius:6px;border:0;background:#1d4ed8;color:#fff;font-weight:700;cursor:pointer';
-    yop.onclick = () => { korilganYoz(eng); d.remove(); };
-    amal.append(batafsil, yop);
-    sar.append(t, amal);
-    d.append(sar);
-    document.body.appendChild(d);
-    setTimeout(() => { if (!ochiq) d.remove(); }, 15_000);
+    /* Navigatsiya oqimi (2026-11-11): pastki-chap suzuvchi oyna kontentni yopardi. Endi ko'rilmagan yozuvlar sarlavhadagi
+     * kichik «Yangi» belgisida (components/qollanma/NimaYangiBelgi) — har yangi yozuvda bir marta, tushunarli bosilguncha. */
   });
 }
 
