@@ -208,7 +208,7 @@ export function hujjatTuri(kalit: HujjatKalit): HujjatTuri { return HUJJAT_TURLA
 
 /**
  * Hujjat bo'lmagan, lekin pullik yo'ldan o'tadigan hisobot/paket/ma'lumotnomalar token kalitlari
- * (hujjat hayot sikli yo'q — taqdim va qaror yo'q). Yangi `hujjat: 'X'` kaliti kodga tushsa, shu yerga yoki
+ * (hujjat hayot sikli yo'q — taqdim va qaror yo'q). Kodga yangi hujjat token kaliti (hujjatTokenBilan parametri) tushsa, shu yerga yoki
  * HUJJAT_TURLARI ga qo'shilishi shart (reestr.test.ts tekshiradi).
  */
 export const HISOBOT_TOKEN_KALITLARI = [
