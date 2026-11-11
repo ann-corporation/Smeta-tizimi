@@ -307,7 +307,7 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
                         <td className="fz-c-num">{q.smetaNarx == null ? '—' : <FmtN val={q.smetaNarx} />} / {q.f2Narx == null ? '—' : <FmtN val={q.f2Narx} />}</td>
                         <td style={{ fontSize: 12 }}>{q.bandlar.map((b) => <div key={b.tur} style={{ color: rangSof(b.summa) }}>{bandNomi(b.tur)}: <FmtN val={b.summa} /></div>)}
                           {q.chegirma?.asosiy && <div style={{ color: 'var(--text-mute)' }}>{t('Asosiy ish {kod}: F2 {x}% olingan, chegirma {y}% qo‘llangan', { kod: q.chegirma.asosiy.kod ?? '', x: (Math.min(1, Math.max(0, q.chegirma.asosiy.ulush)) * 100).toFixed(1), y: (q.chegirma.y * 100).toFixed(1) })}</div>}
-                          {q.eslatma.includes('smetadan_tashqari') && <div style={{ color: 'var(--text-mute)' }}>{t('Smetadan tashqari fakt (pulga kirmaydi, DS kerak)')}</div>}
+                          {q.eslatma.includes('smetadan_tashqari') && <div style={{ color: 'var(--text-mute)' }}>{t('Smetadan tashqari fakt (pulga kirmaydi, qo‘shimcha kelishuv kerak)')}</div>}
                           {q.eslatma.includes('narx_farqi_hisoblanmadi') && <div style={{ color: 'var(--text-mute)' }}>{t('F2 summasi noma’lum — narx farqi hisoblanmadi')}</div>}</td>
                         <td className="fz-c-num" style={{ fontWeight: 600, color: rangSof(q.sof) }}>
                           <FmtN val={q.sof} />

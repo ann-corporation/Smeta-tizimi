@@ -38,6 +38,7 @@ import { serverMerosKoefQoy, yaxlitKOplate, yaxlitKOplateTaqsim, yaxlitQatorlarg
 import { narxBildirishnomaKerak, narxsizSoni } from './narx-bildirishnoma';
 import { bargUslubi } from './qator-uslubi';
 import { YAXLIT_IZOH, YAXLIT_KAT, svodYaxlitQqs, yaxlitQatorIdlari, type SvodYaxlit } from './svod-yaxlit';
+import { raqamTozala } from './raqam-belgi';
 
 export interface NakopitelniyVedomostExportOptions {
   obyektNom: string;
@@ -543,7 +544,7 @@ function fmt(x: number): string {
 export type ShartnomaEksportOpsiya = { sana?: string; tashkilot?: string | null; imzo?: ImzoNomlar };
 
 const sanaRuS = (s: string | null | undefined) => (s ? s.slice(0, 10).split('-').reverse().join('.') : null);
-const shNomi = (sh: SvodShartnoma) => `Договор № ${sh.raqam}${sh.nom ? ` (${sh.nom})` : ''}`;
+const shNomi = (sh: SvodShartnoma) => `Договор № ${raqamTozala(sh.raqam)}${sh.nom ? ` (${sh.nom})` : ''}`;
 const pulT = (t: number | null) => (t == null ? null : somga(t));
 
 const SVOD_USTUN: RasmiyUstun[] = [
@@ -668,5 +669,5 @@ export function sverkaXlsx(sh: SvodShartnoma, o: ShartnomaEksportOpsiya & { dan?
     : `На ${sanaRuS(s.gacha ?? sana)} задолженность подрядчика (неотработанный аванс): ${yak} сум.`);
   v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК'], o.imzo));
   const { bytes } = rasmiyKitob([v], { tur: 'slichitelniy' });
-  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: `№${sh.raqam}`, hujjat: 'АКТ_СВЕРКИ', davr: s.gacha ?? sana }) };
+  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: `№${raqamTozala(sh.raqam)}`, hujjat: 'АКТ_СВЕРКИ', davr: s.gacha ?? sana }) };
 }

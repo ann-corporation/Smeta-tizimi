@@ -9,6 +9,6 @@ export const NARX_MUHR: Record<PriceState, { soz: string; ton: 'ok' | 'info' | '
   NORMAL: { soz: 'Normal', ton: 'ok' },
   BELOW_REFERENCE: { soz: 'Muzlagan', ton: 'info' },
   ABOVE_REFERENCE_JUSTIFIED: { soz: 'Asoslangan', ton: 'info' },
-  ABOVE_REFERENCE_MISSING_BASIS: { soz: 'Basis kerak', ton: 'danger' },
+  ABOVE_REFERENCE_MISSING_BASIS: { soz: 'Asos kerak', ton: 'danger' },
   ABOVE_APPROVED_BASIS: { soz: 'Asosdan yuqori', ton: 'danger' },
 };

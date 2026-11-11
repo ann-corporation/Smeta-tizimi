@@ -566,10 +566,10 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   const narxKatak = (q: JurnalQator) => {
     const r = rowById.get(q.id); const h = holatMap.get(q.id);
     const narx = h?.smeta_narx != null ? Number(h.smeta_narx) : r?.narx != null ? Number(r.narx) : null;
-    if (narx != null) return <span title={t('Birlik narxi (NDS siz)')}>× {fmt(narx)}</span>;
+    if (narx != null) return <span title={t('Birlik narxi (QQS siz)')}>× {fmt(narx)}</span>;
     // Smeta narxi yo'q, lekin tasdiqlangan F2 narxi bor (F2 importidagi qo'shimcha resurs) — F2 narxi ko'rsatiladi.
     const f2n = h?.f2_narx != null && Number.isFinite(Number(h.f2_narx)) ? Number(h.f2_narx) : null;
-    if (f2n != null && q.tur !== 'bl') return <span title={t('F2 narxi (smetada narx yo‘q, NDS siz)')} data-testid="f2-narx-belgi">× {fmt(f2n)} <span className="text-[10px] text-text-mute">{t('F2')}</span></span>;
+    if (f2n != null && q.tur !== 'bl') return <span title={t('F2 narxi (smetada narx yo‘q, QQS siz)')} data-testid="f2-narx-belgi">× {fmt(f2n)} <span className="text-[10px] text-text-mute">{t('F2')}</span></span>;
     if (narxlashMumkin(q.tur, narx)) return <button type="button" tabIndex={-1} onClick={() => setNarxModal({ id: q.id, nom: q.nom, birlik: q.birlik, kat: r?.kat ?? null, fakt: q.fakt, smeta: q.smeta })}
       className="fz-chip fz-chip--danger hover:brightness-110" title={t('Narxi noma‘lum - narxlash')} data-testid="narxsiz-belgi">{t('narxsiz')}</button>;
     if (q.tur === 'bl') { const ts = taxminKesim(q); if (ts && q.smeta) return <span title={t('Ish birlik narxi = resurslar summasi / ish hajmi')}>× {fmt(ts.smetaSumma / q.smeta)}</span>; }

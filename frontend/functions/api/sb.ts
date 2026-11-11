@@ -203,7 +203,7 @@ export const onRequestPost: PagesFunction<{
      *
      * Rol: `boss`/`rahbar` ham CHAQIRA OLADI — bu faqat o'qish. */
     if (so.soro) {
-      const OQISH_RPC: Record<string, 'obyekt' | 'kompaniya' | 'obyekt_kompaniya' | 'obyekt_actor' | 'akt_actor' | 'job_actor' | 'kompaniya_actor' | 'akt_kompaniya_actor' | 'shartnoma_actor' | 'tizim_actor'> = {
+      const OQISH_RPC: Record<string, 'obyekt' | 'kompaniya' | 'obyekt_kompaniya' | 'obyekt_actor' | 'obyekt_paket_actor' | 'akt_actor' | 'job_actor' | 'kompaniya_actor' | 'akt_kompaniya_actor' | 'shartnoma_actor' | 'tizim_actor'> = {
         ai_kontekst: 'obyekt',
         ai_umumiy: 'kompaniya',
         /* ⚡ 2026-08-28: mindmap butun grafni (tugunlar + bog'lanishlar)
@@ -243,6 +243,8 @@ export const onRequestPost: PagesFunction<{
            t2_actor_kompaniya_azo_tekshir. */
         nakrutka_koef_ol_v1: 'kompaniya_actor',
         obyekt_nakrutka_v1: 'obyekt_actor',
+        /* Tezlik (20261212800000): bir nechta obyekt nakrutkasi BITTA so'rovda. Tenant: kompaniya a'zoligi + har obyekt shu kompaniyaniki; RPC ichida actor a'zoligi qayta tekshiriladi. */
+        obyekt_nakrutka_paket_v1: 'obyekt_paket_actor',
         shartnoma_qamrov_ol_v1: 'shartnoma_actor',
         /* HERM-001 WP-1: F2 lifecycle approval-chain history. `stable`,
            membership-checked inside the RPC itself
@@ -370,11 +372,30 @@ export const onRequestPost: PagesFunction<{
         }
         q.set('p_shartnoma_id', String(id));
       }
-      if (tur === 'obyekt_actor' || tur === 'akt_actor' || tur === 'job_actor' || tur === 'kompaniya_actor' || tur === 'akt_kompaniya_actor' || tur === 'shartnoma_actor' || tur === 'tizim_actor') {
+      if (tur === 'obyekt_actor' || tur === 'obyekt_paket_actor' || tur === 'akt_actor' || tur === 'job_actor' || tur === 'kompaniya_actor' || tur === 'akt_kompaniya_actor' || tur === 'shartnoma_actor' || tur === 'tizim_actor') {
         if (!Number.isInteger(sess.foydalanuvchi_id) || (sess.foydalanuvchi_id as number) <= 0) {
           return Response.json({ ok: false, error: 'Sessiyada foydalanuvchi yo\'q' }, { status: 401 });
         }
         q.set('p_actor_id', String(sess.foydalanuvchi_id));
+      }
+      if (tur === 'obyekt_paket_actor') {
+        const k = rpcKompaniyasi(sess, so.kompaniya_id);
+        if (!k.ok) return Response.json({ ok: false, code: 'TENANT_FORBIDDEN', error: k.error }, { status: k.status });
+        const xom = (so as { juftlar?: unknown }).juftlar;
+        if (!Array.isArray(xom) || xom.length < 1 || xom.length > 60) return Response.json({ ok: false, error: 'juftlar 1..60 ta bo\'lishi kerak' });
+        const juftlar: Array<{ obyekt_id: number; shartnoma_id: number | null }> = [];
+        for (const j of xom) {
+          const o = Number((j as { obyekt_id?: unknown })?.obyekt_id);
+          const sRaw = (j as { shartnoma_id?: unknown })?.shartnoma_id;
+          const s = sRaw == null || sRaw === '' ? null : Number(sRaw);
+          if (!Number.isSafeInteger(o) || o <= 0 || (s !== null && (!Number.isSafeInteger(s) || s <= 0))) return Response.json({ ok: false, error: 'juftlar noto\'g\'ri' });
+          juftlar.push({ obyekt_id: o, shartnoma_id: s });
+        }
+        let egalar: Array<number | null>;
+        try { egalar = await Promise.all([...new Set(juftlar.map((j) => j.obyekt_id))].map((id) => otaKompaniyasi(ctx.env, 't2_obyekt', id))); }
+        catch { return Response.json({ ok: false, code: 'TENANT_CHECK_FAILED', error: 'Obyekt tegishliligini tekshirib bo\'lmadi' }, { status: 502 }); }
+        if (egalar.some((e) => e !== k.id)) return Response.json({ ok: false, code: 'TENANT_FORBIDDEN', error: 'Bu obyektga ruxsat yo\'q' }, { status: 403 });
+        q.set('p_juftlar', JSON.stringify(juftlar));
       }
       /* 2026-10-02 izolyatsiya auditi: avval `obyekt` turidagi RPC (ai_kontekst) obyektning kimga tegishliligini
          tekshirmasdi, `kompaniya` turida esa kompaniya berilmasa BARCHA kompaniyalar qaytardi. Endi:

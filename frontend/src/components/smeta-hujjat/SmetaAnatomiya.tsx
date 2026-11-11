@@ -108,8 +108,8 @@ export function SmetaAnatomiya({ tree, obyektId }: { tree: readonly TreeNode[]; 
             ? <div className="fz-check"><div className="fz-check__q fz-check__q--ok"><AlertTriangle aria-hidden="true" style={{ visibility: 'hidden' }} /><span>{t('Hech bir qator smeta hajmidan oshmagan')}</span></div></div>
             : <div className="fz-bars">{diqqat.map((d, i) => (
               <div key={i} className="fz-bars__q" title={d.bolim}>
-                <span>{d.kod && <span className="fz-c-shifr" style={{ marginRight: 6 }}>{d.kod}</span>}{d.nom}</span>
-                <b className="text-warn">{Math.round(d.foiz)}%</b>
+                <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{d.kod && <span className="fz-c-shifr" style={{ marginRight: 6 }}>{d.kod}</span>}{d.nom}</span>
+                <b className="text-warn" style={{ whiteSpace: 'nowrap', paddingLeft: 8 }}>{Math.round(d.foiz)}%</b>
                 <span style={{ gridColumn: '1 / -1', fontSize: 11.5, color: 'var(--text-mute)' }}><FmtN val={d.faktHajm} /> / <FmtN val={d.smetaHajm} /> {d.birlik ?? ''}</span>
                 {/* Birlik xatosi gumoni (masalan «100М3» ga 300): faqat maslahat, hisob o'zgarmaydi. */}
                 {(() => { const og = birlikOgohi({ smeta: d.smetaHajm, joriy: 0, rejim: '=', n: d.faktHajm, birlik: d.birlik }); return og?.gumon ? <div style={{ gridColumn: '1 / -1' }}><BirlikOgohBlok ogoh={og} tur="fakt" /></div> : null; })()}

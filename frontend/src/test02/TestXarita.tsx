@@ -58,6 +58,10 @@ const BELGI_QISQA: Record<MindmapBelgi['tur'], string> = {
  *        G'ildirak kursor ostidagi nuqtani joyida saqlab zumlaydi.
  */
 
+/** Kompaniya grafi xotirada (sahifalar orasida): qayta ochish — bir zumda, yangilanish fonda. */
+const grafKesh = new Map<number, { g: MindmapGraf; t: number }>();
+const GRAF_KESH_MS = 10 * 60_000;
+
 const NODE_W = 200;
 const TUGUN_BALANDLIGI = (tur?: string) => tur === 'obyekt' ? 140 : 54;
 const KANVAS_W = 6000;
@@ -221,6 +225,7 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
     setYuklanmoqda(false);
     if (!r.ok) { setXato(r.error); return; }
     taminotRef.current = null;
+    grafKesh.set(aktKomp, { g: r.graf, t: Date.now() });
     qollaGraf(r.graf);
   }, [aktKomp, qollaGraf]);
 
@@ -242,7 +247,12 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
     if (id != null) await taminotDrilldown(id); else await yukla();
   }, [taminotDrilldown, yukla]);
 
-  useEffect(() => { yukla(); }, [yukla]);
+  /* Tezlik: qayta ochilganda oxirgi graf darhol ko'rinadi (10 daqiqagacha), yangisi fonda keladi. */
+  useEffect(() => {
+    const k = grafKesh.get(aktKomp);
+    if (k && Date.now() - k.t < GRAF_KESH_MS) qollaGraf(k.g);
+    yukla();
+  }, [yukla, aktKomp, qollaGraf]);
 
   /* Module satridagi `?tugun=texnika:44` bevosita o'sha REAL node'ni
      ochadi; nom yoki vaqtinchalik client ID orqali izlash yo'q. */

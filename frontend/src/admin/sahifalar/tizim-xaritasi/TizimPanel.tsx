@@ -11,6 +11,7 @@ import type { XDaraxt, XTugun } from '../../../lib/mindmap-korinish';
 import { MODUL_YOLI, modulNomi, oldin } from '../../../lib/tizim-xaritasi';
 import { Romb } from '../../../components/mindmap/belgilar';
 import { holatNomi } from '../../../components/mindmap/holat';
+import { kimMatni } from '../../../lib/raqam-belgi';
 
 const son = (v: unknown): string => (typeof v === 'number' && Number.isFinite(v) ? String(v) : '—');
 
@@ -95,7 +96,7 @@ function ModulTafsilot({ m }: { m: TizimMeta }) {
         {oa ? (
           <div className="space-y-0.5 text-[13px]" data-testid="tizim-oxirgi-amal">
             <p><b>{oa.amal ?? '—'}</b>{oa.matn ? ' — ' + oa.matn : ''}</p>
-            <p className="text-[12px] text-text-dim">{oldin(oa.vaqt)} · {oa.kim_nom || oa.kim || t('tizim')}</p>
+            <p className="text-[12px] text-text-dim">{oldin(oa.vaqt)} · {kimMatni(oa.kim, oa.kim_nom) || t('tizim')}</p>
           </div>
         ) : <p className="text-[12.5px] text-text-mute">{t('7 kunda amal yo‘q')}</p>}
       </section>
