@@ -1,0 +1,15 @@
+{
+  "Maqsad": { "ru": "Назначение", "en": "Purpose" },
+  "Fakt sifatida kiritish (F2 qoralama yaratilmaydi): faqat tizimdagi fakt ustiga qo‘shimcha hajm yoziladi": { "ru": "Ввести как факт (черновик F2 не создаётся): записывается только прирост объёма сверх факта в системе", "en": "Enter as actual (no F2 draft is created): only the additional quantity over the actual already in the system is recorded" },
+  "Mavjud fakt o‘qilmoqda…": { "ru": "Читается существующий факт…", "en": "Reading existing actuals…" },
+  "Mavjud fakt o‘qilmadi.": { "ru": "Существующий факт не прочитан.", "en": "Existing actuals could not be read." },
+  "ta fakt yozuvi eski qatorda, aktual vorisi yo‘q — hisobga olinmadi.": { "ru": "записей факта на старой строке без актуального преемника — не учтены.", "en": "actual records sit on an old row with no current successor — not counted." },
+  "qator yoziladi (delta)": { "ru": "строк будет записано (дельта)", "en": "rows will be recorded (delta)" },
+  "tizimda bor — yozilmaydi": { "ru": "уже в системе — не записывается", "en": "already in the system — not recorded" },
+  "fayl": { "ru": "файл", "en": "file" },
+  "tizimda": { "ru": "в системе", "en": "in system" },
+  "Faktga yozish": { "ru": "Записать в факт", "en": "Record as actual" },
+  "Fakt yozilmadi.": { "ru": "Факт не записан.", "en": "Actual was not recorded." },
+  "Fakt yozildi": { "ru": "Факт записан", "en": "Actual recorded" },
+  "tasi tizimda bor — yozilmadi.": { "ru": "уже было в системе — не записано.", "en": "were already in the system — not recorded." }
+}

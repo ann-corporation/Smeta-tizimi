@@ -2,12 +2,21 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 148,
+      "id": 149,
       "sana": "2026-11-11",
       "sarlavha": "Tizim tezlashtirildi: rahbar paneli, aqliy xarita, nakrutka",
       "bandlar": [
         "Rahbar paneli, aqliy xarita va nakrutka hisobi bazada qayta yozildi: natijalar aynan avvalgidek, faqat bir necha baravar tezroq ochiladi.",
         "Ustama (nakrutka) ma'lumoti 5 daqiqa eslab qolinadi; koeffitsient yoki podval saqlansa, darhol yangilanadi."
+      ]
+    },
+    {
+      "id": 148,
+      "sana": "2026-11-11",
+      "sarlavha": "Eski F2/LRV fayllarini aktual smetaga fakt qilib kiritish",
+      "bandlar": [
+        "F2 import endi faqat joriy (ekspertizadan keyingi) smeta qatorlariga moslaydi: eski qatorga ishora qilgan bog‘lanish o‘z aktual qatoriga o‘tkaziladi, aktuali yo‘qlari sababi bilan («eski versiya, aktual qator yo‘q») ko‘rsatiladi.",
+        "F2 importda yangi «Fakt sifatida kiritish» tanlovi: fayl hajmidan tizimdagi fakt ayirilib, faqat qo‘shimcha (musbat) qism fakt qilib yoziladi; tizimda borlari «tizimda bor — yozilmaydi» deb ko‘rsatiladi."
       ]
     },
     {
