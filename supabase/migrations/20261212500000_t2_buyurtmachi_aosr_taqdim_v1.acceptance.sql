@@ -86,8 +86,10 @@ begin
   rep := rep || (case when r->>'code' = 'TOPILMADI' then 'OK   begona kompaniya taqdimni ko''rmaydi' else 'FAIL begona tafsilot: ' || r::text end);
   begin perform t2_tomon_qaror_v1(uzk, z, t1, 'qabul', null); rep := rep || 'FAIL kuzatuvchi qaror chiqardi';
   exception when others then rep := rep || (case when sqlstate = '42501' then 'OK   kuzatuvchi qaror chiqara olmaydi — 42501' else 'FAIL kuzatuvchi: ' || sqlerrm end); end;
-  r := t2_tomon_qaror_v1(upto, p, t1, 'qabul', null);
-  rep := rep || (case when r->>'code' = 'TOPILMADI' then 'OK   muallif (pudratchi) o''z aktini tasdiqlay olmaydi' else 'FAIL o''zi tasdiqladi: ' || r::text end);
+  begin   -- muallif tomoni (pto) qaror huquqiga ega emas: rol tekshiruvi 42501 beradi (huquq bo'lsa ham taqdim unga kelmagan: TOPILMADI)
+    r := t2_tomon_qaror_v1(upto, p, t1, 'qabul', null);
+    rep := rep || (case when r->>'code' = 'TOPILMADI' then 'OK   muallif o''z aktini tasdiqlay olmaydi (TOPILMADI)' else 'FAIL o''zi tasdiqladi: ' || r::text end);
+  exception when others then rep := rep || (case when sqlstate = '42501' then 'OK   muallif (pto) qaror chiqara olmaydi — 42501' else 'FAIL muallif: ' || sqlerrm end); end;
   r := t2_tomon_qaror_v1(uin, z, t1, 'tuzatish', '');
   rep := rep || (case when r->>'code' = 'IZOH_KERAK' then 'OK   tuzatish izohsiz — rad' else 'FAIL izohsiz tuzatish: ' || r::text end);
   r := t2_tomon_qaror_v1(uin, z, t1, 'tuzatish', 'Materiallar bandida sertifikat raqami yo''q');
