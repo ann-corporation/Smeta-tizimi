@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { sbT2ShartnomalarOl, sbT2ShartnomaSaqla, sbT2ShartnomaBogSaqla, type Shartnoma } from '../api/t2-shartnoma';
@@ -27,6 +28,9 @@ const HOLAT: Record<Shartnoma['holat'], { nom: string; stamp: string; rang: stri
   yopilgan: { nom: 'Yopilgan', stamp: 'fz-stamp--frozen', rang: 'var(--accent)' },
   bekor: { nom: 'Bekor', stamp: 'fz-stamp--danger', rang: 'var(--danger)' },
 };
+
+/** Navigatsiya oqimi (2026-11-11): «keyingi bosqichda ishga tushiriladi» tablari (Qo'shimcha kelishuvlar, Ustama va soliqlar, Limitlar radari) yashirilgan; tayyor bo'lganda id ni qo'shing. */
+const TAYYOR_TABLAR = ['shartnomalar'] as const;
 
 export default function TestShartnoma() {
   const navigate = useNavigate();
@@ -111,12 +115,12 @@ export default function TestShartnoma() {
 
         <OpsTaqsimot sarlavha={t('Shartnomalar holati')} segmentlar={holatlar.map((h) => ({ kalit: h.kalit, nom: t(HOLAT[h.kalit]?.nom ?? h.kalit), soni: h.soni, rang: HOLAT[h.kalit]?.rang ?? 'var(--border-strong)' }))} />
 
-        <OpsTablar<Tab> yorliq={t('Shartnoma bo‘limlari')} joriy={activeTab} onTanla={setActiveTab} tablar={[
+        {TAYYOR_TABLAR.length > 1 && <OpsTablar<Tab> yorliq={t('Shartnoma bo‘limlari')} joriy={activeTab} onTanla={setActiveTab} tablar={[
           { id: 'shartnomalar', nom: t('Bosh shartnomalar'), ikon: <Briefcase />, soni: shartnomalar.length },
           { id: 'dop', nom: t('Qo‘shimcha kelishuvlar'), ikon: <FileText /> },
           { id: 'kalkulyator', nom: t('Ustama va soliqlar'), ikon: <Calculator /> },
           { id: 'radar', nom: t('Limitlar radari'), ikon: <PieChart /> },
-        ]} />
+        ].filter((x) => (TAYYOR_TABLAR as readonly string[]).includes(x.id)) as Array<{ id: Tab; nom: string; ikon: ReactNode; soni?: number }>} />}
 
         {isFormOpen && (
           <EntityFormModal
