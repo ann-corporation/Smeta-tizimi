@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 141,
+      "sana": "2026-11-11",
+      "sarlavha": "Obyekt sahifasida «Ish varag‘i» rejimi (sinov)",
+      "bandlar": [
+        "Obyekt sahifasida «Daraxt | Ish varag‘i» kaliti paydo bo‘ldi. «Ish varag‘i» — Excel kabi bitta jadval: nomi, birligi, smeta hajmi, fakt, F2, qoldiq va summa. Bo‘limlarni yig‘ish mumkin, «/» bilan qidiriladi.",
+        "Faktni to‘g‘ridan-to‘g‘ri katakka yozing: +5 — bugun, =40 — jami, 50% — smeta foizi. Enter — keyingi qator, Esc — bekor, Ctrl+Z — qaytarish, Ctrl+S — hammasini BIR MARTA saqlash. Pastda jami summalar doim ko‘rinib turadi.",
+        "Boshqa panellar «Boshqa» tugmasi ortiga yig‘ilgan. Sukut bo‘yicha avvalgi «Daraxt» ko‘rinishi qoladi; Fakt jurnali o‘zgarmagan."
+      ]
+    },
+    {
       "id": 139,
       "sana": "2026-11-11",
       "sarlavha": "F2 tayyorlash tezroq ochiladi",
