@@ -65,7 +65,6 @@ export const SAHIFA_KATALOGI: readonly SaytSahifa[] = [
   /* 2026-10-26 (yagona navigatsiya reestri): avval menyusiz bo'lgan sahifalar. */
   { kalit: 'fakt', nom: 'Fakt kiritish', yol: '/admin/fakt', scope: 'OBJECT', oqiydi: ['t2_daraxt', 't2_qator', 't2_qator_holat'], yozadi: ['fakt_belgila_v2', 'fakt_yoz_v2'], chiqaradi: ['bajarilgan hajm (Fakt)'], beradi: ['/admin/holat', '/admin/f2-tayyorlash'], izoh: 'Obyekt bo‘yicha bajarilgan ishni kiritish (usta, brigadir, prorab, PTO).' },
   { kalit: 'topshiriqlar', nom: 'Mening topshiriqlarim', yol: '/admin/topshiriqlar', scope: 'USER', oqiydi: ['t2_topshiriq'], yozadi: ['topshiriq_ber', 'topshiriq_otish'], chiqaradi: ['menga / mendan topshiriqlar'], beradi: ['/admin/ish-joylarim'], izoh: 'Shaxsiy: menga berilgan va men bergan topshiriqlar, holat o‘tkazish.' },
-  { kalit: 'test-shell', nom: 'Sinov qobig‘i (eski)', yol: '/admin/test', scope: 'LEGACY', oqiydi: [], yozadi: [], chiqaradi: [], beradi: [], izoh: 'Eski /admin/test/* yo‘llari — faqat platforma superadmini menyusida; yo‘llar o‘chirilmagan.', legacy: true },
 ];
 
 export const SAHIFA_KATALOGI_BY_PATH = new Map(SAHIFA_KATALOGI.map((x) => [x.yol, x]));

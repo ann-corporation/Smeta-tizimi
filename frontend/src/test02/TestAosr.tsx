@@ -30,6 +30,7 @@ import { qoralamaTanlangandan } from '../lib/aosr-qoralama';
 import { aosrReestrXlsx, labReestrXlsx } from '../lib/ijro-reestr-export';
 import { toast } from '../umumiy/ui/Toast';
 import { hujjatTokenBilan } from '../lib/token-hujjat';
+import { useGlobalObyektId, usePTOWorkspace } from '../umumiy/kontekst/PTOWorkspaceContext';
 import { useKompaniya } from './KompaniyaTanlov';
 import { t } from '../i18n/til';
 import { Sahifa } from '../umumiy/ui/Sahifa';
@@ -62,7 +63,8 @@ export default function TestAosr() {
   const kompaniyaId = joriy?.id ?? null;
   const [varaq, setVaraq] = useState<'akt' | 'lab'>('akt');
   const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
-  const [obyektId, setObyektId] = useState<number | null>(null);
+  const [obyektId, setObyektId] = useGlobalObyektId(); // yagona yuqori tanlov (navigatsiya oqimi)
+  const ws = usePTOWorkspace();
   const [aktlar, setAktlar] = useState<AosrV2[]>([]);
   const [coverage, setCoverage] = useState<AosrCoverage[]>([]);
   const [protokollar, setProtokollar] = useState<LabProtokol[]>([]);
@@ -297,7 +299,7 @@ export default function TestAosr() {
     <Sahifa
       sarlavha="Ijro hujjatlari: АОСР va laboratoriya"
       tavsif="Yashirin ishlar dalolatnomasi (АОСР) bajarilgan har yashirin ishni qoplashi kerak; laboratoriya protokollari aktlarga ilova qilinadi."
-      amallar={<label className="inline-flex items-center gap-1.5 text-[12px] text-text-dim">{t('Obyekt')}
+      amallar={ws.isProvider ? undefined : <label className="inline-flex items-center gap-1.5 text-[12px] text-text-dim">{t('Obyekt')}
         <select aria-label={t('Obyekt')} className="h-8 max-w-xs px-2 text-[13px]" value={obyektId ?? ''} onChange={(e) => setObyektId(Number(e.target.value))}>
           {obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}
         </select></label>}
