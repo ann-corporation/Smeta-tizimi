@@ -146,7 +146,7 @@ Qonunlar (testlangan):
 - Moslik: avval `google_sub`; bo'lmasa `t2_foydalanuvchi.email` bo'yicha ANIQ BITTA faol foydalanuvchi (admin kiritgan email), shunda `google_sub` ulanadi (keyin email o'zgarsa ham shu Google hisob).
   Bir nechta mos kelsa — rad. Email tasdiqlanmagan o'zi ro'yxatdan o'tgan hisob avtomatik ulanmaydi (birovning emailini oldindan band qilishdan himoya).
 - `state` bir martalik (KV, 10 daqiqa), login sessiyasi cookie'ga bog'langan; `nonce` id_tokenda tekshiriladi; tezlik chegarasi login bilan bir xil.
-- **Migratsiya:** `supabase/migrations/20261212100000_t2_google_mcp_kirish_v1.sql` (+ `.rollback.sql`, `.acceptance.sql`). Qo'llanmagan — faqat egasi tasdig'i bilan,
+- **Migratsiya:** `supabase/migrations/20261212200000_t2_google_mcp_kirish_v1.sql` (+ `.rollback.sql`, `.acceptance.sql`). Qo'llanmagan — faqat egasi tasdig'i bilan,
   Worker deploydan OLDIN. Migratsiyasiz tugma bosilsa «Google bilan kirib bo'lmadi» xabari chiqadi (parol bilan kirish ta'sirlanmaydi).
 
 ## Egasi uchun: ChatGPT va Claude ga ulash (oddiy yo'l-yo'riq)
