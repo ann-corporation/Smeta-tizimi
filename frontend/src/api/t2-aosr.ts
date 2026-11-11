@@ -116,3 +116,42 @@ export function sbAosrBogSaqla(aosrIds: number[], qatorIds: number[]): Promise<A
 export function sbAosrBogOchir(aosrId: number, qatorId: number): Promise<AosrNatija> {
   return yoz({ amal: 'aosr_bog_ochir', aosr_id: aosrId, qator_id: qatorId });
 }
+
+/* ══════════════════════════════════════════════════════════════════
+ * IJRO TAYYORLASH — faqat o'qish (razdel tartibi, akt↔qator bog'lari, fakt sanalari)
+ * ══════════════════════════════════════════════════════════════════ */
+export type QatorMetaYozuv = { id: number; ota_id: number | null; tartib: number | null; tur: string | null; nom: string | null };
+
+/** Smeta daraxti (faqat joriy faol versiya): razdel tartibi uchun yengil ustunlar. */
+export async function sbQatorMetaOl(obyektId: number): Promise<QatorMetaYozuv[]> {
+  const r = await sbOqi<QatorMetaYozuv>({ jadval: 't2_qator', filtr: 'obyekt_id=eq.' + obyektId, ustunlar: 'id,ota_id,tartib,tur,nom', tartib: 'id.asc', limit: 200000 });
+  return r.ok ? r.qatorlar || [] : [];
+}
+
+/** Akt → bog'langan smeta qatorlari (M:N). Gateway yopiq/xato bo'lsa bo'sh xarita (tartib faqat sanaga tushadi). */
+export async function sbAosrBogOl(kompaniyaId: number, aosrIds: readonly number[]): Promise<Map<number, number[]>> {
+  const xarita = new Map<number, number[]>();
+  for (let i = 0; i < aosrIds.length; i += 100) {
+    const r = await sbOqi<{ aosr_id: number; qator_id: number }>({
+      jadval: 't2_aosr_bog', filtr: `kompaniya_id=eq.${kompaniyaId}&aosr_id=in.(${aosrIds.slice(i, i + 100).join(',')})`, ustunlar: 'aosr_id,qator_id', limit: 100000,
+    }).catch(() => null);
+    if (!r || !r.ok) return xarita;
+    for (const b of r.qatorlar || []) { const a = xarita.get(Number(b.aosr_id)); if (a) a.push(Number(b.qator_id)); else xarita.set(Number(b.aosr_id), [Number(b.qator_id)]); }
+  }
+  return xarita;
+}
+
+/** Berilgan qatorlar bo'yicha bekor qilinmagan fakt hujjatlarining sanalari (qoralama boshlanish/tugash sanasi uchun). */
+export async function sbFaktSanalarOl(obyektId: number, qatorIds: readonly number[]): Promise<{ links: { akt_id: number; qator_id: number }[]; aktlar: { id: number; sana: string | null }[] }> {
+  const a = await sbOqi<{ id: number; sana: string | null }>({ jadval: 't2_akt', filtr: `obyekt_id=eq.${obyektId}&tur=eq.fakt&holat=neq.bekor`, ustunlar: 'id,sana', limit: 20000 });
+  if (!a.ok || !qatorIds.length) return { links: [], aktlar: [] };
+  const links: { akt_id: number; qator_id: number }[] = [];
+  for (let i = 0; i < qatorIds.length; i += 100) {
+    const r = await sbOqi<{ akt_id: number; qator_id: number }>({
+      jadval: 't2_akt_qator', filtr: `obyekt_id=eq.${obyektId}&qator_id=in.(${qatorIds.slice(i, i + 100).join(',')})`, ustunlar: 'akt_id,qator_id', limit: 100000,
+    });
+    if (!r.ok) break;
+    links.push(...(r.qatorlar || []));
+  }
+  return { links, aktlar: a.qatorlar || [] };
+}

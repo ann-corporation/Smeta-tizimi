@@ -2,6 +2,8 @@ import {
   RasmiyVaraq, bugunSana, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, sumFormula, yaxlit2,
   type ImzoNomlar, type RasmiyUstun,
 } from './hujjat-yozuvchi';
+import { aosrTartibla, raqamTekshiruv, type AosrTartibMeta } from './ijro-tayyorla';
+import { LAB_TALAB_NOM, type LabTalab } from './ijro-qoida';
 import { SINOV_NATIJA_NOM, SINOV_TURI_NOM, type AosrHolat, type AosrTur, type AosrV2, type LabProtokol } from '../api/t2-ijro';
 
 /**
@@ -11,6 +13,8 @@ import { SINOV_NATIJA_NOM, SINOV_TURI_NOM, type AosrHolat, type AosrTur, type Ao
  * Bekor qilingan yozuvlar chiqmaydi; qiymat yo'q — bo'sh (o'ylab topilmaydi).
  */
 export type ReestrOpsiya = { obyektNomi: string; sana?: string; imzo?: ImzoNomlar };
+/** Kengaytirilgan АОСР reestri: razdel tartibi + laboratoriya talabi (akt id bo'yicha). */
+export type AosrReestrOpsiya = ReestrOpsiya & { tartib?: ReadonlyMap<number, AosrTartibMeta & { labYetishmaydi: readonly LabTalab[] }> };
 
 const sanaRu = (s: string | null | undefined) => (s ? s.slice(0, 10).split('-').reverse().join('.') : null);
 
@@ -33,29 +37,47 @@ const AOSR_USTUN: RasmiyUstun[] = [
   { sarlavha: 'Статус', kenglik: 12, tur: 'birlik' },
 ];
 
-export function aosrReestrXlsx(aktlar: readonly AosrV2[], o: ReestrOpsiya): { bytes: Uint8Array; faylNomi: string } {
+const AOSR_KENGAYTMA_USTUN: RasmiyUstun[] = [
+  { sarlavha: 'Раздел сметы', kenglik: 26, tur: 'matn' },
+  { sarlavha: 'Протокол лаборатории', kenglik: 18, tur: 'matn' },
+];
+
+export function aosrReestrXlsx(aktlar: readonly AosrV2[], o: AosrReestrOpsiya): { bytes: Uint8Array; faylNomi: string } {
   const sana = o.sana ?? bugunSana();
-  const faol = aktlar.filter((a) => a.holat !== 'bekor')
-    .slice().sort((a, b) => (a.sana ?? '9999').localeCompare(b.sana ?? '9999') || a.id - b.id);
+  const tartib = o.tartib;
+  const faolXom = aktlar.filter((a) => a.holat !== 'bekor');
+  const faol = tartib ? aosrTartibla(faolXom, tartib) : faolXom.slice().sort((a, b) => (a.sana ?? '9999').localeCompare(b.sana ?? '9999') || a.id - b.id);
   const v = new RasmiyVaraq({
     nom: 'Реестр АОСР',
     sarlavha: 'РЕЕСТР АКТОВ ОСВИДЕТЕЛЬСТВОВАНИЯ СКРЫТЫХ РАБОТ',
     ostSarlavha: [`по состоянию на ${sanaRu(sana)}`],
     titul: [['Объект:', o.obyektNomi], ['Заказчик:', o.imzo?.zakazchik], ['Подрядчик:', o.imzo?.pudratchi]],
-    ustunlar: AOSR_USTUN,
+    ustunlar: tartib ? [...AOSR_USTUN, ...AOSR_KENGAYTMA_USTUN] : AOSR_USTUN,
     yonalish: 'landscape',
   });
   let no = 0;
   for (const a of faol) {
+    const m = tartib?.get(a.id);
+    const yoq = m?.labYetishmaydi ?? [];
     v.qator('oddiy', [
       ++no, a.raqam, sanaRu(a.sana), AOSR_TUR_NOM[a.tur] ?? a.tur, a.ish_nomi,
       sanaRu(a.boshlanish_sana), sanaRu(a.tugash_sana), a.protokol_soni || null, AOSR_HOLAT_NOM[a.holat] ?? a.holat,
+      ...(tartib ? [m?.razdel.nom || null, yoq.length ? `НЕТ: ${yoq.map((t) => LAB_TALAB_NOM[t]).join(', ')}` : null] : []),
     ]);
   }
   v.bosh();
   v.izoh(`Всего актов: ${faol.length}; подписано — ${faol.filter((a) => a.holat === 'tasdiqlangan').length}; на бумаге — ${faol.filter((a) => a.holat === 'qogoz').length}; черновиков — ${faol.filter((a) => a.holat === 'yangi').length}.`);
   const diqqat = faol.filter((a) => !a.raqam || !a.sana || !a.ish_nomi)
     .map((a) => ({ nom: a.ish_nomi || `Акт id ${a.id}`, sabab: [!a.raqam && 'нет номера', !a.sana && 'нет даты', !a.ish_nomi && 'не указаны работы'].filter(Boolean).join(', ') }));
+  if (tartib) {
+    for (const a of faol) {
+      const yoq = tartib.get(a.id)?.labYetishmaydi ?? [];
+      if (yoq.length) diqqat.push({ nom: `Акт № ${a.raqam ?? '—'}`, sabab: `нет протокола лаборатории: ${yoq.map((t) => LAB_TALAB_NOM[t]).join(', ')}` });
+    }
+    const rt = raqamTekshiruv(faol);
+    if (rt.yoq.length) diqqat.push({ nom: 'Нумерация актов', sabab: `пропущены номера: ${rt.yoq.join(', ')}` });
+    if (rt.takror.length) diqqat.push({ nom: 'Нумерация актов', sabab: `повторяются номера: ${rt.takror.join(', ')}` });
+  }
   if (diqqat.length) v.diqqat(diqqat);
   v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР'], o.imzo));
   const { bytes } = rasmiyKitob([v], { tur: 'ijro_reestr' });
