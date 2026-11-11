@@ -32,6 +32,14 @@ const XATO_MATNI: Record<string, string> = {
   TOKEN_LIMIT_TUGADI: 'Kompaniyaning AI oylik token limiti tugadi.',
 };
 
+/** Seans tarixi (sessionStorage): faqat yakunlangan xabarlar; taklif kartasi (funksiyalar) saqlanmaydi. */
+function tarixOqi(kalit: string): Xabar[] {
+  try { const v = JSON.parse(sessionStorage.getItem(kalit) ?? '[]'); return Array.isArray(v) ? (v as Xabar[]).slice(-30) : []; } catch { return []; }
+}
+function tarixYoz(kalit: string, x: readonly Xabar[]) {
+  try { sessionStorage.setItem(kalit, JSON.stringify(x.filter((m) => !m.jonli).slice(-30).map(({ taklif: _t, ...q }) => q))); } catch { /* xotira yopiq */ }
+}
+
 /** AI ko'rsatgan sahifalarga o'tish tugmalari (yo'llar serverda katalog bilan tekshirilgan). */
 function OtishTugmalari({ royxat, ochish }: { royxat?: SahifaIshora[]; ochish: (yol: string) => void }) {
   if (!royxat?.length) return null;
@@ -64,9 +72,12 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   /** Obyekt ma'lumoti yuklanishini kutayotgan buyruq (obyekt tanlangach avtomatik davom etadi). */
   const kutish = useRef<{ id: string; matn: string; obyektId: number } | null>(null);
 
-  useEffect(() => { setXabarlar([]); setMatn(''); setBand(false); busy.current = false; abort.current?.abort();
+  /* Yagona yordamchi: suhbat tarixi seans davomida saqlanadi (sahifa almashsa ham, oyna yopilsa ham); kompaniya bo'yicha alohida. */
+  const tarixKalit = yordamchi ? `jarvis-chat:${kompaniyaId ?? 0}` : null;
+  useEffect(() => { setXabarlar(tarixKalit ? tarixOqi(tarixKalit) : []); setMatn(''); setBand(false); busy.current = false; abort.current?.abort();
     return () => { abort.current?.abort(); };
   }, [scope]);
+  useEffect(() => { if (tarixKalit) tarixYoz(tarixKalit, xabarlar); }, [xabarlar, tarixKalit]);
   useEffect(() => { oxir.current?.scrollIntoView?.({ behavior: 'smooth' }); }, [xabarlar]);
 
   useEffect(() => { if (tayyorSavol?.matn) { void yubor(tayyorSavol.matn); onOqildi?.(); } /* faqat yangi hodisada */ // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -84,6 +95,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     if (r.tur !== 'javob') return;
     xabarYangila(id + 'a', (x) => ({ ...x, jonli: false, matn: r.matn, xato: r.xato, sahifalar: r.havolalar }));
     if (r.ochish) { navigate(r.ochish); toast(t('Ochildi'), 'ok'); onOtish?.(); }
+    else if (r.yop) onOtish?.();
   };
 
   const yubor = async (savol: string, davom?: { id: string }) => {
@@ -97,8 +109,8 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     /* YAGONA YORDAMCHI (Jarvis) qatlami: navigatsiya, o'qish, yozuv taklifi — bepul va bir zumda; hal qilmasa mavjud oqim davom etadi. */
     const ya = yaRef.current;
     if (ya && ya.sahifalar.length && !jarvisKichikGap(s)) {
-      const n = niyatAniqla(s, { sahifalar: ya.sahifalar, obyektlar: ya.obyektlar, joriyObyekt: ya.joriyObyekt });
-      const faqatNav = n.tur === 'yordam' || n.tur === 'ruxsatYoq' || n.tur === 'sahifaTanla' || n.tur === 'navigatsiya';
+      const n = niyatAniqla(s, { sahifalar: ya.sahifalar, obyektlar: ya.obyektlar, joriyObyekt: ya.joriyObyekt, sahifaAmallar: ya.sahifaAmallar });
+      const faqatNav = n.tur === 'yordam' || n.tur === 'ruxsatYoq' || n.tur === 'sahifaTanla' || n.tur === 'navigatsiya' || n.tur === 'sahifaAmal';
       const mahalliy = (n.tur === 'navigatsiya' ? n.aniqOchish : n.tur !== 'nomalum') && (kompaniyaId != null || faqatNav);
       if (n.tur === 'navigatsiya' && !n.aniqOchish) qoshHavola = [{ yol: n.sahifa.url, nom: n.sahifa.nom }];
       if (n.tur === 'nomalum') yaqinHavola = n.yaqin.map((x) => ({ yol: x.url, nom: x.nom }));
@@ -109,7 +121,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
         let r: IshlovNatija;
         try {
           r = await yordamchiIshla(n, s, {
-            kompaniyaId, sahifalar: ya.sahifalar, motor: ya.motor, tarix: tarixOl(),
+            kompaniyaId, sahifalar: ya.sahifalar, motor: ya.motor, tarix: tarixOl(), hujjat: ya.hujjat ?? undefined, sahifaAmalBajar: ya.sahifaAmalBajar,
             qadam: (q) => { if (gen.current === boshlangich) xabarYangila(id + 'a', (x) => ({ ...x, qadamlar: [...(x.qadamlar ?? []), { ms: 0, belgi: q.holat === 'xato' ? '✗' : '⏳', matn: q.matn }] })); },
             tirikmi: () => gen.current === boshlangich && !ctrl.signal.aborted,
           });

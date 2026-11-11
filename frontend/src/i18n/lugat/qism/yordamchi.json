@@ -17,5 +17,21 @@
   "Qaysi birini ochay?": { "ru": "Какую открыть?", "en": "Which one should I open?" },
   "Qaysi obyekt bo‘yicha? Tanlang — buyruqni shu obyektda bajaraman.": { "ru": "По какому объекту? Выберите — выполню команду на нём.", "en": "Which object? Pick one and I will run the command on it." },
   "Qoralamani shu sahifada o‘zingiz tekshirib tasdiqlaysiz — men hujjatni o‘zim tasdiqlamayman.": { "ru": "Черновик вы проверяете и подтверждаете сами на этой странице — документ я не утверждаю.", "en": "You review and confirm the draft yourself on this page — I never approve documents." },
-  "Sahifani ochish": { "ru": "Открыть страницу", "en": "Open page" }
+  "Sahifani ochish": { "ru": "Открыть страницу", "en": "Open page" },
+  "Bajardim": { "ru": "Выполнено", "en": "Done" },
+  "F2 qoralamasi tayyor, hali yozilmagan": { "ru": "Черновик Ф2 готов, ещё не записан", "en": "F2 draft is ready, not saved yet" },
+  "F2 tayyorlash sahifasida davom eting.": { "ru": "Продолжите на странице подготовки Ф2.", "en": "Continue on the F2 preparation page." },
+  "fakt qoldig‘i": { "ru": "остаток факта", "en": "actuals remainder" },
+  "Holat «yangi»; tasdiqlashni АОСР sahifasida o‘zingiz qilasiz.": { "ru": "Статус «новый»; утверждаете вы сами на странице АОСР.", "en": "Status “new”; you approve it yourself on the AOSR page." },
+  "ish qidirish": { "ru": "поиск работ", "en": "search works" },
+  "Jarvis AI yordamchisi (Ctrl+K)": { "ru": "Помощник Jarvis (Ctrl+K)", "en": "Jarvis assistant (Ctrl+K)" },
+  "qatorda narx yo‘q (qoralamada narxsiz)": { "ru": "строк без цены (в черновике без цены)", "en": "rows without a price (unpriced in the draft)" },
+  "Smeta, fakt va narxlarni o‘qiyapman…": { "ru": "Читаю смету, факт и цены…", "en": "Reading the estimate, actuals and prices…" },
+  "ta ish": { "ru": "работ", "en": "works" },
+  "Tasdiqlash F2 tarixida qo‘lda qoladi.": { "ru": "Утверждение остаётся вручную в истории Ф2.", "en": "Approval stays manual in the F2 history." },
+  "tasdiqlaysizmi?": { "ru": "подтверждаете?", "en": "confirm?" },
+  "ustamasiz, NDS siz": { "ru": "без наценки, без НДС", "en": "without markup, excl. VAT" },
+  "АОСР qamrovini o‘qiyapman…": { "ru": "Читаю покрытие АОСР…", "en": "Reading AOSR coverage…" },
+  "АОСР qoralama": { "ru": "Черновик АОСР", "en": "AOSR draft" },
+  "АОСР qoralamalari tayyor, hali yozilmagan": { "ru": "Черновики АОСР готовы, ещё не записаны", "en": "AOSR drafts are ready, not saved yet" }
 }

@@ -88,3 +88,28 @@ describe('tasdiq kartasi', () => {
     expect(tk.vositalar.bajar).not.toHaveBeenCalled();
   });
 });
+
+describe('hujjat qoralamalari — taklif kartasi, yozuvsiz', () => {
+  it('«beton АОСР tayyorla» -> taklif; yozish faqat Bajarish dan keyin', async () => {
+    const { motor } = motorQur();
+    const aosrYoz = vi.fn(async () => ({ ok: true, id: 9 })); const aosrBog = vi.fn(async () => ({ ok: true }));
+    const hujjat = {
+      kompaniyaId: 17, opId: () => 'op', aosrYoz, aosrBog, faktSanalar: async () => ({ links: [], aktlar: [] }), imzochilar: async () => null, aosrReestr: async () => ({ ok: true, qatorlar: [] }),
+      aosrCoverage: async () => ({ ok: true, qatorlar: [{ qator_id: 2, obyekt_id: 12, nom: 'Бетон', kod: 'К1', birlik: 'м3', kat: 'bl', fakt_hajm: 1, yashirin: true, akt_bor: false }] }),
+      qatorMeta: async () => [{ id: 1, ota_id: null, tartib: 1, tur: 'rz', nom: 'Fundament' }, { id: 2, ota_id: 1, tartib: 1, tur: 'bl', nom: 'Бетон' }],
+    } as never;
+    const r = await yordamchiIshla(niyatAniqla('Yevropa 1 beton АОСР tayyorla', kont), 'x', deps(motor, { hujjat }));
+    expect(r.tur).toBe('taklif');
+    expect(aosrYoz).not.toHaveBeenCalled();
+    if (r.tur !== 'taklif') return;
+    expect(r.taklif.vositalar.pul(r.taklif.amallar[0])).toBe(false);
+    await r.taklif.vositalar.bajar(r.taklif.amallar);
+    expect(aosrYoz).toHaveBeenCalledTimes(1);
+  });
+  it('sahifa amali tasdiq bilan -> avval karta (Studio «serverga saqlash»)', async () => {
+    const { motor } = motorQur(); const bajar = vi.fn();
+    const n = niyatAniqla('serverga saqla', { ...kont, sahifaAmallar: [{ id: 'studio.save', nom: 'Serverga saqlash', tasdiq: true }] });
+    const r = await yordamchiIshla(n, 'serverga saqla', deps(motor, { sahifaAmalBajar: bajar }));
+    expect(r.tur).toBe('taklif'); expect(bajar).not.toHaveBeenCalled();
+  });
+});

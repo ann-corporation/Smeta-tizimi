@@ -6,22 +6,24 @@
  *  - hech qachon rad etmaydi: noma'lum so'rovda eng yaqin sahifa/amallar taklif qilinadi.
  */
 import { t } from '../../../i18n/til';
-import type { Niyat } from '../../../lib/yordamchi/niyat';
+import type { Niyat, SahifaAmalQisqa } from '../../../lib/yordamchi/niyat';
 import { yordamMatni } from '../../../lib/yordamchi/vositalar-reestr';
 import type { SahifaHavola, YordamchiSahifa } from '../../../lib/yordamchi/sahifa-qidiruv';
 import type { ObyektQisqa } from '../../../lib/yordamchi/kontekst-ajrat';
 import { agentSikli, type SiklQadam, type SahifaVositalar } from '../../../lib/ai-yordamchi/sikl';
 import type { SahifaAmal, SahifaXabar } from '../../../lib/ai-yordamchi/protokol';
 import type { Motor } from './useObyektMotor';
+import { aosrQoralamaReja, aosrYetishmaydi, aosrYetishmaydiMatni, f2QoralamaReja, f2RoyxatMatni, qarzMatni, type HujjatDeps } from '../../../lib/yordamchi/hujjat-oqim';
+import { sahifaUrl } from '../../../lib/yordamchi/sahifa-qidiruv';
 
 /** AiChat ga beriladigan yagona yordamchi ulanishi (AiHelper yig'adi). */
-export type YordamchiUlanish = { sahifalar: readonly YordamchiSahifa[]; obyektlar: readonly ObyektQisqa[]; joriyObyekt: ObyektQisqa | null; obyektTanla: (id: number) => void; motor: Motor };
+export type YordamchiUlanish = { sahifalar: readonly YordamchiSahifa[]; obyektlar: readonly ObyektQisqa[]; joriyObyekt: ObyektQisqa | null; obyektTanla: (id: number) => void; motor: Motor; hujjat: HujjatDeps | null; sahifaAmallar: readonly SahifaAmalQisqa[]; sahifaAmalBajar: (id: string) => void };
 
 export type IshlovHavola = { yol: string; nom: string };
 export type IshlovTaklif = { amallar: Array<SahifaAmal & { ogoh: string | null }>; vositalar: NonNullable<Motor['vositalar']>; qoshimcha: Motor['qoshimcha'] };
 
 export type IshlovNatija =
-  | { tur: 'javob'; matn: string; havolalar?: IshlovHavola[]; ochish?: string; xato?: boolean }
+  | { tur: 'javob'; matn: string; havolalar?: IshlovHavola[]; ochish?: string; xato?: boolean; yop?: boolean }
   | { tur: 'taklif'; matn: string; taklif: IshlovTaklif; havolalar?: IshlovHavola[] }
   | { tur: 'obyektTanla'; matn: string; nomzodlar: ObyektQisqa[] }
   /** Obyekt ma'lumoti hali yuklanmoqda — UI tayyor bo'lgach qayta ishlaydi. */
@@ -37,6 +39,10 @@ export type IshlovDeps = {
   qadam?: (q: SiklQadam) => void;
   tirikmi?: () => boolean;
   agent?: typeof agentSikli;
+  /** Hujjat o'qish/qoralama yo'llari (haqiqiy yoki test). */
+  hujjat?: HujjatDeps;
+  /** Hozirgi sahifa amalini bajaradi (registry hook); 	asdiq bo'lsa — avval taklif kartasi. */
+  sahifaAmalBajar?: (id: string) => void;
 };
 
 const XATO_KODLARI: Record<string, string> = {
@@ -90,6 +96,57 @@ export async function yordamchiIshla(n: Niyat, matn: string, d: IshlovDeps): Pro
       return { tur: 'taklif', matn: javob, taklif: { amallar: r.amallar, vositalar: d.motor.vositalar, qoshimcha: d.motor.qoshimcha } };
     }
 
+    case 'qarz': {
+      if (!d.hujjat) return { tur: 'otkaz', havolalar: [] };
+      const q = d.sahifalar.find((s) => s.yol === '/admin/qarzdorlik');
+      return { tur: 'javob', matn: await qarzMatni(d.hujjat), havolalar: q ? [{ yol: q.yol, nom: q.nom }] : undefined };
+    }
+
+    case 'f2Royxat': {
+      if (!d.hujjat) return { tur: 'otkaz', havolalar: [] };
+      const s = d.sahifalar.find((x) => x.yol === '/admin/f2-tarix');
+      return { tur: 'javob', matn: `**${n.obyekt.nom}**\n\n${await f2RoyxatMatni(d.hujjat, n.obyekt.id, n.oy)}`, havolalar: s ? [{ yol: sahifaUrl(s.yol, { obyektId: n.obyekt.id, oy: n.oy }), nom: s.nom }] : undefined };
+    }
+
+    case 'aosrYetishmaydi': {
+      if (!d.hujjat) return { tur: 'otkaz', havolalar: [] };
+      const s = d.sahifalar.find((x) => x.yol === '/admin/aosr');
+      return { tur: 'javob', matn: `**${n.obyekt.nom}**\n\n${aosrYetishmaydiMatni(await aosrYetishmaydi(d.hujjat, n.obyekt.id))}`, havolalar: s ? [{ yol: s.yol, nom: s.nom }] : undefined };
+    }
+
+    case 'f2Qoralama': {
+      if (!d.hujjat) return { tur: 'otkaz', havolalar: [] };
+      d.qadam?.({ matn: t('Smeta, fakt va narxlarni o‘qiyapman…'), holat: 'ishda' });
+      const reja = await f2QoralamaReja(d.hujjat, n.obyekt.id, n.oy);
+      const sah = d.sahifalar.find((x) => x.yol === '/admin/f2-tayyorlash');
+      const havola = sah ? [{ yol: sahifaUrl(sah.yol, { obyektId: n.obyekt.id, oy: n.oy }), nom: sah.nom }] : undefined;
+      if (!reja.ok) return { tur: 'javob', xato: true, matn: `${reja.sabab}\n\n${t('F2 tayyorlash sahifasida davom eting.')}`, havolalar: havola };
+      const izoh = `${reja.qatorSoni} ${t('qator')} · ${t('jami')} ${pulMatn(reja.summa)} (${t('ustamasiz, NDS siz')})${reja.narxsiz ? ` · ⚠ ${reja.narxsiz} ${t('qatorda narx yo‘q (qoralamada narxsiz)')}` : ''}`;
+      const amal = { tur: 'f2_qoralama', qator: null, qiymat: reja.oy, izoh, ogoh: null };
+      return { tur: 'taklif', havolalar: havola, matn: `${t('F2 qoralamasi tayyor, hali yozilmagan')}: **${n.obyekt.nom}**, ${reja.oy}. ${t('Hajm manbai')}: ${reja.manba === 'fakt' ? t('fakt qoldig‘i') : t('smeta')}. ${t('Tasdiqlash F2 tarixida qo‘lda qoladi.')}`,
+        taklif: { amallar: [amal], qoshimcha: () => null, vositalar: hujjatVositalari(() => `${t('F2 qoralama yaratish')} · ${n.obyekt.nom} · ${reja.oy}`, () => true, async () => reja.bajar()) } };
+    }
+
+    case 'aosrQoralama': {
+      if (!d.hujjat) return { tur: 'otkaz', havolalar: [] };
+      d.qadam?.({ matn: t('АОСР qamrovini o‘qiyapman…'), holat: 'ishda' });
+      const reja = await aosrQoralamaReja(d.hujjat, n.obyekt.id, n.filtr);
+      const sah = d.sahifalar.find((x) => x.yol === '/admin/aosr');
+      const havola = sah ? [{ yol: sah.yol, nom: sah.nom }] : undefined;
+      if ('xato' in reja) return { tur: 'javob', matn: reja.xato, havolalar: havola };
+      const amallar = reja.guruhlar.map((g) => ({ tur: 'aosr_qoralama', qator: g.razdelId, qiymat: g.nom || t('Bo‘limsiz'), izoh: `${g.ishlar.length} ${t('ta ish')}`, ogoh: null as string | null }));
+      return { tur: 'taklif', havolalar: havola, matn: `${t('АОСР qoralamalari tayyor, hali yozilmagan')}: **${n.obyekt.nom}**. ${t('Holat «yangi»; tasdiqlashni АОСР sahifasida o‘zingiz qilasiz.')}`,
+        taklif: { amallar, qoshimcha: () => null, vositalar: hujjatVositalari((a) => `${t('АОСР qoralama')} · ${a.qiymat ?? ''}`, () => false, async (list) => reja.bajar(new Set(list.map((a) => a.qator)))) } };
+    }
+
+    case 'sahifaAmal': {
+      if (!d.sahifaAmalBajar) return { tur: 'otkaz', havolalar: [] };
+      if (!n.amal.tasdiq) { d.sahifaAmalBajar(n.amal.id); return { tur: 'javob', yop: true, matn: `${t('Bajardim')}: **${n.amal.nom}**` }; }
+      const amal = { tur: 'sahifa_amal', qator: null, qiymat: n.amal.id, izoh: '', ogoh: null };
+      return { tur: 'taklif', matn: `${n.amal.nom} — ${t('tasdiqlaysizmi?')}`,
+        taklif: { amallar: [amal], qoshimcha: () => null, vositalar: hujjatVositalari(() => n.amal.nom, () => false, async () => { d.sahifaAmalBajar?.(n.amal.id); return [`✓ ${n.amal.nom}`]; }) } };
+    }
+
     case 'nomalum':
       return { tur: 'otkaz', havolalar: n.yaqin.map(h) };
   }
@@ -97,3 +154,10 @@ export async function yordamchiIshla(n: Niyat, matn: string, d: IshlovDeps): Pro
 
 const SUKUT = ['/admin/obyektlar', '/admin/fakt', '/admin/f2-tayyorlash', '/admin/documents'];
 const yaqin = (s: readonly YordamchiSahifa[]): IshlovHavola[] => SUKUT.flatMap((y) => { const x = s.find((q) => q.yol === y); return x ? [{ yol: x.yol, nom: x.nom }] : []; });
+
+const pulMatn = (n: number) => `${n.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} so‘m`;
+
+/** Hujjat/sahifa amallari uchun taklif kartasi vositalari: faqat nom/pul/bajar (o'qish va tekshirish kerak emas). */
+function hujjatVositalari(nomi: (a: SahifaAmal) => string, pul: (a: SahifaAmal) => boolean, bajar: (a: SahifaAmal[]) => Promise<string[]>): IshlovTaklif['vositalar'] {
+  return { sahifa: 'buyruq', kontekst: () => '', oqi: () => '', tekshir: () => null, nomi, pul, bajar };
+}

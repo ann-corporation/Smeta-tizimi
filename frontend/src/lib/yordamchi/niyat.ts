@@ -5,7 +5,7 @@
  *   aniqlanmagan -> HECH QACHON rad etilmaydi: eng yaqin sahifa/amallar taklif qilinadi.
  * Sof funksiya: testlanadi. Pul yoki hujjatni bu qatlam o'zi yozmaydi — yozuv faqat taklif kartasi va tasdiq orqali (UI).
  */
-import { OCHISH_FELLARI, sozlar, TOLDIRUVCHI, sozNorm } from './matn';
+import { OCHISH_FELLARI, sozlar, sozMosligi, TOLDIRUVCHI, sozNorm } from './matn';
 import { oyAjrat, obyektAjrat, type ObyektQisqa } from './kontekst-ajrat';
 import { sahifaTopish, sahifaUrl, yaqinSahifalar, type SahifaHavola, type YordamchiSahifa } from './sahifa-qidiruv';
 
@@ -18,10 +18,21 @@ export type Niyat =
   | { tur: 'oqish'; vosita: OqishVosita; arg: string | null; obyekt: ObyektQisqa; sahifa: SahifaHavola | null }
   | { tur: 'yozuv'; obyekt: ObyektQisqa }
   | { tur: 'obyektTanla'; nomzodlar: ObyektQisqa[]; davom: 'oqish' | 'yozuv' | 'navigatsiya' }
+  | { tur: 'qarz' }
+  | { tur: 'f2Royxat'; obyekt: ObyektQisqa; oy: string | null }
+  | { tur: 'aosrYetishmaydi'; obyekt: ObyektQisqa }
+  | { tur: 'f2Qoralama'; obyekt: ObyektQisqa; oy: string }
+  | { tur: 'aosrQoralama'; obyekt: ObyektQisqa; filtr: string | null }
+  /** Sahifa o'zi ro'yxatdan o'tkazgan amal (masalan Smeta Studio: «katalogdan ish qo'sh»). */
+  | { tur: 'sahifaAmal'; amal: SahifaAmalQisqa }
   | { tur: 'yordam' }
   | { tur: 'nomalum'; yaqin: SahifaHavola[] };
 
+export type SahifaAmalQisqa = { id: string; nom: string; kalitlar?: readonly string[]; tasdiq?: boolean };
+
 export type NiyatKontekst = {
+  /** Hozirgi sahifa ro'yxatdan o'tkazgan amallar (registry hook). */
+  sahifaAmallar?: readonly SahifaAmalQisqa[];
   /** Foydalanuvchiga ochiq sahifalar (AdminShell sidebar filtridan: rol/ruxsat/modul). */
   sahifalar: readonly YordamchiSahifa[];
   obyektlar: readonly ObyektQisqa[];
@@ -38,6 +49,12 @@ const O_QIDIR = stem(['qidir', 'izla', 'top', 'topib', 'найди', 'поиск
 const Y_FELLAR = stem(['kirit', 'yoz', 'qosh', 'qoshib', 'oshir', 'add', 'enter', 'внеси', 'запиши', 'добавь', 'ввести', 'tuzat', 'ozgartir', 'almashtir', 'qoy']);
 const QORALAMA_FELLARI = stem(['yarat', 'tuz', 'tayyorla', 'tayyorlab', 'qoralama', 'создай', 'подготов', 'черновик', 'draft', 'create', 'prepare', 'make']);
 /** Savol so'zlari («F2 nima?», «qayerda?»): sahifa o'zi ochilmaydi — tushuntirish oqimi davom etadi, sahifa tugma bo'lib qo'shiladi. */
+const QARZ = stem(['qarz', 'qarzi', 'qarzlar', 'qarzdorlik', 'долг', 'долги', 'задолженность', 'debt', 'debts']);
+const MIQDOR_SAVOL = stem(['qancha', 'necha', 'nechta', 'jami', 'сколько', 'how', 'much', 'many', 'holat', 'holati', 'bor', 'status']);
+const F2_SOZ = stem(['f2', 'ф2']);
+const AOSR_SOZ = stem(['aosr', 'аоср']);
+const YETISHMAYDI = stem(['yetishmayapti', 'yetishmaydi', 'yetishmayotgan', 'qamrov', 'coverage', 'недостает', 'нехватает', 'не хватает', 'нет', 'yoq', 'qaysi', 'missing']);
+const QORALAMA_ANIQ = new Set(stem(['yarat', 'yaratib', 'tuz', 'tuzib', 'tayyorla', 'tayyorlab', 'tayyorlang', 'yaratib', 'создай', 'создать', 'подготовь', 'подготовить', 'draft', 'create', 'prepare', 'make']));
 const SAVOL_SOZLARI = stem(['qayerda', 'qani', 'nima', 'nega', 'qanday', 'где', 'что', 'почему', 'зачем', 'what', 'where', 'why', 'how']);
 const YORDAM_RE = /^(nimalar? qila olasan|nimalar? qila olasiz|nima qila olasan|nima qila olasiz|yordam|help|imkoniyatlaring|imkoniyatlar|what can you do|что ты умеешь|что ты можешь|помощь)\s*[?!.]*$/;
 const QORALAMA_SAHIFALARI = new Set(['/admin/f2-tayyorlash', '/admin/aosr', '/admin/nakopitelniy', '/admin/fakt', '/admin/zayavka', '/admin/m29']);
@@ -74,6 +91,23 @@ export function niyatAniqla(matn: string, ctx: NiyatKontekst): Niyat {
   if (yozuvMi) {
     if (!amaldagi) return { tur: 'obyektTanla', nomzodlar: ctx.obyektlar.slice(0, 6), davom: 'yozuv' };
     return { tur: 'yozuv', obyekt: amaldagi };
+  }
+
+  /* 1a) Sahifa amallari (registry hook): hozirgi sahifaning o'z buyruqlari ochish/navigatsiyadan ustun. */
+  const sa = sahifaAmalTop(kontent, ctx.sahifaAmallar);
+  if (sa) return { tur: 'sahifaAmal', amal: sa };
+
+  /* 1b) Hujjatlar: qarz, F2 ro'yxati, АОСР qamrovi (o'qish) va F2/АОСР QORALAMA (yozish — faqat taklif kartasi). */
+  const f2Bor = bor(qolgan, F2_SOZ); const aosrBor = bor(qolgan, AOSR_SOZ);
+  const qoralamaFel = qolgan.some((t) => QORALAMA_ANIQ.has(t));
+  const savol = bor(qolgan, MIQDOR_SAVOL);
+  if (!ochish) {
+    if (bor(qolgan, QARZ) && savol) return { tur: 'qarz' };
+    const obyektKerak = (davom: 'oqish' | 'yozuv'): Niyat | null => (amaldagi ? null : ctx.obyektlar.length ? { tur: 'obyektTanla', nomzodlar: ctx.obyektlar.slice(0, 6), davom } : null);
+    if (aosrBor && qoralamaFel) { const k = obyektKerak('yozuv'); if (k) return k; if (amaldagi) return { tur: 'aosrQoralama', obyekt: amaldagi, filtr: aosrFiltr(kontent) }; }
+    if (aosrBor && bor(qolgan, YETISHMAYDI)) { const k = obyektKerak('oqish'); if (k) return k; if (amaldagi) return { tur: 'aosrYetishmaydi', obyekt: amaldagi }; }
+    if (f2Bor && qoralamaFel) { const k = obyektKerak('yozuv'); if (k) return k; if (amaldagi) return { tur: 'f2Qoralama', obyekt: amaldagi, oy: oyKalit ?? joriyOy(ctx.bugun) }; }
+    if (f2Bor && savol && !bor(qolgan, SAVOL_SOZLARI)) { const k = obyektKerak('oqish'); if (k) return k; if (amaldagi) return { tur: 'f2Royxat', obyekt: amaldagi, oy: oyKalit }; }
   }
 
   const sahifaNatija = sahifaTopish(kontent, ctx.sahifalar);
@@ -121,3 +155,25 @@ function filtrArg(tokenlar: readonly string[]): string | null {
   const q = tokenlar.filter((t) => !UMUMIY_SOZLAR.has(t) && ![...UMUMIY_SOZLAR].some((u) => u.length >= 5 && t.startsWith(u)));
   return q.length ? q.join(' ').slice(0, 120) : null;
 }
+
+/** АОСР qoralama filtri: АОСР/fe'l so'zlaridan tashqari qolgan so'zlar (bo'lim yoki ish nomi). */
+function aosrFiltr(kontent: readonly string[]): string | null {
+  const q = kontent.filter((t) => !bor([t], AOSR_SOZ) && !QORALAMA_ANIQ.has(t));
+  return q.length ? q.join(' ').slice(0, 120) : null;
+}
+
+/** Sahifa amali: nomi (yoki kalitlari) so'zlarining hammasi so'rovda bo'lsa; eng ko'p so'z mos kelgani. */
+function sahifaAmalTop(kontent: readonly string[], amallar: readonly SahifaAmalQisqa[] | undefined): SahifaAmalQisqa | null {
+  if (!amallar?.length || !kontent.length) return null;
+  let eng: { a: SahifaAmalQisqa; n: number } | null = null;
+  for (const a of amallar) {
+    for (const ibora of [a.nom, ...(a.kalitlar ?? [])]) {
+      const w = sozlar(ibora).filter((x) => !TOLDIRUVCHI.has(x));
+      if (!w.length || !w.every((x) => kontent.some((q) => sozMosligi(q, x) > 0))) continue;
+      if (!eng || w.length > eng.n) eng = { a, n: w.length };
+    }
+  }
+  return eng?.a ?? null;
+}
+
+const joriyOy = (b: Date = new Date()) => `${b.getFullYear()}-${String(b.getMonth() + 1).padStart(2, '0')}`;

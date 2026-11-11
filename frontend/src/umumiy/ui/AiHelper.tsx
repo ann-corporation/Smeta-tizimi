@@ -8,6 +8,8 @@ import { useKompaniya } from '../kontekst/KompaniyaKontekst';
 import { usePTOWorkspace } from '../kontekst/PTOWorkspaceContext';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 import { useYordamchiSahifalar } from '../../lib/yordamchi/sahifa-store';
+import { sahifaAmaliniBajar, useSahifaAmallari } from '../../lib/yordamchi/sahifa-amal-store';
+import { haqiqiyHujjatDeps } from '../../lib/yordamchi/hujjat-oqim';
 import { useObyektMotor } from './yordamchi/useObyektMotor';
 import type { YordamchiUlanish } from './yordamchi/ishlov';
 import { AiChat, type TayyorSavol } from './AiChat';
@@ -27,6 +29,17 @@ const ADMIN_ROLLAR = ['boss', 'admin', 'director', 'superadmin'];
  * Global AI yordamchi: foydalanuvchining LAVOZIMIGA mos kasb ishchisi (PTO, bugalter, prorab, usta, skladchi, direktor …).
  * U faqat shu lavozimga ruxsat etilgan ma'lumotni ko'radi; har qadam jonli ko'rinadi; jiddiy qarorlarni foydalanuvchining o'zi tasdiqlaydi.
  */
+/** Sarlavha qatoridagi Jarvis tugmasi (suzuvchi tugma yo'q — sahifa amallari ustida hech narsa turmaydi). Bir bosish = bir marta ochiladi. */
+export function AiHelperTugma() {
+  return (
+    <button type="button" data-testid="jarvis-tugma" onClick={() => window.dispatchEvent(new CustomEvent('ai:ochish', { detail: {} }))}
+      aria-label={t('Jarvis AI yordamchisini ochish')} title={t('Jarvis AI yordamchisi (Ctrl+K)')}
+      className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md border border-border px-2 text-[11px] text-text-dim hover:text-text">
+      <Bot size={14} className="text-accent" /> <span className="hidden xl:inline">Ctrl+K</span>
+    </button>
+  );
+}
+
 export function AiHelper() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -35,6 +48,9 @@ export function AiHelper() {
   if (companyRef.current.id !== joriyId) companyRef.current = { id: joriyId, generation: companyRef.current.generation + 1 };
   const [tab, setTab] = useState<Tab>('chat');
   const [isOpen, setIsOpen] = useState(false);
+  /** Bir marta ochilgach suhbat oynasi o'chirilmaydi, yashiriladi — yopib-ochganda suhbat tarixi saqlanadi. */
+  const [ochilgan, setOchilgan] = useState(false);
+  useEffect(() => { if (isOpen) setOchilgan(true); }, [isOpen]);
   const [kasb, setKasb] = useState<KasbIshchi | null>(null);
   const kuzatuv = useAiKuzatuv(joriyId ?? undefined);
   const sahifalar = useYordamchiSahifalar();
@@ -42,7 +58,9 @@ export function AiHelper() {
   const obyektlar = useMemo(() => (ws.isProvider ? ws.objects.map((o) => ({ id: o.id, nom: o.nom ?? '' })).filter((o) => o.nom) : []), [ws.isProvider, ws.objects]);
   const joriyObyekt = obyektlar.find((o) => o.id === ws.scope.objectId) ?? null;
   const motor = useObyektMotor({ kompaniyaId: joriyId ?? null, obyektId: ws.isProvider ? ws.scope.objectId : null, obyektNomi: joriyObyekt?.nom, faol: isOpen, sahifalar, och: (yol) => { navigate(yol); setIsOpen(false); } });
-  const yordamchi: YordamchiUlanish | undefined = useMemo(() => (sahifalar.length ? { sahifalar, obyektlar, joriyObyekt, obyektTanla: (id: number) => ws.setObjectId(id), motor } : undefined), [sahifalar, obyektlar, joriyObyekt, ws, motor]);
+  const sahifaAmallar = useSahifaAmallari();
+  const hujjat = useMemo(() => (joriyId ? haqiqiyHujjatDeps(joriyId) : null), [joriyId]);
+  const yordamchi: YordamchiUlanish | undefined = useMemo(() => (sahifalar.length ? { sahifalar, obyektlar, joriyObyekt, obyektTanla: (id: number) => ws.setObjectId(id), motor, hujjat, sahifaAmallar, sahifaAmalBajar: (id: string) => { sahifaAmaliniBajar(id); } } : undefined), [sahifalar, obyektlar, joriyObyekt, ws, motor, hujjat, sahifaAmallar]);
   const [tayyor, setTayyor] = useState<TayyorSavol | null>(null);
   /* Istalgan sahifa/komponent `window.dispatchEvent(new CustomEvent('ai:ochish', { detail: { savol } }))` bilan AI ni tayyor savol bilan ochadi. */
   useEffect(() => {
@@ -62,8 +80,10 @@ export function AiHelper() {
     return () => { tirik = false; };
   }, [joriyId, isOpen]);
 
-  /* Ctrl+K — YAGONA yordamchi (Jarvis). Smeta studiyasining o'z buyruqlar paneli bor — u yerda ikkinchi oyna ochilmasin. */
-  const hotkeyFaol = !location.pathname.startsWith('/boss') && !location.pathname.startsWith('/admin/smeta-studio');
+  /* Ctrl+K — YAGONA yordamchi (Jarvis) hamma joyda, Smeta Studiyada ham (Studio buyruqlari reestr orqali unga beriladi). */
+  const hotkeyFaol = !location.pathname.startsWith('/boss');
+  /* Ochilganda kiritish maydoniga fokus (suhbat yashirin saqlanadi, qayta mount bo'lmaydi). */
+  useEffect(() => { if (isOpen && tab === 'chat') setTimeout(() => document.querySelector<HTMLTextAreaElement>('[data-testid="jarvis-kirish"]')?.focus(), 0); }, [isOpen, tab]);
   useHotkeys('jarvis', t('Jarvis yordamchisi'), [
     { id: 'jarvis.och', keys: 'ctrl+k', nom: t('Jarvis yordamchisini ochish / yopish'), inInput: true, run: () => { setIsOpen((o) => !o); setTab('chat'); } },
     { id: 'jarvis.yop', keys: 'esc', nom: t('Jarvis yordamchisini yopish'), inInput: true, run: () => { if (!isOpen) return false; setIsOpen(false); } },
@@ -89,18 +109,8 @@ export function AiHelper() {
   return (
     <>
       {location.pathname.startsWith('/admin') && <AiSelektsiya />}
-      {!isOpen && taklifKarta && <div className="fixed bottom-16 right-3 z-40 w-72">{taklifKarta}</div>}
-      {!isOpen && (
-        <button onClick={() => setIsOpen(true)} aria-label={t('Jarvis AI yordamchisini ochish')}
-          className="group fixed bottom-3 right-3 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-accent text-[var(--on-accent)] opacity-75 shadow-xl transition hover:scale-105 hover:opacity-100 hover:brightness-110 focus-visible:opacity-100">
-          <Bot size={21} />
-          <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-bg bg-ok"></span>
-          <div className="pointer-events-none absolute right-full mr-4 whitespace-nowrap rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-sm text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">{t('Jarvis AI yordamchisi')}</div>
-        </button>
-      )}
-
-      {isOpen && (
-        <div role="dialog" aria-modal="false" aria-label={t('Jarvis AI yordamchisi')} className="fixed bottom-6 right-6 z-50 flex h-[640px] max-h-[85vh] w-[26rem] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl">
+      {ochilgan && (
+        <div hidden={!isOpen} role="dialog" aria-modal="false" aria-label={t('Jarvis AI yordamchisi')} className={`fixed bottom-6 right-6 z-50 ${isOpen ? 'flex' : 'hidden'} h-[640px] max-h-[85vh] w-[26rem] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl`}>
           <div className="flex shrink-0 items-center justify-between border-b border-border bg-surface-2 px-4 py-3">
             <div className="flex items-center gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20 text-accent"><Bot size={20} /></div>

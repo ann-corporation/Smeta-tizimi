@@ -54,10 +54,8 @@ describe('yordamchi navigatsiyasi (reestrdan)', () => {
     const n = nav('fakt kiritishni och', ctx({ joriyObyekt: { id: 13, nom: 'Amfiteatr' } }));
     expect(n.sahifa.url).toBe('/admin/fakt?obyekt=13');
   });
-  it('F2 qoralama: «F2 qoralamasini tayyorla» sahifaga olib boradi (qoralama belgisi), o‘zi yozmaydi', () => {
-    const n = nav('Amfiteatr uchun F2 tayyorla');
-    expect(n.sahifa.yol).toBe('/admin/f2-tayyorlash');
-    expect(n.qoralama).toBe(true);
+  it('«F2 tayyorlashni och» — sahifa ochiladi (qoralama yaratilmaydi)', () => {
+    expect(nav('Amfiteatr F2 tayyorlashni och').sahifa.yol).toBe('/admin/f2-tayyorlash');
   });
   it('noaniq: «smeta» bir nechta sahifaga mos -> tanlash ro‘yxati', () => {
     const n = niyatAniqla('smeta', ctx());
@@ -149,5 +147,33 @@ describe('REESTR QOPLAMI — har sahifa uchun ochish niyati bor (yangi sahifa qo
       }
     }
     expect(yiqilgan).toEqual([]);
+  });
+});
+
+describe('hujjat niyatlari (qarz, F2 ro‘yxati, АОСР, qoralama)', () => {
+  const joriy = { joriyObyekt: { id: 13, nom: 'Amfiteatr' } };
+  it('«qarz qancha» -> qarz o‘qish; «qarzdorlikni och» -> sahifa', () => {
+    expect(niyatAniqla('buyurtmachi qarzi qancha', ctx()).tur).toBe('qarz');
+    expect(niyatAniqla('qarzdorlikni och', ctx()).tur).toBe('navigatsiya');
+  });
+  it('«Yevropa 1 F2 jami qancha» -> F2 ro‘yxati o‘qish (oy bilan)', () => {
+    expect(niyatAniqla('Yevropa 1 oktabr F2 nechta', ctx())).toMatchObject({ tur: 'f2Royxat', obyekt: { id: 12 }, oy: '2026-10' });
+  });
+  it('«АОСР nima yetishmayapti» -> qamrov o‘qish', () => {
+    expect(niyatAniqla('АОСР nima yetishmayapti', ctx(joriy))).toMatchObject({ tur: 'aosrYetishmaydi', obyekt: { id: 13 } });
+  });
+  it('«Amfiteatr oktabr F2 tayyorla» -> F2 qoralama (taklif kartasi), oy bilan', () => {
+    expect(niyatAniqla('Amfiteatr oktabr F2 tayyorla', ctx())).toMatchObject({ tur: 'f2Qoralama', obyekt: { id: 13 }, oy: '2026-10' });
+    expect(niyatAniqla('F2 yarat', ctx(joriy))).toMatchObject({ tur: 'f2Qoralama', oy: '2026-11' });
+  });
+  it('«beton uchun АОСР tayyorla» -> АОСР qoralama, filtr bilan', () => {
+    expect(niyatAniqla('beton uchun АОСР tayyorla', ctx(joriy))).toMatchObject({ tur: 'aosrQoralama', obyekt: { id: 13 } });
+  });
+  it('obyekt noma‘lum bo‘lsa avval so‘raladi', () => {
+    expect(niyatAniqla('F2 tayyorla', ctx()).tur).toBe('obyektTanla');
+  });
+  it('sahifa amali (Studio): «katalogdan ish qo‘sh» -> sahifaAmal, ochishdan ustun', () => {
+    const n = niyatAniqla('katalogdan ish qo‘sh', ctx({ sahifaAmallar: [{ id: 'studio.catalog', nom: 'Katalogdan ish qo‘shish' }, { id: 'studio.save', nom: 'Serverga saqlash', tasdiq: true }] }));
+    expect(n).toMatchObject({ tur: 'sahifaAmal', amal: { id: 'studio.catalog' } });
   });
 });
