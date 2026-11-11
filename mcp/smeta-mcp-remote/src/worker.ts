@@ -6,7 +6,8 @@
  */
 import { OAuthProvider } from '@cloudflare/workers-oauth-provider';
 import type { Env } from './env';
-import { authorizeGet, authorizePost } from './kirish';
+import { GOOGLE_QAYTISH_YO_L, GOOGLE_YO_L, googleBoshlash, googleQaytish } from './google';
+import { authorizeGet, authorizePost, googleSozlangan } from './kirish';
 import { mcpFetch, VERSIYA, type McpCtx } from './mcp';
 import { healthDbMb, sovutishCron } from './sovutish';
 import { resursUrl } from './url';
@@ -19,9 +20,13 @@ const defaultHandler = {
       if (request.method === 'POST') return authorizePost(request, env);
       return new Response('Method Not Allowed', { status: 405 });
     }
+    if (u.pathname === GOOGLE_YO_L || u.pathname === GOOGLE_QAYTISH_YO_L) {
+      if (request.method !== 'GET') return new Response('Method Not Allowed', { status: 405 });
+      return u.pathname === GOOGLE_YO_L ? googleBoshlash(request, env) : googleQaytish(request, env);
+    }
     if (u.pathname === '/' || u.pathname === '/health') {
       const db_mb = await healthDbMb(env);
-      return Response.json({ ok: true, nom: 'smeta-mcp-remote', versiya: VERSIYA, db_mb, mcp: `${u.origin}/mcp`, izoh: 'AI chatda «custom connector» sifatida /mcp URL ni qo\'shing.' }, { headers: { 'Cache-Control': 'no-store' } });
+      return Response.json({ ok: true, nom: 'smeta-mcp-remote', versiya: VERSIYA, db_mb, google: googleSozlangan(env), mcp: `${u.origin}/mcp`, izoh: 'AI chatda «custom connector» sifatida /mcp URL ni qo\'shing.' }, { headers: { 'Cache-Control': 'no-store' } });
     }
     return new Response('Not found', { status: 404 });
   },
@@ -39,6 +44,9 @@ function provider(env: Env): OAuthProvider<Env> {
     tokenEndpoint: '/token',
     clientRegistrationEndpoint: '/register',
     scopesSupported: ['smeta'],
+    // ChatGPT (Apps/connectors) client_id sifatida HTTPS metadata URL (CIMD) ishlatadi; DCR (/register) ham ochiq qoladi.
+    // global_fetch_strictly_public (wrangler.toml) talab qilinadi; metadata hujjati faqat ommaviy HTTPS'dan olinadi.
+    clientIdMetadataDocumentEnabled: true,
     resourceMetadata: { resource: resurs, resource_name: 'Smeta tizimi MCP' },
     accessTokenTTL: 3600,
     refreshTokenTTL: 30 * 24 * 3600,

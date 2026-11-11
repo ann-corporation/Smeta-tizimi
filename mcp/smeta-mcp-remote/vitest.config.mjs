@@ -27,5 +27,5 @@ export default defineConfig({
       { find: /^xlsx$/, replacement: path.join(pkgDir('xlsx'), 'xlsx.mjs') },
     ],
   },
-  test: { include: ['test/**/*.test.ts'], environment: 'node', server: { deps: { inline: [/frontend[\\/]src/, /smeta-mcp[\\/]src/] } } },
+  test: { include: ['test/**/*.test.ts'], environment: 'node', server: { deps: { inline: [/frontend[\\/]src/, /smeta-mcp[\\/]src/, /workers-oauth-provider/] } } },
 });
