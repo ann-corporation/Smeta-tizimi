@@ -27,8 +27,8 @@ export const GENERATED_SITE_MAP = {
     "/admin/shartnoma-liniya",
     "/admin/qarzdorlik",
     "/admin/buxgalteriya",
-    "/admin/crm",
-    "/admin/aloqalar",
+    "/admin/kontragentlar",
+    "/admin/yetkazuvchi",
     "/admin/documents",
     "/admin/hujjat-nazorat",
     "/admin/aosr",
@@ -58,8 +58,7 @@ export const GENERATED_SITE_MAP = {
     "/admin/sozlamalar",
     "/admin/boshqaruv",
     "/admin/tizim-xaritasi",
-    "/admin/fayl-boglash",
-    "/admin/test"
+    "/admin/fayl-boglash"
   ],
   "appRouteSegments": [
     "/",
@@ -97,6 +96,7 @@ export const GENERATED_SITE_MAP = {
     "hujjat-nazorat",
     "participants",
     "zakazchik",
+    "kontragentlar",
     "aloqalar",
     "taqdimlar",
     "murojaatlar",
@@ -110,6 +110,7 @@ export const GENERATED_SITE_MAP = {
     "tizim-sozlama",
     "f2-eski",
     "topshiriqlar",
+    "yetkazuvchi",
     "ish-joylarim",
     "mutaxassis",
     "boshqaruv",

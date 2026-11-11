@@ -2,6 +2,48 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 159,
+      "sana": "2026-11-12",
+      "sarlavha": "Yetkazuvchi uchun «Bugun» va yagona Kontragentlar sahifasi",
+      "bandlar": [
+        "Yetkazuvchi uchun yangi «Yetkazuvchi: bugun» sahifasi: kelgan so'rovlar, takliflaringiz natijasi, buyurtmalar (qabul, boshlash, tayyor, topshirdim) va transport — bitta ekranda.",
+        "Tayyor buyurtmadan «Transport so'rash» tugmasi: yuk birjasida e'lon manzil va og'irlik bilan oldindan to'ldiriladi.",
+        "Xaridor buyurtmani qabul qilgach qarz QQS bilan yoziladi va g'olib narx narx manbalariga tushadi.",
+        "Kontragentlar, Aloqalar va CRM bitta «Kontragentlar» sahifasiga birlashtirildi; eski havolalar o'zi ochiladi.",
+        "«Yangi zayavka» yuborilmayotgan xato tuzatildi; endi har xato sababi bilan ko'rsatiladi."
+      ]
+    },
+    {
+      "id": 158,
+      "sana": "2026-11-12",
+      "sarlavha": "Rahbar paneli va hisobotlar yana tezlashdi",
+      "bandlar": [
+        "Rahbar paneli kartalari endi boshqa hisoblar tugashini kutmaydi: tayyor bo‘lgani zahoti ko‘rinadi.",
+        "Bazada rahbar paneli hisobi yengillashtirildi (fakt va smeta yig‘indisi); natijalar o‘sha-o‘sha.",
+        "Obyektlar va F2 reestrida asosiy jadval avval chiqadi, og‘ir hisoblar undan keyin yuklanadi; holat sahifasida takror so‘rovlar birlashtirildi."
+      ]
+    },
+    {
+      "id": 157,
+      "sana": "2026-11-11",
+      "sarlavha": "Aqliy xarita — boshqaruv pulti",
+      "bandlar": [
+        "Aqliy xarita endi boshqaruv pulti: kompaniya → loyiha → shartnoma → obyekt daraxti, nomlar to‘liq ko‘rinadi, tomonlar va resurslar yonida; obyektda fakt, F2, qoldiq va muammolar (takrorsiz).",
+        "Tugundan «⋯» orqali yangi loyiha, obyekt, shartnoma yaratish, biriktirish, uzish va nomini o‘zgartirish mumkin — har amal avval ko‘rsatiladi, tasdiqlagandan keyingina bajariladi.",
+        "Obyektda «Keyingi qadam» tugmasi (smeta, fakt, F2, F3, АОСР) va smeta bo‘limlari; 3D graf olib tashlandi, qolgan ko‘rinishlar «Boshqa ko‘rinishlar» ostida."
+      ]
+    },
+    {
+      "id": 156,
+      "sana": "2026-11-11",
+      "sarlavha": "Menyu va obyekt tanlovi soddalashtirildi",
+      "bandlar": [
+        "Yon menyuda yozuvlar doim ko‘rinadi; tepada «Kundalik ishlar» (Fakt kiritish, F2 tayyorlash, F2 faylni yuklash, Forma 3, Qancha bajarildi, Yashirin ish akti, Ombor). Hali ishlatilmaydigan bo‘limlar «Qo‘shimcha bo‘limlar» ostiga yig‘ildi.",
+        "Obyekt bir marta tepada tanlanadi va barcha sahifalarga o‘tadi; keyingi kirishda oxirgi obyekt ochiladi. «Tizimga kirish» tizimda bo‘lgan foydalanuvchini «Boshqaruv paneliga o‘tish» ga olib boradi.",
+        "Brauzer sarlavhasi sahifaga mos; Ctrl+K bitta qidiruv oynasini ochadi (AI buyruq satri — Ctrl+Shift+K)."
+      ]
+    },
+    {
       "id": 155,
       "sana": "2026-11-12",
       "sarlavha": "Smeta yuklash endi 3 qadamda: fayl, tekshiruv, yuklash",

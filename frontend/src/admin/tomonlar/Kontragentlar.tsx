@@ -20,8 +20,8 @@ const TestKorrespondensiya = lazy(() => import('../../test02/TestKorrespondensiy
 const TestSotuvCrm = lazy(() => import('../../test02/TestSotuvCrm'));
 
 export type KontragentTab = 'kontragent' | 'aloqa' | 'xat' | 'sotuv';
-export const KONTRAGENT_TABLAR: readonly KontragentTab[] = ['kontragent', 'aloqa', 'xat', 'sotuv'];
-export const kontragentTab = (v: string | null): KontragentTab => (KONTRAGENT_TABLAR as readonly string[]).includes(v ?? '') ? (v as KontragentTab) : 'kontragent';
+const KONTRAGENT_TABLAR: readonly KontragentTab[] = ['kontragent', 'aloqa', 'xat', 'sotuv'];
+const kontragentTab = (v: string | null): KontragentTab => (KONTRAGENT_TABLAR as readonly string[]).includes(v ?? '') ? (v as KontragentTab) : 'kontragent';
 
 export default function Kontragentlar() {
   const [params, setParams] = useSearchParams();
