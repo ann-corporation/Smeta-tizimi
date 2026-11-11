@@ -678,6 +678,30 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_birja_taklif_ber"
     },
     {
+      "amal": "buyurtma_yarat_v1",
+      "rpc": "t2_buyurtma_yarat_v1"
+    },
+    {
+      "amal": "buyurtma_otish_v1",
+      "rpc": "t2_buyurtma_otish_v1"
+    },
+    {
+      "amal": "buyurtma_olish_yoz_v1",
+      "rpc": "t2_buyurtma_olish_yoz_v1"
+    },
+    {
+      "amal": "buyurtma_qabul_v1",
+      "rpc": "t2_buyurtma_qabul_v1"
+    },
+    {
+      "amal": "buyurtma_royxat_v1",
+      "rpc": "t2_buyurtmalar_v1"
+    },
+    {
+      "amal": "buyurtma_tafsilot_v1",
+      "rpc": "t2_buyurtma_tafsilot_v1"
+    },
+    {
       "amal": "tender_saqla_v1",
       "rpc": "t2_tender_saqla_v1"
     },

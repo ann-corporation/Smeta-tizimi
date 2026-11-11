@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { T2Qator } from '../../api/supabase';
 
-const m = vi.hoisted(() => ({ yoz: vi.fn(), toast: vi.fn(), yangi: vi.fn(async () => false) }));
+const m = vi.hoisted(() => ({ yoz: vi.fn(), toast: vi.fn(), yangi: vi.fn(async () => false), uid: 7 as number | null }));
+vi.mock('../../umumiy/kontekst/KompaniyaKontekst', async (orig) => ({ ...(await orig<typeof import('../../umumiy/kontekst/KompaniyaKontekst')>()), useKompaniya: () => ({ foydalanuvchi: m.uid == null ? null : { id: m.uid } }) }));
 vi.mock('../../api/t2-fakt', () => ({ sbFaktYoz: m.yoz }));
 vi.mock('../../umumiy/ui/Toast', () => ({ toast: m.toast }));
 vi.mock('../../_shared/versiya', async (orig) => ({ ...(await orig<typeof import('../../_shared/versiya')>()), yangiVersiyaniTekshir: m.yangi }));
@@ -27,12 +28,29 @@ const rows = [
 ];
 const holat = (f2: number) => [{ qator_id: 2, smeta_hajm: 100, fakt_hajm: f2 }, { qator_id: 3, smeta_hajm: 10, fakt_hajm: 0 }];
 const props = (states = holat(40)) => ({ kompaniyaId: 1, obyektId: 8, rows, states, holatniYangila: vi.fn(), tuzilmaniYangila: vi.fn() });
-const KALIT = qoralamaKaliti(1, 8);
-const qoralama = (yozuvlar: unknown[]) => localStorage.setItem(KALIT, JSON.stringify({ v: 1, ts: Date.now(), yozuvlar }));
+const KALIT = qoralamaKaliti(1, 8, 7);
+const qoralama = (yozuvlar: unknown[], kalit = KALIT) => localStorage.setItem(kalit, JSON.stringify({ v: 1, ts: Date.now(), yozuvlar }));
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); localStorage.clear(); });
+afterEach(() => { cleanup(); vi.clearAllMocks(); localStorage.clear(); m.uid = 7; });
 
 describe('FaktJurnal brauzer qoralamasi (hodisa 2026-11-09)', () => {
+  it('boshqa foydalanuvchi (bir profil) A ning v2 qoralamasini ko‘rmaydi', () => {
+    qoralama([{ id: 2, rejim: '+', qiymat: '5', asos: 40 }]);
+    m.uid = 8;
+    render(<FaktJurnal {...props()} />);
+    expect(screen.queryByTestId('fakt-qoralama-banner')).toBeNull();
+    expect((screen.getByLabelText('Bugun bajarildi: Ish A') as HTMLInputElement).value).toBe('');
+    expect(localStorage.getItem(KALIT)).not.toBeNull();
+  });
+
+  it('deploydan oldingi v1 qoralama joriy foydalanuvchining v2 siga ko‘chib tiklanadi, v1 o‘chadi', () => {
+    localStorage.setItem('t2.fakt.jurnal.qoralama:v1:1:8', JSON.stringify({ v: 1, ts: Date.now(), yozuvlar: [{ id: 2, rejim: '+', qiymat: '9', asos: 40 }] }));
+    render(<FaktJurnal {...props()} />);
+    expect((screen.getByLabelText('Bugun bajarildi: Ish A') as HTMLInputElement).value).toBe('9');
+    expect(localStorage.getItem('t2.fakt.jurnal.qoralama:v1:1:8')).toBeNull();
+    expect(localStorage.getItem(KALIT)).not.toBeNull();
+  });
+
   it('kiritma localStorage ga yoziladi va qayta ochilganda banner bilan tiklanadi', async () => {
     const r1 = render(<FaktJurnal {...props()} />);
     fireEvent.change(screen.getByLabelText('Bugun bajarildi: Ish A'), { target: { value: '5' } });
