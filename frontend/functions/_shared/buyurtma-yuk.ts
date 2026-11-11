@@ -9,7 +9,7 @@
  * `stable` ga o'tkazilgach (migratsiya, L0) o'qish /api/sb ga ko'chiriladi va bu ikki amal olib tashlanadi.
  */
 export const BUYURTMA_AMALLAR: ReadonlySet<string> = new Set([
-  'buyurtma_yarat_v1', 'buyurtma_otish_v1', 'buyurtma_olish_yoz_v1', 'buyurtma_qabul_v1', 'buyurtma_royxat_v1', 'buyurtma_tafsilot_v1',
+  'buyurtma_yarat_v1', 'buyurtma_otish_v1', 'buyurtma_olish_yoz_v1', 'buyurtma_qabul_v1', 'buyurtma_qabul_yakunla_v1', 'buyurtma_royxat_v1', 'buyurtma_tafsilot_v1',
 ]);
 /** Faqat o'qiydigan amallar (operation_id talab qilinmaydi). */
 export const BUYURTMA_OQISH_AMALLAR: ReadonlySet<string> = new Set(['buyurtma_royxat_v1', 'buyurtma_tafsilot_v1']);
@@ -131,6 +131,12 @@ export function buyurtmaYuk(amal: string, so: Record<string, unknown>, actorId: 
       }
       const h = idlar(so.hujjat_idlar, 10); if (h === 'XATO') return bad('hujjat_idlar noto‘g‘ri');
       return { ok: true, yuk: { ...asosYoz, p_buyurtma_id: buyurtma, p_kutilgan_versiya: versiya, p_qatorlar: qatorlar, p_hujjat_idlar: h, p_izoh: matn(so.izoh, 1000) } };
+    }
+    case 'buyurtma_qabul_yakunla_v1': {
+      /* Qabuldan keyin sklad kirimi + qarz asosi (20261211100000). Faqat id lar: miqdor/narx serverda buyurtma qatoridan olinadi. */
+      if (!buyurtma) return bad('buyurtma_id noto‘g‘ri');
+      if (!bosh(so.shartnoma_id) && !id(so.shartnoma_id)) return bad('shartnoma_id noto‘g‘ri');
+      return { ok: true, yuk: { ...asosYoz, p_buyurtma_id: buyurtma, p_shartnoma_id: id(so.shartnoma_id) } };
     }
     default: return bad('Noma‘lum buyurtma amali');
   }

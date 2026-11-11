@@ -4,7 +4,7 @@ import { OpsOyna } from '../kompaniya-ops/OpsUi';
 import { toast } from '../../umumiy/ui/Toast';
 import { FmtN } from '../../lib/format';
 import { t } from '../../i18n/til';
-import { buyurtmaQabul, buyurtmaTafsilotOl, buyurtmaXatosi, type BuyurtmaQabulQator, type BuyurtmaRoyxatQator, type BuyurtmaTafsilot, type QabulQatorHolat } from '../../api/t2-buyurtma';
+import { buyurtmaQabul, buyurtmaQabulYakunla, buyurtmaTafsilotOl, buyurtmaXatosi, type BuyurtmaQabulQator, type BuyurtmaRoyxatQator, type BuyurtmaTafsilot, type QabulQatorHolat } from '../../api/t2-buyurtma';
 import { yangiOperationId } from '../../api/supabase';
 
 /**
@@ -21,6 +21,8 @@ export function BuyurtmaQabul({ kompaniyaId, buyurtma, onYop, onTayyor }: {
   const [holatlar, setHolatlar] = useState<Record<number, QabulQatorHolat>>({});
   const [band, setBand] = useState(false);
   const [operationId] = useState(() => yangiOperationId());
+  const [yakunlaOpId] = useState(() => yangiOperationId());
+  const [qabulHolat, setQabulHolat] = useState<string | null>(null);
 
   useEffect(() => {
     let bekor = false;
@@ -43,9 +45,20 @@ export function BuyurtmaQabul({ kompaniyaId, buyurtma, onYop, onTayyor }: {
     }
     setBand(true);
     try {
-      const r = await buyurtmaQabul(kompaniyaId, { buyurtmaId: buyurtma.id, kutilganVersiya: tafsilot.buyurtma.versiya, qatorlar }, operationId);
-      if (!r.ok) { toast(t(buyurtmaXatosi(r)), 'danger'); return; }
-      toast(r.holat === 'nizo' ? t('Qabul saqlandi: nizo belgilandi') : r.holat === 'qisman' ? t('Qabul saqlandi: qisman') : t('Qabul qilindi'), r.holat === 'nizo' ? 'warn' : 'ok');
+      let holat = qabulHolat;
+      if (holat == null) {
+        const r = await buyurtmaQabul(kompaniyaId, { buyurtmaId: buyurtma.id, kutilganVersiya: tafsilot.buyurtma.versiya, qatorlar }, operationId);
+        if (!r.ok) { toast(t(buyurtmaXatosi(r)), 'danger'); return; }
+        holat = r.holat ?? 'qabul_qilindi_yakuniy';
+        setQabulHolat(holat);   // qabul o'tdi: qayta urinishda faqat yakunlash chaqiriladi (versiya eskirgan)
+      }
+      toast(holat === 'nizo' ? t('Qabul saqlandi: nizo belgilandi') : holat === 'qisman' ? t('Qabul saqlandi: qisman') : t('Qabul qilindi'), holat === 'nizo' ? 'warn' : 'ok');
+      if (holat !== 'nizo') {
+        // Bitta foydalanuvchi amali: qabuldan keyin darhol obyekt skladiga kirim + qarz asosi (idempotent; nizo bo'lsa kirim yozilmaydi)
+        const y = await buyurtmaQabulYakunla(kompaniyaId, { buyurtmaId: buyurtma.id }, yakunlaOpId);
+        if (!y.ok) { toast(t('Qabul saqlandi, lekin skladga kirim yozilmadi. Qayta urinib ko‘ring.') + ' ' + t(buyurtmaXatosi(y)), 'warn'); return; }
+        if (y.ogohlantirish?.includes('SHARTNOMA_YOQ')) toast(t('Yetkazuvchi shartnomasi yo‘q: qarz keyin yoziladi'), 'warn');
+      }
       onTayyor();
     } finally { setBand(false); }
   };

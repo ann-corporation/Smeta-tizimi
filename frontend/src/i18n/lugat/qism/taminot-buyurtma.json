@@ -170,5 +170,21 @@
  "Buyurtma topilmadi.": {
   "ru": "Заказ не найден.",
   "en": "Order not found."
+ },
+ "Qabul saqlandi, lekin skladga kirim yozilmadi. Qayta urinib ko‘ring.": {
+  "ru": "Приёмка сохранена, но приход на склад не записан. Повторите попытку.",
+  "en": "Receipt saved, but the stock receipt was not recorded. Please try again."
+ },
+ "Yetkazuvchi shartnomasi yo‘q: qarz keyin yoziladi": {
+  "ru": "Нет договора с поставщиком: задолженность будет записана позже",
+  "en": "No supplier contract: the payable will be recorded later"
+ },
+ "Buyurtmada obyekt ko‘rsatilmagan: skladga kirim yozib bo‘lmadi.": {
+  "ru": "В заказе не указан объект: приход на склад не записан.",
+  "en": "The order has no site: stock receipt could not be recorded."
+ },
+ "Tanlangan shartnoma yetkazuvchi shartnomasi emas.": {
+  "ru": "Выбранный договор не является договором с поставщиком.",
+  "en": "The selected contract is not a supplier contract."
  }
 }

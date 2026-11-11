@@ -207,6 +207,7 @@ const AMALLAR = {
   buyurtma_otish_v1: { rpc: 't2_buyurtma_otish_v1' },
   buyurtma_olish_yoz_v1: { rpc: 't2_buyurtma_olish_yoz_v1' },
   buyurtma_qabul_v1: { rpc: 't2_buyurtma_qabul_v1' },
+  buyurtma_qabul_yakunla_v1: { rpc: 't2_buyurtma_qabul_yakunla_v1' },
   buyurtma_royxat_v1: { rpc: 't2_buyurtmalar_v1' },
   buyurtma_tafsilot_v1: { rpc: 't2_buyurtma_tafsilot_v1' },
   /* TENDER protsessi (2026-11-03, 20261122000200_t2_tender_protsess_v1): qoralama → tasdiq → e'lon → ochish → baholash → g'olib. Argumentlar `_shared/tender-yuk.ts` da. */

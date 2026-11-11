@@ -133,6 +133,7 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   buyurtma_yarat_v1: 'procurement.write',
   buyurtma_olish_yoz_v1: 'supply.fulfil',
   buyurtma_qabul_v1: 'procurement.write',
+  buyurtma_qabul_yakunla_v1: 'procurement.write',
   buyurtma_royxat_v1: 'procurement.read',
   buyurtma_tafsilot_v1: 'procurement.read',
   viborka_smetadan_toldir: 'smeta.write',

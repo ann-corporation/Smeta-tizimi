@@ -45,6 +45,8 @@ export const BUYURTMA_XATO_XABARI: Readonly<Record<string, string>> = {
   TOPILMADI: 'Buyurtma topilmadi.',
   PERMISSION_DENIED: 'Bu amal uchun ruxsatingiz yo‘q.',
   QATOR_MIQDOR: 'Miqdor musbat son bo‘lishi kerak.',
+  OBYEKT_YOQ: 'Buyurtmada obyekt ko‘rsatilmagan: skladga kirim yozib bo‘lmadi.',
+  SHARTNOMA_NOTOGRI: 'Tanlangan shartnoma yetkazuvchi shartnomasi emas.',
 };
 export function buyurtmaXatosi(r: { code?: string; error?: string } | null | undefined): string {
   if (!r) return 'Xato yuz berdi';
@@ -85,6 +87,10 @@ export const buyurtmaOtish = (kompaniyaId: number, p: { buyurtmaId: number; kuti
 export type BuyurtmaOlish = { ombor_nomi?: string; manzil?: string; lat?: number; lng?: number; aloqa_tel?: string; tayyor_dan?: string; tayyor_gacha?: string };
 export const buyurtmaOlishYoz = (kompaniyaId: number, p: { buyurtmaId: number; kutilganVersiya: number; olish: BuyurtmaOlish }, operationId?: string) =>
   yoz('buyurtma_olish_yoz_v1', kompaniyaId, { buyurtma_id: p.buyurtmaId, kutilgan_versiya: p.kutilganVersiya, olish: p.olish }, operationId);
+/** Qabuldan keyin: obyekt skladiga kirim + qarz asosi (20261211100000). Idempotent - qayta chaqirish xavfsiz. */
+export type BuyurtmaYakunlaNatija = BuyurtmaNatija & { sklad_soni?: number; qarz_soni?: number; qarz_kutilmoqda?: number; takror?: boolean };
+export const buyurtmaQabulYakunla = (kompaniyaId: number, p: { buyurtmaId: number; shartnomaId?: number | null }, operationId?: string) =>
+  yoz('buyurtma_qabul_yakunla_v1', kompaniyaId, { buyurtma_id: p.buyurtmaId, ...(p.shartnomaId ? { shartnoma_id: p.shartnomaId } : {}) }, operationId) as Promise<BuyurtmaYakunlaNatija>;
 export type BuyurtmaQabulQator = { buyurtma_qator_id: number; qabul_miqdor: number; holat?: QabulQatorHolat; izoh?: string };
 export const buyurtmaQabul = (kompaniyaId: number, p: { buyurtmaId: number; kutilganVersiya: number; qatorlar: BuyurtmaQabulQator[]; izoh?: string | null; hujjatIdlar?: number[] }, operationId?: string) =>
   yoz('buyurtma_qabul_v1', kompaniyaId, { buyurtma_id: p.buyurtmaId, kutilgan_versiya: p.kutilganVersiya, qatorlar: p.qatorlar, izoh: p.izoh ?? null,
