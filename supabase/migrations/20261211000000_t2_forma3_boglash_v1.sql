@@ -164,3 +164,8 @@ begin
     'qoida_manba','EGA_QAROR_B_NAKRUTKA_KASKAD_V1',
     'izoh','F3 jami qoidasi eganing B qarori bilan MAPPED: nakrutka kaskadi, ВСЕГО К ОПЛАТЕ = F2 к оплате jamisi (tiyingacha). Hisob hujjat-yozuvchida (lib/forma3-export.ts) jonli formulalar bilan.');
 end $function$;
+
+comment on function public.t2_forma3_yarat_v1(bigint, bigint, bigint, bigint, date, date, bigint[], text, uuid) is
+  'Forma 3 yaratish (20261211000000: tasdiqlangan F2 ga tor bog''lash istisnosi, ikki marta taqiq). versiya: tarix (t2_qator faqat tanlangan tasdiqlangan F2 akt qatorlari orqali o''qiladi — F2 tarixi almashtirilgan qatorlarda ham saqlanadi).';
+comment on function public.t2_akt_lifecycle_projection_guard_v1() is
+  'Tasdiqlangan akt o''zgarmasligi qo''riqchisi (+ 20261211000000 forma3_id istisnosi). versiya: texnik (t2_qator o''qimaydi).';
