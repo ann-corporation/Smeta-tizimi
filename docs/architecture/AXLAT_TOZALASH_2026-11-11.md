@@ -6,7 +6,7 @@ Metod: `frontend/src` import grafi (main.tsx + functions/scripts/testlar ildizla
 ## 1. O'chirilgan (qat'iy dalil)
 | Element | Tur | Dalil | Amal |
 |---|---|---|---|
-| `src/api/t2-didox, t2-erp, t2-invite, t2-kirish, t2-korzinka, t2-kuzatuv, t2-overbilling, t2-papka, t2-transport, t2-viborka, t2-hujjat, t2-park-document-control, smeta-narx-agent` (13) | API mijoz | hech kim import qilmaydi; eksport nomlari 0 chaqiruv | o'chirildi |
+| `src/api/t2-didox, t2-erp, t2-invite, t2-kirish, t2-kuzatuv, t2-transport, t2-viborka, t2-hujjat, t2-park-document-control, smeta-narx-agent` (10) | API mijoz | hech kim import qilmaydi; eksport nomlari 0 chaqiruv | o'chirildi |
 | `components/park-closeout/*`, `components/park-document-control/*` (9 fayl), `lib/park-closeout/index.ts` | UI + barrel | marshrutda yo'q, import yo'q (faqat o'z ichida) | o'chirildi; 2 ta `testlar/*.test.cjs` dan UI o'qishi olib tashlandi |
 | `components/agent-control/index.ts`, `smeta-studio-workspace/WorkspaceOverview.tsx`, `lib/pdf/pto-pdf-shrift.ts` | barrel/komponent/lib | 0 import | o'chirildi |
 | `kirish/Sahna3D.tsx`, `Sahna3DXavfsiz.tsx` | 3D fon | ishlatilmaydi (Umumiy.tsx da «qayta qo'shmang» izohi); test mock'i olib tashlandi | o'chirildi |
@@ -17,6 +17,7 @@ Metod: `frontend/src` import grafi (main.tsx + functions/scripts/testlar ildizla
 | `frontend/`: `({` (0 bayt), `diff.txt`, `parsed.txt`, `final_fix.cjs`, `fix.js`, `fix_f2.cjs`, `patch_frontend.cjs`, `test-boss.cjs/js`, `test-gas.js`, `test-ocr.cjs`, `test_regex.js`, `test_invoice.pdf`, `tmp-func.ts`, `tmp-supabase.ts` | skript | 0 havola (`.eslintignore` yangilandi) | o'chirildi |
 
 ## 2. O'chirilmadi — qaror/boshqa oqim kerak
+| `src/api/t2-korzinka.ts`, `t2-overbilling.ts`, `t2-papka.ts` | importsiz, LEKIN `tizim02/MULOQOT.md` (append-only jurnal) ularni havola qiladi va `t2_navbat.test.cjs` ichki havolalarni tekshiradi (CI yiqildi) — QAYTA TIKLANDI | jurnal tuzatilgach o'chirish |
 | Element | Dalil | Taklif |
 |---|---|---|
 | `src/desktop/entry.ts` | grafda yetim, lekin Windows dastur (Tauri) kirish nuqtasi, `desktop-auth.test` va release skriptlari bog'liq | KEEP |
