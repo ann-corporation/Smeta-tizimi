@@ -3320,12 +3320,15 @@ export const onRequestPost: PagesFunction<{
       yuk = {
         p_kompaniya_id: Number(so.kompaniya_id || 0),
         p_operatsiya: String(so.operatsiya || ''),
-        p_payload: so.payload ? JSON.stringify(so.payload) : JSON.stringify(so),
+        /* AUDIT 121 (2026-11-11): prodda t2_erp_amal ikki nusxada edi (p_payload text va jsonb) — satr yuborilganda PostgREST
+           PGRST203 (qaysi nusxa?) bilan yiqilar va zayavka yaratilmasdi. Endi OBYEKT yuboriladi (jsonb nusxa, yagona
+           canonical; text nusxa 20261214600000 migratsiyasida olib tashlanadi). */
+        p_payload: (so.payload && typeof so.payload === 'object') ? so.payload : so,
         /* ⚡ 2026-08-28: audit jurnali «kim» ni ham bilishi kerak.
            Busiz «nima bo'ldi» ma'lum, «kim qildi» noma'lum qolardi va
            jurnal javobgarlik uchun yaroqsiz bo'lardi. RPC buni
            `t2.kim` sozlamasiga yozadi, triggerlar o'shandan o'qiydi. */
-        p_kim: sess.email || null
+        p_kim: sess.email || (sess.foydalanuvchi_id ? 'actor:' + String(sess.foydalanuvchi_id) : null)
       };
 
     } else if (amal === 'boss_tahlil_boshla') {

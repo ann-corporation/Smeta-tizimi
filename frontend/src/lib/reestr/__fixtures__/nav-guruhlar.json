@@ -346,21 +346,9 @@
             "modul": "module.erp"
           },
           {
-            "yol": "/admin/crm",
+            "yol": "/admin/kontragentlar",
             "ilova": "moliya",
-            "nom": "Kontragentlar (CRM/EDO)",
-            "ruxsat": [
-              "control.company.read",
-              "financial.write",
-              "project.write",
-              "object.write"
-            ],
-            "modul": "module.loyiha"
-          },
-          {
-            "yol": "/admin/aloqalar",
-            "ilova": "hujjat",
-            "nom": "Tomonlar aloqasi",
+            "nom": "Kontragentlar",
             "ruxsat": [
               "control.company.read",
               "financial.write",
@@ -563,6 +551,22 @@
               "procurement.read"
             ],
             "modul": "module.erp"
+          }
+        ]
+      },
+      {
+        "nom": "Yetkazuvchi: bugun",
+        "ikonka": "Truck",
+        "sahifalar": [
+          {
+            "yol": "/admin/yetkazuvchi",
+            "ilova": "xarid",
+            "nom": "Yetkazuvchi: bugun",
+            "ruxsat": [
+              "supply.offer",
+              "supply.fulfil"
+            ],
+            "scope": "COMPANY_SCOPED"
           }
         ]
       },

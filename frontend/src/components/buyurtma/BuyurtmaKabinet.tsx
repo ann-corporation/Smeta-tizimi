@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Truck } from 'lucide-react';
+import { transportSorovYoli } from '../../lib/yetkazuvchi/transport-sorov';
 import { toast } from '../../umumiy/ui/Toast';
 import { FmtN } from '../../lib/format';
 import { t } from '../../i18n/til';
@@ -16,6 +18,7 @@ import { kompaniyaNomi, useFaolAloqalar } from './aloqalar';
  * ombor/manzil so'raladi (faqat kerak bo'lganda). Yakuniy qabulni xaridor beradi (yetkazuvchi shu yerda kutadi).
  */
 export function BuyurtmaKabinet({ kompaniyaId }: { kompaniyaId: number }) {
+  const navigate = useNavigate();
   const aloqalar = useFaolAloqalar(kompaniyaId);
   const [qatorlar, setQatorlar] = useState<BuyurtmaRoyxatQator[] | null>(null);
   const [xato, setXato] = useState<string | null>(null);
@@ -59,6 +62,17 @@ export function BuyurtmaKabinet({ kompaniyaId }: { kompaniyaId: number }) {
     } finally { setBandId(null); }
   };
 
+  /** «Transport so'rash»: buyurtma tarkibi va manzillari bilan Yuk birjasida yangi e'lon (marshrut va og'irlik oldindan to'ldiriladi). */
+  const transportSora = async (b: BuyurtmaRoyxatQator) => {
+    setBandId(b.id);
+    try {
+      const r = await buyurtmaTafsilotOl(kompaniyaId, b.id);
+      if (!r.ok) { toast(t(r.error), 'danger'); return; }
+      const m = (v: unknown) => (typeof v === 'string' ? v : null);
+      navigate(transportSorovYoli({ buyurtmaId: b.id, qatorlar: r.qatorlar, olishManzil: m(r.buyurtma.olish.manzil) ?? m(r.buyurtma.olish.ombor_nomi), yetkazishManzil: m(r.buyurtma.shart.manzil) }));
+    } finally { setBandId(null); }
+  };
+
   const olishVaTayyor = async (b: BuyurtmaRoyxatQator) => {
     const m = manzil.trim();
     if (!m) { toast(t('Qayerdan olib ketilishini kiriting.'), 'warn'); return; }
@@ -97,6 +111,9 @@ export function BuyurtmaKabinet({ kompaniyaId }: { kompaniyaId: number }) {
                   <span className="inline-flex flex-wrap items-center gap-2">
                     <BuyurtmaChip holat={b.holat} />
                     <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" onClick={() => void tarkibniKoz(b)}>{ochiq === b.id ? t('Yashirish') : t('Tarkibi')}</button>
+                    {(b.holat === 'bajarilmoqda' || b.holat === 'tayyor') && (
+                      <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" disabled={band} onClick={() => void transportSora(b)}>{t('Transport so‘rash')}</button>
+                    )}
                     {band ? <span className="animate-pulse text-[12px] text-text-mute">{t('Kuting…')}</span> : q ? (<>
                       {b.holat === 'yuborildi' && <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" onClick={() => void qadam(b, 'rad')}>{t('Rad etish')}</button>}
                       <button type="button" className="fz-btn fz-btn--primary fz-btn--sm" onClick={() => void qadam(b, q.ga)}>{t(q.tugma)}</button>
