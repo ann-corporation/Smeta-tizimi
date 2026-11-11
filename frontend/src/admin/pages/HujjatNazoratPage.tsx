@@ -58,8 +58,8 @@ export default function HujjatNazoratPage() {
   const yorliq = 'min-w-[200px] text-[12px] font-medium text-text-dim';
   const sahifaMatn = page ? (page.totalCount === 0 ? t('Qator topilmadi') : t('{a}–{b} / {n} qator', { a: page.query.offset + 1, b: page.query.offset + page.rows.length, n: page.totalCount })) : '';
   return (
-    <Sahifa sarlavha="Nakopitelniy va tasdiqlangan F2" tavsif="Smeta, o‘zgarishlar, F2 davrlari va yopilish dalillarini bitta kanonik ish oynasida tekshiring."
-      amallar={<span className="fz-stamp fz-stamp--ok" title={t('Ma’lumot manbai: kanonik read-model (t2_workbench_v1)')}>{t('jonli maʼlumot')}</span>}>
+    <Sahifa sarlavha="Nakopitelniy va tasdiqlangan F2" tavsif="Smeta, o‘zgarishlar, F2 davrlari va yopilish dalillarini bitta ish oynasida tekshiring."
+      amallar={<span className="fz-stamp fz-stamp--ok" title={t('Ma’lumot bevosita bazadan olingan')}>{t('jonli maʼlumot')}</span>}>
       <div className="flex flex-col gap-3 text-text">
         <section className="fz-card flex flex-wrap items-end gap-3 p-3" aria-label={t('Tanlov')}>
           <label className={yorliq}>{t('Loyiha')}

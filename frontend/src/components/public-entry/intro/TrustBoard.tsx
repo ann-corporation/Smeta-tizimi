@@ -49,13 +49,13 @@ export function TrustBoard({ local }: { local: Local }) {
   </div>;
 }
 
-/** 300 tokens ≈ 150 F2 acts: 150 girih rhombi light up one by one. */
+/** 300 tokens: 30 girih rhombi light up one by one. */
 export function TokenGrid({ local }: { local: Local }) {
   const ref = useRef<HTMLDivElement>(null);
   const seen = useSeen(ref, 0.3);
   return <figure ref={ref} className="entry-tokens">
-    <div className="entry-tokens-grid" aria-hidden="true">{Array.from({ length: 150 }, (_, i) =>
+    <div className="entry-tokens-grid" aria-hidden="true">{Array.from({ length: 30 }, (_, i) =>
       <motion.i key={i} initial={{ opacity: 0.18, scale: 0.6 }} animate={seen ? { opacity: 1, scale: 1 } : {}} transition={{ delay: 0.2 + (i % 15) * 0.03 + Math.floor(i / 15) * 0.05, duration: 0.3 }} />)}</div>
-    <figcaption><b>150</b>{local(c.tokenGrid)}</figcaption>
+    <figcaption><b>300</b>{local(c.tokenGrid)}</figcaption>
   </figure>;
 }

@@ -18,6 +18,7 @@ import { PortfelSummaJuft } from '../../umumiy/ui/PortfelSummaJuft';
 import { usePortfelUstamali } from '../../umumiy/ui/usePortfelUstamali';
 import { HisobMeterIxcham, ShartnomaZanjir, ZanjirKpi } from '../../components/shartnoma-liniya/ShartnomaZanjir';
 import { ShartnomaHujjatlar } from '../../components/shartnoma-liniya/ShartnomaHujjatlar';
+import { raqamTozala } from '../../lib/raqam-belgi';
 
 const kirit = 'w-full rounded-md border border-border bg-surface px-2 py-1.5 text-[13px] text-text outline-none focus:border-accent';
 const yorliq = 'mb-1 block text-[11px] font-medium uppercase tracking-wide text-text-mute';
@@ -104,19 +105,19 @@ export function ShartnomaLiniya() {
     const s = asosiylar.find((x) => x.id === shartnomaId);
     if (!s) return;
     const sh = shaklQur(s);
-    await saqla({ ...sh, obyektlar: [...sh.obyektlar, obyektId] }, `«${obNom.get(obyektId) ?? obyektId}» № ${s.raqam} ga biriktirildi`);
+    await saqla({ ...sh, obyektlar: [...sh.obyektlar, obyektId] }, `«${obNom.get(obyektId) ?? obyektId}» № ${raqamTozala(s.raqam)} ga biriktirildi`);
   }
 
   function shartnomaQatori(s: LiniyaShartnoma) {
     const tanlangan = shakl?.id === s.id;
     return (
       <li key={s.id}>
-        <button type="button" onClick={() => ochish(s)} aria-label={`Shartnoma № ${s.raqam}`}
+        <button type="button" onClick={() => ochish(s)} aria-label={`Shartnoma № ${raqamTozala(s.raqam)}`}
           aria-current={tanlangan ? 'true' : undefined}
           className={`w-full rounded-lg border px-3 py-2.5 text-left transition ${tanlangan ? 'border-accent bg-accent/5' : 'border-border hover:border-accent/50 hover:bg-surface-2'}`}>
           <div className="flex items-center gap-2">
             <FileSignature size={14} className={s.asosiy ? 'text-accent' : 'text-text-mute'} />
-            <span className="truncate text-[13px] font-semibold text-text">№ {s.raqam}</span>
+            <span className="truncate text-[13px] font-semibold text-text">№ {raqamTozala(s.raqam)}</span>
             <span className={`fz-chip ${s.asosiy ? 'fz-chip--accent' : ''}`}>{s.asosiy ? tr('asosiy') : (s.turi || tr('qo‘shimcha'))}</span>
             {s.asosiy && s.turi && <span className="shrink-0 truncate text-[11px] text-text-mute">{s.turi}</span>}
             <span className="ml-auto shrink-0 text-right text-sm tabular-nums text-text-dim">{s.jami_nds_bilan != null ? <FmtN val={s.jami_nds_bilan} /> : <span className="text-text-mute">{tr('summa kiritilmagan')}</span>}
@@ -256,7 +257,7 @@ export function ShartnomaLiniya() {
     );
   }
 
-  const bosh = <section className="fz-card hidden items-center justify-center p-6 text-center text-[13px] text-text-mute lg:flex">{tr('Shartnomani tanlang yoki yangisini qo‘shing — bu yerda uning zanjiri (DS → F2 → F3 → to‘lov → akt-sverka) va kartasi ochiladi.')}</section>;
+  const bosh = <section className="fz-card hidden items-center justify-center p-6 text-center text-[13px] text-text-mute lg:flex">{tr('Shartnomani tanlang yoki yangisini qo‘shing — bu yerda uning zanjiri (qo‘shimcha kelishuv → F2 → F3 → to‘lov → akt-sverka) va kartasi ochiladi.')}</section>;
   return (
     <Sahifa sarlavha="Shartnoma liniyasi" tavsif="Loyiha → shartnoma (tomonlar) → obyektlar" onYangila={() => { void yukla(); void svodYukla(); }} yangilanmoqda={yuklanmoqda}
       amallar={<button type="button" onClick={() => ochish(null, daraxt.find((t) => t.id != null)?.id ?? null)} className="fz-btn fz-btn--primary"><Plus size={14} />{tr('Shartnoma')}</button>}>
@@ -281,7 +282,7 @@ export function ShartnomaLiniya() {
                         <select aria-label={`Biriktirish: ${o.nom}`} disabled={saqlanmoqda || mos.length === 0} value="" onChange={(e) => e.target.value && void biriktir(o.id, Number(e.target.value))}
                           className="max-w-[11rem] shrink-0 rounded border border-border bg-surface px-1 py-0.5 text-[12px] text-text-dim">
                           <option value="">{mos.length ? tr('Shartnomaga…') : tr('mos shartnoma yo‘q')}</option>
-                          {mos.map((s) => <option key={s.id} value={s.id}>№ {s.raqam}{s.nom ? ` — ${s.nom}` : ''}</option>)}
+                          {mos.map((s) => <option key={s.id} value={s.id}>№ {raqamTozala(s.raqam)}{s.nom ? ` — ${s.nom}` : ''}</option>)}
                         </select>
                       </li>
                     );

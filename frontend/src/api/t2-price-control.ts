@@ -51,7 +51,7 @@ export async function f2ExactQatorlarOl(aktId: number): Promise<{ ok: boolean; q
 export const PRICE_STATE_BADGE: Record<PriceState, { emoji: string; label: string; className: string }> = {
   NORMAL: { emoji: '🟢', label: 'Normal', className: 'text-emerald-400' },
   BELOW_REFERENCE: { emoji: '🟠', label: 'Past narx / muzlagan', className: 'text-amber-400' },
-  ABOVE_REFERENCE_JUSTIFIED: { emoji: '📄', label: 'Basis bor — asoslangan', className: 'text-sky-400' },
-  ABOVE_REFERENCE_MISSING_BASIS: { emoji: '🔴', label: 'Yuqori narx / basis talab', className: 'text-rose-400' },
-  ABOVE_APPROVED_BASIS: { emoji: '🔴', label: 'Tasdiqlangan basisdan yuqori', className: 'text-rose-400' },
+  ABOVE_REFERENCE_JUSTIFIED: { emoji: '📄', label: 'Asosi bor — asoslangan', className: 'text-sky-400' },
+  ABOVE_REFERENCE_MISSING_BASIS: { emoji: '🔴', label: 'Yuqori narx / asos kerak', className: 'text-rose-400' },
+  ABOVE_APPROVED_BASIS: { emoji: '🔴', label: 'Tasdiqlangan asosdan yuqori', className: 'text-rose-400' },
 };

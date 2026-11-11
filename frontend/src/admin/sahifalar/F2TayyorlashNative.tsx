@@ -1042,7 +1042,7 @@ export function F2TayyorlashNative() {
               {resSoni > 0 ? ` · ${t('{n} ta resursda', { n: String(resSoni) })}` : ''}</span>;
           })()}
           {(i.qoralama ?? 0) > 0 && <span className="text-warn">{t('qoralamada')} <b><FmtN val={i.qoralama ?? 0} /></b></span>}
-          {(bn.summa > 0 || bn.narxsiz > 0) && <span className="inline-flex items-center gap-1">{t('narx (1 birlik, NDS siz)')} {birlikNarx}{birlikNarxsiz}</span>}
+          {(bn.summa > 0 || bn.narxsiz > 0) && <span className="inline-flex items-center gap-1">{t('narx (1 birlik, QQS siz)')} {birlikNarx}{birlikNarxsiz}</span>}
           <span className="text-text-mute">{t('{n} ta resurs', { n: i.resurslar.length })}</span>
         </div>
         {x?.xato && <div className="px-10 pb-1.5 text-[12px] text-danger">{XATO_MATN[x.xato]}</div>}
@@ -1163,7 +1163,7 @@ export function F2TayyorlashNative() {
           <Search size={14} className="pointer-events-none absolute bottom-2.5 left-2.5 text-text-mute" />
           <input aria-label="Qidirish" value={qidir} onChange={(e) => setQidir(e.target.value)} placeholder={t('ish, resurs, kod…')} className="mt-1.5 block w-full rounded-lg border border-border bg-surface-2 py-2 pl-8 pr-3 text-text" /></label>}
         {validId && bolimlar.length > 0 && <label className="flex items-center gap-1.5 pb-2.5 text-[12px] text-text-dim"><input type="checkbox" checked={faqatKiritilgan} onChange={(e) => setFaqatKiritilgan(e.target.checked)} />{t('Faqat kiritilganlar')}</label>}
-        {validId && mayPrepare && <button type="button" data-testid="storno-tanlov-tugma" className="fz-btn" title={t('Eski F2 qatorlaridan minus (storno) qoralama yaratadi; asl F2 o‘zgarmaydi')} onClick={() => void stornoTanlovOch()} disabled={saving}><RotateCcw aria-hidden="true" />{t('Eski F2 ni storno qilish (pereraschet)')}</button>}
+        {validId && mayPrepare && <button type="button" data-testid="storno-tanlov-tugma" className="fz-btn" title={t('Eski F2 qatorlaridan minus (storno) qoralama yaratadi; asl F2 o‘zgarmaydi')} onClick={() => void stornoTanlovOch()} disabled={saving}><RotateCcw aria-hidden="true" />{t('Eski F2 ni bekor qilib qayta hisoblash (storno)')}</button>}
       </section>
       {validId && stornoTanlovOchiq && <F2StornoTanlov obyektId={obyektId} faktRejimSukut="ozgartirma" qoralamaga={akt && !aktKorish ? { aktId: akt.id, onQosh: stornoQoralamagaQosh } : undefined} onYop={() => setStornoTanlovOchiq(false)} onYaratildi={(yangiId) => {
         setStornoTanlovOchiq(false);

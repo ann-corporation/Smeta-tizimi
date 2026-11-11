@@ -1,6 +1,7 @@
-import { useContext, useMemo } from 'react';
+import { useContext, useEffect, useMemo } from 'react';
 import { QueryClient, QueryClientContext, useQueries, useQuery } from '@tanstack/react-query';
 import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
+import { t2NakrutkaOldindan } from '../../api/t2-nakrutka-paket';
 import { podvalTanla, sbPodvallarOl } from '../../api/t2-nakrutka-podval';
 import { limitedRead } from '../../components/pto-workspace/useMarkupTotals';
 import { obyektKesimi, ustamaliHisobla } from '../../lib/ustamali-summa';
@@ -65,6 +66,8 @@ export function usePortfelUstamali(obyektlar: readonly PortfelObyekt[], opts: { 
   const paketlar = useMemo(() => new Map((panel.data?.obyektlar ?? []).map((x) => [x.obyekt_id, x.smeta] as const)), [panel.data]);
   const paketdan = (o: PortfelObyekt) => (o.shartnomaId == null ? paketlar.get(o.obyektId) ?? null : null);
   const zaxira = royxat.filter((o) => !paketdan(o));
+  /* Tezlik: zaxira yo'li (paketda yo'q obyektlar) ustamasi BITTA paket so'rovida oldindan yuklanadi. */
+  useEffect(() => { if (bor && kid != null && !panelKutish && zaxira.length) t2NakrutkaOldindan(kid, zaxira); }, [bor, kid, panelKutish, zaxira.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const pod = useQuery({
     queryKey: ['pto-markup-podvals', kid], enabled: bor && kid != null && !panelKutish && zaxira.length > 0, staleTime: 60_000, retry: false,
     queryFn: async () => {

@@ -11,6 +11,9 @@ import { sbT2ObyektlarOlKomp, sbObyektOchirish, sbObyektTahrirlash, sbObyektLoka
 import { sbT2LoyihalarOl, sbT2LoyihaYoz, type T2Loyiha } from '../api/t2-loyiha';
 import { toast } from '../umumiy/ui/Toast';
 import { useKompaniya } from './KompaniyaTanlov';
+import { useCompanyLineage } from '../components/pto-workspace/useLineage';
+import { useRahbarPanel } from '../api/t2-rahbar-panel';
+import { t2NakrutkaOldindan } from '../api/t2-nakrutka-paket';
 import { usePTOWorkspace } from '../umumiy/kontekst/PTOWorkspaceContext';
 import { ObyektUlash } from '../components/ulash/ObyektUlash';
 import { KeyingiQadamPanel } from '../components/qollanma/KeyingiQadamPanel';
@@ -27,6 +30,10 @@ export default function TestObyektlar() {
   const kompYuklanmoqda = joriy === undefined;
   const qc = useQueryClient();
   const workspace = usePTOWorkspace();
+  /* Tezlik: ProjectNavigator qatorlar kelgach ochiladi — zanjir va rahbar paneli so'rovlari shu paytgacha kutardi.
+     Bir xil kalit bilan hozirdan parallel boshlanadi (keshdan olinadi). */
+  useCompanyLineage(joriy?.id ?? null);
+  useRahbarPanel(joriy?.id);
 
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [qatorlar, setQatorlar] = useState<Qator[] | null>(null);
@@ -34,6 +41,8 @@ export default function TestObyektlar() {
   const generation = useRef(0);
   const [loadedCompany, setLoadedCompany] = useState<number | null>(null);
   const currentRows = loadedCompany === joriy?.id ? qatorlar : null;
+  /* Tezlik: barcha obyektlar ustamasi BITTA paket so'rovida (har qator alohida so'rov berardi). */
+  useEffect(() => { if (joriy?.id && currentRows && currentRows.length > 1) t2NakrutkaOldindan(joriy.id, currentRows.map((o) => ({ obyektId: o.id }))); }, [joriy?.id, currentRows]);
 
   // Edit State
   const [editObj, setEditObj] = useState<Qator | null>(null);
