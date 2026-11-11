@@ -47,6 +47,8 @@ export type NavSahifa = {
   scope?: RouteScope;
   /** Tizimga oid sahifa: faqat platforma superadmini (menyu ham, marshrut ham). Capability EMAS — `k.superadmin`. */
   faqatSuperadmin?: true;
+  /** Qo'shimcha bo'lim: hali ma'lumot/ishchi oqim yo'q yoki kundalik ishda ishlatilmaydi — yon menyuda asosiy ro'yxatdan chiqarilib Qo'shimcha bo'limlar ostiga yig'iladi (o'chirilmaydi; Ctrl+K va to'g'ridan-to'g'ri havola ishlaydi). */
+  qoshimcha?: true;
 };
 
 /** Sidebar bandi: bitta sahifa yoki bir nechta sahifa — tepada tablar (BolimTablari, App.tsx dagi layout). */
@@ -63,6 +65,7 @@ function navSahifaDan(s: (typeof SAHIFALAR)[number]): NavSahifa {
   if (s.modul) r.modul = s.modul;
   if (s.scope) r.scope = s.scope;
   if (s.faqatSuperadmin) r.faqatSuperadmin = true;
+  if (s.qoshimcha) r.qoshimcha = true;
   return r;
 }
 
@@ -73,6 +76,21 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = NAV_GURUH_META.map((g) => ({
     sahifalar: SAHIFALAR.filter((s) => s.navGuruh === g.id && s.navBand === b.nom).slice().sort((x, y) => x.tartib - y.tartib).map(navSahifaDan),
   })),
 }));
+
+/**
+ * KUNDALIK ISHLAR (navigatsiya oqimi, 2026-11-11: «PlayStation pulti»): yon menyuning eng tepasidagi qisqa ro'yxat — xodim
+ * har kuni qiladigan 7 ish, har biri o'z ISHI nomi bilan (bo'lim nomi bilan emas). Yangi sahifa YO'Q: har band mavjud reestr
+ * sahifasiga olib boradi; ko'rinishi navFiltr.kundalikIshlar orqali boshqa menyu bilan bir xil rol/ruxsat/modul filtridan o'tadi.
+ */
+export const KUNDALIK_ISHLAR: ReadonlyArray<{ yol: string; nom: string; ikonka: NavIkonka }> = [
+  { yol: '/admin/fakt', nom: 'Fakt kiritish', ikonka: 'HardHat' },
+  { yol: '/admin/f2-tayyorlash', nom: 'F2 tayyorlash', ikonka: 'FileOutput' },
+  { yol: '/admin/f2', nom: 'F2 faylni yuklash (Excel)', ikonka: 'FileOutput' },
+  { yol: '/admin/nakopitelniy', nom: 'Forma 3 va nakopitelniy', ikonka: 'FileStack' },
+  { yol: '/admin/holat', nom: 'Qancha bajarildi', ikonka: 'Gauge' },
+  { yol: '/admin/aosr', nom: 'Yashirin ish akti', ikonka: 'ShieldCheck' },
+  { yol: '/admin/logistika', nom: 'Ombor (kirim, chiqim)', ikonka: 'Box' },
+];
 
 /** Menyuda YO'Q, lekin tizimga oid marshrutlar (prefiks; ichki yo'llari ham) — faqat platforma superadmini.
  *  Sayt xaritasi menyudan olib tashlandi (egasi 2026-10-27); sahifa superadmin uchun Boshqaruv panelidan ochiladi.
