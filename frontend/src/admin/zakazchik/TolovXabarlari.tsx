@@ -5,6 +5,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from '../../umumiy/ui/Toast';
+import { Kiritma } from '../../umumiy/ui/Sahifa';
 import { t } from '../../i18n/til';
 import { tolovXabarBekor, tolovXabarlariOl, tolovXabarQarori, tolovXabarYoz, type BugunObyekt, type TolovXabari } from '../../api/t2-tomon';
 import { Bolim } from './tomon-ui';
@@ -49,7 +50,7 @@ export function TolovXabariYozish({ kompaniyaId, obyektlar, tanlangan, onOzgardi
           <label className="text-xs text-text-dim md:col-span-2">{t('Obyekt')}
             <select className={`${inp} mt-1 block w-full`} value={obyektId} onChange={(e) => setObyektId(e.target.value ? Number(e.target.value) : '')}>
               <option value="">{t('— tanlang —')}</option>{tolovBor.map((o) => <option key={o.obyekt_id} value={o.obyekt_id}>{o.obyekt_nom} ({o.qarshi_nom})</option>)}</select></label>
-          <label className="text-xs text-text-dim">{t('Summa (QQS bilan)')}<input className={`${inp} mt-1 block w-full`} inputMode="decimal" value={summa} onChange={(e) => setSumma(e.target.value)} /></label>
+          <label className="text-xs text-text-dim">{t('Summa (QQS bilan)')}<Kiritma tur="money" qiymat={summa} ozgardi={setSumma} /></label>
           <label className="text-xs text-text-dim">{t('Sana')}<input type="date" className={`${inp} mt-1 block w-full`} value={sanaV} onChange={(e) => setSanaV(e.target.value)} /></label>
           <label className="text-xs text-text-dim">{t('To‘lov topshiriq №')}<input className={`${inp} mt-1 block w-full`} value={raqam} onChange={(e) => setRaqam(e.target.value)} /></label>
           <div className="flex items-end"><button type="button" className={tugmaAsosiy} disabled={band} onClick={() => void yubor()}>{t('Xabar yuborish')}</button></div>
