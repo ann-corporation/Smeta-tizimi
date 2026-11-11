@@ -1,0 +1,250 @@
+{
+ "Havoladagi obyekt aniqlanmadi. Yuqoridan obyektni ro‘yxatdan tanlang.": {
+  "ru": "Объект по ссылке не найден. Выберите объект из списка выше.",
+  "en": "The object in the link was not found. Pick an object from the list above."
+ },
+ "Bu obyektda hali smeta yuklanmagan. Smeta faylini yuklang — qatorlar shu yerda paydo bo‘ladi.": {
+  "ru": "В этом объекте смета ещё не загружена. Загрузите файл сметы — строки появятся здесь.",
+  "en": "No estimate has been uploaded for this object yet. Upload the estimate file — rows will appear here."
+ },
+ "Avval yuqoridan obyektni tanlang — shundan keyin bajarilgan ishlar ro‘yxati ochiladi.": {
+  "ru": "Сначала выберите объект сверху — после этого откроется список выполненных работ.",
+  "en": "Pick an object above first — the list of completed work will then open."
+ },
+ "Obyekt holatiga qaytish": {
+  "ru": "Назад к состоянию объекта",
+  "en": "Back to object status"
+ },
+ "Zamena bilan almashtirilgan asl qismlar ({s} so‘m, ustamasiz) smeta jamiga bir marta kiritildi. Zamena bo‘yicha farq faqat «Zamena farqi» da ko‘rinadi.": {
+  "ru": "Заменённые исходные части ({s} сум, без наценки) включены в итог сметы один раз. Разница по замене показана только в «Разнице по замене».",
+  "en": "Parts replaced by a substitution ({s} UZS, before markup) are counted once in the estimate total. The substitution difference appears only under “Substitution difference”."
+ },
+ "Asos kerak": {
+  "ru": "Нужно обоснование",
+  "en": "Basis required"
+ },
+ "narx smeta narxidan yuqori — bu foyda emas, asos (protokol) nazorati": {
+  "ru": "цена выше сметной — это не прибыль, а контроль обоснования (протокола)",
+  "en": "price is above the estimate price — not profit, but basis (protocol) control"
+ },
+ "F2 da qaysi narxda tasdiqlangani bilan shu qator uchun smeta narxi (F2 tuzilgan paytdagi) orasidagi farq ko‘rsatiladi.": {
+  "ru": "Показана разница между ценой, по которой строка принята в Ф-2, и сметной ценой этой строки (на момент составления Ф-2).",
+  "en": "Shows the difference between the price at which the line was approved in F2 and the estimate price of that line (as of when F2 was prepared)."
+ },
+ "Eski F2 ni bekor qilib qayta hisoblash (storno)": {
+  "ru": "Сторно старого Ф-2 (перерасчёт)",
+  "en": "Reverse an old F2 (recalculation)"
+ },
+ "Bu ekran narxi kiritilmagan (bo‘sh) mehnat, mashina va material qatorlariga RES bo‘yicha narx qo‘yadi. Narxi 0 bo‘lgan qatorlar — faqat pastdagi belgini qo‘ysangiz. Mavjud narxlar, F2 va avval tasdiqlangan qiymatlar o‘zgarmaydi.": {
+  "ru": "Этот экран проставляет цены по РЭС в строки труда, машин и материалов, где цена не указана (пусто). Строки с ценой 0 — только если поставите отметку ниже. Существующие цены, Ф-2 и ранее принятые значения не меняются.",
+  "en": "This screen fills in RES prices for labour, machine and material rows that have no price (blank). Rows with price 0 only if you tick the box below. Existing prices, F2 and previously approved values do not change."
+ },
+ "JAMI (ustamali, QQS bilan)": {
+  "ru": "ВСЕГО (с наценкой, с НДС)",
+  "en": "TOTAL (with markup, incl. VAT)"
+ },
+ "Obyekt tanlang — to‘g‘ri xarajatdan yakuniy jamigacha ustamalar qadam-baqadam shu yerda ko‘rinadi.": {
+  "ru": "Выберите объект — здесь по шагам покажется путь от прямых затрат до итога.",
+  "en": "Pick an object — the markup steps from direct cost to the final total will be shown here."
+ },
+ "Smeta fayl(lar)i": {
+  "ru": "Файл(ы) сметы",
+  "en": "Estimate file(s)"
+ },
+ "Bu obyektda hali boshqa smeta versiyasi yuklanmagan. Yuqoridagi maydondan ikkinchi (masalan, ekspertizagacha bo‘lgan) smeta faylini yuklang — tizim farqini ko‘rsatadi.": {
+  "ru": "Для этого объекта ещё не загружена другая версия сметы. Загрузите второй файл сметы (например, до экспертизы) в поле выше — система покажет разницу.",
+  "en": "No other estimate version has been uploaded for this object yet. Upload a second estimate file (for example, the pre-review one) in the field above — the system will show the difference."
+ },
+ "Talab (qurilgan)": {
+  "ru": "Претензия (выполнено)",
+  "en": "Claim (built)"
+ },
+ "Eng katta talab": {
+  "ru": "Наибольшая претензия",
+  "en": "Largest claim"
+ },
+ "Talablar ro‘yxati (Excel)": {
+  "ru": "Список претензий (Excel)",
+  "en": "Claims list (Excel)"
+ },
+ "Talab (ustamasiz)": {
+  "ru": "Претензия (без наценки)",
+  "en": "Claim (before markup)"
+ },
+ "Talablar ro‘yxati bo‘sh — avval qatorlarga «qurilgan» yoki «qisman» deb belgi qo‘ying.": {
+  "ru": "Список претензий пуст — сначала отметьте строки как «построено» или «частично».",
+  "en": "The claims list is empty — first mark rows as “built” or “partial”."
+ },
+ "Birlik farq qiladi yoki joriy hajm noma’lum — talab hajmi aniqlanmadi": {
+  "ru": "Единицы различаются или текущий объём неизвестен — объём претензии не определён",
+  "en": "Units differ or the current quantity is unknown — claim quantity could not be determined"
+ },
+ "Faylda smeta pozitsiyalari topilmadi.": {
+  "ru": "В файле не найдены позиции сметы.",
+  "en": "No estimate positions were found in the file."
+ },
+ "Boshqa smeta versiyasini (masalan, ekspertizagacha bo‘lgan smeta) yuklang — tizim uni joriy smeta bilan pozitsiya bo‘yicha solishtiradi. Joriy smeta o‘zgarmaydi; ekspertiza qisqartirgan, lekin qurilgan hajm «talab» sifatida alohida hisoblanadi.": {
+  "ru": "Загрузите другую версию сметы (например, до экспертизы) — система сравнит её с текущей по позициям. Текущая смета не меняется; объём, сокращённый экспертизой, но построенный, считается отдельно как «претензия».",
+  "en": "Upload another estimate version (for example, the pre-review one) — the system compares it with the current estimate by position. The current estimate does not change; quantity cut by the review but actually built is counted separately as a “claim”."
+ },
+ "QQS {n}%": {
+  "ru": "НДС {n}%",
+  "en": "VAT {n}%"
+ },
+ "QQS bilan/noma’lum narxlar ko‘rsatilmadi: {n}": {
+  "ru": "Цены с НДС/неизвестные не показаны: {n}",
+  "en": "Prices with VAT/unknown not shown: {n}"
+ },
+ "Narx QQS siz. Taklif avtomatik yozilmaydi — «Narxni qo‘llash» faqat F2 qatoriga yozadi (asl smeta o‘zgarmaydi).": {
+  "ru": "Цена без НДС. Предложение не записывается автоматически — «Применить цену» пишет только в строку Ф-2 (исходная смета не меняется).",
+  "en": "Price excl. VAT. Offers are never applied automatically — “Apply price” writes only to the F2 row (the original estimate is unchanged)."
+ },
+ "ustamasiz, QQS siz — ustamali summa hujjat ichida": {
+  "ru": "без наценки, без НДС — сумма с наценкой внутри документа",
+  "en": "without markup, excl. VAT — amount with markup inside the document"
+ },
+ "narx (1 birlik, QQS siz)": {
+  "ru": "цена (за 1 ед., без НДС)",
+  "en": "price (per unit, excl. VAT)"
+ },
+ "F2 narxi (smetada narx yo‘q, QQS siz)": {
+  "ru": "Цена Ф-2 (в смете цены нет, без НДС)",
+  "en": "F-2 price (no estimate price, excl. VAT)"
+ },
+ "Narx QQS siz. Taklifni bossangiz qo‘lda maydonga tushadi; faqat «Narxni yozish» bosilganda yoziladi.": {
+  "ru": "Цена без НДС. Выбранное предложение попадает в поле ручной цены; запись — только по кнопке «Записать цену».",
+  "en": "Price excludes VAT. A chosen suggestion fills the manual field; it is saved only when you press “Save price”."
+ },
+ "(ustamasiz, QQS siz)": {
+  "ru": "(без накрутки, без НДС)",
+  "en": "(without markup, excl. VAT)"
+ },
+ "Qo‘shimcha kelishuv": {
+  "ru": "Дополнительное соглашение (ДС)",
+  "en": "Amendment"
+ },
+ "ustamasiz, QQS siz (narx farqi)": {
+  "ru": "без наценки, без НДС (разница цен)",
+  "en": "without markup, excl. VAT (price difference)"
+ },
+ "Smetadan tashqari fakt (pulga kirmaydi, qo‘shimcha kelishuv kerak)": {
+  "ru": "Факт сверх сметы (в сумму не входит, нужно ДС)",
+  "en": "Actual beyond estimate (not counted, needs a supplementary agreement)"
+ },
+ "Shartnomani tanlang yoki yangisini qo‘shing — bu yerda uning zanjiri (qo‘shimcha kelishuv → F2 → F3 → to‘lov → akt-sverka) va kartasi ochiladi.": {
+  "ru": "Выберите договор или добавьте новый — здесь откроются его цепочка (ДС → Ф-2 → Ф-3 → оплата → акт сверки) и карточка.",
+  "en": "Choose a contract or add one — its chain (amendment → F2 → F3 → payment → reconciliation) and card open here."
+ },
+ "Summalar QQS siz; eski va joriy pozitsiya bir xil narx katalogi (joriy smeta) bilan narxlangan — farq hajm va tarkibdan. Narxi topilmagan resurslar summaga 0 bo‘lib kirmaydi.": {
+  "ru": "Суммы без НДС; старая и действующая позиции оценены по одному каталогу цен (действующей сметы) — разница только из объёма и состава. Ресурсы без цены не включаются в сумму как 0.",
+  "en": "Amounts excl. VAT; old and current items are priced with the same price catalogue (current estimate) — the difference comes only from quantity and composition. Unpriced resources are not counted as 0."
+ },
+ "Summalar: QQS bilan → ustamali (QQS siz) → прямые (ustamasiz); narxlar QQS siz.": {
+  "ru": "Суммы: с НДС → с накруткой (без НДС) → прямые (без накрутки); цены без НДС.",
+  "en": "Amounts: incl. VAT → with markup (excl. VAT) → direct (without markup); prices excl. VAT."
+ },
+ "Narx manbalari: {n} qator ({m} nashr: katalog, birja, prays-list), QQS siz": {
+  "ru": "Источники цен: {n} строк ({m} изданий: каталог, биржа, прайс-листы), без НДС",
+  "en": "Price sources: {n} rows ({m} editions: catalogue, exchange, price lists), VAT-free"
+ },
+ "Filtr bo‘yicha: {a} / {b} qator (ustamasiz, QQS siz)": {
+  "ru": "По фильтру: {a} / {b} строк (без накрутки, без НДС)",
+  "en": "Filtered: {a} / {b} rows (without markup, excl. VAT)"
+ },
+ "ustamasiz, QQS siz · holat bo‘yicha": {
+  "ru": "без наценки, без НДС · по статусу",
+  "en": "without markup, excl. VAT · by status"
+ },
+ "Tarkib: {n} resurs, jami {s} so‘m (QQS siz).": {
+  "ru": "Состав: {n} ресурс., всего {s} сум (без НДС).",
+  "en": "Composition: {n} resources, total {s} UZS (excl. VAT)."
+ },
+ "Shartnoma summasi (qo‘shimcha kelishuvlar bilan)": {
+  "ru": "Сумма договора (с ДС)",
+  "en": "Contract amount (with amendments)"
+ },
+ "Shartnoma quvuri: qo‘shimcha kelishuv, F2, F3, to‘lov, qoldiq": {
+  "ru": "Конвейер договора: ДС, Ф-2, Ф-3, оплата, остаток",
+  "en": "Contract pipeline: SA, F-2, F-3, payment, balance"
+ },
+ "Qo‘shimcha kelishuv qo‘shish / tahrirlash — Nakopitelniy": {
+  "ru": "Добавить / изменить ДС — Накопительная",
+  "en": "Add / edit SA — Cumulative statement"
+ },
+ "Qo‘shimcha kelishuv kiritilmagan": {
+  "ru": "ДС не внесены",
+  "en": "No supplementary agreements"
+ },
+ "Qo‘shimcha kelishuv faylini yuklash": {
+  "ru": "Загрузить файл ДС",
+  "en": "Upload SA file"
+ },
+ "Shartnomalar (qo‘shimcha kelishuvlar bilan)": {
+  "ru": "Договоры (с ДС)",
+  "en": "Contracts (incl. amendments)"
+ },
+ "Qo‘shimcha kelishuv № {r} dan ({s})": {
+  "ru": "по ДС № {r} ({s})",
+  "en": "from amendment No. {r} ({s})"
+ },
+ "Shartnoma / qo‘shimcha kelishuv": {
+  "ru": "Договор / ДС",
+  "en": "Contract / amendment"
+ },
+ "{sh}: to‘lovlar {tol} so‘m — shartnoma summasidan ({man}: {sum} so‘m) oshdi. qo‘shimcha kelishuv kiritilmagan bo‘lishi mumkin; yozish bloklanmaydi.": {
+  "ru": "{sh}: оплаты {tol} сум превышают сумму договора ({man}: {sum} сум). Возможно, не внесено ДС; запись не блокируется.",
+  "en": "{sh}: payments {tol} UZS exceed the contract amount ({man}: {sum} UZS). A supplementary agreement may be missing; writing is not blocked."
+ },
+ "Yangi narx musbat son bo‘lishi kerak (QQS siz)": {
+  "ru": "Новая цена должна быть положительным числом (без НДС)",
+  "en": "The new price must be a positive number (excl. VAT)"
+ },
+ "Faol modullar": {
+  "ru": "Активные модули",
+  "en": "Active modules"
+ },
+ "Xato bilan tugagan ishlar": {
+  "ru": "Задачи с ошибкой",
+  "en": "Failed jobs"
+ },
+ "Ochiq muammolar": {
+  "ru": "Открытые проблемы",
+  "en": "Open incidents"
+ },
+ "Tizim qismlarining holati": {
+  "ru": "Состояние частей системы",
+  "en": "System component status"
+ },
+ "Ilova versiyasi haqida ma’lumot.": {
+  "ru": "Сведения о версии приложения.",
+  "en": "Application version information."
+ },
+ "Haqiqiy ma’lumot ulanmaguncha namunaviy (demo) qiymatlar ko‘rsatiladi.": {
+  "ru": "Пока не подключены реальные данные, показаны демонстрационные значения.",
+  "en": "Demonstration values are shown until real data is connected."
+ },
+ "Ochiq muammolar yo‘q.": {
+  "ru": "Открытых проблем нет.",
+  "en": "No open problems."
+ },
+ "Ma’lumot bevosita bazadan olingan": {
+  "ru": "Данные получены напрямую из базы",
+  "en": "Data is read directly from the database"
+ },
+ "Ilova versiyasi": {
+  "ru": "Версия приложения",
+  "en": "Application version"
+ },
+ "Server va baza versiyasi": {
+  "ru": "Версия сервера и базы",
+  "en": "Server and database version"
+ },
+ "Eski skript versiyasi": {
+  "ru": "Версия старого скрипта",
+  "en": "Legacy script version"
+ },
+ "Muhit": {
+  "ru": "Среда",
+  "en": "Environment"
+ }
+}

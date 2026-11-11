@@ -133,7 +133,7 @@ function bandMatni(b: TekshiruvBand): string {
     narxsiz: () => t('{n} ta resurs narxsiz — ИТОГО bo‘sh chiqadi', { n }),
     axborot: () => t('{n} ta axborot qatori narxsiz (smetada narxi yo‘q)', { n }),
     raqamsiz: () => t('F2 raqami kiritilmagan — hujjatda «сформирована в системе» yoziladi'),
-    bosh: () => t('Hali birorta ish hajmi kiritilmagan'),
+    bosh: () => t('Qoralama bo‘sh: ro‘yxatdan ishni tanlab, hajmini yozing'),
   };
   return M[b.kod]();
 }

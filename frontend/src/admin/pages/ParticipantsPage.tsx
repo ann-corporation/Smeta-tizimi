@@ -78,10 +78,9 @@ export default function ParticipantsPage() {
         invitations={[]}
         loading={yuklanmoqda}
         error={xato}
-        onInvite={() => { /* invite backend: t2_loyiha_qatnashchi_biriktir — wired via a command in the next slice */ }}
       />
       <p className="px-6 pb-6 text-[11.5px] text-text-mute">
-        {t('Ma’lumot manbai')}: <code>{'t2_loyiha_qatnashchilar_royxat'}</code>. {t('Taklif/email yuborish oqimi keyingi bosqichda ulanadi — hozir faqat mavjud ishtirokchilar ko‘rsatiladi.')}
+        {t('Hozircha faqat loyihadagi mavjud ishtirokchilar ko‘rsatiladi. Yangi ishtirokchini taklif qilish tez orada qo‘shiladi.')}
       </p>
     </div>
   );

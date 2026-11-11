@@ -444,7 +444,7 @@ export function NarxlashBosqichi({ doc, hisob, command, kompaniyaId, hudud, setH
           {labourPeriods(soat).map(p => <option key={`${p.year}-${p.quarter}`} value={`${p.year}-${p.quarter}`}>{t('{y} yil {q}-chorak', { y: p.year, q: p.quarter })}</option>)}
         </select></label>}
       <span className="text-xs text-text-mute">{catHolat === 'yuklanmoqda' ? t('Narx katalogi yuklanmoqda...') : catHolat === 'xato' ? t('Narx katalogi ochilmadi')
-        : t('Narx manbalari: {n} qator ({m} nashr: katalog, birja, prays-list), NDS siz', { n: cat?.rows.length.toLocaleString('ru-RU') ?? '0', m: cat?.dict.manbalar?.length ?? 1 })}</span>
+        : t('Narx manbalari: {n} qator ({m} nashr: katalog, birja, prays-list), QQS siz', { n: cat?.rows.length.toLocaleString('ru-RU') ?? '0', m: cat?.dict.manbalar?.length ?? 1 })}</span>
       {kpm && (kpm.qatorlar > 0 || kpm.qqsNomalum > 0) && <span className="text-xs text-text-mute">{t('Kompaniya KP/prays: {n} narx', { n: kpm.qatorlar })}
         {kpm.qqsNomalum > 0 && <span className="text-warn"> · {t('QQS holati noma’lum {n} narx ishlatilmaydi', { n: kpm.qqsNomalum })}</span>}</span>}
     </section>

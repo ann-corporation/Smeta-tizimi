@@ -3,6 +3,7 @@ import { ChevronRight } from 'lucide-react';
 import { useCompanyLineage } from './useLineage';
 import { contractObjects } from './hierarchy';
 import { t } from '../../i18n/til';
+import { raqamTozala } from '../../lib/raqam-belgi';
 
 export function ObjectTrail({ companyId, objectId }: { companyId: number | null; objectId: number }) {
   const { data: line } = useCompanyLineage(companyId);
@@ -16,7 +17,7 @@ export function ObjectTrail({ companyId, objectId }: { companyId: number | null;
   return <nav aria-label={t('Loyiha yo‘li')} className="flex flex-wrap items-center gap-1.5 text-[12.5px] text-text-dim">
     <Link className="hover:underline hover:text-[var(--accent-text)]" to="/admin/obyektlar">{t('Barcha loyihalar')}</Link>
     {object && <><ChevronRight size={13} className="text-text-mute" aria-hidden="true" /><Link className="hover:underline hover:text-[var(--accent-text)]" to={projectUrl}>{project?.nom ?? t('Loyihaga biriktirilmagan')}</Link>
-      <ChevronRight size={13} className="text-text-mute" aria-hidden="true" /><Link className="hover:underline hover:text-[var(--accent-text)]" to={contract ? `${projectUrl}&shartnoma=${contract.id}` : contracts.length ? projectUrl : `${projectUrl}&shartnoma=biriktirilmagan`}>{contract ? `№ ${contract.raqam} · ${contract.nom ?? ''}` : contracts.length ? t('Shartnomalar') : t('Shartnomaga biriktirilmagan')}</Link>
+      <ChevronRight size={13} className="text-text-mute" aria-hidden="true" /><Link className="hover:underline hover:text-[var(--accent-text)]" to={contract ? `${projectUrl}&shartnoma=${contract.id}` : contracts.length ? projectUrl : `${projectUrl}&shartnoma=biriktirilmagan`}>{contract ? `№ ${raqamTozala(contract.raqam)} · ${contract.nom ?? ''}` : contracts.length ? t('Shartnomalar') : t('Shartnomaga biriktirilmagan')}</Link>
       <ChevronRight size={13} className="text-text-mute" aria-hidden="true" /><span aria-current="page" className="font-semibold text-text">{object.nom}</span></>}
   </nav>;
 }

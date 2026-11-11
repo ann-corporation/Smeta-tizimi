@@ -104,7 +104,7 @@ export function buyruqAmalTekshir(m: BuyruqMalumot, a: SahifaAmal): string | nul
       if (!r) return 'Qator topilmadi (AI bergan id obyektda yo‘q)';
       if (r.tur === 'rz') return t('Bo‘lim qatoriga narx qo‘yilmaydi');
       const yangi = yangiNarxOqi(a.qiymat);
-      if (yangi == null) return t('Yangi narx musbat son bo‘lishi kerak (NDS siz)');
+      if (yangi == null) return t('Yangi narx musbat son bo‘lishi kerak (QQS siz)');
       return r.narx != null && Math.abs(Number(r.narx) - yangi) < 1e-9 ? t('Narx o‘zgarmaydi') : null;
     }
     case 'korsat': return a.qator != null && m.qatorById.has(a.qator) ? null : 'Qator topilmadi (AI bergan id obyektda yo‘q)';

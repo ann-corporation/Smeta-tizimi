@@ -2,14 +2,35 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 153,
+      "id": 155,
       "sana": "2026-11-11",
       "sarlavha": "Bitta yordamchi: Jarvis butun tizimni gaplashib boshqaradi",
       "bandlar": [
         "Ctrl+K endi bitta yordamchi (Jarvis) ni ochadi: «mindmapni och», «Yevropa 1 ning F2 sini och», «АОСР sahifasi», «qarzdorlik» — tizimdagi istalgan sahifa o'zbek, rus yoki ingliz tilida ochiladi.",
         "Obyekt va oy aytsangiz sahifa shu obyekt va oy bilan ochiladi. Sizga ruxsat etilmagan bo'limlar ochilmaydi.",
         "«narxsiz qatorlar», «qoldiq», «Yevropa 1 holati» — javob bir zumda va tokensiz. Fakt kiritish va narx tuzatish avval ko'rsatiladi, «Tasdiqlash» bosganingizdagina yoziladi.",
-        "Jarvis endi qarzni, F2 ro'yxatini va АОСР da nima yetishmayotganini aytadi; «Yevropa 1 oktabr F2 tayyorla» yoki «АОСР tayyorla» desangiz qoralamani ko'rsatadi va faqat «Bajarish» dan keyin yaratadi (tasdiqlash doim qo'lda).",`n        "Tushunmasa rad etmaydi: eng yaqin sahifa va amallarni taklif qiladi. Suhbat tarixi saqlanadi, mikrofon bilan ovoz orqali ham yozish mumkin. Jarvis tugmasi sarlavha qatoriga ko'chdi — «Saqlash» tugmalari ustida hech narsa turmaydi."
+        "Jarvis endi qarzni, F2 ro'yxatini va АОСР da nima yetishmayotganini aytadi; «Yevropa 1 oktabr F2 tayyorla» yoki «АОСР tayyorla» desangiz qoralamani ko'rsatadi va faqat «Bajarish» dan keyin yaratadi (tasdiqlash doim qo'lda).",
+        "Tushunmasa rad etmaydi: eng yaqin sahifa va amallarni taklif qiladi. Suhbat tarixi saqlanadi, mikrofon bilan ovoz orqali ham yozish mumkin. Jarvis tugmasi sarlavha qatoriga ko'chdi — «Saqlash» tugmalari ustida hech narsa turmaydi."
+      ]
+    },
+    {
+      "id": 154,
+      "sana": "2026-11-11",
+      "sarlavha": "Tizim axlatdan tozalandi",
+      "bandlar": [
+        "Hech qayerda ishlatilmaydigan eski sahifalar, bir martalik skriptlar va nusxalar olib tashlandi: ishlaydigan funksiyalar o'zgarmadi.",
+        "Tizim yengilroq va tartiblirog' bo'ldi; foydalanuvchi ma'lumotlari va hisob-kitoblarga tegilmadi."
+      ]
+    },
+    {
+      "id": 153,
+      "sana": "2026-11-11",
+      "sarlavha": "Matnlar sodda tilga o‘tkazildi",
+      "bandlar": [
+        "Ekrandagi texnik so‘zlar (kanonik, NULL, DS, actor:4, «Basis», jadval nomlari) oddiy o‘zbekchaga almashtirildi: DS — «qo‘shimcha kelishuv», NDS — «QQS».",
+        "Shartnoma raqami endi «№ №5» emas, «№ 5» ko‘rinadi. Loyiha ishtirokchilari sahifasi to‘liq o‘zbekcha; ishlamaydigan taklif tugmasi o‘chirib qo‘yildi va sababi aytilgan.",
+        "«Tizimda nima yangi» oynasi endi jadvalni yopmaydi: yuqorida kichik chip, batafsil — «Batafsil» bosilganda; 15 soniyadan keyin o‘zi yo‘qoladi.",
+        "Bo‘sh holatlar keyingi qadamni aytadi (obyekt tanlang, smeta yuklang, ikkinchi smeta faylini yuklang). «Smetadan oshgan» ro‘yxatida uzun nomlar kesilmaydi."
       ]
     },
     {
