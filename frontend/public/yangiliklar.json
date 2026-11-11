@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 159,
+      "sana": "2026-11-12",
+      "sarlavha": "Forma 3 dan e-faktura (ESF) tayyorlash",
+      "bandlar": [
+        "Shartnoma bo‘yicha Forma 3 yaratilgach, ESF uchun STIR, bank, shartnoma raqami/sanasi va ID (my3, kapital.imv yoki kadastr) tekshiriladi — nima yetishmasligi ro‘yxatda ko‘rinadi.",
+        "ESF ma‘lumotlarini JSON yoki Excel (CSV) fayl qilib olib, didox/faktura.uz ga o‘zingiz yuklaysiz; tizim tashqi servisga ulanmaydi.",
+        "Forma 3 da faqat ESF holati va tashqi hujjat ID si saqlanadi. Qaysi ID majburiyligi — «T — tekshirilsin» belgisi bilan."
+      ]
+    },
+    {
       "id": 158,
       "sana": "2026-11-12",
       "sarlavha": "Rahbar paneli va hisobotlar yana tezlashdi",

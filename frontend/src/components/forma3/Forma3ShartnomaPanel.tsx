@@ -10,7 +10,8 @@ import { t } from '../../i18n/til';
 import { sbT2ShartnomalarOl, zakazchikRekvizit, type Shartnoma } from '../../api/t2-shartnoma';
 import { yangiOperationId, type T2Kompaniya } from '../../api/supabase';
 import { forma3ShartnomaAktlarOl, forma3Yarat, type Forma3ShartnomaAktlar } from '../../api/t2-document-control';
-import { forma3ShartnomaHujjat, type Forma3Rekvizit } from '../../lib/forma3-export';
+import { forma3ShartnomaHujjat, type Forma3Rekvizit, type F3ShartnomaYigindi } from '../../lib/forma3-export';
+import { Forma3EsfBolim } from './Forma3EsfBolim';
 import { f3AktTanlov, f3OyChegarasi, f3YuboriladiganAktlar } from '../../lib/forma3-shartnoma';
 import { forma3ShartnomaManbalari } from '../../lib/oylik-hujjat/forma3-shartnoma';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
@@ -62,6 +63,9 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
   const [diqqat, setDiqqat] = useState<Array<{ nom: string; sabab: string }>>([]);
   /** Bir tanlov — bir operation_id: tarmoq uzilsa qayta bosish ikkinchi F3 yaratmaydi (server `takror`). */
   const opId = useRef<{ kalit: string; id: string } | null>(null);
+  /** ESF tayyorlash (P4): oxirgi yaratilgan F3 ning yig'indisi — ESF qatorlari shundan AYNAN ko'chiriladi. */
+  const esfManba = useRef<{ yigindi: F3ShartnomaYigindi; zakazchik: Forma3Rekvizit } | null>(null);
+  const [esf, setEsf] = useState<{ yigindi: F3ShartnomaYigindi; zakazchik: Forma3Rekvizit; forma3Id: number | null; shartnomaId: number; oy: string } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -108,6 +112,7 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
         imzo, pudratchi, zakazchik,
       });
       setDiqqat(h.diqqat);
+      esfManba.current = { yigindi: h.yigindi, zakazchik };
       // Server yozuvi (bitta F3: shartnoma_id, obyekt NULL, barcha tanlangan aktlar) — hujjat berilishidan OLDIN: band/begona akt bo'lsa fayl chiqmaydi.
       const kalit = `${shartnomaId}|${oy}|${yuboriladi.join(',')}`;
       if (opId.current?.kalit !== kalit) opId.current = { kalit, id: yangiOperationId() };
@@ -132,6 +137,7 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
       if (!tk.ok) { toast(tk.xabar, 'danger'); return; }
       if (tk.xabar) toast(tk.xabar, 'ok');
       toast(f3Id ? t('Forma 3 yaratildi (№ {id}): {n} ta F2 akt', { id: f3Id, n: yuboriladi.length }) : t('Forma 3 yaratildi'), 'ok');
+      if (esfManba.current) setEsf({ ...esfManba.current, forma3Id: f3Id, shartnomaId: sh.id, oy });
       void yukla();
     } catch (e) {
       setXato(e instanceof Error && e.message === 'MISSING_CERTIFIED_AMOUNT'
@@ -191,6 +197,10 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
         </div>
       )}
       {(yuklanmoqda || ishlayapti) && <p role="status" style={{ margin: 0 }}>{ishlayapti || t('Yuklanmoqda…')}</p>}
+      {esf && sh && esf.shartnomaId === sh.id && esf.oy === oy && (
+        <Forma3EsfBolim forma3Id={esf.forma3Id} oy={oy} shartnoma={sh} yigindi={esf.yigindi} pudratchi={pudratchi} zakazchik={esf.zakazchik}
+          qqsFoiz={esf.yigindi.obyektlar.find((o) => o.ndsFoiz != null)?.ndsFoiz ?? null} />
+      )}
       {xato && <div role="alert" className="fz-note fz-note--danger"><AlertTriangle /><span>{xato}</span></div>}
       {diqqat.length > 0 && (
         <details className="fz-note fz-note--warn" style={{ display: 'block' }}>
