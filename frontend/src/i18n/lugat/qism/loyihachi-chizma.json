@@ -390,5 +390,17 @@
   "Chizma yangilangan — akt eski revizyaga tayangan": {
     "ru": "Чертёж обновлён — акт опирается на старую ревизию",
     "en": "Drawing updated — the act relies on an old revision"
+  },
+  "Smeta qatorlari o‘qilmadi": {
+    "ru": "Строки сметы не загружены",
+    "en": "Estimate rows could not be loaded"
+  },
+  "O‘zgartirish": {
+    "ru": "Изменить",
+    "en": "Change"
+  },
+  "Smeta qatorini qidiring (shifr yoki nom)": {
+    "ru": "Найдите строку сметы (шифр или название)",
+    "en": "Search an estimate row (code or name)"
   }
 }

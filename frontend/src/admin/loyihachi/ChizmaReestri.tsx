@@ -23,6 +23,7 @@ import {
 import { CHIZMA_MARKALARI } from '../../lib/loyihachi/chizma-revizya';
 import { KORINISH_NOMI, TAKLIF_TURI_NOMI, TAQDIM_NOMI, joriyRevizyasi, revizyaHolatlari, type ChizmaBosqich } from '../../lib/loyihachi/chizma-yadro';
 import { t } from '../../i18n/til';
+import { QatorTanlagich, type TanlanganQator } from './QatorTanlagich';
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { Bolim } from '../zakazchik/tomon-ui';
 import { inp, sana, tugma, tugmaAsosiy } from '../zakazchik/tomon-yordam';
@@ -124,7 +125,7 @@ function Takliflar({ kompaniyaId, toplam, r, egasi, yangila }: { kompaniyaId: nu
   const [birlik, setBirlik] = useState('');
   const [hajm, setHajm] = useState('');
   const [izoh, setIzoh] = useState('');
-  const [qatorId, setQatorId] = useState<Record<number, string>>({});
+  const [qatorId, setQatorId] = useState<Record<number, TanlanganQator | null>>({});
   const [band, setBand] = useState(false);
   const ol = useCallback(async () => { const x = await chizmaTakliflariOl(kompaniyaId, r.id); if (x.ok) setRoyxat(x.natija.takliflar); else toast(x.error, 'danger'); }, [kompaniyaId, r.id]);
   useEffect(() => { void ol(); }, [ol]);
@@ -139,7 +140,7 @@ function Takliflar({ kompaniyaId, toplam, r, egasi, yangila }: { kompaniyaId: nu
     let sabab = '';
     if (q === 'rad') { sabab = window.prompt(t('Rad etish sababi?')) ?? ''; if (sabab.trim().length < 3) return; }
     setBand(true);
-    const x = await taklifQarori(kompaniyaId, { taklifId: k.id, qaror: q, obyektId: toplam.obyekt_id, qatorId: qatorId[k.id] ? Number(qatorId[k.id]) : null, izoh: sabab });
+    const x = await taklifQarori(kompaniyaId, { taklifId: k.id, qaror: q, obyektId: toplam.obyekt_id, qatorId: qatorId[k.id]?.id ?? null, izoh: sabab });
     setBand(false);
     if (!x.ok) { toast(x.error, 'danger'); return; }
     toast(q === 'rad' ? t('Taklif rad etildi') : t('Smeta o‘zgarishi qoralamasi yaratildi — «Smeta va Fakt» da tasdiqlang'), 'ok'); void ol(); yangila();
@@ -155,8 +156,8 @@ function Takliflar({ kompaniyaId, toplam, r, egasi, yangila }: { kompaniyaId: nu
           {k.pto_izoh && <span className="text-text-dim"> · {k.pto_izoh}</span>}
           {!egasi && k.holat === 'yangi' && (
             <div className="mt-1 flex flex-wrap items-center gap-2">
-              {k.tur !== 'qoshimcha' && <input className={`${inp} w-40`} inputMode="numeric" placeholder={t('Smeta qatori № (shart)')} value={qatorId[k.id] ?? ''} onChange={(e) => setQatorId((s) => ({ ...s, [k.id]: e.target.value }))} />}
-              <button type="button" className={tugmaAsosiy} disabled={band || (k.tur !== 'qoshimcha' && !/^\d+$/.test(qatorId[k.id] ?? ''))} onClick={() => void qaror(k, 'ozgarishga')}>{t('Smeta o‘zgarishiga aylantirish')}</button>
+              {k.tur !== 'qoshimcha' && <QatorTanlagich obyektId={toplam.obyekt_id} tanlangan={qatorId[k.id] ?? null} onTanla={(q) => setQatorId((s) => ({ ...s, [k.id]: q }))} />}
+              <button type="button" className={tugmaAsosiy} disabled={band || (k.tur !== 'qoshimcha' && !qatorId[k.id])} onClick={() => void qaror(k, 'ozgarishga')}>{t('Smeta o‘zgarishiga aylantirish')}</button>
               <button type="button" className={tugma} disabled={band} onClick={() => void qaror(k, 'rad')}>{t('Rad etish')}</button>
             </div>)}
         </li>))}</ul>
@@ -242,13 +243,13 @@ function RevizyaQator({ kompaniyaId, toplam, r, korinish, aloqalar, taklifOch, y
 /* ───────────── Pudratchi: bog'lanishlar (smeta qatori / АОСР) ───────────── */
 function Boglanishlar({ kompaniyaId, toplam, boglanishlar, yangila }: { kompaniyaId: number; toplam: ToplamKorinishi; boglanishlar: Boglanish[]; yangila: () => void }) {
   const joriy = joriyRevizyasi(toplam.revizyalar);
-  const [qatorId, setQatorId] = useState('');
+  const [qator, setQator] = useState<TanlanganQator | null>(null);
   const [band, setBand] = useState(false);
   const mening = boglanishlar.filter((b) => b.toplam_id === toplam.id);
   const bajar = async (p: { qatorId?: number | null; aosrId?: number | null; harakat: 'qosh' | 'ochir'; revizya: number }) => {
     setBand(true); const x = await chizmaBoglash(kompaniyaId, { toplamId: toplam.id, revizya: p.revizya, obyektId: toplam.obyekt_id, qatorId: p.qatorId, aosrId: p.aosrId, harakat: p.harakat }); setBand(false);
     if (!x.ok) { toast(x.error, 'danger'); return; }
-    setQatorId(''); yangila();
+    setQator(null); yangila();
   };
   return (
     <div className="space-y-1 text-xs">
@@ -267,8 +268,8 @@ function Boglanishlar({ kompaniyaId, toplam, boglanishlar, yangila }: { kompaniy
       })}</ul>
       {joriy && (
         <div className="flex flex-wrap items-center gap-2">
-          <input className={`${inp} w-40`} inputMode="numeric" placeholder={t('Smeta qatori №')} value={qatorId} onChange={(e) => setQatorId(e.target.value)} />
-          <button type="button" className={tugma} disabled={band || !/^\d+$/.test(qatorId)} onClick={() => void bajar({ qatorId: Number(qatorId), harakat: 'qosh', revizya: joriy.revizya })}>{t('Joriy revizyaga bog‘lash')}</button>
+          <QatorTanlagich obyektId={toplam.obyekt_id} tanlangan={qator} onTanla={setQator} />
+          <button type="button" className={tugma} disabled={band || !qator} onClick={() => void bajar({ qatorId: qator!.id, harakat: 'qosh', revizya: joriy.revizya })}>{t('Joriy revizyaga bog‘lash')}</button>
         </div>)}
     </div>
   );

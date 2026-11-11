@@ -49,7 +49,8 @@ begin
   begin
     perform public.t2_chizma_royxat_v1(-1, -1, null);
     raise exception 'ACCEPT: a''zosiz actor o''tib ketdi';
-  exception when sqlstate '42501' then null; end;
+  -- 22023: actor/kompaniya noto'g'ri (t2_actor_kompaniya_azo_tekshir); 42501: a'zo emas.
+  exception when sqlstate '42501' or sqlstate '22023' then null; end;
 end $$;
 
 rollback;
