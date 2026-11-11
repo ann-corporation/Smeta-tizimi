@@ -2,6 +2,9 @@ import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { yaxlit2 } from '../../lib/hisob-yadro';
 import { fayldanKalitBog } from '../../lib/f2-kalit-bogla';
 import { avvalgiF2Ol, f2RaqamNormal, qoralamaAktmi, type AvvalgiF2 } from '../../lib/f2-moslash-v3/takror';
+import { f2ObyektFayldan, f2OyFayldan, f2RaqamFayldan } from '../../lib/f2-moslash-v3/fayl-nomi';
+import { podvalYorliq } from '../../lib/podval-yorliq';
+import { keyingiF2Raqam } from '../../lib/f2-tayyorlash-korinish';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useInRouterContext, useSearchParams } from 'react-router-dom';
 
@@ -208,6 +211,13 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [aktZiddiyat, setAktZiddiyat] = useState(false);
   /** Maqsad akt: tizimda yasalgan (manba hujjatsiz) QORALAMA - yangi fayl shu aktga yuklanadi (yozish: sbT2F2QoralamaYangila, akt id/raqam saqlanadi). */
   const [maqsadAkt0, setMaqsadAkt] = useState<{ id: number; raqam: string | null; oy: string; obyektId: number } | null>(null);
+  /* F2 raqami bo'sh qolsa (fayl nomida yo'q) — obyektdagi keyingi raqam taklif qilinadi (yozish qo'lda tasdiqlanadi); mavjud aktni yangilashda tegilmaydi. */
+  useEffect(() => {
+    if (!aktlar.length || maqsadAkt0 || !objectId) return;
+    const r = keyingiF2Raqam(obyektAktlari);
+    if (r) setRaqam((x) => (x.trim() ? x : r));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [obyektAktlari, aktlar.length, objectId]);
   const [avvalgi, setAvvalgi] = useState<{ key: string; akt: AvvalgiF2 | null; error: boolean } | null>(null);
   const [tekshiruv, setTekshiruv] = useState(0);
   const [ogoh, setOgoh] = useState('');
@@ -505,13 +515,15 @@ function Sessiya({ companyId }: { companyId: number }) {
     oxirgiKalit.current = '';
     tozala(); setAktlar([]); setBusy(true); setHolat('Fayl o‘qilmoqda…');
     void faylShaHisobla(rawFile.current = file); sourceDoc.current = mavjudHujjatId; sourceOp.current = yangiOperationId();
-    setRaqam(''); setAlmashtirTasdiq(null); // yangi hujjat — raqami operator tomonidan qayta kiritiladi
+    /* Fayl nomidan TAKLIF (operator o'zgartira oladi): F2 raqami; obyekt tanlanmagan bo'lsa — aniq bitta mos obyekt. */
+    setRaqam(f2RaqamFayldan(file.name) ?? ''); setAlmashtirTasdiq(null);
+    if (!objectId) { const oid = f2ObyektFayldan(file.name, objects); if (oid != null) { setObjectId(String(oid)); workspace.setObjectId(oid); } }
     try {
       if (file.size > MAX_FILE_BYTES) throw new Error('Fayl 50 MB dan katta.');
       // Fayl o'qish va akt tahlili FONDA (Web Worker) — katta faylda sahifa qotmaydi.
       const a = await f2AktlarniOqiFonda(file.name, file);
       if (!a.length) throw new Error('Faylda F2 akt varag‘i topilmadi (ishlar ro‘yxati bor LRV shaklidagi varaq kerak).');
-      setAktlar(a); setAktIdx(0); setDavr(a[0].davr ?? urlDavr());
+      setAktlar(a); setAktIdx(0); setDavr(a[0].davr ?? (urlDavr() || f2OyFayldan(file.name) || ''));
       setHolat(a[0].davr || urlDavr() ? 'Akt o‘qildi. Mos qatorlarni bog‘lash tugmasini bosing yoki qo‘lda bog‘lang.' : 'Akt o‘qildi. Hisobot davrini tanlang.');
     } catch (e) { setXato(e instanceof Error ? e.message : 'Fayl o‘qilmadi.'); setHolat('Fayl o‘qilmadi.'); }
     finally { setBusy(false); }
@@ -1443,7 +1455,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       // Hujjatning O'Z podvali (egasi 2026-11-03): foizlari isbotlangan bo'lsa t2_akt_podval ga yoziladi, aks holda smeta podvali qoladi.
       let podvalIzoh = '';
       if (akt.podval && r.akt_id) {
-        if (!akt.podval.tekshiruv.toliq) podvalIzoh = ` ${t('Hujjat podvali isbotlanmadi (smeta podvali qoladi):')} ${akt.podval.tekshiruv.isbotsiz.join(', ') || t('ziddiyatli foizlar')}.`;
+        if (!akt.podval.tekshiruv.toliq) podvalIzoh = ` ${t('Hujjat podvali isbotlanmadi (smeta podvali qoladi):')} ${akt.podval.tekshiruv.isbotsiz.map(podvalYorliq).join(', ') || t('ziddiyatli foizlar')}.`;
         else {
           const pr = await aktPodvalYoz({ kompaniyaId: companyId, aktId: Number(r.akt_id), manba: 'import', podval: akt.podval }).catch(() => null);
           podvalIzoh = pr?.ok ? ` ${t('Hujjat podvali saqlandi.')}` : ` ${t('Hujjat podvali saqlanmadi (smeta podvali qoladi).')}`;
@@ -1532,7 +1544,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         </div>
         {serverHolat && <p role="status" className="w-full">{serverHolat}</p>}
       </section>
-      {!ij && <F2DavomRoyxat kompaniyaId={companyId} obyektId={objectId ? Number(objectId) : null} band={busy} onOchish={(id, aktId) => (aktId != null ? void tahrirlash(id, aktId, Number(objectId)) : void serverdanTikla(id))} />}
+      {!ij && <F2DavomRoyxat kompaniyaId={companyId} obyektId={objectId ? Number(objectId) : workspace.scope.objectId ?? null} band={busy} onOchish={(id, aktId) => (aktId != null ? void tahrirlash(id, aktId, Number(objectId)) : void serverdanTikla(id))} />}
       <fieldset disabled={busy} className="karta grid gap-3 p-3 sm:grid-cols-2 xl:grid-cols-4">
         <label className="block text-[12px] font-medium text-text">{t('Obyekt')}
           <select aria-label="Obyekt" value={objectId} onChange={(e) => { oxirgiKalit.current = ''; tozala(); setObjectId(e.target.value); workspace.setObjectId(e.target.value ? Number(e.target.value) : null); }}

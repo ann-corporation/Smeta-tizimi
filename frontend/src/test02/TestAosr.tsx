@@ -41,6 +41,7 @@ import { labYetishmaydi, LAB_TALAB_NOM, aktSifatMuammolari, aktDublikatlari, AKT
 import { zipSync } from 'fflate';
 import { AosrYetishmaydi } from './AosrYetishmaydi';
 import { AosrTaklif } from './AosrTaklif';
+import { obyektZakazchikNomi } from '../lib/pto-markazi/obyekt-zakazchik';
 import { useSearchParams } from 'react-router-dom';
 import { ZakazchigaYuborish } from '../admin/zakazchik/ZakazchigaYuborish';
 import { OpsKpi, OpsKpiQator, OpsTablar } from '../components/kompaniya-ops/OpsUi';
@@ -83,6 +84,15 @@ export default function TestAosr() {
   const [bog, setBog] = useState<Map<number, number[]>>(new Map());
   const [bekorKorsat, setBekorKorsat] = useState(false);
   const [paketBand, setPaketBand] = useState(false);
+  /** Reestr/paket sarlavhasidagi «Заказчик» — obyekt shartnomasidan (bo'sh qoldirilmasin). */
+  const [zakazchikNomi, setZakazchikNomi] = useState<string | null>(null);
+  useEffect(() => {
+    setZakazchikNomi(null);
+    if (!kompaniyaId || !obyektId) return;
+    let faol = true;
+    void obyektZakazchikNomi(kompaniyaId, obyektId).then((n) => { if (faol) setZakazchikNomi(n); });
+    return () => { faol = false; };
+  }, [kompaniyaId, obyektId]);
 
   useEffect(() => {
     if (!kompaniyaId) { setObyektlar([]); return; }
@@ -91,7 +101,7 @@ export default function TestAosr() {
       setObyektlar(q);
       setObyektId((eski) => (eski && q.some((o) => o.id === eski) ? eski : urlObyekt && q.some((o) => o.id === urlObyekt) ? urlObyekt : q[0]?.id ?? null));
     });
-    sbKontragentlarOl(kompaniyaId).then((r) => setLablar((r.qatorlar ?? []).filter((k) => k.mavqe === 'laboratoriya')));
+    sbKontragentlarOl(kompaniyaId).then((r) => { setLablar((r.qatorlar ?? []).filter((k) => k.mavqe === 'laboratoriya')); setBoshqaKontragent((r.qatorlar ?? []).filter((k) => k.mavqe !== 'laboratoriya' && !!k.inn?.trim())); });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kompaniyaId]);
 
@@ -199,7 +209,7 @@ export default function TestAosr() {
     try {
       if (!kompaniyaId) { toast(t('Kompaniyani tanlang'), 'warn'); return; }
       const obyektNomi = obyektlar.find((o) => o.id === obyektId)?.nom ?? 'Объект';
-      const imzo = { pudratchi: joriy?.nom };
+      const imzo = { pudratchi: joriy?.nom, zakazchik: zakazchikNomi ?? undefined };
       const { bytes, faylNomi } = tur === 'aosr' ? aosrReestrXlsx(aktlar, { obyektNomi, imzo, tartib: reestrTartib }) : labReestrXlsx(protokollar, { obyektNomi, imzo });
       const tk = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: tur === 'aosr' ? 'REESTR_AOSR' : 'REESTR_LAB', sabab: `${tur === 'aosr' ? 'Реестр АОСР' : 'Реестр протоколов'} · ${obyektNomi}`, obyekt: obyektId }, () => {
         downloadBlob(bytes, faylNomi);
@@ -217,7 +227,7 @@ export default function TestAosr() {
     setPaketBand(true);
     try {
       const obyektNomi = obyektlar.find((o) => o.id === obyektId)?.nom ?? 'Объект';
-      const imzo = { pudratchi: joriy?.nom };
+      const imzo = { pudratchi: joriy?.nom, zakazchik: zakazchikNomi ?? undefined };
       const logo = await sbKompaniyaLogoOl(kompaniyaId);
       const fayllar: Record<string, Uint8Array> = {};
       const sana = new Date().toISOString().slice(0, 10);
@@ -237,11 +247,14 @@ export default function TestAosr() {
       }
       const zip = zipSync(fayllar, { level: 6 });
       const fayllarSoni = Object.keys(fayllar).length;
-      const yacheykalar = xlsxYacheykaSoni(zip);
+      const fayllarYacheyka = Object.values(fayllar).map((b) => xlsxYacheykaSoni(b));
       const holat = await tokenHolatOl(kompaniyaId);
-      const narx = holat.ok ? narxHisob(holat.natija.narxlar.find((n) => n.amal === 'hujjat'), yacheykalar, holat.natija.sozlama) : null;
+      const narxQoidasi = holat.ok ? holat.natija.narxlar.find((n) => n.amal === 'hujjat') : undefined;
+      /* Paket narxi = har fayl narxining yig'indisi (server 	2_token_hisobla_paket_v1 bilan bir xil); yashirin chegirma yo'q. */
+      const hisoblar = holat.ok ? fayllarYacheyka.map((c) => narxHisob(narxQoidasi, c, holat.natija.sozlama)) : [];
+      const narx = hisoblar.length && hisoblar.every((x) => x != null) ? { token: hisoblar.reduce((s, x) => s + (x?.token ?? 0), 0), yakuniy_som: hisoblar.reduce((s, x) => s + (x?.yakuniy_som ?? 0), 0) } : null;
       if (narx && !(await tasdiqSora({ sarlavha: t('Ijro paketi'), matn: t('{n} fayl, bitta paket: {tk} token (≈ {som} so‘m). Avval to‘langan o‘zgarmagan paketni qayta yuklash bepul. Davom etasizmi?', { n: fayllarSoni, tk: narx.token, som: Math.round(narx.yakuniy_som).toLocaleString('ru-RU') }), tasdiqMatni: t('Yuklab olish') }))) return;
-      const tk = await hujjatTokenBilan({ kompaniyaId, bytes: zip, hujjat: 'AOSR_PAKET', sabab: `Ijro paketi · ${obyektNomi} · ${fayllarSoni} fayl`, obyekt: obyektId, yacheykalar },
+      const tk = await hujjatTokenBilan({ kompaniyaId, bytes: zip, hujjat: 'AOSR_PAKET', sabab: `Ijro paketi · ${obyektNomi} · ${fayllarSoni} fayl`, obyekt: obyektId, fayllar: fayllarYacheyka },
         () => downloadBlob(zip, `${obyektNomi.replace(/[\\/:*?"<>|]+/g, '_')}_ИСПОЛНИТЕЛЬНАЯ_ДОКУМЕНТАЦИЯ_${sana}.zip`, 'application/zip'));
       if (!tk.ok) { toast(tk.xabar, 'danger'); return; }
       if (tk.xabar) toast(tk.xabar, 'ok');
@@ -268,6 +281,24 @@ export default function TestAosr() {
   /* ── Laboratoriya ── */
   /** Laboratoriya kontragentini shu yerning o'zida qo'shish (Logistika → Kontragentlar ga bormasdan). */
   const [yangiLab, setYangiLab] = useState({ nom: '', inn: '' });
+  /** Mavjud kontragent (STIR bor) — laboratoriya roli berish uchun (upsert STIR bo'yicha, dublikat yaratilmaydi). */
+  const [boshqaKontragent, setBoshqaKontragent] = useState<Kontragent[]>([]);
+  const [tanlanganKontragent, setTanlanganKontragent] = useState('');
+  const kontragentniLabQil = async () => {
+    const k = boshqaKontragent.find((x) => String(x.id) === tanlanganKontragent);
+    if (!k || !kompaniyaId) return;
+    if (!(await tasdiqSora({ sarlavha: t('Laboratoriya roli'), matn: t('«{nom}» kontragentining roli «laboratoriya» ga o‘zgaradi. Davom etasizmi?', { nom: k.nom }), tasdiqMatni: t('Ha, laboratoriya qilish') }))) return;
+    const r = await sbKontragentSaqla({ kompaniyaId, inn: k.inn ?? undefined, nom: k.nom, rahbar: k.rahbar ?? undefined, manzil: k.manzil ?? undefined, mfo: k.mfo ?? undefined, hisobRaqam: k.hisob_raqam ?? undefined, qqsTolovchi: k.qqs_tolovchi ?? undefined, mavqe: 'laboratoriya' });
+    if (!r.ok) { toast(r.error || t('Xato'), 'danger'); return; }
+    const q = await sbKontragentlarOl(kompaniyaId);
+    const royxat = (q.qatorlar ?? []).filter((x) => x.mavqe === 'laboratoriya');
+    setLablar(royxat);
+    setBoshqaKontragent((q.qatorlar ?? []).filter((x) => x.mavqe !== 'laboratoriya' && !!x.inn?.trim()));
+    const yangi = royxat.find((x) => x.inn === k.inn);
+    if (yangi) setPForma((x) => (x ? { ...x, laboratoriya_id: yangi.id } : x));
+    setTanlanganKontragent('');
+    toast(t('✓ Laboratoriya tanlandi'), 'ok');
+  };
   const labQosh = async () => {
     if (!kompaniyaId || !yangiLab.nom.trim()) { toast(t('Laboratoriya nomini kiriting'), 'warn'); return; }
     const r = await sbKontragentSaqla({ kompaniyaId, nom: yangiLab.nom.trim(), inn: yangiLab.inn.trim() || undefined, mavqe: 'laboratoriya' });
@@ -580,7 +611,9 @@ export default function TestAosr() {
                     <details className="mt-1 text-[12px]" open={lablar.length === 0}><summary className="cursor-pointer text-accent">{t('Yangi laboratoriya qo‘shish')}</summary>
                       <div className="mt-1 flex flex-wrap items-center gap-1"><input aria-label={t('Laboratoriya nomi')} className="h-8 min-w-[10rem] flex-1 px-2 text-[13px]" value={yangiLab.nom} onChange={(e) => setYangiLab((y) => ({ ...y, nom: e.target.value }))} placeholder={t('Laboratoriya nomi')} />
                         <input aria-label={t('STIR')} className="h-8 w-28 px-2 text-[13px]" inputMode="numeric" value={yangiLab.inn} onChange={(e) => setYangiLab((y) => ({ ...y, inn: e.target.value }))} placeholder={t('STIR')} />
-                        <button type="button" className="fz-btn fz-btn--sm" onClick={() => void labQosh()}><Plus /> {t('Qo‘shish')}</button></div></details></div>
+                        <button type="button" className="fz-btn fz-btn--sm" onClick={() => void labQosh()}><Plus /> {t('Qo‘shish')}</button></div>
+                      {boshqaKontragent.length > 0 && <div className="mt-1 flex flex-wrap items-center gap-1"><select aria-label={t('Mavjud kontragent')} className="h-8 min-w-[10rem] flex-1 px-2 text-[13px]" value={tanlanganKontragent} onChange={(e) => setTanlanganKontragent(e.target.value)}><option value="">{t('— mavjud kontragentdan —')}</option>{boshqaKontragent.map((k) => <option key={k.id} value={k.id}>{k.nom}</option>)}</select>
+                        <button type="button" className="fz-btn fz-btn--sm" disabled={!tanlanganKontragent} onClick={() => void kontragentniLabQil()}>{t('Laboratoriya qilish')}</button></div>}</details></div>
                   <div className="grid grid-cols-2 gap-2">
                     <div><span className={lbl}>{t('Protokol № *')}</span><input className={inp} value={pForma.raqam ?? ''} onChange={pf('raqam')} /></div>
                     <div><span className={lbl}>{t('Sana')}</span><input type="date" className={inp} value={pForma.sana ?? ''} onChange={pf('sana')} /></div>

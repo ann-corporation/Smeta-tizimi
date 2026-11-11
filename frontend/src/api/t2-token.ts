@@ -68,7 +68,7 @@ export function narxHisob(n: TokenNarx | undefined, birlikSoni: number, s: Pick<
 
 export type SarfNatija = AktNatija & { code?: string; sarflandi?: number; balans?: number; kerak?: number; bepul_takror?: boolean; hisob?: NarxTafsilot };
 
-export function tokenSarfla(p: { kompaniyaId: number; amal: TokenAmal; birlikSoni?: number; operationId: string; meta?: Record<string, string | number> }): Promise<SarfNatija> {
+export function tokenSarfla(p: { kompaniyaId: number; amal: TokenAmal; birlikSoni?: number; operationId: string; meta?: Record<string, string | number | number[]> }): Promise<SarfNatija> {
   return yozAmali({ amal: 'token_sarfla_v1', kompaniya_id: p.kompaniyaId, tur_amal: p.amal, birlik_soni: p.birlikSoni ?? 1, operation_id: p.operationId, meta: p.meta ?? {} });
 }
 
@@ -143,7 +143,7 @@ export function tokenXato(r: { code?: string; error?: string; xabar?: string; ke
  * Token bilan bajarish: avval sarf (server — atomik, idempotent), keyin amal; amal xato bersa — sarf qaytariladi.
  * Token yetmasa — amal umuman bajarilmaydi. `meta.xesh` berilsa — aynan shu hujjat qayta yuklanganda pul olinmaydi.
  */
-export async function tokenBilan<T>(p: { kompaniyaId: number; amal: TokenAmal; birlikSoni?: number; meta?: Record<string, string | number> }, ish: () => Promise<T>):
+export async function tokenBilan<T>(p: { kompaniyaId: number; amal: TokenAmal; birlikSoni?: number; meta?: Record<string, string | number | number[]> }, ish: () => Promise<T>):
   Promise<{ ok: true; natija: T; sarflandi: number; balans?: number; bepulTakror?: boolean; hisob?: NarxTafsilot } | { ok: false; xabar: string }> {
   void kutilayotganQaytarishlar(); // oldingi muvaffaqiyatsiz qaytarishlar (bo'lsa) — fon rejimida qayta yuboriladi
   const opId = yangiOperationId();

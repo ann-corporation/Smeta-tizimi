@@ -17,6 +17,7 @@ import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 import { inputdami } from '../../lib/hotkeys/core';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
+import { useInRouterContext, useNavigate } from 'react-router-dom';
 import { tezlikBelgisi } from '../../lib/tezlik-belgi';
 import { useKiritmaHolat } from '../../lib/ish-varaq/kiritma-holat';
 import { useQoralamaHimoya } from '../../lib/ish-varaq/qoralama-himoya';
@@ -456,7 +457,16 @@ export function IshVaraq({ kompaniyaId, obyektId, rows, states, holatniYangila }
   };
 
   /** F3: Fakt ↔ F2. Fokus shu qatorning yangi rejimdagi katagiga o'tadi (katak boshqa ustunga ko'chadi). */
+  const routerda = useInRouterContext();
+  // eslint-disable-next-line react-hooks/rules-of-hooks -- routerda butun umr davomida o'zgarmaydi
+  const navigate = routerda ? useNavigate() : null;
   const rejimAlmashtir = () => {
+    /* F2 yaratish — BITTA joyda (F2 tayyorlash): Ish varag'idagi F2 rejimi takror edi (audit TARQOQLIK). Fakt saqlanmagan bo'lsa — avval saqlash. */
+    if (navigate && rejim === 'fakt') {
+      if (ozgarishSoni > 0) { toast(t('Avval faktni saqlang (Ctrl+S) — keyin F2 tayyorlashga o‘tiladi.'), 'warn'); return; }
+      navigate(`/admin/f2-tayyorlash?obyekt=${obyektId}&avto=1`);
+      return;
+    }
     setRejim((r) => (r === 'fakt' ? 'f2' : 'fakt'));
     if (faolRef.current) kutishFokus.current = faolRef.current;
   };

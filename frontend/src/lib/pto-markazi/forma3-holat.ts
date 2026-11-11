@@ -16,11 +16,17 @@ export async function forma3OyHolati(obyektId: number, oy: string): Promise<numb
   if (!k || !ch) return null;
   try {
     const bog = await sbT2ShartnomaBogOl(obyektId);
-    const shartnomaId = bog.ok ? (bog.qatorlar ?? [])[0]?.shartnoma_id ?? null : null;
-    if (shartnomaId != null) {
-      const r = await forma3ShartnomaAktlarOl({ shartnomaId, davrBoshi: ch.boshi, davrOxiri: ch.oxiri });
-      const shu = (r.aktlar ?? []).filter((a) => a.obyekt_id === obyektId);
-      return new Set(shu.filter((a) => a.band && a.forma3_id != null).map((a) => a.forma3_id)).size;
+    /* Shartnoma bog'lanishi o'qilmasa — noma'lum (null): obyekt darajasidagi ro'yxatga TUSHMAYDI (u shartnoma darajasidagi
+     * Forma 3 ni ko'rmaydi va «Forma 3 yo'q» deb noto'g'ri aytardi). */
+    if (!bog.ok) return null;
+    const shartnomalar = [...new Set((bog.qatorlar ?? []).map((b) => b.shartnoma_id))];
+    if (shartnomalar.length > 0) {
+      const forma3lar = new Set<number>();
+      for (const shartnomaId of shartnomalar) {
+        const r = await forma3ShartnomaAktlarOl({ shartnomaId, davrBoshi: ch.boshi, davrOxiri: ch.oxiri });
+        for (const a of r.aktlar ?? []) if (a.obyekt_id === obyektId && a.band && a.forma3_id != null) forma3lar.add(a.forma3_id);
+      }
+      return forma3lar.size;
     }
     const r = await forma3RoyxatOl({ obyektId }) as { ok?: boolean; forma3lar?: Array<{ davr_boshi?: string | null; holat?: string | null }> };
     if (!r?.ok || !Array.isArray(r.forma3lar)) return null;

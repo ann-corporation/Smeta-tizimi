@@ -13,7 +13,7 @@
  * hammasi o'zi qayta hisoblanadi. Narxsiz resurs (ongli tanlov) — summa bo'sh va jami bo'sh (H7: NULL ≠ 0).
  */
 import type { F2Bolim, F2Qator } from './f2-tayyor';
-import { RANG_TARTIB, RasmiyVaraq, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, yaxlit2, type ImzoNomlar, type QatorRangi, type RangMavzusi, type Qiymat, type RasmiyUstun } from './hujjat-yozuvchi';
+import { RANG_TARTIB, RasmiyVaraq, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, summaSozBilan, yaxlit2, type ImzoNomlar, type QatorRangi, type RangMavzusi, type Qiymat, type RasmiyUstun } from './hujjat-yozuvchi';
 import { davrMatni } from './nakopitelniy-vedomost-export';
 import { lrvKalitYoz } from './lrv-qayta-import';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
@@ -312,6 +312,9 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     v.qator('vsego', (): Qiymat[] => [null, null, 'ИТОГО ПЕРЕРАСЧЕТ К ОПЛАТЕ (новые − сторно), с НДС', null, null, null, null,
       { f: sumRefs('H', qismlar), v: yaxlit2(yangiVsegoJS + eskiVsegoJS) }, null, null]);
   }
+  /* Summa so'z bilan (rasmiy shakl talabi): hujjat jami (с НДС); narxsiz qator bor — jami to'liq emas, yozilmaydi (0 emas). */
+  const jamiTolov = (yangiVsegoQator != null || eski.length) ? yaxlit2(yangiVsegoJS + eskiVsegoJS) : null;
+  if (jamiTolov != null && Number.isFinite(jamiTolov) && !narxsizN) { v.bosh(); v.izoh(`Сумма прописью: ${summaSozBilan(jamiTolov)} с НДС`); }
   if (narxsizN) { v.bosh(); v.narxsizOgoh(narxsizN); }
   v.imzo(imzoTomonlari(o.imzo?.subpudratchi ? ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СУБПОДРЯДЧИК', 'ТЕХНАДЗОР'] : ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР'], o.imzo));
   const ved = [...vedomost.values()];

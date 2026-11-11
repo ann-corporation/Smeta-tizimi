@@ -10,6 +10,8 @@ import { useKompaniya } from './KompaniyaTanlov';
 import { EntityFormModal } from '../umumiy/ui/forms/SharedForms';
 import { onEntityChanged } from '../api/entity-consistency';
 import { taqsimot } from '../lib/kompaniya-ops-korinish';
+import { sbKontragentlarOl } from '../api/t2-kontragent';
+import { keyingiShartnomaRaqam } from '../lib/shartnoma-sukut';
 import { OpsBoshQator, OpsKpi, OpsKpiQator, OpsQidiruv, OpsTablar, OpsTaqsimot } from '../components/kompaniya-ops/OpsUi';
 
 /**
@@ -33,6 +35,14 @@ export default function TestShartnoma() {
   const [saqlamoqda, setSaqlamoqda] = useState(false);
   const [shartnomalar, setShartnomalar] = useState<Shartnoma[]>([]);
   const [qidiruv, setQidiruv] = useState('');
+  /** Yangi shartnoma sukut qiymatlari: keyingi raqam (ketma-ket) va taraf — aynan bitta «buyurtmachi» kontragent. */
+  const [buyurtmachi, setBuyurtmachi] = useState<string | null>(null);
+  useEffect(() => {
+    if (!joriy) return;
+    let faol = true;
+    void sbKontragentlarOl(joriy.id).then((r) => { if (!faol || !r.ok) return; const b = (r.qatorlar ?? []).filter((k) => k.mavqe === 'buyurtmachi'); setBuyurtmachi(b.length === 1 ? b[0].nom : null); }).catch(() => undefined);
+    return () => { faol = false; };
+  }, [joriy]);
 
   const yukla = async () => {
     if (!joriy) return;
@@ -94,6 +104,7 @@ export default function TestShartnoma() {
         {isFormOpen && (
           <EntityFormModal
             entityType="shartnoma"
+            initialData={{ raqam: keyingiShartnomaRaqam(shartnomalar), ...(buyurtmachi ? { taraf: buyurtmachi } : {}) }}
             title={t('Yangi shartnomani ro‘yxatga olish')}
             color="var(--accent)"
             onClose={() => setIsFormOpen(false)}

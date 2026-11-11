@@ -35,9 +35,15 @@ const STAMP: Record<PtoLifecycleStatus, string> = {
   rejected: 'fz-stamp--danger', cancelled: 'fz-stamp--danger', superseded: '',
 };
 
+/** «actor:183» kabi xom identifikator foydalanuvchiga ko'rsatilmaydi (ism noma'lum bo'lsa — hech narsa). */
+export const kimMatni = (kim: string | null | undefined): string | null => {
+  const s = String(kim ?? '').trim();
+  return s && !/^actor:\d+$/i.test(s) ? s : null;
+};
+
 function Yol({ status, rejim, kim, sana }: { status: PtoLifecycleStatus; rejim: F2TasdiqRejimi; kim?: string | null; sana?: string | null }) {
   const qadamlar: { id: string; nom: string }[] = rejim === 'shaxsiy'
-    ? [{ id: 'draft', nom: 'Qoralama' }, { id: 'approved', nom: 'Yakunlangan (shaxsiy)' }]
+    ? [{ id: 'draft', nom: 'Qoralama' }, { id: 'approved', nom: 'Pudratchi yakunladi (tasdiq emas)' }]
     : [{ id: 'draft', nom: 'Qoralama' }, { id: 'submitted', nom: 'Tekshirishga yuborilgan' }, { id: 'checked', nom: 'Tekshirilgan' }, { id: 'approved', nom: 'Tasdiqlangan' }];
   const tartib = rejim === 'shaxsiy' ? ['draft', 'approved'] : ['draft', 'submitted', 'checked', 'approved'];
   const yomon = status === 'rejected' || status === 'cancelled';
@@ -132,7 +138,7 @@ export function F2HujjatKorinish(p: {
               <span>{t('Davr')}: <b>{davrNomi(akt.oy, tilLocale()) || t('noma’lum')}</b></span>
               <span>{t('Obyekt')}: <b>{p.obyektNom || '—'}</b></span>
               <span>{t('{n} ta hujjat qatori', { n: lines.length })}</span>
-              {birinchi?.akt_kim && <span>{t('Tuzgan')}: <b>{birinchi.akt_kim}</b></span>}
+              {kimMatni(birinchi?.akt_kim) && <span>{t('Tuzgan')}: <b>{kimMatni(birinchi?.akt_kim)}</b></span>}
             </div>
           </div>
           <div className="fz-doc__total">
@@ -140,7 +146,7 @@ export function F2HujjatKorinish(p: {
             <SummaJuft obyektId={p.obyektId} ustamasiz={qatorlarJami} katKesim={katKesim} yorliq={t('F2, QQS bilan')} className="items-end text-right [&_[data-testid=summa-qqs]]:text-[20px] [&_[data-testid=summa-qqs]]:font-semibold" />
           </div>
         </div>
-        <Yol status={p.status} rejim={p.rejim} kim={birinchi?.akt_kim} sana={birinchi?.akt_sana} />
+        <Yol status={p.status} rejim={p.rejim} kim={kimMatni(birinchi?.akt_kim) ?? undefined} sana={birinchi?.akt_sana} />
         {p.amallar && <div className="fz-doc__actions">{p.amallar}</div>}
       </section>
 

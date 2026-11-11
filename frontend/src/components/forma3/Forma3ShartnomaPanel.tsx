@@ -17,6 +17,8 @@ import { forma3ShartnomaManbalari } from '../../lib/oylik-hujjat/forma3-shartnom
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { toast } from '../../umumiy/ui/Toast';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { forma3Tayyorgarlik } from '../../lib/pto-markazi/forma3-tayyorgarlik';
 import type { ImzoNomlar } from '../../lib/hujjat-yozuvchi';
 
 export type F3Rejim = 'obyekt' | 'shartnoma';
@@ -117,10 +119,14 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
         onProgress: (n, jami, nom) => setIshlayapti(t('Obyektlar o‘qilmoqda: {n} / {jami} {nom}', { n, jami, nom })),
       });
       if (!m.ok) { setXato(m.xato); return; }
-      const zakazchik = zakazchikRekvizit(sh, (id) => kompaniyalar.find((x) => x.id === id)) as Forma3Rekvizit;
+      const zakazchik0 = zakazchikRekvizit(sh, (id) => kompaniyalar.find((x) => x.id === id)) as Forma3Rekvizit;
+      /* Avtomatik: hujjat raqami (kompaniya bo'yicha yil ketma-ketligi), Заказчик kontragentdan; yetishmaganlar eksportdan OLDIN. */
+      const tay = await forma3Tayyorgarlik({ kompaniyaId: companyId, yil: Number(oy.slice(0, 4)), pudratchi, zakazchik: zakazchik0, imzo });
+      if (tay.yetishmaydi.length && !(await tasdiqSora({ sarlavha: t('Forma 3: ma‘lumotlar to‘liq emas'), matn: t('To‘ldirilmagan: {r}. Bu qatorlar bo‘sh qoladi. Davom etasizmi?', { r: tay.yetishmaydi.join('; ') }), tasdiqMatni: t('Baribir yaratish') }))) return;
+      const zakazchik = tay.zakazchik ?? zakazchik0;
       const h = forma3ShartnomaHujjat(m.obyektlar, {
         davr: oy, shartnomaRaqam: sh.raqam, shartnomaNom: sh.nom, shartnomaSumma: sh.jami_nds_bilan ?? sh.summa_bez_nds,
-        imzo, pudratchi, zakazchik,
+        imzo, pudratchi, zakazchik, raqam: tay.raqam,
       });
       setDiqqat(h.diqqat);
       // Server yozuvi (bitta F3: shartnoma_id, obyekt NULL, barcha tanlangan aktlar) — hujjat berilishidan OLDIN: band/begona akt bo'lsa fayl chiqmaydi.
@@ -129,7 +135,7 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
       setIshlayapti(t('Forma 3 yozuvi yaratilmoqda…'));
       let f3Id: number | null = null;
       try {
-        const j = await forma3Yarat({ shartnomaId: sh.id, loyihaId: sh.loyiha_id, aktIds: yuboriladi, davrBoshi: chegara.boshi, davrOxiri: chegara.oxiri, operationId: opId.current.id });
+        const j = await forma3Yarat({ shartnomaId: sh.id, loyihaId: sh.loyiha_id, aktIds: yuboriladi, davrBoshi: chegara.boshi, davrOxiri: chegara.oxiri, raqam: tay.raqam ?? undefined, operationId: opId.current.id });
         f3Id = Number(j.forma3_id) || null;
       } catch (e) {
         const kod = `${(e as { code?: string })?.code ?? ''} ${e instanceof Error ? e.message : ''}`;

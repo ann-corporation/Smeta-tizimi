@@ -41,6 +41,8 @@ export type ZakazchikRekvizit = {
   toliqNom?: string | null; manzil?: string | null; telefon?: string | null;
   hisobRaqam?: string | null; bank?: string | null; mfo?: string | null;
   inn?: string | null; oked?: string | null;
+  /** Imzo bloki uchun F.I.Sh (kompaniya profilidan). */
+  rahbar?: string | null; boshHisobchi?: string | null;
 };
 
 /** `t2_kompaniya` (registr) dagi rekvizit maydonlari — pudratchi va bog'langan zakazchik uchun bir xil shakl. */
@@ -48,6 +50,7 @@ export type KompaniyaRekvizitManbasi = {
   toliq_nom: string | null; manzil: string | null; telefon: string | null;
   hisob_raqam: string | null; bank: string | null; mfo: string | null;
   inn: string | null; oked: string | null;
+  rahbar?: string | null;
 };
 
 /**
@@ -64,7 +67,7 @@ export function zakazchikRekvizit(
   if (!sh) return {};
   if (sh.zakazchik_kompaniya_id != null) {
     const k = kompaniyaOl(sh.zakazchik_kompaniya_id);
-    if (k) return { toliqNom: k.toliq_nom, manzil: k.manzil, telefon: k.telefon, hisobRaqam: k.hisob_raqam, bank: k.bank, mfo: k.mfo, inn: k.inn, oked: k.oked };
+    if (k) return { toliqNom: k.toliq_nom, manzil: k.manzil, telefon: k.telefon, hisobRaqam: k.hisob_raqam, bank: k.bank, mfo: k.mfo, inn: k.inn, oked: k.oked, rahbar: k.rahbar ?? null };
   }
   return {
     toliqNom: sh.zakazchik_toliq_nom, manzil: sh.zakazchik_manzil, telefon: sh.zakazchik_telefon,

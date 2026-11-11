@@ -32,6 +32,7 @@ import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/Hu
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { hujjatArxivla } from '../../api/t2-hujjat-arxiv';
 import { toast } from '../../umumiy/ui/Toast';
+import { forma3Tayyorgarlik } from '../../lib/pto-markazi/forma3-tayyorgarlik';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import type { SmetaModel } from '../../lib/smeta-model';
 import { validatePtoHierarchy, type PtoF3LineageInput, type PtoLineageScope } from '../../lib/pto-document-lineage';
@@ -132,7 +133,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   }, []);
   const pudratchiRek = useMemo<Forma3Rekvizit | null>(() => {
     const k = kompaniyalar.find((x) => x.id === companyId);
-    return k ? { toliqNom: k.toliq_nom, manzil: k.manzil, telefon: k.telefon, hisobRaqam: k.hisob_raqam, bank: k.bank, mfo: k.mfo, inn: k.inn, oked: k.oked } : null;
+    return k ? { toliqNom: k.toliq_nom, manzil: k.manzil, telefon: k.telefon, hisobRaqam: k.hisob_raqam, bank: k.bank, mfo: k.mfo, inn: k.inn, oked: k.oked, rahbar: k.rahbar } : null;
   }, [kompaniyalar, companyId]);
   const [zakazchikRek, setZakazchikRek] = useState<Forma3Rekvizit | null>(null);
   const [shartnoma, setShartnoma] = useState<{ raqam: string; sana: string | null; summa: number | null } | null>(null);
@@ -353,13 +354,16 @@ function Sessiya({ companyId }: { companyId: number }) {
       } catch {
         setXato('F2 hujjatlarining o‘z podvali bo‘yicha oy summasi hisoblanmadi — F3 tuzilmadi. Qayta urinib ko‘ring.'); return;
       }
+      /* Avtomatik tayyorgarlik: hujjat raqami (kompaniya bo'yicha yil ketma-ketligi), Заказчик rekviziti kontragentdan; yetishmaganlar eksportdan OLDIN ko'rsatiladi. */
+      const tay = await forma3Tayyorgarlik({ kompaniyaId: companyId, yil: Number(davr.slice(0, 4)), pudratchi: pudratchiRek, zakazchik: zakazchikRek, imzo: tomonlar });
+      if (tay.yetishmaydi.length && !(await tasdiqSora({ sarlavha: 'Форма № 3: данные не заполнены', matn: 'Не заполнено: ' + tay.yetishmaydi.join('; ') + '. Эти строки останутся пустыми. Продолжить?', tasdiqMatni: 'Всё равно выгрузить' }))) return;
       const h = forma3Hujjat(
         { nakopitelniy: [{ obyekt_id: Number(objectId), obyektNom, qatorlar: rows }], f2Oylik, f2Hajm: f3CertifiedHajm(taf.qatorlar, companyId, Number(objectId), davr.slice(0, 7)) },
         {
           shakl: f3Shakl, obyektNom, davr, asosiyObyektId: Number(objectId), imzo: tomonlar, nakrutka, podval, nkManba: nakrutkaJavob?.nk_manba ?? null, ndsFoiz: stavkaOl(),
           smetaNakrutka, ozgarishlar, lineage, lineageRequired: Boolean(lineage), davrAktlari,
-          pudratchi: pudratchiRek, zakazchik: zakazchikRek,
-          shartnomaRaqam: shartnoma?.raqam ?? null, shartnomaSana: shartnoma?.sana ?? null, shartnomaSumma: shartnoma?.summa ?? null,
+          pudratchi: pudratchiRek, zakazchik: tay.zakazchik, raqam: tay.raqam,
+          shartnomaRaqam: shartnoma?.raqam ?? null, shartnomaSana: shartnoma?.sana ?? null, shartnomaSumma: shartnoma?.summa ?? null, obyektSumma: jami?.smeta_summa ?? null,
         },
       );
       setForma3Diqqat([...h.diqqat, ...(context.warning ? [{ nom: 'Rekvizitlar', sabab: context.warning }] : []), ...(!f2Oylik.length ? [{ nom: 'F2 manbasi', sabab: 'Bu davrgacha tasdiqlangan F2 yo‘q; bajarilgan ish qiymatlari bo‘sh hisobot sifatida beriladi.' }] : [])]);
