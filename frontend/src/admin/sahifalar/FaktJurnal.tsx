@@ -61,6 +61,7 @@ import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { useKiritmaHolat } from '../../lib/ish-varaq/kiritma-holat';
 import { useQoralamaHimoya } from '../../lib/ish-varaq/qoralama-himoya';
 import { useKatakFokus, useVirtualSatrlar } from '../../lib/ish-varaq/virtual-satrlar';
+import { chiqarilganlarOl } from '../../lib/ish-varaq/model';
 import { useFaktSaqlash } from '../../lib/ish-varaq/fakt-saqlash';
 import { faktPaketiQur } from '../../lib/ish-varaq/paket';
 import { kataAmali } from '../../lib/ish-varaq/kata-klavish';
@@ -227,12 +228,8 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   /** Zamena juftlari (asl ↔ zamena) — belgilar orqali bir-biriga o'tish. */
   const juftlar = useMemo(() => zamenaJuftlari(zb), [zb]);
   /** Ishdan chiqarilgan resurslar to'plami — bo'lim/obyekt fakt jamisiga qo'shilmaydi. */
-  const chiqarilganlar = useMemo(() => {
-    const sm = new Map(states.map((s) => [s.qator_id, s.smeta_hajm]));
-    const s = new Set<number>();
-    for (const r of rows) if ((r.tur === 'rs' || r.tur === 'mat' || r.tur === 'ob') && bajHajm.has(r.id) && chiqarilganmi(sm.get(r.id) ?? r.hajm, bajHajm.get(r.id))) s.add(r.id);
-    return s;
-  }, [rows, states, bajHajm]);
+  const chiqarilganlar = useMemo(() => chiqarilganlarOl(rows, states, bajHajm), [rows, states, bajHajm]);
+
   const summalar = useMemo(() => bolimSummalari(rows, states, chiqarilganlar, svodYaxlit), [rows, states, chiqarilganlar, svodYaxlit]);
   // Ishdan KEYIN turgan alohida materiallar (ota = bo'lim) — ish ulushida fakt TAKLIFI (avtomatik yozilmaydi).
   // Ish ichidagi mat/ob bolalari va ishdan keyingi alohida mat/ob — ish ulushida TAKLIF (ergashish qoidasi; avtomatik yozilmaydi).

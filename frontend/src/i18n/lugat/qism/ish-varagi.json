@@ -1,0 +1,46 @@
+{
+ "Ko‘rinish rejimi": {
+  "ru": "Режим отображения",
+  "en": "View mode"
+ },
+ "Ish varag‘i": {
+  "ru": "Рабочий лист",
+  "en": "Worksheet"
+ },
+ "+5 — bugun, =40 — jami, 50% — smeta foizi. Enter — pastga, Ctrl+S — saqlash.": {
+  "ru": "+5 — за сегодня, =40 — итого, 50% — доля сметы. Enter — вниз, Ctrl+S — сохранить.",
+  "en": "+5 — today, =40 — total, 50% — share of the estimate. Enter — down, Ctrl+S — save."
+ },
+ "Ish varag‘i: qatorlar bo‘ylab": {
+  "ru": "Рабочий лист: по строкам",
+  "en": "Worksheet: row navigation"
+ },
+ "Faktni tahrirlash (Enter — keyingi qator, Esc — bekor)": {
+  "ru": "Править факт (Enter — следующая строка, Esc — отмена)",
+  "en": "Edit actual (Enter — next row, Esc — cancel)"
+ },
+ "Raqam — faktni yozishni boshlash": {
+  "ru": "Цифра — начать ввод факта",
+  "en": "Digit — start entering the actual"
+ },
+ "Qidirish (shifr yoki nom) — «/»": {
+  "ru": "Поиск (шифр или название) — «/»",
+  "en": "Search (code or name) — «/»"
+ },
+ "{n} satr": {
+  "ru": "{n} строк",
+  "en": "{n} rows"
+ },
+ "Bu obyektda ish yo‘q.": {
+  "ru": "В этом объекте нет работ.",
+  "en": "There are no work items in this object."
+ },
+ "Jami va saqlash": {
+  "ru": "Итоги и сохранение",
+  "en": "Totals and save"
+ },
+ "{n} ta o‘zgarish saqlanmagan": {
+  "ru": "Несохранённых изменений: {n}",
+  "en": "{n} unsaved changes"
+ }
+}
