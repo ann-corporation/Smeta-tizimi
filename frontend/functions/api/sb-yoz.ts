@@ -239,6 +239,9 @@ const AMALLAR = {
   korzinkaga_tashlash: { rpc: 't2_korzinkaga_tashlash' },
   korzinkadan_tiklash: { rpc: 't2_korzinkadan_tiklash' },
   butunlay_ochirish: { rpc: 't2_butunlay_ochirish' },
+  arxivla_v1: { rpc: 't2_arxivla_v1' },
+  arxivdan_tiklash_v1: { rpc: 't2_arxivdan_tiklash_v1' },
+  arxiv_butunlay_v1: { rpc: 't2_arxiv_butunlay_v1' },
   obyekt_yangila: { rpc: 't2_obyekt_yangila' },
   aosr_yoz: { rpc: 't2_aosr_yoz' },
   aosr_bekor: { rpc: 't2_aosr_bekor' },
@@ -3170,6 +3173,19 @@ export const onRequestPost: PagesFunction<{
         return Response.json({ ok: false, error: 'id noto\'g\'ri' });
       }
       yuk = { p_jadval: jadval, p_id: id, p_kim: sess.email || '' };
+
+    /* ══════════ ARXIVLASH / KORZINKA (loyiha, obyekt, shartnoma, kontragent, AOSR va F2 qoralama) ══════════
+       Egalik (kompaniya a'zoligi), rol va «tasdiqlangan hujjat bor» bloki RPC ichida; actor faqat sessiyadan. */
+    } else if (amal === 'arxivla_v1' || amal === 'arxivdan_tiklash_v1' || amal === 'arxiv_butunlay_v1') {
+      if (!Number.isSafeInteger(sess.foydalanuvchi_id) || (sess.foydalanuvchi_id as number) <= 0) return Response.json({ ok: false, error: 'Sessiya talab qilinadi.' }, { status: 401 });
+      const tur = String(so.tur || '');
+      const TURLAR = amal === 'arxivla_v1' ? ['loyiha', 'obyekt', 'shartnoma', 'kontragent', 'aosr', 'akt'] : ['loyiha', 'shartnoma', 'kontragent', 'aosr', 'akt'];
+      if (!TURLAR.includes(tur)) return Response.json({ ok: false, error: 'Noma\'lum tur: ' + tur }, { status: 400 });
+      const id = Number(so.id);
+      if (!Number.isSafeInteger(id) || id <= 0) return Response.json({ ok: false, error: 'id noto\'g\'ri' }, { status: 400 });
+      yuk = amal === 'arxivla_v1'
+        ? { p_actor_id: sess.foydalanuvchi_id, p_tur: tur, p_id: id, p_operation_id: crypto.randomUUID() }
+        : { p_actor_id: sess.foydalanuvchi_id, p_tur: tur, p_id: id };
 
     /* ══════════ OBYEKT TAHRIRLASH ══════════
        ⚠️ 2026-08-28: `p_lat`/`p_lng` qo'shildi (foydalanuvchi

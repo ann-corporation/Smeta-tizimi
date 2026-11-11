@@ -3,6 +3,7 @@ import { topshirilganPaketOgohi } from '../../lib/f2-oylik-paket/ogoh';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Ban, CheckCircle2, Download, Eye, FileText, Pencil, Calculator, RefreshCw, RotateCcw, ShieldAlert, Upload } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { ArxivTugma } from '../../components/arxiv/ArxivTugma';
 import { F2HujjatKorinish } from '../../components/f2-hujjat/F2HujjatKorinish';
 import { davrNomi } from '../../lib/f2-hujjat-korinish';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
@@ -499,6 +500,7 @@ export function F2TarixNative() {
                     {mayPrepare && stornoQilinadiAkt(selectedAkt) && <button type="button" data-testid="pereraschet-tugma" className="fz-btn fz-btn--primary" title={t('Eski F2 minus (tepada) + yangi hajmlar faktdan (pastda) — bitta hujjat; fakt o‘zgarmaydi')} onClick={() => setPereraschetOyna({ id: selectedAkt.id, raqam: selectedAkt.raqam, oy: selectedAkt.oy, hujjat_jami: selectedAkt.hujjat_jami })} disabled={savingId != null}><Calculator />{t('Pereraschet')}</button>}
                     {mayPrepare && stornoQilinadiAkt(selectedAkt) && <button type="button" className="fz-btn" title={t('Shu F2 qatorlaridan minus (storno) qoralama yaratadi; asl F2 o‘zgarmaydi')} onClick={() => setStornoOyna({ id: selectedAkt.id, raqam: selectedAkt.raqam, oy: selectedAkt.oy, hujjat_jami: selectedAkt.hujjat_jami })} disabled={savingId != null}><RotateCcw />{t('Storno (minus) F2 yaratish')}</button>}
                     {bekorMumkin(selectedAkt) && <button type="button" className="fz-btn fz-btn--danger" onClick={() => setBekorOyna([bekorAkt(selectedAkt)])} disabled={savingId != null}><Ban />{t('Bekor qilish')}</button>}
+                    {selectedAkt.holat === 'qoralama' && !f2YozishYopiq && <ArxivTugma tur="akt" id={selectedAkt.id} nom={`F2 № ${selectedAkt.raqam ?? selectedAkt.id}`} kichik={false} onDone={() => { setSelectedAktId(null); void yuklash(); }} />}
                   </>}
                   ostida={<>
                     {importAkt?.id === selectedAkt.id && importAkt.import === 'xato' && selectedAkt.lifecycle_status === 'approved' && <p className="fz-note fz-note--warn"><ShieldAlert />{t('Hujjat manbasi (import yoki tizim) o‘qilmadi — zakazchikka yuborish yashirildi. Sahifani yangilang.')}</p>}

@@ -17,6 +17,7 @@ import { downloadBlob } from '../lib/construction-document-control/export/downlo
  */
 import { useEffect, useMemo, useState } from 'react';
 import { ClipboardList, Plus, Link2, Unlink, AlertTriangle, CheckCircle2, FileSpreadsheet, Save, FlaskConical, X, ShieldCheck, FileArchive } from 'lucide-react';
+import { ArxivTugma } from '../components/arxiv/ArxivTugma';
 import { sbAosrCoverageOl, sbAosrBekor, sbAosrBogSaqla, sbAosrBogOl, sbQatorMetaOl, type AosrCoverage, type QatorMetaYozuv } from '../api/t2-aosr';
 import {
   sbAosrV2Ol, sbAosrYozV2, sbLabProtokollarOl, sbLabProtokolYoz, sbLabProtokolBekor, sbLabProtokolBogSaqla,
@@ -460,6 +461,7 @@ export default function TestAosr() {
                           {a.holat === 'yangi' && kompaniyaId && <span onClick={(e) => e.stopPropagation()}><ZakazchigaYuborish kompaniyaId={kompaniyaId} aktId={a.id} resurs="aosr" /></span>}
                           <button type="button" onClick={(e) => { e.stopPropagation(); void excel(a); }} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" title={t('Excel (blank)')} aria-label={t('Excel (blank)')}><FileSpreadsheet /></button>
                           <button type="button" onClick={(e) => { e.stopPropagation(); void bekorQil(a); }} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" title={t('Bekor qilish')} aria-label={t('Bekor qilish')}><Unlink /></button>
+                          {a.holat === 'yangi' && <ArxivTugma tur="aosr" id={a.id} nom={`№ ${a.raqam ?? ''}`} ikonFaqat onDone={() => { setForma(null); yukla(); }} />}
                         </div>
                       </div>
                     </div>

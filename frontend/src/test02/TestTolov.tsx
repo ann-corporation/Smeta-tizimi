@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { useState, useEffect, useMemo } from 'react';
 import { sbT2TolovlarOl, sbT2BuxDashboardOl, type Tolov } from '../api/t2-buxgalteriya';
+import { sbT2ShartnomalarOl, type Shartnoma } from '../api/t2-shartnoma';
+import { TolovForma } from '../components/moliya/TolovForma';
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useReducedMotion } from 'framer-motion';
 import { Plus, RefreshCcw, FileSpreadsheet, Building2, CreditCard, Banknote, BarChart3 } from 'lucide-react';
@@ -30,7 +32,11 @@ export default function TestTolov() {
   const aktKomp = joriy?.id ?? 0;
 
   const [activeTab, setActiveTab] = useState<Tab>('reestr');
-  const [dashboard, setDashboard] = useState<{ bajarilgan: number; tolangan: number; debitor: number; avans: number }>({ bajarilgan: 0, tolangan: 0, debitor: 0, avans: 0 });
+  /* null = hali o'qilmagan / o'qilmadi: «0.00» ko'rsatilmaydi (0 haqiqiy qiymat, noma'lum emas) — «—» chiqadi. */
+  const [dashboard, setDashboard] = useState<{ bajarilgan: number; tolangan: number; debitor: number; avans: number } | null>(null);
+  const [shartnomalar, setShartnomalar] = useState<Shartnoma[]>([]);
+  const [formOchiq, setFormOchiq] = useState(false);
+  const [yangilash, setYangilash] = useState(0);
   const [tolovlar, setTolovlar] = useState<Tolov[]>([]);
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -39,7 +45,7 @@ export default function TestTolov() {
   useEffect(() => {
     if (!aktKomp) return;
     setYuklanmoqda(true);
-    void Promise.all([sbT2BuxDashboardOl(aktKomp), sbT2TolovlarOl()]).then(([dashRes, tolovRes]) => {
+    void Promise.all([sbT2BuxDashboardOl(aktKomp), sbT2TolovlarOl(), sbT2ShartnomalarOl(aktKomp, false)]).then(([dashRes, tolovRes, shRes]) => {
       setYuklanmoqda(false);
       if (dashRes.ok && dashRes.qatorlar) {
         // t2_bux_dashboard da kompaniya_id bo'lmasligi mumkin — hozircha barcha qatorlar yig'iladi (avvalgi xulq).
@@ -50,18 +56,22 @@ export default function TestTolov() {
           avans: acc.avans + (curr.avans || 0),
         }), { bajarilgan: 0, tolangan: 0, debitor: 0, avans: 0 }));
       } else {
-        setDashboard({ bajarilgan: 0, tolangan: 0, debitor: 0, avans: 0 });
+        setDashboard(null);
       }
       // sbT2TolovlarOl barcha to'lovlarni berishi mumkin — joriy kompaniya bo'yicha ajratiladi.
       setTolovlar(tolovRes.ok && tolovRes.qatorlar ? tolovRes.qatorlar.filter((x) => x.kompaniya_id === aktKomp) : []);
+      setShartnomalar(shRes.ok && shRes.qatorlar ? shRes.qatorlar.filter((x) => x.holat !== 'bekor') : []);
     });
-  }, [aktKomp]);
+  }, [aktKomp, yangilash]);
 
   const filteredTolovlar = tolovlar.filter((x) =>
     (x.izoh?.toLowerCase().includes(searchTerm.toLowerCase()) || x.shartnoma_id?.toString().includes(searchTerm))
     && (toifa === 'barchasi' || (toifa === 'kirim' ? x.summa > 0 : x.summa < 0)));
   const oqim = useMemo(() => tolovOqimi(tolovlar), [tolovlar]);
-  const ulush = tolovUlushi(dashboard.bajarilgan, dashboard.tolangan);
+  const ulush = dashboard ? tolovUlushi(dashboard.bajarilgan, dashboard.tolangan) : null;
+  const raqamlar = useMemo(() => new Map(shartnomalar.map((s) => [s.id, s.raqam])), [shartnomalar]);
+  /* KPI: o'qilmagan bo'lsa «—» (yuklanayotganda skelet), 0 bilan aralashtirilmaydi. */
+  const kpi = (v: number | undefined) => (yuklanmoqda && !dashboard ? <span className="skel inline-block h-5 w-20 rounded" aria-busy="true" /> : v == null ? <span className="text-text-mute">—</span> : <FmtN val={v} />);
   const kamHarakat = useReducedMotion();
   const nomKirim = t('kirim'), nomChiqim = t('chiqim'), nomSof = t('jamlangan qoldiq');
   /** To‘lov — haqiqiy pul harakati (ustamasiz, o‘zgartirilmaydi): oylik kirim/chiqim va jamlangan sof oqim. */
@@ -73,16 +83,16 @@ export default function TestTolov() {
       tavsif="Bajarilgan ish (F2) qanchasi to‘langan, kim qarzdor va oylar bo‘yicha pul oqimi."
       amallar={<>
         <button type="button" className="fz-btn fz-btn--ghost" title={t('Tez orada')}><FileSpreadsheet /> {t('Excel eksport')}</button>
-        <button type="button" onClick={() => toast(t('Yangi to‘lov faqat «Shartnomalar» ichidan kiritiladi (shartnomaga bog‘lanadi).'), 'warn')} className="fz-btn fz-btn--primary"><Plus /> {t('Yangi to‘lov')}</button>
+        <button type="button" onClick={() => setFormOchiq(true)} className="fz-btn fz-btn--primary"><Plus /> {t('Yangi to‘lov')}</button>
       </>}
     >
       <div className="flex flex-col gap-3">
         <OpsKpiQator yorliq={t('Moliya ko‘rsatkichlari')}>
-          <OpsKpi nom={t('Bajarilgan (F2)')} rang="var(--info)" qiymat={<FmtN val={dashboard.bajarilgan} />} ost={t('Forma-2 lar yig‘indisi, so‘m')} />
-          <OpsKpi nom={t('To‘langan')} rang="var(--ok)" qiymat={<FmtN val={dashboard.tolangan} />}
+          <OpsKpi nom={t('Bajarilgan (F2)')} rang="var(--info)" qiymat={kpi(dashboard?.bajarilgan)} ost={t('Forma-2 lar yig‘indisi, so‘m')} />
+          <OpsKpi nom={t('To‘langan')} rang="var(--ok)" qiymat={kpi(dashboard?.tolangan)}
             ost={<span className="flex items-center gap-2"><OpsChiziq ulush={ulush} rang="var(--ok)" /><span className="whitespace-nowrap">{ulush == null ? '—' : t('{f}% bajarilgandan', { f: Math.round(ulush * 100) })}</span></span>} />
-          <OpsKpi nom={t('Qarzdorlik (bizga)')} rang="var(--danger)" qiymat={<span className={dashboard.debitor > 0 ? 'text-danger' : ''}><FmtN val={dashboard.debitor} /></span>} ost={t('bajarilgan, lekin to‘lanmagan')} />
-          <OpsKpi nom={t('Avans')} rang="var(--warn)" qiymat={<FmtN val={dashboard.avans} />} ost={t('oldindan to‘lovlar')} />
+          <OpsKpi nom={t('Qarzdorlik (bizga)')} rang="var(--danger)" qiymat={<span className={(dashboard?.debitor ?? 0) > 0 ? 'text-danger' : ''}>{kpi(dashboard?.debitor)}</span>} ost={t('bajarilgan, lekin to‘lanmagan')} />
+          <OpsKpi nom={t('Avans')} rang="var(--warn)" qiymat={kpi(dashboard?.avans)} ost={t('oldindan to‘lovlar')} />
         </OpsKpiQator>
 
         <section className="fz-panel" aria-label={t('Pul oqimi oylar bo‘yicha')}>
@@ -141,7 +151,7 @@ export default function TestTolov() {
                       <td className="fz-c-shifr">#{x.id.toString().padStart(4, '0')}</td>
                       <td className="whitespace-nowrap">{x.sana}</td>
                       <td>
-                        <span className="inline-flex items-center gap-1.5"><Building2 size={13} className="text-text-mute" />{t('Shartnoma № {id}', { id: x.shartnoma_id })}</span>
+                        <span className="inline-flex items-center gap-1.5"><Building2 size={13} className="text-text-mute" />{t('Shartnoma № {id}', { id: raqamlar.get(x.shartnoma_id) ?? x.shartnoma_id })}</span>
                         <span className="mt-0.5 block"><span className="fz-chip">{t(TUR_NOM[x.tur] ?? x.tur)}</span></span>
                       </td>
                       <td className="max-w-[260px] truncate text-text-dim" title={x.izoh || ''}>{x.izoh || '—'}</td>
@@ -151,7 +161,7 @@ export default function TestTolov() {
                       <td><span className={`fz-stamp ${x.holat === 'faol' ? 'fz-stamp--ok' : 'fz-stamp--danger'}`}>{x.holat === 'faol' ? t('faol') : t('bekor')}</span></td>
                     </tr>
                   ))}
-                  {!yuklanmoqda && filteredTolovlar.length === 0 && <OpsBoshQator ustun={6} matn={t('Hech qanday to‘lov yozuvi topilmadi.')} izoh={t('To‘lovlar «Shartnomalar» bo‘limida shartnomaga bog‘lab kiritiladi.')} />}
+                  {!yuklanmoqda && filteredTolovlar.length === 0 && <OpsBoshQator ustun={6} matn={t('Hech qanday to‘lov yozuvi topilmadi.')} izoh={t('«Yangi to‘lov» tugmasi bilan kiriting — to‘lov tanlangan shartnomaga bog‘lanadi.')} />}
                 </tbody>
               </table>
             </div>
@@ -165,6 +175,7 @@ export default function TestTolov() {
           <section className="fz-note"><BarChart3 /><span>{t('Bu bo‘lim keyingi bosqichda ishga tushiriladi. Hozircha to‘lovlar reestridan foydalaning.')}</span></section>
         )}
       </div>
+      {formOchiq && <TolovForma kompaniyaId={aktKomp} shartnomalar={shartnomalar} yop={() => setFormOchiq(false)} onSaved={() => setYangilash((n) => n + 1)} />}
     </Sahifa>
   );
 }
