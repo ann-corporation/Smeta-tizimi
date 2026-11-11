@@ -22,7 +22,7 @@
 
 /** App.tsx dagi `/admin/*` marshrutlarining YAGONA ro'yxati. */
 export const ADMIN_MARSHRUTLARI = [
-  'obyektlar', 'holat', 'holat/:id', 'fakt', 'f2', 'f2-tayyorlash', 'f2-tarix', 'smeta-narxlash', 'buxgalteriya',
+  'obyektlar', 'holat', 'holat/:id', 'fakt', 'bugun', 'f2', 'f2-tayyorlash', 'f2-tarix', 'smeta-narxlash', 'buxgalteriya',
   'shartnomalar', 'fakturalar', 'sklad', 'narxlar', 'ierarxiya',
   'monitoring', 'sozlamalar', 'fayl-boglash', 'hujjatlar',
   'shaxsiy-smeta', 'supabase', 'tezlik', 'test', 'test/obyektlar', 'test/daraxt', 'test/import', 'test/narxlar', 'test/oqish', 'kadrlar', 'texnika', 'taminot', 'sifat',

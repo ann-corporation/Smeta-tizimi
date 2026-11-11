@@ -2,6 +2,17 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 159,
+      "sana": "2026-11-12",
+      "sarlavha": "Usta uchun telefonda «Bugun» sahifasi",
+      "bandlar": [
+        "Usta va brigadir telefonda obyektni tanlaydi, bugungi ishlarni (qoldig'i bilan) ko'radi va katta +/− tugmalar bilan bajarilgan hajmni kiritadi; «100 m²» kabi birliklar oddiy tilda tushuntiriladi.",
+        "Kiritilgan hajm qoralama bo'lib prorab/PTO ning Fakt sahifasidagi «Tasdiqlash kutilmoqda» ro'yxatiga tushadi; tasdiqlansa faktga yoziladi.",
+        "Material kerak bo'lsa smeta materiallaridan 2 bosishda zayavka; brigadir davomatni belgilaydi. Internet bo'lmasa yozuv navbatda saqlanadi va ulanganda o'zi yuboriladi.",
+        "Xodimlar ro'yxati endi bitta joyda — Kadrlar sahifasida (ERP dagi nusxasi olib tashlandi); olib tashlash tasdig'i tushunarli bo'ldi va qator darhol ketadi."
+      ]
+    },
+    {
       "id": 158,
       "sana": "2026-11-12",
       "sarlavha": "Rahbar paneli va hisobotlar yana tezlashdi",

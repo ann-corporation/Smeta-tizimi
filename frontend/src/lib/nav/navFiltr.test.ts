@@ -63,7 +63,7 @@ const bez = (xs: string[], ...yoq: string[]) => xs.filter((x) => !a(...yoq).incl
 /* ── Kutilgan menyular (tartib — sidebar tartibi) ── */
 const OBYEKT = a('dashboard', 'obyektlar', 'loyiha', 'participants', 'mindmap');
 const SMETA = a('smeta-studio', 'holat', 'smeta-narxlash', 'narx-dalil', 'narx-tekshiruv', 'nakrutka', 'narxlar', 'narx-manbalari', 'oferta');
-const FAKT = a('fakt', 'm29');
+const FAKT = a('fakt', 'bugun', 'm29');
 const F2 = a('f2-tayyorlash', 'f2', 'f2-tarix', 'f2-reestr', 'nakopitelniy');
 const MOLIYA = a('moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'crm', 'aloqalar');
 const HUJJAT = a('documents', 'hujjat-nazorat', 'aosr', 'storage', 'zakazchik', 'taqdimlar', 'murojaatlar', 'hujjat-aylanish');
@@ -86,7 +86,7 @@ const KUTILGAN: Record<string, string[]> = {
   bugalter: [...a('dashboard', 'obyektlar', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'crm', 'aloqalar',
     'documents', 'hujjat-nazorat', 'storage', 'logistika', 'zayavka', 'tender', 'yuk-birjasi', 'erp', 'hr', 'sotuv'), ...SHAXSIY],
   prorab: [...bez(ISH, 'dashboard', 'moliya', 'buxgalteriya', 'qarzdorlik'), ...SHAXSIY],
-  usta: [...a('fakt'), ...SHAXSIY],
+  usta: [...a('fakt', 'bugun'), ...SHAXSIY],
   buyurtmachi: [...a('obyektlar', 'loyiha', 'participants', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'shartnoma-liniya',
     'documents', 'hujjat-nazorat', 'storage', 'zakazchik', 'taqdimlar', 'murojaatlar', 'hujjat-aylanish'), ...SHAXSIY],
   omborchi: [...a('m29', 'logistika', 'zayavka', 'tender', 'yuk-birjasi'), ...SHAXSIY],
@@ -175,7 +175,7 @@ describe('qatlamlar', () => {
   });
 
   it('brigadir — usta kabi Fakt kiritishni ko‘radi', () => {
-    expect(menyu('brigadir')).toEqual([...a('fakt', 'hr'), ...SHAXSIY]);
+    expect(menyu('brigadir')).toEqual([...a('fakt', 'bugun', 'hr'), ...SHAXSIY]);
   });
 
   it('kompaniya tanlanmagan (rol yo‘q) — faqat shaxsiy bandlar', () => {

@@ -1,7 +1,7 @@
 import { MoneyInput } from '../umumiy/ui/MoneyInput';
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Navigate } from 'react-router-dom';
-import { sbKadrlarOl, sbKadrYarat, sbTexnikalarOl, sbTexnikaYarat, sbResursBekor, type KadrMustaqil, type TexnikaMustaqil } from '../api/t2-resurs';
+import { sbKadrYarat, sbTexnikalarOl, sbTexnikaYarat, sbResursBekor, type KadrMustaqil, type TexnikaMustaqil } from '../api/t2-resurs';
 import { Users, Truck, ShieldCheck, Plus, HardHat, RefreshCw, Save, Trash2, Network } from 'lucide-react';
 import { useKompaniya } from './KompaniyaTanlov';
 import { toast } from '../umumiy/ui/Toast';
@@ -18,10 +18,16 @@ import { OpsBoshQator, OpsKpi, OpsKpiQator, OpsMaydon, OpsOyna, OpsQidiruv, OpsT
 type Modul = 'kadrlar' | 'texnika' | 'sifat';
 
 export default function TestErp() {
-  const navigate = useNavigate();
+  /* Xodimlar ro'yxati YAGONA: /admin/hr (HR). ERP faqat texnika va sifat; eski havolalar (?modul=kadrlar) shu yerga yo'naltiriladi. */
   const [params] = useSearchParams();
+  if (params.get('modul') === 'kadrlar') return <Navigate to="/admin/hr" replace />;
+  return <ErpResurslar boshModul={params.get('modul') === 'sifat' ? 'sifat' : 'texnika'} />;
+}
+
+function ErpResurslar({ boshModul }: { boshModul: Modul }) {
+  const navigate = useNavigate();
   const { joriy } = useKompaniya();
-  const [modul, setModul] = useState<Modul>(params.get('modul') === 'sifat' ? 'sifat' : params.get('modul') === 'kadrlar' ? 'kadrlar' : 'texnika');
+  const [modul, setModul] = useState<Modul>(boshModul);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [fNomi, setFNomi] = useState('');
@@ -93,8 +99,6 @@ export default function TestErp() {
   const kadrObyektda = kadrlarList.filter((k) => k.obyektlar?.length > 0).length;
   const texIshda = texnikaList.filter((x) => x.obyektlar?.length > 0).length;
 
-  /* Xodimlar ro'yxati YAGONA: /admin/hr (HR). ERP faqat texnika va sifat; eski havolalar (?modul=kadrlar) shu yerga yo'naltiriladi. */
-  if (modul === 'kadrlar') return <Navigate to="/admin/hr" replace />;
 
   return (
     <Sahifa
