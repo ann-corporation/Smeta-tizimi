@@ -10,7 +10,7 @@ import { dataPermission } from './permission-policy';
 export const RUXSATSIZ_BUYRUQ = 'command.unregistered';
 
 /** Tanadagi maydonga qarab ruxsati o'zgaradigan buyruqlar (masalan F2 holat o'tishi: bekor / tuzatish / tasdiq). */
-export const DINAMIK_BUYRUQLAR: ReadonlySet<string> = new Set(["akt_lifecycle_transition_v1","akt_yarat"]);
+export const DINAMIK_BUYRUQLAR: ReadonlySet<string> = new Set(["akt_lifecycle_transition_v1","akt_yarat","buyurtma_otish_v1"]);
 
 export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   qoshimcha_ish_yarat_v1: 'smeta.write',
@@ -128,6 +128,13 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   tender_baho_ber_v1: 'procurement.write',
   tender_fayl_bogla_v1: 'procurement.write',
   tender_taklif_fayl_bogla_v1: 'supply.offer',
+  /* BUYURTMA (20261108410000): xaridor yaratadi/qabul qiladi - procurement.write (RPC: qabul = warehouse.receive YOKI procurement.write; shlyuz qat'iyroq);
+     yetkazuvchi olib ketish joyini yozadi - supply.fulfil; o'tish buyrug'i tanaga qaraydi (buyurtma_otish_v1 - DINAMIK); o'qish - procurement.read. */
+  buyurtma_yarat_v1: 'procurement.write',
+  buyurtma_olish_yoz_v1: 'supply.fulfil',
+  buyurtma_qabul_v1: 'procurement.write',
+  buyurtma_royxat_v1: 'procurement.read',
+  buyurtma_tafsilot_v1: 'procurement.read',
   viborka_smetadan_toldir: 'smeta.write',
   viborka_qabul_yoz: 'document.write',
   shartnoma_saqla: 'document.write',

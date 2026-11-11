@@ -17,6 +17,7 @@ import { toast } from '../../umumiy/ui/Toast';
 import { FmtN } from '../../lib/format';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
+import { ObyektQadamlari } from '../components/ObyektQadamlari';
 import { sbOqi, sbT2AktYaratV2, sbT2F2QoralamaYangila, sbT2DaraxtOl, sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt, type T2Qator } from '../../api/supabase';
 import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
 import { sbQatorHolatOl, sbF2QoralamaHajmlar, type QatorHolat } from '../../api/t2-fakt';
@@ -1128,6 +1129,7 @@ export function F2TayyorlashNative() {
   return <Sahifa sarlavha="F2 tayyorlash" tavsif="Ishni tanlang — resurslar, narx va summa avtomatik; har narx manbasi ko‘rinadi">
     {korinish.oyna}
     <div ref={moneyScope} className="flex min-h-full flex-col gap-3">
+      {validId && <ObyektQadamlari joriy="f2-yasash" obyektId={obyektId} />}
       {validId && <TayyorlanganF2lar kompaniyaId={joriy?.id} obyektId={obyektId} />}
       <section className="fz-card flex flex-wrap items-end gap-3 p-3" aria-label={t('F2 parametrlari')}>
         <label className="min-w-[240px] flex-1 text-[12px] font-medium text-text-dim">{t('Obyekt')}

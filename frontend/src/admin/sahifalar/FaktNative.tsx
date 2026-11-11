@@ -3,6 +3,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, RefreshCw, Target } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
+import { ObyektQadamlari } from '../components/ObyektQadamlari';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { SmetaTree } from '../../umumiy/daraxt/SmetaTree';
 import { useT2Daraxt } from '../../umumiy/daraxt/useT2Daraxt';
@@ -79,6 +80,7 @@ export function FaktNative() {
   </>;
   return <Sahifa sarlavha="Bajarilgan ishlar (Fakt)" tavsif="Smeta hajmi va Faktni RZ → BL → RS/MAT/OB daraxtida boshqaring" amallar={workspace.isProvider && valid ? amallar : undefined}>
     <div className="flex h-full min-h-0 flex-col gap-3">
+      <ObyektQadamlari joriy="fakt" obyektId={valid ? obyektId : null} />
       {!workspace.isProvider && <section className="fz-card flex flex-wrap items-end gap-2 p-3">
         <label className="min-w-[260px] flex-1 text-[12px] font-medium text-text-dim">{t('Obyekt')}
           <select aria-label={t('Obyekt')} value={valid ? obyektId : ''} onChange={e => { const o = obyektlar.find(x => x.id === Number(e.target.value)); if (workspace.isProvider) workspace.setObjectId(o?.id ?? null); else setParams(o ? { obyekt: String(o.id) } : {}); }} className="input mt-1.5 block h-9 w-full px-2 text-[13px] text-text">

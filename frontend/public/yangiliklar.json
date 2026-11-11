@@ -12,6 +12,36 @@
       ]
     },
     {
+      "id": 140,
+      "sana": "2026-11-11",
+      "sarlavha": "Buyurtma berish: zayavkadan yetkazuvchigacha",
+      "bandlar": [
+        "Zayavka «Ta’minotda» holatida «Buyurtma berish» tugmasi paydo bo‘ladi: tizimga ulangan yetkazuvchini tanlang, miqdorni tasdiqlang (narx bo‘sh bo‘lsa — narx noma’lum, 0 emas) va yuboring. Zayavka o‘zi «Buyurtma berildi» holatiga o‘tadi.",
+        "Yetkazuvchi tizimga ulanmagan bo‘lsa, sahifa buni aytadi va taklif yuborish sahifasiga olib boradi.",
+        "Zayavkalar sahifasi pastida «Berilgan buyurtmalar»: har buyurtma holat yorlig‘i bilan. Yetkazuvchi «Topshirdim» desa — shu yerda bitta tugma: «Qabul qildim» (hammasi to‘liq yoki qisman/muammo bilan).",
+        "Yetkazuvchi kabineti («Xarid birjasi» → «Yetkazuvchi kabineti»): «Menga kelgan buyurtmalar». Har holatda bitta tugma: Qabul qilish → Bajarishni boshlash → Tayyor → Topshirdim. «Tayyor» dan oldin qayerdan olib ketilishi so‘raladi."
+      ]
+    },
+    {
+      "id": 137,
+      "sana": "2026-11-11",
+      "sarlavha": "Obyekt ekranida 4 qadam: Fakt → F2 yasash → F2 import → Hujjatlar",
+      "bandlar": [
+        "Smeta, Fakt, F2 yasash, F2 import va Nakopitelniy sahifalari tepasida endi bitta qator: 4 qadam. Joriy qadam belgilanadi, bir bosishda keyingisiga o‘tasiz.",
+        "Har qadamda kichik holat: fakt qoralamalari soni, F2 qoralama/tasdiqlangan soni, tugallanmagan import. Ma’lumot o‘qilmasa belgi ko‘rinmaydi — taxmin qilinmaydi.",
+        "Bitta «Keyingi qadam» tugmasi eng kerakli ishni ko‘rsatadi (masalan, «Faktni yakunlang» yoki «F2 yasang»). Tanlangan obyekt va davr o‘tishda saqlanadi."
+      ]
+    },
+    {
+      "id": 135,
+      "sana": "2026-11-11",
+      "sarlavha": "Fakt qoralamasi hisobga xos; internet qaytganda ro'yxatlar yangilanadi",
+      "bandlar": [
+        "Fakt jurnalining saqlanmagan qoralamasi endi har foydalanuvchiga alohida: bir kompyuterda hisob almashsa, boshqa odam sizning qoralamangizni ko'rmaydi. Tizimdan chiqqanda qoralamalar tozalanadi.",
+        "Internet o'chiq holda ochilgan ilovada internet qaytgach yuqoridagi eski xato yo'qoladi, loyiha va obyekt ro'yxati o'zi qayta yuklanadi."
+      ]
+    },
+    {
       "id": 136,
       "sana": "2026-11-11",
       "sarlavha": "Katta obyektlar tezroq ochiladi",
