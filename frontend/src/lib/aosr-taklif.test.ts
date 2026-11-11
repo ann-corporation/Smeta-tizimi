@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { bogChaqiruvlari, boglanmaganEskiAktlar, ildizlar, ishNomzodlari, razdelBoyicha, takliflarQur } from './aosr-taklif';
-import type { QatorMeta } from './ijro-tayyorla';
+import type { QatorMeta } from './razdel-xaritasi';
 
 /* Soxta smeta: ikki razdel, bir nechta bir xil nomli qator. Haqiqiy obyekt ma'lumoti emas. */
 const meta: QatorMeta[] = [

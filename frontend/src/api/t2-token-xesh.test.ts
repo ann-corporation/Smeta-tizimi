@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { zipSync, strToU8 } from 'fflate';
-import { mazmunXeshi } from './t2-token';
+import { mazmunXeshi } from './mazmun-xesh';
 
 /* Qayta yuklash bepul bo'lishi uchun: har yasalganda o'zgaradigan qismlar (docProps, zip sanasi) xeshga kirmasin. */
 const xlsx = (yaratilgan: string, varaq: string, mtime: number) => zipSync({

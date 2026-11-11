@@ -10,8 +10,8 @@
  * Ish turi zid bo'lsa (ikkalasida bor, kesishmaydi) ball tushiriladi. Noma'lum — taxmin qilinmaydi (taklif yo'q).
  */
 import type { AosrV2 } from '../api/t2-ijro';
-import type { QatorMeta } from './ijro-tayyorla';
-import { razdelXaritasi } from './ijro-tayyorla';
+import type { QatorMeta } from './razdel-xaritasi';
+import { razdelXaritasi } from './razdel-xaritasi';
 
 export const ESKI_REESTR_BELGI = 'ESKI-REESTR';
 
