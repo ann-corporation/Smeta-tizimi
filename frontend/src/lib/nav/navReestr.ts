@@ -151,11 +151,17 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
         { yol: '/admin/aosr', ilova: 'hujjat', nom: 'АОСР va laboratoriya', ruxsat: [RAHBARIYAT, 'document.write', 'quality.read'], modul: 'module.aosr' },
         { yol: '/admin/storage', ilova: 'hujjat', nom: 'Fayllar (saqlash)', ruxsat: [RAHBARIYAT, 'project.read', 'document.write', 'financial.write'], scope: 'OBJECT_SCOPED' },
       ] },
+      /* Texnik nazorat (texnadzor): uy, sayt tekshiruvi, jurnal. Qaror/predpisaniya — pastdagi 'Kiruvchi' bandida (mavjud sahifalar). */
+      { nom: 'Texnik nazorat', ikonka: 'ShieldCheck', sahifalar: [
+        { yol: '/admin/nazorat', ilova: 'hujjat', nom: 'Texnik nazorat', ruxsat: [RAHBARIYAT, 'quality.inspect'], modul: 'module.loyiha' },
+        { yol: '/admin/nazorat/tekshiruv', ilova: 'hujjat', nom: 'Yangi tekshiruv', ruxsat: [RAHBARIYAT, 'quality.inspect'], modul: 'module.loyiha' },
+        { yol: '/admin/nazorat/jurnal', ilova: 'hujjat', nom: 'Tekshiruvlar jurnali', ruxsat: [RAHBARIYAT, 'quality.inspect'], modul: 'module.loyiha' },
+      ] },
       /* Kiruvchi: buyurtmachi kabineti, tomonlar taqdimi va murojaatlar — bitta band. */
       { nom: 'Kiruvchi (tomonlar)', ikonka: 'Inbox', sahifalar: [
-        { yol: '/admin/zakazchik', ilova: 'hujjat', nom: 'Buyurtmachi kabineti', ruxsat: [RAHBARIYAT, 'project.read'], modul: 'module.loyiha' },
-        { yol: '/admin/taqdimlar', ilova: 'hujjat', nom: 'Tomonlar hujjatlari', ruxsat: [RAHBARIYAT, 'project.read'], modul: 'module.loyiha' },
-        { yol: '/admin/murojaatlar', ilova: 'hujjat', nom: 'Murojaatlar (remark, so‘rov)', ruxsat: [RAHBARIYAT, 'project.read'], modul: 'module.loyiha' },
+        { yol: '/admin/zakazchik', ilova: 'hujjat', nom: 'Buyurtmachi kabineti', ruxsat: [RAHBARIYAT, 'project.read', 'quality.inspect'], modul: 'module.loyiha' },
+        { yol: '/admin/taqdimlar', ilova: 'hujjat', nom: 'Tomonlar hujjatlari', ruxsat: [RAHBARIYAT, 'project.read', 'quality.inspect'], modul: 'module.loyiha' },
+        { yol: '/admin/murojaatlar', ilova: 'hujjat', nom: 'Murojaatlar (remark, so‘rov)', ruxsat: [RAHBARIYAT, 'project.read', 'quality.inspect'], modul: 'module.loyiha' },
         { yol: '/admin/hujjat-aylanish', ilova: 'hujjat', nom: 'Hujjat aylanishi (kiruvchi, xat, tasdiq)', ruxsat: [RAHBARIYAT, 'project.read', 'quality.read'], modul: 'module.loyiha' },
       ] },
     ],

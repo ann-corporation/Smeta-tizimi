@@ -30,6 +30,12 @@ const OQISH: Record<string, string> = {
   izohlar: 't2_izohlar_v1',
   imzochilar: 't2_obyekt_imzochilar_v1',
   imzochi_tarix: 't2_imzochi_tarix_v1',
+  /* Texnik nazorat (texnadzor) */
+  nazorat_uy: 't2_nazorat_uy_v1',
+  tekshiruvlar: 't2_nazorat_tekshiruvlar_v1',
+  tekshiruv: 't2_nazorat_tekshiruv_tafsilot_v1',
+  aosr_korik: 't2_nazorat_aosr_korik_v1',
+  f2_tekshiruv: 't2_nazorat_f2_tekshiruv_v1',
 };
 /** Yozish amallari: amal → RPC. */
 const YOZISH: Record<string, string> = {
@@ -53,6 +59,8 @@ const YOZISH: Record<string, string> = {
   qator_izoh: 't2_izoh_yoz_v1',
   qator_izoh_hal: 't2_izoh_hal_v1',
   imzochi_saqla: 't2_obyekt_imzochi_saqla_v1',
+  tekshiruv_yoz: 't2_nazorat_tekshiruv_yoz_v1',
+  aosr_foto: 't2_aosr_foto_biriktir_v1',
 };
 /** T5: obyektni havola bilan ulashishda ochiladigan resurslar (faqat ko'rish). */
 const ULASH_RESURSLARI = ['shartnoma_xulosa', 'f2'];
@@ -95,6 +103,24 @@ export function grantlarniTozala(v: unknown): Yuk[] | string {
     const doira = { loyiha_id: ixtSon(e.loyiha_id), obyekt_id: ixtSon(e.obyekt_id), shartnoma_id: ixtSon(e.shartnoma_id) };
     if (Object.values(doira).filter((x) => x != null).length !== 1) return 'Aynan bitta doira kerak: loyiha, obyekt yoki shartnoma';
     out.push({ resurs: String(e.resurs), amallar, ...doira });
+  }
+  return out;
+}
+
+const BAND_NATIJA = ['mos', 'mos_emas', 'yoq'];
+/** Tekshiruv bandlari: faqat ma'lum maydonlar o'tadi (kod, nom, natija, izoh, muhimlik, document_ids). */
+export function bandlarniTozala(v: unknown): Yuk[] | string {
+  if (!Array.isArray(v) || v.length > 80) return 'bandlar: ko‘pi bilan 80 ta element';
+  const out: Yuk[] = [];
+  for (const e of v as Array<Record<string, unknown>>) {
+    if (!e || typeof e !== 'object') return 'Band noto‘g‘ri';
+    const kod = matn(e.kod, 60), nom = matn(e.nom, 200), natija = String(e.natija ?? '');
+    if (!kod || !nom || nom.length < 2 || !BAND_NATIJA.includes(natija)) return 'Har bandda kod, nom va natija (mos | mos_emas | yoq) kerak';
+    const muhimlik = e.muhimlik == null || e.muhimlik === '' ? 'yuqori' : String(e.muhimlik);
+    if (!['past', 'oddiy', 'yuqori', 'kritik'].includes(muhimlik)) return 'Band muhimligi noto‘g‘ri';
+    const idlar = Array.isArray(e.document_ids) ? (e.document_ids as unknown[]) : [];
+    if (idlar.length > 10 || !idlar.every(sonmi)) return 'Band fotosi: ko‘pi bilan 10 ta musbat son';
+    out.push({ kod, nom, natija, izoh: matn(e.izoh, 1000), muhimlik, document_ids: idlar.map(Number) });
   }
   return out;
 }
@@ -191,6 +217,25 @@ export function yozishYuki(amal: string, so: Yuk): Yuk | string {
       return { p_kompaniya_id, p_obyekt_id: son(so.obyekt_id), p_rol: String(so.rol), p_daraja: daraja, p_razdel_id: daraja === 'razdel' ? son(so.razdel_id) : null,
                p_tashkilot: matn(so.tashkilot, 200), p_lavozim: matn(so.lavozim, 200), p_fio: matn(so.fio, 200), p_operation_id: opId(so.operation_id) };
     }
+    case 'tekshiruv_yoz': {
+      if (!sonmi(so.obyekt_id)) return 'obyekt_id kerak';
+      const ishTuri = matn(so.ish_turi, 80);
+      if (!ishTuri || ishTuri.length < 2) return 'Ish turi kerak';
+      const sana = so.sana == null || so.sana === '' ? null : String(so.sana);
+      if (sana != null && !/^\d{4}-\d{2}-\d{2}$/.test(sana)) return 'sana YYYY-MM-DD bo‘lishi kerak';
+      const bandlar = bandlarniTozala(so.bandlar);
+      if (typeof bandlar === 'string') return bandlar;
+      const kun = so.muddat_kun == null || so.muddat_kun === '' ? null : Number(so.muddat_kun);
+      if (kun != null && !(Number.isInteger(kun) && kun >= 1 && kun <= 60)) return 'muddat_kun 1–60 bo‘lishi kerak';
+      return { p_kompaniya_id, p_operation_id: opId(so.operation_id), p_id: ixtSon(so.id), p_aloqa_id: ixtSon(so.aloqa_id), p_obyekt_id: son(so.obyekt_id), p_sana: sana,
+               p_ish_turi: ishTuri, p_joy: matn(so.joy, 300), p_bandlar: bandlar, p_izoh: matn(so.izoh, 2000), p_yakunla: so.yakunla === true, p_muddat_kun: kun };
+    }
+    case 'aosr_foto': {
+      if (!sonmi(so.aosr_id)) return 'aosr_id kerak';
+      const idlar = Array.isArray(so.document_ids) ? (so.document_ids as unknown[]) : [];
+      if (idlar.length < 1 || idlar.length > 20 || !idlar.every(sonmi)) return 'document_ids: 1–20 ta musbat son';
+      return { p_kompaniya_id, p_aosr_id: son(so.aosr_id), p_document_ids: idlar.map(Number) };
+    }
     case 'loyiha_umumiy':
       return { p_kompaniya_id };
     case 'murojaat_bekor':
@@ -217,6 +262,14 @@ export function oqishYuki(bolim: string, q: URLSearchParams): Yuk | string {
       const y = q.get('yonalish'), h = q.get('holat');
       return { p_kompaniya_id, p_yonalish: y === 'menga' || y === 'mendan' ? y : null, p_holat: h && /^[a-z_]{3,20}$/.test(h) ? h : null, p_aloqa_id: ixtSon(q.get('aloqa_id')), p_limit: ixtSon(q.get('limit')) ?? 100 };
     }
+    case 'nazorat_uy': return { p_kompaniya_id };
+    case 'tekshiruvlar': {
+      const sana = (v: string | null) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
+      return { p_kompaniya_id, p_dan: sana(q.get('dan')), p_gacha: sana(q.get('gacha')), p_obyekt_id: ixtSon(q.get('obyekt_id')), p_limit: ixtSon(q.get('limit')) ?? 200 };
+    }
+    case 'tekshiruv': return sonmi(q.get('tekshiruv_id')) ? { p_kompaniya_id, p_id: Number(q.get('tekshiruv_id')) } : 'tekshiruv_id kerak';
+    case 'aosr_korik': return sonmi(q.get('taqdim_id')) ? { p_kompaniya_id, p_taqdim_id: Number(q.get('taqdim_id')) } : 'taqdim_id kerak';
+    case 'f2_tekshiruv': return sonmi(q.get('taqdim_id')) || sonmi(q.get('akt_id')) ? { p_kompaniya_id, p_taqdim_id: ixtSon(q.get('taqdim_id')), p_akt_id: ixtSon(q.get('akt_id')) } : 'taqdim_id yoki akt_id kerak';
     case 'aloqa': return sonmi(q.get('aloqa_id')) ? { p_kompaniya_id, p_aloqa_id: Number(q.get('aloqa_id')) } : 'aloqa_id kerak';
     case 'taqdim': return sonmi(q.get('taqdim_id')) ? { p_kompaniya_id, p_taqdim_id: Number(q.get('taqdim_id')) } : 'taqdim_id kerak';
     case 'taqdimlar': {
@@ -246,6 +299,7 @@ export function xatoJavobi(text: string): { status: number; body: Yuk } {
     if (/TOMON_ROL_YETARLI_EMAS/.test(msg)) return { status: 403, body: { ok: false, code: 'ROL_YETARLI_EMAS', error: 'Sizning rolingiz bu amal uchun yetarli emas' } };
     return { status: 403, body: { ok: false, code: 'AZO_EMAS', error: 'Siz bu kompaniyaning faol a’zosi emassiz' } };
   }
+  if (code === '22023' && /PREDPISANIYA_XATO/.test(msg)) return { status: 409, body: { ok: false, code: 'PREDPISANIYA_XATO', error: 'Predpisaniya yaratilmadi, tekshiruv yakunlanmadi. Qayta urinib koʻring.' } };
   if (code === '22023') return { status: 400, body: { ok: false, error: 'Noto‘g‘ri so‘rov' } };
   return { status: 502, body: { ok: false, error: 'Server xatosi' } };
 }
