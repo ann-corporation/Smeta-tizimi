@@ -19,7 +19,8 @@ import { WorkspaceReview } from '../../components/smeta-studio-workspace/Workspa
 import { WorkSheet } from '../../components/smeta-studio-workspace/WorkSheet';
 import { QuantityWorkbench } from '../../components/smeta-studio-workspace/QuantityWorkbench';
 import { StudioInspector, type InspectorTab } from '../../components/smeta-studio-workspace/StudioInspector';
-import { StudioCommandMenu, type DeskAction } from '../../components/smeta-studio-workspace/StudioCommandMenu';
+import { StudioCommandMenu, studioAmallar, type DeskAction } from '../../components/smeta-studio-workspace/StudioCommandMenu';
+import { useYordamchiSahifaAmallari } from '../../lib/yordamchi/sahifa-amal-store';
 import { StudioSections } from '../../components/smeta-studio-workspace/StudioSections';
 import '../../components/smeta-studio-workspace/studio-desk.css';
 import { CloudDrafts } from '../../components/smeta-studio-workspace/CloudDrafts';
@@ -208,9 +209,13 @@ export default function SmetaStudio() {
   },[autoSave,doc,joriyId,serverVersiya]);
   // Yagona klaviatura moduli (lib/hotkeys, «?» yordam): buyruqlar paneli, bekor qilish / qaytarish.
   useHotkeys('studio', t('Smeta Studio'), [
-    { id: 'studio.panel', keys: 'ctrl+k', nom: t('Buyruqlar paneli'), inInput: true, run: () => { setCommandOpen(v => !v); } },
     { id: 'studio.undo', keys: 'ctrl+z', nom: t('Bekor qilish'), run: () => { setHist(h => undo(h)); } },
     { id: 'studio.redo', keys: ['ctrl+shift+z', 'ctrl+y'], nom: t('Qaytarish'), run: () => { setHist(h => redo(h)); } },
+  ]);
+  /* Ctrl+K — yagona yordamchi (Jarvis). Studio buyruqlari unga reestr orqali beriladi: «katalogdan ish qo'sh», «smetani tekshir», «serverga saqla»… */
+  useYordamchiSahifaAmallari([
+    ...studioAmallar().map((a) => ({ id: `studio.${a.id}`, nom: a.label, tasdiq: a.id === 'save', run: () => deskAction(a.id) })),
+    { id: 'studio.panel', nom: t('Tez amallar va ishlar'), kalitlar: [t('ish qidirish')], run: () => setCommandOpen(true) },
   ]);
   function run(cmd: StudioCommand): boolean {
     try { setHist(h => dispatch(h, cmd)); setXato(''); return true; }
