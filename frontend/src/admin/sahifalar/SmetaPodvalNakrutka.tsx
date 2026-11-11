@@ -274,8 +274,8 @@ export function SmetaPodvalNakrutka({ kompaniyaId, obyektId, oqish: tashqi, fayl
             {taqqos && taqqos.excelVsego != null && (
               <div className={`fz-note ${taqqos.mos ? 'fz-note--info' : 'fz-note--warn'} flex-col items-stretch`} role="status" data-testid="excel-tizim-taqqos">
                 <b>{taqqos.mos ? t('Excel jami = tizim jami') : t('Excel jami tizim jamiga teng emas')}: Excel <FmtN val={taqqos.excelVsego} /> · {t('tizim')} <FmtN val={taqqos.tizimVsego} />{taqqos.farq != null && !taqqos.mos && <> · {t('farq')} <FmtN val={taqqos.farq} /></>}</b>
-                {taqqos.nolTaklif && <span>{t('Faylda {kodlar} yo‘q: ular 0% bo‘lganda tizim jami faylnikiga aynan teng chiqadi — bu isbot, shuning uchun saqlashda 0% yoziladi (kompaniya foizi emas).', { kodlar: Object.keys(taqqos.nolTaklif).join(', ') })}</span>}
-                {taqqos.taxminiy && <span className="text-warn">{t('taxminiy: faylda yo‘q foizlar kompaniya/sukut qiymatidan olingan — jami faylnikidan farq qilishi mumkin')}</span>}
+                {taqqos.nolTaklif && <span>{t('Faylning o‘z podvalida {kodlar} yo‘q — 0% deb olinadi va saqlanadi (fayl podvali hakam, kompaniya foizi emas).', { kodlar: Object.keys(taqqos.nolTaklif).join(', ') })}</span>}
+                {taqqos.taxminiy && <span className="text-warn">{t('taxminiy: faylda podval yo‘q — foizlar kompaniya/sukut qiymatidan olingan')}</span>}
                 <details open={!taqqos.mos}><summary className="cursor-pointer">{t('Qator-baqator farq')}</summary>
                   <table className="fz-table mt-1"><thead><tr><th>{t('Qator')}</th><th className="fz-c-num">{'Excel'}</th><th className="fz-c-num">{t('Tizim')}</th><th className="fz-c-num">{t('Farq')}</th><th>{t('Sabab')}</th></tr></thead>
                     <tbody>{taqqos.qatorlar.map((q) => <tr key={q.kod}><td>{q.nom}</td><td className="fz-c-num"><FmtN val={q.excel} /></td><td className="fz-c-num"><FmtN val={q.tizim} /></td><td className="fz-c-num"><FmtN val={q.farq} /></td><td className="text-[12px] text-text-dim">{q.izoh}</td></tr>)}</tbody></table>

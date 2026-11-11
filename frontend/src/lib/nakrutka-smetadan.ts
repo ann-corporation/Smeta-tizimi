@@ -142,7 +142,7 @@ export type ExcelTizimTaqqoslash = {
    * Teng bo'lsa — bu isbot (summa nisbati): yo'q qadam = 0%, kompaniya sukut foizi emas. Teng bo'lmasa — null.
    */
   nolTaklif: Partial<Record<NakrutkaKoefKodi, number>> | null;
-  /** Ba'zi foizlar faylda yo'q va nolga ham isbotlanmagan: tizim jami kompaniya/sukut foizidan — taxminiy. */
+  /** Fayl podvali umuman yo'q: foizlar kompaniya/sukut qiymatidan — taxminiy. */
   taxminiy: boolean;
 };
 
@@ -163,7 +163,12 @@ const NOL_ADAYOR: readonly NakrutkaKoefKodi[] = ['ПРОЧИЕ_ПОДРЯДЧИ�
  * (fayl foizlari, yo'q joyda joriy kompaniya/shartnoma foizi). Farq sababi har qatorda yoziladi; yagona hisob — yadro `kaskad`.
  */
 export function excelBilanTizim(o: NakrutkaPodvalOqish, cats: KatSummalar, joriy: Partial<NakrutkaKoeffitsientlar>): ExcelTizimTaqqoslash {
-  const nk: Partial<NakrutkaKoeffitsientlar> = { ...joriy, ...o.koeffitsientlar };
+  // Egasi qarori: faylning o'z podvali bo'lsa u HAKAM — undagi yo'q ПРОЧИЕ/СТРАХОВАНИЕ/РИСК = 0% (kompaniya foizi emas).
+  // Kompaniya/sukut foizi faqat fayl podvali umuman bo'lmaganda (taxminiy).
+  const faylPodvali = Object.keys(o.koeffitsientlar).length > 0;
+  const yoq = faylPodvali ? NOL_ADAYOR.filter((x) => o.koeffitsientlar[x] == null && Number(joriy[x] ?? 0) !== 0) : [];
+  const nolTaklif: ExcelTizimTaqqoslash['nolTaklif'] = yoq.length ? (Object.fromEntries(yoq.map((x) => [x, 0])) as Partial<Record<NakrutkaKoefKodi, number>>) : null;
+  const nk: Partial<NakrutkaKoeffitsientlar> = { ...joriy, ...o.koeffitsientlar, ...(nolTaklif ?? {}) };
   const k = kaskad(cats, standartPodval(nk));
   const hujjat = (kod: string): number | null => {
     const q = o.qatorlar.filter((x) => x.kod === kod && x.summa != null);
@@ -178,7 +183,7 @@ export function excelBilanTizim(o: NakrutkaPodvalOqish, cats: KatSummalar, joriy
     const farq = excel != null && tizim != null ? yaxlit(tizim - excel) : excel == null ? tizim : null;
     const foizFaylda = koef != null ? o.koeffitsientlar[koef] : undefined;
     let izoh = '';
-    if (excel == null) izoh = `в файле строки нет; в системе применён ${koef ? `${nk[koef] ?? 0}%` : ''} (${foizFaylda == null ? 'процент компании/по умолчанию, в подвале сметы его нет' : 'из файла'})`;
+    if (excel == null) izoh = `в файле строки нет; в системе применён ${koef ? `${nk[koef] ?? 0}%` : ''} (${foizFaylda != null ? 'из файла' : koef != null && nolTaklif && koef in nolTaklif ? 'в подвале файла строки нет — принято 0%' : 'процент компании/по умолчанию (файл не задаёт)'})`;
     else if (farq != null && Math.abs(farq) > 1) izoh = `в файле ${foizFaylda ?? '?'}%, в системе ${koef ? nk[koef] ?? 0 : '?'}%`;
     qatorlar.push({ kod, nom, excel, tizim, farq, izoh });
   }
@@ -194,15 +199,7 @@ export function excelBilanTizim(o: NakrutkaPodvalOqish, cats: KatSummalar, joriy
   });
   const farq = excelVsego != null && tizimVsego != null ? yaxlit(tizimVsego - excelVsego) : null;
   const mos = farq != null && Math.abs(farq) <= Math.max(1, Math.abs(excelVsego ?? 0) * 1e-6);
-  // Yo'q ПРОЧИЕ/СТРАХОВАНИЕ/РИСK = 0 bo'lsa jami faylnikiga tengmi?
-  const yoq = NOL_ADAYOR.filter((x) => o.koeffitsientlar[x] == null && Number(nk[x] ?? 0) !== 0);
-  let nolTaklif: ExcelTizimTaqqoslash['nolTaklif'] = null;
-  if (!mos && yoq.length && excelVsego != null) {
-    const nol = Object.fromEntries(yoq.map((x) => [x, 0])) as Partial<Record<NakrutkaKoefKodi, number>>;
-    const k0 = kaskad(cats, standartPodval({ ...nk, ...nol }));
-    if (k0.vsego != null && Math.abs(k0.vsego - excelVsego) <= Math.max(1, excelVsego * 1e-6)) nolTaklif = nol;
-  }
-  const taxminiy = !mos && !nolTaklif && NAKRUTKA_FOIZ_KODLARI.some((x) => o.koeffitsientlar[x] == null);
+  const taxminiy = !faylPodvali;
   return { qatorlar, excelVsego, tizimVsego, farq, mos, nolTaklif, taxminiy };
 }
 

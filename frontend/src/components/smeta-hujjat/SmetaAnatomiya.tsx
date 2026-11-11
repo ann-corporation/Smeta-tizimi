@@ -6,7 +6,7 @@ import { t } from '../../i18n/til';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 import { katKesimJamiBilan, katKesimYigish } from '../../lib/ustamali-summa';
-import { ayirma2 } from '../../lib/hisob-yadro';
+import { kesimgaQosh, yigindi2 } from '../../lib/hisob-yadro';
 import { KAT_GURUH_NOMI } from '../../lib/f2-hujjat-korinish';
 import { birlikOgohi } from '../../lib/fakt-birlik-ogoh';
 import { BirlikOgohBlok } from '../fakt/BirlikOgoh';
@@ -67,6 +67,16 @@ export function SmetaAnatomiya({ tree, obyektId }: { tree: readonly TreeNode[]; 
   // «Smeta (asl)» — server paketi (barcha sahifalar bilan bir xil manba); paket o'qilmaguncha daraxt hisobi.
   const qatlam = useSmetaQatlam(obyektId);
   const aslPaket = qatlam?.asl.paket ?? null;
+  // Qoldiq «bajarilmaydi» deb belgilangan ishlarni chiqarib tashlaydi (ular qolgan ish emas) — «Smeta + o'zgarishlar» bilan bir xil qoida.
+  const bajUstamasiz = qatlam?.ozgarish.bajarilmadi ?? 0;
+  const qoldiqUstamasiz = umumiy.qoldiq == null ? null : yigindi2([umumiy.qoldiq, bajUstamasiz]);
+  const qoldiqKesim = useMemo(() => {
+    const b = qatlam?.ozgarish.kesim.bajarilmadi ?? [];
+    if (!b.length) return kartaKesim.qoldiq;
+    const k = { ...kartaKesim.qoldiq, summalar: { ...kartaKesim.qoldiq.summalar } };
+    for (const x of b) kesimgaQosh(k, x.kat, x.summa);
+    return k;
+  }, [kartaKesim.qoldiq, qatlam]);
   if (!tree.length) return null;
   const pct = (x: number | null) => (x == null ? '—' : `${Math.round(x * 100)}%`);
   const toliqEmas = umumiy.toliq ? null : t('To‘liq emas: {s} bo‘limda smeta, {f} da fakt, {f2} da F2 summasi noma’lum — ko‘rsatilgan qiymat faqat ma’lum qismlar yig‘indisi', { s: umumiy.nomalum.smeta, f: umumiy.nomalum.fakt, f2: umumiy.nomalum.f2 });
@@ -79,7 +89,7 @@ export function SmetaAnatomiya({ tree, obyektId }: { tree: readonly TreeNode[]; 
           <div className="fz-kpi"><span className="fz-kpi__label">{t('Smeta qiymati (asl)')}</span>{aslPaket ? <SummaJuft paket={aslPaket} className="[&_[data-testid=summa-qqs]]:text-[20px] [&_[data-testid=summa-qqs]]:font-semibold" /> : <SummaJuft obyektId={obyektId} ustamasiz={umumiy.smeta} katKesim={kesim} className="[&_[data-testid=summa-qqs]]:text-[20px] [&_[data-testid=summa-qqs]]:font-semibold" />}{nomalumBelgi(umumiy.nomalum.smeta)}</div>
           <div className="fz-kpi"><span className="fz-kpi__label"><i className="fz-bg-nomalum" style={{ background: 'var(--info)' }} />{t('Bajarilgan (fakt)')}</span><SummaJuft obyektId={obyektId} ustamasiz={umumiy.fakt} katKesim={kartaKesim.fakt} yorliq={t('Fakt, QQS bilan')} />{nomalumBelgi(umumiy.nomalum.fakt)}<span className="fz-kpi__sub">{pct(umumiy.faktUlush)} {t('smetadan')}</span></div>
           <div className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: 'var(--accent)' }} />{t('F2 bilan topshirilgan')}</span><SummaJuft obyektId={obyektId} ustamasiz={umumiy.f2} katKesim={kartaKesim.f2} yorliq={t('F2, QQS bilan')} />{nomalumBelgi(umumiy.nomalum.f2)}<span className="fz-kpi__sub">{pct(umumiy.f2Ulush)} {t('smetadan')}</span></div>
-          <div className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: 'var(--surface-3)', boxShadow: 'inset 0 0 0 1px var(--border-strong)' }} />{t('Qoldiq (smeta − F2)')}</span><SummaJuft obyektId={obyektId} ustamasiz={umumiy.qoldiq} katKesim={kartaKesim.qoldiq} yorliq={t('Qoldiq, QQS bilan')} />{nomalumBelgi(umumiy.nomalum.smeta + umumiy.nomalum.fakt + umumiy.nomalum.f2)}<span className="fz-kpi__sub">{t('F2 ga hali olinmagan qism; bajarilish foizi emas')}</span></div>
+          <div className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: 'var(--surface-3)', boxShadow: 'inset 0 0 0 1px var(--border-strong)' }} />{t('Qoldiq (smeta − F2)')}</span><SummaJuft obyektId={obyektId} ustamasiz={qoldiqUstamasiz} katKesim={qoldiqKesim} yorliq={t('Qoldiq, QQS bilan')} />{nomalumBelgi(umumiy.nomalum.smeta + umumiy.nomalum.fakt + umumiy.nomalum.f2)}<span className="fz-kpi__sub">{t('F2 ga hali olinmagan qism («bajarilmaydi» ishlar chiqarilgan); bajarilish foizi emas')}</span></div>
         </div>
         <Chiziq k={umumiy} katta />
         {toliqEmas && <p className="fz-note fz-note--warn" role="note"><AlertTriangle aria-hidden="true" />{toliqEmas}</p>}

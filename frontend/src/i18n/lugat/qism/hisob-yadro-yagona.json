@@ -22,11 +22,12 @@
   "Excel jami tizim jamiga teng emas": { "ru": "Итог Excel не равен итогу системы", "en": "Excel total differs from the system total" },
   "tizim": { "ru": "система", "en": "system" },
   "farq": { "ru": "разница", "en": "difference" },
-  "Faylda {kodlar} yo‘q: ular 0% bo‘lganda tizim jami faylnikiga aynan teng chiqadi — bu isbot, shuning uchun saqlashda 0% yoziladi (kompaniya foizi emas).": { "ru": "В файле нет: {kodlar}. При 0% итог системы в точности равен итогу файла — это доказательство, поэтому при сохранении записывается 0% (а не процент компании).", "en": "The file has no {kodlar}: with 0% the system total equals the file total exactly — that is the proof, so 0% is saved (not the company percentage)." },
-  "taxminiy: faylda yo‘q foizlar kompaniya/sukut qiymatidan olingan — jami faylnikidan farq qilishi mumkin": { "ru": "приблизительно: отсутствующие в файле проценты взяты из значений компании/по умолчанию — итог может отличаться от файла", "en": "approximate: percentages missing from the file come from company/default values — the total may differ from the file" },
+  "Faylning o‘z podvalida {kodlar} yo‘q — 0% deb olinadi va saqlanadi (fayl podvali hakam, kompaniya foizi emas).": { "ru": "В подвале самого файла нет: {kodlar} — принимается и сохраняется 0% (подвал файла главный, а не процент компании).", "en": "The file's own footer has no {kodlar} — 0% is used and saved (the file footer is authoritative, not the company percentage)." },
+  "taxminiy: faylda podval yo‘q — foizlar kompaniya/sukut qiymatidan olingan": { "ru": "приблизительно: в файле нет подвала — проценты взяты из значений компании/по умолчанию", "en": "approximate: the file has no footer — percentages come from company/default values" },
   "Qator-baqator farq": { "ru": "Разница по строкам", "en": "Line-by-line difference" },
   "Sabab": { "ru": "Причина", "en": "Reason" },
   "moslik ishonchi": { "ru": "уверенность соответствия", "en": "match confidence" },
   "Eski versiya hajmi": { "ru": "Объём старой версии", "en": "Old version quantity" },
-  "Yangi (joriy) versiya hajmi": { "ru": "Объём новой (текущей) версии", "en": "New (current) version quantity" }
+  "Yangi (joriy) versiya hajmi": { "ru": "Объём новой (текущей) версии", "en": "New (current) version quantity" },
+  "F2 ga hali olinmagan qism («bajarilmaydi» ishlar chiqarilgan); bajarilish foizi emas": { "ru": "Часть, ещё не принятая по Ф-2 (работы «не выполняются» исключены); это не процент выполнения", "en": "Part not yet taken into F2 («will not be done» works excluded); not a completion percentage" }
 }

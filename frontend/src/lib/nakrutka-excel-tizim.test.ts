@@ -14,19 +14,25 @@ const joriy = { НДС: 12, РИСК: 0, СТРАХОВАНИЕ: 0.32, ПРОЧ�
 const cats = serverCatsdan({ chel: 0, mash: 0, mat: 1000, ob: 0, mk: 0, kab: 0, bez: 0 });
 
 describe('Excel jami ↔ tizim jami', () => {
-  it('faylda ПРОЧИЕ yo‘q va jami faqat transport + НДС bilan mos — nol isboti (kompaniya 18% emas)', () => {
+  it('faylda ПРОЧИЕ yo‘q — 0% olinadi va jami faylnikiga teng', () => {
     const r = excelBilanTizim(oqish(1176), cats, joriy);
-    expect(r.mos).toBe(false); // kompaniya foizlari bilan jami katta
+    expect(r.mos).toBe(true);
     expect(r.nolTaklif).toMatchObject({ ПРОЧИЕ_ПОДРЯДЧИК: 0, СТРАХОВАНИЕ: 0 });
     expect(r.taxminiy).toBe(false);
     const nol = oqishNolBilan(oqish(1176), r.nolTaklif);
     expect(nol.koeffitsientlar.ПРОЧИЕ_ПОДРЯДЧИК).toBe(0);
     expect(nol.manba.ПРОЧИЕ_ПОДРЯДЧИК?.dalil).toBe('summa_nisbati');
   });
-  it('jami hech qaysi variantda mos emas — taxminiy belgisi, nol taklif yo‘q', () => {
+  it('fayl podvali bor — yo‘q foizlar HAR DOIM 0% (jami mos kelmasa ham), taxminiy emas', () => {
     const r = excelBilanTizim(oqish(5000), cats, joriy);
+    expect(r.nolTaklif).toMatchObject({ ПРОЧИЕ_ПОДРЯДЧИК: 0, СТРАХОВАНИЕ: 0 });
+    expect(r.taxminiy).toBe(false);
+    expect(r.farq).not.toBeNull();
+  });
+  it('fayl podvali umuman yo‘q — kompaniya foizi, taxminiy', () => {
+    const bos = { ...oqish(1176), koeffitsientlar: {}, holat: 'topilmadi' as const };
+    const r = excelBilanTizim(bos, cats, joriy);
     expect(r.nolTaklif).toBeNull();
     expect(r.taxminiy).toBe(true);
-    expect(r.farq).not.toBeNull();
   });
 });
