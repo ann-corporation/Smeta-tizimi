@@ -12,12 +12,15 @@ const HOLAT_TTL = 600;
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 const kut = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export function sahifa(o: { klient: string; redirectHost: string; holat: string; xato?: string; login?: string }): string {
+/** «Google bilan kirish» faqat ikkala sir ham o'rnatilganda ko'rinadi. */
+export const googleSozlangan = (env: { GOOGLE_CLIENT_ID?: string; GOOGLE_CLIENT_SECRET?: string }): boolean => !!(env.GOOGLE_CLIENT_ID?.trim() && env.GOOGLE_CLIENT_SECRET?.trim());
+
+export function sahifa(o: { klient: string; redirectHost: string; holat: string; xato?: string; login?: string; google?: boolean }): string {
   return `<!doctype html><html lang="uz"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Smeta tizimi — AI ulanish</title><style>body{font-family:system-ui,sans-serif;background:#f5f6f8;margin:0;padding:24px;color:#1b1f24}
 main{max-width:380px;margin:40px auto;background:#fff;border-radius:12px;padding:24px;box-shadow:0 1px 4px #0002}h1{font-size:20px;margin:0 0 8px}
 p{font-size:14px;line-height:1.45}label{display:block;font-size:13px;margin:12px 0 4px}input{width:100%;box-sizing:border-box;padding:10px;border:1px solid #c8ccd2;border-radius:8px;font-size:15px}
-button{margin-top:16px;width:100%;padding:11px;border:0;border-radius:8px;background:#1d4ed8;color:#fff;font-size:15px;cursor:pointer}.x{color:#b42318;font-size:14px}.k{font-size:12px;color:#5b6370}</style></head>
+button{margin-top:16px;width:100%;padding:11px;border:0;border-radius:8px;background:#1d4ed8;color:#fff;font-size:15px;cursor:pointer}a.g{display:block;margin-top:10px;text-align:center;padding:10px;border:1px solid #c8ccd2;border-radius:8px;color:#1b1f24;text-decoration:none;font-size:15px}.y{text-align:center;color:#5b6370;font-size:13px;margin:16px 0 0}.x{color:#b42318;font-size:14px}.k{font-size:12px;color:#5b6370}</style></head>
 <body><main><h1>Smeta tizimi</h1><p><b>${esc(o.klient)}</b> (${esc(o.redirectHost)}) sizning nomingizdan Smeta tizimi ma'lumotlarini o'qish va
 (sizning tasdig'ingiz bilan) yozish uchun ruxsat so'ramoqda. Faqat siz a'zo bo'lgan kompaniyalar ko'rinadi.</p>
 ${o.xato ? `<p class="x">${esc(o.xato)}</p>` : ''}
@@ -25,17 +28,22 @@ ${o.xato ? `<p class="x">${esc(o.xato)}</p>` : ''}
 <label for="l">Login</label><input id="l" name="login" autocomplete="username" required value="${esc(o.login ?? '')}">
 <label for="p">Parol</label><input id="p" name="parol" type="password" autocomplete="current-password" required>
 <button type="submit">Kirish va ruxsat berish</button></form>
+${o.google ? `<p class="y">yoki</p><a class="g" href="/authorize/google?holat=${esc(o.holat)}">Google bilan kirish</a>
+<p class="k">Google orqali faqat administrator emailingizni hisobingizga ulagan bo'lsa kirasiz; yangi hisob ochilmaydi.</p>` : ''}
 <p class="k">Ruxsatni bekor qilish: saytda parolni almashtiring yoki «boshqa qurilmalardan chiqish» — barcha AI ulanishlari ham to'xtaydi.</p></main></body></html>`;
 }
 
 /** CSP form-action yo'naltirishlarga ham amal qiladi (Chrome): login POST → 302 → AI ilova callback'i bloklanmasin. */
 export const formManba = (redirectUri: string): string | undefined => { try { const u = new URL(redirectUri); return u.protocol === 'https:' || u.hostname === 'localhost' ? u.origin : undefined; } catch { return undefined; } };
-const html = (s: string, status = 200, cookie?: string, redirectOrigin?: string) => new Response(s, {
+export const html = (s: string, status = 200, cookie?: string, redirectOrigin?: string) => new Response(s, {
   status, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Frame-Options': 'DENY', 'Content-Security-Policy': `default-src 'none'; style-src 'unsafe-inline'; form-action 'self'${redirectOrigin ? ' ' + redirectOrigin : ''}; frame-ancestors 'none'`, ...(cookie ? { 'Set-Cookie': cookie } : {}) },
 });
-const holatCookie = (id: string) => `mcp_holat=${id}; HttpOnly; Secure; SameSite=Lax; Path=/authorize; Max-Age=${HOLAT_TTL}`;
+export const holatCookie = (id: string) => `mcp_holat=${id}; HttpOnly; Secure; SameSite=Lax; Path=/authorize; Max-Age=${HOLAT_TTL}`;
+export const holatCookieOl = (request: Request): string | undefined => request.headers.get('Cookie')?.match(/(?:^|;\s*)mcp_holat=([^;]+)/)?.[1];
+export const HOLAT_ID = /^[0-9a-f-]{36}$/;
+export const HOLAT_TTL_S = HOLAT_TTL;
 
-type Saqlangan = { soriq: AuthRequest; klient: string; redirectHost: string };
+export type Saqlangan = { soriq: AuthRequest; klient: string; redirectHost: string };
 
 export async function authorizeGet(request: Request, env: Env): Promise<Response> {
   let soriq: AuthRequest;
@@ -45,7 +53,7 @@ export async function authorizeGet(request: Request, env: Env): Promise<Response
   const id = crypto.randomUUID();
   const s: Saqlangan = { soriq, klient: klient.clientName || 'AI ilova', redirectHost: new URL(soriq.redirectUri).host };
   await env.OAUTH_KV.put(`mcp_login:${id}`, JSON.stringify(s), { expirationTtl: HOLAT_TTL });
-  return html(sahifa({ klient: s.klient, redirectHost: s.redirectHost, holat: id }), 200, holatCookie(id), formManba(soriq.redirectUri));
+  return html(sahifa({ klient: s.klient, redirectHost: s.redirectHost, holat: id, google: googleSozlangan(env) }), 200, holatCookie(id), formManba(soriq.redirectUri));
 }
 
 type ParolJavob = { ok?: boolean; code?: string; foydalanuvchi_id?: number; login?: string };
@@ -70,7 +78,7 @@ export async function authorizePost(request: Request, env: Env): Promise<Respons
   const xom = await env.OAUTH_KV.get(`mcp_login:${id}`);
   if (!xom) return html('<p>Sessiya muddati o\'tdi — AI ilovada ulanishni qaytadan boshlang.</p>', 400);
   const s = JSON.parse(xom) as Saqlangan;
-  const qayta = (xato: string, status = 401) => html(sahifa({ klient: s.klient, redirectHost: s.redirectHost, holat: id, xato, login }), status, holatCookie(id), formManba(s.soriq.redirectUri));
+  const qayta = qaytaYasa(env, s, id, login);
   const ip = request.headers.get('CF-Connecting-IP') ?? 'nomalum';
   const rl = await env.LOGIN_RATE.limit({ key: `ip:${ip}` });
   const rl2 = await env.LOGIN_RATE.limit({ key: `login:${login.toLowerCase()}` });
@@ -81,6 +89,19 @@ export async function authorizePost(request: Request, env: Env): Promise<Respons
   if (j.code === 'NO_PASSWORD_SET') { await kut(800); return qayta('Bu hisob uchun tizim paroli hali o\'rnatilmagan. Avval saytga login/parol bilan bir marta kiring (yoki profilda parol o\'rnating), keyin qayta urinib ko\'ring.'); }
   if (!j.ok || !j.foydalanuvchi_id) { await kut(800); return qayta('Login yoki parol noto\'g\'ri.'); }
   const props: Props = { foydalanuvchi_id: Number(j.foydalanuvchi_id), login: j.login || login, iat: Date.now() };
+  return yakunla(env, s, id, props, qayta);
+}
+
+export type QaytaFn = (xato: string, status?: number) => Response;
+/** Xato bilan login sahifasini qayta ko'rsatish (parol ham, Google ham shu orqali). */
+export const qaytaYasa = (env: Env, s: Saqlangan, id: string, login?: string): QaytaFn => (xato, status = 401) =>
+  html(sahifa({ klient: s.klient, redirectHost: s.redirectHost, holat: id, xato, login, google: googleSozlangan(env) }), status, holatCookie(id), formManba(s.soriq.redirectUri));
+
+/**
+ * Kirish usuli (parol yoki Google) MAVJUD foydalanuvchini aniqlagach: jonli vakolat (hisob faol + kamida bitta kompaniya a'zoligi)
+ * tekshiriladi va faqat shundan keyin OAuth grant beriladi. Google muvaffaqiyati o'zi hech qanday ruxsat bermaydi.
+ */
+export async function yakunla(env: Env, s: Saqlangan, id: string, props: Props, qayta: QaytaFn): Promise<Response> {
   const v = await vakolatOl(props, env);
   if (!v) return qayta('Hisob faol emas yoki vakolatni tekshirib bo\'lmadi.', 403);
   if (!v.kompaniyalar.length) return qayta('Siz hech bir kompaniyaga a\'zo emassiz — AI ulanishga ruxsat yo\'q.', 403);

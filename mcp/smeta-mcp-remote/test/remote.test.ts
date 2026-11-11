@@ -54,7 +54,7 @@ describe('tool ro\'yxati', () => {
     const c = new Client({ name: 't', version: '1' });
     await c.connect(b);
     const { tools } = await c.listTools();
-    expect(tools.length).toBe(MASOFAVIY_TOOLLAR.length);
+    expect(tools.length).toBe(MASOFAVIY_TOOLLAR.length + 2); // + ChatGPT uchun search/fetch (src/chatgpt.ts)
     const fakt = tools.find((t) => t.name === 'fakt_yoz')!;
     expect(Object.keys((fakt.inputSchema as { properties: object }).properties)).toEqual(expect.arrayContaining(['tasdiq', 'dry_run', 'obyekt_id']));
     expect(fakt.description).toContain('tasdiq:true');
