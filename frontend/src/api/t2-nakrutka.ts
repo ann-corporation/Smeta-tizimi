@@ -16,6 +16,7 @@ import { vaqtliOqish } from './vaqtli-fetch';
 import { yangiOperationId } from './supabase';
 import { ustamaOzgardi } from '../umumiy/ui/ustama-kesh';
 import { paketdanOl } from './t2-nakrutka-paket';
+import { birlash } from './birlash';
 import type { SvodYaxlit } from '../lib/svod-yaxlit';
 
 export const NAKRUTKA_KOEF_KODLAR = [
@@ -91,7 +92,7 @@ type ObyektNakrutka = Awaited<ReturnType<typeof t2ObyektNakrutkaYakka>>;
 export async function t2ObyektNakrutka(obyektId: number, shartnomaId?: number | null): Promise<ObyektNakrutka> {
   const v = await paketdanOl(obyektId, shartnomaId);
   if (v) return v as ObyektNakrutka;
-  return t2ObyektNakrutkaYakka(obyektId, shartnomaId);
+  return birlash('nakrutka:' + obyektId + ':' + (shartnomaId ?? ''), () => t2ObyektNakrutkaYakka(obyektId, shartnomaId));
 }
 
 async function t2ObyektNakrutkaYakka(obyektId: number, shartnomaId?: number | null): Promise<{

@@ -76,7 +76,7 @@ const KOMPANIYA_SA = a('kompaniya', 'system-control', 'tizim-sozlama', 'hujjat-d
 const KOMPANIYA = bez(KOMPANIYA_SA, 'system-control');
 const SHAXSIY = a('ish-joylarim', 'topshiriqlar', 'mutaxassis', 'akkaunt', 'sozlamalar');
 /* «Sayt xaritasi» menyudan butunlay olib tashlandi (superadmin uchun ham); sahifa faqat superadminga, Boshqaruv panelidan. */
-const PLATFORMA = a('boshqaruv', 'fayl-boglash', 'test');
+const PLATFORMA = a('boshqaruv', 'fayl-boglash'); // «Sinov qobig'i» menyu bandi olib tashlandi (2026-11-11); /admin/test yo'li superadmin-only qoladi
 
 const KUTILGAN: Record<string, string[]> = {
   superadmin: [...ISH, ...SOTUV, ...KOMPANIYA_SA, ...SHAXSIY, ...PLATFORMA],
@@ -200,7 +200,7 @@ describe('«standart yopiq» menyu ruxsati (route-permission.menyuRuxsati)', () 
   it('reestrda yo‘q yo‘l — null (menyuda ko‘rinmaydi), document.read ga tushmaydi', () => {
     expect(menyuRuxsati('/admin/_demo/documents')).toBeNull();
     expect(menyuRuxsati('/admin/noma-lum')).toBeNull();
-    expect(menyuRuxsati('/admin/test/portfel')).toEqual([]); // faqat platforma guruhida
+    expect(menyuRuxsati('/admin/test/portfel')).toBeNull(); // menyuda yo'q (superadmin-only yo'l, /admin/loyiha ga yo'naltiriladi)
     expect(menyuRuxsati('/admin/holat/12')).toEqual(['smeta.read']);
   });
 });
