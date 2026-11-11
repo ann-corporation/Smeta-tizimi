@@ -1,0 +1,94 @@
+name: Desktop Windows acceptance
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/desktop-windows.yml'
+      - 'frontend/src-tauri/**'
+      - 'frontend/src/desktop/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-windows-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  windows-desktop:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - name: Install the test toolchain
+        shell: pwsh
+        run: |
+          rustup toolchain install 1.99.1 --profile minimal --target x86_64-pc-windows-msvc
+          if ($LASTEXITCODE -ne 0) { throw 'Rust toolchain install failed' }
+          'RUSTUP_TOOLCHAIN=1.99.1' >> $env:GITHUB_ENV
+          $db = Join-Path $env:RUNNER_TEMP 'm5-db'
+          npm install --prefix $db --no-audit --no-fund --ignore-scripts @electric-sql/pglite@0.3.14
+          if ($LASTEXITCODE -ne 0) { throw 'Synthetic database dependency install failed' }
+          "PGLITE_DIR=$(Join-Path $db 'node_modules/@electric-sql/pglite')" >> $env:GITHUB_ENV
+      - name: Verify the test backend and install its Windows package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $env:SMETA_M5_PORT = '5216'
+          $env:SMETA_M5_PUBLIC_ENV_FILE = Join-Path $env:RUNNER_TEMP 'm5-public.ps1'
+          $stdout = Join-Path $env:RUNNER_TEMP 'm5-server.log'
+          $stderr = Join-Path $env:RUNNER_TEMP 'm5-server-errors.log'
+          $server = Start-Process node -ArgumentList 'frontend/src-tauri/e2e/server.mjs' -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          try {
+            $ready = $false
+            for ($attempt = 0; $attempt -lt 60; $attempt++) {
+              if ($server.HasExited) { break }
+              if ((Test-Path -LiteralPath $env:SMETA_M5_PUBLIC_ENV_FILE) -and
+                  (Select-String -LiteralPath $stdout -SimpleMatch '"ready":true' -Quiet)) {
+                $ready = $true
+                break
+              }
+              Start-Sleep -Seconds 1
+            }
+            if (-not $ready) { throw 'Synthetic backend failed to start' }
+            node frontend/src-tauri/e2e/smoke.mjs
+            if ($LASTEXITCODE -ne 0) { throw 'Synthetic HTTP acceptance failed' }
+            . $env:SMETA_M5_PUBLIC_ENV_FILE
+            $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+            $vs = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+            if (-not $vs) { throw 'Visual Studio x64 tools are missing' }
+            & (Join-Path $vs 'Common7/Tools/Launch-VsDevShell.ps1') -Arch amd64 -HostArch amd64 -SkipAutomaticLocation
+            & frontend/src-tauri/desktop-bootstrap.ps1
+            $env:CARGO_TARGET_DIR = Join-Path $env:RUNNER_TEMP 'm5-target'
+            Push-Location frontend
+            try {
+              npx --yes '@tauri-apps/cli@2.12.4' build --target x86_64-pc-windows-msvc --features desktop-e2e --config src-tauri/e2e/tauri.e2e.json --bundles nsis
+              if ($LASTEXITCODE -ne 0) { throw 'Windows test package build failed' }
+            } finally { Pop-Location }
+            $bundles = Join-Path $env:CARGO_TARGET_DIR 'x86_64-pc-windows-msvc/release/bundle/nsis'
+            $installer = @(Get-ChildItem -LiteralPath $bundles -Filter '*_x64-setup.exe' -File)
+            if ($installer.Count -ne 1) { throw 'Expected one NSIS installer' }
+            $destination = Join-Path $env:RUNNER_TEMP 'm5-installed'
+            $install = Start-Process -FilePath $installer[0].FullName -ArgumentList @('/S', "/D=$destination") -PassThru -Wait -WindowStyle Hidden
+            if ($install.ExitCode -ne 0) { throw "NSIS exited with $($install.ExitCode)" }
+            $app = Join-Path $destination 'smeta-desktop.exe'
+            [ordered]@{
+              commit = (git rev-parse HEAD)
+              installerSha256 = (Get-FileHash -LiteralPath $installer[0].FullName -Algorithm SHA256).Hash
+              installedAppSha256 = (Get-FileHash -LiteralPath $app -Algorithm SHA256).Hash
+              installExit = $install.ExitCode
+              fixture = 'synthetic loopback'
+            } | ConvertTo-Json
+          } finally {
+            if (-not $server.HasExited) { Stop-Process -Id $server.Id }
+            if (Test-Path -LiteralPath $stderr) { Get-Content -LiteralPath $stderr -Tail 20 }
+          }
