@@ -54,5 +54,6 @@
   "«{nom}» ro‘yxatdan olib tashlansinmi? Tarix saqlanadi.": { "ru": "Убрать «{nom}» из списка? История сохранится.", "en": "Remove “{nom}” from the list? History is kept." },
   "Qaytish": { "ru": "Назад", "en": "Go back" },
   "Olib tashlandi": { "ru": "Убрано", "en": "Removed" },
+  "Eskirgan: {n} kundan beri kutmoqda": { "ru": "Устарело: ждёт уже {n} дн.", "en": "Overdue: waiting for {n} days" },
   "Olib tashlanmadi": { "ru": "Не удалось убрать", "en": "Could not remove" }
 }

@@ -22,6 +22,12 @@ describe('Tasdiqlash kutilmoqda (prorab/PTO)', () => {
     await waitFor(() => expect(api.sbUstaQaror).toHaveBeenCalledWith({ kompaniyaId: 17, idlar: [1], qaror: 'tasdiqlangan', izoh: null, operationId: 'op-q' }));
     await waitFor(() => expect(tayyor).toHaveBeenCalled());
   });
+  it('3 kundan eski qoralama ajratib ko‘rsatiladi (muddat yo‘q — faqat belgi)', async () => {
+    api.sbUstaQoralamalarOl.mockResolvedValue({ ok: true, qatorlar: [q(1, { created_at: new Date(Date.now() - 4 * 86_400_000).toISOString() }), q(2, { created_at: new Date().toISOString() })] });
+    const { container } = render(<UstaKutilmoqda kompaniyaId={17} obyektId={5} qatorlar={[]} />);
+    await screen.findByText(/Eskirgan: 4 kundan/);
+    expect(container.querySelectorAll('[data-eskirgan]')).toHaveLength(1);
+  });
   it('qoralama bo‘lmasa umuman ko‘rinmaydi', async () => {
     api.sbUstaQoralamalarOl.mockResolvedValue({ ok: true, qatorlar: [] });
     const { container } = render(<UstaKutilmoqda kompaniyaId={17} obyektId={5} qatorlar={[]} />);

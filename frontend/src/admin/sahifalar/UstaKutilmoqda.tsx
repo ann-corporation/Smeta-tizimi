@@ -9,6 +9,10 @@ import { hajmMatni } from '../../lib/usta/birlik';
 import { toast } from '../../umumiy/ui/Toast';
 import { t } from '../../i18n/til';
 
+/** Tasdiqlanmagan qoralama shuncha kundan keyin ajratib ko'rsatiladi (muddat yo'q — faqat belgi; lead 2026-11-12). */
+export const ESKIRGAN_KUN = 3;
+export const qoralamaYoshi = (createdAt: string, hozir = Date.now()): number => { const t0 = Date.parse(createdAt); return Number.isFinite(t0) ? Math.floor((hozir - t0) / 86_400_000) : 0; };
+
 export type UstaQatorNomi = { id: number; nom: string | null; birlik?: string | null };
 
 export function UstaKutilmoqda({ kompaniyaId, obyektId, qatorlar, onTasdiqlandi }: {
@@ -46,10 +50,11 @@ export function UstaKutilmoqda({ kompaniyaId, obyektId, qatorlar, onTasdiqlandi 
       </div>
       <p className="m-0 text-[12px] text-text-mute">{t('Usta va brigadirlar telefondan kiritgan hajmlar. Tasdiqlagach faktga o‘tadi.')}</p>
       <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-        {royxat.map((x) => { const q = nom(x.qator_id); return (
-          <li key={x.id} className="flex flex-wrap items-center gap-2 rounded-[var(--radius-sm)] border border-border bg-surface-2 px-2.5 py-1.5 text-[13px]">
+        {royxat.map((x) => { const q = nom(x.qator_id); const yosh = qoralamaYoshi(x.created_at); const eski = yosh >= ESKIRGAN_KUN; return (
+          <li key={x.id} data-eskirgan={eski ? 'ha' : undefined} className={`flex flex-wrap items-center gap-2 rounded-[var(--radius-sm)] border px-2.5 py-1.5 text-[13px] ${eski ? 'border-warn bg-warn-soft' : 'border-border bg-surface-2'}`}>
             <span className="min-w-0 flex-1"><b className="text-text">{q?.nom || `#${x.qator_id}`}</b>
               <span className="ml-2 text-text-dim">{hajmMatni(Number(x.hajm), q?.birlik)} · {x.sana}</span>
+              {eski && <span className="block font-semibold text-warn">{t('Eskirgan: {n} kundan beri kutmoqda', { n: yosh })}</span>}
               {x.izoh && <span className="block text-text-mute">{x.izoh}</span>}
               {x.foto_hujjat_id != null && <span className="block text-text-mute">{t('Foto biriktirilgan')} (#{x.foto_hujjat_id})</span>}</span>
             <button type="button" disabled={band} onClick={() => void qaror([x.id], 'tasdiqlangan')} className="fz-btn fz-btn--sm">{t('Tasdiqlash')}</button>

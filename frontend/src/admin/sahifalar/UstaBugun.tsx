@@ -9,7 +9,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Camera, ClipboardList, Hammer, Mic, Minus, Plus, Users, WifiOff } from 'lucide-react';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { useT2ObyektlarRoyxati } from '../../api/t2-obyektlar-kesh';
-import { sbOqi, yangiOperationId } from '../../api/supabase';
+import { yangiOperationId } from '../../api/supabase';
+import { bugungiIshlarManbasi, type BugunQator } from '../../lib/usta/bugungi-ishlar';
 import { faktTogriYoz, navbatYozuviniYubor, sbUstaQoralamalarOl } from '../../api/t2-usta';
 import { hrOyOl, hrTabelSaqla, hrXodimlarOl, hrXato, type HrOy, type HrXodim } from '../../api/t2-hr';
 import { navbatOmbori, navbatniYubor, type NavbatOmbor, type NavbatYozuv } from '../../lib/usta/navbat';
@@ -17,13 +18,10 @@ import { birlikIzohi, hajmMatni, QADAM } from '../../lib/usta/birlik';
 import { toast } from '../../umumiy/ui/Toast';
 import { t } from '../../i18n/til';
 
-export type BugunQator = { qator_id: number; kod: string | null; nom: string; birlik: string | null; smeta_hajm: number | null; fakt_hajm: number | null; qoldiq_hajm: number | null };
 type Ekran = 'bosh' | 'ishlar' | 'kirit' | 'zayavka' | 'tabel';
 
-const USTUNLAR = 'qator_id,kod,nom,birlik,smeta_hajm,fakt_hajm,qoldiq_hajm';
 const KESH = 'smeta-usta-ishlar-v1';
 const mahalliySana = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-const num = (v: unknown): number | null => (v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
 
 /** Ish ro'yxatini oflayn uchun saqlash (faqat hajm/nom — pul yo'q). Xato bo'lsa jim. */
 function keshOqi(obyektId: number, tur: string): BugunQator[] | null {
@@ -105,11 +103,9 @@ export default function UstaBugun() {
   const qatorlarniOl = useCallback(async (oid: number, tur: 'bl' | 'mat') => {
     setYuk(true); setIshXato('');
     const eski = keshOqi(oid, tur); if (eski) setIshlar(eski);
-    const r = await sbOqi<Record<string, unknown>>({ jadval: 't2_qator_holat', filtr: `obyekt_id=eq.${oid}&tur=eq.${tur}`, ustunlar: USTUNLAR, tartib: 'kod.asc', limit: 600 });
+    const r = await bugungiIshlarManbasi(oid, tur);
     if (r.ok) {
-      const q = (r.qatorlar ?? []).map((x) => ({ qator_id: Number(x.qator_id), kod: (x.kod as string) ?? null, nom: String(x.nom ?? ''), birlik: (x.birlik as string) ?? null,
-        smeta_hajm: num(x.smeta_hajm), fakt_hajm: num(x.fakt_hajm), qoldiq_hajm: num(x.qoldiq_hajm) }))
-        .filter((x) => x.nom && (tur === 'mat' || x.qoldiq_hajm == null || x.qoldiq_hajm > 0));
+      const q = r.qatorlar;
       setIshlar(q); keshYoz(oid, tur, q);
     } else if (!eski) setIshXato(onlayn ? t('Ishlar ro‘yxati o‘qilmadi. Qayta urinib ko‘ring.') : t('Internet yo‘q va ro‘yxat saqlanmagan. Avval internetda bir marta oching.'));
     setYuk(false);

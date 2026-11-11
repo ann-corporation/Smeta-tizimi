@@ -1,0 +1,11 @@
+{
+  "id": 112,
+  "sana": "2026-11-05",
+  "sarlavha": "Tizim nazoratida Windows dasturini to‘liq boshqarish",
+  "bandlar": [
+    "«Tizim nazorati → Windows dastur»: barcha qurilmalar ro‘yxati (kim, qaysi kompaniya, qurilma nomi, OS, dastur versiyasi, ulangan va oxirgi faol vaqti, muddati, holati, oflayn ruxsat) — qidiruv va filtr bilan. Kompaniya rahbari (boss/admin) «Kompaniya → Windows dastur» bo‘limida faqat o‘z a’zolarining qurilmalarini ko‘radi.",
+    "Amallar: bitta qurilmani bekor qilish, foydalanuvchining barcha qurilmalarini bekor qilib qayta kirishga majburlash, superadmin uchun muddatni qisqartirish/uzaytirish. Har amal sabab bilan jurnalga yoziladi (kim, qachon, nima uchun).",
+    "Siyosat: global kill switch, kompaniya bo‘yicha o‘chirish, bir kishiga qurilma limiti, oflayn ruxsat muddati (≤72 soat), oflaynni o‘chirish va minimal dastur versiyasi. Qoidalar serverda har kirish va har so‘rovda tekshiriladi; o‘chirilgan yoki eski versiyadagi dastur kirish oynasiga qaytadi.",
+    "Yangilanish: superadmin joriy o‘rnatuvchi versiyasi va yuklab olish havolasini kiritadi — foydalanuvchilar «Akkaunt → Windows dastur» bo‘limida ko‘radi."
+  ]
+}

@@ -1,6 +1,6 @@
 -- T2 USTA «Bugun» (ekotizim V3): usta/brigadir telefondan kiritgan bajarilgan hajm QORALAMA bo'lib tushadi,
 -- prorab/PTO (fakt.write) tasdiqlasa mavjud fakt_yoz_v2 yo'li bilan haqiqiy faktga aylanadi.
--- Material zayavkasi — mavjud t2_erp_taminot (status 'draft'). Tabel — mavjud hr_tabel_saqla_v1 (yangi jadval yo'q).
+-- Material zayavkasi — mavjud t2_erp_taminot (status 'submitted', izoh «Ustadan»). Tabel — mavjud hr_tabel_saqla_v1 (yangi jadval yo'q).
 -- Hajm hajmi: bir qoralama qator ~150 bayt; kuniga ~30 qator * 20 kompaniya => ~1 MB/oy (DB byudjeti ichida).
 -- Forward-only: BEGIN/COMMIT yo'q. Qo'llash — egasi ruxsatidan keyin (bu agent qo'llamaydi).
 
@@ -143,7 +143,7 @@ begin
   return jsonb_build_object('ok', true, 'qaror', p_qaror, 'qator_soni', v_n, 'aktlar', v_aktlar);
 end $function$;
 
--- 3) Usta/brigadir: material zayavkasi (t2_erp_taminot, status 'draft' — ta'minot ko'rib chiqadi).
+-- 3) Usta/brigadir: material zayavkasi (t2_erp_taminot, status 'submitted', izoh «Ustadan…» — ta'minot darhol ko'radi; qaror egasi: lead 2026-11-12).
 create or replace function public.t2_usta_zayavka_v1(
   p_actor_id bigint, p_kompaniya_id bigint, p_obyekt_id bigint, p_item_text text, p_requested_qty numeric,
   p_unit text, p_required_date date, p_note text, p_operation_id uuid
@@ -169,12 +169,12 @@ begin
   end if;
   insert into public.t2_erp_taminot (kompaniya_id, obyekt_id, item_text, requested_qty, unit, required_date, note, status, requested_by, operation_id)
   values (p_kompaniya_id, p_obyekt_id, left(btrim(p_item_text), 300), p_requested_qty, nullif(left(p_unit, 30), ''), p_required_date,
-          nullif(left(p_note, 500), ''), 'draft', 'actor:' || p_actor_id, p_operation_id)
+          left('Ustadan' || coalesce(': ' || nullif(btrim(p_note), ''), ''), 500), 'submitted', 'actor:' || p_actor_id, p_operation_id)
   returning id into v_id;
   perform public.t2_audit_yoz(p_kompaniya_id, 'usta_zayavka', 'taminot', null, format('zayavka=%s', v_id), 'actor:' || p_actor_id, null);
   insert into public.t2_onboarding_command_log(operation_id, actor_id, command, natija)
-  values (p_operation_id, p_actor_id, 'usta_zayavka_v1', jsonb_build_object('ok', true, 'id', v_id, 'holat', 'draft'));
-  return jsonb_build_object('ok', true, 'id', v_id, 'holat', 'draft');
+  values (p_operation_id, p_actor_id, 'usta_zayavka_v1', jsonb_build_object('ok', true, 'id', v_id, 'holat', 'submitted'));
+  return jsonb_build_object('ok', true, 'id', v_id, 'holat', 'submitted');
 end $function$;
 
 revoke all on function public.t2_usta_fakt_qoralama_v1(bigint,bigint,bigint,date,jsonb,text,bigint,uuid) from public, anon, authenticated;
@@ -189,4 +189,4 @@ comment on function public.t2_usta_fakt_qoralama_v1(bigint,bigint,bigint,date,js
 comment on function public.t2_usta_fakt_qaror_v1(bigint,bigint,bigint[],text,text,uuid) is
   'versiya: texnik — faqat qoralama qatorlar va mavjud t2_fakt_yoz_v2 orqali yozadi. Prorab/PTO qarori (fakt.write).';
 comment on function public.t2_usta_zayavka_v1(bigint,bigint,bigint,text,numeric,text,date,text,uuid) is
-  'versiya: texnik — smeta qatoriga tegmaydi. Usta material zayavkasi (t2_erp_taminot, draft).';
+  'versiya: texnik — smeta qatoriga tegmaydi. Usta material zayavkasi (t2_erp_taminot, submitted, «Ustadan»).';
