@@ -23,6 +23,7 @@ import { useAiKuzatuv } from './useAiKuzatuv';
 type Tab = 'chat' | 'jurnal' | 'fikr' | 'sozlama';
 const TABLAR: Array<[Tab, string]> = [['chat', 'Suhbat'], ['jurnal', 'Jurnal'], ['fikr', 'Fikr / muammo'], ['sozlama', 'Sozlamalar']];
 const TAB_USLUB = 'flex-1 px-2 py-2 text-xs font-medium transition-colors';
+const KALIT = 'Ctrl+K';
 const ADMIN_ROLLAR = ['boss', 'admin', 'director', 'superadmin'];
 
 /**
@@ -35,7 +36,7 @@ export function AiHelperTugma() {
     <button type="button" data-testid="jarvis-tugma" onClick={() => window.dispatchEvent(new CustomEvent('ai:ochish', { detail: {} }))}
       aria-label={t('Jarvis AI yordamchisini ochish')} title={t('Jarvis AI yordamchisi (Ctrl+K)')}
       className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md border border-border px-2 text-[11px] text-text-dim hover:text-text">
-      <Bot size={14} className="text-accent" /> <span className="hidden xl:inline">Ctrl+K</span>
+      <Bot size={14} className="text-accent" /> <span className="hidden xl:inline">{KALIT}</span>
     </button>
   );
 }
@@ -83,7 +84,7 @@ export function AiHelper() {
   /* Ctrl+K — YAGONA yordamchi (Jarvis) hamma joyda, Smeta Studiyada ham (Studio buyruqlari reestr orqali unga beriladi). */
   const hotkeyFaol = !location.pathname.startsWith('/boss');
   /* Ochilganda kiritish maydoniga fokus (suhbat yashirin saqlanadi, qayta mount bo'lmaydi). */
-  useEffect(() => { if (isOpen && tab === 'chat') setTimeout(() => document.querySelector<HTMLTextAreaElement>('[data-testid="jarvis-kirish"]')?.focus(), 0); }, [isOpen, tab]);
+  useEffect(() => { if (isOpen && tab === 'chat') setTimeout(() => (document.getElementById('jarvis-kirish') as HTMLTextAreaElement | null)?.focus(), 0); }, [isOpen, tab]);
   useHotkeys('jarvis', t('Jarvis yordamchisi'), [
     { id: 'jarvis.och', keys: 'ctrl+k', nom: t('Jarvis yordamchisini ochish / yopish'), inInput: true, run: () => { setIsOpen((o) => !o); setTab('chat'); } },
     { id: 'jarvis.yop', keys: 'esc', nom: t('Jarvis yordamchisini yopish'), inInput: true, run: () => { if (!isOpen) return false; setIsOpen(false); } },
@@ -116,7 +117,7 @@ export function AiHelper() {
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20 text-accent"><Bot size={20} /></div>
               <div>
                 <h3 className="text-sm font-semibold text-text">{kasb?.nom ?? 'Jarvis AI'}</h3>
-                <p className="flex items-center gap-1 text-xs text-text-dim"><span className="h-1.5 w-1.5 rounded-full bg-ok"></span> {t('Sizning lavozimingizga mos AI ishchi')} · Ctrl+K</p>
+                <p className="flex items-center gap-1 text-xs text-text-dim"><span className="h-1.5 w-1.5 rounded-full bg-ok"></span> {t('Sizning lavozimingizga mos AI ishchi')} · {KALIT}</p>
               </div>
             </div>
             <div className="flex items-center">

@@ -286,7 +286,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
       </div>
       <div className="border-t border-border bg-surface-2 p-3">
         <div className="relative">
-          <textarea value={matn} onChange={(e) => setMatn(e.target.value)} rows={1} data-testid="jarvis-kirish" autoFocus={!!yordamchi}
+          <textarea value={matn} onChange={(e) => setMatn(e.target.value)} rows={1} id="jarvis-kirish" data-testid="jarvis-kirish" autoFocus={!!yordamchi}
             placeholder={yordamchi ? t('Masalan: «mindmapni och», «narxsiz qatorlar», «Yevropa 1 F2»') : t('Xabaringizni yozing...')}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void yubor(matn); } }}
             className={`max-h-32 min-h-[44px] w-full resize-none rounded-xl border border-border bg-surface py-3 pl-4 text-sm text-text focus:border-accent focus:outline-none ${ovozBor ? 'pr-28' : 'pr-12'}`} />
