@@ -1,0 +1,30 @@
+{
+  "Ish hajmi materiallarga mos emas: ish {ish} {bir}, materiallardan {taklif} {bir} chiqadi (material jami {mat} {mb}, farq {f}).": {
+    "ru": "Объём работы не соответствует материалам: работа {ish} {bir}, по материалам получается {taklif} {bir} (материалов всего {mat} {mb}, разница {f}).",
+    "en": "Work quantity does not match its materials: work {ish} {bir}, materials imply {taklif} {bir} (materials total {mat} {mb}, difference {f})."
+  },
+  "Tuzatish taklifi: {v}": { "ru": "Предложение исправления: {v}", "en": "Suggested fix: {v}" },
+  "Ish va material hajmi muvofiqligi": { "ru": "Соответствие объёма работ и материалов", "en": "Work and material quantity consistency" },
+  "Ish hajmi materiallar hajmiga mos kelmaydigan qatorlar: {n}": {
+    "ru": "Работы, объём которых не соответствует объёму материалов: {n}",
+    "en": "Works whose quantity does not match their materials: {n}"
+  },
+  "Ish–material muvofiqligi: ogohlantirishlar {n} (bloklamaydi)": {
+    "ru": "Соответствие работ и материалов: предупреждений {n} (не блокирует)",
+    "en": "Work–material consistency: {n} warnings (non-blocking)"
+  },
+  "Ish hajmi {v} (jami fakt) qilib kiritmaga qo‘yildi — tekshirib saqlang (Ctrl+S).": {
+    "ru": "Объём работы {v} (итоговый факт) поставлен во ввод — проверьте и сохраните (Ctrl+S).",
+    "en": "Work quantity {v} (total fact) put into the input — review and save (Ctrl+S)."
+  },
+  "Taklif nusxalandi: {v}. F2 manbasida ish hajmini shu qiymatga tuzating.": {
+    "ru": "Предложение скопировано: {v}. Исправьте объём работы в источнике F2 на это значение.",
+    "en": "Suggestion copied: {v}. Correct the work quantity in the F2 source to this value."
+  },
+  "Taklifni nusxalash bajarilmadi.": { "ru": "Не удалось скопировать предложение.", "en": "Could not copy the suggestion." },
+  "Nusxalash: {v}": { "ru": "Копировать: {v}", "en": "Copy: {v}" },
+  "Ish hajmi {v} qilib qo‘yildi — tekshirib saqlang.": {
+    "ru": "Объём работы установлен {v} — проверьте и сохраните.",
+    "en": "Work quantity set to {v} — review and save."
+  }
+}
