@@ -1,0 +1,22 @@
+{
+  "«Qabul qilish» — АОСР «tasdiqlangan» bo‘ladi (qaror o‘zgarmaydi). Kamchilik bo‘lsa — izoh yozib «Tuzatish so‘rash»: pudratchi tuzatib qayta yuboradi.": {
+    "ru": "«Принять» — АОСР становится «утверждённым» (решение не меняется). При замечаниях — напишите комментарий и нажмите «Запросить исправление»: подрядчик исправит и отправит повторно.",
+    "en": "\"Accept\" marks the AOSR as approved (the decision is final). If there are remarks, write a comment and use \"Request correction\": the contractor fixes it and resubmits."
+  },
+  "«Tasdiqlangan» — buyurtmachi / texnadzor qarori: ro‘yxatdan «Zakazchikka yuborish»": {
+    "ru": "Статус «утверждён» ставит решение заказчика / технадзора: отправьте акт кнопкой «Заказчику» из списка",
+    "en": "The \"approved\" status is set by the customer / technical supervisor decision: send the act from the list with the \"Send to customer\" button"
+  },
+  "Bog‘langan smeta ishlari": { "ru": "Связанные работы сметы", "en": "Linked estimate works" },
+  "Buyurtmachi bilan yozishma va qaror": { "ru": "Переписка с заказчиком и решение", "en": "Correspondence with the customer and decision" },
+  "Pudratchi yuborgan F2 va АОСР — buyurtmachi va texnik nazorat ko‘radi, izoh yozadi, qabul qiladi yoki tuzatishga qaytaradi; qaror o‘zgarmaydi": {
+    "ru": "F2 и АОСР от подрядчика — заказчик и технадзор смотрят, пишут комментарии, принимают или возвращают на исправление; решение не меняется",
+    "en": "F2 and AOSR from the contractor: the customer and technical supervisor review, comment, accept or return for correction; the decision is final"
+  },
+  "Qayta yuborish": { "ru": "Отправить повторно", "en": "Resubmit" },
+  "Qaytardi": { "ru": "Вернул", "en": "Returned" },
+  "Tasdiqlangan holatni buyurtmachi / texnadzor qarori qo‘yadi": { "ru": "Статус «утверждён» ставит решение заказчика / технадзора", "en": "The approved status is set by the customer / technical supervisor decision" },
+  "ulanmagan": { "ru": "не привязаны", "en": "not linked" },
+  "АОСР · yashirin ishlar akti": { "ru": "АОСР · акт скрытых работ", "en": "AOSR · hidden works act" },
+  "АОСР yuborildi — buyurtmachi / texnadzor qarori kutilmoqda": { "ru": "АОСР отправлен — ожидается решение заказчика / технадзора", "en": "AOSR sent: awaiting the customer / technical supervisor decision" }
+}
