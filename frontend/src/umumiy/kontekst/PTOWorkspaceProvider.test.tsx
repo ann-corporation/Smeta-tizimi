@@ -95,7 +95,9 @@ describe('pure scope rules', () => {
   it('validateDetail: only the object\'s own lists count; a single document is filled in, several are left to the user', () => {
     const base = { projectId: 1, objectId: 128, periodId: '2026-09', sourceDocumentId: 'd127', revisionId: 'd127:r1' };
     const d128 = { objectId: 128, periods: [], documents: docsByObject[128], revisions: [] };
-    expect(validateDetail(base, d128)).toMatchObject({ periodId: null, sourceDocumentId: null, revisionId: null });
+    /* Yagona oy: haqiqiy oy (hali F2 yo'q yangi oy ham) saqlanadi; noto'g'ri qiymat tashlanadi. */
+    expect(validateDetail(base, d128)).toMatchObject({ periodId: '2026-09', sourceDocumentId: null, revisionId: null });
+    expect(validateDetail({ ...base, periodId: 'xato' }, d128)).toMatchObject({ periodId: null });
     expect(validateDetail(base, { ...d128, objectId: 127 })).toBe(base);
     const d129 = { objectId: 129, periods: [], documents: docsByObject[129], revisions: [{ id: 'd129:r1', documentId: 'd129', sequence: 1, label: 'r1' }] };
     expect(validateDetail({ ...base, objectId: 129 }, d129)).toMatchObject({ sourceDocumentId: 'd129', revisionId: 'd129:r1' });

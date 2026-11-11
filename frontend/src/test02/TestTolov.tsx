@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useState, useEffect, useMemo } from 'react';
 import { sbT2TolovlarOl, sbT2BuxDashboardOl, type Tolov } from '../api/t2-buxgalteriya';
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -19,6 +20,10 @@ import { OpsBoshQator, OpsChiziq, OpsKpi, OpsKpiQator, OpsQidiruv, OpsTablar } f
 type Tab = 'reestr' | 'kassa' | 'cashflow' | '1c';
 type Toifa = 'barchasi' | 'kirim' | 'chiqim';
 const TUR_NOM: Record<string, string> = { avans: 'avans', tolov: 'to‘lov', qaytarim: 'qaytarim' };
+
+/** Navigatsiya oqimi (2026-11-11): «keyingi bosqichda ulanadi» deb turgan tablar (Bank va kassa, Cashflow, 1C) foydalanuvchiga ko'rsatilmaydi.
+ *  Kod saqlanadi: bo'lim tayyor bo'lganda id ni shu ro'yxatga qo'shing. */
+const TAYYOR_TABLAR = ['reestr'] as const;
 
 export default function TestTolov() {
   const { joriy } = useKompaniya();
@@ -106,12 +111,12 @@ export default function TestTolov() {
           )}
         </section>
 
-        <OpsTablar<Tab> yorliq={t('Moliya bo‘limlari')} joriy={activeTab} onTanla={setActiveTab} tablar={[
+        {TAYYOR_TABLAR.length > 1 && <OpsTablar<Tab> yorliq={t('Moliya bo‘limlari')} joriy={activeTab} onTanla={setActiveTab} tablar={[
           { id: 'reestr', nom: t('To‘lovlar reestri'), ikon: <CreditCard />, soni: tolovlar.length },
           { id: 'kassa', nom: t('Bank va kassa'), ikon: <Banknote /> },
           { id: 'cashflow', nom: t('Cashflow (prognoz)'), ikon: <BarChart3 /> },
           { id: '1c', nom: t('1C sinxron'), ikon: <RefreshCcw /> },
-        ]} />
+        ].filter((x) => (TAYYOR_TABLAR as readonly string[]).includes(x.id)) as Array<{ id: Tab; nom: string; ikon: ReactNode; soni?: number }>} />}
 
         {activeTab === 'reestr' && (
           <div className="flex flex-col gap-2">

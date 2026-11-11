@@ -272,7 +272,7 @@ function Markaz({ kompaniyaId, nom, rp, davr, setDavr, davrQ }: {
       <h2 className="fz-card__title">{t('Boshqaruv markazi')}</h2>
       <div className="flex flex-wrap items-center gap-2">
         <DavrTanlov qiymat={davr} onChange={setDavr} />
-        <button type="button" className="fz-btn fz-btn--sm" disabled={!markaz} onClick={() => void eksport()}><FileDown size={14} aria-hidden="true" />{t('Excel')}</button>
+        <button type="button" className="fz-btn fz-btn--sm" disabled={!markaz || !rp.data} title={!markaz || !rp.data ? t('Boshqaruv markazi hali yuklanmadi — Excel tayyor bo‘lgach yoqiladi') : undefined} onClick={() => void eksport()}><FileDown size={14} aria-hidden="true" />{t('Excel')}</button>
       </div>
     </div>
     {rp.isError && <div role="alert" className="fz-note fz-note--danger"><AlertTriangle aria-hidden="true" /><span>{t('Boshqaruv markazi yuklanmadi.')}</span>
