@@ -13,6 +13,7 @@ import { t } from '../../i18n/til';
 import { Bolim, HolatBelgi } from './tomon-ui';
 import { oyMatn, pul, sana } from './tomon-yordam';
 import { bajarilishFoizi } from './obyekt-portali-yordam';
+import { raqamTozala } from '../../lib/raqam-belgi';
 
 function Kartochka({ nom, qiymat, izoh, rang }: { nom: string; qiymat: string; izoh?: string; rang?: string }) {
   return <div className="fz-kpi"><span className="fz-kpi__label">{rang && <i style={{ background: rang }} />}{t(nom)}</span><span className="fz-kpi__value">{qiymat}</span>{izoh && <span className="fz-kpi__sub">{t(izoh)}</span>}</div>;
@@ -99,7 +100,7 @@ export default function ZakazchikKabinet() {
               <tbody>{g.obyektlar.map((o) => (
                 <tr key={o.obyekt_id}>
                   <td className="font-medium"><Link to={`/admin/zakazchik/obyekt/${o.aloqa_id}/${o.obyekt_id}`} className="text-accent underline">{o.obyekt_nom}</Link></td>
-                  <td>{o.shartnoma ? `№ ${o.shartnoma.raqam}` : <span className="text-text-mute">{t('ochilmagan')}</span>}</td>
+                  <td>{o.shartnoma ? `№ ${raqamTozala(o.shartnoma.raqam)}` : <span className="text-text-mute">{t('ochilmagan')}</span>}</td>
                   <td className="fz-c-num">{o.shartnoma ? pul(o.shartnoma.jami_nds_bilan) : '—'}</td>
                   <td className="fz-c-num">{o.f2 ? `${o.f2.soni} / ${pul(o.f2.jami)}` : <span className="text-text-mute">{t('ochilmagan')}</span>}</td>
                   <td><Bajarilish o={o} /></td>

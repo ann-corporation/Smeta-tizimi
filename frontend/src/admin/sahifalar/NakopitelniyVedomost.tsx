@@ -46,6 +46,7 @@ import { NakopitelniyJadval } from '../../components/nakopitelniy/NakopitelniyJa
 import { ShartnomaQuvur } from '../../components/nakopitelniy/ShartnomaQuvur';
 import { PereraschetBolimi } from './PereraschetBolimi';
 import { SverkaImportPanel } from '../../components/sverka-import/SverkaImportPanel';
+import { raqamTozala } from '../../lib/raqam-belgi';
 
 /**
  * T2-PTO-OWNER-CRITICAL-CLOSURE P0-3: the real, line-by-line PTO nakopitelniy
@@ -654,11 +655,11 @@ function ShartnomaSvodBolimi({ companyId, shartnomaId, tashkilot }: { companyId:
     <section id="shartnoma-svod" className="fz-card" aria-label={t('Shartnoma bo‘yicha: F3, to‘lov va akt-sverka')}>
       <div className="fz-card__head">
         <div>
-          <h2 className="fz-card__title">{t('Shartnoma bo‘yicha: F3, to‘lov va akt-sverka')} — № {sh.raqam}</h2>
+          <h2 className="fz-card__title">{t('Shartnoma bo‘yicha: F3, to‘lov va akt-sverka')} — № {raqamTozala(sh.raqam)}</h2>
           <p className="fz-card__sub">{t('Shartnoma → F2 → F3 → to‘lov → qoldiq: pul oqimi bir qarashda')}</p>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-          <button type="button" className="fz-btn" onClick={() => void ber(sverkaXlsx(sh, { tashkilot, dan: dan || null, gacha: gacha || null }), 'AKT_SVERKA', `Акт сверки № ${sh.raqam}`)}>
+          <button type="button" className="fz-btn" onClick={() => void ber(sverkaXlsx(sh, { tashkilot, dan: dan || null, gacha: gacha || null }), 'AKT_SVERKA', `Акт сверки № ${raqamTozala(sh.raqam)}`)}>
             <Download />{t('Akt-sverka (Excel)')}
           </button>
           <button type="button" className="fz-btn" onClick={() => void ber(hammasi ? shartnomaSvodXlsx(hammasi, { tashkilot }) : null, 'NAKOPITELNIY', 'Накопительная по договорам')}>
@@ -701,7 +702,7 @@ function ShartnomaSvodBolimi({ companyId, shartnomaId, tashkilot }: { companyId:
                             <option value="imzolangan">{t('imzolandi')}</option>
                           </select>
                           <button type="button" title={t('F3 (Excel)')} aria-label={t('F3 (Excel)')} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm"
-                            onClick={() => void ber(forma3SotuvdanXlsx(sh, f3.id, { tashkilot, shakl: f3Shakl }), 'F3', `Форма №3${f3Shakl === 'bir_qatorli' ? ' (одностр.)' : ''} · № ${sh.raqam} · ${f3.sotuv_sana ?? ''}`)}><Download /></button>
+                            onClick={() => void ber(forma3SotuvdanXlsx(sh, f3.id, { tashkilot, shakl: f3Shakl }), 'F3', `Форма №3${f3Shakl === 'bir_qatorli' ? ' (одностр.)' : ''} · № ${raqamTozala(sh.raqam)} · ${f3.sotuv_sana ?? ''}`)}><Download /></button>
                           <button type="button" title={t('Bekor qilish')} aria-label={t('Bekor qilish')} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" style={{ color: 'var(--danger)' }} onClick={() => void bekor('f3_sotuv', f3.id, f3.versiya)}><Trash2 /></button>
                         </span>
                       )}
@@ -717,10 +718,10 @@ function ShartnomaSvodBolimi({ companyId, shartnomaId, tashkilot }: { companyId:
         </div>
         {sh.ds.length !== 0 && (
           <div className="fz-panel">
-            <div className="fz-panel__h"><span>{t('Qo‘shimcha kelishuvlar (DS)')}</span></div>
+            <div className="fz-panel__h"><span>{t('Qo‘shimcha kelishuvlar')}</span></div>
             {sh.ds.map((d) => (
               <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>{t('DS')} № {d.raqam} · {svodSana(d.sana)}</span><span className="tabular-nums" style={{ marginLeft: 'auto', fontWeight: 600 }}>{svodPul(tiyin(d.jami_nds_bilan))}</span>
+                <span>{t('Qo‘shimcha kelishuv')} № {raqamTozala(d.raqam)} · {svodSana(d.sana)}</span><span className="tabular-nums" style={{ marginLeft: 'auto', fontWeight: 600 }}>{svodPul(tiyin(d.jami_nds_bilan))}</span>
                 <button type="button" title={t('Bekor qilish')} aria-label={t('Bekor qilish')} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" style={{ color: 'var(--danger)' }} onClick={() => void bekor('ds', d.id, d.versiya)}><Trash2 /></button>
               </div>
             ))}
@@ -732,7 +733,7 @@ function ShartnomaSvodBolimi({ companyId, shartnomaId, tashkilot }: { companyId:
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-3)', alignItems: 'end' }}>
             <Maydon nom={t('Yozuv turi')}>
               <select className={svodKirit} value={shakl.tur} onChange={(e) => setShakl({ ...shakl, tur: e.target.value as SvodKiritishTur })}>
-                <option value="f3">{t('Sotuv (F3)')}</option><option value="tolov">{t('To‘lov')}</option><option value="ds">{t('Qo‘shimcha kelishuv (DS)')}</option>
+                <option value="f3">{t('Sotuv (F3)')}</option><option value="tolov">{t('To‘lov')}</option><option value="ds">{t('Qo‘shimcha kelishuv')}</option>
               </select></Maydon>
             <Maydon nom={t('Sana')}><input type="date" className={svodKirit} value={shakl.sana} onChange={(e) => setShakl({ ...shakl, sana: e.target.value })} /></Maydon>
             {shakl.tur === 'tolov'

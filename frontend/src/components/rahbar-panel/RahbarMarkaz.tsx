@@ -14,6 +14,7 @@ import { FiltrHolatQatori, UstunFiltrTugma } from '../../umumiy/jadval-filtr/Ust
 import type { Ustun } from '../../umumiy/jadval-filtr/ustunFiltr';
 import type { RahbarDiqqat, RahbarObyekt, RahbarPanel, RahbarTasdiq } from '../../api/t2-rahbar-panel';
 import { bosqichFoizlari, diqqatYoli, faktKarta, kartaHolati, trendNuqtalari, type DavrTur, type KartaHolat } from '../../lib/rahbar-panel/markaz';
+import { kimMatni } from '../../lib/raqam-belgi';
 
 const KIRITISH_YOL = '/admin/moliya';
 const HOLAT_RANG: Record<KartaHolat, string> = { yaxshi: 'var(--ok)', etibor: 'var(--warn)', xavf: 'var(--danger)', nomalum: 'var(--border)' };
@@ -339,7 +340,7 @@ export function TasdiqNavbati({ royxat, obyektNomi }: { royxat: RahbarTasdiq[]; 
               <span className="fz-chip">{x.tur === 'f2' ? 'F2' : t('Zayavka')}</span>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">{x.nom ?? '—'}</p>
-                <p className="text-[11.5px] text-text-dim">{obyektNomi(x.obyekt_id)}{x.kim != null && <> · {String(x.kim)}</>}</p>
+                <p className="text-[11.5px] text-text-dim">{obyektNomi(x.obyekt_id)}{kimMatni(x.kim == null ? null : String(x.kim)) && <> · {kimMatni(String(x.kim))}</>}</p>
               </div>
               <span className="text-[12px] text-text-mute">{kunOldin(x.qachondan)}</span>
               <span className="w-32 text-right tabular-nums">{x.summa != null ? <FmtN val={x.summa} /> : ''}</span>

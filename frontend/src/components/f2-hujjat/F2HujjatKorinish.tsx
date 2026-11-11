@@ -19,6 +19,7 @@ import type { Daraxt, Ustun } from '../../umumiy/jadval-filtr/ustunFiltr';
 import { useJadvalFiltr } from '../../umumiy/jadval-filtr/useJadvalFiltr';
 import { FiltrHolatQatori, UstunFiltrTugma } from '../../umumiy/jadval-filtr/UstunFiltrTugma';
 import { hujjatDaraxti, hujjatQatorlar, korinadiganJami, type HujjatQator } from './f2HujjatFiltr';
+import { kimMatni } from '../../lib/raqam-belgi';
 
 /**
  * F2 ni HUJJAT sifatida ko'rsatadi (egasi 2026-10-25): sarlavha varag'i, tasdiqlash yo'li, kategoriya taqsimoti,
@@ -33,12 +34,6 @@ const DARAXT: Daraxt<HujjatQator<Line>> = hujjatDaraxti();
 const STAMP: Record<PtoLifecycleStatus, string> = {
   draft: 'fz-stamp--draft', submitted: 'fz-stamp--info', checked: 'fz-stamp--info', approved: 'fz-stamp--frozen',
   rejected: 'fz-stamp--danger', cancelled: 'fz-stamp--danger', superseded: '',
-};
-
-/** «actor:183» kabi xom identifikator foydalanuvchiga ko'rsatilmaydi (ism noma'lum bo'lsa — hech narsa). */
-export const kimMatni = (kim: string | null | undefined): string | null => {
-  const s = String(kim ?? '').trim();
-  return s && !/^actor:\d+$/i.test(s) ? s : null;
 };
 
 function Yol({ status, rejim, kim, sana }: { status: PtoLifecycleStatus; rejim: F2TasdiqRejimi; kim?: string | null; sana?: string | null }) {
@@ -146,7 +141,7 @@ export function F2HujjatKorinish(p: {
             <SummaJuft obyektId={p.obyektId} ustamasiz={qatorlarJami} katKesim={katKesim} yorliq={t('F2, QQS bilan')} className="items-end text-right [&_[data-testid=summa-qqs]]:text-[20px] [&_[data-testid=summa-qqs]]:font-semibold" />
           </div>
         </div>
-        <Yol status={p.status} rejim={p.rejim} kim={kimMatni(birinchi?.akt_kim) ?? undefined} sana={birinchi?.akt_sana} />
+        <Yol status={p.status} rejim={p.rejim} kim={kimMatni(birinchi?.akt_kim)} sana={birinchi?.akt_sana} />
         {p.amallar && <div className="fz-doc__actions">{p.amallar}</div>}
       </section>
 
@@ -244,7 +239,7 @@ export function F2HujjatKorinish(p: {
             {f.soni > 0 && filtrQatorSoni === 0 && <tr className="print:hidden"><td colSpan={8} className="text-text-mute">{t('Filtr bo‘yicha qator topilmadi.')}</td></tr>}
             {f.soni > 0 && filtrQatorSoni > 0 && (
               <tr className="fz-row-total print:hidden" data-testid="f2-filtr-jami">
-                <td colSpan={7}>{t('Filtr bo‘yicha: {a} / {b} qator (ustamasiz, NDS siz)', { a: filtrQatorSoni, b: lines.length })}</td>
+                <td colSpan={7}>{t('Filtr bo‘yicha: {a} / {b} qator (ustamasiz, QQS siz)', { a: filtrQatorSoni, b: lines.length })}</td>
                 <td className="fz-c-num">{filtrJami.summa != null ? <FmtN val={filtrJami.summa} /> : <span className="text-text-mute">—</span>}</td>
               </tr>
             )}

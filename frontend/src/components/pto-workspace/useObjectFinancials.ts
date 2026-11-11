@@ -20,12 +20,10 @@ export function useObjectFinancials(companyId: number, objects: readonly T2Obyek
     staleTime: 60_000, retry: false,
     placeholderData: undefined,
     queryFn: async ({ signal }) => {
-      const rows = [];
-      for (let i = 0; i < ids.length; i += 200) {
-        const packet = await objectFinancialsOl(companyId, ids.slice(i, i + 200), signal);
-        rows.push(...packet.objects);
-      }
-      return rows;
+      /* Tezlik: paketlar parallel (all-or-nothing saqlanadi: bittasi yiqilsa Promise.all rad etadi). */
+      const packets = [];
+      for (let i = 0; i < ids.length; i += 200) packets.push(objectFinancialsOl(companyId, ids.slice(i, i + 200), signal));
+      return (await Promise.all(packets)).flatMap(p => p.objects);
     },
   });
   // Even a failed background refresh cannot present an old total as current.

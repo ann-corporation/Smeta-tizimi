@@ -211,7 +211,7 @@ describe('F2 tayyorlash', () => {
     holat.forEach((h) => { if (h.f2_mumkin_hajm === 0) h.f2_mumkin_hajm = 5; });
     ochish();
     const birinchi = await screen.findByLabelText('F2 hajmi: Beton quyish') as HTMLInputElement;
-    expect(screen.getByText(/narx \(1 birlik, NDS siz\)/)).toBeTruthy();
+    expect(screen.getByText(/narx \(1 birlik, QQS siz\)/)).toBeTruthy();
     birinchi.focus();
     fireEvent.keyDown(birinchi, { key: 'ArrowDown' });
     expect(document.activeElement).toBe(birinchi); // bu bo‘limda bitta ish - chegarada qoladi

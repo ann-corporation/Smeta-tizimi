@@ -8,6 +8,7 @@ import { RasmiyVaraq, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, sumFormula, ya
 import { davrMatni } from '../nakopitelniy-vedomost-export';
 import type { F2Bosqich } from '../f2-reestr/reestr';
 import { NDS_FOIZ, oyJami, type FaylMeta, type PaketAkt, type PaketFayl, type Tekshiruv } from './oylik';
+import { raqamTozala } from '../raqam-belgi';
 
 const BOSQICH_RU: Record<F2Bosqich, string> = { tasdiqlangan: 'утверждён', jarayonda: 'черновик / на проверке', rad: 'отклонён', bekor: 'аннулирован' };
 const MANBA_RU = (m: PaketAkt['akt']['manba']) => (m === 'import' ? 'импорт из файла' : m === 'tizim' ? 'создан в системе' : 'не определён');
@@ -171,7 +172,7 @@ export function paketTarkibiMatni(o: {
   /** Ogohlantirishlar (masalan, Forma-3 uchun yetishmagan shartnoma rekvizitlari) — paket yig'iladi, lekin aytiladi. */
   ogohlantirish?: readonly string[];
 }): string {
-  const q = [o.shartnoma ? `ПАКЕТ ПО ДОГОВОРУ № ${o.shartnoma.raqam}${o.shartnoma.nom ? ` (${o.shartnoma.nom})` : ''} ЗА ${o.oy}` : `ПАКЕТ Ф-2 ЗА ${o.oy}`, '', 'Состав пакета:'];
+  const q = [o.shartnoma ? `ПАКЕТ ПО ДОГОВОРУ № ${raqamTozala(o.shartnoma.raqam)}${o.shartnoma.nom ? ` (${o.shartnoma.nom})` : ''} ЗА ${o.oy}` : `ПАКЕТ Ф-2 ЗА ${o.oy}`, '', 'Состав пакета:'];
   for (const f of o.fayllar) q.push(`  ${f.yol}`);
   if (o.ogohlantirish?.length) { q.push('', 'Внимание (документ сформирован, но данных не хватает):'); for (const s of o.ogohlantirish) q.push(`  ${s}`); }
   if (o.otkazilgan.length) { q.push('', 'Не включено (ошибка при формировании):'); for (const s of o.otkazilgan) q.push(`  ${s}`); }

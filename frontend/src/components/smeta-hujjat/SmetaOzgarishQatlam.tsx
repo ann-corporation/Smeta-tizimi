@@ -6,6 +6,7 @@ import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import {
   smetaOzgarishQatlamOl, type OzgarishAkt, type OzgarishAsos, type OzgarishKesimQismi, type SmetaOzgarishQatlam as Qatlam,
 } from '../../api/t2-ozgarish';
+import { kimMatni } from '../../lib/raqam-belgi';
 
 /**
  * SMETA (ASL) CONST + ASOSLANGAN O'ZGARISHLAR (egasi 2026-11-06: «smeta — const; undan boshqa farqlari asoslanib ko'rsatilishi
@@ -75,7 +76,7 @@ export function SmetaOzgarishQatlam({ obyektId }: { obyektId: number | null }) {
       </div>}
       {!bor && <p className="text-[12px] text-text-mute">{t('O‘zgarish yo‘q: smeta asl holicha')}</p>}
       {oz.ikki_marta_sanalgan > 0 && <p className="fz-note text-[11.5px]" role="note" data-testid="smeta-ikki-marta">
-        {t('Avval smeta jamisiga zamena bilan almashtirilgan asl qism ham qo‘shilardi (ikki marta): {s} so‘m (ustamasiz). Endi farq faqat «Zamena farqi» da.', { s: Math.round(oz.ikki_marta_sanalgan).toLocaleString('ru-RU') })}</p>}
+        {t('Zamena bilan almashtirilgan asl qismlar ({s} so‘m, ustamasiz) smeta jamiga bir marta kiritildi. Zamena bo‘yicha farq faqat «Zamena farqi» da ko‘rinadi.', { s: Math.round(oz.ikki_marta_sanalgan).toLocaleString('ru-RU') })}</p>}
       {(d.qoshimcha.asossiz_soni > 0 || d.zamena.asossiz_soni > 0) && <p className="fz-note fz-note--warn text-[11.5px]" role="status">
         {t('Asosi ko‘rsatilmagan: {q} ta qo‘shimcha, {z} ta zamena — sabab yoki hujjat kiriting', { q: String(d.qoshimcha.asossiz_soni), z: String(d.zamena.asossiz_soni) })}</p>}
       {(d.zamena.narxsiz_soni > 0 || d.zamena.noaniq_soni > 0) && <p className="fz-note fz-note--warn text-[11.5px]" role="status">
@@ -90,7 +91,7 @@ export function SmetaOzgarishQatlam({ obyektId }: { obyektId: number | null }) {
             <tbody>{d.qoshimcha.qatorlar.map((x) => <tr key={x.qator_id} className="border-t border-border align-top">
               <td>{x.kod && <span className="fz-c-shifr mr-1">{x.kod}</span>}{x.nom}{x.ota_nom && <small className="block text-text-mute">{x.ota_nom}</small>}</td>
               <td className="text-right tabular-nums"><FmtN val={x.summa ?? null} kasr={0} />{x.narxsiz_soni > 0 && <small className="block text-warn">{t('narxsiz: {n}', { n: String(x.narxsiz_soni) })}</small>}</td>
-              <td><Asos asos={x.asos} akt={x.akt} /></td><td>{x.asos?.kim ?? '—'}</td><td>{sana(x.asos?.qachon)}</td>
+              <td><Asos asos={x.asos} akt={x.akt} /></td><td>{kimMatni(x.asos?.kim) ?? '—'}</td><td>{sana(x.asos?.qachon)}</td>
             </tr>)}</tbody>
           </table>}
           {d.zamena.qatorlar.length > 0 && <table className="mt-3 w-full text-[12px]" data-testid="ozgarish-zamena">
@@ -102,7 +103,7 @@ export function SmetaOzgarishQatlam({ obyektId }: { obyektId: number | null }) {
               <td className="text-right tabular-nums">{x.narxsiz ? <span className="text-warn">{t('narxsiz')}</span> : <FmtN val={x.summa ?? null} kasr={0} />}</td>
               <td className="text-right tabular-nums"><FmtN val={x.almashtirilgan_summa ?? null} kasr={0} /></td>
               <td className="text-right tabular-nums"><FmtN val={x.farq ?? null} kasr={0} /></td>
-              <td><Asos asos={x.asos} akt={x.akt} /></td><td>{x.asos?.kim ?? '—'}</td><td>{sana(x.asos?.qachon)}</td>
+              <td><Asos asos={x.asos} akt={x.akt} /></td><td>{kimMatni(x.asos?.kim) ?? '—'}</td><td>{sana(x.asos?.qachon)}</td>
             </tr>)}</tbody>
           </table>}
           {d.bajarilmadi.qatorlar.length > 0 && <table className="mt-3 w-full text-[12px]" data-testid="ozgarish-bajarilmadi">
@@ -112,7 +113,7 @@ export function SmetaOzgarishQatlam({ obyektId }: { obyektId: number | null }) {
               <td>{x.kod && <span className="fz-c-shifr mr-1">{x.kod}</span>}{x.nom}</td>
               <td className="text-right tabular-nums"><FmtN val={x.bajarilmagan_hajm ?? x.smeta_hajm ?? null} /> {x.birlik ?? ''}</td>
               <td className="text-right tabular-nums"><FmtN val={x.summa ?? null} kasr={0} /></td>
-              <td><Asos asos={x.asos} /></td><td>{x.asos?.kim ?? '—'}</td><td>{sana(x.asos?.qachon)}</td>
+              <td><Asos asos={x.asos} /></td><td>{kimMatni(x.asos?.kim) ?? '—'}</td><td>{sana(x.asos?.qachon)}</td>
             </tr>)}</tbody>
           </table>}
           {(d.qoshimcha.qisqartirildi || d.zamena.qisqartirildi) && <p className="text-[11px] text-text-mute">{t('Ro‘yxat eng katta 500 ta bilan cheklangan')}</p>}

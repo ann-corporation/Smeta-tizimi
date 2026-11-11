@@ -182,7 +182,7 @@ export default function KirishSahifa() {
                 <EmailKodKirish royxat onKirdi={emailNatija} />
 
                 <p className="entry-auth-foot">
-                  {t('Bepul tarif: 300 token (taxminan 150 ta F2 hujjati). Keyin tarifni «Tokenlar va obuna» bo‘limida tanlaysiz.')}
+                  {t('Bepul tarif: 300 token. Har hujjat narxi «Tokenlar» bo‘limidagi narx jadvalida. Keyin tarifni «Tokenlar va obuna» bo‘limida tanlaysiz.')}
                 </p>
               </motion.div>
             )}
