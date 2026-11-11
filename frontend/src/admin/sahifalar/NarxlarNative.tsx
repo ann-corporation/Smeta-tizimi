@@ -109,7 +109,7 @@ export default function NarxlarNative() {
       setRegistr(byKey);
       const obyektlarYangi = (o.qatorlar as T2Obyekt[]) || [];
       setObyektlar(obyektlarYangi);
-      setObyektId(oldingi => workspace.scope.objectId ?? oldingi ?? obyektlarYangi[0]?.id ?? null);
+      setObyektId(oldingi => workspace.scope.objectId ?? oldingi ?? null); /* birinchi obyekt o'zi tanlanmaydi — yagona yuqori tanlov */
     } catch (e) {
       setXato(xatoXabari(e));
     } finally {

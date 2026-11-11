@@ -29,5 +29,8 @@
   "moslik ishonchi": { "ru": "уверенность соответствия", "en": "match confidence" },
   "Eski versiya hajmi": { "ru": "Объём старой версии", "en": "Old version quantity" },
   "Yangi (joriy) versiya hajmi": { "ru": "Объём новой (текущей) версии", "en": "New (current) version quantity" },
-  "F2 ga hali olinmagan qism («bajarilmaydi» ishlar chiqarilgan); bajarilish foizi emas": { "ru": "Часть, ещё не принятая по Ф-2 (работы «не выполняются» исключены); это не процент выполнения", "en": "Part not yet taken into F2 («will not be done» works excluded); not a completion percentage" }
+  "F2 ga hali olinmagan qism («bajarilmaydi» ishlar chiqarilgan); bajarilish foizi emas": { "ru": "Часть, ещё не принятая по Ф-2 (работы «не выполняются» исключены); это не процент выполнения", "en": "Part not yet taken into F2 («will not be done» works excluded); not a completion percentage" },
+  "Excel jami tizim jamiga teng: {jami} (QQS bilan).": { "ru": "Итог Excel равен итогу системы: {jami} (с НДС).", "en": "Excel total equals the system total: {jami} (incl. VAT)." },
+  "Excel jami {excel}, tizim jami {tizim} (farq {farq}).": { "ru": "Итог Excel {excel}, итог системы {tizim} (разница {farq}).", "en": "Excel total {excel}, system total {tizim} (difference {farq})." },
+  "Faylda ustama podvali yo‘q — tizim jami kompaniya foizlari bilan, taxminiy.": { "ru": "В файле нет подвала накруток — итог системы по процентам компании, приблизительно.", "en": "The file has no markup footer — the system total uses company percentages, approximate." }
 }

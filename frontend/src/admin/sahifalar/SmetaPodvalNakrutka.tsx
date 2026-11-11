@@ -43,7 +43,7 @@ export function ObyektPodvalOgohi({ obyektId }: { obyektId: number }) {
  * SmetaPodvalNakrutka ichidagi avtomatik yozuv ishlamay qolardi — obyekt kompaniya sukut foizlarida qolardi (sayt auditi, band 100).
  * Qoida (egasi): foizlar DOIM smeta podvalidan; mavjud podval ustidan yozilmaydi (preview + tasdiq).
  */
-export async function podvalniAvtoYoz(p: { kompaniyaId: number; obyektId: number; oqish: NakrutkaPodvalOqish | null; fayl?: string; mavjudSmeta: boolean }): Promise<{ holat: 'yozildi' | 'otkazildi' | 'xato'; sabab?: string; taxminiy?: boolean }> {
+export async function podvalniAvtoYoz(p: { kompaniyaId: number; obyektId: number; oqish: NakrutkaPodvalOqish | null; fayl?: string; mavjudSmeta: boolean }): Promise<{ holat: 'yozildi' | 'otkazildi' | 'xato'; sabab?: string; taxminiy?: boolean; taqqos?: ReturnType<typeof excelBilanTizim> }> {
   const { oqish } = p;
   if (!oqish || oqish.holat === 'topilmadi' || !Object.keys(oqish.koeffitsientlar).length) return { holat: 'otkazildi', sabab: 'faylda nakrutka podvali topilmadi' };
   if (oqish.review.some((r) => r.bloklovchi)) return { holat: 'otkazildi', sabab: 'hal qilinmagan podval bloklari — operator tasdiqlaydi' };
@@ -56,7 +56,7 @@ export async function podvalniAvtoYoz(p: { kompaniyaId: number; obyektId: number
     const pod = smetadanPodval(oqishNolBilan(oqish, tq.nolTaklif), n.koeffitsientlar, p.fayl);
     const r = await sbPodvalSaqla({ kompaniyaId: p.kompaniyaId, doira: { obyektId: p.obyektId }, nom: pod.nom ?? SMETA_PODVAL_NOMI, qatorlar: pod.qatorlar,
       ...(mavjud ? { id: mavjud.id, kutilganVersiya: mavjud.versiya } : { operationId: yangiOperationId() }) });
-    return r.ok ? { holat: 'yozildi', taxminiy: tq.taxminiy } : { holat: 'xato', sabab: r.error || 'saqlanmadi' };
+    return r.ok ? { holat: 'yozildi', taxminiy: tq.taxminiy, taqqos: tq } : { holat: 'xato', sabab: r.error || 'saqlanmadi' };
   } catch (e) { return { holat: 'xato', sabab: e instanceof Error ? e.message : String(e) }; }
 }
 

@@ -33,7 +33,6 @@ export default function TestObyektlar() {
   /* Tezlik: ProjectNavigator qatorlar kelgach ochiladi — zanjir va rahbar paneli so'rovlari shu paytgacha kutardi.
      Bir xil kalit bilan hozirdan parallel boshlanadi (keshdan olinadi). */
   useCompanyLineage(joriy?.id ?? null);
-  useRahbarPanel(joriy?.id);
 
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [qatorlar, setQatorlar] = useState<Qator[] | null>(null);
@@ -41,6 +40,8 @@ export default function TestObyektlar() {
   const generation = useRef(0);
   const [loadedCompany, setLoadedCompany] = useState<number | null>(null);
   const currentRows = loadedCompany === joriy?.id ? qatorlar : null;
+  /* Tezlik: og'ir rahbar paketi ro'yxat kelgach so'raladi (ro'yxat bilan raqobatlashmaydi); ProjectNavigator shu kalitdan oladi. */
+  useRahbarPanel(currentRows ? joriy?.id : null);
   /* Tezlik: barcha obyektlar ustamasi BITTA paket so'rovida (har qator alohida so'rov berardi). */
   useEffect(() => { if (joriy?.id && currentRows && currentRows.length > 1) t2NakrutkaOldindan(joriy.id, currentRows.map((o) => ({ obyektId: o.id }))); }, [joriy?.id, currentRows]);
 
