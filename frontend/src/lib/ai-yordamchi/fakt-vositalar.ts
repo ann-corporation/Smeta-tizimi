@@ -66,7 +66,7 @@ const summaMatn = (m: FaktMalumot, s: SummaKesim | undefined) => {
   const ust = u?.ustamali == null ? 'ustamali noma’lum' : `ustamali ${u.taxminiy ? '≈ ' : ''}${pul(u.ustamali)}`;
   return `ustamasiz ${pul(s.ustamasiz)}; ${ust}${s.kesim.summasizSoni ? `; ${s.kesim.summasizSoni} ta qator narxsiz (summaga kirmagan)` : ''}`;
 };
-const summalarBloki = (m: FaktMalumot, id: number) => {
+export const summalarBloki = (m: FaktMalumot, id: number) => {
   const s = m.summalar.get(id);
   if (!s) return 'Summalar: noma’lum';
   return [`Smeta: ${summaMatn(m, s.smeta)}`, `F2: ${summaMatn(m, s.f2)}`, `Fakt: ${summaMatn(m, s.fakt)}`, `Qoldiq: ${summaMatn(m, s.qoldiq)}`].join('\n') + '\n(narxlar NDS siz; NDS faqat oxirida 12%)';

@@ -31,8 +31,8 @@ export function narxProtokollarOl(obyektId: number) {
 export function narxProtokolQatorlariOl(obyektId: number, basisId?: number) {
   return sbOqi<NarxProtokolQator>({ jadval: 't2_narx_protokol_qator', filtr: 'obyekt_id=eq.' + obyektId + (basisId ? '&basis_id=eq.' + basisId : ''), tartib: 'id.asc', limit: 20000 });
 }
-export function narxProtokolYarat(obyektId: number, qatorlar: Array<{ qator_id: number; yangi_narx: number; manba_qator_id?: number | null; izoh?: string | null }>, izoh?: string) {
-  return yoz({ amal: 'narx_protokol_yarat', obyekt_id: obyektId, qatorlar, izoh: izoh ?? null, operation_id: yangiOperationId() });
+export function narxProtokolYarat(obyektId: number, qatorlar: Array<{ qator_id: number; yangi_narx: number; manba_qator_id?: number | null; izoh?: string | null }>, izoh?: string, operationId?: string) {
+  return yoz({ amal: 'narx_protokol_yarat', obyekt_id: obyektId, qatorlar, izoh: izoh ?? null, operation_id: operationId ?? yangiOperationId() });
 }
 export function narxProtokolTasdiqla(id: number, documentId: number, kuchgaKirish: string) {
   return yoz({ amal: 'narx_protokol_tasdiqla', id, document_id: documentId, kuchga_kirish: kuchgaKirish });

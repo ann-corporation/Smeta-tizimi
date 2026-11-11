@@ -2,13 +2,24 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
-      "id": 141,
+      "id": 142,
       "sana": "2026-11-11",
       "sarlavha": "Obyekt sahifasida «Ish varag‘i» rejimi (sinov)",
       "bandlar": [
         "Obyekt sahifasida «Daraxt | Ish varag‘i» kaliti paydo bo‘ldi. «Ish varag‘i» — Excel kabi bitta jadval: nomi, birligi, smeta hajmi, fakt, F2, qoldiq va summa. Bo‘limlarni yig‘ish mumkin, «/» bilan qidiriladi.",
         "Faktni to‘g‘ridan-to‘g‘ri katakka yozing: +5 — bugun, =40 — jami, 50% — smeta foizi. Enter — keyingi qator, Esc — bekor, Ctrl+Z — qaytarish, Ctrl+S — hammasini BIR MARTA saqlash. Pastda jami summalar doim ko‘rinib turadi.",
         "Boshqa panellar «Boshqa» tugmasi ortiga yig‘ilgan. Sukut bo‘yicha avvalgi «Daraxt» ko‘rinishi qoladi; Fakt jurnali o‘zgarmagan."
+      ]
+    },
+    {
+      "id": 141,
+      "sana": "2026-11-11",
+      "sarlavha": "AI buyruq satri (Ctrl+K)",
+      "bandlar": [
+        "PTO sahifalarida Ctrl+K bosing: bitta satrga buyruq yozing (masalan «narxsiz qatorlarni ko‘rsat» yoki «beton faktiga +5 qo‘sh») — AI obyekt ma’lumotini o‘qib, taklif kartasini beradi: nima o‘zgaradi, eski → yangi va summa farqi (ustamali va ustamasiz).",
+        "«Bajarish» bosilgandagina yoziladi (mavjud fakt yozish yo‘li, har yozuvda operation_id). Narx tuzatish kabi pul ta’sirli amalda ikkinchi «Tasdiqlayman» tugmasi ham kerak.",
+        "Mikrofon tugmasi (UZ/RU): ovoz faqat satrni to‘ldiradi — avtomatik yuborilmaydi va hech qachon tasdiqlamaydi. Brauzer ovozni qo‘llamasa tugma ko‘rinmaydi.",
+        "Yuborishdan oldin taxminiy token narxi ko‘rinadi; aynan bir xil buyruq qayta berilsa, token qayta yechilmaydi. Yangi buyruqlar: narxsiz qatorlar va qoldiq."
       ]
     },
     {

@@ -11,6 +11,7 @@ import { KompaniyaProvider, useKompaniya } from '../umumiy/kontekst/KompaniyaKon
 import { KompaniyaLogoRasm } from '../umumiy/hujjat/KompaniyaLogo';
 import { KompaniyaTanlagich } from '../umumiy/kontekst/KompaniyaTanlagich';
 import { PTOWorkspaceBar, PTOWorkspaceProvider } from '../umumiy/kontekst/PTOWorkspaceContext';
+import { AiBuyruqSatri } from './AiBuyruqSatri';
 import { RuxsatGuard } from '../umumiy/kontekst/RuxsatGuard';
 import { SahifaChegarasi } from '../umumiy/ui/XatoChegarasi';
 import { tizimdanChiq } from '../umumiy/kontekst/chiqish';
@@ -330,6 +331,7 @@ function AdminShellInner() {
           {k.superadmin && <span className="hidden rounded-md border border-accent/25 px-2 py-1 text-[10px] text-accent 2xl:inline">{t('Platforma roli')}: superadmin</span>}
           {k.superadmin && k.joriy?.membershipRole && <span className="hidden text-[10px] text-text-dim 2xl:inline">{t('Kompaniyadagi rol')}: {k.joriy.membershipRole}</span>}
           <PTOWorkspaceBar />
+          <AiBuyruqSatri />
           <div className="ml-auto flex items-center gap-2"><QollanmaBoshqaruv foydalanuvchi={sess.data?.email} /><TilTanlagich ixcham /><Qongiroqcha /><AkkauntTugmasi /></div>
         </div>
 

@@ -21,6 +21,8 @@ export type SahifaVositalar = {
   tekshir: (a: SahifaAmal) => string | null;
   /** Amal yorlig'i (foydalanuvchiga): masalan «Fakt hajmi · Е06-001 Beton · +5». */
   nomi: (a: SahifaAmal) => string;
+  /** Pul/huquqiy ta'sirli amalmi — bo'lsa panel «Bajarish»dan keyin ALOHIDA «Tasdiqlayman» so'raydi (ovoz bilan emas). */
+  pul?: (a: SahifaAmal) => boolean;
   /** Tasdiqlangan amallarni bajaradi (mavjud yozish yo'llari: kiritma, mavjud modal). Natija qatorlari qaytadi. */
   bajar: (amallar: SahifaAmal[]) => Promise<string[]>;
 };
@@ -31,7 +33,7 @@ export type SiklNatija =
   | { ok: false; code: string; message?: string };
 
 const VOSITA_NOMI: Record<string, string> = { qidir: 'Qidiryapman', holat: 'Holatni o‘qiyapman', bolim: 'Bo‘limni o‘qiyapman', normativ: 'Normativ katalogdan qidiryapman',
-  tekshir: 'Tekshiryapman', narx: 'Narx manbalarini o‘qiyapman' };
+  tekshir: 'Tekshiryapman', narx: 'Narx manbalarini o‘qiyapman', narxsiz: 'Narxsiz qatorlarni qidiryapman', qoldiq: 'Qoldiqni hisoblayapman' };
 export const vositaYorligi = (s: OqishSorovi) => `${VOSITA_NOMI[s.vosita] ? t(VOSITA_NOMI[s.vosita]) : s.vosita}${s.arg ? ` «${s.arg}»` : ''}`;
 
 export async function agentSikli(p: { kompaniyaId: number; xabarlar: SahifaXabar[]; vositalar: SahifaVositalar; qadam?: (q: SiklQadam) => void; tirikmi?: () => boolean }): Promise<SiklNatija> {
