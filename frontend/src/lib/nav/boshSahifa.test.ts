@@ -3,10 +3,14 @@ import { rolBoshSahifasi, ZAXIRA_BOSH_SAHIFA } from './boshSahifa';
 
 describe('rolBoshSahifasi', () => {
   it('ish rollari SINOV qobig‘iga emas, production sahifaga tushadi', () => {
-    for (const rol of ['pto', 'admin', 'superadmin', 'bugalter', 'prorab']) {
+    for (const rol of ['pto', 'bugalter', 'prorab']) {
       expect(rolBoshSahifasi(rol)).toBe('/admin/obyektlar');
       expect(rolBoshSahifasi(rol)).not.toMatch(/\/test\//);
     }
+  });
+  it('admin/superadmin ham rahbar paneliga tushadi (Obyektlar emas)', () => {
+    expect(rolBoshSahifasi('admin')).toBe('/admin/dashboard');
+    expect(rolBoshSahifasi('superadmin')).toBe('/admin/dashboard');
   });
   it('boss/rahbar — redirect emas, rahbar paneli', () => {
     expect(rolBoshSahifasi('boss')).toBe('/admin/pult');

@@ -59,8 +59,7 @@ export const GENERATED_SITE_MAP = {
     "/admin/sozlamalar",
     "/admin/boshqaruv",
     "/admin/tizim-xaritasi",
-    "/admin/fayl-boglash",
-    "/admin/test"
+    "/admin/fayl-boglash"
   ],
   "appRouteSegments": [
     "/",
