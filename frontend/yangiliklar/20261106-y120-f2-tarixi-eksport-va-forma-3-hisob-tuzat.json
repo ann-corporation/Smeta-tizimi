@@ -1,0 +1,12 @@
+{
+  "id": 120,
+  "sana": "2026-11-06",
+  "sarlavha": "F2 tarixi, eksport va Forma-3: hisob tuzatishlari paketi",
+  "bandlar": [
+    "Saqlangan F2 Excel’ida minus qatorlar, hajmi 0 summali qatorlar va resurssiz ishlar (М/К) endi tushib qolmaydi — hujjat jami tizim summasi bilan tiyingacha teng.",
+    "Eski smeta versiyasidagi F2 qatorlari ham hujjatga kiradi; topilmagan qator bo‘lsa hujjat chala chiqmaydi — sababi aytiladi.",
+    "Forma-3 «за отчетный месяц» endi har F2 ning o‘z podvali bilan hisoblanadi: oy jami = shu oy F2 hujjatlari ВСЕГО yig‘indisi.",
+    "F2 tarixi ro‘yxatida summa QQS bilan birinchi, keyin ustamali va ustamasiz; narxsiz avtomatik qatorli qoralama tasdiqlanmaydi — narx kiritish yo‘li ko‘rsatiladi.",
+    "Portfeldagi qoralama F2 varaqlari tirik formulalar bilan; katta obyektlarda F2 qatorlari endi takrorlanmaydi va yo‘qolmaydi."
+  ]
+}
