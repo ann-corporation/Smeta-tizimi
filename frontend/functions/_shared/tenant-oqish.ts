@@ -39,7 +39,7 @@ export const OQISH_SIYOSATI: Readonly<Record<string, OqishSiyosat>> = {
   t2_viborka: K, t2_viborka_holat: K,
   t2_shartnoma: K, t2_nakrutka: K, t2_qoshimcha_ish: K,
   t2_tolov: K, t2_xarajat: K, t2_bux_dashboard: K, t2_debitor_aging: K, t2_bux_umumiy: K,
-  t2_aosr_reestr: K, t2_aosr_reestr_v2: K, t2_lab_protokol_reestr: K, t2_kompaniya_logo: K,
+  t2_aosr_reestr: K, t2_aosr_reestr_v2: K, t2_aosr_bog: K, t2_lab_protokol_reestr: K, t2_kompaniya_logo: K,
   t2_nakrutka_podval_royxat: K, t2_narx_taklif: K, t2_narx_dalil_holat: K,
   t2_korzinka: K, t2_audit_reestr: K, t2_obyekt_hujjat_royxat: K,
   t2_sklad_royxat: K, t2_kadr_royxat: K, t2_texnika_royxat: K, t2_loyiha_royxat: K,
