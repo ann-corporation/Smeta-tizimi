@@ -65,6 +65,7 @@ returns void language sql volatile security definer set search_path = public, pg
 $$;
 revoke all on function public._t2_kesh_belgila_v1(bigint[], text) from public, anon, authenticated;
 grant execute on function public._t2_kesh_belgila_v1(bigint[], text) to service_role;
+comment on function public._t2_kesh_belgila_v1(bigint[], text) is 'versiya: texnik. Kesh iflos belgisi: t2_qator o''zgarishini kuzatadi, qator o''qimaydi.';
 
 -- Statement-darajali triggerlar (har jadval uchun insert/update/delete). Funksiyalar shu blokda generatsiya qilinadi:
 -- {T} — o'tish jadvali nomi (yangi / eski). ikkala=true — UPDATE da eski qiymatlar ham (kichik jadvallar).
