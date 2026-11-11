@@ -17,8 +17,8 @@ describe('yozAmali — tarmoq bir lahza uzilsa', () => {
     const f = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
     vi.stubGlobal('fetch', f);
     const r = await yozAmali({ amal: 'x' });
-    expect(f).toHaveBeenCalledTimes(1);
+    expect(f.mock.calls.filter((c) => c[0] === '/api/sb-yoz')).toHaveLength(1);
     expect(r.ok).toBe(false);
-    expect(r.error).toMatch(/Internet aloqasi uzildi/);
+    expect(r.error).toMatch(/Serverga ulanib bo‘lmadi/);
   });
 });
