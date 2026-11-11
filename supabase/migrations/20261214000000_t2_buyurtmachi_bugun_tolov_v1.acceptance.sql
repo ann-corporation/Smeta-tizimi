@@ -36,8 +36,8 @@ begin
     values (v_p, v_z, 'pudratchi', 'zakazchik', v_up, 'faol') returning id into v_al;
   insert into public.t2_tomon_grant (aloqa_id, beruvchi_kompaniya_id, oluvchi_kompaniya_id, resurs, amallar, obyekt_id, berdi_actor_id)
     select v_al, v_p, v_z, r, array['korish'], v_o, v_up from unnest(array['obyekt_holat', 'shartnoma_xulosa', 'f2', 'fakt', 'tolov_holati']) r;
-  insert into public.t2_forma3 (kompaniya_id, obyekt_id, shartnoma_id, davr_boshi, davr_oxiri, manba, sotuv_summa, holat, raqam)
-    values (v_p, v_o, v_sh, current_date - 30, current_date, 'sotuv', 500, 'imzolangan', 'ACC-F3') returning id into v_f3;
+  insert into public.t2_forma3 (kompaniya_id, obyekt_id, shartnoma_id, davr_boshi, davr_oxiri, manba, sotuv_summa, sotuv_sana, nds_foiz, holat, raqam)
+    values (v_p, v_o, v_sh, current_date - 30, current_date, 'sotuv', 500, current_date, 12, 'imzolangan', 'ACC-F3') returning id into v_f3;
   insert into public.t2_tolov (kompaniya_id, shartnoma_id, obyekt_id, sana, summa, tur) values (v_p, v_sh, v_o, current_date, 200, 'tolov');
 
   -- 2.1 Portfel: F3 va to'lov grant bilan ko'rinadi, qarz = 500 - 200; ma'lumotsiz fakt/smeta NULL (0 emas)
