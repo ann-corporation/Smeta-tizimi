@@ -16,13 +16,15 @@ import { faktAmalTekshir, faktHajmOqi, faktHolat, faktIndeks, faktKontekst, fakt
 import type { OqishSorovi, SahifaAmal } from './protokol';
 import type { SahifaVositalar } from './sikl';
 
-export type BuyruqMalumot = FaktMalumot & { rows: readonly T2Qator[]; qatorById: ReadonlyMap<number, T2Qator> };
+/** Foydalanuvchiga ochiq sahifa (yagona yordamchi navigatsiyasi; navReestr + ruxsat filtridan). */
+export type OchiqSahifa = { yol: string; nom: string };
+export type BuyruqMalumot = FaktMalumot & { rows: readonly T2Qator[]; qatorById: ReadonlyMap<number, T2Qator>; sahifalar?: readonly OchiqSahifa[] };
 
-export function buyruqMalumotQur(rows: readonly T2Qator[], states: readonly (T2QatorHolat | JurnalHolat)[], opts: { obyektNomi?: string; ustamali?: UstamaliFn } = {}): BuyruqMalumot {
+export function buyruqMalumotQur(rows: readonly T2Qator[], states: readonly (T2QatorHolat | JurnalHolat)[], opts: { obyektNomi?: string; ustamali?: UstamaliFn; sahifalar?: readonly OchiqSahifa[] } = {}): BuyruqMalumot {
   const holatlar = states as readonly JurnalHolat[];
   const { bolimlar, bolimIshlari } = jurnalQur(rows, holatlar);
   return { obyektNomi: opts.obyektNomi, bolimlar, bolimIshlari, holatMap: new Map(holatlar.map((s) => [s.qator_id, s])), summalar: bolimSummalari(rows, holatlar),
-    bajHajm: new Map(), ustamali: opts.ustamali, rows, qatorById: new Map(rows.map((r) => [r.id, r])) };
+    bajHajm: new Map(), ustamali: opts.ustamali, rows, qatorById: new Map(rows.map((r) => [r.id, r])), sahifalar: opts.sahifalar };
 }
 
 /** Pul yoki huquqiy ta'sirli amallar — «Bajarish»dan keyin ALOHIDA «Tasdiqlayman» kerak (ovoz bilan tasdiqlanmaydi). */
@@ -69,7 +71,8 @@ export function buyruqQoldiq(m: BuyruqMalumot, arg: string | null, limit = 25): 
 }
 
 export function buyruqKontekst(m: BuyruqMalumot): string {
-  return faktKontekst(m).replace('Sahifa: Fakt jurnali', 'Sahifa: Buyruq satri (butun obyekt)');
+  const sahifalar = m.sahifalar?.length ? `\nSAHIFALAR (amal «och», qiymat = shu yo'l; foydalanuvchiga ochiq bo'limlar):\n${m.sahifalar.map((s) => `${s.yol} | ${s.nom}`).join('\n')}` : '';
+  return faktKontekst(m).replace('Sahifa: Fakt jurnali', 'Sahifa: Buyruq satri (butun obyekt)') + sahifalar;
 }
 
 export function buyruqOqi(m: BuyruqMalumot, s: OqishSorovi): string {
@@ -104,9 +107,9 @@ export function buyruqAmalTekshir(m: BuyruqMalumot, a: SahifaAmal): string | nul
       if (yangi == null) return t('Yangi narx musbat son bo‘lishi kerak (QQS siz)');
       return r.narx != null && Math.abs(Number(r.narx) - yangi) < 1e-9 ? t('Narx o‘zgarmaydi') : null;
     }
-    case 'jurnal_yoz': return jurnalQiymat(a.qiymat).matn ? null : t('Jurnal izohi bo‘sh bo‘lmasligi kerak');
-    case 'jurnal_och': return a.qiymat && !JURNAL_SANA.test(a.qiymat) ? t('Sana YYYY-MM-DD shaklida bo‘lishi kerak') : null;
     case 'korsat': return a.qator != null && m.qatorById.has(a.qator) ? null : 'Qator topilmadi (AI bergan id obyektda yo‘q)';
+    case 'och': return ochiqSahifa(m, a) ? null : t('Bu sahifa mavjud emas yoki sizga ochiq emas');
+    case 'jurnal_yoz': return jurnalQiymat(a.qiymat).matn ? null : t('Jurnal izohi bo‘sh bo‘lmasligi kerak');
     default: return 'Noma’lum amal';
   }
 }
@@ -119,6 +122,8 @@ export function faktDelta(m: Pick<BuyruqMalumot, 'bolimIshlari'>, a: SahifaAmal)
   return Math.round((h.rejim === '+' ? q : q - j.q.fakt) * 1e6) / 1e6;
 }
 
+export const BUYRUQ_AMAL_NOMI: Record<string, string> = { fakt_hajm: 'Fakt hajmi', narx_tuzat: 'Narx tuzatish (protokol qoralamasi)', korsat: 'Qatorni ko‘rsatish', och: 'Sahifani ochish', jurnal_yoz: 'Kundalik jurnal izohi (qoralama)' };
+
 const JURNAL_SANA = /^\d{4}-\d{2}-\d{2}$/;
 /** «YYYY-MM-DD|matn» yoki faqat «matn» (sana — bugun). */
 export function jurnalQiymat(v: string | null): { sana: string | null; matn: string } {
@@ -128,7 +133,11 @@ export function jurnalQiymat(v: string | null): { sana: string | null; matn: str
   return { sana: null, matn: s };
 }
 
-export const BUYRUQ_AMAL_NOMI: Record<string, string> = { fakt_hajm: 'Fakt hajmi', narx_tuzat: 'Narx tuzatish (protokol qoralamasi)', jurnal_yoz: 'Kundalik jurnal izohi (qoralama)', jurnal_och: 'Kundalik jurnalni ochish', korsat: 'Qatorni ko‘rsatish' };
+/** «och» amali: qiymat — foydalanuvchiga ochiq sahifa yo'li (so'rov qismini hisobga olmaymiz). */
+export function ochiqSahifa(m: Pick<BuyruqMalumot, 'sahifalar'>, a: Pick<SahifaAmal, 'qiymat'>): OchiqSahifa | null {
+  const yol = (a.qiymat ?? '').split(/[?#]/)[0].replace(/\/+$/, '');
+  return m.sahifalar?.find((s) => s.yol === yol) ?? null;
+}
 
 export type AmalDelta = { eski: string; yangi: string; ustamasiz: number | null; kesim: KatKesim | null };
 
@@ -154,6 +163,7 @@ export function amalDelta(m: BuyruqMalumot, a: SahifaAmal): AmalDelta | null {
 }
 
 export const buyruqAmalNomi = (m: BuyruqMalumot, a: SahifaAmal): string => {
+  if (a.tur === 'och') return `${t('Sahifani ochish')} · ${ochiqSahifa(m, a)?.nom ?? a.qiymat ?? '—'}`;
   const r = a.qator != null ? m.qatorById.get(a.qator) : undefined;
   const nom = r ? `${r.kod ? r.kod + ' ' : ''}${r.nom ?? ''}` : `#${a.qator ?? '—'}`;
   const d = amalDelta(m, a);
@@ -167,16 +177,16 @@ export type BuyruqYoz = {
   faktYoz: (p: { obyektId: number; sana: string; qatorlar: Array<{ qator_id: number; hajm: number }>; operationId: string; izoh: string }) => Promise<YozNatija>;
   narxProtokol: (p: { obyektId: number; qatorlar: Array<{ qator_id: number; yangi_narx: number }>; izoh: string; operationId: string }) => Promise<YozNatija>;
   korsat: (qatorId: number) => void;
+  /** Sahifani ochish (navigatsiya; yozuv emas) — yagona yordamchi Jarvis. */
+  och?: (yol: string) => void;
   /** Muvaffaqiyatli yozuvdan keyin ma'lumotni qayta o'qish. */
   yangila?: () => void;
   yangiOperationId: () => string;
   bugun?: () => string;
-  /** Kundalik ish jurnali (P1): sana (null = bugun) → o'qilgan jurnal matni. */
+  /** Kundalik ish jurnali (P1): sana (null = bugun) -> jurnal matni (faqat real ma'lumot). */
   jurnalOl?: (sana: string | null) => Promise<string>;
-  /** Prorab izohini QORALAMA qilib yozadi (tasdiq — jurnal sahifasida). */
+  /** Prorab izohini QORALAMA qilib yozadi (tasdiq - jurnal sahifasida). */
   jurnalYoz?: (p: { sana: string; matn: string; operationId: string }) => Promise<YozNatija>;
-  /** Jurnal sahifasini ochadi. */
-  jurnalOch?: (sana: string | null) => void;
 };
 
 const bugunSana = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
@@ -203,6 +213,7 @@ export function buyruqVositalar(getM: () => BuyruqMalumot, obyektId: number, yoz
       const yaroqli = list.filter((a) => !buyruqAmalTekshir(m, a));
       if (yaroqli.length < list.length) out.push(`✗ ${t('{n} ta taklif yaroqsiz — o‘tkazildi', { n: list.length - yaroqli.length })}`);
       for (const a of yaroqli.filter((x) => x.tur === 'korsat')) if (a.qator != null) yoz.korsat(a.qator);
+      for (const a of yaroqli.filter((x) => x.tur === 'och').slice(0, 1)) { const s = ochiqSahifa(m, a); if (s && yoz.och) { yoz.och(a.qiymat ?? s.yol); out.push(`✓ ${t('Ochildi')}: ${s.nom}`); } }
       const fakt = new Map<number, number>();
       for (const a of yaroqli.filter((x) => x.tur === 'fakt_hajm')) { const d = faktDelta(m, a); if (a.qator != null && d != null) fakt.set(a.qator, (fakt.get(a.qator) ?? 0) + d); }
       if (fakt.size) {
@@ -220,8 +231,7 @@ export function buyruqVositalar(getM: () => BuyruqMalumot, obyektId: number, yoz
         out.push(r.ok ? `✓ ${t('Narx protokoli qoralamasi yaratildi: {n} qator (kuchga kirish — imzolangan nusxa bilan alohida tasdiq)', { n: narx.size })}${r.raqam ? ` · ${r.raqam}` : ''} · operation_id ${id.slice(0, 8)}` : `✗ ${t('Narx protokoli yaratilmadi')}: ${xato(r)}`);
         if (r.ok) yoz.yangila?.();
       }
-      // Kundalik ish jurnali (P1): izoh QORALAMA sifatida (tasdiq — sahifada); sahifani ochish — hech narsa yozmaydi.
-      for (const a of yaroqli.filter((x) => x.tur === 'jurnal_och')) yoz.jurnalOch?.(a.qiymat?.trim() || null);
+      // Kundalik ish jurnali (P1): izoh QORALAMA sifatida (tasdiq - jurnal sahifasida, prorab o'zi).
       for (const a of yaroqli.filter((x) => x.tur === 'jurnal_yoz')) {
         const q = jurnalQiymat(a.qiymat); const sana = q.sana ?? (yoz.bugun ?? bugunSana)();
         if (!yoz.jurnalYoz) { out.push(`✗ ${t('Jurnalga yozib bo‘lmadi')}`); continue; }

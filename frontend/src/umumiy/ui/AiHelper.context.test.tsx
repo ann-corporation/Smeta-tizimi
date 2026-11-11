@@ -16,10 +16,10 @@ vi.mock('../../api/t2-agent-ish', () => ({
 vi.mock('./useAiKuzatuv', () => ({ useAiKuzatuv: () => ({ taklif: null, yoqilgan: false, almashtir: vi.fn() }) }));
 vi.mock('./AiFikrPanel', () => ({ AiFikrPanel: () => <div>fikr-panel</div> }));
 vi.mock('../../i18n/til', () => ({ t: (s: string) => s }));
-import { AiHelper } from './AiHelper';
+import { AiHelper, AiHelperTugma } from './AiHelper';
 
 const KASB = { rol: 'prorab', profil: 'prorab', nom: 'Prorab yordamchisi', vazifa: 'Ish borishi va ombor.', kategoriyalar: ['obyektlar', 'ombor'], namuna_savollar: ['Omborda nima bor?'], taqiq_izoh: 'Pul sizning doirangizda emas.', boshqalar: [] };
-const view = () => <MemoryRouter initialEntries={['/admin/f2']}><AiHelper /></MemoryRouter>;
+const view = () => <MemoryRouter initialEntries={['/admin/f2']}><AiHelperTugma /><AiHelper /></MemoryRouter>;
 const och = () => fireEvent.click(screen.getByLabelText('Jarvis AI yordamchisini ochish'));
 beforeEach(() => { m.id = 11; m.savol.mockReset(); m.kasbOl.mockReset(); m.kasbOl.mockResolvedValue({ ok: true, natija: KASB }); Element.prototype.scrollIntoView = vi.fn(); });
 afterEach(cleanup);
