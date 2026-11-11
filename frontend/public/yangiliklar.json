@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 142,
+      "sana": "2026-11-11",
+      "sarlavha": "Forma 3 endi shartnoma bo'yicha",
+      "bandlar": [
+        "Nakopitelniy sahifasida «Forma 3: Obyekt | Shartnoma» almashtirgichi. «Shartnoma» rejimida shartnoma va oyni tanlang — shartnomaning barcha obyektlari tasdiqlangan F2 aktlari ro'yxati oldindan belgilanadi.",
+        "Bitta tugma «Forma 3 yaratish»: shartnoma bo'yicha bitta Forma 3 yoziladi va Excel beriladi — har obyekt o'z nakrutkasi bilan, jami va summa so'z bilan.",
+        "Boshqa Forma 3 ga allaqachon kirgan F2 aktlar belgilanmaydi — bir F2 ikki Forma 3 ga tushmaydi. Tasdiqlangan F2 summalari o'zgarmaydi."
+      ]
+    },
+    {
       "id": 141,
       "sana": "2026-11-11",
       "sarlavha": "AI buyruq satri (Ctrl+K)",
