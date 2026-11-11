@@ -27,7 +27,6 @@ const TestXarita    = lazy(() => import('./test02/TestXarita'));
 const TestLoyiha    = lazy(() => import('./test02/TestLoyiha'));
 const TestKontragent = lazy(() => import('./test02/TestKontragent'));
 const TestObyektlar = lazy(() => import('./test02/TestObyektlar'));
-const WrapperPortfel = lazy(() => import('./test02/WrapperPortfel'));
 const WrapperMoliya = lazy(() => import('./test02/WrapperMoliya'));
 const WrapperLogistika = lazy(() => import('./test02/WrapperLogistika'));
 const WrapperCRM = lazy(() => import('./test02/WrapperCRM'));
@@ -239,10 +238,10 @@ export default function App() {
               Ma’lumot Supabase’dan o’qiladi. Tizim_01 ning bironta
               marshruti/sahifasi o’zgartirilmagan. */}
           <Route path="test" element={<TestShell />}>
-            <Route index element={<Navigate to="/admin/test/portfel" replace />} />
+            <Route index element={<Navigate to="/admin/loyiha" replace />} />
             
             {/* Yangi Wrapper Marshrutlar */}
-            <Route path="portfel" element={<WrapperPortfel />} />
+            <Route path="portfel" element={<Navigate to="/admin/loyiha" replace />} /> {/* takror «Loyihalar» sahifasi — asosiy /admin/loyiha ga */}
             <Route path="moliya" element={<Navigate to="/admin/moliya" replace />} />
             <Route path="logistika" element={<Navigate to="/admin/logistika" replace />} />
             <Route path="crm" element={<Navigate to="/admin/crm" replace />} />
