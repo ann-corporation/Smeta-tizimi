@@ -2,6 +2,15 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 154,
+      "sana": "2026-11-11",
+      "sarlavha": "Tizim axlatdan tozalandi",
+      "bandlar": [
+        "Hech qayerda ishlatilmaydigan eski sahifalar, bir martalik skriptlar va nusxalar olib tashlandi: ishlaydigan funksiyalar o'zgarmadi.",
+        "Tizim yengilroq va tartiblirog' bo'ldi; foydalanuvchi ma'lumotlari va hisob-kitoblarga tegilmadi."
+      ]
+    },
+    {
       "id": 153,
       "sana": "2026-11-11",
       "sarlavha": "Matnlar sodda tilga o‘tkazildi",
