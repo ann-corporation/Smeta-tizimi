@@ -27,10 +27,10 @@ export const SAHIFA_VOSITALARI: Record<SahifaTuri, { oqish: readonly string[]; a
   },
   /** Ctrl+K buyruq satri (butun obyekt bo'yicha): qidir/holat — umumiy; narxsiz — narxi yo'q qatorlar; qoldiq — smeta/F2/fakt qoldig'i.
    *  lugat — oddiy so'z (g'isht, pol quyish, кирпич) nimaga to'g'ri kelishi va smetada qaysi so'zlar bilan qidirilishi; naryad — naryadlar holati (faqat o'qish).
-   *  Amallar: fakt_hajm (+5 / =40, oddiy yozish), narx_tuzat (qiymat = yangi narx NDS siz, PUL: ikkinchi «Tasdiqlayman»), korsat. */
+   *  Amallar: fakt_hajm (+5 / =40, oddiy yozish), narx_tuzat (qiymat = yangi narx NDS siz, PUL: ikkinchi «Tasdiqlayman»), korsat, och (qiymat = sahifa yo'li — yagona yordamchi Jarvis navigatsiyasi, yozuv emas). */
   buyruq: {
     oqish: ['qidir', 'holat', 'narxsiz', 'qoldiq', 'lugat', 'naryad'],
-    amal: ['fakt_hajm', 'narx_tuzat', 'korsat'],
+    amal: ['fakt_hajm', 'narx_tuzat', 'korsat', 'och'],
   },
 };
 

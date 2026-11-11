@@ -19,13 +19,15 @@ import { faktAmalTekshir, faktHajmOqi, faktHolat, faktIndeks, faktKontekst, fakt
 import type { OqishSorovi, SahifaAmal } from './protokol';
 import type { SahifaVositalar } from './sikl';
 
-export type BuyruqMalumot = FaktMalumot & { rows: readonly T2Qator[]; qatorById: ReadonlyMap<number, T2Qator>; naryadlar?: readonly NaryadQisqa[] };
+/** Foydalanuvchiga ochiq sahifa (yagona yordamchi navigatsiyasi; navReestr + ruxsat filtridan). */
+export type OchiqSahifa = { yol: string; nom: string };
+export type BuyruqMalumot = FaktMalumot & { rows: readonly T2Qator[]; qatorById: ReadonlyMap<number, T2Qator>; sahifalar?: readonly OchiqSahifa[]; naryadlar?: readonly NaryadQisqa[] };
 
-export function buyruqMalumotQur(rows: readonly T2Qator[], states: readonly (T2QatorHolat | JurnalHolat)[], opts: { obyektNomi?: string; ustamali?: UstamaliFn; naryadlar?: readonly NaryadQisqa[] } = {}): BuyruqMalumot {
+export function buyruqMalumotQur(rows: readonly T2Qator[], states: readonly (T2QatorHolat | JurnalHolat)[], opts: { obyektNomi?: string; ustamali?: UstamaliFn; sahifalar?: readonly OchiqSahifa[]; naryadlar?: readonly NaryadQisqa[] } = {}): BuyruqMalumot {
   const holatlar = states as readonly JurnalHolat[];
   const { bolimlar, bolimIshlari } = jurnalQur(rows, holatlar);
   return { obyektNomi: opts.obyektNomi, bolimlar, bolimIshlari, holatMap: new Map(holatlar.map((s) => [s.qator_id, s])), summalar: bolimSummalari(rows, holatlar),
-    bajHajm: new Map(), ustamali: opts.ustamali, rows, qatorById: new Map(rows.map((r) => [r.id, r])), naryadlar: opts.naryadlar };
+    bajHajm: new Map(), ustamali: opts.ustamali, rows, qatorById: new Map(rows.map((r) => [r.id, r])), sahifalar: opts.sahifalar, naryadlar: opts.naryadlar };
 }
 
 /** Pul yoki huquqiy ta'sirli amallar — «Bajarish»dan keyin ALOHIDA «Tasdiqlayman» kerak (ovoz bilan tasdiqlanmaydi). */
@@ -82,7 +84,8 @@ export function buyruqLugat(m: BuyruqMalumot, arg: string | null): string {
 }
 
 export function buyruqKontekst(m: BuyruqMalumot): string {
-  return faktKontekst(m).replace('Sahifa: Fakt jurnali', 'Sahifa: Buyruq satri (butun obyekt)');
+  const sahifalar = m.sahifalar?.length ? `\nSAHIFALAR (amal «och», qiymat = shu yo'l; foydalanuvchiga ochiq bo'limlar):\n${m.sahifalar.map((s) => `${s.yol} | ${s.nom}`).join('\n')}` : '';
+  return faktKontekst(m).replace('Sahifa: Fakt jurnali', 'Sahifa: Buyruq satri (butun obyekt)') + sahifalar;
 }
 
 export function buyruqOqi(m: BuyruqMalumot, s: OqishSorovi): string {
@@ -120,6 +123,7 @@ export function buyruqAmalTekshir(m: BuyruqMalumot, a: SahifaAmal): string | nul
       return r.narx != null && Math.abs(Number(r.narx) - yangi) < 1e-9 ? t('Narx o‘zgarmaydi') : null;
     }
     case 'korsat': return a.qator != null && m.qatorById.has(a.qator) ? null : 'Qator topilmadi (AI bergan id obyektda yo‘q)';
+    case 'och': return ochiqSahifa(m, a) ? null : t('Bu sahifa mavjud emas yoki sizga ochiq emas');
     default: return 'Noma’lum amal';
   }
 }
@@ -132,7 +136,13 @@ export function faktDelta(m: Pick<BuyruqMalumot, 'bolimIshlari'>, a: SahifaAmal)
   return Math.round((h.rejim === '+' ? q : q - j.q.fakt) * 1e6) / 1e6;
 }
 
-export const BUYRUQ_AMAL_NOMI: Record<string, string> = { fakt_hajm: 'Fakt hajmi', narx_tuzat: 'Narx tuzatish (protokol qoralamasi)', korsat: 'Qatorni ko‘rsatish' };
+export const BUYRUQ_AMAL_NOMI: Record<string, string> = { fakt_hajm: 'Fakt hajmi', narx_tuzat: 'Narx tuzatish (protokol qoralamasi)', korsat: 'Qatorni ko‘rsatish', och: 'Sahifani ochish' };
+
+/** «och» amali: qiymat — foydalanuvchiga ochiq sahifa yo'li (so'rov qismini hisobga olmaymiz). */
+export function ochiqSahifa(m: Pick<BuyruqMalumot, 'sahifalar'>, a: Pick<SahifaAmal, 'qiymat'>): OchiqSahifa | null {
+  const yol = (a.qiymat ?? '').split(/[?#]/)[0].replace(/\/+$/, '');
+  return m.sahifalar?.find((s) => s.yol === yol) ?? null;
+}
 
 export type AmalDelta = { eski: string; yangi: string; ustamasiz: number | null; kesim: KatKesim | null };
 
@@ -158,6 +168,7 @@ export function amalDelta(m: BuyruqMalumot, a: SahifaAmal): AmalDelta | null {
 }
 
 export const buyruqAmalNomi = (m: BuyruqMalumot, a: SahifaAmal): string => {
+  if (a.tur === 'och') return `${t('Sahifani ochish')} · ${ochiqSahifa(m, a)?.nom ?? a.qiymat ?? '—'}`;
   const r = a.qator != null ? m.qatorById.get(a.qator) : undefined;
   const nom = r ? `${r.kod ? r.kod + ' ' : ''}${r.nom ?? ''}` : `#${a.qator ?? '—'}`;
   const d = amalDelta(m, a);
@@ -171,6 +182,8 @@ export type BuyruqYoz = {
   faktYoz: (p: { obyektId: number; sana: string; qatorlar: Array<{ qator_id: number; hajm: number }>; operationId: string; izoh: string }) => Promise<YozNatija>;
   narxProtokol: (p: { obyektId: number; qatorlar: Array<{ qator_id: number; yangi_narx: number }>; izoh: string; operationId: string }) => Promise<YozNatija>;
   korsat: (qatorId: number) => void;
+  /** Sahifani ochish (navigatsiya; yozuv emas) — yagona yordamchi Jarvis. */
+  och?: (yol: string) => void;
   /** Muvaffaqiyatli yozuvdan keyin ma'lumotni qayta o'qish. */
   yangila?: () => void;
   yangiOperationId: () => string;
@@ -197,6 +210,7 @@ export function buyruqVositalar(getM: () => BuyruqMalumot, obyektId: number, yoz
       const yaroqli = list.filter((a) => !buyruqAmalTekshir(m, a));
       if (yaroqli.length < list.length) out.push(`✗ ${t('{n} ta taklif yaroqsiz — o‘tkazildi', { n: list.length - yaroqli.length })}`);
       for (const a of yaroqli.filter((x) => x.tur === 'korsat')) if (a.qator != null) yoz.korsat(a.qator);
+      for (const a of yaroqli.filter((x) => x.tur === 'och').slice(0, 1)) { const s = ochiqSahifa(m, a); if (s && yoz.och) { yoz.och(a.qiymat ?? s.yol); out.push(`✓ ${t('Ochildi')}: ${s.nom}`); } }
       const fakt = new Map<number, number>();
       for (const a of yaroqli.filter((x) => x.tur === 'fakt_hajm')) { const d = faktDelta(m, a); if (a.qator != null && d != null) fakt.set(a.qator, (fakt.get(a.qator) ?? 0) + d); }
       if (fakt.size) {

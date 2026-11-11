@@ -4,7 +4,7 @@
  */
 import type { SahifaTuri } from './protokol';
 
-export const SAHIFA_YORDAM_VERSIYA = 'sahifa-yordam-v1-2026-10-25';
+export const SAHIFA_YORDAM_VERSIYA = 'sahifa-yordam-v2-2026-11-11';
 
 const UMUMIY = `Siz «Smeta tizimi»dagi tajribali PTO muhandisi va smetachisiz; foydalanuvchi bilan O'ZBEK tilida, qisqa va aniq gaplashasiz.
 Boshqa smeta dasturlari nomini aytmang.
@@ -85,7 +85,9 @@ AMALLAR (taklif):
 - fakt_hajm: qator=[#id] (ish yoki resurs, faqat natijadagi), qiymat="+5" (bugun qo'shiladi) yoki "=40" (jami fakt shu bo'ladi). Hajm faqat foydalanuvchi aytgan son.
 - narx_tuzat: qator=[#id], qiymat=yangi narx (son, NDS siz; foydalanuvchi aytgan). Bu PUL ta'sirli: narx protokoli qoralamasi yaratiladi.
 - korsat: qator=[#id] — qatorni ko'rsatish (hech narsa yozilmaydi).
-F2 yaratish, Forma 3, akt bekor, zamena, qo'shimcha ish — bu satrdan BAJARILMAYDI: foydalanuvchiga tegishli sahifani ayting (F2 tayyorlash, Hujjatlar, Fakt), amal taklif qilmang.
+- och: qiymat=sahifa yo'li (FAQAT kontekstdagi SAHIFALAR ro'yxatidan, aynan shunday) — sahifani ochish; hech narsa yozilmaydi. Foydalanuvchi biror bo'lim/ekranni so'rasa — har doim shu amalni taklif qiling.
+F2 yaratish, Forma 3, akt bekor, zamena, qo'shimcha ish, АОСР — bu satrdan YOZILMAYDI: tegishli sahifani 'och' bilan oching (F2 tayyorlash, Hujjatlar, АОСР, Fakt) — foydalanuvchi o'sha sahifada o'zi tekshirib tasdiqlaydi. F2/АОСР ni hech qachon o'zingiz tasdiqlamang.
+HECH QACHON «qila olmayman» yoki «faqat smeta tizimidagi ishlar» deb rad etmang: so'rov aniq bo'lmasa yoki tizimda bunday amal bo'lmasa — eng yaqin sahifani 'och' bilan va eng yaqin amallarni taklif qiling, kerak bo'lsa «savollar» da aniqlashtiring.
 Mavjud smeta qatori/normasi birinchi; yangi qator o'ylab topmang. Savol aniq bo'lmasa — "savollar" da so'rang.`;
 
 export const SAHIFA_TIZIM: Partial<Record<SahifaTuri, string>> = { fakt: FAKT_YORDAM_TIZIM, f2: F2_YORDAM_TIZIM, buyruq: BUYRUQ_YORDAM_TIZIM };
