@@ -8,6 +8,7 @@ import { t, tilTayyorla } from './i18n/til'
 
 import { kuzatuvniBoshlash } from './_shared/kuzatuv';
 import { reloadQoriqchisiniTozala, versiyaKuzatuvi } from './_shared/versiya';
+import { ustamaKeshiniUla } from './umumiy/ui/ustama-kesh';
 
 kuzatuvniBoshlash();
 versiyaKuzatuvi();
@@ -20,6 +21,8 @@ const queryClient = new QueryClient({
     },
   },
 })
+
+ustamaKeshiniUla(queryClient);
 
 import { Component, type ReactNode } from 'react';
 

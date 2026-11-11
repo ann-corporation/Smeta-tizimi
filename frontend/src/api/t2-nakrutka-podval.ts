@@ -6,6 +6,7 @@
  *   obyekt podvali → shartnoma podvali → kompaniya podvali → null (standart kaskad, koeffitsientlardan).
  */
 import { sbOqi } from './supabase';
+import { ustamaOzgardi } from '../umumiy/ui/ustama-kesh';
 import type { Podval, PodvalQator } from '../lib/nakrutka-konstruktor';
 import { serverCatsdan } from '../lib/hisob-yadro';
 
@@ -41,7 +42,9 @@ type Natija = { ok: boolean; error?: string; sabab?: string; id?: number; versiy
 async function yoz(yuk: Record<string, unknown>): Promise<Natija> {
   try {
     const r = await fetch('/api/sb-yoz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(yuk) });
-    return (await r.json()) as Natija;
+    const natija = (await r.json()) as Natija;
+    if (natija?.ok) ustamaOzgardi();
+    return natija;
   } catch (e) {
     return { ok: false, error: 'Tarmoq: ' + (e instanceof Error ? e.message : String(e)) };
   }
