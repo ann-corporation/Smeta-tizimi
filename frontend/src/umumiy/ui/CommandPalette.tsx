@@ -1,5 +1,5 @@
 import { useState, useEffect, useId, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Building, CornerDownLeft } from 'lucide-react';
 import { useKompaniya } from '../kontekst/KompaniyaKontekst';
@@ -21,7 +21,6 @@ export function CommandPalette({ bandlar }: { bandlar: PaletteBand[] }) {
   const dialogTitleId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
-  const { pathname } = useLocation();
   const k = useKompaniya();
   const kompaniyaId = k.globalRejim ? null : (k.joriy?.id ?? null);
   /* Obyektlar — kanonik `t2_obyekt` (joriy kompaniya), faqat palitra ochilganda o'qiladi. */
@@ -35,19 +34,16 @@ export function CommandPalette({ bandlar }: { bandlar: PaletteBand[] }) {
     staleTime: 5 * 60 * 1000,
   });
 
-  /* Smeta studiyasining o'z Ctrl+K buyruqlar paneli bor — u yerda ikkinchi oyna ochilmasin. */
-  const studiyada = pathname.startsWith('/admin/smeta-studio');
+  /* Ctrl+K endi YAGONA yordamchi (Jarvis, AiHelper) ni ochadi; bu qidiruv paneli palitra:och hodisasi bilan ochiladi (ikki oyna chiqmasin). */
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k' && !studiyada) {
-        e.preventDefault();
-        setIsOpen((prev) => !prev);
-      }
       if (e.key === 'Escape') setIsOpen(false);
     };
+    const och = () => setIsOpen(true);
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [studiyada]);
+    window.addEventListener('palitra:och', och);
+    return () => { window.removeEventListener('keydown', handleKeyDown); window.removeEventListener('palitra:och', och); };
+  }, []);
 
   useEffect(() => {
     if (isOpen) inputRef.current?.focus();

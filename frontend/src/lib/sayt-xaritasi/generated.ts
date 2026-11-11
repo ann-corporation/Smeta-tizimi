@@ -34,6 +34,8 @@ export const GENERATED_SITE_MAP = {
     "/admin/aosr",
     "/admin/storage",
     "/admin/nazorat",
+    "/admin/nazorat/tekshiruv",
+    "/admin/nazorat/jurnal",
     "/admin/zakazchik",
     "/admin/taqdimlar",
     "/admin/murojaatlar",
