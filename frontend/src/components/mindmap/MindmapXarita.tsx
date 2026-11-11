@@ -9,10 +9,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { AlertTriangle, Box, Clock, Info, LayoutDashboard, List, Network, PencilLine, RefreshCcw, Search, X, Map as MapIkon } from 'lucide-react';
+import { AlertTriangle, Clock, Info, LayoutDashboard, List, ListTree, Network, PencilLine, RefreshCcw, Search, X, Map as MapIkon } from 'lucide-react';
 import type { MindmapGraf } from '../../api/t2-mindmap';
 import { tahrirYopiqMatni, type TahrirRuxsati } from '../../lib/mindmap-ruxsat';
-import { tugunAmallari, tugunNishoni, type Amal, type AmalKorish, type AmalNishon } from '../../lib/mindmap-amallar';
+import { tugunAmallari, tugunNishoni, yolRuxsati, type Amal, type AmalKorish, type AmalNishon } from '../../lib/mindmap-amallar';
+import { pultAmallari, pultNishon, type PultKontekst } from '../../lib/mindmap-pult';
+import { pultDaraxtQur, pultQidiruvi, type PultTugun } from '../../lib/mindmap-pult-daraxt';
+import { qidiruvdaBor } from '../../i18n/lotin-kirill';
 import { AmalMenyu, MasulQilishModal, VazifaModal, type MenyuHolati, type VazifaBoshqaruv } from './AmalMenyu';
 import { t, useTil, sanaFormatla } from '../../i18n/til';
 import {
@@ -23,34 +26,46 @@ import { XaritaKanvas } from './XaritaKanvas';
 import { XaritaPanel, type HodisaHolati } from './XaritaPanel';
 import type { MasulBoshqaruv } from './XaritaJamoa';
 import { XaritaRoyxat } from './XaritaRoyxat';
+import { MindmapPult, type BolimlarOl } from './MindmapPult';
+import { PultAmalModal, type PultTugatdi } from './PultAmalModal';
 import { Bajarilish, HolatChiziq, Romb } from './belgilar';
 import { HOLAT_RANG, foizMatn, holatIzohi, holatNomi, pulQ } from './holat';
 
-export type MindmapKorinishTuri = 'xarita' | 'royxat' | '2d' | '3d' | 'tahrir';
+/** `pult` — asosiy «Boshqaruv» daraxti (sukut); qolganlari «Boshqa ko‘rinishlar» ostida. (3D graf bezak edi — olib tashlandi; 2D graf egasi talabi bilan saqlangan.) */
+export type MindmapKorinishTuri = 'pult' | 'xarita' | 'royxat' | '2d' | 'tahrir';
 
-const KORINISHLAR: { k: MindmapKorinishTuri; ikon: typeof List; nom: () => string }[] = [
+const ASOSIY_KORINISH: { k: MindmapKorinishTuri; ikon: typeof List; nom: () => string } = { k: 'pult', ikon: ListTree, nom: () => t('Boshqaruv') };
+const BOSHQA_KORINISHLAR: { k: MindmapKorinishTuri; ikon: typeof List; nom: () => string }[] = [
   { k: 'xarita', ikon: MapIkon, nom: () => t('Xarita') },
   { k: 'royxat', ikon: List, nom: () => t('Ro‘yxat') },
   { k: '2d', ikon: Network, nom: () => t('2D graf') },
-  { k: '3d', ikon: Box, nom: () => t('3D graf') },
-  { k: 'tahrir', ikon: PencilLine, nom: () => t('Tahrir') },
+  { k: 'tahrir', ikon: PencilLine, nom: () => t('Tahrir (chiziq tortish)') },
 ];
 
-/** Ko‘rinish almashtirgich (yangi va eski ko‘rinishlarda bir xil). */
+/** Ko‘rinish almashtirgich: «Boshqaruv» doim ko‘rinadi, qolgan ko‘rinishlar «Boshqa ko‘rinishlar» ostida. */
 export function KorinishTanlagich({ joriy, onTanla, className = '', tahrirMumkin = true }: { joriy: MindmapKorinishTuri; onTanla: (k: MindmapKorinishTuri) => void; className?: string; /** `false` — «Tahrir» yorlig‘i chiqmaydi (yozuv ruxsati yo‘q). */ tahrirMumkin?: boolean }) {
+  const [ochiq, setOchiq] = useState(joriy !== 'pult');
+  const boshqalar = BOSHQA_KORINISHLAR.filter(({ k }) => tahrirMumkin || k !== 'tahrir');
+  const korinadigan = [ASOSIY_KORINISH, ...(ochiq || joriy !== 'pult' ? boshqalar : [])];
   return (
-    <div role="tablist" aria-label={t('Ko‘rinish')} className={'inline-flex max-w-full overflow-x-auto rounded-[var(--radius-sm)] border border-[var(--border-strong)] bg-surface-2 p-0.5 ' + className}>
-      {KORINISHLAR.filter(({ k }) => tahrirMumkin || k !== 'tahrir').map(({ k, ikon: I, nom }) => (
-        <button key={k} type="button" role="tab" aria-selected={joriy === k} onClick={() => onTanla(k)}
-          className={'inline-flex h-7 shrink-0 items-center gap-1.5 rounded-[var(--radius-xs)] px-2.5 text-[12px] font-medium transition-colors ' +
-            (joriy === k ? 'bg-[var(--accent)] text-[var(--on-accent)]' : 'text-text-dim hover:bg-[var(--surface-3)] hover:text-text')}>
-          <I aria-hidden className="h-3.5 w-3.5" />{nom()}
+    <div className={'inline-flex max-w-full items-center gap-1 ' + className}>
+      <div role="tablist" aria-label={t('Ko‘rinish')} className="inline-flex max-w-full overflow-x-auto rounded-[var(--radius-sm)] border border-[var(--border-strong)] bg-surface-2 p-0.5">
+        {korinadigan.map(({ k, ikon: I, nom }) => (
+          <button key={k} type="button" role="tab" aria-selected={joriy === k} onClick={() => onTanla(k)}
+            className={'inline-flex h-7 shrink-0 items-center gap-1.5 rounded-[var(--radius-xs)] px-2.5 text-[12px] font-medium transition-colors ' +
+              (joriy === k ? 'bg-[var(--accent)] text-[var(--on-accent)]' : 'text-text-dim hover:bg-[var(--surface-3)] hover:text-text')}>
+            <I aria-hidden className="h-3.5 w-3.5" />{nom()}
+          </button>
+        ))}
+      </div>
+      {joriy === 'pult' && (
+        <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" aria-expanded={ochiq} onClick={() => setOchiq((v) => !v)} data-testid="boshqa-korinishlar">
+          {ochiq ? t('Yashirish') : t('Boshqa ko‘rinishlar')}
         </button>
-      ))}
+      )}
     </div>
   );
 }
-
 function useEkran(sorov: string): boolean {
   const ol = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(sorov).matches;
   const [mos, setMos] = useState(ol);
@@ -72,7 +87,7 @@ type Props = {
   onYangila: () => void;
   tanlangan: string | null;
   onTanla: (id: string | null) => void;
-  korinish: 'xarita' | 'royxat';
+  korinish: 'pult' | 'xarita' | 'royxat';
   onKorinish: (k: MindmapKorinishTuri) => void;
   hodisalar?: HodisaHolati;
   onTahrirdaOch?: (id: string) => void;
@@ -84,12 +99,17 @@ type Props = {
   amalKorish?: AmalKorish;
   /** «Topshiriq berish» (mavjud `t2_topshiriq_ber_v1`). Berilmasa — bu amal chiqmaydi. */
   vazifa?: VazifaBoshqaruv;
+  /** Boshqaruv pulti: yaratish/biriktirish/uzish/nomlash (oldindan ko‘rish + tasdiq). Berilmasa — faqat sahifaga o‘tish amallari. */
+  pult?: PultBoshqaruv;
 };
 
-const YOPIQ_KORISH: AmalKorish = { superadmin: false, rol: '', permissions: [], boshqaKompaniya: false };
-type AmalModalHolati = { tur: 'masul'; odamId: string } | { tur: 'vazifa'; odamId: string | null; obyektId: number | null } | null;
+/** Pult amallari kontekst: yozuvchi (mavjud buyruqlar), yozuvdan keyin ekranni yangilash, smeta bo‘limlarini lazy o‘qish. */
+export type PultBoshqaruv = { kontekst: PultKontekst; onTugadi: (t: PultTugatdi) => void; bolimlarOl?: BolimlarOl };
 
-export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYangila, tanlangan, onTanla, korinish, onKorinish, hodisalar, onTahrirdaOch, tahrir, masul, amalKorish, vazifa }: Props) {
+const YOPIQ_KORISH: AmalKorish = { superadmin: false, rol: '', permissions: [], boshqaKompaniya: false };
+type AmalModalHolati = { tur: 'masul'; odamId: string } | { tur: 'vazifa'; odamId: string | null; obyektId: number | null } | { tur: 'pult'; nishonId: string; amal: string } | null;
+
+export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYangila, tanlangan, onTanla, korinish, onKorinish, hodisalar, onTahrirdaOch, tahrir, masul, amalKorish, vazifa, pult }: Props) {
   useTil();
   const tahrirMumkin = !tahrir || tahrir.mumkin;
   const yopiqMatn = tahrirYopiqMatni(tahrir);
@@ -154,7 +174,15 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
   const [menyu, setMenyu] = useState<(MenyuHolati & { nishon: AmalNishon }) | null>(null);
   const [amalModal, setAmalModal] = useState<AmalModalHolati>(null);
   const amalKontekst = useMemo(() => ({ ...(amalKorish ?? YOPIQ_KORISH), pul: !daraxt.pulYoq, masul: !!masul?.mumkin }), [amalKorish, daraxt.pulYoq, masul?.mumkin]);
-  const amallarOl = useCallback((n: AmalNishon) => tugunAmallari(n, amalKontekst).filter((a) => a.modal !== 'vazifa' || !!vazifa), [amalKontekst, vazifa]);
+  const amallarOl = useCallback((n: AmalNishon) => {
+    const asos = tugunAmallari(n, amalKontekst).filter((a) => a.modal !== 'vazifa' || !!vazifa);
+    if (!pult) return asos;
+    // Boshqaruv pulti: yaratish / biriktirish / uzish / nomlash (oldindan ko‘rish + tasdiq; ruxsat yo‘q — sabab bilan yopiq).
+    return [...asos, ...pultAmallari(graf, pultNishon(graf, n.id), pult.kontekst.tahrir).map((a): Amal => ({
+      kalit: 'pult:' + a.kalit, nom: a.nom, ikon: a.kalit.includes('yarat') ? 'yangi' : a.kalit.includes('nomla') ? 'nomlash' : a.kalit.endsWith('-uz') || a.kalit.endsWith('.uz') ? 'uzish' : 'ulash',
+      bajar: 'pult', yol: null, modal: null, panel: null, mumkin: a.mumkin, sabab: a.sabab, pult: a.kalit,
+    }))];
+  }, [amalKontekst, vazifa, pult, graf]);
   const amalOch = useCallback((n: AmalNishon, x: number, y: number) => {
     setMenyu({ nishon: n, nishonNom: n.tur === 'kompaniya' ? n.nom || t('Kompaniya') : n.tur === 'jamoa' ? t('Jamoa') : n.nom, amallar: amallarOl(n), x, y });
   }, [amallarOl]);
@@ -169,6 +197,7 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
     const n = menyu?.nishon;
     setMenyu(null);
     if (!n || !a.mumkin) return;
+    if (a.bajar === 'pult' && a.pult) { setAmalModal({ tur: 'pult', nishonId: n.id, amal: a.pult }); return; }
     if (a.bajar === 'yol' && a.yol) { navigate(a.yol); return; }
     if (a.modal === 'masul') { setAmalModal({ tur: 'masul', odamId: n.id }); return; }
     if (a.modal === 'vazifa') { setAmalModal({ tur: 'vazifa', odamId: n.tur === 'odam' ? n.id : null, obyektId: n.tur === 'obyekt' ? n.entityId : null }); return; }
@@ -187,6 +216,22 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
       }
     }
   };
+
+  /* ── Boshqaruv pulti (asosiy ko‘rinish): kompaniya → loyiha → shartnoma → obyekt ── */
+  const pultIldiz = useMemo(() => (korinish === 'pult' ? pultDaraxtQur(graf, daraxt) : null), [korinish, graf, daraxt]);
+  const pultKorinadi = useMemo(() => (pultIldiz ? pultQidiruvi(pultIldiz, qidiruv, qidiruvdaBor, holatFiltri) : null), [pultIldiz, qidiruv, holatFiltri]);
+  const pultNishoni = useCallback((tg: PultTugun): AmalNishon | null => {
+    if (tg.tur === 'guruh') return null;
+    if (tg.tur === 'shartnoma') {
+      const n = Number(tg.id.split(':')[1]);
+      return { tur: 'shartnoma', id: tg.id, entityId: Number.isSafeInteger(n) && n > 0 ? n : null, nom: tg.nom, obyektId: null };
+    }
+    const x = daraxt.tugunlar.get(tg.id);
+    return x ? tugunNishoni(x, !!daraxt.jamoa) : null;
+  }, [daraxt]);
+  const pultMenyuOch = useCallback((tg: PultTugun, el: HTMLElement) => { const n = pultNishoni(tg); if (n) amalOchEl(n, el); }, [pultNishoni, amalOchEl]);
+  const pultAmalSoni = useCallback((tg: PultTugun) => { const n = pultNishoni(tg); return n ? amallarOl(n).length : 0; }, [pultNishoni, amallarOl]);
+  const yolMumkin = useCallback((yol: string) => yolRuxsati(yol, amalKontekst), [amalKontekst]);
 
   const bosh = graf.tugunlar.length === 0;
   const tarkibYoq = !bosh && root.bolalar.length === 0;
@@ -233,9 +278,11 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
           <div className="min-w-0">
             <h1 className="flex items-center gap-2 text-[19px] font-semibold leading-7 text-text lg:text-[21px]">
               <span aria-hidden className="inline-block h-3 w-3 rotate-45 rounded-[2px] bg-[var(--accent)]" />
-              {t('Kompaniya xaritasi')}
+              {t('Boshqaruv pulti')}
             </h1>
-            <p className="mt-0.5 hidden text-[12.5px] text-text-dim sm:block">{t('Loyihalar → obyektlar → smeta, fakt va F2 holati. Tugunni bosing — tafsilot va havolalar.')}</p>
+            <p className="mt-0.5 hidden text-[12.5px] text-text-dim sm:block">{korinish === 'pult' && pult
+              ? t('Kompaniya → loyiha → shartnoma → obyekt. Tugunni bosing — tafsilot; «⋯» — yaratish, biriktirish va sahifaga o‘tish.')
+              : t('Loyihalar → obyektlar → smeta, fakt va F2 holati. Tugunni bosing — tafsilot va havolalar.')}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {oxirgiYangilanish && (
@@ -280,14 +327,18 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
         <main className="relative min-w-0 flex-1">
           {bosh && (
             <div className="grid h-full place-items-center p-6 text-center text-[13px] text-text-mute">
-              {yuklanmoqda ? t('Xarita yuklanmoqda…') : t('Xarita ma’lumoti yo‘q.')}
+              {yuklanmoqda ? <Skelet /> : t('Xarita ma’lumoti yo‘q.')}
             </div>
           )}
           {tarkibYoq && (
             <div className="grid h-full place-items-center p-6">
               <div className="fz-note fz-note--info max-w-md">
                 <Info aria-hidden />
-                <span>{tahrirMumkin ? t('Hali loyiha va obyekt yo‘q. Obyektlar «Obyektlar» sahifasida, loyiha va resurslar «Tahrir» ko‘rinishida qo‘shiladi.') : t('Hali loyiha va obyekt yo‘q.')}</span>
+                <span>{pult && tahrirMumkin ? t('Hali loyiha va obyekt yo‘q. Birinchi loyihani shu yerdan yarating.') : tahrirMumkin ? t('Hali loyiha va obyekt yo‘q. Obyektlar «Obyektlar» sahifasida, loyiha va resurslar «Tahrir» ko‘rinishida qo‘shiladi.') : t('Hali loyiha va obyekt yo‘q.')}</span>
+                {pult && tahrirMumkin && graf.tugunlar.some((x) => x.id === daraxt.ildiz) && (
+                  <button type="button" className="fz-btn fz-btn--sm fz-btn--primary" data-testid="pult-birinchi-loyiha"
+                    onClick={() => setAmalModal({ tur: 'pult', nishonId: daraxt.ildiz, amal: 'loyiha.yarat' })}>{t('Yangi loyiha')}</button>
+                )}
               </div>
             </div>
           )}
@@ -297,6 +348,13 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
               <div data-boshqaruv className="absolute left-3 right-16 top-3 z-10">{asboblar}</div>
               <Izoh ochiq={izohOchiq} setOchiq={setIzohOchiq} />
             </XaritaKanvas>
+          )}
+          {!bosh && !tarkibYoq && korinish === 'pult' && pultIldiz && (
+            <div className="lg:h-full lg:overflow-y-auto">
+              <div className="sticky top-0 z-[2] border-b border-border bg-bg px-3 py-2 sm:px-4">{asboblar}</div>
+              <MindmapPult ildiz={pultIldiz} tanlangan={tanlangan} onTanla={onTanla} korinadi={pultKorinadi} pulYoq={daraxt.pulYoq}
+                amalOch={pultMenyuOch} amalSoni={pultAmalSoni} yolOch={(yol) => navigate(yol)} yolMumkin={yolMumkin} bolimlarOl={pult?.bolimlarOl} />
+            </div>
           )}
           {!bosh && !tarkibYoq && korinish === 'royxat' && (
             <div className="lg:h-full lg:overflow-y-auto">
@@ -327,9 +385,24 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
           )}
         </AnimatePresence>
       </div>
+      {amalModal?.tur === 'pult' && pult && <PultAmalModal graf={graf} nishonId={amalModal.nishonId} amalKalit={amalModal.amal} kontekst={pult.kontekst} onYop={() => setAmalModal(null)} onTugadi={pult.onTugadi} />}
       {menyu && <AmalMenyu holat={menyu} onYop={() => setMenyu(null)} onBajar={amalBajar} />}
       {amalModal?.tur === 'masul' && masul && <MasulQilishModal daraxt={daraxt} odamId={amalModal.odamId} masul={masul} onYop={() => setAmalModal(null)} />}
       {amalModal?.tur === 'vazifa' && vazifa && <VazifaModal daraxt={daraxt} odamId={amalModal.odamId} obyektId={amalModal.obyektId} vazifa={vazifa} onYop={() => setAmalModal(null)} />}
+    </div>
+  );
+}
+
+/** Yuklanayotganda ko‘rinadigan qator o‘rinbosarlari (bo‘sh ekran o‘rniga). */
+function Skelet() {
+  return (
+    <div className="w-full max-w-3xl space-y-2 p-4" role="status" aria-label={t('Xarita yuklanmoqda…')} data-testid="pult-skelet">
+      {[70, 55, 62, 48, 58, 44].map((w, i) => (
+        <div key={i} className="flex items-center gap-3" style={{ paddingLeft: (i % 3) * 20 }}>
+          <span className="h-4 w-4 shrink-0 rounded-[var(--radius-xs)] bg-[var(--surface-3)]" />
+          <span className="h-4 rounded-[var(--radius-xs)] bg-[var(--surface-3)] motion-safe:animate-pulse" style={{ width: w + '%' }} />
+        </div>
+      ))}
     </div>
   );
 }
