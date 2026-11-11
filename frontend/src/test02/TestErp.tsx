@@ -1,6 +1,6 @@
 import { MoneyInput } from '../umumiy/ui/MoneyInput';
 import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Navigate } from 'react-router-dom';
 import { sbKadrlarOl, sbKadrYarat, sbTexnikalarOl, sbTexnikaYarat, sbResursBekor, type KadrMustaqil, type TexnikaMustaqil } from '../api/t2-resurs';
 import { Users, Truck, ShieldCheck, Plus, HardHat, RefreshCw, Save, Trash2, Network } from 'lucide-react';
 import { useKompaniya } from './KompaniyaTanlov';
@@ -21,7 +21,7 @@ export default function TestErp() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const { joriy } = useKompaniya();
-  const [modul, setModul] = useState<Modul>((params.get('modul') as Modul) || 'kadrlar');
+  const [modul, setModul] = useState<Modul>(params.get('modul') === 'sifat' ? 'sifat' : params.get('modul') === 'kadrlar' ? 'kadrlar' : 'texnika');
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [fNomi, setFNomi] = useState('');
@@ -38,8 +38,8 @@ export default function TestErp() {
     if (!joriy) return;
     setYuklanmoqda(true);
     try {
-      if (modul === 'kadrlar') setKadrlarList((await sbKadrlarOl(joriy.id)).qatorlar || []);
-      else if (modul === 'texnika') setTexnikaList((await sbTexnikalarOl(joriy.id)).qatorlar || []);
+      if (modul === 'kadrlar') return; // yo'naltiriladi: /admin/hr
+      if (modul === 'texnika') setTexnikaList((await sbTexnikalarOl(joriy.id)).qatorlar || []);
     } catch (e: any) {
       toast(e.message, 'danger');
     } finally {
@@ -78,10 +78,13 @@ export default function TestErp() {
 
   const bekorQil = async (tur: 'kadr' | 'texnika', id: number, version: number, nom: string) => {
     if (!joriy) return;
-    if (!(await tasdiqSora({ sarlavha: t('Bekor qilish'), matn: t('«{nom}» bekor qilinsinmi? Tarix saqlanadi.', { nom }), tasdiqMatni: t('Bekor qilish'), xavfli: true }))) return;
+    if (!(await tasdiqSora({ sarlavha: t('Yozuvni olib tashlash'), matn: t('«{nom}» ro‘yxatdan olib tashlansinmi? Tarix saqlanadi.', { nom }), tasdiqMatni: t('Olib tashlash'), bekorMatni: t('Qaytish'), xavfli: true }))) return;
     const r = await sbResursBekor(tur, joriy.id, id, version);
-    if (r.ok) { toast(t('Bekor qilindi'), 'ok'); void yukla(); }
-    else toast(r.error || t('Bekor qilinmadi'), 'danger');
+    if (r.ok) {
+      toast(t('Olib tashlandi'), 'ok');
+      /* Qator darhol ro'yxatdan ketadi (qo'lda «Yangilash» kerak emas). Qayta o'qish YO'Q: kesh eski qatorni qaytarib ko'rsatardi. */
+      if (tur === 'kadr') setKadrlarList((l) => l.filter((x) => x.id !== id)); else setTexnikaList((l) => l.filter((x) => x.id !== id));
+    } else toast(r.error || t('Olib tashlanmadi'), 'danger');
   };
 
   const q = qidiruv.toLowerCase();
@@ -89,6 +92,9 @@ export default function TestErp() {
   const texnikalar = texnikaList.filter((x) => `${x.nomi} ${x.davlat_raqami ?? ''}`.toLowerCase().includes(q));
   const kadrObyektda = kadrlarList.filter((k) => k.obyektlar?.length > 0).length;
   const texIshda = texnikaList.filter((x) => x.obyektlar?.length > 0).length;
+
+  /* Xodimlar ro'yxati YAGONA: /admin/hr (HR). ERP faqat texnika va sifat; eski havolalar (?modul=kadrlar) shu yerga yo'naltiriladi. */
+  if (modul === 'kadrlar') return <Navigate to="/admin/hr" replace />;
 
   return (
     <Sahifa
@@ -114,7 +120,7 @@ export default function TestErp() {
           </>}
         </OpsKpiQator>
 
-        <OpsTablar<Modul> yorliq={t('ERP bo‘limlari')} joriy={modul} onTanla={(m) => { setModul(m); setQidiruv(''); }} tablar={[
+        <OpsTablar<Modul> yorliq={t('ERP bo‘limlari')} joriy={modul} onTanla={(m) => { if (m === 'kadrlar') { navigate('/admin/hr'); return; } setModul(m); setQidiruv(''); }} tablar={[
           { id: 'kadrlar', nom: t('Xodimlar va brigadalar'), ikon: <Users /> },
           { id: 'texnika', nom: t('Texnika parki'), ikon: <Truck /> },
           { id: 'sifat', nom: t('Mehnat muhofazasi va sifat'), ikon: <ShieldCheck /> },

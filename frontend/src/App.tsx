@@ -99,7 +99,6 @@ function AiHelper() { return <Suspense fallback={null}><AiHelperLazy /></Suspens
 const Umumiy = lazy(() => import('./boss/sahifalar/Umumiy'));
 
 // ERP pages
-const ErpKadrlar = lazy(() => import('./erp/sahifalar/ErpKadrlar'));
 const ErpTexnika = lazy(() => import('./erp/sahifalar/ErpTexnika'));
 const ErpTaminot = lazy(() => import('./erp/sahifalar/ErpTaminot'));
 const ErpSifat = lazy(() => import('./erp/sahifalar/ErpSifat'));
@@ -269,7 +268,7 @@ export default function App() {
             <Route path="aosr" element={<Navigate to="/admin/aosr" replace />} />
           </Route>
           {/* ERP routes for Admin */}
-          <Route path="kadrlar" element={<ErpKadrlar />} />
+          <Route path="kadrlar" element={<Navigate to="/admin/hr" replace />} />
           <Route path="texnika" element={<ErpTexnika />} />
           <Route path="taminot" element={<ErpTaminot />} />
           <Route path="sifat" element={<ErpSifat />} />
@@ -321,7 +320,7 @@ export default function App() {
           <Route path="holat/:id" element={<BossHolatYonaltir />} />
           <Route path="fakt" element={<Navigate to="/admin/fakt" replace />} />
           {/* ERP routes for Boss */}
-          <Route path="kadrlar" element={<Navigate to="/admin/kadrlar" replace />} />
+          <Route path="kadrlar" element={<Navigate to="/admin/hr" replace />} />
           <Route path="texnika" element={<Navigate to="/admin/texnika" replace />} />
           <Route path="taminot" element={<Navigate to="/admin/taminot" replace />} />
           <Route path="sifat" element={<Navigate to="/admin/sifat" replace />} />
