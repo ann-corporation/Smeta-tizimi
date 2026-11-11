@@ -17,6 +17,7 @@ export const GENERATED_SITE_MAP = {
     "/admin/narx-manbalari",
     "/admin/oferta",
     "/admin/fakt",
+    "/admin/ish-jurnal",
     "/admin/m29",
     "/admin/f2-tayyorlash",
     "/admin/f2",
@@ -70,6 +71,7 @@ export const GENERATED_SITE_MAP = {
     "holat",
     "holat/:id",
     "fakt",
+    "ish-jurnal",
     "f2-tayyorlash",
     "f2",
     "f2-tarix",
@@ -238,6 +240,7 @@ export const GENERATED_SITE_MAP = {
     "t2_smeta_versiya_moslik",
     "t2_smeta_versiya_dava",
     "t2_qator_muhr_farq",
+    "t2_ish_jurnal_izoh",
     "t2_korzinka",
     "t2_audit_reestr",
     "t2_obyekt_hujjat_royxat",
@@ -344,6 +347,10 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "hr_tabel_saqla_v1",
       "rpc": "t2_hr_tabel_saqla_v1"
+    },
+    {
+      "amal": "ish_jurnal_saqla_v1",
+      "rpc": "t2_ish_jurnal_saqla_v1"
     },
     {
       "amal": "hr_tuzatma_saqla_v1",

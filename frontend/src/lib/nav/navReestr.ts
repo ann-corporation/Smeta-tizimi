@@ -109,6 +109,8 @@ export const NAV_GURUHLAR: readonly NavGuruh[] = [
       /* Avval menyuda yo'q edi (tadqiqot M4). Usta/brigadir: fakt.read + self.work.write (fakt.write ularda yo'q). */
       { nom: 'Fakt kiritish', ikonka: 'HardHat', sahifalar: [
         { yol: '/admin/fakt', ilova: 'ff', nom: 'Fakt kiritish', ruxsat: [RAHBARIYAT, 'fakt.write', 'fakt.read+self.work.write'], scope: 'OBJECT_SCOPED' },
+        /* P1 (ekotizim V3): kundalik ish jurnali — obyekt ish joyidagi tab (yangi menyu guruhi emas). Kunlik yozuv fakt/sklad/АОСР dan hosil bo'ladi. */
+        { yol: '/admin/ish-jurnal', ilova: 'ff', nom: 'Kundalik ish jurnali', ruxsat: [RAHBARIYAT, 'fakt.write', 'fakt.read+self.work.write'], scope: 'OBJECT_SCOPED' },
       ] },
       { nom: 'M-29 (material sarfi)', ikonka: 'Box', sahifalar: [
         { yol: '/admin/m29', ilova: 'ff', nom: 'M-29 (material sarfi)', ruxsat: [RAHBARIYAT, 'smeta.write', 'warehouse.write'] },

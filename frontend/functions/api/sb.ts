@@ -88,6 +88,8 @@ const RUXSAT_JADVALLAR = new Set([
   't2_smeta_versiya', 't2_smeta_versiya_pozitsiya', 't2_smeta_versiya_moslik', 't2_smeta_versiya_dava',
   /* Smeta CONST (2026-10-27): qator muhridan farq — o'zgargan / o'chirilgan / qo'shilgan, avval/endi. */
   't2_qator_muhr_farq',
+  /* Kundalik ish jurnali (P1): faqat prorab izohi (qolgani fakt/sklad/АОСР dan hosil qilinadi). */
+  't2_ish_jurnal_izoh',
   /* KORZINKA — bekor qilingan obyekt/smeta/sklad harakat (3 jadval
      birlashgan VIEW — `holat='bekor'`, is_deleted EMAS). */
   't2_korzinka',

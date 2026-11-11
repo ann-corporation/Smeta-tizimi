@@ -7,7 +7,7 @@ const titles: Array<[RegExp, string]> = [
   [/^\/admin\/participants(?:\/|$)/, 'Loyiha ishtirokchilari'], [/^\/admin\/(?:system-control|control)(?:\/|$)/, 'Tizim boshqaruv markazi'],
   [/^\/admin\/documents(?:\/|$)/, 'Hujjatlar'], [/^\/admin\/sayt-xaritasi(?:\/|$)/, 'Sayt xaritasi'], [/^\/admin\/dashboard(?:\/|$)/, 'Rahbar paneli'],
   [/^\/admin\/obyektlar(?:\/|$)/, 'Loyihalar va obyektlar'],
-  [/^\/admin\/holat(?:\/|$)/, 'Obyekt ish joyi'], [/^\/admin\/fakt(?:\/|$)/, 'Fakt'],
+  [/^\/admin\/holat(?:\/|$)/, 'Obyekt ish joyi'], [/^\/admin\/fakt(?:\/|$)/, 'Fakt'], [/^\/admin\/ish-jurnal(?:\/|$)/, 'Kundalik ish jurnali'],
   [/^\/admin\/f2-tayyorlash(?:\/|$)/, 'F2 tayyorlash'], [/^\/admin\/f2(?:\/|$)/, 'F2 import'],
   [/^\/admin\/f2-tarix(?:\/|$)/, 'F2 tarixi'], [/^\/admin\/hujjat-nazorat(?:\/|$)/, 'Nakopitelniy / hujjat nazorati'],
   [/^\/admin\/narxlar(?:\/|$)/, 'Narxlar nazorati'], [/^\/admin\/fayl-boglash(?:\/|$)/, 'Sinxronizatsiya'],

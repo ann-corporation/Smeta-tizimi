@@ -7,7 +7,7 @@ const root=resolve(process.cwd(),'..');
 const read=(p:string)=>readFileSync(resolve(root,p),'utf8');
 describe('role integration architecture',()=>{
   it('every API is scoped or has an explicit independently secured exception',()=>{
-    const exceptions=new Set(['didox-webhook','t2-bridge','hujjat-r2','kirish','kirish-google','chiqish','royxat','royxat-ozi','royxat-email-kod','soglik','xato','kontekst-diag','catalog-release','norm-katalog','koef-katalog','hour-price-catalog','mash-katalog','narx-katalog','narx-katalog-nashr',
+    const exceptions=new Set(['didox-webhook','t2-bridge','hujjat-r2','kirish','kirish-google','chiqish','royxat','royxat-ozi','royxat-email-kod','soglik','xato','kontekst-diag','catalog-release','norm-katalog','koef-katalog','hour-price-catalog','mash-katalog','narx-katalog','narx-katalog-nashr',/* P1 ob-havo: sessiya majburiy, tenant ma'lumoti yo'q (koordinata + sana ochiq Open-Meteo ga; keshlanadi). */'ob-havo',
       /* superadminActor: har chaqiruvda bazada qayta tekshiriladi (r2-dublikat.test.ts — superadmin bo'lmasa 403, R2 ga tegmaydi). */
       'r2-dublikat',
       /* superadminActor: har chaqiruvda bazada qayta tekshiriladi (db-hajm.test.ts — superadmin bo'lmasa 403). */

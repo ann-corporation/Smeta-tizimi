@@ -95,6 +95,7 @@ const PTO_ROUTE_PREFIXES = [
   '/admin/f2-tayyorlash',
   '/admin/f2-tarix',
   '/admin/fakt',
+  '/admin/ish-jurnal',
   '/admin/hujjat-nazorat',
   '/admin/nakopitelniy',
   '/admin/narxlar',

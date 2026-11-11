@@ -79,7 +79,10 @@ O'QISH VOSITALARI:
 - holat (arg: null) — obyekt xulosasi: qatorlar, fakt kiritilgan, narxsiz, qoldiq bor qatorlar, jami summalar (ustamasiz + ustamali).
 - narxsiz (arg: null yoki so'z) — narxi yo'q (smeta narxi noma'lum) qatorlar. Narxsiz qator summasi 0 EMAS — «noma'lum».
 - qoldiq (arg: null — eng katta qoldiqlar; yoki so'z/shifr) — smeta − F2 qoldig'i, fakt va foiz bilan.
+- jurnal (arg: null = bugun, yoki "YYYY-MM-DD") — kundalik ish jurnali: shu kunning bajarilgan ishlari (fakt), sklad kirimi, АОСР, predpisaniya/murojaat, ob-havo va prorab izohi. «Bugungi jurnalni ko'rsat» — shu vosita.
 AMALLAR (taklif):
+- jurnal_yoz: qiymat="YYYY-MM-DD|matn" (sana ixtiyoriy: faqat "matn" — bugun) — prorab izohini QORALAMA qilib yozadi (tasdiqlash — Fakt › Kundalik ish jurnali sahifasida). Matn faqat foydalanuvchi aytgan so'zlardan; fakt yoki hajm to'qilmaydi.
+- jurnal_och: qiymat="YYYY-MM-DD" yoki null — jurnal sahifasini ochadi (hech narsa yozilmaydi).
 - fakt_hajm: qator=[#id] (ish yoki resurs, faqat natijadagi), qiymat="+5" (bugun qo'shiladi) yoki "=40" (jami fakt shu bo'ladi). Hajm faqat foydalanuvchi aytgan son.
 - narx_tuzat: qator=[#id], qiymat=yangi narx (son, NDS siz; foydalanuvchi aytgan). Bu PUL ta'sirli: narx protokoli qoralamasi yaratiladi.
 - korsat: qator=[#id] — qatorni ko'rsatish (hech narsa yozilmaydi).

@@ -84,6 +84,8 @@ const AMALLAR = {
   hr_sxema_saqla_v1: { rpc: 't2_hr_sxema_saqla_v1' },
   hr_kalendar_saqla_v1: { rpc: 't2_hr_kalendar_saqla_v1' },
   hr_tabel_saqla_v1: { rpc: 't2_hr_tabel_saqla_v1' },
+  /* P1 kundalik ish jurnali: prorab izohi (a'zolik + fakt.write RPC ichida; CAS + idempotent operation_id). */
+  ish_jurnal_saqla_v1: { rpc: 't2_ish_jurnal_saqla_v1' },
   hr_tuzatma_saqla_v1: { rpc: 't2_hr_tuzatma_saqla_v1' },
   hr_tuzatma_qaror_v1: { rpc: 't2_hr_tuzatma_qaror_v1' },
   hr_oylik_v1: { rpc: 't2_hr_oylik_hisobla_v1' },
@@ -1051,6 +1053,33 @@ export const onRequestPost: PagesFunction<{
         p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_shartnoma_id: Number(so.shartnoma_id),
         p_kutilgan_versiya: so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya), p_qatorlar: qatorlar,
         p_ochirilgan: och == null ? null : och.map(Number), p_spravka: spravka, p_operation_id: so.operation_id,
+      };
+    } else if (amal === 'ish_jurnal_saqla_v1') {
+      /* Kundalik ish jurnali: faqat skalyar maydonlar; ob-havo — kichik oq ro'yxatli snapshot. A'zolik + fakt.write RPC da. */
+      const sanaRe = /^\d{4}-\d{2}-\d{2}$/;
+      const matn = (x: unknown, n: number): string | null | undefined => (x == null ? null : typeof x === 'string' ? x.slice(0, n) : undefined);
+      const izoh = matn(so.izoh, 2000); const odamlar = matn(so.odamlar, 300);
+      const oh = so.ob_havo;
+      let obHavo: Record<string, unknown> | null = null;
+      if (oh != null) {
+        if (typeof oh !== 'object' || Array.isArray(oh)) return Response.json({ ok: false, error: 'Ish jurnali: ob-havo noto‘g‘ri.' }, { status: 400 });
+        obHavo = {};
+        for (const k of ['harorat_min', 'harorat_max', 'yogin_mm', 'shamol_max', 'kod', 'manba', 'sana']) {
+          const x = (oh as Record<string, unknown>)[k];
+          if (x === undefined) continue;
+          if (x !== null && typeof x !== 'string' && typeof x !== 'number') return Response.json({ ok: false, error: 'Ish jurnali: ob-havo maydoni noto‘g‘ri.' }, { status: 400 });
+          obHavo[k] = typeof x === 'string' ? x.slice(0, 40) : x;
+        }
+      }
+      const kv = so.kutilgan_versiya == null ? null : Number(so.kutilgan_versiya);
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isSafeInteger(Number(so.kompaniya_id)) || Number(so.kompaniya_id) <= 0
+          || !Number.isSafeInteger(Number(so.obyekt_id)) || Number(so.obyekt_id) <= 0 || !sanaRe.test(String(so.sana || ''))
+          || izoh === undefined || odamlar === undefined || (kv != null && !Number.isSafeInteger(kv))) {
+        return Response.json({ ok: false, error: 'Ish jurnali: kompaniya, obyekt, sana (YYYY-MM-DD), matn va operatsiya talab qilinadi.' }, { status: 400 });
+      }
+      yuk = {
+        p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: Number(so.kompaniya_id), p_obyekt_id: Number(so.obyekt_id), p_sana: String(so.sana),
+        p_izoh: izoh, p_odamlar: odamlar, p_ob_havo: obHavo, p_tasdiqlash: so.tasdiqlash === true, p_kutilgan_versiya: kv, p_operation_id: so.operation_id,
       };
     } else if (amal.startsWith('hr_')) {
       /* HR + KPI: maydonlar oq ro'yxatdan (skalyar), ruxsat va biznes qoidalarni RPC tekshiradi. */

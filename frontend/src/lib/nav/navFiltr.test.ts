@@ -63,7 +63,7 @@ const bez = (xs: string[], ...yoq: string[]) => xs.filter((x) => !a(...yoq).incl
 /* ── Kutilgan menyular (tartib — sidebar tartibi) ── */
 const OBYEKT = a('dashboard', 'obyektlar', 'loyiha', 'participants', 'mindmap');
 const SMETA = a('smeta-studio', 'holat', 'smeta-narxlash', 'narx-dalil', 'narx-tekshiruv', 'nakrutka', 'narxlar', 'narx-manbalari', 'oferta');
-const FAKT = a('fakt', 'm29');
+const FAKT = a('fakt', 'ish-jurnal', 'm29');
 const F2 = a('f2-tayyorlash', 'f2', 'f2-tarix', 'f2-reestr', 'nakopitelniy');
 const MOLIYA = a('moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'crm', 'aloqalar');
 const HUJJAT = a('documents', 'hujjat-nazorat', 'aosr', 'storage', 'zakazchik', 'taqdimlar', 'murojaatlar', 'hujjat-aylanish');
@@ -86,7 +86,7 @@ const KUTILGAN: Record<string, string[]> = {
   bugalter: [...a('dashboard', 'obyektlar', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'crm', 'aloqalar',
     'documents', 'hujjat-nazorat', 'storage', 'logistika', 'zayavka', 'tender', 'yuk-birjasi', 'erp', 'hr', 'sotuv'), ...SHAXSIY],
   prorab: [...bez(ISH, 'dashboard', 'moliya', 'buxgalteriya', 'qarzdorlik'), ...SHAXSIY],
-  usta: [...a('fakt'), ...SHAXSIY],
+  usta: [...a('fakt', 'ish-jurnal'), ...SHAXSIY],
   buyurtmachi: [...a('obyektlar', 'loyiha', 'participants', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'shartnoma-liniya',
     'documents', 'hujjat-nazorat', 'storage', 'zakazchik', 'taqdimlar', 'murojaatlar', 'hujjat-aylanish'), ...SHAXSIY],
   omborchi: [...a('m29', 'logistika', 'zayavka', 'tender', 'yuk-birjasi'), ...SHAXSIY],
@@ -175,7 +175,7 @@ describe('qatlamlar', () => {
   });
 
   it('brigadir — usta kabi Fakt kiritishni ko‘radi', () => {
-    expect(menyu('brigadir')).toEqual([...a('fakt', 'hr'), ...SHAXSIY]);
+    expect(menyu('brigadir')).toEqual([...a('fakt', 'ish-jurnal', 'hr'), ...SHAXSIY]);
   });
 
   it('kompaniya tanlanmagan (rol yo‘q) — faqat shaxsiy bandlar', () => {
@@ -245,7 +245,7 @@ describe('yagona manba — boshqa iste‘molchilar o‘zgarmagan', () => {
       '/admin/test/erp': 'COMPANY_SCOPED', '/admin/test/xarita': 'COMPANY_SCOPED', '/admin/test/kontragent': 'COMPANY_SCOPED', '/admin/test/sozlama': 'COMPANY_SCOPED',
       '/admin/participants': 'PROJECT_SCOPED', '/admin/test/aosr': 'PROJECT_SCOPED',
       '/admin/holat': 'OBJECT_SCOPED', '/admin/f2': 'OBJECT_SCOPED', '/admin/f2-tayyorlash': 'OBJECT_SCOPED', '/admin/f2-tarix': 'OBJECT_SCOPED',
-      '/admin/fakt': 'OBJECT_SCOPED', '/admin/nakopitelniy': 'OBJECT_SCOPED', '/admin/narxlar': 'OBJECT_SCOPED', '/admin/smeta-narxlash': 'OBJECT_SCOPED',
+      '/admin/fakt': 'OBJECT_SCOPED', '/admin/ish-jurnal': 'OBJECT_SCOPED', '/admin/nakopitelniy': 'OBJECT_SCOPED', '/admin/narxlar': 'OBJECT_SCOPED', '/admin/smeta-narxlash': 'OBJECT_SCOPED',
       '/admin/hujjat-nazorat': 'OBJECT_SCOPED', '/admin/storage': 'OBJECT_SCOPED', '/admin/test/obyektlar': 'OBJECT_SCOPED', '/admin/test/saqlash': 'OBJECT_SCOPED',
     });
   });

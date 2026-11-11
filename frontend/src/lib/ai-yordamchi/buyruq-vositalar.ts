@@ -104,6 +104,8 @@ export function buyruqAmalTekshir(m: BuyruqMalumot, a: SahifaAmal): string | nul
       if (yangi == null) return t('Yangi narx musbat son bo‘lishi kerak (QQS siz)');
       return r.narx != null && Math.abs(Number(r.narx) - yangi) < 1e-9 ? t('Narx o‘zgarmaydi') : null;
     }
+    case 'jurnal_yoz': return jurnalQiymat(a.qiymat).matn ? null : t('Jurnal izohi bo‘sh bo‘lmasligi kerak');
+    case 'jurnal_och': return a.qiymat && !JURNAL_SANA.test(a.qiymat) ? t('Sana YYYY-MM-DD shaklida bo‘lishi kerak') : null;
     case 'korsat': return a.qator != null && m.qatorById.has(a.qator) ? null : 'Qator topilmadi (AI bergan id obyektda yo‘q)';
     default: return 'Noma’lum amal';
   }
@@ -117,7 +119,16 @@ export function faktDelta(m: Pick<BuyruqMalumot, 'bolimIshlari'>, a: SahifaAmal)
   return Math.round((h.rejim === '+' ? q : q - j.q.fakt) * 1e6) / 1e6;
 }
 
-export const BUYRUQ_AMAL_NOMI: Record<string, string> = { fakt_hajm: 'Fakt hajmi', narx_tuzat: 'Narx tuzatish (protokol qoralamasi)', korsat: 'Qatorni ko‘rsatish' };
+const JURNAL_SANA = /^\d{4}-\d{2}-\d{2}$/;
+/** «YYYY-MM-DD|matn» yoki faqat «matn» (sana — bugun). */
+export function jurnalQiymat(v: string | null): { sana: string | null; matn: string } {
+  const s = (v ?? '').trim();
+  const i = s.indexOf('|');
+  if (i === 10 && JURNAL_SANA.test(s.slice(0, 10))) return { sana: s.slice(0, 10), matn: s.slice(11).trim() };
+  return { sana: null, matn: s };
+}
+
+export const BUYRUQ_AMAL_NOMI: Record<string, string> = { fakt_hajm: 'Fakt hajmi', narx_tuzat: 'Narx tuzatish (protokol qoralamasi)', jurnal_yoz: 'Kundalik jurnal izohi (qoralama)', jurnal_och: 'Kundalik jurnalni ochish', korsat: 'Qatorni ko‘rsatish' };
 
 export type AmalDelta = { eski: string; yangi: string; ustamasiz: number | null; kesim: KatKesim | null };
 
@@ -160,6 +171,12 @@ export type BuyruqYoz = {
   yangila?: () => void;
   yangiOperationId: () => string;
   bugun?: () => string;
+  /** Kundalik ish jurnali (P1): sana (null = bugun) → o'qilgan jurnal matni. */
+  jurnalOl?: (sana: string | null) => Promise<string>;
+  /** Prorab izohini QORALAMA qilib yozadi (tasdiq — jurnal sahifasida). */
+  jurnalYoz?: (p: { sana: string; matn: string; operationId: string }) => Promise<YozNatija>;
+  /** Jurnal sahifasini ochadi. */
+  jurnalOch?: (sana: string | null) => void;
 };
 
 const bugunSana = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
@@ -173,7 +190,11 @@ export function buyruqVositalar(getM: () => BuyruqMalumot, obyektId: number, yoz
   return {
     sahifa: 'buyruq',
     kontekst: () => buyruqKontekst(getM()),
-    oqi: (s) => buyruqOqi(getM(), s),
+    oqi: (s) => {
+      if (s.vosita !== 'jurnal') return buyruqOqi(getM(), s);
+      if (s.arg && !JURNAL_SANA.test(s.arg.trim())) return t('Sana YYYY-MM-DD shaklida bo‘lishi kerak');
+      return yoz.jurnalOl ? yoz.jurnalOl(s.arg?.trim() || null).catch(() => t('Jurnalni o‘qib bo‘lmadi')) : t('Jurnal bu yerda mavjud emas');
+    },
     tekshir: (a) => buyruqAmalTekshir(getM(), a),
     nomi: (a) => buyruqAmalNomi(getM(), a),
     pul: pulAmalmi,
@@ -198,6 +219,15 @@ export function buyruqVositalar(getM: () => BuyruqMalumot, obyektId: number, yoz
         const r = await yoz.narxProtokol({ obyektId, operationId: id, izoh: `AI buyruq satri: ${narx.size} qator`, qatorlar: [...narx].map(([qator_id, yangi_narx]) => ({ qator_id, yangi_narx })) });
         out.push(r.ok ? `✓ ${t('Narx protokoli qoralamasi yaratildi: {n} qator (kuchga kirish — imzolangan nusxa bilan alohida tasdiq)', { n: narx.size })}${r.raqam ? ` · ${r.raqam}` : ''} · operation_id ${id.slice(0, 8)}` : `✗ ${t('Narx protokoli yaratilmadi')}: ${xato(r)}`);
         if (r.ok) yoz.yangila?.();
+      }
+      // Kundalik ish jurnali (P1): izoh QORALAMA sifatida (tasdiq — sahifada); sahifani ochish — hech narsa yozmaydi.
+      for (const a of yaroqli.filter((x) => x.tur === 'jurnal_och')) yoz.jurnalOch?.(a.qiymat?.trim() || null);
+      for (const a of yaroqli.filter((x) => x.tur === 'jurnal_yoz')) {
+        const q = jurnalQiymat(a.qiymat); const sana = q.sana ?? (yoz.bugun ?? bugunSana)();
+        if (!yoz.jurnalYoz) { out.push(`✗ ${t('Jurnalga yozib bo‘lmadi')}`); continue; }
+        const id = opId(`jurnal:${sana}|${q.matn}`);
+        const r = await yoz.jurnalYoz({ sana, matn: q.matn, operationId: id });
+        out.push(r.ok ? `✓ ${t('Jurnal izohi qoralama sifatida yozildi')} · ${sana.split('-').reverse().join('.')} · operation_id ${id.slice(0, 8)}` : `✗ ${t('Jurnal yozilmadi')}: ${xato(r)}`);
       }
       return out;
     },

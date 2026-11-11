@@ -202,6 +202,7 @@ export const HUJJAT_TURLARI = {
   lrv: 'Лимитно-ресурсная ведомость (ЛРВ)',
   lrv_sverka: 'LRV ↔ RES сверка',
   ijro_reestr: 'Ijro hujjatlari reestri',
+  ish_jurnal: 'Общий журнал работ (kundalik ish jurnali)',
   narx_asoslash: 'Обоснование цен',
   narx_protokol: 'Протокол согласования цен',
   oferta: 'Tender oferta',

@@ -6,7 +6,8 @@
  * operation_id bilan; pul/huquqiy amal — ikkinchi «Tasdiqlayman». Ovoz faqat matnni to'ldiradi.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { bugunSana } from '../lib/hujjat-yozuvchi';
 import { Sparkles } from 'lucide-react';
 import { t } from '../i18n/til';
 import { yangiOperationId, type T2Qator, type T2QatorHolat } from '../api/supabase';
@@ -14,6 +15,7 @@ import { sbFaktYoz } from '../api/t2-fakt';
 import { narxProtokolYarat } from '../api/t2-narx-protokol';
 import { tokenHolatOl, type TokenHolat } from '../api/t2-token';
 import { daraxtVaHolatOl } from '../lib/oylik-hujjat/ostatka-slichitelniy';
+import { jurnalIzohYoz, jurnalMatniOl } from '../lib/ish-jurnal/oqish';
 import { useHotkeys } from '../lib/hotkeys/useHotkeys';
 import { isPtoRoute, usePTOWorkspace } from '../umumiy/kontekst/PTOWorkspaceContext';
 import { AiYordamchiPanel } from '../umumiy/ui/ai-yordamchi/AiYordamchiPanel';
@@ -26,9 +28,15 @@ import type { SahifaAmal } from '../lib/ai-yordamchi/protokol';
 import type { UstamaliFn } from '../lib/ai-yordamchi/fakt-vositalar';
 
 export type MalumotNatija = { ok: true; rows: T2Qator[]; states: T2QatorHolat[] } | { ok: false; xato: string };
+type JurnalObyekt = { kompaniyaId: number; obyektId: number; obyektNomi: string };
+type JurnalSorov = JurnalObyekt & { sana: string };
+type JurnalYozSorov = JurnalSorov & { matn: string; operationId: string };
+export interface JurnalDeps { ol(p: JurnalSorov): Promise<string>; yoz(p: JurnalYozSorov): Promise<YozNatija> }
 export type BuyruqDeps = {
   malumotOl: { (obyektId: number): Promise<MalumotNatija> };
   yoz: Pick<BuyruqYoz, 'faktYoz' | 'narxProtokol' | 'yangiOperationId'>;
+  /** Kundalik ish jurnali (P1): berilmasa haqiqiy yo'llar (`lib/ish-jurnal/oqish`) ishlatiladi. */
+  jurnal?: JurnalDeps;
   tokenOl: { (kompaniyaId: number): Promise<TokenHolat | null> };
 };
 
@@ -40,6 +48,7 @@ const HAQIQIY_DEPS: BuyruqDeps = {
     narxProtokol: (p) => narxProtokolYarat(p.obyektId, p.qatorlar, p.izoh, p.operationId),
     yangiOperationId,
   },
+  jurnal: { ol: jurnalMatniOl, yoz: jurnalIzohYoz },
   tokenOl: async (kompaniyaId) => { const r = await tokenHolatOl(kompaniyaId).catch(() => null); return r && r.ok ? r.natija : null; },
 };
 
@@ -55,8 +64,10 @@ function TokenChip({ h, matn, kontekst }: { h: TokenHolat | null; matn: string; 
   </span>;
 }
 
-export function AiBuyruqSatriIchki({ kompaniyaId, obyektId, obyektNomi, ochiq, onOchiq, deps = HAQIQIY_DEPS }: {
+export function AiBuyruqSatriIchki({ kompaniyaId, obyektId, obyektNomi, ochiq, onOchiq, deps = HAQIQIY_DEPS, jurnalOch }: {
   kompaniyaId: number; obyektId: number | null; obyektNomi?: string; ochiq: boolean; onOchiq: (v: boolean) => void; deps?: BuyruqDeps;
+  /** Jurnal sahifasini ochish (router tashqi qobiqda — `AiBuyruqSatri`); sana null = bugun. */
+  jurnalOch?: (sana: string | null) => void;
 }) {
   const h = useUstamaliSumma(obyektId, { kompaniyaId });
   const ustamaliRef = useRef<UstamaliFn>(() => ({ ustamali: null, taxminiy: false }));
@@ -103,13 +114,22 @@ export function AiBuyruqSatriIchki({ kompaniyaId, obyektId, obyektNomi, ochiq, o
   const yangila = useCallback(() => setVersiya((v) => v + 1), []);
   const vositalar = useMemo(() => buyruqVositalar(() => mRef.current ?? bos, obyektId ?? 0, {
     ...deps.yoz, yangila,
+    ...((): Pick<BuyruqYoz, 'jurnalOl' | 'jurnalYoz' | 'jurnalOch'> => {
+      const j = deps.jurnal ?? HAQIQIY_DEPS.jurnal;
+      const nom = obyektNomi ?? '';
+      return {
+        jurnalOl: j ? (sana) => j.ol({ kompaniyaId, obyektId: obyektId ?? 0, obyektNomi: nom, sana: sana ?? bugunSana() }) : undefined,
+        jurnalYoz: j ? (p) => j.yoz({ kompaniyaId, obyektId: obyektId ?? 0, obyektNomi: nom, sana: p.sana, matn: p.matn, operationId: p.operationId }) : undefined,
+        jurnalOch,
+      };
+    })(),
     korsat: (qatorId) => {
       const r = mRef.current?.qatorById.get(qatorId);
       toast(`[#${qatorId}] ${r?.kod ?? ''} ${r?.nom ?? ''}`.trim(), 'ok');
       window.dispatchEvent(new CustomEvent('ai-buyruq:korsat', { detail: { qatorId } }));
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [obyektId, bos, yangila]);
+  }), [obyektId, obyektNomi, bos, yangila, jurnalOch]);
 
   if (!ochiq) return null;
   if (obyektId == null) return <aside role="dialog" aria-label={t('AI buyruq')} data-testid="ai-buyruq-obyekt-yoq" className="fixed left-1/2 top-14 z-50 w-[min(34rem,calc(100vw-1.5rem))] -translate-x-1/2 rounded-2xl border border-border bg-surface p-3 text-sm shadow-2xl">
@@ -137,6 +157,8 @@ export function AiBuyruqSatriIchki({ kompaniyaId, obyektId, obyektNomi, ochiq, o
 export function AiBuyruqSatri({ deps }: { deps?: BuyruqDeps } = {}) {
   const ws = usePTOWorkspace();
   const location = useLocation();
+  const navigate = useNavigate();
+  const jurnalOch = useCallback((sana: string | null) => { navigate(`/admin/ish-jurnal${sana ? `?sana=${encodeURIComponent(sana)}` : ''}`); }, [navigate]);
   const faol = ws.isProvider && ws.companyId != null && isPtoRoute(location.pathname);
   const [ochiq, setOchiq] = useState(false);
   useHotkeys('ai-buyruq', t('AI buyruq satri'), [
@@ -150,6 +172,6 @@ export function AiBuyruqSatri({ deps }: { deps?: BuyruqDeps } = {}) {
     <button type="button" onClick={() => setOchiq((o) => !o)} aria-label={t('AI buyruq satrini ochish')} aria-expanded={ochiq} data-testid="ai-buyruq-tugma"
       title={t('AI buyruq satri (Ctrl+K)')} className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md border border-border px-2 text-[11px] text-text-dim hover:text-text">
       <Sparkles size={13} className="text-accent" /> <span className="hidden xl:inline">{KALIT_YORLIQ}</span></button>
-    <AiBuyruqSatriIchki kompaniyaId={ws.companyId} obyektId={ws.scope.objectId} obyektNomi={obyektNomi} ochiq={ochiq} onOchiq={setOchiq} deps={deps} />
+    <AiBuyruqSatriIchki kompaniyaId={ws.companyId} obyektId={ws.scope.objectId} obyektNomi={obyektNomi} ochiq={ochiq} onOchiq={setOchiq} deps={deps} jurnalOch={jurnalOch} />
   </>;
 }

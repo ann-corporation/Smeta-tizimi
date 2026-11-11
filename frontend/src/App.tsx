@@ -19,6 +19,7 @@ const TgKirish = lazy(() => import('./telegram/TgKirish'));
 // (`SahifaChegarasi`), shuning uchun kirish sahifasi bu og'ir sahifalarni yuklamaydi.
 const HolatNative = lazy(() => import('./admin/sahifalar/HolatNative'));
 const FaktNative = lazy(() => import('./admin/sahifalar/FaktNative'));
+const IshJurnali = lazy(() => import('./admin/sahifalar/IshJurnali'));
 const FaylBoglash = lazy(() => import('./admin/sahifalar/FaylBoglash'));
 /* TIZIM_02 — Supabase sinov muhiti. Tizim_01 ga TEGMAYDI. */
 const TestShell     = lazy(() => import('./test02/TestShell'));
@@ -146,10 +147,12 @@ export default function App() {
           } />
           <Route path="holat" element={<HolatNative />} />
           <Route path="holat/:id" element={<HolatNative />} />
-          <Route path="fakt" element={<FaktNative />} />
           {/* 2026-10-25 (tizim xaritasi P1): F2 bo'limi — sidebarda bitta «F2» bandi, tepada tablar.
               Yo'lsiz layout: sahifalar va ularning URL'lari o'zgarmagan. */}
           <Route element={<BolimTablari />}>
+            {/* P1: Fakt bandi — tablar: Fakt kiritish | Kundalik ish jurnali (yo'llar o'zgarmagan). */}
+            <Route path="fakt" element={<FaktNative />} />
+            <Route path="ish-jurnal" element={<Suspense fallback={<SahifaYuklanmoqda />}><IshJurnali /></Suspense>} />
             <Route path="f2-tayyorlash" element={<F2TayyorlashNative />} />
             <Route path="f2" element={<F2ImportV3 />} />
             <Route path="f2-tarix" element={<F2TarixNative />} />
