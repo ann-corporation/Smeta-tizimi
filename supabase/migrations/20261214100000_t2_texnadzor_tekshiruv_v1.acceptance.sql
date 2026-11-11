@@ -66,7 +66,8 @@ begin
   r := t2_nazorat_tekshiruv_tafsilot_v1(ui, z, tk);
   rep := rep || (case when (r->>'ok')::boolean and jsonb_array_length(r->'fotolar') = 1 and jsonb_array_length(r->'predpisaniyalar') = 1 then 'OK   tafsilot: foto + predpisaniya' else 'FAIL tafsilot: ' || r::text end);
   r := t2_nazorat_tekshiruvlar_v1(ui, z, current_date - 1, current_date, null, 50);
-  rep := rep || (case when jsonb_array_length(r) = 1 then 'OK   jurnal' else 'FAIL jurnal: ' || r::text end);
+  -- Rad etilgan yakunlash (FOTO_KERAK/FOTO_BEGONA) qoralamani saqlab qoladi: jurnalda 1 yakunlangan + 1 qoralama bo'lishi kerak.
+  rep := rep || (case when jsonb_array_length(r) = 2 and (select count(*) from jsonb_array_elements(r) x where x->>'holat' = 'yakunlandi' and (x->>'predpisaniya_soni')::int = 1) = 1 and (select count(*) from jsonb_array_elements(r) x where x->>'holat' = 'qoralama') = 1 then 'OK   jurnal (1 yakunlangan + 1 qoralama)' else 'FAIL jurnal: ' || r::text end);
 
   -- 5. АОСР foto + ko'rik (taqdim qabul qiluvchisi)
   r := t2_aosr_yoz_v2(p, o1, '{"ish_nomi":"ACC ish","raqam":"ACC-N1","sana":"2026-11-01"}'::jsonb, null, null, gen_random_uuid(), 'acc');
@@ -77,7 +78,7 @@ begin
   rep := rep || (case when r->>'code' = 'TOPILMADI' then 'OK   begona taqdim rad' else 'FAIL korik begona: ' || r::text end);
 
   select string_agg(e, E'\n') into h from unnest(rep) e;
-  if h like '%FAIL%' then raise exception E'ACCEPTANCE FAIL\n%', h; end if;
+  if h like '%FAIL%' then raise exception using errcode = 'P0001', message = E'ACCEPTANCE FAIL\n' || h; end if;
   raise notice E'ACCEPTANCE OK\n%', h;
 end $$;
 rollback;
