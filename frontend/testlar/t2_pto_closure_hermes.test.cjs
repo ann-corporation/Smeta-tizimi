@@ -18,7 +18,7 @@ const hermes = active.tasks.find((task) => task.id === 'HERM-001');
 must('AdminShell mounts one PTO provider', shell.includes('<PTOWorkspaceProvider>') && shell.includes('<PTOWorkspaceBar />'));
 must('scope URL has tenant hierarchy fields', ['loyiha', 'obyekt', 'davr', 'hujjat', 'revision'].every((name) => context.includes(`'${name}`)));
 // 2026-10-26: menyu sahifalarining scope'i — yagona navigatsiya reestrida (lib/nav/navReestr.ts).
-const navReestr = read('frontend/src/lib/nav/navReestr.ts');
+const navReestr = read('frontend/src/lib/reestr/sahifa.ts') + '\n' + read('frontend/src/lib/nav/navReestr.ts'); // sahifalar yagona reestrda (lib/reestr)
 must('dynamic PTO paths are company guarded', /yol: '\/admin\/f2'[^\n]*scope: 'OBJECT_SCOPED'/.test(navReestr) && /NAV_SAHIFALAR/.test(scope) && scope.includes('pathname.startsWith(route + \'/\')'));
 must('Smeta reimport is preview-only; delete only for draft (no F2/fakt links)', smeta.includes('smetaQaytaImportDiff') && (!smeta.includes('smeta_tozala') || (smeta.includes('smeta_bogliqlik') && smeta.includes('bogliqlik?.qoralama'))));
 /* 2026-09-11 (egasi ko'rsatmasi): manba/checksum endi IXTIYORIY provenance,
