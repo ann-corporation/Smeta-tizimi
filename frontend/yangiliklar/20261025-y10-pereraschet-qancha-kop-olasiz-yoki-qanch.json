@@ -1,0 +1,11 @@
+{
+  "id": 10,
+  "sana": "2026-10-25",
+  "sarlavha": "Pereraschet: qancha ko'p olasiz yoki qancha qaytarasiz",
+  "bandlar": [
+    "Nakopitelniy sahifasida «Pereraschet» bo'limi: har resurs qatori bo'yicha ortiqcha olingan hajm (minus), narx farqi (±) va faktda bor, lekin F2 ga olinmagan hajm (plyus).",
+    "Yuqorida jami: olish mumkin / qaytarish kerak / sof natija — ustamasiz, obyekt ustamasi bilan va QQS bilan; razdellar bo'yicha. Qatorni bossangiz — qaysi F2 aktlarda olingani.",
+    "Birlik shubhasi, smetada hajm yoki narx yo'q, «(ekspertizagacha)» bo'lim, zamena qatorlari pulga kirmaydi — «Tekshirish kerak» ro'yxatida.",
+    "Excel «Перерасчёт» hujjati (buyurtmachi bilan pereraschet asosi) va tanlangan qatorlardan tuzatuvchi F2 qoralamasi — tasdiqlash siz tomondan F2 tarixida."
+  ]
+}
