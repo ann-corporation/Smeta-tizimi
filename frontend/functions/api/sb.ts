@@ -302,6 +302,8 @@ export const onRequestPost: PagesFunction<{
         /* C11 PR-B (2026-10-29): markaziy ombor kirimi ro'yxati — qatorlar + material bo'yicha jami. `stable`
            (20261114400000), a'zolik + document.read RPC ichida; sklad kompaniyasi ham RPC da tekshiriladi. */
         sklad_kirim_royxat_v1: 'kompaniya_actor',
+        /* C11 BERDIM (20261211110000): markaziy ombor qoldig'i (berish uchun material tanlovi). `stable`; a'zolik + document.read RPC ichida. */
+        sklad_markaziy_qoldiq_v1: 'kompaniya_actor',
         /* TRANSPORT v1 (20261123000000): park, reyslar, tannarx, KPI. `stable`; a'zolik + logistics.read/machinery.read RPC ichida. */
         transport_ol_v1: 'kompaniya_actor',
         /* YUK BIRJASI v1 (20261201000000): egasi tomoni ro'yxati/tafsiloti/narx sozlamasi. `stable`; a'zolik + procurement.read RPC ichida. */
@@ -593,6 +595,19 @@ export const onRequestPost: PagesFunction<{
         q.set('p_filtr', JSON.stringify(filtr));
         q.set('p_limit', String(lim));
         q.set('p_offset', String(off));
+      }
+      if (so.soro === 'sklad_markaziy_qoldiq_v1') {
+        const sid = Number(so.sklad_id);
+        const lim = Number(so.limit ?? 50);
+        if (!Number.isSafeInteger(sid) || sid <= 0) return Response.json({ ok: false, error: 'sklad_id noto\'g\'ri' });
+        if (!Number.isInteger(lim) || lim < 1 || lim > 200) return Response.json({ ok: false, error: 'limit noto\'g\'ri' });
+        q.set('p_sklad_id', String(sid));
+        q.set('p_limit', String(lim));
+        const qd = (so as { qidir?: unknown }).qidir;
+        if (qd != null && qd !== '') {
+          if (typeof qd !== 'string') return Response.json({ ok: false, error: 'qidir noto\'g\'ri' });
+          q.set('p_qidir', qd.trim().slice(0, 200));
+        }
       }
       if (so.soro === 'transport_ol_v1') {
         const bolim = String((so as { bolim?: unknown }).bolim ?? '');
