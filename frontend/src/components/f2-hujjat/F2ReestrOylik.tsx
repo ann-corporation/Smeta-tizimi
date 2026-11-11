@@ -27,7 +27,7 @@ export function F2ReestrOylik({ aktlar }: { aktlar: readonly Akt[] }) {
   return (
     <section className="fz-card" aria-label={t('Oylik F2 grafigi')} data-testid="reestr-oylik">
       <div className="fz-card__head">
-        <div><h3 className="fz-card__title">{t('Oylar bo‘yicha F2 summasi')}</h3><p className="fz-card__sub">{t('ustamasiz, NDS siz · holat bo‘yicha')}</p></div>
+        <div><h3 className="fz-card__title">{t('Oylar bo‘yicha F2 summasi')}</h3><p className="fz-card__sub">{t('ustamasiz, QQS siz · holat bo‘yicha')}</p></div>
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11.5px] text-text-dim">
           {QISMLAR.map((q) => <span key={q.k} className="inline-flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: q.rang }} />{t(q.nom)}</span>)}
         </div>

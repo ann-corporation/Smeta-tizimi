@@ -22,6 +22,7 @@ import type { MoslashShartnoma, TizimShartnoma } from '../../lib/sverka-1c/turla
 import { pul, qoldiqRang, raqamUstun, sanaKor } from './yordamchi';
 import { SverkaMoslashBolimi } from './SverkaMoslashBolimi';
 import { F2ReestrBolimi } from './F2ReestrBolimi';
+import { raqamTozala } from '../../lib/raqam-belgi';
 
 type Tab = 'import' | 'moslash' | 'obyekt' | 'taqsimot' | 'reestr';
 
@@ -195,12 +196,12 @@ export function SverkaImportPanel({ companyId }: { companyId: number }) {
                   <thead><tr><th>{t('Fayldagi shartnoma')}</th><th>{t('Tizimdagi shartnoma')}</th><th style={raqamUstun}>{t('Sarlavhadagi summa')}</th></tr></thead>
                   <tbody>{reja.bloklar.map((b) => (
                     <tr key={b.kalit}>
-                      <td title={b.sarlavha}>{b.raqam ? `№ ${b.raqam}` : b.sarlavha.slice(0, 60)}</td>
+                      <td title={b.sarlavha}>{b.raqam ? `№ ${raqamTozala(b.raqam)}` : b.sarlavha.slice(0, 60)}</td>
                       <td>
                         <select aria-label={t('Shartnoma')} className="input" style={{ height: 28, fontSize: 12 }} value={b.shartnomaId ?? ''}
                           onChange={(e) => setTanlov({ ...tanlov, [b.kalit]: e.target.value ? Number(e.target.value) : null })}>
                           <option value="">{t('— shartnoma topilmadi (o‘tkazib yuboriladi) —')}</option>
-                          {shartnomalar.map((s) => <option key={s.id} value={s.id}>№ {s.raqam}</option>)}
+                          {shartnomalar.map((s) => <option key={s.id} value={s.id}>№ {raqamTozala(s.raqam)}</option>)}
                         </select>
                         {b.avto && <span className="fz-chip" style={{ marginLeft: 6 }}>{t('avtomatik')}</span>}
                       </td>
@@ -211,7 +212,7 @@ export function SverkaImportPanel({ companyId }: { companyId: number }) {
               </div>
 
               {reja.ogohlantirishlar.map((o, i) => (
-                <div key={i} className="fz-note fz-note--warn"><AlertTriangle /><span>{t('{sh}: to‘lovlar {tol} so‘m — shartnoma summasidan ({man}: {sum} so‘m) oshdi. DS kiritilmagan bo‘lishi mumkin; yozish bloklanmaydi.', {
+                <div key={i} className="fz-note fz-note--warn"><AlertTriangle /><span>{t('{sh}: to‘lovlar {tol} so‘m — shartnoma summasidan ({man}: {sum} so‘m) oshdi. qo‘shimcha kelishuv kiritilmagan bo‘lishi mumkin; yozish bloklanmaydi.', {
                   sh: shNom(o.shartnomaId), tol: pul(o.tolangan), sum: pul(o.shartnoma), man: o.manba === 'sarlavha' ? t('fayl sarlavhasi') : t('tizim'),
                 })}</span></div>
               ))}

@@ -16,6 +16,7 @@ import {
   type ShartnomaFayl, type ShartnomaHujjatlar as Malumot,
 } from '../../api/t2-shartnoma-hujjat';
 import { hajmKorinish, joriySumma, sanaKorinish } from '../../lib/shartnoma-hujjat-korinish';
+import { raqamTozala } from '../../lib/raqam-belgi';
 
 const QABUL = '.pdf,.jpg,.jpeg,.png,.tif,.tiff,.doc,.docx,.xls,.xlsx,application/pdf,image/*';
 
@@ -98,20 +99,20 @@ export function ShartnomaHujjatlar({ kompaniyaId, shartnomaId }: { kompaniyaId: 
       {xato && <p role="alert" className="text-[12px] text-danger">{xato}</p>}
       {!m && !xato && <div className="skel h-12 rounded-md" />}
       {m && <>
-        <p className="mb-1 flex justify-between gap-2"><span>{tr('Shartnoma')} № {m.shartnoma.raqam}{m.shartnoma.sana ? ` · ${sanaKorinish(m.shartnoma.sana)}` : ''}</span>
+        <p className="mb-1 flex justify-between gap-2"><span>{tr('Shartnoma')} № {raqamTozala(m.shartnoma.raqam)}{m.shartnoma.sana ? ` · ${sanaKorinish(m.shartnoma.sana)}` : ''}</span>
           <span className="tabular-nums">{tr('Joriy summa (QQS bilan)')}: <b>{joriySumma(m) == null ? '—' : <FmtN val={joriySumma(m) as number} />}</b></span></p>
         {royxat(fayllar(null))}
         <div className="mt-2 border-t border-border/50 pt-1.5">
-          <div className="mb-1 flex items-center gap-2"><span className="font-semibold text-text">{tr('Qo‘shimcha kelishuvlar (DS)')}</span><span className="fz-chip">{m.ds.length}</span>
-            <Link to="/admin/nakopitelniy" className="ml-auto text-[11px] text-accent hover:underline">{tr('DS qo‘shish / tahrirlash — Nakopitelniy')}</Link></div>
-          {m.ds.length === 0 ? <p className="text-[12px] text-text-mute">{tr('DS kiritilmagan')}</p> : (
+          <div className="mb-1 flex items-center gap-2"><span className="font-semibold text-text">{tr('Qo‘shimcha kelishuvlar')}</span><span className="fz-chip">{m.ds.length}</span>
+            <Link to="/admin/nakopitelniy" className="ml-auto text-[11px] text-accent hover:underline">{tr('Qo‘shimcha kelishuv qo‘shish / tahrirlash — Nakopitelniy')}</Link></div>
+          {m.ds.length === 0 ? <p className="text-[12px] text-text-mute">{tr('Qo‘shimcha kelishuv kiritilmagan')}</p> : (
             <ul className="space-y-1.5">{m.ds.map((d) => (
               <li key={d.id} className="rounded-md border border-border px-2 py-1.5">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-text">№ {d.raqam}</span>
+                  <span className="font-medium text-text">№ {raqamTozala(d.raqam)}</span>
                   <span className="text-text-mute">{sanaKorinish(d.sana)}</span>
                   <span className="ml-auto tabular-nums text-text"><FmtN val={d.jami_nds_bilan} /></span>
-                  <button type="button" disabled={band || !kompaniyaId} onClick={() => tanla(d.id)} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" aria-label={tr('DS faylini yuklash')}><Upload size={12} /></button>
+                  <button type="button" disabled={band || !kompaniyaId} onClick={() => tanla(d.id)} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" aria-label={tr('Qo‘shimcha kelishuv faylini yuklash')}><Upload size={12} /></button>
                 </div>
                 {d.izoh && <p className="truncate text-[11px] text-text-mute">{d.izoh}</p>}
                 <div className="mt-1">{royxat(fayllar(d.id))}</div>
@@ -126,7 +127,7 @@ export function ShartnomaHujjatlar({ kompaniyaId, shartnomaId }: { kompaniyaId: 
               className="min-w-0 max-w-[16rem] flex-1 rounded border border-border bg-surface px-1 py-0.5 text-[12px] text-text-dim">
               <option value="">{tr('Bog‘lanmagan fayl…')}</option>
               {m.boglanmagan.map((b) => <option key={b.document_id} value={String(b.document_id)}>{b.original_filename || `#${b.document_id}`}</option>)}
-              {m.ds.flatMap((d) => m.boglanmagan.map((b) => <option key={`${b.document_id}:${d.id}`} value={`${b.document_id}:${d.id}`}>{`${b.original_filename || '#' + b.document_id} → DS № ${d.raqam}`}</option>))}
+              {m.ds.flatMap((d) => m.boglanmagan.map((b) => <option key={`${b.document_id}:${d.id}`} value={`${b.document_id}:${d.id}`}>{`${b.original_filename || '#' + b.document_id} → DS № ${raqamTozala(d.raqam)}`}</option>))}
             </select>
             <button type="button" disabled={band || !tanlangan} onClick={() => void boglaMavjud()} className="fz-btn fz-btn--sm">{tr('Bog‘lash')}</button>
           </div>

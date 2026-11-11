@@ -37,11 +37,11 @@ export function Narxlar() {
     setNative(!useLegacy);
   };
   return <>
-    <label className="flex items-center gap-2 px-6 pt-3 text-[12px] text-text-mute">
+    {!native && <label className="flex items-center gap-2 px-6 pt-3 text-[12px] text-text-mute">
       <input type="checkbox" checked={!native} onChange={(e) => { void rejimAlmashtir(e.target.checked); }} />
-      {t('Muammo bo‘lsa: eski (GAS) rejimga o‘tish')}
-      {!native && <span className="fz-stamp fz-stamp--warn">{t('Eski rejim')}</span>}
-    </label>
+      {t('Eski rejim yoqilgan — yangi rejimga qaytish')}
+      <span className="fz-stamp fz-stamp--warn">{t('Eski rejim')}</span>
+    </label>}
     {native ? <NarxlarNative /> : <NarxlarLegacy />}
   </>;
 }

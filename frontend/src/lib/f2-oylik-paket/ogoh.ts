@@ -5,6 +5,7 @@
 import { t } from '../../i18n/til';
 import { topshirilganPaketlar, type TopshirilganPaket } from '../../api/t2-shartnoma-oylik-paket';
 import { toast } from '../../umumiy/ui/Toast';
+import { raqamTozala } from '../raqam-belgi';
 
 /** «DD.MM.YYYY» (Toshkent vaqti bo'yicha, mashina soat mintaqasiga bog'liq emas). */
 export function paketSanasi(iso: string): string {
@@ -17,7 +18,7 @@ export function paketSanasi(iso: string): string {
 export function paketOgohMatni(paketlar: readonly TopshirilganPaket[]): string {
   const ko = (p: TopshirilganPaket) => t('Bu oy paketi topshirilgan (v{n}, {sana}). O‘zgarish paketga kirmaydi — yangi versiya kerak bo‘ladi.', { n: String(p.versiya), sana: paketSanasi(p.vaqt) });
   if (paketlar.length === 1) return ko(paketlar[0]);
-  return paketlar.map((p) => `${t('Shartnoma')} № ${p.shartnoma_raqam}: ${ko(p)}`).join('\n');
+  return paketlar.map((p) => `${t('Shartnoma')} № ${raqamTozala(p.shartnoma_raqam)}: ${ko(p)}`).join('\n');
 }
 
 /**

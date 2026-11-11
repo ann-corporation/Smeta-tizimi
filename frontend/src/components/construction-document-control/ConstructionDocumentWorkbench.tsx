@@ -66,12 +66,12 @@ export function ConstructionDocumentWorkbench({
             <p className="mt-1 text-sm text-text-dim">Shartnoma: {contractLabel} · Joriy davr: {period?.label ?? 'tanlanmagan'}</p>
           </div>
           <span className="inline-flex items-center gap-2 rounded-full border border-ok/20 bg-ok/5 px-3 py-1.5 text-xs text-ok">
-            <span className="h-1.5 w-1.5 rounded-full bg-ok" /> Kanonik ma’lumot
+            <span className="h-1.5 w-1.5 rounded-full bg-ok" /> Jonli ma’lumot
           </span>
         </div>
       </header>
 
-      <BlockingIssuesPanel issues={issues} />
+      <BlockingIssuesPanel issues={issues} nomlar={Object.fromEntries(valuation.rows.map((r) => [String(r.lineId), r.description]))} />
       <ProgressValuationWorkspace page={page} />
       <NakopitelniyWorkspace result={valuation} />
       <ChangeControlWorkspace changes={model.valuation.changes} />

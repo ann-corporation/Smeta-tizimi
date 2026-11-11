@@ -7,7 +7,7 @@ import type { EntryCopy } from '../product-scope';
 export const introCopy = {
   accent: ['Smetadan to‘lovgacha — bitta tirik zanjir.', 'От сметы до оплаты — одна живая цепочка.', 'From estimate to payment — one living chain.'],
   lead: ['Excel’dagi smetangizni yuklang yoki ishni so‘z bilan yozing. TIZIM_02 uni tuzilgan, tekshiriladigan hujjatga aylantiradi: fakt, F2, nakopitelniy, F3 va to‘lov bir-biriga bog‘lanadi — har raqamning manbasi ko‘rinib turadi.', 'Загрузите смету из Excel или опишите работу словами. TIZIM_02 превратит её в структурированный проверяемый документ: факт, Ф2, накопительная, Ф3 и оплата связаны между собой — у каждого числа виден источник.', 'Upload your Excel estimate or describe the work in words. TIZIM_02 turns it into a structured, verifiable document: progress, F2, cumulative, F3 and payment stay linked — every number shows its source.'],
-  free: ['Bepul: 300 token · ≈150 ta F2', 'Бесплатно: 300 токенов · ≈150 Ф2', 'Free: 300 tokens · ≈150 F2 acts'],
+  free: ['Bepul: 300 token', 'Бесплатно: 300 токенов', 'Free: 300 tokens'],
   scrollHint: ['Pastga aylantiring — Excel jonlanadi', 'Прокрутите — Excel оживёт', 'Scroll — watch the Excel come alive'],
   sample: ['namuna', 'пример', 'sample'],
   viewExcel: ['Excel fayl', 'Файл Excel', 'Excel file'],
@@ -88,12 +88,12 @@ export const introCopy = {
   screensEyebrow: ['Ichkarida', 'Внутри', 'Inside'],
 
   priceEyebrow: ['Boshlash bepul', 'Начать бесплатно', 'Start free'],
-  priceTitle: ['300 token — taxminan 150 ta F2 hujjati.', '300 токенов — около 150 документов Ф2.', '300 tokens — about 150 F2 documents.'],
+  priceTitle: ['300 token — sinab ko‘rish uchun. Har hujjat narxi «Tokenlar» bo‘limidagi narx jadvalida.', '300 токенов — для пробы. Цена каждого документа — в таблице цен раздела «Токены».', '300 tokens to try it. The price of each document is in the price table under “Tokens”.'],
   priceNote: ['1 daqiqada hisob oching: email yoki Google bilan. Operator kutish shart emas. Keyin tarifni «Tokenlar va obuna» bo‘limida tanlaysiz.', 'Откройте аккаунт за минуту: email или Google. Ждать оператора не нужно. Тариф потом выберете в разделе «Токены и подписка».', 'Open an account in a minute with email or Google. No operator needed. Choose a plan later under “Tokens and subscription”.'],
   priceP1: ['Kompaniya ish joyi darhol tayyor', 'Рабочее место компании готово сразу', 'Your company workspace is ready at once'],
   priceP2: ['Smeta importi, fakt, F2 va hujjatlar', 'Импорт сметы, факт, Ф2 и документы', 'Estimate import, progress, F2 and documents'],
   priceP3: ['Jamoani havola orqali taklif qilish', 'Приглашение команды по ссылке', 'Invite your team with a link'],
-  tokenGrid: ['Har romb — bitta F2 hujjati', 'Каждый ромб — один документ Ф2', 'Each rhombus is one F2 document'],
+  tokenGrid: ['Har romb — 10 token', 'Каждый ромб — 10 токенов', 'Each rhombus is 10 tokens'],
 
   stickyStart: ['Bepul boshlash', 'Начать бесплатно', 'Start free'],
 } satisfies Record<string, EntryCopy>;

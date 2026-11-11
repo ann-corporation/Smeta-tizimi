@@ -231,7 +231,7 @@ export function PereraschetFakt({ companyId, obyektId, obyektNom, tomonlar, ndsF
                 <td>{p.kod ? `${p.kod} ` : ''}{p.nom}
                   <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>{p.bolimYol.join(' › ')}</div>
                   {!p.boglangan && <div style={{ fontSize: 11, color: 'var(--warn)' }}>{t('Smetaga bog‘lanmagan')}: {boglanmaganNomi(p.boglanmaganSabab!)}</div>}
-                  {p.eslatma.includes('smetadan_tashqari') && <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>{t('Smetadan tashqari fakt (pulga kirmaydi, DS kerak)')}</div>}
+                  {p.eslatma.includes('smetadan_tashqari') && <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>{t('Smetadan tashqari fakt (pulga kirmaydi, qo‘shimcha kelishuv kerak)')}</div>}
                   {p.faktsizF2 && <div style={{ fontSize: 11, color: 'var(--warn)' }}>{t('Fakti yo‘q, lekin F2 olingan')}</div>}</td>
                 <td className="fz-c-unit" style={{ textAlign: 'center' }}>{p.birlik ?? '—'}</td>
                 <td className="fz-c-num">{p.smetaHajm == null ? '—' : <FmtN val={p.smetaHajm} kasr={3} />}</td>

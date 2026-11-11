@@ -29,7 +29,7 @@ export function ZanjirKpi({ jami, soni }: { jami: SvodJami; soni: number }) {
   return (
     <section className="fz-card p-4" aria-label={t('Shartnomalar bo‘yicha jami')}>
       <div className="fz-kpis">
-        {k('var(--text-dim)', t('Shartnomalar (DS bilan)'), <Pul v={somga(jami.shartnomaSumma)} />, jami.shartnomaNomalum > 0 ? t('{n} ta shartnoma · {m} tasida summa yo‘q', { n: soni, m: jami.shartnomaNomalum }) : t('{n} ta shartnoma · QQS bilan', { n: soni }))}
+        {k('var(--text-dim)', t('Shartnomalar (qo‘shimcha kelishuvlar bilan)'), <Pul v={somga(jami.shartnomaSumma)} />, jami.shartnomaNomalum > 0 ? t('{n} ta shartnoma · {m} tasida summa yo‘q', { n: soni, m: jami.shartnomaNomalum }) : t('{n} ta shartnoma · QQS bilan', { n: soni }))}
         {k('var(--border-strong)', t('F2 tasdiqlangan'), <QiymatUchlik q={ustamasizUchlik(somga(jami.f2))} yorliq={t('F2, QQS bilan')} />, t('ustamasiz — boshqa daraja'))}
         {k('var(--accent)', t('F3 (sotuv)'), <Pul v={somga(jami.f3)} />, t('QQS bilan'))}
         {k('var(--ok)', t('To‘lov'), <Pul v={somga(jami.tolov)} />, t('avans + to‘lov − qaytarim'))}
@@ -61,9 +61,9 @@ export function ShartnomaZanjir({ sv }: { sv: ShartnomaSvodi }) {
   const c = hisobChizigi(sv);
   const harakat = (ulush: number, kechik: number) => ({ initial: kam ? false as const : { width: 0 }, animate: { width: `${ulush * 100}%` }, transition: kam ? { duration: 0 } : { duration: 0.7, delay: kechik, ease: 'easeOut' as const } });
   const q = qoldiqMazmuni(sv.qoldiq);
-  const dsIzoh = sv.joriy.manba === 'ds' && sv.joriy.ds ? t('DS № {r} dan ({s})', { r: sv.joriy.ds.raqam, s: sv.joriy.ds.sana.slice(0, 10) }) : sv.joriy.manba === 'shartnoma' ? t('asl shartnoma summasi') : t('summa kiritilmagan');
+  const dsIzoh = sv.joriy.manba === 'ds' && sv.joriy.ds ? t('Qo‘shimcha kelishuv № {r} dan ({s})', { r: sv.joriy.ds.raqam, s: sv.joriy.ds.sana.slice(0, 10) }) : sv.joriy.manba === 'shartnoma' ? t('asl shartnoma summasi') : t('summa kiritilmagan');
   const bosqichlar: { kalit: string; nom: string; qiymat: number | null; izoh: string; rang: string; holat?: 'warn'; faqatUstamasiz?: boolean }[] = [
-    { kalit: 'sh', nom: t('Shartnoma / DS'), qiymat: c.shartnoma, izoh: dsIzoh, rang: 'var(--text-dim)', holat: c.shartnoma == null ? 'warn' : undefined },
+    { kalit: 'sh', nom: t('Shartnoma / qo‘shimcha kelishuv'), qiymat: c.shartnoma, izoh: dsIzoh, rang: 'var(--text-dim)', holat: c.shartnoma == null ? 'warn' : undefined },
     { kalit: 'f2', nom: t('F2 tasdiqlangan'), qiymat: somga(sv.f2), izoh: t('{n} ta akt · ustamasiz', { n: sv.f2Soni }), rang: 'var(--border-strong)', holat: sv.f2SummasizSoni ? 'warn' : undefined, faqatUstamasiz: true },
     { kalit: 'f3', nom: t('F3 (sotuv)'), qiymat: c.f3, izoh: t('{n} ta · {m} tasi imzolangan', { n: sv.f3Soni, m: sv.f3Imzolangan }), rang: 'var(--accent)', holat: sv.f3Soni > sv.f3Imzolangan || c.oshdi ? 'warn' : undefined },
     { kalit: 'tl', nom: t('To‘lov'), qiymat: c.tolov, izoh: t('{n} ta to‘lov yozuvi', { n: sv.shartnoma.tolovlar.length }), rang: 'var(--ok)' },

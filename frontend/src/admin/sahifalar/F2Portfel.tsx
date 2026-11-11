@@ -30,6 +30,7 @@ import {
 } from '../../lib/f2-oylik-paket/portfel';
 import { portfelKitob, portfelSvodVaraq, type PortfelAktVaraq } from '../../lib/f2-oylik-paket/portfel-eksport';
 import type { Summa } from '../../lib/f2-reestr/reestr';
+import { raqamTozala } from '../../lib/raqam-belgi';
 
 const pul = (n: number) => n.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const BOSQICH_NOMI = { tasdiqlangan: 'Tasdiqlangan', jarayonda: 'Qoralama / tekshiruvda', rad: 'Rad etilgan', bekor: 'Bekor qilingan' } as const;
@@ -149,7 +150,7 @@ function PortfelIchi({ kompaniyaId, malumot, tashkilot, yangila }: { kompaniyaId
   const hisoblanmoqda = rows.some((r) => r.bosqich !== 'bekor' && !r.moliya && !r.moliyaXato);
   const kesimNomi = useMemo(() => {
     if (!kesim) return '';
-    if (kesim.tur === 'shartnoma') { const s = shartnomalar.find((x) => x.id === kesim.id); return s ? `№ ${s.raqam}${s.nom ? ` · ${s.nom}` : ''}` : `№ ${kesim.id}`; }
+    if (kesim.tur === 'shartnoma') { const s = shartnomalar.find((x) => x.id === kesim.id); return s ? `№ ${raqamTozala(s.raqam)}${s.nom ? ` · ${s.nom}` : ''}` : `№ ${kesim.id}`; }
     return obyektlar.find((o) => o.id === kesim.id)?.nom ?? String(kesim.id);
   }, [kesim, shartnomalar, obyektlar]);
 
@@ -207,7 +208,7 @@ function PortfelIchi({ kompaniyaId, malumot, tashkilot, yangila }: { kompaniyaId
       {kesim?.tur === 'shartnoma'
         ? <label>{t('Shartnoma')}
           <select aria-label={t('Shartnoma')} value={kesim.id} onChange={(e) => setKesim({ tur: 'shartnoma', id: Number(e.target.value) })} className="input mt-1 block h-8 max-w-[260px]">
-            {shartnomalar.map((s) => <option key={s.id} value={s.id}>№ {s.raqam}{s.nom ? ` · ${s.nom}` : ''}</option>)}</select></label>
+            {shartnomalar.map((s) => <option key={s.id} value={s.id}>№ {raqamTozala(s.raqam)}{s.nom ? ` · ${s.nom}` : ''}</option>)}</select></label>
         : <label>{t('Obyekt')}
           <select aria-label={t('Obyekt')} value={kesim?.id ?? ''} onChange={(e) => setKesim({ tur: 'obyekt', id: Number(e.target.value) })} className="input mt-1 block h-8 max-w-[260px]">
             {obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}</select></label>}
