@@ -40,7 +40,11 @@ export function ZakazchigaYuborish({ kompaniyaId, aktId, resurs = 'f2' }: { komp
   const yubor = async () => {
     if (tanlov === '') return;
     setBand(true); const r = await taqdimYubor(kompaniyaId, tanlov, resurs, aktId, izoh); setBand(false);
-    if (!r.ok) { toast(r.error, 'danger'); return; }
+    if (!r.ok) {
+      /* «Taraf aloqa yo'q» kabi xato sababi tushuntiriladi (audit 115): faol aloqa o'rnatilmagan. */
+      toast(/aloqa/i.test(String(r.error)) ? t('Tanlangan tomon bilan faol aloqa yo‘q — avval «Buyurtmachi bilan aloqa o‘rnatish» ni bajaring.') : r.error, /aloqa/i.test(String(r.error)) ? 'warn' : 'danger');
+      return;
+    }
     toast(resurs === 'aosr' ? t('АОСР yuborildi — buyurtmachi / texnadzor qarori kutilmoqda') : t('F2 yuborildi — zakazchik qarori kutilmoqda'), 'ok');
     setOchiq(false); setIzoh(''); void yangila();
   };
@@ -65,7 +69,10 @@ export function ZakazchigaYuborish({ kompaniyaId, aktId, resurs = 'f2' }: { komp
       {ochiq && (
         <div role="dialog" aria-label={t('Zakazchikka yuborish')} className="absolute right-0 top-full z-30 mt-1 w-80 rounded-lg border border-border bg-surface p-3 text-left shadow-xl">
           {aloqalar.length === 0 ? (
-            <p className="text-xs text-text-dim">{t('Faol aloqa yo‘q. Avval “Tomonlar aloqasi” sahifasida zakazchik bilan ulaning.')}</p>
+            <div className="space-y-2">
+              <p className="text-xs text-text-dim">{t('Yuborib bo‘lmaydi: buyurtmachi (yoki texnadzor) bilan faol aloqa yo‘q. Hujjat faqat aloqadagi tomonga yuboriladi.')}</p>
+              {routerBor && <Link to="/admin/aloqalar" className={`${tugmaAsosiy} inline-block no-underline`}>{t('Buyurtmachi bilan aloqa o‘rnatish')}</Link>}
+            </div>
           ) : (
             <div className="space-y-2">
               <label className="block text-xs text-text-dim">{t('Kimga')}

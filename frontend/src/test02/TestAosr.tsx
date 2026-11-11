@@ -42,6 +42,7 @@ import { zipSync } from 'fflate';
 import { AosrYetishmaydi } from './AosrYetishmaydi';
 import { AosrTaklif } from './AosrTaklif';
 import { obyektZakazchikNomi } from '../lib/pto-markazi/obyekt-zakazchik';
+import { obyektImzochiSaqla, type ImzochiRol } from '../api/obyekt-imzochi';
 import { useSearchParams } from 'react-router-dom';
 import { ZakazchigaYuborish } from '../admin/zakazchik/ZakazchigaYuborish';
 import { OpsKpi, OpsKpiQator, OpsTablar } from '../components/kompaniya-ops/OpsUi';
@@ -136,6 +137,18 @@ export default function TestAosr() {
   const guruhlar = useMemo(() => yetishmayotganlar(coverage, qatorMeta), [coverage, qatorMeta]);
   const yashirinAktsiz = coverage.filter((c) => c.yashirin && !c.akt_bor).length;
   const korinadiganIshlar = faqatAktsiz ? coverage.filter((c) => !c.akt_bor) : coverage;
+
+  /** Imzochilar (t2_obyekt_imzochi) bo'sh bo'lsa — shu formada bir marta kiritiladi. */
+  const [imzochiForma, setImzochiForma] = useState<{ rol: ImzochiRol; fio: string; lavozim: string }>({ rol: 'texnadzor', fio: '', lavozim: '' });
+  const imzochiniSaqla = async () => {
+    if (!kompaniyaId || !obyektId) return;
+    if (!imzochiForma.fio.trim()) { toast(t('F.I.Sh. ni kiriting'), 'warn'); return; }
+    const r = await obyektImzochiSaqla(kompaniyaId, obyektId, imzochiForma.rol, 'obyekt', null, { fio: imzochiForma.fio.trim(), lavozim: imzochiForma.lavozim.trim() || null });
+    if (!r.ok) { toast(r.error || t('Xato'), 'danger'); return; }
+    // Formadagi mos bo'sh komissiya a'zosiga ham qo'yiladi (shu akt uchun darhol ko'rinsin).
+    setForma((x) => (x ? { ...x, komissiya: (x.komissiya ?? []).map((k) => (k.rol === imzochiForma.rol && !String(k.fio ?? '').trim() ? { ...k, fio: imzochiForma.fio.trim(), lavozim: k.lavozim || imzochiForma.lavozim.trim() || undefined } : k)) } : x));
+    toast(t('✓ Imzochi obyekt uchun saqlandi'), 'ok');
+  };
 
   /** Oxirgi aktning komissiyasi — yangi akt uchun sukut (har safar qayta yozmaslik uchun). */
   const oxirgiKomissiya = (): AosrKomissiyaYozuv[] => {
@@ -473,6 +486,19 @@ export default function TestAosr() {
                   </div>
                   <div><span className={lbl}>{t('Keyingi ishlarga ruxsat (ishlar va konstruksiyalar)')}</span><input className={inp} value={forma.keyingi_ishlar ?? ''} onChange={f('keyingi_ishlar')} /></div>
 
+                  {!forma.id && (forma.komissiya ?? []).every((k) => !String(k.fio ?? '').trim()) && (
+                    <div className="fz-note fz-note--warn flex-col items-stretch gap-1.5" data-testid="aosr-imzochi-taklif">
+                      <span>{t('Bu obyekt uchun imzochilar kiritilmagan. Bir marta kiriting — keyingi barcha aktlar va hujjatlarda o‘zi chiqadi.')}</span>
+                      <div className="flex flex-wrap items-center gap-1">
+                        <select aria-label={t('Imzochi roli')} className="h-8 px-2 text-[13px]" value={imzochiForma.rol} onChange={(e) => setImzochiForma((y) => ({ ...y, rol: e.target.value as ImzochiRol }))}>
+                          {([['texnadzor', 'Texnik nazorat'], ['zakazchik', 'Buyurtmachi'], ['pudratchi', 'Pudratchi'], ['loyihachi', 'Loyihachi']] as const).map(([r, n]) => <option key={r} value={r}>{t(n)}</option>)}
+                        </select>
+                        <input aria-label={t('F.I.Sh.')} className="h-8 min-w-[9rem] flex-1 px-2 text-[13px]" placeholder={t('F.I.Sh.')} value={imzochiForma.fio} onChange={(e) => setImzochiForma((y) => ({ ...y, fio: e.target.value }))} />
+                        <input aria-label={t('Lavozim')} className="h-8 w-32 px-2 text-[13px]" placeholder={t('Lavozim')} value={imzochiForma.lavozim} onChange={(e) => setImzochiForma((y) => ({ ...y, lavozim: e.target.value }))} />
+                        <button type="button" className="fz-btn fz-btn--sm" onClick={() => void imzochiniSaqla()}>{t('Obyekt uchun saqlash')}</button>
+                      </div>
+                    </div>
+                  )}
                   <div className="fz-panel">
                     <div className="fz-panel__h"><span>{t('Komissiya va imzolar')}</span>
                       <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" onClick={() => setForma((x) => (x ? { ...x, komissiya: [...(x.komissiya ?? []), { rol: 'boshqa' }] } : x))}><Plus /> {t('a’zo')}</button></div>

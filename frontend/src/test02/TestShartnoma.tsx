@@ -1,6 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { sbT2ShartnomalarOl, sbT2ShartnomaSaqla, type Shartnoma } from '../api/t2-shartnoma';
+import { sbT2ShartnomalarOl, sbT2ShartnomaSaqla, sbT2ShartnomaBogSaqla, type Shartnoma } from '../api/t2-shartnoma';
+import { sbT2ObyektlarOlKomp, type T2Obyekt } from '../api/supabase';
+import { sbT2LoyihalarOl, type Loyiha } from '../api/t2-loyiha';
+import { usePTOWorkspace } from '../umumiy/kontekst/PTOWorkspaceContext';
 import { Briefcase, Plus, FileText, Calculator, PieChart, RefreshCw, Network } from 'lucide-react';
 import { FmtN } from '../lib/format';
 import { toast } from '../umumiy/ui/Toast';
@@ -37,6 +40,20 @@ export default function TestShartnoma() {
   const [qidiruv, setQidiruv] = useState('');
   /** Yangi shartnoma sukut qiymatlari: keyingi raqam (ketma-ket) va taraf — aynan bitta «buyurtmachi» kontragent. */
   const [buyurtmachi, setBuyurtmachi] = useState<string | null>(null);
+  /* Loyiha/obyekt: forma shartnomani yaratishdayoq bog'laydi (aks holda Forma 3 shartnoma rejimida «Obyektlar: 0») — joriy kontekstdan oldindan tanlanadi. */
+  const ws = usePTOWorkspace();
+  const [loyihalar, setLoyihalar] = useState<Loyiha[]>([]);
+  const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
+  useEffect(() => {
+    if (!joriy) return;
+    let faol = true;
+    void Promise.all([sbT2LoyihalarOl(joriy.id), sbT2ObyektlarOlKomp(joriy.id)]).then(([l, o]) => {
+      if (!faol) return;
+      if (l.ok) setLoyihalar(l.qatorlar ?? []);
+      if (o.ok) setObyektlar((o.qatorlar ?? []) as T2Obyekt[]);
+    }).catch(() => undefined);
+    return () => { faol = false; };
+  }, [joriy]);
   useEffect(() => {
     if (!joriy) return;
     let faol = true;
@@ -104,7 +121,14 @@ export default function TestShartnoma() {
         {isFormOpen && (
           <EntityFormModal
             entityType="shartnoma"
-            initialData={{ raqam: keyingiShartnomaRaqam(shartnomalar), ...(buyurtmachi ? { taraf: buyurtmachi } : {}) }}
+            initialData={{
+              raqam: keyingiShartnomaRaqam(shartnomalar), ...(buyurtmachi ? { taraf: buyurtmachi } : {}),
+              ...(ws.scope?.objectId ? { obyektId: String(ws.scope.objectId) } : ws.scope?.projectId ? { loyihaId: String(ws.scope.projectId) } : {}),
+            }}
+            dynamicOptions={{
+              loyihaId: loyihalar.map((l) => ({ value: String(l.id), label: l.nom })),
+              obyektId: obyektlar.map((o) => ({ value: String(o.id), label: o.nom })),
+            }}
             title={t('Yangi shartnomani ro‘yxatga olish')}
             color="var(--accent)"
             onClose={() => setIsFormOpen(false)}
@@ -122,7 +146,20 @@ export default function TestShartnoma() {
                   summaBezNds: sum, nds: ndsSumma, jamiNdsBilan: jami, izoh: data.izoh,
                 });
                 if (!res.ok) throw new Error(res.error || t('Noma’lum xato'));
-                toast(t('Shartnoma muvaffaqiyatli saqlandi!'), 'ok');
+                /* Obyekt(lar)ni bog'lash: tanlangan obyekt, yoki tanlangan loyihaning hamma obyekti. Natija aniq aytiladi. */
+                const shId = res.shartnoma_id;
+                const nishon = data.obyektId ? obyektlar.filter((o) => String(o.id) === String(data.obyektId))
+                  : data.loyihaId ? obyektlar.filter((o) => String(o.loyiha_id) === String(data.loyihaId)) : [];
+                if (shId && nishon.length) {
+                  const natijalar = await Promise.all(nishon.map((o) => sbT2ShartnomaBogSaqla(o.id, shId)));
+                  const bogland = nishon.filter((_, i) => natijalar[i].ok);
+                  toast(bogland.length === nishon.length
+                    ? t('Shartnoma saqlandi va {n} ta obyektga bog‘landi: {nom}', { n: bogland.length, nom: bogland.map((o) => o.nom).slice(0, 4).join(', ') })
+                    : t('Shartnoma saqlandi, lekin {n} ta obyektni bog‘lab bo‘lmadi — «Shartnomalar va tomonlar» da bog‘lang.', { n: nishon.length - bogland.length }), bogland.length === nishon.length ? 'ok' : 'warn');
+                } else {
+                  toast(t('Shartnoma muvaffaqiyatli saqlandi!'), 'ok');
+                  if (!nishon.length) toast(t('Obyekt tanlanmadi: Forma 3 shartnoma rejimi obyektlarni topmaydi, ularni «Shartnomalar va tomonlar» da bog‘lang.'), 'warn');
+                }
                 setIsFormOpen(false);
                 void yukla();
               } catch (e: any) {
