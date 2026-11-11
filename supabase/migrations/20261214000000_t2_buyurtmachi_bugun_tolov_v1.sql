@@ -62,6 +62,21 @@ alter table public.t2_tomon_tolov enable row level security;
 revoke all on table public.t2_tomon_tolov from anon, authenticated;
 comment on table public.t2_tomon_tolov is 'Buyurtmachi to''lov xabari (Forma-3 bo''yicha). Tasdiq -> t2_tolov (manba zakazchik_xabar). Summa QQS bilan.';
 
+-- 4a. Hisob yadrosi o'rami: grant tekshiradi (a'zolik emas), natija pudratchi ko'radigan paket bilan bir xil. qator_soni = 0 -> NULL (noma'lum, 0 emas).
+create or replace function public._t2_zakazchik_paket_v1(p_men bigint, p_qarshi bigint, p_obyekt_id bigint, p_resurs text, p_olchov text)
+returns jsonb language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare v jsonb;
+begin
+  if p_olchov not in ('smeta', 'fakt', 'f2') then return null; end if;
+  if not public.t2_tomon_ruxsat_bor(p_men, p_qarshi, p_resurs, 'korish', p_obyekt_id) then return null; end if;
+  if not exists (select 1 from public.t2_obyekt o where o.id = p_obyekt_id and o.kompaniya_id = p_qarshi) then return null; end if;
+  select x.paket into v from public._t2_summa_paket_v1(array[p_obyekt_id], p_olchov) x where x.obyekt_id = p_obyekt_id;
+  if v is null or coalesce((v->>'qator_soni')::integer, 0) = 0 then return null; end if;
+  return jsonb_build_object('qqs_bilan', v->'qqs_bilan', 'ustamali', v->'ustamali', 'ustamasiz', v->'ustamasiz',
+                            'narxsiz_soni', coalesce((v->>'narxsiz_soni')::integer, 0), 'qator_soni', (v->>'qator_soni')::integer);
+end $$;
+revoke all on function public._t2_zakazchik_paket_v1(bigint, bigint, bigint, text, text) from public, anon, authenticated;
+grant execute on function public._t2_zakazchik_paket_v1(bigint, bigint, bigint, text, text) to service_role;
 -- 4. Portfel + kutayotganlar
 create or replace function public.t2_zakazchik_bugun_v1(p_actor_id bigint, p_kompaniya_id bigint)
 returns jsonb language plpgsql stable security definer set search_path = public, pg_temp as $$
@@ -77,17 +92,13 @@ begin
       'shartnoma_id', sh.id, 'shartnoma_raqam', sh.raqam,
       'shartnoma_summa', case when sh.id is not null and public.t2_tomon_ruxsat_bor(p_kompaniya_id, c.id, 'shartnoma_xulosa', 'korish', o.id)
         then coalesce((select d.jami_nds_bilan from public.t2_shartnoma_ds d where d.shartnoma_id = sh.id and d.holat = 'faol' order by d.sana desc, d.id desc limit 1), sh.jami_nds_bilan) end,
-      'smeta', case when public.t2_tomon_ruxsat_bor(p_kompaniya_id, c.id, 'shartnoma_xulosa', 'korish', o.id) then (
-          select jsonb_build_object('summa', sum(q.hajm * q.narx), 'narxsiz_qator', count(*) filter (where q.narx is null and coalesce(q.hajm, 0) <> 0))
-            from public.t2_qator q where q.obyekt_id = o.id and q.tur = 'bl' and coalesce(q.versiya_holat, '') <> 'almashtirilgan') end,
-      'fakt', case when public.t2_tomon_ruxsat_bor(p_kompaniya_id, c.id, 'fakt', 'korish', o.id) then (
-          select jsonb_build_object('summa', sum(aq.summa), 'narxsiz_qator', count(*) filter (where aq.summa is null and coalesce(aq.hajm, 0) <> 0), 'oxirgi_sana', max(a2.sana))
-            from public.t2_akt a2 join public.t2_akt_qator aq on aq.akt_id = a2.id join public.t2_qator q2 on q2.id = aq.qator_id and q2.tur = 'bl'
-           where a2.obyekt_id = o.id and a2.kompaniya_id = c.id and a2.tur = 'fakt' and a2.holat <> 'bekor') end,
+      -- Smeta / fakt / F2: YAGONA hisob yadrosi _t2_summa_paket_v1 (pudratchi ekranidagi raqam bilan aynan bir xil), grant bo'yicha qirqilgan.
+      'smeta', public._t2_zakazchik_paket_v1(p_kompaniya_id, c.id, o.id, 'shartnoma_xulosa', 'smeta'),
+      'fakt', public._t2_zakazchik_paket_v1(p_kompaniya_id, c.id, o.id, 'fakt', 'fakt'),
       'f2', case when public.t2_tomon_ruxsat_bor(p_kompaniya_id, c.id, 'f2', 'korish', o.id) then (
-          select jsonb_build_object('soni', count(*), 'jami', coalesce(sum(t.hujjat_jami), 0), 'oxirgi_oy', max(t.oy),
-                 'ustama_jami', case when count(*) > 0 then public._t2_f2_ustamali(c.id, sh.id, array_agg(t.id)) end)
-            from public.t2_akt t where t.obyekt_id = o.id and t.kompaniya_id = c.id and t.tur = 'f2' and t.lifecycle_status = 'approved') end,
+          select jsonb_build_object('soni', count(*), 'oxirgi_oy', max(t.oy))
+            from public.t2_akt t where t.obyekt_id = o.id and t.kompaniya_id = c.id and t.tur = 'f2' and t.holat = 'tasdiqlangan')
+          || coalesce(public._t2_zakazchik_paket_v1(p_kompaniya_id, c.id, o.id, 'f2', 'f2'), '{}'::jsonb) end,
       'f3', case when public.t2_tomon_ruxsat_bor(p_kompaniya_id, c.id, 'tolov_holati', 'korish', o.id) then (
           select jsonb_build_object('soni', count(*), 'summa', sum(f.sotuv_summa), 'oxirgi_sana', max(f.sotuv_sana))
             from public.t2_forma3 f where f.kompaniya_id = c.id and f.manba = 'sotuv' and f.holat <> 'bekor'

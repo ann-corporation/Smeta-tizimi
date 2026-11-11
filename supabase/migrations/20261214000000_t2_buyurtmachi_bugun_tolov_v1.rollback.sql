@@ -6,6 +6,7 @@ drop function if exists public.t2_tomon_tolov_qaror_v1(bigint, bigint, bigint, t
 drop function if exists public.t2_tomon_tolov_royxat_v1(bigint, bigint, text, text, integer);
 drop function if exists public.t2_zakazchik_tolov_yoz_v1(bigint, bigint, bigint, bigint, numeric, date, text, text, uuid);
 drop function if exists public.t2_zakazchik_bugun_v1(bigint, bigint);
+drop function if exists public._t2_zakazchik_paket_v1(bigint, bigint, bigint, text, text);
 drop table if exists public.t2_tomon_tolov;
 update public.t2_tomon_resurs set faol = false where kalit in ('fakt', 'tolov_holati');
 -- t2_tolov.manba cheklovi: zakazchik_xabar qatori bo'lmasa eski ro'yxatga qaytariladi

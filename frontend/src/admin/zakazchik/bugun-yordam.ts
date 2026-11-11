@@ -17,26 +17,28 @@ export function nullJami(qiymatlar: ReadonlyArray<number | null | undefined>): N
   return { summa: bor ? yaxlit2(s) : null, nomalum };
 }
 
-export type PortfelUstun = 'shartnoma' | 'smeta' | 'fakt' | 'f2' | 'f2_ustamali' | 'f2_qqs' | 'f3' | 'tolangan' | 'qarz';
+export type PaketUstun = 'smeta' | 'fakt' | 'f2';
+export type PortfelUstun = 'shartnoma' | `${PaketUstun}_${'qqs' | 'ustamali' | 'ustamasiz'}` | 'f3' | 'tolangan' | 'qarz';
 
-/** Bitta obyektning bir ustundagi qiymati (ruxsat yo'q yoki noma'lum — null). */
+const PAKET_MAYDON = { qqs: 'qqs_bilan', ustamali: 'ustamali', ustamasiz: 'ustamasiz' } as const;
+
+/** Bitta obyektning bir ustundagi qiymati (ruxsat yo'q yoki noma'lum — null). Smeta/fakt/F2 — hisob yadrosi paketidan. */
 export function ustunQiymati(o: BugunObyekt, u: PortfelUstun): number | null {
-  switch (u) {
-    case 'shartnoma': return o.shartnoma_summa;
-    case 'smeta': return o.smeta?.summa ?? null;
-    case 'fakt': return o.fakt?.summa ?? null;
-    case 'f2': return o.f2 && o.f2.soni > 0 ? o.f2.jami : null;
-    case 'f2_ustamali': return o.f2?.ustama_jami?.ustamali ?? null;
-    case 'f2_qqs': return o.f2?.ustama_jami?.podval?.vsego ?? null;
-    case 'f3': return o.f3?.summa ?? null;
-    case 'tolangan': return o.tolangan?.summa ?? null;
-    case 'qarz': return o.qarz;
-  }
+  if (u === 'shartnoma') return o.shartnoma_summa;
+  if (u === 'f3') return o.f3?.summa ?? null;
+  if (u === 'tolangan') return o.tolangan?.summa ?? null;
+  if (u === 'qarz') return o.qarz;
+  const [paket, tur] = u.split('_') as [PaketUstun, keyof typeof PAKET_MAYDON];
+  const p = o[paket];
+  return p ? (p[PAKET_MAYDON[tur]] ?? null) : null;
 }
 
-/** Tartib: QQS bilan birinchi (F2 uchun ham), keyin ustamali QQS siz, keyin ustamasiz (egasi qoidasi). */
-export const PORTFEL_USTUNLAR: readonly PortfelUstun[] = ['shartnoma', 'smeta', 'fakt', 'f2_qqs', 'f2_ustamali', 'f2', 'f3', 'tolangan', 'qarz'];
-
+/** Excel uchun to'liq tartib: har paket QQS bilan -> ustamali (QQS siz) -> ustamasiz (QQS siz). */
+export const PORTFEL_USTUNLAR: readonly PortfelUstun[] = [
+  'shartnoma', 'smeta_qqs', 'smeta_ustamali', 'smeta_ustamasiz', 'fakt_qqs', 'fakt_ustamali', 'fakt_ustamasiz', 'f2_qqs', 'f2_ustamali', 'f2_ustamasiz', 'f3', 'tolangan', 'qarz',
+];
+/** Ekrandagi asosiy ustunlar (ustamali/ustamasiz kichik qator bo'lib katak ostida chiqadi). */
+export const EKRAN_USTUNLAR: readonly PortfelUstun[] = ['shartnoma', 'smeta_qqs', 'fakt_qqs', 'f2_qqs', 'f3', 'tolangan', 'qarz'];
 /** Butun portfel jami: har ustun alohida (ustunlar turli ruxsatda bo'lishi mumkin). */
 export function portfelJami(obyektlar: readonly BugunObyekt[]): Record<PortfelUstun, NullJami> {
   const r = {} as Record<PortfelUstun, NullJami>;

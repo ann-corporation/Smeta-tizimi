@@ -18,7 +18,8 @@ const bugun = (qarz: number | null = 300) => ({
     kutayotgan: { taqdim: { f2: 2 }, murojaat_menga_ochiq: 1, murojaat_tekshiruv: 0, murojaat_kechikkan: 1, tolov_xabar_kutilmoqda: 0 },
     obyektlar: [{
       aloqa_id: 1, qarshi_kompaniya_id: 9, qarshi_nom: 'Pudratchi A', obyekt_id: 3, obyekt_nom: 'Fast Food', shartnoma_id: 5, shartnoma_raqam: '12', shartnoma_summa: 9000,
-      smeta: { summa: 7000, narxsiz_qator: 0 }, fakt: null, f2: { soni: 2, jami: 4000, oxirgi_oy: '2026-10-01' },
+      smeta: { qqs_bilan: 7840, ustamali: 7000, ustamasiz: 6000, narxsiz_soni: 0, qator_soni: 9 }, fakt: null,
+      f2: { soni: 2, oxirgi_oy: '2026-10-01', qqs_bilan: 4480, ustamali: 4000, ustamasiz: 3500, narxsiz_soni: 1, qator_soni: 4 },
       f3: { soni: 1, summa: 500, oxirgi_sana: null }, tolangan: { soni: 1, summa: 200, oxirgi_sana: null }, qarz,
       xabar_kutilmoqda: 0, kutayotgan_taqdim: 2, ochiq_murojaat: 1,
     }],
@@ -37,7 +38,9 @@ describe('Buyurtmachi «Bugun»', () => {
     expect(screen.getByText('Hujjatlar: qabul / qaytarish').closest('a')?.getAttribute('href')).toBe('/admin/taqdimlar');
     expect(screen.getByText('Predpisaniya / remark berish').closest('a')?.getAttribute('href')).toBe('/admin/murojaatlar?yangi=predpisaniya');
     expect(screen.getAllByText('300').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('—').length).toBeGreaterThan(0);      // fakt ruxsati/ma'lumoti yo'q
+    expect(screen.queryByText('Fakt — pudratchi hisoboti (QQS bilan)')).toBeNull();   // fakt ma'lumoti/ruxsati yo'q: ustun chizilmaydi, 0 ko'rsatilmaydi
+    expect(screen.getAllByText('7 840').length).toBeGreaterThan(0);  // smeta QQS bilan birinchi
+    expect(screen.getAllByText(/ustamali: 4 000/).length).toBeGreaterThan(0);
     expect(screen.getByText(/2 hujjat kutmoqda/)).toBeTruthy();
   });
 

@@ -151,12 +151,14 @@ export const murojaatBekor = (k: number, id: number, sabab?: string) => tomonYoz
 
 /* ───── Buyurtmachi «Bugun»: portfel + F3 bo'yicha to'lov xabari ───── */
 /** Pul: smeta/fakt/F2 QQS siz (ustamasiz), shartnoma/F3/to'lov QQS bilan. null = noma'lum yoki ruxsat yo'q (0 emas). */
+export type BugunPaket = { qqs_bilan: number | null; ustamali: number | null; ustamasiz: number | null; narxsiz_soni: number; qator_soni: number };
 export type BugunObyekt = {
   aloqa_id: number; qarshi_kompaniya_id: number; qarshi_nom: string; obyekt_id: number; obyekt_nom: string;
   shartnoma_id: number | null; shartnoma_raqam: string | null; shartnoma_summa: number | null;
-  smeta: { summa: number | null; narxsiz_qator: number } | null;
-  fakt: { summa: number | null; narxsiz_qator: number; oxirgi_sana: string | null } | null;
-  f2: { soni: number; jami: number; oxirgi_oy: string | null; ustama_jami?: AktUstama | null } | null;
+  /** Smeta / fakt / F2: yagona hisob yadrosi paketi (pudratchi ko'radigan raqam bilan bir xil). null = ruxsat yo'q yoki ma'lumot yo'q. */
+  smeta: BugunPaket | null;
+  fakt: BugunPaket | null;
+  f2: ({ soni: number; oxirgi_oy: string | null } & Partial<BugunPaket>) | null;
   f3: { soni: number; summa: number | null; oxirgi_sana: string | null } | null;
   tolangan: { soni: number; summa: number; oxirgi_sana: string | null } | null;
   /** F3 (QQS bilan) - to'langan; F3 yoki to'lov ruxsati yo'q bo'lsa null. */

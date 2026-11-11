@@ -12,10 +12,12 @@ export type ZakazchikHisobotMeta = { kompaniya: string; sana: string };
 /** Ustun tartibi (0 dan): 0 №, 1 Подрядчик, 2 Объект, 3.. summalar (PORTFEL_USTUNLAR tartibida), keyin 2 ta son. */
 const SUMMA_BOSHI = 3;
 const NOM_RU: Record<PortfelUstun, string> = {
-  shartnoma: 'Договор (с НДС)', smeta: 'Смета, прямые (без НДС)', fakt: 'Факт по отчёту подрядчика (без НДС)', f2: 'Ф-2 утверждено, прямые (без НДС)',
-  f2_ustamali: 'Ф-2 с накрутками (без НДС)', f2_qqs: 'Ф-2 всего (с НДС)', f3: 'Ф-3 выставлено (с НДС)', tolangan: 'Оплачено (с НДС)', qarz: 'Задолженность (с НДС)',
+  shartnoma: 'Договор (с НДС)',
+  smeta_qqs: 'Смета (с НДС)', smeta_ustamali: 'Смета с накрутками (без НДС)', smeta_ustamasiz: 'Смета, прямые (без НДС)',
+  fakt_qqs: 'Факт по отчёту подрядчика (с НДС)', fakt_ustamali: 'Факт с накрутками (без НДС)', fakt_ustamasiz: 'Факт, прямые (без НДС)',
+  f2_qqs: 'Ф-2 утверждено (с НДС)', f2_ustamali: 'Ф-2 с накрутками (без НДС)', f2_ustamasiz: 'Ф-2, прямые (без НДС)',
+  f3: 'Ф-3 выставлено (с НДС)', tolangan: 'Оплачено (с НДС)', qarz: 'Задолженность (с НДС)',
 };
-
 export async function zakazchikOylikHisobot(obyektlar: readonly BugunObyekt[], meta: ZakazchikHisobotMeta): Promise<{ bytes: Uint8Array; faylNomi: string; yacheykalar: number }> {
   const { RasmiyVaraq, rasmiyKitob, sumFormula } = await import('./hujjat-yozuvchi');
   const v = new RasmiyVaraq({
@@ -26,6 +28,7 @@ export async function zakazchikOylikHisobot(obyektlar: readonly BugunObyekt[], m
     ustunlar: [
       { sarlavha: '№', kenglik: 5, tur: 'tartib' }, { sarlavha: 'Подрядчик', kenglik: 26, tur: 'matn' }, { sarlavha: 'Объект', kenglik: 30, tur: 'matn' },
       ...PORTFEL_USTUNLAR.map((u) => ({ sarlavha: NOM_RU[u], kenglik: 18, tur: 'pul' as const })),
+      { sarlavha: 'Уведомления об оплате — не подтверждены (в долг не входят)', kenglik: 18, tur: 'pul' as const },
       { sarlavha: 'Ожидает решения, док.', kenglik: 12, tur: 'tartib' as const }, { sarlavha: 'Открытые замечания', kenglik: 12, tur: 'tartib' as const },
     ],
   });
@@ -38,13 +41,13 @@ export async function zakazchikOylikHisobot(obyektlar: readonly BugunObyekt[], m
         if (u === 'qarz' && q != null && o.f3?.summa != null && o.tolangan) return { f: `${harf('f3')}${r}-${harf('tolangan')}${r}`, v: q };
         return q;
       });
-      return [i + 1, o.qarshi_nom, o.obyekt_nom, ...qiymatlar, o.kutayotgan_taqdim, o.ochiq_murojaat];
+      return [i + 1, o.qarshi_nom, o.obyekt_nom, ...qiymatlar, o.xabar_kutilmoqda > 0 ? o.xabar_kutilmoqda : null, o.kutayotgan_taqdim, o.ochiq_murojaat];
     }));
   });
   if (rows.length) {
     const j = portfelJami(obyektlar);
     const jk = (u: PortfelUstun) => { const f = sumFormula(harf(u), rows); return f && j[u].summa != null ? { f, v: yaxlit2(j[u].summa as number) } : null; };
-    v.qator('jami', ['', 'ИТОГО', '', ...PORTFEL_USTUNLAR.map((u) => jk(u)), null, null]);
+    v.qator('jami', ['', 'ИТОГО', '', ...PORTFEL_USTUNLAR.map((u) => jk(u)), null, null, null]);
   }
   const k = rasmiyKitob([v]);
   return { bytes: k.bytes, yacheykalar: k.yacheykalar, faylNomi: `ОТЧЁТ_ЗАКАЗЧИКА_${meta.sana}.xlsx` };

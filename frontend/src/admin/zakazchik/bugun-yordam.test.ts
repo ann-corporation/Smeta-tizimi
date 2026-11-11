@@ -22,15 +22,18 @@ describe('buyurtmachi portfeli — null ≠ 0', () => {
     expect(j.shartnoma).toEqual({ summa: 3000, nomalum: 0 });
     expect(j.f3).toEqual({ summa: 500, nomalum: 1 });
     expect(j.qarz).toEqual({ summa: 300, nomalum: 1 });
-    expect(j.fakt).toEqual({ summa: null, nomalum: 2 });
+    expect(j.fakt_qqs).toEqual({ summa: null, nomalum: 2 });
   });
 
-  it('F2 soni 0 bo‘lsa ustamasiz F2 noma‘lum (0 emas)', () => {
-    expect(portfelJami([ob({ f2: { soni: 0, jami: 0, oxirgi_oy: null } })]).f2.summa).toBeNull();
-    expect(portfelJami([ob({ f2: { soni: 2, jami: 40, oxirgi_oy: '2026-10-01' } })]).f2.summa).toBe(40);
+  it('paket ustunlari: QQS bilan, ustamali, ustamasiz alohida; paket null bo‘lsa noma‘lum', () => {
+    const f2 = { soni: 2, oxirgi_oy: '2026-10-01', qqs_bilan: 112, ustamali: 100, ustamasiz: 80, narxsiz_soni: 0, qator_soni: 5 };
+    const j = portfelJami([ob({ f2 }), ob({ obyekt_id: 2, f2: null })]);
+    expect(j.f2_qqs).toEqual({ summa: 112, nomalum: 1 });
+    expect(j.f2_ustamali.summa).toBe(100);
+    expect(j.f2_ustamasiz.summa).toBe(80);
+    expect(portfelJami([ob({ f2: { soni: 0, oxirgi_oy: null } })]).f2_qqs.summa).toBeNull();
   });
 });
-
 describe('kutish va e‘tibor', () => {
   it('kutish jami: hujjat + javob + tekshiruv; kechikkan alohida', () => {
     expect(kutishJami({ taqdim: { f2: 2, aosr: 1 }, murojaat_menga_ochiq: 3, murojaat_tekshiruv: 1, murojaat_kechikkan: 2, tolov_xabar_kutilmoqda: 4 }))

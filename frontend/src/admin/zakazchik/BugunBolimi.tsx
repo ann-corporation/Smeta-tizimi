@@ -12,14 +12,13 @@ import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { Bolim } from './tomon-ui';
 import { TolovXabariYozish } from './TolovXabarlari';
-import { PORTFEL_USTUNLAR, TAQDIM_RESURS_NOMI, etiborBelgisi, kutishJami, portfelJami, pudratchiBoyicha, type PortfelUstun } from './bugun-yordam';
+import { EKRAN_USTUNLAR, TAQDIM_RESURS_NOMI, etiborBelgisi, kutishJami, portfelJami, pudratchiBoyicha, ustunQiymati, type PortfelUstun } from './bugun-yordam';
 import { pul, tugma } from './tomon-yordam';
 
-const USTUN_NOMI: Record<PortfelUstun, string> = {
-  shartnoma: 'Shartnoma (QQS bilan)', smeta: 'Smeta (QQS siz)', fakt: 'Fakt — pudratchi hisoboti (QQS siz)', f2: 'Tasdiqlangan F2 ustamasiz (QQS siz)',
-  f2_ustamali: 'F2 ustamali (QQS siz)', f2_qqs: 'Tasdiqlangan F2 (QQS bilan)', f3: 'Forma-3 (QQS bilan)', tolangan: 'To‘langan (QQS bilan)', qarz: 'Qarz (QQS bilan)',
+const USTUN_NOMI: Partial<Record<PortfelUstun, string>> = {
+  shartnoma: 'Shartnoma (QQS bilan)', smeta_qqs: 'Smeta (QQS bilan)', fakt_qqs: 'Fakt — pudratchi hisoboti (QQS bilan)', f2_qqs: 'Tasdiqlangan F2 (QQS bilan)',
+  f3: 'Forma-3 (QQS bilan)', tolangan: 'To‘langan (QQS bilan)', qarz: 'Qarz (QQS bilan)',
 };
-
 function Katta({ nom, son, izoh, yol, rang, onClick }: { nom: string; son?: number; izoh: string; yol?: string; rang?: string; onClick?: () => void }) {
   const ichi = (
     <>
@@ -45,8 +44,8 @@ export default function BugunBolimi({ kompaniyaId, kompaniyaNomi }: { kompaniyaI
   const kutish = useMemo(() => (d ? kutishJami(d.kutayotgan) : null), [d]);
   const jami = useMemo(() => (d ? portfelJami(d.obyektlar) : null), [d]);
   const guruhlar = useMemo(() => (d ? pudratchiBoyicha(d) : []), [d]);
-  const korinadigan = useMemo(() => PORTFEL_USTUNLAR.filter((u) => d && d.obyektlar.some((o) => (u === 'f2_ustamali' || u === 'f2_qqs' ? o.f2?.ustama_jami != null : u === 'f2' ? o.f2 != null : u === 'qarz' ? o.qarz != null : true))), [d]);
-
+  // Ustun faqat bitta obyektda ham qiymat bo'lsa chiziladi (hech kimga ochilmagan ko'rsatkich ustuni ko'rinmaydi).
+  const korinadigan = useMemo(() => EKRAN_USTUNLAR.filter((u) => d && d.obyektlar.some((o) => ustunQiymati(o, u) != null || (u === 'qarz' && o.f3 != null))), [d]);
   async function hisobotYukla() {
     if (!d || band) return;
     setBand(true);
@@ -78,7 +77,7 @@ export default function BugunBolimi({ kompaniyaId, kompaniyaNomi }: { kompaniyaI
           {Object.keys(d.kutayotgan.taqdim).length > 0 && (
             <p className="mb-2 text-xs text-text-dim">{t('Qaror kutayotgan')}: {Object.entries(d.kutayotgan.taqdim).map(([k, n]) => `${t(TAQDIM_RESURS_NOMI[k] ?? k)} — ${n}`).join(' · ')}</p>)}
           <div className="fz-table-wrap"><table className="fz-table min-w-[1100px]">
-            <thead><tr><th>{t('Obyekt')}</th>{korinadigan.map((u) => <th key={u} className="fz-c-num">{t(USTUN_NOMI[u])}</th>)}<th>{t('Holat')}</th><th /></tr></thead>
+            <thead><tr><th>{t('Obyekt')}</th>{korinadigan.map((u) => <th key={u} className="fz-c-num">{t(USTUN_NOMI[u] ?? u)}</th>)}<th>{t('Holat')}</th><th /></tr></thead>
             <tbody>
               {guruhlar.map((g) => [
                 <tr key={`g${g.id}`}><td colSpan={korinadigan.length + 3} className="bg-surface-2 text-xs font-semibold">{g.nom}</td></tr>,
@@ -88,7 +87,7 @@ export default function BugunBolimi({ kompaniyaId, kompaniyaNomi }: { kompaniyaI
                 <td key={u} className="fz-c-num">{jami[u].summa == null ? '—' : pul(jami[u].summa)}{jami[u].nomalum > 0 && <span className="block text-[10px] text-warn">{t('{n} ta obyektda noma’lum', { n: jami[u].nomalum })}</span>}</td>))}<td /><td /></tr>
             </tbody>
           </table></div>
-          <p className="mt-2 text-[11px] text-text-mute">{t('«—» = noma’lum yoki pudratchi bu ko‘rsatkichni sizga ochmagan (nol emas). Fakt — pudratchi o‘zi kiritgan hisobot; sertifikatlangan emas.')}</p>
+          <p className="mt-2 text-[11px] text-text-mute">{t('«—» = noma’lum yoki pudratchi bu ko‘rsatkichni sizga ochmagan (nol emas). Fakt — pudratchi o‘zi kiritgan hisobot; sertifikatlangan emas. Tasdiqlanmagan to‘lov xabari qarzdan ayirilmaydi.')}</p>
         </Bolim>
       )}
       {tolovObyekt != null && <TolovXabariYozish kompaniyaId={kompaniyaId} obyektlar={d.obyektlar} tanlangan={tolovObyekt} onOzgardi={() => void ol()} />}
@@ -96,14 +95,28 @@ export default function BugunBolimi({ kompaniyaId, kompaniyaNomi }: { kompaniyaI
   );
 }
 
-function Hujayra({ o, u }: { o: BugunObyekt; u: PortfelUstun }) {
-  if (u === 'f2' && o.f2) return <>{o.f2.soni > 0 ? pul(o.f2.jami) : '—'}<span className="block text-[10px] text-text-mute">{o.f2.soni} {t('ta')}{o.f2.ustama_jami && o.f2.ustama_jami.narxsiz_qator > 0 ? ` · ${t('narxsiz qator: {n} ta', { n: o.f2.ustama_jami.narxsiz_qator })}` : ''}</span></>;
-  const q = u === 'shartnoma' ? o.shartnoma_summa : u === 'smeta' ? o.smeta?.summa ?? null : u === 'fakt' ? o.fakt?.summa ?? null : u === 'f2_ustamali' ? o.f2?.ustama_jami?.ustamali ?? null
-    : u === 'f2_qqs' ? o.f2?.ustama_jami?.podval?.vsego ?? null : u === 'f3' ? o.f3?.summa ?? null : u === 'tolangan' ? o.tolangan?.summa ?? null : o.qarz;
-  const nx = u === 'smeta' ? o.smeta?.narxsiz_qator : u === 'fakt' ? o.fakt?.narxsiz_qator : 0;
-  return <>{q == null ? '—' : pul(q)}{!!nx && <span className="block text-[10px] text-warn">{t('narxsiz qator: {n} ta', { n: nx })}</span>}</>;
-}
+const KICHIK: Partial<Record<PortfelUstun, [PortfelUstun, PortfelUstun]>> = {
+  smeta_qqs: ['smeta_ustamali', 'smeta_ustamasiz'], fakt_qqs: ['fakt_ustamali', 'fakt_ustamasiz'], f2_qqs: ['f2_ustamali', 'f2_ustamasiz'],
+};
 
+/** Katak: asosiy qiymat (QQS bilan); paket ustunlarida ostida ustamali va ustamasiz (QQS siz) kichik qatorda. */
+function Hujayra({ o, u }: { o: BugunObyekt; u: PortfelUstun }) {
+  const q = ustunQiymati(o, u);
+  const kichik = KICHIK[u];
+  const paket = u === 'smeta_qqs' ? o.smeta : u === 'fakt_qqs' ? o.fakt : u === 'f2_qqs' ? o.f2 : null;
+  const nx = paket && 'narxsiz_soni' in paket ? paket.narxsiz_soni : 0;
+  return (
+    <>
+      {q == null ? '—' : pul(q)}
+      {kichik && q != null && (
+        <span className="block text-[10px] text-text-mute">
+          {t('ustamali')}: {pul(ustunQiymati(o, kichik[0]))} · {t('ustamasiz')}: {pul(ustunQiymati(o, kichik[1]))}
+        </span>)}
+      {u === 'f2_qqs' && o.f2 && <span className="block text-[10px] text-text-mute">{o.f2.soni} {t('ta akt')}</span>}
+      {!!nx && <span className="block text-[10px] text-warn">{t('narxsiz qator: {n} ta', { n: nx })}</span>}
+    </>
+  );
+}
 function Qator({ o, ustunlar, onTolov }: { o: BugunObyekt; ustunlar: readonly PortfelUstun[]; onTolov: () => void }) {
   const b = etiborBelgisi(o);
   return (
@@ -115,7 +128,7 @@ function Qator({ o, ustunlar, onTolov }: { o: BugunObyekt; ustunlar: readonly Po
         {b === 'qaror' && <Link to="/admin/taqdimlar" className="fz-chip fz-chip--warn">{o.kutayotgan_taqdim} {t('hujjat kutmoqda')}</Link>}
         {b === 'qarz' && <span className="fz-chip fz-chip--danger">{t('qarz bor')}</span>}
         {b === 'murojaat' && <Link to="/admin/murojaatlar" className="fz-chip">{o.ochiq_murojaat} {t('ochiq murojaat')}</Link>}
-        {o.xabar_kutilmoqda > 0 && <span className="block text-[10px] text-text-dim">{t('to‘lov xabari kutilmoqda')}: {pul(o.xabar_kutilmoqda)}</span>}
+        {o.xabar_kutilmoqda > 0 && <span className="block text-[10px] text-text-dim">{t('kutilmoqda (tasdiqlanmagan)')}: {pul(o.xabar_kutilmoqda)}</span>}
       </td>
       <td>{(o.f3 != null || o.tolangan != null) && <button type="button" className={tugma} onClick={onTolov}>{t('To‘lov xabari')}</button>}</td>
     </tr>

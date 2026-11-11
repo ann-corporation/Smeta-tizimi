@@ -19,6 +19,6 @@ describe('buyurtmachi oylik hisoboti (Excel)', () => {
     const xml = strFromU8(unzipSync(r.bytes)['xl/worksheets/sheet1.xml']);
     expect(xml).toMatch(/<f>[A-Z]+\d+-[A-Z]+\d+<\/f><v>300<\/v>/);      // qarz formulasi
     expect(xml).toMatch(/<f>SUM\(/);                                       // jami
-    for (const k of ['E10', 'J10', 'K10', 'L10']) expect(xml).toMatch(new RegExp(`<c r="${k}" s="\\d+"/>`)); // noma'lum 0 bo'lib yozilmaydi
+    for (const k of ['E10', 'M10', 'N10', 'O10']) expect(xml).toMatch(new RegExp(`<c r="${k}" s="\\d+"/>`)); // noma'lum 0 bo'lib yozilmaydi
   });
 });
