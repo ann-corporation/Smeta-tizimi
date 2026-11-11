@@ -2,6 +2,16 @@
   "izoh": "Har prodga chiqqan o'zgarish uchun egasiga tushunarli qisqa yozuv. Eng yangisi tepada. id — o'sib boruvchi butun son.",
   "yozuvlar": [
     {
+      "id": 158,
+      "sana": "2026-11-12",
+      "sarlavha": "Rahbar paneli va hisobotlar yana tezlashdi",
+      "bandlar": [
+        "Rahbar paneli kartalari endi boshqa hisoblar tugashini kutmaydi: tayyor bo‘lgani zahoti ko‘rinadi.",
+        "Bazada rahbar paneli hisobi yengillashtirildi (fakt va smeta yig‘indisi); natijalar o‘sha-o‘sha.",
+        "Obyektlar va F2 reestrida asosiy jadval avval chiqadi, og‘ir hisoblar undan keyin yuklanadi; holat sahifasida takror so‘rovlar birlashtirildi."
+      ]
+    },
+    {
       "id": 157,
       "sana": "2026-11-11",
       "sarlavha": "Aqliy xarita — boshqaruv pulti",
