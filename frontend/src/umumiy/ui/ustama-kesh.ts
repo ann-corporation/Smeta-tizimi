@@ -1,4 +1,5 @@
-import type { QueryClient } from '@tanstack/react-query';
+/** react-query ga bog'lanmaslik uchun (MCP paketlari shu faylni React'siz tekshiradi) — faqat kerakli qism. */
+type QueryClient = { invalidateQueries(f: { queryKey: readonly unknown[] }): unknown };
 
 /** Ustama (nakrutka) so'rovi keshi: obyekt boshiga alohida so'rov (fan-out) 5 daqiqa yangi hisoblanadi. */
 export const USTAMA_STALE_MS = 5 * 60_000;
