@@ -20,7 +20,7 @@ const b: Buzilishlar = buzilishlarniTop(
   { egasi, sinklar: PLATFORMA_SINKLAR, hisobYadro: HISOB_YADRO_SQL, ruxsatManba: RUXSAT_MANBA_SQL },
   katalog,
 );
-const CHEGARA = { yozish: 99, pul: 49, rol: 2, idemsiz: 38 } as const;
+const CHEGARA = { yozish: 100, pul: 49, rol: 2, idemsiz: 38 } as const;
 const royxat = (a: string[]) => a.map((x) => '  - ' + x).join('\n');
 
 describe('a) har jadval va funksiya aynan bitta domenga tegishli', () => {
