@@ -131,10 +131,11 @@ declare
   rfq bigint; rfq2 bigint; q1 bigint; tk bigint; ver integer; byu bigint; byu_v integer;
   b_sub bigint; b_nar bigint; t_sub bigint; sakt bigint; stq bigint; nid bigint; nver integer; l1 bigint; v_oy date := date_trunc('month', current_date)::date;
   y_yuk bigint; y_ver integer; y_tk bigint; y_bron bigint; y_t jsonb;
-  v_list text;
+  v_list text; v_ob0 bigint; v_aosr bigint; v_tqa bigint;
 begin
   -- ===================================================================
   v_n := 0; v_name := 'tayyorgarlik: kompaniyalar, foydalanuvchilar, obyektlar, aloqalar (RPC), grantlar';
+  select coalesce(max(id), 0) into v_ob0 from public.t2_outbox;
   P := pg_temp.tz_komp('Pudratchi', v_tag); Z := pg_temp.tz_komp('Buyurtmachi', v_tag); T := pg_temp.tz_komp('Texnadzor', v_tag);
   L := pg_temp.tz_komp('Loyihachi', v_tag); B := pg_temp.tz_komp('Laboratoriya', v_tag); Y := pg_temp.tz_komp('Yetkazuvchi', v_tag);
   S := pg_temp.tz_komp('Subpudratchi', v_tag); C := pg_temp.tz_komp('Tashuvchi', v_tag); X := pg_temp.tz_komp('Begona', v_tag);
@@ -158,10 +159,12 @@ begin
   -- grants P gives (o2 is never granted; Y gets nothing)
   perform pg_temp.tz_ok(public.t2_tomon_grant_saqla_v1(p_boss, P, a_pz, jsonb_build_array(
     jsonb_build_object('resurs', 'obyekt_holat', 'amallar', jsonb_build_array('korish'), 'obyekt_id', o1),
-    jsonb_build_object('resurs', 'f2', 'amallar', jsonb_build_array('korish', 'tafsilot'), 'obyekt_id', o1))), 'grant Z');
+    jsonb_build_object('resurs', 'f2', 'amallar', jsonb_build_array('korish', 'tafsilot'), 'obyekt_id', o1),
+    jsonb_build_object('resurs', 'lab_natija', 'amallar', jsonb_build_array('korish'), 'obyekt_id', o1))), 'grant Z');
   perform pg_temp.tz_ok(public.t2_tomon_grant_saqla_v1(p_boss, P, a_pt, jsonb_build_array(
     jsonb_build_object('resurs', 'obyekt_holat', 'amallar', jsonb_build_array('korish'), 'obyekt_id', o1),
-    jsonb_build_object('resurs', 'aosr', 'amallar', jsonb_build_array('korish', 'izoh', 'qaror'), 'obyekt_id', o1))), 'grant T');
+    jsonb_build_object('resurs', 'aosr', 'amallar', jsonb_build_array('korish', 'izoh', 'qaror'), 'obyekt_id', o1),
+    jsonb_build_object('resurs', 'lab_natija', 'amallar', jsonb_build_array('korish'), 'obyekt_id', o1))), 'grant T');
   perform pg_temp.tz_ok(public.t2_tomon_grant_saqla_v1(p_boss, P, a_pl, jsonb_build_array(jsonb_build_object('resurs', 'obyekt_holat', 'amallar', jsonb_build_array('korish'), 'obyekt_id', o1))), 'grant L');
   perform pg_temp.tz_ok(public.t2_tomon_grant_saqla_v1(p_boss, P, a_pb, jsonb_build_array(jsonb_build_object('resurs', 'obyekt_holat', 'amallar', jsonb_build_array('korish'), 'obyekt_id', o1))), 'grant B');
   v_doc_p := pg_temp.tz_doc(P, o1, 'foto', v_tag); v_doc_b := pg_temp.tz_doc(B, null, 'protokol', v_tag); v_doc_l := pg_temp.tz_doc(L, o1, 'chizma', v_tag);
@@ -213,8 +216,17 @@ begin
   perform pg_temp.tz_assert((select holat from public.t2_tomon_murojaat where id = m1) = 'yopildi'
                             and pg_temp.tz_row(public.t2_tomon_murojaat_royxat_v1(t_boss, T, 'mendan', null, null, 50), m1)->>'holat' = 'yopildi'
                             and pg_temp.tz_row(public.t2_tomon_murojaat_royxat_v1(p_boss, P, 'menga', null, null, 50), m1)->>'holat' = 'yopildi', 'ikkala tomon yopilgan holatni ko''radi');
-  raise notice 'TOMON QAMROV [2]: AOSR tekshiruv akti (aosr resursi, qaror) bu faylda ishlatilmadi - t2_aosr fixture kerak.';
-
+  -- AOSR inspection act: contractor sends (aosr resource) -> supervisor decides (aosr[qaror]) -> act becomes approved
+  insert into public.t2_aosr(kompaniya_id, obyekt_id, raqam, ish_nomi, holat, tur, blank_varianti, komissiya, sana)
+  values (P, o1, 'TZ-AOSR-' || v_tag, 'TZ armatura montaji', 'yangi', 'aosr', 'subpudratchisiz', '[]'::jsonb, current_date) returning id into v_aosr;
+  r := pg_temp.tz_try(2, 'pudratchi AOSR yubordi', format('public.t2_tomon_taqdim_yarat_v1($A, %s, %s, ''aosr'', %s, ''TZ AOSR'', gen_random_uuid())', P, a_pt, v_aosr), p_pto, p_boss);
+  perform pg_temp.tz_ok(r, 'taqdim aosr'); v_tqa := (r->>'id')::bigint;
+  perform pg_temp.tz_assert(pg_temp.tz_has(public.t2_tomon_taqdimlar_v1(t_user, T, 'kelgan', null, null, 50), v_tqa), 'texnadzor AOSR taqdimini kelgan ro''yxatda ko''rishi kerak');
+  r := pg_temp.tz_try(2, 'texnadzor AOSR qarori', format('public.t2_tomon_qaror_v1($A, %s, %s, ''qabul'', ''TZ AOSR ok'')', T, v_tqa), t_user, t_boss);
+  perform pg_temp.tz_assert(r->>'holat' = 'qabul', 'AOSR qarori: ' || r::text);
+  if (select holat from public.t2_aosr where id = v_aosr) is distinct from 'tasdiqlangan' then
+    perform pg_temp.tz_uz(2, 'texnadzor AOSR taqdimini qabul qildi, lekin t2_aosr.holat = ' || coalesce((select holat from public.t2_aosr where id = v_aosr), '?') || ' (tasdiqlangan emas; tasdiq_taqdim_id=' || coalesce((select tasdiq_taqdim_id::text from public.t2_aosr where id = v_aosr), 'NULL') || ')');
+  end if;
   -- ===================================================================
   v_n := 3; v_name := 'loyihachi: chizma/o''zgartirish yuboradi -> pudratchida ko''rinadi';
   select coalesce(max(id), 0) into v_ob from public.t2_outbox;
@@ -244,10 +256,19 @@ begin
   perform pg_temp.tz_ob(4, 'natija -> pudratchi', v_ob, P);
   r := public.t2_lab_sorov_tafsilot_v1(p_boss, P, lab);
   perform pg_temp.tz_assert((r->>'ok')::boolean and position('TZ-P1' in r::text) > 0, 'pudratchi lab natijasini ko''rishi kerak: ' || left(r::text, 300));
-  if pg_temp.tz_hidden(format('public.t2_lab_sorov_tafsilot_v1(%s, %s, %s)', t_user, T, lab)) then
-    perform pg_temp.tz_uz(4, 'texnadzor laboratoriya natijasini (t2_lab_sorov_tafsilot_v1) ko''ra olmaydi: natija faqat pudratchi<->laboratoriya o''rtasida; texnadzorga AOSR bog''i orqali ham ochilmaydi');
-  end if;
-
+  perform pg_temp.tz_ob(4, 'natija -> texnadzor (granti bor uchinchi tomon)', v_ob, T);
+  -- third parties with an ACTIVE lab_natija grant read (list + detail); nobody else; nobody writes
+  perform pg_temp.tz_assert(pg_temp.tz_has(public.t2_lab_natija_royxat_v1(t_user, T, o1, 50), lab), 'texnadzor (granti bor) laboratoriya natijasini royxatda korishi kerak');
+  perform pg_temp.tz_assert((public.t2_lab_natija_tafsilot_v1(z_user, Z, lab)->>'ok')::boolean and position('TZ-P1' in public.t2_lab_natija_tafsilot_v1(z_user, Z, lab)::text) > 0, 'buyurtmachi (granti bor) natija tafsilotini korishi kerak');
+  perform pg_temp.tz_assert(position('summa' in public.t2_lab_natija_tafsilot_v1(t_user, T, lab)::text) = 0, 'uchinchi tomonga hisob/summa berilmasligi kerak');
+  perform pg_temp.tz_assert(pg_temp.tz_hidden(format('public.t2_lab_natija_tafsilot_v1(%s, %s, %s)', l_boss, L, lab)), 'grantsiz loyihachi natijani ko''rmasligi kerak');
+  perform pg_temp.tz_assert(pg_temp.tz_hidden(format('public.t2_lab_natija_tafsilot_v1(%s, %s, %s)', x_boss, X, lab)), 'begona kompaniya natijani ko''rmasligi kerak');
+  perform pg_temp.tz_assert(pg_temp.tz_hidden(format('public.t2_lab_sorov_natija_v1(%s, %s, %s, 2, ''{}''::jsonb, array[%s]::bigint[])', t_user, T, lab, v_doc_b)), 'texnadzor natijani yoza olmasligi kerak');
+  perform pg_temp.tz_assert(pg_temp.tz_hidden(format('public.t2_lab_sorov_natija_v1(%s, %s, %s, 2, ''{}''::jsonb, array[%s]::bigint[])', z_user, Z, lab, v_doc_b)), 'buyurtmachi natijani yoza olmasligi kerak');
+  for v_gid in select id from public.t2_tomon_grant where aloqa_id = a_pt and resurs = 'lab_natija' and holat = 'faol' loop
+    perform pg_temp.tz_ok(public.t2_tomon_grant_bekor_v1(p_boss, P, v_gid), 'grant_bekor lab_natija');
+  end loop;
+  perform pg_temp.tz_assert(not pg_temp.tz_has(public.t2_lab_natija_royxat_v1(t_user, T, o1, 50), lab), 'grant bekor qilingach texnadzor natijani kormasligi kerak');
   -- ===================================================================
   v_n := 5; v_name := 'yetkazuvchi: tender taklif -> g''olib -> buyurtma; bozor (ochiq) e''loni';
   select coalesce(max(id), 0) into v_ob from public.t2_outbox;
@@ -267,16 +288,24 @@ begin
   r := pg_temp.tz_try(5, 'yetkazuvchi buyurtmani qabul qildi', format('public.t2_buyurtma_otish_v1($A, %s, gen_random_uuid(), %s, %s, ''qabul_qilindi'', null, null, null)', Y, byu, byu_v), y_user, y_boss);
   perform pg_temp.tz_ok(r, 'buyurtma_otish');
   perform pg_temp.tz_assert((public.t2_buyurtma_tafsilot_v1(p_boss, P, byu)->>'ok')::boolean and (public.t2_buyurtma_tafsilot_v1(y_boss, Y, byu)->>'ok')::boolean, 'buyurtmani ikkala tomon ko''radi');
-  -- open market lot (no invitation list)
-  r := public.t2_tender_elon_v1(p_boss, P, gen_random_uuid(), 'material', 'ochiq', null, o1, now() + interval '3 days', '[{"nom":"Qum TZ","birlik":"m3","miqdor":5}]'::jsonb, '{"sarlavha":"TZ ochiq lot"}'::jsonb);
+  -- open market. (a) t2_tender_elon_v1 with doira 'ochiq' creates a v1 lot (protsess_v2 = false): is it in the public open list?
+  r := public.t2_tender_elon_v1(p_boss, P, gen_random_uuid(), 'material', 'ochiq', null, o1, now() + interval '3 days', '[{"nom":"Qum TZ","birlik":"m3","miqdor":5}]'::jsonb, '{"sarlavha":"TZ ochiq lot v1"}'::jsonb);
   perform pg_temp.tz_ok(r, 'tender_elon ochiq'); rfq2 := (r->>'id')::bigint;
-  if position(rfq2::text in public.t2_tn_ochiq_royxat_v1('{}'::jsonb)::text) = 0 then
-    perform pg_temp.tz_uz(5, 'ochiq bozor e''loni t2_tn_ochiq_royxat_v1 (kirmasdan o''qish) ro''yxatida ko''rinmadi - kerakli filtr/muddat shartlari bajarilmagan bo''lishi mumkin');
+  if not exists (select 1 from jsonb_array_elements(public.t2_tn_ochiq_royxat_v1('{}'::jsonb)->'lotlar') e where (e->>'id')::bigint = rfq2) then
+    perform pg_temp.tz_uz(5, 't2_tender_elon_v1 doira=ochiq lotni yaratadi (protsess_v2=false), lekin t2_tn_ochiq_royxat_v1 faqat protsess_v2 lotlarni korsatadi: ochiq bozorga chiqishning ikki yoli bor va v1 yoli kirmasdan oqish royxatiga tushmaydi');
   end if;
-  if not pg_temp.tz_has(public.t2_tenderlar_v1(x_boss, X, 'ochiq', null, 50, null), rfq2) and not pg_temp.tz_has(public.t2_tenderlar_v1(x_boss, X, 'menga', null, 50, null), rfq2) then
-    perform pg_temp.tz_uz(5, 'ochiq lotni begona (aloqasiz) kompaniya kirgan holda ham t2_tenderlar_v1 orqali ko''ra olmaydi (faqat kirmasdan o''qish yo''li bor)');
-  end if;
-
+  -- (b) the v2 path: lot from smeta rows -> draft -> tasdiqlashda -> elon -> public list
+  insert into public.t2_qator(obyekt_id, kompaniya_id, tur, kod, nom, birlik, hajm, narx, summa, tartib) values (o1, P, 'bl', 'TZ-B3-' || v_tag, 'TZ ochiq lot ish', 'm2', 20, 1000, 20000, 903);
+  r := pg_temp.tz_try(5, 'pudratchi ochiq lot (smetadan)', format('public.t2_tn_lot_smetadan_v1(%s, $A, gen_random_uuid(), %L::jsonb)', P,
+    jsonb_build_object('obyekt_id', o1, 'tur', 'subpudrat', 'doira', 'ochiq', 'nom', 'TZ ochiq lot v2', 'muddat', (now() + interval '3 days')::text)::text), p_pto, p_boss);
+  perform pg_temp.tz_ok(r, 'tn_lot_smetadan'); rfq2 := (r->>'id')::bigint;
+  r := public.t2_tender_otish_v1(p_boss, P, gen_random_uuid(), rfq2, (select versiya from public.t2_birja_rfq where id = rfq2), 'tasdiqlashda', null);
+  perform pg_temp.tz_ok(r, 'tender_otish tasdiqlashda');
+  r := public.t2_tender_otish_v1(p_boss, P, gen_random_uuid(), rfq2, (select versiya from public.t2_birja_rfq where id = rfq2), 'elon', null);
+  perform pg_temp.tz_ok(r, 'tender_otish elon');
+  perform pg_temp.tz_assert(exists (select 1 from jsonb_array_elements(public.t2_tn_ochiq_royxat_v1('{}'::jsonb)->'lotlar') e where (e->>'id')::bigint = rfq2),
+    'v2 ochiq lot kirmasdan oqish royxatida korinishi kerak (holat elon, protsess_v2)');
+  perform pg_temp.tz_assert(position('"narx"' in public.t2_tn_ochiq_royxat_v1('{}'::jsonb)::text) = 0, 'ochiq royxatda narx korinmasligi kerak');
   -- ===================================================================
   v_n := 6; v_name := 'subpudratchi: topshirish -> akt -> qabul; usta naryad: bajardim -> prorab qabul';
   select coalesce(max(id), 0) into v_ob from public.t2_outbox;
@@ -313,17 +342,16 @@ begin
   perform pg_temp.tz_ok(r, 'naryad qabul');
 
   -- ===================================================================
-  v_n := 7; v_name := 'logistika: yuk -> tashuvchi taklif -> qabul -> yetkazish dalili';
+  v_n := 7; v_name := 'logistika: yuk -> tashuvchi taklif -> qabul -> yuklash -> yetkazish dalili -> tasdiq';
   select coalesce(max(id), 0) into v_ob from public.t2_outbox;
   r := public.t2_yb_yuk_saqla_v1(P, p_boss, gen_random_uuid(), jsonb_build_object('nom', 'TZ sement', 'a_nom', 'Toshkent', 'b_nom', 'Navoiy', 'b_obyekt_id', o1, 'masofa_km', 420, 'tonna', 10,
-    'sana_dan', current_date + 1, 'sana_gacha', current_date + 3, 'tolov_shakli', 'otkazma', 'escrow', true));
+    'sana_dan', current_date + 1, 'sana_gacha', current_date + 3, 'tolov_shakli', 'naqd', 'escrow', false));
   perform pg_temp.tz_ok(r, 'yb_yuk_saqla'); y_yuk := (r->>'id')::bigint; y_ver := (r->>'versiya')::int;
-  r := public.t2_yb_yuk_elon_v1(P, p_boss, gen_random_uuid(), jsonb_build_object('id', y_yuk, 'versiya', y_ver)); perform pg_temp.tz_ok(r, 'yb_yuk_elon');
-  -- link to the supplier order from step 5 (buyurtma -> yuk)
+  -- link to the supplier order BEFORE publishing (only a draft yuk accepts buyurtma_id; state machine: qoralama -> elon -> bron -> yolda -> yetkazildi -> yopildi)
   r := public.t2_yb_p1_yuk_qosh_v1(P, p_boss, gen_random_uuid(), jsonb_build_object('yuk_id', y_yuk, 'buyurtma_id', byu));
-  if coalesce((r->>'ok')::boolean, false) is not true then
-    perform pg_temp.tz_uz(7, 'buyurtmaga yuk bog''lash (t2_yb_p1_yuk_qosh_v1 buyurtma_id) ishlamadi: ' || left(coalesce(r->>'code', r::text), 120));
-  end if;
+  perform pg_temp.tz_ok(r, 'yb_p1_yuk_qosh (buyurtma -> yuk)');
+  perform pg_temp.tz_assert((select buyurtma_id from public.t2_yb_yuk where id = y_yuk) = byu, 'yuk buyurtmaga bog''lanishi kerak');
+  r := public.t2_yb_yuk_elon_v1(P, p_boss, gen_random_uuid(), jsonb_build_object('id', y_yuk, 'versiya', y_ver)); perform pg_temp.tz_ok(r, 'yb_yuk_elon');
   r := public.t2_yb_tashuvchi_saqla_v1(c_user, gen_random_uuid(), '{"ism":"TZ haydovchi","telefon":"+998900000099","davlat_raqami":"01Z999ZZ","turi":"tent","yuk_t":25}'::jsonb);
   perform pg_temp.tz_ok(r, 'yb_tashuvchi_saqla');
   r := public.t2_yb_taklif_ber_v1(c_user, gen_random_uuid(), jsonb_build_object('yuk_id', y_yuk, 'narx_qqs_siz', 900000));
@@ -333,14 +361,16 @@ begin
   select id into y_bron from public.t2_yb_bron where yuk_id = y_yuk order by id desc limit 1;
   perform pg_temp.tz_assert(y_bron is not null, 'taklif qabul qilingach bron yaratilishi kerak');
   r := public.t2_yb_dalil_qosh_v1(c_user, gen_random_uuid(), jsonb_build_object('bron_id', y_bron, 'tur', 'yuklash', 'r2_kalit', 'tz/' || v_tag || '/yuklash.jpg', 'sha256', repeat('a', 64)));
-  perform pg_temp.tz_ok(r, 'yb_dalil_qosh');
-  perform pg_temp.tz_assert(exists (select 1 from public.t2_yb_dalil where bron_id = y_bron), 'yetkazish dalili saqlanishi kerak');
-  r := public.t2_yb_yuk_tasdiq_v1(P, p_boss, gen_random_uuid(), jsonb_build_object('yuk_id', y_yuk));
-  if coalesce((r->>'ok')::boolean, false) is not true then perform pg_temp.tz_uz(7, 'yetkazishni tasdiqlash (t2_yb_yuk_tasdiq_v1) dalildan keyin ishlamadi: ' || left(coalesce(r->>'code', r::text), 120)); end if;
+  perform pg_temp.tz_ok(r, 'yb_dalil_qosh yuklash');
+  r := public.t2_yb_yuritish_v1(c_user, gen_random_uuid(), jsonb_build_object('bron_id', y_bron, 'harakat', 'yukladim')); perform pg_temp.tz_ok(r, 'yb_yuritish yukladim');
+  r := public.t2_yb_dalil_qosh_v1(c_user, gen_random_uuid(), jsonb_build_object('bron_id', y_bron, 'tur', 'yetkazish', 'r2_kalit', 'tz/' || v_tag || '/yetkazish.jpg', 'sha256', repeat('b', 64)));
+  perform pg_temp.tz_ok(r, 'yb_dalil_qosh yetkazish');
+  perform pg_temp.tz_assert(exists (select 1 from public.t2_yb_dalil where bron_id = y_bron and tur = 'yetkazish'), 'yetkazish dalili saqlanishi kerak');
+  r := public.t2_yb_yuritish_v1(c_user, gen_random_uuid(), jsonb_build_object('bron_id', y_bron, 'harakat', 'yetkazdim')); perform pg_temp.tz_ok(r, 'yb_yuritish yetkazdim');
+  r := public.t2_yb_yuk_tasdiq_v1(P, p_boss, gen_random_uuid(), jsonb_build_object('yuk_id', y_yuk)); perform pg_temp.tz_ok(r, 'yb_yuk_tasdiq');
   if not exists (select 1 from public.t2_outbox o where o.id > v_ob and (o.foydalanuvchi_idlar @> array[c_user] or o.kompaniya_id = C or C = any(o.qabul_kompaniya_idlar))) then
-    perform pg_temp.tz_uz(7, 'logistika: tashuvchi (c_user) uchun outbox/bildirishnoma yozuvi yo''q - taklif qabul qilingani tashuvchiga xabar qilinmaydi');
+    perform pg_temp.tz_uz(7, 'logistika: tashuvchi (c_user) uchun outbox/bildirishnoma yozuvi yoq - taklif qabul qilingani tashuvchiga xabar qilinmaydi');
   end if;
-
   -- ===================================================================
   v_n := 8; v_name := 'murojaat/xabar ikki tomonlama; bildirishnoma/outbox to''g''ri qabul qiluvchiga';
   select coalesce(max(id), 0) into v_ob from public.t2_outbox;
@@ -360,10 +390,24 @@ begin
   perform pg_temp.tz_assert(exists (select 1 from public.t2_outbox o where o.mavzu = 'tomon.taqdim' and Z = any(o.qabul_kompaniya_idlar)), 'tomon.taqdim outbox qabul qiluvchisi buyurtmachi bo''lishi kerak');
   perform pg_temp.tz_assert(exists (select 1 from public.t2_outbox o where o.mavzu = 'tomon.qaror' and P = any(o.qabul_kompaniya_idlar)), 'tomon.qaror outbox qabul qiluvchisi pudratchi bo''lishi kerak');
   perform pg_temp.tz_assert(not exists (select 1 from public.t2_outbox o where o.mavzu in ('tomon.taqdim', 'tomon.qaror') and (X = any(o.qabul_kompaniya_idlar) or Y = any(o.qabul_kompaniya_idlar))), 'begona/yetkazuvchi kompaniyaga taqdim/qaror xabari ketmasligi kerak');
-  if not exists (select 1 from public.t2_bildirishnoma n where n.kompaniya_id = Z and n.outbox_id in (select id from public.t2_outbox where mavzu = 'tomon.taqdim')) then
-    perform pg_temp.tz_uz(8, 'outbox -> t2_bildirishnoma: buyurtmachi foydalanuvchilari uchun bildirishnoma yozuvi yo''q (dispatcher ishga tushmagan yoki hali yozmaydi)');
-  end if;
-
+  -- The cron job 't2-outbox-bildirishnoma' (*/2) calls t2_outbox_ishlov_v1('bildirishnoma', 500); cron does not run inside a transaction -> call it directly.
+  -- It skips outbox rows younger than 60 s (all rows share the transaction start time), so backdate this test's own rows first.
+  begin
+    update public.t2_outbox set yaratildi = now() - interval '10 minutes' where id > v_ob0;
+  exception when others then perform pg_temp.tz_uz(8, 'outbox yozuvlarini eskirtirib bolmadi (dispetcher sinovi): ' || left(sqlerrm, 120));
+  end;
+  r := public.t2_outbox_ishlov_v1('bildirishnoma', 2000);
+  perform pg_temp.tz_ok(r, 't2_outbox_ishlov_v1');
+  perform pg_temp.tz_assert(exists (select 1 from public.t2_bildirishnoma n where n.kompaniya_id = Z and n.foydalanuvchi_id = z_boss and n.outbox_id in (select id from public.t2_outbox where id > v_ob0 and mavzu = 'tomon.taqdim')),
+    'taqdim haqida buyurtmachi boss ga bildirishnoma yozilishi kerak (dispetcher ishlagandan keyin)');
+  perform pg_temp.tz_assert(not exists (select 1 from public.t2_bildirishnoma n where n.outbox_id > v_ob0 and n.kompaniya_id in (X)), 'begona kompaniyaga bildirishnoma ketmasligi kerak');
+  for v_gid, v_list in select x.k, x.nom from (values (T, 'texnadzor'), (B, 'laboratoriya'), (Y, 'yetkazuvchi'), (S, 'subpudratchi'), (L, 'loyihachi'), (P, 'pudratchi'), (Z, 'buyurtmachi')) x(k, nom) loop
+    if not exists (select 1 from public.t2_bildirishnoma n where n.outbox_id > v_ob0 and n.kompaniya_id = v_gid) then
+      perform pg_temp.tz_uz(8, v_list || ' tomoni (kompaniya boss/pto) butun zanjirda birorta bildirishnoma olmadi');
+    end if;
+  end loop;
+  raise notice 'TOMON OBSERVED [8]: bildirishnomalar (mavzu: soni) = %', (select jsonb_object_agg(mavzu, n) from (select mavzu, count(*) n from public.t2_bildirishnoma where outbox_id > v_ob0 group by 1) z);
+  raise notice 'TOMON OBSERVED [8]: dispetcher faqat qabul kompaniyasining boss/admin/rahbar/director/pto rollariga yozadi; buyurtmachi/inspektor/loyihachi/taminotchi roli foydalanuvchilari (outbox foydalanuvchi_idlar bo''lmasa) bildirishnoma olmaydi.';
   -- ===================================================================
   v_n := 9; v_name := 'IZOLYATSIYA: faqat grant berilgan ko''rinadi; begona/rolga zid rad; grant bekori ko''rinishni yo''q qiladi';
   -- 9a. granted object only
