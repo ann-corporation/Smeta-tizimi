@@ -41,7 +41,7 @@ export const HUJJAT_TURLARI = {
     tekshiruv: ['fakt', 'f2', 'summa'],
     bosqichlar: ['qoralama', 'tekshiruv', 'yuborildi', 'qaror', 'arxiv'],
     imzo: { tayyorlaydi: 'pudratchi', tasdiqlaydi: ['buyurtmachi'] },
-    taqdim: { resurs: 'f2', manbaJadval: 't2_akt' },
+    taqdim: { resurs: 'f2', manbaJadval: 't2_akt', qabulRollar: ['zakazchik', 'texnadzor'] },
     tokenKalit: 'F2',
   },
   forma3: {
@@ -70,7 +70,7 @@ export const HUJJAT_TURLARI = {
     tekshiruv: ['fakt'],
     bosqichlar: ['qoralama', 'tekshiruv', 'yuborildi', 'qaror', 'arxiv'],
     imzo: { tayyorlaydi: 'pudratchi', tasdiqlaydi: IMZO_KUZATUV },
-    taqdim: { resurs: 'aosr', manbaJadval: 't2_aosr' },
+    taqdim: { resurs: 'aosr', manbaJadval: 't2_aosr', qabulRollar: ['zakazchik', 'texnadzor', 'loyihachi'] },
     tokenKalit: 'AOSR',
   },
   m29: {
@@ -252,6 +252,12 @@ export const TAQDIM_MANBA_JADVAL = {
   f2: HUJJAT_TURLARI.f2.taqdim.manbaJadval,
   aosr: HUJJAT_TURLARI.aosr.taqdim.manbaJadval,
 } as const;
+
+/** Resurs (f2 / aosr) ni qabul qila oladigan tomon rollari — reestrdan; reestrda ko'rsatilmasa null (filtr yo'q). */
+export function taqdimQabulRollari(resurs: string): readonly string[] | null {
+  for (const k of HUJJAT_KALITLARI) { const q = (HUJJAT_TURLARI[k] as HujjatTuri).taqdim; if (q?.resurs === resurs && q.qabulRollar) return q.qabulRollar; }
+  return null;
+}
 
 /** Reestrdagi turga taqdim resursi bo'yicha qaytadi (resurs bir nechta turga umumiy bo'lishi mumkin — masalan «hujjat»). */
 export function taqdimResursiTurlari(resurs: string): HujjatKalit[] {
