@@ -330,6 +330,8 @@ export const onRequestPost: PagesFunction<{
         /* ISH KARTASI v1 (20261203000600): kartalar, bog'langan smeta qatorlari (+ qo'shnilar), smetadan ish qidirish. `stable`;
            a'zolik + smeta.read RPC ichida; smeta qatorlari faqat faol versiya va shu kompaniyaniki. */
         ish_kartasi_ol_v1: 'kompaniya_actor',
+        /* NARYAD + LUG'AT (20261214800000): naryadlar ro'yxati/tafsiloti, kompaniya lug'ati. `stable`; a'zolik + smeta.read RPC ichida. */
+        naryad_ol_v1: 'kompaniya_actor',
         /* Egasi 2026-11-03: UY SOTISH (20261124000000) — shaxmatka, bitimlar, bitim kartasi, mijozlar, sotuv paneli. `stable`;
            a'zolik + sales.read/sales.write RPC ichida; obyekt/bitim kompaniyaga tegishliligi ham RPC da. */
         sotuv_shaxmatka_v1: 'kompaniya_actor',
@@ -743,6 +745,26 @@ export const onRequestPost: PagesFunction<{
           filtr.qoshni = f.qoshni === true;
         }
         if (bolim === 'qidir') filtr.q = String(f.q ?? '').slice(0, 100);
+        q.set('p_bolim', bolim);
+        q.set('p_filtr', JSON.stringify(filtr));
+      }
+      if (so.soro === 'naryad_ol_v1') {
+        const bolim = String((so as { bolim?: unknown }).bolim ?? '');
+        if (!['royxat', 'bitta', 'lugat'].includes(bolim)) return Response.json({ ok: false, error: "bolim noto'g'ri" });
+        const xf = (so as { filtr?: unknown }).filtr;
+        const f = xf && typeof xf === 'object' && !Array.isArray(xf) ? xf as Record<string, unknown> : {};
+        const filtr: Record<string, string | number> = {};
+        for (const k of ['obyekt_id', 'id', 'limit']) {
+          if (f[k] == null || f[k] === '') continue;
+          const n = Number(f[k]);
+          if (!Number.isSafeInteger(n) || n <= 0) return Response.json({ ok: false, error: `${k} noto'g'ri` });
+          filtr[k] = n;
+        }
+        if (f.holat != null && f.holat !== '') {
+          if (!['berildi', 'bajarildi', 'qabul', 'hisoblandi', 'bekor'].includes(String(f.holat))) return Response.json({ ok: false, error: "holat noto'g'ri" });
+          filtr.holat = String(f.holat);
+        }
+        if (bolim === 'bitta' && filtr.id == null) return Response.json({ ok: false, error: 'id kerak' });
         q.set('p_bolim', bolim);
         q.set('p_filtr', JSON.stringify(filtr));
       }
