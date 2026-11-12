@@ -161,3 +161,32 @@ Jarvis: sinonimlar (oborotka, 60 schyot kartochkasi, provodkalar). **Qo'llanmaga
 6. **Buyurtmachi tomon qabul qilingan F2 summasi QQS bilan keladimi?** Variantlar: QQS bilan (ayirib ajratiladi — hozirgi) / QQS siz. Tavsiya: **QQS bilan**, tasdiqlang.
 7. **Ish haqi:** naryaddan hisoblanadimi yoki oylik tabeldan? Qaysi ushlanma stavkalari (INPS, daromad solig'i) sozlamaga yoziladi? Tavsiya: **tabel + naryad**, stavkalar sozlamada, buxgalter kiritadi (T).
 8. **1C bilan parallel davr** necha oy (1 / 2 / 3)? Tavsiya: **2 oy** (P2 importidan keyin).
+
+## 9. P2 holati (PR claude/buxgalteriya-p2, migratsiya 20261216210000; prodga qo'llanmagan)
+- **Yagona manba:** `t2_bux_pul_korinish_v1` obyekt/shartnoma kesimida daromad (9010), xarajat toifa bo'yicha (2010; toifa `t2_xarajat.kat` yoki subpudrat akti), tushgan, qarz (4010), kreditor (6010), pul (5010/5110), tannarx (9110) beradi.
+  «Foyda / zarar» ekrani (PR #379) jurnalda provodka bo'lsa shu RPC dan o'qiydi va qaysi manba ekanini ekranda yozadi; jurnal bo'sh bo'lsa eski manba (F2/xarajat/to'lov) zaxira. Parallel jami yo'q.
+  Hozircha jurnaldan kelmaydigan: obyektsiz daromad kompaniya jamida ko'rinmaydi (taqsimlanmagan sifatida RPC da bor, ekranda keyingi qadam).
+- **Hisobotlar:** `t2_bux_hisobot_qator` (qator → hisoblar xaritasi, standart + kompaniyaning o'zi, hammasi T), `t2_bux_hisobot_v1` (balans: davr oxiriga saldo; foyda-zarar: davr oboroti),
+  balans muvozanati tekshiruvi (aktiv − passiv) va shaklga kirmagan hisoblar ro'yxati. Joriy davr natijasi (9xxx) passivda ko'rsatiladi — yil yopilishi P5. Shakl tahriri hozir RPC (`t2_bux_hisobot_saqla_v1`), ekrani keyin.
+- **Boshlang'ich qoldiq:** `t2_bux_saldo_import_v1` (ko'rik: hisob mavjud, summa, analitika, Dt = Kt; yozish: bitta partiya, qarshi hisob sozlanadi, sukut 8810, T) va `t2_bux_saldo_bekor_v1` (storno). Ustunlarni moslash mijozda (`lib/buxgalteriya/saldo.ts`), real fayl tuzilishi qattiq yozilmagan.
+- **Tannarx:** qoida ma'lumot (`tannarx.yopish` 9110/2010), usul: daromad tan olingan obyektning butun 2010 qoldig'i (T — ulushli usul buxgalter bilan), ko'rik, delta, bekor = storno, oylar tartibi (`KEYINGI_OY_BOR`).
+- **Ish haqi/naryad (P2 #4):** BAJARILMADI. Sabab: HR #380 va naryad #375/#377 hali birlashmagan; ikki marta sanalmasligi uchun «bir fakt — bir manba» qarori kerak (`xarajat.chel` va `ish_haqi.*` bir vaqtda yoqilmaydi). P3.
+
+## 10. P3 holati (PR claude/buxgalteriya-p3, migratsiya 20261216220000; prodga qo'llanmagan)
+**Qilingan:** tomonlararo akt-sverka; mehnat uchun «bir fakt - bir manba» qoidasi; ish haqi provodkalari.
+- **Akt sverki (ikki kompaniya):** `t2_bux_sverka_v1` ikkala daftardan hujjat kesimida (4010/4310/6010/6310; T) hisoblaydi: mos / sana_farq / summa_farq (taxminiy juftlash: bir oy, bir ishora) / faqat_men / faqat_ular.
+  Shart: faol `t2_tomon_aloqa` va ikkala tomonda ikkinchisi STIR bilan kontragent. Chaqiruvchi o'z daftarini to'liq ko'radi; ikkinchi tomon qatori faqat sana + summa (hisob, analitika, hujjat nomi yo'q).
+  Imzolash: Excel (token `SVERKA_TOMON`) arxivga saqlanadi va MAVJUD taqdim -> qaror zanjiri (resurs `hujjat`) orqali yuboriladi; yangi hayot sikli yaratilmadi.
+- **Mehnat, bir fakt - bir manba (SQL: `_t2_bux_kerak_v3`):**
+  1. Ish haqi (`t2_hr_oylik` tasdiqlangan; HR kanoni `t2_hr_oylik_buxgalteriya_v1` bilan bir xil to'plam): hisoblash `ish_haqi.hisoblash` (Dt 2010 / Kt 6710), ushlanmalar `ish_haqi.ndfl` va `ish_haqi.inps` (Dt 6710 / Kt 6410, hisoblar T). Stavkalar `t2_hr_sozlama` da tahrirlanadi (T). Ish haqi to'lovi hujjati tizimda yo'q: to'lov qo'lda provodka (keyingi qadam).
+  2. Shtatdagi usta (`t2_kadr_mustaqil.foydalanuvchi_id` + `t2_hr_xodim`) naryadi (`t2_xarajat` ЧЕЛ, `hujjat_ref` = «naryad №raqam») ish haqining «donabay» qismi: shu oyga tasdiqlangan oylik bor bo'lsa xarajat manbasidan CHIQARILADI va faqat oylik orqali yoziladi; oylik hali tasdiqlanmagan bo'lsa `xarajat.chel` orqali yoziladi (xarajat yo'qolmaydi) va oylik tasdiqlangach delta-sinxron uni storno qiladi.
+  3. Shtatda bo'lmagan usta naryadi: `xarajat.naryad_pudrat` (Dt 2010 / Kt 6010, kontragent = usta).
+  4. Subpudrat akti: `xarid.ish` (qarz asosi); `xarajat.sub` o'chirilgan. Ogohlantirish: oylik oyida naryadsiz qo'lda ЧЕЛ xarajat bor (`chel_ikki_manba_ogohlantirish`).
+**Bajarilmadi (keyingi bosqich):** bank ko'chirmasi mosligi va kassa orderlari (V1 da bank CSV importi bor, moslash taklifi va order raqamlash yo'q); M-29 narxli sarf (`t2_sklad_harakat` da narx yo'q; narx `t2_qarz_asos.sklad_harakat_id` orqali kirim qatorida, lekin miqdor/partiya bog'lanishi ombor hisobidan tasdiqlanishi kerak); asosiy vositalar va amortizatsiya (reestr jadvali yo'q).
+
+## 11. P4 holati (PR claude/buxgalteriya-p4, migratsiya 20261216230000; prodga qo'llanmagan)
+- **Bank:** `t2_bux_bank_qator` navbati; `t2_bux_bank_taklif_v1` har qatorga ball + oddiy sabab bilan taklif beradi (shartnoma raqami maqsadda +50, STIR +25/+20, nom +10, summa ochiq qarzga teng +20; yo'nalish shartnoma turiga mos bo'lishi shart); `t2_bux_bank_qabul_v1` bir bosishda t2_tolov (V1 bilan bir xil dedupe kaliti) + provodkani BIR marta yozadi. Ish haqi qatori tasdiqlangan oylik sof summasiga bog'lanadi (Dt 6710 / Kt 5110; `ish_haqi.tolash`). Aniqlanmaganlar navbatda. Ustun taxmini V1 `bankParse` da; qo'lda ustun tanlash ekrani hali yo'q.
+- **Kassa:** `t2_bux_kassa_order` (yil + tur bo'yicha raqam, T), provodka manba `kassa`, kunlik kitob jurnaldan, bekor = storno, Excel ПКО/РКО (token `KASSA_ORDER`, shakl T). Manfiy qoldiq ogohlantiriladi (bloklanmaydi, T).
+- **Ish beruvchi badali:** `param.ish_beruvchi_foiz` (bo'sh = hisoblanmaydi; «Qoidalar»da tahrirlanadi, T) + qoida `ish_haqi.ish_beruvchi` (Dt 2010 / Kt 6410, T); ish haqi bilan birga yoziladi.
+- **Ish haqini taqsimlash:** `t2_bux_ish_haqi_taqsim` (xodim x obyekt x %), `t2_bux_taqsim_saqla_v1`; sukut - taqsimlanmagan (kompaniya darajasi). Yig'indi <= 100, qolgani obyektsiz. Ekrani hozir yo'q (RPC).
+- **Bajarilmadi:** asosiy vositalar reestri va amortizatsiya.

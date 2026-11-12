@@ -444,6 +444,42 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_bux_hisob_tasdiq_v1"
     },
     {
+      "amal": "bux_saldo_import_v1",
+      "rpc": "t2_bux_saldo_import_v1"
+    },
+    {
+      "amal": "bux_saldo_bekor_v1",
+      "rpc": "t2_bux_saldo_bekor_v1"
+    },
+    {
+      "amal": "bux_tannarx_v1",
+      "rpc": "t2_bux_tannarx_v1"
+    },
+    {
+      "amal": "bux_hisobot_saqla_v1",
+      "rpc": "t2_bux_hisobot_saqla_v1"
+    },
+    {
+      "amal": "bux_bank_yuklash_v1",
+      "rpc": "t2_bux_bank_yuklash_v1"
+    },
+    {
+      "amal": "bux_bank_qabul_v1",
+      "rpc": "t2_bux_bank_qabul_v1"
+    },
+    {
+      "amal": "bux_kassa_yoz_v1",
+      "rpc": "t2_bux_kassa_yoz_v1"
+    },
+    {
+      "amal": "bux_kassa_bekor_v1",
+      "rpc": "t2_bux_kassa_bekor_v1"
+    },
+    {
+      "amal": "bux_taqsim_saqla_v1",
+      "rpc": "t2_bux_taqsim_saqla_v1"
+    },
+    {
       "amal": "bux_bank_import_v1",
       "rpc": "t2_bux_bank_import_v1"
     },
