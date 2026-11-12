@@ -1,9 +1,0 @@
-{
-  "sana": "2026-11-12",
-  "sarlavha": "Forma 3 dan e-faktura (ESF) tayyorlash",
-  "bandlar": [
-    "Shartnoma bo‘yicha istalgan Forma 3 dan ESF tayyorlanadi: STIR, bank, shartnoma raqami/sanasi va ID (my3, kapital.imv yoki kadastr) tekshiriladi — nima yetishmasligi ro‘yxatda ko‘rinadi.",
-    "ESF ma‘lumotlarini JSON yoki Excel (CSV) fayl qilib olib, didox/faktura.uz ga o‘zingiz yuklaysiz; tizim tashqi servisga ulanmaydi. Fayl berilishi token yechadi, aynan shu ESF ni qayta yuklash bepul.",
-    "Forma 3 da faqat ESF holati va tashqi hujjat ID si saqlanadi. Qaysi ID majburiyligi — «T — tekshirilsin» belgisi bilan."
-  ]
-}
