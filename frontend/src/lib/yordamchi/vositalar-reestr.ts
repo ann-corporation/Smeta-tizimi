@@ -44,6 +44,8 @@ export const STATIK_VOSITALAR: readonly YordamchiVosita[] = [
   { id: 'yozuv.mualliflik_remark', tur: 'navigatsiya', nom: 'Savol (RFI) va mualliflik remarki: Murojaatlar sahifasini tur bilan ochadi', misol: ['loyihachiga savol yoz', 'mualliflik remarki'], tasdiq: 'yoq', manba: '/admin/murojaatlar?turi=savol|mualliflik_remark -> t2_tomon_murojaat_yarat_v1' },
   { id: 'qoralama.zayavka', tur: 'navigatsiya', nom: 'Zayavka yaratish: zayavka sahifasi yangi zayavka formasi ochiq holda keladi', misol: ['zayavka yarat', 'yangi zayavka'], tasdiq: 'yoq', manba: '/admin/zayavka?yarat=1&obyekt — yuborish (zayavka_yarat) faqat formada, qo‘lda' },
   { id: 'qoralama.yetkazuvchi', tur: 'navigatsiya', nom: 'Yetkazuvchi: bugun — kelgan so‘rovlar, buyurtmalar, transport', misol: ['yetkazuvchi bugun', 'menga kelgan so‘rovlar'], tasdiq: 'yoq', manba: '/admin/yetkazuvchi' },
+  { id: 'qoralama.subpudratchi', tur: 'navigatsiya', nom: 'Subpudratchi: bugun — menga topshirilgan ishlar, hajm kiritish, akt, to‘lov holati', misol: ['subpudratchi bugun', 'sub aktim'], tasdiq: 'yoq', manba: '/admin/subpudratchi' },
+  { id: 'yozuv.sub_akt_qabul', tur: 'navigatsiya', nom: 'Subpudratchi aktini qabul qilish yoki qaytarish, ishni subpudratchiga topshirish: Subpudrat boshqaruvi sahifasini ochadi (qaror faqat sahifada, qo‘lda)', misol: ['subpudratchi aktini qabul qil', 'subpudratga ish topshir'], tasdiq: 'yoq', manba: '/admin/subpudrat -> t2_sub_akt_qaror_v1, t2_sub_topshir_v1' },
   { id: 'qoralama.aosr', tur: 'navigatsiya', nom: 'АОСР qoralamasi: АОСР sahifasini ochadi', misol: ['АОСР tayyorla'], tasdiq: 'yoq', manba: '/admin/aosr — tasdiqlash faqat sahifada, qo‘lda' },
 ];
 
