@@ -21,6 +21,7 @@ import { faktAmalTekshir, faktHajmOqi, faktHolat, faktIndeks, faktKontekst, fakt
 import type { OqishSorovi, SahifaAmal } from './protokol';
 import { loyihaFarqMatni, type LoyihaFarqMalumot } from '../loyiha-smeta/jarvis';
 import { jarvisAsossizMatni, jarvisSlichitelniyMatni, type AsosJavob } from '../slichitelniy-asos';
+import { tahrirMatni } from '../loyiha-smeta/tahrir-jarvis';
 import type { SahifaVositalar } from './sikl';
 
 /** Foydalanuvchiga ochiq sahifa (yagona yordamchi navigatsiyasi; navReestr + ruxsat filtridan). */
@@ -109,6 +110,7 @@ export function buyruqOqi(m: BuyruqMalumot, s: OqishSorovi): string {
     case 'loyiha_farq': return loyihaFarqMatni(m.loyihaFarq, s.arg);
     case 'slichitelniy': return jarvisSlichitelniyMatni(m.slichAsos);
     case 'asossiz': return jarvisAsossizMatni(m.slichAsos, s.arg);
+    case 'loyiha_tahrir': return tahrirMatni(m.loyihaFarq?.tahrir, s.arg);
     case 'lugat': return buyruqLugat(m, s.arg);
     case 'naryad': return naryadMatni(m.naryadlar, s.arg);
     case 'kelishuv': return kelishuvMatni(m.rows, s.arg);
