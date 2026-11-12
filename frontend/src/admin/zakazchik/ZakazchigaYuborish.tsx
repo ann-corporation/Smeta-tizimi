@@ -11,12 +11,14 @@ import { Send } from 'lucide-react';
 import { toast } from '../../umumiy/ui/Toast';
 import { aloqalarOl, taqdimYubor, type Aloqa } from '../../api/t2-tomon';
 import { t } from '../../i18n/til';
+import { TAQDIM_MANBA_JADVAL } from '../../lib/hujjat-dvigatel';
 import { HolatBelgi } from './tomon-ui';
 import { useYuborilganTaqdim } from './taqdim-holat-hook';
 import { inp, tugma, tugmaAsosiy } from './tomon-yordam';
 
-export type YuboriladiganResurs = 'f2' | 'aosr';
-const JADVAL: Record<YuboriladiganResurs, string> = { f2: 't2_akt', aosr: 't2_aosr' };
+/** Qaysi resurslar shu tugma bilan yuboriladi va manba jadvali — yagona hujjat dvigateli reestridan (lib/hujjat-dvigatel). */
+export type YuboriladiganResurs = keyof typeof TAQDIM_MANBA_JADVAL;
+const JADVAL: Record<YuboriladiganResurs, string> = TAQDIM_MANBA_JADVAL;
 
 
 export function ZakazchigaYuborish({ kompaniyaId, aktId, resurs = 'f2' }: { kompaniyaId: number | null | undefined; aktId: number; resurs?: YuboriladiganResurs }) {
