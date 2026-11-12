@@ -54,9 +54,10 @@ begin
   rep := rep || (case when not exists (select 1 from jsonb_array_elements(r->'qatorlar') e where e->>'holat' = 'faqat_ular' and (e->'hujjat' <> 'null'::jsonb or e->'manba_tur' <> 'null'::jsonb))
                       then 'OK   ikkinchi tomon qatori: faqat sana + summa (hujjat/manba yo''q)' else 'FAIL izolyatsiya: ' || r::text end);
   r2 := public.t2_bux_sverka_v1(kb, ub, ka, '2026-01-01', '2026-12-31');
-  rep := rep || (case when (r2->>'ok')::boolean and (r2->>'farqli_soni')::int = 2 and (r2->>'yopilish_men')::numeric = 1180 and (r2->>'yopilish_ular')::numeric = 1180
+  rep := rep || (case when (r2->>'ok')::boolean and (r2->>'farqli_soni')::int = 2 and (r2->>'yopilish_men')::numeric = -1180 and (r2->>'yopilish_ular')::numeric = -1180 and (r2->>'farq')::numeric = 0
+                       and (select count(*) from jsonb_array_elements(r2->'qatorlar') e where e->>'holat' = 'summa_farq' and (e->>'a_summa')::numeric = -600 and (e->>'b_summa')::numeric = -560) = 1
                        and (select count(*) from jsonb_array_elements(r2->'qatorlar') e where e->>'holat' = 'faqat_men' and (e->>'a_summa')::numeric = 40) = 1
-                      then 'OK   akt-sverka B (simmetrik): faqat_men 40, saldo 1180/1180' else 'FAIL sverka B: ' || r2::text end);
+                      then 'OK   akt-sverka B (ko''zgu: a_ = mening, saldo -1180 = biz qarzdormiz; summa_farq -600/-560 va faqat_men 40 net 0)' else 'FAIL sverka B: ' || r2::text end);
   r := public.t2_bux_sverka_v1(ka, ua, kl, '2026-01-01', '2026-12-31');
   rep := rep || (case when r->>'code' = 'ALOQA_YOQ' then 'OK   aloqasiz kompaniya bilan sverka rad (ALOQA_YOQ)' else 'FAIL aloqasiz: ' || r::text end);
   r := public.t2_bux_sverka_tomonlar_v1(ka, ua);
