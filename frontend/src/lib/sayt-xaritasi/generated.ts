@@ -27,8 +27,8 @@ export const GENERATED_SITE_MAP = {
     "/admin/shartnoma-liniya",
     "/admin/qarzdorlik",
     "/admin/buxgalteriya",
-    "/admin/crm",
-    "/admin/aloqalar",
+    "/admin/kontragentlar",
+    "/admin/yetkazuvchi",
     "/admin/documents",
     "/admin/hujjat-nazorat",
     "/admin/aosr",
@@ -96,6 +96,7 @@ export const GENERATED_SITE_MAP = {
     "hujjat-nazorat",
     "participants",
     "zakazchik",
+    "kontragentlar",
     "aloqalar",
     "taqdimlar",
     "murojaatlar",
@@ -109,6 +110,7 @@ export const GENERATED_SITE_MAP = {
     "tizim-sozlama",
     "f2-eski",
     "topshiriqlar",
+    "yetkazuvchi",
     "ish-joylarim",
     "mutaxassis",
     "boshqaruv",
@@ -708,6 +710,10 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "buyurtma_tafsilot_v1",
       "rpc": "t2_buyurtma_tafsilot_v1"
+    },
+    {
+      "amal": "buyurtma_tolov_holati_v1",
+      "rpc": "t2_yet_tolov_holati_v1"
     },
     {
       "amal": "tender_saqla_v1",
