@@ -34,6 +34,7 @@ begin
     jsonb_build_object('local_id', 'M2', 'parent_local_id', 'S1', 'tur', 'mat', 'kod', 'SA-M2', 'nom', 'Mat two', 'birlik', 'm3', 'hajm', 10, 'narx', 100000, 'summa', 1000000)));
   perform pg_temp.sa_ok(v_r, 'import bolak');
   perform pg_temp.sa_ok(public.t2_smeta_import_yakunla_v1(v_k1, v_S, v_sess), 'import yakunla');
+  drop table if exists pg_temp.t2_imp_qator; -- allow running together with the zanjir file in one transaction
   select q.id into v_M1 from public.t2_qator q where q.obyekt_id = v_o1 and q.kod = 'SA-M1';
   select q.id into v_M2 from public.t2_qator q where q.obyekt_id = v_o1 and q.kod = 'SA-M2';
   -- fakt A: M1 12 (smetadan oshgan, ogohlantirish), fakt B: M2 5

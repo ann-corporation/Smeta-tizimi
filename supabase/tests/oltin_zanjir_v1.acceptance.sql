@@ -128,6 +128,7 @@ begin
   perform pg_temp.oz_ok(v_r, 't2_smeta_import_bolak_v1');
   v_r := public.t2_smeta_import_yakunla_v1(v_komp, v_boss, v_sess);
   perform pg_temp.oz_ok(v_r, 't2_smeta_import_yakunla_v1');
+  drop table if exists pg_temp.t2_imp_qator; -- import temp table is ON COMMIT DROP; allow another import in the same transaction
   perform pg_temp.oz_assert((select count(*) from public.t2_qator where obyekt_id = v_obj and versiya_holat = 'faol') = 11, 'expected 11 imported smeta rows');
   select q.id into v_M1 from public.t2_qator q where q.obyekt_id = v_obj and q.kod = 'OZ-M1';
   select q.id into v_M2 from public.t2_qator q where q.obyekt_id = v_obj and q.kod = 'OZ-M2';
@@ -304,7 +305,9 @@ begin
 
   -- ===================================================================
   v_n := 11; v_name := 'storno (bekor) 2-F2 -> hamma son izchil orqaga';
-  perform pg_temp.oz_ok(public.t2_akt_bekor(v_f2b, 'oz storno', null, 'actor:' || v_boss), 't2_akt_bekor F2#2');
+  -- An APPROVED F2 cannot be cancelled by legacy t2_akt_bekor (trigger t2_akt_lifecycle_projection_guard_v1: 'approved akt immutable'). The real path is the lifecycle transition approved -> cancelled (f2.cancel + f2.approve; refused with DEPENDENTS_EXIST if Forma 3 / storno / period seal depends on it).
+  perform pg_temp.oz_ok(public.t2_akt_lifecycle_transition_v1(v_komp, v_f2b, 'cancelled', v_boss, (select versiya from public.t2_akt where id = v_f2b), gen_random_uuid(), 'oz storno'), 't2_akt_lifecycle_transition_v1 approved->cancelled F2#2');
+  perform pg_temp.oz_assert((select holat from public.t2_akt where id = v_f2b) = 'bekor', 'F2#2 must be bekor after the transition');
   select paket into v_p from public._t2_summa_paket_v1(array[v_obj], 'f2');
   perform pg_temp.oz_assert((v_p->>'ustamasiz')::numeric = 19000000, 'core F2 sum after storno expected 19000000 got ' || (v_p->>'ustamasiz'));
   perform pg_temp.oz_assert((select bajarilgan_f2_summa from public.t2_forma3 where id = v_f3) = 19000000 and (select holat from public.t2_forma3 where id = v_f3) = 'qoralama',
