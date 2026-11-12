@@ -724,19 +724,6 @@
             ],
             "modul": "module.erp",
             "qoshimcha": true
-          },
-          {
-            "yol": "/admin/haydovchi",
-            "ilova": "logistika",
-            "nom": "Haydovchi rejimi",
-            "ruxsat": [
-              "control.company.read",
-              "project.write",
-              "object.write",
-              "procurement.read"
-            ],
-            "modul": "module.erp",
-            "qoshimcha": true
           }
         ]
       },
@@ -973,6 +960,14 @@
             "ilova": "yadro",
             "nom": "Mening xizmatlarim",
             "ruxsat": []
+          },
+          {
+            "yol": "/admin/haydovchi",
+            "ilova": "logistika",
+            "nom": "Haydovchi rejimi",
+            "ruxsat": [],
+            "modul": "module.erp",
+            "qoshimcha": true
           }
         ]
       },

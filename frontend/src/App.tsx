@@ -188,6 +188,7 @@ export default function App() {
             <Route path="shartnoma-liniya" element={<Suspense fallback={<SahifaYuklanmoqda />}><ShartnomaLiniya /></Suspense>} />
             <Route path="qarzdorlik" element={<Suspense fallback={<SahifaYuklanmoqda />}><Qarzdorlik /></Suspense>} />
             <Route path="hr" element={<Suspense fallback={<SahifaYuklanmoqda />}><Hr /></Suspense>} />
+            <Route path="mutaxassis" element={<Suspense fallback={<SahifaYuklanmoqda />}><Mutaxassis /></Suspense>} />
             <Route path="yuk-birjasi" element={<Suspense fallback={<SahifaYuklanmoqda />}><YukBirjasiSahifa /></Suspense>} />
             <Route path="yuk-chaqirish" element={<Suspense fallback={<SahifaYuklanmoqda />}><YukChaqirish /></Suspense>} />
             <Route path="haydovchi" element={<Suspense fallback={<SahifaYuklanmoqda />}><HaydovchiSahifa /></Suspense>} />
@@ -238,7 +239,6 @@ export default function App() {
           <Route path="yetkazuvchi" element={<Suspense fallback={<SahifaYuklanmoqda />}><YetkazuvchiBugun /></Suspense>} />
           <Route path="ish-joylarim" element={<Suspense fallback={<SahifaYuklanmoqda />}><IshJoylarim /></Suspense>} />
           {/* T6: mutaxassis profili va kompaniyalarga xizmat taklifi. */}
-          <Route path="mutaxassis" element={<Suspense fallback={<SahifaYuklanmoqda />}><Mutaxassis /></Suspense>} />
           {/* Egasi 2026-10-02: platforma boshqaruv paneli (faqat superadmin; server tekshiradi). */}
           <Route path="boshqaruv" element={<Suspense fallback={<SahifaYuklanmoqda />}><BoshqaruvPanel /></Suspense>} />
           <Route path="smeta-studio" element={<Suspense fallback={<SahifaYuklanmoqda />}><SmetaStudio /></Suspense>} />
