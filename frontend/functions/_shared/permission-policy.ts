@@ -66,12 +66,15 @@ export const SCOPED_APIS = new Set(['object-financials','contract-scope','sb','s
   /* Obyekt paketi (ADR OBYEKT_PAKET §1.4): smeta + holat + F2 ro'yxati + nakrutka — faqat o'qish. */
   'obyekt-paket','normativ-qidir',
   /* P6/P7 Grafik + cashflow: o'qish — hujjat o'qish (buyurtmachi ham grant bilan); yozish (override) — loyiha yozuvi, rol bazada ham tekshiriladi. */
-  'grafik']);
+  'grafik',
+  /* SMETA CONST sovuq muhrni isitish (ADR_MUHR_R2 §4): obyekt_id -> t2_obyekt.kompaniya_id middleware'da; begona obyekt = 403, R2/bazaga tegilmaydi. */
+  'muhr-isit']);
 
 export function requestPermission(api: string, method: string, b: Record<string, unknown>, q: URLSearchParams): string | null {
   if (!SCOPED_APIS.has(api) || api === 'sessiya') return null;
   if (api === 'normativ-qidir' && method === 'GET') return 'company.read';
   if (api === 'object-financials') return 'object.read';
+  if (api === 'muhr-isit') return 'smeta.read'; // asl qiymatni R2 dan qaytaradi (xesh bilan tekshirilgan); biznes qiymatini o'zgartirmaydi, javobda qaytarmaydi
   if (api === 'obyekt-paket') return 'smeta.read'; // shlyuz qo'shimcha f2.read + narx.read ni ham talab qiladi
 
   if (api === 'contract-scope') return method === 'GET' ? 'smeta.read' : 'smeta.write';
