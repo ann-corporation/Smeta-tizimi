@@ -1,5 +1,5 @@
 import { tekshir } from '../_shared/auth';
-import { roleAuthority, ruxsatBormi, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shared/role-authority';
+import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shared/role-authority';
 import { SCOPED_APIS, requestPermission, yopiqModul } from '../_shared/permission-policy';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 
@@ -28,7 +28,7 @@ export const onRequest: PagesFunction<Env> = async ctx => {
   } else if (ctx.request.method==='POST' && !['hujjat-yukla','smeta-yukla'].includes(api)) {
     return fail('BODY_INVALID',400);
   }
-  const permission=requestPermission(api,ctx.request.method,b,url.searchParams);
+  let permission=requestPermission(api,ctx.request.method,b,url.searchParams);
   if (!permission) return ctx.next();
   if (permission==='command.unregistered') return fail('PERMISSION_DENIED');
   /* L0 2026-10-22: modul holati alohida so'rov bilan OLINMAYDI (Codex 17eecd54 qaytarilgan). T4: u t2_men_v1 javobida
@@ -57,8 +57,10 @@ export const onRequest: PagesFunction<Env> = async ctx => {
     } catch { return fail('SCOPE_UNAVAILABLE',503); }
   }
   const candidates=targets.size?[...targets]:(authority.kompaniyalar??[]).map(a=>a.kompaniya_id);
+  // |b (masalan naryad «bajarildi»: self.work.write YOKI smeta.write): bitta ruxsat tanlanadi — hamma nishon kompaniyada bor bo'lgani, aks holda birinchisi (rad).
+  if (permission.includes('|')) { const alt=permission.split('|'); permission=alt.find(p=>candidates.every(id=>authority.permissionsByCompany![id]?.includes(p)))??alt[0]; }
   // Missing scope may never pick a more privileged company. All possible targets must permit it.
-  if (!candidates.length || !candidates.every(id=>authority.permissionsByCompany![id]?.includes('company.read')&&ruxsatBormi(authority.permissionsByCompany![id], permission))) return fail('PERMISSION_DENIED');
+  if (!candidates.length || !candidates.every(id=>authority.permissionsByCompany![id]?.includes('company.read')&&authority.permissionsByCompany![id]?.includes(permission))) return fail('PERMISSION_DENIED');
   // T4: modul holati keshlangan vakolat ichida (qo'shimcha so'rov yo'q). Faqat yozish; o'qish va PTO yadrosi ochiq.
   const modul=yopiqModul(permission,candidates,authority.modullarOffByCompany);
   if (modul) return Response.json({ok:false,code:'MODULE_DISABLED',modul,error:'Bu modul ish joyingizda o‘chirilgan. Uni Kompaniya → Modullar bo‘limida yoqish mumkin.'},{status:403});
