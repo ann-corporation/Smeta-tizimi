@@ -99,6 +99,10 @@ const AMALLAR = {
   bux_shablon_tanla_v1: { rpc: 't2_bux_shablon_tanla_v1' },
   bux_davr_blok_v1: { rpc: 't2_bux_davr_blok_v1' },
   bux_hisob_tasdiq_v1: { rpc: 't2_bux_hisob_tasdiq_v1' },
+  bux_saldo_import_v1: { rpc: 't2_bux_saldo_import_v1' },
+  bux_saldo_bekor_v1: { rpc: 't2_bux_saldo_bekor_v1' },
+  bux_tannarx_v1: { rpc: 't2_bux_tannarx_v1' },
+  bux_hisobot_saqla_v1: { rpc: 't2_bux_hisobot_saqla_v1' },
   bux_bank_import_v1: { rpc: 't2_bux_bank_import_v1' },
   bux_tashqi_v1: { rpc: 't2_bux_tashqi_sync_v1' },
   /* Egasi 2026-11-03: shartnoma oylik paketi - «Topshirildi» (versiya, manifest, ZIP kanonik saqlashda). RPC a'zolik + document.write ni o'zi tekshiradi; idempotent (operation_id). */
@@ -1255,6 +1259,27 @@ export const onRequestPost: PagesFunction<{
         const kodlar = so.kodlar;
         if (!Array.isArray(kodlar) || kodlar.length === 0 || kodlar.length > 200 || kodlar.some((x) => !/^\d{4}$/.test(String(x)))) return xato400('1–200 ta hisob kodi (4 raqam) talab qilinadi.');
         yuk = { ...asos, p_kodlar: kodlar.map((x) => String(x)) };
+      } else if (amal === 'bux_saldo_import_v1') {
+        const qs = so.qatorlar;
+        if (sanaXato(so.sana) || !so.sana) return xato400('sana talab qilinadi.');
+        if (!Array.isArray(qs) || qs.length === 0 || qs.length > 2000) return xato400('1–2000 qator talab qilinadi.');
+        const qatorlar: Record<string, unknown>[] = [];
+        for (const q of qs) {
+          const e = q as Record<string, unknown> | null;
+          if (!e || typeof e !== 'object' || Array.isArray(e) || sonXato(e.dt) || sonXato(e.kt) || idXato(e.kontragent_id) || idXato(e.shartnoma_id) || idXato(e.obyekt_id)) return xato400('saldo qatori noto‘g‘ri.');
+          qatorlar.push({ hisob: matn(e.hisob, 4), dt: matn(e.dt, 30), kt: matn(e.kt, 30), kontragent_id: butun(e.kontragent_id), shartnoma_id: butun(e.shartnoma_id), obyekt_id: butun(e.obyekt_id) });
+        }
+        yuk = { ...asos, p_sana: String(so.sana), p_qarshi: matn(so.qarshi, 4), p_qatorlar: qatorlar, p_dry: so.dry === true };
+      } else if (amal === 'bux_saldo_bekor_v1') {
+        yuk = { ...asos };
+      } else if (amal === 'bux_tannarx_v1') {
+        if (!/^\d{4}-\d{2}(-\d{2})?$/.test(String(so.oy || '')) || !['yop', 'bekor'].includes(String(so.tannarx_amal))) return xato400('oy va amal (yop/bekor) talab qilinadi.');
+        const oy = String(so.oy);
+        yuk = { ...asos, p_oy: oy.length === 7 ? `${oy}-01` : oy, p_amal: String(so.tannarx_amal), p_dry: so.dry === true };
+      } else if (amal === 'bux_hisobot_saqla_v1') {
+        const qs = so.qatorlar;
+        if (!['balans', 'foyda_zarar'].includes(String(so.forma)) || !Array.isArray(qs) || qs.length > 100) return xato400('forma va ≤100 qator talab qilinadi.');
+        yuk = { ...asos, p_forma: String(so.forma), p_qatorlar: qs };
       } else if (amal === 'bux_bank_import_v1') {
         const qs = so.qatorlar;
         if (!Array.isArray(qs) || qs.length === 0 || qs.length > 500) return xato400('1–500 qator talab qilinadi.');

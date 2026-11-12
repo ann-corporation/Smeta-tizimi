@@ -6,7 +6,7 @@
 import { RasmiyVaraq, bugunSana, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, ustunHarfi, type Qiymat } from '../hujjat-yozuvchi';
 import { yaxlit2, yigindi2 } from '../hisob-yadro';
 import { sverkaQatorlari, saldoTomoni } from './hisob';
-import type { BuxHujjatQator, BuxOsv } from '../../api/t2-bux-hisob';
+import type { BuxHisobot, BuxHujjatQator, BuxOsv } from '../../api/t2-bux-hisob';
 
 export type SverkaKirish = {
   kompaniya: string | null;
@@ -122,4 +122,27 @@ export function osvHujjat(k: OsvKirish): { bytes: Uint8Array; faylNomi: string }
   v.imzo(imzoTomonlari(['СОСТАВИЛ', 'ПРОВЕРИЛ']));
   const { bytes } = rasmiyKitob([v]);
   return { bytes, faylNomi: hujjatFaylNomi({ obyekt: k.kompaniya ?? 'ОСВ', hujjat: 'ОСВ', davr: `${k.osv.dan}_${k.osv.gacha}` }) };
+}
+
+/** Balans / Foyda va zarar (jurnaldan) — RUS Excel: kod | ko'rsatkich | summa. Jami qatorlari qalin; xarita T (tekshirilsin) belgisi izohda. */
+export function hisobotHujjat(k: { kompaniya: string | null; h: BuxHisobot }): { bytes: Uint8Array; faylNomi: string } {
+  const balans = k.h.forma === 'balans';
+  const v = new RasmiyVaraq({
+    nom: balans ? 'Баланс' : 'Прибыли и убытки',
+    kattaHarf: false,
+    sarlavha: balans ? 'БУХГАЛТЕРСКИЙ БАЛАНС (по данным журнала проводок)' : 'ОТЧЁТ О ПРИБЫЛЯХ И УБЫТКАХ (по данным журнала проводок)',
+    ostSarlavha: [balans ? `на ${ddmmyyyy(k.h.gacha)}` : `за период с ${ddmmyyyy(k.h.dan ?? '')} по ${ddmmyyyy(k.h.gacha)}`, 'Т — форма и соответствие статей счетам не подтверждены бухгалтером; суммы с НДС.'],
+    titul: [['Организация:', k.kompaniya ?? null], ['Дата составления:', ddmmyyyy(bugunSana())]],
+    ustunlar: [
+      { sarlavha: 'Код', kenglik: 10, tur: 'kod' },
+      { sarlavha: 'Показатель', kenglik: 56, tur: 'matn' },
+      { sarlavha: 'Счета', kenglik: 26, tur: 'kod' },
+      { sarlavha: 'Сумма', kenglik: 20, tur: 'pul' },
+    ],
+    yonalish: 'portrait',
+  });
+  for (const q of k.h.qatorlar) v.qator(q.tur === 'jami' ? 'jami' : 'ish', () => [q.kod, q.nom_ru, q.hisoblar.join(', ') || null, yaxlit2(q.summa)] as Qiymat[]);
+  v.imzo(imzoTomonlari(['СОСТАВИЛ', 'ПРОВЕРИЛ']));
+  const { bytes } = rasmiyKitob([v]);
+  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: k.kompaniya ?? 'Баланс', hujjat: balans ? 'БАЛАНС' : 'ПРИБЫЛИ_УБЫТКИ', davr: `${k.h.dan ?? ''}_${k.h.gacha}` }) };
 }
