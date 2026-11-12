@@ -42,6 +42,8 @@ export const SAHIFA_SINONIM: Readonly<Record<string, Sinonim>> = {
   '/admin/storage': { uz: ['fayllar', 'fayl', 'saqlash'], ru: ['файлы', 'файл', 'хранилище'], en: ['files', 'file storage'] },
   '/admin/zakazchik': { uz: ['buyurtmachi kabineti', 'buyurtmachi'], ru: ['кабинет заказчика', 'заказчик'], en: ['customer portal', 'client cabinet'] },
   '/admin/taqdimlar': { uz: ['tomonlar hujjatlari', 'taqdimlar'], ru: ['документы сторон', 'представления'], en: ['party documents', 'submissions'] },
+  '/admin/chizmalar': { uz: ['chizmalar', 'chizma', 'revizya', 'loyiha chizmalari'], ru: ['чертежи', 'чертеж', 'ревизия чертежа'], en: ['drawings', 'drawing', 'drawing revision'] },
+  '/admin/loyihachi': { uz: ['loyihachi', 'loyihachi bugun', 'mualliflik nazorati'], ru: ['проектировщик', 'авторский надзор'], en: ['designer', 'author supervision'] },
   '/admin/murojaatlar': { uz: ['murojaatlar', 'murojaat', 'remark'], ru: ['обращения', 'замечания'], en: ['inquiries', 'remarks'] },
   '/admin/hujjat-aylanish': { uz: ['hujjat aylanishi', 'kiruvchi hujjat', 'kiruvchi'], ru: ['документооборот', 'входящие'], en: ['document flow', 'incoming'] },
   '/admin/logistika': { uz: ['taminot', 'sklad', 'ombor', 'logistika'], ru: ['снабжение', 'склад', 'логистика'], en: ['supply', 'warehouse', 'logistics'] },
