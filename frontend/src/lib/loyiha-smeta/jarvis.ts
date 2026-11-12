@@ -4,8 +4,9 @@
  */
 import { farqJami, type FarqJami, type FarqQator, type FarqTuri } from './farq';
 import { varaqKalit } from './tahlil';
+import type { TahrirMalumot } from './tahrir-jarvis';
 
-export type LoyihaFarqMalumot = { farqlar: readonly FarqQator[]; taklifSoni: number; tasdiqlanganSoni: number };
+export type LoyihaFarqMalumot = { farqlar: readonly FarqQator[]; taklifSoni: number; tasdiqlanganSoni: number; /** Chizma tahrirlari farqi (loyiha_tahrir vositasi). */ tahrir?: TahrirMalumot | null };
 
 const NOM: Record<FarqTuri, string> = {
   loyihada_bor_smetada_yoq: 'loyihada bor — smetada yo‘q', smetada_bor_loyihada_yoq: 'smetada bor — loyihada yo‘q', hajm_farqi: 'hajm farqi',
