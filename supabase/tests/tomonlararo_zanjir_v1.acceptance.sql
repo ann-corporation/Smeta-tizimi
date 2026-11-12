@@ -566,7 +566,8 @@ begin
   perform pg_temp.tz_assert((select ichki_otdi from public.t2_tomon_taqdim where id = (r->>'id')::bigint) is null, '(C) ichki o''chiq: ichki_otdi bo''sh (ichki nazorat bo''lmagan)');
 
   -- bildirishnoma: vakilga va ichki nazoratchiga tegishli hodisalar yetadi
-  begin update public.t2_outbox set yaratildi = now() - interval '10 minutes' where id > v_ob10;
+  -- ALL of this test's rows (ids > v_ob0), not only step 10's: fresh step-9 rows would otherwise set the dispatcher's 60-second boundary below step 10's rows
+  begin update public.t2_outbox set yaratildi = now() - interval '10 minutes' where id > v_ob0;
   exception when others then perform pg_temp.tz_uz(10, 'outbox eskirtirib bo''lmadi: ' || left(sqlerrm, 100)); end;
   perform pg_temp.tz_ok(public.t2_outbox_ishlov_v1('bildirishnoma', 2000), 't2_outbox_ishlov_v1 (10)');
   perform pg_temp.tz_assert(exists (select 1 from public.t2_bildirishnoma n where n.foydalanuvchi_id = t2b_user and n.outbox_id in (select id from public.t2_outbox where id > v_ob10 and mavzu = 'tomon.taqdim')), '(5) vakil (texnadzor) buyurtmachiga kelgan hujjat haqida bildirishnoma olishi kerak');

@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { aloqalarOl, nazoratTayinBekor, nazoratTayinla, nazoratTayinlarOl, vakolatBekor, vakolatBer, zakazchikObyektlarOl,
   type Aloqa, type NazoratTayinlar, type ZakazchikObyekt } from '../../api/t2-tomon';
+import { azolikRuxsatlariOl, type AzolikRuxsat } from '../../api/t2-men';
 import { toast } from '../../umumiy/ui/Toast';
 import { t } from '../../i18n/til';
 import { Bolim } from './tomon-ui';
@@ -20,6 +21,7 @@ export default function NazoratTayinlash({ kompaniyaId }: { kompaniyaId: number 
   const [obyektId, setObyektId] = useState('');
   const [aloqaId, setAloqaId] = useState('');
   const [xodimId, setXodimId] = useState('');
+  const [nazoratchilar, setNazoratchilar] = useState<AzolikRuxsat[]>([]);
   const [resurslar, setResurslar] = useState<string[]>(['f2', 'lab_natija']);
   const [yakuniy, setYakuniy] = useState(false);
 
@@ -28,6 +30,8 @@ export default function NazoratTayinlash({ kompaniyaId }: { kompaniyaId: number 
     if (a.ok) setD(a.natija);
     if (o.ok) setObyektlar(o.natija);
     if (l.ok) setAloqalar(l.natija.filter((x) => x.holat === 'faol' && ['texnadzor', 'inspeksiya'].includes(x.qarshi_rol)));
+    /* Faqat sifat qarori (quality.decide) ruxsati bor a'zolar tanlanadi (mavjud a'zolar ruxsati API'si). */
+    void azolikRuxsatlariOl(kompaniyaId).then((m) => setNazoratchilar(m.azolar.filter((x) => (x.effective_permissions ?? []).includes('quality.decide')))).catch(() => setNazoratchilar([]));
   }, [kompaniyaId]);
   useEffect(() => { void ol(); }, [ol]);
 
@@ -49,7 +53,7 @@ export default function NazoratTayinlash({ kompaniyaId }: { kompaniyaId: number 
       <div className="flex flex-wrap gap-2 items-end mb-3">
         <label className="text-xs">{t('Obyekt')}
           <select className={inp} value={obyektId} onChange={(e) => setObyektId(e.target.value)} data-testid="nazorat-obyekt">
-            <option value="">—</option>{obyektlar.map((o) => <option key={o.obyekt_id} value={o.obyekt_id}>{o.obyekt_nom}</option>)}
+            <option value="">—</option>{obyektlar.map((o) => <option key={o.obyekt_id} value={o.obyekt_id}>{o.obyekt_nom} · #{o.obyekt_id}</option>)}
           </select></label>
         <label className="text-xs">{t('Autsorsing texnadzor kompaniyasi')}
           <select className={inp} value={aloqaId} onChange={(e) => setAloqaId(e.target.value)} data-testid="nazorat-aloqa">
@@ -62,7 +66,10 @@ export default function NazoratTayinlash({ kompaniyaId }: { kompaniyaId: number 
         <button type="button" className={tugmaAsosiy} onClick={() => void vakolat()}>{t('Vakolat berish')}</button>
       </div>
       <div className="flex flex-wrap gap-2 items-end mb-3">
-        <label className="text-xs">{t('O‘z xodimi (foydalanuvchi ID)')}<input className={inp} inputMode="numeric" value={xodimId} onChange={(e) => setXodimId(e.target.value)} data-testid="nazorat-xodim" /></label>
+        <label className="text-xs">{t('O‘z xodimi (sifat qarori ruxsati bor)')}
+          <select className={inp} value={xodimId} onChange={(e) => setXodimId(e.target.value)} data-testid="nazorat-xodim">
+            <option value="">—</option>{nazoratchilar.map((m) => <option key={m.azolik_id} value={m.foydalanuvchi_id}>{m.ism || m.login} · {m.rol}</option>)}
+          </select></label>
         <button type="button" className={tugma} onClick={() => void xodim()}>{t('Xodimni tayinlash')}</button>
       </div>
       <ul className="divide-y divide-border text-[13px]" data-testid="nazorat-royxat">

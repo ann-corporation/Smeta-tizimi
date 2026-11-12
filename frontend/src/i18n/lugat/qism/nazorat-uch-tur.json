@@ -8,7 +8,7 @@
   "Obyekt holati": { "ru": "Состояние объекта", "en": "Site status" },
   "Mening nomimdan yakuniy qaror ham chiqarsin": { "ru": "Разрешить принимать окончательное решение от моего имени", "en": "Allow final decisions on my behalf" },
   "Vakolat berish": { "ru": "Выдать полномочия", "en": "Grant authority" },
-  "O‘z xodimi (foydalanuvchi ID)": { "ru": "Свой сотрудник (ID пользователя)", "en": "Own employee (user ID)" },
+  "O‘z xodimi (sifat qarori ruxsati bor)": { "ru": "Свой сотрудник (есть право решения по качеству)", "en": "Own employee (has the quality-decision permission)" },
   "Xodimni tayinlash": { "ru": "Назначить сотрудника", "en": "Assign employee" },
   "vakil": { "ru": "представитель", "en": "delegate" },
   "o‘z xodimi": { "ru": "свой сотрудник", "en": "own employee" },
