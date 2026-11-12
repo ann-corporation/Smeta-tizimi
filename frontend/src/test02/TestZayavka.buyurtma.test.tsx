@@ -49,7 +49,7 @@ describe('Zayavka sahifasi: Buyurtma berish', () => {
     fireEvent.click(await jadvaldagiTugma());
     const dialog = await screen.findByRole('dialog');
     expect(await within(dialog).findByText(/Yetkazuvchi tizimga ulanmagan — taklif yuboring/)).toBeTruthy();
-    expect(within(dialog).getByRole('link', { name: 'Taklif yuborish' }).getAttribute('href')).toBe('/admin/aloqalar');
+    expect(within(dialog).getByRole('link', { name: 'Taklif yuborish' }).getAttribute('href')).toBe('/admin/kontragentlar?tab=aloqa');
     expect((within(dialog).getAllByRole('button', { name: 'Buyurtma berish' })[0] as HTMLButtonElement).disabled).toBe(true);
     expect(buy.buyurtmaYarat).not.toHaveBeenCalled();
   });

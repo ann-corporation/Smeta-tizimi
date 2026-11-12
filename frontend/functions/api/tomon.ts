@@ -241,6 +241,8 @@ const JAVOB = { headers: { 'Cache-Control': 'no-store' } };
 export function xatoJavobi(text: string): { status: number; body: Yuk } {
   let code = ''; let msg = '';
   try { const j = JSON.parse(text) as { code?: string; message?: string }; code = j.code ?? ''; msg = j.message ?? ''; } catch { /* matn emas */ }
+  if (/LAB_SINOV_KUTILMOQDA/.test(msg)) return { status: 409, body: { ok: false, code: 'LAB_SINOV_KUTILMOQDA', error: 'Sinov natijasi kutilmoqda — protokol kelmaguncha АОСР tasdiqqa yuborilmaydi' } };
+  if (/LAB_MOS_EMAS/.test(msg)) return { status: 409, body: { ok: false, code: 'LAB_MOS_EMAS', error: 'Majburiy sinov natijasi «mos emas» — qayta sinovdan mos chiqmaguncha АОСР tasdiqqa yuborilmaydi' } };
   if (code === '42501' && /DALIL_BEGONA/.test(msg)) return { status: 403, body: { ok: false, code: 'DALIL_BEGONA', error: 'Dalil fayli sizning kompaniyangizniki emas yoki hali saqlanmagan' } };
   if (code === '42501') {
     if (/TOMON_ROL_YETARLI_EMAS/.test(msg)) return { status: 403, body: { ok: false, code: 'ROL_YETARLI_EMAS', error: 'Sizning rolingiz bu amal uchun yetarli emas' } };

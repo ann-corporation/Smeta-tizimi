@@ -3,7 +3,7 @@ export const APP_TITLE = 'SMETA TIZIM 02';
 const titles: Array<[RegExp, string]> = [
   [/^\/admin\/storage(?:\/|$)/, 'Fayl saqlash'], [/^\/admin\/(?:test\/)?saqlash(?:\/|$)/, 'Fayl saqlash'],
   [/^\/admin\/mindmap(?:\/|$)/, 'Mindmap'], [/^\/admin\/(?:test\/)?xarita(?:\/|$)/, 'Mindmap'],
-  [/^\/admin\/zakazchik(?:\/|$)/, 'Buyurtmachi kabineti'], [/^\/admin\/taqdimlar(?:\/|$)/, 'Tomonlar hujjatlari'], [/^\/admin\/aloqalar(?:\/|$)/, 'Tomonlar aloqasi'], [/^\/admin\/murojaatlar(?:\/|$)/, 'Murojaatlar'], [/^\/admin\/hujjat-aylanish(?:\/|$)/, 'Hujjat aylanishi'],
+  [/^\/admin\/zakazchik(?:\/|$)/, 'Buyurtmachi kabineti'], [/^\/admin\/taqdimlar(?:\/|$)/, 'Tomonlar hujjatlari'], [/^\/admin\/aloqalar(?:\/|$)/, 'Tomonlar aloqasi'], [/^\/admin\/murojaatlar(?:\/|$)/, 'Murojaatlar'], [/^\/admin\/chizmalar(?:\/|$)/, 'Chizmalar'], [/^\/admin\/loyihachi(?:\/|$)/, 'Loyihachi: bugun'], [/^\/admin\/hujjat-aylanish(?:\/|$)/, 'Hujjat aylanishi'],
   [/^\/admin\/participants(?:\/|$)/, 'Loyiha ishtirokchilari'], [/^\/admin\/(?:system-control|control)(?:\/|$)/, 'Tizim boshqaruv markazi'],
   [/^\/admin\/documents(?:\/|$)/, 'Hujjatlar'], [/^\/admin\/sayt-xaritasi(?:\/|$)/, 'Sayt xaritasi'], [/^\/admin\/dashboard(?:\/|$)/, 'Rahbar paneli'],
   [/^\/admin\/obyektlar(?:\/|$)/, 'Loyihalar va obyektlar'],

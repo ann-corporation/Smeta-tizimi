@@ -1,0 +1,7 @@
+{
+  "Tekshiring": { "ru": "Проверьте", "en": "Please check" },
+  "Avto-moslash: hamma ish ishonchli bog‘landi (✓). Tekshiradigan qator yo‘q.": { "ru": "Авто-сопоставление: все работы привязаны уверенно (✓). Проверять нечего.", "en": "Auto-match: all works linked with confidence (✓). Nothing to check." },
+  "Tekshiring: ◐ {a} taklif · ✕ {b} topilmadi": { "ru": "Проверьте: ◐ {a} предложений · ✕ {b} не найдено", "en": "Check: ◐ {a} suggestions · ✕ {b} not found" },
+  "Ishonchli moslar o‘zi bog‘landi (✓). Quyidagilarni pastdagi ro‘yxatda tasdiqlang yoki qo‘lda bog‘lang; yozish faqat siz tasdiqlaganingizda.": { "ru": "Уверенные совпадения привязаны сами (✓). Подтвердите нижеследующие в списке ниже или привяжите вручную; запись — только после вашего подтверждения.", "en": "Confident matches were linked automatically (✓). Confirm the ones below in the list underneath or link them manually; writing happens only after your confirmation." },
+  "Yana {n} ta — pastdagi ro‘yxatda.": { "ru": "Ещё {n} — в списке ниже.", "en": "{n} more — in the list below." }
+}

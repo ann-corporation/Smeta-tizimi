@@ -9,10 +9,10 @@
  * `stable` ga o'tkazilgach (migratsiya, L0) o'qish /api/sb ga ko'chiriladi va bu ikki amal olib tashlanadi.
  */
 export const BUYURTMA_AMALLAR: ReadonlySet<string> = new Set([
-  'buyurtma_yarat_v1', 'buyurtma_otish_v1', 'buyurtma_olish_yoz_v1', 'buyurtma_qabul_v1', 'buyurtma_qabul_yakunla_v1', 'buyurtma_royxat_v1', 'buyurtma_tafsilot_v1',
+  'buyurtma_yarat_v1', 'buyurtma_otish_v1', 'buyurtma_olish_yoz_v1', 'buyurtma_qabul_v1', 'buyurtma_qabul_yakunla_v1', 'buyurtma_royxat_v1', 'buyurtma_tafsilot_v1', 'buyurtma_tolov_holati_v1',
 ]);
 /** Faqat o'qiydigan amallar (operation_id talab qilinmaydi). */
-export const BUYURTMA_OQISH_AMALLAR: ReadonlySet<string> = new Set(['buyurtma_royxat_v1', 'buyurtma_tafsilot_v1']);
+export const BUYURTMA_OQISH_AMALLAR: ReadonlySet<string> = new Set(['buyurtma_royxat_v1', 'buyurtma_tafsilot_v1', 'buyurtma_tolov_holati_v1']);
 
 /** DB holatlari (`t2_buyurtma.holat` CHECK). Yetkazuvchi o'tkazadiganlar va xaridor o'tkazadiganlar — `_t2_buyurtma_otish_ruxsat`. */
 export const BUYURTMA_HOLATLAR = ['yuborildi', 'qabul_qilindi', 'rad', 'bajarilmoqda', 'tayyor', 'topshirildi', 'qabul_qilindi_yakuniy', 'qisman', 'nizo', 'bekor'] as const;
@@ -68,6 +68,7 @@ export function buyurtmaYuk(amal: string, so: Record<string, unknown>, actorId: 
       if (!bosh(so.keyin_id) && !id(so.keyin_id)) return bad('keyin_id noto‘g‘ri');
       return { ok: true, yuk: { ...asos, p_yonalish: so.yonalish, p_tur: bosh(so.tur) ? null : so.tur, p_holat: bosh(so.holat) ? null : so.holat, p_limit: lim, p_keyin_id: id(so.keyin_id) } };
     }
+    case 'buyurtma_tolov_holati_v1': return { ok: true, yuk: { ...asos } };   // yetkazuvchi: o'z qarzining to'lov holati (grant bo'yicha, 20261214600300)
     case 'buyurtma_tafsilot_v1': {
       if (!buyurtma) return bad('buyurtma_id noto‘g‘ri');
       return { ok: true, yuk: { ...asos, p_buyurtma_id: buyurtma } };

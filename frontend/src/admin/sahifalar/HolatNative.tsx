@@ -8,6 +8,7 @@ import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketP
 import { marketReadPrice } from '../../lib/smeta-studio/market-comparison';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ArxivTugma } from '../../components/arxiv/ArxivTugma';
 import { AlertTriangle, ArrowLeft, Ban, ChevronDown, Eye, FileSpreadsheet, Info, MoreHorizontal, Plus, Upload, X } from 'lucide-react';
 import { SmetaTree } from '../../umumiy/daraxt/SmetaTree';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
@@ -334,6 +335,7 @@ export function HolatNative() {
       yangilanmoqda={loading || yangilanmoqda}
       amallar={<>
         {selected && <button type="button" className="fz-btn" aria-expanded={exportsOpen} onClick={() => setExportsOpen(v => !v)}><FileSpreadsheet aria-hidden="true" />{t('Hujjatlar va eksport')}<ChevronDown aria-hidden="true" style={{ transform: exportsOpen ? 'rotate(180deg)' : undefined, transition: 'transform .12s' }} /></button>}
+        {selected && <ArxivTugma tur="obyekt" id={selected.id} nom={selected.nom} kichik={false} onDone={() => { workspace.setObjectId(null); workspace.refresh(); navigate('/admin/obyektlar'); }} />}
         {validId && <button type="button" onClick={() => navigate(`/admin/fakt?obyekt=${obyektId}`)} className="fz-btn fz-btn--primary"><Plus aria-hidden="true" />{t('Fakt kiritish')}</button>}
       </>}
     >

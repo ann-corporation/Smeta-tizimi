@@ -135,7 +135,7 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   buyurtma_qabul_v1: 'procurement.write',
   buyurtma_qabul_yakunla_v1: 'procurement.write',
   buyurtma_royxat_v1: 'procurement.read',
-  buyurtma_tafsilot_v1: 'procurement.read',
+  buyurtma_tafsilot_v1: 'procurement.read', buyurtma_tolov_holati_v1: 'procurement.read',
   viborka_smetadan_toldir: 'smeta.write',
   viborka_qabul_yoz: 'document.write',
   shartnoma_saqla: 'document.write',
@@ -148,6 +148,9 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   xarajat_yoz: 'financial.write',
   xarajat_tahrir: 'financial.write',
   xarajat_ochir: 'financial.write',
+  arxivla_v1: 'document.write',
+  arxivdan_tiklash_v1: 'document.write',
+  arxiv_butunlay_v1: 'document.write', // RPC faqat admin/superadminga ruxsat beradi
   korzinkaga_tashlash: 'document.write',
   korzinkadan_tiklash: 'document.write',
   butunlay_ochirish: 'document.write',
