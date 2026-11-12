@@ -84,7 +84,7 @@ export function turNomdan(nom: string, joriy: Tur): Tur {
   const t = nom.toLowerCase();
   if (/двер|окн|окон|витраж|eshik|deraza/.test(t)) return 'eshik_oyna';
   if (/арматур|сетк/.test(t)) return 'armatura';
-  if (/штукатур|окраск|облицов|покрас|шпатл|плитк|обои/.test(t)) return 'pardoz';
+  if (/штукатур|окраск|облицов|покрас|шпатл|плитк|обои|панел|клей|затирк|гранит/.test(t)) return 'pardoz';
   if (/бетон|плита|колонн|балк|ригел|фундамент/.test(t)) return 'beton';
   return 'boshqa';
 }
@@ -97,7 +97,7 @@ export function sahifaniTahlilQil(items: MatnBo[], sahifa: number, profillar: Pr
   const qatorlar = qatorlarYig(bo);
   const matn = matnQoshib(bo);
   let sarlavhaTopildi = false;
-  const satr = satrdanOqi(qatorlar, undefined, bo).map((e) => ({ ...e }));
+  const satr = satrdanOqi(qatorlar, undefined, bo).map((e) => ({ ...e, tur: e.profil === 'satr_spes' ? turNomdan(e.nom, e.tur) : e.tur }));
     if (satr.length > 0) {
     const o = satr.reduce((a, e) => a + e.ishonch, 0) / satr.length;
     return { ...asos, profil: 'satr', elementlar: satr, aiTaklifi: false, sabab: o < 0.55 ? 'ishonch_past' : null };

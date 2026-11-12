@@ -34,6 +34,11 @@ describe('role integration architecture',()=>{
       /* Email kod bilan kirish/ro'yxat (2026-10-26): login'dan OLDINGI ochiq nuqta (kirish/kirish-google kabi) — sessiya yo'q.
          Kod HMAC xeshi, 10 daqiqa, 5 urinish, email/IP limitlari bazada; origin tekshiruvi (kirish-email.test.ts). */
       'kirish-email',
+      /* Emailsiz kirish (2026-11-13): /api/kirish-taklif — 'qabul' KIRMASDAN (kod/havola xeshi, SQL da bir martalik/limit), 'yarat/royxat/bekor/ulash' —
+         actor faqat sessiyadan + roleAuthority, huquq SQL da (company.member.manage | hr.write; kadr faqat dala rollari). /api/kirish-telegram — KIRMASDAN:
+         nonce + brauzer siri xeshi, bot kontakti (contact.user_id == from.id). Ikkalasi KIRISH_*_YOQILGAN sozlamasi bilan o'chiriladi; origin tekshiruvi
+         (kirish-taklif.test.ts, kirish-telegram.test.ts; acceptance 20261217200000). */
+      'kirish-taklif', 'kirish-telegram',
       /* Sozlamalar markazi (2026-10-26): kompaniya sozlamalari (imzo tomonlari, hujjat dizayni, F2 tasdiq rejimi). Actor sessiyadan;
          o'qish company.read, yozish company.profile.update — har RPC ichida t2_effective_authorization_v1 (kompaniya-sozlama.test.ts). */
       'kompaniya-sozlama',

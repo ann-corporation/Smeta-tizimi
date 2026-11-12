@@ -182,6 +182,13 @@ describe('farq va pul (hisob-yadro)', () => {
     const f = r.find((x) => x.tur === 'fakt_oshgan')!;
     expect(f.farq).toBe(3); expect(f.pulQQSsiz).toBe(3000);
   });
+  it('Fakt ustuni: smeta qatori birligidagi haqiqiy fakt (100 м3) loyiha tasdiqlangan miqdoriga nisbatan; chegaradan oshsa — fakt_oshgan, oshmasa yo‘q', () => {
+    const b = (fakt: number | null) => ({ qator_id: 2, kod: null, nom: 'Бетон монолитный', birlik: '100 м3', hajm: 0.1, narx: 90_000_000, hajm_norm: 10, fakt, fakt_norm: fakt == null ? null : fakt * 100 });
+    const oshgan = farqlarniHisobla([m({ miqdor: 10, miqdor_norm: 10, boglar: [b(0.12)] })], smeta, new Set([2])).find((x) => x.tur === 'fakt_oshgan')!;
+    expect(oshgan.fakt).toBeCloseTo(0.12, 10); expect(oshgan.loyiha).toBeCloseTo(0.1, 10); expect(oshgan.farq).toBeCloseTo(0.02, 10);
+    expect(oshgan.pulQQSsiz).toBe(qatorSumma(oshgan.farq, 90_000_000));
+    for (const fk of [0.1, 0.101, 0.05, null]) expect(farqlarniHisobla([m({ miqdor: 10, miqdor_norm: 10, boglar: [b(fk)] })], smeta, new Set([2])).some((x) => x.tur === 'fakt_oshgan')).toBe(false);
+  });
   it('smetada bor - loyihada yo\'q: yuklangan varaq bo\'limida bog\'lanmagan qator', () => {
     const r = farqlarniHisobla([m({})], smeta, new Set([2]));
     expect(r.filter((x) => x.tur === 'smetada_bor_loyihada_yoq').map((x) => x.qatorId).sort()).toEqual([3, 6]);

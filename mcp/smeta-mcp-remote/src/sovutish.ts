@@ -16,12 +16,14 @@ export const MAKS_XATO = 5;
 export const STANDART_BYUDJET_MS = 20_000;
 /** Baza hajmi ogohlantirish chegarasi (MB): Supabase Free = 500 MB. */
 export const HAJM_OGOHLANTIRISH_MB = 450;
+/** Shu hajmdan (MB) boshlab har obyektning so'nggi snapshoti ham (N kundan keyin) R2 ga sovutiladi (SNAPSHOT_SOVUT_SONGGI=auto). */
+export const HAJM_SONGGI_MB = 450;
 
 export type SovutishNatija = {
   korildi: number; sovutildi: number; allaqachon: number; xato: number; bosh_bayt: number; r2_bayt: number;
   to_xtadi: 'tugadi' | 'byudjet' | 'xato_chegarasi';
 };
-export type SovutishOpsiya = { kun?: number; limit?: number; byudjetMs?: number; now?: () => number; log?: (m: string) => void };
+export type SovutishOpsiya = { kun?: number; limit?: number; songgiHam?: boolean; byudjetMs?: number; now?: () => number; log?: (m: string) => void };
 
 /** R2 bucket binding -> sovuq.ts R2 interfeysi. */
 export function r2Binding(b: R2BucketLike): R2 {
@@ -37,6 +39,7 @@ export function r2Binding(b: R2BucketLike): R2 {
 /** Bitta partiya: eng katta nomzodlardan boshlab. Hech qachon DB ga mazmun yozmaydi (faqat sovuq_* RPC lar). */
 export async function sovutishPartiya(db: Db, r2: R2, o: SovutishOpsiya = {}): Promise<SovutishNatija> {
   const kun = Math.max(1, Math.trunc(o.kun ?? STANDART_KUN));
+  const songgi = o.songgiHam === true;
   const limit = Math.max(1, Math.min(Math.trunc(o.limit ?? STANDART_LIMIT), 5000));
   const byudjet = o.byudjetMs ?? STANDART_BYUDJET_MS;
   const now = o.now ?? Date.now;
@@ -44,7 +47,7 @@ export async function sovutishPartiya(db: Db, r2: R2, o: SovutishOpsiya = {}): P
   const boshlandi = now();
   const n: SovutishNatija = { korildi: 0, sovutildi: 0, allaqachon: 0, xato: 0, bosh_bayt: 0, r2_bayt: 0, to_xtadi: 'tugadi' };
 
-  const nomzodlar = (await db.query('select xesh, jadval, qator_soni, bayt from snapshot.sovuq_nomzod($1, $2, false)', [kun, limit])).rows;
+  const nomzodlar = (await db.query('select xesh, jadval, qator_soni, bayt from snapshot.sovuq_nomzod($1, $2, $3)', [kun, limit, songgi])).rows;
   for (const r of nomzodlar) {
     if (n.korildi >= limit) break;
     if (now() - boshlandi >= byudjet) { n.to_xtadi = 'byudjet'; break; }
@@ -81,6 +84,14 @@ export function hovuzDb(env: Env): { db: Db; yop(): Promise<void> } {
   return { db, yop: () => h.end() };
 }
 
+/** SNAPSHOT_SOVUT_SONGGI: '1' — doim, '0' — hech qachon, boshqa/bo'sh (auto) — baza HAJM_SONGGI_MB dan oshganda. Hajm noma'lum (null) bo'lsa — yo'q. */
+export function songgiQaror(v: string | undefined, dbMb: number | null): boolean {
+  const x = (v ?? 'auto').trim().toLowerCase();
+  if (x === '1' || x === 'true') return true;
+  if (x === '0' || x === 'false') return false;
+  return dbMb !== null && dbMb >= HAJM_SONGGI_MB;
+}
+
 const raqam = (s: string | undefined, d: number) => { const v = Number(s); return Number.isFinite(v) && v > 0 ? v : d; };
 
 /** Cron kirish nuqtasi. Hech qachon tashlamaydi (cron'ni yiqitmaydi); natija JSON log. */
@@ -94,7 +105,7 @@ export async function sovutishCron(env: Env, o: { db?: Db; log?: (m: string) => 
     if (oldin !== null && oldin > HAJM_OGOHLANTIRISH_MB) console.warn(`DB_HAJM_OGOHLANTIRISH db_mb=${oldin} > ${HAJM_OGOHLANTIRISH_MB} (Supabase Free 500 MB)`);
     if (!env.SNAPSHOT_R2) { log('snapshot sovutish o\'tkazib yuborildi: SNAPSHOT_R2 binding yo\'q'); return; }
     const n = await sovutishPartiya(db, r2Binding(env.SNAPSHOT_R2), {
-      kun: raqam(env.SNAPSHOT_SOVUT_KUN, STANDART_KUN), limit: raqam(env.SNAPSHOT_SOVUT_LIMIT, STANDART_LIMIT), log,
+      kun: raqam(env.SNAPSHOT_SOVUT_KUN, STANDART_KUN), songgiHam: songgiQaror(env.SNAPSHOT_SOVUT_SONGGI, oldin), limit: raqam(env.SNAPSHOT_SOVUT_LIMIT, STANDART_LIMIT), log,
     });
     log(JSON.stringify({ amal: 'snapshot_sovutish', db_mb_oldin: oldin, ...n }));
   } catch (e) {

@@ -594,18 +594,6 @@
             "qoshimcha": true
           },
           {
-            "yol": "/admin/subpudrat",
-            "ilova": "hujjat",
-            "nom": "Subpudrat boshqaruvi",
-            "ruxsat": [
-              "control.company.read",
-              "f2.prepare",
-              "project.write",
-              "object.write"
-            ],
-            "scope": "OBJECT_SCOPED"
-          },
-          {
             "yol": "/admin/taqdimlar",
             "ilova": "hujjat",
             "nom": "Tomonlar hujjatlari",
@@ -642,7 +630,13 @@
             ],
             "modul": "module.loyiha",
             "qoshimcha": true
-          },
+          }
+        ]
+      },
+      {
+        "nom": "Hujjat aylanishi",
+        "ikonka": "ClipboardList",
+        "sahifalar": [
           {
             "yol": "/admin/hujjat-aylanish",
             "ilova": "hujjat",
@@ -654,6 +648,24 @@
             ],
             "modul": "module.loyiha",
             "qoshimcha": true
+          }
+        ]
+      },
+      {
+        "nom": "Subpudrat",
+        "ikonka": "Users",
+        "sahifalar": [
+          {
+            "yol": "/admin/subpudrat",
+            "ilova": "hujjat",
+            "nom": "Subpudrat boshqaruvi",
+            "ruxsat": [
+              "control.company.read",
+              "f2.prepare",
+              "project.write",
+              "object.write"
+            ],
+            "scope": "OBJECT_SCOPED"
           },
           {
             "yol": "/admin/subpudratchi",
@@ -757,19 +769,6 @@
             "yol": "/admin/yuk-chaqirish",
             "ilova": "logistika",
             "nom": "Yuk chaqirish",
-            "ruxsat": [
-              "control.company.read",
-              "project.write",
-              "object.write",
-              "procurement.read"
-            ],
-            "modul": "module.erp",
-            "qoshimcha": true
-          },
-          {
-            "yol": "/admin/haydovchi",
-            "ilova": "logistika",
-            "nom": "Haydovchi rejimi",
             "ruxsat": [
               "control.company.read",
               "project.write",
@@ -1074,6 +1073,14 @@
             "ilova": "yadro",
             "nom": "Mening xizmatlarim",
             "ruxsat": []
+          },
+          {
+            "yol": "/admin/haydovchi",
+            "ilova": "logistika",
+            "nom": "Haydovchi rejimi",
+            "ruxsat": [],
+            "modul": "module.erp",
+            "qoshimcha": true
           }
         ]
       },
@@ -1129,7 +1136,8 @@
             "yol": "/admin/boshqaruv",
             "ilova": "platforma",
             "nom": "Platforma boshqaruvi",
-            "ruxsat": []
+            "ruxsat": [],
+            "faqatSuperadmin": true
           }
         ]
       },
@@ -1141,7 +1149,8 @@
             "yol": "/admin/tizim-xaritasi",
             "ilova": "platforma",
             "nom": "Tizim xaritasi",
-            "ruxsat": []
+            "ruxsat": [],
+            "faqatSuperadmin": true
           }
         ]
       },
@@ -1153,7 +1162,8 @@
             "yol": "/admin/fayl-boglash",
             "ilova": "platforma",
             "nom": "Fayl bog‘lash (texnik)",
-            "ruxsat": []
+            "ruxsat": [],
+            "faqatSuperadmin": true
           }
         ]
       }

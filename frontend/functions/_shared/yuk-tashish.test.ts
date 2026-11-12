@@ -14,7 +14,7 @@ describe('yuk-tashish gateway (sof qurilish)', () => {
     expect(quraRpc('qabul', 1, { data: { yuk_id: 3 } })).toEqual({ ok: false, code: 'OPERATION_ID_REQUIRED' });
     expect(quraRpc('joy', 1, { data: { bron_id: 3, lat: 1, lng: 2 } }).ok).toBe(true);
     expect(quraRpc('yaqin', 1, { data: { lat: 1, lng: 2 } }).ok).toBe(true);
-    expect(quraRpc('reys', 1, {})).toMatchObject({ ok: true, rpc: 't2_yb_p1_reys_v1', body: { p_actor_id: 1 } });
+    expect(quraRpc('reys', 1, {})).toMatchObject({ ok: true, rpc: 't2_yb_p2_reys_v1', body: { p_actor_id: 1 } });
   });
   it('yuk egasi amallari kompaniya_id talab qiladi', () => {
     expect(quraRpc('ega_kuzat', 1, { data: { yuk_id: 3 } })).toEqual({ ok: false, code: 'KOMPANIYA_KERAK' });

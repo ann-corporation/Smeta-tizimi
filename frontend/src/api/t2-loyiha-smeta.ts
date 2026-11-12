@@ -36,6 +36,9 @@ export type MiqdorQatori = {
 
 export const loyihaRoyxatOl = (k: number, o: number) => oqi<{ miqdorlar: MiqdorQatori[] }>('royxat', k, o);
 export const loyihaFarqOl = (k: number, o: number) => oqi<{ taklif_soni: number; tasdiqlangan_soni: number; miqdorlar: FarqMiqdor[] }>('farq', k, o);
+export const loyihaXaritaOl = (k: number, o: number) => oqi<{ xarita: { varaq: string; bolim_qator_id: number; manba: 'qolda' | 'taklif' }[] }>('xarita', k, o);
+export const loyihaXaritaYoz = (k: number, p: { obyektId: number; varaq: string; bolimId: number; harakat: 'qosh' | 'ochir'; manba?: 'qolda' | 'taklif'; sabab?: string }) =>
+  yoz('xarita', k, { obyekt_id: p.obyektId, varaq: p.varaq, bolim_qator_id: p.bolimId, harakat: p.harakat, manba: p.manba ?? 'qolda', sabab: p.sabab ?? null });
 export const loyihaSmetaOl = (k: number, o: number) => oqi<{ qatorlar: (SmetaQator & { versiya?: number | null })[] }>('smeta', k, o);
 
 export type YozElement = Pick<Element, 'nom' | 'belgi' | 'birlik' | 'miqdor' | 'tur' | 'ishonch'> & { manba_r2?: string | null; manba_sahifa?: number | null; manba_ref?: string | null };
@@ -53,5 +56,7 @@ export async function loyihaFarqMalumotOl(k: number, o: number): Promise<import(
   if (!f.ok || !s.ok) return null;
   const { farqlarniHisobla } = await import('../lib/loyiha-smeta/farq');
   const bogli = new Set(r.ok ? r.natija.miqdorlar.flatMap((x) => x.boglar) : []);
-  return { farqlar: farqlarniHisobla(f.natija.miqdorlar, s.natija.qatorlar, bogli), taklifSoni: f.natija.taklif_soni, tasdiqlanganSoni: f.natija.tasdiqlangan_soni };
+  const xr = await loyihaXaritaOl(k, o);
+  const qolda = new Map<string, Set<number>>(); if (xr.ok) for (const x of xr.natija.xarita) qolda.set(x.varaq, new Set([...(qolda.get(x.varaq) ?? []), x.bolim_qator_id]));
+  return { farqlar: farqlarniHisobla(f.natija.miqdorlar, s.natija.qatorlar, bogli, { qolda }), taklifSoni: f.natija.taklif_soni, tasdiqlanganSoni: f.natija.tasdiqlangan_soni };
 }
