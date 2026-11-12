@@ -36,7 +36,7 @@ export type FarqQator = {
   izoh: string[];
 };
 
-export type FarqSozlama = { tol: number; qqsFoiz: number; taxminiyNarx?: (miqdorId: number) => number | null; /** Kompaniya bo'yicha sozlangan varaq belgisi regexi (bo'lim nomidan). */ belgiRegex?: string };
+export type FarqSozlama = { tol: number; qqsFoiz: number; taxminiyNarx?: (miqdorId: number) => number | null; /** Kompaniya bo'yicha sozlangan varaq belgisi regexi (bo'lim nomidan). */ belgiRegex?: string; /** varaq -> bo'lim id lari (qo'lda xarita). */ qolda?: ReadonlyMap<string, ReadonlySet<number>> };
 export const FARQ_STANDART: FarqSozlama = { tol: 0.02, qqsFoiz: NDS_SUKUT_FOIZ };
 
 const pul = (farq: number | null, narx: number | null, qqs: number): { s: number | null; b: number | null } => {
@@ -85,7 +85,7 @@ export function farqlarniHisobla(miqdorlar: FarqMiqdor[], smeta: SmetaQator[], b
   }
   // Smetada bor — loyihada yo'q: faqat loyihasi (tasdiqlangan) yuklangan varaqlardagi bo'limlarning bog'lanmagan ish qatorlari.
   const yuklanganVaraq = new Set(miqdorlar.map((m) => m.varaq.toUpperCase()));
-  const xarita = bolimXaritasi(smeta, S.belgiRegex);
+  const xarita = bolimXaritasi(smeta, S.belgiRegex, S.qolda);
   for (const q of smeta) {
     if (q.tur !== 'bl' || bogliQatorlar.has(q.id)) continue;
     const belgilar = xarita.get(q.id)?.belgilar;

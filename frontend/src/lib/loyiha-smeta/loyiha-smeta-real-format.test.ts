@@ -49,6 +49,22 @@ describe('armatura: jami massa ustuni («Приме-» ostida)', () => {
   });
 });
 
+describe('armatura massasi: po‘lat plastina chiqariladi, butun son, sarlavhadan chapdagi jadval', () => {
+  it('plastina (ГОСТ 19903, -20x80x80) armaturaga kirmaydi; anchorli butun massa kirishi; unvondan chapdagi ikkinchi jadval ham', () => {
+    const items = [
+      ...filler(), T('Спецификация элементов', 800, 20),
+      T('Кол.', 900, 50), T('Масса ед.', 940, 50), T('Приме-', 1000, 50),
+      T('ГОСТ 5781-82', 700, 90), T('Ø20AIII', 780, 90), T('L=5900 мм', 840, 90), T('4', 900, 90), T('14.543', 940, 90), T('1047.090', 1000, 90),
+      T('ГОСТ 19903-74', 700, 120), T('-20x80x80 мм', 780, 120), T('8', 900, 120), T('1.005', 940, 120), T('144.691', 1000, 120),   // plastina
+      T('ГОСТ 5781-82', 700, 150), T('Ø10AIII', 780, 150), T('L=900 мм', 840, 150), T('10', 900, 150), T('2.1', 940, 150), T('21', 1002, 150), // butun massa
+      T('Кол.', 400, 300), T('Масса ед.', 440, 300), T('Приме-', 500, 300),                                                        // unvondan chapda
+      T('ГОСТ 5781-82', 200, 330), T('Ø12AIII', 280, 330), T('L=500 мм', 330, 330), T('2', 400, 330), T('0.444', 440, 330), T('0.888', 500, 330),
+    ];
+    const a = sahifaniTahlilQil(items, 1).elementlar.find((e) => e.tur === 'armatura')!;
+    expect(a.miqdor).toBeCloseTo(1047.09 + 21 + 0.888, 3);
+  });
+});
+
 describe('sahifa AI ga faqat jadval kalit so‘zi bo‘lsa taklif qilinadi', () => {
   it('reja (kalit so‘zsiz) -> AI kerak emas; «Спецификация» bor, qoida o‘qimadi -> AI', () => {
     const reja = sahifaniTahlilQil(filler(), 1);

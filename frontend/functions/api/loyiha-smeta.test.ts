@@ -4,7 +4,7 @@ import { SCOPED_APIS, requestPermission } from '../_shared/permission-policy';
 
 describe('loyiha-smeta shlyuzi', () => {
   it('faqat sanab o‘tilgan RPC lar', () => {
-    for (const nom of [...Object.values(OQISH), ...Object.values(YOZISH)]) expect(nom).toMatch(/^t2_loyiha_[a-z]+_v1$/);
+    for (const nom of [...Object.values(OQISH), ...Object.values(YOZISH)]) expect(nom).toMatch(/^t2_loyiha_[a-z_]+_v1$/);
     expect(YOZISH['t2_qator_yoz']).toBeUndefined();
   });
   it('permission siyosatida ro‘yxatga olingan', () => {

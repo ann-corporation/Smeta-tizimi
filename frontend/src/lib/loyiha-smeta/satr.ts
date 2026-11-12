@@ -14,6 +14,8 @@ export type SatrQoidalari = {
   jadvalSarlavha: string; hududEni: number; hududBoyi: number;
   /** Jami massa ustuni: shu sarlavha (qoida) ostidagi o'nlik sonlar. Topilmasa — langar usuli. */
   massaUstuni: string;
+  /** Armatura emas po'lat qatorlari (plastina, profil, burchak): shu belgi bor va armatura belgisi yo'q qator massasi ustundan chiqariladi. */
+  armaturaYoq: string; armaturaBor: string;
 };
 
 export const SATR_STANDART: SatrQoidalari = {
@@ -22,6 +24,8 @@ export const SATR_STANDART: SatrQoidalari = {
   armaturaLangar: ['^[∅Ø⌀ǿФ]\\s?\\d{1,2}\\s?[AА]', '^=?\\s*п\\.?\\s?м\\.?$'],
   massaIndeksi: 2, oyna: 450,
   jadvalSarlavha: 'спецификаци|ведомость расхода|расход стали', hududEni: 1300, hududBoyi: 4000, massaUstuni: '^приме',
+  armaturaYoq: 'ГОСТ\\s*(19903|8240|8509|8510|8239|535|380)|^-\\s?\\d+\\s?[xх×]\\s?\\d+|швеллер|уголок|пластин|двутавр|\\bлист\\b',
+  armaturaBor: '[∅Ø⌀ǿФ]\\s?\\d{1,2}\\s?[AА]|ГОСТ\\s*(5781|34028|10884)|^=?\\s*п\\.?\\s?м',
 };
 
 const sinfKanon = (s: string) => s.replace(/\s/g, '').replace(',', '.').toUpperCase().replace('B', 'В');
@@ -39,17 +43,25 @@ export function satrdanOqi(qatorlar: JQator[], q: SatrQoidalari = SATR_STANDART,
   const hududda = (r: JQator, x: number) => hududlar.some((h) => x >= h.x - 60 && x <= h.x + q.hududEni && r.y >= h.y && r.y <= h.y + q.hududBoyi);
   // 1) Ustun usuli: jadval sarlavhasi ostidagi «Приме-» ustuni = jami massa (har bar/to'r qatori uchun); langar usulidan aniqroq va qatorga bo'linmaydi.
   const massaRe = new RegExp(q.massaUstuni, 'i'); const ustunlar: { x: number; y0: number; y1: number }[] = [];
-  for (const h of hududlar) {
-    const sar = qatorlar.flatMap((r) => r.kataklar.filter((c) => massaRe.test(c.matn) && c.x0 >= h.x - 60 && c.x0 <= h.x + q.hududEni && r.y >= h.y && r.y <= h.y + 250).map((c) => ({ x: c.x0, y: r.y })))
-      .sort((a, b) => a.y - b.y)[0];
-    if (sar && !ustunlar.some((u) => Math.abs(u.x - sar.x) < 40 && u.y0 === sar.y)) ustunlar.push({ x: sar.x, y0: sar.y, y1: h.y + q.hududBoyi });
-  }
+  // Sarlavha: «Приме-» katagi yonida (±200 x, ±60 y) «Масса»/«Кол.» sarlavhasi bor — jadval sarlavhasi (nomi sarlavhadan chapda yoki yo'q bo'lishi mumkin).
+  const yonRe = /^(масса|кол)/i;
+  for (const r of qatorlar) for (const c of r.kataklar) {
+    if (!massaRe.test(c.matn)) continue;
+    const yonida = qatorlar.some((z) => Math.abs(z.y - r.y) <= 60 && z.kataklar.some((k) => yonRe.test(k.matn) && Math.abs(k.x0 - c.x0) <= 200));
+    if (yonida && !ustunlar.some((u) => Math.abs(u.x - c.x0) < 40 && Math.abs(u.y0 - r.y) < 120)) ustunlar.push({ x: c.x0, y0: r.y, y1: r.y + q.hududBoyi });
+  }  const yoqRe = new RegExp(q.armaturaYoq, 'i'); const borRe = new RegExp(q.armaturaBor, 'i');
   const sanalgan = new Set<string>(); let ustunMassa = 0; let ustunSoni = 0; let ustunTor = false; const ustunQatorlar: JQator[] = [];
   for (const r of qatorlar) {
     for (const c of r.kataklar) {
       const u = ustunlar.find((z) => Math.abs(c.x0 - z.x) <= 40 && r.y > z.y0 + 8 && r.y <= z.y1);
-      if (!u || !/^\d+[.]\d+$/.test(c.matn.trim().replace(',', '.'))) continue;
+      const qiymat = c.matn.trim().replace(',', '.');
+      if (!u || !/^\d+(?:[.]\d+)?$/.test(qiymat)) continue;
+      // Butun son (o'nlik yo'q) faqat armatura belgisi bor qatorda: «1», «шт» kabi hisoblagichlar massa emas.
+      if (!qiymat.includes('.') && !r.kataklar.some((z) => z.x0 < c.x0 && c.x0 - z.x0 <= 450 && new RegExp(q.armaturaBor, 'i').test(z.matn))) continue;
       const kalit = `${r.sahifa}:${Math.round(r.y)}:${Math.round(c.x0)}`; if (sanalgan.has(kalit)) continue;
+      // Po'lat plastina/profil qatori armatura massasiga kirmasin (massa katagidan chapga <= 450 oralig'idagi kataklar bo'yicha)
+      const yon = r.kataklar.filter((z) => z.x0 < c.x0 && c.x0 - z.x0 <= 450).map((z) => z.matn);
+      if (yon.some((m) => yoqRe.test(m)) && !yon.some((m) => borRe.test(m))) continue;
       sanalgan.add(kalit); ustunMassa += sonOqi(c.matn) ?? 0; ustunSoni++; ustunQatorlar.push(r);
       if (r.kataklar.some((z) => /^=?\s*п\.?\s?м/i.test(z.matn))) ustunTor = true;
     }
