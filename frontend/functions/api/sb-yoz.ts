@@ -1054,7 +1054,7 @@ export const onRequestPost: PagesFunction<{
       if (qs != null && (!Array.isArray(qs) || qs.length > 200)) return xato400('≤200 qator.');
       const yuk2: Record<string, unknown> = {};
       if (ichki === 'yarat') {
-        for (const [k, v] of [['obyekt_id', sonN(yx.obyekt_id)], ['usta_kontragent_id', sonN(yx.usta_kontragent_id)], ['usta_nom', matnN(yx.usta_nom, 200)], ['brigada', matnN(yx.brigada, 200)],
+        for (const [k, v] of [['obyekt_id', sonN(yx.obyekt_id)], ['usta_kontragent_id', sonN(yx.usta_kontragent_id)], ['usta_foydalanuvchi_id', sonN(yx.usta_foydalanuvchi_id)], ['usta_nom', matnN(yx.usta_nom, 200)], ['brigada', matnN(yx.brigada, 200)],
           ['izoh', matnN(yx.izoh, 2000)], ['davr_dan', matnN(yx.davr_dan, 10)], ['davr_gacha', matnN(yx.davr_gacha, 10)]] as const) {
           if (v === undefined) return xato400(`${k} noto‘g‘ri turda.`);
           yuk2[k] = v;
@@ -1062,13 +1062,19 @@ export const onRequestPost: PagesFunction<{
         for (const k of ['davr_dan', 'davr_gacha']) if (yuk2[k] != null && !/^\d{4}-\d{2}-\d{2}$/.test(String(yuk2[k]))) return xato400('sana YYYY-MM-DD.');
       }
       if (qs) {
-        const kalitlar = ichki === 'yarat' ? ['qator_id', 'hajm', 'usta_narx', 'norma_chel_soat', 'smeta_mehnat_birlik', 'fakt_boshida']
-          : ichki === 'bajarildi' ? ['id', 'bajarilgan_hajm'] : ichki === 'narx' ? ['id', 'usta_narx'] : ichki === 'qabul' ? ['id', 'qabul_hajm', 'fakt_hozir'] : [];
+        const kalitlar = ichki === 'yarat' ? ['qator_id', 'hajm', 'usta_narx', 'norma_chel_soat', 'smeta_mehnat_birlik', 'smeta_kat_birlik', 'koef', 'usta_narx_birlik', 'fakt_boshida']
+          : ichki === 'bajarildi' ? ['id', 'bajarilgan_hajm'] : ichki === 'narx' ? ['id', 'usta_narx', 'usta_narx_birlik', 'koef'] : ichki === 'qabul' ? ['id', 'qabul_hajm', 'fakt_hozir'] : [];
         const out: Record<string, unknown>[] = [];
         for (const q of qs) {
           if (!q || typeof q !== 'object' || Array.isArray(q)) return xato400('qator obyekt bo‘lishi kerak.');
           const r: Record<string, unknown> = {};
           for (const k of kalitlar) { const v = sonN((q as Record<string, unknown>)[k]); if (v === undefined) return xato400(`${k} son bo‘lishi kerak.`); r[k] = v; }
+          if (ichki === 'yarat' || ichki === 'narx') {
+            for (const k of ichki === 'yarat' ? ['kat', 'usta_birlik'] : ['usta_birlik']) {
+              const v = matnN((q as Record<string, unknown>)[k], 40); if (v === undefined) return xato400(`${k} matn bo‘lishi kerak.`); r[k] = v;
+            }
+            if (r.kat != null && !['ЧЕЛ', 'МАТ', 'МАШ'].includes(String(r.kat))) return xato400('kat ЧЕЛ, МАТ yoki МАШ bo‘lsin.');
+          }
           out.push(r);
         }
         yuk2.qatorlar = out;

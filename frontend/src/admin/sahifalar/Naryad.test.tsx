@@ -24,8 +24,8 @@ const QISQA: NaryadQisqa = { id: 5, obyekt_id: 10, raqam: 'N-2026-0005', usta_no
 const N: NaryadTuri = { id: 5, obyekt_id: 10, raqam: 'N-2026-0005', davr_dan: null, davr_gacha: null, usta_nom: 'Sinov usta', brigada: null, holat: 'bajarildi', izoh: null, versiya: 2,
   fakt_operation_id: 'f', fakt_holat: null, fakt_akt_id: null, xarajat_id: null, xarajat_summa: null, yaratildi: '2026-11-12',
   qatorlar: [
-    { id: 1, qator_id: 100, tartib: 1, kod: 'К1', nom: 'Кладка стен кирпичных', birlik: 'м3', hajm: 10, norma_chel_soat: 50, smeta_mehnat_birlik: 800, usta_narx: 600, bajarilgan_hajm: 10, qabul_hajm: null, fakt_boshida: 2, fakt_delta: null, fakt_yozilgan: null },
-    { id: 2, qator_id: 101, tartib: 2, kod: 'К2', nom: 'Установка окон', birlik: 'шт', hajm: 4, norma_chel_soat: null, smeta_mehnat_birlik: null, usta_narx: null, bajarilgan_hajm: 4, qabul_hajm: null, fakt_boshida: 0, fakt_delta: null, fakt_yozilgan: null },
+    { id: 1, qator_id: 100, tartib: 1, kod: 'К1', nom: 'Кладка стен кирпичных', birlik: 'м3', hajm: 10, norma_chel_soat: 50, smeta_mehnat_birlik: 800, usta_narx: 600, kat: 'ЧЕЛ', usta_birlik: null, koef: null, usta_narx_birlik: null, smeta_kat_birlik: null, bajarilgan_hajm: 10, qabul_hajm: null, fakt_boshida: 2, fakt_delta: null, fakt_yozilgan: null },
+    { id: 2, qator_id: 101, tartib: 2, kod: 'К2', nom: 'Установка окон', birlik: 'шт', hajm: 4, norma_chel_soat: null, smeta_mehnat_birlik: null, usta_narx: null, kat: 'ЧЕЛ', usta_birlik: null, koef: null, usta_narx_birlik: null, smeta_kat_birlik: null, bajarilgan_hajm: 4, qabul_hajm: null, fakt_boshida: 0, fakt_delta: null, fakt_yozilgan: null },
   ] };
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
