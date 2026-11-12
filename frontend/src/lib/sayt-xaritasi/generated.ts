@@ -29,6 +29,7 @@ export const GENERATED_SITE_MAP = {
     "/admin/f2-tarix",
     "/admin/f2-reestr",
     "/admin/nakopitelniy",
+    "/admin/solishtiruv",
     "/admin/moliya",
     "/admin/shartnoma-liniya",
     "/admin/qarzdorlik",
@@ -111,6 +112,7 @@ export const GENERATED_SITE_MAP = {
     "grafik",
     "tokenlar",
     "hujjat-dizayn",
+    "solishtiruv",
     "shartnoma-liniya",
     "qarzdorlik",
     "bozor-sorov",
@@ -1227,6 +1229,14 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "moliya_qolda_yoz_v1",
       "rpc": "t2_moliya_qolda_yoz_v1"
+    },
+    {
+      "amal": "solishtiruv_tushuntir_v1",
+      "rpc": "t2_solishtiruv_tushuntir_v1"
+    },
+    {
+      "amal": "solishtiruv_yangila_v1",
+      "rpc": "t2_solishtiruv_yangila_v1"
     },
     {
       "amal": "fakt_yoz_v2",
