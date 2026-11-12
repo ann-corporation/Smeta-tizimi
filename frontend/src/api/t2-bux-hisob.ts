@@ -6,7 +6,7 @@
 import { vaqtliOqish } from './vaqtli-fetch';
 import { yozAmali, type AktNatija } from './supabase';
 
-export type BuxHisob = { kod: string; nom_uz: string; nom_ru: string; tur: string; kontragent_analitika: boolean; faol: boolean; standart: boolean };
+export type BuxHisob = { kod: string; nom_uz: string; nom_ru: string; tur: string; kontragent_analitika: boolean; faol: boolean; standart: boolean; tekshirilsin?: boolean };
 export type BuxMoslik = { kalit: string; dt_kod: string | null; kt_kod: string | null; qiymat: number | null; izoh: string | null };
 export type BuxDavr = { oy: string; holat: 'yopiq' | 'ochiq'; izoh: string | null; yangilandi: string };
 export type BuxHolat = {
@@ -41,6 +41,15 @@ export type BuxTolov = {
 export type BuxShartnoma = { id: number; raqam: string; nom: string | null; asosiy: boolean; kontragent_id: number | null; kontragent: string | null; inn: string | null };
 export type BuxTolovRoyxat = { ok: true; limit: number; tolovlar: BuxTolov[]; shartnomalar: BuxShartnoma[] };
 
+export type BuxKartochkaQator = {
+  id: number; sana: string; korr: string; dt: number; kt: number; saldo: number; kontragent_id: number | null; kontragent: string | null; shartnoma_id: number | null;
+  shartnoma_raqam: string | null; manba_tur: string; manba_id: number | null; hujjat: string | null; qism: string; tur: 'avto' | 'qolda' | 'storno'; izoh: string | null;
+};
+export type BuxKartochka = {
+  ok: true; hisob: { kod: string; nom_uz: string; nom_ru: string; tur: string } | null; dan: string; gacha: string; ochilish: number; dt: number; kt: number; yopilish: number;
+  jami: number; limit: number; qatorlar: BuxKartochkaQator[];
+};
+export type BuxSozlama = { ok: true; shablon: string; davr_blok: boolean; tekshirilsin: number; shablonlar: Array<{ shablon: string; qoidalar: number; yoqilgan: number }> };
 export type BuxFiltr = { dan?: string | null; gacha?: string | null; kontragent_id?: number | null; shartnoma_id?: number | null; hisob?: string | null; limit?: number };
 
 async function oqi<T>(soro: string, kompaniyaId: number, f: BuxFiltr = {}): Promise<{ ok: true; natija: T } | { ok: false; error: string }> {
@@ -58,12 +67,14 @@ export const buxHolatOl = (k: number) => oqi<BuxHolat>('bux_holat_v1', k);
 export const buxJurnalOl = (k: number, f: BuxFiltr) => oqi<BuxJurnal>('bux_jurnal_v1', k, f);
 export const buxOsvOl = (k: number, f: BuxFiltr) => oqi<BuxOsv>('bux_osv_v1', k, f);
 export const buxKontragentOl = (k: number, f: BuxFiltr) => oqi<BuxKontragent>('bux_kontragent_v1', k, f);
+export const buxKartochkaOl = (k: number, f: BuxFiltr) => oqi<BuxKartochka>('bux_kartochka_v1', k, f);
+export const buxSozlamaOl = (k: number) => oqi<BuxSozlama>('bux_sozlama_v1', k);
 export const buxNdsOl = (k: number, f: BuxFiltr) => oqi<BuxNds>('bux_nds_v1', k, f);
 export const buxTolovOl = (k: number, f: BuxFiltr) => oqi<BuxTolovRoyxat>('bux_tolov_v1', k, f);
 
 type YozNatija = AktNatija & { code?: string; xabar?: string };
 export type AvtoNatija = YozNatija & {
-  dry?: boolean; yangi?: number; storno?: number; yopiq_davr_ogohlantirish?: number; oylar?: string[]; f3_summasiz?: number; asos_summasiz?: number;
+  dry?: boolean; yangi?: number; storno?: number; yopiq_davr_ogohlantirish?: number; yopiq_davr_otkazildi?: number; xarajat_kategoriyasiz?: number; oylar?: string[]; f3_summasiz?: number; asos_summasiz?: number;
 };
 
 export const buxBoshlash = (kompaniyaId: number, operationId: string): Promise<YozNatija> =>
@@ -82,6 +93,13 @@ export const buxStorno = (p: { kompaniyaId: number; provodkaId: number; izoh?: s
 export const buxDavr = (p: { kompaniyaId: number; oy: string; amal: 'yop' | 'och'; tasdiq: boolean; izoh?: string | null; operationId: string }): Promise<YozNatija & { ogohlantirishlar?: Array<{ kod: string; xabar: string }> }> =>
   yozAmali({ amal: 'bux_davr_v1', kompaniya_id: p.kompaniyaId, oy: p.oy, davr_amal: p.amal, tasdiq: p.tasdiq, izoh: p.izoh ?? null, operation_id: p.operationId });
 
+export const buxShablonTanla = (kompaniyaId: number, shablon: string, operationId: string): Promise<YozNatija & { moslik_qoshildi?: number }> =>
+  yozAmali({ amal: 'bux_shablon_tanla_v1', kompaniya_id: kompaniyaId, shablon, operation_id: operationId });
+export const buxDavrBlok = (kompaniyaId: number, blok: boolean, operationId: string): Promise<YozNatija> =>
+  yozAmali({ amal: 'bux_davr_blok_v1', kompaniya_id: kompaniyaId, blok, operation_id: operationId });
+export const buxHisobTasdiq = (kompaniyaId: number, kodlar: string[], operationId: string): Promise<YozNatija & { tasdiqlandi?: number }> =>
+  yozAmali({ amal: 'bux_hisob_tasdiq_v1', kompaniya_id: kompaniyaId, kodlar, operation_id: operationId });
+
 export type BankYuk = { kalit: string; sana: string; summa: number; yonalish: 'kirim' | 'chiqim'; shartnoma_id: number; hujjat_raqam?: string | null; izoh?: string | null };
 export const buxBankImport = (p: { kompaniyaId: number; qatorlar: ReadonlyArray<BankYuk>; operationId: string }): Promise<Omit<YozNatija, 'takror'> & { yangi?: number; takror?: number; xato?: number }> =>
   yozAmali({ amal: 'bux_bank_import_v1', kompaniya_id: p.kompaniyaId, qatorlar: p.qatorlar, operation_id: p.operationId }) as unknown as Promise<Omit<YozNatija, 'takror'> & { yangi?: number; takror?: number; xato?: number }>;
@@ -95,6 +113,9 @@ export function buxXato(r: { error?: string; xabar?: string; code?: string } | n
   if (/HISOB_MOSLIKDA/.test(m)) return 'Bu hisob avto-provodka qoidasida ishlatiladi — avval qoidani o‘zgartiring.';
   if (/AVTO_STORNO_MUMKIN_EMAS/.test(m)) return 'Avtomatik provodka hujjat orqali o‘zgaradi: hujjatni tuzating, keyin «Hujjatlardan yangilash».';
   if (/ALLAQACHON_STORNO/.test(m)) return 'Bu provodka allaqachon storno qilingan.';
+  if (/BUX_DAVR_YOPIQ/.test(m)) return 'Bu oy yopilgan: provodka yozilmaydi. Davrni qayta oching yoki keyingi oyga yozing.';
+  if (/SHABLON_YOQ/.test(m)) return 'Bunday qoida shabloni yo‘q.';
+  if (/HISOB_KERAK/.test(m)) return 'Kartochka uchun hisobni tanlang.';
   if (/SANA_SUMMA/.test(m)) return 'Sana va summa (0 emas) kiritilishi kerak.';
   if (/KALIT_YOQ|QIYMAT_0_100/.test(m)) return 'Qoida qiymati noto‘g‘ri.';
   return r?.xabar || r?.error || r?.code || 'Saqlab bo‘lmadi.';

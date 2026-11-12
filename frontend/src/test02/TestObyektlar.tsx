@@ -3,11 +3,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, MapPin, Plus, FolderKanban, FolderPlus, Building2 } from 'lucide-react';
 import { ModalOyna } from '../components/pto-workspace/ModalOyna';
-import { tasdiqSora } from '../umumiy/ui/Tasdiq';
+import { arxivlashJarayoni } from '../api/t2-arxiv';
 import { ProjectNavigator } from '../components/pto-workspace/ProjectNavigator';
 import { t } from '../i18n/til';
 import { Sahifa, BoshHolat } from '../umumiy/ui/Sahifa';
-import { sbT2ObyektlarOlKomp, sbObyektOchirish, sbObyektTahrirlash, sbObyektLokatsiyaBelgila, sbT2ObyektYarat, type T2Obyekt } from '../api/supabase';
+import { sbT2ObyektlarOlKomp, sbObyektTahrirlash, sbObyektLokatsiyaBelgila, sbT2ObyektYarat, type T2Obyekt } from '../api/supabase';
 import { sbT2LoyihalarOl, sbT2LoyihaYoz, type T2Loyiha } from '../api/t2-loyiha';
 import { toast } from '../umumiy/ui/Toast';
 import { useKompaniya } from './KompaniyaTanlov';
@@ -107,15 +107,11 @@ export default function TestObyektlar() {
 
   const handleOchirish = async (e: any, o: Qator) => {
     e.stopPropagation();
-    if (!(await tasdiqSora({ sarlavha: t('Obyektni arxivlash'), matn: t('"{nom}" obyektini arxivga (korzinka) o‘tkazasizmi?', { nom: o.nom }), tasdiqMatni: t('Arxivga o‘tkazish'), xavfli: true }))) return;
+    // Tasdiq + server bloki (tasdiqlangan F2/АОСР bor bo'lsa — aniq sabab) bitta umumiy oqimda.
     try {
-      setYuklanmoqda(true);
-      await sbObyektOchirish(o.id, o.nom);
-      toast("Obyekt Korzinkaga o'tkazildi", 'ok');
-      sinxronla();
-    } catch(err: any) {
+      if (await arxivlashJarayoni('obyekt', o.id, o.nom)) sinxronla();
+    } catch (err: any) {
       toast('Xatolik: ' + err.message, 'danger');
-      setYuklanmoqda(false);
     }
   };
 

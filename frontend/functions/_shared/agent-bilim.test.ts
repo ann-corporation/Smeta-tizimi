@@ -27,6 +27,8 @@ describe('tizim bilimi', () => {
   });
   it('Obsidian asosidagi kengaytirilgan bilim: rollar, zamena, holatlar, parity, zanjir, xavf, xarid, M-29, tomonlar, standart', () => {
     const top = (q: string, p?: string) => bilimTanla(q, p ?? null, 6000, 8).map((x) => x.id);
+  expect(top('Usta telefondan bugungi bajarilgan hajmni qanday kiritadi?')).toContain('usta_bugun');
+  expect(top('Internetsiz ishlaydimi, oflayn navbat')).toContain('usta_bugun');
     expect(top('Prorab nimalarni qila olmaydi, kim tasdiqlaydi?')).toContain('sod_rollar');
     expect(top('Zamena va qo‘shimcha ish farqi nima?')).toContain('zamena_qoshimcha');
     expect(top('Tasdiqlangan F2 da xato chiqsa correction qanday?')).toContain('status_oqim');
