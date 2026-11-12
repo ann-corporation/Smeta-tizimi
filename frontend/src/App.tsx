@@ -9,6 +9,7 @@ import { ToastContainer } from './umumiy/ui/Toast';
 import SahifaTopilmadi from './umumiy/ui/SahifaTopilmadi';
 import KirishSahifa from './kirish/KirishSahifa';
 import QoshilSahifa from './kirish/QoshilSahifa';
+import TaklifSahifa from './kirish/TaklifSahifa';
 import UlashSahifa from './kirish/UlashSahifa';
 
 const AdminShell = lazy(() => import('./admin/AdminShell'));
@@ -92,6 +93,7 @@ const TekshiruvJurnal = lazy(() => import('./admin/nazorat/TekshiruvJurnal'));
 const LabKabinet = lazy(() => import('./admin/laboratoriya/LabKabinet'));
 const ChizmaReestri = lazy(() => import('./admin/loyihachi/ChizmaReestri'));
 const LoyihaSmetaFakt = lazy(() => import('./admin/sahifalar/LoyihaSmetaFakt'));
+const Solishtiruv = lazy(() => import('./admin/sahifalar/Solishtiruv'));
 const LoyihachiBugun = lazy(() => import('./admin/loyihachi/LoyihachiBugun'));
 const HujjatAylanish = lazy(() => import('./admin/zakazchik/HujjatAylanish'));
 const NarxDalil = lazy(() => import('./admin/sahifalar/NarxDalil'));
@@ -139,6 +141,8 @@ export default function App() {
         <Route path="/" element={<KirishSahifa />} />
         {/* «Telegram modeli»: ish joyiga taklif havolasi (kirish talab qilinsa — kirgach shu yerga qaytadi). */}
         <Route path="/qoshil/:kod" element={<QoshilSahifa />} />
+        <Route path="/taklif" element={<TaklifSahifa />} />
+        <Route path="/taklif/:token" element={<TaklifSahifa />} />
         {/* T5: obyektni ulashish havolasi — qabul qilgan odam obyektni o'z ish joyida faqat ko'radi. */}
         <Route path="/ulash/:kod" element={<UlashSahifa />} />
         {/* Telegram Mini App (@qur_uz_bot menyu tugmasi): imzolangan initData → oddiy sessiya → rol bosh sahifasi. */}
@@ -200,6 +204,7 @@ export default function App() {
             <Route path="grafik" element={<Suspense fallback={<SahifaYuklanmoqda />}><GrafikSahifa /></Suspense>} />
             <Route path="tokenlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><Tokenlar /></Suspense>} />
             <Route path="hujjat-dizayn" element={<Suspense fallback={<SahifaYuklanmoqda />}><HujjatDizayni /></Suspense>} />
+            <Route path="solishtiruv" element={<Suspense fallback={<SahifaYuklanmoqda />}><Solishtiruv /></Suspense>} />
             <Route path="shartnoma-liniya" element={<Suspense fallback={<SahifaYuklanmoqda />}><ShartnomaLiniya /></Suspense>} />
             <Route path="qarzdorlik" element={<Suspense fallback={<SahifaYuklanmoqda />}><Qarzdorlik /></Suspense>} />
             <Route path="bozor-sorov" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorSorov /></Suspense>} />

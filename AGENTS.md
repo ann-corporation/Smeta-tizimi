@@ -51,3 +51,18 @@ Gate'lar (`CODEMAP.md` oxirida) → commit → push → deploy tekshiruvi → Ob
 
 ## 5. Yangi sahifa/amal qo'shish
 Yagona joy: `frontend/src/lib/reestr/` (reestr: sahifa, amal, ish joyi, tomon profili; `docs/architecture/EKOTIZIM_ARXITEKTURA_V2.md`). Yangi sahifa/menyu bandi/amal avval shu yerda e'lon qilinadi - menyu, route va ruxsat shundan hosil bo'ladi. `App.tsx`, `NAV_GURUHLAR` yoki boshqa joyga alohida qo'lda qo'shilmaydi; reestr yo'q bo'lsa (PR #355 main'ga tushmagan) - avval o'sha PR'ni kuting. Ildizga skript/ma'lumot tashlamang: skriptlar `scripts/`, katta ma'lumot R2.
+
+## 6. Yangi narsa qo'shish qoidasi (domen shartnomalari, 2026-11-12 - har PR da majburiy)
+Egalik reestri: `frontend/src/lib/reestr/domen.ts`; hujjat: `docs/architecture/DOMEN_SHARTNOMALARI.md`; qo'riqchi: `src/lib/reestr/domen.arxitektura.test.ts`. PR tavsifida 12 qatorni to'ldiring:
+1. Domen: yangi jadval/funksiya qaysi domenga tegishli (nom prefiksi shu domenniki; bo'lmasa `domen.ts` PREFIKS/ISTISNO ga sabab bilan).
+2. Qaysi mavjud YAGONA manba funksiyasi qayta ishlatildi (`OTORITET`): summa, fakt, nakrutka, ruxsat, tomon ko'rinishi - qayta hisoblanmadi.
+3. Nega mavjud sahifa/jadval/funksiya (OXSHASHLAR ro'yxati) mos kelmadi - o'xshash mexanizm yaratilmadi.
+4. Capability: qaysi (`t2_role_permissions_v2` ga bog'langan, yangi rol massivi yozilmagan), `write-command-policy.ts` da amal.
+5. Idempotentlik: yozish amalida `operation_id` (uuid) + command_log; yo'q bo'lsa sabab.
+6. Boshqa domen jadvaliga to'g'ridan yozilmadi (faqat egasining nomli funksiyasi; audit/outbox/signal/command_log mustasno).
+7. Pul: narx QQS siz; summa tartibi QQS bilan -> ustamali -> ustamasiz FAQAT yadro orqali (`_t2_summa_paket_v1`, `lib/hisob-yadro`); `1.12`/`round(pul,2)` yozilmadi.
+8. Invariantlar: asl smeta o'zgarmadi; tasdiqlangan F2 muzlagan; NULL != 0; bitta fakt manbai; nakrutka faqat smeta podvalidan.
+9. Tenant (`kompaniya_id`) + actor + versiya (faol smeta) hisobga olindi.
+10. Reestr: sahifa/amal `lib/reestr` ga e'lon qilindi; AI tool'iga ham qo'shildi (yozuvchi amalda dry_run).
+11. Testlar: `domen.arxitektura.test.ts` yashil, meros ro'yxati (`domen-meros.json`) KENGAYMADI (kengaysa - sabab va egasi tasdig'i).
+12. Katalog: migratsiyadan keyin jonli katalog nusxasi (`domen-katalog.snapshot.json`) yangilandi (faqat nomlar).

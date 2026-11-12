@@ -16,6 +16,10 @@ export const ZAXIRA_BOSH_SAHIFA = '/admin/ish-joylarim';
  *  effektiv rol va ruxsat bo'yicha `rolBoshSahifasi` ni qo'llaydi. Kirish sahifasi rolni O'ZI hal qilmaydi. */
 export const MAVJUD_FOYDALANUVCHI_KIRISH = '/admin';
 
+/** Yangi o'zi ro'yxatdan o'tgan hisob (a'zoliksiz, 20261111460000 «faqat so'rov orqali»): ishga kirishning YAGONA ko'rinadigan qadami —
+ *  Kompaniya sahifasi (STIR bilan so'rov yuborish; platforma administratori tasdiqlaydi) yoki direktor taklifi. Tokenlar sahifasi kompaniyasiz ishlamaydi. */
+export const YANGI_HISOB_KIRISH = '/admin/kompaniya';
+
 const ROL_BOSH_SAHIFA: Readonly<Record<string, string>> = {
   /* Navigatsiya oqimi (2026-11-11): admin/superadmin ham rahbar paneliga (avval Obyektlar sahifasiga tushardi). */
   superadmin: '/admin/dashboard',
