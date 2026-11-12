@@ -17,6 +17,7 @@ export const GENERATED_SITE_MAP = {
     "/admin/narx-manbalari",
     "/admin/oferta",
     "/admin/fakt",
+    "/admin/bugun",
     "/admin/m29",
     "/admin/f2-tayyorlash",
     "/admin/f2",
@@ -73,6 +74,7 @@ export const GENERATED_SITE_MAP = {
     "holat",
     "holat/:id",
     "fakt",
+    "bugun",
     "f2-tayyorlash",
     "f2",
     "f2-tarix",
@@ -258,6 +260,7 @@ export const GENERATED_SITE_MAP = {
     "t2_azolik_royxat",
     "t2_material_alias_royxat",
     "t2_zayavka_royxat",
+    "t2_usta_fakt_qoralama",
     "t2_hodisa_lenta",
     "t2_papka_daraxt",
     "t2_hujjat_turi",
@@ -1144,6 +1147,18 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "fakt_yoz_v2",
       "rpc": "t2_fakt_yoz_v2"
+    },
+    {
+      "amal": "usta_fakt_qoralama_v1",
+      "rpc": "t2_usta_fakt_qoralama_v1"
+    },
+    {
+      "amal": "usta_fakt_qaror_v1",
+      "rpc": "t2_usta_fakt_qaror_v1"
+    },
+    {
+      "amal": "usta_zayavka_v1",
+      "rpc": "t2_usta_zayavka_v1"
     },
     {
       "amal": "fakt_belgila_v2",

@@ -121,6 +121,8 @@ const RUXSAT_JADVALLAR = new Set([
      `t2_erp_taminot` jadvali bor edi, lekin `t2_erp_amal` RPC bazada
      UMUMAN yo'q edi → yozish 404 berardi. */
   't2_zayavka_royxat',
+  /* USTA «Bugun» qoralamalari (20261214300000) — prorab/PTO «Tasdiqlash kutilmoqda» ro'yxati. */
+  't2_usta_fakt_qoralama',
   /* HODISA LENTASI — rahbar «nima sodir bo'ldi» ni ko'radi.
      `t2_audit_log` ga endi TRIGGER yozadi; avval 0 qator edi, chunki
      `t2_audit_yoz` ni hech kim chaqirmasdi (auditda qayd etilgan). */
