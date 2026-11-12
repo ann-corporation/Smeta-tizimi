@@ -1,15 +1,21 @@
 import { useState, useEffect } from 'react';
 import { sbKorzinkaOqish, sbKorzinkadanTiklash, sbButunlayOchirish } from '../api/supabase';
-import { Trash2, RefreshCw, AlertTriangle, Building2, FileText, Package, RotateCcw } from 'lucide-react';
+import { Trash2, RefreshCw, AlertTriangle, Building2, FileText, Package, RotateCcw, FolderKanban, FileSignature, Users, ClipboardCheck } from 'lucide-react';
+import { ARXIV_JADVAL, sbArxivButunlay, sbArxivdanTiklash } from '../api/t2-arxiv';
 import { toast } from '../umumiy/ui/Toast';
 import { useKompaniya } from './KompaniyaTanlov';
 import { Sahifa } from '../umumiy/ui/Sahifa';
 import { tasdiqSora } from '../umumiy/ui/Tasdiq';
 import { t } from '../i18n/til';
 
-type Jadval = 't2_obyekt' | 't2_shaxsiy_smeta' | 't2_sklad_harakat';
+type Jadval = 't2_obyekt' | 't2_shaxsiy_smeta' | 't2_sklad_harakat' | 't2_loyiha' | 't2_shartnoma' | 't2_kontragent' | 't2_aosr' | 't2_akt';
 const TABS: { id: Jadval; nom: string; Icon: typeof Building2 }[] = [
+  { id: 't2_loyiha', nom: 'Loyihalar', Icon: FolderKanban },
   { id: 't2_obyekt', nom: 'Obyektlar', Icon: Building2 },
+  { id: 't2_shartnoma', nom: 'Shartnomalar', Icon: FileSignature },
+  { id: 't2_kontragent', nom: 'Kontragentlar', Icon: Users },
+  { id: 't2_aosr', nom: 'АОСР qoralamalari', Icon: ClipboardCheck },
+  { id: 't2_akt', nom: 'F2 qoralamalari', Icon: FileText },
   { id: 't2_shaxsiy_smeta', nom: 'Smetalar', Icon: FileText },
   { id: 't2_sklad_harakat', nom: 'Sklad hujjatlari', Icon: Package },
 ];
@@ -21,7 +27,7 @@ export default function TestKorzinka() {
   const [items, setItems] = useState<any[]>([]);
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [xato, setXato] = useState('');
-  const [tab, setTab] = useState<Jadval>('t2_obyekt');
+  const [tab, setTab] = useState<Jadval>('t2_loyiha');
 
   const yuklash = async () => {
     setYuklanmoqda(true);
@@ -41,9 +47,14 @@ export default function TestKorzinka() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [joriy]);
 
+  /* Butunlay o'chirish — faqat administrator (server ham tekshiradi). */
+  const admin = ['admin', 'superadmin'].includes((joriy?.rol ?? '').toLowerCase()) || ['admin', 'superadmin'].includes((joriy?.membershipRole ?? '').toLowerCase());
+
   const handleTiklash = async (id: number, nomi: string) => {
     try {
-      await sbKorzinkadanTiklash(tab, id, nomi);
+      const arxivTur = ARXIV_JADVAL[tab];
+      const r = arxivTur ? await sbArxivdanTiklash(arxivTur, id) : await sbKorzinkadanTiklash(tab, id, nomi);
+      if (!r || r.ok === false) { toast((r && (r.xabar || r.error)) || t('Tiklanmadi'), 'danger'); return; }
       toast(t('Muvaffaqiyatli tiklandi'), 'ok');
       void yuklash();
     } catch {
@@ -52,9 +63,11 @@ export default function TestKorzinka() {
   };
 
   const handleOchirish = async (id: number, nomi: string) => {
-    if (!(await tasdiqSora({ sarlavha: t('Butunlay o‘chirish'), matn: t('«{n}» butunlay o‘chirilsinmi? Drive dan ham o‘chib ketadi va tiklab bo‘lmaydi.', { n: nomi }), tasdiqMatni: t('Butunlay o‘chirish'), xavfli: true }))) return;
+    if (!(await tasdiqSora({ sarlavha: t('Butunlay o‘chirish'), matn: t('«{n}» butunlay o‘chirilsinmi? Tiklab bo‘lmaydi.', { n: nomi }), tasdiqMatni: t('Butunlay o‘chirish'), xavfli: true }))) return;
     try {
-      await sbButunlayOchirish(tab, id, nomi);
+      const arxivTur = ARXIV_JADVAL[tab];
+      const r = arxivTur ? await sbArxivButunlay(arxivTur, id) : await sbButunlayOchirish(tab, id, nomi);
+      if (!r || r.ok === false) { toast((r && (r.xabar || r.error)) || t('O‘chirilmadi'), 'danger'); return; }
       toast(t('Butunlay o‘chirildi'), 'ok');
       void yuklash();
     } catch {
@@ -67,7 +80,7 @@ export default function TestKorzinka() {
   const nomi = (item: { nomi?: string; nom?: string }) => item.nomi || item.nom || t('Nomsiz');
 
   return (
-    <Sahifa sarlavha="Korzinka" tavsif="O‘chirilgan obyektlar, smetalar va sklad hujjatlari. Tiklash — xavfsiz; «Butunlay o‘chirish» Drive dagi faylni ham o‘chiradi."
+    <Sahifa sarlavha="Korzinka" tavsif="Korzinkaga yuborilgan loyiha, obyekt, shartnoma, kontragent, АОСР va F2 qoralamalari, smeta va sklad hujjatlari. Tiklash — xavfsiz; «Butunlay o‘chirish» faqat administratorga."
       amallar={<><span className="fz-stamp fz-stamp--danger">{t('xavfli hudud')}</span>
         <button type="button" onClick={() => void yuklash()} className="fz-btn fz-btn--ghost" aria-label={t('Yangilash')}><RefreshCw size={16} className={yuklanmoqda ? 'animate-spin' : ''} />{t('Yangilash')}</button></>}>
       <div className="flex h-full flex-col gap-3">
@@ -96,13 +109,13 @@ export default function TestKorzinka() {
                 <thead><tr><th>{t('Nomi')}</th><th>{t('O‘chirilgan vaqt')}</th><th className="fz-c-num">{t('Amallar')}</th></tr></thead>
                 <tbody>
                   {currentItems.map((item, idx) => (
-                    <tr key={idx}>
+                    <tr key={`${item.jadval}-${item.id}-${idx}`}>
                       <td className="font-medium text-text">{nomi(item)}</td>
                       <td className="text-text-dim">{item.ochirilgan_vaqt ? new Date(item.ochirilgan_vaqt).toLocaleString() : '—'}</td>
                       <td className="fz-c-num">
                         <span className="inline-flex gap-1.5">
                           <button type="button" onClick={() => void handleTiklash(item.id, nomi(item))} className="fz-btn fz-btn--sm"><RotateCcw size={14} />{t('Tiklash')}</button>
-                          <button type="button" onClick={() => void handleOchirish(item.id, nomi(item))} className="fz-btn fz-btn--danger fz-btn--sm"><AlertTriangle size={14} />{t('Butunlay o‘chirish')}</button>
+                          {admin && <button type="button" onClick={() => void handleOchirish(item.id, nomi(item))} className="fz-btn fz-btn--danger fz-btn--sm"><AlertTriangle size={14} />{t('Butunlay o‘chirish')}</button>}
                         </span>
                       </td>
                     </tr>

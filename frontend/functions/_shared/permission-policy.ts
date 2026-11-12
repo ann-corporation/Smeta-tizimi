@@ -15,7 +15,7 @@ export function dataPermission(name: string, write: boolean, body: Record<string
      olib ketish joyi - supply.fulfil; yaratish/qabul - procurement.write; o'qish - procurement.read. write-command-policy.ts bilan bir xil. */
   if (/^buyurtma_/.test(n)) {
     if (!write) return 'procurement.read';
-    if (n === 'buyurtma_royxat_v1' || n === 'buyurtma_tafsilot_v1') return 'procurement.read';
+    if (n === 'buyurtma_royxat_v1' || n === 'buyurtma_tafsilot_v1' || n === 'buyurtma_tolov_holati_v1') return 'procurement.read';
     if (n === 'buyurtma_olish_yoz_v1') return 'supply.fulfil';
     if (n === 'buyurtma_otish_v1') return ['qabul_qilindi','rad','bajarilmoqda','tayyor','topshirildi'].includes(String(body.holat || '')) ? 'supply.fulfil' : 'procurement.write';
     return 'procurement.write';
@@ -55,7 +55,7 @@ export function dataPermission(name: string, write: boolean, body: Record<string
 
 /** Public/auth/webhook/catalog endpoints retain their own guards. All tenant business APIs are covered here. */
 export const SCOPED_APIS = new Set(['object-financials','contract-scope','sb','sb-yoz','company','sessiya','smeta-studio','smeta-yukla','smeta-ai','smeta-narx-agent','f2-moslash',
-  'hujjat-nazorat','hujjat-ol','hujjat-royxat','hujjat-yukla','boss-dashboard','boss-documents','system-control','tomon','hujjat-aylanish','agent-ish','ai-savol','ai-parse','gas','boshqaruv','agent-control',
+  'hujjat-nazorat','hujjat-ol','hujjat-royxat','hujjat-yukla','boss-dashboard','boss-documents','system-control','tomon','loyihachi','hujjat-aylanish','laboratoriya','agent-ish','ai-savol','ai-parse','gas','boshqaruv','agent-control',
   /* Obyekt paketi (ADR OBYEKT_PAKET §1.4): smeta + holat + F2 ro'yxati + nakrutka — faqat o'qish. */
   'obyekt-paket','normativ-qidir']);
 
@@ -90,8 +90,12 @@ export function requestPermission(api: string, method: string, b: Record<string,
   if (api === 'boss-documents') return 'document.read';
   if (api === 'gas') return 'control.global.read'; // T1 emergency adapter is not a tenant permission bypass.
   if (api === 'hujjat-yukla') return 'document.write';
+  /* Laboratoriya: so'rov yuborish — pudratchi (document.write); protokol natijasi laboratoriya a'zosi (inspektor) tomonidan — rol va aloqa bazada tekshiriladi. */
+  if (api === 'laboratoriya') return method === 'POST' && b.amal === 'sorov_yarat' ? 'document.write' : 'document.read';
   /* Hujjat aylanishi: qaror/qabul/o'qildi belgisi qatnashchi tomonda ham bo'ladi (inspektor, texnadzor) — rol bazada tekshiriladi. */
   if (api === 'hujjat-aylanish') return method === 'GET' || ['zanjir_qaror', 'xat_qabul', 'bildirishnoma_oqildi'].includes(String(b.amal)) ? 'document.read' : 'document.write';
+  /* Loyihachi/chizma: kirish chegarasi document.read; aniq capability (design.write/design.issue/document.write) bazada RPC birinchi qatorida. */
+  if (api === 'loyihachi') return 'document.read';
   if (api.startsWith('hujjat')) return method === 'GET' || b.amal === 'royxat' ? 'document.read' : 'document.write';
   return 'document.read';
 }

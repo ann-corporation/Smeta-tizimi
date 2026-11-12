@@ -28,13 +28,16 @@ export const GENERATED_SITE_MAP = {
     "/admin/shartnoma-liniya",
     "/admin/qarzdorlik",
     "/admin/buxgalteriya",
-    "/admin/crm",
-    "/admin/aloqalar",
+    "/admin/kontragentlar",
+    "/admin/yetkazuvchi",
     "/admin/documents",
     "/admin/hujjat-nazorat",
     "/admin/aosr",
     "/admin/storage",
+    "/admin/chizmalar",
+    "/admin/loyihachi",
     "/admin/zakazchik",
+    "/admin/laboratoriya",
     "/admin/taqdimlar",
     "/admin/murojaatlar",
     "/admin/hujjat-aylanish",
@@ -98,10 +101,14 @@ export const GENERATED_SITE_MAP = {
     "hujjat-nazorat",
     "participants",
     "zakazchik",
+    "kontragentlar",
     "aloqalar",
     "taqdimlar",
     "murojaatlar",
+    "laboratoriya",
     "hujjat-aylanish",
+    "chizmalar",
+    "loyihachi",
     "system-control",
     "ai-agentlar",
     "kompaniya",
@@ -111,6 +118,7 @@ export const GENERATED_SITE_MAP = {
     "tizim-sozlama",
     "f2-eski",
     "topshiriqlar",
+    "yetkazuvchi",
     "ish-joylarim",
     "mutaxassis",
     "boshqaruv",
@@ -713,6 +721,10 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_buyurtma_tafsilot_v1"
     },
     {
+      "amal": "buyurtma_tolov_holati_v1",
+      "rpc": "t2_yet_tolov_holati_v1"
+    },
+    {
       "amal": "tender_saqla_v1",
       "rpc": "t2_tender_saqla_v1"
     },
@@ -819,6 +831,18 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "butunlay_ochirish",
       "rpc": "t2_butunlay_ochirish"
+    },
+    {
+      "amal": "arxivla_v1",
+      "rpc": "t2_arxivla_v1"
+    },
+    {
+      "amal": "arxivdan_tiklash_v1",
+      "rpc": "t2_arxivdan_tiklash_v1"
+    },
+    {
+      "amal": "arxiv_butunlay_v1",
+      "rpc": "t2_arxiv_butunlay_v1"
     },
     {
       "amal": "obyekt_yangila",
