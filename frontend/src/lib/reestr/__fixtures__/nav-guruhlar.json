@@ -426,6 +426,35 @@
         ]
       },
       {
+        "nom": "Chizmalar",
+        "ikonka": "FileStack",
+        "sahifalar": [
+          {
+            "yol": "/admin/chizmalar",
+            "ilova": "hujjat",
+            "nom": "Chizmalar va revizyalar",
+            "ruxsat": [
+              "control.company.read",
+              "design.read",
+              "design.write",
+              "document.write"
+            ]
+          },
+          {
+            "yol": "/admin/loyihachi",
+            "ilova": "hujjat",
+            "nom": "Loyihachi: bugun",
+            "ruxsat": [
+              "design.write",
+              "design.issue",
+              "control.company.read",
+              "project.write",
+              "object.write"
+            ]
+          }
+        ]
+      },
+      {
         "nom": "Kiruvchi (tomonlar)",
         "ikonka": "Inbox",
         "sahifalar": [
@@ -446,7 +475,8 @@
             "nom": "Tomonlar hujjatlari",
             "ruxsat": [
               "control.company.read",
-              "project.read"
+              "project.read",
+              "design.read"
             ],
             "modul": "module.loyiha",
             "qoshimcha": true
@@ -457,7 +487,20 @@
             "nom": "Murojaatlar (remark, so‘rov)",
             "ruxsat": [
               "control.company.read",
-              "project.read"
+              "project.read",
+              "design.read"
+            ],
+            "modul": "module.loyiha",
+            "qoshimcha": true
+          },
+          {
+            "yol": "/admin/laboratoriya",
+            "ilova": "hujjat",
+            "nom": "Laboratoriya (sinov so‘rovlari)",
+            "ruxsat": [
+              "control.company.read",
+              "project.read",
+              "quality.read"
             ],
             "modul": "module.loyiha",
             "qoshimcha": true

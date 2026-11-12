@@ -46,7 +46,12 @@ import { obyektZakazchikNomi } from '../lib/pto-markazi/obyekt-zakazchik';
 import { obyektImzochiSaqla, type ImzochiRol } from '../api/obyekt-imzochi';
 import { useSearchParams } from 'react-router-dom';
 import { ZakazchigaYuborish } from '../admin/zakazchik/ZakazchigaYuborish';
+import { AosrChizmaTanlash } from '../admin/loyihachi/AosrChizmaTanlash';
 import { OpsKpi, OpsKpiQator, OpsTablar } from '../components/kompaniya-ops/OpsUi';
+import { SinovSorovYubor, type SorovKontekst } from '../admin/laboratoriya/SinovSorovYubor';
+import { SorovlarRoyxati } from '../admin/laboratoriya/SorovlarRoyxati';
+import { aosrSinovHolatiOl, type AosrSinovHolati } from '../api/t2-lab-sorov';
+import { aosrSinovMatni } from '../lib/laboratoriya/sinov-maslahat';
 
 const ROL_NOMI: Record<string, string> = {
   smo: 'Qurilish-montaj tashkiloti (СМО)', subpudratchi: 'Subpudratchi', bosh_pudratchi: 'Bosh pudratchi',
@@ -96,6 +101,10 @@ export default function TestAosr() {
     void obyektZakazchikNomi(kompaniyaId, obyektId).then((n) => { if (faol) setZakazchikNomi(n); });
     return () => { faol = false; };
   }, [kompaniyaId, obyektId]);
+  /* Sinov so'rovlari (laboratoriya): АОСР bo'yicha holat (bloklangan / kutilmoqda), so'rov formasi, ro'yxat yangilanishi. */
+  const [sinovHolat, setSinovHolat] = useState<Map<number, AosrSinovHolati>>(new Map());
+  const [sorovKontekst, setSorovKontekst] = useState<SorovKontekst | null>(null);
+  const [sorovYangila, setSorovYangila] = useState(0);
 
   useEffect(() => {
     if (!kompaniyaId) { setObyektlar([]); return; }
@@ -119,6 +128,7 @@ export default function TestAosr() {
       // Tartib uchun razdel ma'lumoti (olinmasa — faqat sana bo'yicha tartib).
       void Promise.all([sbQatorMetaOl(obyektId), sbAosrBogOl(kompaniyaId, aq.map((x) => x.id))]).then(([m, b]) => { setQatorMeta(m); setBog(b); });
       setProtokollar(p.ok ? p.qatorlar ?? [] : []);
+      void aosrSinovHolatiOl(kompaniyaId, obyektId).then((s) => setSinovHolat(new Map((s.ok ? s.natija : []).map((x) => [x.aosr_id, x] as const))));
       setBelgilangan(new Set());
     });
   };
@@ -478,7 +488,8 @@ export default function TestAosr() {
                   <div><span className={lbl}>{t('1. Taqdim etilgan ishlar (har qator — alohida band)')}</span><textarea rows={3} className={inpKop} value={forma.ish_tavsifi ?? ''} onChange={f('ish_tavsifi')} /></div>
                   <div className="grid grid-cols-2 gap-2">
                     <div><span className={lbl}>{t('2. Loyiha tashkiloti')}</span><input className={inp} value={forma.loyiha_tashkiloti ?? ''} onChange={f('loyiha_tashkiloti')} /></div>
-                    <div><span className={lbl}>{t('Chizmalar № / sana')}</span><input className={inp} value={forma.loyiha_hujjati ?? ''} onChange={f('loyiha_hujjati')} /></div>
+                    <div><span className={lbl}>{t('Chizmalar № / sana')}</span><input className={inp} value={forma.loyiha_hujjati ?? ''} onChange={f('loyiha_hujjati')} />
+                      {kompaniyaId && obyektId && <AosrChizmaTanlash kompaniyaId={kompaniyaId} obyektId={obyektId} aosrId={forma.id} onToldir={(m) => setForma((x) => (x ? { ...x, loyiha_hujjati: m } : x))} />}</div>
                   </div>
                   <div><span className={lbl}>{t('3. Qo‘llangan materiallar (sertifikat/hujjat havolasi bilan)')}</span><textarea rows={2} className={inpKop} value={forma.materiallar ?? ''} onChange={f('materiallar')} /></div>
                   <div><span className={lbl}>{t('4. Loyihadan chetlanishlar')}</span><input className={inp} value={forma.chetlanishlar ?? ''} onChange={f('chetlanishlar')} /></div>
@@ -517,6 +528,15 @@ export default function TestAosr() {
                       );
                     })}
                   </div>
+                  {forma.id && kompaniyaId && obyektId && (
+                    <div className="fz-panel">
+                      <div className="fz-panel__h"><span>{t('Laboratoriya sinovi')}</span>
+                        <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" onClick={() => setSorovKontekst({ obyektId, aosrId: forma.id, aosrNom: forma.raqam ?? String(forma.id) })}><FlaskConical /> {t('Sinov so‘rovi')}</button></div>
+                      {sorovKontekst?.aosrId === forma.id && <div className="p-2"><SinovSorovYubor kompaniyaId={kompaniyaId} kontekst={sorovKontekst} onYopish={() => setSorovKontekst(null)} onYuborildi={() => { setSorovKontekst(null); setSorovYangila((x) => x + 1); yukla(); }} /></div>}
+                      <div className="p-2"><SorovlarRoyxati kompaniyaId={kompaniyaId} yonalish="yuborilgan" obyektId={obyektId} aosrId={forma.id} yangilash={sorovYangila}
+                        onQayta={(s) => setSorovKontekst({ obyektId, aosrId: forma.id, aosrNom: forma.raqam ?? String(forma.id), qatorId: s.qator_id, aslSorovId: s.id })} /></div>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between gap-2 pt-1">
                     {forma.holat === 'tasdiqlangan'
                       ? <span className="fz-stamp fz-stamp--ok" title={t('Tasdiqlangan holatni buyurtmachi / texnadzor qarori qo‘yadi')}>{t(HOLAT_NOMI.tasdiqlangan)}</span>
@@ -552,6 +572,9 @@ export default function TestAosr() {
                               <span className="fz-chip" title={(sifat.get(a.id) ?? []).map((x) => t(AKT_SIFAT_NOM[x])).join('; ')}>{t('{n} kamchilik', { n: (sifat.get(a.id) ?? []).length })}</span>
                             )}
                             {dublikat.has(a.id) && <span className="fz-chip fz-chip--warn" title={t('Shu obyektda bir xil ish nomli akt bor')}>{t('dublikat?')}</span>}
+                            {a.holat !== 'bekor' && aosrSinovMatni(sinovHolat.get(a.id)) && (
+                              <span className={`fz-chip ${sinovHolat.get(a.id)?.bloklangan ? 'fz-chip--warn' : ''}`} data-testid="aosr-sinov-chip" title={aosrSinovMatni(sinovHolat.get(a.id)) ?? ''}><AlertTriangle size={11} />{sinovHolat.get(a.id)?.holat.nomos.length ? t('Sinov mos emas — yuborib bo‘lmaydi') : t('Sinov natijasi kutilmoqda — yuborib bo‘lmaydi')}</span>
+                            )}
                             {a.holat !== 'bekor' && (labYoq.get(a.id) ?? []).length > 0 && (
                               <span className="fz-chip fz-chip--warn" title={t('Bu ish turiga laboratoriya protokoli kerak, lekin ulanmagan')}><AlertTriangle size={11} />{t('protokol yo‘q: {x}', { x: (labYoq.get(a.id) ?? []).map((x) => LAB_TALAB_NOM[x]).join(', ') })}</span>
                             )}

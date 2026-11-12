@@ -5,8 +5,7 @@
  */
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Paperclip } from 'lucide-react';
-import { kechikkanKun } from '../../lib/nazorat/predpisaniya';
+import { Paperclip } from 'lucide-react';import { kechikkanKun } from '../../lib/nazorat/predpisaniya';
 import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
@@ -171,14 +170,16 @@ function Tafsilot({ kompaniyaId, id, turlar, yangila }: { kompaniyaId: number; i
 export default function Murojaatlar() {
   const { joriy } = useKompaniya();
   const kompaniyaId = joriy?.id ?? null;
-  const [yonalish, setYonalish] = useState<'menga' | 'mendan'>('menga');
+  /* Rol uyidan («Bugun») chuqur havola: ?turi=savol|mualliflik_remark&yonalish=menga|mendan. */
+  const qidiruv = useMemo(() => new URLSearchParams(typeof window === 'undefined' ? '' : window.location.search), []);
+  const [yonalish, setYonalish] = useState<'menga' | 'mendan'>(qidiruv.get('yonalish') === 'mendan' ? 'mendan' : 'menga');
   const [holat, setHolat] = useState('');
   const [royxat, setRoyxat] = useState<MurojaatQisqa[]>([]);
   const [aloqalar, setAloqalar] = useState<Aloqa[]>([]);
   const [turlar, setTurlar] = useState<MurojaatTuri[]>([]);
   const [tanlangan, setTanlangan] = useState<number | null>(null);
   const [xato, setXato] = useState('');
-  const [turFiltr, setTurFiltr] = useState('');
+  const [turFiltr, setTurFiltr] = useState(/^[a-z][a-z0-9_]{1,40}$/.test(qidiruv.get('turi') ?? '') ? (qidiruv.get('turi') as string) : '');
   const korinadi = turFiltr ? royxat.filter((x) => x.turi === turFiltr) : royxat;
   const [faqatKechikkan, setFaqatKechikkan] = useState(false);
   const bugun = new Date().toISOString().slice(0, 10);
