@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Components } from 'react-markdown';
+import { mdBolaklar } from '../../lib/yordamchi/jadval';
 import { ArrowRight, Bot, Mic, MicOff, Send, Square, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { kasbSavolOqim, tizimYordamSavol, type KasbIshchi, type KasbYakun, type Qadam, type SahifaIshora } from '../../api/t2-agent-ish';
@@ -34,6 +35,17 @@ const XATO_MATNI: Record<string, string> = {
   KOMPANIYA_AI_OCHIQ: 'Kompaniya administratori AI ni o‘chirgan (Sozlamalar → AI).',
   TOKEN_LIMIT_TUGADI: 'Kompaniyaning AI oylik token limiti tugadi.',
 };
+
+/** Javob matni: jadval bo'laklari <table>, qolgani markdown (remark-gfm yo'q — lib/yordamchi/jadval.ts). */
+function Markdown({ matn, bogla }: { matn: string; bogla: Components }) {
+  return <>{mdBolaklar(matn).map((b, i) => b.tur === 'md'
+    ? <ReactMarkdown key={i} components={bogla}>{b.matn}</ReactMarkdown>
+    : <div key={i} className="my-2 max-w-full overflow-x-auto" data-testid="ai-jadval"><table className="w-full border-collapse text-xs">
+        <thead><tr>{b.bosh.map((h, k) => <th key={k} className="border border-border bg-surface-2 px-2 py-1 font-semibold" style={{ textAlign: JADVAL_TEKIS[b.tekis[k]] }}><ReactMarkdown components={{ ...bogla, p: ({ children }) => <>{children}</> }}>{h}</ReactMarkdown></th>)}</tr></thead>
+        <tbody>{b.qatorlar.map((q, r) => <tr key={r}>{q.map((x, k) => <td key={k} className="border border-border px-2 py-1" style={{ textAlign: JADVAL_TEKIS[b.tekis[k]] }}><ReactMarkdown components={{ ...bogla, p: ({ children }) => <>{children}</> }}>{x}</ReactMarkdown></td>)}</tr>)}</tbody>
+      </table></div>)}</>;
+}
+const JADVAL_TEKIS = { l: 'left', r: 'right', c: 'center' } as const;
 
 const ichkiYolmi = (h?: string): h is string => typeof h === 'string' && h.startsWith('/') && !h.startsWith('//');
 
@@ -145,7 +157,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
         let r: IshlovNatija;
         try {
           r = await yordamchiIshla(n, s, {
-            kompaniyaId, sahifalar: ya.sahifalar, motor: ya.motor, tarix: tarixOl(), hujjat: ya.hujjat ?? undefined, sahifaAmalBajar: ya.sahifaAmalBajar, kim: ya.kim, vosita: ya.vosita,
+            kompaniyaId, sahifalar: ya.sahifalar, motor: ya.motor, tarix: tarixOl().filter((x) => !(x.rol === 'user' && x.matn === s.slice(0, 600))), hujjat: ya.hujjat ?? undefined, sahifaAmalBajar: ya.sahifaAmalBajar, kim: ya.kim, vosita: ya.vosita,
             qadam: (q) => { if (gen.current === boshlangich) xabarYangila(id + 'a', (x) => ({ ...x, qadamlar: [...(x.qadamlar ?? []), { ms: 0, belgi: q.holat === 'xato' ? '✗' : '⏳', matn: q.matn }] })); },
             tirikmi: () => gen.current === boshlangich && !ctrl.signal.aborted,
           });
@@ -200,7 +212,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     if (katalog.length && gen.current === boshlangich)
       setXabarlar((p) => p.map((x) => (x.id === id + 'a' ? { ...x, qadamlar: [...(x.qadamlar ?? []), { ms: 0, belgi: '📚', matn: t('Platforma narx indeksidan {n} ta mos qator olindi', { n: katalog.length }) }] } : x)));
     const yakun = await kasbSavolOqim(kompaniyaId, s, {
-      sahifa, signal: ctrl.signal, katalog, studio, obyektNomi: ya?.joriyObyekt?.nom ?? null,
+      sahifa, signal: ctrl.signal, katalog, studio, obyektNomi: ya?.joriyObyekt?.nom ?? null, tarix: tarixOl().filter((x) => !(x.rol === 'user' && x.matn === s.slice(0, 600))),
       qadam: (q) => { if (gen.current === boshlangich) setXabarlar((p) => p.map((x) => (x.id === id + 'a' ? { ...x, qadamlar: [...(x.qadamlar ?? []), q] } : x))); },
     });
     if (gen.current !== boshlangich) return;   // kompaniya almashdi — eski javob ko'rsatilmaydi
@@ -287,7 +299,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
                 {!m.xato && m.yakun?.rad && <span className="fz-stamp fz-stamp--warn ml-auto">{t('Doiradan tashqari')}</span>}
               </div>}
               {m.rol === 'ai' && m.jonli && !m.qadamlar?.length && <span className="text-xs text-text-dim">{t('Ulanmoqda…')}</span>}
-              {m.matn && <div className="prose prose-invert prose-sm max-w-none"><ReactMarkdown components={markdownBogla}>{m.matn}</ReactMarkdown></div>}
+              {m.matn && <div className="prose prose-invert prose-sm max-w-none"><Markdown matn={m.matn} bogla={markdownBogla} /></div>}
               {m.rol === 'ai' && m.yakun?.rad && <div className="mt-1 text-[11px] text-warn">🛑 {t('Doiradan tashqari savol — model chaqirilmadi')}</div>}
               {m.rol === 'ai' && (m.qadamlar?.length || m.jonli) ? <AiQadamlar qadamlar={m.qadamlar ?? []} jonli={m.jonli === true} /> : null}
               <OtishTugmalari royxat={m.sahifalar ?? m.yakun?.sahifalar} ochish={ochish} />

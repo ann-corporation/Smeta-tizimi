@@ -22,20 +22,19 @@ export const BAHO: Q[] = [
   { m: 'f2 tayyorlashni och', tur: 'navigatsiya', yol: '/admin/f2-tayyorlash' },
   { m: 'qarzdorlikni ko\'rsat', tur: 'navigatsiya', yol: '/admin/qarzdorlik' },
   { m: 'obyektlar sahifasiga o\'t', tur: 'navigatsiya', yol: '/admin/obyektlar' },
-  { m: 'faktni och', tur: 'navigatsiya', yol: '/admin/fakt', bilinadi: true },
+  { m: 'faktni och', tur: 'sahifaTanla' },                   // fakt sahifalari bir nechta — «qaysi birini ochay?»,
   { m: 'nakopitelniyni och', tur: 'navigatsiya', yol: '/admin/nakopitelniy' },
   { m: 'M-29 ni och', tur: 'navigatsiya', yol: '/admin/m29' },
   { m: 'zayavka sahifasiga kir', tur: 'navigatsiya', yol: '/admin/zayavka' },
   { m: 'kursni och', tur: 'navigatsiya', yol: '/admin/kurs' },
   // --- navigatsiya (kirill, ru, en, aralash)
-  { m: 'ёпиш мақсад: мындмапни оч', tur: 'navigatsiya', bilinadi: true },
   { m: 'открой майндмап', tur: 'navigatsiya', yol: '/admin/mindmap' },
   { m: 'покажи долги', tur: 'navigatsiya', yol: '/admin/qarzdorlik' },
   { m: 'open debts', tur: 'navigatsiya', yol: '/admin/qarzdorlik' },
   { m: 'open mindmap', tur: 'navigatsiya', yol: '/admin/mindmap' },
   { m: 'АОСР sahifasi', tur: 'navigatsiya', yol: '/admin/aosr' },
   { m: 'открой АОСР', tur: 'navigatsiya', yol: '/admin/aosr' },
-  { m: 'мындмапни оч', tur: 'navigatsiya', yol: '/admin/mindmap', bilinadi: true },
+  { m: 'майндмапни оч', tur: 'navigatsiya', yol: '/admin/mindmap' },
   { m: 'ф2 тарихини оч', tur: 'navigatsiya', yol: '/admin/f2-tarix', bilinadi: true },
   { m: 'fakt sahifasini ochib bering iltimos', tur: 'navigatsiya', yol: '/admin/fakt' },
   { m: 'iltimos qarzdorlikni ochib bering', tur: 'navigatsiya', yol: '/admin/qarzdorlik' },
@@ -56,10 +55,10 @@ export const BAHO: Q[] = [
   { m: 'beton qidir', tur: 'oqish' },
   { m: 'g\'isht devor izla', tur: 'oqish' },
   { m: 'найди бетон', tur: 'oqish' },
-  { m: 'obyekt holati', tur: 'oqish', bilinadi: true },
+  { m: 'obyekt holati', tur: 'navigatsiya', yol: '/admin/holat' },
   { m: 'holat qanday', tur: 'oqish' },
   { m: 'Yevropa 1 holati', tur: 'oqish' },
-  { m: 'статус объекта', tur: 'oqish', bilinadi: true },
+  { m: 'статус объекта', tur: 'navigatsiya', yol: '/admin/holat' },
   { m: 'ostatka beton', tur: 'oqish' },
   { m: 'narksiz qatorlar', tur: 'oqish', bilinadi: true },      // imlo xatosi
   { m: 'qoldiq qansha', tur: 'oqish' },
@@ -117,9 +116,92 @@ export const BAHO: Q[] = [
   // --- tushunarsiz (rad etilmaydi: nomalum -> yaqin sahifalar)
   { m: 'asdfgh', tur: 'nomalum' },
   { m: 'ob-havo qanday', tur: 'nomalum' },
-];
+  // --- kengaytma: ko'cha tili, qisqartmalar, aralash uz/ru, imlo
+  { m: 'f2 ni och', tur: 'navigatsiya', yol: '/admin/f2-tarix' },
+  { m: 'ф2 ни оч', tur: 'navigatsiya', yol: '/admin/f2-tarix' },
+  { m: 'пто нинг ф2 тарихи', tur: 'navigatsiya', bilinadi: true },
+  { m: 'akt sahifasiga o\'tib ber', tur: 'navigatsiya', bilinadi: true },
+  { m: 'nakopitelniy vedomost', tur: 'navigatsiya', yol: '/admin/nakopitelniy' },
+  { m: 'накопительная ведомость открой', tur: 'navigatsiya', yol: '/admin/nakopitelniy' },
+  { m: 'открой м29', tur: 'navigatsiya', yol: '/admin/m29' },
+  { m: 'm29 ni och', tur: 'navigatsiya', yol: '/admin/m29' },
+  { m: 'мен фактни кўрмоқчиман', tur: 'sahifaTanla', bilinadi: true },
+  { m: 'obyektlarni ko\'rsat', tur: 'navigatsiya', yol: '/admin/obyektlar' },
+  { m: 'покажи объекты', tur: 'navigatsiya', yol: '/admin/obyektlar' },
+  { m: 'открой kurs', tur: 'navigatsiya', yol: '/admin/kurs' },
+  { m: 'kursga o\'t', tur: 'navigatsiya', yol: '/admin/kurs' },
+  { m: 'mindmap', tur: 'navigatsiya', yol: '/admin/mindmap' },
+  { m: 'майндмап', tur: 'navigatsiya', yol: '/admin/mindmap' },
+  { m: 'qarzlar', tur: 'navigatsiya', yol: '/admin/qarzdorlik' },
+  { m: 'долги', tur: 'navigatsiya', yol: '/admin/qarzdorlik' },
+  { m: 'bugun yuk chaqir', tur: 'navigatsiya', bilinadi: true },
+  { m: 'zayavka och', tur: 'navigatsiya', yol: '/admin/zayavka' },
+  { m: 'открой заявку', tur: 'navigatsiya', bilinadi: true },
+  // o'qish
+  { m: 'qancha narxsiz qator bor', tur: 'oqish' },
+  { m: 'narxsiz qatorlarni topib ber', tur: 'oqish' },
+  { m: 'сколько строк без цены', tur: 'oqish', bilinadi: true },
+  { m: 'остатки по бетону', tur: 'oqish' },
+  { m: 'qoldiq beton', tur: 'oqish' },
+  { m: 'qoldiqda nima qolgan', tur: 'oqish' },
+  { m: 'арматура остаток', tur: 'oqish' },
+  { m: 'sement qidirib ber', tur: 'oqish' },
+  { m: 'qidir armatura 12', tur: 'oqish' },
+  { m: 'holatni ayt', tur: 'oqish', bilinadi: true },
+  { m: 'obyekt ahvoli qanday', tur: 'oqish', bilinadi: true },
+  { m: 'Amfiteatr qoldiq', tur: 'oqish' },
+  { m: 'Amfiteatr narxsiz', tur: 'oqish' },
+  { m: 'Fast Food 1-etaj holati', tur: 'oqish' },
+  // yozuv
+  { m: '+3 armatura', tur: 'yozuv' },
+  { m: '+12.5 beton', tur: 'yozuv' },
+  { m: '=100 g\'isht', tur: 'yozuv' },
+  { m: 'beton 8 m3 qo\'sh', tur: 'yozuv' },
+  { m: 'beton 8 м3 добавь', tur: 'yozuv' },
+  { m: 'внеси факт 20 кирпич', tur: 'yozuv' },
+  { m: 'bugun 40 kv.m shpaklyovka yoz', tur: 'yozuv' },
+  { m: 'faktga +7 kirit', tur: 'yozuv' },
+  { m: 'Amfiteatr +25 beton', tur: 'yozuv' },
+  { m: 'Yevropa 1 =60 armatura', tur: 'yozuv' },
+  { m: 'qum 15 tonna kirit', tur: 'yozuv' },
+  { m: 'metall 2 tn qoshib qoy', tur: 'yozuv' },
+  // hujjatlar
+  { m: 'Amfiteatr F2 qoralama tayyorla', tur: 'f2Qoralama' },
+  { m: 'oktabr F2 ni tuzib ber', tur: 'f2Qoralama' },
+  { m: 'f2 tayyorlab ber noyabr', tur: 'f2Qoralama' },
+  { m: 'подготовь ф2', tur: 'f2Qoralama', bilinadi: true },
+  { m: 'aosr qoralama yarat', tur: 'aosrQoralama' },
+  { m: 'АОСР tayyorla beton uchun', tur: 'aosrQoralama' },
+  { m: 'aosr nima yetishmayapti', tur: 'aosrYetishmaydi' },
+  { m: 'qaysi aosr yo\'q', tur: 'aosrYetishmaydi' },
+  { m: 'F2 jami qancha', tur: 'f2Royxat' },
+  { m: 'nechta f2 bor', tur: 'f2Royxat' },
+  { m: 'qarz qancha', tur: 'qarz' },
+  { m: 'qarzdorlik holati qanday', tur: 'qarz', bilinadi: true },
+  // kim / yordam / noma'lum
+  { m: 'kim men', tur: 'kim' },
+  { m: 'мой статус', tur: 'kim', bilinadi: true },
+  { m: 'mening ruxsatlarim qanday', tur: 'kim', bilinadi: true },
+  { m: 'qaysi obyektdamiz', tur: 'kim' },
+  { m: 'моя компания', tur: 'kim' },
+  { m: 'imkoniyatlar', tur: 'yordam' },
+  { m: 'what can you do', tur: 'yordam' },
+  { m: 'qxzvpo', tur: 'nomalum' },
+  { m: 'bugun havo issiq', tur: 'nomalum' },
+  // vositalar
+  { m: 'bugun menga nima kutyapti', tur: 'vosita' },
+  { m: 'что меня ждет сегодня', tur: 'vosita' },
+  { m: 'F2 ni tasdiqla', tur: 'vosita' },
+  { m: 'oktabr F2 ni tasdiqlab ber', tur: 'vosita' },
+  { m: 'F2 ni bekor qil', tur: 'vosita' },
+  { m: 'xarajat yoz 12 mln', tur: 'vosita' },
+  { m: 'tolov yoz 50 mln', tur: 'vosita' },
+  { m: 'texnadzorga murojaat yubor', tur: 'vosita' },
+  { m: 'F2 ni texnadzorga yubor', tur: 'vosita' },
+  { m: 'solishtiruvni ko\'rsat', tur: 'vosita' },
+  { m: 'F2 ni excelga yuklab ber', tur: 'vosita' },];
 
-const ANIQLIK_MIN = 0.85;
+const ANIQLIK_MIN = 0.97;
 const tekshir = (q: Q) => {
   const n = niyatAniqla(q.m, ctx);
   const turOk = n.tur === q.tur;
@@ -137,6 +219,7 @@ describe('mahalliy niyat baholash to‘plami', () => {
     const xato = natija.filter((x) => !x.ok && !x.q.bilinadi).map((x) => `${x.q.m} -> ${x.n.tur} (kutilgan ${x.q.tur}${x.q.yol ? ' ' + x.q.yol : ''})`);
     // eslint-disable-next-line no-console
     console.log(`NIYAT-BAHO: ${togri}/${BAHO.length} = ${(aniqlik * 100).toFixed(1)}%; bilinadigan xatolar: ${natija.filter((x) => !x.ok && x.q.bilinadi).length}`);
+    console.log('MISSES: ' + natija.filter((x) => !x.ok).map((x) => x.q.m + ' -> ' + x.n.tur + (x.n.tur === 'navigatsiya' ? ' ' + x.n.sahifa.yol : '')).join(' | '));
     expect(xato).toEqual([]);
     expect(aniqlik).toBeGreaterThanOrEqual(ANIQLIK_MIN);
   });
