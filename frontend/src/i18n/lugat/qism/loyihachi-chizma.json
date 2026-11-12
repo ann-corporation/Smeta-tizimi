@@ -1,0 +1,398 @@
+{
+  "Bu varaq allaqachon bor — yangilandi": {
+    "ru": "Такой лист уже есть — обновлён",
+    "en": "This sheet already exists — updated"
+  },
+  "Chizma varag‘i ochildi": {
+    "ru": "Лист чертежа создан",
+    "en": "Drawing sheet created"
+  },
+  "Chizma chiqarish uchun avval pudratchi bilan faol aloqa kerak (Tomonlar aloqasi).": {
+    "ru": "Чтобы выпускать чертежи, нужна активная связь с подрядчиком (Связи сторон).",
+    "en": "To issue drawings you first need an active link with the contractor (Party links)."
+  },
+  "RD — ishchi hujjat": {
+    "ru": "РД — рабочая документация",
+    "en": "RD — working documentation"
+  },
+  "PD — loyiha hujjati": {
+    "ru": "ПД — проектная документация",
+    "en": "PD — project documentation"
+  },
+  "Marka (КЖ, АР, ОВ…)": {
+    "ru": "Марка (КЖ, АР, ОВ…)",
+    "en": "Mark (КЖ, АР, ОВ…)"
+  },
+  "Varaq raqami": {
+    "ru": "Номер листа",
+    "en": "Sheet number"
+  },
+  "Varaq ochish": {
+    "ru": "Создать лист",
+    "en": "Create sheet"
+  },
+  "Revizya qoralamasi tayyor — endi chiqaring": {
+    "ru": "Черновик ревизии готов — теперь выпустите",
+    "en": "Revision draft ready — now issue it"
+  },
+  "Birinchi chiqarish (rev. 0)": {
+    "ru": "Первый выпуск (рев. 0)",
+    "en": "First issue (rev. 0)"
+  },
+  "Yangi revizya": {
+    "ru": "Новая ревизия",
+    "en": "New revision"
+  },
+  "Chizma fayli": {
+    "ru": "Файл чертежа",
+    "en": "Drawing file"
+  },
+  "Izoh (ixtiyoriy)": {
+    "ru": "Комментарий (необязательно)",
+    "en": "Comment (optional)"
+  },
+  "Nima o‘zgardi? (majburiy)": {
+    "ru": "Что изменилось? (обязательно)",
+    "en": "What changed? (required)"
+  },
+  "Smetaga ta’siri (ixtiyoriy): qaysi ish qo‘shiladi, almashadi yoki hajmi o‘zgaradi": {
+    "ru": "Влияние на смету (необязательно): какая работа добавляется, заменяется или меняется объём",
+    "en": "Impact on the estimate (optional): which work is added, replaced or changes in quantity"
+  },
+  "Rad etish sababi?": {
+    "ru": "Причина отказа?",
+    "en": "Reason for rejection?"
+  },
+  "Smeta o‘zgarishi qoralamasi yaratildi — «Smeta va Fakt» da tasdiqlang": {
+    "ru": "Создан черновик изменения сметы — утвердите в «Смета и Факт»",
+    "en": "Estimate change draft created — approve it in \"Estimate and Fact\""
+  },
+  "Smeta o‘zgarish takliflari yo‘q": {
+    "ru": "Предложений по изменению сметы нет",
+    "en": "No estimate change proposals"
+  },
+  "Smeta o‘zgarishiga aylandi": {
+    "ru": "Стало изменением сметы",
+    "en": "Became an estimate change"
+  },
+  "Smeta qatori № (shart)": {
+    "ru": "№ строки сметы (обязательно)",
+    "en": "Estimate row no. (required)"
+  },
+  "Smeta o‘zgarishiga aylantirish": {
+    "ru": "Превратить в изменение сметы",
+    "en": "Turn into estimate change"
+  },
+  "Taklif turi": {
+    "ru": "Тип предложения",
+    "en": "Proposal type"
+  },
+  "Ish nomi (narxsiz — narxni PTO qo‘yadi)": {
+    "ru": "Название работы (без цены — цену задаёт ПТО)",
+    "en": "Work name (no price — PTO sets the price)"
+  },
+  "Taklif qo‘shish": {
+    "ru": "Добавить предложение",
+    "en": "Add proposal"
+  },
+  "Smeta takliflari": {
+    "ru": "Предложения по смете",
+    "en": "Estimate proposals"
+  },
+  "yangi": {
+    "ru": "новых",
+    "en": "new"
+  },
+  "Nima o‘zgardi": {
+    "ru": "Что изменилось",
+    "en": "What changed"
+  },
+  "Smetaga ta’siri": {
+    "ru": "Влияние на смету",
+    "en": "Impact on the estimate"
+  },
+  "Kimga chiqariladi": {
+    "ru": "Кому выпускается",
+    "en": "Issued to"
+  },
+  "Yuboruvchi izohi (ixtiyoriy)": {
+    "ru": "Комментарий отправителя (необязательно)",
+    "en": "Sender comment (optional)"
+  },
+  "Avval chizma faylini yuklang": {
+    "ru": "Сначала загрузите файл чертежа",
+    "en": "Upload the drawing file first"
+  },
+  "Revizya chiqarildi — pudratchi va texnadzor xabar oladi": {
+    "ru": "Ревизия выпущена — подрядчик и технадзор получат уведомление",
+    "en": "Revision issued — the contractor and supervision will be notified"
+  },
+  "Ishga chiqarish": {
+    "ru": "Выпустить в производство",
+    "en": "Release for work"
+  },
+  "Revizya bekor qilindi": {
+    "ru": "Ревизия отменена",
+    "en": "Revision cancelled"
+  },
+  "Bekor qilish (sabab yozing)": {
+    "ru": "Отменить (укажите причину)",
+    "en": "Cancel (state the reason)"
+  },
+  "Revizyani bekor qilish": {
+    "ru": "Отменить ревизию",
+    "en": "Cancel revision"
+  },
+  "Izoh (tuzatish yoki rad uchun majburiy)": {
+    "ru": "Комментарий (обязателен для доработки или отказа)",
+    "en": "Comment (required for rework or rejection)"
+  },
+  "Revizya qabul qilindi": {
+    "ru": "Ревизия принята",
+    "en": "Revision accepted"
+  },
+  "Tuzatish so‘ralib yuborildi": {
+    "ru": "Запрос на доработку отправлен",
+    "en": "Rework request sent"
+  },
+  "Revizya rad etildi": {
+    "ru": "Ревизия отклонена",
+    "en": "Revision rejected"
+  },
+  "Bu chizmaga tayangan ishlar": {
+    "ru": "Работы, опирающиеся на этот чертёж",
+    "en": "Work based on this drawing"
+  },
+  "Hali bog‘lanmagan. Smeta qatorini shu yerda, АОСР ni «АОСР» sahifasida bog‘lang.": {
+    "ru": "Пока не привязано. Строку сметы привяжите здесь, АОСР — на странице «АОСР».",
+    "en": "Not linked yet. Link an estimate row here, and an АОСР on the \"АОСР\" page."
+  },
+  "Eskirgan: joriy": {
+    "ru": "Устарело: текущая",
+    "en": "Outdated: current"
+  },
+  "Joriy revizyaga yangilash": {
+    "ru": "Обновить до текущей ревизии",
+    "en": "Update to current revision"
+  },
+  "Smeta qatori №": {
+    "ru": "№ строки сметы",
+    "en": "Estimate row no."
+  },
+  "Joriy revizyaga bog‘lash": {
+    "ru": "Привязать к текущей ревизии",
+    "en": "Link to current revision"
+  },
+  "Barcha obyektlar": {
+    "ru": "Все объекты",
+    "en": "All objects"
+  },
+  "Chizma yo‘q": {
+    "ru": "Чертежей нет",
+    "en": "No drawings"
+  },
+  "Hali chiqarilmagan": {
+    "ru": "Ещё не выпущено",
+    "en": "Not issued yet"
+  },
+  "Chizmalar": {
+    "ru": "Чертежи",
+    "en": "Drawings"
+  },
+  "Obyekt bo‘yicha chizmalar va revizyalar: loyihachi chiqaradi → pudratchi va texnadzor qabul qiladi → smeta va АОСР joriy revizyaga bog‘lanadi": {
+    "ru": "Чертежи и ревизии по объекту: проектировщик выпускает → подрядчик и технадзор принимают → смета и АОСР привязываются к текущей ревизии",
+    "en": "Drawings and revisions per object: the designer issues → contractor and supervision accept → estimate and АОСР link to the current revision"
+  },
+  "Yangi chizma varag‘i": {
+    "ru": "Новый лист чертежа",
+    "en": "New drawing sheet"
+  },
+  "Chizmalar, savollar va remarklar: bugun nima qilish kerak": {
+    "ru": "Чертежи, вопросы и замечания: что сделать сегодня",
+    "en": "Drawings, questions and remarks: what to do today"
+  },
+  "Yangi revizya chiqarish": {
+    "ru": "Выпустить новую ревизию",
+    "en": "Issue a new revision"
+  },
+  "Fayl yuklang, nima o‘zgarganini yozing, pudratchiga yuboring": {
+    "ru": "Загрузите файл, опишите изменения, отправьте подрядчику",
+    "en": "Upload a file, describe the change, send it to the contractor"
+  },
+  "Chizmalarim holati": {
+    "ru": "Состояние моих чертежей",
+    "en": "Status of my drawings"
+  },
+  "Pudratchi qabul qildimi yoki tuzatish so‘radimi": {
+    "ru": "Принял подрядчик или запросил доработку",
+    "en": "Did the contractor accept or ask for rework"
+  },
+  "Pudratchi savollari": {
+    "ru": "Вопросы подрядчика",
+    "en": "Contractor questions"
+  },
+  "Savolga javob yozing, kerak bo‘lsa fayl biriktiring": {
+    "ru": "Ответьте на вопрос, при необходимости приложите файл",
+    "en": "Answer the question, attach a file if needed"
+  },
+  "Mualliflik nazorati remarklari": {
+    "ru": "Замечания авторского надзора",
+    "en": "Author supervision remarks"
+  },
+  "Remark yozing, muddat qo‘ying, bajarilganini yoping": {
+    "ru": "Напишите замечание, задайте срок, закройте выполненное",
+    "en": "Write a remark, set a deadline, close what is done"
+  },
+  "Smeta o‘zgarish takliflari": {
+    "ru": "Предложения по изменению сметы",
+    "en": "Estimate change proposals"
+  },
+  "Loyiha o‘zgarishidan qaysi ish smetaga qo‘shiladi yoki almashadi": {
+    "ru": "Какая работа из-за изменения проекта добавляется в смету или заменяется",
+    "en": "Which work is added to or replaced in the estimate due to the design change"
+  },
+  "Chizmalar reyestri": {
+    "ru": "Реестр чертежей",
+    "en": "Drawing register"
+  },
+  "Obyekt bo‘yicha hamma chizma va revizyalar": {
+    "ru": "Все чертежи и ревизии по объекту",
+    "en": "All drawings and revisions per object"
+  },
+  "Yangi chizmalar": {
+    "ru": "Новые чертежи",
+    "en": "New drawings"
+  },
+  "Chiqarilgan revizyani ko‘ring va qabul qiling": {
+    "ru": "Просмотрите выпущенную ревизию и примите",
+    "en": "Review the issued revision and accept it"
+  },
+  "Qaysi revizya joriy ekanini tekshiring": {
+    "ru": "Проверьте, какая ревизия текущая",
+    "en": "Check which revision is current"
+  },
+  "Remark va predpisaniya": {
+    "ru": "Замечания и предписания",
+    "en": "Remarks and orders"
+  },
+  "Ochiq remarklar va muddatlar": {
+    "ru": "Открытые замечания и сроки",
+    "en": "Open remarks and deadlines"
+  },
+  "Yangi chizma revizyalari": {
+    "ru": "Новые ревизии чертежей",
+    "en": "New drawing revisions"
+  },
+  "Loyihachi yangi revizya chiqardi — ko‘rib qabul qiling": {
+    "ru": "Проектировщик выпустил новую ревизию — просмотрите и примите",
+    "en": "The designer issued a new revision — review and accept it"
+  },
+  "Eskirgan chizmaga tayangan ishlar": {
+    "ru": "Работы по устаревшему чертежу",
+    "en": "Work based on an outdated drawing"
+  },
+  "Smeta qatori yoki АОСР eski revizyaga bog‘langan — yangilang": {
+    "ru": "Строка сметы или АОСР привязаны к старой ревизии — обновите",
+    "en": "An estimate row or АОСР is linked to an old revision — update it"
+  },
+  "Loyiha o‘zgarishidan takliflar": {
+    "ru": "Предложения из-за изменения проекта",
+    "en": "Proposals from the design change"
+  },
+  "Qo‘shimcha yoki zamena taklifini smeta o‘zgarishiga aylantiring": {
+    "ru": "Превратите предложение о доп. работе или замене в изменение сметы",
+    "en": "Turn an additional-work or replacement proposal into an estimate change"
+  },
+  "Loyihachiga savol": {
+    "ru": "Вопрос проектировщику",
+    "en": "Question to the designer"
+  },
+  "Chizmada tushunarsiz joy bo‘lsa — savol yozing": {
+    "ru": "Если что-то в чертеже непонятно — задайте вопрос",
+    "en": "If something in the drawing is unclear — ask a question"
+  },
+  "Yuborildi — javob kutilmoqda": {
+    "ru": "Отправлено — ждём ответа",
+    "en": "Sent — awaiting reply"
+  },
+  "Eskirgan": {
+    "ru": "Устарела",
+    "en": "Outdated"
+  },
+  "Qoralama (ruxsatsiz)": {
+    "ru": "Черновик (без разрешения)",
+    "en": "Draft (not released)"
+  },
+  "Qaytarib olindi": {
+    "ru": "Отозвано",
+    "en": "Withdrawn"
+  },
+  "Zamena (almashtirish)": {
+    "ru": "Замена",
+    "en": "Replacement"
+  },
+  "Hajm o‘zgarishi": {
+    "ru": "Изменение объёма",
+    "en": "Quantity change"
+  },
+  "Yangi kelgan": {
+    "ru": "Новые поступившие",
+    "en": "Newly received"
+  },
+  "Eskirgan chizmaga tayangan": {
+    "ru": "Опирается на устаревший чертёж",
+    "en": "Based on an outdated drawing"
+  },
+  "Chizmalar va revizyalar": {
+    "ru": "Чертежи и ревизии",
+    "en": "Drawings and revisions"
+  },
+  "Loyihachi: bugun": {
+    "ru": "Проектировщик: сегодня",
+    "en": "Designer: today"
+  },
+  "Bu chizmaning chiqarilgan revizyasi yo‘q": {
+    "ru": "У этого чертежа нет выпущенной ревизии",
+    "en": "This drawing has no issued revision"
+  },
+  "Avval chizmani tanlab qo‘shing": {
+    "ru": "Сначала выберите и добавьте чертёж",
+    "en": "First select and add a drawing"
+  },
+  "Chizmadan to‘ldirish uchun avval aktni saqlang": {
+    "ru": "Чтобы заполнить из чертежа, сначала сохраните акт",
+    "en": "Save the act first to fill from a drawing"
+  },
+  "Chizma": {
+    "ru": "Чертёж",
+    "en": "Drawing"
+  },
+  "— chizma tanlang —": {
+    "ru": "— выберите чертёж —",
+    "en": "— select a drawing —"
+  },
+  "Joriy revizya bilan qo‘shish": {
+    "ru": "Добавить с текущей ревизией",
+    "en": "Add with current revision"
+  },
+  "Maydonni chizmadan to‘ldirish": {
+    "ru": "Заполнить поле из чертежей",
+    "en": "Fill the field from drawings"
+  },
+  "Chizma yangilangan — akt eski revizyaga tayangan": {
+    "ru": "Чертёж обновлён — акт опирается на старую ревизию",
+    "en": "Drawing updated — the act relies on an old revision"
+  },
+  "Smeta qatorlari o‘qilmadi": {
+    "ru": "Строки сметы не загружены",
+    "en": "Estimate rows could not be loaded"
+  },
+  "O‘zgartirish": {
+    "ru": "Изменить",
+    "en": "Change"
+  },
+  "Smeta qatorini qidiring (shifr yoki nom)": {
+    "ru": "Найдите строку сметы (шифр или название)",
+    "en": "Search an estimate row (code or name)"
+  }
+}

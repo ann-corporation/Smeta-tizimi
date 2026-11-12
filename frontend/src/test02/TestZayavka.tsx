@@ -115,6 +115,10 @@ export default function TestZayavka() {
       toast(t('Obyekt, maxsulot va miqdorni kiriting'), 'warn');
       return;
     }
+    if (!(parseFloat(formMiqdor) > 0)) {
+      toast(t('Miqdor 0 dan katta son bo‘lishi kerak'), 'warn');
+      return;
+    }
     setYuklanmoqda(true);
     try {
       const natija = await sbZayavkaYoz(joriy.id, {
@@ -287,7 +291,7 @@ export default function TestZayavka() {
         </OpsMaydon>
         <div className="grid grid-cols-[1fr_120px] gap-3">
           <OpsMaydon nom={t('Miqdor')} majburiy>
-            <input type="number" min="0" step="any" value={formMiqdor} onChange={(e) => setFormMiqdor(e.target.value)} placeholder="0.00" className="text-right tabular-nums" />
+            <input type="number" min="0" step="any" value={formMiqdor} onChange={(e) => setFormMiqdor(e.target.value)} onFocus={(e) => e.target.select()} placeholder="0.00" className="text-right tabular-nums" />
           </OpsMaydon>
           <OpsMaydon nom={t('Birlik')}>
             <input type="text" value={formBirlik} onChange={(e) => setFormBirlik(e.target.value)} placeholder={t('tonna, m3')} />

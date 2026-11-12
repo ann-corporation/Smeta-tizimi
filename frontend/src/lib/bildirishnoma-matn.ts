@@ -13,6 +13,8 @@ export const BILDIRISHNOMA_MATN: Readonly<Record<string, string>> = {
   'hujjat.xat_keldi': 'Sizga yangi xat keldi',
   'hujjat.muddat_yaqin': 'Hujjat muddati yaqinlashmoqda',
   'hujjat.muddat_otdi': 'Hujjat muddati o‘tib ketdi',
+  'chizma.chiqdi': 'Yangi chizma revizyasi chiqarildi',
+  'chizma.qaror': 'Chizma revizyasi bo‘yicha qaror keldi',
 };
 
 /** Muddat qatori (Telegram matnida va ro'yxatda). */
@@ -40,6 +42,7 @@ export function bildirishnomaHavolasi(b: { havola?: string | null; mavzu: string
     if (musbatId(p.murojaat_id)) return '/admin/murojaatlar';
     return '/admin/hujjat-aylanish';
   }
+  if (b.mavzu.startsWith('chizma.')) return '/admin/chizmalar';
   if (b.mavzu.startsWith('tomon.')) return '/admin/murojaatlar';
   return null;
 }

@@ -160,7 +160,7 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       't2_tender_fayl_bogla_v1', 't2_tender_taklif_fayl_bogla_v1',
                       /* 2026-11-11: buyurtma (zayavka -> yetkazuvchi; 20261108410000). Yozuvchi 4 ta (procurement.write / supply.fulfil, RPC ichida a'zolik + ruxsat + faol aloqa);
                          t2_buyurtmalar_v1 / t2_buyurtma_tafsilot_v1 - FAQAT O'QIYDI, lekin prodda VOLATILE bo'lgani uchun /api/sb (GET) o'rniga shu yerda (yuk _shared/buyurtma-yuk.ts oq ro'yxati). */
-                      't2_buyurtma_yarat_v1', 't2_buyurtma_otish_v1', 't2_buyurtma_olish_yoz_v1', 't2_buyurtma_qabul_v1', 't2_buyurtma_qabul_yakunla_v1', 't2_buyurtmalar_v1', 't2_buyurtma_tafsilot_v1',
+                      't2_buyurtma_yarat_v1', 't2_buyurtma_otish_v1', 't2_buyurtma_olish_yoz_v1', 't2_buyurtma_qabul_v1', 't2_buyurtma_qabul_yakunla_v1', 't2_buyurtmalar_v1', 't2_buyurtma_tafsilot_v1', 't2_yet_tolov_holati_v1',
                       /* 2026-11-04: HR + KPI (hr.* / payroll.* RPC ichida tekshiriladi). */
                       't2_hr_kalendar_saqla_v1', 't2_hr_oylik_hisobla_v1', 't2_hr_sxema_saqla_v1', 't2_hr_tabel_saqla_v1', 't2_hr_tuzatma_qaror_v1', 't2_hr_tuzatma_saqla_v1', 't2_hr_xodim_saqla_v1',
                       /* 2026-11-04: buxgalteriya (accounting.write/approve RPC ichida tekshiriladi; idempotent operation_id). */

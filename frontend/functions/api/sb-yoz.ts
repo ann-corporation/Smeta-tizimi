@@ -210,6 +210,7 @@ const AMALLAR = {
   buyurtma_qabul_yakunla_v1: { rpc: 't2_buyurtma_qabul_yakunla_v1' },
   buyurtma_royxat_v1: { rpc: 't2_buyurtmalar_v1' },
   buyurtma_tafsilot_v1: { rpc: 't2_buyurtma_tafsilot_v1' },
+  buyurtma_tolov_holati_v1: { rpc: 't2_yet_tolov_holati_v1' },
   /* TENDER protsessi (2026-11-03, 20261122000200_t2_tender_protsess_v1): qoralama → tasdiq → e'lon → ochish → baholash → g'olib. Argumentlar `_shared/tender-yuk.ts` da. */
   tender_saqla_v1: { rpc: 't2_tender_saqla_v1' },
   tender_otish_v1: { rpc: 't2_tender_otish_v1' },
@@ -3333,15 +3334,23 @@ export const onRequestPost: PagesFunction<{
       };
 
     } else if (amal === 'erp_amal') {
+      /* Faqat zayavka operatsiyalari qoldi (t2_erp_amal jsonb nusxasi boshqasini bilmaydi; sklad kirim — alohida `skladga_yozish`).
+         Noma'lum operatsiya bazaga yetib «yuklab bo'lmadi» bo'lib qaytmasin — aniq sabab. */
+      if (!['zayavka_yarat', 'zayavka_holat', 'zayavka_ochir'].includes(String(so.operatsiya || ''))) {
+        return Response.json({ ok: false, code: 'OPERATSIYA_NOMALUM', error: 'Bu operatsiya qo‘llab-quvvatlanmaydi (faqat zayavka yaratish, holat va bekor qilish). Sklad kirimi uchun «skladga yozish» ishlatiladi.' }, { status: 400 });
+      }
       yuk = {
         p_kompaniya_id: Number(so.kompaniya_id || 0),
         p_operatsiya: String(so.operatsiya || ''),
-        p_payload: so.payload ? JSON.stringify(so.payload) : JSON.stringify(so),
+        /* AUDIT 121 (2026-11-11): prodda t2_erp_amal ikki nusxada edi (p_payload text va jsonb) — satr yuborilganda PostgREST
+           PGRST203 (qaysi nusxa?) bilan yiqilar va zayavka yaratilmasdi. Endi OBYEKT yuboriladi (jsonb nusxa, yagona
+           canonical; text nusxa 20261214600000 migratsiyasida olib tashlanadi). */
+        p_payload: (so.payload && typeof so.payload === 'object') ? so.payload : so,
         /* ⚡ 2026-08-28: audit jurnali «kim» ni ham bilishi kerak.
            Busiz «nima bo'ldi» ma'lum, «kim qildi» noma'lum qolardi va
            jurnal javobgarlik uchun yaroqsiz bo'lardi. RPC buni
            `t2.kim` sozlamasiga yozadi, triggerlar o'shandan o'qiydi. */
-        p_kim: sess.email || null
+        p_kim: sess.email || (sess.foydalanuvchi_id ? 'actor:' + String(sess.foydalanuvchi_id) : null)
       };
 
     } else if (amal === 'boss_tahlil_boshla') {
