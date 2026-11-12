@@ -19,6 +19,7 @@ export const GENERATED_SITE_MAP = {
     "/admin/narx-manbalari",
     "/admin/oferta",
     "/admin/fakt",
+    "/admin/naryad",
     "/admin/foto",
     "/admin/bugun",
     "/admin/m29",
@@ -103,6 +104,7 @@ export const GENERATED_SITE_MAP = {
     "narx-manbalari",
     "narx-dalil",
     "narx-tekshiruv",
+    "naryad",
     "smeta-narxlash",
     "oferta",
     "narxlar",
@@ -343,6 +345,10 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "ish_kartasi_ulush_saqla_v1",
       "rpc": "t2_ish_kartasi_ulush_saqla_v1"
+    },
+    {
+      "amal": "naryad_yoz_v1",
+      "rpc": "t2_naryad_yoz_v1"
     },
     {
       "amal": "shartnoma_saqla_v2",

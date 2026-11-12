@@ -259,6 +259,21 @@
         ]
       },
       {
+        "nom": "Naryad (brigada)",
+        "ikonka": "ClipboardList",
+        "sahifalar": [
+          {
+            "yol": "/admin/naryad",
+            "ilova": "ff",
+            "nom": "Naryad (brigada topshirig‘i)",
+            "ruxsat": [
+              "control.company.read",
+              "smeta.write"
+            ]
+          }
+        ]
+      },
+      {
         "nom": "M-29 (material sarfi)",
         "ikonka": "Box",
         "sahifalar": [

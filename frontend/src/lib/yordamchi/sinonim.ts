@@ -20,6 +20,7 @@ export const SAHIFA_SINONIM: Readonly<Record<string, Sinonim>> = {
   '/admin/smeta-narxlash': { uz: ['narxlash', 'smetani narxlash', 'res'], ru: ['ценообразование', 'расценка', 'ресурсы'], en: ['pricing', 'estimate pricing'] },
   '/admin/narx-dalil': { uz: ['narx dalili'], ru: ['обоснование цен'], en: ['price justification'] },
   '/admin/narx-tekshiruv': { uz: ['narx tekshiruvi', 'usta narxi'], ru: ['проверка цен', 'цена мастера'], en: ['price check', 'master price'] },
+  '/admin/naryad': { uz: ['naryad', 'naryadlar', 'brigada topshirigi', 'usta naryadi'], ru: ['наряд', 'наряды', 'наряд-задание'], en: ['work order', 'work orders', 'crew order'] },
   '/admin/nakrutka': { uz: ['nakrutka', 'ustama'], ru: ['накрутка', 'наценка'], en: ['markup', 'overhead'] },
   '/admin/narxlar': { uz: ['narxlar nazorati', 'narxlar'], ru: ['контроль цен', 'цены'], en: ['price control', 'prices'] },
   '/admin/narx-manbalari': { uz: ['narx manbalari', 'katalog', 'faktura'], ru: ['источники цен', 'каталог'], en: ['price sources', 'catalog'] },
