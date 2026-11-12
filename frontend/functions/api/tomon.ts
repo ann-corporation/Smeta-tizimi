@@ -32,6 +32,12 @@ const OQISH: Record<string, string> = {
   izohlar: 't2_izohlar_v1',
   imzochilar: 't2_obyekt_imzochilar_v1',
   imzochi_tarix: 't2_imzochi_tarix_v1',
+  /* SUBPUDRATCHI tomoni (20261216300000): topshirilgan ishlar, aktlar, to'lov holati. */
+  sub_boshqaruv: 't2_sub_boshqaruv_v1',
+  sub_ishlarim: 't2_sub_ishlarim_v1',
+  sub_aktlar: 't2_sub_akt_royxat_v1',
+  sub_akt: 't2_sub_akt_tafsilot_v1',
+  sub_tolov: 't2_sub_tolov_holati_v1',
   /* Texnik nazorat (texnadzor) */
   nazorat_uy: 't2_nazorat_uy_v1',
   tekshiruvlar: 't2_nazorat_tekshiruvlar_v1',
@@ -64,6 +70,12 @@ const YOZISH: Record<string, string> = {
   qator_izoh: 't2_izoh_yoz_v1',
   qator_izoh_hal: 't2_izoh_hal_v1',
   imzochi_saqla: 't2_obyekt_imzochi_saqla_v1',
+  sub_topshir: 't2_sub_topshir_v1',
+  sub_topshiriq_bekor: 't2_sub_topshiriq_bekor_v1',
+  sub_akt_yoz: 't2_sub_akt_yoz_v1',
+  sub_akt_yubor: 't2_sub_akt_yubor_v1',
+  sub_akt_qaytar: 't2_sub_akt_qaytar_v1',
+  sub_qaror: 't2_sub_akt_qaror_v1',
   tekshiruv_yoz: 't2_nazorat_tekshiruv_yoz_v1',
   aosr_foto: 't2_aosr_foto_biriktir_v1',
 };
@@ -222,6 +234,55 @@ export function yozishYuki(amal: string, so: Yuk): Yuk | string {
       return { p_kompaniya_id, p_obyekt_id: son(so.obyekt_id), p_rol: String(so.rol), p_daraja: daraja, p_razdel_id: daraja === 'razdel' ? son(so.razdel_id) : null,
                p_tashkilot: matn(so.tashkilot, 200), p_lavozim: matn(so.lavozim, 200), p_fio: matn(so.fio, 200), p_operation_id: opId(so.operation_id) };
     }
+    case 'sub_topshir': {
+      if (!sonmi(so.aloqa_id) || !sonmi(so.obyekt_id)) return 'aloqa_id va obyekt_id kerak';
+      const qs = Array.isArray(so.qatorlar) ? (so.qatorlar as Array<Record<string, unknown>>) : [];
+      if (qs.length > 300) return 'qatorlar: ko‘pi bilan 300 ta';
+      const toza: Yuk[] = [];
+      for (const e of qs) {
+        if (!e || typeof e !== 'object' || !sonmi(e.qator_id)) return 'Har qatorda qator_id kerak';
+        const q: Yuk = { qator_id: son(e.qator_id) };
+        if (e.hajm != null && e.hajm !== '') { if (!(Number(e.hajm) > 0) || !Number.isFinite(Number(e.hajm))) return 'Hajm musbat son bo‘lishi kerak'; q.hajm = Number(e.hajm); }
+        if ('narx' in e) {
+          if (e.narx != null && e.narx !== '' && (!(Number(e.narx) >= 0) || !Number.isFinite(Number(e.narx)))) return 'Narx 0 dan kichik bo‘lmasligi kerak';
+          q.narx = e.narx == null || e.narx === '' ? null : Number(e.narx);
+        }
+        toza.push(q);
+      }
+      if (!toza.length && !sonmi(so.bolim_id)) return 'Qatorlar yoki bolim_id kerak';
+      const qqs = so.qqs_foiz == null || so.qqs_foiz === '' ? null : Number(so.qqs_foiz);
+      if (qqs != null && !(qqs >= 0 && qqs <= 100)) return 'QQS foizi 0 dan 100 gacha';
+      const lump = so.umumiy_summa == null || so.umumiy_summa === '' ? null : Number(so.umumiy_summa);
+      if (lump != null && !(Number.isFinite(lump) && lump >= 0)) return 'Umumiy summa 0 dan kichik bo‘lmasligi kerak';
+      return { p_kompaniya_id, p_aloqa_id: son(so.aloqa_id), p_obyekt_id: son(so.obyekt_id), p_qatorlar: toza, p_bolim_id: ixtSon(so.bolim_id), p_shartnoma_id: ixtSon(so.shartnoma_id), p_qqs_foiz: qqs, p_umumiy_summa: lump };
+    }
+    case 'sub_topshiriq_bekor':
+      if (!sonmi(so.topshiriq_id)) return 'topshiriq_id kerak';
+      return { p_kompaniya_id, p_topshiriq_id: son(so.topshiriq_id) };
+    case 'sub_akt_yoz': {
+      if (!sonmi(so.aloqa_id) || !sonmi(so.obyekt_id)) return 'aloqa_id va obyekt_id kerak';
+      const oy = so.oy == null || so.oy === '' ? null : String(so.oy);
+      if (oy != null && !/^\d{4}-\d{2}-\d{2}$/.test(oy)) return 'oy YYYY-MM-DD bo‘lishi kerak';
+      if (oy == null && !sonmi(so.akt_id)) return 'oy kerak';
+      const qs = Array.isArray(so.qatorlar) ? (so.qatorlar as Array<Record<string, unknown>>) : null;
+      if (!qs || qs.length > 300) return 'qatorlar: ro‘yxat, ko‘pi bilan 300 ta';
+      const toza: Yuk[] = [];
+      for (const e of qs) {
+        if (!e || typeof e !== 'object' || !sonmi(e.topshiriq_id) || !(Number(e.hajm) > 0) || !Number.isFinite(Number(e.hajm))) return 'Har qatorda topshiriq_id va musbat hajm kerak';
+        toza.push({ topshiriq_id: son(e.topshiriq_id), hajm: Number(e.hajm), izoh: matn(e.izoh, 500) });
+      }
+      return { p_kompaniya_id, p_aloqa_id: son(so.aloqa_id), p_obyekt_id: son(so.obyekt_id), p_oy: oy, p_qatorlar: toza, p_akt_id: ixtSon(so.akt_id),
+               p_raqam: matn(so.raqam, 60), p_izoh: matn(so.izoh, 1000), p_operation_id: opId(so.operation_id) };
+    }
+    case 'sub_akt_yubor':
+      if (!sonmi(so.sub_akt_id)) return 'sub_akt_id kerak';
+      return { p_kompaniya_id, p_sub_akt_id: son(so.sub_akt_id), p_izoh: matn(so.izoh, 1000), p_operation_id: opId(so.operation_id) };
+    case 'sub_akt_qaytar':
+      if (!sonmi(so.sub_akt_id)) return 'sub_akt_id kerak';
+      return { p_kompaniya_id, p_sub_akt_id: son(so.sub_akt_id), p_sabab: matn(so.sabab, 500) };
+    case 'sub_qaror':
+      if (!sonmi(so.taqdim_id) || !['korilmoqda', 'qabul', 'rad', 'tuzatish'].includes(String(so.qaror))) return 'taqdim_id va qaror (korilmoqda/qabul/rad/tuzatish) kerak';
+      return { p_kompaniya_id, p_taqdim_id: son(so.taqdim_id), p_qaror: String(so.qaror), p_izoh: matn(so.izoh, 2000) };
     case 'tolov_xabar': {
       if (!sonmi(so.obyekt_id)) return 'obyekt_id kerak';
       const summa = Number(so.summa);
@@ -304,6 +365,10 @@ export function oqishYuki(bolim: string, q: URLSearchParams): Yuk | string {
     case 'izohlar': return sonmi(q.get('akt_id')) ? { p_kompaniya_id, p_akt_id: Number(q.get('akt_id')), p_aloqa_id: ixtSon(q.get('aloqa_id')), p_limit: ixtSon(q.get('limit')) ?? 500, p_keyin_id: ixtSon(q.get('keyin_id')) ?? 0 } : 'akt_id kerak';
     case 'imzochilar': return sonmi(q.get('obyekt_id')) ? { p_kompaniya_id, p_obyekt_id: Number(q.get('obyekt_id')), p_razdel_id: ixtSon(q.get('razdel_id')) } : 'obyekt_id kerak';
     case 'ulashlar': return sonmi(q.get('obyekt_id')) ? { p_kompaniya_id, p_obyekt_id: Number(q.get('obyekt_id')) } : 'obyekt_id kerak';
+    case 'sub_ishlarim': case 'sub_tolov': return { p_kompaniya_id };
+    case 'sub_boshqaruv': return sonmi(q.get('obyekt_id')) ? { p_kompaniya_id, p_obyekt_id: Number(q.get('obyekt_id')) } : 'obyekt_id kerak';
+    case 'sub_aktlar': return { p_kompaniya_id, p_yonalish: q.get('yonalish') === 'kelgan' ? 'kelgan' : 'yuborilgan' };
+    case 'sub_akt': return sonmi(q.get('sub_akt_id')) ? { p_kompaniya_id, p_sub_akt_id: Number(q.get('sub_akt_id')) } : 'sub_akt_id kerak';
     case 'qidir': {
       const inn = (q.get('inn') ?? '').trim();
       return /^[0-9]{9}$/.test(inn) ? { p_kompaniya_id, p_inn: inn } : 'INN 9 raqamdan iborat bo‘lishi kerak';
