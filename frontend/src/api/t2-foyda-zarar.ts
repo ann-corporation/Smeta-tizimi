@@ -1,4 +1,4 @@
-﻿/**
+/**
  * t2-foyda-zarar.ts — «Foyda / zarar» ko'rinishi uchun o'qish (yangi RPC YO'Q):
  *   1) rahbar_panel_v1 — tasdiqlangan F2 paketlari obyektlar kesimida (yagona hisob yadrosi, QQS bilan/ustamali/ustamasiz);
  *   2) t2_xarajat va t2_tolov qatorlari (obyekt/shartnoma/toifa bilan) — bir vaqtda (parallel), jami ~1 aylanish.

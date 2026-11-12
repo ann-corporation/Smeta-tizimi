@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { SummaPaket } from './summa-paket';
 import { foydaZararDaraxti, type FzObyekt } from './foyda-zarar';
 

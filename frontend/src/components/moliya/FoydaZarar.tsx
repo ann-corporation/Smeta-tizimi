@@ -1,4 +1,4 @@
-﻿/**
+/**
  * «Foyda / zarar» — loyiha plyusdami yoki minusdami (egasi 2026-11-12): BIR ekran, katta raqam, tushunarli sabab.
  * Hisob YO'Q: daromad — tasdiqlangan F2 paketi (serverdan), xarajat/to'lov — mavjud jadvallar; yig'indi lib/foyda-zarar (hisob-yadro).
  * NULL ≠ 0: xarajat kiritilmagan joyda «—» va nima yetishmasligi aytiladi; soxta plyus ko'rsatilmaydi.

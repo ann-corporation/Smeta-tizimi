@@ -1,4 +1,4 @@
-﻿import { lazy, Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Briefcase, CreditCard, FileText, TrendingUp } from 'lucide-react';
 import { t } from '../i18n/til';

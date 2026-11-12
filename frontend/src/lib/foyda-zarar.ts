@@ -1,4 +1,4 @@
-﻿/**
+/**
  * «Foyda / zarar» — loyiha plyusdami yoki minusdami (egasi 2026-11-12).
  * YANGI hisob EMAS: daromad = tasdiqlangan F2 ning serverdagi summa paketi (rahbar_panel_v1, ustamali QQS siz),
  * xarajat va to'lov — mavjud t2_xarajat / t2_tolov qatorlari. Bu fayl faqat TUZILMA (kompaniya > loyiha > shartnoma > obyekt),
