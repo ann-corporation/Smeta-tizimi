@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Bolim } from '../zakazchik/tomon-ui';
 import { inp, tugma, tugmaAsosiy } from '../zakazchik/tomon-yordam';
 import { toast } from '../../umumiy/ui/Toast';
+import { matnSora } from '../../umumiy/ui/Tasdiq';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { katKesimJamiBilan } from '../../lib/ustamali-summa';
 import { loyihaTahrirAsos, loyihaTahrirFarqOl, loyihaTahrirQaror, type TahrirQatori } from '../../api/t2-loyiha-smeta';
@@ -48,7 +49,7 @@ export function TahrirFarqi({ kompaniyaId, obyektId, tahrirlar, yangila }: { kom
   async function qaror(varaq: string, kalit: string, tur: TahrirQarorTuri) {
     if (eski === '' || yangi === '') return;
     let sabab: string | undefined;
-    if (tur === 'qoldir') { const s = window.prompt(t('Nega qoldiriladi? (sabab majburiy)')); if (!s || s.trim().length < 3) { toast(t('Sababni yozing'), 'warn'); return; } sabab = s.trim(); }
+    if (tur === 'qoldir') { const s = await matnSora({ matn: t('Nega qoldiriladi? (sabab majburiy)'), majburiy: true, minUzunlik: 3, kopQator: true }); if (s === null) return; if (s.trim().length < 3) { toast(t('Sababni yozing'), 'warn'); return; } sabab = s.trim(); }
     const r = await loyihaTahrirQaror(kompaniyaId, { obyektId, eskiId: eski, yangiId: yangi, varaq, kalit, qaror: tur, sabab });
     if (!r.ok) { toast(r.error, 'danger'); return; }
     toast(t('Qaror yozildi'), 'ok'); await yukla();
