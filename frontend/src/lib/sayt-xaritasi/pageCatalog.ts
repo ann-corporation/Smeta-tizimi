@@ -69,6 +69,8 @@ export const SAHIFA_KATALOGI: readonly SaytSahifa[] = [
   /* 2026-10-26 (yagona navigatsiya reestri): avval menyusiz bo'lgan sahifalar. */
   { kalit: 'fakt', nom: 'Fakt kiritish', yol: '/admin/fakt', scope: 'OBJECT', oqiydi: ['t2_daraxt', 't2_qator', 't2_qator_holat'], yozadi: ['fakt_belgila_v2', 'fakt_yoz_v2'], chiqaradi: ['bajarilgan hajm (Fakt)'], beradi: ['/admin/holat', '/admin/f2-tayyorlash'], izoh: 'Obyekt bo‘yicha bajarilgan ishni kiritish (usta, brigadir, prorab, PTO).' },
   { kalit: 'topshiriqlar', nom: 'Mening topshiriqlarim', yol: '/admin/topshiriqlar', scope: 'USER', oqiydi: ['t2_topshiriq'], yozadi: ['topshiriq_ber', 'topshiriq_otish'], chiqaradi: ['menga / mendan topshiriqlar'], beradi: ['/admin/ish-joylarim'], izoh: 'Shaxsiy: menga berilgan va men bergan topshiriqlar, holat o‘tkazish.' },
+  { kalit: 'bugun', nom: 'Bugun', yol: '/admin/bugun', scope: 'COMPANY', oqiydi: ['t2_men_v1'], yozadi: [], chiqaradi: ['rol bo‘yicha 4–6 ta asosiy tugma', '7 ish joyiga tezkor o‘tish'], beradi: ['/admin/fakt', '/admin/obyektlar', '/admin/f2-tayyorlash'], izoh: 'Ekotizim V2: rol bosh sahifasi — tugmalar sahifa reestridagi rol profilidan (lib/reestr/tomonProfil.ts).' },
+  { kalit: 'ruxsatlar-jadvali', nom: 'Ruxsatlar jadvali', yol: '/admin/ruxsatlar-jadvali', scope: 'COMPANY', oqiydi: [], yozadi: [], chiqaradi: ['rol x sahifa ko‘rinish jadvali'], beradi: ['/admin/kompaniya'], izoh: 'Faqat o‘qish: yagona sahifa reestridan hosila — qaysi rol qaysi sahifani menyuda ko‘radi.' },
 ];
 
 export const SAHIFA_KATALOGI_BY_PATH = new Map(SAHIFA_KATALOGI.map((x) => [x.yol, x]));

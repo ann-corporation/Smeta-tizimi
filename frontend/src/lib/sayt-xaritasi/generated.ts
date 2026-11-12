@@ -61,7 +61,9 @@ export const GENERATED_SITE_MAP = {
     "/admin/sozlamalar",
     "/admin/boshqaruv",
     "/admin/tizim-xaritasi",
-    "/admin/fayl-boglash"
+    "/admin/fayl-boglash",
+    "/admin/bugun",
+    "/admin/ruxsatlar-jadvali"
   ],
   "appRouteSegments": [
     "/",
@@ -118,6 +120,8 @@ export const GENERATED_SITE_MAP = {
     "topshiriqlar",
     "yetkazuvchi",
     "ish-joylarim",
+    "bugun",
+    "ruxsatlar-jadvali",
     "mutaxassis",
     "boshqaruv",
     "smeta-studio",
