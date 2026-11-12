@@ -39,6 +39,8 @@ describe('role integration architecture',()=>{
       'kompaniya-sozlama',
       /* Yuk birjasi (2026-11-04): faqat sessiya + masofa hisobi (kompaniya ma'lumotiga tegmaydi); O'zbekiston ramkasi, foydalanuvchi bo'yicha 30/daqiqa limit, kalit mijozda yo'q (yuk-marshrut.test.ts). */
       'yuk-marshrut',
+      /* Yuk tashish P1 (2026-11-12): actor sessiyadan; faqat t2_yb_* RPC oq ro'yxati (functions/_shared/yuk-tashish.ts); a'zolik/ruxsat/tenant RPC ichida (acceptance 20261216400000); yuk-dalil — kichik rasm, faqat o'z R2 prefiksi. */
+      'yuk-tashish', 'yuk-dalil',
       /* Bildirishnoma yetkazish (2026-11-05): sessiyasiz FON ISHI (GitHub Actions). Kirish faqat X-Cron-Kalit == BILDIRISHNOMA_CRON_KALIT
          (sozlanmagan → 503, noto'g'ri → 403); kompaniya ma'lumoti qaytmaydi, faqat service_role navbat RPC lari (bildirishnoma-yetkaz.test.ts). */
       'bildirishnoma-yetkaz']);
