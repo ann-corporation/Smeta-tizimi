@@ -32,7 +32,7 @@ export const ADMIN_MARSHRUTLARI = [
   'test/sozlama', 'test/xodimlar', 'test/korzinka',
   /* 2026-10-26: yagona navigatsiya reestridagi (lib/nav/navReestr.ts) qolgan yo'llar — navFiltr.test.ts tekshiradi. */
   'smeta-studio', 'm29', 'aosr', 'narx-dalil', 'nakrutka', 'narx-manbalari', 'oferta', 'loyiha', 'shartnoma-liniya', 'qarzdorlik',
-  'crm', 'aloqalar', 'kontragentlar', 'yetkazuvchi', 'subpudratchi', 'subpudrat', 'zakazchik', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish', 'moliya', 'logistika', 'zayavka', 'tender', 'yuk-birjasi', 'erp', 'f2-reestr',
+  'crm', 'aloqalar', 'kontragentlar', 'yetkazuvchi', 'subpudratchi', 'subpudrat', 'zakazchik', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish', 'moliya', 'logistika', 'zayavka', 'tender', 'tender-ochiq', 'yuk-birjasi', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'yuk-chaqirish', 'haydovchi', 'erp', 'f2-reestr',
   'nakopitelniy', 'tizim-sozlama', 'hujjat-dizayn', 'tokenlar', 'ai-agentlar', 'korzinka', 'ish-joylarim',
   'topshiriqlar', 'mutaxassis', 'boshqaruv', 'sayt-xaritasi', 'akkaunt', 'tizim-xaritasi',
   /* 2026-11-03: Uy sotish. */
@@ -48,7 +48,7 @@ export const ADMIN_MARSHRUTLARI = [
   /* 2026-11-12: Texnik nazorat (texnadzor). */
   'nazorat', 'nazorat/tekshiruv', 'nazorat/jurnal',
   /* 2026-11-11: loyihachi / mualliflik nazorati (chizma reyestri + rol uyi «Bugun»). */
-  'chizmalar', 'loyihachi',
+  'chizmalar', 'loyihachi', 'loyiha-smeta',
 ] as const;
 
 /**

@@ -11,6 +11,7 @@ export const GENERATED_SITE_MAP = {
     "/admin/grafik",
     "/admin/smeta-studio",
     "/admin/holat",
+    "/admin/loyiha-smeta",
     "/admin/smeta-narxlash",
     "/admin/narx-dalil",
     "/admin/narx-tekshiruv",
@@ -54,6 +55,12 @@ export const GENERATED_SITE_MAP = {
     "/admin/zayavka",
     "/admin/tender",
     "/admin/yuk-birjasi",
+    "/admin/bozor-sorov",
+    "/admin/bozor-kabinet",
+    "/admin/bozor-moderatsiya",
+    "/admin/tender-ochiq",
+    "/admin/yuk-chaqirish",
+    "/admin/haydovchi",
     "/admin/erp",
     "/admin/hr",
     "/admin/sotuv",
@@ -78,6 +85,12 @@ export const GENERATED_SITE_MAP = {
     "/qoshil/:kod",
     "/ulash/:kod",
     "/tg",
+    "/tender",
+    "/tender/:lotId",
+    "/bozor",
+    "/bozor/e/:elonId",
+    "/bozor/s/:sotuvchiId",
+    "/yuk",
     "/admin",
     "holat",
     "holat/:id",
@@ -98,7 +111,14 @@ export const GENERATED_SITE_MAP = {
     "hujjat-dizayn",
     "shartnoma-liniya",
     "qarzdorlik",
+    "bozor-sorov",
+    "bozor-kabinet",
+    "bozor-moderatsiya",
+    "tender-ochiq",
     "hr",
+    "yuk-birjasi",
+    "yuk-chaqirish",
+    "haydovchi",
     "buxgalteriya",
     "nakrutka",
     "narx-manbalari",
@@ -126,6 +146,7 @@ export const GENERATED_SITE_MAP = {
     "laboratoriya",
     "hujjat-aylanish",
     "chizmalar",
+    "loyiha-smeta",
     "loyihachi",
     "system-control",
     "ai-agentlar",
@@ -184,7 +205,6 @@ export const GENERATED_SITE_MAP = {
     "taminot",
     "sifat",
     "tender",
-    "yuk-birjasi",
     "shartnoma",
     "kalkulyator",
     "*",
@@ -433,6 +453,42 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "bux_hisob_tasdiq_v1",
       "rpc": "t2_bux_hisob_tasdiq_v1"
+    },
+    {
+      "amal": "bux_saldo_import_v1",
+      "rpc": "t2_bux_saldo_import_v1"
+    },
+    {
+      "amal": "bux_saldo_bekor_v1",
+      "rpc": "t2_bux_saldo_bekor_v1"
+    },
+    {
+      "amal": "bux_tannarx_v1",
+      "rpc": "t2_bux_tannarx_v1"
+    },
+    {
+      "amal": "bux_hisobot_saqla_v1",
+      "rpc": "t2_bux_hisobot_saqla_v1"
+    },
+    {
+      "amal": "bux_bank_yuklash_v1",
+      "rpc": "t2_bux_bank_yuklash_v1"
+    },
+    {
+      "amal": "bux_bank_qabul_v1",
+      "rpc": "t2_bux_bank_qabul_v1"
+    },
+    {
+      "amal": "bux_kassa_yoz_v1",
+      "rpc": "t2_bux_kassa_yoz_v1"
+    },
+    {
+      "amal": "bux_kassa_bekor_v1",
+      "rpc": "t2_bux_kassa_bekor_v1"
+    },
+    {
+      "amal": "bux_taqsim_saqla_v1",
+      "rpc": "t2_bux_taqsim_saqla_v1"
     },
     {
       "amal": "bux_bank_import_v1",

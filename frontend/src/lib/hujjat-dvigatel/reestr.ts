@@ -128,6 +128,21 @@ export const HUJJAT_TURLARI = {
     taqdim: { resurs: 'hujjat', manbaJadval: null },
     tokenKalit: 'SLICHITELNIY',
   },
+  loyiha_smeta_fakt: {
+    kalit: 'loyiha_smeta_fakt', nom: 'Loyiha–smeta–fakt solishtirma vedomosti', nomRu: 'Ведомость сопоставления проекта, сметы и факта', holat: 'ishlaydi',
+    eksport: { modul: 'lib/loyiha-smeta/solishtirma-export.ts', izoh: 'Loyiha miqdori, smeta va fakt farqlari, pul ta\'siri (hisob-yadro), qarorlar' },
+    majburiy: [
+      { kalit: 'obyekt', nom: 'Obyekt', manba: 'obyekt' },
+      { kalit: 'smeta', nom: 'Smeta qatorlari (joriy versiya)', manba: 'smeta' },
+      { kalit: 'fakt', nom: 'Fakt hajmi', manba: 'fakt' },
+      { kalit: 'summa', nom: 'Summa (QQS bilan / ustamali)', manba: 'hisob-yadro' },
+    ],
+    tekshiruv: ['fakt', 'summa'],
+    bosqichlar: ['qoralama', 'tekshiruv', 'arxiv'],
+    imzo: { tayyorlaydi: 'pudratchi', tasdiqlaydi: [] },
+    taqdim: { resurs: 'hujjat', manbaJadval: null },
+    tokenKalit: 'LOYIHA_SMETA_FAKT',
+  },
   lab_protokol: {
     kalit: 'lab_protokol', nom: 'Laboratoriya sinov protokoli', nomRu: 'Протокол лабораторных испытаний', holat: 'ishlaydi',
     eksport: { modul: 'lib/hujjat-aylanish/shablon.ts', izoh: 'ShNK 3.01.01-22 bo\'yicha dalil; to\'liqlik — toliqlik.ts' },
