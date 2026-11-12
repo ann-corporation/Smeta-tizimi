@@ -10,7 +10,10 @@ export type IshJoyi = (typeof ISH_JOYLARI)[number];
 export const ASOSIY_ISH_JOYLARI: readonly IshJoyi[] = ['bugun', 'obyekt', 'hujjatlar', 'taminot', 'moliya', 'tomonlar', 'kompaniya'];
 
 /** Ish joyi menyu ma'lumoti: nom, ikonka (NavIkonka kaliti), bir qatorli tavsif va sidebar tartibi. «Bugun» — rol bosh sahifasi. */
-export type IshJoyiMeta = { nom: string; ikonka: NavIkonka; tavsif: string; tartib: number; sinonimlar: readonly string[] };
+export type IshJoyiMeta = { nom: string; ikonka: NavIkonka; tavsif: string; tartib: number; sinonimlar: readonly string[];
+  /** Ommaviy mahsulot (Bozor, Tender, Yuk tashish): o'z ommaviy manzili (login'siz) bor; admin menyuda — a'zolar uchun kirish nuqtasi. Faqat ma'lumot, kod o'zgarmaydi. */
+  ommaviy?: { yol: string };
+};
 
 export const ISH_JOYI_META: Readonly<Record<IshJoyi, IshJoyiMeta>> = {
   bugun: { nom: 'Bugun', ikonka: 'LayoutDashboard', tavsif: 'Mening ishlarim, kirgan hujjatlar va navbat', tartib: 1, sinonimlar: ['bugun', 'bosh sahifa', 'сегодня', 'главная'] },

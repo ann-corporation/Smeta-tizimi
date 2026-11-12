@@ -20,7 +20,6 @@ const TgKirish = lazy(() => import('./telegram/TgKirish'));
 // (`SahifaChegarasi`), shuning uchun kirish sahifasi bu og'ir sahifalarni yuklamaydi.
 const HolatNative = lazy(() => import('./admin/sahifalar/HolatNative'));
 const FaktNative = lazy(() => import('./admin/sahifalar/FaktNative'));
-const UstaBugun = lazy(() => import('./admin/sahifalar/UstaBugun'));
 const FaylBoglash = lazy(() => import('./admin/sahifalar/FaylBoglash'));
 /* TIZIM_02 — Supabase sinov muhiti. Tizim_01 ga TEGMAYDI. */
 const TestShell     = lazy(() => import('./test02/TestShell'));
@@ -153,7 +152,6 @@ export default function App() {
           <Route path="holat" element={<HolatNative />} />
           <Route path="holat/:id" element={<HolatNative />} />
           <Route path="fakt" element={<FaktNative />} />
-        <Route path="bugun" element={<Suspense fallback={<SahifaYuklanmoqda />}><UstaBugun /></Suspense>} />
           {/* 2026-10-25 (tizim xaritasi P1): F2 bo'limi — sidebarda bitta «F2» bandi, tepada tablar.
               Yo'lsiz layout: sahifalar va ularning URL'lari o'zgarmagan. */}
           <Route element={<BolimTablari />}>

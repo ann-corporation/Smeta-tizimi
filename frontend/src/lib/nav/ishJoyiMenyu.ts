@@ -27,12 +27,12 @@ function bandlarQur(joy: IshJoyi): NavBand[] {
   const sahifalar = SAHIFALAR.filter((s) => s.ishJoyi === joy).slice().sort((a, b) => a.tartib - b.tartib);
   const guruhlar = new Map<string, Sahifa[]>();
   for (const s of sahifalar) {
-    const k = `${s.navGuruh}|${s.navBand}`;
+    const k = s.ishBand ? `ish|${s.ishBand}` : `${s.navGuruh}|${s.navBand}`;
     guruhlar.set(k, [...(guruhlar.get(k) ?? []), s]);
   }
   return [...guruhlar.entries()].map(([k, list]) => {
     const yana = list.every((s) => s.qoshimcha || s.yana);
-    return { nom: list[0].navBand, ikonka: IKONKA.get(k) ?? 'Box', sahifalar: list.map((s) => navSahifa(s, yana)) };
+    return { nom: list[0].ishBand ?? list[0].navBand, ikonka: list[0].ishBand ? 'Users' as NavIkonka : (IKONKA.get(k) ?? 'Box'), sahifalar: list.map((s) => navSahifa(s, yana)) };
   });
 }
 

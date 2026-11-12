@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
@@ -7,8 +8,11 @@ import { ishJoyiMenyu } from '../../lib/nav/ishJoyiMenyu';
 import { menyuQur, menyuYollari, type NavKontekst } from '../../lib/nav/navFiltr';
 import { SAHIFALAR } from '../../lib/reestr/sahifa';
 import { ISH_JOYI_META } from '../../lib/reestr/ishJoyi';
-import { rolTugmalari } from '../../lib/reestr/tomonProfil';
+import { bugunEkrani, rolTugmalari } from '../../lib/reestr/tomonProfil';
 import { t } from '../../i18n/til';
+
+/* Usta/brigadir: telefon ekrani (bitta «Bugun»: /admin/bugun) — alohida yo'l emas, shu qobiq ichida. */
+const UstaBugun = lazy(() => import('./UstaBugun'));
 
 /** «Bugun» tugmalari soni: rol profilidan 4–6 ta (profil kamroq bersa — ko'rinadigan sahifalardan to'ldiriladi). */
 const MIN_TUGMA = 4;
@@ -19,6 +23,13 @@ const MAX_TUGMA = 6;
  * faqat foydalanuvchiga ko'rinadigan sahifalar (navFiltr bilan bir xil filtr). Pastda — 7 ish joyiga tezkor o'tish va qidiruv.
  */
 export default function Bugun() {
+  const k = useKompaniya();
+  const ekran = bugunEkrani(k.joriy?.rol, k.joriy?.permissions, !!k.superadmin);
+  if (ekran === 'usta') return <Suspense fallback={<div className="p-6 text-text-dim">{t('Yuklanmoqda...')}</div>}><UstaBugun /></Suspense>;
+  return <BugunTugmalar />;
+}
+
+function BugunTugmalar() {
   const k = useKompaniya();
   const modullar = useModullar(k.globalRejim ? null : k.joriy?.id).data;
   const tizimRuxsat = useTizimRuxsat(true);

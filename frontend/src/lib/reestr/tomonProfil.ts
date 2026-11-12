@@ -44,3 +44,19 @@ export const ROL_PROFILLARI: readonly RolProfil[] = [
 export function rolTugmalari(rol: string | null | undefined): readonly string[] {
   return ROL_PROFILLARI.find((p) => p.rol === rol)?.tugmalar ?? UMUMIY_PROFIL;
 }
+
+/**
+ * «BUGUN» EKRANI (rol bosh sahifasi /admin/bugun): bitta yo'l, rolga qarab mazmun.
+ *  - 'usta'    — usta/brigadir (self.work.write bor, kengroq fakt.write yo'q): telefon ekrani (UstaBugun: bugungi ishlar, hajm, oflayn navbat);
+ *  - 'tugmalar' — boshqa rollar: rol profilidagi 4–6 katta tugma (boshqa tomon agentlari yaratgan bosh sahifalar — yetkazuvchi, loyihachi,
+ *                 buyurtmachi, texnadzor, direktor — shu profil orqali HAVOLA qilinadi, takrorlanmaydi).
+ * Yangi rolning o'z ekrani bo'lsa: shu yerga `BugunEkrani` qiymati va Bugun.tsx da xaritalash (1 qator).
+ */
+export type BugunEkrani = 'usta' | 'tugmalar';
+
+export function bugunEkrani(rol: string | null | undefined, permissions?: readonly string[] | null, superadmin = false): BugunEkrani {
+  if (superadmin) return 'tugmalar';
+  if (rol === 'usta' || rol === 'brigadir') return 'usta';
+  if (permissions && permissions.includes('self.work.write') && !permissions.includes('fakt.write') && !permissions.includes('control.company.read')) return 'usta';
+  return 'tugmalar';
+}
