@@ -332,6 +332,9 @@ export const onRequestPost: PagesFunction<{
         ish_kartasi_ol_v1: 'kompaniya_actor',
         /* NARYAD + LUG'AT (20261214800000): naryadlar ro'yxati/tafsiloti, kompaniya lug'ati. `stable`; a'zolik + smeta.read RPC ichida. */
         naryad_ol_v1: 'kompaniya_actor',
+        /* O'RGANISH HALQASI (20261217400000): taklif/mening tajribam/sozlama/ishqalanish (kompaniya); platforma — takliflar navbati, anonim ishqalanish, hafta. stable; ruxsat RPC ichida. */
+        osuvchi_ol_v1: 'kompaniya_actor',
+        osuvchi_platforma_ol_v1: 'tizim_actor',
         /* Egasi 2026-11-03: UY SOTISH (20261124000000) — shaxmatka, bitimlar, bitim kartasi, mijozlar, sotuv paneli. `stable`;
            a'zolik + sales.read/sales.write RPC ichida; obyekt/bitim kompaniyaga tegishliligi ham RPC da. */
         sotuv_shaxmatka_v1: 'kompaniya_actor',
@@ -745,6 +748,21 @@ export const onRequestPost: PagesFunction<{
           filtr.qoshni = f.qoshni === true;
         }
         if (bolim === 'qidir') filtr.q = String(f.q ?? '').slice(0, 100);
+        q.set('p_bolim', bolim);
+        q.set('p_filtr', JSON.stringify(filtr));
+      }
+      if (so.soro === 'osuvchi_ol_v1' || so.soro === 'osuvchi_platforma_ol_v1') {
+        const bolimlar = so.soro === 'osuvchi_ol_v1' ? ['taklif', 'mening', 'sozlama', 'friksiya'] : ['taklif', 'friksiya', 'hafta'];
+        const bolim = String((so as { bolim?: unknown }).bolim ?? '');
+        if (!bolimlar.includes(bolim)) return Response.json({ ok: false, error: "bolim noto'g'ri" });
+        const xf = (so as { filtr?: unknown }).filtr;
+        const f = xf && typeof xf === 'object' && !Array.isArray(xf) ? xf as Record<string, unknown> : {};
+        const filtr: Record<string, string> = {};
+        if (bolim === 'taklif' && so.soro === 'osuvchi_ol_v1') {
+          const dm = String(f.domen ?? ''); const kl = String(f.kalit ?? '').slice(0, 160);
+          if (!/^[a-z0-9_]{2,30}$/.test(dm) || kl.trim().length < 1) return Response.json({ ok: false, error: "domen/kalit noto'g'ri" });
+          filtr.domen = dm; filtr.kalit = kl;
+        }
         q.set('p_bolim', bolim);
         q.set('p_filtr', JSON.stringify(filtr));
       }
