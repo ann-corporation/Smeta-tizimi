@@ -239,7 +239,7 @@ begin
   perform pg_temp.tz_ok(r, 'lab_sorov_yarat'); lab := coalesce((r->>'id')::bigint, (r->>'murojaat_id')::bigint);
   perform pg_temp.tz_ob(4, 'sinov so''rovi -> laboratoriya', v_ob, B);
   perform pg_temp.tz_assert(pg_temp.tz_has(public.t2_lab_sorov_royxat_v1(b_boss, B, 'kelgan', null, null, null, 50), lab), 'laboratoriya kelgan so''rovni ko''rishi kerak');
-  r := public.t2_lab_sorov_natija_v1(b_boss, B, lab, 1, jsonb_build_object('natija', 'mos', 'protokol_raqam', 'TZ-P1', 'maydon', '{}'::jsonb), array[v_doc_b]);
+  r := public.t2_lab_sorov_natija_v1(b_boss, B, lab, 1, jsonb_build_object('natija', 'mos', 'protokol_raqam', 'TZ-P1', 'maydon', jsonb_build_object('marka_sinf', 'B25', 'yosh_kun', 28, 'olchangan_mpa', 30, 'talab_mpa', 25)), array[v_doc_b]);
   perform pg_temp.tz_ok(r, 'lab_sorov_natija');
   perform pg_temp.tz_ob(4, 'natija -> pudratchi', v_ob, P);
   r := public.t2_lab_sorov_tafsilot_v1(p_boss, P, lab);
@@ -295,6 +295,8 @@ begin
   perform pg_temp.tz_ob(6, 'sub akt -> pudratchi', v_ob, P);
   r := pg_temp.tz_try(6, 'pudratchi sub aktni qabul qildi', format('public.t2_sub_akt_qaror_v1($A, %s, %s, ''qabul'', null)', P, stq), p_pto, p_boss);
   perform pg_temp.tz_ok(r, 'sub_akt_qaror');
+  -- accepted sub act must create the main-contractor fakt document and the cost row (chain link sub akt -> fakt -> xarajat)
+  perform pg_temp.tz_assert(r->>'fakt_akt_id' is not null and r->>'xarajat_id' is not null, 'sub akt qabulidan keyin fakt va xarajat yozuvi yaratilishi kerak: ' || r::text);
   perform pg_temp.tz_assert((public.t2_sub_akt_tafsilot_v1(p_boss, P, sakt)->>'ok')::boolean and (public.t2_sub_akt_tafsilot_v1(s_boss, S, sakt)->>'ok')::boolean, 'sub akt tafsilotini ikkala tomon ko''radi');
   -- usta naryad
   r := pg_temp.tz_try(6, 'PTO naryad yaratdi', format('public.t2_naryad_yoz_v1(%s, $A, gen_random_uuid(), ''yarat'', null, null, %L::jsonb)', P,
@@ -325,7 +327,7 @@ begin
   r := public.t2_yb_tashuvchi_saqla_v1(c_user, gen_random_uuid(), '{"ism":"TZ haydovchi","telefon":"+998900000099","davlat_raqami":"01Z999ZZ","turi":"tent","yuk_t":25}'::jsonb);
   perform pg_temp.tz_ok(r, 'yb_tashuvchi_saqla');
   r := public.t2_yb_taklif_ber_v1(c_user, gen_random_uuid(), jsonb_build_object('yuk_id', y_yuk, 'narx_qqs_siz', 900000));
-  perform pg_temp.tz_ok(r, 'yb_taklif_ber'); y_tk := (r->>'id')::bigint;
+  perform pg_temp.tz_ok(r, 'yb_taklif_ber'); y_tk := coalesce((r->>'id')::bigint, (r->>'taklif_id')::bigint);
   r := public.t2_yb_yuk_javob_v1(P, p_boss, gen_random_uuid(), jsonb_build_object('yuk_id', y_yuk, 'taklif_id', y_tk, 'harakat', 'qabul'));
   perform pg_temp.tz_ok(r, 'yb_yuk_javob qabul');
   select id into y_bron from public.t2_yb_bron where yuk_id = y_yuk order by id desc limit 1;
