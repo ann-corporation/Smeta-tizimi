@@ -40,7 +40,7 @@ export function OyDaromadi({ kid }: { kid: number }) {
 
 export function UstaNaryad({ kid, satrlar, onlayn, onBajardim }: {
   kid: number; satrlar: readonly NaryadSatr[]; onlayn: boolean;
-  onBajardim: (s: NaryadSatr, hajmUsta: number, izoh: string | null) => Promise<void>;
+  onBajardim: (s: NaryadSatr, hajmUsta: number, izoh: string | null) => unknown;
 }) {
   const [tanlangan, setTanlangan] = useState<NaryadSatr | null>(null);
   const [hajm, setHajm] = useState(0);
