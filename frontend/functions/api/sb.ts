@@ -276,6 +276,8 @@ export const onRequestPost: PagesFunction<{
         bux_kontragent_v1: 'kompaniya_actor',
         bux_nds_v1: 'kompaniya_actor',
         bux_tolov_v1: 'kompaniya_actor',
+  bux_kartochka_v1: 'kompaniya_actor',
+  bux_sozlama_v1: 'kompaniya_actor',
         /* Egasi 2026-11-03: shartnoma oylik paketi arxivi (versiyalar + manifest + hozirgi iz) va fakt/F2 saqlashdan oldingi ogohlantirish. `stable`; a'zolik RPC ichida. */
         shartnoma_oylik_paket_royxat_v1: 'kompaniya_actor',
         /* Egasi 2026-11-05: shartnoma kartasi — DS lar va asl fayllar (kanonik R2; yuklab olish /api/hujjat-ol). stable; a'zolik + document.read. */

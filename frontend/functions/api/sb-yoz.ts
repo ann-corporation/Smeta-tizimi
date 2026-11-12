@@ -95,6 +95,9 @@ const AMALLAR = {
   bux_qolda_v1: { rpc: 't2_bux_qolda_provodka_v1' },
   bux_storno_v1: { rpc: 't2_bux_storno_v1' },
   bux_davr_v1: { rpc: 't2_bux_davr_v1' },
+  bux_shablon_tanla_v1: { rpc: 't2_bux_shablon_tanla_v1' },
+  bux_davr_blok_v1: { rpc: 't2_bux_davr_blok_v1' },
+  bux_hisob_tasdiq_v1: { rpc: 't2_bux_hisob_tasdiq_v1' },
   bux_bank_import_v1: { rpc: 't2_bux_bank_import_v1' },
   bux_tashqi_v1: { rpc: 't2_bux_tashqi_sync_v1' },
   /* Egasi 2026-11-03: shartnoma oylik paketi - «Topshirildi» (versiya, manifest, ZIP kanonik saqlashda). RPC a'zolik + document.write ni o'zi tekshiradi; idempotent (operation_id). */
@@ -1230,6 +1233,16 @@ export const onRequestPost: PagesFunction<{
         if (!/^\d{4}-\d{2}(-\d{2})?$/.test(String(so.oy || '')) || !['yop', 'och'].includes(String(so.davr_amal))) return xato400('oy va amal (yop/och) talab qilinadi.');
         const oy = String(so.oy);
         yuk = { ...asos, p_oy: oy.length === 7 ? `${oy}-01` : oy, p_amal: String(so.davr_amal), p_tasdiq: so.tasdiq === true, p_izoh: matn(so.izoh, 300) };
+      } else if (amal === 'bux_shablon_tanla_v1') {
+        if (!/^[a-z_]{3,30}$/.test(String(so.shablon || ''))) return xato400('shablon nomi noto‘g‘ri.');
+        yuk = { ...asos, p_shablon: String(so.shablon) };
+      } else if (amal === 'bux_davr_blok_v1') {
+        if (typeof so.blok !== 'boolean') return xato400('blok (true/false) talab qilinadi.');
+        yuk = { ...asos, p_blok: so.blok };
+      } else if (amal === 'bux_hisob_tasdiq_v1') {
+        const kodlar = so.kodlar;
+        if (!Array.isArray(kodlar) || kodlar.length === 0 || kodlar.length > 200 || kodlar.some((x) => !/^\d{4}$/.test(String(x)))) return xato400('1–200 ta hisob kodi (4 raqam) talab qilinadi.');
+        yuk = { ...asos, p_kodlar: kodlar.map((x) => String(x)) };
       } else if (amal === 'bux_bank_import_v1') {
         const qs = so.qatorlar;
         if (!Array.isArray(qs) || qs.length === 0 || qs.length > 500) return xato400('1–500 qator talab qilinadi.');
