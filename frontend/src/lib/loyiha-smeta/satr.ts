@@ -103,5 +103,92 @@ export function satrdanOqi(qatorlar: JQator[], q: SatrQoidalari = SATR_STANDART,
       qutisi: { x0: Math.min(...bo.map((b) => b.x0)), y0: Math.min(...bo.map((b) => b.y0)), x1: Math.max(...bo.map((b) => b.x1)), y1: Math.max(...bo.map((b) => b.y1)) },
       manbaRef: `satr_armatura:${armQatorlar[0].sahifa}:${massaSoni}`, ishonch: 0.8, odamKerak: false, ogohlantirish: tor ? ['tor'] : [] });
   }
+  out.push(...oynaDanOqi(qatorlar));
+  out.push(...spesKolOqi(qatorlar));
+  return out;
+}
+
+/**
+ * Eshik/oyna/vitraj VEDOMOSTI (АР): ko'p qatorli sarlavha («Количество | 1 этаж | 2 этаж | Площадь, м² | 1 изделия | Всего») va «hхb» o'lcham katagi.
+ * Ustunlar sarlavha x-holatidan: «Количество» -> «Площадь» orasidagi sonlar yig'indisi = soni; «Площадь» ustunlari oxirgisi = umumiy maydon.
+ * Nomi — o'lchamdan chapdagi matn + yuqoridagi guruh sarlavhasi (masalan «Витражи»). Tekshiruv: bitta maydon × soni ≈ umumiy maydon.
+ */
+export type OynaQoidalari = { olcham: string; kolSarlavha: string; plosSarlavha: string; keyingiSarlavha: string; guruhOyna: number; tol: number };
+export const OYNA_STANDART: OynaQoidalari = {
+  olcham: '^\\d{3,4}\\s?[xх×]\\s?\\d{3,4}$', kolSarlavha: '^количество', plosSarlavha: '^площадь', keyingiSarlavha: '^(длина|длинна|подоконн|наличник|примечание)', guruhOyna: 450, tol: 0.02,
+};
+
+export function oynaDanOqi(qatorlar: JQator[], q: OynaQoidalari = OYNA_STANDART): Element[] {
+  const olchamRe = new RegExp(q.olcham, 'i'); const kolRe = new RegExp(q.kolSarlavha, 'i'); const plosRe = new RegExp(q.plosSarlavha, 'i'); const keyRe = new RegExp(q.keyingiSarlavha, 'i');
+  const out: Element[] = [];
+  const bosh = qatorlar.flatMap((r) => r.kataklar.filter((c) => kolRe.test(c.matn)).map((c) => ({ x: c.x0, y: r.y })));
+  if (bosh.length === 0) return out;
+  for (const r of qatorlar) {
+    const k = r.kataklar; const oi = k.findIndex((c) => olchamRe.test(c.matn.trim()));
+    if (oi < 0) continue;
+    // Eng yaqin yuqoridagi sarlavha (Количество) shu o'lcham katagidan chapda/yonida
+    const h = bosh.filter((b) => b.y < r.y && r.y - b.y < 400 && Math.abs(b.x - k[oi].x0) < 700).sort((a, b) => b.y - a.y)[0];
+    if (!h) continue;
+    const sar = qatorlar.filter((z) => z.y >= h.y - 5 && z.y <= h.y + 150).flatMap((z) => z.kataklar);
+    const plos = sar.find((c) => plosRe.test(c.matn) && c.x0 > h.x);
+    if (!plos) continue;
+    const kelasi = sar.filter((c) => keyRe.test(c.matn) && c.x0 > plos.x0 + 20).sort((a, b) => a.x0 - b.x0)[0];
+    const plosOxiri = kelasi ? kelasi.x0 - 8 : plos.x0 + 200;
+    const son = (c: { matn: string }) => sonOqi(c.matn);
+    const kolSon = k.filter((c) => c.x0 >= h.x - 25 && c.x0 < plos.x0 - 12 && son(c) != null).map((c) => son(c) as number);
+    const plosSon = k.filter((c) => c.x0 >= plos.x0 - 12 && c.x0 <= plosOxiri && son(c) != null).map((c) => son(c) as number);
+    const soni = kolSon.length ? kolSon.reduce((a, b) => a + b, 0) : null; const bitta = plosSon.length >= 2 ? plosSon[0] : null; const jami = plosSon.length ? plosSon[plosSon.length - 1] : null;
+    const ogoh: string[] = [];
+    if (soni != null && bitta != null && jami != null && Math.abs(soni * bitta - jami) > Math.max(0.05, jami * q.tol)) ogoh.push('maydon_mos_emas');
+    const matnChap = k.slice(0, oi).filter((c) => k[oi].x0 - c.x1 < q.guruhOyna).map((c) => c.matn).join(' ');
+    const guruh = qatorlar.filter((z) => z.y < r.y && r.y - z.y < 90 && z.kataklar.length <= 2 && z.kataklar.every((c) => sonOqi(c.matn) == null && c.x0 < k[oi].x0)).map((z) => z.kataklar[0].matn)[0] ?? '';
+    const nom = `${guruh} ${matnChap} ${k[oi].matn.trim()}`.replace(/\s+/g, ' ').trim();
+    const baza = { profil: 'satr_oyna', tur: 'eshik_oyna' as const, nom, belgi: k[oi].matn.trim(), sahifa: r.sahifa, qutisi: qatorQutisi(r), odamKerak: false };
+    if (soni != null) out.push({ ...baza, birlik: 'шт', miqdor: soni, manbaRef: `satr_oyna:${r.sahifa}:${Math.round(r.y)}:soni`, ishonch: ogoh.length ? 0.5 : 0.75, ogohlantirish: ogoh });
+    if (jami != null) out.push({ ...baza, nom: nom + ' (площадь)', birlik: 'м2', miqdor: jami, manbaRef: `satr_oyna:${r.sahifa}:${Math.round(r.y)}:maydon`, ishonch: ogoh.length ? 0.5 : 0.75, ogohlantirish: ogoh });
+  }
+  return out;
+}
+
+/**
+ * «Спецификация материалов» (АР: tashqi pardoz, fasad panellari): «Наименование | Кол. | birlik» — birlik ustuni sarlavhasiz, nom KO'P QATORLI va
+ * raqam qatoriga nisbatan vertikal markazlangan: har nom qatori eng yaqin (y bo'yicha) raqam qatoriga biriktiriladi.
+ */
+export type SpesKolQoidalari = { nomSarlavha: string; kolSarlavha: string; birlik: string; yaqinlik: number; sarlavhaMasofa: number; boyi: number };
+export const SPES_KOL_STANDART: SpesKolQoidalari = {
+  nomSarlavha: '^наименование', kolSarlavha: '^кол\\.?$', birlik: '^(м[²2]|м[³3]|м|шт|п\\.?\\s?м|кг|т|компл)\\.?$', yaqinlik: 45, sarlavhaMasofa: 30, boyi: 1500,
+};
+
+export function spesKolOqi(qatorlar: JQator[], q: SpesKolQoidalari = SPES_KOL_STANDART): Element[] {
+  const nomRe = new RegExp(q.nomSarlavha, 'i'); const kolRe = new RegExp(q.kolSarlavha, 'i'); const birRe = new RegExp(q.birlik, 'i');
+  const out: Element[] = [];
+  for (const r of qatorlar) for (const kc of r.kataklar) {
+    if (!kolRe.test(kc.matn.trim())) continue;
+    const nc = qatorlar.filter((z) => Math.abs(z.y - r.y) <= q.sarlavhaMasofa).flatMap((z) => z.kataklar).find((c) => nomRe.test(c.matn) && c.x0 < kc.x0 && kc.x0 - c.x0 < 700);
+    if (!nc) continue;
+    const y0 = r.y + q.sarlavhaMasofa; const y1 = r.y + q.boyi;
+    const satrlar = qatorlar.filter((z) => z.y > y0 && z.y <= y1);
+    const raqam: { y: number; son: number; birlik: string; q: JQator }[] = [];
+    for (const z of satrlar) {
+      const k = z.kataklar; const i = k.findIndex((c) => Math.abs(c.x0 - kc.x0) <= 40 && sonOqi(c.matn) != null);
+      if (i < 0) continue;
+      const b = k.slice(i + 1).find((c) => c.x0 - kc.x0 < 160 && birRe.test(c.matn.trim()));
+      if (b) raqam.push({ y: z.y, son: sonOqi(k[i].matn) as number, birlik: b.matn.trim(), q: z });
+    }
+    if (raqam.length === 0) continue;
+    const qatorNom = new Map<number, { y: number; m: string }[]>();
+    for (const z of satrlar) {
+      const m = z.kataklar.filter((c) => c.x0 >= nc.x0 - 250 && c.x0 < kc.x0 - 15 && sonOqi(c.matn) == null && !/^(наименование|обозначение|поз\\.?|примечание)/i.test(c.matn.trim())).map((c) => c.matn).join(' ').trim();
+      if (!m) continue;
+      let eng = 0; let d = Infinity; raqam.forEach((a, i) => { const dd = Math.abs(a.y - z.y); if (dd < d) { d = dd; eng = i; } });
+      if (d <= q.yaqinlik) qatorNom.set(eng, [...(qatorNom.get(eng) ?? []), { y: z.y, m }]);
+    }
+    raqam.forEach((a, i) => {
+      const nom = (qatorNom.get(i) ?? []).sort((x, y) => x.y - y.y).map((x) => x.m).join(' ').replace(/\s+/g, ' ').trim();
+      if (!nom) return;
+      out.push({ profil: 'satr_spes', tur: 'boshqa', nom, belgi: null, birlik: a.birlik, miqdor: a.son, sahifa: a.q.sahifa, qutisi: qatorQutisi(a.q), manbaRef: `satr_spes:${a.q.sahifa}:${Math.round(a.y)}`,
+        ishonch: 0.65, odamKerak: false, ogohlantirish: ['kop_qatorli'] });
+    });
+  }
   return out;
 }

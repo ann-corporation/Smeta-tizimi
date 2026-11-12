@@ -14,7 +14,7 @@ export type VaraqTasnifi = {
 };
 
 /** Mazmun solishtiriladigan turlar -> smeta qatori nomidagi belgi (beton/armatura: nomda sinf yo'q, shuning uchun miqdor asosiy dalil). */
-const TUR_RE: Record<string, RegExp> = { beton: /бетон/i, armatura: /арматур|каркас|сетк/i };
+const TUR_RE: Record<string, RegExp> = { beton: /бетон/i, armatura: /арматур|каркас|сетк/i, eshik_oyna: /двер|окн|окон|витраж|блок/i, pardoz: /штукатур|облицов|плитк|окраск|покрас|шпатл|панел|клей|гранит/i };
 const MIN_NORM = 0.3;
 
 export function varaqTasnifi(varaq: string, elementlar: readonly VaraqElement[], smeta: readonly SmetaQator[], tol = 0.02): VaraqTasnifi {

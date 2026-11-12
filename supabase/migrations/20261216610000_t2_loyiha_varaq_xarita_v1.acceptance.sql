@@ -40,6 +40,25 @@ begin
   select count(*) into v_n from public.t2_loyiha_varaq_xarita where obyekt_id = oa; if v_n <> 1 then raise exception 'ACCEPT: ochirish %', v_n; end if;
 end $$;
 
+-- 5. FAKT ustuni: haqiqiy fakt ('fakt' aktlar) tasdiqlangan miqdorga bog'langan smeta qatori bo'yicha o'qiladi; F2 akt sanalmaydi
+do $$
+declare ka bigint; oa bigint; w bigint; a1 bigint; a3 bigint; m1 bigint; f jsonb; b jsonb;
+begin
+  insert into public.t2_kompaniya (nom, kod) values ('ACC FK A', 'ACC_FK_A') returning id into ka;
+  insert into public.t2_obyekt (nom, kompaniya_id) values ('ACC FK OB', ka) returning id into oa;
+  insert into public.t2_qator (obyekt_id, kompaniya_id, tur, nom, birlik, hajm) values (oa, ka, 'bl', 'ACC BETON', '100 м3', 0.1) returning id into w;
+  insert into public.t2_akt (obyekt_id, tur, oy, kompaniya_id) values (oa, 'fakt', date '2026-01-01', ka) returning id into a1;
+  insert into public.t2_akt (obyekt_id, tur, oy, kompaniya_id) values (oa, 'f2', date '2026-01-01', ka) returning id into a3;
+  insert into public.t2_akt_qator (akt_id, qator_id, obyekt_id, hajm, kompaniya_id) values (a1, w, oa, 0.12, ka), (a3, w, oa, 7, ka);
+  perform public._t2_lm_yoz_ich(ka, oa, 'КР-5', 0, null, '[{"nom":"Beton","belgi":"P1","birlik":"m3","miqdor":10,"tur":"beton"}]'::jsonb, 1, gen_random_uuid());
+  select id into m1 from public.t2_loyiha_miqdor where kompaniya_id = ka and belgi = 'P1';
+  perform public._t2_lm_tasdiq_ich(ka, array[m1], 'tasdiqlangan', 1);
+  perform public._t2_lm_boglash_ich(ka, m1, w, 0.9, 'sinov', 'qosh', 1);
+  f := public._t2_lm_farq_ich(ka, oa);
+  b := f->'miqdorlar'->0->'boglar'->0;
+  if (b->>'fakt')::numeric <> 0.12 or (b->>'fakt_norm')::numeric <> 12 or (b->>'hajm_norm')::numeric <> 10 then raise exception 'ACCEPT: fakt ustuni %', b; end if;
+  if not (b ?& array['qator_id', 'kod', 'nom', 'birlik', 'hajm', 'narx', 'hajm_norm', 'fakt', 'fakt_norm']) then raise exception 'ACCEPT: boglar kalitlari %', b; end if;
+end $$;
 do $$
 declare fn text;
 begin
