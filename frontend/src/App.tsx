@@ -28,6 +28,8 @@ const TestXarita    = lazy(() => import('./test02/TestXarita'));
 const TestLoyiha    = lazy(() => import('./test02/TestLoyiha'));
 const Kontragentlar = lazy(() => import('./admin/tomonlar/Kontragentlar'));
 const YetkazuvchiBugun = lazy(() => import('./admin/yetkazuvchi/YetkazuvchiBugun'));
+const SubpudratchiBugun = lazy(() => import('./admin/subpudratchi/SubpudratchiBugun'));
+const SubpudratBoshqaruv = lazy(() => import('./admin/subpudratchi/SubpudratBoshqaruv'));
 const TestObyektlar = lazy(() => import('./test02/TestObyektlar'));
 const WrapperMoliya = lazy(() => import('./test02/WrapperMoliya'));
 const WrapperLogistika = lazy(() => import('./test02/WrapperLogistika'));
@@ -199,6 +201,9 @@ export default function App() {
             {/* Tomonlar -> Kontragentlar (ekotizim V3): CRM, Logistika kontragentlari va Aloqalar bitta sahifaga birlashtirildi; eski yo'llar yo'naltiriladi. */}
             <Route path="kontragentlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><Kontragentlar /></Suspense>} />
             <Route path="aloqalar" element={<Navigate to="/admin/kontragentlar?tab=aloqa" replace />} />            <Route path="taqdimlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><TaqdimlarInbox /></Suspense>} />
+            {/* Subpudratchi tomoni: «Bugun» (subpudratchi) va boshqaruv (bosh pudratchi). */}
+            <Route path="subpudratchi" element={<Suspense fallback={<SahifaYuklanmoqda />}><SubpudratchiBugun /></Suspense>} />
+            <Route path="subpudrat" element={<Suspense fallback={<SahifaYuklanmoqda />}><SubpudratBoshqaruv /></Suspense>} />
             <Route path="murojaatlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><Murojaatlar /></Suspense>} />
           <Route path="nazorat" element={<Suspense fallback={<SahifaYuklanmoqda />}><NazoratUy /></Suspense>} />
           <Route path="nazorat/tekshiruv" element={<Suspense fallback={<SahifaYuklanmoqda />}><TekshiruvForma /></Suspense>} />
