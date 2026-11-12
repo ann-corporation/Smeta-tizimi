@@ -377,6 +377,10 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_naryad_yoz_v1"
     },
     {
+      "amal": "naryad_usta_bajarildi_v1",
+      "rpc": "t2_naryad_usta_bajarildi_v1"
+    },
+    {
       "amal": "osuvchi_yoz_v1",
       "rpc": "t2_osuvchi_yoz_v1"
     },
