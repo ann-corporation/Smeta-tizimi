@@ -176,9 +176,9 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       /* 2026-11-05: ish kartasi (smeta.write RPC ichida; idempotent operation_id, CAS). */
                       't2_ish_kartasi_saqla_v1', 't2_ish_kartasi_arxiv_v1', 't2_ish_kartasi_ulush_saqla_v1',
                       /* 2026-11-12: naryad + kompaniya lug'ati (smeta.write RPC ichida; hisobla — financial.write; idempotent operation_id, CAS). */
-                      't2_naryad_yoz_v1',
+                      't2_naryad_yoz_v1', 't2_osuvchi_yoz_v1',
                       /* 2026-11-12: usta «Bugun» (20261214300000): qoralama fakt / qaror / zayavka; ruxsat RPC ichida (self.work.write / fakt.write). */
-                      't2_usta_fakt_qoralama_v1', 't2_usta_fakt_qaror_v1', 't2_usta_zayavka_v1'].sort();
+                      't2_usta_fakt_qoralama_v1', 't2_usta_fakt_qaror_v1', 't2_usta_zayavka_v1', 't2_naryad_usta_bajarildi_v1'].sort();
     T('RPC ro\'yxati AYNAN belgilangan ' + KUTILGAN.length + ' ta domen amali',
       JSON.stringify(amallar) === JSON.stringify(KUTILGAN),
       'topildi: ' + amallar.join(', '));

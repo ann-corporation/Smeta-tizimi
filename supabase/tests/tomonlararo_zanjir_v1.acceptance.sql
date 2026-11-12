@@ -261,6 +261,9 @@ begin
   perform pg_temp.tz_assert(pg_temp.tz_has(public.t2_lab_natija_royxat_v1(t_user, T, o1, 50), lab), 'texnadzor (granti bor) laboratoriya natijasini royxatda korishi kerak');
   perform pg_temp.tz_assert((public.t2_lab_natija_tafsilot_v1(z_user, Z, lab)->>'ok')::boolean and position('TZ-P1' in public.t2_lab_natija_tafsilot_v1(z_user, Z, lab)::text) > 0, 'buyurtmachi (granti bor) natija tafsilotini korishi kerak');
   perform pg_temp.tz_assert(position('summa' in public.t2_lab_natija_tafsilot_v1(t_user, T, lab)::text) = 0, 'uchinchi tomonga hisob/summa berilmasligi kerak');
+  -- the protocol FILE follows the same grant (t2_tomon_hujjat_ol_v1)
+  perform pg_temp.tz_assert((public.t2_tomon_hujjat_ol_v1(t_user, v_doc_b)->>'ok')::boolean and (public.t2_tomon_hujjat_ol_v1(z_user, v_doc_b)->>'ok')::boolean, 'granti bor texnadzor va buyurtmachi lab protokol faylini ola olishi kerak: ' || public.t2_tomon_hujjat_ol_v1(t_user, v_doc_b)::text);
+  perform pg_temp.tz_assert(public.t2_tomon_hujjat_ol_v1(l_boss, v_doc_b)->>'code' = 'DOCUMENT_FORBIDDEN' and public.t2_tomon_hujjat_ol_v1(x_boss, v_doc_b)->>'code' = 'DOCUMENT_FORBIDDEN', 'grantsiz loyihachi va begona protokol faylini ololmasligi kerak');
   perform pg_temp.tz_assert(pg_temp.tz_hidden(format('public.t2_lab_natija_tafsilot_v1(%s, %s, %s)', l_boss, L, lab)), 'grantsiz loyihachi natijani ko''rmasligi kerak');
   perform pg_temp.tz_assert(pg_temp.tz_hidden(format('public.t2_lab_natija_tafsilot_v1(%s, %s, %s)', x_boss, X, lab)), 'begona kompaniya natijani ko''rmasligi kerak');
   perform pg_temp.tz_assert(pg_temp.tz_hidden(format('public.t2_lab_sorov_natija_v1(%s, %s, %s, 2, ''{}''::jsonb, array[%s]::bigint[])', t_user, T, lab, v_doc_b)), 'texnadzor natijani yoza olmasligi kerak');
@@ -269,6 +272,7 @@ begin
     perform pg_temp.tz_ok(public.t2_tomon_grant_bekor_v1(p_boss, P, v_gid), 'grant_bekor lab_natija');
   end loop;
   perform pg_temp.tz_assert(not pg_temp.tz_has(public.t2_lab_natija_royxat_v1(t_user, T, o1, 50), lab), 'grant bekor qilingach texnadzor natijani kormasligi kerak');
+  perform pg_temp.tz_assert(public.t2_tomon_hujjat_ol_v1(t_user, v_doc_b)->>'code' = 'DOCUMENT_FORBIDDEN', 'grant bekor qilingach protokol fayli yopilishi kerak');
   -- ===================================================================
   v_n := 5; v_name := 'yetkazuvchi: tender taklif -> g''olib -> buyurtma; bozor (ochiq) e''loni';
   select coalesce(max(id), 0) into v_ob from public.t2_outbox;
@@ -290,11 +294,7 @@ begin
   perform pg_temp.tz_assert((public.t2_buyurtma_tafsilot_v1(p_boss, P, byu)->>'ok')::boolean and (public.t2_buyurtma_tafsilot_v1(y_boss, Y, byu)->>'ok')::boolean, 'buyurtmani ikkala tomon ko''radi');
   -- open market. (a) t2_tender_elon_v1 with doira 'ochiq' creates a v1 lot (protsess_v2 = false): is it in the public open list?
   r := public.t2_tender_elon_v1(p_boss, P, gen_random_uuid(), 'material', 'ochiq', null, o1, now() + interval '3 days', '[{"nom":"Qum TZ","birlik":"m3","miqdor":5}]'::jsonb, '{"sarlavha":"TZ ochiq lot v1"}'::jsonb);
-  perform pg_temp.tz_ok(r, 'tender_elon ochiq'); rfq2 := (r->>'id')::bigint;
-  if not exists (select 1 from jsonb_array_elements(public.t2_tn_ochiq_royxat_v1('{}'::jsonb)->'lotlar') e where (e->>'id')::bigint = rfq2) then
-    perform pg_temp.tz_uz(5, 't2_tender_elon_v1 doira=ochiq lotni yaratadi (protsess_v2=false), lekin t2_tn_ochiq_royxat_v1 faqat protsess_v2 lotlarni korsatadi: ochiq bozorga chiqishning ikki yoli bor va v1 yoli kirmasdan oqish royxatiga tushmaydi');
-  end if;
-  -- (b) the v2 path: lot from smeta rows -> draft -> tasdiqlashda -> elon -> public list
+  perform pg_temp.tz_assert(r->>'code' = 'OCHIQ_V2_KERAK', 'v1 ochiq doira yagona v2 yoliga yonaltirilishi (rad) kerak: ' || r::text);  -- (b) the v2 path: lot from smeta rows -> draft -> tasdiqlashda -> elon -> public list
   insert into public.t2_qator(obyekt_id, kompaniya_id, tur, kod, nom, birlik, hajm, narx, summa, tartib) values (o1, P, 'bl', 'TZ-B3-' || v_tag, 'TZ ochiq lot ish', 'm2', 20, 1000, 20000, 903);
   r := pg_temp.tz_try(5, 'pudratchi ochiq lot (smetadan)', format('public.t2_tn_lot_smetadan_v1(%s, $A, gen_random_uuid(), %L::jsonb)', P,
     jsonb_build_object('obyekt_id', o1, 'tur', 'subpudrat', 'doira', 'ochiq', 'nom', 'TZ ochiq lot v2', 'muddat', (now() + interval '3 days')::text)::text), p_pto, p_boss);
@@ -407,7 +407,15 @@ begin
     end if;
   end loop;
   raise notice 'TOMON OBSERVED [8]: bildirishnomalar (mavzu: soni) = %', (select jsonb_object_agg(mavzu, n) from (select mavzu, count(*) n from public.t2_bildirishnoma where outbox_id > v_ob0 group by 1) z);
-  raise notice 'TOMON OBSERVED [8]: dispetcher faqat qabul kompaniyasining boss/admin/rahbar/director/pto rollariga yozadi; buyurtmachi/inspektor/loyihachi/taminotchi roli foydalanuvchilari (outbox foydalanuvchi_idlar bo''lmasa) bildirishnoma olmaydi.';
+  -- role-based recipients: capability (not a fixed role list) decides who is notified
+  perform pg_temp.tz_assert(exists (select 1 from public.t2_bildirishnoma n where n.foydalanuvchi_id = z_user and n.outbox_id in (select id from public.t2_outbox where id > v_ob0 and mavzu = 'tomon.taqdim')),
+    'buyurtmachi roli (z_user) taqdim haqida bildirishnoma olishi kerak');
+  perform pg_temp.tz_assert(exists (select 1 from public.t2_bildirishnoma n where n.foydalanuvchi_id = t_user and n.outbox_id in (select id from public.t2_outbox where id > v_ob0 and mavzu = 'lab.natija')),
+    'inspektor roli (t_user) lab natijasi haqida bildirishnoma olishi kerak');
+  perform pg_temp.tz_assert(exists (select 1 from public.t2_bildirishnoma n where n.foydalanuvchi_id = y_user and n.outbox_id in (select id from public.t2_outbox where id > v_ob0 and mavzu = 'tender.elon')),
+    'taminotchi roli (y_user) tender e''loni haqida bildirishnoma olishi kerak');
+  perform pg_temp.tz_assert(not exists (select 1 from public.t2_bildirishnoma n where n.outbox_id > v_ob0 group by n.foydalanuvchi_id, n.outbox_id having count(*) > 1), 'bir hodisa bir odamga bir martadan ortiq yozilmasligi kerak');
+  perform pg_temp.tz_assert(not exists (select 1 from public.t2_bildirishnoma n where n.outbox_id > v_ob0 and n.foydalanuvchi_id = x_boss), 'begona kompaniya foydalanuvchisiga bildirishnoma ketmasligi kerak');
   -- ===================================================================
   v_n := 9; v_name := 'IZOLYATSIYA: faqat grant berilgan ko''rinadi; begona/rolga zid rad; grant bekori ko''rinishni yo''q qiladi';
   -- 9a. granted object only

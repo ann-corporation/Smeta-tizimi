@@ -8,6 +8,7 @@
 import { yukSlotAjrat, yukSlotUrl } from './yuk-slot';
 import { OCHISH_FELLARI, sozlar, sozMosligi, TOLDIRUVCHI, sozNorm } from './matn';
 import { oyAjrat, obyektAjrat, type ObyektQisqa } from './kontekst-ajrat';
+import { darsSavoli, type DarsJavobi } from '../kurs/tutor';
 import { sahifaTopish, sahifaUrl, yaqinSahifalar, type SahifaHavola, type YordamchiSahifa } from './sahifa-qidiruv';
 
 export type OqishVosita = 'holat' | 'narxsiz' | 'qoldiq' | 'qidir';
@@ -20,6 +21,8 @@ export type Niyat =
   | { tur: 'yozuv'; obyekt: ObyektQisqa }
   | { tur: 'obyektTanla'; nomzodlar: ObyektQisqa[]; davom: 'oqish' | 'yozuv' | 'navigatsiya' }
   | { tur: 'qarz' }
+  /** O'rganish halqasi: «tizim nimani o'rgandi» (oqigan) / «qayerda qiynalishyapti» (qiyin). Faqat o'qish, bepul. */
+  | { tur: 'osuvchi'; qism: 'oqigan' | 'qiyin' }
   | { tur: 'f2Royxat'; obyekt: ObyektQisqa; oy: string | null }
   | { tur: 'aosrYetishmaydi'; obyekt: ObyektQisqa }
   | { tur: 'f2Qoralama'; obyekt: ObyektQisqa; oy: string }
@@ -27,6 +30,8 @@ export type Niyat =
   /** Sahifa o'zi ro'yxatdan o'tkazgan amal (masalan Smeta Studio: «katalogdan ish qo'sh»). */
   | { tur: 'sahifaAmal'; amal: SahifaAmalQisqa }
   | { tur: 'yordam' }
+  /** Kurs repetitori: «F2 ni qanday tayyorlayman?» -> dars qadamlari + «Ko‘rsat». */
+  | DarsJavobi
   | { tur: 'nomalum'; yaqin: SahifaHavola[] };
 
 export type SahifaAmalQisqa = { id: string; nom: string; kalitlar?: readonly string[]; tasdiq?: boolean };
@@ -51,6 +56,10 @@ const Y_FELLAR = stem(['kirit', 'yoz', 'qosh', 'qoshib', 'oshir', 'add', 'enter'
 const QORALAMA_FELLARI = stem(['yarat', 'tuz', 'tayyorla', 'tayyorlab', 'qoralama', 'создай', 'подготов', 'черновик', 'draft', 'create', 'prepare', 'make']);
 /** Savol so'zlari («F2 nima?», «qayerda?»): sahifa o'zi ochilmaydi — tushuntirish oqimi davom etadi, sahifa tugma bo'lib qo'shiladi. */
 const QARZ = stem(['qarz', 'qarzi', 'qarzlar', 'qarzdorlik', 'долг', 'долги', 'задолженность', 'debt', 'debts']);
+/* O'rganish halqasi (ru/en sinonimlar): «tizim nimani o'rgandi», «qayerda qiynalishyapti». */
+const OSUV_OGRAN = stem(['organdi', 'organgan', 'organyap', 'tajriba', 'научил', 'обучил', 'learn']);
+const OSUV_TIZIM = stem(['tizim', 'tizimi', 'система', 'системе', 'system']);
+const OSUV_QIYIN = stem(['qiynal', 'adashad', 'adashis', 'затруд', 'struggl', 'friction']);
 const MIQDOR_SAVOL = stem(['qancha', 'necha', 'nechta', 'jami', 'сколько', 'how', 'much', 'many', 'holat', 'holati', 'bor', 'status']);
 const F2_SOZ = stem(['f2', 'ф2']);
 const AOSR_SOZ = stem(['aosr', 'аоср']);
@@ -70,6 +79,7 @@ export function niyatAniqla(matn: string, ctx: NiyatKontekst): Niyat {
   if (YORDAM_RE.test(xom.toLowerCase().replace(/[ʻʼ‘’`´']/g, ''))) return { tur: 'yordam' };
   const yukSlot = yukSlotAjrat(xom);
   if (yukSlot) return { tur: 'navigatsiya', sahifa: { yol: '/admin/yuk-chaqirish', nom: 'Yuk chaqirish', url: yukSlotUrl(yukSlot) }, obyekt: null, oy: null, qoralama: true, aniqOchish: true };
+  { const dars = darsSavoli(xom, { ochiqYollar: new Set(ctx.sahifalar.map((s) => s.yol)) }); if (dars) return dars; }
   const barchasi = sozlar(xom);
   const ob = obyektAjrat(barchasi, ctx.obyektlar);
   const oy = oyAjrat(xom, barchasi, ctx.bugun);
@@ -105,6 +115,8 @@ export function niyatAniqla(matn: string, ctx: NiyatKontekst): Niyat {
   const qoralamaFel = qolgan.some((t) => QORALAMA_ANIQ.has(t));
   const savol = bor(qolgan, MIQDOR_SAVOL);
   if (!ochish) {
+    if (bor(qolgan, OSUV_QIYIN)) return { tur: 'osuvchi', qism: 'qiyin' };
+    if (bor(qolgan, OSUV_OGRAN) && bor(qolgan, OSUV_TIZIM)) return { tur: 'osuvchi', qism: 'oqigan' };
     if (bor(qolgan, QARZ) && savol) return { tur: 'qarz' };
     const obyektKerak = (davom: 'oqish' | 'yozuv'): Niyat | null => (amaldagi ? null : ctx.obyektlar.length ? { tur: 'obyektTanla', nomzodlar: ctx.obyektlar.slice(0, 6), davom } : null);
     if (aosrBor && qoralamaFel) { const k = obyektKerak('yozuv'); if (k) return k; if (amaldagi) return { tur: 'aosrQoralama', obyekt: amaldagi, filtr: aosrFiltr(kontent) }; }

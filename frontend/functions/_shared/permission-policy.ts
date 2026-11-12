@@ -30,6 +30,11 @@ export function dataPermission(name: string, write: boolean, body: Record<string
   if (/^sotuv_/.test(n)) return write ? 'sales.write' : (/^sotuv_(shaxmatka|panel|bitim)_/.test(n) ? 'sales.read' : 'sales.write');
   if (/platforma_|token_toldir|obuna_belgila|tizim_amal/.test(n)) return write ? 'control.global.write' : 'control.global.read';
   /* Naryad (20261214810000): usta «bajarildi»ni o'zi belgilaydi (self.work.write; RPC naryad.usta_foydalanuvchi_id = actor ni ham tekshiradi). Qolgan amallar — smeta.write. */
+  if (n === 'naryad_usta_bajarildi_v1') return write && body.naryad_amal === 'bajarildi' ? 'self.work.write|smeta.write' : 'smeta.write';
+  /* O'rganish halqasi (20261217400000): o'z tajribasi/ishqalanish - company.read; sozlama - control.company.write; takliflar navbati - faqat platforma egasi. RPC ham tekshiradi. */
+  if (n === 'osuvchi_yoz_v1') { const oa = String(body.osuvchi_amal || ''); return oa === 'taklif_yigish' || oa === 'taklif_qaror' ? 'control.global.write' : oa === 'sozlama_saqla' ? 'control.company.write' : 'company.read'; }
+  if (n === 'osuvchi_ol_v1') return 'company.read';
+  if (n === 'osuvchi_platforma_ol_v1') return 'control.global.read';
   if (n === 'naryad_yoz_v1') return write && body.naryad_amal === 'bajarildi' ? 'self.work.write|smeta.write' : 'smeta.write';
   if (write) {
     if (n === 'akt_tasdiqlash') return 'f2.approve';
@@ -61,12 +66,15 @@ export const SCOPED_APIS = new Set(['object-financials','contract-scope','sb','s
   /* Obyekt paketi (ADR OBYEKT_PAKET §1.4): smeta + holat + F2 ro'yxati + nakrutka — faqat o'qish. */
   'obyekt-paket','normativ-qidir',
   /* P6/P7 Grafik + cashflow: o'qish — hujjat o'qish (buyurtmachi ham grant bilan); yozish (override) — loyiha yozuvi, rol bazada ham tekshiriladi. */
-  'grafik']);
+  'grafik',
+  /* SMETA CONST sovuq muhrni isitish (ADR_MUHR_R2 §4): obyekt_id -> t2_obyekt.kompaniya_id middleware'da; begona obyekt = 403, R2/bazaga tegilmaydi. */
+  'muhr-isit']);
 
 export function requestPermission(api: string, method: string, b: Record<string, unknown>, q: URLSearchParams): string | null {
   if (!SCOPED_APIS.has(api) || api === 'sessiya') return null;
   if (api === 'normativ-qidir' && method === 'GET') return 'company.read';
   if (api === 'object-financials') return 'object.read';
+  if (api === 'muhr-isit') return 'smeta.read'; // asl qiymatni R2 dan qaytaradi (xesh bilan tekshirilgan); biznes qiymatini o'zgartirmaydi, javobda qaytarmaydi
   if (api === 'obyekt-paket') return 'smeta.read'; // shlyuz qo'shimcha f2.read + narx.read ni ham talab qiladi
 
   if (api === 'contract-scope') return method === 'GET' ? 'smeta.read' : 'smeta.write';

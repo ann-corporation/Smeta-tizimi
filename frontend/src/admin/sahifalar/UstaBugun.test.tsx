@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 
 const ctx = vi.hoisted(() => ({ permissions: ['company.read', 'fakt.read', 'self.work.write'] as string[] }));
 const sb = vi.hoisted(() => ({ sbOqi: vi.fn(), yangiOperationId: vi.fn() }));
-const usta = vi.hoisted(() => ({ faktTogriYoz: vi.fn(), navbatYozuviniYubor: vi.fn(), sbUstaQoralamalarOl: vi.fn() }));
+const usta = vi.hoisted(() => ({ faktTogriYoz: vi.fn(), navbatYozuviniYubor: vi.fn(), sbUstaQoralamalarOl: vi.fn(), ustaNaryadlarOl: vi.fn() }));
 const toast = vi.hoisted(() => vi.fn());
 vi.mock('../../test02/KompaniyaTanlov', () => ({ useKompaniya: () => ({ joriy: { id: 17, nom: 'Test MChJ', permissions: ctx.permissions }, superadmin: false }) }));
 vi.mock('../../api/t2-obyektlar-kesh', () => ({ useT2ObyektlarRoyxati: () => ({ obyektlar: [{ id: 5, nom: 'Obyekt A' }], yuklanmoqda: false, xato: '' }) }));
@@ -23,6 +23,7 @@ beforeEach(() => {
   usta.navbatYozuviniYubor.mockResolvedValue({ ok: true });
   usta.faktTogriYoz.mockResolvedValue({ ok: true });
   usta.sbUstaQoralamalarOl.mockResolvedValue({ ok: true, qatorlar: [] });
+  usta.ustaNaryadlarOl.mockResolvedValue([]);
   Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
 });
 afterEach(cleanup);

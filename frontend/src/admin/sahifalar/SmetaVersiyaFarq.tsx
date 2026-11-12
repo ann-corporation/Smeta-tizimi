@@ -5,6 +5,7 @@
  * «Da'vo ro'yxati» Excel. Smeta tushunish faqat `smeta-anatomiya` orqali; asl smeta (t2_qator) O'ZGARMAYDI.
  * Egasi qarorlari: ekspertiza kesgan, lekin qurilgan hajm — fakt, himoya qilinadi (avtomatik minus yo'q).
  */
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { AlertTriangle, Download, RefreshCw, Save, Upload } from 'lucide-react';
 import { yangiOperationId, type T2Qator } from '../../api/supabase';
@@ -269,7 +270,7 @@ export function SmetaVersiyaFarq({ kompaniyaId, obyektId, obyektNom, joriyQatorl
   };
 
   const bekorQil = async () => {
-    if (!versiya || !window.confirm(t('«{nom}» versiyasi bekor qilinadi (o‘chirilmaydi, ro‘yxatdan yashiriladi). Davom etasizmi?', { nom: versiya.nom }))) return;
+    if (!versiya || !(await tasdiqSora({ matn: t('«{nom}» versiyasi bekor qilinadi (o‘chirilmaydi, ro‘yxatdan yashiriladi). Davom etasizmi?', { nom: versiya.nom }), xavfli: true, tasdiqMatni: 'Bekor qilish' }))) return;
     const r = await versiyaBekor({ kompaniyaId, versiyaId: versiya.id, operationId: yangiOperationId() });
     if (!r.ok) { toast(versiyaXatoMatni(r), 'danger'); return; }
     setTanlangan(null); await royxatYukla();

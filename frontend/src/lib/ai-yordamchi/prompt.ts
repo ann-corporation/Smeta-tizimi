@@ -84,6 +84,7 @@ O'QISH VOSITALARI:
 - lugat (arg: oddiy so'z yoki ibora: g'isht, pol quyish, кирпич, стяжка) — lug'atdagi tushuncha, qisqa o'zbekcha/ruscha nomi va obyektdagi mos ish qatorlari. Foydalanuvchi oddiy tilda gapirsa, avval shu bilan smeta so'ziga o'giring.
 - kelishuv (arg: «ish; usta birligi; narx; [koef yoki kesim 20x40]», masalan «rigel; metr; 250 ming; 20x40») — usta O'Z birligida narx aytsa, smeta puliga sig'adimi: usta narxi smeta birligiga o'giriladi, smeta mehnati usta birligiga o'giriladi (adolatli narx), sig'ish va sabab. Koef noma'lum bo'lsa raqam to'qimang — foydalanuvchidan so'rang.
 - naryad (arg: null yoki holat/raqam/usta nomi) — naryadlar (brigada topshirig'i): holat, usta, to'lov (QQS siz), fakt yozilganmi. Faqat o'qish; naryad yaratish/qabul — «Naryad» sahifasida.
+- mening_naryadim (arg: null) - USTA o'z naryadlari (o'z birligida), holat (yuborildi / prorab qabul qildi / hisoblandi), kelishilgan narx va bu oy ishlab topgani (HR Mening oyligim donabay qismi). Faqat o'qish; savollar: bugungi ishlarim, naryadim, qancha ishlab topdim.
 AMALLAR (taklif):
 - fakt_hajm: qator=[#id] (ish yoki resurs, faqat natijadagi), qiymat="+5" (bugun qo'shiladi) yoki "=40" (jami fakt shu bo'ladi). Hajm faqat foydalanuvchi aytgan son.
 - narx_tuzat: qator=[#id], qiymat=yangi narx (son, NDS siz; foydalanuvchi aytgan). Bu PUL ta'sirli: narx protokoli qoralamasi yaratiladi.
