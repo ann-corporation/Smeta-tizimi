@@ -14,6 +14,7 @@ import { qoldiqHajmi } from '../zamena-qoldiq';
 import { t } from '../../i18n/til';
 import type { NaryadQisqa } from '../naryad';
 import { kelishuvIshlari, kelishuvMatni, naryadMatni } from '../naryad/jarvis';
+import { ustaJarvisMatni, type NaryadSatr } from '../usta/naryad-ish';
 import type { TarixQator } from '../../api/t2-naryad';
 import { lugatTushuntir, odamNomi } from '../qurilish-lugat';
 import { faktAmalTekshir, faktHajmOqi, faktHolat, faktIndeks, faktKontekst, faktQidir, qatorSatri, summalarBloki, type FaktMalumot, type UstamaliFn } from './fakt-vositalar';
@@ -22,13 +23,13 @@ import type { SahifaVositalar } from './sikl';
 
 /** Foydalanuvchiga ochiq sahifa (yagona yordamchi navigatsiyasi; navReestr + ruxsat filtridan). */
 export type OchiqSahifa = { yol: string; nom: string };
-export type BuyruqMalumot = FaktMalumot & { rows: readonly T2Qator[]; qatorById: ReadonlyMap<number, T2Qator>; sahifalar?: readonly OchiqSahifa[]; naryadlar?: readonly NaryadQisqa[] };
+export type BuyruqMalumot = FaktMalumot & { rows: readonly T2Qator[]; qatorById: ReadonlyMap<number, T2Qator>; sahifalar?: readonly OchiqSahifa[]; naryadlar?: readonly NaryadQisqa[]; ustaBugun?: { satrlar: readonly NaryadSatr[]; oyDaromad: number | null } };
 
-export function buyruqMalumotQur(rows: readonly T2Qator[], states: readonly (T2QatorHolat | JurnalHolat)[], opts: { obyektNomi?: string; ustamali?: UstamaliFn; sahifalar?: readonly OchiqSahifa[]; naryadlar?: readonly NaryadQisqa[] } = {}): BuyruqMalumot {
+export function buyruqMalumotQur(rows: readonly T2Qator[], states: readonly (T2QatorHolat | JurnalHolat)[], opts: { obyektNomi?: string; ustamali?: UstamaliFn; sahifalar?: readonly OchiqSahifa[]; naryadlar?: readonly NaryadQisqa[]; ustaBugun?: { satrlar: readonly NaryadSatr[]; oyDaromad: number | null } } = {}): BuyruqMalumot {
   const holatlar = states as readonly JurnalHolat[];
   const { bolimlar, bolimIshlari } = jurnalQur(rows, holatlar);
   return { obyektNomi: opts.obyektNomi, bolimlar, bolimIshlari, holatMap: new Map(holatlar.map((s) => [s.qator_id, s])), summalar: bolimSummalari(rows, holatlar),
-    bajHajm: new Map(), ustamali: opts.ustamali, rows, qatorById: new Map(rows.map((r) => [r.id, r])), sahifalar: opts.sahifalar, naryadlar: opts.naryadlar };
+    bajHajm: new Map(), ustamali: opts.ustamali, rows, qatorById: new Map(rows.map((r) => [r.id, r])), sahifalar: opts.sahifalar, naryadlar: opts.naryadlar, ustaBugun: opts.ustaBugun };
 }
 
 /** Pul yoki huquqiy ta'sirli amallar — «Bajarish»dan keyin ALOHIDA «Tasdiqlayman» kerak (ovoz bilan tasdiqlanmaydi). */
@@ -106,6 +107,7 @@ export function buyruqOqi(m: BuyruqMalumot, s: OqishSorovi): string {
     case 'lugat': return buyruqLugat(m, s.arg);
     case 'naryad': return naryadMatni(m.naryadlar, s.arg);
     case 'kelishuv': return kelishuvMatni(m.rows, s.arg);
+    case 'mening_naryadim': return m.ustaBugun ? ustaJarvisMatni(m.ustaBugun.satrlar, m.ustaBugun.oyDaromad) : 'Naryad ma’lumoti o‘qilmadi (bu vosita faqat usta uchun yoki tarmoq/ruxsat yo‘q). «Bugun» sahifasini oching.';
     default: return `Noma’lum vosita: ${s.vosita}`;
   }
 }

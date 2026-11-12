@@ -30,6 +30,7 @@ export function dataPermission(name: string, write: boolean, body: Record<string
   if (/^sotuv_/.test(n)) return write ? 'sales.write' : (/^sotuv_(shaxmatka|panel|bitim)_/.test(n) ? 'sales.read' : 'sales.write');
   if (/platforma_|token_toldir|obuna_belgila|tizim_amal/.test(n)) return write ? 'control.global.write' : 'control.global.read';
   /* Naryad (20261214810000): usta «bajarildi»ni o'zi belgilaydi (self.work.write; RPC naryad.usta_foydalanuvchi_id = actor ni ham tekshiradi). Qolgan amallar — smeta.write. */
+  if (n === 'naryad_usta_bajarildi_v1') return 'self.work.write|smeta.write';
   if (n === 'naryad_yoz_v1') return write && body.naryad_amal === 'bajarildi' ? 'self.work.write|smeta.write' : 'smeta.write';
   if (write) {
     if (n === 'akt_tasdiqlash') return 'f2.approve';

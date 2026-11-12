@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Naryad, NaryadQator } from '../naryad';
-import { bajarildiYuk, bajardimMumkin, ochiqNaryadQatorlari, ustaJarvisMatni, ustaNaryadSatrlari } from './naryad-ish';
+import { bajarildiYuk, bajardimMumkin, boshqaQolgan, ochiqNaryadQatorlari, ustaJarvisMatni, ustaNaryadSatrlari } from './naryad-ish';
+import { buyruqMalumotQur, buyruqOqi } from '../ai-yordamchi/buyruq-vositalar';
 
 const qator = (ustiga: Partial<NaryadQator> = {}): NaryadQator => ({
   id: 11, qator_id: 301, tartib: 1, kod: '1.1', nom: 'Устройство стяжки', birlik: '100 м2', hajm: 500, norma_chel_soat: null, smeta_mehnat_birlik: null, usta_narx: null,
@@ -40,13 +41,25 @@ describe('ikki marta kiritmaslik qoidasi', () => {
   });
 });
 
-describe('bajarildi yuki', () => {
-  it('usta birligidagi hajm smeta birligiga o‘tadi (× koef); boshqa satrning avvalgi qiymati saqlanadi', () => {
+describe('bajarildi yuki (RPC semantikasi: ro‘yxatda yo‘q qatorlarga tegilmaydi)', () => {
+  it('FAQAT tahrirlangan satr yuboriladi (× koef); boshqa satrlarning yuborilgan hajmi payload’da YO‘Q — shuning uchun o‘chib ketmaydi', () => {
     const satrlar = ustaNaryadSatrlari([naryad('berildi', [qator({ id: 1 }), qator({ id: 2, qator_id: 302, bajarilgan_hajm: 200 }), qator({ id: 3, qator_id: 303 })])]);
-    expect(bajarildiYuk(satrlar, 1, 4.5)).toEqual([{ id: 1, bajarilgan_hajm: 450 }, { id: 2, bajarilgan_hajm: 200 }]);
+    expect(bajarildiYuk(satrlar, 1, 4.5)).toEqual([{ id: 1, bajarilgan_hajm: 450 }]);
+    expect(bajarildiYuk(satrlar, 3, 1)).toEqual([{ id: 3, bajarilgan_hajm: 100 }]);
+  });
+  it('qabul qilingan naryad uchun yuk bo‘sh (qayta yuborib bo‘lmaydi)', () => {
+    expect(bajarildiYuk(ustaNaryadSatrlari([naryad('qabul')]), 11, 3)).toEqual([]);
+  });
+  it('«boshqa qolgan» — shu naryadning hali hech narsa yuborilmagan boshqa satrlari soni (0 — oxirgisi)', () => {
+    const satrlar = ustaNaryadSatrlari([naryad('berildi', [qator({ id: 1 }), qator({ id: 2, qator_id: 302, bajarilgan_hajm: 200 }), qator({ id: 3, qator_id: 303 })])]);
+    expect(boshqaQolgan(satrlar, 1)).toBe(1); // 3-satr hali bo'sh; 2-satr yuborilgan
+    expect(boshqaQolgan(ustaNaryadSatrlari([naryad('berildi')]), 11)).toBe(0);
+  });
+  it('berildi holatida qisman yuborilgan satr: «qoldi» yuborilganini hisobga oladi, holat hali «berildi»', () => {
+    const [s] = ustaNaryadSatrlari([naryad('berildi', [qator({ bajarilgan_hajm: 200 })])]);
+    expect(s).toMatchObject({ holat: 'berildi', bajarilgan: 2, qolgan: 3 });
   });
 });
-
 describe('Jarvis matni', () => {
   it('ishlar, holat, kelishilgan narx va oy daromadi (HR manbasidan kelgan son) — to‘qilmaydi', () => {
     const m = ustaJarvisMatni(ustaNaryadSatrlari([naryad('berildi')]), 1500000);
@@ -55,5 +68,17 @@ describe('Jarvis matni', () => {
     expect(m).toMatch(/250\s?000/);
     expect(m).toMatch(/1\s?500\s?000/);
     expect(ustaJarvisMatni([], null)).toContain('—');
+  });
+});
+
+describe('Jarvis vositasi «mening_naryadim»', () => {
+  it('buyruqOqi usta ma’lumotidan javob beradi: naryad holati va oy daromadi HR manbasidan (son o‘zgartirilmaydi)', () => {
+    const m = buyruqMalumotQur([], [], { ustaBugun: { satrlar: ustaNaryadSatrlari([naryad('berildi')]), oyDaromad: 2750000 } });
+    const j = buyruqOqi(m, { vosita: 'mening_naryadim', arg: null });
+    expect(j).toContain('Naryadlarim: 1');
+    expect(j).toMatch(/2\s?750\s?000/);
+  });
+  it('usta bo‘lmasa/ma’lumot yo‘q — to‘qimaydi, «Bugun» sahifasini ko‘rsatadi', () => {
+    expect(buyruqOqi(buyruqMalumotQur([], []), { vosita: 'mening_naryadim', arg: null })).toContain('Bugun');
   });
 });

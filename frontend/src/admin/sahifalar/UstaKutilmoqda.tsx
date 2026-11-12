@@ -58,7 +58,7 @@ export function UstaKutilmoqda({ kompaniyaId, obyektId, qatorlar, onTasdiqlandi 
         {naryadlar.map((n) => (
           <li key={`naryad-${n.id}`} data-testid="usta-naryad-kutilmoqda" className="flex flex-wrap items-center gap-2 rounded-[var(--radius-sm)] border border-border bg-surface-2 px-2.5 py-1.5 text-[13px]">
             <span className="min-w-0 flex-1"><b className="text-text">{t('Naryad')} {n.raqam}</b><span className="ml-2 text-text-dim">{n.usta_nom} · {t('{n} ta ish bajarildi', { n: n.qator_soni })}</span></span>
-            <a href="/admin/naryad" className="fz-btn fz-btn--primary fz-btn--sm">{t('Qabul')}</a>
+            <a href={`/admin/naryad?id=${n.id}`} className="fz-btn fz-btn--primary fz-btn--sm">{t('Qabul')}</a>
           </li>))}
         {royxat.map((x) => { const q = nom(x.qator_id); const yosh = qoralamaYoshi(x.created_at); const eski = yosh >= ESKIRGAN_KUN; return (
           <li key={x.id} data-eskirgan={eski ? 'ha' : undefined} className={`flex flex-wrap items-center gap-2 rounded-[var(--radius-sm)] border px-2.5 py-1.5 text-[13px] ${eski ? 'border-warn bg-warn-soft' : 'border-border bg-surface-2'}`}>

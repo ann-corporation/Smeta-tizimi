@@ -67,7 +67,8 @@ describe('Usta «Bugun» + naryad', () => {
     await waitFor(() => expect(usta.navbatYozuviniYubor).toHaveBeenCalledTimes(1));
     const y = usta.navbatYozuviniYubor.mock.calls[0][0];
     expect(y).toMatchObject({ tur: 'naryad', obyektId: 5, kompaniyaId: 17 });
-    expect(y.payload).toMatchObject({ naryadId: 5, versiya: 3, qatorlar: [{ id: 11, bajarilgan_hajm: 9 }] });
+    /* Payload shakli QATIY: faqat tahrirlangan satr, tugadi (oxirgi satr), izoh; boshqa kalit yo'q. */
+    expect(y.payload).toEqual({ naryadId: 5, versiya: 3, qatorlar: [{ id: 11, bajarilgan_hajm: 9 }], tugadi: true, izoh: null });
     expect(dlg).toBeTruthy();
     // vaqtinchalik xato: navbatda qoldi — «Hozir yuborish» bir xil id bilan qayta yuboradi
     fireEvent.click(await screen.findByRole('button', { name: 'Hozir yuborish' }));
@@ -100,6 +101,27 @@ describe('Usta «Bugun» + naryad', () => {
     expect(screen.queryByRole('button', { name: 'Bajardim' })).toBeNull();
   });
 
+  it('ikki satrli naryad: «Saqlash» faqat shu satrni yuboradi (tugadi=false), boshqa satr payload’da yo‘q; «Hammasi tugadi» tugadi=true', async () => {
+    const n2 = naryad(); n2.qatorlar.push({ ...n2.qatorlar[0], id: 12, qator_id: 302, nom: 'Armatura', kod: '1.2' });
+    usta.ustaNaryadlarOl.mockResolvedValue([n2]);
+    await ochish();
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Bajardim' }))[0]);
+    fireEvent.change(await screen.findByPlaceholderText('Izoh (ixtiyoriy)'), { target: { value: 'ertalab' } });
+    expect(screen.getByTestId('usta-qisman-izoh')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Saqlash' }));
+    await waitFor(() => expect(usta.navbatYozuviniYubor).toHaveBeenCalledTimes(1));
+    expect(usta.navbatYozuviniYubor.mock.calls[0][0].payload).toEqual({ naryadId: 5, versiya: 3, qatorlar: [{ id: 11, bajarilgan_hajm: 10 }], tugadi: false, izoh: 'ertalab' });
+  });
+
+  it('oflayn: avval yuklangan naryad satrlari keshdan ko‘rinadi', async () => {
+    await ochish();
+    await screen.findByTestId('usta-naryad-11');
+    cleanup();
+    sb.sbOqi.mockResolvedValue({ ok: false });
+    Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+    await ochish();
+    expect(await screen.findByTestId('usta-naryad-11')).toBeTruthy();
+  });
   it('naryadi yo‘q usta: avvalgi xulq — BL qoldiqli ishlar (fakt qoralama yo‘li), naryad bo‘limi yo‘q', async () => {
     usta.ustaNaryadlarOl.mockResolvedValue([]);
     await ochish();

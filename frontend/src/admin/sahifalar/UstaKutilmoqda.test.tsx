@@ -36,7 +36,7 @@ describe('Tasdiqlash kutilmoqda (prorab/PTO)', () => {
     render(<UstaKutilmoqda kompaniyaId={17} obyektId={5} qatorlar={[]} />);
     expect(await screen.findByText(/Tasdiqlash kutilmoqda \(2\)/)).toBeTruthy();
     expect(screen.getByTestId('usta-naryad-kutilmoqda').textContent).toContain('N-7');
-    expect(screen.getByRole('link', { name: 'Qabul' }).getAttribute('href')).toBe('/admin/naryad');
+    expect(screen.getByRole('link', { name: 'Qabul' }).getAttribute('href')).toBe('/admin/naryad?id=5');
     expect(nar.naryadlarOl).toHaveBeenCalledWith(17, { obyektId: 5, holat: 'bajarildi', limit: 20 });
   });
   it('qoralama bo‘lmasa umuman ko‘rinmaydi', async () => {

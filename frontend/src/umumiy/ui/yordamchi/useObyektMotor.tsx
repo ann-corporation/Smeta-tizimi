@@ -11,6 +11,10 @@ import { sbFaktYoz } from '../../../api/t2-fakt';
 import { narxProtokolYarat } from '../../../api/t2-narx-protokol';
 import { lugatKompaniyaOl, naryadlarOl, tarixOl } from '../../../api/t2-naryad';
 import type { NaryadQisqa } from '../../../lib/naryad';
+import { ustaNaryadlarOl } from '../../../api/t2-usta';
+import { hrMenOl } from '../../../api/t2-hr';
+import { ustaNaryadSatrlari, type NaryadSatr } from '../../../lib/usta/naryad-ish';
+import { useKompaniya } from '../../kontekst/KompaniyaKontekst';
 import { lugatOrnat } from '../../../lib/qurilish-lugat';
 import { sbArxivla } from '../../../api/t2-arxiv';
 import { daraxtVaHolatOl } from '../../../lib/oylik-hujjat/ostatka-slichitelniy';
@@ -88,9 +92,23 @@ export function useObyektMotor({ kompaniyaId, obyektId, obyektNomi, faol, sahifa
     return () => { tirik = false; };
   }, [yoqilgan, obyektId, kompaniyaId, versiya]);
 
+  /* Jarvis «mening_naryadim»: faqat USTA (self.work.write, fakt.write yo'q) uchun — o'z naryadlari + oy daromadi HR «Mening oyligim» dan (ikkinchi hisob yo'q). */
+  const { joriy: kk, superadmin: sa } = useKompaniya() as { joriy?: { permissions?: string[] } | null; superadmin?: boolean };
+  const ustaRejim = !sa && !!kk?.permissions?.includes('self.work.write') && !kk?.permissions?.includes('fakt.write');
+  const [ustaBugun, setUstaBugun] = useState<{ satrlar: NaryadSatr[]; oyDaromad: number | null } | undefined>(undefined);
+  useEffect(() => {
+    if (!yoqilgan || !ustaRejim || obyektId == null || kompaniyaId == null) return undefined;
+    let tirik = true;
+    void Promise.all([ustaNaryadlarOl(kompaniyaId, obyektId), hrMenOl(kompaniyaId)]).then(([nar, men]) => {
+      if (!tirik || !nar) return;
+      setUstaBugun({ satrlar: ustaNaryadSatrlari(nar), oyDaromad: 'qator' in men && men.qator ? (men.qator.naryad_summa ?? null) : null });
+    }).catch(() => null);
+    return () => { tirik = false; };
+  }, [yoqilgan, ustaRejim, obyektId, kompaniyaId, versiya]);
+
   const m: BuyruqMalumot | null = useMemo(
-    () => (data && data.obyektId === obyektId ? buyruqMalumotQur(data.rows, data.states, { obyektNomi, sahifalar, ustamali: (s) => ustamaliRef.current(s), naryadlar }) : null),
-    [data, obyektId, obyektNomi, sahifalar, naryadlar]);
+    () => (data && data.obyektId === obyektId ? buyruqMalumotQur(data.rows, data.states, { obyektNomi, sahifalar, ustamali: (s) => ustamaliRef.current(s), naryadlar, ustaBugun }) : null),
+    [data, obyektId, obyektNomi, sahifalar, naryadlar, ustaBugun]);
   const mRef = useRef<BuyruqMalumot | null>(m); mRef.current = m;
   const bos = useMemo(() => buyruqMalumotQur([], []), []);
   const yangila = useCallback(() => setVersiya((v) => v + 1), []);

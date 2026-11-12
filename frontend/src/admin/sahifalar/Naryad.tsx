@@ -104,6 +104,10 @@ export default function Naryad() {
   }, [kid, obyektId]);
 
   const och = async (id: number) => { if (!kid) return; const n = await naryadOl(kid, id); if (n) setOchiq(n); else toast(t('Naryad o‘qilmadi'), 'danger'); };
+  /* Chuqur havola: prorab «Tasdiqlash kutilmoqda» dagi «Qabul» -> /admin/naryad?id=N shu naryadni ochadi (mavjud qabul oynasi). */
+  const havolaId = Number(typeof window === 'undefined' ? NaN : new URLSearchParams(window.location.search).get('id'));
+  useEffect(() => { if (kid && Number.isSafeInteger(havolaId) && havolaId > 0) void och(havolaId); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kid, havolaId]);
   const yangilash = async (id: number) => { await yukla(); await och(id); };
 
   const harakat = async (f: Harakat, id: number, ok: string) => {

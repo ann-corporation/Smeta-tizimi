@@ -38,13 +38,16 @@ export function xotiraOmbor(): NavbatOmbor {
   };
 }
 
-const DB_NOM = 'smeta-usta-navbat'; const JADVAL = 'navbat';
+const DB_NOM = 'smeta-usta-navbat'; const JADVAL = 'navbat'; const KESH_JADVAL = 'kesh';
 
 function idbOmbor(): NavbatOmbor | null {
   if (typeof indexedDB === 'undefined') return null;
   const ochish = () => new Promise<IDBDatabase>((res, rej) => {
-    const r = indexedDB.open(DB_NOM, 1);
-    r.onupgradeneeded = () => { r.result.createObjectStore(JADVAL, { keyPath: 'id' }); };
+    const r = indexedDB.open(DB_NOM, 2);
+    r.onupgradeneeded = () => {
+      if (!r.result.objectStoreNames.contains(JADVAL)) r.result.createObjectStore(JADVAL, { keyPath: 'id' });
+      if (!r.result.objectStoreNames.contains(KESH_JADVAL)) r.result.createObjectStore(KESH_JADVAL, { keyPath: 'kalit' });
+    };
     r.onsuccess = () => res(r.result);
     r.onerror = () => rej(r.error);
   });
@@ -106,4 +109,35 @@ export function navbatniYubor(ombor: NavbatOmbor, yubor: (y: NavbatYozuv) => Pro
     return h;
   })().finally(() => { ishda = null; });
   return ishda;
+}
+
+/**
+ * Oflayn ko'rinish keshi (navbat bilan BIR IndexedDB): oxirgi yuklangan ro'yxat. Faqat ko'rsatish uchun; pul YO'Q (chaqiruvchi yozishdan oldin
+ * summani olib tashlaydi). IndexedDB bo'lmasa — RAM. Xato jim.
+ */
+const keshRam = new Map<string, unknown>();
+async function keshAmal<T>(rejim: IDBTransactionMode, f: (s: IDBObjectStore) => IDBRequest<T>): Promise<T> {
+  const db = await new Promise<IDBDatabase>((res, rej) => {
+    const r = indexedDB.open(DB_NOM, 2);
+    r.onupgradeneeded = () => {
+      if (!r.result.objectStoreNames.contains(JADVAL)) r.result.createObjectStore(JADVAL, { keyPath: 'id' });
+      if (!r.result.objectStoreNames.contains(KESH_JADVAL)) r.result.createObjectStore(KESH_JADVAL, { keyPath: 'kalit' });
+    };
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+  return new Promise<T>((res, rej) => {
+    const tx = db.transaction(KESH_JADVAL, rejim); const rq = f(tx.objectStore(KESH_JADVAL));
+    tx.oncomplete = () => { db.close(); res(rq.result); }; tx.onerror = () => { db.close(); rej(tx.error); }; tx.onabort = () => { db.close(); rej(tx.error); };
+  });
+}
+export async function keshYoz(kalit: string, qiymat: unknown): Promise<void> {
+  keshRam.set(kalit, qiymat);
+  if (typeof indexedDB === 'undefined') return;
+  try { await keshAmal('readwrite', (s) => s.put({ kalit, qiymat, vaqt: Date.now() })); } catch { /* RAM da qoldi */ }
+}
+export async function keshOqi<T>(kalit: string): Promise<T | null> {
+  if (typeof indexedDB !== 'undefined') {
+    try { const r = await keshAmal<{ qiymat: T } | undefined>('readonly', (s) => s.get(kalit)); if (r) return r.qiymat; } catch { /* RAM ga tushamiz */ }
+  }
+  return (keshRam.get(kalit) as T | undefined) ?? null;
 }

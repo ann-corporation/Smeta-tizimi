@@ -19,12 +19,14 @@ export type NaryadSatr = {
   hajm: number; bajarilgan: number | null; qabul: number | null; qolgan: number;
   /** Kelishilgan narx 1 usta birligiga (server qiymati); kelishilmagan — null (0 emas). */
   narxBirlik: number | null;
-  /** Usta smeta birligiga o'tkazish koeffitsienti (1 usta birligi = koef smeta birligi). */
+  /** Usta smeta birligi,ga o'tkazish koeffitsienti (1 usta birligi = koef smeta birligi,). */
   koef: number;
   /** Prorab yuborilganidan KAM qabul qildi. */
   kamQabul: boolean;
   /** Naryad izohi (prorabning kamaytirish sababi shu yerga yozilgan bo'lishi mumkin). */
   izoh: string | null;
+  /** Usta shu naryad bo'yicha yozgan izoh (serverda saqlanadi). */
+  ustaIzoh: string | null;
   /** Hisoblangan naryad uchun serverdagi summa (QQS siz). */
   summa: number | null;
 };
@@ -44,10 +46,10 @@ export function ustaNaryadSatrlari(naryadlar: readonly Naryad[], til: Til = 'uz'
         naryadId: n.id, versiya: n.versiya, raqam: n.raqam, obyektId: n.obyekt_id, naryadQatorId: q.id, qatorId: q.qator_id,
         holat, nom: odamNomi(q, til) || q.nom,
         birlik: birlikOdam(ustaBirlikda ? q.usta_birlik : q.birlik, til),
-        hajm, bajarilgan, qabul, qolgan: Math.max(0, r8(hajm - (holat === 'berildi' ? 0 : (bajarilgan ?? 0)))),
+        hajm, bajarilgan, qabul, qolgan: Math.max(0, r8(hajm - (bajarilgan ?? 0))),
         narxBirlik: q.usta_narx_birlik ?? (ustaBirlikda ? null : q.usta_narx), koef: k,
         kamQabul: holat === 'qabul' || holat === 'hisoblandi' ? qabul != null && bajarilgan != null && qabul < bajarilgan - 1e-9 : false,
-        izoh: n.izoh, summa: holat === 'hisoblandi' ? n.xarajat_summa : null,
+        izoh: n.izoh, ustaIzoh: n.usta_izoh ?? null, summa: holat === 'hisoblandi' ? n.xarajat_summa : null,
       };
     });
   });
@@ -61,16 +63,18 @@ export const ochiqNaryadQatorlari = (satrlar: readonly NaryadSatr[]): Set<number
 export const bajardimMumkin = (s: Pick<NaryadSatr, 'holat'>) => s.holat === 'berildi' || s.holat === 'yuborildi';
 
 /**
- * `bajarildi` yuki: usta birligidagi hajm → smeta birligi (× koef). Naryadning BOSHQA satrlarida avval yuborilgan qiymat saqlanadi
- * (server butun ro'yxatni qabul qiladi), tahrirlangan satr — yangi qiymat bilan.
+ * `usta_bajarildi` yuki - FAQAT tahrirlangan satr (usta birligidagi hajm x koef = smeta birligi). Boshqa satrlar yuborilmaydi:
+ * RPC (`t2_naryad_usta_bajarildi_v1`) ro'yxatda yo'q satrlarga tegmaydi, shuning uchun bitta satrni yuborish boshqasining
+ * yuborilgan hajmini O'CHIRA OLMAYDI.
  */
 export function bajarildiYuk(naryad: readonly NaryadSatr[], naryadQatorId: number, hajmUsta: number): Array<{ id: number; bajarilgan_hajm: number }> {
-  return naryad.filter((s) => bajardimMumkin(s)).flatMap((s) => {
-    if (s.naryadQatorId === naryadQatorId) return [{ id: s.naryadQatorId, bajarilgan_hajm: r8(hajmUsta * s.koef) }];
-    return s.bajarilgan != null ? [{ id: s.naryadQatorId, bajarilgan_hajm: r8(s.bajarilgan * s.koef) }] : [];
-  });
+  const s = naryad.find((x) => x.naryadQatorId === naryadQatorId);
+  return s && bajardimMumkin(s) ? [{ id: s.naryadQatorId, bajarilgan_hajm: r8(hajmUsta * s.koef) }] : [];
 }
 
+/** Shu naryadning BOSHQA satrlari orasida hali hech narsa yuborilmaganlari (bajarilgan = null) soni. 0 bo'lsa - bu oxirgi satr: naryad prorabga o'tadi. */
+export const boshqaQolgan = (naryad: readonly NaryadSatr[], naryadQatorId: number): number =>
+  naryad.filter((x) => x.naryadQatorId !== naryadQatorId && bajardimMumkin(x) && x.bajarilgan == null).length;
 const son = (v: number) => Number(v.toFixed(3)).toLocaleString('ru-RU', { maximumFractionDigits: 3 });
 const pul = (v: number | null) => (v == null ? '—' : `${Math.round(v).toLocaleString('ru-RU')} so‘m`);
 

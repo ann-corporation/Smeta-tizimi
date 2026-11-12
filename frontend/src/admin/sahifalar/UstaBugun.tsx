@@ -15,7 +15,7 @@ import { bajarildiYuk, type NaryadSatr } from '../../lib/usta/naryad-ish';
 import { UstaNaryad } from './UstaNaryad';
 import { faktTogriYoz, navbatYozuviniYubor, sbUstaQoralamalarOl } from '../../api/t2-usta';
 import { hrOyOl, hrTabelSaqla, hrXodimlarOl, hrXato, type HrOy, type HrXodim } from '../../api/t2-hr';
-import { navbatOmbori, navbatniYubor, type NavbatOmbor, type NavbatYozuv } from '../../lib/usta/navbat';
+import { keshOqi as idbKeshOqi, keshYoz as idbKeshYoz, navbatOmbori, navbatniYubor, type NavbatOmbor, type NavbatYozuv } from '../../lib/usta/navbat';
 import { birlikIzohi, hajmMatni, QADAM } from '../../lib/usta/birlik';
 import { toast } from '../../umumiy/ui/Toast';
 import { t } from '../../i18n/til';
@@ -110,9 +110,13 @@ export default function UstaBugun() {
     const r = await bugungiIshlarManbasi(oid, tur, { kompaniyaId: kid ?? undefined, naryad: !faktYoza });
     if (r.ok) {
       const q = r.qatorlar;
-      if (tur === 'bl') setNaryadSatr(r.naryad);
+      if (tur === 'bl') { setNaryadSatr(r.naryad); if (r.naryad.length) void idbKeshYoz(`naryad:${oid}`, r.naryad.map((x) => ({ ...x, summa: null }))); }
       setIshlar(q); keshYoz(oid, tur, q);
-    } else if (!eski) setIshXato(onlayn ? t('Ishlar ro‘yxati o‘qilmadi. Qayta urinib ko‘ring.') : t('Internet yo‘q va ro‘yxat saqlanmagan. Avval internetda bir marta oching.'));
+    } else {
+      /* Oflayn: oxirgi yuklangan naryad satrlari ham ko'rinadi (navbat bilan bir IndexedDB; summa saqlanmaydi). */
+      if (tur === 'bl') void idbKeshOqi<NaryadSatr[]>(`naryad:${oid}`).then((k) => { if (k?.length) setNaryadSatr(k); });
+      if (!eski) setIshXato(onlayn ? t('Ishlar ro‘yxati o‘qilmadi. Qayta urinib ko‘ring.') : t('Internet yo‘q va ro‘yxat saqlanmagan. Avval internetda bir marta oching.'));
+    }
     setYuk(false);
   }, [onlayn, kid, faktYoza]);
 
@@ -162,10 +166,10 @@ export default function UstaBugun() {
   };
 
   /** «Bajardim» — naryad satri bo'yicha YAGONA kirish: navbatga (idempotent operation_id) → ajarildi; qabul — prorabda. */
-  const bajardim = async (s: NaryadSatr, hajmUsta: number, izohMatn: string | null) => {
+  const bajardim = async (s: NaryadSatr, hajmUsta: number, izohMatn: string | null, tugadi: boolean) => {
     if (kid == null || obyektId == null) return;
     const y: NavbatYozuv = { id: yangiOperationId(), tur: 'naryad', kompaniyaId: kid, obyektId, yaratildi: Date.now(), urinish: 0,
-      payload: { naryadId: s.naryadId, versiya: s.versiya, qatorlar: bajarildiYuk(naryadSatr.filter((x) => x.naryadId === s.naryadId), s.naryadQatorId, hajmUsta), izoh: izohMatn } };
+      payload: { naryadId: s.naryadId, versiya: s.versiya, qatorlar: bajarildiYuk(naryadSatr.filter((x) => x.naryadId === s.naryadId), s.naryadQatorId, hajmUsta), tugadi, izoh: izohMatn } };
     await ombor.current!.qosh(y); await yangilaNavbat();
     const h = await navbatniYubor(ombor.current!, yubor); await yangilaNavbat();
     toast(h.yuborildi > 0 ? t('Yuborildi — prorab qabul qilishini kutmoqda') : t('Saqlab qo‘yildi — internet ulanganda yuboriladi.'), h.yuborildi > 0 ? 'ok' : 'warn');

@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Camera, Mic, Minus, Plus } from 'lucide-react';
 import { hrMenOl } from '../../api/t2-hr';
 import { FotoDalil } from '../../components/foto-dalil/FotoDalil';
-import { bajardimMumkin, type NaryadSatr } from '../../lib/usta/naryad-ish';
+import { bajardimMumkin, boshqaQolgan, type NaryadSatr } from '../../lib/usta/naryad-ish';
 import { t } from '../../i18n/til';
 
 const son = (v: number | null | undefined) => (v == null || !Number.isFinite(v) ? '—' : Number(v.toFixed(3)).toLocaleString('ru-RU', { maximumFractionDigits: 3 }));
@@ -40,7 +40,7 @@ export function OyDaromadi({ kid }: { kid: number }) {
 
 export function UstaNaryad({ kid, satrlar, onlayn, onBajardim }: {
   kid: number; satrlar: readonly NaryadSatr[]; onlayn: boolean;
-  onBajardim: (s: NaryadSatr, hajmUsta: number, izoh: string | null) => unknown;
+  onBajardim: (s: NaryadSatr, hajmUsta: number, izoh: string | null, tugadi: boolean) => unknown;
 }) {
   const [tanlangan, setTanlangan] = useState<NaryadSatr | null>(null);
   const [hajm, setHajm] = useState(0);
@@ -52,7 +52,9 @@ export function UstaNaryad({ kid, satrlar, onlayn, onBajardim }: {
 
   const och = (s: NaryadSatr) => { setTanlangan(s); setHajm(s.holat === 'yuborildi' && s.bajarilgan != null ? s.bajarilgan : s.qolgan || s.hajm); setIzoh(''); };
   const yop = () => { setTanlangan(null); setHajm(0); setIzoh(''); };
-  const yuborish = async () => { if (!tanlangan || hajm <= 0 || band) return; setBand(true); try { await onBajardim(tanlangan, hajm, izoh.trim() || null); yop(); } finally { setBand(false); } };
+  /** Shu naryadning boshqa satrlarida hali hech narsa yuborilmaganlar soni (0 — bu oxirgisi). */
+  const boshqa = tanlangan ? boshqaQolgan(satrlar.filter((x) => x.naryadId === tanlangan.naryadId), tanlangan.naryadQatorId) : 0;
+  const yuborish = async (tugadi: boolean) => { if (!tanlangan || hajm <= 0 || band) return; setBand(true); try { await onBajardim(tanlangan, hajm, izoh.trim() || null, tugadi); yop(); } finally { setBand(false); } };
 
   const ovoz = () => {
     const C = (Reflect.get(window, 'SpeechRecognition') ?? Reflect.get(window, 'webkitSpeechRecognition')) as (new () => Tanish) | undefined; if (!C) return;
@@ -73,8 +75,8 @@ export function UstaNaryad({ kid, satrlar, onlayn, onBajardim }: {
           <div className="text-[14px] text-text-dim">{t('Berilgan')}: {son(s.hajm)} {s.birlik} · {t('Qoldi')}: {son(s.qolgan)} {s.birlik}</div>
           <div className="text-[14px] text-text-dim">{t('Kelishilgan narx')}: {s.narxBirlik == null ? t('kelishilmagan') : `${pul(s.narxBirlik)} / ${s.birlik}`}</div>
           <div className="text-[14px] font-medium text-text" data-testid="usta-naryad-holat">
-            {t(HOLAT_SOZ[s.holat])}
-            {s.holat === 'yuborildi' && s.bajarilgan != null ? ` · ${son(s.bajarilgan)} ${s.birlik}` : ''}
+            {s.holat === 'berildi' && s.bajarilgan != null ? t('Saqlandi — hammasi tugagach prorabga yuboring') : t(HOLAT_SOZ[s.holat])}
+            {(s.holat === 'yuborildi' || s.holat === 'berildi') && s.bajarilgan != null ? ` · ${son(s.bajarilgan)} ${s.birlik}` : ''}
             {(s.holat === 'qabul' || s.holat === 'hisoblandi') && s.qabul != null ? ` · ${son(s.qabul)} ${s.birlik}` : ''}
             {s.holat === 'hisoblandi' && s.summa != null ? ` · ${pul(s.summa)}` : ''}
           </div>
@@ -105,9 +107,11 @@ export function UstaNaryad({ kid, satrlar, onlayn, onBajardim }: {
               {onlayn ? <FotoDalil kompaniyaId={kid} obyektId={tanlangan.obyektId} manba={{ turi: 'naryad', id: tanlangan.naryadId }} ai={false} joylashuv={false} ixcham />
                 : <p className="m-0 text-[13px] text-text-mute">{t('Foto internet bo‘lganda qo‘shiladi.')}</p>}
             </div>
+            {boshqa > 0 && <p data-testid="usta-qisman-izoh" className="mt-3 mb-0 text-[13px] text-text-dim">{t('Naryadda hali yuborilmagan {n} ta ish bor. «Saqlash» — qolganlari keyin; «Hammasi tugadi» — qolganlari 0 deb prorabga yuboriladi.', { n: boshqa })}</p>}
             <div className="mt-4 grid grid-cols-2 gap-2">
               <button type="button" onClick={yop} className="min-h-[56px] rounded-[var(--radius-md)] border border-border bg-surface text-[17px] font-semibold text-text">{t('Bekor qilish')}</button>
-              <button type="button" disabled={band || hajm <= 0} onClick={() => void yuborish()} className="min-h-[56px] rounded-[var(--radius-md)] bg-accent text-[17px] font-semibold text-white disabled:opacity-50">{band ? t('Yuborilmoqda…') : t('Yuborish')}</button>
+              {boshqa > 0 ? <button type="button" disabled={band || hajm <= 0} onClick={() => void yuborish(false)} className="min-h-[56px] rounded-[var(--radius-md)] border border-border bg-surface text-[17px] font-semibold text-text disabled:opacity-50">{t('Saqlash')}</button> : <div />}
+              <button type="button" disabled={band || hajm <= 0} onClick={() => void yuborish(true)} className="col-span-2 min-h-[56px] rounded-[var(--radius-md)] bg-accent text-[17px] font-semibold text-white disabled:opacity-50">{band ? t('Yuborilmoqda…') : boshqa > 0 ? t('Hammasi tugadi — prorabga yuborish') : t('Yuborish')}</button>
             </div>
           </div>
         </div>

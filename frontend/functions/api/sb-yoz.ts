@@ -76,6 +76,7 @@ const AMALLAR = {
   /* Naryad (brigada/usta topshirig'i) + kompaniya lug'ati (20261214800000): bitta yozuvchi RPC, ichki amal (yarat/bajarildi/qabul/fakt_yozildi/hisobla/bekor/lugat_saqla).
      RPC a'zolik + smeta.write (hisobla — yana financial.write) ni o'zi tekshiradi; idempotent (operation_id), CAS (kutilgan_versiya). */
   naryad_yoz_v1: { rpc: 't2_naryad_yoz_v1' },
+  naryad_usta_bajarildi_v1: { rpc: 't2_naryad_usta_bajarildi_v1' },
   /* Egasi 2026-10-01: shartnoma kartasi — loyiha, erkin turdagi tomonlar, obyektlar to'plami (asosiy: obyektda bitta). */
   shartnoma_saqla_v2: { rpc: 't2_shartnoma_saqla_v2' },
   /* Egasi 2026-11-02: qarzdorlik - asoslar saqlash (CAS) va Excel importi (idempotent operation_id). RPC a'zolik + financial.write ni o'zi tekshiradi. */
@@ -1086,6 +1087,15 @@ export const onRequestPost: PagesFunction<{
         yuk2.qiymat = qv;
       }
       yuk = { p_kompaniya_id: so.kompaniya_id, p_actor_id: sess.foydalanuvchi_id, p_operation_id: so.operation_id, p_amal: ichki, p_naryad_id: nid, p_kutilgan_versiya: kv, p_yuk: yuk2 };
+    } else if (amal === 'naryad_usta_bajarildi_v1') {
+      /* Usta «Bajardim» (20261216700000): faqat tipli maydonlar; actor sessiyadan; boshqa qatorlar o'zgarmaydi, usta izohi saqlanadi. */
+      const bad = (x: string) => Response.json({ ok: false, error: 'Naryad: ' + x }, { status: 400 });
+      const nid = Number(so.naryad_id); const kv = Number(so.kutilgan_versiya);
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !Number.isSafeInteger(nid) || nid <= 0 || !Number.isSafeInteger(kv)) return bad('operatsiya, versiya yoki naryad noto‘g‘ri.');
+      if (!Array.isArray(so.qatorlar) || so.qatorlar.length < 1 || so.qatorlar.length > 200) return bad('qatorlar 1..200.');
+      const qlar = (so.qatorlar as Array<Record<string, unknown>>).map((q) => ({ id: Number(q?.id), bajarilgan_hajm: Number(q?.bajarilgan_hajm) }));
+      if (qlar.some((q) => !Number.isSafeInteger(q.id) || q.id <= 0 || !Number.isFinite(q.bajarilgan_hajm) || q.bajarilgan_hajm < 0)) return bad('qator yoki hajm noto‘g‘ri.');
+      yuk = { p_kompaniya_id: so.kompaniya_id, p_actor_id: sess.foydalanuvchi_id, p_operation_id: so.operation_id, p_naryad_id: nid, p_kutilgan_versiya: kv, p_qatorlar: qlar, p_tugadi: so.tugadi === true, p_izoh: so.izoh == null || so.izoh === '' ? null : String(so.izoh).slice(0, 500) };
     } else if (amal === 'qarzdorlik_saqla_v1') {
       /* Qarzdorlik: bitta shartnoma asoslari (CAS) - qator maydonlari oq ro'yxatdan, qolganini RPC tekshiradi. */
       const qs = so.qatorlar; const och = so.ochirilgan; const sp = so.spravka;

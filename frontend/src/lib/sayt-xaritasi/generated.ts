@@ -351,6 +351,10 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_naryad_yoz_v1"
     },
     {
+      "amal": "naryad_usta_bajarildi_v1",
+      "rpc": "t2_naryad_usta_bajarildi_v1"
+    },
+    {
       "amal": "shartnoma_saqla_v2",
       "rpc": "t2_shartnoma_saqla_v2"
     },
