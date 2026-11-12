@@ -47,8 +47,10 @@ declare
 begin
   perform public.t2_actor_kompaniya_azo_tekshir(p_kompaniya_id, p_actor_id);
   if p_operation_id is null then return jsonb_build_object('ok', false, 'code', 'OPERATION_REQUIRED'); end if;
-  v_yoz := coalesce((public.t2_effective_authorization_v1(p_actor_id, p_kompaniya_id, null, null, 'smeta.write', null) ->> 'allowed')::boolean, false);
-  v_self := coalesce((public.t2_effective_authorization_v1(p_actor_id, p_kompaniya_id, null, null, 'self.work.write', null) ->> 'allowed')::boolean, false);
+  -- DIQQAT: t2_effective_authorization_v1 rol ro'yxati qattiq (usta/brigadir u yerda yo'q -> UNKNOWN_ROLE), shu sabab 'usta' roli uchun self.work.write
+  -- doim 'false' qaytadi. Haqiqiy rol -> capability manbai: t2_permission_allowed_v2 (t2_azolik_permissions_v2 -> t2_role_permissions_v2).
+  v_yoz := public.t2_permission_allowed_v2(p_kompaniya_id, p_actor_id, 'smeta.write');
+  v_self := public.t2_permission_allowed_v2(p_kompaniya_id, p_actor_id, 'self.work.write');
   if not v_yoz and not v_self then perform public.t2_require_permission_v2(p_kompaniya_id, p_actor_id, 'smeta.write'); end if;
   v_t := public._t2_naryad_takror(p_kompaniya_id, p_operation_id, 'usta_bajarildi'); if v_t is not null then return v_t; end if;
   if p_qatorlar is null or jsonb_typeof(p_qatorlar) <> 'array' or jsonb_array_length(p_qatorlar) not between 1 and 200 then

@@ -38,6 +38,14 @@ function tayyorla() {
 }
 
 describe('Naryad sahifasi', () => {
+  it('usta izohi prorabga o‘qish uchun ko‘rinadi (naryad sarlavhasi ostida)', async () => {
+    tayyorla();
+    m.bitta.mockResolvedValue({ ...N, usta_izoh: 'ertalab quyildi' });
+    render(<Naryad />);
+    fireEvent.click(await screen.findByText('N-2026-0005'));
+    expect((await screen.findByTestId('naryad-usta-izoh')).textContent).toContain('ertalab quyildi');
+  });
+
   it('chuqur havola ?id=5: shu naryad darhol ochiladi (prorab «Qabul» havolasi)', async () => {
     tayyorla();
     window.history.pushState({}, '', '/admin/naryad?id=5');

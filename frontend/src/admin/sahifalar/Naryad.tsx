@@ -200,6 +200,7 @@ function NaryadTafsilot({ n, band, ustama, obyektNom: _obyektNom, onQabul, onNar
         <div><b>{n.raqam}</b> · {holatNomi(n.holat)} · {n.usta_nom}{n.brigada ? ` · ${n.brigada}` : ''}</div>
         <button type="button" className={tugma} onClick={onHujjat}><Download size={14} />{t('Hujjat (Excel)')}</button>
       </div>
+        {n.usta_izoh && <p data-testid="naryad-usta-izoh" className="mb-2 mt-0 text-[12px] text-text-dim"><b>{t('Usta izohi')}:</b> {n.usta_izoh}</p>}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[640px] text-[12px]">
           <thead><tr className="text-left text-text-mute">

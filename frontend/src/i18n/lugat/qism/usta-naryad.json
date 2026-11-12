@@ -26,5 +26,6 @@
   "Saqlandi — hammasi tugagach prorabga yuboring": { "ru": "Сохранено — когда всё будет готово, отправьте прорабу", "en": "Saved — send to the site manager when everything is done" },
   "Naryadda hali yuborilmagan {n} ta ish bor. «Saqlash» — qolganlari keyin; «Hammasi tugadi» — qolganlari 0 deb prorabga yuboriladi.": { "ru": "В наряде ещё не отправлено работ: {n}. «Сохранить» — остальное позже; «Всё готово» — остальные уйдут прорабу как 0.", "en": "{n} works in this order are not reported yet. “Save” — the rest later; “All done” — the rest are sent to the site manager as 0." },
   "Hammasi tugadi — prorabga yuborish": { "ru": "Всё готово — отправить прорабу", "en": "All done — send to the site manager" },
+  "Usta izohi": { "ru": "Комментарий мастера", "en": "Foreman's note" },
   "so‘m": { "ru": "сум", "en": "UZS" }
 }
