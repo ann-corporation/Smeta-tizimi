@@ -120,7 +120,9 @@ begin
   perform pg_temp._k((select holat from public.t2_kirish_taklif where id = (r->>'taklif_id')::bigint) = 'ishlatildi', q, 'holat ishlatildi emas');
   perform pg_temp._k(exists (select 1 from public.t2_audit_log where kompaniya_id = v_komp and amal_turi = 'kirish_taklif_ishlatildi'), q, 'audit yozuvi yo''q');
   q := 'mijoz_rolni_kotara_olmaydi';
-  perform pg_temp._k(not exists (select 1 from pg_proc where proname in ('t2_kirish_taklif_qabul_v1', 't2_kirish_taklif_ulash_v1') and pg_get_function_identity_arguments(oid) ~* 'rol'), q, 'qabul/ulash imzosida rol parametri bor');
+  -- parametr NOMLARI aniq (proargnames); matn qidiruvi p_parol ni (pa-rol) noto'g'ri ushlaydi.
+  perform pg_temp._k(not exists (select 1 from pg_proc p, unnest(p.proargnames) n where p.pronamespace = 'public'::regnamespace and p.proname in ('t2_kirish_taklif_qabul_v1', 't2_kirish_taklif_ulash_v1') and n in ('p_rol', 'rol', 'p_role', 'p_lavozim', 'p_rollar'))
+    and (select count(*) from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in ('t2_kirish_taklif_qabul_v1', 't2_kirish_taklif_ulash_v1')) = 2, q, 'qabul/ulash imzosida rol parametri bor');
 
   -- ── mavjud hisobni egallab olish rad etiladi ──
   q := 'mavjud_hisob_jim_ulanmaydi';
