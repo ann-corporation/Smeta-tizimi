@@ -67,6 +67,7 @@ describe('Bugun — rol bosh sahifasi', () => {
     expect(g.textContent).toContain('Zayavka yaratish');
     cleanup();
     chiz('buyurtmachi', ['company.read', 'project.read']);
-    expect(screen.queryByTestId('bugun-amallar')).toBeNull();
+    expect(screen.getByTestId('bugun-amallar').textContent).not.toContain('Zayavka yaratish');
+    expect(screen.getByTestId('bugun-amallar').textContent).toContain('Kelgan hujjatga qaror');
   });
 });
