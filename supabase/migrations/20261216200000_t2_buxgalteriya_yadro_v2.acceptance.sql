@@ -61,9 +61,9 @@ begin
   rep := rep || (case when r->>'code' = 'HISOB_NOTOGRI' then 'OK   Dt = Kt provodka rad (qo''lda)' else 'FAIL Dt=Kt qo''lda: ' || r::text end);
   begin
     insert into public.t2_bux_provodka(kompaniya_id, sana, dt_kod, kt_kod, summa, manba_tur, qism, tur) values (k, '2026-03-01', '5110', '5110', 10, 'qolda', 'asosiy', 'qolda');
-    rep := rep || 'FAIL Dt=Kt to''g''ridan-to''g''ri yozuv o''tib ketdi';
+    rep := rep || 'FAIL Dt=Kt to''g''ridan-to''g''ri yozuv o''tib ketdi'::text;
   exception when check_violation then
-    rep := rep || 'OK   Dt = Kt to''g''ridan-to''g''ri yozuv bazada rad';
+    rep := rep || 'OK   Dt = Kt to''g''ridan-to''g''ri yozuv bazada rad'::text;
   end;
   r := public.t2_bux_osv_v1(k, ub, '2026-01-01', '2026-12-31', null, null, null, 500);
   select coalesce(sum(summa), 0) into a from public.t2_bux_provodka where kompaniya_id = k;
@@ -104,7 +104,7 @@ begin
   rep := rep || (case when (r->>'ok')::boolean and (r2->>'yopiq_davr_otkazildi')::int = 2 and (r2->>'yangi')::int = 0 and n = n2 then 'OK   davr bloki: yopiq oyga delta yozilmadi (2 ta o''tkazildi)' else 'FAIL davr bloki: ' || r2::text end);
   begin
     perform public.t2_bux_qolda_provodka_v1(ub, k, '2026-01-20', '5110', '6010', 5, null, null, null, 'yopiq', gen_random_uuid());
-    rep := rep || 'FAIL yopiq oyga qo''lda provodka o''tib ketdi';
+    rep := rep || 'FAIL yopiq oyga qo''lda provodka o''tib ketdi'::text;
   exception when others then
     get stacked diagnostics v_msg = message_text;
     rep := rep || (case when v_msg like 'BUX_DAVR_YOPIQ%' then 'OK   yopiq oyga qo''lda provodka rad (BUX_DAVR_YOPIQ)' else 'FAIL davr bloki xabari: ' || v_msg end);
@@ -150,21 +150,21 @@ begin
                       then 'OK   izolyatsiya: B daftari A ga tegmadi, id lar aralashmadi' else 'FAIL izolyatsiya: n=' || n || ' n2=' || n2 end);
   begin
     perform public.t2_bux_osv_v1(k, ubb, null, null, null, null, null, 10);
-    rep := rep || 'FAIL begona kompaniya ОСВ ni o''qidi';
+    rep := rep || 'FAIL begona kompaniya ОСВ ni o''qidi'::text;
   exception when others then
     get stacked diagnostics v_state = returned_sqlstate;
     rep := rep || ('OK   begona kompaniya A ОСВ ini o''qiy olmaydi (' || v_state || ')');
   end;
   begin
     perform public.t2_bux_kartochka_v1(kb, ub, null, null, null, null, '6010', 10);
-    rep := rep || 'FAIL A foydalanuvchisi B kartochkasini o''qidi';
+    rep := rep || 'FAIL A foydalanuvchisi B kartochkasini o''qidi'::text;
   exception when others then
     get stacked diagnostics v_state = returned_sqlstate;
     rep := rep || ('OK   A foydalanuvchisi B kartochkasini o''qiy olmaydi (' || v_state || ')');
   end;
   begin
     perform public.t2_bux_osv_v1(k, uy, null, null, null, null, null, 10);
-    rep := rep || 'FAIL buyurtmachi roli ОСВ ni o''qidi';
+    rep := rep || 'FAIL buyurtmachi roli ОСВ ni o''qidi'::text;
   exception when others then
     get stacked diagnostics v_state = returned_sqlstate;
     rep := rep || ('OK   buyurtmachi roli buxgalteriyani o''qiy olmaydi (' || v_state || ')');
@@ -172,7 +172,7 @@ begin
   -- begona kompaniyaga provodka yozish (ruxsatsiz) rad
   begin
     perform public.t2_bux_qolda_provodka_v1(ubb, k, '2026-03-05', '5110', '6010', 1, null, null, null, 'begona', gen_random_uuid());
-    rep := rep || 'FAIL begona kompaniyaga provodka yozildi';
+    rep := rep || 'FAIL begona kompaniyaga provodka yozildi'::text;
   exception when others then
     get stacked diagnostics v_state = returned_sqlstate;
     rep := rep || ('OK   begona kompaniyaga provodka yozib bo''lmaydi (' || v_state || ')');
