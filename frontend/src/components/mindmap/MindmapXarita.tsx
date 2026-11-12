@@ -1,4 +1,4 @@
-/**
+﻿/**
  * «Kompaniya xaritasi» — /admin/mindmap ning sukut ko‘rinishi (egasi 2026-10-25: rahbar panelida mindmapga urg‘u,
  * maksimal vizual izoh — qaragan odam ishlar holatini tushunsin).
  *
@@ -34,9 +34,11 @@ import { HOLAT_RANG, foizMatn, holatIzohi, holatNomi, pulQ } from './holat';
 /** `pult` — asosiy «Boshqaruv» daraxti (sukut); qolganlari «Boshqa ko‘rinishlar» ostida. (3D graf bezak edi — olib tashlandi; 2D graf egasi talabi bilan saqlangan.) */
 export type MindmapKorinishTuri = 'pult' | 'xarita' | 'royxat' | '2d' | 'tahrir';
 
-const ASOSIY_KORINISH: { k: MindmapKorinishTuri; ikon: typeof List; nom: () => string } = { k: 'pult', ikon: ListTree, nom: () => t('Boshqaruv') };
-const BOSHQA_KORINISHLAR: { k: MindmapKorinishTuri; ikon: typeof List; nom: () => string }[] = [
+const ASOSIY_KORINISH: { k: MindmapKorinishTuri; ikon: typeof List; nom: () => string }[] = [
   { k: 'xarita', ikon: MapIkon, nom: () => t('Xarita') },
+  { k: 'pult', ikon: ListTree, nom: () => t('Jadval') },
+];
+const BOSHQA_KORINISHLAR: { k: MindmapKorinishTuri; ikon: typeof List; nom: () => string }[] = [
   { k: 'royxat', ikon: List, nom: () => t('Ro‘yxat') },
   { k: '2d', ikon: Network, nom: () => t('2D graf') },
   { k: 'tahrir', ikon: PencilLine, nom: () => t('Tahrir (chiziq tortish)') },
@@ -44,9 +46,10 @@ const BOSHQA_KORINISHLAR: { k: MindmapKorinishTuri; ikon: typeof List; nom: () =
 
 /** Ko‘rinish almashtirgich: «Boshqaruv» doim ko‘rinadi, qolgan ko‘rinishlar «Boshqa ko‘rinishlar» ostida. */
 export function KorinishTanlagich({ joriy, onTanla, className = '', tahrirMumkin = true }: { joriy: MindmapKorinishTuri; onTanla: (k: MindmapKorinishTuri) => void; className?: string; /** `false` — «Tahrir» yorlig‘i chiqmaydi (yozuv ruxsati yo‘q). */ tahrirMumkin?: boolean }) {
-  const [ochiq, setOchiq] = useState(joriy !== 'pult');
+  const asosiyJoriy = joriy === 'xarita' || joriy === 'pult';
+  const [ochiq, setOchiq] = useState(!asosiyJoriy);
   const boshqalar = BOSHQA_KORINISHLAR.filter(({ k }) => tahrirMumkin || k !== 'tahrir');
-  const korinadigan = [ASOSIY_KORINISH, ...(ochiq || joriy !== 'pult' ? boshqalar : [])];
+  const korinadigan = [...ASOSIY_KORINISH, ...(ochiq || !asosiyJoriy ? boshqalar : [])];
   return (
     <div className={'inline-flex max-w-full items-center gap-1 ' + className}>
       <div role="tablist" aria-label={t('Ko‘rinish')} className="inline-flex max-w-full overflow-x-auto rounded-[var(--radius-sm)] border border-[var(--border-strong)] bg-surface-2 p-0.5">
@@ -58,7 +61,7 @@ export function KorinishTanlagich({ joriy, onTanla, className = '', tahrirMumkin
           </button>
         ))}
       </div>
-      {joriy === 'pult' && (
+      {asosiyJoriy && (
         <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" aria-expanded={ochiq} onClick={() => setOchiq((v) => !v)} data-testid="boshqa-korinishlar">
           {ochiq ? t('Yashirish') : t('Boshqa ko‘rinishlar')}
         </button>
@@ -188,6 +191,18 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
   }, [amallarOl]);
   /** Tugmadan ochish: menyu tugma ostida. */
   const amalOchEl = useCallback((n: AmalNishon, el: HTMLElement) => { const r = el.getBoundingClientRect(); amalOch(n, r.left, r.bottom + 4); }, [amalOch]);
+  /** Xaritadagi «+»: aynan shu tugundagi yaratish amallari (pult bilan bir xil menyu va modal). */
+  const yaratishAmallari = useCallback((n: AmalNishon) => amallarOl(n).filter((a) => a.ikon === 'yangi'), [amallarOl]);
+  const yaratishBor = useCallback((id: string) => {
+    const tg = daraxt.tugunlar.get(id);
+    const n = tg ? tugunNishoni(tg, !!daraxt.jamoa) : null;
+    return !!n && yaratishAmallari(n).length > 0;
+  }, [daraxt, yaratishAmallari]);
+  const tugunYaratishOch = useCallback((id: string, x: number, y: number) => {
+    const tg = daraxt.tugunlar.get(id);
+    const n = tg ? tugunNishoni(tg, !!daraxt.jamoa) : null;
+    if (n) setMenyu({ nishon: n, nishonNom: n.tur === 'kompaniya' ? n.nom || t('Kompaniya') : n.nom, amallar: yaratishAmallari(n), x, y });
+  }, [daraxt, yaratishAmallari]);
   const tugunAmalOch = useCallback((id: string, x: number, y: number) => {
     const tg = daraxt.tugunlar.get(id);
     const n = tg ? tugunNishoni(tg, !!daraxt.jamoa) : null;
@@ -280,7 +295,9 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
               <span aria-hidden className="inline-block h-3 w-3 rotate-45 rounded-[2px] bg-[var(--accent)]" />
               {t('Boshqaruv pulti')}
             </h1>
-            <p className="mt-0.5 hidden text-[12.5px] text-text-dim sm:block">{korinish === 'pult' && pult
+            <p className="mt-0.5 hidden text-[12.5px] text-text-dim sm:block">{korinish === 'xarita' && pult
+              ? t('Tugunni bosing — tafsilot. Tugundagi «+» — yangisini qo‘shish, «⋯» — barcha amallar. Aylantirish — zum, sudrash — surish.')
+              : korinish === 'pult' && pult
               ? t('Kompaniya → loyiha → shartnoma → obyekt. Tugunni bosing — tafsilot; «⋯» — yaratish, biriktirish va sahifaga o‘tish.')
               : t('Loyihalar → obyektlar → smeta, fakt va F2 holati. Tugunni bosing — tafsilot va havolalar.')}</p>
           </div>
@@ -344,7 +361,7 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
           )}
           {!bosh && !tarkibYoq && korinish === 'xarita' && (
             <XaritaKanvas daraxt={daraxt} joylashuv={joylashuv} tanlangan={tanlangan} onTanla={onTanla} yoritilgan={yoritilgan}
-              yigilgan={yigilgan} onYigToggle={yigToggle} onHammasiniYig={hammasiniYig} guruhNomi={guruhNomi} onAmallar={tugunAmalOch}>
+              yigilgan={yigilgan} onYigToggle={yigToggle} onHammasiniYig={hammasiniYig} guruhNomi={guruhNomi} onAmallar={tugunAmalOch} onYaratish={tugunYaratishOch} yaratishBor={yaratishBor}>
               <div data-boshqaruv className="absolute left-3 right-16 top-3 z-10">{asboblar}</div>
               <Izoh ochiq={izohOchiq} setOchiq={setIzohOchiq} />
             </XaritaKanvas>

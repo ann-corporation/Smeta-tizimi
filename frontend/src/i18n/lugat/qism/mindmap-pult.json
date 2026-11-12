@@ -114,5 +114,8 @@
   "Qoldiq = smeta − F2": { "ru": "Остаток = смета − Ф-2", "en": "Remainder = estimate − F2" },
   "Tayinlash": { "ru": "Назначить", "en": "Assign" },
   "Texnadzor": { "ru": "Технадзор", "en": "Technical supervision" },
-  "Tomon: {r}": { "ru": "Сторона: {r}", "en": "Party: {r}" }
+  "Tomon: {r}": { "ru": "Сторона: {r}", "en": "Party: {r}" },
+  "Jadval": { "ru": "Таблица", "en": "Table" },
+  "Yangi qo‘shish": { "ru": "Добавить новое", "en": "Add new" },
+  "Tugunni bosing — tafsilot. Tugundagi «+» — yangisini qo‘shish, «⋯» — barcha amallar. Aylantirish — zum, sudrash — surish.": { "ru": "Нажмите на узел — подробности. «+» на узле — добавить новое, «⋯» — все действия. Колесо — масштаб, перетаскивание — сдвиг.", "en": "Click a node for details. The «+» on a node adds something new, «⋯» shows all actions. Scroll to zoom, drag to pan." }
 }

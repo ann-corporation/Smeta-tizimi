@@ -30,6 +30,9 @@ type Props = {
   guruhNomi: string;
   /** Tugun amallari menyusi (o‘ng tugma, ContextMenu / Shift+F10): ekran koordinatasi bilan. */
   onAmallar?: (id: string, x: number, y: number) => void;
+  /** Tugundagi ko‘rinib turuvchi «+» (bola yaratish): faqat shu tugunda yaratish amali bo‘lsa chiziladi. */
+  onYaratish?: (id: string, x: number, y: number) => void;
+  yaratishBor?: (id: string) => boolean;
   children?: React.ReactNode;
 };
 
@@ -66,7 +69,7 @@ function ariaMatn(x: XTugun, guruhNomi: string): string {
   return parts.join(', ');
 }
 
-export function XaritaKanvas({ daraxt, joylashuv, tanlangan, onTanla, yoritilgan, yigilgan, onYigToggle, onHammasiniYig, guruhNomi, onAmallar, children }: Props) {
+export function XaritaKanvas({ daraxt, joylashuv, tanlangan, onTanla, yoritilgan, yigilgan, onYigToggle, onHammasiniYig, guruhNomi, onAmallar, onYaratish, yaratishBor, children }: Props) {
   const kamQisqarish = useReducedMotion();
   const quti = useRef<HTMLDivElement>(null);
   const [olcham, setOlcham] = useState({ w: 0, h: 0 });
@@ -346,6 +349,11 @@ export function XaritaKanvas({ daraxt, joylashuv, tanlangan, onTanla, yoritilgan
                 {x.tur === 'odam' && x.odam && (ixcham
                   ? <IxchamKarta nom={x.nom} holat="nomalum" w={j.w} h={j.h} tanlangan={tanlangan === x.id} fokus={fokusId === x.id} />
                   : <OdamKarta x={x} w={j.w} h={j.h} tanlangan={tanlangan === x.id} fokus={fokusId === x.id} />)}
+                {onAmallar && !ixcham && !x.tizim && x.tur !== 'guruh' && x.tur !== 'jamoa' && (
+                  <TugunTugmalari w={j.w} nom={x.tur === 'kompaniya' ? x.nom || t('Kompaniya') : x.nom}
+                    onMenyu={(px, py) => onAmallar(x.id, px, py)}
+                    onYarat={onYaratish && yaratishBor?.(x.id) ? (px, py) => onYaratish(x.id, px, py) : undefined} />
+                )}
               </motion.g>
             );
           })}
@@ -369,6 +377,31 @@ export function XaritaKanvas({ daraxt, joylashuv, tanlangan, onTanla, yoritilgan
 }
 
 /* ───────────── Tugun kartalari (SVG) ───────────── */
+
+/** Tugun burchagidagi ko‘rinib turuvchi tugmalar: «+» — bola yaratish, «⋯» — barcha amallar (o‘ng tugma kerak emas, telefonda ham ishlaydi). */
+function TugunTugmalari({ w, nom, onMenyu, onYarat }: { w: number; nom: string; onMenyu: (x: number, y: number) => void; onYarat?: (x: number, y: number) => void }) {
+  const ochish = (e: React.MouseEvent<SVGGElement>, f: (x: number, y: number) => void) => {
+    e.stopPropagation();
+    const r = e.currentTarget.getBoundingClientRect();
+    f(r.left, r.bottom + 4);
+  };
+  const tugma = (cx: number, kalit: string, sarlavha: string, f: (x: number, y: number) => void, ichi: React.ReactNode) => (
+    <g key={kalit} data-boshqaruv data-tugun-tugma={kalit} role="button" tabIndex={-1} aria-label={sarlavha + ': ' + nom} aria-haspopup="menu"
+      onClick={(e) => ochish(e, f)} onPointerDown={(e) => e.stopPropagation()} style={{ cursor: 'pointer' }}>
+      <title>{sarlavha}</title>
+      <circle cx={cx} cy={-2} r={11} style={{ fill: 'var(--surface)', stroke: 'var(--accent)' }} strokeWidth={1.4} />
+      {ichi}
+    </g>
+  );
+  return (
+    <g>
+      {onYarat && tugma(w - 36, 'yarat', t('Yangi qo‘shish'), onYarat,
+        <path d={`M ${w - 41} -2 H ${w - 31} M ${w - 36} -7 V 3`} strokeWidth={2} strokeLinecap="round" style={{ stroke: 'var(--accent-text)' }} />)}
+      {tugma(w - 12, 'menyu', t('Amallar'), onMenyu,
+        <g style={{ fill: 'var(--accent-text)' }}><circle cx={w - 17} cy={-2} r={1.6} /><circle cx={w - 12} cy={-2} r={1.6} /><circle cx={w - 7} cy={-2} r={1.6} /></g>)}
+    </g>
+  );
+}
 
 function Ramka({ w, h, tanlangan, fokus, fon = 'var(--surface)', chegara = 'var(--border)' }: { w: number; h: number; tanlangan: boolean; fokus: boolean; fon?: string; chegara?: string }) {
   return (

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+﻿import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import {
   Building2, Warehouse, FileText, Truck, HardHat, FolderKanban,
   Users, Plus, X, ZoomIn, ZoomOut, RefreshCcw, Unlink, Move,
@@ -123,6 +123,18 @@ type Rejim =
   | { tur: 'chiziq'; manba: string }
   | null;
 
+/** Ko'rinish tanlovi: birinchi marta — VIZUAL xarita (egasi 2026-11-12: jadval emas); tanlangan ko'rinish eslab qolinadi. */
+const KORINISH_KALIT = 'mindmap-korinish-v2';
+const SAQLANADIGAN: MindmapKorinishTuri[] = ['xarita', 'pult', 'royxat', '2d'];
+function korinishBoshlangich(): MindmapKorinishTuri {
+  try { const k = window.localStorage.getItem(KORINISH_KALIT); if (k && (SAQLANADIGAN as string[]).includes(k)) return k as MindmapKorinishTuri; } catch { /* saqlash yo'q — sukut */ }
+  return 'xarita';
+}
+function korinishSakla(k: MindmapKorinishTuri) {
+  if (!SAQLANADIGAN.includes(k)) return;
+  try { window.localStorage.setItem(KORINISH_KALIT, k); } catch { /* ruxsat yo'q */ }
+}
+
 export default function TestXarita({ ichki = false, kompaniyaId }: {
   /** Boshqa sahifa ichiga joylangan nusxa (Rahbar paneli): sahifaning `?tugun=` parametrini O'QIMAYDI (u BossDashboard/TugunDosye tanlovi). */
   ichki?: boolean;
@@ -171,8 +183,8 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
   /** Ko'rinish: 3D graf (sukut), 2D graf (Obsidian uslubi — egasi: "eskisini ham o'chirma") yoki tahrir kanvasi. */
   /** Egasi 2026-10-25: sukut — «Kompaniya xaritasi» (2D ierarxiya, real holat bilan); telefonda — ro'yxat.
       3D/2D graf va tahrir kanvasi ixtiyoriy ko'rinish sifatida saqlanadi. */
-  const [korinish, setKorinish] = useState<MindmapKorinishTuri>(() =>
-    typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 767px)').matches ? 'royxat' : 'pult');
+  const [korinish, setKorinishIchki] = useState<MindmapKorinishTuri>(korinishBoshlangich);
+  const setKorinish = useCallback((k: MindmapKorinishTuri) => { setKorinishIchki(k); korinishSakla(k); }, []);
   const [tanlanganBog, setTanlanganBog] = useState<MindmapGraf['bogichlar'][number] | null>(null);
   const [obyektHodisalari, setObyektHodisalari] = useState<Hodisa[]>([]);
   const [hodisaYuklanmoqda, setHodisaYuklanmoqda] = useState(false);
