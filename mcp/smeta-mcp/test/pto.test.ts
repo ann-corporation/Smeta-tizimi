@@ -234,7 +234,7 @@ describe('akt_bekor (mock)', () => {
       : sql.includes('count(*)::int as n from public.t2_akt_qator') ? [{ n: 4 }]
         : sql.includes('"t2_akt_bekor"(') ? [{ x: { ok: true, holat: 'bekor' } }]
           : sql.includes('"t2_akt_lifecycle_transition_v1"(') ? [{ x: { ok: true, version: 9 } }] : []);
-  it('fakt — t2_akt_bekor; F2 qoralama — lifecycle cancelled; tasdiqlangan F2 — rad', async () => {
+  it('fakt — t2_akt_bekor; F2 qoralama — lifecycle cancelled; tasdiqlangan F2 — lifecycle cancelled (bog\'liqsiz) yoki aniq DEPENDENTS_EXIST', async () => {
     const f = mockMuhit(javob({ id: 1, obyekt_id: 900, kompaniya_id: 1, tur: 'fakt', holat: 'qoralama', lifecycle_status: 'draft', versiya: 2 }));
     const r1 = JSON.parse((await toolChaqir(aktBekor, f.mu, { akt_idlar: [1], sabab: 'takror kiritilgan' })).content[0].text);
     expect(r1.aktlar[0]).toMatchObject({ tur: 'fakt', keyin: 'bekor', qatorlar: 4 });
@@ -244,7 +244,23 @@ describe('akt_bekor (mock)', () => {
     expect(chaqiruv(g.h, 't2_akt_lifecycle_transition_v1')!.params[2]).toBe('cancelled');
     const t = mockMuhit(javob({ id: 3, obyekt_id: 900, kompaniya_id: 1, tur: 'f2', holat: 'tasdiqlangan', lifecycle_status: 'approved', versiya: 1 }));
     const r3 = JSON.parse((await toolChaqir(aktBekor, t.mu, { akt_idlar: [3], sabab: 'xato' })).content[0].text);
-    expect(r3.aktlar[0].xato).toMatch(/tasdiqlangan/);
+    // tasdiqlangan, bog'liqsiz: eski t2_akt_bekor CHAQIRILMAYDI (immutable trigger rad etardi) — faqat lifecycle approved→cancelled
+    expect(r3.aktlar[0].xato).toBeUndefined();
+    expect(chaqiruv(t.h, 't2_akt_bekor')).toBeUndefined();
+    expect(chaqiruv(t.h, 't2_akt_lifecycle_transition_v1')!.params[2]).toBe('cancelled');
+    expect(chaqiruv(t.h, 't2_akt_lifecycle_transition_v1')!.params[4]).toBe(1);
+  });
+  it('tasdiqlangan F2 Forma 3 ga bog\'langan — DEPENDENTS_EXIST aniq matn bilan (nima bog\'langan, nima avval bekor qilinadi)', async () => {
+    const akt = { id: 4, obyekt_id: 900, kompaniya_id: 1, tur: 'f2', holat: 'tasdiqlangan', lifecycle_status: 'approved', versiya: 3 };
+    const h = mockMuhit((sql, p) => umumiy(sql, p)
+      ?? (sql.includes('from public.t2_akt where id') ? [akt]
+        : sql.includes('count(*)::int as n from public.t2_akt_qator') ? [{ n: 4 }]
+          : sql.includes('"t2_akt_lifecycle_transition_v1"(') ? [{ x: { ok: false, code: 'DEPENDENTS_EXIST', bogliq: { forma3: [5], storno_aktlar: [], davr_muhr: true } } }] : []));
+    const r = JSON.parse((await toolChaqir(aktBekor, h.mu, { akt_idlar: [4], sabab: 'xato' })).content[0].text);
+    expect(r.aktlar[0].xato).toMatch(/DEPENDENTS_EXIST/);
+    expect(r.aktlar[0].xato).toMatch(/Forma 3 \(id 5\) — avval shu Forma 3 ni bekor qiling/);
+    expect(r.aktlar[0].xato).toMatch(/davr muhrlangan — avval davrni qayta oching/);
+    expect(chaqiruv(h.h, 't2_akt_bekor')).toBeUndefined();
   });
 });
 
