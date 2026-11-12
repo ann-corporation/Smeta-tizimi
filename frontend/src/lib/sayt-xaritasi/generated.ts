@@ -830,6 +830,18 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_butunlay_ochirish"
     },
     {
+      "amal": "arxivla_v1",
+      "rpc": "t2_arxivla_v1"
+    },
+    {
+      "amal": "arxivdan_tiklash_v1",
+      "rpc": "t2_arxivdan_tiklash_v1"
+    },
+    {
+      "amal": "arxiv_butunlay_v1",
+      "rpc": "t2_arxiv_butunlay_v1"
+    },
+    {
       "amal": "obyekt_yangila",
       "rpc": "t2_obyekt_yangila"
     },

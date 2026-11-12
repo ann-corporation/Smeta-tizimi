@@ -13,6 +13,7 @@ import { shartnomaSvodOl } from '../api/t2-nakopitelniy';
 import { shartnomaSvodi, type ShartnomaSvodi } from '../lib/nakopitelniy-svod';
 import { loyihaChizigi } from '../lib/shartnoma-zanjir-korinish';
 import { PortfelSummaJuft } from '../umumiy/ui/PortfelSummaJuft';
+import { ArxivTugma } from '../components/arxiv/ArxivTugma';
 import { HisobStack, type HisobQator } from '../components/pto-workspace/ObyektGrafik';
 
 const HOLAT: Record<string, { nom: string; cls: string }> = {
@@ -166,6 +167,7 @@ export default function TestLoyiha() {
                       <td><span className={`fz-stamp ${h.cls}`}>{t(h.nom)}</span></td>
                       <td className="fz-c-num">
                         <button type="button" onClick={() => navigate(`/admin/mindmap?tugun=loyiha:${l.id}`)} className="fz-btn fz-btn--ghost fz-btn--sm"><Network size={14} />{t('Mindmapda ko‘rish')}</button>
+                        <ArxivTugma tur="loyiha" id={l.id} nom={l.nom} onDone={() => void yukla()} />
                       </td>
                     </tr>
                   );

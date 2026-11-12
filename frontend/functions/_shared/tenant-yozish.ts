@@ -67,7 +67,7 @@ export const P_ID_JADVAL: Readonly<Record<string, string>> = {
   narx_protokol_tasdiqla: 't2_price_basis', narx_protokol_bekor: 't2_price_basis',
 };
 /** `p_id` ni o'zi a'zolik bilan tekshiradigan (kompaniya + actor bilan chaqiriladigan) amallar. */
-const P_ID_OZI_TEKSHIRADI = new Set(['mindmap_tugun_ochir', 'resurs_yangila_v2', 'resurs_bekor_v2',
+const P_ID_OZI_TEKSHIRADI = new Set(['arxivla_v1', 'arxivdan_tiklash_v1', 'arxiv_butunlay_v1', 'mindmap_tugun_ochir', 'resurs_yangila_v2', 'resurs_bekor_v2',
   /* platforma katalogi (kompaniya_id NULL) — RPC superadminlikni tekshiradi (_t2_boshqaruv_tekshir). */
   'platforma_narx_manba_yoz', 'platforma_narx_manba_bekor']);
 /** Korzinka: `p_jadval` + `p_id` (jadval shlyuzda oq ro'yxatdan). */
