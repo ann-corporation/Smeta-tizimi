@@ -110,6 +110,10 @@ export default function Naryad() {
   }, [kid, obyektId]);
 
   const och = async (id: number) => { if (!kid) return; const n = await naryadOl(kid, id); if (n) setOchiq(n); else toast(t('Naryad o‘qilmadi'), 'danger'); };
+  /* Chuqur havola: prorab «Tasdiqlash kutilmoqda» dagi «Qabul» -> /admin/naryad?id=N shu naryadni ochadi (mavjud qabul oynasi). */
+  const havolaId = Number(typeof window === 'undefined' ? NaN : new URLSearchParams(window.location.search).get('id'));
+  useEffect(() => { if (kid && Number.isSafeInteger(havolaId) && havolaId > 0) void och(havolaId); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kid, havolaId]);
   const yangilash = async (id: number) => { await yukla(); await och(id); };
 
   const harakat = async (f: Harakat, id: number, ok: string) => {
@@ -202,6 +206,7 @@ function NaryadTafsilot({ n, band, ustama, obyektNom: _obyektNom, onQabul, onNar
         <div><b>{n.raqam}</b> · {holatNomi(n.holat)} · {n.usta_nom}{n.brigada ? ` · ${n.brigada}` : ''}</div>
         <button type="button" className={tugma} onClick={onHujjat}><Download size={14} />{t('Hujjat (Excel)')}</button>
       </div>
+        {n.usta_izoh && <p data-testid="naryad-usta-izoh" className="mb-2 mt-0 text-[12px] text-text-dim"><b>{t('Usta izohi')}:</b> {n.usta_izoh}</p>}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[640px] text-[12px]">
           <thead><tr className="text-left text-text-mute">

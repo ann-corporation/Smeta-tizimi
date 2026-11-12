@@ -6,6 +6,8 @@
 import { sbOqi, yozAmali, type AktNatija, type SbJavob } from './supabase';
 import { hujjatYukla } from './t2-hujjat-canonical';
 import { sbFaktYoz } from './t2-fakt';
+import { naryadlarOl, naryadOl } from './t2-naryad';
+import type { Naryad } from '../lib/naryad';
 import type { NavbatYozuv, YuborNatija } from '../lib/usta/navbat';
 
 export type UstaQoralama = {
@@ -19,6 +21,10 @@ export const sbUstaQoralamaYoz = (p: { kompaniyaId: number; obyektId: number; sa
 
 export const sbUstaZayavkaYoz = (p: { kompaniyaId: number; obyektId: number; nomi: string; miqdor: number; birlik?: string | null; kerakSana?: string | null; izoh?: string | null; operationId: string }): Promise<UstaYoz> =>
   yozAmali({ amal: 'usta_zayavka_v1', kompaniya_id: p.kompaniyaId, obyekt_id: p.obyektId, nomi: p.nomi, miqdor: p.miqdor, birlik: p.birlik ?? null, kerak_sana: p.kerakSana ?? null, izoh: p.izoh ?? null, operation_id: p.operationId });
+
+/** Usta «Bajardim» (20261216700000): faqat ro'yxatdagi qator yoziladi, boshqa qatorlar o'zgarmaydi; tugadi=true qolgan bo'sh qatorlarni AYAN 0 qiladi va naryadni prorabga o'tkazadi; izoh saqlanadi. */
+export const naryadUstaBajarildi = (p: { kompaniyaId: number; naryadId: number; versiya: number; operationId: string; qatorlar: Array<{ id: number; bajarilgan_hajm: number }>; tugadi: boolean; izoh?: string | null }): Promise<UstaYoz> =>
+  yozAmali({ amal: 'naryad_usta_bajarildi_v1', naryad_amal: 'bajarildi', kompaniya_id: p.kompaniyaId, naryad_id: p.naryadId, kutilgan_versiya: p.versiya, operation_id: p.operationId, qatorlar: p.qatorlar, tugadi: p.tugadi, izoh: p.izoh ?? null });
 
 export const sbUstaQaror = (p: { kompaniyaId: number; idlar: number[]; qaror: 'tasdiqlangan' | 'rad'; izoh?: string | null; operationId: string }): Promise<UstaYoz> =>
   yozAmali({ amal: 'usta_fakt_qaror_v1', kompaniya_id: p.kompaniyaId, idlar: p.idlar, qaror: p.qaror, izoh: p.izoh ?? null, operation_id: p.operationId });
@@ -51,6 +57,13 @@ export async function navbatYozuviniYubor(y: NavbatYozuv): Promise<YuborNatija> 
     else if (vaqtinchalikXato(u.code) || u.code === 'NETWORK') return { ok: false, qayta: true, xato: 'Foto yuborilmadi (tarmoq).' };
     /* Foto yuklanmasa ham ish hajmi yo'qolmasin: fotosiz davom etamiz (foto ixtiyoriy). */
   }
+  if (y.tur === 'naryad') {
+    const p = y.payload as { naryadId: number; versiya: number; qatorlar: Array<{ id: number; bajarilgan_hajm: number }>; tugadi?: boolean; izoh?: string | null };
+    /* Usta bajardim deydi - prorab qabul qiladi. Bir xil operation_id takrori serverda bitta natija; boshqa qatorlar o'zgarmaydi. */
+    const r = await naryadUstaBajarildi({ kompaniyaId: y.kompaniyaId, naryadId: p.naryadId, versiya: p.versiya, operationId: y.id, qatorlar: p.qatorlar, tugadi: p.tugadi === true, izoh: p.izoh ?? null });
+    if (r.ok) return { ok: true };
+    return { ok: false, qayta: vaqtinchalikXato(r.code), xato: vaqtinchalikXato(r.code) ? ustaXatoMatni(r) : 'Naryad o‘zgargan yoki ruxsat yo‘q — ro‘yxatni yangilab qayta urinib ko‘ring.' };
+  }
   const p = y.payload;
   const r = y.tur === 'fakt'
     ? await sbUstaQoralamaYoz({ kompaniyaId: y.kompaniyaId, obyektId: y.obyektId, sana: String(p.sana), qatorlar: p.qatorlar as Array<{ qator_id: number; hajm: number }>, izoh: (p.izoh as string) ?? null, fotoHujjatId: fotoId, operationId: y.id })
@@ -65,4 +78,16 @@ export async function faktTogriYoz(y: NavbatYozuv): Promise<YuborNatija> {
   const r = await sbFaktYoz({ obyektId: y.obyektId, sana: String(p.sana), operationId: y.id, qatorlar: p.qatorlar as Array<{ qator_id: number; hajm: number }>, izoh: (p.izoh as string) ?? 'Telefondan (Bugun)' });
   if (r.ok) return { ok: true };
   return { ok: false, qayta: vaqtinchalikXato(r.code), xato: ustaXatoMatni(r) };
+}
+
+/**
+ * Usta o'z naryadlari (berildi, yuborildi, qabul, hisoblandi — so'nggilari). RPC faqat self.work.write egasiga O'Z naryadlarini beradi.
+ * Bitta o'qish (4 ro'yxat parallel) + har naryad tafsiloti; xato/ruxsat yo'q — null (chaqiruvchi eski ko'rinishga qaytadi).
+ */
+export async function ustaNaryadlarOl(kompaniyaId: number, obyektId?: number): Promise<Naryad[] | null> {
+  const f = (holat: 'berildi' | 'bajarildi' | 'qabul' | 'hisoblandi', limit: number) => naryadlarOl(kompaniyaId, { obyektId, holat, limit });
+  const [a, b, c, d] = await Promise.all([f('berildi', 30), f('bajarildi', 30), f('qabul', 10), f('hisoblandi', 5)]);
+  if (!a || !b || !c || !d) return null;
+  const to = await Promise.all([...a, ...b, ...c, ...d].map((x) => naryadOl(kompaniyaId, x.id)));
+  return to.filter((x): x is Naryad => x != null);
 }

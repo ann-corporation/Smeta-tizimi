@@ -31,7 +31,7 @@ export type NaryadQator = {
 };
 export type Naryad = {
   id: number; obyekt_id: number; obyekt_nom?: string | null; raqam: string; davr_dan: string | null; davr_gacha: string | null;
-  usta_nom: string; usta_foydalanuvchi_id?: number | null; brigada: string | null; holat: NaryadHolat; izoh: string | null; versiya: number;
+  usta_nom: string; usta_foydalanuvchi_id?: number | null; usta_izoh?: string | null; brigada: string | null; holat: NaryadHolat; izoh: string | null; versiya: number;
   fakt_operation_id: string; fakt_holat: 'yozildi' | null; fakt_akt_id: number | null;
   xarajat_id: number | null; xarajat_summa: number | null; yaratildi: string; qatorlar: NaryadQator[];
 };
