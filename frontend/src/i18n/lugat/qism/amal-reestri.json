@@ -1,0 +1,110 @@
+{
+  "Bekor qilindi — hech narsa yozilmadi.": {
+    "ru": "Отменено — ничего не записано.",
+    "en": "Cancelled — nothing was written."
+  },
+  "Qaysi birini nazarda tutdingiz?": {
+    "ru": "Что именно вы имели в виду?",
+    "en": "Which one did you mean?"
+  },
+  "Pul yoki qaytarib bo‘lmas amal: ikki marta tasdiqlanadi": {
+    "ru": "Денежное или необратимое действие: подтверждается дважды",
+    "en": "Money or irreversible action: confirmed twice"
+  },
+  "Oxirgi tasdiq: bosganingizdan keyin yoziladi": {
+    "ru": "Последнее подтверждение: запись произойдёт после нажатия",
+    "en": "Final confirmation: it is written after you press"
+  },
+  "Natijani ochish": {
+    "ru": "Открыть результат",
+    "en": "Open result"
+  },
+  "Bu amal avval bajarilgan — qayta yozilmadi": {
+    "ru": "Это действие уже выполнено — повторно не записано",
+    "en": "This action was already done — not written again"
+  },
+  "Bekor qilindi — hech narsa yozilmadi": {
+    "ru": "Отменено — ничего не записано",
+    "en": "Cancelled — nothing was written"
+  },
+  "Yangi obyekt / smeta yuklash": {
+    "ru": "Новый объект / загрузка сметы",
+    "en": "New site / upload estimate"
+  },
+  "Smetani narxlash": {
+    "ru": "Расценка сметы",
+    "en": "Price the estimate"
+  },
+  "F2 faylini yuklash (Excel)": {
+    "ru": "Загрузка файла Ф2 (Excel)",
+    "en": "Import F2 file (Excel)"
+  },
+  "АОСР (yashirin ish akti) tayyorlash": {
+    "ru": "Подготовка АОСР (акт скрытых работ)",
+    "en": "Prepare AOSR (hidden works act)"
+  },
+  "Laboratoriyaga sinov so‘rovi": {
+    "ru": "Запрос в лабораторию на испытание",
+    "en": "Lab test request"
+  },
+  "Chizma revizyasini chiqarish": {
+    "ru": "Выпуск ревизии чертежа",
+    "en": "Issue drawing revision"
+  },
+  "Tomon bilan aloqa (taklif, qabul, ruxsat berish)": {
+    "ru": "Связь со стороной (приглашение, принятие, доступ)",
+    "en": "Party link (invite, accept, grant access)"
+  },
+  "Hujjatni tomonga tasdiqqa yuborish": {
+    "ru": "Отправить документ стороне на согласование",
+    "en": "Send document to a party for approval"
+  },
+  "Kelgan hujjatga qaror (qabul / rad / tuzatish)": {
+    "ru": "Решение по входящему документу (принять / отклонить / исправить)",
+    "en": "Decision on an incoming document (accept / reject / fix)"
+  },
+  "Murojaat / remark / predpisaniya yozish": {
+    "ru": "Обращение / замечание / предписание",
+    "en": "Raise an appeal / remark / order"
+  },
+  "Tender: yaratish, taklif, baholash": {
+    "ru": "Тендер: создание, предложение, оценка",
+    "en": "Tender: create, bid, evaluate"
+  },
+  "Buyurtma va yuk qabuli (yetkazuvchi, ombor)": {
+    "ru": "Приём заказа и груза (поставщик, склад)",
+    "en": "Order and cargo receipt (supplier, warehouse)"
+  },
+  "Yuk birjasi: yuk e‘lon qilish, qabul qilish, reys": {
+    "ru": "Биржа грузов: объявить груз, принять, рейс",
+    "en": "Freight exchange: publish load, accept, trip"
+  },
+  "Shartnoma qo‘shish": {
+    "ru": "Добавить договор",
+    "en": "Add contract"
+  },
+  "Qarzdorlik va akt sverkasi": {
+    "ru": "Задолженность и акт сверки",
+    "en": "Debts and reconciliation"
+  },
+  "Buxgalteriya: provodka, davrni yopish": {
+    "ru": "Бухгалтерия: проводка, закрытие периода",
+    "en": "Accounting: post entry, close period"
+  },
+  "Tabel va oylik": {
+    "ru": "Табель и зарплата",
+    "en": "Timesheet and payroll"
+  },
+  "A‘zo taklif qilish va rol berish": {
+    "ru": "Пригласить участника и назначить роль",
+    "en": "Invite a member and assign a role"
+  },
+  "Obyektni arxivga (Korzinkaga) yuborish": {
+    "ru": "Отправить объект в архив (корзину)",
+    "en": "Send site to archive (trash)"
+  },
+  "Kim nimani ko‘radi (ruxsatlar jadvali)": {
+    "ru": "Кто что видит (таблица прав)",
+    "en": "Who sees what (permissions matrix)"
+  }
+}

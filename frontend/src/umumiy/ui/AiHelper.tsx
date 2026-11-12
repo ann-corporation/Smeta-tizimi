@@ -44,7 +44,7 @@ export function AiHelperTugma() {
 export function AiHelper() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { joriyId } = useKompaniya();
+  const { joriyId, joriy: amalJoriy, superadmin: amalSuper } = useKompaniya() as { joriyId: number | null; joriy?: { permissions?: string[] } | null; superadmin?: boolean };
   const companyRef = useRef({ id: joriyId, generation: 0 });
   if (companyRef.current.id !== joriyId) companyRef.current = { id: joriyId, generation: companyRef.current.generation + 1 };
   const [tab, setTab] = useState<Tab>('chat');
@@ -61,7 +61,7 @@ export function AiHelper() {
   const motor = useObyektMotor({ kompaniyaId: joriyId ?? null, obyektId: ws.isProvider ? ws.scope.objectId : null, obyektNomi: joriyObyekt?.nom, faol: isOpen, sahifalar, och: (yol) => { navigate(yol); setIsOpen(false); } });
   const sahifaAmallar = useSahifaAmallari();
   const hujjat = useMemo(() => (joriyId ? haqiqiyHujjatDeps(joriyId) : null), [joriyId]);
-  const yordamchi: YordamchiUlanish | undefined = useMemo(() => (sahifalar.length ? { sahifalar, obyektlar, joriyObyekt, obyektTanla: (id: number) => ws.setObjectId(id), motor, hujjat, sahifaAmallar, sahifaAmalBajar: (id: string) => { sahifaAmaliniBajar(id); } } : undefined), [sahifalar, obyektlar, joriyObyekt, ws, motor, hujjat, sahifaAmallar]);
+  const yordamchi: YordamchiUlanish | undefined = useMemo(() => (sahifalar.length ? { sahifalar, obyektlar, joriyObyekt, obyektTanla: (id: number) => ws.setObjectId(id), motor, hujjat, sahifaAmallar, sahifaAmalBajar: (id: string) => { sahifaAmaliniBajar(id); }, amalRuxsat: { permissions: amalJoriy?.permissions ?? null, superadmin: !!amalSuper } } : undefined), [sahifalar, obyektlar, joriyObyekt, ws, motor, hujjat, sahifaAmallar, amalJoriy?.permissions, amalSuper]);
   const [tayyor, setTayyor] = useState<TayyorSavol | null>(null);
   /* Istalgan sahifa/komponent `window.dispatchEvent(new CustomEvent('ai:ochish', { detail: { savol } }))` bilan AI ni tayyor savol bilan ochadi. */
   useEffect(() => {

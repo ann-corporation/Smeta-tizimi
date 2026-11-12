@@ -17,7 +17,7 @@ import { aosrQoralamaReja, aosrYetishmaydi, aosrYetishmaydiMatni, f2QoralamaReja
 import { sahifaUrl } from '../../../lib/yordamchi/sahifa-qidiruv';
 
 /** AiChat ga beriladigan yagona yordamchi ulanishi (AiHelper yig'adi). */
-export type YordamchiUlanish = { sahifalar: readonly YordamchiSahifa[]; obyektlar: readonly ObyektQisqa[]; joriyObyekt: ObyektQisqa | null; obyektTanla: (id: number) => void; motor: Motor; hujjat: HujjatDeps | null; sahifaAmallar: readonly SahifaAmalQisqa[]; sahifaAmalBajar: (id: string) => void };
+export type YordamchiUlanish = { /** Amal reestri (Jarvis ijrosi): foydalanuvchi ruxsatlari (kompaniyadagi). */ amalRuxsat?: { permissions: readonly string[] | null; superadmin: boolean }; sahifalar: readonly YordamchiSahifa[]; obyektlar: readonly ObyektQisqa[]; joriyObyekt: ObyektQisqa | null; obyektTanla: (id: number) => void; motor: Motor; hujjat: HujjatDeps | null; sahifaAmallar: readonly SahifaAmalQisqa[]; sahifaAmalBajar: (id: string) => void };
 
 export type IshlovHavola = { yol: string; nom: string };
 export type IshlovTaklif = { amallar: Array<SahifaAmal & { ogoh: string | null }>; vositalar: NonNullable<Motor['vositalar']>; qoshimcha: Motor['qoshimcha'] };

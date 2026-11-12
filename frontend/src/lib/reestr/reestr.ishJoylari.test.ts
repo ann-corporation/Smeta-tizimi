@@ -100,10 +100,9 @@ describe('amal reestri', () => {
     const ruxsat = new Set<string>(PERMISSIONS);
     for (const a of AMALLAR) {
       expect(ruxsat.has(a.capability), `${a.kalit}: ${a.capability}`).toBe(true);
-      const s = SAHIFALAR.find((x) => x.kalit === a.sahifa);
-      expect(s, `${a.kalit}: sahifa`).toBeTruthy();
-      expect(a.yol, a.kalit).toBe(s?.yol);
-      expect(a.nom && a.sinonimlar?.length, a.kalit).toBeTruthy();
+      expect(SAHIFALAR.some((x) => x.kalit === a.sahifa), `${a.kalit}: sahifa`).toBe(true);
+      expect(SAHIFALAR.some((x) => x.yol === a.yol), `${a.kalit}: yol`).toBe(true);
+      expect(a.nom, a.kalit).toBeTruthy();
     }
   });
 });

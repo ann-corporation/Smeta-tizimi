@@ -15,12 +15,17 @@ import { toast } from './Toast';
 import { AiBaho } from './AiBaho';
 import { AiHarakatKarta } from './AiHarakatKarta';
 import { AiQadamlar } from './AiQadamlar';
+import { AmalKarta, type AmalXolati } from './AmalKarta';
+import { sbT2ShartnomalarOl } from '../../api/t2-shartnoma';
+import type { Amal } from '../../lib/reestr/amal';
+import { IJROCHILAR } from '../../lib/reestr/amal-ijro';
+import { AmalTasdiqXato, amalTopish, bajar, holat as amalHolat, javobQabul, korinish as amalKorinish, sessiyaBosh, type AmalKontekst, type AmalSessiya } from '../../lib/reestr/amal-motor';
 import { TOIFA_NOMI } from './ai-harakat';
 import { studioKontekstObuna, studioKontekstOl, studioKontekstScope } from '../../lib/jarvis/studio-kontekst';
 
 type Xabar = { id: string; rol: 'user' | 'ai'; matn: string; yakun?: KasbYakun; qadamlar?: Qadam[]; jonli?: boolean; xato?: boolean; sahifalar?: SahifaIshora[]; yordam?: boolean;
   /** Yagona yordamchi (Jarvis) javobi: navigatsiya/o‘qish/taklif kartasi. */
-  jarvis?: boolean; taklif?: IshlovTaklif; obyektTanla?: ObyektQisqa[]; kutadi?: string };
+  jarvis?: boolean; amal?: AmalXolati; taklif?: IshlovTaklif; obyektTanla?: ObyektQisqa[]; kutadi?: string };
 /** Istalgan joydan chatni tayyor savol bilan ochish: AiHelper `ai:ochish` hodisasini (detail: { savol }) eshitadi. */
 export type TayyorSavol = { id: number; matn: string };
 
@@ -98,9 +103,67 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     else if (r.yop) onOtish?.();
   };
 
+  /* AMAL REESTRI (ekotizim V2, 3-qadam): yozuv amali — niyat -> parametrlar (BITTA savol) -> ko'rinish -> tasdiq -> ijro. Mavjud API klientlari. */
+  const amalRef = useRef<{ xid: string; amal: Amal; sess: AmalSessiya; ctx: AmalKontekst } | null>(null);
+  const amalMap = useRef(new Map<string, { amal: Amal; sess: AmalSessiya; ctx: AmalKontekst }>());
+  const amalXolat = (xid: string, e: { amal: Amal; sess: AmalSessiya; ctx: AmalKontekst }, matn: string, faza: AmalXolati['faza'], natija?: AmalXolati['natija']) =>
+    xabarYangila(xid, (x) => ({ ...x, jonli: false, matn, amal: { kalit: e.amal.kalit, nom: e.amal.nom ?? e.amal.kalit, faza, tasdiq: e.amal.tasdiq ?? 'karta', natija } }));
+  const amalKontekstOl = async (): Promise<AmalKontekst> => {
+    const ya = yaRef.current;
+    let shartnomalar: AmalKontekst['shartnomalar'] = [];
+    if (kompaniyaId != null) { try { const r = await sbT2ShartnomalarOl(kompaniyaId, false); if (r.ok) shartnomalar = ((r.qatorlar || []) as Array<{ id: number; raqam: string; nom: string | null }>); } catch { /* shartnomalarsiz davom */ } }
+    return { kompaniyaId, obyektId: ya?.joriyObyekt?.id ?? null, obyektlar: ya?.obyektlar ?? [], shartnomalar, permissions: ya?.amalRuxsat?.permissions ?? null, superadmin: !!ya?.amalRuxsat?.superadmin, bugun: new Date() };
+  };
+  const amalKorsat = (xid: string, e: { amal: Amal; sess: AmalSessiya; ctx: AmalKontekst }) => {
+    const h = amalHolat(e.amal, e.sess, e.ctx);
+    if (h.tur === 'ruxsatYoq') { amalRef.current = null; amalXolat(xid, e, h.matn, 'ruxsatYoq'); return; }
+    if (h.tur === 'savol') { amalRef.current = { xid, ...e }; amalXolat(xid, e, h.matn, 'savol'); return; }
+    amalRef.current = null; amalMap.current.set(xid, e);
+    amalXolat(xid, e, `**${e.amal.nom}**\n${amalKorinish(e.amal, e.sess, e.ctx, IJROCHILAR[e.amal.kalit]).matn}`, 'korinish');
+  };
+  /** Amal oqimini boshqaradi; true — savol shu oqim tomonidan hal qilindi (qolgan Jarvis qatlamlari o'tkazib yuboriladi). */
+  const amalOqimi = async (s: string, id: string, davom: boolean): Promise<boolean> => {
+    if (kompaniyaId == null || !yaRef.current) return false;
+    const kutayotgan = amalRef.current;
+    if (kutayotgan && /^(bekor|cancel|отмена|yo[‘\x27’]?q)$/iu.test(s)) {
+      setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', jarvis: true, matn: t('Bekor qilindi — hech narsa yozilmadi.') }]); amalRef.current = null; return true;
+    }
+    const topilma = amalTopish(s);
+    if (kutayotgan && !(topilma?.tur === 'aniq' && topilma.amal.kalit !== kutayotgan.amal.kalit)) {
+      const r = javobQabul(kutayotgan.amal, kutayotgan.sess, s, kutayotgan.ctx);
+      setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', jarvis: true, matn: '' }]);
+      if (!r.ok) { xabarYangila(id + 'a', (x) => ({ ...x, matn: r.matn })); return true; }
+      amalKorsat(id + 'a', kutayotgan); return true;
+    }
+    if (davom || topilma?.tur !== 'aniq') {
+      if (topilma?.tur === 'noaniq') { setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', jarvis: true, matn: `${t('Qaysi birini nazarda tutdingiz?')}\n${topilma.nomzodlar.map((a) => `- ${a.nom}`).join('\n')}` }]); return true; }
+      return false;
+    }
+    const ctx = await amalKontekstOl();
+    const e = { amal: topilma.amal, sess: sessiyaBosh(topilma.amal, s, ctx), ctx };
+    setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', jarvis: true, matn: '' }]);
+    amalKorsat(id + 'a', e);
+    return true;
+  };
+  const amalTasdiq = async (xid: string) => {
+    const e = amalMap.current.get(xid); const x = xabarlarRef.current.find((m) => m.id === xid)?.amal;
+    if (!e || !x) return;
+    if (e.amal.tasdiq === 'ikkiTasdiq' && x.faza === 'korinish') { xabarYangila(xid, (m) => (m.amal ? { ...m, amal: { ...m.amal, faza: 'ikki' } } : m)); return; }
+    xabarYangila(xid, (m) => (m.amal ? { ...m, amal: { ...m.amal, faza: 'band' } } : m));
+    try {
+      const n = await bajar(e.amal, e.sess, { karta: true, ikkinchi: x.faza === 'ikki' }, e.ctx, IJROCHILAR[e.amal.kalit]);
+      xabarYangila(xid, (m) => ({ ...m, matn: `${m.matn}\n\n${n.ok ? '✓' : '✗'} ${n.xabar}`, amal: m.amal ? { ...m.amal, faza: n.ok ? 'bajarildi' : 'xato', natija: n } : m.amal }));
+    } catch (err) {
+      xabarYangila(xid, (m) => ({ ...m, matn: `${m.matn}\n\n✗ ${err instanceof AmalTasdiqXato ? err.message : String(err)}`, amal: m.amal ? { ...m.amal, faza: 'xato' } : m.amal }));
+    }
+  };
+  const amalBekor = (xid: string) => xabarYangila(xid, (m) => ({ ...m, amal: m.amal ? { ...m.amal, faza: 'bekor' } : m.amal }));
+
   const yubor = async (savol: string, davom?: { id: string }) => {
     const s = savol.trim();
     if (!s || (busy.current && !davom)) return;
+    /* Amal oqimi faqat aniq amal niyatida (yoki savol kutilayotganda) — sinxron aniqlanadi, boshqa savollar oqimi kechikmaydi. */
+    if (!davom && kompaniyaId != null && yaRef.current && (amalRef.current || amalTopish(s))) { setMatn(''); void amalOqimi(s, Date.now().toString(), false); return; }
     const boshlangich = gen.current;
     const id = davom?.id ?? Date.now().toString();
     if (!davom) setMatn('');
@@ -269,6 +332,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
               <OtishTugmalari royxat={m.sahifalar ?? m.yakun?.sahifalar} ochish={ochish} />
               {m.obyektTanla?.length ? <div className="mt-2 flex flex-wrap gap-1.5" data-testid="yordamchi-obyekt-tanla">{m.obyektTanla.map((o) => (
                 <button key={o.id} type="button" onClick={() => void yubor(`${o.nom} ${m.kutadi ?? ''}`)} className="rounded-full border border-accent/50 px-2.5 py-1 text-xs text-accent hover:bg-accent/10">{o.nom}</button>))}</div> : null}
+              {m.amal && <AmalKarta x={m.amal} onTasdiq={() => void amalTasdiq(m.id)} onBekor={() => amalBekor(m.id)} onOchish={ochish} />}
               {m.taklif && <YordamchiTaklif taklif={m.taklif} onTugadi={(natija) => { if (natija.length) setXabarlar((p) => [...p, { id: `${Date.now()}r`, rol: 'ai', jarvis: true, matn: natija.join('\n') }]); }} />}
               {kompaniyaId != null && m.yakun?.harakatlar?.map((h) => <AiHarakatKarta key={h.id} h={h} kompaniyaId={kompaniyaId} />)}
               {kompaniyaId != null && m.rol === 'ai' && m.yakun?.ok && !m.yakun.rad && m.yakun.model !== 'local' && <AiBaho kompaniyaId={kompaniyaId} profil={m.yakun.kasb?.profil} sahifa={sahifa} />}
