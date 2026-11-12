@@ -1,0 +1,14 @@
+{
+  "id": 56,
+  "sana": "2026-11-03",
+  "sarlavha": "F2: minus hajm ruxsat va tez pereraschet — «Storno (minus) F2»",
+  "bandlar": [
+    "F2 tayyorlashda hajm plyus ham, minus ham bo'lishi mumkin — faqat aynan 0 yoki son bo'lmagan kiritma rad etiladi. Minus hajmda narx plyus, summa minus bo'ladi.",
+    "Hajm fakt qoldig'idan oshsa F2 saqlanadi — faqat ogohlantirish chiqadi (bloklanmaydi).",
+    "«F2 tarixi va tasdiqlash»da F2 ni tanlab «Storno (minus) F2 yaratish» bosing: ro'yxatdan saqlab qoladigan qatorlardan belgini oling, qolganlari minus qilib YANGI qoralamaga yoziladi (asl F2 o'zgarmaydi).",
+    "Oynada jami ko'rinadi: qatorlar soni, Σ summa (minus) va summasi noma'lum qatorlar. Noma'lum summa 0 ga aylanmaydi.",
+    "Stornolangan qatorlarning fakti ham minus yozuv bilan 0 ga tushadi (o'tgan fakt yozuvlari o'chirilmaydi). Bir F2 ni ikki marta stornolashdan oldin ogohlantiriladi.",
+    "F2 tayyorlashda har kiritilgan ish yonida ✕ tugmasi bor (qatorni F2 dan olib tashlaydi); saqlanmagan kiritmalar obyekt bo'yicha brauzerda saqlanadi — sahifani yangilasangiz ish yo'qolmaydi.",
+    "Yangi pozitsiyalarni «F2 tayyorlash»da shu qoralamani ochib qo'shasiz — «Сторно (eski F2)» bloki hujjat boshida saqlanib qoladi."
+  ]
+}
