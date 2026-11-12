@@ -764,7 +764,7 @@ export const onRequestPost: PagesFunction<{
         return Response.json({ ok: false, error: 'Amal, miqdor va operatsiya talab qilinadi.' }, { status: 400 });
       }
       yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: so.kompaniya_id, p_amal: String(so.tur_amal), p_birlik_soni: n, p_operation_id: so.operation_id,
-        p_meta: so.meta && typeof so.meta === 'object' && !Array.isArray(so.meta) ? Object.fromEntries(Object.entries(so.meta).slice(0, 10).map(([k, v]) => [String(k).slice(0, 40), typeof v === 'number' ? v : String(v).slice(0, 200)])) : {} };
+        p_meta: so.meta && typeof so.meta === 'object' && !Array.isArray(so.meta) ? Object.fromEntries(Object.entries(so.meta).slice(0, 10).map(([k, v]) => [String(k).slice(0, 40), k === 'fayl_yacheykalar' && Array.isArray(v) && v.length >= 1 && v.length <= 2000 && v.every((x) => typeof x === 'number' && Number.isFinite(x) && x >= 0 && x <= 10_000_000) ? v : typeof v === 'number' ? v : String(v).slice(0, 200)])) : {} };
     } else if (amal === 'tolov_sorov_yarat_v1') {
       if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || '')) || !/^[a-z0-9_]{2,30}$/.test(String(so.paket_kod || '')) || !['otkazma', 'payme', 'click'].includes(String(so.usul))) {
         return Response.json({ ok: false, error: 'Paket, usul va operatsiya talab qilinadi.' }, { status: 400 });
