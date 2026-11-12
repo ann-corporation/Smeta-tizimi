@@ -475,6 +475,9 @@ begin
   return jsonb_build_object('ok', true, 'saqlandi', v_son);
 end $$;
 
+comment on function public.t2_nazorat_aosr_korik_v1(bigint, bigint, bigint) is 'versiya: tarix - yuborilgan АОСР ning bog''langan ish qatorlari (t2_aosr_bog) ko''rsatiladi; smeta versiyasidan mustaqil hujjat dalili.';
+comment on function public.t2_nazorat_f2_tekshiruv_v1(bigint, bigint, bigint, bigint) is 'versiya: tarix - taqdim qilingan F2 aktning o''z qatorlari (t2_akt_qator) tekshiriladi; t2_qator_holat orqali faqat fakt hajmi o''qiladi.';
+
 -- 13. Ruxsatlar: faqat service_role (shlyuz)
 do $$
 declare f text;
