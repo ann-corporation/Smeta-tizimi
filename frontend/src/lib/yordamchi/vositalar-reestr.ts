@@ -11,6 +11,7 @@ import { NAV_SAHIFALAR } from '../nav/navReestr';
 import { SAHIFA_VOSITALARI } from '../ai-yordamchi/protokol';
 import { pultAsboblar } from '../mindmap-pult';
 import type { YordamchiSahifa } from './sahifa-qidiruv';
+import { AI_ISHCHI_VOSITALARI } from './vositalar-ai-ishchi';
 
 export type VositaTur = 'navigatsiya' | 'oqish' | 'yozuv';
 /** yoq — hech narsa yozilmaydi; karta — taklif kartasi + «Tasdiqlash»; kartaPul — kartadan keyin ikkinchi «Tasdiqlayman». */
@@ -91,7 +92,7 @@ export function pultVositalar(): YordamchiVosita[] {
 }
 
 /** Hamma vositalar: berilgan sahifalar uchun navigatsiya + statik o'qish/yozuv + mindmap pult amallari. */
-export const barchaVositalar = (sahifalar?: readonly YordamchiSahifa[]): YordamchiVosita[] => [...navVositalar(sahifalar), ...STATIK_VOSITALAR, ...pultVositalar()];
+export const barchaVositalar = (sahifalar?: readonly YordamchiSahifa[]): YordamchiVosita[] => [...navVositalar(sahifalar), ...STATIK_VOSITALAR, ...AI_ISHCHI_VOSITALARI, ...pultVositalar()];
 
 /** «Nima qila olasan?» javobi — reestrdan (qo'lda matn emas, shuning uchun eskirmaydi). */
 export function yordamMatni(sahifalar: readonly YordamchiSahifa[]): string {
