@@ -4,6 +4,7 @@
   "bandlar": [
     "Mindmap endi jadval emas, tushunarli vizual xarita bo‘lib ochiladi (kompaniya, loyiha, obyekt tugunlari va chiziqlar). Jadval ham bor — tepadagi «Jadval» tugmasi.",
     "Har tugunda ko‘rinib turuvchi «+» (yangi loyiha, shartnoma, obyekt qo‘shish) va «⋯» (barcha amallar: biriktirish, nomlash, sahifaga o‘tish) tugmalari bor. O‘ng tugma kerak emas, telefonda ham ishlaydi.",
+    "Xaritada endi shartnomalar ham bor: kompaniya → loyiha → shartnoma → obyekt. Shartnomasiz obyektlar «Shartnomasiz» guruhida. Shartnoma kartasida summa (QQS bilan), obyekt soni va muammolar soni ko‘rinadi.",
     "Tanlagan ko‘rinishingiz eslab qolinadi."
   ]
 }

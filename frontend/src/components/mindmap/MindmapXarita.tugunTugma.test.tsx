@@ -1,4 +1,4 @@
-﻿import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { MindmapGraf } from '../../api/t2-mindmap';
@@ -63,5 +63,43 @@ describe('Ko‘rinish tanlagich', () => {
     expect(screen.queryByRole('tab', { name: /2D graf/ })).toBeNull();
     fireEvent.click(screen.getByTestId('boshqa-korinishlar'));
     expect(screen.getByRole('tab', { name: /2D graf/ })).toBeTruthy();
+  });
+});
+
+function grafShartnomali(): MindmapGraf {
+  const g = graf();
+  g.tugunlar.push(
+    { id: 'shartnoma:3', tur: 'shartnoma', nom: '№12', meta: { versiya: 1, loyiha_id: 7, summa: 112000 }, x: null, y: null },
+    { id: 'obyekt:6', tur: 'obyekt', nom: 'Shartnomasiz obyekt', x: null, y: null, meta: { versiya: 1, loyiha_id: 7, smeta: null, fakt: 0, f2: 0, belgi: [] } },
+  );
+  g.bogichlar.push(
+    { manba: 'loyiha:7', maqsad: 'shartnoma:3', tur: 'shartnoma_loyiha', uzsa_boladi: true },
+    { manba: 'loyiha:7', maqsad: 'obyekt:6', tur: 'obyekt_loyiha', uzsa_boladi: true },
+    { manba: 'shartnoma:3', maqsad: 'obyekt:5', tur: 'shartnoma_obyekt', uzsa_boladi: true },
+  );
+  return g;
+}
+const tugunEl = (id: string) => document.querySelector<SVGGElement>('[data-tugun="' + id + '"]');
+
+describe('Vizual xarita: shartnoma tugunlari (kompaniya → loyiha → shartnoma → obyekt)', () => {
+  it('shartnoma va «Shartnomasiz» guruh tugun sifatida chiziladi; summa QQS bilan, bo‘sh — «—»', () => {
+    render(<MemoryRouter><MindmapXarita graf={grafShartnomali()} {...prop} tanlangan={null} korinish="xarita" pult={pult} amalKorish={amalKorish} /></MemoryRouter>);
+    expect(tugunEl('shartnoma:3')).toBeTruthy();
+    expect(tugunEl('shartnomasiz:loyiha:7')?.textContent).toMatch(/Shartnomasiz/);
+    expect(tugunEl('shartnoma:3')!.textContent).toMatch(/№12/);
+    expect(tugunEl('shartnoma:3')!.textContent).toMatch(/1 ta obyekt/);
+    expect(tugunEl('shartnomasiz:loyiha:7')!.querySelector('[data-tugun-tugma]')).toBeNull();
+  });
+
+  it('shartnomadagi «+» — shartnomasiz obyektni shu shartnomaga biriktirish (jadvaldagi amal)', () => {
+    render(<MemoryRouter><MindmapXarita graf={grafShartnomali()} {...prop} tanlangan={null} korinish="xarita" pult={pult} amalKorish={amalKorish} /></MemoryRouter>);
+    fireEvent.click(tugma('shartnoma:3', 'yarat')!);
+    expect(screen.getByTestId('mindmap-amal-menyu').querySelector('[data-amal="pult:shartnoma.obyekt-biriktir"]')).toBeTruthy();
+  });
+
+  it('shartnomani bosish — amallar menyusi (tafsilot paneli emas)', () => {
+    render(<MemoryRouter><MindmapXarita graf={grafShartnomali()} {...prop} tanlangan={null} korinish="xarita" pult={pult} amalKorish={amalKorish} /></MemoryRouter>);
+    fireEvent.click(tugunEl('shartnoma:3')!);
+    expect(screen.getByTestId('mindmap-amal-menyu')).toBeTruthy();
   });
 });

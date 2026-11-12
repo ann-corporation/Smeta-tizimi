@@ -1,4 +1,4 @@
-﻿/**
+/**
  * «Kompaniya xaritasi» — /admin/mindmap ning sukut ko‘rinishi (egasi 2026-10-25: rahbar panelida mindmapga urg‘u,
  * maksimal vizual izoh — qaragan odam ishlar holatini tushunsin).
  *
@@ -23,6 +23,7 @@ import {
   type XDaraxt, type XHolat,
 } from '../../lib/mindmap-korinish';
 import { XaritaKanvas } from './XaritaKanvas';
+import { shartnomaliDaraxt, shartnomasizmi } from '../../lib/mindmap-xarita-shartnoma';
 import { XaritaPanel, type HodisaHolati } from './XaritaPanel';
 import type { MasulBoshqaruv } from './XaritaJamoa';
 import { XaritaRoyxat } from './XaritaRoyxat';
@@ -120,7 +121,9 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
   const kamQisqarish = useReducedMotion();
   const daraxt = useMemo(() => daraxtQur(graf), [graf]);
   const [yigilgan, setYigilgan] = useState<Set<string>>(new Set());
-  const joylashuv = useMemo(() => mindmapJoyla(daraxt, yigilgan), [daraxt, yigilgan]);
+  /** Vizual xarita: kompaniya → loyiha → SHARTNOMA → obyekt (jadvaldagi bilan bir xil tuzilma). Boshqa joylar asl daraxtdan foydalanadi. */
+  const xaritaDaraxt = useMemo(() => shartnomaliDaraxt(graf, daraxt), [graf, daraxt]);
+  const joylashuv = useMemo(() => mindmapJoyla(xaritaDaraxt, yigilgan), [xaritaDaraxt, yigilgan]);
   const [qidiruv, setQidiruv] = useState('');
   const [holatFiltri, setHolatFiltri] = useState<XHolat | null>(null);
   const [panelOchiq, setPanelOchiq] = useState(false);
@@ -161,6 +164,13 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
     return s;
   }, [daraxt, qidir, holatFiltri]);
   const yoritilgan = useMemo(() => (tanlangan && daraxt.tugunlar.has(tanlangan) && tanlangan !== daraxt.ildiz ? fokusYoli(daraxt, tanlangan) : filtrSet), [tanlangan, daraxt, filtrSet]);
+  /** Shartnoma/«Shartnomasiz» tugunlari asl daraxtda yo‘q: ostida yorug‘ obyekt bo‘lsa — ular ham yorug‘. */
+  const yoritilganX = useMemo(() => {
+    if (!yoritilgan || xaritaDaraxt === daraxt) return yoritilgan;
+    const s = new Set(yoritilgan);
+    for (const x of xaritaDaraxt.tugunlar.values()) if (!daraxt.tugunlar.has(x.id) && x.bolalar.some((b) => yoritilgan.has(b))) s.add(x.id);
+    return s;
+  }, [yoritilgan, xaritaDaraxt, daraxt]);
   const mosObyektlar = filtrSet ? [...filtrSet].filter((id) => daraxt.tugunlar.get(id)?.tur === 'obyekt').length : root.obyektSoni;
 
   const holatniTanla = (h: XHolat) => { setHolatFiltri((f) => (f === h ? null : h)); onTanla(null); };
@@ -191,23 +201,40 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
   }, [amallarOl]);
   /** Tugmadan ochish: menyu tugma ostida. */
   const amalOchEl = useCallback((n: AmalNishon, el: HTMLElement) => { const r = el.getBoundingClientRect(); amalOch(n, r.left, r.bottom + 4); }, [amalOch]);
-  /** Xaritadagi «+»: aynan shu tugundagi yaratish amallari (pult bilan bir xil menyu va modal). */
-  const yaratishAmallari = useCallback((n: AmalNishon) => amallarOl(n).filter((a) => a.ikon === 'yangi'), [amallarOl]);
+  /** Xaritadagi tugun → amal nishoni: asl daraxt tugunlari + shartnoma (jadval qatori bilan bir xil nishon). «Shartnomasiz» guruhda amal yo‘q. */
+  const xaritaNishoni = useCallback((id: string): AmalNishon | null => {
+    const tg = daraxt.tugunlar.get(id);
+    if (tg) return tugunNishoni(tg, !!daraxt.jamoa);
+    const sh = xaritaDaraxt.tugunlar.get(id);
+    if (!sh || sh.tur !== 'shartnoma' || shartnomasizmi(id)) return null;
+    const n = Number(id.split(':')[1]);
+    return { tur: 'shartnoma', id, entityId: Number.isSafeInteger(n) && n > 0 ? n : null, nom: sh.nom, obyektId: null };
+  }, [daraxt, xaritaDaraxt]);
+  /** Xaritadagi «+»: aynan shu tugundagi yaratish amallari (shartnomada — obyekt biriktirish) (pult bilan bir xil menyu va modal). */
+  const yaratishAmallari = useCallback((n: AmalNishon) => amallarOl(n).filter((a) => a.ikon === 'yangi' || a.kalit === 'pult:shartnoma.obyekt-biriktir'), [amallarOl]);
   const yaratishBor = useCallback((id: string) => {
-    const tg = daraxt.tugunlar.get(id);
-    const n = tg ? tugunNishoni(tg, !!daraxt.jamoa) : null;
+    const n = xaritaNishoni(id);
     return !!n && yaratishAmallari(n).length > 0;
-  }, [daraxt, yaratishAmallari]);
+  }, [xaritaNishoni, yaratishAmallari]);
   const tugunYaratishOch = useCallback((id: string, x: number, y: number) => {
-    const tg = daraxt.tugunlar.get(id);
-    const n = tg ? tugunNishoni(tg, !!daraxt.jamoa) : null;
+    const n = xaritaNishoni(id);
     if (n) setMenyu({ nishon: n, nishonNom: n.tur === 'kompaniya' ? n.nom || t('Kompaniya') : n.nom, amallar: yaratishAmallari(n), x, y });
-  }, [daraxt, yaratishAmallari]);
+  }, [xaritaNishoni, yaratishAmallari]);
   const tugunAmalOch = useCallback((id: string, x: number, y: number) => {
-    const tg = daraxt.tugunlar.get(id);
-    const n = tg ? tugunNishoni(tg, !!daraxt.jamoa) : null;
+    const n = xaritaNishoni(id);
     if (n) amalOch(n, x, y);
-  }, [daraxt, amalOch]);
+  }, [xaritaNishoni, amalOch]);
+  /** Tugunni bosish: shartnomada (panel yo‘q) — to‘g‘ridan-to‘g‘ri amallar menyusi; qolganlarda — tafsilot paneli. */
+  const xaritaTanla = useCallback((id: string | null) => {
+    if (id && !daraxt.tugunlar.has(id) && xaritaDaraxt.tugunlar.has(id)) {
+      const el = document.querySelector<HTMLElement>('[data-tugun="' + id + '"]');
+      const r = el?.getBoundingClientRect();
+      const n = xaritaNishoni(id);
+      if (n) amalOch(n, r ? r.left + Math.min(24, r.width / 2) : 80, r ? r.bottom + 4 : 80);
+      return;
+    }
+    onTanla(id);
+  }, [daraxt, xaritaDaraxt, xaritaNishoni, amalOch, onTanla]);
   const amalBajar = (a: Amal) => {
     const n = menyu?.nishon;
     setMenyu(null);
@@ -360,7 +387,7 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
             </div>
           )}
           {!bosh && !tarkibYoq && korinish === 'xarita' && (
-            <XaritaKanvas daraxt={daraxt} joylashuv={joylashuv} tanlangan={tanlangan} onTanla={onTanla} yoritilgan={yoritilgan}
+            <XaritaKanvas daraxt={xaritaDaraxt} joylashuv={joylashuv} tanlangan={tanlangan} onTanla={xaritaTanla} yoritilgan={yoritilganX}
               yigilgan={yigilgan} onYigToggle={yigToggle} onHammasiniYig={hammasiniYig} guruhNomi={guruhNomi} onAmallar={tugunAmalOch} onYaratish={tugunYaratishOch} yaratishBor={yaratishBor}>
               <div data-boshqaruv className="absolute left-3 right-16 top-3 z-10">{asboblar}</div>
               <Izoh ochiq={izohOchiq} setOchiq={setIzohOchiq} />
