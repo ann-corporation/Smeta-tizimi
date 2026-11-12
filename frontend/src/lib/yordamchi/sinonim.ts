@@ -33,7 +33,7 @@ export const SAHIFA_SINONIM: Readonly<Record<string, Sinonim>> = {
   '/admin/nakopitelniy': { uz: ['nakopitelniy', 'f3', 'forma 3', 'schet faktura', 'esf', 'e-faktura', 'elektron faktura', 'didox'], ru: ['накопительная', 'ф3', 'форма 3', 'счет фактура', 'эсф', 'электронная счет фактура', 'дидокс'], en: ['cumulative', 'f3', 'invoice', 'esf', 'e-invoice'] },
   '/admin/shartnoma-liniya': { uz: ['shartnomalar', 'shartnoma', 'tomonlar'], ru: ['договоры', 'договор', 'стороны'], en: ['contracts', 'contract', 'parties'] },
   '/admin/qarzdorlik': { uz: ['qarzdorlik', 'qarz', 'qarzlar'], ru: ['задолженность', 'долги', 'долг'], en: ['debts', 'debt', 'receivables'] },
-  '/admin/buxgalteriya': { uz: ['buxgalteriya', 'provodka'], ru: ['бухгалтерия', 'проводки'], en: ['accounting', 'ledger'] },
+  '/admin/buxgalteriya': { uz: ['buxgalteriya', 'provodka', 'provodkalar', 'oborotka', 'oborot saldo', 'schyot kartochkasi', 'hisob kartochkasi', 'hisoblar rejasi'], ru: ['бухгалтерия', 'проводки', 'оборотка', 'осв', 'оборотно сальдовая', 'карточка счета', 'план счетов'], en: ['accounting', 'ledger', 'trial balance', 'account card', 'journal entries', 'chart of accounts'] },
   '/admin/kontragentlar': { uz: ['kontragentlar', 'kontragent', 'crm', 'edo', 'aloqalar', 'tomonlar aloqasi', 'hamkorlar'], ru: ['контрагенты', 'контрагент', 'связи сторон', 'партнёры'], en: ['counterparties', 'crm', 'party contacts', 'partners'] },
   '/admin/yetkazuvchi': { uz: ['yetkazuvchi bugun', 'yetkazuvchi', 'postavshik', 'kelgan sorovlar'], ru: ['поставщик сегодня', 'поставщик', 'входящие запросы'], en: ['supplier today', 'supplier', 'incoming requests'] },
   '/admin/documents': { uz: ['hujjatlar', 'hujjat'], ru: ['документы', 'документ'], en: ['documents', 'document'] },

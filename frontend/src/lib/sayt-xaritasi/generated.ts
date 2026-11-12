@@ -394,6 +394,18 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_bux_davr_v1"
     },
     {
+      "amal": "bux_shablon_tanla_v1",
+      "rpc": "t2_bux_shablon_tanla_v1"
+    },
+    {
+      "amal": "bux_davr_blok_v1",
+      "rpc": "t2_bux_davr_blok_v1"
+    },
+    {
+      "amal": "bux_hisob_tasdiq_v1",
+      "rpc": "t2_bux_hisob_tasdiq_v1"
+    },
+    {
       "amal": "bux_bank_import_v1",
       "rpc": "t2_bux_bank_import_v1"
     },
