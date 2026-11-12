@@ -93,7 +93,7 @@ export default function LoyihaSmetaFakt() {
     const m = new Map<number, ReturnType<typeof moslash>>();
     for (const x of royxat) if (x.holat === 'taklif' && !x.eskirgan) m.set(x.id, moslash({ nom: x.nom, belgi: x.belgi, birlik: x.birlik, tur: x.tur, varaq: x.varaq }, smeta, xarita, { ...MOSLASH_STANDART, belgiRegex }));
     return m;
-  }, [royxat, smeta, xarita]);
+  }, [royxat, smeta, xarita, belgiRegex]);
   const bogli = useMemo(() => new Set(royxat.flatMap((x) => x.boglar)), [royxat]);
   const farqlar = useMemo(() => farqlarniHisobla(farqD?.miqdorlar ?? [], smeta, bogli, {
     belgiRegex,

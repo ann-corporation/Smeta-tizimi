@@ -80,6 +80,8 @@ O'QISH VOSITALARI:
 - narxsiz (arg: null yoki so'z) — narxi yo'q (smeta narxi noma'lum) qatorlar. Narxsiz qator summasi 0 EMAS — «noma'lum».
 - qoldiq (arg: null — eng katta qoldiqlar; yoki so'z/shifr) — smeta − F2 qoldig'i, fakt va foiz bilan.
 - loyiha_farq (arg: null yoki varaq belgisi, masalan КР-5) — loyiha (chizma) ≠ smeta ≠ fakt farqlari va smetaga kirmagan ishlar puli (QQS bilan, QQS siz); faqat tasdiqlangan miqdorlar.
+- lugat (arg: oddiy so'z yoki ibora: g'isht, pol quyish, кирпич, стяжка) — lug'atdagi tushuncha, qisqa o'zbekcha/ruscha nomi va obyektdagi mos ish qatorlari. Foydalanuvchi oddiy tilda gapirsa, avval shu bilan smeta so'ziga o'giring.
+- naryad (arg: null yoki holat/raqam/usta nomi) — naryadlar (brigada topshirig'i): holat, usta, to'lov (QQS siz), fakt yozilganmi. Faqat o'qish; naryad yaratish/qabul — «Naryad» sahifasida.
 AMALLAR (taklif):
 - fakt_hajm: qator=[#id] (ish yoki resurs, faqat natijadagi), qiymat="+5" (bugun qo'shiladi) yoki "=40" (jami fakt shu bo'ladi). Hajm faqat foydalanuvchi aytgan son.
 - narx_tuzat: qator=[#id], qiymat=yangi narx (son, NDS siz; foydalanuvchi aytgan). Bu PUL ta'sirli: narx protokoli qoralamasi yaratiladi.

@@ -61,9 +61,9 @@ const a = (...s: string[]) => s.map((x) => `/admin/${x}`);
 const bez = (xs: string[], ...yoq: string[]) => xs.filter((x) => !a(...yoq).includes(x));
 
 /* ── Kutilgan menyular (tartib — sidebar tartibi) ── */
-const OBYEKT = a('pult', 'dashboard', 'obyektlar', 'loyiha', 'participants', 'mindmap');
+const OBYEKT = a('pult', 'dashboard', 'obyektlar', 'loyiha', 'participants', 'mindmap', 'grafik');
 const SMETA = a('smeta-studio', 'holat', 'smeta-narxlash', 'narx-dalil', 'narx-tekshiruv', 'nakrutka', 'narxlar', 'narx-manbalari', 'oferta', 'loyiha-smeta');
-const FAKT = a('fakt', 'foto', 'bugun', 'm29');
+const FAKT = a('fakt', 'foto', 'bugun', 'naryad', 'm29');
 const F2 = a('f2-tayyorlash', 'f2', 'f2-tarix', 'f2-reestr', 'nakopitelniy');
 const HUJJAT = a('documents', 'hujjat-nazorat', 'aosr', 'storage', 'nazorat', 'nazorat/tekshiruv', 'nazorat/jurnal', 'chizmalar', 'loyihachi', 'zakazchik', 'subpudrat', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish', 'subpudratchi');
 const MOLIYA = a('moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'kontragentlar');
@@ -248,7 +248,7 @@ describe('yagona manba — boshqa iste‘molchilar o‘zgarmagan', () => {
       '/admin/test/erp': 'COMPANY_SCOPED', '/admin/test/xarita': 'COMPANY_SCOPED', '/admin/test/kontragent': 'COMPANY_SCOPED', '/admin/test/sozlama': 'COMPANY_SCOPED',
       '/admin/participants': 'PROJECT_SCOPED', '/admin/test/aosr': 'PROJECT_SCOPED',
       '/admin/holat': 'OBJECT_SCOPED', '/admin/f2': 'OBJECT_SCOPED', '/admin/f2-tayyorlash': 'OBJECT_SCOPED', '/admin/f2-tarix': 'OBJECT_SCOPED',
-      '/admin/fakt': 'OBJECT_SCOPED', '/admin/nakopitelniy': 'OBJECT_SCOPED', '/admin/narxlar': 'OBJECT_SCOPED', '/admin/smeta-narxlash': 'OBJECT_SCOPED',
+      '/admin/fakt': 'OBJECT_SCOPED', '/admin/grafik': 'COMPANY_SCOPED', '/admin/nakopitelniy': 'OBJECT_SCOPED', '/admin/narxlar': 'OBJECT_SCOPED', '/admin/smeta-narxlash': 'OBJECT_SCOPED',
       '/admin/hujjat-nazorat': 'OBJECT_SCOPED', '/admin/subpudrat': 'OBJECT_SCOPED', '/admin/storage': 'OBJECT_SCOPED', '/admin/test/obyektlar': 'OBJECT_SCOPED', '/admin/test/saqlash': 'OBJECT_SCOPED',
     });
   });

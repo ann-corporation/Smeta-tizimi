@@ -13,6 +13,24 @@ export function jarvisMoney(n: number | null): string {
   return n == null || !Number.isFinite(n) ? 'noma’lum' : n.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' so‘m';
 }
 
+/**
+ * P6/P7: «grafik», «kechikish», «muddat», «pul oqimi», «prognoz» savoli. Raqam to'qilmaydi - grafik sahifasiga havola beriladi
+ * (reja/fakt va oylik hisob prognozi o'sha yerda, yagona hisob yadrosidan). Obyekt aniq bitta bo'lsa havola shu obyektga.
+ */
+export function jarvisGrafikJavobi(text: string, data: AiUmumiy): string | null {
+  const s = normalize(text);
+  const grafik = /\b(grafi[kg]\w*|gantt\w*|kechik\w*|pul oqimi|cashflow|prognoz\w*|oylik hisob)\b/.test(s);
+  if (!grafik) return null;
+  const pul = /\b(pul oqimi|cashflow|prognoz\w*|oylik hisob|hisob kutil\w*)\b/.test(s);
+  const matches = data.obyektlar.filter(o => { const n = normalize(o.nom); return !!n && (` ${s} `).includes(` ${n} `); });
+  const q = new URLSearchParams();
+  if (matches.length === 1) q.set('obyekt', String(matches[0].id));
+  if (pul) q.set('tab', 'pul');
+  const havola = `/admin/grafik${q.toString() ? '?' + q.toString() : ''}`;
+  const kim = matches.length === 1 ? `**${matches[0].nom}** uchun ` : '';
+  return `${kim}${pul ? 'Oylik pul oqimi prognozi' : 'Ish grafigi (Gantt): reja, fakt va kechikayotgan razdellar'} shu sahifada: [${havola}](${havola}).\n\nGrafik smetadagi mehnatdan (chel-soat) avtomatik tuziladi; brigada va sanalarni o‘zgartirish mumkin. Bu yerda raqam keltirmayman — sahifadagi hisob yagona hisob yadrosidan.`;
+}
+
 /** Faqat yagona aniq nomga tegishli oddiy holat/jami savoli; fuzzy identity YO'Q. */
 export function jarvisEvidenceAnswer(text: string, data: AiUmumiy): string | null {
   const s = normalize(text);

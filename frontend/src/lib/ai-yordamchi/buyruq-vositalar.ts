@@ -12,6 +12,9 @@ import { qidiruvTayyorla } from '../qidiruv-normalizatsiya';
 import { bosKatKesim, katKesimgaQosh, type KatKesim } from '../ustamali-summa';
 import { qoldiqHajmi } from '../zamena-qoldiq';
 import { t } from '../../i18n/til';
+import type { NaryadQisqa } from '../naryad';
+import { naryadMatni } from '../naryad/jarvis';
+import { lugatTushuntir, odamNomi } from '../qurilish-lugat';
 import { faktAmalTekshir, faktHajmOqi, faktHolat, faktIndeks, faktKontekst, faktQidir, qatorSatri, summalarBloki, type FaktMalumot, type UstamaliFn } from './fakt-vositalar';
 import type { OqishSorovi, SahifaAmal } from './protokol';
 import { loyihaFarqMatni, type LoyihaFarqMalumot } from '../loyiha-smeta/jarvis';
@@ -19,13 +22,13 @@ import type { SahifaVositalar } from './sikl';
 
 /** Foydalanuvchiga ochiq sahifa (yagona yordamchi navigatsiyasi; navReestr + ruxsat filtridan). */
 export type OchiqSahifa = { yol: string; nom: string };
-export type BuyruqMalumot = FaktMalumot & { rows: readonly T2Qator[]; qatorById: ReadonlyMap<number, T2Qator>; sahifalar?: readonly OchiqSahifa[]; loyihaFarq?: LoyihaFarqMalumot | null };
+export type BuyruqMalumot = FaktMalumot & { rows: readonly T2Qator[]; qatorById: ReadonlyMap<number, T2Qator>; sahifalar?: readonly OchiqSahifa[]; naryadlar?: readonly NaryadQisqa[]; loyihaFarq?: LoyihaFarqMalumot | null };
 
-export function buyruqMalumotQur(rows: readonly T2Qator[], states: readonly (T2QatorHolat | JurnalHolat)[], opts: { obyektNomi?: string; ustamali?: UstamaliFn; sahifalar?: readonly OchiqSahifa[]; loyihaFarq?: LoyihaFarqMalumot | null } = {}): BuyruqMalumot {
+export function buyruqMalumotQur(rows: readonly T2Qator[], states: readonly (T2QatorHolat | JurnalHolat)[], opts: { obyektNomi?: string; ustamali?: UstamaliFn; sahifalar?: readonly OchiqSahifa[]; naryadlar?: readonly NaryadQisqa[]; loyihaFarq?: LoyihaFarqMalumot | null } = {}): BuyruqMalumot {
   const holatlar = states as readonly JurnalHolat[];
   const { bolimlar, bolimIshlari } = jurnalQur(rows, holatlar);
   return { obyektNomi: opts.obyektNomi, bolimlar, bolimIshlari, holatMap: new Map(holatlar.map((s) => [s.qator_id, s])), summalar: bolimSummalari(rows, holatlar),
-    bajHajm: new Map(), ustamali: opts.ustamali, rows, qatorById: new Map(rows.map((r) => [r.id, r])), sahifalar: opts.sahifalar, loyihaFarq: opts.loyihaFarq ?? null };
+    bajHajm: new Map(), ustamali: opts.ustamali, rows, qatorById: new Map(rows.map((r) => [r.id, r])), sahifalar: opts.sahifalar, naryadlar: opts.naryadlar, loyihaFarq: opts.loyihaFarq ?? null };
 }
 
 /** Pul yoki huquqiy ta'sirli amallar — «Bajarish»dan keyin ALOHIDA «Tasdiqlayman» kerak (ovoz bilan tasdiqlanmaydi). */
@@ -71,6 +74,16 @@ export function buyruqQoldiq(m: BuyruqMalumot, arg: string | null, limit = 25): 
     ...(arg ? [] : ['Obyekt jami:', summalarBloki(m, 0)])].join('\n');
 }
 
+/** lugat: oddiy so'z (g'isht, pol quyish, кирпич) → lug'at tushunchasi + shu so'z bilan obyektda topilgan qatorlar (qidir bilan bir xil lug'at). */
+export function buyruqLugat(m: BuyruqMalumot, arg: string | null): string {
+  const a = (arg ?? '').trim();
+  if (a.length < 2) return 'Lug‘at uchun so‘z kerak (masalan: g‘isht, pol quyish, кирпич).';
+  const f = qidiruvTayyorla(a);
+  const topildi = m.rows.filter((r) => (r.tur === 'bl') && f(`${r.kod ?? ''} ${r.nom ?? ''}`));
+  return [lugatTushuntir(a), topildi.length ? `Obyektda mos ish qatorlari: ${topildi.length}${topildi.length > 8 ? ' (birinchi 8 tasi)' : ''}:` : 'Obyektda mos ish qatori topilmadi.',
+    ...topildi.slice(0, 8).map((r) => `- ${qatorMatni(m, r)} → ${odamNomi(r, 'uz')}`)].join('\n');
+}
+
 export function buyruqKontekst(m: BuyruqMalumot): string {
   const sahifalar = m.sahifalar?.length ? `\nSAHIFALAR (amal «och», qiymat = shu yo'l; foydalanuvchiga ochiq bo'limlar):\n${m.sahifalar.map((s) => `${s.yol} | ${s.nom}`).join('\n')}` : '';
   return faktKontekst(m).replace('Sahifa: Fakt jurnali', 'Sahifa: Buyruq satri (butun obyekt)') + sahifalar;
@@ -83,6 +96,8 @@ export function buyruqOqi(m: BuyruqMalumot, s: OqishSorovi): string {
     case 'narxsiz': return buyruqNarxsiz(m, s.arg);
     case 'qoldiq': return buyruqQoldiq(m, s.arg);
     case 'loyiha_farq': return loyihaFarqMatni(m.loyihaFarq, s.arg);
+    case 'lugat': return buyruqLugat(m, s.arg);
+    case 'naryad': return naryadMatni(m.naryadlar, s.arg);
     default: return `Noma’lum vosita: ${s.vosita}`;
   }
 }
