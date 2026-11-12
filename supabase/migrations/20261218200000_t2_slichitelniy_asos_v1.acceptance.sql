@@ -122,7 +122,7 @@ begin
   tay := r->'tayyorlik';
   perform pg_temp.sl_assert((tay->>'asosli')::int = 3 and (tay->>'qoralama')::int = 3 and (tay->>'tasdiqlagan')::int = 0 and (tay->>'asossiz')::int = 0, 'qoralama sanog''i: ' || tay::text);
   perform pg_temp.sl_assert(not exists (select 1 from jsonb_array_elements(r->'yetishmaydi') e where e->>'amal' <> 'texnadzorga_yubor'), 'amal texnadzorga_yubor emas');
-  perform pg_temp.sl_assert(exists (select 1 from jsonb_array_elements(r->'asoslar') e where (e->>'qator_id')::bigint = v_w2 and (e->>'asoslangan_hajm')::numeric = 112), 'W2 asoslangan hajmi 12 + resurs bog''i = 112 emas (resurs bog'' hajmi ishga qo''shilmasligi kerak)');
+  perform pg_temp.sl_assert(exists (select 1 from jsonb_array_elements(r->'asoslar') e where (e->>'qator_id')::bigint = v_w2 and (e->>'asoslangan_hajm')::numeric = 12), 'W2 asoslangan hajmi 12 bo''lishi kerak (resurs qatoriga bog''langan hajm ishga QO''SHILMAYDI)');
   raise notice 'SLICH qadam [% %]: OK', v_n, v_name;
 
   -- ===================================================================
@@ -170,6 +170,8 @@ begin
   perform pg_temp.sl_assert(v_x->>'asos_holat' = 'tasdiqlangan' and v_x->>'taqdim_holat' = 'qabul' and v_x->>'qaror_vaqti' is not null
                             and v_x->>'qaror_kim' = 'Z texnadzor' and v_x->>'qaror_kompaniya' = 'SLICH_TEXNADZOR', 'qaror kim/qachon yo''q: ' || v_x::text);
   perform pg_temp.sl_assert((select e->>'asos_holat' from jsonb_array_elements(r->'aosrlar') e where (e->>'id')::bigint = v_a4) = 'tuzatish', 'W4 aosr holati tuzatish emas');
+  r := public.t2_nazorat_aosr_korik_v1(uin, z, t2id);
+  perform pg_temp.sl_assert((r->>'ok')::boolean and exists (select 1 from jsonb_array_elements(r->'ishlar') e where (e->>'qator_id')::bigint = v_w2 and (e->>'hajm')::numeric = 12), 'texnadzor ko''rigida bog'' hajmi ko''rinmadi: ' || r::text);
   raise notice 'SLICH qadam [% %]: OK', v_n, v_name;
 
   -- ===================================================================

@@ -55,6 +55,8 @@ export type SlichitelniyOpsiya = {
   yaxlitIdlar?: ReadonlySet<number> | null;
   /** Svod yaxlit xulosasi (server) — to'liq ro'yxatda smeta ustunining yaxlit summasi svoddan (QQS siz). */
   svodYaxlit?: SvodYaxlit | null;
+  /** Smetada yo'q bajarilgan ishlar (qo'shimcha/zamena): 'alohida' (sukut) — alohida varaq «Работы вне сметы» (daraxtda ham belgi bilan qoladi); 'daraxt' — faqat daraxt ichida. */
+  vneSmeta?: 'alohida' | 'daraxt';
   /** Fakt asosli rejim: har farq qatoriga ASOS (АОСР, texnadzor qarori) — «Основание» ustuni va asoslar reestri varag'i.
    *  Berilmasa (yoki RPC o'qilmagan) — oldingi ko'rinish (ustun va reestr yo'q). */
   asos?: AsosXarita | null;
@@ -92,6 +94,9 @@ export type SlichitelniyQator = {
   nomalum: number;
   /** Svod yaxlit bo'limiga taqsimlangan qator — G/I/M qiymat (formula emas). */
   yaxlitTaqsim?: number;
+  /** Smetada yo'q ish (qo'shimcha / zamena) belgilari — «Работы вне сметы» bo'limi uchun. */
+  qoshimcha?: boolean;
+  zamena?: boolean;
   /** Fakt summasi tasdiqlangan F2 birlik narxida (narx qoidasi). */
   f2Narxda?: boolean;
   /** Tasdiqlangan F2 summasi noma'lum (NULL) — hujjatda K katagi bo'sh (formula kesh bilan teng bo'lsin). */
@@ -187,7 +192,7 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
         id: q.id, tur: 'barg', daraja, tartib: blNo ? `${blNo}.${k}` : String(++no), kod: q.kod ?? '', nom: q.nom ?? '', birlik: q.birlik ?? '',
         smetaHajm: smeta, narx, smetaSumma, faktHajm: fakt, faktSumma, f2Hajm, f2Summa, farqHajm: farq, farqSumma,
         izoh: [izohOf(q, smeta, fakt, farq), f2Narxda ? 'сумма факта — по цене утвержденной Ф-2' : ''].filter(Boolean).join('; '),
-        nomalum, kat: q.kat ?? null, bolalar: [], ...(q.tur === 'rs' || q.tur === 'mat' || q.tur === 'ob' ? { resTur: q.tur } : {}), norma: q.norma ?? null, otaIdx, f2Narxda: f2Narxda || undefined, f2SummaNomalum: f2SummaV == null || undefined,
+        nomalum, kat: q.kat ?? null, bolalar: [], ...(q.qoshimcha ? { qoshimcha: true } : {}), ...(q.zamena ? { zamena: true } : {}), ...(q.tur === 'rs' || q.tur === 'mat' || q.tur === 'ob' ? { resTur: q.tur } : {}), norma: q.norma ?? null, otaIdx, f2Narxda: f2Narxda || undefined, f2SummaNomalum: f2SummaV == null || undefined,
       });
       return out.length - 1;
     }
@@ -199,6 +204,7 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
         id: q.id, tur: 'bl', daraja, tartib: nomer, kod: q.kod ?? '', nom: q.nom ?? '', birlik: q.birlik ?? '',
         smetaHajm: smeta, narx: null, smetaSumma: null, faktHajm: fakt, faktSumma: null, f2Hajm, f2Summa: 0,
         farqHajm: farq, farqSumma: null, izoh: izohOf(q, smeta, fakt, farq), nomalum: 0, bolalar: [],
+        ...(q.qoshimcha ? { qoshimcha: true } : {}), ...(q.zamena ? { zamena: true } : {}),
       });
       const b: number[] = [];
       let kk = 0;
@@ -493,7 +499,7 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
   if (katsiz.length) v.diqqat(katsiz.map((nom) => ({ nom, sabab: 'не указан вид затрат — к оплате без накрутки (только НДС), в расчете отдельной строкой' })), 'ВИД ЗАТРАТ НЕ УКАЗАН');
   v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР', 'СОСТАВИЛ'], o.imzo));
   // Fakt asosli rejim: asos holati (qator darajasida) va asoslar reestri varag'i.
-  const varaqlar = [v];
+  const varaqlar: RasmiyVaraq[] = [v];
   let asosHisobot: { farqli: number; asosli: number; tasdiqlagan: number; asossiz: number } | null = null;
   if (o.asos) {
     let farqli = 0, asosli = 0, tasdiqlagan = 0, asossiz = 0;
@@ -528,7 +534,34 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
     });
     reestr.bosh();
     reestr.izoh('Реестр составлен по актам, привязанным к позициям ведомости (графа «Основание»). Статус «принят» устанавливает только решение принимающей стороны в системе; «подписан на бумаге» — акт, подписанный в бумажном виде.');
-    varaqlar.push(reestr as unknown as typeof v);
+    varaqlar.push(reestr);
+  }
+  // Smetada yo'q bajarilgan ishlar (qo'shimcha / zamena): alohida bo'lim (sukut) — buyurtmachi shuni alohida ko'rishni xohlaydi.
+  if ((o.vneSmeta ?? 'alohida') === 'alohida') {
+    const vne = model.qatorlar.filter((q) => (q.qoshimcha || q.zamena) && (q.tur === 'bl' || q.tur === 'barg') && q.faktHajm != null && q.faktHajm !== 0
+      && !(q.tur === 'barg' && q.otaIdx != null && model.qatorlar[q.otaIdx]?.tur === 'bl'));
+    if (vne.length) {
+      const vv = new RasmiyVaraq({
+        nom: 'Работы вне сметы', sarlavha: 'РАБОТЫ, ВЫПОЛНЕННЫЕ СВЕРХ СМЕТЫ (ДОПОЛНИТЕЛЬНЫЕ РАБОТЫ И ЗАМЕНА)', yonalish: 'landscape',
+        ostSarlavha: [`к сличительной ведомости по объекту ${o.obyektNomi} по состоянию на ${sanaRu}`],
+        ustunlar: [
+          { sarlavha: '№ п/п', kenglik: 7, tur: 'tartib' }, { sarlavha: 'Шифр, код', kenglik: 14, tur: 'kod' }, { sarlavha: 'Наименование работ', kenglik: 46, tur: 'matn' },
+          { sarlavha: 'Ед. изм.', kenglik: 9, tur: 'birlik' }, { sarlavha: 'Вид', kenglik: 18, tur: 'matn' }, { sarlavha: 'Выполнено, кол-во', kenglik: 14, tur: 'hajm' },
+          { sarlavha: 'Цена за ед., сум', kenglik: 16, tur: 'narx' }, { sarlavha: 'Сумма выполнено, сум', kenglik: 20, tur: 'pul' },
+          ...(o.asos ? [{ sarlavha: 'Основание (АОСР, решение технадзора)', kenglik: 48, tur: 'matn' } as RasmiyUstun] : []),
+        ],
+      });
+      const bosh2 = vv.malumotBoshi;
+      vne.forEach((q, i) => {
+        vv.qator('oddiy', [i + 1, q.kod, q.nom, q.birlik, q.qoshimcha ? 'дополнительная работа' : 'замена', qiy(q.faktHajm), qiy(q.narx), qiy(q.faktSumma),
+          ...(o.asos ? [asosMatniQator(o.asos, q.id, true, q.faktHajm) || null] : [])]);
+      });
+      const summa = yigindi2(vne.map((q) => q.faktSumma));
+      vv.qator('jami', (n) => [null, null, 'ИТОГО', null, null, null, null, { f: sumRefs('H', vne.map((_, i) => bosh2 + i)), v: summa ?? '' }, ...(o.asos ? [null] : [])]);
+      vv.bosh();
+      vv.izoh('Работы, которых нет в смете (дополнительные и замена): стоимость по сметным ценам (прямые затраты), без накладных расходов и НДС; в основной ведомости эти строки также отмечены.');
+      varaqlar.push(vv);
+    }
   }
   const { bytes } = rasmiyKitob(varaqlar, { tur: 'slichitelniy' });
   const kv = (c: 'P' | 'Q') => { const x = model.ildizlar.map((i) => koOf(i, c)); return x.length ? yigindi2Qatiy(x) : null; };

@@ -40,5 +40,15 @@
   "Slichitelniy «Asos» ustunisiz tuziladi.": { "ru": "Сличительная ведомость будет составлена без графы «Основание».", "en": "The comparison statement will be built without the Basis column." },
   "Slichitelniy tayyorligi (farq asoslari)": { "ru": "Готовность сличительной ведомости (основания отклонений)", "en": "Comparison statement readiness (deviation bases)" },
   "Slichitelniy tayyorligini o‘qiyapman": { "ru": "Читаю готовность сличительной ведомости", "en": "Reading comparison statement readiness" },
-  "Asosi yo‘q qatorlarni qidiryapman": { "ru": "Ищу строки без основания", "en": "Looking for rows without a basis" }
+  "Asosi yo‘q qatorlarni qidiryapman": { "ru": "Ищу строки без основания", "en": "Looking for rows without a basis" },
+  "Hajm": { "ru": "Объем", "en": "Quantity" },
+  "Akt hajmi": { "ru": "Объем по акту", "en": "Act quantity" },
+  "aktdan": { "ru": "из акта", "en": "from the act" },
+  "fakt qoldig‘i": { "ru": "остаток факта", "en": "actual remainder" },
+  "Ishonch {x} % va undan yuqori {n} ta aktni taklif qilingan smeta qatorlariga bog‘laysizmi? Qolgan {q} tasi qo‘lda ko‘rib chiqiladi.": { "ru": "Связать {n} актов с уверенностью {x} % и выше с предложенными строками сметы? Остальные {q} — вручную.", "en": "Link {n} acts with confidence {x} % or higher to the suggested estimate rows? The other {q} are reviewed manually." },
+  "Ishonch chegarasi": { "ru": "Порог уверенности", "en": "Confidence threshold" },
+  "Ishonch chegarasi, %": { "ru": "Порог уверенности, %", "en": "Confidence threshold, %" },
+  "Hammasini qabul qil (ishonch ≥ {x} %): {n}": { "ru": "Принять все (уверенность ≥ {x} %): {n}", "en": "Accept all (confidence ≥ {x} %): {n}" },
+  "Past ishonchli aktlar: qatorni o‘zingiz tanlaysiz": { "ru": "Акты с низкой уверенностью: строку выбираете сами", "en": "Low-confidence acts: you pick the row" },
+  "Qo‘lda ko‘rib chiqiladi": { "ru": "Проверяется вручную", "en": "Reviewed manually" }
 }

@@ -438,7 +438,7 @@ export default function TestAosr() {
           <AosrYetishmaydi kompaniyaId={kompaniyaId} obyektId={obyektId} guruhlar={guruhlar} aktlar={aktlar} onTayyor={yukla} />
         )}
         {varaq === 'akt' && !yuklanmoqda && (
-          <AosrTaklif aktlar={aktlar} qatorMeta={qatorMeta} coverage={coverage} onTayyor={yukla} />
+          <AosrTaklif aktlar={aktlar} qatorMeta={qatorMeta} coverage={coverage} onTayyor={yukla} kompaniyaId={kompaniyaId ?? undefined} />
         )}
         {yashirinAktsiz > 0 && varaq === 'akt' && (
           <p className="text-[11.5px] text-text-mute">{t('F2 bloklanmaydi — АОСР yo‘qligi faqat ogohlantirish.')}</p>

@@ -55,7 +55,7 @@ begin
            t.qabul_qiluvchi_kompaniya_id as qaror_kompaniya_id,
            to_jsonb(t.*)->>'nazorat_turi' as nazorat_turi,
            nullif(to_jsonb(t.*)->>'nomidan_kompaniya_id', '')::bigint as nomidan_id,
-           case when a.holat = 'tasdiqlangan' and coalesce(to_jsonb(t.*)->>'nazorat_turi', '') ilike '%ichki%' then 'ichki'   -- ichki nazorat (pudratchining o'zi): tashqi tasdiq o'rnini bosmaydi
+           case when a.holat = 'tasdiqlangan' and coalesce(to_jsonb(t.*)->>'nazorat_turi', '') = 'ichki' then 'ichki'   -- ichki nazorat (pudratchining o'zi): tashqi tasdiq o'rnini bosmaydi
                 when a.holat = 'tasdiqlangan' then 'tasdiqlangan'
                 when a.holat = 'qogoz' then 'qogoz'
                 when t.holat in ('yuborilgan', 'ko_rilmoqda') then 'kutilmoqda'
@@ -274,6 +274,35 @@ end $$;
 comment on function public.t2_aosr_slichitelniy_v1(bigint, bigint, bigint, integer) is 'versiya: faol smeta qatorlari (versiya_holat = ''faol''); АОСР va taqdim tarixi filtrsiz. Slichitelniy asoslari va tayyorlik (fakt - smeta farqi bo''yicha).';
 comment on function public.t2_aosr_bog_hajm_v1(bigint, bigint, bigint, jsonb, uuid) is 'versiya: faol smeta qatorlari (versiya_holat = ''faol'') bilan bog''lanadi; АОСР <-> qator bog''i hajm bilan.';
 comment on function public.t2_aosr_asos_qoralama_v1(bigint, bigint, bigint, bigint[], uuid, text) is 'versiya: faol smeta qatorlari (versiya_holat = ''faol''); ish qatorlari uchun АОСР qoralamalari, hajm = fakt - asoslangan.';
+
+-- 4a. Texnadzor kabineti: АОСР ko'rigida bog'langan ish qatorining HAJMI ko'rinadi (texnadzor nimani tasdiqlayotganini bilsin).
+--     Faqat 'ishlar' elementiga hajm qo'shiladi (NULL = ko'rsatilmagan); qolgani aynan avvalgidek.
+create or replace function public.t2_nazorat_aosr_korik_v1(p_actor_id bigint, p_kompaniya_id bigint, p_taqdim_id bigint)
+ returns jsonb
+ language plpgsql
+ security definer
+ set search_path to 'public', 'pg_temp'
+as $function$
+declare q public.t2_tomon_taqdim;
+begin
+  perform public._t2_tomon_azo(p_actor_id, p_kompaniya_id, 'korish');
+  select * into q from public.t2_tomon_taqdim where id = p_taqdim_id;
+  if not found or q.resurs <> 'aosr' or q.manba_jadval <> 't2_aosr' or (q.taqdim_etuvchi_kompaniya_id <> p_kompaniya_id and q.qabul_qiluvchi_kompaniya_id <> p_kompaniya_id) then
+    return jsonb_build_object('ok', false, 'code', 'TOPILMADI', 'error', 'АОСР taqdimi topilmadi');
+  end if;
+  return jsonb_build_object('ok', true, 'taqdim_id', q.id, 'aosr_id', q.manba_id,
+    'protokollar', (select coalesce(jsonb_agg(jsonb_build_object('id', p.id, 'raqam', p.raqam, 'sana', p.sana, 'sinov_turi', p.sinov_turi, 'konstruksiya', p.konstruksiya,
+                      'marka', p.marka, 'natija', p.natija, 'laboratoriya', (select k.nom from public.t2_kontragent k where k.id = p.laboratoriya_id),
+                      'document_id', case when p.fayl_document_id ~ '^[0-9]{1,15}$' then p.fayl_document_id::bigint end,
+                      'fayl', (select d.original_filename from public.t2_document_registry d where p.fayl_document_id ~ '^[0-9]{1,15}$' and d.id = p.fayl_document_id::bigint and d.kompaniya_id = q.taqdim_etuvchi_kompaniya_id))
+                      order by p.id), '[]'::jsonb)
+                      from public.t2_lab_protokol_bog pb join public.t2_lab_protokol p on p.id = pb.protokol_id and p.holat <> 'bekor' where pb.aosr_id = q.manba_id),
+    'fotolar', (select coalesce(jsonb_agg(jsonb_build_object('document_id', f.document_id, 'fayl', d.original_filename, 'mime', d.mime_type) order by f.id), '[]'::jsonb)
+                  from public.t2_aosr_foto f join public.t2_document_registry d on d.id = f.document_id and d.kompaniya_id = q.taqdim_etuvchi_kompaniya_id where f.aosr_id = q.manba_id),
+    'ishlar', (select coalesce(jsonb_agg(jsonb_build_object('qator_id', h.qator_id, 'kod', h.kod, 'nom', h.nom, 'birlik', h.birlik, 'hajm', h.hajm) order by h.qator_id), '[]'::jsonb)
+                 from (select b.qator_id, b.hajm, qq.kod, qq.nom, qq.birlik from public.t2_aosr_bog b join public.t2_qator qq on qq.id = b.qator_id where b.aosr_id = q.manba_id order by b.qator_id limit 60) h));
+end $function$;
+comment on function public.t2_nazorat_aosr_korik_v1(bigint, bigint, bigint) is 'versiya: tarix - yuborilgan АОСР ning bog''langan ish qatorlari (t2_aosr_bog, hajm bilan) ko''rsatiladi; smeta versiyasidan mustaqil hujjat dalili.';
 
 -- 5. Ruxsatlar: faqat service_role (shlyuz); anon/authenticated yo'q
 do $$

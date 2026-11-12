@@ -118,4 +118,15 @@ describe('slichitelniy xlsx: «Основание» ustuni va asoslar reestri', 
     const g = (t: ReturnType<typeof hujjatTekshir>) => t.varaqlar[0].kataklar.filter((k) => /^[GIKM]\d+$/.test(k.ref)).map((k) => `${k.ref.replace(/\d+$/, "")}=${k.v}`);
     expect(g(t1).slice(0, g(t0).length)).toEqual(g(t0));  // titul bir qator ko'payadi (qator raqamlari siljiydi) va izohlar imzodan keyin qo'shiladi: ustun/qiymat ketma-ketligi bir xil
   });
+
+  it('smetada yo‘q ishlar (qo‘shimcha): sukut — alohida varaq «Работы вне сметы»; «daraxt» rejimida varaq yo‘q', () => {
+    const Q = [q(1, null, 'rz', null, { nom: 'РАЗДЕЛ' }), q(2, 1, 'bl', 10, { nom: 'ОСНОВНАЯ' }), q(3, 1, 'bl', 0, { nom: 'ДОП РАБОТА', qoshimcha: true, narx: 500 })];
+    const H = [h(2, 10), h(3, 4)];
+    const m = slichitelniyModeli(Q, H);
+    const alohida = hujjatTekshir(slichitelniyHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25' }).bytes);
+    const daraxt = hujjatTekshir(slichitelniyHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', vneSmeta: 'daraxt' }).bytes);
+    expect(alohida.varaqlar.length).toBe(2);
+    expect(alohida.matnlar.join('\n')).toContain('РАБОТЫ, ВЫПОЛНЕННЫЕ СВЕРХ СМЕТЫ');
+    expect(daraxt.varaqlar.length).toBe(1);
+  });
 });

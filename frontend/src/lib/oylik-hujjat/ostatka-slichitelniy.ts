@@ -16,7 +16,8 @@ import { ostatkaHujjatModeli, ostatkaHujjatXlsx, ostatkaIstisnolari, type Ostatk
 import { slichitelniyHujjatXlsx, slichitelniyModeli, type SlichitelniyModel } from '../slichitelniy-vedomost';
 import { yaxlitQatorIdlari } from '../svod-yaxlit';
 import type { ImzoNomlar } from '../hujjat-yozuvchi';
-import type { AsosXarita } from '../slichitelniy-asos';
+import { AsosXarita } from '../slichitelniy-asos';
+import { slichitelniyAsosOl } from '../../api/t2-slichitelniy-asos';
 import type { NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
 import type { Podval } from '../nakrutka-konstruktor';
 import type { SvodYaxlit } from '../svod-yaxlit';
@@ -97,7 +98,10 @@ export async function ostatkaPaketFayli(p: { kompaniyaId: number; obyektId: numb
   const u = await ustamaManbaOl(p.kompaniyaId, p.obyektId);
   if (!u.ok) return { ok: false, xato: u.xato };
   const kirish: OstatkaKirish = { rows: d.rows, states: d.states, istisnolar, ustama: u.ustama, obyektNom: p.obyektNom, imzo: p.imzo };
-  const r = p.tur === 'ostatka' ? ostatkaHujjatQur(kirish) : slichitelniyHujjatQur(kirish);
+  // Slichitelniy paketda ham sahifa bilan BIR XIL quruvchi: asoslar o'qilsa «Основание» ustuni + reestr; o'qilmasa — asossiz (jim yiqilmaydi, sahifada ogohlantiriladi).
+  let asos: AsosXarita | null = null;
+  if (p.tur === 'slichitelniy') { const j = await slichitelniyAsosOl(p.kompaniyaId, p.obyektId, 1).catch(() => null); asos = j && j.ok ? new AsosXarita(j) : null; }
+  const r = p.tur === 'ostatka' ? ostatkaHujjatQur(kirish) : slichitelniyHujjatQur({ ...kirish, asos });
   if (!r.fayl) return { ok: false, bosh: true, xato: p.tur === 'ostatka' ? 'ostatka yo‘q (barcha ishlar bajarilgan)' : 'solishtiriladigan pozitsiya yo‘q' };
   return { ok: true, nom: r.fayl.faylNomi, bytes: r.fayl.bytes };
 }
