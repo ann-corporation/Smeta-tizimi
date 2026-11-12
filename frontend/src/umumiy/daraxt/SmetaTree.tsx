@@ -6,6 +6,7 @@ import { flattenTree, getAllKeys, nodeKey } from './utils';
 import { daraxtniKes, daraxtniYassila, LRV_DARAXT, lrvUstunlar, ozgarishFiltrMos } from './smetaTreeFiltr';
 import { useJadvalFiltr } from '../jadval-filtr/useJadvalFiltr';
 import { FiltrHolatQatori, UstunFiltrTugma } from '../jadval-filtr/UstunFiltrTugma';
+import { ozgarishSoni } from '../../lib/smeta-korinish';
 import { FmtN } from '../../lib/format';
 import { KatNishon } from '../ui/KatNishon';
 import { ChevronRight, ChevronDown, RefreshCcw, Plus, Search, X, Layers, Package, Pickaxe, Box, Pencil, Info, Rows3, Rows2, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
@@ -210,8 +211,6 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
         if (Number(n.f2mum) > 0) c.f2++;
         if (n.type !== 'rz') {
           if (ozgarishFiltrMos(n, 'asl')) c.asl++;
-          if (ozgarishFiltrMos(n, 'qosh')) c.qosh++;
-          if (ozgarishFiltrMos(n, 'zamena')) c.zamena++;
         }
         if (n.type === 'bl') c.bl++;
         if (n.type === 'mat') c.mat++;
@@ -226,6 +225,8 @@ export function SmetaTree({ data, oylar = [], isEditMode = false, edits = {}, se
       }
     };
     yur(data);
+    // Qo'shimcha / zamena — o'zgarish yozuvlari soni (server «Smeta va o'zgarishlar» bilan bir xil), ichidagi ish/resurs qatorlari emas.
+    const oz = ozgarishSoni(data); c.qosh = oz.qoshimcha; c.zamena = oz.zamena;
     const av = (nodes: TreeNode[]) => { for (const n of nodes) { if (n.type !== 'rz') c.avvalgi++; if (n.children?.length) av(n.children); } };
     av(avvalgiVersiya ?? []);
     return c;

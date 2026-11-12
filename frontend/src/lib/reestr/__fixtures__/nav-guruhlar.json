@@ -570,7 +570,7 @@
         "sahifalar": [
           {
             "yol": "/admin/yetkazuvchi",
-            "ilova": "xarid",
+            "ilova": "logistika",
             "nom": "Yetkazuvchi: bugun",
             "ruxsat": [
               "control.company.read",
