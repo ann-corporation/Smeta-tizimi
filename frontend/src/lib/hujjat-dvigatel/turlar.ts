@@ -31,7 +31,8 @@ export type TekshiruvQadam = { kalit: string; nom: string; daraja: TekshiruvDara
 export type EksportManbai = { modul: string; izoh: string };
 
 /** Taqdim (qarshi tomonga rasmiy yuborish): t2_tomon_resurs kaliti + manba jadvali (bo'lsa). */
-export type TaqdimTavsif = { resurs: string; manbaJadval: string | null };
+/** qabulRollar — shu hujjatni qabul qila oladigan tomon rollari (aloqa qarshi_rol); «Kimga» ro'yxati shundan filtrlanadi. */
+export type TaqdimTavsif = { resurs: string; manbaJadval: string | null; qabulRollar?: readonly string[] };
 
 export type HujjatTuri = {
   kalit: HujjatKalit;

@@ -5,6 +5,7 @@
  *   aniqlanmagan -> HECH QACHON rad etilmaydi: eng yaqin sahifa/amallar taklif qilinadi.
  * Sof funksiya: testlanadi. Pul yoki hujjatni bu qatlam o'zi yozmaydi — yozuv faqat taklif kartasi va tasdiq orqali (UI).
  */
+import { yukSlotAjrat, yukSlotUrl } from './yuk-slot';
 import { OCHISH_FELLARI, sozlar, sozMosligi, TOLDIRUVCHI, sozNorm } from './matn';
 import { oyAjrat, obyektAjrat, type ObyektQisqa } from './kontekst-ajrat';
 import { darsSavoli, type DarsJavobi } from '../kurs/tutor';
@@ -70,6 +71,8 @@ const havola = (s: YordamchiSahifa, o: ObyektQisqa | null, oy: string | null): S
 export function niyatAniqla(matn: string, ctx: NiyatKontekst): Niyat {
   const xom = matn.trim();
   if (YORDAM_RE.test(xom.toLowerCase().replace(/[ʻʼ‘’`´']/g, ''))) return { tur: 'yordam' };
+  const yukSlot = yukSlotAjrat(xom);
+  if (yukSlot) return { tur: 'navigatsiya', sahifa: { yol: '/admin/yuk-chaqirish', nom: 'Yuk chaqirish', url: yukSlotUrl(yukSlot) }, obyekt: null, oy: null, qoralama: true, aniqOchish: true };
   { const dars = darsSavoli(xom, { ochiqYollar: new Set(ctx.sahifalar.map((s) => s.yol)) }); if (dars) return dars; }
   const barchasi = sozlar(xom);
   const ob = obyektAjrat(barchasi, ctx.obyektlar);

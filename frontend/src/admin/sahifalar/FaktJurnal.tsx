@@ -130,6 +130,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   const ishAlmashtir = (id: number) => setTeskari((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const [yopiqBolim, setYopiqBolim] = useState<Set<number>>(new Set());
   const [saqlangan, setSaqlangan] = useState<Set<number>>(new Set());
+  /* «Saqlandi» belgisini olib tashlovchi taymer: unmount da bekor qilinadi (aks holda kech setState teardown dan keyin ishlaydi). */
+  const saqlanganTaymer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (saqlanganTaymer.current) clearTimeout(saqlanganTaymer.current); }, []);
   const [modal, setModal] = useState<{ rejim: AbcRejim; tahrir?: AbcTahrir | null; normativId?: string | null } | null>(null);
   const rowById = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows]);
   /**
@@ -459,7 +462,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   const { band, saqla, saqlaKlav, ishda: ishdaRef } = useFaktSaqlash({
     obyektId, sana, kiritmalar, paket, faktlar, smetalar, ozgarishSoni, holatniYangila, tozala, qoralamaYozDarhol, qoralamaTozala, fokusgaOt: (id) => fokusgaOt(id),
     qatorOl: (id) => barchaById.get(id), izoh: `Fakt jurnali: ${paket.qatorlar.length} qator`,
-    onSaqlandi: (ids) => { setSaqlangan(ids); setTimeout(() => setSaqlangan(new Set()), 2500); },
+    onSaqlandi: (ids) => { setSaqlangan(ids); if (saqlanganTaymer.current) clearTimeout(saqlanganTaymer.current); saqlanganTaymer.current = setTimeout(() => setSaqlangan(new Set()), 2500); },
   });
   // Saqlanmagan kiritma bor — yangi versiya chiqsa sahifa avtomatik yangilanmaydi (banner qoralama saqlanganini aytadi).
   useSaqlanmaganHimoya('fakt-jurnal', ozgarishSoni);

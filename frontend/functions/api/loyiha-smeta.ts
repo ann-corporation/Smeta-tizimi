@@ -14,12 +14,14 @@ export const OQISH: Record<string, string> = {
   royxat: 't2_loyiha_royxat_v1',
   farq: 't2_loyiha_farq_v1',
   smeta: 't2_loyiha_smeta_v1',
+  xarita: 't2_loyiha_xarita_v1',
 };
 export const YOZISH: Record<string, string> = {
   yoz: 't2_loyiha_yoz_v1',
   tasdiq: 't2_loyiha_tasdiq_v1',
   boglash: 't2_loyiha_boglash_v1',
   qaror: 't2_loyiha_qaror_v1',
+  xarita: 't2_loyiha_xarita_yoz_v1',
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -78,6 +80,10 @@ export function yozishYuki(amal: string, so: Yuk): Yuk | string {
       if (!sonmi(so.miqdor_id) || !QAROR_TURLARI.includes(String(so.tur))) return 'miqdor_id va tur (boglandi/zamena/qoshimcha/pereraschet/etibor_yoq) kerak';
       return { p_kompaniya_id, p_miqdor_id: Number(so.miqdor_id), p_tur: String(so.tur), p_qator_id: ixtSon(so.qator_id), p_ref_jadval: matn(so.ref_jadval, 60), p_ref_id: ixtSon(so.ref_id),
                p_sabab: matn(so.sabab, 500) };
+    case 'xarita':
+      if (!sonmi(so.obyekt_id) || !sonmi(so.bolim_qator_id) || !matn(so.varaq, 40)) return 'obyekt_id, varaq va bolim_qator_id kerak';
+      if (!['qosh', 'ochir'].includes(String(so.harakat))) return 'harakat: qosh | ochir';
+      return { p_kompaniya_id, p_obyekt_id: Number(so.obyekt_id), p_varaq: matn(so.varaq, 40), p_bolim_qator_id: Number(so.bolim_qator_id), p_manba: so.manba === 'taklif' ? 'taklif' : 'qolda', p_sabab: matn(so.sabab, 300), p_amal: String(so.harakat) };
     default: return 'Amal ochiq emas';
   }
 }

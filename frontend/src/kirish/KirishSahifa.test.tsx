@@ -51,7 +51,7 @@ describe('Email kod bilan kirish', () => {
     fireEvent.change(await screen.findByPlaceholderText('F.I.Sh.'), { target: { value: 'Aziz Karimov' } });
     const kod = await kodSora('aziz@gmail.com');
     fireEvent.change(kod, { target: { value: '654321' } });
-    await waitFor(() => expect(m.navigate).toHaveBeenCalledWith('/admin/tokenlar'));
+    await waitFor(() => expect(m.navigate).toHaveBeenCalledWith('/admin/kompaniya'));
     expect(JSON.parse(String((fetchMock.mock.calls.filter((c) => c[0] !== '/api/sessiya')[1][1] as { body: string }).body)).ism).toBe('Aziz Karimov');
     expect(m.toast).toHaveBeenCalled();
   });
@@ -72,7 +72,7 @@ describe('Email kod bilan kirish', () => {
     fireEvent.change(await kodSora('egasi@b.uz'), { target: { value: '222222' } });
     expect(await screen.findByText('Bu email bilan parolli hisob bor. Parol bilan kiring yoki administratorga murojaat qiling.')).toBeTruthy();
     expect(m.navigate).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Login va parol bilan kirish' }).getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByRole('button', { name: /Telefon va parol/ }).getAttribute('aria-expanded')).toBe('true');
   });
 
   it('yaroqsiz email — serverga bormaydi', async () => {
@@ -91,6 +91,6 @@ describe('Email kod bilan kirish', () => {
     fireEvent.change(screen.getByLabelText('Email manzili'), { target: { value: 'a@b.uz' } });
     fireEvent.click(screen.getByRole('button', { name: 'Kod yuborish' }));
     expect(await screen.findByText('Email orqali kirish hali yoqilmagan.')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Login va parol bilan kirish' }).getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByRole('button', { name: /Telefon va parol/ }).getAttribute('aria-expanded')).toBe('true');
   });
 });

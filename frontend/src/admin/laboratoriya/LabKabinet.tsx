@@ -26,6 +26,7 @@ export default function LabKabinet() {
   const [soni, setSoni] = useState<{ kelgan: number; kechikkan: number; yuborilgan: number } | null>(null);
 
   useEffect(() => {
+    setSoni(null); // kompaniya almashganda eski sonlar «—» bo'lib turadi (0 emas)
     if (!kompaniyaId) return;
     let tirik = true;
     void Promise.all([sorovlarOl(kompaniyaId, { yonalish: 'kelgan', holat: 'ochiq' }), sorovlarOl(kompaniyaId, { yonalish: 'yuborilgan', holat: 'ochiq' })]).then(([k, y]) => {

@@ -44,7 +44,7 @@ export function nomdanBelgilar(nom: string, regexManba: string = MOSLASH_STANDAR
 }
 
 /** Bargni (ish qatori) o'z bo'limlari zanjiri bilan: bo'lim nomlari va ulardan olingan belgilar. */
-export function bolimXaritasi(qatorlar: SmetaQator[], regexManba?: string): Map<number, { belgilar: Set<string>; bolimNomi: string | null }> {
+export function bolimXaritasi(qatorlar: SmetaQator[], regexManba?: string, qolda?: ReadonlyMap<string, ReadonlySet<number>>): Map<number, { belgilar: Set<string>; bolimNomi: string | null }> {
   const byId = new Map(qatorlar.map((q) => [q.id, q] as const));
   const keshlar = new Map<number, { belgilar: Set<string>; bolimNomi: string | null }>();
   const yech = (id: number, chuqurlik = 0): { belgilar: Set<string>; bolimNomi: string | null } => {
@@ -54,6 +54,7 @@ export function bolimXaritasi(qatorlar: SmetaQator[], regexManba?: string): Map<
     const ota = q.ota_id != null ? yech(q.ota_id, chuqurlik + 1) : { belgilar: new Set<string>(), bolimNomi: null };
     const bolim = q.tur === 'rz' || q.tur === 'bl';
     const joriy = bolim ? nomdanBelgilar(q.nom, regexManba) : new Set<string>();
+    if (bolim && qolda) for (const [v, ids] of qolda) if (ids.has(q.id)) joriy.add(v);   // PTO qo'lda (yoki tasdiqlangan taklif) bog'lagan varaq
     const r = { belgilar: new Set([...ota.belgilar, ...joriy]), bolimNomi: bolim && joriy.size ? q.nom : ota.bolimNomi };
     keshlar.set(id, r);
     return r;

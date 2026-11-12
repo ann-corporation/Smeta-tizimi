@@ -65,11 +65,11 @@ const OBYEKT = a('pult', 'dashboard', 'obyektlar', 'loyiha', 'participants', 'mi
 const SMETA = a('smeta-studio', 'holat', 'smeta-narxlash', 'narx-dalil', 'narx-tekshiruv', 'nakrutka', 'narxlar', 'narx-manbalari', 'oferta', 'loyiha-smeta');
 const FAKT = a('fakt', 'foto', 'bugun', 'naryad', 'm29');
 const F2 = a('f2-tayyorlash', 'f2', 'f2-tarix', 'f2-reestr', 'nakopitelniy');
-const HUJJAT = a('documents', 'hujjat-nazorat', 'aosr', 'storage', 'nazorat', 'nazorat/tekshiruv', 'nazorat/jurnal', 'chizmalar', 'loyihachi', 'zakazchik', 'subpudrat', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish', 'subpudratchi');
+const HUJJAT = a('documents', 'hujjat-nazorat', 'aosr', 'storage', 'nazorat', 'nazorat/tekshiruv', 'nazorat/jurnal', 'chizmalar', 'loyihachi', 'zakazchik', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish', 'subpudrat', 'subpudratchi');
 const MOLIYA = a('moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'kontragentlar');
-const TAMINOT = a('logistika', 'zayavka', 'tender', 'yuk-birjasi', 'yuk-chaqirish', 'haydovchi', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'tender-ochiq', 'erp', 'hr');
+const TAMINOT = a('logistika', 'zayavka', 'tender', 'yuk-birjasi', 'yuk-chaqirish', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'tender-ochiq', 'erp', 'hr');
 /* «Yetkazuvchi: bugun» — faqat yetkazuvchi roli (supply.*) va rahbariyat; ichki xodim (PTO, prorab) ko'rmaydi (egasi 2026-11-12). */
-const TAMINOT_R = a('logistika', 'zayavka', 'tender', 'yuk-birjasi', 'yuk-chaqirish', 'haydovchi', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'tender-ochiq', 'yetkazuvchi', 'erp', 'hr');
+const TAMINOT_R = a('logistika', 'zayavka', 'tender', 'yuk-birjasi', 'yuk-chaqirish', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'tender-ochiq', 'yetkazuvchi', 'erp', 'hr');
 const ISH = [...OBYEKT, ...SMETA, ...FAKT, ...F2, ...MOLIYA, ...HUJJAT, ...TAMINOT];
 const ISH_R = [...OBYEKT, ...SMETA, ...FAKT, ...F2, ...MOLIYA, ...HUJJAT, ...TAMINOT_R];
 /* Uy sotish (20261124000000): alohida domen — sales.* (PTO da yo'q). */
@@ -77,7 +77,7 @@ const SOTUV = a('sotuv');
 /* Egasi 2026-10-27: «Integratsiyalar va audit» (tizim boshqaruv markazi) — faqat platforma superadmini. */
 const KOMPANIYA_SA = a('kompaniya', 'system-control', 'tizim-sozlama', 'hujjat-dizayn', 'tokenlar', 'ai-agentlar', 'korzinka');
 const KOMPANIYA = bez(KOMPANIYA_SA, 'system-control');
-const SHAXSIY = a('ish-joylarim', 'kurs', 'topshiriqlar', 'mutaxassis', 'akkaunt', 'sozlamalar');
+const SHAXSIY = a('ish-joylarim', 'kurs', 'topshiriqlar', 'mutaxassis', 'haydovchi', 'akkaunt', 'sozlamalar');
 /* «Sayt xaritasi» menyudan butunlay olib tashlandi (superadmin uchun ham); sahifa faqat superadminga, Boshqaruv panelidan. */
 const PLATFORMA = a('boshqaruv', 'fayl-boglash'); // «Sinov qobig'i» menyu bandi olib tashlandi (2026-11-11); /admin/test yo'li superadmin-only qoladi
 
@@ -87,12 +87,12 @@ const KUTILGAN: Record<string, string[]> = {
   admin: [...ISH_R, ...SOTUV, ...KOMPANIYA, ...SHAXSIY],
   pto: [...ISH, ...SHAXSIY],
   bugalter: [...a('pult', 'dashboard', 'obyektlar', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'kontragentlar',
-    'documents', 'hujjat-nazorat', 'storage', 'logistika', 'zayavka', 'tender', 'yuk-birjasi', 'yuk-chaqirish', 'haydovchi', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'tender-ochiq', 'erp', 'hr', 'sotuv'), ...SHAXSIY],
+    'documents', 'hujjat-nazorat', 'storage', 'logistika', 'zayavka', 'tender', 'yuk-birjasi', 'yuk-chaqirish', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'tender-ochiq', 'erp', 'hr', 'sotuv'), ...SHAXSIY],
   prorab: [...bez(ISH, 'pult', 'dashboard', 'moliya', 'buxgalteriya', 'qarzdorlik'), ...SHAXSIY],
   usta: [...a('fakt', 'foto', 'bugun'), ...SHAXSIY],
   buyurtmachi: [...a('obyektlar', 'loyiha', 'participants', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'shartnoma-liniya',
     'documents', 'hujjat-nazorat', 'storage', 'zakazchik', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish'), ...SHAXSIY],
-  omborchi: [...a('m29', 'logistika', 'zayavka', 'tender', 'yuk-birjasi', 'yuk-chaqirish', 'haydovchi', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'tender-ochiq'), ...SHAXSIY],
+  omborchi: [...a('m29', 'logistika', 'zayavka', 'tender', 'yuk-birjasi', 'yuk-chaqirish', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'tender-ochiq'), ...SHAXSIY],
   haydovchi: [...a('logistika', 'erp'), ...SHAXSIY],
   /* sotuvchi: project.read (S1 rol ta'rifi) tufayli loyiha/hujjat/kiruvchi bandlari ham ko'rinadi — rol ko'lami alohida qaror. */
   sotuvchi: [...a('loyiha', 'participants', 'documents', 'hujjat-nazorat', 'storage', 'zakazchik', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish', 'sotuv'), ...SHAXSIY],

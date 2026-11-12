@@ -11,7 +11,7 @@ import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { toast } from '../../umumiy/ui/Toast';
 import { sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt } from '../../api/supabase';
 import { sbT2QoshimchaIshYarat, sbT2ZamenaIshYarat } from '../../api/t2-additional-replacement';
-import { loyihaBoglash, loyihaFarqOl, loyihaQaror, loyihaRoyxatOl, loyihaSmetaOl, loyihaTasdiq, loyihaYoz, type MiqdorQatori } from '../../api/t2-loyiha-smeta';
+import { loyihaXaritaOl, loyihaXaritaYoz, loyihaBoglash, loyihaFarqOl, loyihaQaror, loyihaRoyxatOl, loyihaSmetaOl, loyihaTasdiq, loyihaYoz, type MiqdorQatori } from '../../api/t2-loyiha-smeta';
 import { dublikatTanla, hujjatniTahlilQil, type SahifaNatija } from '../../lib/loyiha-smeta/tahlil';
 import { pdfdanMatn, manbaKorinishi, sha256Hex } from '../../lib/loyiha-smeta/pdf-oqish';
 import { keshdanOl, keshgaSaqla, manbaR2 } from '../../lib/loyiha-smeta/ekstraksiya-kesh';
@@ -25,6 +25,8 @@ import { regexOqi, regexSaqla, regexTekshir } from '../../lib/loyiha-smeta/mosla
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { katKesimJamiBilan } from '../../lib/ustamali-summa';
 import { farqJami, farqJamiTarkibi, farqlarniHisobla, type FarqMiqdor, type FarqQator, type FarqTuri, type QarorTuri } from '../../lib/loyiha-smeta/farq';
+import { uskunaGuruhlari } from '../../lib/loyiha-smeta/uskuna-guruh';
+import { belgisizVaraqlar, type VaraqElement } from '../../lib/loyiha-smeta/topilmagan';
 import { revizyaFarqi } from '../../lib/loyiha-smeta/revizya';
 import { birlikkaQaytar } from '../../lib/loyiha-smeta/birlik';
 import { solishtirmaHujjatXlsx } from '../../lib/loyiha-smeta/solishtirma-export';
@@ -42,6 +44,7 @@ const SABAB_NOMI: Record<MoslashSababi, string> = {
   bolim_belgi: 'bo‘lim nomida shu varaq belgisi', bolim_yoq: 'bo‘limda varaq belgisi topilmadi', birlik_mos: 'birlik mos', birlik_farq: 'birlik farqli', tur_mos: 'ish turi mos',
   sinf_mos: 'beton sinfi mos', sinf_farq: 'beton sinfi farqli', sinf_daraja: 'beton sinfi ish turiga mos', sinf_daraja_farq: 'beton sinfi ish turiga mos emas', diametr_mos: 'diametr mos', qalinlik_mos: 'qalinlik mos', soz_mos: 'nomida umumiy so‘zlar',
 };
+const TASNIF_NOMI: Record<'boshqa_nom' | 'smetada_yoq' | 'noaniq' | 'miqdorsiz', string> = { boshqa_nom: 'boshqa nom ostida bo‘lim bor', smetada_yoq: 'ehtimol smetada yo‘q', noaniq: 'noaniq (qisman mos)', miqdorsiz: 'solishtiriladigan miqdor yo‘q' };
 const QAROR_NOMI: Record<QarorTuri, string> = { boglandi: 'Bog‘langan', zamena: 'Zamena', qoshimcha: 'Qo‘shimcha ish', pereraschet: 'Pereraschet', etibor_yoq: 'E’tiborsiz' };
 const fmt = (n: number | null, d = 2) => (n == null ? '—' : new Intl.NumberFormat('ru-RU', { maximumFractionDigits: d }).format(n));
 
@@ -72,18 +75,42 @@ export default function LoyihaSmetaFakt() {
 
   const yukla = useCallback(async () => {
     if (!kompaniyaId || obyektId === '') return;
-    const [a, b, c] = await Promise.all([loyihaRoyxatOl(kompaniyaId, obyektId), loyihaFarqOl(kompaniyaId, obyektId), loyihaSmetaOl(kompaniyaId, obyektId)]);
+    const [a, b, c, d] = await Promise.all([loyihaRoyxatOl(kompaniyaId, obyektId), loyihaFarqOl(kompaniyaId, obyektId), loyihaSmetaOl(kompaniyaId, obyektId), loyihaXaritaOl(kompaniyaId, obyektId)]);
     if (!a.ok) { setXato(a.error); return; }
-    setXato(''); setRoyxat(a.natija.miqdorlar); if (b.ok) setFarqD(b.natija); if (c.ok) setSmeta(c.natija.qatorlar);
+    setXato(''); setRoyxat(a.natija.miqdorlar); if (b.ok) setFarqD(b.natija); if (c.ok) setSmeta(c.natija.qatorlar); setXaritaQ(d.ok ? d.natija.xarita : []);
   }, [kompaniyaId, obyektId]);
   useEffect(() => { setRoyxat([]); setFarqD(null); setSmeta([]); void yukla(); }, [yukla]);
 
+  const [xaritaQ, setXaritaQ] = useState<{ varaq: string; bolim_qator_id: number; manba: 'qolda' | 'taklif' }[]>([]);
+  const qolda = useMemo(() => { const m = new Map<string, Set<number>>(); for (const x of xaritaQ) m.set(x.varaq, new Set([...(m.get(x.varaq) ?? []), x.bolim_qator_id])); return m; }, [xaritaQ]);
   const [belgiRegex, setBelgiRegex] = useState<string>(MOSLASH_STANDART.belgiRegex);
   const [regexQoralama, setRegexQoralama] = useState('');
   const [regexNamuna, setRegexNamuna] = useState('РАЗДЕЛ ОБРАЗЕЦ (КР-5)');
   useEffect(() => { if (kompaniyaId) { const r = regexOqi(kompaniyaId); setBelgiRegex(r); setRegexQoralama(r); } }, [kompaniyaId]);
   const regexNatija = useMemo(() => regexTekshir(regexQoralama, regexNamuna), [regexQoralama, regexNamuna]);
-  const xarita = useMemo(() => bolimXaritasi(smeta, belgiRegex), [smeta, belgiRegex]);
+  const xarita = useMemo(() => bolimXaritasi(smeta, belgiRegex, qolda), [smeta, belgiRegex, qolda]);
+  const smetaBelgilari = useMemo(() => { const s = new Set<string>(); for (const v of xarita.values()) for (const b of v.belgilar) s.add(b); return s; }, [xarita]);
+  const belgisiz = useMemo(() => {
+    const g = new Map<string, VaraqElement[]>();
+    for (const x of royxat) if (!x.eskirgan && x.holat !== 'rad') g.set(x.varaq, [...(g.get(x.varaq) ?? []), { tur: x.tur, nom: x.nom, birlik: x.birlik, miqdor: x.miqdor }]);
+    return smeta.length ? belgisizVaraqlar(g, smeta, smetaBelgilari) : [];
+  }, [royxat, smeta, smetaBelgilari]);
+  const uskunaG = useMemo(() => uskunaGuruhlari(royxat.filter((x) => x.tur === 'uskuna' && !x.eskirgan && x.holat !== 'rad' && x.boglar.length === 0).map((x) => ({ id: x.id, nom: x.nom, birlik: x.birlik, miqdor: x.miqdor })), smeta), [royxat, smeta]);
+  async function uskunaTasdiq(g: { qatorId: number; elementlar: { id: number }[]; sabab: string[] }) {
+    if (!kompaniyaId) return;
+    const r = await loyihaTasdiq(kompaniyaId, g.elementlar.map((e) => e.id), 'tasdiqlangan');
+    if (!r.ok) { toast(r.error, 'danger'); return; }
+    for (const e of g.elementlar) await loyihaBoglash(kompaniyaId, { miqdorId: e.id, qatorId: g.qatorId, sabab: `uskunalar yig'ma qatorga`, harakat: 'qosh' });
+    toast(t('Tasdiqlandi: {n} ta', { n: g.elementlar.length }), 'ok'); await yukla();
+  }
+  const bolimlar = useMemo(() => smeta.filter((q) => q.tur === 'rz'), [smeta]);
+  const [qoldaTanlov, setQoldaTanlov] = useState<Record<string, number>>({});
+  async function xaritaBelgila(varaq: string, bolimId: number, manba: 'qolda' | 'taklif', sabab?: string, harakat: 'qosh' | 'ochir' = 'qosh') {
+    if (!kompaniyaId || obyektId === '') return;
+    const r = await loyihaXaritaYoz(kompaniyaId, { obyektId, varaq, bolimId, harakat, manba, sabab });
+    if (!r.ok) { toast(r.error, 'danger'); return; }
+    toast(t('Xarita saqlandi'), 'ok'); await yukla();
+  }
   const taklifVaraq = useMemo(() => {
     const m = new Map<string, MiqdorQatori[]>();
     for (const x of royxat) if (x.holat === 'taklif' && !x.eskirgan) m.set(x.varaq, [...(m.get(x.varaq) ?? []), x]);
@@ -151,7 +178,7 @@ export default function LoyihaSmetaFakt() {
   }
   const guruhlar = useMemo(() => {
     const m = new Map<string, (typeof tanlangan)>();
-    for (const s of tanlangan) if (s.varaq) m.set(s.varaq, [...(m.get(s.varaq) ?? []), s]);
+    for (const s of tanlangan) { const k = s.varaq ?? `БЕЛГИСИЗ-${s.sahifa}`; m.set(k, [...(m.get(k) ?? []), s]); }   // shtampsiz bet: «БЕЛГИСИЗ-N» — mazmun bo'yicha bo'lim taklif qilinadi
     return m;
   }, [tanlangan]);
   const mavjudRev = (varaq: string) => Math.max(-1, ...royxat.filter((x) => x.varaq === varaq && !x.eskirgan).map((x) => x.revizya));
@@ -294,6 +321,42 @@ export default function LoyihaSmetaFakt() {
           </Bolim>
         )}
 
+        {uskunaG.length > 0 && (
+          <Bolim sarlavha="Uskunalar: loyiha ro‘yxati ↔ smeta yig‘ma qatori">
+            <p className="mb-2 text-xs">{t('Uskunalar ro‘yxati smetaning yig‘ma qatoriga 1:1 mos kelmaydi: guruhlab ko‘rsatiladi, siz tasdiqlaysiz; jami smeta qatori bilan solishtiriladi.')}</p>
+            {uskunaG.map((g) => (
+              <div key={g.qatorId} className="mb-2 grid gap-2 rounded border p-2 text-[13px] sm:grid-cols-2">
+                <div><b>{t('Loyiha')}</b>{g.elementlar.map((e) => <div key={e.id} className="text-xs">{e.nom.slice(0, 60)} · {fmt(e.miqdor, 3)} {e.birlik}</div>)}
+                  <div className="text-xs">{t('Jami')}: {fmt(g.loyihaJami, 3)}</div></div>
+                <div><b>{t('Smeta yig‘ma qatori')}</b><div className="text-xs">{g.qatorNom.slice(0, 80)} · {fmt(g.qatorHajm, 3)} {g.qatorBirlik}</div>
+                  <div className="text-xs">{t('Farq')}: {fmt(g.farq, 3)}</div>
+                  <button type="button" className={tugma + ' mt-1'} onClick={() => void uskunaTasdiq(g)}>{t('Tasdiqlash ({n} ta)', { n: g.elementlar.length })}</button></div>
+              </div>))}
+          </Bolim>
+        )}
+        {belgisiz.length > 0 && (
+          <Bolim sarlavha="Belgisi smetada topilmagan varaqlar">
+            <p className="mb-2 text-xs">{t('Varaq belgisi hech bir smeta bo‘limi nomida yo‘q. Mazmun bo‘yicha (beton/armatura miqdori) mos bo‘lim taklif qilinadi; tasdiqlasangiz xarita eslab qolinadi. Asl smeta o‘zgarmaydi.')}</p>
+            {belgisiz.map((v) => (
+              <div key={v.varaq} className="mb-2 rounded border p-2 text-[13px]">
+                <b>{v.varaq}</b> · {t(TASNIF_NOMI[v.turi])} · {v.mosSoni}/{v.elementSoni} {t('miqdor mos')}
+                {v.takliflar.slice(0, 2).map((b) => (
+                  <div key={b.bolimId} className="text-xs">{b.bolimNomi.slice(0, 80)} · {b.mos} {t('miqdor teng')}
+                    <button type="button" className={tugma + ' ml-2'} onClick={() => void xaritaBelgila(v.varaq, b.bolimId, 'taklif', `${b.mos}/${v.elementSoni} miqdor teng`)}>{t('Tasdiqlash')}</button></div>))}
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                  <select className={inp} aria-label={t('Smeta bo‘limi')} value={qoldaTanlov[v.varaq] ?? ''} onChange={(e) => setQoldaTanlov((s) => ({ ...s, [v.varaq]: Number(e.target.value) }))}><option value="">{t('Bo‘limni qo‘lda tanlang')}</option>{bolimlar.map((b) => <option key={b.id} value={b.id}>{b.nom.slice(0, 70)}</option>)}</select>
+                  <button type="button" className={tugma} disabled={!qoldaTanlov[v.varaq]} onClick={() => void xaritaBelgila(v.varaq, qoldaTanlov[v.varaq], 'qolda')}>{t('Bog‘lash')}</button>
+                </div>
+              </div>))}
+          </Bolim>
+        )}
+        {xaritaQ.length > 0 && (
+          <Bolim sarlavha="Eslab qolingan varaq xaritasi">
+            {xaritaQ.map((x) => (
+              <div key={`${x.varaq}:${x.bolim_qator_id}`} className="text-xs">{x.varaq} → {smetaById.get(x.bolim_qator_id)?.nom.slice(0, 80) ?? x.bolim_qator_id} · {x.manba === 'qolda' ? t('qo‘lda') : t('tasdiqlangan taklif')}
+                <button type="button" className="ml-2 underline" onClick={() => void xaritaBelgila(x.varaq, x.bolim_qator_id, x.manba, undefined, 'ochir')}>{t('Olib tashlash')}</button></div>))}
+          </Bolim>
+        )}
         {taklifVaraq.size > 0 && (
           <Bolim sarlavha="2. Takliflar: tasdiqlang (tasdiqlanmagani pulga kirmaydi)">
             {[...taklifVaraq].map(([v, qatorlar]) => (
