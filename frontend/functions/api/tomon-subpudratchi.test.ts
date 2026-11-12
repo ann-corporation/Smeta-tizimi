@@ -25,6 +25,12 @@ describe('tomon shlyuzi - subpudratchi yozish yuki', () => {
     expect(typeof yozishYuki('sub_akt_yoz', { kompaniya_id: 3, aloqa_id: 5, obyekt_id: 9, qatorlar: [] })).toBe('string');
     expect(yozishYuki('sub_akt_yoz', { kompaniya_id: 3, aloqa_id: 5, obyekt_id: 9, akt_id: 8, qatorlar: [] })).toMatchObject({ p_akt_id: 8, p_oy: null });
   });
+  it('ulgurji summa va akt qaytarish', () => {
+    expect(yozishYuki('sub_topshir', { kompaniya_id: 3, aloqa_id: 5, obyekt_id: 9, qatorlar: [], bolim_id: 7, umumiy_summa: '1000.01' })).toMatchObject({ p_umumiy_summa: 1000.01, p_bolim_id: 7 });
+    expect(typeof yozishYuki('sub_topshir', { kompaniya_id: 3, aloqa_id: 5, obyekt_id: 9, qatorlar: [], bolim_id: 7, umumiy_summa: -1 })).toBe('string');
+    expect(yozishYuki('sub_akt_qaytar', { kompaniya_id: 3, sub_akt_id: 8, sabab: 'xato' })).toEqual({ p_kompaniya_id: 3, p_sub_akt_id: 8, p_sabab: 'xato' });
+    expect(typeof yozishYuki('sub_akt_qaytar', { kompaniya_id: 3 })).toBe('string');
+  });
   it('sub_akt_yubor, sub_qaror, sub_topshiriq_bekor', () => {
     expect(yozishYuki('sub_akt_yubor', { kompaniya_id: 3, sub_akt_id: 8, izoh: 'tekshiring' })).toMatchObject({ p_sub_akt_id: 8, p_izoh: 'tekshiring' });
     expect(typeof yozishYuki('sub_akt_yubor', { kompaniya_id: 3 })).toBe('string');

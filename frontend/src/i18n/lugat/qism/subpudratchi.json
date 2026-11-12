@@ -310,5 +310,37 @@
   "Tuzatishga qaytdi": {
     "ru": "Возвращён на доработку",
     "en": "Returned for correction"
+  },
+  "Akt qaytarib olindi: tahrirlab qayta yuboring.": {
+    "ru": "Акт отозван: исправьте и отправьте снова.",
+    "en": "The act was withdrawn: edit it and send again."
+  },
+  "Akt yuklandi": {
+    "ru": "Акт скачан",
+    "en": "Act downloaded"
+  },
+  "Shartnoma (ixtiyoriy)": {
+    "ru": "Договор (необязательно)",
+    "en": "Contract (optional)"
+  },
+  "— shartnomasiz —": {
+    "ru": "— без договора —",
+    "en": "— no contract —"
+  },
+  "Ulgurji summa (QQS siz, ixtiyoriy)": {
+    "ru": "Паушальная сумма (без НДС, необязательно)",
+    "en": "Lump sum (excl. VAT, optional)"
+  },
+  "Ulgurji summa": {
+    "ru": "Паушальная сумма",
+    "en": "Lump sum"
+  },
+  "Ulgurji summa kiritilsa, topshirilgan qator(lar)ning butun mazmuni shu summaga chiqadi (smeta puliga mutanosib taqsimlanadi).": {
+    "ru": "Если указана паушальная сумма, всё переданное содержимое выйдет ровно на эту сумму (распределяется пропорционально сметной стоимости).",
+    "en": "If a lump sum is entered, the whole assigned content comes out to exactly that sum (split in proportion to the estimate money)."
+  },
+  "Excel": {
+    "ru": "Excel",
+    "en": "Excel"
   }
 }

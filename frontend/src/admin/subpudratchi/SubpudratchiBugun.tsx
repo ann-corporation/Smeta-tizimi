@@ -13,7 +13,10 @@ import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { toast } from '../../umumiy/ui/Toast';
 import { aloqalarOl, type Aloqa } from '../../api/t2-tomon';
-import { subAktTafsilotOl, subAktYoz, subAktYubor, subAktlarOl, subIshlarimOl, subTolovOl, type SubAktQisqa, type SubIsh, type SubTolovQator } from '../../api/t2-sub';
+import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
+import { subAktHujjat } from '../../lib/subpudratchi/eksport';
+import { subAktQaytar, subAktTafsilotOl, subAktYoz, subAktYubor, subAktlarOl, subIshlarimOl, subTolovOl, type SubAktQisqa, type SubIsh, type SubTolovQator } from '../../api/t2-sub';
 import { aktJami, ishQoldigi, subBugunHisobi, tolovHolati, subQatorSumma, type TolovHolat } from '../../lib/subpudratchi/hisob';
 import { t } from '../../i18n/til';
 import { AktHolatBelgi, Katak, hajmKorsat, oyKorsat, pulKorsat } from './sub-ui';
@@ -107,6 +110,28 @@ export default function SubpudratchiBugun() {
     } else toast(t('Qoralama saqlandi.'), 'ok');
     setBand(false);
     setKalit((k) => k + 1);
+  }
+
+  async function qaytarib(a: SubAktQisqa) {
+    if (kid == null || band) return;
+    setBand(true);
+    const r = await subAktQaytar(kid, a.id);
+    setBand(false);
+    if (!r.ok) { toast(t(r.error), 'danger'); return; }
+    toast(t('Akt qaytarib olindi: tahrirlab qayta yuboring.'), 'ok');
+    setKalit((k) => k + 1);
+  }
+  async function excel(a: SubAktQisqa) {
+    if (kid == null) return;
+    const d = await subAktTafsilotOl(kid, a.id);
+    if (!d.ok) { toast(t(d.error), 'danger'); return; }
+    const { bytes, faylNomi } = subAktHujjat({
+      subNom: a.sub_nom, gcNom: a.gc_nom, obyektNom: a.obyekt_nom, oy: a.oy, raqam: a.raqam,
+      qqsFoiz: d.natija.qatorlar.length && d.natija.qatorlar.every((q) => q.qqs_foiz === d.natija.qatorlar[0].qqs_foiz) ? d.natija.qatorlar[0].qqs_foiz : null,
+      qatorlar: d.natija.qatorlar.map((q) => ({ kod: q.kod, nom: q.nom, birlik: q.birlik, hajm: q.hajm, narx: q.narx })),
+    });
+    const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'SUB_AKT', sabab: `Акт субподрядчика · ${a.obyekt_nom} · ${a.oy.slice(0, 7)}`.slice(0, 120) }, () => downloadBlob(bytes, faylNomi));
+    toast(r.ok ? (r.xabar || t('Akt yuklandi')) : r.xabar, r.ok ? 'ok' : 'danger');
   }
 
   if (!joriy) return <KompaniyaKerak nima="Subpudratchi: bugun" />;
@@ -203,7 +228,9 @@ export default function SubpudratchiBugun() {
                 <span className="min-w-0">{oyKorsat(a.oy)} · {a.gc_nom} - {a.obyekt_nom} <AktHolatBelgi holat={a.holat} />
                   {a.holat === 'tuzatish' && a.qaror_izoh && <span className="block text-warn">{a.qaror_izoh}</span>}</span>
                 <span className="flex items-center gap-2 tabular-nums">{pulKorsat(a.jami_qqs_siz)}
-                  {(a.holat === 'qoralama' || a.holat === 'tuzatish') && <button type="button" className="fz-btn fz-btn--sm" onClick={() => aktBoshqaOy(a)}>{t('Tahrirlash')}</button>}</span>
+                  {(a.holat === 'qoralama' || a.holat === 'tuzatish') && <button type="button" className="fz-btn fz-btn--sm" onClick={() => aktBoshqaOy(a)}>{t('Tahrirlash')}</button>}
+                  {a.holat === 'yuborilgan' && <button type="button" className="fz-btn fz-btn--sm" disabled={band} onClick={() => void qaytarib(a)}>{t('Qaytarib olish')}</button>}
+                  {a.holat !== 'qoralama' && <button type="button" className="fz-btn fz-btn--sm fz-btn--ghost" onClick={() => void excel(a)}>{t('Excel')}</button>}</span>
               </li>
             ))}
           </ul>

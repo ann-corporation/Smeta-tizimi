@@ -15,6 +15,7 @@ import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { useT2ObyektlarRoyxati } from '../../api/t2-obyektlar-kesh';
 import { sbT2DaraxtOl } from '../../api/supabase';
+import { sbT2ShartnomalarOl, type Shartnoma } from '../../api/t2-shartnoma';
 import { aloqalarOl, type Aloqa } from '../../api/t2-tomon';
 import { subAktQarori, subAktTafsilotOl, subAktlarOl, subBoshqaruvOl, subTopshir, subTopshiriqBekor, type SubAktQisqa, type SubAktTafsilot, type SubTopshiriq } from '../../api/t2-sub';
 import { katKesimYigish, type KatKesim } from '../../lib/ustamali-summa';
@@ -45,6 +46,9 @@ export default function SubpudratBoshqaruv() {
   const [ochiq, setOchiq] = useState<number | null>(null);
   const [tafsilot, setTafsilot] = useState<SubAktTafsilot | null>(null);
   const [qaytarIzoh, setQaytarIzoh] = useState('');
+  const [shartnomalar, setShartnomalar] = useState<Shartnoma[]>([]);
+  const [shartnomaId, setShartnomaId] = useState<number | null>(null);
+  const [ulgurji, setUlgurji] = useState('');
 
   const obyekt = obyektlar.find((o) => o.id === obyektId) ?? obyektlar[0] ?? null;
   const oid = obyekt?.id ?? null;
@@ -52,8 +56,9 @@ export default function SubpudratBoshqaruv() {
   const yukla = useCallback(async () => {
     if (kid == null) return;
     setYuk(true);
-    const [al, ak, tp] = await Promise.all([aloqalarOl(kid), subAktlarOl(kid, 'kelgan'), oid != null ? subBoshqaruvOl(kid, oid) : Promise.resolve(null)]);
+    const [al, ak, tp, sh] = await Promise.all([aloqalarOl(kid), subAktlarOl(kid, 'kelgan'), oid != null ? subBoshqaruvOl(kid, oid) : Promise.resolve(null), sbT2ShartnomalarOl(kid)]);
     setYuk(false);
+    if (sh.ok) setShartnomalar(((sh.qatorlar ?? []) as Shartnoma[]).filter((s) => !(s as { asosiy?: boolean }).asosiy));
     const x: string[] = [];
     if (al.ok) setAloqalar(al.natija); else { setAloqalar([]); x.push(al.error); }
     if (ak.ok) setAktlar(ak.natija.aktlar); else { setAktlar([]); x.push(ak.error); }
@@ -90,15 +95,16 @@ export default function SubpudratBoshqaruv() {
   const jami = useMemo(() => marjaJami(marjalar), [marjalar]);
   const smetaKesim: KatKesim = useMemo(() => katKesimYigish(marjalar.map((m, i) => ({ m, kat: (topshiriqlar ?? [])[i]?.kat ?? null })), (x) => x.kat, (x) => x.m.smetaSumma), [marjalar, topshiriqlar]);
 
-  async function topshir(qatorlar: Array<{ qator_id: number; narx?: number | null }>, bolim: number | null) {
+  async function topshir(qatorlar: Array<{ qator_id: number; narx?: number | null }>, bolim: number | null, lump: number | null = null) {
     if (kid == null || oid == null || !aloqa || band) return;
     setBand(true);
-    const r = await subTopshir(kid, { aloqaId: aloqa.id, obyektId: oid, qatorlar, bolimId: bolim });
+    const r = await subTopshir(kid, { aloqaId: aloqa.id, obyektId: oid, qatorlar, bolimId: bolim, shartnomaId, umumiySumma: lump });
     setBand(false);
     if (!r.ok) { toast(t(r.error), 'danger'); return; }
     toast(t('Topshirildi: yangi {n}, yangilandi {m}', { n: r.natija.yangi, m: r.natija.yangilandi }), 'ok');
     setTanlangan(new Set()); setKalit((k) => k + 1);
   }
+  const ulgurjiSon = ulgurji.trim() === '' || Number.isNaN(Number(ulgurji)) ? null : Number(ulgurji);
   async function narxSaqla(x: SubTopshiriq) {
     const matn = (narxlar[x.id] ?? '').trim();
     if (matn === '' || Number.isNaN(Number(matn))) return;
@@ -164,13 +170,22 @@ export default function SubpudratBoshqaruv() {
 
         <section id="topshirish" className="fz-panel" aria-label={t('Ish topshirish')}>
           <div className="fz-panel__h"><span>{t('Ishni subpudratchiga topshirish')}</span></div>
+          <div className="mb-2 flex flex-wrap items-end gap-2">
+            <label className="flex min-w-[220px] flex-1 flex-col gap-1 text-[12px] text-text-mute">{t('Shartnoma (ixtiyoriy)')}
+              <select className="px-2 py-1 text-[13px]" value={shartnomaId ?? ''} onChange={(e) => setShartnomaId(e.target.value ? Number(e.target.value) : null)}>
+                <option value="">{t('— shartnomasiz —')}</option>
+                {shartnomalar.map((s) => <option key={s.id} value={s.id}>{`${s.raqam} ${s.nom ?? s.taraf ?? ''}`}</option>)}</select></label>
+            <label className="flex flex-col gap-1 text-[12px] text-text-mute">{t('Ulgurji summa (QQS siz, ixtiyoriy)')}
+              <MoneyInput className="w-[160px] px-2 py-1 text-right text-[13px]" aria-label={t('Ulgurji summa')} value={ulgurji} onValueChange={setUlgurji} /></label>
+          </div>
+          <p className="mb-2 text-[12px] text-text-mute">{t('Ulgurji summa kiritilsa, topshirilgan qator(lar)ning butun mazmuni shu summaga chiqadi (smeta puliga mutanosib taqsimlanadi).')}</p>
           <div className="flex flex-wrap items-end gap-2">
             <label className="flex min-w-[220px] flex-1 flex-col gap-1 text-[12px] text-text-mute">{t('Bo‘lim')}
               <select className="px-2 py-1 text-[13px]" value={bolimId ?? ''} onChange={(e) => { setBolimId(e.target.value ? Number(e.target.value) : null); setTanlangan(new Set()); }}>
                 <option value="">{daraxt === null ? t('Yuklanmoqda…') : t('— bo‘limni tanlang —')}</option>
                 {bolimlar.map((b) => <option key={b.id} value={b.id}>{`${'· '.repeat(Math.min(b.daraja ?? 0, 4))}${b.kod ?? ''} ${b.nom ?? ''}`}</option>)}</select></label>
             <button type="button" className="fz-btn fz-btn--sm fz-btn--primary" disabled={band || bolimId == null || !aloqa || !bolimIshlari.length}
-              onClick={() => void topshir([], bolimId)}>{t('Butun bo‘limni topshirish')} ({bolimIshlari.length})</button>
+              onClick={() => void topshir([], bolimId, ulgurjiSon)}>{t('Butun bo‘limni topshirish')} ({bolimIshlari.length})</button>
           </div>
           {bolimIshlari.length > 0 && (
             <>
@@ -185,7 +200,7 @@ export default function SubpudratBoshqaruv() {
                 ))}
               </ul>
               <button type="button" className="fz-btn fz-btn--sm mt-2" disabled={band || !tanlangan.size || !aloqa}
-                onClick={() => void topshir([...tanlangan].map((id) => ({ qator_id: id })), null)}>{t('Tanlanganlarni topshirish')} ({tanlangan.size})</button>
+                onClick={() => void topshir([...tanlangan].map((id) => ({ qator_id: id })), null, ulgurjiSon)}>{t('Tanlanganlarni topshirish')} ({tanlangan.size})</button>
             </>
           )}
         </section>

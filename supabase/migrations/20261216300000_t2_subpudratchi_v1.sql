@@ -77,7 +77,7 @@ create table if not exists public.t2_sub_akt (
 );
 comment on table public.t2_sub_akt is 'Subpudratchining bosh pudratchiga aktı (uning F2 si): qoralama -> yuborilgan (t2_tomon_taqdim) -> qabul | tuzatish.';
 create unique index if not exists t2_sub_akt_operation_uq on public.t2_sub_akt (sub_kompaniya_id, operation_id) where operation_id is not null;
-create unique index if not exists t2_sub_akt_oy_uq on public.t2_sub_akt (sub_kompaniya_id, aloqa_id, obyekt_id, oy) where holat <> 'bekor';
+create index if not exists t2_sub_akt_oy_idx on public.t2_sub_akt (sub_kompaniya_id, aloqa_id, obyekt_id, oy) where holat <> 'bekor';
 create index if not exists t2_sub_akt_gc_idx on public.t2_sub_akt (kompaniya_id, holat);
 create index if not exists t2_sub_akt_fakt_idx on public.t2_sub_akt (fakt_akt_id) where fakt_akt_id is not null;
 create index if not exists t2_sub_akt_aloqa_idx on public.t2_sub_akt (aloqa_id);
@@ -174,10 +174,11 @@ create trigger t2_sub_taqdim_qorovul before update of holat on public.t2_tomon_t
 -- 5. BOSH PUDRATCHI: ishni topshirish (qatorlar ro'yxati yoki butun bo'lim). Idempotent: shu qator shu subga qayta topshirilsa yangilanadi.
 create or replace function public.t2_sub_topshir_v1(
   p_actor_id bigint, p_kompaniya_id bigint, p_aloqa_id bigint, p_obyekt_id bigint, p_qatorlar jsonb,
-  p_bolim_id bigint default null, p_shartnoma_id bigint default null, p_qqs_foiz numeric default null)
+  p_bolim_id bigint default null, p_shartnoma_id bigint default null, p_qqs_foiz numeric default null, p_umumiy_summa numeric default null)
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   v_sub bigint; v_bad jsonb; v_yangi integer := 0; v_yang integer := 0; r record; v_ex public.t2_sub_topshiriq; v_grant boolean := false;
+  v_sw numeric; v_sh numeric; v_acc numeric; v_part numeric; v_i integer; v_n integer; v_res text;
 begin
   perform public._t2_sub_azo(p_actor_id, p_kompaniya_id, 'boshqarish');
   if not exists (select 1 from public.t2_obyekt o where o.id = p_obyekt_id and o.kompaniya_id = p_kompaniya_id and o.holat = 'faol') then
@@ -192,6 +193,9 @@ begin
   end if;
   if p_qqs_foiz is not null and (p_qqs_foiz < 0 or p_qqs_foiz > 100) then
     return jsonb_build_object('ok', false, 'code', 'QQS_NOTOGRI', 'error', 'QQS foizi 0 dan 100 gacha');
+  end if;
+  if p_umumiy_summa is not null and p_umumiy_summa < 0 then
+    return jsonb_build_object('ok', false, 'code', 'SUMMA_NOTOGRI', 'error', 'Umumiy summa manfiy bo''lmaydi');
   end if;
   if p_qatorlar is not null and jsonb_typeof(p_qatorlar) <> 'array' then
     return jsonb_build_object('ok', false, 'code', 'QATORLAR_NOTOGRI', 'error', 'qatorlar ro''yxat bo''lishi kerak');
@@ -226,7 +230,7 @@ begin
                 when q.hajm is not null and coalesce(k.hajm, t.hajm, q.hajm) > q.hajm then 'HAJM_ORTIQ'
                 when t.id is not null and t.sub_kompaniya_id <> v_sub then 'QATOR_BAND'
                 when t.id is not null and coalesce(k.hajm, t.hajm, q.hajm) < public._t2_sub_ishlatilgan(t.id, null) then 'HAJM_PAST'
-                when t.id is not null and k.narx_bor and k.narx is distinct from t.narx and public._t2_sub_ishlatilgan(t.id, null) > 0 then 'NARX_QULF'
+                when t.id is not null and ((k.narx_bor and k.narx is distinct from t.narx) or p_umumiy_summa is not null) and public._t2_sub_ishlatilgan(t.id, null) > 0 then 'NARX_QULF'
            end as sabab
       from _t2_sub_kir k
       left join public.t2_qator q on q.id = k.qator_id
@@ -253,18 +257,35 @@ begin
     end if;
   end loop;
 
-  -- Ko'rinish: obyekt doirasidagi 'sub_ish' granti (bo'lmasa yaratiladi; bekor qilinsa subpudratchi hammasini ko'rmay qoladi).
-  if not exists (select 1 from public.t2_tomon_grant g where g.aloqa_id = p_aloqa_id and g.beruvchi_kompaniya_id = p_kompaniya_id and g.oluvchi_kompaniya_id = v_sub
-                  and g.resurs = 'sub_ish' and g.obyekt_id = p_obyekt_id and g.holat = 'faol') then
-    insert into public.t2_tomon_grant (aloqa_id, beruvchi_kompaniya_id, oluvchi_kompaniya_id, resurs, amallar, obyekt_id, berdi_actor_id)
-    values (p_aloqa_id, p_kompaniya_id, v_sub, 'sub_ish', array['korish'], p_obyekt_id, p_actor_id);
-    v_grant := true;
+  -- Ulgurji summa: butun topshirilgan to'plam shu summaga chiqadi (smeta puliga mutanosib taqsimlanadi, tiyin qoldig'i oxirgi qatorga; narx = ulush / hajm).
+  if p_umumiy_summa is not null then
+    select sum(coalesce(q.narx, 0) * t.hajm), sum(t.hajm), count(*) into v_sw, v_sh, v_n
+      from public.t2_sub_topshiriq t join public.t2_qator q on q.id = t.qator_id join _t2_sub_kir k on k.qator_id = t.qator_id where t.holat = 'faol';
+    v_acc := 0; v_i := 0;
+    for r in select t.id, t.hajm, case when v_sw > 0 then coalesce(q.narx, 0) * t.hajm else t.hajm end as w
+               from public.t2_sub_topshiriq t join public.t2_qator q on q.id = t.qator_id join _t2_sub_kir k on k.qator_id = t.qator_id where t.holat = 'faol' order by t.id loop
+      v_i := v_i + 1;
+      if v_i = v_n then v_part := p_umumiy_summa - v_acc;
+      else v_part := round(p_umumiy_summa * r.w / case when v_sw > 0 then v_sw else v_sh end, 2); end if;
+      if v_part < 0 then raise exception 'ULGURJI_TAQSIM: ulush manfiy chiqdi - summani tekshiring' using errcode = '22023'; end if;
+      v_acc := v_acc + v_part;
+      update public.t2_sub_topshiriq set narx = v_part / hajm, versiya = versiya + 1, yangilandi = now() where id = r.id;
+    end loop;
   end if;
-  perform public._t2_tomon_hodisa_yoz(p_aloqa_id, null, p_kompaniya_id, p_actor_id, 'grant', 'Subpudratchiga ish topshirildi',
+
+  -- Ko'rinish: obyekt doirasidagi 'sub_ish' va 'tolov_holati' grantlari (bo'lmasa yaratiladi; bekor qilinsa subpudratchi o'sha ma'lumotni ko'rmay qoladi).
+  foreach v_res in array array['sub_ish', 'tolov_holati'] loop
+    if not exists (select 1 from public.t2_tomon_grant g where g.aloqa_id = p_aloqa_id and g.beruvchi_kompaniya_id = p_kompaniya_id and g.oluvchi_kompaniya_id = v_sub
+                    and g.resurs = v_res and g.obyekt_id = p_obyekt_id and g.holat = 'faol') then
+      insert into public.t2_tomon_grant (aloqa_id, beruvchi_kompaniya_id, oluvchi_kompaniya_id, resurs, amallar, obyekt_id, berdi_actor_id)
+      values (p_aloqa_id, p_kompaniya_id, v_sub, v_res, array['korish'], p_obyekt_id, p_actor_id);
+      v_grant := true;
+    end if;
+  end loop;  perform public._t2_tomon_hodisa_yoz(p_aloqa_id, null, p_kompaniya_id, p_actor_id, 'grant', 'Subpudratchiga ish topshirildi',
     jsonb_build_object('resurs', 'sub_ish', 'obyekt_id', p_obyekt_id, 'yangi', v_yangi, 'yangilandi', v_yang));
   return jsonb_build_object('ok', true, 'yangi', v_yangi, 'yangilandi', v_yang, 'grant_yaratildi', v_grant, 'sub_kompaniya_id', v_sub);
 end $$;
-comment on function public.t2_sub_topshir_v1(bigint, bigint, bigint, bigint, jsonb, bigint, bigint, numeric) is 'versiya: tarix - smeta qatori o''zgarmaydi; bo''lim kengaytmasi faqat faol qatorlar (versiya_holat = faol).';
+comment on function public.t2_sub_topshir_v1(bigint, bigint, bigint, bigint, jsonb, bigint, bigint, numeric, numeric) is 'versiya: tarix - smeta qatori o''zgarmaydi; bo''lim kengaytmasi faqat faol qatorlar (versiya_holat = faol).';
 
 create or replace function public.t2_sub_topshiriq_bekor_v1(p_actor_id bigint, p_kompaniya_id bigint, p_topshiriq_id bigint)
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
@@ -335,6 +356,8 @@ end $$;
 comment on function public.t2_sub_ishlarim_v1(bigint, bigint) is 'versiya: tarix - topshirilgan qator nomi/birligi id bo''yicha; smeta narxi chiqmaydi.';
 
 -- 8. SUBPUDRATCHI: o'z faktini (akt qoralamasi) kiritish/yangilash. Hajm tarmoqda bir marta: yuborilgan/qabul qilingan aktlar bilan topshirilgan hajmdan oshmaydi.
+--    Qoida: bir topshiriq (qator) bir oyda bitta OCHIQ aktda (qoralama/tuzatish/yuborilgan); boshqa qatorlar uchun shu oyda yana akt ochish mumkin.
+--    Avval HAMMA tekshiriladi, keyin yoziladi (xato bo'lsa hech narsa qolmaydi).
 create or replace function public.t2_sub_akt_yoz_v1(
   p_actor_id bigint, p_kompaniya_id bigint, p_aloqa_id bigint, p_obyekt_id bigint, p_oy date, p_qatorlar jsonb,
   p_akt_id bigint default null, p_raqam text default null, p_izoh text default null, p_operation_id uuid default null)
@@ -355,10 +378,10 @@ begin
     if v_a.holat not in ('qoralama', 'tuzatish') then
       return jsonb_build_object('ok', false, 'code', 'HOLAT', 'error', 'Yuborilgan yoki qabul qilingan aktni tahrirlab bo''lmaydi');
     end if;
-    if v_a.aloqa_id <> p_aloqa_id or not public.t2_tomon_ruxsat_bor(p_kompaniya_id, v_gc, 'sub_ish', 'korish', v_a.obyekt_id) then
+    if v_a.aloqa_id <> p_aloqa_id or v_a.obyekt_id <> p_obyekt_id or not public.t2_tomon_ruxsat_bor(p_kompaniya_id, v_gc, 'sub_ish', 'korish', v_a.obyekt_id) then
       return jsonb_build_object('ok', false, 'code', 'RUXSAT_YOQ', 'error', 'Bu obyektdagi ishlar sizga ochilmagan');
     end if;
-    v_id := v_a.id;
+    v_id := v_a.id; v_oy := v_a.oy;
   else
     if p_oy is null then return jsonb_build_object('ok', false, 'code', 'OY_KERAK', 'error', 'Hisobot oyi kerak'); end if;
     v_oy := date_trunc('month', p_oy)::date;
@@ -369,12 +392,6 @@ begin
     if not public.t2_tomon_ruxsat_bor(p_kompaniya_id, v_gc, 'sub_ish', 'korish', p_obyekt_id) then
       return jsonb_build_object('ok', false, 'code', 'RUXSAT_YOQ', 'error', 'Bu obyektdagi ishlar sizga ochilmagan');
     end if;
-    select id into v_id from public.t2_sub_akt where sub_kompaniya_id = p_kompaniya_id and aloqa_id = p_aloqa_id and obyekt_id = p_obyekt_id and oy = v_oy and holat <> 'bekor';
-    if found then return jsonb_build_object('ok', false, 'code', 'AKT_BOR', 'error', 'Bu oy uchun akt allaqachon bor', 'id', v_id); end if;
-    insert into public.t2_sub_akt (kompaniya_id, sub_kompaniya_id, aloqa_id, obyekt_id, oy, raqam, izoh, operation_id, kim_actor)
-    values (v_gc, p_kompaniya_id, p_aloqa_id, p_obyekt_id, v_oy, nullif(btrim(coalesce(p_raqam, '')), ''), nullif(btrim(coalesce(p_izoh, '')), ''), p_operation_id, p_actor_id)
-    returning id into v_id;
-    select * into v_a from public.t2_sub_akt where id = v_id;
   end if;
 
   drop table if exists _t2_sub_akt_kir;
@@ -382,21 +399,28 @@ begin
   select (e->>'topshiriq_id')::bigint as topshiriq_id, nullif(e->>'hajm', '')::numeric as hajm, nullif(btrim(coalesce(e->>'izoh', '')), '') as izoh
     from jsonb_array_elements(p_qatorlar) e;
 
+  if exists (select 1 from _t2_sub_akt_kir group by topshiriq_id having count(*) > 1) then
+    return jsonb_build_object('ok', false, 'code', 'TAKROR', 'error', 'Bir qator ikki marta kiritilgan');
+  end if;
   select jsonb_agg(jsonb_build_object('topshiriq_id', z.topshiriq_id, 'sabab', z.sabab)) into v_bad from (
     select k.topshiriq_id,
-           case when t.id is null or t.sub_kompaniya_id <> p_kompaniya_id or t.aloqa_id <> v_a.aloqa_id or t.obyekt_id <> v_a.obyekt_id or t.holat <> 'faol' then 'TOPSHIRIQ_BEGONA'
+           case when t.id is null or t.sub_kompaniya_id <> p_kompaniya_id or t.aloqa_id <> p_aloqa_id or t.obyekt_id <> p_obyekt_id or t.holat <> 'faol' then 'TOPSHIRIQ_BEGONA'
                 when k.hajm is null or k.hajm <= 0 then 'HAJM'
-                when k.hajm > t.hajm - public._t2_sub_ishlatilgan(t.id, v_a.id) + 0.000001 then 'HAJM_ORTIQ'
+                when k.hajm > t.hajm - public._t2_sub_ishlatilgan(t.id, v_id) + 0.000001 then 'HAJM_ORTIQ'
+                when exists (select 1 from public.t2_sub_akt_qator l2 join public.t2_sub_akt s2 on s2.id = l2.sub_akt_id
+                              where l2.topshiriq_id = t.id and s2.oy = v_oy and s2.holat in ('qoralama', 'tuzatish', 'yuborilgan') and s2.id is distinct from v_id) then 'OCHIQ_AKTDA'
            end as sabab
       from _t2_sub_akt_kir k left join public.t2_sub_topshiriq t on t.id = k.topshiriq_id) z
    where z.sabab is not null;
   if v_bad is not null then
-    return jsonb_build_object('ok', false, 'code', 'QATOR_NOTOGRI', 'error', 'Ba''zi qatorlar noto''g''ri yoki topshirilgan hajmdan oshadi', 'qatorlar', v_bad, 'id', v_id);
-  end if;
-  if exists (select 1 from _t2_sub_akt_kir group by topshiriq_id having count(*) > 1) then
-    return jsonb_build_object('ok', false, 'code', 'TAKROR', 'error', 'Bir qator ikki marta kiritilgan', 'id', v_id);
+    return jsonb_build_object('ok', false, 'code', 'QATOR_NOTOGRI', 'error', 'Ba''zi qatorlar noto''g''ri, topshirilgan hajmdan oshadi yoki shu oyda boshqa ochiq aktda', 'qatorlar', v_bad);
   end if;
 
+  if v_id is null then
+    insert into public.t2_sub_akt (kompaniya_id, sub_kompaniya_id, aloqa_id, obyekt_id, oy, raqam, izoh, operation_id, kim_actor)
+    values (v_gc, p_kompaniya_id, p_aloqa_id, p_obyekt_id, v_oy, nullif(btrim(coalesce(p_raqam, '')), ''), nullif(btrim(coalesce(p_izoh, '')), ''), p_operation_id, p_actor_id)
+    returning id into v_id;
+  end if;
   delete from public.t2_sub_akt_qator l where l.sub_akt_id = v_id and l.topshiriq_id not in (select topshiriq_id from _t2_sub_akt_kir);
   for r in select * from _t2_sub_akt_kir loop
     insert into public.t2_sub_akt_qator (sub_akt_id, topshiriq_id, hajm, izoh) values (v_id, r.topshiriq_id, r.hajm, r.izoh)
@@ -410,6 +434,26 @@ begin
   return jsonb_build_object('ok', true, 'id', v_id, 'qator_soni', (select count(*) from _t2_sub_akt_kir));
 end $$;
 
+-- 8b. SUBPUDRATCHI: yuborilgan aktni qaror chiqmaguncha qaytarib olish (taqdim 'qaytarilgan', akt qoralamaga qaytadi - tahrirlab qayta yuboriladi)
+create or replace function public.t2_sub_akt_qaytar_v1(p_actor_id bigint, p_kompaniya_id bigint, p_sub_akt_id bigint, p_sabab text default null)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare a public.t2_sub_akt; q public.t2_tomon_taqdim;
+begin
+  perform public._t2_tomon_azo(p_actor_id, p_kompaniya_id, 'taqdim');
+  select * into a from public.t2_sub_akt where id = p_sub_akt_id and sub_kompaniya_id = p_kompaniya_id for update;
+  if not found then return jsonb_build_object('ok', false, 'code', 'TOPILMADI', 'error', 'Akt topilmadi'); end if;
+  select * into q from public.t2_tomon_taqdim where id = a.taqdim_id for update;
+  if a.holat = 'qoralama' and found and q.holat = 'qaytarilgan' then return jsonb_build_object('ok', true, 'qayta', true); end if;
+  if a.holat <> 'yuborilgan' or not found or q.holat not in ('yuborilgan', 'ko_rilmoqda') then
+    return jsonb_build_object('ok', false, 'code', 'HOLAT', 'error', 'Qaror chiqqan aktni qaytarib bo''lmaydi');
+  end if;
+  perform set_config('t2.sub_qaror', '1', true);
+  update public.t2_tomon_taqdim set holat = 'qaytarilgan', versiya = versiya + 1, yangilandi = now() where id = q.id;
+  perform set_config('t2.sub_qaror', '', true);
+  update public.t2_sub_akt set holat = 'qoralama', versiya = versiya + 1, yangilandi = now() where id = a.id;
+  perform public._t2_tomon_hodisa_yoz(a.aloqa_id, q.id, p_kompaniya_id, p_actor_id, 'qaytarish', p_sabab, '{}'::jsonb);
+  return jsonb_build_object('ok', true, 'id', a.id, 'holat', 'qoralama');
+end $$;
 -- 9. SUBPUDRATCHI: aktni bosh pudratchiga yuborish (t2_tomon_taqdim, snapshot + xesh)
 create or replace function public.t2_sub_akt_yubor_v1(p_actor_id bigint, p_kompaniya_id bigint, p_sub_akt_id bigint, p_izoh text, p_operation_id uuid)
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
@@ -530,6 +574,14 @@ begin
       returning id into v_xid;
       if v_xid is null then select id into v_xid from public.t2_xarajat where operation_id = md5('sub_akt_xarajat:' || a.id::text)::uuid; end if;
     end if;
+    -- Subpudrat shartnomasi bog'langan bo'lsa: qarzdorlik asosi (bitta qator, QQS bilan - yetkazuvchi qarz asoslari bilan bir xil; idempotent).
+    if v_shart is not null and v_summa is not null and v_summa <> 0
+       and not exists (select 1 from public.t2_qarz_asos where kompaniya_id = p_kompaniya_id and operation_id = md5('sub_akt_qarz:' || a.id::text)::uuid) then
+      insert into public.t2_qarz_asos (kompaniya_id, shartnoma_id, tur, hujjat_raqam, sana, nomi, summa, izoh, operation_id, kim)
+      select p_kompaniya_id, v_shart, 'bajarilgan_ish', coalesce(nullif(a.raqam, ''), a.id::text), v_sana, 'Subpudratchi akti № ' || a.id::text,
+             sum(round(l.hajm * l.narx * (1 + t.qqs_foiz / 100), 2)), 'QQS bilan', md5('sub_akt_qarz:' || a.id::text)::uuid, 'actor:' || p_actor_id::text
+        from public.t2_sub_akt_qator l join public.t2_sub_topshiriq t on t.id = l.topshiriq_id where l.sub_akt_id = a.id;
+    end if;
     update public.t2_sub_akt set holat = 'qabul', fakt_akt_id = v_fakt, xarajat_id = v_xid, versiya = versiya + 1, yangilandi = now() where id = a.id;
   elsif v_yangi in ('rad', 'tuzatish') then
     update public.t2_sub_akt set holat = 'tuzatish', versiya = versiya + 1, yangilandi = now() where id = a.id;
@@ -640,17 +692,19 @@ comment on function public.t2_sub_tolov_holati_v1(bigint, bigint) is 'versiya: t
 -- 13. Ruxsatlar: faqat service_role (shlyuz /api/tomon)
 revoke all on function public._t2_sub_rol_ok(text, text), public._t2_sub_azo(bigint, bigint, text), public._t2_sub_qarshi_sub(bigint, bigint), public._t2_sub_qarshi_gc(bigint, bigint),
   public._t2_sub_ishlatilgan(bigint, bigint), public._t2_sub_gc_fakt(bigint), public._t2_sub_akt_xesh(bigint), public._t2_sub_taqdim_qorovul() from public, anon, authenticated;
-revoke all on function public.t2_sub_topshir_v1(bigint, bigint, bigint, bigint, jsonb, bigint, bigint, numeric) from public, anon, authenticated;
+revoke all on function public.t2_sub_topshir_v1(bigint, bigint, bigint, bigint, jsonb, bigint, bigint, numeric, numeric) from public, anon, authenticated;
 revoke all on function public.t2_sub_topshiriq_bekor_v1(bigint, bigint, bigint) from public, anon, authenticated;
 revoke all on function public.t2_sub_boshqaruv_v1(bigint, bigint, bigint) from public, anon, authenticated;
 revoke all on function public.t2_sub_ishlarim_v1(bigint, bigint) from public, anon, authenticated;
 revoke all on function public.t2_sub_akt_yoz_v1(bigint, bigint, bigint, bigint, date, jsonb, bigint, text, text, uuid) from public, anon, authenticated;
 revoke all on function public.t2_sub_akt_yubor_v1(bigint, bigint, bigint, text, uuid) from public, anon, authenticated;
+revoke all on function public.t2_sub_akt_qaytar_v1(bigint, bigint, bigint, text) from public, anon, authenticated;
+grant execute on function public.t2_sub_akt_qaytar_v1(bigint, bigint, bigint, text) to service_role;
 revoke all on function public.t2_sub_akt_qaror_v1(bigint, bigint, bigint, text, text) from public, anon, authenticated;
 revoke all on function public.t2_sub_akt_royxat_v1(bigint, bigint, text) from public, anon, authenticated;
 revoke all on function public.t2_sub_akt_tafsilot_v1(bigint, bigint, bigint) from public, anon, authenticated;
 revoke all on function public.t2_sub_tolov_holati_v1(bigint, bigint) from public, anon, authenticated;
-grant execute on function public.t2_sub_topshir_v1(bigint, bigint, bigint, bigint, jsonb, bigint, bigint, numeric) to service_role;
+grant execute on function public.t2_sub_topshir_v1(bigint, bigint, bigint, bigint, jsonb, bigint, bigint, numeric, numeric) to service_role;
 grant execute on function public.t2_sub_topshiriq_bekor_v1(bigint, bigint, bigint) to service_role;
 grant execute on function public.t2_sub_boshqaruv_v1(bigint, bigint, bigint) to service_role;
 grant execute on function public.t2_sub_ishlarim_v1(bigint, bigint) to service_role;

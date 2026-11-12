@@ -1,18 +1,19 @@
 -- rollback 20261216300000_t2_subpudratchi_v1
 -- Diqqat: subpudratchi topshiriqlari, aktlari va ularning taqdimlari/grantlari o'chadi. Allaqachon qabul qilingan aktlardan yozilgan fakt va xarajat
--- (t2_akt 'sub_akt:' izohli fakt hujjatlari, t2_xarajat hujjat_ref 'sub_akt:*') QOLADI - ularni alohida ko'rib chiqing.
+-- (t2_akt 'sub_akt:' izohli fakt hujjatlari, t2_xarajat hujjat_ref 'sub_akt:*', t2_qarz_asos operation_id md5('sub_akt_qarz:*')) QOLADI - ularni alohida ko'rib chiqing.
 drop trigger if exists t2_sub_taqdim_qorovul on public.t2_tomon_taqdim;
 drop function if exists public._t2_sub_taqdim_qorovul();
 drop function if exists public.t2_sub_tolov_holati_v1(bigint, bigint);
 drop function if exists public.t2_sub_akt_tafsilot_v1(bigint, bigint, bigint);
 drop function if exists public.t2_sub_akt_royxat_v1(bigint, bigint, text);
 drop function if exists public.t2_sub_akt_qaror_v1(bigint, bigint, bigint, text, text);
+drop function if exists public.t2_sub_akt_qaytar_v1(bigint, bigint, bigint, text);
 drop function if exists public.t2_sub_akt_yubor_v1(bigint, bigint, bigint, text, uuid);
 drop function if exists public.t2_sub_akt_yoz_v1(bigint, bigint, bigint, bigint, date, jsonb, bigint, text, text, uuid);
 drop function if exists public.t2_sub_ishlarim_v1(bigint, bigint);
 drop function if exists public.t2_sub_boshqaruv_v1(bigint, bigint, bigint);
 drop function if exists public.t2_sub_topshiriq_bekor_v1(bigint, bigint, bigint);
-drop function if exists public.t2_sub_topshir_v1(bigint, bigint, bigint, bigint, jsonb, bigint, bigint, numeric);
+drop function if exists public.t2_sub_topshir_v1(bigint, bigint, bigint, bigint, jsonb, bigint, bigint, numeric, numeric);
 drop function if exists public._t2_sub_akt_xesh(bigint);
 drop function if exists public._t2_sub_gc_fakt(bigint);
 drop function if exists public._t2_sub_ishlatilgan(bigint, bigint);
@@ -25,7 +26,7 @@ drop function if exists public._t2_sub_rol_ok(text, text);
 delete from public.t2_tomon_hodisa where taqdim_id in (select id from public.t2_tomon_taqdim where resurs = 'sub_akt');
 update public.t2_sub_akt set taqdim_id = null where taqdim_id is not null;
 delete from public.t2_tomon_taqdim where resurs = 'sub_akt';
-delete from public.t2_tomon_grant where resurs = 'sub_ish';
+delete from public.t2_tomon_grant where resurs = 'sub_ish' or (resurs = 'tolov_holati' and berdi_actor_id in (select kim_actor from public.t2_sub_topshiriq));
 
 drop table if exists public.t2_sub_akt_qator;
 drop table if exists public.t2_sub_akt;

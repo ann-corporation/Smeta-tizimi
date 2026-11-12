@@ -17,6 +17,7 @@ vi.mock('../../api/t2-sub', () => ({
   subAktTafsilotOl: async () => ({ ok: false, error: 'x' }),
   subAktYoz: async () => ({ ok: true, natija: { id: 1 } }),
   subAktYubor: async () => ({ ok: true, natija: { id: 1, holat: 'yuborilgan' } }),
+  subAktQaytar: async () => ({ ok: true, natija: { id: 1, holat: 'qoralama' } }),
 }));
 
 import SubpudratchiBugun from './SubpudratchiBugun';

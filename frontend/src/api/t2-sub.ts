@@ -54,9 +54,9 @@ export const subAktlarOl = (k: number, yonalish: 'kelgan' | 'yuborilgan') => tom
 export const subAktTafsilotOl = (k: number, aktId: number) => tomonOqi<SubAktTafsilot>('sub_akt', k, { sub_akt_id: aktId });
 export const subTolovOl = (k: number) => tomonOqi<{ aktlar: SubTolovQator[] }>('sub_tolov', k);
 
-export const subTopshir = (k: number, p: { aloqaId: number; obyektId: number; qatorlar?: TopshirishQatori[]; bolimId?: number | null; shartnomaId?: number | null; qqsFoiz?: number | null }) =>
+export const subTopshir = (k: number, p: { aloqaId: number; obyektId: number; qatorlar?: TopshirishQatori[]; bolimId?: number | null; shartnomaId?: number | null; qqsFoiz?: number | null; umumiySumma?: number | null }) =>
   tomonYoz<{ yangi: number; yangilandi: number; grant_yaratildi: boolean }>('sub_topshir', k, {
-    aloqa_id: p.aloqaId, obyekt_id: p.obyektId, qatorlar: p.qatorlar ?? [], bolim_id: p.bolimId ?? null, shartnoma_id: p.shartnomaId ?? null, qqs_foiz: p.qqsFoiz ?? null,
+    aloqa_id: p.aloqaId, obyekt_id: p.obyektId, qatorlar: p.qatorlar ?? [], bolim_id: p.bolimId ?? null, shartnoma_id: p.shartnomaId ?? null, qqs_foiz: p.qqsFoiz ?? null, umumiy_summa: p.umumiySumma ?? null,
   });
 export const subTopshiriqBekor = (k: number, topshiriqId: number) => tomonYoz('sub_topshiriq_bekor', k, { topshiriq_id: topshiriqId });
 export const subAktYoz = (k: number, p: { aloqaId: number; obyektId: number; oy: string; qatorlar: Array<{ topshiriq_id: number; hajm: number; izoh?: string }>; aktId?: number | null; raqam?: string; izoh?: string; operationId?: string }) =>
@@ -64,5 +64,6 @@ export const subAktYoz = (k: number, p: { aloqaId: number; obyektId: number; oy:
     aloqa_id: p.aloqaId, obyekt_id: p.obyektId, oy: p.oy, qatorlar: p.qatorlar, akt_id: p.aktId ?? null, raqam: p.raqam ?? null, izoh: p.izoh ?? null, operation_id: p.operationId ?? yangiOperationId(),
   });
 export const subAktYubor = (k: number, aktId: number, izoh?: string) => tomonYoz<{ id: number; holat: string }>('sub_akt_yubor', k, { sub_akt_id: aktId, izoh: izoh || null, operation_id: yangiOperationId() });
+export const subAktQaytar = (k: number, aktId: number, sabab?: string) => tomonYoz<{ id: number; holat: string }>('sub_akt_qaytar', k, { sub_akt_id: aktId, sabab: sabab || null });
 export const subAktQarori = (k: number, taqdimId: number, qaror: 'korilmoqda' | 'qabul' | 'rad' | 'tuzatish', izoh?: string) =>
   tomonYoz<{ id: number; holat: string; fakt_akt_id?: number | null; xarajat_id?: number | null }>('sub_qaror', k, { taqdim_id: taqdimId, qaror, izoh: izoh || null });

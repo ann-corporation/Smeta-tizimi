@@ -63,6 +63,7 @@ const YOZISH: Record<string, string> = {
   sub_topshiriq_bekor: 't2_sub_topshiriq_bekor_v1',
   sub_akt_yoz: 't2_sub_akt_yoz_v1',
   sub_akt_yubor: 't2_sub_akt_yubor_v1',
+  sub_akt_qaytar: 't2_sub_akt_qaytar_v1',
   sub_qaror: 't2_sub_akt_qaror_v1',
 };
 /** T5: obyektni havola bilan ulashishda ochiladigan resurslar (faqat ko'rish). */
@@ -220,7 +221,9 @@ export function yozishYuki(amal: string, so: Yuk): Yuk | string {
       if (!toza.length && !sonmi(so.bolim_id)) return 'Qatorlar yoki bolim_id kerak';
       const qqs = so.qqs_foiz == null || so.qqs_foiz === '' ? null : Number(so.qqs_foiz);
       if (qqs != null && !(qqs >= 0 && qqs <= 100)) return 'QQS foizi 0 dan 100 gacha';
-      return { p_kompaniya_id, p_aloqa_id: son(so.aloqa_id), p_obyekt_id: son(so.obyekt_id), p_qatorlar: toza, p_bolim_id: ixtSon(so.bolim_id), p_shartnoma_id: ixtSon(so.shartnoma_id), p_qqs_foiz: qqs };
+      const lump = so.umumiy_summa == null || so.umumiy_summa === '' ? null : Number(so.umumiy_summa);
+      if (lump != null && !(Number.isFinite(lump) && lump >= 0)) return 'Umumiy summa 0 dan kichik bo‘lmasligi kerak';
+      return { p_kompaniya_id, p_aloqa_id: son(so.aloqa_id), p_obyekt_id: son(so.obyekt_id), p_qatorlar: toza, p_bolim_id: ixtSon(so.bolim_id), p_shartnoma_id: ixtSon(so.shartnoma_id), p_qqs_foiz: qqs, p_umumiy_summa: lump };
     }
     case 'sub_topshiriq_bekor':
       if (!sonmi(so.topshiriq_id)) return 'topshiriq_id kerak';
@@ -243,6 +246,9 @@ export function yozishYuki(amal: string, so: Yuk): Yuk | string {
     case 'sub_akt_yubor':
       if (!sonmi(so.sub_akt_id)) return 'sub_akt_id kerak';
       return { p_kompaniya_id, p_sub_akt_id: son(so.sub_akt_id), p_izoh: matn(so.izoh, 1000), p_operation_id: opId(so.operation_id) };
+    case 'sub_akt_qaytar':
+      if (!sonmi(so.sub_akt_id)) return 'sub_akt_id kerak';
+      return { p_kompaniya_id, p_sub_akt_id: son(so.sub_akt_id), p_sabab: matn(so.sabab, 500) };
     case 'sub_qaror':
       if (!sonmi(so.taqdim_id) || !['korilmoqda', 'qabul', 'rad', 'tuzatish'].includes(String(so.qaror))) return 'taqdim_id va qaror (korilmoqda/qabul/rad/tuzatish) kerak';
       return { p_kompaniya_id, p_taqdim_id: son(so.taqdim_id), p_qaror: String(so.qaror), p_izoh: matn(so.izoh, 2000) };

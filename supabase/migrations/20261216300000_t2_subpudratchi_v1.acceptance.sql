@@ -6,7 +6,7 @@ set local statement_timeout = '300s';
 do $acc$
 declare
   x bigint; y bigint; z bigint; ux bigint; uy bigint; uz bigint; ox bigint; rz bigint; b1 bigint; b2 bigint; al bigint;
-  t1 bigint; t2 bigint; a1 bigint; a2 bigint; tq1 bigint; tq2 bigint; r jsonb; n integer; v_oy date; v_oy0 date; sh bigint; fh numeric;
+  b3 bigint; b4 bigint; t1 bigint; t2 bigint; a1 bigint; a2 bigint; tq1 bigint; tq2 bigint; r jsonb; n integer; v_oy date; v_oy0 date; sh bigint; fh numeric;
 begin
   update t2_tomon_resurs set faol = true where kalit in ('tolov_holati', 'sub_ish', 'sub_akt');
   insert into t2_kompaniya (nom, kod, inn, faol) values ('ACC_BOSH_PUDRATCHI', 'ACC-GC9', '920000091', true) returning id into x;
@@ -24,6 +24,9 @@ begin
     values (ox, x, rz, 'bl', 'ACC9-2', 'ACC9 ish ikki', 'm2', 100, 1234.56, 123456, 3) returning id into b2;
   insert into t2_tomon_aloqa (taklif_kompaniya_id, qabul_kompaniya_id, taklif_rol, qabul_rol, turi, holat, taklif_actor_id)
     values (x, y, 'pudratchi', 'subpudratchi', 'subpudrat', 'faol', ux) returning id into al;
+  insert into t2_qator (obyekt_id, kompaniya_id, tur, kod, nom, birlik, hajm, narx, summa, tartib) values (ox, x, 'bl', 'ACC9-3', 'ACC9 ish uch', 'm2', 3, 10, 30, 4) returning id into b3;
+  insert into t2_qator (obyekt_id, kompaniya_id, tur, kod, nom, birlik, hajm, narx, summa, tartib) values (ox, x, 'bl', 'ACC9-4', 'ACC9 ish tort', 'm2', 7, 20, 140, 5) returning id into b4;
+  insert into t2_shartnoma (kompaniya_id, raqam, asosiy, taraf) values (x, 'ACC9-SUB', false, 'ACC_SUBPUDRATCHI') returning id into sh;
   v_oy := date_trunc('month', current_date)::date;
   v_oy0 := date_trunc('month', current_date - interval '1 month')::date;
 
@@ -58,6 +61,8 @@ begin
   -- 4. Subpudratchi fakti: topshirilgan hajmdan ortiq -> rad; narxsiz qator bilan yuborib bo'lmaydi; to'g'ri akt yuboriladi
   r := t2_sub_akt_yoz_v1(uy, y, al, ox, v_oy, jsonb_build_array(jsonb_build_object('topshiriq_id', t1, 'hajm', 70)));
   if (r->>'ok')::boolean or r->>'code' <> 'QATOR_NOTOGRI' then raise exception 'ACC_FAIL 4a: %', r; end if;
+  select count(*) into n from t2_sub_akt where sub_kompaniya_id = y;
+  if n <> 0 then raise exception 'ACC_FAIL 4a2 xato so''rov akt qoldirdi: %', n; end if;
   r := t2_sub_akt_yoz_v1(uy, y, al, ox, v_oy, jsonb_build_array(jsonb_build_object('topshiriq_id', t1, 'hajm', 40), jsonb_build_object('topshiriq_id', t2, 'hajm', 10)), null, 'A-1', null, gen_random_uuid());
   if not (r->>'ok')::boolean then raise exception 'ACC_FAIL 4b: %', r; end if;
   a1 := (r->>'id')::bigint;
@@ -68,6 +73,21 @@ begin
   r := t2_sub_akt_yubor_v1(uy, y, a1, 'tekshiring', gen_random_uuid());
   if not (r->>'ok')::boolean or r->>'holat' <> 'yuborilgan' then raise exception 'ACC_FAIL 4e: %', r; end if;
   tq1 := (r->>'id')::bigint;
+  -- qaror chiqmaguncha qaytarib olish; qaytarilgan taqdimga qaror bo'lmaydi; tahrirlab qayta yuboriladi (yangi taqdim)
+  r := t2_sub_akt_qaytar_v1(uy, y, a1);
+  if not (r->>'ok')::boolean or r->>'holat' <> 'qoralama' then raise exception 'ACC_FAIL 4e2: %', r; end if;
+  r := t2_sub_akt_qaror_v1(ux, x, tq1, 'qabul', null);
+  if (r->>'ok')::boolean or r->>'code' <> 'HOLAT' then raise exception 'ACC_FAIL 4e3: %', r; end if;
+  r := t2_sub_akt_yoz_v1(uy, y, al, ox, v_oy, jsonb_build_array(jsonb_build_object('topshiriq_id', t1, 'hajm', 40)), a1);
+  if not (r->>'ok')::boolean then raise exception 'ACC_FAIL 4e4: %', r; end if;
+  r := t2_sub_akt_yubor_v1(uy, y, a1, 'qayta yubordim', gen_random_uuid());
+  if not (r->>'ok')::boolean then raise exception 'ACC_FAIL 4e5: %', r; end if;
+  tq1 := (r->>'id')::bigint;
+  -- shu oyda boshqa qator uchun yana akt ochish mumkin; yuborilgan aktdagi qator ikkinchi aktga kirmaydi
+  r := t2_sub_akt_yoz_v1(uy, y, al, ox, v_oy, jsonb_build_array(jsonb_build_object('topshiriq_id', t2, 'hajm', 10)), null, 'A-1b', null, gen_random_uuid());
+  if not (r->>'ok')::boolean then raise exception 'ACC_FAIL 4e6 ikkinchi akt: %', r; end if;
+  r := t2_sub_akt_yoz_v1(uy, y, al, ox, v_oy, jsonb_build_array(jsonb_build_object('topshiriq_id', t1, 'hajm', 5)), null, 'A-1c', null, gen_random_uuid());
+  if (r->>'ok')::boolean or r->>'code' <> 'QATOR_NOTOGRI' then raise exception 'ACC_FAIL 4e7: %', r; end if;
   if (select snapshot_xesh from t2_tomon_taqdim where id = tq1) is null or (select qabul_qiluvchi_kompaniya_id from t2_tomon_taqdim where id = tq1) <> x then raise exception 'ACC_FAIL 4f'; end if;
   -- yuborilgandan keyin tahrir yo'q
   r := t2_sub_akt_yoz_v1(uy, y, al, ox, v_oy, jsonb_build_array(jsonb_build_object('topshiriq_id', t1, 'hajm', 41)), a1);
@@ -99,7 +119,7 @@ begin
      or (select (e->>'gc_fakt_hajm')::numeric from jsonb_array_elements(r->'topshiriqlar') e where (e->>'qator_id')::bigint = b1) <> 0 then raise exception 'ACC_FAIL 6f: %', r; end if;
 
   -- 7. Ikki marta hisoblanmaydi: bosh pudratchi 2-qatorga qo'lda 95 fakt kiritgan; subpudratchi 10 yuborsa qabul bloklanadi, 5 ga tuzatilsa o'tadi
-  r := t2_sub_topshir_v1(ux, x, al, ox, jsonb_build_array(jsonb_build_object('qator_id', b2, 'narx', 500)));
+  r := t2_sub_topshir_v1(ux, x, al, ox, jsonb_build_array(jsonb_build_object('qator_id', b2, 'narx', 500)), null, sh);
   if not (r->>'ok')::boolean then raise exception 'ACC_FAIL 7a: %', r; end if;
   r := t2_fakt_yoz_v2(ox, current_date, jsonb_build_array(jsonb_build_object('qator_id', b2, 'hajm', 95)), ux, gen_random_uuid());
   if not (r->>'ok')::boolean then raise exception 'ACC_FAIL 7b: %', r; end if;
@@ -129,15 +149,27 @@ begin
   select fakt_hajm into fh from t2_qator_holat where id = b2;
   select count(*) into n from t2_xarajat where hujjat_ref = 'sub_akt:' || a2::text and summa = 2500;
   if fh is distinct from 100 or n <> 1 then raise exception 'ACC_FAIL 7m fakt=% xarajat=%', fh, n; end if;
+  -- shartnoma bog'langan: bitta qarz asosi (QQS bilan 2500 x 1.12 = 2800), qayta chaqiruvda ortmaydi
+  select count(*) into n from t2_qarz_asos where kompaniya_id = x and shartnoma_id = sh and tur = 'bajarilgan_ish' and summa = 2800 and holat = 'faol';
+  if n <> 1 then raise exception 'ACC_FAIL 7n qarz=%', n; end if;
+  perform t2_sub_akt_qaror_v1(ux, x, tq2, 'qabul', null);
+  select count(*) into n from t2_qarz_asos where kompaniya_id = x and shartnoma_id = sh;
+  if n <> 1 then raise exception 'ACC_FAIL 7o qarz takror=%', n; end if;
 
-  -- 8. To'lov holati: 'tolov_holati' grantisiz pul maydonlari NULL; grant bilan ruxsat=true
+  -- 8. To'lov holati: topshirishda 'tolov_holati' granti avtomatik beriladi; shartnoma bog'langan akt bo'yicha to'langan ko'rinadi; grant bekor -> pul maydonlari NULL
+  insert into t2_tolov (kompaniya_id, shartnoma_id, tur, summa, sana, holat) values (x, sh, 'tolov', 500, current_date, 'faol');
   r := t2_sub_tolov_holati_v1(uy, y);
-  if jsonb_array_length(r->'aktlar') <> 2 or (r->'aktlar'->0->>'ruxsat')::boolean or r->'aktlar'->0->>'tolangan' is not null then raise exception 'ACC_FAIL 8a: %', r; end if;
-  insert into t2_tomon_grant (aloqa_id, beruvchi_kompaniya_id, oluvchi_kompaniya_id, resurs, amallar, obyekt_id, berdi_actor_id)
-    values (al, x, y, 'tolov_holati', array['korish'], ox, ux);
+  if jsonb_array_length(r->'aktlar') <> 2 or not (r->'aktlar'->0->>'ruxsat')::boolean or (r->'aktlar'->0->>'shartnoma_id')::bigint <> sh
+     or (r->'aktlar'->0->>'tolangan')::numeric <> 500 or (r->'aktlar'->0->>'shartnoma_qabul_qqs_siz')::numeric <> 2500 then raise exception 'ACC_FAIL 8a: %', r; end if;
+  update t2_tomon_grant set holat = 'bekor' where resurs = 'tolov_holati' and aloqa_id = al;
   r := t2_sub_tolov_holati_v1(uy, y);
-  if not (r->'aktlar'->0->>'ruxsat')::boolean then raise exception 'ACC_FAIL 8b: %', r; end if;
+  if (r->'aktlar'->0->>'ruxsat')::boolean or r->'aktlar'->0->>'tolangan' is not null or r->'aktlar'->0->>'shartnoma_id' is not null then raise exception 'ACC_FAIL 8b: %', r; end if;
 
+  -- 8c. Ulgurji summa: butun to'plam shu summaga chiqadi (176.47 + 823.54 = 1000.01), tiyin yo'qolmaydi
+  r := t2_sub_topshir_v1(ux, x, al, ox, jsonb_build_array(jsonb_build_object('qator_id', b3), jsonb_build_object('qator_id', b4)), null, null, null, 1000.01);
+  if not (r->>'ok')::boolean then raise exception 'ACC_FAIL 8c: %', r; end if;
+  if (select sum(round(t.hajm * t.narx, 2)) from t2_sub_topshiriq t where t.qator_id in (b3, b4) and t.holat = 'faol') is distinct from 1000.01
+     or (select round(t.hajm * t.narx, 2) from t2_sub_topshiriq t where t.qator_id = b3 and t.holat = 'faol') is distinct from 176.47 then raise exception 'ACC_FAIL 8d ulgurji'; end if;
   -- 9. Grant bekor -> subpudratchi hammasini ko'rmay qoladi va yangi akt boshlay olmaydi
   update t2_tomon_grant set holat = 'bekor' where resurs = 'sub_ish' and aloqa_id = al;
   r := t2_sub_ishlarim_v1(uy, y);
