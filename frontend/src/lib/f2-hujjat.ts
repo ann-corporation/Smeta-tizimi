@@ -496,8 +496,15 @@ function resursVedomosti(
   }
   const vR = w.qator('vsego', (): Qiymat[] => [null, null, 'ВСЕГО ПО ВЕДОМОСТИ РЕСУРСОВ', null, null, null,
     { f: sumRefs('G', bolimli ? bolimJami : guruhJami), v: jamiJS ?? '' }]);
-  w.qator('jami', (): Qiymat[] => [null, null, 'Сверка с актом Ф-2: ведомость − итого по акту (должно быть 0,00)', null, null, null,
-    { f: `IF(${ref('H', o.itogoR)}="","",ROUND(G${vR}-${ref('H', o.itogoR)},2))`, v: jamiJS == null || o.jami == null ? '' : yaxlit2(jamiJS - o.jami) }]);
+  // Yaxlitlash qoidasi: resurs qatorlari tiyingacha yaxlitlanadi, akt jami esa o'z qatorlaridan — farq ≤ 1 so'm bo'lsa u ochiq
+  // «Округление» qatori sifatida ko'rsatiladi, sverka esa har doim 0,00 ga keladi (rasmiy hujjat o'zi bilan tengmas bo'lib qolmasin).
+  const farqJS = jamiJS == null || o.jami == null ? null : yaxlit2(jamiJS - o.jami);
+  const yaxlitJS = farqJS != null && Math.abs(farqJS) <= 1 ? farqJS : 0;
+  const farqF = `ROUND(G${vR}-${ref('H', o.itogoR)},2)`;
+  const yR = w.qator('jami', (): Qiymat[] => [null, null, 'Округление построчных сумм (не более 1 сум)', null, null, null,
+    { f: `IF(${ref('H', o.itogoR)}="","",IF(ABS(${farqF})<=1,${farqF},0))`, v: farqJS == null ? '' : yaxlitJS }]);
+  w.qator('jami', (): Qiymat[] => [null, null, 'Сверка с актом Ф-2: ведомость − итого по акту − округление (должно быть 0,00)', null, null, null,
+    { f: `IF(${ref('H', o.itogoR)}="","",ROUND(G${vR}-${ref('H', o.itogoR)}-G${yR},2))`, v: farqJS == null ? '' : yaxlit2(farqJS - yaxlitJS) }]);
   if (narxsizN) { w.bosh(); w.narxsizOgoh(narxsizN); }
   return w;
 }

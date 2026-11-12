@@ -32,8 +32,8 @@ const ROL_BOSH_SAHIFA: Readonly<Record<string, string>> = {
   taminotchi: '/admin/logistika',
   mexanik: '/admin/erp',
   kadr: '/admin/erp',
-  inspektor: '/admin/aosr',
-  loyihachi: '/admin/documents',
+  inspektor: '/admin/nazorat',
+  loyihachi: '/admin/loyihachi',
 };
 
 /** Joriy kompaniya konteksti bo'yicha bosh sahifa (RolBoshSahifa ishlatadi). Kompaniya tanlanmagan (global rejim,

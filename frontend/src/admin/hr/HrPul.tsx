@@ -5,6 +5,7 @@ import { FmtN } from '../../lib/format';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { toast } from '../../umumiy/ui/Toast';
 import { yangiOperationId } from '../../api/supabase';
+import { HrKpiBlok } from './HrKpiBlok';
 import { hrOylikAmal, hrTuzatmaQaror, hrTuzatmaSaqla, type HrKpi, type HrKpiQator, type HrOy, type HrTuzatma, type HrXodimlarJavob } from '../../api/t2-hr';
 import { OGOH_MATN, kpiJamlari, reyting, type ReytingMezon } from '../../lib/hr/hisob';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
@@ -142,11 +143,12 @@ export function HrIshHaqi({ kid, oy, kompaniyaNom, kpi, qayta }: { kid: number; 
         <button type="button" className="fz-btn" disabled={band || tasdiqlanganSoni === 0} onClick={() => void amal('qaytar')}><RotateCcw size={14} /> {t('Qaytarish')}</button>
         <button type="button" className="fz-btn" disabled={band || kpi.qatorlar.length === 0} onClick={() => void eksport()}><Download size={14} /> {t('Excel vedomost')}</button>
         <span className="text-[12px] text-text-mute">{t('Tasdiqlash faqat to‘liq (noma’lum qismsiz) hisob uchun. Buxgalteriya provodkasi keyingi bosqichda ulanadi.')}</span>
+        <span className="basis-full text-[12px] text-text-mute" data-testid="naryad-qoida">{t('Donabay (naryad) puli naryad orqali alohida to‘langan: u ish haqiga qayta qo‘shilmaydi, naryad kunlari tabel bo‘yicha ikkinchi marta to‘lanmaydi.')}</span>
       </div>
       <div className="fz-table-wrap max-h-[62vh]">
         <table className="fz-table whitespace-nowrap">
           <thead><tr>
-            <th aria-label={t('Tafsilot')} /><th>{t('F.I.O')}</th><th className="fz-c-num">{t('Norma')}</th><th className="fz-c-num">{t('Ishlagan')}</th><th className="fz-c-num">{t('Baza')}</th>
+            <th aria-label={t('Tafsilot')} /><th>{t('F.I.O')}</th><th className="fz-c-num">{t('Norma')}</th><th className="fz-c-num">{t('Ishlagan')}</th><th className="fz-c-num">{t('Baza')}</th><th className="fz-c-num">{t('Donabay (naryad)')}</th>
             <th className="fz-c-num">{t('KPI (F2)')}</th><th className="fz-c-num">{t('Bonus')}</th><th className="fz-c-num">{t('Jarima')}</th><th className="fz-c-num">{t('Hisoblangan')}</th>
             <th className="fz-c-num">{t('NDFL')}</th><th className="fz-c-num">{t('INPS')}</th><th className="fz-c-num">{t('Qo‘lga')}</th><th>{t('Holat')}</th>
           </tr></thead>
@@ -159,14 +161,14 @@ export function HrIshHaqi({ kid, oy, kompaniyaNom, kpi, qayta }: { kid: number; 
                     <td><button type="button" className="fz-btn fz-btn--ghost fz-btn--icon" onClick={() => setOchiq(och ? null : q.kadr_id)} aria-label={t('Tafsilot')}>{och ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</button></td>
                     <td><div className="font-medium text-text">{q.ism}</div><Ogoh q={q} /></td>
                     <td className="fz-c-num">{q.norma_kun}</td><td className="fz-c-num">{q.kun_ishlagan ?? '—'}</td>
-                    <td className="fz-c-num"><FmtN val={q.baza} /></td><td className="fz-c-num"><FmtN val={q.kpi_f2} /></td>
+                    <td className="fz-c-num"><FmtN val={q.baza} /></td><td className="fz-c-num"><FmtN val={q.naryad_summa ?? null} /></td><td className="fz-c-num"><FmtN val={q.kpi_f2} /></td>
                     <td className="fz-c-num"><FmtN val={q.bonus} /></td><td className="fz-c-num"><FmtN val={q.jarima} /></td>
                     <td className="fz-c-num font-semibold"><FmtN val={q.hisoblangan} /></td>
                     <td className="fz-c-num"><FmtN val={q.ndfl} /></td><td className="fz-c-num"><FmtN val={q.inps} /></td><td className="fz-c-num font-semibold"><FmtN val={q.sof} /></td>
                     <td>{h ? (h.holat === 'tasdiqlangan' ? t('Tasdiqlangan') : t('Qoralama')) : t('Hisoblanmagan')}</td>
                   </tr>
                   {och && (
-                    <tr><td /><td colSpan={12}>
+                    <tr><td /><td colSpan={13}>
                       <div className="py-1 text-[12px] text-text-mute">
                         {q.sxema ? t('Sxema: {nom}, F2 bonus {foiz}% ({baza})', { nom: q.sxema, foiz: q.f2_foiz ?? '—', baza: q.f2_baza === 'ustamali' ? t('ustamali') : t('ustamasiz') }) : t('KPI sxemasi biriktirilmagan.')}
                         {' · '}{t('Tabel: keldi {k}, kelmadi {n}, otpusk {o}, kasal {b}, otgul {d}', { k: q.kun_ishlagan ?? '—', n: q.kun_kelmadi ?? '—', o: q.kun_otpusk ?? '—', b: q.kun_kasal ?? '—', d: q.kun_otgul ?? '—' })}
@@ -174,17 +176,19 @@ export function HrIshHaqi({ kid, oy, kompaniyaNom, kpi, qayta }: { kid: number; 
                       {q.aktlar.length > 0 && (
                         <table className="fz-table mb-2 whitespace-nowrap"><thead><tr><th>{t('F2 akt')}</th><th>{t('Obyekt')}</th><th>{t('Tasdiq sanasi')}</th><th className="fz-c-num">{t('Summa')}</th><th className="fz-c-num">{t('Ulush, %')}</th><th className="fz-c-num">{t('KPI')}</th></tr></thead>
                           <tbody>{q.aktlar.map((a) => <tr key={a.akt_id}><td>{a.raqam ?? `#${a.akt_id}`}</td><td>{a.obyekt}</td><td>{a.sana}</td><td className="fz-c-num"><FmtN val={a.summa} /></td><td className="fz-c-num">{a.ulush}</td><td className="fz-c-num"><FmtN val={a.kpi} /></td></tr>)}</tbody></table>)}
+                      {q.naryad_kun ? <p className="mb-1 text-[12px] text-text-mute">{t('Naryad davriga tushgan {n} kun tabel bo‘yicha qayta to‘lanmadi.', { n: q.naryad_kun })}</p> : null}
+                      <HrKpiBlok kpi={q.kpi} pulgaTasir={q.kpi_pulga_tasir} />
                       {q.tuzatmalar.length > 0 && <ul className="mb-1 text-[12px]">{q.tuzatmalar.map((x) => <li key={x.id}>{x.tur === 'jarima' ? t('Jarima') : t('Bonus')}: {t(SABAB_NOMI[x.sabab] ?? x.sabab)} — <FmtN val={x.summa} />{x.foiz != null ? ` (${x.foiz}%)` : ''} {x.izoh ?? ''}</li>)}</ul>}
                     </td></tr>
                   )}
                 </Fragment>
               );
             })}
-            {kpi.qatorlar.length === 0 && <tr><td colSpan={13} className="py-8 text-center text-text-dim">{t('HR kartasi to‘ldirilgan xodim yo‘q.')}</td></tr>}
+            {kpi.qatorlar.length === 0 && <tr><td colSpan={14} className="py-8 text-center text-text-dim">{t('HR kartasi to‘ldirilgan xodim yo‘q.')}</td></tr>}
             {kpi.qatorlar.length > 0 && (
               <tr className="font-semibold">
                 <td /><td>{t('Jami')} ({jami.soni})</td><td /><td />
-                <td className="fz-c-num"><FmtN val={jami.baza} /></td><td className="fz-c-num"><FmtN val={jami.kpi} /></td><td className="fz-c-num"><FmtN val={jami.bonus} /></td><td className="fz-c-num"><FmtN val={jami.jarima} /></td>
+                <td className="fz-c-num"><FmtN val={jami.baza} /></td><td className="fz-c-num"><FmtN val={jami.naryad} /></td><td className="fz-c-num"><FmtN val={jami.kpi} /></td><td className="fz-c-num"><FmtN val={jami.bonus} /></td><td className="fz-c-num"><FmtN val={jami.jarima} /></td>
                 <td className="fz-c-num"><FmtN val={jami.hisoblangan} /></td><td className="fz-c-num"><FmtN val={jami.ndfl} /></td><td className="fz-c-num"><FmtN val={jami.inps} /></td><td className="fz-c-num"><FmtN val={jami.sof} /></td>
                 <td>{jami.nomalum_hisoblangan > 0 ? t('Noma’lum: {n}', { n: jami.nomalum_hisoblangan }) : ''}</td>
               </tr>

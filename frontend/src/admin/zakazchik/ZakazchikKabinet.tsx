@@ -87,7 +87,7 @@ export default function ZakazchikKabinet() {
         {yuklandi && faol.length === 0 && (
           <Bolim sarlavha="Boshlash">
             <p className="text-[13px] text-text-dim">{t('Hali pudratchi ulanmagan. Pudratchingizning INN sini kiriting yoki u yuborgan taklif kodini qabul qiling.')}</p>
-            <Link to="/admin/aloqalar" className="mt-2 inline-block text-sm text-accent underline">{t('Aloqalarga o‘tish')}</Link>
+            <Link to="/admin/kontragentlar?tab=aloqa" className="mt-2 inline-block text-sm text-accent underline">{t('Aloqalarga o‘tish')}</Link>
           </Bolim>
         )}
         {yuklandi && faol.length > 0 && obyektlar.length === 0 && (

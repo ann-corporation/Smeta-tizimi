@@ -154,9 +154,10 @@ function Tafsilot({ kompaniyaId, id, turlar, yangila }: { kompaniyaId: number; i
         <div className="space-y-2 rounded border border-border p-2">
           <textarea className={`${inp} block h-16 w-full`} value={matn} onChange={(e) => setMatn(e.target.value)}
             placeholder={m.menga && m.holat === 'ochiq' ? t('Nima qilindi? (majburiy)') : t('Izoh / sabab')} />
-          <input type="file" multiple className="block text-xs" onChange={(e) => setFayllar(Array.from(e.target.files ?? []))} aria-label={t('Dalil fayllari')} />
+          {m.menga && m.holat === 'ochiq' && m.turi === 'predpisaniya' && <p className="text-[11px] text-warn">{t('Predpisaniyani bajarganingizni foto bilan tasdiqlang (majburiy).')}</p>}
+          <input type="file" multiple accept={m.turi === 'predpisaniya' ? 'image/*' : undefined} capture={m.turi === 'predpisaniya' ? 'environment' : undefined} className="block text-xs" onChange={(e) => setFayllar(Array.from(e.target.files ?? []))} aria-label={t('Dalil fayllari')} />
           <div className="flex flex-wrap gap-2">
-            {m.menga && m.holat === 'ochiq' && <button type="button" className={tugmaAsosiy} disabled={band || matn.trim().length < 3} onClick={() => void javob()}>{t('Bajarildi')}</button>}
+            {m.menga && m.holat === 'ochiq' && <button type="button" className={tugmaAsosiy} disabled={band || matn.trim().length < 3 || (m.turi === 'predpisaniya' && fayllar.length === 0 && !d.hujjatlar.some((h) => h.men_biriktirdim && h.raund === m.raund))} onClick={() => void javob()}>{t('Bajarildi')}</button>}
             {fayllar.length > 0 && <button type="button" className={tugma} disabled={band} onClick={() => void dalilQosh()}>{t('Faqat dalil qo‘shish')}</button>}
             {m.men_beruvchiman && m.holat === 'bajarildi' && <>
               <button type="button" className={tugmaAsosiy} disabled={band} onClick={() => void qaror('yopish')}>{t('Qabul qilish va yopish')}</button>
@@ -172,14 +173,16 @@ function Tafsilot({ kompaniyaId, id, turlar, yangila }: { kompaniyaId: number; i
 export default function Murojaatlar() {
   const { joriy } = useKompaniya();
   const kompaniyaId = joriy?.id ?? null;
-  const [yonalish, setYonalish] = useState<'menga' | 'mendan'>('menga');
+  /* Rol uyidan («Bugun») chuqur havola: ?turi=savol|mualliflik_remark&yonalish=menga|mendan. */
+  const qidiruv = useMemo(() => new URLSearchParams(typeof window === 'undefined' ? '' : window.location.search), []);
+  const [yonalish, setYonalish] = useState<'menga' | 'mendan'>(qidiruv.get('yonalish') === 'mendan' ? 'mendan' : 'menga');
   const [holat, setHolat] = useState('');
   const [royxat, setRoyxat] = useState<MurojaatQisqa[]>([]);
   const [aloqalar, setAloqalar] = useState<Aloqa[]>([]);
   const [turlar, setTurlar] = useState<MurojaatTuri[]>([]);
-  const [tanlangan, setTanlangan] = useState<number | null>(null);
+  const [tanlangan, setTanlangan] = useState<number | null>(() => { const v = Number(typeof window === 'undefined' ? 0 : new URLSearchParams(window.location.search).get('id')); return Number.isFinite(v) && v > 0 ? v : null; });
   const [xato, setXato] = useState('');
-  const [turFiltr, setTurFiltr] = useState('');
+  const [turFiltr, setTurFiltr] = useState(/^[a-z][a-z0-9_]{1,40}$/.test(qidiruv.get('turi') ?? '') ? (qidiruv.get('turi') as string) : '');
   const korinadi = turFiltr ? royxat.filter((x) => x.turi === turFiltr) : royxat;
   const [faqatKechikkan, setFaqatKechikkan] = useState(false);
   const bugun = new Date().toISOString().slice(0, 10);

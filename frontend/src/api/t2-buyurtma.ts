@@ -69,6 +69,13 @@ export const buyurtmalarOl = (p: { kompaniyaId: number; yonalish: BuyurtmaYonali
   oqi<{ qatorlar: BuyurtmaRoyxatQator[]; keyingi_id: number | null }>('buyurtma_royxat_v1', p.kompaniyaId, {
     yonalish: p.yonalish, ...(p.holat ? { holat: p.holat } : {}), ...(p.tur ? { tur: p.tur } : {}),
     ...(p.limit ? { limit: p.limit } : {}), ...(p.keyinId ? { keyin_id: p.keyinId } : {}) });
+/** Yetkazuvchi: o'z qarzining to'lov holati (xaridor 	olov_holati grant bergan bo'lsa; aks holda ruxsat=false va pul NULL). */
+export type TolovHolatiQator = {
+  buyurtma_id: number; xaridor_kompaniya_id: number; xaridor_nom: string; obyekt_id: number | null; holat: BuyurtmaHolat; ruxsat: boolean;
+  shartnoma_id: number | null; qabul_qqs_bilan: number | null; tolangan_qqs_bilan: number | null; qarz_qqs_bilan: number | null;
+  tolov_holati: 'tolangan' | 'qisman' | 'tolanmagan' | null;
+};
+export const buyurtmaTolovHolatiOl = (kompaniyaId: number) => oqi<{ qatorlar: TolovHolatiQator[] }>('buyurtma_tolov_holati_v1', kompaniyaId, {});
 export const buyurtmaTafsilotOl = (kompaniyaId: number, buyurtmaId: number) =>
   oqi<BuyurtmaTafsilot>('buyurtma_tafsilot_v1', kompaniyaId, { buyurtma_id: buyurtmaId });
 
