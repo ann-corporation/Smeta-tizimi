@@ -110,7 +110,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     const ya = yaRef.current;
     if (ya && ya.sahifalar.length && !jarvisKichikGap(s)) {
       const n = niyatAniqla(s, { sahifalar: ya.sahifalar, obyektlar: ya.obyektlar, joriyObyekt: ya.joriyObyekt, sahifaAmallar: ya.sahifaAmallar });
-      const faqatNav = n.tur === 'yordam' || n.tur === 'ruxsatYoq' || n.tur === 'sahifaTanla' || n.tur === 'navigatsiya' || n.tur === 'sahifaAmal';
+      const faqatNav = n.tur === 'yordam' || n.tur === 'dars' || n.tur === 'ruxsatYoq' || n.tur === 'sahifaTanla' || n.tur === 'navigatsiya' || n.tur === 'sahifaAmal';
       const mahalliy = (n.tur === 'navigatsiya' ? n.aniqOchish : n.tur !== 'nomalum') && (kompaniyaId != null || faqatNav);
       if (n.tur === 'navigatsiya' && !n.aniqOchish) qoshHavola = [{ yol: n.sahifa.url, nom: n.sahifa.nom }];
       if (n.tur === 'nomalum') yaqinHavola = n.yaqin.map((x) => ({ yol: x.url, nom: x.nom }));

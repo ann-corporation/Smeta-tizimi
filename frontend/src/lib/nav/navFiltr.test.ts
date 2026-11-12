@@ -77,7 +77,7 @@ const SOTUV = a('sotuv');
 /* Egasi 2026-10-27: «Integratsiyalar va audit» (tizim boshqaruv markazi) — faqat platforma superadmini. */
 const KOMPANIYA_SA = a('kompaniya', 'system-control', 'tizim-sozlama', 'hujjat-dizayn', 'tokenlar', 'ai-agentlar', 'korzinka');
 const KOMPANIYA = bez(KOMPANIYA_SA, 'system-control');
-const SHAXSIY = a('ish-joylarim', 'topshiriqlar', 'mutaxassis', 'haydovchi', 'akkaunt', 'osuvchi', 'sozlamalar');
+const SHAXSIY = a('ish-joylarim', 'kurs', 'topshiriqlar', 'mutaxassis', 'haydovchi', 'akkaunt', 'osuvchi', 'sozlamalar');
 /* «Sayt xaritasi» menyudan butunlay olib tashlandi (superadmin uchun ham); sahifa faqat superadminga, Boshqaruv panelidan. */
 const PLATFORMA = a('boshqaruv', 'fayl-boglash'); // «Sinov qobig'i» menyu bandi olib tashlandi (2026-11-11); /admin/test yo'li superadmin-only qoladi
 

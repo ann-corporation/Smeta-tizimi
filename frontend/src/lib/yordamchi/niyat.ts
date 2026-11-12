@@ -8,6 +8,7 @@
 import { yukSlotAjrat, yukSlotUrl } from './yuk-slot';
 import { OCHISH_FELLARI, sozlar, sozMosligi, TOLDIRUVCHI, sozNorm } from './matn';
 import { oyAjrat, obyektAjrat, type ObyektQisqa } from './kontekst-ajrat';
+import { darsSavoli, type DarsJavobi } from '../kurs/tutor';
 import { sahifaTopish, sahifaUrl, yaqinSahifalar, type SahifaHavola, type YordamchiSahifa } from './sahifa-qidiruv';
 
 export type OqishVosita = 'holat' | 'narxsiz' | 'qoldiq' | 'qidir';
@@ -29,6 +30,8 @@ export type Niyat =
   /** Sahifa o'zi ro'yxatdan o'tkazgan amal (masalan Smeta Studio: «katalogdan ish qo'sh»). */
   | { tur: 'sahifaAmal'; amal: SahifaAmalQisqa }
   | { tur: 'yordam' }
+  /** Kurs repetitori: «F2 ni qanday tayyorlayman?» -> dars qadamlari + «Ko‘rsat». */
+  | DarsJavobi
   | { tur: 'nomalum'; yaqin: SahifaHavola[] };
 
 export type SahifaAmalQisqa = { id: string; nom: string; kalitlar?: readonly string[]; tasdiq?: boolean };
@@ -76,6 +79,7 @@ export function niyatAniqla(matn: string, ctx: NiyatKontekst): Niyat {
   if (YORDAM_RE.test(xom.toLowerCase().replace(/[ʻʼ‘’`´']/g, ''))) return { tur: 'yordam' };
   const yukSlot = yukSlotAjrat(xom);
   if (yukSlot) return { tur: 'navigatsiya', sahifa: { yol: '/admin/yuk-chaqirish', nom: 'Yuk chaqirish', url: yukSlotUrl(yukSlot) }, obyekt: null, oy: null, qoralama: true, aniqOchish: true };
+  { const dars = darsSavoli(xom, { ochiqYollar: new Set(ctx.sahifalar.map((s) => s.yol)) }); if (dars) return dars; }
   const barchasi = sozlar(xom);
   const ob = obyektAjrat(barchasi, ctx.obyektlar);
   const oy = oyAjrat(xom, barchasi, ctx.bugun);
