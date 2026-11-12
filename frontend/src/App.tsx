@@ -28,6 +28,8 @@ const TestXarita    = lazy(() => import('./test02/TestXarita'));
 const TestLoyiha    = lazy(() => import('./test02/TestLoyiha'));
 const Kontragentlar = lazy(() => import('./admin/tomonlar/Kontragentlar'));
 const YetkazuvchiBugun = lazy(() => import('./admin/yetkazuvchi/YetkazuvchiBugun'));
+const SubpudratchiBugun = lazy(() => import('./admin/subpudratchi/SubpudratchiBugun'));
+const SubpudratBoshqaruv = lazy(() => import('./admin/subpudratchi/SubpudratBoshqaruv'));
 const TestObyektlar = lazy(() => import('./test02/TestObyektlar'));
 const WrapperMoliya = lazy(() => import('./test02/WrapperMoliya'));
 const WrapperLogistika = lazy(() => import('./test02/WrapperLogistika'));
@@ -101,6 +103,7 @@ const OfertaNative = lazy(() => import('./admin/sahifalar/OfertaNative'));
 const Narxlar = lazy(() => import('./admin/sahifalar/Narxlar'));
 const RolBoshSahifa = lazy(() => import('./admin/RolBoshSahifa'));
 const BolimTablari = lazy(() => import('./admin/BolimTablari'));
+const FotoLenta = lazy(() => import('./admin/sahifalar/FotoLenta'));
 // AiHelper (48 KB) faqat admin'dan tashqari sahifalarda — lazy, kirish sahifasini og'irlashtirmaydi.
 const AiHelperLazy = lazy(() => import('./umumiy/ui/AiHelper').then((m) => ({ default: m.AiHelper })));
 function AiHelper() { return <Suspense fallback={null}><AiHelperLazy /></Suspense>; }
@@ -153,11 +156,13 @@ export default function App() {
 
           <Route path="holat" element={<HolatNative />} />
           <Route path="holat/:id" element={<HolatNative />} />
-          <Route path="fakt" element={<FaktNative />} />
         <Route path="bugun" element={<Suspense fallback={<SahifaYuklanmoqda />}><UstaBugun /></Suspense>} />
           {/* 2026-10-25 (tizim xaritasi P1): F2 bo'limi — sidebarda bitta «F2» bandi, tepada tablar.
               Yo'lsiz layout: sahifalar va ularning URL'lari o'zgarmagan. */}
           <Route element={<BolimTablari />}>
+            {/* 2026-11-12 (P2): «Fakt» bandida ikki tab — Fakt kiritish va Foto-dalil (URL'lar o'zgarmagan). */}
+            <Route path="fakt" element={<FaktNative />} />
+            <Route path="foto" element={<Suspense fallback={<SahifaYuklanmoqda />}><FotoLenta /></Suspense>} />
           {/* V3: direktor pulti — 6 katta plitka (tayyor hisoblar orqali tez). */}
           <Route path="pult" element={
             <Suspense fallback={<SahifaYuklanmoqda />}>
@@ -203,6 +208,9 @@ export default function App() {
             {/* Tomonlar -> Kontragentlar (ekotizim V3): CRM, Logistika kontragentlari va Aloqalar bitta sahifaga birlashtirildi; eski yo'llar yo'naltiriladi. */}
             <Route path="kontragentlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><Kontragentlar /></Suspense>} />
             <Route path="aloqalar" element={<Navigate to="/admin/kontragentlar?tab=aloqa" replace />} />            <Route path="taqdimlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><TaqdimlarInbox /></Suspense>} />
+            {/* Subpudratchi tomoni: «Bugun» (subpudratchi) va boshqaruv (bosh pudratchi). */}
+            <Route path="subpudratchi" element={<Suspense fallback={<SahifaYuklanmoqda />}><SubpudratchiBugun /></Suspense>} />
+            <Route path="subpudrat" element={<Suspense fallback={<SahifaYuklanmoqda />}><SubpudratBoshqaruv /></Suspense>} />
             <Route path="murojaatlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><Murojaatlar /></Suspense>} />
           <Route path="nazorat" element={<Suspense fallback={<SahifaYuklanmoqda />}><NazoratUy /></Suspense>} />
           <Route path="nazorat/tekshiruv" element={<Suspense fallback={<SahifaYuklanmoqda />}><TekshiruvForma /></Suspense>} />

@@ -218,6 +218,16 @@
               "fakt.read+self.work.write"
             ],
             "scope": "OBJECT_SCOPED"
+          },
+          {
+            "yol": "/admin/foto",
+            "ilova": "ff",
+            "nom": "Foto-dalil",
+            "ruxsat": [
+              "control.company.read",
+              "fakt.write",
+              "fakt.read+self.work.write"
+            ]
           }
         ]
       },
@@ -543,6 +553,18 @@
             "qoshimcha": true
           },
           {
+            "yol": "/admin/subpudrat",
+            "ilova": "hujjat",
+            "nom": "Subpudrat boshqaruvi",
+            "ruxsat": [
+              "control.company.read",
+              "f2.prepare",
+              "project.write",
+              "object.write"
+            ],
+            "scope": "OBJECT_SCOPED"
+          },
+          {
             "yol": "/admin/taqdimlar",
             "ilova": "hujjat",
             "nom": "Tomonlar hujjatlari",
@@ -591,6 +613,16 @@
             ],
             "modul": "module.loyiha",
             "qoshimcha": true
+          },
+          {
+            "yol": "/admin/subpudratchi",
+            "ilova": "hujjat",
+            "nom": "Subpudratchi: bugun",
+            "ruxsat": [
+              "control.company.read",
+              "f2.prepare",
+              "fakt.write"
+            ]
           }
         ]
       }
