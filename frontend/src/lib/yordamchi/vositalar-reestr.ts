@@ -39,6 +39,8 @@ export const STATIK_VOSITALAR: readonly YordamchiVosita[] = [
   { id: 'oqish.loyihachi_bugun', tur: 'navigatsiya', nom: 'Loyihachi: bugungi ishlar (qoralama revizya, savol, remark, taklif)', misol: ['loyihachi bugun'], tasdiq: 'yoq', manba: '/admin/loyihachi -> t2_loyihachi_bugun_v1' },
   { id: 'yozuv.chizma_chiqar', tur: 'navigatsiya', nom: 'Chizma revizyasini chiqarish va qabul qilish: Chizmalar sahifasini ochadi (chiqarish/qaror faqat sahifada, qo‘lda)', misol: ['yangi chizma revizyasini chiqar'], tasdiq: 'yoq', manba: '/admin/chizmalar -> t2_chizma_chiqar_v1 (design.issue), t2_chizma_qaror_v1' },
   { id: 'yozuv.mualliflik_remark', tur: 'navigatsiya', nom: 'Savol (RFI) va mualliflik remarki: Murojaatlar sahifasini tur bilan ochadi', misol: ['loyihachiga savol yoz', 'mualliflik remarki'], tasdiq: 'yoq', manba: '/admin/murojaatlar?turi=savol|mualliflik_remark -> t2_tomon_murojaat_yarat_v1' },
+  { id: 'qoralama.zayavka', tur: 'navigatsiya', nom: 'Zayavka yaratish: zayavka sahifasi yangi zayavka formasi ochiq holda keladi', misol: ['zayavka yarat', 'yangi zayavka'], tasdiq: 'yoq', manba: '/admin/zayavka?yarat=1&obyekt — yuborish (zayavka_yarat) faqat formada, qo‘lda' },
+  { id: 'qoralama.yetkazuvchi', tur: 'navigatsiya', nom: 'Yetkazuvchi: bugun — kelgan so‘rovlar, buyurtmalar, transport', misol: ['yetkazuvchi bugun', 'menga kelgan so‘rovlar'], tasdiq: 'yoq', manba: '/admin/yetkazuvchi' },
   { id: 'qoralama.aosr', tur: 'navigatsiya', nom: 'АОСР qoralamasi: АОСР sahifasini ochadi', misol: ['АОСР tayyorla'], tasdiq: 'yoq', manba: '/admin/aosr — tasdiqlash faqat sahifada, qo‘lda' },
 ];
 
