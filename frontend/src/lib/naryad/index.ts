@@ -4,7 +4,7 @@
  * Pul qoidalari: usta narxi QQS siz (to'g'ri xarajat); smeta mehnati — faqat hisob-yadro; noma'lum — null (0 emas).
  * Fakt: naryad yopilganda FAQAT farq taklif qilinadi — ikki marta yozilmaydi (`faktTaklif`).
  */
-import { bosKesim, kesimgaQosh } from '../hisob-yadro';
+import { bosKesim, kesimgaQosh, yaxlit2 } from '../hisob-yadro';
 import { farq, qatorHissalari, taqsimot, SUKUT_ULUSH, uchlik, type Farq, type SmetaQator, type Uchlik, type UstamaKirish } from '../ish-kartasi';
 import type { IshKarta } from '../../api/t2-ish-kartasi';
 
@@ -55,7 +55,6 @@ export function naryadTozala(n: Naryad): Naryad {
   };
 }
 
-const yaxlit2 = (x: number) => Math.round(x * 100) / 100;
 
 /** Smeta qatori → 1 smeta birligiga mehnat puli (ustamasiz) va normativ чел-ч. Resursi yo'q / hajmi 0 — null (0 emas). */
 export function qatorMehnat(q: SmetaQator): { mehnatBirlik: number | null; chelSoatBirlik: number | null } {
@@ -70,8 +69,8 @@ export function qatorMehnat(q: SmetaQator): { mehnatBirlik: number | null; chelS
 export function qatorSurati(q: SmetaQator, hajm: number): { norma_chel_soat: number | null; smeta_mehnat_birlik: number | null } {
   const m = qatorMehnat(q);
   return {
-    norma_chel_soat: m.chelSoatBirlik == null ? null : Math.round(m.chelSoatBirlik * hajm * 1e4) / 1e4,
-    smeta_mehnat_birlik: m.mehnatBirlik == null ? null : Math.round(m.mehnatBirlik * 1e4) / 1e4,
+    norma_chel_soat: m.chelSoatBirlik == null ? null : Number((m.chelSoatBirlik * hajm).toFixed(4)),
+    smeta_mehnat_birlik: m.mehnatBirlik == null ? null : Number(m.mehnatBirlik.toFixed(4)),
   };
 }
 
@@ -125,7 +124,7 @@ export function naryadJami(qatorlar: readonly NaryadQator[], rejim: 'reja' | 'am
   }
   const foyda = juftSmeta || juftUsta ? yaxlit2(juftSmeta - juftUsta) : null;
   return {
-    ustaSumma: ustaBor ? yaxlit2(usta) : null, smetaMehnat: smetaBor ? yaxlit2(smeta) : null, chelSoat: chelBor ? Math.round(chel * 100) / 100 : null,
+    ustaSumma: ustaBor ? yaxlit2(usta) : null, smetaMehnat: smetaBor ? yaxlit2(smeta) : null, chelSoat: chelBor ? Number(chel.toFixed(2)) : null,
     foyda, foiz: foyda != null && juftSmeta > 0 ? (foyda / juftSmeta) * 100 : null, narxsizSoni: narxsiz, smetasizSoni: smetasiz,
   };
 }
@@ -156,7 +155,7 @@ export function faktTaklif(qatorlar: readonly NaryadQator[], hozir: ReadonlyMap<
     if (qabul == null) continue;
     const h = hozir.get(q.qator_id);
     const joriy = h?.fakt_hajm ?? q.fakt_boshida ?? 0;
-    const delta = Math.round(Math.max((q.fakt_boshida ?? 0) + qabul - joriy, 0) * 1e6) / 1e6;
+    const delta = Number(Math.max((q.fakt_boshida ?? 0) + qabul - joriy, 0).toFixed(6));
     if (delta <= 0) continue;
     const oshadi = h?.smeta_hajm != null && joriy + delta > h.smeta_hajm + 1e-9;
     out.push({ qatorId: q.qator_id, naryadQatorId: q.id, delta, ogohlantirish: oshadi ? 'SMETA_HAJMIDAN_OSHADI' : null });

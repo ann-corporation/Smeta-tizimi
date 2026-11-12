@@ -291,7 +291,7 @@ export function ostatkaHujjatModeli(qatorlar: readonly T2Qator[], holatlar: read
       row.bolalar = b;
       row.nomalum = b.reduce((s, i) => s + out[i].nomalum, 0);
       row.summa = yigindi2(b.map((i) => out[i].summa));   // egasi qoidasi: summa har doim ko'rinadi
-      row.narx = row.summa != null && row.ostatkaHajm ? row.summa / row.ostatkaHajm : null;
+      row.narx = row.summa != null && row.ostatkaHajm ? yadroYaxlit2(row.summa / row.ostatkaHajm) : null;
       return idx;
     }
     // rz (yoki noma'lum tur) — bo'lim; bolalari bo'lmasa kirmaydi.
@@ -332,7 +332,7 @@ export function ostatkaHujjatModeli(qatorlar: readonly T2Qator[], holatlar: read
       const r = out[i];
       if (r.tur === 'barg' || !r.bolalar.length) return r.summa;
       r.summa = yigindi2(r.bolalar.map(qayt));
-      if (r.tur === 'bl') r.narx = r.summa != null && r.ostatkaHajm ? r.summa / r.ostatkaHajm : null;
+      if (r.tur === 'bl') r.narx = r.summa != null && r.ostatkaHajm ? yadroYaxlit2(r.summa / r.ostatkaHajm) : null;
       return r.summa;
     };
     out.forEach((r, i) => { if (r.tur === 'itogo') { qayt(i); const rz = out.find((x) => x.tur === 'rz' && x.id === r.id); if (rz) rz.summa = r.summa; } else if (r.tur === 'bl') qayt(i); });
@@ -358,7 +358,7 @@ export function ostatkaHujjatModeli(qatorlar: readonly T2Qator[], holatlar: read
       const normali = kids.filter((k) => OST_BARG.has(k.tur ?? '') && k.norma != null);
       // Har resurs summasi yadroda: ROUND(norma × Δ × narx, 2); jami — qat'iy (narxsiz resurs — noma'lum).
       summa = ch == null || !normali.length ? null : yigindi2Qatiy(normali.map((k) => qatorSumma(Number(k.norma) * ch, k.narx)));
-      narx = summa != null && ch ? summa / ch : null;
+      narx = summa != null && ch ? yadroYaxlit2(summa / ch) : null;
     }
     chiqarilgan.push({
       id: q.id, kod: q.kod ?? '', nom: q.nom ?? '', birlik: q.birlik ?? '', yol: yolOf(q), bl: q.tur === 'bl',
@@ -577,7 +577,7 @@ export function ostatkaHujjatXlsx(model: OstatkaModel, o: OstatkaHujjatOpsiya): 
   v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СОСТАВИЛ'], o.imzo));
   const { bytes } = rasmiyKitob([v], { tur: 'ostatka' });
   const kv = model.ildizlar.map(koOf);
-  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNomi, hujjat: 'ОСТАТОК_РАБОТ', davr: sana }), kOplata: kv.length && !kv.some((x) => x == null) ? yaxlit2(kv.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0)) : null, kOplataVsego };
+  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNomi, hujjat: 'ОСТАТОК_РАБОТ', davr: sana }), kOplata: kv.length && !kv.some((x) => x == null) ? yadroYaxlit2(kv.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0)) : null, kOplataVsego };
 }
 
 function fmt(n: number): string {

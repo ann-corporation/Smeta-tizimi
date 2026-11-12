@@ -5,7 +5,7 @@ import { aslBarglar, aslSmeta, bolimlarKorinishi, katSmeta, oshganQatorlar, umum
 const node = (p: Partial<TreeNode>): TreeNode => ({ type: 'rs', nom: 'x', varaq: 'v', row: 0, smetaHajm: null, smeta: null, narx: null, fakt: null, qoldiq: null, f2ol: 0, f2mum: 0, ...p });
 const tree: TreeNode[] = [
   node({ id: 1, type: 'rz', nom: 'Razdel 1', smeta: 1000, stFakt: 600, stF2: 400, children: [
-    node({ id: 2, type: 'bl', nom: 'Ish', children: [
+    node({ id: 2, type: 'bl', nom: 'Ish', smetaHajm: 10, faktHajm: 12, children: [
       node({ id: 3, kat: 'ЧЕЛ', smeta: 300, smetaHajm: 10, faktHajm: 12 }),
       node({ id: 4, kat: 'МАТ', smeta: 700, smetaHajm: 5, faktHajm: 2 }),
       node({ id: 7, kat: 'МАТ', smeta: null, zamena: true }),
