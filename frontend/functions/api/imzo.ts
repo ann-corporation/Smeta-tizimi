@@ -25,7 +25,7 @@ import {
   imzoKorinish, imzoQatorTekshir, imzoRpc, sessiyaYoshiMs, tezlikOmbori, zanjirTekshir, type ImzoEnv, type ImzoXom,
 } from '../_shared/imzo';
 import {
-  IMZO_VAQT_OYNASI_S, imzoMazmunToTogri, imzoTekshir, imzoXabar, imzoXeshi, ochiqKalitYaroqli, sha256Hex, tasodifiyToken, tokenMi,
+  IMZO_VAQT_OYNASI_S, imzoMazmunToTogri, imzoTekshir, imzoXabar, imzoXeshi, ochiqKalitYaroqli, sha256Hex, sha256Matn, tasodifiyToken, tokenMi,
   type ImzoMazmun,
 } from '../../src/lib/imzo/yadro';
 import { hujjatMazmunXeshi } from '../../src/lib/imzo/mazmun';
@@ -44,6 +44,12 @@ const TALAB_KODLARI = new Set([
 export const parolUrinish = tezlikOmbori();
 export const yozUrinish = tezlikOmbori();
 export const nashrUrinish = tezlikOmbori();
+
+/** Deterministik UUID (v5 ko'rinishida) - token sarfi/qaytarishi idempotent bo'lishi uchun. */
+async function opUuid(belgi: string, kalit: string, nonce: string): Promise<string> {
+  const h = await sha256Matn(['imzo', belgi, kalit, nonce].join('|'));
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-5${h.slice(13, 16)}-8${h.slice(17, 20)}-${h.slice(20, 32)}`;
+}
 /** Parolsiz hisobda kalit yaratish uchun sessiya shuncha yangi bo'lishi shart. */
 export const YANGI_KIRISH_MS = 15 * 60_000;
 
@@ -201,13 +207,26 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       if (Math.abs(Date.now() - Date.parse(xabar.vaqt)) > IMZO_VAQT_OYNASI_S * 1000) return json({ ok: false, code: 'VAQT_OYNASI' }, 400);
       // KRIPTOGRAFIK TEKSHIRUV: imzo ochiq kalit bilan (kalit bazadan, mijozdan emas) tekshirilgachgina yoziladi
       if (!(await imzoTekshir(String(m.ochiq_kalit), imzoXabar(xabar), b.imzo))) return json({ ok: false, code: 'IMZO_YAROQSIZ' }, 400);
+      // TOKEN SERVERDA MAJBURLANADI (mavjud t2_token_sarfla_v1, operation_id = (kalit, nonce) dan - idempotent). Imzo yozilmasa - qaytariladi.
+      const sarfOp = await opUuid('sarf', xabar.kalit_id, xabar.nonce);
+      const sarf = await imzoRpc(env, 't2_token_sarfla_v1', {
+        p_actor_id: a.id, p_kompaniya_id: xabar.imzolovchi_kompaniya_id, p_amal: 'hujjat', p_birlik_soni: 1, p_operation_id: sarfOp,
+        p_meta: { hujjat: 'IMZO', sabab: 'Hujjatni imzolash', yacheyka: 1, sanoq: 'formula', xesh: await sha256Matn('imzo|' + xabar.kalit_id + '|' + xabar.nonce) },
+      });
+      if (!sarf) return json({ ok: false, code: 'TOKEN_XATO' }, 502);
+      if (sarf.ok !== true) return json({ ok: false, code: sarf.code === 'TOKEN_YETMAYDI' ? 'TOKEN_YETMAYDI' : 'TOKEN_XATO', kerak: sarf.kerak ?? null, balans: sarf.balans ?? null }, sarf.code === 'TOKEN_YETMAYDI' ? 402 : 502);
+      // Bu nonce bilan avval urinilgan (va qaytarilgan bo'lishi mumkin) - qayta to'lovsiz yozilmasin: yangi `tayyorla` kerak.
+      if (sarf.takror === true) return json({ ok: false, code: 'MALUMOT_ESKIRGAN' }, 400);
       const j = await imzoRpc(env, 't2_imzo_yoz_v1', {
         p_actor_id: a.id, p_token: tasodifiyToken(), p_hujjat_id: hujjat, p_kalit_id: b.kalit_id, p_imzo_kompaniya_id: sk, p_tomon: xabar.tomon, p_nomidan_id: nm, p_vaqt: xabar.vaqt, p_nonce: xabar.nonce,
         p_mazmun_xesh: mazmun, p_oldingi_xesh: xabar.oldingi_xesh, p_hujjat_sha256: xabar.hujjat_sha256, p_imzolovchi: xabar.imzolovchi, p_rol: xabar.rol, p_imzolovchi_kompaniya: xabar.imzolovchi_kompaniya, p_nomidan_kompaniya: xabar.nomidan_kompaniya,
         p_xesh: await imzoXeshi(xabar), p_imzo: b.imzo,
       });
-      if (!j?.ok) return rpcXato(j);
-      return json({ ok: true, token: j.token, id: j.id });
+      if (!j?.ok) {
+        await imzoRpc(env, 't2_token_qaytar_v1', { p_actor_id: a.id, p_kompaniya_id: xabar.imzolovchi_kompaniya_id, p_sarf_operation_id: sarfOp, p_operation_id: await opUuid('qaytar', xabar.kalit_id, xabar.nonce), p_sabab: 'Imzo yozilmadi' });
+        return rpcXato(j);
+      }
+      return json({ ok: true, token: j.token, id: j.id, sarflandi: sarf.sarflandi ?? 0 });
     }
 
     case 'nashr_tayyor': {

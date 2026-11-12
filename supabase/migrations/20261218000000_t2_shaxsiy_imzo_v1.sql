@@ -7,7 +7,7 @@
 -- server vaqt oynasi, kalit egasi/faolligi, a'zolik. Imzo xabari SQL'da qurilmaydi: tekshiruvda ustunlardan qayta quriladi.
 --
 -- Jadvallar: t2_imzo_kalit (qurilma ochiq kalitlari), t2_imzo (imzolar, append-only).
--- Nashr (manba QR): t2_nashr jadvali; RPC: t2_nashr_tayyor_v1, t2_nashr_nusxa_v1, t2_nashr_ochiq_v1, t2_nashr_ruxsat_v1, t2_nashr_tozala_v1.
+-- Nashr (manba QR): t2_nashr jadvali; RPC: t2_nashr_tayyor_v1, t2_nashr_nusxa_v1, t2_nashr_ochiq_v1, t2_nashr_ruxsat_v1, t2_nashr_hujjat_ol_v1, t2_nashr_tozala_v1.
 -- RPC (faqat service_role, actor sessiyadan): t2_imzo_kalit_royxat_v1, t2_imzo_kalit_yarat_v1, t2_imzo_kalit_bekor_v1,
 --   t2_imzo_manba_v1, t2_imzo_yoz_v1, t2_imzo_hujjat_royxat_v1, t2_imzo_mening_v1, t2_imzo_ochiq_v1, t2_imzo_hujjat_ruxsat_v1.
 set local statement_timeout = '300s';
@@ -331,7 +331,8 @@ begin
   if p_actor_id is null or p_token is null or p_token !~ '^[A-Za-z0-9_-]{22}$' then return jsonb_build_object('ok', false, 'code', 'RUXSAT_YOQ'); end if;
   select * into i from public.t2_imzo where token = p_token;
   if found then select * into d from public.t2_document_registry where id = i.hujjat_id; end if;
-  if d.id is null or not exists (select 1 from public.t2_azolik a where a.kompaniya_id = d.kompaniya_id and a.foydalanuvchi_id = p_actor_id and a.holat = 'faol') then
+  if d.id is null or not (exists (select 1 from public.t2_azolik a where a.kompaniya_id = d.kompaniya_id and a.foydalanuvchi_id = p_actor_id and a.holat = 'faol')
+       or (d.obyekt_id is not null and public._t2_imzo_grant_v1(p_actor_id, d.kompaniya_id, d.obyekt_id))) then
     return jsonb_build_object('ok', false, 'code', 'RUXSAT_YOQ');
   end if;
   return jsonb_build_object('ok', true, 'hujjat_id', d.id, 'fayl_nomi', d.original_filename);
@@ -449,6 +450,7 @@ begin
   if found then
     v_ok := exists (select 1 from public.t2_azolik a where a.kompaniya_id = n.kompaniya_id and a.foydalanuvchi_id = p_actor_id and a.holat = 'faol');
     if not v_ok and n.hujjat_id is not null then v_ok := coalesce((public.t2_tomon_hujjat_ol_v1(p_actor_id, n.hujjat_id)->>'ok')::boolean, false); end if;
+    if not v_ok and n.obyekt_id is not null then v_ok := public._t2_imzo_grant_v1(p_actor_id, n.kompaniya_id, n.obyekt_id); end if;
   end if;
   if not v_ok then return jsonb_build_object('ok', false, 'code', 'RUXSAT_YOQ'); end if;
   return jsonb_build_object('ok', true, 'hujjat_id', n.hujjat_id, 'turi', n.turi, 'atama', n.atama, 'obyekt_id', n.obyekt_id) || public._t2_nashr_joriy_v1(n);
@@ -465,6 +467,31 @@ begin
      and not exists (select 1 from public.t2_imzo i where i.hujjat_id = n.hujjat_id);
   get diagnostics v_n = row_count;
   return v_n;
+end $$;
+-- Tomon GRANTI bo'yicha ruxsat: foydalanuvchi a'zo bo'lgan kompaniyaga hujjat egasi 'hujjat' resursini 'korish' amali bilan shu obyekt uchun bergan
+-- (buyurtmachi/texnadzor granti; t2_tomon_ruxsat_bor: faol aloqa + faol grant). Faqat nashr/imzo tokeni orqali (quyidagi RPC), ixtiyoriy hujjat emas.
+create or replace function public._t2_imzo_grant_v1(p_actor bigint, p_beruvchi bigint, p_obyekt bigint) returns boolean
+language sql stable security definer set search_path = public, pg_temp as $$
+  select coalesce((select true from public.t2_azolik z
+    where z.foydalanuvchi_id = p_actor and z.holat = 'faol' and z.kompaniya_id <> p_beruvchi
+      and public.t2_tomon_ruxsat_bor(z.kompaniya_id, p_beruvchi, 'hujjat', 'korish', p_obyekt) limit 1), false)
+$$;
+
+-- /api/hujjat-ol uchun qo'shimcha yo'l (t2_tomon_hujjat_ol_v1 bilan bir xil javob shakli): hujjat nashr nusxasi yoki imzolangan bo'lishi va grant bo'lishi shart.
+create or replace function public.t2_nashr_hujjat_ol_v1(p_actor_id bigint, p_document_id bigint) returns jsonb
+language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare d public.t2_document_registry%rowtype;
+begin
+  if p_actor_id is null or p_actor_id <= 0 or p_document_id is null or p_document_id <= 0 then return jsonb_build_object('ok', false, 'code', 'DOCUMENT_FORBIDDEN'); end if;
+  select * into d from public.t2_document_registry where id = p_document_id;
+  if not found or d.obyekt_id is null
+     or not (exists (select 1 from public.t2_nashr n where n.hujjat_id = d.id) or exists (select 1 from public.t2_imzo i where i.hujjat_id = d.id))
+     or not public._t2_imzo_grant_v1(p_actor_id, d.kompaniya_id, d.obyekt_id) then
+    return jsonb_build_object('ok', false, 'code', 'DOCUMENT_FORBIDDEN');
+  end if;
+  if d.canonical_storage_status is distinct from 'stored' or d.r2_key is null then return jsonb_build_object('ok', false, 'code', 'CANONICAL_BINARY_MISSING'); end if;
+  return jsonb_build_object('ok', true, 'document_id', d.id, 'r2_key', d.r2_key, 'blob_key', coalesce(d.blob_key, d.r2_key), 'mime_type', d.mime_type,
+    'original_filename', d.original_filename, 'size_bytes', d.size_bytes, 'sha256', d.sha256);
 end $$;
 -- ---------------------------------------------------------------------------------------------------------------------
 -- 6) Huquqlar: faqat service_role

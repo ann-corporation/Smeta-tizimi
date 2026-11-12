@@ -30,7 +30,7 @@ declare
   q text := 'tayyorlov';
   v_a bigint; v_b bigint; v_u1 bigint; v_u2 bigint; v_u3 bigint; v_u4 bigint; v_u5 bigint;
   v_d1 bigint; v_d2 bigint; v_dB bigint;
-  r jsonb; r2 jsonb; i int; v_n int; v_k1 uuid; v_k2 uuid; v_k3 uuid; v_kb uuid; v_tok text; v_prev text; v_x text;
+  r jsonb; r2 jsonb; i int; v_n int; v_k1 uuid; v_k2 uuid; v_k3 uuid; v_kb uuid; v_tok text; v_prev text; v_x text; v_x_doc bigint; v_aloqa bigint; v_grant bigint;
 begin
   insert into public.t2_kompaniya (nom, kod) values ('IMZO-AKC A', 'IMZO-AKC-A-' || floor(random() * 1e9)::text) returning id into v_a;
   insert into public.t2_kompaniya (nom, kod) values ('IMZO-AKC B', 'IMZO-AKC-B-' || floor(random() * 1e9)::text) returning id into v_b;
@@ -151,7 +151,7 @@ begin
   -- 8 mening imzolarim
   q := 'mening';
   r := public.t2_imzo_mening_v1(v_u1, 50);
-  perform pg_temp._k(jsonb_array_length(r->'imzolar') = 3 and (select bool_and((x->>'foydalanuvchi_id')::bigint = v_u1) from jsonb_array_elements(r->'imzolar') x), q, 'mening imzolarim: begona yoki yetishmaydi');
+  perform pg_temp._k(jsonb_array_length(r->'imzolar') = 2 and (select bool_and((x->>'foydalanuvchi_id')::bigint = v_u1) from jsonb_array_elements(r->'imzolar') x), q, 'mening imzolarim: begona yoki yetishmaydi');
 
   -- 9 ochiq tekshiruv
   q := 'ochiq';
@@ -254,6 +254,24 @@ begin
   perform pg_temp._k(pg_temp._xato('select public.t2_nashr_tozala_v1(0)') <> 'OK', q, 'noto''g''ri muddat qabul qilindi');
   select count(*) into v_n from pg_proc p where p.pronamespace = 'public'::regnamespace and (p.proname like 't2\_nashr\_%' or p.proname like '\_t2\_nashr\_%')
     and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute') or not has_function_privilege('service_role', p.oid, 'execute'));
-  perform pg_temp._k(v_n = 0, q, 'nashr funksiyalari anon/authenticated ga ochiq');end $t$;
+  perform pg_temp._k(v_n = 0, q, 'nashr funksiyalari anon/authenticated ga ochiq');  -- 13 tomon GRANTI bo'yicha ruxsat (obyektga granti bor buyurtmachi/texnadzor)
+  q := 'grant';
+  insert into public.t2_obyekt (kompaniya_id, nom) values (v_a, 'IMZO-AKC obyekt') returning id into v_n;
+  insert into public.t2_document_registry (kompaniya_id, obyekt_id, document_type, status, provider, external_file_id, r2_key, original_filename, mime_type, size_bytes, sha256, sha256_verified, canonical_storage_status, revision)
+    values (v_a, v_n, 'nashr', 'active', 'cloudflare_r2', 'imzo-akc-' || v_a || '-3', 'imzo-akc/' || v_a || '/3', 'imzo-akc-3.xlsx', 'application/octet-stream', 100, repeat('f', 64), true, 'stored', '1') returning id into v_x_doc;
+  r := public.t2_nashr_tayyor_v1(v_u1, v_a, v_n, 'f2', 'F2 grant', pg_temp._h(), pg_temp._tok());
+  perform pg_temp._k((r->>'ok')::boolean, q, 'obyektli nashr ochilmadi: ' || r::text);
+  v_tok := r->>'token';
+  perform pg_temp._k((public.t2_nashr_nusxa_v1(v_u1, v_tok, v_x_doc)->>'ok')::boolean, q, 'nusxa biriktirilmadi');
+  perform pg_temp._k(public.t2_nashr_ruxsat_v1(v_u3, v_tok)->>'code' = 'RUXSAT_YOQ', q, 'grantsiz tomon (faqat aloqa) nashrni ochdi');
+  perform pg_temp._k(public.t2_nashr_hujjat_ol_v1(v_u3, v_x_doc)->>'code' = 'DOCUMENT_FORBIDDEN', q, 'grantsiz tomon faylni oldi');
+  select id into v_aloqa from public.t2_tomon_aloqa where taklif_kompaniya_id = v_a and qabul_kompaniya_id = v_b and holat = 'faol' limit 1;
+  insert into public.t2_tomon_grant (aloqa_id, beruvchi_kompaniya_id, oluvchi_kompaniya_id, resurs, amallar, berdi_actor_id, obyekt_id) values (v_aloqa, v_a, v_b, 'hujjat', array['korish'], v_u1, v_n) returning id into v_grant;
+  perform pg_temp._k((public.t2_nashr_ruxsat_v1(v_u3, v_tok)->>'hujjat_id')::bigint = v_x_doc, q, 'grantli tomon nashrni ocholmadi: ' || public.t2_nashr_ruxsat_v1(v_u3, v_tok)::text);
+  perform pg_temp._k((public.t2_nashr_hujjat_ol_v1(v_u3, v_x_doc)->>'ok')::boolean, q, 'grantli tomon faylni ocholmadi: ' || public.t2_nashr_hujjat_ol_v1(v_u3, v_x_doc)::text);
+  perform pg_temp._k(public.t2_nashr_hujjat_ol_v1(v_u3, v_d1)->>'code' = 'DOCUMENT_FORBIDDEN', q, 'grant boshqa (obyektsiz) hujjatga yoyildi');
+  perform pg_temp._k(public.t2_nashr_hujjat_ol_v1(v_u5, v_x_doc)->>'code' = 'DOCUMENT_FORBIDDEN', q, 'a''zo bo''lmagan odam grant orqali oldi');
+  update public.t2_tomon_grant set holat = 'bekor' where id = v_grant;
+  perform pg_temp._k(public.t2_nashr_ruxsat_v1(v_u3, v_tok)->>'code' = 'RUXSAT_YOQ' and public.t2_nashr_hujjat_ol_v1(v_u3, v_x_doc)->>'code' = 'DOCUMENT_FORBIDDEN', q, 'bekor qilingan grant ishlashda qoldi');end $t$;
 
 rollback;

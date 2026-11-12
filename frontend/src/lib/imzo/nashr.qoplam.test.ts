@@ -25,8 +25,6 @@ const DVIGATELSIZ: Record<string, string> = {
   'admin/sahifalar/FotoLenta.tsx': 'rasm (foto) yuklab olish - xlsx hujjat emas',
   'admin/sahifalar/NormSmetaWorkbench.tsx': 'ichki review JSON (katalog tekshiruvi), hujjat emas',
   'admin/sahifalar/FaylMenejer.tsx': 'foydalanuvchining o‘z yuklagan fayllari (uning mulki) - qayta yuklab berish',
-  'admin/sahifalar/Qarzdorlik.tsx': 'ESKI EKSPORT: dvigateldan o‘tmaydi (to‘g‘ridan a.download) - keyingi bosqichda downloadBlob ga ko‘chiriladi',
-  'admin/sahifalar/Naryad.tsx': 'ESKI EKSPORT: dvigateldan o‘tmaydi (to‘g‘ridan a.download) - keyingi bosqichda downloadBlob ga ko‘chiriladi',
   'components/imzo/ImzoUi.tsx': 'imzolangan nusxa: IMZO varag‘i o‘zida QR (imzo QR lari) bilan quriladi',
   'lib/construction-document-control/export/download-helper.ts': 'markaziy nuqtaning o‘zi',
 };

@@ -106,7 +106,7 @@ describe('/api/imzo - kalit', () => {
 describe('/api/imzo - imzo qo\'yish', () => {
   async function tayyor() {
     const k = await kalit();
-    const rpcs: Rpcs = { t2_imzo_manba_v1: manba(k.ochiq), t2_imzo_yoz_v1: { ok: true, id: 1, token: 'T'.repeat(22) } };
+    const rpcs: Rpcs = { t2_imzo_manba_v1: manba(k.ochiq), t2_imzo_yoz_v1: { ok: true, id: 1, token: 'T'.repeat(22) }, t2_token_sarfla_v1: { ok: true, sarflandi: 3 }, t2_token_qaytar_v1: { ok: true } };
     const f = mockFetch(rpcs);
     const t = await J(await post({ amal: 'tayyorla', hujjat_id: 42, kalit_id: KALIT_ID, tomon: 'texnadzor', imzo_kompaniya_id: 21, nomidan_kompaniya_id: 22 }));
     expect(t.ok).toBe(true);
@@ -178,7 +178,7 @@ describe('/api/imzo - imzo qo\'yish', () => {
 
   it('replay: bir imzo ikkinchi marta - SQL IMZO_TAKROR qaytaradi va 400 bo\'ladi', async () => {
     const { k, f, m } = await tayyor();
-    mockFetch({ t2_imzo_manba_v1: manba(k.ochiq), t2_imzo_yoz_v1: { ok: false, code: 'IMZO_TAKROR' } });
+    mockFetch({ t2_imzo_manba_v1: manba(k.ochiq), t2_imzo_yoz_v1: { ok: false, code: 'IMZO_TAKROR' }, t2_token_sarfla_v1: { ok: true, sarflandi: 3 }, t2_token_qaytar_v1: { ok: true } });
     const r = await yoz(m, await imzolash(k.j.privateKey, imzoXabar(m)));
     expect(r.status).toBe(400); expect((await J(r)).code).toBe('IMZO_TAKROR');
     expect(f).toBeTruthy();

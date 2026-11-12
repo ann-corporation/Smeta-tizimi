@@ -6,6 +6,7 @@
  * Sof funksiya: testlanadi. Pul yoki hujjatni bu qatlam o'zi yozmaydi — yozuv faqat taklif kartasi va tasdiq orqali (UI).
  */
 import { yukSlotAjrat, yukSlotUrl } from './yuk-slot';
+import { IMZO_QOY_RE, imzolashUrl, joriyHujjatOl } from '../imzo/joriy-hujjat';
 import { OCHISH_FELLARI, sozlar, sozMosligi, TOLDIRUVCHI, sozNorm } from './matn';
 import { oyAjrat, obyektAjrat, type ObyektQisqa } from './kontekst-ajrat';
 import { darsSavoli, type DarsJavobi } from '../kurs/tutor';
@@ -77,6 +78,8 @@ const havola = (s: YordamchiSahifa, o: ObyektQisqa | null, oy: string | null): S
 export function niyatAniqla(matn: string, ctx: NiyatKontekst): Niyat {
   const xom = matn.trim();
   if (YORDAM_RE.test(xom.toLowerCase().replace(/[ʻʼ‘’`´']/g, ''))) return { tur: 'yordam' };
+  { const hid = joriyHujjatOl(); const s = hid ? ctx.sahifalar.find((x) => x.yol === '/admin/imzo') : null;   // joriy hujjat bor: imzolash shu hujjat bilan ochiladi
+    if (hid && s && IMZO_QOY_RE.test(xom)) return { tur: 'navigatsiya', sahifa: { yol: s.yol, nom: s.nom, url: imzolashUrl(hid) }, obyekt: null, oy: null, qoralama: false, aniqOchish: true }; }
   const yukSlot = yukSlotAjrat(xom);
   if (yukSlot) return { tur: 'navigatsiya', sahifa: { yol: '/admin/yuk-chaqirish', nom: 'Yuk chaqirish', url: yukSlotUrl(yukSlot) }, obyekt: null, oy: null, qoralama: true, aniqOchish: true };
   { const dars = darsSavoli(xom, { ochiqYollar: new Set(ctx.sahifalar.map((s) => s.yol)) }); if (dars) return dars; }

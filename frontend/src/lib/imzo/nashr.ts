@@ -10,6 +10,7 @@
  * Token faqat birinchi eksportda yechiladi (chaqiruvchi hujjatTokenBilan); QR orqali qayta yuklab olish bepul (hujjat-ol: 'nashr' pullik tur emas).
  * Tarmoq/server xatosida fayl QR siz (faqat tizim imzosi bilan) beriladi - eksport hech qachon to'xtamaydi.
  */
+import { unzipSync, zipSync } from 'fflate';
 import { hujjatMazmunXeshi, imzoVaraqiBormi, xlsxMi } from './mazmun';
 import { imzoVaraqQosh } from './qr-varaq';
 import { nashrKompaniyasi } from './nashr-kontekst';
@@ -47,4 +48,18 @@ export async function nashrQoy(bytes: Uint8Array, filename: string, meta: NashrM
     }
     return kop;
   } catch { return null; }
+}
+
+/** Zip paket: ichidagi HAR xlsx o'z nashri (tokeni) va QR ini oladi (paket uchun alohida yozuv yo'q - soddasi). */
+export async function nashrQoyZip(bytes: Uint8Array, filename: string, meta: NashrMeta | undefined, a: NashrAdapter): Promise<Uint8Array | null> {
+  if (!nashrKompaniyasi() || !/\.zip$/i.test(filename)) return null;
+  let f: Record<string, Uint8Array>;
+  try { f = unzipSync(bytes); } catch { return null; }
+  let ozgardi = false;
+  for (const nom of Object.keys(f)) {
+    if (!/\.(xlsx|xlsm)$/i.test(nom)) continue;
+    const q = await nashrQoy(f[nom], nom.split('/').pop() as string, meta, a);
+    if (q) { f[nom] = q; ozgardi = true; }
+  }
+  return ozgardi ? zipSync(f, { level: 6 }) : null;
 }

@@ -4,7 +4,7 @@
  * SUMMA va hujjat mazmuni ko'rsatilmaydi. Kirgan va ruxsati bor odamga: Excel yuklab olish / tizimda ochish; fayl farqi (qaysi katak).
  * Yuklangan fayl tekshiruvi brauzerda: mazmun xeshi hisoblanadi, faylning o'zi hech qayerga yuborilmaydi.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Download, FileCheck2, LogIn, ShieldQuestion } from 'lucide-react';
@@ -12,9 +12,11 @@ import { t } from '../i18n/til';
 import { ochiqTekshir, tokenOchish, xatoMatni } from '../api/t2-imzo';
 import { hujjatOl, hujjatYuklabOlishUrl } from '../api/t2-hujjat-canonical';
 import { ImzoQatorlari } from '../components/imzo/ImzoUi';
-import { hujjatMazmunXeshi, mazmunFarqi, xlsxKanonik, type MazmunFarqi } from '../lib/imzo/mazmun';
+import { hujjatMazmunXeshi, mazmunFarqi, xlsxKanonik, type KanonMazmun, type MazmunFarqi } from '../lib/imzo/mazmun';
+import { ChopKorinish } from './ChopKorinish';
 import { sanaMatni } from '../lib/imzo/qr-varaq';
 import { tokenMi } from '../lib/imzo/yadro';
+import { joriyHujjatOrnat } from '../lib/imzo/joriy-hujjat';
 
 const Qobiq = ({ children }: { children: React.ReactNode }) => (
   <main className="min-h-screen px-4 py-6 flex justify-center" style={{ background: 'var(--bg, #f6f8fa)', color: 'var(--text, #1f2328)' }}>
@@ -30,6 +32,9 @@ export default function ImzoTekshiruv() {
   const ruxsat = useQuery({ queryKey: ['t-ruxsat', token], enabled: q.data?.ok === true, retry: false, queryFn: () => tokenOchish(token) });
   const [fayl, setFayl] = useState<{ nom: string; mos: boolean; farq: MazmunFarqi[] | null } | null>(null);
   const [band, setBand] = useState(false);
+  const [chop, setChop] = useState<KanonMazmun | null>(null);
+  const korilayotgan = ruxsat.data && ruxsat.data.ok ? ruxsat.data.hujjat_id : null;
+  useEffect(() => { joriyHujjatOrnat(korilayotgan); return () => joriyHujjatOrnat(null); }, [korilayotgan]);
 
   if (!tokenMi(token) || (q.data && !q.data.ok && q.data.status === 404)) {
     return (
@@ -50,6 +55,16 @@ export default function ImzoTekshiruv() {
   const kirgan = r ? (r.ok || r.status === 403) : false;
   const ruxsatBor = !!r && r.ok;
   const hujjatId = r && r.ok ? r.hujjat_id : null;
+
+  const chopOch = async () => {
+    if (!hujjatId) return;
+    setBand(true);
+    try {
+      const asl = await hujjatOl(hujjatId);
+      const k = asl instanceof Blob ? xlsxKanonik(new Uint8Array(await asl.arrayBuffer())) : null;
+      if (k) setChop(k); else window.open(hujjatYuklabOlishUrl(hujjatId), '_blank', 'noopener');   // xlsx emas (masalan PDF) - asl fayl o'zi ochiladi
+    } finally { setBand(false); }
+  };
 
   const tekshir = async (f: File) => {
     setBand(true);
@@ -72,7 +87,7 @@ export default function ImzoTekshiruv() {
       <div className="flex flex-wrap gap-2">
         <Link to={'/admin/imzo?bolim=imzolash&hujjat=' + hujjatId} className="fz-btn fz-btn--primary">{t('Tizimda ochish')}</Link>
         <a href={hujjatYuklabOlishUrl(hujjatId)} className="fz-btn"><Download size={14} aria-hidden="true" /> {t('Excel yuklab olish')}</a>
-        <button type="button" className="fz-btn" disabled title={t('Tizimda hali PDF yaratish yo‘li yo‘q: Excel ni ochib, chop etish oynasidan PDF ga saqlang.')}>{t('PDF yuklab olish')}</button>
+        <button type="button" className="fz-btn" disabled={band} onClick={() => void chopOch()}>{t('Chop etish / PDF sifatida saqlash')}</button>
       </div>
     );
   } else if (kirgan && r && !r.ok && r.status === 403) {
@@ -127,6 +142,7 @@ export default function ImzoTekshiruv() {
         <h2 className="text-[15px] font-semibold m-0">{t('Asl nusxa')}</h2>
         {asl}        {r && !r.ok && r.status !== 403 && r.status !== 401 && <p className="m-0 text-[12px]" role="alert">{xatoMatni(r.code)}</p>}
       </Karta>
+      {chop && <ChopKorinish kanon={chop} token={token} origin={window.location.origin} sarlavha={(nashr?.turi ?? hujjat?.turi) || t('Hujjat')} imzolar={d.imzolar} yopish={() => setChop(null)} />}
     </Qobiq>
   );
 }

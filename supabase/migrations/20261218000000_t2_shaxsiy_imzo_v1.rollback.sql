@@ -3,6 +3,8 @@
 set local statement_timeout = '300s';
 
 drop function if exists public.t2_nashr_tozala_v1(integer);
+drop function if exists public.t2_nashr_hujjat_ol_v1(bigint, bigint);
+drop function if exists public._t2_imzo_grant_v1(bigint, bigint, bigint);
 drop function if exists public.t2_nashr_ruxsat_v1(bigint, text);
 drop function if exists public.t2_nashr_ochiq_v1(text);
 drop function if exists public._t2_nashr_joriy_v1(public.t2_nashr);

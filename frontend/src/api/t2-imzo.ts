@@ -3,7 +3,6 @@
  * Maxfiy kalit bu yerga ham kelmaydi: imzo `lib/imzo/kalit-saqlash.ts` (qurilma) orqali qo'yiladi.
  */
 import { hujjatOl } from './t2-hujjat-canonical';
-import { hujjatTokenBilan } from '../lib/token-hujjat';
 import {
   imzoMazmunToTogri, imzoXabar, sha256Hex, tokenMi, type ImzoMazmun, type ImzoTomon, type ImzoUsul,
 } from '../lib/imzo/yadro';
@@ -45,6 +44,7 @@ export const XATO_MATNI: Readonly<Record<string, string>> = {
   ZANJIR_YANGILANDI: 'Hujjatga shu payt boshqa imzo qo‘yildi. Qayta urinib ko‘ring.', MALUMOT_ESKIRGAN: 'Ma‘lumot yangilandi. Qayta urinib ko‘ring.', VAQT_OYNASI: 'Vaqt oynasi o‘tib ketdi. Qayta urinib ko‘ring.',
   IMZO_YAROQSIZ: 'Imzo tekshiruvdan o‘tmadi.', VAKOLAT_YOQ: 'Bu kompaniya nomidan imzolash uchun faol aloqa (vakolat) yo‘q.', TOMON_NOTOGRI: 'Tomon noto‘g‘ri tanlangan.',
   SERVER_YANGILANMAGAN: 'Server hali yangilanmagan (imzo API yoqilmagan).', TARMOQ: 'Tarmoq xatosi.', SERVER_XATO: 'Server xatosi.',
+  TOKEN_YETMAYDI: 'Token yetmaydi: «Tokenlar va obuna» bo‘limida sotib oling.', TOKEN_XATO: 'Token hisobini tekshirib bo‘lmadi. Keyinroq urinib ko‘ring.',
   TOPILMADI: 'Topilmadi.', IDB_YOQ: 'Brauzer kalitni saqlay olmaydi (IndexedDB yo‘q yoki yopiq rejim).',
 };
 export const xatoMatni = (code: string): string => XATO_MATNI[code] ?? 'Amal bajarilmadi.';
@@ -75,8 +75,7 @@ export type ImzolashSorovi = { userId: number; kompaniyaId: number; hujjatId: nu
 export type ImzolashNatija = { ok: true; token: string; xabar: string } | { ok: false; code: string; xabar: string };
 
 /**
- * Hujjatni imzolash: server xabarni (server vaqti, nonce, zanjir) tayyorlaydi -> hujjat fayli yuklanadi va mazmun xeshi QURILMADA
- * qayta hisoblanadi (nima ko'rilsa - shu imzolanadi) -> token yechiladi -> qurilma kaliti bilan imzo -> server ochiq kalit bilan
+XX -> server ochiq kalit bilan
  * tekshirib yozadi. Xato bo'lsa token qaytadi (tokenBilan). Qayta yuklab olish takror yechmaydi.
  */
 export async function hujjatniImzola(s: ImzolashSorovi): Promise<ImzolashNatija> {
@@ -93,22 +92,13 @@ export async function hujjatniImzola(s: ImzolashSorovi): Promise<ImzolashNatija>
   const bytes = new Uint8Array(await blob.arrayBuffer());
   if ((await sha256Hex(bytes)) !== m.hujjat_sha256 || (await hujjatMazmunXeshi(bytes)) !== m.mazmun_xesh) return xato('HUJJAT_MOS_EMAS');
 
-  let token = ''; let sabab = '';
-  const natija = await hujjatTokenBilan(
-    // Har imzolash token yechadi; baytlar imzolovchi+hujjat bo'yicha noyob (qayta yuklab olish emas - yangi imzo).
-    { kompaniyaId: s.kompaniyaId, bytes: new TextEncoder().encode(`imzo|${m.kalit_id}|${m.hujjat_sha256}|${m.nonce}`), hujjat: 'IMZO', sabab: 'Hujjatni imzolash', yacheykalar: 1 },
-    async () => {
-      const imzo = await xabarImzola(kalit, imzoXabar(m));
-      const y = await post<{ token: string }>({ amal: 'yoz', hujjat_id: s.hujjatId, kalit_id: m.kalit_id, tomon: m.tomon, imzo_kompaniya_id: s.imzoKompaniyaId ?? null,
-        nomidan_kompaniya_id: s.nomidanKompaniyaId ?? null, vaqt: m.vaqt, nonce: m.nonce, oldingi_xesh: m.oldingi_xesh, mazmun_xesh: m.mazmun_xesh, imzo });
-      if (!y.ok) { sabab = y.code; throw new Error(xatoMatni(y.code)); }
-      token = y.token;
-    },
-  );
-  if (!natija.ok) return { ok: false, code: sabab || 'SERVER_XATO', xabar: natija.xabar };
-  return { ok: true, token, xabar: natija.xabar };
+  // Token SERVERDA yechiladi (/api/imzo yoz: t2_token_sarfla_v1, idempotent; imzo yozilmasa qaytariladi) - mijozda ikkilamchi yechim yo'q.
+  const imzo = await xabarImzola(kalit, imzoXabar(m));
+  const y = await post<{ token: string; sarflandi?: number }>({ amal: 'yoz', hujjat_id: s.hujjatId, kalit_id: m.kalit_id, tomon: m.tomon, imzo_kompaniya_id: s.imzoKompaniyaId ?? null,
+    nomidan_kompaniya_id: s.nomidanKompaniyaId ?? null, vaqt: m.vaqt, nonce: m.nonce, oldingi_xesh: m.oldingi_xesh, mazmun_xesh: m.mazmun_xesh, imzo });
+  if (!y.ok) return xato(y.code);
+  return { ok: true, token: y.token, xabar: y.sarflandi ? `${y.sarflandi} token` : '' };
 }
-
 export const hujjatImzolariOl = (hujjatId: number) => get<{ imzolar: ImzoKorinish[] }>('amal=hujjat&hujjat_id=' + Number(hujjatId));
 export const meningImzolarimOl = () => get<{ imzolar: ImzoKorinish[] }>('amal=mening');
 export const tokenOchish = (token: string) => get<{ tur: 'imzo' | 'nashr'; hujjat_id: number | null; fayl_nomi: string | null; joriy?: boolean; joriy_token?: string | null }>('amal=ochish&token=' + encodeURIComponent(token));

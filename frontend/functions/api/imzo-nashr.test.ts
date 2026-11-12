@@ -74,3 +74,48 @@ describe('manba QR nashri', () => {
     for (const taqiq of ['MAXFIY', 'atama', 'ochiq_kalit', 'hujjat_id', 'foydalanuvchi_id', ochiq]) expect(JSON.stringify(j), taqiq).not.toContain(taqiq);
   });
 });
+
+describe('token serverda majburlanadi (imzolash)', () => {
+  async function tayyor(sarf: unknown, yoz: unknown = { ok: true, id: 1, token: 'T'.repeat(22) }) {
+    const kj = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign', 'verify']) as CryptoKeyPair;
+    const ochiq = b64uKodla(new Uint8Array(await crypto.subtle.exportKey('raw', kj.publicKey) as ArrayBuffer));
+    const KALIT = '0b9d1c5e-3a47-4f60-9d4e-2a7c5e8f1b30';
+    const manba = { ok: true, kompaniya_id: 17, obyekt_id: null, hujjat_id: 42, hujjat_sha256: SHA, foydalanuvchi_id: 7, imzolovchi: 'Test Imzochi', rol: 'pto', usul: 'tizim', tomon: 'pudratchi',
+      imzolovchi_kompaniya_id: 17, imzolovchi_kompaniya: 'Pudrat MChJ', nomidan_kompaniya_id: null, nomidan_kompaniya: null, oldingi_xesh: IMZO_BOSH_XESH, ochiq_kalit: ochiq, r2_obyekt: 'k/1', mime_type: 'application/pdf', fayl_nomi: 'a.pdf', hajm: 10 };
+    const f = mockFetch({ t2_imzo_manba_v1: manba, t2_token_sarfla_v1: sarf, t2_token_qaytar_v1: { ok: true }, t2_imzo_yoz_v1: yoz });
+    const t = await J(await post({ amal: 'tayyorla', hujjat_id: 42, kalit_id: KALIT, tomon: 'pudratchi' }));
+    const m: ImzoMazmun = t.mazmun;
+    const imzo = b64uKodla(new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, kj.privateKey, imzoXabar(m) as BufferSource)));
+    const javob = await post({ amal: 'yoz', hujjat_id: 42, kalit_id: KALIT, tomon: 'pudratchi', vaqt: m.vaqt, nonce: m.nonce, oldingi_xesh: m.oldingi_xesh, mazmun_xesh: m.mazmun_xesh, imzo });
+    return { f, javob, m };
+  }
+
+  it('token yechiladi (imzolovchi kompaniyasidan), imzo yoziladi; sarf operation_id deterministik', async () => {
+    const { f, javob } = await tayyor({ ok: true, sarflandi: 3 });
+    expect(javob.status).toBe(200); expect((await J(javob)).sarflandi).toBe(3);
+    const s = JSON.parse(String(calls(f, 't2_token_sarfla_v1')[0][1]!.body));
+    expect(s).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 17, p_amal: 'hujjat', p_birlik_soni: 1 });
+    expect(s.p_operation_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-8[0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(calls(f, 't2_token_qaytar_v1')).toHaveLength(0);
+  });
+
+  it('token yetmasa - 402, imzo YOZILMAYDI', async () => {
+    const { f, javob } = await tayyor({ ok: false, code: 'TOKEN_YETMAYDI', kerak: 3, balans: 0 });
+    expect(javob.status).toBe(402); expect(await J(javob)).toMatchObject({ code: 'TOKEN_YETMAYDI', kerak: 3, balans: 0 });
+    expect(calls(f, 't2_imzo_yoz_v1')).toHaveLength(0);
+  });
+
+  it('imzo yozilmasa token qaytariladi (shu sarf operatsiyasi bo\'yicha)', async () => {
+    const { f, javob } = await tayyor({ ok: true, sarflandi: 3 }, { ok: false, code: 'ZANJIR_YANGILANDI' });
+    expect(javob.status).toBe(400);
+    const q = JSON.parse(String(calls(f, 't2_token_qaytar_v1')[0][1]!.body));
+    const s = JSON.parse(String(calls(f, 't2_token_sarfla_v1')[0][1]!.body));
+    expect(q).toMatchObject({ p_sarf_operation_id: s.p_operation_id, p_kompaniya_id: 17, p_actor_id: 7 });
+  });
+
+  it('shu nonce bilan avvalgi urinish bo\'lgan (takror) - qayta to\'lovsiz yozilmaydi', async () => {
+    const { f, javob } = await tayyor({ ok: true, takror: true, sarflandi: 3 });
+    expect(javob.status).toBe(400); expect((await J(javob)).code).toBe('MALUMOT_ESKIRGAN');
+    expect(calls(f, 't2_imzo_yoz_v1')).toHaveLength(0);
+  });
+});

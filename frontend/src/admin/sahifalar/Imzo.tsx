@@ -3,7 +3,7 @@
  * «Imzolash» - hujjat markazi (t2_document_registry) hujjatlari: tomon tanlanadi, hujjat yuklanib mazmun xeshi qurilmada tekshiriladi,
  * token yechiladi, qurilma kaliti bilan imzolanadi; hujjat yonida imzolar ro'yxati va «Imzolangan nusxa» (xlsx oxirida IMZO varag'i + QR).
  */
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download, PenLine, Search } from 'lucide-react';
@@ -19,6 +19,7 @@ import { ImzoBolimi } from '../../components/imzo/KalitlarKarta';
 import { IMZO_TOMONLAR, tokenMi, type ImzoTomon } from '../../lib/imzo/yadro';
 import { TOMON_NOMI, imzoVaraqQosh, nomidanTomonTaxmin, type ImzoBlokQator } from '../../lib/imzo/qr-varaq';
 import { hujjatMazmunXeshi } from '../../lib/imzo/mazmun';
+import { joriyHujjatOrnat } from '../../lib/imzo/joriy-hujjat';
 import { HUJJAT_TURLARI } from '../../lib/hujjat-dvigatel';
 
 const TEKSHIRUV_NAMUNA = 'https://…/t/…';
@@ -36,6 +37,9 @@ function kutilganTomonlar(hujjatTuri: string): ImzoTomon[] {
 function HujjatQatori({ d, kompaniyaId, userId, tomon, imzoKomp, nomidan }: { d: { id: string; filename: string; type: string; createdAt: string; mime: string }; kompaniyaId: number; userId: number; tomon: ImzoTomon; imzoKomp: number | null; nomidan: number | null }) {
   const qc = useQueryClient();
   const [ochiq, setOchiq] = useState(false);
+  const [qp] = useSearchParams();
+  // Jarvis «imzo qo'y»: shu hujjat bilan ochilsa imzolar ro'yxati ochiq turadi (imzolash tugmasi bosiladi - avtomatik imzolanmaydi)
+  useEffect(() => { if (qp.get('imzola') === '1' && qp.get('hujjat') === d.id) setOchiq(true); }, [qp, d.id]);
   const [band, setBand] = useState(false);
   const id = Number(d.id);
   const imzolar = useQuery({ queryKey: ['imzo-hujjat', id], enabled: ochiq, queryFn: async () => { const r = await hujjatImzolariOl(id); if (!r.ok) throw new Error(r.code); return r.imzolar; } });
@@ -88,6 +92,7 @@ function HujjatQatori({ d, kompaniyaId, userId, tomon, imzoKomp, nomidan }: { d:
 function Imzolash() {
   const [qp] = useSearchParams();
   const tanlangan = qp.get('hujjat');
+  useEffect(() => { joriyHujjatOrnat(tanlangan ? Number(tanlangan) : null); return () => joriyHujjatOrnat(null); }, [tanlangan]);
   const k = useKompaniya();
   const userId = k.foydalanuvchi?.id; const kompaniyaId = k.joriyId;
   const [tomon, setTomon] = useState<ImzoTomon>('pudratchi');

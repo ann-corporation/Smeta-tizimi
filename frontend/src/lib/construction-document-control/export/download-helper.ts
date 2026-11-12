@@ -25,10 +25,10 @@ export function downloadBlob(data: Uint8Array, filename: string, mimeType: strin
       URL.revokeObjectURL(url);
     }, 0);
   };
-  if (nashrKompaniyasi() && /\.(xlsx|xlsm)$/i.test(filename)) {
+  if (nashrKompaniyasi() && /\.(xlsx|xlsm|zip)$/i.test(filename)) {
     // QR olish tarmoqqa tayanadi: xato yoki sekin bo'lsa ham fayl beriladi (QR siz) - eksport to'xtamaydi.
     void Promise.all([import('../../imzo/nashr'), import('../../../api/t2-nashr')])
-      .then(([{ nashrQoy }, { nashrAdapter }]) => nashrQoy(imzoli, filename, meta, nashrAdapter))
+      .then(([{ nashrQoy, nashrQoyZip }, { nashrAdapter }]) => (/\.zip$/i.test(filename) ? nashrQoyZip : nashrQoy)(imzoli, filename, meta, nashrAdapter))
       .then((qrli) => ber(qrli ?? imzoli), () => ber(imzoli));
     return;
   }

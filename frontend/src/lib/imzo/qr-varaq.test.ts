@@ -82,6 +82,25 @@ describe('IMZO varag\'i xlsx ga', () => {
     expect(wc.getWorksheet('IMZO')!.getImages()).toHaveLength(2);
   });
 
+  it('manba QR BIRINCHI varaqda ham: chizma yo\'q bo\'lsa yaratiladi, bor bo\'lsa unga qo\'shiladi; kataklar va xesh o\'zgarmaydi; qayta shtamplash takrorlamaydi', async () => {
+    const a = await asl();
+    const b = imzoVaraqQosh(a, { ...talab([]), manbaToken: 'M'.repeat(22) })!;
+    const wb = new ExcelJS.Workbook(); await wb.xlsx.load(b as never);
+    const v = wb.getWorksheet('F2')!;
+    expect(v.getImages()).toHaveLength(1);
+    expect(v.getImages()[0].range.tl).toMatchObject({ nativeRow: 0 });
+    expect(v.getCell('B2').value).toBe('Beton'); expect(v.getCell('D2').value).toMatchObject({ formula: 'C2*1000' });
+    expect(await hujjatMazmunXeshi(b)).toBe(await hujjatMazmunXeshi(a));
+    // varaqda allaqachon rasm bor
+    const w2 = new ExcelJS.Workbook(); const s2 = w2.addWorksheet('F2'); s2.addRow(['x', 1]);
+    s2.addImage(w2.addImage({ buffer: Buffer.from(qrPng('logo').png) as never, extension: 'png' }), { tl: { col: 3, row: 5 }, ext: { width: 40, height: 40 } });
+    const asl2 = new Uint8Array(await w2.xlsx.writeBuffer());
+    const c = imzoVaraqQosh(imzoVaraqQosh(asl2, { ...talab([]), manbaToken: 'M'.repeat(22) })!, { ...talab([q()]), manbaToken: 'M'.repeat(22) })!;
+    const wc = new ExcelJS.Workbook(); await wc.xlsx.load(c as never);
+    expect(wc.getWorksheet('F2')!.getImages()).toHaveLength(2);            // logo + bitta manba QR (takror emas)
+    expect(wc.getWorksheet('IMZO')!.getImages()).toHaveLength(2);
+    expect(await hujjatMazmunXeshi(c)).toBe(await hujjatMazmunXeshi(asl2));
+  });
   it('xlsx bo\'lmagan fayl - null; yordamchilar', () => {
     expect(imzoVaraqQosh(new TextEncoder().encode('pdf'), talab([q()]))).toBeNull();
     expect(tomonYorligi('texnadzor', null)).toEqual({ uz: 'Texnik nazorat', ru: 'Технадзор' });

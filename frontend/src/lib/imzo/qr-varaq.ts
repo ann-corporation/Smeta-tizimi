@@ -112,12 +112,80 @@ function uslublarQosh(f: Record<string, Uint8Array>): [number, number] {
 const kat = (ref: string, matn: string, s: number) => `<c r="${ref}" t="inlineStr"${s ? ` s="${s}"` : ''}><is><t xml:space="preserve">${esc(matn)}</t></is></c>`;
 const EMU = 9525;
 
+const MANBA_NOMI = 'IMZO MANBA QR';
+const ustunIndeksi = (harf: string) => harf.split('').reduce((s, c) => s * 26 + (c.charCodeAt(0) - 64), 0);
+
+/**
+ * MANBA QR BIRINCHI VARAQDA (egasi: qog'ozni odatda birinchi varaqdan chop etadi): kichik (~2,5 sm) QR rasm birinchi varaqning
+ * yuqori o'ng burchagida SUZADI (rasm kataklar ustida; ustun kengligi, kataklar, Print_Area o'zgarmaydi). Varaqda chizma bo'lsa unga
+ * qo'shiladi, bo'lmasa yangi chizma yaratiladi. Qayta shtamplashda avvalgi manba QR olib tashlanadi. Tuzilma kutilmagan bo'lsa - jim o'tkazib yuboriladi
+ * (hujjat IMZO varag'idagi QR bilan baribir qoladi).
+ */
+function birinchiVaraqQR(f: Record<string, Uint8Array>, url: string): void {
+  const wb = oqi(f, 'xl/workbook.xml'); const rels = oqi(f, 'xl/_rels/workbook.xml.rels');
+  const birinchi = [...wb.matchAll(/<sheet\b[^>]*?\/>/g)].map((m) => m[0]).find((s) => atr(s, 'name') !== IMZO_VARAQ_NOMI);
+  const rid = birinchi && (atr(birinchi, 'r:id') ?? atr(birinchi, 'id'));
+  const rel = rid ? [...rels.matchAll(/<Relationship\b[^>]*?\/>/g)].map((r) => r[0]).find((r) => atr(r, 'Id') === rid) : null;
+  const maqsad = rel && atr(rel, 'Target');
+  if (!maqsad) return;
+  const yol = maqsad.startsWith('/') ? maqsad.slice(1) : 'xl/' + maqsad.replace(/^\.\//, '');
+  if (!f[yol]) return;
+  let sx = strFromU8(f[yol]);
+  const yuqoriO = (() => { const d = /<dimension\b[^>]*ref="[A-Z]+\d+:([A-Z]+)\d+"/.exec(sx); return d ? Math.max(0, ustunIndeksi(d[1]) - 1) : 0; })();
+  const k = 1 + Math.max(0, ...Object.keys(f).map((n) => Number(/^xl\/media\/imzomanba(\d+)\.png$/.exec(n)?.[1] ?? 0)));
+  const mediaYol = `xl/media/imzomanba${k}.png`;
+  const MID = `rIdImzoManba${k}`;
+  const rp = yol.replace(/([^/]+)$/, '_rels/$1.rels');
+  let sr = oqi(f, rp);
+  const EMU_ = 9525; const o = Math.round(94.5 * EMU_);   // ~2,5 sm
+  const anchor = `<xdr:oneCellAnchor><xdr:from><xdr:col>${yuqoriO}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:ext cx="${o}" cy="${o}"/>`
+    + `<xdr:pic><xdr:nvPicPr><xdr:cNvPr id="9001" name="${MANBA_NOMI}" descr="QR: ${esc(url)}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>`
+    + `<xdr:blipFill><a:blip r:embed="${MID}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${o}" cy="${o}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`;
+  const imgRel = `<Relationship Id="${MID}" Type="${NS_R}/image" Target="../media/imzomanba${k}.png"/>`;
+  const dr = /<drawing\b[^>]*r:id="([^"]+)"[^>]*\/>/.exec(sx);
+  let ct = oqi(f, '[Content_Types].xml');
+  if (dr) {
+    const drel = [...sr.matchAll(/<Relationship\b[^>]*?\/>/g)].map((r) => r[0]).find((r) => atr(r, 'Id') === dr[1]);
+    const dt = drel && atr(drel, 'Target');
+    if (!dt) return;
+    const dy = 'xl/' + dt.replace(/^\.\.\//, '').replace(/^\/?xl\//, '');
+    let dx = oqi(f, dy);
+    if (!/<xdr:wsDr\b/.test(dx) || !dx.includes('</xdr:wsDr>')) return;
+    dx = dx.replace(new RegExp(`<xdr:oneCellAnchor>(?:(?!</xdr:oneCellAnchor>)[\\s\\S])*?name="${MANBA_NOMI}"[\\s\\S]*?</xdr:oneCellAnchor>`, 'g'), '');
+    if (!/xmlns:r=/.test(dx)) dx = dx.replace('<xdr:wsDr', `<xdr:wsDr xmlns:r="${NS_R}"`);
+    if (!/xmlns:a=/.test(dx)) dx = dx.replace('<xdr:wsDr', '<xdr:wsDr xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"');
+    f[dy] = strToU8(dx.replace('</xdr:wsDr>', anchor + '</xdr:wsDr>'));
+    const drp = dy.replace(/([^/]+)$/, '_rels/$1.rels');
+    const dre = oqi(f, drp);
+    f[drp] = strToU8(dre.includes('</Relationships>') ? dre.replace('</Relationships>', imgRel + '</Relationships>')
+      : `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${imgRel}</Relationships>`);
+  } else {
+    const dn = keyingiRaqam(f, /^xl\/drawings\/drawing(\d+)\.xml$/);
+    const dy = `xl/drawings/drawing${dn}.xml`; const SID = `rIdImzoManbaD${dn}`;
+    f[dy] = strToU8(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="${NS_R}">${anchor}</xdr:wsDr>`);
+    f[`xl/drawings/_rels/drawing${dn}.xml.rels`] = strToU8(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${imgRel}</Relationships>`);
+    const srel = `<Relationship Id="${SID}" Type="${NS_R}/drawing" Target="../drawings/drawing${dn}.xml"/>`;
+    sr = sr.includes('</Relationships>') ? sr.replace('</Relationships>', srel + '</Relationships>')
+      : `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${srel}</Relationships>`;
+    f[rp] = strToU8(sr);
+    if (!/<worksheet\b[^>]*xmlns:r=/.test(sx)) sx = sx.replace(/<worksheet\b/, `<worksheet xmlns:r="${NS_R}"`);
+    const tag = `<drawing r:id="${SID}"/>`;
+    const j = sx.search(/<(legacyDrawing|legacyDrawingHF|drawingHF|picture|oleObjects|controls|webPublishItems|tableParts|extLst)\b/);
+    sx = j >= 0 ? sx.slice(0, j) + tag + sx.slice(j) : sx.replace('</worksheet>', tag + '</worksheet>');
+    f[yol] = strToU8(sx);
+    ct = ct.replace('</Types>', `<Override PartName="/${dy}" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/></Types>`);
+  }
+  if (!/Extension="png"/i.test(ct)) ct = ct.replace(/(<Types\b[^>]*>)/, '$1<Default Extension="png" ContentType="image/png"/>');
+  f['[Content_Types].xml'] = strToU8(ct);
+  f[mediaYol] = qrPng(url, 6).png;
+}
 /** xlsx ga «IMZO» varag'ini qo'shadi (yoki yangilaydi). xlsx bo'lmasa - null. */
 export function imzoVaraqQosh(bytes: Uint8Array, t: ImzoBlokTalab): Uint8Array | null {
   let f: Record<string, Uint8Array>;
   try { f = unzipSync(bytes); } catch { return null; }
   if (!f['xl/workbook.xml'] || !f['[Content_Types].xml']) return null;
   eskisiniOlibTashla(f);
+  if (t.manbaToken) birinchiVaraqQR(f, tekshiruvHavolasi(t.origin, t.manbaToken));
   const vn = keyingiRaqam(f, /^xl\/worksheets\/sheet(\d+)\.xml$/); const dn = keyingiRaqam(f, /^xl\/drawings\/drawing(\d+)\.xml$/);
   const YOL = { varaq: `xl/worksheets/sheet${vn}.xml`, varaqRels: `xl/worksheets/_rels/sheet${vn}.xml.rels`, chizma: `xl/drawings/drawing${dn}.xml`, chizmaRels: `xl/drawings/_rels/drawing${dn}.xml.rels` };
   const [S, B] = uslublarQosh(f);

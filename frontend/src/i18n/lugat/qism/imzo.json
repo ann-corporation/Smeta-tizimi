@@ -85,10 +85,14 @@
   "Asl nusxa": { "ru": "Оригинал", "en": "Original" },
   "Tizimda ochish": { "ru": "Открыть в системе", "en": "Open in the system" },
   "Excel yuklab olish": { "ru": "Скачать Excel", "en": "Download Excel" },
-  "Tizimda hali PDF yaratish yo‘li yo‘q: Excel ni ochib, chop etish oynasidan PDF ga saqlang.": { "ru": "В системе пока нет генерации PDF: откройте Excel и сохраните в PDF через окно печати.", "en": "The system has no PDF generation yet: open the Excel file and save as PDF from the print dialog." },
-  "PDF yuklab olish": { "ru": "Скачать PDF", "en": "Download PDF" },
   "Sizda bu hujjatga ruxsat yo‘q. Hujjatni chiqargan kompaniya administratoridan (yoki hujjatni sizga taqdim qilgan tomondan) ruxsat so‘rang.": { "ru": "У вас нет доступа к этому документу. Запросите доступ у администратора компании-выпускающей (или у стороны, которая вам его передала).", "en": "You do not have access to this document. Ask the issuing company's administrator (or the party that submitted it to you) for access." },
   "Ruxsat tekshirilmoqda…": { "ru": "Проверяется доступ…", "en": "Checking access…" },
   "Asl nusxani ochish yoki yuklab olish uchun tizimga kiring. Summa va hujjat mazmuni kirmagan odamga ko‘rsatilmaydi.": { "ru": "Чтобы открыть или скачать оригинал, войдите в систему. Суммы и содержимое документа не показываются без входа.", "en": "Sign in to open or download the original. Amounts and document content are not shown without signing in." },
-  "Kirish": { "ru": "Войти", "en": "Sign in" }
+  "Kirish": { "ru": "Войти", "en": "Sign in" },
+  "Chop etish / PDF sifatida saqlash": { "ru": "Печать / сохранить как PDF", "en": "Print / save as PDF" },
+  "QR kod": { "ru": "QR-код", "en": "QR code" },
+  "Chop ko‘rinishi": { "ru": "Вид для печати", "en": "Print view" },
+  "Chop etish": { "ru": "Печать", "en": "Print" },
+  "Chop oynasida «PDF sifatida saqlash» ni tanlang. Bu oddiy jadval ko‘rinishi: Excel formatlash saqlanmaydi.": { "ru": "В окне печати выберите «Сохранить как PDF». Это упрощённый табличный вид: форматирование Excel не сохраняется.", "en": "In the print dialog choose “Save as PDF”. This is a simplified table view: Excel formatting is not preserved." },
+  "Hujjat": { "ru": "Документ", "en": "Document" }
 }

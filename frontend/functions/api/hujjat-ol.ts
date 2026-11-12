@@ -53,6 +53,11 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       const chizma = await rpc(ctx.env, 't2_chizma_fayl_ol_v1', { p_actor_id: actorId, p_document_id: id });
       if (chizma.httpOk && chizma.body && chizma.body.ok === true) res = chizma;
     }
+    // SHAXSIY IMZO / MANBA QR: nashr nusxasi yoki imzolangan hujjat - obyektga TOMON GRANTI bo'lgan kompaniya a'zosi (t2_tomon_ruxsat_bor), faqat shu aniq hujjat.
+    if ((!res.httpOk || !res.body || res.body.ok !== true) && (!res.body || res.body.code !== 'CANONICAL_BINARY_MISSING')) {
+      const nashr = await rpc(ctx.env, 't2_nashr_hujjat_ol_v1', { p_actor_id: actorId, p_document_id: id });
+      if (nashr.httpOk && nashr.body && nashr.body.ok === true) res = nashr;
+    }
     if (!res.httpOk || !res.body || res.body.ok !== true) {
       const code = (res.body && res.body.code) || 'DOCUMENT_FORBIDDEN';
       const status = code === 'DOCUMENT_NOT_FOUND' ? 404 : code === 'CANONICAL_BINARY_MISSING' ? 502 : 403;
