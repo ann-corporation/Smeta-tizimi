@@ -1,0 +1,10 @@
+{
+  "sana": "2026-11-12",
+  "sarlavha": "Buxgalteriya P4 — bank ko‘chirmasini aniqlash, kassa, ish beruvchi badali",
+  "bandlar": [
+    "«Bank: aniqlash»: ko‘chirma qatorlariga shartnoma bo‘yicha taklif (ball va sabab bilan), bir bosishda qabul — to‘lov bir marta yoziladi; ish haqi qatorlari oylikka bog‘lanadi; aniqlanmaganlar navbatda qoladi.",
+    "«Kassa»: kirim/chiqim orderlari (yil bo‘yicha raqamlanadi), kunlik kassa kitobi, chop etish (Excel).",
+    "Ish haqi: ish beruvchi badali (stavka «Qoidalar»da, T) va obyektlarga ulush bo‘yicha taqsimlash (sukut — taqsimlanmagan).",
+    "Jarvis: «bank kochirmasi», «kassa»."
+  ]
+}

@@ -19,6 +19,7 @@ const TgKirish = lazy(() => import('./telegram/TgKirish'));
 // (`SahifaChegarasi`), shuning uchun kirish sahifasi bu og'ir sahifalarni yuklamaydi.
 const HolatNative = lazy(() => import('./admin/sahifalar/HolatNative'));
 const FaktNative = lazy(() => import('./admin/sahifalar/FaktNative'));
+const GrafikSahifa = lazy(() => import('./admin/sahifalar/GrafikSahifa'));
 const UstaBugun = lazy(() => import('./admin/sahifalar/UstaBugun'));
 const FaylBoglash = lazy(() => import('./admin/sahifalar/FaylBoglash'));
 /* TIZIM_02 — Supabase sinov muhiti. Tizim_01 ga TEGMAYDI. */
@@ -28,6 +29,8 @@ const TestXarita    = lazy(() => import('./test02/TestXarita'));
 const TestLoyiha    = lazy(() => import('./test02/TestLoyiha'));
 const Kontragentlar = lazy(() => import('./admin/tomonlar/Kontragentlar'));
 const YetkazuvchiBugun = lazy(() => import('./admin/yetkazuvchi/YetkazuvchiBugun'));
+const SubpudratchiBugun = lazy(() => import('./admin/subpudratchi/SubpudratchiBugun'));
+const SubpudratBoshqaruv = lazy(() => import('./admin/subpudratchi/SubpudratBoshqaruv'));
 const TestObyektlar = lazy(() => import('./test02/TestObyektlar'));
 const WrapperMoliya = lazy(() => import('./test02/WrapperMoliya'));
 const WrapperLogistika = lazy(() => import('./test02/WrapperLogistika'));
@@ -39,6 +42,9 @@ const BozorOchiq = lazy(() => import('./bozor/BozorOchiq'));
 const BozorSorov = lazy(() => import('./admin/bozor/BozorSorov'));
 const BozorKabinet = lazy(() => import('./admin/bozor/BozorKabinet'));
 const BozorModeratsiya = lazy(() => import('./admin/bozor/BozorModeratsiya'));
+const YukChaqirish = lazy(() => import('./admin/yuk-tashish/YukChaqirish'));
+const HaydovchiSahifa = lazy(() => import('./admin/yuk-tashish/HaydovchiSahifa'));
+const YukOchiq = lazy(() => import('./admin/yuk-tashish/YukOchiq'));
 const TestTolov     = lazy(() => import('./test02/TestTolov'));
 const TestFaktura   = lazy(() => import('./test02/TestFaktura'));
 const TestHisobot   = lazy(() => import('./test02/TestHisobot'));
@@ -87,6 +93,7 @@ const LoyihachiBugun = lazy(() => import('./admin/loyihachi/LoyihachiBugun'));
 const HujjatAylanish = lazy(() => import('./admin/zakazchik/HujjatAylanish'));
 const NarxDalil = lazy(() => import('./admin/sahifalar/NarxDalil'));
 const NarxTekshiruv = lazy(() => import('./admin/sahifalar/NarxTekshiruv'));
+const Naryad = lazy(() => import('./admin/sahifalar/Naryad'));
 const F2Reestr = lazy(() => import('./admin/sahifalar/F2Reestr'));
 const DocumentCenterDemo = lazy(() => import('./admin/document-center/DocumentCenterDemo'));
 const ParticipantNetworkDemo = lazy(() => import('./admin/participants/ParticipantNetworkDemo'));
@@ -136,6 +143,7 @@ export default function App() {
         <Route path="/bozor" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorOchiq /></Suspense>} />
         <Route path="/bozor/e/:elonId" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorOchiq /></Suspense>} />
         <Route path="/bozor/s/:sotuvchiId" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorOchiq /></Suspense>} />
+        <Route path="/yuk" element={<Suspense fallback={<SahifaYuklanmoqda />}><YukOchiq /></Suspense>} />
 
         {/* Admin shell and routes */}
         <Route path="/admin" element={
@@ -184,18 +192,24 @@ export default function App() {
                 obyektlar — faqat t2_obyekt kanonik IDlari; loyiha — production yo'l (avval faqat /admin/test/loyiha). */}
             <Route path="obyektlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><TestObyektlar /></Suspense>} />
             <Route path="loyiha" element={<Suspense fallback={<SahifaYuklanmoqda />}><TestLoyiha /></Suspense>} />
+            <Route path="grafik" element={<Suspense fallback={<SahifaYuklanmoqda />}><GrafikSahifa /></Suspense>} />
             <Route path="tokenlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><Tokenlar /></Suspense>} />
             <Route path="hujjat-dizayn" element={<Suspense fallback={<SahifaYuklanmoqda />}><HujjatDizayni /></Suspense>} />
             <Route path="shartnoma-liniya" element={<Suspense fallback={<SahifaYuklanmoqda />}><ShartnomaLiniya /></Suspense>} />
             <Route path="qarzdorlik" element={<Suspense fallback={<SahifaYuklanmoqda />}><Qarzdorlik /></Suspense>} />
             <Route path="bozor-sorov" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorSorov /></Suspense>} />
             <Route path="bozor-kabinet" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorKabinet /></Suspense>} />
-            <Route path="bozor-moderatsiya" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorModeratsiya /></Suspense>} />            <Route path="hr" element={<Suspense fallback={<SahifaYuklanmoqda />}><Hr /></Suspense>} />
+            <Route path="bozor-moderatsiya" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorModeratsiya /></Suspense>} />
+            <Route path="hr" element={<Suspense fallback={<SahifaYuklanmoqda />}><Hr /></Suspense>} />
+            <Route path="yuk-birjasi" element={<Suspense fallback={<SahifaYuklanmoqda />}><YukBirjasiSahifa /></Suspense>} />
+            <Route path="yuk-chaqirish" element={<Suspense fallback={<SahifaYuklanmoqda />}><YukChaqirish /></Suspense>} />
+            <Route path="haydovchi" element={<Suspense fallback={<SahifaYuklanmoqda />}><HaydovchiSahifa /></Suspense>} />
             <Route path="buxgalteriya" element={<Suspense fallback={<SahifaYuklanmoqda />}><Buxgalteriya /></Suspense>} />
             <Route path="nakrutka" element={<NakrutkaNative />} />
             <Route path="narx-manbalari" element={<Suspense fallback={<SahifaYuklanmoqda />}><NarxManbalari /></Suspense>} />
             <Route path="narx-dalil" element={<Suspense fallback={<SahifaYuklanmoqda />}><NarxDalil /></Suspense>} />
             <Route path="narx-tekshiruv" element={<Suspense fallback={<SahifaYuklanmoqda />}><NarxTekshiruv /></Suspense>} />
+            <Route path="naryad" element={<Suspense fallback={<SahifaYuklanmoqda />}><Naryad /></Suspense>} />
             <Route path="smeta-narxlash" element={<SmetaNarxlashResNative />} />
             <Route path="oferta" element={<OfertaNative />} />
             <Route path="narxlar" element={<Narxlar />} />
@@ -208,6 +222,9 @@ export default function App() {
             {/* Tomonlar -> Kontragentlar (ekotizim V3): CRM, Logistika kontragentlari va Aloqalar bitta sahifaga birlashtirildi; eski yo'llar yo'naltiriladi. */}
             <Route path="kontragentlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><Kontragentlar /></Suspense>} />
             <Route path="aloqalar" element={<Navigate to="/admin/kontragentlar?tab=aloqa" replace />} />            <Route path="taqdimlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><TaqdimlarInbox /></Suspense>} />
+            {/* Subpudratchi tomoni: «Bugun» (subpudratchi) va boshqaruv (bosh pudratchi). */}
+            <Route path="subpudratchi" element={<Suspense fallback={<SahifaYuklanmoqda />}><SubpudratchiBugun /></Suspense>} />
+            <Route path="subpudrat" element={<Suspense fallback={<SahifaYuklanmoqda />}><SubpudratBoshqaruv /></Suspense>} />
             <Route path="murojaatlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><Murojaatlar /></Suspense>} />
           <Route path="nazorat" element={<Suspense fallback={<SahifaYuklanmoqda />}><NazoratUy /></Suspense>} />
           <Route path="nazorat/tekshiruv" element={<Suspense fallback={<SahifaYuklanmoqda />}><TekshiruvForma /></Suspense>} />
@@ -318,7 +335,6 @@ export default function App() {
           <Route path="logistika" element={<WrapperLogistika />} />
           <Route path="zayavka" element={<TestZayavka />} />
           <Route path="tender" element={<Suspense fallback={<SahifaYuklanmoqda />}><TenderSahifa /></Suspense>} />
-          <Route path="yuk-birjasi" element={<Suspense fallback={<SahifaYuklanmoqda />}><YukBirjasiSahifa /></Suspense>} />
           <Route path="erp" element={<TestErp />} />
           {/* `sozlamalar` (T1) allaqachon band — bu T2 sozlamalari. */}
 

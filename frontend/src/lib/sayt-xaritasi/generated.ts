@@ -8,6 +8,7 @@ export const GENERATED_SITE_MAP = {
     "/admin/loyiha",
     "/admin/participants",
     "/admin/mindmap",
+    "/admin/grafik",
     "/admin/smeta-studio",
     "/admin/holat",
     "/admin/smeta-narxlash",
@@ -18,6 +19,7 @@ export const GENERATED_SITE_MAP = {
     "/admin/narx-manbalari",
     "/admin/oferta",
     "/admin/fakt",
+    "/admin/naryad",
     "/admin/foto",
     "/admin/bugun",
     "/admin/m29",
@@ -32,6 +34,8 @@ export const GENERATED_SITE_MAP = {
     "/admin/buxgalteriya",
     "/admin/kontragentlar",
     "/admin/yetkazuvchi",
+    "/admin/subpudratchi",
+    "/admin/subpudrat",
     "/admin/documents",
     "/admin/hujjat-nazorat",
     "/admin/aosr",
@@ -50,9 +54,8 @@ export const GENERATED_SITE_MAP = {
     "/admin/zayavka",
     "/admin/tender",
     "/admin/yuk-birjasi",
-    "/admin/bozor-sorov",
-    "/admin/bozor-kabinet",
-    "/admin/bozor-moderatsiya",
+    "/admin/yuk-chaqirish",
+    "/admin/haydovchi",
     "/admin/erp",
     "/admin/hr",
     "/admin/sotuv",
@@ -77,9 +80,7 @@ export const GENERATED_SITE_MAP = {
     "/qoshil/:kod",
     "/ulash/:kod",
     "/tg",
-    "/bozor",
-    "/bozor/e/:elonId",
-    "/bozor/s/:sotuvchiId",
+    "/yuk",
     "/admin",
     "holat",
     "holat/:id",
@@ -95,19 +96,21 @@ export const GENERATED_SITE_MAP = {
     "nakopitelniy",
     "obyektlar",
     "loyiha",
+    "grafik",
     "tokenlar",
     "hujjat-dizayn",
     "shartnoma-liniya",
     "qarzdorlik",
-    "bozor-sorov",
-    "bozor-kabinet",
-    "bozor-moderatsiya",
     "hr",
+    "yuk-birjasi",
+    "yuk-chaqirish",
+    "haydovchi",
     "buxgalteriya",
     "nakrutka",
     "narx-manbalari",
     "narx-dalil",
     "narx-tekshiruv",
+    "naryad",
     "smeta-narxlash",
     "oferta",
     "narxlar",
@@ -120,6 +123,8 @@ export const GENERATED_SITE_MAP = {
     "kontragentlar",
     "aloqalar",
     "taqdimlar",
+    "subpudratchi",
+    "subpudrat",
     "murojaatlar",
     "nazorat",
     "nazorat/tekshiruv",
@@ -185,7 +190,6 @@ export const GENERATED_SITE_MAP = {
     "taminot",
     "sifat",
     "tender",
-    "yuk-birjasi",
     "shartnoma",
     "kalkulyator",
     "*",
@@ -348,6 +352,10 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_ish_kartasi_ulush_saqla_v1"
     },
     {
+      "amal": "naryad_yoz_v1",
+      "rpc": "t2_naryad_yoz_v1"
+    },
+    {
       "amal": "shartnoma_saqla_v2",
       "rpc": "t2_shartnoma_saqla_v2"
     },
@@ -430,6 +438,42 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "bux_hisob_tasdiq_v1",
       "rpc": "t2_bux_hisob_tasdiq_v1"
+    },
+    {
+      "amal": "bux_saldo_import_v1",
+      "rpc": "t2_bux_saldo_import_v1"
+    },
+    {
+      "amal": "bux_saldo_bekor_v1",
+      "rpc": "t2_bux_saldo_bekor_v1"
+    },
+    {
+      "amal": "bux_tannarx_v1",
+      "rpc": "t2_bux_tannarx_v1"
+    },
+    {
+      "amal": "bux_hisobot_saqla_v1",
+      "rpc": "t2_bux_hisobot_saqla_v1"
+    },
+    {
+      "amal": "bux_bank_yuklash_v1",
+      "rpc": "t2_bux_bank_yuklash_v1"
+    },
+    {
+      "amal": "bux_bank_qabul_v1",
+      "rpc": "t2_bux_bank_qabul_v1"
+    },
+    {
+      "amal": "bux_kassa_yoz_v1",
+      "rpc": "t2_bux_kassa_yoz_v1"
+    },
+    {
+      "amal": "bux_kassa_bekor_v1",
+      "rpc": "t2_bux_kassa_bekor_v1"
+    },
+    {
+      "amal": "bux_taqsim_saqla_v1",
+      "rpc": "t2_bux_taqsim_saqla_v1"
     },
     {
       "amal": "bux_bank_import_v1",

@@ -29,6 +29,8 @@ export function dataPermission(name: string, write: boolean, body: Record<string
   /* Uy sotish (20261124000000): inventar/shaxmatka/panel/bitim kartasi — sales.read (karta PII ni RPC yashiradi); mijoz PII bor ro'yxatlar — sales.write (RPC ham shuni tekshiradi). */
   if (/^sotuv_/.test(n)) return write ? 'sales.write' : (/^sotuv_(shaxmatka|panel|bitim)_/.test(n) ? 'sales.read' : 'sales.write');
   if (/platforma_|token_toldir|obuna_belgila|tizim_amal/.test(n)) return write ? 'control.global.write' : 'control.global.read';
+  /* Naryad (20261214810000): usta «bajarildi»ni o'zi belgilaydi (self.work.write; RPC naryad.usta_foydalanuvchi_id = actor ni ham tekshiradi). Qolgan amallar — smeta.write. */
+  if (n === 'naryad_yoz_v1') return write && body.naryad_amal === 'bajarildi' ? 'self.work.write|smeta.write' : 'smeta.write';
   if (write) {
     if (n === 'akt_tasdiqlash') return 'f2.approve';
     if (n === 'akt_lifecycle_transition_v1') {
@@ -57,7 +59,9 @@ export function dataPermission(name: string, write: boolean, body: Record<string
 export const SCOPED_APIS = new Set(['object-financials','contract-scope','sb','sb-yoz','company','sessiya','smeta-studio','smeta-yukla','smeta-ai','smeta-narx-agent','f2-moslash',
   'hujjat-nazorat','hujjat-ol','hujjat-royxat','hujjat-yukla','boss-dashboard','boss-documents','system-control','tomon','loyihachi','foto-dalil','foto-ai','hujjat-aylanish','laboratoriya','agent-ish','ai-savol','ai-parse','gas','boshqaruv','agent-control',
   /* Obyekt paketi (ADR OBYEKT_PAKET §1.4): smeta + holat + F2 ro'yxati + nakrutka — faqat o'qish. */
-  'obyekt-paket','normativ-qidir']);
+  'obyekt-paket','normativ-qidir',
+  /* P6/P7 Grafik + cashflow: o'qish — hujjat o'qish (buyurtmachi ham grant bilan); yozish (override) — loyiha yozuvi, rol bazada ham tekshiriladi. */
+  'grafik']);
 
 export function requestPermission(api: string, method: string, b: Record<string, unknown>, q: URLSearchParams): string | null {
   if (!SCOPED_APIS.has(api) || api === 'sessiya') return null;
@@ -79,6 +83,7 @@ export function requestPermission(api: string, method: string, b: Record<string,
   // Yozish — faqat aniq reyestr orqali (fail-closed): reyestrda yo'q amal hech kimga ruxsat etilmaydi.
   if (api === 'sb-yoz') return writeCommandPermission(String(b.amal || 'qator_tahrir'),b);
   if (api === 'boshqaruv') return method === 'GET' ? 'control.global.read' : 'control.global.write';
+  if (api === 'grafik') return method === 'GET' ? 'document.read' : 'project.write';
   if (api === 'agent-control') return method === 'GET' ? 'document.read' : 'document.write';
   if (api === 'system-control') return (b.kompaniya_id || q.get('kompaniya_id')) ? (method === 'GET' ? 'control.company.read' : 'control.company.write') : (method === 'GET' ? 'control.global.read' : 'control.global.write');
   if (api === 'smeta-studio') return b.amal === 'saqla' ? 'smeta.write' : 'smeta.read';

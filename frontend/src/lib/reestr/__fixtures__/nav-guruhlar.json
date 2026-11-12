@@ -77,6 +77,17 @@
             ],
             "modul": "module.erp",
             "scope": "COMPANY_SCOPED"
+          },
+          {
+            "yol": "/admin/grafik",
+            "ilova": "pto",
+            "nom": "Ish grafigi va pul oqimi",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write"
+            ],
+            "scope": "COMPANY_SCOPED"
           }
         ]
       }
@@ -243,6 +254,21 @@
               "control.company.read",
               "fakt.write",
               "fakt.read+self.work.write"
+            ]
+          }
+        ]
+      },
+      {
+        "nom": "Naryad (brigada)",
+        "ikonka": "ClipboardList",
+        "sahifalar": [
+          {
+            "yol": "/admin/naryad",
+            "ilova": "ff",
+            "nom": "Naryad (brigada topshirig‘i)",
+            "ruxsat": [
+              "control.company.read",
+              "smeta.write"
             ]
           }
         ]
@@ -553,6 +579,18 @@
             "qoshimcha": true
           },
           {
+            "yol": "/admin/subpudrat",
+            "ilova": "hujjat",
+            "nom": "Subpudrat boshqaruvi",
+            "ruxsat": [
+              "control.company.read",
+              "f2.prepare",
+              "project.write",
+              "object.write"
+            ],
+            "scope": "OBJECT_SCOPED"
+          },
+          {
             "yol": "/admin/taqdimlar",
             "ilova": "hujjat",
             "nom": "Tomonlar hujjatlari",
@@ -601,6 +639,16 @@
             ],
             "modul": "module.loyiha",
             "qoshimcha": true
+          },
+          {
+            "yol": "/admin/subpudratchi",
+            "ilova": "hujjat",
+            "nom": "Subpudratchi: bugun",
+            "ruxsat": [
+              "control.company.read",
+              "f2.prepare",
+              "fakt.write"
+            ]
           }
         ]
       }
@@ -681,6 +729,32 @@
             "yol": "/admin/yuk-birjasi",
             "ilova": "logistika",
             "nom": "Yuk birjasi",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "procurement.read"
+            ],
+            "modul": "module.erp",
+            "qoshimcha": true
+          },
+          {
+            "yol": "/admin/yuk-chaqirish",
+            "ilova": "logistika",
+            "nom": "Yuk chaqirish",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "procurement.read"
+            ],
+            "modul": "module.erp",
+            "qoshimcha": true
+          },
+          {
+            "yol": "/admin/haydovchi",
+            "ilova": "logistika",
+            "nom": "Haydovchi rejimi",
             "ruxsat": [
               "control.company.read",
               "project.write",

@@ -95,7 +95,8 @@ export function ShartnomaLiniya() {
     const r = await shartnomaSaqlaV2({ kompaniyaId: kid, id: s.id, kutilganVersiya: s.versiya, ...y, operationId: yangiOperationId() });
     setSaqlanmoqda(false);
     if (!r.ok) { toast(liniyaXato(r), 'danger'); return false; }
-    toast(xabar, 'ok');
+    /* Tasdiq: qaysi obyektlar shartnomaga bog'langani aytiladi (audit 114: jim saqlanardi). */
+    toast(s.obyektlar.length ? `${xabar} · ${tr('bog‘langan obyektlar')}: ${s.obyektlar.map((id) => obNom.get(id) ?? `#${id}`).join(', ')}` : xabar, 'ok');
     await yukla();
     void svodYukla();
     return true;
