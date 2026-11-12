@@ -38,6 +38,7 @@
   "t2_ish_abc_ochir_ichki>t2_akt_qator": "meros 2026-11-12: smeta -> ijro (sabab hali yozilmagan)",
   "t2_ish_joyi_qoshil_v1>t2_azolik": "ish joyi/kompaniya yaratish (a'zolik oqimi)",
   "t2_ish_joyi_turi_v1>t2_kompaniya": "ish joyi/kompaniya yaratish (a'zolik oqimi)",
+  "t2_ish_joyi_yarat_v1>t2_kompaniya": "HAQIQIY buzilish: ish joyi (tomonlar) kompaniya yaratishni platforma funksiyasiga topshiradi, lekin turi (shaxsiy/tashkilot) ni t2_kompaniya qatoriga o'zi UPDATE qiladi. Tuzatish: t2_kompaniya_ozi_och_v1 ga p_turi qo'shish",
   "t2_kontragent_tomon_bog_v1>t2_kontragent": "kontragent <-> tomon bog'lash",
   "t2_lab_sorov_natija_v1>t2_kontragent": "F3/sverka: F2 reestr summasi (solishtirish signali) moliya jadvaliga",
   "t2_lab_sorov_natija_v1>t2_qarz_asos": "F3/sverka: F2 reestr summasi (solishtirish signali) moliya jadvaliga",

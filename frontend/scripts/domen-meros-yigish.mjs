@@ -6,7 +6,7 @@ import { writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buzilishlarniTop, katalogOqi } from '../src/lib/reestr/domen.sql-tahlil.ts';
-import { egasi, PLATFORMA_SINKLAR, HISOB_YADRO_SQL, RUXSAT_MANBA_SQL, YOZISH_SABAB } from '../src/lib/reestr/domen.ts';
+import { egasi, PLATFORMA_SINKLAR, HISOB_YADRO_SQL, RUXSAT_MANBA_SQL, YOZISH_SABAB, YOZISH_SABAB_ANIQ } from '../src/lib/reestr/domen.ts';
 
 const ildiz = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const b = buzilishlarniTop(ildiz, { egasi, sinklar: PLATFORMA_SINKLAR, hisobYadro: HISOB_YADRO_SQL, ruxsatManba: RUXSAT_MANBA_SQL }, katalogOqi(ildiz));
@@ -14,7 +14,7 @@ const yozish = {};
 for (const x of b.yozish) {
   const [f, t] = x.split('>');
   const a = egasi(f.replace(/_pre_\d{10,}$/, '')).domen, z = egasi(t).domen;
-  yozish[x] = YOZISH_SABAB[a + '>' + z] ?? 'meros 2026-11-12: ' + a + ' -> ' + z + ' (sabab hali yozilmagan)';
+  yozish[x] = YOZISH_SABAB_ANIQ[x] ?? YOZISH_SABAB[a + '>' + z] ?? 'meros 2026-11-12: ' + a + ' -> ' + z + ' (sabab hali yozilmagan)';
 }
 const sabab = (m) => Object.fromEntries(m.map((x) => [x, 'meros 2026-11-12']));
 const out = {
