@@ -46,6 +46,7 @@ export const STATIK_VOSITALAR: readonly YordamchiVosita[] = [
   { id: 'qoralama.yetkazuvchi', tur: 'navigatsiya', nom: 'Yetkazuvchi: bugun — kelgan so‘rovlar, buyurtmalar, transport', misol: ['yetkazuvchi bugun', 'menga kelgan so‘rovlar'], tasdiq: 'yoq', manba: '/admin/yetkazuvchi' },
   { id: 'qoralama.subpudratchi', tur: 'navigatsiya', nom: 'Subpudratchi: bugun — menga topshirilgan ishlar, hajm kiritish, akt, to‘lov holati', misol: ['subpudratchi bugun', 'sub aktim'], tasdiq: 'yoq', manba: '/admin/subpudratchi' },
   { id: 'yozuv.sub_akt_qabul', tur: 'navigatsiya', nom: 'Subpudratchi aktini qabul qilish yoki qaytarish, ishni subpudratchiga topshirish: Subpudrat boshqaruvi sahifasini ochadi (qaror faqat sahifada, qo‘lda)', misol: ['subpudratchi aktini qabul qil', 'subpudratga ish topshir'], tasdiq: 'yoq', manba: '/admin/subpudrat -> t2_sub_akt_qaror_v1, t2_sub_topshir_v1' },
+  { id: 'oqish.foyda_zarar', tur: 'navigatsiya', nom: 'Foyda / zarar: loyiha, shartnoma, obyekt va kompaniya plyusdami yoki minusdami (bajarilgan ish − xarajat; kiritilmagan xarajat «—»)', misol: ['loyiha plyusdami minusdami', 'foyda zarar', 'прибыль убыток'], tasdiq: 'yoq', manba: '/admin/moliya?tab=foyda -> rahbar_panel_v1 + t2_xarajat + t2_tolov (yangi RPC yo‘q; hisob lib/foyda-zarar -> hisob-yadro)' },
   { id: 'qoralama.aosr', tur: 'navigatsiya', nom: 'АОСР qoralamasi: АОСР sahifasini ochadi', misol: ['АОСР tayyorla'], tasdiq: 'yoq', manba: '/admin/aosr — tasdiqlash faqat sahifada, qo‘lda' },
 ];
 
