@@ -32,7 +32,14 @@ export type MuammoKirish = {
   vedomostChiqarildi: number;
   tekisVaraqlar: ReadonlyArray<{ manba: string; sabab?: string | null }>;
   tushunilmadiVaraq: number;
+  /** Excel jami ↔ tizim jami (lib/nakrutka-smetadan.excelBilanTizim natijasi; bu yerda faqat matnga o'giriladi). */
+  excelTizim?: ExcelTizimXulosa | null;
 };
+export type ExcelTizimXulosa = {
+  excelVsego: number | null; tizimVsego: number | null; farq: number | null; mos: boolean; taxminiy: boolean;
+  qatorlar: ReadonlyArray<{ nom: string; excel: number | null; tizim: number | null; farq: number | null; izoh: string }>;
+};
+const pulMatn = (x: number | null | undefined) => (x == null ? '—' : x.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 
 /** Tekshiruv natijasi — oddiy o'zbekcha muammolar ro'yxati (texnik atamasiz), har biri «tafsilot» bilan. */
 export function muammolarRoyxati(k: MuammoKirish): Muammo[] {
@@ -57,6 +64,19 @@ export function muammolarRoyxati(k: MuammoKirish): Muammo[] {
     out.push({
       kalit: 'tushunilmadi', ton: 'ogoh',
       matn: t('{n} ta varaq tushunilmadi. Kerak bo‘lsa, varaq turini yuqorida o‘zingiz tanlang.', { n: k.tushunilmadiVaraq }),
+    });
+  }
+  const ex = k.excelTizim;
+  if (ex && ex.excelVsego != null) {
+    out.push({
+      kalit: 'excel-tizim', ton: ex.mos ? 'info' : 'ogoh',
+      matn: ex.mos
+        ? t('Excel jami tizim jamiga teng: {jami} (QQS bilan).', { jami: pulMatn(ex.excelVsego) })
+        : t('Excel jami {excel}, tizim jami {tizim} (farq {farq}).', { excel: pulMatn(ex.excelVsego), tizim: pulMatn(ex.tizimVsego), farq: pulMatn(ex.farq) }),
+      tafsilot: [
+        ...(ex.taxminiy ? [t('Faylda ustama podvali yo‘q — tizim jami kompaniya foizlari bilan, taxminiy.')] : []),
+        ...ex.qatorlar.filter((q) => q.farq != null && Math.abs(q.farq) > 1).map((q) => `${q.nom}: Excel ${pulMatn(q.excel)} · tizim ${pulMatn(q.tizim)}${q.izoh ? ` — ${q.izoh}` : ''}`),
+      ],
     });
   }
   if (k.tekisVaraqlar.length > 0) {

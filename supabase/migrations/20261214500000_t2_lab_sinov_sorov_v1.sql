@@ -434,6 +434,8 @@ end $$;
 
 comment on function public.t2_lab_sorov_yarat_v1(bigint, bigint, bigint, text, bigint, bigint, bigint, text, text, integer, date, text, boolean, bigint, uuid) is 'versiya: tarix - t2_qator faqat id bo‘yicha tegishlilik tekshiruvi (smeta asosi o‘qilmaydi).';
 
+comment on function public.t2_lab_sorov_aosr_holat_v1(bigint, bigint, bigint) is 'versiya: tarix - t2_qator o‘qilmaydi; faqat sinov so‘rovlari va АОСР holati.';
+
 do $$
 declare f text;
 begin
