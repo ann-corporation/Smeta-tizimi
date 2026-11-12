@@ -45,6 +45,11 @@ describe('Yozish izolyatsiyasi (NTB ↔ Discover Invest)', () => {
     expect(egaQarori([NTB], t, ega({ t2_narx_manba: { 2: null } }))).toMatchObject({ ok: false });
   });
 
+  it('arxivlash — p_id RPC ichida a‘zolik bilan tekshiriladi (egasi bazadan so‘ralmaydi), rad etilmaydi', () => {
+    for (const amal of ['arxivla_v1', 'arxivdan_tiklash_v1', 'arxiv_butunlay_v1']) {
+      expect(yozishTalablari(amal, { p_actor_id: 3, p_tur: 'loyiha', p_id: 9 })).toMatchObject({ ok: true, sorovlar: [] });
+    }
+  });
   it('korzinka — faqat oq ro‘yxatdagi jadval; p_request ichi ham tekshiriladi; superadmin maqsad kompaniyasi', () => {
     expect(yozishTalablari('butunlay_ochirish', { p_jadval: 't2_akt', p_id: 1 })).toMatchObject({ ok: false });
     expect(yozishTalablari('korzinkaga_tashlash', { p_jadval: 't2_obyekt', p_id: 80 })).toMatchObject({ ok: true, sorovlar: [{ jadval: 't2_obyekt', idlar: [80] }] });

@@ -37,6 +37,7 @@ import { qolganSummaMatni } from './f2-qolgan-summa';
 import { katKesimNomalumBilan, katKesimYigish } from '../../lib/ustamali-summa';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { ObyektQadamlari } from '../components/ObyektQadamlari';
+import { F2TekshiringRoyxat } from './F2TekshiringRoyxat';
 import { tiyingaYaxlitla, type F2Akt, type F2Tugun } from '../../lib/smeta-anatomiya/f2';
 import { f2AktlarniOqiFonda, f2MoslashV3Fonda } from '../../lib/f2-moslash-v3/fonda';
 import type { F2MoslashNatija, SmetaQator } from '../../lib/f2-moslash-v3';
@@ -493,6 +494,7 @@ function Sessiya({ companyId }: { companyId: number }) {
 
   function tozala() {
     // Scope/file switch must flush pending decisions before clearing in-memory state.
+    setAvtoMoslandi(false);
     const draft = lastWorkingDraft.current;
     if (draft) void f2IshchiSaqla(draft).catch((e) => setIshXato(e instanceof Error ? e.message : 'Oldingi ish saqlanmadi.'));
     pendingCorrection.current = undefined; setEgizakRaqam(null);
@@ -592,12 +594,21 @@ function Sessiya({ companyId }: { companyId: number }) {
     const ishBog = new Map([...avvalgi?.bog ?? []].filter(([, b]) => b.holat !== 'taklif').map(([uid, b]) => [uid, b.qatorId]));
     const n = await f2MoslashV3Fonda(dvigatelDaraxti(a.daraxt), smetaQatorlari(r), { qoldiq: qol, xotira: x, rzBog: rb, ishBog });
     // Podval qo'lda qatorlari dvigatelga berilmaydi; smetada nom o'xshash + summa aynan qator bo'lsa ◐ taklif.
-    setNatija(n); ijOzgar(podvalTaklifQosh(boshlangich(n, avvalgi ?? undefined), f2Indeks(a.daraxt).qatorlar, r));
+    // Hisoblash paytida operator qaror qabul qilgan bo'lishi mumkin (avto-moslash fonda ketadi) — oxirgi holat saqlanadi, qarorlar yo'qolmaydi.
+    setNatija(n); ijOzgar(podvalTaklifQosh(boshlangich(n, ijRef.current ?? avvalgi ?? undefined), f2Indeks(a.daraxt).qatorlar, r));
     const { aniq, xotira: xt, taklif, topilmadi } = n.stat;
     setHolat(`Moslashtirildi: ✓ ${aniq + xt} · ◐ ${taklif} · ✕ ${topilmadi}. ◐ larni tasdiqlang, ✕ larni torting.`);
   }
 
-  // Selection only loads source/estimate. Linking requires an explicit operator action.
+  /** Avto-moslashdan keyin ishlarning resurslari ham bir marta (jim) bog'lanadi — `ij` yangilangach. */
+  const [avtoMoslandi, setAvtoMoslandi] = useState(false);
+  const [avtoTick, setAvtoTick] = useState(0);
+  useEffect(() => {
+    if (!avtoTick || !ijRef.current || !ind) return;
+    ishResurslariniBogla(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [avtoTick]);
+  // Fayl tanlanganda smeta/xotira o'qiladi va ishonchli moslar avtomatik bog'lanadi (yozish — faqat operator «Yozish» bosganda).
   const kalit = objectId && akt && /^\d{4}-(0[1-9]|1[0-2])$/.test(davr) ? `${objectId}|${aktIdx}|${davr}|${akt.fayl}` : '';
   const oxirgiKalit = useRef('');
   useEffect(() => {
@@ -607,7 +618,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     tozala(); setBusy(true); setHolat('Smeta, Nakopitelniy va xotira o‘qilmoqda…');
     void (async () => {
       try {
-        const { r } = await malumotYukla(Number(objectId), davr, () => active);
+        const { r, qol, x } = await malumotYukla(Number(objectId), davr, () => active);
         if (!active) return;
         // Tizim chiqargan Ф-2 (yashirin КАЛИТ ustuni): qatorlar aniq bog'lanadi; kalitsiz/tahrirlangan qatorlar oddiy moslashda qoladi.
         const qatorlarF2 = f2Indeks(akt.daraxt).qatorlar;
@@ -615,8 +626,15 @@ function Sessiya({ companyId }: { companyId: number }) {
         if (!active) return;
         setNatija({ natijalar: new Map(), rzDiag: [], stat: { aniq: kalitBog.size, xotira: 0, taklif: 0, topilmadi: qatorlarF2.length - kalitBog.size } });
         tarixniTozala(); setIj({ bog: kalitBog, otkaz: new Set() });
-        setHolat(kalitBog.size ? t('Tizim kaliti bo‘yicha {n} qator aniq bog‘landi (✓). Qolganlari uchun «Mos qatorlarni bog‘lash» tugmasini bosing.', { n: kalitBog.size }) : 'F2 va smeta tayyor. Mos qatorlarni bog‘lash tugmasini bosing yoki qo‘lda bog‘lang.');
         operation.current = yangiOperationId();
+        /* Avto-moslash (egasi 2026-11-12): ishonchli moslar (✓ aniq / xotira) o'zi bog'lanadi; ◐ va ✕ — «Tekshiring» ro'yxatida.
+         * Hech narsa yozilmaydi (yozish — faqat oxirgi «Yozish» bosilganda); har bog'lanishni uzish/qaytarish mumkin (Avto bog'lanishlarni uzish, Orqaga). */
+        try {
+          await moslash(akt, r, qol, x, new Map(), { bog: kalitBog, otkaz: new Set() });
+          if (active) { setAvtoMoslandi(true); setAvtoTick((n) => n + 1); }
+        } catch (e) {
+          if (active) { setHolat('F2 va smeta tayyor. Mos qatorlarni bog‘lash tugmasini bosing yoki qo‘lda bog‘lang.'); setXato(e instanceof Error ? e.message : 'Avto-moslash bajarilmadi.'); }
+        }
       } catch (e) { if (active) setXato(e instanceof Error ? e.message : 'Smeta yuklanmadi.'); }
       finally { if (active) setBusy(false); }
     })();
@@ -1711,6 +1729,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         jobId={serverDraft.current?.jobId ?? null} busy={busy} yarat={rejaliYarat} versiya={otaVersiya} smetaYangila={smetaYangila}
         ijQoy={(next, izoh, aRaqam) => { ijOzgar(next); setHolat(izoh); setRaqam(''); setAlmashtirTasdiq(null); setEgizakRaqam({ a: aRaqam }); setEgizakSaqla(true); }} />}
 
+      {akt && ij && ind && avtoMoslandi && !done && <F2TekshiringRoyxat qatorlar={ind.qatorlar} ota={ind.ota} ij={ij} />}
       {akt && ij && (
         <section className="karta sticky top-0 z-20 flex flex-wrap items-center gap-3 border-2 border-accent/50 bg-surface p-3 shadow-md" aria-label={t('Moslashtirish')}>
           <button type="button" className="fz-btn fz-btn--primary" disabled={busy || !!done} onClick={() => void aniqBogla()}>{t('Mos qatorlarni bog‘lash')}</button>

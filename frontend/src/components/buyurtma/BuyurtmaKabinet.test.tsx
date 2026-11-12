@@ -2,13 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 const api = vi.hoisted(() => ({
-  buyurtmalarOl: vi.fn(), buyurtmaTafsilotOl: vi.fn(), buyurtmaOtish: vi.fn(), buyurtmaOlishYoz: vi.fn(),
+  buyurtmalarOl: vi.fn(), buyurtmaTolovHolatiOl: vi.fn(async () => ({ ok: true, qatorlar: [] })), buyurtmaTafsilotOl: vi.fn(), buyurtmaOtish: vi.fn(), buyurtmaOlishYoz: vi.fn(),
 }));
 const tomon = vi.hoisted(() => ({ aloqalarOl: vi.fn() }));
 vi.mock('../../api/t2-buyurtma', async (asl) => ({ ...(await asl<typeof import('../../api/t2-buyurtma')>()), ...api }));
 vi.mock('../../api/t2-tomon', () => tomon);
 vi.mock('../../umumiy/ui/Toast', () => ({ toast: vi.fn() }));
 
+import { MemoryRouter } from 'react-router-dom';
 import { BuyurtmaKabinet } from './BuyurtmaKabinet';
 
 const royxat = (id: number, holat: string, versiya = 1) => ({ id, tur: 'material', holat, bosqich: null, obyekt_id: null, summa_nds_siz: null, yetkazish_narx: null, qqs_foiz: null,
@@ -26,7 +27,7 @@ const qator = async (id: number) => (await screen.findByText('#' + id)).closest(
 
 describe('Yetkazuvchi kabineti: «Menga kelgan buyurtmalar»', () => {
   it('«menga» yo\'nalishi so\'raladi; har holatda bitta asosiy tugma; topshirilgan buyurtmada tugma yo\'q (xaridor qabul qiladi)', async () => {
-    render(<BuyurtmaKabinet kompaniyaId={31} />);
+    render(<MemoryRouter><BuyurtmaKabinet kompaniyaId={31} /></MemoryRouter>);
     await qator(1);
     expect(api.buyurtmalarOl).toHaveBeenCalledWith({ kompaniyaId: 31, yonalish: 'menga', limit: 100 });
     expect(within(await qator(1)).getByRole('button', { name: 'Qabul qilish' })).toBeTruthy();
@@ -40,14 +41,14 @@ describe('Yetkazuvchi kabineti: «Menga kelgan buyurtmalar»', () => {
   });
 
   it('«Qabul qilish» -> otish(qabul_qilindi) joriy versiya bilan; keyin ro\'yxat qayta yuklanadi', async () => {
-    render(<BuyurtmaKabinet kompaniyaId={31} />);
+    render(<MemoryRouter><BuyurtmaKabinet kompaniyaId={31} /></MemoryRouter>);
     fireEvent.click(within(await qator(1)).getByRole('button', { name: 'Qabul qilish' }));
     await waitFor(() => expect(api.buyurtmaOtish).toHaveBeenCalledWith(31, { buyurtmaId: 1, kutilganVersiya: 1, holat: 'qabul_qilindi' }));
     await waitFor(() => expect(api.buyurtmalarOl).toHaveBeenCalledTimes(2));
   });
 
   it('zanjir: Bajarishni boshlash > Topshirdim yagona qadamlar (bajarilmoqda va topshirildi holatlariga)', async () => {
-    render(<BuyurtmaKabinet kompaniyaId={31} />);
+    render(<MemoryRouter><BuyurtmaKabinet kompaniyaId={31} /></MemoryRouter>);
     fireEvent.click(within(await qator(2)).getByRole('button', { name: 'Bajarishni boshlash' }));
     await waitFor(() => expect(api.buyurtmaOtish).toHaveBeenLastCalledWith(31, { buyurtmaId: 2, kutilganVersiya: 3, holat: 'bajarilmoqda' }));
     fireEvent.click(within(await qator(4)).getByRole('button', { name: 'Topshirdim' }));
@@ -57,7 +58,7 @@ describe('Yetkazuvchi kabineti: «Menga kelgan buyurtmalar»', () => {
   it('«Tayyor»: baza olib ketish joyini so\'rasa (OLISH_KERAK) - manzil so\'raladi, so\'ng olish_yoz va tayyor', async () => {
     api.buyurtmaOtish.mockResolvedValueOnce({ ok: false, code: 'OLISH_KERAK' }).mockResolvedValue({ ok: true });
     api.buyurtmaOlishYoz.mockResolvedValue({ ok: true, versiya: 6 });
-    render(<BuyurtmaKabinet kompaniyaId={31} />);
+    render(<MemoryRouter><BuyurtmaKabinet kompaniyaId={31} /></MemoryRouter>);
     fireEvent.click(within(await qator(3)).getByRole('button', { name: 'Tayyor' }));
     const manzil = await screen.findByLabelText('Qayerdan olib ketiladi (ombor, manzil)');
     fireEvent.change(manzil, { target: { value: 'Markaziy ombor' } });
@@ -68,7 +69,7 @@ describe('Yetkazuvchi kabineti: «Menga kelgan buyurtmalar»', () => {
 
   it('manzilsiz «Saqlash va tayyor» hech narsa yubormaydi', async () => {
     api.buyurtmaOtish.mockResolvedValueOnce({ ok: false, code: 'OLISH_KERAK' });
-    render(<BuyurtmaKabinet kompaniyaId={31} />);
+    render(<MemoryRouter><BuyurtmaKabinet kompaniyaId={31} /></MemoryRouter>);
     fireEvent.click(within(await qator(3)).getByRole('button', { name: 'Tayyor' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Saqlash va tayyor' }));
     expect(api.buyurtmaOlishYoz).not.toHaveBeenCalled();
@@ -76,13 +77,13 @@ describe('Yetkazuvchi kabineti: «Menga kelgan buyurtmalar»', () => {
 
   it('buyurtma yo\'q bo\'lsa - oddiy xabar', async () => {
     api.buyurtmalarOl.mockResolvedValue({ ok: true, qatorlar: [], keyingi_id: null });
-    render(<BuyurtmaKabinet kompaniyaId={31} />);
+    render(<MemoryRouter><BuyurtmaKabinet kompaniyaId={31} /></MemoryRouter>);
     expect(await screen.findByText('Hozircha sizga buyurtma kelmagan.')).toBeTruthy();
   });
 
   it('«Tarkibi» buyurtma qatorlarini ko\'rsatadi', async () => {
     api.buyurtmaTafsilotOl.mockResolvedValue({ ok: true, tomon: 'ijrochi', buyurtma: { id: 1 }, qatorlar: [{ id: 11, qator_no: 1, nom: 'Sement M400', birlik: 'tonna', miqdor: 12 }] });
-    render(<BuyurtmaKabinet kompaniyaId={31} />);
+    render(<MemoryRouter><BuyurtmaKabinet kompaniyaId={31} /></MemoryRouter>);
     fireEvent.click(within(await qator(1)).getByRole('button', { name: 'Tarkibi' }));
     expect(await screen.findByText('Sement M400')).toBeTruthy();
     expect(api.buyurtmaTafsilotOl).toHaveBeenCalledWith(31, 1);

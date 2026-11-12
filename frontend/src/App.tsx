@@ -19,17 +19,18 @@ const TgKirish = lazy(() => import('./telegram/TgKirish'));
 // (`SahifaChegarasi`), shuning uchun kirish sahifasi bu og'ir sahifalarni yuklamaydi.
 const HolatNative = lazy(() => import('./admin/sahifalar/HolatNative'));
 const FaktNative = lazy(() => import('./admin/sahifalar/FaktNative'));
+const UstaBugun = lazy(() => import('./admin/sahifalar/UstaBugun'));
 const FaylBoglash = lazy(() => import('./admin/sahifalar/FaylBoglash'));
 /* TIZIM_02 — Supabase sinov muhiti. Tizim_01 ga TEGMAYDI. */
 const TestShell     = lazy(() => import('./test02/TestShell'));
 const TestKorzinka  = lazy(() => import('./test02/TestKorzinka'));
 const TestXarita    = lazy(() => import('./test02/TestXarita'));
 const TestLoyiha    = lazy(() => import('./test02/TestLoyiha'));
-const TestKontragent = lazy(() => import('./test02/TestKontragent'));
+const Kontragentlar = lazy(() => import('./admin/tomonlar/Kontragentlar'));
+const YetkazuvchiBugun = lazy(() => import('./admin/yetkazuvchi/YetkazuvchiBugun'));
 const TestObyektlar = lazy(() => import('./test02/TestObyektlar'));
 const WrapperMoliya = lazy(() => import('./test02/WrapperMoliya'));
 const WrapperLogistika = lazy(() => import('./test02/WrapperLogistika'));
-const WrapperCRM = lazy(() => import('./test02/WrapperCRM'));
 const TestSmetaBirlashgan = lazy(() => import('./test02/TestSmetaBirlashgan'));
 const TestZayavka   = lazy(() => import('./test02/TestZayavka'));
 const TenderSahifa  = lazy(() => import('./admin/tender/TenderSahifa'));
@@ -75,6 +76,9 @@ const Murojaatlar = lazy(() => import('./admin/zakazchik/Murojaatlar'));
 const NazoratUy = lazy(() => import('./admin/nazorat/NazoratUy'));
 const TekshiruvForma = lazy(() => import('./admin/nazorat/TekshiruvForma'));
 const TekshiruvJurnal = lazy(() => import('./admin/nazorat/TekshiruvJurnal'));
+const LabKabinet = lazy(() => import('./admin/laboratoriya/LabKabinet'));
+const ChizmaReestri = lazy(() => import('./admin/loyihachi/ChizmaReestri'));
+const LoyihachiBugun = lazy(() => import('./admin/loyihachi/LoyihachiBugun'));
 const HujjatAylanish = lazy(() => import('./admin/zakazchik/HujjatAylanish'));
 const NarxDalil = lazy(() => import('./admin/sahifalar/NarxDalil'));
 const NarxTekshiruv = lazy(() => import('./admin/sahifalar/NarxTekshiruv'));
@@ -101,7 +105,6 @@ function AiHelper() { return <Suspense fallback={null}><AiHelperLazy /></Suspens
 const Umumiy = lazy(() => import('./boss/sahifalar/Umumiy'));
 
 // ERP pages
-const ErpKadrlar = lazy(() => import('./erp/sahifalar/ErpKadrlar'));
 const ErpTexnika = lazy(() => import('./erp/sahifalar/ErpTexnika'));
 const ErpTaminot = lazy(() => import('./erp/sahifalar/ErpTaminot'));
 const ErpSifat = lazy(() => import('./erp/sahifalar/ErpSifat'));
@@ -150,6 +153,7 @@ export default function App() {
           <Route path="holat" element={<HolatNative />} />
           <Route path="holat/:id" element={<HolatNative />} />
           <Route path="fakt" element={<FaktNative />} />
+        <Route path="bugun" element={<Suspense fallback={<SahifaYuklanmoqda />}><UstaBugun /></Suspense>} />
           {/* 2026-10-25 (tizim xaritasi P1): F2 bo'limi — sidebarda bitta «F2» bandi, tepada tablar.
               Yo'lsiz layout: sahifalar va ularning URL'lari o'zgarmagan. */}
           <Route element={<BolimTablari />}>
@@ -182,17 +186,21 @@ export default function App() {
             <Route path="hujjat-nazorat" element={<Suspense fallback={<SahifaYuklanmoqda />}><HujjatNazoratPage /></Suspense>} />
             <Route path="participants" element={<Suspense fallback={<SahifaYuklanmoqda />}><ParticipantsPage /></Suspense>} />
             <Route path="zakazchik" element={<Suspense fallback={<SahifaYuklanmoqda />}><ZakazchikKabinet /></Suspense>} />
-            <Route path="aloqalar" element={<Suspense fallback={<SahifaYuklanmoqda />}><TomonlarAloqa /></Suspense>} />
-            <Route path="taqdimlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><TaqdimlarInbox /></Suspense>} />
+            {/* Tomonlar -> Kontragentlar (ekotizim V3): CRM, Logistika kontragentlari va Aloqalar bitta sahifaga birlashtirildi; eski yo'llar yo'naltiriladi. */}
+            <Route path="kontragentlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><Kontragentlar /></Suspense>} />
+            <Route path="aloqalar" element={<Navigate to="/admin/kontragentlar?tab=aloqa" replace />} />            <Route path="taqdimlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><TaqdimlarInbox /></Suspense>} />
             <Route path="murojaatlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><Murojaatlar /></Suspense>} />
           <Route path="nazorat" element={<Suspense fallback={<SahifaYuklanmoqda />}><NazoratUy /></Suspense>} />
           <Route path="nazorat/tekshiruv" element={<Suspense fallback={<SahifaYuklanmoqda />}><TekshiruvForma /></Suspense>} />
           <Route path="nazorat/jurnal" element={<Suspense fallback={<SahifaYuklanmoqda />}><TekshiruvJurnal /></Suspense>} />
+            <Route path="laboratoriya" element={<Suspense fallback={<SahifaYuklanmoqda />}><LabKabinet /></Suspense>} />
             <Route path="hujjat-aylanish" element={<Suspense fallback={<SahifaYuklanmoqda />}><HujjatAylanish /></Suspense>} />
+            <Route path="chizmalar" element={<Suspense fallback={<SahifaYuklanmoqda />}><ChizmaReestri /></Suspense>} />
+            <Route path="loyihachi" element={<Suspense fallback={<SahifaYuklanmoqda />}><LoyihachiBugun /></Suspense>} />
             <Route path="system-control" element={<Suspense fallback={<SahifaYuklanmoqda />}><SystemControlPage /></Suspense>} />
             <Route path="ai-agentlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><AiAgentlar /></Suspense>} />
             <Route path="kompaniya" element={<Suspense fallback={<SahifaYuklanmoqda />}><KompaniyaPage /></Suspense>} />
-            <Route path="crm" element={<WrapperCRM />} />
+            <Route path="crm" element={<Navigate to="/admin/kontragentlar" replace />} />
             <Route path="aosr" element={<TestAosr />} />
             <Route path="korzinka" element={<TestKorzinka />} />
             <Route path="tizim-sozlama" element={<TestSozlama />} />
@@ -204,6 +212,8 @@ export default function App() {
           {/* Egasi 2026-10-02: token balansi, obuna, superadmin to'lov tasdig'i. */}
           {/* «Telegram modeli» markazi: barcha ish joylari + barcha joylardan «Mening ishlarim». */}
           <Route path="topshiriqlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><Topshiriqlar /></Suspense>} />
+          {/* Yetkazuvchi tomoni «Bugun» (ekotizim V3): kelgan so'rovlar, takliflar, buyurtmalar, transport. */}
+          <Route path="yetkazuvchi" element={<Suspense fallback={<SahifaYuklanmoqda />}><YetkazuvchiBugun /></Suspense>} />
           <Route path="ish-joylarim" element={<Suspense fallback={<SahifaYuklanmoqda />}><IshJoylarim /></Suspense>} />
           {/* T6: mutaxassis profili va kompaniyalarga xizmat taklifi. */}
           <Route path="mutaxassis" element={<Suspense fallback={<SahifaYuklanmoqda />}><Mutaxassis /></Suspense>} />
@@ -248,7 +258,7 @@ export default function App() {
             <Route path="portfel" element={<Navigate to="/admin/loyiha" replace />} /> {/* takror «Loyihalar» sahifasi — asosiy /admin/loyiha ga */}
             <Route path="moliya" element={<Navigate to="/admin/moliya" replace />} />
             <Route path="logistika" element={<Navigate to="/admin/logistika" replace />} />
-            <Route path="crm" element={<Navigate to="/admin/crm" replace />} />
+            <Route path="crm" element={<Navigate to="/admin/kontragentlar" replace />} />
 
             <Route path="sozlama" element={<Navigate to="/admin/tizim-sozlama" replace />} />
             {/* IA consolidation (T2-COMPANY-CONTEXT-P0-FIX-001): a'zolar boshqaruvi
@@ -257,7 +267,7 @@ export default function App() {
             <Route path="loyiha" element={<Navigate to="/admin/loyiha" replace />} />
             <Route path="korzinka" element={<Navigate to="/admin/korzinka" replace />} />
             <Route path="xarita" element={<Navigate to="/admin/mindmap" replace />} />
-            <Route path="kontragent" element={<TestKontragent />} />
+            <Route path="kontragent" element={<Navigate to="/admin/kontragentlar" replace />} />
             <Route path="obyektlar" element={<Navigate to="/admin/obyektlar" replace />} />
             <Route path="saqlash" element={<Navigate to="/admin/storage" replace />} />
             <Route path="smeta" element={<TestSmetaBirlashgan />} />
@@ -274,7 +284,7 @@ export default function App() {
             <Route path="aosr" element={<Navigate to="/admin/aosr" replace />} />
           </Route>
           {/* ERP routes for Admin */}
-          <Route path="kadrlar" element={<ErpKadrlar />} />
+          <Route path="kadrlar" element={<Navigate to="/admin/hr" replace />} />
           <Route path="texnika" element={<ErpTexnika />} />
           <Route path="taminot" element={<ErpTaminot />} />
           <Route path="sifat" element={<ErpSifat />} />
@@ -326,7 +336,7 @@ export default function App() {
           <Route path="holat/:id" element={<BossHolatYonaltir />} />
           <Route path="fakt" element={<Navigate to="/admin/fakt" replace />} />
           {/* ERP routes for Boss */}
-          <Route path="kadrlar" element={<Navigate to="/admin/kadrlar" replace />} />
+          <Route path="kadrlar" element={<Navigate to="/admin/hr" replace />} />
           <Route path="texnika" element={<Navigate to="/admin/texnika" replace />} />
           <Route path="taminot" element={<Navigate to="/admin/taminot" replace />} />
           <Route path="sifat" element={<Navigate to="/admin/sifat" replace />} />

@@ -48,6 +48,11 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       const aylanish = await rpc(ctx.env, 't2_hujjat_aylanish_hujjat_ol_v1', { p_actor_id: actorId, p_document_id: id });
       if (aylanish.httpOk && aylanish.body && aylanish.body.ok === true) res = aylanish;
     }
+    // LOYIHACHI: chizma revizyasi faylini egasi yoki unga chiqarilgan taqdim qabul qiluvchisi (faol aloqa) yuklab oladi.
+    if ((!res.httpOk || !res.body || res.body.ok !== true) && (!res.body || res.body.code !== 'CANONICAL_BINARY_MISSING')) {
+      const chizma = await rpc(ctx.env, 't2_chizma_fayl_ol_v1', { p_actor_id: actorId, p_document_id: id });
+      if (chizma.httpOk && chizma.body && chizma.body.ok === true) res = chizma;
+    }
     if (!res.httpOk || !res.body || res.body.ok !== true) {
       const code = (res.body && res.body.code) || 'DOCUMENT_FORBIDDEN';
       const status = code === 'DOCUMENT_NOT_FOUND' ? 404 : code === 'CANONICAL_BINARY_MISSING' ? 502 : 403;

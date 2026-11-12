@@ -4,9 +4,9 @@
  * Saldo = Дебет − Кредит: «+» — контрагент должен нам, «−» — мы должны контрагенту. Summalar QQS bilan. Rang yo'q, jami qalin, imzo bloki.
  */
 import { RasmiyVaraq, bugunSana, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, ustunHarfi, type Qiymat } from '../hujjat-yozuvchi';
-import { yaxlit2 } from '../hisob-yadro';
-import { sverkaQatorlari } from './hisob';
-import type { BuxHujjatQator } from '../../api/t2-bux-hisob';
+import { yaxlit2, yigindi2 } from '../hisob-yadro';
+import { sverkaQatorlari, saldoTomoni } from './hisob';
+import type { BuxHujjatQator, BuxOsv } from '../../api/t2-bux-hisob';
 
 export type SverkaKirish = {
   kompaniya: string | null;
@@ -82,4 +82,44 @@ export function aktSverkaHujjat(k: SverkaKirish): { bytes: Uint8Array; faylNomi:
   v.imzo(imzoTomonlari(['СОСТАВИЛ', 'ПРОВЕРИЛ']));
   const { bytes } = rasmiyKitob([v]);
   return { bytes, faylNomi: hujjatFaylNomi({ obyekt: k.kontragent, hujjat: 'АКТ_СВЕРКИ', davr: `${k.dan}_${k.gacha}` }) };
+}
+
+export type OsvKirish = { kompaniya: string | null; osv: BuxOsv };
+
+/** Оборотно-сальдовая ведомость (ОСВ) — RUS: schyot bo'yicha davr boshi / oborot / davr oxiri (Dt | Kt ikki katak). Summalar QQS bilan; jami qatori formula. */
+export function osvHujjat(k: OsvKirish): { bytes: Uint8Array; faylNomi: string } {
+  const v = new RasmiyVaraq({
+    nom: 'ОСВ',
+    kattaHarf: false,
+    sarlavha: 'ОБОРОТНО-САЛЬДОВАЯ ВЕДОМОСТЬ',
+    ostSarlavha: [`за период с ${ddmmyyyy(k.osv.dan)} по ${ddmmyyyy(k.osv.gacha)}`, 'Суммы с НДС.'],
+    titul: [['Организация:', k.kompaniya ?? null], ['Дата составления:', ddmmyyyy(bugunSana())]],
+    ustunlar: [
+      { sarlavha: 'Счёт', kenglik: 9, tur: 'kod' },
+      { sarlavha: 'Наименование', kenglik: 40, tur: 'matn' },
+      { sarlavha: 'Дебет', kenglik: 17, tur: 'pul', guruh: 'Сальдо на начало' },
+      { sarlavha: 'Кредит', kenglik: 17, tur: 'pul', guruh: 'Сальдо на начало' },
+      { sarlavha: 'Дебет', kenglik: 17, tur: 'pul', guruh: 'Обороты за период' },
+      { sarlavha: 'Кредит', kenglik: 17, tur: 'pul', guruh: 'Обороты за период' },
+      { sarlavha: 'Дебет', kenglik: 17, tur: 'pul', guruh: 'Сальдо на конец' },
+      { sarlavha: 'Кредит', kenglik: 17, tur: 'pul', guruh: 'Сальдо на конец' },
+    ],
+    yonalish: 'landscape',
+  });
+  const bosh = v.r;
+  const ds = (n: number | null) => (n == null || n === 0 ? null : yaxlit2(n));
+  const ustun: number[][] = [[], [], [], [], [], []];
+  for (const q of k.osv.qatorlar) {
+    const o = saldoTomoni(q.ochilish); const y = saldoTomoni(q.yopilish);
+    [o.dt, o.kt, q.dt, q.kt, y.dt, y.kt].forEach((x, i) => ustun[i].push(x ?? 0));
+    v.qator('ish', () => [q.kod, q.nom_ru ?? q.nom_uz ?? null, ds(o.dt), ds(o.kt), ds(q.dt), ds(q.kt), ds(y.dt), ds(y.kt)] as Qiymat[]);
+  }
+  const oxir = v.r - 1;
+  if (k.osv.qatorlar.length > 0) {
+    const yig = (i: number): Qiymat => ({ f: `SUM(${ustunHarfi(i + 2)}${bosh}:${ustunHarfi(i + 2)}${oxir})`, v: yigindi2(ustun[i]) });
+    v.qator('jami', () => [null, 'ИТОГО', yig(0), yig(1), yig(2), yig(3), yig(4), yig(5)]);
+  }
+  v.imzo(imzoTomonlari(['СОСТАВИЛ', 'ПРОВЕРИЛ']));
+  const { bytes } = rasmiyKitob([v]);
+  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: k.kompaniya ?? 'ОСВ', hujjat: 'ОСВ', davr: `${k.osv.dan}_${k.osv.gacha}` }) };
 }
