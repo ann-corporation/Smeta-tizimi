@@ -15,7 +15,7 @@ export function dataPermission(name: string, write: boolean, body: Record<string
      olib ketish joyi - supply.fulfil; yaratish/qabul - procurement.write; o'qish - procurement.read. write-command-policy.ts bilan bir xil. */
   if (/^buyurtma_/.test(n)) {
     if (!write) return 'procurement.read';
-    if (n === 'buyurtma_royxat_v1' || n === 'buyurtma_tafsilot_v1') return 'procurement.read';
+    if (n === 'buyurtma_royxat_v1' || n === 'buyurtma_tafsilot_v1' || n === 'buyurtma_tolov_holati_v1') return 'procurement.read';
     if (n === 'buyurtma_olish_yoz_v1') return 'supply.fulfil';
     if (n === 'buyurtma_otish_v1') return ['qabul_qilindi','rad','bajarilmoqda','tayyor','topshirildi'].includes(String(body.holat || '')) ? 'supply.fulfil' : 'procurement.write';
     return 'procurement.write';
