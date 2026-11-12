@@ -271,6 +271,9 @@ export const onRequestPost: PagesFunction<{
         hr_oy_v1: 'kompaniya_actor',
         hr_kpi_v1: 'kompaniya_actor',
         hr_oylik_buxgalteriya_v1: 'kompaniya_actor',
+        /* 2026-11-12: «Mening oyligim» (faqat o'z qatori; a'zolik yetarli) va KPI qoidalari/sozlama. */
+        hr_men_v1: 'kompaniya_actor',
+        hr_qoida_v1: 'kompaniya_actor',
         /* Egasi 2026-11-04: buxgalteriya o'qishlari (reja, jurnal, ОСВ, kontragent hisob-kitobi, QQS reyestri, bank/kassa). `stable`; a'zolik + rol + accounting.read RPC ichida. */
         bux_holat_v1: 'kompaniya_actor',
         bux_jurnal_v1: 'kompaniya_actor',
@@ -473,6 +476,14 @@ export const onRequestPost: PagesFunction<{
         const oy = (so as { oy?: unknown }).oy;
         if (typeof oy !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(oy)) return Response.json({ ok: false, error: "oy majburiy (YYYY-MM)" });
         q.set('p_oy', oy);
+      }
+      if (so.soro === 'hr_men_v1') {
+        /* oy ixtiyoriy (sukut: joriy oy, serverda); berilsa YYYY-MM. */
+        const oy = (so as { oy?: unknown }).oy;
+        if (oy != null && oy !== '') {
+          if (typeof oy !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(oy)) return Response.json({ ok: false, error: "oy YYYY-MM bo'lishi kerak" });
+          q.set('p_oy', oy);
+        }
       }
       if (typeof so.soro === 'string' && so.soro.startsWith('bux_')) {
         /* Buxgalteriya o'qishlari: umumiy filtr imzosi (dan, gacha, kontragent, shartnoma, hisob, limit) — qiymatlar qat'iy tekshiriladi. */

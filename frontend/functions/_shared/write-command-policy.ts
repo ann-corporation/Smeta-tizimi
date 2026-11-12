@@ -39,6 +39,7 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   hr_tuzatma_saqla_v1: 'hr.tabel.write',
   hr_tuzatma_qaror_v1: 'payroll.write',
   hr_oylik_v1: 'payroll.write',
+  hr_kpi_qoida_saqla_v1: 'payroll.write',
   bux_boshlash_v1: 'financial.write',
   bux_hisob_saqla_v1: 'financial.write',
   bux_moslik_saqla_v1: 'financial.write',
