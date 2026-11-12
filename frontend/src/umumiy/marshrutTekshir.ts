@@ -34,7 +34,7 @@ export const ADMIN_MARSHRUTLARI = [
   'smeta-studio', 'm29', 'aosr', 'narx-dalil', 'nakrutka', 'narx-manbalari', 'oferta', 'loyiha', 'shartnoma-liniya', 'qarzdorlik',
   'crm', 'aloqalar', 'kontragentlar', 'yetkazuvchi', 'subpudratchi', 'subpudrat', 'zakazchik', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish', 'moliya', 'logistika', 'zayavka', 'tender', 'tender-ochiq', 'yuk-birjasi', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'yuk-chaqirish', 'haydovchi', 'erp', 'f2-reestr',
   'nakopitelniy', 'tizim-sozlama', 'hujjat-dizayn', 'tokenlar', 'ai-agentlar', 'korzinka', 'ish-joylarim',
-  'topshiriqlar', 'mutaxassis', 'boshqaruv', 'sayt-xaritasi', 'akkaunt', 'tizim-xaritasi',
+  'topshiriqlar', 'mutaxassis', 'boshqaruv', 'sayt-xaritasi', 'akkaunt', 'tizim-xaritasi', 'osuvchi',
   /* 2026-11-03: Uy sotish. */
   'sotuv',
   /* 2026-11-04: HR + KPI. */

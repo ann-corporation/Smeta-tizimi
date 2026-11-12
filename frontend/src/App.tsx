@@ -77,6 +77,7 @@ const Topshiriqlar = lazy(() => import('./admin/sahifalar/Topshiriqlar'));
 const Mutaxassis = lazy(() => import('./admin/sahifalar/Mutaxassis'));
 const BoshqaruvPanel = lazy(() => import('./admin/sahifalar/BoshqaruvPanel'));
 const AkkauntMarkazi = lazy(() => import('./admin/sahifalar/AkkauntMarkazi'));
+const Osuvchi = lazy(() => import('./admin/sahifalar/Osuvchi'));
 const SozlamalarMarkazi = lazy(() => import('./admin/sahifalar/SozlamalarMarkazi'));
 const SaytXaritasi = lazy(() => import('./admin/sahifalar/SaytXaritasi'));
 const TizimXaritasi = lazy(() => import('./admin/sahifalar/TizimXaritasi'));
@@ -288,6 +289,7 @@ export default function App() {
               `dashboard` -> BossDashboard (declared above). */}
           <Route path="zakazchik/obyekt/:aloqaId/:obyektId" element={<Suspense fallback={<SahifaYuklanmoqda />}><ObyektPortali /></Suspense>} />
           <Route path="akkaunt" element={<Suspense fallback={<SahifaYuklanmoqda />}><AkkauntMarkazi /></Suspense>} />
+          <Route path="osuvchi" element={<Suspense fallback={<SahifaYuklanmoqda />}><Osuvchi /></Suspense>} />
           <Route path="sayt-xaritasi" element={<Suspense fallback={<SahifaYuklanmoqda />}><SaytXaritasi /></Suspense>} />
           {/* Egasi 2026-10-27: tizim darajasidagi jonli mindmap — faqat superadmin va u ruxsat berganlar (sahifa avval serverdan so'raydi). */}
           <Route path="tizim-xaritasi" element={<Suspense fallback={<SahifaYuklanmoqda />}><TizimXaritasi /></Suspense>} />

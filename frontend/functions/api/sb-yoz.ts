@@ -76,6 +76,8 @@ const AMALLAR = {
   /* Naryad (brigada/usta topshirig'i) + kompaniya lug'ati (20261214800000): bitta yozuvchi RPC, ichki amal (yarat/bajarildi/qabul/fakt_yozildi/hisobla/bekor/lugat_saqla).
      RPC a'zolik + smeta.write (hisobla — yana financial.write) ni o'zi tekshiradi; idempotent (operation_id), CAS (kutilgan_versiya). */
   naryad_yoz_v1: { rpc: 't2_naryad_yoz_v1' },
+  /* O'rganish halqasi (20261217400000): tajriba yozish/unutish, sozlama, ishqalanish partiyasi, takliflar navbati qarori. Bitta RPC, ichki amal oq ro'yxatdan; ruxsat dinamik (permission-policy.ts). */
+  osuvchi_yoz_v1: { rpc: 't2_osuvchi_yoz_v1' },
   /* Egasi 2026-10-01: shartnoma kartasi — loyiha, erkin turdagi tomonlar, obyektlar to'plami (asosiy: obyektda bitta). */
   shartnoma_saqla_v2: { rpc: 't2_shartnoma_saqla_v2' },
   /* Egasi 2026-11-02: qarzdorlik - asoslar saqlash (CAS) va Excel importi (idempotent operation_id). RPC a'zolik + financial.write ni o'zi tekshiradi. */
@@ -1097,6 +1099,41 @@ export const onRequestPost: PagesFunction<{
         yuk2.qiymat = qv;
       }
       yuk = { p_kompaniya_id: so.kompaniya_id, p_actor_id: sess.foydalanuvchi_id, p_operation_id: so.operation_id, p_amal: ichki, p_naryad_id: nid, p_kutilgan_versiya: kv, p_yuk: yuk2 };
+    } else if (amal === 'osuvchi_yoz_v1') {
+      /* O'rganish halqasi: ichki amal va yuk oq ro'yxatdan (faqat tipli skalyar maydonlar, qat'iy uzunlik). Biznes qoidalari, tenant, ruxsat va maxfiylik filtri — RPC da. */
+      const xato400 = (x: string) => Response.json({ ok: false, error: 'O‘rganish: ' + x }, { status: 400 });
+      const ichki = String(so.osuvchi_amal ?? '');
+      if (!sess.foydalanuvchi_id || !uuidRe.test(String(so.operation_id || ''))) return xato400('operatsiya talab qilinadi.');
+      if (!['tajriba_yoz', 'tajriba_unut', 'sozlama_saqla', 'friksiya_yubor', 'taklif_yigish', 'taklif_qaror'].includes(ichki)) return xato400('amal noma’lum.');
+      const yx = so.yuk && typeof so.yuk === 'object' && !Array.isArray(so.yuk) ? so.yuk as Record<string, unknown> : {};
+      const mt = (x: unknown, n: number) => (x == null ? null : typeof x === 'string' ? x.slice(0, n) : undefined);
+      const yuk2: Record<string, unknown> = {};
+      if (ichki === 'tajriba_yoz') {
+        for (const [k, n] of [['domen', 30], ['kalit', 160], ['qiymat', 600], ['natija', 12], ['taklif_qiymat', 600]] as const) {
+          const v = mt(yx[k], n); if (v === undefined) return xato400(`${k} matn bo‘lishi kerak.`);
+          if (v != null) yuk2[k] = v;
+        }
+      } else if (ichki === 'tajriba_unut') {
+        if (yx.hammasi === true) yuk2.hammasi = true;
+        else if (Number.isSafeInteger(Number(yx.id)) && Number(yx.id) > 0) yuk2.id = Number(yx.id);
+        else return xato400('id yoki hammasi kerak.');
+      } else if (ichki === 'sozlama_saqla') {
+        for (const k of ['oqish', 'hissa']) { if (yx[k] === undefined) continue; if (typeof yx[k] !== 'boolean') return xato400(`${k} mantiqiy bo‘lishi kerak.`); yuk2[k] = yx[k]; }
+      } else if (ichki === 'friksiya_yubor') {
+        const qs = yx.qatorlar;
+        if (!Array.isArray(qs) || qs.length < 1 || qs.length > 60) return xato400('1..60 qator.');
+        yuk2.qatorlar = qs.map((q) => {
+          const o = q && typeof q === 'object' && !Array.isArray(q) ? q as Record<string, unknown> : {};
+          return { s: mt(o.s, 60) ?? '', a: mt(o.a, 40) ?? '', h: mt(o.h, 16) ?? '', k: mt(o.k, 60) ?? '', n: Number.isSafeInteger(o.n) ? o.n : 0, o: o.o === 1 ? 1 : 0 };
+        });
+      } else if (ichki === 'taklif_yigish') {
+        if (yx.min_kompaniya != null) { const m = Number(yx.min_kompaniya); if (!Number.isSafeInteger(m) || m < 1 || m > 50) return xato400('min_kompaniya 1..50.'); yuk2.min_kompaniya = m; }
+      } else if (ichki === 'taklif_qaror') {
+        const id = Number(yx.id);
+        if (!Number.isSafeInteger(id) || id <= 0 || !['qabul', 'rad', 'keyin'].includes(String(yx.qaror))) return xato400('id va qaror (qabul|rad|keyin) kerak.');
+        yuk2.id = id; yuk2.qaror = yx.qaror;
+      }
+      yuk = { p_kompaniya_id: so.kompaniya_id, p_actor_id: sess.foydalanuvchi_id, p_operation_id: so.operation_id, p_amal: ichki, p_yuk: yuk2 };
     } else if (amal === 'qarzdorlik_saqla_v1') {
       /* Qarzdorlik: bitta shartnoma asoslari (CAS) - qator maydonlari oq ro'yxatdan, qolganini RPC tekshiradi. */
       const qs = so.qatorlar; const och = so.ochirilgan; const sp = so.spravka;
