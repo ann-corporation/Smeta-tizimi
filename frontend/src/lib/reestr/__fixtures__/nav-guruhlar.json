@@ -809,6 +809,20 @@
             ],
             "modul": "module.erp",
             "qoshimcha": true
+          },
+          {
+            "yol": "/admin/tender-ochiq",
+            "ilova": "xarid",
+            "nom": "Ochiq tender (lot, taqqos, bayonnoma)",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "procurement.read",
+              "procurement.write"
+            ],
+            "modul": "module.erp",
+            "qoshimcha": true
           }
         ]
       },

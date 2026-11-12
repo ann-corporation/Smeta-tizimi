@@ -1,6 +1,6 @@
 import { t as tr } from '../../i18n/til';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Building2, FileSignature, Link2, Plus, Save, Trash2, Users, X } from 'lucide-react';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { toast } from '../../umumiy/ui/Toast';
@@ -36,6 +36,17 @@ export function ShartnomaLiniya() {
   const [xato, setXato] = useState<string | null>(null);
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [shakl, setShakl] = useState<Shakl | null>(null);
+  /* Ochiq tender g'olibidan kelgan qoralama havolasi (?yangi=1&turi=subpudrat&nom&taraf&loyiha&summa): forma bir marta to'ldirilib ochiladi; saqlashni foydalanuvchi tasdiqlaydi. */
+  const havolaQollandi = useRef(false);
+  useEffect(() => {
+    const qidiruv = new URLSearchParams(typeof window === 'undefined' ? '' : window.location.search);
+    if (havolaQollandi.current || !liniya || qidiruv.get('yangi') !== '1') return;
+    havolaQollandi.current = true;
+    const loyiha = Number(qidiruv.get('loyiha')) || null;
+    const summa = qidiruv.get('summa') ?? '';
+    setShakl({ ...shaklQur(null, loyiha), asosiy: false, turi: qidiruv.get('turi') ?? '', nom: qidiruv.get('nom') ?? '', summa_bez_nds: /^[0-9]+(\.[0-9]+)?$/.test(summa) ? summa : '',
+      tomonlar: [{ rol: 'Pudratchi', nom: '', inn: null }, { rol: 'Subpudratchi', nom: qidiruv.get('taraf') ?? '', inn: null }] });
+  }, [liniya]);
   const [saqlanmoqda, setSaqlanmoqda] = useState(false);
   const [obQidir, setObQidir] = useState('');
   // Ochiq shartnoma obyektlarining smeta qiymati — USTAMALI (ИТОГО-4, QQS siz) va QQS bilan: shartnoma summasi (QQS siz)

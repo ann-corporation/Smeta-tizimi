@@ -186,6 +186,10 @@ export default function SubpudratBoshqaruv() {
                 {bolimlar.map((b) => <option key={b.id} value={b.id}>{`${'· '.repeat(Math.min(b.daraja ?? 0, 4))}${b.kod ?? ''} ${b.nom ?? ''}`}</option>)}</select></label>
             <button type="button" className="fz-btn fz-btn--sm fz-btn--primary" disabled={band || bolimId == null || !aloqa || !bolimIshlari.length}
               onClick={() => void topshir([], bolimId, ulgurjiSon)}>{t('Butun bo‘limni topshirish')} ({bolimIshlari.length})</button>
+            {bolimId != null && oid != null && bolimIshlari.length > 0 && (
+              <Link className="fz-btn fz-btn--sm" to={`/admin/tender-ochiq?smeta=1&obyekt=${oid}&bolim=${bolimId}&tur=subpudrat`}
+                title={t('Bo‘limni ochiq tenderga chiqarish: faqat hajm, narxsiz')}>{t('Tenderga chiqarish')}</Link>
+            )}
           </div>
           {bolimIshlari.length > 0 && (
             <>

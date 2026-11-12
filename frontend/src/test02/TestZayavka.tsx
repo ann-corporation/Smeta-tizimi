@@ -281,6 +281,10 @@ export default function TestZayavka() {
                             <Link to={sorovHavolasi({ nom: z.itemText, birlik: z.unit ?? '', hajm: qolgan != null && qolgan > 0 ? qolgan : z.requestedQty, zayavka_id: z.id, obyekt_id: z.obyektId })}
                               className="fz-btn fz-btn--sm" title={t('Bozorda ochiq so‘rov: sotuvchilar narx beradi')}>{t('Bozordan narx so‘rash')}</Link>
                           )}
+                          {(z.status === 'approved' || z.status === 'procurement') && (
+                            <Link to={`/admin/tender-ochiq?yarat=1&nom=${encodeURIComponent(z.itemText)}&birlik=${encodeURIComponent(z.unit ?? '')}&hajm=${qolgan != null && qolgan > 0 ? qolgan : z.requestedQty}&zayavka_id=${z.id}&obyekt_id=${z.obyektId}`}
+                              className="fz-btn fz-btn--sm" title={t('Ochiq tender: takliflar muhrlangan keladi')}>{t('Tenderga chiqarish')}</Link>
+                          )}
                           {QADAMLAR.filter((q) => q.dan.includes(z.status) && q.ga !== 'ordered').map((q) => (
                             <button key={q.ga} type="button" onClick={() => void holatOzgartir(z.id, q.ga)} className={`fz-btn fz-btn--sm ${q.cls}`} title={t(q.title)}>{t(q.nom)}</button>
                           ))}
