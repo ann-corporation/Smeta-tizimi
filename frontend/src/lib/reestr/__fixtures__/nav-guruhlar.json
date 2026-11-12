@@ -683,6 +683,52 @@
         ]
       },
       {
+        "nom": "Bozor",
+        "ikonka": "ClipboardList",
+        "sahifalar": [
+          {
+            "yol": "/admin/bozor-sorov",
+            "ilova": "xarid",
+            "nom": "Bozordan narx so‘rash",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "procurement.read",
+              "procurement.write"
+            ],
+            "modul": "module.erp",
+            "qoshimcha": true
+          },
+          {
+            "yol": "/admin/bozor-kabinet",
+            "ilova": "xarid",
+            "nom": "Bozor kabineti (sotuvchi)",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "procurement.read"
+            ],
+            "modul": "module.erp",
+            "qoshimcha": true
+          },
+          {
+            "yol": "/admin/bozor-moderatsiya",
+            "ilova": "xarid",
+            "nom": "Bozor moderatsiyasi",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "procurement.read"
+            ],
+            "modul": "module.erp",
+            "qoshimcha": true
+          }
+        ]
+      },
+      {
         "nom": "Yetkazuvchi: bugun",
         "ikonka": "Truck",
         "sahifalar": [

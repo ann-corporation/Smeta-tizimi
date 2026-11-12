@@ -35,6 +35,10 @@ const TestSmetaBirlashgan = lazy(() => import('./test02/TestSmetaBirlashgan'));
 const TestZayavka   = lazy(() => import('./test02/TestZayavka'));
 const TenderSahifa  = lazy(() => import('./admin/tender/TenderSahifa'));
 const YukBirjasiSahifa = lazy(() => import('./admin/yuk-birjasi/YukBirjasiSahifa'));
+const BozorOchiq = lazy(() => import('./bozor/BozorOchiq'));
+const BozorSorov = lazy(() => import('./admin/bozor/BozorSorov'));
+const BozorKabinet = lazy(() => import('./admin/bozor/BozorKabinet'));
+const BozorModeratsiya = lazy(() => import('./admin/bozor/BozorModeratsiya'));
 const TestTolov     = lazy(() => import('./test02/TestTolov'));
 const TestFaktura   = lazy(() => import('./test02/TestFaktura'));
 const TestHisobot   = lazy(() => import('./test02/TestHisobot'));
@@ -128,6 +132,9 @@ export default function App() {
         <Route path="/ulash/:kod" element={<UlashSahifa />} />
         {/* Telegram Mini App (@qur_uz_bot menyu tugmasi): imzolangan initData → oddiy sessiya → rol bosh sahifasi. */}
         <Route path="/tg" element={<Suspense fallback={<SahifaYuklanmoqda />}><TgKirish /></Suspense>} />
+        <Route path="/bozor" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorOchiq /></Suspense>} />
+        <Route path="/bozor/e/:elonId" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorOchiq /></Suspense>} />
+        <Route path="/bozor/s/:sotuvchiId" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorOchiq /></Suspense>} />
 
         {/* Admin shell and routes */}
         <Route path="/admin" element={
@@ -178,7 +185,9 @@ export default function App() {
             <Route path="hujjat-dizayn" element={<Suspense fallback={<SahifaYuklanmoqda />}><HujjatDizayni /></Suspense>} />
             <Route path="shartnoma-liniya" element={<Suspense fallback={<SahifaYuklanmoqda />}><ShartnomaLiniya /></Suspense>} />
             <Route path="qarzdorlik" element={<Suspense fallback={<SahifaYuklanmoqda />}><Qarzdorlik /></Suspense>} />
-            <Route path="hr" element={<Suspense fallback={<SahifaYuklanmoqda />}><Hr /></Suspense>} />
+            <Route path="bozor-sorov" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorSorov /></Suspense>} />
+            <Route path="bozor-kabinet" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorKabinet /></Suspense>} />
+            <Route path="bozor-moderatsiya" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorModeratsiya /></Suspense>} />            <Route path="hr" element={<Suspense fallback={<SahifaYuklanmoqda />}><Hr /></Suspense>} />
             <Route path="buxgalteriya" element={<Suspense fallback={<SahifaYuklanmoqda />}><Buxgalteriya /></Suspense>} />
             <Route path="nakrutka" element={<NakrutkaNative />} />
             <Route path="narx-manbalari" element={<Suspense fallback={<SahifaYuklanmoqda />}><NarxManbalari /></Suspense>} />
