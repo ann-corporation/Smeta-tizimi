@@ -24,7 +24,7 @@ export const sbUstaZayavkaYoz = (p: { kompaniyaId: number; obyektId: number; nom
 
 /** Usta «Bajardim» (20261216700000): faqat ro'yxatdagi qator yoziladi, boshqa qatorlar o'zgarmaydi; tugadi=true qolgan bo'sh qatorlarni AYAN 0 qiladi va naryadni prorabga o'tkazadi; izoh saqlanadi. */
 export const naryadUstaBajarildi = (p: { kompaniyaId: number; naryadId: number; versiya: number; operationId: string; qatorlar: Array<{ id: number; bajarilgan_hajm: number }>; tugadi: boolean; izoh?: string | null }): Promise<UstaYoz> =>
-  yozAmali({ amal: 'naryad_usta_bajarildi_v1', kompaniya_id: p.kompaniyaId, naryad_id: p.naryadId, kutilgan_versiya: p.versiya, operation_id: p.operationId, qatorlar: p.qatorlar, tugadi: p.tugadi, izoh: p.izoh ?? null });
+  yozAmali({ amal: 'naryad_usta_bajarildi_v1', naryad_amal: 'bajarildi', kompaniya_id: p.kompaniyaId, naryad_id: p.naryadId, kutilgan_versiya: p.versiya, operation_id: p.operationId, qatorlar: p.qatorlar, tugadi: p.tugadi, izoh: p.izoh ?? null });
 
 export const sbUstaQaror = (p: { kompaniyaId: number; idlar: number[]; qaror: 'tasdiqlangan' | 'rad'; izoh?: string | null; operationId: string }): Promise<UstaYoz> =>
   yozAmali({ amal: 'usta_fakt_qaror_v1', kompaniya_id: p.kompaniyaId, idlar: p.idlar, qaror: p.qaror, izoh: p.izoh ?? null, operation_id: p.operationId });

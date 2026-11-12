@@ -28,7 +28,7 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   ish_kartasi_saqla_v1: 'smeta.write',
   ish_kartasi_arxiv_v1: 'smeta.write',
   ish_kartasi_ulush_saqla_v1: 'smeta.write',
-  naryad_usta_bajarildi_v1: 'self.work.write|smeta.write', // 20261216700000: usta o'z naryadi (RPC usta_foydalanuvchi_id = actor ni tekshiradi) yoki prorab
+  naryad_usta_bajarildi_v1: 'smeta.write', // 20261216700000: dinamik — tanada naryad_amal='bajarildi' bo'lsa self.work.write|smeta.write (naryad_yoz_v1 bilan bir xil); RPC usta_foydalanuvchi_id = actor ni tekshiradi
   naryad_yoz_v1: 'smeta.write', // 20261214800000: hisobla — RPC yana financial.write talab qiladi
   shartnoma_saqla_v2: 'document.write',
   qarzdorlik_saqla_v1: 'financial.write',
