@@ -52,7 +52,6 @@ export const STATIK_VOSITALAR: readonly YordamchiVosita[] = [
   { id: 'oqish.foyda_zarar', tur: 'navigatsiya', nom: 'Foyda / zarar: loyiha, shartnoma, obyekt va kompaniya plyusdami yoki minusdami (bajarilgan ish − xarajat; kiritilmagan xarajat «—»)', misol: ['loyiha plyusdami minusdami', 'foyda zarar', 'прибыль убыток'], tasdiq: 'yoq', manba: '/admin/moliya?tab=foyda -> rahbar_panel_v1 + t2_xarajat + t2_tolov (yangi RPC yo‘q; hisob lib/foyda-zarar -> hisob-yadro)' },
   { id: 'qoralama.aosr', tur: 'navigatsiya', nom: 'АОСР qoralamasi: АОСР sahifasini ochadi', misol: ['АОСР tayyorla'], tasdiq: 'yoq', manba: '/admin/aosr — tasdiqlash faqat sahifada, qo‘lda' },
   { id: 'foto.hisobot', tur: 'navigatsiya', nom: 'Foto-dalil va foto-hisobot: foto sahifasini obyekt bilan ochadi (yuklash, lenta, Excel/PDF hisobot)', misol: ['Amfiteatr foto hisobot', 'foto yukla'], tasdiq: 'yoq', manba: '/admin/foto?obyekt — yuklash va AI tavsifi sahifada (AI faqat taklif, token yechadi)' },
-];
   // Buyurtmachi («Bugun»): hammasi mavjud /api/tomon yo'llari orqali; pul amallari — ikkinchi tasdiq bilan.
   { id: 'oqish.buyurtmachi_bugun', tur: 'oqish', nom: 'Buyurtmachi portfeli: sizdan kutilayotganlar, obyektlar bo‘yicha shartnoma, smeta, fakt, F2, Forma-3, to‘langan, qarz', misol: ['qaror kutayotgan hujjatlarim', 'qaysi obyektda qarz bor?'], tasdiq: 'yoq', manba: '/api/tomon?bolim=bugun -> t2_zakazchik_bugun_v1 (grant bo‘yicha qirqilgan; hisob yadrosi paketi)' },
   { id: 'qoralama.predpisaniya', tur: 'navigatsiya', nom: 'Predpisaniya / remark berish: murojaat shaklini turi oldindan tanlab ochadi (muddat va foto bilan)', misol: ['pudratchiga predpisaniya yoz'], tasdiq: 'yoq', manba: '/admin/murojaatlar?yangi=predpisaniya — yuborish faqat sahifada, qo‘lda' },
@@ -60,7 +59,7 @@ export const STATIK_VOSITALAR: readonly YordamchiVosita[] = [
   { id: 'yozuv.tolov_qaror', tur: 'yozuv', nom: 'Kelgan to‘lov xabarini tasdiqlash yoki sabab bilan rad etish (pudratchi rahbari)', misol: ['to‘lov xabarini tasdiqla'], tasdiq: 'kartaPul', manba: 'tomonYoz(tolov_qaror) -> /api/tomon -> t2_tomon_tolov_qaror_v1' },
   { id: 'qoralama.buyurtmachi_hisobot', tur: 'navigatsiya', nom: 'Buyurtmachi oylik hisoboti (Excel): Buyurtmachi kabineti sahifasini ochadi', misol: ['oylik hisobotni yukla'], tasdiq: 'yoq', manba: '/admin/zakazchik — yuklash tugmasi sahifada (token bilan)' },];
 
-const slug =(yol: string) => yol.replace(/^\/admin\//, '').replace(/[^a-z0-9]+/gi, '_');
+const slug = (yol: string) => yol.replace(/^\/admin\//, '').replace(/[^a-z0-9]+/gi, '_');
 
 /** Navigatsiya vositalari: ro'yxatdagi (yoki berilgan ruxsatli) HAR sahifa uchun bittadan. */
 export function navVositalar(sahifalar: readonly YordamchiSahifa[] = NAV_SAHIFALAR.map((s) => ({ yol: s.yol, nom: s.nom }))): YordamchiVosita[] {
