@@ -58,7 +58,7 @@ export const PREFIKS: Readonly<Record<Domen, readonly string[]>> = {
   moliya: [
     't2_bux', 't2_shartnoma', 't2_tolov', 't2_xarajat', 't2_faktura', 't2_qarz', 't2_qarzdorlik', 't2_debitor', 't2_overbilling',
     't2_moliya', 't2_pul', 't2_kontragent', 't2_sverka', 't2_contract', 't2_obyekt_shartnoma', 't2_object_financials', 't2_oy',
-    't2_f2_reestr', 't2_hr_oylik_buxgalteriya',
+    't2_f2_reestr', 't2_hr_oylik_buxgalteriya', 't2_solishtiruv',
   ],
   kadr: ['t2_hr', 't2_naryad', 't2_kadr', 't2_erp_kadr'],
   tomonlar: [
@@ -77,7 +77,7 @@ export const PREFIKS: Readonly<Record<Domen, readonly string[]>> = {
   platforma: [
     't2_kompaniya', 't2_azolik', 't2_azo', 't2_foydalanuvchi', 't2_capability', 't2_role', 't2_permission', 't2_require_permission',
     't2_effective', 't2_audit', 't2_outbox', 't2_signal', 't2_job', 't2_obuna', 't2_tarif', 't2_token', 't2_boshqaruv', 't2_desktop',
-    't2_telegram', 't2_bildirishnoma', 't2_bildirishnomalar', 't2_royxat', 't2_ozi_royxat', 't2_sozlama', 't2_deploy',
+    't2_telegram', 't2_tg_kirish', 't2_telefon_norm', 't2_bildirishnoma', 't2_bildirishnomalar', 't2_royxat', 't2_ozi_royxat', 't2_sozlama', 't2_deploy',
     't2_integration', 't2_google', 't2_email_kod', 't2_parol', 't2_sessiya', 't2_system_control', 't2_control', 't2_onboarding',
     't2_hodisa', 't2_ozgarish', 't2_db', 't2_dieta', 't2_benchmark', 't2_tizim', 't2_boss', 't2_rahbar', 't2_demo', 't2_tmp', 't2_modul',
     't2_ztr', 't2_kirish', 't2_membership', 't2_actor', 't2_asosiy_rol', 't2_platforma', 't2_men', 't2_profil', 't2_korzinka',
@@ -117,6 +117,9 @@ export const ISTISNO: Readonly<Record<string, { domen: Domen; izoh: string; noan
   t2_obyekt_kesh_yangila_v1: { domen: 'smeta', izoh: 'summa keshi yangilash' },
   t2_hodisa_lenta: { domen: 'platforma', izoh: 'hodisa lentasi (read model)' },
   t2_hodisa_obyekt_lenta: { domen: 'platforma', izoh: 'obyekt hodisa lentasi' },
+  t2_baza_hajm_tarix: { domen: 'platforma', izoh: 'baza hajmi monitoringi (platforma kuzatuvi)' },
+  t2_baza_hajm_yoz_v1: { domen: 'platforma', izoh: 'baza hajmi monitoringi (platforma kuzatuvi)' },
+  t2_ish_joyi_yarat_v1: { domen: 'platforma', izoh: 'kompaniyani ozi ochish (kompaniya yaratish platforma egaligida)' },
   t2_ish_joyi_qoshil_v1: { domen: 'tomonlar', izoh: 'ish joyiga qo\'shilish (taklif oqimi)' },
   t2_f2_reestr_yoz_v1: { domen: 'moliya', izoh: 'F2 reestr SUMMASI (qo\'lda, solishtirish signali) - moliya yozadi' },
   t2_f2_reestr_jami: { domen: 'moliya', izoh: 'F2 reestr summasi jadvali (solishtirish signali, manba EMAS)' },

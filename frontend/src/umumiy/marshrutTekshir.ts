@@ -48,7 +48,7 @@ export const ADMIN_MARSHRUTLARI = [
   /* 2026-11-12: Texnik nazorat (texnadzor). */
   'nazorat', 'nazorat/tekshiruv', 'nazorat/jurnal',
   /* 2026-11-11: loyihachi / mualliflik nazorati (chizma reyestri + rol uyi «Bugun»). */
-  'chizmalar', 'loyihachi', 'loyiha-smeta',
+  'chizmalar', 'loyihachi', 'loyiha-smeta', 'solishtiruv',
 ] as const;
 
 /**
