@@ -79,6 +79,7 @@ const TekshiruvForma = lazy(() => import('./admin/nazorat/TekshiruvForma'));
 const TekshiruvJurnal = lazy(() => import('./admin/nazorat/TekshiruvJurnal'));
 const LabKabinet = lazy(() => import('./admin/laboratoriya/LabKabinet'));
 const ChizmaReestri = lazy(() => import('./admin/loyihachi/ChizmaReestri'));
+const LoyihaSmetaFakt = lazy(() => import('./admin/sahifalar/LoyihaSmetaFakt'));
 const LoyihachiBugun = lazy(() => import('./admin/loyihachi/LoyihachiBugun'));
 const HujjatAylanish = lazy(() => import('./admin/zakazchik/HujjatAylanish'));
 const NarxDalil = lazy(() => import('./admin/sahifalar/NarxDalil'));
@@ -206,6 +207,7 @@ export default function App() {
             <Route path="laboratoriya" element={<Suspense fallback={<SahifaYuklanmoqda />}><LabKabinet /></Suspense>} />
             <Route path="hujjat-aylanish" element={<Suspense fallback={<SahifaYuklanmoqda />}><HujjatAylanish /></Suspense>} />
             <Route path="chizmalar" element={<Suspense fallback={<SahifaYuklanmoqda />}><ChizmaReestri /></Suspense>} />
+            <Route path="loyiha-smeta" element={<Suspense fallback={<SahifaYuklanmoqda />}><LoyihaSmetaFakt /></Suspense>} />
             <Route path="loyihachi" element={<Suspense fallback={<SahifaYuklanmoqda />}><LoyihachiBugun /></Suspense>} />
             <Route path="system-control" element={<Suspense fallback={<SahifaYuklanmoqda />}><SystemControlPage /></Suspense>} />
             <Route path="ai-agentlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><AiAgentlar /></Suspense>} />

@@ -55,7 +55,7 @@ export function dataPermission(name: string, write: boolean, body: Record<string
 
 /** Public/auth/webhook/catalog endpoints retain their own guards. All tenant business APIs are covered here. */
 export const SCOPED_APIS = new Set(['object-financials','contract-scope','sb','sb-yoz','company','sessiya','smeta-studio','smeta-yukla','smeta-ai','smeta-narx-agent','f2-moslash',
-  'hujjat-nazorat','hujjat-ol','hujjat-royxat','hujjat-yukla','boss-dashboard','boss-documents','system-control','tomon','loyihachi','foto-dalil','foto-ai','hujjat-aylanish','laboratoriya','agent-ish','ai-savol','ai-parse','gas','boshqaruv','agent-control',
+  'hujjat-nazorat','hujjat-ol','hujjat-royxat','hujjat-yukla','boss-dashboard','boss-documents','system-control','tomon','loyihachi','loyiha-smeta','foto-dalil','foto-ai','hujjat-aylanish','laboratoriya','agent-ish','ai-savol','ai-parse','gas','boshqaruv','agent-control',
   /* Obyekt paketi (ADR OBYEKT_PAKET §1.4): smeta + holat + F2 ro'yxati + nakrutka — faqat o'qish. */
   'obyekt-paket','normativ-qidir']);
 
@@ -96,6 +96,8 @@ export function requestPermission(api: string, method: string, b: Record<string,
   if (api === 'hujjat-aylanish') return method === 'GET' || ['zanjir_qaror', 'xat_qabul', 'bildirishnoma_oqildi'].includes(String(b.amal)) ? 'document.read' : 'document.write';
   /* Loyihachi/chizma: kirish chegarasi document.read; aniq capability (design.write/design.issue/document.write) bazada RPC birinchi qatorida. */
   if (api === 'loyihachi') return 'document.read';
+  /* Loyiha-smeta-fakt solishtirma: kirish chegarasi smeta.read; yozuvda smeta.write bazada RPC birinchi qatorida. */
+  if (api === 'loyiha-smeta') return 'smeta.read';
   /* Foto-dalil: kirish chegarasi fakt.read; aniq capability (fakt.write yoki self.work.write) bazada RPC birinchi qatorida. */
   if (api === 'foto-dalil' || api === 'foto-ai') return 'fakt.read';
   if (api.startsWith('hujjat')) return method === 'GET' || b.amal === 'royxat' ? 'document.read' : 'document.write';

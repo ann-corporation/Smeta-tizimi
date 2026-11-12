@@ -195,6 +195,21 @@
             "modul": "module.narx"
           }
         ]
+      },
+      {
+        "nom": "Loyiha va smeta",
+        "ikonka": "FileStack",
+        "sahifalar": [
+          {
+            "yol": "/admin/loyiha-smeta",
+            "ilova": "pto",
+            "nom": "Loyiha ↔ Smeta ↔ Fakt",
+            "ruxsat": [
+              "control.company.read",
+              "smeta.write"
+            ]
+          }
+        ]
       }
     ]
   },
