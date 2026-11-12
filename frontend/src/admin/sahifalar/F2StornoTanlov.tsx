@@ -20,7 +20,7 @@ function holatMatni(a: T2AktReestr): string {
 }
 
 /**
- * F2 tayyorlash oynasidan «Eski F2 ni storno qilish (pereraschet)»: obyektning FAQAT tasdiqlangan F2 aktlari ro‘yxati (qoralama/bekor — yo‘q).
+ * F2 tayyorlash oynasidan «Eski F2 ni bekor qilib qayta hisoblash (storno)»: obyektning FAQAT tasdiqlangan F2 aktlari ro‘yxati (qoralama/bekor — yo‘q).
  * Bitta aktni «Tanlash» yoki BIR NECHTA aktni «Birga» bilan belgilab davom etish (egasi 2026-11-03) → `F2StornoOyna`.
  * Har eski F2 hujjatda alohida blok bo‘ladi (o‘z podvali bilan). Qoralama yaratilgach `onYaratildi(aktId)` chaqiriladi.
  */
@@ -63,8 +63,8 @@ export function F2StornoTanlov(p: {
   const nomzod = reestr ? stornoNomzodAktlar(reestr) : [];
   const belgila = (id: number, on: boolean) => setBelgi((s) => { const n = new Set(s); if (on) n.add(id); else n.delete(id); return n; });
   return (
-    <F2Oyna label={t('Eski F2 ni storno qilish (pereraschet)')} onYop={p.onYop} kenglik={760}>
-      <div className="fz-card__head" style={{ padding: '10px 16px' }}><h3 className="fz-card__title"><RotateCcw size={15} aria-hidden="true" /> {t('Eski F2 ni storno qilish (pereraschet)')}</h3></div>
+    <F2Oyna label={t('Eski F2 ni bekor qilib qayta hisoblash (storno)')} onYop={p.onYop} kenglik={760}>
+      <div className="fz-card__head" style={{ padding: '10px 16px' }}><h3 className="fz-card__title"><RotateCcw size={15} aria-hidden="true" /> {t('Eski F2 ni bekor qilib qayta hisoblash (storno)')}</h3></div>
       <div className="space-y-3 p-4 text-[13px]">
         <p className="text-text-dim">{t('Storno qilinadigan F2 ni tanlang: uning qatorlari minus qilib yangi qoralamaga yoziladi, asl F2 o‘zgarmaydi. Keyin shu oynada yangi smeta qatorlarini qo‘shasiz.')}</p>
         <p className="text-text-dim">{t('Bir nechta eski F2 ni «Birga» bilan belgilang: ularning qatorlari bitta hujjatda alohida bloklar bo‘lib tepada turadi, har biri o‘z podvali bilan.')}</p>

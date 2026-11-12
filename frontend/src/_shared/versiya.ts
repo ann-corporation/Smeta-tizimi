@@ -71,14 +71,14 @@ export function korilmaganlar(royxat: readonly Yangilik[], korilgan: number | nu
   return royxat.filter((x) => x.id > korilgan).slice(0, eng);
 }
 
-async function yangiliklarOl(): Promise<Yangilik[]> {
+export async function yangiliklarOl(): Promise<Yangilik[]> {
   try { const r = await fetch('/yangiliklar.json', { cache: 'no-store' }); return r.ok ? yangiliklarniAjrat(await r.json()) : []; }
   catch { return []; }
 }
-function korilganOl(): number | null {
+export function korilganOl(): number | null {
   try { const v = localStorage.getItem(KORILGAN); return v != null && /^\d+$/.test(v) ? Number(v) : null; } catch { return null; }
 }
-function korilganYoz(id: number) { try { localStorage.setItem(KORILGAN, String(id)); } catch { /* */ } }
+export function korilganYoz(id: number) { try { localStorage.setItem(KORILGAN, String(id)); } catch { /* */ } }
 
 function royxatEl(yozuvlar: readonly Yangilik[], rang: string): HTMLElement {
   const ul = document.createElement('div');
@@ -140,24 +140,8 @@ function nimaYangiOyna(): void {
     const korilgan = korilganOl();
     const eng = r[0].id;
     if (korilgan == null) { korilganYoz(eng); return; } // birinchi kirish — eski tarixni to'kib tashlamaymiz
-    const yangi = korilmaganlar(r, korilgan);
-    if (!yangi.length || document.getElementById('nima-yangi-oyna')) return;
-    const d = document.createElement('div');
-    d.id = 'nima-yangi-oyna';
-    d.setAttribute('role', 'dialog');
-    d.setAttribute('aria-label', 'Nima yangi');
-    d.style.cssText = 'position:fixed;left:16px;bottom:16px;z-index:99998;max-width:min(520px,calc(100vw - 32px));padding:12px 14px;'
-      + 'border-radius:10px;background:#0f172a;color:#e2e8f0;border:1px solid #1d4ed8;font:13px system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.4)';
-    const sar = document.createElement('div');
-    sar.style.cssText = 'display:flex;justify-content:space-between;gap:12px;align-items:center;font-weight:700;color:#93c5fd';
-    const t = document.createElement('span'); t.textContent = 'Tizimda nima yangi';
-    const yop = document.createElement('button');
-    yop.type = 'button'; yop.textContent = 'Tushunarli';
-    yop.style.cssText = 'padding:3px 12px;border-radius:6px;border:0;background:#1d4ed8;color:#fff;font-weight:700;cursor:pointer';
-    yop.onclick = () => { korilganYoz(eng); d.remove(); };
-    sar.append(t, yop);
-    d.append(sar, royxatEl(yangi, '#cbd5e1'));
-    document.body.appendChild(d);
+    /* Navigatsiya oqimi (2026-11-11): pastki-chap suzuvchi oyna kontentni yopardi. Endi ko'rilmagan yozuvlar sarlavhadagi
+     * kichik «Yangi» belgisida (components/qollanma/NimaYangiBelgi) — har yangi yozuvda bir marta, tushunarli bosilguncha. */
   });
 }
 

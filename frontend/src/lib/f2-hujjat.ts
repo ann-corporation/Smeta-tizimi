@@ -13,7 +13,7 @@
  * hammasi o'zi qayta hisoblanadi. Narxsiz resurs (ongli tanlov) — summa bo'sh va jami bo'sh (H7: NULL ≠ 0).
  */
 import type { F2Bolim, F2Qator } from './f2-tayyor';
-import { RANG_TARTIB, RasmiyVaraq, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, yaxlit2, type ImzoNomlar, type QatorRangi, type RangMavzusi, type Qiymat, type RasmiyUstun } from './hujjat-yozuvchi';
+import { RANG_TARTIB, RasmiyVaraq, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, summaSozBilan, yaxlit2, type ImzoNomlar, type QatorRangi, type RangMavzusi, type Qiymat, type RasmiyUstun } from './hujjat-yozuvchi';
 import { davrMatni } from './nakopitelniy-vedomost-export';
 import { lrvKalitYoz } from './lrv-qayta-import';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
@@ -312,6 +312,9 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     v.qator('vsego', (): Qiymat[] => [null, null, 'ИТОГО ПЕРЕРАСЧЕТ К ОПЛАТЕ (новые − сторно), с НДС', null, null, null, null,
       { f: sumRefs('H', qismlar), v: yaxlit2(yangiVsegoJS + eskiVsegoJS) }, null, null]);
   }
+  /* Summa so'z bilan (rasmiy shakl talabi): hujjat jami (с НДС); narxsiz qator bor — jami to'liq emas, yozilmaydi (0 emas). */
+  const jamiTolov = (yangiVsegoQator != null || eski.length) ? yaxlit2(yangiVsegoJS + eskiVsegoJS) : null;
+  if (jamiTolov != null && Number.isFinite(jamiTolov) && !narxsizN) { v.bosh(); v.izoh(`Сумма прописью: ${summaSozBilan(jamiTolov)} с НДС`); }
   if (narxsizN) { v.bosh(); v.narxsizOgoh(narxsizN); }
   v.imzo(imzoTomonlari(o.imzo?.subpudratchi ? ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СУБПОДРЯДЧИК', 'ТЕХНАДЗОР'] : ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР'], o.imzo));
   const ved = [...vedomost.values()];
@@ -496,8 +499,15 @@ function resursVedomosti(
   }
   const vR = w.qator('vsego', (): Qiymat[] => [null, null, 'ВСЕГО ПО ВЕДОМОСТИ РЕСУРСОВ', null, null, null,
     { f: sumRefs('G', bolimli ? bolimJami : guruhJami), v: jamiJS ?? '' }]);
-  w.qator('jami', (): Qiymat[] => [null, null, 'Сверка с актом Ф-2: ведомость − итого по акту (должно быть 0,00)', null, null, null,
-    { f: `IF(${ref('H', o.itogoR)}="","",ROUND(G${vR}-${ref('H', o.itogoR)},2))`, v: jamiJS == null || o.jami == null ? '' : yaxlit2(jamiJS - o.jami) }]);
+  // Yaxlitlash qoidasi: resurs qatorlari tiyingacha yaxlitlanadi, akt jami esa o'z qatorlaridan — farq ≤ 1 so'm bo'lsa u ochiq
+  // «Округление» qatori sifatida ko'rsatiladi, sverka esa har doim 0,00 ga keladi (rasmiy hujjat o'zi bilan tengmas bo'lib qolmasin).
+  const farqJS = jamiJS == null || o.jami == null ? null : yaxlit2(jamiJS - o.jami);
+  const yaxlitJS = farqJS != null && Math.abs(farqJS) <= 1 ? farqJS : 0;
+  const farqF = `ROUND(G${vR}-${ref('H', o.itogoR)},2)`;
+  const yR = w.qator('jami', (): Qiymat[] => [null, null, 'Округление построчных сумм (не более 1 сум)', null, null, null,
+    { f: `IF(${ref('H', o.itogoR)}="","",IF(ABS(${farqF})<=1,${farqF},0))`, v: farqJS == null ? '' : yaxlitJS }]);
+  w.qator('jami', (): Qiymat[] => [null, null, 'Сверка с актом Ф-2: ведомость − итого по акту − округление (должно быть 0,00)', null, null, null,
+    { f: `IF(${ref('H', o.itogoR)}="","",ROUND(G${vR}-${ref('H', o.itogoR)}-G${yR},2))`, v: farqJS == null ? '' : yaxlit2(farqJS - yaxlitJS) }]);
   if (narxsizN) { w.bosh(); w.narxsizOgoh(narxsizN); }
   return w;
 }

@@ -15,6 +15,7 @@ import { paketUchligi, type SummaPaket } from '../../lib/summa-paket';
 import { paketlarJami } from '../../lib/summa-tafsilot';
 import { KatTaqsimot, LoyihaStack, ProgressQadam, type StackQator } from './ObyektGrafik';
 import { LoyihasizObyektlar } from './LoyihasizObyektlar';
+import { raqamTozala } from '../../lib/raqam-belgi';
 
 const financialLabels: Record<FinancialMetric, string> = { smeta: 'Smeta', fakt: 'Fakt', f2: 'Tasdiqlangan F2', ostatka: 'Ostatka' };
 const technicalMetrics = ['razdel', 'ish', 'resurs', 'narxsiz', 'qator_soni'] as const;
@@ -108,7 +109,7 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
   };
   const stackQatorlar: StackQator[] = projectId === undefined && !contractRaw
     ? line.loyihalar.map(p => ({ kalit: `p${p.id}`, nom: p.nom, fin: financials.sum(projectObjects(line, p.id)) }))
-    : projectId !== undefined && !contractRaw ? contracts.map(s => ({ kalit: `s${s.id}`, nom: `№ ${s.raqam} · ${s.nom ?? ''}`, fin: financials.sum(contractObjects(line, s.id)) })) : [];
+    : projectId !== undefined && !contractRaw ? contracts.map(s => ({ kalit: `s${s.id}`, nom: `№ ${raqamTozala(s.raqam)} · ${s.nom ?? ''}`, fin: financials.sum(contractObjects(line, s.id)) })) : [];
   const technicalDetails = (objectIds: number[], name: string) => {
     const counts = summarize(objectIds);
     const financial = financials.sum(objectIds);
@@ -136,7 +137,7 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
     <nav aria-label={t('Loyiha yo‘li')} className="flex flex-wrap items-center gap-2 text-[13px]">
       <button className="fz-btn fz-btn--sm" onClick={() => go()}>{t('Barcha loyihalar')}</button>
       {projectId !== undefined && <><ChevronRight size={14} className="text-text-mute" /><button className="fz-btn fz-btn--sm" onClick={() => go(projectId)}>{projectName}</button></>}
-      {contractRaw && <><ChevronRight size={14} className="text-text-mute" /><span aria-current="page" className="font-semibold">{contract ? `№ ${contract.raqam} · ${contract.nom ?? ''}` : t('Shartnomaga biriktirilmagan')}</span></>}
+      {contractRaw && <><ChevronRight size={14} className="text-text-mute" /><span aria-current="page" className="font-semibold">{contract ? `№ ${raqamTozala(contract.raqam)} · ${contract.nom ?? ''}` : t('Shartnomaga biriktirilmagan')}</span></>}
     </nav>
     <div aria-label={t('Moliyaviy ko‘rsatkichlar')} className="grid grid-cols-2 gap-3 xl:grid-cols-4">
       {FINANCIAL_METRICS.map(metric => <div key={metric} className="fz-card" style={{ padding: 14 }}><div className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: metricRang[metric], boxShadow: metric === 'ostatka' ? 'inset 0 0 0 1px var(--border-strong)' : undefined }} />{t(financialLabels[metric])}</span><b className="fz-kpi__value">{financials.loading ? t('Hisoblanmoqda…') : amount(ids,metric,contract?.id)}</b></div></div>)}
@@ -163,7 +164,7 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
         {line.loyihalar.filter(p => matches(p.nom) || line.obyektlar.some(o => o.loyiha_id === p.id && matches(o.nom))).map(p => row(`p${p.id}`,p.nom, projectObjects(line, p.id), () => { go(p.id); }, <FolderKanban size={20} className="shrink-0 text-accent" />, `${line.shartnomalar.filter(s => s.loyiha_id === p.id).length} ${t('shartnoma')}`))}
         {projectObjects(line,null).length > 0 && row('unassigned-project',t('Loyihasiz obyektlar'), projectObjects(line,null), () => { go(null,'biriktirilmagan'); }, <FolderKanban size={20} className="shrink-0 text-text-mute" />)}
       </> : <>
-        {contracts.filter(s => matches(`${s.raqam} ${s.nom ?? ''}`) || line.obyektlar.some(o => s.obyektlar.includes(o.id) && matches(o.nom))).map(s => row(`s${s.id}`,`№ ${s.raqam} · ${s.nom ?? ''}`, contractObjects(line,s.id), () => { go(projectId,s.id); }, <FileSignature size={20} className="shrink-0 text-accent" />, s.tomonlar.map(p => `${p.rol}: ${p.nom}`).join(' · '),s.id))}
+        {contracts.filter(s => matches(`${s.raqam} ${s.nom ?? ''}`) || line.obyektlar.some(o => s.obyektlar.includes(o.id) && matches(o.nom))).map(s => row(`s${s.id}`,`№ ${raqamTozala(s.raqam)} · ${s.nom ?? ''}`, contractObjects(line,s.id), () => { go(projectId,s.id); }, <FileSignature size={20} className="shrink-0 text-accent" />, s.tomonlar.map(p => `${p.rol}: ${p.nom}`).join(' · '),s.id))}
         {unassignedObjects(line,projectId ?? null).length > 0 && row('unassigned-contract',t('Shartnomaga biriktirilmagan'),unassignedObjects(line,projectId ?? null),() => { go(projectId,'biriktirilmagan'); },<Building2 size={20} className="shrink-0 text-text-mute" />)}
       </>}
     </tbody></table>{projectId !== undefined && !contracts.length && <p className="p-4 text-text-dim">{t('Bu loyihada shartnoma hali yo‘q.')}</p>}</div> : <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -177,7 +178,7 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
         <KatTaqsimot obyekt={o} />
         <div className="grid grid-cols-2 gap-x-3 gap-y-3">{FINANCIAL_METRICS.map(metric => <div key={metric} className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: metricRang[metric], boxShadow: metric === 'ostatka' ? 'inset 0 0 0 1px var(--border-strong)' : undefined }} />{t(financialLabels[metric])}</span><b className="text-[15px] font-semibold">{amount([o.id],metric,contract?.id)}</b></div>)}</div>
         {technicalDetails([o.id],o.nom)}
-        <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-border pt-3"><button className="fz-btn fz-btn--primary flex-1" onClick={() => onOpen(o,contract?.id)}>{t('Smetani ochish')}</button><Link className="fz-btn" to={`/admin/holat/${o.id}?panel=smeta`}><Upload aria-hidden="true" />{t('Smeta yuklash')}</Link><button className="fz-btn fz-btn--icon" aria-label={`${t('Obyektni tahrirlash')}: ${o.nom}`} title={t('Obyektni tahrirlash')} onClick={() => onEdit(o)}><Edit3 aria-hidden="true" /></button>{onShare && <button className="fz-btn fz-btn--icon" aria-label={`${t('Ulashish')}: ${o.nom}`} title={t('Ulashish')} onClick={() => onShare(o)}><Share2 aria-hidden="true" /></button>}<button className="fz-btn fz-btn--icon" aria-label={`${t('Obyektni arxivlash')}: ${o.nom}`} title={t('Obyektni arxivlash')} onClick={() => onArchive(o)}><Archive aria-hidden="true" /></button></div>
+        <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-border pt-3"><button className="fz-btn fz-btn--primary flex-1" onClick={() => onOpen(o,contract?.id)}>{t('Smetani ochish')}</button><Link className="fz-btn" to={`/admin/holat/${o.id}?panel=smeta`}><Upload aria-hidden="true" />{t('Smeta yuklash')}</Link><button className="fz-btn fz-btn--icon" aria-label={`${t('Obyektni tahrirlash')}: ${o.nom}`} title={t('Obyektni tahrirlash')} onClick={() => onEdit(o)}><Edit3 aria-hidden="true" /></button>{onShare && <button className="fz-btn fz-btn--icon" aria-label={`${t('Ulashish')}: ${o.nom}`} title={t('Ulashish')} onClick={() => onShare(o)}><Share2 aria-hidden="true" /></button>}<button className="fz-btn" aria-label={`${t('Obyektni arxivlash')}: ${o.nom}`} title={t('Obyektni arxivlash')} onClick={() => onArchive(o)}><Archive aria-hidden="true" />{t('Korzinkaga')}</button></div>
       </article>; })}
       {!objectList.length && <p className="fz-note fz-note--info md:col-span-2 xl:col-span-3">{t('Bu tanlov bo‘yicha obyekt topilmadi.')}</p>}
     </div>}

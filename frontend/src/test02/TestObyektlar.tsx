@@ -3,14 +3,17 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, MapPin, Plus, FolderKanban, FolderPlus, Building2 } from 'lucide-react';
 import { ModalOyna } from '../components/pto-workspace/ModalOyna';
-import { tasdiqSora } from '../umumiy/ui/Tasdiq';
+import { arxivlashJarayoni } from '../api/t2-arxiv';
 import { ProjectNavigator } from '../components/pto-workspace/ProjectNavigator';
 import { t } from '../i18n/til';
 import { Sahifa, BoshHolat } from '../umumiy/ui/Sahifa';
-import { sbT2ObyektlarOlKomp, sbObyektOchirish, sbObyektTahrirlash, sbObyektLokatsiyaBelgila, sbT2ObyektYarat, type T2Obyekt } from '../api/supabase';
+import { sbT2ObyektlarOlKomp, sbObyektTahrirlash, sbObyektLokatsiyaBelgila, sbT2ObyektYarat, type T2Obyekt } from '../api/supabase';
 import { sbT2LoyihalarOl, sbT2LoyihaYoz, type T2Loyiha } from '../api/t2-loyiha';
 import { toast } from '../umumiy/ui/Toast';
 import { useKompaniya } from './KompaniyaTanlov';
+import { useCompanyLineage } from '../components/pto-workspace/useLineage';
+import { useRahbarPanel } from '../api/t2-rahbar-panel';
+import { t2NakrutkaOldindan } from '../api/t2-nakrutka-paket';
 import { usePTOWorkspace } from '../umumiy/kontekst/PTOWorkspaceContext';
 import { ObyektUlash } from '../components/ulash/ObyektUlash';
 import { KeyingiQadamPanel } from '../components/qollanma/KeyingiQadamPanel';
@@ -27,6 +30,9 @@ export default function TestObyektlar() {
   const kompYuklanmoqda = joriy === undefined;
   const qc = useQueryClient();
   const workspace = usePTOWorkspace();
+  /* Tezlik: ProjectNavigator qatorlar kelgach ochiladi — zanjir va rahbar paneli so'rovlari shu paytgacha kutardi.
+     Bir xil kalit bilan hozirdan parallel boshlanadi (keshdan olinadi). */
+  useCompanyLineage(joriy?.id ?? null);
 
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [qatorlar, setQatorlar] = useState<Qator[] | null>(null);
@@ -34,6 +40,10 @@ export default function TestObyektlar() {
   const generation = useRef(0);
   const [loadedCompany, setLoadedCompany] = useState<number | null>(null);
   const currentRows = loadedCompany === joriy?.id ? qatorlar : null;
+  /* Tezlik: og'ir rahbar paketi ro'yxat kelgach so'raladi (ro'yxat bilan raqobatlashmaydi); ProjectNavigator shu kalitdan oladi. */
+  useRahbarPanel(currentRows ? joriy?.id : null);
+  /* Tezlik: barcha obyektlar ustamasi BITTA paket so'rovida (har qator alohida so'rov berardi). */
+  useEffect(() => { if (joriy?.id && currentRows && currentRows.length > 1) t2NakrutkaOldindan(joriy.id, currentRows.map((o) => ({ obyektId: o.id }))); }, [joriy?.id, currentRows]);
 
   // Edit State
   const [editObj, setEditObj] = useState<Qator | null>(null);
@@ -97,15 +107,11 @@ export default function TestObyektlar() {
 
   const handleOchirish = async (e: any, o: Qator) => {
     e.stopPropagation();
-    if (!(await tasdiqSora({ sarlavha: t('Obyektni arxivlash'), matn: t('"{nom}" obyektini arxivga (korzinka) o‘tkazasizmi?', { nom: o.nom }), tasdiqMatni: t('Arxivga o‘tkazish'), xavfli: true }))) return;
+    // Tasdiq + server bloki (tasdiqlangan F2/АОСР bor bo'lsa — aniq sabab) bitta umumiy oqimda.
     try {
-      setYuklanmoqda(true);
-      await sbObyektOchirish(o.id, o.nom);
-      toast("Obyekt Korzinkaga o'tkazildi", 'ok');
-      sinxronla();
-    } catch(err: any) {
+      if (await arxivlashJarayoni('obyekt', o.id, o.nom)) sinxronla();
+    } catch (err: any) {
       toast('Xatolik: ' + err.message, 'danger');
-      setYuklanmoqda(false);
     }
   };
 

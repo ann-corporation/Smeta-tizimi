@@ -3,6 +3,7 @@ import { topshirilganPaketOgohi } from '../../lib/f2-oylik-paket/ogoh';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Ban, CheckCircle2, Download, Eye, FileText, Pencil, Calculator, RefreshCw, RotateCcw, ShieldAlert, Upload } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { ArxivTugma } from '../../components/arxiv/ArxivTugma';
 import { F2HujjatKorinish } from '../../components/f2-hujjat/F2HujjatKorinish';
 import { davrNomi } from '../../lib/f2-hujjat-korinish';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
@@ -216,7 +217,9 @@ export function F2TarixNative() {
       if (!d.ok) throw new YuklashXato(t('F2 qatorlari to‘liq o‘qilmadi — hujjat va summalar ko‘rsatilmaydi. Qayta yangilang.'));
       // M2: smeta daraxti o'qilmasa — jim bo'sh daraxt emas (hujjat/ierarxiya noto'g'ri chiqardi).
       if (!tr.ok || tr.toliq === false) throw new YuklashXato(t('Smeta daraxti o‘qilmadi — F2 ierarxiyasi va hujjati tuzilmaydi. Qayta yangilang.'));
-      const akts = ((r.qatorlar || []) as T2AktReestr[]).filter((a) => a.tur === 'f2');
+      const akts = ((r.qatorlar || []) as T2AktReestr[]).filter((a) => a.tur === 'f2')
+        // Korzinkaga yuborilgan qoralama (holat bekor, hayot sikli hali draft) tarixda ko'rinmaydi — faqat Korzinkada; storno/bekor qilingan F2 ko'rinadi.
+        .filter((a) => !(a.holat === 'bekor' && (a.lifecycle_status ?? 'draft') === 'draft'));
       const lines = (d.qatorlar || []) as F2Detail[];
       // M1: barcha F2 akt qatorlari — noyob tartib, to'liq (storno bloki, avto-narxsiz, bekor akt ko'rinishi).
       const aq = await aktQatorlariOl(obyektId, akts.map((a) => a.id)).catch(() => { throw new YuklashXato(t('F2 akt qatorlari to‘liq o‘qilmadi. Qayta yangilang.')); });
@@ -464,7 +467,7 @@ export function F2TarixNative() {
                         // m3: QQS bilan — asosiy, ostida ustamali va ustamasiz (yadro `f2AktBaho`, aktning o'z podvali bilan).
                         const m = moliya.get(akt.id);
                         return m ? <QiymatUchlik q={serverUchligi({ itogo4: m.ustamali, vsego: m.jami }, m.ustamasiz)} kichik tafsilYoq />
-                          : <span title={t('ustamasiz, NDS siz — ustamali summa hujjat ichida')}><FmtN val={akt.hujjat_jami} kasr={0} /></span>;
+                          : <span title={t('ustamasiz, QQS siz — ustamali summa hujjat ichida')}><FmtN val={akt.hujjat_jami} kasr={0} /></span>;
                       })()}</span>
                       <span className="fz-list__sub" style={{ gridColumn: '1 / -1' }}>
                         <span className={`fz-stamp ${stampCls(st)}`}>{t(holatYorligi(akt))}</span>
@@ -494,11 +497,12 @@ export function F2TarixNative() {
                       <button type="button" onClick={() => void hujjatChiqar(selectedAkt, true)} disabled={chiqarilmoqda} className="fz-btn"><Eye />{t('Koʻrish')}</button>
                       <button type="button" onClick={() => void hujjatChiqar(selectedAkt, false)} disabled={chiqarilmoqda} className="fz-btn"><Download />{t('Ф-2 Excel')}</button>
                     </>}
-                    {selectedAkt.holat === 'tasdiqlangan' && selectedAkt.oy && <Link to={`/admin/nakopitelniy?obyekt=${obyektId}&davr=${encodeURIComponent(selectedAkt.oy)}&f3=1`} title={t('Shu davr uchun СПРАВКА-СЧЕТ-ФАКТУРА (Форма №3) ni ochadi')} className="fz-btn"><FileText />{t('Форма №3 (счёт-фактура)')}</Link>}
+                    {selectedAkt.holat === 'tasdiqlangan' && selectedAkt.oy && <Link to={`/admin/nakopitelniy?obyekt=${obyektId}&davr=${encodeURIComponent(selectedAkt.oy)}&f3=1`} title={t('Fayl yuklamaydi: Nakopitelniy sahifasida shu davr uchun Forma 3 ochiladi')} className="fz-btn"><FileText />{t('Forma 3 ga o‘tish')}</Link>}
                     {selectedAkt.lifecycle_status === 'approved' && importAkt?.id === selectedAkt.id && importAkt.import === false && <ZakazchigaYuborish kompaniyaId={workspace.companyId ?? joriy?.id} aktId={selectedAkt.id} />}
                     {mayPrepare && stornoQilinadiAkt(selectedAkt) && <button type="button" data-testid="pereraschet-tugma" className="fz-btn fz-btn--primary" title={t('Eski F2 minus (tepada) + yangi hajmlar faktdan (pastda) — bitta hujjat; fakt o‘zgarmaydi')} onClick={() => setPereraschetOyna({ id: selectedAkt.id, raqam: selectedAkt.raqam, oy: selectedAkt.oy, hujjat_jami: selectedAkt.hujjat_jami })} disabled={savingId != null}><Calculator />{t('Pereraschet')}</button>}
                     {mayPrepare && stornoQilinadiAkt(selectedAkt) && <button type="button" className="fz-btn" title={t('Shu F2 qatorlaridan minus (storno) qoralama yaratadi; asl F2 o‘zgarmaydi')} onClick={() => setStornoOyna({ id: selectedAkt.id, raqam: selectedAkt.raqam, oy: selectedAkt.oy, hujjat_jami: selectedAkt.hujjat_jami })} disabled={savingId != null}><RotateCcw />{t('Storno (minus) F2 yaratish')}</button>}
                     {bekorMumkin(selectedAkt) && <button type="button" className="fz-btn fz-btn--danger" onClick={() => setBekorOyna([bekorAkt(selectedAkt)])} disabled={savingId != null}><Ban />{t('Bekor qilish')}</button>}
+                    {selectedAkt.holat === 'qoralama' && !f2YozishYopiq && <ArxivTugma tur="akt" id={selectedAkt.id} nom={`F2 № ${selectedAkt.raqam ?? selectedAkt.id}`} kichik={false} onDone={() => { setSelectedAktId(null); void yuklash(); }} />}
                   </>}
                   ostida={<>
                     {importAkt?.id === selectedAkt.id && importAkt.import === 'xato' && selectedAkt.lifecycle_status === 'approved' && <p className="fz-note fz-note--warn"><ShieldAlert />{t('Hujjat manbasi (import yoki tizim) o‘qilmadi — zakazchikka yuborish yashirildi. Sahifani yangilang.')}</p>}

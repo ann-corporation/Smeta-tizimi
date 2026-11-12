@@ -191,7 +191,7 @@ function ObyektKaskad({ companyId, obyektId, contractId }: { companyId: number; 
           <div className="fz-panel__h"><span>{t('Ustama natijasi')}</span></div>
           <div className="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-1 text-[13px]">
             <span className="text-text-dim">{t('To‘g‘ri xarajat (ustamasiz)')}</span><b className="text-right tabular-nums"><FmtN val={kaskad.pryamye} /></b>
-            <span className="text-text-dim">{t('ВСЕГО (ustamali, ҚҚС bilan)')}</span><b className="text-right font-[family-name:var(--font-display)] text-[18px] tabular-nums text-text"><FmtN val={kaskad.vsego} /></b>
+            <span className="text-text-dim">{t('JAMI (ustamali, QQS bilan)')}</span><b className="text-right font-[family-name:var(--font-display)] text-[18px] tabular-nums text-text"><FmtN val={kaskad.vsego} /></b>
           </div>
           <NakrutkaManbaChip manba={manba} />
           <PodvalYoqOgoh manba={manba} />
@@ -444,7 +444,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       </section>
       {objectId
         ? <ObyektKaskad key={`${objectId}:${contractId ?? 'default'}`} companyId={companyId} obyektId={Number(objectId)} contractId={contractId} />
-        : <p className="fz-note fz-note--info">{t('Obyekt tanlang — to‘g‘ri xarajatdan ВСЕГО gacha ustama zinapoyasi shu yerda chiziladi.')}</p>}
+        : <p className="fz-note fz-note--info">{t('Obyekt tanlang — to‘g‘ri xarajatdan yakuniy jamigacha ustamalar qadam-baqadam shu yerda ko‘rinadi.')}</p>}
       <KoefTahrirchi companyId={companyId} contractId={contractId} />
       {qamrovBlok}
       <PodvalKonstruktor companyId={companyId} contractId={contractId} objectId={objectId ? Number(objectId) : null} />
@@ -457,5 +457,5 @@ export default function NakrutkaNative() {
   const ichki = yuklanmoqda ? <p className="text-[13px] text-text-dim">{t('Kompaniya yuklanmoqda…')}</p>
     : !joriy?.id ? <p className="fz-note fz-note--info">{t('Kompaniyani tanlang.')}</p>
       : <Sessiya key={joriy.id} companyId={joriy.id} />;
-  return <Sahifa sarlavha="Nakrutka (ustama)" tavsif="Koeffitsientlar, shartnoma qamrovi va podval: to‘g‘ridan-to‘g‘ri xarajatdan ВСЕГО gacha har qadam ko‘rinadi">{ichki}</Sahifa>;
+  return <Sahifa sarlavha="Nakrutka (ustama)" tavsif="Koeffitsientlar, shartnoma qamrovi va podval: to‘g‘ridan-to‘g‘ri xarajatdan yakuniy jamigacha har qadam ko‘rinadi">{ichki}</Sahifa>;
 }

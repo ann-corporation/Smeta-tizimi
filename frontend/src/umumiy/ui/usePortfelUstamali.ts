@@ -1,10 +1,13 @@
-import { useContext, useMemo } from 'react';
+import { useContext, useEffect, useMemo } from 'react';
 import { QueryClient, QueryClientContext, useQueries, useQuery } from '@tanstack/react-query';
 import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
+import { t2NakrutkaOldindan } from '../../api/t2-nakrutka-paket';
 import { podvalTanla, sbPodvallarOl } from '../../api/t2-nakrutka-podval';
 import { limitedRead } from '../../components/pto-workspace/useMarkupTotals';
 import { obyektKesimi, ustamaliHisobla } from '../../lib/ustamali-summa';
+import { rahbarPanelOl } from '../../api/t2-rahbar-panel';
 import { useKompaniya } from '../kontekst/KompaniyaKontekst';
+import { USTAMA_STALE_MS } from './ustama-kesh';
 
 export type PortfelObyekt = { obyektId: number; shartnomaId?: number | null; /** Tafsilotda ko‘rsatiladigan nom (ixtiyoriy). */ nom?: string | null };
 export type PortfelUstamali = {
@@ -48,8 +51,25 @@ export function usePortfelUstamali(obyektlar: readonly PortfelObyekt[], opts: { 
     for (const o of obyektlar) if (o.obyektId > 0 && Number.isFinite(o.obyektId)) m.set(`${o.obyektId}:${o.shartnomaId ?? ''}`, o);
     return [...m.values()];
   }, [obyektlar]);
+  /* YAGONA MANBA (HISOB_YADRO_V1): shartnomasiz obyektlarning smetasi — serverning summa paketi (rahbar paneli obyektlar[].smeta,
+     _t2_summa_paket_v1). Avval har obyekt alohida /nakrutka so'rovi bilan mijozda hisoblanardi: so'rovlar kelishiga qarab jami
+     tashrif orasida o'zgarardi va dashboarddagi smeta kartasidan farq qilardi. Panel o'qilmasa — eski yo'l (zaxira). */
+  const panel = useQuery({
+    queryKey: ['rahbar-panel-v1', kid, null, null, null], enabled: bor && kid != null, staleTime: 60_000, retry: 1,
+    queryFn: async () => {
+      const r = await rahbarPanelOl({ kompaniyaId: kid as number, davrDan: null, davrGacha: null, obyektId: null });
+      if (!r.ok) throw new Error(r.error);
+      return r.natija;
+    },
+  }, klient);
+  const panelKutish = bor && kid != null && panel.isPending;
+  const paketlar = useMemo(() => new Map((panel.data?.obyektlar ?? []).map((x) => [x.obyekt_id, x.smeta] as const)), [panel.data]);
+  const paketdan = (o: PortfelObyekt) => (o.shartnomaId == null ? paketlar.get(o.obyektId) ?? null : null);
+  const zaxira = royxat.filter((o) => !paketdan(o));
+  /* Tezlik: zaxira yo'li (paketda yo'q obyektlar) ustamasi BITTA paket so'rovida oldindan yuklanadi. */
+  useEffect(() => { if (bor && kid != null && !panelKutish && zaxira.length) t2NakrutkaOldindan(kid, zaxira); }, [bor, kid, panelKutish, zaxira.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const pod = useQuery({
-    queryKey: ['pto-markup-podvals', kid], enabled: bor && kid != null, staleTime: 60_000, retry: false,
+    queryKey: ['pto-markup-podvals', kid], enabled: bor && kid != null && !panelKutish && zaxira.length > 0, staleTime: 60_000, retry: false,
     queryFn: async () => {
       const r = await sbPodvallarOl(kid!);
       if (!r.ok || r.toliq === false || !Array.isArray(r.qatorlar)) throw new Error('PODVAL_READ_FAILED');
@@ -58,7 +78,7 @@ export function usePortfelUstamali(obyektlar: readonly PortfelObyekt[], opts: { 
   }, klient);
   const nak = useQueries({
     queries: royxat.map((o) => ({
-      queryKey: ['ustama-nakrutka', o.obyektId, o.shartnomaId ?? null], enabled: bor, staleTime: 60_000, retry: false,
+      queryKey: ['ustama-nakrutka', o.obyektId, o.shartnomaId ?? null], enabled: bor && !panelKutish && !paketdan(o), staleTime: USTAMA_STALE_MS, retry: false,
       queryFn: ({ signal }: { signal: AbortSignal }) => limitedRead(async () => {
         const r = await t2ObyektNakrutka(o.obyektId, o.shartnomaId ?? null);
         if (!r.ok || !r.koeffitsientlar) throw new Error('USTAMA_KOEF_OQILMADI');
@@ -67,12 +87,19 @@ export function usePortfelUstamali(obyektlar: readonly PortfelObyekt[], opts: { 
     })),
   }, klient);
 
-  const kutyapti = !bor || pod.isPending || nak.some((q) => q.isPending);
+  const kutyapti = !bor || panelKutish || (zaxira.length > 0 && (pod.isPending || zaxira.some((o) => nak[royxat.indexOf(o)]?.isPending)));
   const boYicha = new Map<number, number | null>();
   const qqsBoYicha = new Map<number, number | null>();
   const ustamasizBoYicha = new Map<number, number | null>();
   let ustamali = 0, ustamasiz = 0, hisUs = 0, nds = 0, hisoblandi = 0, nomalum = 0, ustamasizBor = false;
   royxat.forEach((o, i) => {
+    const pk = paketdan(o);
+    if (pk) {
+      ustamasiz += pk.ustamasiz; ustamasizBor = true; ustamasizBoYicha.set(o.obyektId, pk.ustamasiz);
+      boYicha.set(o.obyektId, pk.ustamali); qqsBoYicha.set(o.obyektId, pk.qqs_bilan);
+      ustamali += pk.ustamali; hisUs += pk.ustamasiz; nds += pk.qqs_bilan; hisoblandi++;
+      return;
+    }
     const r = nak[i]?.data;
     if (!r?.cats || !pod.data) { boYicha.set(o.obyektId, null); qqsBoYicha.set(o.obyektId, null); nomalum++; return; }
     const kesim = obyektKesimi(r)!;
@@ -84,7 +111,7 @@ export function usePortfelUstamali(obyektlar: readonly PortfelObyekt[], opts: { 
     qqsBoYicha.set(o.obyektId, u.ndsBilan);
     ustamali += u.ustamali; hisUs += u.ustamasiz; nds += u.ndsBilan ?? 0; hisoblandi++;
   });
-  const xato = !kutyapti && (pod.isError || nak.some((q) => q.isError));
+  const xato = !kutyapti && zaxira.length > 0 && (pod.isError || zaxira.some((o) => nak[royxat.indexOf(o)]?.isError));
   return {
     holat: kutyapti ? 'yuklanmoqda' : xato && hisoblandi === 0 ? 'xato' : 'tayyor',
     ustamali: hisoblandi > 0 ? ustamali : null,
@@ -97,6 +124,6 @@ export function usePortfelUstamali(obyektlar: readonly PortfelObyekt[], opts: { 
     qqsBoYicha,
     ustamasizBoYicha,
     royxat,
-    retry: () => { void pod.refetch(); nak.forEach((q) => { void q.refetch(); }); },
+    retry: () => { void panel.refetch(); void pod.refetch(); nak.forEach((q) => { void q.refetch(); }); },
   };
 }

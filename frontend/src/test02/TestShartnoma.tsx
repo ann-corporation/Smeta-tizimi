@@ -1,7 +1,13 @@
+import type { ReactNode } from 'react';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { sbT2ShartnomalarOl, sbT2ShartnomaSaqla, type Shartnoma } from '../api/t2-shartnoma';
-import { Briefcase, Plus, FileText, Calculator, PieChart, RefreshCw, Network } from 'lucide-react';
+import { sbT2ShartnomalarOl, sbT2ShartnomaSaqla, sbT2ShartnomaBogSaqla, type Shartnoma } from '../api/t2-shartnoma';
+import { sbT2ObyektlarOlKomp, type T2Obyekt } from '../api/supabase';
+import { sbT2LoyihalarOl, type Loyiha } from '../api/t2-loyiha';
+import { usePTOWorkspace } from '../umumiy/kontekst/PTOWorkspaceContext';
+import { Briefcase, Plus, FileText, Calculator, PieChart, RefreshCw, Network, CreditCard } from 'lucide-react';
+import { TolovForma } from '../components/moliya/TolovForma';
+import { ArxivTugma } from '../components/arxiv/ArxivTugma';
 import { FmtN } from '../lib/format';
 import { toast } from '../umumiy/ui/Toast';
 import { t } from '../i18n/til';
@@ -10,6 +16,8 @@ import { useKompaniya } from './KompaniyaTanlov';
 import { EntityFormModal } from '../umumiy/ui/forms/SharedForms';
 import { onEntityChanged } from '../api/entity-consistency';
 import { taqsimot } from '../lib/kompaniya-ops-korinish';
+import { sbKontragentlarOl } from '../api/t2-kontragent';
+import { keyingiShartnomaRaqam } from '../lib/shartnoma-sukut';
 import { OpsBoshQator, OpsKpi, OpsKpiQator, OpsQidiruv, OpsTablar, OpsTaqsimot } from '../components/kompaniya-ops/OpsUi';
 
 /**
@@ -23,6 +31,9 @@ const HOLAT: Record<Shartnoma['holat'], { nom: string; stamp: string; rang: stri
   bekor: { nom: 'Bekor', stamp: 'fz-stamp--danger', rang: 'var(--danger)' },
 };
 
+/** Navigatsiya oqimi (2026-11-11): «keyingi bosqichda ishga tushiriladi» tablari (Qo'shimcha kelishuvlar, Ustama va soliqlar, Limitlar radari) yashirilgan; tayyor bo'lganda id ni qo'shing. */
+const TAYYOR_TABLAR = ['shartnomalar'] as const;
+
 export default function TestShartnoma() {
   const navigate = useNavigate();
   const { joriy } = useKompaniya();
@@ -33,6 +44,32 @@ export default function TestShartnoma() {
   const [saqlamoqda, setSaqlamoqda] = useState(false);
   const [shartnomalar, setShartnomalar] = useState<Shartnoma[]>([]);
   const [qidiruv, setQidiruv] = useState('');
+  /** Yangi shartnoma sukut qiymatlari: keyingi raqam (ketma-ket) va taraf — aynan bitta «buyurtmachi» kontragent. */
+  const [buyurtmachi, setBuyurtmachi] = useState<string | null>(null);
+  /* Loyiha/obyekt: forma shartnomani yaratishdayoq bog'laydi (aks holda Forma 3 shartnoma rejimida «Obyektlar: 0») — joriy kontekstdan oldindan tanlanadi. */
+  const ws = usePTOWorkspace();
+  const [loyihalar, setLoyihalar] = useState<Loyiha[]>([]);
+  const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
+  useEffect(() => {
+    if (!joriy) return;
+    let faol = true;
+    void Promise.all([sbT2LoyihalarOl(joriy.id), sbT2ObyektlarOlKomp(joriy.id)]).then(([l, o]) => {
+      if (!faol) return;
+      if (l.ok) setLoyihalar(l.qatorlar ?? []);
+      if (o.ok) setObyektlar((o.qatorlar ?? []) as T2Obyekt[]);
+    }).catch(() => undefined);
+    return () => { faol = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- joriy?.id: obyekt har renderda yangi bo'lsa ham so'rov takrorlanmasin
+  }, [joriy?.id]);
+  useEffect(() => {
+    if (!joriy) return;
+    let faol = true;
+    void sbKontragentlarOl(joriy.id).then((r) => { if (!faol || !r.ok) return; const b = (r.qatorlar ?? []).filter((k) => k.mavqe === 'buyurtmachi'); setBuyurtmachi(b.length === 1 ? b[0].nom : null); }).catch(() => undefined);
+    return () => { faol = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- joriy?.id
+  }, [joriy?.id]);
+  const [tolovShartnoma, setTolovShartnoma] = useState<number | null>(null);
+  const [bekorKorinsin, setBekorKorinsin] = useState(false);
 
   const yukla = async () => {
     if (!joriy) return;
@@ -61,9 +98,11 @@ export default function TestShartnoma() {
     if (s.holat === 'faol' || s.holat === 'yopilgan') acc.bosh += Number(s.jami_nds_bilan) || 0;
     return acc;
   }, { jami: 0, bosh: 0 }), [shartnomalar]);
+  const qqsYoq = useMemo(() => shartnomalar.filter((s) => !((s.nds || 0) > 0)).length, [shartnomalar]);
   const holatlar = useMemo(() => taqsimot(shartnomalar, (s) => s.holat, ['faol', 'yopilgan', 'bekor'] as const), [shartnomalar]);
   const q = qidiruv.toLowerCase();
-  const korinadi = shartnomalar.filter((s) => `${s.raqam} ${s.nom ?? ''} ${s.taraf ?? ''}`.toLowerCase().includes(q));
+  const korinadi = shartnomalar.filter((s) => (bekorKorinsin || s.holat !== 'bekor') && `${s.raqam} ${s.nom ?? ''} ${s.taraf ?? ''}`.toLowerCase().includes(q));
+  const bekorSoni = shartnomalar.filter((s) => s.holat === 'bekor').length;
 
   return (
     <Sahifa
@@ -76,7 +115,7 @@ export default function TestShartnoma() {
     >
       <div className="flex flex-col gap-3">
         <OpsKpiQator yorliq={t('Shartnoma ko‘rsatkichlari')}>
-          <OpsKpi nom={t('Jami portfel')} qiymat={<FmtN val={stats.jami} />} ost={t('{n} ta shartnoma · so‘m, QQS bilan', { n: shartnomalar.length })} />
+          <OpsKpi nom={t('Jami portfel')} qiymat={<FmtN val={stats.jami} />} ost={t('{n} ta shartnoma · so‘m, shartnomadagi jami (QQS bilan)', { n: shartnomalar.length }) + (qqsYoq > 0 ? ' · ' + t('{k} tasida QQS kiritilmagan', { k: qqsYoq }) : '')} />
           <OpsKpi nom={t('Bosh pudrat (daromad)')} rang="var(--ok)" qiymat={<FmtN val={stats.bosh} />} ost={t('faol va yopilganlar')} />
           <OpsKpi nom={t('Sub-pudrat / xarid')} rang="var(--danger)" qiymat={<span className="text-text-mute">—</span>} ost={t('hali hisoblanmaydi')} />
           <OpsKpi nom={t('Kafolat ushlanmasi')} rang="var(--warn)" qiymat={<span className="text-text-mute">—</span>} ost={t('hali hisoblanmaydi')} />
@@ -84,16 +123,24 @@ export default function TestShartnoma() {
 
         <OpsTaqsimot sarlavha={t('Shartnomalar holati')} segmentlar={holatlar.map((h) => ({ kalit: h.kalit, nom: t(HOLAT[h.kalit]?.nom ?? h.kalit), soni: h.soni, rang: HOLAT[h.kalit]?.rang ?? 'var(--border-strong)' }))} />
 
-        <OpsTablar<Tab> yorliq={t('Shartnoma bo‘limlari')} joriy={activeTab} onTanla={setActiveTab} tablar={[
+        {TAYYOR_TABLAR.length > 1 && <OpsTablar<Tab> yorliq={t('Shartnoma bo‘limlari')} joriy={activeTab} onTanla={setActiveTab} tablar={[
           { id: 'shartnomalar', nom: t('Bosh shartnomalar'), ikon: <Briefcase />, soni: shartnomalar.length },
           { id: 'dop', nom: t('Qo‘shimcha kelishuvlar'), ikon: <FileText /> },
           { id: 'kalkulyator', nom: t('Ustama va soliqlar'), ikon: <Calculator /> },
           { id: 'radar', nom: t('Limitlar radari'), ikon: <PieChart /> },
-        ]} />
+        ].filter((x) => (TAYYOR_TABLAR as readonly string[]).includes(x.id)) as Array<{ id: Tab; nom: string; ikon: ReactNode; soni?: number }>} />}
 
         {isFormOpen && (
           <EntityFormModal
             entityType="shartnoma"
+            initialData={{
+              raqam: keyingiShartnomaRaqam(shartnomalar), ...(buyurtmachi ? { taraf: buyurtmachi } : {}),
+              ...(ws.scope?.objectId ? { obyektId: String(ws.scope.objectId) } : ws.scope?.projectId ? { loyihaId: String(ws.scope.projectId) } : {}),
+            }}
+            dynamicOptions={{
+              loyihaId: loyihalar.map((l) => ({ value: String(l.id), label: l.nom })),
+              obyektId: obyektlar.map((o) => ({ value: String(o.id), label: o.nom })),
+            }}
             title={t('Yangi shartnomani ro‘yxatga olish')}
             color="var(--accent)"
             onClose={() => setIsFormOpen(false)}
@@ -111,7 +158,20 @@ export default function TestShartnoma() {
                   summaBezNds: sum, nds: ndsSumma, jamiNdsBilan: jami, izoh: data.izoh,
                 });
                 if (!res.ok) throw new Error(res.error || t('Noma’lum xato'));
-                toast(t('Shartnoma muvaffaqiyatli saqlandi!'), 'ok');
+                /* Obyekt(lar)ni bog'lash: tanlangan obyekt, yoki tanlangan loyihaning hamma obyekti. Natija aniq aytiladi. */
+                const shId = res.shartnoma_id;
+                const nishon = data.obyektId ? obyektlar.filter((o) => String(o.id) === String(data.obyektId))
+                  : data.loyihaId ? obyektlar.filter((o) => String(o.loyiha_id) === String(data.loyihaId)) : [];
+                if (shId && nishon.length) {
+                  const natijalar = await Promise.all(nishon.map((o) => sbT2ShartnomaBogSaqla(o.id, shId)));
+                  const bogland = nishon.filter((_, i) => natijalar[i].ok);
+                  toast(bogland.length === nishon.length
+                    ? t('Shartnoma saqlandi va {n} ta obyektga bog‘landi: {nom}', { n: bogland.length, nom: bogland.map((o) => o.nom).slice(0, 4).join(', ') })
+                    : t('Shartnoma saqlandi, lekin {n} ta obyektni bog‘lab bo‘lmadi — «Shartnomalar va tomonlar» da bog‘lang.', { n: nishon.length - bogland.length }), bogland.length === nishon.length ? 'ok' : 'warn');
+                } else {
+                  toast(t('Shartnoma muvaffaqiyatli saqlandi!'), 'ok');
+                  if (!nishon.length) toast(t('Obyekt tanlanmadi: Forma 3 shartnoma rejimi obyektlarni topmaydi, ularni «Shartnomalar va tomonlar» da bog‘lang.'), 'warn');
+                }
                 setIsFormOpen(false);
                 void yukla();
               } catch (e: any) {
@@ -125,7 +185,10 @@ export default function TestShartnoma() {
 
         {activeTab === 'shartnomalar' && (
           <div className="flex flex-col gap-2">
-            <OpsQidiruv qiymat={qidiruv} onChange={setQidiruv} placeholder={t('Raqam, nom yoki kontragent bo‘yicha…')} />
+            <div className="flex flex-wrap items-center gap-3">
+              <OpsQidiruv qiymat={qidiruv} onChange={setQidiruv} placeholder={t('Raqam, nom yoki kontragent bo‘yicha…')} />
+              {bekorSoni > 0 && <label className="inline-flex items-center gap-1.5 text-[12px] text-text-dim"><input type="checkbox" checked={bekorKorinsin} onChange={(e) => setBekorKorinsin(e.target.checked)} />{t('Bekor/arxivdagilarni ham ko‘rsatish ({n})', { n: bekorSoni })}</label>}
+            </div>
             <div className="fz-table-wrap">
               <table className="fz-table">
                 <thead>
@@ -140,11 +203,13 @@ export default function TestShartnoma() {
                       <td className="text-text-dim">{s.taraf || '—'}</td>
                       <td className="fz-c-num">
                         <span className="block font-semibold"><FmtN val={s.jami_nds_bilan} /></span>
-                        <span className={`text-[11px] ${(s.nds || 0) > 0 ? 'text-text-mute' : 'text-warn'}`}>{(s.nds || 0) > 0 ? t('QQS bilan') : t('QQS siz')}</span>
+                        <span className={`text-[11px] ${(s.nds || 0) > 0 ? 'text-text-mute' : 'text-warn'}`}>{(s.nds || 0) > 0 ? t('QQS bilan') : t('QQS kiritilmagan')}</span>
                       </td>
                       <td><span className={`fz-stamp ${HOLAT[s.holat]?.stamp ?? ''}`}>{t(HOLAT[s.holat]?.nom ?? s.holat)}</span></td>
                       <td className="text-right">
+                        {s.holat !== 'bekor' && <button type="button" onClick={() => setTolovShartnoma(s.id)} className="fz-btn fz-btn--ghost fz-btn--sm" aria-label={`${t('To‘lov kiritish')}: № ${s.raqam}`}><CreditCard /> {t('To‘lov kiritish')}</button>}
                         <button type="button" onClick={() => navigate(`/admin/mindmap?tugun=shartnoma:${s.id}`)} className="fz-btn fz-btn--ghost fz-btn--sm"><Network /> {t('Mindmapda ko‘rish')}</button>
+                        {s.holat !== 'bekor' && <ArxivTugma tur="shartnoma" id={s.id} nom={`№ ${s.raqam}`} onDone={() => void yukla()} />}
                       </td>
                     </tr>
                   ))}
@@ -153,6 +218,8 @@ export default function TestShartnoma() {
             </div>
           </div>
         )}
+
+        {tolovShartnoma != null && <TolovForma kompaniyaId={aktKomp} shartnomalar={shartnomalar.filter((s) => s.holat !== 'bekor')} shartnomaId={tolovShartnoma} yop={() => setTolovShartnoma(null)} />}
 
         {activeTab !== 'shartnomalar' && (
           <section className="fz-note"><FileText /><span>{activeTab === 'dop'

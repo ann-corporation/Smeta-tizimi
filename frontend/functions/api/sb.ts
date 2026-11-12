@@ -121,6 +121,8 @@ const RUXSAT_JADVALLAR = new Set([
      `t2_erp_taminot` jadvali bor edi, lekin `t2_erp_amal` RPC bazada
      UMUMAN yo'q edi → yozish 404 berardi. */
   't2_zayavka_royxat',
+  /* USTA «Bugun» qoralamalari (20261214300000) — prorab/PTO «Tasdiqlash kutilmoqda» ro'yxati. */
+  't2_usta_fakt_qoralama',
   /* HODISA LENTASI — rahbar «nima sodir bo'ldi» ni ko'radi.
      `t2_audit_log` ga endi TRIGGER yozadi; avval 0 qator edi, chunki
      `t2_audit_yoz` ni hech kim chaqirmasdi (auditda qayd etilgan). */
@@ -203,7 +205,7 @@ export const onRequestPost: PagesFunction<{
      *
      * Rol: `boss`/`rahbar` ham CHAQIRA OLADI — bu faqat o'qish. */
     if (so.soro) {
-      const OQISH_RPC: Record<string, 'obyekt' | 'kompaniya' | 'obyekt_kompaniya' | 'obyekt_actor' | 'akt_actor' | 'job_actor' | 'kompaniya_actor' | 'akt_kompaniya_actor' | 'shartnoma_actor' | 'tizim_actor'> = {
+      const OQISH_RPC: Record<string, 'obyekt' | 'kompaniya' | 'obyekt_kompaniya' | 'obyekt_actor' | 'obyekt_paket_actor' | 'akt_actor' | 'job_actor' | 'kompaniya_actor' | 'akt_kompaniya_actor' | 'shartnoma_actor' | 'tizim_actor'> = {
         ai_kontekst: 'obyekt',
         ai_umumiy: 'kompaniya',
         /* ⚡ 2026-08-28: mindmap butun grafni (tugunlar + bog'lanishlar)
@@ -243,6 +245,8 @@ export const onRequestPost: PagesFunction<{
            t2_actor_kompaniya_azo_tekshir. */
         nakrutka_koef_ol_v1: 'kompaniya_actor',
         obyekt_nakrutka_v1: 'obyekt_actor',
+        /* Tezlik (20261212800000): bir nechta obyekt nakrutkasi BITTA so'rovda. Tenant: kompaniya a'zoligi + har obyekt shu kompaniyaniki; RPC ichida actor a'zoligi qayta tekshiriladi. */
+        obyekt_nakrutka_paket_v1: 'obyekt_paket_actor',
         shartnoma_qamrov_ol_v1: 'shartnoma_actor',
         /* HERM-001 WP-1: F2 lifecycle approval-chain history. `stable`,
            membership-checked inside the RPC itself
@@ -260,11 +264,16 @@ export const onRequestPost: PagesFunction<{
         shartnoma_liniya_v1: 'kompaniya_actor',
         /* Egasi 2026-11-02: qarzdorlik (postavshik/subpudrat kreditor qarzi) - shartnoma + asoslar + hisob. stable, a'zolik + financial.read ichida. */
         qarzdorlik_royxat_v1: 'kompaniya_actor',
+        /* Egasi 2026-11-04 (#4): buyurtmachi (debitor) qarzi = F3(sotuv) - to'lov, F2 yonida. stable; a'zolik + f2.read RPC ichida. */
+        qarz_svod_v1: 'kompaniya_actor',
         /* 2026-11-04: HR + KPI (stable; a'zolik + hr.* / payroll.* RPC ichida). */
         hr_xodimlar_v1: 'kompaniya_actor',
         hr_oy_v1: 'kompaniya_actor',
         hr_kpi_v1: 'kompaniya_actor',
         hr_oylik_buxgalteriya_v1: 'kompaniya_actor',
+        /* 2026-11-12: «Mening oyligim» (faqat o'z qatori; a'zolik yetarli) va KPI qoidalari/sozlama. */
+        hr_men_v1: 'kompaniya_actor',
+        hr_qoida_v1: 'kompaniya_actor',
         /* Egasi 2026-11-04: buxgalteriya o'qishlari (reja, jurnal, ОСВ, kontragent hisob-kitobi, QQS reyestri, bank/kassa). `stable`; a'zolik + rol + accounting.read RPC ichida. */
         bux_holat_v1: 'kompaniya_actor',
         bux_jurnal_v1: 'kompaniya_actor',
@@ -272,6 +281,14 @@ export const onRequestPost: PagesFunction<{
         bux_kontragent_v1: 'kompaniya_actor',
         bux_nds_v1: 'kompaniya_actor',
         bux_tolov_v1: 'kompaniya_actor',
+  bux_kartochka_v1: 'kompaniya_actor',
+  bux_pul_korinish_v1: 'kompaniya_actor',
+  bux_hisobot_v1: 'kompaniya_actor',
+  bux_sverka_v1: 'kompaniya_actor',
+  bux_bank_taklif_v1: 'kompaniya_actor',
+  bux_kassa_kitob_v1: 'kompaniya_actor',
+  bux_sverka_tomonlar_v1: 'kompaniya_actor',
+  bux_sozlama_v1: 'kompaniya_actor',
         /* Egasi 2026-11-03: shartnoma oylik paketi arxivi (versiyalar + manifest + hozirgi iz) va fakt/F2 saqlashdan oldingi ogohlantirish. `stable`; a'zolik RPC ichida. */
         shartnoma_oylik_paket_royxat_v1: 'kompaniya_actor',
         /* Egasi 2026-11-05: shartnoma kartasi — DS lar va asl fayllar (kanonik R2; yuklab olish /api/hujjat-ol). stable; a'zolik + document.read. */
@@ -289,6 +306,8 @@ export const onRequestPost: PagesFunction<{
         /* Issue #195 (egasi 2026-10-29): RAHBAR PANELI — kartalar, pul oqimi, obyektlar matritsasi, diqqat (top-10), tasdiq navbati.
            Summalar yagona «summa paketi» (QQS bilan · ustamali · прямые + kesim). `stable`; a'zolik + financial.read ichida. */
         rahbar_panel_v1: 'kompaniya_actor',
+        /* Direktor pulti (V3): 6 plitka — «tayyor hisoblar» (t2_obyekt_kesh) orqali tez. `stable`; a'zolik + financial.read ichida. */
+        rahbar_pult_v1: 'kompaniya_actor',
         /* Egasi 2026-10-02: token balansi, tarif, narxlar, harakatlar (sotiladigan PTO). */
         token_holat_v1: 'kompaniya_actor',
         /* Egasi 2026-10-21 («Telegram modeli»): kompaniyada qaysi modullar yoqilgan — menyu shundan (a'zolik ichida). */
@@ -311,6 +330,8 @@ export const onRequestPost: PagesFunction<{
         /* ISH KARTASI v1 (20261203000600): kartalar, bog'langan smeta qatorlari (+ qo'shnilar), smetadan ish qidirish. `stable`;
            a'zolik + smeta.read RPC ichida; smeta qatorlari faqat faol versiya va shu kompaniyaniki. */
         ish_kartasi_ol_v1: 'kompaniya_actor',
+        /* NARYAD + LUG'AT (20261214800000): naryadlar ro'yxati/tafsiloti, kompaniya lug'ati. `stable`; a'zolik + smeta.read RPC ichida. */
+        naryad_ol_v1: 'kompaniya_actor',
         /* Egasi 2026-11-03: UY SOTISH (20261124000000) — shaxmatka, bitimlar, bitim kartasi, mijozlar, sotuv paneli. `stable`;
            a'zolik + sales.read/sales.write RPC ichida; obyekt/bitim kompaniyaga tegishliligi ham RPC da. */
         sotuv_shaxmatka_v1: 'kompaniya_actor',
@@ -368,11 +389,30 @@ export const onRequestPost: PagesFunction<{
         }
         q.set('p_shartnoma_id', String(id));
       }
-      if (tur === 'obyekt_actor' || tur === 'akt_actor' || tur === 'job_actor' || tur === 'kompaniya_actor' || tur === 'akt_kompaniya_actor' || tur === 'shartnoma_actor' || tur === 'tizim_actor') {
+      if (tur === 'obyekt_actor' || tur === 'obyekt_paket_actor' || tur === 'akt_actor' || tur === 'job_actor' || tur === 'kompaniya_actor' || tur === 'akt_kompaniya_actor' || tur === 'shartnoma_actor' || tur === 'tizim_actor') {
         if (!Number.isInteger(sess.foydalanuvchi_id) || (sess.foydalanuvchi_id as number) <= 0) {
           return Response.json({ ok: false, error: 'Sessiyada foydalanuvchi yo\'q' }, { status: 401 });
         }
         q.set('p_actor_id', String(sess.foydalanuvchi_id));
+      }
+      if (tur === 'obyekt_paket_actor') {
+        const k = rpcKompaniyasi(sess, so.kompaniya_id);
+        if (!k.ok) return Response.json({ ok: false, code: 'TENANT_FORBIDDEN', error: k.error }, { status: k.status });
+        const xom = (so as { juftlar?: unknown }).juftlar;
+        if (!Array.isArray(xom) || xom.length < 1 || xom.length > 60) return Response.json({ ok: false, error: 'juftlar 1..60 ta bo\'lishi kerak' });
+        const juftlar: Array<{ obyekt_id: number; shartnoma_id: number | null }> = [];
+        for (const j of xom) {
+          const o = Number((j as { obyekt_id?: unknown })?.obyekt_id);
+          const sRaw = (j as { shartnoma_id?: unknown })?.shartnoma_id;
+          const s = sRaw == null || sRaw === '' ? null : Number(sRaw);
+          if (!Number.isSafeInteger(o) || o <= 0 || (s !== null && (!Number.isSafeInteger(s) || s <= 0))) return Response.json({ ok: false, error: 'juftlar noto\'g\'ri' });
+          juftlar.push({ obyekt_id: o, shartnoma_id: s });
+        }
+        let egalar: Array<number | null>;
+        try { egalar = await Promise.all([...new Set(juftlar.map((j) => j.obyekt_id))].map((id) => otaKompaniyasi(ctx.env, 't2_obyekt', id))); }
+        catch { return Response.json({ ok: false, code: 'TENANT_CHECK_FAILED', error: 'Obyekt tegishliligini tekshirib bo\'lmadi' }, { status: 502 }); }
+        if (egalar.some((e) => e !== k.id)) return Response.json({ ok: false, code: 'TENANT_FORBIDDEN', error: 'Bu obyektga ruxsat yo\'q' }, { status: 403 });
+        q.set('p_juftlar', JSON.stringify(juftlar));
       }
       /* 2026-10-02 izolyatsiya auditi: avval `obyekt` turidagi RPC (ai_kontekst) obyektning kimga tegishliligini
          tekshirmasdi, `kompaniya` turida esa kompaniya berilmasa BARCHA kompaniyalar qaytardi. Endi:
@@ -447,6 +487,14 @@ export const onRequestPost: PagesFunction<{
         if (typeof oy !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(oy)) return Response.json({ ok: false, error: "oy majburiy (YYYY-MM)" });
         q.set('p_oy', oy);
       }
+      if (so.soro === 'hr_men_v1') {
+        /* oy ixtiyoriy (sukut: joriy oy, serverda); berilsa YYYY-MM. */
+        const oy = (so as { oy?: unknown }).oy;
+        if (oy != null && oy !== '') {
+          if (typeof oy !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(oy)) return Response.json({ ok: false, error: "oy YYYY-MM bo'lishi kerak" });
+          q.set('p_oy', oy);
+        }
+      }
       if (typeof so.soro === 'string' && so.soro.startsWith('bux_')) {
         /* Buxgalteriya o'qishlari: umumiy filtr imzosi (dan, gacha, kontragent, shartnoma, hisob, limit) — qiymatlar qat'iy tekshiriladi. */
         for (const [kalit, param] of [['dan', 'p_dan'], ['gacha', 'p_gacha']] as const) {
@@ -466,6 +514,17 @@ export const onRequestPost: PagesFunction<{
         if (hisob != null && hisob !== '') {
           if (typeof hisob !== 'string' || !/^\d{4}$/.test(hisob)) return Response.json({ ok: false, error: "hisob 4 raqam bo'lishi kerak" });
           q.set('p_hisob', hisob);
+        }
+        const qarshi = (so as Record<string, unknown>).qarshi_kompaniya_id;
+        if (qarshi != null && String(qarshi) !== '') {
+          const qid = Number(qarshi);
+          if (!Number.isSafeInteger(qid) || qid <= 0) return Response.json({ ok: false, error: "qarshi_kompaniya_id noto'g'ri" });
+          q.set('p_qarshi_kompaniya_id', String(qid));
+        }
+        const forma = (so as Record<string, unknown>).forma;
+        if (forma != null && forma !== '') {
+          if (forma !== 'balans' && forma !== 'foyda_zarar') return Response.json({ ok: false, error: 'forma balans yoki foyda_zarar bo\'lishi kerak' });
+          q.set('p_forma', forma);
         }
         const lim = (so as Record<string, unknown>).limit;
         if (lim != null && lim !== '') {
@@ -686,6 +745,33 @@ export const onRequestPost: PagesFunction<{
           filtr.qoshni = f.qoshni === true;
         }
         if (bolim === 'qidir') filtr.q = String(f.q ?? '').slice(0, 100);
+        q.set('p_bolim', bolim);
+        q.set('p_filtr', JSON.stringify(filtr));
+      }
+      if (so.soro === 'naryad_ol_v1') {
+        const bolim = String((so as { bolim?: unknown }).bolim ?? '');
+        if (!['royxat', 'bitta', 'lugat', 'tarix'].includes(bolim)) return Response.json({ ok: false, error: "bolim noto'g'ri" });
+        const xf = (so as { filtr?: unknown }).filtr;
+        const f = xf && typeof xf === 'object' && !Array.isArray(xf) ? xf as Record<string, unknown> : {};
+        const filtr: Record<string, string | number> = {};
+        for (const k of ['obyekt_id', 'id', 'limit']) {
+          if (f[k] == null || f[k] === '') continue;
+          const n = Number(f[k]);
+          if (!Number.isSafeInteger(n) || n <= 0) return Response.json({ ok: false, error: `${k} noto'g'ri` });
+          filtr[k] = n;
+        }
+        if (f.holat != null && f.holat !== '') {
+          if (!['berildi', 'bajarildi', 'qabul', 'hisoblandi', 'bekor'].includes(String(f.holat))) return Response.json({ ok: false, error: "holat noto'g'ri" });
+          filtr.holat = String(f.holat);
+        }
+        if (bolim === 'bitta' && filtr.id == null) return Response.json({ ok: false, error: 'id kerak' });
+        if (bolim === 'tarix') {
+          const ids = Array.isArray(f.qator_ids) ? f.qator_ids : [];
+          const kodlar = Array.isArray(f.kodlar) ? f.kodlar : [];
+          if (ids.length > 60 || kodlar.length > 60 || ids.some((x) => !Number.isSafeInteger(Number(x)) || Number(x) <= 0) || kodlar.some((x) => typeof x !== 'string')) return Response.json({ ok: false, error: 'tarix: ≤60 qator va shifr' });
+          (filtr as Record<string, unknown>).qator_ids = ids.map(Number);
+          (filtr as Record<string, unknown>).kodlar = kodlar.map((x) => String(x).slice(0, 100));
+        }
         q.set('p_bolim', bolim);
         q.set('p_filtr', JSON.stringify(filtr));
       }

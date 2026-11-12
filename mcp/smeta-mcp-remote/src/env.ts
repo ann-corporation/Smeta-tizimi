@@ -26,6 +26,7 @@ export interface Env {
   MUHR_SOVUT_KUN?: string;
   MUHR_SOVUT_BLOK?: string;
   MUHR_SOVUT_OFF?: string;
+  SNAPSHOT_SOVUT_SONGGI?: string;
   /** Ixtiyoriy sirlar: «Google bilan kirish» (OAuth 2.0 code + PKCE). Ikkalasi ham bo'lsagina tugma ko'rinadi. Faqat nomlar — qiymat repoda yo'q. */
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;

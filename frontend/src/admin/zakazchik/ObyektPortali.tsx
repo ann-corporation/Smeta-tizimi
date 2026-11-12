@@ -16,6 +16,7 @@ import { Bolim, HolatBelgi, PodvalJadvali, TomonSummaJuft } from './tomon-ui';
 import ObyektSorovlari from './ObyektSorovlari';
 import { bajarilishFoizi, holatYigindisi } from './obyekt-portali-yordam';
 import { oyMatn, pul, sana } from './tomon-yordam';
+import { raqamTozala } from '../../lib/raqam-belgi';
 
 function Kartochka({ nom, qiymat, izoh, rang }: { nom: string; qiymat: string; izoh?: string; rang?: string }) {
   return <div className="fz-kpi"><span className="fz-kpi__label">{rang && <i style={{ background: rang }} />}{t(nom)}</span><span className="fz-kpi__value">{qiymat}</span>{izoh && <span className="fz-kpi__sub">{t(izoh)}</span>}</div>;
@@ -66,7 +67,7 @@ export default function ObyektPortali() {
         {obyekt && <>
           <p className="text-[13px] text-text-dim">{obyekt.qarshi_nom} — {obyekt.qarshi_rol}</p>
           <section className="fz-card fz-kpis p-4" aria-label={t('Obyekt ko‘rsatkichlari')}>
-            <Kartochka nom="Shartnoma summasi (QQSsiz)" qiymat={obyekt.shartnoma ? pul(obyekt.shartnoma.summa_bez_nds) : t('ochilmagan')} izoh={obyekt.shartnoma ? `№ ${obyekt.shartnoma.raqam}` : undefined} />
+            <Kartochka nom="Shartnoma summasi (QQSsiz)" qiymat={obyekt.shartnoma ? pul(obyekt.shartnoma.summa_bez_nds) : t('ochilmagan')} izoh={obyekt.shartnoma ? `№ ${raqamTozala(obyekt.shartnoma.raqam)}` : undefined} />
             {obyekt.f2?.ustama_jami ? (
               <div className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: 'var(--info)' }} />{t('Sertifikatlangan F2 jami')}</span>
                 <span className="fz-kpi__value"><TomonSummaJuft u={obyekt.f2.ustama_jami} /></span><span className="fz-kpi__sub">{obyekt.f2.soni} {t('ta akt')}</span></div>

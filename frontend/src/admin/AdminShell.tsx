@@ -4,14 +4,15 @@ import { useSessiya } from '../api/hooks';
 import { HotkeyYordam } from '../lib/hotkeys/HotkeyYordam';
 import { AlertTriangle, ChevronDown, ChevronRight, ShieldCheck, Crown } from 'lucide-react';
 import { Map, LogOut, Building2, Tags, Calculator, FileOutput, HardHat, ShieldAlert, Settings, FileText, Link2, FileStack, Gauge, FlaskConical, LayoutDashboard, BarChart, ClipboardList, Briefcase, Box, Trash2, Users, FolderKanban, Menu, X, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
-import { Inbox, Truck, User } from 'lucide-react';
+import { Inbox, Truck, User, Search } from 'lucide-react';
 import F2NavbatChip from '../umumiy/ui/F2NavbatChip';
 import { menyuTekshirDev } from '../umumiy/marshrutTekshir';
 import { KompaniyaProvider, useKompaniya } from '../umumiy/kontekst/KompaniyaKontekst';
 import { KompaniyaLogoRasm } from '../umumiy/hujjat/KompaniyaLogo';
 import { KompaniyaTanlagich } from '../umumiy/kontekst/KompaniyaTanlagich';
 import { PTOWorkspaceBar, PTOWorkspaceProvider } from '../umumiy/kontekst/PTOWorkspaceContext';
-import { AiBuyruqSatri } from './AiBuyruqSatri';
+import { YordamchiSahifaYozuvchi } from '../lib/yordamchi/sahifa-store';
+import { PredpisaniyaOgohlantirish } from './nazorat/PredpisaniyaOgohlantirish';
 import { RuxsatGuard } from '../umumiy/kontekst/RuxsatGuard';
 import { SahifaChegarasi } from '../umumiy/ui/XatoChegarasi';
 import { tizimdanChiq } from '../umumiy/kontekst/chiqish';
@@ -21,12 +22,13 @@ import { AkkauntTugmasi } from '../components/akkaunt/AkkauntTugmasi';
 import { Qongiroqcha } from '../components/hujjat-aylanish/Qongiroqcha';
 import { OrqaOldinga } from '../umumiy/ui/OrqaOldinga';
 import { SIDEBAR_HODISA } from '../components/akkaunt/korinish-sozlama';
-import { AiHelper } from '../umumiy/ui/AiHelper';
+import { AiHelper, AiHelperTugma } from '../umumiy/ui/AiHelper';
 import { CommandPalette } from '../umumiy/ui/CommandPalette';
 import { QollanmaBoshqaruv } from '../components/qollanma/QollanmaKarta';
+import { NimaYangiBelgi } from '../components/qollanma/NimaYangiBelgi';
 import { BolimTablariKontekst } from './bolimTablariKontekst';
 import { NAV_GURUHLAR, NAV_SAHIFALAR, navSahifa, type NavIkonka } from '../lib/nav/navReestr';
-import { menyuQur, ilovalarRoyxati, type NavKontekst } from '../lib/nav/navFiltr';
+import { menyuQur, ilovalarRoyxati, kundalikIshlar, type NavKontekst } from '../lib/nav/navFiltr';
 import { ILOVA_MAP, type IlovaKod } from '../lib/ilova/ilovalar';
 import { IlovaIshgaTushirgich } from '../components/ilova/IlovaIshgaTushirgich';
 import { useTizimRuxsat } from '../api/t2-tizim-xaritasi';
@@ -90,7 +92,8 @@ function AdminShellInner() {
   const [kengaygan, setKengaygan] = useState(false);
   const [mobilMenyuOchiq, setMobilMenyuOchiq] = useState(false);
   const [mahkam, setMahkam] = useState<boolean>(() => {
-    try { return localStorage.getItem('fz-sidebar-mahkam') === '1'; } catch { return false; }
+    /* Navigatsiya oqimi (2026-11-11): sukut — mahkam ochiq panel (yozuvlar ko'rinadi); faqat ikonka «rels» — foydalanuvchi o'zi yig'sa. */
+    try { const v = localStorage.getItem('fz-sidebar-mahkam'); return v == null ? true : v === '1'; } catch { return true; }
   });
   useEffect(() => {
     try { localStorage.setItem('fz-sidebar-mahkam', mahkam ? '1' : '0'); } catch { /* brauzer xotirasi yopiq */ }
@@ -124,9 +127,11 @@ function AdminShellInner() {
   const [ochiqGuruhlar, setOchiqGuruhlar] = useState<Record<string, boolean>>(() => {
     const d: Record<string, boolean> = {};
     NAV_GURUHLAR.forEach(g => {
-      // Ish qatlami (qurilish zanjiri) standart ochiq; boshqa guruh — ochiq sahifa shu guruhda bo'lsa.
-      d[g.id] = g.qatlam === 'ish' || g.bandlar.some(b => b.sahifalar.some(x => joy.pathname.startsWith(x.yol)));
+      // Yuqorida «Kundalik ishlar» turadi — bo'limlar sukut YOPIQ, faqat ochiq sahifa turgan bo'lim ochiq.
+      d[g.id] = g.bandlar.some(b => b.sahifalar.some(x => joy.pathname.startsWith(x.yol)));
     });
+    d.kundalik = true;
+    d.qoshimcha = NAV_SAHIFALAR.some(x => x.qoshimcha && joy.pathname.startsWith(x.yol));
     return d;
   });
 
@@ -207,7 +212,7 @@ function AdminShellInner() {
   const moduleOpen = menyuModulYoqilgan(joy.pathname, modullar);
   /* Rol/ruxsat/modul/qatlam filtri — sof funksiya (lib/nav/navFiltr.ts, rol snapshot testlari bilan). */
   const navK: NavKontekst = { superadmin: !!k.superadmin, rol: effektivRol, permissions: k.joriy?.permissions, modullar, tizimXaritasi: tizimRuxsat.data?.ruxsat === true };
-  const guruhQator = (ilova: IlovaKod | 'hammasi') => menyuQur({ ...navK, ilova })
+  const guruhQator = (ilova: IlovaKod | 'hammasi', qoshimcha: 'hammasi' | 'yashir' | 'faqat' = 'hammasi') => menyuQur({ ...navK, ilova, qoshimcha })
     .map(g => ({ nom: g.nom, id: g.id, Ikonka: IKONKALAR[g.ikonka], menyular: g.bandlar.map((b): MenyuQator => ({ yol: b.yol, nom: b.nom, Ikonka: IKONKALAR[b.ikonka], tablar: b.tablar })) }));
   /* Ilova ishga tushirgich + joriy ilova (yo'l ilovasi, bo'lmasa oxirgi tanlangan, bo'lmasa birinchi). */
   const ilovalar = ilovalarRoyxati(navK);
@@ -217,7 +222,16 @@ function AdminShellInner() {
   const menyuIlova: IlovaKod | 'hammasi' = hammasiRejim || !joriyIlova || ilovalar.length < 2 ? 'hammasi' : joriyIlova;
   /* Ctrl+K va sahifa tablari — HAMMA ruxsatli bo'limlardan (ilova filtri faqat yon menyuga). */
   const hammasiGuruhlar = guruhQator('hammasi');
-  const filtrKilinganGuruhlar = menyuIlova === 'hammasi' ? hammasiGuruhlar : guruhQator(menyuIlova);
+  /* Yon menyu: tepada «Kundalik ishlar», keyin bo'limlar, pastda yig'ilgan «Qo'shimcha bo'limlar» (hali ma'lumoti yo'q modullar —
+   * o'chirilmaydi, faqat asosiy ro'yxatdan olinadi; Ctrl+K va tablar hammasini ko'radi). */
+  const asosiyGuruhlar = guruhQator(menyuIlova, 'yashir');
+  const qoshimchaBandlar = guruhQator('hammasi', 'faqat').flatMap(g => g.menyular);
+  const kundalikBandlar: MenyuQator[] = kundalikIshlar({ ...navK, ilova: 'hammasi' }).map(b => ({ yol: b.yol, nom: b.nom, Ikonka: IKONKALAR[b.ikonka] }));
+  const filtrKilinganGuruhlar = [
+    ...(kundalikBandlar.length ? [{ nom: 'Kundalik ishlar', id: 'kundalik', Ikonka: IKONKALAR.HardHat, menyular: kundalikBandlar }] : []),
+    ...asosiyGuruhlar,
+    ...(qoshimchaBandlar.length ? [{ nom: 'Qo‘shimcha bo‘limlar', id: 'qoshimcha', Ikonka: IKONKALAR.Box, menyular: qoshimchaBandlar }] : []),
+  ];
   /* Ctrl+K — sidebar bilan BIR manba: shu rol/ruxsat/modul filtridan o'tgan bandlar (tizim xaritasi P3); tablar alohida topiladi. */
   const palitraBandlari = hammasiGuruhlar.flatMap(g => g.menyular.flatMap(m => m.tablar
     ? m.tablar.map(tb => ({ yol: tb.yol, nom: tb.nom, guruh: g.nom }))
@@ -230,6 +244,7 @@ function AdminShellInner() {
     <div className="os-app-shell flex h-screen overflow-hidden text-text relative font-sans">
       <HotkeyYordam />
       <CommandPalette bandlar={palitraBandlari} />
+      <YordamchiSahifaYozuvchi bandlar={palitraBandlari} />
 
       {/* Firuza YonPanel (2026-10-25): rels (60px, faqat ikonka) yoki mahkamlangan ochiq panel (264px).
        * Rels holatda sichqoncha kelsa panel kontent USTIDA ochiladi — sahifa siljimaydi (avval kontent
@@ -331,8 +346,8 @@ function AdminShellInner() {
           {k.superadmin && <span className="hidden rounded-md border border-accent/25 px-2 py-1 text-[10px] text-accent 2xl:inline">{t('Platforma roli')}: superadmin</span>}
           {k.superadmin && k.joriy?.membershipRole && <span className="hidden text-[10px] text-text-dim 2xl:inline">{t('Kompaniyadagi rol')}: {k.joriy.membershipRole}</span>}
           <PTOWorkspaceBar />
-          <AiBuyruqSatri />
-          <div className="ml-auto flex items-center gap-2"><QollanmaBoshqaruv foydalanuvchi={sess.data?.email} /><TilTanlagich ixcham /><Qongiroqcha /><AkkauntTugmasi /></div>
+          <AiHelperTugma />
+          <div className="ml-auto flex items-center gap-2"><button type="button" onClick={() => window.dispatchEvent(new CustomEvent('palitra:och'))} aria-label={t('Sahifa yoki obyekt izlash...')} title={t('Sahifa yoki obyekt izlash...')} className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2 text-[12px] text-text-dim hover:text-text"><Search size={14} aria-hidden="true" /><span className="hidden xl:inline">{t('Qidirish')}</span></button><NimaYangiBelgi /><QollanmaBoshqaruv foydalanuvchi={sess.data?.email} /><TilTanlagich ixcham /><Qongiroqcha /><AkkauntTugmasi /></div>
         </div>
 
         {/* ⚠️ 2026-09-07 (Claude, P0): AVVAL bu yerda `sess.data.yozaOladi`
@@ -369,6 +384,7 @@ function AdminShellInner() {
          * ichki `overflow-hidden`/`h-full` saqlaydi — bu ichki konteyner
          * shu tashqi scroll konteynerining ICHIDA, hajmi mos kelsa
          * tashqi scroll umuman ko'rinmaydi. */}
+        {!k.globalRejim && k.joriy && <PredpisaniyaOgohlantirish kompaniyaId={k.joriy.id} />}
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
           <BolimTablariKontekst.Provider value={tabGuruhlari}>
             {moduleOpen ? <SahifaChegarasi><RuxsatGuard /></SahifaChegarasi> : <p role="alert" className="karta p-4 text-sm">{t('Bu modul kompaniyada o‘chirilgan.')}</p>}

@@ -5,7 +5,8 @@
  * (summalar `oylik.ts` / hisob-yadrodan keladi); tayyorgarlik hech narsani BLOKLAMAYDI.
  */
 import type { ReestrObyekt, ReestrShartnoma } from '../f2-reestr/reestr';
-import { takrorsizYol, type FaylMeta, type PaketAkt, type PaketFayl, type PaketFaylTuri, type Tekshiruv } from './oylik';
+import { TAYYORGARLIK_QADAMLARI } from '../hujjat-dvigatel/reestr';
+import { takrorsizYol,type FaylMeta, type PaketAkt, type PaketFayl, type PaketFaylTuri, type Tekshiruv } from './oylik';
 
 export const MANIFEST_FORMAT = 't2-shartnoma-oylik-paket/1';
 /** Kanonik fayl saqlashdagi hujjat turi (`/api/hujjat-yukla`, `turi`). */
@@ -76,7 +77,8 @@ export type TayyorgarlikQator = {
   fakt: Katak; f2: Katak; forma3: Katak; nakopitelniy: Katak; m29: Katak; ostatka: Katak; slichitelniy: Katak; summa: Katak;
 };
 export type TayyorgarlikUstun = Exclude<keyof TayyorgarlikQator, 'obyektId' | 'obyektNom'>;
-export const TAYYORGARLIK_USTUNLARI: readonly TayyorgarlikUstun[] = ['fakt', 'f2', 'forma3', 'nakopitelniy', 'm29', 'ostatka', 'slichitelniy', 'summa'];
+/** Ustunlar va tartibi — yagona hujjat dvigateli reestridan (lib/hujjat-dvigatel/reestr.ts: TAYYORGARLIK_QADAMLARI). */
+export const TAYYORGARLIK_USTUNLARI: readonly TayyorgarlikUstun[] = TAYYORGARLIK_QADAMLARI.map((q) => q.kalit);
 export type M29Holat = 'bajarildi' | 'yoq' | 'nom';
 export type Forma3Holat = { tayyor: number; qoralama: number };
 /** Paketda HAQIQATAN yaratilgan (yoki yaratilmagan) obyekt hujjatlari: katak qiymati shu natijadan oladi. */

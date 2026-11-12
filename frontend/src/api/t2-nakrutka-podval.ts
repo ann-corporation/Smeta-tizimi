@@ -6,6 +6,8 @@
  *   obyekt podvali → shartnoma podvali → kompaniya podvali → null (standart kaskad, koeffitsientlardan).
  */
 import { sbOqi } from './supabase';
+import { birlash } from './birlash';
+import { ustamaOzgardi } from '../umumiy/ui/ustama-kesh';
 import type { Podval, PodvalQator } from '../lib/nakrutka-konstruktor';
 import { serverCatsdan } from '../lib/hisob-yadro';
 
@@ -19,7 +21,7 @@ export type PodvalYozuv = {
 export type PodvalDoira = { obyektId?: number | null; shartnomaId?: number | null };
 
 export function sbPodvallarOl(kompaniyaId: number) {
-  return sbOqi<PodvalYozuv>({ jadval: 't2_nakrutka_podval_royxat', filtr: 'kompaniya_id=eq.' + kompaniyaId, tartib: 'yangilandi.desc', limit: 500 });
+  return birlash('podvallar:' + kompaniyaId, () => sbOqi<PodvalYozuv>({ jadval: 't2_nakrutka_podval_royxat', filtr: 'kompaniya_id=eq.' + kompaniyaId, tartib: 'yangilandi.desc', limit: 500 }));
 }
 
 /** Doira bo'yicha amaldagi podval (maxsus bo'lmasa — null, ya'ni standart). */
@@ -41,7 +43,9 @@ type Natija = { ok: boolean; error?: string; sabab?: string; id?: number; versiy
 async function yoz(yuk: Record<string, unknown>): Promise<Natija> {
   try {
     const r = await fetch('/api/sb-yoz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(yuk) });
-    return (await r.json()) as Natija;
+    const natija = (await r.json()) as Natija;
+    if (natija?.ok) ustamaOzgardi();
+    return natija;
   } catch (e) {
     return { ok: false, error: 'Tarmoq: ' + (e instanceof Error ? e.message : String(e)) };
   }

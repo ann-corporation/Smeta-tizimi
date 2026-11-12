@@ -11,8 +11,10 @@ import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { aloqalarOl, taqdimlarOl, zakazchikObyektlarOl, type Aloqa, type TaqdimQisqa, type ZakazchikObyekt } from '../../api/t2-tomon';
 import { t } from '../../i18n/til';
 import { Bolim, HolatBelgi } from './tomon-ui';
+import BugunBolimi from './BugunBolimi';
 import { oyMatn, pul, sana } from './tomon-yordam';
 import { bajarilishFoizi } from './obyekt-portali-yordam';
+import { raqamTozala } from '../../lib/raqam-belgi';
 
 function Kartochka({ nom, qiymat, izoh, rang }: { nom: string; qiymat: string; izoh?: string; rang?: string }) {
   return <div className="fz-kpi"><span className="fz-kpi__label">{rang && <i style={{ background: rang }} />}{t(nom)}</span><span className="fz-kpi__value">{qiymat}</span>{izoh && <span className="fz-kpi__sub">{t(izoh)}</span>}</div>;
@@ -66,6 +68,7 @@ export default function ZakazchikKabinet() {
     <Sahifa sarlavha="Buyurtmachi kabineti" tavsif="Ulangan pudratchilar, ularning sizga ochilgan obyektlari, sertifikatlangan ishlar va qaror kutayotgan hujjatlar">
       <div className="space-y-4">
         {xato && <div role="alert" className="fz-note fz-note--danger">{xato}</div>}
+        <BugunBolimi kompaniyaId={kompaniyaId} kompaniyaNomi={joriy?.nom ?? ''} />
         <section className="fz-card fz-kpis p-4" aria-label={t('Kabinet ko‘rsatkichlari')}>
           <Kartochka nom="Faol aloqalar" qiymat={String(faol.length)} rang="var(--ok)" />
           <Kartochka nom="Ko‘rinadigan obyektlar" qiymat={String(obyektlar.length)} />
@@ -84,7 +87,7 @@ export default function ZakazchikKabinet() {
         {yuklandi && faol.length === 0 && (
           <Bolim sarlavha="Boshlash">
             <p className="text-[13px] text-text-dim">{t('Hali pudratchi ulanmagan. Pudratchingizning INN sini kiriting yoki u yuborgan taklif kodini qabul qiling.')}</p>
-            <Link to="/admin/aloqalar" className="mt-2 inline-block text-sm text-accent underline">{t('Aloqalarga o‘tish')}</Link>
+            <Link to="/admin/kontragentlar?tab=aloqa" className="mt-2 inline-block text-sm text-accent underline">{t('Aloqalarga o‘tish')}</Link>
           </Bolim>
         )}
         {yuklandi && faol.length > 0 && obyektlar.length === 0 && (
@@ -99,7 +102,7 @@ export default function ZakazchikKabinet() {
               <tbody>{g.obyektlar.map((o) => (
                 <tr key={o.obyekt_id}>
                   <td className="font-medium"><Link to={`/admin/zakazchik/obyekt/${o.aloqa_id}/${o.obyekt_id}`} className="text-accent underline">{o.obyekt_nom}</Link></td>
-                  <td>{o.shartnoma ? `№ ${o.shartnoma.raqam}` : <span className="text-text-mute">{t('ochilmagan')}</span>}</td>
+                  <td>{o.shartnoma ? `№ ${raqamTozala(o.shartnoma.raqam)}` : <span className="text-text-mute">{t('ochilmagan')}</span>}</td>
                   <td className="fz-c-num">{o.shartnoma ? pul(o.shartnoma.jami_nds_bilan) : '—'}</td>
                   <td className="fz-c-num">{o.f2 ? `${o.f2.soni} / ${pul(o.f2.jami)}` : <span className="text-text-mute">{t('ochilmagan')}</span>}</td>
                   <td><Bajarilish o={o} /></td>

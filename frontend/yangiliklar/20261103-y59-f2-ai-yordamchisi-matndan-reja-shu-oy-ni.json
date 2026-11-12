@@ -1,0 +1,10 @@
+{
+  "id": 59,
+  "sana": "2026-11-03",
+  "sarlavha": "F2 AI yordamchisi: «Matndan reja» — shu oy nima bajarildi",
+  "bandlar": [
+    "F2 tayyorlashdagi AI yordamchi ichida yangi bo'lim: «Shu oy nima bajarildi?» matnini yozing (masalan «betonlash 120 m3 (Fundamentlar)») — ishlar smeta ishlariga nom, birlik va bo'lim bo'yicha moslanadi: ✓ aniq, ◐ nomzod tanlang, ✕ topilmadi.",
+    "«Reja tuzish» AI siz ishlaydi. «AI bilan tushunish» faqat matnni ishlarga ajratadi (token yechiladi); moslash, hajm va qoldiq hisobi AI emas, tizim kodida bajariladi.",
+    "Hech narsa o'zi yozilmaydi: ✓ qatorlar hajmi faqat «Qoralamaga qo'shish» bosilganda F2 kiritmasiga tushadi, qoldiqdan oshsa ogohlantirish chiqadi (bloklanmaydi)."
+  ]
+}

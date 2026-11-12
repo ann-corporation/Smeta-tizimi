@@ -6,7 +6,7 @@
 import { vaqtliOqish } from './vaqtli-fetch';
 import { yozAmali, type AktNatija } from './supabase';
 
-export type BuxHisob = { kod: string; nom_uz: string; nom_ru: string; tur: string; kontragent_analitika: boolean; faol: boolean; standart: boolean };
+export type BuxHisob = { kod: string; nom_uz: string; nom_ru: string; tur: string; kontragent_analitika: boolean; faol: boolean; standart: boolean; tekshirilsin?: boolean };
 export type BuxMoslik = { kalit: string; dt_kod: string | null; kt_kod: string | null; qiymat: number | null; izoh: string | null };
 export type BuxDavr = { oy: string; holat: 'yopiq' | 'ochiq'; izoh: string | null; yangilandi: string };
 export type BuxHolat = {
@@ -41,7 +41,57 @@ export type BuxTolov = {
 export type BuxShartnoma = { id: number; raqam: string; nom: string | null; asosiy: boolean; kontragent_id: number | null; kontragent: string | null; inn: string | null };
 export type BuxTolovRoyxat = { ok: true; limit: number; tolovlar: BuxTolov[]; shartnomalar: BuxShartnoma[] };
 
-export type BuxFiltr = { dan?: string | null; gacha?: string | null; kontragent_id?: number | null; shartnoma_id?: number | null; hisob?: string | null; limit?: number };
+export type BuxKartochkaQator = {
+  id: number; sana: string; korr: string; dt: number; kt: number; saldo: number; kontragent_id: number | null; kontragent: string | null; shartnoma_id: number | null;
+  shartnoma_raqam: string | null; manba_tur: string; manba_id: number | null; hujjat: string | null; qism: string; tur: 'avto' | 'qolda' | 'storno'; izoh: string | null;
+};
+export type BuxKartochka = {
+  ok: true; hisob: { kod: string; nom_uz: string; nom_ru: string; tur: string } | null; dan: string; gacha: string; ochilish: number; dt: number; kt: number; yopilish: number;
+  jami: number; limit: number; qatorlar: BuxKartochkaQator[];
+};
+export type BuxSozlama = { ok: true; shablon: string; davr_blok: boolean; tekshirilsin: number; shablonlar: Array<{ shablon: string; qoidalar: number; yoqilgan: number }> };
+export type BuxPulQator = {
+  obyekt_id: number | null; shartnoma_id: number | null; daromad: number; daromad_qqs: number; xarajat: number;
+  xarajat_chel: number; xarajat_mat: number; xarajat_mash: number; xarajat_ob: number; xarajat_sub: number; tannarx: number; davr_xarajat: number;
+  tushgan: number; qarz: number; kreditor: number; pul: number;
+};
+export type BuxPulKorinish = {
+  ok: true; manba: 'jurnal'; bor: boolean; qatorlar: BuxPulQator[];
+  jami: { daromad: number; xarajat: number; tannarx: number; davr_xarajat: number; tushgan: number; qarz: number; kreditor: number; pul: number };
+};
+export type BuxHisobotQator = { kod: string; nom_uz: string; nom_ru: string; tur: 'hisob' | 'jami'; hisoblar: string[]; summa: number; tekshirilsin: boolean };
+export type BuxHisobot = {
+  ok: true; manba: 'jurnal'; forma: 'balans' | 'foyda_zarar'; dan: string | null; gacha: string; oz_xarita: boolean; qatorlar: BuxHisobotQator[];
+  xaritalanmagan: string[]; tekshiruv: number | null;
+};
+export type SaldoQator = { hisob: string; dt?: string | null; kt?: string | null; kontragent_id?: number | null; shartnoma_id?: number | null; obyekt_id?: number | null };
+export type SaldoNatija = {
+  ok: boolean; dry?: boolean; code?: string; xabar?: string; yozilishi?: number; otkazildi?: number; jami_dt?: number; jami_kt?: number; farq?: number; yozildi?: number;
+  xatolar?: Array<{ qator: number; kod: string; hisob?: string }>; error?: string; takror?: boolean;
+};
+export type TannarxNatija = {
+  ok: boolean; dry?: boolean; code?: string; xabar?: string; oy?: string; soni?: number; jami?: number; dt?: string; kt?: string; error?: string; takror?: boolean;
+  qatorlar?: Array<{ obyekt_id: number; xarajat: number; daromad: number; avval: number; farq: number }>;
+};
+export type BuxSverkaQator = { holat: 'mos' | 'sana_farq' | 'summa_farq' | 'faqat_men' | 'faqat_ular'; hujjat: string | null; manba_tur: string | null; manba_id: number | null; a_sana: string | null; a_summa: number | null; b_sana: string | null; b_summa: number | null; farq: number };
+export type BuxSverka = {
+  ok: true; dan: string; gacha: string; qarshi_kompaniya_id: number; qarshi_nom: string | null; ogohlantirish: string[]; ochilish_men: number; ochilish_ular: number;
+  yopilish_men: number; yopilish_ular: number; farq: number; farqli_soni: number; qatorlar: BuxSverkaQator[];
+};
+export type BuxSverkaTomonlar = { ok: true; tomonlar: Array<{ kompaniya_id: number; nom: string }> };
+export type BankTaklif = { shartnoma_id: number; raqam: string; kontragent: string | null; ball: number; sabab: string[] };
+export type BankOylikNomzod = { oylik_id: number; kadr_id: number; oy: string; sof: number; ball: number; sabab: string[] };
+export type BankNavbatQator = {
+  id: number; sana: string; summa: number; yonalish: 'kirim' | 'chiqim'; hujjat_raqam: string | null; izoh: string | null; inn: string | null; kontragent: string | null;
+  takliflar: BankTaklif[]; oylik: BankOylikNomzod[]; aniqlanmagan: boolean;
+};
+export type BankNavbat = { ok: true; qatorlar: BankNavbatQator[]; jami: { kutmoqda: number; qabul: number } };
+export type KassaKitob = {
+  ok: true; kassa_hisob: string; dan: string; gacha: string; ochilish: number; yopilish: number;
+  kunlar: Array<{ sana: string; kirim: number; chiqim: number; qoldiq: number }>;
+  orderlar: Array<{ id: number; tur: 'kirim' | 'chiqim'; yil: number; raqam: number; sana: string; summa: number; qarshi_hisob: string; asos: string | null; kontragent: string | null; holat: 'faol' | 'bekor' }>;
+};
+export type BuxFiltr = { qarshi_kompaniya_id?: number | null; forma?: string | null; dan?: string | null; gacha?: string | null; kontragent_id?: number | null; shartnoma_id?: number | null; hisob?: string | null; limit?: number };
 
 async function oqi<T>(soro: string, kompaniyaId: number, f: BuxFiltr = {}): Promise<{ ok: true; natija: T } | { ok: false; error: string }> {
   try {
@@ -58,12 +108,20 @@ export const buxHolatOl = (k: number) => oqi<BuxHolat>('bux_holat_v1', k);
 export const buxJurnalOl = (k: number, f: BuxFiltr) => oqi<BuxJurnal>('bux_jurnal_v1', k, f);
 export const buxOsvOl = (k: number, f: BuxFiltr) => oqi<BuxOsv>('bux_osv_v1', k, f);
 export const buxKontragentOl = (k: number, f: BuxFiltr) => oqi<BuxKontragent>('bux_kontragent_v1', k, f);
+export const buxKartochkaOl = (k: number, f: BuxFiltr) => oqi<BuxKartochka>('bux_kartochka_v1', k, f);
+export const buxSozlamaOl = (k: number) => oqi<BuxSozlama>('bux_sozlama_v1', k);
+export const buxPulKorinishOl = (k: number, f: BuxFiltr = {}) => oqi<BuxPulKorinish>('bux_pul_korinish_v1', k, f);
+export const buxHisobotOl = (k: number, f: BuxFiltr) => oqi<BuxHisobot>('bux_hisobot_v1', k, f);
+export const buxSverkaOl = (k: number, f: BuxFiltr) => oqi<BuxSverka>('bux_sverka_v1', k, f);
+export const buxSverkaTomonlarOl = (k: number) => oqi<BuxSverkaTomonlar>('bux_sverka_tomonlar_v1', k);
+export const buxBankTaklifOl = (k: number, f: BuxFiltr = {}) => oqi<BankNavbat>('bux_bank_taklif_v1', k, f);
+export const buxKassaKitobOl = (k: number, f: BuxFiltr) => oqi<KassaKitob>('bux_kassa_kitob_v1', k, f);
 export const buxNdsOl = (k: number, f: BuxFiltr) => oqi<BuxNds>('bux_nds_v1', k, f);
 export const buxTolovOl = (k: number, f: BuxFiltr) => oqi<BuxTolovRoyxat>('bux_tolov_v1', k, f);
 
 type YozNatija = AktNatija & { code?: string; xabar?: string };
 export type AvtoNatija = YozNatija & {
-  dry?: boolean; yangi?: number; storno?: number; yopiq_davr_ogohlantirish?: number; oylar?: string[]; f3_summasiz?: number; asos_summasiz?: number;
+  dry?: boolean; yangi?: number; storno?: number; yopiq_davr_ogohlantirish?: number; yopiq_davr_otkazildi?: number; xarajat_kategoriyasiz?: number; oylar?: string[]; f3_summasiz?: number; asos_summasiz?: number;
 };
 
 export const buxBoshlash = (kompaniyaId: number, operationId: string): Promise<YozNatija> =>
@@ -82,6 +140,28 @@ export const buxStorno = (p: { kompaniyaId: number; provodkaId: number; izoh?: s
 export const buxDavr = (p: { kompaniyaId: number; oy: string; amal: 'yop' | 'och'; tasdiq: boolean; izoh?: string | null; operationId: string }): Promise<YozNatija & { ogohlantirishlar?: Array<{ kod: string; xabar: string }> }> =>
   yozAmali({ amal: 'bux_davr_v1', kompaniya_id: p.kompaniyaId, oy: p.oy, davr_amal: p.amal, tasdiq: p.tasdiq, izoh: p.izoh ?? null, operation_id: p.operationId });
 
+export const buxShablonTanla = (kompaniyaId: number, shablon: string, operationId: string): Promise<YozNatija & { moslik_qoshildi?: number }> =>
+  yozAmali({ amal: 'bux_shablon_tanla_v1', kompaniya_id: kompaniyaId, shablon, operation_id: operationId });
+export const buxDavrBlok = (kompaniyaId: number, blok: boolean, operationId: string): Promise<YozNatija> =>
+  yozAmali({ amal: 'bux_davr_blok_v1', kompaniya_id: kompaniyaId, blok, operation_id: operationId });
+export const buxHisobTasdiq = (kompaniyaId: number, kodlar: string[], operationId: string): Promise<YozNatija & { tasdiqlandi?: number }> =>
+  yozAmali({ amal: 'bux_hisob_tasdiq_v1', kompaniya_id: kompaniyaId, kodlar, operation_id: operationId });
+
+export const buxSaldoImport = (p: { kompaniyaId: number; sana: string; qarshi: string; qatorlar: ReadonlyArray<SaldoQator>; dry: boolean; operationId: string }): Promise<SaldoNatija> =>
+  yozAmali({ amal: 'bux_saldo_import_v1', kompaniya_id: p.kompaniyaId, sana: p.sana, qarshi: p.qarshi, qatorlar: p.qatorlar, dry: p.dry, operation_id: p.operationId }) as unknown as Promise<SaldoNatija>;
+export const buxSaldoBekor = (kompaniyaId: number, operationId: string): Promise<YozNatija & { storno?: number }> =>
+  yozAmali({ amal: 'bux_saldo_bekor_v1', kompaniya_id: kompaniyaId, operation_id: operationId });
+export const buxTannarx = (p: { kompaniyaId: number; oy: string; amal: 'yop' | 'bekor'; dry: boolean; operationId: string }): Promise<TannarxNatija> =>
+  yozAmali({ amal: 'bux_tannarx_v1', kompaniya_id: p.kompaniyaId, oy: p.oy, tannarx_amal: p.amal, dry: p.dry, operation_id: p.operationId }) as unknown as Promise<TannarxNatija>;
+export type BankYuklash = { kalit: string; sana: string; summa: string; yonalish: 'kirim' | 'chiqim'; hujjat_raqam?: string | null; izoh?: string | null; inn?: string | null; kontragent?: string | null };
+export const buxBankYuklash = (kompaniyaId: number, qatorlar: ReadonlyArray<BankYuklash>, operationId: string): Promise<YozNatija & { yangi?: number; takror?: number; xato?: number }> =>
+  yozAmali({ amal: 'bux_bank_yuklash_v1', kompaniya_id: kompaniyaId, qatorlar, operation_id: operationId }) as unknown as Promise<YozNatija & { yangi?: number; takror?: number; xato?: number }>;
+export const buxBankQabul = (p: { kompaniyaId: number; qatorId: number; shartnomaId?: number | null; oylikId?: number | null; operationId: string }): Promise<YozNatija & { takror?: boolean }> =>
+  yozAmali({ amal: 'bux_bank_qabul_v1', kompaniya_id: p.kompaniyaId, qator_id: p.qatorId, shartnoma_id: p.shartnomaId ?? null, oylik_id: p.oylikId ?? null, operation_id: p.operationId });
+export const buxKassaYoz = (p: { kompaniyaId: number; tur: 'kirim' | 'chiqim'; sana: string; summa: number; qarshi: string; kontragentId?: number | null; shartnomaId?: number | null; obyektId?: number | null; asos?: string | null; operationId: string }): Promise<YozNatija & { id?: number; yil?: number; raqam?: number; manfiy_qoldiq?: boolean }> =>
+  yozAmali({ amal: 'bux_kassa_yoz_v1', kompaniya_id: p.kompaniyaId, tur: p.tur, sana: p.sana, summa: p.summa, qarshi: p.qarshi, kontragent_id: p.kontragentId ?? null, shartnoma_id: p.shartnomaId ?? null, obyekt_id: p.obyektId ?? null, asos: p.asos ?? null, operation_id: p.operationId });
+export const buxKassaBekor = (kompaniyaId: number, orderId: number, operationId: string): Promise<YozNatija> =>
+  yozAmali({ amal: 'bux_kassa_bekor_v1', kompaniya_id: kompaniyaId, order_id: orderId, operation_id: operationId });
 export type BankYuk = { kalit: string; sana: string; summa: number; yonalish: 'kirim' | 'chiqim'; shartnoma_id: number; hujjat_raqam?: string | null; izoh?: string | null };
 export const buxBankImport = (p: { kompaniyaId: number; qatorlar: ReadonlyArray<BankYuk>; operationId: string }): Promise<Omit<YozNatija, 'takror'> & { yangi?: number; takror?: number; xato?: number }> =>
   yozAmali({ amal: 'bux_bank_import_v1', kompaniya_id: p.kompaniyaId, qatorlar: p.qatorlar, operation_id: p.operationId }) as unknown as Promise<Omit<YozNatija, 'takror'> & { yangi?: number; takror?: number; xato?: number }>;
@@ -95,6 +175,18 @@ export function buxXato(r: { error?: string; xabar?: string; code?: string } | n
   if (/HISOB_MOSLIKDA/.test(m)) return 'Bu hisob avto-provodka qoidasida ishlatiladi — avval qoidani o‘zgartiring.';
   if (/AVTO_STORNO_MUMKIN_EMAS/.test(m)) return 'Avtomatik provodka hujjat orqali o‘zgaradi: hujjatni tuzating, keyin «Hujjatlardan yangilash».';
   if (/ALLAQACHON_STORNO/.test(m)) return 'Bu provodka allaqachon storno qilingan.';
+  if (/BUX_DAVR_YOPIQ/.test(m)) return 'Bu oy yopilgan: provodka yozilmaydi. Davrni qayta oching yoki keyingi oyga yozing.';
+  if (/SHABLON_YOQ/.test(m)) return 'Bunday qoida shabloni yo‘q.';
+  if (/HISOB_KERAK/.test(m)) return 'Kartochka uchun hisobni tanlang.';
+  if (/ALOQA_YOQ/.test(m)) return 'Bu kompaniya bilan faol aloqa yo‘q: avval «Tomonlar» orqali bog‘laning.';
+  if (/QARSHI_TOMON_KERAK/.test(m)) return 'Qarshi tomonni tanlang.';
+  if (/YONALISH_MOS_EMAS/.test(m)) return 'Qator yo‘nalishi (kirim/chiqim) shartnoma turiga mos emas.';
+  if (/OYLIK_TOLANGAN|OYLIK_MOS_EMAS/.test(m)) return 'Bu oylik allaqachon to‘langan yoki summa mos emas.';
+  if (/KASSA_MAYDON/.test(m)) return 'Kassa order: tur, sana va summa (0 dan katta) kerak.';
+  if (/MUVOZANAT_YOQ/.test(m)) return 'Jami Debet jami Kreditga teng emas.';
+  if (/SALDO_ALLAQACHON/.test(m)) return 'Boshlang‘ich qoldiq allaqachon yozilgan. Avval uni bekor qiling.';
+  if (/KEYINGI_OY_BOR/.test(m)) return 'Keyingi oyga tannarx yozilgan: avval o‘sha oyni bekor qiling.';
+  if (/QOIDA_OCHIRILGAN|QARSHI_HISOB_YOQ/.test(m)) return 'Kerakli qoida yoki qarshi hisob yo‘q yoki o‘chirilgan.';
   if (/SANA_SUMMA/.test(m)) return 'Sana va summa (0 emas) kiritilishi kerak.';
   if (/KALIT_YOQ|QIYMAT_0_100/.test(m)) return 'Qoida qiymati noto‘g‘ri.';
   return r?.xabar || r?.error || r?.code || 'Saqlab bo‘lmadi.';

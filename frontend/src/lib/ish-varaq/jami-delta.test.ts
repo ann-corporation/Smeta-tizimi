@@ -2,8 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { T2Qator } from '../../api/supabase';
 import { jurnalQur, type JurnalHolat, type SummaKesim } from '../fakt-jurnal';
 import { bosKatKesim } from '../ustamali-summa';
-import type { F2Qator } from '../f2-tayyor';
-import { deltaFaqat, f2QoralamaDelta, f2QoralamaJami, faktDeltalar, jamiDeltaBilan } from './jami-delta';
+import { deltaFaqat, faktDeltalar, jamiDeltaBilan } from './jami-delta';
 import { VARAQ_FILTRLAR, varaqFiltrMos } from './filtr';
 
 const q = (o: Partial<T2Qator> & { id: number; tur: string }): T2Qator => ({
@@ -55,25 +54,6 @@ describe('fakt delta (saqlanmagan)', () => {
     expect(jamiDeltaBilan(undefined, []).ustamasiz).toBeNull();
     expect(deltaFaqat(d).ustamasiz).toBe(100);
     expect(deltaFaqat([{ id: 1, kat: 'МАТ', summa: -30 }]).ustamasiz).toBe(-30);
-  });
-});
-
-const f2q = (id: number, tur: F2Qator['tur'], summa: number | null, kat: string | null = 'МАТ'): F2Qator => ({ id, ishId: null, tur, kat, nom: 'n', birlik: null, hajm: 1, narx: summa, summa, manba: 'smeta', narxsiz: summa == null });
-describe('F2 qoralama jami va delta', () => {
-  it('jami: ish (bl) summaga kirmaydi; narxsiz — kesimda sanaladi', () => {
-    const j2 = f2QoralamaJami([f2q(1, 'bl', null), f2q(2, 'mat', 24), f2q(3, 'rs', null, 'ЧЕЛ')]);
-    expect(j2.ustamasiz).toBe(24);
-    expect(j2.kesim.summasizSoni).toBe(1);
-    expect(f2QoralamaJami([f2q(3, 'rs', null)]).ustamasiz).toBeNull();
-  });
-  it('delta: yangi − saqlangan (ustamasiz va kesim)', () => {
-    const eski = [f2q(2, 'mat', 24)];
-    const yangi = [f2q(2, 'mat', 24), f2q(4, 'mat', 10), f2q(5, 'rs', 6, 'ЧЕЛ')];
-    const d = f2QoralamaDelta(yangi, eski);
-    expect(d.ustamasiz).toBe(16);
-    expect(d.kesim.summalar).toEqual({ МАТ: 10, ЧЕЛ: 6 });
-    expect(f2QoralamaDelta(eski, eski).ustamasiz).toBe(0);
-    expect(f2QoralamaDelta([], []).ustamasiz).toBeNull();
   });
 });
 

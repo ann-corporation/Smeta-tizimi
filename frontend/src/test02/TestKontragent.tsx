@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, CheckCircle2, AlertCircle, Save, RefreshCw, Trash2, Network, UserPlus } from 'lucide-react';
+import { Search, CheckCircle2, AlertCircle, Save, RefreshCw, Archive, Network, UserPlus } from 'lucide-react';
 import { toast } from '../umumiy/ui/Toast';
-import { tasdiqSora } from '../umumiy/ui/Tasdiq';
 import { t } from '../i18n/til';
 import { Sahifa } from '../umumiy/ui/Sahifa';
 import { useKompaniya } from './KompaniyaTanlov';
-import { sbKontragentSaqla, sbKontragentlarOl, sbKontragentOchir, type Kontragent } from '../api/t2-kontragent';
+import { sbKontragentSaqla, sbKontragentlarOl, type Kontragent } from '../api/t2-kontragent';
+import { arxivlashJarayoni } from '../api/t2-arxiv';
 import { onEntityChanged } from '../api/entity-consistency';
 import { taqsimot } from '../lib/kompaniya-ops-korinish';
 import { OpsBoshQator, OpsMaydon, OpsTaqsimot } from '../components/kompaniya-ops/OpsUi';
@@ -81,11 +81,9 @@ export default function TestKontragent() {
   };
 
   const handleOchir = async (k: Kontragent) => {
-    if (!(await tasdiqSora({ sarlavha: t('Kontragentni o‘chirish'), matn: t('«{nom}» o‘chirilsinmi?', { nom: k.nom }), tasdiqMatni: t('O‘chirish'), xavfli: true }))) return;
+    // Yumshoq o'chirish: Korzinkaga (tiklash mumkin); tasdiq va xato sababi umumiy oqimda.
     try {
-      await sbKontragentOchir(k.id);
-      toast(t('O‘chirildi'), 'ok');
-      void royxatniYangila();
+      if (await arxivlashJarayoni('kontragent', k.id, k.nom)) void royxatniYangila();
     } catch (e: any) {
       toast(e.message, 'danger');
     }
@@ -176,7 +174,7 @@ export default function TestKontragent() {
                       <td><span className="fz-chip">{rolNomi(k.mavqe)}</span></td>
                       <td className="whitespace-nowrap text-right">
                         <button type="button" onClick={() => navigate('/admin/mindmap?tugun=kontragent:' + k.id)} className="fz-btn fz-btn--ghost fz-btn--sm"><Network /> {t('Mindmap')}</button>
-                        <button type="button" onClick={() => void handleOchir(k)} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" title={t('O‘chirish')} aria-label={t('O‘chirish')}><Trash2 /></button>
+                        <button type="button" onClick={() => void handleOchir(k)} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" title={t('Korzinkaga yuborish (keyin tiklash mumkin)')} aria-label={`${t('Korzinkaga')}: ${k.nom}`}><Archive /></button>
                       </td>
                     </tr>
                   ))}

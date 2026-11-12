@@ -32,6 +32,7 @@ import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/Hu
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { hujjatArxivla } from '../../api/t2-hujjat-arxiv';
 import { toast } from '../../umumiy/ui/Toast';
+import { forma3Tayyorgarlik } from '../../lib/pto-markazi/forma3-tayyorgarlik';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import type { SmetaModel } from '../../lib/smeta-model';
 import { validatePtoHierarchy, type PtoF3LineageInput, type PtoLineageScope } from '../../lib/pto-document-lineage';
@@ -45,6 +46,7 @@ import { NakopitelniyJadval } from '../../components/nakopitelniy/NakopitelniyJa
 import { ShartnomaQuvur } from '../../components/nakopitelniy/ShartnomaQuvur';
 import { PereraschetBolimi } from './PereraschetBolimi';
 import { SverkaImportPanel } from '../../components/sverka-import/SverkaImportPanel';
+import { raqamTozala } from '../../lib/raqam-belgi';
 
 /**
  * T2-PTO-OWNER-CRITICAL-CLOSURE P0-3: the real, line-by-line PTO nakopitelniy
@@ -132,7 +134,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   }, []);
   const pudratchiRek = useMemo<Forma3Rekvizit | null>(() => {
     const k = kompaniyalar.find((x) => x.id === companyId);
-    return k ? { toliqNom: k.toliq_nom, manzil: k.manzil, telefon: k.telefon, hisobRaqam: k.hisob_raqam, bank: k.bank, mfo: k.mfo, inn: k.inn, oked: k.oked } : null;
+    return k ? { toliqNom: k.toliq_nom, manzil: k.manzil, telefon: k.telefon, hisobRaqam: k.hisob_raqam, bank: k.bank, mfo: k.mfo, inn: k.inn, oked: k.oked, rahbar: k.rahbar } : null;
   }, [kompaniyalar, companyId]);
   const [zakazchikRek, setZakazchikRek] = useState<Forma3Rekvizit | null>(null);
   const [shartnoma, setShartnoma] = useState<{ raqam: string; sana: string | null; summa: number | null } | null>(null);
@@ -298,7 +300,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   const f3ShaklOzgar = (x: Forma3Shakl) => { setF3Shakl(x); f3ShaklSaqla(companyId, x); };
   const [forma3Diqqat, setForma3Diqqat] = useState<Array<{ nom: string; sabab: string }>>([]);
   /** Forma 3 rejimi (egasi 2026-12-11): «Obyekt» — shu obyekt F3 si (eski xulq); «Shartnoma» — bitta F3, shartnomaning barcha obyektlari. */
-  const [f3Rejim, setF3Rejim] = useState<F3Rejim>('obyekt');
+  const [f3Rejim, setF3Rejim] = useState<F3Rejim>(() => (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('f3') === 'shartnoma' ? 'shartnoma' : 'obyekt'));
   const forma3EksportQil = async (korish = false) => {
     setXato(''); setForma3Diqqat([]);
     const ux = ustamaTayyorEmas(); if (ux) { setXato(ux); return; }
@@ -353,13 +355,16 @@ function Sessiya({ companyId }: { companyId: number }) {
       } catch {
         setXato('F2 hujjatlarining o‘z podvali bo‘yicha oy summasi hisoblanmadi — F3 tuzilmadi. Qayta urinib ko‘ring.'); return;
       }
+      /* Avtomatik tayyorgarlik: hujjat raqami (kompaniya bo'yicha yil ketma-ketligi), Заказчик rekviziti kontragentdan; yetishmaganlar eksportdan OLDIN ko'rsatiladi. */
+      const tay = await forma3Tayyorgarlik({ kompaniyaId: companyId, yil: Number(davr.slice(0, 4)), pudratchi: pudratchiRek, zakazchik: zakazchikRek, imzo: tomonlar });
+      if (tay.yetishmaydi.length && !(await tasdiqSora({ sarlavha: 'Форма № 3: данные не заполнены', matn: 'Не заполнено: ' + tay.yetishmaydi.join('; ') + '. Эти строки останутся пустыми. Продолжить?', tasdiqMatni: 'Всё равно выгрузить' }))) return;
       const h = forma3Hujjat(
         { nakopitelniy: [{ obyekt_id: Number(objectId), obyektNom, qatorlar: rows }], f2Oylik, f2Hajm: f3CertifiedHajm(taf.qatorlar, companyId, Number(objectId), davr.slice(0, 7)) },
         {
           shakl: f3Shakl, obyektNom, davr, asosiyObyektId: Number(objectId), imzo: tomonlar, nakrutka, podval, nkManba: nakrutkaJavob?.nk_manba ?? null, ndsFoiz: stavkaOl(),
           smetaNakrutka, ozgarishlar, lineage, lineageRequired: Boolean(lineage), davrAktlari,
-          pudratchi: pudratchiRek, zakazchik: zakazchikRek,
-          shartnomaRaqam: shartnoma?.raqam ?? null, shartnomaSana: shartnoma?.sana ?? null, shartnomaSumma: shartnoma?.summa ?? null,
+          pudratchi: pudratchiRek, zakazchik: tay.zakazchik, raqam: tay.raqam,
+          shartnomaRaqam: shartnoma?.raqam ?? null, shartnomaSana: shartnoma?.sana ?? null, shartnomaSumma: shartnoma?.summa ?? null, obyektSumma: jami?.smeta_summa ?? null,
         },
       );
       setForma3Diqqat([...h.diqqat, ...(context.warning ? [{ nom: 'Rekvizitlar', sabab: context.warning }] : []), ...(!f2Oylik.length ? [{ nom: 'F2 manbasi', sabab: 'Bu davrgacha tasdiqlangan F2 yo‘q; bajarilgan ish qiymatlari bo‘sh hisobot sifatida beriladi.' }] : [])]);
@@ -446,7 +451,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     <Sahifa sarlavha={t('Nakopitelniy vedomost')} tavsif={t('Tasdiqlangan F2 aktlarining oyma-oy kumulyativ reestri: smeta, fakt va topshirilgan ish bir joyda.')} amallar={amallar}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         {korinish.oyna}
-        <ObyektQadamlari joriy="hujjatlar" />
+        <ObyektQadamlari joriy="forma3" />
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 'var(--space-4)' }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 220 }}>
             <span className="fz-kpi__label">{t('Obyekt')}</span>
@@ -484,7 +489,7 @@ function Sessiya({ companyId }: { companyId: number }) {
             </label>
           )}
         </div>
-        <DavrChiziq davrlar={davrlar} davr={davr} onTanla={davrOzgartir} band={busy} />
+        {f3Rejim !== 'shartnoma' && <DavrChiziq davrlar={davrlar} davr={davr} onTanla={davrOzgartir} band={busy} />}
 
         {!!davrQator && !sertifikat && (
           <div className="fz-note fz-note--warn"><AlertTriangle />
@@ -509,14 +514,14 @@ function Sessiya({ companyId }: { companyId: number }) {
           </details>
         )}
 
-        {jami && <NakopitelniyKpi jami={jami} qatorlar={qatorlar} truncated={truncated} obyektId={Number(objectId)} kompaniyaId={companyId}
+        {f3Rejim !== 'shartnoma' && jami && <NakopitelniyKpi jami={jami} qatorlar={qatorlar} truncated={truncated} obyektId={Number(objectId)} kompaniyaId={companyId}
           smetaNakrutka={smetaNakrutka} smetaNakrutkaSabab={smetaNakrutkaHisob.sabab} kaskadBor={!!nakrutkaKaskadi} davr={davrQator} />}
 
         {/* Firuza (egasi 2026-10-25): oyma-oy F2 va jamlanma grafigi. */}
         {/* Fakt — sahifadagi yagona jami (KPI/jadval bilan bir xil, F2 narxida). */}
-        {jami && <NakopitelniyGrafik kesim={oyKesim} smeta={jami.smeta_summa} fakt={nakFaktJami(qatorlar, jami.fakt_summa, truncated).summa} />}
+        {f3Rejim !== 'shartnoma' && jami && <NakopitelniyGrafik kesim={oyKesim} smeta={jami.smeta_summa} fakt={nakFaktJami(qatorlar, jami.fakt_summa, truncated).summa} />}
 
-        {qatorlar.length > 0 && (
+        {f3Rejim !== 'shartnoma' && qatorlar.length > 0 && (
           <NakopitelniyJadval qatorlar={qatorlar} korinadigan={gorunumRows} oyKesim={oyKesim} jami={jami} truncated={truncated} filtrBor={!!filtr} />
         )}
 
@@ -650,11 +655,11 @@ function ShartnomaSvodBolimi({ companyId, shartnomaId, tashkilot }: { companyId:
     <section id="shartnoma-svod" className="fz-card" aria-label={t('Shartnoma bo‘yicha: F3, to‘lov va akt-sverka')}>
       <div className="fz-card__head">
         <div>
-          <h2 className="fz-card__title">{t('Shartnoma bo‘yicha: F3, to‘lov va akt-sverka')} — № {sh.raqam}</h2>
+          <h2 className="fz-card__title">{t('Shartnoma bo‘yicha: F3, to‘lov va akt-sverka')} — № {raqamTozala(sh.raqam)}</h2>
           <p className="fz-card__sub">{t('Shartnoma → F2 → F3 → to‘lov → qoldiq: pul oqimi bir qarashda')}</p>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-          <button type="button" className="fz-btn" onClick={() => void ber(sverkaXlsx(sh, { tashkilot, dan: dan || null, gacha: gacha || null }), 'AKT_SVERKA', `Акт сверки № ${sh.raqam}`)}>
+          <button type="button" className="fz-btn" onClick={() => void ber(sverkaXlsx(sh, { tashkilot, dan: dan || null, gacha: gacha || null }), 'AKT_SVERKA', `Акт сверки № ${raqamTozala(sh.raqam)}`)}>
             <Download />{t('Akt-sverka (Excel)')}
           </button>
           <button type="button" className="fz-btn" onClick={() => void ber(hammasi ? shartnomaSvodXlsx(hammasi, { tashkilot }) : null, 'NAKOPITELNIY', 'Накопительная по договорам')}>
@@ -697,7 +702,7 @@ function ShartnomaSvodBolimi({ companyId, shartnomaId, tashkilot }: { companyId:
                             <option value="imzolangan">{t('imzolandi')}</option>
                           </select>
                           <button type="button" title={t('F3 (Excel)')} aria-label={t('F3 (Excel)')} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm"
-                            onClick={() => void ber(forma3SotuvdanXlsx(sh, f3.id, { tashkilot, shakl: f3Shakl }), 'F3', `Форма №3${f3Shakl === 'bir_qatorli' ? ' (одностр.)' : ''} · № ${sh.raqam} · ${f3.sotuv_sana ?? ''}`)}><Download /></button>
+                            onClick={() => void ber(forma3SotuvdanXlsx(sh, f3.id, { tashkilot, shakl: f3Shakl }), 'F3', `Форма №3${f3Shakl === 'bir_qatorli' ? ' (одностр.)' : ''} · № ${raqamTozala(sh.raqam)} · ${f3.sotuv_sana ?? ''}`)}><Download /></button>
                           <button type="button" title={t('Bekor qilish')} aria-label={t('Bekor qilish')} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" style={{ color: 'var(--danger)' }} onClick={() => void bekor('f3_sotuv', f3.id, f3.versiya)}><Trash2 /></button>
                         </span>
                       )}
@@ -713,10 +718,10 @@ function ShartnomaSvodBolimi({ companyId, shartnomaId, tashkilot }: { companyId:
         </div>
         {sh.ds.length !== 0 && (
           <div className="fz-panel">
-            <div className="fz-panel__h"><span>{t('Qo‘shimcha kelishuvlar (DS)')}</span></div>
+            <div className="fz-panel__h"><span>{t('Qo‘shimcha kelishuvlar')}</span></div>
             {sh.ds.map((d) => (
               <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>{t('DS')} № {d.raqam} · {svodSana(d.sana)}</span><span className="tabular-nums" style={{ marginLeft: 'auto', fontWeight: 600 }}>{svodPul(tiyin(d.jami_nds_bilan))}</span>
+                <span>{t('Qo‘shimcha kelishuv')} № {raqamTozala(d.raqam)} · {svodSana(d.sana)}</span><span className="tabular-nums" style={{ marginLeft: 'auto', fontWeight: 600 }}>{svodPul(tiyin(d.jami_nds_bilan))}</span>
                 <button type="button" title={t('Bekor qilish')} aria-label={t('Bekor qilish')} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" style={{ color: 'var(--danger)' }} onClick={() => void bekor('ds', d.id, d.versiya)}><Trash2 /></button>
               </div>
             ))}
@@ -728,7 +733,7 @@ function ShartnomaSvodBolimi({ companyId, shartnomaId, tashkilot }: { companyId:
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-3)', alignItems: 'end' }}>
             <Maydon nom={t('Yozuv turi')}>
               <select className={svodKirit} value={shakl.tur} onChange={(e) => setShakl({ ...shakl, tur: e.target.value as SvodKiritishTur })}>
-                <option value="f3">{t('Sotuv (F3)')}</option><option value="tolov">{t('To‘lov')}</option><option value="ds">{t('Qo‘shimcha kelishuv (DS)')}</option>
+                <option value="f3">{t('Sotuv (F3)')}</option><option value="tolov">{t('To‘lov')}</option><option value="ds">{t('Qo‘shimcha kelishuv')}</option>
               </select></Maydon>
             <Maydon nom={t('Sana')}><input type="date" className={svodKirit} value={shakl.sana} onChange={(e) => setShakl({ ...shakl, sana: e.target.value })} /></Maydon>
             {shakl.tur === 'tolov'

@@ -6,11 +6,13 @@ import {
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useKompaniya } from './KompaniyaTanlov';
-import { Graf3D } from './Graf3D';
 import { Graf2D } from './Graf2D';
 import { MindmapXarita, KorinishTanlagich, type MindmapKorinishTuri } from '../components/mindmap';
+import type { PultTugatdi } from '../components/mindmap/PultAmalModal';
 import { mindmapMasulRuxsati, mindmapTahrirRuxsati, tahrirYopiqMatni } from '../lib/mindmap-ruxsat';
 import { amalKorishQur } from '../lib/mindmap-amallar';
+import { grafgaYamoq } from '../lib/mindmap-pult';
+import { pultYozuvchi, obyektBolimlariOl } from '../api/t2-mindmap-pult';
 import { topshiriqBer, topshiriqXato } from '../api/t2-topshiriq';
 import { SAHIFA_YOLI, belgiYoli, obyektZayavkaYoli } from '../lib/mindmap-yollar';
 import { t } from '../i18n/til';
@@ -55,6 +57,10 @@ const BELGI_QISQA: Record<MindmapBelgi['tur'], string> = {
  * `setPointerCapture` bilan kursor maydondan chiqsa ham ishlaydi.
  *        G'ildirak kursor ostidagi nuqtani joyida saqlab zumlaydi.
  */
+
+/** Kompaniya grafi xotirada (sahifalar orasida): qayta ochish — bir zumda, yangilanish fonda. */
+const grafKesh = new Map<number, { g: MindmapGraf; t: number }>();
+const GRAF_KESH_MS = 10 * 60_000;
 
 const NODE_W = 200;
 const TUGUN_BALANDLIGI = (tur?: string) => tur === 'obyekt' ? 140 : 54;
@@ -166,7 +172,7 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
   /** Egasi 2026-10-25: sukut — «Kompaniya xaritasi» (2D ierarxiya, real holat bilan); telefonda — ro'yxat.
       3D/2D graf va tahrir kanvasi ixtiyoriy ko'rinish sifatida saqlanadi. */
   const [korinish, setKorinish] = useState<MindmapKorinishTuri>(() =>
-    typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 767px)').matches ? 'royxat' : 'xarita');
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 767px)').matches ? 'royxat' : 'pult');
   const [tanlanganBog, setTanlanganBog] = useState<MindmapGraf['bogichlar'][number] | null>(null);
   const [obyektHodisalari, setObyektHodisalari] = useState<Hodisa[]>([]);
   const [hodisaYuklanmoqda, setHodisaYuklanmoqda] = useState(false);
@@ -187,6 +193,8 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
   const taminotRef = useRef<number | null>(null);
   /* Eskirgan javob yangisini bosib ketmasin. */
   const sorovNomeri = useRef(0);
+  /** Sekin RPC so'rovi yo'lda — polling yangisini ustiga qo'ymasin. */
+  const sorovYolda = useRef(false);
 
   /** Server grafini holatga qo'llaydi. Sudralayotgan tugun joyi yangilanishda O'ZGARMAYDI. */
   const qollaGraf = useCallback((gToliq: MindmapGraf) => {
@@ -210,11 +218,14 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
     const nom = ++sorovNomeri.current;
     setYuklanmoqda(true);
     setXato('');
+    sorovYolda.current = true;
     const r = await sbMindmapGrafOl(aktKomp);
     if (nom !== sorovNomeri.current) return;
+    sorovYolda.current = false;
     setYuklanmoqda(false);
     if (!r.ok) { setXato(r.error); return; }
     taminotRef.current = null;
+    grafKesh.set(aktKomp, { g: r.graf, t: Date.now() });
     qollaGraf(r.graf);
   }, [aktKomp, qollaGraf]);
 
@@ -236,7 +247,12 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
     if (id != null) await taminotDrilldown(id); else await yukla();
   }, [taminotDrilldown, yukla]);
 
-  useEffect(() => { yukla(); }, [yukla]);
+  /* Tezlik: qayta ochilganda oxirgi graf darhol ko'rinadi (10 daqiqagacha), yangisi fonda keladi. */
+  useEffect(() => {
+    const k = grafKesh.get(aktKomp);
+    if (k && Date.now() - k.t < GRAF_KESH_MS) qollaGraf(k.g);
+    yukla();
+  }, [yukla, aktKomp, qollaGraf]);
 
   /* Module satridagi `?tugun=texnika:44` bevosita o'sha REAL node'ni
      ochadi; nom yoki vaqtinchalik client ID orqali izlash yo'q. */
@@ -257,7 +273,7 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
   /* Yashirin tab (document.hidden) da so'rov yuborilmaydi; sudrash/pan/chiziq paytida ham. Tab qaytganda — bir marta. */
   useEffect(() => {
     if (!aktKomp) return;
-    const tik = () => { if (document.hidden || rejim.current) return; void yangila(); };
+    const tik = () => { if (document.hidden || rejim.current || sorovYolda.current) return; void yangila(); };
     const timer = window.setInterval(tik, 30_000);
     const korindi = () => { if (!document.hidden) tik(); };
     document.addEventListener('visibilitychange', korindi);
@@ -612,6 +628,21 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
     },
   }), [aktKomp]);
 
+  /** Boshqaruv pulti: mavjud buyruqlar (ruxsat/audit serverda). Yozuvdan keyin ekran yamoq bilan DARHOL yangilanadi, so'ng fonda qayta o'qiladi. */
+  const pultYoz = useMemo(() => pultYozuvchi(aktKomp), [aktKomp]);
+  const pult = useMemo(() => ({
+    kontekst: { tahrir: ruxsat, yozuvchi: pultYoz },
+    bolimlarOl: obyektBolimlariOl,
+    onTugadi: ({ yamoq }: PultTugatdi) => {
+      if (yamoq) {
+        // Xotira keshi ham yamoqlanadi: qayta ochilganda eski bog'lanish ko'rinib qolmasin.
+        setGrafToliq((g) => { const n = grafgaYamoq(g, yamoq); grafKesh.set(aktKomp, { g: n, t: Date.now() }); return n; });
+        setGraf((g) => grafgaYamoq(g, yamoq));
+      }
+      void yangila();
+    },
+  }), [ruxsat, pultYoz, yangila, aktKomp]);
+
   const tugunMuammolari = (t: MindmapTugun) => (Array.isArray(t.meta?.belgi) ? t.meta.belgi : []) as MindmapBelgi[];
   const qidiruvKalit = qidiruv.trim().toLocaleLowerCase('uz-UZ');
   const korsatilganTugunlar = graf.tugunlar.filter((t) => {
@@ -633,9 +664,9 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
   const tanlanganBogManba = tanlanganBog ? graf.tugunlar.find((t) => t.id === tanlanganBog.manba) : null;
   const tanlanganBogMaqsad = tanlanganBog ? graf.tugunlar.find((t) => t.id === tanlanganBog.maqsad) : null;
 
-  if (korinish === 'xarita' || korinish === 'royxat') {
+  if (korinish === 'pult' || korinish === 'xarita' || korinish === 'royxat') {
     return (
-      <MindmapXarita graf={grafToliq} masul={masul} amalKorish={amalKorish} vazifa={vazifa} yuklanmoqda={yuklanmoqda} xato={xato} oxirgiYangilanish={oxirgiYangilanish} onYangila={yukla}
+      <MindmapXarita graf={grafToliq} masul={masul} amalKorish={amalKorish} vazifa={vazifa} pult={aktKomp ? pult : undefined} yuklanmoqda={yuklanmoqda} xato={xato} oxirgiYangilanish={oxirgiYangilanish} onYangila={yukla}
         tanlangan={tanlangan} onTanla={(id) => { setTanlangan(id); setTanlanganBog(null); }}
         korinish={korinish} onKorinish={setKorinish}
         hodisalar={{ qatorlar: obyektHodisalari, yuklanmoqda: hodisaYuklanmoqda, xato: hodisaXato }}
@@ -651,7 +682,7 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-lg font-bold flex items-center gap-2">
-              <Move size={18} className="text-[var(--info)]" /> Rahbarning tirik holat xaritasi
+              <Move size={18} className="text-[var(--info)]" /> {t('Boshqaruv pulti')}
               {saqlanmoqda && <span className="text-[10px] text-[var(--warn)] inline-flex items-center gap-1"><Save size={11} /> saqlanmoqda…</span>}
             </h1>
             <p className="text-[11px] text-text-dim mt-0.5">
@@ -747,9 +778,7 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
 
       {korinish !== 'tahrir' && (
         <div className="flex-1 min-h-0">
-          {korinish === '3d'
-            ? <Graf3D tugunlar={grafTugunlar} boglar={grafBoglar} onTanla={(id) => setTanlangan(id)} onBogla={(a, b) => void chiziqniBogla(a, b)} />
-            : <Graf2D tugunlar={grafTugunlar} boglar={grafBoglar} onTanla={(id) => setTanlangan(id)} onBogla={(a, b) => void chiziqniBogla(a, b)} />}
+          <Graf2D tugunlar={grafTugunlar} boglar={grafBoglar} onTanla={(id) => setTanlangan(id)} onBogla={(a, b) => void chiziqniBogla(a, b)} />
         </div>
       )}
 

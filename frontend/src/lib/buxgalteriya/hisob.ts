@@ -71,10 +71,11 @@ export function hisobNomi(h: { nom_uz: string | null; nom_ru: string | null } | 
 export const MANBA_NOM: Record<string, string> = {
   forma3: 'Forma-3 (realizatsiya)', tolov: 'To‘lov', ombor_kirim: 'Ombor kirimi', qarz_yetkazish: 'Yetkazib berish', qarz_ish: 'Bajarilgan ish (akt)',
   qarz_tolov: 'To‘lov (qarz asosi)', qarz_boshlangich: 'Boshlang‘ich qoldiq', qolda: 'Qo‘lda provodka',
+  xarajat: 'Xarajat', taqdim: 'Qabul qilingan Forma-2',
 };
 export function manbaYol(manbaTur: string): string | null {
   if (manbaTur === 'forma3') return '/admin/moliya';
-  if (manbaTur === 'tolov') return '/admin/moliya';
+  if (manbaTur === 'tolov' || manbaTur === 'xarajat') return '/admin/moliya';
   if (manbaTur.startsWith('qarz_') || manbaTur === 'ombor_kirim') return '/admin/qarzdorlik';
   return null;
 }

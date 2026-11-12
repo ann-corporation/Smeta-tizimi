@@ -1,0 +1,18 @@
+# Egasi talablari reestri — kod holati (2026-11-11)
+
+Manba: Obsidian KOORDINATSIYA.md, «2026-11-04 — EGASI TALABLARI REESTRI», bandlar #3, #4, #6, #12.
+Prod hisobi (faqat o'qish, 2026-11-11): HR, buxgalteriya, yuk birjasi, to'lov, qarz jadvallarining HAMMASI 0 qator
+(`t2_hr_*`, `t2_kadr_*`, `t2_bux_*`, `t2_yb_*` — faqat `t2_yb_sozlama` 10 sozlama qatori; `t2_tolov` 0, `t2_qarz_asos` 0).
+Tasdiqlangan F2 aktlari: 48. Ya'ni kod bor, lekin hech kim foydalanmayapti: to'siq — ma'lumot kiritilmagan, ekran yo'q emas.
+
+| Talab | Bor | Chala | Yo'q | Keyingi PR |
+|---|---|---|---|---|
+| #3 HR+KPI | Migratsiya 20261125000000/100: xodim, sxema, kalendar/tatil, tabel, tuzatma (jarima/bonus), oylik; RPC `t2_hr_kpi_v1` (tasdiqlangan F2 dan % mukofot, ustamali/ustamasiz baza, obyekt ulushi/muallif rejimi); ekran `/admin/hr` (Hr.tsx: 7 bo'lim, Excel vedomost) | Prodda 0 xodim, 0 sxema — kiritilmagan; prorabning o'z KPI ko'rinishi (faqat o'ziniki) yo'q, hamma uchun rahbar ko'rinishi | Dam olish kunlarini rejalash (kelajak grafik) — faqat kalendar/tabel bor; kasbga xos jarima shablonlari | 1) Prorab uchun «Mening KPI» (faqat o'z qatori, `payroll.read` siz) 2) Birinchi 3 xodim/sxema kiritish (egasi ma'lumoti) |
+| #4 Buxgalteriya 1C darajasi | Migratsiya 20261126500000/100: hisoblar rejasi, provodka (avto/qo'lda/storno), davr, OSV, kontragent, NDS, bank importi, tashqi sinx; ekran `/admin/buxgalteriya` (Jurnal, OSV, Hisob-kitob, NDS, Bank, Sozlama); qarzdorlik (kreditor) `/admin/qarzdorlik`; akt-sverka + DS + F3 + to'lov `/admin/nakopitelniy` | Prodda 0 provodka/0 hisob — `t2_bux_boshlash_v1` chaqirilmagan; F2→provodka avtomatik oqimi (`t2_outbox` orqali) ulanmagan; buyurtmachi (debitor) qarzi `t2_qarz_svod_v1` RPC bor edi, lekin BFF yo'li va ekrani yo'q edi | Buyurtmachi bilan akt-sverka PDF/Excel (Акт сверки) chop etish; 1C Продажа ↔ F2 moslash faqat import (`sverka_moslash_v1`) | **Shu PR (claude/reestr-qoldiq):** Qarzdorlik ekranida «Buyurtmachi bizga qarzi» bloki (qarz_svod_v1). Keyingi: F2→buxgalteriya provodka ulanishi; to'lov kiritish ekrani to'lovlarni t2_tolov ga yozsin |
+| #6 Logistika | Migratsiya 20261123000000 (transport v1), `api/t2-transport.ts`, `lib/transport/{narxlash,foyda,geo,holat}`, `api/yuk-marshrut.ts`, i18n `logistika.json` | Prodda reys/xarajat yozuvi 0; xarita/navigatsiya — faqat geo yordamchi, to'liq xarita ekrani tekshirilmadi | Buyurtma P3 (olish nuqtasi, yuklashga_tayyor) dan reysga avtomatik bog'lanish isboti | Ekranni tekshirish + 1 haqiqiy reys bilan sinov (kod emas, ma'lumot) |
+| #12 Yuk birjasi | Migratsiya 20261201000000: yuk e'loni, bron, taklif/qarshi taklif, baho, nizo, tashuvchi, to'lov hodisasi (stub); ekran `/admin/yuk-birjasi` (Sahifa, Tafsilot, Tahrir); t·km narxlash `lib/transport/narxlash` | Prodda 0 yuk, 0 tashuvchi; to'lov provayderi stub (egasi qarori: Click/Payme keyin) | Mobil/haydovchi kirish qatlami UI; komissiya 3% yoqish (pilotda 0%) | Pilot: 1 yuk e'lon qilib butun zanjirni (taklif→bron→baho) sinash |
+
+## Xulosa
+- #3 va #4 da kod yetarli; asosiy bo'shliq — ma'lumot kiritilishi va ikkita ulanish: (a) F2→buxgalteriya provodka, (b) buyurtmachi qarzi ekrani.
+- Shu PR bo'shliq (b) ni yopadi: mavjud Qarzdorlik ekraniga blok, yangi menyu/jadval/migratsiya yo'q. Raqam 20261212600000 band qoldirilgan, ishlatilmadi (migratsiya kerak bo'lmadi: RPC prodda mavjud).
+- Pul qoidasi: F3 va to'lov QQS bilan (RPC manbasi), F2 ustamasiz QQS siz alohida ustun; noma'lum = tire, jamiga kirmaydi. Ustamali F2 summasi RPC da yo'q — keyingi qadam: `SummaJuft` bilan qo'shish (RPC kengaytirish, migratsiya 20261212600000).

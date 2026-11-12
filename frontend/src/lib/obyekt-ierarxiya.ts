@@ -4,6 +4,7 @@
  * Bog'lanish: obyekt.loyiha_id, shartnoma.loyiha_id va t2_shartnoma_bog (faol). Ma'lumot o'qilmasa — oddiy ro'yxat.
  */
 import { sbOqi } from '../api/supabase';
+import { raqamTozala } from './raqam-belgi';
 
 export type IerarxiyaManba = {
   loyihalar: ReadonlyArray<{ id: number; nom: string | null }>;
@@ -29,7 +30,7 @@ export function obyektGuruhla<O extends ObyektLike>(obyektlar: readonly O[], m: 
     const s = sId != null ? shartnoma.get(sId)! : undefined;
     const lId = o.loyiha_id ?? s?.loyiha_id ?? null;
     const lNom = lId != null ? (loyiha.get(lId) ?? `Loyiha #${lId}`) : LOYIHASIZ;
-    const sNom = s ? `Shartnoma ${s.raqam ? `№${s.raqam}` : `#${s.id}`}${s.nom ? ` ${s.nom}` : ''}` : (m ? SHARTNOMASIZ : null);
+    const sNom = s ? `Shartnoma ${s.raqam ? `№${raqamTozala(s.raqam)}` : `#${s.id}`}${s.nom ? ` ${s.nom}` : ''}` : (m ? SHARTNOMASIZ : null);
     const kalit = `${lId ?? '-'}|${s?.id ?? '-'}`;
     const g = guruhlar.get(kalit) ?? { kalit, loyiha: lNom, shartnoma: sNom, obyektlar: [] };
     g.obyektlar.push(o); guruhlar.set(kalit, g);

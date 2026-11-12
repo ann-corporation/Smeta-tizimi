@@ -38,6 +38,8 @@ export const ENTITY_CONFIGS: Record<string, EntityConfig> = {
       { key: 'raqam', label: 'Shartnoma raqami', required: true },
       { key: 'nom', label: 'Shartnoma nomi / predmeti', required: true },
       { key: 'taraf', label: 'Taraf (kim bilan)' },
+      { key: 'loyihaId', label: 'Loyiha (barcha obyektlari bog‘lanadi)', type: 'select', options: [] }, // options — dynamicOptions orqali
+      { key: 'obyektId', label: 'Obyekt (faqat shu obyekt bog‘lanadi)', type: 'select', options: [] },
       { key: 'summaBezNds', label: 'Summa (QQS siz)', type: 'money' },
       { key: 'nds', label: 'QQS (%)', type: 'number', defaultValue: '12' },
       { key: 'izoh', label: 'Izoh', type: 'textarea' },

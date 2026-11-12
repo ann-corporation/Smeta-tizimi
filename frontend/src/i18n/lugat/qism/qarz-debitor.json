@@ -1,0 +1,50 @@
+{
+    "F2 tasdiqlangan, lekin hisob-faktura (F3) chiqarilmagan":  {
+                                                                    "ru":  "F2 утверждён, но счёт-фактура (Ф3) не выставлена",
+                                                                    "en":  "F2 approved, but no invoice (F3) issued"
+                                                                },
+    "Ortiqcha to‘lov / avans: biz buyurtmachidan qarzmiz":  {
+                                                                "ru":  "Переплата / аванс: мы должны заказчику",
+                                                                "en":  "Overpayment / advance: we owe the customer"
+                                                            },
+    "F3 chiqarilgan, to‘lov hali yo‘q":  {
+                                             "ru":  "Ф3 выставлена, оплаты ещё нет",
+                                             "en":  "F3 issued, no payment yet"
+                                         },
+    "Noma‘lum":  {
+                     "ru":  "Неизвестно",
+                     "en":  "Unknown"
+                 },
+    "Buyurtmachi qarzi: {xato}":  {
+                                      "ru":  "Долг заказчика: {xato}",
+                                      "en":  "Customer debt: {xato}"
+                                  },
+    "Buyurtmachi qarzi":  {
+                              "ru":  "Долг заказчика",
+                              "en":  "Customer debt"
+                          },
+    "Buyurtmachi bizga qarzi (F3 − to‘lov)":  {
+                                                  "ru":  "Долг заказчика нам (Ф3 − оплата)",
+                                                  "en":  "Customer owes us (F3 − payments)"
+                                              },
+    "Summalar QQS bilan (F3, to‘lov). F2 — tasdiqlangan, ustamasiz, QQS siz; qarzdan ayirilmaydi.":  {
+                                                                                                         "ru":  "Суммы с НДС (Ф3, оплата). Ф2 — утверждённая, без наценки, без НДС; из долга не вычитается.",
+                                                                                                         "en":  "Amounts include VAT (F3, payments). F2 is approved, without markup, excl. VAT; not deducted from the debt."
+                                                                                                     },
+    "F2 (ustamasiz)":  {
+                           "ru":  "Ф2 (без наценки)",
+                           "en":  "F2 (no markup)"
+                       },
+    "F3 (hisob-faktura)":  {
+                               "ru":  "Ф3 (счёт-фактура)",
+                               "en":  "F3 (invoice)"
+                           },
+    "{n} ta shartnomada qarz noma‘lum — jamiga kirmagan.":  {
+                                                                "ru":  "В {n} договорах долг неизвестен — в итог не входит.",
+                                                                "en":  "Debt unknown in {n} contracts — excluded from the total."
+                                                            },
+    "Buyurtmachi qarzi ro‘yxati":  {
+                                       "ru":  "Список долгов заказчика",
+                                       "en":  "Customer debt list"
+                                   }
+}

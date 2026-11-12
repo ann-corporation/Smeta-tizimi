@@ -299,5 +299,5 @@ export async function aosrExcel(k: AosrKirish): Promise<Uint8Array> {
 /** Fayl nomi: <Obyekt>_АОСР_<raqam>_<sana>.xlsx */
 export function aosrFaylNomi(obyekt: string | null | undefined, raqam: string | null | undefined, sana: string | null | undefined): string {
   const q = (s: string) => s.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
-  return `${q(toza(obyekt) || 'Объект')}_АОСР_${q(toza(raqam) || 'б-н')}_${toza(sana) || 'без-даты'}.xlsx`;
+  return `${q(toza(obyekt) || 'Объект')}_АОСР_${q(toza(raqam) || 'б-н')}${toza(sana) ? `_${toza(sana)}` : ''}.xlsx`;
 }

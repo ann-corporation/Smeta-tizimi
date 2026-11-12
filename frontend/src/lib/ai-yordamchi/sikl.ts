@@ -33,7 +33,8 @@ export type SiklNatija =
   | { ok: false; code: string; message?: string };
 
 const VOSITA_NOMI: Record<string, string> = { qidir: 'Qidiryapman', holat: 'Holatni o‘qiyapman', bolim: 'Bo‘limni o‘qiyapman', normativ: 'Normativ katalogdan qidiryapman',
-  tekshir: 'Tekshiryapman', narx: 'Narx manbalarini o‘qiyapman', narxsiz: 'Narxsiz qatorlarni qidiryapman', qoldiq: 'Qoldiqni hisoblayapman' };
+  tekshir: 'Tekshiryapman', narx: 'Narx manbalarini o‘qiyapman', narxsiz: 'Narxsiz qatorlarni qidiryapman', qoldiq: 'Qoldiqni hisoblayapman',
+  lugat: 'Lug‘atdan qidiryapman', kelishuv: 'Narxni smeta bilan solishtiryapman', naryad: 'Naryadlarni o‘qiyapman', loyiha_farq: 'Loyiha, smeta va fakt farqini o‘qiyapman' };
 export const vositaYorligi = (s: OqishSorovi) => `${VOSITA_NOMI[s.vosita] ? t(VOSITA_NOMI[s.vosita]) : s.vosita}${s.arg ? ` «${s.arg}»` : ''}`;
 
 export async function agentSikli(p: { kompaniyaId: number; xabarlar: SahifaXabar[]; vositalar: SahifaVositalar; qadam?: (q: SiklQadam) => void; tirikmi?: () => boolean }): Promise<SiklNatija> {

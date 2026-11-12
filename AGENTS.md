@@ -27,6 +27,7 @@ Yangi g'oya → `IDEA_INBOX.md`; egasi qarori → `DECISIONS.md`; risk → `RISK
 Interfeys 4 tilda: o'zbek lotin (manba), o'zbek kirill, rus, ingliz (`frontend/src/i18n/`).
 - Interfeysdagi har matn: `t('Oʻzbek lotin matni')` (`import { t } from '…/i18n/til'`). Kalit = o'zbek lotin matnning o'zi; `{nom}` o'rinbosarlar.
 - Yangi matn qo'shsangiz — shu commitda tarjimani O'Z YANGI faylingizga yozing: `frontend/src/i18n/lugat/qism/<mavzu>.json` (`{ "kalit": { "ru": "...", "en": "..." } }`). `lugat/ru.json`/`en.json` oxiriga YOZMANG — parallel PR lar ziddiyatga tushadi. O'zbek kirill QO'LDA yozilmaydi: `lotinKirill()` avtomatik; qoidaga sig'maganlar — `lugat/kirill-istisno.json`.
+- Yangilik qo'shish («Nima yangi» banneri): BITTA yangi fayl `frontend/yangiliklar/YYYYMMDD-slug.json` (`{ "sana", "sarlavha", "bandlar": [] }`; bir kunda bir nechta bo'lsa `YYYYMMDD-HHMM-slug.json`). id/hisoblagich YO'Q; `/yangiliklar.json` build paytida yig'iladi (`frontend/scripts/yangiliklar-yigish.mjs`). Eski `public/yangiliklar.json` ni QAYTA YARATMANG.
 - Qidiruv/kiritish lotin va kirillni bir xil ko'rishi kerak: `qidiruvKaliti()` / `qidiruvdaBor()`.
 - Rasmiy hujjatlar (F2, F3, M-29, akt…) RUS tilida qoladi; smeta/obyekt ma'lumotlari tarjima qilinmaydi.
 - Qo'riqchi: `src/i18n/qorovul.test.ts` — t() matnlarida ru/en majburiy; fayldagi t() siz matnlar soni `src/i18n/baza.json` dan oshmaydi (yangi faylda 0). Matnni o'tkazgach: `npm run i18n:baza` (faqat kamaytiradi).
@@ -47,3 +48,21 @@ Gate'lar (`CODEMAP.md` oxirida) → commit → push → deploy tekshiruvi → Ob
 
 ## 4. Tarixiy materiallar
 `ops/handoff/`, `docs/reviews/`, `docs/audit/`, `tizim02/MULOQOT.md` (append-only historical journal) — faqat tarix/dalil, joriy holat EMAS (not current state). Repo ildizidagi eski reja/brif hujjatlari 2026-10-02 da kanonik Obsidian hujjatlariga birlashtirilib o'chirildi (git tarixida bor).
+
+## 5. Yangi sahifa/amal qo'shish
+Yagona joy: `frontend/src/lib/reestr/` (reestr: sahifa, amal, ish joyi, tomon profili; `docs/architecture/EKOTIZIM_ARXITEKTURA_V2.md`). Yangi sahifa/menyu bandi/amal avval shu yerda e'lon qilinadi - menyu, route va ruxsat shundan hosil bo'ladi. `App.tsx`, `NAV_GURUHLAR` yoki boshqa joyga alohida qo'lda qo'shilmaydi; reestr yo'q bo'lsa (PR #355 main'ga tushmagan) - avval o'sha PR'ni kuting. Ildizga skript/ma'lumot tashlamang: skriptlar `scripts/`, katta ma'lumot R2.
+
+## 6. Yangi narsa qo'shish qoidasi (domen shartnomalari, 2026-11-12 - har PR da majburiy)
+Egalik reestri: `frontend/src/lib/reestr/domen.ts`; hujjat: `docs/architecture/DOMEN_SHARTNOMALARI.md`; qo'riqchi: `src/lib/reestr/domen.arxitektura.test.ts`. PR tavsifida 12 qatorni to'ldiring:
+1. Domen: yangi jadval/funksiya qaysi domenga tegishli (nom prefiksi shu domenniki; bo'lmasa `domen.ts` PREFIKS/ISTISNO ga sabab bilan).
+2. Qaysi mavjud YAGONA manba funksiyasi qayta ishlatildi (`OTORITET`): summa, fakt, nakrutka, ruxsat, tomon ko'rinishi - qayta hisoblanmadi.
+3. Nega mavjud sahifa/jadval/funksiya (OXSHASHLAR ro'yxati) mos kelmadi - o'xshash mexanizm yaratilmadi.
+4. Capability: qaysi (`t2_role_permissions_v2` ga bog'langan, yangi rol massivi yozilmagan), `write-command-policy.ts` da amal.
+5. Idempotentlik: yozish amalida `operation_id` (uuid) + command_log; yo'q bo'lsa sabab.
+6. Boshqa domen jadvaliga to'g'ridan yozilmadi (faqat egasining nomli funksiyasi; audit/outbox/signal/command_log mustasno).
+7. Pul: narx QQS siz; summa tartibi QQS bilan -> ustamali -> ustamasiz FAQAT yadro orqali (`_t2_summa_paket_v1`, `lib/hisob-yadro`); `1.12`/`round(pul,2)` yozilmadi.
+8. Invariantlar: asl smeta o'zgarmadi; tasdiqlangan F2 muzlagan; NULL != 0; bitta fakt manbai; nakrutka faqat smeta podvalidan.
+9. Tenant (`kompaniya_id`) + actor + versiya (faol smeta) hisobga olindi.
+10. Reestr: sahifa/amal `lib/reestr` ga e'lon qilindi; AI tool'iga ham qo'shildi (yozuvchi amalda dry_run).
+11. Testlar: `domen.arxitektura.test.ts` yashil, meros ro'yxati (`domen-meros.json`) KENGAYMADI (kengaysa - sabab va egasi tasdig'i).
+12. Katalog: migratsiyadan keyin jonli katalog nusxasi (`domen-katalog.snapshot.json`) yangilandi (faqat nomlar).

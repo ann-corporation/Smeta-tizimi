@@ -38,6 +38,8 @@ export const ID_JADVAL: Readonly<Record<string, string>> = {
   p_bitim_id: 't2_sotuv_bitim', p_birlik_id: 't2_sotuv_birlik', p_bron_id: 't2_sotuv_bron', p_sotuv_tolov_id: 't2_sotuv_tolov',
   /* Ish kartasi (20261203000600): karta kompaniyasi shlyuzda ham tekshiriladi (RPC — birinchi qatlam). */
   p_karta_id: 't2_ish_kartasi',
+  /* Naryad (20261214800000): naryad kompaniyasi shlyuzda ham tekshiriladi (RPC — birinchi qatlam). */
+  p_naryad_id: 't2_naryad',
   /* Buyurtma (20261108410000): p_qatorlar[].zayavka_id (t2_erp_taminot) shlyuzda ham kompaniya bo'yicha tekshiriladi (RPC faqat FK tekshiradi). */
   p_zayavka_id: 't2_erp_taminot',
 };
@@ -67,7 +69,7 @@ export const P_ID_JADVAL: Readonly<Record<string, string>> = {
   narx_protokol_tasdiqla: 't2_price_basis', narx_protokol_bekor: 't2_price_basis',
 };
 /** `p_id` ni o'zi a'zolik bilan tekshiradigan (kompaniya + actor bilan chaqiriladigan) amallar. */
-const P_ID_OZI_TEKSHIRADI = new Set(['mindmap_tugun_ochir', 'resurs_yangila_v2', 'resurs_bekor_v2',
+const P_ID_OZI_TEKSHIRADI = new Set(['arxivla_v1', 'arxivdan_tiklash_v1', 'arxiv_butunlay_v1', 'mindmap_tugun_ochir', 'resurs_yangila_v2', 'resurs_bekor_v2',
   /* platforma katalogi (kompaniya_id NULL) — RPC superadminlikni tekshiradi (_t2_boshqaruv_tekshir). */
   'platforma_narx_manba_yoz', 'platforma_narx_manba_bekor']);
 /** Korzinka: `p_jadval` + `p_id` (jadval shlyuzda oq ro'yxatdan). */

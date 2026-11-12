@@ -109,7 +109,7 @@ export default function NarxlarNative() {
       setRegistr(byKey);
       const obyektlarYangi = (o.qatorlar as T2Obyekt[]) || [];
       setObyektlar(obyektlarYangi);
-      setObyektId(oldingi => workspace.scope.objectId ?? oldingi ?? obyektlarYangi[0]?.id ?? null);
+      setObyektId(oldingi => workspace.scope.objectId ?? oldingi ?? null); /* birinchi obyekt o'zi tanlanmaydi — yagona yuqori tanlov */
     } catch (e) {
       setXato(xatoXabari(e));
     } finally {
@@ -280,17 +280,18 @@ export default function NarxlarNative() {
   return (
     <Sahifa
       sarlavha="Narxlar markazi"
-      tavsif="Supabase registri: narx manbasi va uning hisobga olinishi aniq ko‘rinadi"
+      tavsif="Narx manbasi va uning hisobga olinishi aniq ko‘rinadi"
       amallar={<button onClick={() => void yukla()} disabled={yuklanmoqda} className="fz-btn fz-btn--ghost">
         <RefreshCw size={15} className={yuklanmoqda ? 'animate-spin' : ''} /> {t('Yangilash')}
       </button>}
     >
       <div className="flex flex-col gap-3">
         <section className="fz-panel" aria-label={t('Narx qayerdan olinadi')} data-testid="markaz-xulosa">
-          <div className="fz-panel__h"><span>{t('Narx qayerdan olinadi (ustunlik: belgilangan → sana → smeta, eng kattasi)')}</span><span>{t('{n} resurs', { n: xulosa.jami.toLocaleString('ru-RU') })}</span></div>
-          <QamrovChizigi aria={t('Narx qayerdan olinadi')} bolaklar={xulosa.bolaklar}
+          <div className="fz-panel__h"><span>{t('Narx qayerdan olinadi (ustunlik: belgilangan → sana → smeta, eng kattasi)')}</span><span>{xulosa.jami > 0 ? t('{n} resurs', { n: xulosa.jami.toLocaleString('ru-RU') }) : t('hisoblanmadi — obyekt tanlang yoki resurslar yuklanmoqda')}</span></div>
+          {xulosa.jami === 0 ? <p className="text-[12px] text-text-mute" data-testid="markaz-bosh">{t('Narx ko‘rsatkichi 0 emas, balki hisoblanmagan: obyekt tanlanmagan yoki resurs ro‘yxati bo‘sh.')}</p> : null}
+          {xulosa.jami > 0 && <QamrovChizigi aria={t('Narx qayerdan olinadi')} bolaklar={xulosa.bolaklar}
             nomlar={Object.fromEntries(Object.entries(MARKAZ_MANBA).map(([k, v]) => [k, t(v.matn)]))}
-            ranglar={Object.fromEntries(Object.entries(MARKAZ_MANBA).map(([k, v]) => [k, v.rang]))} />
+            ranglar={Object.fromEntries(Object.entries(MARKAZ_MANBA).map(([k, v]) => [k, v.rang]))} />}
           {xulosa.xavf > 0 && <button type="button" onClick={() => setFaqatXavf((v) => !v)} className="fz-chip fz-chip--warn self-start">
             <ShieldAlert size={12} aria-hidden="true" />{t('{n} ta resurs obyektlararo 5% dan ortiq farq bilan narxlangan', { n: String(xulosa.xavf) })}</button>}
         </section>

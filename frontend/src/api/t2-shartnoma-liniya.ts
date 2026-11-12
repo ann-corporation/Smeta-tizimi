@@ -4,6 +4,7 @@
  * Asosiy shartnoma (buyurtmachi ↔ pudratchi) — obyektda bitta; qo'shimchalar (subpudrat, lab, loyihachi…) — cheklanmagan.
  */
 import { vaqtliOqish } from './vaqtli-fetch';
+import { birlash } from './birlash';
 import { yozAmali, type AktNatija } from './supabase';
 
 export type LiniyaTomon = { id?: number; rol: string; nom: string; inn: string | null; kontragent_id?: number | null; tomon_kompaniya_id?: number | null; rekvizit?: Record<string, unknown> };
@@ -16,7 +17,10 @@ export type LiniyaObyekt = { id: number; nom: string; loyiha_id: number | null; 
 export type LiniyaLoyiha = { id: number; nom: string; holat: string | null };
 export type Liniya = { loyihalar: LiniyaLoyiha[]; shartnomalar: LiniyaShartnoma[]; obyektlar: LiniyaObyekt[]; rollar: string[]; turlar: string[] };
 
-export async function shartnomaLiniyaOl(kompaniyaId: number): Promise<{ ok: true; natija: Liniya } | { ok: false; error: string }> {
+export function shartnomaLiniyaOl(kompaniyaId: number): Promise<{ ok: true; natija: Liniya } | { ok: false; error: string }> {
+  return birlash('liniya:' + kompaniyaId, () => shartnomaLiniyaOlYakka(kompaniyaId));
+}
+async function shartnomaLiniyaOlYakka(kompaniyaId: number): Promise<{ ok: true; natija: Liniya } | { ok: false; error: string }> {
   try {
     const r = await vaqtliOqish('/api/sb', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soro: 'shartnoma_liniya_v1', kompaniya_id: kompaniyaId }) });
     const j = await r.json() as { ok: boolean; natija?: Liniya; error?: string };

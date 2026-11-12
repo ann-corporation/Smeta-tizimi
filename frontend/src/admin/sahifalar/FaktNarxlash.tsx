@@ -77,7 +77,7 @@ export function FaktNarxlash({ kompaniyaId, obyektId, qator, onYop, onSaqlandi }
           <p className="truncate text-text-dim" title={qator.nom}>{qator.nom} · {qator.birlik ?? '—'}</p></div>
         <button type="button" onClick={onYop} aria-label={t('Yopish')} className="rounded p-1 text-text-mute hover:bg-surface-2"><X size={14} /></button>
       </div>
-      <p className="text-text-mute">{t('Narx NDS siz. Taklifni bossangiz qo‘lda maydonga tushadi; faqat «Narxni yozish» bosilganda yoziladi.')}</p>
+      <p className="text-text-mute">{t('Narx QQS siz. Taklifni bossangiz qo‘lda maydonga tushadi; faqat «Narxni yozish» bosilganda yoziladi.')}</p>
       <div role="listbox" aria-label={t('Narx manbalari')} className="max-h-48 overflow-auto rounded border border-border">
         {yuk && <p className="p-2 text-text-mute">{t('Qidirilmoqda…')}</p>}
         {!yuk && variantlar.length === 0 && <p className="p-2 text-text-mute">{t('Manbalardan narx topilmadi - qo‘lda yozing.')}</p>}

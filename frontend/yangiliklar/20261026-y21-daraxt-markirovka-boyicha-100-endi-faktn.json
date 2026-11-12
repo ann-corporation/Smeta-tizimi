@@ -1,0 +1,10 @@
+{
+  "id": 21,
+  "sana": "2026-10-26",
+  "sarlavha": "Daraxt: «Markirovka bo'yicha 100%» endi faktni kamaytirmaydi",
+  "bandlar": [
+    "Fakt → Daraxt → markirovkani tanlab «100% qilish» bosilsa, endi «Qamrov %» oynasi ochiladi: qaysi qatorlarga qancha qo'shilishi, summa va istisnolar oldindan ko'rinadi, hammasi bitta fakt hujjatiga yoziladi va xabardagi «Bekor qilish» bilan qaytariladi.",
+    "Fakti smetadan oshgan qator (masalan smeta 100, fakt 120) o'zgarmaydi — «allaqachon ≥100%» deb ko'rsatiladi. Avval bunday qator jimgina 100 ga tushirilardi.",
+    "Faktni kamaytirish kerak bo'lsa — shu oynadagi alohida «Tuzatishni ko'rish»: eski fakt, yangi fakt va farq ko'rinadi, keraklisini belgilab «Tuzatishni yozish» bosiladi."
+  ]
+}

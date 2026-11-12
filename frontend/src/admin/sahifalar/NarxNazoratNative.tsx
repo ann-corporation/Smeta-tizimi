@@ -108,11 +108,11 @@ export default function NarxNazoratNative({ obyektId: fixedObjectId }: { obyektI
         <Info aria-hidden="true" />
         <div>
           <b>{t('Bu xarid tejami emas.')}</b>{' '}
-          {t('F2 qaysi narxda sertifikatlangani va shu qator uchun reference (smeta baseline, F2 yaratilgan payt muzlagan) narx orasidagi farq ko‘rsatiladi.')}
+          {t('F2 da qaysi narxda tasdiqlangani bilan shu qator uchun smeta narxi (F2 tuzilgan paytdagi) orasidagi farq ko‘rsatiladi.')}
           <ul className="mt-1.5 flex flex-col gap-1">
             <li><span className="fz-stamp fz-stamp--info" style={{ marginRight: 6 }}>{t('Muzlagan')}</span>{t('past narxda yopilgan qism')}</li>
             <li><span className="fz-stamp fz-stamp--warn" style={{ marginRight: 6 }}>{t('Xavf ostida')}</span>{t('hali tasdiqlanmagan qism')}</li>
-            <li><span className="fz-stamp fz-stamp--danger" style={{ marginRight: 6 }}>{t('Basis kerak')}</span>{t('narx reference‘dan yuqori — bu foyda emas, asos (protokol) nazorati')}</li>
+            <li><span className="fz-stamp fz-stamp--danger" style={{ marginRight: 6 }}>{t('Asos kerak')}</span>{t('narx smeta narxidan yuqori — bu foyda emas, asos (protokol) nazorati')}</li>
           </ul>
         </div>
       </div>
@@ -128,7 +128,7 @@ export default function NarxNazoratNative({ obyektId: fixedObjectId }: { obyektI
                 style={{ cursor: 'pointer', borderColor: filtr === k.id ? 'var(--accent)' : 'var(--border)', boxShadow: filtr === k.id ? '0 0 0 1px var(--accent)' : undefined }}>
                 <span className="fz-kpi__label"><span style={{ color: k.ton ?? 'var(--text-dim)', display: 'inline-flex' }}>{k.ikon}</span>{t(k.nom)}</span>
                 <span className="fz-kpi__value">{k.qiymat}</span>
-                {(k.id === 'muzlagan' || k.id === 'xavf_ostida') && <span className="fz-kpi__sub">{t('ustamasiz, NDS siz (narx farqi)')}</span>}
+                {(k.id === 'muzlagan' || k.id === 'xavf_ostida') && <span className="fz-kpi__sub">{t('ustamasiz, QQS siz (narx farqi)')}</span>}
               </button>
             ))}
           </div>
@@ -153,7 +153,7 @@ export default function NarxNazoratNative({ obyektId: fixedObjectId }: { obyektI
                 <thead>
                   <tr>
                     <th>{t('Kod')}</th><th>{t('Nom')}</th>
-                    <th className="fz-c-num">{t('Reference narx')}</th>
+                    <th className="fz-c-num">{t('Smeta narxi')}</th>
                     <th className="fz-c-num">F2 {t('narx')}</th>
                     <th className="fz-c-num">{t('Farq')}</th>
                     <th className="fz-c-num">{t('Muzlagan')}</th>

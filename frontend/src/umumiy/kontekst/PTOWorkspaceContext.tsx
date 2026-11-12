@@ -2,8 +2,9 @@ import { t } from '../../i18n/til';
 import { ObyektOptionlari } from '../ui/ObyektOptionlari';
 import { loyihaBoyichaObyektlar } from '../../lib/loyihasiz-obyekt';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useKompaniya } from './KompaniyaKontekst';
+import { oxirgiObyektOl, oxirgiObyektYoz } from './oxirgiObyekt';
 import { sbT2AktReestrOl, type T2AktReestr, type T2Obyekt } from '../../api/supabase';
 import { obyektlarKeshdan, useIxtiyoriyQueryClient } from '../../api/t2-obyektlar-kesh';
 import { sbT2LoyihalarOl, type Loyiha } from '../../api/t2-loyiha';
@@ -100,6 +101,17 @@ const PTO_ROUTE_PREFIXES = [
   '/admin/smeta-narxlash',
   '/admin/documents',
   '/admin/smeta',
+  /* Navigatsiya oqimi (2026-11-11): obyekt bo'yicha ishlaydigan qolgan sahifalar ham BITTA yuqori tanlovdan foydalanadi
+   * (avval aosr/m29/nakrutka/logistika/... har biri o'z tanlovi bilan «10 kV liniya» dan boshlanardi). */
+  '/admin/m29',
+  '/admin/aosr',
+  '/admin/nakrutka',
+  '/admin/narx-dalil',
+  '/admin/narx-tekshiruv',
+  '/admin/naryad',
+  '/admin/foto',
+  '/admin/logistika',
+  '/admin/storage',
 ];
 
 export function isPtoRoute(pathname: string): boolean {
@@ -213,6 +225,8 @@ export function scopeToParams(base: URLSearchParams, next: PtoScope): URLSearchP
   return params;
 }
 
+export const OY_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+
 const sameScope = (a: PtoScope, b: PtoScope) => a.projectId === b.projectId && a.objectId === b.objectId
   && a.periodId === b.periodId && a.sourceDocumentId === b.sourceDocumentId && a.revisionId === b.revisionId;
 
@@ -242,7 +256,8 @@ export type PtoObjectDetail = { objectId: number; periods: PtoPeriod[]; document
  */
 export function validateDetail(cur: PtoScope, d: PtoObjectDetail): PtoScope {
   if (cur.objectId !== d.objectId) return cur;
-  const periodId = cur.periodId && d.periods.some((row) => row.id === cur.periodId) ? cur.periodId : null;
+  /* Yagona oy: istalgan haqiqiy oy (YYYY-MM) qabul qilinadi — yangi oy uchun F2 hali yo'q bo'lishi mumkin (egasi 2026-11-11). */
+  const periodId = cur.periodId && (OY_RE.test(cur.periodId) || d.periods.some((row) => row.id === cur.periodId)) ? cur.periodId : null;
   const chosenDoc = cur.sourceDocumentId && d.documents.some((row) => row.id === cur.sourceDocumentId) ? cur.sourceDocumentId : null;
   const sourceDocumentId = chosenDoc ?? (d.documents.length === 1 ? d.documents[0].id : null);
   const docRevisions = sourceDocumentId == null ? [] : d.revisions.filter((row) => row.documentId === sourceDocumentId);
@@ -278,6 +293,11 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState<LoadingState>({ hierarchy: false, periods: false, documents: false });
   const [error, setError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
+  const [loadedToken, setLoadedToken] = useState(0);
+  const refreshTokenRef = useRef(0);
+  refreshTokenRef.current = refreshToken;
+  /** Ro'yxatda hali yo'q (yangi yaratilgan) obyekt tanlandi: ro'yxat qayta o'qilgach qo'llanadi. */
+  const kutilganObyekt = useRef<{ id: number; token: number } | null>(null);
   const qc = useIxtiyoriyQueryClient();
   /** Company whose project/object lists are really loaded — before that a URL object is not judged
    *  (owner 2026-09-29: ?obyekt=78 used to vanish against an empty list). */
@@ -334,6 +354,7 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
         setProjects((projectResult.qatorlar ?? []).filter((row) => row.kompaniya_id === companyId));
         setObjects((objectResult.qatorlar ?? []).filter((row) => row.kompaniya_id === companyId));
         setLoadedCompany(companyId);
+        setLoadedToken(refreshToken);
       })
       .catch(() => { if (alive) setError('PTO iyerarxiyasini yuklab bo‘lmadi.'); })
       .finally(() => { if (alive) setLoading((old) => ({ ...old, hierarchy: false })); });
@@ -344,6 +365,25 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
     if (companyId == null || loading.hierarchy || loadedCompany !== companyId) return;
     updateScope((cur) => validateHierarchy(cur, companyId, projects, objects));
   }, [companyId, loading.hierarchy, loadedCompany, objects, projects, scope.objectId, scope.projectId, updateScope]);
+
+  /* Oxirgi obyekt (navigatsiya oqimi): ro'yxat kelgach, URL ham, shu tabning eslagan scope'i ham bo'sh bo'lsa — brauzerda
+   * saqlangan oxirgi obyekt (shu kompaniyada bor bo'lsa) tiklanadi. PTO marshrutida URL ga yoziladi, boshqa joyda faqat eslab qolinadi. */
+  useEffect(() => {
+    if (companyId == null || loading.hierarchy || loadedCompany !== companyId) return;
+    if (hasScopeParams(latest.current) || !sameScope(remembered.current, EMPTY_SCOPE)) return;
+    const s = oxirgiObyektOl(companyId);
+    const object = s ? objects.find((row) => row.id === s.objectId && row.kompaniya_id === companyId) : null;
+    if (!s || !object) return;
+    remembered.current = { projectId: object.loyiha_id ?? null, objectId: object.id, periodId: s.periodId, sourceDocumentId: null, revisionId: null };
+    if (isPtoRoute(location.pathname)) updateScope((cur) => cur, true);
+  }, [companyId, loading.hierarchy, loadedCompany, objects, location.pathname, updateScope]);
+
+  /* Tanlangan (tasdiqlangan) obyekt va davr eslab qolinadi. */
+  useEffect(() => {
+    if (companyId == null || loadedCompany !== companyId || scope.objectId == null) return;
+    if (!objects.some((row) => row.id === scope.objectId && row.kompaniya_id === companyId)) return;
+    oxirgiObyektYoz(companyId, scope.objectId, scope.periodId);
+  }, [companyId, loadedCompany, objects, scope.objectId, scope.periodId]);
 
   // Periods and source documents are loaded per object and tagged with it.
   useEffect(() => {
@@ -381,6 +421,12 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
     updateScope((cur) => validateDetail(cur, current));
   }, [current, scope.periodId, scope.sourceDocumentId, scope.revisionId, updateScope]);
 
+  /* Oy tanlanmagan bo'lsa — obyektda oxirgi faollik (F2 akti) oyi; keyin foydalanuvchi istalgan oyni tanlay oladi. */
+  useEffect(() => {
+    if (!current || scope.periodId != null || !current.periods.length || !isPtoRoute(location.pathname)) return;
+    updateScope((cur) => (cur.periodId == null ? { ...cur, periodId: current.periods[0].id } : cur));
+  }, [current, scope.periodId, location.pathname, updateScope]);
+
   const periods = useMemo(() => current?.periods ?? [], [current]);
   const sourceDocuments = useMemo(() => current?.documents ?? [], [current]);
   const revisions = useMemo(() => current?.revisions ?? [], [current]);
@@ -401,12 +447,25 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
       const object = objects.find((row) => row.id === id && row.kompaniya_id === companyId);
       if (object) return withObject(cur, id, object.loyiha_id ?? null);
       // Lists not loaded yet: keep the id; validation decides once the company's lists arrive.
-      return loadedCompanyRef.current === companyId ? cur : withObject(cur, id, cur.projectId);
+      if (loadedCompanyRef.current !== companyId) return withObject(cur, id, cur.projectId);
+      // Ro'yxat yuklangan, lekin obyekt unda yo'q: yangi yaratilgan bo'lishi mumkin (ro'yxat bir marta o'qiladi) —
+      // ro'yxat keshni chetlab qayta o'qiladi va obyekt kelsa tanlanadi (egasi: «yangi obyekt aniqlanmadi»).
+      kutilganObyekt.current = { id, token: refreshTokenRef.current + 1 };
+      setRefreshToken((value) => value + 1);
+      return cur;
     });
   }, [companyId, objects, updateScope]);
 
+  useEffect(() => {
+    const k = kutilganObyekt.current;
+    if (k == null || companyId == null || loading.hierarchy || loadedCompany !== companyId) return;
+    const object = objects.find((row) => row.id === k.id && row.kompaniya_id === companyId);
+    if (object) { kutilganObyekt.current = null; updateScope((cur) => withObject(cur, object.id, object.loyiha_id ?? null)); }
+    else if (loadedToken >= k.token) kutilganObyekt.current = null; // qayta o'qilgandan keyin ham yo'q: bu kompaniyaniki emas
+  }, [companyId, loading.hierarchy, loadedCompany, objects, loadedToken, updateScope]);
+
   const setPeriodId = useCallback((id: string | null) => {
-    if (id != null && !periods.some((row) => row.id === id)) return;
+    if (id != null && !OY_RE.test(id) && !periods.some((row) => row.id === id)) return;
     updateScope((cur) => ({ ...cur, periodId: id }));
   }, [periods, updateScope]);
 
@@ -447,11 +506,42 @@ export function usePTOWorkspace(): PtoWorkspaceValue {
   return useContext(PtoWorkspaceContext);
 }
 
+/**
+ * Obyekt tanlovi sahifada o'z `useState` i bilan emas, YAGONA yuqori tanlovdan (URL scope) olinadi. Provider bo'lmasa
+ * (alohida test/ichki panel) — oddiy mahalliy holat. Sahifaning o'z tanlagichi bor bo'lsa ham `setObyekt` shu yagona
+ * manbani yangilaydi, shuning uchun yuqoridagi tanlov bilan hech qachon farq qilmaydi.
+ */
+export function useGlobalObyektId(): [number | null, (v: number | null | ((eski: number | null) => number | null)) => void] {
+  const ws = usePTOWorkspace();
+  const [mahalliy, setMahalliy] = useState<number | null>(null);
+  const global = ws.isProvider && ws.companyId != null;
+  const joriy = ws.scope.objectId;
+  const setObjectId = ws.setObjectId;
+  const setGlobal = useCallback((v: number | null | ((eski: number | null) => number | null)) => {
+    if (typeof v !== 'function') { setObjectId(v); return; }
+    /* Sahifaning «birinchi obyektni o'zi tanla» odati YAGONA tanlovni bosib ketmasin: funksiya faqat tanlangan obyektni tekshiradi. */
+    if (joriy == null) return;
+    const yangi = v(joriy);
+    if (yangi !== joriy) setObjectId(yangi);
+  }, [joriy, setObjectId]);
+  return global ? [joriy, setGlobal] : [mahalliy, setMahalliy];
+}
+
 /** AdminShell uchun umumiy, deep-link bilan birga ishlaydigan scope bar. */
 export function PTOWorkspaceBar() {
   const workspace = usePTOWorkspace();
   const location = useLocation();
+  const navigate = useNavigate();
   if (!workspace.companyId || !isPtoRoute(location.pathname)) return null;
+  /* Obyekt yo'lda turadigan sahifa (/admin/holat/:id): yuqoridagi tanlov sahifani o'zi ochadi — ikkinchi tanlov kerak emas. */
+  const obyektTanla = (id: number | null) => {
+    if (/^\/admin\/holat(\/|$)/.test(location.pathname)) {
+      if (id == null) workspace.setObjectId(null);
+      navigate(id == null ? '/admin/holat' :`/admin/holat/${id}${workspace.scopeSearch(id)}`, { replace: true });
+      return;
+    }
+    workspace.setObjectId(id);
+  };
 
   /* Egasi qoidasi: loyihasiz obyekt hech qachon yashirilmaydi — loyiha tanlanganda ham ro'yxatda («Loyihasiz obyektlar» guruhi). */
   const { loyihali, loyihasiz } = loyihaBoyichaObyektlar(workspace.objects, workspace.scope.projectId);
@@ -476,15 +566,12 @@ export function PTOWorkspaceBar() {
         {workspace.projects.map((row) => <option key={row.id} value={row.id}>{row.nom}</option>)}
       </select>
       <label className="sr-only" htmlFor="pto-object-select">Obyekt</label>
-      <select id="pto-object-select" aria-label="PTO obyekt" title={nomi(objects, workspace.scope.objectId)} value={workspace.scope.objectId ?? ''} onChange={(event) => workspace.setObjectId(event.target.value ? Number(event.target.value) : null)} disabled={!objects.length} className={`${tanlov} w-[clamp(130px,15vw,240px)]`}>
+      <select id="pto-object-select" aria-label="PTO obyekt" title={nomi(objects, workspace.scope.objectId)} value={workspace.scope.objectId ?? ''} onChange={(event) => obyektTanla(event.target.value ? Number(event.target.value) : null)} disabled={!objects.length} className={`${tanlov} w-[clamp(130px,15vw,240px)]`}>
         <option value="">Obyekt tanlang</option>
         <ObyektOptionlari obyektlar={objects} kompaniyaId={workspace.companyId} />
       </select>
       <label className="sr-only" htmlFor="pto-period-select">Davr</label>
-      <select id="pto-period-select" aria-label="PTO davr" value={workspace.scope.periodId ?? ''} onChange={(event) => workspace.setPeriodId(event.target.value || null)} disabled={!workspace.periods.length} className={`${tanlov} w-[112px]`}>
-        <option value="">Davr tanlang</option>
-        {workspace.periods.map((row) => <option key={row.id} value={row.id}>{row.label}</option>)}
-      </select>
+      <input id="pto-period-select" type="month" aria-label="PTO davr" title={t('Yagona oy: F2, nakopitelniy va hujjatlar shu oy bilan ishlaydi')} value={workspace.scope.periodId ?? ''} onChange={(event) => workspace.setPeriodId(event.target.value || null)} className={`${tanlov} w-[132px]`} />
       <details className="relative">
         <summary className={`flex h-8 cursor-pointer list-none items-center gap-1 rounded-md border px-2 text-xs ${manbaTanlangan ? 'border-accent/40 text-accent' : 'border-border text-text-dim'}`}>{t('Manba')} ▾</summary>
         <div className="absolute left-0 top-9 z-40 flex w-[280px] flex-col gap-2 rounded-lg border border-border bg-surface p-2 shadow-lg">

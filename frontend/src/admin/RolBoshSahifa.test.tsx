@@ -33,8 +33,8 @@ describe('RolBoshSahifa (/admin indeksi)', () => {
   it('kontekstBoshSahifasi: kompaniya tanlanmagan → Ish joylarim; ruxsat yo‘q → Ish joylarim; boss → dashboard', () => {
     expect(kontekstBoshSahifasi({ superadmin: false, joriy: null })).toBe('/admin/ish-joylarim');
     expect(kontekstBoshSahifasi({ superadmin: true, joriy: null })).toBe('/admin/ish-joylarim');
-    expect(kontekstBoshSahifasi({ superadmin: false, joriy: { rol: 'boss', permissions: ['company.read', 'financial.read'] } })).toBe('/admin/dashboard');
+    expect(kontekstBoshSahifasi({ superadmin: false, joriy: { rol: 'boss', permissions: ['company.read', 'financial.read'] } })).toBe('/admin/pult');
     expect(kontekstBoshSahifasi({ superadmin: false, joriy: { rol: 'boss', permissions: ['company.read'] } })).toBe('/admin/ish-joylarim');
-    expect(kontekstBoshSahifasi({ superadmin: true, joriy: { rol: 'pto', permissions: [] } })).toBe('/admin/obyektlar');
+    expect(kontekstBoshSahifasi({ superadmin: true, joriy: { rol: 'pto', permissions: [] } })).toBe('/admin/dashboard');
   });
 });

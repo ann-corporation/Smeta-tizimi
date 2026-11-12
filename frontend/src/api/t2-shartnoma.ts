@@ -34,6 +34,11 @@ export type Shartnoma = {
   zakazchik_toliq_nom: string | null; zakazchik_manzil: string | null; zakazchik_telefon: string | null;
   zakazchik_hisob_raqam: string | null; zakazchik_bank: string | null; zakazchik_mfo: string | null;
   zakazchik_inn: string | null; zakazchik_oked: string | null;
+  /** Shartnoma sanasi (ESF/F3 titul). */
+  sana?: string | null;
+  /** ESF tayyorlash (P4): majburiy ID turi + qiymatlar. Yuridik talab emas, sozlanadigan — «T — tekshirilsin». */
+  esf_id_turi?: 'my3' | 'kapital' | 'kadastr' | null;
+  my3_shartnoma_id?: string | null; kapital_imv_id?: string | null; kadastr_raqam?: string | null;
 };
 
 /** F3 titulida ishlatiladigan ЗАКАЗЧИК rekvizitlari to'plami (qisqa nom). */
@@ -41,6 +46,8 @@ export type ZakazchikRekvizit = {
   toliqNom?: string | null; manzil?: string | null; telefon?: string | null;
   hisobRaqam?: string | null; bank?: string | null; mfo?: string | null;
   inn?: string | null; oked?: string | null;
+  /** Imzo bloki uchun F.I.Sh (kompaniya profilidan). */
+  rahbar?: string | null; boshHisobchi?: string | null;
 };
 
 /** `t2_kompaniya` (registr) dagi rekvizit maydonlari — pudratchi va bog'langan zakazchik uchun bir xil shakl. */
@@ -48,6 +55,7 @@ export type KompaniyaRekvizitManbasi = {
   toliq_nom: string | null; manzil: string | null; telefon: string | null;
   hisob_raqam: string | null; bank: string | null; mfo: string | null;
   inn: string | null; oked: string | null;
+  rahbar?: string | null;
 };
 
 /**
@@ -64,7 +72,7 @@ export function zakazchikRekvizit(
   if (!sh) return {};
   if (sh.zakazchik_kompaniya_id != null) {
     const k = kompaniyaOl(sh.zakazchik_kompaniya_id);
-    if (k) return { toliqNom: k.toliq_nom, manzil: k.manzil, telefon: k.telefon, hisobRaqam: k.hisob_raqam, bank: k.bank, mfo: k.mfo, inn: k.inn, oked: k.oked };
+    if (k) return { toliqNom: k.toliq_nom, manzil: k.manzil, telefon: k.telefon, hisobRaqam: k.hisob_raqam, bank: k.bank, mfo: k.mfo, inn: k.inn, oked: k.oked, rahbar: k.rahbar ?? null };
   }
   return {
     toliqNom: sh.zakazchik_toliq_nom, manzil: sh.zakazchik_manzil, telefon: sh.zakazchik_telefon,
