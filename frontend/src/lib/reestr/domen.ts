@@ -31,7 +31,7 @@ export const DOMENLAR: Readonly<Record<Domen, { nom: string; vazifa: string }>> 
 
 /** Token chegarasida ENG UZUN prefiks yutadi. Boshidagi "_" va "trg_" prefiksi olib tashlangandan keyin solishtiriladi. */
 export const PREFIKS: Readonly<Record<Domen, readonly string[]>> = {
-  ai: ['t2_agent', 't2_ai', 't2_addrepl'],
+  ai: ['t2_agent', 't2_ai', 't2_addrepl', 't2_osuvchi', 't2_friksiya', 't2_tajriba'],
   loyiha: [
     't2_loyiha', 't2_obyekt', 't2_object', 't2_tuzilma', 't2_daraxt', 't2_lm', 't2_yakunlash', 't2_hudud', 't2_mindmap',
     't2_obyekt_yangila', 't2_hodisa_obyekt',
