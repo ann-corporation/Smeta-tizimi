@@ -11,6 +11,8 @@ import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { useT2ObyektlarRoyxati } from '../../api/t2-obyektlar-kesh';
 import { yangiOperationId } from '../../api/supabase';
 import { bugungiIshlarManbasi, type BugunQator } from '../../lib/usta/bugungi-ishlar';
+import { bajarildiYuk, type NaryadSatr } from '../../lib/usta/naryad-ish';
+import { UstaNaryad } from './UstaNaryad';
 import { faktTogriYoz, navbatYozuviniYubor, sbUstaQoralamalarOl } from '../../api/t2-usta';
 import { hrOyOl, hrTabelSaqla, hrXodimlarOl, hrXato, type HrOy, type HrXodim } from '../../api/t2-hr';
 import { navbatOmbori, navbatniYubor, type NavbatOmbor, type NavbatYozuv } from '../../lib/usta/navbat';
@@ -99,17 +101,20 @@ export default function UstaBugun() {
   const [qidiruv, setQidiruv] = useState('');
   const [tanlangan, setTanlangan] = useState<BugunQator | null>(null);
   const [rejim, setRejim] = useState<'ish' | 'mat'>('ish');
+  /** Usta o'z naryadlari (o'z birligida). Bo'sh bo'lsa — avvalgi xulq: BL qoldiqli ishlar → fakt qoralama. */
+  const [naryadSatr, setNaryadSatr] = useState<NaryadSatr[]>([]);
 
   const qatorlarniOl = useCallback(async (oid: number, tur: 'bl' | 'mat') => {
     setYuk(true); setIshXato('');
     const eski = keshOqi(oid, tur); if (eski) setIshlar(eski);
-    const r = await bugungiIshlarManbasi(oid, tur);
+    const r = await bugungiIshlarManbasi(oid, tur, { kompaniyaId: kid ?? undefined, naryad: !faktYoza });
     if (r.ok) {
       const q = r.qatorlar;
+      if (tur === 'bl') setNaryadSatr(r.naryad);
       setIshlar(q); keshYoz(oid, tur, q);
     } else if (!eski) setIshXato(onlayn ? t('Ishlar ro‘yxati o‘qilmadi. Qayta urinib ko‘ring.') : t('Internet yo‘q va ro‘yxat saqlanmagan. Avval internetda bir marta oching.'));
     setYuk(false);
-  }, [onlayn]);
+  }, [onlayn, kid, faktYoza]);
 
   const obyektTanla = (id: number) => { setObyektId(id); setEkran('ishlar'); setRejim('ish'); setQidiruv(''); void qatorlarniOl(id, 'bl'); };
 
@@ -154,6 +159,17 @@ export default function UstaBugun() {
     else if (!navigator.onLine) toast(t('Internet yo‘q. Saqlab qo‘yildi — ulanganda o‘zi yuboriladi.'), 'warn');
     else toast(t('Hozir yuborilmadi. Saqlab qo‘yildi — keyinroq o‘zi yuboriladi.'), 'warn');
     setYuborilmoqda(false); tozala(); setEkran('ishlar');
+  };
+
+  /** «Bajardim» — naryad satri bo'yicha YAGONA kirish: navbatga (idempotent operation_id) → ajarildi; qabul — prorabda. */
+  const bajardim = async (s: NaryadSatr, hajmUsta: number, izohMatn: string | null) => {
+    if (kid == null || obyektId == null) return;
+    const y: NavbatYozuv = { id: yangiOperationId(), tur: 'naryad', kompaniyaId: kid, obyektId, yaratildi: Date.now(), urinish: 0,
+      payload: { naryadId: s.naryadId, versiya: s.versiya, qatorlar: bajarildiYuk(naryadSatr.filter((x) => x.naryadId === s.naryadId), s.naryadQatorId, hajmUsta), izoh: izohMatn } };
+    await ombor.current!.qosh(y); await yangilaNavbat();
+    const h = await navbatniYubor(ombor.current!, yubor); await yangilaNavbat();
+    toast(h.yuborildi > 0 ? t('Yuborildi — prorab qabul qilishini kutmoqda') : t('Saqlab qo‘yildi — internet ulanganda yuboriladi.'), h.yuborildi > 0 ? 'ok' : 'warn');
+    if (h.yuborildi > 0) void qatorlarniOl(obyektId, 'bl');
   };
 
   const yuborZayavka = async () => {
@@ -220,7 +236,8 @@ export default function UstaBugun() {
         </div>
         {kutilmoqda != null && kutilmoqda > 0 && <p data-testid="usta-kutilmoqda" className="m-0 rounded-[var(--radius-md)] bg-surface-2 p-3 text-[14px] text-text-dim">{t('Prorab tasdiqlashini kutayotgan yozuvlar: {n} ta', { n: kutilmoqda })}</p>}
         <input type="search" value={qidiruv} onChange={(e) => setQidiruv(e.target.value)} placeholder={t('Ishni qidiring…')} aria-label={t('Ishni qidiring')} className="input h-12 w-full px-3 text-[16px]" />
-        <p className="m-0 text-[13px] font-semibold uppercase tracking-wide text-text-mute">{t('Bugungi ishlar')}</p>
+        {kid != null && naryadSatr.length > 0 && <UstaNaryad kid={kid} satrlar={naryadSatr} onlayn={onlayn} onBajardim={bajardim} />}
+        <p className="m-0 text-[13px] font-semibold uppercase tracking-wide text-text-mute">{naryadSatr.length > 0 ? t('Boshqa ishlar (naryadsiz)') : t('Bugungi ishlar')}</p>
         {yuk && ishlar.length === 0 && <div className="skel h-20 rounded-[var(--radius-md)]" />}
         {ishXato && <p role="alert" className="m-0 text-[14px] text-danger">{ishXato}</p>}
         {korinadigan.map((q) => <button key={q.qator_id} type="button" onClick={() => { setTanlangan(q); setHajm(0); setEkran('kirit'); }}

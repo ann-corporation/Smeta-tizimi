@@ -6,6 +6,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { yangiOperationId } from '../../api/supabase';
 import { sbUstaQaror, sbUstaQoralamalarOl, ustaXatoMatni, type UstaQoralama } from '../../api/t2-usta';
 import { hajmMatni } from '../../lib/usta/birlik';
+import { naryadlarOl } from '../../api/t2-naryad';
+import type { NaryadQisqa } from '../../lib/naryad';
 import { toast } from '../../umumiy/ui/Toast';
 import { t } from '../../i18n/til';
 
@@ -20,9 +22,12 @@ export function UstaKutilmoqda({ kompaniyaId, obyektId, qatorlar, onTasdiqlandi 
 }) {
   const [royxat, setRoyxat] = useState<UstaQoralama[]>([]);
   const [band, setBand] = useState(false);
+  /** Usta «Bajardim» deb yuborgan naryadlar — qabul MAVJUD naryad sahifasida (yangi qabul mantig'i yo'q). */
+  const [naryadlar, setNaryadlar] = useState<NaryadQisqa[]>([]);
   const yukla = useCallback(async () => {
-    const r = await sbUstaQoralamalarOl(kompaniyaId, 'qoralama', obyektId);
+    const [r, nar] = await Promise.all([sbUstaQoralamalarOl(kompaniyaId, 'qoralama', obyektId), naryadlarOl(kompaniyaId, { obyektId, holat: 'bajarildi', limit: 20 }).catch(() => null)]);
     setRoyxat(r.ok ? (r.qatorlar ?? []) : []);
+    setNaryadlar(nar ?? []);
   }, [kompaniyaId, obyektId]);
   useEffect(() => { void yukla(); }, [yukla]);
 
@@ -40,16 +45,21 @@ export function UstaKutilmoqda({ kompaniyaId, obyektId, qatorlar, onTasdiqlandi 
     void yukla();
   };
 
-  if (!royxat.length) return null;
+  if (!royxat.length && !naryadlar.length) return null;
   const nom = (id: number) => qatorlar.find((x) => x.id === id);
   return (
     <section className="fz-card flex flex-col gap-2 p-3" aria-label={t('Tasdiqlash kutilmoqda')} data-testid="usta-tasdiq-kutilmoqda">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="m-0 text-[14px] font-semibold text-text">{t('Tasdiqlash kutilmoqda')} ({royxat.length})</h3>
-        <button type="button" disabled={band} onClick={() => void qaror(royxat.map((x) => x.id), 'tasdiqlangan')} className="fz-btn fz-btn--primary fz-btn--sm">{t('Hammasini tasdiqlash')}</button>
+        <h3 className="m-0 text-[14px] font-semibold text-text">{t('Tasdiqlash kutilmoqda')} ({royxat.length + naryadlar.length})</h3>
+        {royxat.length > 0 && <button type="button" disabled={band} onClick={() => void qaror(royxat.map((x) => x.id), 'tasdiqlangan')} className="fz-btn fz-btn--primary fz-btn--sm">{t('Hammasini tasdiqlash')}</button>}
       </div>
       <p className="m-0 text-[12px] text-text-mute">{t('Usta va brigadirlar telefondan kiritgan hajmlar. Tasdiqlagach faktga o‘tadi.')}</p>
       <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+        {naryadlar.map((n) => (
+          <li key={`naryad-${n.id}`} data-testid="usta-naryad-kutilmoqda" className="flex flex-wrap items-center gap-2 rounded-[var(--radius-sm)] border border-border bg-surface-2 px-2.5 py-1.5 text-[13px]">
+            <span className="min-w-0 flex-1"><b className="text-text">{t('Naryad')} {n.raqam}</b><span className="ml-2 text-text-dim">{n.usta_nom} · {t('{n} ta ish bajarildi', { n: n.qator_soni })}</span></span>
+            <a href="/admin/naryad" className="fz-btn fz-btn--primary fz-btn--sm">{t('Qabul')}</a>
+          </li>))}
         {royxat.map((x) => { const q = nom(x.qator_id); const yosh = qoralamaYoshi(x.created_at); const eski = yosh >= ESKIRGAN_KUN; return (
           <li key={x.id} data-eskirgan={eski ? 'ha' : undefined} className={`flex flex-wrap items-center gap-2 rounded-[var(--radius-sm)] border px-2.5 py-1.5 text-[13px] ${eski ? 'border-warn bg-warn-soft' : 'border-border bg-surface-2'}`}>
             <span className="min-w-0 flex-1"><b className="text-text">{q?.nom || `#${x.qator_id}`}</b>

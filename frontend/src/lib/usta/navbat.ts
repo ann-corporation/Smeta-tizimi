@@ -3,7 +3,7 @@
  * serverga yuboriladi. Har yozuv O'Z operation_id'siga ega — qayta yuborish xavfsiz (server idempotent: takror = bitta natija).
  * Pul ma'lumoti saqlanmaydi (faqat hajm, material nomi, izoh, foto). Xotira zaxirasi: IndexedDB yo'q bo'lsa (private rejim) RAM.
  */
-export type NavbatTur = 'fakt' | 'zayavka';
+export type NavbatTur = 'fakt' | 'zayavka' | 'naryad';
 export type NavbatYozuv = {
   /** operation_id (UUID) — yozuv kaliti va server idempotentlik kaliti. */
   id: string;
