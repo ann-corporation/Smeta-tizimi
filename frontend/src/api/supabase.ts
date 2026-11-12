@@ -530,15 +530,23 @@ export function sbT2TreeQur(qatorlar: T2Qator[], holatlar?: T2QatorHolat[]): Tre
    * bu to'g'ri va o'zgarmaydi. Ota RZ ko'rinishi uchun esa bola RZ larning
    * jamisi qo'shiladi (pastdan yuqoriga). SQL `sum()` kabi: null tashlanadi,
    * hammasi null bo'lsa — null (0 emas). */
-  const rzJami = (n: TreeNode): number | null => {
-    let jami: number | null = n.smeta ?? null;
-    for (const b of n.children ?? []) {
-      if (b.type !== 'rz') continue;
-      const bj = rzJami(b);
+  /* Bo'lim jami = BARG (bolasiz) qatorlar yig'indisi — server summa paketi (`_t2_summa_agg_v1`) bilan bir xil qoida.
+   * Saqlangan `rz.summa` (t2_rollup) ba'zi bo'limlarda barglardan eskirgan bo'ladi (HISOB_YADRO_V1: «smeta jami» 6 xil chiqishi ildizi),
+   * shuning uchun bo'lim summasi saqlangan qiymatdan emas, barglardan olinadi. Hammasi null bo'lsa — null (0 emas). */
+  const bargJami = (n: TreeNode): number | null => {
+    const bl = n.children ?? [];
+    if (!bl.length) return n.smeta ?? null;
+    let jami: number | null = null;
+    for (const b of bl) {
+      const bj = bargJami(b);
       if (bj != null) jami = (jami ?? 0) + bj;
     }
-    n.smeta = jami;
     return jami;
+  };
+  const rzJami = (n: TreeNode): number | null => {
+    for (const b of n.children ?? []) if (b.type === 'rz') rzJami(b);
+    n.smeta = bargJami(n);
+    return n.smeta;
   };
   for (const n of ildiz) if (n.type === 'rz') rzJami(n);
 
@@ -549,12 +557,14 @@ export function sbT2TreeQur(qatorlar: T2Qator[], holatlar?: T2QatorHolat[]): Tre
   const pulJami = (n: TreeNode): void => {
     const b = n.children ?? [];
     if (!b.length) return;
-    let fakt = 0, f2 = 0, mum = 0;
+    let fakt = 0, f2 = 0, mum = 0, ost: number | null = null;
     for (const c of b) {
       pulJami(c);
       fakt += c.stFakt ?? 0; f2 += c.stF2 ?? 0; mum += c.stF2Mum ?? 0;
+      // Qoldiq: serverning qator qoldig'i (smeta − F2 − almashtirilgan) barglardan yig'iladi; noma'lum (null) tashlanadi, hammasi null — null.
+      if (c.stOst != null) ost = (ost ?? 0) + c.stOst;
     }
-    n.stFakt = fakt; n.stF2 = f2; n.stF2Mum = mum;
+    n.stFakt = fakt; n.stF2 = f2; n.stF2Mum = mum; n.stOst = ost;
   };
   for (const n of ildiz) pulJami(n);
   return ildiz;

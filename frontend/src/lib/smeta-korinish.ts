@@ -28,12 +28,14 @@ export type Kesim = {
   /** Hamma tugunda smeta, fakt va F2 ma'lum bo'lsa true. */
   toliq: boolean;
 };
-type Uchlik = { smeta: number | null; fakt: number | null; f2: number | null; toliq?: number | null };
+type Uchlik = { smeta: number | null; fakt: number | null; f2: number | null; toliq?: number | null; qoldiq?: number | null };
 function yig(qismlar: readonly Uchlik[]): Kesim {
   const nom = { smeta: 0, fakt: 0, f2: 0 };
   const sum = { smeta: null as number | null, fakt: null as number | null, f2: null as number | null };
   let toliq: number | null = null;
+  let qold: number | null = null;
   for (const q of qismlar) {
+    if (q.qoldiq != null) qold = (qold ?? 0) + q.qoldiq;
     for (const k of ['smeta', 'fakt', 'f2'] as const) {
       const v = q[k];
       if (v == null) nom[k]++; else sum[k] = (sum[k] ?? 0) + v;
@@ -47,7 +49,8 @@ function yig(qismlar: readonly Uchlik[]): Kesim {
   return {
     smeta: smeta == null ? null : yaxlit2(smeta), fakt: fakt == null ? null : yaxlit2(fakt), f2: f2 == null ? null : yaxlit2(f2),
     f2Ulush: ul(f2), faktUlush: ul(fakt),
-    qoldiq: ayirma2(toliq, f2 ?? 0),
+    // Qoldiq — serverning qator qoldig'i yig'indisi (smeta − F2 − almashtirilgan; /holat «Resurslar» tabi bilan bir xil); u yo'q bo'lsa — smeta − F2.
+    qoldiq: qold != null ? yaxlit2(qold) : ayirma2(toliq, f2 ?? 0),
     nomalum: nom, toliq: nom.smeta === 0 && nom.fakt === 0 && nom.f2 === 0,
   };
 }
@@ -66,7 +69,7 @@ export function aslSmeta(x: TreeNode): number | null {
   const s = n(x.smeta);
   return s == null ? null : ayirma2(s, ozgarishQismi(x));
 }
-const uchlik = (r: TreeNode): Uchlik => ({ smeta: aslSmeta(r), fakt: n(r.stFakt), f2: n(r.stF2), toliq: n(r.smeta) });
+const uchlik = (r: TreeNode): Uchlik => ({ smeta: aslSmeta(r), fakt: n(r.stFakt), f2: n(r.stF2), toliq: n(r.smeta), qoldiq: n(r.stOst) });
 
 export function* barglar(nodes: readonly TreeNode[]): Generator<TreeNode> {
   for (const x of nodes) {
@@ -93,18 +96,49 @@ export const oshganmi = (x: TreeNode): boolean => {
   return sm != null && sm > 0 && fk != null && fk > sm * 1.0001;
 };
 
+/**
+ * O'zgarish yozuvlari soni: qo'shimcha — qo'shimcha guruhining ildiz tuguni (ichidagi ish/resurslar sanalmaydi);
+ * zamena — o'zi REPLACEMENT bo'lgan tugun. Server 	2_smeta_ozgarish_qatlam_v1 (qoshimcha.soni / zamena.soni) bilan bir xil ma'no.
+ */
+export function ozgarishSoni(nodes: readonly TreeNode[]): { qoshimcha: number; zamena: number } {
+  let qoshimcha = 0, zamena = 0;
+  const yur = (x: TreeNode, otaQosh: boolean, otaZamena: boolean) => {
+    const qosh = !!(x.isQosh || x.qoshimcha) && x.ozgarishGuruh !== 'zamena';
+    if (qosh && !otaQosh) qoshimcha++;
+    // Zamena: o'zi REPLACEMENT; change_type ma'lum bo'lmasa (eski ma'lumot) — bazadagi zamena belgisi, ota zamena bo'lmasa.
+    const zamenaOzi = x.ozgarishOzi === 'REPLACEMENT' || (x.ozgarishOzi == null && !!(x.zamena || x.isZamena) && !otaZamena);
+    if (zamenaOzi) zamena++;
+    x.children?.forEach((c) => yur(c, qosh, zamenaOzi || otaZamena));
+  };
+  nodes.forEach((x) => yur(x, false, false));
+  return { qoshimcha, zamena };
+}
+
+/**
+ * Smetadan oshgan ISH: hajmi oshgan bl (ish darajasi — fakt aynan shu yerda kiritiladi) yoki ishsiz mustaqil resurs.
+ * Ish ostidagi resurslarning fakti norma × ish fakti (BL_NORMA) hosilasi — ular ayni oshishni takrorlaydi (ishning o'zi 673% bo'lsa,
+ * uning 6 ta resursi ham aynan 673%), shuning uchun alohida sanalmaydi.
+ */
+export const oshganIshmi = (x: TreeNode, otasiIsh = false): boolean => {
+  if (x.type === 'rz') return false;
+  if (x.children?.length) return x.type === 'bl' && oshganmi(x);
+  if (otasiIsh) return false;
+  return oshganmi(x);
+};
+
 export type BolimKorinish = Kesim & { id: string; kod: string | null; nom: string; ishSoni: number; resursSoni: number; oshgan: number; zamena: number; qoshimcha: number };
 export function bolimlarKorinishi(tree: readonly TreeNode[]): BolimKorinish[] {
   return tree.map((r, i) => {
-    let ish = 0, res = 0, osh = 0, zam = 0, qosh = 0;
-    const yur = (x: TreeNode) => {
+    let ish = 0, res = 0, osh = 0;
+    const yur = (x: TreeNode, otasiIsh: boolean) => {
       if (x.type === 'bl') ish++; else if (x.type !== 'rz') res++;
-      if (!x.children?.length && oshganmi(x)) osh++;
-      if (x.zamena || x.isZamena) zam++;
-      if (x.qoshimcha || x.isQosh) qosh++;
-      x.children?.forEach(yur);
+      if (oshganIshmi(x, otasiIsh)) osh++;
+      x.children?.forEach((c) => yur(c, x.type === 'bl' || otasiIsh));
     };
-    r.children?.forEach(yur);
+    r.children?.forEach((c) => yur(c, false));
+    // Zamena / qo'shimcha — O'ZGARISH yozuvlari soni (ildizlari), ichidagi resurslar emas: /holat «Smeta va o'zgarishlar» bilan bir xil son.
+    const oz = ozgarishSoni([r]);
+    const zam = oz.zamena, qosh = oz.qoshimcha;
     return { ...yig([uchlik(r)]), id: String(r.id ?? `${r.varaq}:${r.row}:${i}`), kod: r.kod ?? null, nom: r.nom, ishSoni: ish, resursSoni: res, oshgan: osh, zamena: zam, qoshimcha: qosh };
   });
 }
@@ -127,10 +161,13 @@ export function katSmeta(tree: readonly TreeNode[]): { qismlar: { guruh: KatGuru
 export type Diqqat = { nom: string; kod: string | null; birlik: string | null; smetaHajm: number; faktHajm: number; foiz: number; bolim: string };
 export function oshganQatorlar(tree: readonly TreeNode[], limit = 6): Diqqat[] {
   const out: Diqqat[] = [];
-  for (const r of tree) for (const b of barglar(r.children ?? [])) {
-    if (!oshganmi(b)) continue;
-    const sm = Number(b.smetaHajm), fk = Number(b.faktHajm);
-    out.push({ nom: b.nom, kod: b.kod ?? null, birlik: b.birlik ?? null, smetaHajm: sm, faktHajm: fk, foiz: (fk / sm) * 100, bolim: r.nom });
-  }
+  const yur = (x: TreeNode, bolim: string, otasiIsh: boolean) => {
+    if (oshganIshmi(x, otasiIsh)) {
+      const sm = Number(x.smetaHajm), fk = Number(x.faktHajm);
+      out.push({ nom: x.nom, kod: x.kod ?? null, birlik: x.birlik ?? null, smetaHajm: sm, faktHajm: fk, foiz: (fk / sm) * 100, bolim });
+    }
+    x.children?.forEach((c) => yur(c, bolim, x.type === 'bl' || otasiIsh));
+  };
+  for (const r of tree) r.children?.forEach((c) => yur(c, r.nom, false));
   return out.sort((a, b) => b.foiz - a.foiz).slice(0, limit);
 }

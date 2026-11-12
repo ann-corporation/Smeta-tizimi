@@ -192,3 +192,5 @@ grant execute on function public.t2_grafik_sozlama_saqla_v1(bigint, bigint, bigi
 update public.t2_tomon_resurs
    set faol = true, izoh = 'Ish grafigi va oylik hisob prognozi: smetadan avtomatik, faqat ko''rish (jonli)'
  where kalit = 'grafik';
+
+comment on function public.t2_grafik_sozlama_saqla_v1(bigint, bigint, bigint, bigint, integer, numeric, date, integer, integer, boolean) is 'Grafik override saqlash. versiya: texnik - t2_qator faqat razdel (tur=rz) shu obyektniki ekanini tekshiradi, smeta qiymati o''qilmaydi.';
