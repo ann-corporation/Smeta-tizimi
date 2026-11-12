@@ -348,22 +348,9 @@
             "qoshimcha": true
           },
           {
-            "yol": "/admin/crm",
+            "yol": "/admin/kontragentlar",
             "ilova": "moliya",
-            "nom": "Kontragentlar (CRM/EDO)",
-            "ruxsat": [
-              "control.company.read",
-              "financial.write",
-              "project.write",
-              "object.write"
-            ],
-            "modul": "module.loyiha",
-            "qoshimcha": true
-          },
-          {
-            "yol": "/admin/aloqalar",
-            "ilova": "hujjat",
-            "nom": "Tomonlar aloqasi",
+            "nom": "Kontragentlar",
             "ruxsat": [
               "control.company.read",
               "financial.write",
@@ -439,6 +426,35 @@
         ]
       },
       {
+        "nom": "Chizmalar",
+        "ikonka": "FileStack",
+        "sahifalar": [
+          {
+            "yol": "/admin/chizmalar",
+            "ilova": "hujjat",
+            "nom": "Chizmalar va revizyalar",
+            "ruxsat": [
+              "control.company.read",
+              "design.read",
+              "design.write",
+              "document.write"
+            ]
+          },
+          {
+            "yol": "/admin/loyihachi",
+            "ilova": "hujjat",
+            "nom": "Loyihachi: bugun",
+            "ruxsat": [
+              "design.write",
+              "design.issue",
+              "control.company.read",
+              "project.write",
+              "object.write"
+            ]
+          }
+        ]
+      },
+      {
         "nom": "Kiruvchi (tomonlar)",
         "ikonka": "Inbox",
         "sahifalar": [
@@ -459,7 +475,8 @@
             "nom": "Tomonlar hujjatlari",
             "ruxsat": [
               "control.company.read",
-              "project.read"
+              "project.read",
+              "design.read"
             ],
             "modul": "module.loyiha",
             "qoshimcha": true
@@ -470,7 +487,8 @@
             "nom": "Murojaatlar (remark, so‘rov)",
             "ruxsat": [
               "control.company.read",
-              "project.read"
+              "project.read",
+              "design.read"
             ],
             "modul": "module.loyiha",
             "qoshimcha": true
@@ -586,6 +604,22 @@
             ],
             "modul": "module.erp",
             "qoshimcha": true
+          }
+        ]
+      },
+      {
+        "nom": "Yetkazuvchi: bugun",
+        "ikonka": "Truck",
+        "sahifalar": [
+          {
+            "yol": "/admin/yetkazuvchi",
+            "ilova": "logistika",
+            "nom": "Yetkazuvchi: bugun",
+            "ruxsat": [
+              "control.company.read",
+              "supply.offer",
+              "supply.fulfil"
+            ]
           }
         ]
       },
