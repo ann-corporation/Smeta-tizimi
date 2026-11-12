@@ -343,6 +343,8 @@ const AMALLAR = {
   yb_yuk_baho_v1: { rpc: 't2_yb_yuk_baho_v1' },
   yb_yuk_nizo_v1: { rpc: 't2_yb_yuk_nizo_v1' },
   moliya_qolda_yoz_v1: { rpc: 't2_moliya_qolda_yoz_v1' },
+  solishtiruv_tushuntir_v1: { rpc: 't2_solishtiruv_tushuntir_v1' },
+  solishtiruv_yangila_v1: { rpc: 't2_solishtiruv_yangila_v1' },
   fakt_yoz_v2: { rpc: 't2_fakt_yoz_v2' },
   /* USTA «Bugun» (20261214300000): qoralama fakt / qaror / material zayavkasi. */
   usta_fakt_qoralama_v1: { rpc: 't2_usta_fakt_qoralama_v1' },
@@ -2782,6 +2784,26 @@ export const onRequestPost: PagesFunction<{
         p_operation_id: String(so.operation_id),
       };
 
+    } else if (amal === 'solishtiruv_tushuntir_v1') {
+      const kompaniyaId = Number(so.kompaniya_id);
+      const id = Number(so.id);
+      if (![kompaniyaId, id].every((n) => Number.isInteger(n) && n > 0)) return Response.json({ ok: false, error: 'kompaniya_id yoki id noto\'g\'ri' });
+      if (!['tushuntirildi', 'ochiq'].includes(String(so.holat))) return Response.json({ ok: false, error: 'holat noto\'g\'ri' });
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(so.operation_id || ''))) {
+        return Response.json({ ok: false, error: 'operation_id UUID bo\'lishi kerak' });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: kompaniyaId, p_istisno_id: id, p_holat: String(so.holat),
+        p_sabab: so.sabab ? String(so.sabab).slice(0, 500) : null, p_operation_id: String(so.operation_id) };
+    } else if (amal === 'solishtiruv_yangila_v1') {
+      const kompaniyaId = Number(so.kompaniya_id);
+      const obyektId = so.obyekt_id == null || so.obyekt_id === '' ? null : Number(so.obyekt_id);
+      if (!Number.isInteger(kompaniyaId) || kompaniyaId <= 0 || (obyektId != null && !(Number.isInteger(obyektId) && obyektId > 0))) {
+        return Response.json({ ok: false, error: 'kompaniya_id yoki obyekt_id noto\'g\'ri' });
+      }
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(so.operation_id || ''))) {
+        return Response.json({ ok: false, error: 'operation_id UUID bo\'lishi kerak' });
+      }
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: kompaniyaId, p_obyekt_id: obyektId, p_operation_id: String(so.operation_id) };
     } else if (amal === 'xarajat_bekor_v1') {
       const kompaniyaId = Number(so.kompaniya_id);
       const id = Number(so.id);
