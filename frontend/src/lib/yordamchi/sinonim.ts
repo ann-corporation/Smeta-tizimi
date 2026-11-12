@@ -39,6 +39,8 @@ export const SAHIFA_SINONIM: Readonly<Record<string, Sinonim>> = {
   '/admin/kontragentlar': { uz: ['kontragentlar', 'kontragent', 'crm', 'edo', 'aloqalar', 'tomonlar aloqasi', 'hamkorlar'], ru: ['контрагенты', 'контрагент', 'связи сторон', 'партнёры'], en: ['counterparties', 'crm', 'party contacts', 'partners'] },
   '/admin/bugun': { uz: ['bugun', 'usta', 'telefondan fakt', 'bugungi ishlar'], ru: ['сегодня', 'прораб', 'факт с телефона', 'работы на сегодня'], en: ['today', 'foreman', 'fact from phone', 'todays work'] },
   '/admin/yetkazuvchi': { uz: ['yetkazuvchi bugun', 'yetkazuvchi', 'postavshik', 'kelgan sorovlar'], ru: ['поставщик сегодня', 'поставщик', 'входящие запросы'], en: ['supplier today', 'supplier', 'incoming requests'] },
+  '/admin/subpudratchi': { uz: ['subpudratchi bugun', 'subpudratchi', 'sub akti', 'subpudrat akti'], ru: ['субподрядчик сегодня', 'субподрядчик', 'акт субподрядчика'], en: ['subcontractor today', 'subcontractor', 'subcontractor act'] },
+  '/admin/subpudrat': { uz: ['subpudrat boshqaruvi', 'subpudratga topshirish', 'sub aktini qabul qilish'], ru: ['субподряд', 'передать субподрядчику', 'принять акт субподрядчика'], en: ['subcontract management', 'assign to subcontractor', 'accept subcontractor act'] },
   '/admin/documents': { uz: ['hujjatlar', 'hujjat'], ru: ['документы', 'документ'], en: ['documents', 'document'] },
   '/admin/hujjat-nazorat': { uz: ['hujjat nazorati'], ru: ['контроль документов'], en: ['document control'] },
   '/admin/aosr': { uz: ['aosr', 'yashirin ishlar', 'laboratoriya'], ru: ['аоср', 'скрытые работы', 'лаборатория'], en: ['aosr', 'hidden works', 'laboratory'] },

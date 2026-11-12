@@ -200,6 +200,21 @@ export const HUJJAT_TURLARI = {
     taqdim: null,
     tokenKalit: null, tokenYoq: 'Reja: eksportyor hali yo\'q',
   },
+  sub_akt: {
+    kalit: 'sub_akt', nom: 'Subpudratchi akti (bajarilgan ish)', nomRu: 'Акт выполненных работ субподрядчика', holat: 'ishlaydi',
+    eksport: { modul: 'lib/subpudratchi/eksport.ts', izoh: 'Subpudratchi akti xlsx (kelishilgan narx, QQS siz / QQS bilan)' },
+    majburiy: [
+      { kalit: 'obyekt', nom: 'Obyekt (bosh pudratchi)', manba: 'obyekt' },
+      { kalit: 'oy', nom: 'Hisobot oyi', manba: 'qolda' },
+      { kalit: 'qatorlar', nom: 'Bajarilgan hajm (topshirilgan qatorlar)', manba: 'fakt' },
+      { kalit: 'summa', nom: 'Summa (kelishilgan narx, QQS siz / QQS bilan)', manba: 'hisob-yadro' },
+    ],
+    tekshiruv: ['fakt', 'summa'],
+    bosqichlar: ['qoralama', 'tekshiruv', 'yuborildi', 'qaror', 'arxiv'],
+    imzo: { tayyorlaydi: 'subpudratchi', tasdiqlaydi: ['pudratchi'] },
+    taqdim: { resurs: 'sub_akt', manbaJadval: 't2_sub_akt' },
+    tokenKalit: 'SUB_AKT',
+  },
 } as const satisfies Record<HujjatKalit, HujjatTuri>;
 
 export const HUJJAT_KALITLARI = Object.keys(HUJJAT_TURLARI) as HujjatKalit[];
