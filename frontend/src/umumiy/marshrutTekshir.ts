@@ -32,7 +32,7 @@ export const ADMIN_MARSHRUTLARI = [
   'test/sozlama', 'test/xodimlar', 'test/korzinka',
   /* 2026-10-26: yagona navigatsiya reestridagi (lib/nav/navReestr.ts) qolgan yo'llar — navFiltr.test.ts tekshiradi. */
   'smeta-studio', 'm29', 'aosr', 'narx-dalil', 'nakrutka', 'narx-manbalari', 'oferta', 'loyiha', 'shartnoma-liniya', 'qarzdorlik',
-  'crm', 'aloqalar', 'zakazchik', 'taqdimlar', 'murojaatlar', 'hujjat-aylanish', 'moliya', 'logistika', 'zayavka', 'tender', 'yuk-birjasi', 'erp', 'f2-reestr',
+  'crm', 'aloqalar', 'kontragentlar', 'yetkazuvchi', 'zakazchik', 'taqdimlar', 'murojaatlar', 'hujjat-aylanish', 'moliya', 'logistika', 'zayavka', 'tender', 'yuk-birjasi', 'erp', 'f2-reestr',
   'nakopitelniy', 'tizim-sozlama', 'hujjat-dizayn', 'tokenlar', 'ai-agentlar', 'korzinka', 'ish-joylarim',
   'topshiriqlar', 'mutaxassis', 'boshqaruv', 'sayt-xaritasi', 'akkaunt', 'tizim-xaritasi',
   /* 2026-11-03: Uy sotish. */
