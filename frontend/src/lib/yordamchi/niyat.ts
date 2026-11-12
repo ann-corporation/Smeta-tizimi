@@ -8,6 +8,7 @@
 import { yukSlotAjrat, yukSlotUrl } from './yuk-slot';
 import { OCHISH_FELLARI, sozlar, sozMosligi, TOLDIRUVCHI, sozNorm } from './matn';
 import { oyAjrat, obyektAjrat, type ObyektQisqa } from './kontekst-ajrat';
+import { kimSavoli, type KimQism } from './kim';
 import { darsSavoli, type DarsJavobi } from '../kurs/tutor';
 import { sahifaTopish, sahifaUrl, yaqinSahifalar, type SahifaHavola, type YordamchiSahifa } from './sahifa-qidiruv';
 
@@ -30,6 +31,8 @@ export type Niyat =
   /** Sahifa o'zi ro'yxatdan o'tkazgan amal (masalan Smeta Studio: «katalogdan ish qo'sh»). */
   | { tur: 'sahifaAmal'; amal: SahifaAmalQisqa }
   | { tur: 'yordam' }
+  /** «Men kimman / rolim / bu qaysi obyekt»: sessiya ma'lumotidan bepul mahalliy javob (hech qachon modelga «kim» deb so'ralmaydi). */
+  | { tur: 'kim'; qism: KimQism }
   /** Kurs repetitori: «F2 ni qanday tayyorlayman?» -> dars qadamlari + «Ko‘rsat». */
   | DarsJavobi
   | { tur: 'nomalum'; yaqin: SahifaHavola[] };
@@ -77,6 +80,7 @@ const havola = (s: YordamchiSahifa, o: ObyektQisqa | null, oy: string | null): S
 export function niyatAniqla(matn: string, ctx: NiyatKontekst): Niyat {
   const xom = matn.trim();
   if (YORDAM_RE.test(xom.toLowerCase().replace(/[ʻʼ‘’`´']/g, ''))) return { tur: 'yordam' };
+  { const kq = kimSavoli(xom); if (kq) return { tur: 'kim', qism: kq }; }
   const yukSlot = yukSlotAjrat(xom);
   if (yukSlot) return { tur: 'navigatsiya', sahifa: { yol: '/admin/yuk-chaqirish', nom: 'Yuk chaqirish', url: yukSlotUrl(yukSlot) }, obyekt: null, oy: null, qoralama: true, aniqOchish: true };
   { const dars = darsSavoli(xom, { ochiqYollar: new Set(ctx.sahifalar.map((s) => s.yol)) }); if (dars) return dars; }
