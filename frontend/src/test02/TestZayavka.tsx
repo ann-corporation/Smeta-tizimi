@@ -46,6 +46,13 @@ const QADAMLAR: { dan: ZayavkaHolat[]; ga: ZayavkaHolat; nom: string; title: str
   { dan: ['draft', 'submitted'], ga: 'cancelled', nom: 'Bekor qilish', title: 'Bekor qilish', cls: 'fz-btn--ghost' },
 ];
 
+/** Zayavka qatoridan «Yuk chaqirish» formasiga bir bosishda: yuk nomi, (tonna bo'lsa) og'irlik va zayavka raqami. */
+function yukHavola(z: T2Zayavka): string {
+  const p = new URLSearchParams({ nom: String(z.itemText ?? ''), zayavka: String(z.id) });
+  if (['t', 'т', 'tn', 'tonna', 'тонна'].includes(String(z.unit ?? '').trim().toLowerCase()) && Number(z.requestedQty) > 0) p.set('tonna', String(z.requestedQty));
+  return '/admin/yuk-chaqirish?' + p.toString();
+}
+
 export default function TestZayavka() {
   const { joriy } = useKompaniya();
   const [params] = useSearchParams();
@@ -276,6 +283,9 @@ export default function TestZayavka() {
                         <span className="inline-flex flex-wrap items-center justify-end gap-1">
                           {z.status === 'procurement' && (
                             <button type="button" onClick={() => setBuyurtmaZ(z)} className="fz-btn fz-btn--sm fz-btn--primary" title={t('Yetkazuvchiga buyurtma berish')}>{t('Buyurtma berish')}</button>
+                          )}
+                          {['approved', 'procurement', 'ordered'].includes(z.status) && (
+                            <Link to={yukHavola(z)} className="fz-btn fz-btn--sm" title={t('Yuk mashinasi chaqirish (forma to‘ldirilgan)')}>{t('Mashina top')}</Link>
                           )}
                           {(z.status === 'approved' || z.status === 'procurement') && (
                             <Link to={sorovHavolasi({ nom: z.itemText, birlik: z.unit ?? '', hajm: qolgan != null && qolgan > 0 ? qolgan : z.requestedQty, zayavka_id: z.id, obyekt_id: z.obyektId })}

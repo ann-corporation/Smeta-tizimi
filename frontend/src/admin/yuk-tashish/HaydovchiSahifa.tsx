@@ -14,7 +14,7 @@ import TileMap, { type XaritaBelgi } from '../../components/yuk/TileMap';
 import { UZ_MARKAZ, UZ_ZOOM } from '../../lib/yuk-tashish/geo';
 import { keyingiQadam, QADAM_NOM, YT_BEKOR_SABAB } from '../../lib/yuk-tashish/qadam';
 import {
-  YT_XATO, ytBaho, ytBekor, ytDalil, ytFaylYukla, ytHolat, ytJoy, ytProfil, ytReys, ytQabul, ytQadam, ytSaqla, ytYaqin,
+  YT_XATO, ytBaho, ytHaydovchiQosh, ytPark, ytTayinla, type ParkHaydovchi, ytBekor, ytDalil, ytFaylYukla, ytHolat, ytJoy, ytProfil, ytReys, ytQabul, ytQadam, ytSaqla, ytYaqin,
   type MashinaQator, type MenikiBron, type TashuvchiProfil, type YaqinYuk,
 } from '../../api/t2-yuk-tashish';
 import { ImzoTaxtasi, type ImzoRef } from './ImzoTaxtasi';
@@ -45,7 +45,8 @@ export default function HaydovchiSahifa() {
   }, []);
   useEffect(() => { void yangila(); }, [yangila]);
 
-  const faol = useMemo(() => bronlar.find((b) => b.holat === 'bron' || b.holat === 'yolda') ?? null, [bronlar]);
+  const faol = useMemo(() => bronlar.find((b) => b.mening && (b.holat === 'bron' || b.holat === 'yolda')) ?? null, [bronlar]);
+  const firmaReyslar = useMemo(() => bronlar.filter((b) => !b.mening && (b.holat === 'bron' || b.holat === 'yolda' || b.holat === 'yetkazildi')), [bronlar]);
   const onlayn = !!profil?.onlayn;
 
   /* Yaqin yuklar: onlayn va faol reys yo'q paytda har 20 s */
@@ -105,6 +106,7 @@ export default function HaydovchiSahifa() {
         {!onlayn && !faol && <p className="text-[13px] text-text-mute">{t('Liniyaga chiqsangiz, yoningizdagi yuklar ko‘rinadi. Joylashuv faqat reys paytida yuboriladi.')}</p>}
 
         {faol && <ReysKarta bron={faol} onYangila={yangila} />}
+        {profil.tur === 'firma' && <FirmaPaneli reyslar={firmaReyslar} onYangila={yangila} />}
 
         {onlayn && !faol && (
           <section className="flex flex-col gap-3" aria-label={t('Yaqin yuklar')}>
@@ -131,7 +133,7 @@ export default function HaydovchiSahifa() {
           <h2 className="text-[15px] font-semibold">{t('Yetkazilgan reyslar')} ({yakunlangan.length})</h2>
           {yakunlangan.length === 0 && <p className="text-[13px] text-text-mute">{t('Hali yetkazilgan reys yo‘q.')}</p>}
           <ul className="mt-1 flex flex-col gap-1 text-[13px]">
-            {yakunlangan.map((b) => <li key={b.id} className="flex flex-col gap-1"><div className="flex justify-between gap-2"><span>{b.yuk}</span><span><FmtN val={b.narx_qqs_siz} /> <span className="text-text-mute">{t('QQS siz')}</span></span></div>{!b.baholangan && <Baho bronId={b.id} />}</li>)}
+            {yakunlangan.map((b) => <li key={b.id} className="flex flex-col gap-1"><div className="flex justify-between gap-2"><span>{b.yuk}</span><span><FmtN val={b.narx_qqs_siz} /> <span className="text-text-mute">{t('QQS siz')}</span></span></div>{!b.baholangan && !b.haydovchi_id && b.mening && <Baho bronId={b.id} />}</li>)}
           </ul>
           <p className="mt-2 text-[11px] text-text-mute">{t('Daromad hisobi: tomonlar kelishgan narx, QQS siz. To‘lov platformada ushlanmaydi — to‘lov holati tomonlar o‘rtasida.')}</p>
         </section>
@@ -241,5 +243,46 @@ function Baho({ bronId }: { bronId: number }) {
     <div className="flex flex-col gap-2"><div className="flex gap-1" role="radiogroup" aria-label={t('Yuk egasini baholang')}>{[1, 2, 3, 4, 5].map((n) => <button key={n} type="button" aria-label={String(n)} onClick={() => setBall(n)} className={`h-11 w-11 rounded-lg ${n <= ball ? 'bg-amber-400' : 'bg-surface-2'}`}>★</button>)}</div>
       <input className="h-11 rounded-lg border border-border px-3" placeholder={t('Sabab (ixtiyoriy)')} value={izoh} onChange={(e) => setIzoh(e.target.value)} />
       <button type="button" disabled={!ball} onClick={() => void ytBaho(bronId, ball, izoh.trim() || undefined).then((r) => (r.ok ? setOk(true) : toast(xabar(r.code), 'danger')))} className={`${KATTA} bg-blue-600 text-white`}>{t('Baholash')}</button></div>
+  );
+}
+
+/** Firma: haydovchilar (firma a'zosi, login bo'yicha), mashinalar reestri va reyslarni tayinlash. Firma hamma reysni ko'radi. */
+function FirmaPaneli({ reyslar, onYangila }: { reyslar: MenikiBron[]; onYangila: Yangila }) {
+  const [haydovchilar, setHaydovchilar] = useState<ParkHaydovchi[]>([]);
+  const [mashinalar, setMashinalar] = useState<MashinaQator[]>([]);
+  const [login, setLogin] = useState('');
+  const [tanla, setTanla] = useState<Record<number, { h?: number; m?: number }>>({});
+  const [band, setBand] = useState(false);
+  const ol = useCallback(async () => { const r = await ytPark(); if (r.ok) { setHaydovchilar(r.natija.haydovchilar ?? []); setMashinalar(r.natija.mashinalar ?? []); } }, []);
+  useEffect(() => { void ol(); }, [ol]);
+  const qosh = async () => { setBand(true); const r = await ytHaydovchiQosh(login.trim()); setBand(false); if (!r.ok) { toast(xabar(r.code), 'danger'); return; } setLogin(''); void ol(); };
+  const tayinla = async (b: MenikiBron) => {
+    const s = tanla[b.id]; if (!s?.h) return;
+    setBand(true); const r = await ytTayinla(b.id, s.h, s.m); setBand(false);
+    if (!r.ok) { toast(xabar(r.code), 'danger'); return; }
+    toast(t('Haydovchi tayinlandi.'), 'ok'); void onYangila();
+  };
+  const maydon = 'h-11 rounded-lg border border-border px-2';
+  return (
+    <section className="flex flex-col gap-3 rounded-xl border border-border p-3" aria-label={t('Firma parki')}>
+      <h2 className="text-[15px] font-semibold">{t('Firma parki')}</h2>
+      <div className="text-[13px]">{t('Haydovchilar')}: {haydovchilar.length === 0 ? '—' : haydovchilar.map((h) => h.ism).join(', ')} · {t('Mashinalar')}: {mashinalar.map((m) => m.davlat_raqami).join(', ') || '—'}</div>
+      <div className="flex gap-2"><input className={`${maydon} flex-1`} placeholder={t('Haydovchi logini (firma a‘zosi)')} value={login} onChange={(e) => setLogin(e.target.value)} />
+        <button type="button" disabled={band || !login.trim()} onClick={() => void qosh()} className="h-11 rounded-lg border border-border px-3">{t('Qo‘shish')}</button></div>
+      {reyslar.length === 0 && <p className="text-[13px] text-text-mute">{t('Firma reyslari hozircha yo‘q.')}</p>}
+      {reyslar.map((b) => (
+        <article key={b.id} className="rounded-lg border border-border p-2 text-[13px]">
+          <div className="flex justify-between gap-2"><b>{b.yuk}</b><span>{b.holat}</span></div>
+          <div>{b.a_nom ?? '—'} → {b.b_nom ?? '—'}</div>
+          {b.haydovchi ? <div className="text-text-mute">{t('Haydovchi')}: {b.haydovchi} · {b.qadam}</div>
+            : (b.holat === 'bron' && (b.qadam === 'bron' || b.qadam === 'keldi')) && (
+              <div className="mt-1 flex flex-wrap gap-2">
+                <select className={maydon} aria-label={t('Haydovchi')} value={tanla[b.id]?.h ?? ''} onChange={(e) => setTanla({ ...tanla, [b.id]: { ...tanla[b.id], h: Number(e.target.value) || undefined } })}><option value="">{t('Haydovchi')}</option>{haydovchilar.map((h) => <option key={h.foydalanuvchi_id} value={h.foydalanuvchi_id}>{h.ism}</option>)}</select>
+                <select className={maydon} aria-label={t('Mashina')} value={tanla[b.id]?.m ?? ''} onChange={(e) => setTanla({ ...tanla, [b.id]: { ...tanla[b.id], m: Number(e.target.value) || undefined } })}><option value="">{t('Mashina')}</option>{mashinalar.filter((m) => m.holat === 'faol').map((m) => <option key={m.id} value={m.id}>{m.davlat_raqami}</option>)}</select>
+                <button type="button" disabled={band || !tanla[b.id]?.h} onClick={() => void tayinla(b)} className="h-11 rounded-lg bg-blue-600 px-3 text-white">{t('Tayinlash')}</button>
+              </div>)}
+        </article>
+      ))}
+    </section>
   );
 }

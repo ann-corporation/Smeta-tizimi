@@ -17,6 +17,7 @@ import { YT_XATO, ytEgaKuzat, ytYukQosh, type EgaKuzat } from '../../api/t2-yuk-
 import { parametrlarServerdan, shoshilinchlik, SUKUT_PARAMETR, tavsiyaNarx, YUK_TURLARI, type NarxParametr, type YukTuri } from '../../lib/yuk-birjasi/narx';
 import { GEO_PROVAYDER, UZ_MARKAZ, UZ_ZOOM, type ManzilNatija, type Nuqta } from '../../lib/yuk-tashish/geo';
 import { SUKUT_NARX_REJIMI } from '../../lib/yuk-tashish/qadam';
+import { narxP2, narxP2Matn, narxP2Parametr } from '../../lib/yuk-tashish/narx-p2';
 import { MASHINA_SINF, narxQator } from '../../lib/yuk-tashish/shipper';
 import TileMap, { type XaritaBelgi } from '../../components/yuk/TileMap';
 import { YUK_TURI_NOM } from '../yuk-birjasi/yuk-ui';
@@ -57,6 +58,7 @@ export default function YukChaqirish() {
   const [qatiy, setQatiy] = useState('');
   const [masofa, setMasofa] = useState<{ km: number; daqiqa: number; manba: string } | null>(null);
   const [param, setParam] = useState<NarxParametr>(SUKUT_PARAMETR);
+  const [xom, setXom] = useState<Record<string, unknown> | null>(null);
   const [band, setBand] = useState(false);
   const [yuklarim, setYuklarim] = useState<YukQator[]>([]);
   const [kuzat, setKuzat] = useState<number | null>(null);
@@ -64,7 +66,7 @@ export default function YukChaqirish() {
   const buyurtmaId = Number(sp.get('buyurtma')) || undefined;
   const zayavkaId = Number(sp.get('zayavka')) || undefined;
 
-  useEffect(() => { if (kompaniyaId) void ybSozlama(kompaniyaId).then((r) => { if (r.ok) setParam(parametrlarServerdan(r.natija.parametrlar)); }); }, [kompaniyaId]);
+  useEffect(() => { if (kompaniyaId) void ybSozlama(kompaniyaId).then((r) => { if (r.ok) { setParam(parametrlarServerdan(r.natija.parametrlar)); setXom(r.natija.parametrlar); } }); }, [kompaniyaId]);
   const yuklarniOl = useCallback(async () => { if (!kompaniyaId) return; const r = await ybYuklarim(kompaniyaId, { limit: 20 }); if (r.ok) setYuklarim(r.natija.yuklar ?? []); }, [kompaniyaId]);
   useEffect(() => { void yuklarniOl(); }, [yuklarniOl]);
   useEffect(() => {
@@ -76,7 +78,10 @@ export default function YukChaqirish() {
 
   const baho = useMemo(() => tavsiyaNarx({ masofaKm: masofa?.km ?? null, tonna: Number(tonna.replace(',', '.')) || null, yukTuri, shoshilinch: shoshilinchlik(sanaDan || null, bugunISO()), parametr: param }), [masofa, tonna, yukTuri, sanaDan, param]);
   const qator = narxQator(baho);
-  const yakuniy = Number(qatiy.replace(/\s/g, '').replace(',', '.')) || baho.qqsSiz;
+  const p2p = useMemo(() => narxP2Parametr(xom), [xom]);
+  const p2 = useMemo(() => narxP2({ km: masofa?.km ?? null, sinf: sinf || 'orta' }, p2p), [masofa, sinf, p2p]);
+  const taxmin = baho.qqsSiz ?? p2.qqsSiz;
+  const yakuniy = Number(qatiy.replace(/\s/g, '').replace(',', '.')) || taxmin;
 
   const belgilar: XaritaBelgi[] = [...(a.p ? [{ id: 'a', lat: a.p.lat, lng: a.p.lng, yorliq: 'A', rang: 'a' as const }] : []), ...(b.p ? [{ id: 'b', lat: b.p.lat, lng: b.p.lng, yorliq: 'B', rang: 'b' as const }] : [])];
   const tanla = (p: Nuqta) => { const n = { nom: `${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}`, p }; if (qaysi === 'a') { setA(n); setQaysi('b'); } else setB(n); };
@@ -88,7 +93,7 @@ export default function YukChaqirish() {
     const data = {
       nom: nom.trim(), yuk_turi: yukTuri, a_nom: a.nom || null, a_lat: a.p.lat, a_lng: a.p.lng, b_nom: b.nom || null, b_lat: b.p.lat, b_lng: b.p.lng, masofa_km: masofa?.km ?? null,
       tonna: Number(tonna.replace(',', '.')), sana_dan: sanaDan || null, sana_gacha: sanaDan || null, tolov_shakli: 'otkazma', escrow: false,
-      narx_taklif_qqs_siz: rejim === 'qat_iy' ? yakuniy : null, narx_tavsiya_qqs_siz: baho.qqsSiz, qqs_foiz: param.qqsFoiz,
+      narx_taklif_qqs_siz: rejim === 'qat_iy' ? yakuniy : null, narx_tavsiya_qqs_siz: taxmin, qqs_foiz: param.qqsFoiz,
     };
     const s = await ybYoz(kompaniyaId, 'saqla', data, op.current);
     if (!s.ok || !s.id) { setBand(false); toast(ybXato(s), 'danger'); return; }
@@ -102,7 +107,7 @@ export default function YukChaqirish() {
     setKuzat(s.id); void yuklarniOl();
   };
 
-  if (!joriy) return <Sahifa sarlavha={t('Yuk chaqirish')}><p className="p-4 text-text-mute">{t('Kompaniya tanlang.')}</p></Sahifa>;
+  if (!joriy) return <Sahifa sarlavha={t('Yuk chaqirish')}><p className="p-4 text-text-mute">{t('Yuk chaqirish uchun ish joyi kerak.')} <Link className="underline" to="/admin/ish-joylarim">{t('Ish joylarim')}</Link></p></Sahifa>;
   return (
     <Sahifa sarlavha={t('Yuk chaqirish')} tavsif={t('Nima, qayerdan qayerga, qachon — narx darhol ko‘rinadi.')}>
       <div className="mx-auto grid max-w-3xl gap-4 p-3">
@@ -134,7 +139,8 @@ export default function YukChaqirish() {
         </section>
 
         <section className="rounded-xl border border-border p-3" aria-live="polite">
-          <div className="text-[14px]">{qator.matn}</div>
+          <div className="text-[14px]">{baho.qqsSiz == null && p2.qqsSiz != null ? narxP2Matn(p2, masofa?.km ?? null, sinf || 'orta', p2p) : qator.matn}</div>
+          {baho.qqsSiz == null && p2.qqsSiz != null && <div className="text-[13px] text-text-mute">{t('QQS siz')}: <FmtN val={p2.qqsSiz} /> · {t('Bu taxminiy baho; yakuniy narxni o‘zingiz belgilaysiz.')}</div>}
           {baho.qqsSiz != null && <div className="text-[13px] text-text-mute">{t('QQS siz')}: <FmtN val={baho.qqsSiz} /> · {t('QQS bilan')}: {baho.qqsBilan != null ? <FmtN val={baho.qqsBilan} /> : '—'}</div>}
           {rejim === 'qat_iy' && <MoneyInput aria-label={t('Narx (QQS siz)')} placeholder={baho.qqsSiz == null ? t('Narx (QQS siz) — o‘zingiz belgilang') : t('Narxni o‘zgartirish (QQS siz)')} value={qatiy} onValueChange={setQatiy} className={`${maydon} mt-2`} />}
           <p className="mt-2 text-[11px] text-text-mute">{t('To‘lov platformada ushlanmaydi: to‘lov holati tomonlar o‘rtasida belgilanadi.')}</p>
@@ -170,13 +176,15 @@ function KuzatKarta({ kompaniyaId, yukId }: { kompaniyaId: number; yukId: number
     <section className="grid gap-2 rounded-xl border-2 border-blue-600 p-3" aria-label={t('Reys holati')}>
       <h2 className="text-[15px] font-semibold">{t('Reys holati')}: {d.yuk_holat}</h2>
       {!d.bron && <p className="text-[13px] text-text-mute">{t('Haydovchi hali qabul qilmadi.')}</p>}
-      {d.bron && <div className="text-[13px]">{d.bron.tashuvchi}{d.bron.telefon ? ` · ${d.bron.telefon}` : ''}{d.bron.reyting != null ? ` · ★ ${d.bron.reyting} (${d.bron.reyting_soni})` : ''} · {t('qadam')}: {d.bron.qadam} · {t('Qabul kodi')}: <b>{d.bron.qabul_kod}</b></div>}
+      {d.bron && <div className="text-[13px]">{d.bron.tashuvchi}{d.bron.haydovchi ? ` (${d.bron.haydovchi})` : ''}{d.bron.telefon ?` · ${d.bron.telefon}` : ''}{d.bron.reyting != null ? ` · ★ ${d.bron.reyting} (${d.bron.reyting_soni})` : ''} · {t('qadam')}: {d.bron.qadam} · {t('Qabul kodi')}: <b>{d.bron.qabul_kod}</b></div>}
       {d.joy && (
         <>
           <TileMap markaz={{ lat: d.joy.lat, lng: d.joy.lng }} zoom={11} belgilar={belgi} iz={d.joy.iz.map(([la, ln]) => [la, ln] as [number, number])} yorliq={t('Mashina joyi')} balandlik={220} />
           <span className="text-[12px] text-text-mute">{t('Oxirgi ma‘lum joy')} · {d.joy.soniya_oldin} {t('soniya oldin')}</span>
         </>
       )}
+      {d.yuk_holat === 'takliflar' && <Link className="text-[13px] underline" to={'/admin/yuk-birjasi?id=' + yukId}>{t('Takliflarni ko‘rish va tanlash')}</Link>}
+      {d.joy?.arxivlandi && d.joy.iz_km != null && <span className="text-[12px] text-text-mute">{t('Yo‘l')}: {d.joy.iz_km} {t('km')}{d.joy.iz_daqiqa != null ? ` · ${d.joy.iz_daqiqa} ${t('daq.')}` : ''}</span>}
       {d.qabul_so_rov && d.buyurtma_id != null && <Link className="text-[13px] underline" to="/admin/logistika">{t('Yuk yetkazildi — omborga qabul qiling (Ta‘minot va sklad).')}</Link>}
     </section>
   );
