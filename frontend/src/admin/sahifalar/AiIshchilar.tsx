@@ -90,6 +90,21 @@ function NatijaKarta({ n, nomi, onHolat }: { n: NatijaQatori; nomi: string; onHo
 }
 
 /** kid = kompaniya id; tizim=true → platforma ishchilari (kid=null). */
+/** Platforma byudjetining fon ishchilar ulushi (faqat tizim/superadmin): chat (Jarvis) uchun zaxira doim qoladi. */
+function FonUlushi({ foiz, onYoz }: { foiz: number; onYoz: YozFn }) {
+  const [v, setV] = useState(String(foiz));
+  useEffect(() => { setV(String(foiz)); }, [foiz]);
+  return (
+    <div className="fz-panel flex flex-wrap items-center gap-2 text-[12px]" data-testid="fon-ulushi">
+      <label className="flex items-center gap-1">{t('Fon ishchilar ulushi (% platforma byudjeti)')}
+        <input className="h-7 w-14 px-1 tabular-nums" inputMode="numeric" value={v} onChange={(e) => setV(e.target.value.replace(/[^0-9]/g, ''))} />
+      </label>
+      <button type="button" className="fz-btn fz-btn--sm" onClick={() => void onYoz(() => aiIshchiYoz({ amal: 'fon_foiz_saqla', kompaniya_id: null, foiz: Number(v) }), 'Ulush saqlandi')}>{t('Saqlash')}</button>
+      <span className="text-text-mute">{t('Qolgani chat (Jarvis) uchun zaxirada turadi.')}</span>
+    </div>
+  );
+}
+
 export function AiIshchilar({ kid, tizim }: { kid: number | null; tizim: boolean }) {
   const [ishchilar, setIshchilar] = useState<IshchiQatori[] | null>(null);
   const [inbox, setInbox] = useState<NatijaQatori[]>([]);
@@ -136,6 +151,7 @@ export function AiIshchilar({ kid, tizim }: { kid: number | null; tizim: boolean
           {sarf.ishchilar.map((s) => <span key={s.ishchi} className="text-text-mute">{t(nomOf(s.ishchi))}: {son(s.token)} ({s.chaqiruv}×)</span>)}
         </div>
       )}
+      {tizim && sarf?.fon_foiz != null && <FonUlushi foiz={sarf.fon_foiz} onYoz={yoz} />}
       {ishchilar.length === 0 && <p className="text-xs text-text-dim">{t('Ishchi ta‘riflari topilmadi (migratsiya qo‘llanmagan).')}</p>}
       <div className="grid gap-2 xl:grid-cols-2">{ishchilar.map((w) => <IshchiKarta key={w.kod} w={w} kid={kid} band={band} onYoz={yoz} />)}</div>
 

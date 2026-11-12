@@ -9,6 +9,8 @@ do $cron$ begin
 end $cron$;
 
 drop function if exists public.t2_ai_bajaruvchi_navbat_v1(integer);
+drop function if exists public.t2_ai_fon_foiz_saqla_v1(bigint, integer, uuid);
+drop function if exists public.t2_ai_fon_limit_v1();
 drop function if exists public.t2_ai_jadval_v1();
 drop function if exists public.t2_ai_manba_saqla_v1(bigint, bigint, boolean, text, integer, uuid);
 drop function if exists public.t2_ai_ol_v1(bigint, bigint, text, jsonb);
@@ -30,6 +32,7 @@ drop function if exists public._t2_ai_band_v1(text, integer, text, jsonb);
 drop function if exists public._t2_ai_rol_ok_v1(text, boolean);
 
 drop table if exists public.t2_ai_natija;
+drop table if exists public.t2_ai_limit;
 drop table if exists public.t2_ai_ish;
 drop table if exists public.t2_ai_sozlama;
 drop table if exists public.t2_ai_ishchi;

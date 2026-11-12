@@ -71,6 +71,11 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     return chiqar(await rpcData(env, 't2_ai_natija_holat_v1', { p_actor_id: k.actor, p_natija_id: Number(so.natija_id), p_holat: String(so.holat ?? ''), p_operation_id: opId(so.operation_id) }));
   }
 
+  if (amal === 'fon_foiz_saqla') {
+    if (kid !== null) return xato('Faqat tizim doirasida', 403);
+    return chiqar(await rpcData(env, 't2_ai_fon_foiz_saqla_v1', { p_actor_id: k.actor, p_foiz: Number(so.foiz), p_operation_id: opId(so.operation_id) }));
+  }
+
   if (amal === 'manba_saqla') {
     if (kid !== null) return xato('Faqat tizim doirasida', 403);
     if (!sonmi(so.id)) return xato('id kerak');

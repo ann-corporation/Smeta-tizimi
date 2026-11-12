@@ -13,7 +13,7 @@ do $ai$
 declare
   v_n integer := 0; v_name text := 'init'; v_tag text := substr(md5(random()::text || clock_timestamp()::text), 1, 8);
   v_plat bigint; v_S bigint; v_B bigint; v_U bigint; v_X bigint; v_k1 bigint; v_k2 bigint; v_loy bigint; v_o1 bigint; v_o2 bigint; v_sess bigint;
-  v_M1 bigint; v_M3 bigint; v_f2 bigint; v_r jsonb; v_id bigint; v_id2 bigint; v_nid bigint; v_op uuid; v_cnt integer; v_cnt2 integer; v_b boolean; v_kz bigint; v_tok numeric;
+  v_M1 bigint; v_M3 bigint; v_f2 bigint; v_r jsonb; v_id bigint; v_id2 bigint; v_nid bigint; v_op uuid; v_cnt integer; v_cnt2 integer; v_kz bigint; v_tok numeric;
 begin
   v_n := 0; v_name := 'tayyorgarlik (kompaniya, a''zolar, obyekt, smeta, F2 qoralama, limit, hamyon)';
   insert into public.t2_kompaniya(nom, kod, faol) values ('AI PLATFORMA ' || v_tag, 'AIP' || v_tag, true) returning id into v_plat;
@@ -38,6 +38,7 @@ begin
   perform pg_temp.ai_ok(v_r, 'import bolak');
   perform pg_temp.ai_ok(public.t2_smeta_import_yakunla_v1(v_k1, v_S, v_sess), 'import yakunla');
   drop table if exists pg_temp.t2_imp_qator;
+  update public.t2_obyekt set tur = 'obyekt' where id in (v_o1, v_o2);
   select q.id into v_M1 from public.t2_qator q where q.obyekt_id = v_o1 and q.kod = 'AI-M1';
   select q.id into v_M3 from public.t2_qator q where q.obyekt_id = v_o1 and q.kod = 'AI-M3';
   -- F2 qoralama: M1 12 (smeta hajmi 10 dan OSHGAN), tasdiqlanmaydi
@@ -170,6 +171,7 @@ begin
   perform pg_temp.ai_assert(jsonb_array_length(public.t2_ai_ol_v1(v_S, null, 'inbox', '{}'::jsonb)->'royxat') >= 1, 'superadmin tizim inbox''ini ko''radi');
 
   v_n := 15; v_name := 'internet: faqat ro''yxatdagi manba (navbatdan tashqari id rad), natija TAKLIF (qoidaga aylanmaydi)';
+  update public.t2_agent_kuzatuv_url set faol = false;   -- prod'dagi boshqa manbalar bo'lakka kirmasin (rollback ichida)
   insert into public.t2_agent_kuzatuv_url(url, domen, nom, maqsad, faol, tasdiqladi) values ('https://ai' || v_tag || '.example.org/a', 'ai' || v_tag || '.example.org', 'AI Sintetik manba', 'sinov', true, v_S) returning id into v_kz;
   v_r := public.t2_ai_ish_navbat_v1(v_S, null, 'internet_kuzatuvchi', '{}'::jsonb, gen_random_uuid()); perform pg_temp.ai_ok(v_r, 'internet navbat'); v_id := (v_r->>'id')::bigint;
   perform pg_temp.ai_assert((select bolaklar::text from public.t2_ai_ish where id = v_id) like '%"' || v_kz || '"%', 'manba bo''lakda bo''lishi kerak');
@@ -201,7 +203,24 @@ begin
   perform pg_temp.ai_assert(not exists (select 1 from public.t2_ai_ish where id = v_id), '45 kundan eski ish o''chirilishi kerak');
   perform pg_temp.ai_assert(exists (select 1 from public.t2_ai_ish where kompaniya_id = v_k1), 'yangi ishlar saqlanishi kerak');
 
-  raise notice 'AI ISHCHILAR OK: 16 qadam (o''chiq ishchi, ruxsat, idempotentlik, quruq qadam, AI, limit, tenant, internet allowlist, cron, retention).';
+  v_n := 17; v_name := 'fon ishchilar ulushi: chat uchun zaxira doim qoladi (fon_foiz)';
+  perform pg_temp.ai_assert(public.t2_ai_fon_foiz_saqla_v1(v_B, 10, gen_random_uuid())->>'code' = 'GLOBAL_SCOPE_DENIED', 'boss fon ulushini o''zgartira olmaydi');
+  perform pg_temp.ai_assert(public.t2_ai_fon_foiz_saqla_v1(v_S, 95, gen_random_uuid())->>'code' = 'FOIZ_INVALID', 'ulush 0..90 bo''lishi kerak');
+  v_op := gen_random_uuid();
+  perform pg_temp.ai_ok(public.t2_ai_fon_foiz_saqla_v1(v_S, 0, v_op), 'ulush 0');
+  perform pg_temp.ai_ok(public.t2_ai_fon_foiz_saqla_v1(v_S, 0, v_op), 'ulush 0 takror');
+  insert into public.t2_token_harakat(kompaniya_id, foydalanuvchi_id, miqdor, tur, amal, operation_id) values (v_k1, v_S, 100000, 'toldirish', 'ai_test', gen_random_uuid());
+  update public.t2_ai_ish set holat = 'tugadi' where holat in ('navbatda', 'ishlayapti');
+  perform pg_temp.ai_assert(public.t2_ai_fon_limit_v1()->>'code' = 'FON_BYUDJET_TUGADI', 'ulush 0 % da fon limiti tugagan bo''lishi kerak');
+  perform pg_temp.ai_ok(public.t2_agent_sarf_tekshir_v1(v_B, v_k1), 'chat (Jarvis) limiti fon ulushidan mustaqil - zaxira qoladi');
+  v_r := public.t2_ai_ish_navbat_v1(v_B, v_k1, 'kunlik_nazoratchi', '{}'::jsonb, gen_random_uuid()); perform pg_temp.ai_ok(v_r, 'navbat fon'); v_id2 := (v_r->>'id')::bigint;
+  v_r := public.t2_ai_ish_yur_v1(v_id2); perform pg_temp.ai_ok(v_r, 'yur fon');
+  perform pg_temp.ai_assert(v_r->>'holat' = 'limit' and (select xato_kod from public.t2_ai_ish where id = v_id2) = 'FON_BYUDJET_TUGADI', 'fon ulushi tugaganda ish limit holatiga o''tishi kerak: ' || v_r::text);
+  perform pg_temp.ai_assert(exists (select 1 from public.t2_ai_natija where ish_id = v_id2 and quruq), 'fon limitida ham quruq natija chiqishi kerak');
+  perform pg_temp.ai_ok(public.t2_ai_fon_foiz_saqla_v1(v_S, 90, gen_random_uuid()), 'ulush 90');
+  perform pg_temp.ai_ok(public.t2_ai_fon_limit_v1(), 'ulush 90 da fon limiti ochiq');
+
+  raise notice 'AI ISHCHILAR OK: 17 qadam (o''chiq ishchi, ruxsat, idempotentlik, quruq qadam, AI, limit, tenant, internet allowlist, cron, retention).';
 exception when others then
   raise exception 'AI qadam [% %]: %', v_n, v_name, sqlerrm;
 end

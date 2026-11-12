@@ -34,8 +34,8 @@ describe('migratsiya fayllari: format', () => {
 
 describe('xavfsizlik: RLS, huquqlar, tenant', () => {
   it('har jadval: RLS yoqiladi, anon/authenticated huquqi olinadi, service_role beriladi', () => {
-    expect(jadvallar.sort()).toEqual(['t2_ai_ish', 't2_ai_ishchi', 't2_ai_natija', 't2_ai_sozlama']);
-    expect(fwd).toMatch(/foreach t in array array\['t2_ai_ishchi', 't2_ai_sozlama', 't2_ai_ish', 't2_ai_natija'\]/);
+    expect(jadvallar.sort()).toEqual(['t2_ai_ish', 't2_ai_ishchi', 't2_ai_limit', 't2_ai_natija', 't2_ai_sozlama']);
+    expect(fwd).toMatch(/foreach t in array array\['t2_ai_ishchi', 't2_ai_sozlama', 't2_ai_ish', 't2_ai_natija', 't2_ai_limit'\]/);
     expect(fwd).toMatch(/enable row level security/); expect(fwd).toMatch(/revoke all on public\.%I from public, anon, authenticated/); expect(fwd).toMatch(/to service_role/);
   });
   it('har funksiya security definer + search_path, ro‘yxatda revoke/grant service_role (authenticated YO‘Q)', () => {
@@ -63,7 +63,7 @@ describe('xavfsizlik: RLS, huquqlar, tenant', () => {
   });
   it('agent faqat o‘qiydi: biznes jadvalga yozish yo‘q (faqat t2_ai_*, t2_agent_kuzatuv_url, t2_osuvchi_taklif, audit/command_log)', () => {
     const yozilganlar = new Set([...fwd.matchAll(/(?:insert into|update|delete from)\s+(?:only\s+)?(?:public\.)?(t2_[a-z0-9_]+)/g)].map((m) => m[1]));
-    const ruxsat = new Set(['t2_ai_ish', 't2_ai_natija', 't2_ai_sozlama', 't2_ai_ishchi', 't2_agent_kuzatuv_url', 't2_osuvchi_taklif', 't2_agent_command_log']);
+    const ruxsat = new Set(['t2_ai_limit', 't2_ai_ish', 't2_ai_natija', 't2_ai_sozlama', 't2_ai_ishchi', 't2_agent_kuzatuv_url', 't2_osuvchi_taklif', 't2_agent_command_log']);
     expect([...yozilganlar].filter((t) => !ruxsat.has(t))).toEqual([]);
   });
   it('hamma ishchi sukut bo‘yicha o‘chiq: sozlama.yoqilgan default false, seed sozlama yozmaydi', () => {
@@ -73,6 +73,23 @@ describe('xavfsizlik: RLS, huquqlar, tenant', () => {
   it('t2_qator o‘quvchisi: faqat faol qatorlar + «versiya:» izohi', () => {
     for (const nom of ['_t2_ai_faktlar_v1', '_t2_ai_bolaklar_v1']) expect(fwd).toMatch(new RegExp(`comment on function public\\.${nom}\\([^)]*\\) is 'versiya:\\s*versiya`));
     expect(fwd).toMatch(/q\.versiya_holat = 'faol'/);
+  });
+});
+
+describe('declare: o‘zgaruvchi nomlari harf registrisiz takrorlanmaydi', () => {
+  it('acceptance va funksiyalarning declare bo‘limlarida takror e‘lon yo‘q', () => {
+    for (const [nom, t] of [['acceptance', acc], ['forward', fwd]] as const) {
+      for (const blok of t.matchAll(/\bdeclare\b([\s\S]*?)\bbegin\b/gi)) {
+        const nomlar = [...blok[1].replace(/'[^']*'/g, '').matchAll(/(?:^|[;\s,])((?:v|p)_[a-z0-9_]+|[a-z]\b)\s+(?:bigint|integer|numeric|text|boolean|jsonb|uuid|record|smallint|public\.)/gi)].map((m) => m[1].toLowerCase());
+        const takror = nomlar.filter((n, i) => nomlar.indexOf(n) !== i);
+        expect(takror, nom + ' declare takror: ' + takror.join(',')).toEqual([]);
+      }
+    }
+  });
+  it('fon ishchilar ulushi: alohida jadval, limit funksiyasi yakunla va ai_ol da tekshiriladi', () => {
+    expect(fwd).toMatch(/fon_foiz integer not null default 40 check \(fon_foiz between 0 and 90\)/);
+    expect((fwd.match(/public\.t2_ai_fon_limit_v1\(\)/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    expect(acc).toContain('FON_BYUDJET_TUGADI'); expect(acc).toContain('zaxira qoladi');
   });
 });
 

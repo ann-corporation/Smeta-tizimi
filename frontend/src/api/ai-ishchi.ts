@@ -16,7 +16,7 @@ export type NatijaQatori = {
 };
 export type SarfQatori = { ishchi: string; chaqiruv: number; token: number; xato: number };
 export type SarfMalumoti = {
-  oy_token_ishchi: number; oy_token_jami: number; token_limit: number | null; token_balans: number | null; ishchilar: SarfQatori[];
+  fon_foiz?: number | null; oy_token_ishchi: number; oy_token_jami: number; token_limit: number | null; token_balans: number | null; ishchilar: SarfQatori[];
   ishlar: Array<{ id: number; ishchi: string; holat: IshchiHolat; ai_holat: AiHolat; kirish_token: number; chiqish_token: number; model: string | null; yaratildi: string }>;
 };
 export type ManbaQatori = { id: number; url: string; domen: string; nom: string; maqsad: string | null; tur: string; chastota_soat: number; faol: boolean; oxirgi_vaqt: string | null; oxirgi_holat: string | null; domen_ruxsat: boolean };

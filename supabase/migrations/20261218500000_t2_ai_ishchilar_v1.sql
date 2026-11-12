@@ -100,6 +100,15 @@ create table if not exists public.t2_ai_natija (
 );
 create index if not exists t2_ai_natija_komp_idx on public.t2_ai_natija (kompaniya_id, holat, id desc);
 
+-- Platforma byudjetining fon ishchilar ulushi: chat (Jarvis) uchun zaxira DOIM qoladi (fon_foiz dan ortig'ini fon ishchilar sarflay olmaydi).
+create table if not exists public.t2_ai_limit (
+  id smallint primary key default 1 check (id = 1),
+  fon_foiz integer not null default 40 check (fon_foiz between 0 and 90),
+  actor_id bigint references public.t2_foydalanuvchi(id) on delete set null,
+  yangilandi timestamptz not null default now()
+);
+insert into public.t2_ai_limit (id) values (1) on conflict (id) do nothing;
+
 -- Mavjud kuzatuv ro'yxatiga (superadmin boshqaradi): manba turi, tekshirish chastotasi, oldingi qisqa xulosa (keyingi o'zgarishni taqqoslash uchun).
 alter table public.t2_agent_kuzatuv_url add column if not exists tur text not null default 'meyor';
 alter table public.t2_agent_kuzatuv_url add column if not exists chastota_soat integer not null default 24;
@@ -118,7 +127,7 @@ do $tur$ begin
 end $tur$;
 
 do $rls$ declare t text; begin
-  foreach t in array array['t2_ai_ishchi', 't2_ai_sozlama', 't2_ai_ish', 't2_ai_natija'] loop
+  foreach t in array array['t2_ai_ishchi', 't2_ai_sozlama', 't2_ai_ish', 't2_ai_natija', 't2_ai_limit'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('revoke all on public.%I from public, anon, authenticated', t);
     execute format('grant select, insert, update, delete on public.%I to service_role', t);
@@ -407,6 +416,36 @@ begin
   return jsonb_build_object('sarlavha', v_sar, 'xulosa', coalesce(v_txt, 'Diqqat talab qiladigan narsa topilmadi.'), 'ustuvorlik', v_max, 'bandlar', bands);
 end $$;
 
+-- Fon ishchilar ulushi: oy boshidan amal = ai_ishchi sarfi (USD) platforma limitining fon_foiz % idan oshmasin. Platforma limiti yo'q bo'lsa — sarf_tekshir (BYUDJET_YOQ) hal qiladi.
+create or replace function public.t2_ai_fon_limit_v1() returns jsonb
+language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare pl public.t2_agent_byudjet%rowtype; v_foiz integer; v_sarf numeric; v_ulush numeric;
+begin
+  select l.fon_foiz into v_foiz from public.t2_ai_limit l where l.id = 1;
+  v_foiz := coalesce(v_foiz, 40);
+  select * into pl from public.t2_agent_byudjet b where b.kompaniya_id is null and b.faol;
+  if not found then return jsonb_build_object('ok', true, 'fon_foiz', v_foiz); end if;
+  select coalesce(sum(s.narx_usd), 0) into v_sarf from public.t2_agent_sarf s where s.amal = 'ai_ishchi' and s.vaqt >= date_trunc('month', now());
+  v_ulush := pl.oylik_limit_usd * v_foiz / 100.0;
+  if v_sarf >= v_ulush then return jsonb_build_object('ok', false, 'code', 'FON_BYUDJET_TUGADI', 'xabar', 'Fon ishchilarning oylik ulushi tugadi (chat uchun zaxira saqlanadi)', 'fon_foiz', v_foiz); end if;
+  return jsonb_build_object('ok', true, 'fon_foiz', v_foiz, 'fon_sarf_usd', v_sarf, 'fon_ulush_usd', v_ulush);
+end $$;
+
+create or replace function public.t2_ai_fon_foiz_saqla_v1(p_actor_id bigint, p_foiz integer, p_operation_id uuid) returns jsonb
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare v_prev jsonb; v_res jsonb;
+begin
+  if p_operation_id is null then return jsonb_build_object('ok', false, 'code', 'OPERATION_ID_REQUIRED'); end if;
+  select natija into v_prev from public.t2_agent_command_log where operation_id = p_operation_id;
+  if found then return v_prev; end if;
+  if not public.t2_platforma_superadmin(p_actor_id) then return jsonb_build_object('ok', false, 'code', 'GLOBAL_SCOPE_DENIED'); end if;
+  if p_foiz is null or p_foiz not between 0 and 90 then return jsonb_build_object('ok', false, 'code', 'FOIZ_INVALID', 'xabar', 'Ulush 0..90 % bo''lishi kerak'); end if;
+  update public.t2_ai_limit set fon_foiz = p_foiz, actor_id = p_actor_id, yangilandi = now() where id = 1;
+  v_res := jsonb_build_object('ok', true, 'fon_foiz', p_foiz);
+  insert into public.t2_agent_command_log (operation_id, actor_id, command, natija) values (p_operation_id, p_actor_id, 'ai_fon_foiz_saqla', v_res);
+  return v_res;
+end $$;
+
 -- ---------------------------------------------------------------- yakunlash (quruq natija yoziladi, limit tekshiriladi)
 create or replace function public._t2_ai_yakunla_v1(p_ish_id bigint) returns jsonb
 language plpgsql security definer set search_path = public, pg_temp as $$
@@ -421,6 +460,7 @@ begin
     if jsonb_array_length(q -> 'bandlar') = 0 then v_ai := 'yoq';        -- aytadigan narsa yo'q: token sarflanmaydi
     else
       v_lim := public.t2_agent_sarf_tekshir_v1(i.actor_id, i.kompaniya_id);
+      if coalesce((v_lim ->> 'ok')::boolean, false) then v_lim := public.t2_ai_fon_limit_v1(); end if;
       if coalesce((v_lim ->> 'ok')::boolean, false) is not true then v_holat := 'limit'; v_ai := 'limit'; v_kod := left(coalesce(v_lim ->> 'code', 'LIMIT'), 60); end if;
     end if;
   end if;
@@ -550,6 +590,7 @@ begin
   if not found then return jsonb_build_object('ok', false, 'code', 'ISH_YOQ'); end if;
   if i.holat <> 'tugadi' or i.ai_holat <> 'kutilmoqda' then return jsonb_build_object('ok', false, 'code', 'AI_NAVBATDA_EMAS', 'holat', i.holat, 'ai_holat', i.ai_holat); end if;
   v_lim := public.t2_agent_sarf_tekshir_v1(i.actor_id, i.kompaniya_id);
+  if coalesce((v_lim ->> 'ok')::boolean, false) then v_lim := public.t2_ai_fon_limit_v1(); end if;
   if coalesce((v_lim ->> 'ok')::boolean, false) is not true then
     update public.t2_ai_ish set holat = 'limit', ai_holat = 'limit', xato_kod = left(coalesce(v_lim ->> 'code', 'LIMIT'), 60), faktlar = '[]'::jsonb where id = i.id;
     return jsonb_build_object('ok', false, 'code', coalesce(v_lim ->> 'code', 'LIMIT'), 'limit', true);
@@ -563,7 +604,7 @@ end $$;
 
 create or replace function public.t2_ai_ish_ai_yoz_v1(p_ish_id bigint, p_ok boolean, p_xulosa text, p_kirish integer, p_chiqish integer, p_narx numeric, p_model text, p_xato_kod text default null)
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
-declare i public.t2_ai_ish%rowtype; v_limit boolean := coalesce(p_xato_kod, '') in ('BYUDJET_YOQ', 'BYUDJET_TUGADI', 'TOKEN_YETMAYDI', 'TOKEN_LIMIT_TUGADI', 'KOMPANIYA_AI_OCHIQ');
+declare i public.t2_ai_ish%rowtype; v_limit boolean := coalesce(p_xato_kod, '') in ('BYUDJET_YOQ', 'BYUDJET_TUGADI', 'TOKEN_YETMAYDI', 'TOKEN_LIMIT_TUGADI', 'KOMPANIYA_AI_OCHIQ', 'FON_BYUDJET_TUGADI');
 begin
   select * into i from public.t2_ai_ish where id = p_ish_id for update;
   if not found then return jsonb_build_object('ok', false, 'code', 'ISH_YOQ'); end if;
@@ -712,7 +753,7 @@ begin
     return jsonb_build_object('ok', true, 'bolim', 'sarf', 'oy_boshi', date_trunc('month', now()), 'ishchilar', v,
       'oy_token_ishchi', (select coalesce(sum(s.mijoz_token), 0) from public.t2_agent_sarf s where s.kompaniya_id is not distinct from p_kompaniya_id and s.amal = 'ai_ishchi' and s.vaqt >= date_trunc('month', now())),
       'oy_token_jami', (select coalesce(sum(s.mijoz_token), 0) from public.t2_agent_sarf s where s.kompaniya_id is not distinct from p_kompaniya_id and s.vaqt >= date_trunc('month', now())),
-      'token_limit', v_tl, 'byudjet_usd', v_bu, 'sarf_usd', public._t2_agent_oy_sarfi_v1(p_kompaniya_id),
+      'token_limit', v_tl, 'byudjet_usd', v_bu, 'fon_foiz', (select l.fon_foiz from public.t2_ai_limit l where l.id = 1), 'sarf_usd', public._t2_agent_oy_sarfi_v1(p_kompaniya_id),
       'token_balans', case when p_kompaniya_id is null then null else public.t2_token_balans(p_kompaniya_id) end,
       'ishlar', (select coalesce(jsonb_agg(jsonb_build_object('id', j.id, 'ishchi', j.ishchi_kod, 'holat', j.holat, 'ai_holat', j.ai_holat, 'kirish_token', j.kirish_token, 'chiqish_token', j.chiqish_token, 'model', j.model, 'yaratildi', j.yaratildi) order by j.id desc), '[]'::jsonb)
                    from (select * from public.t2_ai_ish x where x.kompaniya_id is not distinct from p_kompaniya_id order by x.id desc limit 20) j));
@@ -799,7 +840,7 @@ do $grant$ declare f text; begin
     'public.t2_ai_internet_bolak_v1(bigint)', 'public.t2_ai_internet_belgila_v1(bigint,text,text,text,text)', 'public.t2_ai_tizim_taklif_v1(bigint,jsonb)',
     'public.t2_ai_sozlama_saqla_v1(bigint,bigint,text,boolean,text,integer,boolean,integer,jsonb,uuid)', 'public.t2_ai_natija_holat_v1(bigint,bigint,text,uuid)',
     'public.t2_ai_ol_v1(bigint,bigint,text,jsonb)', 'public.t2_ai_manba_saqla_v1(bigint,bigint,boolean,text,integer,uuid)',
-    'public.t2_ai_jadval_v1()', 'public.t2_ai_bajaruvchi_navbat_v1(integer)'] loop
+    'public.t2_ai_jadval_v1()', 'public.t2_ai_bajaruvchi_navbat_v1(integer)', 'public.t2_ai_fon_limit_v1()', 'public.t2_ai_fon_foiz_saqla_v1(bigint,integer,uuid)'] loop
     execute 'revoke all on function ' || f || ' from public, anon, authenticated';
     execute 'grant execute on function ' || f || ' to service_role';
   end loop;
@@ -815,7 +856,7 @@ end $cron$;
 
 -- ---------------------------------------------------------------- strukturaviy tasdiqlar
 do $assert$ declare t text; f text; n integer; begin
-  foreach t in array array['t2_ai_ishchi', 't2_ai_sozlama', 't2_ai_ish', 't2_ai_natija'] loop
+  foreach t in array array['t2_ai_ishchi', 't2_ai_sozlama', 't2_ai_ish', 't2_ai_natija', 't2_ai_limit'] loop
     if to_regclass('public.' || t) is null then raise exception 'AI assert: jadval yo''q %', t; end if;
     if not (select c.relrowsecurity from pg_class c where c.oid = ('public.' || t)::regclass) then raise exception 'AI assert: RLS yoqilmagan %', t; end if;
     if has_table_privilege('anon', 'public.' || t, 'select') or has_table_privilege('authenticated', 'public.' || t, 'select') then raise exception 'AI assert: anon/authenticated ochiq %', t; end if;

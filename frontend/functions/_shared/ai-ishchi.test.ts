@@ -116,7 +116,13 @@ describe('internet kuzatuvchi: xavfsizlik', () => {
     expect(req.text.match(/<\/TASHQI_MANBA>/g)).toHaveLength(1);                       // matn ichidagi yopuvchi to'siq tozalangan
     expect(req.jsonSchema?.name).toBe('internet_yangilik');
     // yozish yo'li: faqat nomli RPC lar (ruxsat, log) — hech qaysi RPC matnni qoida/narx/kodga aylantirmaydi
-    expect(t.chaqiruvlar.every((c) => ['t2_agent_veb_ruxsat_v1', 't2_agent_veb_log_v1'].includes(c.nom))).toBe(true);
+    expect(t.chaqiruvlar.every((c) => ['t2_agent_veb_ruxsat_v1', 't2_agent_veb_log_v1', 't2_ai_fon_limit_v1'].includes(c.nom))).toBe(true);
+  });
+
+  it('fon ishchilar ulushi tugagan: model CHAQIRILMAYDI (chat uchun zaxira), fakt.limit', async () => {
+    const t = bogliq(ruxsatBilan({ t2_ai_fon_limit_v1: () => ({ ok: false, status: 400, data: { ok: false, code: 'FON_BYUDJET_TUGADI' } }) }), async () => javob('{}'), sahifa('matn'));
+    expect(await manbaTekshir(t.d, m)).toMatchObject({ holat: 'ozgardi', limit: true });
+    expect(t.aiChaqiruvlar).toHaveLength(0);
   });
 
   it('xesh o‘zgarmagan — model CHAQIRILMAYDI (token yo‘q)', async () => {

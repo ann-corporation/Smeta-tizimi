@@ -66,5 +66,8 @@
   "Hujjat tekshiruvchi": { "ru": "Проверка документов", "en": "Document checker" },
   "Narx va ta'minot kuzatuvchi": { "ru": "Наблюдатель цен и снабжения", "en": "Price and supply watcher" },
   "Tizim sog'ligi": { "ru": "Здоровье системы", "en": "System health" },
-  "Internet kuzatuvchi": { "ru": "Интернет-наблюдатель", "en": "Internet watcher" }
+  "Internet kuzatuvchi": { "ru": "Интернет-наблюдатель", "en": "Internet watcher" },
+  "Fon ishchilar ulushi (% platforma byudjeti)": { "ru": "Доля фоновых работников (% бюджета платформы)", "en": "Background workers' share (% of platform budget)" },
+  "Qolgani chat (Jarvis) uchun zaxirada turadi.": { "ru": "Остальное остаётся в резерве для чата (Jarvis).", "en": "The rest stays reserved for chat (Jarvis)." },
+  "Ulush saqlandi": { "ru": "Доля сохранена", "en": "Share saved" }
 }

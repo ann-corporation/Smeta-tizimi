@@ -194,6 +194,9 @@ export async function manbaTekshir(d: Bogliq, m: Manba, tier: AiTier = 'fast'): 
   const holat = m.oxirgi_sha256 ? 'ozgardi' : 'yangi';
   const fakt: Record<string, unknown> = { ...asos, holat, sha: v.sha256 };
   if (!m.ai_xulosa) return fakt;
+  // fon ishchilar ulushi (chat uchun zaxira): tugagan bo'lsa model CHAQIRILMAYDI
+  const fon = await d.rpc('t2_ai_fon_limit_v1', {});
+  if (fon.data.ok === false) { fakt.limit = true; return fakt; }
   try {
     const r = await d.ai(m.actor_id, null, 'internet_kuzatuvchi', {
       system: INTERNET_QOIDASI, tier, maxOutputTokens: 500, temperature: 0, jsonSchema: INTERNET_SXEMA,
