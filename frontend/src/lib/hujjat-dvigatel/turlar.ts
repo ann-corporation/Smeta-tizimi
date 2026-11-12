@@ -10,7 +10,7 @@
 /** Hujjat turi kaliti (reestr kaliti). */
 export type HujjatKalit =
   | 'f2' | 'forma3' | 'aosr' | 'm29' | 'nakopitelniy' | 'ostatka' | 'slichitelniy'
-  | 'lab_protokol' | 'predpisaniya' | 'akt_osvidetelstvovaniya' | 'soprovod_xat' | 'zayavka' | 'sub_akt';
+  | 'loyiha_smeta_fakt' | 'lab_protokol' | 'predpisaniya' | 'akt_osvidetelstvovaniya' | 'soprovod_xat' | 'zayavka' | 'sub_akt';
 
 /** Tomon rollari (t2_yonalish / hujjat-aylanish zanjir kalitlari bilan bir xil). */
 export type TomonRol = 'pudratchi' | 'subpudratchi' | 'buyurtmachi' | 'texnadzor' | 'loyihachi' | 'laboratoriya' | 'yetkazuvchi' | 'ekspertiza';

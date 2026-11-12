@@ -17,6 +17,7 @@ export const SAHIFA_SINONIM: Readonly<Record<string, Sinonim>> = {
   '/admin/mindmap': { uz: ['mindmap', 'mayndmap', 'xarita', 'aqliy xarita'], ru: ['майндмап', 'ментальная карта', 'карта', 'mind map'], en: ['mindmap', 'mind map', 'map'] },
   '/admin/smeta-studio': { uz: ['smeta studiyasi', 'studiya', 'studio'], ru: ['студия смет', 'студия'], en: ['estimate studio', 'studio'] },
   '/admin/holat': { uz: ['smeta va fakt', 'lrv', 'holat', 'obyekt holati', 'smeta holati'], ru: ['состояние', 'смета и факт', 'лрв'], en: ['status', 'estimate and actuals'] },
+  '/admin/loyiha-smeta': { uz: ['loyiha bilan smetani solishtir', 'loyiha smeta fakt', 'smetaga kirmagan ishlar', 'kr-5 da nima farq', 'chizmadagi hajm'], ru: ['сверка проекта и сметы', 'проект смета факт', 'работы не вошедшие в смету', 'что отличается по кр-5'], en: ['compare design with estimate', 'design estimate actual', 'work missing from estimate'] },
   '/admin/smeta-narxlash': { uz: ['narxlash', 'smetani narxlash', 'res'], ru: ['ценообразование', 'расценка', 'ресурсы'], en: ['pricing', 'estimate pricing'] },
   '/admin/narx-dalil': { uz: ['narx dalili'], ru: ['обоснование цен'], en: ['price justification'] },
   '/admin/narx-tekshiruv': { uz: ['narx tekshiruvi', 'usta narxi'], ru: ['проверка цен', 'цена мастера'], en: ['price check', 'master price'] },
