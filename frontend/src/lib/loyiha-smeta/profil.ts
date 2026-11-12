@@ -23,6 +23,8 @@ export type Profil = {
   jamiQator?: string;
   /** Faqat shu varaq prefikslari (КР, АР, ЭО...) uchun; varaq noma'lum bo'lsa — har sahifa. */
   varaqPrefiks?: string[];
+  /** Miqdori o'qilmagan qatorni tashlash (chizma izohlari/shovqin): beton/armatura jadvalida noma'lum miqdor ko'rsatiladi, boshqalarda tashlanadi. */
+  miqdorsizTashla?: boolean;
 };
 
 export const PROFILLAR: Profil[] = [
@@ -33,12 +35,12 @@ export const PROFILLAR: Profil[] = [
     jamiQator: '^(итого|всего|jami|total)',
   },
   {
-    id: 'eshik_oyna', tur: 'eshik_oyna', minMos: 2, standartBirlik: 'шт', varaqPrefiks: ['АР', 'АС', 'ГП'],
+    id: 'eshik_oyna', miqdorsizTashla: true, tur: 'eshik_oyna', minMos: 2, standartBirlik: 'шт', varaqPrefiks: ['АР', 'АС', 'ГП'],
     sahifaKalit: ['двер', 'окон', 'окна', 'заполнени', 'проем'],
     sarlavha: { nom: ['наименование', 'обозначение'], belgi: ['^поз', 'марка'], birlik: ['^ед'], miqdor: ['^кол', 'количество'] },
   },
   {
-    id: 'uskuna', tur: 'uskuna', minMos: 2, standartBirlik: 'шт', odamKerak: true, varaqPrefiks: ['ЭО', 'ЭМ', 'ЭС', 'ВК', 'ОВ', 'ТХ', 'СС', 'ПБ', 'ТС'],
+    id: 'uskuna', miqdorsizTashla: true, tur: 'uskuna', minMos: 2, standartBirlik: 'шт', odamKerak: true, varaqPrefiks: ['ЭО', 'ЭМ', 'ЭС', 'ВК', 'ОВ', 'ТХ', 'СС', 'ПБ', 'ТС'],
     sahifaKalit: ['оборудован', 'спецификация оборуд', 'насос', 'светильник', 'щит'],
     sarlavha: { nom: ['наименование', 'тип', 'марка'], belgi: ['^поз', 'обозначение'], birlik: ['^ед'], miqdor: ['^кол', 'количество'] },
   },
@@ -48,7 +50,7 @@ export const PROFILLAR: Profil[] = [
     sarlavha: { nom: ['наименование', 'конструкц', 'элемент'], belgi: ['^поз', 'марка', 'обозначение'], birlik: ['^ед'], miqdor: ['объ[её]м', '^v\\b', 'v,'] },
   },
   {
-    id: 'element_spes', tur: 'boshqa', minMos: 2, standartBirlik: 'шт',
+    id: 'element_spes', miqdorsizTashla: true, tur: 'boshqa', minMos: 2, standartBirlik: 'шт',
     sahifaKalit: [],
     sarlavha: { nom: ['наименование'], belgi: ['^поз', 'марка', 'обозначение'], birlik: ['^ед'], miqdor: ['^кол', 'количество'] },
   },
@@ -96,7 +98,7 @@ export function birlikSarlavhadan(s: string): string | null {
 
 /** Sahifa matni profilga mosmi (sahifaKalit). */
 export function profilSahifagaMos(p: Profil, sahifaMatni: string, varaq: string | null = null): boolean {
-  if (p.varaqPrefiks && varaq && !p.varaqPrefiks.includes(varaq.split('-')[0])) return false;
+  if (p.varaqPrefiks && (!varaq || !p.varaqPrefiks.includes(varaq.split('-')[0]))) return false;   // belgisiz sahifada prefiksli profil ishlamaydi (shovqin)
   if (p.sahifaKalit.length === 0) return true;
   const t = norm(sahifaMatni);
   return p.sahifaKalit.some((k) => t.includes(k));
@@ -152,6 +154,7 @@ export function profilBilanOqi(p: Profil, qatorlar: JQator[]): ProfilNatija | nu
       if (miq != null && !nom && oxirgi.miqdor == null) { oxirgi.miqdor = miq; oxirgi.ishonch = Math.min(oxirgi.ishonch, 0.7); continue; }
     }
     if (!nom && !belgi) continue;
+    if (miq == null && p.miqdorsizTashla) continue;
     if (miq == null && !belgi && !nom) continue;
     const qBirlik = (h.birlik ?? '').trim();
     const torQator = p.tur === 'armatura' && (TOR_RE.test(belgi ?? '') || TOR_RE.test(nom));
