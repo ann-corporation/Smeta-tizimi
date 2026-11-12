@@ -1113,6 +1113,18 @@
         ]
       },
       {
+        "nom": "Mening imzom",
+        "ikonka": "FileText",
+        "sahifalar": [
+          {
+            "yol": "/admin/imzo",
+            "ilova": "yadro",
+            "nom": "Mening imzom",
+            "ruxsat": []
+          }
+        ]
+      },
+      {
         "nom": "Tizim o‘rganishi",
         "ikonka": "Settings",
         "sahifalar": [

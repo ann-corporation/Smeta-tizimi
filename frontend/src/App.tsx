@@ -42,6 +42,8 @@ const YukBirjasiSahifa = lazy(() => import('./admin/yuk-birjasi/YukBirjasiSahifa
 const TenderOchiq = lazy(() => import('./tender/TenderOchiq'));
 const TenderOchiqBoshqaruv = lazy(() => import('./admin/tender/TenderOchiqBoshqaruv'));
 const BozorOchiq = lazy(() => import('./bozor/BozorOchiq'));
+const ImzoTekshiruv = lazy(() => import('./imzo/ImzoTekshiruv'));
+const Imzo = lazy(() => import('./admin/sahifalar/Imzo'));
 const BozorSorov = lazy(() => import('./admin/bozor/BozorSorov'));
 const BozorKabinet = lazy(() => import('./admin/bozor/BozorKabinet'));
 const BozorModeratsiya = lazy(() => import('./admin/bozor/BozorModeratsiya'));
@@ -150,6 +152,7 @@ export default function App() {
         <Route path="/tg" element={<Suspense fallback={<SahifaYuklanmoqda />}><TgKirish /></Suspense>} />
         <Route path="/tender" element={<Suspense fallback={<SahifaYuklanmoqda />}><TenderOchiq /></Suspense>} />
         <Route path="/tender/:lotId" element={<Suspense fallback={<SahifaYuklanmoqda />}><TenderOchiq /></Suspense>} />
+        <Route path="/t/:token" element={<Suspense fallback={<SahifaYuklanmoqda />}><ImzoTekshiruv /></Suspense>} />
         <Route path="/bozor" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorOchiq /></Suspense>} />
         <Route path="/bozor/e/:elonId" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorOchiq /></Suspense>} />
         <Route path="/bozor/s/:sotuvchiId" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorOchiq /></Suspense>} />
@@ -289,6 +292,7 @@ export default function App() {
               `dashboard` -> BossDashboard (declared above). */}
           <Route path="zakazchik/obyekt/:aloqaId/:obyektId" element={<Suspense fallback={<SahifaYuklanmoqda />}><ObyektPortali /></Suspense>} />
           <Route path="akkaunt" element={<Suspense fallback={<SahifaYuklanmoqda />}><AkkauntMarkazi /></Suspense>} />
+            <Route path="imzo" element={<Suspense fallback={<SahifaYuklanmoqda />}><Imzo /></Suspense>} />
           <Route path="osuvchi" element={<Suspense fallback={<SahifaYuklanmoqda />}><Osuvchi /></Suspense>} />
           <Route path="sayt-xaritasi" element={<Suspense fallback={<SahifaYuklanmoqda />}><SaytXaritasi /></Suspense>} />
           {/* Egasi 2026-10-27: tizim darajasidagi jonli mindmap — faqat superadmin va u ruxsat berganlar (sahifa avval serverdan so'raydi). */}
