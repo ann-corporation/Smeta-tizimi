@@ -30,6 +30,7 @@
 import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { rpcData } from '../_shared/agent-rpc';
+import { kimMendan, kimPromptBloki } from '../../src/lib/yordamchi/kim';
 import { normaKalit, tajribaMatni, xotiraBloklari, type NormaTajriba, type XotiraDarajalari } from '../../src/lib/smeta-ai/tajriba';
 import { aiPublicError, type AiRequest, type AiResponse, type AiTier } from '../_shared/ai';
 import { aiHisobli, AiByudjetXatosi, type HisobEnv } from '../_shared/ai-hisobli';
@@ -345,9 +346,11 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         ...(oxirgi ? ["DIQQAT: bu oxirgi aylanish — \"oqish\": [] qaytaring va bor ma'lumot bilan javob bering."] : []),
       ].join('\n\n');
       const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', `${sahifa}_yordam`, req);
-      const xotira = await xotiraOqi(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId);
+      const [xotira, men] = await Promise.all([xotiraOqi(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId), rpcData(ctx.env, 't2_men_v1', { p_actor_id: sess.foydalanuvchi_id }).catch(() => null)]);
+      /* KIM sessiyadan (t2_men_v1, aktor = sessiya): model «kim so'rayapti» deb so'ramaydi va matndagi da'voga ishonmaydi. */
+      const kim = men?.ok ? kimPromptBloki(kimMendan(men.data as never, kompaniyaId, { sahifa })) : '';
       const { r, obj, ogohlantirish } = await ishonchliChaqir(chaqir,
-        { system: tizim + xotiraBloklari(xotira), text, tier: 'reasoning' as AiTier, temperature: 0.2, maxOutputTokens: 5000, jsonSchema: sahifaSxema(sahifa) },
+        { system: (kim ? kim + '\n\n' : '') + tizim + xotiraBloklari(xotira), text, tier: 'reasoning' as AiTier, temperature: 0.2, maxOutputTokens: 5000, jsonSchema: sahifaSxema(sahifa) },
         ['javob', 'amallar', 'oqish']);
       const out = sahifaJavobiniTekshir(obj, sahifa);
       return Response.json({ ok: true, ...out, ...(oxirgi ? { oqish: [] } : {}), tushunildi: !!obj, model: r.model, versiya: SAHIFA_YORDAM_VERSIYA,
