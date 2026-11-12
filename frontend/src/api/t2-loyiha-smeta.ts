@@ -46,3 +46,12 @@ export const loyihaBoglash = (k: number, p: { miqdorId: number; qatorId: number;
   yoz('boglash', k, { miqdor_id: p.miqdorId, qator_id: p.qatorId, ball: p.ball ?? null, sabab: p.sabab ?? null, harakat: p.harakat });
 export const loyihaQaror = (k: number, p: { miqdorId: number; tur: QarorTuri; qatorId?: number | null; refJadval?: string | null; refId?: number | null; sabab?: string }) =>
   yoz('qaror', k, { miqdor_id: p.miqdorId, tur: p.tur, qator_id: p.qatorId ?? null, ref_jadval: p.refJadval ?? null, ref_id: p.refId ?? null, sabab: p.sabab ?? null });
+
+/** Jarvis uchun: tasdiqlangan miqdorlar bo'yicha farqlar (farq.ts, hisob-yadro). Ma'lumot yo'q yoki xato bo'lsa null. */
+export async function loyihaFarqMalumotOl(k: number, o: number): Promise<import('../lib/loyiha-smeta/jarvis').LoyihaFarqMalumot | null> {
+  const [f, r, s] = await Promise.all([loyihaFarqOl(k, o), loyihaRoyxatOl(k, o), loyihaSmetaOl(k, o)]);
+  if (!f.ok || !s.ok) return null;
+  const { farqlarniHisobla } = await import('../lib/loyiha-smeta/farq');
+  const bogli = new Set(r.ok ? r.natija.miqdorlar.flatMap((x) => x.boglar) : []);
+  return { farqlar: farqlarniHisobla(f.natija.miqdorlar, s.natija.qatorlar, bogli), taklifSoni: f.natija.taklif_soni, tasdiqlanganSoni: f.natija.tasdiqlangan_soni };
+}

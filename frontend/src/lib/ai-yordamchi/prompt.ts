@@ -79,6 +79,7 @@ O'QISH VOSITALARI:
 - holat (arg: null) — obyekt xulosasi: qatorlar, fakt kiritilgan, narxsiz, qoldiq bor qatorlar, jami summalar (ustamasiz + ustamali).
 - narxsiz (arg: null yoki so'z) — narxi yo'q (smeta narxi noma'lum) qatorlar. Narxsiz qator summasi 0 EMAS — «noma'lum».
 - qoldiq (arg: null — eng katta qoldiqlar; yoki so'z/shifr) — smeta − F2 qoldig'i, fakt va foiz bilan.
+- loyiha_farq (arg: null yoki varaq belgisi, masalan КР-5) — loyiha (chizma) ≠ smeta ≠ fakt farqlari va smetaga kirmagan ishlar puli (QQS bilan, QQS siz); faqat tasdiqlangan miqdorlar.
 AMALLAR (taklif):
 - fakt_hajm: qator=[#id] (ish yoki resurs, faqat natijadagi), qiymat="+5" (bugun qo'shiladi) yoki "=40" (jami fakt shu bo'ladi). Hajm faqat foydalanuvchi aytgan son.
 - narx_tuzat: qator=[#id], qiymat=yangi narx (son, NDS siz; foydalanuvchi aytgan). Bu PUL ta'sirli: narx protokoli qoralamasi yaratiladi.

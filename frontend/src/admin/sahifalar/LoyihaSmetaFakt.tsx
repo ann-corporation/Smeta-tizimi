@@ -18,7 +18,10 @@ import { keshdanOl, keshgaSaqla, manbaR2 } from '../../lib/loyiha-smeta/ekstraks
 import type { MatnBo } from '../../lib/loyiha-smeta/jadval';
 import { aiElementlar, aiHududi, aiNarxi, aiOqi, hududKaliti, hududniRasmga, keshdaBor, keshgaYoz, keshKaliti } from '../../lib/loyiha-smeta/ai-oqish';
 import { tokenHolatOl, type TokenHolat } from '../../api/t2-token';
-import { bolimXaritasi, moslash, type MoslashSababi, type SmetaQator } from '../../lib/loyiha-smeta/moslash';
+import { sbNarxManbalarOl, sbNarxManbaQidiruvQatorlariOl } from '../../api/t2-narx-dalil';
+import { narxTakliflari, type ManbaMeta, type ManbaQator, type NarxTaklifi } from '../../lib/loyiha-smeta/narx-taklif';
+import { bolimXaritasi, moslash, MOSLASH_STANDART, type MoslashSababi, type SmetaQator } from '../../lib/loyiha-smeta/moslash';
+import { regexOqi, regexSaqla, regexTekshir } from '../../lib/loyiha-smeta/moslash-sozlama';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { katKesimJamiBilan } from '../../lib/ustamali-summa';
 import { farqJami, farqJamiTarkibi, farqlarniHisobla, type FarqMiqdor, type FarqQator, type FarqTuri, type QarorTuri } from '../../lib/loyiha-smeta/farq';
@@ -75,7 +78,12 @@ export default function LoyihaSmetaFakt() {
   }, [kompaniyaId, obyektId]);
   useEffect(() => { setRoyxat([]); setFarqD(null); setSmeta([]); void yukla(); }, [yukla]);
 
-  const xarita = useMemo(() => bolimXaritasi(smeta), [smeta]);
+  const [belgiRegex, setBelgiRegex] = useState<string>(MOSLASH_STANDART.belgiRegex);
+  const [regexQoralama, setRegexQoralama] = useState('');
+  const [regexNamuna, setRegexNamuna] = useState('РАЗДЕЛ ОБРАЗЕЦ (КР-5)');
+  useEffect(() => { if (kompaniyaId) { const r = regexOqi(kompaniyaId); setBelgiRegex(r); setRegexQoralama(r); } }, [kompaniyaId]);
+  const regexNatija = useMemo(() => regexTekshir(regexQoralama, regexNamuna), [regexQoralama, regexNamuna]);
+  const xarita = useMemo(() => bolimXaritasi(smeta, belgiRegex), [smeta, belgiRegex]);
   const taklifVaraq = useMemo(() => {
     const m = new Map<string, MiqdorQatori[]>();
     for (const x of royxat) if (x.holat === 'taklif' && !x.eskirgan) m.set(x.varaq, [...(m.get(x.varaq) ?? []), x]);
@@ -83,13 +91,14 @@ export default function LoyihaSmetaFakt() {
   }, [royxat]);
   const nomzodlar = useMemo(() => {
     const m = new Map<number, ReturnType<typeof moslash>>();
-    for (const x of royxat) if (x.holat === 'taklif' && !x.eskirgan) m.set(x.id, moslash({ nom: x.nom, belgi: x.belgi, birlik: x.birlik, tur: x.tur, varaq: x.varaq }, smeta, xarita));
+    for (const x of royxat) if (x.holat === 'taklif' && !x.eskirgan) m.set(x.id, moslash({ nom: x.nom, belgi: x.belgi, birlik: x.birlik, tur: x.tur, varaq: x.varaq }, smeta, xarita, { ...MOSLASH_STANDART, belgiRegex }));
     return m;
   }, [royxat, smeta, xarita]);
   const bogli = useMemo(() => new Set(royxat.flatMap((x) => x.boglar)), [royxat]);
   const farqlar = useMemo(() => farqlarniHisobla(farqD?.miqdorlar ?? [], smeta, bogli, {
+    belgiRegex,
     taxminiyNarx: (id) => { const v = Number((narxlar[id] ?? '').replace(/\s/g, '').replace(',', '.')); return narxlar[id] && Number.isFinite(v) && v > 0 ? v : null; },
-  }), [farqD, smeta, bogli, narxlar]);
+  }), [farqD, smeta, bogli, narxlar, belgiRegex]);
   const jami = useMemo(() => farqJami(farqlar), [farqlar]);
   const tarkib = useMemo(() => farqJamiTarkibi(farqlar), [farqlar]);
   const korinadigan = farqlar.filter((f) => (!filtrTur || f.tur === filtrTur) && (!filtrVaraq || f.varaq === filtrVaraq) && Math.abs(f.pulQQSbilan ?? 0) >= minPul);
@@ -184,6 +193,20 @@ export default function LoyihaSmetaFakt() {
     setBelgilangan(new Set()); toast(t('Tasdiqlandi: {n} ta', { n: qatorlar.length }), 'ok'); await yukla();
   }
 
+  const [narxTakliflar, setNarxTakliflar] = useState<Record<number, NarxTaklifi[]>>({});
+  const [narxManbasi, setNarxManbasi] = useState<Record<number, string>>({});
+  const [manbaBazasi, setManbaBazasi] = useState<{ qatorlar: ManbaQator[]; meta: Map<number, ManbaMeta> } | null>(null);
+  async function narxTakliflariOl(f: FarqQator) {
+    if (!kompaniyaId || f.miqdorId == null) return;
+    let baza = manbaBazasi;
+    if (!baza) {
+      const [q, m] = await Promise.all([sbNarxManbaQidiruvQatorlariOl(kompaniyaId), sbNarxManbalarOl(kompaniyaId)]);
+      baza = { qatorlar: (q.ok ? q.qatorlar ?? [] : []) as ManbaQator[], meta: new Map(((m.ok ? m.qatorlar ?? [] : []) as ManbaMeta[]).map((x) => [x.id, x])) };
+      setManbaBazasi(baza);
+    }
+    setNarxTakliflar((s) => ({ ...s, [f.miqdorId as number]: narxTakliflari({ nom: f.nom, birlik: f.birlik }, baza.qatorlar, baza.meta) }));
+  }
+
   async function vedomost() {
     if (!kompaniyaId || obyektId === '') return;
     setBand(true);
@@ -221,6 +244,19 @@ export default function LoyihaSmetaFakt() {
         <select aria-label={t('Obyekt')} className={inp} value={obyektId} onChange={(e) => setObyektId(e.target.value ? Number(e.target.value) : '')}>
           <option value="">{t('Obyektni tanlang')}</option>{obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}</select>
         {xato && <p className="text-sm text-danger">{xato}</p>}
+        <details className="text-xs">
+          <summary>{t('Varaq belgisi qoidasi (kompaniya nomlashi)')}</summary>
+          <div className="space-y-1 p-2">
+            <p>{t('Smeta bo‘lim nomidan varaq belgisini oladigan regex (1-guruh = belgi). Bu brauzerda saqlanadi.')}</p>
+            <input className={inp + ' w-full font-mono'} aria-label={t('Regex')} value={regexQoralama} onChange={(e) => setRegexQoralama(e.target.value)} />
+            <input className={inp + ' w-full'} aria-label={t('Namuna bo‘lim nomi')} value={regexNamuna} onChange={(e) => setRegexNamuna(e.target.value)} />
+            <p>{regexNatija.ok ? `${t('Topilgan belgilar')}: ${regexNatija.belgilar.join(', ') || '—'}` : t('Regex yaroqsiz yoki 1-guruh yo‘q')}</p>
+            <div className="flex gap-2">
+              <button type="button" className={tugmaAsosiy} disabled={!regexNatija.ok || !kompaniyaId} onClick={() => { if (kompaniyaId) { regexSaqla(kompaniyaId, regexQoralama); setBelgiRegex(regexQoralama); toast(t('Qoida saqlandi'), 'ok'); } }}>{t('Saqlash')}</button>
+              <button type="button" className={tugma} onClick={() => { if (kompaniyaId) { regexSaqla(kompaniyaId, null); setBelgiRegex(MOSLASH_STANDART.belgiRegex); setRegexQoralama(MOSLASH_STANDART.belgiRegex); } }}>{t('Standart')}</button>
+            </div>
+          </div>
+        </details>
 
         {obyektId !== '' && (
           <Bolim sarlavha="1. Chizma PDF ni o‘qish (brauzerda)">
@@ -312,7 +348,15 @@ export default function LoyihaSmetaFakt() {
                     <td className="num">{fmt(f.loyiha, 3)} {f.birlik}</td><td className="num">{fmt(f.smeta, 3)}</td><td className="num">{fmt(f.fakt, 3)}</td>
                     <td className="num">{fmt(f.farq, 3)}</td>
                     <td className="num">{fmt(f.pulQQSbilan)}<div className="text-xs">{fmt(f.pulQQSsiz)}</div>
-                      {f.tur === 'loyihada_bor_smetada_yoq' && f.miqdorId != null && <MoneyInput className={inp + ' w-28'} aria-label={t('Taxminiy birlik narxi (QQS siz)')} placeholder={t('narx (QQS siz)')} value={narxlar[f.miqdorId] ?? ''} onValueChange={(r) => setNarxlar((s) => ({ ...s, [f.miqdorId as number]: r }))} />}</td>
+                      {f.tur === 'loyihada_bor_smetada_yoq' && f.miqdorId != null && <MoneyInput className={inp + ' w-28'} aria-label={t('Taxminiy birlik narxi (QQS siz)')} placeholder={t('narx (QQS siz)')} value={narxlar[f.miqdorId] ?? ''} onValueChange={(r) => { setNarxlar((s) => ({ ...s, [f.miqdorId as number]: r })); setNarxManbasi((s) => ({ ...s, [f.miqdorId as number]: '' })); }} />}
+                      {f.tur === 'loyihada_bor_smetada_yoq' && f.miqdorId != null && (
+                        <div className="text-xs">
+                          <button type="button" className="underline" onClick={() => void narxTakliflariOl(f)}>{t('Narx manbalaridan taklif')}</button>
+                          {narxManbasi[f.miqdorId] && <div>{t('Manba')}: {narxManbasi[f.miqdorId]}</div>}
+                          {(narxTakliflar[f.miqdorId] ?? []).map((n) => (
+                            <div key={n.qatorId}><button type="button" className="underline" onClick={() => { setNarxlar((s) => ({ ...s, [f.miqdorId as number]: String(n.narxQQSsiz) })); setNarxManbasi((s) => ({ ...s, [f.miqdorId as number]: `${n.manba} — ${n.qatorNom.slice(0, 50)}${n.ndsdan ? ` (${t('NDS siz ga keltirilgan')})` : ''}` })); }}>{fmt(n.narxQQSsiz)}</button> · {n.manba}</div>))}
+                          {narxTakliflar[f.miqdorId]?.length === 0 && <div>{t('Manbalarda mos narx yo‘q — qo‘lda kiriting')}</div>}
+                        </div>)}</td>
                     <td className="text-xs">
                       {f.qaror && <div>{t(QAROR_NOMI[f.qaror])}{f.qarorEskirgan && <b className="text-warn"> · {t('revizya o‘zgargan, qayta ko‘ring')}</b>}</div>}
                       {f.miqdorId != null && (
