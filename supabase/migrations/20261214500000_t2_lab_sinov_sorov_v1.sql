@@ -432,6 +432,8 @@ begin
              where s.kompaniya_id = p_kompaniya_id and s.obyekt_id = p_obyekt_id and s.aosr_id is not null group by s.aosr_id) q), '[]'::jsonb));
 end $$;
 
+comment on function public.t2_lab_sorov_yarat_v1(bigint, bigint, bigint, text, bigint, bigint, bigint, text, text, integer, date, text, boolean, bigint, uuid) is 'versiya: tarix - t2_qator faqat id bo‘yicha tegishlilik tekshiruvi (smeta asosi o‘qilmaydi).';
+
 do $$
 declare f text;
 begin

@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Paperclip } from 'lucide-react';
 import { toast } from '../../umumiy/ui/Toast';
+import { Kiritma } from '../../umumiy/ui/Sahifa';
 import { sbLoyihaUmumiy } from '../../api/t2-loyiha';
 import { hujjatYukla, hujjatYuklabOlishUrl } from '../../api/t2-hujjat-canonical';
 import { natijaYubor, sorovTafsilotOl, type SorovTafsilot } from '../../api/t2-lab-sorov';
@@ -122,7 +123,7 @@ export function ProtokolForma({ kompaniyaId, id, onTayyor }: { kompaniyaId: numb
             <label className="text-xs text-text-dim">{t('Protokol sanasi')}<input type="date" className={`${inp} mt-1 block w-full`} value={sana} onChange={(e) => setSana(e.target.value)} /></label>
             {natija === 'mos_emas' && <label className="text-xs text-text-dim">{t('Bartaraf etish muddati')}<input type="date" className={`${inp} mt-1 block w-full`} value={muddat} onChange={(e) => setMuddat(e.target.value)} /></label>}
             <label className="text-xs text-text-dim md:col-span-3">{t('Xulosa')}{natija === 'mos_emas' ? ' *' : ''}<textarea className={`${inp} mt-1 block h-14 w-full`} value={xulosa} onChange={(e) => setXulosa(e.target.value)} /></label>
-            <label className="text-xs text-text-dim">{t('Hisob summasi (QQS bilan)')}<input inputMode="decimal" className={`${inp} mt-1 block w-full`} value={summa} onChange={(e) => setSumma(e.target.value)} /></label>
+            <label className="text-xs text-text-dim">{t('Hisob summasi (QQS bilan)')}<span className="mt-1 block"><Kiritma tur="money" qiymat={summa} ozgardi={setSumma} /></span></label>
             <label className="text-xs text-text-dim">{t('Hisob-faktura №')}<input className={`${inp} mt-1 block w-full`} value={invRaqam} onChange={(e) => setInvRaqam(e.target.value)} /></label>
             <label className="text-xs text-text-dim">{t('Hisob-faktura sanasi')}<input type="date" className={`${inp} mt-1 block w-full`} value={invSana} onChange={(e) => setInvSana(e.target.value)} /></label>
           </div>
