@@ -16,6 +16,8 @@
   "Telefon raqami va 8 xonali kod bilan taklif olgan bo‘lsangiz —": { "ru": "Если приглашение пришло с номером телефона и 8-значным кодом —", "en": "If your invitation came with a phone number and an 8-digit code —" },
   "shu sahifada qabul qiling": { "ru": "примите его на этой странице", "en": "accept it on this page" },
   "Birinchi kompaniyangizni darhol o‘zingiz ochasiz. Qo‘shimcha kompaniya uchun so‘rov (STIR bilan) platforma administratoriga yuboriladi; tasdiqlangach siz uning direktori bo‘lasiz.": { "ru": "Первую компанию вы открываете сами и сразу. Для дополнительной компании заявка (с ИНН) уходит администратору платформы; после одобрения вы станете её директором.", "en": "You open your first company yourself, instantly. For an additional company a request (with tax ID) goes to the platform administrator; once approved you become its director." },
+  "Davom etish": { "ru": "Продолжить", "en": "Continue" },
+  "Taklifni bekor qilish": { "ru": "Отмена приглашения", "en": "Cancel invitation" },
   "Kirish usuli": { "ru": "Способ входа", "en": "Sign-in method" },
   "Telefon va parol": { "ru": "Телефон и пароль", "en": "Phone and password" },
   "Telegram orqali": { "ru": "Через Telegram", "en": "With Telegram" },

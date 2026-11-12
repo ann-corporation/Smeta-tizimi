@@ -9,6 +9,7 @@ import { t } from '../../i18n/til';
 import { ROLE_LABELS } from '../../lib/company-authorization/permission-labels';
 import { telefonE164, telefonNiqob } from '../../lib/telefon-niqob';
 import { taklifBekorQil, taklifYarat, takliflarRoyxati, type TaklifHolat, type TaklifQator } from '../../api/kirish-taklif';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { useYordamchiSahifaAmallari } from '../../lib/yordamchi/sahifa-amal-store';
 
 /** Dala rollari birinchi (kadrlar xodimi ham faqat shularni beradi); qolganlari — direktor uchun. */
@@ -62,7 +63,7 @@ export function OdamTakliflari({ kompaniyaId, isDirector }: { kompaniyaId: numbe
     void yukla();
   }
   async function bekor(id: number) {
-    if (!window.confirm(t('Taklif bekor qilinsinmi? Kod va havola ishlamay qoladi.'))) return;
+    if (!(await tasdiqSora({ sarlavha: t('Taklifni bekor qilish'), matn: t('Taklif bekor qilinsinmi? Kod va havola ishlamay qoladi.'), xavfli: true }))) return;
     const r = await taklifBekorQil(kompaniyaId, id);
     if (!r.ok) { setXato(t(XATO_MATN[r.code || ''] ?? 'Bekor qilib bo‘lmadi.')); return; }
     void yukla();
