@@ -10,6 +10,17 @@
         "ikonka": "BarChart",
         "sahifalar": [
           {
+            "yol": "/admin/pult",
+            "ilova": "yadro",
+            "nom": "Direktor pulti",
+            "ruxsat": [
+              "control.company.read",
+              "financial.write"
+            ],
+            "modul": "module.erp",
+            "scope": "COMPANY_SCOPED"
+          },
+          {
             "yol": "/admin/dashboard",
             "ilova": "yadro",
             "nom": "Rahbar paneli",
@@ -221,6 +232,22 @@
         ]
       },
       {
+        "nom": "Bugun (telefon)",
+        "ikonka": "HardHat",
+        "sahifalar": [
+          {
+            "yol": "/admin/bugun",
+            "ilova": "ff",
+            "nom": "Bugun (usta, telefon)",
+            "ruxsat": [
+              "control.company.read",
+              "fakt.write",
+              "fakt.read+self.work.write"
+            ]
+          }
+        ]
+      },
+      {
         "nom": "M-29 (material sarfi)",
         "ikonka": "Box",
         "sahifalar": [
@@ -358,22 +385,9 @@
             "qoshimcha": true
           },
           {
-            "yol": "/admin/crm",
+            "yol": "/admin/kontragentlar",
             "ilova": "moliya",
-            "nom": "Kontragentlar (CRM/EDO)",
-            "ruxsat": [
-              "control.company.read",
-              "financial.write",
-              "project.write",
-              "object.write"
-            ],
-            "modul": "module.loyiha",
-            "qoshimcha": true
-          },
-          {
-            "yol": "/admin/aloqalar",
-            "ilova": "hujjat",
-            "nom": "Tomonlar aloqasi",
+            "nom": "Kontragentlar",
             "ruxsat": [
               "control.company.read",
               "financial.write",
@@ -449,6 +463,80 @@
         ]
       },
       {
+        "nom": "Texnik nazorat",
+        "ikonka": "ShieldCheck",
+        "sahifalar": [
+          {
+            "yol": "/admin/nazorat",
+            "ilova": "hujjat",
+            "nom": "Texnik nazorat",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "quality.inspect"
+            ],
+            "modul": "module.loyiha",
+            "qoshimcha": true
+          },
+          {
+            "yol": "/admin/nazorat/tekshiruv",
+            "ilova": "hujjat",
+            "nom": "Yangi tekshiruv (sayt)",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "quality.inspect"
+            ],
+            "modul": "module.loyiha",
+            "qoshimcha": true
+          },
+          {
+            "yol": "/admin/nazorat/jurnal",
+            "ilova": "hujjat",
+            "nom": "Tekshiruvlar jurnali",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "quality.inspect"
+            ],
+            "modul": "module.loyiha",
+            "qoshimcha": true
+          }
+        ]
+      },
+      {
+        "nom": "Chizmalar",
+        "ikonka": "FileStack",
+        "sahifalar": [
+          {
+            "yol": "/admin/chizmalar",
+            "ilova": "hujjat",
+            "nom": "Chizmalar va revizyalar",
+            "ruxsat": [
+              "control.company.read",
+              "design.read",
+              "design.write",
+              "document.write"
+            ]
+          },
+          {
+            "yol": "/admin/loyihachi",
+            "ilova": "hujjat",
+            "nom": "Loyihachi: bugun",
+            "ruxsat": [
+              "design.write",
+              "design.issue",
+              "control.company.read",
+              "project.write",
+              "object.write"
+            ]
+          }
+        ]
+      },
+      {
         "nom": "Kiruvchi (tomonlar)",
         "ikonka": "Inbox",
         "sahifalar": [
@@ -458,7 +546,8 @@
             "nom": "Buyurtmachi kabineti",
             "ruxsat": [
               "control.company.read",
-              "project.read"
+              "project.read",
+              "quality.inspect"
             ],
             "modul": "module.loyiha",
             "qoshimcha": true
@@ -469,7 +558,9 @@
             "nom": "Tomonlar hujjatlari",
             "ruxsat": [
               "control.company.read",
-              "project.read"
+              "project.read",
+              "design.read",
+              "quality.inspect"
             ],
             "modul": "module.loyiha",
             "qoshimcha": true
@@ -480,7 +571,21 @@
             "nom": "Murojaatlar (remark, so‘rov)",
             "ruxsat": [
               "control.company.read",
-              "project.read"
+              "project.read",
+              "design.read",
+              "quality.inspect"
+            ],
+            "modul": "module.loyiha",
+            "qoshimcha": true
+          },
+          {
+            "yol": "/admin/laboratoriya",
+            "ilova": "hujjat",
+            "nom": "Laboratoriya (sinov so‘rovlari)",
+            "ruxsat": [
+              "control.company.read",
+              "project.read",
+              "quality.read"
             ],
             "modul": "module.loyiha",
             "qoshimcha": true
@@ -584,6 +689,22 @@
             ],
             "modul": "module.erp",
             "qoshimcha": true
+          }
+        ]
+      },
+      {
+        "nom": "Yetkazuvchi: bugun",
+        "ikonka": "Truck",
+        "sahifalar": [
+          {
+            "yol": "/admin/yetkazuvchi",
+            "ilova": "logistika",
+            "nom": "Yetkazuvchi: bugun",
+            "ruxsat": [
+              "control.company.read",
+              "supply.offer",
+              "supply.fulfil"
+            ]
           }
         ]
       },

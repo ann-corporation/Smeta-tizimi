@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { bankKalitlari, bankMosla, bankParse, bankYuk, csvGrid } from './bank';
 import { kontragentGuruhla, ndsJami, osvMuvozanat, saldoTomoni, sverkaQatorlari } from './hisob';
-import { aktSverkaHujjat } from './eksport';
+import { aktSverkaHujjat, osvHujjat } from './eksport';
 import type { BuxShartnoma } from '../../api/t2-bux-hisob';
 
 // Faqat sintetik ma'lumot.
@@ -80,6 +80,16 @@ describe('akt-sverka Excel', () => {
     const r = aktSverkaHujjat({ kompaniya: 'TEST', kontragent: 'TEST BUYURTMACHI', dan: '2026-01-01', gacha: '2026-01-31', ochilish: 0, hujjatlar: [h] });
     expect(r.bytes[0]).toBe(0x50); // ZIP (PK)
     expect(r.faylNomi).toContain('АКТ_СВЕРКИ');
+    expect(r.faylNomi.endsWith('.xlsx')).toBe(true);
+  });
+});
+
+describe('ОСВ Excel', () => {
+  it('oborot-saldo Excel: xlsx baytlari va fayl nomi', () => {
+    const r = osvHujjat({ kompaniya: 'TEST', osv: { ok: true, dan: '2026-01-01', gacha: '2026-01-31', jami_dt: 1120, jami_kt: 1120, jami_ochilish: 0,
+      qatorlar: [{ kod: '4010', nom_uz: 'x', nom_ru: 'x', tur: 'aktiv', ochilish: 0, dt: 1120, kt: 0, yopilish: 1120 }, { kod: '9010', nom_uz: 'y', nom_ru: 'y', tur: 'daromad', ochilish: 0, dt: 0, kt: 1120, yopilish: -1120 }] } });
+    expect(r.bytes[0]).toBe(0x50);
+    expect(r.faylNomi).toContain('ОСВ');
     expect(r.faylNomi.endsWith('.xlsx')).toBe(true);
   });
 });

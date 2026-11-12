@@ -1,0 +1,86 @@
+{
+ "Hisobotni yig‘ib bo‘lmadi.": {
+  "ru": "Не удалось сформировать отчёт.",
+  "en": "Could not build the report."
+ },
+ "Portfel bo‘sh: pudratchi sizga obyektni ochgach shu yerda ko‘rinadi.": {
+  "ru": "Портфель пуст: объекты появятся здесь, когда подрядчик откроет их вам.",
+  "en": "The portfolio is empty: objects appear here once a contractor opens them to you."
+ },
+ "Bugungi sana": {
+  "ru": "Сегодняшняя дата",
+  "en": "Today"
+ },
+ "Qaror kutayotgan": {
+  "ru": "Ожидают решения",
+  "en": "Awaiting a decision"
+ },
+ "{n} ta obyektda noma’lum": {
+  "ru": "неизвестно по объектам: {n}",
+  "en": "unknown for {n} objects"
+ },
+ "«—» = noma’lum yoki pudratchi bu ko‘rsatkichni sizga ochmagan (nol emas). Fakt — pudratchi o‘zi kiritgan hisobot; sertifikatlangan emas. Tasdiqlanmagan to‘lov xabari qarzdan ayirilmaydi.": {
+  "ru": "«—» = неизвестно или подрядчик не открыл этот показатель (это не ноль). Факт — отчёт подрядчика, не сертифицирован. Неподтверждённое уведомление об оплате не вычитается из долга.",
+  "en": "«—» = unknown or not shared by the contractor (not zero). Actuals are the contractor’s own report, not certified. An unconfirmed payment notice is not deducted from the debt."
+ },
+ "hujjat kutmoqda": {
+  "ru": "док. ожидают",
+  "en": "documents waiting"
+ },
+ "qarz bor": {
+  "ru": "есть долг",
+  "en": "has debt"
+ },
+ "ochiq murojaat": {
+  "ru": "открытых обращений",
+  "en": "open requests"
+ },
+ "kutilmoqda (tasdiqlanmagan)": {
+  "ru": "ожидает (не подтверждено)",
+  "en": "pending (unconfirmed)"
+ },
+ "To‘lov xabari": {
+  "ru": "Уведомление об оплате",
+  "en": "Payment notice"
+ },
+ "Summa noldan katta bo‘lishi kerak": {
+  "ru": "Сумма должна быть больше нуля",
+  "en": "The amount must be greater than zero"
+ },
+ "To‘lov xabari pudratchiga yuborildi": {
+  "ru": "Уведомление об оплате отправлено подрядчику",
+  "en": "Payment notice sent to the contractor"
+ },
+ "Pudratchi hali sizga to‘lov holatini ochmagan — xabar yozish uchun u “Tomonlar aloqasi”da ruxsat berishi kerak.": {
+  "ru": "Подрядчик ещё не открыл вам состояние оплат — для уведомления он должен выдать доступ в «Связи сторон».",
+  "en": "The contractor has not opened payment status to you yet — they must grant access in “Parties”."
+ },
+ "To‘lov topshiriq №": {
+  "ru": "№ платёжного поручения",
+  "en": "Payment order No."
+ },
+ "Xabar yuborish": {
+  "ru": "Отправить уведомление",
+  "en": "Send notice"
+ },
+ "To‘lov tasdiqlandi va qarzga yozildi": {
+  "ru": "Оплата подтверждена и учтена в долге",
+  "en": "Payment confirmed and recorded against the debt"
+ },
+ "To‘lov xabari rad etildi": {
+  "ru": "Уведомление об оплате отклонено",
+  "en": "Payment notice rejected"
+ },
+ "Murojaat yuborildi, lekin {n} ta foto biriktirilmadi — murojaatni ochib qayta qo‘shing": {
+  "ru": "Обращение отправлено, но фото не прикреплено: {n}. Откройте обращение и добавьте заново",
+  "en": "Request sent, but {n} photos were not attached — open the request and add them again"
+ },
+ "Foto / fayl dalil (ixtiyoriy)": {
+  "ru": "Фото / файл-доказательство (необязательно)",
+  "en": "Photo / file evidence (optional)"
+ },
+ "Foto dalil": {
+  "ru": "Фото-доказательство",
+  "en": "Photo evidence"
+ }
+}
