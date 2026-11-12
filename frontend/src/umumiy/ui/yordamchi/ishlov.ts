@@ -17,9 +17,11 @@ import { aosrQoralamaReja, aosrYetishmaydi, aosrYetishmaydiMatni, f2QoralamaReja
 import { sahifaUrl } from '../../../lib/yordamchi/sahifa-qidiruv';
 import { koRsatHavolasi } from '../../../lib/kurs/tutor';
 import { osuvchiMatni } from '../../../lib/osuvchi/jarvis';
+import { kimJavobi, type KimMalumot } from '../../../lib/yordamchi/kim';
 
 /** AiChat ga beriladigan yagona yordamchi ulanishi (AiHelper yig'adi). */
-export type YordamchiUlanish = { sahifalar: readonly YordamchiSahifa[]; obyektlar: readonly ObyektQisqa[]; joriyObyekt: ObyektQisqa | null; obyektTanla: (id: number) => void; motor: Motor; hujjat: HujjatDeps | null; sahifaAmallar: readonly SahifaAmalQisqa[]; sahifaAmalBajar: (id: string) => void };
+export type YordamchiUlanish = { sahifalar: readonly YordamchiSahifa[]; obyektlar: readonly ObyektQisqa[]; joriyObyekt: ObyektQisqa | null; obyektTanla: (id: number) => void; motor: Motor; hujjat: HujjatDeps | null; sahifaAmallar: readonly SahifaAmalQisqa[]; sahifaAmalBajar: (id: string) => void;
+  /** Sessiyadan olingan «kim» (useMen/useKompaniya) — «men kimman» savollariga bepul javob. */ kim?: KimMalumot };
 
 export type IshlovHavola = { yol: string; nom: string };
 export type IshlovTaklif = { amallar: Array<SahifaAmal & { ogoh: string | null }>; vositalar: NonNullable<Motor['vositalar']>; qoshimcha: Motor['qoshimcha'] };
@@ -45,6 +47,7 @@ export type IshlovDeps = {
   hujjat?: HujjatDeps;
   /** Hozirgi sahifa amalini bajaradi (registry hook); 	asdiq bo'lsa — avval taklif kartasi. */
   sahifaAmalBajar?: (id: string) => void;
+  kim?: KimMalumot;
 };
 
 const XATO_KODLARI: Record<string, string> = {
@@ -60,6 +63,7 @@ const oyMatni = (oy: string | null) => (oy ? `, ${t(OY_NOMI[Number(oy.slice(5, 7
 export async function yordamchiIshla(n: Niyat, matn: string, d: IshlovDeps): Promise<IshlovNatija> {
   switch (n.tur) {
     case 'yordam': return { tur: 'javob', matn: yordamMatni(d.sahifalar) };
+    case 'kim': return d.kim ? { tur: 'javob', matn: kimJavobi(d.kim, n.qism, t) } : { tur: 'javob', matn: t('Sessiya ma’lumoti hali yuklanmadi — bir lahzadan keyin qayta so‘rang.') };
     case 'dars': {
       if (!n.dars) return { tur: 'javob', matn: t('Kurs bo‘limida o‘z yo‘lingiz bor: darslar, progress va yo‘l-yo‘riq.'), havolalar: [{ yol: '/admin/kurs', nom: t('Kurs (o‘rganish)') }] };
       const dars = n.dars;
