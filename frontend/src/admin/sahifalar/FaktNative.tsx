@@ -17,13 +17,14 @@ import { toast } from '../../umumiy/ui/Toast';
 import { t } from '../../i18n/til';
 import { FaktJurnal, type SaqlashFn } from './FaktJurnal';
 import { XotiradanFakt } from './XotiradanFakt';
+import { UstaKutilmoqda } from './UstaKutilmoqda';
 import { FaktQamrov } from './FaktQamrov';
 import { jurnalQur, type JurnalHolat, type JurnalIsh } from '../../lib/fakt-jurnal';
 import { bajarilmaydiXarita, faktQamrovBekor, holatXarita, markirovkaIshlari } from '../../lib/fakt-qamrov';
 
 
 export function FaktNative() {
-  const { joriy } = useKompaniya(); const navigate = useNavigate(); const [params, setParams] = useSearchParams(); const workspace = usePTOWorkspace();
+  const { joriy, superadmin } = useKompaniya(); const navigate = useNavigate(); const [params, setParams] = useSearchParams(); const workspace = usePTOWorkspace();
   const jurnalSaqlash = useRef<SaqlashFn | null>(null); const [otmoqda, setOtmoqda] = useState(false);
   const [marker, setMarker] = useState(''); const [saving, setSaving] = useState(false);
   /** Egasi 2026-10-01: tezkor jadval (ko'p qatorni bir yo'la saqlash) asosiy ko'rinish; daraxt — ixtiyoriy. */
@@ -81,6 +82,7 @@ export function FaktNative() {
   return <Sahifa sarlavha="Bajarilgan ishlar (Fakt)" tavsif="Smeta hajmi va Faktni RZ → BL → RS/MAT/OB daraxtida boshqaring" amallar={workspace.isProvider && valid ? amallar : undefined}>
     <div className="flex h-full min-h-0 flex-col gap-3">
       <ObyektQadamlari joriy="fakt" obyektId={valid ? obyektId : null} />
+      {valid && joriy?.id && (superadmin || joriy.permissions?.includes('fakt.write')) && <UstaKutilmoqda kompaniyaId={joriy.id} obyektId={obyektId} qatorlar={rows} onTasdiqlandi={() => void holatniYangila()} />}
       {!workspace.isProvider && <section className="fz-card flex flex-wrap items-end gap-2 p-3">
         <label className="min-w-[260px] flex-1 text-[12px] font-medium text-text-dim">{t('Obyekt')}
           <select aria-label={t('Obyekt')} value={valid ? obyektId : ''} onChange={e => { const o = obyektlar.find(x => x.id === Number(e.target.value)); if (workspace.isProvider) workspace.setObjectId(o?.id ?? null); else setParams(o ? { obyekt: String(o.id) } : {}); }} className="input mt-1.5 block h-9 w-full px-2 text-[13px] text-text">

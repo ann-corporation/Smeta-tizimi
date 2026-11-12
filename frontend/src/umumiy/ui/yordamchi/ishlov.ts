@@ -63,7 +63,9 @@ export async function yordamchiIshla(n: Niyat, matn: string, d: IshlovDeps): Pro
       if (!n.aniqOchish) return { tur: 'otkaz', havolalar: [h(n.sahifa)] };
       const ctx = n.obyekt ? ` (${n.obyekt.nom}${oyMatni(n.oy)})` : n.oy ? ` (${oyMatni(n.oy).slice(2)})` : '';
       const qo = n.qoralama ? `\n${t('Qoralamani shu sahifada o‘zingiz tekshirib tasdiqlaysiz — men hujjatni o‘zim tasdiqlamayman.')}` : '';
-      return { tur: 'javob', matn: `${t('Ochaman')}: **${n.sahifa.nom}**${ctx}.${qo}`, havolalar: [h(n.sahifa)], ochish: n.sahifa.url };
+      /* «zayavka yarat»: zayavka sahifasi yangi zayavka formasi ochiq holda keladi (yarat=1); yuborishni foydalanuvchi o'zi bosadi (tasdiq kartasi vazifasi). */
+      const url = n.qoralama && n.sahifa.yol === '/admin/zayavka' ? n.sahifa.url + (n.sahifa.url.includes('?') ? '&' : '?') + 'yarat=1' : n.sahifa.url;
+      return { tur: 'javob', matn: `${t('Ochaman')}: **${n.sahifa.nom}**${ctx}.${qo}`, havolalar: [h(n.sahifa)], ochish: url };
     }
 
     case 'sahifaTanla':
