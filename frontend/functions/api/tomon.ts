@@ -20,7 +20,7 @@ const OQISH: Record<string, string> = {
   aloqa: 't2_tomon_aloqa_tafsilot_v1',
   taqdimlar: 't2_tomon_taqdimlar_v1',
   taqdim: 't2_tomon_taqdim_tafsilot_v1',
-  obyektlar: 't2_zakazchik_obyektlar_v1',
+  obyektlar: 't2_zakazchik_obyektlar_v2',   // 20261217800000: tez ro'yxat; ustama=1&obyekt_id= — bitta obyekt uchun to'liq (podval bilan)
   qidir: 't2_tomon_kompaniya_qidir_v1',
   resurslar: 't2_tomon_resurslar_v1',
   murojaatlar: 't2_tomon_murojaat_royxat_v1',
@@ -337,7 +337,8 @@ export function oqishYuki(bolim: string, q: URLSearchParams): Yuk | string {
   if (!sonmi(k)) return 'kompaniya_id kerak';
   const p_kompaniya_id = Number(k);
   switch (bolim) {
-    case 'aloqalar': case 'obyektlar': case 'resurslar': case 'murojaat_turlari': case 'imzochi_tarix': case 'bugun': return { p_kompaniya_id };
+    case 'obyektlar': return { p_kompaniya_id, p_obyekt_id: ixtSon(q.get('obyekt_id')), p_ustama: q.get('ustama') === '1' && sonmi(q.get('obyekt_id')) };
+    case 'aloqalar': case 'resurslar': case 'murojaat_turlari': case 'imzochi_tarix': case 'bugun': return { p_kompaniya_id };
     case 'tolovlar': {
       const y = q.get('yonalish'), h = q.get('holat');
       return { p_kompaniya_id, p_yonalish: y === 'menga' || y === 'mendan' ? y : null, p_holat: h && /^[a-z_]{3,20}$/.test(h) ? h : null, p_limit: ixtSon(q.get('limit')) ?? 100 };

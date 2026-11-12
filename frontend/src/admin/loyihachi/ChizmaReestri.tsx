@@ -6,6 +6,7 @@
  * Pudratchi/texnadzor: yangi revizyani qabul qiladi yoki tuzatish so'raydi; smeta qatori / АОСР ni revizyaga bog'laydi (eskirsa ogohlantiriladi);
  * loyihachi taklifini smeta o'zgarishiga aylantiradi (PTO). Ruxsat serverda; bu yerda faqat ko'rinish.
  */
+import { matnSora } from '../../umumiy/ui/Tasdiq';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Paperclip } from 'lucide-react';
 import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
@@ -138,7 +139,7 @@ function Takliflar({ kompaniyaId, toplam, r, egasi, yangila }: { kompaniyaId: nu
   };
   const qaror = async (k: Taklif, q: 'ozgarishga' | 'rad') => {
     let sabab = '';
-    if (q === 'rad') { sabab = window.prompt(t('Rad etish sababi?')) ?? ''; if (sabab.trim().length < 3) return; }
+    if (q === 'rad') { sabab = (await matnSora({ matn: 'Rad etish sababi?', majburiy: true, minUzunlik: 3, tasdiqMatni: 'Rad etish', xavfli: true })) ?? ''; if (sabab.trim().length < 3) return; }
     setBand(true);
     const x = await taklifQarori(kompaniyaId, { taklifId: k.id, qaror: q, obyektId: toplam.obyekt_id, qatorId: qatorId[k.id]?.id ?? null, izoh: sabab });
     setBand(false);

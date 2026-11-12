@@ -3,6 +3,7 @@
  * Loyiha | Smeta | Fakt uch ustunli solishtirma, pul ta'siri (lib/hisob-yadro) va har farq uchun qaror (mavjud zamena / qo'shimcha ish RPC lari).
  * Asl smeta o'zgarmaydi. AI bilan o'qish (rasm) alohida PR #266 (`/api/ai-loyiha`) ga tayanadi: bu yerda faqat taklif ro'yxati.
  */
+import { matnSora } from '../../umumiy/ui/Tasdiq';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
@@ -254,6 +255,11 @@ export default function LoyihaSmetaFakt() {
     if (!r.ok) { toast(r.error, 'danger'); return; }
     toast(t('Qaror yozildi'), 'ok'); await yukla();
   }
+  /** «Loyiha xato / e'tiborsiz»: sabab sahifa ichidagi dialogda so'raladi (majburiy); bekor = hech narsa bo'lmaydi. */
+  async function etiborYoq(f: FarqQator) {
+    const s = await matnSora({ matn: 'Nega e’tiborsiz? (sabab majburiy)', majburiy: true, tasdiqMatni: 'Saqlash' });
+    if (s) await oddiyQaror(f, 'etibor_yoq', s);
+  }
   function bogla(f: FarqQator) {
     const q = f.miqdorId != null ? tanlov[f.miqdorId] : undefined;
     if (f.tur === 'loyihada_bor_smetada_yoq' && kompaniyaId && f.miqdorId != null) {
@@ -430,7 +436,7 @@ export default function LoyihaSmetaFakt() {
                           <button type="button" className={tugma} onClick={() => setOyna({ f, tur: 'zamena' })}>{t('Zamena')}</button>
                           <button type="button" className={tugma} onClick={() => setOyna({ f, tur: 'qoshimcha' })}>{t('Qo‘shimcha ish')}</button>
                           <button type="button" className={tugma} onClick={() => { void oddiyQaror(f, 'pereraschet', t('Pereraschet / smeta o‘zgarishiga yuborildi')); window.open(`/admin/smeta-studio?obyekt=${obyektId}`, '_blank'); }}>{t('Pereraschet')}</button>
-                          <button type="button" className={tugma} onClick={() => { const s = window.prompt(t('Nega e’tiborsiz? (sabab majburiy)')); if (s) void oddiyQaror(f, 'etibor_yoq', s); }}>{t('Loyiha xato / e’tiborsiz')}</button>
+                          <button type="button" className={tugma} onClick={() => void etiborYoq(f)}>{t('Loyiha xato / e’tiborsiz')}</button>
                         </div>)}
                     </td>
                   </tr>);

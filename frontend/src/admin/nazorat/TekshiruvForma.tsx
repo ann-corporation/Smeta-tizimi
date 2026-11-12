@@ -3,6 +3,7 @@
  * "Mos / Mos emas / O'tkazish". Nomuvofiq band: nima noto'g'ri (izoh) + foto majburiy. Yakunlanganda tizim har nomuvofiq band uchun
  * muddati bilan PREDPISANIYA beradi (pudratchiga ko'rinadi). Qoralama istalgan vaqt saqlanadi.
  */
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
@@ -66,9 +67,9 @@ export default function TekshiruvForma() {
   const shablonNomi = tekshiruvShabloni(shablon)?.nom ?? 'Boshqa ish';
   const ozgartir = (i: number, p: Partial<TekshiruvBand>) => { setBandlar((b) => b.map((x, k) => (k === i ? { ...x, ...p } : x))); setNatija(null); };
 
-  function shablonTanla(k: string) {
+  async function shablonTanla(k: string) {
     const s = tekshiruvShabloni(k); if (!s) return;
-    if (bandlar.some((x) => x.natija !== 'yoq') && !window.confirm(t('Joriy belgilar o‘chadi. Davom etamizmi?'))) return;
+    if (bandlar.some((x) => x.natija !== 'yoq') && !(await tasdiqSora({ matn: 'Joriy belgilar o‘chadi. Davom etamizmi?', xavfli: true }))) return;
     setShablon(k); setBandlar(bandlarniBoshlash(s)); setNatija(null);
   }
   function bandQosh() {
