@@ -300,6 +300,8 @@ export const onRequestPost: PagesFunction<{
         /* Issue #195 (egasi 2026-10-29): RAHBAR PANELI — kartalar, pul oqimi, obyektlar matritsasi, diqqat (top-10), tasdiq navbati.
            Summalar yagona «summa paketi» (QQS bilan · ustamali · прямые + kesim). `stable`; a'zolik + financial.read ichida. */
         rahbar_panel_v1: 'kompaniya_actor',
+        /* Direktor pulti (V3): 6 plitka — «tayyor hisoblar» (t2_obyekt_kesh) orqali tez. `stable`; a'zolik + financial.read ichida. */
+        rahbar_pult_v1: 'kompaniya_actor',
         /* Egasi 2026-10-02: token balansi, tarif, narxlar, harakatlar (sotiladigan PTO). */
         token_holat_v1: 'kompaniya_actor',
         /* Egasi 2026-10-21 («Telegram modeli»): kompaniyada qaysi modullar yoqilgan — menyu shundan (a'zolik ichida). */
