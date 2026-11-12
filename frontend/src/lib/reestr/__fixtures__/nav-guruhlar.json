@@ -207,7 +207,13 @@
               "fakt.read+self.work.write"
             ],
             "scope": "OBJECT_SCOPED"
-          },
+          }
+        ]
+      },
+      {
+        "nom": "Naryad (brigada)",
+        "ikonka": "ClipboardList",
+        "sahifalar": [
           {
             "yol": "/admin/naryad",
             "ilova": "ff",
