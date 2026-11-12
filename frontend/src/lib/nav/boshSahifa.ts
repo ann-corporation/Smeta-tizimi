@@ -23,8 +23,8 @@ const ROL_BOSH_SAHIFA: Readonly<Record<string, string>> = {
   pto: '/admin/obyektlar',
   bugalter: '/admin/obyektlar',
   prorab: '/admin/obyektlar',
-  boss: '/admin/dashboard',
-  rahbar: '/admin/dashboard',
+  boss: '/admin/pult',
+  rahbar: '/admin/pult',
   buyurtmachi: '/admin/zakazchik',
   usta: '/admin/fakt',
   brigadir: '/admin/fakt',
@@ -32,7 +32,7 @@ const ROL_BOSH_SAHIFA: Readonly<Record<string, string>> = {
   taminotchi: '/admin/logistika',
   mexanik: '/admin/erp',
   kadr: '/admin/erp',
-  inspektor: '/admin/aosr',
+  inspektor: '/admin/nazorat',
   loyihachi: '/admin/loyihachi',
 };
 
