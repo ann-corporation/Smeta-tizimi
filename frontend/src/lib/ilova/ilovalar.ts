@@ -66,7 +66,7 @@ export const AMAL_ILOVA: Readonly<Record<string, IlovaKod>> = {
   sklad_kirim_import_v1: 'logistika', sklad_kirim_storno_v1: 'logistika', skladga_yozish: 'logistika', sklad_mustaqil_yarat: 'logistika',
   // Kadrlar
   kadr_mustaqil_yarat: 'hr', texnika_mustaqil_yarat: 'hr',
-  hr_xodim_saqla_v1: 'hr', hr_sxema_saqla_v1: 'hr', hr_kalendar_saqla_v1: 'hr', hr_tabel_saqla_v1: 'hr', hr_tuzatma_saqla_v1: 'hr', hr_tuzatma_qaror_v1: 'hr', hr_oylik_v1: 'hr',
+  hr_xodim_saqla_v1: 'hr', hr_sxema_saqla_v1: 'hr', hr_kalendar_saqla_v1: 'hr', hr_tabel_saqla_v1: 'hr', hr_tuzatma_saqla_v1: 'hr', hr_tuzatma_qaror_v1: 'hr', hr_oylik_v1: 'hr', hr_kpi_qoida_saqla_v1: 'hr',
   // Buxgalteriya
   bux_boshlash_v1: 'moliya', bux_hisob_saqla_v1: 'moliya', bux_moslik_saqla_v1: 'moliya', bux_avto_v1: 'moliya', bux_qolda_v1: 'moliya', bux_storno_v1: 'moliya', bux_davr_v1: 'moliya', bux_shablon_tanla_v1: 'moliya', bux_davr_blok_v1: 'moliya', bux_hisob_tasdiq_v1: 'moliya',
   bux_bank_import_v1: 'moliya', bux_tashqi_v1: 'moliya',
@@ -91,7 +91,7 @@ export function amalIlovasi(amal: string | null | undefined): IlovaKod | null {
 export const SORO_ILOVA: Readonly<Record<string, IlovaKod>> = {
   qarzdorlik_royxat_v1: 'moliya', qarz_svod_v1: 'moliya',
   sklad_kirim_royxat_v1: 'logistika',
-  hr_xodimlar_v1: 'hr', hr_oy_v1: 'hr', hr_kpi_v1: 'hr', hr_oylik_buxgalteriya_v1: 'hr',
+  hr_xodimlar_v1: 'hr', hr_oy_v1: 'hr', hr_kpi_v1: 'hr', hr_oylik_buxgalteriya_v1: 'hr', hr_men_v1: 'hr', hr_qoida_v1: 'hr',
   bux_holat_v1: 'moliya', bux_jurnal_v1: 'moliya', bux_osv_v1: 'moliya', bux_kontragent_v1: 'moliya', bux_nds_v1: 'moliya', bux_tolov_v1: 'moliya', bux_kartochka_v1: 'moliya', bux_sozlama_v1: 'moliya',
   yb_ol_v1: 'logistika',
 };

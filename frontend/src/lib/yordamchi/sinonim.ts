@@ -55,7 +55,7 @@ export const SAHIFA_SINONIM: Readonly<Record<string, Sinonim>> = {
   '/admin/tender': { uz: ['tender', 'xarid'], ru: ['тендер', 'закупка'], en: ['tender', 'procurement'] },
   '/admin/yuk-birjasi': { uz: ['yuk birjasi', 'yuk'], ru: ['биржа грузов', 'грузы'], en: ['freight exchange', 'cargo'] },
   '/admin/erp': { uz: ['texnika', 'kadrlar'], ru: ['кадры и техника', 'техника'], en: ['staff and machinery', 'machinery'] },
-  '/admin/hr': { uz: ['kpi', 'ish haqi', 'maosh'], ru: ['зарплата', 'кпи'], en: ['payroll', 'salary', 'kpi'] },
+  '/admin/hr': { uz: ['kpi', 'ish haqi', 'maosh', 'mening oyligim', 'oyligim', 'mening kpi'], ru: ['зарплата', 'кпи', 'моя зарплата', 'мой кпи'], en: ['payroll', 'salary', 'kpi', 'my salary', 'my kpi'] },
   '/admin/sotuv': { uz: ['uy sotish', 'sotuv'], ru: ['продажа квартир', 'продажи'], en: ['home sales', 'sales'] },
   '/admin/kompaniya': { uz: ['kompaniya', 'azolar', 'modullar'], ru: ['компания', 'участники компании', 'модули'], en: ['company', 'members', 'modules'] },
   '/admin/system-control': { uz: ['integratsiyalar', 'audit'], ru: ['интеграции', 'аудит'], en: ['integrations', 'audit'] },

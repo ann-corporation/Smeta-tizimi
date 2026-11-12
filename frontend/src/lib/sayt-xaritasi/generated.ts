@@ -373,6 +373,10 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_hr_oylik_hisobla_v1"
     },
     {
+      "amal": "hr_kpi_qoida_saqla_v1",
+      "rpc": "t2_hr_kpi_qoida_saqla_v1"
+    },
+    {
       "amal": "bux_boshlash_v1",
       "rpc": "t2_bux_boshlash_v1"
     },
