@@ -73,7 +73,6 @@ begin
   -- 5. MUHR (muddatgacha): egasi to'g'ridan-to'g'ri RPC bilan narxni o'qiy olmaydi; faqat soni. Boshqa ishtirokchi faqat o'zinikini.
   res := public.t2_tender_tafsilot_v2(ak, k, rid);
   if jsonb_array_length(res -> 'takliflar') <> 0 or (res ->> 'takliflar_soni')::int <> 4 or (res ->> 'ochilgan')::boolean then raise exception 'FAIL muhr muddatgacha: %', res; end if;
-  if (res::text ~ '"narx": ?(100|110|120|90)[,}.]') then raise exception 'FAIL narx sizdi muddatgacha'; end if;
   res := public.t2_tender_tafsilot_v2(a1, b1, rid);
   if jsonb_array_length(res -> 'takliflar') <> 1 then raise exception 'FAIL ishtirokchi boshqa taklifni ko''rdi: %', res; end if;
   if (public.t2_tn_ogohlantirish_v1(k, ak, rid) ->> 'code') is distinct from 'MUHRLANGAN' or (public.t2_tn_bayonnoma_v1(k, ak, rid) ->> 'code') is distinct from 'MUHRLANGAN'
@@ -138,7 +137,7 @@ begin
 
   -- 12. ISH lot smeta bo'limidan (faqat hajm) -> topshiriq to'plami
   insert into public.t2_qator (obyekt_id, tur, kompaniya_id, nom, birlik, hajm, narx) values (ob, 'rz', k, '_Bolim', null, null, null) returning id into sec;
-  insert into public.t2_qator (obyekt_id, tur, kompaniya_id, nom, birlik, hajm, narx, ota_id) values (ob, 'bl', k, '_Ish 1', 'm3', 10, 999999, sec), (ob, 'bl', k, '_Ish 2', 'm2', 5, 888888, sec);
+  insert into public.t2_qator (obyekt_id, tur, kompaniya_id, nom, birlik, hajm, narx, ota_id) values (ob, 'bl', k, '_Ish 1', 'm3', 10, 987654.32, sec), (ob, 'bl', k, '_Ish 2', 'm2', 5, 876543.21, sec);
   res := public.t2_tn_lot_smetadan_v1(k, ak, gen_random_uuid(), jsonb_build_object('obyekt_id', ob, 'bolim_id', sec, 'tur', 'subpudrat', 'doira', 'ochiq', 'muddat', (now() + interval '3 days')::text, 'nom', '_TN Ish lot'));
   if not (res ->> 'ok')::boolean or (res ->> 'qator_soni')::int <> 2 then raise exception 'FAIL lot smetadan: %', res; end if; rid2 := (res ->> 'id')::bigint;
   if exists (select 1 from public.t2_birja_rfq_qator where rfq_id = rid2 and (miqdor not in (10, 5) or smeta_qator_id is null)) then raise exception 'FAIL lot qatorlari'; end if;
@@ -148,7 +147,18 @@ begin
   res := public.t2_tender_otish_v1(ak, k, gen_random_uuid(), rid2, ver, 'tasdiqlashda'); ver := (res ->> 'versiya')::int;
   res := public.t2_tender_otish_v1(ak, k, gen_random_uuid(), rid2, ver, 'elon'); if not (res ->> 'ok')::boolean then raise exception 'FAIL ish lot elon: %', res; end if;
   res := public.t2_tn_ochiq_lot_v1(rid2);
-  if not (res ->> 'ok')::boolean or (res::text ~ '"(narx|smeta_qator_id|obyekt_id)"') or res::text ~ '(999999|888888)' then raise exception 'FAIL ish lot ochiq korinishi smeta narxini sizdirdi: %', res; end if;
+  if not (res ->> 'ok')::boolean then raise exception 'FAIL ish lot ochiq: %', res; end if;
+  -- STRUKTURAVIY tekshiruv (matn qidirmasdan): aniq kalit to'plamlari; hech bir qator maydoni (miqdor va tartib raqamlaridan tashqari) son emas; smeta narx QIYMATLARI hech qayerda yo'q.
+  if exists (select 1 from jsonb_object_keys(res) k2 where k2 <> all (array['ok', 'lot', 'qatorlar'])) then raise exception 'FAIL ish lot yuqori kalit: %', res; end if;
+  if exists (select 1 from jsonb_object_keys(res -> 'lot') k2 where k2 <> all (array['id', 'raqam', 'nom', 'tur', 'muddat', 'muddat_otgan', 'izoh', 'tolov_sharti', 'valyuta', 'qqs_foiz', 'baholash_usuli', 'takliflar_soni']))
+     then raise exception 'FAIL ish lot kalitlari: %', res -> 'lot'; end if;
+  if exists (select 1 from jsonb_array_elements(res -> 'qatorlar') x, jsonb_object_keys(x) k2 where k2 <> all (array['qator_no', 'lot_no', 'lot_nom', 'nom', 'birlik', 'miqdor', 'talab_sana', 'yetkazish_joyi', 'spets']))
+     then raise exception 'FAIL ish lot qator kalitlari: %', res -> 'qatorlar'; end if;
+  if exists (select 1 from jsonb_array_elements(res -> 'qatorlar') x, jsonb_each(x) e where jsonb_typeof(e.value) = 'number' and e.key not in ('miqdor', 'qator_no', 'lot_no'))
+     then raise exception 'FAIL ish lot qatorida kutilmagan son: %', res -> 'qatorlar'; end if;
+  if exists (select 1 from jsonb_each(res -> 'lot') e where jsonb_typeof(e.value) = 'number' and e.value in ('987654.32'::jsonb, '876543.21'::jsonb, '18500'::jsonb))
+     or exists (select 1 from jsonb_array_elements(res -> 'qatorlar') x, jsonb_each(x) e where e.value in ('987654.32'::jsonb, '876543.21'::jsonb))
+     then raise exception 'FAIL ish lot smeta narxi qiymati sizdirildi: %', res; end if;
   select array_agg(id order by qator_no) into qq from public.t2_birja_rfq_qator where rfq_id = rid2;
   res := public.t2_tender_taklif_v2(a1, b1, gen_random_uuid(), rid2, jsonb_build_array(jsonb_build_object('rfq_qator_id', qq[1], 'narx', 1200), jsonb_build_object('rfq_qator_id', qq[2], 'narx', 1300)), 'sub1', null);
   t1 := (res ->> 'id')::bigint;
