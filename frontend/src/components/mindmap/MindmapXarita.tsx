@@ -28,7 +28,8 @@ import { XaritaPanel, type HodisaHolati } from './XaritaPanel';
 import type { MasulBoshqaruv } from './XaritaJamoa';
 import { XaritaRoyxat } from './XaritaRoyxat';
 import { MindmapPult, type BolimlarOl } from './MindmapPult';
-import { PultAmalModal, type PultTugatdi } from './PultAmalModal';
+import { type PultTugatdi } from './PultAmalModal';
+import { useTugunAmallar } from './useTugunAmallar';
 import { Bajarilish, HolatChiziq, Romb } from './belgilar';
 import { HOLAT_RANG, foizMatn, holatIzohi, holatNomi, pulQ } from './holat';
 
@@ -182,25 +183,9 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
   const yigToggle = (id: string) => setYigilgan((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const hammasiniYig = (yig: boolean) => setYigilgan(yig ? new Set(root.bolalar.filter((id) => daraxt.tugunlar.get(id)!.bolalar.length)) : new Set());
 
-  /* ── Tugun amallari (A1) ── */
+  /* ── Tugun amallari (A1): yagona hook (`useTugunAmallar`) — karta kanvasi ham shuni ishlatadi ── */
   const navigate = useNavigate();
-  const [menyu, setMenyu] = useState<(MenyuHolati & { nishon: AmalNishon }) | null>(null);
-  const [amalModal, setAmalModal] = useState<AmalModalHolati>(null);
   const amalKontekst = useMemo(() => ({ ...(amalKorish ?? YOPIQ_KORISH), pul: !daraxt.pulYoq, masul: !!masul?.mumkin }), [amalKorish, daraxt.pulYoq, masul?.mumkin]);
-  const amallarOl = useCallback((n: AmalNishon) => {
-    const asos = tugunAmallari(n, amalKontekst).filter((a) => a.modal !== 'vazifa' || !!vazifa);
-    if (!pult) return asos;
-    // Boshqaruv pulti: yaratish / biriktirish / uzish / nomlash (oldindan ko‘rish + tasdiq; ruxsat yo‘q — sabab bilan yopiq).
-    return [...asos, ...pultAmallari(graf, pultNishon(graf, n.id), pult.kontekst.tahrir).map((a): Amal => ({
-      kalit: 'pult:' + a.kalit, nom: a.nom, ikon: a.kalit.includes('yarat') ? 'yangi' : a.kalit.includes('nomla') ? 'nomlash' : a.kalit.endsWith('-uz') || a.kalit.endsWith('.uz') ? 'uzish' : 'ulash',
-      bajar: 'pult', yol: null, modal: null, panel: null, mumkin: a.mumkin, sabab: a.sabab, pult: a.kalit,
-    }))];
-  }, [amalKontekst, vazifa, pult, graf]);
-  const amalOch = useCallback((n: AmalNishon, x: number, y: number) => {
-    setMenyu({ nishon: n, nishonNom: n.tur === 'kompaniya' ? n.nom || t('Kompaniya') : n.tur === 'jamoa' ? t('Jamoa') : n.nom, amallar: amallarOl(n), x, y });
-  }, [amallarOl]);
-  /** Tugmadan ochish: menyu tugma ostida. */
-  const amalOchEl = useCallback((n: AmalNishon, el: HTMLElement) => { const r = el.getBoundingClientRect(); amalOch(n, r.left, r.bottom + 4); }, [amalOch]);
   /** Xaritadagi tugun → amal nishoni: asl daraxt tugunlari + shartnoma (jadval qatori bilan bir xil nishon). «Shartnomasiz» guruhda amal yo‘q. */
   const xaritaNishoni = useCallback((id: string): AmalNishon | null => {
     const tg = daraxt.tugunlar.get(id);
@@ -210,55 +195,36 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
     const n = Number(id.split(':')[1]);
     return { tur: 'shartnoma', id, entityId: Number.isSafeInteger(n) && n > 0 ? n : null, nom: sh.nom, obyektId: null };
   }, [daraxt, xaritaDaraxt]);
-  /** Xaritadagi «+»: aynan shu tugundagi yaratish amallari (shartnomada — obyekt biriktirish) (pult bilan bir xil menyu va modal). */
-  const yaratishAmallari = useCallback((n: AmalNishon) => amallarOl(n).filter((a) => a.ikon === 'yangi' || a.kalit === 'pult:shartnoma.obyekt-biriktir'), [amallarOl]);
-  const yaratishBor = useCallback((id: string) => {
-    const n = xaritaNishoni(id);
-    return !!n && yaratishAmallari(n).length > 0;
-  }, [xaritaNishoni, yaratishAmallari]);
-  const tugunYaratishOch = useCallback((id: string, x: number, y: number) => {
-    const n = xaritaNishoni(id);
-    if (n) setMenyu({ nishon: n, nishonNom: n.tur === 'kompaniya' ? n.nom || t('Kompaniya') : n.nom, amallar: yaratishAmallari(n), x, y });
-  }, [xaritaNishoni, yaratishAmallari]);
-  const tugunAmalOch = useCallback((id: string, x: number, y: number) => {
-    const n = xaritaNishoni(id);
-    if (n) amalOch(n, x, y);
-  }, [xaritaNishoni, amalOch]);
+  const panelAmali = useCallback((n: AmalNishon, a: Amal) => {
+    onTanla(n.id);
+    setPanelOchiq(true);
+    // «Mas‘ullar» blokidagi biriktirish maydoni panel chizilgach fokuslanadi.
+    if (a.panel === 'masul') {
+      let urinish = 0;
+      const fokusla = () => {
+        // Biriktirish maydoni (yoki nomzod qolmagan bo‘lsa — Mas‘ullar blokining o‘zi).
+        const el = document.querySelector<HTMLElement>('[data-masul-fokus]') ?? (urinish >= 9 ? document.querySelector<HTMLElement>('[data-testid="xarita-masullar"]') : null);
+        if (el) { el.scrollIntoView?.({ block: 'center' }); el.focus({ preventScroll: true }); } else if (++urinish < 10) requestAnimationFrame(fokusla);
+      };
+      requestAnimationFrame(fokusla);
+    }
+  }, [onTanla]);
+  const amallar = useTugunAmallar({ graf, daraxt, pult, amalKorish, masul, vazifa, nishonOl: xaritaNishoni, onPanel: panelAmali });
+  const { amallarOl } = amallar;
+  const amalOchEl = useCallback((n: AmalNishon, el: HTMLElement) => { const r = el.getBoundingClientRect(); amallar.menyuOchNishon(n, r.left, r.bottom + 4); }, [amallar]);
+  const tugunAmalOch = useCallback((id: string, x: number, y: number) => amallar.menyuOchId(id, x, y), [amallar]);
+  const tugunYaratishOch = useCallback((id: string, x: number, y: number) => amallar.menyuOchId(id, x, y, true), [amallar]);
+  const yaratishBor = amallar.yaratishBor;
   /** Tugunni bosish: shartnomada (panel yo‘q) — to‘g‘ridan-to‘g‘ri amallar menyusi; qolganlarda — tafsilot paneli. */
   const xaritaTanla = useCallback((id: string | null) => {
     if (id && !daraxt.tugunlar.has(id) && xaritaDaraxt.tugunlar.has(id)) {
       const el = document.querySelector<HTMLElement>('[data-tugun="' + id + '"]');
       const r = el?.getBoundingClientRect();
-      const n = xaritaNishoni(id);
-      if (n) amalOch(n, r ? r.left + Math.min(24, r.width / 2) : 80, r ? r.bottom + 4 : 80);
+      amallar.menyuOchId(id, r ? r.left + Math.min(24, r.width / 2) : 80, r ? r.bottom + 4 : 80);
       return;
     }
     onTanla(id);
-  }, [daraxt, xaritaDaraxt, xaritaNishoni, amalOch, onTanla]);
-  const amalBajar = (a: Amal) => {
-    const n = menyu?.nishon;
-    setMenyu(null);
-    if (!n || !a.mumkin) return;
-    if (a.bajar === 'pult' && a.pult) { setAmalModal({ tur: 'pult', nishonId: n.id, amal: a.pult }); return; }
-    if (a.bajar === 'yol' && a.yol) { navigate(a.yol); return; }
-    if (a.modal === 'masul') { setAmalModal({ tur: 'masul', odamId: n.id }); return; }
-    if (a.modal === 'vazifa') { setAmalModal({ tur: 'vazifa', odamId: n.tur === 'odam' ? n.id : null, obyektId: n.tur === 'obyekt' ? n.entityId : null }); return; }
-    if (a.panel === 'tanla' || a.panel === 'masul') {
-      onTanla(n.id);
-      setPanelOchiq(true);
-      // «Mas‘ullar» blokidagi biriktirish maydoni panel chizilgach fokuslanadi.
-      if (a.panel === 'masul') {
-        let urinish = 0;
-        const fokusla = () => {
-          // Biriktirish maydoni (yoki nomzod qolmagan bo‘lsa — Mas‘ullar blokining o‘zi).
-          const el = document.querySelector<HTMLElement>('[data-masul-fokus]') ?? (urinish >= 9 ? document.querySelector<HTMLElement>('[data-testid="xarita-masullar"]') : null);
-          if (el) { el.scrollIntoView?.({ block: 'center' }); el.focus({ preventScroll: true }); } else if (++urinish < 10) requestAnimationFrame(fokusla);
-        };
-        requestAnimationFrame(fokusla);
-      }
-    }
-  };
-
+  }, [daraxt, xaritaDaraxt, amallar, onTanla]);
   /* ── Boshqaruv pulti (asosiy ko‘rinish): kompaniya → loyiha → shartnoma → obyekt ── */
   const pultIldiz = useMemo(() => (korinish === 'pult' ? pultDaraxtQur(graf, daraxt) : null), [korinish, graf, daraxt]);
   const pultKorinadi = useMemo(() => (pultIldiz ? pultQidiruvi(pultIldiz, qidiruv, qidiruvdaBor, holatFiltri) : null), [pultIldiz, qidiruv, holatFiltri]);
@@ -381,7 +347,7 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
                 <span>{pult && tahrirMumkin ? t('Hali loyiha va obyekt yo‘q. Birinchi loyihani shu yerdan yarating.') : tahrirMumkin ? t('Hali loyiha va obyekt yo‘q. Obyektlar «Obyektlar» sahifasida, loyiha va resurslar «Tahrir» ko‘rinishida qo‘shiladi.') : t('Hali loyiha va obyekt yo‘q.')}</span>
                 {pult && tahrirMumkin && graf.tugunlar.some((x) => x.id === daraxt.ildiz) && (
                   <button type="button" className="fz-btn fz-btn--sm fz-btn--primary" data-testid="pult-birinchi-loyiha"
-                    onClick={() => setAmalModal({ tur: 'pult', nishonId: daraxt.ildiz, amal: 'loyiha.yarat' })}>{t('Yangi loyiha')}</button>
+                    onClick={() => amallar.modalOch({ tur: 'pult', nishonId: daraxt.ildiz, amal: 'loyiha.yarat' })}>{t('Yangi loyiha')}</button>
                 )}
               </div>
             </div>
@@ -429,10 +395,7 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
           )}
         </AnimatePresence>
       </div>
-      {amalModal?.tur === 'pult' && pult && <PultAmalModal graf={graf} nishonId={amalModal.nishonId} amalKalit={amalModal.amal} kontekst={pult.kontekst} onYop={() => setAmalModal(null)} onTugadi={pult.onTugadi} />}
-      {menyu && <AmalMenyu holat={menyu} onYop={() => setMenyu(null)} onBajar={amalBajar} />}
-      {amalModal?.tur === 'masul' && masul && <MasulQilishModal daraxt={daraxt} odamId={amalModal.odamId} masul={masul} onYop={() => setAmalModal(null)} />}
-      {amalModal?.tur === 'vazifa' && vazifa && <VazifaModal daraxt={daraxt} odamId={amalModal.odamId} obyektId={amalModal.obyektId} vazifa={vazifa} onYop={() => setAmalModal(null)} />}
+      {amallar.qatlam}
     </div>
   );
 }

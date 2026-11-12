@@ -47,7 +47,8 @@ export type BogTur =
   | 'masul_loyiha'       // manba=foydalanuvchi, maqsad=loyiha
   /* Karta (client): tomon aloqasi va ko‘rish huquqi (grant) chiziqlari. */
   | 'tomon_aloqa'        // manba=kompaniya,  maqsad=tomon
-  | 'tomon_grant';       // manba=tomon,      maqsad=obyekt/loyiha/shartnoma
+  | 'tomon_grant'        // manba=tomon,      maqsad=obyekt/loyiha/shartnoma
+  | 'tomon_buyurtma';    // manba=tomon,      maqsad=obyekt (faqat oqim: akt/buyurtma hisoblagichi; uzib bo‘lmaydi)
 
 /* ⚡ 2026-08-28 (Claude) — foydalanuvchi maqsadi (audit hujjatida):
  * «rahbar mindmapni ochsa butun tashkilot holatini ko'rsin; PTO

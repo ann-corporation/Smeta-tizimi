@@ -32,8 +32,10 @@ describe('boglanishQoidasi: juftlik → amal', () => {
   it('kompaniya → kontragent: STIR bor — tomon taklifi; STIR yo‘q — sabab bilan rad', () => {
     const yaxshi = boglanishQoidasi(T('kompaniya:1'), T('kontragent:9', 'MChJ', { inn: '123456789' }), k);
     expect(yaxshi.holat === 'ishlaydi' && yaxshi.amal).toBe('tomon_taklif');
-    const yomon = boglanishQoidasi(T('kompaniya:1'), T('kontragent:9', 'MChJ', {}), k);
-    expect(yomon.holat === 'rad' && yomon.sabab).toMatch(/STIR/);
+    const yomon = boglanishQoidasi(T('kompaniya:1'), T('kontragent:9', 'MChJ', {}), k);   // STIR yo‘q: rad emas — taklif dialogi STIR so‘raydi
+    expect(yomon.holat === 'ishlaydi' && yomon.amal).toBe('tomon_taklif');
+    expect(yomon.holat === 'ishlaydi' && yomon.innKerak).toBe(true);
+    expect(yaxshi.holat === 'ishlaydi' && yaxshi.innKerak).toBe(false);
   });
 
   it('tomon → obyekt/loyiha/shartnoma: faol aloqada ko‘rish huquqi; faol bo‘lmasa rad', () => {
@@ -51,8 +53,25 @@ describe('boglanishQoidasi: juftlik → amal', () => {
     expect(boglanishQoidasi(T('foydalanuvchi:3'), T('obyekt:2'), { ...k, masulMumkin: false }).holat).toBe('rad');
   });
 
-  it('tomon ↔ tomon (pudratchi → subpudratchi topshirish): back-end ulanmagan — «yoq», soxta emas', () => {
-    expect(boglanishQoidasi(T('tomon:7'), T('tomon:8'), k).holat).toBe('yoq');
+  it('tomon ↔ tomon: rad, sabab topshirish yo‘lini ko‘rsatadi', () => {
+    const q = boglanishQoidasi(T('tomon:7'), T('tomon:8'), k);
+    expect(q.holat === 'rad' && q.sabab).toMatch(/OBYEKT/);
+  });
+
+  it('obyekt → subpudratchi tomon: mavjud topshirish sahifasi (oldindan to‘ldirilgan); shartnoma — faqat bitta obyekt aniq bo‘lsa', () => {
+    const sub = T('tomon:8', 'SINOV subpudratchi', { holat: 'faol', rol: 'subpudratchi' });
+    const q = boglanishQoidasi(T('obyekt:2'), sub, k);
+    expect(q.holat === 'ishlaydi' && q.amal).toBe('sub_topshir');
+    expect(q.holat === 'ishlaydi' && q.yol).toBe('/admin/subpudrat?obyekt=2&aloqa=8');
+    expect(boglanishQoidasi(sub, T('shartnoma:3', '№3', { obyekt_idlar: [2] }), k)).toMatchObject({ amal: 'sub_topshir', yol: '/admin/subpudrat?obyekt=2&aloqa=8' });
+    expect(boglanishQoidasi(sub, T('shartnoma:3', '№3', { obyekt_idlar: [2, 4] }), k).holat).toBe('rad');
+    expect(boglanishQoidasi(sub, T('loyiha:1'), k).holat).toBe('rad');
+    expect(boglanishQoidasi(T('obyekt:2'), { ...sub, meta: { holat: 'taklif', rol: 'subpudratchi' } }, k).holat).toBe('rad');
+  });
+
+  it('boshqa rolli tomon (yetkazuvchi) → obyekt: grant, topshirish emas', () => {
+    const q = boglanishQoidasi(T('obyekt:2'), T('tomon:9', 'SINOV yetkazuvchi', { holat: 'faol', rol: 'taminotchi' }), k);
+    expect(q.holat === 'ishlaydi' && q.amal).toBe('tomon_grant');
   });
 
   it('qoidasiz juftlik: «bog‘lab bo‘lmaydi» + sabab; o‘zi bilan; tahrir ruxsati yo‘q', () => {

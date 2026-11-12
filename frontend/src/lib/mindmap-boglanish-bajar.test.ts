@@ -31,6 +31,15 @@ describe('qoidaniBajar: to‘g‘ri yozuvchi, to‘g‘ri argumentlar', () => {
     expect(d.taklif).toHaveBeenCalledWith({ qabulInn: '123456789', qabulNom: 'Nazorat MChJ', taklifRol: 'pudratchi', qabulRol: 'texnadzor' });
   });
 
+  it('kompaniya → kontragent (STIR yo‘q): kiritilgan STIR bilan taklif; STIR kiritilmasa — yozilmaydi', async () => {
+    const d = deps();
+    const qo = q(T('kompaniya:1'), T('kontragent:9', 'Yangi MChJ', {}));
+    expect((await qoidaniBajar(qo, { rol: 'zakazchik' }, d)).ok).toBe(false);
+    expect(d.taklif).not.toHaveBeenCalled();
+    await qoidaniBajar(qo, { rol: 'zakazchik', inn: '987 654 321' }, d);
+    expect(d.taklif).toHaveBeenCalledWith({ qabulInn: '987654321', qabulNom: 'Yangi MChJ', taklifRol: 'pudratchi', qabulRol: 'zakazchik' });
+  });
+
   it('tomon → obyekt: grantSaqla(aloqa, [{resurs, amallar, obyekt_id}]); bo‘sh tanlov — yozilmaydi', async () => {
     const d = deps();
     const qo = q(T('tomon:7', 'Buyurtmachi', { holat: 'faol' }), T('obyekt:2'));

@@ -4,6 +4,8 @@
  * Oqim hisoblagichlari: faqat server son bergan va > 0 bo‘lsa (NULL/0 — hech narsa ko‘rsatilmaydi, hech qachon soxta 0).
  */
 import { aloqalarOl, aloqaTafsilotOl, type Aloqa, type GrantQatori } from '../api/t2-tomon';
+import { subAktlarOl, type SubAktQisqa } from '../api/t2-sub';
+import { buyurtmalarOl, type BuyurtmaRoyxatQator } from '../api/t2-buyurtma';
 import type { MindmapBogich, MindmapTugun } from '../api/t2-mindmap';
 
 export type OqimBelgisi = { matn: string; son: number };
@@ -26,7 +28,11 @@ const ROL_NOM: Record<string, string> = {
 export const rolNomi = (rol: string) => ROL_NOM[rol] ?? rol;
 
 /** Sof qurish (testlanadi): aloqalar + grantlar → tugun/chiziq. */
-export function tomonKartasiniQur(kompaniyaTugunId: string | null, aloqalar: Aloqa[], berilgan: Map<number, GrantQatori[]>): TomonKarta {
+/** Subpudrat aktlari: qaror kutayotganlar (yuborilgan); buyurtmalar: yetkazuvchiga berilgan va yopilmaganlar. */
+export type OqimManba = { subAktlar?: SubAktQisqa[]; buyurtmalar?: BuyurtmaRoyxatQator[] };
+const BUYURTMA_YOPIQ = ['qabul_qilindi_yakuniy', 'rad', 'bekor'];
+
+export function tomonKartasiniQur(kompaniyaTugunId: string | null, aloqalar: Aloqa[], berilgan: Map<number, GrantQatori[]>, oqim: OqimManba = {}): TomonKarta {
   const k = BOS_TOMON_KARTA();
   for (const a of aloqalar) {
     if (a.holat === 'rad' || a.holat === 'bekor' || a.holat === 'yopilgan') continue;
@@ -48,9 +54,19 @@ export function tomonKartasiniQur(kompaniyaTugunId: string | null, aloqalar: Alo
       e.grantIdlar.push(g.id); e.resurslar.push(g.resurs);
       doiralar.set(d, e);
     }
+    /* Oqim: obyekt bo‘yicha hisoblagichlar — faqat son > 0 bo‘lsa (NULL/0 — hech narsa). */
+    const obyektOqim = new Map<string, { akt: number; buyurtma: number }>();
+    for (const x of oqim.subAktlar ?? []) if (x.aloqa_id === a.id && x.holat === 'yuborilgan') { const d = 'obyekt:' + x.obyekt_id; const e = obyektOqim.get(d) ?? { akt: 0, buyurtma: 0 }; e.akt++; obyektOqim.set(d, e); }
+    for (const x of oqim.buyurtmalar ?? []) if (x.ijrochi_kompaniya_id === a.qarshi_kompaniya_id && x.obyekt_id != null && !BUYURTMA_YOPIQ.includes(x.holat)) { const d = 'obyekt:' + x.obyekt_id; const e = obyektOqim.get(d) ?? { akt: 0, buyurtma: 0 }; e.buyurtma++; obyektOqim.set(d, e); }
     for (const [d, e] of doiralar) {
       k.bogichlar.push({ manba: id, maqsad: d, tur: 'tomon_grant', uzsa_boladi: true, rol: a.qarshi_rol });
       k.grantlar.set(chiziqKalit(id, d), { aloqaId: a.id, grantIdlar: e.grantIdlar, resurslar: e.resurslar });
+    }
+    for (const [d, e] of obyektOqim) {
+      const matn = [e.akt > 0 ? e.akt + ' subpudrat akti qarorini kutmoqda' : '', e.buyurtma > 0 ? e.buyurtma + ' ochiq buyurtma' : ''].filter(Boolean).join(' · ');
+      if (!matn) continue;
+      if (!doiralar.has(d)) k.bogichlar.push({ manba: id, maqsad: d, tur: 'tomon_buyurtma', uzsa_boladi: false, rol: a.qarshi_rol });
+      k.oqim.set(chiziqKalit(id, d), { son: e.akt + e.buyurtma, matn });
     }
   }
   return k;
@@ -66,7 +82,16 @@ export async function tomonKartasiniOl(kompaniyaId: number, kompaniyaTugunId: st
     const t = await aloqaTafsilotOl(kompaniyaId, a.id);
     if (t.ok) berilgan.set(a.id, t.natija.berilgan);
   }));
-  return tomonKartasiniQur(kompaniyaTugunId, r.natija, berilgan);
+  const subBor = faol.some((a) => a.qarshi_rol === 'subpudratchi');
+  const yetkBor = faol.some((a) => a.qarshi_rol === 'taminotchi');
+  const [sub, buy] = await Promise.all([
+    subBor ? subAktlarOl(kompaniyaId, 'kelgan').catch(() => null) : Promise.resolve(null),
+    yetkBor ? buyurtmalarOl({ kompaniyaId, yonalish: 'meniki', limit: 100 }).catch(() => null) : Promise.resolve(null),
+  ]);
+  return tomonKartasiniQur(kompaniyaTugunId, r.natija, berilgan, {
+    subAktlar: sub && sub.ok ? sub.natija.aktlar : undefined,
+    buyurtmalar: buy && buy.ok ? buy.qatorlar : undefined,
+  });
 }
 
 /** «Tomonlar» linzasi: tanlangan obyekt/loyiha/shartnomani KIMLAR ko‘ra oladi va nimani. */

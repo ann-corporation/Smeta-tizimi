@@ -19,7 +19,7 @@ export interface BajarDeps {
   masul(a: { obyektId?: number; loyihaId?: number; foydalanuvchiId: number; ruxsat: 'read' | 'write' | 'manage' | null }): Promise<Yoz>;
 }
 
-export type Kirish = { rol?: string; menRol?: string; grantlar?: { resurs: string; amallar: string[] }[] };
+export type Kirish = { rol?: string; inn?: string; menRol?: string; grantlar?: { resurs: string; amallar: string[] }[] };
 const idSon = (id: string) => Number(id.split(':')[1]);
 const xato = (error: string): Natija => ({ ok: false, error });
 const natija = (r: Yoz, xabar: string): Natija => (r.ok ? { ok: true, xabar } : xato(r.error || 'Bajarilmadi'));
@@ -38,7 +38,7 @@ export async function qoidaniBajar(q: Extract<Qoida, { holat: 'ishlaydi' }>, kir
   }
   if (q.amal === 'tomon_taklif') {
     if (!kirish.rol) return xato('Tomon rolini tanlang.');
-    const inn = typeof q.maqsad.meta?.inn === 'string' ? q.maqsad.meta.inn.replace(/\D/g, '') : '';
+    const inn = ((typeof q.maqsad.meta?.inn === 'string' ? q.maqsad.meta.inn : '') || kirish.inn || '').replace(/\D/g, '');
     if (inn.length < 9) return xato('STIR (9 raqam) kerak.');
     return natija(await deps.taklif({ qabulInn: inn, qabulNom: q.maqsad.nom, taklifRol: kirish.menRol || 'pudratchi', qabulRol: kirish.rol }), 'Taklif yuborildi — javobni kuting');
   }
@@ -49,6 +49,7 @@ export async function qoidaniBajar(q: Extract<Qoida, { holat: 'ishlaydi' }>, kir
     const grantlar = tanlangan.map((g) => ({ resurs: g.resurs, amallar: g.amallar, [kalit]: d }) as GrantKirish);
     return natija(await deps.grantSaqla(m, grantlar), 'Ko‘rish huquqi berildi');
   }
+  if (q.amal === 'sub_topshir') return xato('Topshirish mavjud sahifada bajariladi — karta uni ochadi.');
   if (q.amal === 'masul') {
     const ruxsat = 'write' as const;
     return natija(await deps.masul({ ...(q.maqsad.tur === 'obyekt' ? { obyektId: d } : { loyihaId: d }), foydalanuvchiId: m, ruxsat }), 'Mas’ul biriktirildi');

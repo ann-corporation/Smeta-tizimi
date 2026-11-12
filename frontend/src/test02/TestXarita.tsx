@@ -22,10 +22,12 @@ import { sbObyektHodisalariOl, qachon, MODUL_RANG, type Hodisa } from '../api/t2
 import { onEntityChanged } from '../api/entity-consistency';
 import { taklifYubor, grantSaqla, grantBekor, aloqaHolati } from '../api/t2-tomon';
 import { BoglanishTasdiq, AmalQatlami, type AmalQatlamiRef } from './KartaQatlam';
+import type { MaxsusAmal } from '../components/mindmap/useTugunAmallar';
 import { BOS_TOMON_KARTA, chiziqKalit, rolNomi, tomonKartasiniOl, tomonlarLinzasi, type TomonKarta } from './karta-tomon';
 import { boglanishQoidasi, uzishQoidasi, type Qoida, type TugunTavsif } from '../lib/mindmap-boglanish';
 import { uzishniBajar, type BajarDeps } from '../lib/mindmap-boglanish-bajar';
 import { daraxtQur } from '../lib/mindmap-korinish';
+import { kartaAvtoJoylash, NODE_W, TUGUN_BALANDLIGI, type XY } from './karta-joylash';
 import { HOLAT_RANG } from '../components/mindmap/holat';
 import { mindmapCreateValidation, mindmapEntityNodeId, mindmapRoleValidation } from './mindmap-create-ux';
 import {
@@ -69,8 +71,6 @@ const BELGI_QISQA: Record<MindmapBelgi['tur'], string> = {
 const grafKesh = new Map<number, { g: MindmapGraf; t: number }>();
 const GRAF_KESH_MS = 10 * 60_000;
 
-const NODE_W = 200;
-const TUGUN_BALANDLIGI = (tur?: string) => tur === 'obyekt' ? 140 : 54;
 const KANVAS_W = 6000;
 const KANVAS_H = 4000;
 
@@ -105,10 +105,6 @@ const BOG_TUR_NOM: Record<string, string> = {
   qatnashchi: 'Loyiha qatnashchisi (Rol: Kontragent)',
 };
 
-/** Avtomatik joylash ustunlari — FAQAT saqlangan joyi yo'q tugunlar uchun */
-const USTUN_TARTIB: TugunTur[][] = [
-  ['kontragent'], ['kompaniya', 'loyiha'], ['shartnoma'], ['obyekt'], ['zayavka'], ['sklad', 'texnika', 'kadr'], ['tomon'], ['foydalanuvchi'],
-];
 
 const YARATSA_BOLADI: { tur: TugunTur; maydonlar: { kalit: string; nom: string; majburiy?: boolean }[] }[] = [
   { tur: 'loyiha',     maydonlar: [{ kalit: 'nom', nom: 'Loyiha nomi', majburiy: true }, { kalit: 'hudud', nom: 'Hudud' }] },
@@ -127,7 +123,6 @@ const ROLLAR = [
   { kalit: 'taminotchi', nom: "Ta'minotchi" },
 ];
 
-type XY = { x: number; y: number };
 type Rejim =
   | { tur: 'pan'; boshPan: XY; boshKursor: XY }
   | { tur: 'tugun'; id: string; siljish: XY; kochdi: boolean }
@@ -221,13 +216,7 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
   const navigate = useNavigate();
 
   /** Saqlangan joyi yo'q tugunlarni ustunlarga teradi (mavjudlarga TEGMAYDI) */
-  const avtoJoylash = useCallback((tugunlar: MindmapTugun[], mavjud: Record<string, XY>) => {
-    const natija: Record<string, XY> = { ...mavjud };
-    USTUN_TARTIB.forEach((turlar, ui) => {
-      let y = 80; tugunlar.filter((t) => turlar.includes(t.tur)).forEach((t) => { if (natija[t.id]) return; natija[t.id] = { x: 60 + ui * 300, y }; y += TUGUN_BALANDLIGI(t.tur) + 24; });
-    });
-    return natija;
-  }, []);
+  const avtoJoylash = kartaAvtoJoylash;
 
   /* Ta'minot drilldown rejimi (obyekt id). Fon yangilash (polling, entity-o'zgarish) shu rejimni
      BUZMAYDI; faqat qo'lda «Yangilash» (yukla) umumiy ko'rinishga qaytaradi. */
@@ -444,6 +433,7 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
     if (!a || !b) return;
     const q = boglanishQoidasi(a, b, { tahrir: tahrirMumkin, yopiqSabab: yopiqMatn || null, masulMumkin: mindmapMasulRuxsati({ superadmin, joriy, kompaniyaId }) });
     if (q.holat !== 'ishlaydi') { toast(q.sabab, 'danger'); return; }
+    if (q.amal === 'sub_topshir' && q.yol) { setTasdiqQoida(q); return; }   // tasdiq kartasi → «Davom etish» mavjud topshirish sahifasini ochadi
     setTasdiqQoida(q);
   };
   /** Mavjud yozuvchilar (API qatlami): qoida bajarilganda aynan shularga boradi. */
@@ -641,6 +631,28 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
     const cx = (x1 + x2) / 2 + siljish;
     return 'M ' + x1 + ' ' + y1 + ' H ' + cx + ' V ' + y2 + ' H ' + x2;
   };
+
+  /** Tomon tugunining amallari (kabinet, huquqlar, aloqani tugatish) — mavjud t2_tomon_* yozuvchilari va aloqa sahifasi. */
+  const tomonMaxsus = useCallback((id: string) => {
+    if (!id.startsWith('tomon:')) return null;
+    const tg = graf.tugunlar.find((x) => x.id === id);
+    if (!tg) return null;
+    const aloqaId = Number(id.split(':')[1]);
+    const toxtagan = tg.meta?.holat === 'toxtatilgan';
+    const yol = '/admin/kontragentlar?tab=aloqa';
+    const asos = { ikon: 'kontragent' as const, modal: null, panel: null };
+    const yozuv = { mumkin: tahrirMumkin, sabab: tahrirMumkin ? null : (yopiqMatn || null) };
+    const huquqlar = [...tomonKarta.grantlar.entries()].filter(([kalit]) => kalit.startsWith(id + '>')).flatMap(([, g]) => g.grantIdlar);
+    const amallar: MaxsusAmal[] = [
+      { ...asos, kalit: 'tomon:kabinet', nom: t('Tomon kabineti (aloqa sahifasi)'), bajar: 'yol', yol, mumkin: true, sabab: null },
+      { ...asos, kalit: 'tomon:huquq', nom: t('Kim nimani ko‘radi — huquqlarni o‘zgartirish'), bajar: 'yol', yol, mumkin: true, sabab: null },
+      { ...asos, ...yozuv, ikon: 'uzish', kalit: 'tomon:huquq-bekor', nom: t('Barcha ko‘rish huquqlarini bekor qilish'), bajar: 'yol', yol: null, mumkin: yozuv.mumkin && huquqlar.length > 0, sabab: yozuv.mumkin ? (huquqlar.length ? null : t('Berilgan huquq yo‘q')) : yozuv.sabab,
+        fn: () => { if (!confirm(t('Tomonning barcha ko‘rish huquqlari bekor qilinadi. Hujjatlarning o‘zi o‘chmaydi. Davom etasizmi?'))) return; void uzishniBajar('tomon_grant_bekor', { grantIdlar: huquqlar }, bajarDeps).then((r) => { toast(r.ok ? r.xabar : r.error, r.ok ? 'ok' : 'danger'); void tomonlarniYukla(); }); } },
+      { ...asos, ...yozuv, ikon: 'uzish', kalit: 'tomon:toxtat', nom: toxtagan ? t('Aloqani davom ettirish') : t('Aloqani to‘xtatish (tugatish)'), bajar: 'yol', yol: null,
+        fn: () => { if (!confirm(toxtagan ? t('Aloqa qayta faollashtiriladi. Davom etasizmi?') : t('Aloqa to‘xtatiladi: tomon endi hech narsani ko‘ra olmaydi. Keyin davom ettirish mumkin. Davom etasizmi?'))) return; void (toxtagan ? aloqaHolati(aktKomp, aloqaId, 'davom') : aloqaHolati(aktKomp, aloqaId, 'toxtatish')).then((r) => { toast(r.ok ? t('Bajarildi') : (r.error || t('Bajarilmadi')), r.ok ? 'ok' : 'danger'); void tomonlarniYukla(); }); } },
+    ];
+    return { nom: tg.nom, amallar };
+  }, [graf.tugunlar, tahrirMumkin, yopiqMatn, tomonKarta, bajarDeps, tomonlarniYukla, aktKomp]);
 
   /** Tugunga bosish: «Bog‘lash» rejimida — ikkinchi tugun (tap-tap); aks holda tafsilot paneli + tugun amallari menyusi (jadvaldagi bilan bir xil). */
   const tugunBosildi = (id: string, px: number, py: number) => {
@@ -1304,10 +1316,10 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
 
       {/* KARTA: chiziq tasdiq kartasi + tugun amallari (jadvaldagi bilan bir xil) */}
       {tasdiqQoida && (
-        <BoglanishTasdiq qoida={tasdiqQoida} kompaniyaId={aktKomp} deps={bajarDeps} rollar={ROLLAR} onYop={() => setTasdiqQoida(null)}
+        <BoglanishTasdiq qoida={tasdiqQoida} kompaniyaId={aktKomp} deps={bajarDeps} rollar={ROLLAR} onYop={() => setTasdiqQoida(null)} onYol={(yol) => { setTasdiqQoida(null); navigate(yol); }}
           onTugadi={(xabar) => { setTasdiqQoida(null); toast(xabar, 'ok'); void yangila(); void tomonlarniYukla(); }} />
       )}
-      <AmalQatlami ref={amalRef} graf={grafToliq} pult={aktKomp ? pult : undefined} amalKorish={amalKorish} masul={masul} vazifa={vazifa} onTanla={(id) => { setTanlangan(id); setTanlanganBog(null); }} />
+      <AmalQatlami ref={amalRef} maxsusOl={tomonMaxsus} graf={grafToliq} pult={aktKomp ? pult : undefined} amalKorish={amalKorish} masul={masul} vazifa={vazifa} onTanla={(id) => { setTanlangan(id); setTanlanganBog(null); }} />
 
       {/* ROL TANLASH */}
       {rolModal && (

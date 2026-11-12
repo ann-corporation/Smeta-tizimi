@@ -1,10 +1,10 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import type { MindmapGraf } from '../api/t2-mindmap';
 
 const m = vi.hoisted(() => ({
-  kompaniya: { current: null as any }, graf: vi.fn(), bog: vi.fn(), toast: vi.fn(), grant: vi.fn(),
+  kompaniya: { current: null as any }, graf: vi.fn(), bog: vi.fn(), toast: vi.fn(), grant: vi.fn(), taklif: vi.fn(),
 }));
 vi.mock('./KompaniyaTanlov', () => ({ useKompaniya: () => m.kompaniya.current }));
 vi.mock('./Graf2D', () => ({ Graf2D: () => <div data-testid="graf2d" /> }));
@@ -13,10 +13,12 @@ vi.mock('../api/t2-hodisa', () => ({ sbObyektHodisalariOl: vi.fn(async () => ({ 
 vi.mock('../api/t2-mindmap', async (orig) => ({ ...(await orig<typeof import('../api/t2-mindmap')>()), sbMindmapGrafOl: m.graf, sbMindmapBog: m.bog }));
 vi.mock('../api/t2-tomon', async (orig) => ({
   ...(await orig<typeof import('../api/t2-tomon')>()),
-  aloqalarOl: vi.fn(async () => ({ ok: true, natija: [{ id: 11, holat: 'faol', turi: 'shartnoma', nom: null, men_taklif_qildim: true, men_rol: 'pudratchi', qarshi_rol: 'zakazchik', qarshi_kompaniya_id: 2, qarshi_nom: 'Buyurtmachi MChJ', qarshi_inn: '123456789', kod_kutilmoqda: false, kod_muddati: null, taklif_vaqti: '', javob_vaqti: null, yopish_sababi: null, izoh: null, berilgan_grant_soni: 1, olingan_grant_soni: 0, kelgan_ochiq_taqdim: 2, yuborilgan_ochiq_taqdim: 0 }] })),
+  aloqalarOl: vi.fn(async () => ({ ok: true, natija: [{ id: 11, holat: 'faol', turi: 'shartnoma', nom: null, men_taklif_qildim: true, men_rol: 'pudratchi', qarshi_rol: 'zakazchik', qarshi_kompaniya_id: 2, qarshi_nom: 'Buyurtmachi MChJ', qarshi_inn: '123456789', kod_kutilmoqda: false, kod_muddati: null, taklif_vaqti: '', javob_vaqti: null, yopish_sababi: null, izoh: null, berilgan_grant_soni: 1, olingan_grant_soni: 0, kelgan_ochiq_taqdim: 2, yuborilgan_ochiq_taqdim: 0 },
+    { id: 12, holat: 'faol', turi: 'shartnoma', nom: null, men_taklif_qildim: true, men_rol: 'pudratchi', qarshi_rol: 'subpudratchi', qarshi_kompaniya_id: 3, qarshi_nom: 'SINOV subpudratchi (test)', qarshi_inn: '111222333', kod_kutilmoqda: false, kod_muddati: null, taklif_vaqti: '', javob_vaqti: null, yopish_sababi: null, izoh: null, berilgan_grant_soni: 0, olingan_grant_soni: 0, kelgan_ochiq_taqdim: 0, yuborilgan_ochiq_taqdim: 0 }] })),
   aloqaTafsilotOl: vi.fn(async () => ({ ok: true, natija: { aloqa: {}, berilgan: [{ id: 91, resurs: 'f2', amallar: ['korish'], obyekt_id: 5, doira_nom: 'Amfiteatr', yaratildi: '' }], olingan: [], hodisalar: [] } })),
   resurslarOl: vi.fn(async () => ({ ok: true, natija: [{ kalit: 'f2', nom: 'F2 hujjati', nom_ru: null, guruh: 'x', amallar: ['korish'], taqdim_mumkin: true, izoh: null }] })),
   grantSaqla: m.grant,
+  taklifYubor: m.taklif,
 }));
 
 import TestXarita from './TestXarita';
@@ -26,6 +28,7 @@ const grafFixture = (): MindmapGraf => ({
     { id: 'kompaniya:1', tur: 'kompaniya', nom: 'Bosh kompaniya', meta: { versiya: 1 }, x: null, y: null },
     { id: 'loyiha:7', tur: 'loyiha', nom: 'Park', meta: { versiya: 1 }, x: null, y: null },
     { id: 'shartnoma:3', tur: 'shartnoma', nom: '№12', meta: { versiya: 2 }, x: null, y: null },
+    { id: 'kontragent:9', tur: 'kontragent', nom: 'Yangi MChJ', meta: { versiya: 1, inn: null }, x: null, y: null },
     { id: 'obyekt:5', tur: 'obyekt', nom: 'Amfiteatr', x: null, y: null, meta: { versiya: 4, loyiha_id: 7, smeta: 1000, fakt: 600, f2: 400, belgi: [] } },
   ],
   bogichlar: [
@@ -36,7 +39,8 @@ const grafFixture = (): MindmapGraf => ({
 
 const tugun = (id: string) => document.querySelector<HTMLElement>('[data-tugun="' + id + '"]')!;
 const ulash = (id: string) => tugun(id).querySelector<HTMLElement>('[data-karta-ulash]')!;
-const mount = () => render(<MemoryRouter><TestXarita /></MemoryRouter>);
+const Yol = () => <span data-testid="yol">{useLocation().pathname + useLocation().search}</span>;
+const mount = () => render(<MemoryRouter><TestXarita /><Yol /></MemoryRouter>);
 
 beforeAll(() => { if (!('ResizeObserver' in globalThis)) (globalThis as any).ResizeObserver = class { observe() {} unobserve() {} disconnect() {} }; });
 beforeEach(() => {
@@ -109,5 +113,41 @@ describe('Karta (chiziq tortish kanvasi) — asosiy ko‘rinish', () => {
     const legenda = screen.getByTestId('karta-legenda');
     fireEvent.click(within(legenda).getByRole('button', { name: /Obyekt/ }));
     expect(tugun('obyekt:5')).toBeNull();
+  });
+
+  it('obyekt → subpudratchi tomon: tasdiq kartasi → mavjud topshirish sahifasi oldindan to‘ldirilgan ochiladi (qayta yozilmaydi)', async () => {
+    mount();
+    await waitFor(() => expect(tugun('tomon:12')).toBeTruthy());
+    fireEvent.click(ulash('obyekt:5'));
+    fireEvent.click(tugun('tomon:12'));
+    const karta = await screen.findByTestId('karta-tasdiq');
+    fireEvent.click(within(karta).getByTestId('karta-tasdiq-tugma'));
+    await waitFor(() => expect(screen.getByTestId('yol').textContent).toBe('/admin/subpudrat?obyekt=5&aloqa=12'));
+    expect(m.grant).not.toHaveBeenCalled();
+  });
+
+  it('kompaniya → kontragent, STIR yo‘q: rad emas — taklif kartasi STIR so‘raydi va yuboradi', async () => {
+    m.taklif.mockResolvedValue({ ok: true, natija: { id: 1, holat: 'taklif', kod_kerak: false } });
+    mount();
+    await waitFor(() => expect(tugun('kontragent:9')).toBeTruthy());
+    fireEvent.click(ulash('kontragent:9'));
+    fireEvent.click(tugun('kompaniya:1'));
+    const karta = await screen.findByTestId('karta-tasdiq');
+    const tugma = within(karta).getByTestId('karta-tasdiq-tugma') as HTMLButtonElement;
+    fireEvent.change(within(karta).getByTestId('karta-rol'), { target: { value: 'zakazchik' } });
+    expect(tugma.disabled).toBe(true);
+    fireEvent.change(within(karta).getByTestId('karta-inn'), { target: { value: '987654321' } });
+    expect(tugma.disabled).toBe(false);
+    fireEvent.click(tugma);
+    await waitFor(() => expect(m.taklif).toHaveBeenCalledWith(1, { qabulInn: '987654321', qabulNom: 'Yangi MChJ', taklifRol: 'pudratchi', qabulRol: 'zakazchik' }));
+  });
+
+  it('tomon tugunida ham «⋯»: kabinet, huquqlar, aloqani tugatish', async () => {
+    mount();
+    await waitFor(() => expect(tugun('tomon:11')).toBeTruthy());
+    await waitFor(() => expect(tugun('tomon:11').querySelector('[data-karta-amal]')).toBeTruthy());
+    fireEvent.click(tugun('tomon:11').querySelector('[data-karta-amal]')!);
+    const menyu = screen.getByTestId('mindmap-amal-menyu');
+    for (const kalit of ['tomon:kabinet', 'tomon:huquq', 'tomon:huquq-bekor', 'tomon:toxtat']) expect(menyu.querySelector('[data-amal="' + kalit + '"]'), kalit).toBeTruthy();
   });
 });
