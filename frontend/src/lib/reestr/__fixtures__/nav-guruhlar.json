@@ -604,6 +604,32 @@
             ],
             "modul": "module.erp",
             "qoshimcha": true
+          },
+          {
+            "yol": "/admin/yuk-chaqirish",
+            "ilova": "logistika",
+            "nom": "Yuk chaqirish",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "procurement.read"
+            ],
+            "modul": "module.erp",
+            "qoshimcha": true
+          },
+          {
+            "yol": "/admin/haydovchi",
+            "ilova": "logistika",
+            "nom": "Haydovchi rejimi",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "procurement.read"
+            ],
+            "modul": "module.erp",
+            "qoshimcha": true
           }
         ]
       },
