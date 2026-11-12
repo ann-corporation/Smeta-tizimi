@@ -22,6 +22,7 @@ const XATOLAR: Record<string, string> = {
   TAKLIF_TOLDI: 'Havola bo‘yicha joylar tugagan. Yangi havola so‘rang.',
   RUXSAT_YOQ: 'Bu amal uchun ruxsatingiz yo‘q.',
   COMPANY_NAME_REQUIRED: 'Ish joyi nomini yozing.',
+  OZI_OCHILGAN: 'Siz allaqachon o‘zingiz kompaniya ochgansiz. Qo‘shimcha kompaniya — Kompaniya sahifasidagi «So‘rov yuborish» orqali (STIR bilan).',
 };
 export const ishJoyiXato = (r: Javob) => (r.code && XATOLAR[r.code]) || r.xabar || r.error || 'Amal bajarilmadi.';
 

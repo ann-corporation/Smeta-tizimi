@@ -9,6 +9,7 @@ import { ToastContainer } from './umumiy/ui/Toast';
 import SahifaTopilmadi from './umumiy/ui/SahifaTopilmadi';
 import KirishSahifa from './kirish/KirishSahifa';
 import QoshilSahifa from './kirish/QoshilSahifa';
+import TaklifSahifa from './kirish/TaklifSahifa';
 import UlashSahifa from './kirish/UlashSahifa';
 
 const AdminShell = lazy(() => import('./admin/AdminShell'));
@@ -139,6 +140,8 @@ export default function App() {
         <Route path="/" element={<KirishSahifa />} />
         {/* «Telegram modeli»: ish joyiga taklif havolasi (kirish talab qilinsa — kirgach shu yerga qaytadi). */}
         <Route path="/qoshil/:kod" element={<QoshilSahifa />} />
+        <Route path="/taklif" element={<TaklifSahifa />} />
+        <Route path="/taklif/:token" element={<TaklifSahifa />} />
         {/* T5: obyektni ulashish havolasi — qabul qilgan odam obyektni o'z ish joyida faqat ko'radi. */}
         <Route path="/ulash/:kod" element={<UlashSahifa />} />
         {/* Telegram Mini App (@qur_uz_bot menyu tugmasi): imzolangan initData → oddiy sessiya → rol bosh sahifasi. */}
