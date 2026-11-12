@@ -15,7 +15,9 @@ import { loyihaBoglash, loyihaFarqOl, loyihaQaror, loyihaRoyxatOl, loyihaSmetaOl
 import { dublikatTanla, hujjatniTahlilQil, type SahifaNatija } from '../../lib/loyiha-smeta/tahlil';
 import { pdfdanMatn, manbaKorinishi } from '../../lib/loyiha-smeta/pdf-oqish';
 import { bolimXaritasi, moslash, type MoslashSababi, type SmetaQator } from '../../lib/loyiha-smeta/moslash';
-import { farqJami, farqlarniHisobla, type FarqMiqdor, type FarqQator, type FarqTuri, type QarorTuri } from '../../lib/loyiha-smeta/farq';
+import { SummaJuft } from '../../umumiy/ui/SummaJuft';
+import { katKesimJamiBilan } from '../../lib/ustamali-summa';
+import { farqJami, farqJamiTarkibi, farqlarniHisobla, type FarqMiqdor, type FarqQator, type FarqTuri, type QarorTuri } from '../../lib/loyiha-smeta/farq';
 import { revizyaFarqi } from '../../lib/loyiha-smeta/revizya';
 import { birlikkaQaytar } from '../../lib/loyiha-smeta/birlik';
 import { t } from '../../i18n/til';
@@ -28,7 +30,7 @@ const FARQ_NOMI: Record<FarqTuri, string> = {
 };
 const SABAB_NOMI: Record<MoslashSababi, string> = {
   bolim_belgi: 'bo‘lim nomida shu varaq belgisi', bolim_yoq: 'bo‘limda varaq belgisi topilmadi', birlik_mos: 'birlik mos', birlik_farq: 'birlik farqli', tur_mos: 'ish turi mos',
-  sinf_mos: 'beton sinfi mos', sinf_farq: 'beton sinfi farqli', diametr_mos: 'diametr mos', qalinlik_mos: 'qalinlik mos', soz_mos: 'nomida umumiy so‘zlar',
+  sinf_mos: 'beton sinfi mos', sinf_farq: 'beton sinfi farqli', sinf_daraja: 'beton sinfi ish turiga mos', sinf_daraja_farq: 'beton sinfi ish turiga mos emas', diametr_mos: 'diametr mos', qalinlik_mos: 'qalinlik mos', soz_mos: 'nomida umumiy so‘zlar',
 };
 const QAROR_NOMI: Record<QarorTuri, string> = { boglandi: 'Bog‘langan', zamena: 'Zamena', qoshimcha: 'Qo‘shimcha ish', pereraschet: 'Pereraschet', etibor_yoq: 'E’tiborsiz' };
 const fmt = (n: number | null, d = 2) => (n == null ? '—' : new Intl.NumberFormat('ru-RU', { maximumFractionDigits: d }).format(n));
@@ -82,6 +84,7 @@ export default function LoyihaSmetaFakt() {
     taxminiyNarx: (id) => { const v = Number((narxlar[id] ?? '').replace(/\s/g, '').replace(',', '.')); return narxlar[id] && Number.isFinite(v) && v > 0 ? v : null; },
   }), [farqD, smeta, bogli, narxlar]);
   const jami = useMemo(() => farqJami(farqlar), [farqlar]);
+  const tarkib = useMemo(() => farqJamiTarkibi(farqlar), [farqlar]);
   const korinadigan = farqlar.filter((f) => (!filtrTur || f.tur === filtrTur) && (!filtrVaraq || f.varaq === filtrVaraq) && Math.abs(f.pulQQSbilan ?? 0) >= minPul);
   const varaqlar = [...new Set(farqlar.map((f) => f.varaq).filter(Boolean))] as string[];
   const smetaById = useMemo(() => new Map(smeta.map((q) => [q.id, q])), [smeta]);
@@ -236,8 +239,8 @@ export default function LoyihaSmetaFakt() {
         {farqD && (
           <Bolim sarlavha="3. Loyiha | Smeta | Fakt solishtirmasi">
             <div className="mb-2 grid gap-2 text-sm sm:grid-cols-3">
-              <div><b>{t('Smetaga kirmagan ish')}</b><div className="num">{fmt(jami.kirmaganQQSbilan)} {t('so‘m')} <small>({t('QQS bilan')})</small></div><div className="num text-xs">{fmt(jami.kirmaganQQSsiz)} {t('QQS siz')} · {jami.kirmaganSoni} {t('ta')}</div></div>
-              <div><b>{t('Hujjatlashtirilgani')}</b><div className="num">{fmt(jami.hujjatQQSbilan)} {t('so‘m')} <small>({t('QQS bilan')})</small></div><div className="num text-xs">{fmt(jami.hujjatQQSsiz)} {t('QQS siz')} · {jami.hujjatSoni} {t('ta')}</div></div>
+              <div><b>{t('Smetaga kirmagan ish')}</b><SummaJuft obyektId={Number(obyektId)} ustamasiz={jami.kirmaganQQSsiz} katKesim={katKesimJamiBilan(tarkib.kirmagan, (f) => smetaById.get(f.qatorId ?? -1)?.kat ?? null, (f) => f.pulQQSsiz, jami.kirmaganQQSsiz)} /><div className="text-xs">{jami.kirmaganSoni} {t('ta')}</div></div>
+              <div><b>{t('Hujjatlashtirilgani')}</b><SummaJuft obyektId={Number(obyektId)} ustamasiz={jami.hujjatQQSsiz} katKesim={katKesimJamiBilan(tarkib.hujjat, (f) => smetaById.get(f.qatorId ?? -1)?.kat ?? null, (f) => f.pulQQSsiz, jami.hujjatQQSsiz)} /><div className="text-xs">{jami.hujjatSoni} {t('ta')}</div></div>
               <div className="text-xs">{t('Narxsiz (summa noma‘lum, «—»)')}: {jami.narxsizSoni} · {t('Tasdiqlanmagan takliflar pulga kirmaydi')}: {farqD.taklif_soni}</div>
             </div>
             <div className="mb-2 flex flex-wrap gap-2">

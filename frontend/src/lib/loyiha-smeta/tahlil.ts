@@ -4,6 +4,7 @@
  */
 import { qatorlarYig, type MatnBo } from './jadval';
 import { PROFILLAR, profilBilanOqi, profilSahifagaMos, type Element, type Profil, type Tur } from './profil';
+import { satrdanOqi } from './satr';
 
 const BELGI_PREFIKS = ['КЖ', 'КР', 'КМ', 'КД', 'АР', 'АС', 'ГП', 'ЭО', 'ЭМ', 'ЭС', 'ВК', 'ОВ', 'ТХ', 'СС', 'ПБ', 'ТС', 'АУПТ', 'ПОС'];
 const LATIN_KIRILL: Record<string, string> = { K: 'К', P: 'Р', R: 'Р', A: 'А', E: 'Э', O: 'О', B: 'В', C: 'С', M: 'М', X: 'Х', T: 'Т', H: 'Н', J: 'Ж' };
@@ -19,8 +20,30 @@ export function varaqKalit(s: string): string {
 
 const BELGI_RE = new RegExp(`(?:^|[^A-Za-zА-Яа-я])((?:${BELGI_PREFIKS.join('|')}|KJ|KR|KM|AR|AS)[-\\s]?\\d+(?:[.,]\\d+)?)(?![0-9A-Za-zА-Яа-я])`, 'gi');
 
-/** Sahifadagi varaq belgisi: shtamp zonasi (pastki 30 %) ustun, aks holda eng ko'p uchragan. Aniqlanmasa null. */
+const PREFIKS_RE = new RegExp(`^(${BELGI_PREFIKS.join('|')}|KJ|KR|KM|AR|AS)$`, 'i');
+
+/** Shtamp: «Лист» katagi, uning ostidagi raqam va yuqoridagi/yonidagi prefiks («КР») -> «КР-5». Smeta bo'lim nomlaridagi belgi shu shaklda. */
+export function shtampBelgisi(items: MatnBo[]): string | null {
+  const list = items.filter((i) => /^Лист$/i.test(i.s.trim()));
+  let eng: { d: number; v: string } | null = null;
+  for (const l of list) {
+    const raqam = items.filter((i) => /^\d{1,3}$/.test(i.s.trim()) && i.y - l.y > 3 && i.y - l.y < 45 && Math.abs(i.x + i.w / 2 - (l.x + l.w / 2)) < 40)
+      .sort((a, b) => a.y - b.y)[0];
+    if (!raqam) continue;
+    const pre = items.filter((i) => PREFIKS_RE.test(i.s.trim()) && l.y - i.y > -5 && l.y - i.y < 160 && Math.abs(i.x - l.x) < 220)
+      .sort((a, b) => Math.abs(l.y - a.y) + Math.abs(l.x - a.x) - (Math.abs(l.y - b.y) + Math.abs(l.x - b.x)))[0];
+    if (!pre) continue;
+    const v = varaqKalit(`${pre.s.trim()}-${raqam.s.trim()}`);
+    const d = Math.abs(l.y - pre.y) + Math.abs(l.x - pre.x);
+    if (!eng || d < eng.d) eng = { d, v };
+  }
+  return eng ? eng.v : null;
+}
+
+/** Sahifadagi varaq belgisi: avval shtamp («Лист» + prefiks), aks holda matndagi belgi (shtamp zonasi ustun). Aniqlanmasa null. */
 export function varaqBelgisi(items: MatnBo[], sahifaBalandligi = 842): string | null {
+  const st = shtampBelgisi(items);
+  if (st) return st;
   const hisob = new Map<string, number>();
   const qosh = (s: string, w: number) => { const k = varaqKalit(s); hisob.set(k, (hisob.get(k) ?? 0) + w); };
   for (const it of items) {
@@ -31,7 +54,6 @@ export function varaqBelgisi(items: MatnBo[], sahifaBalandligi = 842): string | 
   for (const [k, v] of hisob) if (v > b) { b = v; eng = k; }
   return eng;
 }
-
 /** Revizya raqami: «Изм. 2», «Ред.3», «Rev 1»; topilmasa null. Eng kattasi olinadi. */
 export function revizyaTop(items: MatnBo[]): number | null {
   let eng: number | null = null;
@@ -51,7 +73,7 @@ export type SahifaNatija = {
   elementlar: Element[];
   /** Qoida o'qiy olmadi yoki ishonch past: «AI bilan o'qish» taklif qilinadi (narx oldindan ko'rsatiladi). */
   aiTaklifi: boolean;
-  sabab: 'profil_yoq' | 'element_yoq' | 'ishonch_past' | 'tekst_yoq' | null;
+  sabab: 'profil_yoq' | 'element_yoq' | 'ishonch_past' | 'tekst_yoq' | 'jadval_yoq' | null;
 };
 
 const matnQoshib = (items: MatnBo[]) => items.map((i) => i.s).join(' ');
@@ -75,8 +97,13 @@ export function sahifaniTahlilQil(items: MatnBo[], sahifa: number, profillar: Pr
   const qatorlar = qatorlarYig(bo);
   const matn = matnQoshib(bo);
   let sarlavhaTopildi = false;
+  const satr = satrdanOqi(qatorlar, undefined, bo).map((e) => ({ ...e }));
+    if (satr.length > 0) {
+    const o = satr.reduce((a, e) => a + e.ishonch, 0) / satr.length;
+    return { ...asos, profil: 'satr', elementlar: satr, aiTaklifi: false, sabab: o < 0.55 ? 'ishonch_past' : null };
+  }
   for (const p of profillar) {
-    if (!profilSahifagaMos(p, matn)) continue;
+    if (!profilSahifagaMos(p, matn, asos.varaq)) continue;
     const r = profilBilanOqi(p, qatorlar);
     if (!r) continue;
     sarlavhaTopildi = true;
@@ -85,6 +112,8 @@ export function sahifaniTahlilQil(items: MatnBo[], sahifa: number, profillar: Pr
     const o = elementlar.reduce((a, e) => a + e.ishonch, 0) / elementlar.length;
     return { ...asos, profil: p.id, elementlar, aiTaklifi: o < 0.55, sabab: o < 0.55 ? 'ishonch_past' : null };
   }
+  // Jadvalga o'xshamaydigan sahifa (reja, kesim): AI taklif qilinmaydi — kalit so'z (spetsifikatsiya/ведомость/экспликация) bo'lsa gina.
+  if (!sarlavhaTopildi && !/спецификаци|ведомост|экспликаци|specifik/i.test(matn)) return { ...asos, aiTaklifi: false, sabab: 'jadval_yoq' };
   return { ...asos, aiTaklifi: true, sabab: sarlavhaTopildi ? 'element_yoq' : 'profil_yoq' };
 }
 

@@ -16,11 +16,12 @@ export function qatorlarYig(items: MatnBo[], o: YigOpts = {}): JQator[] {
   const sahifalar = [...new Set(toza.map((i) => i.sahifa))].sort((a, b) => a - b);
   const out: JQator[] = [];
   for (const sh of sahifalar) {
-    const on = toza.filter((i) => i.sahifa === sh).sort((a, b) => a.y - b.y || a.x - b.x);
+    const baza = (i: MatnBo) => i.y + i.h; // asosiy chiziq: harf balandligi turlicha bo'lsa ham bir qator
+    const on = toza.filter((i) => i.sahifa === sh).sort((a, b) => baza(a) - baza(b) || a.x - b.x);
     const guruh: MatnBo[][] = [];
     for (const it of on) {
       const g = guruh[guruh.length - 1];
-      if (g && Math.abs(g[0].y - it.y) <= yTol) g.push(it); else guruh.push([it]);
+      if (g && Math.abs(baza(g[0]) - baza(it)) <= yTol) g.push(it); else guruh.push([it]);
     }
     for (const g of guruh) {
       const t = [...g].sort((a, b) => a.x - b.x);

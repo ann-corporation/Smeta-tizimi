@@ -17,11 +17,11 @@ export type MoslashSozlama = {
   ishonchliFarq: number;
 };
 export const MOSLASH_STANDART: MoslashSozlama = {
-  belgiRegex: '(?:^|[^A-Za-zА-Яа-я])((?:КЖ|КР|КМ|КД|АР|АС|ГП|ЭО|ЭМ|ЭС|ВК|ОВ|ТХ|KJ|KR|KM|AR|AS)[-\\s]?\\d+(?:[.,]\\d+)?)(?![0-9A-Za-zА-Яа-я])',
+  belgiRegex: '(?:^|[^A-Za-zА-Яа-я])((?:КЖ|КР|КМ|КД|АР|АС|ГП|ЭО|ЭМ|ЭС|ВК|ОВ|ТХ|KJ|KR|KM|AR|AS)[-\\s]?\\d+(?:[.,]\\d+)*)(?![0-9A-Za-zА-Яа-я])',
   minBall: 0.35, ishonchliBall: 0.75, ishonchliFarq: 0.15,
 };
 
-export type MoslashSababi = 'bolim_belgi' | 'bolim_yoq' | 'birlik_mos' | 'birlik_farq' | 'tur_mos' | 'sinf_mos' | 'sinf_farq' | 'diametr_mos' | 'qalinlik_mos' | 'soz_mos';
+export type MoslashSababi = 'bolim_belgi' | 'bolim_yoq' | 'birlik_mos' | 'birlik_farq' | 'tur_mos' | 'sinf_mos' | 'sinf_farq' | 'sinf_daraja' | 'sinf_daraja_farq' | 'diametr_mos' | 'qalinlik_mos' | 'soz_mos';
 export type Nomzod = { qatorId: number; ball: number; sabab: MoslashSababi[]; bolimNomi: string | null };
 export type MoslashNatija = { odamKerak: boolean; ishonchli: boolean; nomzodlar: Nomzod[] };
 
@@ -32,7 +32,14 @@ export function nomdanBelgilar(nom: string, regexManba: string = MOSLASH_STANDAR
   const out = new Set<string>();
   let re: RegExp;
   try { re = new RegExp(regexManba, 'gi'); } catch { return out; }
-  for (const m of nom.matchAll(re)) out.add(varaqKalit(m[1] ?? m[0]));
+  for (const m of nom.matchAll(re)) {
+    const t = m[1] ?? m[0];
+    // «КР-2,87» = 2-varaq va 87-varaq (vergul ro'yxat, nuqta — kichik raqam)
+    const pre = /^([A-Za-zА-Яа-я]+)[-\s]?/.exec(t)?.[1];
+    const qism = t.split(',');
+    if (pre && qism.length > 1 && qism.every((x, i) => i === 0 || /^\d+(?:\.\d+)?$/.test(x.trim()))) for (let i = 0; i < qism.length; i++) out.add(varaqKalit(i === 0 ? qism[0] : pre + '-' + qism[i].trim()));
+    else out.add(varaqKalit(t));
+  }
   return out;
 }
 
@@ -78,7 +85,7 @@ const sozlar = (s: string) => new Set(s.toLowerCase().replace(/[^a-zа-я0-9]+/g
 export function moslash(el: LoyihaElement, qatorlar: SmetaQator[], xarita: ReturnType<typeof bolimXaritasi>, soz: MoslashSozlama = MOSLASH_STANDART): MoslashNatija {
   if (el.tur === 'uskuna') return { odamKerak: true, ishonchli: false, nomzodlar: [] };
   const belgi = el.varaq ? varaqKalit(el.varaq) : null;
-  const barglar = qatorlar.filter((q) => q.tur === 'rs');
+  const barglar = qatorlar.filter((q) => q.tur === 'bl');
   const bolimda = belgi ? barglar.filter((q) => xarita.get(q.id)?.belgilar.has(belgi)) : [];
   const nomzodHavzasi = bolimda.length > 0 ? bolimda : barglar;
   const bolimBor = bolimda.length > 0;
@@ -96,6 +103,13 @@ export function moslash(el: LoyihaElement, qatorlar: SmetaQator[], xarita: Retur
     }
     if (turRe) { if (turRe.test(q.nom)) { ball += 0.2; sabab.push('tur_mos'); } else if (el.tur !== 'boshqa') continue; }
     const qk = kalitRaqamlar(q.nom);
+    if (el.tur === 'beton' && el_k.sinf) {
+      const n = Number(el_k.sinf.replace(/[^0-9.]/g, ''));
+      const tayyorgarlik = /подготовк/i.test(q.nom);
+      if (n <= 12.5 && tayyorgarlik) { ball += 0.15; sabab.push('sinf_daraja'); }
+      else if (n >= 20 && tayyorgarlik) { ball -= 0.2; sabab.push('sinf_daraja_farq'); }
+      else if (n >= 20) { ball += 0.1; sabab.push('sinf_daraja'); }
+    }
     if (el_k.sinf && qk.sinf) { if (el_k.sinf === qk.sinf) { ball += 0.2; sabab.push('sinf_mos'); } else { ball -= 0.1; sabab.push('sinf_farq'); } }
     if (el_k.diametr && qk.diametr && el_k.diametr === qk.diametr) { ball += 0.15; sabab.push('diametr_mos'); }
     if (el_k.qalinlik && qk.qalinlik && el_k.qalinlik === qk.qalinlik) { ball += 0.1; sabab.push('qalinlik_mos'); }

@@ -21,22 +21,24 @@ export type Profil = {
   /** Uskunalar: ro'yxat aggregatlangan smetaga 1:1 mos kelmaydi -> faqat qo'lda tasdiq. */
   odamKerak?: boolean;
   jamiQator?: string;
+  /** Faqat shu varaq prefikslari (КР, АР, ЭО...) uchun; varaq noma'lum bo'lsa — har sahifa. */
+  varaqPrefiks?: string[];
 };
 
 export const PROFILLAR: Profil[] = [
   {
-    id: 'armatura', tur: 'armatura', minMos: 2, standartBirlik: 'кг',
+    id: 'armatura', tur: 'armatura', minMos: 2, standartBirlik: 'кг', varaqPrefiks: ['КР', 'КЖ', 'КМ', 'КД'],
     sahifaKalit: ['арматур', 'расход стали', 'ведомость расхода', 'сетк', 'армирован'],
     sarlavha: { nom: ['наименование', 'класс', 'диаметр', 'обозначение'], belgi: ['^поз', 'марка'], birlik: ['^ед'], miqdor: ['масса', 'всего', 'вес'] },
     jamiQator: '^(итого|всего|jami|total)',
   },
   {
-    id: 'eshik_oyna', tur: 'eshik_oyna', minMos: 2, standartBirlik: 'шт',
+    id: 'eshik_oyna', tur: 'eshik_oyna', minMos: 2, standartBirlik: 'шт', varaqPrefiks: ['АР', 'АС', 'ГП'],
     sahifaKalit: ['двер', 'окон', 'окна', 'заполнени', 'проем'],
     sarlavha: { nom: ['наименование', 'обозначение'], belgi: ['^поз', 'марка'], birlik: ['^ед'], miqdor: ['^кол', 'количество'] },
   },
   {
-    id: 'uskuna', tur: 'uskuna', minMos: 2, standartBirlik: 'шт', odamKerak: true,
+    id: 'uskuna', tur: 'uskuna', minMos: 2, standartBirlik: 'шт', odamKerak: true, varaqPrefiks: ['ЭО', 'ЭМ', 'ЭС', 'ВК', 'ОВ', 'ТХ', 'СС', 'ПБ', 'ТС'],
     sahifaKalit: ['оборудован', 'спецификация оборуд', 'насос', 'светильник', 'щит'],
     sarlavha: { nom: ['наименование', 'тип', 'марка'], belgi: ['^поз', 'обозначение'], birlik: ['^ед'], miqdor: ['^кол', 'количество'] },
   },
@@ -93,7 +95,8 @@ export function birlikSarlavhadan(s: string): string | null {
 }
 
 /** Sahifa matni profilga mosmi (sahifaKalit). */
-export function profilSahifagaMos(p: Profil, sahifaMatni: string): boolean {
+export function profilSahifagaMos(p: Profil, sahifaMatni: string, varaq: string | null = null): boolean {
+  if (p.varaqPrefiks && varaq && !p.varaqPrefiks.includes(varaq.split('-')[0])) return false;
   if (p.sahifaKalit.length === 0) return true;
   const t = norm(sahifaMatni);
   return p.sahifaKalit.some((k) => t.includes(k));

@@ -91,6 +91,8 @@
   "Fakt loyihadan oshgan": { "ru": "Факт превысил проект", "en": "Actual exceeds design" },
   "bo‘lim nomida shu varaq belgisi": { "ru": "в названии раздела этот шифр листа", "en": "section name carries this sheet mark" },
   "bo‘limda varaq belgisi topilmadi": { "ru": "в разделах шифр листа не найден", "en": "no sheet mark found in sections" },
+  "beton sinfi ish turiga mos": { "ru": "класс бетона подходит виду работ", "en": "concrete class fits the work kind" },
+  "beton sinfi ish turiga mos emas": { "ru": "класс бетона не подходит виду работ", "en": "concrete class does not fit the work kind" },
   "birlik mos": { "ru": "единица совпадает", "en": "unit matches" },
   "birlik farqli": { "ru": "единица отличается", "en": "unit differs" },
   "ish turi mos": { "ru": "вид работ совпадает", "en": "work kind matches" },

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { birlikTahlil, normMiqdor } from './birlik';
 import type { MatnBo } from './jadval';
 import { dublikatTanla, hujjatniTahlilQil, sahifaniTahlilQil, varaqKalit, varaqBelgisi, aiNarxiTaxmini } from './tahlil';
-import { bolimXaritasi, kalitRaqamlar, moslash, type SmetaQator } from './moslash';
+import { bolimXaritasi, kalitRaqamlar, moslash, nomdanBelgilar, type SmetaQator } from './moslash';
 import { farqJami, farqlarniHisobla, type FarqMiqdor } from './farq';
 import { revizyaFarqi } from './revizya';
 import { qqsBilan, qatorSumma } from '../hisob-yadro';
@@ -89,7 +89,7 @@ describe('profil parserlari', () => {
   });
 
   it('o\'qib bo\'lmaydigan sahifa AI ga taklif qilinadi; narx oldindan ko\'rinadi, kesh bepul', () => {
-    const bo: MatnBo[] = Array.from({ length: 10 }, (_, i) => ({ s: 'xxx' + i, x: 10 + i * 30, y: 50, w: 20, h: 8, sahifa: 1 }));
+    const bo: MatnBo[] = [...Array.from({ length: 10 }, (_, i) => ({ s: 'xxx' + i, x: 10 + i * 30, y: 50, w: 20, h: 8, sahifa: 1 })), { s: 'Спецификация', x: 10, y: 20, w: 60, h: 8, sahifa: 1 }];
     const r = hujjatniTahlilQil([...bo, ...bo.map((b) => ({ ...b, sahifa: 2 }))]);
     expect(r.every((x) => x.aiTaklifi && x.sabab === 'profil_yoq')).toBe(true);
     expect(aiNarxiTaxmini(r, new Set(['f:1']), 50, 'f')).toEqual({ sahifalar: 2, bepul: 1, token: 50 });
@@ -106,11 +106,11 @@ describe('profil parserlari', () => {
 
 const smeta: SmetaQator[] = [
   { id: 1, ota_id: null, tur: 'rz', nom: 'Монолитные конструкции (КР-5)', birlik: null, hajm: null, narx: null },
-  { id: 2, ota_id: 1, tur: 'rs', nom: 'Бетон монолитный В25 фундаментов', birlik: '100 м3', hajm: 0.1, narx: 90_000_000 },
-  { id: 3, ota_id: 1, tur: 'rs', nom: 'Бетон монолитный В15 подготовки', birlik: 'м3', hajm: 5, narx: 800_000 },
+  { id: 2, ota_id: 1, tur: 'bl', nom: 'Бетон монолитный В25 фундаментов', birlik: '100 м3', hajm: 0.1, narx: 90_000_000 },
+  { id: 3, ota_id: 1, tur: 'bl', nom: 'Бетон монолитный В15 подготовки', birlik: 'м3', hajm: 5, narx: 800_000 },
   { id: 4, ota_id: null, tur: 'rz', nom: 'Прочие работы', birlik: null, hajm: null, narx: null },
-  { id: 5, ota_id: 4, tur: 'rs', nom: 'Бетон монолитный В25 прочий', birlik: 'м3', hajm: 1, narx: 1 },
-  { id: 6, ota_id: 1, tur: 'rs', nom: 'Устройство гидроизоляции', birlik: 'м2', hajm: 10, narx: 50_000 },
+  { id: 5, ota_id: 4, tur: 'bl', nom: 'Бетон монолитный В25 прочий', birlik: 'м3', hajm: 1, narx: 1 },
+  { id: 6, ota_id: 1, tur: 'bl', nom: 'Устройство гидроизоляции', birlik: 'м2', hajm: 10, narx: 50_000 },
 ];
 
 describe('matcher', () => {
@@ -118,6 +118,10 @@ describe('matcher', () => {
   it('bo\'lim nomidagi varaq belgisi birlamchi kalit', () => {
     expect(xarita.get(2)?.belgilar.has('КР-5')).toBe(true);
     expect(xarita.get(5)?.belgilar.size).toBe(0);
+  });
+  it('vergul bilan ro‘yxat: КР-2,87 = ikki varaq; nuqta — kichik raqam', () => {
+    expect([...nomdanBelgilar('ЗЕМЛЯНЫЕ РАБОТЫ(КР-2,87)')].sort()).toEqual(['КР-2', 'КР-87']);
+    expect([...nomdanBelgilar('ФУНДАМЕНТ (КР-5.1)')]).toEqual(['КР-5.1']);
   });
   it('kalit raqamlar', () => { expect(kalitRaqamlar('Бетон В25 Ø12 150 мм')).toEqual({ sinf: 'B25', diametr: '12', qalinlik: '150' }); });
   it('B25 beton 100 м3 qatoriga ball bilan taklif; hech qachon avto-qabul emas', () => {
@@ -136,7 +140,7 @@ describe('matcher', () => {
     expect(moslash({ nom: 'Насос', birlik: 'шт', tur: 'uskuna', varaq: 'ЭО-1' }, smeta, xarita)).toEqual({ odamKerak: true, ishonchli: false, nomzodlar: [] });
   });
   it('sozlanadigan regex (kompaniya nomlashi)', () => {
-    const q: SmetaQator[] = [{ id: 1, ota_id: null, tur: 'rz', nom: 'Раздел [лист КР/5]', birlik: null, hajm: null, narx: null }, { id: 2, ota_id: 1, tur: 'rs', nom: 'Бетон В25', birlik: 'м3', hajm: 1, narx: 1 }];
+    const q: SmetaQator[] = [{ id: 1, ota_id: null, tur: 'rz', nom: 'Раздел [лист КР/5]', birlik: null, hajm: null, narx: null }, { id: 2, ota_id: 1, tur: 'bl', nom: 'Бетон В25', birlik: 'м3', hajm: 1, narx: 1 }];
     const x = bolimXaritasi(q, 'лист\\s*([А-Я]+/\\d+)');
     expect([...(x.get(2)?.belgilar ?? [])]).toEqual(['КР-5']);
   });

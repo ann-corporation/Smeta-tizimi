@@ -87,7 +87,7 @@ export function farqlarniHisobla(miqdorlar: FarqMiqdor[], smeta: SmetaQator[], b
   const yuklanganVaraq = new Set(miqdorlar.map((m) => m.varaq.toUpperCase()));
   const xarita = bolimXaritasi(smeta);
   for (const q of smeta) {
-    if (q.tur !== 'rs' || bogliQatorlar.has(q.id)) continue;
+    if (q.tur !== 'bl' || bogliQatorlar.has(q.id)) continue;
     const belgilar = xarita.get(q.id)?.belgilar;
     if (!belgilar || ![...belgilar].some((b) => yuklanganVaraq.has(b))) continue;
     const p = pul(q.hajm, q.narx, S.qqsFoiz);
@@ -108,12 +108,17 @@ export type FarqJami = {
 
 const HUJJAT: QarorTuri[] = ['zamena', 'qoshimcha', 'pereraschet', 'boglandi'];
 
+/** Jami hisobiga kiruvchi qatorlar: smetaga kirmagan (hal qilinmagan) va hujjatlashtirilgan. Ustamali summa uchun kategoriya kesimi shundan yig'iladi. */
+export function farqJamiTarkibi(r: FarqQator[]): { kirmagan: FarqQator[]; hujjat: FarqQator[] } {
+  const faol = (x: FarqQator) => x.qaror && !x.qarorEskirgan ? x.qaror : null;
+  const musbat = r.filter((x) => x.tur !== 'smetada_bor_loyihada_yoq' && x.tur !== 'almashgan' && (x.farq ?? 0) > 0);
+  return { kirmagan: musbat.filter((x) => !faol(x)), hujjat: musbat.filter((x) => { const q = faol(x); return q != null && HUJJAT.includes(q); }) };
+}
+
 export function farqJami(r: FarqQator[]): FarqJami {
   const faol = (x: FarqQator) => x.qaror && !x.qarorEskirgan ? x.qaror : null;
   const ortiqcha = (x: FarqQator) => x.tur === 'smetada_bor_loyihada_yoq';
-  const musbat = r.filter((x) => !ortiqcha(x) && x.tur !== 'almashgan' && (x.farq ?? 0) > 0);
-  const kir = musbat.filter((x) => !faol(x));
-  const hujj = musbat.filter((x) => { const q = faol(x); return q != null && HUJJAT.includes(q); });
+  const { kirmagan: kir, hujjat: hujj } = farqJamiTarkibi(r);
   const n = (xs: FarqQator[], k: 'pulQQSbilan' | 'pulQQSsiz') => yigindi2(xs.map((x) => x[k]));
   return {
     kirmaganQQSbilan: n(kir, 'pulQQSbilan'), kirmaganQQSsiz: n(kir, 'pulQQSsiz'), kirmaganSoni: kir.length,
