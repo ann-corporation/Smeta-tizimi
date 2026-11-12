@@ -24,6 +24,13 @@ export default function KirishSahifa() {
   /* Login-parol bilan kirish — ikkinchi darajali usul (asosiysi: email kod va Google). */
   const [usul, setUsul] = useState<'email' | 'parol' | 'telegram'>('email');
   const parolOchiq = usul === 'parol';
+  /* Telegram tugmasi FAQAT server yoqqanda (KIRISH_TELEGRAM_YOQILGAN + bot sozlangan) ko'rinadi — o'chiqligida chalg'itmaydi. */
+  const [tgYoqilgan, setTgYoqilgan] = useState(false);
+  useEffect(() => {
+    let tirik = true;
+    try { void fetch('/api/kirish-telegram').then((r) => r.json()).then((j: { yoqilgan?: boolean }) => { if (tirik && j?.yoqilgan === true) setTgYoqilgan(true); }).catch(() => undefined); } catch { /* tarmoq yo'q */ }
+    return () => { tirik = false; };
+  }, []);
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -92,7 +99,10 @@ export default function KirishSahifa() {
     if (n.yangi) {
       toast('Xush kelibsiz! Hisobingiz tayyor. Keyingi qadam: kompaniya oching (so‘rov) yoki direktordan taklif oling.', 'ok');
       navigate(YANGI_HISOB_KIRISH);
-    } else navigate(MAVJUD_FOYDALANUVCHI_KIRISH);
+    } else {
+      if (n.ulandi) toast('Google kirish usuli akkauntingizga qo‘shildi.', 'ok');
+      navigate(MAVJUD_FOYDALANUVCHI_KIRISH);
+    }
   };
   const googleBoshlandi = () => { setError(''); setLoading(true); };
 
@@ -128,7 +138,7 @@ export default function KirishSahifa() {
                 <div className="entry-auth-tiles" role="group" aria-label={t('Kirish usuli')} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, margin: '12px 0' }}>
                   {([
                     ['parol', t('Telefon va parol'), <Phone key="p" size={18} aria-hidden="true" />],
-                    ['telegram', t('Telegram orqali'), <Send key="t" size={18} aria-hidden="true" />],
+                    ...(tgYoqilgan ? [['telegram', t('Telegram orqali'), <Send key="t" size={18} aria-hidden="true" />] as const] : []),
                     ['email', t('Email kod'), <Mail key="e" size={18} aria-hidden="true" />],
                   ] as const).map(([k, nom, ikon]) => (
                     <button key={k} type="button" className="entry-auth-alt" aria-pressed={usul === k} aria-expanded={usul === k}
@@ -212,10 +222,10 @@ export default function KirishSahifa() {
 
                 <div className="entry-auth-google"><GoogleKirish matn="signup_with" onNatija={googleNatija} onBoshlandi={googleBoshlandi} /></div>
                 <EmailKodKirish royxat onKirdi={emailNatija} />
-                <details className="entry-auth-foot">
+                {tgYoqilgan && <details className="entry-auth-foot">
                   <summary>{t('Emailingiz yo‘qmi? Telegram orqali ro‘yxatdan o‘ting')}</summary>
                   <TelegramKirish ismKerak onKirdi={telegramNatija} />
-                </details>
+                </details>}
 
                 <p className="entry-auth-foot">
                   {t('Bepul tarif: 300 token. Har hujjat narxi «Tokenlar» bo‘limidagi narx jadvalida. Keyin tarifni «Tokenlar va obuna» bo‘limida tanlaysiz.')}

@@ -17,6 +17,7 @@ import { imzola, SESSIYA_MUDDAT_MS, tekshir, type Sess } from '../_shared/auth';
 import { roleAuthority, vakolatKeshTozala, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shared/role-authority';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { googleKalitlar, googleOriginlar, googleTokenTekshir, STANDART_CLIENT_ID } from '../_shared/google-id';
+import { kodXesh } from './kirish-email';
 
 type Env = { SESSIYA_KALIT: string; SUPABASE_URL: string; SUPABASE_KEY: string; GOOGLE_CLIENT_ID?: string; GOOGLE_ORIGINS?: string };
 type Rpc = { ok?: boolean; code?: string; [k: string]: unknown };
@@ -30,6 +31,7 @@ const TALAB_KODLARI = new Set([
   'ESKI_PAROL_XATO', 'PAROL_QISQA', 'PAROL_UZUN', 'PAROL_BIR_XIL',
   'GOOGLE_PAROLSIZ', 'GOOGLE_BOSHQA_HISOB', 'GOOGLE_ALLAQACHON_ULANGAN', 'GOOGLE_MALUMOT_NOTOGRI',
   'LOGIN_PAROL_XATO', 'OZI', 'PAROLSIZ_HISOB',
+  'SUPERADMIN_FARQI', 'HISOB_YOQ', 'KOD_YAROQSIZ', 'OXIRGI_USUL', 'EMAIL_LOGIN', 'USUL_TOPILMADI', 'USUL_BIRLASHTIRILGAN', 'DOKAZ_NOTOGRI',
 ]);
 
 /* ── Noto'g'ri parol urinishlari: foydalanuvchi bo'yicha, xotirada (isolate) — 5 ta / 15 daqiqa ── */
@@ -203,6 +205,65 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       return json({ ok: true, kochirilgan_kompaniyalar: j.kochirilgan_kompaniyalar ?? [], qolgan_rollar: j.qolgan_rollar ?? [] }, 200, { 'Set-Cookie': cookie });
     }
 
+    /* ── Yagona akkaunt (20261218600000): kirish usullari, uzish, ikkinchi hisobni parolsiz isbot bilan birlashtirish ── */
+    case 'usullar': {
+      const j = await rpc(env, 't2_kirish_usullari_v1', { p_actor_id: id });
+      if (!j?.ok) return rpcXato(j);
+      return json({ ok: true, usullar: j.usullar ?? [] });
+    }
+
+    case 'usul_uz': {
+      const usulId = Number(b.usul_id);
+      if (!Number.isSafeInteger(usulId) || usulId <= 0) return talab();
+      /* Qayta autentifikatsiya: sessiya 10 daqiqadan yosh YOKI joriy parol (parolsiz hisobda — faqat yangi sessiya). */
+      const yangiSessiya = Date.now() - (a.verified.exp - SESSIYA_MUDDAT_MS) < 10 * 60_000;
+      if (!yangiSessiya) {
+        if (typeof b.parol !== 'string' || !b.parol || b.parol.length > 256 || !a.verified.email) return json({ ok: false, code: 'QAYTA_KIRISH_KERAK' }, 401);
+        if (urinishBloklangan(id)) return json({ ok: false, code: 'KOP_URINISH' }, 429);
+        const t = await rpc(env, 't2_parol_tekshir_v1', { p_login: a.verified.email, p_parol: b.parol });
+        if (!t?.ok || Number(t.foydalanuvchi_id) !== id) { urinishYoz(id); return json({ ok: false, code: 'QAYTA_KIRISH_KERAK' }, 401); }
+        urinishlar.delete(id);
+      }
+      const opId = typeof b.operation_id === 'string' && /^[0-9a-f-]{36}$/i.test(b.operation_id) ? b.operation_id : crypto.randomUUID();
+      const j = await rpc(env, 't2_usul_uz_v1', { p_actor_id: id, p_usul_id: usulId, p_operation_id: opId });
+      if (!j?.ok) return rpcXato(j);
+      vakolatKeshTozala(id);
+      return json({ ok: true, tur: j.tur });
+    }
+
+    case 'birlashtir_google':
+    case 'birlashtir_email_kod': {
+      /* Ikkinchi hisobga egalik isboti SHLYUZDA tekshiriladi (Google imzosi yoki email kodi); RPC faqat natijaga ishonadi. */
+      if (urinishBloklangan(id)) return json({ ok: false, code: 'KOP_URINISH' }, 429);
+      let dokaz: Rpc | null;
+      if (b.amal === 'birlashtir_google') {
+        const token = typeof b.credential === 'string' ? b.credential : '';
+        if (!token || token.length > 4096) return talab();
+        let t: Awaited<ReturnType<typeof googleTokenTekshir>>;
+        try { t = await googleTokenTekshir(token, env.GOOGLE_CLIENT_ID || STANDART_CLIENT_ID, await googleKalitlar()); }
+        catch { return json({ ok: false, code: 'SERVER_XATO' }, 500); }
+        if (!t.ok) return json({ ok: false, code: 'GOOGLE_TOKEN_YAROQSIZ', sabab: t.sabab }, 400);
+        dokaz = await rpc(env, 't2_google_dokaz_v1', { p_email: t.p.email, p_sub: t.p.sub });
+      } else {
+        const email = typeof b.email === 'string' ? b.email.trim().toLowerCase().slice(0, 254) : '';
+        const kod = typeof b.kod === 'string' ? b.kod.replace(/\s+/g, '') : '';
+        const tid = typeof b.tasdiqlash_id === 'string' ? b.tasdiqlash_id : '';
+        if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(email) || !/^\d{6}$/.test(kod) || !/^[0-9a-f-]{36}$/i.test(tid)) return talab();
+        dokaz = await rpc(env, 't2_email_kod_dokaz_v1', { p_tasdiqlash_id: tid, p_kod_xesh: await kodXesh(kod, email, env.SESSIYA_KALIT), p_email: email });
+      }
+      if (!dokaz?.ok) { if (dokaz?.code === 'KOD_YAROQSIZ') urinishYoz(id); return rpcXato(dokaz); }
+      const boshqa = Number(dokaz.foydalanuvchi_id);
+      if (!Number.isSafeInteger(boshqa) || boshqa <= 0) return json({ ok: false, code: 'SERVER_XATO' }, 500);
+      const opId = typeof b.operation_id === 'string' && /^[0-9a-f-]{36}$/i.test(b.operation_id) ? b.operation_id : crypto.randomUUID();
+      const j = await rpc(env, 't2_hisob_birlashtir_v2', { p_actor_id: id, p_boshqa_id: boshqa, p_dokaz: b.amal === 'birlashtir_google' ? 'google' : 'email', p_operation_id: opId });
+      if (!j?.ok) return rpcXato(j);
+      urinishlar.delete(id);
+      vakolatKeshTozala(id); vakolatKeshTozala(boshqa);
+      const yangi = await roleAuthority(a.verified, env);
+      const cookie = await yangiCookie(env, yangi ?? a.verified);
+      if (!cookie) return json({ ok: false, code: 'CONFIG' }, 503);
+      return json({ ok: true, kochirilgan_kompaniyalar: j.kochirilgan_kompaniyalar ?? [], qolgan_rollar: j.qolgan_rollar ?? [] }, 200, { 'Set-Cookie': cookie });
+    }
     default:
       return json({ ok: false, code: 'AMAL_NOMALUM' }, 400);
   }
