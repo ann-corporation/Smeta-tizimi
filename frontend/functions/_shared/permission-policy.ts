@@ -53,7 +53,7 @@ export function dataPermission(name: string, write: boolean, body: Record<string
 
 /** Public/auth/webhook/catalog endpoints retain their own guards. All tenant business APIs are covered here. */
 export const SCOPED_APIS = new Set(['object-financials','contract-scope','sb','sb-yoz','company','sessiya','smeta-studio','smeta-yukla','smeta-ai','smeta-narx-agent','f2-moslash',
-  'hujjat-nazorat','hujjat-ol','hujjat-royxat','hujjat-yukla','boss-dashboard','boss-documents','system-control','tomon','hujjat-aylanish','agent-ish','ai-savol','ai-parse','gas','boshqaruv','agent-control',
+  'hujjat-nazorat','hujjat-ol','hujjat-royxat','hujjat-yukla','boss-dashboard','boss-documents','system-control','tomon','hujjat-aylanish','agent-ish','ai-savol','ai-parse','ai-loyiha','gas','boshqaruv','agent-control',
   /* Obyekt paketi (ADR OBYEKT_PAKET §1.4): smeta + holat + F2 ro'yxati + nakrutka — faqat o'qish. */
   'obyekt-paket','normativ-qidir']);
 
@@ -84,6 +84,7 @@ export function requestPermission(api: string, method: string, b: Record<string,
   if (api === 'f2-moslash') return 'f2.import';
   if (api === 'smeta-narx-agent') return 'narx.read';
   if (api === 'smeta-ai') return 'smeta.read';
+  if (api === 'ai-loyiha') return 'document.read'; // drawing read: returns proposals only, no writes
   if (api === 'boss-dashboard') return 'financial.read';
   if (api === 'boss-documents') return 'document.read';
   if (api === 'gas') return 'control.global.read'; // T1 emergency adapter is not a tenant permission bypass.

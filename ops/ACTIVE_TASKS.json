@@ -3562,6 +3562,26 @@
     ],
     "production_write_allowed": false,
     "note": "Egasi 2026-11-03: «tendr ... mukammal jarayon». P2/P3 (t2_birja_*, t2_buyurtma) ustiga additiv; migratsiya 20261122000200 prodga FAQAT L0 qo'llaydi. PR-T1 (claude/tender-v1): baza + shlyuz + api + lib; PR-T2 (claude/tender-v1-ui): UI. v1 RPC lar (elon/golib/yop/tafsilot) service_role dan yig'iladi (muhr va tasdiq aylanib o'tilmasin)."
+  },
+  {
+    "id": "AI-LOYIHA-OQISH-20261105",
+    "title": "Ish kartasi 2-bosqich: AI loyiha chizmasini (KJ/AS/AR) o'qish - ADR + flag-off prototip",
+    "owner": "claude",
+    "machine": "local",
+    "branch": "claude/ai-loyiha-oqish",
+    "base_sha": "edf29743",
+    "status": "in_progress",
+    "production_write_allowed": false,
+    "depends_on": [],
+    "must_read": ["AGENTS.md", "docs/architecture/T2_AI_TIZIM_V2.md", "docs/architecture/FILE_TRUTH_AND_SECONDARY_REPLICA_V1.md"],
+    "owns": [
+      "docs/architecture/AI_LOYIHA_OQISH.md",
+      "frontend/src/lib/ai-loyiha/",
+      "frontend/functions/api/ai-loyiha.ts",
+      "frontend/functions/api/ai-loyiha.test.ts",
+      "frontend/src/i18n/lugat/qism/ai-loyiha.json"
+    ],
+    "notes": "Shared one-line touches (not locked): permission-policy.ts + api/_middleware.ts (ai-loyiha in SCOPED/AI lists), ai-hisob-qoidasi.test.ts, package.json (pdfjs-dist direct dep, same version as pdf-parse transitive). No migration, no prod writes."
   }
 ]
 }
