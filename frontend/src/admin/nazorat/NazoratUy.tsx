@@ -11,6 +11,7 @@ import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { zakazchikObyektlarOl, type ZakazchikObyekt } from '../../api/t2-tomon';
 import { nazoratUyOl, type NazoratUy as UyMalumot } from '../../api/t2-nazorat';
+import { labNatijalarOl, type LabNatija } from '../../api/t2-lab-sorov';
 import { t } from '../../i18n/til';
 import { Bolim } from '../zakazchik/tomon-ui';
 
@@ -32,6 +33,7 @@ export default function NazoratUy() {
   const kompaniyaId = joriy?.id ?? null;
   const [obyektlar, setObyektlar] = useState<ZakazchikObyekt[]>([]);
   const [uy, setUy] = useState<UyMalumot | null>(null);
+  const [lab, setLab] = useState<LabNatija[]>([]);
   const [xato, setXato] = useState('');
   const [yuklandi, setYuklandi] = useState(false);
 
@@ -46,6 +48,7 @@ export default function NazoratUy() {
       if (u.ok) setUy(u.natija);
       setYuklandi(true);
     });
+    void labNatijalarOl(kompaniyaId).then((l) => { if (!bekor && l.ok) setLab(l.natija); });
     return () => { bekor = true; };
   }, [kompaniyaId]);
 
@@ -73,6 +76,20 @@ export default function NazoratUy() {
           </p>
         )}
 
+        <Bolim sarlavha="Laboratoriya natijalari">
+          {yuklandi && lab.length === 0 && <p className="text-sm text-text-dim" data-testid="lab-natija-bosh">{t('Sizga ochilgan laboratoriya natijalari yo‘q. Pudratchi «Tomonlar aloqasi» sahifasidan laboratoriya natijalarini ochadi.')}</p>}
+          <ul className="divide-y divide-border">
+            {lab.map((x) => (
+              <li key={x.id} className="flex flex-wrap items-center gap-2 py-2 text-[13px]" data-testid="lab-natija">
+                <span className="font-semibold">{x.sinov_nom}</span>
+                <span className="text-text-dim">{x.obyekt_nom}</span>
+                <span className={`fz-chip ${x.natija === 'mos_emas' ? 'fz-chip--warn' : ''}`}>{x.natija === 'mos' ? t('mos') : t('mos emas')}</span>
+                <span className="text-text-mute">{x.protokol_raqam ? `№ ${x.protokol_raqam}` : ''}{x.protokol_sana ? ` · ${x.protokol_sana}` : ''}</span>
+                {x.xulosa && <span className="text-text-dim">{x.xulosa}</span>}
+              </li>
+            ))}
+          </ul>
+        </Bolim>
         <Bolim sarlavha="Men nazorat qiladigan obyektlar">
           {yuklandi && obyektlar.length === 0 && <p className="text-sm text-text-dim">{t('Hali sizga obyekt ochilmagan. Pudratchi “Tomonlar aloqasi” sahifasidan obyektni ochib berishi kerak.')}</p>}
           <ul className="divide-y divide-border">
