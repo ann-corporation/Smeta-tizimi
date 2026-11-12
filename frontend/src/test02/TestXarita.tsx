@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import {
   Building2, Warehouse, FileText, Truck, HardHat, FolderKanban,
   Users, Plus, X, ZoomIn, ZoomOut, RefreshCcw, Unlink, Move,
@@ -183,7 +183,7 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
   /** Ko'rinish: 3D graf (sukut), 2D graf (Obsidian uslubi — egasi: "eskisini ham o'chirma") yoki tahrir kanvasi. */
   /** Egasi 2026-10-25: sukut — «Kompaniya xaritasi» (2D ierarxiya, real holat bilan); telefonda — ro'yxat.
       3D/2D graf va tahrir kanvasi ixtiyoriy ko'rinish sifatida saqlanadi. */
-  const [korinish, setKorinishIchki] = useState<MindmapKorinishTuri>(korinishBoshlangich);
+  const [korinish, setKorinishIchki] = useState<MindmapKorinishTuri>(() => (!ichki && params.get('tugun') ? 'xarita' : korinishBoshlangich()));
   const setKorinish = useCallback((k: MindmapKorinishTuri) => { setKorinishIchki(k); korinishSakla(k); }, []);
   const [tanlanganBog, setTanlanganBog] = useState<MindmapGraf['bogichlar'][number] | null>(null);
   const [obyektHodisalari, setObyektHodisalari] = useState<Hodisa[]>([]);
