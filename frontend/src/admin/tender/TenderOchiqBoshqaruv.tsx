@@ -10,9 +10,9 @@ import { toast } from '../../umumiy/ui/Toast';
 import { FmtN } from '../../lib/format';
 import { t } from '../../i18n/til';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
-import { sbT2ObyektlarOlKomp, type T2Obyekt } from '../../api/supabase';
+import { sbT2DaraxtOl, sbT2ObyektlarOlKomp, type T2Obyekt, type T2Qator } from '../../api/supabase';
 import { TENDER_XATO_XABARI, tenderGolib, tenderOtish, tenderRoyxatOl, tenderSaqla, tenderTafsilotOl, type TenderRoyxatQator, type TenderTafsilot, type TenderTur } from '../../api/t2-tender';
-import { tnAloqa, tnBayonnoma, tnLotSmetadan, tnNarxManba, tnShartnomaHavola, tnTopshiriq, type Bayonnoma, type LotSmetadan, type ShartnomaHavola } from '../../api/t2-tender-ochiq';
+import { tnAloqa, tnBayonnoma, tnKorsatish, tnLotSmetadan, tnNarxManba, tnShartnomaHavola, tnTopshiriq, type Bayonnoma, type LotSmetadan, type ShartnomaHavola } from '../../api/t2-tender-ochiq';
 import { taqqosQatorlari } from '../../lib/tender-ochiq/taqqos';
 import { bayonnomaXlsx } from '../../lib/tender-ochiq/bayonnoma-export';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
@@ -25,21 +25,31 @@ const xabar = (c: string | undefined) => t((c && TENDER_XATO_XABARI[c]) || (c ==
 
 function Yangi({ kid, onYaratildi }: { kid: number; onYaratildi: (id: number) => void }) {
   const [p] = useSearchParams();
-  const zayavka = p.get('yarat') === '1' ? { nom: p.get('nom') ?? '', birlik: p.get('birlik') ?? '', hajm: Number(p.get('hajm')) || 0, zayavka_id: Number(p.get('zayavka_id')) || undefined, obyekt_id: Number(p.get('obyekt_id')) || undefined } : null;
+  const zayavka = p.get('yarat') === '1' && p.get('zayavka_id') ? { nom: p.get('nom') ?? '', birlik: p.get('birlik') ?? '', hajm: Number(p.get('hajm')) || 0, zayavka_id: Number(p.get('zayavka_id')) || undefined, obyekt_id: Number(p.get('obyekt_id')) || undefined } : null;
+  const turBosh = p.get('tur');
   const [obyektlar, setObyektlar] = useState<T2Obyekt[]>([]);
-  const [obyekt, setObyekt] = useState(zayavka?.obyekt_id ? String(zayavka.obyekt_id) : '');
+  const [obyekt, setObyekt] = useState(zayavka?.obyekt_id ? String(zayavka.obyekt_id) : p.get('obyekt') ?? '');
+  const [bolimlar, setBolimlar] = useState<T2Qator[] | null>(null);
   const [bolim, setBolim] = useState(p.get('bolim') ?? '');
-  const [tur, setTur] = useState<LotSmetadan['tur']>('material');
+  const [tur, setTur] = useState<LotSmetadan['tur']>(turBosh === 'subpudrat' || turBosh === 'texnika_ijara' ? turBosh : 'material');
   const [doira, setDoira] = useState<'ochiq' | 'taklif'>('ochiq');
   const [nom, setNom] = useState(zayavka?.nom ?? '');
   const [muddat, setMuddat] = useState('');
+  const [egasiKorsat, setEgasiKorsat] = useState(false);
   const [band, setBand] = useState(false);
   useEffect(() => { void sbT2ObyektlarOlKomp(kid).then((r) => setObyektlar(r.qatorlar ?? [])); }, [kid]);
+  /* Smeta bo'limlari daraxti (faqat bo'lim — «rz» — sarlavhalari; narx ko'rsatilmaydi). Zayavka rejimida kerak emas. */
+  useEffect(() => {
+    if (zayavka || !obyekt) { setBolimlar(null); return; }
+    let bekor = false;
+    void sbT2DaraxtOl(Number(obyekt), 'id,ota_id,daraja,tur,kod,nom,tartib,obyekt_id,kompaniya_id').then((r) => { if (!bekor) setBolimlar(((r.qatorlar ?? []) as T2Qator[]).filter((q) => q.tur === 'rz')); });
+    return () => { bekor = true; };
+  }, [obyekt, zayavka]);
   const yubor = async () => {
     setBand(true);
     const iso = new Date(muddat).toISOString();
     let id: number | undefined; let kod: string | undefined;
-    if (zayavka && !bolim) {
+    if (zayavka) {
       const r = await tenderSaqla(kid, { tur: tur as TenderTur, doira, obyektId: obyekt ? Number(obyekt) : null, muddat: iso, maydonlar: { sarlavha: nom || zayavka.nom },
         qatorlar: [{ nom: zayavka.nom, birlik: zayavka.birlik, miqdor: zayavka.hajm, ...(zayavka.zayavka_id ? { zayavka_id: zayavka.zayavka_id } : {}) }] });
       id = r.id; kod = r.ok ? undefined : r.code;
@@ -47,6 +57,7 @@ function Yangi({ kid, onYaratildi }: { kid: number; onYaratildi: (id: number) =>
       const r = await tnLotSmetadan(kid, { obyekt_id: Number(obyekt), bolim_id: bolim ? Number(bolim) : null, tur, doira, muddat: iso, nom: nom || undefined });
       if (r.ok) id = r.natija.id; else kod = r.code;
     }
+    if (id && egasiKorsat) await tnKorsatish(kid, id, true);
     setBand(false);
     if (id) { toast(t('Lot qoralama sifatida yaratildi. Tasdiqlab e‘lon qiling.'), 'ok'); onYaratildi(id); } else toast(xabar(kod), 'warn');
   };
@@ -58,11 +69,19 @@ function Yangi({ kid, onYaratildi }: { kid: number; onYaratildi: (id: number) =>
       <div className="flex gap-1">{([['material', 'Material'], ['subpudrat', 'Ish / subpudrat'], ['texnika_ijara', 'Texnika ijarasi']] as const).map(([k, n]) => <button key={k} type="button" onClick={() => setTur(k)} className={`h-11 flex-1 rounded-lg border text-[13px] ${tur === k ? 'border-blue-600 font-semibold' : 'border-border'}`}>{t(n)}</button>)}</div>
       <div className="flex gap-1">{([['ochiq', 'Ochiq (hamma ko‘radi)'], ['taklif', 'Faqat taklif qilinganlar']] as const).map(([k, n]) => <button key={k} type="button" onClick={() => setDoira(k)} className={`h-11 flex-1 rounded-lg border text-[13px] ${doira === k ? 'border-blue-600 font-semibold' : 'border-border'}`}>{t(n)}</button>)}</div>
       <input className={maydon} aria-label={t('Lot nomi')} placeholder={t('Lot nomi')} value={nom} onChange={(e) => setNom(e.target.value)} />
-      <select className={maydon} aria-label={t('Obyekt')} value={obyekt} onChange={(e) => setObyekt(e.target.value)}><option value="">{t('Obyekt (smeta bo‘limi uchun)')}</option>{obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}</select>
-      <input className={maydon} type="number" min={0} inputMode="numeric" aria-label={t('Smeta bo‘limi ID (ixtiyoriy)')} placeholder={t('Smeta bo‘limi ID (bo‘sh = butun obyekt)')} value={bolim} onChange={(e) => setBolim(e.target.value)} />
+      {!zayavka && (
+        <>
+          <select className={maydon} aria-label={t('Obyekt')} value={obyekt} onChange={(e) => { setObyekt(e.target.value); setBolim(''); }}><option value="">{t('Obyekt (smeta bo‘limi uchun)')}</option>{obyektlar.map((o) => <option key={o.id} value={o.id}>{o.nom}</option>)}</select>
+          <select className={maydon} aria-label={t('Smeta bo‘limi')} value={bolim} disabled={!obyekt || bolimlar === null} onChange={(e) => { setBolim(e.target.value); const b = bolimlar?.find((x) => String(x.id) === e.target.value); if (b && !nom.trim()) setNom(`${b.kod ?? ''} ${b.nom ?? ''}`.trim()); }}>
+            <option value="">{!obyekt ? t('Avval obyektni tanlang') : bolimlar === null ? t('Yuklanmoqda…') : t('Butun obyekt (barcha bo‘limlar)')}</option>
+            {(bolimlar ?? []).map((b) => <option key={b.id} value={b.id}>{`${'· '.repeat(Math.min(b.daraja ?? 0, 4))}${b.kod ?? ''} ${b.nom ?? ''}`}</option>)}
+          </select>
+        </>
+      )}
       <label className="flex flex-col gap-1 text-[13px] text-text-mute">{t('Taklif qabul qilish muddati')}<input className={maydon} type="datetime-local" value={muddat} onChange={(e) => setMuddat(e.target.value)} /></label>
+      <label className="flex items-center gap-2 text-[14px]"><input type="checkbox" checked={egasiKorsat} onChange={(e) => setEgasiKorsat(e.target.checked)} />{t('Ochiq sahifada kompaniyam nomini ko‘rsatish')}</label>
       <button type="button" disabled={band || !tayyor} onClick={() => void yubor()} className={`${tugma} bg-blue-600 text-white`}>{t('Lot yaratish')}</button>
-      <p className="text-[12px] text-text-mute">{t('Smeta bo‘limidan lotga faqat nom, birlik va HAJM olinadi — smeta narxi va ustama boshqalarga ko‘rinmaydi.')}</p>
+      <p className="text-[12px] text-text-mute">{t('Smeta bo‘limidan lotga faqat nom, birlik va HAJM olinadi — smeta narxi va ustama boshqalarga ko‘rinmaydi. Kompaniya nomi sukut bo‘yicha yashirin.')}</p>
     </div>
   );
 }
@@ -154,7 +173,7 @@ function Lot({ kid, rfqId, yangila }: { kid: number; rfqId: number; yangila: () 
                 {r.tur === 'subpudrat' && <button type="button" onClick={() => void shartnoma()} className={`${tugma} border border-border`}>{t('Shartnoma qoralamasi')}</button>}
               </div>
               {xabarMatn && <p role="status" className="text-[13px]">{xabarMatn}</p>}
-              {havola && <p className="text-[13px]"><Link className="underline" to={`/admin/shartnoma-liniya?yangi=1&turi=${havola.turi}&nom=${encodeURIComponent(havola.nom)}&taraf=${encodeURIComponent(havola.taraf ?? '')}${havola.loyiha_id ? `&loyiha=${havola.loyiha_id}` : ''}`}>{t('Shartnomani ochish')}</Link> · {t('Summa (QQS siz)')}: <FmtN val={havola.summa_bez_nds} /></p>}
+              {havola && <p className="text-[13px]"><Link className="underline" to={`/admin/shartnoma-liniya?yangi=1&turi=${havola.turi}&nom=${encodeURIComponent(havola.nom)}&taraf=${encodeURIComponent(havola.taraf ?? '')}${havola.summa_bez_nds != null ? `&summa=${havola.summa_bez_nds}` : ''}${havola.loyiha_id ? `&loyiha=${havola.loyiha_id}` : ''}`}>{t('Shartnomani ochish')}</Link> · {t('Summa (QQS siz)')}: <FmtN val={havola.summa_bez_nds} /></p>}
             </div>
           )}
           <button type="button" disabled={band} onClick={() => void hujjat()} className={`${tugma} border border-border`}>{t('Tender bayonnomasi (Excel)')}</button>

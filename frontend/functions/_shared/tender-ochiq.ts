@@ -32,6 +32,7 @@ export const AMALLAR: Readonly<Record<string, { rpc: string; tur: Tur; kalit: re
   aloqa: { rpc: 't2_tn_aloqa_v1', tur: 'yozish', kalit: ['rfq_id', 'taklif_id'] },
   narx_manba: { rpc: 't2_tn_narx_manba_v1', tur: 'yozish', kalit: ['rfq_id'] },
   ish_qadam: { rpc: 't2_tn_ish_qadam_v1', tur: 'yozish', kalit: ['rfq_id', 'qadam', 'umumiy_summa'] },
+  korsatish: { rpc: 't2_tn_korsatish_v1', tur: 'yozish', kalit: ['rfq_id', 'korsat'] },
   ogohlantirish: { rpc: 't2_tn_ogohlantirish_v1', tur: 'oqish', kalit: ['rfq_id'] },
   bayonnoma: { rpc: 't2_tn_bayonnoma_v1', tur: 'oqish', kalit: ['rfq_id'] },
 };

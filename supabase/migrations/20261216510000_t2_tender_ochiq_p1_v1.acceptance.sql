@@ -7,7 +7,7 @@ set local statement_timeout = '300s';
 do $acc$
 declare
   k bigint; b1 bigint; b2 bigint; b3 bigint; b4 bigint; f bigint; ak bigint; a1 bigint; a2 bigint; a3 bigint; a4 bigint; af bigint; ob bigint; sec bigint;
-  res jsonb; rid bigint; ver int; q1 bigint; q2 bigint; q3 bigint; t1 bigint; t2 bigint; t3 bigint; t4 bigint; n int; al bigint; m1 bigint; rid2 bigint; wid bigint; qq bigint[];
+  res jsonb; rid bigint; ver int; q1 bigint; q2 bigint; q3 bigint; t1 bigint; t2 bigint; t3 bigint; t4 bigint; n int; al bigint; m1 bigint; rid2 bigint; wid bigint; qq bigint[]; rid3 bigint; tq3 bigint;
 begin
   insert into public.t2_kompaniya (nom, kod, faol) values ('_TN_K', gen_random_uuid()::text, true) returning id into k;
   insert into public.t2_kompaniya (nom, kod, faol) values ('_TN_B1', gen_random_uuid()::text, true) returning id into b1;
@@ -40,8 +40,24 @@ begin
   -- 3. Ochiq o'qish (kirmasdan): lot ko'rinadi, narx/smeta/zayavka/egasi YO'Q
   res := public.t2_tn_ochiq_lot_v1(rid);
   if not (res ->> 'ok')::boolean or jsonb_array_length(res -> 'qatorlar') <> 3 then raise exception 'FAIL ochiq lot: %', res; end if;
-  if (res::text ~ '"(narx|smeta_qator_id|zayavka_id|kompaniya_id|obyekt_id)"') then raise exception 'FAIL ochiq lot ortiqcha maydon sizdirdi: %', res; end if;
+  -- OQ RO'YXAT: har kalit alohida tanlangan. byudjet/meyor/savol_muddat/smeta/zayavka/kompaniya/obyekt/narx hech qachon (null sifatida ham) chiqmaydi.
+  if exists (select 1 from jsonb_object_keys(res) k2 where k2 <> all (array['ok', 'lot', 'qatorlar'])) then raise exception 'FAIL ochiq lot yuqori kalit: %', res; end if;
+  if exists (select 1 from jsonb_object_keys(res -> 'lot') k2 where k2 <> all (array['id', 'raqam', 'nom', 'tur', 'muddat', 'muddat_otgan', 'izoh', 'tolov_sharti', 'valyuta', 'qqs_foiz', 'baholash_usuli', 'takliflar_soni']))
+     then raise exception 'FAIL ochiq lot ortiqcha maydon sizdirdi: %', res -> 'lot'; end if;
+  if exists (select 1 from jsonb_array_elements(res -> 'qatorlar') x, jsonb_object_keys(x) k2 where k2 <> all (array['qator_no', 'lot_no', 'lot_nom', 'nom', 'birlik', 'miqdor', 'talab_sana', 'yetkazish_joyi', 'spets']))
+     then raise exception 'FAIL ochiq lot qatori ortiqcha maydon sizdirdi: %', res -> 'qatorlar'; end if;
+  if exists (select 1 from jsonb_array_elements(public.t2_tn_ochiq_royxat_v1('{}') -> 'lotlar') x, jsonb_object_keys(x) k2 where k2 <> all (array['id', 'raqam', 'nom', 'tur', 'muddat', 'valyuta', 'qator_soni', 'takliflar_soni']))
+     then raise exception 'FAIL ochiq royxat ortiqcha maydon sizdirdi'; end if;
   if not exists (select 1 from jsonb_array_elements(public.t2_tn_ochiq_royxat_v1('{}') -> 'lotlar') x where (x ->> 'id')::bigint = rid) then raise exception 'FAIL ochiq royxat'; end if;
+  -- Egasi nomi sukut bo'yicha YASHIRIN; lot belgisi bilan ko'rinadi (faqat egasi o'zgartiradi), qayta o'chirilsa yana yashirin.
+  if (res -> 'lot') ? 'egasi_nom' then raise exception 'FAIL egasi nomi sukutda ochiq'; end if;
+  begin perform public.t2_tn_korsatish_v1(k, af, gen_random_uuid(), jsonb_build_object('rfq_id', rid, 'korsat', true)); raise exception 'FAIL_BEGONA_KORSATISH';
+  exception when others then if sqlerrm = 'FAIL_BEGONA_KORSATISH' then raise exception 'FAIL begona foydalanuvchi egasi belgisini o''zgartirdi'; end if; end;
+  res := public.t2_tn_korsatish_v1(k, ak, gen_random_uuid(), jsonb_build_object('rfq_id', rid, 'korsat', true));
+  if not (res ->> 'ok')::boolean or (public.t2_tn_ochiq_lot_v1(rid) -> 'lot' ->> 'egasi_nom') is distinct from '_TN_K' then raise exception 'FAIL egasini korsatish: %', res; end if;
+  if (select (x ->> 'egasi_nom') from jsonb_array_elements(public.t2_tn_ochiq_royxat_v1('{}') -> 'lotlar') x where (x ->> 'id')::bigint = rid) is distinct from '_TN_K' then raise exception 'FAIL royxatda egasi nomi'; end if;
+  res := public.t2_tn_korsatish_v1(k, ak, gen_random_uuid(), jsonb_build_object('rfq_id', rid, 'korsat', false));
+  if (public.t2_tn_ochiq_lot_v1(rid) -> 'lot') ? 'egasi_nom' then raise exception 'FAIL egasi nomi qayta yashirilmadi'; end if;
 
   -- 4. Takliflar (4 ta; b4 keyin qaytarib oladi). Narxlar QQS siz birlik narxi.
   res := public.t2_tender_taklif_v2(a1, b1, gen_random_uuid(), rid, jsonb_build_array(jsonb_build_object('rfq_qator_id', q1, 'narx', 100), jsonb_build_object('rfq_qator_id', q2, 'narx', 200), jsonb_build_object('rfq_qator_id', q3, 'narx', 300)), 'b1', null);
@@ -72,7 +88,7 @@ begin
   if (res ->> 'takliflar_soni')::int <> 3 then raise exception 'FAIL qaytarilgan taklif hisobda: %', res; end if;
 
   -- 7. Muddat o'tdi: kech taklif rad; ochilgunga qadar muhr saqlanadi
-  update public.t2_birja_rfq set muddat = now() - interval '1 minute' where id = rid;
+  update public.t2_birja_rfq set muddat = now() - interval '1 minute', asl_muddat = now() - interval '2 minutes' where id = rid;
   res := public.t2_tender_taklif_v2(a2, b2, gen_random_uuid(), rid, jsonb_build_array(jsonb_build_object('rfq_qator_id', q1, 'narx', 1), jsonb_build_object('rfq_qator_id', q2, 'narx', 1), jsonb_build_object('rfq_qator_id', q3, 'narx', 1)), 'kech', null);
   if (res ->> 'code') is distinct from 'MUDDAT_OTGAN' then raise exception 'FAIL kech taklif qabul qilindi: %', res; end if;
   res := public.t2_tender_tafsilot_v2(ak, k, rid);
@@ -137,7 +153,7 @@ begin
   res := public.t2_tender_taklif_v2(a1, b1, gen_random_uuid(), rid2, jsonb_build_array(jsonb_build_object('rfq_qator_id', qq[1], 'narx', 1200), jsonb_build_object('rfq_qator_id', qq[2], 'narx', 1300)), 'sub1', null);
   t1 := (res ->> 'id')::bigint;
   res := public.t2_tender_taklif_v2(a2, b2, gen_random_uuid(), rid2, jsonb_build_array(jsonb_build_object('rfq_qator_id', qq[1], 'narx', 1250), jsonb_build_object('rfq_qator_id', qq[2], 'narx', 1350)), 'sub2', null);
-  update public.t2_birja_rfq set muddat = now() - interval '1 minute' where id = rid2;
+  update public.t2_birja_rfq set muddat = now() - interval '1 minute', asl_muddat = now() - interval '2 minutes' where id = rid2;
   select versiya into ver from public.t2_birja_rfq where id = rid2;
   res := public.t2_tender_otish_v1(ak, k, gen_random_uuid(), rid2, ver, 'baholash'); if not (res ->> 'ok')::boolean then raise exception 'FAIL ish lot ochish: %', res; end if;
   res := public.t2_tn_aloqa_v1(k, ak, gen_random_uuid(), jsonb_build_object('rfq_id', rid2, 'taklif_id', t1));
@@ -171,5 +187,34 @@ begin
   if exists (select 1 from jsonb_array_elements(public.t2_tn_ochiq_royxat_v1('{}') -> 'lotlar') x where (x ->> 'id')::bigint = wid) then raise exception 'FAIL faqat-taklif lot ochiq royxatda'; end if;
   res := public.t2_tender_tafsilot_v2(a3, b3, wid);
   if not (res ->> 'ok')::boolean then raise exception 'FAIL taklif qilingan kompaniya lotni ko''rmadi: %', res; end if;
+
+  -- 14. ERTA YOPISH MUHRNI OCHMAYDI: 'takliflar_yopildi' yangi takliflarni to'xtatadi, lekin narxlar ASL muddatgacha muhrlangan; ochish SQL da rad etiladi
+  res := public.t2_tender_saqla_v1(ak, k, gen_random_uuid(), null, null, 'material', 'ochiq', '{}'::bigint[], ob, now() + interval '2 days', jsonb_build_object('sarlavha', '_TN erta yopish lot'),
+    jsonb_build_array(jsonb_build_object('nom', '_Erta', 'birlik', 'dona', 'miqdor', 4)));
+  if not (res ->> 'ok')::boolean then raise exception 'FAIL erta lot: %', res; end if; rid3 := (res ->> 'id')::bigint; ver := (res ->> 'versiya')::int;
+  res := public.t2_tender_otish_v1(ak, k, gen_random_uuid(), rid3, ver, 'tasdiqlashda'); ver := (res ->> 'versiya')::int;
+  res := public.t2_tender_otish_v1(ak, k, gen_random_uuid(), rid3, ver, 'elon'); if not (res ->> 'ok')::boolean then raise exception 'FAIL erta lot elon: %', res; end if; ver := (res ->> 'versiya')::int;
+  select id into tq3 from public.t2_birja_rfq_qator where rfq_id = rid3;
+  res := public.t2_tender_taklif_v2(a1, b1, gen_random_uuid(), rid3, jsonb_build_array(jsonb_build_object('rfq_qator_id', tq3, 'narx', 555)), 'erta', null);
+  if not (res ->> 'ok')::boolean then raise exception 'FAIL erta lot taklifi: %', res; end if;
+  res := public.t2_tender_otish_v1(ak, k, gen_random_uuid(), rid3, ver, 'takliflar_yopildi', 'Sinov: muddatdan oldin yopish');
+  if not (res ->> 'ok')::boolean then raise exception 'FAIL erta yopish: %', res; end if; ver := (res ->> 'versiya')::int;
+  if not (select asl_muddat > now() + interval '1 day' from public.t2_birja_rfq where id = rid3) then raise exception 'FAIL asl muddat saqlanmadi'; end if;
+  res := public.t2_tender_taklif_v2(a2, b2, gen_random_uuid(), rid3, jsonb_build_array(jsonb_build_object('rfq_qator_id', tq3, 'narx', 1)), 'kech', null);
+  if coalesce((res ->> 'ok')::boolean, false) then raise exception 'FAIL erta yopilgan tenderga taklif qabul qilindi: %', res; end if;
+  begin perform public.t2_tender_otish_v1(ak, k, gen_random_uuid(), rid3, ver, 'baholash'); raise exception 'FAIL_ERTA_OCHILDI';
+  exception when others then
+    if sqlerrm = 'FAIL_ERTA_OCHILDI' then raise exception 'FAIL erta yopilgan tender asl muddatdan oldin ochildi'; end if;
+    if sqlerrm <> 'MUDDAT_OTMAGAN' then raise; end if;
+  end;
+  res := public.t2_tender_tafsilot_v2(ak, k, rid3);
+  if jsonb_array_length(res -> 'takliflar') <> 0 or (res ->> 'ochilgan')::boolean or (res ->> 'takliflar_soni')::int <> 1 then raise exception 'FAIL erta yopishdan keyin muhr: %', res; end if;
+  if (public.t2_tn_bayonnoma_v1(k, ak, rid3) ->> 'code') is distinct from 'MUHRLANGAN' then raise exception 'FAIL erta yopilgan lot bayonnomasi ochiq'; end if;
+  update public.t2_birja_rfq set muddat = now() - interval '1 minute', asl_muddat = now() - interval '1 minute' where id = rid3;
+  select versiya into ver from public.t2_birja_rfq where id = rid3;
+  res := public.t2_tender_otish_v1(ak, k, gen_random_uuid(), rid3, ver, 'baholash');
+  if not (res ->> 'ok')::boolean then raise exception 'FAIL asl muddatdan keyin ochish: %', res; end if;
+  res := public.t2_tender_tafsilot_v2(ak, k, rid3);
+  if jsonb_array_length(res -> 'takliflar') <> 1 or (res -> 'takliflar' -> 0 -> 'qatorlar' -> 0 ->> 'narx')::numeric <> 555 then raise exception 'FAIL asl muddatdan keyin taqqos: %', res; end if;
 end $acc$;
 rollback;

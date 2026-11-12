@@ -43,7 +43,7 @@ function Royxat() {
         <ul className="flex flex-col gap-2">
           {lotlar.map((l) => (
             <li key={l.id}><Link to={`/tender/${l.id}`} className="flex flex-col gap-1 rounded-xl border border-border p-3">
-              <span className="text-[12px] text-text-mute">{turNomi(l.tur)}{l.raqam ? ` · № ${l.raqam}` : ''}</span>
+              <span className="text-[12px] text-text-mute">{turNomi(l.tur)}{l.raqam ? ` · № ${l.raqam}` : ''}{l.egasi_nom ? ` · ${l.egasi_nom}` : ''}</span>
               <span className="text-[16px] font-semibold">{l.nom}</span>
               <span className="text-[13px] text-text-mute">{t('Muddat')}: {sana(l.muddat)} · {t('pozitsiya')}: {l.qator_soni} · {t('takliflar')}: {l.takliflar_soni}</span>
             </Link></li>
@@ -69,7 +69,7 @@ function Lot({ id }: { id: number }) {
       <dl className="grid gap-1 text-[14px] sm:grid-cols-2">
         {lot.tolov_sharti && <div><dt className="text-text-mute">{t('To‘lov sharti')}</dt><dd>{lot.tolov_sharti}</dd></div>}
         <div><dt className="text-text-mute">{t('Baholash usuli')}</dt><dd>{lot.baholash_usuli === 'ball' ? t('Ball bo‘yicha') : t('Eng past narx')}</dd></div>
-        {lot.byudjet_qqs_bilan != null && <div><dt className="text-text-mute">{t('Byudjet (QQS bilan)')}</dt><dd><FmtN val={lot.byudjet_qqs_bilan} /> {lot.valyuta}</dd></div>}
+        {lot.egasi_nom && <div><dt className="text-text-mute">{t('Buyurtmachi')}</dt><dd>{lot.egasi_nom}</dd></div>}
       </dl>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[480px] text-[14px]">

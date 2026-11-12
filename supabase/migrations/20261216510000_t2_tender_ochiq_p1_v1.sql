@@ -16,21 +16,45 @@ language sql stable security definer set search_path = public, pg_temp as $$
                    and r.holat in ('baholash', 'golib_tanlandi', 'shartnoma', 'bajarilmoqda', 'yopildi', 'bekor'))
 $$;
 
+-- 1b. ERTA YOPISH MUHRNI OCHMAYDI (SQL darajasi). Mavjud t2_tender_otish_v1 'takliflar_yopildi' muddatni now() ga tushiradi va shundan keyin ochish mumkin bo'lib qolardi.
+--     asl_muddat: e'lon qilingan muddat saqlanadi; ochish (ochilgan_vaqt null -> not null) asl muddat o'tmaguncha MUDDAT_OTMAGAN bilan rad etiladi.
+--     Erta yopish faqat yangi takliflarni to'xtatadi (muddat <= now() => MUDDAT_OTGAN); narxlar asl muddatgacha muhrlangan. Muddatni uzaytirish (raund) asl muddatni qayta hisoblaydi.
+alter table public.t2_birja_rfq add column if not exists asl_muddat timestamptz;
+create or replace function public._t2_tn_muddat_muhr_trg() returns trigger
+language plpgsql set search_path = public, pg_temp as $$
+begin
+  if new.asl_muddat is not distinct from old.asl_muddat and new.muddat is distinct from old.muddat then
+    if new.muddat is not null and old.muddat is not null and new.muddat < old.muddat and old.muddat > now() then
+      new.asl_muddat := coalesce(old.asl_muddat, old.muddat);
+    elsif new.muddat is null or (old.muddat is not null and new.muddat > old.muddat) then
+      new.asl_muddat := case when old.asl_muddat is not null and new.muddat is not null and old.asl_muddat > new.muddat then old.asl_muddat end;
+    end if;
+  end if;
+  if old.ochilgan_vaqt is null and new.ochilgan_vaqt is not null and coalesce(new.asl_muddat, new.muddat) > now() then
+    raise exception 'MUDDAT_OTMAGAN' using errcode = 'P0001', detail = 'Erta yopilgan tenderda ham narxlar e''lon qilingan muddatgacha muhrlangan';
+  end if;
+  return new;
+end $$;
+drop trigger if exists t2_birja_rfq_muddat_muhr on public.t2_birja_rfq;
+create trigger t2_birja_rfq_muddat_muhr before update on public.t2_birja_rfq for each row execute function public._t2_tn_muddat_muhr_trg();
+
 -- 2. OCHIQ RO'YXAT va LOT (kirmasdan). doira='ochiq', holat='elon', muddat o'tmagan. Takliflar faqat SONI.
+--    OQ RO'YXAT (aniq jsonb_build_object): byudjet va baholash mezoni (meyor) HECH QACHON ochiq emas (null sifatida ham). Egasi nomi faqat lotda `egasini_korsat` belgisi bo'lsa.
 create or replace function public.t2_tn_ochiq_royxat_v1(p_filtr jsonb default '{}'::jsonb) returns jsonb
 language plpgsql stable security definer set search_path = public, pg_temp as $$
 declare v_tur text := public._t2_bz_matn(p_filtr, 'tur', 40); v_q text := public._t2_bz_kalit(p_filtr ->> 'q');
   v_lim integer := least(greatest(coalesce(public._t2_bz_son(p_filtr, 'limit')::integer, 40), 1), 100);
 begin
-  return jsonb_build_object('ok', true, 'lotlar', coalesce((select jsonb_agg(to_jsonb(z) order by z.muddat, z.id) from (
-    select r.id, r.raqam, r.nom, r.tur, r.muddat, r.valyuta, r.baholash_usuli,
-      (select count(*) from public.t2_birja_rfq_qator q where q.rfq_id = r.id) as qator_soni,
-      (select count(distinct t.kompaniya_id) from public.t2_birja_taklif t where t.rfq_id = r.id and t.holat in ('berildi', 'faol')) as takliflar_soni,
-      case when r.byudjet_korsatish then r.byudjet_qqs_bilan end as byudjet_qqs_bilan
-    from public.t2_birja_rfq r
-    where r.protsess_v2 and r.doira = 'ochiq' and r.holat = 'elon' and (r.muddat is null or r.muddat > now())
-      and (v_tur is null or r.tur = v_tur) and (v_q = '' or public._t2_bz_kalit(r.nom) like '%' || v_q || '%')
-    order by r.muddat, r.id limit v_lim) z), '[]'::jsonb));
+  return jsonb_build_object('ok', true, 'lotlar', coalesce((select jsonb_agg(
+      jsonb_build_object('id', r.id, 'raqam', r.raqam, 'nom', r.nom, 'tur', r.tur, 'muddat', r.muddat, 'valyuta', r.valyuta,
+        'qator_soni', (select count(*) from public.t2_birja_rfq_qator q where q.rfq_id = r.id),
+        'takliflar_soni', (select count(distinct t.kompaniya_id) from public.t2_birja_taklif t where t.rfq_id = r.id and t.holat in ('berildi', 'faol')))
+      || case when r.shart ->> 'egasini_korsat' = 'true' then jsonb_build_object('egasi_nom', (select k.nom from public.t2_kompaniya k where k.id = r.kompaniya_id)) else '{}'::jsonb end
+      order by r.muddat, r.id)
+    from (select * from public.t2_birja_rfq r0
+           where r0.protsess_v2 and r0.doira = 'ochiq' and r0.holat = 'elon' and (r0.muddat is null or r0.muddat > now())
+             and (v_tur is null or r0.tur = v_tur) and (v_q = '' or public._t2_bz_kalit(r0.nom) like '%' || v_q || '%')
+           order by r0.muddat, r0.id limit v_lim) r), '[]'::jsonb));
 end $$;
 
 create or replace function public.t2_tn_ochiq_lot_v1(p_id bigint) returns jsonb
@@ -41,9 +65,9 @@ begin
   if not found then return jsonb_build_object('ok', false, 'code', 'LOT_TOPILMADI'); end if;
   return jsonb_build_object('ok', true,
     'lot', jsonb_build_object('id', r.id, 'raqam', r.raqam, 'nom', r.nom, 'tur', r.tur, 'muddat', r.muddat, 'muddat_otgan', r.muddat is not null and r.muddat <= now(), 'izoh', r.izoh,
-      'tolov_sharti', r.tolov_sharti, 'valyuta', r.valyuta, 'qqs_foiz', r.qqs_foiz, 'baholash_usuli', r.baholash_usuli, 'meyor', r.meyor, 'savol_muddat', r.savol_muddat,
-      'byudjet_qqs_bilan', case when r.byudjet_korsatish then r.byudjet_qqs_bilan end,
-      'takliflar_soni', (select count(distinct t.kompaniya_id) from public.t2_birja_taklif t where t.rfq_id = r.id and t.holat in ('berildi', 'faol'))),
+      'tolov_sharti', r.tolov_sharti, 'valyuta', r.valyuta, 'qqs_foiz', r.qqs_foiz, 'baholash_usuli', r.baholash_usuli,
+      'takliflar_soni', (select count(distinct t.kompaniya_id) from public.t2_birja_taklif t where t.rfq_id = r.id and t.holat in ('berildi', 'faol')))
+      || case when r.shart ->> 'egasini_korsat' = 'true' then jsonb_build_object('egasi_nom', (select k.nom from public.t2_kompaniya k where k.id = r.kompaniya_id)) else '{}'::jsonb end,
     'qatorlar', coalesce((select jsonb_agg(jsonb_build_object('qator_no', q.qator_no, 'lot_no', q.lot_no, 'lot_nom', q.lot_nom, 'nom', q.nom, 'birlik', q.birlik, 'miqdor', q.miqdor,
       'talab_sana', q.talab_sana, 'yetkazish_joyi', q.yetkazish_joyi, 'spets', q.spets) order by q.qator_no) from public.t2_birja_rfq_qator q where q.rfq_id = r.id), '[]'::jsonb));
 end $$;
@@ -233,11 +257,25 @@ begin
     'takliflar', v_t, 'jurnal', v_j, 'ogohlantirishlar', public._t2_tn_flaglar(r.id));
 end $$;
 
+-- 9. Egasi nomini ochiq lotda ko'rsatish (lot bo'yicha belgi; sukut — YASHIRIN). Faqat egasi, faqat e'londan oldin/e'londa.
+create or replace function public.t2_tn_korsatish_v1(p_kompaniya_id bigint, p_actor_id bigint, p_operation_id uuid, p_data jsonb) returns jsonb
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare r public.t2_birja_rfq; v_k boolean := coalesce((p_data ->> 'korsat')::boolean, false);
+begin
+  perform public._t2_tender_azo(p_actor_id, p_kompaniya_id, 'yoz');
+  select * into r from public.t2_birja_rfq where id = public._t2_bz_son(p_data, 'rfq_id')::bigint and kompaniya_id = p_kompaniya_id and protsess_v2 for update;
+  if not found then return jsonb_build_object('ok', false, 'code', 'TOPILMADI'); end if;
+  if r.holat not in ('qoralama', 'tasdiqlashda', 'elon') then return jsonb_build_object('ok', false, 'code', 'HOLAT', 'holat', r.holat); end if;
+  update public.t2_birja_rfq set shart = coalesce(shart, '{}'::jsonb) || jsonb_build_object('egasini_korsat', v_k) where id = r.id;
+  perform public._t2_tender_jurnal_yoz(p_kompaniya_id, r.id, 'egasi_korsatish', p_actor_id, p_kompaniya_id, jsonb_build_object('korsat', v_k));
+  return jsonb_build_object('ok', true, 'rfq_id', r.id, 'korsat', v_k);
+end $$;
+
 do $grant$ declare f text; begin
   foreach f in array array[
     'public._t2_tn_ochilgan(bigint)', 'public._t2_tn_flaglar(bigint)',
     'public.t2_tn_ochiq_royxat_v1(jsonb)', 'public.t2_tn_ochiq_lot_v1(bigint)', 'public.t2_tn_lot_smetadan_v1(bigint,bigint,uuid,jsonb)', 'public.t2_tn_aloqa_v1(bigint,bigint,uuid,jsonb)',
-    'public.t2_tn_narx_manba_v1(bigint,bigint,uuid,jsonb)', 'public.t2_tn_ish_qadam_v1(bigint,bigint,uuid,jsonb)', 'public.t2_tn_ogohlantirish_v1(bigint,bigint,bigint)', 'public.t2_tn_bayonnoma_v1(bigint,bigint,bigint)'] loop
+    'public.t2_tn_narx_manba_v1(bigint,bigint,uuid,jsonb)', 'public.t2_tn_ish_qadam_v1(bigint,bigint,uuid,jsonb)', 'public.t2_tn_ogohlantirish_v1(bigint,bigint,bigint)', 'public.t2_tn_bayonnoma_v1(bigint,bigint,bigint)', 'public.t2_tn_korsatish_v1(bigint,bigint,uuid,jsonb)'] loop
     execute format('revoke all on function %s from public, anon, authenticated', f);
     execute format('grant execute on function %s to service_role', f);
   end loop;
