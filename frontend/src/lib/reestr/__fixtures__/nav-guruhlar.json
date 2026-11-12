@@ -206,6 +206,21 @@
             "modul": "module.narx"
           }
         ]
+      },
+      {
+        "nom": "Loyiha va smeta",
+        "ikonka": "FileStack",
+        "sahifalar": [
+          {
+            "yol": "/admin/loyiha-smeta",
+            "ilova": "pto",
+            "nom": "Loyiha ↔ Smeta ↔ Fakt",
+            "ruxsat": [
+              "control.company.read",
+              "smeta.write"
+            ]
+          }
+        ]
       }
     ]
   },
@@ -747,6 +762,66 @@
               "project.write",
               "object.write",
               "procurement.read"
+            ],
+            "modul": "module.erp",
+            "qoshimcha": true
+          }
+        ]
+      },
+      {
+        "nom": "Bozor",
+        "ikonka": "ClipboardList",
+        "sahifalar": [
+          {
+            "yol": "/admin/bozor-sorov",
+            "ilova": "xarid",
+            "nom": "Bozordan narx so‘rash",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "procurement.read",
+              "procurement.write"
+            ],
+            "modul": "module.erp",
+            "qoshimcha": true
+          },
+          {
+            "yol": "/admin/bozor-kabinet",
+            "ilova": "xarid",
+            "nom": "Bozor kabineti (sotuvchi)",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "procurement.read"
+            ],
+            "modul": "module.erp",
+            "qoshimcha": true
+          },
+          {
+            "yol": "/admin/bozor-moderatsiya",
+            "ilova": "xarid",
+            "nom": "Bozor moderatsiyasi",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "procurement.read"
+            ],
+            "modul": "module.erp",
+            "qoshimcha": true
+          },
+          {
+            "yol": "/admin/tender-ochiq",
+            "ilova": "xarid",
+            "nom": "Ochiq tender (lot, taqqos, bayonnoma)",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "procurement.read",
+              "procurement.write"
             ],
             "modul": "module.erp",
             "qoshimcha": true

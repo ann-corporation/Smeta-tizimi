@@ -39,6 +39,11 @@ describe('role integration architecture',()=>{
       'kompaniya-sozlama',
       /* Yuk birjasi (2026-11-04): faqat sessiya + masofa hisobi (kompaniya ma'lumotiga tegmaydi); O'zbekiston ramkasi, foydalanuvchi bo'yicha 30/daqiqa limit, kalit mijozda yo'q (yuk-marshrut.test.ts). */
       'yuk-marshrut',
+      /* Bozor P1 (2026-11-12): /api/bozor — actor sessiyadan, faqat t2_bz_* RPC oq ro'yxati (functions/_shared/bozor.ts); a'zolik/procurement.* va egalik RPC ichida (acceptance 20261216500000).
+         /api/bozor-ochiq — KIRMASDAN GET, faqat faol e'lon va e'lon qilingan maydonlar (t2_bz_ochiq_*); /api/bozor-rasm — foto: POST sessiya + o'z prefiksi, GET faqat faol e'longa biriktirilgan kalit. */
+      'bozor', 'bozor-ochiq', 'bozor-rasm',
+      /* Tender ochiq rejim (2026-11-12): /api/tender-ochiq — KIRMASDAN GET, faqat doira='ochiq' va holat='elon' lot, narxsiz (t2_tn_ochiq_*); /api/tender-p1 — sessiya, faqat t2_tn_* RPC oq ro'yxati (functions/_shared/tender-ochiq.ts); a'zolik, procurement ruxsati va muhr RPC ichida (acceptance 20261216510000). */
+      'tender-ochiq', 'tender-p1',
       /* Yuk tashish P1 (2026-11-12): actor sessiyadan; faqat t2_yb_* RPC oq ro'yxati (functions/_shared/yuk-tashish.ts); a'zolik/ruxsat/tenant RPC ichida (acceptance 20261216400000); yuk-dalil — kichik rasm, faqat o'z R2 prefiksi. */
       'yuk-tashish', 'yuk-dalil',
       /* Bildirishnoma yetkazish (2026-11-05): sessiyasiz FON ISHI (GitHub Actions). Kirish faqat X-Cron-Kalit == BILDIRISHNOMA_CRON_KALIT

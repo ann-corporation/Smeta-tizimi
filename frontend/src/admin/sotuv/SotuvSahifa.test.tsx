@@ -25,6 +25,7 @@ vi.mock('../../api/t2-sotuv', async (asl) => {
     bronBekor: vi.fn(), tolovYoz: vi.fn(), tolovBekor: vi.fn(),
   };
 });
+const qlar: QueryClient[] = [];
 import * as api from '../../api/t2-sotuv';
 
 const birlik = (o: Partial<Birlik> & { id: number }): Birlik => ({
@@ -65,12 +66,14 @@ function chiz(url = '/admin/sotuv', birliklar: Birlik[] = SHAX) {
   vi.mocked(api.bitimlarOl).mockResolvedValue({ ok: true, natija: { ok: true, bitimlar: BITIMLAR } });
   vi.mocked(api.bitimOl).mockResolvedValue({ ok: true, natija: KARTA });
   vi.mocked(api.mijozlarOl).mockResolvedValue({ ok: true, natija: { ok: true, mijozlar: [] } });
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+  qlar.push(qc);
   return render(<QueryClientProvider client={qc}><MemoryRouter initialEntries={[url]}><SotuvSahifa /></MemoryRouter></QueryClientProvider>);
 }
 const ruxsat = (...p: string[]) => { m.company.joriy = { id: 7, permissions: p }; };
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
+/* Kech kelgan react-query bildirishnomasi teardown dan keyin ishlamasin: render dan keyin darhol cleanup, keyin kesh va kuzatuvchilar tozalanadi. */
+afterEach(async () => { cleanup(); for (const q of qlar.splice(0)) { await q.cancelQueries(); q.clear(); } vi.clearAllMocks(); });
 
 describe('Uy sotish sahifasi', () => {
   it('rahbar (faqat sales.read): Shaxmatka va Panel; yozish tugmalari yo‘q', async () => {

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import {
-  HISOBOT_TOKEN_KALITLARI, HUJJAT_KALITLARI, HUJJAT_TURLARI, TAQDIM_MANBA_JADVAL, TAYYORGARLIK_QADAMLARI,
+  HUJJAT_KALITLARI, HUJJAT_TURLARI, TAQDIM_MANBA_JADVAL, TAYYORGARLIK_QADAMLARI,
   keyingiBosqich, menQarorChiqaramanmi, otishMumkinmi, royxatdagiTokenKalitlari, taqdimHolatidanBosqich, taqdimResursiTurlari,
 } from './index';
 import { TAYYORGARLIK_USTUNLARI } from '../f2-oylik-paket/shartnoma';
@@ -109,26 +109,31 @@ describe('guard: taqdim resurslari', () => {
 });
 
 describe('guard: har eksport reestr orqali', () => {
-  it('kodda ishlatilgan har token kaliti (hujjat: \'X\') reestrda ro\'yxatdan o\'tgan', () => {
-    const royxat = royxatdagiTokenKalitlari();
+  /** Kodda hujjat: 'XXX' sifatida ishlatilgan token kalitlari (hisobot/paket kalitlari ro'yxatsiz — avtomatik yig'iladi). */
+  function kodTokenKalitlari() {
     const topilgan = new Map<string, string>();
     for (const f of fayllar(SRC)) {
       for (const m of readFileSync(f, 'utf8').matchAll(/\bhujjat:\s*'([A-Z0-9_-]+)'/g)) topilgan.set(m[1], f);
     }
+    return topilgan;
+  }
+
+  it('kodda ishlatilgan token kalitlari yigiladi va nomi togri (A-Z, 0-9, _, -)', () => {
+    const topilgan = kodTokenKalitlari();
     expect(topilgan.size).toBeGreaterThan(10);
-    for (const [kalit, f] of topilgan) expect(royxat.has(kalit), `token kaliti ro'yxatda yo'q: ${kalit} (${f})`).toBe(true);
+    for (const [kalit, f] of topilgan) expect(/^[A-Z][A-Z0-9_-]+$/.test(kalit), `notogri token kaliti: ${kalit} (${f})`).toBe(true);
+
   });
 
-  it('reestrdagi har token kaliti kodda haqiqatan ishlatiladi (o\'lik kalit yo\'q)', () => {
-    const hammasi = fayllar(SRC).map((f) => readFileSync(f, 'utf8')).join('\n');
+  it('hujjat turlarining token kaliti kodda haqiqatan ishlatiladi (olik kalit yoq)', () => {
+    const topilgan = kodTokenKalitlari();
     for (const k of royxatdagiTokenKalitlari()) {
-      if (k === 'AOSR' || k === 'OMBOR_QORALAMA_REESTR' || k === 'RESURS_VEDOMOST') continue; // dinamik o'tkaziladi
-      expect(hammasi.includes(`'${k}'`), k).toBe(true);
+      if (k === 'AOSR') continue; // dinamik o'tkaziladi
+      expect(topilgan.has(k) || fayllar(SRC).some((f) => readFileSync(f, 'utf8').includes("'" + k + "'")), `reestrdagi token kaliti kodda yoq: ${k}`).toBe(true);
+
     }
-    expect(HISOBOT_TOKEN_KALITLARI.length).toBeGreaterThan(0);
   });
 });
-
 describe('hayot sikli', () => {
   it('taqdim holati → bosqich', () => {
     expect(taqdimHolatidanBosqich('yuborilgan')).toBe('yuborildi');

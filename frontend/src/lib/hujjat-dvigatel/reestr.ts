@@ -128,6 +128,21 @@ export const HUJJAT_TURLARI = {
     taqdim: { resurs: 'hujjat', manbaJadval: null },
     tokenKalit: 'SLICHITELNIY',
   },
+  loyiha_smeta_fakt: {
+    kalit: 'loyiha_smeta_fakt', nom: 'Loyiha–smeta–fakt solishtirma vedomosti', nomRu: 'Ведомость сопоставления проекта, сметы и факта', holat: 'ishlaydi',
+    eksport: { modul: 'lib/loyiha-smeta/solishtirma-export.ts', izoh: 'Loyiha miqdori, smeta va fakt farqlari, pul ta\'siri (hisob-yadro), qarorlar' },
+    majburiy: [
+      { kalit: 'obyekt', nom: 'Obyekt', manba: 'obyekt' },
+      { kalit: 'smeta', nom: 'Smeta qatorlari (joriy versiya)', manba: 'smeta' },
+      { kalit: 'fakt', nom: 'Fakt hajmi', manba: 'fakt' },
+      { kalit: 'summa', nom: 'Summa (QQS bilan / ustamali)', manba: 'hisob-yadro' },
+    ],
+    tekshiruv: ['fakt', 'summa'],
+    bosqichlar: ['qoralama', 'tekshiruv', 'arxiv'],
+    imzo: { tayyorlaydi: 'pudratchi', tasdiqlaydi: [] },
+    taqdim: { resurs: 'hujjat', manbaJadval: null },
+    tokenKalit: 'LOYIHA_SMETA_FAKT',
+  },
   lab_protokol: {
     kalit: 'lab_protokol', nom: 'Laboratoriya sinov protokoli', nomRu: 'Протокол лабораторных испытаний', holat: 'ishlaydi',
     eksport: { modul: 'lib/hujjat-aylanish/shablon.ts', izoh: 'ShNK 3.01.01-22 bo\'yicha dalil; to\'liqlik — toliqlik.ts' },
@@ -222,19 +237,12 @@ export const HUJJAT_KALITLARI = Object.keys(HUJJAT_TURLARI) as HujjatKalit[];
 export function hujjatTuri(kalit: HujjatKalit): HujjatTuri { return HUJJAT_TURLARI[kalit]; }
 
 /**
- * Hujjat bo'lmagan, lekin pullik yo'ldan o'tadigan hisobot/paket/ma'lumotnomalar token kalitlari
- * (hujjat hayot sikli yo'q — taqdim va qaror yo'q). Kodga yangi hujjat token kaliti (hujjatTokenBilan parametri) tushsa, shu yerga yoki
- * HUJJAT_TURLARI ga qo'shilishi shart (reestr.test.ts tekshiradi).
+ * Hujjat TURLARIga tegishli token narxi kalitlari (HUJJAT_TURLARI[*].tokenKalit). Hujjat bo'lmagan hisobot/paket/ma'lumotnomalar
+ * (hujjatTokenBilan({ hujjat: 'XXX' })) ro'yxatga YOZILMAYDI: reestr.test.ts ularni kod ichidan avtomatik yig'adi,
+ * shuning uchun yangi eksport kaliti qo'shish boshqa PR larni yiqitmaydi.
  */
-export const HISOBOT_TOKEN_KALITLARI = [
-  'AKT_SVERKA', 'AKT_SVERKI', 'BAJARILMADI', 'BOSHQARUV_HISOBOTI', 'ESF', 'F2_OYLIK_REESTR', 'F2_PORTFEL', 'ISH_HAQI_VEDOMOST', 'LRV', 'MOLIYA_TAHLIL', 'NARYAD', 'OBOROT_SALDO',
-  'OBOSNOVANIE', 'OBOSNOVANIE_NARX', 'OFERTA', 'OMBOR_QORALAMA_REESTR', 'PAKET_MUNDARIJA', 'PERERASCHET', 'PROTOKOL_NARX',
-  'QARZDORLIK', 'RAHBAR_PANEL', 'RESURS_VEDOMOST', 'SHARTNOMA_OYLIK_PAKET', 'SMETA_DAVA', 'SVERKA_LRV_RES', 'ZHURNAL_PROVEROK', 'ZAKAZCHIK_HISOBOT',
-] as const;
-
-/** Ro'yxatdan o'tgan barcha token narxi kalitlari (hujjat turlari + hisobotlar). */
 export function royxatdagiTokenKalitlari(): Set<string> {
-  const s = new Set<string>(HISOBOT_TOKEN_KALITLARI);
+  const s = new Set<string>();
   for (const t of Object.values(HUJJAT_TURLARI) as readonly HujjatTuri[]) if (t.tokenKalit) s.add(t.tokenKalit);
   return s;
 }
