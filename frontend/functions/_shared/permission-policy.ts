@@ -31,6 +31,10 @@ export function dataPermission(name: string, write: boolean, body: Record<string
   if (/platforma_|token_toldir|obuna_belgila|tizim_amal/.test(n)) return write ? 'control.global.write' : 'control.global.read';
   /* Naryad (20261214810000): usta «bajarildi»ni o'zi belgilaydi (self.work.write; RPC naryad.usta_foydalanuvchi_id = actor ni ham tekshiradi). Qolgan amallar — smeta.write. */
   if (n === 'naryad_usta_bajarildi_v1') return write && body.naryad_amal === 'bajarildi' ? 'self.work.write|smeta.write' : 'smeta.write';
+  /* O'rganish halqasi (20261217400000): o'z tajribasi/ishqalanish - company.read; sozlama - control.company.write; takliflar navbati - faqat platforma egasi. RPC ham tekshiradi. */
+  if (n === 'osuvchi_yoz_v1') { const oa = String(body.osuvchi_amal || ''); return oa === 'taklif_yigish' || oa === 'taklif_qaror' ? 'control.global.write' : oa === 'sozlama_saqla' ? 'control.company.write' : 'company.read'; }
+  if (n === 'osuvchi_ol_v1') return 'company.read';
+  if (n === 'osuvchi_platforma_ol_v1') return 'control.global.read';
   if (n === 'naryad_yoz_v1') return write && body.naryad_amal === 'bajarildi' ? 'self.work.write|smeta.write' : 'smeta.write';
   if (write) {
     if (n === 'akt_tasdiqlash') return 'f2.approve';
