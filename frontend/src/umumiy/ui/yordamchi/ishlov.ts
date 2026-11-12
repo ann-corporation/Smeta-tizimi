@@ -15,6 +15,7 @@ import type { SahifaAmal, SahifaXabar } from '../../../lib/ai-yordamchi/protokol
 import type { Motor } from './useObyektMotor';
 import { aosrQoralamaReja, aosrYetishmaydi, aosrYetishmaydiMatni, f2QoralamaReja, f2RoyxatMatni, qarzMatni, type HujjatDeps } from '../../../lib/yordamchi/hujjat-oqim';
 import { sahifaUrl } from '../../../lib/yordamchi/sahifa-qidiruv';
+import { koRsatHavolasi } from '../../../lib/kurs/tutor';
 
 /** AiChat ga beriladigan yagona yordamchi ulanishi (AiHelper yig'adi). */
 export type YordamchiUlanish = { sahifalar: readonly YordamchiSahifa[]; obyektlar: readonly ObyektQisqa[]; joriyObyekt: ObyektQisqa | null; obyektTanla: (id: number) => void; motor: Motor; hujjat: HujjatDeps | null; sahifaAmallar: readonly SahifaAmalQisqa[]; sahifaAmalBajar: (id: string) => void };
@@ -58,6 +59,12 @@ const oyMatni = (oy: string | null) => (oy ? `, ${t(OY_NOMI[Number(oy.slice(5, 7
 export async function yordamchiIshla(n: Niyat, matn: string, d: IshlovDeps): Promise<IshlovNatija> {
   switch (n.tur) {
     case 'yordam': return { tur: 'javob', matn: yordamMatni(d.sahifalar) };
+    case 'dars': {
+      if (!n.dars) return { tur: 'javob', matn: t('Kurs bo‘limida o‘z yo‘lingiz bor: darslar, progress va yo‘l-yo‘riq.'), havolalar: [{ yol: '/admin/kurs', nom: t('Kurs (o‘rganish)') }] };
+      const dars = n.dars;
+      const matn = [`**${t(dars.nom)}** · ${dars.daqiqa} ${t('daqiqa')}`, t(dars.maqsad), ...dars.qadamlar.map((q, i) => `${i + 1}. ${t(q)}`), dars.xatolar[0] ? `${t('Ehtiyot bo‘ling')}: ${t(dars.xatolar[0])}` : ''].filter(Boolean).join('\n');
+      return { tur: 'javob', matn, havolalar: [{ yol: koRsatHavolasi(dars.id), nom: t('Ko‘rsat') }, ...n.boshqa.map((b) => ({ yol: koRsatHavolasi(b.id), nom: t(b.nom) }))] };
+    }
 
     case 'navigatsiya': {
       if (!n.aniqOchish) return { tur: 'otkaz', havolalar: [h(n.sahifa)] };

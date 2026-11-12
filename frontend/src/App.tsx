@@ -72,6 +72,7 @@ const HujjatDizayni = lazy(() => import('./admin/sahifalar/HujjatDizayni'));
 const SmetaStudio = lazy(() => import('./admin/sahifalar/SmetaStudio'));
 const Tokenlar = lazy(() => import('./admin/sahifalar/Tokenlar'));
 const IshJoylarim = lazy(() => import('./admin/sahifalar/IshJoylarim'));
+const KursSahifa = lazy(() => import('./components/kurs/KursSahifa'));
 const Topshiriqlar = lazy(() => import('./admin/sahifalar/Topshiriqlar'));
 const Mutaxassis = lazy(() => import('./admin/sahifalar/Mutaxassis'));
 const BoshqaruvPanel = lazy(() => import('./admin/sahifalar/BoshqaruvPanel'));
@@ -258,6 +259,7 @@ export default function App() {
           {/* Yetkazuvchi tomoni «Bugun» (ekotizim V3): kelgan so'rovlar, takliflar, buyurtmalar, transport. */}
           <Route path="yetkazuvchi" element={<Suspense fallback={<SahifaYuklanmoqda />}><YetkazuvchiBugun /></Suspense>} />
           <Route path="ish-joylarim" element={<Suspense fallback={<SahifaYuklanmoqda />}><IshJoylarim /></Suspense>} />
+          <Route path="kurs" element={<Suspense fallback={<SahifaYuklanmoqda />}><KursSahifa /></Suspense>} />
           {/* T6: mutaxassis profili va kompaniyalarga xizmat taklifi. */}
           <Route path="mutaxassis" element={<Suspense fallback={<SahifaYuklanmoqda />}><Mutaxassis /></Suspense>} />
           {/* Egasi 2026-10-02: platforma boshqaruv paneli (faqat superadmin; server tekshiradi). */}

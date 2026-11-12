@@ -1053,6 +1053,18 @@
         ]
       },
       {
+        "nom": "Kurs (o‘rganish)",
+        "ikonka": "FileText",
+        "sahifalar": [
+          {
+            "yol": "/admin/kurs",
+            "ilova": "yadro",
+            "nom": "Kurs (o‘rganish)",
+            "ruxsat": []
+          }
+        ]
+      },
+      {
         "nom": "Mening topshiriqlarim",
         "ikonka": "ClipboardList",
         "sahifalar": [
