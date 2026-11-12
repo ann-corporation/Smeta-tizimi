@@ -14,8 +14,10 @@ import { hujjatYuklabOlishUrl } from '../../api/t2-hujjat-canonical';
 import { izohYoz, taqdimTafsilotOl, taqdimlarOl, taqdimniQaytar, taqdimQarori, type TaqdimQisqa, type TaqdimTafsilot } from '../../api/t2-tomon';
 import { t } from '../../i18n/til';
 import { Bolim, HolatBelgi } from './tomon-ui';
+import { TolovXabarlariKelgan } from './TolovXabarlari';
 import { QatorIzohMuloqot, QatorIzohTugma } from './QatorIzohlari';
 import { AosrTaqdimKorinish } from './AosrTaqdimKorinish';
+import { AosrDalillari, F2Tekshiruvi } from '../nazorat/KorikPanellari';
 import { useQatorIzohlari } from './qator-izohlari-hook';
 import { HODISA_NOMI, inp, oyMatn, pul, sana, TAQDIM_HOLAT_NOMI, tugma, tugmaAsosiy } from './tomon-yordam';
 import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
@@ -79,6 +81,8 @@ function Tafsilot({ kompaniyaId, id, yangila }: { kompaniyaId: number; id: numbe
       </section>
 
       {q.resurs === 'aosr' && <AosrTaqdimKorinish snapshot={q.snapshot} />}
+      {q.resurs === 'aosr' && <AosrDalillari kompaniyaId={kompaniyaId} taqdimId={id} />}
+      {q.resurs === 'f2' && aktId != null && <F2Tekshiruvi kompaniyaId={kompaniyaId} taqdimId={id} />}
 
       {q.resurs === 'f2' && (
         <div className="fz-table-wrap max-h-96">
@@ -127,7 +131,7 @@ export default function TaqdimlarInbox() {
   const [qidirParam] = useSearchParams();
   const [yonalish, setYonalish] = useState<'kelgan' | 'yuborilgan'>(() => (qidirParam.get('yonalish') === 'yuborilgan' ? 'yuborilgan' : 'kelgan'));
   const [holat, setHolat] = useState('');
-  const [tur, setTur] = useState('');
+  const [tur, setTur] = useState(() => { const x = qidirParam.get('tur'); return x === 'f2' || x === 'aosr' ? x : ''; });
   const [royxat, setRoyxat] = useState<TaqdimQisqa[]>([]);
   const [tanlangan, setTanlangan] = useState<number | null>(() => { const v = Number(qidirParam.get('id')); return Number.isFinite(v) && v > 0 ? v : null; });
   const [xato, setXato] = useState('');
@@ -147,6 +151,7 @@ export default function TaqdimlarInbox() {
   return (
     <Sahifa sarlavha="Tomonlar hujjatlari" tavsif="Pudratchi yuborgan F2 va АОСР — buyurtmachi va texnik nazorat ko‘radi, izoh yozadi, qabul qiladi yoki tuzatishga qaytaradi; qaror o‘zgarmaydi">
       <div className="space-y-3">
+        <TolovXabarlariKelgan kompaniyaId={kompaniyaId} />
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex gap-1" role="group" aria-label={t('Yo‘nalish')}>
             {(['kelgan', 'yuborilgan'] as const).map((y) => (

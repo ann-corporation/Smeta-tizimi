@@ -43,7 +43,7 @@ export const OQISH_SIYOSATI: Readonly<Record<string, OqishSiyosat>> = {
   t2_nakrutka_podval_royxat: K, t2_narx_taklif: K, t2_narx_dalil_holat: K,
   t2_korzinka: K, t2_audit_reestr: K, t2_obyekt_hujjat_royxat: K,
   t2_sklad_royxat: K, t2_kadr_royxat: K, t2_texnika_royxat: K, t2_loyiha_royxat: K,
-  t2_kontragent_royxat: K, t2_azolik_royxat: K, t2_zayavka_royxat: K, t2_hodisa_lenta: K,
+  t2_kontragent_royxat: K, t2_azolik_royxat: K, t2_zayavka_royxat: K, t2_usta_fakt_qoralama: K, t2_hodisa_lenta: K,
   t2_papka_daraxt: K, t2_overbilling_radar: K, t2_sklad_konsolidatsiya: K,
   /* Platforma qatorlari bor (kompaniya_id IS NULL). */
   t2_narx_manba_royxat: { tur: 'platforma' }, t2_narx_manba_qator: { tur: 'platforma' },
