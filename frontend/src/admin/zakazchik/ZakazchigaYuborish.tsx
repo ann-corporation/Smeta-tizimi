@@ -11,7 +11,7 @@ import { Send } from 'lucide-react';
 import { toast } from '../../umumiy/ui/Toast';
 import { aloqalarOl, taqdimYubor, type Aloqa } from '../../api/t2-tomon';
 import { t } from '../../i18n/til';
-import { TAQDIM_MANBA_JADVAL } from '../../lib/hujjat-dvigatel';
+import { TAQDIM_MANBA_JADVAL, taqdimQabulRollari } from '../../lib/hujjat-dvigatel';
 import { HolatBelgi } from './tomon-ui';
 import { useYuborilganTaqdim } from './taqdim-holat-hook';
 import { inp, tugma, tugmaAsosiy } from './tomon-yordam';
@@ -20,13 +20,32 @@ import { inp, tugma, tugmaAsosiy } from './tomon-yordam';
 export type YuboriladiganResurs = keyof typeof TAQDIM_MANBA_JADVAL;
 const JADVAL: Record<YuboriladiganResurs, string> = TAQDIM_MANBA_JADVAL;
 
+/** «Kimga» ro'yxati: faqat shu hujjat turini qabul qila oladigan rolli faol aloqalar (reestrdan; reestrda yo'q bo'lsa — hammasi). */
+export function qabulQiluvchilar(aloqalar: readonly Aloqa[], resurs: string): Aloqa[] {
+  const rollar = taqdimQabulRollari(resurs);
+  return aloqalar.filter((a) => a.holat === 'faol' && (!rollar || rollar.includes(a.qarshi_rol)));
+}
 
-export function ZakazchigaYuborish({ kompaniyaId, aktId, resurs = 'f2' }: { kompaniyaId: number | null | undefined; aktId: number; resurs?: YuboriladiganResurs }) {
+
+/** Hujjatda aniqlangan kamchiliklar bilan yuborishda aniq ogohlantirish + ongli tasdiq (kamchilik yo'q bo'lsa — hech narsa). */
+function kamchilikOgohlantirish(kamchiliklar: readonly string[], tasdiq: boolean, setTasdiq: (v: boolean) => void) {
+  if (kamchiliklar.length === 0) return null;
+  return (
+    <div role="alert" className="fz-note fz-note--warn space-y-1" data-testid="yuborish-kamchilik">
+      <p className="text-xs font-semibold">{t('Hujjatda {n} ta kamchilik bor', { n: kamchiliklar.length })}</p>
+      <ul className="list-disc pl-4 text-[11px]">{kamchiliklar.slice(0, 5).map((k) => <li key={k}>{t(k)}</li>)}</ul>
+      <label className="flex items-center gap-1.5 text-[11px]"><input type="checkbox" checked={tasdiq} onChange={(e) => setTasdiq(e.target.checked)} />{t('Kamchiliklar bilan yuboraman')}</label>
+    </div>
+  );
+}
+
+export function ZakazchigaYuborish({ kompaniyaId, aktId, resurs = 'f2', kamchiliklar = [], onYuborildi }: { kompaniyaId: number | null | undefined; aktId: number; resurs?: YuboriladiganResurs; kamchiliklar?: readonly string[]; onYuborildi?: () => void }) {
   const [ochiq, setOchiq] = useState(false);
   const [aloqalar, setAloqalar] = useState<Aloqa[]>([]);
   const [tanlov, setTanlov] = useState<number | ''>('');
   const [izoh, setIzoh] = useState('');
   const [band, setBand] = useState(false);
+  const [kamchilikTasdiq, setKamchilikTasdiq] = useState(false);
   const routerBor = useInRouterContext();
   const { taqdim, yangila } = useYuborilganTaqdim(kompaniyaId, JADVAL[resurs], aktId);
   if (!kompaniyaId) return null;
@@ -35,12 +54,13 @@ export function ZakazchigaYuborish({ kompaniyaId, aktId, resurs = 'f2' }: { komp
     setOchiq(true);
     const r = await aloqalarOl(kompaniyaId);
     if (!r.ok) { toast(r.error, 'danger'); return; }
-    const faol = r.natija.filter((a) => a.holat === 'faol');
+    setKamchilikTasdiq(false);
+    const faol = qabulQiluvchilar(r.natija, resurs);
     setAloqalar(faol);
     setTanlov(faol.length === 1 ? faol[0].id : '');
   };
   const yubor = async () => {
-    if (tanlov === '') return;
+    if (tanlov === '' || (kamchiliklar.length > 0 && !kamchilikTasdiq)) return;
     setBand(true); const r = await taqdimYubor(kompaniyaId, tanlov, resurs, aktId, izoh); setBand(false);
     if (!r.ok) {
       /* «Taraf aloqa yo'q» kabi xato sababi tushuntiriladi (audit 115): faol aloqa o'rnatilmagan. */
@@ -48,7 +68,7 @@ export function ZakazchigaYuborish({ kompaniyaId, aktId, resurs = 'f2' }: { komp
       return;
     }
     toast(resurs === 'aosr' ? t('АОСР yuborildi — buyurtmachi / texnadzor qarori kutilmoqda') : t('F2 yuborildi — zakazchik qarori kutilmoqda'), 'ok');
-    setOchiq(false); setIzoh(''); void yangila();
+    setOchiq(false); setIzoh(''); void yangila(); onYuborildi?.();
   };
 
   const holat = taqdim?.holat ?? null;
@@ -72,7 +92,7 @@ export function ZakazchigaYuborish({ kompaniyaId, aktId, resurs = 'f2' }: { komp
         <div role="dialog" aria-label={t('Zakazchikka yuborish')} className="absolute right-0 top-full z-30 mt-1 w-80 rounded-lg border border-border bg-surface p-3 text-left shadow-xl">
           {aloqalar.length === 0 ? (
             <div className="space-y-2">
-              <p className="text-xs text-text-dim">{t('Yuborib bo‘lmaydi: buyurtmachi (yoki texnadzor) bilan faol aloqa yo‘q. Hujjat faqat aloqadagi tomonga yuboriladi.')}</p>
+              <p className="text-xs text-text-dim">{t('Yuborib bo‘lmaydi: bu hujjatni qabul qiladigan tomon (buyurtmachi yoki texnadzor) bilan faol aloqa yo‘q. Hujjat faqat aloqadagi tomonga yuboriladi.')}</p>
               {routerBor && <Link to="/admin/aloqalar" className={`${tugmaAsosiy} inline-block no-underline`}>{t('Buyurtmachi bilan aloqa o‘rnatish')}</Link>}
             </div>
           ) : (
@@ -84,12 +104,13 @@ export function ZakazchigaYuborish({ kompaniyaId, aktId, resurs = 'f2' }: { komp
                 </select></label>
               <label className="block text-xs text-text-dim">{t('Izoh')}
                 <textarea className={`${inp} mt-1 block h-14 w-full`} value={izoh} onChange={(e) => setIzoh(e.target.value)} /></label>
+              {kamchilikOgohlantirish(kamchiliklar, kamchilikTasdiq, setKamchilikTasdiq)}
               <p className="text-[11px] text-text-dim">{t('Yuborilgach hujjat zakazchikka ochiladi va tahrirlanmaydi; qaror — zakazchikda.')}</p>
             </div>
           )}
           <div className="mt-2 flex justify-end gap-2">
             <button type="button" className={tugma} onClick={() => setOchiq(false)}>{t('Yopish')}</button>
-            {aloqalar.length > 0 && <button type="button" className={tugmaAsosiy} disabled={band || tanlov === ''} onClick={() => void yubor()}>{t('Yuborish')}</button>}
+            {aloqalar.length > 0 && <button type="button" className={tugmaAsosiy} disabled={band || tanlov === '' || (kamchiliklar.length > 0 && !kamchilikTasdiq)} onClick={() => void yubor()}>{t('Yuborish')}</button>}
           </div>
         </div>
       )}

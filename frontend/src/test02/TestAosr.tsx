@@ -47,6 +47,9 @@ import { obyektZakazchikNomi } from '../lib/pto-markazi/obyekt-zakazchik';
 import { obyektImzochiSaqla, type ImzochiRol } from '../api/obyekt-imzochi';
 import { useSearchParams } from 'react-router-dom';
 import { ZakazchigaYuborish } from '../admin/zakazchik/ZakazchigaYuborish';
+import { HolatBelgi } from '../admin/zakazchik/tomon-ui';
+import { taqdimlarOl, type TaqdimHolat } from '../api/t2-tomon';
+import { aosrTaqdimHolatlari } from '../lib/aosr-yuborilgan';
 import { AosrFotoBiriktir } from '../admin/nazorat/AosrFotoBiriktir';
 import { AosrChizmaTanlash } from '../admin/loyihachi/AosrChizmaTanlash';
 import { OpsKpi, OpsKpiQator, OpsTablar } from '../components/kompaniya-ops/OpsUi';
@@ -69,6 +72,12 @@ const HOLAT_STAMP: Record<string, string> = { yangi: 'fz-stamp--draft', tasdiqla
 const NATIJA_STAMP: Record<string, string> = { mos: 'fz-stamp--ok', mos_emas: 'fz-stamp--danger', kutilmoqda: 'fz-stamp--warn' };
 
 type AktForma = AosrMalumot & { id?: number; versiya?: number };
+
+/** Ro'yxat belgisi: qoralama АОСР qarshi tomonga yuborilgan bo'lsa — «Qoralama» emas, taqdim holati (yuborilgan / qaror). */
+function aktHolatBelgisi(holat: string, taqdim: TaqdimHolat | undefined) {
+  if (holat === 'yangi' && taqdim) return <HolatBelgi holat={taqdim} turi="taqdim" />;
+  return <span className={`fz-stamp ${HOLAT_STAMP[holat] ?? ''}`}>{t(HOLAT_NOMI[holat] ?? holat)}</span>;
+}
 
 export default function TestAosr() {
   const { joriy } = useKompaniya();
@@ -105,6 +114,8 @@ export default function TestAosr() {
   }, [kompaniyaId, obyektId]);
   /* Sinov so'rovlari (laboratoriya): АОСР bo'yicha holat (bloklangan / kutilmoqda), so'rov formasi, ro'yxat yangilanishi. */
   const [sinovHolat, setSinovHolat] = useState<Map<number, AosrSinovHolati>>(new Map());
+  /* Qarshi tomonga yuborilgan АОСР lar: ro'yxatda «Qoralama» o'rniga taqdim holati ko'rinadi. */
+  const [yuborilgan, setYuborilgan] = useState<Map<number, TaqdimHolat>>(new Map());
   const [sorovKontekst, setSorovKontekst] = useState<SorovKontekst | null>(null);
   const [sorovYangila, setSorovYangila] = useState(0);
 
@@ -132,6 +143,7 @@ export default function TestAosr() {
       setProtokollar(p.ok ? p.qatorlar ?? [] : []);
       void aosrSinovHolatiOl(kompaniyaId, obyektId).then((s) => setSinovHolat(new Map((s.ok ? s.natija : []).map((x) => [x.aosr_id, x] as const))));
       setBelgilangan(new Set());
+      void taqdimlarOl(kompaniyaId, { yonalish: 'yuborilgan' }).then((q) => setYuborilgan(aosrTaqdimHolatlari(q.ok ? q.natija : [])));
     });
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -563,7 +575,7 @@ export default function TestAosr() {
                           <div className="flex items-center gap-2">
                             <span className="w-6 shrink-0 text-right text-[11.5px] tabular-nums text-text-mute">{a.holat === 'bekor' ? '' : tartibNomi.get(a.id)}</span>
                             <span className="truncate text-[13px] font-medium text-text">№ {a.raqam || '—'} · {a.ish_nomi || '—'}</span>
-                            <span className={`fz-stamp ${HOLAT_STAMP[a.holat] ?? ''}`}>{t(HOLAT_NOMI[a.holat] ?? a.holat)}</span>
+                            {aktHolatBelgisi(a.holat, yuborilgan.get(a.id))}
                           </div>
                           <div className="mt-0.5 flex flex-wrap gap-1.5 text-[11.5px] text-text-mute">
                             <span>{t(TUR_NOMI[a.tur])}</span><span>·</span><span>{a.sana ?? t('sana yo‘q')}</span>
@@ -583,7 +595,7 @@ export default function TestAosr() {
                           </div>
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
-                          {a.holat === 'yangi' && kompaniyaId && <span onClick={(e) => e.stopPropagation()}><ZakazchigaYuborish kompaniyaId={kompaniyaId} aktId={a.id} resurs="aosr" /></span>}
+                          {a.holat === 'yangi' && kompaniyaId && <span onClick={(e) => e.stopPropagation()}><ZakazchigaYuborish kompaniyaId={kompaniyaId} aktId={a.id} resurs="aosr" kamchiliklar={(sifat.get(a.id) ?? []).map((x) => AKT_SIFAT_NOM[x])} onYuborildi={yukla} /></span>}
                   {a.holat !== 'bekor' && kompaniyaId && <span onClick={(e) => e.stopPropagation()}><AosrFotoBiriktir kompaniyaId={kompaniyaId} aosrId={a.id} /></span>}
                           <button type="button" onClick={(e) => { e.stopPropagation(); void excel(a); }} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" title={t('Excel (blank)')} aria-label={t('Excel (blank)')}><FileSpreadsheet /></button>
                           <button type="button" onClick={(e) => { e.stopPropagation(); void bekorQil(a); }} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" title={t('Bekor qilish')} aria-label={t('Bekor qilish')}><Unlink /></button>
