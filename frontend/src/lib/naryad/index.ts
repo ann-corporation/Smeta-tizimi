@@ -15,14 +15,23 @@ export type Harakat = () => Promise<HarakatNatija>;
 export const NARYAD_HOLATLAR = ['berildi', 'bajarildi', 'qabul', 'hisoblandi', 'bekor'] as const;
 export type NaryadHolat = typeof NARYAD_HOLATLAR[number];
 
+export type NaryadKat = 'ЧЕЛ' | 'МАТ' | 'МАШ';
+export const NARYAD_KATLAR: readonly NaryadKat[] = ['ЧЕЛ', 'МАТ', 'МАШ'];
+
 export type NaryadQator = {
   id: number; qator_id: number | null; tartib: number; kod: string | null; nom: string; birlik: string | null; hajm: number;
   norma_chel_soat: number | null; smeta_mehnat_birlik: number | null; usta_narx: number | null;
+  /** Toifa: usta mehnat (ЧЕЛ), material (МАТ) yoki mexanizm (МАШ) yetkazadi. */
+  kat: NaryadKat;
+  /** Usta O'Z birligida kelishadi: usta birligi, 1 usta birligidagi smeta birligi (koef), narx 1 usta birligiga. */
+  usta_birlik: string | null; koef: number | null; usta_narx_birlik: number | null;
+  /** Shu ishning smetadagi МАТ/МАШ puli, 1 smeta birligiga (ЧЕЛ uchun smeta_mehnat_birlik). */
+  smeta_kat_birlik: number | null;
   bajarilgan_hajm: number | null; qabul_hajm: number | null; fakt_boshida: number | null; fakt_delta: number | null; fakt_yozilgan: number | null;
 };
 export type Naryad = {
   id: number; obyekt_id: number; obyekt_nom?: string | null; raqam: string; davr_dan: string | null; davr_gacha: string | null;
-  usta_nom: string; brigada: string | null; holat: NaryadHolat; izoh: string | null; versiya: number;
+  usta_nom: string; usta_foydalanuvchi_id?: number | null; brigada: string | null; holat: NaryadHolat; izoh: string | null; versiya: number;
   fakt_operation_id: string; fakt_holat: 'yozildi' | null; fakt_akt_id: number | null;
   xarajat_id: number | null; xarajat_summa: number | null; yaratildi: string; qatorlar: NaryadQator[];
 };
@@ -48,7 +57,8 @@ export function naryadTozala(n: Naryad): Naryad {
   return {
     ...n,
     qatorlar: (n.qatorlar ?? []).map((q) => ({
-      ...q, hajm: Number(q.hajm), norma_chel_soat: son(q.norma_chel_soat), smeta_mehnat_birlik: son(q.smeta_mehnat_birlik), usta_narx: son(q.usta_narx),
+      ...q, kat: (q.kat ?? 'ЧЕЛ') as NaryadKat, usta_birlik: q.usta_birlik ?? null, koef: son(q.koef), usta_narx_birlik: son(q.usta_narx_birlik), smeta_kat_birlik: son(q.smeta_kat_birlik),
+      hajm: Number(q.hajm), norma_chel_soat: son(q.norma_chel_soat), smeta_mehnat_birlik: son(q.smeta_mehnat_birlik), usta_narx: son(q.usta_narx),
       bajarilgan_hajm: son(q.bajarilgan_hajm), qabul_hajm: son(q.qabul_hajm), fakt_boshida: son(q.fakt_boshida), fakt_delta: son(q.fakt_delta), fakt_yozilgan: son(q.fakt_yozilgan),
     })),
     xarajat_summa: son(n.xarajat_summa),
@@ -99,11 +109,14 @@ export type SatrTahlil = {
 /** Bitta satr: to'lov hajmi bo'yicha usta summasi, smeta mehnati va foyda/zarar. Narx yo'q — summa null (0 emas). */
 export function satrTahlil(q: NaryadQator, rejim: 'reja' | 'amalda' = 'amalda'): SatrTahlil {
   const hajm = rejim === 'reja' ? q.hajm : tolovHajmi(q);
-  const summa = q.usta_narx == null ? null : yaxlit2(hajm * q.usta_narx);
-  const smetaMehnat = q.smeta_mehnat_birlik == null ? null : yaxlit2(hajm * q.smeta_mehnat_birlik);
-  const chelSoat = q.norma_chel_soat == null ? null : (q.hajm > 0 ? q.norma_chel_soat * hajm / q.hajm : null);
+  // To'lov: usta o'z birligida (qabul / koef × narx) — aniq; aks holda smeta birligidagi narx × hajm. Server bilan bir xil.
+  const summa = q.usta_narx_birlik != null && q.koef != null && q.koef > 0 ? yaxlit2((hajm / q.koef) * q.usta_narx_birlik)
+    : q.usta_narx == null ? null : yaxlit2(hajm * q.usta_narx);
+  const smetaBirlik = q.kat === 'ЧЕЛ' ? q.smeta_mehnat_birlik : q.smeta_kat_birlik;
+  const smetaMehnat = smetaBirlik == null ? null : yaxlit2(hajm * smetaBirlik);
+  const chelSoat = q.kat !== 'ЧЕЛ' || q.norma_chel_soat == null ? null : (q.hajm > 0 ? q.norma_chel_soat * hajm / q.hajm : null);
   const f = farq(summa, smetaMehnat);
-  return { hajm, summa, chelSoat, smetaMehnat, foyda: summa != null && smetaMehnat != null ? yaxlit2(smetaMehnat - summa) : null, farq: f, narxsiz: q.usta_narx == null };
+  return { hajm, summa, chelSoat, smetaMehnat, foyda: summa != null && smetaMehnat != null ? yaxlit2(smetaMehnat - summa) : null, farq: f, narxsiz: q.usta_narx == null && q.usta_narx_birlik == null };
 }
 
 export type NaryadJami = {
@@ -130,12 +143,13 @@ export function naryadJami(qatorlar: readonly NaryadQator[], rejim: 'reja' | 'am
 }
 
 /** Smeta mehnatining ustamali/QQS li ko'rinishi — yagona hisob-yadro orqali (ustama ma'lumoti yo'q — ustamali/QQS null). */
-export function mehnatUchlik(summaUstamasiz: number | null, ustama: UstamaKirish): Uchlik | null {
+export function katUchlik(summaUstamasiz: number | null, ustama: UstamaKirish, kat: NaryadKat = 'ЧЕЛ'): Uchlik | null {
   if (summaUstamasiz == null) return null;
   const k = bosKesim();
-  kesimgaQosh(k, 'ЧЕЛ', summaUstamasiz);
+  kesimgaQosh(k, kat, summaUstamasiz);
   return uchlik(k, ustama);
 }
+export const mehnatUchlik = (summaUstamasiz: number | null, ustama: UstamaKirish): Uchlik | null => katUchlik(summaUstamasiz, ustama, 'ЧЕЛ');
 
 /* ───────────────────────── Fakt farqi (ikki marta yozilmaydi) ───────────────────────── */
 
@@ -149,8 +163,12 @@ export type FaktHozir = { fakt_hajm: number | null; smeta_hajm: number | null };
  */
 export function faktTaklif(qatorlar: readonly NaryadQator[], hozir: ReadonlyMap<number, FaktHozir>): FaktTaklifSatr[] {
   const out: FaktTaklifSatr[] = [];
+  const korilgan = new Set<number>();
   for (const q of qatorlar) {
     if (q.qator_id == null || q.fakt_yozilgan != null) continue;
+    // Bir ishning МАТ/МАШ satrlari ham shu ish hajmi — fakt farqi qator_id bo'yicha bir marta (server bilan bir xil).
+    if (korilgan.has(q.qator_id)) continue;
+    korilgan.add(q.qator_id);
     const qabul = q.qabul_hajm ?? q.bajarilgan_hajm;
     if (qabul == null) continue;
     const h = hozir.get(q.qator_id);
@@ -173,4 +191,14 @@ export function holatSoni(list: readonly Pick<NaryadQisqa, 'holat'>[]): Record<N
   const r: Record<NaryadHolat, number> = { berildi: 0, bajarildi: 0, qabul: 0, hisoblandi: 0, bekor: 0 };
   for (const n of list) r[n.holat]++;
   return r;
+}
+
+/** Smeta qatori: shu toifaning puli (ustamasiz), 1 smeta birligiga. ЧЕЛ — mehnat, МАШ — mexanizm, МАТ — material. Resursi yo'q — null (0 emas). */
+export function qatorKatBirlik(q: SmetaQator, kat: NaryadKat): number | null {
+  const t = qatorHissalari({ qator_id: q.id, obyekt_id: q.obyekt_id, rol: 'asosiy', koef: 1, bosqich: null, material_guruh: null }, q);
+  if (t.holat !== 'ok') return null;
+  const guruh = kat === 'ЧЕЛ' ? 'mehnat' : kat === 'МАШ' ? 'mashina' : 'material';
+  if (!t.hissalar.some((h) => h.guruh === guruh)) return null;
+  const tq = taqsimot(t.hissalar, SUKUT_ULUSH);
+  return kat === 'ЧЕЛ' ? tq.mehnat.jami : kat === 'МАШ' ? tq.mashina : tq.material.jami;
 }

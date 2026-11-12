@@ -13,7 +13,7 @@ import { bosKatKesim, katKesimgaQosh, type KatKesim } from '../ustamali-summa';
 import { qoldiqHajmi } from '../zamena-qoldiq';
 import { t } from '../../i18n/til';
 import type { NaryadQisqa } from '../naryad';
-import { naryadMatni } from '../naryad/jarvis';
+import { kelishuvMatni, naryadMatni } from '../naryad/jarvis';
 import { lugatTushuntir, odamNomi } from '../qurilish-lugat';
 import { faktAmalTekshir, faktHajmOqi, faktHolat, faktIndeks, faktKontekst, faktQidir, qatorSatri, summalarBloki, type FaktMalumot, type UstamaliFn } from './fakt-vositalar';
 import type { OqishSorovi, SahifaAmal } from './protokol';
@@ -96,6 +96,7 @@ export function buyruqOqi(m: BuyruqMalumot, s: OqishSorovi): string {
     case 'qoldiq': return buyruqQoldiq(m, s.arg);
     case 'lugat': return buyruqLugat(m, s.arg);
     case 'naryad': return naryadMatni(m.naryadlar, s.arg);
+    case 'kelishuv': return kelishuvMatni(m.rows, s.arg);
     default: return `Noma’lum vosita: ${s.vosita}`;
   }
 }

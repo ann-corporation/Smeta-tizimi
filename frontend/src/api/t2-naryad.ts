@@ -7,7 +7,8 @@ import { vaqtliOqish } from './vaqtli-fetch';
 import { sbOqi, yozAmali, type AktNatija } from './supabase';
 import { sbFaktYoz } from './t2-fakt';
 import type { LugatQoshimcha } from '../lib/qurilish-lugat';
-import { naryadTozala, type FaktHozir, type Naryad, type NaryadHolat, type NaryadQisqa } from '../lib/naryad';
+import { naryadTozala, type FaktHozir, type Naryad, type NaryadHolat, type NaryadKat, type NaryadQisqa } from '../lib/naryad';
+import type { TarixSatr } from '../lib/naryad/kelishuv';
 
 type OqishJavob<T> = { ok: boolean; code?: string } & T;
 
@@ -49,12 +50,16 @@ function yoz(p: { kompaniyaId: number; amal: string; naryadId?: number | null; v
   }) as Promise<NaryadYozNatija>;
 }
 
-export type NaryadYaratQator = { qator_id: number; hajm: number; usta_narx: number | null; norma_chel_soat: number | null; smeta_mehnat_birlik: number | null; fakt_boshida: number | null };
+export type NaryadYaratQator = {
+  qator_id: number; hajm: number; usta_narx: number | null; norma_chel_soat: number | null; smeta_mehnat_birlik: number | null; fakt_boshida: number | null;
+  /** Usta o'z birligida: toifa, birlik, koef (1 usta birligidagi smeta birligi), narx 1 usta birligiga, smeta МАТ/МАШ puli. */
+  kat?: NaryadKat; usta_birlik?: string | null; koef?: number | null; usta_narx_birlik?: number | null; smeta_kat_birlik?: number | null;
+};
 
 export const naryadYarat = (p: {
-  kompaniyaId: number; operationId: string; obyektId: number; ustaNom: string; brigada?: string | null; davrDan?: string | null; davrGacha?: string | null; izoh?: string | null; qatorlar: NaryadYaratQator[];
+  kompaniyaId: number; operationId: string; obyektId: number; ustaNom: string; ustaFoydalanuvchiId?: number | null; brigada?: string | null; davrDan?: string | null; davrGacha?: string | null; izoh?: string | null; qatorlar: NaryadYaratQator[];
 }) => yoz({ kompaniyaId: p.kompaniyaId, amal: 'yarat', operationId: p.operationId, yuk: {
-  obyekt_id: p.obyektId, usta_nom: p.ustaNom, brigada: p.brigada ?? null, davr_dan: p.davrDan ?? null, davr_gacha: p.davrGacha ?? null, izoh: p.izoh ?? null, qatorlar: p.qatorlar,
+  obyekt_id: p.obyektId, usta_nom: p.ustaNom, usta_foydalanuvchi_id: p.ustaFoydalanuvchiId ?? null, brigada: p.brigada ?? null, davr_dan: p.davrDan ?? null, davr_gacha: p.davrGacha ?? null, izoh: p.izoh ?? null, qatorlar: p.qatorlar,
 } });
 
 export const naryadBajarildi = (p: { kompaniyaId: number; naryadId: number; versiya: number; operationId: string; qatorlar: Array<{ id: number; bajarilgan_hajm: number }> }) =>
@@ -63,7 +68,7 @@ export const naryadBajarildi = (p: { kompaniyaId: number; naryadId: number; vers
 export const naryadQabul = (p: { kompaniyaId: number; naryadId: number; versiya: number; operationId: string; qatorlar: Array<{ id: number; qabul_hajm: number; fakt_hozir: number | null }> }) =>
   yoz({ kompaniyaId: p.kompaniyaId, amal: 'qabul', naryadId: p.naryadId, versiya: p.versiya, operationId: p.operationId, yuk: { qatorlar: p.qatorlar } });
 
-export const naryadNarx = (p: { kompaniyaId: number; naryadId: number; versiya: number; operationId: string; qatorlar: Array<{ id: number; usta_narx: number }> }) =>
+export const naryadNarx = (p: { kompaniyaId: number; naryadId: number; versiya: number; operationId: string; qatorlar: Array<{ id: number; usta_narx?: number; usta_narx_birlik?: number; koef?: number | null; usta_birlik?: string | null }> }) =>
   yoz({ kompaniyaId: p.kompaniyaId, amal: 'narx', naryadId: p.naryadId, versiya: p.versiya, operationId: p.operationId, yuk: { qatorlar: p.qatorlar } });
 
 export const naryadFaktYozildi = (p: { kompaniyaId: number; naryadId: number; versiya: number; operationId: string; aktId: number | null }) =>
@@ -106,4 +111,15 @@ export async function naryadFaktYoz(p: { kompaniyaId: number; naryad: Naryad; sa
   }
   const r = await naryadFaktYozildi({ kompaniyaId: p.kompaniyaId, naryadId: n.id, versiya: n.versiya, operationId: p.operationId, aktId });
   return r.ok ? { ok: true, aktId } : { ok: false, xabar: r.error ?? r.code ?? 'NARYAD_BELGILANMADI' };
+}
+
+export type TarixQator = TarixSatr & { qator_id: number | null; kod: string | null; nom: string | null; birlik: string | null; yaratildi: string };
+
+/** Shu kompaniyada shu ish (shifr/qator) uchun oldingi qabul qilingan naryad satrlari: koef va narx tarixi («oltin o'rtalik» tavsiyasi uchun). */
+export async function tarixOl(kompaniyaId: number, qatorIdlar: number[], kodlar: string[]): Promise<TarixQator[] | null> {
+  const ids = [...new Set(qatorIdlar.filter((x) => Number.isSafeInteger(x) && x > 0))].slice(0, 60);
+  const k = [...new Set(kodlar.filter(Boolean))].slice(0, 60);
+  if (!ids.length && !k.length) return [];
+  const r = await ol<{ qatorlar: TarixQator[] }>(kompaniyaId, 'tarix', { qator_ids: ids, kodlar: k });
+  return r ? (r.qatorlar ?? []).map((x) => ({ ...x, usta_narx: son(x.usta_narx), usta_narx_birlik: son(x.usta_narx_birlik), koef: son(x.koef) })) : null;
 }

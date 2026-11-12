@@ -19,12 +19,13 @@ import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
 import { podvalTanla, sbPodvallarOl } from '../../api/t2-nakrutka-podval';
 import { kartalarOl, qatorlarOl, smetadanQidir, type IshKarta } from '../../api/t2-ish-kartasi';
 import {
-  faktHozirOl, lugatKompaniyaOl, naryadBajarildi, naryadBekor, naryadFaktYoz, naryadHisobla, naryadNarx, naryadOl, naryadQabul, naryadYarat, naryadlarOl,
-  type NaryadYaratQator,
+  faktHozirOl, lugatKompaniyaOl, tarixOl, naryadBajarildi, naryadBekor, naryadFaktYoz, naryadHisobla, naryadNarx, naryadOl, naryadQabul, naryadYarat, naryadlarOl,
+  type NaryadYaratQator, type TarixQator,
 } from '../../api/t2-naryad';
 import type { SmetaQator, UstamaKirish } from '../../lib/ish-kartasi';
-import { HOLAT_NOMI, NARYAD_HOLATLAR, faktTaklif, mehnatUchlik, naryadJami, qatorSurati, satrTahlil, ustaNarxTaklif, type Harakat, type Naryad, type NaryadHolat, type NaryadQisqa } from '../../lib/naryad';
+import { HOLAT_NOMI, NARYAD_HOLATLAR, faktTaklif, katUchlik, mehnatUchlik, naryadJami, qatorKatBirlik, qatorSurati, satrTahlil, ustaNarxTaklif, type Harakat, type Naryad, type NaryadKat, type NaryadHolat, type NaryadQisqa } from '../../lib/naryad';
 import { naryadHujjat } from '../../lib/naryad/hujjat';
+import { kelishuvHisob, koefTaklif, ustaBirlikNorm } from '../../lib/naryad/kelishuv';
 import { birlikOdam, lugatKengaytir, lugatOrnat, odamNomi } from '../../lib/qurilish-lugat';
 
 const kirit = 'w-full rounded-md border border-border bg-surface px-2 py-1.5 text-[13px] text-text outline-none focus:border-accent';
@@ -56,7 +57,9 @@ async function lugatBilanQidir(kid: number, q: string, obyektId: number): Promis
   return [...xarita.values()];
 }
 
-type Tanlangan = { q: SmetaQator; hajm: string; narx: string };
+type Tanlangan = {
+  q: SmetaQator; kat: NaryadKat; ustaBirlik: string; koef: string; koefManba: string; hajm: string; hajmTegilgan: boolean; narx: string; tarix: TarixQator[];
+};
 
 export default function Naryad() {
   const { joriyId: kid } = useKompaniya();
@@ -163,7 +166,7 @@ export default function Naryad() {
         </div>
       </div>
 
-      {yangi && kid && obyektId && <YangiNaryad kid={kid} obyektId={obyektId} kartalar={kartalar} onYop={() => setYangi(false)} onYaratildi={async (id) => { setYangi(false); await yukla(); await och(id); }} />}
+      {yangi && kid && obyektId && <YangiNaryad kid={kid} obyektId={obyektId} kartalar={kartalar} ustama={ustama} onYop={() => setYangi(false)} onYaratildi={async (id) => { setYangi(false); await yukla(); await och(id); }} />}
     </Sahifa>
   );
 }
@@ -210,7 +213,7 @@ function NaryadTafsilot({ n, band, ustama, obyektNom: _obyektNom, onQabul, onNar
                   <td className="p-1 text-right">{tahrir ? <input aria-label={t('Bajarilgan hajm')} className={`${kirit} w-24 text-right`} value={qiymat(q.id, q.bajarilgan_hajm)} onChange={(e) => setKirit1((x) => ({ ...x, [q.id]: e.target.value }))} /> : <span className="num">{hajmFmt(q.bajarilgan_hajm)}</span>}</td>
                   <td className="p-1 text-right num">{hajmFmt(q.qabul_hajm)}</td>
                   <td className="p-1 text-right num">{hajmFmt(s.chelSoat)}</td>
-                  <td className="p-1 text-right num">{q.usta_narx == null && narxYozilgan ? <MoneyInput aria-label={t('Usta narxi')} className={`${kirit} w-24 text-right`} placeholder={t('kelishilmagan')} value={narxKirit[q.id] ?? ''} onValueChange={(v) => setNarxKirit((x) => ({ ...x, [q.id]: v }))} /> : pul(q.usta_narx)}</td>
+                  <td className="p-1 text-right num">{q.usta_narx == null && q.usta_narx_birlik == null && narxYozilgan ? <MoneyInput aria-label={t('Usta narxi')} className={`${kirit} w-24 text-right`} placeholder={t('kelishilmagan')} value={narxKirit[q.id] ?? ''} onValueChange={(v) => setNarxKirit((x) => ({ ...x, [q.id]: v }))} /> : q.usta_narx_birlik != null ? `${pul(q.usta_narx_birlik)} / ${q.usta_birlik ?? ''}` : pul(q.usta_narx)}</td>
                   <td className="p-1 text-right num">{pul(s.summa)}</td>
                   <td className="p-1 text-right num">{pul(s.smetaMehnat)}</td>
                   <td className={`p-1 text-right num ${s.foyda != null && s.foyda < 0 ? 'text-danger' : ''}`}>{pul(s.foyda)}</td>
@@ -252,7 +255,7 @@ function NaryadTafsilot({ n, band, ustama, obyektNom: _obyektNom, onQabul, onNar
   );
 }
 
-function YangiNaryad({ kid, obyektId, kartalar, onYop, onYaratildi }: { kid: number; obyektId: number; kartalar: IshKarta[]; onYop: () => void; onYaratildi: (id: number) => unknown }) {
+function YangiNaryad({ kid, obyektId, kartalar, ustama, onYop, onYaratildi }: { kid: number; obyektId: number; kartalar: IshKarta[]; ustama: UstamaKirish; onYop: () => void; onYaratildi: (id: number) => unknown }) {
   const [usta, setUsta] = useState(''); const [brigada, setBrigada] = useState(''); const [dan, setDan] = useState(''); const [gacha, setGacha] = useState('');
   const [qidiruv, setQidiruv] = useState(''); const [topilgan, setTopilgan] = useState<SmetaQator[] | null>(null);
   const [tanlangan, setTanlangan] = useState<Tanlangan[]>([]);
@@ -264,20 +267,54 @@ function YangiNaryad({ kid, obyektId, kartalar, onYop, onYaratildi }: { kid: num
     setTopilgan(await lugatBilanQidir(kid, qidiruv, obyektId));
     setBand(false);
   };
+  const yangila = (id: number, f: (x: Tanlangan) => Tanlangan) => setTanlangan((l) => l.map((y) => (y.q.id === id ? f(y) : y)));
+  /** Usta birligi yoki koef o'zgarganda: koef avtomatik taklif (tarix → karta → birlik), hajm usta birligida qayta hisoblanadi. */
+  const birlikOzgardi = (x: Tanlangan, ustaBirlik: string): Tanlangan => {
+    const ub = ustaBirlikNorm(ustaBirlik);
+    const tk = ub ? koefTaklif(x.q, ub, kartalar, x.tarix) : null;
+    const koef = tk ? String(Number(tk.koef.toPrecision(8))) : ustaBirlik.trim() === '' ? '' : x.koef;
+    const n = { ...x, ustaBirlik, koef, koefManba: tk ? tk.manba : '' };
+    return hajmQayta(n);
+  };
+  const hajmQayta = (x: Tanlangan): Tanlangan => {
+    if (x.hajmTegilgan) return x;
+    const k = x.ustaBirlik.trim() === '' ? 1 : sonOl(x.koef);
+    return { ...x, hajm: x.q.hajm == null ? '' : String(k && k > 0 ? Number((x.q.hajm / k).toPrecision(8)) : x.q.hajm) };
+  };
   const qosh = async (q: SmetaQator) => {
     if (tanlangan.some((x) => x.q.id === q.id)) return;
     const toliq = (await qatorlarOl(kid, [q.id]))?.qatorlar[0] ?? q;
+    const tarix = (await tarixOl(kid, [q.id], toliq.kod ? [toliq.kod] : []).catch(() => null)) ?? [];
     const taklif = ustaNarxTaklif(q.id, kartalar);
-    setTanlangan((l) => [...l, { q: toliq, hajm: toliq.hajm != null ? String(toliq.hajm) : '', narx: taklif != null ? String(taklif) : '' }]);
+    setTanlangan((l) => [...l, { q: toliq, kat: 'ЧЕЛ', ustaBirlik: '', koef: '', koefManba: '', hajm: toliq.hajm != null ? String(toliq.hajm) : '', hajmTegilgan: false, narx: taklif != null ? String(taklif) : '', tarix }]);
   };
+
+  const hisob = useMemo(() => tanlangan.map((x) => {
+    const ub = x.ustaBirlik.trim() === '' ? null : ustaBirlikNorm(x.ustaBirlik);
+    const koef = ub ? sonOl(x.koef) : 1;
+    const narx = x.narx.trim() === '' ? null : sonOl(x.narx);
+    const hajm = sonOl(x.hajm);
+    const smetaPul = qatorKatBirlik(x.q, x.kat);
+    const k = kelishuvHisob({ kat: x.kat, smetaBirlik: x.q.birlik, ustaBirlik: ub ?? x.q.birlik, koef, taklif: narx, smetaPulBirlik: smetaPul, tarix: x.tarix, ustaHajm: hajm,
+      ustamali: (s) => katUchlik(s, ustama, x.kat)?.ustamali ?? null });
+    return { x, ub, koef, narx, hajm, smetaPul, k };
+  }), [tanlangan, ustama]);
+
   const saqla = async () => {
     const qatorlar: NaryadYaratQator[] = [];
-    for (const x of tanlangan) {
-      const h = sonOl(x.hajm);
-      if (h == null || h <= 0) { toast(t('Har ish uchun hajm musbat son bo‘lsin'), 'danger'); return; }
-      const nr = x.narx.trim() === '' ? null : sonOl(x.narx);
-      if (x.narx.trim() !== '' && (nr == null || nr < 0)) { toast(t('Usta narxi son bo‘lsin (yoki bo‘sh — kelishilmagan)'), 'danger'); return; }
-      qatorlar.push({ qator_id: x.q.id, hajm: h, usta_narx: nr, ...qatorSurati(x.q, h), fakt_boshida: null });
+    for (const h of hisob) {
+      const x = h.x;
+      if (h.hajm == null || h.hajm <= 0) { toast(t('Har ish uchun hajm musbat son bo‘lsin'), 'danger'); return; }
+      if (x.narx.trim() !== '' && (h.narx == null || h.narx < 0)) { toast(t('Usta narxi son bo‘lsin (yoki bo‘sh — kelishilmagan)'), 'danger'); return; }
+      if (h.ub && (h.koef == null || h.koef <= 0)) { toast(t('Usta birligi uchun koef kiriting: 1 birlikda necha smeta birligi'), 'danger'); return; }
+      const smetaHajm = h.ub ? h.hajm * (h.koef as number) : h.hajm;
+      const s = qatorSurati(x.q, smetaHajm);
+      qatorlar.push({
+        qator_id: x.q.id, hajm: smetaHajm, kat: x.kat, usta_birlik: h.ub, koef: h.ub ? h.koef : null,
+        usta_narx_birlik: h.ub ? h.narx : null, usta_narx: h.ub ? null : h.narx,
+        norma_chel_soat: x.kat === 'ЧЕЛ' ? s.norma_chel_soat : null, smeta_mehnat_birlik: x.kat === 'ЧЕЛ' ? s.smeta_mehnat_birlik : null,
+        smeta_kat_birlik: x.kat === 'ЧЕЛ' ? null : h.smetaPul, fakt_boshida: null,
+      });
     }
     if (!usta.trim() || !qatorlar.length) { toast(t('Usta nomi va kamida bitta ish kerak'), 'danger'); return; }
     setBand(true);
@@ -290,11 +327,12 @@ function YangiNaryad({ kid, obyektId, kartalar, onYop, onYaratildi }: { kid: num
     toast(`${t('Naryad yaratildi')}: ${r.raqam ?? ''}`, 'ok');
     await onYaratildi(r.id);
   };
-  const tanJami = useMemo(() => tanlangan.map((x) => ({ x, h: sonOl(x.hajm), n: x.narx.trim() === '' ? null : sonOl(x.narx) })), [tanlangan]);
+  const jamiFoyda = hisob.reduce<number | null>((s, h) => (h.k.foydaTaklifJami == null ? s : (s ?? 0) + h.k.foydaTaklifJami), null);
+  const manbaNomi = (m: string) => (m === 'tarix' ? t('oldingi naryaddan') : m === 'karta' ? t('ish kartasidan') : m === 'birlik' ? t('birlik o‘girishdan') : '');
 
   return (
     <div role="dialog" aria-label={t('Yangi naryad')} className="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-black/40 p-4" data-testid="naryad-yangi">
-      <div className="w-full max-w-3xl rounded-lg border border-border bg-surface p-4 text-[13px]">
+      <div className="w-full max-w-4xl rounded-lg border border-border bg-surface p-4 text-[13px]">
         <div className="mb-3 flex items-center justify-between"><b>{t('Yangi naryad')}</b><button type="button" className={tugma} onClick={onYop}><X size={14} />{t('Yopish')}</button></div>
         <div className="grid gap-2 sm:grid-cols-2">
           <label><span className={yorliq}>{t('Usta / mas’ul')}</span><input className={kirit} value={usta} maxLength={200} onChange={(e) => setUsta(e.target.value)} /></label>
@@ -311,13 +349,33 @@ function YangiNaryad({ kid, obyektId, kartalar, onYop, onYaratildi }: { kid: num
           {topilgan.map((q) => <button key={q.id} type="button" className="block w-full rounded border border-border px-2 py-1 text-left hover:border-accent" onClick={() => void qosh(q)}>
             <b>{odamNomi(q, 'uz')}</b> <span className="text-text-dim">{q.kod} {q.nom} · {hajmFmt(q.hajm)} {birlikOdam(q.birlik, 'uz')}</span></button>)}
         </div>}
-        {tanlangan.length > 0 && <table className="mt-3 w-full text-[12px]"><thead><tr className="text-left text-text-mute"><th className="p-1">{t('Ish')}</th><th className="p-1">{t('Hajm')}</th><th className="p-1">{t('Usta narxi (1 birlikka, QQS siz)')}</th><th /></tr></thead>
-          <tbody>{tanJami.map(({ x, h, n }) => (
-            <tr key={x.q.id} className="border-t border-border"><td className="p-1">{odamNomi(x.q, 'uz')}<div className="text-[11px] text-text-dim">{x.q.nom}</div></td>
-              <td className="p-1"><input aria-label={t('Hajm')} className={`${kirit} w-24`} value={x.hajm} onChange={(e) => setTanlangan((l) => l.map((y) => (y.q.id === x.q.id ? { ...y, hajm: e.target.value } : y)))} /> {birlikOdam(x.q.birlik, 'uz')}</td>
-              <td className="p-1"><MoneyInput aria-label={t('Usta narxi')} className={`${kirit} w-28`} value={x.narx} onValueChange={(v) => setTanlangan((l) => l.map((y) => (y.q.id === x.q.id ? { ...y, narx: v } : y)))} />
-                <span className="ml-2 num">{h != null && n != null ? pul(h * n) : '—'}</span></td>
-              <td className="p-1"><button type="button" aria-label={t('Olib tashlash')} onClick={() => setTanlangan((l) => l.filter((y) => y.q.id !== x.q.id))}><X size={14} /></button></td></tr>))}</tbody></table>}
+        <div className="mt-3 space-y-2" data-testid="naryad-qatorlar">
+          {hisob.map(({ x, ub, koef, k }) => (
+            <div key={x.q.id} className="rounded-md border border-border p-2">
+              <div className="mb-1 flex items-start justify-between gap-2"><div><b>{odamNomi(x.q, 'uz')}</b><div className="text-[11px] text-text-dim">{x.q.kod} {x.q.nom} · {t('smeta birligi')}: {x.q.birlik ?? '—'}</div></div>
+                <button type="button" aria-label={t('Olib tashlash')} onClick={() => setTanlangan((l) => l.filter((y) => y.q.id !== x.q.id))}><X size={14} /></button></div>
+              <div className="grid gap-2 sm:grid-cols-5">
+                <label><span className={yorliq}>{t('Kim yetkazadi')}</span>
+                  <select className={kirit} value={x.kat} onChange={(e) => yangila(x.q.id, (y) => ({ ...y, kat: e.target.value as NaryadKat }))}>
+                    <option value="ЧЕЛ">{t('Mehnat (usta)')}</option><option value="МАТ">{t('Material (usta)')}</option><option value="МАШ">{t('Mexanizm (usta)')}</option></select></label>
+                <label><span className={yorliq}>{t('Usta birligi')}</span><input aria-label={t('Usta birligi')} className={kirit} placeholder={t('metr, dona, kvadrat…')} value={x.ustaBirlik} onChange={(e) => yangila(x.q.id, (y) => birlikOzgardi(y, e.target.value))} /></label>
+                <label><span className={yorliq}>{t('1 birlikda smeta birligi')}</span><input aria-label={t('Koef')} className={kirit} disabled={!ub} value={x.koef} onChange={(e) => yangila(x.q.id, (y) => hajmQayta({ ...y, koef: e.target.value, koefManba: '' }))} />
+                  {x.koefManba && <span className="text-[11px] text-text-dim">{manbaNomi(x.koefManba)}</span>}</label>
+                <label><span className={yorliq}>{t('Hajm')} ({ub ?? x.q.birlik ?? ''})</span><input aria-label={t('Hajm')} className={kirit} value={x.hajm} onChange={(e) => yangila(x.q.id, (y) => ({ ...y, hajm: e.target.value, hajmTegilgan: true }))} /></label>
+                <label><span className={yorliq}>{t('Usta narxi')} / {ub ?? x.q.birlik ?? ''}</span><MoneyInput aria-label={t('Usta narxi')} className={kirit} value={x.narx} onValueChange={(v) => yangila(x.q.id, (y) => ({ ...y, narx: v }))} /></label>
+              </div>
+              <div className="mt-2 rounded bg-surface-2 p-2 text-[12px]" data-testid="naryad-kelishuv">
+                <div>{t('Usta narxi smeta birligiga')}: <b className="num">{pul(k.taklifSmetaBirlikda)}</b> · {t('smeta puli usta birligiga (adolatli)')}: <b className="num">{pul(k.adolatli)}</b>
+                  {k.adolatliUstamali != null ? <span> · {t('ustamali')}: <b className="num">{pul(k.adolatliUstamali)}</b></span> : null}</div>
+                <div>{t('Oldin to‘langan (past)')}: <b className="num">{pul(k.tarixPol)}</b> · {t('tavsiya')}: <b className="num">{pul(k.tavsiya)}</b>
+                  {k.tavsiya != null && k.tavsiya !== (x.narx.trim() === '' ? null : sonOl(x.narx)) ? <button type="button" className={`${tugma} ml-2`} onClick={() => yangila(x.q.id, (y) => ({ ...y, narx: String(k.tavsiya) }))}>{t('Tavsiyani qo‘llash')}</button> : null}</div>
+                <div className={k.sigadi === false ? 'text-danger' : ''}>{k.sabab}</div>
+                <div>{t('Foyda (+) / zarar (−), jami')}: <b className="num">{pul(k.foydaTaklifJami)}</b> {koef == null && ub ? <span className="text-warning">{t('koef kerak')}</span> : null}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {jamiFoyda != null && <div className="mt-2" data-testid="naryad-yangi-jami">{t('Jami: smeta − usta (foyda +, zarar −)')}: <b className="num">{pul(jamiFoyda)}</b></div>}
         <div className="mt-3 flex justify-end gap-2"><button type="button" className={tugma} onClick={onYop}>{t('Bekor')}</button><button type="button" className={asosiyTugma} disabled={band} onClick={() => void saqla()}>{t('Naryad berish')}</button></div>
         <div className="mt-1 text-[11px] text-text-mute">{t('Usta narxi bo‘sh bo‘lsa — kelishilmagan hisoblanadi (0 emas); to‘lovdan oldin kiritiladi.')}</div>
       </div>
