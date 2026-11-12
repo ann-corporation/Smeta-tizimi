@@ -6,7 +6,7 @@
 import { RasmiyVaraq, bugunSana, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, ustunHarfi, type Qiymat } from '../hujjat-yozuvchi';
 import { yaxlit2, yigindi2 } from '../hisob-yadro';
 import { sverkaQatorlari, saldoTomoni } from './hisob';
-import type { BuxHisobot, BuxHujjatQator, BuxOsv } from '../../api/t2-bux-hisob';
+import type { BuxHisobot, BuxHujjatQator, BuxOsv, BuxSverka } from '../../api/t2-bux-hisob';
 
 export type SverkaKirish = {
   kompaniya: string | null;
@@ -145,4 +145,36 @@ export function hisobotHujjat(k: { kompaniya: string | null; h: BuxHisobot }): {
   v.imzo(imzoTomonlari(['СОСТАВИЛ', 'ПРОВЕРИЛ']));
   const { bytes } = rasmiyKitob([v]);
   return { bytes, faylNomi: hujjatFaylNomi({ obyekt: k.kompaniya ?? 'Баланс', hujjat: balans ? 'БАЛАНС' : 'ПРИБЫЛИ_УБЫТКИ', davr: `${k.h.dan ?? ''}_${k.h.gacha}` }) };
+}
+
+const SVERKA_HOLAT_RU: Record<string, string> = { mos: 'Совпадает', sana_farq: 'Расхождение по дате', summa_farq: 'Расхождение по сумме', faqat_men: 'Только у нас', faqat_ular: 'Только у контрагента' };
+
+/** Tomonlararo akt-sverka (взаимных расчётов, по данным ОБЕИХ учётов) — RUS Excel. Imzo: shu fayl arxivga saqlanib, taqdim -> qaror zanjiri orqali ikkinchi tomonga yuboriladi. */
+export function sverkaTomonHujjat(k: { kompaniya: string | null; s: BuxSverka }): { bytes: Uint8Array; faylNomi: string } {
+  const v = new RasmiyVaraq({
+    nom: 'Акт сверки',
+    kattaHarf: false,
+    sarlavha: 'АКТ СВЕРКИ ВЗАИМНЫХ РАСЧЁТОВ (по данным двух учётов)',
+    ostSarlavha: [`за период с ${ddmmyyyy(k.s.dan)} по ${ddmmyyyy(k.s.gacha)}`, 'Сальдо: «+» — контрагент должен нам; «−» — мы должны контрагенту. Суммы с НДС. Сопоставление строк приблизительное (Т — проверить).'],
+    titul: [['Организация:', k.kompaniya ?? null], ['Контрагент:', k.s.qarshi_nom ?? null], ['Дата составления:', ddmmyyyy(bugunSana())]],
+    ustunlar: [
+      { sarlavha: '№ п/п', kenglik: 6, tur: 'tartib' },
+      { sarlavha: 'Дата', kenglik: 12, tur: 'kod', guruh: 'По нашим данным' },
+      { sarlavha: 'Документ', kenglik: 28, tur: 'matn', guruh: 'По нашим данным' },
+      { sarlavha: 'Сумма', kenglik: 16, tur: 'pul', guruh: 'По нашим данным' },
+      { sarlavha: 'Дата', kenglik: 12, tur: 'kod', guruh: 'По данным контрагента' },
+      { sarlavha: 'Сумма', kenglik: 16, tur: 'pul', guruh: 'По данным контрагента' },
+      { sarlavha: 'Разница', kenglik: 16, tur: 'pul' },
+      { sarlavha: 'Статус', kenglik: 26, tur: 'matn' },
+    ],
+    yonalish: 'landscape',
+  });
+  v.qator('oddiy', () => [null, ddmmyyyy(k.s.dan), 'Сальдо на начало периода', yaxlit2(k.s.ochilish_men), null, yaxlit2(k.s.ochilish_ular), yaxlit2(k.s.ochilish_men - k.s.ochilish_ular), null] as Qiymat[]);
+  k.s.qatorlar.forEach((q, i) => v.qator('ish', () => [i + 1, q.a_sana ? ddmmyyyy(q.a_sana) : null, q.hujjat ?? null, q.a_summa == null ? null : yaxlit2(q.a_summa),
+    q.b_sana ? ddmmyyyy(q.b_sana) : null, q.b_summa == null ? null : yaxlit2(q.b_summa), yaxlit2(q.farq), SVERKA_HOLAT_RU[q.holat] ?? q.holat] as Qiymat[]));
+  v.qator('jami', () => [null, null, 'Сальдо на конец периода', yaxlit2(k.s.yopilish_men), null, yaxlit2(k.s.yopilish_ular), yaxlit2(k.s.farq), k.s.farqli_soni > 0 ? `Расхождений: ${k.s.farqli_soni}` : 'Расхождений нет'] as Qiymat[]);
+  v.izoh('Подписано сторонами через модуль «Стороны» (передача документа и решение принять/вернуть).');
+  v.imzo(imzoTomonlari(['СОСТАВИЛ', 'ПРОВЕРИЛ']));
+  const { bytes } = rasmiyKitob([v]);
+  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: k.s.qarshi_nom ?? 'контрагент', hujjat: 'АКТ_СВЕРКИ_СТОРОН', davr: `${k.s.dan}_${k.s.gacha}` }) };
 }

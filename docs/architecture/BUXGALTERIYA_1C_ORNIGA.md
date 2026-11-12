@@ -171,3 +171,15 @@ Jarvis: sinonimlar (oborotka, 60 schyot kartochkasi, provodkalar). **Qo'llanmaga
 - **Boshlang'ich qoldiq:** `t2_bux_saldo_import_v1` (ko'rik: hisob mavjud, summa, analitika, Dt = Kt; yozish: bitta partiya, qarshi hisob sozlanadi, sukut 8810, T) va `t2_bux_saldo_bekor_v1` (storno). Ustunlarni moslash mijozda (`lib/buxgalteriya/saldo.ts`), real fayl tuzilishi qattiq yozilmagan.
 - **Tannarx:** qoida ma'lumot (`tannarx.yopish` 9110/2010), usul: daromad tan olingan obyektning butun 2010 qoldig'i (T — ulushli usul buxgalter bilan), ko'rik, delta, bekor = storno, oylar tartibi (`KEYINGI_OY_BOR`).
 - **Ish haqi/naryad (P2 #4):** BAJARILMADI. Sabab: HR #380 va naryad #375/#377 hali birlashmagan; ikki marta sanalmasligi uchun «bir fakt — bir manba» qarori kerak (`xarajat.chel` va `ish_haqi.*` bir vaqtda yoqilmaydi). P3.
+
+## 10. P3 holati (PR claude/buxgalteriya-p3, migratsiya 20261216220000; prodga qo'llanmagan)
+**Qilingan:** tomonlararo akt-sverka; mehnat uchun «bir fakt - bir manba» qoidasi; ish haqi provodkalari.
+- **Akt sverki (ikki kompaniya):** `t2_bux_sverka_v1` ikkala daftardan hujjat kesimida (4010/4310/6010/6310; T) hisoblaydi: mos / sana_farq / summa_farq (taxminiy juftlash: bir oy, bir ishora) / faqat_men / faqat_ular.
+  Shart: faol `t2_tomon_aloqa` va ikkala tomonda ikkinchisi STIR bilan kontragent. Chaqiruvchi o'z daftarini to'liq ko'radi; ikkinchi tomon qatori faqat sana + summa (hisob, analitika, hujjat nomi yo'q).
+  Imzolash: Excel (token `SVERKA_TOMON`) arxivga saqlanadi va MAVJUD taqdim -> qaror zanjiri (resurs `hujjat`) orqali yuboriladi; yangi hayot sikli yaratilmadi.
+- **Mehnat, bir fakt - bir manba (SQL: `_t2_bux_kerak_v3`):**
+  1. Ish haqi (`t2_hr_oylik` tasdiqlangan; HR kanoni `t2_hr_oylik_buxgalteriya_v1` bilan bir xil to'plam): hisoblash `ish_haqi.hisoblash` (Dt 2010 / Kt 6710), ushlanmalar `ish_haqi.ndfl` va `ish_haqi.inps` (Dt 6710 / Kt 6410, hisoblar T). Stavkalar `t2_hr_sozlama` da tahrirlanadi (T). Ish haqi to'lovi hujjati tizimda yo'q: to'lov qo'lda provodka (keyingi qadam).
+  2. Shtatdagi usta (`t2_kadr_mustaqil.foydalanuvchi_id` + `t2_hr_xodim`) naryadi (`t2_xarajat` ЧЕЛ, `hujjat_ref` = «naryad №raqam») ish haqining «donabay» qismi: shu oyga tasdiqlangan oylik bor bo'lsa xarajat manbasidan CHIQARILADI va faqat oylik orqali yoziladi; oylik hali tasdiqlanmagan bo'lsa `xarajat.chel` orqali yoziladi (xarajat yo'qolmaydi) va oylik tasdiqlangach delta-sinxron uni storno qiladi.
+  3. Shtatda bo'lmagan usta naryadi: `xarajat.naryad_pudrat` (Dt 2010 / Kt 6010, kontragent = usta).
+  4. Subpudrat akti: `xarid.ish` (qarz asosi); `xarajat.sub` o'chirilgan. Ogohlantirish: oylik oyida naryadsiz qo'lda ЧЕЛ xarajat bor (`chel_ikki_manba_ogohlantirish`).
+**Bajarilmadi (keyingi bosqich):** bank ko'chirmasi mosligi va kassa orderlari (V1 da bank CSV importi bor, moslash taklifi va order raqamlash yo'q); M-29 narxli sarf (`t2_sklad_harakat` da narx yo'q; narx `t2_qarz_asos.sklad_harakat_id` orqali kirim qatorida, lekin miqdor/partiya bog'lanishi ombor hisobidan tasdiqlanishi kerak); asosiy vositalar va amortizatsiya (reestr jadvali yo'q).

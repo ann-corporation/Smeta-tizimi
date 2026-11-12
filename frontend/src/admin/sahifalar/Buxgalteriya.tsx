@@ -16,11 +16,12 @@ import { Kartochka } from '../buxgalteriya/Kartochka';
 import { Hisobot } from '../buxgalteriya/Hisobot';
 import { Saldo } from '../buxgalteriya/Saldo';
 import { Tannarx } from '../buxgalteriya/Tannarx';
+import { SverkaTomon } from '../buxgalteriya/SverkaTomon';
 import { useYordamchiSahifaAmallari } from '../../lib/yordamchi/sahifa-amal-store';
 import { Izoh, XatoQator } from '../buxgalteriya/umumiy';
 import { bugun, bugunOyBoshi, chorakBoshi, kirit, yilBoshi, type Davr } from '../buxgalteriya/yordamchi';
 
-type Tab = 'hisobkitob' | 'bank' | 'osv' | 'kartochka' | 'nds' | 'jurnal' | 'reja' | 'qoida' | 'davr' | 'hisobot' | 'saldo' | 'tannarx';
+type Tab = 'hisobkitob' | 'bank' | 'osv' | 'kartochka' | 'nds' | 'jurnal' | 'reja' | 'qoida' | 'davr' | 'hisobot' | 'saldo' | 'tannarx' | 'sverka';
 const TABLAR: Array<[Tab, () => string, () => string]> = [
   ['hisobkitob', () => t('Kontragent bilan hisob-kitob'), () => t('Kim bizga qarz, biz kimga qarz — hujjatlargacha, akt-sverka bilan.')],
   ['bank', () => t('Bank va kassa'), () => t('To‘lovlar va bank ko‘chirmasini yuklash.')],
@@ -30,6 +31,7 @@ const TABLAR: Array<[Tab, () => string, () => string]> = [
   ['jurnal', () => t('Provodkalar jurnali'), () => t('Barcha provodkalar (журнал проводок). Hujjatga o‘tish, qo‘lda provodka va storno.')],
   ['reja', () => t('Hisoblar rejasi'), () => t('Hisoblar ro‘yxati (план счетов); T — buxgalter tasdig‘i kutilmoqda.')],
   ['qoida', () => t('Qoidalar'), () => t('Qaysi hujjat qaysi hisoblarga yoziladi (правила проводок); tomon shabloni.')],
+  ['sverka', () => t('Akt sverki (tomonlar)'), () => t('Ikki kompaniya o‘rtasida akt sverki: ikkala daftardan, qator-ma‘qator farq (акт сверки).')],
   ['hisobot', () => t('Balans va foyda-zarar'), () => t('Balans va foyda-zarar hisoboti jurnaldan (баланс, прибыли и убытки); Excel.')],
   ['tannarx', () => t('Tannarx'), () => t('Obyekt xarajatini sotilgan tannarxga o‘tkazish: ko‘rik, yozish, bekor (себестоимость).')],
   ['saldo', () => t('Boshlang‘ich qoldiq'), () => t('1C dan o‘tish: ОСВ eksportini yuklash, ko‘rik, bitta partiya bilan yozish (начальные остатки).')],
@@ -77,6 +79,7 @@ export function Buxgalteriya() {
     { id: 'bux_kartochka', nom: t('Hisob kartochkasini ochish'), kalitlar: ['schyot kartochkasi', 'hisob kartochkasi', 'карточка счета', 'account card'], run: () => setTab('kartochka') },
     { id: 'bux_jurnal', nom: t('Provodkalar jurnalini ochish'), kalitlar: ['provodkalar', 'provodka jurnali', 'проводки', 'журнал проводок', 'journal entries'], run: () => setTab('jurnal') },
     { id: 'bux_reja', nom: t('Hisoblar rejasini ochish'), kalitlar: ['hisoblar rejasi', 'план счетов', 'chart of accounts'], run: () => setTab('reja') },
+    { id: 'bux_sverka', nom: t('Akt sverkini ochish'), kalitlar: ['akt sverki', 'акт сверки', 'reconciliation act'], run: () => setTab('sverka') },
     { id: 'bux_balans', nom: t('Balansni ochish'), kalitlar: ['balans', 'баланс', 'balance sheet'], run: () => setTab('hisobot') },
     { id: 'bux_foyda_zarar', nom: t('Foyda zarar hisobotini ochish'), kalitlar: ['foyda zarar hisoboti', 'отчет о прибылях и убытках', 'profit and loss'], run: () => setTab('hisobot') },
     { id: 'bux_saldo', nom: t('Boshlang‘ich qoldiq importini ochish'), kalitlar: ['boshlangich qoldiq', 'начальные остатки', 'opening balances'], run: () => setTab('saldo') },
@@ -167,6 +170,7 @@ export function Buxgalteriya() {
               {tab === 'bank' && <Bank kid={kid} davr={davr} versiya={versiya} onOzgardi={ozgardi} />}
               {tab === 'osv' && <Osv kid={kid} davr={davr} versiya={versiya} onHisob={(k) => { setJurnalHisob(k); setTab('kartochka'); }} />}
               {tab === 'kartochka' && <Kartochka kid={kid} davr={davr} versiya={versiya} hisoblar={holat.hisoblar} hisob={jurnalHisob} onHisob={setJurnalHisob} />}
+              {tab === 'sverka' && <SverkaTomon kid={kid} davr={davr} versiya={versiya} />}
               {tab === 'hisobot' && <Hisobot kid={kid} davr={davr} versiya={versiya} />}
               {tab === 'tannarx' && <Tannarx kid={kid} onOzgardi={ozgardi} tasdiqlaydi={tasdiqlaydi} />}
               {tab === 'saldo' && <Saldo kid={kid} onOzgardi={ozgardi} tasdiqlaydi={tasdiqlaydi} />}

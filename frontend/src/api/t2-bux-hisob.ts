@@ -73,7 +73,13 @@ export type TannarxNatija = {
   ok: boolean; dry?: boolean; code?: string; xabar?: string; oy?: string; soni?: number; jami?: number; dt?: string; kt?: string; error?: string; takror?: boolean;
   qatorlar?: Array<{ obyekt_id: number; xarajat: number; daromad: number; avval: number; farq: number }>;
 };
-export type BuxFiltr = { forma?: string | null; dan?: string | null; gacha?: string | null; kontragent_id?: number | null; shartnoma_id?: number | null; hisob?: string | null; limit?: number };
+export type BuxSverkaQator = { holat: 'mos' | 'sana_farq' | 'summa_farq' | 'faqat_men' | 'faqat_ular'; hujjat: string | null; manba_tur: string | null; manba_id: number | null; a_sana: string | null; a_summa: number | null; b_sana: string | null; b_summa: number | null; farq: number };
+export type BuxSverka = {
+  ok: true; dan: string; gacha: string; qarshi_kompaniya_id: number; qarshi_nom: string | null; ogohlantirish: string[]; ochilish_men: number; ochilish_ular: number;
+  yopilish_men: number; yopilish_ular: number; farq: number; farqli_soni: number; qatorlar: BuxSverkaQator[];
+};
+export type BuxSverkaTomonlar = { ok: true; tomonlar: Array<{ kompaniya_id: number; nom: string }> };
+export type BuxFiltr = { qarshi_kompaniya_id?: number | null; forma?: string | null; dan?: string | null; gacha?: string | null; kontragent_id?: number | null; shartnoma_id?: number | null; hisob?: string | null; limit?: number };
 
 async function oqi<T>(soro: string, kompaniyaId: number, f: BuxFiltr = {}): Promise<{ ok: true; natija: T } | { ok: false; error: string }> {
   try {
@@ -94,6 +100,8 @@ export const buxKartochkaOl = (k: number, f: BuxFiltr) => oqi<BuxKartochka>('bux
 export const buxSozlamaOl = (k: number) => oqi<BuxSozlama>('bux_sozlama_v1', k);
 export const buxPulKorinishOl = (k: number, f: BuxFiltr = {}) => oqi<BuxPulKorinish>('bux_pul_korinish_v1', k, f);
 export const buxHisobotOl = (k: number, f: BuxFiltr) => oqi<BuxHisobot>('bux_hisobot_v1', k, f);
+export const buxSverkaOl = (k: number, f: BuxFiltr) => oqi<BuxSverka>('bux_sverka_v1', k, f);
+export const buxSverkaTomonlarOl = (k: number) => oqi<BuxSverkaTomonlar>('bux_sverka_tomonlar_v1', k);
 export const buxNdsOl = (k: number, f: BuxFiltr) => oqi<BuxNds>('bux_nds_v1', k, f);
 export const buxTolovOl = (k: number, f: BuxFiltr) => oqi<BuxTolovRoyxat>('bux_tolov_v1', k, f);
 
@@ -147,6 +155,8 @@ export function buxXato(r: { error?: string; xabar?: string; code?: string } | n
   if (/BUX_DAVR_YOPIQ/.test(m)) return 'Bu oy yopilgan: provodka yozilmaydi. Davrni qayta oching yoki keyingi oyga yozing.';
   if (/SHABLON_YOQ/.test(m)) return 'Bunday qoida shabloni yo‘q.';
   if (/HISOB_KERAK/.test(m)) return 'Kartochka uchun hisobni tanlang.';
+  if (/ALOQA_YOQ/.test(m)) return 'Bu kompaniya bilan faol aloqa yo‘q: avval «Tomonlar» orqali bog‘laning.';
+  if (/QARSHI_TOMON_KERAK/.test(m)) return 'Qarshi tomonni tanlang.';
   if (/MUVOZANAT_YOQ/.test(m)) return 'Jami Debet jami Kreditga teng emas.';
   if (/SALDO_ALLAQACHON/.test(m)) return 'Boshlang‘ich qoldiq allaqachon yozilgan. Avval uni bekor qiling.';
   if (/KEYINGI_OY_BOR/.test(m)) return 'Keyingi oyga tannarx yozilgan: avval o‘sha oyni bekor qiling.';

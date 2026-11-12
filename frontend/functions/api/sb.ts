@@ -284,6 +284,8 @@ export const onRequestPost: PagesFunction<{
   bux_kartochka_v1: 'kompaniya_actor',
   bux_pul_korinish_v1: 'kompaniya_actor',
   bux_hisobot_v1: 'kompaniya_actor',
+  bux_sverka_v1: 'kompaniya_actor',
+  bux_sverka_tomonlar_v1: 'kompaniya_actor',
   bux_sozlama_v1: 'kompaniya_actor',
         /* Egasi 2026-11-03: shartnoma oylik paketi arxivi (versiyalar + manifest + hozirgi iz) va fakt/F2 saqlashdan oldingi ogohlantirish. `stable`; a'zolik RPC ichida. */
         shartnoma_oylik_paket_royxat_v1: 'kompaniya_actor',
@@ -508,6 +510,12 @@ export const onRequestPost: PagesFunction<{
         if (hisob != null && hisob !== '') {
           if (typeof hisob !== 'string' || !/^\d{4}$/.test(hisob)) return Response.json({ ok: false, error: "hisob 4 raqam bo'lishi kerak" });
           q.set('p_hisob', hisob);
+        }
+        const qarshi = (so as Record<string, unknown>).qarshi_kompaniya_id;
+        if (qarshi != null && String(qarshi) !== '') {
+          const qid = Number(qarshi);
+          if (!Number.isSafeInteger(qid) || qid <= 0) return Response.json({ ok: false, error: "qarshi_kompaniya_id noto'g'ri" });
+          q.set('p_qarshi_kompaniya_id', String(qid));
         }
         const forma = (so as Record<string, unknown>).forma;
         if (forma != null && forma !== '') {
