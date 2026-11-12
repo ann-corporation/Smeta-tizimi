@@ -15,6 +15,8 @@ export const OQISH: Record<string, string> = {
   farq: 't2_loyiha_farq_v1',
   smeta: 't2_loyiha_smeta_v1',
   xarita: 't2_loyiha_xarita_v1',
+  tahrir_royxat: 't2_loyiha_tahrir_royxat_v1',
+  tahrir_farq: 't2_loyiha_tahrir_farq_v1',
 };
 export const YOZISH: Record<string, string> = {
   yoz: 't2_loyiha_yoz_v1',
@@ -22,6 +24,10 @@ export const YOZISH: Record<string, string> = {
   boglash: 't2_loyiha_boglash_v1',
   qaror: 't2_loyiha_qaror_v1',
   xarita: 't2_loyiha_xarita_yoz_v1',
+  tahrir_yarat: 't2_loyiha_tahrir_yarat_v1',
+  tahrir_yoz: 't2_loyiha_tahrir_yoz_v1',
+  tahrir_asos: 't2_loyiha_tahrir_asos_v1',
+  tahrir_qaror: 't2_loyiha_tahrir_qaror_v1',
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -84,6 +90,25 @@ export function yozishYuki(amal: string, so: Yuk): Yuk | string {
       if (!sonmi(so.obyekt_id) || !sonmi(so.bolim_qator_id) || !matn(so.varaq, 40)) return 'obyekt_id, varaq va bolim_qator_id kerak';
       if (!['qosh', 'ochir'].includes(String(so.harakat))) return 'harakat: qosh | ochir';
       return { p_kompaniya_id, p_obyekt_id: Number(so.obyekt_id), p_varaq: matn(so.varaq, 40), p_bolim_qator_id: Number(so.bolim_qator_id), p_manba: so.manba === 'taklif' ? 'taklif' : 'qolda', p_sabab: matn(so.sabab, 300), p_amal: String(so.harakat) };
+    case 'tahrir_yarat': {
+      const nom = matn(so.nom, 80); if (!sonmi(so.obyekt_id) || !nom) return 'obyekt_id va nom kerak';
+      const sana = typeof so.sana === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(so.sana) ? so.sana : null;
+      return { p_kompaniya_id, p_obyekt_id: Number(so.obyekt_id), p_nom: nom, p_sana: sana };
+    }
+    case 'tahrir_yoz': {
+      if (!sonmi(so.obyekt_id) || !sonmi(so.tahrir_id) || !matn(so.varaq, 40)) return 'obyekt_id, tahrir_id va varaq kerak';
+      const rev = Number(so.revizya ?? 0); if (!Number.isInteger(rev) || rev < 0 || rev > 99) return 'revizya 0..99';
+      if (!Array.isArray(so.items) || so.items.length === 0 || so.items.length > 2000) return 'items: 1..2000 ta';
+      const items = so.items.map(elementTozala); if (items.some((i) => i == null)) return 'Har elementda nom, birlik va to‘g‘ri miqdor kerak';
+      return { p_kompaniya_id, p_obyekt_id: Number(so.obyekt_id), p_tahrir_id: Number(so.tahrir_id), p_varaq: matn(so.varaq, 40), p_revizya: rev, p_toplam_id: ixtSon(so.toplam_id), p_items: items, p_operation_id: opId(so.operation_id) };
+    }
+    case 'tahrir_asos':
+      if (!sonmi(so.obyekt_id) || !sonmi(so.tahrir_id)) return 'obyekt_id va tahrir_id kerak';
+      return { p_kompaniya_id, p_obyekt_id: Number(so.obyekt_id), p_tahrir_id: Number(so.tahrir_id) };
+    case 'tahrir_qaror':
+      if (!sonmi(so.obyekt_id) || !sonmi(so.eski_id) || !sonmi(so.yangi_id) || !matn(so.varaq, 40) || !matn(so.kalit, 400)) return 'obyekt_id, eski_id, yangi_id, varaq va kalit kerak';
+      if (!['smetaga_kochir', 'pereraschet', 'qoldir'].includes(String(so.qaror))) return 'qaror: smetaga_kochir | pereraschet | qoldir';
+      return { p_kompaniya_id, p_obyekt_id: Number(so.obyekt_id), p_eski: Number(so.eski_id), p_yangi: Number(so.yangi_id), p_varaq: matn(so.varaq, 40), p_kalit: matn(so.kalit, 400), p_qaror: String(so.qaror), p_sabab: matn(so.sabab, 500) };
     default: return 'Amal ochiq emas';
   }
 }
@@ -91,6 +116,10 @@ export function yozishYuki(amal: string, so: Yuk): Yuk | string {
 export function oqishYuki(bolim: string, q: URLSearchParams): Yuk | string {
   if (!OQISH[bolim]) return 'Bo‘lim ochiq emas';
   if (!sonmi(q.get('kompaniya_id')) || !sonmi(q.get('obyekt_id'))) return 'kompaniya_id va obyekt_id kerak';
+  if (bolim === 'tahrir_farq') {
+    if (!sonmi(q.get('eski_id')) || !sonmi(q.get('yangi_id'))) return 'eski_id va yangi_id kerak';
+    return { p_kompaniya_id: Number(q.get('kompaniya_id')), p_obyekt_id: Number(q.get('obyekt_id')), p_eski: Number(q.get('eski_id')), p_yangi: Number(q.get('yangi_id')) };
+  }
   return { p_kompaniya_id: Number(q.get('kompaniya_id')), p_obyekt_id: Number(q.get('obyekt_id')) };
 }
 
