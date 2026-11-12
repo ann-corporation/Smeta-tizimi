@@ -27,7 +27,7 @@ export const ADMIN_MARSHRUTLARI = [
   'monitoring', 'sozlamalar', 'fayl-boglash', 'hujjatlar',
   'shaxsiy-smeta', 'supabase', 'tezlik', 'test', 'test/obyektlar', 'test/daraxt', 'test/import', 'test/narxlar', 'test/oqish', 'kadrlar', 'texnika', 'taminot', 'sifat',
   'dashboard', 'pult', 'test/portfel', 'test/crm', 'participants', 'documents', 'hujjat-nazorat',
-  'mindmap', 'storage', 'system-control', 'kompaniya',
+  'mindmap', 'grafik', 'storage', 'system-control', 'kompaniya',
   'test/smeta', 'test/moliya', 'test/logistika', 'test/zayavka', 'test/aosr', 'test/erp',
   'test/sozlama', 'test/xodimlar', 'test/korzinka',
   /* 2026-10-26: yagona navigatsiya reestridagi (lib/nav/navReestr.ts) qolgan yo'llar — navFiltr.test.ts tekshiradi. */
@@ -41,6 +41,8 @@ export const ADMIN_MARSHRUTLARI = [
   'hr',
   /* 2026-11-05: ish kartasi + narx tekshiruvi. */
   'narx-tekshiruv',
+  /* 2026-11-12: naryad (brigada topshirig'i) + lug'at. */
+  'naryad',
   /* 2026-11-12: foto-dalil (P2). */
   'foto',
   /* 2026-11-12: Texnik nazorat (texnadzor). */

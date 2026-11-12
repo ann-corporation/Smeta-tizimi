@@ -10,7 +10,7 @@ import { dataPermission } from './permission-policy';
 export const RUXSATSIZ_BUYRUQ = 'command.unregistered';
 
 /** Tanadagi maydonga qarab ruxsati o'zgaradigan buyruqlar (masalan F2 holat o'tishi: bekor / tuzatish / tasdiq). */
-export const DINAMIK_BUYRUQLAR: ReadonlySet<string> = new Set(["akt_lifecycle_transition_v1","akt_yarat","buyurtma_otish_v1"]);
+export const DINAMIK_BUYRUQLAR: ReadonlySet<string> = new Set(["akt_lifecycle_transition_v1","akt_yarat","buyurtma_otish_v1","naryad_yoz_v1"]);
 
 export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   qoshimcha_ish_yarat_v1: 'smeta.write',
@@ -28,6 +28,7 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   ish_kartasi_saqla_v1: 'smeta.write',
   ish_kartasi_arxiv_v1: 'smeta.write',
   ish_kartasi_ulush_saqla_v1: 'smeta.write',
+  naryad_yoz_v1: 'smeta.write', // 20261214800000: hisobla — RPC yana financial.write talab qiladi
   shartnoma_saqla_v2: 'document.write',
   qarzdorlik_saqla_v1: 'financial.write',
   qarzdorlik_import_v1: 'financial.write',
