@@ -9,6 +9,7 @@
  */
 
 import type { F3ShartnomaYigindi } from '../forma3-export';
+import { yaxlit2 } from '../hisob-yadro';
 
 export type EsfIdTuri = 'my3' | 'kapital' | 'kadastr';
 export const ESF_ID_TURLARI: ReadonlyArray<EsfIdTuri> = ['my3', 'kapital', 'kadastr'];
@@ -126,7 +127,6 @@ export interface EsfPaket {
   jami: { summaNdsiz: number | null; qqsSumma: number | null; summaNdsBilan: number | null };
 }
 
-const yaxlit2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 const yigish = (a: ReadonlyArray<number | null>): number | null => (a.some((x) => x == null) ? null : yaxlit2(a.reduce<number>((s, x) => s + (x as number), 0)));
 const sonsiz = (v: string | null | undefined) => (bor(v) ? String(v).trim() : null);
 
