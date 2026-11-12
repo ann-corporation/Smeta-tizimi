@@ -1,0 +1,40 @@
+-- ROLLBACK: 20261216500000_t2_bozor_p1_v1
+-- DIQQAT: t2_bz_* va t2_reyting_baho dagi barcha ma'lumot (e'lon, so'rov, taklif, baho, audit) yo'qoladi. Yaratilgan t2_buyurtma, t2_tomon_aloqa('bozor') va t2_narx_manba qatorlari QOLADI
+-- (ular tenant ma'lumoti; t2_bz_sorov.buyurtma_id havolasi jadval bilan birga yo'qoladi). BEGIN/COMMIT yo'q.
+drop function if exists public.t2_bz_ochiq_rasm_v1(text);
+drop function if exists public.t2_bz_ochiq_filtr_v1();
+drop function if exists public.t2_bz_ochiq_sotuvchi_v1(bigint);
+drop function if exists public.t2_bz_ochiq_elon_v1(bigint);
+drop function if exists public.t2_bz_ochiq_qidir_v1(jsonb);
+drop function if exists public.t2_bz_mod_yashir_v1(bigint, uuid, jsonb);
+drop function if exists public.t2_bz_mod_royxat_v1(bigint);
+drop function if exists public.t2_bz_shikoyat_v1(bigint, uuid, jsonb);
+drop function if exists public.t2_bz_baho_v1(bigint, uuid, jsonb);
+drop function if exists public.t2_bz_qabul_v1(bigint, bigint, uuid, jsonb);
+drop function if exists public.t2_bz_yetkazildi_v1(bigint, uuid, jsonb);
+drop function if exists public.t2_bz_golib_tanla_v1(bigint, bigint, uuid, jsonb);
+drop function if exists public.t2_bz_taqqos_v1(bigint, bigint, bigint);
+drop function if exists public.t2_bz_sorov_royxat_v1(bigint, bigint);
+drop function if exists public.t2_bz_sorov_yarat_v1(bigint, bigint, uuid, jsonb);
+drop function if exists public.t2_bz_taklif_ber_v1(bigint, uuid, jsonb);
+drop function if exists public.t2_bz_sorov_ochiq_v1(bigint, jsonb);
+drop function if exists public.t2_bz_kabinet_v1(bigint);
+drop function if exists public.t2_bz_elon_holat_v1(bigint, uuid, jsonb);
+drop function if exists public.t2_bz_elon_saqla_v1(bigint, uuid, jsonb);
+drop function if exists public.t2_bz_profil_ol_v1(bigint);
+drop function if exists public.t2_bz_profil_saqla_v1(bigint, uuid, jsonb);
+drop function if exists public._t2_bz_elon_xato(bigint, jsonb, boolean);
+drop function if exists public._t2_bz_reyting(bigint);
+drop function if exists public._t2_bz_audit(bigint, text, text, bigint, jsonb);
+drop function if exists public._t2_bz_actor(bigint);
+drop function if exists public._t2_bz_son(jsonb, text);
+drop function if exists public._t2_bz_matn(jsonb, text, integer);
+drop function if exists public._t2_bz_kalit(text);
+drop table if exists public.t2_reyting_baho;
+drop table if exists public.t2_bz_audit;
+drop table if exists public.t2_bz_shikoyat;
+drop table if exists public.t2_bz_taklif;
+drop table if exists public.t2_bz_sorov;
+drop table if exists public.t2_bz_elon;
+drop table if exists public.t2_bz_profil;
+drop table if exists public.t2_bz_sozlama;

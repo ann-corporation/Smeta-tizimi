@@ -38,6 +38,15 @@ const TestSmetaBirlashgan = lazy(() => import('./test02/TestSmetaBirlashgan'));
 const TestZayavka   = lazy(() => import('./test02/TestZayavka'));
 const TenderSahifa  = lazy(() => import('./admin/tender/TenderSahifa'));
 const YukBirjasiSahifa = lazy(() => import('./admin/yuk-birjasi/YukBirjasiSahifa'));
+const TenderOchiq = lazy(() => import('./tender/TenderOchiq'));
+const TenderOchiqBoshqaruv = lazy(() => import('./admin/tender/TenderOchiqBoshqaruv'));
+const BozorOchiq = lazy(() => import('./bozor/BozorOchiq'));
+const BozorSorov = lazy(() => import('./admin/bozor/BozorSorov'));
+const BozorKabinet = lazy(() => import('./admin/bozor/BozorKabinet'));
+const BozorModeratsiya = lazy(() => import('./admin/bozor/BozorModeratsiya'));
+const YukChaqirish = lazy(() => import('./admin/yuk-tashish/YukChaqirish'));
+const HaydovchiSahifa = lazy(() => import('./admin/yuk-tashish/HaydovchiSahifa'));
+const YukOchiq = lazy(() => import('./admin/yuk-tashish/YukOchiq'));
 const TestTolov     = lazy(() => import('./test02/TestTolov'));
 const TestFaktura   = lazy(() => import('./test02/TestFaktura'));
 const TestHisobot   = lazy(() => import('./test02/TestHisobot'));
@@ -134,6 +143,12 @@ export default function App() {
         <Route path="/ulash/:kod" element={<UlashSahifa />} />
         {/* Telegram Mini App (@qur_uz_bot menyu tugmasi): imzolangan initData → oddiy sessiya → rol bosh sahifasi. */}
         <Route path="/tg" element={<Suspense fallback={<SahifaYuklanmoqda />}><TgKirish /></Suspense>} />
+        <Route path="/tender" element={<Suspense fallback={<SahifaYuklanmoqda />}><TenderOchiq /></Suspense>} />
+        <Route path="/tender/:lotId" element={<Suspense fallback={<SahifaYuklanmoqda />}><TenderOchiq /></Suspense>} />
+        <Route path="/bozor" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorOchiq /></Suspense>} />
+        <Route path="/bozor/e/:elonId" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorOchiq /></Suspense>} />
+        <Route path="/bozor/s/:sotuvchiId" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorOchiq /></Suspense>} />
+        <Route path="/yuk" element={<Suspense fallback={<SahifaYuklanmoqda />}><YukOchiq /></Suspense>} />
 
         {/* Admin shell and routes */}
         <Route path="/admin" element={
@@ -187,7 +202,14 @@ export default function App() {
             <Route path="hujjat-dizayn" element={<Suspense fallback={<SahifaYuklanmoqda />}><HujjatDizayni /></Suspense>} />
             <Route path="shartnoma-liniya" element={<Suspense fallback={<SahifaYuklanmoqda />}><ShartnomaLiniya /></Suspense>} />
             <Route path="qarzdorlik" element={<Suspense fallback={<SahifaYuklanmoqda />}><Qarzdorlik /></Suspense>} />
+            <Route path="bozor-sorov" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorSorov /></Suspense>} />
+            <Route path="bozor-kabinet" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorKabinet /></Suspense>} />
+            <Route path="bozor-moderatsiya" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorModeratsiya /></Suspense>} />
+            <Route path="tender-ochiq" element={<Suspense fallback={<SahifaYuklanmoqda />}><TenderOchiqBoshqaruv /></Suspense>} />
             <Route path="hr" element={<Suspense fallback={<SahifaYuklanmoqda />}><Hr /></Suspense>} />
+            <Route path="yuk-birjasi" element={<Suspense fallback={<SahifaYuklanmoqda />}><YukBirjasiSahifa /></Suspense>} />
+            <Route path="yuk-chaqirish" element={<Suspense fallback={<SahifaYuklanmoqda />}><YukChaqirish /></Suspense>} />
+            <Route path="haydovchi" element={<Suspense fallback={<SahifaYuklanmoqda />}><HaydovchiSahifa /></Suspense>} />
             <Route path="buxgalteriya" element={<Suspense fallback={<SahifaYuklanmoqda />}><Buxgalteriya /></Suspense>} />
             <Route path="nakrutka" element={<NakrutkaNative />} />
             <Route path="narx-manbalari" element={<Suspense fallback={<SahifaYuklanmoqda />}><NarxManbalari /></Suspense>} />
@@ -320,7 +342,6 @@ export default function App() {
           <Route path="logistika" element={<WrapperLogistika />} />
           <Route path="zayavka" element={<TestZayavka />} />
           <Route path="tender" element={<Suspense fallback={<SahifaYuklanmoqda />}><TenderSahifa /></Suspense>} />
-          <Route path="yuk-birjasi" element={<Suspense fallback={<SahifaYuklanmoqda />}><YukBirjasiSahifa /></Suspense>} />
           <Route path="erp" element={<TestErp />} />
           {/* `sozlamalar` (T1) allaqachon band — bu T2 sozlamalari. */}
 
