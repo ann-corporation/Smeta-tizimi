@@ -25,6 +25,7 @@ import { regexOqi, regexSaqla, regexTekshir } from '../../lib/loyiha-smeta/mosla
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { katKesimJamiBilan } from '../../lib/ustamali-summa';
 import { farqJami, farqJamiTarkibi, farqlarniHisobla, type FarqMiqdor, type FarqQator, type FarqTuri, type QarorTuri } from '../../lib/loyiha-smeta/farq';
+import { uskunaGuruhlari } from '../../lib/loyiha-smeta/uskuna-guruh';
 import { belgisizVaraqlar, type VaraqElement } from '../../lib/loyiha-smeta/topilmagan';
 import { revizyaFarqi } from '../../lib/loyiha-smeta/revizya';
 import { birlikkaQaytar } from '../../lib/loyiha-smeta/birlik';
@@ -94,6 +95,14 @@ export default function LoyihaSmetaFakt() {
     for (const x of royxat) if (!x.eskirgan && x.holat !== 'rad') g.set(x.varaq, [...(g.get(x.varaq) ?? []), { tur: x.tur, nom: x.nom, birlik: x.birlik, miqdor: x.miqdor }]);
     return smeta.length ? belgisizVaraqlar(g, smeta, smetaBelgilari) : [];
   }, [royxat, smeta, smetaBelgilari]);
+  const uskunaG = useMemo(() => uskunaGuruhlari(royxat.filter((x) => x.tur === 'uskuna' && !x.eskirgan && x.holat !== 'rad' && x.boglar.length === 0).map((x) => ({ id: x.id, nom: x.nom, birlik: x.birlik, miqdor: x.miqdor })), smeta), [royxat, smeta]);
+  async function uskunaTasdiq(g: { qatorId: number; elementlar: { id: number }[]; sabab: string[] }) {
+    if (!kompaniyaId) return;
+    const r = await loyihaTasdiq(kompaniyaId, g.elementlar.map((e) => e.id), 'tasdiqlangan');
+    if (!r.ok) { toast(r.error, 'danger'); return; }
+    for (const e of g.elementlar) await loyihaBoglash(kompaniyaId, { miqdorId: e.id, qatorId: g.qatorId, sabab: `uskunalar yig'ma qatorga`, harakat: 'qosh' });
+    toast(t('Tasdiqlandi: {n} ta', { n: g.elementlar.length }), 'ok'); await yukla();
+  }
   const bolimlar = useMemo(() => smeta.filter((q) => q.tur === 'rz'), [smeta]);
   const [qoldaTanlov, setQoldaTanlov] = useState<Record<string, number>>({});
   async function xaritaBelgila(varaq: string, bolimId: number, manba: 'qolda' | 'taklif', sabab?: string, harakat: 'qosh' | 'ochir' = 'qosh') {
@@ -312,6 +321,19 @@ export default function LoyihaSmetaFakt() {
           </Bolim>
         )}
 
+        {uskunaG.length > 0 && (
+          <Bolim sarlavha="Uskunalar: loyiha ro‘yxati ↔ smeta yig‘ma qatori">
+            <p className="mb-2 text-xs">{t('Uskunalar ro‘yxati smetaning yig‘ma qatoriga 1:1 mos kelmaydi: guruhlab ko‘rsatiladi, siz tasdiqlaysiz; jami smeta qatori bilan solishtiriladi.')}</p>
+            {uskunaG.map((g) => (
+              <div key={g.qatorId} className="mb-2 grid gap-2 rounded border p-2 text-[13px] sm:grid-cols-2">
+                <div><b>{t('Loyiha')}</b>{g.elementlar.map((e) => <div key={e.id} className="text-xs">{e.nom.slice(0, 60)} · {fmt(e.miqdor, 3)} {e.birlik}</div>)}
+                  <div className="text-xs">{t('Jami')}: {fmt(g.loyihaJami, 3)}</div></div>
+                <div><b>{t('Smeta yig‘ma qatori')}</b><div className="text-xs">{g.qatorNom.slice(0, 80)} · {fmt(g.qatorHajm, 3)} {g.qatorBirlik}</div>
+                  <div className="text-xs">{t('Farq')}: {fmt(g.farq, 3)}</div>
+                  <button type="button" className={tugma + ' mt-1'} onClick={() => void uskunaTasdiq(g)}>{t('Tasdiqlash ({n} ta)', { n: g.elementlar.length })}</button></div>
+              </div>))}
+          </Bolim>
+        )}
         {belgisiz.length > 0 && (
           <Bolim sarlavha="Belgisi smetada topilmagan varaqlar">
             <p className="mb-2 text-xs">{t('Varaq belgisi hech bir smeta bo‘limi nomida yo‘q. Mazmun bo‘yicha (beton/armatura miqdori) mos bo‘lim taklif qilinadi; tasdiqlasangiz xarita eslab qolinadi. Asl smeta o‘zgarmaydi.')}</p>

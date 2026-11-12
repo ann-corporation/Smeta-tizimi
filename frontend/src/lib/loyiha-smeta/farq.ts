@@ -48,8 +48,11 @@ export function farqlarniHisobla(miqdorlar: FarqMiqdor[], smeta: SmetaQator[], b
   const S = { ...FARQ_STANDART, ...sozlama };
   const out: FarqQator[] = [];
   const asos = (m: FarqMiqdor) => ({ varaq: m.varaq, miqdorId: m.miqdor_id, qaror: m.qaror ? m.qaror.tur : null, qarorEskirgan: m.qaror?.eskirgan ?? false });
+  const uskunaGuruh = new Map<number, FarqMiqdor[]>();
   for (const m of miqdorlar) {
     const a = asos(m);
+    // Uskuna: ro'yxat smeta yig'ma qatoriga 1:1 mos emas — bir qatorga bog'langanlar JAMI bilan solishtiriladi (pastda)
+    if (m.tur === 'uskuna' && m.boglar.length === 1) { uskunaGuruh.set(m.boglar[0].qator_id, [...(uskunaGuruh.get(m.boglar[0].qator_id) ?? []), m]); continue; }
     if (m.boglar.length === 0) {
       const narx = S.taxminiyNarx ? S.taxminiyNarx(m.miqdor_id) : null;
       const p = pul(m.miqdor, narx, S.qqsFoiz);
@@ -82,6 +85,16 @@ export function farqlarniHisobla(miqdorlar: FarqMiqdor[], smeta: SmetaQator[], b
       const p = pul(f, asosiy.narx, S.qqsFoiz);
       out.push({ tur: 'fakt_oshgan', ...baza, farq: f, pulQQSsiz: p.s, pulQQSbilan: p.b, narxsiz: p.s == null, izoh: [] });
     }
+  }
+  for (const [qatorId, g] of uskunaGuruh) {
+    const bog = g[0].boglar[0]; const a = asos(g[0]);
+    const jamiNorm = g.every((x) => x.miqdor_norm != null) ? g.reduce((t, x) => t + (x.miqdor_norm as number), 0) : null;
+    if (jamiNorm == null || bog.hajm_norm == null) continue;
+    const d = jamiNorm - bog.hajm_norm;
+    if (Math.abs(d) / Math.max(Math.abs(bog.hajm_norm), 1e-9) <= S.tol) continue;
+    const f = birlikkaQaytar(d, bog.birlik); const p = pul(f, bog.narx, S.qqsFoiz);
+    out.push({ tur: 'hajm_farqi', ...a, qatorId, nom: bog.nom, birlik: bog.birlik ?? g[0].birlik, loyiha: birlikkaQaytar(jamiNorm, bog.birlik), smeta: birlikkaQaytar(bog.hajm_norm, bog.birlik), fakt: null, farq: f,
+      pulQQSsiz: p.s, pulQQSbilan: p.b, narxsiz: p.s == null, izoh: [`uskuna_guruh:${g.length}`] });
   }
   // Smetada bor — loyihada yo'q: faqat loyihasi (tasdiqlangan) yuklangan varaqlardagi bo'limlarning bog'lanmagan ish qatorlari.
   const yuklanganVaraq = new Set(miqdorlar.map((m) => m.varaq.toUpperCase()));
