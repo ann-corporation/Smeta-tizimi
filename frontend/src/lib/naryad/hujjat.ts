@@ -11,18 +11,20 @@ import { HOLAT_NOMI, naryadJami, satrTahlil, type Naryad } from './index';
 const USTUNLAR: RasmiyUstun[] = [
   { sarlavha: '№ п/п', kenglik: 6, tur: 'tartib' },
   { sarlavha: 'Шифр, код', kenglik: 14, tur: 'kod' },
-  { sarlavha: 'Наименование работ (по смете)', kenglik: 58, tur: 'matn' },
-  { sarlavha: 'Кратко (для бригады)', kenglik: 28, tur: 'matn' },
-  { sarlavha: 'Ед. изм.', kenglik: 9, tur: 'birlik' },
-  { sarlavha: 'Объём работ', kenglik: 12, tur: 'hajm' },
-  { sarlavha: 'Норма труда, чел-ч', kenglik: 13, tur: 'hajm' },
+  { sarlavha: 'Наименование работ (по смете)', kenglik: 52, tur: 'matn' },
+  { sarlavha: 'Кратко (для бригады)', kenglik: 26, tur: 'matn' },
+  { sarlavha: 'Ед. изм. бригады', kenglik: 10, tur: 'birlik' },
+  { sarlavha: 'Объём (в ед. бригады)', kenglik: 13, tur: 'hajm' },
   { sarlavha: 'Расценка бригады за ед., сум', kenglik: 16, tur: 'narx' },
   { sarlavha: 'Сумма к оплате, сум', kenglik: 18, tur: 'pul' },
-  { sarlavha: 'По смете: труд, сум', kenglik: 18, tur: 'pul' },
+  { sarlavha: 'Ед. изм. по смете', kenglik: 10, tur: 'birlik' },
+  { sarlavha: 'Объём по смете', kenglik: 13, tur: 'hajm' },
+  { sarlavha: 'Норма труда, чел-ч', kenglik: 12, tur: 'hajm' },
+  { sarlavha: 'По смете (труд / материал / механизмы), сум', kenglik: 19, tur: 'pul' },
   { sarlavha: 'Экономия (+) / перерасход (−), сум', kenglik: 19, tur: 'pul' },
 ];
-// Ustun harflari: A№ B kod C nom D qisqa E birlik F hajm G chel-soat H narx I summa J smeta K farq
-
+// Ustun harflari: A№ B kod C nom D qisqa E usta birligi F usta hajmi G usta narxi H summa | I smeta birligi J smeta hajmi | K chel-soat L smeta puli M farq
+// Brigada imzolaydigan qism — o'z birligi, hajmi va narxi (E–H); smeta birligi/hajmi (I–J) — ikkinchi darajali.
 export type NaryadHujjatOpsiya = {
   obyektNom: string;
   pudratchi?: string | null;
@@ -55,19 +57,23 @@ export function naryadHujjat(n: Naryad, o: NaryadHujjatOpsiya): { bytes: Uint8Ar
   const n0 = (x: number | null | undefined): Qiymat => (x == null ? null : x);
   n.qatorlar.forEach((q, i) => {
     const s = satrTahlil(q, rejim);
+    // Usta o'z birligida: hajm = smeta hajmi / koef; narx = usta_narx_birlik. Usta birligi bo'lmasa — smeta birligi va narxi.
+    const ustaBirlikda = q.usta_birlik != null && q.koef != null && q.koef > 0;
+    const ustaHajm = ustaBirlikda ? s.hajm / (q.koef as number) : s.hajm;
+    const ustaNarx = ustaBirlikda ? q.usta_narx_birlik : q.usta_narx;
+    const katBelgi = q.kat === 'ЧЕЛ' ? '' : ` (${q.kat})`;
     v.qator('ish', (rr) => [
-      i + 1, q.kod, q.nom, odamNomi(q, til), q.birlik,
-      s.hajm, n0(s.chelSoat),
-      n0(q.usta_narx),
-      s.summa == null ? { f: `IF(H${rr}="","",ROUND(F${rr}*H${rr},2))`, v: '' } : { f: `IF(H${rr}="","",ROUND(F${rr}*H${rr},2))`, v: s.summa },
-      n0(s.smetaMehnat),
-      { f: `IF(OR(I${rr}="",J${rr}=""),"",ROUND(J${rr}-I${rr},2))`, v: s.foyda ?? '' },
+      i + 1, q.kod, q.nom, odamNomi(q, til) + katBelgi, ustaBirlikda ? q.usta_birlik : q.birlik,
+      Number(ustaHajm.toFixed(6)), n0(ustaNarx),
+      s.summa == null ? { f: `IF(G${rr}="","",ROUND(F${rr}*G${rr},2))`, v: '' } : { f: `IF(G${rr}="","",ROUND(F${rr}*G${rr},2))`, v: s.summa },
+      q.birlik, s.hajm, n0(s.chelSoat), n0(s.smetaMehnat),
+      { f: `IF(OR(H${rr}="",L${rr}=""),"",ROUND(L${rr}-H${rr},2))`, v: s.foyda ?? '' },
     ], { daraja: 1 });
   });
   const oxir = v.r - 1;
   const j = naryadJami(n.qatorlar, rejim);
   const yig = (harf: string, qiymat: number | null): Qiymat => (n.qatorlar.length ? { f: `SUM(${harf}${bosh}:${harf}${oxir})`, v: qiymat ?? '' } : 0);
-  v.qator('jami', () => [null, null, 'ИТОГО', null, null, null, yig('G', j.chelSoat), null, yig('I', j.ustaSumma), yig('J', j.smetaMehnat), j.foyda == null ? '' : j.foyda]);
+  v.qator('jami', () => [null, null, 'ИТОГО', null, null, null, null, yig('H', j.ustaSumma), null, null, yig('K', j.chelSoat), yig('L', j.smetaMehnat), j.foyda == null ? '' : j.foyda]);
   if (j.narxsizSoni) v.izoh(`Расценка не согласована по ${j.narxsizSoni} поз. — сумма по ним неизвестна (не нуль) и в итог не включена.`);
   if (j.smetasizSoni) v.izoh(`По ${j.smetasizSoni} поз. трудозатраты по смете не определены — в сравнение не включены.`);
   v.izoh(`Оплата — по принятому объёму (${rejim === 'amalda' ? 'факт' : 'план'}); итоговая разница = смета (труд) − оплата бригаде, только по позициям с известными обеими суммами.`);

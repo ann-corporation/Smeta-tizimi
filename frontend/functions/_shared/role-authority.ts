@@ -1,12 +1,15 @@
 import { SESSIYA_MUDDAT_MS, type Sess } from './auth';
 import { supabaseBaseUrl } from './supabase-url';
 
+/** Ruxsat talabi: |b — bittasi yetarli (masalan naryad «bajarildi»: usta self.work.write YOKI prorab smeta.write). Oddiy nom — aynan shu. */
+export const ruxsatBormi = (list: readonly string[] | undefined, permission: string): boolean => !!list && permission.split('|').some((p) => list.includes(p));
+
 const WRITERS = new Set(['superadmin', 'admin', 'boss', 'pto', 'prorab', 'bugalter']);
 /** All resolved target companies must authorize the write, even without a body company_id. */
 export function mayWriteCompanies(sess: Sess, companyIds: readonly number[], permission?: string): boolean {
   if (!sess.kompaniyalar) return false;
   if (!companyIds.length) return sess.kompaniyalar.some(a => WRITERS.has(a.rol));
-  return companyIds.every(id => sess.kompaniyalar!.some(a => a.kompaniya_id === id && (permission && sess.permissionsByCompany ? sess.permissionsByCompany[id]?.includes(permission) : WRITERS.has(a.rol))));
+  return companyIds.every(id => sess.kompaniyalar!.some(a => a.kompaniya_id === id && (permission && sess.permissionsByCompany ? ruxsatBormi(sess.permissionsByCompany[id], permission) : WRITERS.has(a.rol))));
 }
 
 /** Egasi 2026-10-21: «PTO bo'lib kirgan bo'lsam tizim eslab qolishi yetarli — Jarvis'ga har so'rovda qayta tekshirish
