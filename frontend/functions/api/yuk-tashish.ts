@@ -8,12 +8,32 @@ import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { quraRpc, xatoHolati } from '../_shared/yuk-tashish';
 
-type Env = { SESSIYA_KALIT: string; SUPABASE_URL: string; SUPABASE_KEY: string };
+type Env = { SESSIYA_KALIT: string; SUPABASE_URL: string; SUPABASE_KEY: string; R2_CANONICAL?: R2Bucket };
 const NO_STORE = { 'Cache-Control': 'no-store' };
 const json = (b: unknown, status = 200) => Response.json(b, { status, headers: NO_STORE });
 
 const oxirgiJoy = new Map<number, number>();
 const JOY_ORALIQ_MS = 5_000;
+
+async function rpcChaqir(env: Env, nom: string, body: unknown): Promise<Record<string, unknown> | null> {
+  try {
+    const r = await fetch(supabaseBaseUrl(env.SUPABASE_URL) + '/rest/v1/rpc/' + nom, { method: 'POST', headers: { apikey: env.SUPABASE_KEY, Authorization: 'Bearer ' + env.SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    return r.ok ? await r.json() as Record<string, unknown> : null;
+  } catch { return null; }
+}
+
+/** Yetkazilgach iz R2 ga (gzip JSON) ko'chiriladi, Postgresda faqat masofa/davomiylik qoladi. Xato bo'lsa jim: keyingi iz_arxivla amali qayta uradi. */
+export async function izniArxivla(env: Env, actorId: number, bronId: number): Promise<boolean> {
+  if (!env.R2_CANONICAL) return false;
+  const ol = await rpcChaqir(env, 't2_yb_p2_iz_ol_v1', { p_actor_id: actorId, p_bron_id: bronId });
+  const iz = ol?.iz;
+  if (!ol?.ok || !Array.isArray(iz) || iz.length === 0) return false;
+  const gz = new Response(new Blob([JSON.stringify(iz)]).stream().pipeThrough(new CompressionStream('gzip')));
+  const kalit = 'yb/iz/' + bronId + '.json.gz';
+  await env.R2_CANONICAL.put(kalit, await gz.arrayBuffer(), { httpMetadata: { contentType: 'application/gzip' } });
+  const a = await rpcChaqir(env, 't2_yb_p2_iz_arxivla_v1', { p_actor_id: actorId, p_bron_id: bronId, p_r2_kalit: kalit });
+  return !!a?.ok;
+}
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const sess = await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
@@ -42,6 +62,11 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     }
     const j = await r.json() as Record<string, unknown> | null;
     if (!j || typeof j !== 'object') return json({ ok: false, code: 'SERVER_XATO' }, 500);
+    const dat = (so.data ?? {}) as Record<string, unknown>;
+    if ((so.amal === 'qadam' && dat.qadam === 'yetkazdi' && j.ok === true) || so.amal === 'iz_arxivla') {
+      const bid = Number(dat.bron_id);
+      if (Number.isSafeInteger(bid) && bid > 0) ctx.waitUntil(izniArxivla(ctx.env, actorId, bid));
+    }
     return json({ ok: true, natija: j });
   } catch { return json({ ok: false, code: 'SERVER_XATO' }, 500); }
 };

@@ -141,6 +141,8 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       't2_mindmap_masul_v1',
                       /* 2026-10-27: moliyaviy tahlil — tizimda yo'q ko'rsatkichni qo'lda kiritish (financial.write). */
                       't2_moliya_qolda_yoz_v1',
+                      /* 2026-11-13: Solishtiruv - tushuntirish va yangilash (financial.write, RPC ichida tekshiriladi). */
+                      't2_solishtiruv_tushuntir_v1', 't2_solishtiruv_yangila_v1',
                       /* 2026-11-03 (L0): qarzdorlik — import va qo'lda saqlash (financial.write, RPC ichida tekshiriladi). */
                       't2_qarzdorlik_import_v1', 't2_qarzdorlik_saqla_v1',
                       /* L0 #229: shartnomaning oylik hujjat paketi — oldindan nomlangan yozuvchi RPC. */

@@ -51,6 +51,8 @@ SMETA_MCP_TIMEOUT_MS = "25000"
 # Snapshot sovutish: N kundan eski (har obyektning so'nggi snapshotidan tashqari), partiya chegarasi.
 SNAPSHOT_SOVUT_KUN = "2"
 SNAPSHOT_SOVUT_LIMIT = "200"
+# SNAPSHOT_SOVUT_SONGGI: "auto" (sukut; baza >= 450 MB bo'lganda har obyektning so'nggi snapshoti ham sovutiladi), "1" doim, "0" hech qachon.
+SNAPSHOT_SOVUT_SONGGI = "auto"
 # Barqaror ommaviy URL (OAuth resource = <URL>/mcp). workers.dev yoki custom domen — deploy oldidan egasi o'rnatadi.
 # Lokal `wrangler dev`: .dev.vars faylida MCP_PUBLIC_URL=http://localhost:8787 (repoga kirmaydi).
 MCP_PUBLIC_URL = "https://smeta-mcp.REPLACE_WITH_SUBDOMAIN.workers.dev"

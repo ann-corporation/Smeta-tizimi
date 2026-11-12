@@ -18,6 +18,8 @@ import { useKompaniya } from '../../kontekst/KompaniyaKontekst';
 import { lugatOrnat } from '../../../lib/qurilish-lugat';
 import { sbArxivla } from '../../../api/t2-arxiv';
 import { daraxtVaHolatOl } from '../../../lib/oylik-hujjat/ostatka-slichitelniy';
+import { loyihaFarqMalumotOl } from '../../../api/t2-loyiha-smeta';
+import type { LoyihaFarqMalumot } from '../../../lib/loyiha-smeta/jarvis';
 import { amalDelta, buyruqMalumotQur, buyruqVositalar, type BuyruqMalumot, type BuyruqYoz, type OchiqSahifa, type YozNatija } from '../../../lib/ai-yordamchi/buyruq-vositalar';
 import type { SahifaAmal } from '../../../lib/ai-yordamchi/protokol';
 import type { SahifaVositalar } from '../../../lib/ai-yordamchi/sikl';
@@ -106,9 +108,17 @@ export function useObyektMotor({ kompaniyaId, obyektId, obyektNomi, faol, sahifa
     return () => { tirik = false; };
   }, [yoqilgan, ustaRejim, obyektId, kompaniyaId, versiya]);
 
+  const [loyihaFarq, setLoyihaFarq] = useState<LoyihaFarqMalumot | null>(null);
+  useEffect(() => {
+    if (!yoqilgan || obyektId == null || kompaniyaId == null) return undefined;
+    let tirik = true;
+    void loyihaFarqMalumotOl(kompaniyaId, obyektId).then((r) => { if (tirik) setLoyihaFarq(r); }).catch(() => { if (tirik) setLoyihaFarq(null); });
+    return () => { tirik = false; };
+  }, [yoqilgan, obyektId, kompaniyaId, versiya]);
+
   const m: BuyruqMalumot | null = useMemo(
-    () => (data && data.obyektId === obyektId ? buyruqMalumotQur(data.rows, data.states, { obyektNomi, sahifalar, ustamali: (s) => ustamaliRef.current(s), naryadlar, ustaBugun }) : null),
-    [data, obyektId, obyektNomi, sahifalar, naryadlar, ustaBugun]);
+    () => (data && data.obyektId === obyektId ? buyruqMalumotQur(data.rows, data.states, { obyektNomi, sahifalar, loyihaFarq, ustamali: (s) => ustamaliRef.current(s), naryadlar, ustaBugun }) : null),
+    [data, obyektId, obyektNomi, sahifalar, naryadlar, ustaBugun, loyihaFarq]);
   const mRef = useRef<BuyruqMalumot | null>(m); mRef.current = m;
   const bos = useMemo(() => buyruqMalumotQur([], []), []);
   const yangila = useCallback(() => setVersiya((v) => v + 1), []);
