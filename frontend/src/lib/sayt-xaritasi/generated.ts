@@ -83,6 +83,8 @@ export const GENERATED_SITE_MAP = {
   "appRouteSegments": [
     "/",
     "/qoshil/:kod",
+    "/taklif",
+    "/taklif/:token",
     "/ulash/:kod",
     "/tg",
     "/tender",
