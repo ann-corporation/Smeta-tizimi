@@ -32,7 +32,7 @@ const ROL_BOSH_SAHIFA: Readonly<Record<string, string>> = {
   taminotchi: '/admin/logistika',
   mexanik: '/admin/erp',
   kadr: '/admin/erp',
-  inspektor: '/admin/aosr',
+  inspektor: '/admin/nazorat',
   loyihachi: '/admin/loyihachi',
 };
 

@@ -73,6 +73,9 @@ const ObyektPortali = lazy(() => import('./admin/zakazchik/ObyektPortali'));
 const TomonlarAloqa = lazy(() => import('./admin/zakazchik/TomonlarAloqa'));
 const TaqdimlarInbox = lazy(() => import('./admin/zakazchik/TaqdimlarInbox'));
 const Murojaatlar = lazy(() => import('./admin/zakazchik/Murojaatlar'));
+const NazoratUy = lazy(() => import('./admin/nazorat/NazoratUy'));
+const TekshiruvForma = lazy(() => import('./admin/nazorat/TekshiruvForma'));
+const TekshiruvJurnal = lazy(() => import('./admin/nazorat/TekshiruvJurnal'));
 const LabKabinet = lazy(() => import('./admin/laboratoriya/LabKabinet'));
 const ChizmaReestri = lazy(() => import('./admin/loyihachi/ChizmaReestri'));
 const LoyihachiBugun = lazy(() => import('./admin/loyihachi/LoyihachiBugun'));
@@ -187,6 +190,9 @@ export default function App() {
             <Route path="kontragentlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><Kontragentlar /></Suspense>} />
             <Route path="aloqalar" element={<Navigate to="/admin/kontragentlar?tab=aloqa" replace />} />            <Route path="taqdimlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><TaqdimlarInbox /></Suspense>} />
             <Route path="murojaatlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><Murojaatlar /></Suspense>} />
+          <Route path="nazorat" element={<Suspense fallback={<SahifaYuklanmoqda />}><NazoratUy /></Suspense>} />
+          <Route path="nazorat/tekshiruv" element={<Suspense fallback={<SahifaYuklanmoqda />}><TekshiruvForma /></Suspense>} />
+          <Route path="nazorat/jurnal" element={<Suspense fallback={<SahifaYuklanmoqda />}><TekshiruvJurnal /></Suspense>} />
             <Route path="laboratoriya" element={<Suspense fallback={<SahifaYuklanmoqda />}><LabKabinet /></Suspense>} />
             <Route path="hujjat-aylanish" element={<Suspense fallback={<SahifaYuklanmoqda />}><HujjatAylanish /></Suspense>} />
             <Route path="chizmalar" element={<Suspense fallback={<SahifaYuklanmoqda />}><ChizmaReestri /></Suspense>} />
