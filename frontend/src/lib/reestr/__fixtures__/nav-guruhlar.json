@@ -218,6 +218,16 @@
               "fakt.read+self.work.write"
             ],
             "scope": "OBJECT_SCOPED"
+          },
+          {
+            "yol": "/admin/foto",
+            "ilova": "ff",
+            "nom": "Foto-dalil",
+            "ruxsat": [
+              "control.company.read",
+              "fakt.write",
+              "fakt.read+self.work.write"
+            ]
           }
         ]
       },

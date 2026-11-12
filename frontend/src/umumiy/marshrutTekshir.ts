@@ -41,6 +41,8 @@ export const ADMIN_MARSHRUTLARI = [
   'hr',
   /* 2026-11-05: ish kartasi + narx tekshiruvi. */
   'narx-tekshiruv',
+  /* 2026-11-12: foto-dalil (P2). */
+  'foto',
   /* 2026-11-12: Texnik nazorat (texnadzor). */
   'nazorat', 'nazorat/tekshiruv', 'nazorat/jurnal',
   /* 2026-11-11: loyihachi / mualliflik nazorati (chizma reyestri + rol uyi «Bugun»). */
