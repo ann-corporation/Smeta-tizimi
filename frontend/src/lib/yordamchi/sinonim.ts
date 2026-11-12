@@ -35,6 +35,7 @@ export const SAHIFA_SINONIM: Readonly<Record<string, Sinonim>> = {
   '/admin/qarzdorlik': { uz: ['qarzdorlik', 'qarz', 'qarzlar'], ru: ['задолженность', 'долги', 'долг'], en: ['debts', 'debt', 'receivables'] },
   '/admin/buxgalteriya': { uz: ['buxgalteriya', 'provodka'], ru: ['бухгалтерия', 'проводки'], en: ['accounting', 'ledger'] },
   '/admin/kontragentlar': { uz: ['kontragentlar', 'kontragent', 'crm', 'edo', 'aloqalar', 'tomonlar aloqasi', 'hamkorlar'], ru: ['контрагенты', 'контрагент', 'связи сторон', 'партнёры'], en: ['counterparties', 'crm', 'party contacts', 'partners'] },
+  '/admin/bugun': { uz: ['bugun', 'usta', 'telefondan fakt', 'bugungi ishlar'], ru: ['сегодня', 'прораб', 'факт с телефона', 'работы на сегодня'], en: ['today', 'foreman', 'fact from phone', 'todays work'] },
   '/admin/yetkazuvchi': { uz: ['yetkazuvchi bugun', 'yetkazuvchi', 'postavshik', 'kelgan sorovlar'], ru: ['поставщик сегодня', 'поставщик', 'входящие запросы'], en: ['supplier today', 'supplier', 'incoming requests'] },
   '/admin/documents': { uz: ['hujjatlar', 'hujjat'], ru: ['документы', 'документ'], en: ['documents', 'document'] },
   '/admin/hujjat-nazorat': { uz: ['hujjat nazorati'], ru: ['контроль документов'], en: ['document control'] },
