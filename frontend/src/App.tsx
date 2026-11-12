@@ -20,6 +20,7 @@ const TgKirish = lazy(() => import('./telegram/TgKirish'));
 // (`SahifaChegarasi`), shuning uchun kirish sahifasi bu og'ir sahifalarni yuklamaydi.
 const HolatNative = lazy(() => import('./admin/sahifalar/HolatNative'));
 const FaktNative = lazy(() => import('./admin/sahifalar/FaktNative'));
+const UstaBugun = lazy(() => import('./admin/sahifalar/UstaBugun'));
 const FaylBoglash = lazy(() => import('./admin/sahifalar/FaylBoglash'));
 /* TIZIM_02 — Supabase sinov muhiti. Tizim_01 ga TEGMAYDI. */
 const TestShell     = lazy(() => import('./test02/TestShell'));
@@ -104,7 +105,6 @@ function AiHelper() { return <Suspense fallback={null}><AiHelperLazy /></Suspens
 const Umumiy = lazy(() => import('./boss/sahifalar/Umumiy'));
 
 // ERP pages
-const ErpKadrlar = lazy(() => import('./erp/sahifalar/ErpKadrlar'));
 const ErpTexnika = lazy(() => import('./erp/sahifalar/ErpTexnika'));
 const ErpTaminot = lazy(() => import('./erp/sahifalar/ErpTaminot'));
 const ErpSifat = lazy(() => import('./erp/sahifalar/ErpSifat'));
@@ -153,6 +153,7 @@ export default function App() {
           <Route path="holat" element={<HolatNative />} />
           <Route path="holat/:id" element={<HolatNative />} />
           <Route path="fakt" element={<FaktNative />} />
+        <Route path="bugun" element={<Suspense fallback={<SahifaYuklanmoqda />}><UstaBugun /></Suspense>} />
           {/* 2026-10-25 (tizim xaritasi P1): F2 bo'limi — sidebarda bitta «F2» bandi, tepada tablar.
               Yo'lsiz layout: sahifalar va ularning URL'lari o'zgarmagan. */}
           <Route element={<BolimTablari />}>
@@ -285,7 +286,7 @@ export default function App() {
             <Route path="aosr" element={<Navigate to="/admin/aosr" replace />} />
           </Route>
           {/* ERP routes for Admin */}
-          <Route path="kadrlar" element={<ErpKadrlar />} />
+          <Route path="kadrlar" element={<Navigate to="/admin/hr" replace />} />
           <Route path="texnika" element={<ErpTexnika />} />
           <Route path="taminot" element={<ErpTaminot />} />
           <Route path="sifat" element={<ErpSifat />} />
@@ -337,7 +338,7 @@ export default function App() {
           <Route path="holat/:id" element={<BossHolatYonaltir />} />
           <Route path="fakt" element={<Navigate to="/admin/fakt" replace />} />
           {/* ERP routes for Boss */}
-          <Route path="kadrlar" element={<Navigate to="/admin/kadrlar" replace />} />
+          <Route path="kadrlar" element={<Navigate to="/admin/hr" replace />} />
           <Route path="texnika" element={<Navigate to="/admin/texnika" replace />} />
           <Route path="taminot" element={<Navigate to="/admin/taminot" replace />} />
           <Route path="sifat" element={<Navigate to="/admin/sifat" replace />} />
