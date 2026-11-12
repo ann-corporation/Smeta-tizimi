@@ -1,4 +1,13 @@
 {
+  "Vedomost tayyor": { "ru": "Ведомость готова", "en": "Statement ready" },
+  "Excel fayli tuzilmadi. Qayta urinib ko‘ring.": { "ru": "Excel-файл не сформирован. Повторите попытку.", "en": "The Excel file could not be built. Please retry." },
+  "Solishtirma vedomosti (Excel)": { "ru": "Ведомость сопоставления (Excel)", "en": "Reconciliation statement (Excel)" },
+  "bet": { "ru": "стр.", "en": "page" },
+  "keshda (bepul)": { "ru": "в кэше (бесплатно)", "en": "cached (free)" },
+  "Narx noma‘lum — token narxlarini yuklab bo‘lmadi, ishga tushirib bo‘lmaydi": { "ru": "Цена неизвестна — не удалось загрузить тарифы токенов, запуск невозможен", "en": "Price unknown — token rates could not be loaded, cannot run" },
+  "Taxminiy narx: {n} token ({b} sahifa keshdan bepul)": { "ru": "Ориентировочная цена: {n} токенов ({b} стр. из кэша бесплатно)", "en": "Estimated price: {n} tokens ({b} pages free from cache)" },
+  "AI bilan o‘qish": { "ru": "Прочитать с помощью ИИ", "en": "Read with AI" },
+  "AI o‘qidi: {n} ta element (taklif, tasdiq kerak)": { "ru": "ИИ прочитал: {n} элементов (предложения, нужно подтверждение)", "en": "AI read {n} items (proposals, confirmation needed)" },
   "Loyiha va smeta": { "ru": "Проект и смета", "en": "Design and estimate" },
   "Loyiha ↔ Smeta ↔ Fakt": { "ru": "Проект ↔ Смета ↔ Факт", "en": "Design ↔ Estimate ↔ Actual" },
   "Chizma jadvallarini o‘qiydi, smeta qatorlariga moslaydi va loyiha ≠ smeta ≠ fakt farqlarini pul ta’siri bilan ko‘rsatadi. Asl smeta o‘zgarmaydi.": { "ru": "Читает таблицы чертежей, сопоставляет со строками сметы и показывает расхождения проект ≠ смета ≠ факт с денежным эффектом. Исходная смета не меняется.", "en": "Reads drawing tables, matches them to estimate rows and shows design ≠ estimate ≠ actual differences with money impact. The original estimate is never changed." },

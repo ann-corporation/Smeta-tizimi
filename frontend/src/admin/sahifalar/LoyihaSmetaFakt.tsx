@@ -13,13 +13,20 @@ import { sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt } from '../../api/
 import { sbT2QoshimchaIshYarat, sbT2ZamenaIshYarat } from '../../api/t2-additional-replacement';
 import { loyihaBoglash, loyihaFarqOl, loyihaQaror, loyihaRoyxatOl, loyihaSmetaOl, loyihaTasdiq, loyihaYoz, type MiqdorQatori } from '../../api/t2-loyiha-smeta';
 import { dublikatTanla, hujjatniTahlilQil, type SahifaNatija } from '../../lib/loyiha-smeta/tahlil';
-import { pdfdanMatn, manbaKorinishi } from '../../lib/loyiha-smeta/pdf-oqish';
+import { pdfdanMatn, manbaKorinishi, sha256Hex } from '../../lib/loyiha-smeta/pdf-oqish';
+import { keshdanOl, keshgaSaqla, manbaR2 } from '../../lib/loyiha-smeta/ekstraksiya-kesh';
+import type { MatnBo } from '../../lib/loyiha-smeta/jadval';
+import { aiElementlar, aiHududi, aiNarxi, aiOqi, hududKaliti, hududniRasmga, keshdaBor, keshgaYoz, keshKaliti } from '../../lib/loyiha-smeta/ai-oqish';
+import { tokenHolatOl, type TokenHolat } from '../../api/t2-token';
 import { bolimXaritasi, moslash, type MoslashSababi, type SmetaQator } from '../../lib/loyiha-smeta/moslash';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { katKesimJamiBilan } from '../../lib/ustamali-summa';
 import { farqJami, farqJamiTarkibi, farqlarniHisobla, type FarqMiqdor, type FarqQator, type FarqTuri, type QarorTuri } from '../../lib/loyiha-smeta/farq';
 import { revizyaFarqi } from '../../lib/loyiha-smeta/revizya';
 import { birlikkaQaytar } from '../../lib/loyiha-smeta/birlik';
+import { solishtirmaHujjatXlsx } from '../../lib/loyiha-smeta/solishtirma-export';
+import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { t } from '../../i18n/til';
 import { Bolim } from '../zakazchik/tomon-ui';
 import { inp, tugma, tugmaAsosiy } from '../zakazchik/tomon-yordam';
@@ -35,7 +42,7 @@ const SABAB_NOMI: Record<MoslashSababi, string> = {
 const QAROR_NOMI: Record<QarorTuri, string> = { boglandi: 'Bog‘langan', zamena: 'Zamena', qoshimcha: 'Qo‘shimcha ish', pereraschet: 'Pereraschet', etibor_yoq: 'E’tiborsiz' };
 const fmt = (n: number | null, d = 2) => (n == null ? '—' : new Intl.NumberFormat('ru-RU', { maximumFractionDigits: d }).format(n));
 
-type Yuklangan = { nom: string; buf: ArrayBuffer; sha: string; sahifalar: (SahifaNatija & { fayl: number })[] };
+type Yuklangan = { nom: string; buf: ArrayBuffer; sha: string; items: MatnBo[]; sahifalar: (SahifaNatija & { fayl: number })[] };
 
 export default function LoyihaSmetaFakt() {
   const { joriy } = useKompaniya();
@@ -97,9 +104,11 @@ export default function LoyihaSmetaFakt() {
       const out: Yuklangan[] = [];
       for (const f of Array.from(files)) {
         const buf = await f.arrayBuffer();
-        const pm = await pdfdanMatn(buf);
+        const sha = await sha256Hex(buf);
+        let items = await keshdanOl(kompaniyaId!, sha);   // R2 keshi: shu PDF qayta tahlil qilinmaydi
+        if (!items) { items = (await pdfdanMatn(buf)).items; void keshgaSaqla(kompaniyaId!, sha, items); }
         const idx = fayllar.length + out.length;
-        out.push({ nom: f.name, buf, sha: pm.sha256, sahifalar: hujjatniTahlilQil(pm.items).map((s) => ({ ...s, fayl: idx })) });
+        out.push({ nom: f.name, buf, sha, items, sahifalar: hujjatniTahlilQil(items).map((s) => ({ ...s, fayl: idx })) });
       }
       setFayllar((x) => [...x, ...out]);
     } catch (e) { toast(t('PDF o‘qilmadi') + ': ' + (e instanceof Error ? e.message : ''), 'danger'); } finally { setBand(false); }
@@ -107,6 +116,30 @@ export default function LoyihaSmetaFakt() {
   const hamma = useMemo(() => fayllar.flatMap((f) => f.sahifalar), [fayllar]);
   const { tanlangan, almashgan } = useMemo(() => dublikatTanla(hamma.filter((s) => s.elementlar.length > 0)), [hamma]);
   const aiKerak = hamma.filter((s) => s.aiTaklifi);
+  const [aiTanlangan, setAiTanlangan] = useState<Set<string>>(new Set());
+  const [tokenD, setTokenD] = useState<TokenHolat | null>(null);
+  useEffect(() => { if (kompaniyaId) void tokenHolatOl(kompaniyaId).then((r) => setTokenD(r.ok ? r.natija : null)); }, [kompaniyaId]);
+  const aiKalit = (s: SahifaNatija & { fayl: number }) => keshKaliti(fayllar[s.fayl]?.sha ?? '', s.sahifa, aiHududi(fayllar[s.fayl]?.items.filter((i) => i.sahifa === s.sahifa) ?? []));
+  const aiNarx = aiNarxi(aiKerak.filter((s) => aiTanlangan.has(`${s.fayl}:${s.sahifa}`)).map(aiKalit), tokenD?.narxlar, tokenD?.sozlama);
+  async function aiBilanOqi() {
+    if (!kompaniyaId) return;
+    setBand(true);
+    let n = 0;
+    for (const s of aiKerak.filter((x) => aiTanlangan.has(`${x.fayl}:${x.sahifa}`))) {
+      const f = fayllar[s.fayl]; const quti = aiHududi(f.items.filter((i) => i.sahifa === s.sahifa));
+      try {
+        const rasm = await hududniRasmga(f.buf, s.sahifa, quti);
+        const r = await aiOqi({ kompaniyaId, faylSha: f.sha, sahifa: s.sahifa, varaq: s.varaq, hudud: hududKaliti(quti), rasm });
+        if (!r.ok) { toast(`${s.varaq ?? s.sahifa}: ${r.xabar}`, 'danger'); continue; }
+        keshgaYoz(aiKalit(s));
+        const els = aiElementlar(r.items, s.sahifa, quti, { x0: 0, y0: 0, x1: 1e5, y1: 1e5 });
+        setFayllar((all) => all.map((y, i) => (i !== s.fayl ? y : { ...y, sahifalar: y.sahifalar.map((z) => (z.sahifa === s.sahifa ? { ...z, elementlar: els, profil: 'ai', aiTaklifi: false, sabab: null } : z)) })));
+        n += els.length;
+      } catch (e) { toast(`${s.sahifa}: ${e instanceof Error ? e.message : ''}`, 'danger'); }
+    }
+    setAiTanlangan(new Set()); setBand(false);
+    toast(t('AI o‘qidi: {n} ta element (taklif, tasdiq kerak)', { n }), n ? 'ok' : 'warn');
+  }
   const guruhlar = useMemo(() => {
     const m = new Map<string, (typeof tanlangan)>();
     for (const s of tanlangan) if (s.varaq) m.set(s.varaq, [...(m.get(s.varaq) ?? []), s]);
@@ -121,7 +154,7 @@ export default function LoyihaSmetaFakt() {
     let n = 0;
     for (const [varaq, sahifalar] of guruhlar) {
       const aniq = sahifalar.map((s) => s.revizya).filter((x): x is number => x != null);
-      const items = sahifalar.flatMap((s) => s.elementlar.map((e) => ({ nom: e.nom, belgi: e.belgi, birlik: e.birlik, miqdor: e.miqdor, tur: e.tur, ishonch: e.ishonch, manba_r2: 'sha256:' + fayllar[s.fayl].sha, manba_sahifa: e.sahifa, manba_ref: e.manbaRef })));
+      const items = sahifalar.flatMap((s) => s.elementlar.map((e) => ({ nom: e.nom, belgi: e.belgi, birlik: e.birlik, miqdor: e.miqdor, tur: e.tur, ishonch: e.ishonch, manba_r2: manbaR2(kompaniyaId, fayllar[s.fayl].sha), manba_sahifa: e.sahifa, manba_ref: e.manbaRef })));
       const r = await loyihaYoz(kompaniyaId, { obyektId, varaq, revizya: yangiRev(varaq, aniq.length ? Math.max(...aniq) : null), items });
       if (!r.ok) { toast(`${varaq}: ${r.error}`, 'danger'); continue; }
       n += items.length;
@@ -131,7 +164,7 @@ export default function LoyihaSmetaFakt() {
   }
 
   async function manbaKo(x: MiqdorQatori) {
-    const f = fayllar.find((y) => 'sha256:' + y.sha === x.manba_r2);
+    const f = fayllar.find((y) => manbaR2(kompaniyaId!, y.sha) === x.manba_r2);
     const el = f?.sahifalar.flatMap((s) => s.elementlar).find((e) => e.manbaRef === x.manba_ref);
     if (!f || !el) { toast(t('Manba fayli shu seansda yuklanmagan: PDF ni qayta tanlang'), 'warn'); return; }
     setManba(await manbaKorinishi(f.buf, el.sahifa, el.qutisi));
@@ -149,6 +182,17 @@ export default function LoyihaSmetaFakt() {
       if (q) await loyihaBoglash(kompaniyaId, { miqdorId: x.id, qatorId: q, ball: nomzodlar.get(x.id)?.nomzodlar.find((n) => n.qatorId === q)?.ball ?? null, sabab: 'qo‘lda tasdiq', harakat: 'qosh' });
     }
     setBelgilangan(new Set()); toast(t('Tasdiqlandi: {n} ta', { n: qatorlar.length }), 'ok'); await yukla();
+  }
+
+  async function vedomost() {
+    if (!kompaniyaId || obyektId === '') return;
+    setBand(true);
+    try {
+      const nom = obyektlar.find((o) => o.id === obyektId)?.nom ?? String(obyektId);
+      const x = solishtirmaHujjatXlsx(farqlar, jami, { obyektNomi: nom });
+      const r = await hujjatTokenBilan({ kompaniyaId, bytes: x.bytes, hujjat: 'LOYIHA_SMETA_FAKT', sabab: `Ведомость сопоставления проекта, сметы и факта · ${nom}`, obyekt: obyektId }, () => downloadBlob(x.bytes, x.faylNomi));
+      toast(r.ok ? (r.xabar || t('Vedomost tayyor')) : r.xabar, r.ok ? 'ok' : 'danger');
+    } catch { toast(t('Excel fayli tuzilmadi. Qayta urinib ko‘ring.'), 'danger'); } finally { setBand(false); }
   }
 
   /* ───── 3. Qarorlar ───── */
@@ -199,7 +243,15 @@ export default function LoyihaSmetaFakt() {
                 })}
                 {almashgan.length > 0 && <p className="text-xs">{t('Bir varaqning eski nusxalari tashlandi (yuqori revizya olindi)')}: {almashgan.length}</p>}
                 {aiKerak.length > 0 && (
-                  <p className="text-xs">{t('Qoida bilan o‘qilmagan sahifalar (AI bilan o‘qish yoki qo‘lda kerak)')}: {aiKerak.length}. {t('AI bilan o‘qish narxi ishga tushirishdan oldin ko‘rsatiladi va tokenlardan yechiladi; keshdagi sahifa takror yechilmaydi.')}</p>)}
+                  <div className="rounded border p-2 text-xs">
+                    <p>{t('Qoida bilan o‘qilmagan sahifalar (AI bilan o‘qish yoki qo‘lda kerak)')}: {aiKerak.length}. {t('AI bilan o‘qish narxi ishga tushirishdan oldin ko‘rsatiladi va tokenlardan yechiladi; keshdagi sahifa takror yechilmaydi.')}</p>
+                    <div className="my-1 flex flex-wrap gap-2">{aiKerak.map((s) => {
+                      const k = `${s.fayl}:${s.sahifa}`;
+                      return <label key={k}><input type="checkbox" checked={aiTanlangan.has(k)} onChange={(e) => setAiTanlangan((x) => { const n = new Set(x); if (e.target.checked) n.add(k); else n.delete(k); return n; })} /> {s.varaq ?? '?'} · {t('bet')} {s.sahifa}{keshdaBor(aiKalit(s)) ? ` · ${t('keshda (bepul)')}` : ''}</label>;
+                    })}</div>
+                    <p>{aiNarx.token == null ? t('Narx noma‘lum — token narxlarini yuklab bo‘lmadi, ishga tushirib bo‘lmaydi') : t('Taxminiy narx: {n} token ({b} sahifa keshdan bepul)', { n: aiNarx.token, b: aiNarx.bepul })}</p>
+                    <button type="button" className={tugma} disabled={band || aiNarx.token == null || aiTanlangan.size === 0} onClick={() => void aiBilanOqi()}>{t('AI bilan o‘qish')}</button>
+                  </div>)}
                 <button type="button" className={tugmaAsosiy} disabled={band || guruhlar.size === 0} onClick={() => void saqla()}>{t('Taklif sifatida saqlash')}</button>
               </div>
             )}
@@ -244,6 +296,7 @@ export default function LoyihaSmetaFakt() {
               <div className="text-xs">{t('Narxsiz (summa noma‘lum, «—»)')}: {jami.narxsizSoni} · {t('Tasdiqlanmagan takliflar pulga kirmaydi')}: {farqD.taklif_soni}</div>
             </div>
             <div className="mb-2 flex flex-wrap gap-2">
+              <button type="button" className={tugmaAsosiy} disabled={band || farqlar.length === 0} onClick={() => void vedomost()}>{t('Solishtirma vedomosti (Excel)')}</button>
               <select className={inp} aria-label={t('Farq turi')} value={filtrTur} onChange={(e) => setFiltrTur(e.target.value as FarqTuri | '')}><option value="">{t('Barcha turlar')}</option>{(Object.keys(FARQ_NOMI) as FarqTuri[]).map((k) => <option key={k} value={k}>{t(FARQ_NOMI[k])}</option>)}</select>
               <select className={inp} aria-label={t('Varaq')} value={filtrVaraq} onChange={(e) => setFiltrVaraq(e.target.value)}><option value="">{t('Barcha varaqlar')}</option>{varaqlar.map((v) => <option key={v} value={v}>{v}</option>)}</select>
               <label className="text-xs">{t('Kamida (so‘m, QQS bilan)')} <MoneyInput className={inp + ' w-32'} value={minPul} numericValue onValueChange={(r) => setMinPul(Number(r) || 0)} /></label>
