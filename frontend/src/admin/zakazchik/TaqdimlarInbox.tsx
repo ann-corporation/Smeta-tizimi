@@ -135,6 +135,9 @@ export default function TaqdimlarInbox() {
   const [royxat, setRoyxat] = useState<TaqdimQisqa[]>([]);
   const [tanlangan, setTanlangan] = useState<number | null>(() => { const v = Number(qidirParam.get('id')); return Number.isFinite(v) && v > 0 ? v : null; });
   const [xato, setXato] = useState('');
+  // Kabinetdagi «Qaror chiqarish» havolasi sahifa ichida ham hujjatni ochsin (?id= o'zgarsa).
+  const idParam = Number(qidirParam.get('id'));
+  useEffect(() => { if (Number.isFinite(idParam) && idParam > 0) setTanlangan(idParam); }, [idParam]);
 
   const yukla = useCallback(async () => {
     if (!kompaniyaId) return;
