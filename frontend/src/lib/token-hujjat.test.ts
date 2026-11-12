@@ -16,7 +16,7 @@ describe('token-hujjat — faqat tizim hisoblagan kataklar', () => {
     const q = f2Qatorlar(b, { ...bosKiritma(), hajm: AKT246_HAJM });
     const h = f2Hujjat(b, q, { obyektNom: 'X', davr: '2026-10', raqam: '1', nakrutka: NAMUNA_NAKRUTKA, ndsFoiz: 12 });
     // 43 qatorli real F2: 792 to'ldirilgan katakning 394 tasi matn, 185 tasi ko'chirilgan son — ular sanalmaydi.
-    expect(h.yacheykalar).toBe(213);
+    expect(h.yacheykalar).toBe(214); // 213 + «Округление» qatori formulasi (ведомость ресурсов sverkasi)
     expect(xlsxYacheykaSoni(h.bytes)).toBe(h.yacheykalar);
   });
 

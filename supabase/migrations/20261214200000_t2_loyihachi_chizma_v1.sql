@@ -588,3 +588,8 @@ begin
     execute format('grant execute on function public.%s to service_role', f);
   end loop;
 end $g$;
+
+-- Versiya qo'riqchisi (smeta-versiya/versiya-qoriqchi.test.ts): t2_qator ni faqat mavjudlik/nom ko'rsatish uchun o'qiydigan funksiyalar.
+comment on function public.t2_chizma_boglash_v1(bigint,bigint,bigint,integer,bigint,bigint,bigint,text) is 'versiya: texnik - smeta qatori faqat shu obyektga tegishliligi tekshiriladi (id bo''yicha), qator qiymati o''qilmaydi.';
+comment on function public.t2_chizma_taasir_v1(bigint,bigint,bigint) is 'versiya: texnik - bog''langan smeta qatorining kodi va nomi ko''rsatiladi (hajm/narx/summa o''qilmaydi).';
+comment on function public.t2_loyihachi_bugun_v1(bigint,bigint) is 'versiya: texnik - faqat chizma/murojaat/taklif sanoqlari; t2_qator qiymati o''qilmaydi.';

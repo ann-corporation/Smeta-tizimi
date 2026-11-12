@@ -351,14 +351,6 @@
     "ru": "Проектировщик: сегодня",
     "en": "Designer: today"
   },
-  "Yangi chizma revizyasi chiqarildi": {
-    "ru": "Выпущена новая ревизия чертежа",
-    "en": "A new drawing revision was issued"
-  },
-  "Chizma revizyasi bo‘yicha qaror keldi": {
-    "ru": "Получено решение по ревизии чертежа",
-    "en": "A decision on the drawing revision arrived"
-  },
   "Bu chizmaning chiqarilgan revizyasi yo‘q": {
     "ru": "У этого чертежа нет выпущенной ревизии",
     "en": "This drawing has no issued revision"
