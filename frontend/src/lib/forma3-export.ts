@@ -32,7 +32,7 @@ import { nomIzohBilan } from './smeta-model';
  * qiymat qatori sifatida hujjatga kiradi va nazoratga kiritiladi.
  */
 import type { NakopitelniyQator, SmetaNakrutka } from '../api/t2-nakopitelniy';
-import { narxsizSoni } from './narx-bildirishnoma';
+import { mashinistMehnati, narxsizSoni } from './narx-bildirishnoma';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import type { PtoF3LineageInput } from './pto-document-lineage';
 import { assertF3Lineage } from './pto-document-lineage';
@@ -261,7 +261,7 @@ export function f3Model(m: Forma3Manba, o: Pick<Forma3ExportOptions, 'davr' | 'o
       const qiymat: F3Qiymat = { obyekt_id: ob.obyekt_id, q, f2: { boshidan: 0, yildan: 0, davr: 0 }, f2H: { boshidan: 0, yildan: 0, davr: 0 }, smetnaya: chiq.has(q.qator_id) ? null : q.smeta_summa };
       if (ish) ish.bolalar.push(qiymat);
       else if (rz) rz.ishlar.push(qiymat); // ishsiz barg (struktura buzilgan) — to'g'ridan razdelga
-      if (q.smeta_summa == null && !chiq.has(q.qator_id)) diqqat.push({ nom: nomOf(q), sabab: 'нет стоимости по смете — сметная стоимость не определена' });
+      if (q.smeta_summa == null && !chiq.has(q.qator_id) && !mashinistMehnati(q)) diqqat.push({ nom: nomOf(q), sabab: 'нет стоимости по смете — сметная стоимость не определена' });
       if (!nakrutkaKat(q.kat)) diqqat.push({ nom: nomOf(q), sabab: 'не указан вид затрат (ЧЕЛ/МАШ/МАТ/ОБ/КАБ/М/К) — стоимость к оплате не определена' });
       if (chiq.has(q.qator_id)) diqqat.push({ nom: nomOf(q), sabab: 'исключено из остатка (изменение утверждено) — в сметной стоимости не учитывается' });
     }
@@ -275,7 +275,7 @@ export function f3Model(m: Forma3Manba, o: Pick<Forma3ExportOptions, 'davr' | 'o
       if (!('bolalar' in x) || x.bolalar.length > 0) continue;
       const qiymat: F3Qiymat = { obyekt_id: x.obyekt_id, q: x.q, f2: { boshidan: 0, yildan: 0, davr: 0 }, f2H: { boshidan: 0, yildan: 0, davr: 0 }, smetnaya: chiq.has(x.q.qator_id) ? null : x.q.smeta_summa };
       rz.ishlar[i] = qiymat;
-      if (x.q.smeta_summa == null && !chiq.has(x.q.qator_id)) diqqat.push({ nom: nomOf(x.q), sabab: 'нет стоимости по смете — сметная стоимость не определена' });
+      if (x.q.smeta_summa == null && !chiq.has(x.q.qator_id) && !mashinistMehnati(x.q)) diqqat.push({ nom: nomOf(x.q), sabab: 'нет стоимости по смете — сметная стоимость не определена' });
       if (!nakrutkaKat(x.q.kat)) diqqat.push({ nom: nomOf(x.q), sabab: 'не указан вид затрат (ЧЕЛ/МАШ/МАТ/ОБ/КАБ/М/К) — стоимость к оплате не определена' });
       if (chiq.has(x.q.qator_id)) diqqat.push({ nom: nomOf(x.q), sabab: 'исключено из остатка (изменение утверждено) — в сметной стоимости не учитывается' });
     }
@@ -934,9 +934,13 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
   }
   const diqqat = [...model.diqqat, ...davrDiqqat];
   const farqlar: string[] = [];
+  const yaxlitlash: string[] = [];
   for (const c of F3_PUL) {
     const ko = ustunlar.kOplate[c];
     const pod = kaskadLog[c].vsego;
+    // Qator yaxlitlashi (har qator tiyingacha) yig'indini bir necha tiyinga siljitadi: bu «замечание» emas, hujjat qoidasi — ИТОГО podval
+    // hisobi bo'yicha, farq ochiq YAXLITLASH qatori sifatida ko'rsatiladi (hujjat har doim 0,00 ga keladi).
+    if (ko != null && pod != null && Math.abs(ko - pod) > 0.005 && Math.abs(ko - pod) <= 1) { yaxlitlash.push(`${bir ? BIR_DAVR_NOM[c] : `гр.${VARAQ_USTUN[c]}`}: ${fmt2(pod - ko)}`); continue; }
     if (ko != null && pod != null && Math.abs(ko - pod) > 0.005) farqlar.push(`${bir ? BIR_DAVR_NOM[c] : `гр.${VARAQ_USTUN[c]}`}: Σ строк = ${fmt2(ko)}, ИТОГО = ${fmt2(pod)}`);
   }
   if (bir) {
@@ -944,6 +948,7 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
     const nomalum = F3_PUL.filter((c) => kaskadLog[c].vsego == null);
     if (nomalum.length) diqqat.push({ nom: 'ИТОГО К ОПЛАТЕ', sabab: 'сумма не определена (не заданы проценты накладных расходов или НДС) — ячейки оставлены пустыми, а не нулевыми' });
   }
+  if (yaxlitlash.length) v.izoh(`Округление: сумма построчно округлённых значений отличается от ИТОГО (расчет по подвалу) на: ${yaxlitlash.join('; ')} сум. ИТОГО принят по расчету подвала.`);
   if (farqlar.length) diqqat.push({ nom: 'ИТОГО К ОПЛАТЕ', sabab: `сумма по строкам и расчет расходятся: ${farqlar.join('; ')}` });
   v.diqqat(diqqatGuruh(diqqat));
   v.bosh();
