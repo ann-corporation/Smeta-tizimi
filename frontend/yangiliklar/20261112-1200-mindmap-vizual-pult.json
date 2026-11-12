@@ -1,10 +1,10 @@
 {
   "sana": "2026-11-12",
-  "sarlavha": "Mindmap qaytdi: xarita ochiladi, amallar tugundan",
+  "sarlavha": "Mindmap — bu karta: chiziq tortib quriladi va boshqariladi",
   "bandlar": [
-    "Mindmap endi jadval emas, tushunarli vizual xarita bo‘lib ochiladi (kompaniya, loyiha, obyekt tugunlari va chiziqlar). Jadval ham bor — tepadagi «Jadval» tugmasi.",
-    "Har tugunda ko‘rinib turuvchi «+» (yangi loyiha, shartnoma, obyekt qo‘shish) va «⋯» (barcha amallar: biriktirish, nomlash, sahifaga o‘tish) tugmalari bor. O‘ng tugma kerak emas, telefonda ham ishlaydi.",
-    "Xaritada endi shartnomalar ham bor: kompaniya → loyiha → shartnoma → obyekt. Shartnomasiz obyektlar «Shartnomasiz» guruhida. Shartnoma kartasida summa (QQS bilan), obyekt soni va muammolar soni ko‘rinadi.",
-    "Tanlagan ko‘rinishingiz eslab qolinadi."
+    "Mindmap endi karta bo‘lib ochiladi: kompaniya, loyiha, shartnoma, obyekt, boshqa kompaniyalar (tomonlar) va odamlar bitta kanvasda. Har tugunda holat rangi, asosiy raqamlar va muammolar belgisi bor.",
+    "Chiziq tortish = haqiqiy bog‘lanish: ikki tugun orasiga chiziq torting (yoki telefonda «Bog‘lash» tugmasi, keyin ikkinchi tugun) — karta nima bo‘lishini oddiy tilda aytadi va tasdiqlasangiz bajariladi. Bo‘lmaydigan juftlik uchun sabab ko‘rsatiladi. Chiziqni o‘chirish — aloqani tugatish.",
+    "Tomon (buyurtmachi, texnik nazorat, loyihachi, laboratoriya, yetkazuvchi, subpudratchi) tugunidan obyektga chiziq torsangiz — shu tomon nimani ko‘rishi tanlanadi. Obyektni bossangiz «Tomonlar: kim nimani ko‘radi» ko‘rinadi.",
+    "Tugunni bossangiz — jadvaldagi bilan bir xil amallar menyusi; tugundagi «+» va «⋯» tugmalari ham bor. «Avto-joylashtirish» tugmasi hammasini o‘zi teradi. Xarita (avto) va Jadval ko‘rinishlari ham saqlangan."
   ]
 }

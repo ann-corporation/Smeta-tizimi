@@ -119,5 +119,19 @@
   "Yangi qo‘shish": { "ru": "Добавить новое", "en": "Add new" },
   "Tugunni bosing — tafsilot. Tugundagi «+» — yangisini qo‘shish, «⋯» — barcha amallar. Aylantirish — zum, sudrash — surish.": { "ru": "Нажмите на узел — подробности. «+» на узле — добавить новое, «⋯» — все действия. Колесо — масштаб, перетаскивание — сдвиг.", "en": "Click a node for details. The «+» on a node adds something new, «⋯» shows all actions. Scroll to zoom, drag to pan." },
   "Shartnomasiz": { "ru": "Без договора", "en": "No contract" },
-  "{n} ta muammo": { "ru": "Проблем: {n}", "en": "{n} issues" }
+  "{n} ta muammo": { "ru": "Проблем: {n}", "en": "{n} issues" },
+  "Bog‘lanishni tasdiqlash": { "ru": "Подтверждение связи", "en": "Confirm the connection" },
+  "Chiziq = haqiqiy bog‘lanish": { "ru": "Линия = настоящая связь", "en": "A line is a real connection" },
+  "Rolni tanlang…": { "ru": "Выберите роль…", "en": "Choose a role…" },
+  "Nimani ko‘ra oladi?": { "ru": "Что он сможет видеть?", "en": "What will they be able to see?" },
+  "Hamma tugunni avtomatik joylashtirish (siz surgan joylar bekor bo‘ladi)": { "ru": "Расставить все узлы автоматически (ваша расстановка сбросится)", "en": "Arrange all nodes automatically (your manual layout is reset)" },
+  "Avto-joylashtirish": { "ru": "Авто-расстановка", "en": "Auto-arrange" },
+  "Tugun turlari (belgi va filtr)": { "ru": "Типы узлов (легенда и фильтр)", "en": "Node types (legend and filter)" },
+  "Odamlar": { "ru": "Люди", "en": "People" },
+  "Bog‘lash: shu tugunni bosing, keyin ikkinchi tugunni": { "ru": "Связать: нажмите этот узел, затем второй", "en": "Connect: tap this node, then a second one" },
+  "Barcha amallar": { "ru": "Все действия", "en": "All actions" },
+  "«{x}» tanlandi — endi bog‘lanadigan ikkinchi tugunni bosing": { "ru": "«{x}» выбран — теперь нажмите второй узел для связи", "en": "“{x}” selected — now tap the second node to connect" },
+  "Tomonlar: kim nimani ko‘radi": { "ru": "Стороны: кто что видит", "en": "Parties: who sees what" },
+  "Hali hech bir tomonga ko‘rsatilmagan. Tomon tugunidan shu tugunga chiziq torting.": { "ru": "Пока ни одной стороне не открыто. Проведите линию от узла стороны к этому узлу.", "en": "Not shared with any party yet. Draw a line from a party node to this node." },
+  "loyiha bo‘yicha": { "ru": "по проекту", "en": "via project" }
 }

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import {
   Building2, Warehouse, FileText, Truck, HardHat, FolderKanban,
   Users, Plus, X, ZoomIn, ZoomOut, RefreshCcw, Unlink, Move,
-  LayoutGrid, Maximize2, Save, Trash2, ExternalLink, AlertTriangle, Clock, CheckCircle2,
+  Handshake, Link2, MoreHorizontal, LayoutGrid, Maximize2, Save, Trash2, ExternalLink, AlertTriangle, Clock, CheckCircle2,
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useKompaniya } from './KompaniyaTanlov';
@@ -20,6 +20,13 @@ import { toast } from '../umumiy/ui/Toast';
 import { pulQisqa } from '../lib/format';
 import { sbObyektHodisalariOl, qachon, MODUL_RANG, type Hodisa } from '../api/t2-hodisa';
 import { onEntityChanged } from '../api/entity-consistency';
+import { taklifYubor, grantSaqla, grantBekor, aloqaHolati } from '../api/t2-tomon';
+import { BoglanishTasdiq, AmalQatlami, type AmalQatlamiRef } from './KartaQatlam';
+import { BOS_TOMON_KARTA, chiziqKalit, rolNomi, tomonKartasiniOl, tomonlarLinzasi, type TomonKarta } from './karta-tomon';
+import { boglanishQoidasi, uzishQoidasi, type Qoida, type TugunTavsif } from '../lib/mindmap-boglanish';
+import { uzishniBajar, type BajarDeps } from '../lib/mindmap-boglanish-bajar';
+import { daraxtQur } from '../lib/mindmap-korinish';
+import { HOLAT_RANG } from '../components/mindmap/holat';
 import { mindmapCreateValidation, mindmapEntityNodeId, mindmapRoleValidation } from './mindmap-create-ux';
 import {
   sbMindmapGrafOl, sbMindmapMasul, grafOdamsiz, sbMindmapBog, sbMindmapBogOchir, sbMindmapTugunYarat,
@@ -70,21 +77,25 @@ const KANVAS_H = 4000;
 const TUR_RANG: Record<TugunTur, string> = {
   kompaniya: '#b9a2f5', loyiha: '#86a6ff', obyekt: '#62c97a', shartnoma: '#2ec4b6',
   sklad: '#e9a94f', texnika: '#f0b450', kadr: '#74b8f2', kontragent: '#ff7a6e',
-  zayavka: '#5fd6ca', foydalanuvchi: '#c0c8c6',
+  zayavka: '#5fd6ca', foydalanuvchi: '#c0c8c6', tomon: '#f28bd0',
 };
 const TUR_IKONKA: Record<TugunTur, any> = {
   kompaniya: Building2, loyiha: FolderKanban, obyekt: Building2, shartnoma: FileText,
   sklad: Warehouse, texnika: Truck, kadr: HardHat, kontragent: Users,
-  zayavka: FileText, foydalanuvchi: Users,
+  zayavka: FileText, foydalanuvchi: Users, tomon: Handshake,
 };
 const TUR_NOM: Record<TugunTur, string> = {
   kompaniya: 'Kompaniya', loyiha: 'Loyiha', obyekt: 'Obyekt', shartnoma: 'Shartnoma',
   sklad: 'Sklad', texnika: 'Texnika', kadr: 'Xodim', kontragent: 'Kontragent',
-  zayavka: 'Ta’minot zayavkasi', foydalanuvchi: 'A’zo',
+  zayavka: 'Ta’minot zayavkasi', foydalanuvchi: 'A’zo', tomon: 'Tomon',
 };
 
 const BOG_TUR_NOM: Record<string, string> = {
   loyiha_kompaniya: 'Kompaniya ↔ loyiha (Tuzilmaviy aloqa)',
+  tomon_aloqa: 'Tomon aloqasi (boshqa kompaniya, rol bilan)',
+  tomon_grant: 'Tomonning ko‘rish huquqi (nimani ko‘ra oladi)',
+  masul_obyekt: 'Obyektga mas’ul odam',
+  masul_loyiha: 'Loyihaga mas’ul odam',
   obyekt_loyiha: 'Loyiha tarkibidagi obyekt',
   shartnoma_loyiha: 'Loyiha bo\'yicha tuzilgan shartnoma',
   shartnoma_obyekt: 'Shartnoma asosida bajariladigan obyekt',
@@ -96,7 +107,7 @@ const BOG_TUR_NOM: Record<string, string> = {
 
 /** Avtomatik joylash ustunlari — FAQAT saqlangan joyi yo'q tugunlar uchun */
 const USTUN_TARTIB: TugunTur[][] = [
-  ['kontragent'], ['kompaniya', 'loyiha'], ['shartnoma'], ['obyekt'], ['zayavka'], ['sklad', 'texnika', 'kadr'],
+  ['kontragent'], ['kompaniya', 'loyiha'], ['shartnoma'], ['obyekt'], ['zayavka'], ['sklad', 'texnika', 'kadr'], ['tomon'], ['foydalanuvchi'],
 ];
 
 const YARATSA_BOLADI: { tur: TugunTur; maydonlar: { kalit: string; nom: string; majburiy?: boolean }[] }[] = [
@@ -125,10 +136,11 @@ type Rejim =
 
 /** Ko'rinish tanlovi: birinchi marta — VIZUAL xarita (egasi 2026-11-12: jadval emas); tanlangan ko'rinish eslab qolinadi. */
 const KORINISH_KALIT = 'mindmap-korinish-v2';
-const SAQLANADIGAN: MindmapKorinishTuri[] = ['xarita', 'pult', 'royxat', '2d'];
-function korinishBoshlangich(): MindmapKorinishTuri {
+const SAQLANADIGAN: MindmapKorinishTuri[] = ['tahrir', 'xarita', 'pult', 'royxat', '2d'];
+/** Birinchi marta: KARTA (chiziq tortib quriladigan va boshqariladigan kanvas); tahrir ruxsati yo‘q odamga — avto-xarita. */
+function korinishBoshlangich(tahrirMumkin: boolean): MindmapKorinishTuri {
   try { const k = window.localStorage.getItem(KORINISH_KALIT); if (k && (SAQLANADIGAN as string[]).includes(k)) return k as MindmapKorinishTuri; } catch { /* saqlash yo'q — sukut */ }
-  return 'xarita';
+  return tahrirMumkin ? 'tahrir' : 'xarita';
 }
 function korinishSakla(k: MindmapKorinishTuri) {
   if (!SAQLANADIGAN.includes(k)) return;
@@ -149,9 +161,26 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
   const yopiqMatn = tahrirYopiqMatni(ruxsat);
 
   /** `graf` — odamlarsiz (eski tahrir kanvasi/2D/3D odamni bilmaydi); `grafToliq` — v4 (odamlar + doira) yangi «Xarita»/«Ro'yxat» uchun. */
-  const [graf, setGraf] = useState<MindmapGraf>({ tugunlar: [], bogichlar: [] });
+  const [grafAsos, setGraf] = useState<MindmapGraf>({ tugunlar: [], bogichlar: [] });
   const [grafToliq, setGrafToliq] = useState<MindmapGraf>({ tugunlar: [], bogichlar: [] });
   const [joylar, setJoylar] = useState<Record<string, XY>>({});
+  /** Karta: tomon va odam tugunlari serverda emas — joyi shu brauzerda (kompaniya bo‘yicha) saqlanadi. */
+  const [kartaJoy, setKartaJoy] = useState<Record<string, XY>>({});
+  const [tomonKarta, setTomonKarta] = useState<TomonKarta>(BOS_TOMON_KARTA);
+  const [yashirinTur, setYashirinTur] = useState<Set<string>>(() => new Set(['foydalanuvchi']));
+  const [ulashManba, setUlashManba] = useState<string | null>(null);
+  const [tasdiqQoida, setTasdiqQoida] = useState<Extract<Qoida, { holat: 'ishlaydi' }> | null>(null);
+  const amalRef = useRef<AmalQatlamiRef>(null);
+  /** Karta grafi: server grafi + tomonlar (boshqa kompaniyalar) + odamlar (filtr bilan yashiriladi). Faqat kanvas/2D shuni ko‘radi. */
+  const graf = useMemo<MindmapGraf>(() => {
+    const odam = grafToliq.tugunlar.filter((t) => t.tur === 'foydalanuvchi');
+    const odamIdlar = new Set(odam.map((t) => t.id));
+    return {
+      ...grafAsos,
+      tugunlar: [...grafAsos.tugunlar, ...tomonKarta.tugunlar, ...odam],
+      bogichlar: [...grafAsos.bogichlar, ...tomonKarta.bogichlar, ...grafToliq.bogichlar.filter((b) => b.tur.startsWith('masul_') && odamIdlar.has(b.manba))],
+    };
+  }, [grafAsos, grafToliq, tomonKarta]);
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [xato, setXato] = useState('');
   const [saqlanmoqda, setSaqlanmoqda] = useState(false);
@@ -183,7 +212,7 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
   /** Ko'rinish: 3D graf (sukut), 2D graf (Obsidian uslubi — egasi: "eskisini ham o'chirma") yoki tahrir kanvasi. */
   /** Egasi 2026-10-25: sukut — «Kompaniya xaritasi» (2D ierarxiya, real holat bilan); telefonda — ro'yxat.
       3D/2D graf va tahrir kanvasi ixtiyoriy ko'rinish sifatida saqlanadi. */
-  const [korinish, setKorinishIchki] = useState<MindmapKorinishTuri>(() => (!ichki && params.get('tugun') ? 'xarita' : korinishBoshlangich()));
+  const [korinish, setKorinishIchki] = useState<MindmapKorinishTuri>(() => (!ichki && params.get('tugun') ? 'xarita' : korinishBoshlangich(tahrirMumkin)));
   const setKorinish = useCallback((k: MindmapKorinishTuri) => { setKorinishIchki(k); korinishSakla(k); }, []);
   const [tanlanganBog, setTanlanganBog] = useState<MindmapGraf['bogichlar'][number] | null>(null);
   const [obyektHodisalari, setObyektHodisalari] = useState<Hodisa[]>([]);
@@ -295,6 +324,26 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
   /* Ruxsat yo'qolsa/kelmasa — tahrir kanvasi ochiq qolmaydi. */
   useEffect(() => { if (!tahrirMumkin && korinish === 'tahrir') setKorinish('xarita'); }, [tahrirMumkin, korinish]);
 
+  /* Karta: tomonlar (boshqa kompaniyalar) va ularning huquqlari — faqat karta ko‘rinishida va ichki bo‘lmaganda o‘qiladi. */
+  const kompaniyaTugunId = useMemo(() => grafToliq.tugunlar.find((tg) => tg.tur === 'kompaniya')?.id ?? null, [grafToliq.tugunlar]);
+  const tomonlarniYukla = useCallback(async () => {
+    if (!aktKomp || !kompaniyaTugunId) return;
+    try { setTomonKarta(await tomonKartasiniOl(aktKomp, kompaniyaTugunId)); } catch { /* tomon qatlami ixtiyoriy */ }
+  }, [aktKomp, kompaniyaTugunId]);
+  useEffect(() => { if (korinish === 'tahrir') void tomonlarniYukla(); }, [korinish, tomonlarniYukla]);
+  useEffect(() => {
+    try { const q = window.localStorage.getItem('mindmap-karta-joy-v1:' + aktKomp); setKartaJoy(q ? JSON.parse(q) : {}); } catch { setKartaJoy({}); }
+  }, [aktKomp]);
+  const kartaJoyniSakla = useCallback((id: string, p: XY) => {
+    setKartaJoy((o) => { const n = { ...o, [id]: p }; try { window.localStorage.setItem('mindmap-karta-joy-v1:' + aktKomp, JSON.stringify(n)); } catch { /* saqlash yo‘q */ } return n; });
+  }, [aktKomp]);
+  const sebTugun = (id: string) => id.startsWith('tomon:') || id.startsWith('foydalanuvchi:');
+  const daraxtK = useMemo(() => daraxtQur(grafToliq), [grafToliq]);
+  const [, qaytaChiz] = useState(0);
+  useEffect(() => { qaytaChiz((n) => n + 1); }, [grafToliq, aktKomp]);   // amal qatlami (ref) o‘rnatilgach tugun tugmalari chiqsin
+  /** Joylar: serverdagi + (tomon/odam) mahalliy; qolgan yangilari avto-joylashadi. */
+  const joylarK = useMemo(() => avtoJoylash(graf.tugunlar.filter((tg) => sebTugun(tg.id)), { ...kartaJoy, ...joylar }), [graf.tugunlar, kartaJoy, joylar, avtoJoylash]);
+
   const kanvasKoord = useCallback((cx: number, cy: number): XY => {
     const r = wrapRef.current?.getBoundingClientRect();
     if (!r) return { x: 0, y: 0 };
@@ -321,7 +370,7 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
   const bosildiTugun = (e: React.PointerEvent, id: string) => {
     e.stopPropagation();                             // pan boshlanmasin
     if (!tahrirMumkin) return;                       // faqat o'qish: sudrash (joylashuv yozuvi) yo'q, bosish tanlaydi
-    const joy = joylar[id];
+    const joy = joylarK[id];
     if (!joy) return;
     wrapRef.current?.setPointerCapture(e.pointerId);
     const k = kanvasKoord(e.clientX, e.clientY);
@@ -378,59 +427,35 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
     if (r?.tur !== 'tugun' || !r.kochdi || !aktKomp) return;
     const joy = joylar[r.id];
     if (!joy) return;
+    if (sebTugun(r.id)) { kartaJoyniSakla(r.id, joy); return; }
     setSaqlanmoqda(true);
     const nat = await sbMindmapJoylashuvSaqla(aktKomp, [{ tugun_id: r.id, x: joy.x, y: joy.y }]);
     setSaqlanmoqda(false);
     if (!nat.ok) toast('Joylashuv saqlanmadi: ' + (nat.error || ''), 'danger');
   };
 
-  /** Ikki tugunni bog'laydi. Odam teskari tortsa ham to'g'ri tushunadi. */
-  const chiziqniBogla = async (manbaId: string, maqsadId: string) => {
-    if (!tahrirMumkin) { toast(yopiqMatn || t('Faqat ko‘rish rejimi'), 'danger'); return; }
-    const manba = graf.tugunlar.find((t) => t.id === manbaId);
-    const maqsad = graf.tugunlar.find((t) => t.id === maqsadId);
-    if (!manba || !maqsad) return;
-
-    let qoida = bogTuriniTop(manba.tur, maqsad.tur);
-    let mId = Number(manba.id.split(':')[1]);
-    let qId = Number(maqsad.id.split(':')[1]);
-
-    if (!qoida) {
-      /* TESKARI yo'nalish — odam ko'pincha obyektdan skladga tortadi */
-      const teskari = bogTuriniTop(maqsad.tur, manba.tur);
-      if (!teskari) {
-        toast(TUR_NOM[manba.tur] + ' → ' + TUR_NOM[maqsad.tur] + ' bog\'lanishi mavjud emas', 'danger');
-        return;
-      }
-      qoida = teskari;
-      const v = mId; mId = qId; qId = v;
-    }
-    if (qoida.tur === 'qatnashchi') {
-      setRolXato('');
-      setRolTanlov('');
-      setRolModal({ manbaId: mId, maqsadId: qId });
-      return;
-    }
-
-    const targetNode = graf.tugunlar.find((t) => t.id === qoida!.maqsad + ':' + qId);
-    const expectedVersion = Number(targetNode?.meta?.versiya);
-    if (!targetNode || !Number.isInteger(expectedVersion) || expectedVersion < 0) {
-      toast('Tugun versiyasi mavjud emas, qayta yuklang', 'danger');
-      return;
-    }
-    if (boglanishSaqlanmoqda) return;
-    setBoglanishSaqlanmoqda(true);
-    try {
-      const nat = await sbMindmapBog(aktKomp, qoida.tur, mId, qId, expectedVersion);
-      if (nat.ok) { toast(qoida.nom + ' — bajarildi', 'ok'); await yangila(); }
-      else toast(nat.error || 'Bog\'lanmadi', 'danger');
-    } catch (error) {
-      toast(error instanceof Error ? error.message : String(error), 'danger');
-    } finally {
-      setBoglanishSaqlanmoqda(false);
-    }
+  /** Ikki tugunni bog‘laydi: avval QOIDA (lib/mindmap-boglanish) — mumkin bo‘lmasa sabab; mumkin bo‘lsa — tasdiq kartasi. Odam teskari tortsa ham to‘g‘ri tushuniladi. */
+  const tavsifOl = (id: string): TugunTavsif | null => {
+    const g = graf.tugunlar.find((tg) => tg.id === id);
+    return g ? { id: g.id, tur: g.tur, nom: g.nom, meta: (g.meta ?? null) as Record<string, unknown> | null } : null;
   };
-
+  const chiziqniBogla = async (manbaId: string, maqsadId: string) => {
+    const a = tavsifOl(manbaId), b = tavsifOl(maqsadId);
+    if (!a || !b) return;
+    const q = boglanishQoidasi(a, b, { tahrir: tahrirMumkin, yopiqSabab: yopiqMatn || null, masulMumkin: mindmapMasulRuxsati({ superadmin, joriy, kompaniyaId }) });
+    if (q.holat !== 'ishlaydi') { toast(q.sabab, 'danger'); return; }
+    setTasdiqQoida(q);
+  };
+  /** Mavjud yozuvchilar (API qatlami): qoida bajarilganda aynan shularga boradi. */
+  const bajarDeps = useMemo<BajarDeps>(() => ({
+    bog: (tur, m, q, v, rol) => sbMindmapBog(aktKomp, tur, m, q, v, rol),
+    bogOchir: (tur, m, q, v, rol) => sbMindmapBogOchir(aktKomp, tur, m, q, v, rol),
+    taklif: (p) => taklifYubor(aktKomp, { qabulInn: p.qabulInn, qabulNom: p.qabulNom, taklifRol: p.taklifRol, qabulRol: p.qabulRol }),
+    grantSaqla: (aloqaId, g) => grantSaqla(aktKomp, aloqaId, g),
+    grantBekor: (id) => grantBekor(aktKomp, id),
+    aloqaToxtat: (id) => aloqaHolati(aktKomp, id, 'toxtatish'),
+    masul: (a) => sbMindmapMasul(aktKomp, a),
+  }), [aktKomp]);
   const rolniTasdiqla = async () => {
     if (!rolModal || !tahrirMumkin) return;
     const rolXabari = mindmapRoleValidation(rolTanlov);
@@ -465,6 +490,19 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
 
   const chiziqUz = async (b: MindmapGraf['bogichlar'][number]) => {
     if (!tahrirMumkin) { toast(yopiqMatn || t('Faqat ko‘rish rejimi'), 'danger'); return; }
+    if (b.tur === 'tomon_grant' || b.tur === 'tomon_aloqa' || b.tur === 'masul_obyekt' || b.tur === 'masul_loyiha') {
+      const q = uzishQoidasi(b, { tahrir: tahrirMumkin, yopiqSabab: yopiqMatn || null, masulMumkin: mindmapMasulRuxsati({ superadmin, joriy, kompaniyaId }) });
+      if (q.holat !== 'ishlaydi') { toast(q.sabab, 'danger'); return; }
+      if (!confirm(q.tavsif + '\n\n' + t('Davom etasizmi?'))) return;
+      const idSon = (id: string) => Number(id.split(':')[1]);
+      const g = tomonKarta.grantlar.get(chiziqKalit(b.manba, b.maqsad));
+      const r = q.amal === 'mindmap_bog_ochir' ? { ok: false as const, error: 'Bu amal bu yerda ishlatilmaydi' } : await uzishniBajar(q.amal, {
+        grantIdlar: g?.grantIdlar, aloqaId: b.tur === 'tomon_aloqa' ? idSon(b.maqsad) : g?.aloqaId,
+        ...(b.maqsad.startsWith('obyekt:') ? { obyektId: idSon(b.maqsad) } : { loyihaId: idSon(b.maqsad) }), foydalanuvchiId: idSon(b.manba),
+      }, bajarDeps);
+      if (r.ok) { setTanlanganBog(null); toast(r.xabar, 'ok'); void yangila(); void tomonlarniYukla(); } else toast(r.error, 'danger');
+      return;
+    }
     // Ishtirokchi chizig'ini server ROL bo'yicha topadi; rol kelmasa (eski server shakli) taxmin qilib uzmaymiz.
     if (b.tur === 'qatnashchi' && !b.rol) { toast(t('Qatnashchi roli serverdan kelmadi — uzib bo‘lmaydi (server yangilanmagan).'), 'danger'); return; }
     if (!b.uzsa_boladi) { toast('Bu tuzilmaviy bog\'lanish — uzib bo\'lmaydi', 'danger'); return; }
@@ -522,8 +560,9 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
   /** Hammasini ustunlarga qayta terib SAQLAYDI */
   const hammasiniQaytaTer = async () => {
     if (!aktKomp || !tahrirMumkin) return;
-    const yangi = avtoJoylash(graf.tugunlar, {});
-    setJoylar(yangi);
+    const yangi = avtoJoylash(graf.tugunlar.filter((tg) => !sebTugun(tg.id)), {});
+    setJoylar({ ...yangi, ...avtoJoylash(graf.tugunlar.filter((tg) => sebTugun(tg.id)), {}) });
+    setKartaJoy({}); try { window.localStorage.removeItem('mindmap-karta-joy-v1:' + aktKomp); } catch { /* ruxsat yo‘q */ }
     setSaqlanmoqda(true);
     const r = await sbMindmapJoylashuvSaqla(aktKomp,
       Object.entries(yangi).map(([tugun_id, p]) => ({ tugun_id, x: p.x, y: p.y })));
@@ -603,7 +642,13 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
     return 'M ' + x1 + ' ' + y1 + ' H ' + cx + ' V ' + y2 + ' H ' + x2;
   };
 
-  const chiziqManba = chiziqManbaId ? joylar[chiziqManbaId] : null;
+  /** Tugunga bosish: «Bog‘lash» rejimida — ikkinchi tugun (tap-tap); aks holda tafsilot paneli + tugun amallari menyusi (jadvaldagi bilan bir xil). */
+  const tugunBosildi = (id: string, px: number, py: number) => {
+    if (ulashManba) { const m = ulashManba; setUlashManba(null); if (m !== id) void chiziqniBogla(m, id); return; }
+    setTanlangan(id); setTanlanganBog(null);
+    if (tahrirMumkin) amalRef.current?.ochish(id, px, py);
+  };
+  const chiziqManba = chiziqManbaId ? joylarK[chiziqManbaId] : null;
 
   const tafsilot = (t: MindmapTugun) => {
     const m = t.meta || {};
@@ -663,7 +708,7 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
     const holatMos = holatFiltri === 'barchasi'
       || (holatFiltri === 'etibor' && belgilar.length > 0)
       || (holatFiltri === 'zayavka' && belgilar.some((b) => b.tur === 'zayavka'));
-    return nomMos && holatMos;
+    return nomMos && holatMos && !yashirinTur.has(t.tur);
   });
   const korsatilganIdlar = new Set(korsatilganTugunlar.map((t) => t.id));
   const korsatilganBoglar = graf.bogichlar.filter((b) => korsatilganIdlar.has(b.manba) && korsatilganIdlar.has(b.maqsad));
@@ -706,9 +751,9 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
             {oxirgiYangilanish && <span className="text-[10px] text-text-mute inline-flex items-center gap-1 mr-1"><Clock size={11} /> {oxirgiYangilanish.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</span>}
             <KorinishTanlagich joriy={korinish} onTanla={setKorinish} className="mr-1" tahrirMumkin={tahrirMumkin} />
             {tahrirMumkin && (
-              <button onClick={hammasiniQaytaTer} title="Hammasini ustunlarga qayta terish"
+              <button onClick={hammasiniQaytaTer} title={t('Hamma tugunni avtomatik joylashtirish (siz surgan joylar bekor bo‘ladi)')}
                 className="px-2.5 py-2 bg-surface-2 hover:bg-[var(--surface-3)] rounded-lg inline-flex items-center gap-1.5 text-[11px]">
-                <LayoutGrid size={14} /> Qayta terish
+                <LayoutGrid size={14} /> {t('Avto-joylashtirish')}
               </button>
             )}
             <button onClick={ekrangaSigdir} title="Ekranga sig'dirish"
@@ -782,6 +827,14 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
                 (holatFiltri === kalit ? 'border-[color-mix(in_srgb,var(--info)_60%,transparent)] bg-[color-mix(in_srgb,var(--info)_15%,transparent)] text-[var(--info)]' : 'border-border bg-surface-2 text-text-dim hover:text-text')}
             >{nom}</button>
           ))}
+          <div className="flex flex-wrap items-center gap-1" role="group" aria-label={t('Tugun turlari (belgi va filtr)')} data-testid="karta-legenda">
+            {([...new Set(graf.tugunlar.map((tg) => tg.tur))] as TugunTur[]).map((tur) => (
+              <button key={tur} type="button" aria-pressed={!yashirinTur.has(tur)} onClick={() => setYashirinTur((o) => { const n = new Set(o); if (n.has(tur)) n.delete(tur); else n.add(tur); return n; })}
+                className={'inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] ' + (yashirinTur.has(tur) ? 'opacity-50' : '')} style={{ borderColor: TUR_RANG[tur] + '66', color: TUR_RANG[tur] }}>
+                <span aria-hidden className="inline-block h-2 w-2 rounded-full" style={{ background: TUR_RANG[tur] }} />{tur === 'foydalanuvchi' ? t('Odamlar') : t(TUR_NOM[tur])}
+              </button>
+            ))}
+          </div>
           <span className="text-[10px] text-text-mute ml-auto">{korsatilganTugunlar.length}/{graf.tugunlar.length} tugun</span>
         </div>
       </div>
@@ -816,7 +869,7 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
 
           <svg className="absolute inset-0 pointer-events-none" width={KANVAS_W} height={KANVAS_H}>
             {korsatilganBoglar.map((b, i) => {
-              const m = joylar[b.manba], q = joylar[b.maqsad];
+              const m = joylarK[b.manba], q = joylarK[b.maqsad];
               if (!m || !q) return null;
               const manbaTur = graf.tugunlar.find((t) => t.id === b.manba)?.tur || 'obyekt';
               const rang = TUR_RANG[manbaTur];
@@ -834,7 +887,17 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
                   <path d={d} fill="none" stroke="transparent" strokeWidth={16} />
                   <path d={d} fill="none" stroke={bogTanlangan ? 'var(--text)' : rang} strokeWidth={bogTanlangan ? 4 : 2}
                     strokeOpacity={bogTanlangan ? 1 : (b.uzsa_boladi ? 0.6 : 0.25)}
-                    strokeDasharray={b.uzsa_boladi ? 'none' : '4,4'} />
+                    strokeDasharray={b.tur === 'tomon_grant' ? '2,5' : b.tur === 'tomon_aloqa' ? '8,4' : b.uzsa_boladi ? 'none' : '4,4'} />
+                  {(b.tur === 'tomon_aloqa' || b.tur === 'tomon_grant') && (() => {
+                    const mx = (m.x + NODE_W + q.x) / 2, my2 = (m.y + q.y) / 2 + 27;
+                    const oqim = tomonKarta.oqim.get(chiziqKalit(b.manba, b.maqsad));
+                    return (
+                      <g data-chiziq-yorliq={b.tur} className="pointer-events-none">
+                        {b.tur === 'tomon_aloqa' && <text x={mx} y={my2 - 4} textAnchor="middle" fontSize={11} fill={rang}>{rolNomi(b.rol ?? '')}</text>}
+                        {oqim && <g data-oqim transform={`translate(${mx} ${my2 + 8})`}><rect x={-62} y={-9} width={124} height={16} rx={8} fill="var(--warn-soft)" stroke="var(--warn)" /><text textAnchor="middle" y={3} fontSize={10} fill="var(--warn)">{oqim.matn}</text></g>}
+                      </g>
+                    );
+                  })()}
                 </g>
               );
             })}
@@ -845,7 +908,7 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
           </svg>
 
           {korsatilganTugunlar.map((tg) => {
-            const joy = joylar[tg.id];
+            const joy = joylarK[tg.id];
             if (!joy) return null;
             const Ik = TUR_IKONKA[tg.tur];
             const rang = TUR_RANG[tg.tur];
@@ -856,7 +919,13 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
               <div key={tg.id}
                 data-tugun={tg.id}
                 onPointerDown={(e) => bosildiTugun(e, tg.id)}
-                onClick={() => { if (!rejim.current) { setTanlangan(tg.id); setTanlanganBog(null); } }}
+                tabIndex={0} role="button" aria-label={tg.nom}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); tugunBosildi(tg.id, e.currentTarget.getBoundingClientRect().left, e.currentTarget.getBoundingClientRect().bottom + 4); }
+                  else if (e.key.toLowerCase() === 'l' && tahrirMumkin) { e.preventDefault(); setUlashManba(tg.id); }
+                  else if (e.key === 'Escape') setUlashManba(null);
+                }}
+                onClick={(e) => { if (!rejim.current) tugunBosildi(tg.id, e.clientX, e.clientY); }}
                 className={'absolute rounded-xl border bg-surface px-3 py-2 flex flex-col justify-center select-none shadow-lg ' +
                   (nishon && boglashMumkin ? 'ring-2 ring-[color-mix(in_srgb,var(--info)_70%,transparent)]' : '') + (nishon && !boglashMumkin ? 'opacity-50 ring-2 ring-[color-mix(in_srgb,var(--danger)_70%,transparent)]' : '') + (tanlangan === tg.id ? ' ring-2 ring-[var(--text)]' : '')}
                 style={{ left: joy.x, top: joy.y, width: NODE_W, height: TUGUN_BALANDLIGI(tg.tur), borderColor: rang + '66', cursor: tahrirMumkin ? 'move' : 'pointer' }}>
@@ -912,6 +981,14 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
                     )}
                   </div>
                 )}
+                {(() => { const dx = tg.tur === 'loyiha' || tg.tur === 'obyekt' || tg.tur === 'shartnoma' ? daraxtK.tugunlar.get(tg.id) : null; return dx ? <div aria-hidden data-holat={dx.holat} className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r" style={{ background: HOLAT_RANG[dx.holat] }} /> : null; })()}
+                {tg.tur === 'tomon' && <div className="mt-0.5 text-[10px] text-text-dim truncate">{rolNomi(String(tg.meta?.rol ?? ''))}{tg.meta?.holat && tg.meta.holat !== 'faol' ? ' · ' + String(tg.meta.holat) : ''}</div>}
+                {tg.tur === 'loyiha' && (() => { const dx = daraxtK.tugunlar.get(tg.id); return dx ? <div className="text-[10px] text-text-dim truncate" data-loyiha-raqam>{t('{n} ta obyekt', { n: dx.obyektSoni })} · {dx.smeta == null ? '—' : pulQisqa(dx.smeta)}{(dx.signalSoni ?? 0) > 0 ? ' · ⚠ ' + dx.signalSoni : ''}</div> : null; })()}
+                <div data-boshqaruv className="absolute -top-2.5 right-1 z-20 flex gap-1" onPointerDown={(e) => e.stopPropagation()}>
+                  {tahrirMumkin && tg.tur !== 'kompaniya' && (<button type="button" data-karta-ulash aria-label={t('Bog‘lash') + ': ' + tg.nom} title={t('Bog‘lash: shu tugunni bosing, keyin ikkinchi tugunni')} onClick={(e) => { e.stopPropagation(); setUlashManba(tg.id); }} className="grid h-5 w-5 place-items-center rounded-full border border-border bg-surface text-text-dim hover:text-text"><Link2 size={11} /></button>)}
+                  {amalRef.current?.yaratishBor(tg.id) && (<button type="button" data-karta-yarat aria-label={t('Yangi qo‘shish') + ': ' + tg.nom} title={t('Yangi qo‘shish')} onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); amalRef.current?.ochish(tg.id, r.left, r.bottom + 4, true); }} className="grid h-5 w-5 place-items-center rounded-full border border-[var(--accent)] bg-surface text-[var(--accent-text)]"><Plus size={12} /></button>)}
+                  {(amalRef.current?.amalSoni(tg.id) ?? 0) > 0 && (<button type="button" data-karta-amal aria-label={t('Amallar') + ': ' + tg.nom} title={t('Barcha amallar')} onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); amalRef.current?.ochish(tg.id, r.left, r.bottom + 4); }} className="grid h-5 w-5 place-items-center rounded-full border border-border bg-surface text-text-dim hover:text-text"><MoreHorizontal size={12} /></button>)}
+                </div>
                 {tg.tur !== 'kompaniya' && tahrirMumkin && (
                   <div onPointerDown={(e) => bosildiNuqta(e, tg.id)}
                     title="Bog'lash uchun shu nuqtadan chiziq torting"
@@ -926,6 +1003,13 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
           {chiziqManbaId && (
             <div className="absolute left-4 top-4 z-10 rounded-lg border border-[color-mix(in_srgb,var(--info)_30%,transparent)] bg-surface px-3 py-2 text-[10px] text-[var(--info)] shadow-lg backdrop-blur">
               Ko'k halqali tugunlar — ulash mumkin · xira tugunlar — bu tur bilan ulash mumkin emas
+            </div>
+          )}
+
+          {ulashManba && (
+            <div role="status" data-testid="karta-ulash-banner" className="absolute left-4 top-4 z-30 flex items-center gap-2 rounded-lg border border-[var(--accent)] bg-surface px-3 py-2 text-[11px]" onPointerDown={(e) => e.stopPropagation()}>
+              <Link2 size={13} /> {t('«{x}» tanlandi — endi bog‘lanadigan ikkinchi tugunni bosing', { x: graf.tugunlar.find((tg) => tg.id === ulashManba)?.nom ?? '' })}
+              <button type="button" className="fz-btn fz-btn--sm" onClick={() => setUlashManba(null)}>{t('Bekor qilish')}</button>
             </div>
           )}
 
@@ -991,6 +1075,20 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
               
+              {(tanlanganTugun.tur === 'obyekt' || tanlanganTugun.tur === 'loyiha' || tanlanganTugun.tur === 'shartnoma') && (() => {
+                const lid = tanlanganTugun.meta?.loyiha_id != null ? ['loyiha:' + tanlanganTugun.meta.loyiha_id] : [];
+                const linza = tomonlarLinzasi(tomonKarta, tanlanganTugun.id, lid);
+                return (
+                  <div data-testid="karta-tomonlar" className="mb-4 rounded-xl border border-border bg-surface-2 p-3">
+                    <h4 className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[var(--info)]"><Handshake size={12} /> {t('Tomonlar: kim nimani ko‘radi')}</h4>
+                    {linza.length === 0 ? <p className="text-[11px] text-text-mute">{t('Hali hech bir tomonga ko‘rsatilmagan. Tomon tugunidan shu tugunga chiziq torting.')}</p> : (
+                      <ul className="space-y-1.5">{linza.map((q) => (
+                        <li key={q.tomon.id + q.doira} className="text-[11px]"><b>{q.tomon.nom}</b> <span className="text-text-dim">({rolNomi(String(q.tomon.meta?.rol ?? ''))})</span><div className="text-text-dim">{q.resurslar.join(', ')}{q.doira !== tanlanganTugun.id ? ' · ' + t('loyiha bo‘yicha') : ''}</div></li>
+                      ))}</ul>
+                    )}
+                  </div>
+                );
+              })()}
               {tanlanganObyektHolati && (
                 <div className="space-y-3 mb-6 bg-surface-2 p-3 rounded-xl border border-border">
                   <h4 className="text-[11px] font-bold text-[var(--info)] uppercase tracking-wider mb-2 flex items-center gap-1.5"><Building2 size={12} /> Obyekt holati</h4>
@@ -1203,6 +1301,13 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
           </div>
         </div>
       )}
+
+      {/* KARTA: chiziq tasdiq kartasi + tugun amallari (jadvaldagi bilan bir xil) */}
+      {tasdiqQoida && (
+        <BoglanishTasdiq qoida={tasdiqQoida} kompaniyaId={aktKomp} deps={bajarDeps} rollar={ROLLAR} onYop={() => setTasdiqQoida(null)}
+          onTugadi={(xabar) => { setTasdiqQoida(null); toast(xabar, 'ok'); void yangila(); void tomonlarniYukla(); }} />
+      )}
+      <AmalQatlami ref={amalRef} graf={grafToliq} pult={aktKomp ? pult : undefined} amalKorish={amalKorish} masul={masul} vazifa={vazifa} onTanla={(id) => { setTanlangan(id); setTanlanganBog(null); }} />
 
       {/* ROL TANLASH */}
       {rolModal && (

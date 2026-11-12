@@ -36,21 +36,21 @@ import { HOLAT_RANG, foizMatn, holatIzohi, holatNomi, pulQ } from './holat';
 export type MindmapKorinishTuri = 'pult' | 'xarita' | 'royxat' | '2d' | 'tahrir';
 
 const ASOSIY_KORINISH: { k: MindmapKorinishTuri; ikon: typeof List; nom: () => string }[] = [
+  { k: 'tahrir', ikon: PencilLine, nom: () => t('Tahrir (chiziq tortish)') },
   { k: 'xarita', ikon: MapIkon, nom: () => t('Xarita') },
   { k: 'pult', ikon: ListTree, nom: () => t('Jadval') },
 ];
 const BOSHQA_KORINISHLAR: { k: MindmapKorinishTuri; ikon: typeof List; nom: () => string }[] = [
   { k: 'royxat', ikon: List, nom: () => t('Ro‘yxat') },
   { k: '2d', ikon: Network, nom: () => t('2D graf') },
-  { k: 'tahrir', ikon: PencilLine, nom: () => t('Tahrir (chiziq tortish)') },
 ];
 
 /** Ko‘rinish almashtirgich: «Boshqaruv» doim ko‘rinadi, qolgan ko‘rinishlar «Boshqa ko‘rinishlar» ostida. */
 export function KorinishTanlagich({ joriy, onTanla, className = '', tahrirMumkin = true }: { joriy: MindmapKorinishTuri; onTanla: (k: MindmapKorinishTuri) => void; className?: string; /** `false` — «Tahrir» yorlig‘i chiqmaydi (yozuv ruxsati yo‘q). */ tahrirMumkin?: boolean }) {
-  const asosiyJoriy = joriy === 'xarita' || joriy === 'pult';
+  const asosiyJoriy = joriy === 'xarita' || joriy === 'pult' || joriy === 'tahrir';
   const [ochiq, setOchiq] = useState(!asosiyJoriy);
   const boshqalar = BOSHQA_KORINISHLAR.filter(({ k }) => tahrirMumkin || k !== 'tahrir');
-  const korinadigan = [...ASOSIY_KORINISH, ...(ochiq || !asosiyJoriy ? boshqalar : [])];
+  const korinadigan = [...ASOSIY_KORINISH.filter(({ k }) => tahrirMumkin || k !== 'tahrir'), ...(ochiq || !asosiyJoriy ? boshqalar : [])];
   return (
     <div className={'inline-flex max-w-full items-center gap-1 ' + className}>
       <div role="tablist" aria-label={t('Ko‘rinish')} className="inline-flex max-w-full overflow-x-auto rounded-[var(--radius-sm)] border border-[var(--border-strong)] bg-surface-2 p-0.5">
