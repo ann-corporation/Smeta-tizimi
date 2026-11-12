@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { sorovHavolasi } from '../lib/bozor/havola';
 import { ClipboardList, Plus, Building2, Calendar, Send, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useKompaniya } from './KompaniyaTanlov';
 import { toast } from '../umumiy/ui/Toast';
@@ -275,6 +276,10 @@ export default function TestZayavka() {
                         <span className="inline-flex flex-wrap items-center justify-end gap-1">
                           {z.status === 'procurement' && (
                             <button type="button" onClick={() => setBuyurtmaZ(z)} className="fz-btn fz-btn--sm fz-btn--primary" title={t('Yetkazuvchiga buyurtma berish')}>{t('Buyurtma berish')}</button>
+                          )}
+                          {(z.status === 'approved' || z.status === 'procurement') && (
+                            <Link to={sorovHavolasi({ nom: z.itemText, birlik: z.unit ?? '', hajm: qolgan != null && qolgan > 0 ? qolgan : z.requestedQty, zayavka_id: z.id, obyekt_id: z.obyektId })}
+                              className="fz-btn fz-btn--sm" title={t('Bozorda ochiq so‘rov: sotuvchilar narx beradi')}>{t('Bozordan narx so‘rash')}</Link>
                           )}
                           {QADAMLAR.filter((q) => q.dan.includes(z.status) && q.ga !== 'ordered').map((q) => (
                             <button key={q.ga} type="button" onClick={() => void holatOzgartir(z.id, q.ga)} className={`fz-btn fz-btn--sm ${q.cls}`} title={t(q.title)}>{t(q.nom)}</button>
