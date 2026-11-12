@@ -42,6 +42,7 @@ export const SAHIFA_SINONIM: Readonly<Record<string, Sinonim>> = {
   '/admin/storage': { uz: ['fayllar', 'fayl', 'saqlash'], ru: ['файлы', 'файл', 'хранилище'], en: ['files', 'file storage'] },
   '/admin/zakazchik': { uz: ['buyurtmachi kabineti', 'buyurtmachi'], ru: ['кабинет заказчика', 'заказчик'], en: ['customer portal', 'client cabinet'] },
   '/admin/taqdimlar': { uz: ['tomonlar hujjatlari', 'taqdimlar'], ru: ['документы сторон', 'представления'], en: ['party documents', 'submissions'] },
+  '/admin/laboratoriya': { uz: ['sinov so‘rovi', 'sinov sorovi', 'laboratoriya kabineti', 'sinov protokoli'], ru: ['запросы на испытания', 'кабинет лаборатории', 'протокол испытаний'], en: ['test requests', 'lab cabinet', 'test protocol'] },
   '/admin/chizmalar': { uz: ['chizmalar', 'chizma', 'revizya', 'loyiha chizmalari'], ru: ['чертежи', 'чертеж', 'ревизия чертежа'], en: ['drawings', 'drawing', 'drawing revision'] },
   '/admin/loyihachi': { uz: ['loyihachi', 'loyihachi bugun', 'mualliflik nazorati'], ru: ['проектировщик', 'авторский надзор'], en: ['designer', 'author supervision'] },
   '/admin/murojaatlar': { uz: ['murojaatlar', 'murojaat', 'remark'], ru: ['обращения', 'замечания'], en: ['inquiries', 'remarks'] },

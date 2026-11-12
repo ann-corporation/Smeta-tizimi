@@ -494,6 +494,18 @@
             "qoshimcha": true
           },
           {
+            "yol": "/admin/laboratoriya",
+            "ilova": "hujjat",
+            "nom": "Laboratoriya (sinov so‘rovlari)",
+            "ruxsat": [
+              "control.company.read",
+              "project.read",
+              "quality.read"
+            ],
+            "modul": "module.loyiha",
+            "qoshimcha": true
+          },
+          {
             "yol": "/admin/hujjat-aylanish",
             "ilova": "hujjat",
             "nom": "Hujjat aylanishi (kiruvchi, xat, tasdiq)",
