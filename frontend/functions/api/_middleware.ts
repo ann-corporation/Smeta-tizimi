@@ -1,5 +1,5 @@
 import { tekshir } from '../_shared/auth';
-import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shared/role-authority';
+import { roleAuthority, ruxsatBormi, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shared/role-authority';
 import { SCOPED_APIS, requestPermission, yopiqModul } from '../_shared/permission-policy';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 
@@ -58,7 +58,7 @@ export const onRequest: PagesFunction<Env> = async ctx => {
   }
   const candidates=targets.size?[...targets]:(authority.kompaniyalar??[]).map(a=>a.kompaniya_id);
   // Missing scope may never pick a more privileged company. All possible targets must permit it.
-  if (!candidates.length || !candidates.every(id=>authority.permissionsByCompany![id]?.includes('company.read')&&authority.permissionsByCompany![id]?.includes(permission))) return fail('PERMISSION_DENIED');
+  if (!candidates.length || !candidates.every(id=>authority.permissionsByCompany![id]?.includes('company.read')&&ruxsatBormi(authority.permissionsByCompany![id], permission))) return fail('PERMISSION_DENIED');
   // T4: modul holati keshlangan vakolat ichida (qo'shimcha so'rov yo'q). Faqat yozish; o'qish va PTO yadrosi ochiq.
   const modul=yopiqModul(permission,candidates,authority.modullarOffByCompany);
   if (modul) return Response.json({ok:false,code:'MODULE_DISABLED',modul,error:'Bu modul ish joyingizda o‘chirilgan. Uni Kompaniya → Modullar bo‘limida yoqish mumkin.'},{status:403});

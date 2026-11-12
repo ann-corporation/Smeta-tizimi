@@ -104,3 +104,24 @@ describe('Jarvis: «rigelni metriga 250 mingdan quysa smetaga sig‘adimi?»', (
     expect(kelishuvMatni(rows, 'xyz; metr; 100')).toContain('topilmadi');
   });
 });
+
+describe('Jarvis kelishuv: tarix va ustamali', () => {
+  const rows = [
+    { id: 1, obyekt_id: 1, ota_id: null, tur: 'bl', kod: 'Е6-1', nom: 'УСТРОЙСТВО РИГЕЛЕЙ', birlik: 'м3', hajm: 10, summa: null, kat: null },
+    { id: 2, obyekt_id: 1, ota_id: 1, tur: 'rs', kod: null, nom: 'ЗАТРАТЫ ТРУДА', birlik: 'чел-ч', hajm: 100, summa: 30_000_000, kat: 'ЧЕЛ' },
+  ] as unknown as T2Qator[];
+  it('koef tarixdan, oldin to‘langan narx va ustamali adolatli narx', () => {
+    const tarix = [{ qator_id: null, kod: 'Е6-1', nom: null, birlik: 'м3', yaratildi: '2026-11-01', usta_narx: 2_750_000, usta_narx_birlik: 220_000, koef: 0.08, usta_birlik: 'м' }];
+    const s = kelishuvMatni(rows, 'rigel; metr; 250 ming', { tarix, ustamali: (x) => x * 1.5 });
+    expect(s).toContain('oldingi naryad tarixi'); expect(s).toContain('ustamali 360 000'); expect(s).toContain('220 000');
+  });
+});
+
+describe('usta Bugun satrlari', () => {
+  it('usta o‘z birligida: hajm / koef', async () => {
+    const { ustaIshQatorlari } = await import('./bugun');
+    const n = { id: 1, versiya: 2, raqam: 'N-1', holat: 'berildi', qatorlar: [qator({ hajm: 8, bajarilgan_hajm: 4 })] } as never;
+    const r = ustaIshQatorlari(n);
+    expect(r[0].birlik).toBe('м'); expect(r[0].hajm).toBe(100); expect(r[0].bajarilgan).toBe(50);
+  });
+});

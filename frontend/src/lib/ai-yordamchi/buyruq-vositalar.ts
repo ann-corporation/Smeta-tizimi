@@ -13,7 +13,8 @@ import { bosKatKesim, katKesimgaQosh, type KatKesim } from '../ustamali-summa';
 import { qoldiqHajmi } from '../zamena-qoldiq';
 import { t } from '../../i18n/til';
 import type { NaryadQisqa } from '../naryad';
-import { kelishuvMatni, naryadMatni } from '../naryad/jarvis';
+import { kelishuvIshlari, kelishuvMatni, naryadMatni } from '../naryad/jarvis';
+import type { TarixQator } from '../../api/t2-naryad';
 import { lugatTushuntir, odamNomi } from '../qurilish-lugat';
 import { faktAmalTekshir, faktHajmOqi, faktHolat, faktIndeks, faktKontekst, faktQidir, qatorSatri, summalarBloki, type FaktMalumot, type UstamaliFn } from './fakt-vositalar';
 import type { OqishSorovi, SahifaAmal } from './protokol';
@@ -81,6 +82,14 @@ export function buyruqLugat(m: BuyruqMalumot, arg: string | null): string {
   const topildi = m.rows.filter((r) => (r.tur === 'bl') && f(`${r.kod ?? ''} ${r.nom ?? ''}`));
   return [lugatTushuntir(a), topildi.length ? `Obyektda mos ish qatorlari: ${topildi.length}${topildi.length > 8 ? ' (birinchi 8 tasi)' : ''}:` : 'Obyektda mos ish qatori topilmadi.',
     ...topildi.slice(0, 8).map((r) => `- ${qatorMatni(m, r)} → ${odamNomi(r, 'uz')}`)].join('\n');
+}
+
+/** kelishuv: kompaniya naryad tarixi va ustamali (m.ustamali — hisob-yadro) bilan. Tarix o'qilmasa — tarixsiz hisob. */
+async function kelishuvOqi(m: BuyruqMalumot, arg: string | null, yoz: Pick<BuyruqYoz, 'tarix'>): Promise<string> {
+  const ishlar = kelishuvIshlari(m.rows, arg);
+  const tarix = yoz.tarix && ishlar.length ? await yoz.tarix(ishlar.map((r) => r.id), ishlar.flatMap((r) => (r.kod ? [r.kod] : []))).catch(() => null) : null;
+  const ustamali = m.ustamali ? (x: number) => m.ustamali?.({ ustamasiz: x, kesim: katKesimgaQosh(bosKatKesim(), 'ЧЕЛ', x) }).ustamali ?? null : undefined;
+  return kelishuvMatni(m.rows, arg, { tarix, ustamali });
 }
 
 export function buyruqKontekst(m: BuyruqMalumot): string {
@@ -189,6 +198,8 @@ export type BuyruqYoz = {
   yangila?: () => void;
   yangiOperationId: () => string;
   bugun?: () => string;
+  /** Naryad tarixi (kelishuv vositasi: koef va oldin to'langan narx). Yo'q — tarixsiz hisob. */
+  tarix?: (qatorIdlar: number[], kodlar: string[]) => Promise<TarixQator[] | null>;
 };
 
 const bugunSana = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
@@ -202,7 +213,7 @@ export function buyruqVositalar(getM: () => BuyruqMalumot, obyektId: number, yoz
   return {
     sahifa: 'buyruq',
     kontekst: () => buyruqKontekst(getM()),
-    oqi: (s) => buyruqOqi(getM(), s),
+    oqi: (s) => (s.vosita === 'kelishuv' ? kelishuvOqi(getM(), s.arg, yoz) : buyruqOqi(getM(), s)),
     tekshir: (a) => buyruqAmalTekshir(getM(), a),
     nomi: (a) => buyruqAmalNomi(getM(), a),
     pul: pulAmalmi,

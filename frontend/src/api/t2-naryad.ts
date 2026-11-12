@@ -9,6 +9,8 @@ import { sbFaktYoz } from './t2-fakt';
 import type { LugatQoshimcha } from '../lib/qurilish-lugat';
 import { naryadTozala, type FaktHozir, type Naryad, type NaryadHolat, type NaryadKat, type NaryadQisqa } from '../lib/naryad';
 import type { TarixSatr } from '../lib/naryad/kelishuv';
+import { ustaIshQatorlari, type UstaIsh } from '../lib/naryad/bugun';
+import type { Til } from '../lib/qurilish-lugat';
 
 type OqishJavob<T> = { ok: boolean; code?: string } & T;
 
@@ -122,4 +124,15 @@ export async function tarixOl(kompaniyaId: number, qatorIdlar: number[], kodlar:
   if (!ids.length && !k.length) return [];
   const r = await ol<{ qatorlar: TarixQator[] }>(kompaniyaId, 'tarix', { qator_ids: ids, kodlar: k });
   return r ? (r.qatorlar ?? []).map((x) => ({ ...x, usta_narx: son(x.usta_narx), usta_narx_birlik: son(x.usta_narx_birlik), koef: son(x.koef) })) : null;
+}
+
+/**
+ * Usta «Bugun» uchun ochiq naryad ishlari (berildi / bajarildi). RPC faqat self.work.write egasiga o'z naryadlarini beradi
+ * (usta_foydalanuvchi_id = actor); prorab/PTO uchun — kompaniyaning barcha ochiq naryadlari. `bugungiIshlarManbasi()` shuni chaqiradi.
+ */
+export async function ustaIshlari(kompaniyaId: number, til: Til = 'uz'): Promise<UstaIsh[] | null> {
+  const [a, b] = await Promise.all([naryadlarOl(kompaniyaId, { holat: 'berildi', limit: 30 }), naryadlarOl(kompaniyaId, { holat: 'bajarildi', limit: 30 })]);
+  if (!a || !b) return null;
+  const naryadlar = await Promise.all([...a, ...b].map((x) => naryadOl(kompaniyaId, x.id)));
+  return naryadlar.flatMap((n) => (n ? ustaIshQatorlari(n, til) : []));
 }

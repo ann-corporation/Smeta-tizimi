@@ -11,6 +11,8 @@
   "Usta birligi": { "ru": "Единица мастера", "en": "Foreman's unit" },
   "metr, dona, kvadrat…": { "ru": "метр, штука, квадрат…", "en": "metre, piece, square…" },
   "1 birlikda smeta birligi": { "ru": "Сметных единиц в 1 единице", "en": "Estimate units per 1 unit" },
+  "Usta (kompaniya a‘zosi, ixtiyoriy)": { "ru": "Мастер (участник компании, необязательно)", "en": "Foreman (company member, optional)" },
+  "Prorab belgilaydi": { "ru": "Отмечает прораб", "en": "Site manager marks it" },
   "Koef": { "ru": "Коэффициент", "en": "Factor" },
   "Usta narxi smeta birligiga": { "ru": "Расценка мастера за сметную единицу", "en": "Foreman rate per estimate unit" },
   "smeta puli usta birligiga (adolatli)": { "ru": "сметные деньги на единицу мастера (справедливо)", "en": "estimate money per foreman unit (fair)" },

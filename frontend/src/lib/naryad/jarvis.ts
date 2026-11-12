@@ -6,7 +6,8 @@ import type { T2Qator } from '../../api/supabase';
 import { koefParametrdan } from '../ish-kartasi';
 import { qidiruvTayyorla } from '../qidiruv-normalizatsiya';
 import { HOLAT_NOMI, NARYAD_HOLATLAR, holatSoni, qatorMehnat, type NaryadHolat, type NaryadQisqa } from './index';
-import { koefBirlikdan, kelishuvHisob, ustaBirlikNorm } from './kelishuv';
+import type { TarixQator } from '../../api/t2-naryad';
+import { koefBirlikdan, koefTarixdan, kelishuvHisob, ustaBirlikNorm } from './kelishuv';
 
 const raqam = (v: number | null | undefined) => (v == null || !Number.isFinite(v) ? '—' : Number(v).toLocaleString('ru-RU', { maximumFractionDigits: 0 }));
 
@@ -42,11 +43,24 @@ const raqam2 = (v: number | null | undefined) => (v == null || !Number.isFinite(
  * arg: ish nomi ; usta birligi ; narx ; [koef yoki kesim bxh (sm/mm)]. Koef noma'lum bo'lsa o'ylab topilmaydi — so'raydi.
  * Smeta puli: shu ish qatorining ЧЕЛ resurslari (hisob-yadro kategoriyasi bilan), ustamasiz, QQS siz.
  */
-export function kelishuvMatni(rows: readonly T2Qator[], arg: string | null): string {
+export function kelishuvIshlari(rows: readonly T2Qator[], arg: string | null): T2Qator[] {
+  const p = (arg ?? '').split(/[;|]/).map((s) => s.trim());
+  if (p.length < 3 || !p[0]) return [];
+  const f = qidiruvTayyorla(p[0]);
+  return rows.filter((r) => r.tur === 'bl' && f(`${r.kod ?? ''} ${r.nom ?? ''}`)).slice(0, 3);
+}
+
+export type KelishuvOpsiya = {
+  /** Kompaniya naryad tarixi (koef va oldin to'langan narx). */
+  tarix?: readonly TarixQator[] | null;
+  /** Ustamasiz mehnat puli → ustamali (hisob-yadro orqali; ustama ma'lumoti yo'q — null). */
+  ustamali?: (ustamasiz: number) => number | null;
+};
+
+export function kelishuvMatni(rows: readonly T2Qator[], arg: string | null, o: KelishuvOpsiya = {}): string {
   const p = (arg ?? '').split(/[;|]/).map((s) => s.trim());
   if (p.length < 3 || !p[0]) return 'Format: «ish nomi; usta birligi; narx; [koef yoki kesim 20x40]». Masalan: rigel; metr; 250 ming; 20x40';
-  const f = qidiruvTayyorla(p[0]);
-  const ishlar = rows.filter((r) => r.tur === 'bl' && f(`${r.kod ?? ''} ${r.nom ?? ''}`)).slice(0, 3);
+  const ishlar = kelishuvIshlari(rows, arg);
   if (!ishlar.length) return `«${p[0]}» bo‘yicha ish qatori topilmadi.`;
   const ub = ustaBirlikNorm(p[1]);
   const narx = narxOqi(p[2]);
@@ -57,8 +71,10 @@ export function kelishuvMatni(rows: readonly T2Qator[], arg: string | null): str
   for (const r of ishlar) {
     const bolalar = rows.filter((c) => c.ota_id === r.id && c.kat != null).map((c) => ({ kat: c.kat, nom: c.nom, birlik: c.birlik, hajm: c.hajm, summa: c.summa }));
     const m = qatorMehnat({ id: r.id, obyekt_id: r.obyekt_id, tur: r.tur, kod: r.kod, nom: r.nom, birlik: r.birlik, hajm: r.hajm, summa: r.summa, bolalar });
-    let koef = koefBirlikdan(ub, r.birlik);
-    let manba = 'birlik o‘girish';
+    const tarix = (o.tarix ?? []).filter((x) => (x.qator_id != null && x.qator_id === r.id) || (r.kod != null && x.kod === r.kod));
+    let koef = koefTarixdan(tarix, ub);
+    let manba = koef != null ? 'oldingi naryad tarixi' : 'birlik o‘girish';
+    if (koef == null) koef = koefBirlikdan(ub, r.birlik);
     if (koef == null && kesim) {
       const a = Number(kesim[1].replace(',', '.')); const b = Number(kesim[2].replace(',', '.'));
       const mm = a > 100 || b > 100 ? 1 : 10; // 100 dan katta — mm, aks holda sm
@@ -68,12 +84,13 @@ export function kelishuvMatni(rows: readonly T2Qator[], arg: string | null): str
     if (koef == null && /^\d+(?:[.,]\d+)?$/.test(qosh)) { koef = Number(qosh.replace(',', '.')); manba = 'siz kiritgan koef'; }
     const nom = `[#${r.id}] ${r.kod ?? ''} ${r.nom ?? ''} | smeta birligi ${r.birlik ?? '—'}`;
     if (koef == null) { out.push(`${nom}\n  Koef noma’lum: 1 ${p[1]} necha ${r.birlik ?? 'smeta birligi'} ekanini ayting (yoki kesim, masalan 20x40) — o‘ylab topmayman.`); continue; }
-    const k = kelishuvHisob({ smetaBirlik: r.birlik, ustaBirlik: ub, koef, taklif: narx, smetaPulBirlik: m.mehnatBirlik });
+    const k = kelishuvHisob({ smetaBirlik: r.birlik, ustaBirlik: ub, koef, taklif: narx, smetaPulBirlik: m.mehnatBirlik, tarix, ustamali: o.ustamali });
     out.push([nom,
       `  Koef: 1 ${p[1]} = ${Number(koef.toPrecision(6))} ${r.birlik ?? ''} (${manba}).`,
       `  Usta narxi: ${raqam2(narx)} so‘m / ${p[1]} = ${raqam2(k.taklifSmetaBirlikda)} so‘m / ${r.birlik ?? 'smeta birligi'}.`,
-      `  Smetadagi mehnat puli (ustamasiz): ${raqam2(m.mehnatBirlik)} so‘m / ${r.birlik ?? 'smeta birligi'} = ${raqam2(k.adolatli)} so‘m / ${p[1]} (adolatli).`,
+      `  Smetadagi mehnat puli (ustamasiz): ${raqam2(m.mehnatBirlik)} so‘m / ${r.birlik ?? 'smeta birligi'} = ${raqam2(k.adolatli)} so‘m / ${p[1]} (adolatli)${k.adolatliUstamali != null ? `; ustamali ${raqam2(k.adolatliUstamali)} so‘m / ${p[1]}` : ''}.`,
+      ...(k.tarixSoni ? [`  Oldin shu ish uchun ${k.tarixSoni} marta to‘langan; eng past ${raqam2(k.tarixPol)} so‘m / ${p[1]}.`] : []),
       `  Natija: ${k.sigadi == null ? 'aniqlab bo‘lmadi' : k.sigadi ? 'SMETAGA SIG‘ADI' : 'SMETAGA SIG‘MAYDI'}${k.farqFoiz != null ? ` (${k.farqFoiz > 0 ? '+' : ''}${k.farqFoiz.toFixed(0)}%)` : ''}. ${k.sabab}`].join('\n'));
   }
-  return [...out, '(summalar QQS siz; ustamali va tarix bo‘yicha pol — «Naryad» sahifasida.)'].join('\n');
+  return [...out, '(summalar QQS siz; to‘liq hisob — «Naryad» sahifasida.)'].join('\n');
 }

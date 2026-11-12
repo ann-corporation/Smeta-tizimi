@@ -9,7 +9,7 @@ import { t } from '../../../i18n/til';
 import { yangiOperationId, type T2Qator, type T2QatorHolat } from '../../../api/supabase';
 import { sbFaktYoz } from '../../../api/t2-fakt';
 import { narxProtokolYarat } from '../../../api/t2-narx-protokol';
-import { lugatKompaniyaOl, naryadlarOl } from '../../../api/t2-naryad';
+import { lugatKompaniyaOl, naryadlarOl, tarixOl } from '../../../api/t2-naryad';
 import type { NaryadQisqa } from '../../../lib/naryad';
 import { lugatOrnat } from '../../../lib/qurilish-lugat';
 import { daraxtVaHolatOl } from '../../../lib/oylik-hujjat/ostatka-slichitelniy';
@@ -94,7 +94,7 @@ export function useObyektMotor({ kompaniyaId, obyektId, obyektNomi, faol, sahifa
   const yangila = useCallback(() => setVersiya((v) => v + 1), []);
 
   const vositalar = useMemo(() => (obyektId == null ? null : buyruqVositalar(() => mRef.current ?? bos, obyektId, {
-    ...deps.yoz, yangila,
+    ...deps.yoz, yangila, tarix: kompaniyaId != null ? (ids, kodlar) => tarixOl(kompaniyaId, ids, kodlar) : undefined,
     korsat: (qatorId) => {
       const r = mRef.current?.qatorById.get(qatorId);
       toast(`[#${qatorId}] ${r?.kod ?? ''} ${r?.nom ?? ''}`.trim(), 'ok');
@@ -102,7 +102,7 @@ export function useObyektMotor({ kompaniyaId, obyektId, obyektNomi, faol, sahifa
     },
     och: (yol) => ochRef.current(yol),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  })), [obyektId, bos, yangila]);
+  })), [obyektId, kompaniyaId, bos, yangila]);
 
   const qoshimcha = useCallback((a: SahifaAmal): ReactNode => {
     const cur = mRef.current;

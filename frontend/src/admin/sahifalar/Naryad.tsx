@@ -14,6 +14,7 @@ import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { yangiOperationId } from '../../api/supabase';
+import { kompaniyaAzolariOl, type KompaniyaAzo } from '../../api/t2-men';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
 import { podvalTanla, sbPodvallarOl } from '../../api/t2-nakrutka-podval';
@@ -260,6 +261,10 @@ function YangiNaryad({ kid, obyektId, kartalar, ustama, onYop, onYaratildi }: { 
   const [qidiruv, setQidiruv] = useState(''); const [topilgan, setTopilgan] = useState<SmetaQator[] | null>(null);
   const [tanlangan, setTanlangan] = useState<Tanlangan[]>([]);
   const [band, setBand] = useState(false);
+  /* Usta — kompaniya a'zosi (ixtiyoriy): tanlansa «bajarildi»ni o'zi belgilaydi va faqat o'z naryadlarini ko'radi; bo'sh — prorab belgilaydi. */
+  const [azolar, setAzolar] = useState<KompaniyaAzo[]>([]);
+  const [ustaId, setUstaId] = useState('');
+  useEffect(() => { void kompaniyaAzolariOl(kid).then((l) => setAzolar(l.filter((a) => a.holat === 'faol' || a.holat === 'active'))).catch(() => setAzolar([])); }, [kid]);
 
   const qidir = async () => {
     if (!qidiruv.trim()) return;
@@ -321,7 +326,7 @@ function YangiNaryad({ kid, obyektId, kartalar, ustama, onYop, onYaratildi }: { 
     const fakt = await faktHozirOl(qatorlar.map((x) => x.qator_id));
     if (!fakt) toast(t('Hozirgi fakt o‘qilmadi — farq 0 dan hisoblanadi'), 'danger');
     for (const x of qatorlar) x.fakt_boshida = fakt?.get(x.qator_id)?.fakt_hajm ?? null;
-    const r = await naryadYarat({ kompaniyaId: kid, operationId: yangiOperationId(), obyektId, ustaNom: usta.trim(), brigada: brigada.trim() || null, davrDan: dan || null, davrGacha: gacha || null, qatorlar });
+    const r = await naryadYarat({ kompaniyaId: kid, operationId: yangiOperationId(), obyektId, ustaNom: usta.trim(), ustaFoydalanuvchiId: ustaId ? Number(ustaId) : null, brigada: brigada.trim() || null, davrDan: dan || null, davrGacha: gacha || null, qatorlar });
     setBand(false);
     if (!r.ok || !r.id) { toast(`${t('Yaratilmadi')}: ${r.error ?? r.code ?? ''}`, 'danger'); return; }
     toast(`${t('Naryad yaratildi')}: ${r.raqam ?? ''}`, 'ok');
@@ -336,6 +341,15 @@ function YangiNaryad({ kid, obyektId, kartalar, ustama, onYop, onYaratildi }: { 
         <div className="mb-3 flex items-center justify-between"><b>{t('Yangi naryad')}</b><button type="button" className={tugma} onClick={onYop}><X size={14} />{t('Yopish')}</button></div>
         <div className="grid gap-2 sm:grid-cols-2">
           <label><span className={yorliq}>{t('Usta / mas’ul')}</span><input className={kirit} value={usta} maxLength={200} onChange={(e) => setUsta(e.target.value)} /></label>
+          <label><span className={yorliq}>{t('Usta (kompaniya a‘zosi, ixtiyoriy)')}</span>
+            <select aria-label={t('Usta (kompaniya a‘zosi, ixtiyoriy)')} className={kirit} value={ustaId} onChange={(e) => {
+              const id = e.target.value; setUstaId(id);
+              const a = azolar.find((x) => String(x.foydalanuvchi_id) === id);
+              if (a && !usta.trim()) setUsta(a.ism || a.login);
+            }}>
+              <option value="">{t('Prorab belgilaydi')}</option>
+              {azolar.map((a) => <option key={a.azolik_id} value={String(a.foydalanuvchi_id)}>{`${a.ism || a.login} · ${a.rol}`}</option>)}
+            </select></label>
           <label><span className={yorliq}>{t('Brigada')}</span><input className={kirit} value={brigada} maxLength={200} onChange={(e) => setBrigada(e.target.value)} /></label>
           <label><span className={yorliq}>{t('Davr: dan')}</span><input type="date" className={kirit} value={dan} onChange={(e) => setDan(e.target.value)} /></label>
           <label><span className={yorliq}>{t('Davr: gacha')}</span><input type="date" className={kirit} value={gacha} onChange={(e) => setGacha(e.target.value)} /></label>
