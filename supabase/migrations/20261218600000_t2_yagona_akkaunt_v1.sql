@@ -391,7 +391,8 @@ end $f$;
 
 
 
--- ───────── oxirgi_kirish_at: parol / email-kod / Telegram Mini App (prod tanalari AYNAN; faqat bitta update qo'shilgan) ─────────CREATE OR REPLACE FUNCTION public.t2_email_kod_kirish_v1(p_tasdiqlash_id uuid, p_kod_xesh text, p_email text, p_ism text, p_ip_belgi text, p_operation_id uuid)
+-- ───────── oxirgi_kirish_at: parol / email-kod / Telegram Mini App (prod tanalari AYNAN; faqat bitta update qo'shilgan) ─────────
+CREATE OR REPLACE FUNCTION public.t2_email_kod_kirish_v1(p_tasdiqlash_id uuid, p_kod_xesh text, p_email text, p_ism text, p_ip_belgi text, p_operation_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
