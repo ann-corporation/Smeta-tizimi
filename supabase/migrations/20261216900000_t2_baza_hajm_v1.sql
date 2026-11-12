@@ -55,7 +55,7 @@ begin
 end $$;
 revoke all on function public.t2_baza_hajm_yoz_v1(text) from public, anon, authenticated;
 grant execute on function public.t2_baza_hajm_yoz_v1(text) to service_role;
-comment on function public.t2_baza_hajm_yoz_v1(text) is 'Baza hajmi tarixiga bitta nuqta yozadi (jami bayt, top-15 jadval, biznes jadvallar aniq qator soni). Faqat service_role/pg_cron.';
+comment on function public.t2_baza_hajm_yoz_v1(text) is 'versiya: texnik - t2_qator dan faqat qatorlar SONI olinadi (hajm kuzatuvi), smeta qiymati o''qilmaydi. Baza hajmi tarixiga bitta nuqta yozadi (jami bayt, top-15 jadval, biznes jadvallar aniq qator soni). Faqat service_role/pg_cron.';
 
 -- Indekslar tushirilishidan OLDINGI asos nuqta (acceptance: qator soni kamaymaganini shu bilan solishtiradi).
 select public.t2_baza_hajm_yoz_v1('migratsiya_oldin');
