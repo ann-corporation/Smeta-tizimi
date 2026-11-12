@@ -46,6 +46,7 @@ export const STATIK_VOSITALAR: readonly YordamchiVosita[] = [
   { id: 'qoralama.yetkazuvchi', tur: 'navigatsiya', nom: 'Yetkazuvchi: bugun — kelgan so‘rovlar, buyurtmalar, transport', misol: ['yetkazuvchi bugun', 'menga kelgan so‘rovlar'], tasdiq: 'yoq', manba: '/admin/yetkazuvchi' },
   /* HR «Mening oyligim va KPI» (2026-11-12): faqat o'z qatori (RPC t2_hr_men_v1), hech narsa yozilmaydi. Ruxsatsiz xodim uchun /admin/hr o'zi shu tabni ochadi. */
   { id: 'oqish.mening_oyligim', tur: 'navigatsiya', nom: 'Mening oyligim va KPI: ish haqi, naryad (donabay), ushlanmalar, KPI ko‘rsatkichlari manbasi bilan', misol: ['mening oyligim', 'mening kpi', 'моя зарплата', 'my salary'], tasdiq: 'yoq', manba: '/admin/hr?tab=men -> t2_hr_men_v1 (faqat o‘z qatori)' },
+  { id: 'oqish.foyda_zarar', tur: 'navigatsiya', nom: 'Foyda / zarar: loyiha, shartnoma, obyekt va kompaniya plyusdami yoki minusdami (bajarilgan ish − xarajat; kiritilmagan xarajat «—»)', misol: ['loyiha plyusdami minusdami', 'foyda zarar', 'прибыль убыток'], tasdiq: 'yoq', manba: '/admin/moliya?tab=foyda -> rahbar_panel_v1 + t2_xarajat + t2_tolov (yangi RPC yo‘q; hisob lib/foyda-zarar -> hisob-yadro)' },
   { id: 'qoralama.aosr', tur: 'navigatsiya', nom: 'АОСР qoralamasi: АОСР sahifasini ochadi', misol: ['АОСР tayyorla'], tasdiq: 'yoq', manba: '/admin/aosr — tasdiqlash faqat sahifada, qo‘lda' },
 ];
 

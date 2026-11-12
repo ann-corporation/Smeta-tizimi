@@ -121,6 +121,8 @@ const RUXSAT_JADVALLAR = new Set([
      `t2_erp_taminot` jadvali bor edi, lekin `t2_erp_amal` RPC bazada
      UMUMAN yo'q edi → yozish 404 berardi. */
   't2_zayavka_royxat',
+  /* USTA «Bugun» qoralamalari (20261214300000) — prorab/PTO «Tasdiqlash kutilmoqda» ro'yxati. */
+  't2_usta_fakt_qoralama',
   /* HODISA LENTASI — rahbar «nima sodir bo'ldi» ni ko'radi.
      `t2_audit_log` ga endi TRIGGER yozadi; avval 0 qator edi, chunki
      `t2_audit_yoz` ni hech kim chaqirmasdi (auditda qayd etilgan). */
@@ -279,6 +281,8 @@ export const onRequestPost: PagesFunction<{
         bux_kontragent_v1: 'kompaniya_actor',
         bux_nds_v1: 'kompaniya_actor',
         bux_tolov_v1: 'kompaniya_actor',
+  bux_kartochka_v1: 'kompaniya_actor',
+  bux_sozlama_v1: 'kompaniya_actor',
         /* Egasi 2026-11-03: shartnoma oylik paketi arxivi (versiyalar + manifest + hozirgi iz) va fakt/F2 saqlashdan oldingi ogohlantirish. `stable`; a'zolik RPC ichida. */
         shartnoma_oylik_paket_royxat_v1: 'kompaniya_actor',
         /* Egasi 2026-11-05: shartnoma kartasi — DS lar va asl fayllar (kanonik R2; yuklab olish /api/hujjat-ol). stable; a'zolik + document.read. */
