@@ -161,3 +161,13 @@ Jarvis: sinonimlar (oborotka, 60 schyot kartochkasi, provodkalar). **Qo'llanmaga
 6. **Buyurtmachi tomon qabul qilingan F2 summasi QQS bilan keladimi?** Variantlar: QQS bilan (ayirib ajratiladi — hozirgi) / QQS siz. Tavsiya: **QQS bilan**, tasdiqlang.
 7. **Ish haqi:** naryaddan hisoblanadimi yoki oylik tabeldan? Qaysi ushlanma stavkalari (INPS, daromad solig'i) sozlamaga yoziladi? Tavsiya: **tabel + naryad**, stavkalar sozlamada, buxgalter kiritadi (T).
 8. **1C bilan parallel davr** necha oy (1 / 2 / 3)? Tavsiya: **2 oy** (P2 importidan keyin).
+
+## 9. P2 holati (PR claude/buxgalteriya-p2, migratsiya 20261216210000; prodga qo'llanmagan)
+- **Yagona manba:** `t2_bux_pul_korinish_v1` obyekt/shartnoma kesimida daromad (9010), xarajat toifa bo'yicha (2010; toifa `t2_xarajat.kat` yoki subpudrat akti), tushgan, qarz (4010), kreditor (6010), pul (5010/5110), tannarx (9110) beradi.
+  «Foyda / zarar» ekrani (PR #379) jurnalda provodka bo'lsa shu RPC dan o'qiydi va qaysi manba ekanini ekranda yozadi; jurnal bo'sh bo'lsa eski manba (F2/xarajat/to'lov) zaxira. Parallel jami yo'q.
+  Hozircha jurnaldan kelmaydigan: obyektsiz daromad kompaniya jamida ko'rinmaydi (taqsimlanmagan sifatida RPC da bor, ekranda keyingi qadam).
+- **Hisobotlar:** `t2_bux_hisobot_qator` (qator → hisoblar xaritasi, standart + kompaniyaning o'zi, hammasi T), `t2_bux_hisobot_v1` (balans: davr oxiriga saldo; foyda-zarar: davr oboroti),
+  balans muvozanati tekshiruvi (aktiv − passiv) va shaklga kirmagan hisoblar ro'yxati. Joriy davr natijasi (9xxx) passivda ko'rsatiladi — yil yopilishi P5. Shakl tahriri hozir RPC (`t2_bux_hisobot_saqla_v1`), ekrani keyin.
+- **Boshlang'ich qoldiq:** `t2_bux_saldo_import_v1` (ko'rik: hisob mavjud, summa, analitika, Dt = Kt; yozish: bitta partiya, qarshi hisob sozlanadi, sukut 8810, T) va `t2_bux_saldo_bekor_v1` (storno). Ustunlarni moslash mijozda (`lib/buxgalteriya/saldo.ts`), real fayl tuzilishi qattiq yozilmagan.
+- **Tannarx:** qoida ma'lumot (`tannarx.yopish` 9110/2010), usul: daromad tan olingan obyektning butun 2010 qoldig'i (T — ulushli usul buxgalter bilan), ko'rik, delta, bekor = storno, oylar tartibi (`KEYINGI_OY_BOR`).
+- **Ish haqi/naryad (P2 #4):** BAJARILMADI. Sabab: HR #380 va naryad #375/#377 hali birlashmagan; ikki marta sanalmasligi uchun «bir fakt — bir manba» qarori kerak (`xarajat.chel` va `ish_haqi.*` bir vaqtda yoqilmaydi). P3.
