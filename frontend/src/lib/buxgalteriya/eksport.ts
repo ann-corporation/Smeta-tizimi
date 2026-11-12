@@ -6,7 +6,7 @@
 import { RasmiyVaraq, bugunSana, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, ustunHarfi, type Qiymat } from '../hujjat-yozuvchi';
 import { yaxlit2, yigindi2 } from '../hisob-yadro';
 import { sverkaQatorlari, saldoTomoni } from './hisob';
-import type { BuxHisobot, BuxHujjatQator, BuxOsv, BuxSverka } from '../../api/t2-bux-hisob';
+import type { BuxHisobot, BuxHujjatQator, BuxOsv, BuxSverka, KassaKitob } from '../../api/t2-bux-hisob';
 
 export type SverkaKirish = {
   kompaniya: string | null;
@@ -177,4 +177,26 @@ export function sverkaTomonHujjat(k: { kompaniya: string | null; s: BuxSverka })
   v.imzo(imzoTomonlari(['СОСТАВИЛ', 'ПРОВЕРИЛ']));
   const { bytes } = rasmiyKitob([v]);
   return { bytes, faylNomi: hujjatFaylNomi({ obyekt: k.s.qarshi_nom ?? 'контрагент', hujjat: 'АКТ_СВЕРКИ_СТОРОН', davr: `${k.s.dan}_${k.s.gacha}` }) };
+}
+
+/** Kassa order (приходный / расходный кассовый ордер) — RUS Excel, bitta varaq. Shakl tafsilotlari T (tekshirilsin): rasmiy shakl bilan buxgalter solishtiradi. */
+export function kassaOrderHujjat(k: { kompaniya: string | null; order: KassaKitob['orderlar'][number]; kassaHisob: string }): { bytes: Uint8Array; faylNomi: string } {
+  const kirim = k.order.tur === 'kirim';
+  const v = new RasmiyVaraq({
+    nom: kirim ? 'ПКО' : 'РКО',
+    kattaHarf: false,
+    sarlavha: kirim ? `ПРИХОДНЫЙ КАССОВЫЙ ОРДЕР № ${k.order.raqam}/${k.order.yil}` : `РАСХОДНЫЙ КАССОВЫЙ ОРДЕР № ${k.order.raqam}/${k.order.yil}`,
+    ostSarlavha: [`от ${ddmmyyyy(k.order.sana)}`, 'Т — форма ордера уточняется бухгалтером.'],
+    titul: [['Организация:', k.kompaniya ?? null], ['Контрагент:', k.order.kontragent ?? null], ['Основание:', k.order.asos ?? null]],
+    ustunlar: [
+      { sarlavha: kirim ? 'Дебет (касса)' : 'Дебет (корр. счёт)', kenglik: 18, tur: 'kod' },
+      { sarlavha: kirim ? 'Кредит (корр. счёт)' : 'Кредит (касса)', kenglik: 18, tur: 'kod' },
+      { sarlavha: 'Сумма', kenglik: 20, tur: 'pul' },
+    ],
+    yonalish: 'portrait',
+  });
+  v.qator('ish', () => [kirim ? k.kassaHisob : k.order.qarshi_hisob, kirim ? k.order.qarshi_hisob : k.kassaHisob, yaxlit2(k.order.summa)] as Qiymat[]);
+  v.imzo(imzoTomonlari(['СОСТАВИЛ', 'ПРОВЕРИЛ']));
+  const { bytes } = rasmiyKitob([v]);
+  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: k.kompaniya ?? 'касса', hujjat: kirim ? 'ПКО' : 'РКО', davr: `${k.order.yil}_${k.order.raqam}` }) };
 }

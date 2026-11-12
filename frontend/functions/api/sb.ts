@@ -285,6 +285,8 @@ export const onRequestPost: PagesFunction<{
   bux_pul_korinish_v1: 'kompaniya_actor',
   bux_hisobot_v1: 'kompaniya_actor',
   bux_sverka_v1: 'kompaniya_actor',
+  bux_bank_taklif_v1: 'kompaniya_actor',
+  bux_kassa_kitob_v1: 'kompaniya_actor',
   bux_sverka_tomonlar_v1: 'kompaniya_actor',
   bux_sozlama_v1: 'kompaniya_actor',
         /* Egasi 2026-11-03: shartnoma oylik paketi arxivi (versiyalar + manifest + hozirgi iz) va fakt/F2 saqlashdan oldingi ogohlantirish. `stable`; a'zolik RPC ichida. */

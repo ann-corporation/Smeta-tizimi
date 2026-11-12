@@ -103,6 +103,11 @@ const AMALLAR = {
   bux_saldo_bekor_v1: { rpc: 't2_bux_saldo_bekor_v1' },
   bux_tannarx_v1: { rpc: 't2_bux_tannarx_v1' },
   bux_hisobot_saqla_v1: { rpc: 't2_bux_hisobot_saqla_v1' },
+  bux_bank_yuklash_v1: { rpc: 't2_bux_bank_yuklash_v1' },
+  bux_bank_qabul_v1: { rpc: 't2_bux_bank_qabul_v1' },
+  bux_kassa_yoz_v1: { rpc: 't2_bux_kassa_yoz_v1' },
+  bux_kassa_bekor_v1: { rpc: 't2_bux_kassa_bekor_v1' },
+  bux_taqsim_saqla_v1: { rpc: 't2_bux_taqsim_saqla_v1' },
   bux_bank_import_v1: { rpc: 't2_bux_bank_import_v1' },
   bux_tashqi_v1: { rpc: 't2_bux_tashqi_sync_v1' },
   /* Egasi 2026-11-03: shartnoma oylik paketi - «Topshirildi» (versiya, manifest, ZIP kanonik saqlashda). RPC a'zolik + document.write ni o'zi tekshiradi; idempotent (operation_id). */
@@ -1280,8 +1285,30 @@ export const onRequestPost: PagesFunction<{
         const qs = so.qatorlar;
         if (!['balans', 'foyda_zarar'].includes(String(so.forma)) || !Array.isArray(qs) || qs.length > 100) return xato400('forma va ≤100 qator talab qilinadi.');
         yuk = { ...asos, p_forma: String(so.forma), p_qatorlar: qs };
-      } else if (amal === 'bux_bank_import_v1') {
+      } else if (amal === 'bux_bank_yuklash_v1') {
         const qs = so.qatorlar;
+        if (!Array.isArray(qs) || qs.length === 0 || qs.length > 500) return xato400('1–500 qator talab qilinadi.');
+        const qatorlar: Record<string, unknown>[] = [];
+        for (const q of qs) {
+          const e = q as Record<string, unknown> | null;
+          if (!e || typeof e !== 'object' || Array.isArray(e) || sanaXato(e.sana) || sonXato(e.summa) || !matn(e.kalit, 120) || !['kirim', 'chiqim'].includes(String(e.yonalish))) return xato400('bank qatori noto‘g‘ri.');
+          qatorlar.push({ kalit: matn(e.kalit, 120), sana: matn(e.sana, 10), summa: matn(e.summa, 30), yonalish: String(e.yonalish), hujjat_raqam: matn(e.hujjat_raqam, 60), izoh: matn(e.izoh, 500), inn: matn(e.inn, 20), kontragent: matn(e.kontragent, 200) });
+        }
+        yuk = { ...asos, p_qatorlar: qatorlar };
+      } else if (amal === 'bux_bank_qabul_v1') {
+        if (idXato(so.qator_id) || so.qator_id == null || idXato(so.shartnoma_id) || idXato(so.oylik_id) || (so.shartnoma_id == null) === (so.oylik_id == null)) return xato400('qator va bitta nishon (shartnoma yoki oylik) talab qilinadi.');
+        yuk = { ...asos, p_qator_id: Number(so.qator_id), p_shartnoma_id: butun(so.shartnoma_id), p_oylik_id: butun(so.oylik_id) };
+      } else if (amal === 'bux_kassa_yoz_v1') {
+        if (!['kirim', 'chiqim'].includes(String(so.tur)) || sanaXato(so.sana) || !so.sana || sonXato(so.summa) || so.summa == null || !/^\d{4}$/.test(String(so.qarshi || '')) || idXato(so.kontragent_id) || idXato(so.shartnoma_id) || idXato(so.obyekt_id)) return xato400('kassa order maydonlari noto‘g‘ri.');
+        yuk = { ...asos, p_tur: String(so.tur), p_sana: String(so.sana), p_summa: Number(so.summa), p_qarshi: String(so.qarshi), p_kontragent_id: butun(so.kontragent_id), p_shartnoma_id: butun(so.shartnoma_id), p_obyekt_id: butun(so.obyekt_id), p_asos: matn(so.asos, 300) };
+      } else if (amal === 'bux_kassa_bekor_v1') {
+        if (idXato(so.order_id) || so.order_id == null) return xato400('order talab qilinadi.');
+        yuk = { ...asos, p_order_id: Number(so.order_id) };
+      } else if (amal === 'bux_taqsim_saqla_v1') {
+        const qs = so.qatorlar;
+        if (idXato(so.kadr_id) || so.kadr_id == null || !Array.isArray(qs) || qs.length > 50) return xato400('xodim va ≤50 ulush qatori talab qilinadi.');
+        yuk = { ...asos, p_kadr_id: Number(so.kadr_id), p_qatorlar: qs.map((x) => ({ obyekt_id: Number((x as Record<string, unknown>)?.obyekt_id), ulush: Number((x as Record<string, unknown>)?.ulush) })) };
+      } else if (amal === 'bux_bank_import_v1') {        const qs = so.qatorlar;
         if (!Array.isArray(qs) || qs.length === 0 || qs.length > 500) return xato400('1–500 qator talab qilinadi.');
         const qatorlar: Record<string, unknown>[] = [];
         for (const q of qs) {

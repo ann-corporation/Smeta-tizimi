@@ -183,3 +183,10 @@ Jarvis: sinonimlar (oborotka, 60 schyot kartochkasi, provodkalar). **Qo'llanmaga
   3. Shtatda bo'lmagan usta naryadi: `xarajat.naryad_pudrat` (Dt 2010 / Kt 6010, kontragent = usta).
   4. Subpudrat akti: `xarid.ish` (qarz asosi); `xarajat.sub` o'chirilgan. Ogohlantirish: oylik oyida naryadsiz qo'lda ЧЕЛ xarajat bor (`chel_ikki_manba_ogohlantirish`).
 **Bajarilmadi (keyingi bosqich):** bank ko'chirmasi mosligi va kassa orderlari (V1 da bank CSV importi bor, moslash taklifi va order raqamlash yo'q); M-29 narxli sarf (`t2_sklad_harakat` da narx yo'q; narx `t2_qarz_asos.sklad_harakat_id` orqali kirim qatorida, lekin miqdor/partiya bog'lanishi ombor hisobidan tasdiqlanishi kerak); asosiy vositalar va amortizatsiya (reestr jadvali yo'q).
+
+## 11. P4 holati (PR claude/buxgalteriya-p4, migratsiya 20261216230000; prodga qo'llanmagan)
+- **Bank:** `t2_bux_bank_qator` navbati; `t2_bux_bank_taklif_v1` har qatorga ball + oddiy sabab bilan taklif beradi (shartnoma raqami maqsadda +50, STIR +25/+20, nom +10, summa ochiq qarzga teng +20; yo'nalish shartnoma turiga mos bo'lishi shart); `t2_bux_bank_qabul_v1` bir bosishda t2_tolov (V1 bilan bir xil dedupe kaliti) + provodkani BIR marta yozadi. Ish haqi qatori tasdiqlangan oylik sof summasiga bog'lanadi (Dt 6710 / Kt 5110; `ish_haqi.tolash`). Aniqlanmaganlar navbatda. Ustun taxmini V1 `bankParse` da; qo'lda ustun tanlash ekrani hali yo'q.
+- **Kassa:** `t2_bux_kassa_order` (yil + tur bo'yicha raqam, T), provodka manba `kassa`, kunlik kitob jurnaldan, bekor = storno, Excel ПКО/РКО (token `KASSA_ORDER`, shakl T). Manfiy qoldiq ogohlantiriladi (bloklanmaydi, T).
+- **Ish beruvchi badali:** `param.ish_beruvchi_foiz` (bo'sh = hisoblanmaydi; «Qoidalar»da tahrirlanadi, T) + qoida `ish_haqi.ish_beruvchi` (Dt 2010 / Kt 6410, T); ish haqi bilan birga yoziladi.
+- **Ish haqini taqsimlash:** `t2_bux_ish_haqi_taqsim` (xodim x obyekt x %), `t2_bux_taqsim_saqla_v1`; sukut - taqsimlanmagan (kompaniya darajasi). Yig'indi <= 100, qolgani obyektsiz. Ekrani hozir yo'q (RPC).
+- **Bajarilmadi:** asosiy vositalar reestri va amortizatsiya.

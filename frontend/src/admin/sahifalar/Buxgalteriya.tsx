@@ -17,11 +17,13 @@ import { Hisobot } from '../buxgalteriya/Hisobot';
 import { Saldo } from '../buxgalteriya/Saldo';
 import { Tannarx } from '../buxgalteriya/Tannarx';
 import { SverkaTomon } from '../buxgalteriya/SverkaTomon';
+import { BankAniq } from '../buxgalteriya/BankAniq';
+import { Kassa } from '../buxgalteriya/Kassa';
 import { useYordamchiSahifaAmallari } from '../../lib/yordamchi/sahifa-amal-store';
 import { Izoh, XatoQator } from '../buxgalteriya/umumiy';
 import { bugun, bugunOyBoshi, chorakBoshi, kirit, yilBoshi, type Davr } from '../buxgalteriya/yordamchi';
 
-type Tab = 'hisobkitob' | 'bank' | 'osv' | 'kartochka' | 'nds' | 'jurnal' | 'reja' | 'qoida' | 'davr' | 'hisobot' | 'saldo' | 'tannarx' | 'sverka';
+type Tab = 'hisobkitob' | 'bank' | 'osv' | 'kartochka' | 'nds' | 'jurnal' | 'reja' | 'qoida' | 'davr' | 'hisobot' | 'saldo' | 'tannarx' | 'sverka' | 'bankaniq' | 'kassa';
 const TABLAR: Array<[Tab, () => string, () => string]> = [
   ['hisobkitob', () => t('Kontragent bilan hisob-kitob'), () => t('Kim bizga qarz, biz kimga qarz — hujjatlargacha, akt-sverka bilan.')],
   ['bank', () => t('Bank va kassa'), () => t('To‘lovlar va bank ko‘chirmasini yuklash.')],
@@ -31,6 +33,8 @@ const TABLAR: Array<[Tab, () => string, () => string]> = [
   ['jurnal', () => t('Provodkalar jurnali'), () => t('Barcha provodkalar (журнал проводок). Hujjatga o‘tish, qo‘lda provodka va storno.')],
   ['reja', () => t('Hisoblar rejasi'), () => t('Hisoblar ro‘yxati (план счетов); T — buxgalter tasdig‘i kutilmoqda.')],
   ['qoida', () => t('Qoidalar'), () => t('Qaysi hujjat qaysi hisoblarga yoziladi (правила проводок); tomon shabloni.')],
+  ['bankaniq', () => t('Bank: aniqlash'), () => t('Bank ko‘chirmasi qatorlari: taklif, bir bosishda qabul, aniqlanmaganlar navbati (выписка банка).')],
+  ['kassa', () => t('Kassa'), () => t('Kassa orderlari (ПКО/РКО), kunlik kassa kitobi, chop etish (касса).')],
   ['sverka', () => t('Akt sverki (tomonlar)'), () => t('Ikki kompaniya o‘rtasida akt sverki: ikkala daftardan, qator-ma‘qator farq (акт сверки).')],
   ['hisobot', () => t('Balans va foyda-zarar'), () => t('Balans va foyda-zarar hisoboti jurnaldan (баланс, прибыли и убытки); Excel.')],
   ['tannarx', () => t('Tannarx'), () => t('Obyekt xarajatini sotilgan tannarxga o‘tkazish: ko‘rik, yozish, bekor (себестоимость).')],
@@ -79,6 +83,8 @@ export function Buxgalteriya() {
     { id: 'bux_kartochka', nom: t('Hisob kartochkasini ochish'), kalitlar: ['schyot kartochkasi', 'hisob kartochkasi', 'карточка счета', 'account card'], run: () => setTab('kartochka') },
     { id: 'bux_jurnal', nom: t('Provodkalar jurnalini ochish'), kalitlar: ['provodkalar', 'provodka jurnali', 'проводки', 'журнал проводок', 'journal entries'], run: () => setTab('jurnal') },
     { id: 'bux_reja', nom: t('Hisoblar rejasini ochish'), kalitlar: ['hisoblar rejasi', 'план счетов', 'chart of accounts'], run: () => setTab('reja') },
+    { id: 'bux_bankaniq', nom: t('Bank ko‘chirmasini aniqlashni ochish'), kalitlar: ['bank kochirmasi', 'банковская выписка', 'bank statement'], run: () => setTab('bankaniq') },
+    { id: 'bux_kassa', nom: t('Kassani ochish'), kalitlar: ['kassa', 'касса', 'cash desk'], run: () => setTab('kassa') },
     { id: 'bux_sverka', nom: t('Akt sverkini ochish'), kalitlar: ['akt sverki', 'акт сверки', 'reconciliation act'], run: () => setTab('sverka') },
     { id: 'bux_balans', nom: t('Balansni ochish'), kalitlar: ['balans', 'баланс', 'balance sheet'], run: () => setTab('hisobot') },
     { id: 'bux_foyda_zarar', nom: t('Foyda zarar hisobotini ochish'), kalitlar: ['foyda zarar hisoboti', 'отчет о прибылях и убытках', 'profit and loss'], run: () => setTab('hisobot') },
@@ -170,6 +176,8 @@ export function Buxgalteriya() {
               {tab === 'bank' && <Bank kid={kid} davr={davr} versiya={versiya} onOzgardi={ozgardi} />}
               {tab === 'osv' && <Osv kid={kid} davr={davr} versiya={versiya} onHisob={(k) => { setJurnalHisob(k); setTab('kartochka'); }} />}
               {tab === 'kartochka' && <Kartochka kid={kid} davr={davr} versiya={versiya} hisoblar={holat.hisoblar} hisob={jurnalHisob} onHisob={setJurnalHisob} />}
+              {tab === 'bankaniq' && <BankAniq kid={kid} versiya={versiya} yozadi={yozadi} onOzgardi={ozgardi} />}
+              {tab === 'kassa' && <Kassa kid={kid} davr={davr} versiya={versiya} hisoblar={holat.hisoblar} yozadi={yozadi} onOzgardi={ozgardi} />}
               {tab === 'sverka' && <SverkaTomon kid={kid} davr={davr} versiya={versiya} />}
               {tab === 'hisobot' && <Hisobot kid={kid} davr={davr} versiya={versiya} />}
               {tab === 'tannarx' && <Tannarx kid={kid} onOzgardi={ozgardi} tasdiqlaydi={tasdiqlaydi} />}
