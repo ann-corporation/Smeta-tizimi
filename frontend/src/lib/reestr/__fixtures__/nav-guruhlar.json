@@ -442,6 +442,51 @@
         ]
       },
       {
+        "nom": "Texnik nazorat",
+        "ikonka": "ShieldCheck",
+        "sahifalar": [
+          {
+            "yol": "/admin/nazorat",
+            "ilova": "hujjat",
+            "nom": "Texnik nazorat",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "quality.inspect"
+            ],
+            "modul": "module.loyiha",
+            "qoshimcha": true
+          },
+          {
+            "yol": "/admin/nazorat/tekshiruv",
+            "ilova": "hujjat",
+            "nom": "Yangi tekshiruv (sayt)",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "quality.inspect"
+            ],
+            "modul": "module.loyiha",
+            "qoshimcha": true
+          },
+          {
+            "yol": "/admin/nazorat/jurnal",
+            "ilova": "hujjat",
+            "nom": "Tekshiruvlar jurnali",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "quality.inspect"
+            ],
+            "modul": "module.loyiha",
+            "qoshimcha": true
+          }
+        ]
+      },
+      {
         "nom": "Chizmalar",
         "ikonka": "FileStack",
         "sahifalar": [
@@ -480,7 +525,8 @@
             "nom": "Buyurtmachi kabineti",
             "ruxsat": [
               "control.company.read",
-              "project.read"
+              "project.read",
+              "quality.inspect"
             ],
             "modul": "module.loyiha",
             "qoshimcha": true
@@ -504,7 +550,8 @@
             "ruxsat": [
               "control.company.read",
               "project.read",
-              "design.read"
+              "design.read",
+              "quality.inspect"
             ],
             "modul": "module.loyiha",
             "qoshimcha": true
@@ -516,7 +563,8 @@
             "ruxsat": [
               "control.company.read",
               "project.read",
-              "design.read"
+              "design.read",
+              "quality.inspect"
             ],
             "modul": "module.loyiha",
             "qoshimcha": true
