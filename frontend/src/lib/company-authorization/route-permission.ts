@@ -13,7 +13,7 @@ export function routePermission(path:string):PermissionCode {
   if(p==='f2') return 'f2.import';
   if(p==='f2-tayyorlash') return 'f2.prepare';
   if(['f2-tarix','f2-reestr','nakopitelniy'].includes(p)) return 'f2.read';
-  if(['holat','smeta-studio','obyektlar','narx-tekshiruv'].includes(p)) return 'smeta.read';
+  if(['holat','smeta-studio','obyektlar','narx-tekshiruv','naryad'].includes(p)) return 'smeta.read';
   if(p==='fakt'||p==='foto') return 'fakt.read';
   if(['narxlar','narx-dalil','narx-manbalari','narx-katalog','smeta-narxlash','nakrutka'].includes(p)) return 'narx.read';
   if(['dashboard','pult','moliya'].includes(p)) return 'financial.read';

@@ -15,8 +15,9 @@ export type KeyingiQadam = {
   qadam: QadamId | 'obyektlar';
 };
 
-export const QADAM_YOL: Record<QadamId | 'obyektlar', string> = {
+export const QADAM_YOL: Record<QadamId | 'obyektlar' | 'aosr', string> = {
   obyektlar: '/admin/obyektlar',
+  aosr: '/admin/aosr',
   smeta: '/admin/holat',
   fakt: '/admin/fakt',
   'f2-import': '/admin/f2',
@@ -47,7 +48,7 @@ export function keyingiQadam(h: MarkazHolat): KeyingiQadam {
   if (musbat(h.faktSaqlangan) && h.f2BuOyda === false) {
     return { kod: 'f2-yasang', sarlavha: t('F2 yasang'), izoh: t('Fakt saqlangan, {oy} uchun F2 hali yo‘q.', { oy: h.oy }), tugma: t('F2 yasash'), qadam: 'f2-yasash' };
   }
-  if (musbat(h.f2Tasdiq) && h.forma3 === 0) {
+  if (musbat(h.f2TasdiqBuOyda) && h.forma3 === 0) {
     return { kod: 'forma3', sarlavha: t('Forma 3 tayyorlang'), izoh: t('F2 tasdiqlangan, Forma 3 hali yo‘q.'), tugma: t('Forma 3 ga o‘tish'), qadam: 'nakopitelniy' };
   }
   return { kod: 'paket', sarlavha: t('Hammasi joyida'), izoh: t('Oylik F2 paketini olishingiz mumkin.'), tugma: t('F2 paketi'), qadam: 'f2-paket' };

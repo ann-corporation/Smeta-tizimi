@@ -71,15 +71,17 @@ export type HujjatTokenNatija =
  * yechilgandan KEYIN chaqiriladi. `yacheykalar` berilmasa fayldan sanaladi (`manba` bilan — asl fayl ayirib).
  */
 export async function hujjatTokenBilan(
-  p: { kompaniyaId: number; bytes: Uint8Array; hujjat: string; sabab: string; obyekt?: number | string | null; amal?: TokenAmal; yacheykalar?: number; manba?: Uint8Array | null },
+  p: { kompaniyaId: number; bytes: Uint8Array; hujjat: string; sabab: string; obyekt?: number | string | null; amal?: TokenAmal; yacheykalar?: number; manba?: Uint8Array | null; /** Paket: har fayl hisoblangan katak soni — narx har fayl narxining YIG'INDISI (bitta yechim). */ fayllar?: number[] },
   yetkaz: () => void | Promise<void>,
   d: { tokenBilan: typeof tokenBilan; mazmunXeshi: typeof mazmunXeshi } = { tokenBilan, mazmunXeshi },
 ): Promise<HujjatTokenNatija> {
   /* Yuklab olish 8–15 s hech narsa ko'rsatmasdi: bosilgan zahoti «tayyorlanmoqda», natija esa chaqiruvchi toast'ida (token narxi bilan). */
   toast('Hujjat tayyorlanmoqda… (token narxi tayyor bo‘lgach ko‘rsatiladi)', 'ok');
-  const yacheykalar = p.yacheykalar ?? xlsxYacheykaSoni(p.bytes, p.manba);
+  const paketFayllar = p.fayllar && p.fayllar.length ? p.fayllar : null;
+  const yacheykalar = paketFayllar ? paketFayllar.reduce((s, x) => s + x, 0) : p.yacheykalar ?? xlsxYacheykaSoni(p.bytes, p.manba);
   const xesh = await d.mazmunXeshi(p.bytes);
-  const meta: Record<string, string | number> = { hujjat: p.hujjat, sabab: p.sabab.slice(0, 200), yacheyka: yacheykalar, sanoq: 'formula', xesh };
+  const meta: Record<string, string | number | number[]> = { hujjat: p.hujjat, sabab: p.sabab.slice(0, 200), yacheyka: yacheykalar, sanoq: 'formula', xesh };
+  if (paketFayllar) meta.fayl_yacheykalar = paketFayllar;
   if (p.obyekt != null && p.obyekt !== '') meta.obyekt = p.obyekt;
   const r = await d.tokenBilan({ kompaniyaId: p.kompaniyaId, amal: p.amal ?? 'hujjat', birlikSoni: yacheykalar, meta }, async () => { await yetkaz(); return true; });
   if (!r.ok) return { ok: false, xabar: r.xabar };
