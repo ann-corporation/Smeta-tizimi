@@ -22,11 +22,11 @@
 
 /** App.tsx dagi `/admin/*` marshrutlarining YAGONA ro'yxati. */
 export const ADMIN_MARSHRUTLARI = [
-  'obyektlar', 'holat', 'holat/:id', 'fakt', 'f2', 'f2-tayyorlash', 'f2-tarix', 'smeta-narxlash', 'buxgalteriya',
+  'obyektlar', 'holat', 'holat/:id', 'fakt', 'bugun', 'f2', 'f2-tayyorlash', 'f2-tarix', 'smeta-narxlash', 'buxgalteriya',
   'shartnomalar', 'fakturalar', 'sklad', 'narxlar', 'ierarxiya',
   'monitoring', 'sozlamalar', 'fayl-boglash', 'hujjatlar',
   'shaxsiy-smeta', 'supabase', 'tezlik', 'test', 'test/obyektlar', 'test/daraxt', 'test/import', 'test/narxlar', 'test/oqish', 'kadrlar', 'texnika', 'taminot', 'sifat',
-  'dashboard', 'test/portfel', 'test/crm', 'participants', 'documents', 'hujjat-nazorat',
+  'dashboard', 'pult', 'test/portfel', 'test/crm', 'participants', 'documents', 'hujjat-nazorat',
   'mindmap', 'storage', 'system-control', 'kompaniya',
   'test/smeta', 'test/moliya', 'test/logistika', 'test/zayavka', 'test/aosr', 'test/erp',
   'test/sozlama', 'test/xodimlar', 'test/korzinka',
@@ -41,6 +41,8 @@ export const ADMIN_MARSHRUTLARI = [
   'hr',
   /* 2026-11-05: ish kartasi + narx tekshiruvi. */
   'narx-tekshiruv',
+  /* 2026-11-12: Texnik nazorat (texnadzor). */
+  'nazorat', 'nazorat/tekshiruv', 'nazorat/jurnal',
   /* 2026-11-11: loyihachi / mualliflik nazorati (chizma reyestri + rol uyi «Bugun»). */
   'chizmalar', 'loyihachi',
 ] as const;

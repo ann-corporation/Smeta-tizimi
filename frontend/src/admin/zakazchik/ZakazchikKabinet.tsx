@@ -11,6 +11,7 @@ import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { aloqalarOl, taqdimlarOl, zakazchikObyektlarOl, type Aloqa, type TaqdimQisqa, type ZakazchikObyekt } from '../../api/t2-tomon';
 import { t } from '../../i18n/til';
 import { Bolim, HolatBelgi } from './tomon-ui';
+import BugunBolimi from './BugunBolimi';
 import { oyMatn, pul, sana } from './tomon-yordam';
 import { bajarilishFoizi } from './obyekt-portali-yordam';
 import { raqamTozala } from '../../lib/raqam-belgi';
@@ -67,6 +68,7 @@ export default function ZakazchikKabinet() {
     <Sahifa sarlavha="Buyurtmachi kabineti" tavsif="Ulangan pudratchilar, ularning sizga ochilgan obyektlari, sertifikatlangan ishlar va qaror kutayotgan hujjatlar">
       <div className="space-y-4">
         {xato && <div role="alert" className="fz-note fz-note--danger">{xato}</div>}
+        <BugunBolimi kompaniyaId={kompaniyaId} kompaniyaNomi={joriy?.nom ?? ''} />
         <section className="fz-card fz-kpis p-4" aria-label={t('Kabinet ko‘rsatkichlari')}>
           <Kartochka nom="Faol aloqalar" qiymat={String(faol.length)} rang="var(--ok)" />
           <Kartochka nom="Ko‘rinadigan obyektlar" qiymat={String(obyektlar.length)} />

@@ -12,6 +12,7 @@ import { KompaniyaLogoRasm } from '../umumiy/hujjat/KompaniyaLogo';
 import { KompaniyaTanlagich } from '../umumiy/kontekst/KompaniyaTanlagich';
 import { PTOWorkspaceBar, PTOWorkspaceProvider } from '../umumiy/kontekst/PTOWorkspaceContext';
 import { YordamchiSahifaYozuvchi } from '../lib/yordamchi/sahifa-store';
+import { PredpisaniyaOgohlantirish } from './nazorat/PredpisaniyaOgohlantirish';
 import { RuxsatGuard } from '../umumiy/kontekst/RuxsatGuard';
 import { SahifaChegarasi } from '../umumiy/ui/XatoChegarasi';
 import { tizimdanChiq } from '../umumiy/kontekst/chiqish';
@@ -383,6 +384,7 @@ function AdminShellInner() {
          * ichki `overflow-hidden`/`h-full` saqlaydi — bu ichki konteyner
          * shu tashqi scroll konteynerining ICHIDA, hajmi mos kelsa
          * tashqi scroll umuman ko'rinmaydi. */}
+        {!k.globalRejim && k.joriy && <PredpisaniyaOgohlantirish kompaniyaId={k.joriy.id} />}
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
           <BolimTablariKontekst.Provider value={tabGuruhlari}>
             {moduleOpen ? <SahifaChegarasi><RuxsatGuard /></SahifaChegarasi> : <p role="alert" className="karta p-4 text-sm">{t('Bu modul kompaniyada o‘chirilgan.')}</p>}

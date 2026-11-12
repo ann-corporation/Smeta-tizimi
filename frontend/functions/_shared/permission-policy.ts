@@ -20,6 +20,8 @@ export function dataPermission(name: string, write: boolean, body: Record<string
     if (n === 'buyurtma_otish_v1') return ['qabul_qilindi','rad','bajarilmoqda','tayyor','topshirildi'].includes(String(body.holat || '')) ? 'supply.fulfil' : 'procurement.write';
     return 'procurement.write';
   }
+  /* USTA «Bugun» (20261214300000): qoralama fakt va material zayavkasi — self.work.write; qaror (tasdiq/rad) — fakt.write. write-command-policy.ts bilan bir xil. */
+  if (/^usta_/.test(n)) return n === 'usta_fakt_qaror_v1' ? 'fakt.write' : 'self.work.write';
   if (['erp_amal','sozlama_saqla','kirish_amal','taklif_yubor','taklif_qabul'].includes(n)) return 'control.company.write';
   if (n==='token_sarfla_v1'||n==='token_qaytar_v1'||n==='token_yakunla_v1') return 'company.read';
   /* M-29 bajarish (ombordan chiqim) — bajarish domeni; RPC ham fakt.write talab qiladi (ADR-3, 2026-10-21). */
@@ -39,7 +41,7 @@ export function dataPermission(name: string, write: boolean, body: Record<string
     if (n === 'akt_yarat') return body.tur === 'fakt' ? 'fakt.write' : 'f2.prepare';
     if (/f2|(^|_)akt_/.test(n)) return 'f2.prepare';
   } else if (/f2|(^|_)akt(?:_|$)|viborka|nakop/.test(n)) return 'f2.read';
-  if (/tolov|xarajat|faktura|bux|debitor|financial|boss|rahbar_panel/.test(n)) return write ? 'financial.write' : 'financial.read';
+  if (/tolov|xarajat|faktura|bux|debitor|financial|boss|rahbar_panel|rahbar_pult/.test(n)) return write ? 'financial.write' : 'financial.read';
   if (/fakt/.test(n)) return write ? 'fakt.write' : 'fakt.read';
   if (/narx|price|nakrutka|alias/.test(n)) return write ? 'narx.write' : 'narx.read';
   if (/qator|smeta|daraxt|ish_turi|resurs_kategoriya|qoshimcha_ish|zamena_ish|resurs_bola|ish_resurs/.test(n)) return write ? 'smeta.write' : 'smeta.read';
