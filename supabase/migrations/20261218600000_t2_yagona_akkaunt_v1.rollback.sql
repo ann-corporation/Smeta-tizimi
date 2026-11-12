@@ -123,6 +123,115 @@ begin
   return jsonb_build_object('ok', true, 'holat', 'tayyor', 'yangi', v_yangi, 'foydalanuvchi_id', v_uid, 'login', v_u.login, 'rol', coalesce(v_rol, 'kuzatuvchi'), 'azoliklar', v_az);
 end $f$;
 
+-- oxirgi_kirish_at qo'shilgan funksiyalar — avvalgi (prod) tanalariga qaytariladi.
+CREATE OR REPLACE FUNCTION public.t2_email_kod_kirish_v1(p_tasdiqlash_id uuid, p_kod_xesh text, p_email text, p_ism text, p_ip_belgi text, p_operation_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v public.t2_royxat_email_tasdiq%rowtype; v_email text := lower(btrim(coalesce(p_email,'')));
+  v_u public.t2_foydalanuvchi%rowtype; v_final bigint; v_rol text; v_k jsonb; v_kid bigint; v_demo bigint; v_manba bigint; v_ism text; v_az jsonb;
+begin
+  if p_operation_id is null then return jsonb_build_object('ok',false,'code','OPERATION_ID_REQUIRED'); end if;
+  select * into v from public.t2_royxat_email_tasdiq where id = p_tasdiqlash_id for update;
+  if not found or v.maqsad <> 'kirish' or v.bekor_qilindi_at is not null or v.yuborildi_at is null then
+    return jsonb_build_object('ok',false,'code','KOD_TOPILMADI','xabar','Kod topilmadi. Yangisini so''rang.');
+  end if;
+  if v.ishlatildi_at is not null then return jsonb_build_object('ok',false,'code','KOD_ISHLATILGAN','xabar','Bu kod allaqachon ishlatilgan. Yangisini so''rang.'); end if;
+  if v.tugaydi <= now() then return jsonb_build_object('ok',false,'code','KOD_MUDDATI_OTGAN','xabar','Kodning muddati tugagan. Yangisini so''rang.'); end if;
+  if v.urinishlar >= 5 then return jsonb_build_object('ok',false,'code','KOD_URINISH_LIMITI','xabar','Urinishlar tugadi. Yangi kod so''rang.'); end if;
+  if v.email <> v_email then return jsonb_build_object('ok',false,'code','EMAIL_MOS_EMAS','xabar','Kod boshqa email uchun yuborilgan.'); end if;
+  if v.kod_xesh <> coalesce(p_kod_xesh,'') then
+    update public.t2_royxat_email_tasdiq set urinishlar = urinishlar + 1 where id = v.id;
+    return jsonb_build_object('ok',false,'code','KOD_NOTOGRI','xabar','Kod noto''g''ri.','qolgan_urinish', 4 - v.urinishlar);
+  end if;
+  perform pg_advisory_xact_lock(hashtextextended('t2_royxat_email:' || v_email, 0));
+  select * into v_u from public.t2_foydalanuvchi where lower(email) = v_email or lower(login) = v_email
+   order by (holat = 'faol') desc, id limit 1;
+  if found then
+    if v_u.holat = 'birlashtirildi' then
+      v_final := public._t2_hisob_oxirgi(v_u.id);
+      if v_final is null then return jsonb_build_object('ok',false,'code','FOYDALANUVCHI_FAOL_EMAS','xabar','Hisob faol emas.'); end if;
+      select * into v_u from public.t2_foydalanuvchi where id = v_final;
+    end if;
+    if v_u.holat is distinct from 'faol' then return jsonb_build_object('ok',false,'code','FOYDALANUVCHI_FAOL_EMAS','xabar','Hisob faol emas.'); end if;
+    -- PRECLAIM-HIMOYA: email tasdiqlanmagan parolli / o'zi ro'yxatdan o'tgan hisobni email kod bilan egallab bo'lmaydi.
+    if v_u.email_tasdiqlandi_at is null and (v_u.parol_hash is not null
+       or (v_u.google_sub is null and exists (select 1 from public.t2_ozi_royxat_log where foydalanuvchi_id = v_u.id))) then
+      return jsonb_build_object('ok',false,'code','EMAIL_TASDIQLANMAGAN_PAROLLI_HISOB','xabar','Bu email bilan parolli hisob bor. Parol bilan kiring yoki administratorga murojaat qiling.');
+    end if;
+    update public.t2_royxat_email_tasdiq set ishlatildi_at = now() where id = v.id;
+    update public.t2_foydalanuvchi set email = coalesce(nullif(btrim(email),''), v_email), email_tasdiqlandi_at = coalesce(email_tasdiqlandi_at, now()) where id = v_u.id;
+    v_rol := public._t2_asosiy_rol(v_u.id);
+    select coalesce(jsonb_agg(jsonb_build_object('kompaniya_id', a.kompaniya_id, 'rol', a.rol)), '[]'::jsonb) into v_az
+      from public.t2_azolik a where a.foydalanuvchi_id = v_u.id and a.holat = 'faol';
+    return jsonb_build_object('ok',true,'yangi',false,'foydalanuvchi_id',v_u.id,'login',v_u.login,'rol',coalesce(v_rol,'kuzatuvchi'),'azoliklar',v_az);
+  end if;
+  perform pg_advisory_xact_lock(hashtextextended('t2_ozi_royxat', 0));
+  if (select count(*) from public.t2_ozi_royxat_log where ip_belgi = p_ip_belgi and yaratildi > now() - interval '24 hours') >= 5 then
+    return jsonb_build_object('ok', false, 'code', 'LIMIT', 'xabar', 'Bu qurilmadan bugun ro''yxatdan o''tish limiti tugadi. Ertaga urinib ko''ring.');
+  end if;
+  v_ism := coalesce(nullif(btrim(left(coalesce(p_ism, ''), 200)), ''), split_part(v_email, '@', 1));
+  insert into public.t2_foydalanuvchi(login, email, ism, holat, email_tasdiqlandi_at)
+  values (v_email, v_email, v_ism, 'faol', now()) returning * into v_u;
+  insert into public.t2_ozi_royxat_log(ip_belgi, foydalanuvchi_id, kompaniya_id, operation_id) values (p_ip_belgi, v_u.id, null, p_operation_id);
+  update public.t2_royxat_email_tasdiq set ishlatildi_at = now() where id = v.id;
+  select coalesce(jsonb_agg(jsonb_build_object('kompaniya_id', a.kompaniya_id, 'rol', a.rol)), '[]'::jsonb) into v_az
+    from public.t2_azolik a where a.foydalanuvchi_id = v_u.id and a.holat = 'faol';
+  return jsonb_build_object('ok',true,'yangi',true,'foydalanuvchi_id',v_u.id,'login',v_email,'rol','kuzatuvchi','azoliklar',v_az,'demo_obyekt_id',null);
+end $function$;
+create or replace function public.t2_kirish_royxatga_ol(p_login text, p_rol text, p_email text DEFAULT NULL::text, p_gas_verified_parol text DEFAULT NULL::text) returns jsonb
+language plpgsql security definer set search_path = public, pg_temp as $f$
+declare v_id bigint; v_komp jsonb; v_hash text;
+begin
+  insert into t2_foydalanuvchi (login, email)
+  values (p_login, p_email)
+  on conflict (login) do update set email = coalesce(excluded.email, t2_foydalanuvchi.email)
+  returning id, parol_hash into v_id, v_hash;
+
+  if p_gas_verified_parol is not null and v_hash is null then
+    update t2_foydalanuvchi
+      set parol_hash = extensions.crypt(p_gas_verified_parol, extensions.gen_salt('bf')),
+          parol_yangilandi = now()
+      where id = v_id;
+  end if;
+
+  select jsonb_agg(jsonb_build_object('kompaniya_id', a.kompaniya_id, 'rol', a.rol))
+    into v_komp
+  from t2_azolik a where a.foydalanuvchi_id = v_id and a.holat = 'faol';
+
+  return jsonb_build_object('ok', true, 'foydalanuvchi_id', v_id, 'azoliklar', coalesce(v_komp, '[]'::jsonb));
+end $f$;
+
+create or replace function public.t2_telegram_kirish_v1(p_telegram_user_id bigint, p_operation_id uuid) returns jsonb
+language plpgsql security definer set search_path = public, pg_temp as $f$
+declare v public.t2_telegram_ulanish%rowtype; v_u public.t2_foydalanuvchi%rowtype; v_uid bigint; v_rol text; v_az jsonb;
+begin
+  if p_operation_id is null then return jsonb_build_object('ok',false,'code','OPERATION_ID_REQUIRED'); end if;
+  if p_telegram_user_id is null or p_telegram_user_id <= 0 then return jsonb_build_object('ok',false,'code','TELEGRAM_MALUMOT_NOTOGRI'); end if;
+  if (select count(*) from public.t2_telegram_hodisa where telegram_user_id = p_telegram_user_id and amal = 'miniapp_kirish'
+        and yaratildi > now() - interval '1 minute') >= 10 then
+    return jsonb_build_object('ok',false,'code','LIMIT');
+  end if;
+  select * into v from public.t2_telegram_ulanish where telegram_user_id = p_telegram_user_id and holat = 'faol';
+  if not found then return jsonb_build_object('ok',false,'code','ULANMAGAN'); end if;
+  v_uid := public._t2_hisob_oxirgi(v.foydalanuvchi_id);
+  if v_uid is null then return jsonb_build_object('ok',false,'code','FOYDALANUVCHI_FAOL_EMAS'); end if;
+  select * into v_u from public.t2_foydalanuvchi where id = v_uid;
+  v_rol := public._t2_asosiy_rol(v_uid);
+  select coalesce(jsonb_agg(jsonb_build_object('kompaniya_id', a.kompaniya_id, 'rol', a.rol)), '[]'::jsonb) into v_az
+    from public.t2_azolik a where a.foydalanuvchi_id = v_uid and a.holat = 'faol';
+  insert into public.t2_telegram_hodisa (foydalanuvchi_id, telegram_user_id, amal, manba, operation_id) values (v_uid, p_telegram_user_id, 'miniapp_kirish', 'miniapp', p_operation_id);
+  return jsonb_build_object('ok',true,'foydalanuvchi_id',v_uid,'login',v_u.login,'rol',coalesce(v_rol,'kuzatuvchi'),'azoliklar',v_az);
+end $f$;
+
+
+drop function if exists public.t2_tg_dokaz_holat_v1(bigint, text, text);
+drop function if exists public.t2_tg_dokaz_boshla_v1(bigint, text, text, text, text);
+alter table public.t2_kirish_nonce drop constraint if exists t2_kirish_nonce_maqsad_chk;
+alter table public.t2_kirish_nonce drop column if exists actor_id;
+alter table public.t2_kirish_nonce drop column if exists maqsad;
 drop trigger if exists t2_usul_sinxron_tg on public.t2_telegram_ulanish;
 drop trigger if exists t2_usul_sinxron_foyd on public.t2_foydalanuvchi;
 drop function if exists public.t2_usul_uz_v1(bigint, bigint, uuid);

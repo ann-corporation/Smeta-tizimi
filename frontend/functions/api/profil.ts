@@ -18,8 +18,11 @@ import { roleAuthority, vakolatKeshTozala, sessiyaYaroqsizmi, yaroqsizSessiyaJav
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { googleKalitlar, googleOriginlar, googleTokenTekshir, STANDART_CLIENT_ID } from '../_shared/google-id';
 import { kodXesh } from './kirish-email';
+import { NONCE_PREFIKS, TOKEN_FORMAT, ipBelgi, nonceYaroqli, tasodifiyToken, xesh, yoqilgan } from '../_shared/kirish-emailsiz';
+import { deepLink, tokenBormi } from '../_shared/telegram';
 
-type Env = { SESSIYA_KALIT: string; SUPABASE_URL: string; SUPABASE_KEY: string; GOOGLE_CLIENT_ID?: string; GOOGLE_ORIGINS?: string };
+type Env = { SESSIYA_KALIT: string; SUPABASE_URL: string; SUPABASE_KEY: string; GOOGLE_CLIENT_ID?: string; GOOGLE_ORIGINS?: string;
+  KIRISH_TELEGRAM_YOQILGAN?: string; TELEGRAM_BOT_TOKEN?: string; TELEGRAM_BOT_USERNAME?: string; TELEGRAM_SAYT_URL?: string };
 type Rpc = { ok?: boolean; code?: string; [k: string]: unknown };
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
@@ -31,7 +34,7 @@ const TALAB_KODLARI = new Set([
   'ESKI_PAROL_XATO', 'PAROL_QISQA', 'PAROL_UZUN', 'PAROL_BIR_XIL',
   'GOOGLE_PAROLSIZ', 'GOOGLE_BOSHQA_HISOB', 'GOOGLE_ALLAQACHON_ULANGAN', 'GOOGLE_MALUMOT_NOTOGRI',
   'LOGIN_PAROL_XATO', 'OZI', 'PAROLSIZ_HISOB',
-  'SUPERADMIN_FARQI', 'HISOB_YOQ', 'KOD_YAROQSIZ', 'OXIRGI_USUL', 'EMAIL_LOGIN', 'USUL_TOPILMADI', 'USUL_BIRLASHTIRILGAN', 'DOKAZ_NOTOGRI',
+  'SUPERADMIN_FARQI', 'TELEGRAM_HISOB_YOQ', 'HISOB_YOQ', 'KOD_YAROQSIZ', 'OXIRGI_USUL', 'EMAIL_LOGIN', 'USUL_TOPILMADI', 'USUL_BIRLASHTIRILGAN', 'DOKAZ_NOTOGRI',
 ]);
 
 /* ── Noto'g'ri parol urinishlari: foydalanuvchi bo'yicha, xotirada (isolate) — 5 ta / 15 daqiqa ── */
@@ -263,6 +266,39 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const cookie = await yangiCookie(env, yangi ?? a.verified);
       if (!cookie) return json({ ok: false, code: 'CONFIG' }, 503);
       return json({ ok: true, kochirilgan_kompaniyalar: j.kochirilgan_kompaniyalar ?? [], qolgan_rollar: j.qolgan_rollar ?? [] }, 200, { 'Set-Cookie': cookie });
+    }
+    /* Telegram — ikkinchi hisobga egalik isboti (kirgan foydalanuvchi): nonce + brauzer siri (kirish-telegram.ts bilan bir xil sxema), actor sessiyadan. */
+    case 'birlashtir_telegram_boshla': {
+      if (!yoqilgan(env.KIRISH_TELEGRAM_YOQILGAN) || !tokenBormi(env)) return json({ ok: false, code: 'YOQILMAGAN' }, 503);
+      const nonce = NONCE_PREFIKS + tasodifiyToken(24), sir = tasodifiyToken(32);
+      const q = new Uint32Array(1); crypto.getRandomValues(q);
+      const belgi = String(q[0] % 10000).padStart(4, '0');
+      const j = await rpc(env, 't2_tg_dokaz_boshla_v1', {
+        p_actor_id: id, p_nonce_xesh: await xesh('tg-nonce', nonce, env.SESSIYA_KALIT), p_brauzer_xesh: await xesh('tg-brauzer', sir, env.SESSIYA_KALIT), p_belgi: belgi, p_ip_belgi: await ipBelgi(ctx.request),
+      });
+      if (!j?.ok) return j?.code === 'LIMIT' ? json({ ok: false, code: 'KOP_URINISH' }, 429) : rpcXato(j);
+      return json({ ok: true, nonce, sir, belgi, havola: deepLink(env, nonce), tugaydi: j.tugaydi });
+    }
+
+    case 'birlashtir_telegram_holat': {
+      const nonce = typeof b.nonce === 'string' ? b.nonce : '', sir = typeof b.sir === 'string' ? b.sir : '';
+      if (!nonceYaroqli(nonce) || !TOKEN_FORMAT.test(sir)) return json({ ok: false, code: 'TOPILMADI' }, 404);
+      const d = await rpc(env, 't2_tg_dokaz_holat_v1', { p_actor_id: id, p_nonce_xesh: await xesh('tg-nonce', nonce, env.SESSIYA_KALIT), p_brauzer_xesh: await xesh('tg-brauzer', sir, env.SESSIYA_KALIT) });
+      if (!d) return json({ ok: false, code: 'SERVER_XATO' }, 500);
+      if (d.ok && d.holat === 'kutmoqda') return json({ ok: true, holat: 'kutmoqda' });
+      if (!d.ok || !Number.isSafeInteger(Number(d.foydalanuvchi_id))) {
+        const code = typeof d.code === 'string' && ['MUDDATI_OTGAN', 'TELEGRAM_HISOB_YOQ', 'LIMIT'].includes(d.code) ? d.code : 'TOPILMADI';
+        return json({ ok: false, code }, code === 'TOPILMADI' ? 404 : code === 'LIMIT' ? 429 : 400);
+      }
+      const boshqa = Number(d.foydalanuvchi_id);
+      const opId = typeof b.operation_id === 'string' && /^[0-9a-f-]{36}$/i.test(b.operation_id) ? b.operation_id : crypto.randomUUID();
+      const j = await rpc(env, 't2_hisob_birlashtir_v2', { p_actor_id: id, p_boshqa_id: boshqa, p_dokaz: 'telegram', p_operation_id: opId });
+      if (!j?.ok) return rpcXato(j);
+      vakolatKeshTozala(id); vakolatKeshTozala(boshqa);
+      const yangi = await roleAuthority(a.verified, env);
+      const cookie = await yangiCookie(env, yangi ?? a.verified);
+      if (!cookie) return json({ ok: false, code: 'CONFIG' }, 503);
+      return json({ ok: true, holat: 'tayyor', kochirilgan_kompaniyalar: j.kochirilgan_kompaniyalar ?? [], qolgan_rollar: j.qolgan_rollar ?? [] }, 200, { 'Set-Cookie': cookie });
     }
     default:
       return json({ ok: false, code: 'AMAL_NOMALUM' }, 400);

@@ -61,7 +61,7 @@ const XATO_XABARLARI: Readonly<Record<string, string>> = {
   GOOGLE_PAROLSIZ: 'Google’ni uzishdan oldin parol o‘rnating — aks holda akkauntga kira olmay qolasiz.',
   GOOGLE_BOSHQA_HISOB: 'Bu Google pochta boshqa hisobga ulangan. Ikkala hisobni birlashtirishingiz mumkin.',
   SUPERADMIN_FARQI: 'Platforma superadmini belgisi bitta hisobda — bunday hisoblarni platforma administratori qo‘lda birlashtiradi.',
-  HISOB_YOQ: 'Bunday faol hisob topilmadi.', KOD_YAROQSIZ: 'Kod noto‘g‘ri yoki muddati tugagan.', DOKAZ_NOTOGRI: 'Tasdiqlash usuli noto‘g‘ri.',
+  HISOB_YOQ: 'Bunday faol hisob topilmadi.', TELEGRAM_HISOB_YOQ: 'Bu Telegram hech qaysi hisobga ulanmagan yoki tasdiqlangan telefoni yo‘q.', YOQILMAGAN: 'Telegram orqali tasdiqlash hali yoqilmagan.', TOPILMADI: 'So‘rov topilmadi yoki eskirgan. Qaytadan boshlang.', MUDDATI_OTGAN: 'Muddat tugadi. Qaytadan boshlang.', KOD_YAROQSIZ: 'Kod noto‘g‘ri yoki muddati tugagan.', DOKAZ_NOTOGRI: 'Tasdiqlash usuli noto‘g‘ri.',
   OXIRGI_USUL: 'Oxirgi kirish usulini uzib bo‘lmaydi.', EMAIL_LOGIN: 'Bu email sizning loginingiz — uni uzib bo‘lmaydi.', USUL_TOPILMADI: 'Kirish usuli topilmadi.',
   USUL_BIRLASHTIRILGAN: 'Birlashtirilgan hisobdan kelgan usulni uzib bo‘lmaydi.', QAYTA_KIRISH_KERAK: 'Xavfsizlik uchun joriy parolni kiriting yoki qayta kiring.',
   LOGIN_PAROL_XATO: 'Login yoki parol noto‘g‘ri.',
@@ -127,6 +127,8 @@ export const usulUz = (p: { usulId: number; parol?: string; operationId?: string
 export const birlashtirGoogle = (credential: string) => amalYubor<BirlashtirNatija>({ amal: 'birlashtir_google', credential });
 export const birlashtirEmailKod = (p: { email: string; tasdiqlashId: string; kod: string }) =>
   amalYubor<BirlashtirNatija>({ amal: 'birlashtir_email_kod', email: p.email, tasdiqlash_id: p.tasdiqlashId, kod: p.kod });
+export const birlashtirTelegramBoshla = () => amalYubor<{ nonce: string; sir: string; belgi: string; havola: string; tugaydi: string }>({ amal: 'birlashtir_telegram_boshla' });
+export const birlashtirTelegramHolat = (nonce: string, sir: string) => amalYubor<Partial<BirlashtirNatija> & { holat: 'kutmoqda' | 'tayyor' }>({ amal: 'birlashtir_telegram_holat', nonce, sir });
 /** Ikkinchi hisob emailiga kod yuboradi (mavjud ochiq endpoint; kod bazada faqat xesh). */
 export async function emailKodYubor(email: string): Promise<{ ok: boolean; tasdiqlash_id?: string; code?: string; xabar?: string }> {
   try {

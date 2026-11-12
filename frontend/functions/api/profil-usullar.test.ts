@@ -113,3 +113,40 @@ describe('birlashtir_google', () => {
     expect((await post({ amal: 'birlashtir_google', credential: 'x'.repeat(5000) })).status).toBe(400);
   });
 });
+
+describe('birlashtir_telegram — isbot (nonce + brauzer siri), actor sessiyadan', () => {
+  const TG = { ...ENV, KIRISH_TELEGRAM_YOQILGAN: '1', TELEGRAM_BOT_TOKEN: '123456789:AAFakeSinovTokenFakeSinovToken_abc', TELEGRAM_BOT_USERNAME: 'sinov_bot' };
+  const postTg = async (body: unknown, env: Record<string, unknown> = TG) => onRequestPost({ request: new Request('https://t.example/api/profil', { method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: await cookie() }, body: JSON.stringify(body) }), env, data: {} } as never);
+  const NONCE = 'kirish_' + 'N'.repeat(32), SIR = 'S'.repeat(43);
+  it('o‘chiq sozlama → 503 YOQILMAGAN (RPC yo‘q)', async () => {
+    const f = mockFetch({});
+    expect((await postTg({ amal: 'birlashtir_telegram_boshla' }, ENV)).status).toBe(503);
+    expect(calls(f, 't2_tg_dokaz_boshla_v1')).toHaveLength(0);
+  });
+  it('boshla: bazaga faqat xesh, actor sessiyadan; havola deep link (sir yo‘q)', async () => {
+    const f = mockFetch({ t2_tg_dokaz_boshla_v1: { ok: true, tugaydi: '2026-11-13T10:05:00Z' } });
+    const r = await postTg({ amal: 'birlashtir_telegram_boshla', p_actor_id: 99 });
+    const j = await r.json() as { nonce: string; sir: string; havola: string };
+    expect(j.havola).toBe(`https://t.me/sinov_bot?start=${j.nonce}`);
+    const y = calls(f, 't2_tg_dokaz_boshla_v1')[0];
+    expect(y.p_actor_id).toBe(7);
+    expect(JSON.stringify(y)).not.toContain(j.nonce); expect(JSON.stringify(y)).not.toContain(j.sir);
+  });
+  it('holat: format xato → 404; kutmoqda; tayyor → v2 (dokaz=telegram, p_boshqa_id isbotdan) + yangi cookie', async () => {
+    const f = mockFetch({ t2_tg_dokaz_holat_v1: { ok: true, holat: 'tayyor', foydalanuvchi_id: 42 }, t2_hisob_birlashtir_v2: { ok: true, kochirilgan_kompaniyalar: [], qolgan_rollar: [] } });
+    expect((await postTg({ amal: 'birlashtir_telegram_holat', nonce: 'x', sir: SIR })).status).toBe(404);
+    const r = await postTg({ amal: 'birlashtir_telegram_holat', nonce: NONCE, sir: SIR, p_boshqa_id: 5 });
+    expect(r.status).toBe(200);
+    expect(calls(f, 't2_hisob_birlashtir_v2')[0]).toMatchObject({ p_actor_id: 7, p_boshqa_id: 42, p_dokaz: 'telegram' });
+    expect(await tekshir(r.headers.get('Set-Cookie'), ENV.SESSIYA_KALIT)).toMatchObject({ foydalanuvchi_id: 7 });
+    mockFetch({ t2_tg_dokaz_holat_v1: { ok: true, holat: 'kutmoqda' } });
+    expect(await (await postTg({ amal: 'birlashtir_telegram_holat', nonce: NONCE, sir: SIR })).json()).toEqual({ ok: true, holat: 'kutmoqda' });
+  });
+  it('TELEGRAM_HISOB_YOQ → 400; boshqa kodlar umumiy TOPILMADI 404; birlashtirish chaqirilmaydi', async () => {
+    const f = mockFetch({ t2_tg_dokaz_holat_v1: { ok: false, code: 'TELEGRAM_HISOB_YOQ' } });
+    expect((await postTg({ amal: 'birlashtir_telegram_holat', nonce: NONCE, sir: SIR })).status).toBe(400);
+    mockFetch({ t2_tg_dokaz_holat_v1: { ok: false, code: 'BOSHQA_ICHKI' } });
+    expect((await postTg({ amal: 'birlashtir_telegram_holat', nonce: NONCE, sir: SIR })).status).toBe(404);
+    expect(calls(f, 't2_hisob_birlashtir_v2')).toHaveLength(0);
+  });
+});

@@ -159,6 +159,62 @@ begin
   n := 11; q := 'rol_darajasi';
   perform pg_temp._k(public._t2_rol_daraja_v1('superadmin') > public._t2_rol_daraja_v1('boss') and public._t2_rol_daraja_v1('boss') > public._t2_rol_daraja_v1('admin')
     and public._t2_rol_daraja_v1('admin') > public._t2_rol_daraja_v1('pto') and public._t2_rol_daraja_v1('pto') > public._t2_rol_daraja_v1('usta') and public._t2_rol_daraja_v1('noma_lum') = 10, n, q, 'tartib');
+  n := 12; q := 'telegram_dokaz';
+  insert into public.t2_foydalanuvchi (login, ism, holat) values ('akkaunt-t', 'AKKAUNT t', 'faol') returning id into v_x;
+  insert into public.t2_telegram_ulanish (foydalanuvchi_id, telegram_user_id, chat_id) values (v_x, v_tgu + 60, 960);
+  v_nonce := pg_temp._h('akk-dokaz-nonce'); v_br := pg_temp._h('akk-dokaz-br');
+  r := public.t2_tg_dokaz_boshla_v1(a, v_nonce, v_br, '4321', 'akkaunt-ip-d1');
+  perform pg_temp._k(r->>'ok' = 'true', n, q, 'dokaz boshlanmadi: ' || r::text);
+  r := public.t2_tg_dokaz_boshla_v1(null, pg_temp._h('x1'), v_br, '4321', 'akkaunt-ip-d1');
+  perform pg_temp._k(r->>'code' = 'ACTOR_NOT_FOUND', n, q, 'actor siz dokaz boshlandi');
+  r := public.t2_tg_kirish_holat_v1(v_nonce, v_br, 'akkaunt-ip-d1', gen_random_uuid());
+  perform pg_temp._k(r->>'code' = 'TOPILMADI' and r->>'foydalanuvchi_id' is null, n, q, 'isbot nonce i oddiy KIRISH yo''lida ishladi: ' || r::text);
+  perform public.t2_tg_kirish_start_v1(v_nonce, v_tgu + 60, 960, 'uz');
+  perform public.t2_tg_kirish_kontakt_v1(v_tgu + 60, v_tgu + 60, '+998 90 123 99 03', 960);
+  r := public.t2_tg_dokaz_holat_v1(c, v_nonce, v_br);
+  perform pg_temp._k(r->>'code' = 'TOPILMADI', n, q, 'boshqa actor isbot nonce ini oldi: ' || r::text);
+  r := public.t2_tg_dokaz_holat_v1(a, v_nonce, pg_temp._h('boshqa-sir'));
+  perform pg_temp._k(r->>'code' = 'TOPILMADI', n, q, 'brauzer sirisiz isbot berildi');
+  r := public.t2_tg_dokaz_holat_v1(a, v_nonce, v_br);
+  perform pg_temp._k(r->>'ok' = 'true' and (r->>'foydalanuvchi_id')::bigint = v_x, n, q, 'isbot hisobi: ' || r::text);
+  r := public.t2_tg_dokaz_holat_v1(a, v_nonce, v_br);
+  perform pg_temp._k(r->>'code' = 'TOPILMADI', n, q, 'isbot nonce ikki marta sarflandi');
+  r := public.t2_hisob_birlashtir_v2(a, v_x, 'telegram', gen_random_uuid());
+  perform pg_temp._k(r->>'ok' = 'true' and public._t2_hisob_oxirgi(v_x) = a
+    and exists (select 1 from public.t2_telegram_ulanish where foydalanuvchi_id = a and holat = 'faol' and telegram_user_id = v_tgu + 60), n, q, 'telegram bilan birlashtirish: ' || r::text);
+  v_nonce := pg_temp._h('akk-dokaz-nonce-2'); v_br := pg_temp._h('akk-dokaz-br-2');
+  perform public.t2_tg_dokaz_boshla_v1(c, v_nonce, v_br, '4322', 'akkaunt-ip-d2');
+  perform public.t2_tg_kirish_start_v1(v_nonce, v_tgu + 61, 961, 'uz');
+  perform public.t2_tg_kirish_kontakt_v1(v_tgu + 61, v_tgu + 61, '+998 90 123 99 04', 961);
+  r := public.t2_tg_dokaz_holat_v1(c, v_nonce, v_br);
+  perform pg_temp._k(r->>'code' = 'TELEGRAM_HISOB_YOQ', n, q, 'hech qaysi hisobga ulanmagan Telegram isbot bo''ldi: ' || r::text);
+
+  n := 13; q := 'qoshimcha_ruxsatlar_birlashadi';
+  insert into public.t2_foydalanuvchi (login, ism, holat) values ('akkaunt-x1', 'AKKAUNT x1', 'faol') returning id into d;
+  insert into public.t2_foydalanuvchi (login, ism, holat) values ('akkaunt-x2', 'AKKAUNT x2', 'faol') returning id into e;
+  insert into public.t2_azolik (foydalanuvchi_id, kompaniya_id, rol, holat) values (d, k2, 'pto', 'faol'), (e, k2, 'pto', 'faol');
+  insert into public.t2_azolik_ruxsat_qoshimcha (azolik_id, ruxsat, berilgan) select id, 'document.write', true from public.t2_azolik where foydalanuvchi_id = d and kompaniya_id = k2;
+  insert into public.t2_azolik_ruxsat_qoshimcha (azolik_id, ruxsat, berilgan) select id, 'financial.read', true from public.t2_azolik where foydalanuvchi_id = e and kompaniya_id = k2;
+  insert into public.t2_azolik_ruxsat_qoshimcha (azolik_id, ruxsat, berilgan) select id, 'document.write', false from public.t2_azolik where foydalanuvchi_id = e and kompaniya_id = k2;
+  r := public.t2_hisob_birlashtir_v2(d, e, 'email', gen_random_uuid());
+  perform pg_temp._k(r->>'ok' = 'true', n, q, 'birlashmadi: ' || r::text);
+  perform pg_temp._k((select count(*) from public.t2_azolik_ruxsat_qoshimcha x join public.t2_azolik z on z.id = x.azolik_id where z.foydalanuvchi_id = d and z.kompaniya_id = k2 and z.holat = 'faol') = 2
+    and (select berilgan from public.t2_azolik_ruxsat_qoshimcha x join public.t2_azolik z on z.id = x.azolik_id where z.foydalanuvchi_id = d and z.kompaniya_id = k2 and z.holat = 'faol' and x.ruxsat = 'document.write')
+    and exists (select 1 from public.t2_azolik_ruxsat_qoshimcha x join public.t2_azolik z on z.id = x.azolik_id where z.foydalanuvchi_id = d and z.kompaniya_id = k2 and z.holat = 'faol' and x.ruxsat = 'financial.read'), n, q, 'qo''shimcha ruxsatlar birlashmasi emas');
+
+  n := 14; q := 'oxirgi_kirish_yoziladi';
+  insert into public.t2_foydalanuvchi (login, ism, holat, parol_hash) values ('akkaunt-y', 'AKKAUNT y', 'faol', extensions.crypt('Akkaunt-Parol-4', extensions.gen_salt('bf'))) returning id into f;
+  perform public.t2_kirish_royxatga_ol('akkaunt-y', 'pto', null, null);
+  perform pg_temp._k((select oxirgi_kirish_at is not null from public.t2_kirish_usul where foydalanuvchi_id = f and tur = 'parol'), n, q, 'parol kirishi yozilmadi');
+  insert into public.t2_foydalanuvchi (login, ism, holat) values ('akkaunt-z', 'AKKAUNT z', 'faol') returning id into g;
+  insert into public.t2_telegram_ulanish (foydalanuvchi_id, telegram_user_id, chat_id) values (g, v_tgu + 70, 970);
+  r := public.t2_telegram_kirish_v1(v_tgu + 70, gen_random_uuid());
+  perform pg_temp._k(r->>'ok' = 'true' and (select oxirgi_kirish_at is not null from public.t2_kirish_usul where foydalanuvchi_id = g and tur = 'telegram'), n, q, 'telegram Mini App kirishi yozilmadi: ' || r::text);
+  insert into public.t2_foydalanuvchi (login, email, ism, holat) values ('akkaunt-w@example.invalid', 'akkaunt-w@example.invalid', 'AKKAUNT w', 'faol') returning id into s1;
+  v_tid := gen_random_uuid();
+  insert into public.t2_royxat_email_tasdiq (id, email, kod_xesh, tugaydi, yuborildi_at, maqsad) values (v_tid, 'akkaunt-w@example.invalid', pg_temp._h('kod-w'), now() + interval '10 minutes', now(), 'kirish');
+  r := public.t2_email_kod_kirish_v1(v_tid, pg_temp._h('kod-w'), 'akkaunt-w@example.invalid', null, 'akkaunt-ip-w', gen_random_uuid());
+  perform pg_temp._k(r->>'ok' = 'true' and (select oxirgi_kirish_at is not null from public.t2_kirish_usul where foydalanuvchi_id = s1 and tur = 'email'), n, q, 'email-kod kirishi yozilmadi: ' || r::text);
 exception when others then
   if sqlerrm like 'AKKAUNT qadam%' then raise; end if;
   raise exception 'AKKAUNT qadam [% %]: kutilmagan xato: % (%)', n, q, sqlerrm, sqlstate;
