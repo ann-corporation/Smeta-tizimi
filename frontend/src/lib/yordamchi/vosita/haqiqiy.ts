@@ -6,6 +6,7 @@ import { sbT2TolovYoz } from '../../../api/t2-buxgalteriya';
 import { pulXarajatKirit } from '../../../api/t2-pul-tahlil';
 import { solishtiruvOl } from '../../../api/t2-solishtiruv';
 import { aloqalarOl, murojaatlarOl, murojaatTurlariOl, murojaatYarat, resurslarOl, taqdimYubor, taqdimlarOl, tolovXabarlariOl, bugunOl } from '../../../api/t2-tomon';
+import { smetaXotiraYoz, smetaXotirasi } from '../../../api/smeta-ai';
 import { friksiyaYoz } from '../../osuvchi/friksiya';
 import type { VositaApi } from './tur';
 
@@ -43,6 +44,8 @@ export function haqiqiyVositaApi(k: number): VositaApi {
     murojaatYarat: async (p) => { const r = await murojaatYarat(k, { aloqaId: p.aloqaId, turi: p.turi, sarlavha: p.sarlavha, matn: p.matn, obyektId: p.obyektId }); return { ok: r.ok, error: r.ok ? undefined : r.error }; },
     taqdimResurslari: async () => { const r = xom(await resurslarOl(k)); return r ? r.filter((x) => x.taqdim_mumkin).map((x) => ({ kalit: x.kalit, nom: x.nom })) : null; },
     taqdimYubor: async (p) => { const r = await taqdimYubor(k, p.aloqaId, p.resurs, p.manbaId); return { ok: r.ok, error: r.ok ? undefined : r.error }; },
+    xotiraOl: async () => { try { const x = await smetaXotirasi(k); return x.yozuvlar.map((y) => ({ daraja: y.daraja, kalit: y.kalit, mazmun: y.mazmun })); } catch { return null; } },
+    xotiraYoz: async (daraja, kalit, mazmun) => { try { const ok = await smetaXotiraYoz(k, mazmun, daraja, kalit); return { ok, error: ok ? undefined : 'Xotira yozilmadi (ruxsat yoki limit)' }; } catch (e) { return { ok: false, error: e instanceof Error ? e.message : 'Xato' }; } },
     friksiya: (niyat) => friksiyaYoz('jarvis', 'qila_olmadi', 'nol_qidiruv', niyat),
   };
 }

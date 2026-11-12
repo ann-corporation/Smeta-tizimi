@@ -35,7 +35,7 @@ export function xotiraKalit(mazmun: string): string {
 export const jarvisKalitmi = (kalit: string) => kalit.startsWith('smeta.jarvis.');
 
 const YOZ_RE = /^\s*(?:jarvis[,\s]+)?(?:eslab qol|eslab qoling|esla|yodda tut|yodlab qol|запомни|запомните|remember(?: that)?)\s*[:,-]?\s*(.+)$/isu;
-const UNUT_RE = /^\s*(?:jarvis[,\s]+)?(?:unut|unuting|забудь|forget)\b\s*[:,-]?\s*(.*)$/isu;
+const UNUT_RE = /^\s*(?:jarvis[,\s]+)?(?:unut|unuting|забудь|forget)(?![\p{L}])\s*[:,-]?\s*(.*)$/isu;
 const KORSAT_RE = /(haqimda|обо мне|about me|mening xotiram|моя память|my memory).*(bil|знаешь|know|nima|xotira)|(xotira|память|memory).*(ko['‘’ʻ`]?rsat|покажи|show|list|nimalar)|(nima|nimalarni|что).*(eslab qolgan|помнишь|remember)/isu;
 
 /** Xotira buyrug'i: yozish (mazmun + daraja), unutish (raqam/matn), ko'rsatish. */

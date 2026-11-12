@@ -8,6 +8,7 @@ import { jarvisKichikGap } from '../../lib/jarvis/intent';
 import { katalogKonteksti, narxSavolimi, vaqtBilan, type KatalogKontekst } from '../../lib/jarvis/katalog-kontekst';
 import { t } from '../../i18n/til';
 import { niyatAniqla, type Niyat } from '../../lib/yordamchi/niyat';
+import { suhbatArxivla, suhbatKaliti, suhbatOqi, suhbatYoz, type Suhbat } from '../../lib/yordamchi/suhbatlar';
 import { niyatLlmGaMosmi } from '../../lib/yordamchi/niyat-llm';
 import { davomBekorMi } from '../../lib/yordamchi/vosita/ishla';
 import type { Davom, Variant } from '../../lib/yordamchi/vosita/tur';
@@ -73,7 +74,7 @@ function OtishTugmalari({ royxat, ochish }: { royxat?: SahifaIshora[]; ochish: (
 }
 
 /** Kasb ishchisi bilan suhbat: har savolda AI qadamlari JONLI ko'rinadi; harakat takliflari tasdiq kartasi bilan keladi. */
-export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, onOtish, onOqildi, yordamchi }: { kompaniyaId: number | null; kasb: KasbIshchi | null; sahifa: string; generatsiya: number; tayyorSavol?: TayyorSavol | null; onOtish?: () => void; onOqildi?: () => void; yordamchi?: YordamchiUlanish }) {
+export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, onOtish, onOqildi, yordamchi, foydalanuvchiId = null }: { foydalanuvchiId?: number | null; kompaniyaId: number | null; kasb: KasbIshchi | null; sahifa: string; generatsiya: number; tayyorSavol?: TayyorSavol | null; onOtish?: () => void; onOqildi?: () => void; yordamchi?: YordamchiUlanish }) {
   const navigate = useNavigate();
   const [xabarlar, setXabarlar] = useState<Xabar[]>([]);
   const [matn, setMatn] = useState('');
@@ -101,7 +102,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   useEffect(() => { oxir.current?.scrollIntoView?.({ behavior: 'smooth' }); }, [xabarlar]);
   /* «Yangi suhbat»: tarix tozalanadi (sarlavhadagi tugma `ai:yangi-suhbat` hodisasini yuboradi). */
   useEffect(() => {
-    const f = () => { abort.current?.abort(); busy.current = false; kutish.current = null; setBand(false); setMatn(''); setXabarlar([]); if (tarixKalit) { try { sessionStorage.removeItem(tarixKalit); } catch { /* xotira yopiq */ } } };
+    const f = () => { abort.current?.abort(); busy.current = false; kutish.current = null; setBand(false); setMatn(''); setXabarlar([]); suhbatId.current = `s${Date.now()}`; if (tarixKalit) { try { sessionStorage.removeItem(tarixKalit); } catch { /* xotira yopiq */ } } };
     window.addEventListener('ai:yangi-suhbat', f);
     return () => window.removeEventListener('ai:yangi-suhbat', f);
   }, [tarixKalit]);
@@ -109,6 +110,17 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   useEffect(() => { if (tayyorSavol?.matn) { void yubor(tayyorSavol.matn); onOqildi?.(); } /* faqat yangi hodisada */ // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tayyorSavol?.id]);
 
+  /* SUHBATLAR RO'YXATI: joriy suhbat har yakunlanganda ixcham arxivlanadi (brauzerda, 30 kun); bo'sh oynada oxirgilari ko'rinadi va davom ettiriladi. */
+  const arxivKalit = suhbatKaliti(foydalanuvchiId, kompaniyaId);
+  const [arxiv, setArxiv] = useState<Suhbat[]>([]);
+  const suhbatId = useRef(`s${Date.now()}`);
+  useEffect(() => { setArxiv(suhbatOqi(arxivKalit)); suhbatId.current = `s${Date.now()}`; }, [arxivKalit]);
+  useEffect(() => {
+    if (!yordamchi || !xabarlar.length || xabarlar.some((x) => x.jonli)) return;
+    const yangi = suhbatArxivla(suhbatOqi(arxivKalit), suhbatId.current, xabarlar.map((x) => ({ rol: x.rol, matn: x.matn, jonli: x.jonli })));
+    suhbatYoz(arxivKalit, yangi); setArxiv(yangi);
+  }, [xabarlar, arxivKalit, yordamchi]);
+  const suhbatDavom = (s: Suhbat) => { suhbatId.current = s.id; setXabarlar(s.xabarlar.map((x, i) => ({ id: `${s.id}-${i}`, rol: x.rol, matn: x.matn, jarvis: x.rol === 'ai' }))); };
   const ochish = (yol: string) => { navigate(yol); onOtish?.(); };
   /* Javobdagi ichki havolalar (/admin/...) sahifani qayta yuklamay, router orqali ochiladi; tashqilari yangi oynada. */
   const markdownBogla = useMemo(() => ({
@@ -300,6 +312,13 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
               ))}
             </div>}
             {kasb.taqiq_izoh && <p className="mt-2 text-[11px] text-text-mute">🔒 {kasb.taqiq_izoh}</p>}
+          </div>
+        )}
+        {xabarlar.length === 0 && yordamchi && arxiv.length > 0 && (
+          <div className="rounded-xl border border-border p-3 text-sm" data-testid="jarvis-suhbatlar">
+            <div className="text-xs font-semibold text-text-dim">{t('Oldingi suhbatlar')}</div>
+            <ul className="mt-1.5 space-y-1">{arxiv.slice(0, 6).map((s) => (
+              <li key={s.id}><button type="button" onClick={() => suhbatDavom(s)} className="w-full truncate rounded px-2 py-1 text-left text-xs text-text hover:bg-surface-2" title={s.sarlavha}>{s.sarlavha}</button></li>))}</ul>
           </div>
         )}
         {xabarlar.map((m) => (

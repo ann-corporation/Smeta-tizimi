@@ -4,6 +4,7 @@
  * Pul/hujjat vositalari — ikkinchi «Tasdiqlayman». Parametr yetishmasa — BITTA aniqlashtiruvchi savol (variantlar bilan), rad emas.
  */
 import { oyAjrat } from '../kontekst-ajrat';
+import { jarvisKalitmi, xotiraBuyrugi, xotiraKalit, xotiraTekshir } from '../xotira';
 import { sozlar } from '../matn';
 import { borMi, katOl, nomMosmi, pulMatn, sanaOl, summaOl, tanlovTop } from './yordam';
 import type { Slot, Variant, Vosita, VositaJavob, VositaKont } from './tur';
@@ -212,6 +213,62 @@ const taqdimVosita: Vosita = {
   },
 };
 
+/* ───────────────────────────── XOTIRA ───────────────────────────── */
+
+const DARAJA_NOMI = { foydalanuvchi: 'Shaxsiy', kompaniya: 'Kompaniya', tizim: 'Tizim' } as const;
+type XotiraQator = { daraja: 'foydalanuvchi' | 'kompaniya' | 'tizim'; kalit: string; mazmun: string };
+const tahrirlanadi = (royxat: readonly XotiraQator[]) => [...royxat.filter((x) => x.daraja === 'foydalanuvchi'), ...royxat.filter((x) => x.daraja === 'kompaniya')];
+
+const xotiraKorsatVosita: Vosita = {
+  id: 'xotira_korsat', tur: 'oqish', pul: false, ruxsat: null, parametrlar: {},
+  tavsif: 'Jarvis men haqimda nimani biladi: shaxsiy, kompaniya va tizim xotirasi ro‘yxati (unutish uchun raqam bilan).',
+  mos: (_t, xom) => xotiraBuyrugi(xom)?.tur === 'korsat',
+  ishla: async (c) => {
+    const x = await c.api.xotiraOl();
+    if (!x) return javob('Xotirani o‘qib bo‘lmadi.', true);
+    const t = tahrirlanadi(x); const tizim = x.filter((q) => q.daraja === 'tizim');
+    if (!t.length && !tizim.length) return javob('Hozircha men haqingizda hech narsa eslab qolmaganman. «Eslab qol: men doim QQS bilan ko‘raman» deb yozing.');
+    const qator = (q: XotiraQator, i: number | null) => `${i != null ? `${i + 1}. ` : '- '}${q.mazmun}`;
+    return javob([`**Men sizning haqingizda bilganlarim**`, t.length ? t.map((q, i) => `${DARAJA_NOMI[q.daraja]}: ${qator(q, i)}`).join('\n') : '', tizim.length ? `\n**Tizim qoidalari (hammaga umumiy)**\n${tizim.map((q) => qator(q, null)).join('\n')}` : '', '\nUnutish: «unut 2». Qo‘shish: «eslab qol: …» (kompaniya uchun: «eslab qol: kompaniya: …»).'].filter(Boolean).join('\n'));
+  },
+};
+
+const xotiraYozVosita: Vosita = {
+  id: 'xotira_yoz', tur: 'yozish', pul: false, ruxsat: null,
+  parametrlar: { mazmun: { tur: 'matn', majburiy: true, izoh: 'nimani eslab qolish' }, daraja: { tur: 'tanlov', izoh: 'shaxsiy (sukut) | kompaniya (faqat boss/admin)' } },
+  tavsif: 'Xotiraga yozish (pul summalari, parol, shaxsiy raqamlar yozilmaydi; ruxsatni kengaytirmaydi).',
+  mos: (_t, xom) => xotiraBuyrugi(xom)?.tur === 'yoz',
+  ishla: async (c, _slot, xom) => {
+    const b = xotiraBuyrugi(xom); if (!b || b.tur !== 'yoz') return javob('Nimani eslab qolay? «Eslab qol: …» deb yozing.');
+    const v = xotiraTekshir(b.mazmun);
+    if (!v.ok) return javob(`Buni xotiraga yozmayman (${v.sabab}). Pul summalari, parollar va shaxsiy raqamlar saqlanmaydi.`, true);
+    const kalit = xotiraKalit(v.mazmun);
+    return { tur: 'taklif', nom: `Xotira (${DARAJA_NOMI[b.daraja]})`, izoh: v.mazmun, pul: false, matn: `Eslab qolishni taklif qilaman (${b.daraja === 'kompaniya' ? 'butun kompaniya uchun' : 'faqat siz uchun'}): «${v.mazmun}». Hali saqlanmagan.`,
+      bajar: async () => nat(await c.api.xotiraYoz(b.daraja, kalit, v.mazmun), 'Eslab qoldim') };
+  },
+};
+
+const xotiraUnutVosita: Vosita = {
+  id: 'xotira_unut', tur: 'yozish', pul: false, ruxsat: null,
+  parametrlar: { raqam: { tur: 'son', majburiy: true, izoh: 'ro‘yxatdagi tartib raqami' } },
+  tavsif: 'Xotiradan bitta yozuvni o‘chirish (ro‘yxatdagi raqam bo‘yicha).',
+  mos: (_t, xom) => xotiraBuyrugi(xom)?.tur === 'unut',
+  ishla: async (c, slot, xom) => {
+    const x = await c.api.xotiraOl(); if (!x) return javob('Xotirani o‘qib bo‘lmadi.', true);
+    const t = tahrirlanadi(x);
+    if (!t.length) return javob('Unutiladigan yozuv yo‘q.');
+    const b = xotiraBuyrugi(xom); const belgi = (slot.__kutilgan === 'raqam' ? slot.__javob : b?.tur === 'unut' ? b.belgi : '') ?? '';
+    const n = /^\s*(\d{1,3})\s*$/.exec(belgi);
+    const tanlangan = n ? t[Number(n[1]) - 1] : belgi.length >= 3 ? t.filter((q) => q.mazmun.toLowerCase().includes(belgi.toLowerCase())) : [];
+    const q = Array.isArray(tanlangan) ? (tanlangan.length === 1 ? tanlangan[0] : undefined) : tanlangan;
+    if (!q) return savol('xotira_unut', slot, 'raqam', 'Qaysi birini unutay?', t.slice(0, 8).map((y, i) => ({ nom: `${DARAJA_NOMI[y.daraja]}: ${y.mazmun.slice(0, 80)}`, matn: String(i + 1) })));
+    if (q.daraja === 'tizim') return javob('Tizim qoidalarini faqat platforma administratori o‘zgartiradi.');
+    const daraja = q.daraja;
+    return { tur: 'taklif', nom: 'Xotiradan o‘chirish', izoh: q.mazmun, pul: false, matn: `Unutishni taklif qilaman: «${q.mazmun}». Hali o‘chirilmagan.`, bajar: async () => nat(await c.api.xotiraYoz(daraja, q.kalit, '-'), 'Unutdim') };
+  },
+};
+void jarvisKalitmi;
+
 /** Vosita yo'q ishlar: halol javob + sahifa + o'suvchi tizim friksiyasi. */
 const YOQ: Array<{ nom: string; kalit: string[]; sahifa: string[] }> = [
   { nom: 'hujjat eksporti', kalit: ['eksport', 'export', 'excel', 'yuklab', 'yuklash', 'скачай', 'выгруз', 'pdf'], sahifa: ['f2-tarix', 'forma3', 'nakopitelniy'] },
@@ -230,7 +287,7 @@ const yoqVosita: Vosita = {
   },
 };
 
-export const VOSITALAR: readonly Vosita[] = [bugunVosita, solishtiruvVosita, f2Amal('tasdiq'), f2Amal('bekor'), xarajatVosita, tolovVosita, murojaatVosita, taqdimVosita, yoqVosita];
+export const VOSITALAR: readonly Vosita[] = [xotiraKorsatVosita, xotiraYozVosita, xotiraUnutVosita, bugunVosita, solishtiruvVosita, f2Amal('tasdiq'), f2Amal('bekor'), xarajatVosita, tolovVosita, murojaatVosita, taqdimVosita, yoqVosita];
 
 /** Amal reestri (#399) kelganda shu nuqtadan ulanadi: reestr yozuvidan Vosita hosil qilish (hozircha qo'lda ro'yxat). */
 export function reestrdanVosita(_yozuv: unknown): Vosita | null { return null; }

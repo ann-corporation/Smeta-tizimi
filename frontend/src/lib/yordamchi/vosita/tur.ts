@@ -28,6 +28,9 @@ export type VositaApi = {
   murojaatYarat: (p: { aloqaId: number; turi: string; sarlavha: string; matn: string; obyektId?: number | null }) => Promise<{ ok: boolean; error?: string }>;
   taqdimResurslari: () => Promise<Array<{ kalit: string; nom: string }> | null>;
   taqdimYubor: (p: { aloqaId: number; resurs: string; manbaId: number; operationId?: string }) => Promise<{ ok: boolean; error?: string }>;
+  /** Xotira (t2_agent_xotira, 3 daraja): o'qish va yozish; mazmun '-' bo'lsa o'chiriladi. */
+  xotiraOl: () => Promise<Array<{ daraja: 'foydalanuvchi' | 'kompaniya' | 'tizim'; kalit: string; mazmun: string }> | null>;
+  xotiraYoz: (daraja: 'foydalanuvchi' | 'kompaniya', kalit: string, mazmun: string) => Promise<{ ok: boolean; error?: string }>;
   /** «Jarvis qila olmadi: <niyat>» — o'suvchi tizim friksiya sensoriga. */
   friksiya: (niyat: string) => void;
 };

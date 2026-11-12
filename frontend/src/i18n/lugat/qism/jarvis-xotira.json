@@ -1,0 +1,18 @@
+{
+  "Bu xotiraga yozilmaydi": { "ru": "Это не записывается в память", "en": "This is not stored in memory" },
+  "Eslab qoldim": { "ru": "Запомнил", "en": "Remembered" },
+  "Xotira yozilmadi (ruxsat yoki limit)": { "ru": "Память не записана (права или лимит)", "en": "Memory was not saved (permission or limit)" },
+  "O‘chirib bo‘lmadi (ruxsat)": { "ru": "Не удалось удалить (права)", "en": "Could not delete (permission)" },
+  "Jarvis men haqimda nimani biladi": { "ru": "Что Jarvis знает обо мне", "en": "What Jarvis knows about me" },
+  "Faqat afzalliklar va odatlar. Pul summalari, parollar va shaxsiy raqamlar saqlanmaydi; xotira ruxsatni kengaytirmaydi.": { "ru": "Только предпочтения и привычки. Денежные суммы, пароли и личные номера не сохраняются; память не расширяет права.", "en": "Preferences and habits only. Money amounts, passwords and personal numbers are not stored; memory never widens permissions." },
+  "Hozircha hech narsa eslab qolinmagan.": { "ru": "Пока ничего не запомнено.", "en": "Nothing remembered yet." },
+  "Shaxsiy": { "ru": "Личная", "en": "Personal" },
+  "Kompaniya": { "ru": "Компания", "en": "Company" },
+  "Tizim (hammaga umumiy)": { "ru": "Система (общая для всех)", "en": "System (shared)" },
+  "Unutish": { "ru": "Забыть", "en": "Forget" },
+  "Masalan: men doim QQS bilan ko‘raman": { "ru": "Например: я всегда смотрю с НДС", "en": "E.g. I always view amounts with VAT" },
+  "Yangi xotira": { "ru": "Новая запись памяти", "en": "New memory" },
+  "Daraja": { "ru": "Уровень", "en": "Level" },
+  "Eslab qol": { "ru": "Запомни", "en": "Remember" },
+  "Oldingi suhbatlar": { "ru": "Прошлые диалоги", "en": "Previous conversations" }
+}

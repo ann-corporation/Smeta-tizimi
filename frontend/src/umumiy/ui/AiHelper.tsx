@@ -186,7 +186,7 @@ export function AiHelper() {
           {taklifKarta && <div className="shrink-0 p-3">{taklifKarta}</div>}
 
           {tab === 'chat' && kasb && <ModelChip profil={kasb.profil} kompaniyaId={joriyId ?? null} />}
-          {tab === 'chat' && <AiChat kompaniyaId={joriyId ?? null} kasb={kasb} sahifa={yolNaqshi(location.pathname)} generatsiya={companyRef.current.generation} tayyorSavol={tayyor} onOqildi={() => setTayyor(null)} yordamchi={yordamchi} onOtish={() => setIsOpen(false)} />}
+          {tab === 'chat' && <AiChat foydalanuvchiId={uid} kompaniyaId={joriyId ?? null} kasb={kasb} sahifa={yolNaqshi(location.pathname)} generatsiya={companyRef.current.generation} tayyorSavol={tayyor} onOqildi={() => setTayyor(null)} yordamchi={yordamchi} onOtish={() => setIsOpen(false)} />}
           {tab === 'jurnal' && (joriyId ? <AiJurnal kompaniyaId={joriyId} admin={ADMIN_ROLLAR.includes(kasb?.rol ?? '')} /> : <p className="p-4 text-sm text-text-dim">{t('Avval kompaniyani tanlang')}</p>)}
           {tab === 'fikr' && <AiFikrPanel kompaniyaId={joriyId ?? undefined} sahifa={yolNaqshi(location.pathname)} />}
           {tab === 'sozlama' && <AiShaxsiy kasb={kasb} kuzatuvYoqilgan={kuzatuv.yoqilgan} kuzatuvAlmashtir={kuzatuv.almashtir} />}
