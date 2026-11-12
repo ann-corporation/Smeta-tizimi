@@ -83,11 +83,6 @@ describe('Jarvis amal oqimi (niyat -> ko‘rinish -> ijro), API klientlari mock'
     expect(m.tolov).toHaveBeenCalledTimes(1);
     expect(b.takror).toBe(true);
   });
-  it('«Amfiteatrda 5-qatorga 12 m3 fakt yoz»: qator topish naqsh bilan hal bo‘lmaydi — amal motor emas, mavjud model oqimi (null)', async () => {
-    const r = await oqim('Amfiteatrda 5-qatorga 12 m3 fakt yoz', ctx());
-    expect(r.t).toBeNull();
-    expect(AMAL_MAP.get('fakt.kiritish')?.ijro).toBe('model');
-  });
   it('server xatosi: foydalanuvchiga sababi, keshlanmaydi', async () => {
     m.zayavka.mockResolvedValueOnce({ ok: false, error: 'OBYEKT_YOPIQ' } as never);
     const r = await oqim('КР-5 uchun zayavka och', ctx(), ['3'], { karta: true, ikkinchi: false });

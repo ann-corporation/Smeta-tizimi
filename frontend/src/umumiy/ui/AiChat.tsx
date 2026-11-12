@@ -19,7 +19,7 @@ import { AmalKarta, type AmalXolati } from './AmalKarta';
 import { sbT2ShartnomalarOl } from '../../api/t2-shartnoma';
 import type { Amal } from '../../lib/reestr/amal';
 import { IJROCHILAR } from '../../lib/reestr/amal-ijro';
-import { AmalTasdiqXato, amalTopish, bajar, holat as amalHolat, javobQabul, korinish as amalKorinish, sessiyaBosh, type AmalKontekst, type AmalSessiya } from '../../lib/reestr/amal-motor';
+import { AmalTasdiqXato, amalTopish, bajar, holatAsync as amalHolat, javobQabul, korinish as amalKorinish, sessiyaBosh, type AmalKontekst, type AmalSessiya } from '../../lib/reestr/amal-motor';
 import { TOIFA_NOMI } from './ai-harakat';
 import { studioKontekstObuna, studioKontekstOl, studioKontekstScope } from '../../lib/jarvis/studio-kontekst';
 
@@ -114,8 +114,11 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     if (kompaniyaId != null) { try { const r = await sbT2ShartnomalarOl(kompaniyaId, false); if (r.ok) shartnomalar = ((r.qatorlar || []) as Array<{ id: number; raqam: string; nom: string | null }>); } catch { /* shartnomalarsiz davom */ } }
     return { kompaniyaId, obyektId: ya?.joriyObyekt?.id ?? null, obyektlar: ya?.obyektlar ?? [], shartnomalar, permissions: ya?.amalRuxsat?.permissions ?? null, superadmin: !!ya?.amalRuxsat?.superadmin, bugun: new Date() };
   };
-  const amalKorsat = (xid: string, e: { amal: Amal; sess: AmalSessiya; ctx: AmalKontekst }) => {
-    const h = amalHolat(e.amal, e.sess, e.ctx);
+  const amalKorsat = async (xid: string, e: { amal: Amal; sess: AmalSessiya; ctx: AmalKontekst }, asl?: { id: string; matn: string }) => {
+    let h: Awaited<ReturnType<typeof amalHolat>>;
+    try { h = await amalHolat(e.amal, e.sess, e.ctx, IJROCHILAR[e.amal.kalit]); } catch (err) { h = { tur: 'topilmadi', matn: err instanceof Error ? err.message : String(err) }; }
+    if (e.sess.modelga && asl) { amalRef.current = null; xabarYangila(xid, (x) => ({ ...x, jonli: true, jarvis: true, qadamlar: [] })); void yubor(asl.matn, { id: asl.id }); return; }   /* naqsh qatorni topa olmadi: mavjud model oqimi */
+    if (h.tur === 'topilmadi') { amalRef.current = null; amalXolat(xid, e, h.matn, 'ruxsatYoq'); return; }
     if (h.tur === 'ruxsatYoq') { amalRef.current = null; amalXolat(xid, e, h.matn, 'ruxsatYoq'); return; }
     if (h.tur === 'savol') { amalRef.current = { xid, ...e }; amalXolat(xid, e, h.matn, 'savol'); return; }
     amalRef.current = null; amalMap.current.set(xid, e);
@@ -133,7 +136,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
       const r = javobQabul(kutayotgan.amal, kutayotgan.sess, s, kutayotgan.ctx);
       setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', jarvis: true, matn: '' }]);
       if (!r.ok) { xabarYangila(id + 'a', (x) => ({ ...x, matn: r.matn })); return true; }
-      amalKorsat(id + 'a', kutayotgan); return true;
+      await amalKorsat(id + 'a', kutayotgan); return true;
     }
     if (davom || topilma?.tur !== 'aniq') {
       if (topilma?.tur === 'noaniq') { setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', jarvis: true, matn: `${t('Qaysi birini nazarda tutdingiz?')}\n${topilma.nomzodlar.map((a) => `- ${a.nom}`).join('\n')}` }]); return true; }
@@ -141,8 +144,8 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     }
     const ctx = await amalKontekstOl();
     const e = { amal: topilma.amal, sess: sessiyaBosh(topilma.amal, s, ctx), ctx };
-    setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', jarvis: true, matn: '' }]);
-    amalKorsat(id + 'a', e);
+    setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', jarvis: true, matn: t('Tekshiryapman…') }]);
+    await amalKorsat(id + 'a', e, { id, matn: s });
     return true;
   };
   const amalTasdiq = async (xid: string) => {
@@ -222,7 +225,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
       setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', matn: javob }]);
       return;
     }
-    setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', matn: '', jonli: true, qadamlar: [] }]);
+    setXabarlar((p) => (davom ? p : [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', matn: '', jonli: true, qadamlar: [] }]));
     setBand(true);
     busy.current = true;
     const ctrl = new AbortController(); abort.current = ctrl;

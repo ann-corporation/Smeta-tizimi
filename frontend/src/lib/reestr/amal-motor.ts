@@ -22,18 +22,34 @@ export type AmalKontekst = {
 
 export type AmalNatija = { ok: boolean; xabar: string; havola?: string; takror?: boolean };
 export type AmalKorinish = { matn: string; summa?: number | null };
+/** Dinamik tanlov (qator, hujjat, aloqa…) nomzodi. */
+export type Nomzod = { id: number | string; nom: string };
 export type Ijrochi = {
-  korinish: (p: Record<string, unknown>, ctx: AmalKontekst) => AmalKorinish;
+  /** Parametr -> nomzodlar (mavjud API klienti orqali). 1 ta — avtomatik; 2+ — BITTA savol (top 3); 0 — so'raladi (yoki model oqimi: `modelga`). */
+  nomzod?: Readonly<Record<string, (p: Record<string, unknown>, ctx: AmalKontekst, s: AmalSessiya) => Promise<Nomzod[]>>>;
+  /** Parametrlar to'liq bo'lgach tekshiruv (birlik, sabab…): xabar bo'lsa BITTA savol qaytadi, `tozala` parametrlar qayta so'raladi. */
+  tekshir?: (p: Record<string, unknown>, ctx: AmalKontekst, s: AmalSessiya) => Promise<{ param: string; savol: string; tozala?: readonly string[] } | null>;
+  korinish: (p: Record<string, unknown>, ctx: AmalKontekst, s?: AmalSessiya) => AmalKorinish;
   ijro: (p: Record<string, unknown>, ctx: AmalKontekst, operationId: string) => Promise<AmalNatija>;
 };
 export type Tasdiqlar = { karta: boolean; ikkinchi: boolean };
 
-export type AmalSessiya = { id: string; kalit: string; params: Record<string, unknown>; savol: { param: string; matn: string } | null };
+export type AmalSessiya = {
+  id: string; kalit: string; params: Record<string, unknown>; savol: { param: string; matn: string } | null;
+  /** Asl buyruq matni (nomzod qidirish uchun). */
+  matn: string;
+  /** Nomzod/tekshiruv tayyorlagan ma'lumot (qator, smeta hajmi…) — ko'rinish uchun. */
+  malumot: Record<string, unknown>;
+  tanlov: { param: string; royxat: Nomzod[] } | null;
+  /** true — naqsh bilan hal bo'lmadi: mavjud (hisoblanadigan) model oqimiga o'tkaziladi. */
+  modelga?: boolean;
+};
 
 export type AmalTopilma = { tur: 'aniq'; amal: Amal } | { tur: 'noaniq'; nomzodlar: Amal[] } | null;
 export type AmalHolat =
   | { tur: 'ruxsatYoq'; matn: string }
   | { tur: 'savol'; param: string; matn: string }
+  | { tur: 'topilmadi'; matn: string }
   | { tur: 'tayyor' };
 
 export class AmalTasdiqXato extends Error {
@@ -61,7 +77,7 @@ function iboraBall(q: readonly string[], ibora: string): number {
 export function amalTopish(matn: string, royxat: readonly Amal[] = AMALLAR): AmalTopilma {
   const q = sozlar(matn);
   if (!q.length || q.some((s) => /^(сахиф|болим|экран|страниц|раздел)/.test(s))) return null;
-  const ballar = royxat.filter((a) => a.turi === 'yozish' && a.ijro !== 'model').map((a) => {
+  const ballar = royxat.filter((a) => a.turi === 'yozish').map((a) => {
     const iboralar = [a.nom, ...(a.sinonimlar ?? []), ...(a.en ?? [])].filter((x): x is string => !!x);
     return { a, ball: Math.max(0, ...iboralar.map((i) => iboraBall(q, i))) };
   }).filter((x) => x.ball > 0).sort((x, y) => y.ball - x.ball);
@@ -86,7 +102,7 @@ const sana = (d: Date): string => `${d.getFullYear()}-${String(d.getMonth() + 1)
 
 /** Matndan aniq BITTA son (pul/hajm). Bir nechta son yoki «КР-5» kabi kod ichidagi raqam — taxmin qilinmaydi (null). «5 mln», «500 ming» qo'llanadi. */
 export function sonAjrat(matn: string): number | null {
-  const toza = matn.replace(/[\p{L}]+-\d+/gu, ' ').replace(/№\s*\d+/g, ' ');
+  const toza = matn.replace(/[\p{L}]+-\d+/gu, ' ').replace(/№\s*\d+/g, ' ').replace(/\d+\s*-?\s*(?:qator\w*|ish\w*|pozitsiya\w*|позици\w*|строк\w*)/giu, ' ').replace(/\b[\p{L}]+\d+\b/gu, ' ');
   const m = [...toza.matchAll(/(\d[\d\s]*(?:[.,]\d+)?)\s*(mlrd|mln|million|ming|тыс|млн)?/giu)].filter((x) => x[1].trim() !== '');
   if (m.length !== 1) return null;
   const v = Number(m[0][1].replace(/\s+/g, '').replace(',', '.'));
@@ -127,13 +143,24 @@ export function parametrAjrat(amal: Amal, matn: string, ctx: AmalKontekst): Reco
   const shRaqam = (amal.parametrlar ?? []).some((p) => p.tur === 'shartnoma') ? ctx.shartnomalar.find((x) => x.id === shartnomaTop(matn, ctx)?.id)?.raqam : undefined;
   const sonMatni = shRaqam ? matn.split(shRaqam).join(' ') : matn;
   for (const p of amal.parametrlar ?? []) {
-    if (p.tur === 'obyekt') { const o = obyektTop(matn, ctx); if (o) out[p.nom] = o.id; }
+    if (p.nom === 'oy') { const m = matn.match(/\b(\d{4})-(\d{2})\b/); if (m) out[p.nom] = `${m[1]}-${m[2]}`; }
+    else if (p.tur === 'obyekt') { const o = obyektTop(matn, ctx); if (o) out[p.nom] = o.id; }
     else if (p.tur === 'shartnoma') { const s = shartnomaTop(matn, ctx); if (s) out[p.nom] = s.id; }
     else if (p.tur === 'son') { const n = sonAjrat(sonMatni); if (n != null && n > 0) out[p.nom] = n; }
     else if (p.tur === 'matn') { const t = matnAjrat(matn, ctx); if (t) out[p.nom] = t; }
+    else if (p.tur === 'tanlov' && p.variantlar) { const v = variantAjrat(matn, p.variantlar); if (v) out[p.nom] = v; }
     else if (p.tur === 'sana') { if (/\bbugun\b|сегодня/iu.test(matn)) out[p.nom] = sana(ctx.bugun); }
   }
   return out;
+}
+
+const VARIANT_SIN: Readonly<Record<string, readonly string[]>> = {
+  qabul: ['qabul', 'tasdiqla', 'принять', 'принят', 'accept'], rad: ['rad', 'otkaz', 'отклон', 'reject'], tuzatish: ['tuzat', 'исправ', 'fix'], yop: ['yop', 'закр', 'close'],
+};
+function variantAjrat(matn: string, variantlar: readonly string[]): string | null {
+  const t = matn.toLowerCase();
+  const mos = variantlar.filter((v) => (VARIANT_SIN[v] ?? [v]).some((x) => t.includes(x)));
+  return mos.length === 1 ? mos[0] : null;
 }
 
 function kontekstdan(p: AmalParam, ctx: AmalKontekst): unknown {
@@ -145,7 +172,7 @@ function kontekstdan(p: AmalParam, ctx: AmalKontekst): unknown {
 
 /** Sessiyani boshlaydi: matndan ajratilgan parametrlar + operation_id (qayta urinish idempotent). */
 export function sessiyaBosh(amal: Amal, matn: string, ctx: AmalKontekst, id: string = yangiId()): AmalSessiya {
-  return { id, kalit: amal.kalit, params: parametrAjrat(amal, matn, ctx), savol: null };
+  return { id, kalit: amal.kalit, params: parametrAjrat(amal, matn, ctx), savol: null, matn, malumot: {}, tanlov: null };
 }
 
 /** Holat: ruxsat -> keyingi yetishmayotgan parametr (BITTA savol) -> tayyor. Kontekst parametrlari sessiyaga yoziladi. */
@@ -163,11 +190,46 @@ export function holat(amal: Amal, s: AmalSessiya, ctx: AmalKontekst): AmalHolat 
   return { tur: 'tayyor' };
 }
 
+/** ASYNC holat: holat() + dinamik nomzodlar (qator/hujjat/aloqa) + tekshiruv. 2+ nomzod — BITTA savol (top 3). */
+export async function holatAsync(amal: Amal, s: AmalSessiya, ctx: AmalKontekst, ij?: Ijrochi): Promise<AmalHolat> {
+  const h0 = holat(amal, s, ctx);
+  if (h0.tur === 'ruxsatYoq') return h0;
+  for (const p of amal.parametrlar ?? []) {
+    if (s.params[p.nom] != null && s.params[p.nom] !== '') continue;
+    const f = ij?.nomzod?.[p.nom];
+    if (f) {
+      const r = await f(s.params, ctx, s);
+      if (r.length === 1) { s.params[p.nom] = r[0].id; s.malumot[`${p.nom}Nom`] = r[0].nom; continue; }
+      if (r.length > 1) {
+        const top = r.slice(0, 3); s.tanlov = { param: p.nom, royxat: top };
+        const matn = `${p.savol}\n${top.map((x, i) => `${i + 1}) ${x.nom}`).join('\n')}\n(raqamini yozing: 1–${top.length})`;
+        s.savol = { param: p.nom, matn }; return { tur: 'savol', param: p.nom, matn };
+      }
+      if (p.majburiy && p.tur === 'qator') { s.modelga = true; return { tur: 'savol', param: p.nom, matn: p.savol }; }
+      if (p.majburiy && p.tur === 'tanlov' && !p.variantlar) return { tur: 'topilmadi', matn: `«${p.savol.replace(/\?$/, '')}» uchun mos yozuv topilmadi. Avval tegishli sahifada tayyorlang yoki aniqroq yozing.` };
+    }
+    if (!p.majburiy) continue;
+    s.savol = { param: p.nom, matn: p.savol };
+    return { tur: 'savol', param: p.nom, matn: p.savol };
+  }
+  const t = await ij?.tekshir?.(s.params, ctx, s);
+  if (t) { for (const k of t.tozala ?? []) delete s.params[k]; s.savol = { param: t.param, matn: t.savol }; return { tur: 'savol', param: t.param, matn: t.savol }; }
+  s.savol = null;
+  return { tur: 'tayyor' };
+}
+
 /** Savolga javobni qabul qiladi. Noto'g'ri (masalan son emas) bo'lsa — xabar bilan qayta so'raladi, taxmin qilinmaydi. */
 export function javobQabul(amal: Amal, s: AmalSessiya, javob: string, ctx: AmalKontekst): { ok: true } | { ok: false; matn: string } {
   const p = (amal.parametrlar ?? []).find((x) => x.nom === s.savol?.param);
   if (!p) return { ok: false, matn: 'Hozir savol yo‘q.' };
   const t = javob.trim();
+  if (s.tanlov && s.tanlov.param === p.nom) {
+    const n = /^\d+$/.test(t) ? Number(t) : NaN;
+    const tanlangan = Number.isInteger(n) && n >= 1 && n <= s.tanlov.royxat.length ? s.tanlov.royxat[n - 1] : s.tanlov.royxat.find((x) => x.nom.toLowerCase().includes(t.toLowerCase()) && t.length >= 3);
+    if (!tanlangan) return { ok: false, matn: `Raqamini yozing (1–${s.tanlov.royxat.length}). ${s.savol?.matn ?? ''}` };
+    s.params[p.nom] = tanlangan.id; s.malumot[`${p.nom}Nom`] = tanlangan.nom; s.tanlov = null; return { ok: true };
+  }
+  if (p.tur === 'tanlov' && p.variantlar) { const v = variantAjrat(t, p.variantlar); if (!v) return { ok: false, matn: `Variantlardan biri: ${p.variantlar.join(' / ')}. ${p.savol}` }; s.params[p.nom] = v; return { ok: true }; }
   if (p.tur === 'son') { const n = sonAjrat(t); if (n == null || n <= 0) return { ok: false, matn: `Raqam tushunarsiz. ${p.savol}` }; s.params[p.nom] = n; return { ok: true }; }
   if (p.tur === 'shartnoma') {
     const sh = shartnomaTop(`shartnoma ${t}`, ctx) ?? ctx.shartnomalar.find((x) => x.nom && x.nom.toLowerCase() === t.toLowerCase());
@@ -190,7 +252,7 @@ export function javobQabul(amal: Amal, s: AmalSessiya, javob: string, ctx: AmalK
 
 /* ── Oldindan ko'rish va ijro ───────────────────────────────────────────────────────────────────────────────────── */
 export function korinish(amal: Amal, s: AmalSessiya, ctx: AmalKontekst, ij?: Ijrochi): AmalKorinish {
-  if (ij) return ij.korinish(s.params, ctx);
+  if (ij) return ij.korinish(s.params, ctx, s);
   return { matn: `${amal.nom ?? amal.kalit}: ${Object.entries(s.params).map(([k, v]) => `${k}=${String(v)}`).join(', ')}` };
 }
 

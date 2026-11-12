@@ -72,4 +72,19 @@ Yuqori daraja = 7 ish joyi (+ `sotuv`, `platforma`). Hammasi reestrdan hosila: `
 8. Test: `amal-ijro.test.ts` ga niyat → ko'rinish → ijro (API mock) holati; pul amali bitta tasdiq bilan bajarilmasligi.
 9. `site-map:generate` va fixture regeneratsiyasi; rol × sahifa matritsa snapshoti ruxsat o'zgarsa diff ko'rsatadi.
 10. Hech qachon: pul/hajmni taxmin qilish; tasdiqsiz yozish; ruxsatsiz amalni yashirish (sababi tushuntiriladi).
-**Hozirgi holat:** 29 amal reestrda (25 yozuv), 3 tasi bevosita Jarvis'da bajariladi (zayavka, to'lov, obyektni arxivlash); fakt — mavjud model oqimi (qator topish uchun); qolganlari sahifaga yo'naltiradi (navigatsiya) — ijrochilar navbat bilan qo'shiladi.
+**Hozirgi holat (halol jadval): 30 amal reestrda, 9 tasi Jarvis ichida BAJARILADI, qolgani sahifaga yo'naltiradi.**
+| Holat | Amal | Tasdiq | Mavjud klient |
+|---|---|---|---|
+| bajariladi | fakt.kiritish — «Amfiteatrda 5-qatorga 12 m3 fakt yoz» (qator raqam/shifr/nom, birlik tekshiruvi, smetadan oshish ogohi) | karta | sbFaktYoz |
+| bajariladi | tomon.taqdim — F2/АОСР ni tomonga yuborish | karta | taqdimYubor |
+| bajariladi | tomon.qaror — kelgan hujjatga qabul/tuzatish/rad (sabab bilan, summa ko'rinadi) | ikki tasdiq | taqdimQarori |
+| bajariladi | tomon.murojaat — murojaat/remark/predpisaniya yaratish | karta | murojaatYarat |
+| bajariladi | lab.sorov — laboratoriyaga sinov so'rovi | karta | sorovYubor |
+| bajariladi | zayavka.yaratish | karta | sbZayavkaYoz |
+| bajariladi | moliya.tolov — to'lov (summa taxmin qilinmaydi) | ikki tasdiq | tolovYoz |
+| bajariladi | bux.davr — buxgalteriya davrini yopish | ikki tasdiq | buxDavr |
+| bajariladi | arxiv.obyekt — Korzinkaga | ikki tasdiq | sbArxivla |
+| yo'naltiradi | f2.tayyorlash / f2.tasdiqlash / f2.import / f3.nakopitelniy | — | F2 qoralamasi va Forma 3 uchun obyekt+davr+akt tanlovi sahifada; Forma 3 klienti (forma3Yarat) akt ro'yxatini talab qiladi — keyingi qadam; tasdiqlash hech qachon bir zarbada emas |
+| yo'naltiradi | aosr.yaratish, hujjat.yuklash, chizma.chiqar, m29.bajar, tender.boshqar, buyurtma.qabul, yuk.birja, qarz.yoz, bux.provodka, hr.tabel, azo.taklif, smeta.narxlash, obyekt.yangi, shartnoma.qosh, xarajat | — | klientlar ko'p bosqichli yoki fayl/jadval kiritishni talab qiladi; ijrochi navbat bilan |
+| yo'q (klient main'da yo'q) | naryad yaratish/usta «bajardim»/prorab qabul (PR #395), subpudrat topshirish va akt qabuli | — | gateway amali yoki klient branchga tushgach ijrochi qo'shiladi |
+Idempotentlik: motor operation_id bo'yicha natijani keshlaydi; klient o'z operation_id sini yaratsa (taqdimYubor, murojaatYarat, sbZayavkaYoz) takroriy himoya motor darajasida; operationId qabul qilganlar (tolovYoz, sbFaktYoz, buxDavr) serverda ham idempotent.

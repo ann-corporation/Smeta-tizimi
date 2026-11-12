@@ -62,7 +62,7 @@ describe('Bugun — rol bosh sahifasi', () => {
     expect(screen.getByTestId('bugun')).toBeTruthy();
   });
   it('Amallar guruhi AMAL REESTRIDAN: ruxsati borga ko‘rinadi (zayavka, to‘lov), ruxsatsizga yo‘q', () => {
-    chiz('pto', ['company.read', 'warehouse.write', 'financial.write', 'smeta.write', 'smeta.read', 'project.read']);
+    chiz('pto', ['company.read', 'warehouse.write']);
     const g = screen.getByTestId('bugun-amallar');
     expect(g.textContent).toContain('Zayavka yaratish');
     cleanup();

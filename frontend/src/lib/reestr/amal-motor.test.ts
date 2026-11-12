@@ -19,7 +19,7 @@ describe('amalTopish (matn -> amal)', () => {
     expect(amalTopish('tolov kiritish 5 mln')).toMatchObject({ tur: 'aniq', amal: { kalit: 'moliya.tolov' } });
     expect(amalTopish('внести оплату по договору')).toMatchObject({ tur: 'aniq', amal: { kalit: 'moliya.tolov' } });
     expect(amalTopish('zayavkalar sahifasini och')).toBeNull();
-    expect(amalTopish('Amfiteatrda 5-qatorga 12 m3 fakt yoz')).toBeNull();
+    expect(amalTopish('Amfiteatrda 5-qatorga 12 m3 fakt yoz')).toMatchObject({ tur: 'aniq', amal: { kalit: 'fakt.kiritish' } });
     expect(amalTopish('salom')).toBeNull();
   });
 });

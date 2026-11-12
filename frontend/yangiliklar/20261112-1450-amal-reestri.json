@@ -1,9 +1,9 @@
 {
   "sana": "2026-11-12",
-  "sarlavha": "Jarvis endi amallarni bajaradi: zayavka, to‘lov, arxiv",
+  "sarlavha": "Jarvis endi 9 turdagi ishni bajaradi",
   "bandlar": [
-    "Ctrl+K dagi yordamchiga «КР-5 uchun zayavka och» yoki «12/2026 shartnomaga 5 mln to‘lov kiritish» deb yozing: kerak bo‘lsa bitta aniqlovchi savol beradi, nima o‘zgarishini ko‘rsatadi va faqat tasdiqlaganingizdan keyin yozadi.",
-    "Pul va qaytarib bo‘lmaydigan amallar (to‘lov, arxiv) ikki marta tasdiqlanadi; ruxsatingiz yo‘q bo‘lsa sababi tushuntiriladi. Bir xil amalni qayta bosish ikkinchi marta yozmaydi.",
-    "«Bugun» sahifasi va Ctrl+K dagi «Amallar» guruhi endi bir ro‘yxatdan — sizning rolingiz bajara oladigan amallar."
+    "Ctrl+K dagi yordamchiga yozing: «Amfiteatrda 5-qatorga 12 m3 fakt yoz» (qatorni raqam, shifr yoki nom bilan topadi, birlik mos kelmasa so‘raydi, smetadan oshsa ogohlantiradi), «shu F2 ni buyurtmachiga yubor», «kelgan hujjatni rad et», «buyurtmachiga murojaat yarat», «laboratoriyaga so‘rov beton kub», «КР-5 uchun zayavka och».",
+    "To‘lov, hujjatga qaror, davrni yopish va obyektni arxivlash ikki marta tasdiqlanadi; summa va oqibati oldindan ko‘rsatiladi. Ruxsatingiz yo‘q bo‘lsa sababi aytiladi.",
+    "Qator topilmasa Jarvis taxmin qilmaydi: aniqlovchi savol beradi yoki mavjud AI oqimiga o‘tadi."
   ]
 }

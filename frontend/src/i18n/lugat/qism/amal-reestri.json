@@ -106,5 +106,13 @@
   "Kim nimani ko‘radi (ruxsatlar jadvali)": {
     "ru": "Кто что видит (таблица прав)",
     "en": "Who sees what (permissions matrix)"
+  },
+  "Tekshiryapman…": {
+    "ru": "Проверяю…",
+    "en": "Checking…"
+  },
+  "Buxgalteriya davrini yopish": {
+    "ru": "Закрытие бухгалтерского периода",
+    "en": "Close accounting period"
   }
 }
