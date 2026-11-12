@@ -1125,6 +1125,18 @@
         ]
       },
       {
+        "nom": "Tizim o‘rganishi",
+        "ikonka": "Settings",
+        "sahifalar": [
+          {
+            "yol": "/admin/osuvchi",
+            "ilova": "yadro",
+            "nom": "Tizim o‘rganishi",
+            "ruxsat": []
+          }
+        ]
+      },
+      {
         "nom": "Sozlamalar markazi",
         "ikonka": "Settings",
         "sahifalar": [

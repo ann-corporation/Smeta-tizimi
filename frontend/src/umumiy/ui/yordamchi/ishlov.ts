@@ -16,6 +16,7 @@ import type { Motor } from './useObyektMotor';
 import { aosrQoralamaReja, aosrYetishmaydi, aosrYetishmaydiMatni, f2QoralamaReja, f2RoyxatMatni, qarzMatni, type HujjatDeps } from '../../../lib/yordamchi/hujjat-oqim';
 import { sahifaUrl } from '../../../lib/yordamchi/sahifa-qidiruv';
 import { koRsatHavolasi } from '../../../lib/kurs/tutor';
+import { osuvchiMatni } from '../../../lib/osuvchi/jarvis';
 
 /** AiChat ga beriladigan yagona yordamchi ulanishi (AiHelper yig'adi). */
 export type YordamchiUlanish = { sahifalar: readonly YordamchiSahifa[]; obyektlar: readonly ObyektQisqa[]; joriyObyekt: ObyektQisqa | null; obyektTanla: (id: number) => void; motor: Motor; hujjat: HujjatDeps | null; sahifaAmallar: readonly SahifaAmalQisqa[]; sahifaAmalBajar: (id: string) => void };
@@ -105,6 +106,12 @@ export async function yordamchiIshla(n: Niyat, matn: string, d: IshlovDeps): Pro
       return { tur: 'taklif', matn: javob, taklif: { amallar: r.amallar, vositalar: d.motor.vositalar, qoshimcha: d.motor.qoshimcha } };
     }
 
+    case 'osuvchi': {
+      const o = d.sahifalar.find((s) => s.yol === '/admin/osuvchi');
+      const havola = o ? [{ yol: o.yol, nom: o.nom }] : undefined;
+      if (!d.kompaniyaId) return { tur: 'javob', matn: t('Kompaniya tanlanmagan.'), havolalar: havola };
+      return { tur: 'javob', matn: await osuvchiMatni(d.kompaniyaId, n.qism), havolalar: havola };
+    }
     case 'qarz': {
       if (!d.hujjat) return { tur: 'otkaz', havolalar: [] };
       const q = d.sahifalar.find((s) => s.yol === '/admin/qarzdorlik');

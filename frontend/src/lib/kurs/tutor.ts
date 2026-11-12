@@ -21,7 +21,7 @@ export const norm = (s: string): string =>
 const tokenlar = (s: string): string[] => norm(s).split(/[^\p{L}\p{N}]+/u).filter(Boolean);
 
 /** «Qanday/как/how/o‘rgat/dars/kurs» — o‘rganish savoli belgisi. */
-const SAVOL = ['qanday', 'qanaqa', 'orgat', 'organ', 'dars', 'kurs', 'qollanma', 'yolyoriq', 'yoriqnoma', 'kak', 'как', 'научи', 'обуч', 'урок', 'инструкц', 'how', 'learn', 'teach', 'tutorial', 'lesson'];
+const SAVOL = ['qanday', 'qanaqa', 'orgat', 'dars', 'kurs', 'qollanma', 'yolyoriq', 'yoriqnoma', 'kak', 'как', 'научи', 'обуч', 'урок', 'инструкц', 'how', 'learn', 'teach', 'tutorial', 'lesson'];
 const BO_SH = new Set(['qanday', 'qanaqa', 'qilaman', 'qilamiz', 'men', 'ni', 'ga', 'da', 'bu', 'buni', 'bilan', 'uchun', 'kerak', 'korsat', 'orgat', 'dars', 'darslar', 'kurs', 'how', 'to', 'do', 'i', 'the', 'a', 'как', 'мне', 'сделать', 'qollanma']);
 
 const mos = (t: string, kw: string) => t === kw || (kw.length >= 5 && t.startsWith(kw)) || (t.length >= 5 && kw.startsWith(t));

@@ -5,7 +5,7 @@
  * Qidiruv va qisqa nomlar — yagona qurilish lug'ati (`lib/qurilish-lugat`): «g'isht», «pol quyish», «кирпич» smeta so'zlariga o'giriladi.
  * Pul: usta narxi QQS siz; smeta mehnati ustamali/QQS bilan — yagona hisob-yadro. Noma'lum — «—» (0 emas).
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Download, Plus, RefreshCw, X } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
@@ -28,6 +28,7 @@ import { HOLAT_NOMI, NARYAD_HOLATLAR, faktTaklif, katUchlik, mehnatUchlik, narya
 import { naryadHujjat } from '../../lib/naryad/hujjat';
 import { kelishuvHisob, koefTaklif, ustaBirlikNorm } from '../../lib/naryad/kelishuv';
 import { birlikOdam, lugatKengaytir, lugatOrnat, odamNomi } from '../../lib/qurilish-lugat';
+import { TAJRIBA_BELGI, friksiyaYoz, tajribaKalit, tajribaNatija, tajribaTaklif, tajribaYoz, useFriksiya, type TajribaTaklif } from '../../lib/osuvchi';
 
 const kirit = 'w-full rounded-md border border-border bg-surface px-2 py-1.5 text-[13px] text-text outline-none focus:border-accent';
 const tugma = 'inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-[13px] hover:border-accent disabled:opacity-50';
@@ -45,6 +46,9 @@ const hajmFmt = (v: number | null | undefined) => (v == null || !Number.isFinite
 const holatNomi = (h: NaryadHolat) => t(HOLAT_NOMI[h]);
 const bugun = () => new Date().toISOString().slice(0, 10);
 
+/** O'rganish kaliti: smeta qatori shifri + nomi (kompaniya va obyektdan mustaqil). */
+const qatorKalit = (q: { kod?: string | null; nom?: string | null }): string => tajribaKalit(`${q.kod ?? ''} ${q.nom ?? ''}`);
+
 /** Lug'at bilan qidiruv: so'z(lar) ruscha smeta o'zaklariga ham o'giriladi, natijalar birlashtiriladi. */
 async function lugatBilanQidir(kid: number, q: string, obyektId: number): Promise<SmetaQator[]> {
   const soz = q.trim().split(/\s+/).filter(Boolean);
@@ -60,6 +64,8 @@ async function lugatBilanQidir(kid: number, q: string, obyektId: number): Promis
 
 type Tanlangan = {
   q: SmetaQator; kat: NaryadKat; ustaBirlik: string; koef: string; koefManba: string; hajm: string; hajmTegilgan: boolean; narx: string; tarix: TarixQator[];
+  /** O'rganish halqasi: oldindan to'ldirilgan taklif (kat|usta birligi|koef) — saqlashda tasdiq/tuzatish sifatida yoziladi. */
+  tajribaT?: TajribaTaklif | null;
 };
 
 export default function Naryad() {
@@ -261,16 +267,31 @@ function YangiNaryad({ kid, obyektId, kartalar, ustama, onYop, onYaratildi }: { 
   const [qidiruv, setQidiruv] = useState(''); const [topilgan, setTopilgan] = useState<SmetaQator[] | null>(null);
   const [tanlangan, setTanlangan] = useState<Tanlangan[]>([]);
   const [band, setBand] = useState(false);
+  /* O'rganish halqasi: oqim kuzatuvi (boshlandi/tugadi/tashlandi), nol natijali qidiruv va undan keyin topilgan so'z (kompaniya sinonimi bo'lib o'rganiladi). */
+  const kuzatuv = useFriksiya('naryad', 'yaratish', kid);
+  const [nolSoz, setNolSoz] = useState<string | null>(null);
+  const [sinTaklif, setSinTaklif] = useState<TajribaTaklif | null>(null);
+  const oqilgan = useRef<{ soz: string; qiymat: string; taklif: TajribaTaklif | null } | null>(null);
   /* Usta — kompaniya a'zosi (ixtiyoriy): tanlansa «bajarildi»ni o'zi belgilaydi va faqat o'z naryadlarini ko'radi; bo'sh — prorab belgilaydi. */
   const [azolar, setAzolar] = useState<KompaniyaAzo[]>([]);
   const [ustaId, setUstaId] = useState('');
   useEffect(() => { void kompaniyaAzolariOl(kid).then((l) => setAzolar(l.filter((a) => a.holat === 'faol' || a.holat === 'active'))).catch(() => setAzolar([])); }, [kid]);
 
-  const qidir = async () => {
-    if (!qidiruv.trim()) return;
+  const qidir = async (soz: string = qidiruv) => {
+    if (!soz.trim()) return;
     setBand(true);
-    setTopilgan(await lugatBilanQidir(kid, qidiruv, obyektId));
+    const natija = await lugatBilanQidir(kid, soz, obyektId);
+    setTopilgan(natija);
     setBand(false);
+    const kl = tajribaKalit(soz);
+    if (!natija.length) {
+      friksiyaYoz('naryad', 'qidiruv', 'nol_qidiruv', soz);
+      setNolSoz(kl); oqilgan.current = null;
+      setSinTaklif(await tajribaTaklif('lugat', kl, { kompaniyaId: kid }));
+    } else {
+      if (nolSoz && nolSoz !== kl) oqilgan.current = { soz: nolSoz, qiymat: kl, taklif: sinTaklif };
+      setSinTaklif(null);
+    }
   };
   const yangila = (id: number, f: (x: Tanlangan) => Tanlangan) => setTanlangan((l) => l.map((y) => (y.q.id === id ? f(y) : y)));
   /** Usta birligi yoki koef o'zgarganda: koef avtomatik taklif (tarix → karta → birlik), hajm usta birligida qayta hisoblanadi. */
@@ -291,7 +312,15 @@ function YangiNaryad({ kid, obyektId, kartalar, ustama, onYop, onYaratildi }: { 
     const toliq = (await qatorlarOl(kid, [q.id]))?.qatorlar[0] ?? q;
     const tarix = (await tarixOl(kid, [q.id], toliq.kod ? [toliq.kod] : []).catch(() => null)) ?? [];
     const taklif = ustaNarxTaklif(q.id, kartalar);
-    setTanlangan((l) => [...l, { q: toliq, kat: 'ЧЕЛ', ustaBirlik: '', koef: '', koefManba: '', hajm: toliq.hajm != null ? String(toliq.hajm) : '', hajmTegilgan: false, narx: taklif != null ? String(taklif) : '', tarix }]);
+    /* O'rganish halqasi: so'z topilmagandan keyin topilgan so'z kompaniya sinonimi sifatida tasdiqlanadi (foydalanuvchi shu qatorni tanladi). */
+    if (oqilgan.current) { const o = oqilgan.current; oqilgan.current = null; setNolSoz(null); void tajribaYoz({ domen: 'lugat', kalit: o.soz, qiymat: o.qiymat, ...tajribaNatija(o.taklif, o.qiymat) }, { kompaniyaId: kid }); }
+    /* Shu smeta qatori uchun oldingi tanlov (kat|usta birligi|koef): faqat OLDINDAN TO'LDIRADI, «taklif (tajribadan)» belgisi bilan; narx o'rganilmaydi. */
+    const tj = await tajribaTaklif('naryad_qator', qatorKalit(toliq), { kompaniyaId: kid });
+    const [tKat, tUb, tKoef] = (tj?.qiymat ?? '').split('|');
+    const tOk = !!tj && (tKat === 'ЧЕЛ' || tKat === 'МАТ' || tKat === 'МАШ');
+    const boshlang: Tanlangan = { q: toliq, kat: tOk ? (tKat as NaryadKat) : 'ЧЕЛ', ustaBirlik: tOk ? tUb ?? '' : '', koef: tOk && tUb ? tKoef ?? '' : '', koefManba: tOk && tUb ? 'tajriba' : '',
+      hajm: toliq.hajm != null ? String(toliq.hajm) : '', hajmTegilgan: false, narx: taklif != null ? String(taklif) : '', tarix, tajribaT: tOk ? tj : null };
+    setTanlangan((l) => [...l, tOk && tUb ? hajmQayta(boshlang) : boshlang]);
   };
 
   const hisob = useMemo(() => tanlangan.map((x) => {
@@ -328,12 +357,15 @@ function YangiNaryad({ kid, obyektId, kartalar, ustama, onYop, onYaratildi }: { 
     for (const x of qatorlar) x.fakt_boshida = fakt?.get(x.qator_id)?.fakt_hajm ?? null;
     const r = await naryadYarat({ kompaniyaId: kid, operationId: yangiOperationId(), obyektId, ustaNom: usta.trim(), ustaFoydalanuvchiId: ustaId ? Number(ustaId) : null, brigada: brigada.trim() || null, davrDan: dan || null, davrGacha: gacha || null, qatorlar });
     setBand(false);
-    if (!r.ok || !r.id) { toast(`${t('Yaratilmadi')}: ${r.error ?? r.code ?? ''}`, 'danger'); return; }
+    if (!r.ok || !r.id) { kuzatuv().xato(String(r.code ?? 'YARATILMADI')); toast(`${t('Yaratilmadi')}: ${r.error ?? r.code ?? ''}`, 'danger'); return; }
+    kuzatuv().tugadi();
+    /* O'rganish halqasi: foydalanuvchi tasdiqlagan tanlov (kat|usta birligi|koef) keyingi safar taklif bo'ladi. */
+    for (const h of hisob) { const v = `${h.x.kat}|${h.ub ?? ''}|${h.ub && h.koef != null ? String(Number(h.koef.toPrecision(8))) : ''}`; void tajribaYoz({ domen: 'naryad_qator', kalit: qatorKalit(h.x.q), qiymat: v, ...tajribaNatija(h.x.tajribaT, v) }, { kompaniyaId: kid }); }
     toast(`${t('Naryad yaratildi')}: ${r.raqam ?? ''}`, 'ok');
     await onYaratildi(r.id);
   };
   const jamiFoyda = hisob.reduce<number | null>((s, h) => (h.k.foydaTaklifJami == null ? s : (s ?? 0) + h.k.foydaTaklifJami), null);
-  const manbaNomi = (m: string) => (m === 'tarix' ? t('oldingi naryaddan') : m === 'karta' ? t('ish kartasidan') : m === 'birlik' ? t('birlik o‘girishdan') : '');
+  const manbaNomi = (m: string) => (m === 'tarix' ? t('oldingi naryaddan') : m === 'karta' ? t('ish kartasidan') : m === 'birlik' ? t('birlik o‘girishdan') : m === 'tajriba' ? TAJRIBA_BELGI() : '');
 
   return (
     <div role="dialog" aria-label={t('Yangi naryad')} className="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-black/40 p-4" data-testid="naryad-yangi">
@@ -360,6 +392,9 @@ function YangiNaryad({ kid, obyektId, kartalar, ustama, onYop, onYaratildi }: { 
         </div>
         {topilgan && <div className="mt-2 max-h-48 space-y-1 overflow-auto" data-testid="naryad-topilgan">
           {!topilgan.length && <div className="text-text-dim">{t('Topilmadi.')}</div>}
+          {!topilgan.length && sinTaklif && <button type="button" data-testid="naryad-lugat-taklif" className="block w-full rounded border border-dashed border-accent px-2 py-1 text-left text-[12px]"
+            onClick={() => { setQidiruv(sinTaklif.qiymat); void qidir(sinTaklif.qiymat); }}>
+            <b>{TAJRIBA_BELGI()}:</b> «{sinTaklif.qiymat}» — {sinTaklif.sabab}. {t('Shu so‘z bilan qidiraymi?')}</button>}
           {topilgan.map((q) => <button key={q.id} type="button" className="block w-full rounded border border-border px-2 py-1 text-left hover:border-accent" onClick={() => void qosh(q)}>
             <b>{odamNomi(q, 'uz')}</b> <span className="text-text-dim">{q.kod} {q.nom} · {hajmFmt(q.hajm)} {birlikOdam(q.birlik, 'uz')}</span></button>)}
         </div>}

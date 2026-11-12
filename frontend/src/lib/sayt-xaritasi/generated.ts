@@ -76,6 +76,7 @@ export const GENERATED_SITE_MAP = {
     "/admin/kurs",
     "/admin/topshiriqlar",
     "/admin/mutaxassis",
+    "/admin/osuvchi",
     "/admin/akkaunt",
     "/admin/sozlamalar",
     "/admin/boshqaruv",
@@ -183,6 +184,7 @@ export const GENERATED_SITE_MAP = {
     "tezlik",
     "zakazchik/obyekt/:aloqaId/:obyektId",
     "akkaunt",
+    "osuvchi",
     "sayt-xaritasi",
     "tizim-xaritasi",
     "_demo/documents",
@@ -375,6 +377,10 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "naryad_yoz_v1",
       "rpc": "t2_naryad_yoz_v1"
+    },
+    {
+      "amal": "osuvchi_yoz_v1",
+      "rpc": "t2_osuvchi_yoz_v1"
     },
     {
       "amal": "shartnoma_saqla_v2",
