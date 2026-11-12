@@ -61,6 +61,8 @@ export const SAHIFA_SINONIM: Readonly<Record<string, Sinonim>> = {
   '/admin/zayavka': { uz: ['zayavkalar', 'zayavka', 'yangi zayavka', 'material sorash'], ru: ['заявки', 'заявка', 'новая заявка'], en: ['purchase requests', 'requisitions', 'new request'] },
   '/admin/tender': { uz: ['tender', 'xarid'], ru: ['тендер', 'закупка'], en: ['tender', 'procurement'] },
   '/admin/yuk-birjasi': { uz: ['yuk birjasi', 'yuk'], ru: ['биржа грузов', 'грузы'], en: ['freight exchange', 'cargo'] },
+  '/admin/yuk-chaqirish': { uz: ['yuk chaqirish', 'mashina top', 'mashina topish', 'yuk tashish', 'yuk e‘lon qil', 'yuk elon qil'], ru: ['вызвать груз', 'найти машину', 'грузоперевозка', 'опубликовать груз'], en: ['request a load', 'find a truck', 'freight', 'post a load'] },
+  '/admin/haydovchi': { uz: ['haydovchi rejimi', 'haydovchi', 'yuk olish'], ru: ['режим водителя', 'водитель'], en: ['driver mode', 'driver'] },
   '/admin/erp': { uz: ['texnika', 'kadrlar'], ru: ['кадры и техника', 'техника'], en: ['staff and machinery', 'machinery'] },
   '/admin/hr': { uz: ['kpi', 'ish haqi', 'maosh', 'mening oyligim', 'oyligim', 'mening kpi'], ru: ['зарплата', 'кпи', 'моя зарплата', 'мой кпи'], en: ['payroll', 'salary', 'kpi', 'my salary', 'my kpi'] },
   '/admin/sotuv': { uz: ['uy sotish', 'sotuv'], ru: ['продажа квартир', 'продажи'], en: ['home sales', 'sales'] },

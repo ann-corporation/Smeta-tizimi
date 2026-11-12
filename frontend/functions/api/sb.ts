@@ -750,7 +750,7 @@ export const onRequestPost: PagesFunction<{
       }
       if (so.soro === 'naryad_ol_v1') {
         const bolim = String((so as { bolim?: unknown }).bolim ?? '');
-        if (!['royxat', 'bitta', 'lugat'].includes(bolim)) return Response.json({ ok: false, error: "bolim noto'g'ri" });
+        if (!['royxat', 'bitta', 'lugat', 'tarix'].includes(bolim)) return Response.json({ ok: false, error: "bolim noto'g'ri" });
         const xf = (so as { filtr?: unknown }).filtr;
         const f = xf && typeof xf === 'object' && !Array.isArray(xf) ? xf as Record<string, unknown> : {};
         const filtr: Record<string, string | number> = {};
@@ -765,6 +765,13 @@ export const onRequestPost: PagesFunction<{
           filtr.holat = String(f.holat);
         }
         if (bolim === 'bitta' && filtr.id == null) return Response.json({ ok: false, error: 'id kerak' });
+        if (bolim === 'tarix') {
+          const ids = Array.isArray(f.qator_ids) ? f.qator_ids : [];
+          const kodlar = Array.isArray(f.kodlar) ? f.kodlar : [];
+          if (ids.length > 60 || kodlar.length > 60 || ids.some((x) => !Number.isSafeInteger(Number(x)) || Number(x) <= 0) || kodlar.some((x) => typeof x !== 'string')) return Response.json({ ok: false, error: 'tarix: ≤60 qator va shifr' });
+          (filtr as Record<string, unknown>).qator_ids = ids.map(Number);
+          (filtr as Record<string, unknown>).kodlar = kodlar.map((x) => String(x).slice(0, 100));
+        }
         q.set('p_bolim', bolim);
         q.set('p_filtr', JSON.stringify(filtr));
       }

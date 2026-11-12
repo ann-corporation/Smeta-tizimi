@@ -7,6 +7,7 @@ import type { SmetaQator } from '../ish-kartasi';
 
 const q = (o: Partial<NaryadQator> = {}): NaryadQator => ({
   id: 1, qator_id: 10, tartib: 1, kod: 'К1', nom: 'Кладка стен кирпичных', birlik: 'м3', hajm: 10, norma_chel_soat: 50, smeta_mehnat_birlik: 800, usta_narx: 600,
+  kat: 'ЧЕЛ', usta_birlik: null, koef: null, usta_narx_birlik: null, smeta_kat_birlik: null,
   bajarilgan_hajm: null, qabul_hajm: null, fakt_boshida: 2, fakt_delta: null, fakt_yozilgan: null, ...o,
 });
 
