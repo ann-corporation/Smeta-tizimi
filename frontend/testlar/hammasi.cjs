@@ -53,6 +53,7 @@ const TESTLAR = [
   ['Smeta faqat yagona modul orqali o‘qiladi (P6)', 't2_smeta_oqish_yagona.test.cjs'],
   ['Koddan yig‘iladigan sayt xaritasi', 't2_sayt_xaritasi.test.cjs'],
   ['SMETA import dublikat guard', 't2_smeta_import_dublikat_guard.test.cjs'],
+  ['T2 ruxsat yadrosi: rol katalogi (UNKNOWN_ROLE)', 't2_ruxsat_yadro_rollar.test.cjs'],
 ];
 
 /* 2026-10-24: qo'lda ro'yxatga kiritilmagan `*.test.cjs` lar CI da HECH QACHON yurmay chirib qolgan edi
