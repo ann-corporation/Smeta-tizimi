@@ -9,6 +9,7 @@
 export type Sinonim = { uz?: readonly string[]; ru: readonly string[]; en: readonly string[] };
 
 export const SAHIFA_SINONIM: Readonly<Record<string, Sinonim>> = {
+  '/admin/pult': { uz: ['direktor pulti', 'pult', 'direktor ekrani', 'bosh ekran'], ru: ['директорский пульт', 'пульт директора', 'пульт'], en: ['director console', 'director dashboard', 'console'] },
   '/admin/dashboard': { uz: ['rahbar paneli', 'dashbord', 'boshqaruv paneli'], ru: ['панель руководителя', 'дашборд'], en: ['dashboard', 'manager panel'] },
   '/admin/obyektlar': { uz: ['obyektlar', 'smeta yuklash', 'smeta yukla'], ru: ['объекты', 'загрузка сметы'], en: ['objects', 'upload estimate'] },
   '/admin/loyiha': { uz: ['loyihalar', 'loyiha'], ru: ['проекты', 'проект'], en: ['projects', 'project'] },

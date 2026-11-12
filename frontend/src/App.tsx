@@ -47,6 +47,7 @@ const TestAosr      = lazy(() => import('./test02/TestAosr'));
 const TestDaraxt    = lazy(() => import('./test02/TestDaraxt'));
 const TestSaqlash   = lazy(() => import('./test02/TestSaqlash'));
 const BossDashboard = lazy(() => import('./admin/sahifalar/BossDashboard'));
+const DirektorPult = lazy(() => import('./admin/sahifalar/DirektorPult'));
 const DocumentsPage = lazy(() => import('./admin/pages/DocumentsPage'));
 const HujjatNazoratPage = lazy(() => import('./admin/pages/HujjatNazoratPage'));
 const ParticipantsPage = lazy(() => import('./admin/pages/ParticipantsPage'));
@@ -146,12 +147,8 @@ export default function App() {
           {/* 2026-10-25 (tizim xaritasi P3): indeks har rolni o'z bosh sahifasiga yuboradi
               (boss/rahbar — rahbar paneli, PTO — obyektlar, buyurtmachi — kabinet …). */}
           <Route index element={<RolBoshSahifa />} />
-          {/* BOSS PANEL P0 — canonical director dashboard (Supabase read model). */}
-          <Route path="dashboard" element={
-            <Suspense fallback={<SahifaYuklanmoqda />}>
-              <BossDashboard />
-            </Suspense>
-          } />
+
+
           <Route path="holat" element={<HolatNative />} />
           <Route path="holat/:id" element={<HolatNative />} />
           <Route path="fakt" element={<FaktNative />} />
@@ -159,7 +156,17 @@ export default function App() {
           {/* 2026-10-25 (tizim xaritasi P1): F2 bo'limi — sidebarda bitta «F2» bandi, tepada tablar.
               Yo'lsiz layout: sahifalar va ularning URL'lari o'zgarmagan. */}
           <Route element={<BolimTablari />}>
-            <Route path="f2-tayyorlash" element={<F2TayyorlashNative />} />
+          {/* V3: direktor pulti — 6 katta plitka (tayyor hisoblar orqali tez). */}
+          <Route path="pult" element={
+            <Suspense fallback={<SahifaYuklanmoqda />}>
+              <DirektorPult />
+            </Suspense>
+          } />          {/* BOSS PANEL P0 — canonical director dashboard (Supabase read model). */}
+          <Route path="dashboard" element={
+            <Suspense fallback={<SahifaYuklanmoqda />}>
+              <BossDashboard />
+            </Suspense>
+          } />            <Route path="f2-tayyorlash" element={<F2TayyorlashNative />} />
             <Route path="f2" element={<F2ImportV3 />} />
             <Route path="f2-tarix" element={<F2TarixNative />} />
             <Route path="f2-reestr" element={<Suspense fallback={<SahifaYuklanmoqda />}><F2Reestr /></Suspense>} />

@@ -10,6 +10,17 @@
         "ikonka": "BarChart",
         "sahifalar": [
           {
+            "yol": "/admin/pult",
+            "ilova": "yadro",
+            "nom": "Direktor pulti",
+            "ruxsat": [
+              "control.company.read",
+              "financial.write"
+            ],
+            "modul": "module.erp",
+            "scope": "COMPANY_SCOPED"
+          },
+          {
             "yol": "/admin/dashboard",
             "ilova": "yadro",
             "nom": "Rahbar paneli",

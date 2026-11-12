@@ -14,6 +14,7 @@ import { hujjatYuklabOlishUrl } from '../../api/t2-hujjat-canonical';
 import { izohYoz, taqdimTafsilotOl, taqdimlarOl, taqdimniQaytar, taqdimQarori, type TaqdimQisqa, type TaqdimTafsilot } from '../../api/t2-tomon';
 import { t } from '../../i18n/til';
 import { Bolim, HolatBelgi } from './tomon-ui';
+import { TolovXabarlariKelgan } from './TolovXabarlari';
 import { QatorIzohMuloqot, QatorIzohTugma } from './QatorIzohlari';
 import { AosrTaqdimKorinish } from './AosrTaqdimKorinish';
 import { AosrDalillari, F2Tekshiruvi } from '../nazorat/KorikPanellari';
@@ -150,6 +151,7 @@ export default function TaqdimlarInbox() {
   return (
     <Sahifa sarlavha="Tomonlar hujjatlari" tavsif="Pudratchi yuborgan F2 va АОСР — buyurtmachi va texnik nazorat ko‘radi, izoh yozadi, qabul qiladi yoki tuzatishga qaytaradi; qaror o‘zgarmaydi">
       <div className="space-y-3">
+        <TolovXabarlariKelgan kompaniyaId={kompaniyaId} />
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex gap-1" role="group" aria-label={t('Yo‘nalish')}>
             {(['kelgan', 'yuborilgan'] as const).map((y) => (

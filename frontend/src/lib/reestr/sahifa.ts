@@ -83,6 +83,7 @@ export const NAV_GURUH_META: readonly NavGuruhMeta[] = [
 ];
 
 export const SAHIFALAR: readonly Sahifa[] = [
+  { kalit: 'pult', yol: '/admin/pult', ishJoyi: 'bugun', tartib: 0, ilova: 'yadro', nom: 'Direktor pulti', sinonimlar: ['direktor pulti'], ruxsat: [RAHBARIYAT, 'financial.write'], scope: 'COMPANY_SCOPED', modul: 'module.erp', holat: 'tayyor', navGuruh: 'obyekt', navBand: 'Rahbar paneli' },
   { kalit: 'dashboard', yol: '/admin/dashboard', ishJoyi: 'bugun', tartib: 1, ilova: 'yadro', nom: 'Rahbar paneli', sinonimlar: ['rahbar paneli'], ruxsat: [RAHBARIYAT, 'financial.write'], scope: 'COMPANY_SCOPED', modul: 'module.erp', holat: 'tayyor', navGuruh: 'obyekt', navBand: 'Rahbar paneli' },
   { kalit: 'obyektlar', yol: '/admin/obyektlar', ishJoyi: 'obyekt', tartib: 2, ilova: 'pto', nom: 'Obyektlar va smeta yuklash', sinonimlar: ['obyektlar va smeta yuklash'], ruxsat: ['smeta.read'], scope: 'COMPANY_SCOPED', holat: 'tayyor', navGuruh: 'obyekt', navBand: 'Obyektlar va loyihalar' },
   { kalit: 'loyiha', yol: '/admin/loyiha', ishJoyi: 'obyekt', tartib: 3, ilova: 'pto', nom: 'Loyihalar', sinonimlar: ['loyihalar'], ruxsat: ['project.read'], scope: 'COMPANY_SCOPED', modul: 'module.loyiha', holat: 'tayyor', navGuruh: 'obyekt', navBand: 'Obyektlar va loyihalar' },
