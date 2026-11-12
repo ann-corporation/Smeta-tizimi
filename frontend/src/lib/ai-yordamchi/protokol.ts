@@ -29,7 +29,7 @@ export const SAHIFA_VOSITALARI: Record<SahifaTuri, { oqish: readonly string[]; a
    *  lugat — oddiy so'z (g'isht, pol quyish, кирпич) nimaga to'g'ri kelishi va smetada qaysi so'zlar bilan qidirilishi; naryad — naryadlar holati (faqat o'qish).
    *  Amallar: fakt_hajm (+5 / =40, oddiy yozish), narx_tuzat (qiymat = yangi narx NDS siz, PUL: ikkinchi «Tasdiqlayman»), korsat, och (qiymat = sahifa yo'li — yagona yordamchi Jarvis navigatsiyasi, yozuv emas). */
   buyruq: {
-    oqish: ['qidir', 'holat', 'narxsiz', 'qoldiq', 'lugat', 'naryad', 'kelishuv', 'mening_naryadim', 'loyiha_farq'],
+    oqish: ['qidir', 'holat', 'narxsiz', 'qoldiq', 'lugat', 'naryad', 'kelishuv', 'mening_naryadim', 'loyiha_farq', 'slichitelniy', 'asossiz'],
     amal: ['fakt_hajm', 'narx_tuzat', 'korsat', 'och', 'arxivla'],
   },
 };

@@ -133,7 +133,7 @@ const chaqiruv = (h: { sorovlar: Array<{ sql: string; params: unknown[] }> }, no
 describe('ro\'yxat', () => {
   it('yangi toollar ro\'yxatda, nomlar takrorlanmaydi, yozuvchilarida dry_run', () => {
     const nomlar = TOOLLAR.map((t) => t.nom);
-    for (const n of ['zamena_qosh', 'ish_ochir', 'f2_qoralama_yangila', 'f2_yarat', 'akt_bekor', 'nakopitelniy', 'ostatka', 'shartnoma_moslash', 'fakt_jurnal', 'normativ_qidir', 'forma3']) expect(nomlar).toContain(n);
+    for (const n of ['zamena_qosh', 'ish_ochir', 'f2_qoralama_yangila', 'f2_yarat', 'akt_bekor', 'nakopitelniy', 'ostatka', 'shartnoma_moslash', 'fakt_jurnal', 'normativ_qidir', 'slichitelniy', 'forma3']) expect(nomlar).toContain(n);
     expect(new Set(nomlar).size).toBe(nomlar.length);
     for (const t of TOOLLAR) if (t.yozadi && t.nom !== 'snapshot_ol') expect(Object.keys(t.kirish)).toContain('dry_run');
   });

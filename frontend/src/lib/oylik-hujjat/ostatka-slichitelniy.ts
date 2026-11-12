@@ -16,6 +16,7 @@ import { ostatkaHujjatModeli, ostatkaHujjatXlsx, ostatkaIstisnolari, type Ostatk
 import { slichitelniyHujjatXlsx, slichitelniyModeli, type SlichitelniyModel } from '../slichitelniy-vedomost';
 import { yaxlitQatorIdlari } from '../svod-yaxlit';
 import type { ImzoNomlar } from '../hujjat-yozuvchi';
+import type { AsosXarita } from '../slichitelniy-asos';
 import type { NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
 import type { Podval } from '../nakrutka-konstruktor';
 import type { SvodYaxlit } from '../svod-yaxlit';
@@ -74,14 +75,14 @@ export function ostatkaHujjatQur(k: OstatkaKirish): { model: OstatkaModel; fayl:
   return { model, fayl: { bytes, faylNomi } };
 }
 
-export type SlichitelniyKirish = OstatkaKirish & { faqatFarq?: boolean };
+export type SlichitelniyKirish = OstatkaKirish & { faqatFarq?: boolean; /** Fakt asosli rejim: «Основание» ustuni + asoslar reestri (RPC o'qilmasa berilmaydi). */ asos?: AsosXarita | null };
 
 export function slichitelniyHujjatQur(k: SlichitelniyKirish): { model: SlichitelniyModel; fayl: { bytes: Uint8Array; faylNomi: string } | null } {
   const faqatFarq = k.faqatFarq ?? false;
   const model = slichitelniyModeli(k.rows as T2Qator[], k.states as T2QatorHolat[], { faqatFarq, istisnolar: k.istisnolar, svodYaxlit: k.ustama.svodYaxlit });
   if (!model.barglar) return { model, fayl: null };
   const { bytes, faylNomi } = slichitelniyHujjatXlsx(model, { obyektNomi: k.obyektNom, imzo: k.imzo, faqatFarq, istisnolar: k.istisnolar, nakrutka: k.ustama.koeffitsientlar, podval: k.ustama.podval, nkManba: k.ustama.nkManba,
-    svodYaxlit: k.ustama.svodYaxlit, yaxlitIdlar: yaxlitQatorIdlari(k.rows, k.ustama.svodYaxlit) });
+    svodYaxlit: k.ustama.svodYaxlit, yaxlitIdlar: yaxlitQatorIdlari(k.rows, k.ustama.svodYaxlit), asos: k.asos ?? null });
   return { model, fayl: { bytes, faylNomi } };
 }
 

@@ -20,17 +20,18 @@ import { lugatTushuntir, odamNomi } from '../qurilish-lugat';
 import { faktAmalTekshir, faktHajmOqi, faktHolat, faktIndeks, faktKontekst, faktQidir, qatorSatri, summalarBloki, type FaktMalumot, type UstamaliFn } from './fakt-vositalar';
 import type { OqishSorovi, SahifaAmal } from './protokol';
 import { loyihaFarqMatni, type LoyihaFarqMalumot } from '../loyiha-smeta/jarvis';
+import { jarvisAsossizMatni, jarvisSlichitelniyMatni, type AsosJavob } from '../slichitelniy-asos';
 import type { SahifaVositalar } from './sikl';
 
 /** Foydalanuvchiga ochiq sahifa (yagona yordamchi navigatsiyasi; navReestr + ruxsat filtridan). */
 export type OchiqSahifa = { yol: string; nom: string };
-export type BuyruqMalumot = FaktMalumot & { rows: readonly T2Qator[]; qatorById: ReadonlyMap<number, T2Qator>; sahifalar?: readonly OchiqSahifa[]; naryadlar?: readonly NaryadQisqa[]; loyihaFarq?: LoyihaFarqMalumot | null; ustaBugun?: { satrlar: readonly NaryadSatr[]; oyDaromad: number | null } };
+export type BuyruqMalumot = FaktMalumot & { rows: readonly T2Qator[]; qatorById: ReadonlyMap<number, T2Qator>; sahifalar?: readonly OchiqSahifa[]; naryadlar?: readonly NaryadQisqa[]; loyihaFarq?: LoyihaFarqMalumot | null; slichAsos?: AsosJavob | null; ustaBugun?: { satrlar: readonly NaryadSatr[]; oyDaromad: number | null } };
 
-export function buyruqMalumotQur(rows: readonly T2Qator[], states: readonly (T2QatorHolat | JurnalHolat)[], opts: { obyektNomi?: string; ustamali?: UstamaliFn; sahifalar?: readonly OchiqSahifa[]; naryadlar?: readonly NaryadQisqa[]; loyihaFarq?: LoyihaFarqMalumot | null; ustaBugun?: { satrlar: readonly NaryadSatr[]; oyDaromad: number | null } } = {}): BuyruqMalumot {
+export function buyruqMalumotQur(rows: readonly T2Qator[], states: readonly (T2QatorHolat | JurnalHolat)[], opts: { obyektNomi?: string; ustamali?: UstamaliFn; sahifalar?: readonly OchiqSahifa[]; naryadlar?: readonly NaryadQisqa[]; loyihaFarq?: LoyihaFarqMalumot | null; slichAsos?: AsosJavob | null; ustaBugun?: { satrlar: readonly NaryadSatr[]; oyDaromad: number | null } } = {}): BuyruqMalumot {
   const holatlar = states as readonly JurnalHolat[];
   const { bolimlar, bolimIshlari } = jurnalQur(rows, holatlar);
   return { obyektNomi: opts.obyektNomi, bolimlar, bolimIshlari, holatMap: new Map(holatlar.map((s) => [s.qator_id, s])), summalar: bolimSummalari(rows, holatlar),
-    bajHajm: new Map(), ustamali: opts.ustamali, rows, qatorById: new Map(rows.map((r) => [r.id, r])), sahifalar: opts.sahifalar, naryadlar: opts.naryadlar, ustaBugun: opts.ustaBugun, loyihaFarq: opts.loyihaFarq ?? null };
+    bajHajm: new Map(), ustamali: opts.ustamali, rows, qatorById: new Map(rows.map((r) => [r.id, r])), sahifalar: opts.sahifalar, naryadlar: opts.naryadlar, ustaBugun: opts.ustaBugun, loyihaFarq: opts.loyihaFarq ?? null, slichAsos: opts.slichAsos ?? null };
 }
 
 /** Pul yoki huquqiy ta'sirli amallar — «Bajarish»dan keyin ALOHIDA «Tasdiqlayman» kerak (ovoz bilan tasdiqlanmaydi). */
@@ -106,6 +107,8 @@ export function buyruqOqi(m: BuyruqMalumot, s: OqishSorovi): string {
     case 'narxsiz': return buyruqNarxsiz(m, s.arg);
     case 'qoldiq': return buyruqQoldiq(m, s.arg);
     case 'loyiha_farq': return loyihaFarqMatni(m.loyihaFarq, s.arg);
+    case 'slichitelniy': return jarvisSlichitelniyMatni(m.slichAsos);
+    case 'asossiz': return jarvisAsossizMatni(m.slichAsos, s.arg);
     case 'lugat': return buyruqLugat(m, s.arg);
     case 'naryad': return naryadMatni(m.naryadlar, s.arg);
     case 'kelishuv': return kelishuvMatni(m.rows, s.arg);

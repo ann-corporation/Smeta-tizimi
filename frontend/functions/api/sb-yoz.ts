@@ -267,6 +267,9 @@ const AMALLAR = {
   aosr_bekor: { rpc: 't2_aosr_bekor' },
   aosr_bog_saqla: { rpc: 't2_aosr_bog_saqla' },
   aosr_bog_ochir: { rpc: 't2_aosr_bog_ochir' },
+  /* SLICHITELNIY ASOSI (20261218200000): АОСР <-> qator bog'ini HAJM bilan saqlash va tanlangan ish qatorlari uchun АОСР qoralamalarini ommaviy yaratish. */
+  aosr_bog_hajm_v1: { rpc: 't2_aosr_bog_hajm_v1' },
+  aosr_asos_qoralama_v1: { rpc: 't2_aosr_asos_qoralama_v1' },
   /* Ijro hujjatlari v2 (2026-10-01): АОСР to'liq blank maydonlari, laboratoriya
      protokollari (laboratoriya — kontragent), kompaniya logosi. */
   aosr_yoz_v2: { rpc: 't2_aosr_yoz_v2' },
@@ -2240,6 +2243,31 @@ export const onRequestPost: PagesFunction<{
         return Response.json({ ok: false, error: 'aosr_id yoki qator_id noto\'g\'ri' });
       }
       yuk = { p_aosr_id: aosrId, p_qator_id: qatorId };
+
+    } else if (amal === 'aosr_bog_hajm_v1') {
+      const kompaniyaId = Number(so.kompaniya_id);
+      const aosrId = Number(so.aosr_id);
+      if (!sess.foydalanuvchi_id || !Number.isInteger(kompaniyaId) || kompaniyaId <= 0 || !Number.isInteger(aosrId) || aosrId <= 0 || !Array.isArray(so.bog) || !so.bog.length) {
+        return Response.json({ ok: false, error: 'kompaniya_id, aosr_id va bog (ro\'yxat) majburiy' });
+      }
+      const bog = so.bog.slice(0, 500).map((x: any) => {
+        const e: Record<string, unknown> = { qator_id: Number(x?.qator_id) };
+        if (x?.ochir === true) e.ochir = true;
+        else if (x?.hajm === null || typeof x?.hajm === 'number') e.hajm = x.hajm;
+        return e;
+      });
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: kompaniyaId, p_aosr_id: aosrId, p_bog: bog, p_operation_id: uuidRe.test(operationId) ? operationId : null };
+
+    } else if (amal === 'aosr_asos_qoralama_v1') {
+      const kompaniyaId = Number(so.kompaniya_id);
+      const obyektId = Number(so.obyekt_id);
+      if (!sess.foydalanuvchi_id || !Number.isInteger(kompaniyaId) || kompaniyaId <= 0 || !Number.isInteger(obyektId) || obyektId <= 0) {
+        return Response.json({ ok: false, error: 'kompaniya_id va obyekt_id majburiy' });
+      }
+      if (!uuidRe.test(operationId)) return Response.json({ ok: false, error: 'operation_id (UUID) majburiy' });
+      const idlar = Array.isArray(so.qator_ids) ? so.qator_ids.slice(0, 200).map(Number).filter((v: number) => Number.isInteger(v) && v > 0) : [];
+      if (!idlar.length) return Response.json({ ok: false, error: 'qator_ids majburiy' });
+      yuk = { p_actor_id: sess.foydalanuvchi_id, p_kompaniya_id: kompaniyaId, p_obyekt_id: obyektId, p_qator_ids: idlar, p_operation_id: operationId, p_kim: sess.email || 'slichitelniy' };
 
     /* ══════════ IJRO HUJJATLARI v2 (АОСР, laboratoriya, logo) ══════════
        kompaniya_id MAJBURIY — yuqoridagi a'zolik tekshiruvi shu orqali ishlaydi;

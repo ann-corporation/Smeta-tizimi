@@ -139,6 +139,7 @@ Namunalar:
 | `shartnoma_moslash(obyekt_idlar \| shartnoma_id, pozitsiyalar)` | — (o'qish) | shartnoma/hisob-faktura pozitsiyalari → smeta qatori nomzodlari (ishonch bilan) |
 | `fakt_jurnal(obyekt_id, qator_idlar? \| bolim_id?, sana_dan?, sana_gacha?)` | — (o'qish) | fakt yozuvlari tarixi va qator bo'yicha sof fakt |
 | `normativ_qidir(obyekt_id, matn, tur?)` | `t2_normativ_qidir_v1` / `t2_resurs_qidir_v1` / `t2_ish_turi_qidir_v1` | ShNK, resurs va ish turi variantlari |
+| `slichitelniy(obyekt_id, faqat?, limit?)` | `t2_aosr_slichitelniy_v1` | slichitelniy tayyorligi: farqli qatorlar + asos (АОСР, texnadzor qarori) + «nima yetishmaydi» (o'qish) |
 
 ## Ishlatish namunalari
 

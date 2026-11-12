@@ -512,6 +512,28 @@ export const normativQidir = tool({
   },
 });
 
+// ───────────────────────────── slichitelniy (fakt asosli) ─────────────────────────────
+
+export const slichitelniy = tool({
+  nom: 'slichitelniy',
+  tavsif: 'Slichitelniy vedomost tayyorligi (faqat o\'qish; t2_aosr_slichitelniy_v1): obyektdagi FARQLI ish qatorlari (fakt ≠ smeta, chegara 0,0005), har birining ASOSI — bog\'langan АОСР (№, sana, holat, hajm) va texnadzor qarori '
+    + '(kim, qaysi kompaniya, qachon; qabul/tuzatish/rad), tayyorlik sanog\'i (farqli N, asosi bor M, texnadzor tasdiqlagan K, asosi yo\'q) va «nima yetishmaydi» (qator → amal: aosr_yarat / texnadzorga_yubor / javob_kutilmoqda / tuzatish_kiriting / hajm_toldir). '
+    + '`faqat`: "yetishmaydi" (standart — tasdiqlanmagan farqli qatorlar), "asossiz" (АОСР umuman yo\'q). Smeta qatorlari o\'zgarmaydi; pul yo\'q (hajm). Excel («Основание» ustuni + asoslar reestri) — «Smeta va Fakt / LRV» sahifasidan.',
+  kirish: { obyekt_id: obyektIdS, faqat: z.enum(['yetishmaydi', 'asossiz']).optional(), limit: z.number().int().min(1).max(1000).optional() },
+  yozadi: false,
+  bajar: async (a, mu) => {
+    const aktor = mu.aktorKerak();
+    return mu.oqish(async (m) => {
+      const ob = await obyektBormi(m, a.obyekt_id);
+      const limit = a.limit ?? 200;
+      const r = (await m.query<{ r: { ok?: boolean; code?: string; error?: string; tayyorlik?: Record<string, number>; yetishmaydi_jami?: number; yetishmaydi?: Array<Record<string, unknown>>; asoslar?: unknown[]; aosrlar?: unknown[] } }>(
+        'select public.t2_aosr_slichitelniy_v1($1::bigint, $2::bigint, $3::bigint, $4::int) as r', [aktor, Number(ob.kompaniya_id), a.obyekt_id, limit])).rows[0]?.r;
+      if (!r || r.ok === false) throw new Error(`t2_aosr_slichitelniy_v1: ${xatoIzoh(r ?? 'javob yo\'q')}`);
+      const yet = (r.yetishmaydi ?? []).filter((x) => (a.faqat === 'asossiz' ? x.asos_holat === 'yoq' : true));
+      return { tayyorlik: r.tayyorlik, yetishmaydi_jami: r.yetishmaydi_jami, yetishmaydi: yet, asoslar: r.asoslar ?? [], aosrlar: r.aosrlar ?? [] };
+    });
+  },
+});
 // ───────────────────────────── 11. forma3 ─────────────────────────────
 
 export const forma3 = tool({
