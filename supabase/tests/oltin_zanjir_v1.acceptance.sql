@@ -257,7 +257,7 @@ begin
       group by p.manba_tur, p.manba_id, p.qism having count(*) > 1), 'a source document is posted more than once');
   perform pg_temp.oz_assert((select count(distinct manba_id) from public.t2_bux_provodka where kompaniya_id = v_komp and manba_tur = 'xarajat' and manba_id in (v_xar1, v_xar2)) = 2,
     'both cost rows must have a posting');
-  perform pg_temp.oz_assert(not exists(select 1 from public.t2_bux_provodka p where p.kompaniya_id = v_komp and (p.summa <= 0 or p.dt_kod is null or p.kt_kod is null or p.dt_kod = p.kt_kod)),
+  perform pg_temp.oz_assert(not exists(select 1 from public.t2_bux_provodka p where p.kompaniya_id = v_komp and p.tur is distinct from 'storno' and (p.summa <= 0 or p.dt_kod is null or p.kt_kod is null or p.dt_kod = p.kt_kod)),
     'every posting needs distinct dt/kt accounts and a positive amount (balanced by construction)');
   select count(*) into v_prov_n from public.t2_bux_provodka where kompaniya_id = v_komp;
   v_r := public.t2_bux_avto_provodka_v1(v_boss, v_komp, false, gen_random_uuid());

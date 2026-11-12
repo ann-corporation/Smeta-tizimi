@@ -66,7 +66,7 @@ const SMETA = a('smeta-studio', 'holat', 'smeta-narxlash', 'narx-dalil', 'narx-t
 const FAKT = a('fakt', 'foto', 'bugun', 'naryad', 'm29');
 const F2 = a('f2-tayyorlash', 'f2', 'f2-tarix', 'f2-reestr', 'nakopitelniy');
 const HUJJAT = a('documents', 'hujjat-nazorat', 'aosr', 'storage', 'nazorat', 'nazorat/tekshiruv', 'nazorat/jurnal', 'chizmalar', 'loyihachi', 'zakazchik', 'subpudrat', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish', 'subpudratchi');
-const MOLIYA = a('moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'kontragentlar');
+const MOLIYA = a('moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'kontragentlar', 'solishtiruv');
 const TAMINOT = a('logistika', 'zayavka', 'tender', 'yuk-birjasi', 'yuk-chaqirish', 'haydovchi', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'tender-ochiq', 'erp', 'hr');
 /* «Yetkazuvchi: bugun» — faqat yetkazuvchi roli (supply.*) va rahbariyat; ichki xodim (PTO, prorab) ko'rmaydi (egasi 2026-11-12). */
 const TAMINOT_R = a('logistika', 'zayavka', 'tender', 'yuk-birjasi', 'yuk-chaqirish', 'haydovchi', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'tender-ochiq', 'yetkazuvchi', 'erp', 'hr');
@@ -86,9 +86,9 @@ const KUTILGAN: Record<string, string[]> = {
   boss: [...ISH_R, ...SOTUV, ...KOMPANIYA, ...SHAXSIY],
   admin: [...ISH_R, ...SOTUV, ...KOMPANIYA, ...SHAXSIY],
   pto: [...ISH, ...SHAXSIY],
-  bugalter: [...a('pult', 'dashboard', 'obyektlar', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'kontragentlar',
+  bugalter: [...a('pult', 'dashboard', 'obyektlar', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'kontragentlar', 'solishtiruv',
     'documents', 'hujjat-nazorat', 'storage', 'logistika', 'zayavka', 'tender', 'yuk-birjasi', 'yuk-chaqirish', 'haydovchi', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'tender-ochiq', 'erp', 'hr', 'sotuv'), ...SHAXSIY],
-  prorab: [...bez(ISH, 'pult', 'dashboard', 'moliya', 'buxgalteriya', 'qarzdorlik'), ...SHAXSIY],
+  prorab: [...bez(ISH, 'pult', 'dashboard', 'moliya', 'solishtiruv', 'buxgalteriya', 'qarzdorlik'), ...SHAXSIY],
   usta: [...a('fakt', 'foto', 'bugun'), ...SHAXSIY],
   buyurtmachi: [...a('obyektlar', 'loyiha', 'participants', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'shartnoma-liniya',
     'documents', 'hujjat-nazorat', 'storage', 'zakazchik', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish'), ...SHAXSIY],
@@ -262,7 +262,7 @@ describe('yagona manba — boshqa iste‘molchilar o‘zgarmagan', () => {
       '/admin/hujjat-nazorat': 'module.loyiha', '/admin/participants': 'module.loyiha', '/admin/kontragentlar': 'module.loyiha',
       '/admin/nazorat': 'module.loyiha', '/admin/nazorat/tekshiruv': 'module.loyiha', '/admin/nazorat/jurnal': 'module.loyiha',
       '/admin/zakazchik': 'module.loyiha', '/admin/taqdimlar': 'module.loyiha', '/admin/murojaatlar': 'module.loyiha', '/admin/laboratoriya': 'module.loyiha', '/admin/hujjat-aylanish': 'module.loyiha',
-      '/admin/pult': 'module.erp', '/admin/dashboard': 'module.erp', '/admin/moliya': 'module.erp', '/admin/logistika': 'module.erp', '/admin/zayavka': 'module.erp', '/admin/tender': 'module.erp', '/admin/yuk-birjasi': 'module.erp', '/admin/bozor-sorov': 'module.erp', '/admin/bozor-kabinet': 'module.erp', '/admin/bozor-moderatsiya': 'module.erp', '/admin/tender-ochiq': 'module.erp', '/admin/yuk-chaqirish': 'module.erp', '/admin/haydovchi': 'module.erp',
+      '/admin/pult': 'module.erp', '/admin/dashboard': 'module.erp', '/admin/moliya': 'module.erp', '/admin/solishtiruv': 'module.erp', '/admin/logistika': 'module.erp', '/admin/zayavka': 'module.erp', '/admin/tender': 'module.erp', '/admin/yuk-birjasi': 'module.erp', '/admin/bozor-sorov': 'module.erp', '/admin/bozor-kabinet': 'module.erp', '/admin/bozor-moderatsiya': 'module.erp', '/admin/tender-ochiq': 'module.erp', '/admin/yuk-chaqirish': 'module.erp', '/admin/haydovchi': 'module.erp',
       '/admin/erp': 'module.erp', '/admin/hr': 'module.erp', '/admin/mindmap': 'module.erp',
     });
   });

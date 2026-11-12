@@ -92,6 +92,7 @@ const TekshiruvJurnal = lazy(() => import('./admin/nazorat/TekshiruvJurnal'));
 const LabKabinet = lazy(() => import('./admin/laboratoriya/LabKabinet'));
 const ChizmaReestri = lazy(() => import('./admin/loyihachi/ChizmaReestri'));
 const LoyihaSmetaFakt = lazy(() => import('./admin/sahifalar/LoyihaSmetaFakt'));
+const Solishtiruv = lazy(() => import('./admin/sahifalar/Solishtiruv'));
 const LoyihachiBugun = lazy(() => import('./admin/loyihachi/LoyihachiBugun'));
 const HujjatAylanish = lazy(() => import('./admin/zakazchik/HujjatAylanish'));
 const NarxDalil = lazy(() => import('./admin/sahifalar/NarxDalil'));
@@ -200,6 +201,7 @@ export default function App() {
             <Route path="grafik" element={<Suspense fallback={<SahifaYuklanmoqda />}><GrafikSahifa /></Suspense>} />
             <Route path="tokenlar" element={<Suspense fallback={<SahifaYuklanmoqda />}><Tokenlar /></Suspense>} />
             <Route path="hujjat-dizayn" element={<Suspense fallback={<SahifaYuklanmoqda />}><HujjatDizayni /></Suspense>} />
+            <Route path="solishtiruv" element={<Suspense fallback={<SahifaYuklanmoqda />}><Solishtiruv /></Suspense>} />
             <Route path="shartnoma-liniya" element={<Suspense fallback={<SahifaYuklanmoqda />}><ShartnomaLiniya /></Suspense>} />
             <Route path="qarzdorlik" element={<Suspense fallback={<SahifaYuklanmoqda />}><Qarzdorlik /></Suspense>} />
             <Route path="bozor-sorov" element={<Suspense fallback={<SahifaYuklanmoqda />}><BozorSorov /></Suspense>} />
