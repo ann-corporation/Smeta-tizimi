@@ -206,7 +206,7 @@ begin
   for r in select * from public.t2_solishtiruv_qoida where faol order by kod loop
     v_kalit := '{}'; v_n := 0;
     begin
-      for x in execute format('select * from (%s) q limit %s', r.sql_matn, r.max_qator) using p_kompaniya_id, p_obyekt_id, r.chegara loop
+      for x in execute format('select * from (%s) q(kalit, obyekt_id, shartnoma_id, entity_type, entity_id, dalil) limit %s', r.sql_matn, r.max_qator) using p_kompaniya_id, p_obyekt_id, r.chegara loop
         v_n := v_n + 1; v_kalit := v_kalit || x.kalit::text;
         insert into public.t2_solishtiruv_istisno (kompaniya_id, qoida_kod, kalit, obyekt_id, shartnoma_id, entity_type, entity_id, dalil)
         values (p_kompaniya_id, r.kod, x.kalit, x.obyekt_id, x.shartnoma_id, x.entity_type, x.entity_id, coalesce(x.dalil, '{}'::jsonb))
