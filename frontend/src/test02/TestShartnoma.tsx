@@ -57,13 +57,15 @@ export default function TestShartnoma() {
       if (o.ok) setObyektlar((o.qatorlar ?? []) as T2Obyekt[]);
     }).catch(() => undefined);
     return () => { faol = false; };
-  }, [joriy]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- joriy?.id: obyekt har renderda yangi bo'lsa ham so'rov takrorlanmasin
+  }, [joriy?.id]);
   useEffect(() => {
     if (!joriy) return;
     let faol = true;
     void sbKontragentlarOl(joriy.id).then((r) => { if (!faol || !r.ok) return; const b = (r.qatorlar ?? []).filter((k) => k.mavqe === 'buyurtmachi'); setBuyurtmachi(b.length === 1 ? b[0].nom : null); }).catch(() => undefined);
     return () => { faol = false; };
-  }, [joriy]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- joriy?.id
+  }, [joriy?.id]);
 
   const yukla = async () => {
     if (!joriy) return;

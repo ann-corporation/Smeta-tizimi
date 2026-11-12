@@ -123,7 +123,8 @@ export default function TestZayavka() {
     void sbOqi<SmetaMaterial>({ jadval: 't2_qator', filtr: 'obyekt_id=eq.' + id + '&kat=in.(mat,ob)', ustunlar: 'nom,birlik,hajm', limit: 20000 })
       .then((r) => { if (faol && r.ok) setSmetaMat(r.qatorlar ?? []); }).catch(() => undefined);
     return () => { faol = false; };
-  }, [formObyektId, joriy]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- joriy?.id: obyekt identifikatori barqaror (joriy obyekti har renderda yangi bo'lishi mumkin)
+  }, [formObyektId, joriy?.id]);
   const materiallar = useMemo(() => materialTakliflari(smetaMat, zayavkalar.filter((z) => String(z.obyektId) === formObyektId)), [smetaMat, zayavkalar, formObyektId]);
   const tanlanganMat = useMemo(() => materialTopish(materiallar, formMaxsulot), [materiallar, formMaxsulot]);
   const maxsulotOzgardi = (v: string) => {
