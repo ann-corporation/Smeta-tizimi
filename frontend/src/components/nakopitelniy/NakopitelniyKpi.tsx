@@ -100,9 +100,9 @@ export function NakopitelniyKpi({ jami, qatorlar, truncated, obyektId, kompaniya
             <span className="fz-kpi__sub">{qoralama ? <>{t('qoralama (hisobga kirmagan)')}: <FmtN val={jami.joriy_qoralama_summa} /></> : t('oldingi: {x}', { x: Math.round(jami.oldingi_summa).toLocaleString('ru-RU') })} · {summaTuriMatni('ustamasiz')}</span>
           </div>
           <div className="fz-kpi">
-            <span className="fz-kpi__label"><i style={{ background: ef.mumkin < 0 ? 'var(--danger)' : 'var(--ok)' }} />{t('Faktdan F2ga mumkin')}</span>
-            <span style={{ color: ef.mumkin < 0 ? 'var(--danger)' : undefined }}><SummaJuft obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={ef.mumkin} katKesim={kesim?.mumkin} /></span>
-            <span className="fz-kpi__sub">{ef.mumkin < 0 ? t('F2 fakt dan oshib ketgan') : t('Fakt − tasdiqlangan F2')}</span>
+            <span className="fz-kpi__label"><i style={{ background: ef.mumkin < 0 ? 'var(--warn)' : 'var(--ok)' }} />{ef.mumkin < 0 ? t('F2 faktdan oshgan (minus)') : t('Faktdan F2ga mumkin')}</span>
+            <span style={{ color: ef.mumkin < 0 ? 'var(--warn)' : undefined }}><SummaJuft obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={ef.mumkin} katKesim={kesim?.mumkin} /></span>
+            <span className="fz-kpi__sub">{ef.mumkin < 0 ? t('Tasdiqlangan F2 kiritilgan faktdan katta: fakt to‘liq kiritilmagan bo‘lishi mumkin — tekshiring') : t('Fakt − tasdiqlangan F2')}</span>
           </div>
         </div>
 

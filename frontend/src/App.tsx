@@ -147,10 +147,12 @@ export default function App() {
           } />
           <Route path="holat" element={<HolatNative />} />
           <Route path="holat/:id" element={<HolatNative />} />
-          <Route path="fakt" element={<FaktNative />} />
           {/* 2026-10-25 (tizim xaritasi P1): F2 bo'limi — sidebarda bitta «F2» bandi, tepada tablar.
               Yo'lsiz layout: sahifalar va ularning URL'lari o'zgarmagan. */}
           <Route element={<BolimTablari />}>
+            {/* 2026-11-12 (P2): «Fakt» bandida ikki tab — Fakt kiritish va Foto-dalil (URL'lar o'zgarmagan). */}
+            <Route path="fakt" element={<FaktNative />} />
+            <Route path="foto" element={<Suspense fallback={<SahifaYuklanmoqda />}><FotoLenta /></Suspense>} />
             <Route path="f2-tayyorlash" element={<F2TayyorlashNative />} />
             <Route path="f2" element={<F2ImportV3 />} />
             <Route path="f2-tarix" element={<F2TarixNative />} />
@@ -171,7 +173,6 @@ export default function App() {
             <Route path="narx-manbalari" element={<Suspense fallback={<SahifaYuklanmoqda />}><NarxManbalari /></Suspense>} />
             <Route path="narx-dalil" element={<Suspense fallback={<SahifaYuklanmoqda />}><NarxDalil /></Suspense>} />
             <Route path="narx-tekshiruv" element={<Suspense fallback={<SahifaYuklanmoqda />}><NarxTekshiruv /></Suspense>} />
-            <Route path="foto" element={<Suspense fallback={<SahifaYuklanmoqda />}><FotoLenta /></Suspense>} />
             <Route path="smeta-narxlash" element={<SmetaNarxlashResNative />} />
             <Route path="oferta" element={<OfertaNative />} />
             <Route path="narxlar" element={<Narxlar />} />

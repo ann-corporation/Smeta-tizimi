@@ -16,6 +16,8 @@ import { svodKorinishKesimi, yaxlitQatorIdlari, type SvodYaxlit } from './svod-y
 
 export type JurnalHolat = {
   qator_id: number; smeta_hajm: number | null; fakt_hajm: number | null;
+  /** t2_qator_holat.fakt_manbasi: BL_NORMA — resurs fakti ish faktidan norma × hajm bilan hosil qilingan. */
+  fakt_manbasi?: string | null;
   smeta_summa?: number | null; fakt_summa?: number | null; f2_mumkin_hajm?: number | null;
   /** «Fakt = F2» uchun: tasdiqlangan F2 hajmi va narxlar. */
   f2_hajm?: number | null; smeta_narx?: number | null; f2_narx?: number | null;
@@ -248,10 +250,14 @@ export function bolimSummalari(rows: readonly T2Qator[], states: readonly Jurnal
     while (p && n++ < 60) { if (p.qoshimcha || p.zamena) yangi = true; if (p.tur === 'rz') bolimlar.push(p.id); p = p.ota_id != null ? byId.get(p.ota_id) : undefined; }
     return { yangi, bolimlar };
   };
+  // Ishning O'Z fakti, agar resurslari shu faktdan norma × hajm bilan hosil qilingan (fakt_manbasi = BL_NORMA) bo'lsa, qo'shilmaydi —
+  // ikkalasini qo'shish faktni ikki marta sanardi (HISOB_YADRO_V1: ish varag'idagi fakt kartadagidan katta chiqardi, farq = ishlarning o'z fakti).
+  const otalar = new Set<number>();
+  for (const r of rows) if (r.ota_id != null && holat.get(r.id)?.fakt_manbasi === 'BL_NORMA') otalar.add(r.ota_id);
   for (const r of rows) {
     if (r.tur === 'bl') {
       const h = holat.get(r.id);
-      const f2 = v(h?.f2_summa); const fq = faktOl(h); const fakt = fq.summa;
+      const f2 = v(h?.f2_summa); const fq = faktOl(h); const fakt = otalar.has(r.id) ? null : fq.summa;
       if ((f2 == null || f2 === 0) && (fakt == null || fakt === 0)) continue;
       for (const b of yol(r).bolimlar) {
         const x = ol(b);

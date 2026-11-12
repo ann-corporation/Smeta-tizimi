@@ -204,6 +204,10 @@ begin
   return jsonb_build_object('ok', true, 'jami', v_jami, 'fotolar', v_items, 'sanalar', v_sanalar, 'razdellar', v_razdellar);
 end $$;
 
+-- Versiya qo'riqchisi (AGENTS.md §2c): t2_qator o'qiydigan yangi funksiyalar izohi.
+comment on function public._t2_foto_manba_tekshir(bigint, bigint, text, bigint) is 'versiya: texnik - foto manbasi ko''rsatgichi (qator id bo''yicha tekshiruv va razdel nomi); smeta summasi/hajmi hisoblanmaydi, eski (faol bo''lmagan) qatorga ham foto bog''lanishi mumkin.';
+comment on function public.t2_foto_dalil_royxat_v1(bigint, bigint, bigint, bigint, text, bigint, date, date, integer, bigint) is 'versiya: texnik - foto lentasi; t2_qator faqat manba nomini ko''rsatish uchun id bo''yicha o''qiladi, hajm/summa hisoblanmaydi.';
+
 do $$ declare fn text; begin
   foreach fn in array array[
     'public.t2_foto_dalil_bogla_v1(bigint,bigint,bigint,bigint,text,bigint,date,numeric,numeric,text,uuid)',
