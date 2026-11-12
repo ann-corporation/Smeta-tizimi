@@ -7,5 +7,7 @@
   "Hujjat muddati yaqinlashmoqda": { "ru": "Срок по документу истекает", "en": "A document deadline is approaching" },
   "Hujjat muddati o‘tib ketdi": { "ru": "Срок по документу истёк", "en": "A document deadline has passed" },
   "Muddat: {muddat}": { "ru": "Срок: {muddat}", "en": "Deadline: {muddat}" },
-  "Hujjatni ochish": { "ru": "Открыть документ", "en": "Open the document" }
+  "Hujjatni ochish": { "ru": "Открыть документ", "en": "Open the document" },
+  "Yangi chizma revizyasi chiqarildi": { "ru": "Выпущена новая ревизия чертежа", "en": "A new drawing revision was issued" },
+  "Chizma revizyasi bo‘yicha qaror keldi": { "ru": "Получено решение по ревизии чертежа", "en": "A decision on the drawing revision arrived" }
 }

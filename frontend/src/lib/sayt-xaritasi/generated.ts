@@ -2,11 +2,13 @@
 export const GENERATED_SITE_MAP = {
   "generatedAt": "source",
   "menuRoutes": [
+    "/admin/pult",
     "/admin/dashboard",
     "/admin/obyektlar",
     "/admin/loyiha",
     "/admin/participants",
     "/admin/mindmap",
+    "/admin/grafik",
     "/admin/smeta-studio",
     "/admin/holat",
     "/admin/smeta-narxlash",
@@ -17,7 +19,8 @@ export const GENERATED_SITE_MAP = {
     "/admin/narx-manbalari",
     "/admin/oferta",
     "/admin/fakt",
-    "/admin/naryad",
+    "/admin/foto",
+    "/admin/bugun",
     "/admin/m29",
     "/admin/f2-tayyorlash",
     "/admin/f2",
@@ -28,15 +31,23 @@ export const GENERATED_SITE_MAP = {
     "/admin/shartnoma-liniya",
     "/admin/qarzdorlik",
     "/admin/buxgalteriya",
-    "/admin/crm",
-    "/admin/aloqalar",
+    "/admin/kontragentlar",
+    "/admin/yetkazuvchi",
+    "/admin/subpudratchi",
+    "/admin/subpudrat",
     "/admin/documents",
     "/admin/hujjat-nazorat",
     "/admin/aosr",
     "/admin/storage",
+    "/admin/nazorat",
+    "/admin/nazorat/tekshiruv",
+    "/admin/nazorat/jurnal",
     "/admin/zakazchik",
     "/admin/taqdimlar",
     "/admin/murojaatlar",
+    "/admin/chizmalar",
+    "/admin/loyihachi",
+    "/admin/laboratoriya",
     "/admin/hujjat-aylanish",
     "/admin/logistika",
     "/admin/zayavka",
@@ -67,10 +78,13 @@ export const GENERATED_SITE_MAP = {
     "/ulash/:kod",
     "/tg",
     "/admin",
-    "dashboard",
     "holat",
     "holat/:id",
+    "bugun",
     "fakt",
+    "foto",
+    "pult",
+    "dashboard",
     "f2-tayyorlash",
     "f2",
     "f2-tarix",
@@ -78,6 +92,7 @@ export const GENERATED_SITE_MAP = {
     "nakopitelniy",
     "obyektlar",
     "loyiha",
+    "grafik",
     "tokenlar",
     "hujjat-dizayn",
     "shartnoma-liniya",
@@ -88,7 +103,6 @@ export const GENERATED_SITE_MAP = {
     "narx-manbalari",
     "narx-dalil",
     "narx-tekshiruv",
-    "naryad",
     "smeta-narxlash",
     "oferta",
     "narxlar",
@@ -98,10 +112,19 @@ export const GENERATED_SITE_MAP = {
     "hujjat-nazorat",
     "participants",
     "zakazchik",
+    "kontragentlar",
     "aloqalar",
     "taqdimlar",
+    "subpudratchi",
+    "subpudrat",
     "murojaatlar",
+    "nazorat",
+    "nazorat/tekshiruv",
+    "nazorat/jurnal",
+    "laboratoriya",
     "hujjat-aylanish",
+    "chizmalar",
+    "loyihachi",
     "system-control",
     "ai-agentlar",
     "kompaniya",
@@ -111,6 +134,7 @@ export const GENERATED_SITE_MAP = {
     "tizim-sozlama",
     "f2-eski",
     "topshiriqlar",
+    "yetkazuvchi",
     "ish-joylarim",
     "mutaxassis",
     "boshqaruv",
@@ -252,6 +276,7 @@ export const GENERATED_SITE_MAP = {
     "t2_azolik_royxat",
     "t2_material_alias_royxat",
     "t2_zayavka_royxat",
+    "t2_usta_fakt_qoralama",
     "t2_hodisa_lenta",
     "t2_papka_daraxt",
     "t2_hujjat_turi",
@@ -320,10 +345,6 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_ish_kartasi_ulush_saqla_v1"
     },
     {
-      "amal": "naryad_yoz_v1",
-      "rpc": "t2_naryad_yoz_v1"
-    },
-    {
       "amal": "shartnoma_saqla_v2",
       "rpc": "t2_shartnoma_saqla_v2"
     },
@@ -364,6 +385,10 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_hr_oylik_hisobla_v1"
     },
     {
+      "amal": "hr_kpi_qoida_saqla_v1",
+      "rpc": "t2_hr_kpi_qoida_saqla_v1"
+    },
+    {
       "amal": "bux_boshlash_v1",
       "rpc": "t2_bux_boshlash_v1"
     },
@@ -390,6 +415,18 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "bux_davr_v1",
       "rpc": "t2_bux_davr_v1"
+    },
+    {
+      "amal": "bux_shablon_tanla_v1",
+      "rpc": "t2_bux_shablon_tanla_v1"
+    },
+    {
+      "amal": "bux_davr_blok_v1",
+      "rpc": "t2_bux_davr_blok_v1"
+    },
+    {
+      "amal": "bux_hisob_tasdiq_v1",
+      "rpc": "t2_bux_hisob_tasdiq_v1"
     },
     {
       "amal": "bux_bank_import_v1",
@@ -716,6 +753,10 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_buyurtma_tafsilot_v1"
     },
     {
+      "amal": "buyurtma_tolov_holati_v1",
+      "rpc": "t2_yet_tolov_holati_v1"
+    },
+    {
       "amal": "tender_saqla_v1",
       "rpc": "t2_tender_saqla_v1"
     },
@@ -822,6 +863,18 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "butunlay_ochirish",
       "rpc": "t2_butunlay_ochirish"
+    },
+    {
+      "amal": "arxivla_v1",
+      "rpc": "t2_arxivla_v1"
+    },
+    {
+      "amal": "arxivdan_tiklash_v1",
+      "rpc": "t2_arxivdan_tiklash_v1"
+    },
+    {
+      "amal": "arxiv_butunlay_v1",
+      "rpc": "t2_arxiv_butunlay_v1"
     },
     {
       "amal": "obyekt_yangila",
@@ -1114,6 +1167,18 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "fakt_yoz_v2",
       "rpc": "t2_fakt_yoz_v2"
+    },
+    {
+      "amal": "usta_fakt_qoralama_v1",
+      "rpc": "t2_usta_fakt_qoralama_v1"
+    },
+    {
+      "amal": "usta_fakt_qaror_v1",
+      "rpc": "t2_usta_fakt_qaror_v1"
+    },
+    {
+      "amal": "usta_zayavka_v1",
+      "rpc": "t2_usta_zayavka_v1"
     },
     {
       "amal": "fakt_belgila_v2",

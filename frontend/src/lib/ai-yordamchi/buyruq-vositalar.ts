@@ -31,7 +31,7 @@ export function buyruqMalumotQur(rows: readonly T2Qator[], states: readonly (T2Q
 }
 
 /** Pul yoki huquqiy ta'sirli amallar — «Bajarish»dan keyin ALOHIDA «Tasdiqlayman» kerak (ovoz bilan tasdiqlanmaydi). */
-export const PUL_TURLARI: ReadonlySet<string> = new Set(['narx_tuzat', 'f2_yarat', 'f2_qoralama', 'forma3', 'akt_bekor', 'zamena', 'zamena_qosh', 'qoshimcha', 'qoshimcha_ish', 'podval_tahrir', 'snapshot_qaytar', 'ish_ochir', 'bajarilmadi']);
+export const PUL_TURLARI: ReadonlySet<string> = new Set(['narx_tuzat', 'f2_yarat', 'f2_qoralama', 'forma3', 'akt_bekor', 'zamena', 'zamena_qosh', 'qoshimcha', 'qoshimcha_ish', 'podval_tahrir', 'snapshot_qaytar', 'ish_ochir', 'bajarilmadi', 'arxivla']);
 export const pulAmalmi = (a: Pick<SahifaAmal, 'tur'>) => PUL_TURLARI.has(a.tur);
 
 const raqam = (v: number | null | undefined, d = 3) => (v == null || !Number.isFinite(v) ? '—' : Number(v).toLocaleString('ru-RU', { maximumFractionDigits: d }));
@@ -107,7 +107,7 @@ const yangiNarxOqi = (v: string | null): number | null => {
 
 /** Amal taklifini tekshiradi: null — mumkin; matn — nega mumkin emas (taklif tanlanmaydi). */
 export function buyruqAmalTekshir(m: BuyruqMalumot, a: SahifaAmal): string | null {
-  if (PUL_TURLARI.has(a.tur) && a.tur !== 'narx_tuzat') return t('Bu amal buyruq satridan bajarilmaydi — tegishli sahifada (F2 tayyorlash, Hujjatlar, Fakt) bajaring');
+  if (PUL_TURLARI.has(a.tur) && a.tur !== 'narx_tuzat' && a.tur !== 'arxivla') return t('Bu amal buyruq satridan bajarilmaydi — tegishli sahifada (F2 tayyorlash, Hujjatlar, Fakt) bajaring');
   switch (a.tur) {
     case 'fakt_hajm': {
       const e = faktAmalTekshir(m, a, new Set());
@@ -123,6 +123,8 @@ export function buyruqAmalTekshir(m: BuyruqMalumot, a: SahifaAmal): string | nul
       return r.narx != null && Math.abs(Number(r.narx) - yangi) < 1e-9 ? t('Narx o‘zgarmaydi') : null;
     }
     case 'korsat': return a.qator != null && m.qatorById.has(a.qator) ? null : 'Qator topilmadi (AI bergan id obyektda yo‘q)';
+    /* Faqat JORIY obyekt (boshqa yozuv turlari — o'z sahifasida «Korzinkaga» tugmasi bilan). */
+    case 'arxivla': return (a.qiymat ?? '').trim().toLowerCase() === 'obyekt' ? null : t('Buyruq satridan faqat joriy obyektni Korzinkaga yuborish mumkin');
     case 'och': return ochiqSahifa(m, a) ? null : t('Bu sahifa mavjud emas yoki sizga ochiq emas');
     default: return 'Noma’lum amal';
   }
@@ -136,7 +138,7 @@ export function faktDelta(m: Pick<BuyruqMalumot, 'bolimIshlari'>, a: SahifaAmal)
   return Math.round((h.rejim === '+' ? q : q - j.q.fakt) * 1e6) / 1e6;
 }
 
-export const BUYRUQ_AMAL_NOMI: Record<string, string> = { fakt_hajm: 'Fakt hajmi', narx_tuzat: 'Narx tuzatish (protokol qoralamasi)', korsat: 'Qatorni ko‘rsatish', och: 'Sahifani ochish' };
+export const BUYRUQ_AMAL_NOMI: Record<string, string> = { fakt_hajm: 'Fakt hajmi', narx_tuzat: 'Narx tuzatish (protokol qoralamasi)', korsat: 'Qatorni ko‘rsatish', och: 'Sahifani ochish', arxivla: 'Obyektni Korzinkaga yuborish' };
 
 /** «och» amali: qiymat — foydalanuvchiga ochiq sahifa yo'li (so'rov qismini hisobga olmaymiz). */
 export function ochiqSahifa(m: Pick<BuyruqMalumot, 'sahifalar'>, a: Pick<SahifaAmal, 'qiymat'>): OchiqSahifa | null {
@@ -169,6 +171,7 @@ export function amalDelta(m: BuyruqMalumot, a: SahifaAmal): AmalDelta | null {
 
 export const buyruqAmalNomi = (m: BuyruqMalumot, a: SahifaAmal): string => {
   if (a.tur === 'och') return `${t('Sahifani ochish')} · ${ochiqSahifa(m, a)?.nom ?? a.qiymat ?? '—'}`;
+  if (a.tur === 'arxivla') return `${t('Obyektni Korzinkaga yuborish')} · ${m.obyektNomi ?? '—'} (${t('tiklash mumkin')})`;
   const r = a.qator != null ? m.qatorById.get(a.qator) : undefined;
   const nom = r ? `${r.kod ? r.kod + ' ' : ''}${r.nom ?? ''}` : `#${a.qator ?? '—'}`;
   const d = amalDelta(m, a);
@@ -184,6 +187,8 @@ export type BuyruqYoz = {
   korsat: (qatorId: number) => void;
   /** Sahifani ochish (navigatsiya; yozuv emas) — yagona yordamchi Jarvis. */
   och?: (yol: string) => void;
+  /** Joriy obyektni Korzinkaga yuborish (t2_arxivla_v1; server tasdiqlangan hujjat bo'lsa rad etadi). */
+  arxivla?: (obyektId: number) => Promise<YozNatija>;
   /** Muvaffaqiyatli yozuvdan keyin ma'lumotni qayta o'qish. */
   yangila?: () => void;
   yangiOperationId: () => string;
@@ -211,6 +216,14 @@ export function buyruqVositalar(getM: () => BuyruqMalumot, obyektId: number, yoz
       if (yaroqli.length < list.length) out.push(`✗ ${t('{n} ta taklif yaroqsiz — o‘tkazildi', { n: list.length - yaroqli.length })}`);
       for (const a of yaroqli.filter((x) => x.tur === 'korsat')) if (a.qator != null) yoz.korsat(a.qator);
       for (const a of yaroqli.filter((x) => x.tur === 'och').slice(0, 1)) { const s = ochiqSahifa(m, a); if (s && yoz.och) { yoz.och(a.qiymat ?? s.yol); out.push(`✓ ${t('Ochildi')}: ${s.nom}`); } }
+      if (yaroqli.some((x) => x.tur === 'arxivla')) {
+        if (!yoz.arxivla) out.push(`✗ ${t('Korzinkaga yuborish bu yerda mavjud emas')}`);
+        else {
+          const r = await yoz.arxivla(obyektId);
+          out.push(r.ok ? `✓ ${t('Obyekt Korzinkaga yuborildi (Kompaniya → Korzinkadan tiklash mumkin)')}` : `✗ ${t('Obyekt Korzinkaga yuborilmadi')}: ${xato(r)}`);
+          if (r.ok) yoz.yangila?.();
+        }
+      }
       const fakt = new Map<number, number>();
       for (const a of yaroqli.filter((x) => x.tur === 'fakt_hajm')) { const d = faktDelta(m, a); if (a.qator != null && d != null) fakt.set(a.qator, (fakt.get(a.qator) ?? 0) + d); }
       if (fakt.size) {

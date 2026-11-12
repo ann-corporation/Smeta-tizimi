@@ -72,16 +72,19 @@ describe('hujjat dvigateli reestri', () => {
 describe('guard: taqdim resurslari', () => {
   /** t2_tomon_resurs seed: `('kalit', ..., array[..], taqdim_mumkin, faol, ...)`; keyingi migratsiyalar faol/taqdim_mumkin ni o'zgartirishi mumkin. */
   function seed() {
-    const sql = readFileSync(join(MIGRATIONS, '20261106200000_t2_tomon_aloqa_v1.sql'), 'utf8');
     const m = new Map<string, { taqdim: boolean }>();
-    for (const r of sql.matchAll(/\(\s*'([a-z_0-9]+)',[^\n]*?array\[[^\]]*\],\s*(true|false),/g)) m.set(r[1], { taqdim: r[2] === 'true' });
+    /* Baza seed + keyingi migratsiyalarda qo'shilgan resurslar (subpudratchi: sub_ish, sub_akt). */
+    for (const f of ['20261106200000_t2_tomon_aloqa_v1.sql', '20261216300000_t2_subpudratchi_v1.sql']) {
+      const sql = readFileSync(join(MIGRATIONS, f), 'utf8');
+      for (const r of sql.matchAll(/\(\s*'([a-z_0-9]+)',[^\n]*?array\[[^\]]*\],\s*(true|false),/g)) m.set(r[1], { taqdim: r[2] === 'true' });
+    }
     return m;
   }
 
   it('DB da taqdim_mumkin har resursning reestrda turi bor', () => {
     const s = seed();
     const taqdimli = [...s].filter(([, v]) => v.taqdim).map(([k]) => k);
-    expect(taqdimli.sort()).toEqual(['aosr', 'f2', 'hujjat']);
+    expect(taqdimli.sort()).toEqual(['aosr', 'f2', 'hujjat', 'sub_akt']);
     for (const r of taqdimli) expect(taqdimResursiTurlari(r).length, `resurs ${r} uchun reestrda tur yo'q`).toBeGreaterThan(0);
   });
 

@@ -109,6 +109,7 @@ const PTO_ROUTE_PREFIXES = [
   '/admin/narx-dalil',
   '/admin/narx-tekshiruv',
   '/admin/naryad',
+  '/admin/foto',
   '/admin/logistika',
   '/admin/storage',
 ];
@@ -292,6 +293,11 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState<LoadingState>({ hierarchy: false, periods: false, documents: false });
   const [error, setError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
+  const [loadedToken, setLoadedToken] = useState(0);
+  const refreshTokenRef = useRef(0);
+  refreshTokenRef.current = refreshToken;
+  /** Ro'yxatda hali yo'q (yangi yaratilgan) obyekt tanlandi: ro'yxat qayta o'qilgach qo'llanadi. */
+  const kutilganObyekt = useRef<{ id: number; token: number } | null>(null);
   const qc = useIxtiyoriyQueryClient();
   /** Company whose project/object lists are really loaded — before that a URL object is not judged
    *  (owner 2026-09-29: ?obyekt=78 used to vanish against an empty list). */
@@ -348,6 +354,7 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
         setProjects((projectResult.qatorlar ?? []).filter((row) => row.kompaniya_id === companyId));
         setObjects((objectResult.qatorlar ?? []).filter((row) => row.kompaniya_id === companyId));
         setLoadedCompany(companyId);
+        setLoadedToken(refreshToken);
       })
       .catch(() => { if (alive) setError('PTO iyerarxiyasini yuklab bo‘lmadi.'); })
       .finally(() => { if (alive) setLoading((old) => ({ ...old, hierarchy: false })); });
@@ -440,9 +447,22 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
       const object = objects.find((row) => row.id === id && row.kompaniya_id === companyId);
       if (object) return withObject(cur, id, object.loyiha_id ?? null);
       // Lists not loaded yet: keep the id; validation decides once the company's lists arrive.
-      return loadedCompanyRef.current === companyId ? cur : withObject(cur, id, cur.projectId);
+      if (loadedCompanyRef.current !== companyId) return withObject(cur, id, cur.projectId);
+      // Ro'yxat yuklangan, lekin obyekt unda yo'q: yangi yaratilgan bo'lishi mumkin (ro'yxat bir marta o'qiladi) —
+      // ro'yxat keshni chetlab qayta o'qiladi va obyekt kelsa tanlanadi (egasi: «yangi obyekt aniqlanmadi»).
+      kutilganObyekt.current = { id, token: refreshTokenRef.current + 1 };
+      setRefreshToken((value) => value + 1);
+      return cur;
     });
   }, [companyId, objects, updateScope]);
+
+  useEffect(() => {
+    const k = kutilganObyekt.current;
+    if (k == null || companyId == null || loading.hierarchy || loadedCompany !== companyId) return;
+    const object = objects.find((row) => row.id === k.id && row.kompaniya_id === companyId);
+    if (object) { kutilganObyekt.current = null; updateScope((cur) => withObject(cur, object.id, object.loyiha_id ?? null)); }
+    else if (loadedToken >= k.token) kutilganObyekt.current = null; // qayta o'qilgandan keyin ham yo'q: bu kompaniyaniki emas
+  }, [companyId, loading.hierarchy, loadedCompany, objects, loadedToken, updateScope]);
 
   const setPeriodId = useCallback((id: string | null) => {
     if (id != null && !OY_RE.test(id) && !periods.some((row) => row.id === id)) return;

@@ -17,7 +17,8 @@ const KATALOG = new Set(['company.member.manage', 'company.profile.update', 'com
   /* 20261124000000 uy sotish */ 'sales.read', 'sales.write', 'sales.price', 'sales.payment',
   /* Xarid/ta'minot capability lari (20261108010000_t2_ekotizim_f1_ruxsat_v1; effective-authorization.ts) — tender amallari ishlatadi. */
   'procurement.read', 'procurement.write', 'procurement.approve', 'supply.offer', 'supply.fulfil',
-  /* 2026-11-04 HR + KPI (F1 katalogida bor) */ 'hr.write', 'hr.tabel.write', 'payroll.write']);
+  /* 2026-11-04 HR + KPI (F1 katalogida bor) */ 'hr.write', 'hr.tabel.write', 'payroll.write',
+  /* usta Bugun (20261108010000 katalogida bor) */ 'self.work.write']);
 
 describe('yozish buyruqlari reyestri', () => {
   it('sb-yoz dagi har amal reyestrda (yoki dinamik ro‘yxatda), reyestrda ortiqcha amal yo‘q', () => {

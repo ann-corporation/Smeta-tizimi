@@ -30,7 +30,7 @@ export const SAHIFA_VOSITALARI: Record<SahifaTuri, { oqish: readonly string[]; a
    *  Amallar: fakt_hajm (+5 / =40, oddiy yozish), narx_tuzat (qiymat = yangi narx NDS siz, PUL: ikkinchi «Tasdiqlayman»), korsat, och (qiymat = sahifa yo'li — yagona yordamchi Jarvis navigatsiyasi, yozuv emas). */
   buyruq: {
     oqish: ['qidir', 'holat', 'narxsiz', 'qoldiq', 'lugat', 'naryad'],
-    amal: ['fakt_hajm', 'narx_tuzat', 'korsat', 'och'],
+    amal: ['fakt_hajm', 'narx_tuzat', 'korsat', 'och', 'arxivla'],
   },
 };
 

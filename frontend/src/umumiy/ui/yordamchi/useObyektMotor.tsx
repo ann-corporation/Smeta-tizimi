@@ -12,6 +12,7 @@ import { narxProtokolYarat } from '../../../api/t2-narx-protokol';
 import { lugatKompaniyaOl, naryadlarOl } from '../../../api/t2-naryad';
 import type { NaryadQisqa } from '../../../lib/naryad';
 import { lugatOrnat } from '../../../lib/qurilish-lugat';
+import { sbArxivla } from '../../../api/t2-arxiv';
 import { daraxtVaHolatOl } from '../../../lib/oylik-hujjat/ostatka-slichitelniy';
 import { amalDelta, buyruqMalumotQur, buyruqVositalar, type BuyruqMalumot, type BuyruqYoz, type OchiqSahifa, type YozNatija } from '../../../lib/ai-yordamchi/buyruq-vositalar';
 import type { SahifaAmal } from '../../../lib/ai-yordamchi/protokol';
@@ -24,7 +25,7 @@ import { toast } from '../Toast';
 export type MalumotNatija = { ok: true; rows: T2Qator[]; states: T2QatorHolat[] } | { ok: false; xato: string };
 export type MotorDeps = {
   malumotOl: { (obyektId: number): Promise<MalumotNatija> };
-  yoz: Pick<BuyruqYoz, 'faktYoz' | 'narxProtokol' | 'yangiOperationId'>;
+  yoz: Pick<BuyruqYoz, 'faktYoz' | 'narxProtokol' | 'yangiOperationId' | 'arxivla'>;
 };
 
 /** Haqiqiy bog'lanishlar: mavjud o'qish va yozish yo'llari (yangi RPC yo'q). */
@@ -33,6 +34,7 @@ export const HAQIQIY_MOTOR_DEPS: MotorDeps = {
   yoz: {
     faktYoz: (p) => sbFaktYoz({ obyektId: p.obyektId, sana: p.sana, qatorlar: p.qatorlar, izoh: p.izoh, operationId: p.operationId }) as Promise<YozNatija>,
     narxProtokol: (p) => narxProtokolYarat(p.obyektId, p.qatorlar, p.izoh, p.operationId),
+    arxivla: (obyektId) => sbArxivla('obyekt', obyektId),
     yangiOperationId,
   },
 };

@@ -63,7 +63,7 @@ export function sbAosrYozV2(p: { kompaniyaId: number; obyektId: number; malumot:
 }
 
 /* ── Laboratoriya protokollari ────────────────────────────────────── */
-export type SinovTuri = 'beton' | 'grunt' | 'armatura' | 'payvand' | 'material' | 'boshqa';
+export type SinovTuri = 'beton' | 'grunt' | 'armatura' | 'payvand' | 'gidravlik' | 'elektr' | 'material' | 'boshqa';
 export type SinovNatija = 'mos' | 'mos_emas' | 'kutilmoqda';
 
 export type LabProtokol = {
@@ -82,7 +82,7 @@ export type LabProtokolMalumot = Partial<Pick<LabProtokol,
   | 'natija' | 'invoys_raqam' | 'invoys_sana' | 'summa' | 'fayl_document_id' | 'izoh'>>;
 
 export const SINOV_TURI_NOM: Record<SinovTuri, string> = {
-  beton: 'Бетон', grunt: 'Грунт (уплотнение)', armatura: 'Арматура', payvand: 'Сварные соединения',
+  beton: 'Бетон', grunt: 'Грунт (уплотнение)', armatura: 'Арматура', payvand: 'Сварные соединения', gidravlik: 'Гидравлическое испытание', elektr: 'Электроизмерения',
   material: 'Материал', boshqa: 'Прочее',
 };
 export const SINOV_NATIJA_NOM: Record<SinovNatija, string> = { mos: 'Соответствует', mos_emas: 'Не соответствует', kutilmoqda: 'Ожидается' };

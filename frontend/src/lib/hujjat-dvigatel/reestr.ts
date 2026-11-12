@@ -200,6 +200,21 @@ export const HUJJAT_TURLARI = {
     taqdim: null,
     tokenKalit: null, tokenYoq: 'Reja: eksportyor hali yo\'q',
   },
+  sub_akt: {
+    kalit: 'sub_akt', nom: 'Subpudratchi akti (bajarilgan ish)', nomRu: 'Акт выполненных работ субподрядчика', holat: 'ishlaydi',
+    eksport: { modul: 'lib/subpudratchi/eksport.ts', izoh: 'Subpudratchi akti xlsx (kelishilgan narx, QQS siz / QQS bilan)' },
+    majburiy: [
+      { kalit: 'obyekt', nom: 'Obyekt (bosh pudratchi)', manba: 'obyekt' },
+      { kalit: 'oy', nom: 'Hisobot oyi', manba: 'qolda' },
+      { kalit: 'qatorlar', nom: 'Bajarilgan hajm (topshirilgan qatorlar)', manba: 'fakt' },
+      { kalit: 'summa', nom: 'Summa (kelishilgan narx, QQS siz / QQS bilan)', manba: 'hisob-yadro' },
+    ],
+    tekshiruv: ['fakt', 'summa'],
+    bosqichlar: ['qoralama', 'tekshiruv', 'yuborildi', 'qaror', 'arxiv'],
+    imzo: { tayyorlaydi: 'subpudratchi', tasdiqlaydi: ['pudratchi'] },
+    taqdim: { resurs: 'sub_akt', manbaJadval: 't2_sub_akt' },
+    tokenKalit: 'SUB_AKT',
+  },
 } as const satisfies Record<HujjatKalit, HujjatTuri>;
 
 export const HUJJAT_KALITLARI = Object.keys(HUJJAT_TURLARI) as HujjatKalit[];
@@ -212,9 +227,9 @@ export function hujjatTuri(kalit: HujjatKalit): HujjatTuri { return HUJJAT_TURLA
  * HUJJAT_TURLARI ga qo'shilishi shart (reestr.test.ts tekshiradi).
  */
 export const HISOBOT_TOKEN_KALITLARI = [
-  'AKT_SVERKA', 'AKT_SVERKI', 'BAJARILMADI', 'BOSHQARUV_HISOBOTI', 'F2_OYLIK_REESTR', 'F2_PORTFEL', 'ISH_HAQI_VEDOMOST', 'LRV', 'MOLIYA_TAHLIL',
+  'AKT_SVERKA', 'AKT_SVERKI', 'BAJARILMADI', 'BOSHQARUV_HISOBOTI', 'ESF', 'F2_OYLIK_REESTR', 'F2_PORTFEL', 'ISH_HAQI_VEDOMOST', 'LRV', 'MOLIYA_TAHLIL', 'OBOROT_SALDO',
   'OBOSNOVANIE', 'OBOSNOVANIE_NARX', 'OFERTA', 'OMBOR_QORALAMA_REESTR', 'PAKET_MUNDARIJA', 'PERERASCHET', 'PROTOKOL_NARX',
-  'QARZDORLIK', 'RAHBAR_PANEL', 'RESURS_VEDOMOST', 'SHARTNOMA_OYLIK_PAKET', 'SMETA_DAVA', 'SVERKA_LRV_RES',
+  'QARZDORLIK', 'RAHBAR_PANEL', 'RESURS_VEDOMOST', 'SHARTNOMA_OYLIK_PAKET', 'SMETA_DAVA', 'SVERKA_LRV_RES', 'ZHURNAL_PROVEROK', 'ZAKAZCHIK_HISOBOT',
 ] as const;
 
 /** Ro'yxatdan o'tgan barcha token narxi kalitlari (hujjat turlari + hisobotlar). */
