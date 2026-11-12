@@ -21,5 +21,6 @@
   "Siz": { "ru": "Вы", "en": "You are" },
   "Rol": { "ru": "Роль", "en": "Role" },
   "platforma superadmini": { "ru": "суперадминистратор платформы", "en": "platform superadmin" },
-  "Bekor qildim — hech narsa yozilmadi.": { "ru": "Отменил — ничего не записано.", "en": "Cancelled — nothing was written." }
+  "Bekor qildim — hech narsa yozilmadi.": { "ru": "Отменил — ничего не записано.", "en": "Cancelled — nothing was written." },
+  "Gapni tushunyapman…": { "ru": "Разбираю запрос…", "en": "Understanding the request…" }
 }

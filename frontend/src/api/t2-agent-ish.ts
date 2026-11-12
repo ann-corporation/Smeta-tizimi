@@ -161,6 +161,18 @@ export async function kasbSavolOqim(k: number, savol: string, o: { sahifa?: stri
   return yakun ?? { ok: false, error: 'Aloqa uzildi — javob to‘liq kelmadi' };
 }
 
+/** LLM «niyat + slot»: mahalliy qatlam tushunmagan qisqa gap -> kanonik buyruq / aniqlashtiruvchi savol. Xato bo'lsa null (oddiy oqim davom etadi). */
+export async function niyatLlmOl(k: number, savol: string, o: { tarix?: Array<{ rol: 'user' | 'assistant'; matn: string }>; sahifa?: string; obyektNomi?: string | null; signal?: AbortSignal } = {}):
+  Promise<{ tur: 'buyruq' | 'noaniq' | 'suhbat'; qayta: string | null; savol: string | null; variantlar: string[] } | null> {
+  try {
+    const r = await fetch('/api/agent-ish', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, signal: o.signal,
+      body: JSON.stringify({ amal: 'jarvis_niyat', kompaniya_id: k, savol, sahifa: o.sahifa, obyekt_nomi: o.obyektNomi ?? undefined, ...(o.tarix?.length ? { tarix: o.tarix } : {}) }) });
+    const j = await r.json() as { ok?: boolean; tur?: string; qayta?: string | null; savol?: string | null; variantlar?: string[] };
+    if (!r.ok || j.ok === false || (j.tur !== 'buyruq' && j.tur !== 'noaniq' && j.tur !== 'suhbat')) return null;
+    return { tur: j.tur, qayta: j.qayta ?? null, savol: j.savol ?? null, variantlar: Array.isArray(j.variantlar) ? j.variantlar : [] };
+  } catch { return null; }
+}
+
 export type JurnalYozuvi = {
   id: number; vaqt: string; profil_kod: string | null; rol: string | null; tur: 'savol' | 'rad' | 'salom' | 'xato'; savol: string | null; javob: string | null; qadamlar: Qadam[];
   toifalar: string[]; model: string | null; kirish_token: number; chiqish_token: number; ms: number | null; rad: boolean; kim: string | null;

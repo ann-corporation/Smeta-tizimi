@@ -16,6 +16,7 @@ import { aiHisobli, aiXatoJavobi, aiXatoMalumoti, modelOf } from '../_shared/age
 import { tizimPrompti, tashqiMatnOra, profilDarajasi, type Muhit } from '../_shared/agent-prompt';
 import { vebOl, vebUrlTekshir } from '../_shared/agent-veb';
 import { kimMendan, kimPromptBloki } from '../../src/lib/yordamchi/kim';
+import { NIYAT_SXEMA, niyatLlmTekshir, niyatTizimi } from '../../src/lib/yordamchi/niyat-llm';
 import { suhbatTarixi, faktMatni, kasbPrompti, mavzuTaqiqi, radMatni, toifalarniTanla, harakatMatni, javobniAjrat, MAVZU_NOMI, type KasbMalumoti, type Toifa } from '../_shared/agent-kasb';
 import { bilimBolimi, dbBilimYozuvlari, navigatsiyaSorovi, sahifaQidirish, tizimYordamJavobi, yolTekshir } from '../_shared/agent-bilim';
 import { BILIM_SXEMA, BILIM_VAZIFA, bilimKodi, bilimTakliflariniAjrat } from '../_shared/agent-bilim-yigish';
@@ -36,7 +37,7 @@ const matn = (v: unknown, n: number) => (v == null || String(v).trim() === '' ? 
 const PROFIL = /^[a-z_]{3,40}$/;
 
 /** Model chaqiradigan (token sarflaydigan) amallar. */
-const AI_AMALLAR = new Set(['savol', 'kasb_savol', 'veb_tahlil', 'veb_ol', 'rivojlanish_tahlil', 'qadam_taklif', 'bilim_yigish']);
+const AI_AMALLAR = new Set(['savol', 'kasb_savol', 'jarvis_niyat', 'veb_tahlil', 'veb_ol', 'rivojlanish_tahlil', 'qadam_taklif', 'bilim_yigish']);
 const chiqar = (r: RpcNatija) => Response.json(r.data, { status: r.status, ...JAVOB });
 const xato = (m: string, status = 400) => Response.json({ ok: false, error: m }, { status, ...JAVOB });
 
@@ -570,6 +571,29 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
         if (c.ok) yaratildi.push(c.data.id); else otkazildi += 1;
       }
       return Response.json({ ok: true, takliflar: yaratildi, otkazildi, model: r.model }, JAVOB);
+    } catch (e) {
+      return aiXatoJavobi(e);
+    }
+  }
+
+  /* JARVIS NIYAT (LLM «niyat + slot»): mahalliy qatlam tushunmagan qisqa gapni kanonik buyruqqa qayta yozadi yoki BITTA aniqlashtiruvchi savol beradi.
+     Model hech narsa bajarmaydi; natija klientda yana mahalliy niyatdan o'tadi. Hisob: aiHisobli (tier fast), kim — sessiyadan. */
+  if (amal === 'jarvis_niyat') {
+    if (kid == null) return xato('Kompaniyani tanlang', 422);
+    const savol = matn(so.savol, 300);
+    if (!savol) return xato('savol kerak');
+    try {
+      const [kr, men] = await Promise.all([rpcData(env, 't2_agent_kasb_v1', { p_actor_id: k.actor, p_kompaniya_id: kid }), rpcData(env, 't2_men_v1', { p_actor_id: k.actor }).catch(() => null)]);
+      if (!kr.ok) return chiqar(kr);
+      const kasb = kr.data as unknown as KasbMalumoti;
+      const kimB = kimPromptBloki(kimMendan(men?.ok ? (men.data as never) : { context_kompaniyalar: [{ kompaniya_id: kid, nom: '', effective_role: kasb.rol }] }, kid, { sahifa: matn(so.sahifa, 160), obyektNomi: matn(so.obyekt_nomi, 120) }));
+      const tarix = suhbatTarixi(so.tarix);
+      const r = await aiHisobli(env, k.actor, kid, kasb.profil, 'jarvis_niyat', {
+        system: niyatTizimi(kimB),
+        text: (tarix ? tashqiMatnOra('suhbat-tarixi', tarix) + '\n\n' : '') + tashqiMatnOra('foydalanuvchi-gapi', savol),
+        tier: 'fast', maxOutputTokens: 300, temperature: 0, jsonSchema: NIYAT_SXEMA, totalTimeoutMs: 15000,
+      });
+      return Response.json({ ok: true, ...niyatLlmTekshir(r.text), model: r.model }, JAVOB);
     } catch (e) {
       return aiXatoJavobi(e);
     }

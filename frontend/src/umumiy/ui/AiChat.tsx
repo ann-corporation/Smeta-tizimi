@@ -3,11 +3,12 @@ import ReactMarkdown, { type Components } from 'react-markdown';
 import { mdBolaklar } from '../../lib/yordamchi/jadval';
 import { ArrowRight, Bot, Mic, MicOff, Send, Square, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { kasbSavolOqim, tizimYordamSavol, type KasbIshchi, type KasbYakun, type Qadam, type SahifaIshora } from '../../api/t2-agent-ish';
+import { kasbSavolOqim, niyatLlmOl, tizimYordamSavol, type KasbIshchi, type KasbYakun, type Qadam, type SahifaIshora } from '../../api/t2-agent-ish';
 import { jarvisKichikGap } from '../../lib/jarvis/intent';
 import { katalogKonteksti, narxSavolimi, vaqtBilan, type KatalogKontekst } from '../../lib/jarvis/katalog-kontekst';
 import { t } from '../../i18n/til';
 import { niyatAniqla, type Niyat } from '../../lib/yordamchi/niyat';
+import { niyatLlmGaMosmi } from '../../lib/yordamchi/niyat-llm';
 import { davomBekorMi } from '../../lib/yordamchi/vosita/ishla';
 import type { Davom, Variant } from '../../lib/yordamchi/vosita/tur';
 import { OVOZ_TILLAR, ovozBoshla, ovozQollanadimi, type OvozTil } from '../../lib/ai-yordamchi/ovoz';
@@ -145,18 +146,32 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     if (ya && ya.sahifalar.length && !jarvisKichikGap(s)) {
       const davom = davomRef.current; davomRef.current = null;
       if (davom && davomBekorMi(s)) { setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', jarvis: true, matn: t('Bekor qildim — hech narsa yozilmadi.') }]); setMatn(''); return; }
-      const n: Niyat = davom ? { tur: 'vosita', id: davom.id, davom } : niyatAniqla(s, { sahifalar: ya.sahifalar, obyektlar: ya.obyektlar, joriyObyekt: ya.joriyObyekt, sahifaAmallar: ya.sahifaAmallar });
+      let n: Niyat = davom ? { tur: 'vosita', id: davom.id, davom } : niyatAniqla(s, { sahifalar: ya.sahifalar, obyektlar: ya.obyektlar, joriyObyekt: ya.joriyObyekt, sahifaAmallar: ya.sahifaAmallar });
+      let ishMatn = s; let oldindanQoyildi = false;
+      /* LLM «niyat + slot»: mahalliy qatlam tushunmagan qisqa gap -> kanonik buyruq yoki BITTA aniqlashtiruvchi savol (hisobli, tier fast). */
+      if (n.tur === 'nomalum' && !davom && kompaniyaId != null && niyatLlmGaMosmi(s)) {
+        setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', matn: '', jonli: true, jarvis: true, qadamlar: [{ ms: 0, belgi: '🧭', matn: t('Gapni tushunyapman…') }], kutadi: s }]);
+        setMatn(''); setBand(true); busy.current = true;
+        const ctrl0 = new AbortController(); abort.current = ctrl0;
+        const lr = await niyatLlmOl(kompaniyaId, s, { tarix: tarixOl().filter((x) => !(x.rol === 'user' && x.matn === s.slice(0, 600))), sahifa, obyektNomi: ya.joriyObyekt?.nom ?? null, signal: ctrl0.signal });
+        busy.current = false; setBand(false);
+        if (gen.current !== boshlangich) return;
+        if (lr?.tur === 'noaniq') { xabarYangila(id + 'a', (x) => ({ ...x, jonli: false, qadamlar: undefined, matn: lr.savol ?? '', tanlov: lr.variantlar.map((v) => ({ nom: v, matn: v })) })); return; }
+        const n2 = lr?.tur === 'buyruq' && lr.qayta ? niyatAniqla(lr.qayta, { sahifalar: ya.sahifalar, obyektlar: ya.obyektlar, joriyObyekt: ya.joriyObyekt, sahifaAmallar: ya.sahifaAmallar }) : null;
+        if (lr?.qayta && n2 && n2.tur !== 'nomalum') { n = n2; ishMatn = lr.qayta; oldindanQoyildi = true; }
+        else setXabarlar((p) => p.filter((x) => x.id !== id && x.id !== id + 'a'));   // oddiy oqim davom etadi
+      }
       const faqatNav = n.tur === 'yordam' || n.tur === 'kim' || n.tur === 'dars' || n.tur === 'ruxsatYoq' || n.tur === 'sahifaTanla' || n.tur === 'navigatsiya' || n.tur === 'sahifaAmal';
       const mahalliy = (n.tur === 'navigatsiya' ? n.aniqOchish : n.tur !== 'nomalum') && (kompaniyaId != null || faqatNav);
       if (n.tur === 'navigatsiya' && !n.aniqOchish) qoshHavola = [{ yol: n.sahifa.url, nom: n.sahifa.nom }];
       if (n.tur === 'nomalum') yaqinHavola = n.yaqin.map((x) => ({ yol: x.url, nom: x.nom }));
       if (mahalliy) {
-        if (!davom) setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', matn: '', jonli: true, jarvis: true, qadamlar: [], kutadi: s }]);
+        if (!davom && !oldindanQoyildi) setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', matn: '', jonli: true, jarvis: true, qadamlar: [], kutadi: s }]);
         setBand(true); busy.current = true;
         const ctrl = new AbortController(); abort.current = ctrl;
         let r: IshlovNatija;
         try {
-          r = await yordamchiIshla(n, s, {
+          r = await yordamchiIshla(n, ishMatn, {
             kompaniyaId, sahifalar: ya.sahifalar, motor: ya.motor, tarix: tarixOl().filter((x) => !(x.rol === 'user' && x.matn === s.slice(0, 600))), hujjat: ya.hujjat ?? undefined, sahifaAmalBajar: ya.sahifaAmalBajar, kim: ya.kim, vosita: ya.vosita,
             qadam: (q) => { if (gen.current === boshlangich) xabarYangila(id + 'a', (x) => ({ ...x, qadamlar: [...(x.qadamlar ?? []), { ms: 0, belgi: q.holat === 'xato' ? '✗' : '⏳', matn: q.matn }] })); },
             tirikmi: () => gen.current === boshlangich && !ctrl.signal.aborted,
