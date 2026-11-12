@@ -17,6 +17,7 @@ import { downloadBlob } from '../lib/construction-document-control/export/downlo
  */
 import { useEffect, useMemo, useState } from 'react';
 import { ClipboardList, Plus, Link2, Unlink, AlertTriangle, CheckCircle2, FileSpreadsheet, Save, FlaskConical, X, ShieldCheck, FileArchive } from 'lucide-react';
+import { ArxivTugma } from '../components/arxiv/ArxivTugma';
 import { sbAosrCoverageOl, sbAosrBekor, sbAosrBogSaqla, sbAosrBogOl, sbQatorMetaOl, type AosrCoverage, type QatorMetaYozuv } from '../api/t2-aosr';
 import {
   sbAosrV2Ol, sbAosrYozV2, sbLabProtokollarOl, sbLabProtokolYoz, sbLabProtokolBekor, sbLabProtokolBogSaqla,
@@ -46,6 +47,7 @@ import { obyektZakazchikNomi } from '../lib/pto-markazi/obyekt-zakazchik';
 import { obyektImzochiSaqla, type ImzochiRol } from '../api/obyekt-imzochi';
 import { useSearchParams } from 'react-router-dom';
 import { ZakazchigaYuborish } from '../admin/zakazchik/ZakazchigaYuborish';
+import { AosrFotoBiriktir } from '../admin/nazorat/AosrFotoBiriktir';
 import { AosrChizmaTanlash } from '../admin/loyihachi/AosrChizmaTanlash';
 import { OpsKpi, OpsKpiQator, OpsTablar } from '../components/kompaniya-ops/OpsUi';
 import { SinovSorovYubor, type SorovKontekst } from '../admin/laboratoriya/SinovSorovYubor';
@@ -582,8 +584,10 @@ export default function TestAosr() {
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
                           {a.holat === 'yangi' && kompaniyaId && <span onClick={(e) => e.stopPropagation()}><ZakazchigaYuborish kompaniyaId={kompaniyaId} aktId={a.id} resurs="aosr" /></span>}
+                  {a.holat !== 'bekor' && kompaniyaId && <span onClick={(e) => e.stopPropagation()}><AosrFotoBiriktir kompaniyaId={kompaniyaId} aosrId={a.id} /></span>}
                           <button type="button" onClick={(e) => { e.stopPropagation(); void excel(a); }} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" title={t('Excel (blank)')} aria-label={t('Excel (blank)')}><FileSpreadsheet /></button>
                           <button type="button" onClick={(e) => { e.stopPropagation(); void bekorQil(a); }} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" title={t('Bekor qilish')} aria-label={t('Bekor qilish')}><Unlink /></button>
+                          {a.holat === 'yangi' && <ArxivTugma tur="aosr" id={a.id} nom={`№ ${a.raqam ?? ''}`} ikonFaqat onDone={() => { setForma(null); yukla(); }} />}
                         </div>
                       </div>
                     </div>

@@ -20,6 +20,8 @@ export function dataPermission(name: string, write: boolean, body: Record<string
     if (n === 'buyurtma_otish_v1') return ['qabul_qilindi','rad','bajarilmoqda','tayyor','topshirildi'].includes(String(body.holat || '')) ? 'supply.fulfil' : 'procurement.write';
     return 'procurement.write';
   }
+  /* USTA «Bugun» (20261214300000): qoralama fakt va material zayavkasi — self.work.write; qaror (tasdiq/rad) — fakt.write. write-command-policy.ts bilan bir xil. */
+  if (/^usta_/.test(n)) return n === 'usta_fakt_qaror_v1' ? 'fakt.write' : 'self.work.write';
   if (['erp_amal','sozlama_saqla','kirish_amal','taklif_yubor','taklif_qabul'].includes(n)) return 'control.company.write';
   if (n==='token_sarfla_v1'||n==='token_qaytar_v1'||n==='token_yakunla_v1') return 'company.read';
   /* M-29 bajarish (ombordan chiqim) — bajarish domeni; RPC ham fakt.write talab qiladi (ADR-3, 2026-10-21). */
@@ -27,6 +29,8 @@ export function dataPermission(name: string, write: boolean, body: Record<string
   /* Uy sotish (20261124000000): inventar/shaxmatka/panel/bitim kartasi — sales.read (karta PII ni RPC yashiradi); mijoz PII bor ro'yxatlar — sales.write (RPC ham shuni tekshiradi). */
   if (/^sotuv_/.test(n)) return write ? 'sales.write' : (/^sotuv_(shaxmatka|panel|bitim)_/.test(n) ? 'sales.read' : 'sales.write');
   if (/platforma_|token_toldir|obuna_belgila|tizim_amal/.test(n)) return write ? 'control.global.write' : 'control.global.read';
+  /* Naryad (20261214810000): usta «bajarildi»ni o'zi belgilaydi (self.work.write; RPC naryad.usta_foydalanuvchi_id = actor ni ham tekshiradi). Qolgan amallar — smeta.write. */
+  if (n === 'naryad_yoz_v1') return write && body.naryad_amal === 'bajarildi' ? 'self.work.write|smeta.write' : 'smeta.write';
   if (write) {
     if (n === 'akt_tasdiqlash') return 'f2.approve';
     if (n === 'akt_lifecycle_transition_v1') {
@@ -39,7 +43,7 @@ export function dataPermission(name: string, write: boolean, body: Record<string
     if (n === 'akt_yarat') return body.tur === 'fakt' ? 'fakt.write' : 'f2.prepare';
     if (/f2|(^|_)akt_/.test(n)) return 'f2.prepare';
   } else if (/f2|(^|_)akt(?:_|$)|viborka|nakop/.test(n)) return 'f2.read';
-  if (/tolov|xarajat|faktura|bux|debitor|financial|boss|rahbar_panel/.test(n)) return write ? 'financial.write' : 'financial.read';
+  if (/tolov|xarajat|faktura|bux|debitor|financial|boss|rahbar_panel|rahbar_pult/.test(n)) return write ? 'financial.write' : 'financial.read';
   if (/fakt/.test(n)) return write ? 'fakt.write' : 'fakt.read';
   if (/narx|price|nakrutka|alias/.test(n)) return write ? 'narx.write' : 'narx.read';
   if (/qator|smeta|daraxt|ish_turi|resurs_kategoriya|qoshimcha_ish|zamena_ish|resurs_bola|ish_resurs/.test(n)) return write ? 'smeta.write' : 'smeta.read';
@@ -53,9 +57,11 @@ export function dataPermission(name: string, write: boolean, body: Record<string
 
 /** Public/auth/webhook/catalog endpoints retain their own guards. All tenant business APIs are covered here. */
 export const SCOPED_APIS = new Set(['object-financials','contract-scope','sb','sb-yoz','company','sessiya','smeta-studio','smeta-yukla','smeta-ai','smeta-narx-agent','f2-moslash',
-  'hujjat-nazorat','hujjat-ol','hujjat-royxat','hujjat-yukla','boss-dashboard','boss-documents','system-control','tomon','loyihachi','hujjat-aylanish','laboratoriya','agent-ish','ai-savol','ai-parse','gas','boshqaruv','agent-control',
+  'hujjat-nazorat','hujjat-ol','hujjat-royxat','hujjat-yukla','boss-dashboard','boss-documents','system-control','tomon','loyihachi','foto-dalil','foto-ai','hujjat-aylanish','laboratoriya','agent-ish','ai-savol','ai-parse','gas','boshqaruv','agent-control',
   /* Obyekt paketi (ADR OBYEKT_PAKET §1.4): smeta + holat + F2 ro'yxati + nakrutka — faqat o'qish. */
-  'obyekt-paket','normativ-qidir']);
+  'obyekt-paket','normativ-qidir',
+  /* P6/P7 Grafik + cashflow: o'qish — hujjat o'qish (buyurtmachi ham grant bilan); yozish (override) — loyiha yozuvi, rol bazada ham tekshiriladi. */
+  'grafik']);
 
 export function requestPermission(api: string, method: string, b: Record<string, unknown>, q: URLSearchParams): string | null {
   if (!SCOPED_APIS.has(api) || api === 'sessiya') return null;
@@ -77,6 +83,7 @@ export function requestPermission(api: string, method: string, b: Record<string,
   // Yozish — faqat aniq reyestr orqali (fail-closed): reyestrda yo'q amal hech kimga ruxsat etilmaydi.
   if (api === 'sb-yoz') return writeCommandPermission(String(b.amal || 'qator_tahrir'),b);
   if (api === 'boshqaruv') return method === 'GET' ? 'control.global.read' : 'control.global.write';
+  if (api === 'grafik') return method === 'GET' ? 'document.read' : 'project.write';
   if (api === 'agent-control') return method === 'GET' ? 'document.read' : 'document.write';
   if (api === 'system-control') return (b.kompaniya_id || q.get('kompaniya_id')) ? (method === 'GET' ? 'control.company.read' : 'control.company.write') : (method === 'GET' ? 'control.global.read' : 'control.global.write');
   if (api === 'smeta-studio') return b.amal === 'saqla' ? 'smeta.write' : 'smeta.read';
@@ -94,6 +101,8 @@ export function requestPermission(api: string, method: string, b: Record<string,
   if (api === 'hujjat-aylanish') return method === 'GET' || ['zanjir_qaror', 'xat_qabul', 'bildirishnoma_oqildi'].includes(String(b.amal)) ? 'document.read' : 'document.write';
   /* Loyihachi/chizma: kirish chegarasi document.read; aniq capability (design.write/design.issue/document.write) bazada RPC birinchi qatorida. */
   if (api === 'loyihachi') return 'document.read';
+  /* Foto-dalil: kirish chegarasi fakt.read; aniq capability (fakt.write yoki self.work.write) bazada RPC birinchi qatorida. */
+  if (api === 'foto-dalil' || api === 'foto-ai') return 'fakt.read';
   if (api.startsWith('hujjat')) return method === 'GET' || b.amal === 'royxat' ? 'document.read' : 'document.write';
   return 'document.read';
 }

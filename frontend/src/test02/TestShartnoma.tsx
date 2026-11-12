@@ -5,7 +5,9 @@ import { sbT2ShartnomalarOl, sbT2ShartnomaSaqla, sbT2ShartnomaBogSaqla, type Sha
 import { sbT2ObyektlarOlKomp, type T2Obyekt } from '../api/supabase';
 import { sbT2LoyihalarOl, type Loyiha } from '../api/t2-loyiha';
 import { usePTOWorkspace } from '../umumiy/kontekst/PTOWorkspaceContext';
-import { Briefcase, Plus, FileText, Calculator, PieChart, RefreshCw, Network } from 'lucide-react';
+import { Briefcase, Plus, FileText, Calculator, PieChart, RefreshCw, Network, CreditCard } from 'lucide-react';
+import { TolovForma } from '../components/moliya/TolovForma';
+import { ArxivTugma } from '../components/arxiv/ArxivTugma';
 import { FmtN } from '../lib/format';
 import { toast } from '../umumiy/ui/Toast';
 import { t } from '../i18n/til';
@@ -66,6 +68,8 @@ export default function TestShartnoma() {
     return () => { faol = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- joriy?.id
   }, [joriy?.id]);
+  const [tolovShartnoma, setTolovShartnoma] = useState<number | null>(null);
+  const [bekorKorinsin, setBekorKorinsin] = useState(false);
 
   const yukla = async () => {
     if (!joriy) return;
@@ -97,7 +101,8 @@ export default function TestShartnoma() {
   const qqsYoq = useMemo(() => shartnomalar.filter((s) => !((s.nds || 0) > 0)).length, [shartnomalar]);
   const holatlar = useMemo(() => taqsimot(shartnomalar, (s) => s.holat, ['faol', 'yopilgan', 'bekor'] as const), [shartnomalar]);
   const q = qidiruv.toLowerCase();
-  const korinadi = shartnomalar.filter((s) => `${s.raqam} ${s.nom ?? ''} ${s.taraf ?? ''}`.toLowerCase().includes(q));
+  const korinadi = shartnomalar.filter((s) => (bekorKorinsin || s.holat !== 'bekor') && `${s.raqam} ${s.nom ?? ''} ${s.taraf ?? ''}`.toLowerCase().includes(q));
+  const bekorSoni = shartnomalar.filter((s) => s.holat === 'bekor').length;
 
   return (
     <Sahifa
@@ -180,7 +185,10 @@ export default function TestShartnoma() {
 
         {activeTab === 'shartnomalar' && (
           <div className="flex flex-col gap-2">
-            <OpsQidiruv qiymat={qidiruv} onChange={setQidiruv} placeholder={t('Raqam, nom yoki kontragent bo‘yicha…')} />
+            <div className="flex flex-wrap items-center gap-3">
+              <OpsQidiruv qiymat={qidiruv} onChange={setQidiruv} placeholder={t('Raqam, nom yoki kontragent bo‘yicha…')} />
+              {bekorSoni > 0 && <label className="inline-flex items-center gap-1.5 text-[12px] text-text-dim"><input type="checkbox" checked={bekorKorinsin} onChange={(e) => setBekorKorinsin(e.target.checked)} />{t('Bekor/arxivdagilarni ham ko‘rsatish ({n})', { n: bekorSoni })}</label>}
+            </div>
             <div className="fz-table-wrap">
               <table className="fz-table">
                 <thead>
@@ -199,7 +207,9 @@ export default function TestShartnoma() {
                       </td>
                       <td><span className={`fz-stamp ${HOLAT[s.holat]?.stamp ?? ''}`}>{t(HOLAT[s.holat]?.nom ?? s.holat)}</span></td>
                       <td className="text-right">
+                        {s.holat !== 'bekor' && <button type="button" onClick={() => setTolovShartnoma(s.id)} className="fz-btn fz-btn--ghost fz-btn--sm" aria-label={`${t('To‘lov kiritish')}: № ${s.raqam}`}><CreditCard /> {t('To‘lov kiritish')}</button>}
                         <button type="button" onClick={() => navigate(`/admin/mindmap?tugun=shartnoma:${s.id}`)} className="fz-btn fz-btn--ghost fz-btn--sm"><Network /> {t('Mindmapda ko‘rish')}</button>
+                        {s.holat !== 'bekor' && <ArxivTugma tur="shartnoma" id={s.id} nom={`№ ${s.raqam}`} onDone={() => void yukla()} />}
                       </td>
                     </tr>
                   ))}
@@ -208,6 +218,8 @@ export default function TestShartnoma() {
             </div>
           </div>
         )}
+
+        {tolovShartnoma != null && <TolovForma kompaniyaId={aktKomp} shartnomalar={shartnomalar.filter((s) => s.holat !== 'bekor')} shartnomaId={tolovShartnoma} yop={() => setTolovShartnoma(null)} />}
 
         {activeTab !== 'shartnomalar' && (
           <section className="fz-note"><FileText /><span>{activeTab === 'dop'

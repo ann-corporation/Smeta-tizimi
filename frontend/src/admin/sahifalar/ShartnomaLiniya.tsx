@@ -19,6 +19,7 @@ import { usePortfelUstamali } from '../../umumiy/ui/usePortfelUstamali';
 import { HisobMeterIxcham, ShartnomaZanjir, ZanjirKpi } from '../../components/shartnoma-liniya/ShartnomaZanjir';
 import { ShartnomaHujjatlar } from '../../components/shartnoma-liniya/ShartnomaHujjatlar';
 import { raqamTozala } from '../../lib/raqam-belgi';
+import { ArxivTugma } from '../../components/arxiv/ArxivTugma';
 
 const kirit = 'w-full rounded-md border border-border bg-surface px-2 py-1.5 text-[13px] text-text outline-none focus:border-accent';
 const yorliq = 'mb-1 block text-[11px] font-medium uppercase tracking-wide text-text-mute';
@@ -105,8 +106,19 @@ export function ShartnomaLiniya() {
   async function biriktir(obyektId: number, shartnomaId: number) {
     const s = asosiylar.find((x) => x.id === shartnomaId);
     if (!s) return;
-    const sh = shaklQur(s);
-    await saqla({ ...sh, obyektlar: [...sh.obyektlar, obyektId] }, `«${obNom.get(obyektId) ?? obyektId}» № ${raqamTozala(s.raqam)} ga biriktirildi`);
+    let sh = shaklQur(s);
+    // Shartnomada loyiha yo'q bo'lsa — obyektning loyihasi olinadi (aks holda «Loyihani tanlang» xatosi jim qolardi).
+    const ob = liniya?.obyektlar.find((x) => x.id === obyektId);
+    if (sh.loyiha_id == null && ob?.loyiha_id != null) sh = { ...sh, loyiha_id: ob.loyiha_id };
+    const yangi = { ...sh, obyektlar: [...new Set([...sh.obyektlar, obyektId])] };
+    const xatolar2 = shaklTekshir(yangi);
+    if (xatolar2.length) {
+      // Saqlab bo'lmaydi: kartani tanlangan obyekt bilan ochamiz va sababini aniq aytamiz (jim muvaffaqiyatsizlik emas).
+      setShakl(yangi);
+      toast(`${xatolar2[0].matn}. Shartnoma kartasi ochildi — to‘ldirib «Saqlash»ni bosing.`, 'warn');
+      return;
+    }
+    await saqla(yangi, `«${obNom.get(obyektId) ?? obyektId}» № ${raqamTozala(s.raqam)} ga biriktirildi`);
   }
 
   function shartnomaQatori(s: LiniyaShartnoma) {
@@ -250,6 +262,7 @@ export function ShartnomaLiniya() {
           </label>
         </div>
         <footer className="flex items-center gap-3 border-t border-border px-4 py-2.5">
+          {s.id != null && <ArxivTugma tur="shartnoma" id={s.id} nom={`№ ${raqamTozala(s.raqam)}`} onDone={() => { setShakl(null); void yukla(); void svodYukla(); }} />}
           {xatolar.length > 0 && <span className="fz-chip fz-chip--warn"><AlertTriangle size={13} />{tr('{n} ta xato', { n: xatolar.length })}</span>}
           <button type="button" disabled={saqlanmoqda || xatolar.length > 0} onClick={() => void saqla(s).then((ok) => { if (ok && !s.id) setShakl(null); })}
             className="fz-btn fz-btn--primary ml-auto"><Save size={14} />{saqlanmoqda ? tr('Saqlanmoqda…') : tr('Saqlash')}</button>

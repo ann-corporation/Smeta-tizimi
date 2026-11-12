@@ -34,6 +34,11 @@ export type Shartnoma = {
   zakazchik_toliq_nom: string | null; zakazchik_manzil: string | null; zakazchik_telefon: string | null;
   zakazchik_hisob_raqam: string | null; zakazchik_bank: string | null; zakazchik_mfo: string | null;
   zakazchik_inn: string | null; zakazchik_oked: string | null;
+  /** Shartnoma sanasi (ESF/F3 titul). */
+  sana?: string | null;
+  /** ESF tayyorlash (P4): majburiy ID turi + qiymatlar. Yuridik talab emas, sozlanadigan — «T — tekshirilsin». */
+  esf_id_turi?: 'my3' | 'kapital' | 'kadastr' | null;
+  my3_shartnoma_id?: string | null; kapital_imv_id?: string | null; kadastr_raqam?: string | null;
 };
 
 /** F3 titulida ishlatiladigan ЗАКАЗЧИК rekvizitlari to'plami (qisqa nom). */

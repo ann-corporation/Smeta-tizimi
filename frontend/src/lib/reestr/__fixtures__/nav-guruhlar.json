@@ -10,6 +10,17 @@
         "ikonka": "BarChart",
         "sahifalar": [
           {
+            "yol": "/admin/pult",
+            "ilova": "yadro",
+            "nom": "Direktor pulti",
+            "ruxsat": [
+              "control.company.read",
+              "financial.write"
+            ],
+            "modul": "module.erp",
+            "scope": "COMPANY_SCOPED"
+          },
+          {
             "yol": "/admin/dashboard",
             "ilova": "yadro",
             "nom": "Rahbar paneli",
@@ -65,6 +76,17 @@
               "object.write"
             ],
             "modul": "module.erp",
+            "scope": "COMPANY_SCOPED"
+          },
+          {
+            "yol": "/admin/grafik",
+            "ilova": "pto",
+            "nom": "Ish grafigi va pul oqimi",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write"
+            ],
             "scope": "COMPANY_SCOPED"
           }
         ]
@@ -207,6 +229,47 @@
               "fakt.read+self.work.write"
             ],
             "scope": "OBJECT_SCOPED"
+          },
+          {
+            "yol": "/admin/foto",
+            "ilova": "ff",
+            "nom": "Foto-dalil",
+            "ruxsat": [
+              "control.company.read",
+              "fakt.write",
+              "fakt.read+self.work.write"
+            ]
+          }
+        ]
+      },
+      {
+        "nom": "Bugun (telefon)",
+        "ikonka": "HardHat",
+        "sahifalar": [
+          {
+            "yol": "/admin/bugun",
+            "ilova": "ff",
+            "nom": "Bugun (usta, telefon)",
+            "ruxsat": [
+              "control.company.read",
+              "fakt.write",
+              "fakt.read+self.work.write"
+            ]
+          }
+        ]
+      },
+      {
+        "nom": "Naryad (brigada)",
+        "ikonka": "ClipboardList",
+        "sahifalar": [
+          {
+            "yol": "/admin/naryad",
+            "ilova": "ff",
+            "nom": "Naryad (brigada topshirig‘i)",
+            "ruxsat": [
+              "control.company.read",
+              "smeta.write"
+            ]
           }
         ]
       },
@@ -426,6 +489,51 @@
         ]
       },
       {
+        "nom": "Texnik nazorat",
+        "ikonka": "ShieldCheck",
+        "sahifalar": [
+          {
+            "yol": "/admin/nazorat",
+            "ilova": "hujjat",
+            "nom": "Texnik nazorat",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "quality.inspect"
+            ],
+            "modul": "module.loyiha",
+            "qoshimcha": true
+          },
+          {
+            "yol": "/admin/nazorat/tekshiruv",
+            "ilova": "hujjat",
+            "nom": "Yangi tekshiruv (sayt)",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "quality.inspect"
+            ],
+            "modul": "module.loyiha",
+            "qoshimcha": true
+          },
+          {
+            "yol": "/admin/nazorat/jurnal",
+            "ilova": "hujjat",
+            "nom": "Tekshiruvlar jurnali",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "quality.inspect"
+            ],
+            "modul": "module.loyiha",
+            "qoshimcha": true
+          }
+        ]
+      },
+      {
         "nom": "Chizmalar",
         "ikonka": "FileStack",
         "sahifalar": [
@@ -464,10 +572,23 @@
             "nom": "Buyurtmachi kabineti",
             "ruxsat": [
               "control.company.read",
-              "project.read"
+              "project.read",
+              "quality.inspect"
             ],
             "modul": "module.loyiha",
             "qoshimcha": true
+          },
+          {
+            "yol": "/admin/subpudrat",
+            "ilova": "hujjat",
+            "nom": "Subpudrat boshqaruvi",
+            "ruxsat": [
+              "control.company.read",
+              "f2.prepare",
+              "project.write",
+              "object.write"
+            ],
+            "scope": "OBJECT_SCOPED"
           },
           {
             "yol": "/admin/taqdimlar",
@@ -476,7 +597,8 @@
             "ruxsat": [
               "control.company.read",
               "project.read",
-              "design.read"
+              "design.read",
+              "quality.inspect"
             ],
             "modul": "module.loyiha",
             "qoshimcha": true
@@ -488,7 +610,8 @@
             "ruxsat": [
               "control.company.read",
               "project.read",
-              "design.read"
+              "design.read",
+              "quality.inspect"
             ],
             "modul": "module.loyiha",
             "qoshimcha": true
@@ -516,6 +639,16 @@
             ],
             "modul": "module.loyiha",
             "qoshimcha": true
+          },
+          {
+            "yol": "/admin/subpudratchi",
+            "ilova": "hujjat",
+            "nom": "Subpudratchi: bugun",
+            "ruxsat": [
+              "control.company.read",
+              "f2.prepare",
+              "fakt.write"
+            ]
           }
         ]
       }

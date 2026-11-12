@@ -1,0 +1,346 @@
+{
+  "Hech bo‘lmasa bitta qatorga bajarilgan hajmni kiriting.": {
+    "ru": "Введите выполненный объём хотя бы по одной строке.",
+    "en": "Enter the completed volume for at least one row."
+  },
+  "Hajm qoldiqdan oshmasligi kerak.": {
+    "ru": "Объём не должен превышать остаток.",
+    "en": "The volume must not exceed the remainder."
+  },
+  "Akt bosh pudratchiga yuborildi.": {
+    "ru": "Акт отправлен генподрядчику.",
+    "en": "The act was sent to the general contractor."
+  },
+  "Shartnomalarim": {
+    "ru": "Мои договоры",
+    "en": "My contracts"
+  },
+  "Bosh pudratchilar bilan faol aloqalar": {
+    "ru": "Действующие связи с генподрядчиками",
+    "en": "Active links with general contractors"
+  },
+  "Aloqalarni ko‘rish": {
+    "ru": "Открыть связи",
+    "en": "View links"
+  },
+  "Menga topshirilgan ishlar": {
+    "ru": "Переданные мне работы",
+    "en": "Work assigned to me"
+  },
+  "Hajmi qolgan: {n}. Narxi kelishilmagan: {m}": {
+    "ru": "С остатком объёма: {n}. Цена не согласована: {m}",
+    "en": "With volume left: {n}. Price not agreed: {m}"
+  },
+  "Ishlarni ko‘rish": {
+    "ru": "Открыть работы",
+    "en": "View work"
+  },
+  "Faktim va aktim": {
+    "ru": "Мой факт и акт",
+    "en": "My actuals and act"
+  },
+  "Tuzatishga qaytgan: {n}": {
+    "ru": "Возвращено на доработку: {n}",
+    "en": "Returned for correction: {n}"
+  },
+  "Hajm kiritish": {
+    "ru": "Ввести объём",
+    "en": "Enter volume"
+  },
+  "Yuborilgan aktlarim": {
+    "ru": "Мои отправленные акты",
+    "en": "My submitted acts"
+  },
+  "Qabul qilingan: {n}": {
+    "ru": "Принято: {n}",
+    "en": "Accepted: {n}"
+  },
+  "Qarorni ko‘rish": {
+    "ru": "Посмотреть решение",
+    "en": "View decision"
+  },
+  "To‘lov holati": {
+    "ru": "Статус оплаты",
+    "en": "Payment status"
+  },
+  "Qabul qilingan aktlar bo‘yicha": {
+    "ru": "По принятым актам",
+    "en": "For accepted acts"
+  },
+  "To‘lovni ko‘rish": {
+    "ru": "Посмотреть оплату",
+    "en": "View payment"
+  },
+  "Hozircha sizga ish topshirilmagan. Bosh pudratchi ish topshirgach, shu yerda ko‘rinadi.": {
+    "ru": "Вам пока не передано работ. После передачи генподрядчиком они появятся здесь.",
+    "en": "No work has been assigned to you yet. It will appear here once the general contractor assigns it."
+  },
+  "Topshirilgan": {
+    "ru": "Передано",
+    "en": "Assigned"
+  },
+  "qolgan": {
+    "ru": "осталось",
+    "en": "left"
+  },
+  "narx (QQS siz)": {
+    "ru": "цена (без НДС)",
+    "en": "price (excl. VAT)"
+  },
+  "kelishilmagan": {
+    "ru": "не согласована",
+    "en": "not agreed"
+  },
+  "Bu yerda faqat sizga kelishilgan narx ko‘rinadi.": {
+    "ru": "Здесь видна только согласованная с вами цена.",
+    "en": "Only the price agreed with you is shown here."
+  },
+  "Bajargan hajmim va aktim": {
+    "ru": "Мой выполненный объём и акт",
+    "en": "My completed volume and act"
+  },
+  "Avval bosh pudratchi sizga ish topshirishi kerak.": {
+    "ru": "Сначала генподрядчик должен передать вам работы.",
+    "en": "The general contractor must assign work to you first."
+  },
+  "Bosh pudratchi izohi": {
+    "ru": "Комментарий генподрядчика",
+    "en": "General contractor's remark"
+  },
+  "Bu oy akti yuborilgan - o‘zgartirib bo‘lmaydi. Javobni kuting.": {
+    "ru": "Акт за этот месяц отправлен — изменить нельзя. Дождитесь ответа.",
+    "en": "This month's act was sent — it cannot be changed. Wait for the reply."
+  },
+  "narx kelishilmagan": {
+    "ru": "цена не согласована",
+    "en": "price not agreed"
+  },
+  "Jami (QQS siz)": {
+    "ru": "Итого (без НДС)",
+    "en": "Total (excl. VAT)"
+  },
+  "narxi kelishilmagan qator bor": {
+    "ru": "есть строка без согласованной цены",
+    "en": "a row has no agreed price"
+  },
+  "Bosh pudratchiga yuborish": {
+    "ru": "Отправить генподрядчику",
+    "en": "Send to general contractor"
+  },
+  "Foto, АОСР va laboratoriya natijasi kerak bo‘lsa — hujjatlar bo‘limidan qo‘shing.": {
+    "ru": "Фото, АОСР и результаты лаборатории добавляйте в разделе документов.",
+    "en": "Add photos, AOSR and lab results in the documents section."
+  },
+  "Aktlarim va bosh pudratchi qarori": {
+    "ru": "Мои акты и решение генподрядчика",
+    "en": "My acts and the general contractor's decision"
+  },
+  "Hali akt yo‘q.": {
+    "ru": "Актов пока нет.",
+    "en": "No acts yet."
+  },
+  "Qabul qilingan akt yo‘q.": {
+    "ru": "Принятых актов нет.",
+    "en": "No accepted acts."
+  },
+  "Akt (QQS siz)": {
+    "ru": "Акт (без НДС)",
+    "en": "Act (excl. VAT)"
+  },
+  "To‘lov ma‘lumoti ochilmagan": {
+    "ru": "данные об оплате не открыты",
+    "en": "payment data not shared"
+  },
+  "Qarz (QQS bilan)": {
+    "ru": "Долг (с НДС)",
+    "en": "Debt (incl. VAT)"
+  },
+  "To‘lov ma‘lumotini bosh pudratchi ochsa ko‘rinadi.": {
+    "ru": "Данные об оплате видны, если их откроет генподрядчик.",
+    "en": "Payment data is shown if the general contractor shares it."
+  },
+  "Subpudratchi: bugun": {
+    "ru": "Субподрядчик: сегодня",
+    "en": "Subcontractor: today"
+  },
+  "Sizga topshirilgan ishlar, bajargan hajmingiz, aktingiz va to‘lov — bitta joyda.": {
+    "ru": "Переданные вам работы, выполненный объём, акт и оплата — в одном месте.",
+    "en": "Work assigned to you, completed volume, act and payment — in one place."
+  },
+  "Topshirildi: yangi {n}, yangilandi {m}": {
+    "ru": "Передано: новых {n}, обновлено {m}",
+    "en": "Assigned: {n} new, {m} updated"
+  },
+  "Qaytarish uchun sababni yozing.": {
+    "ru": "Укажите причину возврата.",
+    "en": "Write the reason for returning."
+  },
+  "Qabul qilindi: hajm faktga bir marta yozildi.": {
+    "ru": "Принято: объём записан в факт один раз.",
+    "en": "Accepted: the volume was recorded in actuals once."
+  },
+  "Subpudratchiga qaytarildi.": {
+    "ru": "Возвращено субподрядчику.",
+    "en": "Returned to the subcontractor."
+  },
+  "Bir ish — bitta fakt: subpudratchi hajmni kiritgan bo‘lsa, siz uni qayta kiritmaysiz — aktni qabul qilsangiz u faktga bir marta tushadi.": {
+    "ru": "Одна работа — один факт: если субподрядчик ввёл объём, вы его заново не вводите — при принятии акта он попадёт в факт один раз.",
+    "en": "One job — one actual: if the subcontractor entered the volume, you do not re-enter it — accepting the act records it once."
+  },
+  "Subpudratchi taklif qilish": {
+    "ru": "Пригласить субподрядчика",
+    "en": "Invite a subcontractor"
+  },
+  "Topshirilgan ishlar": {
+    "ru": "Переданные работы",
+    "en": "Assigned work"
+  },
+  "Ish topshirish": {
+    "ru": "Передать работу",
+    "en": "Assign work"
+  },
+  "Kelgan aktlar": {
+    "ru": "Поступившие акты",
+    "en": "Incoming acts"
+  },
+  "Aktlarni ko‘rish": {
+    "ru": "Открыть акты",
+    "en": "View acts"
+  },
+  "Avval subpudratchini «Aloqalar»da taklif qiling (uning roli: subpudratchi).": {
+    "ru": "Сначала пригласите субподрядчика в «Связях» (его роль: субподрядчик).",
+    "en": "First invite the subcontractor under “Links” (its role: subcontractor)."
+  },
+  "Ishni subpudratchiga topshirish": {
+    "ru": "Передача работы субподрядчику",
+    "en": "Assigning work to a subcontractor"
+  },
+  "Butun bo‘limni topshirish": {
+    "ru": "Передать весь раздел",
+    "en": "Assign the whole section"
+  },
+  "topshirilgan": {
+    "ru": "передано",
+    "en": "assigned"
+  },
+  "Tanlanganlarni topshirish": {
+    "ru": "Передать выбранные",
+    "en": "Assign selected"
+  },
+  "Topshirilgan ishlar va marja": {
+    "ru": "Переданные работы и маржа",
+    "en": "Assigned work and margin"
+  },
+  "Bu obyektda hali ish topshirilmagan.": {
+    "ru": "На этом объекте работы ещё не переданы.",
+    "en": "No work has been assigned on this object yet."
+  },
+  "kutilmoqda": {
+    "ru": "ожидается",
+    "en": "pending"
+  },
+  "Kelishilgan narx (QQS siz)": {
+    "ru": "Согласованная цена (без НДС)",
+    "en": "Agreed price (excl. VAT)"
+  },
+  "Narxni saqlash": {
+    "ru": "Сохранить цену",
+    "en": "Save price"
+  },
+  "Smeta puli": {
+    "ru": "Деньги по смете",
+    "en": "Estimate money"
+  },
+  "Subpudrat narxi": {
+    "ru": "Цена субподряда",
+    "en": "Subcontract price"
+  },
+  "Qolgan hajm": {
+    "ru": "Остаток объёма",
+    "en": "Volume left"
+  },
+  "Siz bu qatorga o‘zingiz ham fakt kiritgansiz: {n}. Jami topshirilgan hajmdan oshmaydi.": {
+    "ru": "Вы сами тоже ввели факт по этой строке: {n}. Всего не больше переданного объёма.",
+    "en": "You also entered actuals for this row yourself: {n}. The total cannot exceed the assigned volume."
+  },
+  "Smeta puli (topshirilgan hajm)": {
+    "ru": "Деньги по смете (переданный объём)",
+    "en": "Estimate money (assigned volume)"
+  },
+  "Subpudrat narxi (QQS siz)": {
+    "ru": "Цена субподряда (без НДС)",
+    "en": "Subcontract price (excl. VAT)"
+  },
+  "Farq (to‘g‘ri xarajat darajasida)": {
+    "ru": "Разница (на уровне прямых затрат)",
+    "en": "Difference (at direct-cost level)"
+  },
+  "Subpudratchi aktlari": {
+    "ru": "Акты субподрядчиков",
+    "en": "Subcontractor acts"
+  },
+  "Hali akt kelmagan.": {
+    "ru": "Акты ещё не поступали.",
+    "en": "No acts received yet."
+  },
+  "Qabul qilsangiz: hajm faktga bir marta yoziladi va subpudrat xarajati qo‘shiladi.": {
+    "ru": "При принятии: объём один раз запишется в факт и добавится расход на субподряд.",
+    "en": "On acceptance: the volume is recorded in actuals once and a subcontract cost is added."
+  },
+  "Qaytarish sababi (tuzatish yoki rad uchun)": {
+    "ru": "Причина возврата (для доработки или отказа)",
+    "en": "Reason for returning (for correction or rejection)"
+  },
+  "Qabul qilingan: fakt va xarajat yozilgan.": {
+    "ru": "Принято: факт и расход записаны.",
+    "en": "Accepted: actuals and cost recorded."
+  },
+  "Subpudrat boshqaruvi": {
+    "ru": "Управление субподрядом",
+    "en": "Subcontract management"
+  },
+  "Ishni subpudratchiga topshiring, kelishilgan narxni belgilang, uning aktini qabul qiling.": {
+    "ru": "Передайте работу субподрядчику, задайте согласованную цену, примите его акт.",
+    "en": "Assign work to a subcontractor, set the agreed price, accept their act."
+  },
+  "Yuborilgan, javob kutilmoqda": {
+    "ru": "Отправлен, ждём ответа",
+    "en": "Sent, awaiting reply"
+  },
+  "Tuzatishga qaytdi": {
+    "ru": "Возвращён на доработку",
+    "en": "Returned for correction"
+  },
+  "Akt qaytarib olindi: tahrirlab qayta yuboring.": {
+    "ru": "Акт отозван: исправьте и отправьте снова.",
+    "en": "The act was withdrawn: edit it and send again."
+  },
+  "Akt yuklandi": {
+    "ru": "Акт скачан",
+    "en": "Act downloaded"
+  },
+  "Shartnoma (ixtiyoriy)": {
+    "ru": "Договор (необязательно)",
+    "en": "Contract (optional)"
+  },
+  "— shartnomasiz —": {
+    "ru": "— без договора —",
+    "en": "— no contract —"
+  },
+  "Ulgurji summa (QQS siz, ixtiyoriy)": {
+    "ru": "Паушальная сумма (без НДС, необязательно)",
+    "en": "Lump sum (excl. VAT, optional)"
+  },
+  "Ulgurji summa": {
+    "ru": "Паушальная сумма",
+    "en": "Lump sum"
+  },
+  "Ulgurji summa kiritilsa, topshirilgan qator(lar)ning butun mazmuni shu summaga chiqadi (smeta puliga mutanosib taqsimlanadi).": {
+    "ru": "Если указана паушальная сумма, всё переданное содержимое выйдет ровно на эту сумму (распределяется пропорционально сметной стоимости).",
+    "en": "If a lump sum is entered, the whole assigned content comes out to exactly that sum (split in proportion to the estimate money)."
+  },
+  "Excel": {
+    "ru": "Excel",
+    "en": "Excel"
+  }
+}

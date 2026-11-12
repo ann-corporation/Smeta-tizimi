@@ -52,7 +52,7 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       't2_qator_qosh', 't2_qator_tahrir', 't2_shaxsiy_smeta_yarat', 't2_skladga_yozish', 't2_erp_amal', 't2_boss_tahlil_boshla', 't2_sozlama_saqla', 't2_tizim_amal', 't2_xato_yoz', 't2_kirish_amal', 't2_taklif_yubor', 't2_taklif_qabul', 't2_birja_rfq_yarat', 't2_birja_taklif_ber', 't2_viborka_smetadan_toldir', 't2_viborka_qabul_yoz',
                       't2_shartnoma_saqla', 't2_shartnoma_ochir', 't2_shartnoma_bog_saqla', 't2_nakrutka_saqla',
                       't2_tolov_yoz', 't2_tolov_tahrir', 't2_tolov_ochir', 't2_xarajat_yoz', 't2_xarajat_tahrir', 't2_xarajat_ochir',
-                      't2_korzinkaga_tashlash', 't2_korzinkadan_tiklash', 't2_butunlay_ochirish', 't2_obyekt_yangila',
+                      't2_korzinkaga_tashlash', 't2_korzinkadan_tiklash', 't2_butunlay_ochirish', 't2_arxivla_v1', 't2_arxivdan_tiklash_v1', 't2_arxiv_butunlay_v1', 't2_obyekt_yangila',
                       't2_aosr_yoz', 't2_aosr_bekor', 't2_aosr_bog_saqla', 't2_aosr_bog_ochir', 't2_audit_yoz',
                       't2_aosr_yoz_v2', 't2_lab_protokol_yoz_v1', 't2_lab_protokol_bekor_v1', 't2_lab_protokol_bog_saqla_v1', 't2_kompaniya_logo_saqla_v1',
                       't2_nakrutka_podval_saqla_v1', 't2_nakrutka_podval_ochir_v1',
@@ -162,14 +162,19 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                          t2_buyurtmalar_v1 / t2_buyurtma_tafsilot_v1 - FAQAT O'QIYDI, lekin prodda VOLATILE bo'lgani uchun /api/sb (GET) o'rniga shu yerda (yuk _shared/buyurtma-yuk.ts oq ro'yxati). */
                       't2_buyurtma_yarat_v1', 't2_buyurtma_otish_v1', 't2_buyurtma_olish_yoz_v1', 't2_buyurtma_qabul_v1', 't2_buyurtma_qabul_yakunla_v1', 't2_buyurtmalar_v1', 't2_buyurtma_tafsilot_v1', 't2_yet_tolov_holati_v1',
                       /* 2026-11-04: HR + KPI (hr.* / payroll.* RPC ichida tekshiriladi). */
-                      't2_hr_kalendar_saqla_v1', 't2_hr_oylik_hisobla_v1', 't2_hr_sxema_saqla_v1', 't2_hr_tabel_saqla_v1', 't2_hr_tuzatma_qaror_v1', 't2_hr_tuzatma_saqla_v1', 't2_hr_xodim_saqla_v1',
+                      't2_hr_kalendar_saqla_v1', 't2_hr_kpi_qoida_saqla_v1', 't2_hr_oylik_hisobla_v1', 't2_hr_sxema_saqla_v1', 't2_hr_tabel_saqla_v1', 't2_hr_tuzatma_qaror_v1', 't2_hr_tuzatma_saqla_v1', 't2_hr_xodim_saqla_v1',
                       /* 2026-11-04: buxgalteriya (accounting.write/approve RPC ichida tekshiriladi; idempotent operation_id). */
                       't2_bux_boshlash_v1', 't2_bux_hisob_saqla_v1', 't2_bux_moslik_saqla_v1', 't2_bux_avto_provodka_v1',
                       't2_bux_qolda_provodka_v1', 't2_bux_storno_v1', 't2_bux_davr_v1', 't2_bux_bank_import_v1', 't2_bux_tashqi_sync_v1',
+                      't2_bux_shablon_tanla_v1', 't2_bux_davr_blok_v1', 't2_bux_hisob_tasdiq_v1',
                       /* 2026-11-04: yuk birjasi (egasi tomoni; procurement.write/approve RPC ichida; yuk _shared/yuk-birjasi-yuk.ts oq ro'yxati). */
                       't2_yb_yuk_saqla_v1', 't2_yb_yuk_elon_v1', 't2_yb_yuk_javob_v1', 't2_yb_yuk_bekor_v1', 't2_yb_yuk_tasdiq_v1', 't2_yb_yuk_baho_v1', 't2_yb_yuk_nizo_v1',
                       /* 2026-11-05: ish kartasi (smeta.write RPC ichida; idempotent operation_id, CAS). */
-                      't2_ish_kartasi_saqla_v1', 't2_ish_kartasi_arxiv_v1', 't2_ish_kartasi_ulush_saqla_v1'].sort();
+                      't2_ish_kartasi_saqla_v1', 't2_ish_kartasi_arxiv_v1', 't2_ish_kartasi_ulush_saqla_v1',
+                      /* 2026-11-12: naryad + kompaniya lug'ati (smeta.write RPC ichida; hisobla — financial.write; idempotent operation_id, CAS). */
+                      't2_naryad_yoz_v1',
+                      /* 2026-11-12: usta «Bugun» (20261214300000): qoralama fakt / qaror / zayavka; ruxsat RPC ichida (self.work.write / fakt.write). */
+                      't2_usta_fakt_qoralama_v1', 't2_usta_fakt_qaror_v1', 't2_usta_zayavka_v1'].sort();
     T('RPC ro\'yxati AYNAN belgilangan ' + KUTILGAN.length + ' ta domen amali',
       JSON.stringify(amallar) === JSON.stringify(KUTILGAN),
       'topildi: ' + amallar.join(', '));

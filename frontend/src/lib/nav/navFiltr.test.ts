@@ -61,11 +61,11 @@ const a = (...s: string[]) => s.map((x) => `/admin/${x}`);
 const bez = (xs: string[], ...yoq: string[]) => xs.filter((x) => !a(...yoq).includes(x));
 
 /* ── Kutilgan menyular (tartib — sidebar tartibi) ── */
-const OBYEKT = a('dashboard', 'obyektlar', 'loyiha', 'participants', 'mindmap');
+const OBYEKT = a('pult', 'dashboard', 'obyektlar', 'loyiha', 'participants', 'mindmap', 'grafik');
 const SMETA = a('smeta-studio', 'holat', 'smeta-narxlash', 'narx-dalil', 'narx-tekshiruv', 'nakrutka', 'narxlar', 'narx-manbalari', 'oferta');
-const FAKT = a('fakt', 'm29');
+const FAKT = a('fakt', 'foto', 'bugun', 'naryad', 'm29');
 const F2 = a('f2-tayyorlash', 'f2', 'f2-tarix', 'f2-reestr', 'nakopitelniy');
-const HUJJAT = a('documents', 'hujjat-nazorat', 'aosr', 'storage', 'chizmalar', 'loyihachi', 'zakazchik', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish');
+const HUJJAT = a('documents', 'hujjat-nazorat', 'aosr', 'storage', 'nazorat', 'nazorat/tekshiruv', 'nazorat/jurnal', 'chizmalar', 'loyihachi', 'zakazchik', 'subpudrat', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish', 'subpudratchi');
 const MOLIYA = a('moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'kontragentlar');
 const TAMINOT = a('logistika', 'zayavka', 'tender', 'yuk-birjasi', 'erp', 'hr');
 /* «Yetkazuvchi: bugun» — faqat yetkazuvchi roli (supply.*) va rahbariyat; ichki xodim (PTO, prorab) ko'rmaydi (egasi 2026-11-12). */
@@ -86,10 +86,10 @@ const KUTILGAN: Record<string, string[]> = {
   boss: [...ISH_R, ...SOTUV, ...KOMPANIYA, ...SHAXSIY],
   admin: [...ISH_R, ...SOTUV, ...KOMPANIYA, ...SHAXSIY],
   pto: [...ISH, ...SHAXSIY],
-  bugalter: [...a('dashboard', 'obyektlar', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'kontragentlar',
+  bugalter: [...a('pult', 'dashboard', 'obyektlar', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'kontragentlar',
     'documents', 'hujjat-nazorat', 'storage', 'logistika', 'zayavka', 'tender', 'yuk-birjasi', 'erp', 'hr', 'sotuv'), ...SHAXSIY],
-  prorab: [...bez(ISH, 'dashboard', 'moliya', 'buxgalteriya', 'qarzdorlik'), ...SHAXSIY],
-  usta: [...a('fakt'), ...SHAXSIY],
+  prorab: [...bez(ISH, 'pult', 'dashboard', 'moliya', 'buxgalteriya', 'qarzdorlik'), ...SHAXSIY],
+  usta: [...a('fakt', 'foto', 'bugun'), ...SHAXSIY],
   buyurtmachi: [...a('obyektlar', 'loyiha', 'participants', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'shartnoma-liniya',
     'documents', 'hujjat-nazorat', 'storage', 'zakazchik', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish'), ...SHAXSIY],
   omborchi: [...a('m29', 'logistika', 'zayavka', 'tender', 'yuk-birjasi'), ...SHAXSIY],
@@ -128,8 +128,8 @@ describe('egasi qarori 2026-10-26: PTO qurilishdagi pulga aloqador HAMMA joyni k
 
   it('pulga oid asosiy bo‘limlar ro‘yxati qat‘iy (smeta, narx, fakt, F2, nakopitelniy, moliya, shartnoma, ta‘minot)', () => {
     const m = menyu('pto');
-    for (const y of a('smeta-studio', 'holat', 'smeta-narxlash', 'nakrutka', 'narx-dalil', 'narxlar', 'narx-manbalari', 'oferta', 'fakt', 'm29',
-      'f2-tayyorlash', 'f2', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'moliya', 'dashboard', 'shartnoma-liniya', 'kontragentlar', 'logistika', 'zayavka', 'erp', 'aosr')) {
+    for (const y of a('smeta-studio', 'holat', 'smeta-narxlash', 'nakrutka', 'narx-dalil', 'narxlar', 'narx-manbalari', 'oferta', 'fakt', 'foto', 'm29',
+      'f2-tayyorlash', 'f2', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'moliya', 'pult', 'dashboard', 'shartnoma-liniya', 'kontragentlar', 'logistika', 'zayavka', 'erp', 'aosr')) {
       expect(m, y).toContain(y);
     }
   });
@@ -178,7 +178,7 @@ describe('qatlamlar', () => {
   });
 
   it('brigadir — usta kabi Fakt kiritishni ko‘radi', () => {
-    expect(menyu('brigadir')).toEqual([...a('fakt', 'hr'), ...SHAXSIY]);
+    expect(menyu('brigadir')).toEqual([...a('fakt', 'foto', 'bugun', 'hr'), ...SHAXSIY]);
   });
 
   it('kompaniya tanlanmagan (rol yo‘q) — faqat shaxsiy bandlar', () => {
@@ -242,14 +242,14 @@ describe('yagona manba — boshqa iste‘molchilar o‘zgarmagan', () => {
   it('ROUTE_SCOPE (RuxsatGuard) avvalgi xarita bilan aynan bir xil', () => {
     expect(ROUTE_SCOPE).toEqual({
       '/': 'USER_SCOPED', '/admin/kompaniya': 'GLOBAL', '/admin/system-control': 'GLOBAL',
-      '/admin/dashboard': 'COMPANY_SCOPED', '/admin/documents': 'COMPANY_SCOPED', '/admin/loyiha': 'COMPANY_SCOPED', '/admin/obyektlar': 'COMPANY_SCOPED',
+      '/admin/pult': 'COMPANY_SCOPED', '/admin/dashboard': 'COMPANY_SCOPED', '/admin/documents': 'COMPANY_SCOPED', '/admin/loyiha': 'COMPANY_SCOPED', '/admin/obyektlar': 'COMPANY_SCOPED',
       '/admin/f2-reestr': 'COMPANY_SCOPED', '/admin/mindmap': 'COMPANY_SCOPED', '/admin/sotuv': 'COMPANY_SCOPED', '/admin/test/portfel': 'COMPANY_SCOPED', '/admin/test/moliya': 'COMPANY_SCOPED',
       '/admin/test/logistika': 'COMPANY_SCOPED', '/admin/test/crm': 'COMPANY_SCOPED', '/admin/test/smeta': 'COMPANY_SCOPED', '/admin/test/zayavka': 'COMPANY_SCOPED',
       '/admin/test/erp': 'COMPANY_SCOPED', '/admin/test/xarita': 'COMPANY_SCOPED', '/admin/test/kontragent': 'COMPANY_SCOPED', '/admin/test/sozlama': 'COMPANY_SCOPED',
       '/admin/participants': 'PROJECT_SCOPED', '/admin/test/aosr': 'PROJECT_SCOPED',
       '/admin/holat': 'OBJECT_SCOPED', '/admin/f2': 'OBJECT_SCOPED', '/admin/f2-tayyorlash': 'OBJECT_SCOPED', '/admin/f2-tarix': 'OBJECT_SCOPED',
-      '/admin/fakt': 'OBJECT_SCOPED', '/admin/nakopitelniy': 'OBJECT_SCOPED', '/admin/narxlar': 'OBJECT_SCOPED', '/admin/smeta-narxlash': 'OBJECT_SCOPED',
-      '/admin/hujjat-nazorat': 'OBJECT_SCOPED', '/admin/storage': 'OBJECT_SCOPED', '/admin/test/obyektlar': 'OBJECT_SCOPED', '/admin/test/saqlash': 'OBJECT_SCOPED',
+      '/admin/fakt': 'OBJECT_SCOPED', '/admin/grafik': 'COMPANY_SCOPED', '/admin/nakopitelniy': 'OBJECT_SCOPED', '/admin/narxlar': 'OBJECT_SCOPED', '/admin/smeta-narxlash': 'OBJECT_SCOPED',
+      '/admin/hujjat-nazorat': 'OBJECT_SCOPED', '/admin/subpudrat': 'OBJECT_SCOPED', '/admin/storage': 'OBJECT_SCOPED', '/admin/test/obyektlar': 'OBJECT_SCOPED', '/admin/test/saqlash': 'OBJECT_SCOPED',
     });
   });
 
@@ -260,8 +260,10 @@ describe('yagona manba — boshqa iste‘molchilar o‘zgarmagan', () => {
       '/admin/narx-dalil': 'module.narx', '/admin/nakrutka': 'module.narx', '/admin/narxlar': 'module.narx',
       '/admin/loyiha': 'module.loyiha', '/admin/shartnoma-liniya': 'module.loyiha', '/admin/qarzdorlik': 'module.erp', '/admin/buxgalteriya': 'module.erp', '/admin/documents': 'module.loyiha',
       '/admin/hujjat-nazorat': 'module.loyiha', '/admin/participants': 'module.loyiha', '/admin/kontragentlar': 'module.loyiha',
+      '/admin/nazorat': 'module.loyiha', '/admin/nazorat/tekshiruv': 'module.loyiha', '/admin/nazorat/jurnal': 'module.loyiha',
       '/admin/zakazchik': 'module.loyiha', '/admin/taqdimlar': 'module.loyiha', '/admin/murojaatlar': 'module.loyiha', '/admin/laboratoriya': 'module.loyiha', '/admin/hujjat-aylanish': 'module.loyiha',
-      '/admin/dashboard': 'module.erp', '/admin/moliya': 'module.erp', '/admin/logistika': 'module.erp', '/admin/zayavka': 'module.erp', '/admin/tender': 'module.erp', '/admin/yuk-birjasi': 'module.erp',
+      '/admin/pult': 'module.erp', 
+'/admin/dashboard': 'module.erp', '/admin/moliya': 'module.erp', '/admin/logistika': 'module.erp', '/admin/zayavka': 'module.erp', '/admin/tender': 'module.erp', '/admin/yuk-birjasi': 'module.erp',
       '/admin/erp': 'module.erp', '/admin/hr': 'module.erp', '/admin/mindmap': 'module.erp',
     });
   });
