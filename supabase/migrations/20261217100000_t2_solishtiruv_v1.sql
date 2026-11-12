@@ -155,7 +155,7 @@ having count(*) > 0$q$,
  'Buxgalteriya -> «Hujjatlardan yangilash»; manbasiz provodkani storno qiling.', '/admin/buxgalteriya', '{"kutish_soat": 24}'::jsonb, 20,
  $q$select 'xarajat_provodkasiz'::text, null::bigint, null::bigint, 'xarajat'::text, null::text,
         jsonb_build_object('tur', 'xarajat_provodkasiz', 'soni', count(*), 'jami', round(sum(x.summa), 2),
-          'izoh', 'ЧЕЛ + tasdiqlangan oylik bo''lsa provodka ataylab o''tkazilmasligi mumkin — tushuntiring',
+          'izoh', 'MAT/SUB/OTK uchun hisob moslik (xarajat.mat/sub/otk) kiritilmagan bo''lishi mumkin (shablon bo''sh); ЧЕЛ + tasdiqlangan oylik bo''lsa provodka ataylab o''tkazilmasligi mumkin — tushuntiring',
           'namuna', (select jsonb_agg(s.id) from (select x2.id from public.t2_xarajat x2 where x2.kompaniya_id = $1 and x2.holat = 'faol' and x2.summa <> 0
               and not exists (select 1 from public.t2_bux_provodka p where p.kompaniya_id = x2.kompaniya_id and p.manba_tur = 'xarajat' and p.manba_id = x2.id)
               and x2.yaratildi < now() - make_interval(hours => coalesce((($3::jsonb)->>'kutish_soat')::integer, 24)) order by x2.id desc limit 5) s))

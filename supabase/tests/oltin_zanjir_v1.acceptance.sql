@@ -189,8 +189,10 @@ begin
     'OZ-F2-DUP', gen_random_uuid(), 'frontend', 'actor:' || v_boss);
   perform pg_temp.oz_ok(v_r, 't2_akt_yarat F2 dup'); v_f2x := (v_r->>'akt_id')::bigint;
   perform pg_temp.oz_assert(coalesce((v_r->>'ogohlantirish_soni')::int, 0) = 1, 'second certification of an already certified row must warn');
-  -- FINDING: t2_akt_tasdiqlash re-checks h.f2_hajm, which counts APPROVED F2 only (t2_qator_holat) and not the draft being approved, so this duplicate would be approved (total 1.0 > fakt 0.5). Only the creation-time warning protects it. Not approved here to keep later steps clean.
-  raise notice 'OLTIN_ZANJIR OBSERVED [5]: approval re-check excludes the draft itself (t2_akt_tasdiqlash vs t2_qator_holat.f2_hajm = approved only); double certification is warned at creation but NOT refused at approval.';
+  -- Owner rule: there is NO 'fakt >= F2' condition; F2 may exceed fakt - only a WARNING (creation-time ogohlantirish), never a block. t2_akt_tasdiqlash re-checks the approved-only f2_hajm, so it does not refuse either; this is allowed by rule.
+  -- (Minor note: the function comment says drafts count towards 'bor', but t2_qator_holat.f2_hajm counts approved F2 only - misleading comment, no behaviour change requested.)
+  -- Not approved here to keep later steps clean.
+  raise notice 'OLTIN_ZANJIR OBSERVED [5]: F2 above fakt is allowed by owner rule (warning only; reconciliation check f2_fakt_dan_ortiq stays low severity).';
   perform pg_temp.oz_ok(public.t2_akt_bekor(v_f2x, 'oz dup cleanup', null, 'actor:' || v_boss), 'akt_bekor dup');
   -- next period takes only the remainder of M1 (8 - 5 = 3)
   v_r := public.t2_akt_yarat(v_obj, 'f2', date '2026-11-01', jsonb_build_array(jsonb_build_object('qator_id', v_M1, 'hajm', 3)),
@@ -250,6 +252,8 @@ begin
   v_n := 9; v_name := 'buxgalteriya: avto-provodka bir martadan, balans, davr yopish';
   v_r := public.t2_bux_boshlash_v1(v_boss, v_komp, gen_random_uuid());
   perform pg_temp.oz_ok(v_r, 't2_bux_boshlash_v1');
+  -- Rule (not a trigger): postings come ONLY from the sync RPC t2_bux_avto_provodka_v1, and only for cost categories whose mapping row has dt/kt. Template 'pudratchi' seeds xarajat.mat / .sub / .otk with NULL accounts, so MAT costs are NOT posted until the accountant maps them (no warning is raised for this).
+  perform pg_temp.oz_ok(public.t2_bux_moslik_saqla_v1(v_boss, v_komp, 'xarajat.mat', '2010', '6010', null, gen_random_uuid()), 't2_bux_moslik_saqla_v1 xarajat.mat');
   v_r := public.t2_bux_avto_provodka_v1(v_boss, v_komp, false, gen_random_uuid());
   perform pg_temp.oz_ok(v_r, 't2_bux_avto_provodka_v1 #1');
   perform pg_temp.oz_assert(coalesce((v_r->>'yangi')::int, 0) >= 1, 'first sync must create postings; got ' || v_r::text);
@@ -272,7 +276,7 @@ begin
   perform pg_temp.oz_assert(v_r->>'holat' = 'yopiq', 'period must be closed');
   v_b := false;
   begin
-    v_r := public.t2_bux_qolda_provodka_v1(v_boss, v_komp, date '2026-10-28', null, null, 1000, null, null, v_obj, 'oz closed-period probe', gen_random_uuid());
+    v_r := public.t2_bux_qolda_provodka_v1(v_boss, v_komp, date '2026-10-28', '2010', '6010', 1000, null, null, v_obj, 'oz closed-period probe', gen_random_uuid());
     v_b := coalesce((v_r->>'ok')::boolean, false);
   exception when others then v_b := false;
   end;
