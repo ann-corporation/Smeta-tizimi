@@ -87,6 +87,7 @@ const AMALLAR = {
   hr_tuzatma_saqla_v1: { rpc: 't2_hr_tuzatma_saqla_v1' },
   hr_tuzatma_qaror_v1: { rpc: 't2_hr_tuzatma_qaror_v1' },
   hr_oylik_v1: { rpc: 't2_hr_oylik_hisobla_v1' },
+  hr_kpi_qoida_saqla_v1: { rpc: 't2_hr_kpi_qoida_saqla_v1' },
   /* Egasi 2026-11-04: buxgalteriya (reja, o'zgarmas jurnal, avto-provodka, davr, bank importi, HR ilgagi). RPC a'zolik + accounting.* ni o'zi tekshiradi; idempotent (operation_id). */
   bux_boshlash_v1: { rpc: 't2_bux_boshlash_v1' },
   bux_hisob_saqla_v1: { rpc: 't2_bux_hisob_saqla_v1' },
@@ -1106,6 +1107,13 @@ export const onRequestPost: PagesFunction<{
         const id = Number(so.id);
         if (!Number.isSafeInteger(id) || id <= 0 || !['tasdiqlangan', 'rad'].includes(String(so.qaror))) return yaroqsiz('Qaror: yozuv va qaror (tasdiqlangan | rad) talab qilinadi.');
         yuk = { ...asos, p_id: id, p_qaror: String(so.qaror), p_izoh: so.izoh == null ? null : String(so.izoh).slice(0, 500), p_kutilgan_versiya: kv };
+      } else if (amal === 'hr_kpi_qoida_saqla_v1') {
+        const qs = so.qoidalar; const pulga = so.kpi_pulga;
+        const qoidalar = qs == null ? null : (Array.isArray(qs) && qs.length <= 60 ? qs.map((x: unknown) => hrPick(x, ['rol', 'korsatkich', 'ogirlik', 'maqsad', 'chegara_kun', 'qayta_sukut'])) : undefined);
+        if (qoidalar === undefined || (qoidalar && qoidalar.some((x: unknown) => !x)) || (pulga != null && typeof pulga !== 'boolean') || (qoidalar == null && pulga == null)) {
+          return yaroqsiz('KPI qoidasi: qoidalar (≤60) yoki kpi_pulga (true | false) noto‘g‘ri.');
+        }
+        yuk = { ...asos, p_qoidalar: qoidalar, p_kpi_pulga: pulga == null ? null : pulga };
       } else if (amal === 'hr_oylik_v1') {
         const ids = so.kadr_ids;
         if (!oyOk || !['hisobla', 'tasdiqla', 'qaytar'].includes(String(so.oylik_amal))

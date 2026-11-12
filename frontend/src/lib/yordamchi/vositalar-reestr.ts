@@ -44,6 +44,8 @@ export const STATIK_VOSITALAR: readonly YordamchiVosita[] = [
   { id: 'yozuv.mualliflik_remark', tur: 'navigatsiya', nom: 'Savol (RFI) va mualliflik remarki: Murojaatlar sahifasini tur bilan ochadi', misol: ['loyihachiga savol yoz', 'mualliflik remarki'], tasdiq: 'yoq', manba: '/admin/murojaatlar?turi=savol|mualliflik_remark -> t2_tomon_murojaat_yarat_v1' },
   { id: 'qoralama.zayavka', tur: 'navigatsiya', nom: 'Zayavka yaratish: zayavka sahifasi yangi zayavka formasi ochiq holda keladi', misol: ['zayavka yarat', 'yangi zayavka'], tasdiq: 'yoq', manba: '/admin/zayavka?yarat=1&obyekt — yuborish (zayavka_yarat) faqat formada, qo‘lda' },
   { id: 'qoralama.yetkazuvchi', tur: 'navigatsiya', nom: 'Yetkazuvchi: bugun — kelgan so‘rovlar, buyurtmalar, transport', misol: ['yetkazuvchi bugun', 'menga kelgan so‘rovlar'], tasdiq: 'yoq', manba: '/admin/yetkazuvchi' },
+  /* HR «Mening oyligim va KPI» (2026-11-12): faqat o'z qatori (RPC t2_hr_men_v1), hech narsa yozilmaydi. Ruxsatsiz xodim uchun /admin/hr o'zi shu tabni ochadi. */
+  { id: 'oqish.mening_oyligim', tur: 'navigatsiya', nom: 'Mening oyligim va KPI: ish haqi, naryad (donabay), ushlanmalar, KPI ko‘rsatkichlari manbasi bilan', misol: ['mening oyligim', 'mening kpi', 'моя зарплата', 'my salary'], tasdiq: 'yoq', manba: '/admin/hr?tab=men -> t2_hr_men_v1 (faqat o‘z qatori)' },
   { id: 'qoralama.aosr', tur: 'navigatsiya', nom: 'АОСР qoralamasi: АОСР sahifasini ochadi', misol: ['АОСР tayyorla'], tasdiq: 'yoq', manba: '/admin/aosr — tasdiqlash faqat sahifada, qo‘lda' },
 ];
 
