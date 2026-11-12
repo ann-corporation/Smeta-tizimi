@@ -64,6 +64,7 @@ export default function FoydaZarar() {
   let tugun = natija.root; const zanjir: FzNode[] = [tugun];
   for (const id of yol) { const b = tugun.bola.find((x) => x.id === id); if (!b) break; tugun = b; zanjir.push(b); }
   const xarajatYoq = natija.root.xarajat == null;
+  const jur = d.manba === 'jurnal';
 
   return (
     <div className="h-full overflow-auto p-4 md:p-6" data-testid="foyda-zarar">
@@ -76,38 +77,39 @@ export default function FoydaZarar() {
         ))}
       </nav>
 
+      <p className="mb-2 rounded-md border border-border px-2 py-1 text-[11.5px] text-text-dim" data-testid="fz-manba" role="note">{jur ? t('Manba: buxgalteriya provodkalari jurnali — yagona hisob. Daromad = Forma-3 realizatsiyasi (QQS siz); xarajat = obyekt xarajatlari (2010); tushgan = to‘lovlar.') : t('Manba: F2, xarajat va to‘lov jadvallari (jurnalda hali provodka yo‘q). Buxgalteriyada «Hujjatlardan yangilash» bosilgach jurnal manba bo‘ladi.')}</p>
       <section className="fz-panel mb-3" data-testid="fz-bosh" style={{ borderLeft: `6px solid ${RANG[tugun.turi]}` }}>
         <p className="text-[12px] text-text-mute">{t(DARAJA_NOM[tugun.daraja])}: {tugun.turi === 'plyus' ? t('PLYUSDA') : tugun.turi === 'minus' ? t('MINUSDA') : t('hisoblanmaydi')}</p>
         <p className="text-[34px] leading-tight md:text-[44px]"><Belgi n={tugun} /> <span className="text-[13px] font-normal text-text-mute">{t('so‘m')}{tugun.foydaFoiz != null ? ` · ${tugun.foydaFoiz} %` : ''}</span></p>
         <p className="text-[14px]" data-testid="fz-sabab">{tugun.sabab || '\u00A0'}</p>
         <Toliqlik n={tugun} />
-        <p className="mt-1 text-[11px] text-text-mute">{t('Foyda = bajarilgan ish (tasdiqlangan F2, ustamali, QQS siz) − xarajat (QQS siz).')}</p>
+        <p className="mt-1 text-[11px] text-text-mute">{jur ? t('Foyda = daromad (jurnal, QQS siz) − xarajat (jurnal, QQS siz).') : t('Foyda = bajarilgan ish (tasdiqlangan F2, ustamali, QQS siz) − xarajat (QQS siz).')}</p>
       </section>
 
       <div className="mb-3 grid gap-2 md:grid-cols-3" data-testid="fz-uchlik">
         <section className="fz-panel">
-          <h3 className="text-[12px] text-text-mute">{t('1. Bajarilgan ish (tasdiqlangan F2)')}</h3>
+          <h3 className="text-[12px] text-text-mute">{jur ? t('1. Daromad (Forma-3, jurnal)') : t('1. Bajarilgan ish (tasdiqlangan F2)')}</h3>
           {tugun.bajarilgan ? (<>
             <p className="text-[20px] font-bold"><FmtN val={tugun.bajarilgan.qqsBilan} /> <span className="text-[11px] font-normal text-text-mute">{t('QQS bilan')}</span></p>
             <p className="text-[12px] text-text-dim">{t('ustamali, QQS siz')}: <FmtN val={tugun.bajarilgan.ustamali} /> · {t('ustamasiz')}: <FmtN val={tugun.bajarilgan.ustamasiz} /></p>
           </>) : <p className="text-[20px] text-text-mute">—</p>}
-          <p className="text-[10.5px] text-text-mute">{t('Manba: t2_akt (tasdiqlangan) · yangilandi')} {d.yangilandi.slice(0, 10)}</p>
+          <p className="text-[10.5px] text-text-mute">{jur ? t('Manba: jurnal (hisob 9010)') : t('Manba: t2_akt (tasdiqlangan) · yangilandi')} {d.yangilandi.slice(0, 10)}</p>
         </section>
         <section className="fz-panel">
           <h3 className="text-[12px] text-text-mute">{t('2. Tushgan pul va qarz')}</h3>
           {tugun.tushgan != null ? <p className="text-[20px] font-bold"><FmtN val={tugun.tushgan} /></p> : <p className="text-[20px] text-text-mute">—</p>}
           <p className="text-[12px] text-text-dim">{t('Buyurtmachi qarzi')}: {tugun.qarz != null ? <FmtN val={tugun.qarz} /> : '—'}</p>
-          <p className="text-[10.5px] text-text-mute">{t('Manba: t2_tolov · oxirgi to‘lov')}: {d.oxirgiTolovSana ?? '—'}</p>
+          <p className="text-[10.5px] text-text-mute">{jur ? t('Manba: jurnal (hisob 4010, to‘lov)') : <>{t('Manba: t2_tolov · oxirgi to‘lov')}: {d.oxirgiTolovSana ?? '—'}</>}</p>
         </section>
         <section className="fz-panel">
           <h3 className="text-[12px] text-text-mute">{t('3. Xarajat va pul qoldig‘i')}</h3>
           {tugun.xarajat != null ? <p className="text-[20px] font-bold"><FmtN val={tugun.xarajat} /></p> : <p className="text-[20px] text-text-mute">—</p>}
           <p className="text-[12px] text-text-dim">{t('Pul qoldig‘i (tushgan − to‘langan xarajat)')}: {tugun.pul != null ? <FmtN val={tugun.pul} /> : '—'}</p>
-          <p className="text-[10.5px] text-text-mute">{t('Manba: t2_xarajat · oxirgi yozuv')}: {d.oxirgiXarajatSana ?? '—'}</p>
+          <p className="text-[10.5px] text-text-mute">{jur ? t('Manba: jurnal (hisob 2010)') : <>{t('Manba: t2_xarajat · oxirgi yozuv')}: {d.oxirgiXarajatSana ?? '—'}</>}</p>
         </section>
       </div>
 
-      {(xarajatYoq || d.qatorToliqEmas) && (
+      {!jur && (xarajatYoq || d.qatorToliqEmas) && (
         <section className="fz-panel mb-3" data-testid="fz-kiritilmagan" style={{ borderLeft: '4px solid var(--warn)' }}>
           <p className="text-[13px] font-semibold">{d.qatorToliqEmas ? t('Xarajat yoki to‘lov qatorlari to‘liq o‘qilmadi — foyda ko‘rsatilmaydi.') : t('Xarajatlar tizimda hali kiritilmagan. Shuning uchun foyda ko‘rsatilmaydi — soxta plyus bo‘lmasin.')}</p>
           <p className="text-[12px] text-text-dim">{t('Eng qisqa yo‘l: xarajatni shu yerning o‘zida kiriting (sana, toifa, obyekt, summa — QQS siz).')}</p>

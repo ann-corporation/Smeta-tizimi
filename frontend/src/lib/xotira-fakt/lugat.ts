@@ -4,6 +4,7 @@
  * («kanal tubiga beton 120 m3», «geomembrana 3500 m2»).
  */
 import { qidiruvNormal, qidiruvTranslit } from '../f2-moslash-v3/qidiruv';
+import { lugatKengaytir } from '../qurilish-lugat';
 
 /** O'zbekcha (lotin, apostrofsiz) so'z → ruscha smeta so'zlari. Qo'shimchali shakllar (tubiga, betonni) o'zak bo'yicha topiladi. */
 const LUGAT: Readonly<Record<string, string>> = {
@@ -39,6 +40,8 @@ export function sozniOgir(soz: string): string {
   if (/\d/.test(t)) return qidiruvNormal(t);                  // marka (b25, a500): ko'rinishi bir xil harflar (B25 → В25)
   if (LUGAT[t]) return LUGAT[t];
   for (const q of QOSHIMCHA) if (t.length > q.length + 2 && t.endsWith(q) && LUGAT[t.slice(0, -q.length)]) return LUGAT[t.slice(0, -q.length)];
+  const umumiy = lugatKengaytir(soz)[0];                      // yagona qurilish lug'ati (g'isht → КИРПИЧ, pol quyish → СТЯЖК…)
+  if (umumiy) return umumiy;
   return qidiruvTranslit(t.toUpperCase());
 }
 

@@ -5,7 +5,9 @@ import { ClipboardList, Plus, Building2, Calendar, Send, RefreshCw, AlertTriangl
 import { useKompaniya } from './KompaniyaTanlov';
 import { toast } from '../umumiy/ui/Toast';
 import { sbZayavkalarOl, sbZayavkaYoz, sbZayavkaHolatYoz, type T2Zayavka, type ZayavkaHolat } from '../api/t2-zayavka';
-import { sbT2ObyektlarOlKomp, type T2Obyekt } from '../api/supabase';
+import { sbOqi, sbT2ObyektlarOlKomp, type T2Obyekt } from '../api/supabase';
+import { usePTOWorkspace } from '../umumiy/kontekst/PTOWorkspaceContext';
+import { materialTakliflari, materialTopish, type SmetaMaterial } from '../lib/zayavka-material';
 import { Sahifa } from '../umumiy/ui/Sahifa';
 import { FmtN } from '../lib/format';
 import { t } from '../i18n/til';
@@ -47,7 +49,9 @@ const QADAMLAR: { dan: ZayavkaHolat[]; ga: ZayavkaHolat; nom: string; title: str
 export default function TestZayavka() {
   const { joriy } = useKompaniya();
   const [params] = useSearchParams();
-  const initialObyekt = params.get('obyekt') || '';
+  const ws = usePTOWorkspace();
+  /* Obyekt: URL, bo'lmasa joriy ish konteksti (qayta tanlatmaslik). */
+  const initialObyekt = params.get('obyekt') || (ws.scope?.objectId ? String(ws.scope.objectId) : '');
   const initYarat = params.get('yarat') === '1';
 
   const [zayavkalar, setZayavkalar] = useState<T2Zayavka[]>([]);
@@ -60,7 +64,7 @@ export default function TestZayavka() {
   const [formObyektId, setFormObyektId] = useState('');
   const [formMaxsulot, setFormMaxsulot] = useState('');
   const [formMiqdor, setFormMiqdor] = useState('');
-  const [formBirlik, setFormBirlik] = useState('metr');
+  const [formBirlik, setFormBirlik] = useState('');
   const [formSana, setFormSana] = useState('');
   const [formMuhimlik, setFormMuhimlik] = useState('orta');
   const [formIzoh, setFormIzoh] = useState('');
@@ -109,6 +113,26 @@ export default function TestZayavka() {
     const obyekt = obyektlar.find((o) => String(o.id) === initialObyekt || o.nom === initialObyekt);
     setFormObyektId(obyekt ? String(obyekt.id) : '');
   }, [initialObyekt, obyektlar]);
+
+  /* Smeta materiallari (tanlangan obyekt): birlik va qoldiq shundan olinadi. */
+  const [smetaMat, setSmetaMat] = useState<SmetaMaterial[]>([]);
+  useEffect(() => {
+    setSmetaMat([]);
+    const id = Number(formObyektId);
+    if (!joriy || !Number.isSafeInteger(id) || id <= 0) return;
+    let faol = true;
+    void sbOqi<SmetaMaterial>({ jadval: 't2_qator', filtr: 'obyekt_id=eq.' + id + '&kat=in.(mat,ob)', ustunlar: 'nom,birlik,hajm', limit: 20000 })
+      .then((r) => { if (faol && r.ok) setSmetaMat(r.qatorlar ?? []); }).catch(() => undefined);
+    return () => { faol = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- joriy?.id: obyekt identifikatori barqaror (joriy obyekti har renderda yangi bo'lishi mumkin)
+  }, [formObyektId, joriy?.id]);
+  const materiallar = useMemo(() => materialTakliflari(smetaMat, zayavkalar.filter((z) => String(z.obyektId) === formObyektId)), [smetaMat, zayavkalar, formObyektId]);
+  const tanlanganMat = useMemo(() => materialTopish(materiallar, formMaxsulot), [materiallar, formMaxsulot]);
+  const maxsulotOzgardi = (v: string) => {
+    setFormMaxsulot(v);
+    const m = materialTopish(materiallar, v);
+    if (m?.birlik) setFormBirlik(m.birlik);
+  };
 
   const handleYuborish = async () => {
     if (!joriy) return;
@@ -296,8 +320,13 @@ export default function TestZayavka() {
           </select>
         </OpsMaydon>
         <OpsMaydon nom={t('Material / xizmat nomi')} majburiy>
-          <input type="text" value={formMaxsulot} onChange={(e) => setFormMaxsulot(e.target.value)} placeholder={t('M400 beton')} />
+          <input type="text" list="zayavka-materiallar" value={formMaxsulot} onChange={(e) => maxsulotOzgardi(e.target.value)} placeholder={t('M400 beton')} />
+          <datalist id="zayavka-materiallar">{materiallar.map((m) => <option key={m.nom + '|' + (m.birlik ?? '')} value={m.nom}>{m.birlik ?? ''}</option>)}</datalist>
         </OpsMaydon>
+        {tanlanganMat && tanlanganMat.smetaHajm != null && tanlanganMat.qoldiq != null && (
+          <p className="m-0 text-[12px] text-text-dim" data-testid="zayavka-qoldiq">{t('Smetada: {s} {b} · oldin so‘ralgan: {o} · qoldiq: {q}', { s: tanlanganMat.smetaHajm, b: tanlanganMat.birlik ?? '', o: tanlanganMat.soralgan, q: tanlanganMat.qoldiq })}
+            {formMiqdor.trim() === '' && <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm ml-2" onClick={() => setFormMiqdor(String(tanlanganMat.qoldiq))}>{t('Qoldiqni qo‘yish')}</button>}</p>
+        )}
         <div className="grid grid-cols-[1fr_120px] gap-3">
           <OpsMaydon nom={t('Miqdor')} majburiy>
             <input type="number" min="0" step="any" value={formMiqdor} onChange={(e) => setFormMiqdor(e.target.value)} onFocus={(e) => e.target.select()} placeholder="0.00" className="text-right tabular-nums" />

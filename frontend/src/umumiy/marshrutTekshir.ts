@@ -27,12 +27,12 @@ export const ADMIN_MARSHRUTLARI = [
   'monitoring', 'sozlamalar', 'fayl-boglash', 'hujjatlar',
   'shaxsiy-smeta', 'supabase', 'tezlik', 'test', 'test/obyektlar', 'test/daraxt', 'test/import', 'test/narxlar', 'test/oqish', 'kadrlar', 'texnika', 'taminot', 'sifat',
   'dashboard', 'pult', 'test/portfel', 'test/crm', 'participants', 'documents', 'hujjat-nazorat',
-  'mindmap', 'storage', 'system-control', 'kompaniya',
+  'mindmap', 'grafik', 'storage', 'system-control', 'kompaniya',
   'test/smeta', 'test/moliya', 'test/logistika', 'test/zayavka', 'test/aosr', 'test/erp',
   'test/sozlama', 'test/xodimlar', 'test/korzinka',
   /* 2026-10-26: yagona navigatsiya reestridagi (lib/nav/navReestr.ts) qolgan yo'llar — navFiltr.test.ts tekshiradi. */
   'smeta-studio', 'm29', 'aosr', 'narx-dalil', 'nakrutka', 'narx-manbalari', 'oferta', 'loyiha', 'shartnoma-liniya', 'qarzdorlik',
-  'crm', 'aloqalar', 'kontragentlar', 'yetkazuvchi', 'subpudratchi', 'subpudrat', 'zakazchik', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish', 'moliya', 'logistika', 'zayavka', 'tender', 'yuk-birjasi', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'tender-ochiq', 'erp', 'f2-reestr',
+  'crm', 'aloqalar', 'kontragentlar', 'yetkazuvchi', 'subpudratchi', 'subpudrat', 'zakazchik', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish', 'moliya', 'logistika', 'zayavka', 'tender', 'tender-ochiq', 'yuk-birjasi', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'yuk-chaqirish', 'haydovchi', 'erp', 'f2-reestr',
   'nakopitelniy', 'tizim-sozlama', 'hujjat-dizayn', 'tokenlar', 'ai-agentlar', 'korzinka', 'ish-joylarim',
   'topshiriqlar', 'mutaxassis', 'boshqaruv', 'sayt-xaritasi', 'akkaunt', 'tizim-xaritasi',
   /* 2026-11-03: Uy sotish. */
@@ -41,6 +41,8 @@ export const ADMIN_MARSHRUTLARI = [
   'hr',
   /* 2026-11-05: ish kartasi + narx tekshiruvi. */
   'narx-tekshiruv',
+  /* 2026-11-12: naryad (brigada topshirig'i) + lug'at. */
+  'naryad',
   /* 2026-11-12: foto-dalil (P2). */
   'foto',
   /* 2026-11-12: Texnik nazorat (texnadzor). */

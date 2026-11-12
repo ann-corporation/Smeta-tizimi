@@ -44,6 +44,8 @@ describe('role integration architecture',()=>{
       'bozor', 'bozor-ochiq', 'bozor-rasm',
       /* Tender ochiq rejim (2026-11-12): /api/tender-ochiq — KIRMASDAN GET, faqat doira='ochiq' va holat='elon' lot, narxsiz (t2_tn_ochiq_*); /api/tender-p1 — sessiya, faqat t2_tn_* RPC oq ro'yxati (functions/_shared/tender-ochiq.ts); a'zolik, procurement ruxsati va muhr RPC ichida (acceptance 20261216510000). */
       'tender-ochiq', 'tender-p1',
+      /* Yuk tashish P1 (2026-11-12): actor sessiyadan; faqat t2_yb_* RPC oq ro'yxati (functions/_shared/yuk-tashish.ts); a'zolik/ruxsat/tenant RPC ichida (acceptance 20261216400000); yuk-dalil — kichik rasm, faqat o'z R2 prefiksi. */
+      'yuk-tashish', 'yuk-dalil',
       /* Bildirishnoma yetkazish (2026-11-05): sessiyasiz FON ISHI (GitHub Actions). Kirish faqat X-Cron-Kalit == BILDIRISHNOMA_CRON_KALIT
          (sozlanmagan → 503, noto'g'ri → 403); kompaniya ma'lumoti qaytmaydi, faqat service_role navbat RPC lari (bildirishnoma-yetkaz.test.ts). */
       'bildirishnoma-yetkaz']);
