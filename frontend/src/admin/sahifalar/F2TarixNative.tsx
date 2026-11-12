@@ -217,7 +217,9 @@ export function F2TarixNative() {
       if (!d.ok) throw new YuklashXato(t('F2 qatorlari to‘liq o‘qilmadi — hujjat va summalar ko‘rsatilmaydi. Qayta yangilang.'));
       // M2: smeta daraxti o'qilmasa — jim bo'sh daraxt emas (hujjat/ierarxiya noto'g'ri chiqardi).
       if (!tr.ok || tr.toliq === false) throw new YuklashXato(t('Smeta daraxti o‘qilmadi — F2 ierarxiyasi va hujjati tuzilmaydi. Qayta yangilang.'));
-      const akts = ((r.qatorlar || []) as T2AktReestr[]).filter((a) => a.tur === 'f2');
+      const akts = ((r.qatorlar || []) as T2AktReestr[]).filter((a) => a.tur === 'f2')
+        // Korzinkaga yuborilgan qoralama (holat bekor, hayot sikli hali draft) tarixda ko'rinmaydi — faqat Korzinkada; storno/bekor qilingan F2 ko'rinadi.
+        .filter((a) => !(a.holat === 'bekor' && (a.lifecycle_status ?? 'draft') === 'draft'));
       const lines = (d.qatorlar || []) as F2Detail[];
       // M1: barcha F2 akt qatorlari — noyob tartib, to'liq (storno bloki, avto-narxsiz, bekor akt ko'rinishi).
       const aq = await aktQatorlariOl(obyektId, akts.map((a) => a.id)).catch(() => { throw new YuklashXato(t('F2 akt qatorlari to‘liq o‘qilmadi. Qayta yangilang.')); });

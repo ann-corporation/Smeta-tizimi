@@ -54,7 +54,17 @@ export type SmetaOzgarishQatlam = {
 };
 
 /** Obyekt smetasi: asl (CONST) · o'zgarishlar (asosi bilan) · smeta + o'zgarishlar. Xato — `ok:false` (NULL ≠ «o'zgarish yo'q»). */
-export async function smetaOzgarishQatlamOl(obyektId: number): Promise<{ ok: true; natija: SmetaOzgarishQatlam } | { ok: false; error: string }> {
+type QatlamJavob = { ok: true; natija: SmetaOzgarishQatlam } | { ok: false; error: string };
+/** Bir vaqtda bir necha ko'rsatkich (Smeta kartasi, O'zgarishlar paneli, Resurslar) shu javobni so'raydi — YAGONA so'rov; tugagach kesh yo'q (yangi ma'lumot). */
+const parvozda = new Map<number, Promise<QatlamJavob>>();
+export function smetaOzgarishQatlamOl(obyektId: number): Promise<QatlamJavob> {
+  const bor = parvozda.get(obyektId);
+  if (bor) return bor;
+  const p = smetaOzgarishQatlamOqi(obyektId).finally(() => { parvozda.delete(obyektId); });
+  parvozda.set(obyektId, p);
+  return p;
+}
+async function smetaOzgarishQatlamOqi(obyektId: number): Promise<QatlamJavob> {
   const r = await vaqtliOqish('/api/sb', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ soro: 'smeta_ozgarish_qatlam_v1', obyekt_id: obyektId }),

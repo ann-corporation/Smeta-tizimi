@@ -69,6 +69,7 @@ export default function TestShartnoma() {
     if (s.holat === 'faol' || s.holat === 'yopilgan') acc.bosh += Number(s.jami_nds_bilan) || 0;
     return acc;
   }, { jami: 0, bosh: 0 }), [shartnomalar]);
+  const qqsYoq = useMemo(() => shartnomalar.filter((s) => !((s.nds || 0) > 0)).length, [shartnomalar]);
   const holatlar = useMemo(() => taqsimot(shartnomalar, (s) => s.holat, ['faol', 'yopilgan', 'bekor'] as const), [shartnomalar]);
   const q = qidiruv.toLowerCase();
   const korinadi = shartnomalar.filter((s) => (bekorKorinsin || s.holat !== 'bekor') && `${s.raqam} ${s.nom ?? ''} ${s.taraf ?? ''}`.toLowerCase().includes(q));
@@ -85,7 +86,7 @@ export default function TestShartnoma() {
     >
       <div className="flex flex-col gap-3">
         <OpsKpiQator yorliq={t('Shartnoma ko‘rsatkichlari')}>
-          <OpsKpi nom={t('Jami portfel')} qiymat={<FmtN val={stats.jami} />} ost={t('{n} ta shartnoma · so‘m, QQS bilan', { n: shartnomalar.length })} />
+          <OpsKpi nom={t('Jami portfel')} qiymat={<FmtN val={stats.jami} />} ost={t('{n} ta shartnoma · so‘m, shartnomadagi jami (QQS bilan)', { n: shartnomalar.length }) + (qqsYoq > 0 ? ' · ' + t('{k} tasida QQS kiritilmagan', { k: qqsYoq }) : '')} />
           <OpsKpi nom={t('Bosh pudrat (daromad)')} rang="var(--ok)" qiymat={<FmtN val={stats.bosh} />} ost={t('faol va yopilganlar')} />
           <OpsKpi nom={t('Sub-pudrat / xarid')} rang="var(--danger)" qiymat={<span className="text-text-mute">—</span>} ost={t('hali hisoblanmaydi')} />
           <OpsKpi nom={t('Kafolat ushlanmasi')} rang="var(--warn)" qiymat={<span className="text-text-mute">—</span>} ost={t('hali hisoblanmaydi')} />
@@ -152,7 +153,7 @@ export default function TestShartnoma() {
                       <td className="text-text-dim">{s.taraf || '—'}</td>
                       <td className="fz-c-num">
                         <span className="block font-semibold"><FmtN val={s.jami_nds_bilan} /></span>
-                        <span className={`text-[11px] ${(s.nds || 0) > 0 ? 'text-text-mute' : 'text-warn'}`}>{(s.nds || 0) > 0 ? t('QQS bilan') : t('QQS siz')}</span>
+                        <span className={`text-[11px] ${(s.nds || 0) > 0 ? 'text-text-mute' : 'text-warn'}`}>{(s.nds || 0) > 0 ? t('QQS bilan') : t('QQS kiritilmagan')}</span>
                       </td>
                       <td><span className={`fz-stamp ${HOLAT[s.holat]?.stamp ?? ''}`}>{t(HOLAT[s.holat]?.nom ?? s.holat)}</span></td>
                       <td className="text-right">

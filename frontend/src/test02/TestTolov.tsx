@@ -68,10 +68,12 @@ export default function TestTolov() {
     (x.izoh?.toLowerCase().includes(searchTerm.toLowerCase()) || x.shartnoma_id?.toString().includes(searchTerm))
     && (toifa === 'barchasi' || (toifa === 'kirim' ? x.summa > 0 : x.summa < 0)));
   const oqim = useMemo(() => tolovOqimi(tolovlar), [tolovlar]);
-  const ulush = dashboard ? tolovUlushi(dashboard.bajarilgan, dashboard.tolangan) : null;
   const raqamlar = useMemo(() => new Map(shartnomalar.map((s) => [s.id, s.raqam])), [shartnomalar]);
   /* KPI: o'qilmagan bo'lsa «—» (yuklanayotganda skelet), 0 bilan aralashtirilmaydi. */
   const kpi = (v: number | undefined) => (yuklanmoqda && !dashboard ? <span className="skel inline-block h-5 w-20 rounded" aria-busy="true" /> : v == null ? <span className="text-text-mute">—</span> : <FmtN val={v} />);
+  // To'lov yozuvi umuman yo'q (hali kiritilmagan) — «to'langan 0, qarz = butun F2» deb ko'rsatilmaydi: noma'lum (rahbar paneli bilan bir xil ta'rif).
+  const tolovKiritilmagan = !yuklanmoqda && tolovlar.length === 0 && (dashboard?.tolangan ?? 0) === 0;
+  const ulush = tolovKiritilmagan || !dashboard ? null : tolovUlushi(dashboard.bajarilgan, dashboard.tolangan);
   const kamHarakat = useReducedMotion();
   const nomKirim = t('kirim'), nomChiqim = t('chiqim'), nomSof = t('jamlangan qoldiq');
   /** To‘lov — haqiqiy pul harakati (ustamasiz, o‘zgartirilmaydi): oylik kirim/chiqim va jamlangan sof oqim. */
@@ -88,11 +90,11 @@ export default function TestTolov() {
     >
       <div className="flex flex-col gap-3">
         <OpsKpiQator yorliq={t('Moliya ko‘rsatkichlari')}>
-          <OpsKpi nom={t('Bajarilgan (F2)')} rang="var(--info)" qiymat={kpi(dashboard?.bajarilgan)} ost={t('Forma-2 lar yig‘indisi, so‘m')} />
-          <OpsKpi nom={t('To‘langan')} rang="var(--ok)" qiymat={kpi(dashboard?.tolangan)}
-            ost={<span className="flex items-center gap-2"><OpsChiziq ulush={ulush} rang="var(--ok)" /><span className="whitespace-nowrap">{ulush == null ? '—' : t('{f}% bajarilgandan', { f: Math.round(ulush * 100) })}</span></span>} />
-          <OpsKpi nom={t('Qarzdorlik (bizga)')} rang="var(--danger)" qiymat={<span className={(dashboard?.debitor ?? 0) > 0 ? 'text-danger' : ''}>{kpi(dashboard?.debitor)}</span>} ost={t('bajarilgan, lekin to‘lanmagan')} />
-          <OpsKpi nom={t('Avans')} rang="var(--warn)" qiymat={kpi(dashboard?.avans)} ost={t('oldindan to‘lovlar')} />
+          <OpsKpi nom={t('Bajarilgan (F2)')} rang="var(--info)" qiymat={kpi(dashboard?.bajarilgan)} ost={t('tasdiqlangan Forma-2 lar yig‘indisi, so‘m')} />
+          <OpsKpi nom={t('To‘langan')} rang="var(--ok)" qiymat={tolovKiritilmagan ? <span className="text-text-mute" title={t('To‘lov hali kiritilmagan')}>—</span> : kpi(dashboard?.tolangan)}
+            ost={tolovKiritilmagan ? <span>{t('to‘lov hali kiritilmagan')}</span> : <span className="flex items-center gap-2"><OpsChiziq ulush={ulush} rang="var(--ok)" /><span className="whitespace-nowrap">{ulush == null ? '—' : t('{f}% bajarilgandan', { f: Math.round(ulush * 100) })}</span></span>} />
+          <OpsKpi nom={t('Qarzdorlik (bizga)')} rang="var(--danger)" qiymat={tolovKiritilmagan ? <span className="text-text-mute">—</span> : <span className={(dashboard?.debitor ?? 0) > 0 ? 'text-danger' : ''}>{kpi(dashboard?.debitor)}</span>} ost={tolovKiritilmagan ? t('to‘lov kiritilmaguncha hisoblanmaydi') : t('tasdiqlangan F2, lekin to‘lanmagan')} />
+          <OpsKpi nom={t('Avans')} rang="var(--warn)" qiymat={tolovKiritilmagan ? <span className="text-text-mute">—</span> : kpi(dashboard?.avans)} ost={t('oldindan to‘lovlar')} />
         </OpsKpiQator>
 
         <section className="fz-panel" aria-label={t('Pul oqimi oylar bo‘yicha')}>
