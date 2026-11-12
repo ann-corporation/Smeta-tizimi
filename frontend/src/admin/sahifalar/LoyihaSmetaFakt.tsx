@@ -12,7 +12,7 @@ import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { toast } from '../../umumiy/ui/Toast';
 import { sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt } from '../../api/supabase';
 import { sbT2QoshimchaIshYarat, sbT2ZamenaIshYarat } from '../../api/t2-additional-replacement';
-import { loyihaXaritaOl, loyihaXaritaYoz, loyihaBoglash, loyihaFarqOl, loyihaQaror, loyihaRoyxatOl, loyihaSmetaOl, loyihaTasdiq, loyihaYoz, type MiqdorQatori } from '../../api/t2-loyiha-smeta';
+import { loyihaTahrirRoyxatOl, loyihaTahrirYarat, loyihaTahrirYoz, type TahrirQatori, loyihaXaritaOl, loyihaXaritaYoz, loyihaBoglash, loyihaFarqOl, loyihaQaror, loyihaRoyxatOl, loyihaSmetaOl, loyihaTasdiq, loyihaYoz, type MiqdorQatori } from '../../api/t2-loyiha-smeta';
 import { dublikatTanla, hujjatniTahlilQil, type SahifaNatija } from '../../lib/loyiha-smeta/tahlil';
 import { pdfdanMatn, manbaKorinishi, sha256Hex } from '../../lib/loyiha-smeta/pdf-oqish';
 import { keshdanOl, keshgaSaqla, manbaR2 } from '../../lib/loyiha-smeta/ekstraksiya-kesh';
@@ -35,6 +35,7 @@ import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { t } from '../../i18n/til';
 import { Bolim } from '../zakazchik/tomon-ui';
+import { TahrirFarqi } from './TahrirFarqi';
 import { inp, tugma, tugmaAsosiy } from '../zakazchik/tomon-yordam';
 
 const FARQ_NOMI: Record<FarqTuri, string> = {
@@ -76,12 +77,21 @@ export default function LoyihaSmetaFakt() {
 
   const yukla = useCallback(async () => {
     if (!kompaniyaId || obyektId === '') return;
-    const [a, b, c, d] = await Promise.all([loyihaRoyxatOl(kompaniyaId, obyektId), loyihaFarqOl(kompaniyaId, obyektId), loyihaSmetaOl(kompaniyaId, obyektId), loyihaXaritaOl(kompaniyaId, obyektId)]);
+    const [a, b, c, d, th] = await Promise.all([loyihaRoyxatOl(kompaniyaId, obyektId), loyihaFarqOl(kompaniyaId, obyektId), loyihaSmetaOl(kompaniyaId, obyektId), loyihaXaritaOl(kompaniyaId, obyektId), loyihaTahrirRoyxatOl(kompaniyaId, obyektId)]);
     if (!a.ok) { setXato(a.error); return; }
-    setXato(''); setRoyxat(a.natija.miqdorlar); if (b.ok) setFarqD(b.natija); if (c.ok) setSmeta(c.natija.qatorlar); setXaritaQ(d.ok ? d.natija.xarita : []);
+    setXato(''); setRoyxat(a.natija.miqdorlar); if (b.ok) setFarqD(b.natija); if (c.ok) setSmeta(c.natija.qatorlar); setXaritaQ(d.ok ? d.natija.xarita : []); setTahrirlar(th.ok ? th.natija.tahrirlar : []);
   }, [kompaniyaId, obyektId]);
   useEffect(() => { setRoyxat([]); setFarqD(null); setSmeta([]); void yukla(); }, [yukla]);
 
+  const [tahrirlar, setTahrirlar] = useState<TahrirQatori[]>([]);
+  const [tahrirId, setTahrirId] = useState<number | ''>('');
+  const [yangiTahrirNom, setYangiTahrirNom] = useState('');
+  async function tahrirYarat() {
+    if (!kompaniyaId || obyektId === '' || !yangiTahrirNom.trim()) return;
+    const r = await loyihaTahrirYarat(kompaniyaId, { obyektId, nom: yangiTahrirNom.trim() });
+    if (!r.ok) { toast(r.error, 'danger'); return; }
+    setTahrirId(r.natija.id); setYangiTahrirNom(''); await yukla();
+  }
   const [xaritaQ, setXaritaQ] = useState<{ varaq: string; bolim_qator_id: number; manba: 'qolda' | 'taklif' }[]>([]);
   const qolda = useMemo(() => { const m = new Map<string, Set<number>>(); for (const x of xaritaQ) m.set(x.varaq, new Set([...(m.get(x.varaq) ?? []), x.bolim_qator_id])); return m; }, [xaritaQ]);
   const [belgiRegex, setBelgiRegex] = useState<string>(MOSLASH_STANDART.belgiRegex);
@@ -192,7 +202,8 @@ export default function LoyihaSmetaFakt() {
     for (const [varaq, sahifalar] of guruhlar) {
       const aniq = sahifalar.map((s) => s.revizya).filter((x): x is number => x != null);
       const items = sahifalar.flatMap((s) => s.elementlar.map((e) => ({ nom: e.nom, belgi: e.belgi, birlik: e.birlik, miqdor: e.miqdor, tur: e.tur, ishonch: e.ishonch, manba_r2: manbaR2(kompaniyaId, fayllar[s.fayl].sha), manba_sahifa: e.sahifa, manba_ref: e.manbaRef })));
-      const r = await loyihaYoz(kompaniyaId, { obyektId, varaq, revizya: yangiRev(varaq, aniq.length ? Math.max(...aniq) : null), items });
+      const rev = yangiRev(varaq, aniq.length ? Math.max(...aniq) : null);
+      const r = tahrirId !== '' ? await loyihaTahrirYoz(kompaniyaId, { obyektId, tahrirId, varaq, revizya: rev, items }) : await loyihaYoz(kompaniyaId, { obyektId, varaq, revizya: rev, items });
       if (!r.ok) { toast(`${varaq}: ${r.error}`, 'danger'); continue; }
       n += items.length;
     }
@@ -293,6 +304,11 @@ export default function LoyihaSmetaFakt() {
 
         {obyektId !== '' && (
           <Bolim sarlavha="1. Chizma PDF ni o‘qish (brauzerda)">
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px]">
+              <label>{t('Tahrir')} <select className={inp} value={tahrirId} onChange={(e) => setTahrirId(e.target.value ? Number(e.target.value) : '')}><option value="">{t('Tahrirsiz')}</option>{tahrirlar.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select></label>
+              <input className={inp} aria-label={t('Yangi tahrir nomi')} placeholder={t('Yangi tahrir nomi')} value={yangiTahrirNom} onChange={(e) => setYangiTahrirNom(e.target.value)} />
+              <button type="button" className={tugma} disabled={!yangiTahrirNom.trim()} onClick={() => void tahrirYarat()}>{t('Tahrir ochish')}</button>
+            </div>
             <input type="file" accept="application/pdf" multiple disabled={band} onChange={(e) => void faylTanlandi(e.target.files)} aria-label={t('Chizma PDF fayllari')} />
             {band && <p className="mt-2 text-xs">{t('O‘qilmoqda…')}</p>}
             {fayllar.length > 0 && (
@@ -363,6 +379,7 @@ export default function LoyihaSmetaFakt() {
                 <button type="button" className="ml-2 underline" onClick={() => void xaritaBelgila(x.varaq, x.bolim_qator_id, x.manba, undefined, 'ochir')}>{t('Olib tashlash')}</button></div>))}
           </Bolim>
         )}
+        {obyektId !== '' && kompaniyaId && <TahrirFarqi kompaniyaId={kompaniyaId} obyektId={obyektId} tahrirlar={tahrirlar} yangila={() => void yukla()} />}
         {taklifVaraq.size > 0 && (
           <Bolim sarlavha="2. Takliflar: tasdiqlang (tasdiqlanmagani pulga kirmaydi)">
             {[...taklifVaraq].map(([v, qatorlar]) => (
