@@ -73,3 +73,5 @@ end $g$;
 
 comment on function public._t2_lm_xarita_yoz_ich(bigint,bigint,text,bigint,text,text,text,bigint) is 'versiya: versiya - bo''lim faqat joriy (faol) smeta qatori bo''lishi tekshiriladi; t2_qator o''zgarmaydi.';
 comment on function public.t2_loyiha_xarita_yoz_v1(bigint,bigint,bigint,text,bigint,text,text,text) is 'versiya: versiya - bo''lim faqat joriy (faol) smeta qatoriga bog''lanadi.';
+comment on function public.t2_loyiha_xarita_v1(bigint,bigint,bigint) is 'versiya: texnik - faqat t2_loyiha_varaq_xarita (varaq -> bo''lim id) o''qiladi; t2_qator qiymati o''qilmaydi.';
+comment on function public._t2_lm_xarita_royxat_ich(bigint,bigint) is 'versiya: texnik - faqat t2_loyiha_varaq_xarita o''qiladi; t2_qator qiymati o''qilmaydi.';
