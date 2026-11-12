@@ -71,7 +71,7 @@ const ICHKI_ISH = ['project.write', 'object.write'] as const;
 export const NAV_GURUH_META: readonly NavGuruhMeta[] = [
   { id: 'obyekt', nom: 'Obyektlar', ikonka: 'Building2', qatlam: 'ish', bandlar: [{ nom: 'Rahbar paneli', ikonka: 'BarChart' }, { nom: 'Obyektlar va loyihalar', ikonka: 'FolderKanban' }] },
   { id: 'smeta', nom: 'Smeta', ikonka: 'Calculator', qatlam: 'ish', bandlar: [{ nom: 'Smeta studiyasi', ikonka: 'Calculator' }, { nom: 'Smeta va Fakt / LRV', ikonka: 'FileText' }, { nom: 'Narxlash', ikonka: 'Tags' }] },
-  { id: 'fakt', nom: 'Fakt', ikonka: 'HardHat', qatlam: 'ish', bandlar: [{ nom: 'Fakt kiritish', ikonka: 'HardHat' }, { nom: 'M-29 (material sarfi)', ikonka: 'Box' }] },
+  { id: 'fakt', nom: 'Fakt', ikonka: 'HardHat', qatlam: 'ish', bandlar: [{ nom: 'Fakt kiritish', ikonka: 'HardHat' }, { nom: 'Bugun (telefon)', ikonka: 'HardHat' }, { nom: 'M-29 (material sarfi)', ikonka: 'Box' }] },
   { id: 'f2', nom: 'F2 va Nakopitelniy', ikonka: 'FileOutput', qatlam: 'ish', bandlar: [{ nom: 'F2', ikonka: 'FileOutput' }] },
   { id: 'moliya', nom: 'Moliya va shartnomalar', ikonka: 'Briefcase', qatlam: 'ish', bandlar: [{ nom: 'Moliya (to‘lov, xarajat)', ikonka: 'Briefcase' }, { nom: 'Shartnomalar va tomonlar', ikonka: 'Users' }] },
   { id: 'hujjat', nom: 'Hujjatlar', ikonka: 'FileStack', qatlam: 'ish', bandlar: [{ nom: 'Hujjatlar', ikonka: 'FileStack' }, { nom: 'Kiruvchi (tomonlar)', ikonka: 'Inbox' }] },

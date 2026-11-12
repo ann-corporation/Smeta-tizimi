@@ -211,6 +211,22 @@
         ]
       },
       {
+        "nom": "Bugun (telefon)",
+        "ikonka": "HardHat",
+        "sahifalar": [
+          {
+            "yol": "/admin/bugun",
+            "ilova": "ff",
+            "nom": "Bugun (usta, telefon)",
+            "ruxsat": [
+              "control.company.read",
+              "fakt.write",
+              "fakt.read+self.work.write"
+            ]
+          }
+        ]
+      },
+      {
         "nom": "M-29 (material sarfi)",
         "ikonka": "Box",
         "sahifalar": [
