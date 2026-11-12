@@ -12,7 +12,7 @@ create or replace function pg_temp._h(p text) returns text language sql immutabl
 
 do $t$
 declare
-  n int := 0; q text := 'tayyorlov';
+  n int := 0; q text := 'tayyorlov'; v_cnt int; v_op2 uuid;
   k1 bigint; k2 bigint; a bigint; b bigint; c bigint; d bigint; e bigint; f bigint; g bigint; s1 bigint; s2 bigint; s3 bigint; s4 bigint;
   r jsonb; r2 jsonb; v_tid uuid; v_op uuid := gen_random_uuid(); v_x bigint; v_nonce text; v_br text; v_tgu bigint := 800000000001;
   v_sub text := 'akkaunt-google-sub-1';
@@ -121,8 +121,13 @@ begin
   perform pg_temp._k(r2->>'code' = 'HISOB_YOQ', n, q, 'boshqa odam allaqachon birlashtirilgan hisobni oldi: ' || r2::text);
   r2 := public.t2_hisob_birlashtir_v2(g, g, 'email', gen_random_uuid());
   perform pg_temp._k(r2->>'code' = 'OZI', n, q, 'o''zini o''zi birlashtirdi');
-  r2 := public.t2_hisob_birlashtir_v2(g, c, 'telegram', gen_random_uuid());
-  perform pg_temp._k(r2->>'code' = 'DOKAZ_NOTOGRI', n, q, 'noma''lum isbot turi qabul qilindi');
+  -- isbot turi: oq ro'yxatdan tashqari (noma'lum / null / bo'sh / katta-kichik harf) HAMMASI DOKAZ_NOTOGRI va hech narsa yozilmaydi
+  for v_cnt in 1..5 loop
+    v_op2 := gen_random_uuid();
+    r2 := public.t2_hisob_birlashtir_v2(g, c, case v_cnt when 1 then 'noma_lum' when 2 then null when 3 then '' when 4 then 'GOOGLE' else 'parol' end, v_op2);
+    perform pg_temp._k(r2->>'code' = 'DOKAZ_NOTOGRI', n, q, 'noma''lum isbot turi #' || v_cnt || ' qabul qilindi: ' || r2::text);
+    perform pg_temp._k(not exists (select 1 from public.t2_onboarding_command_log where operation_id = v_op2) and (select holat from public.t2_foydalanuvchi where id = c) = 'faol', n, q, 'rad etilgan isbotda yozuv paydo bo''ldi #' || v_cnt);
+  end loop;
   r2 := public.t2_hisob_birlashtir_v2(g, c, 'google', v_op);
   perform pg_temp._k(r2->>'code' = 'OPERATION_CONFLICT' or r2->>'takror' = 'true', n, q, 'operation_id boshqa so''rovga qayta ishlatildi: ' || r2::text);
 

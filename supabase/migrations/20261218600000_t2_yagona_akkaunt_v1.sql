@@ -125,7 +125,8 @@ begin
     if v_prev.actor_id <> p_actor_id or v_prev.command <> 'hisob_birlashtir_v2' then return jsonb_build_object('ok', false, 'code', 'OPERATION_CONFLICT'); end if;
     return (v_prev.natija - 'request') || '{"takror":true}'::jsonb;
   end if;
-  if p_dokaz not in ('parol', 'email', 'google', 'telegram') then return jsonb_build_object('ok', false, 'code', 'DOKAZ_NOTOGRI'); end if;
+  -- ISBOT turi: aniq oq ro'yxat (email-kod | google | telegram — shlyuz har birini serverda tekshirgach; parol isboti eski v1 orqali); null/bo'sh/noma'lum — rad (NULL NOT IN (...) NULL beradi, shuning uchun is null alohida). Hech narsa yozilmaydi.
+  if p_dokaz is null or p_dokaz not in ('email', 'google', 'telegram') then return jsonb_build_object('ok', false, 'code', 'DOKAZ_NOTOGRI'); end if;
   if p_actor_id is null or p_actor_id <= 0 or p_boshqa_id is null or p_boshqa_id <= 0 then return jsonb_build_object('ok', false, 'code', 'ACTOR_NOT_FOUND'); end if;
   if p_actor_id = p_boshqa_id then return jsonb_build_object('ok', false, 'code', 'OZI'); end if;
   perform 1 from public.t2_foydalanuvchi where id in (p_actor_id, p_boshqa_id) order by id for update;
