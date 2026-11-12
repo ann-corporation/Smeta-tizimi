@@ -1,3 +1,4 @@
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, CheckCircle2, XCircle, UploadCloud, AlertTriangle, Info, FileSpreadsheet } from 'lucide-react';
 import { sbT2DaraxtOl, sbT2ObyektlarOlKomp, sbT2ResursKategoriyaBelgila, yangiOperationId, type T2Obyekt, type T2Qator, type T2ResursKategoriya } from '../../api/supabase';
@@ -1568,7 +1569,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi, yonaltirish }: { com
         categoryCandidates.push(...resKategoriyaNomzodlariniOl(rows), ...daraxtKategoriyaNomzodlari(applied, idx));
       }
       const paketNarxHisobi = narxsizImportHisobi(pricedTrees.flatMap((p) => p.tree));
-      if (paketNarxHisobi.narxsiz > 0 && !window.confirm(narxsizImportOgohlantirishi(paketNarxHisobi))) {
+      if (paketNarxHisobi.narxsiz > 0 && !(await tasdiqSora({ matn: narxsizImportOgohlantirishi(paketNarxHisobi), xavfli: true, tasdiqMatni: 'Baribir davom etish' }))) {
         setPhase(t('Import to‘xtatildi: narxsiz qatorlar')); return;
       }
       if (categoryCandidates.length) await katNomzodlariniSaqla(categoryCandidates);
@@ -1724,7 +1725,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi, yonaltirish }: { com
 
   async function importniBekorQil() {
     if (!ochiqImport || ochiqImport.paket || tiklashBand) return;
-    if (!window.confirm(t('Ochiq import sessiyasi bekor qilinsinmi? Yuborilgan bo‘laklar o‘chiriladi, smeta yozilmaydi.'))) return;
+    if (!(await tasdiqSora({ matn: 'Ochiq import sessiyasi bekor qilinsinmi? Yuborilgan bo‘laklar o‘chiriladi, smeta yozilmaydi.', xavfli: true, tasdiqMatni: 'Bekor qilish' }))) return;
     setTiklashBand(true); setError('');
     try {
       const j = await smetaSorov({ amal: 'import_bekor', kompaniyaId: companyId, sessiyaId: ochiqImport.sessiyaId });
@@ -1837,7 +1838,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi, yonaltirish }: { com
 
       // #11: narxsiz smeta jim o'tmasin -- ongli tasdiq (blok emas, lekin ko'rinadigan).
       const narxHisobi = narxsizImportHisobi(importTree);
-      if (narxHisobi.narxsiz > 0 && !window.confirm(narxsizImportOgohlantirishi(narxHisobi))) {
+      if (narxHisobi.narxsiz > 0 && !(await tasdiqSora({ matn: narxsizImportOgohlantirishi(narxHisobi), xavfli: true, tasdiqMatni: 'Baribir davom etish' }))) {
         qadam('Narxsiz smeta'); yakunla('xato', t('{n} ta qatorda narx yo‘q — import to‘xtatildi, RES narxlarini ulang', { n: narxHisobi.narxsiz }));
         setPhase(t('Import to‘xtatildi: narxsiz qatorlar')); return;
       }
@@ -1956,7 +1957,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi, yonaltirish }: { com
   }, [alreadyHasSmeta, objectId, companyId]);
   async function qoralamaniOchir() {
     if (!objectId || !bogliqlik?.qoralama) return;
-    if (!window.confirm(t('{n} qatorlik qoralama smeta o‘chirilsinmi? F2/fakt bog‘lanmagan, shuning uchun yo‘qotish yo‘q. Keyin to‘g‘rilangan faylni yuklaysiz.', { n: bogliqlik.qator_soni ?? selectedObject?.qator_soni ?? 0 }))) return;
+    if (!(await tasdiqSora({ matn: t('{n} qatorlik qoralama smeta o‘chirilsinmi? F2/fakt bog‘lanmagan, shuning uchun yo‘qotish yo‘q. Keyin to‘g‘rilangan faylni yuklaysiz.', { n: bogliqlik.qator_soni ?? selectedObject?.qator_soni ?? 0 }), xavfli: true, tasdiqMatni: 'O‘chirish' }))) return;
     setTozalashBand(true); setError('');
     try {
       const j = await smetaSorov({ amal: 'smeta_tozala', kompaniyaId: companyId, obyektId: Number(objectId), operationId: yangiOperationId() });

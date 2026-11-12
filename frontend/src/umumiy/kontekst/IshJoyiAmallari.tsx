@@ -7,6 +7,7 @@ import { Plus, Link2, User, Building2 } from 'lucide-react';
 import { useKompaniya } from './KompaniyaKontekst';
 import { ishJoyiXato, ishJoyiYarat, qoshil, type IshJoyiTuri } from '../../api/t2-ish-joyi';
 import { t } from '../../i18n/til';
+import { matnSora } from '../ui/Tasdiq';
 
 /** Ish joyi turi belgisi: 👤 shaxsiy, 🏢 tashkilot. */
 export function IshJoyiBelgi({ turi }: { turi?: IshJoyiTuri }) {
@@ -42,7 +43,7 @@ export function IshJoyiAmallari() {
   }
   async function yangi(turi: IshJoyiTuri) {
     setOchiq(false); setXabar('');
-    const nom = window.prompt(turi === 'shaxsiy' ? t('Shaxsiy ish joyi nomi:') : t('Tashkilot (jamoa) nomi:'), '');
+    const nom = await matnSora({ matn: turi === 'shaxsiy' ? 'Shaxsiy ish joyi nomi:' : 'Tashkilot (jamoa) nomi:', majburiy: true, kopQator: false, tasdiqMatni: 'Ochish' });
     if (nom == null || !nom.trim()) return;
     setBand(true);
     const r = await ishJoyiYarat(nom.trim(), turi);
@@ -53,7 +54,7 @@ export function IshJoyiAmallari() {
   }
   async function havola() {
     setOchiq(false); setXabar('');
-    const matn = window.prompt(t('Taklif havolasi yoki kodini kiriting:'), '');
+    const matn = await matnSora({ matn: 'Taklif havolasi yoki kodini kiriting:', majburiy: true, kopQator: false, tasdiqMatni: 'Qo‘shilish' });
     if (matn == null || !matn.trim()) return;
     setBand(true);
     const r = await qoshil(kodniAjrat(matn));

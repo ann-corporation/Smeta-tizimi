@@ -2,6 +2,7 @@
  * «Tasdiqlash kutilmoqda» — usta/brigadir telefondan kiritgan QORALAMA faktlar (prorab/PTO, fakt.write).
  * Tasdiq → mavjud fakt_yoz_v2 yo'li (obyekt+sana bo'yicha bitta hujjat); rad → sabab bilan qaytadi. Pul ko'rsatilmaydi.
  */
+import { matnSora } from '../../umumiy/ui/Tasdiq';
 import { useCallback, useEffect, useState } from 'react';
 import { yangiOperationId } from '../../api/supabase';
 import { sbUstaQaror, sbUstaQoralamalarOl, ustaXatoMatni, type UstaQoralama } from '../../api/t2-usta';
@@ -29,7 +30,7 @@ export function UstaKutilmoqda({ kompaniyaId, obyektId, qatorlar, onTasdiqlandi 
   const qaror = async (idlar: number[], q: 'tasdiqlangan' | 'rad') => {
     if (!idlar.length || band) return;
     let sabab: string | null = null;
-    if (q === 'rad') { sabab = window.prompt(t('Nima uchun rad etasiz? (ustaga ko‘rinadi)')) ; if (sabab == null) return; }
+    if (q === 'rad') { sabab = await matnSora({ matn: 'Nima uchun rad etasiz? (ustaga ko‘rinadi)', tasdiqMatni: 'Rad etish', xavfli: true }); if (sabab == null) return; }
     setBand(true);
     const r = await sbUstaQaror({ kompaniyaId, idlar, qaror: q, izoh: sabab, operationId: yangiOperationId() });
     setBand(false);

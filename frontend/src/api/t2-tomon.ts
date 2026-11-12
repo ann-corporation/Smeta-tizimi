@@ -83,7 +83,9 @@ export const resurslarOl = (k: number) => tomonOqi<TomonResurs[]>('resurslar', k
 export const taqdimlarOl = (k: number, p: { yonalish?: 'kelgan' | 'yuborilgan'; holat?: string; aloqaId?: number } = {}) =>
   tomonOqi<TaqdimQisqa[]>('taqdimlar', k, { yonalish: p.yonalish, holat: p.holat, aloqa_id: p.aloqaId });
 export const taqdimTafsilotOl = (k: number, taqdimId: number) => tomonOqi<TaqdimTafsilot>('taqdim', k, { taqdim_id: taqdimId });
-export const zakazchikObyektlarOl = (k: number) => tomonOqi<ZakazchikObyekt[]>('obyektlar', k);
+/** Standart — tez ro'yxat (ustamali podvalsiz). tafsil (bitta obyekt) — har aktning ustamali podvali bilan to'liq (faqat obyekt sahifasi). */
+export const zakazchikObyektlarOl = (k: number, tafsil?: { obyektId: number }) =>
+  tomonOqi<ZakazchikObyekt[]>('obyektlar', k, tafsil ? { obyekt_id: tafsil.obyektId, ustama: 1 } : {});
 export const kompaniyaQidir = (k: number, inn: string) => tomonOqi<{ topildi: boolean; kompaniya?: { id: number; nom: string; inn: string } }>('qidir', k, { inn });
 
 export const taklifYubor = (k: number, p: { qabulKompaniyaId?: number | null; qabulInn?: string; qabulNom?: string; taklifRol: string; qabulRol: string; turi?: string; nom?: string; izoh?: string }) =>

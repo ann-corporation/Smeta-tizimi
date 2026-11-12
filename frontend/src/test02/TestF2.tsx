@@ -23,6 +23,7 @@
  * Bu sahifa hozircha FAQAT O'QIYDI. F2 import yo'li keyingi qadam.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { matnSora } from '../umumiy/ui/Tasdiq';
 import {
   AlertTriangle, CheckCircle, RefreshCw, FileText, TrendingUp, Search,
   Plus, Ban, XCircle,
@@ -130,7 +131,7 @@ export default function TestF2() {
   };
 
   const bekorQil = async (a: Reestr) => {
-    const sabab = window.prompt('Bekor qilish sababi:');
+    const sabab = await matnSora({ matn: 'Bekor qilish sababi:', tasdiqMatni: 'Bekor qilish', xavfli: true });
     if (sabab == null) return;
     const r = await sbT2AktBekor(a.id, sabab, a.versiya);
     toast(r.ok ? 'Bekor qilindi' : (r.xabar || r.error || 'Bekor qilinmadi'),

@@ -1,4 +1,4 @@
-import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { matnSora, tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { useCallback, useEffect, useMemo, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { Ban, CheckCircle2, ChevronDown, ChevronRight, Cpu, MinusCircle, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Repeat2, RotateCcw, Save, Search, Trash2, X } from 'lucide-react';
 import { chiqarilganmi, chiqarishRuxsat, MEHNAT_ZAMENA_YOQ, mehnatResursmi } from '../../lib/resurs-amal';
@@ -178,7 +178,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
     } else toast('Bu resurs qo‘shilgan ish ichida — ishning o‘zini tahrirlang.', 'warn');
   };
   const ochir = async (q: JurnalQator) => {
-    const sabab = window.prompt(`«${q.nom}» o‘chirilsinmi? ${q.zamena ? 'Asl qator qaytadi.' : 'Ish va uning resurslari, fakti o‘chiriladi (arxivda qoladi).'}\nSabab (ixtiyoriy):`, '');
+    const sabab = await matnSora({ matn: `«${q.nom}» o‘chirilsinmi? ${q.zamena ? 'Asl qator qaytadi.' : 'Ish va uning resurslari, fakti o‘chiriladi (arxivda qoladi).'}`, yorliq: 'Sabab (ixtiyoriy):', tasdiqMatni: 'O‘chirish', xavfli: true });
     if (sabab === null) return;
     const r = await ishAbcOchir({ kompaniyaId, obyektId, qatorId: q.id, sabab: sabab || undefined, operationId: yangiOperationId() });
     if (!r.ok) { toast(abcXato(r), 'danger'); return; }
