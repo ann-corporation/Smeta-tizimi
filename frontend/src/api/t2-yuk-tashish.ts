@@ -19,11 +19,12 @@ export type YaqinYuk = {
 export type MenikiBron = {
   id: number; yuk_id: number; holat: string; qadam: YtQadam; narx_qqs_siz: number; yuk: string; a_nom: string | null; b_nom: string | null;
   a_lat: number | null; a_lng: number | null; b_lat: number | null; b_lng: number | null; yetkazildi_vaqt: string | null; baholangan: boolean;
+  haydovchi_id: number | null; haydovchi: string | null; mening: boolean; buyurtma_id: number | null;
 };
 export type EgaKuzat = {
   yuk_holat: string; buyurtma_id: number | null; qabul_so_rov: boolean;
-  bron: null | { id: number; holat: string; qadam: YtQadam; qabul_kod: string; tashuvchi: string; telefon: string | null; reyting: number | null; reyting_soni: number; qabul_nom: string | null; yetkazildi_vaqt: string | null };
-  joy: null | { lat: number; lng: number; vaqt: string; soniya_oldin: number; iz: Array<[number, number, number]> };
+  bron: null | { id: number; holat: string; qadam: YtQadam; qabul_kod: string; tashuvchi: string; telefon: string | null; reyting: number | null; reyting_soni: number; qabul_nom: string | null; yetkazildi_vaqt: string | null; haydovchi?: string | null };
+  joy: null | { lat: number; lng: number; vaqt: string; soniya_oldin: number; iz: Array<[number, number, number]>; arxivlandi?: boolean; iz_km?: number | null; iz_daqiqa?: number | null };
 };
 
 async function chaqir<T>(amal: string, body: Record<string, unknown>): Promise<YtNatija<T>> {
@@ -67,9 +68,17 @@ export async function ytFaylYukla(blob: Blob): Promise<{ ok: true; r2_kalit: str
   } catch { return { ok: false, code: 'NETWORK' }; }
 }
 
+export type ParkHaydovchi = { foydalanuvchi_id: number; ism: string; holat: string };
+export const ytPark = () => chaqir<{ tashuvchi_id: number; tur: 'yakka' | 'firma'; haydovchilar: ParkHaydovchi[]; mashinalar: MashinaQator[] }>('park', { data: {} });
+export const ytHaydovchiQosh = (login: string) => yoz<{ haydovchi_id: number }>('haydovchi_qosh', { login });
+export const ytTayinla = (bronId: number, haydovchiId: number, mashinaId?: number) => yoz<{ ok: true }>('tayinla', { bron_id: bronId, haydovchi_id: haydovchiId, ...(mashinaId != null ? { mashina_id: mashinaId } : {}) });
+export type BuyurtmaYuk = { buyurtma_id: number; yuk_id: number; holat: string; qabul_so_rov: boolean };
+export const ytBuyurtmaYuklar = (kompaniyaId: number, ids: number[]) => chaqir<{ yuklar: BuyurtmaYuk[] }>('buyurtma_yuklar', { kompaniya_id: kompaniyaId, data: { ids } });
+
 export const YT_XATO: Readonly<Record<string, string>> = {
   NETWORK: 'Tarmoq xatosi. Qayta urining.', AUTH_REQUIRED: 'Tizimga qayta kiring.', PERMISSION_DENIED: 'Ruxsat yo‘q.', SERVER_YANGILANMAGAN: 'Server hali yangilanmagan.',
   YB_TASHUVCHI_YOQ: 'Avval haydovchi profilini yarating.', JOY_KERAK: 'Joylashuvni yoqing.', REJIM_TAKLIF: 'Bu yuk uchun narx taklif qilinadi.', REJIM_QATIY: 'Bu yuk qat‘iy narxda.',
   HOLAT: 'Yuk endi band yoki holati o‘zgargan.', QADAM_TARTIB: 'Qadam tartibi buzildi.', DALIL_KERAK: 'Avval foto qo‘shing.', QABUL_NOM_KERAK: 'Qabul qiluvchi nomini kiriting.',
-  BRON_TOPILMADI: 'Reys topilmadi.', REYS_FAOL_EMAS: 'Reys faol emas.', DARAJA_YETARLI_EMAS: 'Mashina va sig‘imni kiriting.', MASHINA_KERAK: 'Avval mashina qo‘shing.', KOD_NOTOGRI: 'Kod noto‘g‘ri.',
+  BRON_TOPILMADI: 'Reys topilmadi.', REYS_FAOL_EMAS: 'Reys faol emas.', DARAJA_YETARLI_EMAS: 'Mashina va sig‘imni kiriting.', MASHINA_KERAK: 'Avval mashina qo‘shing.', KOD_NOTOGRI: 'Kod noto‘g‘ri.', OZ_YUKI: 'O‘z yukingizni qabul qila olmaysiz: yukni boshqa kompaniya yoki boshqa haydovchi qabul qiladi.',
+  FAQAT_FIRMA: 'Haydovchi qo‘shish faqat firma profili uchun.', FIRMA_AZOSI_EMAS: 'Bu foydalanuvchi firma a‘zosi emas.', FOYDALANUVCHI_TOPILMADI: 'Foydalanuvchi topilmadi.', HAYDOVCHI_FIRMANIKI_EMAS: 'Bu haydovchi firmangizda emas.',
 };

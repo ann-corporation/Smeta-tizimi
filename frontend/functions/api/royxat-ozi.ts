@@ -3,8 +3,8 @@
  * demoda sinab ko'ra olishi kerak").
  *
  * Login'dan OLDIN chaqiriladigan ikkinchi ochiq nuqta — shuning uchun JUDA TOR:
- *   • bitta RPC (`t2_ozi_royxat_v1`): foydalanuvchi (bcrypt parol) + o'z kompaniyasi (boss) + bepul tarif
- *     tokenlari + (egasi tanlagan bo'lsa) demo obyekt nusxasi — bitta tranzaksiyada;
+ *   • bitta RPC (`t2_ozi_royxat_v1`): foydalanuvchi (bcrypt parol; a'zoliksiz — kompaniya/tarif YO'Q, 20261111460000 «faqat so'rov orqali»)
+ *     (haqiqat: 20261111460000 dan beri yangi hisobga kompaniya, tarif tokenlari va demo obyekt BERILMAYDI) — bitta tranzaksiyada;
  *   • qurilma (IP xeshi) bo'yicha sutkasiga 5 ta (RPC ichida);
  *   • sessiya BU YERDA BERILMAYDI — klient keyin odatdagi `/api/kirish` dan o'tadi (parol bazadagi xesh bilan
  *     tekshiriladi), ya'ni yangi auth yo'li ochilmaydi.

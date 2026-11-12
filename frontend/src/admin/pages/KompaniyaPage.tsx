@@ -35,6 +35,8 @@ import { PERMISSION_LABELS, ROLE_LABELS } from '../../lib/company-authorization/
 import { MATRITSA_ROLLAR, RUXSAT_GURUH_NOMI, rolBor, rolSanoq, ruxsatMatritsa, ruxsatTuri } from '../../lib/kompaniya-korinish';
 import { MemberPermissionEditor } from '../components/MemberPermissionEditor';
 import { TaklifHavolalari } from '../components/TaklifHavolalari';
+import { OdamTakliflari } from '../components/OdamTakliflari';
+import { KompaniyaOching } from '../components/KompaniyaOching';
 import { XizmatTakliflari } from '../components/XizmatTakliflari';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
@@ -593,7 +595,7 @@ function ControlCenterTabs({ kompaniyaId, kompaniyaNom, isDirector }: { kompaniy
       </div>
       <div role="tabpanel" className="mt-3 flex flex-col gap-3">
         {tab === 'profil' && <><ProfilTab kompaniyaId={kompaniyaId} isDirector={isDirector} /><KompaniyaLogoYuklash kompaniyaId={kompaniyaId} isDirector={isDirector} /></>}
-        {tab === 'azolar' && <><AzolarBoshqaruv kompaniyaId={kompaniyaId} kompaniyaNom={kompaniyaNom} isDirector={isDirector} /><TaklifHavolalari kompaniyaId={kompaniyaId} isDirector={isDirector} /><XizmatTakliflari kompaniyaId={kompaniyaId} isDirector={isDirector} /></>}
+        {tab === 'azolar' && <><AzolarBoshqaruv kompaniyaId={kompaniyaId} kompaniyaNom={kompaniyaNom} isDirector={isDirector} /><OdamTakliflari kompaniyaId={kompaniyaId} isDirector={isDirector} /><TaklifHavolalari kompaniyaId={kompaniyaId} isDirector={isDirector} /><XizmatTakliflari kompaniyaId={kompaniyaId} isDirector={isDirector} /></>}
         {tab === 'rollar' && <RollarTab kompaniyaId={kompaniyaId} isDirector={isDirector} />}
         {tab === 'modullar' && <ModullarTab kompaniyaId={kompaniyaId} isDirector={isDirector} />}
         {tab === 'loyiha' && <LoyihaObyektTab />}
@@ -671,9 +673,7 @@ export default function KompaniyaPage() {
           </div>
         </section>
 
-        {men.onboarding_kerak && (
-          <p className="fz-note fz-note--warn"><AlertTriangle aria-hidden="true" />{t('Siz hali hech qaysi kompaniyaga a‘zo emassiz. Yangi kompaniya oching yoki direktordan sizni qo‘shishini so‘rang.')}</p>
-        )}
+        {men.onboarding_kerak && !menSuperadmin && <KompaniyaOching />}
 
         <section className="fz-card" aria-label={t('A‘zoliklarim')}>
           <div className="fz-card__head"><h2 className="fz-card__title">{t('A‘zoliklarim')}</h2></div>
@@ -694,7 +694,7 @@ export default function KompaniyaPage() {
         <section className="fz-card" aria-label={t('Yangi kompaniya')}>
           <div className="fz-card__head">
             <div><h2 className="fz-card__title flex items-center gap-2"><Building2 size={15} /> {menSuperadmin ? t('Yangi kompaniya ochish') : t('Yangi kompaniya — so‘rov yuborish')}</h2>
-              {!menSuperadmin && <p className="fz-card__sub">{t('Yangi kompaniyani to‘g‘ridan-to‘g‘ri ochib bo‘lmaydi — so‘rovingiz platforma administratoriga yuboriladi va tasdiqlangandan keyin siz o‘sha kompaniyaning direktori bo‘lasiz.')}</p>}</div>
+              {!menSuperadmin && <p className="fz-card__sub">{t('Birinchi kompaniyangizni darhol o‘zingiz ochasiz. Qo‘shimcha kompaniya uchun so‘rov (STIR bilan) platforma administratoriga yuboriladi; tasdiqlangach siz uning direktori bo‘lasiz.')}</p>}</div>
           </div>
           <div className="fz-card__body flex flex-col gap-3">
             <div className="grid gap-3 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">

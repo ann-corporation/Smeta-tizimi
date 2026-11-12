@@ -4,7 +4,7 @@
  * GET  → { ok, clientId } — sahifa Google tugmasini chizishi uchun (Client ID maxfiy emas; env: GOOGLE_CLIENT_ID).
  * POST { credential } → Google ID tokeni (JWT, RS256) SHU YERDA tekshiriladi:
  *   imzo (Google JWKS), aud = GOOGLE_CLIENT_ID, iss = accounts.google.com, exp, email_verified.
- * So'ng `t2_google_kirish_v1` (mavjud hisob yoki yangi: kompaniya boss + bepul tokenlar) va odatdagi
+ * So'ng `t2_google_kirish_v1` (mavjud hisob yoki yangi: faqat shaxsiy hisob, a'zoliksiz — 20261111460000) va odatdagi
  * `t2_kirish_royxatga_ol` → /api/kirish bilan bir xil imzolangan sessiya cookie.
  */
 import { imzola, SESSIYA_MUDDAT_MS, type Rol } from '../_shared/auth';

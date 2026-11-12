@@ -10,8 +10,9 @@
 import {
   type TgEnv, type TgTil, fonda, miniAppTugma, saytUrl, tgRpc, tgT, tilAniqla, ulashKodXesh, ulashKodYaroqli, webhookSirTekshir, xabarYubor,
 } from '../../_shared/telegram';
+import { NONCE_PREFIKS, kalitYaroqli, nonceYaroqli, xesh, yoqilgan } from '../../_shared/kirish-emailsiz';
 
-type Xabar = { message_id?: number; text?: string; chat?: { id?: number; type?: string }; from?: { id?: number; is_bot?: boolean; language_code?: string } };
+type Xabar = { message_id?: number; text?: string; contact?: { phone_number?: string; user_id?: number }; chat?: { id?: number; type?: string }; from?: { id?: number; is_bot?: boolean; language_code?: string } };
 export type Update = { update_id?: number; message?: Xabar; edited_message?: Xabar; callback_query?: { id?: string; from?: { id?: number; language_code?: string } } };
 
 const ROL_NOMI: Record<string, string> = {
@@ -51,6 +52,34 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
   const chatId = msg.chat.id as number;
   const til = tilAniqla(msg.from?.language_code);
   const b = buyruqAjrat(String(msg.text || ''));
+
+  /* Emailsiz kirish (20261217200000): telefonni Telegram kontakti bilan tasdiqlash. Faqat shu oqim — hisob/sessiya bu yerda
+     BERILMAYDI (brauzer nonce + o'z siri bilan /api/kirish-telegram dan oladi). contact.user_id == from.id SQL da ham tekshiriladi. */
+  if (msg.contact) {
+    const k = msg.contact;
+    const r = await tgRpc<{ ok?: boolean; code?: string }>(env, 't2_tg_kirish_kontakt_v1', {
+      p_telegram_user_id: tgId, p_contact_user_id: Number.isSafeInteger(k.user_id) ? k.user_id : null,
+      p_telefon: String(k.phone_number || '').slice(0, 30), p_chat_id: chatId,
+    });
+    const KONTAKT_XATO: Record<string, string> = {
+      KONTAKT_BOSHQANIKI: 'Faqat o‘zingizning raqamingizni yuboring (pastdagi tugma orqali). Boshqa odamning kontakti qabul qilinmaydi.',
+      TELEFON_NOTOGRI: 'Hozircha faqat O‘zbekiston (+998) raqamlari qabul qilinadi. Saytdan qaytadan boshlang.',
+    };
+    await xabarYubor(env, chatId, tgT(r?.ok ? 'Raqam tasdiqlandi. Saytga qayting — kirish avtomatik tugaydi.' : (KONTAKT_XATO[r?.code || ''] ?? 'So‘rov topilmadi yoki muddati tugagan (5 daqiqa). Saytdan qaytadan boshlang.'), til),
+      { reply_markup: { remove_keyboard: true } });
+    return r?.ok ? 'kontakt_ok' : 'kontakt_rad:' + (r?.code || 'xato');
+  }
+  if (b?.buyruq === 'start' && b.arg.startsWith(NONCE_PREFIKS)) {
+    const kalit = String(env.SESSIYA_KALIT || '');
+    if (!yoqilgan((env as { KIRISH_TELEGRAM_YOQILGAN?: string }).KIRISH_TELEGRAM_YOQILGAN) || !kalitYaroqli(kalit)) { await xabarYubor(env, chatId, tgT('Telegram orqali kirish hozircha yoqilmagan.', til)); return 'kirish_yoqilmagan'; }
+    const r = nonceYaroqli(b.arg) ? await tgRpc<{ ok?: boolean; code?: string; belgi?: string }>(env, 't2_tg_kirish_start_v1', {
+      p_nonce_xesh: await xesh('tg-nonce', b.arg, kalit), p_telegram_user_id: tgId, p_chat_id: chatId, p_til: til,
+    }) : null;
+    if (!r?.ok) { await xabarYubor(env, chatId, tgT('So‘rov topilmadi yoki muddati tugagan (5 daqiqa). Saytdan qaytadan boshlang.', til)); return 'kirish_rad'; }
+    await xabarYubor(env, chatId, tgT('Saytdagi kirish so‘rovi. Moslik raqami: {belgi}. Saytda ham aynan shu raqam ko‘rinib tursa, pastdagi tugma orqali O‘ZINGIZNING telefon raqamingizni yuboring. Ko‘rinmasa yoki bu so‘rovni siz boshlamagan bo‘lsangiz — hech narsa yubormang.', til, { belgi: String(r.belgi || '') }),
+      { reply_markup: { keyboard: [[{ text: tgT('Raqamimni yuborish', til), request_contact: true }]], resize_keyboard: true, one_time_keyboard: true } });
+    return 'kirish_start';
+  }
 
   if (b?.buyruq === 'start' && b.arg) {
     if (!ulashKodYaroqli(b.arg)) { await xabarYubor(env, chatId, tgT('Havola yaroqsiz. Saytdan yangi havola oling.', til)); return 'kod_format'; }

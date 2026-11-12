@@ -22,6 +22,7 @@ export interface Env {
   /** Ixtiyoriy var: sovutish uchun snapshot yoshi (kun, standart 2) va partiya (standart 200). */
   SNAPSHOT_SOVUT_KUN?: string;
   SNAPSHOT_SOVUT_LIMIT?: string;
+  SNAPSHOT_SOVUT_SONGGI?: string;
   /** Ixtiyoriy sirlar: «Google bilan kirish» (OAuth 2.0 code + PKCE). Ikkalasi ham bo'lsagina tugma ko'rinadi. Faqat nomlar — qiymat repoda yo'q. */
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
