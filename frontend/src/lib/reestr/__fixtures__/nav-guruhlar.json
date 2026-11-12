@@ -439,6 +439,22 @@
             "qoshimcha": true
           }
         ]
+      },
+      {
+        "nom": "Solishtiruv (farqlar)",
+        "ikonka": "ShieldCheck",
+        "sahifalar": [
+          {
+            "yol": "/admin/solishtiruv",
+            "ilova": "moliya",
+            "nom": "Solishtiruv (qayerda farq bor)",
+            "ruxsat": [
+              "control.company.read",
+              "financial.write"
+            ],
+            "modul": "module.erp"
+          }
+        ]
       }
     ]
   },

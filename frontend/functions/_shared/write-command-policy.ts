@@ -239,6 +239,8 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   yb_yuk_saqla_v1: 'procurement.write', yb_yuk_elon_v1: 'procurement.write', yb_yuk_bekor_v1: 'procurement.write', yb_yuk_baho_v1: 'procurement.write', yb_yuk_nizo_v1: 'procurement.write',
   yb_yuk_javob_v1: 'procurement.approve', yb_yuk_tasdiq_v1: 'procurement.approve',
   moliya_qolda_yoz_v1: 'financial.write',
+  solishtiruv_tushuntir_v1: 'financial.write',
+  solishtiruv_yangila_v1: 'financial.write',
   fakt_yoz_v2: 'fakt.write',
   /* Usta «Bugun»: qoralama/zayavka — self.work.write (RPC ham tekshiradi); qaror — fakt.write. */
   usta_fakt_qoralama_v1: 'self.work.write',

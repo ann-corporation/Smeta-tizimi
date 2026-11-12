@@ -59,7 +59,7 @@ export const AMAL_ILOVA: Readonly<Record<string, IlovaKod>> = {
   tolov_yoz: 'moliya', tolov_tahrir: 'moliya', tolov_ochir: 'moliya', tolov_taqsimot_saqla_v1: 'moliya',
   xarajat_yoz: 'moliya', xarajat_tahrir: 'moliya', xarajat_ochir: 'moliya', xarajat_kirit_v1: 'moliya', xarajat_bekor_v1: 'moliya',
   qarzdorlik_saqla_v1: 'moliya', qarzdorlik_import_v1: 'moliya', sverka_yozuv_v1: 'moliya', sverka_import_v1: 'moliya',
-  moliya_qolda_yoz_v1: 'moliya', faktura_yoz: 'moliya',
+  moliya_qolda_yoz_v1: 'moliya', solishtiruv_tushuntir_v1: 'moliya', solishtiruv_yangila_v1: 'moliya', faktura_yoz: 'moliya',
   // Xarid va tender
   birja_rfq_yarat: 'xarid', birja_taklif_ber: 'xarid',
   // Logistika va ombor
