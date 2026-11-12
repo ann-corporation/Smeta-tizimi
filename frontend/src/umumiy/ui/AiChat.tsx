@@ -6,7 +6,9 @@ import { kasbSavolOqim, tizimYordamSavol, type KasbIshchi, type KasbYakun, type 
 import { jarvisKichikGap } from '../../lib/jarvis/intent';
 import { katalogKonteksti, narxSavolimi, vaqtBilan, type KatalogKontekst } from '../../lib/jarvis/katalog-kontekst';
 import { t } from '../../i18n/til';
-import { niyatAniqla } from '../../lib/yordamchi/niyat';
+import { niyatAniqla, type Niyat } from '../../lib/yordamchi/niyat';
+import { davomBekorMi } from '../../lib/yordamchi/vosita/ishla';
+import type { Davom, Variant } from '../../lib/yordamchi/vosita/tur';
 import { OVOZ_TILLAR, ovozBoshla, ovozQollanadimi, type OvozTil } from '../../lib/ai-yordamchi/ovoz';
 import { yordamchiIshla, type IshlovNatija, type IshlovTaklif, type YordamchiUlanish } from './yordamchi/ishlov';
 import { YordamchiTaklif } from './yordamchi/YordamchiTaklif';
@@ -20,7 +22,8 @@ import { studioKontekstObuna, studioKontekstOl, studioKontekstScope } from '../.
 
 type Xabar = { id: string; rol: 'user' | 'ai'; matn: string; yakun?: KasbYakun; qadamlar?: Qadam[]; jonli?: boolean; xato?: boolean; sahifalar?: SahifaIshora[]; yordam?: boolean;
   /** Yagona yordamchi (Jarvis) javobi: navigatsiya/o‘qish/taklif kartasi. */
-  jarvis?: boolean; taklif?: IshlovTaklif; obyektTanla?: ObyektQisqa[]; kutadi?: string };
+  jarvis?: boolean; taklif?: IshlovTaklif; obyektTanla?: ObyektQisqa[]; kutadi?: string;
+  /** Aniqlashtiruvchi savol variantlari (bosilsa shu matn javob sifatida yuboriladi). */ tanlov?: Variant[] };
 /** Istalgan joydan chatni tayyor savol bilan ochish: AiHelper `ai:ochish` hodisasini (detail: { savol }) eshitadi. */
 export type TayyorSavol = { id: number; matn: string };
 
@@ -73,10 +76,12 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const xabarlarRef = useRef<Xabar[]>([]); xabarlarRef.current = xabarlar;
   /** Obyekt ma'lumoti yuklanishini kutayotgan buyruq (obyekt tanlangach avtomatik davom etadi). */
   const kutish = useRef<{ id: string; matn: string; obyektId: number } | null>(null);
+  /** Vosita aniqlashtiruvchi savoli: keyingi xabar shunga javob (yangi suhbat/kompaniya almashsa tozalanadi). */
+  const davomRef = useRef<Davom | null>(null);
 
   /* Yagona yordamchi: suhbat tarixi seans davomida saqlanadi (sahifa almashsa ham, oyna yopilsa ham); kompaniya bo'yicha alohida. */
   const tarixKalit = yordamchi ? `jarvis-chat:${kompaniyaId ?? 0}` : null;
-  useEffect(() => { setXabarlar(tarixKalit ? tarixOqi(tarixKalit) : []); setMatn(''); setBand(false); busy.current = false; abort.current?.abort();
+  useEffect(() => { setXabarlar(tarixKalit ? tarixOqi(tarixKalit) : []); setMatn(''); setBand(false); busy.current = false; davomRef.current = null; abort.current?.abort();
     return () => { abort.current?.abort(); };
   }, [scope]);
   useEffect(() => { if (tarixKalit) tarixYoz(tarixKalit, xabarlar); }, [xabarlar, tarixKalit]);
@@ -107,7 +112,8 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   /** Yagona yordamchi natijasini xabarga yozadi; navigatsiya — sahifani ochadi (yozuv emas). */
   const yordamchiNatijasi = (id: string, r: IshlovNatija) => {
     if (r.tur === 'obyektTanla') { xabarYangila(id + 'a', (x) => ({ ...x, jonli: false, matn: r.matn, obyektTanla: r.nomzodlar, kutadi: x.kutadi })); return; }
-    if (r.tur === 'taklif') { xabarYangila(id + 'a', (x) => ({ ...x, jonli: false, matn: r.matn, taklif: r.taklif, sahifalar: r.havolalar })); return; }
+    if (r.tur === 'taklif') { davomRef.current = null; xabarYangila(id + 'a', (x) => ({ ...x, jonli: false, matn: r.matn, taklif: r.taklif, sahifalar: r.havolalar })); return; }
+    if (r.tur === 'savol') { davomRef.current = r.davom; xabarYangila(id + 'a', (x) => ({ ...x, jonli: false, matn: r.matn, tanlov: r.variantlar })); return; }
     if (r.tur !== 'javob') return;
     xabarYangila(id + 'a', (x) => ({ ...x, jonli: false, matn: r.matn, xato: r.xato, sahifalar: r.havolalar }));
     if (r.ochish) { navigate(r.ochish); toast(t('Ochildi'), 'ok'); onOtish?.(); }
@@ -125,7 +131,9 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     /* YAGONA YORDAMCHI (Jarvis) qatlami: navigatsiya, o'qish, yozuv taklifi — bepul va bir zumda; hal qilmasa mavjud oqim davom etadi. */
     const ya = yaRef.current;
     if (ya && ya.sahifalar.length && !jarvisKichikGap(s)) {
-      const n = niyatAniqla(s, { sahifalar: ya.sahifalar, obyektlar: ya.obyektlar, joriyObyekt: ya.joriyObyekt, sahifaAmallar: ya.sahifaAmallar });
+      const davom = davomRef.current; davomRef.current = null;
+      if (davom && davomBekorMi(s)) { setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', jarvis: true, matn: t('Bekor qildim — hech narsa yozilmadi.') }]); setMatn(''); return; }
+      const n: Niyat = davom ? { tur: 'vosita', id: davom.id, davom } : niyatAniqla(s, { sahifalar: ya.sahifalar, obyektlar: ya.obyektlar, joriyObyekt: ya.joriyObyekt, sahifaAmallar: ya.sahifaAmallar });
       const faqatNav = n.tur === 'yordam' || n.tur === 'kim' || n.tur === 'dars' || n.tur === 'ruxsatYoq' || n.tur === 'sahifaTanla' || n.tur === 'navigatsiya' || n.tur === 'sahifaAmal';
       const mahalliy = (n.tur === 'navigatsiya' ? n.aniqOchish : n.tur !== 'nomalum') && (kompaniyaId != null || faqatNav);
       if (n.tur === 'navigatsiya' && !n.aniqOchish) qoshHavola = [{ yol: n.sahifa.url, nom: n.sahifa.nom }];
@@ -137,7 +145,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
         let r: IshlovNatija;
         try {
           r = await yordamchiIshla(n, s, {
-            kompaniyaId, sahifalar: ya.sahifalar, motor: ya.motor, tarix: tarixOl(), hujjat: ya.hujjat ?? undefined, sahifaAmalBajar: ya.sahifaAmalBajar, kim: ya.kim,
+            kompaniyaId, sahifalar: ya.sahifalar, motor: ya.motor, tarix: tarixOl(), hujjat: ya.hujjat ?? undefined, sahifaAmalBajar: ya.sahifaAmalBajar, kim: ya.kim, vosita: ya.vosita,
             qadam: (q) => { if (gen.current === boshlangich) xabarYangila(id + 'a', (x) => ({ ...x, qadamlar: [...(x.qadamlar ?? []), { ms: 0, belgi: q.holat === 'xato' ? '✗' : '⏳', matn: q.matn }] })); },
             tirikmi: () => gen.current === boshlangich && !ctrl.signal.aborted,
           });
@@ -285,6 +293,8 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
               <OtishTugmalari royxat={m.sahifalar ?? m.yakun?.sahifalar} ochish={ochish} />
               {m.obyektTanla?.length ? <div className="mt-2 flex flex-wrap gap-1.5" data-testid="yordamchi-obyekt-tanla">{m.obyektTanla.map((o) => (
                 <button key={o.id} type="button" onClick={() => void yubor(`${o.nom} ${m.kutadi ?? ''}`)} className="rounded-full border border-accent/50 px-2.5 py-1 text-xs text-accent hover:bg-accent/10">{o.nom}</button>))}</div> : null}
+              {m.tanlov?.length ? <div className="mt-2 flex flex-wrap gap-1.5" data-testid="yordamchi-tanlov">{m.tanlov.map((v) => (
+                <button key={v.matn} type="button" onClick={() => void yubor(v.matn)} className="rounded-full border border-accent/50 px-2.5 py-1 text-xs text-accent hover:bg-accent/10">{v.nom}</button>))}</div> : null}
               {m.taklif && <YordamchiTaklif taklif={m.taklif} onTugadi={(natija) => { if (natija.length) setXabarlar((p) => [...p, { id: `${Date.now()}r`, rol: 'ai', jarvis: true, matn: natija.join('\n') }]); }} />}
               {kompaniyaId != null && m.yakun?.harakatlar?.map((h) => <AiHarakatKarta key={h.id} h={h} kompaniyaId={kompaniyaId} />)}
               {kompaniyaId != null && m.rol === 'ai' && m.yakun?.ok && !m.yakun.rad && m.yakun.model !== 'local' && <AiBaho kompaniyaId={kompaniyaId} profil={m.yakun.kasb?.profil} sahifa={sahifa} />}
