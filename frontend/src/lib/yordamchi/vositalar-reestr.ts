@@ -51,7 +51,12 @@ export const STATIK_VOSITALAR: readonly YordamchiVosita[] = [
   { id: 'oqish.mening_oyligim', tur: 'navigatsiya', nom: 'Mening oyligim va KPI: ish haqi, naryad (donabay), ushlanmalar, KPI ko‘rsatkichlari manbasi bilan', misol: ['mening oyligim', 'mening kpi', 'моя зарплата', 'my salary'], tasdiq: 'yoq', manba: '/admin/hr?tab=men -> t2_hr_men_v1 (faqat o‘z qatori)' },
   { id: 'oqish.foyda_zarar', tur: 'navigatsiya', nom: 'Foyda / zarar: loyiha, shartnoma, obyekt va kompaniya plyusdami yoki minusdami (bajarilgan ish − xarajat; kiritilmagan xarajat «—»)', misol: ['loyiha plyusdami minusdami', 'foyda zarar', 'прибыль убыток'], tasdiq: 'yoq', manba: '/admin/moliya?tab=foyda -> rahbar_panel_v1 + t2_xarajat + t2_tolov (yangi RPC yo‘q; hisob lib/foyda-zarar -> hisob-yadro)' },
   { id: 'qoralama.aosr', tur: 'navigatsiya', nom: 'АОСР qoralamasi: АОСР sahifasini ochadi', misol: ['АОСР tayyorla'], tasdiq: 'yoq', manba: '/admin/aosr — tasdiqlash faqat sahifada, qo‘lda' },
-];
+  // Buyurtmachi («Bugun»): hammasi mavjud /api/tomon yo'llari orqali; pul amallari — ikkinchi tasdiq bilan.
+  { id: 'oqish.buyurtmachi_bugun', tur: 'oqish', nom: 'Buyurtmachi portfeli: sizdan kutilayotganlar, obyektlar bo‘yicha shartnoma, smeta, fakt, F2, Forma-3, to‘langan, qarz', misol: ['qaror kutayotgan hujjatlarim', 'qaysi obyektda qarz bor?'], tasdiq: 'yoq', manba: '/api/tomon?bolim=bugun -> t2_zakazchik_bugun_v1 (grant bo‘yicha qirqilgan; hisob yadrosi paketi)' },
+  { id: 'qoralama.predpisaniya', tur: 'navigatsiya', nom: 'Predpisaniya / remark berish: murojaat shaklini turi oldindan tanlab ochadi (muddat va foto bilan)', misol: ['pudratchiga predpisaniya yoz'], tasdiq: 'yoq', manba: '/admin/murojaatlar?yangi=predpisaniya — yuborish faqat sahifada, qo‘lda' },
+  { id: 'yozuv.tolov_xabar', tur: 'yozuv', nom: 'Forma-3 bo‘yicha to‘lov xabari (buyurtmachi, QQS bilan); pudratchi tasdiqlamaguncha qarzdan ayirilmaydi', misol: ['Fast Food uchun 50 mln to‘lov xabari yoz'], tasdiq: 'kartaPul', manba: 'tomonYoz(tolov_xabar) -> /api/tomon -> t2_zakazchik_tolov_yoz_v1 (operation_id bilan)' },
+  { id: 'yozuv.tolov_qaror', tur: 'yozuv', nom: 'Kelgan to‘lov xabarini tasdiqlash yoki sabab bilan rad etish (pudratchi rahbari)', misol: ['to‘lov xabarini tasdiqla'], tasdiq: 'kartaPul', manba: 'tomonYoz(tolov_qaror) -> /api/tomon -> t2_tomon_tolov_qaror_v1' },
+  { id: 'qoralama.buyurtmachi_hisobot', tur: 'navigatsiya', nom: 'Buyurtmachi oylik hisoboti (Excel): Buyurtmachi kabineti sahifasini ochadi', misol: ['oylik hisobotni yukla'], tasdiq: 'yoq', manba: '/admin/zakazchik — yuklash tugmasi sahifada (token bilan)' },];
 
 const slug = (yol: string) => yol.replace(/^\/admin\//, '').replace(/[^a-z0-9]+/gi, '_');
 
