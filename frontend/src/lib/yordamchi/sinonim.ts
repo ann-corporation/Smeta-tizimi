@@ -30,7 +30,7 @@ export const SAHIFA_SINONIM: Readonly<Record<string, Sinonim>> = {
   '/admin/f2-tarix': { uz: ['f2', 'f2 tarixi', 'f2 royxati', 'f2 tasdiqlash'], ru: ['ф2', 'история ф2', 'список ф2'], en: ['f2', 'f2 history', 'f2 list'] },
   '/admin/f2-reestr': { uz: ['f2 reestri', 'f2 reestr'], ru: ['реестр ф2'], en: ['f2 registry'] },
   '/admin/nakopitelniy': { uz: ['nakopitelniy', 'f3', 'forma 3', 'schet faktura'], ru: ['накопительная', 'ф3', 'форма 3', 'счет фактура'], en: ['cumulative', 'f3', 'invoice'] },
-  '/admin/moliya': { uz: ['moliya', 'tolov', 'xarajat'], ru: ['финансы', 'оплата', 'расходы'], en: ['finance', 'payments', 'expenses'] },
+  '/admin/moliya': { uz: ['moliya', 'tolov', 'xarajat', 'foyda zarar', 'foyda va zarar', 'loyiha plyusdami minusdami', 'plyusdami minusdami'], ru: ['финансы', 'оплата', 'расходы', 'прибыль убыток', 'прибыль и убытки', 'проект в плюсе или в минусе'], en: ['finance', 'payments', 'expenses', 'profit loss', 'profit and loss', 'is the project profitable'] },
   '/admin/shartnoma-liniya': { uz: ['shartnomalar', 'shartnoma', 'tomonlar'], ru: ['договоры', 'договор', 'стороны'], en: ['contracts', 'contract', 'parties'] },
   '/admin/qarzdorlik': { uz: ['qarzdorlik', 'qarz', 'qarzlar'], ru: ['задолженность', 'долги', 'долг'], en: ['debts', 'debt', 'receivables'] },
   '/admin/buxgalteriya': { uz: ['buxgalteriya', 'provodka'], ru: ['бухгалтерия', 'проводки'], en: ['accounting', 'ledger'] },

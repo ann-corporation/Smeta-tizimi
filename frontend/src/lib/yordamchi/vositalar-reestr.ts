@@ -44,6 +44,7 @@ export const STATIK_VOSITALAR: readonly YordamchiVosita[] = [
   { id: 'yozuv.mualliflik_remark', tur: 'navigatsiya', nom: 'Savol (RFI) va mualliflik remarki: Murojaatlar sahifasini tur bilan ochadi', misol: ['loyihachiga savol yoz', 'mualliflik remarki'], tasdiq: 'yoq', manba: '/admin/murojaatlar?turi=savol|mualliflik_remark -> t2_tomon_murojaat_yarat_v1' },
   { id: 'qoralama.zayavka', tur: 'navigatsiya', nom: 'Zayavka yaratish: zayavka sahifasi yangi zayavka formasi ochiq holda keladi', misol: ['zayavka yarat', 'yangi zayavka'], tasdiq: 'yoq', manba: '/admin/zayavka?yarat=1&obyekt — yuborish (zayavka_yarat) faqat formada, qo‘lda' },
   { id: 'qoralama.yetkazuvchi', tur: 'navigatsiya', nom: 'Yetkazuvchi: bugun — kelgan so‘rovlar, buyurtmalar, transport', misol: ['yetkazuvchi bugun', 'menga kelgan so‘rovlar'], tasdiq: 'yoq', manba: '/admin/yetkazuvchi' },
+  { id: 'oqish.foyda_zarar', tur: 'navigatsiya', nom: 'Foyda / zarar: loyiha, shartnoma, obyekt va kompaniya plyusdami yoki minusdami (bajarilgan ish − xarajat; kiritilmagan xarajat «—»)', misol: ['loyiha plyusdami minusdami', 'foyda zarar', 'прибыль убыток'], tasdiq: 'yoq', manba: '/admin/moliya?tab=foyda -> rahbar_panel_v1 + t2_xarajat + t2_tolov (yangi RPC yo‘q; hisob lib/foyda-zarar -> hisob-yadro)' },
   { id: 'qoralama.aosr', tur: 'navigatsiya', nom: 'АОСР qoralamasi: АОСР sahifasini ochadi', misol: ['АОСР tayyorla'], tasdiq: 'yoq', manba: '/admin/aosr — tasdiqlash faqat sahifada, qo‘lda' },
 ];
 
