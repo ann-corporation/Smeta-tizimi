@@ -14,5 +14,9 @@
   "Yangi xotira": { "ru": "Новая запись памяти", "en": "New memory" },
   "Daraja": { "ru": "Уровень", "en": "Level" },
   "Eslab qol": { "ru": "Запомни", "en": "Remember" },
+  "Suhbatni yuklab bo‘lmadi": { "ru": "Не удалось загрузить диалог", "en": "Could not load the conversation" },
+  "Eski suhbat (qisqartma)": { "ru": "Старый диалог (кратко)", "en": "Old conversation (summary)" },
+  "F2 ni Excel ga yuklash (tanlangan akt)": { "ru": "Выгрузить Ф-2 в Excel (выбранный акт)", "en": "Download Form-2 as Excel (selected act)" },
+  "Token yechiladi (hujjat hajmiga qarab; aniq summa yuklashdan keyin ko‘rsatiladi); shu hujjatni qayta yuklash — bepul.": { "ru": "Списываются токены (по объёму документа; точная сумма показывается после выгрузки); повторная выгрузка этого же документа — бесплатно.", "en": "Tokens are charged (by document size; the exact amount is shown after download); re-downloading the same document is free." },
   "Oldingi suhbatlar": { "ru": "Прошлые диалоги", "en": "Previous conversations" }
 }

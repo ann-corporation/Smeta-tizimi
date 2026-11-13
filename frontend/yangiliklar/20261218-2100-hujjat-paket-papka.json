@@ -1,0 +1,10 @@
+{
+  "sana": "2026-12-18",
+  "sarlavha": "F2 paketi endi papkalarda alohida hujjatlar bo‘lib yuklanadi; hujjatlarda matn kichrayib ketmaydi",
+  "bandlar": [
+    "F2 portfelida «Yuklab olish» endi sukut bo‘yicha ZIP beradi: «01 Акты Ф-2» papkasida har akt alohida Excel fayl (obyekt bir nechta bo‘lsa — obyekt papkasida), «02 Свод Ф-2» papkasida svod, ildizda «Реестр пакета.xlsx» (har fayl: hujjat, obyekt, raqam, davr, summa). Eski «bitta Excel — ko‘p varaq» ham shakl tanlovida qoldi.",
+    "Uzun matn endi katakka sig‘dirilib kichraytirilmaydi: oddiy shriftda o‘raladi va qator balandligi matnga qarab o‘zi kengayadi. Sonlar o‘ralmaydi va kichraymaydi — kerak bo‘lsa ustun kengayadi.",
+    "«Тип», «Кат.», «КАЛИТ» kabi yashirin texnik ustunlar endi qatorni semirtirmaydi: qator balandligi faqat ko‘rinadigan ustunlardan hisoblanadi, oddiy «вода» resursi bir qatorli bo‘lib qoladi.",
+    "Chop etish: sahifa eniga sig‘ish, sarlavha qatorlari har sahifada takrorlanishi va yo‘nalish tizimdan chiqadigan hamma Excel hujjatda bir xil tekshiriladi."
+  ]
+}

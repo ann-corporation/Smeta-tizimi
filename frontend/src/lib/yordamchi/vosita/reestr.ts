@@ -213,6 +213,34 @@ const taqdimVosita: Vosita = {
   },
 };
 
+/* ───────────── SLICHITELNIY / TAYYORLIK, ZAMENA-QO'SHIMCHA KO'RSATMA ───────────── */
+
+const slichitelniyVosita: Vosita = {
+  id: 'slichitelniy', tur: 'oqish', pul: false, ruxsat: 'smeta.read', parametrlar: { obyekt: { tur: 'tanlov', majburiy: true, izoh: 'obyekt' } },
+  tavsif: 'Slichitelniy (smeta ↔ АОСР ↔ fakt) tayyorlik holati: qaysi ishlarga hujjat yetishmaydi. RPC t2_aosr_slichitelniy_v1 (#413) bo‘lsagina ishlaydi.',
+  mos: (t) => borMi(t, ['slichitelniy', 'сличительн', 'tayyorlik', 'готовност']) && borMi(t, ['korsat', 'holat', 'qanday', 'nima', 'ayt', 'qancha', 'покажи', 'статус', 'show', 'yetishmay', 'tekshir']),
+  ishla: async (c, slot) => {
+    const ob = obyektKerak(c, 'slichitelniy', slot); if (javobmi(ob)) return ob;
+    const r = await c.api.slichitelniy(ob.id);
+    if (!r) { c.api.friksiya('slichitelniy holati'); return { tur: 'javob', matn: '**Slichitelniy** hisobi hali tizimda ishga tushmagan — tez orada Jarvis shu yerning o‘zida ko‘rsatadi. Hozircha АОСР sahifasida «nima yetishmayapti» ni so‘rashingiz mumkin.', havolalar: c.sahifalar.filter((s) => s.yol.includes('aosr')).slice(0, 1).map((s) => ({ yol: s.yol, nom: s.nom })) }; }
+    return javob(`**${ob.nom}** — slichitelniy tayyorligi\n\n${r.matn}`);
+  },
+};
+
+/** Zamena / qo'shimcha ish: «smeta normasi avval» qoidasi tartibi (mavjud qator -> zamena -> oxirgi chora qo'shimcha). Asl smeta o'zgarmaydi; o'qish + yo'l-yo'riq. */
+const zamenaVosita: Vosita = {
+  id: 'zamena_korsatma', tur: 'oqish', pul: false, ruxsat: null, parametrlar: { ish: { tur: 'matn', majburiy: true, izoh: 'qaysi ish/resurs' } },
+  tavsif: 'Smetada yo‘q ish chiqdi: avval mavjud qator/norma qidiriladi, topilmasa zamena, oxirgi chora — qo‘shimcha ish (asl smeta o‘zgarmaydi).',
+  mos: (t) => borMi(t, ['zamena', 'замена', 'qoshimcha', 'дополнительн']) && borMi(t, ['ish', 'ishni', 'qator', 'kerak', 'chiqdi', 'qanday', 'qilay', 'как', 'нужн', 'taklif']) && !borMi(t, ['excel', 'eksport', 'yuklab', 'pdf']),
+  ishla: async (c, _slot, xom) => {
+    const ob = obyektKerak(c, 'zamena_korsatma', {}); if (javobmi(ob)) return ob;
+    const soz = xom.replace(/\b(zamena|qoshimcha|qo['‘’ʻ`]shimcha|ish|ishni|kerak|chiqdi|qilay|taklif)\b/giu, ' ').replace(/\s+/g, ' ').trim();
+    const topilgan = c.qidir && soz.length >= 3 ? await c.qidir(soz).catch(() => '') : '';
+    const fakt = c.sahifalar.filter((s) => s.yol === '/admin/fakt' || s.yol === '/admin/smeta-studio').slice(0, 2).map((s) => ({ yol: s.yol, nom: s.nom }));
+    return { tur: 'javob', matn: [`**${ob.nom}** — smetada yo‘q ish bo‘lsa tartib (smeta normasi avval):`, '1. Mavjud smeta qatori yoki normasini toping (pastda qidiruv natijasi).', '2. Mos kelmasa — zamena (Fakt sahifasida qator ustida «zamena»): asl qator o‘zgarmaydi, almashtirish alohida qatlamda.', '3. Oxirgi chora — bog‘liq qatordan keyin qo‘shimcha ish.', topilgan ? `\n**Mavjud qatorlar:**\n${topilgan}` : soz.length >= 3 ? '\nBu so‘z bo‘yicha mavjud qator topilmadi.' : ''].filter(Boolean).join('\n'), havolalar: fakt };
+  },
+};
+
 /* ───────────────────────────── XOTIRA ───────────────────────────── */
 
 const DARAJA_NOMI = { foydalanuvchi: 'Shaxsiy', kompaniya: 'Kompaniya', tizim: 'Tizim' } as const;
@@ -287,7 +315,7 @@ const yoqVosita: Vosita = {
   },
 };
 
-export const VOSITALAR: readonly Vosita[] = [xotiraKorsatVosita, xotiraYozVosita, xotiraUnutVosita, bugunVosita, solishtiruvVosita, f2Amal('tasdiq'), f2Amal('bekor'), xarajatVosita, tolovVosita, murojaatVosita, taqdimVosita, yoqVosita];
+export const VOSITALAR: readonly Vosita[] = [slichitelniyVosita, zamenaVosita, xotiraKorsatVosita, xotiraYozVosita, xotiraUnutVosita, bugunVosita, solishtiruvVosita, f2Amal('tasdiq'), f2Amal('bekor'), xarajatVosita, tolovVosita, murojaatVosita, taqdimVosita, yoqVosita];
 
 /** Amal reestri (#399) kelganda shu nuqtadan ulanadi: reestr yozuvidan Vosita hosil qilish (hozircha qo'lda ro'yxat). */
 export function reestrdanVosita(_yozuv: unknown): Vosita | null { return null; }
