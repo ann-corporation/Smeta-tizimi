@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Obyekt, qator, F2 va pereraschet o'qishlari. Hisob frontend sof mantig'idan (bolimSummalari, jurnalQur, pereraschetHisobla,
  * ustamaliHisobla) — UI ko'rsatadigan raqamlar bilan bir xil. Pul: NDS siz; ustamasiz + ustamali (NDS alohida).
  */
@@ -45,7 +45,8 @@ export const obyektHolat = tool({
     const ob = await obyektBormi(m, a.obyekt_id);
     const [rows, states] = await Promise.all([qatorlarOl(m, a.obyekt_id), holatlarOl(m, a.obyekt_id)]);
     const u = await ustamaOl(m, a.obyekt_id, mu.aktorId);
-    const sum = bolimSummalari(fe(rows), holatFe(states));
+    // Svod yaxlit bo'limlari (bronza VIP ART kabi) ustamasiz — aks holda F2 ustamali bo'lim jami server/imzolangan hujjatdan oshib ketadi.
+    const sum = bolimSummalari(fe(rows), holatFe(states), undefined, (u.svod ?? null) as Parameters<typeof bolimSummalari>[3]);
     const { bolimlar } = jurnalQur(fe(rows), holatFe(states));
     // Almashtirilgan (zamena qoplagan) summa — bo'limlar bo'yicha (bolimSummalari da yo'q ko'rsatkich).
     const byId = new Map(rows.map((r) => [r.id, r]));

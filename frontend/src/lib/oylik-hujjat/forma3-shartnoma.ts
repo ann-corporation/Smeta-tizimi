@@ -1,10 +1,11 @@
-/**
+﻿/**
  * Shartnoma darajasidagi Forma 3: manbalar yuklagichi. Har obyekt uchun obyekt-rejimdagi F3 bilan AYNAN bir xil yagona yo'llar:
  * nakopitelniyYukla (smeta + F2 modeli), nakopitelniyUstamaOl (O'Z nakrutka/podvali), sbT2F2TafsilotOl (tasdiqlangan F2 certified),
  * portfelObyektOl + oyAktlarBahosi (har akt O'Z F2 podvali bilan). Hisob/Excel — forma3-export.ts (`forma3ShartnomaHujjat`).
  * Biror obyekt o'qilmasa — butun hujjat yasalmaydi (sabab bilan): chala shartnoma F3 si jim chiqmaydi.
  */
 import { sbT2F2TafsilotOl } from '../../api/t2-narx';
+import type { SvodYaxlit } from '../svod-yaxlit';
 import { portfelObyektOl } from '../../api/f2-oylik-paket';
 import { ozgarishRoyxatOl } from '../../api/t2-document-control';
 import { oyAktlarBahosi } from '../f2-oylik-paket/portfel';
@@ -72,7 +73,7 @@ export async function forma3ShartnomaManbalari(p: {
         return { ok: false, xato: `${ob.nom}: F2 hujjatlarining o‘z podvali bo‘yicha oy summasi hisoblanmadi — F3 tuzilmadi. Qayta urinib ko‘ring.` };
       }
     }
-    const manba = f3AktlarniFiltrla({ nakopitelniy: [{ obyekt_id: ob.id, obyektNom: ob.nom, qatorlar: y.qatorlar }], f2Oylik, f2Hajm }, p.oy, p.tanlangan);
+    const manba = f3AktlarniFiltrla({ nakopitelniy: [{ obyekt_id: ob.id, obyektNom: ob.nom, qatorlar: y.qatorlar, svodYaxlit: (ustama.javob?.svod_yaxlit ?? null) as SvodYaxlit | null }], f2Oylik, f2Hajm }, p.oy, p.tanlangan);
     out.push({
       obyekt_id: ob.id, obyektNom: ob.nom, manba,
       nakrutka: ustama.koeffitsientlar as Partial<NakrutkaKoeffitsientlar> | null, nkManba: ustama.javob?.nk_manba ?? null, podval: ustama.podval,
