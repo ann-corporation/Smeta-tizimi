@@ -1,0 +1,10 @@
+{
+  "sana": "2026-12-18",
+  "sarlavha": "АОСР: zanjirli qoralama, «Pechat kitobi», hajm hisobi va laboratoriya ilovasi",
+  "bandlar": [
+    "АОСР sahifasida ishni belgilab «Zanjirli qoralama» ni bossangiz, smetadagi ish va resurslardan yashiriladigan bosqichlar (zamin → podgotovka → armatura → opalubka → beton → gidroizolyatsiya → qoplama asosi) qurilish tartibida taklif qilinadi: har bosqich uchun alohida qoralama, materiallari (beton sinfi, armatura Ø/klass) smeta resurslaridan. Smetada yo‘q bosqich yaratilmaydi. Raqam obyekt bo‘yicha oxirgi raqamdan davom etadi, o‘zingiz o‘zgartirasiz.",
+    "«Pechat kitobi» — butun obyekt aktlari bitta Excel faylda: har akt ШНК 3.01.01-22 Прил.6 shaklida alohida varaqda, o‘z ilovalari bilan. «Sanasiz chop» belgisida akt, boshlanish va tugash sanalari bo‘sh qoladi — sanani qo‘lda qo‘yasiz. 3-bo‘limda har material yonida sertifikat/pasport uchun joy chiqadi.",
+    "Har aktga ilova varaqlari: ijro hajm hisobi (ish, birlik, hajm formulasi, o‘lchamlar maydoni, fakt jurnali bo‘yicha hajm) va laboratoriya/sertifikat ro‘yxati (beton sinfi va hajmi bo‘yicha kubik seriyalari, armatura Ø/klass, material pasportlari). Beton, grunt zichligi, payvand ishlari uchun akt shaklida «Laboratoriyaga so‘rov» tugmasi chiqadi.",
+    "Tizim avtomatik yasagan qoralamalar (slichitelniy asosi) ro‘yxatda «avto-qoralama» belgisi bilan ajratiladi; ularni bitta tugma bilan bekor qilish mumkin (o‘chirilmaydi; yuborilgan va protokolli aktlarga tegilmaydi). Pechat kitobi va paketga kirmaydi."
+  ]
+}

@@ -16,9 +16,9 @@ import { downloadBlob } from '../lib/construction-document-control/export/downlo
  * Qiymat yo'q bo'lsa — bo'sh qoladi (o'ylab topilmaydi); Excel'da to'ldirish chizig'i.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { ClipboardList, Plus, Link2, Unlink, AlertTriangle, CheckCircle2, FileSpreadsheet, Save, FlaskConical, X, ShieldCheck, FileArchive } from 'lucide-react';
+import { BookOpen, Layers, ClipboardList, Plus, Link2, Unlink, AlertTriangle, CheckCircle2, FileSpreadsheet, Save, FlaskConical, X, ShieldCheck, FileArchive } from 'lucide-react';
 import { ArxivTugma } from '../components/arxiv/ArxivTugma';
-import { sbAosrCoverageOl, sbAosrBekor, sbAosrBogSaqla, sbAosrBogOl, sbQatorMetaOl, type AosrCoverage, type QatorMetaYozuv } from '../api/t2-aosr';
+import { sbAosrCoverageOl, sbAosrBekor, sbAosrBogSaqla, sbAosrBogOl, sbAosrBogHajmOl, sbQatorMetaOl, type AosrCoverage, type QatorMetaYozuv } from '../api/t2-aosr';
 import {
   sbAosrV2Ol, sbAosrYozV2, sbLabProtokollarOl, sbLabProtokolYoz, sbLabProtokolBekor, sbLabProtokolBogSaqla,
   sbKompaniyaLogoOl, SINOV_TURI_NOM, SINOV_NATIJA_NOM,
@@ -26,7 +26,10 @@ import {
 } from '../api/t2-ijro';
 import { sbKontragentlarOl, sbKontragentSaqla, type Kontragent } from '../api/t2-kontragent';
 import { sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt } from '../api/supabase';
-import { aosrExcel, aosrFaylNomi, aosrKomissiyaTartibi } from '../lib/aosr-export';
+import { aosrExcel, aosrKitobExcel, aosrKitobFaylNomi, aosrFaylNomi, aosrKomissiyaTartibi, type AosrKirish } from '../lib/aosr-export';
+import { hajmQatorlari, labIlovaQur, LAB_SOROV_TURI } from '../lib/aosr-ilova';
+import { avtoQoralamami, bekorQilsaBoladigan, keyingiAosrRaqam } from '../lib/aosr-zanjir';
+import { AosrZanjir } from './AosrZanjir';
 import { qoralamaTanlangandan } from '../lib/aosr-qoralama';
 import { aosrReestrXlsx, labReestrXlsx } from '../lib/ijro-reestr-export';
 import { toast } from '../umumiy/ui/Toast';
@@ -104,6 +107,12 @@ export default function TestAosr() {
   const [bog, setBog] = useState<Map<number, number[]>>(new Map());
   const [bekorKorsat, setBekorKorsat] = useState(false);
   const [paketBand, setPaketBand] = useState(false);
+  /** «Sanasiz chop etish» — akt/boshlanish/tugash sanalari bo'sh (egasi o'zi qo'yadi). */
+  const [sanasiz, setSanasiz] = useState(false);
+  /** Zanjirli qoralama paneli (belgilangan ishlardan bosqichlar zanjiri). */
+  const [zanjirOchiq, setZanjirOchiq] = useState(false);
+  /** Akt → qator → bog'langan hajm (ijro hajm hisobi ilovasi uchun). */
+  const [bogHajm, setBogHajm] = useState<Map<number, Map<number, number | null>>>(new Map());
   /** Reestr/paket sarlavhasidagi «Заказчик» — obyekt shartnomasidan (bo'sh qoldirilmasin). */
   const [zakazchikNomi, setZakazchikNomi] = useState<string | null>(null);
   useEffect(() => {
@@ -140,7 +149,7 @@ export default function TestAosr() {
       setAktlar(aq);
       setCoverage(c.ok ? c.qatorlar ?? [] : []);
       // Tartib uchun razdel ma'lumoti (olinmasa — faqat sana bo'yicha tartib).
-      void Promise.all([sbQatorMetaOl(obyektId), sbAosrBogOl(kompaniyaId, aq.map((x) => x.id))]).then(([m, b]) => { setQatorMeta(m); setBog(b); });
+      void Promise.all([sbQatorMetaOl(obyektId), sbAosrBogOl(kompaniyaId, aq.map((x) => x.id)), sbAosrBogHajmOl(kompaniyaId, aq.map((x) => x.id))]).then(([m, b, h]) => { setQatorMeta(m); setBog(b); setBogHajm(h); });
       setProtokollar(p.ok ? p.qatorlar ?? [] : []);
       void aosrSinovHolatiOl(kompaniyaId, obyektId).then((s) => setSinovHolat(new Map((s.ok ? s.natija : []).map((x) => [x.aosr_id, x] as const))));
       setBelgilangan(new Set());
@@ -182,10 +191,7 @@ export default function TestAosr() {
     const a = faolAktlar.find((x) => Array.isArray(x.komissiya) && x.komissiya.length);
     return a ? a.komissiya.map((k) => ({ ...k })) : aosrKomissiyaTartibi('subpudratchisiz', []).map((k) => ({ rol: String(k.rol) }));
   };
-  const keyingiRaqam = () => {
-    const sonlar = faolAktlar.map((a) => Number(String(a.raqam ?? '').replace(/\D+/g, ''))).filter((n) => Number.isFinite(n) && n > 0);
-    return String((sonlar.length ? Math.max(...sonlar) : 0) + 1);
-  };
+  const keyingiRaqam = () => String(keyingiAosrRaqam(aktlar));
 
   const yangiAkt = (tanlanganlardan: boolean) => {
     const q = tanlanganlardan ? coverage.filter((c) => belgilangan.has(c.qator_id)) : [];
@@ -218,7 +224,16 @@ export default function TestAosr() {
     yukla();
   };
 
-  const aktBaytlari = (a: AosrV2, logo: Awaited<ReturnType<typeof sbKompaniyaLogoOl>>) => aosrExcel({
+  /** Akt → eksport kirishi: blank maydonlari + ilovalar (ijro hajm hisobi, laboratoriya/sertifikat ro'yxati). */
+  const aktKirish = (a: AosrV2, logo: Awaited<ReturnType<typeof sbKompaniyaLogoOl>>): AosrKirish => {
+    const qIds = bog.get(a.id) ?? [];
+    const ishlar = qIds.map((id) => coverage.find((c) => c.qator_id === id)).filter((c): c is AosrCoverage => !!c);
+    const ilova = {
+      hajm: hajmQatorlari(ishlar, bogHajm.get(a.id) ?? null, ishlar.map((c) => c.qator_id)),
+      lab: labIlovaQur(a, ishlar),
+    };
+    return {
+    ilova,
     tur: a.tur, raqam: a.raqam, sana: a.sana, ishNomi: a.ish_nomi, obyektNomi: a.obyekt,
     ishTavsifi: a.ish_tavsifi, smoNomi: joriy?.nom ?? null, loyihaTashkiloti: a.loyiha_tashkiloti,
     loyihaHujjati: a.loyiha_hujjati, materiallar: a.materiallar, chetlanishlar: a.chetlanishlar,
@@ -228,7 +243,45 @@ export default function TestAosr() {
       raqam: p.raqam, sana: p.sana, laboratoriya: p.laboratoriya, sinovTuri: p.sinov_turi, natija: p.natija,
     })),
     logo: logo ? { base64: logo.data_b64, ext: logo.mime === 'image/png' ? 'png' : 'jpeg' } : null,
-  });
+    };
+  };
+  const aktBaytlari = (a: AosrV2, logo: Awaited<ReturnType<typeof sbKompaniyaLogoOl>>) => aosrExcel(aktKirish(a, logo), { sanasiz });
+
+  /** «Pechat kitobi»: hamma faol aktlar (razdel tartibida) bitta xlsx da — har akt alohida varaq + ilovalari. Avto-qoralamalar kirmaydi. */
+  const pechatKitobi = async () => {
+    if (!kompaniyaId || !obyektId) { toast(t('Kompaniyani tanlang'), 'warn'); return; }
+    const royxat = tartiblangan.filter((a) => a.holat !== 'bekor' && !avtoQoralamami(a));
+    if (!royxat.length) { toast(t('Kitob uchun akt yo‘q'), 'warn'); return; }
+    setPaketBand(true);
+    try {
+      const logo = await sbKompaniyaLogoOl(kompaniyaId);
+      const bytes = await aosrKitobExcel(royxat.map((a) => aktKirish(a, logo)), { sanasiz });
+      const obyektNomi = obyektlar.find((o) => o.id === obyektId)?.nom ?? 'Объект';
+      const tk = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'AOSR', sabab: `Печатная книга АОСР · ${obyektNomi} · ${royxat.length} акт`, obyekt: obyektId }, () => {
+        downloadBlob(bytes, aosrKitobFaylNomi(obyektNomi, royxat.length, sanasiz ? null : new Date().toISOString().slice(0, 10)));
+      });
+      if (!tk.ok) toast(tk.xabar, 'danger'); else if (tk.xabar) toast(tk.xabar, 'ok');
+      else toast(t('✓ Pechat kitobi tayyor: {n} akt', { n: royxat.length }), 'ok');
+    } catch (e) {
+      toast(t('Kitob yasalmadi: {x}', { x: e instanceof Error ? e.message : String(e) }), 'danger');
+    } finally { setPaketBand(false); }
+  };
+
+  /** Tizim o'zi yasagan (avto) qoralamalar: qarshi tomonga yuborilmagan, protokolsiz — bekor qilinadi (o'chirilmaydi, tarixda qoladi). */
+  const avtoIdlar = useMemo(() => bekorQilsaBoladigan(aktlar, new Set(yuborilgan.keys())), [aktlar, yuborilgan]);
+  const avtoBekor = async () => {
+    if (!avtoIdlar.length) return;
+    if (!(await tasdiqSora({ sarlavha: t('Avto-qoralamalarni bekor qilish'), matn: t('Tizim avtomatik yasagan {n} ta qoralama bekor qilinsinmi? (o‘chirilmaydi, tarixda qoladi; yuborilgan va protokolli aktlarga tegilmaydi)', { n: avtoIdlar.length }), tasdiqMatni: t('Bekor qilish'), xavfli: true }))) return;
+    let ok = 0; let xato = '';
+    for (const id of avtoIdlar) {
+      const a = aktlar.find((x) => x.id === id);
+      const r = await sbAosrBekor(id, a?.versiya);
+      if (r.ok) ok++; else { xato = r.error || t('Xato'); break; }
+    }
+    if (ok) toast(t('✓ {n} ta avto-qoralama bekor qilindi', { n: ok }), 'ok');
+    if (xato) toast(xato, 'danger');
+    yukla();
+  };
 
   const excel = async (a: AosrV2) => {
     try {
@@ -281,7 +334,7 @@ export default function TestAosr() {
         qosh(l.bytes, `00_${l.faylNomi}`);
       }
       let no = 0;
-      for (const a of tartiblangan.filter((x) => x.holat !== 'bekor')) {
+      for (const a of tartiblangan.filter((x) => x.holat !== 'bekor' && !avtoQoralamami(x))) {
         no++;
         qosh(await aktBaytlari(a, logo), `${String(no).padStart(3, '0')}_${aosrFaylNomi(a.obyekt, a.raqam, a.sana)}`);
       }
@@ -442,6 +495,10 @@ export default function TestAosr() {
         {varaq === 'akt' && !yuklanmoqda && (
           <AosrTaklif aktlar={aktlar} qatorMeta={qatorMeta} coverage={coverage} onTayyor={yukla} kompaniyaId={kompaniyaId ?? undefined} />
         )}
+        {varaq === 'akt' && zanjirOchiq && kompaniyaId && obyektId && (
+          <AosrZanjir kompaniyaId={kompaniyaId} obyektId={obyektId} coverage={coverage} qatorMeta={qatorMeta} tanlangan={belgilangan} aktlar={aktlar}
+            onYopish={() => setZanjirOchiq(false)} onTayyor={() => { setZanjirOchiq(false); yukla(); }} />
+        )}
         {yashirinAktsiz > 0 && varaq === 'akt' && (
           <p className="text-[11.5px] text-text-mute">{t('F2 bloklanmaydi — АОСР yo‘qligi faqat ogohlantirish.')}</p>
         )}
@@ -456,6 +513,8 @@ export default function TestAosr() {
                   <label className="inline-flex items-center gap-1 text-[12px] text-text-dim"><input type="checkbox" checked={faqatAktsiz} onChange={(e) => setFaqatAktsiz(e.target.checked)} /> {t('faqat aktsiz')}</label>
                   <button type="button" onClick={() => yangiAkt(true)} disabled={belgilangan.size === 0} className="fz-btn fz-btn--sm fz-btn--primary"><Plus /> {t('Belgilanganlardan akt ({n})', { n: belgilangan.size })}</button>
                   <button type="button" onClick={() => void ulash()} disabled={!forma?.id || belgilangan.size === 0} className="fz-btn fz-btn--sm" title={t('Ochiq aktga ulash')}><Link2 /> {t('Ochiq aktga ulash')}</button>
+                  <button type="button" onClick={() => setZanjirOchiq(true)} disabled={belgilangan.size === 0} className="fz-btn fz-btn--sm" data-testid="aosr-zanjir-tugma"
+                    title={t('Tanlangan ishning yashiriladigan bosqichlari bo‘yicha АОСР qoralamalari (zamin → … → qoplama asosi)')}><Layers /> {t('Zanjirli qoralama')}</button>
                 </div>
               </div>
               <div className="max-h-[70vh] divide-y divide-border overflow-y-auto">
@@ -484,6 +543,9 @@ export default function TestAosr() {
                 <div className="flex flex-wrap gap-2">
                   <label className="inline-flex items-center gap-1 text-[12px] text-text-dim"><input type="checkbox" checked={bekorKorsat} onChange={(e) => setBekorKorsat(e.target.checked)} /> {t('bekor qilinganlar')}</label>
                   <button type="button" onClick={() => void paket()} disabled={!faolAktlar.length || paketBand} className="fz-btn fz-btn--sm" title={t('Butun obyekt ijro paketi (ZIP): reestr + hamma АОСР')}><FileArchive /> {paketBand ? t('Yig‘ilmoqda…') : t('Butun paket')}</button>
+                  <label className="inline-flex items-center gap-1 text-[12px] text-text-dim" title={t('Akt, boshlanish va tugash sanalari bo‘sh chop etiladi — sanani o‘zingiz qo‘yasiz')}><input type="checkbox" checked={sanasiz} onChange={(e) => setSanasiz(e.target.checked)} data-testid="aosr-sanasiz" /> {t('sanasiz chop')}</label>
+                  <button type="button" onClick={() => void pechatKitobi()} disabled={!faolAktlar.length || paketBand} className="fz-btn fz-btn--sm" data-testid="aosr-pechat-kitobi" title={t('Bitta Excel: har akt alohida varaq (ШНК 3.01.01-22 Прил.6) + hajm hisobi va laboratoriya ilovalari')}><BookOpen /> {t('Pechat kitobi')}</button>
+                  {avtoIdlar.length > 0 && <button type="button" onClick={() => void avtoBekor()} className="fz-btn fz-btn--sm fz-btn--ghost" data-testid="aosr-avto-bekor" title={t('Tizim avtomatik yasagan, yuborilmagan qoralamalarni bekor qilish')}><Unlink /> {t('Avto-qoralamalar ({n})', { n: avtoIdlar.length })}</button>}
                   <button type="button" onClick={() => void reestr('aosr')} disabled={!faolAktlar.length} className="fz-btn fz-btn--sm fz-btn--ghost" title={t('РЕЕСТР АОСР (Excel)')}><FileSpreadsheet /> {t('Reestr')}</button>
                   <button type="button" onClick={() => yangiAkt(belgilangan.size > 0)} className="fz-btn fz-btn--sm fz-btn--primary"><Plus /> {t('Yangi akt')}</button>
                 </div>
@@ -548,6 +610,21 @@ export default function TestAosr() {
                     <div className="fz-panel">
                       <div className="fz-panel__h"><span>{t('Laboratoriya sinovi')}</span>
                         <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" onClick={() => setSorovKontekst({ obyektId, aosrId: forma.id, aosrNom: forma.raqam ?? String(forma.id) })}><FlaskConical /> {t('Sinov so‘rovi')}</button></div>
+                      {(() => {
+                        const talab = labIlovaQur(forma)?.talablar ?? [];
+                        if (!talab.length) return null;
+                        return (
+                          <div className="flex flex-wrap items-center gap-1.5 px-2 pt-2 text-[12px] text-text-dim" data-testid="aosr-lab-talab">
+                            <span>{t('Talab qilinadi:')}</span>
+                            {talab.map((x) => (
+                              <button key={x} type="button" className="fz-btn fz-btn--ghost fz-btn--sm"
+                                onClick={() => setSorovKontekst({ obyektId, aosrId: forma.id, aosrNom: forma.raqam ?? String(forma.id), sinovTuri: LAB_SOROV_TURI[x], konstruksiya: forma.ish_nomi ?? undefined })}>
+                                <FlaskConical /> {t('Laboratoriyaga so‘rov')}: {LAB_TALAB_NOM[x]}</button>
+                            ))}
+                            <span className="text-[11px] text-text-mute">{t('Kubik seriyasi va sertifikatlar ro‘yxati Excel ilovasida (Прил) chiqadi.')}</span>
+                          </div>
+                        );
+                      })()}
                       {sorovKontekst?.aosrId === forma.id && <div className="p-2"><SinovSorovYubor kompaniyaId={kompaniyaId} kontekst={sorovKontekst} onYopish={() => setSorovKontekst(null)} onYuborildi={() => { setSorovKontekst(null); setSorovYangila((x) => x + 1); yukla(); }} /></div>}
                       <div className="p-2"><SorovlarRoyxati kompaniyaId={kompaniyaId} yonalish="yuborilgan" obyektId={obyektId} aosrId={forma.id} yangilash={sorovYangila}
                         onQayta={(s) => setSorovKontekst({ obyektId, aosrId: forma.id, aosrNom: forma.raqam ?? String(forma.id), qatorId: s.qator_id, aslSorovId: s.id })} /></div>
@@ -578,6 +655,7 @@ export default function TestAosr() {
                             <span className="w-6 shrink-0 text-right text-[11.5px] tabular-nums text-text-mute">{a.holat === 'bekor' ? '' : tartibNomi.get(a.id)}</span>
                             <span className="truncate text-[13px] font-medium text-text">№ {a.raqam || '—'} · {a.ish_nomi || '—'}</span>
                             {aktHolatBelgisi(a.holat, yuborilgan.get(a.id))}
+                            {avtoQoralamami(a) && !yuborilgan.has(a.id) && <span className="fz-chip fz-chip--warn" data-testid="aosr-avto-belgi" title={t('Tizim avtomatik yasagan qoralama — haqiqiy akt emas. Tekshiring yoki bekor qiling.')}>{t('avto-qoralama')}</span>}
                           </div>
                           <div className="mt-0.5 flex flex-wrap gap-1.5 text-[11.5px] text-text-mute">
                             <span>{t(TUR_NOMI[a.tur])}</span><span>·</span><span>{a.sana ?? t('sana yo‘q')}</span>
