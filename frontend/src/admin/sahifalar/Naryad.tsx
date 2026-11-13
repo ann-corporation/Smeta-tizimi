@@ -16,6 +16,7 @@ import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { yangiOperationId } from '../../api/supabase';
 import { kompaniyaAzolariOl, type KompaniyaAzo } from '../../api/t2-men';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
 import { podvalTanla, sbPodvallarOl } from '../../api/t2-nakrutka-podval';
 import { kartalarOl, qatorlarOl, smetadanQidir, type IshKarta } from '../../api/t2-ish-kartasi';
@@ -167,9 +168,7 @@ export default function Naryad() {
             onHujjat={async () => {
               const { bytes, faylNomi } = naryadHujjat(ochiq, { obyektNom });
               const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'NARYAD', sabab: `Наряд ${ochiq.raqam}`, obyekt: ochiq.obyekt_id }, () => {
-                const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-                const a = document.createElement('a'); a.href = url; a.download = faylNomi; document.body.appendChild(a); a.click(); a.remove();
-                setTimeout(() => URL.revokeObjectURL(url), 2000);
+                downloadBlob(new Uint8Array(bytes), faylNomi, undefined, { turi: 'naryad', obyektId: ochiq.obyekt_id });   // yagona yo'l: tizim imzosi + manba QR
               });
               toast(r.xabar, r.ok ? 'ok' : 'danger');
             }} />}
