@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Briefcase, CreditCard, FileText, TrendingUp } from 'lucide-react';
 import { t } from '../i18n/til';
 import { OpsTablar } from '../components/kompaniya-ops/OpsUi';
+import { ZanjirChizigi } from '../admin/components/ZanjirChizigi';
 import TestShartnoma from './TestShartnoma';
 import TestTolov from './TestTolov';
 import TestFaktura from './TestFaktura';
@@ -29,6 +30,7 @@ export default function WrapperMoliya() {
           { id: 'faktura', nom: t('Fakturalar (PDF, AI)'), ikon: <FileText /> },
         ]} />
       </div>
+      {activeTab === 'tolov' && <div className="px-6 pt-3"><ZanjirChizigi joriy="tolov" /></div>}
       <div className="relative flex-1 overflow-hidden">
         {activeTab === 'foyda' && <Suspense fallback={null}><FoydaZarar /></Suspense>}
         {activeTab === 'shartnoma' && <TestShartnoma />}

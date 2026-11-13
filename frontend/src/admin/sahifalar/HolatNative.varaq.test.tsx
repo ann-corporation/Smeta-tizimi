@@ -10,7 +10,7 @@ vi.mock('../../components/pto-workspace/ObjectTrail', () => ({ ObjectTrail: () =
 vi.mock('../../components/pto-workspace/ObjectMoneySummary', () => ({ ObjectMoneySummary: () => null }));
 vi.mock('../../umumiy/daraxt/SmetaTree', () => ({ SmetaTree: () => <div>Smeta daraxti</div> }));
 vi.mock('../../components/smeta-hujjat/SmetaAnatomiya', () => ({ SmetaAnatomiya: () => <div>Anatomiya paneli</div> }));
-vi.mock('../../components/qollanma/KeyingiQadamPanel', () => ({ KeyingiQadamPanel: () => <div>Keyingi qadam paneli</div> }));
+
 vi.mock('../../components/smeta-studio-pro/MarketPriceComparison', () => ({ MarketPriceComparison: () => null }));
 vi.mock('../../umumiy/hujjat/HujjatKorinish', () => ({ useHujjatKorinish: () => ({ oyna: null }) }));
 vi.mock('../../umumiy/hujjat/HujjatTomonlari', () => ({ useHujjatTomonlari: () => [{}, vi.fn()], HujjatTomonlariPanel: () => null }));
@@ -32,7 +32,6 @@ describe('HolatNative — Daraxt | Ish varag‘i rejimi', () => {
   it('sukut — Daraxt (o‘zgarishsiz): daraxt va panellar ko‘rinadi, varaq yo‘q', async () => {
     start();
     await screen.findByText('Smeta daraxti');
-    expect(screen.getByText('Keyingi qadam paneli')).toBeTruthy();
     expect(screen.getByText('Anatomiya paneli')).toBeTruthy();
     expect(screen.queryByText('Ish varag‘i grid')).toBeNull();
     expect(screen.getByRole('button', { name: 'Daraxt' }).getAttribute('aria-pressed')).toBe('true');
@@ -45,7 +44,6 @@ describe('HolatNative — Daraxt | Ish varag‘i rejimi', () => {
     expect(await screen.findByText('Ish varag‘i grid')).toBeTruthy();
     expect(screen.getByTestId('joy').textContent).toBe('?rejim=varaq');
     expect(screen.queryByText('Smeta daraxti')).toBeNull();
-    expect(screen.queryByText('Keyingi qadam paneli')).toBeNull();
     expect(screen.queryByText('Anatomiya paneli')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Resurslar' })).toBeNull(); // tab-chiziq yashirin
     expect(screen.getByRole('button', { name: 'Hujjatlar va eksport' })).toBeTruthy(); // rasmiy hujjatlar tugmasi o‘zgarmas

@@ -6,7 +6,7 @@ import { Search, Download, RefreshCw, AlertTriangle, Eye, Plus, Trash2, Clipboar
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
-import { ObyektQadamlari } from '../components/ObyektQadamlari';
+import { ZanjirChizigi } from '../components/ZanjirChizigi';
 import { sbT2KompaniyalarOl, yangiOperationId, type T2Kompaniya, type T2Obyekt } from '../../api/supabase';
 import { obyektlarKeshdan, useIxtiyoriyQueryClient } from '../../api/t2-obyektlar-kesh';
 import { sbT2ShartnomaBogOl, sbT2ShartnomalarOl, zakazchikRekvizit } from '../../api/t2-shartnoma';
@@ -451,7 +451,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     <Sahifa sarlavha={t('Nakopitelniy vedomost')} tavsif={t('Tasdiqlangan F2 aktlarining oyma-oy kumulyativ reestri: smeta, fakt va topshirilgan ish bir joyda.')} amallar={amallar}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         {korinish.oyna}
-        <ObyektQadamlari joriy="forma3" />
+        <ZanjirChizigi joriy="f3" />
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 'var(--space-4)' }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 220 }}>
             <span className="fz-kpi__label">{t('Obyekt')}</span>

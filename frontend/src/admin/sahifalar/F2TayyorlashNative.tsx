@@ -19,7 +19,7 @@ import { IshMaterialOgohRoyxat } from '../../components/fakt/IshMaterialOgoh';
 import { FmtN } from '../../lib/format';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
-import { ObyektQadamlari } from '../components/ObyektQadamlari';
+import { ZanjirChizigi } from '../components/ZanjirChizigi';
 import { useIshOyi } from '../../lib/pto-markazi/useQadamMalumot';
 import { oydaFaktSoni } from '../../lib/pto-markazi/oy';
 import { sbOqi, sbT2AktYaratV2, sbT2F2QoralamaYangila, sbT2DaraxtOl, sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt, type T2Qator } from '../../api/supabase';
@@ -194,6 +194,8 @@ export function F2TayyorlashNative() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [aosrsiz, setAosrsiz] = useState<AosrCoverage[]>([]);
+  /** Zanjir chizig'i uchun АОСР qamrovi; null — hali o'qilmadi / o'qilmadi (noma'lum, 0 emas). */
+  const [aosrQamrov, setAosrQamrov] = useState<{ yashirin: number; aktsiz: number } | null>(null);
   const [aosrKoz, setAosrKoz] = useState<Map<number, AosrIshora>>(new Map());
   /** Shartnoma liniyasidan: imzolovchilar (buyurtmachi, pudratchi, subpudratchi, texnadzor) va shartnoma raqami. */
   const [avto, setAvto] = useState<{ imzo: ImzoNomlar; shartnoma: string | null }>({ imzo: {}, shartnoma: null });
@@ -237,7 +239,7 @@ export function F2TayyorlashNative() {
     sessObyekt.current = null;
     const raqam = ++sorov.current;
     const dolzarb = () => raqam === sorov.current;
-    if (!validId) { setRows([]); setHolat([]); setProtokolQ([]); setAosrsiz([]); setAosrKoz(new Map()); return; }
+    if (!validId) { setRows([]); setHolat([]); setProtokolQ([]); setAosrsiz([]); setAosrQamrov(null); setAosrKoz(new Map()); return; }
     tezlik.current = tezlikBelgisi('f2-tayyorlash');
     setLoading(true); setError(''); setRows([]); setHolat([]); setAkt(null); setAktXato(''); setStornoTahrir(null); setStornoTahrirOchiq(false); aktQollandi.current = null;
     setProtokolXato(false); setQoralamaXato(false); yukKalit.current = '';
@@ -263,7 +265,7 @@ export function F2TayyorlashNative() {
         const ok = !!r?.ok && r.toliq !== false;
         setProtokolQ(ok ? (r.qatorlar || []).filter((x) => x.holat === 'tasdiqlangan') : []); setProtokolXato(!ok);
       }).catch(() => { if (dolzarb()) { setProtokolQ([]); setProtokolXato(true); } });
-      void sbAosrCoverageOl(obyektId).then((c) => { if (dolzarb()) { setAosrsiz(c.ok ? (c.qatorlar || []).filter((x) => x.yashirin && !x.akt_bor) : []); setAosrKoz(new Map(c.ok ? (c.qatorlar || []).map((x) => [x.qator_id, aosrIshora(x)] as const) : [])); } }).catch(() => { if (dolzarb()) setAosrsiz([]); });
+      void sbAosrCoverageOl(obyektId).then((c) => { if (dolzarb()) { setAosrQamrov(c.ok ? { yashirin: (c.qatorlar || []).filter((x) => x.yashirin).length, aktsiz: (c.qatorlar || []).filter((x) => x.yashirin && !x.akt_bor).length } : null); setAosrsiz(c.ok ? (c.qatorlar || []).filter((x) => x.yashirin && !x.akt_bor) : []); setAosrKoz(new Map(c.ok ? (c.qatorlar || []).map((x) => [x.qator_id, aosrIshora(x)] as const) : [])); } }).catch(() => { if (dolzarb()) { setAosrsiz([]); setAosrQamrov(null); } });
       void Promise.resolve().then(() => f2VersiyaKochirmaOl(obyektId)).then((r) => { if (dolzarb()) setKochirma(r.ok ? r.natija : null); }).catch(() => { if (dolzarb()) setKochirma(null); });
       // Boshqa qoralamalardagi hajm o'qilmasa (A-14) — QORALAMA_TAKROR himoyasi jim o'chmaydi: xato holati.
       void Promise.resolve().then(() => sbF2QoralamaHajmlar(obyektId, aktId)).then((qh) => { if (dolzarb()) { setQoralamaHajm(qh.ok ? qh.hajm : new Map()); setQoralamaXato(!qh.ok); } }).catch(() => { if (dolzarb()) { setQoralamaHajm(new Map()); setQoralamaXato(true); } });
@@ -1144,7 +1146,7 @@ export function F2TayyorlashNative() {
   return <Sahifa sarlavha="F2 tayyorlash" tavsif="Ishni tanlang — resurslar, narx va summa avtomatik; har narx manbasi ko‘rinadi">
     {korinish.oyna}
     <div ref={moneyScope} className="flex min-h-full flex-col gap-3">
-      {validId && <ObyektQadamlari joriy="f2-yasash" obyektId={obyektId} />}
+      {validId && <ZanjirChizigi joriy="f2" obyektId={obyektId} aosr={aosrQamrov} />}
       {validId && <TayyorlanganF2lar kompaniyaId={joriy?.id} obyektId={obyektId} />}
       <section className="fz-card flex flex-wrap items-end gap-3 p-3" aria-label={t('F2 parametrlari')}>
         <label className="min-w-[240px] flex-1 text-[12px] font-medium text-text-dim">{t('Obyekt')}

@@ -7,6 +7,7 @@ import { ArxivTugma } from '../../components/arxiv/ArxivTugma';
 import { F2HujjatKorinish } from '../../components/f2-hujjat/F2HujjatKorinish';
 import { davrNomi } from '../../lib/f2-hujjat-korinish';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
+import { ZanjirChizigi } from '../components/ZanjirChizigi';
 import { toast } from '../../umumiy/ui/Toast';
 import { FmtN } from '../../lib/format';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
@@ -434,6 +435,7 @@ export function F2TarixNative() {
       amallar={<button type="button" onClick={() => void yuklash()} disabled={!validId || loading} className="fz-btn fz-btn--ghost"><RefreshCw className={loading ? 'animate-spin' : ''} /> {t('Yangilash')}</button>}
     >
       <div className="flex h-full min-h-0 flex-col gap-3">
+        {validId && <ZanjirChizigi joriy="f2" obyektId={obyektId} />}
         <section className="fz-card flex flex-wrap items-end gap-3 p-3">
           <label className="min-w-[280px] flex-1 text-[12px] font-medium text-text-dim">{t('Obyekt')}
             <select aria-label="Kanonik obyekt" value={validId ? String(obyektId) : ''} onChange={(e) => { const nextId = Number(e.target.value); const id = Number.isSafeInteger(nextId) && nextId > 0 ? nextId : null; if (workspace.isProvider) workspace.setObjectId(id); else setParams(id ? { obyekt: String(id) } : {}); }} className="mt-1.5 block w-full">
