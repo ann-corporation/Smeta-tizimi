@@ -10,6 +10,7 @@
  * - AI (ixtiyoriy, token yechadi): qisqa izoh + qaysi ishga tegishli TAKLIFI. Foydalanuvchi «Qabul qilish» bosmaguncha hech narsa o'zgarmaydi.
  * Tomon kabineti (boshqa kompaniya) uchun xuddi shu komponent chaqiriladi — nusxa emas.
  */
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Camera, Sparkles, Trash2, X } from 'lucide-react';
 import { fotoAiTavsif, fotoOchir, fotoRoyxatOl, fotoYangila, fotoYukla, rasmKichraytir } from '../../api/t2-foto-dalil';
@@ -82,7 +83,7 @@ export function FotoDalil({ kompaniyaId, obyektId, loyihaId, manba, nomzodlar = 
   };
 
   const olibTashla = async (f: FotoElement) => {
-    if (!window.confirm(t('Bu fotoni olib tashlaysizmi?'))) return;
+    if (!(await tasdiqSora({ matn: 'Bu fotoni olib tashlaysizmi?', xavfli: true, tasdiqMatni: 'Olib tashlash' }))) return;
     const r = await fotoOchir(kompaniyaId, f.id);
     if (!r.ok) { toast(r.error || t('Olib tashlanmadi'), 'warn'); return; }
     setKatta(null); await yangila();

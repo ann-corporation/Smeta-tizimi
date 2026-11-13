@@ -1,0 +1,10 @@
+{
+  "sana": "2026-11-12",
+  "sarlavha": "Buxgalteriya P2 — balans, foyda-zarar, tannarx, boshlang‘ich qoldiq",
+  "bandlar": [
+    "«Foyda / zarar» endi provodkalar jurnalidan hisoblanadi (jurnalda yozuv bo‘lsa) va ekranning tepasida qaysi manbadan ekani yoziladi.",
+    "Yangi bo‘limlar: «Balans va foyda-zarar» (jurnaldan, Excel), «Tannarx» (obyekt xarajatini sotilgan tannarxga o‘tkazish: ko‘rik, yozish, bekor), «Boshlang‘ich qoldiq» (1C dagi ОСВ ni Excel/CSV orqali yuklash, ustunlarni moslash, tekshiruv, bitta partiya).",
+    "Hamma shakl va qoidalar «T — tekshirilsin» belgisi bilan: buxgalter tasdiqlaydi, kerak bo‘lsa o‘zgartiradi.",
+    "Jarvis: «buxgalteriya balansi», «foyda zarar hisoboti», «boshlangich qoldiq»."
+  ]
+}

@@ -39,7 +39,8 @@ export default function BugunBolimi({ kompaniyaId, kompaniyaNomi }: { kompaniyaI
     const r = await bugunOl(kompaniyaId);
     if (r.ok) { setD(r.natija); setXato(''); } else setXato(r.error);
   }, [kompaniyaId]);
-  useEffect(() => { void ol(); }, [ol]);
+  // Kompaniya almashganda eski kompaniya raqamlari qolib ketmasin; yuklanguncha skelet.
+  useEffect(() => { setD(null); setXato(''); void ol(); }, [ol]);
 
   const kutish = useMemo(() => (d ? kutishJami(d.kutayotgan) : null), [d]);
   const jami = useMemo(() => (d ? portfelJami(d.obyektlar) : null), [d]);
@@ -59,7 +60,7 @@ export default function BugunBolimi({ kompaniyaId, kompaniyaNomi }: { kompaniyaI
   }
 
   if (xato) return <div className="fz-note" data-testid="bugun-xato">{xato}</div>;
-  if (!d || !kutish || !jami) return null;
+  if (!d || !kutish || !jami) return <div className="skel h-24 rounded-xl" role="status" aria-label={t('Yuklanmoqda…')} data-testid="bugun-yuklanmoqda" />;
   return (
     <div className="space-y-4" data-testid="bugun-bolimi">
       <section aria-label={t('Bugun')} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

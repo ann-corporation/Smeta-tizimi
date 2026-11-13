@@ -11,13 +11,35 @@ import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { aloqalarOl, taqdimlarOl, zakazchikObyektlarOl, type Aloqa, type TaqdimQisqa, type ZakazchikObyekt } from '../../api/t2-tomon';
 import { t } from '../../i18n/til';
 import { Bolim, HolatBelgi } from './tomon-ui';
+import NazoratTayinlash from './NazoratTayinlash';
 import BugunBolimi from './BugunBolimi';
 import { oyMatn, pul, sana } from './tomon-yordam';
 import { bajarilishFoizi } from './obyekt-portali-yordam';
 import { raqamTozala } from '../../lib/raqam-belgi';
 
-function Kartochka({ nom, qiymat, izoh, rang }: { nom: string; qiymat: string; izoh?: string; rang?: string }) {
-  return <div className="fz-kpi"><span className="fz-kpi__label">{rang && <i style={{ background: rang }} />}{t(nom)}</span><span className="fz-kpi__value">{qiymat}</span>{izoh && <span className="fz-kpi__sub">{t(izoh)}</span>}</div>;
+/** qiymat === null — manba hali javob bermadi: «0» EMAS, yuklanish belgisi (NULL ≠ 0). */
+function Kartochka({ nom, qiymat, izoh, rang }: { nom: string; qiymat: string | null; izoh?: string; rang?: string }) {
+  const yuklanmoqda = qiymat === null;
+  return (
+    <div className="fz-kpi" aria-busy={yuklanmoqda}>
+      <span className="fz-kpi__label">{rang && <i style={{ background: rang }} />}{t(nom)}</span>
+      {yuklanmoqda ? <span className="fz-kpi__value skel inline-block h-7 w-16 rounded" role="status" aria-label={t('Yuklanmoqda…')} data-testid="kpi-yuklanmoqda" /> : <span className="fz-kpi__value">{qiymat}</span>}
+      {izoh && <span className="fz-kpi__sub">{t(izoh)}</span>}
+    </div>
+  );
+}
+
+/** Qaror kutayotgan hujjat qatori: bir bosishda hujjat qaror sahifasida ochiladi (qabul / tuzatish / rad shu yerda). */
+function KutayotganQator({ x }: { x: TaqdimQisqa }) {
+  return (
+    <li className="flex flex-wrap items-center gap-2 py-1.5 text-[13px]">
+      <Link to={`/admin/taqdimlar?id=${x.id}`} className="font-semibold text-text hover:underline">{x.nom}</Link>
+      <span className="text-text-dim">{x.qarshi_nom} · {x.obyekt_nom ?? '—'} · {oyMatn(x.oy)}</span>
+      <HolatBelgi holat={x.holat} turi="taqdim" />
+      <span className="ml-auto text-xs text-text-dim">{sana(x.taqdim_vaqti)}</span>
+      <Link to={`/admin/taqdimlar?id=${x.id}`} className="fz-btn fz-btn--sm fz-btn--primary" data-testid="qaror-chiqarish">{t('Qaror chiqarish')}</Link>
+    </li>
+  );
 }
 
 /** Obyekt bajarilishi: sertifikatlangan F2 / shartnoma (QQSsiz) — chiziq; ma'lum bo'lmasa «—» (0 emas). */
@@ -35,62 +57,59 @@ function Bajarilish({ o }: { o: ZakazchikObyekt }) {
 export default function ZakazchikKabinet() {
   const { joriy } = useKompaniya();
   const kompaniyaId = joriy?.id ?? null;
-  const [aloqalar, setAloqalar] = useState<Aloqa[]>([]);
-  const [obyektlar, setObyektlar] = useState<ZakazchikObyekt[]>([]);
-  const [kelgan, setKelgan] = useState<TaqdimQisqa[]>([]);
+  // null = hali kelmagan (NULL ≠ 0): har manba mustaqil — qaysi biri tez kelsa, shu darrov ko'rinadi.
+  const [aloqalar, setAloqalar] = useState<Aloqa[] | null>(null);
+  const [obyektlar, setObyektlar] = useState<ZakazchikObyekt[] | null>(null);
+  const [kelgan, setKelgan] = useState<TaqdimQisqa[] | null>(null);
   const [xato, setXato] = useState('');
-  const [yuklandi, setYuklandi] = useState(false);
 
   useEffect(() => {
+    // Kompaniya almashganda eski kompaniya raqamlari ko'rinib qolmasin.
+    setAloqalar(null); setObyektlar(null); setKelgan(null); setXato('');
     if (!kompaniyaId) return;
     let bekor = false;
-    void Promise.all([aloqalarOl(kompaniyaId), zakazchikObyektlarOl(kompaniyaId), taqdimlarOl(kompaniyaId, { yonalish: 'kelgan' })]).then(([a, o, q]) => {
-      if (bekor) return;
-      const e = [a, o, q].find((x) => !x.ok);
-      setXato(e && !e.ok ? e.error : '');
-      if (a.ok) setAloqalar(a.natija); if (o.ok) setObyektlar(o.natija); if (q.ok) setKelgan(q.natija);
-      setYuklandi(true);
-    });
+    const xatoQo = (e: string) => { if (!bekor) setXato((x) => x || e); };
+    void aloqalarOl(kompaniyaId).then((r) => { if (bekor) return; if (r.ok) setAloqalar(r.natija); else { setAloqalar([]); xatoQo(r.error); } });
+    void zakazchikObyektlarOl(kompaniyaId).then((r) => { if (bekor) return; if (r.ok) setObyektlar(r.natija); else { setObyektlar([]); xatoQo(r.error); } });
+    void taqdimlarOl(kompaniyaId, { yonalish: 'kelgan' }).then((r) => { if (bekor) return; if (r.ok) setKelgan(r.natija); else { setKelgan([]); xatoQo(r.error); } });
     return () => { bekor = true; };
   }, [kompaniyaId]);
 
-  const faol = useMemo(() => aloqalar.filter((a) => a.holat === 'faol'), [aloqalar]);
-  const kutayotgan = useMemo(() => kelgan.filter((x) => x.holat === 'yuborilgan' || x.holat === 'ko_rilmoqda'), [kelgan]);
-  const f2Jami = useMemo(() => obyektlar.reduce((s, o) => s + (o.f2?.jami ?? 0), 0), [obyektlar]);
+  const faol = useMemo(() => (aloqalar ? aloqalar.filter((a) => a.holat === 'faol') : null), [aloqalar]);
+  const kutayotgan = useMemo(() => (kelgan ? kelgan.filter((x) => x.holat === 'yuborilgan' || x.holat === 'ko_rilmoqda') : null), [kelgan]);
+  const f2Jami = useMemo(() => (obyektlar ? obyektlar.reduce((s, o) => s + (o.f2?.jami ?? 0), 0) : null), [obyektlar]);
   const guruhlar = useMemo(() => {
     const m = new Map<number, { nom: string; rol: string; obyektlar: ZakazchikObyekt[] }>();
-    for (const o of obyektlar) { const g = m.get(o.qarshi_kompaniya_id) ?? { nom: o.qarshi_nom, rol: o.qarshi_rol, obyektlar: [] }; g.obyektlar.push(o); m.set(o.qarshi_kompaniya_id, g); }
+    for (const o of obyektlar ?? []) { const g = m.get(o.qarshi_kompaniya_id) ?? { nom: o.qarshi_nom, rol: o.qarshi_rol, obyektlar: [] }; g.obyektlar.push(o); m.set(o.qarshi_kompaniya_id, g); }
     return [...m.entries()];
   }, [obyektlar]);
-
   if (!kompaniyaId) return <KompaniyaKerak nima="Buyurtmachi kabineti" />;
   return (
     <Sahifa sarlavha="Buyurtmachi kabineti" tavsif="Ulangan pudratchilar, ularning sizga ochilgan obyektlari, sertifikatlangan ishlar va qaror kutayotgan hujjatlar">
       <div className="space-y-4">
         {xato && <div role="alert" className="fz-note fz-note--danger">{xato}</div>}
         <BugunBolimi kompaniyaId={kompaniyaId} kompaniyaNomi={joriy?.nom ?? ''} />
+        <NazoratTayinlash kompaniyaId={kompaniyaId} />
         <section className="fz-card fz-kpis p-4" aria-label={t('Kabinet ko‘rsatkichlari')}>
-          <Kartochka nom="Faol aloqalar" qiymat={String(faol.length)} rang="var(--ok)" />
-          <Kartochka nom="Ko‘rinadigan obyektlar" qiymat={String(obyektlar.length)} />
-          <Kartochka nom="Tasdiqlangan F2 jami" qiymat={pul(f2Jami)} izoh="faqat sizga ochilgan obyektlar bo‘yicha" rang="var(--info)" />
-          <Kartochka nom="Qaror kutayotgan hujjat" qiymat={String(kutayotgan.length)} rang={kutayotgan.length ? 'var(--warn)' : undefined} />
+          <Kartochka nom="Faol aloqalar" qiymat={faol ? String(faol.length) : null} rang="var(--ok)" />
+          <Kartochka nom="Ko‘rinadigan obyektlar" qiymat={obyektlar ? String(obyektlar.length) : null} />
+          <Kartochka nom="Tasdiqlangan F2 jami" qiymat={f2Jami == null ? null : pul(f2Jami)} izoh="faqat sizga ochilgan obyektlar bo‘yicha" rang="var(--info)" />
+          <Kartochka nom="Qaror kutayotgan hujjat" qiymat={kutayotgan ? String(kutayotgan.length) : null} rang={kutayotgan && kutayotgan.length ? 'var(--warn)' : undefined} />
         </section>
 
-        {kutayotgan.length > 0 && (
+        {kutayotgan && kutayotgan.length > 0 && (
           <Bolim sarlavha="Qaror kutayotgan hujjatlar" amal={<Link to="/admin/taqdimlar" className="text-xs text-accent underline">{t('Hammasi')}</Link>}>
-            <ul className="divide-y divide-border">{kutayotgan.slice(0, 6).map((x) => (
-              <li key={x.id} className="flex flex-wrap items-center gap-2 py-1.5 text-[13px]"><Link to={`/admin/taqdimlar?id=${x.id}`} className="font-semibold text-text hover:underline">{x.nom}</Link><span className="text-text-dim">{x.qarshi_nom} · {x.obyekt_nom ?? '—'} · {oyMatn(x.oy)}</span><HolatBelgi holat={x.holat} turi="taqdim" />
-                <span className="ml-auto text-xs text-text-dim">{sana(x.taqdim_vaqti)}</span></li>))}</ul>
+            <ul className="divide-y divide-border">{kutayotgan.slice(0, 6).map((x) => <KutayotganQator key={x.id} x={x} />)}</ul>
           </Bolim>
         )}
 
-        {yuklandi && faol.length === 0 && (
+        {faol && faol.length === 0 && (
           <Bolim sarlavha="Boshlash">
             <p className="text-[13px] text-text-dim">{t('Hali pudratchi ulanmagan. Pudratchingizning INN sini kiriting yoki u yuborgan taklif kodini qabul qiling.')}</p>
             <Link to="/admin/kontragentlar?tab=aloqa" className="mt-2 inline-block text-sm text-accent underline">{t('Aloqalarga o‘tish')}</Link>
           </Bolim>
         )}
-        {yuklandi && faol.length > 0 && obyektlar.length === 0 && (
+        {faol && faol.length > 0 && obyektlar && obyektlar.length === 0 && (
           <Bolim sarlavha="Obyektlar"><p className="text-sm text-text-dim">{t('Pudratchilaringiz hali sizga obyekt ochmagan. Ular “Tomonlar aloqasi” sahifasidan ruxsat berishlari kerak.')}</p></Bolim>
         )}
 

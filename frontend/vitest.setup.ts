@@ -3,9 +3,17 @@ import { hujjatDizaynTekshir, kitobKuzatuvchiniOrnat } from './src/lib/hujjat-yo
 import { vakolatKeshTozala } from './functions/_shared/role-authority';
 import { LUGAT_EN, LUGAT_RU } from './src/i18n/lugat';
 import { lugatHolat } from './src/i18n/lugat-holat';
+import { sinovUlagichOrnat } from './src/umumiy/ui/tasdiq-yadro';
 
 // ru/en lug'ati ilovada dinamik yuklanadi; testlarda `tilQoy('ru')` sinxron ishlashi uchun oldindan qo'yamiz.
 lugatHolat.lugat = { ru: LUGAT_RU, en: LUGAT_EN };
+
+// Dialog (tasdiqSora / matnSora): konteyner o'rnatilmagan testlarda javobni `window.confirm` / `window.prompt` spy'laridan oladi.
+// Mahsulot kodida bloklovchi oynalar yo'q (qo'riqchi: src/umumiy/ui/bloklovchi-oyna.test.ts) — bu faqat test ulagichi.
+sinovUlagichOrnat({
+  tasdiq: (matn) => (typeof window !== 'undefined' && typeof window.confirm === 'function' ? !!window.confirm(matn) : false),
+  matn: (matn, boshlangich) => (typeof window !== 'undefined' && typeof window.prompt === 'function' ? window.prompt(matn, boshlangich) : null),
+});
 
 // Vakolat keshi (60 s) bir testdagi DB javobini keyingi testga olib o'tmasin.
 beforeEach(() => vakolatKeshTozala());

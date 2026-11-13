@@ -9,6 +9,7 @@ import { KASB_NOMI, kelganTakliflar, mutaxassislarQidir, mutaxassisXato, ochiqPr
   type Kasb, type KelganTaklif, type MutaxassisKarta } from '../../api/t2-mutaxassis';
 import { ROLE_LABELS } from '../../lib/company-authorization/permission-labels';
 import { t } from '../../i18n/til';
+import { matnSora } from '../../umumiy/ui/Tasdiq';
 
 export function XizmatTakliflari({ kompaniyaId, isDirector }: { kompaniyaId: number; isDirector: boolean }) {
   const [kelgan, setKelgan] = useState<KelganTaklif[] | null>(null);
@@ -27,7 +28,7 @@ export function XizmatTakliflari({ kompaniyaId, isDirector }: { kompaniyaId: num
   if (!isDirector) return null;
 
   async function javob(x: KelganTaklif, qabul: boolean) {
-    const izoh = qabul ? '' : (window.prompt(t('Rad etish sababi (mutaxassisga ko‘rinadi, ixtiyoriy):'), '') ?? null);
+    const izoh = qabul ? '' : await matnSora({ matn: 'Rad etish sababi (mutaxassisga ko‘rinadi, ixtiyoriy):', tasdiqMatni: 'Rad etish', xavfli: true });
     if (izoh === null) return;
     setBand(x.id);
     const r = await taklifJavob(kompaniyaId, x.id, qabul, izoh || undefined);

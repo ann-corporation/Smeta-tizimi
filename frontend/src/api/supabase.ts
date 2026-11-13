@@ -659,7 +659,7 @@ export type AktBuzilish = {
 };
 
 export type AktNatija = {
-  ok: boolean; error?: string; sabab?: string; xabar?: string; izoh?: string;
+  ok: boolean; bogliq?: unknown; error?: string; sabab?: string; xabar?: string; izoh?: string;
   operation_id?: string;
   akt_id?: number; qator_id?: number; takror?: boolean; holat?: string; tur?: string; oy?: string;
   qator_soni?: number; narxsiz?: number; jami?: number | null; toliq?: boolean;
@@ -986,6 +986,7 @@ export function sbT2AktTasdiqlash(aktId: number, kutilganVersiya?: number,
                     kutilgan_versiya: kutilganVersiya, operation_id: operationId });
 }
 
+/** Qoralama — eski yo'l; tasdiqlangan F2 — shlyuz lifecycle (approved→cancelled) ga yo'naltiradi. Bog'liqlik bo'lsa javobda code: DEPENDENTS_EXIST + ogliq; matn — lib/f2-bekor 2BekorXatoMatni. */
 export function sbT2AktBekor(aktId: number, sabab: string,
                              kutilganVersiya?: number): Promise<AktNatija> {
   return yozAmali({ amal: 'akt_bekor', akt_id: aktId, sabab,

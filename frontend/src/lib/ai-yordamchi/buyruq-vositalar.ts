@@ -12,19 +12,27 @@ import { qidiruvTayyorla } from '../qidiruv-normalizatsiya';
 import { bosKatKesim, katKesimgaQosh, type KatKesim } from '../ustamali-summa';
 import { qoldiqHajmi } from '../zamena-qoldiq';
 import { t } from '../../i18n/til';
+import type { NaryadQisqa } from '../naryad';
+import { kelishuvIshlari, kelishuvMatni, naryadMatni } from '../naryad/jarvis';
+import { ustaJarvisMatni, type NaryadSatr } from '../usta/naryad-ish';
+import type { TarixQator } from '../../api/t2-naryad';
+import { lugatTushuntir, odamNomi } from '../qurilish-lugat';
 import { faktAmalTekshir, faktHajmOqi, faktHolat, faktIndeks, faktKontekst, faktQidir, qatorSatri, summalarBloki, type FaktMalumot, type UstamaliFn } from './fakt-vositalar';
 import type { OqishSorovi, SahifaAmal } from './protokol';
+import { loyihaFarqMatni, type LoyihaFarqMalumot } from '../loyiha-smeta/jarvis';
+import { jarvisAsossizMatni, jarvisSlichitelniyMatni, type AsosJavob } from '../slichitelniy-asos';
+import { tahrirMatni } from '../loyiha-smeta/tahrir-jarvis';
 import type { SahifaVositalar } from './sikl';
 
 /** Foydalanuvchiga ochiq sahifa (yagona yordamchi navigatsiyasi; navReestr + ruxsat filtridan). */
 export type OchiqSahifa = { yol: string; nom: string };
-export type BuyruqMalumot = FaktMalumot & { rows: readonly T2Qator[]; qatorById: ReadonlyMap<number, T2Qator>; sahifalar?: readonly OchiqSahifa[] };
+export type BuyruqMalumot = FaktMalumot & { rows: readonly T2Qator[]; qatorById: ReadonlyMap<number, T2Qator>; sahifalar?: readonly OchiqSahifa[]; naryadlar?: readonly NaryadQisqa[]; loyihaFarq?: LoyihaFarqMalumot | null; slichAsos?: AsosJavob | null; ustaBugun?: { satrlar: readonly NaryadSatr[]; oyDaromad: number | null } };
 
-export function buyruqMalumotQur(rows: readonly T2Qator[], states: readonly (T2QatorHolat | JurnalHolat)[], opts: { obyektNomi?: string; ustamali?: UstamaliFn; sahifalar?: readonly OchiqSahifa[] } = {}): BuyruqMalumot {
+export function buyruqMalumotQur(rows: readonly T2Qator[], states: readonly (T2QatorHolat | JurnalHolat)[], opts: { obyektNomi?: string; ustamali?: UstamaliFn; sahifalar?: readonly OchiqSahifa[]; naryadlar?: readonly NaryadQisqa[]; loyihaFarq?: LoyihaFarqMalumot | null; slichAsos?: AsosJavob | null; ustaBugun?: { satrlar: readonly NaryadSatr[]; oyDaromad: number | null } } = {}): BuyruqMalumot {
   const holatlar = states as readonly JurnalHolat[];
   const { bolimlar, bolimIshlari } = jurnalQur(rows, holatlar);
   return { obyektNomi: opts.obyektNomi, bolimlar, bolimIshlari, holatMap: new Map(holatlar.map((s) => [s.qator_id, s])), summalar: bolimSummalari(rows, holatlar),
-    bajHajm: new Map(), ustamali: opts.ustamali, rows, qatorById: new Map(rows.map((r) => [r.id, r])), sahifalar: opts.sahifalar };
+    bajHajm: new Map(), ustamali: opts.ustamali, rows, qatorById: new Map(rows.map((r) => [r.id, r])), sahifalar: opts.sahifalar, naryadlar: opts.naryadlar, ustaBugun: opts.ustaBugun, loyihaFarq: opts.loyihaFarq ?? null, slichAsos: opts.slichAsos ?? null };
 }
 
 /** Pul yoki huquqiy ta'sirli amallar — «Bajarish»dan keyin ALOHIDA «Tasdiqlayman» kerak (ovoz bilan tasdiqlanmaydi). */
@@ -70,6 +78,24 @@ export function buyruqQoldiq(m: BuyruqMalumot, arg: string | null, limit = 25): 
     ...(arg ? [] : ['Obyekt jami:', summalarBloki(m, 0)])].join('\n');
 }
 
+/** lugat: oddiy so'z (g'isht, pol quyish, кирпич) → lug'at tushunchasi + shu so'z bilan obyektda topilgan qatorlar (qidir bilan bir xil lug'at). */
+export function buyruqLugat(m: BuyruqMalumot, arg: string | null): string {
+  const a = (arg ?? '').trim();
+  if (a.length < 2) return 'Lug‘at uchun so‘z kerak (masalan: g‘isht, pol quyish, кирпич).';
+  const f = qidiruvTayyorla(a);
+  const topildi = m.rows.filter((r) => (r.tur === 'bl') && f(`${r.kod ?? ''} ${r.nom ?? ''}`));
+  return [lugatTushuntir(a), topildi.length ? `Obyektda mos ish qatorlari: ${topildi.length}${topildi.length > 8 ? ' (birinchi 8 tasi)' : ''}:` : 'Obyektda mos ish qatori topilmadi.',
+    ...topildi.slice(0, 8).map((r) => `- ${qatorMatni(m, r)} → ${odamNomi(r, 'uz')}`)].join('\n');
+}
+
+/** kelishuv: kompaniya naryad tarixi va ustamali (m.ustamali — hisob-yadro) bilan. Tarix o'qilmasa — tarixsiz hisob. */
+async function kelishuvOqi(m: BuyruqMalumot, arg: string | null, yoz: Pick<BuyruqYoz, 'tarix'>): Promise<string> {
+  const ishlar = kelishuvIshlari(m.rows, arg);
+  const tarix = yoz.tarix && ishlar.length ? await yoz.tarix(ishlar.map((r) => r.id), ishlar.flatMap((r) => (r.kod ? [r.kod] : []))).catch(() => null) : null;
+  const ustamali = m.ustamali ? (x: number) => m.ustamali?.({ ustamasiz: x, kesim: katKesimgaQosh(bosKatKesim(), 'ЧЕЛ', x) }).ustamali ?? null : undefined;
+  return kelishuvMatni(m.rows, arg, { tarix, ustamali });
+}
+
 export function buyruqKontekst(m: BuyruqMalumot): string {
   const sahifalar = m.sahifalar?.length ? `\nSAHIFALAR (amal «och», qiymat = shu yo'l; foydalanuvchiga ochiq bo'limlar):\n${m.sahifalar.map((s) => `${s.yol} | ${s.nom}`).join('\n')}` : '';
   return faktKontekst(m).replace('Sahifa: Fakt jurnali', 'Sahifa: Buyruq satri (butun obyekt)') + sahifalar;
@@ -81,6 +107,14 @@ export function buyruqOqi(m: BuyruqMalumot, s: OqishSorovi): string {
     case 'holat': return faktHolat(m, s.arg);
     case 'narxsiz': return buyruqNarxsiz(m, s.arg);
     case 'qoldiq': return buyruqQoldiq(m, s.arg);
+    case 'loyiha_farq': return loyihaFarqMatni(m.loyihaFarq, s.arg);
+    case 'slichitelniy': return jarvisSlichitelniyMatni(m.slichAsos);
+    case 'asossiz': return jarvisAsossizMatni(m.slichAsos, s.arg);
+    case 'loyiha_tahrir': return tahrirMatni(m.loyihaFarq?.tahrir, s.arg);
+    case 'lugat': return buyruqLugat(m, s.arg);
+    case 'naryad': return naryadMatni(m.naryadlar, s.arg);
+    case 'kelishuv': return kelishuvMatni(m.rows, s.arg);
+    case 'mening_naryadim': return m.ustaBugun ? ustaJarvisMatni(m.ustaBugun.satrlar, m.ustaBugun.oyDaromad) : 'Naryad ma’lumoti o‘qilmadi (bu vosita faqat usta uchun yoki tarmoq/ruxsat yo‘q). «Bugun» sahifasini oching.';
     default: return `Noma’lum vosita: ${s.vosita}`;
   }
 }
@@ -178,6 +212,8 @@ export type BuyruqYoz = {
   yangila?: () => void;
   yangiOperationId: () => string;
   bugun?: () => string;
+  /** Naryad tarixi (kelishuv vositasi: koef va oldin to'langan narx). Yo'q — tarixsiz hisob. */
+  tarix?: (qatorIdlar: number[], kodlar: string[]) => Promise<TarixQator[] | null>;
 };
 
 const bugunSana = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
@@ -191,7 +227,7 @@ export function buyruqVositalar(getM: () => BuyruqMalumot, obyektId: number, yoz
   return {
     sahifa: 'buyruq',
     kontekst: () => buyruqKontekst(getM()),
-    oqi: (s) => buyruqOqi(getM(), s),
+    oqi: (s) => (s.vosita === 'kelishuv' ? kelishuvOqi(getM(), s.arg, yoz) : buyruqOqi(getM(), s)),
     tekshir: (a) => buyruqAmalTekshir(getM(), a),
     nomi: (a) => buyruqAmalNomi(getM(), a),
     pul: pulAmalmi,

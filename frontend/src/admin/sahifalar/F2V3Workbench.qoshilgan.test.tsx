@@ -88,6 +88,7 @@ describe('F2 import — siz qo‘shgan qatorlar boshqariladi, smeta qatorlari o�
     m.ochir.mockResolvedValue({ ok: false, code: 'F2_DA', xabar: '1 ta qator F2 aktida — avval F2 ni bekor qiling.' });
     const { onQoshilganOzgardi } = chiz();
     fireEvent.click(screen.getByRole('button', { name: 'O‘chirish: Qazib olish (karyer)' }));
+    await waitFor(() => expect(window.prompt).toHaveBeenCalledTimes(1));   // dialog asinxron: javob (Cancel) kelguncha kutamiz
     expect(m.ochir).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'O‘chirish: Qazib olish (karyer)' }));
     await waitFor(() => expect(m.ochir).toHaveBeenCalled());
@@ -100,8 +101,11 @@ describe('F2 import — siz qo‘shgan qatorlar boshqariladi, smeta qatorlari o�
     m.ochir.mockImplementation(()=>new Promise((resolve)=>{finish=resolve;}));
     const {onQoshilganOzgardi}=chiz();
     const button=screen.getByRole('button',{name:'O‘chirish: Qazib olish (karyer)'});
-    fireEvent.click(button); fireEvent.click(button);
+    fireEvent.click(button); fireEvent.click(button);   // dialog ochiq paytda ikkinchi bosish e'tiborsiz
+    await waitFor(() => expect(m.ochir).toHaveBeenCalledTimes(1));
+    fireEvent.click(button);                            // yozuv ketayotganda ham e'tiborsiz
     expect(m.ochir).toHaveBeenCalledTimes(1);
+    expect(window.prompt).toHaveBeenCalledTimes(1);
     finish({ok:true,ochirildi:1});
     await waitFor(()=>expect(onQoshilganOzgardi).toHaveBeenCalledTimes(1));
   });

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, configure, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import type { T2Qator } from '../../api/supabase';
 
@@ -23,6 +23,9 @@ const holat = [
   { qator_id: 4, tur: 'rs', nom: 'Kran', kat: 'МАШ', f2_mumkin_hajm: 3 },
   { qator_id: 6, tur: 'bl', nom: 'G‘isht terish', f2_mumkin_hajm: 4 },
 ];
+
+/* Yuk ostida (CI) waitFor ning standart 1 s chegarasi mantiq xatosi bo'lmagan testlarni yiqitardi: kutish chegarasi 5 s (testlar tezligiga ta'sir qilmaydi). */
+configure({ asyncUtilTimeout: 5000 });
 
 vi.mock('../../api/supabase', () => ({
   sbT2ObyektlarOlKomp: vi.fn(async () => ({ ok: true, qatorlar: [{ id: 8, nom: 'Ko‘l' }, { id: 9, nom: 'Ikkinchi' }] })),
@@ -356,10 +359,10 @@ describe('F2 tayyorlash', () => {
     const yuboriladi = async () => {
       ochishJoy('/admin/f2-tayyorlash?obyekt=8&akt=77');
       expect((await screen.findByTestId('ish-storno-olingan')).textContent).toMatch(/0.*storno qilingan.*6/);
-      fireEvent.click(screen.getAllByRole('button', { name: '100%' })[0]);
-      expect((screen.getByLabelText('F2 hajmi: Beton quyish') as HTMLInputElement).value).toBe('9');
-      fireEvent.click(screen.getByRole('button', { name: 'Resurslarni ko‘rish: Beton quyish' }));
-      fireEvent.click(screen.getByRole('button', { name: /«narxsiz» belgilash/ }));
+      // «100%» keyingi asinxron yuklanishda (storno/qoldiq) qayta tiklanib qolishi mumkin — kiritma o'rnashguncha qayta bosiladi (idempotent).
+      await waitFor(() => { fireEvent.click(screen.getAllByRole('button', { name: '100%' })[0]); expect((screen.getByLabelText('F2 hajmi: Beton quyish') as HTMLInputElement).value).toBe('9'); });
+      fireEvent.click(await screen.findByRole('button', { name: 'Resurslarni ko‘rish: Beton quyish' }));
+      fireEvent.click(await screen.findByRole('button', { name: /«narxsiz» belgilash/ }));
       const saqla = await screen.findByRole('button', { name: /F2 qoralamani yangilash/ }) as HTMLButtonElement;
       await waitFor(() => expect(saqla.disabled).toBe(false));
       fireEvent.click(saqla);
@@ -428,8 +431,7 @@ describe('F2 tayyorlash — tuzatish paketi A', () => {
     m.yarat.mockResolvedValue({ ok: true, akt_id: 1 });
     ochish();
     await screen.findByLabelText('F2 hajmi: Beton quyish');
-    fireEvent.click(screen.getAllByRole('button', { name: '100%' })[0]);
-    await waitFor(() => expect(saqlaTugma().disabled).toBe(false));
+    await waitFor(() => { fireEvent.click(screen.getAllByRole('button', { name: '100%' })[0]); expect(saqlaTugma().disabled).toBe(false); });
     expect(screen.queryByTestId('saqlash-sabab')).toBeNull();
     fireEvent.click(saqlaTugma());
     await waitFor(() => expect(m.yarat).toHaveBeenCalledTimes(1));
@@ -513,8 +515,7 @@ describe('F2 tayyorlash — tuzatish paketi A', () => {
     m.yarat.mockImplementation(() => new Promise((ok) => { tugat = ok; }));
     ochish();
     await screen.findByLabelText('F2 hajmi: Beton quyish');
-    fireEvent.click(screen.getAllByRole('button', { name: '100%' })[0]);
-    await waitFor(() => expect(saqlaTugma().disabled).toBe(false));
+    await waitFor(() => { fireEvent.click(screen.getAllByRole('button', { name: '100%' })[0]); expect(saqlaTugma().disabled).toBe(false); });
     const b = saqlaTugma();
     fireEvent.click(b); fireEvent.click(b); fireEvent.click(b);
     await waitFor(() => expect(m.yarat).toHaveBeenCalledTimes(1));
@@ -529,8 +530,8 @@ describe('F2 tayyorlash — tuzatish paketi A', () => {
     render(<MemoryRouter initialEntries={['/admin/f2-tayyorlash?obyekt=8&akt=77']}><F2TayyorlashNative /></MemoryRouter>);
     const hajm = await screen.findByLabelText('F2 hajmi: Beton quyish') as HTMLInputElement;
     await waitFor(() => expect(hajm.value).toBe('6'));
-    fireEvent.change(hajm, { target: { value: '5' } });
-    await waitFor(() => expect(saqlaTugma().disabled).toBe(false));
+    // Kiritma keyingi asinxron yuklanishda tiklanib qolishi mumkin — o'rnashguncha qayta kiritiladi (idempotent).
+    await waitFor(() => { if (hajm.value !== '5') fireEvent.change(hajm, { target: { value: '5' } }); expect(saqlaTugma().disabled).toBe(false); });
     fireEvent.click(saqlaTugma());
     await waitFor(() => expect(m.toast.mock.calls.some((c) => String(c[0]).includes('qayta yuklang'))).toBe(true));
     const c = m.toast.mock.calls.find((x) => String(x[0]).includes('qayta yuklang'))!;

@@ -1,5 +1,6 @@
 import { imzola, SESSIYA_MUDDAT_MS, type Rol } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
+import { type KirishEnv, ipBelgi, loginTelefonmi, sbRpc, telefonNorm, yoqilgan } from '../_shared/kirish-emailsiz';
 
 type Env = {
   GAS_URL: string; GAS_TOKEN: string;
@@ -44,6 +45,20 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (!login && req.isSuperadmin) login = 'Anvar';
 
   const parol = req.parol || '';
+
+  /* TELEFON + PAROL (20261217200000, KIRISH_TELEFON_YOQILGAN; sukut o'chiq). Login telefon ko'rinishida bo'lsa E.164 ga keltiriladi
+   * (+998…), xato urinishlar telefon/IP bo'yicha SQL da limitlanadi va GAS zaxira yo'li BUTUNLAY o'chiriladi (fail-closed):
+   * telefon loginlari faqat bazadagi bcrypt xesh bilan tekshiriladi. Email/oddiy login yo'li o'zgarmagan. */
+  const telefonYolak = login && parol && yoqilgan((ctx.env as KirishEnv).KIRISH_TELEFON_YOQILGAN) && loginTelefonmi(login) ? telefonNorm(login) : null;
+  let telIp: string | null = null;
+  const telXato = async () => { if (telefonYolak) await sbRpc(ctx.env as KirishEnv, 't2_kirish_tel_limit_v1', { p_telefon: telefonYolak, p_ip_belgi: telIp, p_xato: true }); };
+  if (telefonYolak) {
+    login = telefonYolak;
+    telIp = await ipBelgi(ctx.request);
+    const lim = await sbRpc<{ ok?: boolean; code?: string }>(ctx.env as KirishEnv, 't2_kirish_tel_limit_v1', { p_telefon: telefonYolak, p_ip_belgi: telIp, p_xato: false });
+    if (lim.data?.code === 'LIMIT') return Response.json({ ok: false, code: 'LIMIT', xato: 'Juda ko‘p urinish. 15 daqiqadan keyin qayta urinib ko‘ring.' }, { status: 429 });
+    if (lim.data?.ok !== true) return Response.json({ ok: false, code: 'CONFIG', xato: 'Server hozircha band. Birozdan so‘ng qayta urinib ko‘ring.' }, { status: 503 });
+  }
   if (!login || !parol) {
     return Response.json({ ok: false, xato: 'Логин ва паролни киритинг' }, { status: 400 });
   }
@@ -88,11 +103,18 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       if (supabaseNatija.login) login = supabaseNatija.login;
     } else {
       // Hash BOR, lekin mos kelmadi -- GAS'ga qaytish YO'Q (fail-closed).
+      await telXato();
       await new Promise(r => setTimeout(r, 800));
       return Response.json({ ok: false, xato: 'Логин ёки парол нотўғри' }, { status: 401 });
     }
   } else {
     // NO_PASSWORD_SET (yoki Supabase javob bermadi) -- ESKI GAS yo'li.
+    if (telefonYolak) {
+      // Telefon login: GAS zaxirasi YO'Q. Parolsiz (Telegram orqali ochilgan) yoki mavjud bo'lmagan hisob — bir xil rad.
+      await telXato();
+      await new Promise(r => setTimeout(r, 800));
+      return Response.json({ ok: false, xato: 'Логин ёки парол нотўғри' }, { status: 401 });
+    }
     viaGas = true;
     try {
       const r = await fetch(ctx.env.GAS_URL, {

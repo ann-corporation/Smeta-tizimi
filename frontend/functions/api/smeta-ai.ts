@@ -30,6 +30,8 @@
 import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { rpcData } from '../_shared/agent-rpc';
+import { xotiraOqi } from '../_shared/jarvis-xotira';
+import { kimMendan, kimPromptBloki } from '../../src/lib/yordamchi/kim';
 import { normaKalit, tajribaMatni, xotiraBloklari, type NormaTajriba, type XotiraDarajalari } from '../../src/lib/smeta-ai/tajriba';
 import { aiPublicError, type AiRequest, type AiResponse, type AiTier } from '../_shared/ai';
 import { aiHisobli, AiByudjetXatosi, type HisobEnv } from '../_shared/ai-hisobli';
@@ -178,15 +180,6 @@ export function narxSorovlariniTayyorla(raw: unknown): RoutedPriceRequest[] | nu
   return out;
 }
 
-/** System, company and personal memory; before the three-level RPC exists, the company memory from the agent environment. */
-async function xotiraOqi(env: Env, actor: number, kompaniyaId: number, superadmin = false): Promise<XotiraDarajalari & { superadmin?: boolean }> {
-  const bosh: XotiraDarajalari = { tizim: [], kompaniya: [], foydalanuvchi: [] };
-  const r = await rpcData(env, 't2_smeta_xotira_v1', { p_actor_id: actor, p_kompaniya_id: kompaniyaId }).catch(() => null);
-  const toza = (l: unknown) => (Array.isArray(l) ? l as Array<{ kalit: string; mazmun: string }> : []).filter(x => typeof x?.mazmun === 'string' && x.mazmun.trim() && x.mazmun !== '-');
-  if (r?.ok) return { tizim: toza(r.data.tizim), kompaniya: toza(r.data.kompaniya), foydalanuvchi: toza(r.data.foydalanuvchi), ...(superadmin ? { superadmin: r.data.superadmin === true } : {}) };
-  const m = await rpcData(env, 't2_agent_muhit_v1', { p_actor_id: actor, p_kompaniya_id: kompaniyaId, p_profil: null }).catch(() => null);
-  return m?.ok ? { ...bosh, kompaniya: toza(m.data.xotira).filter(x => x.kalit.startsWith('smeta.')) } : bosh;
-}
 /** Per work: the norms estimators put for similarly described works in uploaded estimates; empty when unavailable. */
 async function amaliyotOqi(env: Env, actor: number, kompaniyaId: number, matnlar: string[]): Promise<Array<Array<{ kod: string; nom: string; soni: number; koef: string | null }>>> {
   if (!matnlar.length) return [];
@@ -345,9 +338,11 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         ...(oxirgi ? ["DIQQAT: bu oxirgi aylanish — \"oqish\": [] qaytaring va bor ma'lumot bilan javob bering."] : []),
       ].join('\n\n');
       const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', `${sahifa}_yordam`, req);
-      const xotira = await xotiraOqi(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId);
+      const [xotira, men] = await Promise.all([xotiraOqi(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId), rpcData(ctx.env, 't2_men_v1', { p_actor_id: sess.foydalanuvchi_id }).catch(() => null)]);
+      /* KIM sessiyadan (t2_men_v1, aktor = sessiya): model «kim so'rayapti» deb so'ramaydi va matndagi da'voga ishonmaydi. */
+      const kim = men?.ok ? kimPromptBloki(kimMendan(men.data as never, kompaniyaId, { sahifa })) : '';
       const { r, obj, ogohlantirish } = await ishonchliChaqir(chaqir,
-        { system: tizim + xotiraBloklari(xotira), text, tier: 'reasoning' as AiTier, temperature: 0.2, maxOutputTokens: 5000, jsonSchema: sahifaSxema(sahifa) },
+        { system: (kim ? kim + '\n\n' : '') + tizim + xotiraBloklari(xotira), text, tier: 'reasoning' as AiTier, temperature: 0.2, maxOutputTokens: 5000, jsonSchema: sahifaSxema(sahifa) },
         ['javob', 'amallar', 'oqish']);
       const out = sahifaJavobiniTekshir(obj, sahifa);
       return Response.json({ ok: true, ...out, ...(oxirgi ? { oqish: [] } : {}), tushunildi: !!obj, model: r.model, versiya: SAHIFA_YORDAM_VERSIYA,

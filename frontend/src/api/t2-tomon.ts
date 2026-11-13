@@ -83,7 +83,9 @@ export const resurslarOl = (k: number) => tomonOqi<TomonResurs[]>('resurslar', k
 export const taqdimlarOl = (k: number, p: { yonalish?: 'kelgan' | 'yuborilgan'; holat?: string; aloqaId?: number } = {}) =>
   tomonOqi<TaqdimQisqa[]>('taqdimlar', k, { yonalish: p.yonalish, holat: p.holat, aloqa_id: p.aloqaId });
 export const taqdimTafsilotOl = (k: number, taqdimId: number) => tomonOqi<TaqdimTafsilot>('taqdim', k, { taqdim_id: taqdimId });
-export const zakazchikObyektlarOl = (k: number) => tomonOqi<ZakazchikObyekt[]>('obyektlar', k);
+/** Standart — tez ro'yxat (ustamali podvalsiz). tafsil (bitta obyekt) — har aktning ustamali podvali bilan to'liq (faqat obyekt sahifasi). */
+export const zakazchikObyektlarOl = (k: number, tafsil?: { obyektId: number }) =>
+  tomonOqi<ZakazchikObyekt[]>('obyektlar', k, tafsil ? { obyekt_id: tafsil.obyektId, ustama: 1 } : {});
 export const kompaniyaQidir = (k: number, inn: string) => tomonOqi<{ topildi: boolean; kompaniya?: { id: number; nom: string; inn: string } }>('qidir', k, { inn });
 
 export const taklifYubor = (k: number, p: { qabulKompaniyaId?: number | null; qabulInn?: string; qabulNom?: string; taklifRol: string; qabulRol: string; turi?: string; nom?: string; izoh?: string }) =>
@@ -195,3 +197,26 @@ export const qatorIzohYoz = async (k: number, p: { aloqaId?: number | null; aktQ
   izohXatosi(await tomonYoz<{ id: number; versiya: number }>('qator_izoh', k, { aloqa_id: p.aloqaId ?? null, manba_jadval: 't2_akt_qator', manba_id: p.aktQatorId, matn: p.matn, ota_izoh_id: p.otaIzohId ?? null, operation_id: yangiOperationId() }));
 export const qatorIzohHal = async (k: number, izohId: number, versiya: number, hal: boolean) =>
   izohXatosi(await tomonYoz<{ versiya: number }>('qator_izoh_hal', k, { izoh_id: izohId, versiya, hal, operation_id: yangiOperationId() }));
+
+/* ── Texnik nazorat = funksiya: buyurtmachi xodimi / vakil / ichki / mustaqil ── */
+export type NazoratBoglanishTuri = 'vakil' | 'xodim' | 'mustaqil';
+export type NazoratTayinlar = {
+  bergan: Array<{ id: number; vakil_kompaniya_id: number; vakil_nom: string; obyekt_id: number; obyekt_nom: string; resurslar: string[]; amallar: string[]; aloqa_id: number; boglanish_turi: 'vakil' }>;
+  olgan: Array<{ id: number; nomidan_kompaniya_id: number; nomidan_nom: string; obyekt_id: number; obyekt_nom: string; resurslar: string[]; amallar: string[]; boglanish_turi: 'vakil' }>;
+  xodimlar: Array<{ id: number; obyekt_id: number; obyekt_nom: string; foydalanuvchi_id: number; ism: string | null; boglanish_turi: 'xodim' }>;
+  kim_tekshiradi: Array<{ obyekt_id: number; obyekt_nom: string; nomidan_nom: string; vakil_nom: string; amallar: string[]; boglanish_turi: 'vakil' }>;
+};
+export type NazoratSozlama = { ichki_majburiy: boolean; texnik_bosqich: 'avto' | 'ha' | 'yoq' };
+export type IchkiNavbat = Array<{ id: number; resurs: string; manba_id: number; izoh: string | null; vaqt: string }>;
+export const nazoratTayinlarOl = (k: number) => tomonOqi<NazoratTayinlar>('nazorat_tayinlar', k);
+export const nazoratSozlamaOl = (k: number) => tomonOqi<NazoratSozlama>('nazorat_sozlama', k);
+export const ichkiNavbatOl = (k: number) => tomonOqi<IchkiNavbat>('ichki_navbat', k);
+export const nazoratSozlamaSaqla = (k: number, p: { ichkiMajburiy?: boolean; texnikBosqich?: 'avto' | 'ha' | 'yoq' }) =>
+  tomonYoz('nazorat_sozlama_saqla', k, { ichki_majburiy: p.ichkiMajburiy, texnik_bosqich: p.texnikBosqich, operation_id: yangiOperationId() });
+export const nazoratTayinla = (k: number, obyektId: number, foydalanuvchiId: number) => tomonYoz('tayinlash', k, { obyekt_id: obyektId, foydalanuvchi_id: foydalanuvchiId, operation_id: yangiOperationId() });
+export const nazoratTayinBekor = (k: number, id: number) => tomonYoz('tayinlash_bekor', k, { id });
+export const vakolatBer = (k: number, p: { aloqaId: number; obyektId: number; resurslar: string[]; amallar: string[] }) =>
+  tomonYoz('vakolat_ber', k, { aloqa_id: p.aloqaId, obyekt_id: p.obyektId, resurslar: p.resurslar, amallar: p.amallar, operation_id: yangiOperationId() });
+export const vakolatBekor = (k: number, id: number) => tomonYoz('vakolat_bekor', k, { id });
+export const ichkiQaror = (k: number, resurs: string, manbaId: number, qaror: 'qabul' | 'tuzatish' | 'rad', izoh?: string) =>
+  tomonYoz('ichki_qaror', k, { resurs, manba_id: manbaId, qaror, izoh: izoh || null, operation_id: yangiOperationId() });

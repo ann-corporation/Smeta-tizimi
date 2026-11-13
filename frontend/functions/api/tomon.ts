@@ -20,7 +20,7 @@ const OQISH: Record<string, string> = {
   aloqa: 't2_tomon_aloqa_tafsilot_v1',
   taqdimlar: 't2_tomon_taqdimlar_v1',
   taqdim: 't2_tomon_taqdim_tafsilot_v1',
-  obyektlar: 't2_zakazchik_obyektlar_v1',
+  obyektlar: 't2_zakazchik_obyektlar_v2',   // 20261217800000: tez ro'yxat; ustama=1&obyekt_id= — bitta obyekt uchun to'liq (podval bilan)
   qidir: 't2_tomon_kompaniya_qidir_v1',
   resurslar: 't2_tomon_resurslar_v1',
   murojaatlar: 't2_tomon_murojaat_royxat_v1',
@@ -44,6 +44,11 @@ const OQISH: Record<string, string> = {
   tekshiruv: 't2_nazorat_tekshiruv_tafsilot_v1',
   aosr_korik: 't2_nazorat_aosr_korik_v1',
   f2_tekshiruv: 't2_nazorat_f2_tekshiruv_v1',
+  /* Nazorat = funksiya (buyurtmachi xodimi / vakil / ichki / mustaqil) */
+  nazorat_sozlama: 't2_nazorat_sozlama_ol_v1',
+  nazorat_tayinlar: 't2_nazorat_tayinlar_v1',
+  nazorat_holat: 't2_nazorat_holat_v1',
+  ichki_navbat: 't2_nazorat_ichki_navbat_v1',
 };
 /** Yozish amallari: amal → RPC. */
 const YOZISH: Record<string, string> = {
@@ -78,6 +83,14 @@ const YOZISH: Record<string, string> = {
   sub_qaror: 't2_sub_akt_qaror_v1',
   tekshiruv_yoz: 't2_nazorat_tekshiruv_yoz_v1',
   aosr_foto: 't2_aosr_foto_biriktir_v1',
+  nazorat_sozlama_saqla: 't2_nazorat_sozlama_saqla_v1',
+  tayinlash: 't2_nazorat_tayinlash_v1',
+  tayinlash_bekor: 't2_nazorat_tayinlash_bekor_v1',
+  vakolat_ber: 't2_tomon_vakolat_ber_v1',
+  vakolat_bekor: 't2_tomon_vakolat_bekor_v1',
+  nazorat_qaror: 't2_nazorat_qaror_v1',
+  ichki_sorov: 't2_nazorat_ichki_sorov_v1',
+  ichki_qaror: 't2_nazorat_ichki_qaror_v1',
 };
 /** T5: obyektni havola bilan ulashishda ochiladigan resurslar (faqat ko'rish). */
 const ULASH_RESURSLARI = ['shartnoma_xulosa', 'f2'];
@@ -184,7 +197,36 @@ export function yozishYuki(amal: string, so: Yuk): Yuk | string {
     case 'qaror':
       if (!sonmi(so.taqdim_id) || !['korilmoqda', 'qabul', 'rad', 'tuzatish'].includes(String(so.qaror))) return 'taqdim_id va qaror (korilmoqda/qabul/rad/tuzatish) kerak';
       return { p_kompaniya_id, p_taqdim_id: son(so.taqdim_id), p_qaror: String(so.qaror), p_izoh: matn(so.izoh, 2000) };
-    case 'taqdim_qaytar':
+    case 'nazorat_sozlama_saqla':
+      if (typeof so.ichki_majburiy !== 'boolean' && so.ichki_majburiy != null) return 'ichki_majburiy true/false bo‘lishi kerak';
+      if (so.texnik_bosqich != null && !['avto', 'ha', 'yoq'].includes(String(so.texnik_bosqich))) return 'texnik_bosqich: avto | ha | yoq';
+      return { p_kompaniya_id, p_ichki_majburiy: typeof so.ichki_majburiy === 'boolean' ? so.ichki_majburiy : null, p_texnik_bosqich: so.texnik_bosqich == null ? null : String(so.texnik_bosqich), p_operation_id: opId(so.operation_id) };
+    case 'tayinlash':
+      if (!sonmi(so.obyekt_id) || !sonmi(so.foydalanuvchi_id)) return 'obyekt_id va foydalanuvchi_id kerak';
+      return { p_kompaniya_id, p_obyekt_id: son(so.obyekt_id), p_foydalanuvchi_id: son(so.foydalanuvchi_id), p_operation_id: opId(so.operation_id) };
+    case 'tayinlash_bekor':
+      if (!sonmi(so.id)) return 'id kerak';
+      return { p_kompaniya_id, p_id: son(so.id) };
+    case 'vakolat_ber': {
+      const res = Array.isArray(so.resurslar) ? (so.resurslar as unknown[]).map(String) : [];
+      const am = Array.isArray(so.amallar) ? (so.amallar as unknown[]).map(String) : [];
+      if (!sonmi(so.aloqa_id) || !sonmi(so.obyekt_id)) return 'aloqa_id va obyekt_id kerak';
+      if (res.length < 1 || res.length > 12 || !res.every((x) => KALIT.test(x))) return 'resurslar: 1–12 ta kalit';
+      if (am.length < 1 || !am.every((x) => ['korish', 'texnik_qaror', 'qaror'].includes(x))) return 'amallar: korish | texnik_qaror | qaror';
+      return { p_kompaniya_id, p_aloqa_id: son(so.aloqa_id), p_obyekt_id: son(so.obyekt_id), p_resurslar: res, p_amallar: am, p_operation_id: opId(so.operation_id) };
+    }
+    case 'vakolat_bekor':
+      if (!sonmi(so.id)) return 'id kerak';
+      return { p_kompaniya_id, p_id: son(so.id) };
+    case 'nazorat_qaror':
+      if (!sonmi(so.taqdim_id) || !['qabul', 'tuzatish', 'rad'].includes(String(so.qaror))) return 'taqdim_id va qaror (qabul/tuzatish/rad) kerak';
+      return { p_kompaniya_id, p_taqdim_id: son(so.taqdim_id), p_qaror: String(so.qaror), p_izoh: matn(so.izoh, 2000) };
+    case 'ichki_sorov':
+      if (!sonmi(so.manba_id) || !KALIT.test(String(so.resurs ?? ''))) return 'resurs va manba_id kerak';
+      return { p_kompaniya_id, p_resurs: String(so.resurs), p_manba_id: son(so.manba_id), p_izoh: matn(so.izoh, 500), p_operation_id: opId(so.operation_id) };
+    case 'ichki_qaror':
+      if (!sonmi(so.manba_id) || !KALIT.test(String(so.resurs ?? '')) || !['qabul', 'tuzatish', 'rad'].includes(String(so.qaror))) return 'resurs, manba_id va qaror (qabul/tuzatish/rad) kerak';
+      return { p_kompaniya_id, p_resurs: String(so.resurs), p_manba_id: son(so.manba_id), p_qaror: String(so.qaror), p_izoh: matn(so.izoh, 2000), p_operation_id: opId(so.operation_id) };    case 'taqdim_qaytar':
       if (!sonmi(so.taqdim_id)) return 'taqdim_id kerak';
       return { p_kompaniya_id, p_taqdim_id: son(so.taqdim_id), p_sabab: matn(so.sabab, 500) };
     case 'izoh': {
@@ -337,7 +379,8 @@ export function oqishYuki(bolim: string, q: URLSearchParams): Yuk | string {
   if (!sonmi(k)) return 'kompaniya_id kerak';
   const p_kompaniya_id = Number(k);
   switch (bolim) {
-    case 'aloqalar': case 'obyektlar': case 'resurslar': case 'murojaat_turlari': case 'imzochi_tarix': case 'bugun': return { p_kompaniya_id };
+    case 'obyektlar': return { p_kompaniya_id, p_obyekt_id: ixtSon(q.get('obyekt_id')), p_ustama: q.get('ustama') === '1' && sonmi(q.get('obyekt_id')) };
+    case 'aloqalar': case 'resurslar': case 'murojaat_turlari': case 'imzochi_tarix': case 'bugun': return { p_kompaniya_id };
     case 'tolovlar': {
       const y = q.get('yonalish'), h = q.get('holat');
       return { p_kompaniya_id, p_yonalish: y === 'menga' || y === 'mendan' ? y : null, p_holat: h && /^[a-z_]{3,20}$/.test(h) ? h : null, p_limit: ixtSon(q.get('limit')) ?? 100 };
@@ -347,7 +390,8 @@ export function oqishYuki(bolim: string, q: URLSearchParams): Yuk | string {
       const y = q.get('yonalish'), h = q.get('holat');
       return { p_kompaniya_id, p_yonalish: y === 'menga' || y === 'mendan' ? y : null, p_holat: h && /^[a-z_]{3,20}$/.test(h) ? h : null, p_aloqa_id: ixtSon(q.get('aloqa_id')), p_limit: ixtSon(q.get('limit')) ?? 100 };
     }
-    case 'nazorat_uy': return { p_kompaniya_id };
+    case 'nazorat_uy': case 'nazorat_sozlama': case 'nazorat_tayinlar': case 'ichki_navbat': return { p_kompaniya_id };
+    case 'nazorat_holat': return sonmi(q.get('taqdim_id')) ? { p_kompaniya_id, p_taqdim_id: Number(q.get('taqdim_id')) } : 'taqdim_id kerak';
     case 'tekshiruvlar': {
       const sana = (v: string | null) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
       return { p_kompaniya_id, p_dan: sana(q.get('dan')), p_gacha: sana(q.get('gacha')), p_obyekt_id: ixtSon(q.get('obyekt_id')), p_limit: ixtSon(q.get('limit')) ?? 200 };

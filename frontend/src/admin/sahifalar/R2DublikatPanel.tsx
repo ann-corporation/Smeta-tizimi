@@ -1,3 +1,4 @@
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { useState } from 'react';
 import { t } from '../../i18n/til';
 import { hajmMatni } from '../../lib/fayl-daraxt';
@@ -49,7 +50,7 @@ export function R2DublikatPanel() {
   };
 
   const yetimOchir = async () => {
-    if (!window.confirm(t('Hech bir hujjat ishlatmaydigan eski R2 obyektlari butunlay o‘chiriladi. Bu amalni qaytarib bo‘lmaydi. Davom etilsinmi?'))) return;
+    if (!(await tasdiqSora({ matn: 'Hech bir hujjat ishlatmaydigan eski R2 obyektlari butunlay o‘chiriladi. Bu amalni qaytarib bo‘lmaydi. Davom etilsinmi?', xavfli: true, tasdiqMatni: 'O‘chirish' }))) return;
     setXabar(null);
     let soni = 0, bayt = 0;
     try {

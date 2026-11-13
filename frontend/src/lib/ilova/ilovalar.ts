@@ -59,7 +59,7 @@ export const AMAL_ILOVA: Readonly<Record<string, IlovaKod>> = {
   tolov_yoz: 'moliya', tolov_tahrir: 'moliya', tolov_ochir: 'moliya', tolov_taqsimot_saqla_v1: 'moliya',
   xarajat_yoz: 'moliya', xarajat_tahrir: 'moliya', xarajat_ochir: 'moliya', xarajat_kirit_v1: 'moliya', xarajat_bekor_v1: 'moliya',
   qarzdorlik_saqla_v1: 'moliya', qarzdorlik_import_v1: 'moliya', sverka_yozuv_v1: 'moliya', sverka_import_v1: 'moliya',
-  moliya_qolda_yoz_v1: 'moliya', faktura_yoz: 'moliya',
+  moliya_qolda_yoz_v1: 'moliya', solishtiruv_tushuntir_v1: 'moliya', solishtiruv_yangila_v1: 'moliya', faktura_yoz: 'moliya',
   // Xarid va tender
   birja_rfq_yarat: 'xarid', birja_taklif_ber: 'xarid',
   // Logistika va ombor
@@ -68,12 +68,12 @@ export const AMAL_ILOVA: Readonly<Record<string, IlovaKod>> = {
   kadr_mustaqil_yarat: 'hr', texnika_mustaqil_yarat: 'hr',
   hr_xodim_saqla_v1: 'hr', hr_sxema_saqla_v1: 'hr', hr_kalendar_saqla_v1: 'hr', hr_tabel_saqla_v1: 'hr', hr_tuzatma_saqla_v1: 'hr', hr_tuzatma_qaror_v1: 'hr', hr_oylik_v1: 'hr', hr_kpi_qoida_saqla_v1: 'hr',
   // Buxgalteriya
-  bux_boshlash_v1: 'moliya', bux_hisob_saqla_v1: 'moliya', bux_moslik_saqla_v1: 'moliya', bux_avto_v1: 'moliya', bux_qolda_v1: 'moliya', bux_storno_v1: 'moliya', bux_davr_v1: 'moliya', bux_shablon_tanla_v1: 'moliya', bux_davr_blok_v1: 'moliya', bux_hisob_tasdiq_v1: 'moliya',
+  bux_boshlash_v1: 'moliya', bux_hisob_saqla_v1: 'moliya', bux_moslik_saqla_v1: 'moliya', bux_avto_v1: 'moliya', bux_qolda_v1: 'moliya', bux_storno_v1: 'moliya', bux_davr_v1: 'moliya', bux_shablon_tanla_v1: 'moliya', bux_davr_blok_v1: 'moliya', bux_hisob_tasdiq_v1: 'moliya', bux_saldo_import_v1: 'moliya', bux_saldo_bekor_v1: 'moliya', bux_tannarx_v1: 'moliya', bux_hisobot_saqla_v1: 'moliya', bux_bank_yuklash_v1: 'moliya', bux_bank_qabul_v1: 'moliya', bux_kassa_yoz_v1: 'moliya', bux_kassa_bekor_v1: 'moliya', bux_taqsim_saqla_v1: 'moliya',
   bux_bank_import_v1: 'moliya', bux_tashqi_v1: 'moliya',
   // Yuk birjasi
   yb_yuk_saqla_v1: 'logistika', yb_yuk_elon_v1: 'logistika', yb_yuk_javob_v1: 'logistika', yb_yuk_bekor_v1: 'logistika', yb_yuk_tasdiq_v1: 'logistika', yb_yuk_baho_v1: 'logistika', yb_yuk_nizo_v1: 'logistika',
   // Hujjat aylanishi (AOSR, laboratoriya)
-  aosr_yoz: 'hujjat', aosr_yoz_v2: 'hujjat', aosr_bekor: 'hujjat', aosr_bog_saqla: 'hujjat', aosr_bog_ochir: 'hujjat',
+  aosr_yoz: 'hujjat', aosr_yoz_v2: 'hujjat', aosr_bekor: 'hujjat', aosr_bog_saqla: 'hujjat', aosr_bog_ochir: 'hujjat', aosr_bog_hajm_v1: 'hujjat', aosr_asos_qoralama_v1: 'hujjat',
   lab_protokol_yoz: 'hujjat', lab_protokol_bekor: 'hujjat', lab_protokol_bog_saqla: 'hujjat',
 };
 
@@ -92,7 +92,7 @@ export const SORO_ILOVA: Readonly<Record<string, IlovaKod>> = {
   qarzdorlik_royxat_v1: 'moliya', qarz_svod_v1: 'moliya',
   sklad_kirim_royxat_v1: 'logistika',
   hr_xodimlar_v1: 'hr', hr_oy_v1: 'hr', hr_kpi_v1: 'hr', hr_oylik_buxgalteriya_v1: 'hr', hr_men_v1: 'hr', hr_qoida_v1: 'hr',
-  bux_holat_v1: 'moliya', bux_jurnal_v1: 'moliya', bux_osv_v1: 'moliya', bux_kontragent_v1: 'moliya', bux_nds_v1: 'moliya', bux_tolov_v1: 'moliya', bux_kartochka_v1: 'moliya', bux_sozlama_v1: 'moliya',
+  bux_holat_v1: 'moliya', bux_jurnal_v1: 'moliya', bux_osv_v1: 'moliya', bux_kontragent_v1: 'moliya', bux_nds_v1: 'moliya', bux_tolov_v1: 'moliya', bux_kartochka_v1: 'moliya', bux_pul_korinish_v1: 'moliya', bux_sverka_v1: 'moliya', bux_bank_taklif_v1: 'moliya', bux_kassa_kitob_v1: 'moliya', bux_sverka_tomonlar_v1: 'moliya', bux_hisobot_v1: 'moliya', bux_sozlama_v1: 'moliya',
   yb_ol_v1: 'logistika',
 };
 

@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, configure, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { KompaniyaSozlamaPanel } from './KompaniyaSozlamaPanel';
 
+// CI yuklamasida (parallel fayllar) asinxron kutish 1 s yetmay qoladi — sinov vaqtga emas, holatga bog'liq bo'lsin.
+configure({ asyncUtilTimeout: 5000 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 const get = (o: Record<string, unknown> = {}) => ({ ok: true, kompaniya_id: 7, mavqe: 'pudratchi', f2_tasdiq_rejimi: 'shaxsiy', sozlamalar: {}, yozish_mumkin: true, ...o });

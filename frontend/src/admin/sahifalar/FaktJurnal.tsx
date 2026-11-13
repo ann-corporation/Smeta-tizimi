@@ -1,4 +1,4 @@
-import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { matnSora, tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { useCallback, useEffect, useMemo, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { Ban, CheckCircle2, ChevronDown, ChevronRight, Cpu, MinusCircle, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Repeat2, RotateCcw, Save, Search, Trash2, X } from 'lucide-react';
 import { chiqarilganmi, chiqarishRuxsat, MEHNAT_ZAMENA_YOQ, mehnatResursmi } from '../../lib/resurs-amal';
@@ -130,6 +130,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   const ishAlmashtir = (id: number) => setTeskari((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const [yopiqBolim, setYopiqBolim] = useState<Set<number>>(new Set());
   const [saqlangan, setSaqlangan] = useState<Set<number>>(new Set());
+  /* «Saqlandi» belgisini olib tashlovchi taymer: unmount da bekor qilinadi (aks holda kech setState teardown dan keyin ishlaydi). */
+  const saqlanganTaymer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (saqlanganTaymer.current) clearTimeout(saqlanganTaymer.current); }, []);
   const [modal, setModal] = useState<{ rejim: AbcRejim; tahrir?: AbcTahrir | null; normativId?: string | null } | null>(null);
   const rowById = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows]);
   /**
@@ -175,7 +178,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
     } else toast('Bu resurs qo‘shilgan ish ichida — ishning o‘zini tahrirlang.', 'warn');
   };
   const ochir = async (q: JurnalQator) => {
-    const sabab = window.prompt(`«${q.nom}» o‘chirilsinmi? ${q.zamena ? 'Asl qator qaytadi.' : 'Ish va uning resurslari, fakti o‘chiriladi (arxivda qoladi).'}\nSabab (ixtiyoriy):`, '');
+    const sabab = await matnSora({ matn: `«${q.nom}» o‘chirilsinmi? ${q.zamena ? 'Asl qator qaytadi.' : 'Ish va uning resurslari, fakti o‘chiriladi (arxivda qoladi).'}`, yorliq: 'Sabab (ixtiyoriy):', tasdiqMatni: 'O‘chirish', xavfli: true });
     if (sabab === null) return;
     const r = await ishAbcOchir({ kompaniyaId, obyektId, qatorId: q.id, sabab: sabab || undefined, operationId: yangiOperationId() });
     if (!r.ok) { toast(abcXato(r), 'danger'); return; }
@@ -459,7 +462,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   const { band, saqla, saqlaKlav, ishda: ishdaRef } = useFaktSaqlash({
     obyektId, sana, kiritmalar, paket, faktlar, smetalar, ozgarishSoni, holatniYangila, tozala, qoralamaYozDarhol, qoralamaTozala, fokusgaOt: (id) => fokusgaOt(id),
     qatorOl: (id) => barchaById.get(id), izoh: `Fakt jurnali: ${paket.qatorlar.length} qator`,
-    onSaqlandi: (ids) => { setSaqlangan(ids); setTimeout(() => setSaqlangan(new Set()), 2500); },
+    onSaqlandi: (ids) => { setSaqlangan(ids); if (saqlanganTaymer.current) clearTimeout(saqlanganTaymer.current); saqlanganTaymer.current = setTimeout(() => setSaqlangan(new Set()), 2500); },
   });
   // Saqlanmagan kiritma bor — yangi versiya chiqsa sahifa avtomatik yangilanmaydi (banner qoralama saqlanganini aytadi).
   useSaqlanmaganHimoya('fakt-jurnal', ozgarishSoni);

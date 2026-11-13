@@ -23,6 +23,8 @@
  * Bu sahifa hozircha FAQAT O'QIYDI. F2 import yo'li keyingi qadam.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { matnSora } from '../umumiy/ui/Tasdiq';
+import { f2BekorXatoMatni } from '../lib/f2-bekor';
 import {
   AlertTriangle, CheckCircle, RefreshCw, FileText, TrendingUp, Search,
   Plus, Ban, XCircle,
@@ -130,10 +132,11 @@ export default function TestF2() {
   };
 
   const bekorQil = async (a: Reestr) => {
-    const sabab = window.prompt('Bekor qilish sababi:');
+    const sabab = await matnSora({ matn: 'Bekor qilish sababi:', tasdiqMatni: 'Bekor qilish', xavfli: true });
     if (sabab == null) return;
     const r = await sbT2AktBekor(a.id, sabab, a.versiya);
-    toast(r.ok ? 'Bekor qilindi' : (r.xabar || r.error || 'Bekor qilinmadi'),
+    /* Tasdiqlangan F2 — shlyuz lifecycle yo'lida bekor qiladi; bog'liqlik (Forma 3 / storno / muhr) bo'lsa aniq ro'yxat ko'rsatiladi. */
+    toast(r.ok ? 'Bekor qilindi' : f2BekorXatoMatni(r, 'Bekor qilinmadi'),
           r.ok ? 'ok' : 'danger', undefined, 9000);
     yukla();
   };

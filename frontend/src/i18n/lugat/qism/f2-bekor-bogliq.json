@@ -1,0 +1,10 @@
+{
+  "Forma 3 (№ {n}) — avval shu Forma 3 ni bekor qiling": { "ru": "Форма 3 (№ {n}) — сначала отмените эту Форму 3", "en": "Form 3 (No. {n}) — cancel this Form 3 first" },
+  "storno / pereraschet F2 (akt № {n}) — avval ularni bekor qiling": { "ru": "сторно / пересчёт Ф-2 (акт № {n}) — сначала отмените их", "en": "reversal / recalculation F2 (act No. {n}) — cancel them first" },
+  "davr muhrlangan — avval davrni qayta oching": { "ru": "период опечатан — сначала снова откройте период", "en": "the period is sealed — reopen the period first" },
+  "Bu F2 ni bekor qilib bo‘lmaydi: unga bog‘liq hujjatlar bor.": { "ru": "Эту Ф-2 нельзя отменить: к ней привязаны документы.", "en": "This F2 cannot be cancelled: documents depend on it." },
+  "F2 boshqa oynada o‘zgargan — sahifani yangilab qayta urining.": { "ru": "Ф-2 изменена в другом окне — обновите страницу и повторите.", "en": "The F2 was changed in another window — refresh the page and try again." },
+  "Bekor qilish sababini yozing.": { "ru": "Укажите причину отмены.", "en": "Enter the reason for cancellation." },
+  "Bu holatdagi F2 ni bekor qilib bo‘lmaydi (yangi versiya bilan almashtirilgan bo‘lishi mumkin).": { "ru": "Ф-2 в этом состоянии отменить нельзя (возможно, она заменена новой версией).", "en": "An F2 in this state cannot be cancelled (it may have been replaced by a newer version)." },
+  "Tasdiqlangan F2 ni bekor qilish uchun F2 tasdiqlash va bekor qilish huquqi kerak.": { "ru": "Для отмены утверждённой Ф-2 нужны права на утверждение и отмену Ф-2.", "en": "Cancelling an approved F2 requires both F2 approval and cancellation permissions." }
+}

@@ -9,8 +9,19 @@ import { t } from '../../../i18n/til';
 import { yangiOperationId, type T2Qator, type T2QatorHolat } from '../../../api/supabase';
 import { sbFaktYoz } from '../../../api/t2-fakt';
 import { narxProtokolYarat } from '../../../api/t2-narx-protokol';
+import { lugatKompaniyaOl, naryadlarOl, tarixOl } from '../../../api/t2-naryad';
+import type { NaryadQisqa } from '../../../lib/naryad';
+import { ustaNaryadlarOl } from '../../../api/t2-usta';
+import { hrMenOl } from '../../../api/t2-hr';
+import { ustaNaryadSatrlari, type NaryadSatr } from '../../../lib/usta/naryad-ish';
+import { useKompaniya } from '../../kontekst/KompaniyaKontekst';
+import { lugatOrnat } from '../../../lib/qurilish-lugat';
 import { sbArxivla } from '../../../api/t2-arxiv';
 import { daraxtVaHolatOl } from '../../../lib/oylik-hujjat/ostatka-slichitelniy';
+import { loyihaFarqMalumotOl } from '../../../api/t2-loyiha-smeta';
+import type { LoyihaFarqMalumot } from '../../../lib/loyiha-smeta/jarvis';
+import { slichitelniyAsosOl } from '../../../api/t2-slichitelniy-asos';
+import type { AsosJavob } from '../../../lib/slichitelniy-asos';
 import { amalDelta, buyruqMalumotQur, buyruqVositalar, type BuyruqMalumot, type BuyruqYoz, type OchiqSahifa, type YozNatija } from '../../../lib/ai-yordamchi/buyruq-vositalar';
 import type { SahifaAmal } from '../../../lib/ai-yordamchi/protokol';
 import type { SahifaVositalar } from '../../../lib/ai-yordamchi/sikl';
@@ -75,15 +86,55 @@ export function useObyektMotor({ kompaniyaId, obyektId, obyektNomi, faol, sahifa
     return () => { tirik = false; };
   }, [yoqilgan, obyektId, versiya]);
 
+  /* Naryadlar (Jarvis «naryad» vositasi) va kompaniya lug'ati («lugat» vositasi, qidiruv) — xato bo'lsa jim: umumiy lug'at ishlayveradi. */
+  const [naryadlar, setNaryadlar] = useState<NaryadQisqa[] | undefined>(undefined);
+  useEffect(() => {
+    if (!yoqilgan || obyektId == null || kompaniyaId == null) return undefined;
+    let tirik = true;
+    void naryadlarOl(kompaniyaId, { obyektId, limit: 60 }).then((r) => { if (tirik) setNaryadlar(r ?? undefined); }).catch(() => null);
+    void lugatKompaniyaOl(kompaniyaId).then((r) => { if (r) lugatOrnat(r.qiymat); }).catch(() => null);
+    return () => { tirik = false; };
+  }, [yoqilgan, obyektId, kompaniyaId, versiya]);
+
+  /* Jarvis «mening_naryadim»: faqat USTA (self.work.write, fakt.write yo'q) uchun — o'z naryadlari + oy daromadi HR «Mening oyligim» dan (ikkinchi hisob yo'q). */
+  const { joriy: kk, superadmin: sa } = useKompaniya() as { joriy?: { permissions?: string[] } | null; superadmin?: boolean };
+  const ustaRejim = !sa && !!kk?.permissions?.includes('self.work.write') && !kk?.permissions?.includes('fakt.write');
+  const [ustaBugun, setUstaBugun] = useState<{ satrlar: NaryadSatr[]; oyDaromad: number | null } | undefined>(undefined);
+  useEffect(() => {
+    if (!yoqilgan || !ustaRejim || obyektId == null || kompaniyaId == null) return undefined;
+    let tirik = true;
+    void Promise.all([ustaNaryadlarOl(kompaniyaId, obyektId), hrMenOl(kompaniyaId)]).then(([nar, men]) => {
+      if (!tirik || !nar) return;
+      setUstaBugun({ satrlar: ustaNaryadSatrlari(nar), oyDaromad: 'qator' in men && men.qator ? (men.qator.naryad_summa ?? null) : null });
+    }).catch(() => null);
+    return () => { tirik = false; };
+  }, [yoqilgan, ustaRejim, obyektId, kompaniyaId, versiya]);
+
+  const [loyihaFarq, setLoyihaFarq] = useState<LoyihaFarqMalumot | null>(null);
+  useEffect(() => {
+    if (!yoqilgan || obyektId == null || kompaniyaId == null) return undefined;
+    let tirik = true;
+    void loyihaFarqMalumotOl(kompaniyaId, obyektId).then((r) => { if (tirik) setLoyihaFarq(r); }).catch(() => { if (tirik) setLoyihaFarq(null); });
+    return () => { tirik = false; };
+  }, [yoqilgan, obyektId, kompaniyaId, versiya]);
+
+  const [slichAsos, setSlichAsos] = useState<AsosJavob | null>(null);
+  useEffect(() => {
+    if (!yoqilgan || obyektId == null || kompaniyaId == null) return undefined;
+    let tirik = true;
+    void slichitelniyAsosOl(kompaniyaId, obyektId, 60).then((r) => { if (tirik) setSlichAsos(r); }).catch(() => { if (tirik) setSlichAsos(null); });
+    return () => { tirik = false; };
+  }, [yoqilgan, obyektId, kompaniyaId]); // faqat obyekt almashganda (og'ir so'rov: har fakt yozuvida qayta o'qilmaydi)
+
   const m: BuyruqMalumot | null = useMemo(
-    () => (data && data.obyektId === obyektId ? buyruqMalumotQur(data.rows, data.states, { obyektNomi, sahifalar, ustamali: (s) => ustamaliRef.current(s) }) : null),
-    [data, obyektId, obyektNomi, sahifalar]);
+    () => (data && data.obyektId === obyektId ? buyruqMalumotQur(data.rows, data.states, { obyektNomi, sahifalar, loyihaFarq, slichAsos, ustamali: (s) => ustamaliRef.current(s), naryadlar, ustaBugun }) : null),
+    [data, obyektId, obyektNomi, sahifalar, naryadlar, ustaBugun, loyihaFarq, slichAsos]);
   const mRef = useRef<BuyruqMalumot | null>(m); mRef.current = m;
   const bos = useMemo(() => buyruqMalumotQur([], []), []);
   const yangila = useCallback(() => setVersiya((v) => v + 1), []);
 
   const vositalar = useMemo(() => (obyektId == null ? null : buyruqVositalar(() => mRef.current ?? bos, obyektId, {
-    ...deps.yoz, yangila,
+    ...deps.yoz, yangila, tarix: kompaniyaId != null ? (ids, kodlar) => tarixOl(kompaniyaId, ids, kodlar) : undefined,
     korsat: (qatorId) => {
       const r = mRef.current?.qatorById.get(qatorId);
       toast(`[#${qatorId}] ${r?.kod ?? ''} ${r?.nom ?? ''}`.trim(), 'ok');
@@ -91,7 +142,7 @@ export function useObyektMotor({ kompaniyaId, obyektId, obyektNomi, faol, sahifa
     },
     och: (yol) => ochRef.current(yol),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  })), [obyektId, bos, yangila]);
+  })), [obyektId, kompaniyaId, bos, yangila]);
 
   const qoshimcha = useCallback((a: SahifaAmal): ReactNode => {
     const cur = mRef.current;

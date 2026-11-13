@@ -77,6 +77,17 @@
             ],
             "modul": "module.erp",
             "scope": "COMPANY_SCOPED"
+          },
+          {
+            "yol": "/admin/grafik",
+            "ilova": "pto",
+            "nom": "Ish grafigi va pul oqimi",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write"
+            ],
+            "scope": "COMPANY_SCOPED"
           }
         ]
       }
@@ -195,6 +206,21 @@
             "modul": "module.narx"
           }
         ]
+      },
+      {
+        "nom": "Loyiha va smeta",
+        "ikonka": "FileStack",
+        "sahifalar": [
+          {
+            "yol": "/admin/loyiha-smeta",
+            "ilova": "pto",
+            "nom": "Loyiha ↔ Smeta ↔ Fakt",
+            "ruxsat": [
+              "control.company.read",
+              "smeta.write"
+            ]
+          }
+        ]
       }
     ]
   },
@@ -232,17 +258,16 @@
         ]
       },
       {
-        "nom": "Bugun (telefon)",
-        "ikonka": "HardHat",
+        "nom": "Naryad (brigada)",
+        "ikonka": "ClipboardList",
         "sahifalar": [
           {
-            "yol": "/admin/bugun",
+            "yol": "/admin/naryad",
             "ilova": "ff",
-            "nom": "Bugun (usta, telefon)",
+            "nom": "Naryad (brigada topshirig‘i)",
             "ruxsat": [
               "control.company.read",
-              "fakt.write",
-              "fakt.read+self.work.write"
+              "smeta.write"
             ]
           }
         ]
@@ -396,6 +421,22 @@
             ],
             "modul": "module.loyiha",
             "qoshimcha": true
+          }
+        ]
+      },
+      {
+        "nom": "Solishtiruv (farqlar)",
+        "ikonka": "ShieldCheck",
+        "sahifalar": [
+          {
+            "yol": "/admin/solishtiruv",
+            "ilova": "moliya",
+            "nom": "Solishtiruv (qayerda farq bor)",
+            "ruxsat": [
+              "control.company.read",
+              "financial.write"
+            ],
+            "modul": "module.erp"
           }
         ]
       }
@@ -553,18 +594,6 @@
             "qoshimcha": true
           },
           {
-            "yol": "/admin/subpudrat",
-            "ilova": "hujjat",
-            "nom": "Subpudrat boshqaruvi",
-            "ruxsat": [
-              "control.company.read",
-              "f2.prepare",
-              "project.write",
-              "object.write"
-            ],
-            "scope": "OBJECT_SCOPED"
-          },
-          {
             "yol": "/admin/taqdimlar",
             "ilova": "hujjat",
             "nom": "Tomonlar hujjatlari",
@@ -601,7 +630,13 @@
             ],
             "modul": "module.loyiha",
             "qoshimcha": true
-          },
+          }
+        ]
+      },
+      {
+        "nom": "Hujjat aylanishi",
+        "ikonka": "ClipboardList",
+        "sahifalar": [
           {
             "yol": "/admin/hujjat-aylanish",
             "ilova": "hujjat",
@@ -613,6 +648,24 @@
             ],
             "modul": "module.loyiha",
             "qoshimcha": true
+          }
+        ]
+      },
+      {
+        "nom": "Subpudrat",
+        "ikonka": "Users",
+        "sahifalar": [
+          {
+            "yol": "/admin/subpudrat",
+            "ilova": "hujjat",
+            "nom": "Subpudrat boshqaruvi",
+            "ruxsat": [
+              "control.company.read",
+              "f2.prepare",
+              "project.write",
+              "object.write"
+            ],
+            "scope": "OBJECT_SCOPED"
           },
           {
             "yol": "/admin/subpudratchi",
@@ -708,6 +761,79 @@
               "project.write",
               "object.write",
               "procurement.read"
+            ],
+            "modul": "module.erp",
+            "qoshimcha": true
+          },
+          {
+            "yol": "/admin/yuk-chaqirish",
+            "ilova": "logistika",
+            "nom": "Yuk chaqirish",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "procurement.read"
+            ],
+            "modul": "module.erp",
+            "qoshimcha": true
+          }
+        ]
+      },
+      {
+        "nom": "Bozor",
+        "ikonka": "ClipboardList",
+        "sahifalar": [
+          {
+            "yol": "/admin/bozor-sorov",
+            "ilova": "xarid",
+            "nom": "Bozordan narx so‘rash",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "procurement.read",
+              "procurement.write"
+            ],
+            "modul": "module.erp",
+            "qoshimcha": true
+          },
+          {
+            "yol": "/admin/bozor-kabinet",
+            "ilova": "xarid",
+            "nom": "Bozor kabineti (sotuvchi)",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "procurement.read"
+            ],
+            "modul": "module.erp",
+            "qoshimcha": true
+          },
+          {
+            "yol": "/admin/bozor-moderatsiya",
+            "ilova": "xarid",
+            "nom": "Bozor moderatsiyasi",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "procurement.read"
+            ],
+            "modul": "module.erp",
+            "qoshimcha": true
+          },
+          {
+            "yol": "/admin/tender-ochiq",
+            "ilova": "xarid",
+            "nom": "Ochiq tender (lot, taqqos, bayonnoma)",
+            "ruxsat": [
+              "control.company.read",
+              "project.write",
+              "object.write",
+              "procurement.read",
+              "procurement.write"
             ],
             "modul": "module.erp",
             "qoshimcha": true
@@ -904,6 +1030,21 @@
             ]
           }
         ]
+      },
+      {
+        "nom": "Ruxsatlar jadvali",
+        "ikonka": "ShieldCheck",
+        "sahifalar": [
+          {
+            "yol": "/admin/ruxsatlar-jadvali",
+            "ilova": "yadro",
+            "nom": "Ruxsatlar jadvali",
+            "ruxsat": [
+              "control.company.read"
+            ],
+            "scope": "COMPANY_SCOPED"
+          }
+        ]
       }
     ]
   },
@@ -914,6 +1055,18 @@
     "qatlam": "shaxsiy",
     "bandlar": [
       {
+        "nom": "Bugun",
+        "ikonka": "LayoutDashboard",
+        "sahifalar": [
+          {
+            "yol": "/admin/bugun",
+            "ilova": "yadro",
+            "nom": "Bugun",
+            "ruxsat": []
+          }
+        ]
+      },
+      {
         "nom": "Ish joylarim",
         "ikonka": "LayoutDashboard",
         "sahifalar": [
@@ -921,6 +1074,18 @@
             "yol": "/admin/ish-joylarim",
             "ilova": "yadro",
             "nom": "Ish joylarim",
+            "ruxsat": []
+          }
+        ]
+      },
+      {
+        "nom": "Kurs (o‘rganish)",
+        "ikonka": "FileText",
+        "sahifalar": [
+          {
+            "yol": "/admin/kurs",
+            "ilova": "yadro",
+            "nom": "Kurs (o‘rganish)",
             "ruxsat": []
           }
         ]
@@ -947,6 +1112,14 @@
             "ilova": "yadro",
             "nom": "Mening xizmatlarim",
             "ruxsat": []
+          },
+          {
+            "yol": "/admin/haydovchi",
+            "ilova": "logistika",
+            "nom": "Haydovchi rejimi",
+            "ruxsat": [],
+            "modul": "module.erp",
+            "qoshimcha": true
           }
         ]
       },
@@ -958,6 +1131,30 @@
             "yol": "/admin/akkaunt",
             "ilova": "yadro",
             "nom": "Akkaunt markazi",
+            "ruxsat": []
+          }
+        ]
+      },
+      {
+        "nom": "Mening imzom",
+        "ikonka": "FileText",
+        "sahifalar": [
+          {
+            "yol": "/admin/imzo",
+            "ilova": "yadro",
+            "nom": "Mening imzom",
+            "ruxsat": []
+          }
+        ]
+      },
+      {
+        "nom": "Tizim o‘rganishi",
+        "ikonka": "Settings",
+        "sahifalar": [
+          {
+            "yol": "/admin/osuvchi",
+            "ilova": "yadro",
+            "nom": "Tizim o‘rganishi",
             "ruxsat": []
           }
         ]
@@ -990,7 +1187,8 @@
             "yol": "/admin/boshqaruv",
             "ilova": "platforma",
             "nom": "Platforma boshqaruvi",
-            "ruxsat": []
+            "ruxsat": [],
+            "faqatSuperadmin": true
           }
         ]
       },
@@ -1002,7 +1200,8 @@
             "yol": "/admin/tizim-xaritasi",
             "ilova": "platforma",
             "nom": "Tizim xaritasi",
-            "ruxsat": []
+            "ruxsat": [],
+            "faqatSuperadmin": true
           }
         ]
       },
@@ -1014,7 +1213,8 @@
             "yol": "/admin/fayl-boglash",
             "ilova": "platforma",
             "nom": "Fayl bog‘lash (texnik)",
-            "ruxsat": []
+            "ruxsat": [],
+            "faqatSuperadmin": true
           }
         ]
       }
