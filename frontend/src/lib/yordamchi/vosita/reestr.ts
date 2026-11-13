@@ -8,6 +8,8 @@ import { jarvisKalitmi, xotiraBuyrugi, xotiraKalit, xotiraTekshir } from '../xot
 import { sozlar } from '../matn';
 import { borMi, katOl, nomMosmi, pulMatn, sanaOl, summaOl, tanlovTop } from './yordam';
 import type { Slot, Variant, Vosita, VositaJavob, VositaKont } from './tur';
+import { AMALLAR, type Amal } from '../../reestr/amal';
+import { amalVositasi } from './amal-vosita';
 
 const ALOQA_FAOL = (x: { faol: boolean }) => x.faol;
 const YOZ = ['yoz', 'yozib', 'kirit', 'kiritib', 'qosh', 'qoshib', 'qoy', 'внеси', 'запиши', 'добавь', 'add', 'enter', 'record'];
@@ -287,11 +289,17 @@ const yoqVosita: Vosita = {
   },
 };
 
-export const VOSITALAR: readonly Vosita[] = [xotiraKorsatVosita, xotiraYozVosita, xotiraUnutVosita, bugunVosita, solishtiruvVosita, f2Amal('tasdiq'), f2Amal('bekor'), xarajatVosita, tolovVosita, murojaatVosita, taqdimVosita, yoqVosita];
+/** Qo'lda yozilgan vositalar (aniq nuqta: dialog, maxsus qoidalar). `yoq` — oxirgi zaxira, shuning uchun alohida. */
+const QOLDA: readonly Vosita[] = [xotiraKorsatVosita, xotiraYozVosita, xotiraUnutVosita, bugunVosita, solishtiruvVosita, f2Amal('tasdiq'), f2Amal('bekor'), xarajatVosita, tolovVosita, murojaatVosita, taqdimVosita];
 
-/** Amal reestri (#399) kelganda shu nuqtadan ulanadi: reestr yozuvidan Vosita hosil qilish (hozircha qo'lda ro'yxat). */
-export function reestrdanVosita(_yozuv: unknown): Vosita | null { return null; }
+/** Amal reestri (lib/reestr/amal.ts) yozuvidan vosita: parallel ta'rif yo'q. */
+export function reestrdanVosita(yozuv: Amal): Vosita | null { return amalVositasi(yozuv); }
 
+/** Reestrdan hosila vositalar; nomi QO'LDA vosita bilan bir xil bo'lsa — qo'lda ustun (bu yerdan tushib qoladi). */
+const QOLDA_NOMLAR = new Set([...QOLDA.map((v) => v.id), yoqVosita.id]);
+export const AMAL_VOSITALARI: readonly Vosita[] = AMALLAR.map(reestrdanVosita).filter((v): v is Vosita => !!v && !QOLDA_NOMLAR.has(v.id));
+
+export const VOSITALAR: readonly Vosita[] = [...QOLDA, ...AMAL_VOSITALARI, yoqVosita];
 export const vositaOl = (id: string) => VOSITALAR.find((v) => v.id === id) ?? null;
 /** Mahalliy moslik: tuzilgan vositalardan birinchisi (maxsusdan umumiyga tartibda). */
 export function vositaTop(xom: string): Vosita | null {

@@ -61,4 +61,13 @@ describe('Bugun — rol bosh sahifasi', () => {
     chiz('yoq-rol', ['company.read']);
     expect(screen.getByTestId('bugun')).toBeTruthy();
   });
+  it('Amallar guruhi AMAL REESTRIDAN: ruxsati borga ko‘rinadi (zayavka, to‘lov), ruxsatsizga yo‘q', () => {
+    chiz('pto', ['company.read', 'warehouse.write']);
+    const g = screen.getByTestId('bugun-amallar');
+    expect(g.textContent).toContain('Zayavka yaratish');
+    cleanup();
+    chiz('buyurtmachi', ['company.read', 'project.read']);
+    expect(screen.getByTestId('bugun-amallar').textContent).not.toContain('Zayavka yaratish');
+    expect(screen.getByTestId('bugun-amallar').textContent).toContain('Kelgan hujjatga qaror');
+  });
 });

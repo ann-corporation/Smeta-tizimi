@@ -57,3 +57,34 @@ Yuqori daraja = 7 ish joyi (+ `sotuv`, `platforma`). Hammasi reestrdan hosila: `
 - **8-ish joyi yoki ommaviy mahsulot FAQAT MA'LUMOT bilan qo'shiladi** (Bozor, Tender, Yuk tashish — docs/architecture/BOZOR_TENDER_LOGISTIKA.md): (1) `ishJoyi.ts` ISH_JOYLARI ga kalit (masalan `bozor`), (2) `ISH_JOYI_META` ga yozuv (nom, ikonka, tartib; ommaviy bo'lsa `ommaviy: { yol: '/bozor' }`) — TypeScript Record to'liqligini o'zi talab qiladi, (3) o'sha `ishJoyi` bilan `Sahifa` yozuvlari + yangi `ilova` kodi (modul yoqilganda ko'rinadi). Menyu (`ISH_JOYI_NAV`), Ctrl+K, ruxsatlar jadvali va guard testlar o'zi oladi; AdminShell/navFiltr kodiga tegilmaydi. Ommaviy (login'siz) sahifalar AdminShell tashqarisida (`/bozor`…) yashaydi, lekin shu reestrda e'lon qilinadi.
 - «Bugun» — bitta yo'l (`/admin/bugun`): usta/brigadir uchun telefon ekrani (UstaBugun), qolganlar uchun rol profilidan tugmalar; boshqa tomon agentlarining bosh sahifalari (yetkazuvchi, loyihachi, buyurtmachi, texnadzor, direktor) `ROL_PROFILLARI` orqali HAVOLA qilinadi, ko'chirilmaydi. «Kadrlar» (erp+hr) yangi menyuda bitta band (`Sahifa.ishBand`).
 - Qidiruv natijasi shartnoma/hujjat bo'lsa, ochiladigan sahifada chuqur havola parametri (?id/?shartnoma) hozircha YO'Q (HujjatAylanish bundan mustasno) — sahifa darajasida ochiladi; parametr qo'shilganda `qidiruv.ts` yoziga `?param` qo'shish yetarli.
+
+## 9. Amal — bitta reestr, uch yuz (Jarvis, karta, tugmalar) — 3-qadam
+**Qoida («AI birinchi»):** har ish Jarvis (Ctrl+K) orqali oson bajarilishi kerak. Amal reestri (`lib/reestr/amal.ts`) ijro etiladigan: nom + sinonim (uz/ru/en), `capability`, `parametrlar` (matndan → kontekstdan → BITTA savol), `tasdiq` (`yoq` o'qish · `karta` yozuv · `ikkiTasdiq` pul/qaytarib bo'lmas), `qoplaydi` (qaysi gateway amallarini yopadi), `mavzu` (mindmap tugun turlari). Motor `amal-motor.ts` (sof: niyat → parametr → ko'rinish → tasdiq → ijro, `operation_id` bilan idempotent), ijrochilar `amal-ijro.ts` (faqat MAVJUD API klientlari: sbZayavkaYoz, tolovYoz, sbArxivla — yangi server mantiqi yo'q). Uch yuz bitta reestrdan: Jarvis (AiChat + AmalKarta), mindmap kartasi (`amal-mavzu.ts` adapteri), «Bugun»/Ctrl+K «Amallar».
+**Qamrov kafolati:** `amal.qoplam.test.ts` — `sb-yoz` WRITE_COMMAND_POLICY va `yozishYuki` eksport qilgan HAR gateway (tomon, loyihachi, laboratoriya, kelgusi: yuk-tashish, bozor, tender-p1, loyiha-smeta, foto-dalil, grafik avtomatik topiladi) yozuv amali yo `Amal.qoplaydi` da, yo `amal-hali-yoq.ts` da SABAB bilan bo'lishi shart. Yangi funksiya AI yuzasiz chiqmaydi.
+**Yangi amal qo'shish (parallel agentlar uchun, 10 qator):**
+1. `amal.ts` AMALLAR ga bitta `Amal`: `kalit` (`soha.fe'l`), `turi`, `capability` (∈ PERMISSIONS), `ilova`, `sahifa`+`yol`, `nom`, `sinonimlar` (ru bilan, kamida bitta 2+ so'zli ibora — 1 so'zli ibora navigatsiya uchun), `en`.
+2. `qoplaydi`: yangi gateway/RPC amallari (`sb-yoz` nomi yoki `gateway:amal`). Ularni `amal-hali-yoq.ts` dan O'CHIRING; qamray olmasangiz o'sha jadvalga SABAB bilan yozing.
+3. `tasdiq`: o'qish `yoq`; yozuv `karta`; pul, hujjatni tasdiqlash, o'chirish/arxiv, a'zo rolini o'zgartirish `ikkiTasdiq`.
+4. `parametrlar`: har majburiy qiymat uchun `{nom,tur,majburiy,kontekst?,savol}`. Pul va hajm uchun `kontekst` BERILMAYDI (taxmin qilinmaydi).
+5. Ijrochi kerak bo'lsa `amal-ijro.ts` IJROCHILAR[kalit] = `{korinish, ijro}`: mavjud API klientini chaqiring (operationId uzating), summani `hisob-yadro` (yaxlit2) bilan ko'rsating. Qator/hujjat topish naqsh bilan hal bo'lmasa — `ijro: 'model'` (mavjud model oqimi).
+6. `mavzu`: mindmap tugun turlari — karta menyusi `amal-mavzu.tugunAmallari/juftAmallari` orqali o'zi oladi.
+7. Tarjima: `lugat/qism/<mavzu>.json` ga amal `nom` ning ru/en matni (`t(a.nom)` ishlatiladi).
+8. Test: `amal-ijro.test.ts` ga niyat → ko'rinish → ijro (API mock) holati; pul amali bitta tasdiq bilan bajarilmasligi.
+9. `site-map:generate` va fixture regeneratsiyasi; rol × sahifa matritsa snapshoti ruxsat o'zgarsa diff ko'rsatadi.
+10. Hech qachon: pul/hajmni taxmin qilish; tasdiqsiz yozish; ruxsatsiz amalni yashirish (sababi tushuntiriladi).
+**Hozirgi holat (halol jadval): 30 amal reestrda, 9 tasi Jarvis ichida BAJARILADI, qolgani sahifaga yo'naltiradi.**
+| Holat | Amal | Tasdiq | Mavjud klient |
+|---|---|---|---|
+| bajariladi | fakt.kiritish — «Amfiteatrda 5-qatorga 12 m3 fakt yoz» (qator raqam/shifr/nom, birlik tekshiruvi, smetadan oshish ogohi) | karta | sbFaktYoz |
+| bajariladi | tomon.taqdim — F2/АОСР ni tomonga yuborish | karta | taqdimYubor |
+| bajariladi | tomon.qaror — kelgan hujjatga qabul/tuzatish/rad (sabab bilan, summa ko'rinadi) | ikki tasdiq | taqdimQarori |
+| bajariladi | tomon.murojaat — murojaat/remark/predpisaniya yaratish | karta | murojaatYarat |
+| bajariladi | lab.sorov — laboratoriyaga sinov so'rovi | karta | sorovYubor |
+| bajariladi | zayavka.yaratish | karta | sbZayavkaYoz |
+| bajariladi | moliya.tolov — to'lov (summa taxmin qilinmaydi) | ikki tasdiq | tolovYoz |
+| bajariladi | bux.davr — buxgalteriya davrini yopish | ikki tasdiq | buxDavr |
+| bajariladi | arxiv.obyekt — Korzinkaga | ikki tasdiq | sbArxivla |
+| yo'naltiradi | f2.tayyorlash / f2.tasdiqlash / f2.import / f3.nakopitelniy | — | F2 qoralamasi va Forma 3 uchun obyekt+davr+akt tanlovi sahifada; Forma 3 klienti (forma3Yarat) akt ro'yxatini talab qiladi — keyingi qadam; tasdiqlash hech qachon bir zarbada emas |
+| yo'naltiradi | aosr.yaratish, hujjat.yuklash, chizma.chiqar, m29.bajar, tender.boshqar, buyurtma.qabul, yuk.birja, qarz.yoz, bux.provodka, hr.tabel, azo.taklif, smeta.narxlash, obyekt.yangi, shartnoma.qosh, xarajat | — | klientlar ko'p bosqichli yoki fayl/jadval kiritishni talab qiladi; ijrochi navbat bilan |
+| yo'q (klient main'da yo'q) | naryad yaratish/usta «bajardim»/prorab qabul (PR #395), subpudrat topshirish va akt qabuli | — | gateway amali yoki klient branchga tushgach ijrochi qo'shiladi |
+Idempotentlik: motor operation_id bo'yicha natijani keshlaydi; klient o'z operation_id sini yaratsa (taqdimYubor, murojaatYarat, sbZayavkaYoz) takroriy himoya motor darajasida; operationId qabul qilganlar (tolovYoz, sbFaktYoz, buxDavr) serverda ham idempotent.

@@ -145,6 +145,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     else if (r.yop) onOtish?.();
   };
 
+
   const yubor = async (savol: string, davom?: { id: string }) => {
     const s = savol.trim();
     if (!s || (busy.current && !davom)) return;
@@ -222,7 +223,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
       setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', matn: javob }]);
       return;
     }
-    setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', matn: '', jonli: true, qadamlar: [] }]);
+    setXabarlar((p) => (davom ? p : [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', matn: '', jonli: true, qadamlar: [] }]));
     setBand(true);
     busy.current = true;
     const ctrl = new AbortController(); abort.current = ctrl;
