@@ -54,9 +54,10 @@ export function SmetaOzgarishQatlam({ obyektId }: { obyektId: number | null }) {
     ? katKesimdanPaket(k.jami, { qqsBilan: d.ozgarish.qqs_bilan, ustamali: d.ozgarish.ustamali, ustamasiz: d.ozgarish.ustamasiz, taxminiy: false, nomalum: 0, sabab: null })
     : null), [d, k]);
   /** Qator yig'indisi: server jami bo'lsa — faqat ustamasiz (qatorlar ustamalisi jamiga qo'shilmaydi: svod bo'limlari ustamasiz); aks holda mijoz juftligi. */
-  const qator = (ust: number, kes: ReturnType<typeof kesim>) => (ozPaket
-    ? <span className="flex flex-col items-end text-right tabular-nums text-[12px]"><FmtN val={ust} kasr={0} /><small className="text-text-mute">{t('ustamasiz')}</small></span>
-    : <SummaJuft kichik obyektId={obyektId} ustamasiz={ust} katKesim={kes} className="items-end text-right" />);
+  const qator = (ust: number, kes: ReturnType<typeof kesim>) => {
+    if (ozPaket) return <span className="flex flex-col items-end text-right tabular-nums text-[12px]"><FmtN val={ust} kasr={0} /><small className="text-text-mute">{t('ustamasiz')}</small></span>;
+    return <SummaJuft kichik obyektId={obyektId} ustamasiz={ust} katKesim={kes} className="items-end text-right" />;
+  };
   if (obyektId == null) return null;
   if (xato) return <p className="fz-note fz-note--warn" role="status" data-testid="smeta-ozgarish-xato">{t('Smeta o‘zgarishlari o‘qilmadi')}: {xato}</p>;
   if (!d || !k) return null;
