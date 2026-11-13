@@ -54,6 +54,6 @@ describe('RolBoshSahifa (/admin indeksi)', () => {
     localStorage.setItem('fz-yangi-menyu', '0');
     m.k = { yuklanmoqda: false, superadmin: false, globalRejim: false, joriy: { rol: 'boss', permissions: ['company.read', 'financial.read'] } };
     chiz();
-    expect(await screen.findByText('yol:/admin/dashboard')).toBeTruthy();
+    expect(await screen.findByText('yol:/admin/pult')).toBeTruthy();
   });
 });
