@@ -21,7 +21,7 @@ async function sha(b: Uint8Array) {
 const r2 = (baytlar?: Uint8Array) => {
   const put = vi.fn(async () => ({}));
   const get = vi.fn(async (k: string) => baytlar
-    ? ({ body: new Blob([baytlar as BlobPart]).stream(), size: baytlar.length, arrayBuffer: async () => baytlar.slice().buffer })
+    ? ({ body: new Blob([baytlar.slice().buffer as ArrayBuffer]).stream(), size: baytlar.length, arrayBuffer: async () => baytlar.slice().buffer })
     : ({ body: new Blob([k]).stream(), size: k.length, arrayBuffer: async () => new TextEncoder().encode(k).buffer }));
   return { put, get, bucket: { put, get } as unknown as R2Bucket };
 };
