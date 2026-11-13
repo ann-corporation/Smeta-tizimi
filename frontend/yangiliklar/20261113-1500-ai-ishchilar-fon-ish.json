@@ -1,0 +1,10 @@
+{
+  "sana": "2026-11-13",
+  "sarlavha": "AI ishchilar: kunlik nazoratchi, hujjat tekshiruvchi va narx kuzatuvchi endi ishlaydi",
+  "bandlar": [
+    "«AI ishchilar» sahifasida kompaniya ishchilari paydo bo‘ldi: Kunlik nazoratchi (fakt kiritilmagan obyektlar, javob kutayotgan hujjatlar, muddati o‘tayotgan ishlar), Hujjat tekshiruvchi (F2 qoralamasidagi kamchiliklar — hech narsani bloklamaydi) va Narx kuzatuvchi (narxsiz resurslar uchun manbalardan taklif). Hammasi boshida O‘CHIQ — boss yoqadi.",
+    "Har ishchi «Hozir ishga tushir» tugmasi yoki jadval (har kuni / har hafta) bilan ishlaydi; natija shu sahifadagi inboxda: o‘qildi / bajarildi. Faktlar bazada hisoblanadi, AI faqat qisqa xulosa va ustuvorlik beradi; tokenlar tugasa ham faktlar ro‘yxati chiqadi.",
+    "Xarajat nazorati: har ishchi uchun bitta ish chegarasi, kompaniya token limiti va hisobi; shu oy qancha token ketgani ishchilar bo‘yicha ko‘rinadi. Agent pul yoki hujjatni o‘zi tasdiqlamaydi — faqat o‘qiydi va taklif beradi.",
+    "Platforma egasi uchun: Tizim sog‘ligi (haftalik xulosa va takliflar) va Internet kuzatuvchi — faqat o‘zingiz tasdiqlagan manbalar, robots.txt hurmat qilinadi; sahifa o‘zgarsa qisqa xulosa takliflar navbatingizga tushadi, o‘zi hech narsaga aylanmaydi."
+  ]
+}

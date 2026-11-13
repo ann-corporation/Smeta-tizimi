@@ -53,7 +53,10 @@ describe('role integration architecture',()=>{
       'yuk-tashish', 'yuk-dalil',
       /* Bildirishnoma yetkazish (2026-11-05): sessiyasiz FON ISHI (GitHub Actions). Kirish faqat X-Cron-Kalit == BILDIRISHNOMA_CRON_KALIT
          (sozlanmagan → 503, noto'g'ri → 403); kompaniya ma'lumoti qaytmaydi, faqat service_role navbat RPC lari (bildirishnoma-yetkaz.test.ts). */
-      'bildirishnoma-yetkaz']);
+      'bildirishnoma-yetkaz',
+      /* AI ishchilar fon bajaruvchisi (2026-11-13): sessiyasiz FON ISHI (GitHub Actions). Kirish faqat X-Kuzatuv-Kalit == KUZATUV_KALIT (>=24 belgi; sozlanmagan -> 503, noto'g'ri -> 401);
+         javobda faqat sonlar; model chaqiruvi aiHisobli orqali (limit/hamyon), ish aktori — ishchini yoqqan odam, ruxsat har qadamda bazada qayta tekshiriladi (ai-ishchi.test.ts). */
+      'ai-ishchi-bajar']);
     const routes=readdirSync(resolve(root,'frontend/functions/api')).filter(n=>n.endsWith('.ts')&&!n.endsWith('.test.ts')&&!n.startsWith('_')).map(n=>n.slice(0,-3));
     expect(routes.filter(n=>!SCOPED_APIS.has(n)&&!exceptions.has(n))).toEqual([]);
   });
