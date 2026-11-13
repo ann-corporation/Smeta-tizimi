@@ -19,7 +19,7 @@ const QATLAM = {
     },
   },
   qoshimcha: { soni: 4, summa: 53869308.86, narxsiz_soni: 0, asossiz_soni: 0, qisqartirildi: false, qatorlar: [] },
-  zamena: { soni: 35, zamena_summa: 14959.84, almashtirilgan_summa: 75815.91, farq: -60856.07, narxsiz_soni: 33, noaniq_soni: 0, asossiz_soni: 0, qisqartirildi: false, qatorlar: [] },
+  zamena: { soni: 35, zamena_summa: 14959.84, almashtirilgan_summa: 75815.91, farq: -60856.07, narxsiz_soni: 33, noaniq_soni: 0, f2_narx_soni: 12, narxsiz_barg_soni: 2, asossiz_soni: 0, qisqartirildi: false, qatorlar: [] },
   bajarilmadi: { soni: 0, summa: 0, narxsiz_soni: 0, qatorlar: [] },
 };
 vi.mock('../../api/t2-ozgarish', () => ({ smetaOzgarishQatlamOl: () => Promise.resolve({ ok: true, natija: QATLAM }) }));
@@ -38,5 +38,11 @@ describe('SmetaOzgarishQatlam — server jami (svod yaxlit obyekt)', () => {
   it('narxsiz zamena ogohi saqlanadi (33 ta)', async () => {
     render(<SmetaOzgarishQatlam obyektId={1} />);
     expect(await screen.findByText(/33 tasi narxsiz/)).toBeTruthy();
+  });
+  it("F-2 narxidan olingan zamena belgisi ko'rinadi", async () => {
+    render(<SmetaOzgarishQatlam obyektId={1} />);
+    const nota = await screen.findByTestId('zamena-f2-narx');
+    expect(nota.textContent).toContain('12');
+    expect(nota.textContent).toContain('2');
   });
 });

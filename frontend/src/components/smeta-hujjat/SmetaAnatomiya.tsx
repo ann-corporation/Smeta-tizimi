@@ -42,7 +42,7 @@ export function SmetaAnatomiya({ tree, obyektId }: { tree: readonly TreeNode[]; 
   // Svod yaxlit belgili obyektda butun smeta ustamalisi — server kesimi (yaxlit bo'limlar ustamasiz, QQS bir marta).
   const ust = useUstamaliSumma(obyektId);
   const kesim = ust.obyektKesim ?? daraxtKesim;
-  const { korinishKesimi } = ust;
+  const { korinishKesimi, faktKesimi } = ust;
   /** Fakt / F2 / qoldiq kartalari ham QQS bilan (egasi 2026-10-27): barg qatorlar kesimi; jamidan farqi — kat noma'lum (≈). */
   const kartaKesim = useMemo(() => {
     const juft: { id: number; ota_id: number | null }[] = [];
@@ -58,7 +58,11 @@ export function SmetaAnatomiya({ tree, obyektId }: { tree: readonly TreeNode[]; 
       /** Bo'lim jami (bo'lim darajasi) — tree[i] ↔ bolimlar[i]. */
       // Bo'lim smetasi — ASL (CONST); qo'shimcha/zamena «O'zgarishlar» qatlamida alohida.
       bolim: tree.map((r) => yig([...aslBarglar([r])].filter((b) => b.type !== 'rz' && b.type !== 'bl'), (b) => son(b.smeta), aslSmeta(r))),
-      fakt: yig(bs, (b) => son(b.stFakt), umumiy.fakt),
+      // Fakt ham F2 bilan BIR XIL usulda (aynan, masshtablanmaydi; svod bo'limida ЧЕЛ/МАШ oddiy kategoriya): egasi qoidasi «F2 bor qatorda fakt
+      // summasi F2 narxida» — aks holda bir xil summali fakt va F2 QQS bilan ~2,5% farq qilardi (sinov-fakt 2026-11-14).
+      fakt: faktKesimi
+        ? faktKesimi(juft, bs, { id: (b) => b.id, kat: (b) => b.kat, summa: (b) => son(b.stFakt), smeta: (b) => son(b.smeta) }, { jami: umumiy.fakt })
+        : katKesimJamiBilan(bs, (b) => b.kat, (b) => son(b.stFakt), umumiy.fakt),
       f2: yig(bs, (b) => son(b.stF2), umumiy.f2, false, true),
       // Qoldiq = serverning qator qoldig'i (smeta − F2 − almashtirilgan; fakt ≥ F2 qoidasi yo'q) — «Resurslar» tabi bilan bir xil.
       qoldiq: yig(bs, (b) => son(b.stOst), umumiy.qoldiq),

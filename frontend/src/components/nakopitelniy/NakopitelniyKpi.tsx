@@ -29,7 +29,7 @@ export function NakopitelniyKpi({ jami, qatorlar, truncated, obyektId, kompaniya
 }) {
   // Svod yaxlit (20261113500000): belgili bo'lim avlodlariga ustama qo'llanmaydi; to'liq smeta — server kesimi (svod bilan).
   const ust = useUstamaliSumma(obyektId, { kompaniyaId });
-  const { korinishKesimi, obyektKesim } = ust;
+  const { korinishKesimi, faktKesimi, obyektKesim } = ust;
   /**
    * Fakt summasi — sahifadagi YAGONA jami (`nakFaktJami`, jadval pastki qatori va grafik bilan bir xil): barglar F2 narxida.
    * Ro'yxat qirqilgan bo'lsa — server jamisi (qayta narxlanmagan), «≈» bilan.
@@ -47,14 +47,18 @@ export function NakopitelniyKpi({ jami, qatorlar, truncated, obyektId, kompaniya
     const yig = (summa: (q: NakopitelniyQator) => number | null | undefined, sarlavha: number, masshtab = true, f2 = false): KatKesim | null => (korinishKesimi
       ? korinishKesimi(daraxt, barglar, { id: (q) => q.qator_id, kat: (q) => q.kat, summa, smeta: (q) => q.smeta_summa }, { jami: sarlavha, masshtab, f2 })
       : katKesimJamiBilan(barglar, (q) => q.kat, summa, sarlavha));
+    // FAKT (va fakt − F2) svod bo'limida F-2 bilan bir usul, taqsimsiz — yagona qoida `svodFaktKesimi`.
+    const yigFakt = (summa: (q: NakopitelniyQator) => number | null | undefined, sarlavha: number): KatKesim | null => (faktKesimi
+      ? faktKesimi(daraxt, barglar, { id: (q) => q.qator_id, kat: (q) => q.kat, summa, smeta: (q) => q.smeta_summa }, { jami: sarlavha })
+      : katKesimJamiBilan(barglar, (q) => q.kat, summa, sarlavha));
     return {
       smeta: obyektKesim ?? yig((q) => q.smeta_summa, jami.smeta_summa),
-      fakt: yig(faktQ, ef.fakt),
+      fakt: yigFakt(faktQ, ef.fakt),
       f2: yig((q) => q.jami_summa, jami.jami_tasdiqlangan_summa, false, true),
       joriy: yig((q) => q.joriy_summa, jami.joriy_tasdiqlangan_summa, false, true),
       // Fakt − tasdiqlangan F2 (qator bo'yicha ayirma) — F2 aynan bo'lgani uchun masshtablanmaydi.
       // Fakt noma'lum — ayirma ham noma'lum (NULL ≠ 0); tasdiqlangan F2 yo'q — 0 (aynan). Yadro `ayirma2`.
-      mumkin: yig((q) => { const f = faktQ(q); return f == null ? null : ayirma2(f, q.jami_summa ?? 0); }, ef.mumkin, false),
+      mumkin: yigFakt((q) => { const f = faktQ(q); return f == null ? null : ayirma2(f, q.jami_summa ?? 0); }, ef.mumkin),
     };
   }, [qatorlar, truncated, jami, korinishKesimi, obyektKesim, ef]);
 

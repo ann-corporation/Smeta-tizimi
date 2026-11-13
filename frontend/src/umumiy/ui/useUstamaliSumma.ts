@@ -4,7 +4,7 @@ import { t2ObyektNakrutka } from '../../api/t2-nakrutka';
 import { podvalTanla, sbPodvallarOl } from '../../api/t2-nakrutka-podval';
 import { limitedRead } from '../../components/pto-workspace/useMarkupTotals';
 import { obyektKesimi, ustamaliHisobla, type KatKesim, type UstamaNatija } from '../../lib/ustamali-summa';
-import { svodKorinishKesimi, yaxlitQatorIdlari, type SvodYaxlit } from '../../lib/svod-yaxlit';
+import { svodFaktKesimi, svodKorinishKesimi, yaxlitQatorIdlari, type SvodYaxlit } from '../../lib/svod-yaxlit';
 import type { Podval } from '../../lib/nakrutka-konstruktor';
 import { useKompaniya } from '../kontekst/KompaniyaKontekst';
 import { USTAMA_STALE_MS } from './ustama-kesh';
@@ -69,5 +69,8 @@ export function useUstamaliSumma(obyektId: number | null | undefined, opts: { ko
   /** Ko'rinish kesimi — svod bo'limlari eksport bilan bir xil masshtablanadi (`svodKorinishKesimi`). */
   const korinishKesimi = useCallback(<T,>(daraxt: ReadonlyArray<{ id: number; ota_id?: number | null }>, barglar: readonly T[], f: Parameters<typeof svodKorinishKesimi<T>>[2], o?: Parameters<typeof svodKorinishKesimi<T>>[4]) =>
     svodKorinishKesimi(daraxt, barglar, f, svodYaxlit, o), [svodYaxlit]);
-  return { holat, koef, podval, hisobla, retry, svodYaxlit, obyektKesim, yaxlitIdlari, korinishKesimi };
+  /** FAKT kesimi — svod bo'limida F-2 bilan bir usul, taqsimsiz (`svodFaktKesimi`, yagona qoida). */
+  const faktKesimi = useCallback(<T,>(daraxt: ReadonlyArray<{ id: number; ota_id?: number | null }>, barglar: readonly T[], f: Parameters<typeof svodKorinishKesimi<T>>[2], o?: Pick<NonNullable<Parameters<typeof svodKorinishKesimi<T>>[4]>, 'jami'>) =>
+    svodFaktKesimi(daraxt, barglar, f, svodYaxlit, o), [svodYaxlit]);
+  return { holat, koef, podval, hisobla, retry, svodYaxlit, obyektKesim, yaxlitIdlari, korinishKesimi, faktKesimi };
 }
