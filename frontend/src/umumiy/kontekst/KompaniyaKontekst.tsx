@@ -25,6 +25,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMen, type Men } from '../../api/t2-men';
+import { nashrKontekstOrnat } from '../../lib/imzo/nashr-kontekst';
 
 export type KompaniyaMavqe = 'zakazchik' | 'pudratchi' | 'loyihachi' | string;
 
@@ -172,6 +173,9 @@ export function KompaniyaProvider({ children }: { children: ReactNode }) {
     () => (globalRejim ? null : (kompaniyalar.find((k) => k.id === joriyId) ?? null)),
     [globalRejim, kompaniyalar, joriyId],
   );
+
+  // Manba QR (lib/imzo/nashr.ts): faol kompaniya - eksport nashri shu kompaniyaga yoziladi. Global rejimda/kirmaganda o'chiq.
+  useEffect(() => { nashrKontekstOrnat({ kompaniyaId: globalRejim ? null : joriy?.id ?? null }); }, [globalRejim, joriy?.id]);
 
   const tanla = useCallback((id: number) => {
     if (!kompaniyalar.some((k) => k.id === id)) return;

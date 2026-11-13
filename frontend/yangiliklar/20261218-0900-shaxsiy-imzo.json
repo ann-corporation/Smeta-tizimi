@@ -1,0 +1,11 @@
+{
+  "sana": "2026-12-18",
+  "sarlavha": "Shaxsiy elektron imzo va hujjatdagi QR",
+  "bandlar": [
+    "Har foydalanuvchi qurilmasida shaxsiy imzo kaliti yaratadi (Akkaunt markazi → Mening imzom); maxfiy kalit qurilmadan chiqmaydi.",
+    "Hujjat markazidagi hujjatni «Imzo» sahifasida imzolash mumkin: kim, qaysi tomon (pudratchi, texnadzor, buyurtmachi) va kimning nomidan imzolagani ko‘rinadi.",
+    "Tizimdan chiqqan har Excel hujjat oxirida QR bilan «IMZO» varag‘i qo‘shiladi: qog‘ozdagi QR skaner qilinsa hujjat tekshiriladi, kirgan odam esa Excel nusxasini yuklab oladi.",
+    "QR sahifasi (/t/…) kirmasdan ham hujjat turi, sanasi, imzolar holati va «asl / yangi tahriri bor» belgisini ko‘rsatadi; summa ko‘rsatilmaydi.",
+    "Bu tizim ichidagi imzo; ERI (E-IMZO) emas."
+  ]
+}
