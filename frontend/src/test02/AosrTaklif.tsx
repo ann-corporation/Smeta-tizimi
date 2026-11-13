@@ -8,12 +8,13 @@ import { useMemo, useState } from 'react';
 import { CheckCircle2, ChevronDown, Link2, Search } from 'lucide-react';
 import { sbAosrBogSaqla, type AosrCoverage, type QatorMetaYozuv } from '../api/t2-aosr';
 import type { AosrV2 } from '../api/t2-ijro';
-import { bogChaqiruvlari, boglanmaganEskiAktlar, ishNomzodlari, razdelBoyicha, takliflarQur, type TaklifIsh } from '../lib/aosr-taklif';
+import { ISHONCH_SUKUT, bogChaqiruvlari, boglanmaganAktlar, ishNomzodlari, ishonchDarajasi, ommaviyReja, razdelBoyicha, takliflarQur, type TaklifIsh } from '../lib/aosr-taklif';
+import { aosrBogHajm } from '../api/t2-slichitelniy-asos';
 import { toast } from '../umumiy/ui/Toast';
 import { tasdiqSora } from '../umumiy/ui/Tasdiq';
 import { t } from '../i18n/til';
 
-type Props = { aktlar: AosrV2[]; qatorMeta: QatorMetaYozuv[]; coverage: AosrCoverage[]; onTayyor: () => void };
+type Props = { aktlar: AosrV2[]; qatorMeta: QatorMetaYozuv[]; coverage: AosrCoverage[]; onTayyor: () => void; /** Berilsa — bog' HAJM bilan yoziladi (slichitelniy asosi); berilmasa eski hajmsiz yo'l. */ kompaniyaId?: number };
 
 const KO_RSAT = 25;
 const foiz = (b: number) => `${Math.round(b * 100)}%`;
@@ -40,29 +41,50 @@ function BoshqaQator({ ishlar, onTanla }: { ishlar: readonly TaklifIsh[]; onTanl
   );
 }
 
-export function AosrTaklif({ aktlar, qatorMeta, coverage, onTayyor }: Props) {
+export function AosrTaklif({ aktlar, qatorMeta, coverage, onTayyor, kompaniyaId }: Props) {
   const [tanlov, setTanlov] = useState<Map<number, number>>(new Map());
   const [band, setBand] = useState(false);
   const [ko, setKo] = useState<Map<string, number>>(new Map());
+  const [chegaraFoiz, setChegaraFoiz] = useState(Math.round(ISHONCH_SUKUT * 100));
+  const [hajmTahrir, setHajmTahrir] = useState<Map<number, string>>(new Map());
 
-  const eskiIds = useMemo(() => boglanmaganEskiAktlar(aktlar), [aktlar]);
+  // Barcha bog'lanmagan АОСР lar (eski reestr bilan cheklanmaydi): slichitelniy asosi uchun hammasi bog'lanishi kerak.
+  const eskiIds = useMemo(() => boglanmaganAktlar(aktlar), [aktlar]);
   const aktXarita = useMemo(() => new Map(aktlar.map((a) => [a.id, a] as const)), [aktlar]);
   const faktQatorlar = useMemo(() => new Set(coverage.filter((c) => Number(c.fakt_hajm) > 0).map((c) => c.qator_id)), [coverage]);
   const ishlar = useMemo(() => ishNomzodlari(qatorMeta, faktQatorlar), [qatorMeta, faktQatorlar]);
   const ishXarita = useMemo(() => new Map(ishlar.map((i) => [i.id, i] as const)), [ishlar]);
   const takliflar = useMemo(() => takliflarQur(eskiIds.map((id) => aktXarita.get(id)!).filter(Boolean), ishlar), [eskiIds, aktXarita, ishlar]);
   const { guruhlar, taklifsiz } = useMemo(() => razdelBoyicha(eskiIds, takliflar), [eskiIds, takliflar]);
+  const qatorFakt = useMemo(() => new Map(coverage.map((c) => [c.qator_id, { fakt: Number(c.fakt_hajm) > 0 ? Number(c.fakt_hajm) : null, birlik: c.birlik }] as const)), [coverage]);
+  /** Hajm taklifi hamma akt uchun (chegarasiz): akt matni, bo'lmasa fakt qoldig'i; foydalanuvchi qo'lda o'zgartirishi mumkin. */
+  const hajmReja = useMemo(() => new Map(ommaviyReja(aktXarita, takliflar, qatorFakt, { chegara: 0, tanlov }).juftlar.map((j) => [j.aktId, j] as const)), [aktXarita, takliflar, qatorFakt, tanlov]);
+  const chegara = chegaraFoiz / 100;
+  const ommaviy = useMemo(() => ommaviyReja(aktXarita, takliflar, qatorFakt, { chegara }), [aktXarita, takliflar, qatorFakt, chegara]);
 
   if (eskiIds.length === 0 || ishlar.length === 0) return null;
 
   const tanlangan = (aktId: number): number | null => tanlov.get(aktId) ?? takliflar.get(aktId)?.[0]?.qatorId ?? null;
 
   /** Tasdiqlangan juftliklarni yozadi (har qator alohida chaqiruv — M:N kesishma bo'lmasin). */
+  const hajmOf = (aktId: number): number | null => { const k = hajmTahrir.get(aktId); if (k != null && k.trim() !== '') { const v = Number(k.replace(',', '.')); return Number.isFinite(v) && v >= 0 ? v : null; } return hajmReja.get(aktId)?.hajm ?? null; };
   const bogla = async (juftlar: Array<{ aktId: number; qatorId: number }>) => {
     if (!juftlar.length || band) return;
     setBand(true);
     try {
       let n = 0; let xato = '';
+      if (kompaniyaId != null) {
+        // Hajm bilan (t2_aosr_bog_hajm_v1): har akt o'z qatori va hajmi bilan; hajm noma'lum bo'lsa null (0 emas).
+        for (const j of juftlar) {
+          const r = await aosrBogHajm(kompaniyaId, j.aktId, [{ qator_id: j.qatorId, hajm: hajmOf(j.aktId) }]);
+          if (!r.ok) { xato = r.error || t('Xato'); break; }
+          n += 1;
+        }
+        if (n) toast(t('✓ {n} ta akt smeta qatoriga bog‘landi', { n }), 'ok');
+        if (xato) toast(t('Bog‘lanmadi: {x}', { x: xato }), 'danger');
+        onTayyor();
+        return;
+      }
       for (const c of bogChaqiruvlari(juftlar)) {
         const r = await sbAosrBogSaqla(c.aosrIds, c.qatorIds);
         if (!r.ok) { xato = r.error || t('Xato'); break; }
@@ -82,6 +104,13 @@ export function AosrTaklif({ aktlar, qatorMeta, coverage, onTayyor }: Props) {
     if (ok) await bogla(juftlar);
   };
 
+  const hammasiniQabul = async () => {
+    const juftlar = ommaviy.juftlar.map((j) => ({ aktId: j.aktId, qatorId: j.qatorId }));
+    if (!juftlar.length) return;
+    const ok = await tasdiqSora(t('Ishonch {x} % va undan yuqori {n} ta aktni taklif qilingan smeta qatorlariga bog‘laysizmi? Qolgan {q} tasi qo‘lda ko‘rib chiqiladi.', { x: chegaraFoiz, n: juftlar.length, q: ommaviy.qolda.length }));
+    if (ok) await bogla(juftlar);
+  };
+
   const aktSatr = (aktId: number) => {
     const a = aktXarita.get(aktId); if (!a) return null;
     const tk = takliflar.get(aktId) ?? [];
@@ -92,6 +121,7 @@ export function AosrTaklif({ aktlar, qatorMeta, coverage, onTayyor }: Props) {
         <div className="flex flex-wrap items-baseline gap-x-2 text-[13px]">
           <b>№ {a.raqam ?? '—'}</b>
           <span className="min-w-0 flex-1 truncate" title={a.ish_nomi ?? ''}>{a.ish_nomi || t('(nomsiz akt)')}</span>
+          {kompaniyaId != null && <label className="flex items-center gap-1 text-[12px] text-text-mute">{t('Hajm')}<input aria-label={t('Akt hajmi')} className="h-7 w-20 px-1 text-right text-[12px]" inputMode="decimal" value={hajmTahrir.get(aktId) ?? (hajmReja.get(aktId)?.hajm != null ? String(hajmReja.get(aktId)!.hajm) : '')} placeholder="—" onChange={(e) => setHajmTahrir((m) => new Map(m).set(aktId, e.target.value))} />{hajmReja.get(aktId)?.hajmManba === 'matn' ? <span className="fz-chip">{t('aktdan')}</span> : hajmReja.get(aktId)?.hajmManba === 'fakt' ? <span className="fz-chip">{t('fakt qoldig‘i')}</span> : null}</label>}
           <button type="button" className="fz-btn fz-btn--sm fz-btn--primary" disabled={band || tan == null} onClick={() => bittasi(aktId)}><Link2 /> {t('Tasdiqlash')}</button>
         </div>
         <div className="mt-1 space-y-0.5" role="radiogroup" aria-label={t('Taklif qilingan smeta ishlari')}>
@@ -129,6 +159,11 @@ export function AosrTaklif({ aktlar, qatorMeta, coverage, onTayyor }: Props) {
           <h2 className="fz-card__title flex items-center gap-1.5"><CheckCircle2 size={16} className="text-accent" />{t('Eski aktlarni smeta qatoriga bog‘lash: {n} ta', { n: eskiIds.length })}</h2>
           <p className="fz-card__sub">{t('Har akt uchun mos smeta ishi taklif qilinadi. Hech narsa o‘zi bog‘lanmaydi — siz tasdiqlaysiz.')}</p>
         </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 px-4 py-2 text-[12.5px]">
+        <label className="flex items-center gap-1">{t('Ishonch chegarasi')}<input type="number" min={30} max={100} step={5} aria-label={t('Ishonch chegarasi, %')} className="h-7 w-16 px-1 text-right" value={chegaraFoiz} onChange={(e) => setChegaraFoiz(Math.min(100, Math.max(30, Number(e.target.value) || ISHONCH_SUKUT * 100)))} />%</label>
+        <button type="button" className="fz-btn fz-btn--sm fz-btn--primary" disabled={band || !ommaviy.juftlar.length} onClick={() => void hammasiniQabul()}><Link2 /> {t('Hammasini qabul qil (ishonch ≥ {x} %): {n}', { x: chegaraFoiz, n: ommaviy.juftlar.length })}</button>
+        <span className="fz-chip fz-chip--warn" title={t('Past ishonchli aktlar: qatorni o‘zingiz tanlaysiz')}>{t('Qo‘lda ko‘rib chiqiladi')}: {ommaviy.qolda.length + taklifsiz.length}</span>
       </div>
       <div className="divide-y divide-border">
         {guruhlar.map((g) => {
