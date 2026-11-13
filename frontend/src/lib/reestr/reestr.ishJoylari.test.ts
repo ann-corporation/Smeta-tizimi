@@ -70,6 +70,29 @@ describe('ish joylari menyusi (reestrdan hosila)', () => {
     expect(yana.filter((y) => asosiy.includes(y))).toEqual([]);
     expect(yana).toContain('/admin/korzinka');
   });
+  it('texnadzor: «Texnik nazorat» uyi «Yana…» da emas — o‘z ish joyining BIRINCHI asosiy bandi (rol nomi va capability bo‘yicha)', () => {
+    const bandYollari = (b: { yol: string; tablar?: { yol: string }[] }) => (b.tablar ? b.tablar.map((x) => x.yol) : [b.yol]);
+    const inspektorHuquqlari = ['company.read', 'object.read', 'document.read', 'quality.read', 'quality.inspect', 'quality.decide'];
+    for (const menyu of [korinadigan('inspektor'), ishJoyiMenyu({ superadmin: false, rol: 'maxsus', permissions: inspektorHuquqlari, ilova: 'hammasi' })]) {
+      const joy = menyu.find((b) => b.id === 'hujjatlar')!;
+      expect(joy.bandlar[0].yol).toBe('/admin/nazorat');
+      expect(bandYollari(joy.bandlar[0])).toEqual(['/admin/nazorat', '/admin/nazorat/tekshiruv', '/admin/nazorat/jurnal']);
+      expect(menyu.flatMap((b) => b.yana).flatMap(bandYollari)).not.toContain('/admin/nazorat');
+    }
+  });
+  it('texnadzor tuzatishi boshqa rollarni o‘zgartirmaydi: ichki xodimda «Yana…» da qoladi, ruxsati yo‘q tomon umuman ko‘rmaydi', () => {
+    const bandYollari = (b: { yol: string; tablar?: { yol: string }[] }) => (b.tablar ? b.tablar.map((x) => x.yol) : [b.yol]);
+    for (const rol of ['pto', 'boss', 'prorab', 'admin']) {
+      const menyu = korinadigan(rol);
+      expect(menyu.flatMap((b) => b.bandlar).flatMap(bandYollari), rol).not.toContain('/admin/nazorat');
+      expect(menyu.flatMap((b) => b.yana).flatMap(bandYollari), rol).toContain('/admin/nazorat');
+    }
+    for (const rol of ['buyurtmachi', 'pudratchi', 'kuzatuvchi', 'loyihachi', 'usta']) expect(yollar(rol), rol).not.toContain('/admin/nazorat');
+    // Ruxsati bor, lekin yozuvchi (ichki) a'zo: tashqi qoida qo'llanmaydi.
+    const ichki = ishJoyiMenyu({ superadmin: false, rol: 'maxsus', permissions: ['company.read', 'quality.inspect', 'object.write'], ilova: 'hammasi' });
+    expect(ichki.flatMap((b) => b.bandlar).flatMap(bandYollari)).not.toContain('/admin/nazorat');
+    expect(ichki.flatMap((b) => b.yana).flatMap(bandYollari)).toContain('/admin/nazorat');
+  });
   it('hech bir sahifa yo‘qolmaydi: boss eski va yangi menyuda bir xil yo‘llarni ko‘radi', () => {
     const eski = new Set(NAV_SAHIFALAR.map((s) => s.yol));
     const yangi = new Set(yollar('boss', true));

@@ -50,15 +50,25 @@ const TASHQI_ROLLAR: readonly string[] = ['buyurtmachi', 'inspektor', 'pudratchi
 /** Tashqi tomon: yozish ruxsati yo'q a'zo (permissions berilmasa — rol nomi bo'yicha). Superadmin hech qachon. */
 const tashqiTomonmi = (k: NavKontekst): boolean => !k.superadmin && (k.permissions ? !k.permissions.some((p) => p.endsWith('.write')) : TASHQI_ROLLAR.includes(k.rol));
 
+/** Texnik nazoratning uy sahifasi. Tashqi tomonda (yozish ruxsati yo'q) uni faqat `quality.inspect` egasi — texnadzor ko'radi
+ *  (reestr ruxsati), shuning uchun u o'z ish joyida BIRINCHI band bo'ladi. Ichki xodimda band «Yana…» da qoladi (o'zgarmaydi). */
+export const TEXNADZOR_UY_YOL = '/admin/nazorat';
+const uyBirinchi = (bandlar: MenyuBand[]): MenyuBand[] => {
+  const i = bandlar.findIndex((b) => b.yol === TEXNADZOR_UY_YOL);
+  return i > 0 ? [bandlar[i], ...bandlar.slice(0, i), ...bandlar.slice(i + 1)] : bandlar;
+};
+
 export type IshJoyiBolim = { id: IshJoyi; nom: string; ikonka: NavGuruh['ikonka']; tavsif: string; bandlar: MenyuBand[]; yana: MenyuBand[] };
 
 /** Kontekst (rol/ruxsat/modul) bo'yicha ko'rinadigan ish joylari: asosiy bandlar + «Yana…» bandlari. Bo'sh ish joyi tushib qoladi. */
 export function ishJoyiMenyu(k: NavKontekst): IshJoyiBolim[] {
-  const nav = tashqiTomonmi(k) ? ISH_JOYI_NAV_TASHQI : ISH_JOYI_NAV;
+  const tashqi = tashqiTomonmi(k);
+  const nav = tashqi ? ISH_JOYI_NAV_TASHQI : ISH_JOYI_NAV;
   const asosiy = menyuQur({ ...k, qoshimcha: 'yashir' }, nav);
   const yana = menyuQur({ ...k, qoshimcha: 'faqat' }, nav);
   return TARTIBLI.flatMap((joy): IshJoyiBolim[] => {
-    const a = asosiy.find((g) => g.id === joy)?.bandlar ?? [];
+    const a0 = asosiy.find((g) => g.id === joy)?.bandlar ?? [];
+    const a = tashqi ? uyBirinchi(a0) : a0;
     const y = yana.find((g) => g.id === joy)?.bandlar ?? [];
     if (!a.length && !y.length) return [];
     const m = ISH_JOYI_META[joy];
