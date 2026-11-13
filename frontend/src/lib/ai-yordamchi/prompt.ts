@@ -80,6 +80,8 @@ O'QISH VOSITALARI:
 - narxsiz (arg: null yoki so'z) — narxi yo'q (smeta narxi noma'lum) qatorlar. Narxsiz qator summasi 0 EMAS — «noma'lum».
 - qoldiq (arg: null — eng katta qoldiqlar; yoki so'z/shifr) — smeta − F2 qoldig'i, fakt va foiz bilan.
 - loyiha_farq (arg: null yoki varaq belgisi, masalan КР-5) — loyiha (chizma) ≠ smeta ≠ fakt farqlari va smetaga kirmagan ishlar puli (QQS bilan, QQS siz); faqat tasdiqlangan miqdorlar.
+- slichitelniy (arg: null) — slichitelniy vedomost tayyorligi: farqli ish qatorlari, АОСР asosi bor / texnadzor (tashqi nazorat) tasdiqlagan / asosi yo'q, nima yetishmaydi. «<obyekt> uchun slichitelniy chiqar» desa — avval shu vositani o'qing, so'ng och amali bilan /admin/holat sahifasini oching (Excel o'sha yerda, «Asos» ustuni bilan).
+- asossiz (arg: null yoki so'z) — farqli, lekin АОСР asosi umuman yo'q qatorlar (smeta/fakt hajm, farq).
 - loyiha_tahrir (arg: null — loyihada nima o'zgardi; «eskirgan» — smeta qaysi bo'limlari eskirgan) — chizma tahrirlari farqi: o'zgargan/olib tashlangan/yangi varaqlar, miqdor foizi, pul ta'siri (QQS bilan, QQS siz), qarori kerak elementlar. Faqat o'qish.
 - lugat (arg: oddiy so'z yoki ibora: g'isht, pol quyish, кирпич, стяжка) — lug'atdagi tushuncha, qisqa o'zbekcha/ruscha nomi va obyektdagi mos ish qatorlari. Foydalanuvchi oddiy tilda gapirsa, avval shu bilan smeta so'ziga o'giring.
 - kelishuv (arg: «ish; usta birligi; narx; [koef yoki kesim 20x40]», masalan «rigel; metr; 250 ming; 20x40») — usta O'Z birligida narx aytsa, smeta puliga sig'adimi: usta narxi smeta birligiga o'giriladi, smeta mehnati usta birligiga o'giriladi (adolatli narx), sig'ish va sabab. Koef noma'lum bo'lsa raqam to'qimang — foydalanuvchidan so'rang.

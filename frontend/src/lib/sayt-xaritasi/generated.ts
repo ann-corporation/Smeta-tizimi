@@ -975,6 +975,14 @@ export const GENERATED_SITE_MAP = {
       "rpc": "t2_aosr_bog_ochir"
     },
     {
+      "amal": "aosr_bog_hajm_v1",
+      "rpc": "t2_aosr_bog_hajm_v1"
+    },
+    {
+      "amal": "aosr_asos_qoralama_v1",
+      "rpc": "t2_aosr_asos_qoralama_v1"
+    },
+    {
       "amal": "aosr_yoz_v2",
       "rpc": "t2_aosr_yoz_v2"
     },

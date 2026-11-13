@@ -73,7 +73,7 @@ export const AMAL_ILOVA: Readonly<Record<string, IlovaKod>> = {
   // Yuk birjasi
   yb_yuk_saqla_v1: 'logistika', yb_yuk_elon_v1: 'logistika', yb_yuk_javob_v1: 'logistika', yb_yuk_bekor_v1: 'logistika', yb_yuk_tasdiq_v1: 'logistika', yb_yuk_baho_v1: 'logistika', yb_yuk_nizo_v1: 'logistika',
   // Hujjat aylanishi (AOSR, laboratoriya)
-  aosr_yoz: 'hujjat', aosr_yoz_v2: 'hujjat', aosr_bekor: 'hujjat', aosr_bog_saqla: 'hujjat', aosr_bog_ochir: 'hujjat',
+  aosr_yoz: 'hujjat', aosr_yoz_v2: 'hujjat', aosr_bekor: 'hujjat', aosr_bog_saqla: 'hujjat', aosr_bog_ochir: 'hujjat', aosr_bog_hajm_v1: 'hujjat', aosr_asos_qoralama_v1: 'hujjat',
   lab_protokol_yoz: 'hujjat', lab_protokol_bekor: 'hujjat', lab_protokol_bog_saqla: 'hujjat',
 };
 

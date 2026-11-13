@@ -205,7 +205,7 @@ export const onRequestPost: PagesFunction<{
      *
      * Rol: `boss`/`rahbar` ham CHAQIRA OLADI — bu faqat o'qish. */
     if (so.soro) {
-      const OQISH_RPC: Record<string, 'obyekt' | 'kompaniya' | 'obyekt_kompaniya' | 'obyekt_actor' | 'obyekt_paket_actor' | 'akt_actor' | 'job_actor' | 'kompaniya_actor' | 'akt_kompaniya_actor' | 'shartnoma_actor' | 'tizim_actor'> = {
+      const OQISH_RPC: Record<string, 'obyekt' | 'kompaniya' | 'obyekt_kompaniya' | 'obyekt_actor' | 'obyekt_kompaniya_actor' | 'obyekt_paket_actor' | 'akt_actor' | 'job_actor' | 'kompaniya_actor' | 'akt_kompaniya_actor' | 'shartnoma_actor' | 'tizim_actor'> = {
         ai_kontekst: 'obyekt',
         ai_umumiy: 'kompaniya',
         /* ⚡ 2026-08-28: mindmap butun grafni (tugunlar + bog'lanishlar)
@@ -245,6 +245,8 @@ export const onRequestPost: PagesFunction<{
            t2_actor_kompaniya_azo_tekshir. */
         nakrutka_koef_ol_v1: 'kompaniya_actor',
         obyekt_nakrutka_v1: 'obyekt_actor',
+        /* SLICHITELNIY ASOSI (20261218200000): farqli ish qatorlari + АОСР asoslari + tayyorlik. stable; a'zolik (_t2_tomon_azo) + obyekt kompaniyaga tegishliligi RPC ichida ham tekshiriladi. */
+        aosr_slichitelniy_v1: 'obyekt_kompaniya_actor',
         /* Tezlik (20261212800000): bir nechta obyekt nakrutkasi BITTA so'rovda. Tenant: kompaniya a'zoligi + har obyekt shu kompaniyaniki; RPC ichida actor a'zoligi qayta tekshiriladi. */
         obyekt_nakrutka_paket_v1: 'obyekt_paket_actor',
         shartnoma_qamrov_ol_v1: 'shartnoma_actor',
@@ -366,7 +368,7 @@ export const onRequestPost: PagesFunction<{
        * cheklovni endi POSTGRESNING O'ZI majburlaydi — yozuvchi funksiya
        * bu yerga qo'shilsa, u GET da umuman ishlamaydi. */
       const q = new URLSearchParams();
-      if (tur === 'obyekt' || tur === 'obyekt_kompaniya' || tur === 'obyekt_actor') {
+      if (tur === 'obyekt' || tur === 'obyekt_kompaniya' || tur === 'obyekt_actor' || tur === 'obyekt_kompaniya_actor') {
         const id = Number(so.obyekt_id);
         if (!Number.isFinite(id) || id <= 0) {
           return Response.json({ ok: false, error: 'obyekt_id noto\'g\'ri' });
@@ -394,7 +396,7 @@ export const onRequestPost: PagesFunction<{
         }
         q.set('p_shartnoma_id', String(id));
       }
-      if (tur === 'obyekt_actor' || tur === 'obyekt_paket_actor' || tur === 'akt_actor' || tur === 'job_actor' || tur === 'kompaniya_actor' || tur === 'akt_kompaniya_actor' || tur === 'shartnoma_actor' || tur === 'tizim_actor') {
+      if (tur === 'obyekt_actor' || tur === 'obyekt_kompaniya_actor' || tur === 'obyekt_paket_actor' || tur === 'akt_actor' || tur === 'job_actor' || tur === 'kompaniya_actor' || tur === 'akt_kompaniya_actor' || tur === 'shartnoma_actor' || tur === 'tizim_actor') {
         if (!Number.isInteger(sess.foydalanuvchi_id) || (sess.foydalanuvchi_id as number) <= 0) {
           return Response.json({ ok: false, error: 'Sessiyada foydalanuvchi yo\'q' }, { status: 401 });
         }
@@ -422,7 +424,7 @@ export const onRequestPost: PagesFunction<{
       /* 2026-10-02 izolyatsiya auditi: avval `obyekt` turidagi RPC (ai_kontekst) obyektning kimga tegishliligini
          tekshirmasdi, `kompaniya` turida esa kompaniya berilmasa BARCHA kompaniyalar qaytardi. Endi:
          obyekt → uning kompaniyasi a'zolikda bo'lishi shart; kompaniya → majburiy va a'zo. */
-      if (tur === 'obyekt' || tur === 'obyekt_kompaniya') {
+      if (tur === 'obyekt' || tur === 'obyekt_kompaniya' || tur === 'obyekt_kompaniya_actor') {
         if (!Array.isArray(sess.kompaniyalar)) {
           return Response.json({ ok: false, code: 'SESSION_STALE', error: 'Sessiyani yangilang — chiqib, qaytadan kiring.' }, { status: 401 });
         }
@@ -433,7 +435,7 @@ export const onRequestPost: PagesFunction<{
           return Response.json({ ok: false, code: 'TENANT_FORBIDDEN', error: 'Bu obyektga ruxsat yo\'q' }, { status: 403 });
         }
       }
-      if (tur === 'kompaniya' || tur === 'obyekt_kompaniya') {
+      if (tur === 'kompaniya' || tur === 'obyekt_kompaniya' || tur === 'obyekt_kompaniya_actor') {
         const k = rpcKompaniyasi(sess, so.kompaniya_id);
         if (!k.ok) return Response.json({ ok: false, code: 'TENANT_FORBIDDEN', error: k.error }, { status: k.status });
         q.set('p_kompaniya_id', String(k.id));
@@ -455,6 +457,11 @@ export const onRequestPost: PagesFunction<{
         const kid = Number(so.kompaniya_id);
         if (!Number.isSafeInteger(kid) || kid <= 0) return Response.json({ ok: false, error: 'kompaniya_id noto\'g\'ri' });
         q.set('p_kompaniya_id', String(kid));
+      }
+      if (so.soro === 'aosr_slichitelniy_v1' && (so as { limit?: unknown }).limit != null) {
+        const lim = Number((so as { limit?: unknown }).limit);
+        if (!Number.isInteger(lim) || lim < 1 || lim > 1000) return Response.json({ ok: false, error: 'limit 1..1000' });
+        q.set('p_limit', String(lim));
       }
       if (so.soro === 'nakrutka_koef_ol_v1' || so.soro === 'obyekt_nakrutka_v1') {
         if (so.shartnoma_id != null && String(so.shartnoma_id) !== '') {

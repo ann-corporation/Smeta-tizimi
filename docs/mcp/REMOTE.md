@@ -29,7 +29,7 @@ tranzaksiyada snapshot + RPC + audit + dry_run ROLLBACK bilan bajaradi. PostgRES
 oldi) yo'qoladi va mantiqni qayta yozish (dublikat) kerak bo'lardi. RPC'lar baribir `p_actor_id` bo'yicha o'z tekshiruvini qiladi.
 
 ### Ochiq toollar (v1)
-O'qish: `obyektlar, obyekt_holat, qator, qator_qidir, f2_royxat, f2, pereraschet, nakopitelniy, ostatka, fakt_jurnal, normativ_qidir,
+O'qish: `obyektlar, obyekt_holat, qator, qator_qidir, f2_royxat, f2, pereraschet, nakopitelniy, ostatka, fakt_jurnal, normativ_qidir, slichitelniy,
 shartnoma_moslash, yoyilma, snapshot_royxat, snapshot_farq`.
 Yozish (dry_run standart): `fakt_yoz, f2_qoralama_yarat, f2_qoralama_tahrir, f2_qoralama_yangila, f2_holat, f2_yarat, zamena_qosh,
 ish_ochir, akt_bekor, forma3, bajarilmadi, qoshimcha_ish, narx_tuzat, podval_tahrir, snapshot_ol, snapshot_qaytar`.

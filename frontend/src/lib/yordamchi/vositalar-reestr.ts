@@ -11,6 +11,7 @@ import { NAV_SAHIFALAR } from '../nav/navReestr';
 import { SAHIFA_VOSITALARI } from '../ai-yordamchi/protokol';
 import { pultAsboblar } from '../mindmap-pult';
 import type { YordamchiSahifa } from './sahifa-qidiruv';
+import { AI_ISHCHI_VOSITALARI } from './vositalar-ai-ishchi';
 
 export type VositaTur = 'navigatsiya' | 'oqish' | 'yozuv';
 /** yoq — hech narsa yozilmaydi; karta — taklif kartasi + «Tasdiqlash»; kartaPul — kartadan keyin ikkinchi «Tasdiqlayman». */
@@ -47,6 +48,8 @@ export const STATIK_VOSITALAR: readonly YordamchiVosita[] = [
   /* Loyihachi / mualliflik nazorati (lib/loyihachi/amallar.ts: capability + RPC + dryRun). Yozuvlar avval /admin/chizmalar sahifasida ko'rsatiladi; AI faqat sahifani obyekt bilan ochadi. */
   { id: 'oqish.chizma', tur: 'navigatsiya', nom: 'Chizmalar va revizyalar: joriy/eskirgan, qaror holati, tayangan smeta qatori va АОСР', misol: ['chizmalar holati', 'eskirgan chizmaga tayangan ishlar'], tasdiq: 'yoq', manba: '/admin/chizmalar -> t2_chizma_royxat_v1, t2_chizma_taasir_v1' },
   /* Loyiha <-> Smeta <-> Fakt (2026-11-12): chizma hajmlari, smeta va fakt farqlari pul ta'siri bilan. AI sahifani obyekt bilan ochadi; tasdiq va qarorlar faqat sahifada, qo'lda. */
+  { id: 'oqish.slichitelniy', tur: 'oqish', nom: 'Slichitelniy tayyorligi: farqli qatorlar, asosi (АОСР, texnadzor qarori) bor/yo‘q, nima yetishmaydi', misol: ['slichitelniy tayyorligini ko‘rsat', 'slichitelniy chiqar'], tasdiq: 'yoq', manba: 'buyruq-vositalar.buyruqOqi(slichitelniy) -> lib/slichitelniy-asos.jarvisSlichitelniyMatni (t2_aosr_slichitelniy_v1)', modelNomi: 'slichitelniy' },
+  { id: 'oqish.asossiz', tur: 'oqish', nom: 'Asosi yo‘q (АОСР bog‘lanmagan) farqli qatorlar', misol: ['asosi yo‘q qatorlarni ko‘rsat'], tasdiq: 'yoq', manba: 'buyruq-vositalar.buyruqOqi(asossiz) -> lib/slichitelniy-asos.jarvisAsossizMatni', modelNomi: 'asossiz' },
   { id: 'oqish.loyiha_tahrir', tur: 'oqish', nom: 'Chizma tahrirlari farqi: loyihada nima o‘zgardi, smeta qaysi joyda eskirgan (pul ta‘siri QQS bilan, QQS siz)', misol: ['loyihada nima o‘zgardi', 'smeta qaysi joyda eskirgan', 'что изменилось в проекте'], tasdiq: 'yoq', manba: 'buyruq-vositalar.buyruqOqi(loyiha_tahrir) -> lib/loyiha-smeta/tahrir-jarvis.tahrirMatni (t2_loyiha_tahrir_farq_v1)', modelNomi: 'loyiha_tahrir' },
   { id: 'oqish.loyiha_smeta_farq', tur: 'oqish', nom: 'Loyiha bilan smetani solishtirish: КР-5 da nima farq, smetaga kirmagan ishlar qancha (QQS bilan, QQS siz)', misol: ['loyiha bilan smetani solishtir', 'КР-5 da nima farq', 'smetaga kirmagan ishlar qancha'], tasdiq: 'yoq', manba: 'buyruq-vositalar.buyruqOqi(loyiha_farq) -> lib/loyiha-smeta/jarvis.loyihaFarqMatni (t2_loyiha_farq_v1)', modelNomi: 'loyiha_farq' },
   { id: 'oqish.loyihachi_bugun', tur: 'navigatsiya', nom: 'Loyihachi: bugungi ishlar (qoralama revizya, savol, remark, taklif)', misol: ['loyihachi bugun'], tasdiq: 'yoq', manba: '/admin/loyihachi -> t2_loyihachi_bugun_v1' },
@@ -92,7 +95,7 @@ export function pultVositalar(): YordamchiVosita[] {
 }
 
 /** Hamma vositalar: berilgan sahifalar uchun navigatsiya + statik o'qish/yozuv + mindmap pult amallari. */
-export const barchaVositalar = (sahifalar?: readonly YordamchiSahifa[]): YordamchiVosita[] => [...navVositalar(sahifalar), ...STATIK_VOSITALAR, ...pultVositalar()];
+export const barchaVositalar = (sahifalar?: readonly YordamchiSahifa[]): YordamchiVosita[] => [...navVositalar(sahifalar), ...STATIK_VOSITALAR, ...AI_ISHCHI_VOSITALARI, ...pultVositalar()];
 
 /** «Nima qila olasan?» javobi — reestrdan (qo'lda matn emas, shuning uchun eskirmaydi). */
 export function yordamMatni(sahifalar: readonly YordamchiSahifa[]): string {
