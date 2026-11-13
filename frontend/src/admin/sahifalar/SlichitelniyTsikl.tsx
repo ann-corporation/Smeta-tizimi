@@ -1,17 +1,17 @@
 /**
  * Slichitelniy SIKLI — hujjatdan keyingi qadam (egasi 2026-11-14): «к доплате» qatorlaridan Ф-2 qoralama, «к снятию» qatorlaridan
- * tuzatuvchi (minus) Ф-2 qoralama. Hisob — mavjud `faktPereraschetHisobla/farqYuk` (ishora bo'yicha bo'lingan, `lib/slichitelniy-tsikl.ts`),
+ * tuzatuvchi (minus) Ф-2 qoralama. Hisob — HUJJAT bilan bir xil `slichitelniyModeli` (fakt − Ф-2, smeta bilan cheklanmaydi; `lib/slichitelniy-tsikl.ts`),
  * yozish — mavjud `t2_akt_yarat_v2` (F2 qoralama). TASDIQLAMAYDI: tasdiqlash F2 tarixida, egasi tomonidan. Asl smeta va tasdiqlangan
  * aktlar o'zgarmaydi.
  */
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FilePlus2, RefreshCw } from 'lucide-react';
-import { sbOqi, sbT2AktYaratV2, yangiOperationId } from '../../api/supabase';
-import { t2ToliqOqiParallel } from '../../api/t2-toliq-oqish';
+import { sbT2AktYaratV2, yangiOperationId, type T2Qator, type T2QatorHolat } from '../../api/supabase';
 import { tokenBilan } from '../../api/t2-token';
-import { PERERASCHET_USTUNLAR, type PQator } from '../../lib/pereraschet';
-import { faktPereraschetHisobla } from '../../lib/pereraschet-fakt';
+import { slichitelniyModeli } from '../../lib/slichitelniy-vedomost';
+import { ustamaManbaOl } from '../../lib/oylik-hujjat/ostatka-slichitelniy';
+import { yaxlitQatorIdlari, type SvodYaxlit } from '../../lib/svod-yaxlit';
 import { slichitelniyTsiklYuki } from '../../lib/slichitelniy-tsikl';
 import { bloklarmi, dublikatTekshiruv } from '../../lib/f2-dublikat/tekshiruv';
 import { t } from '../../i18n/til';
@@ -23,10 +23,9 @@ import { useObyektF2Aktlari } from './F2DublikatPanel';
 
 type Tur = 'doplata' | 'snyatie';
 
-export function SlichitelniyTsikl({ kompaniyaId, obyektId }: { kompaniyaId: number; obyektId: number }) {
+export function SlichitelniyTsikl({ kompaniyaId, obyektId, qatorlar: daraxt, holatlar }: { kompaniyaId: number; obyektId: number; qatorlar: readonly T2Qator[]; holatlar: readonly T2QatorHolat[] }) {
   const navigate = useNavigate();
-  const [rows, setRows] = useState<PQator[] | null>(null);
-  const [qoshimcha, setQoshimcha] = useState<Set<number>>(new Set());
+  const [svod, setSvod] = useState<{ ok: true; svodYaxlit: SvodYaxlit | null } | null>(null);
   const [busy, setBusy] = useState(false);
   const [xato, setXato] = useState('');
   const [raqam, setRaqam] = useState('');
@@ -35,27 +34,24 @@ export function SlichitelniyTsikl({ kompaniyaId, obyektId }: { kompaniyaId: numb
   const [yangila, setYangila] = useState(0);
   const operationId = useRef<Record<Tur, string>>({ doplata: yangiOperationId(), snyatie: yangiOperationId() });
   const ustama = useUstamaliSumma(obyektId, { kompaniyaId });
+  const rows = svod ? daraxt : null;
   const { aktlar } = useObyektF2Aktlari(rows ? obyektId : null, yangila);
 
   const yukla = async () => {
     setBusy(true); setXato('');
     try {
-      const [h, qs] = await Promise.all([
-        t2ToliqOqiParallel<PQator>(sbOqi, { jadval: 't2_qator_holat', filtr: 'obyekt_id=eq.' + obyektId, ustunlar: PERERASCHET_USTUNLAR, limit: 200000 }, 'qator_id'),
-        t2ToliqOqiParallel<{ id: number }>(sbOqi, { jadval: 't2_qator', filtr: `obyekt_id=eq.${obyektId}&qoshimcha=is.true`, ustunlar: 'id', limit: 200000, versiya: 'tarix' }, 'id'),
-      ]);
-      if (!h.ok || h.toliq === false) { setXato(t('Smeta qatorlari to‘liq o‘qilmadi — sikl chala ma’lumot ustida hisoblanmaydi.')); setRows(null); return; }
-      if (!qs.ok || qs.toliq === false) { setXato(t('Qo‘shimcha (smetadan tashqari) qatorlar o‘qilmadi — qayta urinib ko‘ring.')); setRows(null); return; }
-      setQoshimcha(new Set((qs.qatorlar ?? []).map((x) => Number(x.id))));
-      setRows(h.qatorlar ?? []);
+      // Svod yaxlit ma'lumoti hujjat bilan bir xil manbadan (ustamaManbaOl); daraxt va holat sahifadan.
+      const u = await ustamaManbaOl(kompaniyaId, obyektId);
+      if (!u.ok) { setXato(`${u.xato} — ${t('sikl hisoblanmadi. Qayta urinib ko‘ring.')}`); setSvod(null); return; }
+      setSvod({ ok: true, svodYaxlit: u.ustama.svodYaxlit ?? null });
     } catch { setXato(t('Ma’lumotni yuklab bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.')); }
     finally { setBusy(false); }
   };
 
-  const yaxlitIdlari = ustama.yaxlitIdlari;
-  const yaxlitIdlar = useMemo(() => (rows ? yaxlitIdlari?.(rows.map((r) => ({ id: r.qator_id, ota_id: r.ota_id }))) : undefined), [rows, yaxlitIdlari]);
-  const n = useMemo(() => (rows ? faktPereraschetHisobla(rows, { qoshimchaIdlar: qoshimcha, bolimId: null, yaxlitIdlar }) : null), [rows, qoshimcha, yaxlitIdlar]);
-  const yuk = useMemo(() => (n ? slichitelniyTsiklYuki(n) : null), [n]);
+  const yaxlitIdlar = useMemo(() => (svod ? yaxlitQatorIdlari(daraxt, svod.svodYaxlit) : undefined), [svod, daraxt]);
+  const model = useMemo(() => (svod ? slichitelniyModeli(daraxt as T2Qator[], holatlar as T2QatorHolat[], { svodYaxlit: svod.svodYaxlit }) : null), [svod, daraxt, holatlar]);
+  const yuk = useMemo(() => (model ? slichitelniyTsiklYuki(model, yaxlitIdlar) : null), [model, yaxlitIdlar]);
+  const n = yuk;
 
   const yarat = async (tur: Tur) => {
     if (!yuk || yozilmoqda) return;
@@ -116,9 +112,9 @@ export function SlichitelniyTsikl({ kompaniyaId, obyektId }: { kompaniyaId: numb
               {t('{n} pozitsiya qoralamaga sig‘madi (hajm farqi 0, faqat narx farqi) — ular «Pereraschet» sahifasidagi to‘liq storno formatida.', { n: String(yuk.sigmadi.soni) })}
             </div>
           )}
-          {n.tekshirish.length > 0 && (
+          {yuk.nomalum > 0 && (
             <div className="text-[12px] text-text-mute">
-              {t('{n} pozitsiya tekshirishni talab qiladi (narx yoki Ф-2 summasi noma’lum) — pulga kirmaydi, 0 deb olinmaydi.', { n: String(n.tekshirish.length) })}
+              {t('{n} pozitsiya tekshirishni talab qiladi (narx yoki Ф-2 summasi noma’lum) — pulga kirmaydi, 0 deb olinmaydi.', { n: String(yuk.nomalum) })}
             </div>
           )}
           <div className="flex flex-wrap items-end gap-3">

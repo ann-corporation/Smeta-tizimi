@@ -490,7 +490,7 @@ export function HolatNative() {
               <span>{t('Slichitelniy sikli: к доплате / к снятию → Ф-2 qoralama')}</span>
               <span className="ml-auto text-[11.5px] font-normal text-text-mute">{ochiqPanel === 'tsikl' ? t('yopish ▴') : t('ochish ▾')}</span>
             </summary>
-            {ochiqPanel === 'tsikl' && <div className="border-t border-border px-4 py-3"><SlichitelniyTsikl kompaniyaId={joriy.id} obyektId={obyektId} /></div>}
+            {ochiqPanel === 'tsikl' && <div className="border-t border-border px-4 py-3"><SlichitelniyTsikl kompaniyaId={joriy.id} obyektId={obyektId} qatorlar={daraxtXom} holatlar={holatXom} /></div>}
           </details>
         )}
         {daraxtKorinadi && !loading && !error && activeTab === 'smeta' && panellar && (
