@@ -43,7 +43,7 @@ export function StudioInspector({doc,calculation,workId,onWork,command,pricing,t
       </> : <p>{t('Jadvaldan ishni tanlang. Uning barcha sozlamalari shu yerda ochiladi.')}</p>}
     </div>
     <div role="tablist" aria-label={t('Ish nazorati bo‘limlari')} className="studio-inspector-tabs">
-      {([['work','Hajm'],['coefficients','Koeff.'],['resources','Resurs'],['ai','AI'],['calculator','Hisob']] as const).map(([key,label])=><button key={key} role="tab" aria-label={t(key==='ai' ? 'Smetachi AI' : label)} aria-selected={tab===key} onClick={()=>onTab(key)}>{t(label)}</button>)}
+      {([['work','Hajm'],['coefficients','Koeff.'],['resources','Resurs'],['ai','AI'],['calculator','Hisob']] as const).filter(([key])=>key!=='ai' || ai!=null).map(([key,label])=><button key={key} role="tab" aria-label={t(key==='ai' ? 'Smetachi AI' : label)} aria-selected={tab===key} onClick={()=>onTab(key)}>{t(label)}</button>)}
     </div>
     <div className="studio-pane-scroll">
       <div hidden={tab!=='ai'}>{ai}</div>

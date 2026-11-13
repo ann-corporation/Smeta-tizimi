@@ -38,5 +38,25 @@
   "Kutubxona va bo‘lim sozlamalari": {
     "ru": "Настройки каталога и разделов",
     "en": "Catalogue and section settings"
+  },
+  "AI yordamchiga maqsadingizni yozing yoki katalogdan ish qo‘shing.": {
+    "ru": "Опишите цель помощнику AI или добавьте работу из каталога.",
+    "en": "Tell the AI assistant your goal or add work from the catalogue."
+  },
+  "Katalogdan ish qo‘shish": {
+    "ru": "Добавить работу из каталога",
+    "en": "Add work from catalogue"
+  },
+  "Tafsilotlarni yopish": {
+    "ru": "Закрыть подробности",
+    "en": "Close details"
+  },
+  "Doimiy AI yordamchi": {
+    "ru": "Постоянный AI-помощник",
+    "en": "Persistent AI assistant"
+  },
+  "Smeta bilan birga ishlaydi": {
+    "ru": "Работает с вашей сметой",
+    "en": "Works with your estimate"
   }
 }
