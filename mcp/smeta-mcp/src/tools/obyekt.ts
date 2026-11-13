@@ -1,11 +1,11 @@
-﻿/**
+/**
  * Obyekt, qator, F2 va pereraschet o'qishlari. Hisob frontend sof mantig'idan (bolimSummalari, jurnalQur, pereraschetHisobla,
  * ustamaliHisobla) — UI ko'rsatadigan raqamlar bilan bir xil. Pul: NDS siz; ustamasiz + ustamali (NDS alohida).
  */
 import { z } from 'zod';
 import { bolimSummalari, bosKatKesim, jurnalQur, katKesimgaQosh, pereraschetHisobla, PERERASCHET_USTUNLAR, type BolimSumma, type JurnalHolat, type PNatijaQator, type PQator } from '../frontend';
-import { qatorTozala, sahifala, son, summaJuft } from '../format';
-import { holatlarOl, kesimJami, obyektBormi, qatorlarOl, ustamaOl, type HolatRow, type QatorRow, type Ustama } from '../malumot';
+import { pul, qatorTozala, sahifala, son, summaJuft } from '../format';
+import { holatlarOl, kesimJami, obyektBormi, qatorlarOl, serverPaket, ustamaOl, type HolatRow, type QatorRow, type Ustama } from '../malumot';
 import { obyektIdS, tool } from '../tool';
 
 type T2QatorFE = Parameters<typeof jurnalQur>[0][number];
@@ -45,8 +45,11 @@ export const obyektHolat = tool({
     const ob = await obyektBormi(m, a.obyekt_id);
     const [rows, states] = await Promise.all([qatorlarOl(m, a.obyekt_id), holatlarOl(m, a.obyekt_id)]);
     const u = await ustamaOl(m, a.obyekt_id, mu.aktorId);
-    // Svod yaxlit bo'limlari (bronza VIP ART kabi) ustamasiz — aks holda F2 ustamali bo'lim jami server/imzolangan hujjatdan oshib ketadi.
-    const sum = bolimSummalari(fe(rows), holatFe(states), undefined, (u.svod ?? null) as Parameters<typeof bolimSummalari>[3]);
+    // Svod yaxlit bo'limlariga ustama YO'Q (UI: FaktJurnal/IshVaraq `bolimSummalari(..., svodYaxlit)` bilan bir xil) — oldin bu yerda uzatilmagan edi
+    // va ОБ qatorli svod bo'limiga (Stella bronza) ustama qo'shilib jami server/kesh dan oshib ketardi.
+    const sum = bolimSummalari(fe(rows), holatFe(states), undefined, u.svod ?? null);
+    // Yagona yadro (SQL _t2_summa_paket_v1) — kesh va ekran jami shu; yuqoridagi daraxt jami u bilan tiyingacha mos bo'lishi kerak.
+    const yadro = { smeta: await serverPaket(m, a.obyekt_id, 'smeta'), f2: await serverPaket(m, a.obyekt_id, 'f2'), fakt: await serverPaket(m, a.obyekt_id, 'fakt') };
     const { bolimlar } = jurnalQur(fe(rows), holatFe(states));
     // Almashtirilgan (zamena qoplagan) summa — bo'limlar bo'yicha (bolimSummalari da yo'q ko'rsatkich).
     const byId = new Map(rows.map((r) => [r.id, r]));
@@ -87,6 +90,7 @@ export const obyektHolat = tool({
       qatorlar_soni: rows.length,
       [ildiz != null ? 'bolim' : 'jami']: { ...(ildizB ? { id: ildizB.id, nom: ildizB.nom, ulush: ildizB.ulush } : {}), ...juftlar(sum.get(ildizKalit), u), almashtirilgan: almJuft(ildizKalit) },
       bolimlar: tanlangan.map((b) => ({ ...b, ...juftlar(sum.get(b.id), u), almashtirilgan: almJuft(b.id) })),
+      yadro_jami: yadro,
       ...(nak !== undefined ? { nakopitelniy_jami: nak } : {}),
       izoh: 'summalar NDS siz; «ustamali» — ИТОГО-4 (kat noma\'lum qism ustamasiz qo\'shilgan); nds — alohida. null — noma\'lum (0 emas).',
     };
@@ -169,7 +173,15 @@ export const f2 = tool({
     for (const q of r.rows) katKesimgaQosh(kesim, q.kat, son(q.s));
     const u = await ustamaOl(m, Number(akt.obyekt_id), mu.aktorId, akt.shartnoma_id == null ? null : Number(akt.shartnoma_id));
     const s = sahifala(r.rows.map(({ s: _s, ...x }) => qatorTozala(x)), a.limit ?? 300, a.offset ?? 0);
-    return { akt: qatorTozala(akt), summa: summaJuft(kesimJami(kesim), u.hisobla(kesim)), ...s };
+    // Akt jami — YAGONA yadro (SQL _t2_summa_paket_v1 'aktlar'): akt o'z podvali, svod/yaxlit va ustamasiz qism hisobga olinadi.
+    // Oddiy kesim (obyekt podvali) faqat yadro o'qilmasa zaxira.
+    const yadro = await serverPaket(m, Number(akt.obyekt_id), 'aktlar', a.akt_id);
+    const juft = summaJuft(kesimJami(kesim), u.hisobla(kesim));
+    const summa = yadro && yadro.ustamali != null
+      ? { ...juft, ustamasiz: yadro.ustamasiz, ustamali: yadro.ustamali, nds: yadro.qqs_bilan != null ? Math.round((yadro.qqs_bilan - yadro.ustamali) * 100) / 100 : juft.nds,
+          matn: `${pul(yadro.ustamasiz) ?? '—'} / ustamali ${pul(yadro.ustamali)}${yadro.qqs_bilan != null ? ` (+NDS ${pul(yadro.qqs_bilan - yadro.ustamali)})` : ''}`, manba: 'yadro:_t2_summa_paket_v1', ustamasiz_qism: yadro.ustamasiz_qism }
+      : { ...juft, manba: 'zaxira:kesim' };
+    return { akt: qatorTozala(akt), summa, ...s };
   }),
 });
 

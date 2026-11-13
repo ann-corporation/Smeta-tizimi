@@ -4,7 +4,7 @@ import type { F2Tafsilot } from '../api/t2-narx';
 import type { F2HujjatKonteksti } from '../api/f2-hujjat-kontekst';
 import { bahoMoliya, f2AktBaho, f2AktTayyorla } from './f2-akt-eksport';
 import { f2Hujjat } from './f2-hujjat';
-import { hujjatTekshir } from './hujjat-yozuvchi';
+import { hujjatTekshir, summaSozBilan } from './hujjat-yozuvchi';
 
 /**
  * Sinov (bronza VIP ART kabi): svod yaxlit belgili bo'lim ichidagi OB qatori. Imzolangan hujjat: ustama YO'Q, faqat QQS;
@@ -48,6 +48,22 @@ describe('F2 akti: svod yaxlit bo‘lim ichidagi qator ustamasiz (faqat QQS) —
     const b = f2AktBaho(t, CTX);
     const faqatOddiy = f2AktBaho(tayyor([line(21, 10, 1000, 0)]), CTX);
     expect(b.ustamali).toBeCloseTo(5803571.43 + (faqatOddiy.ustamali as number), 2);
+  });
+
+  it('storno (pereraschet) bloki: yaxlit qator minus ham ustamasiz — yangi blok bilan bir xil qoida', () => {
+    const lines = [line(11, 1, 5803571.43, 0)];
+    const aq = [{ qator_id: 11, certified_quantity: -1, certified_unit_price: 5803571.43, certified_amount: -5803571.43, raw_snapshot: { source: 'storno', stornoOf: 7 } }];
+    const t = f2AktTayyorla({ smeta: SMETA, lines, aktQatorlar: aq as never, podvallar: new Map(), kontekst: CTX, akt: { id: 1, oy: '2026-03-01', raqam: '1', holat: 'tasdiqlangan' }, obyektNom: 'T', raqamlar: new Map([[7, '7']]) })!;
+    expect(t.eskiBloklar.length).toBe(1);
+    expect(t.eskiBloklar[0].kesim.yaxlitQator).toBeCloseTo(-5803571.43, 2);
+    expect(t.eskiBloklar[0].kesim.summalar.ОБ ?? 0).toBe(0);
+  });
+
+  it('propis: «ВСЕГО К ОПЛАТЕ» katagidagi 2 xonaga yaxlitlangan qiymatdan olinadi', () => {
+    const t = tayyor([line(11, 1, 5803571.43, 0)]);
+    const h = f2Hujjat(t.bolimlar, t.qatorlar, t.opsiya);
+    const matn = hujjatTekshir(h.bytes).matnlar.find((m) => m.startsWith('Сумма прописью'));
+    expect(matn).toBe(`Сумма прописью: ${summaSozBilan(6500000)} с НДС`);
   });
 
   it('svod belgisi yo‘q obyekt — avvalgidek (ОБ ustama oladi)', () => {

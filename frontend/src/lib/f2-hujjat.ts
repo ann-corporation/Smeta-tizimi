@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Ф-2 hujjati — LRV_PLUS'ning asosiy ustunlari asosida (egasi, 2026-10-02: "LRV PLUS dagi asosiy ustunlar,
  * summagacha + I dagi markirovka; eski tizim uchun o'ngdagi yordamchi ustunlar kerak emas").
  *
@@ -232,18 +232,18 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     v.bolim(`Сторно Ф-2 № ${b.nom}`, { daraja: 0 });
     const bBosh = v.r;
     const bks = Object.fromEntries(NAKRUTKA_KATLAR.map((k) => [k, 0])) as KatSummalar;
-    let bNom = 0; let bJami = 0;
+    let bNom = 0; let bJami = 0; let bYax = 0;
     for (const q of b.qatorlar) {
       if (bargEmasIsh(q)) continue;
       const kat = nakrutkaKat(q.kat);
-      if (q.summa != null) { bJami += q.summa; if (kat) bks[kat] += q.summa; else bNom += q.summa; }
+      if (q.summa != null) { bJami += q.summa; if (o.yaxlitIds && f2YaxlitQator(o.yaxlitIds, q)) bYax += q.summa; else if (kat) bks[kat] += q.summa; else bNom += q.summa; }
     }
     const tarkib = eskiDaraxtYoz(eskiDaraxt(b.qatorlar, rowById), bargEmasIsh, {
       qator: (q, daraja) => {
         const kat = nakrutkaKat(q.kat);
         const belgi = q.summa == null && !mashinistMehnati(q);
         if (belgi) narxsizN++;
-        return v.qator('oddiy', (): Qiymat[] => [++n, shifrKorinish(q.kod), q.nom, q.birlik ?? '', null, q.hajm, q.narx, q.summa == null ? (belgi ? NARX_ANIQLANMAGAN : '—') : q.summa, q.tur, kat ?? '', null],
+        return v.qator('oddiy', (): Qiymat[] => [++n, shifrKorinish(q.kod), q.nom, q.birlik ?? '', null, q.hajm, q.narx, q.summa == null ? (belgi ? NARX_ANIQLANMAGAN : '—') : q.summa, q.tur, o.yaxlitIds && f2YaxlitQator(o.yaxlitIds, q) ? YAXLIT_KAT : kat ?? '', null],
           { daraja, rang: kat && (RANG_TARTIB as readonly string[]).includes(kat) ? kat as QatorRangi : null });
       },
       ish: (q, resSoni, resJS) => v.qator('ish', (r): Qiymat[] => [++n, shifrKorinish(q.kod), q.nom, q.birlik ?? '', null, q.hajm, null,
@@ -260,7 +260,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     if (b.nk == null && sp.ndsFoiz != null && Number.isFinite(sp.ndsFoiz) && sp.ndsFoiz >= 0) bnk.НДС = sp.ndsFoiz;
     const bPodval = b.nk == null && sp.podval ? serverMerosKoefQoy(sp.podval, bnk, sp.nkManba) : null;
     const pr = nakrutkaPodvaliYoz(v, { podval: bPodval, katUstun: 'J', oraliq: [bBosh, bOxirgi], pulUstunlar: ['H'], foizUstun: 'G', nk: bnk, katSummalar: { H: bks }, kfJadval: false,
-      nomalum: Math.abs(bNom) >= 0.005 ? { H: yaxlit2(bNom) } : null,
+      nomalum: Math.abs(bNom) >= 0.005 ? { H: yaxlit2(bNom) } : null, yaxlitOldin: Math.abs(bYax) >= 0.005 ? { H: yaxlit2(bYax) } : null,
       sarlavha: `РАСЧЕТ К ОПЛАТЕ — Сторно Ф-2 № ${b.nom} (${b.nk ? 'подвал исходного документа' : 'подвал сметы'})`, vsegoNom: `ВСЕГО К ОПЛАТЕ — Сторно Ф-2 № ${b.nom}` });
     eskiVsegoQatorlar.push(pr.vsegoQator);
     eskiVsegoJS += pr.natija.H.vsego ?? 0;
