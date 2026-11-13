@@ -164,13 +164,13 @@ describe('svod yaxlit — obyekt darajasidagi ko‘rinishlar server bilan bir xi
 
 describe('svod yaxlit — butun tarkib aynan yaxlit summaga yig‘iladi (qator darajasida taqsim)', () => {
   const HF = DARAXT.map((x) => h(x.id, x.id === 12 ? 0.15 : x.id === 13 ? 0.7 : 0)); // 10-bo'lim qisman bajarilgan
-  it('Slichitelniy modeli: bo‘lim smetasi = svod QQS siz aynan, fakti = svod × (fakt / smeta)', () => {
+  it('Slichitelniy modeli: bo‘lim smetasi = svod QQS siz aynan, fakti taqsimlanmaydi (to‘g‘ri narx)', () => {
     const m = slichitelniyModeli(DARAXT, HF, { svodYaxlit: SVOD });
     const yq = m.qatorlar.filter((x) => x.yaxlitTaqsim != null);
     expect(yq.length).toBe(2);
     expect(r2(yq.reduce((t, x) => t + (x.smetaSumma ?? 0), 0))).toBe(1200);
-    // fakt 850 / smeta 1000 → 1200 × 0,85 = 1020
-    expect(r2(yq.reduce((t, x) => t + (x.faktSumma ?? 0), 0))).toBe(1020);
+    // fakt 850 (to'g'ri narx, taqsimsiz) - qator ichida hajm x narx = summa
+    expect(r2(yq.reduce((t, x) => t + (x.faktSumma ?? 0), 0))).toBe(850);
     const r = slichitelniyHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', nakrutka: NK, yaxlitIdlar: IDLAR, svodYaxlit: SVOD });
     expect(qiymatBor(r.bytes, 1344)).toBe(true);            // smeta к оплате = svod summasi (QQS bilan) aynan
     // выполнено к оплате: fakt Ф-2 usulida (server qoidasi) - taqsimsiz: МАТ qatori to'g'ri narx 700 × (1+НДС); ЧЕЛ - ustama kaskadi.

@@ -274,32 +274,23 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
 
   const ildizlar: number[] = [];
   for (const q of bolalar.get(null) ?? []) { const i = qayta(q, 0, null, 0); if (i != null) ildizlar.push(i); }
-  // Svod yaxlit (egasi): bo'lim smetasi = yaxlit; fakti = yaxlit × (bo'lim fakti / bo'lim smetasi); qatorlarga tiyingacha
-  // taqsim (Σ aynan); отклонение = fakt − smeta. F2 aynan qoladi. Filtrlangan ro'yxatda (faqatFarq) taqsim yo'q.
+  // Svod yaxlit (egasi): bo'lim SMETASI = yaxlit summa, qatorlarga tiyingacha taqsim (Σ aynan). FAKT taqsimlanmaydi: qator ichida
+  // hajm × narx = summa saqlanadi, fakt va Ф-2 bir xil (to'g'ri narx, Ф-2 usuli); otklonenie = fakt − smeta. Filtrlangan ro'yxatda (faqatFarq) taqsim yo'q.
   if (o.svodYaxlit?.bolimlar?.length && !o.faqatFarq) {
     for (const b of o.svodYaxlit.bolimlar) {
       const leaves = bolimBarglari(out, Number(b.qator_id));
       if (!leaves?.length) continue;
       const lump = Number(b.qqssiz);
-      const sm = yigindi2(leaves.map((i) => out[i].smetaSumma)), fk = yigindi2(leaves.map((i) => out[i].faktSumma));
-      // Svod: fakt = yaxlit × (bo'lim fakti / bo'lim smetasi); bo'lim fakti summalari narx qoidasidan (F2 narxida). F2 aynan.
-      const fJami = yaxlitBolimJami(lump, sm, fk);
-      // Noma'lum (null) qatorlar taqsimga kirmaydi va null qoladi (0 emas); fakt — faqat ma'lum qatorlar bo'yicha, diqqatda aytiladi.
+      // Noma'lum (null) smetali qatorlar taqsimga kirmaydi va null qoladi (0 emas).
       const G = yaxlitQatorlarga(lump, leaves.map((i) => ({ id: i, summa: out[i].smetaSumma })));
-      const I = fJami == null ? null : yaxlitQatorlarga(fJami, leaves.map((i) => ({ id: i, summa: out[i].faktSumma })));
       if (!G) continue;
       for (const i of leaves) {
         const r = out[i];
         r.smetaSumma = G.get(i) ?? null;
         r.faktTogri = r.faktSumma;
-        r.faktSumma = I?.get(i) ?? null;
         r.farqSumma = r.faktSumma == null || r.smetaSumma == null ? null : yaxlit2(r.faktSumma - r.smetaSumma);
-        // Pereraschet (fakt − Ф-2) svod taqsimidan TASHQARI: to'g'ri narxdagi fakt bilan Ф-2 solishtiriladi (doplataSumma o'zgarmaydi);
-        // aks holda taqsimlangan fakt (svod bo'yicha) va to'g'ri narxdagi Ф-2 farqi soxta «к доплате» berardi.
         r.yaxlitTaqsim = Number(b.qator_id);
       }
-      const bilinmas = leaves.filter((i) => out[i].faktSumma == null).length;
-      if (bilinmas) diqqat.push({ nom: `Раздел по своду: ${b.nom ?? b.qator_id}`, sabab: `нет данных о выполнении по ${bilinmas} поз. — в распределение суммы свода не включены (выполнение раздела — только по известным позициям)` });
     }
     const qayt = (i: number) => { const r = out[i]; if (r.tur === 'barg' || !r.bolalar.length) return; r.bolalar.forEach(qayt); yigindi(r, r.bolalar); };
     out.forEach((r, i) => { if (r.tur === 'itogo' || r.tur === 'bl') qayt(i); });
@@ -506,11 +497,11 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
       const us = bargUslubi(q.resTur);
       r = v.qator(us.tur, (n) => [
         q.tartib, q.kod, q.nom, q.birlik, normaF ? { f: `ROUND(${q.norma}*E${rowOf(q.otaIdx!)},6)`, v: q.smetaHajm! } : qiy(q.smetaHajm), qiy(q.narx),
-        // Svod bo'limiga taqsimlangan qator: G/I/M — bo'lim yaxlit summasidan taqsim (qiymat, formula emas).
+        // Svod bo'limiga taqsimlangan qator: G — bo'lim yaxlit summasidan taqsim (qiymat); I (fakt) taqsimlanmaydi — formula.
         q.yaxlitTaqsim != null ? qiy(q.smetaSumma) : { f: `IF(OR(E${n}="",F${n}=""),"",ROUND(E${n}*F${n},2))`, v: q.smetaSumma ?? '' },
         qiy(q.faktHajm),
         // Narx qoidasi (yadro): F2 bor — ROUND(H × K / J); yo'q — ROUND(H × F). Kesh = formula.
-        q.yaxlitTaqsim != null ? qiy(q.faktSumma) : { f: faktSummaF2NarxFormula(`H${n}`, `J${n}`, `K${n}`, `IF(OR(H${n}="",F${n}=""),"",ROUND(H${n}*F${n},2))`), v: q.faktSumma ?? '' },
+        { f: faktSummaF2NarxFormula(`H${n}`, `J${n}`, `K${n}`, `IF(OR(H${n}="",F${n}=""),"",ROUND(H${n}*F${n},2))`), v: q.faktSumma ?? '' },
         q.f2Hajm, q.f2SummaNomalum ? '' : q.f2Summa,
         { f: `IF(OR(E${n}="",H${n}=""),"",H${n}-E${n})`, v: q.farqHajm ?? '' },
         q.yaxlitTaqsim != null ? { f: `ROUND(I${n}-G${n},2)`, v: q.farqSumma ?? '' } : { f: `IF(OR(G${n}="",I${n}=""),"",ROUND(I${n}-G${n},2))`, v: q.farqSumma ?? '' },
