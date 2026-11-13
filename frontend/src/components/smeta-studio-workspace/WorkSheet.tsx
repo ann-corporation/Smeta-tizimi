@@ -1,6 +1,7 @@
 import { RowOrderControls } from '../row-order/RowOrderControls';
 import { Fragment, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { t } from '../../i18n/til';
+import { qidiruvKaliti } from '../../i18n/lotin-kirill';
 import type { EstimateDoc, Occurrence } from '../../lib/smeta-studio/model';
 import { normDec } from '../../lib/smeta-studio/model';
 import type { DocCalc } from '../../lib/smeta-studio/calc';
@@ -31,10 +32,25 @@ export function WorkSheet({doc,calculation,command,onWork,renderDetails,activeWo
   const narrow=useNarrow();
   const [quantity,setQuantity]=useState(''), [destination,setDestination]=useState(''), [message,setMessage]=useState('');
   const rows=useMemo(()=>indexEstimate(doc).rows.filter(x=>x.kind==='work').map(x=>doc.occurrences[x.occurrenceId!]).filter((w):w is Occurrence=>!!w),[doc]);
-  const filtered=useMemo(()=>rows.filter(w=>`${w.source.code} ${w.source.name} ${doc.sections[w.sectionId]?.name}`.toLocaleLowerCase().includes(search.toLocaleLowerCase())),[rows,doc.sections,search]);
-  const visible=filtered.slice(page*50,(page+1)*50);
+  const filtered=useMemo(()=>{const query=qidiruvKaliti(search);return rows.filter(w=>qidiruvKaliti([w.source.code,w.source.name,doc.sections[w.sectionId]?.name].join(' ')).includes(query));},[rows,doc.sections,search]);
+  const lastPage=Math.max(0,Math.ceil(filtered.length/50)-1);
+  const currentPage=Math.min(page,lastPage);
+  const visible=filtered.slice(currentPage*50,(currentPage+1)*50);
+  useEffect(()=>{setPage(p=>Math.min(p,lastPage));},[lastPage]);
+  const [quantityFocus,setQuantityFocus]=useState<string|null>(null);
+  function nextQuantity(id:string,direction:number) {
+    const position=filtered.findIndex(w=>w.id===id);
+    const next=position>=0 ? filtered[position+direction] : null;
+    if(!next)return;
+    setPage(Math.floor((position+direction)/50));setQuantityFocus(next.id);onWork(next.id);
+  }
   const revealed=useRef('');
   const keyboardRoot=useRef<HTMLElement>(null);
+  useEffect(()=>{
+    if(!quantityFocus)return;
+    const input=Array.from(keyboardRoot.current?.querySelectorAll<HTMLInputElement>('input[data-work-quantity]') ?? []).find(el=>el.dataset.workQuantity===quantityFocus);
+    if(input){input.focus();input.select();setQuantityFocus(null);}
+  },[quantityFocus,currentPage]);
   useEffect(()=>{const key=JSON.stringify([doc.draftId,activeWorkId,revealToken]);if(!activeWorkId || revealed.current===key)return;revealed.current=key;const found=filtered.findIndex(w=>w.id===activeWorkId);if(found>=0)setPage(Math.floor(found/50));else {setSearch('');const position=rows.findIndex(w=>w.id===activeWorkId);if(position>=0)setPage(Math.floor(position/50));}},[activeWorkId,doc.draftId,revealToken,filtered,rows]);
   useEffect(()=>{setPage(0);setSelected([]);},[doc.draftId]);
   const ids=selected.filter(id=>!!doc.occurrences[id]);
@@ -52,7 +68,7 @@ export function WorkSheet({doc,calculation,command,onWork,renderDetails,activeWo
   }
   return <section ref={keyboardRoot} tabIndex={docked ? 0 : undefined} className={`karta min-w-0 space-y-3 p-3 ${docked ? 'studio-worksheet' : ''}`} aria-label={t('Smeta ishlar jadvali')} onKeyDown={e=>{if(!docked || !(e.target instanceof HTMLElement) || e.target.closest('input,textarea,select') || !['ArrowUp','ArrowDown'].includes(e.key))return;const position=filtered.findIndex(w=>w.id===activeWorkId);const next=filtered[Math.max(0,Math.min(filtered.length-1,position+(e.key==='ArrowDown' ? 1 : -1)))];if(next){e.preventDefault();keyboardRoot.current?.focus({preventScroll:true});onWork(next.id);}}}>
     <div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold">{t('Ishlar va hajmlar')}</h2><input className="input ml-auto w-64 studio-search" aria-label={t('Jadvaldan qidirish')} placeholder={t('Shifr, ish yoki bo‘limdan qidirish')} value={search} onChange={e=>{setSearch(e.target.value);setPage(0);}} /></div>
-    <p className="text-xs text-text-dim studio-hint">{t('Hajmni satrda tahrirlang. Bir nechta ishni belgilang va bitta amal bilan o‘zgartiring.')}</p>
+    <p className="text-xs text-text-dim studio-hint">{t('Hajmni satrda tahrirlang. Bir nechta ishni belgilang va bitta amal bilan o‘zgartiring.')} {t('Enter — keyingi hajm, Shift+Enter — oldingi, Esc — kiritishni bekor qilish.')}</p>
     {Boolean(ids.length) && <div className="studio-bulk">
       <span>{t('Tanlangan ishlar')}: {ids.length}</span>
       <button type="button" className="fz-btn fz-btn--sm" onClick={()=>reorderSelected('first')}>{t('Tanlanganlarni bo‘lim boshiga')}</button>
@@ -68,17 +84,17 @@ export function WorkSheet({doc,calculation,command,onWork,renderDetails,activeWo
     <div className="overflow-x-auto fz-table-wrap"><table className="fz-table"><thead><tr>
       <th className="c-chk"><input type="checkbox" aria-label={t('Sahifadagi ishlarni tanlash')} checked={!!visible.length && visible.every(w=>ids.includes(w.id))} onChange={e=>setSelected(old=>e.target.checked ? [...new Set([...old,...visible.map(w=>w.id)])] : old.filter(id=>!visible.some(w=>w.id===id)))} /></th>
       {([['Shifr va ish nomi','c-name'],['Bo‘lim','c-sec'],['Birlik','c-unit'],['Hajm','c-qty'],['Qiymat','c-amt'],['Amallar','c-act']] as const).filter(([,c])=>!narrow || (c!=='c-sec' && c!=='c-act')).map(([x,c])=><th className={c} key={x}>{t(x)}</th>)}
-    </tr></thead><tbody>{visible.map((w,i)=><Fragment key={w.id}>{(i===0 || visible[i-1].sectionId!==w.sectionId) && <SectionHeadRow doc={doc} sectionId={w.sectionId} calculation={calculation} narrow={narrow} />}<WorkRow docked={docked} active={activeWorkId===w.id} work={w} orderIndex={doc.sections[w.sectionId].items.indexOf(w.id)} orderCount={doc.sections[w.sectionId].items.length} section={doc.sections[w.sectionId]?.name ?? '—'} amount={calculation.occurrences[w.id]?.amount ?? null} selected={ids.includes(w.id)} select={v=>setSelected(old=>v ? [...new Set([...old,w.id])] : old.filter(id=>id!==w.id))} command={command} onWork={()=>onWork(w.id)} details={docked ? null : renderDetails(w.id)} narrow={narrow} kesim={ishKesimi(doc,calculation,w.id,unitText)} priceMissing={(calculation.occurrences[w.id]?.lines ?? []).filter(l=>l.issues.includes('PRICE_MISSING')).length} /></Fragment>)}</tbody></table></div>
+    </tr></thead><tbody>{visible.map((w,i)=><Fragment key={w.id}>{(i===0 || visible[i-1].sectionId!==w.sectionId) && <SectionHeadRow doc={doc} sectionId={w.sectionId} calculation={calculation} narrow={narrow} />}<WorkRow docked={docked} onNextQuantity={direction=>nextQuantity(w.id,direction)} active={activeWorkId===w.id} work={w} orderIndex={doc.sections[w.sectionId].items.indexOf(w.id)} orderCount={doc.sections[w.sectionId].items.length} section={doc.sections[w.sectionId]?.name ?? '—'} amount={calculation.occurrences[w.id]?.amount ?? null} selected={ids.includes(w.id)} select={v=>setSelected(old=>v ? [...new Set([...old,w.id])] : old.filter(id=>id!==w.id))} command={command} onWork={()=>onWork(w.id)} details={docked ? null : renderDetails(w.id)} narrow={narrow} kesim={ishKesimi(doc,calculation,w.id,unitText)} priceMissing={(calculation.occurrences[w.id]?.lines ?? []).filter(l=>l.issues.includes('PRICE_MISSING')).length} /></Fragment>)}</tbody></table></div>
     {!filtered.length && <p className="py-8 text-center text-sm text-text-dim">{t('Ish topilmadi. Katalog yoki AI yordamida ish qo‘shing.')}</p>}
-    <div className="flex items-center justify-end gap-3 text-xs"><span>{filtered.length ? page*50+1 : 0}–{Math.min((page+1)*50,filtered.length)} / {filtered.length}</span><button className="fz-btn fz-btn--sm" disabled={!page} onClick={()=>setPage(p=>p-1)}>{t('Oldingi')}</button><button className="fz-btn fz-btn--sm" disabled={(page+1)*50>=filtered.length} onClick={()=>setPage(p=>p+1)}>{t('Keyingi')}</button></div>
+    <div className="flex items-center justify-end gap-3 text-xs"><span>{filtered.length ? currentPage*50+1 : 0}–{Math.min((currentPage+1)*50,filtered.length)} / {filtered.length}</span><button className="fz-btn fz-btn--sm" disabled={!currentPage} onClick={()=>setPage(p=>p-1)}>{t('Oldingi')}</button><button className="fz-btn fz-btn--sm" disabled={(currentPage+1)*50>=filtered.length} onClick={()=>setPage(p=>p+1)}>{t('Keyingi')}</button></div>
   </section>;
 }
 
-function WorkRow({work:w,section,amount,selected,select,command,onWork,details,active,docked,orderIndex,orderCount,kesim,priceMissing,narrow}: {narrow:boolean;kesim:Kesim;priceMissing:number;orderIndex:number;orderCount:number;work:Occurrence;section:string;amount:string|null;selected:boolean;select:(v:boolean)=>void;command:(c:StudioCommand)=>boolean;onWork:()=>void;details:ReactNode;active?:boolean;docked?:boolean}) {
+function WorkRow({onNextQuantity,work:w,section,amount,selected,select,command,onWork,details,active,docked,orderIndex,orderCount,kesim,priceMissing,narrow}: {onNextQuantity:(direction:number)=>void;narrow:boolean;kesim:Kesim;priceMissing:number;orderIndex:number;orderCount:number;work:Occurrence;section:string;amount:string|null;selected:boolean;select:(v:boolean)=>void;command:(c:StudioCommand)=>boolean;onWork:()=>void;details:ReactNode;active?:boolean;docked?:boolean}) {
   const [expanded,setExpanded]=useState(false);
   const [value,setValue]=useState(w.quantity ?? ''), [error,setError]=useState(false);
   useEffect(()=>{setValue(w.quantity ?? '');setError(false);},[w.quantity]);
-  function save() {try {const next=value.trim() ? normDec(parseQuantityInput(value).qiymat) : null;if(next!==w.quantity && !command({type:'SET_QUANTITY',occurrenceId:w.id,quantity:next})) throw new Error();setValue(next ?? '');setError(false);}catch{setError(true);}}
+  function save() {try {const next=value.trim() ? normDec(parseQuantityInput(value).qiymat) : null;if(next!==w.quantity && !command({type:'SET_QUANTITY',occurrenceId:w.id,quantity:next})) throw new Error();setValue(next ?? '');setError(false);return true;}catch{setError(true);return false;}}
   const accepted=(w.coefficients ?? []).filter(c=>c.accepted), proposed=(w.coefficients ?? []).length-accepted.length;
   const n=num(amount);
   return <><tr aria-selected={active} className={`${selected ? 'studio-selected-row' : ''} ${active ? 'studio-active-row' : ''}`}>
@@ -95,7 +111,7 @@ function WorkRow({work:w,section,amount,selected,select,command,onWork,details,a
         {docked && <span className="studio-row-coeff">{t('Koeffitsientlar')}: {accepted.length}</span>}
       </span></td>
     {!narrow && <td className="studio-sec-cell">{section}</td>}<td className="fz-c-unit">{w.basis.unitLabel ?? '—'}</td>
-    <td><input className={`input w-32 tabular-nums ${error ? 'border-danger' : ''}`} aria-label={t('Hajm: {n}',{n:w.source.code})} aria-invalid={error} value={value} onChange={e=>setValue(e.target.value)} onBlur={save} onKeyDown={e=>{if(e.key==='Enter') {e.preventDefault();save();} if(e.key==='Escape'){setValue(w.quantity ?? '');setError(false);}}} />{error && <p role="alert" className="text-danger">{t('Formulani tekshiring')}</p>}</td>
+    <td><input className={`input w-32 tabular-nums ${error ? 'border-danger' : ''}`} aria-label={t('Hajm: {n}',{n:w.source.code})} data-work-quantity={w.id} aria-invalid={error} value={value} onChange={e=>setValue(e.target.value)} onBlur={save} onKeyDown={e=>{if(e.key==='Enter' && !e.nativeEvent.isComposing) {e.preventDefault();if(save())onNextQuantity(e.shiftKey ? -1 : 1);} if(e.key==='Escape'){setValue(w.quantity ?? '');setError(false);}}} />{error && <p role="alert" className="text-danger">{t('Formulani tekshiring')}</p>}</td>
     <td className="fz-c-num studio-amount">{n==null ? <span className="text-text-mute" title={t('Summa hisoblanmagan: hajm, norma yoki narx yetishmaydi')}>{t('Aniqlanmagan')}</span> : <FmtN val={n}/>}
       {kesim.qismlar.length>0 && <span className="fz-split studio-mini-split" aria-hidden="true">{kesim.qismlar.map(q=><i key={q.guruh} className={`fz-bg-${q.guruh}`} style={{flexGrow:Math.max(q.ulush,0.002)}}/>)}</span>}</td>
     {!narrow && <td><button className="underline" onClick={onWork}>{t(docked ? 'Ochish →' : 'Tarkibi va narxlar')}</button></td>}

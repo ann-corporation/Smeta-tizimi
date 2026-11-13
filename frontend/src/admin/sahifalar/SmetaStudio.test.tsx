@@ -61,6 +61,7 @@ beforeAll(() => {
 });
 afterAll(() => vi.restoreAllMocks());
 beforeEach(async () => {
+  localStorage.setItem('studio:advanced','1');
   vi.mocked(NormLibraryCatalog.open).mockReset();
   localStorage.setItem('studio:catalog-source', 'legacy');
   aiSources.length = 0;
@@ -424,4 +425,20 @@ it('restores the selected library and displays explicit source scale with a phys
     // literal measures are resolved from each occurrence during export.
     expect(workUnitOf(library)('unparsed source measure')).toBeNull();
   } finally { unit.mockRestore(); open.mockReset(); }
+});
+
+it('starts with a simple workspace and reveals advanced controls only on request',async()=>{
+ localStorage.removeItem('studio:advanced');render(<SmetaStudio/>);
+ expect(await screen.findByText('Birinchi ishni qo‘shing')).toBeTruthy();
+ expect(screen.queryByLabelText('Panel tartibi')).toBeNull();
+ expect(screen.queryByRole('tab',{name:'Hajm'})).toBeNull();
+ fireEvent.click(screen.getByRole('button',{name:'Batafsil ish joyi'}));
+ expect(screen.getByLabelText('Panel tartibi')).toBeTruthy();
+ expect(localStorage.getItem('studio:advanced')).toBe('1');
+ fireEvent.click(screen.getByRole('button',{name:'Sodda ish joyi'}));
+ expect(screen.queryByLabelText('Panel tartibi')).toBeNull();
+ fireEvent.click(screen.getByRole('button',{name:'Smetachi AI'}));
+ expect(screen.getByRole('tab',{name:'Smetachi AI'})).toBeTruthy();
+ fireEvent.click(screen.getByRole('button',{name:'Ish qo‘shishga qaytish'}));
+ expect(screen.queryByRole('tab',{name:'Smetachi AI'})).toBeNull();
 });

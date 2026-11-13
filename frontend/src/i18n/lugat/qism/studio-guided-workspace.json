@@ -1,0 +1,42 @@
+{
+  "Birinchi ishni qo‘shing": {
+    "ru": "Добавьте первую работу",
+    "en": "Add your first work item"
+  },
+  "Ishlarning hajmini kiriting": {
+    "ru": "Укажите объёмы работ",
+    "en": "Enter work quantities"
+  },
+  "Narxlarni tekshiring va hujjatni oling": {
+    "ru": "Проверьте цены и получите документ",
+    "en": "Review prices and get the document"
+  },
+  "Chapdan ish nomini qidiring. Kerakli ishni tanlab, smetaga qo‘shing.": {
+    "ru": "Найдите работу по названию слева. Выберите её и добавьте в смету.",
+    "en": "Search for work by name on the left. Select it and add it to the estimate."
+  },
+  "Jadvaldagi Hajm kataklariga miqdor yoki formula yozing.": {
+    "ru": "Введите количество или формулу в ячейки «Объём».",
+    "en": "Enter a quantity or formula in the Quantity cells."
+  },
+  "Hajmlar kiritilgan. Narxlar bo‘limida yetishmayotgan narxlarni to‘ldiring, keyin Hujjatlarga o‘ting.": {
+    "ru": "Объёмы введены. Заполните недостающие цены в разделе «Цены», затем перейдите к документам.",
+    "en": "Quantities are entered. Fill missing prices under Prices, then open Documents."
+  },
+  "Sodda ish joyi": {
+    "ru": "Простое рабочее место",
+    "en": "Simple workspace"
+  },
+  "Batafsil ish joyi": {
+    "ru": "Расширенное рабочее место",
+    "en": "Advanced workspace"
+  },
+  "Ish qo‘shishga qaytish": {
+    "ru": "Вернуться к добавлению работ",
+    "en": "Back to adding work"
+  },
+  "Kutubxona va bo‘lim sozlamalari": {
+    "ru": "Настройки каталога и разделов",
+    "en": "Catalogue and section settings"
+  }
+}
