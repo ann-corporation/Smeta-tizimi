@@ -7,7 +7,7 @@ import { davomBekorMi, ruxsatBormi, vositaIshla } from './ishla';
 import type { VositaApi, VositaKont } from './tur';
 
 const OBYEKTLAR = [{ id: 12, nom: 'Yevropa 1' }, { id: 13, nom: 'Amfiteatr' }];
-const KIM = kimMendan({ foydalanuvchi: { login: 'sinov', ism: 'Sinov' }, context_kompaniyalar: [{ kompaniya_id: 5, nom: 'Sinov MChJ', effective_role: 'boss', permissions: ['f2.approve', 'f2.cancel', 'financial.write', 'financial.read'] }], azoliklar: [] }, 5);
+const KIM = kimMendan({ foydalanuvchi: { login: 'sinov', ism: 'Sinov' }, context_kompaniyalar: [{ kompaniya_id: 5, nom: 'Sinov MChJ', effective_role: 'boss', permissions: ['f2.approve', 'f2.cancel', 'financial.write', 'financial.read', 'smeta.read'] }], azoliklar: [] }, 5);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function api(o: Partial<VositaApi> = {}): any {
@@ -24,7 +24,7 @@ function api(o: Partial<VositaApi> = {}): any {
     tolovYoz: vi.fn(ok), xarajatYoz: vi.fn(ok),
     aloqalar: vi.fn(async () => [{ id: 1, nom: 'Texnadzor Markaz', rol: 'texnadzor', faol: true }, { id: 2, nom: 'Buyurtmachi Plus', rol: 'buyurtmachi', faol: true }]),
     murojaatTurlari: vi.fn(async () => [{ kalit: 'remark', nom: 'Remark' }, { kalit: 'predpisaniya', nom: 'Predpisaniya' }]),
-    murojaatYarat: vi.fn(ok), taqdimResurslari: vi.fn(async () => [{ kalit: 'f2', nom: 'F2 akt' }]), taqdimYubor: vi.fn(ok), friksiya: vi.fn(),
+    slichitelniy: vi.fn(async () => ({ matn: '12 ta ishdan 9 tasiga АОСР bor' })), murojaatYarat: vi.fn(ok), taqdimResurslari: vi.fn(async () => [{ kalit: 'f2', nom: 'F2 akt' }]), taqdimYubor: vi.fn(ok), friksiya: vi.fn(),
     ...o,
   } as never;
 }
@@ -193,5 +193,36 @@ describe('ruxsat va bo‘shliq', () => {
     expect(r.tur).toBe('javob'); expect((r as { matn: string }).matn).toContain('sahifada qilasiz');
     expect(a.friksiya).toHaveBeenCalledWith('hujjat eksporti');
     expect((r as { havolalar?: unknown[] }).havolalar?.length).toBeGreaterThan(0);
+  });
+});
+
+describe('slichitelniy va zamena ko‘rsatmasi', () => {
+  it('moslik', () => {
+    expect(id('slichitelniy holatini korsat')).toBe('slichitelniy'); expect(id('сличительная статус')).toBe('slichitelniy');
+    expect(id('zamena kerak chiqdi beton ishida')).toBe('zamena_korsatma'); expect(id('qoshimcha ish qanday qilaman')).toBe('zamena_korsatma');
+    expect(id('F2 ni excelga yuklab ber')).toBe('yoq');
+  });
+  it('slichitelniy: RPC bor — natija; yo‘q — halol «tez orada» + friksiya', async () => {
+    const a = api(); const r = await vositaIshla('slichitelniy', 'slichitelniy holatini korsat', kont(a));
+    expect((r as { matn: string }).matn).toContain('9 tasiga'); expect(a.slichitelniy).toHaveBeenCalledWith(12);
+    const b = api({ slichitelniy: vi.fn(async () => null) }); const r2 = await vositaIshla('slichitelniy', 'slichitelniy holatini korsat', kont(b));
+    expect((r2 as { matn: string }).matn).toContain('tez orada'); expect(b.friksiya).toHaveBeenCalledWith('slichitelniy holati');
+  });
+  it('zamena: «smeta normasi avval» tartibi + mavjud qatorlar (qidir) + yozuv YO‘Q', async () => {
+    const a = api(); const c = { ...kont(a), qidir: vi.fn(async () => '- [#5] Beton B25 · m3') };
+    const r = await vositaIshla('zamena_korsatma', 'beton uchun zamena kerak chiqdi', c);
+    expect(r.tur).toBe('javob'); const m = (r as { matn: string }).matn;
+    expect(m.indexOf('1. Mavjud')).toBeLessThan(m.indexOf('2. Mos kelmasa')); expect(m.indexOf('2. Mos kelmasa')).toBeLessThan(m.indexOf('3. Oxirgi chora'));
+    expect(m).toContain('Beton B25'); expect(c.qidir).toHaveBeenCalled();
+  });
+});
+describe('hujjat eksporti — sahifa amali (registry hook), token kartada', () => {
+  const amal = { id: 'f2.eksport', nom: 'F2 ni Excel ga yuklash (tanlangan akt)', kalitlar: ['f2 excel', 'f2 eksport', 'f2 yuklab ber'], tasdiq: true, pul: true, izoh: 'Token yechiladi' };
+  it('sahifa amali bor — «vositasi yo‘q» javobi uni bosmaydi, taklif kartasi (pul) chiqadi', () => {
+    const n = niyatAniqla('F2 ni excelga yuklab ber', { sahifalar: [], obyektlar: OBYEKTLAR, sahifaAmallar: [amal] });
+    expect(n).toMatchObject({ tur: 'sahifaAmal', amal: { id: 'f2.eksport', pul: true } });
+  });
+  it('sahifa amali yo‘q — halol «sahifada» (yoq vosita)', () => {
+    expect(niyatAniqla('F2 ni excelga yuklab ber', { sahifalar: [], obyektlar: OBYEKTLAR })).toMatchObject({ tur: 'vosita', id: 'yoq' });
   });
 });
