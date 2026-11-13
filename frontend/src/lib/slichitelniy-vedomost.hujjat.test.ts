@@ -36,16 +36,17 @@ describe('Сличительная ведомость (H1–H9)', () => {
     const r = (nom: string) => m.qatorlar.find((x) => x.nom === nom)!;
     expect([r('ЗАТРАТЫ ТРУДА').farqHajm, r('ЗАТРАТЫ ТРУДА').farqSumma, r('ЗАТРАТЫ ТРУДА').izoh]).toEqual([4, 100_000, 'выполнено сверх сметы']);
     expect([r('ПЕСОК').farqHajm, r('ПЕСОК').izoh]).toEqual([0, '']);
-    expect([r('БЕТОН В25').farqSumma, r('БЕТОН В25').izoh]).toEqual([-3_600_000, 'дополнительная работа; не выполнено']);
+    // Asl smeta o'zgarmaydi: qo'shimcha ish smetada yo'q (smeta 0), fakt 0 — og'ish 0.
+    expect([r('БЕТОН В25').smetaSumma, r('БЕТОН В25').farqSumma, r('БЕТОН В25').izoh]).toEqual([0, 0, 'дополнительная работа; объем по смете 0']);
     expect(r('ЗАСЫПКА ПАЗУХ').smetaSumma).toBe(560_000);
-    expect(m.jami).toEqual({ smeta: 4_160_000, fakt: 660_000, f2: 460_000, farq: -3_500_000 });
-    expect([m.barglar, m.ortiq, m.kam]).toEqual([3, 1, 1]);
+    expect(m.jami).toEqual({ smeta: 560_000, fakt: 660_000, f2: 460_000, farq: 100_000 });
+    expect([m.barglar, m.ortiq, m.kam]).toEqual([3, 1, 0]);
   });
 
   it('faqat farqi borlar: mos pozitsiya kirmaydi, jami faqat qolganlardan', () => {
     const m = slichitelniyModeli(QATOR, HOLAT, { faqatFarq: true });
     expect(m.qatorlar.some((x) => x.nom === 'ПЕСОК')).toBe(false);
-    expect(m.jami.farq).toBe(-3_500_000);
+    expect(m.jami.farq).toBe(100_000);
   });
 
   it('hujjat standarti: formulalar $ siz va keshlangan, imzolar, chop, texnik matn yo‘q, UI == Excel', () => {
@@ -65,8 +66,8 @@ describe('Сличительная ведомость (H1–H9)', () => {
     expect(t.matnlar).toEqual(expect.arrayContaining(['СЛИЧИТЕЛЬНАЯ ВЕДОМОСТЬ', 'ОТКЛОНЕНИЕ (ФАКТ − СМЕТА)', 'ВСЕГО ПО ОБЪЕКТУ', 'ИТОГО ПО РАЗДЕЛУ: СМЕТА № 01-01 ОЗЕРА']));
     const vsego = v.kataklar.find((k) => k.matn === 'ВСЕГО ПО ОБЪЕКТУ')!;
     const row = vsego.ref.replace(/^[A-Z]+/, '');
-    expect(Number(v.kataklar.find((k) => k.ref === `M${row}`)?.v)).toBe(-3_500_000);
-    expect(Number(v.kataklar.find((k) => k.ref === `G${row}`)?.v)).toBe(4_160_000);
+    expect(Number(v.kataklar.find((k) => k.ref === `M${row}`)?.v)).toBe(100_000);
+    expect(Number(v.kataklar.find((k) => k.ref === `G${row}`)?.v)).toBe(560_000);
   });
 
   it('H7: narx yo‘q — faqat o‘sha qator bo‘sh, jamilar ko‘rinadi, diqqat ro‘yxatida (egasi qoidasi)', () => {
@@ -94,7 +95,7 @@ describe('Сличительная ведомость — ikki narx', () => {
     namunaSaqla('slichitelniy_k_oplate.xlsx', r.bytes);
     // ЧЕЛ Kf = 1,18 × 1,12; МАТ Kf = 1,18 × 1,12 (transport/sklad 0 %).
     expect(r.kOplata.fakt).toBeCloseTo(660_000 * 1.18 * 1.12, 0);
-    expect(r.kOplata.farq).toBeCloseTo(-3_500_000 * 1.18 * 1.12, 0);
+    expect(r.kOplata.farq).toBeCloseTo(100_000 * 1.18 * 1.12, 0);
     const t = hujjatTekshir(r.bytes);
     expect(t.keshsizFormulalar).toEqual([]);
     expect(t.taqiqlangan).toEqual([]);
