@@ -14,6 +14,21 @@ export function f3OyChegarasi(oy: string): { boshi: string; oxiri: string } | nu
   return { boshi: `${m[1]}-${m[2]}-01`, oxiri: `${m[1]}-${m[2]}-${String(kun).padStart(2, '0')}` };
 }
 
+/**
+ * Shartnomaning OLDINGI Forma 3 sanasi — real hujjatdagi «Отчетный период: с» (egasi 2026-11-13: davr oy boshidan emas,
+ * oldingi F-3 dan boshlanadi). Tizimda F-3 ning alohida «tuzilgan sana»si yo'q — uning davr oxiri olinadi. Hisobot davri
+ * boshidan OLDIN tugagan, bekor qilinmagan F-3 lar ichidan eng kechkisi; yo'q bo'lsa null (birinchi F-3 — shartnoma sanasidan).
+ */
+export function f3OldingiSana(f3lar: ReadonlyArray<{ davr_oxiri?: string | null; holat?: string | null }>, davrBoshi: string): string | null {
+  let eng: string | null = null;
+  for (const f of f3lar) {
+    if (f.holat === 'bekor') continue;
+    const s = String(f.davr_oxiri ?? '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s) || s >= davrBoshi) continue;
+    if (eng == null || s > eng) eng = s;
+  }
+  return eng;
+}
 export interface F3AktTanlov {
   /** Oldindan belgilanadigan aktlar: tasdiqlangan, hech bir bekor qilinmagan F3 ga kirmagan. */
   tanlangan: number[];
