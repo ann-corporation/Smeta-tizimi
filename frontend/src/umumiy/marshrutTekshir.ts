@@ -37,6 +37,8 @@ export const ADMIN_MARSHRUTLARI = [
   'topshiriqlar', 'mutaxassis', 'boshqaruv', 'sayt-xaritasi', 'akkaunt', 'imzo', 'tizim-xaritasi', 'kurs', 'osuvchi',
   /* 2026-11-03: Uy sotish. */
   'sotuv',
+  /* 2026-11-12: ekotizim V2 (2-qadam): Bugun va Ruxsatlar jadvali. */
+  'bugun', 'ruxsatlar-jadvali',
   /* 2026-11-04: HR + KPI. */
   'hr',
   /* 2026-11-05: ish kartasi + narx tekshiruvi. */

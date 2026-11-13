@@ -258,22 +258,6 @@
         ]
       },
       {
-        "nom": "Bugun (telefon)",
-        "ikonka": "HardHat",
-        "sahifalar": [
-          {
-            "yol": "/admin/bugun",
-            "ilova": "ff",
-            "nom": "Bugun (usta, telefon)",
-            "ruxsat": [
-              "control.company.read",
-              "fakt.write",
-              "fakt.read+self.work.write"
-            ]
-          }
-        ]
-      },
-      {
         "nom": "Naryad (brigada)",
         "ikonka": "ClipboardList",
         "sahifalar": [
@@ -1046,6 +1030,21 @@
             ]
           }
         ]
+      },
+      {
+        "nom": "Ruxsatlar jadvali",
+        "ikonka": "ShieldCheck",
+        "sahifalar": [
+          {
+            "yol": "/admin/ruxsatlar-jadvali",
+            "ilova": "yadro",
+            "nom": "Ruxsatlar jadvali",
+            "ruxsat": [
+              "control.company.read"
+            ],
+            "scope": "COMPANY_SCOPED"
+          }
+        ]
       }
     ]
   },
@@ -1055,6 +1054,18 @@
     "ikonka": "User",
     "qatlam": "shaxsiy",
     "bandlar": [
+      {
+        "nom": "Bugun",
+        "ikonka": "LayoutDashboard",
+        "sahifalar": [
+          {
+            "yol": "/admin/bugun",
+            "ilova": "yadro",
+            "nom": "Bugun",
+            "ruxsat": []
+          }
+        ]
+      },
       {
         "nom": "Ish joylarim",
         "ikonka": "LayoutDashboard",
