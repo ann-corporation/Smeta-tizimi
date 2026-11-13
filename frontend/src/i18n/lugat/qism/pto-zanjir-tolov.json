@@ -1,0 +1,5 @@
+{
+  "To‘langan {t} / F3 {f} (QQS bilan)": { "ru": "Оплачено {t} / Ф-3 {f} (с НДС)", "en": "Paid {t} / F3 {f} (incl. VAT)" },
+  "To‘langan {t} / F3 {f}, qarz {q} (QQS bilan)": { "ru": "Оплачено {t} / Ф-3 {f}, долг {q} (с НДС)", "en": "Paid {t} / F3 {f}, debt {q} (incl. VAT)" },
+  "To‘lov yo‘q, F3 {f} (QQS bilan)": { "ru": "Платежей нет, Ф-3 {f} (с НДС)", "en": "No payments, F3 {f} (incl. VAT)" }
+}

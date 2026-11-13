@@ -29,7 +29,7 @@ const HOLAT_SINF: Record<QadamHolat, string> = {
 };
 
 /** Sahifa o'zi yuklagan qo'shimcha sonlar (smeta qator soni, fakt qamrovi, slichitelniy farqi) — yo'q bo'lsa «—»/noma'lum. */
-export type ZanjirQoshimcha = Partial<Pick<ZanjirKirish, 'smetaQator' | 'faktQamrov' | 'slichitelniy'>>;
+export type ZanjirQoshimcha = Partial<Pick<ZanjirKirish, 'smetaQator' | 'faktQamrov' | 'slichitelniy' | 'tolov'>>;
 
 export function ZanjirChizigi({ joriy, obyektId, aosr, qoshimcha }: { joriy?: ZanjirBelgi | null; obyektId?: number | null; aosr?: ZanjirKirish['aosr']; qoshimcha?: ZanjirQoshimcha }) {
   const ws = usePTOWorkspace();
