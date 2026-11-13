@@ -177,12 +177,12 @@ describe('svod yaxlit — butun tarkib aynan yaxlit summaga yig‘iladi (qator d
     expect(qiymatBor(r.bytes, r2(700 * 1.12))).toBe(true);
     expect(qiymatBor(r.bytes, r2(1344 * 0.85))).toBe(false);
   });
-  it('Ostatka modeli: bo‘lim qoldig‘i = svod − svod × fakt/smeta, qatorlarga aynan taqsim', () => {
+  it('Ostatka modeli: bo‘lim qoldig‘i = svod − fakt (taqsimsiz, to‘g‘ri narx), qatorlarga aynan taqsim', () => {
     const m = ostatkaHujjatModeli(DARAXT, HF, [], SVOD);
     const yq = m.qatorlar.filter((x) => m.yaxlitTaqsimlangan?.has(x.id));
-    expect(r2(yq.reduce((t, x) => t + (x.summa ?? 0), 0))).toBe(r2(1200 - 1020));
+    expect(r2(yq.reduce((t, x) => t + (x.summa ?? 0), 0))).toBe(r2(1200 - 850)); // fakt taqsimlanmaydi: 150 × 1 + 700 × 1
     const r = ostatkaHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', nakrutka: NK, yaxlitIdlar: IDLAR });
-    expect(qiymatBor(r.bytes, r2(1344 - 1344 * 0.85))).toBe(true); // qoldiq к оплате (QQS bilan) aynan
+    expect(qiymatBor(r.bytes, r2(1344 - 850 * 1.12))).toBe(true); // qoldiq к оплате (QQS bilan) = svod − fakt × (1+QQS) aynan
   });
 });
 

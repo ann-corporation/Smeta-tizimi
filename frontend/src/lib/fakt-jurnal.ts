@@ -12,7 +12,7 @@ import type { T2Qator } from '../api/supabase';
 import { bosKatKesim, type KatKesim } from './ustamali-summa';
 import { ochiqQoldiq } from './zamena-qoldiq';
 import { ayirma2, faktSummaF2Narxda, hajmMasshtab, katJami, yigindi2 } from './hisob-yadro';
-import { svodKorinishKesimi, yaxlitQatorIdlari, type SvodYaxlit } from './svod-yaxlit';
+import { svodFaktKesimi, svodKorinishKesimi, yaxlitQatorIdlari, type SvodYaxlit } from './svod-yaxlit';
 
 export type JurnalHolat = {
   qator_id: number; smeta_hajm: number | null; fakt_hajm: number | null;
@@ -233,8 +233,9 @@ export function bolimSummalari(rows: readonly T2Qator[], states: readonly Jurnal
   const elementlar = new Map<SummaKesim, Element[]>();
   const masshtabsiz = new Set<SummaKesim>();
   const qoldiqlar = new Set<SummaKesim>();
+  const faktlar = new Set<SummaKesim>();
   const yaxlitIds = yaxlitQatorIdlari(rows, svod);
-  const ol = (id: number) => { let x = out.get(id); if (!x) { x = { smeta: bos(), f2: bos(), fakt: bos(), qoldiq: bos(), qoshimcha: bos(), faktF2: { f2Narxda: 0 } }; masshtabsiz.add(x.f2); qoldiqlar.add(x.qoldiq); out.set(id, x); } return x; };
+  const ol = (id: number) => { let x = out.get(id); if (!x) { x = { smeta: bos(), f2: bos(), fakt: bos(), qoldiq: bos(), qoshimcha: bos(), faktF2: { f2Narxda: 0 } }; masshtabsiz.add(x.f2); qoldiqlar.add(x.qoldiq); faktlar.add(x.fakt); out.set(id, x); } return x; };
   const qosh = (s: SummaKesim, kat: string | null, v: number | null, id = 0, smeta: number | null = null, f2: number | null = null) => {
     const l = elementlar.get(s); const e = { id, kat, summa: v, smeta, f2 };
     if (l) l.push(e); else elementlar.set(s, [e]);
@@ -254,10 +255,14 @@ export function bolimSummalari(rows: readonly T2Qator[], states: readonly Jurnal
   // ikkalasini qo'shish faktni ikki marta sanardi (HISOB_YADRO_V1: ish varag'idagi fakt kartadagidan katta chiqardi, farq = ishlarning o'z fakti).
   const otalar = new Set<number>();
   for (const r of rows) if (r.ota_id != null && holat.get(r.id)?.fakt_manbasi === 'BL_NORMA') otalar.add(r.ota_id);
+  // Ish (bl) fakti bolalari BOR bo'lsa — bolalar yig'indisining aksi (rollup; real obyektda 24 ish: bl fakti = Σ bolalar fakti, manba 'DIRECT' deb
+  // yozilgan bo'lsa ham) va server `_t2_summa_agg_v1('fakt')` faqat barglarni yig'adi: ish faktini qo'shish ikki marta sanardi. Faqat bolasiz ish faktini oladi.
+  const bolaliIsh = new Set<number>();
+  for (const r of rows) if (r.ota_id != null) bolaliIsh.add(r.ota_id);
   for (const r of rows) {
     if (r.tur === 'bl') {
       const h = holat.get(r.id);
-      const f2 = v(h?.f2_summa); const fq = faktOl(h); const fakt = otalar.has(r.id) ? null : fq.summa;
+      const f2 = v(h?.f2_summa); const fq = faktOl(h); const fakt = otalar.has(r.id) || bolaliIsh.has(r.id) ? null : fq.summa;
       if ((f2 == null || f2 === 0) && (fakt == null || fakt === 0)) continue;
       for (const b of yol(r).bolimlar) {
         const x = ol(b);
@@ -291,7 +296,9 @@ export function bolimSummalari(rows: readonly T2Qator[], states: readonly Jurnal
   }
   for (const [s, l] of elementlar) {
     // F2 — aynan (masshtablanmaydi); qoldiq svod bo'limida = yaxlit − F2 aynan; qolganlari yaxlit × (ko'rinish / smeta).
-    s.kesim = svodKorinishKesimi(rows, l, f, svod, { masshtab: !masshtabsiz.has(s), f2: masshtabsiz.has(s) && !qoldiqlar.has(s), bolimSmeta, ...(qoldiqlar.has(s) ? { qoldiqF2: f2Of } : {}) });
+    // FAKT — F2 bilan bir usul (svodFaktKesimi, yagona qoida); F2 — aynan; qoldiq svod bo'limida = yaxlit − F2 aynan; smeta/qo'shimcha — yaxlit × (ko'rinish / smeta).
+    s.kesim = faktlar.has(s) ? svodFaktKesimi(rows, l, f, svod, { bolimSmeta })
+      : svodKorinishKesimi(rows, l, f, svod, { masshtab: !masshtabsiz.has(s), f2: masshtabsiz.has(s) && !qoldiqlar.has(s), bolimSmeta, ...(qoldiqlar.has(s) ? { qoldiqF2: f2Of } : {}) });
     if (!l.some((e) => e.summa != null && Number.isFinite(e.summa))) { s.ustamasiz = null; continue; }
     s.ustamasiz = yigindi2([katJami(s.kesim.summalar), s.kesim.nomalum, s.kesim.yaxlit?.qqssiz]);
   }
