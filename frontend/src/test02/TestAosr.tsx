@@ -57,6 +57,7 @@ import { SinovSorovYubor, type SorovKontekst } from '../admin/laboratoriya/Sinov
 import { SorovlarRoyxati } from '../admin/laboratoriya/SorovlarRoyxati';
 import { aosrSinovHolatiOl, type AosrSinovHolati } from '../api/t2-lab-sorov';
 import { aosrSinovMatni } from '../lib/laboratoriya/sinov-maslahat';
+import { ZanjirChizigi } from '../admin/components/ZanjirChizigi';
 
 const ROL_NOMI: Record<string, string> = {
   smo: 'Qurilish-montaj tashkiloti (СМО)', subpudratchi: 'Subpudratchi', bosh_pudratchi: 'Bosh pudratchi',
@@ -414,6 +415,7 @@ export default function TestAosr() {
         </select></label>}
     >
       <div className="flex flex-col gap-3">
+        {obyektId ? <ZanjirChizigi joriy="aosr" obyektId={obyektId} aosr={coverage.length > 0 ? { yashirin: qoplama.yashirinJami, aktsiz: qoplama.yashirinAktsiz } : null} /> : null}
         <OpsKpiQator yorliq={t('Ijro hujjatlari ko‘rsatkichlari')}>
           <OpsKpi nom={t('Yashirin ishlar qoplamasi')} rang={qoplama.yashirinAktsiz ? 'var(--warn)' : 'var(--ok)'}
             qiymat={<span className={qoplama.yashirinAktsiz ? 'text-warn' : ''}>{foiz(qoplama.yashirinUlush)}</span>}

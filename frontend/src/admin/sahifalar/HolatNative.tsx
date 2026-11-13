@@ -2,7 +2,7 @@ import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { ContractScopePanel } from '../../components/contract-scope/ContractScopePanel';
 import { ObjectMoneySummary } from '../../components/pto-workspace/ObjectMoneySummary';
 import { ObjectTrail } from '../../components/pto-workspace/ObjectTrail';
-import { ObyektQadamlari } from '../components/ObyektQadamlari';
+import { ZanjirChizigi } from '../components/ZanjirChizigi';
 import { ObyektPodvalOgohi } from './SmetaPodvalNakrutka';
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 import { marketReadPrice } from '../../lib/smeta-studio/market-comparison';
@@ -42,7 +42,6 @@ import { SmetaAnatomiya } from '../../components/smeta-hujjat/SmetaAnatomiya';
 import { SmetaVersiyaFarq, VersiyaAlmashtirilganBelgi } from './SmetaVersiyaFarq';
 import { yaxlitQatorIdlari } from '../../lib/svod-yaxlit';
 import { MuhrFarqXulosa, useMuhrFarq } from '../../umumiy/daraxt/MuhrFarqXulosa';
-import { KeyingiQadamPanel } from '../../components/qollanma/KeyingiQadamPanel';
 import { IshVaraq } from './IshVaraq';
 
 /**
@@ -347,7 +346,7 @@ export function HolatNative() {
     >
       {korinish.oyna}
       <div className="flex min-h-0 flex-col gap-3">
-        {validId && <ObyektQadamlari obyektId={obyektId} />}
+        {validId && <ZanjirChizigi obyektId={obyektId} />}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <button type="button" onClick={() => navigate('/admin/obyektlar')} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" aria-label="Obyektlarga qaytish" title={t('Obyektlarga qaytish')}><ArrowLeft aria-hidden="true" /></button>
           {validId && <div className="min-w-0 flex-1"><ObjectTrail companyId={joriy?.id ?? null} objectId={obyektId} /></div>}
@@ -365,9 +364,6 @@ export function HolatNative() {
             </select>
           </label>}
         </div>
-
-        {/* Egasi (2026-11-05): «Keyingi qadam» murabbiyi — smeta → podval → fakt → F2 → tasdiqlash → portfel. */}
-        {validId && selected && !varaq && <KeyingiQadamPanel obyektId={obyektId} smetaBor={loading || daraxtXato ? null : daraxtXom.length > 0} />}
 
         {exportsOpen && selected && <section className="fz-card" aria-label={t('Hujjatlar va eksport')}>
           <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}>

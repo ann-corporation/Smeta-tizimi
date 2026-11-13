@@ -3,7 +3,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, RefreshCw, Target } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
-import { ObyektQadamlari } from '../components/ObyektQadamlari';
+import { ZanjirChizigi } from '../components/ZanjirChizigi';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { SmetaTree } from '../../umumiy/daraxt/SmetaTree';
 import { useT2Daraxt } from '../../umumiy/daraxt/useT2Daraxt';
@@ -81,7 +81,7 @@ export function FaktNative() {
   </>;
   return <Sahifa sarlavha="Bajarilgan ishlar (Fakt)" tavsif="Smeta hajmi va Faktni RZ → BL → RS/MAT/OB daraxtida boshqaring" amallar={workspace.isProvider && valid ? amallar : undefined}>
     <div className="flex h-full min-h-0 flex-col gap-3">
-      <ObyektQadamlari joriy="fakt" obyektId={valid ? obyektId : null} />
+      <ZanjirChizigi joriy="fakt" obyektId={valid ? obyektId : null} />
       {valid && joriy?.id && (superadmin || joriy.permissions?.includes('fakt.write')) && <UstaKutilmoqda kompaniyaId={joriy.id} obyektId={obyektId} qatorlar={rows} onTasdiqlandi={() => void holatniYangila()} />}
       {!workspace.isProvider && <section className="fz-card flex flex-wrap items-end gap-2 p-3">
         <label className="min-w-[260px] flex-1 text-[12px] font-medium text-text-dim">{t('Obyekt')}
