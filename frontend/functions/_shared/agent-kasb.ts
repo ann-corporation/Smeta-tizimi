@@ -157,3 +157,13 @@ export function javobniAjrat(xom: string): { javob: string; harakatlar: TaklifHa
   } catch { /* JSON emas */ }
   return { javob: s || 'Javob bo‘sh qaytdi', harakatlar: [] };
 }
+
+/** Mijoz yuborgan suhbat tarixini xavfsiz qisqa matnga aylantiradi (rol faqat user/assistant, matn tozalangan va qisqartirilgan). */
+export function suhbatTarixi(v: unknown): string {
+  if (!Array.isArray(v)) return '';
+  return v.slice(-6).flatMap((x) => {
+    const r = (x ?? {}) as Record<string, unknown>;
+    const m = typeof r.matn === 'string' ? r.matn.replace(/\s+/g, ' ').trim().slice(0, 500) : '';
+    return m ? [`${r.rol === 'user' ? 'Foydalanuvchi' : 'Jarvis'}: ${m}`] : [];
+  }).join('\n');
+}
