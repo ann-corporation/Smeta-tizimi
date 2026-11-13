@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Shartnoma darajasidagi Forma 3: manbalar yuklagichi. Har obyekt uchun obyekt-rejimdagi F3 bilan AYNAN bir xil yagona yo'llar:
  * nakopitelniyYukla (smeta + F2 modeli), nakopitelniyUstamaOl (O'Z nakrutka/podvali), sbT2F2TafsilotOl (tasdiqlangan F2 certified),
  * portfelObyektOl + oyAktlarBahosi (har akt O'Z F2 podvali bilan). Hisob/Excel — forma3-export.ts (`forma3ShartnomaHujjat`).
@@ -59,25 +59,33 @@ export async function forma3ShartnomaManbalari(p: {
           qatorlar: (o.qatorlar ?? []).filter((z) => z.qator_id != null && !!z.amal).map((z) => ({ qator_id: Number(z.qator_id), amal: String(z.amal) })),
         }));
     } catch { /* ro‘yxat o‘qilmasa СМЕТНАЯ o‘zgarmaydi — obyekt rejimidagi kabi davom etamiz */ }
-    // Hisobot oyining TANLANGAN aktlari — har biri O'Z F2 podvali bilan (M12).
-    const oyAktlar = new Map<number, { id: number; oy: string; raqam: string | null }>();
+    // Hisobot oyigacha (oy <= davr) HAMMA tasdiqlangan aktlar — har biri O'Z F2 podvali bilan (M12): F3 ning «с начала строительства»,
+    // «с начала года» va «за месяц» ustunlari bir xil usulda, imzolangan F2 hujjatlari ВСЕГО yig'indisi (server `_t2_summa_paket_v1` bilan
+    // tiyinigacha). Hisobot oyining TANLANMAGAN aktlari hech bir ustunga kirmaydi (f3AktlarniFiltrla bilan bir xil).
+    const aktlarBoshigacha = new Map<number, { id: number; oy: string; raqam: string | null }>();
     for (const l of taf.qatorlar) {
-      if (l.akt_holat === 'tasdiqlangan' && String(l.oy).slice(0, 7) === p.oy && p.tanlangan.has(l.akt_id)) oyAktlar.set(l.akt_id, { id: l.akt_id, oy: l.oy, raqam: l.raqam ?? null });
+      const lOy = String(l.oy).slice(0, 7);
+      if (l.akt_holat !== 'tasdiqlangan' || lOy > p.oy) continue;
+      if (lOy === p.oy && !p.tanlangan.has(l.akt_id)) continue;
+      aktlarBoshigacha.set(l.akt_id, { id: l.akt_id, oy: l.oy, raqam: l.raqam ?? null });
     }
     let davrAktlari: Forma3ShartnomaObyekt['davrAktlari'] = [];
-    if (oyAktlar.size) {
+    let aktlarJami: Forma3ShartnomaObyekt['aktlarJami'] = [];
+    if (aktlarBoshigacha.size) {
       try {
-        const pm = await portfelObyektOl(p.kompaniyaId, ob.id, [...oyAktlar.keys()]);
-        davrAktlari = oyAktlarBahosi(pm, [...oyAktlar.values()], ob.nom, new Map([...oyAktlar.values()].map((a) => [a.id, a.raqam] as const)));
+        const pm = await portfelObyektOl(p.kompaniyaId, ob.id, [...aktlarBoshigacha.keys()]);
+        const baho = oyAktlarBahosi(pm, [...aktlarBoshigacha.values()], ob.nom, new Map([...aktlarBoshigacha.values()].map((a) => [a.id, a.raqam] as const)));
+        aktlarJami = baho.map((b) => ({ ...b, oy: String(aktlarBoshigacha.get(b.aktId)?.oy ?? '').slice(0, 7) }));
+        davrAktlari = aktlarJami.filter((b) => b.oy === p.oy);
       } catch {
-        return { ok: false, xato: `${ob.nom}: F2 hujjatlarining o‘z podvali bo‘yicha oy summasi hisoblanmadi — F3 tuzilmadi. Qayta urinib ko‘ring.` };
+        return { ok: false, xato: `${ob.nom}: F2 hujjatlarining o‘z podvali bo‘yicha summa hisoblanmadi — F3 tuzilmadi. Qayta urinib ko‘ring.` };
       }
     }
     const manba = f3AktlarniFiltrla({ nakopitelniy: [{ obyekt_id: ob.id, obyektNom: ob.nom, qatorlar: y.qatorlar, svodYaxlit: (ustama.javob?.svod_yaxlit ?? null) as SvodYaxlit | null }], f2Oylik, f2Hajm }, p.oy, p.tanlangan);
     out.push({
       obyekt_id: ob.id, obyektNom: ob.nom, manba,
       nakrutka: ustama.koeffitsientlar as Partial<NakrutkaKoeffitsientlar> | null, nkManba: ustama.javob?.nk_manba ?? null, podval: ustama.podval,
-      ozgarishlar, davrAktlari,
+      ozgarishlar, davrAktlari, aktlarJami,
     });
   }
   p.onProgress?.(p.obyektlar.length, p.obyektlar.length, '');

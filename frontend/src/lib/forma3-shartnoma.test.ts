@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import type { NakopitelniyQator } from '../api/t2-nakopitelniy';
 import type { Forma3ShartnomaAkt } from '../api/t2-document-control';
 import {
-  f3AktlarniFiltrla, f3ShartnomaYigish, forma3Hujjat, forma3ShartnomaHujjat,
+  f3AktlarniFiltrla, f3SanaOyIchida, f3ShartnomaYigish, forma3Hujjat, forma3ShartnomaHujjat,
   type F3DavrAkt, type Forma3Manba, type Forma3ShartnomaObyekt,
 } from './forma3-export';
 import { f3AktTanlov, f3OyChegarasi, f3YuboriladiganAktlar } from './forma3-shartnoma';
@@ -168,7 +168,7 @@ describe('Forma 3 shartnoma — Excel hujjati', () => {
     const hisobot = hujjatTekshir(h.bytes);
     expect(hisobot.dollarFormulalar).toEqual([]);
     expect(hisobot.keshsizFormulalar).toEqual([]);
-    expect(hisobot.varaqlar.length).toBe(2); // справка + akt ro'yxati
+    expect(hisobot.varaqlar.length).toBe(3); // справка + akt ro'yxati + xizmat varag'i «Замечания» (zakazchik rekvizitlari berilmagan)
     expect(hisobot.matnlar.join('\n')).toContain('Объект А');
     expect(hisobot.matnlar.join('\n')).toContain('Объект Б');
     expect(h.faylNomi).toMatch(/\.xlsx$/);
@@ -180,5 +180,110 @@ describe('Forma 3 shartnoma — Excel hujjati', () => {
     const h = forma3ShartnomaHujjat(obs, { davr: '2026-03', shartnomaRaqam: 'TEST-1' });
     expect(h.oyKOplate).toBeNull();
     expect(h.propis).toBeNull();
+  });
+});
+
+describe('Forma 3 shartnoma — hujjat tuzilishi va kumulyativ ustunlar (egasi 2026-11-14 «xato hujjat»)', () => {
+  const akt = (id: number, oy: string, ustamasiz: number, ustamali: number, qqs: number): F3DavrAkt =>
+    ({ aktId: id, raqam: String(id), oy, hujjatPodvali: true, ustamasiz, ustamali, qqs, qqsBilan: Math.round((ustamali + qqs) * 100) / 100 });
+
+  it('«с начала» va «с начала года» — aktlar O‘Z podvali yig‘indisi: birinchi F3 da «с начала» == «за месяц» (kaskad bilan emas)', () => {
+    const obs = ikkiObyekt();
+    // Akt o'z podvali obyektning joriy kaskadidan farq qiladi (eski foizlar) — kumulyativ ham shu bo'yicha bo'lishi shart.
+    const a = akt(12, '2026-03', 2_000_000, 2_300_000, 276_000);
+    obs[0] = { ...obs[0], davrAktlari: [a], aktlarJami: [a] };
+    const y = f3ShartnomaYigish([obs[0]], '2026-03');
+    const o = y.obyektlar[0].ustun;
+    expect(o.J.vsego).toBe(2_576_000);
+    expect(o.H).toEqual(o.J);
+    expect(o.I).toEqual(o.J);
+  });
+
+  it('kumulyativ: oldingi oy akti H ga kiradi, I ga faqat joriy yil; sizning J — faqat hisobot oyi', () => {
+    const obs = ikkiObyekt();
+    const eski = akt(5, '2025-12', 1_000_000, 1_200_000, 144_000);
+    const yangi = akt(12, '2026-03', 2_000_000, 2_300_000, 276_000);
+    obs[0] = { ...obs[0], davrAktlari: [yangi], aktlarJami: [eski, yangi] };
+    const o = f3ShartnomaYigish([obs[0]], '2026-03').obyektlar[0].ustun;
+    expect(o.H.pryamye).toBe(3_000_000);
+    expect(o.H.vsego).toBe(1_344_000 + 2_576_000);
+    expect(o.I.vsego).toBe(2_576_000);
+    expect(o.J.vsego).toBe(2_576_000);
+    // hisobot oyidan keyingi akt (bo'lib qolsa) hech qaysi ustunga kirmaydi
+    const kelgusi = akt(30, '2026-05', 9_000_000, 9_500_000, 1_140_000);
+    obs[0] = { ...obs[0], aktlarJami: [eski, yangi, kelgusi] };
+    expect(f3ShartnomaYigish([obs[0]], '2026-03').obyektlar[0].ustun.H.pryamye).toBe(3_000_000);
+  });
+
+  it('kumulyativda noma‘lum akt — H bo‘sh (null), 0 emas', () => {
+    const obs = ikkiObyekt();
+    const nom: F3DavrAkt = { aktId: 5, raqam: '5', oy: '2025-12', hujjatPodvali: false, ustamasiz: 1_000_000, ustamali: null, qqs: null, qqsBilan: null };
+    const yangi = akt(12, '2026-03', 2_000_000, 2_300_000, 276_000);
+    obs[0] = { ...obs[0], davrAktlari: [yangi], aktlarJami: [nom, yangi] };
+    const y = f3ShartnomaYigish([obs[0]], '2026-03');
+    expect(y.obyektlar[0].ustun.H.vsego).toBeNull();
+    expect(y.obyektlar[0].ustun.I.vsego).toBe(2_576_000);
+  });
+
+  it('vid zatrat ko‘rsatilmagan (kat yo‘q) F2 summasi «прямые затраты» dan tushib qolmaydi', () => {
+    const rz = q({ tur: 'rz', nom: 'РАЗДЕЛ' });
+    const bl = q({ tur: 'bl', nom: 'РАБОТА', smeta_summa: 5_000_000 });
+    const barg = q({ tur: 'mat', kat: null, nom: 'БЕЗ ВИДА ЗАТРАТ', smeta_summa: 5_000_000 });
+    const manba: Forma3Manba = { nakopitelniy: [{ obyekt_id: 1, obyektNom: 'A', qatorlar: [rz, bl, barg] }], f2Oylik: [{ obyekt_id: 1, qator_id: barg.qator_id, oy: '2026-03', summa: 1_500_000, akt_id: 1 }] };
+    const y = f3ShartnomaYigish([{ obyekt_id: 1, obyektNom: 'A', manba, nakrutka: NK_A }], '2026-03');
+    expect(y.obyektlar[0].ustun.J.pryamye).toBe(1_500_000);
+    expect(y.obyektlar[0].ustun.H.pryamye).toBe(1_500_000);
+  });
+
+  async function varaqlar(bytes: Uint8Array) {
+    const ExcelJS = (await import('exceljs')).default;
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(bytes as unknown as ArrayBuffer);
+    return wb;
+  }
+  const matnlar = (ws: import('exceljs').Worksheet): string[] => {
+    const out: string[] = [];
+    ws.eachRow((row) => row.eachCell((c) => { const v = c.value; if (typeof v === 'string') out.push(v); }));
+    return out;
+  };
+
+  it('asosiy varaqda ichki ogohlantirish yo‘q (faqat «Замечания» xizmat varag‘ida); bir obyektda ПСД izohi, ko‘p obyektda yo‘q', async () => {
+    const narxsizBarg = q({ tur: 'mat', kat: 'МАТ', nom: 'ДОПОЛНИТЕЛЬНАЯ', smeta_summa: null });
+    const bir = ikkiObyekt()[0];
+    bir.manba = { ...bir.manba, nakopitelniy: [{ ...bir.manba.nakopitelniy[0], qatorlar: [...bir.manba.nakopitelniy[0].qatorlar, narxsizBarg] }] };
+    const h1 = forma3ShartnomaHujjat([bir], { davr: '2026-03', shartnomaRaqam: 'T-1' });
+    const wb1 = await varaqlar(h1.bytes);
+    const asosiy1 = matnlar(wb1.worksheets[0]).join('\n');
+    expect(asosiy1).not.toMatch(/Внимание|без цены|ТРЕБУЮЩИЕ ВНИМАНИЯ/);
+    expect(asosiy1).toContain('определяется после разработки ПСД');
+    const zam = wb1.worksheets.find((w) => /Замечания/.test(w.name));
+    expect(zam).toBeTruthy();
+    expect(matnlar(zam!).join('\n')).toMatch(/нет стоимости по смете|без цены/);
+    const h2 = forma3ShartnomaHujjat(ikkiObyekt(), { davr: '2026-03', shartnomaRaqam: 'T-1' });
+    expect(matnlar((await varaqlar(h2.bytes)).worksheets[0]).join('\n')).not.toContain('ПСД');
+  });
+
+  it('asosiy varaq muzlatilmaydi (22 qatorli titul ekranni egallamasin)', async () => {
+    const h = forma3ShartnomaHujjat(ikkiObyekt(), { davr: '2026-03', shartnomaRaqam: 'T-1' });
+    const wb = await varaqlar(h.bytes);
+    expect(wb.worksheets[0].views?.[0]?.state ?? 'normal').not.toBe('frozen');
+  });
+
+  it('«Договор №5 (01.02.2026)» — sana ikki marta chiqmaydi; shartnoma nomidagi «(joriy: …)» belgisi hujjatga o‘tmaydi', async () => {
+    const h = forma3ShartnomaHujjat(ikkiObyekt(), { davr: '2026-03', shartnomaRaqam: '№5 (01.02.2026)', shartnomaNom: 'Obyekt (joriy: DS 1/1 01.02.2026)', shartnomaSumma: 1_000_000 });
+    const t = matnlar((await varaqlar(h.bytes)).worksheets[0]).join('\n');
+    expect(t).toContain('№ 5 от 01.02.2026 г.');
+    expect(t).not.toMatch(/\(01\.02\.2026\)/);
+    expect(t).not.toContain('joriy');
+    expect(t).toContain('Obyekt');
+  });
+
+  it('hujjat sanasi berilmasa — hisobot oyi chegarasida (o‘tgan oy F3 si bugungi sana bilan emas)', () => {
+    expect(f3SanaOyIchida('2026-11-14', '2026-03')).toBe('2026-03-31');
+    expect(f3SanaOyIchida('2026-01-05', '2026-03')).toBe('2026-03-01');
+    expect(f3SanaOyIchida('2026-03-12', '2026-03')).toBe('2026-03-12');
+    expect(f3SanaOyIchida('2026-11-14', 'xato')).toBe('2026-11-14');
+    const h = forma3ShartnomaHujjat(ikkiObyekt(), { davr: '2020-03', shartnomaRaqam: 'T-1' });
+    expect(h.davr.oxiri).toBe('2020-03-31');
   });
 });

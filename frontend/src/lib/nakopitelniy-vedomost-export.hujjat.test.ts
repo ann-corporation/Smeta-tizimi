@@ -213,3 +213,46 @@ it('source comparisons respect Excel 15-digit numbers rather than binary tails',
   expect(c.find(k=>k.ref===`G${row}`)!.f).toContain(`F${row}=4156250`);
   expect(resource.smeta_narx).toBe(4156249.9999999995);
 });
+
+describe('Накопительная ведомость — F2 summasi jamidan tushib qolmasin (real tekshiruv 2026-11-14)', () => {
+  const kesh = (bytes: Uint8Array, qiymat: number) => hujjatTekshir(bytes).varaqlar[0].kataklar.filter((k) => k.f?.includes('SUMIF') && Math.abs(Number(k.v) - qiymat) < 0.01).length;
+
+  it('resurssiz ish (daraxtda bolasi yo‘q `bl`, КСМ/М/К) o‘z puli bilan jamiga kiradi: jamilar va hujjat ВСЕГО bir xil', () => {
+    const rows: NakopitelniyQator[] = [
+      q({ qator_id: 801, tur: 'rz', daraja: 0, nom: 'РАЗДЕЛ' }),
+      q({ qator_id: 802, tur: 'bl', ota_id: 801, daraja: 1, kod: 'Е01', nom: 'РАБОТА С РЕСУРСАМИ', birlik: 'м3' }),
+      q({ qator_id: 803, tur: 'mat', ota_id: 802, daraja: 2, kat: 'МАТ', kod: 'С1', nom: 'МАТЕРИАЛ', birlik: 'м3', smeta_hajm: 10, smeta_narx: 1000, smeta_summa: 10_000, joriy_hajm: 4, joriy_summa: 4_000 }),
+      // Resurssiz ish: bolasi yo'q, o'z smeta va F2 summasi bor (server jamisiga kiradi).
+      q({ qator_id: 804, tur: 'bl', ota_id: 801, daraja: 1, kod: 'КСМ', nom: 'ПЕРЕВОЗКА ГРУНТА', birlik: 'т', smeta_hajm: 100, smeta_narx: 50, smeta_summa: 5_000, joriy_hajm: 60, joriy_summa: 3_000 }),
+    ];
+    const j = nakopitelniyJamilar(rows);
+    expect(j.smeta).toBe(15_000);
+    expect(j.joriy).toBe(7_000);
+    expect(j.jami).toBe(7_000);
+    const h = nakopitelniyVedomostHujjat(rows, { obyektNom: 'Тест', davr: '2026-09' });
+    expect(h.jamilar).toEqual(j);
+    expect(kesh(h.bytes, 7_000)).toBeGreaterThan(0);
+  });
+
+  it('daraxt ma‘lumoti yo‘q eski RPC — `bl` qatorlari avvalgidek sanalmaydi (ikki marta sanash yo‘q)', () => {
+    expect(nakopitelniyJamilar(ROWS).jami).toBe(5_390_000.5);
+  });
+
+  it('svod yaxlit bo‘limidagi ЧЕЛ qatori F2 «К ОПЛАТЕ» da oddiy kategoriya (ustama bilan), МАТ — faqat QQS', () => {
+    const rz = q({ qator_id: 901, tur: 'rz', daraja: 0, nom: 'СВОД' });
+    const bl = q({ qator_id: 902, tur: 'bl', ota_id: 901, daraja: 1, nom: 'РАБОТА' });
+    const chel = q({ qator_id: 903, tur: 'rs', ota_id: 902, daraja: 2, kat: 'ЧЕЛ', nom: 'ТРУД', birlik: 'чел.-ч', smeta_hajm: 10, smeta_narx: 1000, smeta_summa: 10_000, joriy_hajm: 10, joriy_summa: 10_000 });
+    const mat = q({ qator_id: 904, tur: 'mat', ota_id: 902, daraja: 2, kat: 'МАТ', nom: 'МАТЕРИАЛ', birlik: 'м3', smeta_hajm: 10, smeta_narx: 1000, smeta_summa: 10_000, joriy_hajm: 10, joriy_summa: 10_000 });
+    const svodYaxlit = { qqssiz: 20_000, barglar: 20_000, summasiz: 0, bolimlar: [{ id: 1, qator_id: 901, nom: 'СВОД', svod_summa: 22_400, qqs_stavka: 12, qqssiz: 20_000, barglar: 20_000, asos: 'svod' as const, dalil: {} }] };
+    const nakrutka = { 'ТРАНСПОРТ_МАТЕРИАЛ': 5, 'СКЛАДСКИЕ_МАТЕРИАЛ': 2, 'СКЛАДСКИЕ_МК': 0.75, 'ТРАНСПОРТ_КАБЕЛЬ': 1.5, 'ПРОЧИЕ_ПОДРЯДЧИК': 18, 'ТРАНСПОРТ_ОБОРУД': 2, 'ЗАГОТ_СКЛАД_ОБОРУД': 1.2, 'СТРАХОВАНИЕ': 0.32, 'РИСК': 0, 'НДС': 12 };
+    const opt = { obyektNom: 'Тест', davr: '2026-09', ndsFoiz: 12, nakrutka };
+    const chelOddiy = nakopitelniyVedomostHujjat([rz, bl, chel], opt).kOplata.davr!;
+    const chelSvodda = nakopitelniyVedomostHujjat([rz, bl, chel], { ...opt, svodYaxlit }).kOplata.davr!;
+    const ikkalasi = nakopitelniyVedomostHujjat([rz, bl, chel, mat], { ...opt, svodYaxlit }).kOplata.davr!;
+    // ЧЕЛ svod bo'limi ichida bo'lsa ham ODDIY kategoriya (ustama bilan) — server/F3 bilan bir xil; yaxlit (faqat ×1,12 = 11 200) emas.
+    expect(chelOddiy).toBeGreaterThan(11_200);
+    expect(chelSvodda).toBe(chelOddiy);
+    // МАТ esa bo'lim ichida yaxlit: faqat QQS (10 000 × 1,12).
+    expect(ikkalasi).toBeCloseTo(chelOddiy + 11_200, 2);
+  });
+});

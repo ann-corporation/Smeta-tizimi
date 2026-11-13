@@ -94,6 +94,8 @@ export type RasmiyVaraqSozlama = {
   yonalish?: 'portrait' | 'landscape';
   /** Chapdagi nechta ustun muzlatilsin (masalan № | Шифр | Наименование) — o'ngga varaqlaganda ko'rinib turadi. */
   muzlatUstun?: number;
+  /** false — sarlavha qatorlari muzlatilmaydi (sukut: muzlatiladi). Titul/rekvizit balandligi katta bo'lgan blankada (Forma 3: 22 qator) muzlatish ekranning yarmini egallab, jadvalni varaqlab bo'lmay qoladi. */
+  muzlatma?: boolean;
   /** Avtofiltr (raqamlash qatorida) — ishchi hujjatlarda qidirish/saralash uchun (LRV). Oxiri: `filtrOxiri()`. */
   filtr?: boolean;
   /** Hujjat dizayni (kompaniya sozlamasi); berilmasa — joriy (`hujjatDizayniniOrnat`) yoki sukut «Kontrastli». */
@@ -436,6 +438,7 @@ export class RasmiyVaraq {
   readonly raqamQatori: number;
   private readonly korinadigan: number[];
   private readonly muzlatUstun: number;
+  private readonly muzlatmaYoq: boolean;
   private readonly filtrBor: boolean;
   private filtrOxir: number | null = null;
   private readonly kattaHarf: boolean;
@@ -447,6 +450,7 @@ export class RasmiyVaraq {
   constructor(o: RasmiyVaraqSozlama) {
     this.nom = o.nom.replace(/[\\/?*[\]:]/g, '_').slice(0, 31);
     this.muzlatUstun = Math.max(0, o.muzlatUstun ?? 0);
+    this.muzlatmaYoq = o.muzlatma === false;
     this.kattaHarf = o.kattaHarf !== false;
     this.filtrBor = !!o.filtr;
     this.dizayn = o.dizayn ?? joriyHujjatDizayni();
@@ -799,7 +803,8 @@ export class RasmiyVaraq {
     const y = this.raqamQatori, x = this.muzlatUstun;
     const bosh = `${ustunHarfi(x)}${y + 1}`;
     // Ustun ham muzlatilsa — to'rt qismli panel (OOXML: topRight, bottomLeft, bottomRight tanlovlari).
-    const pane = x > 0
+    const pane = this.muzlatmaYoq ? ''
+      : x > 0
       ? `<pane xSplit="${x}" ySplit="${y}" topLeftCell="${bosh}" activePane="bottomRight" state="frozen"/><selection pane="topRight"/><selection pane="bottomLeft"/><selection pane="bottomRight" activeCell="${bosh}" sqref="${bosh}"/>`
       : `<pane ySplit="${y}" topLeftCell="A${y + 1}" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A${y + 1}" sqref="A${y + 1}"/>`;
     const filtr = this.filtrRef;

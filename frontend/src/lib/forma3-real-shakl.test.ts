@@ -251,7 +251,11 @@ describe('Forma 3 (shartnoma) — real hujjat shakli', () => {
     expect(son(x.kataklar.get(`P${qatorOf(top(x, '1. SINOV OBYEKTI A')) + 3}`))).toBeGreaterThan(0);
     expect(hh.oyKOplate).toBeNull();
     expect(hh.propis).toBeNull();
-    expect([...x.kataklar.values()].map(matn).some((s) => /ПОЗИЦИИ, ТРЕБУЮЩИЕ ВНИМАНИЯ/.test(s))).toBe(true);
+    // Sababi buyurtmachiga beriladigan справка tanasida emas — alohida xizmat varag'ida (egasi 2026-11-14).
+    expect([...x.kataklar.values()].map(matn).some((s) => /ПОЗИЦИИ, ТРЕБУЮЩИЕ ВНИМАНИЯ|не заданы для объекта/.test(s))).toBe(false);
+    const zam = hujjatTekshir(hh.bytes).matnlar.join('\n');
+    expect(zam).toMatch(/ЗАМЕЧАНИЯ К СПРАВКЕ/);
+    expect(zam).toMatch(/проценты накладных и прочих расходов не заданы для объекта/);
   });
 });
 
