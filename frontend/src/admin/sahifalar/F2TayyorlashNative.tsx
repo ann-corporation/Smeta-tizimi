@@ -193,6 +193,8 @@ export function F2TayyorlashNative() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  /* Qoralama yozilgach sahifa ichida doimiy «Tasdiqlashga o'tish» (toast 12 soniyada yo'qolardi). Obyekt almashsa yashiriladi. */
+  const [qoralamaYozildi, setQoralamaYozildi] = useState<{ obyektId: number; n: number } | null>(null);
   const [aosrsiz, setAosrsiz] = useState<AosrCoverage[]>([]);
   /** Zanjir chizig'i uchun АОСР qamrovi; null — hali o'qilmadi / o'qilmadi (noma'lum, 0 emas). */
   const [aosrQamrov, setAosrQamrov] = useState<{ yashirin: number; aktsiz: number } | null>(null);
@@ -808,7 +810,8 @@ export function F2TayyorlashNative() {
         return;
       }
       if (typeof r.versiya === 'number') aktVersiya.current.set(akt.id, r.versiya);
-      toast(t('F2 qoralama yangilandi (akt #{id}, {n} qator). Tasdiqlash - F2 tarixida.', { id: String(akt.id), n: String(qatorlar.length) }), 'ok', undefined, 12000, { label: 'Ochish', onClick: () => navigate(`/admin/f2-tarix?obyekt=${obyektId}`) });
+      toast(t('F2 qoralama yangilandi (akt #{id}, {n} qator). Tasdiqlash - F2 tarixida.', { id: String(akt.id), n: String(qatorlar.length) }), 'ok');
+      setQoralamaYozildi({ obyektId, n: qatorlar.length });
       await yuklash();
     } catch { toast(t('Javob olinmadi. Qayta urinib ko‘ring.'), 'danger'); }
   };
@@ -834,7 +837,8 @@ export function F2TayyorlashNative() {
       });
       if (!tk.ok) { toast(tk.xabar, 'danger'); return; }
       f2SessiyaTozala(obyektId); // saqlandi — saqlanmagan kiritma qolmadi
-      toast(t('F2 qoralama yaratildi ({n} token). Tasdiqlash — F2 tarixida.', { n: tk.sarflandi }), 'ok', undefined, 12000, { label: 'Ochish', onClick: () => navigate(`/admin/f2-tarix?obyekt=${obyektId}`) });
+      toast(t('F2 qoralama yaratildi ({n} token). Tasdiqlash — F2 tarixida.', { n: tk.sarflandi }), 'ok');
+      setQoralamaYozildi({ obyektId, n: qatorlar.length });
       await yuklash();
     } catch { toast(t('Javob olinmadi. Shu amal IDsi bilan qayta urinishingiz mumkin.'), 'danger'); }
     finally { saqlashQulf.current = false; setSaving(false); }
@@ -1147,6 +1151,13 @@ export function F2TayyorlashNative() {
     {korinish.oyna}
     <div ref={moneyScope} className="flex min-h-full flex-col gap-3">
       {validId && <ZanjirChizigi joriy="f2" obyektId={obyektId} aosr={aosrQamrov} />}
+      {validId && qoralamaYozildi?.obyektId === obyektId && (
+        <div role="status" data-testid="f2-tasdiqlashga-otish" className="fz-note fz-note--ok flex flex-wrap items-center gap-3">
+          <span className="min-w-0 flex-1">{t('F2 qoralama saqlandi ({n} qator). Endi uni tekshirib tasdiqlang.', { n: String(qoralamaYozildi.n) })}</span>
+          <button type="button" className="fz-btn fz-btn--primary" onClick={() => navigate(`/admin/f2-tarix?obyekt=${obyektId}`)}>{t('Tasdiqlashga o‘tish')}</button>
+          <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" onClick={() => setQoralamaYozildi(null)}>{t('Yopish')}</button>
+        </div>
+      )}
       {validId && <TayyorlanganF2lar kompaniyaId={joriy?.id} obyektId={obyektId} />}
       <section className="fz-card flex flex-wrap items-end gap-3 p-3" aria-label={t('F2 parametrlari')}>
         <label className="min-w-[240px] flex-1 text-[12px] font-medium text-text-dim">{t('Obyekt')}

@@ -13,11 +13,11 @@
 import { t } from '../../i18n/til';
 import { markazHolati, type MarkazAkt } from '../pto-markazi/markaz';
 
-export type ZanjirQadamId = 'smeta' | 'fakt' | 'aosr' | 'f2' | 'f3' | 'tolov';
+export type ZanjirQadamId = 'smeta' | 'fakt' | 'aosr' | 'f2' | 'f3' | 'tolov' | 'slichitelniy';
 export type QadamHolat = 'done' | 'current' | 'blocked' | 'not_started' | 'unknown';
 
 /** Zanjir tartibi (testlar, UI va menyu uchun yagona manba). */
-export const ZANJIR_TARTIB: readonly ZanjirQadamId[] = ['smeta', 'fakt', 'aosr', 'f2', 'f3', 'tolov'];
+export const ZANJIR_TARTIB: readonly ZanjirQadamId[] = ['smeta', 'fakt', 'aosr', 'f2', 'f3', 'tolov', 'slichitelniy'];
 
 /** Har qadam bajariladigan sahifa (obyekt/oy qidiruv qatori — chaqiruvchi qo'shadi). */
 export const ZANJIR_YOL: Record<ZanjirQadamId, string> = {
@@ -27,6 +27,8 @@ export const ZANJIR_YOL: Record<ZanjirQadamId, string> = {
   f2: '/admin/f2-tayyorlash',
   f3: '/admin/nakopitelniy',
   tolov: '/admin/moliya',
+  /** Obyekt sahifasidagi «Slichitelniy» bo'limi (hash bilan ochiladi). */
+  slichitelniy: '/admin/holat',
 };
 
 export type ZanjirKirish = {
@@ -44,7 +46,13 @@ export type ZanjirKirish = {
   forma3: number | null;
   /** Obyekt bo'yicha yozilgan to'lovlar soni; null — noma'lum. */
   tolovYozilgan: number | null;
-  /** «YYYY-MM». */
+  /** Smeta barg (ish) qatorlari soni — faqat obyekt sahifasi o'qigan bo'lsa; yo'q/null — son ko'rsatilmaydi. */
+  smetaQator?: number | null;
+  /** Fakt qamrovi, % (fakti bor ish qatorlari ulushi); yo'q/null — son ko'rsatilmaydi. */
+  faktQamrov?: number | null;
+  /** Slichitelniy: smetadan farqli (ortiq/kam) ish qatorlari; null/yo'q — shu sahifada hisoblanmagan (noma'lum). */
+  slichitelniy?: { farqli: number; barglar: number } | null;
+  /**«YYYY-MM». */
   oy: string;
 };
 
@@ -79,7 +87,7 @@ type Own = 'done' | 'todo' | 'unknown';
 const musbat = (n: number | null | undefined): n is number => n != null && n > 0;
 
 const NOMLAR: Record<ZanjirQadamId, () => string> = {
-  smeta: () => t('Smeta'), fakt: () => t('Fakt'), aosr: () => t('АОСР'), f2: () => t('F2'), f3: () => t('Forma 3'), tolov: () => t('To‘lov'),
+  smeta: () => t('Smeta'), fakt: () => t('Fakt'), aosr: () => t('АОСР'), f2: () => t('F2'), slichitelniy: () => t('Slichitelniy'), f3: () => t('Forma 3'),tolov: () => t('To‘lov'),
 };
 
 /** Qadamning o'z ma'lumotidan holati + izoh + amal (oldingi qadamlarga bog'liq emas). */
@@ -91,18 +99,18 @@ function ozi(id: ZanjirQadamId, k: ZanjirKirish): { own: Own; izoh: string; amal
       if (!k.smeta.bor) return { own: 'todo', izoh: t('Smeta yuklanmagan'), amal: t('Smetani yuklang') };
       if (k.smeta.narxsiz == null) return { own: 'unknown', izoh: t('Narxsiz qatorlar soni noma‘lum'), amal: t('Smetani tekshiring') };
       if (k.smeta.narxsiz > 0) return { own: 'todo', izoh: t('{n} qator narxsiz', { n: k.smeta.narxsiz }), amal: t('Smetani narxlang') };
-      return { own: 'done', izoh: t('Smeta yuklangan va narxlangan'), amal: t('Smetani ko‘ring') };
+      return { own: 'done', izoh: musbat(k.smetaQator) ? t('{n} ish qatori, hammasi narxlangan', { n: k.smetaQator }) : t('Smeta yuklangan va narxlangan'), amal: t('Smetani ko‘ring') };
     }
     case 'fakt': {
       if (k.faktSaqlangan == null) return { own: 'unknown', izoh: nomalum, amal: t('Faktni tekshiring') };
       if (musbat(k.faktQoralama)) return { own: 'todo', izoh: t('{n} ta fakt qoralamada', { n: k.faktQoralama }), amal: t('Faktni yakunlang') };
       if (k.faktSaqlangan === 0) return { own: 'todo', izoh: t('Bajarilgan ish kiritilmagan'), amal: t('Fakt kiriting') };
-      return { own: 'done', izoh: t('Fakt saqlangan'), amal: t('Faktni ko‘ring') };
+      return { own: 'done', izoh: k.faktQamrov != null ? t('{n} ta fakt akti, qamrov {p}%', { n: k.faktSaqlangan, p: k.faktQamrov }) : t('{n} ta fakt akti', { n: k.faktSaqlangan }), amal: t('Faktni ko‘ring') };
     }
     case 'aosr': {
       if (!k.aosr) return { own: 'unknown', izoh: nomalum, amal: t('АОСР ni tekshiring') };
       if (k.aosr.aktsiz > 0) return { own: 'todo', izoh: t('{n} ta yashirin ish АОСР siz', { n: k.aosr.aktsiz }), amal: t('АОСР tayyorlang') };
-      return { own: 'done', izoh: k.aosr.yashirin > 0 ? t('Yashirin ishlar АОСР bilan yopilgan') : t('Yashirin ish yo‘q'), amal: t('АОСР ni ko‘ring') };
+      return { own: 'done', izoh: k.aosr.yashirin > 0 ? t('{a}/{y} yashirin ish АОСР bilan yopilgan',{ a: k.aosr.yashirin - k.aosr.aktsiz, y: k.aosr.yashirin }) : t('Yashirin ish yo‘q'), amal: t('АОСР ni ko‘ring') };
     }
     case 'f2': {
       if (musbat(k.f2TasdiqBuOyda)) return { own: 'done', izoh: t('{oy} uchun F2 tasdiqlangan', { oy: k.oy }), amal: t('F2 ni ko‘ring') };
@@ -114,6 +122,11 @@ function ozi(id: ZanjirQadamId, k: ZanjirKirish): { own: Own; izoh: string; amal
       if (musbat(k.forma3)) return { own: 'done', izoh: t('Forma 3 tuzilgan'), amal: t('Forma 3 ni ko‘ring') };
       if (k.forma3 == null) return { own: 'unknown', izoh: nomalum, amal: t('Forma 3 ni tekshiring') };
       return { own: 'todo', izoh: t('Forma 3 hali yo‘q'), amal: t('Forma 3 tayyorlang') };
+    }
+    case 'slichitelniy': {
+      if (!k.slichitelniy) return { own: 'unknown', izoh: nomalum, amal: t('Slichitelniyni tekshiring') };
+      if (k.slichitelniy.farqli > 0) return { own: 'todo', izoh: t('{n} qatorda farq bor', { n: k.slichitelniy.farqli }), amal: t('Slichitelniyni oching') };
+      return { own: 'done', izoh: t('Smetadan farq yo‘q'), amal: t('Slichitelniyni ko‘ring') };
     }
     case 'tolov': {
       if (musbat(k.tolovYozilgan)) return { own: 'done', izoh: t('To‘lov yozilgan'), amal: t('To‘lovni ko‘ring') };
@@ -132,6 +145,7 @@ function bloklovchi(id: ZanjirQadamId, k: ZanjirKirish, tugamagan: ReadonlySet<Z
     case 'fakt': return k.smeta.bor === false ? t('Avval smetani yuklang') : null;
     case 'aosr': case 'f2': return tugamagan.has('fakt') ? t('Avval fakt kerak') : null;
     case 'f3': return tugamagan.has('f2') ? t('Avval F2 tasdiqlanishi kerak') : null;
+    case 'slichitelniy': return tugamagan.has('f2') ? t('Avval F2 tasdiqlanishi kerak') : null;
     case 'tolov': return tugamagan.has('f3') ? t('Avval Forma 3 kerak') : null;
     default: return null;
   }
@@ -181,6 +195,9 @@ export function zanjirKirishYasa(p: {
   forma3?: number | null;
   aosr?: { yashirin: number; aktsiz: number } | null;
   tolovYozilgan?: number | null;
+  smetaQator?: number | null;
+  faktQamrov?: number | null;
+  slichitelniy?: ZanjirKirish['slichitelniy'];
 }): ZanjirKirish {
   const h = markazHolati({ smetaJami: p.obyekt?.jami ?? null, narxsiz: p.obyekt?.narxsiz ?? null, aktlar: p.aktlar, importQoralama: null, forma3: p.forma3 ?? null, oy: p.oy });
   return {
@@ -192,6 +209,30 @@ export function zanjirKirishYasa(p: {
     f2TasdiqBuOyda: h.f2TasdiqBuOyda,
     forma3: p.forma3 ?? null,
     tolovYozilgan: p.tolovYozilgan ?? null,
+    smetaQator: p.smetaQator ?? null,
+    faktQamrov: p.faktQamrov ?? null,
+    slichitelniy: p.slichitelniy ?? null,
     oy: p.oy,
   };
 }
+
+/** Obyekt sahifasi allaqachon yuklagan daraxt+holatdan zanjir sonlari (yangi so'rov yo'q). Bo'sh daraxt — hammasi null. */
+export function zanjirDaraxtdan(
+  rows: ReadonlyArray<{ id: number; tur: string | null }>,
+  states: ReadonlyArray<{ qator_id: number; fakt_hajm: number }>,
+  slichFarqli: number | null,
+): { smetaQator: number | null; faktQamrov: number | null; slichitelniy: { farqli: number; barglar: number } | null } {
+  const ishlar = rows.filter((r) => r.tur === 'bl');
+  if (ishlar.length === 0) return { smetaQator: null, faktQamrov: null, slichitelniy: null };
+  const fakt = new Map(states.map((s) => [s.qator_id, Number(s.fakt_hajm)]));
+  const faktli = ishlar.filter((r) => (fakt.get(r.id) ?? 0) > 0).length;
+  return {
+    smetaQator: ishlar.length,
+    faktQamrov: Math.round((faktli / ishlar.length) * 100),
+    slichitelniy: slichFarqli == null ? null : { farqli: slichFarqli, barglar: ishlar.length },
+  };
+}
+
+/** Pudratchi tomon rollari — faqat shularga zanjir chizig'i ko'rinadi (texnadzor/buyurtmachi menyusi o'zgarmaydi). Rol noma'lum (null) — ko'rsatiladi. */
+const ZANJIR_ROLLAR: ReadonlySet<string> = new Set(['pto', 'boss', 'prorab', 'rahbar', 'bugalter', 'admin', 'superadmin', 'owner']);
+export const zanjirRolKoradi = (rol: string | null | undefined): boolean => rol == null || rol === '' || ZANJIR_ROLLAR.has(rol);

@@ -1,0 +1,15 @@
+{
+  "{n} ish qatori, hammasi narxlangan": { "ru": "{n} строк работ, все с ценой", "en": "{n} work lines, all priced" },
+  "{n} ta fakt akti, qamrov {p}%": { "ru": "Актов факта: {n}, охват {p}%", "en": "{n} actual-work acts, coverage {p}%" },
+  "{n} ta fakt akti": { "ru": "Актов факта: {n}", "en": "{n} actual-work acts" },
+  "{a}/{y} yashirin ish АОСР bilan yopilgan": { "ru": "{a}/{y} скрытых работ закрыто АОСР", "en": "{a}/{y} hidden works covered by AOSR" },
+  "Slichitelniyni tekshiring": { "ru": "Проверьте сличительную ведомость", "en": "Check the reconciliation statement" },
+  "{n} qatorda farq bor": { "ru": "Расхождение в {n} строках", "en": "Differences in {n} lines" },
+  "Slichitelniyni oching": { "ru": "Откройте сличительную ведомость", "en": "Open the reconciliation statement" },
+  "Smetadan farq yo‘q": { "ru": "Расхождений со сметой нет", "en": "No differences from the estimate" },
+  "Slichitelniyni ko‘ring": { "ru": "Посмотреть сличительную ведомость", "en": "View the reconciliation statement" },
+  "F2 qoralama saqlandi ({n} qator). Endi uni tekshirib tasdiqlang.": { "ru": "Черновик Ф-2 сохранён (строк: {n}). Проверьте и подтвердите его.", "en": "F2 draft saved ({n} lines). Now review and approve it." },
+  "Tasdiqlashga o‘tish": { "ru": "Перейти к подтверждению", "en": "Go to approval" },
+  "Shartnomalar o‘qilmadi. Qayta urinib ko‘ring.": { "ru": "Договоры не загрузились. Повторите попытку.", "en": "Contracts could not be loaded. Try again." },
+  "Shartnoma bo‘yicha F3, to‘lov va akt-sverka": { "ru": "По договору: Ф-3, платёж и акт сверки", "en": "By contract: F3, payment and reconciliation act" }
+}
