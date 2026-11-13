@@ -246,17 +246,17 @@ describe('Сличительная ведомость — pereraschet modeli', (
     expect([m('МАТЕРИАЛ БЕЗ ФАКТА').doplataHajm, m('МАТЕРИАЛ БЕЗ ФАКТА').doplataSumma]).toEqual([null, null]); // NULL ≠ 0
   });
 
-  it('svod yaxlit bo‘lim: fakt svodga taqsimlanadi (1020), F-2 aynan (600) — к доплате taqsimdan', () => {
+  it('svod yaxlit bo‘lim: fakt svodga taqsimlanadi (1020), F-2 aynan (600) — к доплате taqsimlanmagan fakt − F-2 (to‘g‘ri narx)', () => {
     const sv = model.qatorlar.filter((x) => x.yaxlitTaqsim != null);
     expect(sv).toHaveLength(2);
     expect(r2(sv.reduce((t, x) => t + (x.faktSumma ?? 0), 0))).toBe(1020);
     expect(r2(sv.reduce((t, x) => t + x.f2Summa, 0))).toBe(600);
-    expect(r2(sv.reduce((t, x) => t + (x.doplataSumma ?? 0), 0))).toBe(420);
+    expect(r2(sv.reduce((t, x) => t + (x.doplataSumma ?? 0), 0))).toBe(250);
   });
 
   it('pereraschet yakuni: + / − alohida, net = fakt − F-2, noma‘lum soni', () => {
     const p = model.pereraschet;
-    expect(p.doplata).toBe(5000 + 4000 + 200 + 14_000 + 10_000 + 420);
+    expect(p.doplata).toBe(5000 + 4000 + 200 + 14_000 + 10_000 + 250);
     expect(p.snyatie).toBe(-4000);
     expect(r2(p.net)).toBe(r2(p.doplata + p.snyatie));
     expect(p.nomalum).toBeGreaterThanOrEqual(1);
@@ -299,7 +299,7 @@ describe('Сличительная ведомость — xlsx (exceljs bilan qa
   it('«Основание» (АОСР) ustuni yo‘q; yangi guruhlar sarlavhada; varaqlar: ведомость + Свод изменений', async () => {
     const { r } = qur();
     const wb = await yuk(r.bytes);
-    expect(wb.worksheets.map((w) => w.name)).toEqual([ASOSIY, SVOD_V]);
+    expect(wb.worksheets.map((w) => w.name)).toEqual([ASOSIY, SVOD_V, 'Плюсы и минусы']);
     const ws = wb.getWorksheet(ASOSIY)!;
     const matn: string[] = [];
     ws.eachRow((row) => row.eachCell((c) => { if (typeof c.value === 'string') matn.push(c.value); }));
@@ -385,7 +385,9 @@ describe('Сличительная ведомость — xlsx (exceljs bilan qa
     // svod bo'lim: fakt taqsim (qiymat), formula emas
     const s = qatorNomi(wb, 'ТРУД СВОД');
     expect(typeof ws.getCell(`I${s}`).value).toBe('number');
-    expect(typeof (ws.getCell(`T${s}`).value as { formula: string }).formula).toBe('string');
+    // к доплате: to'g'ri narxdagi fakt − Ф-2 (taqsimlanmagan) — qiymat; QQS bilan ustuni (W) shu qiymatdan formula
+    expect(typeof ws.getCell(`T${s}`).value).toBe('number');
+    expect(typeof (ws.getCell(`W${s}`).value as { formula: string }).formula).toBe('string');
   });
 
   it('Свод изменений: bo‘lim bo‘yicha smeta/fakt/F-2/к доплате/к снятию; jami QQS bilan birinchi, keyin ustamali, ustamasiz', async () => {

@@ -144,8 +144,15 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
   const bolalar = new Map<number | null, T2Qator[]>();
   // Razdel (yoki ildiz) darajasidagi qo'shimcha ish (smeta 0) — smeta bo'limlaridan alohida «ДОПОЛНИТЕЛЬНЫЕ РАБОТЫ» bo'limiga.
   // Ish ichidagi qo'shimcha resurs joyida qoladi (ish tarkibi buzilmasin).
+  // Svod yaxlit (bir butun summa) bo'limi ichidagi qatorlar smeta tarkibida: ular qo'shimcha bo'limga ko'chirilmaydi va smetasi 0 qilinmaydi (bo'lim summasi svoddan taqsimlanadi).
+  const lumpIds = new Set((o.svodYaxlit?.bolimlar ?? []).map((b) => Number(b.qator_id)));
+  const lumpOstida = (q: T2Qator): boolean => {
+    if (!lumpIds.size) return false;
+    for (let p: T2Qator | undefined = q, n = 0; p && n < 64; p = p.ota_id == null ? undefined : byId.get(p.ota_id), n++) if (lumpIds.has(p.id)) return true;
+    return false;
+  };
   const qoshimchaRoot = (q: T2Qator): boolean => {
-    if (!q.qoshimcha || !(q.tur === 'bl' || BARG.has(q.tur ?? ''))) return false;
+    if (!q.qoshimcha || !(q.tur === 'bl' || BARG.has(q.tur ?? '')) || lumpOstida(q)) return false;
     const ota = q.ota_id == null ? undefined : byId.get(q.ota_id);
     return !ota || ota.tur === 'rz';
   };
@@ -179,7 +186,8 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
 
   const olchov = (q: T2Qator) => {
     const h = holat.get(q.id);
-    const smeta = q.hajm ?? null;
+    // Asl smeta o'zgarmaydi (egasi): smetada yo'q qo'shimcha ish (svod bo'limidan tashqari) — smeta hajmi 0, hajmi/summasi faqat fakt va Ф-2 tomonda.
+    const smeta = q.qoshimcha && !lumpOstida(q) ? 0 : q.hajm ?? null;
     // Fakt hajmi yozilganidek (egasi): F2 dan hech narsa chiqarilmaydi, fakt < F2 — normal. NULL — NULL (0 emas).
     const fakt = h?.fakt_hajm == null ? null : Number(h.fakt_hajm);
     const f2Hajm = h ? Number(h.f2_hajm ?? 0) : 0;
@@ -283,7 +291,8 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
         r.smetaSumma = G.get(i) ?? null;
         r.faktSumma = I?.get(i) ?? null;
         r.farqSumma = r.faktSumma == null || r.smetaSumma == null ? null : yaxlit2(r.faktSumma - r.smetaSumma);
-        r.doplataSumma = r.faktSumma == null || r.f2SummaNomalum ? null : yaxlit2(r.faktSumma - r.f2Summa);
+        // Pereraschet (fakt − Ф-2) svod taqsimidan TASHQARI: to'g'ri narxdagi fakt bilan Ф-2 solishtiriladi (doplataSumma o'zgarmaydi);
+        // aks holda taqsimlangan fakt (svod bo'yicha) va to'g'ri narxdagi Ф-2 farqi soxta «к доплате» berardi.
         r.yaxlitTaqsim = Number(b.qator_id);
       }
       const bilinmas = leaves.filter((i) => out[i].faktSumma == null).length;
@@ -435,6 +444,7 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
       // U — smeta, V — ilgari Ф-2 (summasi noma'lum bo'lsa NULL), W = P − V (fakt к оплате − Ф-2 к оплате; + к доплате, − к снятию).
       if (c === 'U') val = koTaqsim.has(`${i}G`) ? koTaqsim.get(`${i}G`)! : ko(q.smetaSumma);
       else if (c === 'V') val = ko(q.f2SummaNomalum ? null : q.f2Summa);
+      else if (c === 'W' && q.yaxlitTaqsim != null) val = ko(q.doplataSumma); // svod bo'limi: to'g'ri narxdagi fakt − Ф-2, QQS bilan
       else if (c === 'W') { const p = koOf(i, 'P'), f = koOf(i, 'V'); val = p == null || f == null ? null : yaxlit2(p - f); }
       else val = koTaqsim.has(key) ? koTaqsim.get(key)! : ko(c === 'P' ? q.faktSumma : q.farqSumma);
     }
@@ -458,10 +468,10 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
     const sg = (c: 'T' | 'W', f: (s: number) => number, rf: string): Qiymat => ({ f: `IF(${c}${n}="","",${rf}(${c}${n},0))`, v: (() => { const x = c === 'T' ? q.doplataSumma : koOf(i, 'W'); return x == null ? '' : f(x); })() });
     return [
       { f: `IF(H${n}="","",ROUND(H${n}-J${n},6))`, v: q.doplataHajm ?? '' },
-      { f: `IF(OR(I${n}="",K${n}=""),"",ROUND(I${n}-K${n},2))`, v: q.doplataSumma ?? '' },
+      q.yaxlitTaqsim != null ? qiy(q.doplataSumma) : { f: `IF(OR(I${n}="",K${n}=""),"",ROUND(I${n}-K${n},2))`, v: q.doplataSumma ?? '' },
       koTaqsim.has(`${i}G`) ? koTaqsim.get(`${i}G`)! : kx == null ? null : { f: `IF(G${n}="","",ROUND(G${n}*${kx},2))`, v: koOf(i, 'U') ?? '' },
       kx == null ? null : { f: `IF(K${n}="","",ROUND(K${n}*${kx},2))`, v: koOf(i, 'V') ?? '' },
-      kx == null ? null : { f: `IF(OR(P${n}="",V${n}=""),"",ROUND(P${n}-V${n},2))`, v: koOf(i, 'W') ?? '' },
+      kx == null ? null : q.yaxlitTaqsim != null ? { f: `IF(T${n}="","",ROUND(T${n}*${kx},2))`, v: koOf(i, 'W') ?? '' } : { f: `IF(OR(P${n}="",V${n}=""),"",ROUND(P${n}-V${n},2))`, v: koOf(i, 'W') ?? '' },
       sg('T', (x) => Math.max(x, 0), 'MAX'), sg('T', (x) => Math.min(x, 0), 'MIN'),
       kx == null ? null : sg('W', (x) => Math.max(x, 0), 'MAX'), kx == null ? null : sg('W', (x) => Math.min(x, 0), 'MIN'),
     ];
@@ -473,7 +483,9 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
     else if (q.tur === 'barg') {
       // Egasi 2026-09-30: tirik smeta — resurs hajmi = norma × ish hajmi (ish hajmi o'zgarsa resurs ham).
       const ota = q.otaIdx != null ? model.qatorlar[q.otaIdx] : undefined;
-      const normaF = q.norma != null && ota?.tur === 'bl' && ota.smetaHajm != null && q.smetaHajm != null;
+      // Formula faqat keshni aynan qaytarsa (ROUND(...,6)); bazadagi hajm 6 belgidan ortiq bo'lsa — Excel qayta hisoblaganda summa siljimasin, qiymat yoziladi.
+      const normaF = q.norma != null && ota?.tur === 'bl' && ota.smetaHajm != null && q.smetaHajm != null
+        && Math.abs(Math.round((q.norma * ota.smetaHajm + Number.EPSILON) * 1e6) / 1e6 - q.smetaHajm) < 5e-10;
       const us = bargUslubi(q.resTur);
       r = v.qator(us.tur, (n) => [
         q.tartib, q.kod, q.nom, q.birlik, normaF ? { f: `ROUND(${q.norma}*E${rowOf(q.otaIdx!)},6)`, v: q.smetaHajm! } : qiy(q.smetaHajm), qiy(q.narx),
@@ -576,9 +588,9 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
       const svQ = o.svodYaxlit && !o.faqatFarq ? svodYaxlitQqs(o.svodYaxlit, ndsFoiz)?.qqsBilan ?? null : null;
       const taqsimlangan = yi.some((i) => koTaqsim.has(`${i}G`));
       const gSum = taqsimlangan ? yigindi2(yi.map((i) => koTaqsim.get(`${i}G`))) : svQ ?? yaxlitKOplate(yigindi2(yi.map((i) => model.qatorlar[i].smetaSumma)), ndsFoiz) ?? 0;
-      yaxlit = { G: gSum, I: pSum, K: kSum, M: yaxlit2(pSum - gSum), T: yaxlit2(pSum - kSum) };
+      yaxlit = { G: gSum, I: pSum, K: kSum, M: yaxlit2(pSum - gSum), T: yigindi2(yi.map((i) => koOf(i, 'W'))) ?? 0 };
       yaxlitF = { I: sumif(YAXLIT_KAT, 'P'), K: `ROUND(${sumif(YAXLIT_KAT, 'K')}*${yaxKf},2)`, M: `ROUND(${sumif(YAXLIT_KAT, 'P')}-${gSum},2)`,
-        T: `ROUND(${sumif(YAXLIT_KAT, 'P')}-ROUND(${sumif(YAXLIT_KAT, 'K')}*${yaxKf},2),2)` };
+        T: `ROUND(${sumif(YAXLIT_KAT, 'W')},2)` };
     }
     const nomalumP = nomalumBor ? Object.fromEntries(Object.entries(nomalumQ).map(([k, x]) => [k, yaxlit2(x)])) : null;
     const nomalumF = nomalumBor ? Object.fromEntries(['G', 'I', 'K', 'M', 'T'].map((col) => [col, sumif(NOMALUM_KAT, col)])) : null;
@@ -687,6 +699,41 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
     const nomSoni = model.ildizlar.reduce((t, i) => t + model.qatorlar[i].nomalum, 0);
     if (nomSoni) sv.izoh(`Итог неполный: позиций, требующих внимания (нет количества, цены, выполнения или суммы Ф-2) — ${nomSoni}; они в суммы не включены (пустые, не 0) — перечень на листе «${ASOSIY_VARAQ}».`);
     varaqlar.push(sv);
+  }
+
+  // «Плюсы и минусы» — 20 ta eng katta pereraschet pozitsiyasi (to'g'ri narx, ustamasiz): PTO muhandisi qaysi qatorlar jamini belgilashini darrov ko'radi.
+  const doplataQ = model.qatorlar.map((q, i) => ({ q, i })).filter((x) => x.q.tur === 'barg' && x.q.doplataSumma != null && Math.abs(x.q.doplataSumma) >= 0.005)
+    .sort((a, b) => Math.abs(b.q.doplataSumma!) - Math.abs(a.q.doplataSumma!)).slice(0, 20);
+  if (doplataQ.length) {
+    const A2 = `'${ASOSIY_VARAQ}'!`;
+    const pm = new RasmiyVaraq({
+      nom: 'Плюсы и минусы', sarlavha: 'ПЛЮСЫ И МИНУСЫ: 20 КРУПНЕЙШИХ ПОЗИЦИЙ ПЕРЕРАСЧЕТА',
+      ostSarlavha: [`объект: ${o.obyektNomi}; по состоянию на ${sanaRu}; прямые затраты (без накладных расходов и НДС); плюс — к доплате, минус — к снятию`],
+      ustunlar: [
+        { sarlavha: '№', kenglik: 5, tur: 'tartib' }, { sarlavha: 'Работа (шифр — наименование)', kenglik: 54, tur: 'matn' },
+        { sarlavha: 'По смете', kenglik: 19, tur: 'pul' }, { sarlavha: 'Факт', kenglik: 19, tur: 'pul' }, { sarlavha: 'Ранее по Ф-2', kenglik: 19, tur: 'pul' },
+        { sarlavha: '± к доплате (+) / к снятию (−)', kenglik: 21, tur: 'pul' }, { sarlavha: 'Обоснование', kenglik: 52, tur: 'matn' },
+      ],
+      yonalish: 'landscape',
+    });
+    const sabab = (q: SlichitelniyQator): string => {
+      const d = q.doplataSumma!;
+      if (d > 0) return q.f2Summa === 0 ? 'Плюс: в Ф-2 не предъявлялось' : 'Плюс: выполнено больше, чем предъявлено по Ф-2';
+      if (q.almashtirilganIdlar?.length) return 'Минус: исключается — позиция заменена';
+      return (q.faktHajm ?? 0) === 0 ? 'Минус: предъявлено по Ф-2, фактически не выполнено' : 'Минус: предъявлено по Ф-2 больше, чем выполнено';
+    };
+    doplataQ.forEach(({ q, i }, k) => {
+      const lump = q.yaxlitTaqsim != null;
+      pm.qator('oddiy', [k + 1, [q.kod, q.nom].filter(Boolean).join(' — '),
+        lump ? qiy(q.smetaSumma) : { f: `${A2}G${rowOf(i)}`, v: q.smetaSumma ?? '' },
+        lump ? qiy(q.faktSumma) : { f: `${A2}I${rowOf(i)}`, v: q.faktSumma ?? '' },
+        { f: `${A2}K${rowOf(i)}`, v: q.f2SummaNomalum ? '' : q.f2Summa },
+        { f: `${A2}T${rowOf(i)}`, v: q.doplataSumma! },
+        sabab(q) + (lump ? '; раздел по своду: факт распределен по своду, перерасчет — по прямым ценам' : '')]);
+    });
+    pm.bosh();
+    pm.izoh('Позиции отсортированы по модулю разницы «факт − ранее предъявлено по Ф-2». Полный перечень — на листе «' + ASOSIY_VARAQ + '» (графы 17–18), по разделам — «' + SVOD_VARAQ + '».');
+    varaqlar.push(pm);
   }
 
   // Alohida «Работы вне сметы» varag'i — faqat so'rovga ko'ra (asosiy varaqda «ДОПОЛНИТЕЛЬНЫЕ РАБОТЫ» bo'limi va zamena juftlari bor).

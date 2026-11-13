@@ -103,7 +103,7 @@ describe('slichitelniy xlsx: «Основание» ustuni va asoslar reestri', 
     const matn = t.matnlar.join('\n').toLowerCase();
     expect(matn).not.toContain('основание (аоср');
     expect(matn).not.toContain('реестр документов-оснований');
-    expect(t.varaqlar.map((x) => x.nom)).toEqual(['Сличительная ведомость', 'Свод изменений']);
+    expect(t.varaqlar.map((x) => x.nom)).toEqual(['Сличительная ведомость', 'Свод изменений', 'Плюсы и минусы']);
     expect(asosJavob.ok).toBe(true);
   });
 
@@ -113,8 +113,8 @@ describe('slichitelniy xlsx: «Основание» ustuni va asoslar reestri', 
     const m = slichitelniyModeli(Q, H);
     const alohida = hujjatTekshir(slichitelniyHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', vneSmeta: 'alohida' }).bytes);
     const daraxt = hujjatTekshir(slichitelniyHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', vneSmeta: 'daraxt' }).bytes);
-    expect(alohida.varaqlar.length).toBe(3);
+    expect(alohida.varaqlar.length).toBe(4);
     expect(alohida.matnlar.join('\n')).toContain('РАБОТЫ, ВЫПОЛНЕННЫЕ СВЕРХ СМЕТЫ');
-    expect(daraxt.varaqlar.length).toBe(2);
+    expect(daraxt.varaqlar.length).toBe(3);
   });
 });

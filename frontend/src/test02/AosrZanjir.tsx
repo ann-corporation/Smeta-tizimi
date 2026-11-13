@@ -13,7 +13,8 @@ import { obyektImzochilarOl } from '../api/obyekt-imzochi';
 import { yangiOperationId } from '../api/supabase';
 import { aosrKomissiyaTartibi } from '../lib/aosr-export';
 import { komissiyaImzochilardan, sanaOraligi } from '../lib/ijro-tayyorla';
-import { BOSQICH_UZ, keyingiAosrRaqam, zanjirQur, type Bosqich } from '../lib/aosr-zanjir';
+import { BOSQICH_UZ, guruhResurslari, keyingiAosrRaqam, namunaAkt, zanjirQur, type Bosqich } from '../lib/aosr-zanjir';
+import { resursKatmi } from '../lib/aosr-resurs';
 import { toast } from '../umumiy/ui/Toast';
 import { t } from '../i18n/til';
 
@@ -25,7 +26,7 @@ type Props = {
   onYopish: () => void; onTayyor: () => void;
 };
 
-const resursmi = (c: Pick<AosrCoverage, 'kat'>) => c.kat === 'mat' || c.kat === 'ob';
+const resursmi = (c: Pick<AosrCoverage, 'kat'>) => resursKatmi(c.kat);
 
 export function AosrZanjir({ kompaniyaId, obyektId, coverage, qatorMeta, tanlangan, aktlar, onYopish, onTayyor }: Props) {
   const [boshRaqam, setBoshRaqam] = useState(() => String(keyingiAosrRaqam(aktlar)));
@@ -42,7 +43,11 @@ export function AosrZanjir({ kompaniyaId, obyektId, coverage, qatorMeta, tanlang
       const o = ota.get(c.qator_id);
       if (resursmi(c) && o != null && ishIds.has(o) && Number(c.fakt_hajm) > 0) { const a = resurslar.get(o) ?? []; a.push(c); resurslar.set(o, a); }
     }
-    return zanjirQur({ ishlar, resurslar });
+    // Hammasi bitta guruhda (bitta razdel/konstruksiya) bo'lsa — akt nomi shu guruh nomi bilan.
+    const otalar = new Set(ishlar.map((c) => ota.get(c.qator_id)));
+    const guruhId = otalar.size === 1 ? [...otalar][0] : null;
+    const konstruksiya = guruhId != null ? qatorMeta.find((m) => m.id === guruhId)?.nom ?? null : null;
+    return zanjirQur({ ishlar, resurslar, guruhResurslar: guruhResurslari(coverage, ota, ishIds), konstruksiya });
   }, [coverage, qatorMeta, tanlangan]);
 
   const tanlanganlar = natija.qoralamalar.filter((q) => !chiqarilgan.has(q.bosqich));
@@ -54,7 +59,7 @@ export function AosrZanjir({ kompaniyaId, obyektId, coverage, qatorMeta, tanlang
     if (!Number.isFinite(bosh) || bosh <= 0) { toast(t('Boshlang‘ich raqamni kiriting'), 'warn'); return; }
     setBand(true);
     try {
-      const oxirgi = aktlar.find((a) => a.holat !== 'bekor');
+      const oxirgi = namunaAkt(aktlar);
       const sukutKomissiya = oxirgi && Array.isArray(oxirgi.komissiya) ? oxirgi.komissiya.map((k) => ({ ...k })) : aosrKomissiyaTartibi('subpudratchisiz', []).map((k) => ({ rol: String(k.rol) }));
       const imzo = await obyektImzochilarOl(kompaniyaId, obyektId, null).catch(() => null);
       const imzochilar = imzo && imzo.ok ? imzo.natija.imzochilar : null;
@@ -67,7 +72,7 @@ export function AosrZanjir({ kompaniyaId, obyektId, coverage, qatorMeta, tanlang
           tur: 'aosr', holat: 'yangi', raqam: String(bosh + i), ...q.malumot,
           ...(sanalar ? { sana: sanalar.tugash ?? undefined, boshlanish_sana: sanalar.boshlanish ?? undefined, tugash_sana: sanalar.tugash ?? undefined } : {}),
           blank_varianti: komissiya?.blank ?? oxirgi?.blank_varianti ?? 'subpudratchisiz',
-          loyiha_tashkiloti: oxirgi?.loyiha_tashkiloti ?? '', chetlanishlar: 'Нет',
+          loyiha_tashkiloti: oxirgi?.loyiha_tashkiloti ?? '', ...(oxirgi?.loyiha_hujjati ? { loyiha_hujjati: oxirgi.loyiha_hujjati } : {}), chetlanishlar: 'Нет',
           komissiya: komissiya?.komissiya ?? sukutKomissiya,
           izoh: `zanjir: ${q.bosqich}`,
         };

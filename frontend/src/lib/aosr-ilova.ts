@@ -6,6 +6,7 @@
  * Normativ seriya soni YOZILMAYDI (aniq norma PTO tasdig'igacha bo'sh qoladi — ijro-qoida.ts bilan bir xil yondashuv).
  */
 import type { AosrCoverage } from '../api/t2-aosr';
+import { resursKatmi } from './aosr-resurs';
 import { labTalablari, materialTokenlar, type LabTalab } from './ijro-qoida';
 
 /* ── Hajm hisobi ─────────────────────────────────────────────────── */
@@ -40,7 +41,7 @@ export function hajmQatorlari(
 ): AosrHajmQator[] {
   const out: AosrHajmQator[] = [];
   ishlar.forEach((c, i) => {
-    if (c.kat === 'mat' || c.kat === 'ob') return; // hajm hisobi — ish qatorlari uchun
+    if (resursKatmi(c.kat)) return; // hajm hisobi — ish qatorlari uchun
     const id = qatorIds?.[i];
     const fakt = c.fakt_hajm == null || !Number.isFinite(Number(c.fakt_hajm)) ? null : Number(c.fakt_hajm);
     const akt = id != null ? aktHajmlari?.get(id) ?? null : null;
@@ -101,7 +102,7 @@ export function labIlovaQur(
   let beton: AosrLabIlova['beton'] = null;
   if (betonBor) {
     const b = betonBelgilari(matn);
-    const betonIshlar = ishlar.filter((c) => c.kat !== 'mat' && c.kat !== 'ob' && /бетон|монолит|beton/i.test(String(c.nom ?? '')) && /м3|м³|куб/i.test(String(c.birlik ?? '').replace(/\s/g, '')) && Number(c.fakt_hajm) > 0);
+    const betonIshlar = ishlar.filter((c) => !resursKatmi(c.kat) && /бетон|монолит|beton/i.test(String(c.nom ?? '')) && /м3|м³|куб/i.test(String(c.birlik ?? '').replace(/\s/g, '')) && Number(c.fakt_hajm) > 0);
     const jami = betonIshlar.reduce((x, c) => x + Number(c.fakt_hajm), 0);
     beton = {
       sinf: b.sinf,
