@@ -31,6 +31,8 @@ import { NimaYangiBelgi } from '../components/qollanma/NimaYangiBelgi';
 import { BolimTablariKontekst } from './bolimTablariKontekst';
 import { NAV_GURUHLAR, NAV_SAHIFALAR, navSahifa, type NavIkonka } from '../lib/nav/navReestr';
 import { menyuQur, ilovalarRoyxati, kundalikIshlar, type NavKontekst } from '../lib/nav/navFiltr';
+import { ISH_JOYI_NAV, ishJoyiMenyu } from '../lib/nav/ishJoyiMenyu';
+import { useYangiMenyu } from '../lib/nav/yangiMenyu';
 import { ILOVA_MAP, type IlovaKod } from '../lib/ilova/ilovalar';
 import { IlovaIshgaTushirgich } from '../components/ilova/IlovaIshgaTushirgich';
 import { useTizimRuxsat } from '../api/t2-tizim-xaritasi';
@@ -43,6 +45,8 @@ import { menyuModulYoqilgan } from '../lib/modullar';
  * `tablar` — bitta band ostidagi bir nechta sahifa: sidebarda BITTA band, sahifa tepasida tablar (BolimTablari). */
 type MenyuTab = { yol: string; nom: string };
 type MenyuQator = { yol: string; nom: string; Ikonka: typeof Crown; tablar?: MenyuTab[] };
+/** Sidebar guruhi; `yana` — yangi (ish joyi) menyuda «Yana…» ostidagi kam ishlatiladigan bandlar. */
+type MenyuGuruhQator = { nom: string; id: string; Ikonka: typeof Crown; menyular: MenyuQator[]; yana?: MenyuQator[] };
 const IKONKALAR: Record<NavIkonka, typeof Crown> = {
   Building2, Tags, Calculator, FileOutput, HardHat, ShieldAlert, Settings, FileText, Link2, FileStack, Gauge, FlaskConical,
   LayoutDashboard, BarChart, ClipboardList, Briefcase, Box, Users, FolderKanban, Crown, ShieldCheck, Map, Inbox, Truck, User, Trash2,
@@ -107,6 +111,8 @@ function AdminShellInner() {
     return () => window.removeEventListener(SIDEBAR_HODISA, f);
   }, []);
   const sidebarKengaygan = mahkam || kengaygan || mobilMenyuOchiq;
+  /* «Yangi menyu» (ekotizim V2): 7 ish joyi. O'chirilsa — eski guruhli sidebar (lib/nav/yangiMenyu). */
+  const [yangiMenyu, yangiMenyuQoy] = useYangiMenyu();
   /* Ilova menyusi (ekotizim P1): sukut - faqat joriy ilova bo'limlari; «Barcha bo'limlar» - hammasi (tanlov eslab qolinadi). */
   const [hammasiRejim, setHammasiRejim] = useState<boolean>(() => {
     try { return localStorage.getItem('fz-menyu-hammasi') === '1'; } catch { return false; }
@@ -131,6 +137,11 @@ function AdminShellInner() {
     NAV_GURUHLAR.forEach(g => {
       // Yuqorida «Kundalik ishlar» turadi — bo'limlar sukut YOPIQ, faqat ochiq sahifa turgan bo'lim ochiq.
       d[g.id] = g.bandlar.some(b => b.sahifalar.some(x => joy.pathname.startsWith(x.yol)));
+    });
+    ISH_JOYI_NAV.forEach(g => {
+      const ochiq = g.bandlar.some(b => b.sahifalar.some(x => joy.pathname.startsWith(x.yol)));
+      d['ij:' + g.id] = ochiq;
+      d['yana:' + g.id] = ochiq && g.bandlar.some(b => b.sahifalar.some(x => x.qoshimcha && joy.pathname.startsWith(x.yol)));
     });
     d.kundalik = true;
     d.qoshimcha = NAV_SAHIFALAR.some(x => x.qoshimcha && joy.pathname.startsWith(x.yol));
@@ -229,23 +240,31 @@ function AdminShellInner() {
   const asosiyGuruhlar = guruhQator(menyuIlova, 'yashir');
   const qoshimchaBandlar = guruhQator('hammasi', 'faqat').flatMap(g => g.menyular);
   const kundalikBandlar: MenyuQator[] = kundalikIshlar({ ...navK, ilova: 'hammasi' }).map(b => ({ yol: b.yol, nom: b.nom, Ikonka: IKONKALAR[b.ikonka] }));
-  const filtrKilinganGuruhlar = [
+  const bandQator = (b: { yol: string; nom: string; ikonka: NavIkonka; tablar?: MenyuTab[] }): MenyuQator => ({ yol: b.yol, nom: b.nom, Ikonka: IKONKALAR[b.ikonka], tablar: b.tablar });
+  const ishBolimlar = yangiMenyu ? ishJoyiMenyu({ ...navK, ilova: 'hammasi' }) : [];
+  const ishGuruhlar: MenyuGuruhQator[] = ishBolimlar.map(b => ({ nom: b.nom, id: 'ij:' + b.id, Ikonka: IKONKALAR[b.ikonka], menyular: b.bandlar.map(bandQator), yana: b.yana.map(bandQator) }));
+  const eskiGuruhlar: MenyuGuruhQator[] = [
     ...(kundalikBandlar.length ? [{ nom: 'Kundalik ishlar', id: 'kundalik', Ikonka: IKONKALAR.HardHat, menyular: kundalikBandlar }] : []),
     ...asosiyGuruhlar,
     ...(qoshimchaBandlar.length ? [{ nom: 'Qo‘shimcha bo‘limlar', id: 'qoshimcha', Ikonka: IKONKALAR.Box, menyular: qoshimchaBandlar }] : []),
   ];
+  const filtrKilinganGuruhlar: MenyuGuruhQator[] = yangiMenyu ? ishGuruhlar : eskiGuruhlar;
   /* Ctrl+K — sidebar bilan BIR manba: shu rol/ruxsat/modul filtridan o'tgan bandlar (tizim xaritasi P3); tablar alohida topiladi. */
-  const palitraBandlari = hammasiGuruhlar.flatMap(g => g.menyular.flatMap(m => m.tablar
+  const palitraBandlari = yangiMenyu
+    ? ishGuruhlar.flatMap(g => [...g.menyular, ...(g.yana ?? [])].flatMap(m => m.tablar ? m.tablar.map(tb => ({ yol: tb.yol, nom: tb.nom, guruh: g.nom })) : [{ yol: m.yol, nom: m.nom, guruh: g.nom }]))
+    : hammasiGuruhlar.flatMap(g => g.menyular.flatMap(m => m.tablar
     ? m.tablar.map(tb => ({ yol: tb.yol, nom: tb.nom, guruh: g.nom }))
     : [{ yol: m.yol, nom: m.nom, guruh: g.nom }]));
   /* BolimTablari (sahifa tepasidagi tablar) uchun — ruxsat bo'yicha filtrlangan tab guruhlari. */
-  const tabGuruhlari = hammasiGuruhlar.flatMap(g => g.menyular.flatMap(m => m.tablar ? [m.tablar] : []));
+  const tabGuruhlari = yangiMenyu
+    ? ishGuruhlar.flatMap(g => [...g.menyular, ...(g.yana ?? [])].flatMap(m => m.tablar ? [m.tablar] : []))
+    : hammasiGuruhlar.flatMap(g => g.menyular.flatMap(m => m.tablar ? [m.tablar] : []));
   const bandFaol = (m: MenyuQator, isActive: boolean) => isActive || !!m.tablar?.some(tb => joy.pathname === tb.yol || joy.pathname.startsWith(tb.yol + '/'));
 
   return (
     <div className="os-app-shell flex h-screen overflow-hidden text-text relative font-sans">
       <HotkeyYordam />
-      <CommandPalette bandlar={palitraBandlari} />
+      <CommandPalette bandlar={palitraBandlari} permissions={k.joriy?.permissions} />
       <YordamchiSahifaYozuvchi bandlar={palitraBandlari} />
 
       {/* Firuza YonPanel (2026-10-25): rels (60px, faqat ikonka) yoki mahkamlangan ochiq panel (264px).
@@ -277,7 +296,7 @@ function AdminShellInner() {
 
         <div className="fz-sidebar__scroll">
           <nav className="fz-nav" data-kurs="menyu">
-            {ilovalar.length > 1 && sidebarKengaygan && (
+            {!yangiMenyu && ilovalar.length > 1 && sidebarKengaygan && (
               <button type="button" className="fz-nav__group" aria-pressed={menyuIlova === 'hammasi'} onClick={() => setHammasiRejim(v => !v)}
                 title={menyuIlova === 'hammasi' ? t('Faqat joriy ilova bo‘limlari') : t('Barcha bo‘limlar')}>
                 <span className="flex-1 truncate">{menyuIlova === 'hammasi' ? t('Faqat joriy ilova bo‘limlari') : t('Barcha bo‘limlar')}</span>
@@ -291,7 +310,7 @@ function AdminShellInner() {
                     {ochiqGuruhlar[guruh.id] ? <ChevronDown /> : <ChevronRight />}
                   </button>
                 ) : gi > 0 ? <div className="fz-sidebar__sep" /> : null}
-                {(!sidebarKengaygan || ochiqGuruhlar[guruh.id]) && guruh.menyular.map(m => (
+                {(!sidebarKengaygan || ochiqGuruhlar[guruh.id]) && [...guruh.menyular, ...(ochiqGuruhlar['yana:' + guruh.id.replace('ij:', '')] ? (guruh.yana ?? []) : [])].map(m => (
                   <NavLink
                     key={m.yol}
                     to={m.yol}
@@ -306,6 +325,12 @@ function AdminShellInner() {
                     )}
                   </NavLink>
                 ))}
+                {sidebarKengaygan && ochiqGuruhlar[guruh.id] && !!guruh.yana?.length && (
+                  <button type="button" className="fz-nav__item" aria-expanded={!!ochiqGuruhlar['yana:' + guruh.id.replace('ij:', '')]} onClick={() => toggleGuruh('yana:' + guruh.id.replace('ij:', ''))}>
+                    <ChevronRight strokeWidth={1.75} />
+                    <span>{ochiqGuruhlar['yana:' + guruh.id.replace('ij:', '')] ? t('Yana… (yig‘ish)') : `${t('Yana…')} (${guruh.yana.length})`}</span>
+                  </button>
+                )}
               </div>
             ))}
           </nav>
@@ -321,6 +346,10 @@ function AdminShellInner() {
           >
             {mahkam ? <PanelLeftClose strokeWidth={1.75} /> : <PanelLeftOpen strokeWidth={1.75} />}
             {sidebarKengaygan && <span>{mahkam ? t('Panelni yig‘ish') : t('Panelni mahkamlash')}</span>}
+          </button>
+          <button type="button" onClick={() => yangiMenyuQoy(!yangiMenyu)} aria-pressed={yangiMenyu} title={yangiMenyu ? t('Eski menyuga qaytish') : t('Yangi menyu (7 ish joyi)')} className="fz-nav__item os-desktop-only">
+            <LayoutDashboard strokeWidth={1.75} />
+            {sidebarKengaygan && <span>{yangiMenyu ? t('Eski menyuga qaytish') : t('Yangi menyu (7 ish joyi)')}</span>}
           </button>
           <button
             type="button"

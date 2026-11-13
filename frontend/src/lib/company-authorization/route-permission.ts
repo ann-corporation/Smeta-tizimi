@@ -18,7 +18,8 @@ export function routePermission(path:string):PermissionCode {
   if(['narxlar','narx-dalil','narx-manbalari','narx-katalog','smeta-narxlash','nakrutka'].includes(p)) return 'narx.read';
   if(['dashboard','pult','moliya'].includes(p)) return 'financial.read';
   // «Ish joylarim» — har a'zoning o'z ish joylari markazi (ma'lumot faqat o'z a'zoliklaridan, bazada).
-  if(p==='kompaniya'||p==='tokenlar'||p==='tizim-sozlama'||p==='ish-joylarim'||p==='kurs'||p==='mutaxassis') return 'company.read';
+  if(p==='kompaniya'||p==='tokenlar'||p==='tizim-sozlama'||p==='ish-joylarim'||p==='kurs'||p==='mutaxassis'||p==='bugun') return 'company.read';
+  if(p==='ruxsatlar-jadvali') return 'control.company.read';
   if(p==='loyiha'||p==='participants') return 'project.read';
   if(p==='sotuv') return 'sales.read';
   return 'document.read';

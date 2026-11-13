@@ -63,7 +63,7 @@ const bez = (xs: string[], ...yoq: string[]) => xs.filter((x) => !a(...yoq).incl
 /* ── Kutilgan menyular (tartib — sidebar tartibi) ── */
 const OBYEKT = a('pult', 'dashboard', 'obyektlar', 'loyiha', 'participants', 'mindmap', 'grafik');
 const SMETA = a('smeta-studio', 'holat', 'smeta-narxlash', 'narx-dalil', 'narx-tekshiruv', 'nakrutka', 'narxlar', 'narx-manbalari', 'oferta', 'loyiha-smeta');
-const FAKT = a('fakt', 'foto', 'bugun', 'naryad', 'm29');
+const FAKT = a('fakt', 'foto', 'naryad', 'm29');
 const F2 = a('f2-tayyorlash', 'f2', 'f2-tarix', 'f2-reestr', 'nakopitelniy');
 const HUJJAT = a('documents', 'hujjat-nazorat', 'aosr', 'storage', 'nazorat', 'nazorat/tekshiruv', 'nazorat/jurnal', 'chizmalar', 'loyihachi', 'zakazchik', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish', 'subpudrat', 'subpudratchi');
 const MOLIYA = a('moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'kontragentlar', 'solishtiruv');
@@ -75,9 +75,9 @@ const ISH_R = [...OBYEKT, ...SMETA, ...FAKT, ...F2, ...MOLIYA, ...HUJJAT, ...TAM
 /* Uy sotish (20261124000000): alohida domen — sales.* (PTO da yo'q). */
 const SOTUV = a('sotuv');
 /* Egasi 2026-10-27: «Integratsiyalar va audit» (tizim boshqaruv markazi) — faqat platforma superadmini. */
-const KOMPANIYA_SA = a('kompaniya', 'system-control', 'tizim-sozlama', 'hujjat-dizayn', 'tokenlar', 'ai-agentlar', 'korzinka');
+const KOMPANIYA_SA = a('kompaniya', 'system-control', 'tizim-sozlama', 'hujjat-dizayn', 'tokenlar', 'ai-agentlar', 'korzinka', 'ruxsatlar-jadvali');
 const KOMPANIYA = bez(KOMPANIYA_SA, 'system-control');
-const SHAXSIY = a('ish-joylarim', 'kurs', 'topshiriqlar', 'mutaxassis', 'haydovchi', 'akkaunt', 'imzo', 'osuvchi', 'sozlamalar');
+const SHAXSIY = a('bugun', 'ish-joylarim', 'kurs', 'topshiriqlar', 'mutaxassis', 'haydovchi', 'akkaunt', 'imzo', 'osuvchi', 'sozlamalar');
 /* «Sayt xaritasi» menyudan butunlay olib tashlandi (superadmin uchun ham); sahifa faqat superadminga, Boshqaruv panelidan. */
 const PLATFORMA = a('boshqaruv', 'fayl-boglash'); // «Sinov qobig'i» menyu bandi olib tashlandi (2026-11-11); /admin/test yo'li superadmin-only qoladi
 
@@ -89,7 +89,7 @@ const KUTILGAN: Record<string, string[]> = {
   bugalter: [...a('pult', 'dashboard', 'obyektlar', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'kontragentlar', 'solishtiruv',
     'documents', 'hujjat-nazorat', 'storage', 'logistika', 'zayavka', 'tender', 'yuk-birjasi', 'yuk-chaqirish', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'tender-ochiq', 'erp', 'hr', 'sotuv'), ...SHAXSIY],
   prorab: [...bez(ISH, 'pult', 'dashboard', 'moliya', 'solishtiruv', 'buxgalteriya', 'qarzdorlik'), ...SHAXSIY],
-  usta: [...a('fakt', 'foto', 'bugun'), ...SHAXSIY],
+  usta: [...a('fakt', 'foto'), ...SHAXSIY],
   buyurtmachi: [...a('obyektlar', 'loyiha', 'participants', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'shartnoma-liniya',
     'documents', 'hujjat-nazorat', 'storage', 'zakazchik', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish'), ...SHAXSIY],
   omborchi: [...a('m29', 'logistika', 'zayavka', 'tender', 'yuk-birjasi', 'yuk-chaqirish', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'tender-ochiq'), ...SHAXSIY],
@@ -178,7 +178,7 @@ describe('qatlamlar', () => {
   });
 
   it('brigadir — usta kabi Fakt kiritishni ko‘radi', () => {
-    expect(menyu('brigadir')).toEqual([...a('fakt', 'foto', 'bugun', 'hr'), ...SHAXSIY]);
+    expect(menyu('brigadir')).toEqual([...a('fakt', 'foto', 'hr'), ...SHAXSIY]);
   });
 
   it('kompaniya tanlanmagan (rol yo‘q) — faqat shaxsiy bandlar', () => {
@@ -241,7 +241,7 @@ describe('yagona manba — boshqa iste‘molchilar o‘zgarmagan', () => {
 
   it('ROUTE_SCOPE (RuxsatGuard) avvalgi xarita bilan aynan bir xil', () => {
     expect(ROUTE_SCOPE).toEqual({
-      '/': 'USER_SCOPED', '/admin/kompaniya': 'GLOBAL', '/admin/system-control': 'GLOBAL',
+      '/': 'USER_SCOPED', '/admin/kompaniya': 'GLOBAL', '/admin/ruxsatlar-jadvali': 'COMPANY_SCOPED', '/admin/system-control': 'GLOBAL',
       '/admin/pult': 'COMPANY_SCOPED', '/admin/dashboard': 'COMPANY_SCOPED', '/admin/documents': 'COMPANY_SCOPED', '/admin/loyiha': 'COMPANY_SCOPED', '/admin/obyektlar': 'COMPANY_SCOPED',
       '/admin/f2-reestr': 'COMPANY_SCOPED', '/admin/mindmap': 'COMPANY_SCOPED', '/admin/sotuv': 'COMPANY_SCOPED', '/admin/test/portfel': 'COMPANY_SCOPED', '/admin/test/moliya': 'COMPANY_SCOPED',
       '/admin/test/logistika': 'COMPANY_SCOPED', '/admin/test/crm': 'COMPANY_SCOPED', '/admin/test/smeta': 'COMPANY_SCOPED', '/admin/test/zayavka': 'COMPANY_SCOPED',
