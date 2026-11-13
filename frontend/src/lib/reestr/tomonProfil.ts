@@ -39,7 +39,7 @@ export const ROL_PROFILLARI: readonly RolProfil[] = [
   { rol: 'taminotchi', tugmalar: ['logistika', 'zayavka', 'tender', 'yuk-birjasi', 'yetkazuvchi'] },
   { rol: 'mexanik', tugmalar: ['erp', 'logistika', 'topshiriqlar'] },
   { rol: 'kadr', tugmalar: ['hr', 'erp', 'topshiriqlar'] },
-  { rol: 'inspektor', tugmalar: ['aosr', 'laboratoriya', 'hujjat-nazorat', 'documents'] },
+  { rol: 'inspektor', tugmalar: ['nazorat', 'aosr', 'laboratoriya', 'hujjat-nazorat', 'documents'] },
   { rol: 'loyihachi', tugmalar: ['loyihachi', 'chizmalar', 'documents', 'hujjat-nazorat'] },
 ];
 
