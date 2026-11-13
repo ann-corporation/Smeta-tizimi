@@ -430,6 +430,38 @@ async function aktTasdiqlashRuxsati(
   }
 }
 
+/** akt_bekor uchun akt holati (kanonik t2_akt dan). O'qib bo'lmasa null — eski yo'l (baza o'zi rad etadi). */
+export type AktBekorHolat = { kompaniya_id: number; tur: string | null; holat: string | null; lifecycle_status: string | null; versiya: number | null };
+async function aktBekorHolatiOl(env: { SUPABASE_URL: string; SUPABASE_KEY: string }, aktId: number): Promise<AktBekorHolat | null> {
+  try {
+    const r = await fetch(supabaseBaseUrl(env.SUPABASE_URL) + `/rest/v1/t2_akt?id=eq.${aktId}&select=kompaniya_id,tur,holat,lifecycle_status,versiya&limit=1`,
+      { headers: { apikey: env.SUPABASE_KEY, Authorization: 'Bearer ' + env.SUPABASE_KEY } });
+    if (!r.ok) return null;
+    const j = await r.json() as unknown;
+    const a = Array.isArray(j) ? j[0] as Record<string, unknown> | undefined : undefined;
+    if (!a || !Number.isSafeInteger(Number(a.kompaniya_id))) return null;
+    return { kompaniya_id: Number(a.kompaniya_id), tur: a.tur == null ? null : String(a.tur), holat: a.holat == null ? null : String(a.holat),
+             lifecycle_status: a.lifecycle_status == null ? null : String(a.lifecycle_status), versiya: a.versiya == null ? null : Number(a.versiya) };
+  } catch { return null; }
+}
+
+/**
+ * akt_bekor yo'li (holatga qarab): tasdiqlangan F2 — lifecycle approved->cancelled (bog'liqlik bo'lsa DEPENDENTS_EXIST + ro'yxat qaytadi);
+ * qoralama / fakt hujjati / holat noma'lum — eski t2_akt_bekor; allaqachon almashtirilgan (superseded) — rad.
+ */
+export function aktBekorYoli(a: AktBekorHolat | null, p: { aktId: number; actorId: number; sabab: string | null; kutilganVersiya: number | null; operationId: string }):
+  { yol: 'eski' } | { yol: 'rad'; code: string; error: string } | { yol: 'lifecycle'; yuk: Record<string, unknown> } {
+  if (!a || a.tur !== 'f2') return { yol: 'eski' };
+  if (a.lifecycle_status === 'superseded') return { yol: 'rad', code: 'INVALID_LIFECYCLE_TRANSITION', error: 'Bu F2 yangi versiya bilan almashtirilgan — bekor qilinmaydi' };
+  if (a.lifecycle_status !== 'approved' && a.holat !== 'tasdiqlangan') return { yol: 'eski' };
+  if (!Number.isSafeInteger(p.actorId) || p.actorId <= 0) return { yol: 'rad', code: 'ACTOR_REQUIRED', error: 'Tasdiqlangan F2 ni bekor qilish uchun sessiya yangilanishi kerak' };
+  if (!p.sabab || !p.sabab.trim()) return { yol: 'rad', code: 'REASON_REQUIRED', error: 'Tasdiqlangan F2 ni bekor qilish uchun sabab majburiy' };
+  const versiya = p.kutilganVersiya ?? a.versiya;
+  if (versiya == null || !Number.isSafeInteger(versiya)) return { yol: 'rad', code: 'STALE_VERSION', error: 'F2 versiyasi noma‘lum — sahifani yangilang' };
+  return { yol: 'lifecycle', yuk: { p_kompaniya_id: a.kompaniya_id, p_akt_id: p.aktId, p_to_status: 'cancelled', p_actor_id: p.actorId,
+    p_expected_version: versiya, p_operation_id: p.operationId, p_reason: p.sabab.trim() } };
+}
+
 export const onRequestPost: PagesFunction<{
   SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; R2_CANONICAL?: R2Bucket;
 }> = async (ctx) => {
@@ -558,6 +590,8 @@ export const onRequestPost: PagesFunction<{
     }
 
     let yuk: Record<string, unknown>;
+    /* akt_bekor: tasdiqlangan F2 eski t2_akt_bekor dan o'tmaydi (immutable trigger) — lifecycle RPC ga yo'naltiriladi. */
+    let rpcOverride: { rpc: string; yuk: Record<string, unknown> } | null = null;
 
     /* ══════════ RES NARXLASH ══════════
        Allaqachon import qilingan, narxsiz smetani RES katalogi bilan
@@ -2091,6 +2125,11 @@ export const onRequestPost: PagesFunction<{
       } else {
         yuk = { p_akt_id: aktId, p_kutilgan_versiya: v, p_kim: sess.email || '',
                 p_sabab: so.sabab ? String(so.sabab).slice(0, 500) : null };
+        const holat = await aktBekorHolatiOl(ctx.env, aktId);
+        const yol = aktBekorYoli(holat, { aktId, actorId: Number(sess.foydalanuvchi_id), sabab: so.sabab ? String(so.sabab).slice(0, 2000) : null,
+          kutilganVersiya: v, operationId: uuidRe.test(operationId) ? operationId : crypto.randomUUID() });
+        if (yol.yol === 'rad') return Response.json({ ok: false, code: yol.code, error: yol.error }, { status: 409 });
+        if (yol.yol === 'lifecycle') rpcOverride = { rpc: AMALLAR.akt_lifecycle_transition_v1.rpc, yuk: yol.yuk };
       }
 
     /* ══════════ SKLADGA YOZISH ══════════
@@ -3676,7 +3715,7 @@ export const onRequestPost: PagesFunction<{
         : AMALLAR[amal].rpc;
     // The default endpoint remains the allow-list expression: rpc/' + AMALLAR[amal].rpc.
     const r = await fetch(
-      supabaseBaseUrl(ctx.env.SUPABASE_URL) + '/rest/v1/rpc/' + rpc,
+      supabaseBaseUrl(ctx.env.SUPABASE_URL) + '/rest/v1/rpc/' + (rpcOverride ? rpcOverride.rpc : rpc),
       {
         method: 'POST',
         headers: {
@@ -3684,7 +3723,7 @@ export const onRequestPost: PagesFunction<{
           Authorization: 'Bearer ' + ctx.env.SUPABASE_KEY,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(yuk),
+        body: JSON.stringify(rpcOverride ? rpcOverride.yuk : yuk),
       });
 
     const matn = await r.text();

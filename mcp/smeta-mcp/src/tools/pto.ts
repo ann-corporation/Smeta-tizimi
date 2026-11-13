@@ -256,8 +256,8 @@ export const f2Yarat = tool({
 
 export const aktBekor = tool({
   nom: 'akt_bekor',
-  tavsif: 'Fakt hujjati yoki F2 QORALAMAni bekor qilish (hujjat o\'chirilmaydi — holat «bekor», hisobdan chiqadi). Fakt — t2_akt_bekor (kutilgan versiya bilan); '
-    + 'F2 qoralama/rad etilgan — lifecycle cancelled (t2_akt_lifecycle_transition_v1). Tasdiqlangan F2 bekor qilinmaydi (tuzatish/storno tartibi). `sabab` majburiy. Bir yoki ko\'p akt.',
+  tavsif: 'Fakt hujjati yoki F2 ni bekor qilish (hujjat o\'chirilmaydi — holat «bekor», hisobdan chiqadi). Fakt — t2_akt_bekor (kutilgan versiya bilan); '
+    + 'F2 (qoralama, rad etilgan VA tasdiqlangan) — lifecycle cancelled (t2_akt_lifecycle_transition_v1). Tasdiqlangan F2 ga Forma 3 / storno / davr muhri bog\'langan bo\'lsa DEPENDENTS_EXIST — aniq ro\'yxat bilan (avval o\'shalarni bekor qiling). `sabab` majburiy. Bir yoki ko\'p akt.',
   kirish: { akt_idlar: z.array(z.number().int().positive()).min(1).max(200), sabab: z.string().min(3).max(2000), operation_id: opS, dry_run: dryRunT },
   yozadi: true,
   bajar: async (a, mu) => {
@@ -270,8 +270,9 @@ export const aktBekor = tool({
           const n = Number((await m.query<{ n: number }>('select count(*)::int as n from public.t2_akt_qator where akt_id = $1', [aktId])).rows[0]?.n ?? 0);
           if (akt.holat === 'bekor') return { akt_id: aktId, tur: akt.tur, holat: 'bekor', takror: true };
           if (akt.tur === 'f2') {
-            if (akt.holat === 'tasdiqlangan' || akt.lifecycle_status === 'approved') throw new Error(`Akt #${aktId} tasdiqlangan F2 — bekor qilinmaydi (tuzatish/storno tartibida).`);
-            if (!['draft', 'rejected', 'submitted', 'checked'].includes(akt.lifecycle_status ?? 'draft')) throw new Error(`Akt #${aktId} lifecycle ${akt.lifecycle_status} — bekor qilib bo'lmaydi.`);
+            // Tasdiqlangan F2 ham lifecycle approved→cancelled orqali (eski t2_akt_bekor approved aktda immutable trigger bilan rad etiladi);
+            // bog'liq Forma 3 / storno / davr muhri bo'lsa server DEPENDENTS_EXIST + ro'yxat qaytaradi (xatoIzoh aniq matnga aylantiradi).
+            if (!['draft', 'rejected', 'submitted', 'checked', 'approved'].includes(akt.lifecycle_status ?? 'draft')) throw new Error(`Akt #${aktId} lifecycle ${akt.lifecycle_status} — bekor qilib bo'lmaydi.`);
             const res = await rpcOk(m, 't2_akt_lifecycle_transition_v1', {
               p_kompaniya_id: akt.kompaniya_id, p_akt_id: aktId, p_to_status: 'cancelled', p_actor_id: aktor, p_expected_version: akt.versiya,
               p_operation_id: uuidHosila(asos, `bekor:${aktId}`), p_reason: a.sabab,
