@@ -1,4 +1,5 @@
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { obyektlarEskirdi } from '../../api/obyektlar-kesh-belgi';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, CheckCircle2, XCircle, UploadCloud, AlertTriangle, Info, FileSpreadsheet } from 'lucide-react';
 import { sbT2DaraxtOl, sbT2ObyektlarOlKomp, sbT2ResursKategoriyaBelgila, yangiOperationId, type T2Obyekt, type T2Qator, type T2ResursKategoriya } from '../../api/supabase';
@@ -149,6 +150,7 @@ async function smetaSorov(yuk: Record<string, unknown>): Promise<SmetaYuklaJavob
     });
     const j = await r.json().catch(() => null) as SmetaYuklaJavob | null;
     if (!j) return { ok: false, code: 'BAD_RESPONSE', xato: 'Server javobi o‘qilmadi.' };
+    if (j.ok) obyektlarEskirdi(); // smeta yuklash obyekt jami/qator sonini o'zgartiradi
     return j;
   } catch {
     return { ok: false, code: 'NETWORK', xato: 'Tarmoq uzildi. Qayta urinib ko‘ring.' };

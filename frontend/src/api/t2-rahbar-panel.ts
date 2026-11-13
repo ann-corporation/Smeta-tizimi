@@ -122,10 +122,11 @@ export async function rahbarPanelOl(p: {
 }
 
 /** Rahbar paneli server paketi (F2 uchligi uchun): xato bo‘lsa `data` undefined — UI «hisoblanmadi» deydi (0 emas). */
-export function useRahbarPanel(kompaniyaId: number | null | undefined, davr?: { dan: string | null; gacha: string | null }, obyektId?: number | null) {
+/** `yoqilgan=false` — so'rov yuborilmaydi (keshda bo'lsa o'qiladi): og'ir paket faqat kerak bo'lganda (lazy) so'raladi. */
+export function useRahbarPanel(kompaniyaId: number | null | undefined, davr?: { dan: string | null; gacha: string | null }, obyektId?: number | null, yoqilgan = true) {
   const dan = davr?.dan ?? null, gacha = davr?.gacha ?? null, oid = obyektId ?? null;
   return useQuery({
-    queryKey: ['rahbar-panel-v1', kompaniyaId, dan, gacha, oid], enabled: kompaniyaId != null, staleTime: 60_000, retry: 1,
+    queryKey: ['rahbar-panel-v1', kompaniyaId, dan, gacha, oid], enabled: kompaniyaId != null && yoqilgan, staleTime: 60_000, retry: 1,
     queryFn: async () => {
       const r = await rahbarPanelOl({ kompaniyaId: kompaniyaId as number, davrDan: dan, davrGacha: gacha, obyektId: oid });
       if (!r.ok) throw new Error(r.error);
