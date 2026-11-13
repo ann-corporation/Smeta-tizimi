@@ -1,4 +1,5 @@
 import { prixodSana } from './kitob';
+import { exceljsJadvalUslubi } from '../hujjat-yozuvchi/exceljs-dizayn';
 
 export type OmborHisobotQator = {
   id: string; sana: string; operatsiya: 'prixod' | 'rasxod'; nom: string; birlik: string; miqdor: number;
@@ -61,12 +62,15 @@ export async function omborDavrExcel(rows: readonly OmborHisobotQator[], davr: O
     ['Конечный остаток','Не определён'],['Цены / суммы / НДС','Не определены'],
     ['Ограничения',note],['Сверка поставщика','Движения материалов не подтверждают взаиморасчеты или оплату'],
   ]);meta.getColumn(1).width=33;meta.getColumn(2).width=85;
+  // Umumiy hujjat qoidalari (egasi 2026-11-13): matn o'raladi + balandlik hisoblanadi, son o'ralmaydi, yashirin K ustun
+  // qatorni semirtirmaydi, A4 eniga sig'adi, sarlavha qatori takrorlanadi — `exceljsJadvalUslubi` (hujjat dizayni resolveri).
+  exceljsJadvalUslubi(ws,{sarlavha:7,hajmUstunlari:[6],yonalish:'landscape'});
+  exceljsJadvalUslubi(summary,{sarlavha:3,hajmUstunlari:[3,4,5],yonalish:'landscape'});
+  exceljsJadvalUslubi(meta,{sarlavha:1,yonalish:'landscape'});
   for(const sheet of [ws,summary,meta]){
-    sheet.eachRow(row=>{row.eachCell(cell=>{cell.font={name:'Arial',size:10};cell.alignment={vertical:'top',wrapText:true};});});
     for(const r of sheet===ws?[1,7]:sheet===summary?[1,3]:[1])sheet.getRow(r).eachCell(cell=>{
-      cell.font={name:'Arial',size:10,bold:true,color:{argb:'FFFFFFFF'}};cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF245B55'}};
+      cell.font={...cell.font,bold:true,color:{argb:'FFFFFFFF'}};cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF245B55'}};
     });
-    sheet.pageSetup={orientation:'landscape',paperSize:9,fitToPage:true,fitToWidth:1,fitToHeight:0};
   }
   return new Uint8Array(await wb.xlsx.writeBuffer());
 }
