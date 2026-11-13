@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { ZANJIR_TARTIB, zanjirHisobla, zanjirKirishYasa, type ZanjirKirish } from './qadamlar';
+import { ZANJIR_TARTIB, zanjirDaraxtdan, zanjirHisobla, zanjirKirishYasa, zanjirRolKoradi, type ZanjirKirish } from './qadamlar';
 import type { MarkazAkt } from '../pto-markazi/markaz';
 
 /** Hamma narsa bajarilgan, to'lov yozilgan. */
 const tayyor = (o: Partial<ZanjirKirish> = {}): ZanjirKirish => ({
   smeta: { bor: true, narxsiz: 0 }, faktSaqlangan: 3, faktQoralama: 0, aosr: { yashirin: 2, aktsiz: 0 },
-  f2BuOyda: true, f2TasdiqBuOyda: 1, forma3: 1, tolovYozilgan: 1, oy: '2026-11', ...o,
+  f2BuOyda: true, f2TasdiqBuOyda: 1, forma3: 1, tolovYozilgan: 1, slichitelniy: { farqli: 0, barglar: 5 }, oy: '2026-11', ...o,
 });
 const holatlar = (k: ZanjirKirish) => Object.fromEntries(zanjirHisobla(k).qadamlar.map((q) => [q.id, q.holat]));
 
 describe('zanjirHisobla — tartib', () => {
   it('tartib: smeta, fakt, АОСР, F2, F3, to‘lov (АОСР F2 dan oldin)', () => {
-    expect(ZANJIR_TARTIB).toEqual(['smeta', 'fakt', 'aosr', 'f2', 'f3', 'tolov']);
-    expect(zanjirHisobla(tayyor()).qadamlar.map((q) => q.id)).toEqual(['smeta', 'fakt', 'aosr', 'f2', 'f3', 'tolov']);
+    expect(ZANJIR_TARTIB).toEqual(['smeta', 'fakt', 'aosr', 'f2', 'f3', 'tolov', 'slichitelniy']);
+    expect(zanjirHisobla(tayyor()).qadamlar.map((q) => q.id)).toEqual(['smeta', 'fakt', 'aosr', 'f2', 'f3', 'tolov', 'slichitelniy']);
     expect(ZANJIR_TARTIB.indexOf('aosr')).toBeLessThan(ZANJIR_TARTIB.indexOf('f2'));
   });
   it('hammasi bajarilgan — tavsiya yo‘q, tugallandi', () => {
@@ -71,11 +71,49 @@ describe('zanjirHisobla — tavsiya mantig‘i', () => {
   });
 });
 
+describe('zanjirHisobla — slichitelniy va sonlar', () => {
+  it('to‘lov yozilgan, smetadan farqli qatorlar bor — slichitelniy tavsiya, sondan', () => {
+    const k = tayyor({ slichitelniy: { farqli: 4, barglar: 9 } });
+    expect(zanjirHisobla(k).keyingi).toMatchObject({ id: 'slichitelniy', amal: 'Slichitelniyni oching', sabab: '4 qatorda farq bor', aniq: true });
+    expect(zanjirHisobla(k).tugallandi).toBe(false);
+  });
+  it('slichitelniy hisoblanmagan (null) — unknown, 0 farq emas', () => {
+    const k = tayyor({ slichitelniy: null });
+    expect(holatlar(k).slichitelniy).toBe('unknown');
+    expect(zanjirHisobla(k).keyingi).toMatchObject({ id: 'slichitelniy', aniq: false });
+  });
+  it('F2 tasdiqlanmagan — slichitelniy blocked', () => {
+    const k = tayyor({ f2BuOyda: true, f2TasdiqBuOyda: 0, forma3: null, tolovYozilgan: null, slichitelniy: { farqli: 3, barglar: 9 } });
+    expect(holatlar(k)).toMatchObject({ f2: 'current', slichitelniy: 'blocked' });
+  });
+  it('smeta, fakt va АОСР izohlarida sonlar; sonlar yo‘q bo‘lsa umumiy matn', () => {
+    const q = zanjirHisobla(tayyor({ smetaQator: 120, faktQamrov: 63, aosr: { yashirin: 5, aktsiz: 1 } })).qadamlar;
+    expect(q.find((x) => x.id === 'smeta')?.izoh).toBe('120 ish qatori, hammasi narxlangan');
+    expect(q.find((x) => x.id === 'fakt')?.izoh).toBe('3 ta fakt akti, qamrov 63%');
+    expect(zanjirHisobla(tayyor()).qadamlar.find((x) => x.id === 'smeta')?.izoh).toBe('Smeta yuklangan va narxlangan');
+  });
+});
+
+describe('zanjirDaraxtdan / zanjirRolKoradi', () => {
+  const rows = [{ id: 1, tur: 'rz' }, { id: 2, tur: 'bl' }, { id: 3, tur: 'bl' }, { id: 4, tur: 'rs' }];
+  it('bo‘sh daraxt — hammasi null (0 emas)', () => {
+    expect(zanjirDaraxtdan([], [], 3)).toEqual({ smetaQator: null, faktQamrov: null, slichitelniy: null });
+  });
+  it('faktsiz — qamrov 0%; fakti borlar ulushi yaxlitlanadi', () => {
+    expect(zanjirDaraxtdan(rows, [], 0)).toMatchObject({ smetaQator: 2, faktQamrov: 0, slichitelniy: { farqli: 0, barglar: 2 } });
+    expect(zanjirDaraxtdan(rows, [{ qator_id: 2, fakt_hajm: 1 }, { qator_id: 3, fakt_hajm: 0 }], null)).toMatchObject({ faktQamrov: 50, slichitelniy: null });
+  });
+  it('faqat pudratchi rollari (rol noma‘lum — ko‘rinadi)', () => {
+    for (const r of ['pto', 'boss', 'prorab', null, undefined]) expect(zanjirRolKoradi(r)).toBe(true);
+    for (const r of ['buyurtmachi', 'inspektor', 'loyihachi']) expect(zanjirRolKoradi(r)).toBe(false);
+  });
+});
+
 describe('zanjirHisobla — noma‘lum (NULL ≠ 0)', () => {
   it('hamma ma‘lumot null — hech qadam done emas, hech narsa 0 deb olinmaydi', () => {
     const k: ZanjirKirish = { smeta: { bor: null, narxsiz: null }, faktSaqlangan: null, faktQoralama: null, aosr: null, f2BuOyda: null, f2TasdiqBuOyda: null, forma3: null, tolovYozilgan: null, oy: '2026-11' };
     const n = zanjirHisobla(k);
-    expect(n.qadamlar.map((q) => q.holat)).toEqual(['unknown', 'unknown', 'unknown', 'unknown', 'unknown', 'unknown']);
+    expect(n.qadamlar.map((q) => q.holat)).toEqual(['unknown', 'unknown', 'unknown', 'unknown', 'unknown', 'unknown', 'unknown']);
     expect(n.tugallandi).toBe(false);
     expect(n.keyingi).toMatchObject({ id: 'smeta', aniq: false });
   });

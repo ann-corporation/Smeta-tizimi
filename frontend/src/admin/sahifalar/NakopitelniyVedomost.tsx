@@ -2,14 +2,15 @@ import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { NakopitelniyGrafik } from '../../components/nakopitelniy/NakopitelniyGrafik';
 import { nakFaktJami } from '../../lib/nakopitelniy-korinish';
-import { Search, Download, RefreshCw, AlertTriangle, Eye, Plus, Trash2, ClipboardPaste, FileSpreadsheet, FileText, History, Settings2 } from 'lucide-react';
+import { TolovForma } from '../../components/moliya/TolovForma';
+import { Search, Download, RefreshCw, AlertTriangle, CreditCard, Eye, Plus, Trash2, ClipboardPaste, FileSpreadsheet, FileText, History, Settings2 } from 'lucide-react';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { ZanjirChizigi } from '../components/ZanjirChizigi';
 import { sbT2KompaniyalarOl, yangiOperationId, type T2Kompaniya, type T2Obyekt } from '../../api/supabase';
 import { obyektlarKeshdan, useIxtiyoriyQueryClient } from '../../api/t2-obyektlar-kesh';
-import { sbT2ShartnomaBogOl, sbT2ShartnomalarOl, zakazchikRekvizit } from '../../api/t2-shartnoma';
+import { sbT2ShartnomaBogOl, sbT2ShartnomalarOl, zakazchikRekvizit, type Shartnoma } from '../../api/t2-shartnoma';
 import type { Forma3Rekvizit } from '../../lib/forma3-export';
 import { shartnomaSvodOl, sverkaXato, sverkaYozuvYoz, t2NakopitelniyToliq, tolovYoz, type NakopitelniyProgress, type NakopitelniyQator, type NakopitelniyDavr, type NakopitelniyJami, type SverkaYozuvTur } from '../../api/t2-nakopitelniy';
 import { shartnomaSvodi, somga, sverkaHisobla, sverkaMatniniOqi, tiyin, type F3Holat, type SvodShartnoma, type SverkaImportNatija, type TolovTur } from '../../lib/nakopitelniy-svod';
@@ -421,6 +422,20 @@ function Sessiya({ companyId }: { companyId: number }) {
   const davrOzgartir = (oy: string) => { if (objectId) void yukla(Number(objectId), oy); };
   const eksportOchiq = qatorlar.length > 0;
 
+  /* F3 dan keyingi qadam (U4/C-05): to'lov kiritish — umumiy TolovForma; shartnomalar faqat bosilganda o'qiladi. */
+  const [tolovShartnomalar, setTolovShartnomalar] = useState<Shartnoma[] | null>(null);
+  const [tolovYuklanmoqda, setTolovYuklanmoqda] = useState(false);
+  const tolovOch = async () => {
+    if (tolovYuklanmoqda) return;
+    setTolovYuklanmoqda(true);
+    try {
+      const r = await sbT2ShartnomalarOl(companyId, false);
+      if (!r.ok || !r.qatorlar) { toast(t('Shartnomalar o‘qilmadi. Qayta urinib ko‘ring.'), 'danger'); return; }
+      setTolovShartnomalar(r.qatorlar.filter((x) => x.holat !== 'bekor'));
+    } catch { toast(t('Shartnomalar o‘qilmadi. Qayta urinib ko‘ring.'), 'danger'); }
+    finally { setTolovYuklanmoqda(false); }
+  };
+
   const amallar = (
     <>
       <button type="button" className="fz-btn fz-btn--ghost" disabled={!objectId || busy} onClick={() => void yukla(Number(objectId), davr)}>
@@ -439,6 +454,16 @@ function Sessiya({ companyId }: { companyId: number }) {
           ...(objectId ? [{ kalit: 'f2-tarix', belgi: <History size={16} />, matn: t('Ф-2 — F2 tarixida'), sarlavha: t('Ф-2 hujjati yagona shaklda — F2 tarixida (har tasdiqlangan akt uchun)'), href: `/admin/f2-tarix?obyekt=${objectId}`, ajrat: true }] : []),
         ]} />
       )}
+      {!!objectId && (
+        <button type="button" className="fz-btn" data-testid="f3-tolov-tugma" onClick={() => void tolovOch()} disabled={tolovYuklanmoqda}>
+          <CreditCard aria-hidden="true" /> {t('To‘lov kiritish')}
+        </button>
+      )}
+      {!!objectId && f3Rejim !== 'shartnoma' && (
+        <button type="button" className="fz-btn fz-btn--ghost" data-testid="f3-sverka-tugma" onClick={() => setF3Rejim('shartnoma')} title={t('Shartnoma bo‘yicha F3, to‘lov va akt-sverka')}>
+          {t('Akt-sverka')}
+        </button>
+      )}
       {eksportOchiq && (
         <button type="button" className="fz-btn fz-btn--primary" onClick={() => void eksportQil(false)} disabled={eksportBusy}>
           <Download /> {t('XLSX eksport')}
@@ -452,6 +477,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         {korinish.oyna}
         <ZanjirChizigi joriy="f3" />
+        {tolovShartnomalar && <TolovForma kompaniyaId={companyId} shartnomalar={tolovShartnomalar} yop={() => setTolovShartnomalar(null)} />}
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 'var(--space-4)' }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 220 }}>
             <span className="fz-kpi__label">{t('Obyekt')}</span>
