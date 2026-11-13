@@ -189,7 +189,7 @@ function XulosaTasma({ jami, qatorlar, f2Paket, f2Jami }: { jami: ReestrJami; qa
       <div className="fz-panel rounded-none border-0">
         <div className="fz-panel__h"><span>{t('Shartnomasiz obyekt (F2 bilan)')}</span></div>
         <div className={`text-2xl font-semibold tabular-nums ${jami.shartnomasiz ? 'text-warn' : ''}`}>{jami.shartnomasiz}</div>
-        <div className="mt-1 text-[12px] text-text-mute">{t('Smeta jami')}:</div>
+        <div className="mt-1 text-[12px] text-text-mute">{t('Asl smeta jami')}:</div>
         <PortfelSummaJuft obyektlar={portfel} ustamasiz={jami.smeta.soni ? jami.smeta.malum : null} kichik />
       </div>
     </section>

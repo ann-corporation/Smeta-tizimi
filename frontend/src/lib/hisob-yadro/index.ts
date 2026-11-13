@@ -13,3 +13,4 @@ export * from './kaskad';
 export * from './yaxlit-svod';
 export * from './korinish';
 export * from './f2-podval';
+export * from './pul-bilan-yopiladi';

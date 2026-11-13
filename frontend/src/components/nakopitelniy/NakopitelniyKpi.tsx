@@ -6,6 +6,9 @@ import type { NakopitelniyDavr, NakopitelniyJami, NakopitelniyQator } from '../.
 import { katKesimJamiBilan, type KatKesim } from '../../lib/ustamali-summa';
 import { foizOl, nakBarglar, nakFaktJami, nakFaktSumma, smetaTaqsimot } from '../../lib/nakopitelniy-korinish';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
+import { SmetaJamiJuft } from '../../umumiy/ui/SmetaJamiJuft';
+import { summaPaket } from '../../lib/summa-paket';
+import { smetaJuftlik, smetaNisbat } from '../../lib/smeta-jami';
 import { summaTuriMatni } from '../../umumiy/ui/qiymatYorliq';
 import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 import { ayirma2, yigindi2 } from '../../lib/hisob-yadro';
@@ -59,6 +62,16 @@ export function NakopitelniyKpi({ jami, qatorlar, truncated, obyektId, kompaniya
   }, [qatorlar, truncated, jami, korinishKesimi, obyektKesim, ef]);
 
   const taq = smetaTaqsimot({ smeta: jami.smeta_summa, oldingi: jami.oldingi_summa, joriy: jami.joriy_tasdiqlangan_summa, fakt: ef.fakt });
+  // Smeta jami juftligi (egasi 2026-11-13): asl — katta, joriy — kichik. Server paketi (yo'q bo'lsa eski RPC: asl noma'lum).
+  const aslPaket = summaPaket(jami.smeta_asl), joriyPaket = summaPaket(jami.smeta_joriy);
+  const juft = smetaJuftlik(aslPaket, jami.smeta_joriy === undefined ? undefined : joriyPaket);
+  // Nisbatlar: sukut asos ASL smeta; joriy ≠ asl bo'lsa ikkinchi nisbat ham. Asl yo'q (eski RPC) — joriy asosda, aniq yorliq bilan.
+  const aslSumma = aslPaket?.ustamasiz ?? null, joriySumma = joriyPaket?.ustamasiz ?? jami.smeta_summa;
+  const nisbatYoz = (surat: number | null | undefined) => {
+    const n = aslSumma != null ? smetaNisbat(surat, aslSumma, joriySumma) : null;
+    if (!n) { const p = foizOl(surat, jami.smeta_summa); return p == null ? '—' : t('joriy smetaning {p}%', { p }); }
+    return n.asl == null ? '—' : <>{t('asl smetaning {p}%', { p: n.asl })}{n.ikkinchiBor && n.joriy != null && <> · {t('joriy smetaning {p}%', { p: n.joriy })}</>}</>;
+  };
   const faktFoiz = foizOl(ef.fakt, jami.smeta_summa);
   const f2Foiz = foizOl(jami.jami_tasdiqlangan_summa, jami.smeta_summa);
   const qoralama = !!davr && !davr.certified;
@@ -78,7 +91,12 @@ export function NakopitelniyKpi({ jami, qatorlar, truncated, obyektId, kompaniya
         <div className="fz-kpis">
           <div className="fz-kpi">
             <span className="fz-kpi__label"><i style={{ background: 'var(--border-strong)' }} />{t('Smeta qiymati')}</span>
-            <SummaJuft obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={jami.smeta_summa} katKesim={kesim?.smeta} />
+            {aslPaket
+              ? <SmetaJamiJuft juft={juft} />
+              : <>
+                <SummaJuft obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={jami.smeta_summa} katKesim={kesim?.smeta} yorliq={t('Joriy smeta (qo‘shimcha ishlar bilan)')} />
+                <span className="fz-kpi__sub" data-testid="smeta-asl-yoq">{t('Asl smeta: noma’lum (server yangilanishi kutilmoqda)')}</span>
+              </>}
             <span className="fz-kpi__sub">
               {smetaNakrutka ? <>{t('к оплате (nakrutka + QQS)')} · {t('hujjat')}: {smetaNakrutka.taxminiy ? '≈ ' : ''}<FmtN val={smetaNakrutka.vsego} /></> : koplateYoq}
             </span>
@@ -87,12 +105,12 @@ export function NakopitelniyKpi({ jami, qatorlar, truncated, obyektId, kompaniya
             <span className="fz-kpi__label"><i style={{ background: 'var(--info)' }} />{t('Fakt jami')}</span>
             <SummaJuft obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={ef.fakt} katKesim={kesim?.fakt} yorliq={t('Fakt, QQS bilan')} />
             {ef.taxminiy && <span className="fz-kpi__sub" data-testid="fakt-server-taxminiy" title={t('сервер: без пересчёта по цене Ф-2')}>≈ {t('сервер: без пересчёта по цене Ф-2')}</span>}
-            <span className="fz-kpi__sub">{faktFoiz == null ? '—' : t('smetaning {p}%', { p: faktFoiz })}</span>
+            <span className="fz-kpi__sub">{faktFoiz == null ? '—' : nisbatYoz(ef.fakt)}</span>
           </div>
           <div className="fz-kpi">
             <span className="fz-kpi__label"><i style={{ background: 'var(--accent)' }} />{t('Jami tasdiqlangan F2')}</span>
             <SummaJuft obyektId={obyektId} kompaniyaId={kompaniyaId} ustamasiz={jami.jami_tasdiqlangan_summa} katKesim={kesim?.f2} yorliq={t('F2, QQS bilan')} />
-            <span className="fz-kpi__sub">{f2Foiz == null ? '—' : t('smetaning {p}%', { p: f2Foiz })}</span>
+            <span className="fz-kpi__sub">{f2Foiz == null ? '—' : nisbatYoz(jami.jami_tasdiqlangan_summa)}</span>
           </div>
           <div className="fz-kpi">
             <span className="fz-kpi__label"><i style={{ background: 'var(--accent-text)' }} />{t('Shu davr F2')}</span>
