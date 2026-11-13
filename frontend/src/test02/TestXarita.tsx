@@ -484,7 +484,7 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
     if (b.tur === 'tomon_grant' || b.tur === 'tomon_aloqa' || b.tur === 'masul_obyekt' || b.tur === 'masul_loyiha') {
       const q = uzishQoidasi(b, { tahrir: tahrirMumkin, yopiqSabab: yopiqMatn || null, masulMumkin: mindmapMasulRuxsati({ superadmin, joriy, kompaniyaId }) });
       if (q.holat !== 'ishlaydi') { toast(q.sabab, 'danger'); return; }
-      if (!confirm(q.tavsif + '\n\n' + t('Davom etasizmi?'))) return;
+      if (!(await tasdiqSora({ matn: q.tavsif + '\n\n' + t('Davom etasizmi?'), xavfli: true }))) return;
       const idSon = (id: string) => Number(id.split(':')[1]);
       const g = tomonKarta.grantlar.get(chiziqKalit(b.manba, b.maqsad));
       const r = q.amal === 'mindmap_bog_ochir' ? { ok: false as const, error: 'Bu amal bu yerda ishlatilmaydi' } : await uzishniBajar(q.amal, {
@@ -648,9 +648,9 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
       { ...asos, kalit: 'tomon:kabinet', nom: t('Tomon kabineti (aloqa sahifasi)'), bajar: 'yol', yol, mumkin: true, sabab: null },
       { ...asos, kalit: 'tomon:huquq', nom: t('Kim nimani ko‘radi — huquqlarni o‘zgartirish'), bajar: 'yol', yol, mumkin: true, sabab: null },
       { ...asos, ...yozuv, ikon: 'uzish', kalit: 'tomon:huquq-bekor', nom: t('Barcha ko‘rish huquqlarini bekor qilish'), bajar: 'yol', yol: null, mumkin: yozuv.mumkin && huquqlar.length > 0, sabab: yozuv.mumkin ? (huquqlar.length ? null : t('Berilgan huquq yo‘q')) : yozuv.sabab,
-        fn: () => { if (!confirm(t('Tomonning barcha ko‘rish huquqlari bekor qilinadi. Hujjatlarning o‘zi o‘chmaydi. Davom etasizmi?'))) return; void uzishniBajar('tomon_grant_bekor', { grantIdlar: huquqlar }, bajarDeps).then((r) => { toast(r.ok ? r.xabar : r.error, r.ok ? 'ok' : 'danger'); void tomonlarniYukla(); }); } },
+        fn: async () => { if (!(await tasdiqSora({ matn: t('Tomonning barcha ko‘rish huquqlari bekor qilinadi. Hujjatlarning o‘zi o‘chmaydi. Davom etasizmi?'), xavfli: true }))) return; void uzishniBajar('tomon_grant_bekor', { grantIdlar: huquqlar }, bajarDeps).then((r) => { toast(r.ok ? r.xabar : r.error, r.ok ? 'ok' : 'danger'); void tomonlarniYukla(); }); } },
       { ...asos, ...yozuv, ikon: 'uzish', kalit: 'tomon:toxtat', nom: toxtagan ? t('Aloqani davom ettirish') : t('Aloqani to‘xtatish (tugatish)'), bajar: 'yol', yol: null,
-        fn: () => { if (!confirm(toxtagan ? t('Aloqa qayta faollashtiriladi. Davom etasizmi?') : t('Aloqa to‘xtatiladi: tomon endi hech narsani ko‘ra olmaydi. Keyin davom ettirish mumkin. Davom etasizmi?'))) return; void (toxtagan ? aloqaHolati(aktKomp, aloqaId, 'davom') : aloqaHolati(aktKomp, aloqaId, 'toxtatish')).then((r) => { toast(r.ok ? t('Bajarildi') : (r.error || t('Bajarilmadi')), r.ok ? 'ok' : 'danger'); void tomonlarniYukla(); }); } },
+        fn: async () => { if (!(await tasdiqSora({ matn: toxtagan ? t('Aloqa qayta faollashtiriladi. Davom etasizmi?') : t('Aloqa to‘xtatiladi: tomon endi hech narsani ko‘ra olmaydi. Keyin davom ettirish mumkin. Davom etasizmi?'), xavfli: !toxtagan }))) return; void (toxtagan ? aloqaHolati(aktKomp, aloqaId, 'davom') : aloqaHolati(aktKomp, aloqaId, 'toxtatish')).then((r) => { toast(r.ok ? t('Bajarildi') : (r.error || t('Bajarilmadi')), r.ok ? 'ok' : 'danger'); void tomonlarniYukla(); }); } },
     ];
     return { nom: tg.nom, amallar };
   }, [graf.tugunlar, tahrirMumkin, yopiqMatn, tomonKarta, bajarDeps, tomonlarniYukla, aktKomp]);
