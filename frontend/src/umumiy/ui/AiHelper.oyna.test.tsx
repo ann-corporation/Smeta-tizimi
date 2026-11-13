@@ -103,3 +103,15 @@ it('yozish maydoni katta (ko‘p qatorli); «Yangi suhbat» tarixni tozalaydi', 
   fireEvent.click(screen.getByTestId('jarvis-yangi-suhbat'));
   expect(screen.queryAllByTestId('ai-javob-karta').length).toBe(0);
 });
+
+it('suhbatlar ro‘yxati: yangi suhbatdan keyin oldingisi ko‘rinadi va davom ettiriladi (foydalanuvchi + kompaniya bo‘yicha)', async () => {
+  render(view()); och(); await screen.findByText('Bugun nima qilaman?');
+  send('men kimman');
+  await screen.findByText(/Sinov Boss/, { selector: 'strong' });
+  fireEvent.click(screen.getByTestId('jarvis-yangi-suhbat'));
+  expect(screen.queryAllByTestId('ai-javob-karta').length).toBe(0);
+  const royxat = await screen.findByTestId('jarvis-suhbatlar');
+  fireEvent.click(royxat.querySelector('button')!);
+  expect(await screen.findByText('men kimman')).toBeTruthy();
+  expect(JSON.parse(localStorage.getItem('jarvis-suhbatlar:7:5') ?? '[]')).toHaveLength(1);
+});

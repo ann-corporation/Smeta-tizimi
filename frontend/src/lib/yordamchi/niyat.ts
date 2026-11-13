@@ -6,9 +6,12 @@
  * Sof funksiya: testlanadi. Pul yoki hujjatni bu qatlam o'zi yozmaydi — yozuv faqat taklif kartasi va tasdiq orqali (UI).
  */
 import { yukSlotAjrat, yukSlotUrl } from './yuk-slot';
+import { IMZO_QOY_RE, imzolashUrl, joriyHujjatOl } from '../imzo/joriy-hujjat';
 import { OCHISH_FELLARI, sozlar, sozMosligi, TOLDIRUVCHI, sozNorm } from './matn';
 import { oyAjrat, obyektAjrat, type ObyektQisqa } from './kontekst-ajrat';
 import { kimSavoli, type KimQism } from './kim';
+import { vositaTop } from './vosita/reestr';
+import type { Davom } from './vosita/tur';
 import { darsSavoli, type DarsJavobi } from '../kurs/tutor';
 import { sahifaTopish, sahifaUrl, yaqinSahifalar, type SahifaHavola, type YordamchiSahifa } from './sahifa-qidiruv';
 
@@ -33,6 +36,8 @@ export type Niyat =
   | { tur: 'yordam' }
   /** «Men kimman / rolim / bu qaysi obyekt»: sessiya ma'lumotidan bepul mahalliy javob (hech qachon modelga «kim» deb so'ralmaydi). */
   | { tur: 'kim'; qism: KimQism }
+  /** Tuzilgan vosita (vosita/reestr.ts): o'qish yoki taklif+tasdiq; davom — aniqlashtiruvchi savolga javob. */
+  | { tur: 'vosita'; id: string; davom?: Davom }
   /** Kurs repetitori: «F2 ni qanday tayyorlayman?» -> dars qadamlari + «Ko‘rsat». */
   | DarsJavobi
   | { tur: 'nomalum'; yaqin: SahifaHavola[] };
@@ -58,7 +63,7 @@ const O_QIDIR = stem(['qidir', 'izla', 'top', 'topib', 'найди', 'поиск
 const Y_FELLAR = stem(['kirit', 'yoz', 'qosh', 'qoshib', 'oshir', 'add', 'enter', 'внеси', 'запиши', 'добавь', 'ввести', 'tuzat', 'ozgartir', 'almashtir', 'qoy']);
 const QORALAMA_FELLARI = stem(['yarat', 'tuz', 'tayyorla', 'tayyorlab', 'qoralama', 'создай', 'подготов', 'черновик', 'draft', 'create', 'prepare', 'make']);
 /** Savol so'zlari («F2 nima?», «qayerda?»): sahifa o'zi ochilmaydi — tushuntirish oqimi davom etadi, sahifa tugma bo'lib qo'shiladi. */
-const QARZ = stem(['qarz', 'qarzi', 'qarzlar', 'qarzdorlik', 'долг', 'долги', 'задолженность', 'debt', 'debts']);
+const QARZ = stem(['qarz', 'qarzi', 'qarzlar', 'qarzdorlik', 'долг', 'долги', 'долгов', 'долгам', 'задолженность', 'debt', 'debts']);
 /* O'rganish halqasi (ru/en sinonimlar): «tizim nimani o'rgandi», «qayerda qiynalishyapti». */
 const OSUV_OGRAN = stem(['organdi', 'organgan', 'organyap', 'tajriba', 'научил', 'обучил', 'learn']);
 const OSUV_TIZIM = stem(['tizim', 'tizimi', 'система', 'системе', 'system']);
@@ -72,7 +77,15 @@ const SAVOL_SOZLARI = stem(['qayerda', 'qani', 'nima', 'nega', 'qanday', 'где
 const YORDAM_RE = /^(nimalar? qila olasan|nimalar? qila olasiz|nima qila olasan|nima qila olasiz|yordam|help|imkoniyatlaring|imkoniyatlar|what can you do|что ты умеешь|что ты можешь|помощь)\s*[?!.]*$/;
 const QORALAMA_SAHIFALARI = new Set(['/admin/f2-tayyorlash', '/admin/aosr', '/admin/nakopitelniy', '/admin/fakt', '/admin/zayavka', '/admin/m29']);
 
-const bor = (tokenlar: readonly string[], royxat: readonly string[]) => tokenlar.some((t) => royxat.some((r) => t === r || (r.length >= 5 && t.startsWith(r))));
+/** Imlo xatosiga bardoshlilik: uzun (≥7) so'zlarda bitta harf farqi (almashtirish/tushib qolish/ortiqcha/o'rin almashishi) yetarli. */
+function yaqinSoz(a: string, b: string): boolean {
+  if (a.length < 7 || b.length < 7 || Math.abs(a.length - b.length) > 1) return false;
+  if (a === b) return true;
+  let i = 0; while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  const x = a.slice(i + 1); const y = b.slice(i + 1);
+  return x === y || a.slice(i) === y || x === b.slice(i) || (a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2));
+}
+const bor = (tokenlar: readonly string[], royxat: readonly string[]) => tokenlar.some((t) => royxat.some((r) => t === r || (r.length >= 5 && t.startsWith(r)) || yaqinSoz(t, r)));
 const bosh = (royxat: readonly string[]) => (t: string) => royxat.some((r) => t === r || (r.length >= 5 && t.startsWith(r)));
 
 const havola = (s: YordamchiSahifa, o: ObyektQisqa | null, oy: string | null): SahifaHavola => ({ yol: s.yol, nom: s.nom, url: sahifaUrl(s.yol, { obyektId: o?.id, oy }) });
@@ -80,7 +93,10 @@ const havola = (s: YordamchiSahifa, o: ObyektQisqa | null, oy: string | null): S
 export function niyatAniqla(matn: string, ctx: NiyatKontekst): Niyat {
   const xom = matn.trim();
   if (YORDAM_RE.test(xom.toLowerCase().replace(/[ʻʼ‘’`´']/g, ''))) return { tur: 'yordam' };
+  { const hid = joriyHujjatOl(); const s = hid ? ctx.sahifalar.find((x) => x.yol === '/admin/imzo') : null;   // joriy hujjat bor: imzolash shu hujjat bilan ochiladi
+    if (hid && s && IMZO_QOY_RE.test(xom)) return { tur: 'navigatsiya', sahifa: { yol: s.yol, nom: s.nom, url: imzolashUrl(hid) }, obyekt: null, oy: null, qoralama: false, aniqOchish: true }; }
   { const kq = kimSavoli(xom); if (kq) return { tur: 'kim', qism: kq }; }
+  { const v = vositaTop(xom); if (v) return { tur: 'vosita', id: v.id }; }
   const yukSlot = yukSlotAjrat(xom);
   if (yukSlot) return { tur: 'navigatsiya', sahifa: { yol: '/admin/yuk-chaqirish', nom: 'Yuk chaqirish', url: yukSlotUrl(yukSlot) }, obyekt: null, oy: null, qoralama: true, aniqOchish: true };
   { const dars = darsSavoli(xom, { ochiqYollar: new Set(ctx.sahifalar.map((s) => s.yol)) }); if (dars) return dars; }
@@ -93,7 +109,9 @@ export function niyatAniqla(matn: string, ctx: NiyatKontekst): Niyat {
   const obyekt: ObyektQisqa | null = ob?.tur === 'aniq' ? ob.obyekt : null;
   const amaldagi = obyekt ?? ctx.joriyObyekt ?? null;
   const oyKalit = oy?.oy ?? null;
-  const ochish = qolgan.some((t) => OCHISH_FELLARI.has(t));
+  /* «nechta f2 bor» — «bor» bu yerda «mavjud», «bor» (go) fe'li emas. */
+  const miqdorSozi = bor(qolgan, stem(['qancha', 'necha', 'nechta', 'jami', 'сколько']));
+  const ochish = qolgan.some((t) => OCHISH_FELLARI.has(t) && !(t === sozNorm('bor') && miqdorSozi));
 
   /* 1) Yozuv: «+5», «=40», «kirit/yoz/qo'sh» + son — model taklif kartasi tuzadi, foydalanuvchi tasdiqlaydi. */
   const sonBor = qolgan.some((t) => /^\d+$/.test(t)) || /[+=]\s*\d/.test(xom);
@@ -118,7 +136,8 @@ export function niyatAniqla(matn: string, ctx: NiyatKontekst): Niyat {
   const f2Bor = bor(qolgan, F2_SOZ); const aosrBor = bor(qolgan, AOSR_SOZ);
   const qoralamaFel = qolgan.some((t) => QORALAMA_ANIQ.has(t));
   const savol = bor(qolgan, MIQDOR_SAVOL);
-  if (!ochish) {
+  /* «aosr yetishmayotganlarini ko'rsat» — «ko'rsat» fe'li o'qish niyatini bekor qilmaydi. */
+  if (!ochish || (aosrBor && bor(qolgan, stem(['yetishmay', 'yetishmayotgan'])))) {
     if (bor(qolgan, OSUV_QIYIN)) return { tur: 'osuvchi', qism: 'qiyin' };
     if (bor(qolgan, OSUV_OGRAN) && bor(qolgan, OSUV_TIZIM)) return { tur: 'osuvchi', qism: 'oqigan' };
     if (bor(qolgan, QARZ) && savol) return { tur: 'qarz' };

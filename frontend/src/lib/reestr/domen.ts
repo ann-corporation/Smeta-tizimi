@@ -69,6 +69,8 @@ export const PREFIKS: Readonly<Record<Domen, readonly string[]>> = {
     't2_document', 't2_fayl', 't2_papka', 't2_arxiv', 't2_arxivla', 't2_arxivdan', 't2_r2', 't2_hujjat', 't2_replica', 't2_sheets_writeback',
     't2_project_storage', 't2_object_storage', 't2_company_storage', 't2_storage', 't2_obyekt_hujjat',
     't2_boss_documents',
+    // Shaxsiy imzo (ADR_SHAXSIY_IMZO.md): imzo kalitlari/imzolar va eksport nashrlari (manba QR) hujjat domeniga tegishli.
+    't2_imzo', 't2_nashr',
   ],
   bozor: ['t2_bz', 't2_birja', 't2_mutaxassis', 't2_mutaxassislar', 't2_baho', 't2_reyting'],
   tender: ['t2_tender', 't2_tenderlar', 't2_tn'],
@@ -80,7 +82,7 @@ export const PREFIKS: Readonly<Record<Domen, readonly string[]>> = {
     't2_telegram', 't2_tg_kirish', 't2_telefon_norm', 't2_bildirishnoma', 't2_bildirishnomalar', 't2_royxat', 't2_ozi_royxat', 't2_sozlama', 't2_deploy',
     't2_integration', 't2_google', 't2_email_kod', 't2_parol', 't2_sessiya', 't2_system_control', 't2_control', 't2_onboarding',
     't2_hodisa', 't2_ozgarish', 't2_db', 't2_dieta', 't2_benchmark', 't2_tizim', 't2_boss', 't2_rahbar', 't2_demo', 't2_tmp', 't2_modul',
-    't2_ztr', 't2_kirish', 't2_membership', 't2_actor', 't2_asosiy_rol', 't2_platforma', 't2_baza_hajm', 't2_men', 't2_profil', 't2_korzinka',
+    't2_ztr', 't2_kirish', 't2_hisob_birlashtir', 't2_usul', 't2_rol_daraja', 't2_membership', 't2_actor', 't2_asosiy_rol', 't2_platforma', 't2_baza_hajm', 't2_men', 't2_profil', 't2_korzinka',
     't2_korzinkadan', 't2_korzinkaga', 't2_invariant', 't2_json', 't2_son', 't2_yashirin', 't2_butunmi', 't2_kasrmi', 't2_kopruk',
     't2_butunlay', 't2_qidiruv', 't2_lugat', 'rls_auto_enable', 't2_erp_amal',
     // 2026-11-13: tizim hajmi, telefon normallashtirish, telegram kirish, solishtiruv (modullararo yaxlitlik tekshiruvi)

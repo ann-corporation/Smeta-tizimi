@@ -73,7 +73,7 @@ describe('Public kirish sayti', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Qo‘llanma' }));
     expect(screen.getByText(/xabar yuborilmaydi/i)).toBeTruthy();
     expect(screen.queryByRole('textbox')).toBeNull();
-    expect(fetchMock.mock.calls.filter((c) => c[0] !== '/api/sessiya')).toHaveLength(0);
+    expect(fetchMock.mock.calls.filter((c) => !['/api/sessiya', '/api/kirish-telegram'].includes(String(c[0])))).toHaveLength(0);
     fireEvent.click(screen.getByRole('button', { name: 'Qo‘llanmani yopish' }));
     expect(screen.queryByText(/xabar yuborilmaydi/i)).toBeNull();
   });

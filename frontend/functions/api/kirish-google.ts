@@ -44,7 +44,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   });
 
   const g = await rpc('t2_google_kirish_v1', { p_email: t.p.email, p_ism: t.p.ism, p_sub: t.p.sub, p_ip_belgi: ipBelgi, p_operation_id: crypto.randomUUID() })
-    .then((r) => r.json()).catch(() => null) as { ok?: boolean; code?: string; xabar?: string; login?: string; rol?: string; yangi?: boolean; demo_obyekt_id?: number | null } | null;
+    .then((r) => r.json()).catch(() => null) as { ok?: boolean; code?: string; xabar?: string; login?: string; rol?: string; yangi?: boolean; ulandi?: boolean; demo_obyekt_id?: number | null } | null;
   if (!g?.ok || !g.login || !g.rol) {
     const xabar = g?.xabar || (g?.code === 'GOOGLE_BOSHQA_HISOB' ? 'Bu email boshqa Google hisobiga bog‘langan.' : g?.code === 'FOYDALANUVCHI_FAOL_EMAS' ? 'Hisob faol emas.' : 'Google bilan kirib bo‘lmadi.');
     return Response.json({ ok: false, code: g?.code, xato: xabar }, { status: 400 });
@@ -57,7 +57,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   let sess: string;
   try { sess = await imzola({ rol: g.rol as Rol, email: g.login, foydalanuvchi_id: a.foydalanuvchi_id, kompaniyalar: a.azoliklar || [] }, ctx.env.SESSIYA_KALIT); }
   catch { return Response.json({ ok: false, code: 'CONFIG', xato: 'Server sozlanmagan (SESSIYA_KALIT).' }, { status: 503 }); }
-  return new Response(JSON.stringify({ ok: true, rol: g.rol, yangi: !!g.yangi, demo: g.demo_obyekt_id != null }), {
+  return new Response(JSON.stringify({ ok: true, rol: g.rol, yangi: !!g.yangi, ulandi: !!g.ulandi, demo: g.demo_obyekt_id != null }), {
     headers: { 'Content-Type': 'application/json', 'Set-Cookie': `sess=${sess}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${Math.floor(SESSIYA_MUDDAT_MS / 1000)}` },
   });
 };

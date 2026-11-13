@@ -51,9 +51,16 @@ describe('role integration architecture',()=>{
       'tender-ochiq', 'tender-p1',
       /* Yuk tashish P1 (2026-11-12): actor sessiyadan; faqat t2_yb_* RPC oq ro'yxati (functions/_shared/yuk-tashish.ts); a'zolik/ruxsat/tenant RPC ichida (acceptance 20261216400000); yuk-dalil — kichik rasm, faqat o'z R2 prefiksi. */
       'yuk-tashish', 'yuk-dalil',
+      /* Shaxsiy imzo (2026-12-18, ADR_SHAXSIY_IMZO): /api/imzo - actor FAQAT sessiyadan, origin tekshiruvi; kalit egasi, a'zolik (hujjat kompaniyasi yoki taqdim/aloqa yo'li),
+         vakolat va zanjir har RPC ichida bazada; imzo bazaga yozilishidan OLDIN ochiq kalit bilan tekshiriladi (imzo.test.ts). /api/imzo-ochiq - KIRMASDAN GET: token (128 bit) bo'yicha,
+         summa/fayl nomi/mazmun qaytmaydi, topilmasa bir xil 404, IP bo'yicha tezlik cheklovi (imzo.test.ts, imzo-nashr.test.ts; acceptance 20261218000000). */
+      'imzo', 'imzo-ochiq',
       /* Bildirishnoma yetkazish (2026-11-05): sessiyasiz FON ISHI (GitHub Actions). Kirish faqat X-Cron-Kalit == BILDIRISHNOMA_CRON_KALIT
          (sozlanmagan → 503, noto'g'ri → 403); kompaniya ma'lumoti qaytmaydi, faqat service_role navbat RPC lari (bildirishnoma-yetkaz.test.ts). */
-      'bildirishnoma-yetkaz']);
+      'bildirishnoma-yetkaz',
+      /* AI ishchilar fon bajaruvchisi (2026-11-13): sessiyasiz FON ISHI (GitHub Actions). Kirish faqat X-Kuzatuv-Kalit == KUZATUV_KALIT (>=24 belgi; sozlanmagan -> 503, noto'g'ri -> 401);
+         javobda faqat sonlar; model chaqiruvi aiHisobli orqali (limit/hamyon), ish aktori — ishchini yoqqan odam, ruxsat har qadamda bazada qayta tekshiriladi (ai-ishchi.test.ts). */
+      'ai-ishchi-bajar']);
     const routes=readdirSync(resolve(root,'frontend/functions/api')).filter(n=>n.endsWith('.ts')&&!n.endsWith('.test.ts')&&!n.startsWith('_')).map(n=>n.slice(0,-3));
     expect(routes.filter(n=>!SCOPED_APIS.has(n)&&!exceptions.has(n))).toEqual([]);
   });

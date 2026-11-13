@@ -60,6 +60,10 @@ const XATO_XABARLARI: Readonly<Record<string, string>> = {
   KOP_URINISH: 'Juda ko‘p urinish. Birozdan so‘ng qayta urinib ko‘ring.',
   GOOGLE_PAROLSIZ: 'Google’ni uzishdan oldin parol o‘rnating — aks holda akkauntga kira olmay qolasiz.',
   GOOGLE_BOSHQA_HISOB: 'Bu Google pochta boshqa hisobga ulangan. Ikkala hisobni birlashtirishingiz mumkin.',
+  SUPERADMIN_FARQI: 'Platforma superadmini belgisi bitta hisobda — bunday hisoblarni platforma administratori qo‘lda birlashtiradi.',
+  HISOB_YOQ: 'Bunday faol hisob topilmadi.', TELEGRAM_HISOB_YOQ: 'Bu Telegram hech qaysi hisobga ulanmagan yoki tasdiqlangan telefoni yo‘q.', YOQILMAGAN: 'Telegram orqali tasdiqlash hali yoqilmagan.', TOPILMADI: 'So‘rov topilmadi yoki eskirgan. Qaytadan boshlang.', MUDDATI_OTGAN: 'Muddat tugadi. Qaytadan boshlang.', KOD_YAROQSIZ: 'Kod noto‘g‘ri yoki muddati tugagan.', DOKAZ_NOTOGRI: 'Tasdiqlash usuli noto‘g‘ri.',
+  OXIRGI_USUL: 'Oxirgi kirish usulini uzib bo‘lmaydi.', EMAIL_LOGIN: 'Bu email sizning loginingiz — uni uzib bo‘lmaydi.', USUL_TOPILMADI: 'Kirish usuli topilmadi.',
+  USUL_BIRLASHTIRILGAN: 'Birlashtirilgan hisobdan kelgan usulni uzib bo‘lmaydi.', QAYTA_KIRISH_KERAK: 'Xavfsizlik uchun joriy parolni kiriting yoki qayta kiring.',
   LOGIN_PAROL_XATO: 'Login yoki parol noto‘g‘ri.',
   OZI: 'Bu sizning joriy hisobingiz — o‘zini o‘ziga birlashtirib bo‘lmaydi.',
   PAROLSIZ_HISOB: 'Bu hisobda parol yo‘q, shuning uchun login bilan birlashtirib bo‘lmaydi.',
@@ -113,6 +117,25 @@ export const boshqaSessiyalarChiqish = () => amalYubor({ amal: 'boshqa_sessiyala
 export const googleUzish = () => amalYubor({ amal: 'google_uzish' });
 export const hisobBirlashtir = (p: { login: string; parol: string }) => amalYubor<BirlashtirNatija>({ amal: 'hisob_birlashtir', login: p.login, parol: p.parol });
 export const googleUlash = (credential: string) => amalYubor({ amal: 'google_ulash', credential });
+
+/* ───────── yagona akkaunt: kirish usullari va birlashtirish (20261218600000) ───────── */
+export type UsulTuri = 'parol' | 'email' | 'google' | 'telegram' | 'telefon';
+export type Usul = { id: number; tur: UsulTuri; niqob: string; tasdiqlangan: boolean; ulangan_at: string; oxirgi_kirish_at: string | null; manba: 'ustun' | 'birlashtirish' };
+export const usullarOl = () => amalYubor<{ usullar: Usul[] }>({ amal: 'usullar' });
+export const usulUz = (p: { usulId: number; parol?: string; operationId?: string }) =>
+  amalYubor<{ tur: UsulTuri }>({ amal: 'usul_uz', usul_id: p.usulId, ...(p.parol ? { parol: p.parol } : {}), ...(p.operationId ? { operation_id: p.operationId } : {}) });
+export const birlashtirGoogle = (credential: string) => amalYubor<BirlashtirNatija>({ amal: 'birlashtir_google', credential });
+export const birlashtirEmailKod = (p: { email: string; tasdiqlashId: string; kod: string }) =>
+  amalYubor<BirlashtirNatija>({ amal: 'birlashtir_email_kod', email: p.email, tasdiqlash_id: p.tasdiqlashId, kod: p.kod });
+export const birlashtirTelegramBoshla = () => amalYubor<{ nonce: string; sir: string; belgi: string; havola: string; tugaydi: string }>({ amal: 'birlashtir_telegram_boshla' });
+export const birlashtirTelegramHolat = (nonce: string, sir: string) => amalYubor<Partial<BirlashtirNatija> & { holat: 'kutmoqda' | 'tayyor' }>({ amal: 'birlashtir_telegram_holat', nonce, sir });
+/** Ikkinchi hisob emailiga kod yuboradi (mavjud ochiq endpoint; kod bazada faqat xesh). */
+export async function emailKodYubor(email: string): Promise<{ ok: boolean; tasdiqlash_id?: string; code?: string; xabar?: string }> {
+  try {
+    const r = await fetch('/api/kirish-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amal: 'kod', email }) });
+    return await r.json().catch(() => ({ ok: false, code: 'SERVER_XATO' }));
+  } catch { return { ok: false, code: 'TARMOQ' }; }
+}
 
 /* ───────── sof tekshiruvlar (UI va testlar uchun) ───────── */
 export const ISM_MIN = 2;

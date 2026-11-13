@@ -78,6 +78,7 @@ export const GENERATED_SITE_MAP = {
     "/admin/mutaxassis",
     "/admin/osuvchi",
     "/admin/akkaunt",
+    "/admin/imzo",
     "/admin/sozlamalar",
     "/admin/boshqaruv",
     "/admin/tizim-xaritasi",
@@ -92,6 +93,7 @@ export const GENERATED_SITE_MAP = {
     "/tg",
     "/tender",
     "/tender/:lotId",
+    "/t/:token",
     "/bozor",
     "/bozor/e/:elonId",
     "/bozor/s/:sotuvchiId",
@@ -184,6 +186,7 @@ export const GENERATED_SITE_MAP = {
     "tezlik",
     "zakazchik/obyekt/:aloqaId/:obyektId",
     "akkaunt",
+    "imzo",
     "osuvchi",
     "sayt-xaritasi",
     "tizim-xaritasi",
@@ -973,6 +976,14 @@ export const GENERATED_SITE_MAP = {
     {
       "amal": "aosr_bog_ochir",
       "rpc": "t2_aosr_bog_ochir"
+    },
+    {
+      "amal": "aosr_bog_hajm_v1",
+      "rpc": "t2_aosr_bog_hajm_v1"
+    },
+    {
+      "amal": "aosr_asos_qoralama_v1",
+      "rpc": "t2_aosr_asos_qoralama_v1"
     },
     {
       "amal": "aosr_yoz_v2",

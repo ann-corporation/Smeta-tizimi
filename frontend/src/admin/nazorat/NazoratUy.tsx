@@ -12,6 +12,7 @@ import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { zakazchikObyektlarOl, type ZakazchikObyekt } from '../../api/t2-tomon';
 import { nazoratUyOl, type NazoratUy as UyMalumot } from '../../api/t2-nazorat';
 import { labNatijalarOl, type LabNatija } from '../../api/t2-lab-sorov';
+import { nazoratTayinlarOl, type NazoratTayinlar } from '../../api/t2-tomon';
 import { t } from '../../i18n/til';
 import { Bolim } from '../zakazchik/tomon-ui';
 
@@ -34,6 +35,7 @@ export default function NazoratUy() {
   const [obyektlar, setObyektlar] = useState<ZakazchikObyekt[]>([]);
   const [uy, setUy] = useState<UyMalumot | null>(null);
   const [lab, setLab] = useState<LabNatija[]>([]);
+  const [tayin, setTayin] = useState<NazoratTayinlar | null>(null);
   const [xato, setXato] = useState('');
   const [yuklandi, setYuklandi] = useState(false);
 
@@ -49,6 +51,7 @@ export default function NazoratUy() {
       setYuklandi(true);
     });
     void labNatijalarOl(kompaniyaId).then((l) => { if (!bekor && l.ok) setLab(l.natija); });
+    void nazoratTayinlarOl(kompaniyaId).then((x) => { if (!bekor && x.ok) setTayin(x.natija); });
     return () => { bekor = true; };
   }, [kompaniyaId]);
 
@@ -76,6 +79,19 @@ export default function NazoratUy() {
           </p>
         )}
 
+        {tayin && tayin.olgan.length > 0 && (
+          <Bolim sarlavha="Men kimning nomidan nazorat qilaman">
+            <ul className="divide-y divide-border" data-testid="nazorat-nomidan">
+              {tayin.olgan.map((x) => (
+                <li key={x.id} className="flex flex-wrap items-center gap-2 py-2 text-[13px]">
+                  <span className="font-semibold">{x.nomidan_nom}</span>
+                  <span className="text-text-dim">{x.obyekt_nom}</span>
+                  <span className="fz-chip">{x.amallar.includes('qaror') ? t('yakuniy qaror vakolati bor') : t('texnik qaror vakolati')}</span>
+                  <span className="text-text-mute">{t('Qarorlaringiz shu kompaniya nomidan yoziladi')}</span>
+                </li>))}
+            </ul>
+          </Bolim>
+        )}
         <Bolim sarlavha="Laboratoriya natijalari">
           {yuklandi && lab.length === 0 && <p className="text-sm text-text-dim" data-testid="lab-natija-bosh">{t('Sizga ochilgan laboratoriya natijalari yo‘q. Pudratchi «Tomonlar aloqasi» sahifasidan laboratoriya natijalarini ochadi.')}</p>}
           <ul className="divide-y divide-border">

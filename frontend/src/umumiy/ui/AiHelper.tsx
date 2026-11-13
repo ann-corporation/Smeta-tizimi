@@ -20,6 +20,8 @@ import { AiJurnal } from './AiJurnal';
 import { AiShaxsiy } from './AiShaxsiy';
 import { useAiKuzatuv } from './useAiKuzatuv';
 import { kimMalumoti } from './yordamchi/kim-ulanish';
+import { haqiqiyVositaApi } from '../../lib/yordamchi/vosita/haqiqiy';
+import { yangiOperationId } from '../../api/supabase';
 import { amalRejim, oynaKaliti, oynaOqi, oynaYoz, olchamlash, surish, suzuvchiRect, yonOlcham, yonSukut, type OynaHolat, type Rejim } from '../../lib/yordamchi/oyna';
 
 type Tab = 'chat' | 'jurnal' | 'fikr' | 'sozlama';
@@ -94,8 +96,9 @@ export function AiHelper() {
     const tugat = () => { window.removeEventListener('pointermove', harakat); window.removeEventListener('pointerup', tugat); };
     window.addEventListener('pointermove', harakat); window.addEventListener('pointerup', tugat);
   };
+  const vosita = useMemo(() => (joriyId ? { kompaniyaId: joriyId, kim, obyekt: joriyObyekt, obyektlar, sahifalar, api: haqiqiyVositaApi(joriyId), opId: yangiOperationId } : null), [joriyId, kim, joriyObyekt, obyektlar, sahifalar]);
   const hujjat = useMemo(() => (joriyId ? haqiqiyHujjatDeps(joriyId) : null), [joriyId]);
-  const yordamchi: YordamchiUlanish | undefined = useMemo(() => (sahifalar.length ? { sahifalar, obyektlar, joriyObyekt, obyektTanla: (id: number) => ws.setObjectId(id), motor, hujjat, sahifaAmallar, sahifaAmalBajar: (id: string) => { sahifaAmaliniBajar(id); }, kim } : undefined), [sahifalar, obyektlar, joriyObyekt, ws, motor, hujjat, sahifaAmallar, kim]);
+  const yordamchi: YordamchiUlanish | undefined = useMemo(() => (sahifalar.length ? { sahifalar, obyektlar, joriyObyekt, obyektTanla: (id: number) => ws.setObjectId(id), motor, hujjat, sahifaAmallar, sahifaAmalBajar: (id: string) => { sahifaAmaliniBajar(id); }, kim, vosita } : undefined), [sahifalar, obyektlar, joriyObyekt, ws, motor, hujjat, sahifaAmallar, kim, vosita]);
   const [tayyor, setTayyor] = useState<TayyorSavol | null>(null);
   /* Istalgan sahifa/komponent `window.dispatchEvent(new CustomEvent('ai:ochish', { detail: { savol } }))` bilan AI ni tayyor savol bilan ochadi. */
   useEffect(() => {
@@ -183,7 +186,7 @@ export function AiHelper() {
           {taklifKarta && <div className="shrink-0 p-3">{taklifKarta}</div>}
 
           {tab === 'chat' && kasb && <ModelChip profil={kasb.profil} kompaniyaId={joriyId ?? null} />}
-          {tab === 'chat' && <AiChat kompaniyaId={joriyId ?? null} kasb={kasb} sahifa={yolNaqshi(location.pathname)} generatsiya={companyRef.current.generation} tayyorSavol={tayyor} onOqildi={() => setTayyor(null)} yordamchi={yordamchi} onOtish={() => setIsOpen(false)} />}
+          {tab === 'chat' && <AiChat foydalanuvchiId={uid} kompaniyaId={joriyId ?? null} kasb={kasb} sahifa={yolNaqshi(location.pathname)} generatsiya={companyRef.current.generation} tayyorSavol={tayyor} onOqildi={() => setTayyor(null)} yordamchi={yordamchi} onOtish={() => setIsOpen(false)} />}
           {tab === 'jurnal' && (joriyId ? <AiJurnal kompaniyaId={joriyId} admin={ADMIN_ROLLAR.includes(kasb?.rol ?? '')} /> : <p className="p-4 text-sm text-text-dim">{t('Avval kompaniyani tanlang')}</p>)}
           {tab === 'fikr' && <AiFikrPanel kompaniyaId={joriyId ?? undefined} sahifa={yolNaqshi(location.pathname)} />}
           {tab === 'sozlama' && <AiShaxsiy kasb={kasb} kuzatuvYoqilgan={kuzatuv.yoqilgan} kuzatuvAlmashtir={kuzatuv.almashtir} />}
