@@ -49,6 +49,10 @@ export const QAMROV: Readonly<Record<string, Qamrov>> = {
   'ish-joylarim': q(['bugun']), kurs: q([]), topshiriqlar: q(['bugun']), mutaxassis: q([], ['xizmat e’lon qilish']),
   osuvchi: q(['niyat:oqish'], ['taklifni qabul/rad']), akkaunt: q([], ['akkaunt sozlamalari']), sozlamalar: q(['xotira_korsat', 'xotira_yoz', 'xotira_unut']),
   boshqaruv: q([], ['platforma boshqaruvi']), 'tizim-xaritasi': q([]), 'fayl-boglash': q([], ['fayl bog‘lash']),
+  // Imzo: Jarvis faqat sahifani ochadi; imzolash qurilma kaliti va token yechilishini talab qiladi — shuning uchun hammasi qo‘lda qoladi.
+  imzo: q([], ['hujjatni imzolash (qurilma kaliti + token yechiladi)', 'imzoni QR/havola orqali tekshirish', 'imzolangan nusxa (Excel) yuklash', 'qurilma kalitlarini boshqarish']),
+  // Ruxsatlar jadvali: faqat o‘qish sahifasi (reestrdan hosila matritsa) — yozuv amali yo‘q, Jarvis sahifani ochib beradi.
+  'ruxsatlar-jadvali': q([]),
 };
 
 /** Sahifa uchun «Jarvis bu yerda nima qila oladi»: vositalar/niyatlar va hali sahifada qoladigan amallar. */
