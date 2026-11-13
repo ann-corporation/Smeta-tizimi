@@ -1,90 +1,61 @@
-# Cloud sessiya holati (Claude@cloud → L0)
+# Cloud sessiya holati (Claude@cloud → lokal agent) — 2026-11-13
 
-Sessiya: https://claude.ai/code/session_01RZTNHRQ7RnNsEZxefQtyva · yangilandi: 2026-11-03 (2).
-L0 shu faylni o'qib, egasining koordinatsiya yozuvlariga ko'chiradi.
+Sessiya: https://claude.ai/code/session_01RZTNHRQ7RnNsEZxefQtyva
+Egasi 13.11: noutbuk o'chgani uchun cloud ishni davom ettirdi; endi noutbuk yondi — **boshqaruv lokal agentga qaytadi**. Cloud yangi ish boshlamaydi; ishlab turgan sub-agentlari tugagach tarmoqlarini push qiladi (pastda).
 
-## Boshqaruv (egasi 2026-11-03)
-Boshqaruv to'liq **L0 (lokal agent)** da. Cloud ishni faqat L0 dan oladi, boshlanganlarini tugatadi, parallel ish qilmaydi.
+## ⚠ BIRINCHI NAVBATDA: prod bazani tekshiring (holat NOMA'LUM)
+Cloud `20261219000000_t2_pul_bilan_yopiladi_v1` (tarmoq `claude/smeta-jami-asl`) ni prodga **bitta tranzaksiyada** qo'llashga urindi: migratsiya + md5 tekshiruv + acceptance (savepoint ichida) + 7 obyektda eski/yangi `t2_nakopitelniy_v2` regressiya solishtiruvi + COMMIT. So'rov MCP'ning 60 s chegarasida uzildi, keyin Supabase MCP «Service Unavailable» berdi — **commit bo'lganmi yoki yo'qmi tekshirib bo'lmadi**. Sayt `/api/soglik` 200 (baza REST ishlayapti).
 
-## Yakuniy taqsimot (L0 2026-11-03)
-- **Cloud:**
-  1. Uy sotish — #236: S1 + S2 tayyor; S3 (xaridor) — L0 ruxsati bilan.
-  2. Tender — #239: server + UI tayyor.
-  3. Logistika #235 — 2 CI xatosi tuzatildi, yashil; cloud to'xtadi.
-  4. 3D — keyinroq, faqat tadqiqot.
-- **To'xtatildi:** HR/KPI, buxgalteriya, hujjat/laboratoriya rejalash agentlari, asfalt.
-  - Rejalash agentlari to'xtatishdan oldin tugagan edi. Rejalar `claude/cloud-rejalar` tarmog'ida, `docs/architecture/cloud-rejalar/`: `IJRO_HUJJATLARI_LAB_TOMONLAR.md`, `HR_KPI_BUXGALTERIYA.md`. O'zgarishsiz — lokal quruvchilar uchun kirish material.
-  - Asfalt Excel egasiga berilgan; tekshiruvni lokal agent qiladi.
-- **130 test tokeni** — egasining qarori, cloud tegmaydi.
+Tekshiruv (faqat o'qish):
+```sql
+select to_regprocedure('public.t2_pul_bilan_yopiladi_v1(text,numeric)') is not null as predikat,
+       to_regprocedure('public.t2_nakopitelniy_v2_pre_20261219000000(bigint,bigint,date,integer,boolean,integer)') is not null as eski_nusxa,
+       (select md5(prosrc) from pg_proc where oid = 'public.t2_nakopitelniy_v2(bigint,bigint,date,integer,boolean,integer)'::regprocedure) as md5_hozir,
+       (select count(*) from public.t2_kompaniya where nom = '_TEST_PUL_') as test_qoldiq;
+-- osilib qolgan tranzaksiya: select pid, state, now()-xact_start from pg_stat_activity where state like 'idle in transaction%' or query ilike '%t2_pul_bilan_yopiladi_v1%';
+```
+- `predikat=false` → hech narsa qo'llanmagan (tranzaksiya bekor bo'lgan). Migratsiyani o'zingiz sinab qo'llang; regressiya solishtiruvini 1–2 obyektda yoki `statement_timeout` ni hisobga olib yurgizing.
+- `predikat=true` va `md5_hozir = ea235bc346791ffe509f316c246585d3` → to'liq qo'llangan (acceptance va regressiya o'tgan — aks holda commit bo'lmasdi). `test_qoldiq` 0 bo'lishi shart.
+- Boshqa holat (masalan `idle in transaction`) → tranzaksiyani tugating (`pg_terminate_backend`) va qaytadan tekshiring.
+- Frontend (`claude/smeta-jami-asl`) migratsiyasiz ham ishlaydi: «Asl smeta: noma'lum (server yangilanishi kutilmoqda)» ko'rsatadi.
 
-## Yo'llar (L0 2026-11-03)
-- Cloud: **uy sotish** (0→100), **tender** (mavjud `t2_birja_*` modelini kengaytirish), **3D / virtual sayohat** (keyin; avval faqat tadqiqot + reja).
-- Lokal agentlar: R2 ga ko'chirish, asfalt kalkulyatsiyasi, HR/KPI, buxgalteriya, hujjat oqimi (laboratoriya/ekspertiza/xat/tasdiq), logistika.
-- Qoidalar:
-  - Supabase Free 421/500 MB — katta va o'zgarmas ma'lumot R2 da (DB da kalit + sha256).
-  - Migratsiya faqat fayl (+rollback +acceptance), prodga L0 qo'llaydi.
-  - Gitda real summa, INN va ism yo'q.
+## Bugun main'ga qo'shilgan
+| PR | Nima |
+|---|---|
+| #383, #399 | Lokal agentning reestr zanjiri (7 ish joyi menyusi, Amal reestri) |
+| #422 | Barqarorlik (sanaga bog'liq testlar, eksport tokeni serverda) |
+| #423 | Jarvis: dars-qo'llanma faqat haqiqiy «qanday qilaman» savoliga (egasi skrinshoti) |
+| #424 | Pudratchi menyusi: «Obyektlar», АОСР bitta nom, «Oy», «Loyihachi: bugun» pto/prorabdan yashirildi |
 
-## Vazifalar
+Prodga qo'llangan migratsiya: `20261218400000_t2_jarvis_suhbat_v1` (BEGIN..ROLLBACK da acceptance o'tdi, keyin qo'llandi).
 
-### 1. Uy sotish — `claude/uy-sotuv-v1` · PR ann-corporation/Smeta-tizimi#236 (draft) — ✅ S1 server + S2 sotuvchi UI
-- **Migratsiya** `20261124000000_t2_uy_sotuv_v1` (+rollback, self-seeding acceptance; lokal PG16 da o'tdi). RPC: 10 yozish + 5 o'qish; ruxsatlar `sales.*`, rol `sotuvchi`.
-  - Loyiha sozlamasi qisman yangilanadi (eski || yangi).
-- **UI** `/admin/sotuv`:
-  - shaxmatka (generator, bron, ommaviy narx);
-  - kanban; bitim kartasi (grafik generatori, to'lovlar, ipoteka);
-  - mijozlar, panel, sozlama (reyestr / eskrou, PP-4732).
-- **Darvozalar:** tsc, oxlint, site-map, tekshir, to'liq vitest (634 fayl) — yashil.
-- **L0 dan kerak:** migratsiyani BEGIN..ROLLBACK da sinab qo'llash.
-- **Ochiq qarorlar:**
-  - `sotuvchi` roli `project.read` orqali hujjat menyularini ham ko'radi;
-  - annuitet (foizli) grafik saqlanmaydi — server Σ = summa talab qiladi.
-- **Keyingi (L0 ruxsati bilan):** S3 xaridor tomoni — ochiq katalog (PII siz alohida endpoint + migratsiya), xonadon sahifasi, kabinet.
+## Ochiq PR'lar (CI yurmoqda — yashil bo'lsa birlashtiring)
+- **#420** `claude/jarvis-yadro-3` — main qo'shildi + qamrov jadvaliga `imzo`, `ruxsatlar-jadvali` (head 0e45fb06). Migratsiyasi prodda.
+- **#378** `claude/mindmap-vizual-pult` — main qo'shildi + `TestXarita.tsx` da 3 ta `confirm()` → `tasdiqSora` (head c2cba344). Lokal to'liq vitest yuklama ostida 2 ta beqaror test bilan yiqildi (alohida o'tadi); main + uchala tarmoq birgalikda 916 fayl / 6999 test yashil.
 
-### 2. Tender — `claude/tender-v1` · PR ann-corporation/Smeta-tizimi#239 (draft) — ✅ server + UI tayyor
-- **Asos:** mavjud `t2_birja_*` / `t2_buyurtma*` / `t2_tender_*_v1` kengaytirildi. v1 RPC buzilmagan; `supabase/tests/t2_tender_contract.sql` o'tadi.
-- **Migratsiya** `20261122000200_t2_tender_protsess_v1` (+rollback, acceptance — 66 tekshiruv).
-  - Yangi jadvallar: `t2_tender_jurnal` (o'zgarmas, payload ≤1 KB), `t2_tender_savol`, `t2_tender_baho`; fayllar R2 da (`t2_primitiv_dalil`).
-  - RPC: 12 yozish + 4 o'qish.
-  - Ruxsatlar: `procurement.*`, `supply.offer` (yangi capability yo'q).
-- **Oqim:** qoralama → tasdiq → e'lon → muhrlangan takliflar → ochish → baholash (narx / ball) → BAFO raund → g'olib (qator bo'yicha bo'linma, asos majburiy) → buyurtma → yopish.
-- **UI** `/admin/tender`: mening tenderlarim, menga taklif qilinganlar, ochiq e'lonlar, tahlil.
-- **Darvozalar:** tsc, oxlint, site-map, tekshir va to'liq vitest (636 fayl / 4675 test) — yashil.
-- **Qoldiqlar:**
-  - fayl yuklash UI;
-  - to'lov va ombor havolasi UI'da;
-  - outbox → Telegram fan-out;
-  - yetkazuvchi o'qishi `procurement.read` talab qiladi;
-  - brauzerda qo'lda ko'rilmagan.
-- **L0 dan kerak:** migratsiyani BEGIN..ROLLBACK da sinab qo'llash; egasiga 5 savol (PR tavsifida).
+## Sub-agent tarmoqlari (PR hali ochilmagan)
+| Tarmoq | Ish | Holat |
+|---|---|---|
+| `claude/smeta-jami-asl` (56e84cff) | Egasi qarori: «smeta jami» asosiy raqam = ASL smeta, joriy yonida yorliq bilan; «сум» birlikli (narx=1) qatorlar — pul bo'yicha yopiladi, hajm/narx farqidan chiqariladi. Migratsiya `20261219000000` | Push qilingan, darvozalar yashil. Migratsiya — yuqoriga qarang. Rahbar paneli/DirektorPult'da joriy qatori yo'q (kesh `smeta_joriy` bermaydi); Excel eksportlari va HolatNative yorliqlari tegilmagan |
+| `claude/tezlik-obyekt-kesh` | `sbT2ObyektlarOlKomp` ning ~36 keshsiz chaqiruvi → yagona kesh; obyektlar sahifasidan `rahbar_panel_v1` fon chaqiruvini kechiktirish | Sub-agent ishlamoqda |
+| `claude/pudratchi-zanjir-chizigi` | HolatNative'dagi 2 ta «Keyingi qadam» vidjeti → bitta: Smeta → Fakt → АОСР → F-2 → F-3 → To'lov; har qadam sahifasida | Sub-agent ishlamoqda |
+| `claude/hujjat-paket-papka` | Egasi: F-2 paketi ZIP (papkalar, har hujjat alohida fayl); shrink-to-fit o'rniga wrap + qator balandligi; yashirin «Тип/Кат./КАЛИТ» ustunlari wrap qilinmaydi; barcha eksportlar bitta qoidaga + `docs/architecture/HUJJAT_CHIQISH_INVENTAR_2026-11.md` | Sub-agent ishlamoqda |
 
-### 3. 3D / virtual sayohat — navbatda (uy sotish S2 dan keyin)
-- Faqat tadqiqot + reja.
-- Dastlabki tavsiya: Twinmotion / Lumion fasl renderlari + 360° panorama (R2) → three.js interaktiv bino (shaxmatkaga bog'langan) → dron / Gaussian Splatting. Pixel Streaming — faqat premium.
+## Auditlar (shu PR'da, `docs/architecture/cloud-rejalar/`)
+- `AUDIT_PUDRATCHI_OQIM_2026-11-13.md` — menyu/rol jadvali, takror sahifalar, uzilishlar U1–U12, o'zgarishlar C-01…C-22, birinchi 5 PR.
+- `AUDIT_HISOB_HUJJAT_2026-11-13.md` — pul zanjiri (bitta yadro, mos), 3 xil «smeta jami», fakt qamrovi 7,9%, hujjat xatolari.
+- `AUDIT_TEZLIK_2026-11-13.md` — `t2_obyekt_jami` 3,7 s, `t2_rahbar_panel_v1` 14 s, baza 469/500 MB.
 
-## L0 yo'liga o'tkaziladi (cloud boshlagan edi — egasi to'g'ridan-to'g'ri so'ragan edi)
-- **Logistika** — `claude/logistika-v1`, PR ann-corporation/Smeta-tizimi#235 — ✅ CI yashil (7d2c96b9). Cloud ishi TUGADI, L0 ga topshirildi.
-  - Migratsiya `20261123000000_t2_transport_v1`: jadvallar `t2_tr_*`, 10 yozish RPC + `t2_transport_ol_v1`. Tannarx, ob'ektlarga taqsim, `t2_xarajat_kirit_v1` ga МАШ provodka, narxlash va marja.
-    - GPS trek, marshrut geometriyasi va fayllar Supabase'ga yozilmaydi.
-  - **Acceptance** real `t2_azolik` / `t2_foydalanuvchi` ga sintetik qator yozadi. Faqat stub ustida sinalgan — real schema'da NOT NULL va CHECK larni BEGIN..ROLLBACK da tekshiring.
-  - **UI qoralamasi** `claude/logistika-v1-ui` tarmog'ida (PR yo'q, TEKSHIRILMAGAN): rebase'dan keyin to'liq darvozalar kerak.
-  - **Qilinmagan:**
-    - ombor / xarid → reys bog'lash;
-    - yetkazish isboti (R2);
-    - pullik routing adapteri (hozir OSRM demo; `VITE_ROUTING_URL`);
-    - haydovchi tanlagich;
-    - `haydovchi` roliga `machinery.read`;
-    - yoqilg'i xaridi daftari.
-  - **Egasiga savollar:**
-    - ijtimoiy soliq 12% to'g'rimi;
-    - oylik ÷ 26 to'g'rimi;
-    - yoqilg'i narxi QQSsiz kiritiladimi;
-    - ijaradagi mashina ham ob'ektlarga taqsimlanadimi;
-    - МАШ kategoriyasimi.
-- **Asfalt pirogi m² kalkulyatsiyasi** — ✅ Excel egasiga berildi (9 ta shubhali joy faylda); tekshiruv — lokal agent.
-- **Ijro hujjatlari / laboratoriya** va **HR-KPI + buxgalteriya** — ✅ loyihalash hujjatlari tayyor: PR ann-corporation/Smeta-tizimi#241 (`docs/architecture/cloud-rejalar/`).
+## Egasi qarorlari (13.11)
+1. Obyekt 152 dagi «сум» qatorlari — xato emas (smetasiz subpudrat ishi, pul bilan o'lchanadi). Tasdiqlangan aktlarga tegilmaydi; tizim bunday qatorni taniydi (yuqoridagi tarmoq).
+2. Smeta jami bir xil obyektlar (156/157, 158/159, 163–165, 167/168) — **egizak binolar, haqiqiy alohida obyektlar**. Tegilmaydi.
+3. «Smeta jami» asosiy raqam — **asl smeta**.
+4. Eski F-2 lardan fakt yaratish (fakt qamrovi 7,9%) — **lokal agent hal qiladi**.
 
-## Boshqa ochiq PR'lar
-- ann-corporation/Smeta-tizimi#234 — rahbar paneli tahlil (L0 merge kutmoqda).
-- ann-corporation/anvar-brain#2 — egasi g'oyalari 2026-11-03 + AGENT_LOG.
-- Issue ann-corporation/Smeta-tizimi#238 — egasi g'oyalari ro'yxati.
+## Navbat (boshlanmagan; auditlardan)
+- F-3 to'liq shakl: «с начала строительства» hisobot oyini qo'shmaydi (`forma3-export.ts:297-303`); qisqa shakl va nakopitelniy qo'shadi.
+- `f2-hujjat.ts:406-413` — `summa ?? 0` (NULL≠0); 1 077 МАТ qatori `narx=0` narxsiz deb belgilanmaydi.
+- Akt-sverka generatori yo'q.
+- Shartnoma muharriri 2 ta, to'lov formasi 2 ta (C-04, C-05); prorab telefon «Bugun» (C-06); menyuni zanjir tartibiga o'tkazish (C-08).
+- Kompaniya «turi» signali (pudratchi/subpudratchi/loyihachi/yetkazuvchi) — begona «Bugun» bandlarini yashirish uchun; egasi javobi kutilmoqda.
+- Tezlik (baza): `t2_obyekt_jami` → tayyor jadval; zaxira skripti OFFSET → keyset; joy bo'shatish.
