@@ -7,10 +7,9 @@ import type { OstatkaIstisno } from './ostatka-export';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { NAKRUTKA_KATLAR, NOMALUM_KAT, kOplate, kategoriyaKf, nakrutkaKat, nakrutkaPodvaliYoz, podvalKfQatorlari, podvalNdsFoiz, podvalQatorRaqami, type KatSummalar } from './nakrutka-podval';
 import { YAXLIT_IZOH, YAXLIT_KAT, bolimBarglari, bolimQqsBilan, svodYaxlitQqs, type SvodYaxlit } from './svod-yaxlit';
-import { NDS_SUKUT_FOIZ, faktSummaF2Narxda, faktSummaF2NarxFormula, qatorSumma, serverMerosKoefQoy, yaxlitBolimJami, yaxlitKOplate, yaxlitKOplateTaqsim, yaxlitKorinish, yaxlitQatorlarga, yigindi2, yigindi2Qatiy, type Podval } from './hisob-yadro';
+import { NDS_SUKUT_FOIZ, qqsSizNarx, faktSummaF2Narxda, faktSummaF2NarxFormula, qatorSumma, serverMerosKoefQoy, yaxlitBolimJami, yaxlitKOplate, yaxlitKOplateTaqsim, yaxlitKorinish, yaxlitQatorlarga, yigindi2, yigindi2Qatiy, type Podval } from './hisob-yadro';
 import { mashinistMehnati, narxBildirishnomaKerak, narxsizSoni } from './narx-bildirishnoma';
 import { bargUslubi } from './qator-uslubi';
-import { ASOS_YOQ_MATNI, asosMatniQator, farqliMi, holatMatni, qarorEgasi, type AsosXarita } from './slichitelniy-asos';
 
 /**
  * СЛИЧИТЕЛЬНАЯ ВЕДОМОСТЬ — smeta va haqiqatda bajarilgan hajmlarni
@@ -55,11 +54,9 @@ export type SlichitelniyOpsiya = {
   yaxlitIdlar?: ReadonlySet<number> | null;
   /** Svod yaxlit xulosasi (server) — to'liq ro'yxatda smeta ustunining yaxlit summasi svoddan (QQS siz). */
   svodYaxlit?: SvodYaxlit | null;
-  /** Smetada yo'q bajarilgan ishlar (qo'shimcha/zamena): 'alohida' (sukut) — alohida varaq «Работы вне сметы» (daraxtda ham belgi bilan qoladi); 'daraxt' — faqat daraxt ichida. */
+  /** Smetada yo'q bajarilgan ishlar (qo'shimcha/zamena): 'daraxt' (sukut) — asosiy varaqdagi «ДОПОЛНИТЕЛЬНЫЕ РАБОТЫ» bo'limi va zamena juftlari;
+   *  'alohida' — qo'shimcha ravishda alohida varaq «Работы вне сметы». */
   vneSmeta?: 'alohida' | 'daraxt';
-  /** Fakt asosli rejim: har farq qatoriga ASOS (АОСР, texnadzor qarori) — «Основание» ustuni va asoslar reestri varag'i.
-   *  Berilmasa (yoki RPC o'qilmagan) — oldingi ko'rinish (ustun va reestr yo'q). */
-  asos?: AsosXarita | null;
 };
 
 /** Model opsiyalari. Fakt hajmi yozilganidek; fakt summasi — tasdiqlangan F2 bor qatorda F2 narxida (yadro). */
@@ -104,15 +101,30 @@ export type SlichitelniyQator = {
   /** Resurs normasi va ota ish qatori indeksi — hujjatda smeta hajmi = norma × ish hajmi (tirik formula). */
   norma?: number | null;
   otaIdx?: number | null;
+  /** Pereraschet: fakt − tasdiqlangan Ф-2 (hajm va summa). + к доплате, − к снятию. Noma'lum (fakt/narx/Ф-2 summasi NULL) — null. */
+  doplataHajm: number | null;
+  doplataSumma: number | null;
+  /** Zamena qatori: u almashtirgan asl qator id (`replaces_line_id`) — «взамен поз. N». */
+  almashtiradiId?: number | null;
+  /** Asl qator: uni almashtirgan zamena qatorlari id — «исключается (заменена поз. N)». */
+  almashtirilganIdlar?: number[];
   bolalar: number[];
 };
 
 export type SlichitelniyJami = { smeta: number | null; fakt: number | null; f2: number; farq: number | null };
 
+/** Pereraschet yakuni (barglar bo'yicha, summa smeta narxida / Ф-2 narxida, ustamasiz): + к доплате, − к снятию, net = fakt − Ф-2. */
+export type SlichitelniyPereraschet = { doplata: number; snyatie: number; net: number; nomalum: number };
+
+/** Sintetik bo'lim «ДОПОЛНИТЕЛЬНЫЕ РАБОТЫ» id si: razdel darajasidagi qo'shimcha ishlar smeta bo'limlaridan shu bo'limga ajratiladi. */
+export const QOSHIMCHA_BOLIM_ID = -1;
+export const QOSHIMCHA_BOLIM_NOMI = 'ДОПОЛНИТЕЛЬНЫЕ РАБОТЫ (НЕТ В СМЕТЕ)';
+
 export type SlichitelniyModel = {
   qatorlar: SlichitelniyQator[];
   ildizlar: number[];
   jami: SlichitelniyJami;
+  pereraschet: SlichitelniyPereraschet;
   diqqat: Array<{ nom: string; sabab: string; joy?: string }>;
   /** Barglar: jami / farqi borlar (+ ortiq, − kam). */
   barglar: number;
@@ -130,11 +142,20 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
   const holat = new Map(holatlar.map((h) => [h.qator_id, h]));
   const istisno = new Map((o.istisnolar ?? []).filter((x) => x.holat === 'tasdiqlangan').map((x) => [x.qatorId, x]));
   const bolalar = new Map<number | null, T2Qator[]>();
+  // Razdel (yoki ildiz) darajasidagi qo'shimcha ish (smeta 0) — smeta bo'limlaridan alohida «ДОПОЛНИТЕЛЬНЫЕ РАБОТЫ» bo'limiga.
+  // Ish ichidagi qo'shimcha resurs joyida qoladi (ish tarkibi buzilmasin).
+  const qoshimchaRoot = (q: T2Qator): boolean => {
+    if (!q.qoshimcha || !(q.tur === 'bl' || BARG.has(q.tur ?? ''))) return false;
+    const ota = q.ota_id == null ? undefined : byId.get(q.ota_id);
+    return !ota || ota.tur === 'rz';
+  };
+  const qoshimchaBolim: T2Qator = { ...(rows[0] ?? ({} as T2Qator)), id: QOSHIMCHA_BOLIM_ID, ota_id: null, tur: 'rz', nom: QOSHIMCHA_BOLIM_NOMI, kod: null, hajm: null, narx: null, summa: null, qoshimcha: false, zamena: false };
   for (const q of rows) {
-    const ota = q.ota_id != null && byId.has(q.ota_id) ? q.ota_id : null;
+    const ota = qoshimchaRoot(q) ? QOSHIMCHA_BOLIM_ID : q.ota_id != null && byId.has(q.ota_id) ? q.ota_id : null;
     const a = bolalar.get(ota);
     if (a) a.push(q); else bolalar.set(ota, [q]);
   }
+  if (bolalar.has(QOSHIMCHA_BOLIM_ID)) { bolalar.set(null, [...(bolalar.get(null) ?? []), qoshimchaBolim]); byId.set(QOSHIMCHA_BOLIM_ID, qoshimchaBolim); }
   const yolOf = (q: T2Qator): string => {
     const y: string[] = [];
     for (let p = q.ota_id == null ? undefined : byId.get(q.ota_id); p; p = p.ota_id == null ? undefined : byId.get(p.ota_id)) if (p.tur === 'rz' || p.tur === 'bl') y.unshift(p.nom ?? '');
@@ -182,17 +203,22 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
       const smetaSumma = qatorSumma(smeta, narx);
       // Отклонение SUMMA = I − G (fakt summasi F2 narxida − smeta summasi) — qator ichida izchil.
       const farqSumma = faktSumma == null || smetaSumma == null ? null : yaxlit2(faktSumma - smetaSumma);
-      const sabab = [smeta == null ? 'нет количества по смете' : '', fakt == null ? 'нет данных о выполнении' : '', narxBildirishnomaKerak(q, narx) ? 'нет сметной цены — строка не включена в сумму' : ''].filter(Boolean);
+      const f2Nomalum = f2SummaV == null;
+      const sabab = [smeta == null ? 'нет количества по смете' : '', fakt == null ? 'нет данных о выполнении' : '', narxBildirishnomaKerak(q, narx) ? 'нет сметной цены — строка не включена в сумму' : '',
+        f2Nomalum && fakt != null ? 'сумма по Ф-2 не определена' : ''].filter(Boolean);
       if (sabab.length) diqqat.push({ nom: `${q.nom ?? ''}${q.birlik ? `, ${q.birlik}` : ''}`, sabab: sabab.join('; '), joy: yolOf(q) || undefined });
       barglar++;
       if (farq != null && farq > 0) ortiq++;
       if (farq != null && farq < 0) kam++;
-      const nomalum = (smetaSumma == null || faktSumma == null || farqSumma == null) && !(narx == null && mashinistMehnati(q)) ? 1 : 0;
+      const doplataSumma = faktSumma == null || f2Nomalum ? null : yaxlit2(faktSumma - f2Summa);
+      const doplataHajm = fakt == null ? null : nol(Number((fakt - f2Hajm).toPrecision(12)));
+      const nomalum = (smetaSumma == null || faktSumma == null || farqSumma == null || doplataSumma == null) && !(narx == null && mashinistMehnati(q)) ? 1 : 0;
       out.push({
         id: q.id, tur: 'barg', daraja, tartib: blNo ? `${blNo}.${k}` : String(++no), kod: q.kod ?? '', nom: q.nom ?? '', birlik: q.birlik ?? '',
-        smetaHajm: smeta, narx, smetaSumma, faktHajm: fakt, faktSumma, f2Hajm, f2Summa, farqHajm: farq, farqSumma,
+        smetaHajm: smeta, narx, smetaSumma, faktHajm: fakt, faktSumma, f2Hajm, f2Summa, farqHajm: farq, farqSumma, doplataHajm, doplataSumma,
         izoh: [izohOf(q, smeta, fakt, farq), f2Narxda ? 'сумма факта — по цене утвержденной Ф-2' : ''].filter(Boolean).join('; '),
-        nomalum, kat: q.kat ?? null, bolalar: [], ...(q.qoshimcha ? { qoshimcha: true } : {}), ...(q.zamena ? { zamena: true } : {}), ...(q.tur === 'rs' || q.tur === 'mat' || q.tur === 'ob' ? { resTur: q.tur } : {}), norma: q.norma ?? null, otaIdx, f2Narxda: f2Narxda || undefined, f2SummaNomalum: f2SummaV == null || undefined,
+        nomalum, kat: q.kat ?? null, bolalar: [], ...(q.qoshimcha ? { qoshimcha: true } : {}), ...(q.zamena ? { zamena: true } : {}), ...(q.tur === 'rs' || q.tur === 'mat' || q.tur === 'ob' ? { resTur: q.tur } : {}), norma: q.norma ?? null, otaIdx, f2Narxda: f2Narxda || undefined, f2SummaNomalum: f2Nomalum || undefined,
+        ...(q.zamena && q.replaces_line_id != null ? { almashtiradiId: q.replaces_line_id } : {}),
       });
       return out.length - 1;
     }
@@ -203,8 +229,9 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
       out.push({
         id: q.id, tur: 'bl', daraja, tartib: nomer, kod: q.kod ?? '', nom: q.nom ?? '', birlik: q.birlik ?? '',
         smetaHajm: smeta, narx: null, smetaSumma: null, faktHajm: fakt, faktSumma: null, f2Hajm, f2Summa: 0,
-        farqHajm: farq, farqSumma: null, izoh: izohOf(q, smeta, fakt, farq), nomalum: 0, bolalar: [],
+        farqHajm: farq, farqSumma: null, doplataHajm: fakt == null ? null : nol(Number((fakt - f2Hajm).toPrecision(12))), doplataSumma: null, izoh: izohOf(q, smeta, fakt, farq), nomalum: 0, bolalar: [],
         ...(q.qoshimcha ? { qoshimcha: true } : {}), ...(q.zamena ? { zamena: true } : {}),
+        ...(q.zamena && q.replaces_line_id != null ? { almashtiradiId: q.replaces_line_id } : {}),
       });
       const b: number[] = [];
       let kk = 0;
@@ -214,11 +241,11 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
       return idx;
     }
     const idx = out.length;
-    out.push({ id: q.id, tur: 'rz', daraja, tartib: '', kod: '', nom: q.nom ?? '', birlik: '', smetaHajm: null, narx: null, smetaSumma: null, faktHajm: null, faktSumma: null, f2Hajm: 0, f2Summa: 0, farqHajm: null, farqSumma: null, izoh: '', nomalum: 0, bolalar: [] });
+    out.push({ id: q.id, tur: 'rz', daraja, tartib: '', kod: '', nom: q.nom ?? '', birlik: '', smetaHajm: null, narx: null, smetaSumma: null, faktHajm: null, faktSumma: null, f2Hajm: 0, f2Summa: 0, farqHajm: null, farqSumma: null, doplataHajm: null, doplataSumma: null, izoh: '', nomalum: 0, bolalar: [] });
     const b: number[] = [];
     for (const c of kids) { const i = qayta(c, daraja + 1, null, 0); if (i != null) b.push(i); }
     if (!b.length) { out.length = idx; return null; }
-    const it: SlichitelniyQator = { id: q.id, tur: 'itogo', daraja, tartib: '', kod: '', nom: `ИТОГО ПО РАЗДЕЛУ: ${q.nom ?? ''}`, birlik: '', smetaHajm: null, narx: null, smetaSumma: null, faktHajm: null, faktSumma: null, f2Hajm: 0, f2Summa: 0, farqHajm: null, farqSumma: null, izoh: '', nomalum: 0, bolalar: [] };
+    const it: SlichitelniyQator = { id: q.id, tur: 'itogo', daraja, tartib: '', kod: '', nom: `ИТОГО ПО РАЗДЕЛУ: ${q.nom ?? ''}`, birlik: '', smetaHajm: null, narx: null, smetaSumma: null, faktHajm: null, faktSumma: null, f2Hajm: 0, f2Summa: 0, farqHajm: null, farqSumma: null, doplataHajm: null, doplataSumma: null, izoh: '', nomalum: 0, bolalar: [] };
     yigindi(it, b);
     out.push(it);
     return out.length - 1;
@@ -231,6 +258,7 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
     r.smetaSumma = s((x) => x.smetaSumma);
     r.faktSumma = s((x) => x.faktSumma);
     r.farqSumma = s((x) => x.farqSumma);
+    r.doplataSumma = s((x) => x.doplataSumma);
     r.f2Summa = yaxlit2(b.reduce((t, i) => t + out[i].f2Summa, 0));
   }
 
@@ -255,6 +283,7 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
         r.smetaSumma = G.get(i) ?? null;
         r.faktSumma = I?.get(i) ?? null;
         r.farqSumma = r.faktSumma == null || r.smetaSumma == null ? null : yaxlit2(r.faktSumma - r.smetaSumma);
+        r.doplataSumma = r.faktSumma == null || r.f2SummaNomalum ? null : yaxlit2(r.faktSumma - r.f2Summa);
         r.yaxlitTaqsim = Number(b.qator_id);
       }
       const bilinmas = leaves.filter((i) => out[i].faktSumma == null).length;
@@ -263,13 +292,42 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
     const qayt = (i: number) => { const r = out[i]; if (r.tur === 'barg' || !r.bolalar.length) return; r.bolalar.forEach(qayt); yigindi(r, r.bolalar); };
     out.forEach((r, i) => { if (r.tur === 'itogo' || r.tur === 'bl') qayt(i); });
   }
+  // Zamena juftlari: yangi qator «взамен поз. N», asl qator «исключается (заменена поз. M)». Asl qator fakti 0 bo'lmasa — diqqatda (NULL ≠ 0 qoidasi: jim o'tmaydi).
+  const outOf = new Map<number, number>();
+  out.forEach((r, i) => { if (r.tur !== 'itogo' && !outOf.has(r.id)) outOf.set(r.id, i); });
+  out.forEach((r) => {
+    if (r.almashtiradiId == null) return;
+    const ai = outOf.get(r.almashtiradiId);
+    if (ai == null) return;
+    const asl = out[ai];
+    (asl.almashtirilganIdlar ??= []).push(r.id);
+    r.izoh = [r.izoh, `взамен поз. ${asl.tartib}`].filter(Boolean).join('; ');
+  });
+  for (const r of out) {
+    if (!r.almashtirilganIdlar?.length) continue;
+    const yangi = r.almashtirilganIdlar.map((id) => out[outOf.get(id)!]?.tartib).filter(Boolean).join(', ');
+    r.izoh = [r.izoh, `исключается (заменена поз. ${yangi})`].filter(Boolean).join('; ');
+    if ((r.faktHajm ?? 0) !== 0) diqqat.push({ nom: `${r.nom}${r.birlik ? `, ${r.birlik}` : ''}`, sabab: 'заменяемая позиция («исключается»): факт не равен 0 — проверить, не выполнена ли она частично', joy: r.tartib ? `поз. ${r.tartib}` : undefined });
+  }
   const nomalum = ildizlar.reduce((s, i) => s + out[i].nomalum, 0);
   const js = (f: (x: SlichitelniyQator) => number | null) => (!ildizlar.length ? null : yigindi2(ildizlar.map((i) => f(out[i]))));
+  const lar = out.filter((r) => r.tur === 'barg');
+  const pereraschet: SlichitelniyPereraschet = {
+    doplata: yigindi2(lar.map((r) => (r.doplataSumma != null && r.doplataSumma > 0 ? r.doplataSumma : null))) ?? 0,
+    snyatie: yigindi2(lar.map((r) => (r.doplataSumma != null && r.doplataSumma < 0 ? r.doplataSumma : null))) ?? 0,
+    net: js((x) => x.doplataSumma) ?? 0,
+    nomalum,
+  };
   return {
-    qatorlar: out, ildizlar, diqqat, barglar, ortiq, kam,
+    qatorlar: out, ildizlar, diqqat, barglar, ortiq, kam, pereraschet,
     jami: { smeta: js((x) => x.smetaSumma), fakt: js((x) => x.faktSumma), farq: js((x) => x.farqSumma), f2: yaxlit2(ildizlar.reduce((t, i) => t + out[i].f2Summa, 0)) },
   };
 }
+
+const PERER_GURUH = 'ПЕРЕРАСЧЕТ: К ДОПЛАТЕ (+) / К СНЯТИЮ (−) (ФАКТ − ПРЕДЪЯВЛЕНО ПО Ф-2)';
+const PERER_KO_GURUH = 'ПЕРЕРАСЧЕТ К ОПЛАТЕ (с накладными расходами и НДС)';
+const SVOD_VARAQ = 'Свод изменений';
+const ASOSIY_VARAQ = 'Сличительная ведомость';
 
 const USTUNLAR: RasmiyUstun[] = [
   { sarlavha: '№ п/п', kenglik: 7, tur: 'tartib' },
@@ -281,8 +339,8 @@ const USTUNLAR: RasmiyUstun[] = [
   { sarlavha: 'сумма, сум', kenglik: 19, tur: 'pul', guruh: 'ПО СМЕТЕ' },
   { sarlavha: 'кол-во', kenglik: 13, tur: 'hajm', guruh: 'ФАКТИЧЕСКИ ВЫПОЛНЕНО' },
   { sarlavha: 'сумма, сум', kenglik: 19, tur: 'pul', guruh: 'ФАКТИЧЕСКИ ВЫПОЛНЕНО' },
-  { sarlavha: 'кол-во', kenglik: 13, tur: 'hajm', guruh: 'ПРИНЯТО ПО АКТАМ Ф-2' },
-  { sarlavha: 'сумма, сум', kenglik: 19, tur: 'pul', guruh: 'ПРИНЯТО ПО АКТАМ Ф-2' },
+  { sarlavha: 'кол-во', kenglik: 13, tur: 'hajm', guruh: 'РАНЕЕ ПРЕДЪЯВЛЕНО ПО Ф-2 (утвержденные акты)' },
+  { sarlavha: 'сумма, сум', kenglik: 19, tur: 'pul', guruh: 'РАНЕЕ ПРЕДЪЯВЛЕНО ПО Ф-2 (утвержденные акты)' },
   { sarlavha: 'кол-во (+/−)', kenglik: 13, tur: 'hajm', guruh: 'ОТКЛОНЕНИЕ (ФАКТ − СМЕТА)' },
   { sarlavha: 'сумма, сум', kenglik: 19, tur: 'pul', guruh: 'ОТКЛОНЕНИЕ (ФАКТ − СМЕТА)' },
   { sarlavha: 'Примечание', kenglik: 26, tur: 'matn' },
@@ -291,39 +349,40 @@ const USTUNLAR: RasmiyUstun[] = [
   { sarlavha: 'выполнено, сум', kenglik: 19, tur: 'pul', guruh: 'К ОПЛАТЕ (с накладными расходами и НДС)' },
   { sarlavha: 'отклонение, сум', kenglik: 19, tur: 'pul', guruh: 'К ОПЛАТЕ (с накладными расходами и НДС)' },
   { sarlavha: 'Кат.', kenglik: 6, tur: 'texnik', yashirin: true },
+  // PERERASCHET: fakt − ilgari Ф-2 da predyavlen (tasdiqlangan Ф-2 lar yig'indisi, tuzatish/storno aktlari ishorasi bilan).
+  { sarlavha: 'кол-во (+/−)', kenglik: 13, tur: 'hajm', guruh: PERER_GURUH },
+  { sarlavha: 'сумма, сум', kenglik: 19, tur: 'pul', guruh: PERER_GURUH },
+  { sarlavha: 'смета, сум', kenglik: 19, tur: 'pul', guruh: PERER_KO_GURUH },
+  { sarlavha: 'принято Ф-2, сум', kenglik: 19, tur: 'pul', guruh: PERER_KO_GURUH },
+  { sarlavha: 'к доплате (+) / к снятию (−), сум', kenglik: 21, tur: 'pul', guruh: PERER_KO_GURUH },
+  // Texnik (yashirin) ustunlar: faqat barg qatorida — bo'lim bo'yicha «к доплате» / «к снятию» ni ajratish (Свод изменений).
+  { sarlavha: 'Д+', kenglik: 15, tur: 'pul', yashirin: true },
+  { sarlavha: 'С−', kenglik: 15, tur: 'pul', yashirin: true },
+  { sarlavha: 'Д+ ко', kenglik: 15, tur: 'pul', yashirin: true },
+  { sarlavha: 'С− ко', kenglik: 15, tur: 'pul', yashirin: true },
 ];
-/** Fakt asosli rejim: oxirgi (R dan keyingi) ustun — har farq qatoriga asos. */
-const ASOS_USTUN: RasmiyUstun = { sarlavha: 'Основание (АОСР, решение технадзора)', kenglik: 48, tur: 'matn' };
 // A№ B kod C nom D ed E smHajm F narx G smSumma H faktHajm I faktSumma J f2Hajm K f2Summa L farqHajm M farqSumma N izoh O nomalum
-// P faktKOplate Q farqKOplate R kat(yashirin)
+// P faktKOplate Q farqKOplate R kat(yashirin) S doplataHajm T doplataSumma U smetaKO V f2KO W doplataKO X Д+ Y С− Z Д+KO AA С−KO
 
 /** Сличительная ведомость (.xlsx). */
-export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: SlichitelniyOpsiya): { bytes: Uint8Array; faylNomi: string; kOplata: { fakt: number | null; farq: number | null }; asos: { farqli: number; asosli: number; tasdiqlagan: number; asossiz: number } | null } {
+export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: SlichitelniyOpsiya): { bytes: Uint8Array; faylNomi: string; kOplata: { fakt: number | null; farq: number | null; doplata: number | null } } {
   const sana = o.sana ?? bugunSana();
   const sanaRu = sana.split('-').reverse().join('.');
   const v = new RasmiyVaraq({
-    nom: 'Сличительная ведомость',
+    nom: ASOSIY_VARAQ,
     sarlavha: 'СЛИЧИТЕЛЬНАЯ ВЕДОМОСТЬ',
-    ostSarlavha: [`объемов работ по смете и фактически выполненных по состоянию на ${sanaRu}${o.faqatFarq ? ' (позиции с отклонениями)' : ''}`],
+    ostSarlavha: [`объемов работ по смете и фактически выполненных, с перерасчетом по ранее предъявленным актам Ф-2, по состоянию на ${sanaRu}${o.faqatFarq ? ' (позиции с отклонениями)' : ''}`],
     titul: [
       ['Объект:', o.obyektNomi],
       ['Заказчик:', o.imzo?.zakazchik],
       ['Подрядчик:', o.imzo?.pudratchi],
-      ['Основание:', 'ведомость объемов работ и ресурсов (ЛРВ) объекта; выполнение — по учтенным актам факта; принято — по утвержденным актам формы № 2'],
-      ...(o.asos ? [['Основание отклонений:', 'акты освидетельствования скрытых работ (АОСР) и решения технадзора — графа «Основание»; реестр актов — на отдельном листе'] as const] : []),
+      ['Основание:', 'ведомость объемов работ и ресурсов (ЛРВ) объекта; выполнение — по учтенным актам факта; предъявлено — по утвержденным актам формы № 2 (с учетом корректирующих актов)'],
     ],
-    ustunlar: o.asos ? [...USTUNLAR, ASOS_USTUN] : USTUNLAR,
+    ustunlar: USTUNLAR,
     yonalish: 'landscape',
   });
   const bosh = v.malumotBoshi;
   const rowOf = (i: number) => bosh + i;
-  /** «Основание» katagi: ish (bl) va resurssiz barg qatorida; resurs qatori otasining asosiga tayanadi (takrorlanmaydi). */
-  const asosVal = (q: SlichitelniyQator): string => {
-    if (!o.asos) return '';
-    if (q.tur === 'barg' && q.otaIdx != null && model.qatorlar[q.otaIdx]?.tur === 'bl') return '';
-    return asosMatniQator(o.asos, q.id, farqliMi(q.smetaHajm, q.faktHajm), q.faktHajm);
-  };
-  const asosKatak = (q: SlichitelniyQator): Qiymat[] => (o.asos ? [asosVal(q) || null] : []);
   const qiy = (x: number | null): Qiymat => (x == null ? null : x);
   const sumKid = (q: SlichitelniyQator, col: string) => sumRefs(col, q.bolalar.map(rowOf));
   const pulYig = (q: SlichitelniyQator, col: string, val: number | null, n: number): Qiymat =>
@@ -339,8 +398,8 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
   const yaxlitBor = model.qatorlar.some(yax);
   // Kategoriyasi ko'rsatilmagan barglar: ustamasiz, faqat QQS; podvalda alohida qator (summa yashirilmaydi).
   const katsizmi = (q: SlichitelniyQator) => q.tur === 'barg' && !yax(q) && !nakrutkaKat(q.kat);
-  const nomalumQ: Record<string, number> = { G: 0, I: 0, K: 0, M: 0 };
-  for (const q of model.qatorlar.filter(katsizmi)) { nomalumQ.G += q.smetaSumma ?? 0; nomalumQ.I += q.faktSumma ?? 0; nomalumQ.K += q.f2Summa; nomalumQ.M += q.farqSumma ?? 0; }
+  const nomalumQ: Record<string, number> = { G: 0, I: 0, K: 0, M: 0, T: 0 };
+  for (const q of model.qatorlar.filter(katsizmi)) { nomalumQ.G += q.smetaSumma ?? 0; nomalumQ.I += q.faktSumma ?? 0; nomalumQ.K += q.f2Summa; nomalumQ.M += q.farqSumma ?? 0; nomalumQ.T += q.doplataSumma ?? 0; }
   const nomalumBor = Object.values(nomalumQ).some((x) => Math.abs(x) >= 0.005);
   const kfQ = podvalKfQatorlari(bosh + model.qatorlar.length + 2, podval, yaxlitBor, nomalumBor);
   const ndsQ = podvalQatorRaqami(bosh + model.qatorlar.length + 2, podval, 'nds', yaxlitBor, nomalumBor);
@@ -364,22 +423,48 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
       for (const [i, pv] of P) { koTaqsim.set(`${i}P`, pv); const gv = Gk.get(i); if (gv != null) koTaqsim.set(`${i}Q`, yaxlit2(pv - gv)); }
     }
   }  const koMemo = new Map<string, number | null>();
-  const koOf = (i: number, c: 'P' | 'Q'): number | null => {
+  type KoUstun = 'P' | 'Q' | 'U' | 'V' | 'W';
+  const koOf = (i: number, c: KoUstun): number | null => {
     const key = `${i}${c}`;
     if (koMemo.has(key)) return koMemo.get(key)!;
     const q = model.qatorlar[i];
     let val: number | null;
-    if (q.tur === 'barg') val = koTaqsim.has(key) ? koTaqsim.get(key)! : kOplate(c === 'P' ? q.faktSumma : q.farqSumma, nakrutkaKat(q.kat), kfJS, yax(q), ndsFoiz);
+    if (q.tur === 'barg') {
+      const kat = nakrutkaKat(q.kat);
+      const ko = (summa: number | null) => kOplate(summa, kat, kfJS, yax(q), ndsFoiz);
+      // U — smeta, V — ilgari Ф-2 (summasi noma'lum bo'lsa NULL), W = P − V (fakt к оплате − Ф-2 к оплате; + к доплате, − к снятию).
+      if (c === 'U') val = koTaqsim.has(`${i}G`) ? koTaqsim.get(`${i}G`)! : ko(q.smetaSumma);
+      else if (c === 'V') val = ko(q.f2SummaNomalum ? null : q.f2Summa);
+      else if (c === 'W') { const p = koOf(i, 'P'), f = koOf(i, 'V'); val = p == null || f == null ? null : yaxlit2(p - f); }
+      else val = koTaqsim.has(key) ? koTaqsim.get(key)! : ko(c === 'P' ? q.faktSumma : q.farqSumma);
+    }
     else if (q.tur === 'rz') val = null;
-    else { const vs = q.bolalar.map((k) => koOf(k, c)); val = !vs.length || vs.some((x) => x == null) ? null : yaxlit2(vs.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0)); }
+    // Yig'indi qatori: Excel SUM kabi — noma'lum (bo'sh) bolalar o'tkazib yuboriladi (kesh = formula); to'liqsizlik «ТРЕБУЮТ ВНИМАНИЯ» da.
+    else { const vs = q.bolalar.map((k) => koOf(k, c)); val = !vs.length ? null : yaxlit2(vs.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0)); }
     koMemo.set(key, val);
     return val;
   };
-  const koYig = (idx: readonly number[], c: 'P' | 'Q'): Qiymat => {
+  const koYig = (idx: readonly number[], c: KoUstun): Qiymat => {
     if (!idx.length) return null;
     const rows = idx.map(rowOf);
     const vs = idx.map((k) => koOf(k, c));
     return { f: sumRefs(c, rows), v: yaxlit2(vs.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0)) };
+  };
+  /** Pereraschet kataklari (S..AA) barg qatorida: fakt − Ф-2; к оплате (смета, Ф-2, доплата); yashirin Д+/С− (Свод изменений uchun). */
+  const perBarg = (q: SlichitelniyQator, i: number, n: number): Qiymat[] => {
+    const kat = nakrutkaKat(q.kat);
+    const yaxlitQqs = koTaqsim.has(`${i}P`) || yax(q) || !kat;
+    const kx: string | null = yaxlitQqs ? (ndsQ == null || ndsFoiz == null ? null : yaxKf) : kfJS[kat!] == null ? null : `F${kfQ[kat!]}`;
+    const sg = (c: 'T' | 'W', f: (s: number) => number, rf: string): Qiymat => ({ f: `IF(${c}${n}="","",${rf}(${c}${n},0))`, v: (() => { const x = c === 'T' ? q.doplataSumma : koOf(i, 'W'); return x == null ? '' : f(x); })() });
+    return [
+      { f: `IF(H${n}="","",ROUND(H${n}-J${n},6))`, v: q.doplataHajm ?? '' },
+      { f: `IF(OR(I${n}="",K${n}=""),"",ROUND(I${n}-K${n},2))`, v: q.doplataSumma ?? '' },
+      koTaqsim.has(`${i}G`) ? koTaqsim.get(`${i}G`)! : kx == null ? null : { f: `IF(G${n}="","",ROUND(G${n}*${kx},2))`, v: koOf(i, 'U') ?? '' },
+      kx == null ? null : { f: `IF(K${n}="","",ROUND(K${n}*${kx},2))`, v: koOf(i, 'V') ?? '' },
+      kx == null ? null : { f: `IF(OR(P${n}="",V${n}=""),"",ROUND(P${n}-V${n},2))`, v: koOf(i, 'W') ?? '' },
+      sg('T', (x) => Math.max(x, 0), 'MAX'), sg('T', (x) => Math.min(x, 0), 'MIN'),
+      kx == null ? null : sg('W', (x) => Math.max(x, 0), 'MAX'), kx == null ? null : sg('W', (x) => Math.min(x, 0), 'MIN'),
+    ];
   };
   const katsiz: string[] = [];
   model.qatorlar.forEach((q, i) => {
@@ -401,7 +486,7 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
         { f: `IF(OR(E${n}="",H${n}=""),"",H${n}-E${n})`, v: q.farqHajm ?? '' },
         q.yaxlitTaqsim != null ? { f: `ROUND(I${n}-G${n},2)`, v: q.farqSumma ?? '' } : { f: `IF(OR(G${n}="",I${n}=""),"",ROUND(I${n}-G${n},2))`, v: q.farqSumma ?? '' },
         q.izoh || null,
-        q.narx == null && mashinistMehnati(q) ? 0 : { f: `IF(OR(G${n}="",I${n}="",M${n}=""),1,0)`, v: q.nomalum },
+        q.narx == null && mashinistMehnati(q) ? 0 : { f: `IF(OR(G${n}="",I${n}="",M${n}="",K${n}=""),1,0)`, v: q.nomalum },
         ...((): Qiymat[] => {
           // Svod yaxlit bo'limi: ustama yo'q, faqat QQS (к оплате = прямые × (1+НДС)).
           if (koTaqsim.has(`${i}P`)) return [koTaqsim.get(`${i}P`)!, koTaqsim.get(`${i}Q`) ?? null, YAXLIT_KAT];
@@ -415,7 +500,7 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
           if (kfJS[kat] == null) return [null, null, kat]; // Kf noma'lum — bo'sh, formula yo'q
           return [{ f: `IF(I${n}="","",ROUND(I${n}*F${kfQ[kat]},2))`, v: koOf(i, 'P') ?? '' }, { f: `IF(M${n}="","",ROUND(M${n}*F${kfQ[kat]},2))`, v: koOf(i, 'Q') ?? '' }, kat];
         })(),
-        ...asosKatak(q),
+        ...perBarg(q, i, n),
       ], { daraja: q.daraja, rang: us.rang });
     } else if (q.tur === 'bl') {
       r = v.qator('ish', (n) => [
@@ -429,7 +514,8 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
         q.izoh || null,
         q.bolalar.length ? { f: sumKid(q, 'O'), v: q.nomalum } : 0,
         koYig(q.bolalar, 'P'), koYig(q.bolalar, 'Q'), null,
-        ...asosKatak(q),
+        { f: `IF(H${n}="","",ROUND(H${n}-J${n},6))`, v: q.doplataHajm ?? '' }, pulYig(q, 'T', q.doplataSumma, n),
+        koYig(q.bolalar, 'U'), koYig(q.bolalar, 'V'), koYig(q.bolalar, 'W'), null, null, null, null,
       ], { daraja: q.daraja });
     } else {
       r = v.qator('jami', (n) => [
@@ -438,10 +524,14 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
         null, { f: sumKid(q, 'K'), v: q.f2Summa }, null, pulYig(q, 'M', q.farqSumma, n), null,
         { f: sumKid(q, 'O'), v: q.nomalum },
         koYig(q.bolalar, 'P'), koYig(q.bolalar, 'Q'), null,
+        null, pulYig(q, 'T', q.doplataSumma, n),
+        koYig(q.bolalar, 'U'), koYig(q.bolalar, 'V'), koYig(q.bolalar, 'W'), null, null, null, null,
       ], { daraja: q.daraja });
     }
     if (r !== rowOf(i)) throw new Error('SLICHITELNIY_QATOR_SILJIDI');
   });
+  /** Barglarning к оплате доплата/снятие (W) — ВСЕГО dagi Z/AA va Свод uchun. */
+  const barglarKo: Array<number | null> = model.qatorlar.map((q, i) => (q.tur === 'barg' ? koOf(i, 'W') : null));
   if (model.ildizlar.length) {
     const nomalum = model.ildizlar.reduce((s, i) => s + model.qatorlar[i].nomalum, 0);
     const ref = (c: string) => sumRefs(c, model.ildizlar.map(rowOf));
@@ -453,16 +543,22 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
       { f: ref('M'), v: model.jami.farq ?? '' }, null,
       { f: ref('O'), v: nomalum },
       koYig(model.ildizlar, 'P'), koYig(model.ildizlar, 'Q'), null,
+      null, { f: ref('T'), v: model.pereraschet.net },
+      koYig(model.ildizlar, 'U'), koYig(model.ildizlar, 'V'), koYig(model.ildizlar, 'W'),
+      { f: `SUM(X${bosh}:X${bosh + model.qatorlar.length - 1})`, v: model.pereraschet.doplata },
+      { f: `SUM(Y${bosh}:Y${bosh + model.qatorlar.length - 1})`, v: model.pereraschet.snyatie },
+      { f: `SUM(Z${bosh}:Z${bosh + model.qatorlar.length - 1})`, v: yigindi2(barglarKo.map((x) => (x != null && x > 0 ? x : null))) ?? 0 },
+      { f: `SUM(AA${bosh}:AA${bosh + model.qatorlar.length - 1})`, v: yigindi2(barglarKo.map((x) => (x != null && x < 0 ? x : null))) ?? 0 },
     ]);
-    // Nakrutka podvali (смета, выполнено, принято Ф-2, отклонение) — к оплате.
+    // Nakrutka podvali (смета, выполнено, принято Ф-2, отклонение, к доплате) — к оплате.
     v.bosh();
     const katSummalar: Record<string, KatSummalar> = {};
-    for (const c of ['G', 'I', 'K', 'M'] as const) {
+    for (const c of ['G', 'I', 'K', 'M', 'T'] as const) {
       const ks = Object.fromEntries(NAKRUTKA_KATLAR.map((k) => [k, 0])) as KatSummalar;
       for (const q of model.qatorlar) {
         const kat = q.tur === 'barg' && !yax(q) ? nakrutkaKat(q.kat) : null;
         if (!kat) continue;
-        const val = c === 'G' ? q.smetaSumma : c === 'I' ? q.faktSumma : c === 'K' ? q.f2Summa : q.farqSumma;
+        const val = c === 'G' ? q.smetaSumma : c === 'I' ? q.faktSumma : c === 'K' ? q.f2Summa : c === 'M' ? q.farqSumma : q.doplataSumma;
         if (val != null) ks[kat] += val;
       }
       katSummalar[c] = ks;
@@ -480,11 +576,13 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
       const svQ = o.svodYaxlit && !o.faqatFarq ? svodYaxlitQqs(o.svodYaxlit, ndsFoiz)?.qqsBilan ?? null : null;
       const taqsimlangan = yi.some((i) => koTaqsim.has(`${i}G`));
       const gSum = taqsimlangan ? yigindi2(yi.map((i) => koTaqsim.get(`${i}G`))) : svQ ?? yaxlitKOplate(yigindi2(yi.map((i) => model.qatorlar[i].smetaSumma)), ndsFoiz) ?? 0;
-      yaxlit = { G: gSum, I: pSum, K: kSum, M: yaxlit2(pSum - gSum) };
-      yaxlitF = { I: sumif(YAXLIT_KAT, 'P'), K: `ROUND(${sumif(YAXLIT_KAT, 'K')}*${yaxKf},2)`, M: `ROUND(${sumif(YAXLIT_KAT, 'P')}-${gSum},2)` };
-    }    const nomalumP = nomalumBor ? Object.fromEntries(Object.entries(nomalumQ).map(([k, x]) => [k, yaxlit2(x)])) : null;
-    const nomalumF = nomalumBor ? Object.fromEntries(['G', 'I', 'K', 'M'].map((col) => [col, sumif(NOMALUM_KAT, col)])) : null;
-    const p = nakrutkaPodvaliYoz(v, { podval, katUstun: 'R', oraliq: [a1, b1], pulUstunlar: ['G', 'I', 'K', 'M'], foizUstun: 'F', nk, katSummalar, yaxlit, yaxlitF, nomalum: nomalumP, nomalumF });
+      yaxlit = { G: gSum, I: pSum, K: kSum, M: yaxlit2(pSum - gSum), T: yaxlit2(pSum - kSum) };
+      yaxlitF = { I: sumif(YAXLIT_KAT, 'P'), K: `ROUND(${sumif(YAXLIT_KAT, 'K')}*${yaxKf},2)`, M: `ROUND(${sumif(YAXLIT_KAT, 'P')}-${gSum},2)`,
+        T: `ROUND(${sumif(YAXLIT_KAT, 'P')}-ROUND(${sumif(YAXLIT_KAT, 'K')}*${yaxKf},2),2)` };
+    }
+    const nomalumP = nomalumBor ? Object.fromEntries(Object.entries(nomalumQ).map(([k, x]) => [k, yaxlit2(x)])) : null;
+    const nomalumF = nomalumBor ? Object.fromEntries(['G', 'I', 'K', 'M', 'T'].map((col) => [col, sumif(NOMALUM_KAT, col)])) : null;
+    const p = nakrutkaPodvaliYoz(v, { podval, katUstun: 'R', oraliq: [a1, b1], pulUstunlar: ['G', 'I', 'K', 'M', 'T'], foizUstun: 'F', nk, katSummalar, yaxlit, yaxlitF, nomalum: nomalumP, nomalumF });
     if (p.kfQator.ЧЕЛ !== kfQ.ЧЕЛ) throw new Error('SLICHITELNIY_PODVAL_SILJIDI');
     // Egasi qoidasi (2026-11-06): narxsiz barglar — jamilar yonida «итог неполный» (summa kataklari formulali — bo'sh qoladi, ro'yxat diqqat da).
     v.narxsizOgoh(narxsizSoni(model.qatorlar.filter((q) => q.tur === 'barg'), (q) => q.narx ?? q.smetaSumma));
@@ -493,51 +591,106 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
   v.izoh('Отклонение = фактически выполнено − по смете: «+» — выполнено сверх сметы, «−» — не выполнено. Стоимость граф 7, 9 и 13 — по сметным ценам (прямые затраты), без накладных расходов и НДС; графа 11 — по утвержденным актам формы № 2. Ведомость фиксирует расхождения и не изменяет сметные и фактические данные.');
   if (model.jami.smeta == null && model.ildizlar.length) v.izoh('Итоги не определены: есть позиции без количества, выполнения или цены — см. перечень ниже.');
   v.izoh('Графы 15–16 — стоимость к оплате: прямые затраты × коэффициент по виду затрат (раздел «Расчет стоимости к оплате»).');
+  v.izoh('Перерасчет (графы 17–21): к доплате (+) = фактически выполнено − ранее предъявлено по Ф-2 (графа 18 = графа 9 − графа 11; «+» — выполнено больше предъявленного, «−» — к снятию, предъявлено больше выполненного). Ранее предъявлено — утвержденные акты Ф-2 с учетом знака корректирующих (сторно) актов. Графы 19–21 — то же по стоимости к оплате (с накладными расходами и НДС); сводка по разделам — на листе «Свод изменений».');
+  if (model.qatorlar.some((q) => q.almashtirilganIdlar?.length)) v.izoh('Замена: заменяемая позиция отмечена «исключается» (факт 0), новая — «взамен поз. N»; пары связаны по привязке замены в смете.');
   if (yaxlitBor) v.izoh(YAXLIT_IZOH);
   if (Object.values(kfJS).some((x) => x == null)) v.izoh('Проценты накладных и прочих расходов для объекта не заданы — стоимость к оплате не определена (проценты не принимаются равными 0).');
   v.diqqat(model.diqqat);
   if (katsiz.length) v.diqqat(katsiz.map((nom) => ({ nom, sabab: 'не указан вид затрат — к оплате без накрутки (только НДС), в расчете отдельной строкой' })), 'ВИД ЗАТРАТ НЕ УКАЗАН');
   v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР', 'СОСТАВИЛ'], o.imzo));
-  // Fakt asosli rejim: asos holati (qator darajasida) va asoslar reestri varag'i.
   const varaqlar: RasmiyVaraq[] = [v];
-  let asosHisobot: { farqli: number; asosli: number; tasdiqlagan: number; asossiz: number } | null = null;
-  if (o.asos) {
-    let farqli = 0, asosli = 0, tasdiqlagan = 0, asossiz = 0;
-    for (const q of model.qatorlar) {
-      if (q.tur !== 'bl' && q.tur !== 'barg') continue;
-      if (q.tur === 'barg' && q.otaIdx != null && model.qatorlar[q.otaIdx]?.tur === 'bl') continue;
-      const fq = farqliMi(q.smetaHajm, q.faktHajm);
-      const r = o.asos.qator(q.id);
-      if (fq) { farqli++; if (!r) asossiz++; }
-      if (fq && r) { asosli++; if (r.asos_holat === 'tasdiqlangan') tasdiqlagan++; }
-    }
-    asosHisobot = { farqli, asosli, tasdiqlagan, asossiz };
-    v.izoh(`Основание отклонений: позиций с отклонением — ${farqli}; с основанием (АОСР) — ${asosli}; подтверждено технадзором — ${tasdiqlagan}; ${ASOS_YOQ_MATNI} — ${asossiz}. Допуск при определении отклонения — 0,0005 ед. (округление ввода).`);
-    v.izoh('Подтверждение технадзора учитывается только от внешнего контроля (заказчик, технадзор заказчика); внутренний контроль подрядчика — отдельная отметка и внешнее подтверждение не заменяет. Строки без основания не блокируют ведомость и отражаются в готовности.');
-    const reestr = new RasmiyVaraq({
-      nom: 'Реестр оснований', sarlavha: 'РЕЕСТР ДОКУМЕНТОВ-ОСНОВАНИЙ', kattaHarf: false, yonalish: 'landscape',
-      ostSarlavha: [`к сличительной ведомости по объекту ${o.obyektNomi} по состоянию на ${sanaRu}`],
+
+  // «Свод изменений» — bo'lim bo'yicha smeta / fakt / Ф-2 / к доплате / к снятию; jami: QQS bilan (asosiy), ustamali (QQS siz), ustamasiz.
+  if (model.ildizlar.length) {
+    const A = `'${ASOSIY_VARAQ}'!`;
+    const sv = new RasmiyVaraq({
+      nom: SVOD_VARAQ, sarlavha: 'СВОД ИЗМЕНЕНИЙ СТОИМОСТИ (ПЕРЕРАСЧЕТ ПО Ф-2)',
+      ostSarlavha: [`объект: ${o.obyektNomi}; по состоянию на ${sanaRu}${o.faqatFarq ? ' (только позиции с отклонениями)' : ''}`],
       ustunlar: [
-        { sarlavha: '№ п/п', kenglik: 7, tur: 'tartib' },
-        { sarlavha: '№ акта', kenglik: 14, tur: 'kod' },
-        { sarlavha: 'Дата', kenglik: 12, tur: 'birlik' },
-        { sarlavha: 'Вид работ по акту', kenglik: 44, tur: 'matn' },
-        { sarlavha: 'Статус', kenglik: 26, tur: 'matn' },
-        { sarlavha: 'Решение технадзора: кто, кем, в каком качестве', kenglik: 40, tur: 'matn' },
-        { sarlavha: 'Дата решения', kenglik: 13, tur: 'birlik' },
-        { sarlavha: 'Комментарий технадзора', kenglik: 36, tur: 'matn' },
+        { sarlavha: '№', kenglik: 6, tur: 'tartib' },
+        { sarlavha: 'Раздел сметы', kenglik: 54, tur: 'matn' },
+        { sarlavha: 'По смете', kenglik: 21, tur: 'pul' },
+        { sarlavha: 'Фактически выполнено', kenglik: 21, tur: 'pul' },
+        { sarlavha: 'Ранее предъявлено по Ф-2', kenglik: 21, tur: 'pul' },
+        { sarlavha: 'К доплате (+)', kenglik: 21, tur: 'pul' },
+        { sarlavha: 'К снятию (−)', kenglik: 21, tur: 'pul' },
+        { sarlavha: 'Итого перерасчет (±)', kenglik: 21, tur: 'pul' },
+        { sarlavha: 'Требуют внимания, поз.', kenglik: 12, tur: 'hajm' },
       ],
+      yonalish: 'landscape',
     });
-    o.asos.aosrlar().forEach((a, i) => {
-      const sana = (s: string | null | undefined) => (s ? s.slice(0, 10).split('-').reverse().join('.') : '');
-      reestr.qator('oddiy', [i + 1, a.raqam ?? String(a.id), sana(a.sana), a.ish_nomi ?? '', holatMatni(a.asos_holat), a.qaror_vaqti ? qarorEgasi(a) : '', sana(a.qaror_vaqti), a.qaror_izoh ?? '']);
-    });
-    reestr.bosh();
-    reestr.izoh('Реестр составлен по актам, привязанным к позициям ведомости (графа «Основание»). Статус «принят» устанавливает только решение принимающей стороны в системе; «подписан на бумаге» — акт, подписанный в бумажном виде.');
-    varaqlar.push(reestr);
+    const yaprok = (i: number): number[] => { const r = model.qatorlar[i]; return r.tur === 'barg' ? [i] : r.bolalar.flatMap(yaprok); };
+    const diap = (i: number): [number, number] => {
+      let lo = i, hi = i;
+      const yur = (k: number) => { lo = Math.min(lo, k); hi = Math.max(hi, k); model.qatorlar[k].bolalar.forEach(yur); };
+      yur(i);
+      return [lo, hi];
+    };
+    const koSum = (i: number, c: KoUstun): number => { const r = model.qatorlar[i]; return r.tur === 'barg' ? koOf(i, c) ?? 0 : yaxlit2(r.bolalar.reduce((s, k) => s + koSum(k, c), 0)); };
+    const bolimNomi = (r: SlichitelniyQator) => (r.tur === 'itogo' ? r.nom.replace(/^ИТОГО ПО РАЗДЕЛУ:\s*/, '') : r.nom);
+    const ustunHarf = ['C', 'D', 'E', 'F', 'G', 'H'] as const;
+    type Satr = { sm: number | null; fk: number | null; f2: number | null; plus: number; minus: number; net: number | null };
+    const pryamyeSatr = (ri: number): Satr => {
+      const r = model.qatorlar[ri];
+      const d = yaprok(ri).map((k) => model.qatorlar[k].doplataSumma);
+      return { sm: r.smetaSumma, fk: r.faktSumma, f2: r.f2Summa, plus: yigindi2(d.map((x) => (x != null && x > 0 ? x : null))) ?? 0, minus: yigindi2(d.map((x) => (x != null && x < 0 ? x : null))) ?? 0, net: r.doplataSumma };
+    };
+    const qqsSatr = (ri: number): Satr => {
+      const d = yaprok(ri).map((k) => koOf(k, 'W'));
+      return { sm: koSum(ri, 'U'), fk: koSum(ri, 'P'), f2: koSum(ri, 'V'), plus: yigindi2(d.map((x) => (x != null && x > 0 ? x : null))) ?? 0, minus: yigindi2(d.map((x) => (x != null && x < 0 ? x : null))) ?? 0, net: koSum(ri, 'W') };
+    };
+    const blok = (sarlavha: string, rejim: 'qqs' | 'ustamali' | 'pryamye', qqsQatorlar: readonly number[] | null): number[] => {
+      sv.bolim(sarlavha, { daraja: 0 });
+      const manba = rejim === 'pryamye' ? ['G', 'I', 'K', 'X', 'Y', 'T'] : ['U', 'P', 'V', 'Z', 'AA', 'W'];
+      const satrlar: number[] = [];
+      const jamiQiym: Array<number | null> = [0, 0, 0, 0, 0, 0];
+      model.ildizlar.forEach((ri, k) => {
+        const r = model.qatorlar[ri];
+        const s = rejim === 'pryamye' ? pryamyeSatr(ri) : qqsSatr(ri);
+        const [lo, hi] = diap(ri);
+        const qiym: Array<number | null> = [s.sm, s.fk, s.f2, s.plus, s.minus, s.net];
+        const nds = ndsFoiz ?? 0;
+        const sr = sv.qator('oddiy', (n) => [
+          k + 1, bolimNomi(r),
+          ...qiym.map((x, j): Qiymat => {
+            if (rejim === 'ustamali') {
+              const bu = `${ustunHarf[j]}${qqsQatorlar![k]}`;
+              return { f: `IF(${bu}="","",ROUND(${bu}*100/(100+${A}F${ndsQ}),2))`, v: x == null ? '' : qqsSizNarx(x, nds) };
+            }
+            const f = j === 3 || j === 4 ? `SUM(${A}${manba[j]}${rowOf(lo)}:${manba[j]}${rowOf(hi)})` : `${A}${manba[j]}${rowOf(ri)}`;
+            return { f, v: x ?? '' };
+          }),
+          rejim === 'pryamye' ? { f: `${A}O${rowOf(ri)}`, v: r.nomalum } : null,
+        ]);
+        satrlar.push(sr);
+        qiym.forEach((x, j) => { jamiQiym[j] = (jamiQiym[j] ?? 0) + (rejim === 'ustamali' ? (x == null ? 0 : qqsSizNarx(x, nds)) : x ?? 0); });
+      });
+      sv.qator('vsego', () => [
+        null, 'ВСЕГО ПО ОБЪЕКТУ',
+        ...ustunHarf.map((h, j): Qiymat => ({ f: sumRefs(h, satrlar), v: yaxlit2(jamiQiym[j] ?? 0) })),
+        rejim === 'pryamye' ? { f: sumRefs('I', satrlar), v: model.ildizlar.reduce((t, i) => t + model.qatorlar[i].nomalum, 0) } : null,
+      ]);
+      sv.bosh();
+      return satrlar;
+    };
+    const qqsBor = ndsQ != null && ndsFoiz != null;
+    let qqsQ: number[] = [];
+    if (qqsBor) {
+      qqsQ = blok('С НАКЛАДНЫМИ РАСХОДАМИ И НДС (стоимость к оплате)', 'qqs', null);
+      blok('С НАКЛАДНЫМИ РАСХОДАМИ (БЕЗ НДС)', 'ustamali', qqsQ);
+    }
+    blok('ПРЯМЫЕ ЗАТРАТЫ (БЕЗ НАКРУТКИ, БЕЗ НДС)', 'pryamye', null);
+    sv.izoh('К доплате (+) — выполнено больше, чем предъявлено по Ф-2; к снятию (−) — предъявлено по Ф-2 больше, чем выполнено. «Ранее предъявлено по Ф-2» — сумма утвержденных актов Ф-2 с учетом знака корректирующих (сторно) актов; сумма выполнения при наличии Ф-2 — по цене утвержденной Ф-2, иначе по сметной цене.');
+    sv.izoh('Сумма к доплате и к снятию — по позициям (положительные и отрицательные разницы раздела суммируются отдельно, взаимно не погашаются). Итого перерасчет (±) = факт − предъявлено по Ф-2.');
+    if (!qqsBor) sv.izoh('Ставка НДС / накладные расходы объекта не заданы — блоки «с накладными и НДС» не формируются (проценты не принимаются равными 0).');
+    else if (Object.values(kfJS).some((x) => x == null)) sv.izoh('Часть процентов накладных расходов не задана — позиции этих видов затрат в блоках «с накладными» пустые (не 0).');
+    const nomSoni = model.ildizlar.reduce((t, i) => t + model.qatorlar[i].nomalum, 0);
+    if (nomSoni) sv.izoh(`Итог неполный: позиций, требующих внимания (нет количества, цены, выполнения или суммы Ф-2) — ${nomSoni}; они в суммы не включены (пустые, не 0) — перечень на листе «${ASOSIY_VARAQ}».`);
+    varaqlar.push(sv);
   }
-  // Smetada yo'q bajarilgan ishlar (qo'shimcha / zamena): alohida bo'lim (sukut) — buyurtmachi shuni alohida ko'rishni xohlaydi.
-  if ((o.vneSmeta ?? 'alohida') === 'alohida') {
+
+  // Alohida «Работы вне сметы» varag'i — faqat so'rovga ko'ra (asosiy varaqda «ДОПОЛНИТЕЛЬНЫЕ РАБОТЫ» bo'limi va zamena juftlari bor).
+  if (o.vneSmeta === 'alohida') {
     const vne = model.qatorlar.filter((q) => (q.qoshimcha || q.zamena) && (q.tur === 'bl' || q.tur === 'barg') && q.faktHajm != null && q.faktHajm !== 0
       && !(q.tur === 'barg' && q.otaIdx != null && model.qatorlar[q.otaIdx]?.tur === 'bl'));
     if (vne.length) {
@@ -548,22 +701,20 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
           { sarlavha: '№ п/п', kenglik: 7, tur: 'tartib' }, { sarlavha: 'Шифр, код', kenglik: 14, tur: 'kod' }, { sarlavha: 'Наименование работ', kenglik: 46, tur: 'matn' },
           { sarlavha: 'Ед. изм.', kenglik: 9, tur: 'birlik' }, { sarlavha: 'Вид', kenglik: 18, tur: 'matn' }, { sarlavha: 'Выполнено, кол-во', kenglik: 14, tur: 'hajm' },
           { sarlavha: 'Цена за ед., сум', kenglik: 16, tur: 'narx' }, { sarlavha: 'Сумма выполнено, сум', kenglik: 20, tur: 'pul' },
-          ...(o.asos ? [{ sarlavha: 'Основание (АОСР, решение технадзора)', kenglik: 48, tur: 'matn' } as RasmiyUstun] : []),
         ],
       });
       const bosh2 = vv.malumotBoshi;
       vne.forEach((q, i) => {
-        vv.qator('oddiy', [i + 1, q.kod, q.nom, q.birlik, q.qoshimcha ? 'дополнительная работа' : 'замена', qiy(q.faktHajm), qiy(q.narx), qiy(q.faktSumma),
-          ...(o.asos ? [asosMatniQator(o.asos, q.id, true, q.faktHajm) || null] : [])]);
+        vv.qator('oddiy', [i + 1, q.kod, q.nom, q.birlik, q.qoshimcha ? 'дополнительная работа' : 'замена', qiy(q.faktHajm), qiy(q.narx), qiy(q.faktSumma)]);
       });
       const summa = yigindi2(vne.map((q) => q.faktSumma));
-      vv.qator('jami', (n) => [null, null, 'ИТОГО', null, null, null, null, { f: sumRefs('H', vne.map((_, i) => bosh2 + i)), v: summa ?? '' }, ...(o.asos ? [null] : [])]);
+      vv.qator('jami', () => [null, null, 'ИТОГО', null, null, null, null, { f: sumRefs('H', vne.map((_, i) => bosh2 + i)), v: summa ?? '' }]);
       vv.bosh();
       vv.izoh('Работы, которых нет в смете (дополнительные и замена): стоимость по сметным ценам (прямые затраты), без накладных расходов и НДС; в основной ведомости эти строки также отмечены.');
       varaqlar.push(vv);
     }
   }
   const { bytes } = rasmiyKitob(varaqlar, { tur: 'slichitelniy' });
-  const kv = (c: 'P' | 'Q') => { const x = model.ildizlar.map((i) => koOf(i, c)); return x.length ? yigindi2Qatiy(x) : null; };
-  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNomi, hujjat: 'СЛИЧИТЕЛЬНАЯ_ВЕДОМОСТЬ', davr: sana }), kOplata: { fakt: kv('P'), farq: kv('Q') }, asos: asosHisobot };
+  const kv = (c: 'P' | 'Q' | 'W') => { const x = model.ildizlar.map((i) => koOf(i, c)); return x.length ? yigindi2Qatiy(x) : null; };
+  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNomi, hujjat: 'СЛИЧИТЕЛЬНАЯ_ВЕДОМОСТЬ', davr: sana }), kOplata: { fakt: kv('P'), farq: kv('Q'), doplata: kv('W') } };
 }

@@ -16,8 +16,6 @@ import { ostatkaHujjatModeli, ostatkaHujjatXlsx, ostatkaIstisnolari, type Ostatk
 import { slichitelniyHujjatXlsx, slichitelniyModeli, type SlichitelniyModel } from '../slichitelniy-vedomost';
 import { yaxlitQatorIdlari } from '../svod-yaxlit';
 import type { ImzoNomlar } from '../hujjat-yozuvchi';
-import { AsosXarita } from '../slichitelniy-asos';
-import { slichitelniyAsosOl } from '../../api/t2-slichitelniy-asos';
 import type { NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
 import type { Podval } from '../nakrutka-konstruktor';
 import type { SvodYaxlit } from '../svod-yaxlit';
@@ -76,14 +74,14 @@ export function ostatkaHujjatQur(k: OstatkaKirish): { model: OstatkaModel; fayl:
   return { model, fayl: { bytes, faylNomi } };
 }
 
-export type SlichitelniyKirish = OstatkaKirish & { faqatFarq?: boolean; /** Fakt asosli rejim: «Основание» ustuni + asoslar reestri (RPC o'qilmasa berilmaydi). */ asos?: AsosXarita | null };
+export type SlichitelniyKirish = OstatkaKirish & { faqatFarq?: boolean };
 
 export function slichitelniyHujjatQur(k: SlichitelniyKirish): { model: SlichitelniyModel; fayl: { bytes: Uint8Array; faylNomi: string } | null } {
   const faqatFarq = k.faqatFarq ?? false;
   const model = slichitelniyModeli(k.rows as T2Qator[], k.states as T2QatorHolat[], { faqatFarq, istisnolar: k.istisnolar, svodYaxlit: k.ustama.svodYaxlit });
   if (!model.barglar) return { model, fayl: null };
   const { bytes, faylNomi } = slichitelniyHujjatXlsx(model, { obyektNomi: k.obyektNom, imzo: k.imzo, faqatFarq, istisnolar: k.istisnolar, nakrutka: k.ustama.koeffitsientlar, podval: k.ustama.podval, nkManba: k.ustama.nkManba,
-    svodYaxlit: k.ustama.svodYaxlit, yaxlitIdlar: yaxlitQatorIdlari(k.rows, k.ustama.svodYaxlit), asos: k.asos ?? null });
+    svodYaxlit: k.ustama.svodYaxlit, yaxlitIdlar: yaxlitQatorIdlari(k.rows, k.ustama.svodYaxlit) });
   return { model, fayl: { bytes, faylNomi } };
 }
 
@@ -98,10 +96,7 @@ export async function ostatkaPaketFayli(p: { kompaniyaId: number; obyektId: numb
   const u = await ustamaManbaOl(p.kompaniyaId, p.obyektId);
   if (!u.ok) return { ok: false, xato: u.xato };
   const kirish: OstatkaKirish = { rows: d.rows, states: d.states, istisnolar, ustama: u.ustama, obyektNom: p.obyektNom, imzo: p.imzo };
-  // Slichitelniy paketda ham sahifa bilan BIR XIL quruvchi: asoslar o'qilsa «Основание» ustuni + reestr; o'qilmasa — asossiz (jim yiqilmaydi, sahifada ogohlantiriladi).
-  let asos: AsosXarita | null = null;
-  if (p.tur === 'slichitelniy') { const j = await slichitelniyAsosOl(p.kompaniyaId, p.obyektId, 1).catch(() => null); asos = j && j.ok ? new AsosXarita(j) : null; }
-  const r = p.tur === 'ostatka' ? ostatkaHujjatQur(kirish) : slichitelniyHujjatQur({ ...kirish, asos });
+  const r = p.tur === 'ostatka' ? ostatkaHujjatQur(kirish) : slichitelniyHujjatQur(kirish);
   if (!r.fayl) return { ok: false, bosh: true, xato: p.tur === 'ostatka' ? 'ostatka yo‘q (barcha ishlar bajarilgan)' : 'solishtiriladigan pozitsiya yo‘q' };
   return { ok: true, nom: r.fayl.faylNomi, bytes: r.fayl.bytes };
 }

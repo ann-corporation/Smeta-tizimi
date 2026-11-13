@@ -26,13 +26,12 @@ import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { useQaytaUlanish } from '../../desktop/qayta-ulanish';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { ostatkaHujjatQur, slichitelniyHujjatQur, ustamaManbaOl } from '../../lib/oylik-hujjat/ostatka-slichitelniy';
-import { slichitelniyAsosOl } from '../../api/t2-slichitelniy-asos';
-import { AsosXarita } from '../../lib/slichitelniy-asos';
 import { slichitelniyModeli } from '../../lib/slichitelniy-vedomost';
 import { zanjirDaraxtdan } from '../../lib/zanjir/qadamlar';
 import { tolovHolatiSvoddan, type TolovHolati } from '../../lib/zanjir/tolovHolati';
 import { shartnomaSvodOl } from '../../api/t2-nakopitelniy';
 import { SlichitelniyTayyorlik } from './SlichitelniyTayyorlik';
+import { SlichitelniyTsikl } from './SlichitelniyTsikl';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { toast } from '../../umumiy/ui/Toast';
@@ -316,10 +315,8 @@ export function HolatNative() {
     try {
       const u = await ustamaManbaOl(joriy.id, obyektId);
       if (!u.ok) { setError(`Slichitelniy: ${u.xato} — hujjat tuzilmadi. Qayta urinib ko‘ring.`); return; }
-      // Fakt asosli rejim: har farq qatoriga АОСР/texnadzor asosi. O'qilmasa — hujjat asosiz (oldingi ko'rinish) chiqadi, sababi aytiladi.
-      const asosJavob = await slichitelniyAsosOl(joriy.id, obyektId, 1);
-      if (!asosJavob.ok) toast(`: . `, 'warn');
-      const { model, fayl } = slichitelniyHujjatQur({ rows: daraxtXom, states: holatXom, istisnolar, ustama: u.ustama, obyektNom, imzo: tomonlar, faqatFarq: slichFaqatFarq, asos: asosJavob.ok ? new AsosXarita(asosJavob) : null });
+      // Egasi (2026-11-14): «Asos» (АОСР) ustuni hujjatda kerak emas; asos tayyorligi ichki panelda (SlichitelniyTayyorlik) qoladi.
+      const { model, fayl } = slichitelniyHujjatQur({ rows: daraxtXom, states: holatXom, istisnolar, ustama: u.ustama, obyektNom, imzo: tomonlar, faqatFarq: slichFaqatFarq });
       if (!fayl) { toast(slichFaqatFarq ? 'Farq yo‘q: barcha pozitsiyalarda fakt smeta bilan teng.' : 'Solishtiriladigan pozitsiya yo‘q.', 'warn'); return; }
       const { bytes, faylNomi } = fayl;
       const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes, hujjat: 'SLICHITELNIY', sabab: `Сличительная ведомость · ${obyektNom}`, obyekt: obyektId },
@@ -470,6 +467,16 @@ export function HolatNative() {
               <span className="ml-auto text-[11.5px] font-normal text-text-mute">{ochiqPanel === 'tayyorlik' ? t('yopish ▴') : t('ochish ▾')}</span>
             </summary>
             {ochiqPanel === 'tayyorlik' && <div className="border-t border-border px-4 py-3"><SlichitelniyTayyorlik kompaniyaId={joriy.id} obyektId={obyektId} /></div>}
+          </details>
+        )}
+        {daraxtKorinadi && !loading && !error && activeTab === 'smeta' && panellar && joriy?.id != null && (
+          <details className="fz-card" open={ochiqPanel === 'tsikl'} onToggle={(e) => setOchiqPanel(e.currentTarget.open ? 'tsikl' : null)}>
+            <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-[13px] font-semibold text-text">
+              <Info size={15} aria-hidden="true" className="text-text-mute" />
+              <span>{t('Slichitelniy sikli: к доплате / к снятию → Ф-2 qoralama')}</span>
+              <span className="ml-auto text-[11.5px] font-normal text-text-mute">{ochiqPanel === 'tsikl' ? t('yopish ▴') : t('ochish ▾')}</span>
+            </summary>
+            {ochiqPanel === 'tsikl' && <div className="border-t border-border px-4 py-3"><SlichitelniyTsikl kompaniyaId={joriy.id} obyektId={obyektId} /></div>}
           </details>
         )}
         {daraxtKorinadi && !loading && !error && activeTab === 'smeta' && panellar && (
