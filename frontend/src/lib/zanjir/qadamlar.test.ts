@@ -42,7 +42,7 @@ describe('zanjirHisobla — tavsiya mantig‘i', () => {
   it('fakt qoralamada — faktni yakunlang; keyingi qadamlar blocked', () => {
     const k = tayyor({ faktQoralama: 2, aosr: { yashirin: 2, aktsiz: 1 }, f2BuOyda: false, f2TasdiqBuOyda: 0, forma3: null });
     expect(zanjirHisobla(k).keyingi).toMatchObject({ id: 'fakt', amal: 'Faktni yakunlang' });
-    expect(holatlar(k)).toMatchObject({ aosr: 'blocked', f2: 'blocked' });
+    expect(holatlar(k)).toMatchObject({ aosr: 'not_started', f2: 'not_started' }); // saqlangan fakt bor — qoralama obyekt darajasidagi qadamlarni to‘smaydi
   });
   it('fakt bor, АОСР siz yashirin ish bor — F2 dan OLDIN АОСР tavsiya; F2 not_started (blocked emas)', () => {
     const k = tayyor({ aosr: { yashirin: 3, aktsiz: 2 }, f2BuOyda: false, f2TasdiqBuOyda: 0, forma3: null, tolovYozilgan: null });
@@ -150,10 +150,60 @@ describe('zanjirKirishYasa (akt reestridan)', () => {
   it('bekor qilingan F2 hisobga olinmaydi; boshqa oydagi F2 shu oyni yopmaydi', () => {
     const k = zanjirKirishYasa({ obyekt: { jami: 5, narxsiz: 0 }, aktlar: [akt({}), akt({ tur: 'f2', holat: 'bekor' }), akt({ tur: 'f2', oy: '2026-10-01' })], oy: '2026-11', aosr: { yashirin: 0, aktsiz: 0 } });
     expect(k.f2BuOyda).toBe(false);
-    expect(zanjirHisobla(k).keyingi?.id).toBe('f2');
+    const f2 = zanjirHisobla(k).qadamlar.find((q) => q.id === 'f2')!;
+    expect(f2.holat).toBe('not_started');
+    expect(f2.izoh).toBe('Bu oyda yo‘q · jami 1 ta tasdiqlangan F-2 (oxirgisi 2026-10)');
   });
   it('fakt qoralama va saqlangan alohida sanaladi', () => {
     const k = zanjirKirishYasa({ obyekt: { jami: 5, narxsiz: 0 }, aktlar: [akt({}), akt({ holat: 'qoralama' })], oy: '2026-11' });
     expect(k).toMatchObject({ faktSaqlangan: 1, faktQoralama: 1 });
+  });
+});
+
+describe('zanjirHisobla — obyekt darajasi vs oy darajasi (Stella va haykal xatosi)', () => {
+  const akt = (o: Partial<MarkazAkt>): MarkazAkt => ({ tur: 'fakt', holat: 'tasdiqlangan', lifecycle_status: null, oy: '2026-03-01', yaratildi: '2026-03-03T10:00:00Z', hujjat_jami: 1, yozilgan_jami: 1, ...o });
+  /** O‘tgan oylarda tasdiqlangan F-2 lar va saqlangan fakt, joriy oyda faqat 2 fakt qoralama. */
+  const stella = () => zanjirKirishYasa({
+    obyekt: { jami: 100, narxsiz: 62 },
+    aktlar: [
+      akt({}), akt({ oy: '2025-07-01' }),
+      akt({ tur: 'f2', oy: '2025-07-01' }), akt({ tur: 'f2', oy: '2026-02-01' }), akt({ tur: 'f2', oy: '2026-03-01' }),
+      akt({ holat: 'qoralama', oy: '2026-11-01' }), akt({ holat: 'qoralama', oy: '2026-11-01' }),
+    ],
+    oy: '2026-11',
+    aosrReestr: { jami: 34, boglanmagan: 0 },
+    slichitelniy: { farqli: 9, barglar: 40 },
+  });
+  const qadam = (id: string) => zanjirHisobla(stella()).qadamlar.find((q) => q.id === id)!;
+  it('hech qaysi qadam «Avval … kerak» bilan bloklanmaydi', () => {
+    for (const q of zanjirHisobla(stella()).qadamlar) {
+      expect(q.holat).not.toBe('blocked');
+      expect(q.izoh).not.toMatch(/Avval/);
+    }
+  });
+  it('АОСР — obyekt darajasida jami soni; Slichitelniy — ochiq, farq va F-2 soni bilan', () => {
+    expect(qadam('aosr')).toMatchObject({ holat: 'done', izoh: '34 ta АОСР, hammasi ishga bog‘langan' });
+    expect(qadam('slichitelniy')).toMatchObject({ holat: 'not_started' }); // smeta (62 narxsiz) hozirgi qadam, slichitelniy bloklanmagan
+    expect(qadam('slichitelniy').izoh).toBe('9 qatorda farq bor · 3 ta tasdiqlangan F-2');
+  });
+  it('АОСР bog‘lanmaganlar soni ko‘rsatiladi', () => {
+    const k = { ...stella(), aosrReestr: { jami: 34, boglanmagan: 5 } };
+    expect(zanjirHisobla(k).qadamlar.find((q) => q.id === 'aosr')).toMatchObject({ holat: 'not_started', izoh: '34 ta АОСР, 5 tasi ishga bog‘lanmagan' });
+  });
+  it('F-2 va Forma 3 — «Bu oyda yo‘q» + yig‘ma (oxirgi oy), zanjirni to‘smaydi', () => {
+    expect(qadam('f2')).toMatchObject({ holat: 'not_started', izoh: 'Bu oyda yo‘q · jami 3 ta tasdiqlangan F-2 (oxirgisi 2026-03)' });
+    expect(qadam('f3')).toMatchObject({ holat: 'not_started' });
+    expect(qadam('f3').izoh).toBe('Bu oyda yo‘q · jami 3 ta tasdiqlangan F-2 (oxirgisi 2026-03)');
+  });
+  it('fakt qoralamasi ko‘rinadi, lekin saqlangan faktlar soni bilan', () => {
+    expect(qadam('fakt').izoh).toBe('2 ta fakt qoralamada · 2 ta saqlangan');
+  });
+  it('obyektda umuman fakt yo‘q — eski «Avval fakt kerak» saqlanadi', () => {
+    const k = zanjirKirishYasa({ obyekt: { jami: 100, narxsiz: 0 }, aktlar: [], oy: '2026-11', aosrReestr: { jami: 0, boglanmagan: 0 } });
+    const h = Object.fromEntries(zanjirHisobla(k).qadamlar.map((q) => [q.id, q]));
+    expect(h.aosr).toMatchObject({ holat: 'blocked', izoh: 'Avval fakt kerak' });
+    expect(h.f2).toMatchObject({ holat: 'blocked', izoh: 'Avval fakt kerak' });
+    expect(h.f3).toMatchObject({ holat: 'blocked', izoh: 'Avval F2 tasdiqlanishi kerak' });
+    expect(h.slichitelniy).toMatchObject({ holat: 'blocked', izoh: 'Avval F2 tasdiqlanishi kerak' });
   });
 });
