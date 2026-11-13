@@ -7,7 +7,14 @@ import { sbZayavkaYoz } from '../../api/t2-zayavka';
 import { tolovYoz } from '../../api/t2-nakopitelniy';
 import { sbArxivla } from '../../api/t2-arxiv';
 import { sbFaktYoz } from '../../api/t2-fakt';
-import { aloqalarOl, murojaatTurlariOl, murojaatYarat, taqdimlarOl, taqdimQarori, taqdimYubor } from '../../api/t2-tomon';
+import { aloqalarOl, kodBilanQabul, murojaatTurlariOl, murojaatYarat, taqdimlarOl, taqdimQarori, taqdimYubor } from '../../api/t2-tomon';
+import { hrOylikAmal } from '../../api/t2-hr';
+import { sbT2AktReestrOl, sbT2AktTasdiqlash } from '../../api/supabase';
+import { buyurtmaQabul, buyurtmaTafsilotOl, buyurtmalarOl } from '../../api/t2-buyurtma';
+import { chizmalarOl, revizyaChiqar } from '../../api/t2-loyihachi';
+import { pulXarajatKirit } from '../../api/t2-pul-tahlil';
+import { sozlar } from '../yordamchi/matn';
+import { katOl } from '../yordamchi/vosita/yordam';
 import { hujjatRoyxatOl } from '../../api/t2-hujjat-canonical';
 import { sorovYubor } from '../../api/t2-lab-sorov';
 import { buxDavr } from '../../api/t2-bux-hisob';
@@ -192,6 +199,93 @@ export const IJROCHILAR: Readonly<Record<string, Ijrochi>> = {
     ijro: async (p) => {
       const r = await sbArxivla('obyekt', Number(p.obyekt));
       return r.ok ? { ok: true, xabar: 'Obyekt Korzinkaga yuborildi.', havola: '/admin/korzinka' } : { ok: false, xabar: xato(r, 'Arxivlanmadi.') };
+    },
+  },
+  /* ── 2-qism: avval faqat navigatsiya bo'lgan amallar — endi ijro etiladi (mavjud API klientlari, operation_id, ruxsat serverda) ── */
+  /* 13) Oylikni hisoblash (tabel bo'yicha, qoralama hisob — tasdiq alohida sahifada) */
+  'hr.tabel': {
+    korinish: (p) => ({ matn: `${String(p.oy)} oyi uchun oylik HISOBLANADI (tabel asosida). Hisob tasdiqlanmaydi - tasdiqlash Kadrlar sahifasida.` }),
+    ijro: async (p, ctx, operationId) => {
+      if (ctx.kompaniyaId == null) return { ok: false, xabar: 'Kompaniya tanlanmagan.' };
+      if (!/^\d{4}-\d{2}$/.test(String(p.oy))) return { ok: false, xabar: 'Oyni YYYY-OO ko\'rinishida yozing (masalan 2026-10).' };
+      const r = await hrOylikAmal({ kompaniyaId: ctx.kompaniyaId, oy: String(p.oy), amal: 'hisobla', operationId });
+      return (r as { ok?: boolean }).ok ? { ok: true, xabar: `${String(p.oy)} oylik hisoblandi.`, havola: '/admin/hr' } : { ok: false, xabar: xato(r as { error?: string; xabar?: string }, 'Oylik hisoblanmadi.') };
+    },
+  },
+  /* 14) Tomon taklif kodi bilan aloqani qabul qilish */
+  'tomon.aloqa': {
+    korinish: (p) => ({ matn: `Taklif kodi bilan aloqa QABUL QILINADI: ${String(p.kod)}. Tomon sizning hujjat va obyektlaringizni faqat o'zingiz bergan ruxsat doirasida ko'radi.` }),
+    ijro: async (p, ctx) => {
+      if (ctx.kompaniyaId == null) return { ok: false, xabar: 'Kompaniya tanlanmagan.' };
+      const r = await kodBilanQabul(ctx.kompaniyaId, String(p.kod).trim());
+      return tomonNatija(r, 'Aloqa qabul qilindi.', '/admin/kontragentlar', 'Kod qabul qilinmadi.');
+    },
+  },
+  /* 15) F2 qoralamasini tasdiqlash (muzlaydi) — ikki tasdiq */
+  'f2.tasdiqlash': {
+    nomzod: {
+      akt: async (p, _ctx, s) => {
+        const r = await sbT2AktReestrOl(Number(p.obyekt), 'f2');
+        if (!r.ok) return [];
+        const mos = (r.qatorlar ?? []).filter((a) => a.holat === 'qoralama');
+        s.malumot.aktlar = Object.fromEntries(mos.map((a) => [String(a.id), a.raqam ?? String(a.id)]));
+        return mos.slice(0, 3).map((a): Nomzod => ({ id: a.id, nom: `F2 № ${a.raqam ?? a.id} (${String(a.oy).slice(0, 7)})` }));
+      },
+    },
+    korinish: (p, ctx, s) => ({ matn: `F2 TASDIQLANADI: ${String((s?.malumot.aktNom as string) ?? `#${String(p.akt)}`)} - obyekt: ${obyektNomi(ctx, p.obyekt)}. Tasdiqlangach F2 muzlaydi (nakopitelniy/F3 shundan hisoblanadi).` }),
+    ijro: async (p, _ctx, operationId) => {
+      const r = await sbT2AktReestrOl(Number(p.obyekt), 'f2');
+      const akt = r.ok ? (r.qatorlar ?? []).find((a) => a.id === Number(p.akt)) : undefined;
+      if (!akt) return { ok: false, xabar: 'F2 topilmadi yoki yangilangan - qayta urinib ko\'ring.' };
+      if (akt.holat !== 'qoralama') return { ok: false, xabar: 'Bu F2 endi qoralama emas - tasdiqlab bo\'lmaydi.' };
+      const t = await sbT2AktTasdiqlash(akt.id, akt.versiya, operationId);
+      return (t as { ok?: boolean }).ok ? { ok: true, xabar: 'F2 tasdiqlandi.', havola: '/admin/f2-tarix' } : { ok: false, xabar: xato(t as { error?: string }, 'F2 tasdiqlanmadi.') };
+    },
+  },
+  /* 16) Buyurtmani TO'LIQ qabul qilish (xaridor): topshirilgan buyurtma, hamma qator to'liq keldi */
+  'buyurtma.qabul': {
+    nomzod: {
+      buyurtma: async (_p, ctx) => {
+        if (ctx.kompaniyaId == null) return [];
+        const r = await buyurtmalarOl({ kompaniyaId: ctx.kompaniyaId, yonalish: 'meniki', holat: 'topshirildi', limit: 5 });
+        return r.ok ? r.qatorlar.slice(0, 3).map((b): Nomzod => ({ id: b.id, nom: `Buyurtma #${b.id} (${b.tur}, ${b.qator_soni} qator)` })) : [];
+      },
+    },
+    korinish: (p) => ({ matn: `Buyurtma #${String(p.buyurtma)} TO'LIQ QABUL qilinadi: hamma qator buyurtma miqdorida keldi deb yoziladi. Kam yoki shikastlangan qator bo'lsa - bekor qiling va logistika sahifasida qator bo'yicha yozing.` }),
+    ijro: async (p, ctx, operationId) => {
+      if (ctx.kompaniyaId == null) return { ok: false, xabar: 'Kompaniya tanlanmagan.' };
+      const t = await buyurtmaTafsilotOl(ctx.kompaniyaId, Number(p.buyurtma));
+      if (!t.ok) return { ok: false, xabar: t.error ?? 'Buyurtma o\'qilmadi.' };
+      if (t.buyurtma.holat !== 'topshirildi') return { ok: false, xabar: 'Buyurtma holati o\'zgargan - sahifani yangilab ko\'ring.' };
+      const r = await buyurtmaQabul(ctx.kompaniyaId, { buyurtmaId: t.buyurtma.id, kutilganVersiya: t.buyurtma.versiya, qatorlar: t.qatorlar.map((q) => ({ buyurtma_qator_id: q.id, qabul_miqdor: q.miqdor, holat: 'butun' as const })) }, operationId);
+      return r.ok ? { ok: true, xabar: 'Buyurtma qabul qilindi.', havola: '/admin/logistika' } : { ok: false, xabar: r.error ?? 'Amal bajarilmadi.' };
+    },
+  },
+  /* 17) Chizma revizyasini tomonga chiqarish — ikki tasdiq */
+  'chizma.chiqar': {
+    nomzod: {
+      revizya: async (p, ctx) => {
+        if (ctx.kompaniyaId == null) return [];
+        const r = await chizmalarOl(ctx.kompaniyaId, Number(p.obyekt));
+        if (!r.ok) return [];
+        return r.natija.toplamlar.flatMap((tp) => tp.revizyalar.filter((v) => v.holat === 'qoralama').map((v): Nomzod => ({ id: v.id, nom: `${tp.marka} ${tp.varaq} - ${v.revizya}-revizya (qoralama)` }))).slice(0, 3);
+      },
+      aloqa: async (_p, ctx, s) => aloqaNomzod(ctx, s.matn),
+    },
+    korinish: (p, ctx) => ({ matn: `Chizma revizyasi CHIQARILADI: revizya #${String(p.revizya)} -> aloqa #${String(p.aloqa)}, obyekt: ${obyektNomi(ctx, p.obyekt)}. Chiqarilgach tomon ko'radi va qaror beradi.` }),
+    ijro: async (p, ctx) => {
+      if (ctx.kompaniyaId == null) return { ok: false, xabar: 'Kompaniya tanlanmagan.' };
+      const r = await revizyaChiqar(ctx.kompaniyaId, Number(p.revizya), [Number(p.aloqa)]);
+      return r.ok ? { ok: true, xabar: 'Chizma revizyasi chiqarildi.', havola: '/admin/chizmalar' } : { ok: false, xabar: r.error ?? 'Amal bajarilmadi.' };
+    },
+  },
+  /* 18) Xarajat kiritish — ikki tasdiq; summa hisob-yadro bilan yaxlitlanadi, NDS siz */
+  'moliya.xarajat': {
+    korinish: (p, ctx) => ({ summa: Number(p.summa), matn: `Xarajat yoziladi: ${som(Number(p.summa))} (NDS siz), turi: ${String(p.kat)}, sana ${String(p.sana)}${ctx.obyektId ? `, obyekt: ${obyektNomi(ctx, ctx.obyektId)}` : ''}. Bu pul yozuvi.` }),
+    ijro: async (p, ctx, operationId) => {
+      if (ctx.kompaniyaId == null) return { ok: false, xabar: 'Kompaniya tanlanmagan.' };
+      const r = await pulXarajatKirit({ kompaniyaId: ctx.kompaniyaId, obyektId: ctx.obyektId, sana: String(p.sana), kat: katOl(sozlar(String(p.kat))), summa: String(yaxlit2(Number(p.summa))), operationId });
+      return (r as { ok?: boolean }).ok ? { ok: true, xabar: 'Xarajat yozildi.', havola: '/admin/moliya' } : { ok: false, xabar: xato(r as { error?: string }, 'Xarajat yozilmadi.') };
     },
   },
 };

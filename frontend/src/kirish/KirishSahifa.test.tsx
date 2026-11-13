@@ -33,8 +33,8 @@ describe('Email kod bilan kirish', () => {
     const kod = await kodSora('Aziz@Gmail.com ');
     fireEvent.change(kod, { target: { value: '12 34 56' } });
     await waitFor(() => expect(m.navigate).toHaveBeenCalledWith('/admin'));
-    const [k, t2] = fetchMock.mock.calls.filter((c) => c[0] !== '/api/sessiya').map((c) => JSON.parse(String((c[1] as { body: string }).body)));
-    expect(fetchMock.mock.calls.filter((c) => c[0] !== '/api/sessiya').every((c) => c[0] === '/api/kirish-email')).toBe(true);
+    const [k, t2] = fetchMock.mock.calls.filter((c) => !['/api/sessiya', '/api/kirish-telegram'].includes(String(c[0]))).map((c) => JSON.parse(String((c[1] as { body: string }).body)));
+    expect(fetchMock.mock.calls.filter((c) => !['/api/sessiya', '/api/kirish-telegram'].includes(String(c[0]))).every((c) => c[0] === '/api/kirish-email')).toBe(true);
     expect(k).toEqual({ amal: 'kod', email: 'aziz@gmail.com' });
     expect(t2).toMatchObject({ amal: 'tasdiqla', email: 'aziz@gmail.com', tasdiqlash_id: TID, kod: '123456' });
     expect(t2.operation_id).toMatch(/^[0-9a-f-]{36}$/);
@@ -52,7 +52,7 @@ describe('Email kod bilan kirish', () => {
     const kod = await kodSora('aziz@gmail.com');
     fireEvent.change(kod, { target: { value: '654321' } });
     await waitFor(() => expect(m.navigate).toHaveBeenCalledWith('/admin/kompaniya'));
-    expect(JSON.parse(String((fetchMock.mock.calls.filter((c) => c[0] !== '/api/sessiya')[1][1] as { body: string }).body)).ism).toBe('Aziz Karimov');
+    expect(JSON.parse(String((fetchMock.mock.calls.filter((c) => !['/api/sessiya', '/api/kirish-telegram'].includes(String(c[0])))[1][1] as { body: string }).body)).ism).toBe('Aziz Karimov');
     expect(m.toast).toHaveBeenCalled();
   });
 
@@ -82,7 +82,7 @@ describe('Email kod bilan kirish', () => {
     fireEvent.change(screen.getByLabelText('Email manzili'), { target: { value: 'aziz' } });
     fireEvent.click(screen.getByRole('button', { name: 'Kod yuborish' }));
     expect(await screen.findByText('Email manzilini to‘g‘ri kiriting.')).toBeTruthy();
-    expect(fetchMock.mock.calls.filter((c) => c[0] !== '/api/sessiya')).toHaveLength(0);
+    expect(fetchMock.mock.calls.filter((c) => !['/api/sessiya', '/api/kirish-telegram'].includes(String(c[0])))).toHaveLength(0);
   });
 
   it('email xizmati yoqilmagan — xabar va login-parol formasi ochiladi', async () => {

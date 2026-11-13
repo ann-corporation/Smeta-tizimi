@@ -18,10 +18,12 @@ import { sahifaUrl } from '../../../lib/yordamchi/sahifa-qidiruv';
 import { koRsatHavolasi } from '../../../lib/kurs/tutor';
 import { osuvchiMatni } from '../../../lib/osuvchi/jarvis';
 import { kimJavobi, type KimMalumot } from '../../../lib/yordamchi/kim';
+import { vositaIshla } from '../../../lib/yordamchi/vosita/ishla';
+import type { Davom, Variant, VositaKont } from '../../../lib/yordamchi/vosita/tur';
 
 /** AiChat ga beriladigan yagona yordamchi ulanishi (AiHelper yig'adi). */
-export type YordamchiUlanish = { /** Amal reestri (Jarvis ijrosi): foydalanuvchi ruxsatlari (kompaniyadagi). */ amalRuxsat?: { permissions: readonly string[] | null; superadmin: boolean }; sahifalar: readonly YordamchiSahifa[]; obyektlar: readonly ObyektQisqa[]; joriyObyekt: ObyektQisqa | null; obyektTanla: (id: number) => void; motor: Motor; hujjat: HujjatDeps | null; sahifaAmallar: readonly SahifaAmalQisqa[]; sahifaAmalBajar: (id: string) => void;
-  /** Sessiyadan olingan «kim» (useMen/useKompaniya) — «men kimman» savollariga bepul javob. */ kim?: KimMalumot };
+export type YordamchiUlanish = { sahifalar: readonly YordamchiSahifa[]; obyektlar: readonly ObyektQisqa[]; joriyObyekt: ObyektQisqa | null; obyektTanla: (id: number) => void; motor: Motor; hujjat: HujjatDeps | null; sahifaAmallar: readonly SahifaAmalQisqa[]; sahifaAmalBajar: (id: string) => void;
+  /** Sessiyadan olingan «kim» (useMen/useKompaniya) — «men kimman» savollariga bepul javob. */ kim?: KimMalumot; vosita?: VositaKont | null };
 
 export type IshlovHavola = { yol: string; nom: string };
 export type IshlovTaklif = { amallar: Array<SahifaAmal & { ogoh: string | null }>; vositalar: NonNullable<Motor['vositalar']>; qoshimcha: Motor['qoshimcha'] };
@@ -30,6 +32,8 @@ export type IshlovNatija =
   | { tur: 'javob'; matn: string; havolalar?: IshlovHavola[]; ochish?: string; xato?: boolean; yop?: boolean }
   | { tur: 'taklif'; matn: string; taklif: IshlovTaklif; havolalar?: IshlovHavola[] }
   | { tur: 'obyektTanla'; matn: string; nomzodlar: ObyektQisqa[] }
+  /** Aniqlashtiruvchi savol (variantlar bosiladi); keyingi xabar davom ga javob hisoblanadi. */
+  | { tur: 'savol'; matn: string; variantlar?: Variant[]; davom: Davom }
   /** Obyekt ma'lumoti hali yuklanmoqda — UI tayyor bo'lgach qayta ishlaydi. */
   | { tur: 'kut'; obyektId: number }
   /** Qatlam hal qilmadi — mavjud oqim (server yordamchisi) davom etadi; `havolalar` javobga qo'shiladi. */
@@ -48,6 +52,8 @@ export type IshlovDeps = {
   /** Hozirgi sahifa amalini bajaradi (registry hook); 	asdiq bo'lsa — avval taklif kartasi. */
   sahifaAmalBajar?: (id: string) => void;
   kim?: KimMalumot;
+  /** Vositalar konteksti (haqiqiy API bilan yoki test). */
+  vosita?: VositaKont | null;
 };
 
 const XATO_KODLARI: Record<string, string> = {
@@ -62,6 +68,14 @@ const oyMatni = (oy: string | null) => (oy ? `, ${t(OY_NOMI[Number(oy.slice(5, 7
 
 export async function yordamchiIshla(n: Niyat, matn: string, d: IshlovDeps): Promise<IshlovNatija> {
   switch (n.tur) {
+    case 'vosita': {
+      if (!d.vosita) return { tur: 'otkaz', havolalar: [] };
+      const r = await vositaIshla(n.id, matn, d.vosita, n.davom);
+      if (r.tur === 'javob') return { tur: 'javob', matn: r.matn, havolalar: r.havolalar, xato: r.xato };
+      if (r.tur === 'savol') return { tur: 'savol', matn: r.matn, variantlar: r.variantlar, davom: r.davom };
+      const amal = { tur: 'vosita', qator: null, qiymat: n.id, izoh: r.izoh, ogoh: null };
+      return { tur: 'taklif', matn: r.matn, taklif: { amallar: [amal], qoshimcha: () => null, vositalar: hujjatVositalari(() => r.nom, () => r.pul, async () => r.bajar()) } };
+    }
     case 'yordam': return { tur: 'javob', matn: yordamMatni(d.sahifalar) };
     case 'kim': return d.kim ? { tur: 'javob', matn: kimJavobi(d.kim, n.qism, t) } : { tur: 'javob', matn: t('Sessiya ma’lumoti hali yuklanmadi — bir lahzadan keyin qayta so‘rang.') };
     case 'dars': {

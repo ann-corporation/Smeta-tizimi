@@ -8,6 +8,8 @@ const m = vi.hoisted(() => ({
   taklifgaJavob: vi.fn(), resurslarOl: vi.fn(), aloqaTafsilotOl: vi.fn(), kompaniyaQidir: vi.fn(), taklifYubor: vi.fn(), kodBilanQabul: vi.fn(),
 }));
 vi.mock('../../umumiy/ui/Toast', () => ({ toast: m.toast }));
+vi.mock('./NazoratTayinlash', () => ({ default: () => null }));
+vi.mock('./IchkiNazorat', () => ({ default: () => null }));
 vi.mock('../../umumiy/kontekst/KompaniyaKontekst', () => ({ useKompaniya: () => ({ joriy: { id: 5, nom: 'Zakazchik MCHJ', rol: 'boss' } }) }));
 vi.mock('../../api/supabase', async (asl) => ({ ...(await asl<typeof import('../../api/supabase')>()), sbT2ObyektlarOlKomp: vi.fn(async () => ({ ok: true, qatorlar: [] })) }));
 vi.mock('../../api/t2-tomon', async (asl) => ({

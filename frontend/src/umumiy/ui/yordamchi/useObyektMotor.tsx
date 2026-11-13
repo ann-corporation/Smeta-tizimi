@@ -20,6 +20,8 @@ import { sbArxivla } from '../../../api/t2-arxiv';
 import { daraxtVaHolatOl } from '../../../lib/oylik-hujjat/ostatka-slichitelniy';
 import { loyihaFarqMalumotOl } from '../../../api/t2-loyiha-smeta';
 import type { LoyihaFarqMalumot } from '../../../lib/loyiha-smeta/jarvis';
+import { slichitelniyAsosOl } from '../../../api/t2-slichitelniy-asos';
+import type { AsosJavob } from '../../../lib/slichitelniy-asos';
 import { amalDelta, buyruqMalumotQur, buyruqVositalar, type BuyruqMalumot, type BuyruqYoz, type OchiqSahifa, type YozNatija } from '../../../lib/ai-yordamchi/buyruq-vositalar';
 import type { SahifaAmal } from '../../../lib/ai-yordamchi/protokol';
 import type { SahifaVositalar } from '../../../lib/ai-yordamchi/sikl';
@@ -116,9 +118,17 @@ export function useObyektMotor({ kompaniyaId, obyektId, obyektNomi, faol, sahifa
     return () => { tirik = false; };
   }, [yoqilgan, obyektId, kompaniyaId, versiya]);
 
+  const [slichAsos, setSlichAsos] = useState<AsosJavob | null>(null);
+  useEffect(() => {
+    if (!yoqilgan || obyektId == null || kompaniyaId == null) return undefined;
+    let tirik = true;
+    void slichitelniyAsosOl(kompaniyaId, obyektId, 60).then((r) => { if (tirik) setSlichAsos(r); }).catch(() => { if (tirik) setSlichAsos(null); });
+    return () => { tirik = false; };
+  }, [yoqilgan, obyektId, kompaniyaId]); // faqat obyekt almashganda (og'ir so'rov: har fakt yozuvida qayta o'qilmaydi)
+
   const m: BuyruqMalumot | null = useMemo(
-    () => (data && data.obyektId === obyektId ? buyruqMalumotQur(data.rows, data.states, { obyektNomi, sahifalar, loyihaFarq, ustamali: (s) => ustamaliRef.current(s), naryadlar, ustaBugun }) : null),
-    [data, obyektId, obyektNomi, sahifalar, naryadlar, ustaBugun, loyihaFarq]);
+    () => (data && data.obyektId === obyektId ? buyruqMalumotQur(data.rows, data.states, { obyektNomi, sahifalar, loyihaFarq, slichAsos, ustamali: (s) => ustamaliRef.current(s), naryadlar, ustaBugun }) : null),
+    [data, obyektId, obyektNomi, sahifalar, naryadlar, ustaBugun, loyihaFarq, slichAsos]);
   const mRef = useRef<BuyruqMalumot | null>(m); mRef.current = m;
   const bos = useMemo(() => buyruqMalumotQur([], []), []);
   const yangila = useCallback(() => setVersiya((v) => v + 1), []);

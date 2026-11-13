@@ -30,6 +30,7 @@
 import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { rpcData } from '../_shared/agent-rpc';
+import { xotiraOqi } from '../_shared/jarvis-xotira';
 import { kimMendan, kimPromptBloki } from '../../src/lib/yordamchi/kim';
 import { normaKalit, tajribaMatni, xotiraBloklari, type NormaTajriba, type XotiraDarajalari } from '../../src/lib/smeta-ai/tajriba';
 import { aiPublicError, type AiRequest, type AiResponse, type AiTier } from '../_shared/ai';
@@ -179,15 +180,6 @@ export function narxSorovlariniTayyorla(raw: unknown): RoutedPriceRequest[] | nu
   return out;
 }
 
-/** System, company and personal memory; before the three-level RPC exists, the company memory from the agent environment. */
-async function xotiraOqi(env: Env, actor: number, kompaniyaId: number, superadmin = false): Promise<XotiraDarajalari & { superadmin?: boolean }> {
-  const bosh: XotiraDarajalari = { tizim: [], kompaniya: [], foydalanuvchi: [] };
-  const r = await rpcData(env, 't2_smeta_xotira_v1', { p_actor_id: actor, p_kompaniya_id: kompaniyaId }).catch(() => null);
-  const toza = (l: unknown) => (Array.isArray(l) ? l as Array<{ kalit: string; mazmun: string }> : []).filter(x => typeof x?.mazmun === 'string' && x.mazmun.trim() && x.mazmun !== '-');
-  if (r?.ok) return { tizim: toza(r.data.tizim), kompaniya: toza(r.data.kompaniya), foydalanuvchi: toza(r.data.foydalanuvchi), ...(superadmin ? { superadmin: r.data.superadmin === true } : {}) };
-  const m = await rpcData(env, 't2_agent_muhit_v1', { p_actor_id: actor, p_kompaniya_id: kompaniyaId, p_profil: null }).catch(() => null);
-  return m?.ok ? { ...bosh, kompaniya: toza(m.data.xotira).filter(x => x.kalit.startsWith('smeta.')) } : bosh;
-}
 /** Per work: the norms estimators put for similarly described works in uploaded estimates; empty when unavailable. */
 async function amaliyotOqi(env: Env, actor: number, kompaniyaId: number, matnlar: string[]): Promise<Array<Array<{ kod: string; nom: string; soni: number; koef: string | null }>>> {
   if (!matnlar.length) return [];

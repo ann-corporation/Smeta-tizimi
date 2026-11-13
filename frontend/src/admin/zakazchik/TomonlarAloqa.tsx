@@ -16,6 +16,7 @@ import {
 } from '../../api/t2-tomon';
 import { t } from '../../i18n/til';
 import { Bolim, HolatBelgi } from './tomon-ui';
+import IchkiNazorat from './IchkiNazorat';
 import { HODISA_NOMI, ROL_TAKLIFLARI, TUR_TAKLIFLARI, inp, resursNomi, sana, tugma, tugmaAsosiy } from './tomon-yordam';
 
 /** Zakazchikka sukut bo'yicha beriladigan kuzatuv to'plami (foydalanuvchi o'zgartira oladi). */
@@ -283,6 +284,7 @@ export default function TomonlarAloqa() {
             </table></div>
           )}
         </Bolim>
+        <IchkiNazorat kompaniyaId={kompaniyaId} />
       </div>
     </Sahifa>
   );

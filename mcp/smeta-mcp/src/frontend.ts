@@ -8,6 +8,7 @@ export { ustamaliHisobla, bosKatKesim, katKesimgaQosh, type KatKesim, type Ustam
 export { podvalTanla } from '../../../frontend/src/api/t2-nakrutka-podval';
 export { standartPodval, podvalTekshir, type Podval, type PodvalQator } from '../../../frontend/src/lib/hisob-yadro/podval';
 export { jurnalQur, bolimSummalari, bolimTarkibi, type JurnalHolat, type JurnalIsh, type BolimSumma } from '../../../frontend/src/lib/fakt-jurnal';
+export { takliflarQur, ishNomzodlari, ishonchDarajasi } from '../../../frontend/src/lib/aosr-taklif';
 export { readXlsx } from '../../../frontend/src/lib/f2-import-parse/xlsxReader';
 export { f2AktlarniOqi, type F2Akt } from '../../../frontend/src/lib/smeta-anatomiya/f2';
 export { f2MoslashV3, type SmetaQator, type F2MoslashNatija } from '../../../frontend/src/lib/f2-moslash-v3';
