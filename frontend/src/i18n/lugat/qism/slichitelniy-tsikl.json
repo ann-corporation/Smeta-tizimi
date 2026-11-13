@@ -1,0 +1,50 @@
+{
+    "Smeta qatorlari to‘liq o‘qilmadi — sikl chala ma’lumot ustida hisoblanmaydi.":  {
+                                                                                         "ru":  "Строки сметы прочитаны не полностью — цикл не рассчитывается по неполным данным.",
+                                                                                         "en":  "Estimate rows were not fully read — the cycle is not calculated on incomplete data."
+                                                                                     },
+    "Qoralama raqamini kiriting (masalan 12-П).":  {
+                                                       "ru":  "Номер черновика",
+                                                       "en":  "Draft number"
+                                                   },
+    "Ф-2 QORALAMASI yaratiladi «{r}»: к доплате — {n} qator (fakt Ф-2 dan ko‘p). Tasdiqlash — F2 tarixida, egasi tomonidan. Davom etasizmi?":  {
+                                                                                                                                                   "ru":  "Будет создан ЧЕРНОВИК Ф-2 «{r}»: к доплате — {n} строк (факт больше Ф-2). Утверждение — в истории Ф-2, владельцем. Продолжить?",
+                                                                                                                                                   "en":  "An F-2 DRAFT «{r}» will be created: to pay extra — {n} rows (actual exceeds F-2). Approval — in the F-2 history, by the owner. Continue?"
+                                                                                                                                               },
+    "TUZATUVCHI (minus) Ф-2 QORALAMASI yaratiladi «{r}»: к снятию — {n} qator (Ф-2 fakt dan ko‘p). Tasdiqlash — F2 tarixida, egasi tomonidan. Davom etasizmi?":  {
+                                                                                                                                                                     "ru":  "Будет создан КОРРЕКТИРУЮЩИЙ (минус) ЧЕРНОВИК Ф-2 «{r}»: к снятию — {n} строк (Ф-2 больше факта). Утверждение — в истории Ф-2, владельцем. Продолжить?",
+                                                                                                                                                                     "en":  "A CORRECTIVE (minus) F-2 DRAFT «{r}» will be created: to deduct — {n} rows (F-2 exceeds actual). Approval — in the F-2 history, by the owner. Continue?"
+                                                                                                                                                                 },
+    "Ф-2 qoralamasi yaratildi. Tasdiqlash — F2 tarixida.":  {
+                                                                "ru":  "Черновик Ф-2 создан. Утверждение — в истории Ф-2.",
+                                                                "en":  "F-2 draft created. Approval — in the F-2 history."
+                                                            },
+    "Slichitelniy hujjatidan keyingi qadam: fakt Ф-2 da ilgari olingandan ko‘p bo‘lgan qatorlardan — Ф-2 qoralama (к доплате); Ф-2 fakt dan ko‘p bo‘lgan qatorlardan — tuzatuvchi minus Ф-2 qoralama (к снятию). Qoralama yaratiladi, tasdiqlanmaydi.":  {
+                                                                                                                                                                                                                                                             "ru":  "Следующий шаг после сличительной ведомости: по строкам, где факт больше ранее полученного по Ф-2, — черновик Ф-2 (к доплате); где Ф-2 больше факта, — корректирующий черновик Ф-2 с минусом (к снятию). Черновик создается, не утверждается.",
+                                                                                                                                                                                                                                                             "en":  "Next step after the reconciliation statement: rows where the actual exceeds what was previously received under F-2 get an F-2 draft (to pay extra); rows where F-2 exceeds the actual get a corrective F-2 draft with minus (to deduct). The draft is created, not approved."
+                                                                                                                                                                                                                                                         },
+    "{n} pozitsiya qoralamaga sig‘madi (hajm farqi 0, faqat narx farqi) — ular «Pereraschet» sahifasidagi to‘liq storno formatida.":  {
+                                                                                                                                          "ru":  "{n} позиций не вошли в черновик (разница количества 0, только разница цены) — они в формате полного сторно на странице «Перерасчет».",
+                                                                                                                                          "en":  "{n} items did not fit the draft (quantity difference 0, price difference only) — they are covered by the full storno format on the Recalculation page."
+                                                                                                                                      },
+    "{n} pozitsiya tekshirishni talab qiladi (narx yoki Ф-2 summasi noma’lum) — pulga kirmaydi, 0 deb olinmaydi.":  {
+                                                                                                                        "ru":  "{n} позиций требуют проверки (цена или сумма Ф-2 неизвестна) — в сумму не входят, не принимаются за 0.",
+                                                                                                                        "en":  "{n} items need review (price or F-2 amount unknown) — excluded from the amount, not treated as 0."
+                                                                                                                    },
+    "Qoralama raqami":  {
+                            "ru":  "Номер черновика",
+                            "en":  "Draft number"
+                        },
+    "К доплате → Ф-2 qoralama":  {
+                                     "ru":  "К доплате → черновик Ф-2",
+                                     "en":  "To pay extra → F-2 draft"
+                                 },
+    "К снятию → tuzatuvchi Ф-2 qoralama":  {
+                                               "ru":  "К снятию → корректирующий черновик Ф-2",
+                                               "en":  "To deduct → corrective F-2 draft"
+                                           },
+    "Slichitelniy sikli: к доплате / к снятию → Ф-2 qoralama":  {
+                                                                    "ru":  "Цикл сличительной ведомости: к доплате / к снятию → черновик Ф-2",
+                                                                    "en":  "Reconciliation cycle: to pay extra / to deduct → F-2 draft"
+                                                                }
+}
