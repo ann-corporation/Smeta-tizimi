@@ -5,6 +5,7 @@
  */
 export { pereraschetHisobla, PERERASCHET_USTUNLAR, type PQator, type PNatija, type PNatijaQator } from '../../../frontend/src/lib/pereraschet';
 export { ustamaliHisobla, bosKatKesim, katKesimgaQosh, type KatKesim, type UstamaNatija } from '../../../frontend/src/lib/ustamali-summa';
+export type { SvodYaxlit } from '../../../frontend/src/lib/svod-yaxlit';
 export { podvalTanla } from '../../../frontend/src/api/t2-nakrutka-podval';
 export { standartPodval, podvalTekshir, type Podval, type PodvalQator } from '../../../frontend/src/lib/hisob-yadro/podval';
 export { jurnalQur, bolimSummalari, bolimTarkibi, type JurnalHolat, type JurnalIsh, type BolimSumma } from '../../../frontend/src/lib/fakt-jurnal';
