@@ -73,9 +73,9 @@ describe('Forma 3 shartnoma — obyektlar bo‘yicha yig‘ish', () => {
       expect(y.jami[c].vsego).toBeCloseTo(a.ustun[c].vsego! + b.ustun[c].vsego!, 2);
       expect(y.jami[c].pryamye).toBeCloseTo(a.ustun[c].pryamye + b.ustun[c].pryamye, 2);
     }
-    // Davr (mart): A 2 mln, B 4 mln — H (boshidan) faqat fevral: A 1 mln.
+    // Davr (mart): A 2 mln, B 4 mln — H (с начала, narastayushchiy): A fevral 1 mln + mart 2 mln, B mart 4 mln = 7 mln.
     expect(y.jami.J.pryamye).toBeCloseTo(6_000_000, 2);
-    expect(y.jami.H.pryamye).toBeCloseTo(1_000_000, 2);
+    expect(y.jami.H.pryamye).toBeCloseTo(7_000_000, 2);
     expect(y.jami.G.pryamye).toBeCloseTo(30_000_000, 2);
   });
 
