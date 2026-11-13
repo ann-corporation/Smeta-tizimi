@@ -68,6 +68,19 @@ describe('Forma 3 — svod yaxlit bo‘lim ustamasiz (faqat QQS)', () => {
     expect(y.obyektlar[0].ustun.J.vsego).toBe(7_840_000);
   });
 
+  it('G (smeta): yaxlit bo‘lim svod summasiga (QQS siz) taqsimlanadi, ustamasiz — qolgan qator ustama bilan', () => {
+    const { m } = manba(true);
+    const b = m.nakopitelniy[0].svodYaxlit!.bolimlar[0];
+    const svod: SvodYaxlit = { qqssiz: 14_000_000, barglar: 16_000_000, summasiz: 0, bolimlar: [{ ...b, qqssiz: 14_000_000, svod_summa: 15_680_000 }] };
+    const mm: Forma3Manba = { ...m, nakopitelniy: [{ ...m.nakopitelniy[0], svodYaxlit: svod }] };
+    const y = f3ShartnomaYigish([{ obyekt_id: 1, obyektNom: 'Тест', manba: mm, nakrutka: NK }], '2026-03');
+    const g = y.obyektlar[0].ustun.G;
+    expect(g.pryamye).toBe(15_000_000); // 14 000 000 (svod) + 1 000 000 (oddiy МАТ)
+    const matKf = (g.itogo4! - 14_000_000) / 1_000_000;
+    expect(matKf).toBeGreaterThan(1);
+    expect(g.vsego).toBeCloseTo(g.itogo4! * 1.12, 2);
+  });
+
   it('Excel: ИТОГО К ОПЛАТЕ (с начала) = 13 440 000, yashirin kategoriya ustunida СВОД', () => {
     const { m } = manba(true);
     const faqat: Forma3Manba = { ...m, f2Oylik: m.f2Oylik.filter((x) => x.summa !== 100_000) };

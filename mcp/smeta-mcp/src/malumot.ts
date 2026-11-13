@@ -1,6 +1,6 @@
-﻿/** Bazadan umumiy o'qishlar (frontend o'qiydigan manbalar bilan bir xil: t2_qator, t2_qator_holat, ustama RPC, podval). */
+/** Bazadan umumiy o'qishlar (frontend o'qiydigan manbalar bilan bir xil: t2_qator, t2_qator_holat, ustama RPC, podval). */
 import type { Mijoz } from './db';
-import { podvalTanla, ustamaliHisobla, type KatKesim, type UstamaNatija } from './frontend';
+import { podvalTanla, ustamaliHisobla, type KatKesim, type SvodYaxlit, type UstamaNatija } from './frontend';
 import { son } from './format';
 
 export const QATOR_USTUNLAR = 'id,obyekt_id,ota_id,daraja,tartib,tur,kod,nom,birlik,hajm,narx,kat,summa,narx_usul,qoshimcha,zamena,versiya,raqam,norma,replaces_line_id,change_type';
@@ -45,9 +45,23 @@ export type Ustama = {
   hisobla: (k: KatKesim) => UstamaNatija | null;
   holat: 'tayyor' | 'yoq';
   izoh?: string;
-  /** Svod yaxlit xulosasi (t2_obyekt_nakrutka_v1.svod_yaxlit): belgili bo'lim qatorlariga ustama hisoblanmaydi (bolimSummalari 4-argumenti). */
-  svod?: unknown;
+  /** Server svod yaxlit xulosasi (t2_obyekt_nakrutka_v1.svod_yaxlit): bolimSummalari ga uzatiladi — yaxlit bo'limlarga ustama YO'Q (UI bilan bir xil). */
+  svod?: SvodYaxlit | null;
 };
+
+/**
+ * YAGONA summa yadrosi (SQL `_t2_summa_paket_v1`) — kesh (`t2_obyekt_kesh`) va ekran jamilari shu funksiyadan.
+ * `aktId` berilsa — bitta akt (o'lchov 'aktlar', akt o'z podvali bilan), aks holda obyektning `olchov` jami.
+ * Qaytadi: ustamasiz / ustamali (ИТОГО-4, QQS siz) / qqs_bilan / ustamasiz_qism; paket yo'q bo'lsa null.
+ */
+export type ServerPaket = { ustamasiz: number | null; ustamali: number | null; qqs_bilan: number | null; ustamasiz_qism: number | null; nk_manba: string | null };
+export async function serverPaket(m: Mijoz, obyektId: number, olchov: 'smeta' | 'smeta_joriy' | 'fakt' | 'f2' | 'f2_qoralama' | 'aktlar', aktId: number | null = null): Promise<ServerPaket | null> {
+  const r = await m.query<{ p: Record<string, unknown> | null }>(
+    'select p.paket as p from public._t2_summa_paket_v1(array[$1::bigint], $2::text, case when $3::bigint is null then null else array[$3::bigint] end) p', [obyektId, olchov, aktId]);
+  const p = r.rows[0]?.p;
+  if (!p) return null;
+  return { ustamasiz: son(p.ustamasiz as number), ustamali: son(p.ustamali as number), qqs_bilan: son(p.qqs_bilan as number), ustamasiz_qism: son(p.ustamasiz_qism as number), nk_manba: (p.nk_manba as string | null) ?? null };
+}
 
 /**
  * Obyekt ustamasi: `t2_obyekt_nakrutka_v1` (useUstamaliSumma bilan bir xil manba) + amaldagi podval
@@ -55,7 +69,7 @@ export type Ustama = {
  */
 export async function ustamaOl(m: Mijoz, obyektId: number, aktorId: number | null, shartnomaId: number | null = null): Promise<Ustama> {
   if (aktorId == null) return { hisobla: () => null, holat: 'yoq', izoh: 'aktor o\'rnatilmagan — ustamali hisoblanmadi (aktor_tanla).' };
-  const r = await m.query<{ n: { ok?: boolean; code?: string; koeffitsientlar?: Record<string, number>; svod_yaxlit?: unknown } | null }>(
+  const r = await m.query<{ n: { ok?: boolean; code?: string; koeffitsientlar?: Record<string, number>; svod_yaxlit?: SvodYaxlit | null } | null }>(
     'select public.t2_obyekt_nakrutka_v1(p_obyekt_id => $1::bigint, p_actor_id => $2::bigint, p_shartnoma_id => $3::bigint) as n', [obyektId, aktorId, shartnomaId]);
   const n = r.rows[0]?.n;
   if (!n || n.ok !== true || !n.koeffitsientlar) return { hisobla: () => null, holat: 'yoq', izoh: `ustama koeffitsienti o'qilmadi${n?.code ? ` (${n.code})` : ''}` };

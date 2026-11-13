@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SAQLANGAN F2 AKTI — Ф-2 hujjati va pul bahosi uchun YAGONA tayyorlash (F2 tarixi va F2 portfeli, egasi 2026-11-05).
  * F2 tarixidagi «Ф-2 Excel» mantiqi shu yerga ko'chirildi (yangi formula yo'q):
  *  - storno bloklari (`raw_snapshot.stornoOf`) hujjat TEPASIDA, har biri o'z hujjat podvali bilan (`pereraschetBloklari`);
@@ -56,12 +56,14 @@ export type F2AktTayyor = {
  * Storno bloki kesimi SERVER BARG QOIDASI bilan (audit B M2): smetada bolasi bor ish (bl) o'z summasini sanamaydi
  * (`_t2_summa_paket_v1`: `ota.id is null`). Qatorlar o'zgarmaydi (hujjatda ko'rinadi), faqat pul kesimi qayta yig'iladi.
  */
-function bargQoidasiBilan(b: PereraschetBlok, otalar: ReadonlySet<number>): PereraschetBlok {
+function bargQoidasiBilan(b: PereraschetBlok, otalar: ReadonlySet<number>, yaxlitIds: ReadonlySet<number> = new Set<number>()): PereraschetBlok {
   const pul = b.qatorlar.filter((q) => !(q.tur === 'bl' && otalar.has(q.qatorId)));
-  if (pul.length === b.qatorlar.length) return b;
+  // Svod yaxlit bo'limi qatorlari storno blokida ham ustamasiz (yangi blok bilan bir xil qoida).
+  const yaxlitBor = pul.some((q) => f2YaxlitQator(yaxlitIds, { id: q.qatorId, kat: q.kat }));
+  if (pul.length === b.qatorlar.length && !yaxlitBor) return b;
   const kesim = bosKesim();
   let jami = 0; let nomalum = 0;
-  for (const q of pul) { kesimgaQosh(kesim, q.kat, q.summa); if (q.summa == null) nomalum++; else jami += q.summa; }
+  for (const q of pul) { kesimgaQosh(kesim, q.kat, q.summa, f2YaxlitQator(yaxlitIds, { id: q.qatorId, kat: q.kat })); if (q.summa == null) nomalum++; else jami += q.summa; }
   return { ...b, kesim, jami: yaxlit2(jami), nomalum };
 }
 
@@ -81,7 +83,7 @@ export function f2AktTayyorla(k: F2AktEksportKirish): F2AktTayyor | null {
   const kir = f2AktKirish(k.smeta, k.lines);
   if (!kir.qatorlar.length) return null;
   const otalar = otaIdlari(k.smeta);
-  const eskiB = pereraschetBloklari(k.aktQatorlar, new Map(k.smeta.map((r) => [r.id, r] as const)), k.raqamlar).map((b) => bargQoidasiBilan(b, otalar));
+  const eskiB = pereraschetBloklari(k.aktQatorlar, new Map(k.smeta.map((r) => [r.id, r] as const)), k.raqamlar).map((b) => bargQoidasiBilan(b, otalar, yaxlitQatorIdlari(k.smeta, k.kontekst.svodYaxlit)));
   const { oz: ozNk, blok: blokNk } = aktPodvalNkOl(k.podvallar, k.akt.id);
   const ozNakrutka = ozNk ? (Object.fromEntries(Object.entries(ozNk).filter(([, v]) => v != null).map(([kk, v]) => [kk, Number(v)])) as F2HujjatKonteksti['nakrutka']) : null;
   const ctx = k.kontekst;
