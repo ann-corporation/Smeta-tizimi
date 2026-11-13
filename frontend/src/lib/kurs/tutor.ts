@@ -21,8 +21,12 @@ export const norm = (s: string): string =>
 const tokenlar = (s: string): string[] => norm(s).split(/[^\p{L}\p{N}]+/u).filter(Boolean);
 
 /** «Qanday/как/how/o‘rgat/dars/kurs» — o‘rganish savoli belgisi. */
-const SAVOL = ['qanday', 'qanaqa', 'orgat', 'dars', 'kurs', 'qollanma', 'yolyoriq', 'yoriqnoma', 'kak', 'как', 'научи', 'обуч', 'урок', 'инструкц', 'how', 'learn', 'teach', 'tutorial', 'lesson'];
+/* «qanaqa» ATAYLAB yo‘q: «ahvol qanaqa?» — holat savoli, o‘rganish emas (egasi 2026-11-13: Jarvis har savolga dars qaytarardi). */
+const SAVOL = ['qanday', 'orgat', 'dars', 'kurs', 'qollanma', 'yolyoriq', 'yoriqnoma', 'kak', 'как', 'научи', 'обуч', 'урок', 'инструкц', 'how', 'learn', 'teach', 'tutorial', 'lesson'];
 const BO_SH = new Set(['qanday', 'qanaqa', 'qilaman', 'qilamiz', 'men', 'ni', 'ga', 'da', 'bu', 'buni', 'bilan', 'uchun', 'kerak', 'korsat', 'orgat', 'dars', 'darslar', 'kurs', 'how', 'to', 'do', 'i', 'the', 'a', 'как', 'мне', 'сделать', 'qollanma']);
+
+const MAX_SOZ = 8;
+const MIN_QOPLANISH = 0.5;
 
 const mos = (t: string, kw: string) => t === kw || (kw.length >= 5 && t.startsWith(kw)) || (t.length >= 5 && kw.startsWith(t));
 
@@ -50,10 +54,14 @@ export function darsSavoli(matn: string, opt: { yol?: readonly Dars[]; ochiqYoll
     else nomzod = DARSLAR;
   }
   const t = tokenlar(matn).filter((x) => !BO_SH.has(x));
+  /* Uzun gap — maslahat/tahlil savoli («faktlar kiritilmagan, qanday yo‘lga qo‘yamiz?»): dars emas, AI javobiga ketadi. */
+  if (t.length > MAX_SOZ) return null;
   const ball = nomzod.map((d) => { const kw = darsKalitlari(d); return { d, b: t.filter((x) => [...kw].some((k) => mos(x, k))).length }; }).filter((x) => x.b > 0);
   if (!ball.length) return null; // faqat «kurs» desa — navigatsiya (kurs sahifasi sinonimi) hal qiladi
   ball.sort((a, b) => b.b - a.b);
   const eng = ball[0];
+  /* Bitta tasodifiy so‘z («obyekt», «smeta») dars emas: savol so‘zlarining kamida yarmi shu darsga tegishli bo‘lishi shart. */
+  if (eng.b / t.length < MIN_QOPLANISH) return null;
   const d = eng.d;
   return {
     tur: 'dars',

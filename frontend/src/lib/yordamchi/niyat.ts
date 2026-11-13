@@ -75,6 +75,7 @@ const YETISHMAYDI = stem(['yetishmayapti', 'yetishmaydi', 'yetishmayotgan', 'qam
 const QORALAMA_ANIQ = new Set(stem(['yarat', 'yaratib', 'tuz', 'tuzib', 'tayyorla', 'tayyorlab', 'tayyorlang', 'yaratib', 'создай', 'создать', 'подготовь', 'подготовить', 'draft', 'create', 'prepare', 'make']));
 const SAVOL_SOZLARI = stem(['qayerda', 'qani', 'nima', 'nega', 'qanday', 'где', 'что', 'почему', 'зачем', 'what', 'where', 'why', 'how']);
 const YORDAM_RE = /^(nimalar? qila olasan|nimalar? qila olasiz|nima qila olasan|nima qila olasiz|yordam|help|imkoniyatlaring|imkoniyatlar|what can you do|что ты умеешь|что ты можешь|помощь)\s*[?!.]*$/;
+const UZUN_SAVOL_SOZ = 10;
 const QORALAMA_SAHIFALARI = new Set(['/admin/f2-tayyorlash', '/admin/aosr', '/admin/nakopitelniy', '/admin/fakt', '/admin/zayavka', '/admin/m29']);
 
 /** Imlo xatosiga bardoshlilik: uzun (≥7) so'zlarda bitta harf farqi (almashtirish/tushib qolish/ortiqcha/o'rin almashishi) yetarli. */
@@ -159,6 +160,12 @@ export function niyatAniqla(matn: string, ctx: NiyatKontekst): Niyat {
   if (oHolat && (!sahifaNatija || sahifaNatija.tur !== 'aniq' || sahifaTokenlari.length === 0)) {
     if (amaldagi) { const hs = ctx.sahifalar.find((s) => s.yol === '/admin/holat'); return { tur: 'oqish', vosita: 'holat', arg: null, obyekt: amaldagi, sahifa: hs ? havola(hs, amaldagi, oyKalit) : null }; }
     if (ctx.obyektlar.length) return { tur: 'obyektTanla', nomzodlar: ctx.obyektlar.slice(0, 6), davom: 'oqish' };
+  }
+
+  /* Uzun gap, ochish fe'li yo'q — bu maslahat/tahlil savoli («faktlar kiritilmagan, qanday yo'lga qo'yamiz?»): ichida tasodifan
+     uchragan sahifa so'zlari («smeta», «fakt») sahifa tanlash oynasini chiqarmaydi; javobni AI beradi, yaqin sahifalar tugma bo'ladi. */
+  if (kontent.length >= UZUN_SAVOL_SOZ && !ochish && (sahifaNatija?.tur !== 'aniq' || sahifaNatija.qoplanish < 0.5)) {
+    return { tur: 'nomalum', yaqin: yaqinSahifalar(kontent, ctx.sahifalar).map((x) => havola(x, amaldagi, oyKalit)) };
   }
 
   /* 3) Navigatsiya (sahifa nomi + ixtiyoriy obyekt/oy). */
