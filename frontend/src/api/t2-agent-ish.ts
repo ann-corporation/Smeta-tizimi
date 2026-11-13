@@ -128,13 +128,13 @@ export type KasbYakun = {
 };
 
 /** Savolni yuboradi va AI qadamlarini JONLI oladi (NDJSON). `qadam` har yangi qadamda chaqiriladi; yakunda to'liq natija qaytadi. */
-export async function kasbSavolOqim(k: number, savol: string, o: { sahifa?: string; obyektId?: number | null; obyektNomi?: string | null; qadam?: (q: Qadam) => void; signal?: AbortSignal;
+export async function kasbSavolOqim(k: number, savol: string, o: { sahifa?: string; obyektId?: number | null; obyektNomi?: string | null; tarix?: Array<{ rol: 'user' | 'assistant'; matn: string }>; qadam?: (q: Qadam) => void; signal?: AbortSignal;
   /** Platform price index rows found in the browser for a price question (public reference data, R2). */
   katalog?: KatalogKontekst[]; studio?: StudioKontekst | null } = {}): Promise<KasbYakun> {
   let r: Response;
   try {
     r = await fetch('/api/agent-ish', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, signal: o.signal,
-      body: JSON.stringify({ amal: 'kasb_savol', kompaniya_id: k, savol, sahifa: o.sahifa, obyekt_id: o.obyektId ?? undefined, ...(o.obyektNomi ? { obyekt_nomi: o.obyektNomi } : {}), oqim: true, ...(o.katalog?.length ? { katalog: o.katalog } : {}), ...(o.studio ? { studio: o.studio } : {}) }) });
+      body: JSON.stringify({ amal: 'kasb_savol', kompaniya_id: k, savol, sahifa: o.sahifa, obyekt_id: o.obyektId ?? undefined, ...(o.obyektNomi ? { obyekt_nomi: o.obyektNomi } : {}), ...(o.tarix?.length ? { tarix: o.tarix } : {}), oqim: true, ...(o.katalog?.length ? { katalog: o.katalog } : {}), ...(o.studio ? { studio: o.studio } : {}) }) });
   } catch (e) { return { ok: false, error: 'Tarmoq: ' + (e instanceof Error ? e.message : String(e)) }; }
   if (!(r.headers.get('content-type') ?? '').includes('x-ndjson') || !r.body) {
     try { return { ...(await r.json() as KasbYakun), status: r.status }; } catch { return { ok: false, error: `Server javob bermadi (HTTP ${r.status})` }; }
@@ -159,6 +159,18 @@ export async function kasbSavolOqim(k: number, savol: string, o: { sahifa?: stri
     qator(bufer);
   } catch (e) { if ((e as { name?: string })?.name === 'AbortError') return { ok: false, error: 'To‘xtatildi' }; }
   return yakun ?? { ok: false, error: 'Aloqa uzildi — javob to‘liq kelmadi' };
+}
+
+/** LLM «niyat + slot»: mahalliy qatlam tushunmagan qisqa gap -> kanonik buyruq / aniqlashtiruvchi savol. Xato bo'lsa null (oddiy oqim davom etadi). */
+export async function niyatLlmOl(k: number, savol: string, o: { tarix?: Array<{ rol: 'user' | 'assistant'; matn: string }>; sahifa?: string; obyektNomi?: string | null; signal?: AbortSignal } = {}):
+  Promise<{ tur: 'buyruq' | 'noaniq' | 'suhbat'; qayta: string | null; savol: string | null; variantlar: string[] } | null> {
+  try {
+    const r = await fetch('/api/agent-ish', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, signal: o.signal,
+      body: JSON.stringify({ amal: 'jarvis_niyat', kompaniya_id: k, savol, sahifa: o.sahifa, obyekt_nomi: o.obyektNomi ?? undefined, ...(o.tarix?.length ? { tarix: o.tarix } : {}) }) });
+    const j = await r.json() as { ok?: boolean; tur?: string; qayta?: string | null; savol?: string | null; variantlar?: string[] };
+    if (!r.ok || j.ok === false || (j.tur !== 'buyruq' && j.tur !== 'noaniq' && j.tur !== 'suhbat')) return null;
+    return { tur: j.tur, qayta: j.qayta ?? null, savol: j.savol ?? null, variantlar: Array.isArray(j.variantlar) ? j.variantlar : [] };
+  } catch { return null; }
 }
 
 export type JurnalYozuvi = {

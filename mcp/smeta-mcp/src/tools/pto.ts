@@ -12,6 +12,7 @@ import { obyektBormi } from '../malumot';
 import { xatoMatni } from '../maxfiy';
 import { avlodlar, bolimXarita, f2CertYuki, f2YangilaYuki, moslash, tarixTahlil, type DaraxtQator, type SmetaQ, type TarixRef } from '../pto';
 import { obyektIdS, tool } from '../tool';
+import { ishNomzodlari, ishonchDarajasi, takliflarQur } from '../frontend';
 import {
   aktOl, dryRunT, KAT, korsatS, mumkinOl, nkOl, obyektlarS, opS, oyS, qisqa, quruq, rpcOk, sanaS, uch, type NkRow,
 } from './ish-oqimi';
@@ -255,8 +256,8 @@ export const f2Yarat = tool({
 
 export const aktBekor = tool({
   nom: 'akt_bekor',
-  tavsif: 'Fakt hujjati yoki F2 QORALAMAni bekor qilish (hujjat o\'chirilmaydi — holat «bekor», hisobdan chiqadi). Fakt — t2_akt_bekor (kutilgan versiya bilan); '
-    + 'F2 qoralama/rad etilgan — lifecycle cancelled (t2_akt_lifecycle_transition_v1). Tasdiqlangan F2 bekor qilinmaydi (tuzatish/storno tartibi). `sabab` majburiy. Bir yoki ko\'p akt.',
+  tavsif: 'Fakt hujjati yoki F2 ni bekor qilish (hujjat o\'chirilmaydi — holat «bekor», hisobdan chiqadi). Fakt — t2_akt_bekor (kutilgan versiya bilan); '
+    + 'F2 (qoralama, rad etilgan VA tasdiqlangan) — lifecycle cancelled (t2_akt_lifecycle_transition_v1). Tasdiqlangan F2 ga Forma 3 / storno / davr muhri bog\'langan bo\'lsa DEPENDENTS_EXIST — aniq ro\'yxat bilan (avval o\'shalarni bekor qiling). `sabab` majburiy. Bir yoki ko\'p akt.',
   kirish: { akt_idlar: z.array(z.number().int().positive()).min(1).max(200), sabab: z.string().min(3).max(2000), operation_id: opS, dry_run: dryRunT },
   yozadi: true,
   bajar: async (a, mu) => {
@@ -269,8 +270,9 @@ export const aktBekor = tool({
           const n = Number((await m.query<{ n: number }>('select count(*)::int as n from public.t2_akt_qator where akt_id = $1', [aktId])).rows[0]?.n ?? 0);
           if (akt.holat === 'bekor') return { akt_id: aktId, tur: akt.tur, holat: 'bekor', takror: true };
           if (akt.tur === 'f2') {
-            if (akt.holat === 'tasdiqlangan' || akt.lifecycle_status === 'approved') throw new Error(`Akt #${aktId} tasdiqlangan F2 — bekor qilinmaydi (tuzatish/storno tartibida).`);
-            if (!['draft', 'rejected', 'submitted', 'checked'].includes(akt.lifecycle_status ?? 'draft')) throw new Error(`Akt #${aktId} lifecycle ${akt.lifecycle_status} — bekor qilib bo'lmaydi.`);
+            // Tasdiqlangan F2 ham lifecycle approved→cancelled orqali (eski t2_akt_bekor approved aktda immutable trigger bilan rad etiladi);
+            // bog'liq Forma 3 / storno / davr muhri bo'lsa server DEPENDENTS_EXIST + ro'yxat qaytaradi (xatoIzoh aniq matnga aylantiradi).
+            if (!['draft', 'rejected', 'submitted', 'checked', 'approved'].includes(akt.lifecycle_status ?? 'draft')) throw new Error(`Akt #${aktId} lifecycle ${akt.lifecycle_status} — bekor qilib bo'lmaydi.`);
             const res = await rpcOk(m, 't2_akt_lifecycle_transition_v1', {
               p_kompaniya_id: akt.kompaniya_id, p_akt_id: aktId, p_to_status: 'cancelled', p_actor_id: aktor, p_expected_version: akt.versiya,
               p_operation_id: uuidHosila(asos, `bekor:${aktId}`), p_reason: a.sabab,
@@ -512,6 +514,37 @@ export const normativQidir = tool({
   },
 });
 
+// ───────────────────────────── slichitelniy (fakt asosli) ─────────────────────────────
+
+export const slichitelniy = tool({
+  nom: 'slichitelniy',
+  tavsif: 'Slichitelniy vedomost tayyorligi (faqat o\'qish; t2_aosr_slichitelniy_v1): obyektdagi FARQLI ish qatorlari (fakt ≠ smeta, chegara 0,0005), har birining ASOSI — bog\'langan АОСР (№, sana, holat, hajm) va texnadzor qarori '
+    + '(kim, qaysi kompaniya, qachon; qabul/tuzatish/rad), tayyorlik sanog\'i (farqli N, asosi bor M, texnadzor tasdiqlagan K, asosi yo\'q) va «nima yetishmaydi» (qator → amal: aosr_yarat / texnadzorga_yubor / javob_kutilmoqda / tuzatish_kiriting / hajm_toldir). '
+    + '`faqat`: "yetishmaydi" (standart — tasdiqlanmagan farqli qatorlar), "asossiz" (АОСР umuman yo\'q). Smeta qatorlari o\'zgarmaydi; pul yo\'q (hajm). Excel («Основание» ustuni + asoslar reestri) — «Smeta va Fakt / LRV» sahifasidan.',
+  kirish: { obyekt_id: obyektIdS, faqat: z.enum(['yetishmaydi', 'asossiz']).optional(), limit: z.number().int().min(1).max(1000).optional(),
+    boglanmagan: z.boolean().optional().describe('true — hech qaysi smeta qatoriga bog\'lanmagan АОСР lar ro\'yxati + har biriga nomzod qatorlar (nom/ish turi/razdel/fakt bo\'yicha ball va ishonch darajasi). Faqat o\'qish; bog\'lash — UI da tasdiq bilan.') },
+  yozadi: false,
+  bajar: async (a, mu) => {
+    const aktor = mu.aktorKerak();
+    return mu.oqish(async (m) => {
+      const ob = await obyektBormi(m, a.obyekt_id);
+      const limit = a.limit ?? 200;
+      if (a.boglanmagan) {
+        const akt = (await m.query<{ id: string | number; raqam: string | null; sana: string | null; holat: string; ish_nomi: string | null; ish_tavsifi: string | null }>(`select a.id, a.raqam, a.sana::text as sana, a.holat, a.ish_nomi, a.ish_tavsifi from public.t2_aosr a where a.obyekt_id = $1 and a.kompaniya_id = $2 and a.holat <> 'bekor' and not exists (select 1 from public.t2_aosr_bog b where b.aosr_id = a.id) order by a.id limit $3`, [a.obyekt_id, Number(ob.kompaniya_id), limit])).rows.map((x) => ({ ...x, id: Number(x.id) }));
+        const meta = (await m.query<{ id: string | number; ota_id: string | number | null; tartib: number | null; tur: string | null; nom: string | null }>(`select q.id, q.ota_id, q.tartib, q.tur, q.nom from public.t2_qator q where q.obyekt_id = $1 and q.versiya_holat = 'faol'`, [a.obyekt_id])).rows.map((x) => ({ ...x, id: Number(x.id), ota_id: x.ota_id == null ? null : Number(x.ota_id) }));
+        const faktli = new Set((await m.query<{ qator_id: string | number }>(`select h.qator_id from public.t2_qator_holat h where h.obyekt_id = $1 and h.versiya_holat = 'faol' and coalesce(h.fakt_hajm, 0) > 0`, [a.obyekt_id])).rows.map((x) => Number(x.qator_id)));
+        const tk = takliflarQur(akt.map((x) => ({ id: x.id, ish_nomi: x.ish_nomi, ish_tavsifi: x.ish_tavsifi })), ishNomzodlari(meta, faktli));
+        const royxat = akt.map((x) => ({ id: x.id, raqam: x.raqam, sana: x.sana, holat: x.holat, ish_nomi: x.ish_nomi, nomzodlar: (tk.get(x.id) ?? []).map((t) => ({ qator_id: t.qatorId, ball: t.ball, ishonch: ishonchDarajasi(t.ball), nom: t.nom, razdel: t.razdelNom, fakt_bor: t.faktBor })) }));
+        return { boglanmagan: royxat.length, yuqori_ishonch: royxat.filter((x) => x.nomzodlar[0]?.ishonch === 'yuqori').length, nomzodsiz: royxat.filter((x) => !x.nomzodlar.length).length, aktlar: royxat, eslatma: 'Hech narsa yozilmadi: bog\'lash — «АОСР smeta qatoriga bog\'lash» oynasida tasdiq bilan (hajm bilan).' };
+      }
+      const r = (await m.query<{ r: { ok?: boolean; code?: string; error?: string; tayyorlik?: Record<string, number>; yetishmaydi_jami?: number; yetishmaydi?: Array<Record<string, unknown>>; asoslar?: unknown[]; aosrlar?: unknown[] } }>(
+        'select public.t2_aosr_slichitelniy_v1($1::bigint, $2::bigint, $3::bigint, $4::int) as r', [aktor, Number(ob.kompaniya_id), a.obyekt_id, limit])).rows[0]?.r;
+      if (!r || r.ok === false) throw new Error(`t2_aosr_slichitelniy_v1: ${xatoIzoh(r ?? 'javob yo\'q')}`);
+      const yet = (r.yetishmaydi ?? []).filter((x) => (a.faqat === 'asossiz' ? x.asos_holat === 'yoq' : true));
+      return { tayyorlik: r.tayyorlik, yetishmaydi_jami: r.yetishmaydi_jami, yetishmaydi: yet, asoslar: r.asoslar ?? [], aosrlar: r.aosrlar ?? [] };
+    });
+  },
+});
 // ───────────────────────────── 11. forma3 ─────────────────────────────
 
 export const forma3 = tool({

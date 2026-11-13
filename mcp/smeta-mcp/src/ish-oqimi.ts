@@ -183,10 +183,27 @@ const XATO_IZOH: Record<string, string> = {
   PERMISSION_DENIED: 'aktorda bu amal uchun ruxsat yo\'q',
 };
 
+/** DEPENDENTS_EXIST `bogliq` obyekti → aniq matn: nima bog'langan va avval nimani bekor qilish kerak. */
+export function bogliqIzoh(b: unknown): string {
+  const o = (b && typeof b === 'object' && !Array.isArray(b) ? b : {}) as Record<string, unknown>;
+  const id = (v: unknown) => (Array.isArray(v) ? v.map(String).join(', ') : '');
+  const q: string[] = [];
+  if (id(o.forma3)) q.push(`Forma 3 (id ${id(o.forma3)}) — avval shu Forma 3 ni bekor qiling`);
+  if (id(o.storno_aktlar)) q.push(`storno/pereraschet F2 aktlar (id ${id(o.storno_aktlar)}) — avval ularni bekor qiling`);
+  if (o.davr_muhr === true) q.push('davr muhrlangan — avval davrni qayta oching');
+  return q.join('; ');
+}
+
 /** Server xato kodini o'qiladigan matnga: «KOD — izoh». Kod matn ichida bo'lsa ham (raise exception 'KOD: …') topiladi. */
 export function xatoIzoh(javobYokiMatn: unknown): string {
   const o = javobYokiMatn && typeof javobYokiMatn === 'object' ? javobYokiMatn as Record<string, unknown> : null;
+  if (o && o.code === 'DEPENDENTS_EXIST') {
+    const b = bogliqIzoh(o.bogliq);
+    return `DEPENDENTS_EXIST — bu aktga bog'liq hujjatlar bor${b ? `: ${b}` : ''}`;
+  }
   const matn = o ? String(o.code ?? o.error ?? o.sabab ?? JSON.stringify(o)) : String(javobYokiMatn ?? '');
+  // Allaqachon aniqlashtirilgan DEPENDENTS_EXIST (rpcOk dan o'tgan) qayta umumiy matnga aylantirilmaydi.
+  if (!o) { const i = matn.indexOf('DEPENDENTS_EXIST — bu aktga bog\'liq hujjatlar bor:'); if (i >= 0) return matn.slice(i, i + 600); }
   const kod = Object.keys(XATO_IZOH).find((k) => matn.includes(k)) ?? (o?.code ? String(o.code) : null);
   const qoshimcha = o ? Object.entries(o).filter(([k]) => !['ok', 'code', 'contract'].includes(k)).map(([k, v]) => `${k}=${typeof v === 'object' ? JSON.stringify(v).slice(0, 300) : String(v)}`).join(', ') : '';
   const asos = kod && XATO_IZOH[kod] ? `${kod} — ${XATO_IZOH[kod]}` : matn.slice(0, 500);

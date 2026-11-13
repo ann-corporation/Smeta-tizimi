@@ -85,6 +85,17 @@ begin
   return v_id;
 end $f$;
 
+create or replace function pg_temp.tz_aloqa2(p_boss bigint, p_komp bigint, q_boss bigint, q_komp bigint, p_turi text, p_rol text, p_qabul_rol text)
+returns bigint language plpgsql as $f$
+declare r jsonb; v_inn text; v_id bigint;
+begin
+  select inn into v_inn from public.t2_kompaniya where id = q_komp;
+  r := public.t2_tomon_taklif_v1(p_boss, p_komp, q_komp, v_inn, null, p_rol, p_qabul_rol, p_turi, 'TZ aloqa', null, null, gen_random_uuid());
+  perform pg_temp.tz_ok(r, 'tomon_taklif2 ' || p_qabul_rol); v_id := (r->>'id')::bigint;
+  r := public.t2_tomon_javob_v1(q_boss, q_komp, v_id, 'qabul', null);
+  perform pg_temp.tz_ok(r, 'tomon_javob2 ' || p_qabul_rol);
+  return v_id;
+end $f$;
 create or replace function pg_temp.tz_user(p_login text, p_komp bigint, p_rol text) returns bigint language plpgsql as $f$
 declare v_id bigint;
 begin
@@ -132,6 +143,8 @@ declare
   b_sub bigint; b_nar bigint; t_sub bigint; sakt bigint; stq bigint; nid bigint; nver integer; l1 bigint; v_oy date := date_trunc('month', current_date)::date;
   y_yuk bigint; y_ver integer; y_tk bigint; y_bron bigint; y_t jsonb;
   v_list text; v_ob0 bigint; v_aosr bigint; v_tqa bigint;
+  Z2 bigint; T2 bigint; z2_boss bigint; z2_tex bigint; t2b_boss bigint; t2b_user bigint; p_ichki bigint; o3 bigint; o4 bigint; a_pz2 bigint; a_z2t2 bigint;
+  akt_c bigint; akt_d bigint; akt_e bigint; akt_f bigint; akt_g bigint; akt_h bigint; akt_i bigint; tq_c bigint; tq_d bigint; tq_e bigint; tq_f bigint; tq_g bigint; tq_h bigint; v_aosr2 bigint; tq_ao bigint; v_ob10 bigint; v_vk bigint; v_sorov bigint;
 begin
   -- ===================================================================
   v_n := 0; v_name := 'tayyorgarlik: kompaniyalar, foydalanuvchilar, obyektlar, aloqalar (RPC), grantlar';
@@ -457,8 +470,113 @@ begin
   perform pg_temp.tz_ok(public.t2_tomon_holat_v1(p_boss, P, a_pt, 'toxtatish', null), 'aloqa toxtatish');
   perform pg_temp.tz_assert(not public.t2_tomon_ruxsat_bor(T, P, 'aosr', 'qaror', o1), 'to''xtatilgan aloqada texnadzor ruxsati yo''q');
 
+  -- ===================================================================
+  v_n := 10; v_name := 'NAZORAT = funksiya: (A) buyurtmachi xodimi, (B) buyurtmachi vakili (pudratchi aloqasiz), (C) ichki nazorat, (D) mustaqil; izolyatsiya';
+  select coalesce(max(id), 0) into v_ob10 from public.t2_outbox;
+  Z2 := pg_temp.tz_komp('Buyurtmachi2', v_tag); T2 := pg_temp.tz_komp('Autsorsing texnadzor', v_tag);
+  z2_boss := pg_temp.tz_user('tz_z2b_' || v_tag, Z2, 'boss'); z2_tex := pg_temp.tz_user('tz_z2t_' || v_tag, Z2, 'inspektor');
+  t2b_boss := pg_temp.tz_user('tz_t2b_' || v_tag, T2, 'boss'); t2b_user := pg_temp.tz_user('tz_t2u_' || v_tag, T2, 'inspektor');
+  p_ichki := pg_temp.tz_user('tz_pi_' || v_tag, P, 'inspektor');
+  insert into public.t2_obyekt(nom, kompaniya_id) values ('TZ P-obyekt-3 ' || v_tag, P) returning id into o3;
+  insert into public.t2_obyekt(nom, kompaniya_id) values ('TZ P-obyekt-4 ' || v_tag, P) returning id into o4;
+  a_pz2 := pg_temp.tz_aloqa(p_boss, P, z2_boss, Z2, 'shartnoma', 'buyurtmachi');                    -- pudratchi <-> buyurtmachi
+  a_z2t2 := pg_temp.tz_aloqa2(z2_boss, Z2, t2b_boss, T2, 'nazorat', 'buyurtmachi', 'texnadzor');    -- buyurtmachi <-> texnadzor (pudratchi bu aloqada YO'Q)
+  perform pg_temp.tz_assert(not exists (select 1 from public.t2_tomon_aloqa a where (a.taklif_kompaniya_id = P and a.qabul_kompaniya_id = T2) or (a.taklif_kompaniya_id = T2 and a.qabul_kompaniya_id = P)), 'pudratchi va autsorsing texnadzor orasida aloqa bo''lmasligi kerak');
+  perform pg_temp.tz_ok(public.t2_tomon_grant_saqla_v1(p_boss, P, a_pz2, jsonb_build_array(
+    jsonb_build_object('resurs', 'obyekt_holat', 'amallar', jsonb_build_array('korish'), 'obyekt_id', o3),
+    jsonb_build_object('resurs', 'f2', 'amallar', jsonb_build_array('korish', 'tafsilot'), 'obyekt_id', o3),
+    jsonb_build_object('resurs', 'lab_natija', 'amallar', jsonb_build_array('korish'), 'obyekt_id', o3))), 'grant Z2');
+  insert into public.t2_akt(obyekt_id, kompaniya_id, tur, raqam, oy, hujjat_jami, holat, lifecycle_status) values (o3, P, 'f2', 'TZ-C-' || v_tag, date '2026-09-01', 100, 'tasdiqlangan', 'approved') returning id into akt_c;
+  insert into public.t2_akt(obyekt_id, kompaniya_id, tur, raqam, oy, hujjat_jami, holat, lifecycle_status) values (o3, P, 'f2', 'TZ-D-' || v_tag, date '2026-10-01', 100, 'tasdiqlangan', 'approved') returning id into akt_d;
+  insert into public.t2_akt(obyekt_id, kompaniya_id, tur, raqam, oy, hujjat_jami, holat, lifecycle_status) values (o3, P, 'f2', 'TZ-E-' || v_tag, date '2026-11-01', 100, 'tasdiqlangan', 'approved') returning id into akt_e;
+  insert into public.t2_akt(obyekt_id, kompaniya_id, tur, raqam, oy, hujjat_jami, holat, lifecycle_status) values (o3, P, 'f2', 'TZ-F-' || v_tag, date '2026-12-01', 100, 'tasdiqlangan', 'approved') returning id into akt_f;
+  insert into public.t2_akt(obyekt_id, kompaniya_id, tur, raqam, oy, hujjat_jami, holat, lifecycle_status) values (o3, P, 'f2', 'TZ-G-' || v_tag, date '2027-01-01', 100, 'tasdiqlangan', 'approved') returning id into akt_g;
+  insert into public.t2_akt(obyekt_id, kompaniya_id, tur, raqam, oy, hujjat_jami, holat, lifecycle_status) values (o4, P, 'f2', 'TZ-H-' || v_tag, date '2027-02-01', 100, 'tasdiqlangan', 'approved') returning id into akt_h;
+
+  insert into public.t2_akt(obyekt_id, kompaniya_id, tur, raqam, oy, hujjat_jami, holat, lifecycle_status) values (o3, P, 'f2', 'TZ-I-' || v_tag, date '2027-03-01', 100, 'tasdiqlangan', 'approved') returning id into akt_i;
+
+  -- (D) mustaqil (eskicha): step 2 AOSR was decided by the direct supervisor company
+  perform pg_temp.tz_assert((select nazorat_turi from public.t2_tomon_taqdim where id = v_tqa) = 'mustaqil' and (select nomidan_kompaniya_id from public.t2_tomon_taqdim where id = v_tqa) = T, '(D) mustaqil: eski pudratchi<->texnadzor qarori nazorat_turi=mustaqil, nomidan=texnadzor bo''lishi kerak');
+
+  -- (A) buyurtmachining o'z xodimi: tayinlangach buyurtmachi qabuli oldidan texnik qaror shart
+  r := public.t2_tomon_taqdim_yarat_v1(p_boss, P, a_pz2, 'f2', akt_c, 'TZ A-0', gen_random_uuid()); perform pg_temp.tz_ok(r, 'taqdim C'); tq_c := (r->>'id')::bigint;
+  r := public.t2_tomon_qaror_v1(z2_boss, Z2, tq_c, 'qabul', 'TZ ok');
+  perform pg_temp.tz_assert(r->>'holat' = 'qabul' and r->>'nazorat_turi' is null, '(A) tayinlanmagan: buyurtmachi qabuli oldingidek ishlaydi (nazorat_turi bo''sh): ' || r::text);
+  perform pg_temp.tz_ok(public.t2_nazorat_tayinlash_v1(z2_boss, Z2, o3, z2_tex, gen_random_uuid()), 'nazorat_tayinlash');
+  r := public.t2_tomon_taqdim_yarat_v1(p_boss, P, a_pz2, 'f2', akt_d, 'TZ A-1', gen_random_uuid()); perform pg_temp.tz_ok(r, 'taqdim D'); tq_d := (r->>'id')::bigint;
+  r := public.t2_tomon_qaror_v1(z2_boss, Z2, tq_d, 'qabul', 'TZ ok');
+  perform pg_temp.tz_assert(r->>'code' = 'TEXNIK_QAROR_KERAK', '(A) texnik nazorat tayinlangach texnik qarorsiz buyurtmachi qabul qila olmaydi: ' || r::text);
+  r := public.t2_nazorat_qaror_v1(z2_tex, Z2, tq_d, 'qabul', 'TZ texnik ok');
+  perform pg_temp.tz_assert((r->>'ok')::boolean and r->>'nazorat_turi' = 'buyurtmachi_xodimi' and (r->>'nomidan_kompaniya_id')::bigint = Z2, '(A) texnik qaror buyurtmachi xodimi nomidan: ' || r::text);
+  perform pg_temp.tz_assert(pg_temp.tz_hidden(format('public.t2_nazorat_qaror_v1(%s, %s, %s, ''qabul'', null)', y_boss, Y, tq_d)), '(A) begona kompaniya texnik qaror chiqara olmaydi');
+  r := public.t2_tomon_qaror_v1(z2_boss, Z2, tq_d, 'qabul', 'TZ yakuniy');
+  perform pg_temp.tz_assert(r->>'holat' = 'qabul', '(A) texnik qarordan keyin buyurtmachi qabuli: ' || r::text);
+  r := public.t2_nazorat_holat_v1(p_boss, P, tq_d);
+  perform pg_temp.tz_assert((r->>'ok')::boolean and (r->'texnik'->0->>'nazorat_turi') = 'buyurtmachi_xodimi' and (r->'texnik'->0->>'nomidan_nom') is not null and (r->'yakuniy'->>'nomidan_kompaniya_id')::bigint = Z2,
+    '(A) pudratchi qarorda "kim nomidan" ni ko''radi: ' || r::text);
+  perform pg_temp.tz_assert(position('Texnik nazorat' in public.t2_tomon_taqdim_tafsilot_v1(p_boss, P, tq_d)::text) > 0, '(A) qaror yozuvida "Texnik nazorat, <buyurtmachi>" bo''lishi kerak');
+
+  -- (B) autsorsing texnadzor, BUYURTMACHI yollagan: vakolat doirasi = buyurtmachi grantlari kesishmasi
+  r := public.t2_tomon_vakolat_ber_v1(z2_boss, Z2, a_z2t2, o3, array['f2', 'chizma'], array['korish', 'qaror'], gen_random_uuid());
+  perform pg_temp.tz_assert(r->>'code' = 'DOIRA_KENG', '(B) buyurtmachi o''zida yo''q resursni (chizma) vakolat qila olmaydi: ' || r::text);
+  r := public.t2_tomon_vakolat_ber_v1(z2_boss, Z2, a_z2t2, o3, array['f2', 'lab_natija'], array['korish', 'qaror'], gen_random_uuid());
+  perform pg_temp.tz_ok(r, 'vakolat_ber'); v_vk := (r->>'id')::bigint;
+  r := public.t2_tomon_vakolat_ber_v1(t2b_boss, T2, a_z2t2, o3, array['f2'], array['korish'], gen_random_uuid());
+  perform pg_temp.tz_assert(coalesce((r->>'ok')::boolean, false) is false, '(B) vakil qayta vakolat bera olmaydi (chuqurlik 1): ' || r::text);
+  r := public.t2_tomon_taqdim_yarat_v1(p_boss, P, a_pz2, 'f2', akt_e, 'TZ B-1', gen_random_uuid()); perform pg_temp.tz_ok(r, 'taqdim E'); tq_e := (r->>'id')::bigint;
+  r := public.t2_tomon_taqdim_yarat_v1(p_boss, P, a_pz2, 'f2', akt_h, 'TZ B-obyekt4', gen_random_uuid()); tq_h := (r->>'id')::bigint;
+  perform pg_temp.tz_assert(pg_temp.tz_has(public.t2_tomon_taqdimlar_v1(t2b_user, T2, 'kelgan', null, null, 50), tq_e), '(B) vakil buyurtmachiga kelgan hujjatni (pudratchi texnadzor bilan aloqasiz) ko''rishi kerak');
+  perform pg_temp.tz_assert(tq_h is null or not pg_temp.tz_has(public.t2_tomon_taqdimlar_v1(t2b_user, T2, 'kelgan', null, null, 50), tq_h), '(B) vakil vakolat berilmagan obyekt (o4) hujjatini ko''rmasligi kerak');
+  perform pg_temp.tz_assert((public.t2_tomon_taqdim_tafsilot_v1(t2b_user, T2, tq_e)->>'ok')::boolean, '(B) vakil tafsilotni ko''rishi kerak');
+  perform pg_temp.tz_assert(public.t2_tomon_ruxsat_bor(T2, P, 'lab_natija', 'korish', o3) and not public.t2_tomon_ruxsat_bor(T2, P, 'lab_natija', 'korish', o4)
+                            and not public.t2_tomon_ruxsat_bor(T2, P, 'obyekt_holat', 'korish', o3), '(B) vakil faqat vakolat doirasidagini (lab_natija@o3) ko''radi, obyekt_holat va o4 emas');
+  perform pg_temp.tz_assert(jsonb_array_length(public.t2_nazorat_tayinlar_v1(p_boss, P)->'kim_tekshiradi') >= 1, '(B) pudratchi kim tekshirayotganini ko''radi');
+  r := public.t2_tomon_qaror_v1(t2b_user, T2, tq_e, 'qabul', 'TZ vakil qarori');
+  perform pg_temp.tz_assert(r->>'holat' = 'qabul' and r->>'nazorat_turi' = 'vakil' and (r->>'nomidan_kompaniya_id')::bigint = Z2, '(B) vakil buyurtmachi nomidan qaror chiqardi: ' || r::text);
+  r := public.t2_nazorat_holat_v1(p_boss, P, tq_e);
+  perform pg_temp.tz_assert((r->'yakuniy'->>'nazorat_turi') = 'vakil' and (r->'yakuniy'->>'nomidan_kompaniya_id')::bigint = Z2 and (r->'yakuniy'->>'qaror_kompaniya_id')::bigint = T2, '(B) pudratchi: kim nomidan = buyurtmachi, qaror chiqargan = autsorsing: ' || r::text);
+  -- vakolat bekor -> darhol yopiladi
+  r := public.t2_tomon_taqdim_yarat_v1(p_boss, P, a_pz2, 'f2', akt_f, 'TZ B-2', gen_random_uuid()); perform pg_temp.tz_ok(r, 'taqdim F'); tq_f := (r->>'id')::bigint;
+  perform pg_temp.tz_ok(public.t2_tomon_vakolat_bekor_v1(z2_boss, Z2, v_vk), 'vakolat_bekor');
+  perform pg_temp.tz_assert(not pg_temp.tz_has(public.t2_tomon_taqdimlar_v1(t2b_user, T2, 'kelgan', null, null, 50), tq_f)
+                            and pg_temp.tz_hidden(format('public.t2_tomon_qaror_v1(%s, %s, %s, ''qabul'', null)', t2b_user, T2, tq_f))
+                            and pg_temp.tz_hidden(format('public.t2_tomon_taqdim_tafsilot_v1(%s, %s, %s)', t2b_user, T2, tq_f))
+                            and not public.t2_tomon_ruxsat_bor(T2, P, 'lab_natija', 'korish', o3), '(B) vakolat bekor qilingach vakil hech narsa ko''rmaydi va qaror chiqara olmaydi');
+  perform pg_temp.tz_assert(pg_temp.tz_hidden(format('public.t2_nazorat_holat_v1(%s, %s, %s)', x_boss, X, tq_e)), 'begona kompaniya nazorat holatini ko''rmasligi kerak');
+
+  -- (C) pudratchining ichki nazorati: sukut O'CHIQ (bloklamaydi); yoqilsa ichki qabulsiz tashqariga yuborilmaydi
+  r := public.t2_nazorat_sozlama_ol_v1(p_boss, P);
+  perform pg_temp.tz_assert((r->>'ichki_majburiy')::boolean is false, '(C) ichki nazorat sukut o''chiq bo''lishi kerak');
+  perform pg_temp.tz_ok(public.t2_nazorat_sozlama_saqla_v1(p_boss, P, true, null, gen_random_uuid()), 'nazorat_sozlama yoq');
+  r := public.t2_tomon_taqdim_yarat_v1(p_pto, P, a_pz2, 'f2', akt_g, 'TZ C-1', gen_random_uuid());
+  perform pg_temp.tz_assert(r->>'code' = 'ICHKI_NAZORAT_KERAK', '(C) ichki nazoratsiz tashqariga yuborib bo''lmaydi: ' || r::text);
+  perform pg_temp.tz_ok(public.t2_nazorat_ichki_sorov_v1(p_pto, P, 'f2', akt_g, 'TZ ichki tekshiring', gen_random_uuid()), 'ichki_sorov');
+  perform pg_temp.tz_assert(jsonb_array_length(public.t2_nazorat_ichki_navbat_v1(p_ichki, P)) >= 1, '(C) ichki nazoratchi navbatda so''rovni ko''radi');
+  perform pg_temp.tz_assert(pg_temp.tz_hidden(format('public.t2_nazorat_ichki_qaror_v1(%s, %s, ''f2'', %s, ''qabul'', null, gen_random_uuid())', p_prorab, P, akt_g)), '(C) quality.decide ruxsatisiz prorab ichki qaror chiqara olmaydi');
+  r := public.t2_nazorat_ichki_qaror_v1(p_ichki, P, 'f2', akt_g, 'rad', 'TZ ichki rad', gen_random_uuid()); perform pg_temp.tz_ok(r, 'ichki rad');
+  r := public.t2_tomon_taqdim_yarat_v1(p_pto, P, a_pz2, 'f2', akt_g, 'TZ C-2', gen_random_uuid());
+  perform pg_temp.tz_assert(r->>'code' = 'ICHKI_NAZORAT_KERAK', '(C) ichki rad etilgan hujjat yuborilmaydi: ' || r::text);
+  r := public.t2_nazorat_ichki_qaror_v1(p_ichki, P, 'f2', akt_g, 'qabul', 'TZ ichki ok', gen_random_uuid()); perform pg_temp.tz_ok(r, 'ichki qabul');
+  r := public.t2_tomon_taqdim_yarat_v1(p_pto, P, a_pz2, 'f2', akt_g, 'TZ C-3', gen_random_uuid()); perform pg_temp.tz_ok(r, 'taqdim G (ichki otgan)'); tq_g := (r->>'id')::bigint;
+  r := public.t2_nazorat_holat_v1(z2_boss, Z2, tq_g);
+  perform pg_temp.tz_assert((r->'ichki'->>'otdi')::boolean is true and (r->'ichki'->>'kim') is not null and (r->'ichki'->>'vaqt') is not null, '(C) tashqi tomon "ichki nazoratdan o''tgan: ha, kim, qachon" ni ko''radi: ' || r::text);
+  perform pg_temp.tz_assert(position('izoh' in (r->'ichki')::text) = 0 and position('TZ ichki' in r::text) = 0, '(C) ichki izoh tashqariga chiqmasligi kerak (faqat ha/yo''q, kim, qachon)');
+  perform pg_temp.tz_ok(public.t2_nazorat_sozlama_saqla_v1(p_boss, P, false, null, gen_random_uuid()), 'nazorat_sozlama o''chir');
+  r := public.t2_tomon_taqdim_yarat_v1(p_pto, P, a_pz2, 'f2', akt_i, 'TZ C-4', gen_random_uuid()); perform pg_temp.tz_ok(r, 'taqdim H (ichki o''chiq)');
+  perform pg_temp.tz_assert((select ichki_otdi from public.t2_tomon_taqdim where id = (r->>'id')::bigint) is null, '(C) ichki o''chiq: ichki_otdi bo''sh (ichki nazorat bo''lmagan)');
+
+  -- bildirishnoma: vakilga va ichki nazoratchiga tegishli hodisalar yetadi
+  -- ALL of this test's rows (ids > v_ob0), not only step 10's: fresh step-9 rows would otherwise set the dispatcher's 60-second boundary below step 10's rows
+  begin update public.t2_outbox set yaratildi = now() - interval '10 minutes' where id > v_ob0;
+  exception when others then perform pg_temp.tz_uz(10, 'outbox eskirtirib bo''lmadi: ' || left(sqlerrm, 100)); end;
+  perform pg_temp.tz_ok(public.t2_outbox_ishlov_v1('bildirishnoma', 2000), 't2_outbox_ishlov_v1 (10)');
+  perform pg_temp.tz_assert(exists (select 1 from public.t2_bildirishnoma n where n.foydalanuvchi_id = t2b_user and n.outbox_id in (select id from public.t2_outbox where id > v_ob10 and mavzu = 'tomon.taqdim')), '(5) vakil (texnadzor) buyurtmachiga kelgan hujjat haqida bildirishnoma olishi kerak');
+  perform pg_temp.tz_assert(exists (select 1 from public.t2_bildirishnoma n where n.foydalanuvchi_id = t2b_user and n.outbox_id in (select id from public.t2_outbox where id > v_ob10 and mavzu = 'nazorat.vakolat')), '(5) vakil vakolat berilgani haqida xabar olishi kerak');
+  perform pg_temp.tz_assert(exists (select 1 from public.t2_bildirishnoma n where n.foydalanuvchi_id = p_ichki and n.outbox_id in (select id from public.t2_outbox where id > v_ob10 and mavzu = 'nazorat.ichki_sorov')), '(5) ichki nazoratchi ichki tekshiruv so''rovi haqida xabar olishi kerak');
+  perform pg_temp.tz_assert(exists (select 1 from public.t2_bildirishnoma n where n.foydalanuvchi_id = p_pto and n.outbox_id in (select id from public.t2_outbox where id > v_ob10 and mavzu = 'nazorat.ichki_qaror')), '(5) so''rovchi ichki qaror haqida xabar olishi kerak');
+  raise notice 'TOMON OBSERVED [10]: texnik bosqich sozlamasi sukut «avto»: faqat texnik nazorat tayinlangan (xodim yoki texnik_qaror vakolati) bo''lsa buyurtmachi qabuli oldidan texnik qaror shart.';
   select string_agg('[' || n || '] ' || matn, E'\n' order by n) into v_list from pg_temp.tz_uzilish;
-  raise notice E'TOMON OK: 9 qadam o''tdi. UZILISHLAR (%):\n%', (select count(*) from pg_temp.tz_uzilish), coalesce(v_list, '(yo''q)');
+  raise notice E'TOMON OK: 10 qadam o''tdi. UZILISHLAR (%):\n%', (select count(*) from pg_temp.tz_uzilish), coalesce(v_list, '(yo''q)');
 exception when others then
   raise exception 'TOMON qadam [% %]: %', v_n, v_name, sqlerrm;
 end
