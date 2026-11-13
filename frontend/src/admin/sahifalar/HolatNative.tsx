@@ -26,6 +26,9 @@ import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { useQaytaUlanish } from '../../desktop/qayta-ulanish';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { ostatkaHujjatQur, slichitelniyHujjatQur, ustamaManbaOl } from '../../lib/oylik-hujjat/ostatka-slichitelniy';
+import { slichitelniyAsosOl } from '../../api/t2-slichitelniy-asos';
+import { AsosXarita } from '../../lib/slichitelniy-asos';
+import { SlichitelniyTayyorlik } from './SlichitelniyTayyorlik';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { toast } from '../../umumiy/ui/Toast';
@@ -290,7 +293,10 @@ export function HolatNative() {
     try {
       const u = await ustamaManbaOl(joriy.id, obyektId);
       if (!u.ok) { setError(`Slichitelniy: ${u.xato} — hujjat tuzilmadi. Qayta urinib ko‘ring.`); return; }
-      const { model, fayl } = slichitelniyHujjatQur({ rows: daraxtXom, states: holatXom, istisnolar, ustama: u.ustama, obyektNom, imzo: tomonlar, faqatFarq: slichFaqatFarq });
+      // Fakt asosli rejim: har farq qatoriga АОСР/texnadzor asosi. O'qilmasa — hujjat asosiz (oldingi ko'rinish) chiqadi, sababi aytiladi.
+      const asosJavob = await slichitelniyAsosOl(joriy.id, obyektId, 1);
+      if (!asosJavob.ok) toast(`: . `, 'warn');
+      const { model, fayl } = slichitelniyHujjatQur({ rows: daraxtXom, states: holatXom, istisnolar, ustama: u.ustama, obyektNom, imzo: tomonlar, faqatFarq: slichFaqatFarq, asos: asosJavob.ok ? new AsosXarita(asosJavob) : null });
       if (!fayl) { toast(slichFaqatFarq ? 'Farq yo‘q: barcha pozitsiyalarda fakt smeta bilan teng.' : 'Solishtiriladigan pozitsiya yo‘q.', 'warn'); return; }
       const { bytes, faylNomi } = fayl;
       const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes, hujjat: 'SLICHITELNIY', sabab: `Сличительная ведомость · ${obyektNom}`, obyekt: obyektId },
@@ -434,6 +440,16 @@ export function HolatNative() {
         {/* Firuza (egasi 2026-10-25): smeta anatomiyasi — daraxt ustida bir qarashda holat (smeta / fakt / F2 / qoldiq — yagona jami). */}
         {daraxtKorinadi && tree.length > 0 && activeTab === 'smeta' && panellar && <SmetaAnatomiya tree={tree} obyektId={obyektId} />}
         {daraxtKorinadi && tree.length > 0 && activeTab === 'smeta' && panellar && <MuhrFarqXulosa royxat={muhr.royxat} />}
+        {daraxtKorinadi && !loading && !error && activeTab === 'smeta' && panellar && joriy?.id != null && (
+          <details className="fz-card" open={ochiqPanel === 'tayyorlik'} onToggle={(e) => setOchiqPanel(e.currentTarget.open ? 'tayyorlik' : null)}>
+            <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-[13px] font-semibold text-text">
+              <Info size={15} aria-hidden="true" className="text-text-mute" />
+              <span>{t('Slichitelniy tayyorligi (farq asoslari)')}</span>
+              <span className="ml-auto text-[11.5px] font-normal text-text-mute">{ochiqPanel === 'tayyorlik' ? t('yopish ▴') : t('ochish ▾')}</span>
+            </summary>
+            {ochiqPanel === 'tayyorlik' && <div className="border-t border-border px-4 py-3"><SlichitelniyTayyorlik kompaniyaId={joriy.id} obyektId={obyektId} /></div>}
+          </details>
+        )}
         {daraxtKorinadi && !loading && !error && activeTab === 'smeta' && panellar && (
           <details className="fz-card" open={ochiqPanel === 'istisno'} onToggle={(e) => setOchiqPanel(e.currentTarget.open ? 'istisno' : null)}>
             <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-[13px] font-semibold text-text">

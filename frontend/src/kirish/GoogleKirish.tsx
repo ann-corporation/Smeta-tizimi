@@ -33,7 +33,7 @@ export function originRuxsatmi(joriy: string, originlar: readonly string[]): boo
   return originlar.some((o) => o.toLowerCase() === joriy.toLowerCase());
 }
 
-export type GoogleNatija = { ok: true; rol: string; yangi: boolean; demo: boolean } | { ok: false; xato: string };
+export type GoogleNatija = { ok: true; rol: string; yangi: boolean; demo: boolean; ulandi?: boolean } | { ok: false; xato: string };
 
 export default function GoogleKirish({ matn, onNatija, onBoshlandi, onCredential }: {
   matn: 'signin_with' | 'signup_with' | 'continue_with';
@@ -77,7 +77,7 @@ export default function GoogleKirish({ matn, onNatija, onBoshlandi, onCredential
           try {
             const r = await fetch('/api/kirish-google', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ credential }) });
             const d = await r.json();
-            natijaRef.current(d.ok ? { ok: true, rol: d.rol, yangi: !!d.yangi, demo: !!d.demo } : { ok: false, xato: d.xato || 'Google bilan kirib bo‘lmadi' });
+            natijaRef.current(d.ok ? { ok: true, rol: d.rol, yangi: !!d.yangi, demo: !!d.demo, ulandi: !!d.ulandi } : { ok: false, xato: d.xato || 'Google bilan kirib bo‘lmadi' });
           } catch { natijaRef.current({ ok: false, xato: 'Tarmoq xatosi' }); }
         },
       });

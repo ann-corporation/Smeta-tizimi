@@ -7,6 +7,8 @@ type Hal<T> = { resolve: (v: T) => void; p: Promise<T> };
 function kech<T>(): Hal<T> { let resolve!: (v: T) => void; const p = new Promise<T>((r) => { resolve = r; }); return { resolve, p }; }
 
 const st = vi.hoisted(() => ({ joriy: { id: 5, nom: 'Test' } as { id: number; nom: string }, aloqa: null as any, obyekt: null as any, taqdim: null as any, chaqiruv: [] as string[] }));
+vi.mock('./NazoratTayinlash', () => ({ default: () => null }));
+vi.mock('./IchkiNazorat', () => ({ default: () => null }));
 vi.mock('../../umumiy/kontekst/KompaniyaKontekst', () => ({ useKompaniya: () => ({ joriy: st.joriy }) }));
 vi.mock('../../umumiy/kontekst/KompaniyaKerak', () => ({ KompaniyaKerak: () => <div>kompaniya kerak</div> }));
 vi.mock('../../umumiy/ui/Sahifa', () => ({ Sahifa: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }));

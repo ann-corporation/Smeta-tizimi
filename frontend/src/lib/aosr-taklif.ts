@@ -178,3 +178,70 @@ export function bogChaqiruvlari(juftlar: ReadonlyArray<{ aktId: number; qatorId:
   for (const j of juftlar) { const s = m.get(j.qatorId) ?? new Set<number>(); s.add(j.aktId); m.set(j.qatorId, s); }
   return [...m.entries()].map(([q, s]) => ({ aosrIds: [...s].sort((a, b) => a - b), qatorIds: [q] })).sort((a, b) => a.qatorIds[0] - b.qatorIds[0]);
 }
+
+
+/* ══════════════ OMMAVIY BOG'LASH (egasi: slichitelniy asosi uchun 986 АОСР dan 983 tasi bog'lanmagan) ══════════════
+ * Hech narsa o'zi yozilmaydi: bu yerda faqat REJA (sof mantiq). Yozish — UI da tasdiqdan keyin (aosr_bog_hajm_v1).
+ */
+export const ISHONCH_SUKUT = 0.7;
+export type IshonchDarajasi = 'yuqori' | 'orta' | 'past';
+/** Ball → daraja: ≥ chegara — yuqori (ommaviy qabulga yaroqli); chegaraning 70 % idan — o'rta; undan past — qo'lda. */
+export const ishonchDarajasi = (ball: number, chegara = ISHONCH_SUKUT): IshonchDarajasi => (ball >= chegara ? 'yuqori' : ball >= chegara * 0.7 ? 'orta' : 'past');
+
+const birlikNormal = (b: string | null | undefined): string => String(b ?? '').toLowerCase().replace(/[\s.]/g, '').replace(/³/g, '3').replace(/²/g, '2').replace(/m/g, 'м').replace(/kg/g, 'кг');
+/** Akt matnidan hajm: «100 м3», «12,5 м²» — faqat birlik qator birligiga TENG bo'lsa (mm/sm — qalinlik, hajm emas). */
+export function matndanHajm(a: Pick<AosrV2, 'ish_nomi' | 'ish_tavsifi' | 'bajarilgan'>, qatorBirlik: string | null | undefined): number | null {
+  const bn = birlikNormal(qatorBirlik);
+  if (!bn) return null;
+  const matn = `${a.bajarilgan ?? ''} ${a.ish_nomi ?? ''} ${a.ish_tavsifi ?? ''}`;
+  for (const m of matn.matchAll(/(\d{1,7}(?:[.,]\d{1,4})?)\s*(м[\u00B2\u00B3]|м[23]|m[23]|кг|т|шт|п\.?\s?м|м(?![а-яa-z]))/gi)) {
+    if (birlikNormal(m[2]) !== bn) continue;
+    const v = Number(m[1].replace(',', '.'));
+    if (Number.isFinite(v) && v > 0) return v;
+  }
+  return null;
+}
+
+export type OmmaviyJuft = { aktId: number; qatorId: number; ball: number; hajm: number | null; hajmManba: 'matn' | 'fakt' | 'yoq' };
+export type OmmaviyReja = { juftlar: OmmaviyJuft[]; qolda: number[] };
+
+/**
+ * Ommaviy reja: har akt uchun TANLANGAN qator (tanlov yoki eng yuqori taklif); ball ≥ chegara — qabulga, qolganlari «qo'lda».
+ * Hajm: akt matnidagi hajm (birlik mos bo'lsa); bo'lmasa fakt hajmi − (shu qatorga allaqachon asoslangan + matnli aktlar) qoldig'i,
+ * shu qatorga bir nechta akt tushsa teng bo'linadi (3 xona). Fakt noma'lum bo'lsa hajm null (0 emas).
+ */
+export function ommaviyReja(
+  aktlar: ReadonlyMap<number, Pick<AosrV2, 'ish_nomi' | 'ish_tavsifi' | 'bajarilgan'>>, takliflar: ReadonlyMap<number, Taklif[]>,
+  qatorlar: ReadonlyMap<number, { fakt: number | null; birlik: string | null; asoslangan?: number }>,
+  o: { chegara?: number; tanlov?: ReadonlyMap<number, number> } = {},
+): OmmaviyReja {
+  const chegara = o.chegara ?? ISHONCH_SUKUT;
+  const juftlar: OmmaviyJuft[] = []; const qolda: number[] = [];
+  for (const [aktId, tk] of takliflar) {
+    const tan = o.tanlov?.get(aktId);
+    const t = tan != null ? tk.find((x) => x.qatorId === tan) ?? { qatorId: tan, ball: 1 } : tk[0];
+    if (!t || (tan == null && t.ball < chegara)) { qolda.push(aktId); continue; }
+    juftlar.push({ aktId, qatorId: t.qatorId, ball: t.ball, hajm: null, hajmManba: 'yoq' });
+  }
+  const qatorBoyicha = new Map<number, OmmaviyJuft[]>();
+  for (const j of juftlar) { const a = qatorBoyicha.get(j.qatorId) ?? []; a.push(j); qatorBoyicha.set(j.qatorId, a); }
+  for (const [qid, js] of qatorBoyicha) {
+    const q = qatorlar.get(qid);
+    const matnli: OmmaviyJuft[] = []; const matnsiz: OmmaviyJuft[] = [];
+    for (const j of js) {
+      const h = aktlar.get(j.aktId) ? matndanHajm(aktlar.get(j.aktId)!, q?.birlik) : null;
+      if (h != null) { j.hajm = h; j.hajmManba = 'matn'; matnli.push(j); } else matnsiz.push(j);
+    }
+    if (!matnsiz.length || q?.fakt == null) continue;
+    const qoldiq = q.fakt - (q.asoslangan ?? 0) - matnli.reduce((x, j) => x + (j.hajm ?? 0), 0);
+    if (qoldiq <= 0) continue;
+    const har = Math.round((qoldiq / matnsiz.length) * 1000) / 1000;
+    for (const j of matnsiz) { j.hajm = har; j.hajmManba = 'fakt'; }
+  }
+  return { juftlar, qolda };
+}
+
+/** Obyekt bo'yicha bog'lanmagan aktlar (eski reestr bilan cheklanmaydi): bekor qilinmagan va birorta qatorga bog'lanmagan. */
+export function boglanmaganAktlar(aktlar: ReadonlyArray<Pick<AosrV2, 'id' | 'holat' | 'boglangan_ish_soni'>>): number[] {
+  return aktlar.filter((a) => a.holat !== 'bekor' && Number(a.boglangan_ish_soni ?? 0) === 0).map((a) => a.id);
+}

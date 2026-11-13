@@ -175,6 +175,8 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   aosr_bekor: 'document.write',
   aosr_bog_saqla: 'document.write',
   aosr_bog_ochir: 'document.write',
+  aosr_bog_hajm_v1: 'document.write',
+  aosr_asos_qoralama_v1: 'document.write',
   aosr_yoz_v2: 'document.write',
   lab_protokol_yoz: 'document.write',
   lab_protokol_bekor: 'document.write',
