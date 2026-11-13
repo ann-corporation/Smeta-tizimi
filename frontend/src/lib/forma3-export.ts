@@ -66,6 +66,9 @@ export interface Forma3Rekvizit {
   mfo?: string | null;
   inn?: string | null;
   oked?: string | null;
+  /** Imzo blokidagi F.I.Sh (kompaniya/kontragent profilidan); noma'lum — chiziq. */
+  rahbar?: string | null;
+  boshHisobchi?: string | null;
 }
 
 /**
@@ -92,6 +95,8 @@ export interface Forma3ExportOptions {
   /** Shartnoma sanasi va umumiy shartnoma summasi — «Договор № … от … Общая договорная стоимость». */
   shartnomaSana?: string | null;
   shartnomaSumma?: number | null;
+  /** Shu OBYEKTning smeta qiymati (NDS siz) — shartnoma umumiy summasidan alohida, aniq yorliq bilan. */
+  obyektSumma?: number | null;
   /** Obyekt manzili — «Наименование объекта и его адрес» qatoriga qo'shiladi. */
   obyektManzil?: string | null;
   /** Hujjat raqami (bo'sh — to'ldirish chizig'i). */
@@ -619,7 +624,7 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
   if (!zak.toliqNom && !o.imzo?.zakazchik) model.diqqat.push({ nom: 'Заказчик', sabab: 'реквизиты заказчика не заданы (нет договора с привязкой к заказчику) — строки заказчика оставлены для заполнения' });
   const obyektToliqNom = o.obyektManzil ? `${o.obyektNom}, ${o.obyektManzil}` : o.obyektNom;
   const dogovorMatn = o.shartnomaRaqam
-    ? `№ ${raqamTozala(o.shartnomaRaqam)}${sanaMatni(o.shartnomaSana) ? ` от ${sanaMatni(o.shartnomaSana)}` : ''}${o.shartnomaSumma != null ? `${sanaMatni(o.shartnomaSana) ? '' : '.'} Общая стоимость в договорных текущих ценах: ${fmt2(o.shartnomaSumma)} сум` : ''}`
+    ? `№ ${raqamTozala(o.shartnomaRaqam)}${sanaMatni(o.shartnomaSana) ? ` от ${sanaMatni(o.shartnomaSana)}` : ''}${o.shartnomaSumma != null ? `${sanaMatni(o.shartnomaSana) ? '' : '.'} Общая стоимость по договору в целом (все объекты договора) в договорных текущих ценах: ${fmt2(o.shartnomaSumma)} сум` : ''}${o.obyektSumma != null ? `; стоимость данного объекта по смете (без НДС): ${fmt2(o.obyektSumma)} сум` : ''}`
     : null;
   const raqamMatn = o.raqam ?? '';
   const sana = sanaMatni(o.hujjatSana) ?? sanaMatni(bugunSana()) ?? '';
@@ -956,13 +961,13 @@ export function forma3Hujjat(m: Forma3Manba, o: Forma3ExportOptions): Forma3Nati
   };
   // Imzolar (rasmiy blanka): ПОДРЯДЧИК — rahbar va bosh buxgalter, М.П.; ЗАКАЗЧИК — xuddi shunday.
   v.blok([{ c1: 0, c2: 6, matn: `ПОДРЯДЧИК:  ${pud.toliqNom ?? o.imzo?.pudratchi ?? ''}`.trim(), tur: 'qalin' }]);
-  imzoQator('Руководитель', null);
-  imzoQator('Главный бухгалтер', null);
+  imzoQator('Руководитель', pud.rahbar);
+  imzoQator('Главный бухгалтер', pud.boshHisobchi);
   v.blok([{ c1: 0, c2: 1, matn: 'М.П.', tur: 'izoh' }]);
   v.bosh();
   v.blok([{ c1: 0, c2: 6, matn: `ЗАКАЗЧИК:  ${zak.toliqNom ?? o.imzo?.zakazchik ?? ''}`.trim(), tur: 'qalin' }]);
-  imzoQator('Руководитель', null);
-  imzoQator('Главный бухгалтер', null);
+  imzoQator('Руководитель', zak.rahbar);
+  imzoQator('Главный бухгалтер', zak.boshHisobchi);
   v.blok([{ c1: 0, c2: 1, matn: 'М.П.', tur: 'izoh' }]);
   v.bosh();
   v.izoh('Форма одобрена решением Республиканской комиссии по мониторингу за реализацией реформ и лицензированию деятельности в области строительства (протокол от 21.05.2004 г. № 02-5-56). Заполняется ежемесячно подрядной организацией и представляется заказчику для подтверждения.');
@@ -1025,6 +1030,8 @@ export interface Forma3ShartnomaOptions {
   shartnomaNom?: string | null;
   shartnomaSana?: string | null;
   shartnomaSumma?: number | null;
+  /** Shu OBYEKTning smeta qiymati (NDS siz) — shartnoma umumiy summasidan alohida, aniq yorliq bilan. */
+  obyektSumma?: number | null;
   raqam?: string | null;
   hujjatSana?: string | null;
   imzo?: ImzoNomlar;
@@ -1166,7 +1173,7 @@ export function forma3ShartnomaHujjat(obyektlar: ReadonlyArray<Forma3ShartnomaOb
   const zak = o.zakazchik ?? {};
   const diqqat = [...y.diqqat];
   if (!zak.toliqNom && !o.imzo?.zakazchik) diqqat.push({ nom: 'Заказчик', sabab: 'реквизиты заказчика не заданы — строки заказчика оставлены для заполнения' });
-  const dogovorMatn = `№ ${raqamTozala(o.shartnomaRaqam)}${o.shartnomaNom ? ` (${o.shartnomaNom})` : ''}${sanaMatni(o.shartnomaSana) ? ` от ${sanaMatni(o.shartnomaSana)}` : ''}${o.shartnomaSumma != null ? `. Общая стоимость в договорных текущих ценах: ${fmt2(o.shartnomaSumma)} сум` : ''}`;
+  const dogovorMatn = `№ ${raqamTozala(o.shartnomaRaqam)}${o.shartnomaNom ? ` (${o.shartnomaNom})` : ''}${sanaMatni(o.shartnomaSana) ? ` от ${sanaMatni(o.shartnomaSana)}` : ''}${o.shartnomaSumma != null ? `. Общая стоимость по договору в целом (все объекты договора) в договорных текущих ценах: ${fmt2(o.shartnomaSumma)} сум` : ''}`;
   const sana = sanaMatni(o.hujjatSana) ?? sanaMatni(bugunSana()) ?? '';
 
   const v = new RasmiyVaraq({
@@ -1262,13 +1269,13 @@ export function forma3ShartnomaHujjat(obyektlar: ReadonlyArray<Forma3ShartnomaOb
     v.blok([{ c1: 2, c2: 4, matn: '(подпись)', tur: 'izoh' }]);
   };
   v.blok([{ c1: 0, c2: 6, matn: `ПОДРЯДЧИК:  ${pud.toliqNom ?? o.imzo?.pudratchi ?? ''}`.trim(), tur: 'qalin' }]);
-  imzoQator('Руководитель', null);
-  imzoQator('Главный бухгалтер', null);
+  imzoQator('Руководитель', pud.rahbar);
+  imzoQator('Главный бухгалтер', pud.boshHisobchi);
   v.blok([{ c1: 0, c2: 1, matn: 'М.П.', tur: 'izoh' }]);
   v.bosh();
   v.blok([{ c1: 0, c2: 6, matn: `ЗАКАЗЧИК:  ${zak.toliqNom ?? o.imzo?.zakazchik ?? ''}`.trim(), tur: 'qalin' }]);
-  imzoQator('Руководитель', null);
-  imzoQator('Главный бухгалтер', null);
+  imzoQator('Руководитель', zak.rahbar);
+  imzoQator('Главный бухгалтер', zak.boshHisobchi);
   v.blok([{ c1: 0, c2: 1, matn: 'М.П.', tur: 'izoh' }]);
 
   // 2-varaq: hujjatga kirgan F2 aktlar (o'z podvali bilan).

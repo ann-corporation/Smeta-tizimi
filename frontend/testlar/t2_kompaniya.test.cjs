@@ -141,6 +141,8 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                       't2_mindmap_masul_v1',
                       /* 2026-10-27: moliyaviy tahlil — tizimda yo'q ko'rsatkichni qo'lda kiritish (financial.write). */
                       't2_moliya_qolda_yoz_v1',
+                      /* 2026-11-13: Solishtiruv - tushuntirish va yangilash (financial.write, RPC ichida tekshiriladi). */
+                      't2_solishtiruv_tushuntir_v1', 't2_solishtiruv_yangila_v1',
                       /* 2026-11-03 (L0): qarzdorlik — import va qo'lda saqlash (financial.write, RPC ichida tekshiriladi). */
                       't2_qarzdorlik_import_v1', 't2_qarzdorlik_saqla_v1',
                       /* L0 #229: shartnomaning oylik hujjat paketi — oldindan nomlangan yozuvchi RPC. */
@@ -162,17 +164,21 @@ console.log('\n── 1. YOZISH ESHIGI TOR QOLGANMI ──');
                          t2_buyurtmalar_v1 / t2_buyurtma_tafsilot_v1 - FAQAT O'QIYDI, lekin prodda VOLATILE bo'lgani uchun /api/sb (GET) o'rniga shu yerda (yuk _shared/buyurtma-yuk.ts oq ro'yxati). */
                       't2_buyurtma_yarat_v1', 't2_buyurtma_otish_v1', 't2_buyurtma_olish_yoz_v1', 't2_buyurtma_qabul_v1', 't2_buyurtma_qabul_yakunla_v1', 't2_buyurtmalar_v1', 't2_buyurtma_tafsilot_v1', 't2_yet_tolov_holati_v1',
                       /* 2026-11-04: HR + KPI (hr.* / payroll.* RPC ichida tekshiriladi). */
-                      't2_hr_kalendar_saqla_v1', 't2_hr_oylik_hisobla_v1', 't2_hr_sxema_saqla_v1', 't2_hr_tabel_saqla_v1', 't2_hr_tuzatma_qaror_v1', 't2_hr_tuzatma_saqla_v1', 't2_hr_xodim_saqla_v1',
+                      't2_hr_kalendar_saqla_v1', 't2_hr_kpi_qoida_saqla_v1', 't2_hr_oylik_hisobla_v1', 't2_hr_sxema_saqla_v1', 't2_hr_tabel_saqla_v1', 't2_hr_tuzatma_qaror_v1', 't2_hr_tuzatma_saqla_v1', 't2_hr_xodim_saqla_v1',
                       /* 2026-11-04: buxgalteriya (accounting.write/approve RPC ichida tekshiriladi; idempotent operation_id). */
                       't2_bux_boshlash_v1', 't2_bux_hisob_saqla_v1', 't2_bux_moslik_saqla_v1', 't2_bux_avto_provodka_v1',
                       't2_bux_qolda_provodka_v1', 't2_bux_storno_v1', 't2_bux_davr_v1', 't2_bux_bank_import_v1', 't2_bux_tashqi_sync_v1',
                       't2_bux_shablon_tanla_v1', 't2_bux_davr_blok_v1', 't2_bux_hisob_tasdiq_v1',
+                      't2_bux_saldo_import_v1', 't2_bux_saldo_bekor_v1', 't2_bux_tannarx_v1', 't2_bux_hisobot_saqla_v1',
+                      't2_bux_bank_yuklash_v1', 't2_bux_bank_qabul_v1', 't2_bux_kassa_yoz_v1', 't2_bux_kassa_bekor_v1', 't2_bux_taqsim_saqla_v1',
                       /* 2026-11-04: yuk birjasi (egasi tomoni; procurement.write/approve RPC ichida; yuk _shared/yuk-birjasi-yuk.ts oq ro'yxati). */
                       't2_yb_yuk_saqla_v1', 't2_yb_yuk_elon_v1', 't2_yb_yuk_javob_v1', 't2_yb_yuk_bekor_v1', 't2_yb_yuk_tasdiq_v1', 't2_yb_yuk_baho_v1', 't2_yb_yuk_nizo_v1',
                       /* 2026-11-05: ish kartasi (smeta.write RPC ichida; idempotent operation_id, CAS). */
                       't2_ish_kartasi_saqla_v1', 't2_ish_kartasi_arxiv_v1', 't2_ish_kartasi_ulush_saqla_v1',
+                      /* 2026-11-12: naryad + kompaniya lug'ati (smeta.write RPC ichida; hisobla — financial.write; idempotent operation_id, CAS). */
+                      't2_naryad_yoz_v1', 't2_osuvchi_yoz_v1',
                       /* 2026-11-12: usta «Bugun» (20261214300000): qoralama fakt / qaror / zayavka; ruxsat RPC ichida (self.work.write / fakt.write). */
-                      't2_usta_fakt_qoralama_v1', 't2_usta_fakt_qaror_v1', 't2_usta_zayavka_v1'].sort();
+                      't2_usta_fakt_qoralama_v1', 't2_usta_fakt_qaror_v1', 't2_usta_zayavka_v1', 't2_naryad_usta_bajarildi_v1'].sort();
     T('RPC ro\'yxati AYNAN belgilangan ' + KUTILGAN.length + ' ta domen amali',
       JSON.stringify(amallar) === JSON.stringify(KUTILGAN),
       'topildi: ' + amallar.join(', '));

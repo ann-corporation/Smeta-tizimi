@@ -11,7 +11,10 @@ export type TomonProfil = {
   kabinetSahifalar: readonly string[];
 };
 
-export const TOMON_PROFILLARI: readonly TomonProfil[] = [];
+export const TOMON_PROFILLARI: readonly TomonProfil[] = [
+  /* Subpudratchi: bosh sahifa - «Subpudratchi: bugun»; ishlar bosh pudratchi tenantidan t2_tomon_aloqa + grant orqali ko'rinadi (nusxa emas). */
+  { yonalish: 'subpudratchi', defaultIlovalar: ['hujjat'], boshIshJoyi: 'tomonlar', kabinetSahifalar: ['subpudratchi'] },
+];
 
 /**
  * ROL PROFILI: «Bugun» bosh sahifasidagi 4–6 katta tugma (Sahifa.kalit). Rol = kompaniyadagi effektiv rol (t2_azolik.rol).

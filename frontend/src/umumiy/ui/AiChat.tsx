@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { ArrowRight, Bot, Mic, MicOff, Send, Square, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -36,6 +36,8 @@ const XATO_MATNI: Record<string, string> = {
   KOMPANIYA_AI_OCHIQ: 'Kompaniya administratori AI ni o‘chirgan (Sozlamalar → AI).',
   TOKEN_LIMIT_TUGADI: 'Kompaniyaning AI oylik token limiti tugadi.',
 };
+
+const ichkiYolmi = (h?: string): h is string => typeof h === 'string' && h.startsWith('/') && !h.startsWith('//');
 
 /** Seans tarixi (sessionStorage): faqat yakunlangan xabarlar; taklif kartasi (funksiyalar) saqlanmaydi. */
 function tarixOqi(kalit: string): Xabar[] {
@@ -84,11 +86,25 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   }, [scope]);
   useEffect(() => { if (tarixKalit) tarixYoz(tarixKalit, xabarlar); }, [xabarlar, tarixKalit]);
   useEffect(() => { oxir.current?.scrollIntoView?.({ behavior: 'smooth' }); }, [xabarlar]);
+  /* «Yangi suhbat»: tarix tozalanadi (sarlavhadagi tugma `ai:yangi-suhbat` hodisasini yuboradi). */
+  useEffect(() => {
+    const f = () => { abort.current?.abort(); busy.current = false; kutish.current = null; setBand(false); setMatn(''); setXabarlar([]); if (tarixKalit) { try { sessionStorage.removeItem(tarixKalit); } catch { /* xotira yopiq */ } } };
+    window.addEventListener('ai:yangi-suhbat', f);
+    return () => window.removeEventListener('ai:yangi-suhbat', f);
+  }, [tarixKalit]);
 
   useEffect(() => { if (tayyorSavol?.matn) { void yubor(tayyorSavol.matn); onOqildi?.(); } /* faqat yangi hodisada */ // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tayyorSavol?.id]);
 
   const ochish = (yol: string) => { navigate(yol); onOtish?.(); };
+  /* Javobdagi ichki havolalar (/admin/...) sahifani qayta yuklamay, router orqali ochiladi; tashqilari yangi oynada. */
+  const markdownBogla = useMemo(() => ({
+    a: ({ href, children }: { href?: string; children?: ReactNode }) => {
+      if (ichkiYolmi(href)) return <a href={href} onClick={(e) => { e.preventDefault(); ochish(href); }} className="text-accent underline">{children}</a>;
+      return <a href={href} target="_blank" rel="noreferrer noopener" className="text-accent underline">{children}</a>;
+    },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), []);
 
   const xabarYangila = (xid: string, f: (x: Xabar) => Xabar) => setXabarlar((p) => p.map((x) => (x.id === xid ? f(x) : x)));
   const tarixOl = () => xabarlarRef.current.filter((x) => x.matn && !x.jonli).slice(-6).map((x) => ({ rol: x.rol === 'user' ? 'user' as const : 'assistant' as const, matn: x.matn.slice(0, 600) }));
@@ -176,7 +192,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     const ya = yaRef.current;
     if (ya && ya.sahifalar.length && !jarvisKichikGap(s)) {
       const n = niyatAniqla(s, { sahifalar: ya.sahifalar, obyektlar: ya.obyektlar, joriyObyekt: ya.joriyObyekt, sahifaAmallar: ya.sahifaAmallar });
-      const faqatNav = n.tur === 'yordam' || n.tur === 'ruxsatYoq' || n.tur === 'sahifaTanla' || n.tur === 'navigatsiya' || n.tur === 'sahifaAmal';
+      const faqatNav = n.tur === 'yordam' || n.tur === 'kim' || n.tur === 'dars' || n.tur === 'ruxsatYoq' || n.tur === 'sahifaTanla' || n.tur === 'navigatsiya' || n.tur === 'sahifaAmal';
       const mahalliy = (n.tur === 'navigatsiya' ? n.aniqOchish : n.tur !== 'nomalum') && (kompaniyaId != null || faqatNav);
       if (n.tur === 'navigatsiya' && !n.aniqOchish) qoshHavola = [{ yol: n.sahifa.url, nom: n.sahifa.nom }];
       if (n.tur === 'nomalum') yaqinHavola = n.yaqin.map((x) => ({ yol: x.url, nom: x.nom }));
@@ -187,7 +203,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
         let r: IshlovNatija;
         try {
           r = await yordamchiIshla(n, s, {
-            kompaniyaId, sahifalar: ya.sahifalar, motor: ya.motor, tarix: tarixOl(), hujjat: ya.hujjat ?? undefined, sahifaAmalBajar: ya.sahifaAmalBajar,
+            kompaniyaId, sahifalar: ya.sahifalar, motor: ya.motor, tarix: tarixOl(), hujjat: ya.hujjat ?? undefined, sahifaAmalBajar: ya.sahifaAmalBajar, kim: ya.kim,
             qadam: (q) => { if (gen.current === boshlangich) xabarYangila(id + 'a', (x) => ({ ...x, qadamlar: [...(x.qadamlar ?? []), { ms: 0, belgi: q.holat === 'xato' ? '✗' : '⏳', matn: q.matn }] })); },
             tirikmi: () => gen.current === boshlangich && !ctrl.signal.aborted,
           });
@@ -242,7 +258,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     if (katalog.length && gen.current === boshlangich)
       setXabarlar((p) => p.map((x) => (x.id === id + 'a' ? { ...x, qadamlar: [...(x.qadamlar ?? []), { ms: 0, belgi: '📚', matn: t('Platforma narx indeksidan {n} ta mos qator olindi', { n: katalog.length }) }] } : x)));
     const yakun = await kasbSavolOqim(kompaniyaId, s, {
-      sahifa, signal: ctrl.signal, katalog, studio,
+      sahifa, signal: ctrl.signal, katalog, studio, obyektNomi: ya?.joriyObyekt?.nom ?? null,
       qadam: (q) => { if (gen.current === boshlangich) setXabarlar((p) => p.map((x) => (x.id === id + 'a' ? { ...x, qadamlar: [...(x.qadamlar ?? []), q] } : x))); },
     });
     if (gen.current !== boshlangich) return;   // kompaniya almashdi — eski javob ko'rsatilmaydi
@@ -329,7 +345,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
                 {!m.xato && m.yakun?.rad && <span className="fz-stamp fz-stamp--warn ml-auto">{t('Doiradan tashqari')}</span>}
               </div>}
               {m.rol === 'ai' && m.jonli && !m.qadamlar?.length && <span className="text-xs text-text-dim">{t('Ulanmoqda…')}</span>}
-              {m.matn && <div className="prose prose-invert prose-sm max-w-none"><ReactMarkdown>{m.matn}</ReactMarkdown></div>}
+              {m.matn && <div className="prose prose-invert prose-sm max-w-none"><ReactMarkdown components={markdownBogla}>{m.matn}</ReactMarkdown></div>}
               {m.rol === 'ai' && m.yakun?.rad && <div className="mt-1 text-[11px] text-warn">🛑 {t('Doiradan tashqari savol — model chaqirilmadi')}</div>}
               {m.rol === 'ai' && (m.qadamlar?.length || m.jonli) ? <AiQadamlar qadamlar={m.qadamlar ?? []} jonli={m.jonli === true} /> : null}
               <OtishTugmalari royxat={m.sahifalar ?? m.yakun?.sahifalar} ochish={ochish} />
@@ -353,10 +369,10 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
       </div>
       <div className="border-t border-border bg-surface-2 p-3">
         <div className="relative">
-          <textarea value={matn} onChange={(e) => setMatn(e.target.value)} rows={1} id="jarvis-kirish" data-testid="jarvis-kirish" autoFocus={!!yordamchi}
+          <textarea value={matn} onChange={(e) => setMatn(e.target.value)} rows={2} id="jarvis-kirish" data-testid="jarvis-kirish" autoFocus={!!yordamchi}
             placeholder={yordamchi ? t('Masalan: «mindmapni och», «narxsiz qatorlar», «Yevropa 1 F2»') : t('Xabaringizni yozing...')}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void yubor(matn); } }}
-            className={`max-h-32 min-h-[44px] w-full resize-none rounded-xl border border-border bg-surface py-3 pl-4 text-sm text-text focus:border-accent focus:outline-none ${ovozBor ? 'pr-28' : 'pr-12'}`} />
+            className={`max-h-[40vh] min-h-[72px] w-full resize-none [field-sizing:content] rounded-xl border border-border bg-surface py-3 pl-4 text-sm text-text focus:border-accent focus:outline-none ${ovozBor ? 'pr-28' : 'pr-12'}`} />
           {ovozBor && <>
             <button type="button" data-testid="ai-ovoz-til" onClick={() => setOvozTil((x) => { const y = OVOZ_TILLAR[(OVOZ_TILLAR.indexOf(x) + 1) % OVOZ_TILLAR.length]; try { localStorage.setItem('jarvis-ovoz-til', y); } catch { /* xotira yopiq */ } return y; })} disabled={tinglayapti}
               aria-label={t('Ovoz tili')} title={t('Ovoz tili')} className="absolute bottom-2.5 right-[5.25rem] rounded border border-border px-1.5 py-0.5 text-[11px] text-text-dim hover:text-text">{ovozTil === 'uz-UZ' ? 'UZ' : 'RU'}</button>

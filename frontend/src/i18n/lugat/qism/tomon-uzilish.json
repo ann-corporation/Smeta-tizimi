@@ -1,0 +1,6 @@
+{
+  "Laboratoriya natijalari": { "ru": "Результаты лабораторных испытаний", "en": "Laboratory results" },
+  "Sizga ochilgan laboratoriya natijalari yo‘q. Pudratchi «Tomonlar aloqasi» sahifasidan laboratoriya natijalarini ochadi.": { "ru": "Вам не открыты результаты лабораторий. Подрядчик открывает их на странице «Связи сторон».", "en": "No laboratory results are shared with you. The contractor opens them on the “Party links” page." },
+  "mos": { "ru": "соответствует", "en": "passes" },
+  "mos emas": { "ru": "не соответствует", "en": "fails" }
+}

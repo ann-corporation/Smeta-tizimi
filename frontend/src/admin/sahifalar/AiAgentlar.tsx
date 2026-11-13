@@ -7,6 +7,7 @@
  * har ishga tushirish — run; ruxsat etilgan buyruq/tool ro'yxati; inson tasdig'i; audit.
  * Agent biznes hisobini o'zi qilmaydi — faqat kanonik buyruqlarni tayyorlaydi.
  */
+import { matnSora } from '../../umumiy/ui/Tasdiq';
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useCallback, useEffect, useState } from 'react';
 import { AgentControlCenter } from '../../components/agent-control/AgentControlCenter';
@@ -114,9 +115,11 @@ export default function AiAgentlar() {
         onRefresh={() => void yukla()}
         onApprove={(_a, run) => void amal(() => agentApprovalDecide({ run_id: run.run_id, decision: 'approve', expected_version: run.versiya, operation_id: yangiOperationId() }), 'Tasdiqlandi')}
         onReject={(_a, run) => {
-          const sabab = window.prompt('Rad etish sababi (majburiy):')?.trim();
-          if (!sabab) return;
-          void amal(() => agentApprovalDecide({ run_id: run.run_id, decision: 'reject', sabab, expected_version: run.versiya, operation_id: yangiOperationId() }), 'Rad etildi');
+          void matnSora({ matn: 'Rad etish sababi (majburiy):', majburiy: true, tasdiqMatni: 'Rad etish', xavfli: true }).then((javob) => {
+            const sabab = javob?.trim();
+            if (!sabab) return;
+            void amal(() => agentApprovalDecide({ run_id: run.run_id, decision: 'reject', sabab, expected_version: run.versiya, operation_id: yangiOperationId() }), 'Rad etildi');
+          });
         }}
         onTransition={(run, holat) => {
           // Ishchi agent bor bo'lsa — «Boshlash» uni ishga tushiradi (tahlil → ko'rib chiqishga).

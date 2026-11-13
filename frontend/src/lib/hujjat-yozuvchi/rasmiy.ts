@@ -205,6 +205,7 @@ export const HUJJAT_TURLARI = {
   narx_asoslash: 'Обоснование цен',
   narx_protokol: 'Протокол согласования цен',
   oferta: 'Tender oferta',
+  naryad: 'Наряд-задание бригаде (naryad)',
 } as const;
 export type HujjatTuri = keyof typeof HUJJAT_TURLARI;
 const MAVZU_KALIT = 'hujjat-mavzu:';

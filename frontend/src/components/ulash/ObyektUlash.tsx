@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Check, Copy, Link2, Loader2, Send, Share2, X } from 'lucide-react';
 import { aloqaHolati, obyektniUlash, obyektUlashlari, ulashHavolasi, type Ulash, type UlashResurs } from '../../api/t2-tomon';
 import { t } from '../../i18n/til';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 
 const RESURSLAR: Array<{ kalit: UlashResurs; nom: string; izoh: string }> = [
   { kalit: 'f2', nom: 'Tasdiqlangan F2 aktlari', izoh: 'oylar va summalar' },
@@ -42,7 +43,7 @@ export function ObyektUlash({ kompaniyaId, obyekt, yopish }: { kompaniyaId: numb
     try { await navigator.clipboard.writeText(havola); setNusxa(true); } catch { setNusxa(false); }
   }
   async function toxtat(u: Ulash) {
-    if (!window.confirm(t('Ulashish to‘xtatilsinmi? Havola egasi obyektni boshqa ko‘rmaydi.'))) return;
+    if (!(await tasdiqSora({ matn: 'Ulashish to‘xtatilsinmi? Havola egasi obyektni boshqa ko‘rmaydi.', xavfli: true, tasdiqMatni: 'To‘xtatish' }))) return;
     const r = await aloqaHolati(kompaniyaId, u.aloqa_id, u.holat === 'taklif' ? 'bekor' : 'yopish', t('Ulashish to‘xtatildi'));
     if (!r.ok) { setXato(r.error); return; }
     void yukla();

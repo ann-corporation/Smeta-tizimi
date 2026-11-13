@@ -20,6 +20,7 @@ async function chaqir(body: unknown, { rol = 'boss', rpcJavob = { ok: true, qato
     if (url.pathname.endsWith('/rpc/t2_men_v1')) return Response.json({ ok: true, platform_role: 'none', foydalanuvchi: { holat: 'faol' }, azoliklar: [{ kompaniya_id: 17, rol, faol: true }], context_kompaniyalar: [{ kompaniya_id: 17, effective_role: rol, permissions: IZIN[rol] ?? [] }] });
     if (url.pathname.endsWith('/rpc/t2_modul_holat_v1')) return Response.json({ ok: true, modullar: [{ kod: 'module.xarid', holat: modul }] });
     if (url.pathname === '/rest/v1/t2_obyekt') return Response.json([{ id: 5, kompaniya_id: 17 }]);
+    if (url.pathname === '/rest/v1/t2_naryad') return Response.json([{ id: 5, kompaniya_id: 17 }]);
     if (url.pathname === '/rest/v1/t2_qator') return Response.json([{ id: 301, kompaniya_id: 17 }]);
     if (url.pathname === '/rest/v1/t2_shartnoma') return Response.json([{ id: 31, kompaniya_id: 17 }]);   // shlyuz p_shartnoma_id egaligini tekshiradi
     if (url.pathname === '/rest/v1/t2_erp_taminot') {
@@ -76,3 +77,20 @@ describe('usta_zayavka_v1 va qaror', () => {
   });
 });
 
+describe('naryad_usta_bajarildi_v1 (usta Bajardim)', () => {
+  const yuk = (ustiga: Record<string, unknown> = {}) => ({ amal: 'naryad_usta_bajarildi_v1', naryad_amal: 'bajarildi', kompaniya_id: 17, operation_id: OP, naryad_id: 5, kutilgan_versiya: 3, qatorlar: [{ id: 11, bajarilgan_hajm: 4 }], tugadi: false, izoh: 'x', ...ustiga });
+  it('usta (self.work.write) o‘tadi: RPC ga faqat oq ro‘yxatdagi maydonlar, actor sessiyadan', async () => {
+    const { res, rpc } = await chaqir(yuk({ p_actor_id: 999, ortiqcha: 1 }), { rol: 'usta' });
+    expect(res.status).toBe(200);
+    expect(rpc[0].yol).toBe('/rest/v1/rpc/t2_naryad_usta_bajarildi_v1');
+    expect(rpc[0].body).toEqual({ p_kompaniya_id: 17, p_actor_id: 7, p_operation_id: OP, p_naryad_id: 5, p_kutilgan_versiya: 3, p_qatorlar: [{ id: 11, bajarilgan_hajm: 4 }], p_tugadi: false, p_izoh: 'x' });
+  });
+  it('naryad_amal belgisiz — fail-closed (smeta.write talab qilinadi), usta o‘tmaydi', async () => {
+    const r = await chaqir(yuk({ naryad_amal: undefined }), { rol: 'usta' });
+    expect(r.rpc).toHaveLength(0); expect(r.res.status).toBeGreaterThanOrEqual(400);
+  });
+  it('noto‘g‘ri hajm (manfiy) va bo‘sh qatorlar — rad', async () => {
+    expect((await chaqir(yuk({ qatorlar: [{ id: 11, bajarilgan_hajm: -1 }] }), { rol: 'usta' })).res.status).toBe(400);
+    expect((await chaqir(yuk({ qatorlar: [] }), { rol: 'usta' })).res.status).toBe(400);
+  });
+});

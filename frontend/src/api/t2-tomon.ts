@@ -83,7 +83,9 @@ export const resurslarOl = (k: number) => tomonOqi<TomonResurs[]>('resurslar', k
 export const taqdimlarOl = (k: number, p: { yonalish?: 'kelgan' | 'yuborilgan'; holat?: string; aloqaId?: number } = {}) =>
   tomonOqi<TaqdimQisqa[]>('taqdimlar', k, { yonalish: p.yonalish, holat: p.holat, aloqa_id: p.aloqaId });
 export const taqdimTafsilotOl = (k: number, taqdimId: number) => tomonOqi<TaqdimTafsilot>('taqdim', k, { taqdim_id: taqdimId });
-export const zakazchikObyektlarOl = (k: number) => tomonOqi<ZakazchikObyekt[]>('obyektlar', k);
+/** Standart — tez ro'yxat (ustamali podvalsiz). tafsil (bitta obyekt) — har aktning ustamali podvali bilan to'liq (faqat obyekt sahifasi). */
+export const zakazchikObyektlarOl = (k: number, tafsil?: { obyektId: number }) =>
+  tomonOqi<ZakazchikObyekt[]>('obyektlar', k, tafsil ? { obyekt_id: tafsil.obyektId, ustama: 1 } : {});
 export const kompaniyaQidir = (k: number, inn: string) => tomonOqi<{ topildi: boolean; kompaniya?: { id: number; nom: string; inn: string } }>('qidir', k, { inn });
 
 export const taklifYubor = (k: number, p: { qabulKompaniyaId?: number | null; qabulInn?: string; qabulNom?: string; taklifRol: string; qabulRol: string; turi?: string; nom?: string; izoh?: string }) =>
@@ -148,6 +150,38 @@ export const murojaatJavob = (k: number, id: number, matn: string, documentIds: 
 export const murojaatHujjat = (k: number, id: number, documentId: number) => tomonYoz('murojaat_hujjat', k, { murojaat_id: id, document_id: documentId });
 export const murojaatQarori = (k: number, id: number, qaror: 'yopish' | 'qayta_ochish', izoh?: string) => tomonYoz('murojaat_qaror', k, { murojaat_id: id, qaror, izoh: izoh || null });
 export const murojaatBekor = (k: number, id: number, sabab?: string) => tomonYoz('murojaat_bekor', k, { murojaat_id: id, sabab: sabab || null });
+
+/* ───── Buyurtmachi «Bugun»: portfel + F3 bo'yicha to'lov xabari ───── */
+/** Pul: smeta/fakt/F2 QQS siz (ustamasiz), shartnoma/F3/to'lov QQS bilan. null = noma'lum yoki ruxsat yo'q (0 emas). */
+export type BugunPaket = { qqs_bilan: number | null; ustamali: number | null; ustamasiz: number | null; narxsiz_soni: number; qator_soni: number };
+export type BugunObyekt = {
+  aloqa_id: number; qarshi_kompaniya_id: number; qarshi_nom: string; obyekt_id: number; obyekt_nom: string;
+  shartnoma_id: number | null; shartnoma_raqam: string | null; shartnoma_summa: number | null;
+  /** Smeta / fakt / F2: yagona hisob yadrosi paketi (pudratchi ko'radigan raqam bilan bir xil). null = ruxsat yo'q yoki ma'lumot yo'q. */
+  smeta: BugunPaket | null;
+  fakt: BugunPaket | null;
+  f2: ({ soni: number; oxirgi_oy: string | null } & Partial<BugunPaket>) | null;
+  f3: { soni: number; summa: number | null; oxirgi_sana: string | null } | null;
+  tolangan: { soni: number; summa: number; oxirgi_sana: string | null } | null;
+  /** F3 (QQS bilan) - to'langan; F3 yoki to'lov ruxsati yo'q bo'lsa null. */
+  qarz: number | null;
+  xabar_kutilmoqda: number; kutayotgan_taqdim: number; ochiq_murojaat: number;
+};
+export type BugunKutayotgan = {
+  taqdim: Record<string, number>; murojaat_menga_ochiq: number; murojaat_tekshiruv: number; murojaat_kechikkan: number; tolov_xabar_kutilmoqda: number;
+};
+export type Bugun = { obyektlar: BugunObyekt[]; kutayotgan: BugunKutayotgan; sana: string };
+export type TolovXabari = {
+  id: number; aloqa_id: number; obyekt_id: number; obyekt_nom: string | null; qarshi_nom: string | null; summa: number; sana: string;
+  hujjat_raqam: string | null; izoh: string | null; holat: 'xabar' | 'tasdiqlangan' | 'rad' | 'bekor'; forma3_id: number | null; forma3_raqam: string | null;
+  kelgan: boolean; qaror_izoh: string | null; qaror_vaqti: string | null; yaratildi: string;
+};
+export const bugunOl = (k: number) => tomonOqi<Bugun>('bugun', k);
+export const tolovXabarlariOl = (k: number, p: { yonalish?: 'menga' | 'mendan'; holat?: string } = {}) => tomonOqi<TolovXabari[]>('tolovlar', k, { yonalish: p.yonalish, holat: p.holat });
+export const tolovXabarYoz = (k: number, p: { obyektId: number; summa: number; sana: string; forma3Id?: number | null; hujjatRaqam?: string; izoh?: string }) =>
+  tomonYoz<{ id: number; holat: string }>('tolov_xabar', k, { obyekt_id: p.obyektId, summa: p.summa, sana: p.sana, forma3_id: p.forma3Id ?? null, hujjat_raqam: p.hujjatRaqam || null, izoh: p.izoh || null, operation_id: yangiOperationId() });
+export const tolovXabarBekor = (k: number, tolovId: number) => tomonYoz('tolov_xabar_bekor', k, { tolov_id: tolovId });
+export const tolovXabarQarori = (k: number, tolovId: number, qaror: 'tasdiq' | 'rad', izoh?: string) => tomonYoz('tolov_qaror', k, { tolov_id: tolovId, qaror, izoh: izoh || null });
 
 /* ───── Qator izohi (P4 t2_izoh): taqdim qilingan F2 aktning har qatoriga ───── */
 export type QatorIzoh = {

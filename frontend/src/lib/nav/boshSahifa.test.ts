@@ -13,8 +13,8 @@ describe('rolBoshSahifasi', () => {
     expect(rolBoshSahifasi('superadmin')).toBe('/admin/dashboard');
   });
   it('boss/rahbar — redirect emas, rahbar paneli', () => {
-    expect(rolBoshSahifasi('boss')).toBe('/admin/dashboard');
-    expect(rolBoshSahifasi('rahbar')).toBe('/admin/dashboard');
+    expect(rolBoshSahifasi('boss')).toBe('/admin/pult');
+    expect(rolBoshSahifasi('rahbar')).toBe('/admin/pult');
   });
   it('yangi rollar o‘z ishiga tushadi', () => {
     expect(rolBoshSahifasi('buyurtmachi')).toBe('/admin/zakazchik');
