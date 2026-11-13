@@ -26,11 +26,13 @@ import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { useQaytaUlanish } from '../../desktop/qayta-ulanish';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { ostatkaHujjatQur, slichitelniyHujjatQur, ustamaManbaOl } from '../../lib/oylik-hujjat/ostatka-slichitelniy';
-import { slichitelniyAsosOl } from '../../api/t2-slichitelniy-asos';
-import { AsosXarita } from '../../lib/slichitelniy-asos';
 import { slichitelniyModeli } from '../../lib/slichitelniy-vedomost';
 import { zanjirDaraxtdan } from '../../lib/zanjir/qadamlar';
+import { tolovHolatiSvoddan, type TolovHolati } from '../../lib/zanjir/tolovHolati';
+import { shartnomaSvodOl } from '../../api/t2-nakopitelniy';
+import { sbAosrReestrOl } from '../../api/t2-aosr';
 import { SlichitelniyTayyorlik } from './SlichitelniyTayyorlik';
+import { SlichitelniyTsikl } from './SlichitelniyTsikl';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { toast } from '../../umumiy/ui/Toast';
@@ -102,12 +104,34 @@ export function HolatNative() {
   const istisno = useOstatkaIstisnolari(validId ? obyektId : null);
   const workspace = usePTOWorkspace();
   /* Zanjir chizig'i uchun sonlar: sahifa allaqachon yuklagan daraxt+holatdan (yangi so'rov yo'q). Yuklanmagan/bo'sh — hammasi null. */
+  /* To'lov qadami: bitta mavjud akt-sverka svodi (shartnomaSvodOl) — faqat shu sahifada, daraxt yuklangach; o'qilmasa/bog'lanmagan — null (noma'lum). */
+  const [zanjirTolov, setZanjirTolov] = useState<{ kalit: string; v: TolovHolati | null } | null>(null);
+  const tolovKalit = validId && joriy?.id ? `${joriy.id}:${obyektId}` : '';
+  useEffect(() => {
+    if (!tolovKalit || !joriy?.id || loading || daraxtXom.length === 0) return;
+    let faol = true;
+    void shartnomaSvodOl(joriy.id).then((r) => { if (faol) setZanjirTolov({ kalit: tolovKalit, v: r.ok ? tolovHolatiSvoddan(r.natija.shartnomalar, obyektId) : null }); }).catch(() => { if (faol) setZanjirTolov({ kalit: tolovKalit, v: null }); });
+    return () => { faol = false; };
+  }, [tolovKalit, joriy?.id, obyektId, loading, daraxtXom.length]);
+  /* АОСР qadami obyekt darajasida: bitta mavjud reestr o'qishi (jami / ishga bog'lanmaganlar); o'qilmasa — null (noma'lum). */
+  const [zanjirAosr, setZanjirAosr] = useState<{ kalit: string; v: { jami: number; boglanmagan: number } | null } | null>(null);
+  const aosrKalit = validId ? String(obyektId) : '';
+  useEffect(() => {
+    if (!aosrKalit) return;
+    let faol = true;
+    void Promise.resolve().then(() => sbAosrReestrOl(obyektId)).then((r) => {
+      if (!faol) return;
+      const q = r.ok ? (r.qatorlar ?? []).filter((a) => a.holat !== 'bekor') : null;
+      setZanjirAosr({ kalit: aosrKalit, v: q ? { jami: q.length, boglanmagan: q.filter((a) => !(a.boglangan_ish_soni > 0)).length } : null });
+    }).catch(() => { if (faol) setZanjirAosr({ kalit: aosrKalit, v: null }); });
+    return () => { faol = false; };
+  }, [aosrKalit, obyektId]);
   const zanjirQoshimcha = useMemo(() => {
     if (!validId || loading || daraxtXom.length === 0) return undefined;
     let farqli: number | null = null;
     try { const m = slichitelniyModeli(daraxtXom, holatXom); farqli = m.ortiq + m.kam; } catch { farqli = null; }
-    return zanjirDaraxtdan(daraxtXom, holatXom, farqli);
-  }, [validId, loading, daraxtXom, holatXom]);
+    return { ...zanjirDaraxtdan(daraxtXom, holatXom, farqli), tolov: zanjirTolov?.kalit === tolovKalit ? zanjirTolov.v : null, aosrReestr: zanjirAosr?.kalit === aosrKalit ? zanjirAosr.v : null };
+  }, [validId, loading, daraxtXom, holatXom, zanjirTolov, tolovKalit, zanjirAosr, aosrKalit]);
   useEffect(() => {
     if (exportsOpen && tree.length > 0 && typeof window !== 'undefined' && window.location.hash === '#slichitelniy') document.getElementById('slichitelniy')?.scrollIntoView?.({ block: 'center' });
   }, [exportsOpen, tree.length]);
@@ -305,10 +329,8 @@ export function HolatNative() {
     try {
       const u = await ustamaManbaOl(joriy.id, obyektId);
       if (!u.ok) { setError(`Slichitelniy: ${u.xato} — hujjat tuzilmadi. Qayta urinib ko‘ring.`); return; }
-      // Fakt asosli rejim: har farq qatoriga АОСР/texnadzor asosi. O'qilmasa — hujjat asosiz (oldingi ko'rinish) chiqadi, sababi aytiladi.
-      const asosJavob = await slichitelniyAsosOl(joriy.id, obyektId, 1);
-      if (!asosJavob.ok) toast(`: . `, 'warn');
-      const { model, fayl } = slichitelniyHujjatQur({ rows: daraxtXom, states: holatXom, istisnolar, ustama: u.ustama, obyektNom, imzo: tomonlar, faqatFarq: slichFaqatFarq, asos: asosJavob.ok ? new AsosXarita(asosJavob) : null });
+      // Egasi (2026-11-14): «Asos» (АОСР) ustuni hujjatda kerak emas; asos tayyorligi ichki panelda (SlichitelniyTayyorlik) qoladi.
+      const { model, fayl } = slichitelniyHujjatQur({ rows: daraxtXom, states: holatXom, istisnolar, ustama: u.ustama, obyektNom, imzo: tomonlar, faqatFarq: slichFaqatFarq });
       if (!fayl) { toast(slichFaqatFarq ? 'Farq yo‘q: barcha pozitsiyalarda fakt smeta bilan teng.' : 'Solishtiriladigan pozitsiya yo‘q.', 'warn'); return; }
       const { bytes, faylNomi } = fayl;
       const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes, hujjat: 'SLICHITELNIY', sabab: `Сличительная ведомость · ${obyektNom}`, obyekt: obyektId },
@@ -459,6 +481,16 @@ export function HolatNative() {
               <span className="ml-auto text-[11.5px] font-normal text-text-mute">{ochiqPanel === 'tayyorlik' ? t('yopish ▴') : t('ochish ▾')}</span>
             </summary>
             {ochiqPanel === 'tayyorlik' && <div className="border-t border-border px-4 py-3"><SlichitelniyTayyorlik kompaniyaId={joriy.id} obyektId={obyektId} /></div>}
+          </details>
+        )}
+        {daraxtKorinadi && !loading && !error && activeTab === 'smeta' && panellar && joriy?.id != null && (
+          <details className="fz-card" open={ochiqPanel === 'tsikl'} onToggle={(e) => setOchiqPanel(e.currentTarget.open ? 'tsikl' : null)}>
+            <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-[13px] font-semibold text-text">
+              <Info size={15} aria-hidden="true" className="text-text-mute" />
+              <span>{t('Slichitelniy sikli: к доплате / к снятию → Ф-2 qoralama')}</span>
+              <span className="ml-auto text-[11.5px] font-normal text-text-mute">{ochiqPanel === 'tsikl' ? t('yopish ▴') : t('ochish ▾')}</span>
+            </summary>
+            {ochiqPanel === 'tsikl' && <div className="border-t border-border px-4 py-3"><SlichitelniyTsikl kompaniyaId={joriy.id} obyektId={obyektId} qatorlar={daraxtXom} holatlar={holatXom} /></div>}
           </details>
         )}
         {daraxtKorinadi && !loading && !error && activeTab === 'smeta' && panellar && (

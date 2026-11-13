@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Ф-2 hujjati — LRV_PLUS'ning asosiy ustunlari asosida (egasi, 2026-10-02: "LRV PLUS dagi asosiy ustunlar,
  * summagacha + I dagi markirovka; eski tizim uchun o'ngdagi yordamchi ustunlar kerak emas").
  *
@@ -24,6 +24,8 @@ import { BOLIMSIZ_KALIT, f2BolimIerarxiya } from './f2-bolim-daraxti';
 import { sumRefs } from './hujjat-yozuvchi/formula';
 import type { T2Qator } from '../api/supabase';
 import { NARX_ANIQLANMAGAN, mashinistMehnati } from './narx-bildirishnoma';
+import { YAXLIT_KAT } from './svod-yaxlit';
+import { f2YaxlitQator } from './f2-akt-eksport';
 
 /** Vedomost qatori: bitta resurs (kat + nom kaliti + birlik kaliti) va bitta narx; narxi farqli guruhlar alohida qatorlarga ajraladi. */
 type VedQator = { guruh: string; kat: NakrutkaKat | null; kodlar: string[]; nom: string; birlik: string; qatorlar: number[]; summaQatorlar: number[]; hajm: number; summa: number | null; narx: number | null; narxFarqli: boolean; /** Eng yuqori razdel (uchastka/fayl) - vedomost shu bo'yicha bo'limlanadi (iyerarxiya bo'lsa). */ ildiz: number | null; ildizNom: string };
@@ -57,6 +59,11 @@ export type F2HujjatOpsiya = {
   eskiSmetaPodval?: { podval: Podval | null; nakrutka: Partial<NakrutkaKoeffitsientlar> | null; nkManba?: string | null; ndsFoiz?: number | null };
   /** Smeta qatorlari (rz zanjiri): berilsa - hujjatda uchastka/fayl > razdel > ichki razdel iyerarxiyasi. */
   rows?: readonly T2Qator[];
+  /**
+   * Svod yaxlit bo'limi ichidagi qator idlari (imzolangan hujjat va server `_t2_f2_ustamali` kesim.svod bilan bir xil): bu qatorlarga
+   * ustama hisoblanmaydi — summa ИТОГО-4 ga ustamasiz qo'shiladi, QQS bir marta. ЧЕЛ/МАШ qatorlari mustasno (oddiy kategoriya).
+   */
+  yaxlitIds?: ReadonlySet<number>;
 };
 
 const USTUNLAR: RasmiyUstun[] = [
@@ -111,6 +118,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
   let jamiJS: number | null = 0;
   const ks = Object.fromEntries(NAKRUTKA_KATLAR.map((k) => [k, 0])) as KatSummalar;
   let nomJS = 0; // kategoriyasi ko'rsatilmagan summa
+  let yaxlitJS = 0; // svod yaxlit bo'limi qatorlari (ustamasiz, faqat QQS)
   /** Narxsiz qatorlar soni (mashinist mehnati sanalmaydi) — hujjat oxirida «Внимание: N строк без цены» (egasi 2026-11-06). */
   let narxsizN = 0;
   const bolimJamiQatorlari: number[] = [];
@@ -145,7 +153,8 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     const narxsizBelgi = !narxBor && !summaBor && !mashinistMehnati(x);
     if (narxsizBelgi) narxsizN++;
     oxirgiSumma = summaBor ? x.summa : null;
-    if (oxirgiSumma != null) { jamiJS = (jamiJS ?? 0) + oxirgiSumma; if (kat) ks[kat] += oxirgiSumma; else nomJS += oxirgiSumma; }
+    const yaxlitQator = !!o.yaxlitIds && f2YaxlitQator(o.yaxlitIds, x);
+    if (oxirgiSumma != null) { jamiJS = (jamiJS ?? 0) + oxirgiSumma; if (yaxlitQator) yaxlitJS += oxirgiSumma; else if (kat) ks[kat] += oxirgiSumma; else nomJS += oxirgiSumma; }
     const qatorR = v.r;
     const guruh = resursGuruhKaliti(kat, x.nom, x.birlik);
     const vk = `${joriyIldiz?.kalit ?? ''}|${guruh}|${narxBor ? x.narx : '-'}`;
@@ -162,7 +171,8 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
       narxBor ? x.narx : null,
       // «—» (matn): SUM uni o'tkazib yuboradi, ИТОГО dagi «bo'sh summa» tekshiruvi esa uni yetishmovchilik deb sanamaydi.
       summaQiymat ? x.summa : narxBor ? { f: `ROUND(F${r}*G${r},2)`, v: hisob } : (narxsizBelgi ? NARX_ANIQLANMAGAN : ongliNarxsiz ? '—' : null),
-      x.tur, kat ?? '', lrvKalitYoz(x.id, kod, x.nom, x.birlik),
+      // J — podval SUMIF kaliti: yaxlit qator YAXLIT_KAT («СВОД») — ustama SUMIF ga kirmaydi (nakopitelniy bilan bir xil).
+      x.tur, yaxlitQator ? YAXLIT_KAT : kat ?? '', lrvKalitYoz(x.id, kod, x.nom, x.birlik),
     ], ishQatori ? { daraja: 1 } : { daraja: 2, rang: kat && (RANG_TARTIB as readonly string[]).includes(kat) ? kat as QatorRangi : null });
   };
 
@@ -222,18 +232,18 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     v.bolim(`Сторно Ф-2 № ${b.nom}`, { daraja: 0 });
     const bBosh = v.r;
     const bks = Object.fromEntries(NAKRUTKA_KATLAR.map((k) => [k, 0])) as KatSummalar;
-    let bNom = 0; let bJami = 0;
+    let bNom = 0; let bJami = 0; let bYax = 0;
     for (const q of b.qatorlar) {
       if (bargEmasIsh(q)) continue;
       const kat = nakrutkaKat(q.kat);
-      if (q.summa != null) { bJami += q.summa; if (kat) bks[kat] += q.summa; else bNom += q.summa; }
+      if (q.summa != null) { bJami += q.summa; if (o.yaxlitIds && f2YaxlitQator(o.yaxlitIds, q)) bYax += q.summa; else if (kat) bks[kat] += q.summa; else bNom += q.summa; }
     }
     const tarkib = eskiDaraxtYoz(eskiDaraxt(b.qatorlar, rowById), bargEmasIsh, {
       qator: (q, daraja) => {
         const kat = nakrutkaKat(q.kat);
         const belgi = q.summa == null && !mashinistMehnati(q);
         if (belgi) narxsizN++;
-        return v.qator('oddiy', (): Qiymat[] => [++n, shifrKorinish(q.kod), q.nom, q.birlik ?? '', null, q.hajm, q.narx, q.summa == null ? (belgi ? NARX_ANIQLANMAGAN : '—') : q.summa, q.tur, kat ?? '', null],
+        return v.qator('oddiy', (): Qiymat[] => [++n, shifrKorinish(q.kod), q.nom, q.birlik ?? '', null, q.hajm, q.narx, q.summa == null ? (belgi ? NARX_ANIQLANMAGAN : '—') : q.summa, q.tur, o.yaxlitIds && f2YaxlitQator(o.yaxlitIds, q) ? YAXLIT_KAT : kat ?? '', null],
           { daraja, rang: kat && (RANG_TARTIB as readonly string[]).includes(kat) ? kat as QatorRangi : null });
       },
       ish: (q, resSoni, resJS) => v.qator('ish', (r): Qiymat[] => [++n, shifrKorinish(q.kod), q.nom, q.birlik ?? '', null, q.hajm, null,
@@ -250,7 +260,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     if (b.nk == null && sp.ndsFoiz != null && Number.isFinite(sp.ndsFoiz) && sp.ndsFoiz >= 0) bnk.НДС = sp.ndsFoiz;
     const bPodval = b.nk == null && sp.podval ? serverMerosKoefQoy(sp.podval, bnk, sp.nkManba) : null;
     const pr = nakrutkaPodvaliYoz(v, { podval: bPodval, katUstun: 'J', oraliq: [bBosh, bOxirgi], pulUstunlar: ['H'], foizUstun: 'G', nk: bnk, katSummalar: { H: bks }, kfJadval: false,
-      nomalum: Math.abs(bNom) >= 0.005 ? { H: yaxlit2(bNom) } : null,
+      nomalum: Math.abs(bNom) >= 0.005 ? { H: yaxlit2(bNom) } : null, yaxlitOldin: Math.abs(bYax) >= 0.005 ? { H: yaxlit2(bYax) } : null,
       sarlavha: `РАСЧЕТ К ОПЛАТЕ — Сторно Ф-2 № ${b.nom} (${b.nk ? 'подвал исходного документа' : 'подвал сметы'})`, vsegoNom: `ВСЕГО К ОПЛАТЕ — Сторно Ф-2 № ${b.nom}` });
     eskiVsegoQatorlar.push(pr.vsegoQator);
     eskiVsegoJS += pr.natija.H.vsego ?? 0;
@@ -301,6 +311,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     if (o.ndsFoiz != null && Number.isFinite(o.ndsFoiz) && o.ndsFoiz >= 0) nk.НДС = o.ndsFoiz;
     const podval = o.podval ? serverMerosKoefQoy(o.podval, nk, o.nkManba) : null;
     const yp = nakrutkaPodvaliYoz(v, { podval, katUstun: 'J', oraliq: [birinchi, oxirgi], pulUstunlar: ['H'], foizUstun: 'G', nk, katSummalar: { H: ks }, kfJadval: false, nomalum: Math.abs(nomJS) >= 0.005 ? { H: yaxlit2(nomJS) } : null,
+      yaxlitOldin: Math.abs(yaxlitJS) >= 0.005 ? { H: yaxlit2(yaxlitJS) } : null,
       ...(eski.length ? { sarlavha: 'РАСЧЕТ К ОПЛАТЕ — новые позиции (подвал сметы)', vsegoNom: 'ВСЕГО К ОПЛАТЕ — новые позиции' } : {}) });
     yangiVsegoQator = yp.vsegoQator;
     yangiVsegoJS = yp.natija.H.vsego ?? 0;

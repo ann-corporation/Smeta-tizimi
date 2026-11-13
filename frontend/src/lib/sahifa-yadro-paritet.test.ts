@@ -83,11 +83,14 @@ describe('sahifalar yadro bilan: Fakt jurnali / Fakt Studio = Сличитель
   });
 
   it('fakt: sahifa = eksport; svod — yaxlit × (F2 narxidagi fakt / smeta)', () => {
-    expect(model.jami.fakt).toBe(2410); // 360 (1 200 × 300 / 1 000) + 1 750 + 800 − 500
-    expect(s.get(0)?.fakt.ustamasiz).toBe(model.jami.fakt);
+    // OGOHLANTIRISH (2026-11-14): Slichitelniy hujjati svod faktini endi TAQSIMLAMAYDI (server #450 qoidasi: fakt Ф-2 usulida, to'g'ri narx;
+    // qator ichida hajm × narx = summa). Sahifalar (bolimSummalari / faktYigindiHisobla) hali egasining 10-30 qoidasi bilan taqsimlaydi:
+    // svod qismi sahifada 360 (1 200 × 300 / 1 000), hujjatda 300. Sahifalar ham ko'chirilgach (sinov-fakt) bu tenglik qayta tiklanadi.
+    expect(model.jami.fakt).toBe(2350); // 300 (to'g'ri narx) + 1 750 + 800 − 500
+    expect(s.get(0)?.fakt.ustamasiz).toBe((model.jami.fakt ?? 0) + 60);
     expect(s.get(10)?.fakt.ustamasiz).toBe(360);
     const y = faktYigindiHisobla(DARAXT, JH, [], SVOD);
-    expect(y.faktUstamasiz).toBe(model.jami.fakt);
+    expect(y.faktUstamasiz).toBe((model.jami.fakt ?? 0) + 60);
     expect(y.faktF2Narxda).toBe(4); // 12, 22, 23, 25 (26 — fakt NULL, summa yo'q)
   });
 

@@ -96,37 +96,25 @@ describe('slichitelniy xlsx: «Основание» ustuni va asoslar reestri', 
     aosrlar: [aosr(1, { asos_holat: 'tasdiqlangan', holat: 'tasdiqlangan', qaror_vaqti: '2026-10-14T08:00:00Z', qaror_kim: 'Ism', qaror_kompaniya: 'Kompaniya' })],
   };
 
-  it('asos berilsa: ustun + reestr varag‘i; asossiz farq qatori belgilanadi; hisobot soni; asl summalar o‘zgarmaydi', () => {
+  it('asos hujjatga chiqmaydi (egasi 2026-11-14): «Основание» ustuni va reestr varag‘i yo‘q; asos paneli ichki', () => {
     const m = slichitelniyModeli(QATOR, HOLAT);
-    const oddiy = slichitelniyHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25' });
-    const asosli = slichitelniyHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', asos: new AsosXarita(asosJavob) });
-    expect(oddiy.asos).toBeNull();
-    expect(asosli.asos).toEqual({ farqli: 2, asosli: 1, tasdiqlagan: 1, asossiz: 1 });
-    expect(asosli.kOplata).toEqual(oddiy.kOplata);
-    const t0 = hujjatTekshir(oddiy.bytes);
-    const t1 = hujjatTekshir(asosli.bytes);
-    expect(t0.varaqlar.length).toBe(1);
-    expect(t1.varaqlar.length).toBe(2);
-    expect(t1.dollarFormulalar).toEqual([]);
-    expect(t1.keshsizFormulalar).toEqual([]);
-    const matn = t1.matnlar.join('\n').toLowerCase();  // varaq matnlari katta harfda (RasmiyVaraq qoidasi)
-    expect(matn).toContain('основание (аоср, решение технадзора)');
-    expect(matn).toContain('аоср № a-0001 от 12.10.2026 — принят (ism, kompaniya) 14.10.2026; объем по акту 12');
-    expect(matn.split('основание отсутствует').length - 1).toBeGreaterThanOrEqual(1);
-    expect(matn).toContain('реестр документов-оснований');
-    // formulali summalar bir xil (asos ustuni pul katagiga tegmaydi)
-    const g = (t: ReturnType<typeof hujjatTekshir>) => t.varaqlar[0].kataklar.filter((k) => /^[GIKM]\d+$/.test(k.ref)).map((k) => `${k.ref.replace(/\d+$/, "")}=${k.v}`);
-    expect(g(t1).slice(0, g(t0).length)).toEqual(g(t0));  // titul bir qator ko'payadi (qator raqamlari siljiydi) va izohlar imzodan keyin qo'shiladi: ustun/qiymat ketma-ketligi bir xil
+    const r = slichitelniyHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25' });
+    const t = hujjatTekshir(r.bytes);
+    const matn = t.matnlar.join('\n').toLowerCase();
+    expect(matn).not.toContain('основание (аоср');
+    expect(matn).not.toContain('реестр документов-оснований');
+    expect(t.varaqlar.map((x) => x.nom)).toEqual(['Сличительная ведомость', 'Свод изменений', 'Плюсы и минусы']);
+    expect(asosJavob.ok).toBe(true);
   });
 
-  it('smetada yo‘q ishlar (qo‘shimcha): sukut — alohida varaq «Работы вне сметы»; «daraxt» rejimida varaq yo‘q', () => {
+  it('smetada yo‘q ishlar (qo‘shimcha): sukut — asosiy varaqda bo‘lim; alohida varaq faqat «alohida» rejimida', () => {
     const Q = [q(1, null, 'rz', null, { nom: 'РАЗДЕЛ' }), q(2, 1, 'bl', 10, { nom: 'ОСНОВНАЯ' }), q(3, 1, 'bl', 0, { nom: 'ДОП РАБОТА', qoshimcha: true, narx: 500 })];
     const H = [h(2, 10), h(3, 4)];
     const m = slichitelniyModeli(Q, H);
-    const alohida = hujjatTekshir(slichitelniyHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25' }).bytes);
+    const alohida = hujjatTekshir(slichitelniyHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', vneSmeta: 'alohida' }).bytes);
     const daraxt = hujjatTekshir(slichitelniyHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', vneSmeta: 'daraxt' }).bytes);
-    expect(alohida.varaqlar.length).toBe(2);
+    expect(alohida.varaqlar.length).toBe(4);
     expect(alohida.matnlar.join('\n')).toContain('РАБОТЫ, ВЫПОЛНЕННЫЕ СВЕРХ СМЕТЫ');
-    expect(daraxt.varaqlar.length).toBe(1);
+    expect(daraxt.varaqlar.length).toBe(3);
   });
 });

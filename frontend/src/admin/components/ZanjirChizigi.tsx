@@ -4,6 +4,7 @@ import type { ComponentType } from 'react';
 import { t } from '../../i18n/til';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { useForma3Holat, useIshOyi } from '../../lib/pto-markazi/useQadamMalumot';
+import { faolOy } from '../../lib/pto-markazi/oy';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { ZANJIR_YOL, zanjirHisobla, zanjirKirishYasa, zanjirRolKoradi, type QadamHolat, type ZanjirKirish, type ZanjirQadamId, type ZanjirTavsiya } from '../../lib/zanjir/qadamlar';
 
@@ -29,7 +30,7 @@ const HOLAT_SINF: Record<QadamHolat, string> = {
 };
 
 /** Sahifa o'zi yuklagan qo'shimcha sonlar (smeta qator soni, fakt qamrovi, slichitelniy farqi) — yo'q bo'lsa «—»/noma'lum. */
-export type ZanjirQoshimcha = Partial<Pick<ZanjirKirish, 'smetaQator' | 'faktQamrov' | 'slichitelniy'>>;
+export type ZanjirQoshimcha = Partial<Pick<ZanjirKirish, 'smetaQator' | 'faktQamrov' | 'slichitelniy' | 'tolov' | 'aosrReestr'>>;
 
 export function ZanjirChizigi({ joriy, obyektId, aosr, qoshimcha }: { joriy?: ZanjirBelgi | null; obyektId?: number | null; aosr?: ZanjirKirish['aosr']; qoshimcha?: ZanjirQoshimcha }) {
   const ws = usePTOWorkspace();
@@ -61,6 +62,9 @@ function Chizig({ obyektId: id, joriy, aosr, qoshimcha }: { obyektId: number; jo
     return { pathname: q === 'smeta' || q === 'slichitelniy' ? `${ZANJIR_YOL[q]}/${id}` : ZANJIR_YOL[q], search: s ? `?${s}` : '', hash: q === 'slichitelniy' ? '#slichitelniy' : '' };
   };
   const keyingi = natija.keyingi;
+  /* URL dagi oy ustun; lekin u boshqa oy bo'lsa va obyektning oxirgi faollik oyi boshqacha bo'lsa — taklif havolasi. */
+  const faolOyi = io.manba === 'tanlangan' ? faolOy(aktlar) : null;
+  const faolTaklif = faolOyi && faolOyi !== io.oy ? (() => { const p = new URLSearchParams(search); p.set('davr', faolOyi); return { oy: faolOyi, search: `?${p.toString()}` }; })() : null;
 
   return (
     <nav aria-label={t('Ish zanjiri')} data-testid="zanjir-chizigi" className="flex min-w-0 flex-col gap-2">
@@ -93,6 +97,11 @@ function Chizig({ obyektId: id, joriy, aosr, qoshimcha }: { obyektId: number; jo
         {io.aniq ? (
           <span className="text-sm text-text-mute" data-testid="ish-oyi" title={io.manba === 'faollik' ? t('Oxirgi fakt yoki F2 bor oy') : undefined}>{t('Ish oyi')}: <b className="ml-1 text-text">{io.oy}</b></span>
         ) : null}
+        {faolTaklif && (
+          <Link to={{ search: faolTaklif.search }} data-testid="faol-oy-taklif" className="text-sm text-accent underline">
+            {t('Oxirgi faollik oyi')}: {faolTaklif.oy}
+          </Link>
+        )}
         {keyingi && <KeyingiBlok keyingi={keyingi} to={havola(keyingi.id)} />}
         {!keyingi && natija.tugallandi && <span className="text-sm text-ok" data-testid="zanjir-tugadi">{t('Zanjir shu oy uchun yopilgan')}</span>}
       </div>

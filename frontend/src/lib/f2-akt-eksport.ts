@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SAQLANGAN F2 AKTI — Ф-2 hujjati va pul bahosi uchun YAGONA tayyorlash (F2 tarixi va F2 portfeli, egasi 2026-11-05).
  * F2 tarixidagi «Ф-2 Excel» mantiqi shu yerga ko'chirildi (yangi formula yo'q):
  *  - storno bloklari (`raw_snapshot.stornoOf`) hujjat TEPASIDA, har biri o'z hujjat podvali bilan (`pereraschetBloklari`);
@@ -11,8 +11,9 @@ import type { F2HujjatKonteksti } from '../api/f2-hujjat-kontekst';
 import { f2AktKirish, otaIdlari } from './f2-akt-hujjat';
 import { eskiBloklarHujjat, pereraschetBloklari, stornosizQatorlar, type PereraschetAktQator, type PereraschetBlok } from './f2-pereraschet';
 import type { AktPodvalQator } from './akt-podval';
-import { NDS_SUKUT_FOIZ, bosKesim, f2Baholash, kesimgaQosh, yaxlit2, type AktPodvalNk, type F2Baho, type F2Blok } from './hisob-yadro';
+import { NDS_SUKUT_FOIZ, bosKesim, f2Baholash, f2YaxlitdanChiqadi, kesimgaQosh, yaxlit2, type AktPodvalNk, type F2Baho, type F2Blok } from './hisob-yadro';
 import { katKesimYigish } from './ustamali-summa';
+import { yaxlitQatorIdlari } from './svod-yaxlit';
 import { y6, type F2Bolim, type F2Qator } from './f2-tayyor';
 import type { F2HujjatOpsiya } from './f2-hujjat';
 import type { AktMoliya } from './f2-oylik-paket/oylik';
@@ -47,18 +48,22 @@ export type F2AktTayyor = {
   ozNk: AktPodvalNk | null;
   blokNk: (manbaAktId: number) => AktPodvalNk | null;
   opsiya: F2HujjatOpsiya;
+  /** Svod yaxlit bo'limi ichidagi qator idlari (ustamasiz, faqat QQS) — f2YaxlitdanChiqadi (ЧЕЛ/МАШ) bundan mustasno. */
+  yaxlitIds?: ReadonlySet<number>;
 };
 
 /**
  * Storno bloki kesimi SERVER BARG QOIDASI bilan (audit B M2): smetada bolasi bor ish (bl) o'z summasini sanamaydi
  * (`_t2_summa_paket_v1`: `ota.id is null`). Qatorlar o'zgarmaydi (hujjatda ko'rinadi), faqat pul kesimi qayta yig'iladi.
  */
-function bargQoidasiBilan(b: PereraschetBlok, otalar: ReadonlySet<number>): PereraschetBlok {
+function bargQoidasiBilan(b: PereraschetBlok, otalar: ReadonlySet<number>, yaxlitIds: ReadonlySet<number> = new Set<number>()): PereraschetBlok {
   const pul = b.qatorlar.filter((q) => !(q.tur === 'bl' && otalar.has(q.qatorId)));
-  if (pul.length === b.qatorlar.length) return b;
+  // Svod yaxlit bo'limi qatorlari storno blokida ham ustamasiz (yangi blok bilan bir xil qoida).
+  const yaxlitBor = pul.some((q) => f2YaxlitQator(yaxlitIds, { id: q.qatorId, kat: q.kat }));
+  if (pul.length === b.qatorlar.length && !yaxlitBor) return b;
   const kesim = bosKesim();
   let jami = 0; let nomalum = 0;
-  for (const q of pul) { kesimgaQosh(kesim, q.kat, q.summa); if (q.summa == null) nomalum++; else jami += q.summa; }
+  for (const q of pul) { kesimgaQosh(kesim, q.kat, q.summa, f2YaxlitQator(yaxlitIds, { id: q.qatorId, kat: q.kat })); if (q.summa == null) nomalum++; else jami += q.summa; }
   return { ...b, kesim, jami: yaxlit2(jami), nomalum };
 }
 
@@ -70,19 +75,25 @@ export function aktPodvalNkOl(podvallar: F2AktEksportKirish['podvallar'], aktId:
   };
 }
 
+/** F2 qatori svod yaxlit bo'limida (ustamasiz)? ЧЕЛ/МАШ — oddiy kategoriya (server `_t2_summa_agg_v1` bilan aynan). */
+export const f2YaxlitQator = (ids: ReadonlySet<number>, x: { id: number; kat?: string | null }): boolean => ids.has(x.id) && !f2YaxlitdanChiqadi(x.kat);
+
 /** Ф-2 hujjati kirishi. Aktda chiqariladigan qator bo'lmasa null. */
 export function f2AktTayyorla(k: F2AktEksportKirish): F2AktTayyor | null {
   const kir = f2AktKirish(k.smeta, k.lines);
   if (!kir.qatorlar.length) return null;
   const otalar = otaIdlari(k.smeta);
-  const eskiB = pereraschetBloklari(k.aktQatorlar, new Map(k.smeta.map((r) => [r.id, r] as const)), k.raqamlar).map((b) => bargQoidasiBilan(b, otalar));
+  const eskiB = pereraschetBloklari(k.aktQatorlar, new Map(k.smeta.map((r) => [r.id, r] as const)), k.raqamlar).map((b) => bargQoidasiBilan(b, otalar, yaxlitQatorIdlari(k.smeta, k.kontekst.svodYaxlit)));
   const { oz: ozNk, blok: blokNk } = aktPodvalNkOl(k.podvallar, k.akt.id);
   const ozNakrutka = ozNk ? (Object.fromEntries(Object.entries(ozNk).filter(([, v]) => v != null).map(([kk, v]) => [kk, Number(v)])) as F2HujjatKonteksti['nakrutka']) : null;
   const ctx = k.kontekst;
   const qatorlar = resursBoglanishiniTikla(stornosizQatorlar(kir.qatorlar, eskiB), k.smeta);
   const qoralama = k.akt.holat === 'qoralama';
+  /* Svod yaxlit (egasi 2026-10-27/30): belgili bo'lim qatorlariga ustama hisoblanmaydi — imzolangan hujjat (bronza VIP ART) va server
+   * _t2_f2_ustamali (kesim.svod) bilan bir xil. Ilgari bu yerda hisobga olinmasdi: bronza F2 ga ustama (+309,8 mln) qo'shilardi. */
+  const yaxlitIds = yaxlitQatorIdlari(k.smeta, ctx.svodYaxlit);
   return {
-    bolimlar: kir.bolimlar, qatorlar, eskiBloklar: eskiB, topilmagan: kir.topilmagan, ozNk, blokNk,
+    bolimlar: kir.bolimlar, qatorlar, eskiBloklar: eskiB, topilmagan: kir.topilmagan, ozNk, blokNk, yaxlitIds,
     opsiya: {
       obyektNom: k.obyektNom, davr: k.akt.oy || '', raqam: k.akt.raqam, imzo: ctx.imzo, shartnoma: ctx.shartnoma,
       // Hujjatning o'z podvali bo'lsa - uning foizlari (QQS ham o'ziniki); yo'q - obyekt podvali va tizim QQS stavkasi.
@@ -91,7 +102,7 @@ export function f2AktTayyorla(k: F2AktEksportKirish): F2AktTayyor | null {
       // M4: o'z podvali yo'q storno bloki — yadro bahosi kabi obyekt smeta podvali (aktning o'z podvali bo'lsa ham).
       eskiSmetaPodval: { podval: ctx.podval, nakrutka: ctx.nakrutka, nkManba: ctx.nkManba ?? null, ndsFoiz: NDS_SUKUT_FOIZ },
       // Tasdiqlangan akt — tarix: faqat sertifikatlangan qiymatlar, formulasiz. Qoralama — tirik (keshlangan natija = sertifikatlangan qiymat).
-      formulasiz: !qoralama, rows: k.smeta,
+      formulasiz: !qoralama, rows: k.smeta, yaxlitIds,
     },
   };
 }
@@ -125,7 +136,7 @@ export function f2AktBaho(t: F2AktTayyor, kontekst: Pick<F2HujjatKonteksti, 'pod
   const bloklar: F2Blok[] = t.eskiBloklar.map((b) => ({ kalit: `s:${b.manbaAktId}`, nom: b.raqam ?? String(b.manbaAktId), kesim: b.kesim, nk: t.blokNk(b.manbaAktId) }));
   let narxsiz = t.eskiBloklar.reduce((s, b) => s + b.nomalum, 0);
   if (yangi.length) {
-    const kesim = katKesimYigish(yangi, (x: F2Qator) => x.kat ?? null, (x: F2Qator) => (x.narxsiz ? null : x.summa));
+    const kesim = katKesimYigish(yangi, (x: F2Qator) => x.kat ?? null, (x: F2Qator) => (x.narxsiz ? null : x.summa), (x: F2Qator) => f2YaxlitQator(t.yaxlitIds ?? new Set<number>(), x));
     narxsiz += kesim.summasizSoni;
     bloklar.push({ kalit: 'yangi', nom: 'yangi', kesim, nk: t.ozNk });
   }
