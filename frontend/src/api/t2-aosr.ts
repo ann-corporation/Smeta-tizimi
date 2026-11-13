@@ -141,6 +141,23 @@ export async function sbAosrBogOl(kompaniyaId: number, aosrIds: readonly number[
   return xarita;
 }
 
+/** Akt → qator → bog'langan hajm (`t2_aosr_bog.hajm`; NULL = ko'rsatilmagan). Ijro hajm hisobi ilovasi uchun; xato — bo'sh xarita. */
+export async function sbAosrBogHajmOl(kompaniyaId: number, aosrIds: readonly number[]): Promise<Map<number, Map<number, number | null>>> {
+  const xarita = new Map<number, Map<number, number | null>>();
+  for (let i = 0; i < aosrIds.length; i += 100) {
+    const r = await sbOqi<{ aosr_id: number; qator_id: number; hajm: number | null }>({
+      jadval: 't2_aosr_bog', filtr: `kompaniya_id=eq.${kompaniyaId}&aosr_id=in.(${aosrIds.slice(i, i + 100).join(',')})`, ustunlar: 'aosr_id,qator_id,hajm', limit: 100000,
+    }).catch(() => null);
+    if (!r || !r.ok) return xarita;
+    for (const b of r.qatorlar || []) {
+      const m = xarita.get(Number(b.aosr_id)) ?? new Map<number, number | null>();
+      m.set(Number(b.qator_id), b.hajm == null ? null : Number(b.hajm));
+      xarita.set(Number(b.aosr_id), m);
+    }
+  }
+  return xarita;
+}
+
 /** Berilgan qatorlar bo'yicha bekor qilinmagan fakt hujjatlarining sanalari (qoralama boshlanish/tugash sanasi uchun). */
 export async function sbFaktSanalarOl(obyektId: number, qatorIds: readonly number[]): Promise<{ links: { akt_id: number; qator_id: number }[]; aktlar: { id: number; sana: string | null }[] }> {
   const a = await sbOqi<{ id: number; sana: string | null }>({ jadval: 't2_akt', filtr: `obyekt_id=eq.${obyektId}&tur=eq.fakt&holat=neq.bekor`, ustunlar: 'id,sana', limit: 20000 });
