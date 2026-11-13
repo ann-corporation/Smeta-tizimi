@@ -11,6 +11,7 @@ import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { aloqalarOl, taqdimlarOl, zakazchikObyektlarOl, type Aloqa, type TaqdimQisqa, type ZakazchikObyekt } from '../../api/t2-tomon';
 import { t } from '../../i18n/til';
 import { Bolim, HolatBelgi } from './tomon-ui';
+import NazoratTayinlash from './NazoratTayinlash';
 import BugunBolimi from './BugunBolimi';
 import { oyMatn, pul, sana } from './tomon-yordam';
 import { bajarilishFoizi } from './obyekt-portali-yordam';
@@ -88,6 +89,7 @@ export default function ZakazchikKabinet() {
       <div className="space-y-4">
         {xato && <div role="alert" className="fz-note fz-note--danger">{xato}</div>}
         <BugunBolimi kompaniyaId={kompaniyaId} kompaniyaNomi={joriy?.nom ?? ''} />
+        <NazoratTayinlash kompaniyaId={kompaniyaId} />
         <section className="fz-card fz-kpis p-4" aria-label={t('Kabinet ko‘rsatkichlari')}>
           <Kartochka nom="Faol aloqalar" qiymat={faol ? String(faol.length) : null} rang="var(--ok)" />
           <Kartochka nom="Ko‘rinadigan obyektlar" qiymat={obyektlar ? String(obyektlar.length) : null} />
