@@ -14,5 +14,7 @@
   "Yangi xotira": { "ru": "Новая запись памяти", "en": "New memory" },
   "Daraja": { "ru": "Уровень", "en": "Level" },
   "Eslab qol": { "ru": "Запомни", "en": "Remember" },
+  "Suhbatni yuklab bo‘lmadi": { "ru": "Не удалось загрузить диалог", "en": "Could not load the conversation" },
+  "Eski suhbat (qisqartma)": { "ru": "Старый диалог (кратко)", "en": "Old conversation (summary)" },
   "Oldingi suhbatlar": { "ru": "Прошлые диалоги", "en": "Previous conversations" }
 }
