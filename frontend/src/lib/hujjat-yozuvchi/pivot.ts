@@ -10,6 +10,10 @@
  */
 import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from 'fflate';
 
+/** Chop sozlamasi (egasi 2026-11-13: har hujjatda A4, bir sahifa eniga, yo'nalish) — pivot varaqlari ham. */
+const CHOP_PR = '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>';
+const CHOP_SOZLAMA = '<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>';
+
 export type PivotKatak = string | number | null | { f: string; v: number | string | null };
 export type PivotMaydon = { nom: string; son?: boolean };
 export type PivotSozlama = {
@@ -51,10 +55,10 @@ export function pivotQosh(bytes: Uint8Array, o: PivotSozlama): Uint8Array {
   const rows = [`<row r="1">${o.maydonlar.map((f, i) => katakXml(`${harf(i)}1`, f.nom)).join('')}</row>`]
     .concat(o.qatorlar.map((q, r) => `<row r="${r + 2}">${q.map((k, i) => katakXml(`${harf(i)}${r + 2}`, k)).join('')}</row>`));
   const malumot = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
-    + `<dimension ref="A1:${oxirC}${oxirR}"/><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft"/></sheetView></sheetViews>`
+    + `${CHOP_PR}<dimension ref="A1:${oxirC}${oxirR}"/><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft"/></sheetView></sheetViews>`
     + '<sheetFormatPr defaultRowHeight="15"/>'
     + `<cols>${o.maydonlar.map((f, i) => `<col min="${i + 1}" max="${i + 1}" width="${f.son ? 16 : i === 2 ? 50 : 14}" customWidth="1"/>`).join('')}</cols>`
-    + `<sheetData>${rows.join('')}</sheetData><autoFilter ref="A1:${oxirC}${oxirR}"/></worksheet>`;
+    + `<sheetData>${rows.join('')}</sheetData><autoFilter ref="A1:${oxirC}${oxirR}"/>${CHOP_SOZLAMA}</worksheet>`;
 
   // 2) Kesh ta'rifi: qator maydonlari uchun noyob qiymatlar (items), son maydonlari uchun diapazon.
   const noyob = o.maydonlar.map((_f, i) => [...new Set(o.qatorlar.map((q) => qiymat(q[i])).filter((x): x is string | number => x != null && x !== '').map(String))].sort((a, b) => a.localeCompare(b, 'ru')));
@@ -94,9 +98,9 @@ export function pivotQosh(bytes: Uint8Array, o: PivotSozlama): Uint8Array {
     + '<pivotTableStyleInfo name="PivotStyleLight16" showRowHeaders="1" showColHeaders="1" showRowStripes="0" showColStripes="0" showLastColumn="1"/>'
     + '</pivotTableDefinition>';
   const pivotVaraq = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
-    + '<sheetFormatPr defaultRowHeight="15"/><cols><col min="1" max="1" width="60" customWidth="1"/>'
+    + `${CHOP_PR}<sheetFormatPr defaultRowHeight="15"/><cols><col min="1" max="1" width="60" customWidth="1"/>`
     + `<col min="2" max="${o.qiymatMaydon.length + 1}" width="20" customWidth="1"/></cols>`
-    + `<sheetData><row r="1">${katakXml('A1', o.sarlavha)}</row></sheetData></worksheet>`;
+    + `<sheetData><row r="1">${katakXml('A1', o.sarlavha)}</row></sheetData>${CHOP_SOZLAMA}</worksheet>`;
 
   // 4) Paketga qo'shish.
   const s1 = n + 1, s2 = n + 2;

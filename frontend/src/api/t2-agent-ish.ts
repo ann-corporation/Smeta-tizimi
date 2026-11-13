@@ -173,6 +173,20 @@ export async function niyatLlmOl(k: number, savol: string, o: { tarix?: Array<{ 
   } catch { return null; }
 }
 
+/** Serverdagi suhbatlar (t2_jarvis_suhbat): xato bo'lsa null — brauzer zaxirasi ishlayveradi. */
+export type ServerSuhbat = { id: string; sarlavha: string; yangilandi: string; toliq: boolean };
+async function suhbatPost<T>(amal: string, k: number, yuk: Record<string, unknown> = {}): Promise<T | null> {
+  try {
+    const r = await fetch('/api/agent-ish', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amal, kompaniya_id: k, ...yuk }) });
+    const j = await r.json() as { ok?: boolean } & Record<string, unknown>;
+    return r.ok && j.ok !== false ? (j as unknown as T) : null;
+  } catch { return null; }
+}
+export const suhbatRoyxatOl = (k: number) => suhbatPost<{ royxat: ServerSuhbat[] }>('suhbat_royxat', k).then((r) => r?.royxat ?? null);
+export const suhbatServerdanOl = (k: number, id: string) => suhbatPost<{ sarlavha: string; qisqartma: string | null; xabarlar: Array<{ r: 'user' | 'ai'; m: string }> | null }>('suhbat_ol', k, { klient_id: id });
+export const suhbatServerga = (k: number, id: string, sarlavha: string, xabarlar: Array<{ r: 'user' | 'ai'; m: string }>) => suhbatPost<{ ok: boolean }>('suhbat_saqla', k, { klient_id: id, sarlavha, xabarlar });
+export const suhbatServerdanOchir = (k: number, id: string) => suhbatPost<{ ok: boolean }>('suhbat_ochir', k, { klient_id: id });
+
 export type JurnalYozuvi = {
   id: number; vaqt: string; profil_kod: string | null; rol: string | null; tur: 'savol' | 'rad' | 'salom' | 'xato'; savol: string | null; javob: string | null; qadamlar: Qadam[];
   toifalar: string[]; model: string | null; kirish_token: number; chiqish_token: number; ms: number | null; rad: boolean; kim: string | null;
