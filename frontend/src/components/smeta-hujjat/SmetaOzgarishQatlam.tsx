@@ -29,6 +29,17 @@ function Asos({ asos, akt }: { asos?: OzgarishAsos; akt?: OzgarishAkt }) {
   </span>;
 }
 
+function UstamasizQator({ v }: { v: number }) {
+  return <span className="flex flex-col items-end text-right tabular-nums text-[12px]"><FmtN val={v} kasr={0} /><small className="text-text-mute">{t('ustamasiz')}</small></span>;
+}
+function NarxBelgi({ x }: { x: { narx_manba?: string; narxsiz?: boolean; narxsiz_barg_soni?: number } }) {
+  const qisman = !x.narxsiz && (x.narxsiz_barg_soni ?? 0) !== 0;
+  return <>
+    {x.narx_manba === 'f2_narx' && <small className="block text-text-mute" title={t('Narx smetada yo‘q; tasdiqlangan F-2 sertifikat narxidan olindi')}>{t('F-2 narxi')}</small>}
+    {qisman && <small className="block text-warn">{t('narxsiz: {n}', { n: String(x.narxsiz_barg_soni) })}</small>}
+  </>;
+}
+
 export function SmetaOzgarishQatlam({ obyektId }: { obyektId: number | null }) {
   const [d, setD] = useState<Qatlam | null>(null);
   const [xato, setXato] = useState<string | null>(null);
@@ -54,9 +65,7 @@ export function SmetaOzgarishQatlam({ obyektId }: { obyektId: number | null }) {
     ? katKesimdanPaket(k.jami, { qqsBilan: d.ozgarish.qqs_bilan, ustamali: d.ozgarish.ustamali, ustamasiz: d.ozgarish.ustamasiz, taxminiy: false, nomalum: 0, sabab: null })
     : null), [d, k]);
   /** Qator yig'indisi: server jami bo'lsa — faqat ustamasiz (qatorlar ustamalisi jamiga qo'shilmaydi: svod bo'limlari ustamasiz); aks holda mijoz juftligi. */
-  const qator = (ust: number, kes: ReturnType<typeof kesim>) => (ozPaket
-    ? <span className="flex flex-col items-end text-right tabular-nums text-[12px]"><FmtN val={ust} kasr={0} /><small className="text-text-mute">{t('ustamasiz')}</small></span>
-    : <SummaJuft kichik obyektId={obyektId} ustamasiz={ust} katKesim={kes} className="items-end text-right" />);
+  const qator = (ust: number, kes: ReturnType<typeof kesim>) => { if (ozPaket) return <UstamasizQator v={ust} />; return <SummaJuft kichik obyektId={obyektId} ustamasiz={ust} katKesim={kes} className="items-end text-right" />; };
   if (obyektId == null) return null;
   if (xato) return <p className="fz-note fz-note--warn" role="status" data-testid="smeta-ozgarish-xato">{t('Smeta o‘zgarishlari o‘qilmadi')}: {xato}</p>;
   if (!d || !k) return null;
@@ -92,6 +101,9 @@ export function SmetaOzgarishQatlam({ obyektId }: { obyektId: number | null }) {
         {t('Zamena bilan almashtirilgan asl qismlar ({s} so‘m, ustamasiz) smeta jamiga bir marta kiritildi. Zamena bo‘yicha farq faqat «Zamena farqi» da ko‘rinadi.', { s: Math.round(oz.ikki_marta_sanalgan).toLocaleString('ru-RU') })}</p>}
       {(d.qoshimcha.asossiz_soni > 0 || d.zamena.asossiz_soni > 0) && <p className="fz-note fz-note--warn text-[11.5px]" role="status">
         {t('Asosi ko‘rsatilmagan: {q} ta qo‘shimcha, {z} ta zamena — sabab yoki hujjat kiriting', { q: String(d.qoshimcha.asossiz_soni), z: String(d.zamena.asossiz_soni) })}</p>}
+      {(d.zamena.f2_narx_soni ?? 0) > 0 && <p className="fz-note text-[11.5px]" role="note" data-testid="zamena-f2-narx">
+        {t('Zamena: {n} ta barg narxi tasdiqlangan F-2 sertifikatidan olindi (smetada narx yo‘q)', { n: String(d.zamena.f2_narx_soni) })}
+        {(d.zamena.narxsiz_barg_soni ?? 0) > 0 ? ` · ${t('hali narxsiz barg: {n}', { n: String(d.zamena.narxsiz_barg_soni) })}` : ''}</p>}
       {(d.zamena.narxsiz_soni > 0 || d.zamena.noaniq_soni > 0) && <p className="fz-note fz-note--warn text-[11.5px]" role="status">
         {t('Zamena: {n} tasi narxsiz (farqi noma’lum, asl kamaytirilmadi), {m} tasida almashtirilgan qism aniqlanmadi', { n: String(d.zamena.narxsiz_soni), m: String(d.zamena.noaniq_soni) })}</p>}
 
@@ -113,7 +125,8 @@ export function SmetaOzgarishQatlam({ obyektId }: { obyektId: number | null }) {
             <tbody>{d.zamena.qatorlar.map((x) => <tr key={x.qator_id} className="border-t border-border align-top">
               <td>{x.kod && <span className="fz-c-shifr mr-1">{x.kod}</span>}{x.nom}</td>
               <td>{x.asl_kod && <span className="fz-c-shifr mr-1">{x.asl_kod}</span>}{x.asl_nom ?? '—'}</td>
-              <td className="text-right tabular-nums">{x.narxsiz ? <span className="text-warn">{t('narxsiz')}</span> : <FmtN val={x.summa ?? null} kasr={0} />}</td>
+              <td className="text-right tabular-nums">{x.narxsiz ? <span className="text-warn">{t('narxsiz')}</span> : <FmtN val={x.summa ?? null} kasr={0} />}
+                <NarxBelgi x={x} /></td>
               <td className="text-right tabular-nums"><FmtN val={x.almashtirilgan_summa ?? null} kasr={0} /></td>
               <td className="text-right tabular-nums"><FmtN val={x.farq ?? null} kasr={0} /></td>
               <td><Asos asos={x.asos} akt={x.akt} /></td><td>{kimMatni(x.asos?.kim) ?? '—'}</td><td>{sana(x.asos?.qachon)}</td>
