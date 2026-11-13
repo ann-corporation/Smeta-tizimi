@@ -173,7 +173,9 @@ describe('svod yaxlit — butun tarkib aynan yaxlit summaga yig‘iladi (qator d
     expect(r2(yq.reduce((t, x) => t + (x.faktSumma ?? 0), 0))).toBe(1020);
     const r = slichitelniyHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', nakrutka: NK, yaxlitIdlar: IDLAR, svodYaxlit: SVOD });
     expect(qiymatBor(r.bytes, 1344)).toBe(true);            // smeta к оплате = svod summasi (QQS bilan) aynan
-    expect(qiymatBor(r.bytes, r2(1344 * 0.85))).toBe(true); // выполнено к оплате = svod × (fakt / smeta)
+    // выполнено к оплате: fakt Ф-2 usulida (server qoidasi) - taqsimsiz: МАТ qatori to'g'ri narx 700 × (1+НДС); ЧЕЛ - ustama kaskadi.
+    expect(qiymatBor(r.bytes, r2(700 * 1.12))).toBe(true);
+    expect(qiymatBor(r.bytes, r2(1344 * 0.85))).toBe(false);
   });
   it('Ostatka modeli: bo‘lim qoldig‘i = svod − svod × fakt/smeta, qatorlarga aynan taqsim', () => {
     const m = ostatkaHujjatModeli(DARAXT, HF, [], SVOD);

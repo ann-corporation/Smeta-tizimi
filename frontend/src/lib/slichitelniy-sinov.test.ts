@@ -59,3 +59,25 @@ describe('Slichitelniy: real obyekt topilmalari', () => {
   });
 });
 
+
+describe('Slichitelniy: fakt va Ф-2 server qoidasi (svod bo‘limi)', () => {
+  const NK = { ТРАНСПОРТ_МАТЕРИАЛ: 5, СКЛАДСКИЕ_МАТЕРИАЛ: 2, СКЛАДСКИЕ_МК: 0.75, ТРАНСПОРТ_КАБЕЛЬ: 1.5, ПРОЧИЕ_ПОДРЯДЧИК: 18, ТРАНСПОРТ_ОБОРУД: 2, ЗАГОТ_СКЛАД_ОБОРУД: 0, СТРАХОВАНИЕ: 0.32, РИСК: 0, НДС: 12 };
+  it('svod bo‘limida ЧЕЛ/МАШ — ustama kaskadi, qolgani to‘g‘ri narx × (1+НДС); fakt va Ф-2 bir xil usulda, fakt taqsimlanmaydi', async () => {
+    const rows = [q(30, null, 'rz', null), q(31, 30, 'bl', 1), q(32, 31, 'rs', 0.3, { kat: 'ЧЕЛ', nom: 'ТРУД СВОД' }), q(33, 31, 'mat', 0.7, { kat: 'МАТ', nom: 'МАТЕРИАЛ СВОД' })];
+    const holat = [h(31, 1, 0.6), h(32, 0.15, 0.1), h(33, 0.7, 0.5)];
+    const svod = { qqssiz: 1200, barglar: 1000, summasiz: 0, bolimlar: [{ id: 1, qator_id: 30, nom: 'С', svod_summa: 1344, qqs_stavka: 12, qqssiz: 1200, barglar: 1000, asos: 'svod', dalil: {} }] } as unknown as SvodYaxlit;
+    const m = slichitelniyModeli(rows, holat, { svodYaxlit: svod });
+    const { yaxlitQatorIdlari } = await import('./svod-yaxlit');
+    const { bytes } = slichitelniyHujjatXlsx(m, { obyektNomi: 'О', sana: '2026-11-14', nakrutka: NK, svodYaxlit: svod, yaxlitIdlar: yaxlitQatorIdlari(rows, svod) });
+    const ExcelJS = (await import('exceljs')).default;
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(bytes as unknown as ArrayBuffer);
+    const ws = wb.getWorksheet('Сличительная ведомость')!;
+    const kesh = (n: string, col: number): number => { let x = NaN; ws.eachRow((row) => { if (String(row.getCell(3).value) === n) { const v = row.getCell(col).value as unknown; x = Number(v && typeof v === 'object' && 'result' in (v as object) ? (v as { result: number }).result : v); } }); return x; };
+    const kfChel = 1.18 * 1.0032 * 1.12;
+    expect(kesh('ТРУД СВОД', 22)).toBeCloseTo(100 * kfChel, 1);   // Ф-2: ЧЕЛ — kaskad
+    expect(kesh('ТРУД СВОД', 16)).toBeCloseTo(150 * kfChel, 1);   // fakt: xuddi shunday (to‘g‘ri narxdagi fakt, taqsimsiz)
+    expect(kesh('МАТЕРИАЛ СВОД', 22)).toBeCloseTo(500 * 1.12, 1); // Ф-2: qolgani yaxlit × QQS
+    expect(kesh('МАТЕРИАЛ СВОД', 16)).toBeCloseTo(700 * 1.12, 1); // fakt: xuddi shunday
+  });
+});

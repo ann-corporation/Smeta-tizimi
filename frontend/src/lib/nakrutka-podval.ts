@@ -95,6 +95,10 @@ export function podvalQatorRaqami(bosh: number, podval: Podval | null | undefine
 export type PodvalOpsiya = {
   /** Yashirin kategoriya ustuni harfi (barg qatorlarida ЧЕЛ/МАШ/…). */
   katUstun: string;
+  /** Ba'zi pul ustunlari uchun boshqa toifa ustuni (masalan, Ф-2 ustunlari). */
+  katUstunPer?: Record<string, string>;
+  /** Ba'zi pul ustunlari uchun yig'iladigan ustun boshqa (yashirin hisob ustuni). */
+  summaUstunPer?: Record<string, string>;
   /** Ma'lumot oralig'i (SUMIF diapazoni) — birinchi va oxirgi qator. */
   oraliq: readonly [number, number];
   /** Pul ustunlari (to'g'ri xarajat) — har biriga alohida kaskad. */
@@ -224,7 +228,7 @@ export function nakrutkaPodvaliYoz(v: RasmiyVaraq, o: PodvalOpsiya): { bosh: num
         if (bor && o.katHajm.birlikUstun) c[colIdx(o.katHajm.birlikUstun)] = k === 'ЧЕЛ' ? 'чел.-ч' : k === 'МАШ' ? 'маш.-ч' : '';
         for (const [hc, x] of Object.entries(o.katHajm.qiymat)) if (x[k] != null) c[colIdx(hc)] = x[k]!;
       }
-      for (const col of o.pulUstunlar) c[colIdx(col)] = o.katFormulasiz ? yaxlit2(o.katSummalar[col][k]) : { f: `SUMIF(${o.katUstun}${a}:${o.katUstun}${b},"${k}",${col}${a}:${col}${b})`, v: yaxlit2(o.katSummalar[col][k]) };
+      for (const col of o.pulUstunlar) c[colIdx(col)] = o.katFormulasiz ? yaxlit2(o.katSummalar[col][k]) : { f: `SUMIF(${o.katUstunPer?.[col] ?? o.katUstun}${a}:${o.katUstunPer?.[col] ?? o.katUstun}${b},"${k}",${o.summaUstunPer?.[col] ?? col}${a}:${o.summaUstunPer?.[col] ?? col}${b})`, v: yaxlit2(o.katSummalar[col][k]) };
     }));
   }
   // Podval qatorlari (standart ham maxsus ham — yagona formula quruvchisi). Formulalar tirik (`$` siz).

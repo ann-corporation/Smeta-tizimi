@@ -190,7 +190,7 @@ export function lrvHujjat(rows: readonly T2Qator[], holat: readonly T2QatorHolat
     const narx = son(q.narx);
     const smetaHajm = son(q.hajm) ?? son(hq?.smeta_hajm) ?? 0;
     const norma = son(q.norma);
-    const normaFormula = ishQator != null && ishHajm != null && norma != null && norma > 0 && Math.abs(y6(norma * ishHajm) - smetaHajm) <= 1e-6;
+    const normaFormula = ishQator != null && ishHajm != null && norma != null && norma > 0 && Math.abs(y6(norma * ishHajm) - smetaHajm) < 5e-10; // formula keshni AYNAN qaytarsagina (6 xonadan ortiq hajmda Excel qayta hisoblaganda summa siljimasin)
     const fakt = son(hq?.fakt_hajm) ?? 0;
     const faktAsl = son(hq?.fakt_summa) ?? (fakt === 0 ? 0 : narx != null ? yaxlit2(fakt * narx) : null);
     const f2 = son(hq?.f2_hajm) ?? 0;

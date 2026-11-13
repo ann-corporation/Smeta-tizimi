@@ -265,7 +265,8 @@ export function lrvPlusQatorlarniHisobla(
     let summaFormula: string | null = null;
     let summaQiymat: number | null = q.summa ?? null;
 
-    if (tur === 'rs' && parent?.tur === 'bl' && parentRow != null && q.norma != null && q.norma > 0) {
+    // Formula faqat keshni aynan qaytarsa: bazadagi hajm norma x ota hajmidan farq qilsa (yaxlitlangan) - qiymat yoziladi, Excel summani siljitmasin.
+    if (tur === 'rs' && parent?.tur === 'bl' && parentRow != null && q.norma != null && q.norma > 0 && q.hajm != null && parent.hajm != null && Math.abs(q.norma * parent.hajm - q.hajm) < 1e-9) {
       // T1: ҲАЖМ(жами) = НОРМА × ota bl ning ҲАЖМ(жами)si.
       birlikHajm = q.norma;
       obyomFormula = `E${r}*F${parentRow}`;
