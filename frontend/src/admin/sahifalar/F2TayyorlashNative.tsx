@@ -44,6 +44,7 @@ import { aktdanKiritma } from '../../lib/f2-akt-kiritma';
 import { f2VersiyaKochirmaOl } from '../../api/t2-f2-versiya-kochirma';
 import { avvalgiF2Xaritasi, type F2VersiyaKochirma } from '../../lib/f2-versiya-kochirma';
 import { f2Hujjat } from '../../lib/f2-hujjat';
+import { yaxlitQatorIdlari } from '../../lib/svod-yaxlit';
 import { stornoBlokniSaqla, stornoQaytarHajm, stornoQatorimi, type SaqlanganAktQator } from '../../lib/f2-storno';
 import { F2StornoBlokTahrir } from './F2StornoBlokTahrir';
 import { f2StornoQatorTarixOl, type StornoTarixQator } from '../../api/t2-f2-storno';
@@ -873,6 +874,8 @@ export function F2TayyorlashNative() {
         obyektNom: object.nom, davr: oy, raqam, imzo: { ...avto.imzo, ...qolda }, shartnoma: avto.shartnoma,
         ndsFoiz: stavka,
         nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval, nkManba: nk?.ok ? nk.nk_manba ?? null : null, rows,
+        // Svod yaxlit bo'lim qatorlari ustamasiz (imzolangan hujjat/server bilan bir xil).
+        yaxlitIds: yaxlitQatorIdlari(rows, nk?.ok ? nk.svod_yaxlit ?? null : null),
         eskiBloklar: eskiBloklar.length ? eskiBloklarHujjat(eskiBloklar, blokNk) : undefined,
       });
       // Token (egasi 2026-10-02): hujjat avval yaratiladi (xato bo'lsa token olinmaydi), keyin "f2_hujjat" sarfi bilan beriladi.

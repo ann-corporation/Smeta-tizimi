@@ -3,6 +3,7 @@ import { t } from '../../i18n/til';
 import { FmtN } from '../../lib/format';
 import { katKesimYigish } from '../../lib/ustamali-summa';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
+import { katKesimdanPaket } from '../../lib/summa-paket';
 import {
   smetaOzgarishQatlamOl, type OzgarishAkt, type OzgarishAsos, type OzgarishKesimQismi, type SmetaOzgarishQatlam as Qatlam,
 } from '../../api/t2-ozgarish';
@@ -44,6 +45,19 @@ export function SmetaOzgarishQatlam({ obyektId }: { obyektId: number | null }) {
     q: kesim(d.ozgarish.kesim.qoshimcha), z: kesim(d.ozgarish.kesim.zamena), b: kesim(d.ozgarish.kesim.bajarilmadi),
     jami: kesim([...d.ozgarish.kesim.qoshimcha, ...d.ozgarish.kesim.zamena, ...d.ozgarish.kesim.bajarilmadi]),
   } : null, [d]);
+  /**
+   * «O'zgarishlar» uchligi — SERVER hisobi (`ozgarish.qqs_bilan/ustamali`, svod yaxlit bo'limlari ustamasiz, QQS bir marta);
+   * mijoz kategoriya kesimidan qayta hisoblamaydi (svod yaxlit obyektda mijoz ~4,5% ko'p chiqargan; «Smeta + o'zgarishlar» serverniki).
+   * Server qiymati yo'q (null) bo'lsa — avvalgi mijoz hisobi.
+   */
+  const ozPaket = useMemo(() => (d && k && d.ozgarish.qqs_bilan != null && d.ozgarish.ustamali != null
+    ? katKesimdanPaket(k.jami, { qqsBilan: d.ozgarish.qqs_bilan, ustamali: d.ozgarish.ustamali, ustamasiz: d.ozgarish.ustamasiz, taxminiy: false, nomalum: 0, sabab: null })
+    : null), [d, k]);
+  /** Qator yig'indisi: server jami bo'lsa — faqat ustamasiz (qatorlar ustamalisi jamiga qo'shilmaydi: svod bo'limlari ustamasiz); aks holda mijoz juftligi. */
+  const qator = (ust: number, kes: ReturnType<typeof kesim>) => {
+    if (ozPaket) return <span className="flex flex-col items-end text-right tabular-nums text-[12px]"><FmtN val={ust} kasr={0} /><small className="text-text-mute">{t('ustamasiz')}</small></span>;
+    return <SummaJuft kichik obyektId={obyektId} ustamasiz={ust} katKesim={kes} className="items-end text-right" />;
+  };
   if (obyektId == null) return null;
   if (xato) return <p className="fz-note fz-note--warn" role="status" data-testid="smeta-ozgarish-xato">{t('Smeta o‘zgarishlari o‘qilmadi')}: {xato}</p>;
   if (!d || !k) return null;
@@ -58,7 +72,7 @@ export function SmetaOzgarishQatlam({ obyektId }: { obyektId: number | null }) {
           {d.asl.paket ? <SummaJuft paket={d.asl.paket} /> : <SummaJuft obyektId={obyektId} ustamasiz={d.asl.ustamasiz} />}
           <span className="fz-kpi__sub">{t('o‘zgarmas — qo‘shimcha va zamena kirmaydi')}</span></div>
         <div className="fz-kpi" data-testid="smeta-ozgarish"><span className="fz-kpi__label">{t('O‘zgarishlar')}</span>
-          <SummaJuft obyektId={obyektId} ustamasiz={oz.ustamasiz} katKesim={k.jami} />
+          {ozPaket ? <SummaJuft paket={ozPaket} /> : <SummaJuft obyektId={obyektId} ustamasiz={oz.ustamasiz} katKesim={k.jami} />}
           <span className="fz-kpi__sub">{t('{n} ta asoslangan farq', { n: String(d.qoshimcha.soni + d.zamena.soni + d.bajarilmadi.soni) })}</span></div>
         <div className="fz-kpi" data-testid="smeta-joriy"><span className="fz-kpi__label">{t('Smeta + o‘zgarishlar')}</span>
           {d.joriy.paket ? <SummaJuft paket={d.joriy.paket} /> : <SummaJuft obyektId={obyektId} ustamasiz={d.joriy.ustamasiz} />}
@@ -67,12 +81,12 @@ export function SmetaOzgarishQatlam({ obyektId }: { obyektId: number | null }) {
 
       {bor && <div className="fz-legend" style={{ gridTemplateColumns: 'auto 1fr auto' }}>
         <span>+</span><span>{t('Qo‘shimcha ishlar')} ({d.qoshimcha.soni})</span>
-        <SummaJuft kichik obyektId={obyektId} ustamasiz={oz.qoshimcha} katKesim={k.q} className="items-end text-right" />
+        {qator(oz.qoshimcha, k.q)}
         <span>±</span><span>{t('Zamena farqi')} ({d.zamena.soni}): {t('zamena')} <FmtN val={oz.zamena_summa} kasr={0} /> − {t('almashtirilgan asl qism')} <FmtN val={oz.almashtirilgan_summa} kasr={0} /></span>
-        <SummaJuft kichik obyektId={obyektId} ustamasiz={oz.zamena_farq} katKesim={k.z} className="items-end text-right" />
+        {qator(oz.zamena_farq, k.z)}
         <span>±</span><span>{t('Narx farqi')}</span><span className="text-right text-text-mute" title={oz.narx_farqi_izoh}>—</span>
         <span>−</span><span>{t('Bajarilmaydi')} ({d.bajarilmadi.soni})</span>
-        <SummaJuft kichik obyektId={obyektId} ustamasiz={oz.bajarilmadi} katKesim={k.b} className="items-end text-right" />
+        {qator(oz.bajarilmadi, k.b)}
       </div>}
       {!bor && <p className="text-[12px] text-text-mute">{t('O‘zgarish yo‘q: smeta asl holicha')}</p>}
       {oz.ikki_marta_sanalgan > 0 && <p className="fz-note text-[11.5px]" role="note" data-testid="smeta-ikki-marta">
