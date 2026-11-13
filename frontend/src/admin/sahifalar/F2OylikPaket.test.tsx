@@ -27,7 +27,7 @@ it('oylik paket: yig‘iq; ochilganda eng yangi oy, qatorlar, havolalar, jami, t
   expect(screen.queryByText('Yevropa oshxonasi')).toBeNull();
   fireEvent.click(screen.getByText('Oylik paketni tayyorlash'));
   expect((await screen.findAllByText('Yevropa oshxonasi')).length).toBeGreaterThanOrEqual(2);
-  expect((screen.getByLabelText('Hisobot oyi') as HTMLInputElement).value).toBe('2026-09');
+  expect((screen.getByLabelText('Oy') as HTMLInputElement).value).toBe('2026-09');
   // Avgust F2 si bu oyda ko'rinmaydi.
   expect(screen.queryByText('№ 1')).toBeNull();
   // Sukut tanlov: faqat tasdiqlangan (1 ta).

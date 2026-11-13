@@ -463,8 +463,8 @@ function Sessiya({ companyId }: { companyId: number }) {
           </label>
           {!!davrlar.length && (
             <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span className="fz-kpi__label">{t('Davr')}</span>
-              <select aria-label={t('Davr')} className="input" style={{ height: 'var(--control-md)', padding: '0 8px' }}
+              <span className="fz-kpi__label">{t('Oy')}</span>
+              <select aria-label={t('Oy')} className="input" style={{ height: 'var(--control-md)', padding: '0 8px' }}
                 value={davr} onChange={e => void yukla(Number(objectId), e.target.value)}>
                 {davrlar.map(d => <option key={d.oy} value={d.oy}>{d.certified ? d.oy : `${d.oy} (${t('qoralama')})`}</option>)}
               </select>

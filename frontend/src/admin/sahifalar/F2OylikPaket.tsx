@@ -508,7 +508,7 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot, yangila }: { kompaniyaId: 
         <select aria-label={t('Rejim')} value={rejim} onChange={(e) => { const v = e.target.value as 'shartnoma' | 'loyiha'; setRejim(v); if (v === 'shartnoma') setLoyihaId(null); else setShartnomaId(null); }} className="input mt-1 block h-8">
           <option value="shartnoma">{t('Shartnoma bo‘yicha')}</option><option value="loyiha">{t('Loyiha bo‘yicha')}</option></select></label>}
       <label>{t('Oy')}
-        <input type="month" aria-label={t('Hisobot oyi')} value={oy} disabled={barcha} onChange={(e) => { if (oyKaliti(e.target.value)) setOy(e.target.value.slice(0, 7)); }} className="input mt-1 block h-8" /></label>
+        <input type="month" aria-label={t('Oy')} value={oy} disabled={barcha} onChange={(e) => { if (oyKaliti(e.target.value)) setOy(e.target.value.slice(0, 7)); }} className="input mt-1 block h-8" /></label>
       <label>{t('gacha (oraliq)')}
         <input type="month" aria-label={t('Oraliq oxiri')} value={gacha ?? ''} min={oy} disabled={barcha} onChange={(e) => setGacha(oyKaliti(e.target.value))} className="input mt-1 block h-8" /></label>
       <label className="inline-flex items-center gap-1.5 pb-2"><input type="checkbox" checked={barcha} onChange={(e) => setBarcha(e.target.checked)} /> {t('Barcha oylar')}</label>

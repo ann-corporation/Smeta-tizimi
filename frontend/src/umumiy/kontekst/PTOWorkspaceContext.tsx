@@ -570,8 +570,8 @@ export function PTOWorkspaceBar() {
         <option value="">Obyekt tanlang</option>
         <ObyektOptionlari obyektlar={objects} kompaniyaId={workspace.companyId} />
       </select>
-      <label className="sr-only" htmlFor="pto-period-select">Davr</label>
-      <input id="pto-period-select" type="month" aria-label="PTO davr" title={t('Yagona oy: F2, nakopitelniy va hujjatlar shu oy bilan ishlaydi')} value={workspace.scope.periodId ?? ''} onChange={(event) => workspace.setPeriodId(event.target.value || null)} className={`${tanlov} w-[132px]`} />
+      <label className="sr-only" htmlFor="pto-period-select">{t('Oy')}</label>
+      <input id="pto-period-select" type="month" aria-label={t('Oy')} title={t('Yagona oy: F2, nakopitelniy va hujjatlar shu oy bilan ishlaydi')} value={workspace.scope.periodId ?? ''} onChange={(event) => workspace.setPeriodId(event.target.value || null)} className={`${tanlov} w-[132px]`} />
       <details className="relative">
         <summary className={`flex h-8 cursor-pointer list-none items-center gap-1 rounded-md border px-2 text-xs ${manbaTanlangan ? 'border-accent/40 text-accent' : 'border-border text-text-dim'}`}>{t('Manba')} ▾</summary>
         <div className="absolute left-0 top-9 z-40 flex w-[280px] flex-col gap-2 rounded-lg border border-border bg-surface p-2 shadow-lg">
