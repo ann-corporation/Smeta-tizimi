@@ -16,6 +16,9 @@ const OQISH: Record<string, string> = {
   royxat: 't2_lab_sorov_royxat_v1',
   tafsilot: 't2_lab_sorov_tafsilot_v1',
   aosr_holat: 't2_lab_sorov_aosr_holat_v1',
+  /* Faol granti (lab_natija) bor uchinchi tomon (texnadzor, buyurtmachi): natijani faqat O'QIYDI. */
+  natija_royxat: 't2_lab_natija_royxat_v1',
+  natija_tafsilot: 't2_lab_natija_tafsilot_v1',
 };
 const YOZISH: Record<string, string> = {
   sorov_yarat: 't2_lab_sorov_yarat_v1',
@@ -92,6 +95,8 @@ export function oqishYuki(bolim: string, q: URLSearchParams): Yuk | string {
                p_aosr_id: ixtSon(q.get('aosr_id')), p_limit: ixtSon(q.get('limit')) ?? 100 };
     }
     case 'tafsilot': return sonmi(q.get('murojaat_id')) ? { p_kompaniya_id, p_murojaat_id: Number(q.get('murojaat_id')) } : 'murojaat_id kerak';
+    case 'natija_royxat': return { p_kompaniya_id, p_obyekt_id: ixtSon(q.get('obyekt_id')), p_limit: ixtSon(q.get('limit')) ?? 100 };
+    case 'natija_tafsilot': return sonmi(q.get('murojaat_id')) ? { p_kompaniya_id, p_murojaat_id: Number(q.get('murojaat_id')) } : 'murojaat_id kerak';
     case 'aosr_holat': return sonmi(q.get('obyekt_id')) ? { p_kompaniya_id, p_obyekt_id: Number(q.get('obyekt_id')) } : 'obyekt_id kerak';
     default: return 'Bo‘lim ochiq emas';
   }

@@ -64,6 +64,13 @@ export const aosrSinovHolatiOl = async (k: number, obyektId: number): Promise<La
   return r.ok ? { ok: true, natija: r.natija.aktlar ?? [] } : r;
 };
 
+/** Uchinchi tomon (texnadzor, buyurtmachi): faol lab_natija granti bo'yicha laboratoriya natijalari (faqat o'qish; summa/hisob yo'q). */
+export type LabNatija = {
+  id: number; kompaniya_id: number; sinov_turi: string; sinov_nom: string; holat: string; natija: 'mos' | 'mos_emas'; protokol_raqam: string | null; protokol_sana: string | null;
+  xulosa: string | null; maydon: Record<string, string | number> | null; obyekt_id: number; obyekt_nom: string | null; konstruksiya: string | null; qayta_sinov: boolean;
+};
+export const labNatijalarOl = (k: number, obyektId?: number | null) => oqi<LabNatija[]>('natija_royxat', k, { obyekt_id: obyektId });
+
 export type SorovYuborish = {
   aloqaId: number; sinovTuri?: string; obyektId?: number | null; aosrId?: number | null; qatorId?: number | null; konstruksiya?: string; joy?: string;
   namunaSoni?: number | null; muddat?: string; izoh?: string; majburiy?: boolean; aslSorovId?: number | null;

@@ -18,8 +18,8 @@ describe('AI hisob qoidasi', () => {
       .filter((r) => /\baiCall\(/.test(readFileSync(join(ILDIZ, r), 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')));
     expect(buzilgan).toEqual([]);
   });
-  it('har model endpointi hisobli o‘ramni ishlatadi (ai-parse, ai-savol, smeta-ai, smeta-narx-agent, agent-ish)', () => {
-    for (const f of ['api/ai-parse.ts', 'api/ai-savol.ts', 'api/smeta-ai.ts', 'api/smeta-narx-agent.ts', 'api/agent-ish.ts']) {
+  it('har model endpointi hisobli o‘ramni ishlatadi (ai-parse, ai-savol, smeta-ai, smeta-narx-agent, agent-ish, foto-ai, loyiha-ai-oqish)', () => {
+    for (const f of ['api/ai-parse.ts', 'api/ai-savol.ts', 'api/smeta-ai.ts', 'api/smeta-narx-agent.ts', 'api/agent-ish.ts', 'api/foto-ai.ts', 'api/loyiha-ai-oqish.ts']) {
       expect(readFileSync(join(ILDIZ, f), 'utf8'), f).toMatch(/aiHisobli/);
     }
   });

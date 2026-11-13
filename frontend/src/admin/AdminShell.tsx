@@ -12,6 +12,7 @@ import { KompaniyaLogoRasm } from '../umumiy/hujjat/KompaniyaLogo';
 import { KompaniyaTanlagich } from '../umumiy/kontekst/KompaniyaTanlagich';
 import { PTOWorkspaceBar, PTOWorkspaceProvider } from '../umumiy/kontekst/PTOWorkspaceContext';
 import { YordamchiSahifaYozuvchi } from '../lib/yordamchi/sahifa-store';
+import { PredpisaniyaOgohlantirish } from './nazorat/PredpisaniyaOgohlantirish';
 import { RuxsatGuard } from '../umumiy/kontekst/RuxsatGuard';
 import { SahifaChegarasi } from '../umumiy/ui/XatoChegarasi';
 import { tizimdanChiq } from '../umumiy/kontekst/chiqish';
@@ -24,6 +25,8 @@ import { SIDEBAR_HODISA } from '../components/akkaunt/korinish-sozlama';
 import { AiHelper, AiHelperTugma } from '../umumiy/ui/AiHelper';
 import { CommandPalette } from '../umumiy/ui/CommandPalette';
 import { QollanmaBoshqaruv } from '../components/qollanma/QollanmaKarta';
+import { KursYordam } from '../components/kurs/KursYordam';
+import { KursYurish } from '../components/kurs/KursYurish';
 import { NimaYangiBelgi } from '../components/qollanma/NimaYangiBelgi';
 import { BolimTablariKontekst } from './bolimTablariKontekst';
 import { NAV_GURUHLAR, NAV_SAHIFALAR, navSahifa, type NavIkonka } from '../lib/nav/navReestr';
@@ -292,7 +295,7 @@ function AdminShellInner() {
         </div>
 
         <div className="fz-sidebar__scroll">
-          <nav className="fz-nav">
+          <nav className="fz-nav" data-kurs="menyu">
             {!yangiMenyu && ilovalar.length > 1 && sidebarKengaygan && (
               <button type="button" className="fz-nav__group" aria-pressed={menyuIlova === 'hammasi'} onClick={() => setHammasiRejim(v => !v)}
                 title={menyuIlova === 'hammasi' ? t('Faqat joriy ilova bo‘limlari') : t('Barcha bo‘limlar')}>
@@ -362,6 +365,7 @@ function AdminShellInner() {
       </div>
       {mobilMenyuOchiq && <button type="button" className="os-sidebar-backdrop" aria-label="Navigatsiyani yopish" onClick={() => setMobilMenyuOchiq(false)} />}
 
+      <KursYurish />
       <main className="os-workspace relative z-10 flex-1 overflow-hidden flex flex-col">
         {/* YAGONA kompaniya konteksti — barcha /admin/* sahifalari shuni ishlatadi */}
         <div className="os-context-bar flex-shrink-0 flex flex-wrap items-center gap-3 z-20">
@@ -370,12 +374,12 @@ function AdminShellInner() {
           </button>
           <IlovaIshgaTushirgich ilovalar={ilovalar} joriy={joriyIlova} onTanla={(kod) => { setOxirgiIlova(kod); setHammasiRejim(false); try { localStorage.setItem('fz-ilova', kod); } catch { /* xotira yopiq */ } }} />
           <OrqaOldinga />
-          <KompaniyaTanlagich />
+          <span data-kurs="kompaniya-tanlagich" className="contents"><KompaniyaTanlagich /></span>
           {k.superadmin && <span className="hidden rounded-md border border-accent/25 px-2 py-1 text-[10px] text-accent 2xl:inline">{t('Platforma roli')}: superadmin</span>}
           {k.superadmin && k.joriy?.membershipRole && <span className="hidden text-[10px] text-text-dim 2xl:inline">{t('Kompaniyadagi rol')}: {k.joriy.membershipRole}</span>}
           <PTOWorkspaceBar />
-          <AiHelperTugma />
-          <div className="ml-auto flex items-center gap-2"><button type="button" onClick={() => window.dispatchEvent(new CustomEvent('palitra:och'))} aria-label={t('Sahifa yoki obyekt izlash...')} title={t('Sahifa yoki obyekt izlash...')} className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2 text-[12px] text-text-dim hover:text-text"><Search size={14} aria-hidden="true" /><span className="hidden xl:inline">{t('Qidirish')}</span></button><NimaYangiBelgi /><QollanmaBoshqaruv foydalanuvchi={sess.data?.email} /><TilTanlagich ixcham /><Qongiroqcha /><AkkauntTugmasi /></div>
+          <span data-kurs="jarvis" className="contents"><AiHelperTugma /></span>
+          <div className="ml-auto flex items-center gap-2"><button type="button" onClick={() => window.dispatchEvent(new CustomEvent('palitra:och'))} data-kurs="qidirish" aria-label={t('Sahifa yoki obyekt izlash...')} title={t('Sahifa yoki obyekt izlash...')} className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2 text-[12px] text-text-dim hover:text-text"><Search size={14} aria-hidden="true" /><span className="hidden xl:inline">{t('Qidirish')}</span></button><NimaYangiBelgi /><KursYordam /><QollanmaBoshqaruv foydalanuvchi={sess.data?.email} /><TilTanlagich ixcham /><Qongiroqcha /><AkkauntTugmasi /></div>
         </div>
 
         {/* ⚠️ 2026-09-07 (Claude, P0): AVVAL bu yerda `sess.data.yozaOladi`
@@ -412,6 +416,7 @@ function AdminShellInner() {
          * ichki `overflow-hidden`/`h-full` saqlaydi — bu ichki konteyner
          * shu tashqi scroll konteynerining ICHIDA, hajmi mos kelsa
          * tashqi scroll umuman ko'rinmaydi. */}
+        {!k.globalRejim && k.joriy && <PredpisaniyaOgohlantirish kompaniyaId={k.joriy.id} />}
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
           <BolimTablariKontekst.Provider value={tabGuruhlari}>
             {moduleOpen ? <SahifaChegarasi><RuxsatGuard /></SahifaChegarasi> : <p role="alert" className="karta p-4 text-sm">{t('Bu modul kompaniyada o‘chirilgan.')}</p>}

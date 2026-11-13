@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Building2, CheckCircle2, FileEdit, Search, User } from 'lucide-react';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { IshJoyiAmallari } from '../../umumiy/kontekst/IshJoyiAmallari';
+import { KompaniyaOching } from '../components/KompaniyaOching';
 import { BoshHolat, Sahifa, Skelet } from '../../umumiy/ui/Sahifa';
 import { ishJoylarim, type IshJoyiKarta, type MeningIshim } from '../../api/t2-ish-joyi';
 import { ROLE_LABELS } from '../../lib/company-authorization/permission-labels';
@@ -147,7 +148,8 @@ export default function IshJoylarim() {
             {korinadi.length > 0 && <ul className="fz-list">
               {korinadi.map((j) => <JoyQatori key={j.kompaniya_id} j={j} joriy={k.joriyId === j.kompaniya_id} onOch={ochJoy} />)}
             </ul>}
-            {joylar && !korinadi.length && <BoshHolat matn={boshMatn} />}
+            {joylar && !joylar.length && <KompaniyaOching />}
+            {joylar && !!joylar.length && !korinadi.length && <BoshHolat matn={boshMatn} />}
           </section>
 
           <section aria-label={t('Mening ishlarim')} className="fz-card">

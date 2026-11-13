@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { tasdiqSora } from '../umumiy/ui/Tasdiq';
 import {
   Building2, Warehouse, FileText, Truck, HardHat, FolderKanban,
   Users, Plus, X, ZoomIn, ZoomOut, RefreshCcw, Unlink, Move,
@@ -456,7 +457,7 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
     // Ishtirokchi chizig'ini server ROL bo'yicha topadi; rol kelmasa (eski server shakli) taxmin qilib uzmaymiz.
     if (b.tur === 'qatnashchi' && !b.rol) { toast(t('Qatnashchi roli serverdan kelmadi — uzib bo‘lmaydi (server yangilanmagan).'), 'danger'); return; }
     if (!b.uzsa_boladi) { toast('Bu tuzilmaviy bog\'lanish — uzib bo\'lmaydi', 'danger'); return; }
-    if (!confirm('Bog\'lanishni uzasizmi? (Yozuvlarning o\'zi O\'CHMAYDI)')) return;
+    if (!(await tasdiqSora({ matn: 'Bog\'lanishni uzasizmi? (Yozuvlarning o\'zi O\'CHMAYDI)', xavfli: true, tasdiqMatni: 'Uzish' }))) return;
     const target = graf.tugunlar.find((t) => t.id === b.maqsad);
     const expectedVersion = Number(target?.meta?.versiya);
     if (!target || !Number.isInteger(expectedVersion) || expectedVersion < 0) {
@@ -564,7 +565,7 @@ export default function TestXarita({ ichki = false, kompaniyaId }: {
 
   const tugunOchir = async (tg: MindmapTugun) => {
     if (!tahrirMumkin) { toast(yopiqMatn || t('Faqat ko‘rish rejimi'), 'danger'); return; }
-    if (!confirm('«' + tg.nom + '» o\'chirilsinmi? (Bekor qilinadi, butunlay yo\'qolmaydi)')) return;
+    if (!(await tasdiqSora({ matn: '«' + tg.nom + '» o\'chirilsinmi? (Bekor qilinadi, butunlay yo\'qolmaydi)', xavfli: true, tasdiqMatni: 'O‘chirish' }))) return;
     const expectedVersion = Number(tg.meta?.versiya);
     if (!Number.isInteger(expectedVersion) || expectedVersion < 0) {
       toast('Tugun versiyasi mavjud emas, qayta yuklang', 'danger');

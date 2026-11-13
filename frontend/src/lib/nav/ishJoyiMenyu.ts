@@ -23,7 +23,7 @@ const navSahifa = (s: Sahifa, yana: boolean): NavSahifa => {
 };
 
 /** Bitta ish joyining bandlari: (navGuruh, navBand) bo'yicha guruhlangan, tartib bo'yicha. */
-function bandlarQur(joy: IshJoyi): NavBand[] {
+function bandlarQur(joy: IshJoyi, tashqi = false): NavBand[] {
   const sahifalar = SAHIFALAR.filter((s) => s.ishJoyi === joy).slice().sort((a, b) => a.tartib - b.tartib);
   const guruhlar = new Map<string, Sahifa[]>();
   for (const s of sahifalar) {
@@ -31,26 +31,32 @@ function bandlarQur(joy: IshJoyi): NavBand[] {
     guruhlar.set(k, [...(guruhlar.get(k) ?? []), s]);
   }
   return [...guruhlar.entries()].map(([k, list]) => {
-    const yana = list.every((s) => s.qoshimcha || s.yana);
+    const yana = list.every((s) => (s.qoshimcha || s.yana) && !(tashqi && s.tashqiAsosiy));
     return { nom: list[0].ishBand ?? list[0].navBand, ikonka: list[0].ishBand ? 'Users' as NavIkonka : (IKONKA.get(k) ?? 'Box'), sahifalar: list.map((s) => navSahifa(s, yana)) };
   });
 }
 
 const TARTIBLI: readonly IshJoyi[] = (Object.keys(ISH_JOYI_META) as IshJoyi[]).sort((a, b) => ISH_JOYI_META[a].tartib - ISH_JOYI_META[b].tartib);
 
-/** Reestrdan hosila: har ish joyi = bitta guruh (menyuQur ga beriladi). */
-export const ISH_JOYI_NAV: readonly NavGuruh[] = TARTIBLI.map((joy) => ({
+/** Reestrdan hosila: har ish joyi = bitta guruh (menyuQur ga beriladi). `tashqi` — yozish ruxsati yo'q tashqi tomon (tashqiAsosiy sahifalar asosiy bandda). */
+const navQur = (tashqi: boolean): readonly NavGuruh[] => TARTIBLI.map((joy) => ({
   id: joy, nom: ISH_JOYI_META[joy].nom, ikonka: ISH_JOYI_META[joy].ikonka,
   qatlam: (joy === 'platforma' ? 'platforma' : 'ish') as NavQatlam,
-  bandlar: bandlarQur(joy),
+  bandlar: bandlarQur(joy, tashqi),
 })).filter((g) => g.bandlar.length > 0);
+export const ISH_JOYI_NAV: readonly NavGuruh[] = navQur(false);
+const ISH_JOYI_NAV_TASHQI: readonly NavGuruh[] = navQur(true);
+const TASHQI_ROLLAR: readonly string[] = ['buyurtmachi', 'inspektor', 'pudratchi', 'kuzatuvchi'];
+/** Tashqi tomon: yozish ruxsati yo'q a'zo (permissions berilmasa — rol nomi bo'yicha). Superadmin hech qachon. */
+const tashqiTomonmi = (k: NavKontekst): boolean => !k.superadmin && (k.permissions ? !k.permissions.some((p) => p.endsWith('.write')) : TASHQI_ROLLAR.includes(k.rol));
 
 export type IshJoyiBolim = { id: IshJoyi; nom: string; ikonka: NavGuruh['ikonka']; tavsif: string; bandlar: MenyuBand[]; yana: MenyuBand[] };
 
 /** Kontekst (rol/ruxsat/modul) bo'yicha ko'rinadigan ish joylari: asosiy bandlar + «Yana…» bandlari. Bo'sh ish joyi tushib qoladi. */
 export function ishJoyiMenyu(k: NavKontekst): IshJoyiBolim[] {
-  const asosiy = menyuQur({ ...k, qoshimcha: 'yashir' }, ISH_JOYI_NAV);
-  const yana = menyuQur({ ...k, qoshimcha: 'faqat' }, ISH_JOYI_NAV);
+  const nav = tashqiTomonmi(k) ? ISH_JOYI_NAV_TASHQI : ISH_JOYI_NAV;
+  const asosiy = menyuQur({ ...k, qoshimcha: 'yashir' }, nav);
+  const yana = menyuQur({ ...k, qoshimcha: 'faqat' }, nav);
   return TARTIBLI.flatMap((joy): IshJoyiBolim[] => {
     const a = asosiy.find((g) => g.id === joy)?.bandlar ?? [];
     const y = yana.find((g) => g.id === joy)?.bandlar ?? [];

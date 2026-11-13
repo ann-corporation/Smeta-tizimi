@@ -34,14 +34,14 @@ export function f2KeyingiQadam(current: PtoLifecycleStatus): 'submitted' | 'chec
 
 /** Tugma matni (o'zbekcha manba; chaqiruvchi t() bilan tarjima qiladi). */
 export function f2QadamTugmasi(rejim: F2TasdiqRejimi, current: PtoLifecycleStatus): string | null {
-  if (rejim === 'shaxsiy') return current === 'approved' || current === 'cancelled' || current === 'superseded' ? null : 'Yakunlash (shaxsiy)';
+  if (rejim === 'shaxsiy') return current === 'approved' || current === 'cancelled' || current === 'superseded' ? null : 'Yakunlash (pudratchi, tasdiq emas)';
   const q = f2KeyingiQadam(current);
   return q === 'submitted' ? 'Tekshiruvga yuborish' : q === 'checked' ? 'Tekshirildi' : q === 'approved' ? 'Tasdiqlash' : null;
 }
 
 /** Holat yorlig'i: shaxsiy rejimda yakunlangan akt «Tasdiqlangan» deb ko'rsatilmaydi. */
 export function f2HolatYorligi(status: PtoLifecycleStatus, rejim: F2TasdiqRejimi): string {
-  return status === 'approved' && rejim === 'shaxsiy' ? 'Yakunlangan (shaxsiy)' : f2LifecycleLabels[status];
+  return status === 'approved' && rejim === 'shaxsiy' ? 'Pudratchi yakunladi (tasdiq emas)' : f2LifecycleLabels[status];
 }
 
 /**

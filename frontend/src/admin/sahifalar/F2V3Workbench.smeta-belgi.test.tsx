@@ -68,15 +68,15 @@ describe('F2 import — smeta tomonda belgilash va bo‘limlar', () => {
     expect(next.bog.has('a')).toBe(true);
   });
 
-  it('«＋ Bo‘lim» (yuqori daraja) va bo‘lim qatoridagi «Ichki bo‘lim» qoralamaga bo‘lim qo‘shadi; asl bo‘limda o‘chirish tugmasi yo‘q', () => {
+  it('«＋ Bo‘lim» (yuqori daraja) va bo‘lim qatoridagi «Ichki bo‘lim» qoralamaga bo‘lim qo‘shadi; asl bo‘limda o‘chirish tugmasi yo‘q', async () => {
     const { onBolimRejali } = chiz();
-    vi.spyOn(window, 'prompt').mockReturnValue('КРОВЛЯ');
+    vi.spyOn(window, 'prompt').mockReturnValue('КРОВЛЯ');   // dialog asinxron: sahifa ichidagi dialog javobi shu spy orqali (test ulagichi)
     fireEvent.click(screen.getByTitle('Smetaning yuqori darajasiga yangi bo‘lim (oxiriga)'));
-    expect(onBolimRejali).toHaveBeenLastCalledWith('КРОВЛЯ', null, undefined);
+    await waitFor(() => expect(onBolimRejali).toHaveBeenLastCalledWith('КРОВЛЯ', null, undefined));
     fireEvent.click(screen.getByRole('button', { name: 'Ichida yangi bo‘lim: ASL BOLIM' }));
-    expect(onBolimRejali).toHaveBeenLastCalledWith('КРОВЛЯ', 1, undefined);
+    await waitFor(() => expect(onBolimRejali).toHaveBeenLastCalledWith('КРОВЛЯ', 1, undefined));
     fireEvent.click(screen.getByRole('button', { name: 'Keyin yangi bo‘lim: ASL BOLIM' }));
-    expect(onBolimRejali).toHaveBeenLastCalledWith('КРОВЛЯ', null, 1);
+    await waitFor(() => expect(onBolimRejali).toHaveBeenLastCalledWith('КРОВЛЯ', null, 1));
     expect(screen.queryByRole('button', { name: 'Bo‘limni o‘chirish: ASL BOLIM' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Bo‘limni o‘chirish: QOSHILGAN BOLIM' })).toBeTruthy();
   });
