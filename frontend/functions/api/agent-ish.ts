@@ -411,6 +411,17 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
   if (amal === 'xotira_yoz') {
     return chiqar(await rpcData(env, 't2_agent_xotira_yoz_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_profil: profil, p_kalit: String(so.kalit ?? ''), p_mazmun: String(so.mazmun ?? '').slice(0, 4000) }));
   }
+  /* JARVIS SUHBATLARI (serverda, t2_jarvis_suhbat): faqat egasi o'qiydi; actor sessiyadan, a'zolik bazada (scope_guard); model chaqirilmaydi. */
+  if (amal === 'suhbat_royxat' || amal === 'suhbat_ol' || amal === 'suhbat_saqla' || amal === 'suhbat_ochir') {
+    if (kid == null) return xato('Kompaniyani tanlang', 422);
+    const klient = String(so.klient_id ?? '');
+    if (amal === 'suhbat_royxat') return chiqar(await rpcData(env, 't2_jarvis_suhbat_royxat_v1', { p_actor_id: k.actor, p_kompaniya_id: kid }));
+    if (!/^[A-Za-z0-9_.-]{1,40}$/.test(klient)) return xato('klient_id notoвЂgвЂri');
+    if (amal === 'suhbat_ol') return chiqar(await rpcData(env, 't2_jarvis_suhbat_ol_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: klient }));
+    if (amal === 'suhbat_ochir') return chiqar(await rpcData(env, 't2_jarvis_suhbat_ochir_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: klient }));
+    const xabarlar = (Array.isArray(so.xabarlar) ? so.xabarlar : []).slice(-60).map((x) => { const r = (x ?? {}) as Record<string, unknown>; return { r: r.r === 'user' ? 'user' : 'ai', m: matn(r.m, 400) ?? '' }; }).filter((x) => x.m);
+    return chiqar(await rpcData(env, 't2_jarvis_suhbat_saqla_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: klient, p_sarlavha: matn(so.sarlavha, 80) ?? '', p_xabarlar: xabarlar }));
+  }
   if (amal === 'taklif_yarat') {
     const mz = so.mazmun && typeof so.mazmun === 'object' && !Array.isArray(so.mazmun) ? so.mazmun : null;
     if (!mz) return xato('mazmun obyekt bo‘lishi kerak');

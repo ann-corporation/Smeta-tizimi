@@ -176,9 +176,9 @@ export async function yordamchiIshla(n: Niyat, matn: string, d: IshlovDeps): Pro
     case 'sahifaAmal': {
       if (!d.sahifaAmalBajar) return { tur: 'otkaz', havolalar: [] };
       if (!n.amal.tasdiq) { d.sahifaAmalBajar(n.amal.id); return { tur: 'javob', yop: true, matn: `${t('Bajardim')}: **${n.amal.nom}**` }; }
-      const amal = { tur: 'sahifa_amal', qator: null, qiymat: n.amal.id, izoh: '', ogoh: null };
+      const amal = { tur: 'sahifa_amal', qator: null, qiymat: n.amal.id, izoh: n.amal.izoh ?? '', ogoh: null };
       return { tur: 'taklif', matn: `${n.amal.nom} — ${t('tasdiqlaysizmi?')}`,
-        taklif: { amallar: [amal], qoshimcha: () => null, vositalar: hujjatVositalari(() => n.amal.nom, () => false, async () => { d.sahifaAmalBajar?.(n.amal.id); return [`✓ ${n.amal.nom}`]; }) } };
+        taklif: { amallar: [amal], qoshimcha: () => null, vositalar: hujjatVositalari(() => n.amal.nom, () => n.amal.pul === true, async () => { d.sahifaAmalBajar?.(n.amal.id); return [`✓ ${n.amal.nom}`]; }) } };
     }
 
     case 'nomalum':

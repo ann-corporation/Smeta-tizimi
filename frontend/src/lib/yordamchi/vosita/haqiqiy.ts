@@ -44,6 +44,15 @@ export function haqiqiyVositaApi(k: number): VositaApi {
     murojaatYarat: async (p) => { const r = await murojaatYarat(k, { aloqaId: p.aloqaId, turi: p.turi, sarlavha: p.sarlavha, matn: p.matn, obyektId: p.obyektId }); return { ok: r.ok, error: r.ok ? undefined : r.error }; },
     taqdimResurslari: async () => { const r = xom(await resurslarOl(k)); return r ? r.filter((x) => x.taqdim_mumkin).map((x) => ({ kalit: x.kalit, nom: x.nom })) : null; },
     taqdimYubor: async (p) => { const r = await taqdimYubor(k, p.aloqaId, p.resurs, p.manbaId); return { ok: r.ok, error: r.ok ? undefined : r.error }; },
+    slichitelniy: async (obyektId) => {
+      /* #413 RPC main'ga tushgach ishlaydi; gateway uni bilmasa/RPC yo'q bo'lsa — null (halol «tez orada»). */
+      try {
+        const r = await fetch('/api/sb', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soro: 't2_aosr_slichitelniy_v1', kompaniya_id: k, obyekt_id: obyektId }) });
+        const j = await r.json() as { ok?: boolean; natija?: { ok?: boolean; xulosa?: string; matn?: string } };
+        const m = j.natija?.xulosa ?? j.natija?.matn;
+        return r.ok && j.ok !== false && j.natija?.ok !== false && m ? { matn: String(m).slice(0, 4000) } : null;
+      } catch { return null; }
+    },
     xotiraOl: async () => { try { const x = await smetaXotirasi(k); return x.yozuvlar.map((y) => ({ daraja: y.daraja, kalit: y.kalit, mazmun: y.mazmun })); } catch { return null; } },
     xotiraYoz: async (daraja, kalit, mazmun) => { try { const ok = await smetaXotiraYoz(k, mazmun, daraja, kalit); return { ok, error: ok ? undefined : 'Xotira yozilmadi (ruxsat yoki limit)' }; } catch (e) { return { ok: false, error: e instanceof Error ? e.message : 'Xato' }; } },
     friksiya: (niyat) => friksiyaYoz('jarvis', 'qila_olmadi', 'nol_qidiruv', niyat),

@@ -28,7 +28,9 @@ export type TugunTur =
   | 'kompaniya' | 'loyiha' | 'obyekt' | 'shartnoma'
   | 'sklad' | 'texnika' | 'kadr' | 'kontragent' | 'zayavka'
   /** v4: kompaniya a'zosi (odam). `id` = `foydalanuvchi:<t2_foydalanuvchi.id>`. */
-  | 'foydalanuvchi';
+  | 'foydalanuvchi'
+  /** Karta: boshqa kompaniya (tomon aloqasi). Server grafida kelmaydi — 	2_tomon_aloqalar_v1 dan qo‘shiladi. */
+  | 'tomon';
 
 export type BogTur =
   | 'loyiha_kompaniya'   // tuzilmaviy — uzib bo'lmaydi
@@ -42,7 +44,11 @@ export type BogTur =
   /* v4 (odamlar). Bular mindmapdan chiziq tortib o'zgartirilmaydi — `sbMindmapMasul` orqali. */
   | 'azo_kompaniya'      // manba=kompaniya,  maqsad=foydalanuvchi
   | 'masul_obyekt'       // manba=foydalanuvchi, maqsad=obyekt
-  | 'masul_loyiha';      // manba=foydalanuvchi, maqsad=loyiha
+  | 'masul_loyiha'       // manba=foydalanuvchi, maqsad=loyiha
+  /* Karta (client): tomon aloqasi va ko‘rish huquqi (grant) chiziqlari. */
+  | 'tomon_aloqa'        // manba=kompaniya,  maqsad=tomon
+  | 'tomon_grant'        // manba=tomon,      maqsad=obyekt/loyiha/shartnoma
+  | 'tomon_buyurtma';    // manba=tomon,      maqsad=obyekt (faqat oqim: akt/buyurtma hisoblagichi; uzib bo‘lmaydi)
 
 /* ⚡ 2026-08-28 (Claude) — foydalanuvchi maqsadi (audit hujjatida):
  * «rahbar mindmapni ochsa butun tashkilot holatini ko'rsin; PTO
