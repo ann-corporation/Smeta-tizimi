@@ -28,6 +28,8 @@ export type VositaApi = {
   murojaatYarat: (p: { aloqaId: number; turi: string; sarlavha: string; matn: string; obyektId?: number | null }) => Promise<{ ok: boolean; error?: string }>;
   taqdimResurslari: () => Promise<Array<{ kalit: string; nom: string }> | null>;
   taqdimYubor: (p: { aloqaId: number; resurs: string; manbaId: number; operationId?: string }) => Promise<{ ok: boolean; error?: string }>;
+  /** Slichitelniy / tayyorlik (RPC t2_aosr_slichitelniy_v1, #413): RPC yo'q bo'lsa null (halol «tez orada»). */
+  slichitelniy: (obyektId: number) => Promise<{ matn: string } | null>;
   /** Xotira (t2_agent_xotira, 3 daraja): o'qish va yozish; mazmun '-' bo'lsa o'chiriladi. */
   xotiraOl: () => Promise<Array<{ daraja: 'foydalanuvchi' | 'kompaniya' | 'tizim'; kalit: string; mazmun: string }> | null>;
   xotiraYoz: (daraja: 'foydalanuvchi' | 'kompaniya', kalit: string, mazmun: string) => Promise<{ ok: boolean; error?: string }>;
@@ -41,6 +43,8 @@ export type VositaKont = {
   obyekt: ObyektQisqa | null;
   obyektlar: readonly ObyektQisqa[];
   sahifalar: readonly YordamchiSahifa[];
+  /** Joriy obyekt smeta qatorlaridan qidirish (motor vositasi qidir): zamena/qo'shimcha ishda «mavjud qator avval» qoidasi. */
+  qidir?: (arg: string) => Promise<string>;
   api: VositaApi;
   opId: () => string;
   bugun?: Date;
