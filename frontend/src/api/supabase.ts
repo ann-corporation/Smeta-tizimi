@@ -23,7 +23,7 @@
  */
 
 import { t2ToliqOqiParallel } from './t2-toliq-oqish';
-import { obyektlarEskirdi } from './obyektlar-kesh-belgi';
+import { obyektlarEskirdi, obyektlarModuldaKesh } from './obyektlar-kesh-belgi';
 import { ogirYuklashKut } from './ogir-sorov-navbat';
 import { lrvPozitsiyaRaqamlari, ozgarishBor, ozgarishXaritasi } from '../lib/lrv-ozgarish';
 
@@ -288,15 +288,19 @@ export type T2Obyekt = {
   versiya: number; loyiha_id: number | null;
 };
 
-export function sbT2ObyektlarOl(kompaniyaId: number) {
+/**
+ * Obyektlar ro'yxati (`t2_obyekt_jami`, og'ir view) — BITTA keshlangan yo'l: bir vaqtdagi so'rovlar birlashadi,
+ * 60 s ichida qayta o'qilmaydi; yozishdan keyin `obyektlarEskirdi()` keshni tozalaydi. `majburiy` — keshni chetlab o'tadi.
+ */
+export function sbT2ObyektlarOl(kompaniyaId: number, opts?: { majburiy?: boolean }): Promise<SbJavob<T2Obyekt>> {
   if (!Number.isInteger(kompaniyaId) || kompaniyaId <= 0) {
     return Promise.resolve({ ok: false, qatorlar: [] as T2Obyekt[],
       error: 'kompaniya_id majburiy' });
   }
-  return sbOqi<T2Obyekt>({
+  return obyektlarModuldaKesh(kompaniyaId, () => sbOqi<T2Obyekt>({
     jadval: 't2_obyekt_jami', filtr: 'kompaniya_id=eq.' + kompaniyaId,
     tartib: 'nom.asc', limit: 5000,
-  });
+  }), opts?.majburiy === true).then((j) => (j.qatorlar ? { ...j, qatorlar: j.qatorlar.slice() } : j));
 }
 
 /** `t2_daraxt` — hisoblangan daraxt qatorlari (view). */
@@ -602,8 +606,8 @@ export function sbT2KompaniyalarOl() {
 }
 
 /** Obyektlar — kompaniya berilsa faqat o'shaniki. */
-export function sbT2ObyektlarOlKomp(kompaniyaId: number) {
-  return sbT2ObyektlarOl(kompaniyaId);
+export function sbT2ObyektlarOlKomp(kompaniyaId: number, opts?: { majburiy?: boolean }) {
+  return sbT2ObyektlarOl(kompaniyaId, opts);
 }
 
 /* ── YOZISH ─────────────────────────────────────────────────────── */
@@ -640,6 +644,7 @@ export async function sbT2QatorTahrir(
                              kutilgan_versiya: kutilganVersiya }),
     });
     const j = (await r.json()) as T2TahrirNatija;
+    if (j.ok) obyektlarEskirdi();
     return { ...j, ms: Math.round(performance.now() - t0) };
   } catch {
     return { ok: false, error: 'O‘zgarishni saqlab bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.',
@@ -720,6 +725,8 @@ export async function yozAmali(yuk: Record<string, unknown>): Promise<AktNatija>
       ms: ms() }; }
     if (r.status === 401) { j.ok = false; j.code = 'SESSION_EXPIRED'; j.error = SESSIYA_TUGAGAN; }
     else if (!r.ok) { j.ok = false; if (!j.error) j.error = `HTTP ${r.status}: yozish so'rovi rad etildi`; if (!j.code) j.code = r.status >= 500 ? 'SERVER' : r.status === 403 ? 'FORBIDDEN' : undefined; }
+    /* Har muvaffaqiyatli yozish obyektlar ro'yxati jami (qator soni, summa, narxsiz) ni o'zgartirishi mumkin. */
+    if (j.ok) obyektlarEskirdi();
     return { ...j, ms: ms() };
   } catch (e) {
     if (chegaraOtdimi(e)) return { ok: false, code: 'TIMEOUT', error: 'Server 90 soniyada javob bermadi — amal serverda bajarilgan bo‘lishi mumkin. Sahifani yangilab tekshiring; qayta saqlash xavfsiz (bir xil amal ID, ikkinchi hujjat yaratilmaydi).', ms: ms() };
@@ -1204,7 +1211,9 @@ export async function sbObyektLokatsiyaBelgila(id: number, lat: number, lng: num
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ amal: 'obyekt_yangila', id, nomi: '', kutilgan_versiya: kutilganVersiya, lat, lng })
   });
-  return await res.json();
+  const j = await res.json() as { ok?: boolean };
+  if (j?.ok) obyektlarEskirdi();
+  return j;
 }
 
 /** T2-PTO-OWNER-CRITICAL-CLOSURE P0-1: native obyekt yaratish -- Drive
