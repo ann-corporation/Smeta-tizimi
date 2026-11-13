@@ -22,5 +22,9 @@
   "Zamena summasi": { "ru": "Сумма замены", "en": "Replacement amount" },
   "Almashtirilgan": { "ru": "Заменено", "en": "Replaced" },
   "Ro‘yxat eng katta 500 ta bilan cheklangan": { "ru": "Список ограничен 500 крупнейшими", "en": "List limited to the 500 largest" },
-  "Smeta qiymati (asl)": { "ru": "Стоимость сметы (исходная)", "en": "Estimate value (original)" }
+  "Smeta qiymati (asl)": { "ru": "Стоимость сметы (исходная)", "en": "Estimate value (original)" },
+  "Narx smetada yo‘q; tasdiqlangan F-2 sertifikat narxidan olindi": { "ru": "В смете цены нет; взята из сертификата утверждённого Ф-2", "en": "No price in the estimate; taken from the approved F-2 certificate" },
+  "F-2 narxi": { "ru": "Цена Ф-2", "en": "F-2 price" },
+  "Zamena: {n} ta barg narxi tasdiqlangan F-2 sertifikatidan olindi (smetada narx yo‘q)": { "ru": "Замены: цена {n} позиций взята из сертификата утверждённого Ф-2 (в смете цены нет)", "en": "Replacements: {n} items priced from the approved F-2 certificate (no price in the estimate)" },
+  "hali narxsiz barg: {n}": { "ru": "ещё без цены: {n}", "en": "still unpriced: {n}" }
 }

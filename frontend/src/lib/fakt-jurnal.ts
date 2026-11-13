@@ -12,7 +12,7 @@ import type { T2Qator } from '../api/supabase';
 import { bosKatKesim, type KatKesim } from './ustamali-summa';
 import { ochiqQoldiq } from './zamena-qoldiq';
 import { ayirma2, faktSummaF2Narxda, hajmMasshtab, katJami, yigindi2 } from './hisob-yadro';
-import { svodKorinishKesimi, yaxlitQatorIdlari, type SvodYaxlit } from './svod-yaxlit';
+import { svodFaktKesimi, svodKorinishKesimi, yaxlitQatorIdlari, type SvodYaxlit } from './svod-yaxlit';
 
 export type JurnalHolat = {
   qator_id: number; smeta_hajm: number | null; fakt_hajm: number | null;
@@ -233,8 +233,9 @@ export function bolimSummalari(rows: readonly T2Qator[], states: readonly Jurnal
   const elementlar = new Map<SummaKesim, Element[]>();
   const masshtabsiz = new Set<SummaKesim>();
   const qoldiqlar = new Set<SummaKesim>();
+  const faktlar = new Set<SummaKesim>();
   const yaxlitIds = yaxlitQatorIdlari(rows, svod);
-  const ol = (id: number) => { let x = out.get(id); if (!x) { x = { smeta: bos(), f2: bos(), fakt: bos(), qoldiq: bos(), qoshimcha: bos(), faktF2: { f2Narxda: 0 } }; masshtabsiz.add(x.f2); qoldiqlar.add(x.qoldiq); out.set(id, x); } return x; };
+  const ol = (id: number) => { let x = out.get(id); if (!x) { x = { smeta: bos(), f2: bos(), fakt: bos(), qoldiq: bos(), qoshimcha: bos(), faktF2: { f2Narxda: 0 } }; masshtabsiz.add(x.f2); qoldiqlar.add(x.qoldiq); faktlar.add(x.fakt); out.set(id, x); } return x; };
   const qosh = (s: SummaKesim, kat: string | null, v: number | null, id = 0, smeta: number | null = null, f2: number | null = null) => {
     const l = elementlar.get(s); const e = { id, kat, summa: v, smeta, f2 };
     if (l) l.push(e); else elementlar.set(s, [e]);
@@ -254,10 +255,14 @@ export function bolimSummalari(rows: readonly T2Qator[], states: readonly Jurnal
   // ikkalasini qo'shish faktni ikki marta sanardi (HISOB_YADRO_V1: ish varag'idagi fakt kartadagidan katta chiqardi, farq = ishlarning o'z fakti).
   const otalar = new Set<number>();
   for (const r of rows) if (r.ota_id != null && holat.get(r.id)?.fakt_manbasi === 'BL_NORMA') otalar.add(r.ota_id);
+  // Ish (bl) fakti bolalari BOR bo'lsa — bolalar yig'indisining aksi (rollup; real obyektda 24 ish: bl fakti = Σ bolalar fakti, manba 'DIRECT' deb
+  // yozilgan bo'lsa ham) va server `_t2_summa_agg_v1('fakt')` faqat barglarni yig'adi: ish faktini qo'shish ikki marta sanardi. Faqat bolasiz ish faktini oladi.
+  const bolaliIsh = new Set<number>();
+  for (const r of rows) if (r.ota_id != null) bolaliIsh.add(r.ota_id);
   for (const r of rows) {
     if (r.tur === 'bl') {
       const h = holat.get(r.id);
-      const f2 = v(h?.f2_summa); const fq = faktOl(h); const fakt = otalar.has(r.id) ? null : fq.summa;
+      const f2 = v(h?.f2_summa); const fq = faktOl(h); const fakt = otalar.has(r.id) || bolaliIsh.has(r.id) ? null : fq.summa;
       if ((f2 == null || f2 === 0) && (fakt == null || fakt === 0)) continue;
       for (const b of yol(r).bolimlar) {
         const x = ol(b);
@@ -291,7 +296,9 @@ export function bolimSummalari(rows: readonly T2Qator[], states: readonly Jurnal
   }
   for (const [s, l] of elementlar) {
     // F2 — aynan (masshtablanmaydi); qoldiq svod bo'limida = yaxlit − F2 aynan; qolganlari yaxlit × (ko'rinish / smeta).
-    s.kesim = svodKorinishKesimi(rows, l, f, svod, { masshtab: !masshtabsiz.has(s), f2: masshtabsiz.has(s) && !qoldiqlar.has(s), bolimSmeta, ...(qoldiqlar.has(s) ? { qoldiqF2: f2Of } : {}) });
+    // FAKT — F2 bilan bir usul (svodFaktKesimi, yagona qoida); F2 — aynan; qoldiq svod bo'limida = yaxlit − F2 aynan; smeta/qo'shimcha — yaxlit × (ko'rinish / smeta).
+    s.kesim = faktlar.has(s) ? svodFaktKesimi(rows, l, f, svod, { bolimSmeta })
+      : svodKorinishKesimi(rows, l, f, svod, { masshtab: !masshtabsiz.has(s), f2: masshtabsiz.has(s) && !qoldiqlar.has(s), bolimSmeta, ...(qoldiqlar.has(s) ? { qoldiqF2: f2Of } : {}) });
     if (!l.some((e) => e.summa != null && Number.isFinite(e.summa))) { s.ustamasiz = null; continue; }
     s.ustamasiz = yigindi2([katJami(s.kesim.summalar), s.kesim.nomalum, s.kesim.yaxlit?.qqssiz]);
   }
@@ -342,9 +349,40 @@ export function bolimTarkibi(bolimId: number, bolimlar: readonly JurnalBolim[], 
 
 /** "12,5" → 12.5; bo'sh → null; noto'g'ri → NaN. */
 export function sonOqi(v: string): number | null {
-  const t = v.trim().replace(/\s/g, '').replace(',', '.');
-  if (!t) return null;
-  return /^-?\d+(\.\d+)?$/.test(t) ? Number(t) : NaN;
+  return sonTahlil(v).son;
+}
+
+/**
+ * Obmer natijasi yozuvi (egasi: «12,35 m²», «1 234,5», «1.234,5», «12 м2»): son + ixtiyoriy birlik yozuvi (tashlanadi).
+ * Ming ajratgich: bo'shliq / ' / nuqta (vergul o'nli bo'lganda) / vergul (nuqta o'nli bo'lganda). Ikkalasi ham bo'lsa — oxirgisi o'nli.
+ * Bitta ajratgich + aynan 3 raqam + butun qism 1–3 xona (masalan «1.234», «1,234») — NOANIQ (ming yoki o'nli?): taxmin qilinmaydi.
+ */
+export function sonTahlil(v: string): { son: number | null; noaniq: boolean } {
+  const bosh = v.trim();
+  if (!bosh) return { son: null, noaniq: false };
+  const m = /^([+-]?\d[\d\s '’.,]*)(.*)$/.exec(bosh);
+  if (!m) return { son: NaN, noaniq: false };
+  // Birlik yozuvi: harflar / ² ³ / nuqta / qiyshiq chiziq (+ oxirida raqam: «м2»); boshqa narsa — son emas.
+  if (m[2].trim() && !/^[A-Za-zА-Яа-яЁёЎўҚқҒғҲҳ²³./\s]+\d?$/.test(m[2].trim())) return { son: NaN, noaniq: false };
+  let t = m[1].replace(/[\s '’]/g, '').replace(/[.,]+$/, '');
+  const nuqta = (t.match(/\./g) ?? []).length, vergul = (t.match(/,/g) ?? []).length;
+  if (nuqta && vergul) {
+    const oxirgi = Math.max(t.lastIndexOf('.'), t.lastIndexOf(','));
+    const ming = t[oxirgi] === ',' ? '.' : ',';
+    const butun = t.slice(0, oxirgi), kasr = t.slice(oxirgi + 1);
+    if (butun.includes(t[oxirgi]) || !kasr) return { son: NaN, noaniq: false };
+    t = butun.split(ming).join('') + '.' + kasr;
+  } else if (nuqta + vergul > 1) {
+    // Bir xil ajratgich takror — ming ajratgich («1,234,567», «1.234.567»); guruhlar 3 xonali bo'lishi shart.
+    const bolak = t.split(nuqta ? '.' : ',');
+    if (!/^\d{1,3}$/.test(bolak[0]) || !bolak.slice(1).every((g) => /^\d{3}$/.test(g))) return { son: NaN, noaniq: false };
+    t = bolak.join('');
+  } else if (nuqta + vergul === 1) {
+    const [butun, kasr] = t.split(/[.,]/);
+    if (kasr.length === 3 && /^[+-]?[1-9]\d{0,2}$/.test(butun)) return { son: NaN, noaniq: true };
+    t = `${butun}.${kasr}`;
+  }
+  return /^[+-]?\d+(\.\d+)?$/.test(t) ? { son: Number(t), noaniq: false } : { son: NaN, noaniq: false };
 }
 
 /** «50%» / «12,5 %» — smeta hajmining foizi (egasi 2026-10-31: foiz bilan tez kiritish). Foiz yozuvi bo'lmasa — null. */
@@ -364,9 +402,9 @@ export function kiritmaSoni(v: string, smeta: number | null | undefined): number
   return hajmMasshtab(smeta, f / 100);
 }
 
-export type JurnalXato = 'SON_EMAS' | 'MANFIY' | 'NOL' | 'ISHORA' | 'FOIZ_SMETASIZ';
+export type JurnalXato = 'SON_EMAS' | 'NOANIQ' | 'MANFIY' | 'NOL' | 'ISHORA' | 'FOIZ_SMETASIZ';
 export const JURNAL_XATO_MATN: Record<JurnalXato, string> = {
-  SON_EMAS: 'Son emas', MANFIY: 'Jami fakt manfiy bo‘lib qoladi', ISHORA: 'Chegirma ishi: fakt smeta kabi manfiy bo‘lishi kerak', NOL: '0 qo‘shilmaydi',
+  SON_EMAS: 'Son emas', NOANIQ: 'Noaniq: «1.234» ming yoki o‘nli? 1234 yoki 1,234 deb yozing (o‘nli uchun vergul, ming uchun bo‘shliq)', MANFIY: 'Jami fakt manfiy bo‘lib qoladi', ISHORA: 'Chegirma ishi: fakt smeta kabi manfiy bo‘lishi kerak', NOL: '0 qo‘shilmaydi',
   FOIZ_SMETASIZ: 'Foiz uchun smeta hajmi kerak',
 };
 
@@ -383,7 +421,7 @@ export function jurnalPaket(kiritmalar: Readonly<Record<number, Kiritma>>, faktl
     const n = kiritmaSoni(v.qiymat, smetalar?.get(id));
     if (n === 'SMETASIZ') { xatolar.set(id, 'FOIZ_SMETASIZ'); continue; }
     if (n == null) continue;
-    if (!Number.isFinite(n)) { xatolar.set(id, 'SON_EMAS'); continue; }
+    if (!Number.isFinite(n)) { xatolar.set(id, sonTahlil(v.qiymat).noaniq ? 'NOANIQ' : 'SON_EMAS'); continue; }
     const delta = v.rejim === '+' ? n : yaxlit(n - joriy);
     if (v.rejim === '+' && n === 0) { xatolar.set(id, 'NOL'); continue; }
     // Reja ishorasi: musbat reja — jami fakt manfiy bo'lmaydi; chegirma (manfiy reja) — jami fakt musbat bo'lmaydi.

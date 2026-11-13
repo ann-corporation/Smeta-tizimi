@@ -6,7 +6,7 @@ const s = vi.hoisted(() => ({
   daraxt: {} as Record<string, unknown>,
 }));
 vi.mock('../../test02/KompaniyaTanlov', () => ({ useKompaniya: () => ({ joriy: { id: 17 } }) }));
-vi.mock('../../api/supabase', () => ({ sbT2ObyektlarOlKomp: async () => s.royxat, yangiOperationId: () => 'test' }));
+vi.mock('../../api/supabase', () => ({ sbT2ObyektlarOlKomp: async () => s.royxat, yangiOperationId: () => 'test', sbOqi: async () => ({ ok: true, qatorlar: [] }) }));
 vi.mock('../../umumiy/daraxt/useT2Daraxt', () => ({ useT2Daraxt: () => s.daraxt }));
 vi.mock('../../components/pto-workspace/ObjectTrail', () => ({ ObjectTrail: () => null }));
 vi.mock('../../components/pto-workspace/ObjectMoneySummary', () => ({ ObjectMoneySummary: () => null }));

@@ -35,7 +35,8 @@ export function qqsKoef(foiz: number | null | undefined): number | null {
 
 /** QQS bilan summadan (tiyinda) [QQS siz, QQS, jami]: QQS siz = ROUND(jami / (1 + st)), QQS = jami − QQS siz (ayirma). */
 export function qqsAjratTiyin(jamiTiyin: number, foiz: number): [number, number, number] {
-  const siz = Math.round(jamiTiyin / (1 + foiz / 100));
+  // jami / (1 + st) aniq bo'linma: jami*100 / (100+foiz) (1.12 float emas) - yarim tiyin (.5) holatida Excel ROUND va server round() bilan bir xil.
+  const siz = Math.round((jamiTiyin * 100) / (100 + foiz));
   return [siz, jamiTiyin - siz, jamiTiyin];
 }
 

@@ -246,10 +246,10 @@ describe('Сличительная ведомость — pereraschet modeli', (
     expect([m('МАТЕРИАЛ БЕЗ ФАКТА').doplataHajm, m('МАТЕРИАЛ БЕЗ ФАКТА').doplataSumma]).toEqual([null, null]); // NULL ≠ 0
   });
 
-  it('svod yaxlit bo‘lim: fakt svodga taqsimlanadi (1020), F-2 aynan (600) — к доплате taqsimlanmagan fakt − F-2 (to‘g‘ri narx)', () => {
+  it('svod yaxlit bo‘lim: fakt taqsimlanmaydi (850, to‘g‘ri narx), F-2 aynan (600) — к доплате taqsimlanmagan fakt − F-2 (to‘g‘ri narx)', () => {
     const sv = model.qatorlar.filter((x) => x.yaxlitTaqsim != null);
     expect(sv).toHaveLength(2);
-    expect(r2(sv.reduce((t, x) => t + (x.faktSumma ?? 0), 0))).toBe(1020);
+    expect(r2(sv.reduce((t, x) => t + (x.faktSumma ?? 0), 0))).toBe(850);
     expect(r2(sv.reduce((t, x) => t + x.f2Summa, 0))).toBe(600);
     expect(r2(sv.reduce((t, x) => t + (x.doplataSumma ?? 0), 0))).toBe(250);
   });
@@ -382,9 +382,9 @@ describe('Сличительная ведомость — xlsx (exceljs bilan qa
     const bolim = qatorNomi(wb, QOSHIMCHA_BOLIM_NOMI);
     expect(qatorNomi(wb, 'ДОП РАБОТА ПЛИТКА')).toBeGreaterThan(bolim);
     expect(qatorNomi(wb, 'ПЛИТКА ДОП')).toBeGreaterThan(bolim);
-    // svod bo'lim: fakt taqsim (qiymat), formula emas
+    // svod bo'lim: fakt taqsimlanmaydi - formula (hajm x narx)
     const s = qatorNomi(wb, 'ТРУД СВОД');
-    expect(typeof ws.getCell(`I${s}`).value).toBe('number');
+    expect(typeof (ws.getCell(`I${s}`).value as { formula: string }).formula).toBe('string');
     // к доплате: to'g'ri narxdagi fakt − Ф-2 (taqsimlanmagan) — qiymat; QQS bilan ustuni (W) shu qiymatdan formula
     expect(typeof ws.getCell(`T${s}`).value).toBe('number');
     expect(typeof (ws.getCell(`W${s}`).value as { formula: string }).formula).toBe('string');
