@@ -628,10 +628,10 @@ export class RasmiyVaraq {
       const texnik = u.yashirin === true || u.tur === 'texnik';
       if (!texnik && typeof v === 'string') matnlar.push({ matn: v, col: i, qalin, otstup: u.tur === 'matn' ? dz?.otstup ?? 0 : 0, sz });
       const markazUstun = u.tur === 'tartib' || u.tur === 'kod' || u.tur === 'birlik';
-      if (!lv) return katakXml(i, rangli(texnik ? RS.oddiy : ku === 'norma' ? RS.norma : ku === 'foiz' ? RS.foiz : markazUstun && typeof v === 'number' ? RS.markazSon : uslub(tur, u.tur), rang), v);
+      if (!lv) return katakXml(i, rangli(texnik ? RS.oddiy : ku === 'norma' ? RS.norma : ku === 'foiz' ? RS.foiz : markazUstun && (typeof v === 'number' || u.tur === 'tartib') ? RS.markazSon : uslub(tur, u.tur), rang), v);
       const sonmi = u.tur === 'pul' || u.tur === 'narx';
       const kind: LevKind = texnik ? 'texnik' : ku === 'norma' ? 'norma' : ku === 'foiz' ? 'foiz' : sonmi ? 'pul' : u.tur === 'hajm' ? 'hajm' : u.tur === 'norma' ? 'norma' : u.tur === 'foiz' ? 'foiz'
-        : markazUstun ? (typeof v === 'number' ? 'markazSon' : 'markaz') : 'matn';
+        : markazUstun ? (typeof v === 'number' || u.tur === 'tartib' ? 'markazSon' : 'markaz') : 'matn';
       return katakXml(i, this.darajaUslubi(lv, kind, rang), v);
     });
     return this.put(cells, undefined, o?.daraja, matnlar);

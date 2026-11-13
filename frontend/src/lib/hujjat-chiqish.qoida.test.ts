@@ -165,7 +165,8 @@ describe('Ф-2 akt — egasi shikoyatlari (B, C) sonlarda', () => {
   it('tartib raqami (son) o‘ralmaydi va kichraymaydi', () => {
     const q = qatorOl('ВОДА');
     const son = q.kataklar.find((k) => k.col === 0)!;
-    expect(son.son).not.toBeNull();
+    // Resurs qatori № — «N.k» matn (iyerarxik raqam); ish qatori № — son.
+    expect(son.son !== null || /^\d+(\.\d+)?$/.test(son.matn ?? '')).toBe(true);
     expect(o.xflar[son.s].wrap).toBe(false);
     expect(o.xflar[son.s].shrink).toBe(false);
   });
