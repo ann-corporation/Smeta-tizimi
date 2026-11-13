@@ -406,7 +406,7 @@ export default function TestAosr() {
 
   return (
     <Sahifa
-      sarlavha="Ijro hujjatlari: АОСР va laboratoriya"
+      sarlavha="Yashirin ishlar akti (АОСР)"
       tavsif="Yashirin ishlar dalolatnomasi (АОСР) bajarilgan har yashirin ishni qoplashi kerak; laboratoriya protokollari aktlarga ilova qilinadi."
       amallar={ws.isProvider ? undefined : <label className="inline-flex items-center gap-1.5 text-[12px] text-text-dim">{t('Obyekt')}
         <select aria-label={t('Obyekt')} className="h-8 max-w-xs px-2 text-[13px]" value={obyektId ?? ''} onChange={(e) => { const id = Number(e.target.value); setObyektId(id); setQidiruv((p) => { const x = new URLSearchParams(p); x.set('obyekt', String(id)); return x; }, { replace: true }); }}>
