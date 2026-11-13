@@ -1,0 +1,11 @@
+{
+  "sana": "2026-12-18",
+  "sarlavha": "Shartnoma bo‘yicha Forma 3 endi haqiqiy «Справка-счет-фактура» blankasi shaklida chiqadi",
+  "bandlar": [
+    "Shartnoma bo‘yicha Forma 3 (Nakopitelniy → «Forma 3 — shartnoma bo‘yicha» va sverka sotuvidan chiqadigan F-3) endi amaldagi hujjat shaklida: 16 grafali jadval, ish ro‘yxatisiz — har obyekt bitta blok («ИТОГО ЗАТРАТЫ ПО ОБЪЕКТАМ», «НДС», «ВСЕГО»), ko‘p obyektli shartnomada oxirida umumiy «ИТОГО ПО ОБЪЕКТУ».",
+    "«Отчетный период» endi oy boshidan emas: «с» — shu shartnomaning oldingi Forma 3 sanasi (birinchi Forma 3 da — shartnoma sanasi), «по» — hujjat tuzilgan sana.",
+    "Imzolar tartibi hujjatdagidek: avval ЗАКАЗЧИК, keyin ПОДРЯДЧИК (Директор va Гл. бухгалтер). Hujjatdan «Форма № 3» va «Форма одобрена…» yozuvlari olib tashlandi.",
+    "Rekvizitlar bloki to‘liq: nom, manzil, telefon, r/s, bank, MFO, INN, OKED — kiritilgani o‘z qiymati bilan, kiritilmagani qo‘lda to‘ldirish uchun bo‘sh chiziq bilan chiqadi.",
+    "Summalar o‘zgarmadi: har obyekt o‘z nakrutkasi va QQS stavkasi bilan, «за отчётный месяц» — shu oy F-2 aktlari yig‘indisi; oy jami so‘z bilan ham yoziladi."
+  ]
+}

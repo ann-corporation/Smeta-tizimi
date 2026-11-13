@@ -172,19 +172,19 @@ describe('Forma-3 bir qatorli — sotuv shakli (oylik paket)', () => {
   const bir = forma3SotuvdanXlsx(misol(), 12, { tashkilot: 'Sinov MChJ', shakl: 'bir_qatorli' })!;
 
   it('bitta yig‘ma qator + podval; summalar to‘liq shakl bilan tiyingacha teng', () => {
-    const rt = jadval(toliq.bytes).find((r) => r.includes('ВСЕГО с НДС'))!;
+    const rt = jadval(toliq.bytes).find((r) => r.includes('ВСЕГО ПО ОБЪЕКТУ'))!;
     const rb = jadval(bir.bytes);
     const jamiB = rb.find((r) => r.includes('ВСЕГО К ОПЛАТЕ (с НДС)'))!;
     const bezB = rb.find((r) => r.includes('СУММА БЕЗ НДС'))!;
     const ndsB = rb.find((r) => r.includes('НДС'))!;
     const nums = (r: unknown[]) => r.filter((x): x is number => typeof x === 'number');
-    // To'liq: [smeta?, boshidan, yildan, davr] — oxirgisi davr jami.
+    // To'liq (real blanka, 16 grafa): oxirgi son — гр.16 «за отчётный месяц» jami.
     const davrJami = nums(rt).at(-1)!;
     expect(nums(jamiB).at(-1)).toBe(davrJami);
     expect(davrJami).toBe(1_120_000.35);
     const bez = nums(bezB).at(-1)!, nds = nums(ndsB).at(-1)!;
     expect(Math.round((bez + nds) * 100)).toBe(Math.round(davrJami * 100));
-    const rtBez = jadval(toliq.bytes).find((r) => r.includes('Стоимость выполненных работ и затрат без НДС'))!;
+    const rtBez = jadval(toliq.bytes).find((r) => r.includes('ИТОГО ЗАТРАТЫ ПО ОБЪЕКТАМ'))!;
     expect(bez).toBe(nums(rtBez).at(-1));
     // Ish qatori yagona: «Выполненные строительно-монтажные работы …».
     expect(rb.filter((r) => r.some((x) => typeof x === 'string' && x.startsWith('Выполненные строительно-монтажные работы')))).toHaveLength(1);
@@ -194,7 +194,7 @@ describe('Forma-3 bir qatorli — sotuv shakli (oylik paket)', () => {
   it('sarlavha, titul va imzolar bor; fayl nomi to‘liqdan farq qiladi; hujjat tekshiruvi toza', () => {
     const t = hujjatTekshir(bir.bytes, {});
     const matn = t.matnlar.join(' | ');
-    for (const k of ['СПРАВКА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ И ЗАТРАТ (ФОРМА № 3)', 'Подрядчик:', 'Договор:', 'ЗАКАЗЧИК', 'ПОДРЯДЧИК']) expect(matn).toContain(k);
+    for (const k of ['СПРАВКА-СЧЕТ-ФАКТУРА О СТОИМОСТИ ВЫПОЛНЕННЫХ РАБОТ (ПОНЕСЕННЫХ ЗАТРАТ)', 'Подрядчик:', 'Договор:', 'ЗАКАЗЧИК', 'ПОДРЯДЧИК']) expect(matn).toContain(k);
     expect(t.dollarFormulalar).toEqual([]);
     expect(t.keshsizFormulalar).toEqual([]);
     expect(bir.faylNomi).not.toBe(toliq.faylNomi);

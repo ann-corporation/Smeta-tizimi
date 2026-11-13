@@ -61,8 +61,8 @@ describe('Forma-3 — real zanjir bilan tuzilma', () => {
       'Объем работ и затрат в физических показателях', 'с начала строительства', 'с начала года', 'в том числе за отчетный месяц', 'ИТОГО К ОПЛАТЕ (С УЧЕТОМ НДС)', 'ПОДРЯДЧИК', 'ЗАКАЗЧИК']) expect(matn).toContain(k);
     const kataklar = t.varaqlar[0].kataklar;
     const raqamlar = Array.from({ length: 16 }, (_, i) => String(i + 1));
-    const qator = kataklar.filter((k) => /^[A-P]21$/.test(k.ref)).map((k) => String(k.matn ?? k.v));
-    expect(qator).toEqual(raqamlar); // grafalar raqami 1..16 (A..P), real hujjatdagi kabi
+    const qator = kataklar.filter((k) => /^[A-P]23$/.test(k.ref)).map((k) => String(k.matn ?? k.v));
+    expect(qator).toEqual(raqamlar); // grafalar raqami 1..16 (A..P), real hujjatdagi kabi (rekvizit 8 qator — Телефон/ОКЭД doim bor)
     // Eski noto'g'ri belgi qaytmasin.
     expect(matn).not.toContain('до отчетного месяца');
   });

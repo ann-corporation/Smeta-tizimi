@@ -175,7 +175,7 @@ describe('Excel eksport (mavjud nakopitelniy va F3 eksportlari ichida)', () => {
 
   it('F3 sotuvdan: за отчётный период = sotuv summasi', () => {
     const x = forma3SotuvdanXlsx(misol(), 12)!;
-    const r = qiymatlar(oqi(x.bytes)).find((q) => q.includes('ВСЕГО с НДС'))!;
+    const r = qiymatlar(oqi(x.bytes)).find((q) => q.includes('ВСЕГО ПО ОБЪЕКТУ'))!;
     expect(r).toEqual(expect.arrayContaining([1_200_000, 1_420_000.01, 1_120_000]));
     expect(forma3SotuvdanXlsx(misol(), 14)).toBeNull();
   });
