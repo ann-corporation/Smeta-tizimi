@@ -198,6 +198,8 @@ export type OstatkaModel = {
   /** Yuqori darajadagi qatorlar (ВСЕГО shular yig'indisi). */
   ildizlar: number[];
   oshibKetgan: Array<{ nom: string; birlik: string; smetaHajm: number; faktHajm: number; yol: string }>;
+  /** Svod bo'limlari, fakti smetadan (yaxlit summa) oshgan: manfiy qoldiq yo'qolmasin — «ПРЕВЫШЕНИЕ» ro'yxati (QQS siz). */
+  svodOshgan: Array<{ nom: string; qatorId: number; smeta: number; fakt: number; oshgan: number }>;
   diqqat: Array<{ nom: string; sabab: string; joy?: string }>;
   barglar: number;
   /** Tasdiqlangan istisnolar — «ИСКЛЮЧЕНО ИЗ ОСТАТКА», ВСЕГО ga kirmaydi. */
@@ -242,6 +244,7 @@ export function ostatkaHujjatModeli(qatorlar: readonly T2Qator[], holatlar: read
   const istisnoOf = new Map(istisnolar.map((x) => [x.qatorId, x]));
   const out: OstatkaModelQator[] = [];
   const oshib: OstatkaModel['oshibKetgan'] = [];
+  const svodOshgan: OstatkaModel['svodOshgan'] = [];
   const diqqat: OstatkaModel['diqqat'] = [];
   let no = 0;
   let barglar = 0;
@@ -327,6 +330,7 @@ export function ostatkaHujjatModeli(qatorlar: readonly T2Qator[], holatlar: read
     for (const [qatorId, b] of bj) {
       const leaves = bolimBarglari(out, qatorId);
       const qoldiqJami = svodQoldigi(b.qqssiz, b.fakt);
+      if (qoldiqJami != null && qoldiqJami < -0.005) svodOshgan.push({ nom: byId.get(qatorId)?.nom ?? `строка ${qatorId}`, qatorId, smeta: b.qqssiz, fakt: b.fakt, oshgan: yadroYaxlit2(-qoldiqJami) });
       if (!leaves?.length || qoldiqJami == null) continue;
       const t = yaxlitQatorlarga(qoldiqJami, leaves.map((i) => ({ id: i, summa: out[i].summa })));
       // Noma'lum (null) qatorlar taqsimga kirmaydi, null qoladi; bo'lim fakti noma'lum qatorlarsiz — diqqatga.
@@ -375,7 +379,7 @@ export function ostatkaHujjatModeli(qatorlar: readonly T2Qator[], holatlar: read
   const rowIdx = new Map(rows.map((q, i) => [q.id, i]));
   chiqarilgan.sort((a, b) => (rowIdx.get(a.id) ?? 0) - (rowIdx.get(b.id) ?? 0));
   const chiqarilganJami = yigindi2Qatiy(chiqarilgan.map((c) => c.summa));
-  return { qatorlar: out, jami, ildizlar, oshibKetgan: oshib, diqqat, barglar, chiqarilgan, chiqarilganJami, yaxlitTaqsimlangan, yaxlitBolimlar };
+  return { qatorlar: out, jami, ildizlar, oshibKetgan: oshib, svodOshgan, diqqat, barglar, chiqarilgan, chiqarilganJami, yaxlitTaqsimlangan, yaxlitBolimlar };
 }
 
 const OSTATKA_USTUNLAR: RasmiyUstun[] = [
@@ -573,6 +577,12 @@ export function ostatkaHujjatXlsx(model: OstatkaModel, o: OstatkaHujjatOpsiya): 
       joy: x.yol || undefined,
       sabab: `выполнено ${fmt(x.faktHajm)} при объеме по смете ${fmt(x.smetaHajm)} (превышение ${fmt(x.faktHajm - x.smetaHajm)}); в остаток не включено`,
     })), 'ВЫПОЛНЕНО СВЕРХ СМЕТНОГО ОБЪЕМА');
+  }
+  if (model.svodOshgan.length) {
+    v.diqqat(model.svodOshgan.map((x) => ({
+      nom: `Раздел по своду: ${x.nom}`,
+      sabab: `ПРЕВЫШЕНИЕ: выполнено ${fmt(x.fakt)} при сумме свода ${fmt(x.smeta)} (без НДС), превышение ${fmt(x.oshgan)}; остаток по разделу отрицательный, в строки не распределён`,
+    })), 'ПРЕВЫШЕНИЕ');
   }
   if (model.chiqarilgan.length) {
     v.diqqat(model.chiqarilgan.map((c, i) => ({

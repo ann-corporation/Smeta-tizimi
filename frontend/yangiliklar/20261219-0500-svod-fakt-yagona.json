@@ -4,6 +4,7 @@
   "bandlar": [
     "Svod (yaxlit) bo'limlarida fakt endi hamma joyda F-2 bilan bir xil usulda: Holat, Fakt jurnali, Ish varag'i, Fakt Studio, Nakopitelniy, Ostatka, Slichitelniy hujjat, AI yordamchi va server bir xil summani ko'rsatadi.",
     "Ostatka vedomostida svod bo'limi qoldig'i = smeta - fakt (fakt svod summasiga taqsimlanmaydi).",
+    "Slichitelniy hujjatda narxi yo'q yoki F-2 summasi yozilmagan qatorlarda fakt summasi serverdan olinadi (izohda «по сумме факта»); Ostatkada fakti svod summasidan oshgan bo'limlar alohida ПРЕВЫШЕНИЕ ro'yxatida chiqadi.",
     "Bolalari bor ishning o'z fakti bo'lim jamisiga ikkinchi marta qo'shilmaydi (ish varag'i va Holat jami serverga tenglashdi)."
   ]
 }

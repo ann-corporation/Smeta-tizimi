@@ -98,6 +98,8 @@ export type SlichitelniyQator = {
   zamena?: boolean;
   /** Fakt summasi tasdiqlangan F2 birlik narxida (narx qoidasi). */
   f2Narxda?: boolean;
+  /** Fakt summasi serverning fakt_summa sidan (smeta narxi yo'q/0 yoki F-2 summasi yozilmagan) — Excelda formula emas, qiymat. */
+  faktServerdan?: boolean;
   /** Tasdiqlangan F2 summasi noma'lum (NULL) — hujjatda K katagi bo'sh (formula kesh bilan teng bo'lsin). */
   f2SummaNomalum?: boolean;
   /** Resurs normasi va ota ish qatori indeksi — hujjatda smeta hajmi = norma × ish hajmi (tirik formula). */
@@ -198,16 +200,25 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
     const f2SummaV = h?.f2_summa == null ? null : Number(h.f2_summa);
     // NARX qoidasi (yadro `faktSummaF2Narxda`): tasdiqlangan F2 bor qatorda fakt summasi F2 birlik narxida.
     const asl = qatorSumma(fakt, q.narx ?? null);
-    const r = faktSummaF2Narxda(fakt, f2HajmV, f2SummaV, asl, h?.f2_summa_yoq == null ? null : Number(h.f2_summa_yoq));
+    const yoq = h?.f2_summa_yoq == null ? null : Number(h.f2_summa_yoq);
+    let r = faktSummaF2Narxda(fakt, f2HajmV, f2SummaV, asl, yoq);
+    // Server fakt summasi (t2_qator_holat.fakt_summa) — hujjat server bilan tiyinigacha: smeta narxi yo'q/0 yoki F-2 hajmi bor-u summasi
+    // yozilmagan qatorlarda hajm × narx serverdan farq qiladi; shunda summa serverniki, fakt narxi = summa / hajm (izohda «по сумме факта»).
+    let faktServerdan = false;
+    const srv = h?.fakt_summa == null ? null : Number(h.fakt_summa);
+    if (srv != null && Number.isFinite(srv) && ((q.narx ?? 0) === 0 || (yoq != null && yoq > 0)) && r.manba === 'fakt' && (r.summa == null || Math.abs(r.summa - srv) > 0.005)) {
+      r = { summa: yaxlit2(srv), manba: 'fakt', narx: null }; faktServerdan = true;
+    }
     const farq = smeta == null || fakt == null ? null : nol(fakt - smeta);
-    return { h, smeta, fakt, faktSumma: r.summa,
+    return { h, smeta, fakt, faktSumma: r.summa, faktServerdan,
       // Izoh faqat F2 narxi summani o'zgartirganda (F2 narxi = smeta narxi bo'lsa shovqin yo'q).
       f2Narxda: r.manba === 'f2' && (r.summa == null ? asl != null : asl == null || Math.abs(r.summa - asl) > 0.005), farq, f2Hajm, f2Summa, f2SummaV };
   };  const qayta = (q: T2Qator, daraja: number, blNo: string | null, k: number, otaIdx: number | null = null): number | null => {
     const tur = q.tur ?? '';
     const kids = bolalar.get(q.id) ?? [];
     if (BARG.has(tur) || (tur === 'bl' && !kids.length)) {
-      const { smeta, fakt, faktSumma, f2Narxda, farq, f2Hajm, f2Summa, f2SummaV } = olchov(q);
+      const { smeta, fakt, faktSumma, faktServerdan, f2Narxda, farq, f2Hajm, f2Summa, f2SummaV } = olchov(q);
+      const faktNarxIzoh = faktServerdan ? `по сумме факта (расчёт сервера)${fakt ? `: цена факта ${yaxlit2((faktSumma ?? 0) / fakt)}` : ''}` : '';
       if (o.faqatFarq && farq === 0 && q.narx != null) return null;
       const narx = q.narx ?? null;
       const smetaSumma = qatorSumma(smeta, narx);
@@ -226,8 +237,8 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
       out.push({
         id: q.id, tur: 'barg', daraja, tartib: blNo ? `${blNo}.${k}` : String(++no), kod: q.kod ?? '', nom: q.nom ?? '', birlik: q.birlik ?? '',
         smetaHajm: smeta, narx, smetaSumma, faktHajm: fakt, faktSumma, f2Hajm, f2Summa, farqHajm: farq, farqSumma, doplataHajm, doplataSumma,
-        izoh: [izohOf(q, smeta, fakt, farq), f2Narxda ? 'сумма факта — по цене утвержденной Ф-2' : ''].filter(Boolean).join('; '),
-        nomalum, kat: q.kat ?? null, bolalar: [], ...(q.qoshimcha ? { qoshimcha: true } : {}), ...(q.zamena ? { zamena: true } : {}), ...(q.tur === 'rs' || q.tur === 'mat' || q.tur === 'ob' ? { resTur: q.tur } : {}), norma: q.norma ?? null, otaIdx, f2Narxda: f2Narxda || undefined, f2SummaNomalum: f2Nomalum || undefined,
+        izoh: [izohOf(q, smeta, fakt, farq), f2Narxda ? 'сумма факта — по цене утвержденной Ф-2' : '', faktNarxIzoh].filter(Boolean).join('; '),
+        nomalum, kat: q.kat ?? null, bolalar: [], ...(faktServerdan ? { faktServerdan: true } : {}), ...(q.qoshimcha ? { qoshimcha: true } : {}), ...(q.zamena ? { zamena: true } : {}), ...(q.tur === 'rs' || q.tur === 'mat' || q.tur === 'ob' ? { resTur: q.tur } : {}), norma: q.norma ?? null, otaIdx, f2Narxda: f2Narxda || undefined, f2SummaNomalum: f2Nomalum || undefined,
         ...(q.zamena && q.replaces_line_id != null ? { almashtiradiId: q.replaces_line_id } : {}),
       });
       return out.length - 1;
@@ -501,7 +512,7 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
         q.yaxlitTaqsim != null ? qiy(q.smetaSumma) : { f: `IF(OR(E${n}="",F${n}=""),"",ROUND(E${n}*F${n},2))`, v: q.smetaSumma ?? '' },
         qiy(q.faktHajm),
         // Narx qoidasi (yadro): F2 bor — ROUND(H × K / J); yo'q — ROUND(H × F). Kesh = formula.
-        { f: faktSummaF2NarxFormula(`H${n}`, `J${n}`, `K${n}`, `IF(OR(H${n}="",F${n}=""),"",ROUND(H${n}*F${n},2))`), v: q.faktSumma ?? '' },
+        q.faktServerdan ? qiy(q.faktSumma) : { f: faktSummaF2NarxFormula(`H${n}`, `J${n}`, `K${n}`, `IF(OR(H${n}="",F${n}=""),"",ROUND(H${n}*F${n},2))`), v: q.faktSumma ?? '' },
         q.f2Hajm, q.f2SummaNomalum ? '' : q.f2Summa,
         { f: `IF(OR(E${n}="",H${n}=""),"",H${n}-E${n})`, v: q.farqHajm ?? '' },
         q.yaxlitTaqsim != null ? { f: `ROUND(I${n}-G${n},2)`, v: q.farqSumma ?? '' } : { f: `IF(OR(G${n}="",I${n}=""),"",ROUND(I${n}-G${n},2))`, v: q.farqSumma ?? '' },
