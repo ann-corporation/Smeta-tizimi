@@ -1,5 +1,6 @@
 /** Vosita slotlarini ajratish yordamchilari: summa, sana, tanlov, so'z mosligi. Sof funksiyalar (testlanadi). */
 import { sozNorm } from '../matn';
+import { yaxlit2 } from '../../hisob-yadro/yaxlit';
 
 const bosh = (royxat: readonly string[]) => royxat.map(sozNorm);
 
@@ -22,7 +23,7 @@ export function summaOl(xom: string): number | null {
     if (!Number.isFinite(son)) continue;
     const u = m[2] ? BIRLIK.find(([r]) => r.test(m[2]!)) : undefined;
     const qiymat = u ? son * u[1] : son;
-    if (u || qiymat >= 1000) return Math.round(qiymat * 100) / 100;
+    if (u || qiymat >= 1000) return yaxlit2(qiymat);
   }
   return null;
 }
