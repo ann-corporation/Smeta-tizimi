@@ -30,6 +30,8 @@ import { slichitelniyAsosOl } from '../../api/t2-slichitelniy-asos';
 import { AsosXarita } from '../../lib/slichitelniy-asos';
 import { slichitelniyModeli } from '../../lib/slichitelniy-vedomost';
 import { zanjirDaraxtdan } from '../../lib/zanjir/qadamlar';
+import { tolovHolatiSvoddan, type TolovHolati } from '../../lib/zanjir/tolovHolati';
+import { shartnomaSvodOl } from '../../api/t2-nakopitelniy';
 import { SlichitelniyTayyorlik } from './SlichitelniyTayyorlik';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
@@ -102,12 +104,21 @@ export function HolatNative() {
   const istisno = useOstatkaIstisnolari(validId ? obyektId : null);
   const workspace = usePTOWorkspace();
   /* Zanjir chizig'i uchun sonlar: sahifa allaqachon yuklagan daraxt+holatdan (yangi so'rov yo'q). Yuklanmagan/bo'sh — hammasi null. */
+  /* To'lov qadami: bitta mavjud akt-sverka svodi (shartnomaSvodOl) — faqat shu sahifada, daraxt yuklangach; o'qilmasa/bog'lanmagan — null (noma'lum). */
+  const [zanjirTolov, setZanjirTolov] = useState<{ kalit: string; v: TolovHolati | null } | null>(null);
+  const tolovKalit = validId && joriy?.id ? `${joriy.id}:${obyektId}` : '';
+  useEffect(() => {
+    if (!tolovKalit || !joriy?.id || loading || daraxtXom.length === 0) return;
+    let faol = true;
+    void shartnomaSvodOl(joriy.id).then((r) => { if (faol) setZanjirTolov({ kalit: tolovKalit, v: r.ok ? tolovHolatiSvoddan(r.natija.shartnomalar, obyektId) : null }); }).catch(() => { if (faol) setZanjirTolov({ kalit: tolovKalit, v: null }); });
+    return () => { faol = false; };
+  }, [tolovKalit, joriy?.id, obyektId, loading, daraxtXom.length]);
   const zanjirQoshimcha = useMemo(() => {
     if (!validId || loading || daraxtXom.length === 0) return undefined;
     let farqli: number | null = null;
     try { const m = slichitelniyModeli(daraxtXom, holatXom); farqli = m.ortiq + m.kam; } catch { farqli = null; }
-    return zanjirDaraxtdan(daraxtXom, holatXom, farqli);
-  }, [validId, loading, daraxtXom, holatXom]);
+    return { ...zanjirDaraxtdan(daraxtXom, holatXom, farqli), tolov: zanjirTolov?.kalit === tolovKalit ? zanjirTolov.v : null };
+  }, [validId, loading, daraxtXom, holatXom, zanjirTolov, tolovKalit]);
   useEffect(() => {
     if (exportsOpen && tree.length > 0 && typeof window !== 'undefined' && window.location.hash === '#slichitelniy') document.getElementById('slichitelniy')?.scrollIntoView?.({ block: 'center' });
   }, [exportsOpen, tree.length]);

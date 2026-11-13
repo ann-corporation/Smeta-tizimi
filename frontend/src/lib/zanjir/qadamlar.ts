@@ -46,6 +46,8 @@ export type ZanjirKirish = {
   forma3: number | null;
   /** Obyekt bo'yicha yozilgan to'lovlar soni; null — noma'lum. */
   tolovYozilgan: number | null;
+  /** Shartnoma darajasida: F3 jami / to'langan / qarz (so'm, QQS bilan); null/yo'q — shu sahifada o'qilmagan yoki shartnoma bog'lanmagan. */
+  tolov?: { f3Jami: number; tolangan: number; qarz: number } | null;
   /** Smeta barg (ish) qatorlari soni — faqat obyekt sahifasi o'qigan bo'lsa; yo'q/null — son ko'rsatilmaydi. */
   smetaQator?: number | null;
   /** Fakt qamrovi, % (fakti bor ish qatorlari ulushi); yo'q/null — son ko'rsatilmaydi. */
@@ -129,6 +131,14 @@ function ozi(id: ZanjirQadamId, k: ZanjirKirish): { own: Own; izoh: string; amal
       return { own: 'done', izoh: t('Smetadan farq yo‘q'), amal: t('Slichitelniyni ko‘ring') };
     }
     case 'tolov': {
+      /* Shartnoma darajasidagi son (faqat obyekt sahifasi o'qigan): F3 bo'yicha jami / to'langan / qarz, QQS bilan. */
+      if (k.tolov && k.tolov.f3Jami > 0) {
+        const s = (x: number) => Math.round(x).toLocaleString('ru-RU');
+        const p = { t: s(k.tolov.tolangan), f: s(k.tolov.f3Jami), q: s(k.tolov.qarz) };
+        if (k.tolov.qarz <= 0.005) return { own: 'done', izoh: t('To‘langan {t} / F3 {f} (QQS bilan)', p), amal: t('To‘lovni ko‘ring') };
+        if (k.tolov.tolangan > 0) return { own: 'todo', izoh: t('To‘langan {t} / F3 {f}, qarz {q} (QQS bilan)', p), amal: t('To‘lov va akt-sverka') };
+        return { own: 'todo', izoh: t('To‘lov yo‘q, F3 {f} (QQS bilan)', p), amal: t('To‘lov va akt-sverka') };
+      }
       if (musbat(k.tolovYozilgan)) return { own: 'done', izoh: t('To‘lov yozilgan'), amal: t('To‘lovni ko‘ring') };
       if (k.tolovYozilgan == null) return { own: 'unknown', izoh: t('To‘lov holati noma‘lum'), amal: t('To‘lov va akt-sverkani tekshiring') };
       return { own: 'todo', izoh: t('To‘lov hali yozilmagan'), amal: t('To‘lov va akt-sverka') };
@@ -198,6 +208,7 @@ export function zanjirKirishYasa(p: {
   smetaQator?: number | null;
   faktQamrov?: number | null;
   slichitelniy?: ZanjirKirish['slichitelniy'];
+  tolov?: ZanjirKirish['tolov'];
 }): ZanjirKirish {
   const h = markazHolati({ smetaJami: p.obyekt?.jami ?? null, narxsiz: p.obyekt?.narxsiz ?? null, aktlar: p.aktlar, importQoralama: null, forma3: p.forma3 ?? null, oy: p.oy });
   return {
@@ -212,6 +223,7 @@ export function zanjirKirishYasa(p: {
     smetaQator: p.smetaQator ?? null,
     faktQamrov: p.faktQamrov ?? null,
     slichitelniy: p.slichitelniy ?? null,
+    tolov: p.tolov ?? null,
     oy: p.oy,
   };
 }
