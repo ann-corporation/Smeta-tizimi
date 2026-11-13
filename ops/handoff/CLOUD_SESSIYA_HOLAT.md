@@ -59,3 +59,43 @@ Prodga qo'llangan migratsiya: `20261218400000_t2_jarvis_suhbat_v1` (BEGIN..ROLLB
 - Shartnoma muharriri 2 ta, to'lov formasi 2 ta (C-04, C-05); prorab telefon «Bugun» (C-06); menyuni zanjir tartibiga o'tkazish (C-08).
 - Kompaniya «turi» signali (pudratchi/subpudratchi/loyihachi/yetkazuvchi) — begona «Bugun» bandlarini yashirish uchun; egasi javobi kutilmoqda.
 - Tezlik (baza): `t2_obyekt_jami` → tayyor jadval; zaxira skripti OFFSET → keyset; joy bo'shatish.
+
+---
+
+# LOKAL AGENTGA YO'NALISH (egasi so'rovi 13.11: «boshqa ko'z bilan xato va kamchiliklarni, yo'nalishni aniq qilib ber»)
+
+Egasining talabi o'zgarmagan: **pudratchi (quruvchi) tomoni — qulay interfeys, to'g'ri hisob, tez ishlash, to'g'ri hujjat.** Quyidagilar auditlar va bugungi ishdan chiqqan xulosalar; dalillar `docs/architecture/cloud-rejalar/AUDIT_*.md` da.
+
+## Ko'rilgan xatolar (nima noto'g'ri tashkil qilingan)
+1. **Kenglik chuqurlikdan ustun bo'lgan.** 82 sahifa (33 tasi beta). Bir ish bir necha joyda: fakt ≥8 yuzadan yoziladi, F-2 5 sahifada, shartnoma muharriri 2 ta, to'lov formasi 2 ta, «kiruvchi quti» 4 joyda, obyekt sahifasida 2 ta «Keyingi qadam» vidjeti. Foydalanuvchi qaysi biri «to'g'ri» ekanini bilmaydi.
+2. **Tartib qurilish mantig'iga zid.** Zanjir chizig'i Faktdan boshlanadi, АОСР F-3 dan keyin, to'lov/sverka qadami yo'q. Ishlarning umumiy jurnali yo'q.
+3. **Menyu shishgan.** Boss 32+14 band, PTO 27+10, prorab 24+10. Boshqa tomonlarning «Bugun» bandlari pudratchiga ko'rinadi — tizim kompaniya turini bilmaydi.
+4. **Pul ta'riflari yorliqsiz.** «Smeta jami» 3 xil (asl / joriy / nakopitelniy), ekranlar qaysi biri ekanini aytmaydi → egasi summaning qayerdan chiqqanini tushunmaydi. Formula yadrosi to'g'ri (mos keladi) — muammo ta'rif va yorliqda.
+5. **Fakt ishlamayapti.** Faol qatorlarning 7,9% ida fakt bor; F-2 qatorlarining 52% i faktsiz; 502 fakt akti hammasi qoralama. Fakt jurnali telefonda yaroqsiz (min-w 980px), prorab «Bugun» ekranini ololmaydi. Fakt qulay bo'lmaguncha F-2 dan oldin kiritilmaydi.
+6. **Tezlik.** Obyektlar ro'yxati (3,7 s) 36 joyda keshsiz; og'ir rahbar paneli (14 s) sahifa ochilishida fonda; 30 s timeoutlar bor; baza 469/500 MB.
+7. **Hujjatlar.** Paket bitta workbook; shrink-to-fit; yashirin ustunlar qatorni kengaytiradi; F-3 da «с начала строительства» ikki shaklda ikki xil; narxsiz qator 0 deb yoziladi; akt-sverka yo'q.
+8. **Jarvis.** Tayyor dars javoblari haqiqiy savolni bosib ketgan — testlar «chiroyli» gaplar bilan yozilgan, egasining haqiqiy gaplari bilan emas.
+9. **Birlashtirish intizomi.** PR'lar alohida yashil, birga qizil edi (yangilik id takrori, qamrov jadvali, `confirm()`), main qizil bo'lgan. `supabase_migrations.schema_migrations` 20261203 da to'xtagan — keyingi ~65 migratsiya qo'lda qo'llangan, izi yo'q.
+
+## Yo'nalish — ustuvorlik tartibida
+**P0 — to'g'ri pul va hujjat (birinchi):**
+1. Prod bazani tekshirish (yuqoridagi ⚠ bo'lim), `claude/smeta-jami-asl` ni yakunlash: asl smeta asosiy raqam HAMMA joyda (rahbar paneli keshiga `smeta_joriy`, Excel eksportlar, HolatNative).
+2. `claude/hujjat-paket-papka` ni qabul qilish; keyin hujjat to'g'riligi: F-3 ustuni, NULL≠0, akt-sverka generatori, rasmiy KS-2/KS-3/M-29 shakllari bilan ustunma-ustun solishtirish (audit buni tekshirmagan).
+3. Har katta jami yonida «qayerdan chiqdi» yoyilmasi: o'lchov, davr, ustamasiz → ИТОГО-4 → QQS → ВСЕГО.
+
+**P1 — pudratchi ish oqimi:**
+4. `claude/pudratchi-zanjir-chizigi` ni qabul qilish (bitta zanjir).
+5. Fakt: prorab/usta uchun telefon «Bugun» ekrani; fakt kiritish yuzalarini bittaga keltirish; egasi qarori 4 — eski tasdiqlangan F-2 lardan faktni tiklash (reja egasiga ko'rsatilsin: nechta qator, qaysi obyekt, qaytarish yo'li).
+6. Shartnoma va to'lov — bitta joy (C-04, C-05).
+7. Kompaniya «turi» signali → menyuni zanjir tartibiga o'tkazish (Obyekt · Ish · Material · Hujjat · Hisob); rol × sahifa jadvalini egasi tasdiqlaydi.
+
+**P2 — tezlik va joy:**
+8. `claude/tezlik-obyekt-kesh` ni qabul qilish; keyin bazada: `t2_obyekt_jami` tayyor jadvalga, `t2_qator_holat` rejasi, joy bo'shatish (snapshot 77 MB, muhr 66 MB).
+
+## Ishlash qoidalari (takrorlanmasligi uchun)
+- **Muzlatish:** pudratchi yadrosi (smeta → fakt → АОСР → F-2 → F-3 → to'lov) silliq bo'lmaguncha yangi modul/sahifa ochilmaydi. Beta modullar (bozor, ochiq tender, yuk logistikasi, HR, buxgalteriya) menyuda pudratchi kundalik ishiga aralashmasin.
+- **Bir ish — bir joy.** Yangi yuza qo'shishdan oldin eskisini olib tashlash yoki unga yo'naltirish.
+- **Birlashtirishdan oldin yig'ma tekshiruv:** main + barcha ochiq tarmoqlarni lokal birlashtirib to'liq vitest. Har PR alohida yashil bo'lishi yetarli emas.
+- **Migratsiya:** fayl → prodda `BEGIN … ROLLBACK` + acceptance → qo'llash → `schema_migrations` ga yozuv. Og'ir funksiyani almashtirganda eski/yangi natijani 1–2 haqiqiy obyektda solishtirish (cloud 7 obyektda sinab 60 s chegaraga urildi).
+- **Egasining o'z gaplari va fayllari — test.** Jarvis, hujjat, summa bo'yicha har shikoyat aynan o'sha kirish bilan regressiya testi bo'lsin.
+- **Har summa yorliqli:** qaysi o'lchov (asl/joriy), ustamali/ustamasiz, QQS bilan/siz. NULL — «noma'lum», 0 emas.
