@@ -3,7 +3,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { onRequestPost as yukla } from './hujjat-yukla';
 import { onRequestGet as ol } from './hujjat-ol';
+import { zipSync } from 'fflate';
 import { imzola } from '../_shared/auth';
+import { mazmunXeshi } from '../../src/api/mazmun-xesh';
 import { PULLIK_HUJJAT_TURLAR, legacyHujjatmi, pullikTurmi, tolovXeshi } from '../_shared/hujjat-tolov';
 
 const KEY = 'k'.repeat(32);
@@ -16,13 +18,15 @@ async function sha(b: Uint8Array) {
   const d = await crypto.subtle.digest('SHA-256', b);
   return [...new Uint8Array(d)].map((x) => x.toString(16).padStart(2, '0')).join('');
 }
-const r2 = () => {
+const r2 = (baytlar?: Uint8Array) => {
   const put = vi.fn(async () => ({}));
-  const get = vi.fn(async (k: string) => ({ body: new Blob([k]).stream() }));
+  const get = vi.fn(async (k: string) => baytlar
+    ? ({ body: new Blob([baytlar as BlobPart]).stream(), size: baytlar.length, arrayBuffer: async () => baytlar.slice().buffer })
+    : ({ body: new Blob([k]).stream(), size: k.length, arrayBuffer: async () => new TextEncoder().encode(k).buffer }));
   return { put, get, bucket: { put, get } as unknown as R2Bucket };
 };
 
-type Mock = { sarf?: unknown; qaytgan?: unknown; registr?: unknown; harakatXato?: boolean; sarfla?: unknown[]; reserveXato?: boolean };
+type Mock = { sarfFaqatXesh?: string; sarf?: unknown; qaytgan?: unknown; registr?: unknown; harakatXato?: boolean; sarfla?: unknown[]; reserveXato?: boolean };
 let rpcBody: Record<string, Array<Record<string, unknown>>> = {};
 function mockFetch(m: Mock) {
   const chaqiruvlar: string[] = [];
@@ -41,7 +45,7 @@ function mockFetch(m: Mock) {
     if (url.includes('/rpc/t2_document_canonical_finalize_v1')) return Response.json({ ok: true, revision_seq: 1, sha256: 'x', sha256_verified: true, versiya: 1 });
     if (url.includes('/rpc/t2_document_canonical_get_v1')) return Response.json({ ok: true, document_id: 50, r2_key: 'docs/a', mime_type: 'application/zip', original_filename: 'p.zip', sha256: 'f'.repeat(64) });
     if (url.includes('t2_token_harakat') && url.includes('tur=eq.qaytarish')) return m.harakatXato ? new Response('x', { status: 500 }) : Response.json(m.qaytgan ?? []);
-    if (url.includes('t2_token_harakat')) return m.harakatXato ? new Response('x', { status: 500 }) : Response.json(m.sarf ?? []);
+    if (url.includes('t2_token_harakat')) return m.harakatXato ? new Response('x', { status: 500 }) : Response.json(m.sarfFaqatXesh && !url.includes('xesh=eq.' + m.sarfFaqatXesh) ? [] : (m.sarf ?? []));
     if (url.includes('t2_document_registry')) return Response.json(m.registr ?? []);
     return Response.json({ ok: true });
   }));
@@ -116,9 +120,9 @@ describe('hujjat-yukla: pullik tur uchun to\'lov dalili', () => {
 });
 
 describe('hujjat-ol: pullik arxivni berish', () => {
-  async function olish(registr: unknown) {
+  async function olish(registr: unknown, baytlar?: Uint8Array) {
     const sess = await imzola({ rol: 'pto', foydalanuvchi_id: 5, kompaniyalar: [{ kompaniya_id: 17, rol: 'pto' }] }, KEY);
-    const s = r2();
+    const s = r2(baytlar);
     const res = await ol({ request: new Request('https://x/api/hujjat-ol?id=50', { headers: { Cookie: 'sess=' + sess } }),
       env: { SUPABASE_URL: 'https://a.supabase.co', SUPABASE_KEY: 'k', SESSIYA_KALIT: KEY, R2_CANONICAL: s.bucket } } as never);
     void registr;
@@ -127,9 +131,9 @@ describe('hujjat-ol: pullik arxivni berish', () => {
   const yangi = { document_type: 'shartnoma_oylik_paket', created_at: '2026-12-01T00:00:00Z', sha256: 'a'.repeat(64), kompaniya_id: 17, obyekt_id: null };
   it('P0 dan keyingi pullik hujjat, dalil yo\'q — 402 va bayt berilmaydi', async () => {
     mockFetch({ registr: [yangi], sarf: [] });
-    const { res, get } = await olish(yangi);
-    expect(res.status).toBe(402);
-    expect(get).not.toHaveBeenCalled();
+    const { res } = await olish(yangi);
+    expect(res.status).toBe(402); // (mazmun xeshi uchun bayt o'qiladi, lekin foydalanuvchiga berilmaydi)
+    expect(res.headers.get('Content-Disposition')).toBeNull();
   });
   it('dalil bor — beriladi', async () => {
     mockFetch({ registr: [yangi], sarf: [{ operation_id: SARF_OP }], qaytgan: [] });
@@ -137,7 +141,19 @@ describe('hujjat-ol: pullik arxivni berish', () => {
     expect(res.status).toBe(200);
     expect(get).toHaveBeenCalled();
   });
-  it('P0 dan oldingi (legacy) hujjat — avvalgidek beriladi, hech narsa yopilmaydi', async () => {
+  it('REGRESSIYA: zip/xlsx — token MAZMUN xeshi bilan yozilgan, reyestrda xom sha256: to\'langan hujjat 402 bermaydi', async () => {
+    const zip = zipSync({ 'a.xlsx': new TextEncoder().encode('ichki mazmun 1'), 'b.txt': new TextEncoder().encode('2') });
+    const mazmun = await mazmunXeshi(zip);
+    expect(mazmun).not.toBe((await sha(zip)).slice(0, 32)); // zip uchun xom va mazmun xeshi farq qiladi
+    const xomReg = { ...yangi, sha256: await sha(zip) };
+    mockFetch({ registr: [xomReg], sarfFaqatXesh: mazmun, sarf: [{ operation_id: SARF_OP }], qaytgan: [] });
+    const { res } = await olish(null, zip);
+    expect(res.status).toBe(200);
+    expect(new Uint8Array(await res.arrayBuffer())).toEqual(zip);
+    // boshqa mazmun — dalil yo'q, baribir 402
+    mockFetch({ registr: [xomReg], sarfFaqatXesh: 'f'.repeat(32), sarf: [{ operation_id: SARF_OP }], qaytgan: [] });
+    expect((await olish(null, zip)).res.status).toBe(402);
+  });  it('P0 dan oldingi (legacy) hujjat — avvalgidek beriladi, hech narsa yopilmaydi', async () => {
     mockFetch({ registr: [{ ...yangi, created_at: '2026-10-20T00:00:00Z' }], sarf: [] });
     expect((await olish(null)).res.status).toBe(200);
   });
