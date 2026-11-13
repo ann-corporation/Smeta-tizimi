@@ -70,6 +70,8 @@ export async function fotoHisobotXlsx(fotolar: readonly FotoElement[], o: Hisobo
       ws.addImage(id, { tl: { col: 5, row: r.number - 1 }, ext: { width: eni, height: boyi } });
     } else { r.getCell(6).value = '(rasm o‘qilmadi)'; }
   }
+  // Chop: A4, bir sahifa eniga, sarlavha qatori har sahifada (egasi 2026-11-13: tizimdagi hamma hujjat bir xil).
+  ws.pageSetup = { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: `${bosh.number}:${bosh.number}` };
   if (ortiqcha) ws.addRow([`… ещё ${ortiqcha} фото не вошло (лимит ${HISOBOT_MAX_FOTO}); сузьте период.`]);
   const buf = await wb.xlsx.writeBuffer();
   const toza = o.obyektNomi.replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 60) || 'obyekt';

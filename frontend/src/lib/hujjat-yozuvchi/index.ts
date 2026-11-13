@@ -24,3 +24,4 @@ export * from './propis';
 export * from './korinish';
 export * from './tizim-imzo';
 export { hujjatTekshir, imzoRollariBormi, TAQIQLANGAN_QOIDALAR, type HujjatHisobot, type TekshirVaraq, type TaqiqlanganTopilma } from './tekshir';
+export * from './qator-balandlik';

@@ -7,6 +7,7 @@
  * hujjatlarga (LRV_PLUS) qo'llanmaydi.
  */
 import type { Worksheet } from 'exceljs';
+import { qatorBalandligi, type BalandlikKatak } from './qator-balandlik';
 import { joriyHujjatDizayni, sonUzunligi, type DarajaKalit, type HujjatDizayn } from './dizayn';
 
 export type ExceljsDizaynOpsiya = {
@@ -55,6 +56,9 @@ export function exceljsJadvalUslubi(ws: Worksheet, o: ExceljsDizaynOpsiya): void
   const pulFmt = `#,##0${d.xonaPul > 0 ? `.${'0'.repeat(d.xonaPul)}` : ''}`;
   const hajmFmt = `#,##0${d.xonaHajm > 0 ? `.${'0'.repeat(d.xonaHajm)}` : ''}`;
 
+  // Yashirin ustunlar (egasi 2026-11-13): o'ralmaydi, kenglikka va qator balandligiga ta'sir qilmaydi.
+  const yashirin = (c: number): boolean => ws.getColumn(c).hidden === true;
+
   for (let r = 1; r <= oxir; r++) {
     const row = ws.getRow(r);
     const jadval = r >= o.sarlavha;
@@ -80,7 +84,7 @@ export function exceljsJadvalUslubi(ws: Worksheet, o: ExceljsDizaynOpsiya): void
       const kerak = son != null ? sonUzunligi(son, ond, ond) : 0;
       const soz = son == null ? Math.max(0, ...matn.split(/\s+/).map((s) => s.length)) : 0;
       const kk = son != null ? kerak : Math.min(30, soz);
-      need[c] = Math.max(need[c], Math.ceil(kk * (qalin ? 1.12 : 1) * (sz / 10) + 2.2));
+      if (!yashirin(c)) need[c] = Math.max(need[c], Math.ceil(kk * (qalin ? 1.12 : 1) * (sz / 10) + 2.2));
       // ramka: har katakda (ichki qo'sh yuqori chiziq — jami/ВСЕГО, qalin yuqori — BL)
       if (bst) {
         const top = lv === 'jami' || lv === 'vsego' ? (d.jamiQosChiziq ? 'double' : bst) : lv === 'bl' && d.blQalinChiziq ? 'medium' : bst;
@@ -93,7 +97,8 @@ export function exceljsJadvalUslubi(ws: Worksheet, o: ExceljsDizaynOpsiya): void
       if (fonHex && !bor) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: argb(fonHex) } };
       cell.alignment = {
         ...(cell.alignment ?? {}),
-        wrapText: true, vertical: sarlavhaQ ? 'middle' : 'top',
+        // Matn o'raladi (shrinkToFit emas); son va yashirin ustun katagi o'ralmaydi.
+        wrapText: son == null && !(cell.value instanceof Date) && !yashirin(c), shrinkToFit: false, vertical: sarlavhaQ ? 'middle' : 'top',
         horizontal: sarlavhaQ ? 'center' : son != null ? 'right' : (cell.alignment?.horizontal ?? 'left'),
         ...(!sarlavhaQ && son == null && u && u.otstup > 0 && c === 2 ? { indent: u.otstup } : {}),
       };
@@ -110,25 +115,15 @@ export function exceljsJadvalUslubi(ws: Worksheet, o: ExceljsDizaynOpsiya): void
     const row = ws.getRow(r);
     const lv = r === o.sarlavha ? null : o.darajalar?.get(r) ?? null;
     const sz = Math.max(6, S + (lv ? d.daraja[lv].olchamQosh : 0));
-    let satr = 1;
+    const kataklar: BalandlikKatak[] = [];
     for (let c = 1; c <= ustunSoni; c++) {
       const { matn, son } = korinadiganMatn(row.getCell(c).value);
       if (son != null || !matn) continue;
       const bold = r === o.sarlavha || (lv ? d.daraja[lv].qalin : false);
-      const sig = Math.max(4, Math.floor(((ws.getColumn(c).width ?? 9) - (lv && c === 2 ? d.daraja[lv].otstup * 1.5 : 0)) * 1.1 * (10 / sz) * (bold ? 0.88 : 1)));
-      let n = 0;
-      for (const qism of matn.split('\n')) {
-        let joy = 0; let k = 1;
-        for (const soz of qism.split(/\s+/).filter(Boolean)) {
-          if (joy === 0) { k += Math.ceil(soz.length / sig) - 1; joy = soz.length % sig || sig; continue; }
-          if (joy + 1 + soz.length <= sig) { joy += 1 + soz.length; continue; }
-          k += Math.ceil(soz.length / sig); joy = soz.length % sig || sig;
-        }
-        n += k;
-      }
-      satr = Math.max(satr, n);
+      kataklar.push({ matn, eni: ws.getColumn(c).width ?? 9, yashirin: yashirin(c), qalin: bold, sz, otstup: lv && c === 2 ? d.daraja[lv].otstup : 0 });
     }
-    if (satr > 1) row.height = Math.min(409, Math.max(row.height ?? 0, satr * 13 * (sz / 10) + 2));
+    const ht = qatorBalandligi(kataklar, { maks: d.qatorMaks });
+    if (ht) row.height = Math.max(row.height ?? 0, ht);
   }
 
   // Sahifa: A4, eniga sig'ish, dizayn chekkalari.
@@ -136,6 +131,8 @@ export function exceljsJadvalUslubi(ws: Worksheet, o: ExceljsDizaynOpsiya): void
     ...(ws.pageSetup ?? {}),
     paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0,
     orientation: d.yonalish === 'auto' ? o.yonalish ?? 'landscape' : d.yonalish,
+    // Jadval sarlavhasi har sahifada takrorlanadi (egasi 2026-11-13).
+    printTitlesRow: `${o.sarlavha}:${o.sarlavha}`,
     margins: { left: d.chekka.chap, right: d.chekka.ong, top: d.chekka.yuqori, bottom: d.chekka.past, header: 0.3, footer: 0.3 },
   };
 }
