@@ -8,15 +8,16 @@
  * Hamma qoralama holati — 'yangi'; tasdiqlash faqat qarshi tomon qarori bilan.
  */
 import type { AosrCoverage } from '../api/t2-aosr';
+import { resursKatmi } from './aosr-resurs';
 import type { AosrMalumot, AosrV2 } from '../api/t2-ijro';
 import { qoralamaTanlangandan } from './aosr-qoralama';
 import { armaturaBelgilari, betonBelgilari } from './aosr-ilova';
 import { materialTokenlar } from './ijro-qoida';
 
-export type Bosqich = 'zamin' | 'podgotovka' | 'armatura' | 'opalubka' | 'beton' | 'gidroizol' | 'qoplama';
+export type Bosqich = 'zamin' | 'podgotovka' | 'armatura' | 'opalubka' | 'zakladnoy' | 'beton' | 'gidroizol' | 'qoplama';
 
 /** Zanjir tartibi (qurilish ketma-ketligi). */
-export const BOSQICH_TARTIB: readonly Bosqich[] = ['zamin', 'podgotovka', 'armatura', 'opalubka', 'beton', 'gidroizol', 'qoplama'];
+export const BOSQICH_TARTIB: readonly Bosqich[] = ['zamin', 'podgotovka', 'armatura', 'opalubka', 'zakladnoy', 'beton', 'gidroizol', 'qoplama'];
 
 /** Akt sarlavhasi (rasmiy hujjat — rus tilida). */
 export const BOSQICH_NOM: Record<Bosqich, string> = {
@@ -24,18 +25,19 @@ export const BOSQICH_NOM: Record<Bosqich, string> = {
   podgotovka: 'Устройство подготовки (щебёночной, песчаной, бетонной)',
   armatura: 'Армирование конструкций',
   opalubka: 'Устройство опалубки',
+  zakladnoy: 'Изготовление и монтаж закладных деталей',
   beton: 'Бетонирование конструкций',
   gidroizol: 'Устройство гидроизоляции',
   qoplama: 'Устройство основания под покрытие (стяжка, подстилающий слой)',
 };
 /** Interfeys (o'zbekcha) nomi. */
 export const BOSQICH_UZ: Record<Bosqich, string> = {
-  zamin: 'Zamin', podgotovka: 'Podgotovka', armatura: 'Armatura', opalubka: 'Opalubka', beton: 'Beton', gidroizol: 'Gidroizolyatsiya', qoplama: 'Qoplama asosi',
+  zamin: 'Zamin', podgotovka: 'Podgotovka', armatura: 'Armatura', opalubka: 'Opalubka', zakladnoy: 'Zakladnoy detallar', beton: 'Beton', gidroizol: 'Gidroizolyatsiya', qoplama: 'Qoplama asosi',
 };
 
 /** Keyingi ishlar maydoni uchun (bosqichdan keyin ruxsat etiladigan ish nomi, «разрешается производство … по устройству»). */
 const KEYINGI_NOM: Record<Bosqich, string> = {
-  zamin: 'подготовки', podgotovka: 'армирования', armatura: 'опалубки', opalubka: 'бетонирования', beton: 'гидроизоляции', gidroizol: 'основания под покрытие', qoplama: 'покрытия',
+  zamin: 'подготовки', podgotovka: 'армирования', armatura: 'опалубки', opalubka: 'закладных деталей', zakladnoy: 'бетонирования', beton: 'гидроизоляции', gidroizol: 'основания под покрытие', qoplama: 'покрытия',
 };
 
 const katta = (s: string | null | undefined) => String(s ?? '').toUpperCase().replace(/Ё/g, 'Е');
@@ -53,9 +55,10 @@ export function bosqichAniqla(q: { kod?: string | null; nom?: string | null }): 
   const nom = katta(q.nom);
   const kod = kodNormal(q.kod);
   if (/ОПАЛУБ/.test(nom)) return 'opalubka';
+  if (/ЗАКЛАДН/.test(nom)) return 'zakladnoy';
   if (/ПОДГОТОВ|ПОДСЫПК|ПОДУШК|ЩЕБЕН|ПЕСЧАН/.test(nom) && !/ПОДГОТОВКА\s+ПОД\s+(ПОКРЫТ|ПОЛ)/.test(nom)) return 'podgotovka';
   if (/АРМИР|АРМАТУР|КАРКАС|АРМОКАРКАС/.test(nom)) return 'armatura';
-  if (/ГИДРОИЗОЛ|ОКЛЕЕЧН|ОБМАЗОЧН|МЕМБРАН|ГИДРОСТЕКЛ|ГИДРОБАРЬЕР/.test(nom)) return 'gidroizol';
+  if (/ГИДРОИЗОЛ|ОКЛЕЕЧН|ОБМАЗОЧН|МЕМБРАН|ГИДРОСТЕКЛ|ГИДРОБАРЬЕР|НА БИТУМ/.test(nom)) return 'gidroizol';
   if (/^Е6-2|^С124/.test(kod)) return 'armatura';
   if (/^Е12-2/.test(kod)) return 'gidroizol';
   if (/^Е6-1/.test(kod)) return 'beton';
@@ -66,14 +69,33 @@ export function bosqichAniqla(q: { kod?: string | null; nom?: string | null }): 
   return null;
 }
 
-const resursmi = (c: Pick<AosrCoverage, 'kat'>) => c.kat === 'mat' || c.kat === 'ob';
+const resursmi = (c: Pick<AosrCoverage, 'kat'>) => resursKatmi(c.kat);
 
 export type ZanjirKirish = {
   /** Tanlangan ISH qatorlari (bl). */
   ishlar: readonly AosrCoverage[];
   /** Ish id → uning resurs qatorlari (mat/ob/rs; fakt>0 yoki hajmi bor). */
   resurslar: ReadonlyMap<number, readonly AosrCoverage[]>;
+  /** Ishga emas, ish JOYLASHGAN guruhga (razdel/konstruksiya) tegishli resurslar — guruhResurslari. Smeta tuzilishida material
+   *  ko'pincha ishning emas, razdelning o'zi ostida turadi (Stella 152: materiallarning 96 % i). Bosqichi o'z nomidan aniqlanadi. */
+  guruhResurslar?: readonly AosrCoverage[];
+  /** Konstruksiya/razdel nomi (tanlangan ishlar bitta guruhda bo'lsa): akt nomi shu bilan tugaydi; berilmasa — bosqichning birinchi ishi nomi. */
+  konstruksiya?: string | null;
 };
+
+/**
+ * Tanlangan ishlar joylashgan guruh (ota qator) ostidagi, hech bir tanlangan ishga bevosita bog'lanmagan material/uskunalar (fakt > 0).
+ * otaOf — qator id → ota id (smeta daraxti).
+ */
+export function guruhResurslari(coverage: readonly AosrCoverage[], otaOf: ReadonlyMap<number, number | null>, ishIds: ReadonlySet<number>): AosrCoverage[] {
+  const otalar = new Set<number>();
+  for (const id of ishIds) { const o = otaOf.get(id); if (o != null) otalar.add(o); }
+  return coverage.filter((c) => {
+    if (!resursKatmi(c.kat) || !(Number(c.fakt_hajm) > 0)) return false;
+    const o = otaOf.get(c.qator_id);
+    return o != null && otalar.has(o) && !ishIds.has(o);
+  });
+}
 
 export type BosqichQoralama = {
   bosqich: Bosqich;
@@ -134,13 +156,19 @@ export function zanjirQur(k: ZanjirKirish): ZanjirNatija {
       }
     }
   }
+  // Guruh resurslari: o'z bosqichi zanjirda bor bo'lsa — shu aktga (smetada yo'q bosqich yasalmaydi); bosqichi noma'lum — qo'shilmaydi.
+  for (const r of k.guruhResurslar ?? []) {
+    const b = bosqichAniqla(r);
+    if (b && xarita.has(b)) joy(b).resurslar.push(r);
+  }
   const mavjud = BOSQICH_TARTIB.filter((b) => xarita.has(b));
   const qoralamalar: BosqichQoralama[] = mavjud.map((b, i) => {
     const x = xarita.get(b)!;
     const ishlar = x.ishlar;
     const resurslar = [...new Map(x.resurslar.map((r) => [r.qator_id, r])).values()];
     const baza = qoralamaTanlangandan([...ishlar, ...resurslar]);
-    const konstruksiya = (x.asos[0]?.nom ?? ishlar[0]?.nom) ? String(x.asos[0]?.nom ?? ishlar[0]?.nom) : '';
+    const birinchi = x.asos[0]?.nom ?? ishlar[0]?.nom;
+    const konstruksiya = String(k.konstruksiya ?? '').trim() || (birinchi ? String(birinchi) : '');
     const nomi = konstruksiya ? `${BOSQICH_NOM[b]} — ${konstruksiya}` : BOSQICH_NOM[b];
     const matnHammasi = [...ishlar, ...resurslar].map((c) => c.nom ?? '').join('\n');
     const keyingi = mavjud[i + 1];
@@ -156,7 +184,22 @@ export function zanjirQur(k: ZanjirKirish): ZanjirNatija {
       qatorIds: [...new Set([...x.asos, ...ishlar, ...resurslar].map((c) => c.qator_id))],
     };
   });
-  return { qoralamalar, yoq: BOSQICH_TARTIB.filter((b) => !xarita.has(b) && mavjud.length > 0 && BOSQICH_TARTIB.indexOf(b) > BOSQICH_TARTIB.indexOf(mavjud[0]) && BOSQICH_TARTIB.indexOf(b) < BOSQICH_TARTIB.indexOf(mavjud[mavjud.length - 1])), aniqlanmagan };
+  return { qoralamalar, yoq: BOSQICH_TARTIB.filter((b) => b !== 'zakladnoy' && !xarita.has(b) && mavjud.length > 0 && BOSQICH_TARTIB.indexOf(b) > BOSQICH_TARTIB.indexOf(mavjud[0]) && BOSQICH_TARTIB.indexOf(b) < BOSQICH_TARTIB.indexOf(mavjud[mavjud.length - 1])), aniqlanmagan };
+}
+
+/**
+ * Yangi qoralama uchun namuna akt (komissiya, loyiha tashkiloti/hujjati sukut qiymatlari): bekor qilinmagan aktlardan KOMISSIYA FIO si
+ * eng to'liq to'ldirilgani (teng bo'lsa — ro'yxatda birinchisi, ya'ni eng yangisi). Eng yangi akt emas: avto-qoralamalarda imzochilar
+ * bo'sh bo'lishi mumkin va bo'shlik keyingi qoralamalarga ko'chib o'tardi (Stella 152 da shunday bo'lgan).
+ */
+export function namunaAkt<T extends Pick<AosrV2, 'holat' | 'komissiya'>>(aktlar: readonly T[]): T | undefined {
+  let eng: T | undefined; let bal = -1;
+  for (const a of aktlar) {
+    if (a.holat === 'bekor') continue;
+    const b = Array.isArray(a.komissiya) ? a.komissiya.filter((k) => String(k.fio ?? '').trim()).length : 0;
+    if (b > bal) { eng = a; bal = b; }
+  }
+  return eng;
 }
 
 /* ── Raqamlash va avto-qoralama belgisi ──────────────────────────── */

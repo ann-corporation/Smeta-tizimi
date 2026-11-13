@@ -18,6 +18,7 @@ import { downloadBlob } from '../lib/construction-document-control/export/downlo
 import { useEffect, useMemo, useState } from 'react';
 import { BookOpen, Layers, ClipboardList, Plus, Link2, Unlink, AlertTriangle, CheckCircle2, FileSpreadsheet, Save, FlaskConical, X, ShieldCheck, FileArchive } from 'lucide-react';
 import { ArxivTugma } from '../components/arxiv/ArxivTugma';
+import { coverageTurBilan } from '../lib/aosr-resurs';
 import { sbAosrCoverageOl, sbAosrBekor, sbAosrBogSaqla, sbAosrBogOl, sbAosrBogHajmOl, sbQatorMetaOl, type AosrCoverage, type QatorMetaYozuv } from '../api/t2-aosr';
 import {
   sbAosrV2Ol, sbAosrYozV2, sbLabProtokollarOl, sbLabProtokolYoz, sbLabProtokolBekor, sbLabProtokolBogSaqla,
@@ -94,7 +95,7 @@ export default function TestAosr() {
   const [obyektId, setObyektId] = useGlobalObyektId(); // yagona yuqori tanlov (navigatsiya oqimi)
   const ws = usePTOWorkspace();
   const [aktlar, setAktlar] = useState<AosrV2[]>([]);
-  const [coverage, setCoverage] = useState<AosrCoverage[]>([]);
+  const [coverageXom, setCoverage] = useState<AosrCoverage[]>([]);
   const [protokollar, setProtokollar] = useState<LabProtokol[]>([]);
   const [lablar, setLablar] = useState<Kontragent[]>([]);
   const [belgilangan, setBelgilangan] = useState<Set<number>>(new Set());
@@ -104,6 +105,8 @@ export default function TestAosr() {
   const [saqlanmoqda, setSaqlanmoqda] = useState(false);
   const [faqatAktsiz, setFaqatAktsiz] = useState(false);
   const [qatorMeta, setQatorMeta] = useState<QatorMetaYozuv[]>([]);
+  // Resurs belgisi smeta daraxtidagi turdan (kategoriyasiz material ish bilan adashmasin).
+  const coverage = useMemo(() => coverageTurBilan(coverageXom, qatorMeta), [coverageXom, qatorMeta]);
   const [bog, setBog] = useState<Map<number, number[]>>(new Map());
   const [bekorKorsat, setBekorKorsat] = useState(false);
   const [paketBand, setPaketBand] = useState(false);

@@ -12,6 +12,7 @@
  */
 import { t } from '../../i18n/til';
 import { markazHolati, type MarkazAkt } from '../pto-markazi/markaz';
+import { bosqich } from '../f2-reestr/reestr';
 
 export type ZanjirQadamId = 'smeta' | 'fakt' | 'aosr' | 'f2' | 'f3' | 'tolov' | 'slichitelniy';
 export type QadamHolat = 'done' | 'current' | 'blocked' | 'not_started' | 'unknown';
@@ -54,6 +55,14 @@ export type ZanjirKirish = {
   faktQamrov?: number | null;
   /** Slichitelniy: smetadan farqli (ortiq/kam) ish qatorlari; null/yo'q — shu sahifada hisoblanmagan (noma'lum). */
   slichitelniy?: { farqli: number; barglar: number } | null;
+  /**
+   * OBYEKT DARAJASI yig'ma (oyga bog'liq emas): obyektdagi tasdiqlangan F-2 lar soni va oxirgisining oyi.
+   * Yo'q (undefined) — eski kelishuv: faqat joriy oy ma'lumoti. null — akt reestri o'qilmadi.
+   */
+  f2TasdiqJami?: number | null;
+  f2OxirgiOy?: string | null;
+  /** Obyektdagi АОСР reestri: bekor qilinmagan jami va ishga bog'lanmaganlar soni; null/yo'q — o'qilmagan. */
+  aosrReestr?: { jami: number; boglanmagan: number } | null;
   /**«YYYY-MM». */
   oy: string;
 };
@@ -85,8 +94,16 @@ export type ZanjirNatija = {
   tugallandi: boolean;
 };
 
-type Own = 'done' | 'todo' | 'unknown';
+/** `idle` — oy darajasidagi qadam: bu oyda ish yo'q, lekin obyekt darajasida bajarilgan (zanjirni to'smaydi, tavsiya qilinmaydi). */
+type Own = 'done' | 'todo' | 'unknown' | 'idle';
 const musbat = (n: number | null | undefined): n is number => n != null && n > 0;
+/** Obyektdagi tasdiqlangan F-2 lar soni: yig'ma bo'lsa u, bo'lmasa joriy oy soni; noma'lum — null. */
+const f2Jami = (k: ZanjirKirish): number | null => (k.f2TasdiqJami !== undefined ? k.f2TasdiqJami : k.f2TasdiqBuOyda);
+/** Bu oyda yo'q, lekin obyektda tasdiqlangan F-2 lar bor (yig'ma ma'lumot beriladi). */
+const oydaYoq = (k: ZanjirKirish): boolean => !musbat(k.f2TasdiqBuOyda) && musbat(k.f2TasdiqJami);
+const oydaYoqIzoh = (k: ZanjirKirish): string => k.f2OxirgiOy
+  ? t('Bu oyda yo‘q · jami {n} ta tasdiqlangan F-2 (oxirgisi {oy})', { n: k.f2TasdiqJami as number, oy: k.f2OxirgiOy })
+  : t('Bu oyda yo‘q · jami {n} ta tasdiqlangan F-2', { n: k.f2TasdiqJami as number });
 
 const NOMLAR: Record<ZanjirQadamId, () => string> = {
   smeta: () => t('Smeta'), fakt: () => t('Fakt'), aosr: () => t('АОСР'), f2: () => t('F2'), slichitelniy: () => t('Slichitelniy'), f3: () => t('Forma 3'),tolov: () => t('To‘lov'),
@@ -105,11 +122,21 @@ function ozi(id: ZanjirQadamId, k: ZanjirKirish): { own: Own; izoh: string; amal
     }
     case 'fakt': {
       if (k.faktSaqlangan == null) return { own: 'unknown', izoh: nomalum, amal: t('Faktni tekshiring') };
-      if (musbat(k.faktQoralama)) return { own: 'todo', izoh: t('{n} ta fakt qoralamada', { n: k.faktQoralama }), amal: t('Faktni yakunlang') };
+      if (musbat(k.faktQoralama)) {
+        const izoh = k.faktSaqlangan > 0 ? t('{n} ta fakt qoralamada · {m} ta saqlangan', { n: k.faktQoralama, m: k.faktSaqlangan }) : t('{n} ta fakt qoralamada', { n: k.faktQoralama });
+        return { own: 'todo', izoh, amal: t('Faktni yakunlang') };
+      }
       if (k.faktSaqlangan === 0) return { own: 'todo', izoh: t('Bajarilgan ish kiritilmagan'), amal: t('Fakt kiriting') };
       return { own: 'done', izoh: k.faktQamrov != null ? t('{n} ta fakt akti, qamrov {p}%', { n: k.faktSaqlangan, p: k.faktQamrov }) : t('{n} ta fakt akti', { n: k.faktSaqlangan }), amal: t('Faktni ko‘ring') };
     }
     case 'aosr': {
+      /* Obyekt darajasi: reestr (jami / ishga bog'lanmaganlar); aniqroq qamrov (yashirin ish) berilgan bo'lsa u ustun. */
+      if (!k.aosr && k.aosrReestr) {
+        const { jami, boglanmagan } = k.aosrReestr;
+        if (jami <= 0) return { own: 'todo', izoh: t('Hali АОСР yo‘q'), amal: t('АОСР tayyorlang') };
+        if (boglanmagan > 0) return { own: 'todo', izoh: t('{j} ta АОСР, {b} tasi ishga bog‘lanmagan', { j: jami, b: boglanmagan }), amal: t('АОСР ni bog‘lang') };
+        return { own: 'done', izoh: t('{j} ta АОСР, hammasi ishga bog‘langan', { j: jami }), amal: t('АОСР ni ko‘ring') };
+      }
       if (!k.aosr) return { own: 'unknown', izoh: nomalum, amal: t('АОСР ni tekshiring') };
       if (k.aosr.aktsiz > 0) return { own: 'todo', izoh: t('{n} ta yashirin ish АОСР siz', { n: k.aosr.aktsiz }), amal: t('АОСР tayyorlang') };
       return { own: 'done', izoh: k.aosr.yashirin > 0 ? t('{a}/{y} yashirin ish АОСР bilan yopilgan',{ a: k.aosr.yashirin - k.aosr.aktsiz, y: k.aosr.yashirin }) : t('Yashirin ish yo‘q'), amal: t('АОСР ni ko‘ring') };
@@ -118,17 +145,21 @@ function ozi(id: ZanjirQadamId, k: ZanjirKirish): { own: Own; izoh: string; amal
       if (musbat(k.f2TasdiqBuOyda)) return { own: 'done', izoh: t('{oy} uchun F2 tasdiqlangan', { oy: k.oy }), amal: t('F2 ni ko‘ring') };
       if (k.f2BuOyda == null) return { own: 'unknown', izoh: nomalum, amal: t('F2 ni tekshiring') };
       if (k.f2BuOyda) return { own: 'todo', izoh: t('{oy} F2 qoralamada — tasdiqlang', { oy: k.oy }), amal: t('F2 ni tasdiqlang') };
+      if (oydaYoq(k)) return { own: 'idle', izoh: oydaYoqIzoh(k), amal: t('F2 ni ko‘ring') };
       return { own: 'todo', izoh: t('{oy} uchun F2 hali yo‘q', { oy: k.oy }), amal: t('F2 tayyorlang') };
     }
     case 'f3': {
       if (musbat(k.forma3)) return { own: 'done', izoh: t('Forma 3 tuzilgan'), amal: t('Forma 3 ni ko‘ring') };
+      if (!musbat(k.f2TasdiqBuOyda) && k.tolov && k.tolov.f3Jami > 0) return { own: 'done', izoh: t('Shartnoma bo‘yicha Forma 3 tuzilgan'), amal: t('Forma 3 ni ko‘ring') };
+      if (oydaYoq(k)) return { own: 'idle', izoh: oydaYoqIzoh(k), amal: t('Forma 3 ni ko‘ring') };
       if (k.forma3 == null) return { own: 'unknown', izoh: nomalum, amal: t('Forma 3 ni tekshiring') };
       return { own: 'todo', izoh: t('Forma 3 hali yo‘q'), amal: t('Forma 3 tayyorlang') };
     }
     case 'slichitelniy': {
       if (!k.slichitelniy) return { own: 'unknown', izoh: nomalum, amal: t('Slichitelniyni tekshiring') };
-      if (k.slichitelniy.farqli > 0) return { own: 'todo', izoh: t('{n} qatorda farq bor', { n: k.slichitelniy.farqli }), amal: t('Slichitelniyni oching') };
-      return { own: 'done', izoh: t('Smetadan farq yo‘q'), amal: t('Slichitelniyni ko‘ring') };
+      const f2n = musbat(k.f2TasdiqJami) ? t(' · {m} ta tasdiqlangan F-2', { m: k.f2TasdiqJami }) : '';
+      if (k.slichitelniy.farqli > 0) return { own: 'todo', izoh: t('{n} qatorda farq bor', { n: k.slichitelniy.farqli }) + f2n, amal: t('Slichitelniyni oching') };
+      return { own: 'done', izoh: t('Smetadan farq yo‘q') + f2n, amal: t('Slichitelniyni ko‘ring') };
     }
     case 'tolov': {
       /* Shartnoma darajasidagi son (faqat obyekt sahifasi o'qigan): F3 bo'yicha jami / to'langan / qarz, QQS bilan. */
@@ -153,10 +184,12 @@ function ozi(id: ZanjirQadamId, k: ZanjirKirish): { own: Own; izoh: string; amal
 function bloklovchi(id: ZanjirQadamId, k: ZanjirKirish, tugamagan: ReadonlySet<ZanjirQadamId>): string | null {
   switch (id) {
     case 'fakt': return k.smeta.bor === false ? t('Avval smetani yuklang') : null;
-    case 'aosr': case 'f2': return tugamagan.has('fakt') ? t('Avval fakt kerak') : null;
-    case 'f3': return tugamagan.has('f2') ? t('Avval F2 tasdiqlanishi kerak') : null;
-    case 'slichitelniy': return tugamagan.has('f2') ? t('Avval F2 tasdiqlanishi kerak') : null;
-    case 'tolov': return tugamagan.has('f3') ? t('Avval Forma 3 kerak') : null;
+    /* Obyekt darajasi: «Avval fakt kerak» faqat obyektda umuman (saqlangan) fakt bo'lmasa — qoralama yoki boshqa oy to'smaydi. */
+    case 'aosr': case 'f2': return k.faktSaqlangan === 0 || k.smeta.bor === false ? t('Avval fakt kerak') : null;
+    /* F3 va slichitelniy: obyektda tasdiqlangan F2 umuman bo'lmasa bloklanadi (oyga qarab emas). */
+    case 'f3': return f2Jami(k) === 0 ? t('Avval F2 tasdiqlanishi kerak') : null;
+    case 'slichitelniy': return f2Jami(k) === 0 ? t('Avval F2 tasdiqlanishi kerak') : null;
+    case 'tolov': return tugamagan.has('f3') && !(k.tolov && k.tolov.f3Jami > 0) ? t('Avval Forma 3 kerak') : null;
     default: return null;
   }
 }
@@ -174,6 +207,7 @@ export function zanjirHisobla(k: ZanjirKirish): ZanjirNatija {
       const blok = bloklovchi(h.id, k, tugamagan);
       if (blok) { holat = 'blocked'; izoh = blok; }
       else if (h.own === 'unknown') holat = 'unknown';
+      else if (h.own === 'idle') holat = 'not_started';
       else if (joriyBor) { holat = 'not_started'; }
       else { holat = 'current'; joriyBor = true; }
     }
@@ -209,7 +243,15 @@ export function zanjirKirishYasa(p: {
   faktQamrov?: number | null;
   slichitelniy?: ZanjirKirish['slichitelniy'];
   tolov?: ZanjirKirish['tolov'];
+  aosrReestr?: ZanjirKirish['aosrReestr'];
 }): ZanjirKirish {
+  /* Obyekt darajasidagi yig'ma: oxirgi tasdiqlangan F-2 oyi (oyga qarab emas). */
+  let f2OxirgiOy: string | null = null;
+  for (const a of p.aktlar ?? []) {
+    if (a.tur !== 'f2' || bosqich({ holat: a.holat, lifecycle_status: a.lifecycle_status ?? null }) !== 'tasdiqlangan') continue;
+    const o = String(a.oy ?? '').slice(0, 7);
+    if (/^\d{4}-\d{2}$/.test(o) && (f2OxirgiOy == null || o > f2OxirgiOy)) f2OxirgiOy = o;
+  }
   const h = markazHolati({ smetaJami: p.obyekt?.jami ?? null, narxsiz: p.obyekt?.narxsiz ?? null, aktlar: p.aktlar, importQoralama: null, forma3: p.forma3 ?? null, oy: p.oy });
   return {
     smeta: { bor: p.obyekt == null ? null : p.obyekt.jami != null, narxsiz: p.obyekt == null || p.obyekt.jami == null ? null : p.obyekt.narxsiz ?? null },
@@ -218,6 +260,9 @@ export function zanjirKirishYasa(p: {
     aosr: p.aosr ?? null,
     f2BuOyda: h.f2BuOyda,
     f2TasdiqBuOyda: h.f2TasdiqBuOyda,
+    f2TasdiqJami: h.f2Tasdiq,
+    f2OxirgiOy,
+    aosrReestr: p.aosrReestr ?? null,
     forma3: p.forma3 ?? null,
     tolovYozilgan: p.tolovYozilgan ?? null,
     smetaQator: p.smetaQator ?? null,
