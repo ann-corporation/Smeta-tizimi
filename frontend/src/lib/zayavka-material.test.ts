@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { materialTakliflari, materialTopish } from './zayavka-material';
+import { materialTakliflari, materialTopish, smetaMaterialFiltri, ZAYAVKA_KATLAR } from './zayavka-material';
+import { KATLAR } from './hisob-yadro/kategoriya';
 
 const q = [
   { nom: 'Бетон М400', birlik: 'м3', hajm: 40 },
@@ -21,6 +22,15 @@ describe('zayavka-material', () => {
       { itemText: 'Бетон М400', requestedQty: 100, unit: 'м3', status: 'cancelled' },
     ]);
     expect(r.find((x) => x.birlik === 'м3')).toMatchObject({ soralgan: 12, qoldiq: 38 });
+  });
+  it('smeta filtri: kat KIRILL (МАТ, ОБ) — bazadagi qiymat; lotin mat/ob emas; percent-kodlangan', () => {
+    expect(ZAYAVKA_KATLAR).toEqual(['МАТ', 'ОБ']);
+    for (const k of ZAYAVKA_KATLAR) expect(KATLAR).toContain(k);
+    const f = smetaMaterialFiltri(353);
+    expect(f).toBe('obyekt_id=eq.353&kat=in.(%D0%9C%D0%90%D0%A2,%D0%9E%D0%91)');
+    expect(decodeURIComponent(f)).toBe('obyekt_id=eq.353&kat=in.(МАТ,ОБ)');
+    expect(f).not.toMatch(/[(,](mat|ob)[,)]/i);
+    expect(/^[\x20-\x7e]+$/.test(f)).toBe(true);
   });
   it('materialTopish: aniq bitta mos kelsa', () => {
     const r = materialTakliflari(q, []);

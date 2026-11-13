@@ -67,6 +67,58 @@ describe('Public kirish sayti', () => {
       expect(m.navigate.mock.calls[0][0]).toMatch(/^\/qoshil\//);
     } finally { sessionStorage.removeItem('t2_qoshil_kod'); }
   });
+  const parolBilanKir = () => {
+    fireEvent.change(screen.getByPlaceholderText('foydalanuvchi_nomi'), { target: { value: 'sinov' } });
+    fireEvent.change(screen.getByLabelText('Parol'), { target: { value: 'test-password' } });
+    fireEvent.submit(screen.getByPlaceholderText('foydalanuvchi_nomi').closest('form')!);
+  };
+  /** /api/sessiya — kirmagan (401); /api/kirish — muvaffaqiyatli. */
+  const kirmaganFetch = () => vi.fn(async (url: string) => (String(url) === '/api/sessiya' ? { ok: false, json: async () => ({}) } : { ok: true, json: async () => ({ ok: true, rol: 'pto' }) }));
+  it('kirishdagi niyat: state.qaytish bilan kelgan odam kirgach /admin emas, O‘SHA manzilga boradi (bir marta)', async () => {
+    try {
+      vi.stubGlobal('fetch', kirmaganFetch());
+      render(<MemoryRouter initialEntries={[{ pathname: '/', state: { qaytish: '/admin/haydovchi' } }]}><KirishSahifa /></MemoryRouter>);
+      parolBilanKir();
+      await waitFor(() => expect(m.navigate).toHaveBeenCalledWith('/admin/haydovchi'));
+      expect(m.navigate).not.toHaveBeenCalledWith('/admin');
+      expect(sessionStorage.getItem('t2_kirish_qaytish')).toBeNull();
+    } finally { sessionStorage.removeItem('t2_kirish_qaytish'); }
+  });
+  it('kirishdagi niyat sessionStorage dan ham o‘qiladi (sahifa qayta yuklangan / tashqi oynadan qaytgan)', async () => {
+    try {
+      sessionStorage.setItem('t2_kirish_qaytish', JSON.stringify({ yol: '/admin/tender?id=7', vaqt: Date.now() }));
+      vi.stubGlobal('fetch', kirmaganFetch());
+      render(<MemoryRouter><KirishSahifa /></MemoryRouter>);
+      parolBilanKir();
+      await waitFor(() => expect(m.navigate).toHaveBeenCalledWith('/admin/tender?id=7'));
+    } finally { sessionStorage.removeItem('t2_kirish_qaytish'); }
+  });
+  it.each(['//evil.example/x', 'https://evil.example', '/\\evil.example'])('ochiq yo‘naltirish yo‘q: qaytish=%s e‘tiborga olinmaydi', async (qaytish) => {
+    try {
+      vi.stubGlobal('fetch', kirmaganFetch());
+      render(<MemoryRouter initialEntries={[{ pathname: '/', state: { qaytish } }]}><KirishSahifa /></MemoryRouter>);
+      parolBilanKir();
+      await waitFor(() => expect(m.navigate).toHaveBeenCalledWith('/admin'));
+      expect(m.navigate).toHaveBeenCalledTimes(1);
+    } finally { sessionStorage.removeItem('t2_kirish_qaytish'); }
+  });
+  it('taklif havolasi niyatdan ustun', async () => {
+    sessionStorage.setItem('t2_qoshil_kod', 'ABC123');
+    try {
+      vi.stubGlobal('fetch', kirmaganFetch());
+      render(<MemoryRouter initialEntries={[{ pathname: '/', state: { qaytish: '/admin/haydovchi' } }]}><KirishSahifa /></MemoryRouter>);
+      parolBilanKir();
+      await waitFor(() => expect(m.navigate).toHaveBeenCalled());
+      expect(m.navigate.mock.calls[0][0]).toMatch(/^\/qoshil\//);
+    } finally { sessionStorage.removeItem('t2_qoshil_kod'); sessionStorage.removeItem('t2_kirish_qaytish'); }
+  });
+  it('allaqachon kirgan odam amal tugmasidan kelsa — forma kutmasdan niyat manziliga o‘tadi', async () => {
+    try {
+      vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({}) })));
+      render(<MemoryRouter initialEntries={[{ pathname: '/', state: { qaytish: '/admin/yuk-chaqirish' } }]}><KirishSahifa /></MemoryRouter>);
+      await waitFor(() => expect(m.navigate).toHaveBeenCalledWith('/admin/yuk-chaqirish', { replace: true }));
+    } finally { sessionStorage.removeItem('t2_kirish_qaytish'); }
+  });
   it('yordam paneli fake operator yoki message receipt yaratmaydi', () => {
     const fetchMock = vi.fn(); vi.stubGlobal('fetch', fetchMock);
     render(<PublicEntry onChooseAuth={vi.fn()}><span>Form</span></PublicEntry>);

@@ -2,7 +2,18 @@
  * «Yangi zayavka» uchun smeta materiallari — sof mantiq. Egasi (audit 71): material smeta resurslaridan tanlansin,
  * birlik o'sha materialdan olinsin («metr» emas), miqdor = smeta − oldin so'ralgan. Noma'lum hajm — null (0 emas).
  */
-export type SmetaMaterial = { nom: string | null; birlik: string | null; hajm: number | string | null };
+import type { Kat } from './hisob-yadro/kategoriya';
+
+/** Omborga kiradigan smeta resurslari: material va uskuna. Qiymatlar — `t2_qator.kat` dagi kabi KIRILL, katta harf
+ *  (yagona manba: hisob-yadro `Kat`). Lotin `mat`/`ob` bazada yo'q — shunday filtr doim bo'sh qaytardi. */
+export const ZAYAVKA_KATLAR: readonly Kat[] = ['МАТ', 'ОБ'];
+
+/** Obyekt smetasidagi material/uskuna qatorlari uchun `t2_qator` filtri (PostgREST). Kirill qiymatlar percent-kodlanadi. */
+export function smetaMaterialFiltri(obyektId: number): string {
+  return `obyekt_id=eq.${obyektId}&kat=in.(${ZAYAVKA_KATLAR.map((k) => encodeURIComponent(k)).join(',')})`;
+}
+
+export type SmetaMaterial ={ nom: string | null; birlik: string | null; hajm: number | string | null };
 export type OldingiZayavka = { itemText: string; requestedQty: number; unit: string | null; status: string };
 export type MaterialTaklif = { nom: string; birlik: string | null; smetaHajm: number | null; soralgan: number; qoldiq: number | null };
 

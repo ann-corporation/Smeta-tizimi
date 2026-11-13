@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Lock, User, ArrowRight, Phone, Send, Mail } from 'lucide-react';
 import { toast } from '../umumiy/ui/Toast';
@@ -12,6 +12,7 @@ import { PublicEntry } from '../components/public-entry/PublicEntry';
 import { kutilayotganTaklifKodi } from './QoshilSahifa';
 import { kutilayotganUlashKodi } from './UlashSahifa';
 import { MAVJUD_FOYDALANUVCHI_KIRISH, YANGI_HISOB_KIRISH } from '../lib/nav/boshSahifa';
+import { holatdanQaytish, qaytishOlibTozalash, qaytishSaqla } from '../lib/nav/qaytish';
 
 export default function KirishSahifa() {
   const [isLogin, setIsLogin] = useState(true);
@@ -35,17 +36,31 @@ export default function KirishSahifa() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigateAsl = useNavigate();
+  /* Kirishdagi niyat: ommaviy sahifadagi amal tugmasi (`state.qaytish`) — kirgach o'sha ichki manzilga qaytariladi.
+     sessionStorage ga ham yoziladi (sahifa qayta yuklansa / kirish boshqa oynadan qaytsa yo'qolmasin). Faqat ichki yo'l (lib/nav/qaytish). */
+  const niyat = holatdanQaytish(useLocation().state);
+  useEffect(() => { if (niyat) qaytishSaqla(niyat); }, [niyat]);
   /* Allaqachon tizimda bo'lgan foydalanuvchi (navigatsiya oqimi): «Tizimga kirish» formaga siljitmaydi — bevosita rol/oxirgi obyekt sahifasiga olib boradi. */
   const [kirgan, setKirgan] = useState(false);
   useEffect(() => {
     let tirik = true;
-    try { void fetch('/api/sessiya').then((r) => { if (tirik && r.ok) setKirgan(true); }).catch(() => undefined); } catch { /* tarmoq yo'q */ }
+    try {
+      void fetch('/api/sessiya').then((r) => {
+        if (!tirik || !r.ok) return;
+        setKirgan(true);
+        /* Allaqachon kirgan odam amal tugmasini bosgan (niyat shu o'tishda kelgan) — formani ko'rsatmay o'sha manzilga. */
+        if (niyat) { qaytishOlibTozalash(); navigateAsl(niyat, { replace: true }); }
+      }).catch(() => undefined);
+    } catch { /* tarmoq yo'q */ }
     return () => { tirik = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- faqat birinchi ochilishda: niyat shu o'tishning holatidan olinadi
   }, []);
-  /* «Telegram modeli» (2026-10-22): taklif havolasidan kelgan odam kirgach/ro'yxatdan o'tgach o'sha havolaga qaytadi. */
+  /* «Telegram modeli» (2026-10-22): taklif havolasidan kelgan odam kirgach/ro'yxatdan o'tgach o'sha havolaga qaytadi.
+     Ustuvorlik: taklif kodi → ulash kodi → kirishdagi niyat (qaytish) → sukut manzil. Niyat bir marta ishlatiladi. */
   const navigate = (yol: string) => {
     const kod = kutilayotganTaklifKodi(), ulash = kutilayotganUlashKodi();
-    navigateAsl(kod ? `/qoshil/${encodeURIComponent(kod)}` : ulash ? `/ulash/${encodeURIComponent(ulash)}` : yol);
+    const qaytish = qaytishOlibTozalash() ?? niyat;
+    navigateAsl(kod ? `/qoshil/${encodeURIComponent(kod)}` : ulash ? `/ulash/${encodeURIComponent(ulash)}` : qaytish ?? yol);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -76,28 +91,28 @@ export default function KirishSahifa() {
     }
   };
 
-  /* Email kod (egasi 2026-10-26): hisob bo'lmasa server o'zi ochadi — yangi → Kompaniya (so'rov), mavjud → rol sahifasi. */
+  /* Email kod (egasi 2026-10-26): hisob bo'lmasa server o'zi ochadi — yangi → «Kompaniyangizni oching» (o'zi ochadi, #404), mavjud → rol sahifasi. */
   const emailNatija = (n: EmailKirishNatija) => {
     if (n.yangi) {
-      toast('Xush kelibsiz! Hisobingiz tayyor. Keyingi qadam: kompaniya oching (so‘rov) yoki direktordan taklif oling.', 'ok');
+      toast('Xush kelibsiz! Hisobingiz tayyor. Keyingi qadam: kompaniyangizni o‘zingiz oching yoki direktordan taklif oling.', 'ok');
       navigate(YANGI_HISOB_KIRISH);
     } else navigate(MAVJUD_FOYDALANUVCHI_KIRISH);
   };
 
-  /* Telegram orqali (telefon kontakti bilan tasdiqlangan): yangi hisob -> Kompaniya (so'rov), mavjud -> rol sahifasi. */
+  /* Telegram orqali (telefon kontakti bilan tasdiqlangan): yangi hisob -> «Kompaniyangizni oching», mavjud -> rol sahifasi. */
   const telegramNatija = (n: TelegramNatija) => {
-    if (n.yangi) { toast('Xush kelibsiz! Hisobingiz tayyor. Keyingi qadam: kompaniya oching (so‘rov) yoki direktordan taklif oling.', 'ok'); navigate(YANGI_HISOB_KIRISH); }
+    if (n.yangi) { toast('Xush kelibsiz! Hisobingiz tayyor. Keyingi qadam: kompaniyangizni o‘zingiz oching yoki direktordan taklif oling.', 'ok'); navigate(YANGI_HISOB_KIRISH); }
     else navigate(MAVJUD_FOYDALANUVCHI_KIRISH);
   };
 
   const parolMaydoni = useRef<HTMLInputElement>(null);
 
-  /* Google bilan kirish (egasi 2026-10-02): yangi hisob → Kompaniya (so'rov); mavjud hisob → odatdagi rol sahifasi. */
+  /* Google bilan kirish (egasi 2026-10-02): yangi hisob → «Kompaniyangizni oching»; mavjud hisob → odatdagi rol sahifasi. */
   const googleNatija = (n: GoogleNatija) => {
     setLoading(false);
     if (!n.ok) { setError(n.xato); return; }
     if (n.yangi) {
-      toast('Xush kelibsiz! Hisobingiz tayyor. Keyingi qadam: kompaniya oching (so‘rov) yoki direktordan taklif oling.', 'ok');
+      toast('Xush kelibsiz! Hisobingiz tayyor. Keyingi qadam: kompaniyangizni o‘zingiz oching yoki direktordan taklif oling.', 'ok');
       navigate(YANGI_HISOB_KIRISH);
     } else {
       if (n.ulandi) toast('Google kirish usuli akkauntingizga qo‘shildi.', 'ok');
