@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -16,7 +16,9 @@ import { qadamMalumotKeshTozala } from '../../lib/pto-markazi/useQadamMalumot';
 const akt = (o: Record<string, unknown>) => ({ tur: 'fakt', holat: 'tasdiqlangan', oy: '2026-11-01', yaratildi: '2026-11-03T00:00:00Z', hujjat_jami: 1, yozilgan_jami: 1, ...o });
 const chiz = (joriy?: 'fakt' | 'f2' | 'f2-yasash' | 'f2-import' | 'forma3' | 'hujjatlar') => render(<MemoryRouter><ObyektQadamlari joriy={joriy} /></MemoryRouter>);
 
-afterEach(() => { cleanup(); qadamMalumotKeshTozala(); m.ws = { companyId: 7, scope: { objectId: 5 }, objects: [{ id: 5, jami: 1000, narxsiz: 0 }], scopeSearch: (id) => `?obyekt=${id}` }; vi.clearAllMocks(); });
+/* Sanaga bog'liqlik yo'q: tizim sanasi qat'iy (faqat Date; taymerlar haqiqiy) - ish oyi/«bugun» zaxirasi joriy oyga qarab o'zgarmaydi. */
+beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-13T09:00:00Z') }); });
+afterEach(() => { vi.useRealTimers(); cleanup(); qadamMalumotKeshTozala(); m.ws = { companyId: 7, scope: { objectId: 5 }, objects: [{ id: 5, jami: 1000, narxsiz: 0 }], scopeSearch: (id) => `?obyekt=${id}` }; vi.clearAllMocks(); });
 
 describe('ObyektQadamlari (oylik oqim qadam chizig‘i)', () => {
   it('obyekt tanlanmagan — hech narsa chizilmaydi', () => {

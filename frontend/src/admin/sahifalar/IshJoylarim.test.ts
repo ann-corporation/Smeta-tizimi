@@ -1,5 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { avatarRangi, boshHarflar, qachon } from './IshJoylarim';
+import { avatarRangi, boshHarflar, ishlarniTartibla, qachon } from './IshJoylarim';
+
+describe('Ish joylarim — «Mening ishlarim» tartibi', () => {
+  const ishlar = [{ kompaniya_id: 1, akt_id: 10 }, { kompaniya_id: 2, akt_id: 11 }, { kompaniya_id: 1, akt_id: 12 }, { kompaniya_id: 3, akt_id: 13 }];
+  it('faol kompaniya ishlari birinchi, qolgan tartib saqlanadi; kompaniya almashganda qayta tartiblanadi', () => {
+    expect(ishlarniTartibla(ishlar, 3).map((x) => x.akt_id)).toEqual([13, 10, 11, 12]);
+    expect(ishlarniTartibla(ishlar, 1).map((x) => x.akt_id)).toEqual([10, 12, 11, 13]);
+    expect(ishlarniTartibla(ishlar, 2).map((x) => x.akt_id)).toEqual([11, 10, 12, 13]);
+  });
+  it('faol kompaniya yo‘q yoki ishi yo‘q — asl tartib; asl massiv o‘zgarmaydi', () => {
+    expect(ishlarniTartibla(ishlar, null)).toEqual(ishlar);
+    expect(ishlarniTartibla(ishlar, 99)).toEqual(ishlar);
+    ishlarniTartibla(ishlar, 3);
+    expect(ishlar[0].akt_id).toBe(10);
+  });
+});
 
 describe('Ish joylarim — Telegram kabi ro‘yxat yordamchilari', () => {
   it('bosh harflar va barqaror avatar rangi', () => {
