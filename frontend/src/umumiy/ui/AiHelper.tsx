@@ -20,6 +20,7 @@ import { AiJurnal } from './AiJurnal';
 import { AiShaxsiy } from './AiShaxsiy';
 import { useAiKuzatuv } from './useAiKuzatuv';
 import { kimMalumoti } from './yordamchi/kim-ulanish';
+import { amalIjroniUla } from '../../lib/yordamchi/vosita/amal-vosita';
 import { haqiqiyVositaApi } from '../../lib/yordamchi/vosita/haqiqiy';
 import { yangiOperationId } from '../../api/supabase';
 import { amalRejim, oynaKaliti, oynaOqi, oynaYoz, olchamlash, surish, suzuvchiRect, yonOlcham, yonSukut, type OynaHolat, type Rejim } from '../../lib/yordamchi/oyna';
@@ -35,6 +36,9 @@ const ADMIN_ROLLAR = ['boss', 'admin', 'director', 'superadmin'];
  * U faqat shu lavozimga ruxsat etilgan ma'lumotni ko'radi; har qadam jonli ko'rinadi; jiddiy qarorlarni foydalanuvchining o'zi tasdiqlaydi.
  */
 /** Sarlavha qatoridagi Jarvis tugmasi (suzuvchi tugma yo'q — sahifa amallari ustida hech narsa turmaydi). Bir bosish = bir marta ochiladi. */
+/* Amal reestri -> Jarvis vositalari: ijrochilar (API klientlari) kech yuklanadi. */
+amalIjroniUla(() => import('../../lib/reestr/amal-ijro').then((m) => m.IJROCHILAR));
+
 export function AiHelperTugma() {
   return (
     <button type="button" data-testid="jarvis-tugma" onClick={() => window.dispatchEvent(new CustomEvent('ai:ochish', { detail: {} }))}

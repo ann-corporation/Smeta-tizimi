@@ -22,10 +22,12 @@ vi.mock('../../../api/t2-bux-hisob', () => ({ buxDavr: vi.fn() }));
 
 import { AMALLAR } from '../../reestr/amal';
 import { AMAL_VOSITALARI, VOSITALAR, vositaTop } from './reestr';
-import { amalVositaNomi } from './amal-vosita';
+import { amalIjroniUla, amalVositaNomi } from './amal-vosita';
+import { AMAL_IJRO_KALITLAR } from '../../reestr/amal-ijro-kalitlar';
 import { vositaIshla } from './ishla';
 import type { VositaKont } from './tur';
 
+amalIjroniUla(() => import('../../reestr/amal-ijro').then((x) => x.IJROCHILAR));
 const kim = (ruxsatlar: string[]) => ({ ism: 'S', login: 's', rol: 'pto', rolNomi: null, ruxsatlar, platformSuperadmin: false }) as unknown as VositaKont['kim'];
 let sayoq = 0;
 const kont = (ruxsatlar: string[]): VositaKont => ({
@@ -104,7 +106,13 @@ describe('avval navigatsiya bo\'lgan 6 amal — ijro', () => {
     expect(n.ok).toBe(true);
     expect(m.xarajat).toHaveBeenCalledWith(expect.objectContaining({ kompaniyaId: 7, obyektId: 11, summa: '1500000', operationId: 'op-5' }));
   });
-  it('vositaTop: «oylikni hisobla» reestrdan vositaga mos tushadi', () => {
-    expect(vositaTop('oylikni hisobla')?.id).toBe('hr_tabel');
+  it('vositaTop: «bu oy uchun oylikni hisobla» reestrdan vositaga mos tushadi', () => {
+    expect(vositaTop('bu oy uchun oylikni hisobla')?.id).toBe('hr_tabel');
+  });
+});
+describe('ijrochi kalitlari royxati', () => {
+  it('AMAL_IJRO_KALITLAR = IJROCHILAR kalitlari (ikki royxat farq qilmaydi)', async () => {
+    const { IJROCHILAR } = await import('../../reestr/amal-ijro');
+    expect([...AMAL_IJRO_KALITLAR].sort()).toEqual(Object.keys(IJROCHILAR).sort());
   });
 });

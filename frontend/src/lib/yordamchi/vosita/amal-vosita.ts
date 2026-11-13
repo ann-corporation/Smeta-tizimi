@@ -7,11 +7,18 @@
  * Nomi bir xil QO'LDA vosita bor bo'lsa (reestr.ts) — u ustun, bu yerdan yaratilmaydi.
  */
 import type { Amal, AmalParamTur } from '../../reestr/amal';
-import { IJROCHILAR } from '../../reestr/amal-ijro';
-import { amalTopish, bajar, holatAsync, javobQabul, korinish, sessiyaBosh, type AmalKontekst, type AmalSessiya } from '../../reestr/amal-motor';
+import { AMAL_IJRO_KALITLAR } from '../../reestr/amal-ijro-kalitlar';
+import { amalTopish, bajar, holatAsync, javobQabul, korinish, sessiyaBosh, type AmalKontekst, type AmalSessiya, type Ijrochi } from '../../reestr/amal-motor';
 import type { ParamSxema, ParamTur, Slot, Variant, Vosita, VositaJavob, VositaKont } from './tur';
 
 const PARAM_TUR: Record<AmalParamTur, ParamTur> = { son: 'son', matn: 'matn', sana: 'sana', obyekt: 'tanlov', shartnoma: 'tanlov', qator: 'tanlov', tanlov: 'tanlov' };
+
+/**
+ * Ijrochilar (API klientlari) ilova ishga tushganda ulanadi (AiHelper): vosita reestri sof qoladi, Cloudflare Functions type gate
+ * brauzer kodiga kirib ketmaydi. Ulanmagan bo'lsa (masalan serverda) — vosita sahifaga yo'naltiradi.
+ */
+let ijroYuklovchi: (() => Promise<Readonly<Record<string, Ijrochi>>>) | null = null;
+export function amalIjroniUla(f: () => Promise<Readonly<Record<string, Ijrochi>>>): void { ijroYuklovchi = f; }
 
 /** Vosita nomi: Amal.jarvisVosita, bo'lmasa kalit (`.` -> `_`). */
 export const amalVositaNomi = (a: Pick<Amal, 'kalit' | 'jarvisVosita'>): string => a.jarvisVosita ?? a.kalit.replace(/\./g, '_');
@@ -42,7 +49,7 @@ function savol(id: string, slot: Slot, s: AmalSessiya, matn: string): VositaJavo
 /** Bitta amaldan Vosita yasaydi. */
 export function amalVositasi(amal: Amal): Vosita {
   const id = amalVositaNomi(amal);
-  const ij = IJROCHILAR[amal.kalit];
+  const ijBor = AMAL_IJRO_KALITLAR.has(amal.kalit);
   const parametrlar: ParamSxema = Object.fromEntries((amal.parametrlar ?? []).map((p) => [p.nom, { tur: PARAM_TUR[p.tur], majburiy: p.majburiy || undefined, izoh: p.savol }]));
   const pul = amal.tasdiq === 'ikkiTasdiq';
   /* Qator topish kerak amal (fakt) — mavjud model oqimida; nomi sahifa nomi bilan bir xil bo'lgani uchun navigatsiyani o'g'irlamaydi. */
@@ -52,8 +59,10 @@ export function amalVositasi(amal: Amal): Vosita {
     tavsif: amal.ai?.tavsif ?? `${amal.nom ?? amal.kalit} (amal reestridan).`,
     /* Yozuv amali niyati amalTopish bilan; o'qish amallari navigatsiya qatlamida hal qilinadi (LLM id bilan chaqirishi mumkin). */
     /* Qisqa (<=2 so'z) gap — sahifa nomi (navigatsiya): masalan «zayavka och». */
-    mos: (t, xom) => !!ij && !qatorli && t.length > 2 && amal.turi === 'yozish' && topilganKalit(xom) === amal.kalit,
+    mos: (t, xom) => ijBor && !qatorli && t.length > 2 && amal.turi === 'yozish' && topilganKalit(xom) === amal.kalit,
     ishla: async (c, slot, xom) => {
+      if (!ijBor) return javob(`«${amal.nom ?? amal.kalit}» hozircha sahifada bajariladi — tugmani bosib o'ting.`, false, amal.yol, amal.nom);
+      const ij = ijroYuklovchi ? (await ijroYuklovchi())[amal.kalit] : undefined;
       if (!ij) return javob(`«${amal.nom ?? amal.kalit}» hozircha sahifada bajariladi — tugmani bosib o'ting.`, false, amal.yol, amal.nom);
       const ctx = await amalKontekst(c);
       let s = slot.__amal as AmalSessiya | undefined;
