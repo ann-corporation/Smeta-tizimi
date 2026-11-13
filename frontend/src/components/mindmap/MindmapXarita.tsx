@@ -23,30 +23,35 @@ import {
   type XDaraxt, type XHolat,
 } from '../../lib/mindmap-korinish';
 import { XaritaKanvas } from './XaritaKanvas';
+import { shartnomaliDaraxt, shartnomasizmi } from '../../lib/mindmap-xarita-shartnoma';
 import { XaritaPanel, type HodisaHolati } from './XaritaPanel';
 import type { MasulBoshqaruv } from './XaritaJamoa';
 import { XaritaRoyxat } from './XaritaRoyxat';
 import { MindmapPult, type BolimlarOl } from './MindmapPult';
-import { PultAmalModal, type PultTugatdi } from './PultAmalModal';
+import { type PultTugatdi } from './PultAmalModal';
+import { useTugunAmallar } from './useTugunAmallar';
 import { Bajarilish, HolatChiziq, Romb } from './belgilar';
 import { HOLAT_RANG, foizMatn, holatIzohi, holatNomi, pulQ } from './holat';
 
 /** `pult` — asosiy «Boshqaruv» daraxti (sukut); qolganlari «Boshqa ko‘rinishlar» ostida. (3D graf bezak edi — olib tashlandi; 2D graf egasi talabi bilan saqlangan.) */
 export type MindmapKorinishTuri = 'pult' | 'xarita' | 'royxat' | '2d' | 'tahrir';
 
-const ASOSIY_KORINISH: { k: MindmapKorinishTuri; ikon: typeof List; nom: () => string } = { k: 'pult', ikon: ListTree, nom: () => t('Boshqaruv') };
-const BOSHQA_KORINISHLAR: { k: MindmapKorinishTuri; ikon: typeof List; nom: () => string }[] = [
+const ASOSIY_KORINISH: { k: MindmapKorinishTuri; ikon: typeof List; nom: () => string }[] = [
+  { k: 'tahrir', ikon: PencilLine, nom: () => t('Tahrir (chiziq tortish)') },
   { k: 'xarita', ikon: MapIkon, nom: () => t('Xarita') },
+  { k: 'pult', ikon: ListTree, nom: () => t('Jadval') },
+];
+const BOSHQA_KORINISHLAR: { k: MindmapKorinishTuri; ikon: typeof List; nom: () => string }[] = [
   { k: 'royxat', ikon: List, nom: () => t('Ro‘yxat') },
   { k: '2d', ikon: Network, nom: () => t('2D graf') },
-  { k: 'tahrir', ikon: PencilLine, nom: () => t('Tahrir (chiziq tortish)') },
 ];
 
 /** Ko‘rinish almashtirgich: «Boshqaruv» doim ko‘rinadi, qolgan ko‘rinishlar «Boshqa ko‘rinishlar» ostida. */
 export function KorinishTanlagich({ joriy, onTanla, className = '', tahrirMumkin = true }: { joriy: MindmapKorinishTuri; onTanla: (k: MindmapKorinishTuri) => void; className?: string; /** `false` — «Tahrir» yorlig‘i chiqmaydi (yozuv ruxsati yo‘q). */ tahrirMumkin?: boolean }) {
-  const [ochiq, setOchiq] = useState(joriy !== 'pult');
+  const asosiyJoriy = joriy === 'xarita' || joriy === 'pult' || joriy === 'tahrir';
+  const [ochiq, setOchiq] = useState(!asosiyJoriy);
   const boshqalar = BOSHQA_KORINISHLAR.filter(({ k }) => tahrirMumkin || k !== 'tahrir');
-  const korinadigan = [ASOSIY_KORINISH, ...(ochiq || joriy !== 'pult' ? boshqalar : [])];
+  const korinadigan = [...ASOSIY_KORINISH.filter(({ k }) => tahrirMumkin || k !== 'tahrir'), ...(ochiq || !asosiyJoriy ? boshqalar : [])];
   return (
     <div className={'inline-flex max-w-full items-center gap-1 ' + className}>
       <div role="tablist" aria-label={t('Ko‘rinish')} className="inline-flex max-w-full overflow-x-auto rounded-[var(--radius-sm)] border border-[var(--border-strong)] bg-surface-2 p-0.5">
@@ -58,7 +63,7 @@ export function KorinishTanlagich({ joriy, onTanla, className = '', tahrirMumkin
           </button>
         ))}
       </div>
-      {joriy === 'pult' && (
+      {asosiyJoriy && (
         <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" aria-expanded={ochiq} onClick={() => setOchiq((v) => !v)} data-testid="boshqa-korinishlar">
           {ochiq ? t('Yashirish') : t('Boshqa ko‘rinishlar')}
         </button>
@@ -117,7 +122,9 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
   const kamQisqarish = useReducedMotion();
   const daraxt = useMemo(() => daraxtQur(graf), [graf]);
   const [yigilgan, setYigilgan] = useState<Set<string>>(new Set());
-  const joylashuv = useMemo(() => mindmapJoyla(daraxt, yigilgan), [daraxt, yigilgan]);
+  /** Vizual xarita: kompaniya → loyiha → SHARTNOMA → obyekt (jadvaldagi bilan bir xil tuzilma). Boshqa joylar asl daraxtdan foydalanadi. */
+  const xaritaDaraxt = useMemo(() => shartnomaliDaraxt(graf, daraxt), [graf, daraxt]);
+  const joylashuv = useMemo(() => mindmapJoyla(xaritaDaraxt, yigilgan), [xaritaDaraxt, yigilgan]);
   const [qidiruv, setQidiruv] = useState('');
   const [holatFiltri, setHolatFiltri] = useState<XHolat | null>(null);
   const [panelOchiq, setPanelOchiq] = useState(false);
@@ -158,6 +165,13 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
     return s;
   }, [daraxt, qidir, holatFiltri]);
   const yoritilgan = useMemo(() => (tanlangan && daraxt.tugunlar.has(tanlangan) && tanlangan !== daraxt.ildiz ? fokusYoli(daraxt, tanlangan) : filtrSet), [tanlangan, daraxt, filtrSet]);
+  /** Shartnoma/«Shartnomasiz» tugunlari asl daraxtda yo‘q: ostida yorug‘ obyekt bo‘lsa — ular ham yorug‘. */
+  const yoritilganX = useMemo(() => {
+    if (!yoritilgan || xaritaDaraxt === daraxt) return yoritilgan;
+    const s = new Set(yoritilgan);
+    for (const x of xaritaDaraxt.tugunlar.values()) if (!daraxt.tugunlar.has(x.id) && x.bolalar.some((b) => yoritilgan.has(b))) s.add(x.id);
+    return s;
+  }, [yoritilgan, xaritaDaraxt, daraxt]);
   const mosObyektlar = filtrSet ? [...filtrSet].filter((id) => daraxt.tugunlar.get(id)?.tur === 'obyekt').length : root.obyektSoni;
 
   const holatniTanla = (h: XHolat) => { setHolatFiltri((f) => (f === h ? null : h)); onTanla(null); };
@@ -169,54 +183,48 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
   const yigToggle = (id: string) => setYigilgan((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const hammasiniYig = (yig: boolean) => setYigilgan(yig ? new Set(root.bolalar.filter((id) => daraxt.tugunlar.get(id)!.bolalar.length)) : new Set());
 
-  /* ── Tugun amallari (A1) ── */
+  /* ── Tugun amallari (A1): yagona hook (`useTugunAmallar`) — karta kanvasi ham shuni ishlatadi ── */
   const navigate = useNavigate();
-  const [menyu, setMenyu] = useState<(MenyuHolati & { nishon: AmalNishon }) | null>(null);
-  const [amalModal, setAmalModal] = useState<AmalModalHolati>(null);
   const amalKontekst = useMemo(() => ({ ...(amalKorish ?? YOPIQ_KORISH), pul: !daraxt.pulYoq, masul: !!masul?.mumkin }), [amalKorish, daraxt.pulYoq, masul?.mumkin]);
-  const amallarOl = useCallback((n: AmalNishon) => {
-    const asos = tugunAmallari(n, amalKontekst).filter((a) => a.modal !== 'vazifa' || !!vazifa);
-    if (!pult) return asos;
-    // Boshqaruv pulti: yaratish / biriktirish / uzish / nomlash (oldindan ko‘rish + tasdiq; ruxsat yo‘q — sabab bilan yopiq).
-    return [...asos, ...pultAmallari(graf, pultNishon(graf, n.id), pult.kontekst.tahrir).map((a): Amal => ({
-      kalit: 'pult:' + a.kalit, nom: a.nom, ikon: a.kalit.includes('yarat') ? 'yangi' : a.kalit.includes('nomla') ? 'nomlash' : a.kalit.endsWith('-uz') || a.kalit.endsWith('.uz') ? 'uzish' : 'ulash',
-      bajar: 'pult', yol: null, modal: null, panel: null, mumkin: a.mumkin, sabab: a.sabab, pult: a.kalit,
-    }))];
-  }, [amalKontekst, vazifa, pult, graf]);
-  const amalOch = useCallback((n: AmalNishon, x: number, y: number) => {
-    setMenyu({ nishon: n, nishonNom: n.tur === 'kompaniya' ? n.nom || t('Kompaniya') : n.tur === 'jamoa' ? t('Jamoa') : n.nom, amallar: amallarOl(n), x, y });
-  }, [amallarOl]);
-  /** Tugmadan ochish: menyu tugma ostida. */
-  const amalOchEl = useCallback((n: AmalNishon, el: HTMLElement) => { const r = el.getBoundingClientRect(); amalOch(n, r.left, r.bottom + 4); }, [amalOch]);
-  const tugunAmalOch = useCallback((id: string, x: number, y: number) => {
+  /** Xaritadagi tugun → amal nishoni: asl daraxt tugunlari + shartnoma (jadval qatori bilan bir xil nishon). «Shartnomasiz» guruhda amal yo‘q. */
+  const xaritaNishoni = useCallback((id: string): AmalNishon | null => {
     const tg = daraxt.tugunlar.get(id);
-    const n = tg ? tugunNishoni(tg, !!daraxt.jamoa) : null;
-    if (n) amalOch(n, x, y);
-  }, [daraxt, amalOch]);
-  const amalBajar = (a: Amal) => {
-    const n = menyu?.nishon;
-    setMenyu(null);
-    if (!n || !a.mumkin) return;
-    if (a.bajar === 'pult' && a.pult) { setAmalModal({ tur: 'pult', nishonId: n.id, amal: a.pult }); return; }
-    if (a.bajar === 'yol' && a.yol) { navigate(a.yol); return; }
-    if (a.modal === 'masul') { setAmalModal({ tur: 'masul', odamId: n.id }); return; }
-    if (a.modal === 'vazifa') { setAmalModal({ tur: 'vazifa', odamId: n.tur === 'odam' ? n.id : null, obyektId: n.tur === 'obyekt' ? n.entityId : null }); return; }
-    if (a.panel === 'tanla' || a.panel === 'masul') {
-      onTanla(n.id);
-      setPanelOchiq(true);
-      // «Mas‘ullar» blokidagi biriktirish maydoni panel chizilgach fokuslanadi.
-      if (a.panel === 'masul') {
-        let urinish = 0;
-        const fokusla = () => {
-          // Biriktirish maydoni (yoki nomzod qolmagan bo‘lsa — Mas‘ullar blokining o‘zi).
-          const el = document.querySelector<HTMLElement>('[data-masul-fokus]') ?? (urinish >= 9 ? document.querySelector<HTMLElement>('[data-testid="xarita-masullar"]') : null);
-          if (el) { el.scrollIntoView?.({ block: 'center' }); el.focus({ preventScroll: true }); } else if (++urinish < 10) requestAnimationFrame(fokusla);
-        };
-        requestAnimationFrame(fokusla);
-      }
+    if (tg) return tugunNishoni(tg, !!daraxt.jamoa);
+    const sh = xaritaDaraxt.tugunlar.get(id);
+    if (!sh || sh.tur !== 'shartnoma' || shartnomasizmi(id)) return null;
+    const n = Number(id.split(':')[1]);
+    return { tur: 'shartnoma', id, entityId: Number.isSafeInteger(n) && n > 0 ? n : null, nom: sh.nom, obyektId: null };
+  }, [daraxt, xaritaDaraxt]);
+  const panelAmali = useCallback((n: AmalNishon, a: Amal) => {
+    onTanla(n.id);
+    setPanelOchiq(true);
+    // «Mas‘ullar» blokidagi biriktirish maydoni panel chizilgach fokuslanadi.
+    if (a.panel === 'masul') {
+      let urinish = 0;
+      const fokusla = () => {
+        // Biriktirish maydoni (yoki nomzod qolmagan bo‘lsa — Mas‘ullar blokining o‘zi).
+        const el = document.querySelector<HTMLElement>('[data-masul-fokus]') ?? (urinish >= 9 ? document.querySelector<HTMLElement>('[data-testid="xarita-masullar"]') : null);
+        if (el) { el.scrollIntoView?.({ block: 'center' }); el.focus({ preventScroll: true }); } else if (++urinish < 10) requestAnimationFrame(fokusla);
+      };
+      requestAnimationFrame(fokusla);
     }
-  };
-
+  }, [onTanla]);
+  const amallar = useTugunAmallar({ graf, daraxt, pult, amalKorish, masul, vazifa, nishonOl: xaritaNishoni, onPanel: panelAmali });
+  const { amallarOl } = amallar;
+  const amalOchEl = useCallback((n: AmalNishon, el: HTMLElement) => { const r = el.getBoundingClientRect(); amallar.menyuOchNishon(n, r.left, r.bottom + 4); }, [amallar]);
+  const tugunAmalOch = useCallback((id: string, x: number, y: number) => amallar.menyuOchId(id, x, y), [amallar]);
+  const tugunYaratishOch = useCallback((id: string, x: number, y: number) => amallar.menyuOchId(id, x, y, true), [amallar]);
+  const yaratishBor = amallar.yaratishBor;
+  /** Tugunni bosish: shartnomada (panel yo‘q) — to‘g‘ridan-to‘g‘ri amallar menyusi; qolganlarda — tafsilot paneli. */
+  const xaritaTanla = useCallback((id: string | null) => {
+    if (id && !daraxt.tugunlar.has(id) && xaritaDaraxt.tugunlar.has(id)) {
+      const el = document.querySelector<HTMLElement>('[data-tugun="' + id + '"]');
+      const r = el?.getBoundingClientRect();
+      amallar.menyuOchId(id, r ? r.left + Math.min(24, r.width / 2) : 80, r ? r.bottom + 4 : 80);
+      return;
+    }
+    onTanla(id);
+  }, [daraxt, xaritaDaraxt, amallar, onTanla]);
   /* ── Boshqaruv pulti (asosiy ko‘rinish): kompaniya → loyiha → shartnoma → obyekt ── */
   const pultIldiz = useMemo(() => (korinish === 'pult' ? pultDaraxtQur(graf, daraxt) : null), [korinish, graf, daraxt]);
   const pultKorinadi = useMemo(() => (pultIldiz ? pultQidiruvi(pultIldiz, qidiruv, qidiruvdaBor, holatFiltri) : null), [pultIldiz, qidiruv, holatFiltri]);
@@ -280,7 +288,9 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
               <span aria-hidden className="inline-block h-3 w-3 rotate-45 rounded-[2px] bg-[var(--accent)]" />
               {t('Boshqaruv pulti')}
             </h1>
-            <p className="mt-0.5 hidden text-[12.5px] text-text-dim sm:block">{korinish === 'pult' && pult
+            <p className="mt-0.5 hidden text-[12.5px] text-text-dim sm:block">{korinish === 'xarita' && pult
+              ? t('Tugunni bosing — tafsilot. Tugundagi «+» — yangisini qo‘shish, «⋯» — barcha amallar. Aylantirish — zum, sudrash — surish.')
+              : korinish === 'pult' && pult
               ? t('Kompaniya → loyiha → shartnoma → obyekt. Tugunni bosing — tafsilot; «⋯» — yaratish, biriktirish va sahifaga o‘tish.')
               : t('Loyihalar → obyektlar → smeta, fakt va F2 holati. Tugunni bosing — tafsilot va havolalar.')}</p>
           </div>
@@ -337,14 +347,14 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
                 <span>{pult && tahrirMumkin ? t('Hali loyiha va obyekt yo‘q. Birinchi loyihani shu yerdan yarating.') : tahrirMumkin ? t('Hali loyiha va obyekt yo‘q. Obyektlar «Obyektlar» sahifasida, loyiha va resurslar «Tahrir» ko‘rinishida qo‘shiladi.') : t('Hali loyiha va obyekt yo‘q.')}</span>
                 {pult && tahrirMumkin && graf.tugunlar.some((x) => x.id === daraxt.ildiz) && (
                   <button type="button" className="fz-btn fz-btn--sm fz-btn--primary" data-testid="pult-birinchi-loyiha"
-                    onClick={() => setAmalModal({ tur: 'pult', nishonId: daraxt.ildiz, amal: 'loyiha.yarat' })}>{t('Yangi loyiha')}</button>
+                    onClick={() => amallar.modalOch({ tur: 'pult', nishonId: daraxt.ildiz, amal: 'loyiha.yarat' })}>{t('Yangi loyiha')}</button>
                 )}
               </div>
             </div>
           )}
           {!bosh && !tarkibYoq && korinish === 'xarita' && (
-            <XaritaKanvas daraxt={daraxt} joylashuv={joylashuv} tanlangan={tanlangan} onTanla={onTanla} yoritilgan={yoritilgan}
-              yigilgan={yigilgan} onYigToggle={yigToggle} onHammasiniYig={hammasiniYig} guruhNomi={guruhNomi} onAmallar={tugunAmalOch}>
+            <XaritaKanvas daraxt={xaritaDaraxt} joylashuv={joylashuv} tanlangan={tanlangan} onTanla={xaritaTanla} yoritilgan={yoritilganX}
+              yigilgan={yigilgan} onYigToggle={yigToggle} onHammasiniYig={hammasiniYig} guruhNomi={guruhNomi} onAmallar={tugunAmalOch} onYaratish={tugunYaratishOch} yaratishBor={yaratishBor}>
               <div data-boshqaruv className="absolute left-3 right-16 top-3 z-10">{asboblar}</div>
               <Izoh ochiq={izohOchiq} setOchiq={setIzohOchiq} />
             </XaritaKanvas>
@@ -385,10 +395,7 @@ export function MindmapXarita({ graf, yuklanmoqda, xato, oxirgiYangilanish, onYa
           )}
         </AnimatePresence>
       </div>
-      {amalModal?.tur === 'pult' && pult && <PultAmalModal graf={graf} nishonId={amalModal.nishonId} amalKalit={amalModal.amal} kontekst={pult.kontekst} onYop={() => setAmalModal(null)} onTugadi={pult.onTugadi} />}
-      {menyu && <AmalMenyu holat={menyu} onYop={() => setMenyu(null)} onBajar={amalBajar} />}
-      {amalModal?.tur === 'masul' && masul && <MasulQilishModal daraxt={daraxt} odamId={amalModal.odamId} masul={masul} onYop={() => setAmalModal(null)} />}
-      {amalModal?.tur === 'vazifa' && vazifa && <VazifaModal daraxt={daraxt} odamId={amalModal.odamId} obyektId={amalModal.obyektId} vazifa={vazifa} onYop={() => setAmalModal(null)} />}
+      {amallar.qatlam}
     </div>
   );
 }
