@@ -30,6 +30,8 @@ import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { pullikTurmi, tolovDalili, tolovRad } from '../_shared/hujjat-tolov';
+import { serverQaytar, serverSarfla, sarfRad } from '../_shared/hujjat-sarf';
+import { mazmunXeshi } from '../../src/api/mazmun-xesh';
 
 type Env = {
   SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string;
@@ -74,6 +76,8 @@ function upstreamDocumentFailure(code: string, status = 502) {
 }
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
+  /* Serverda yechilgan token (xato bo'lsa qaytariladi). */
+  let tolovQaytar: (() => Promise<void>) | null = null;
   try {
     const sess = cachedAuthority(ctx) ?? await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT);
     if (!sess) return Response.json({ ok: false, code: 'AUTH_REQUIRED', xato: 'Kirish talab qilinadi' }, { status: 401 });
@@ -109,9 +113,33 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     /* P0 (ekotizim): tizim yasagan pullik hujjat (paket ZIP, F2/F3 arxivi) - server to'langan token dalilini tekshiradi.
        Dalil yo'q bo'lsa R2 ga ham, reyestrga ham hech narsa yozilmaydi. Foydalanuvchining o'z fayllari (smeta, murojaat...) bepul. */
     const pullik = pullikTurmi(turi);
+    let oldindanBuf: ArrayBuffer | null = null;
     if (pullik) {
-      const rad = tolovRad(await tolovDalili(ctx.env, kompaniyaId, { turi, sha256: clientSha, obyektId }));
-      if (rad) return rad;
+      /* Dalil kaliti — hujjat MAZMUNI xeshi (mijoz `hujjatTokenBilan` bilan bir xil: ichki fayllar, docProps'siz).
+         Kichik faylda server baytlarni o'zi o'qib, sha256 ni tekshiradi (to'lov soxta xeshga bog'lanmasin). */
+      let xesh = clientSha;
+      let baytlar: Uint8Array | null = null;
+      if (declaredSize <= inlineLimit) {
+        oldindanBuf = await file.arrayBuffer();
+        if (oldindanBuf.byteLength !== declaredSize) return Response.json({ ok: false, code: 'SIZE_MISMATCH', xato: 'Yuborilgan hajm faylga mos emas' }, { status: 400 });
+        if (await sha256Hex(oldindanBuf) !== clientSha) return Response.json({ ok: false, code: 'CANONICAL_HASH_MISMATCH', xato: 'Fayl butunligi tekshiruvi o‘tmadi' }, { status: 400 });
+        baytlar = new Uint8Array(oldindanBuf);
+        xesh = await mazmunXeshi(baytlar);
+      }
+      const holat = await tolovDalili(ctx.env, kompaniyaId, { turi, sha256: xesh, obyektId });
+      if (holat === 'xato') return tolovRad('xato') as Response;
+      if (holat === 'yoq') {
+        /* Dalil yo'q: token SERVERDA yechiladi (eksport tokeni mijozni chetlab o'tolmaydi). Paket ZIP — ichki hujjatlar
+           mijozda alohida to'langan, butun ZIP ni qayta yechish ikki marta to'lov bo'lardi; katta fayl baytsiz sanalmaydi — rad. */
+        const f2ObyektsizMi = turi === 'f2_hujjat' && !(Number.isSafeInteger(obyektId) && (obyektId as number) > 0);
+        if (!baytlar || turi === 'shartnoma_oylik_paket' || f2ObyektsizMi) return tolovRad('yoq') as Response;
+        const s = await serverSarfla(ctx.env, { actorId: Number(actorId), kompaniyaId, turi, obyektId, davr: revision, xesh, bytes: baytlar });
+        if (!s.ok) return sarfRad(s);
+        if (s.operationId) {
+          const sarfOp = s.operationId;
+          tolovQaytar = async () => { tolovQaytar = null; await serverQaytar(ctx.env, { actorId: Number(actorId), kompaniyaId, sarfOperationId: sarfOp }).catch(() => false); };
+        }
+      }
     }
 
     const reserve = await rpc(ctx.env, sourceSlotKey ?'t2_document_canonical_reserve_slot_v1' : 't2_document_canonical_reserve_v1',
@@ -128,6 +156,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
             p_expected_size: declaredSize, p_client_sha256: clientSha, p_operation_id: operationId, p_revision: revision,
           });
     if (!reserve.httpOk || !reserve.body || reserve.body.ok !== true) {
+      await tolovQaytar?.();
       return upstreamDocumentFailure((reserve.body && typeof reserve.body.code === 'string') ? reserve.body.code : 'DOCUMENT_RESERVE_FAILED');
     }
     const documentId: number = reserve.body.document_id;
@@ -150,7 +179,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 
     if (declaredSize <= inlineLimit) {
       // small file: buffer once (bounded), verify hash, then store
-      const buf = await file.arrayBuffer();
+      const buf = oldindanBuf ?? await file.arrayBuffer();
       if (buf.byteLength !== declaredSize) {
         await rpc(ctx.env, 't2_document_canonical_reconcile_v1', { p_document_id: documentId, p_r2_key_exists: false });
         return Response.json({ ok: false, code: 'SIZE_MISMATCH', xato: 'Yuborilgan hajm faylga mos emas' }, { status: 400 });
@@ -206,6 +235,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       size_bytes: declaredSize, versiya: fin.body.versiya, drive_sync: 'pending',
     });
   } catch {
+    await tolovQaytar?.();
     return Response.json({
       ok: false,
       code: 'UPLOAD_FAILED',

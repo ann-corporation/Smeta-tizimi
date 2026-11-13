@@ -24,3 +24,23 @@ kitobKuzatuvchiniOrnat((bytes, dizayn, nomlar) => {
   const xato = hujjatDizaynTekshir(bytes, dizayn);
   if (xato.length) throw new Error('HUJJAT_DIZAYN [' + nomlar.join(', ') + ']: ' + xato.slice(0, 8).join('; '));
 });
+
+
+// Sanaga bog'liqlikni tekshirish: TEST_SANA=2026-01-01T00:00:00 bilan butun to'plam soxta tizim sanasida yuradi.
+// Vaqt to'xtab qolmaydi (siljish — offset): faqat `new Date()` / `Date.now()` boshlang'ich nuqtasi siljiydi,
+// taymerlar va kutish haqiqiy. Oddiy yurishda o'rnatilmaydi.
+if (process.env.TEST_SANA) {
+  const sana = new Date(process.env.TEST_SANA);
+  if (!Number.isNaN(sana.getTime())) {
+    const HaqiqiyDate = Date;
+    const siljish = sana.getTime() - HaqiqiyDate.now();
+    class SiljiganDate extends HaqiqiyDate {
+      constructor(...a: unknown[]) {
+        if (a.length === 0) super(HaqiqiyDate.now() + siljish);
+        else super(...(a as [number]));
+      }
+      static now() { return HaqiqiyDate.now() + siljish; }
+    }
+    globalThis.Date = SiljiganDate as unknown as DateConstructor;
+  }
+}

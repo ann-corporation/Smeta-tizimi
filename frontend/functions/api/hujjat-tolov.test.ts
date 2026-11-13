@@ -22,12 +22,20 @@ const r2 = () => {
   return { put, get, bucket: { put, get } as unknown as R2Bucket };
 };
 
-type Mock = { sarf?: unknown; qaytgan?: unknown; registr?: unknown; harakatXato?: boolean };
+type Mock = { sarf?: unknown; qaytgan?: unknown; registr?: unknown; harakatXato?: boolean; sarfla?: unknown[]; reserveXato?: boolean };
+let rpcBody: Record<string, Array<Record<string, unknown>>> = {};
 function mockFetch(m: Mock) {
   const chaqiruvlar: string[] = [];
-  vi.stubGlobal('fetch', vi.fn(async (u: string) => {
+  rpcBody = {};
+  const sarflaNav = [...(m.sarfla ?? [])];
+  vi.stubGlobal('fetch', vi.fn(async (u: string, init?: RequestInit) => {
     const url = decodeURIComponent(String(u));
     chaqiruvlar.push(url);
+    const rpcNom = /\/rpc\/([a-z0-9_]+)/.exec(url)?.[1];
+    if (rpcNom && init?.body) (rpcBody[rpcNom] ??= []).push(JSON.parse(String(init.body)));
+    if (rpcNom === 't2_token_sarfla_v1') return Response.json(sarflaNav.length ? sarflaNav.shift() : { ok: true, sarflandi: 3, hisob: {}, balans: 10 });
+    if (rpcNom === 't2_token_qaytar_v1') return Response.json({ ok: true });
+    if (m.reserveXato && url.includes('/rpc/t2_document_canonical_reserve')) return Response.json({ ok: false, code: 'DOCUMENT_RESERVE_FAILED' });
     if (url.includes('/rpc/t2_document_canonical_reserve_v1')) return Response.json({ ok: true, document_id: 50, r2_key: 'docs/17/_/5/d50/r1', canonical_storage_status: 'reserved' });
     if (url.includes('/rpc/t2_document_canonical_share_v1')) return Response.json({ ok: false, code: 'NO_SHARED_SOURCE' });
     if (url.includes('/rpc/t2_document_canonical_finalize_v1')) return Response.json({ ok: true, revision_seq: 1, sha256: 'x', sha256_verified: true, versiya: 1 });
@@ -80,7 +88,7 @@ describe('hujjat-yukla: pullik tur uchun to\'lov dalili', () => {
   });
   it('sarf qaytarilgan (refund) — dalil hisoblanmaydi, 402', async () => {
     mockFetch({ sarf: [{ operation_id: SARF_OP }], qaytgan: [{ bogliq_operation_id: SARF_OP }] });
-    const { res } = await yuklash('f3');
+    const { res } = await yuklash('shartnoma_oylik_paket');
     expect(res.status).toBe(402);
   });
   it('dalilni o\'qib bo\'lmasa — yopiq (503), hech narsa yozilmaydi', async () => {
@@ -90,14 +98,14 @@ describe('hujjat-yukla: pullik tur uchun to\'lov dalili', () => {
     expect(put).not.toHaveBeenCalled();
   });
   it('f2_hujjat: dalil — shu obyektda to\'langan f2_hujjat sarfi (F2 xeshi mantiqiy kalit)', async () => {
-    mockFetch({ sarf: [] });
-    expect((await yuklash('f2_hujjat', { obyekt_id: '5' })).res.status).toBe(402);
     const c = mockFetch({ sarf: [{ operation_id: SARF_OP }], qaytgan: [] });
     const { json } = await yuklash('f2_hujjat', { obyekt_id: '5' });
     expect(json).toMatchObject({ ok: true });
     expect(c.find((u) => u.includes('tur=eq.sarf'))).toContain('meta->>obyekt=eq.5');
+    expect(rpcBody.t2_token_sarfla_v1).toBeUndefined(); // to'langan — server qayta yechmaydi
     mockFetch({ sarf: [{ operation_id: SARF_OP }] });
-    expect((await yuklash('f2_hujjat')).res.status).toBe(402); // obyektsiz F2 — dalil bo'lmaydi
+    expect((await yuklash('f2_hujjat')).res.status).toBe(402); // obyektsiz F2 — dalil ham, server yechimi ham bo'lmaydi
+    expect(rpcBody.t2_token_sarfla_v1).toBeUndefined();
   });
   it('foydalanuvchining o\'z fayli (smeta, hujjat) — to\'lov tekshirilmaydi, bepul', async () => {
     const c = mockFetch({ sarf: [] });
