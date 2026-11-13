@@ -39,4 +39,3 @@ it('Enter moves through the page boundary to the next quantity',()=>{
  mount(fixture(51));const last=screen.getByLabelText('Hajm: E49');last.focus();fireEvent.change(last,{target:{value:'7'}});fireEvent.keyDown(last,{key:'Enter'});
  expect(document.activeElement).toBe(screen.getByLabelText('Hajm: E50'));
 });
-
