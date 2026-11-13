@@ -7,6 +7,8 @@ const m = vi.hoisted(() => ({
   akt: vi.fn(), davom: vi.fn(), f3: vi.fn(),
 }));
 vi.mock('../../umumiy/kontekst/PTOWorkspaceContext', () => ({ usePTOWorkspace: () => m.ws }));
+const rolHolati = vi.hoisted(() => ({ rol: null as string | null }));
+vi.mock('../../umumiy/kontekst/KompaniyaKontekst', () => ({ useKompaniya: () => ({ joriy: rolHolati.rol ? { rol: rolHolati.rol } : null }) }));
 vi.mock('../../api/supabase', () => ({ sbT2AktReestrOl: m.akt }));
 vi.mock('../../api/t2-f2-davom', () => ({ f2DavomRoyxatOl: m.davom }));
 vi.mock('../../lib/pto-markazi/forma3-holat', () => ({ forma3OyHolati: m.f3 }));
@@ -15,11 +17,32 @@ import { qadamMalumotKeshTozala } from '../../lib/pto-markazi/useQadamMalumot';
 
 const akt = (o: Record<string, unknown>) => ({ tur: 'fakt', holat: 'tasdiqlangan', oy: '2026-11-01', yaratildi: '2026-11-03T00:00:00Z', hujjat_jami: 1, yozilgan_jami: 1, ...o });
 const chiz = (p: Parameters<typeof ZanjirChizigi>[0] = {}) => render(<MemoryRouter><ZanjirChizigi {...p} /></MemoryRouter>);
-const TARTIB = ['smeta', 'fakt', 'aosr', 'f2', 'f3', 'tolov'];
+const TARTIB = ['smeta', 'fakt', 'aosr', 'f2', 'f3', 'tolov', 'slichitelniy'];
 
 afterEach(() => {
-  cleanup(); qadamMalumotKeshTozala(); vi.clearAllMocks();
+  cleanup(); qadamMalumotKeshTozala(); vi.clearAllMocks(); rolHolati.rol = null;
   m.ws = { companyId: 7, scope: { objectId: 5 }, objects: [{ id: 5, jami: 1000, narxsiz: 0 }], scopeSearch: (id) => `?obyekt=${id}&davr=2026-11` };
+});
+
+describe('ZanjirChizigi — rol va qo‘shimcha sonlar', () => {
+  it('buyurtmachi/texnadzor roli — chiziq chizilmaydi; pudratchi roli (pto) — chiziladi', () => {
+    m.akt.mockReturnValue(new Promise(() => undefined)); m.davom.mockReturnValue(new Promise(() => undefined));
+    rolHolati.rol = 'buyurtmachi';
+    const { container, unmount } = chiz();
+    expect(container.innerHTML).toBe('');
+    unmount();
+    rolHolati.rol = 'pto';
+    chiz();
+    expect(screen.getByTestId('zanjir-chizigi')).toBeTruthy();
+  });
+  it('slichitelniy farqi sahifadan berilsa — qadam izohida son; berilmasa — noma‘lum', () => {
+    m.akt.mockReturnValue(new Promise(() => undefined)); m.davom.mockReturnValue(new Promise(() => undefined));
+    const { unmount } = chiz({ qoshimcha: { slichitelniy: { farqli: 7, barglar: 20 } } });
+    expect(screen.getByTestId('zanjir-izoh-slichitelniy').textContent).toBe('7 qatorda farq bor');
+    unmount();
+    chiz();
+    expect(screen.getByTestId('zanjir-qadam-slichitelniy').closest('li')?.getAttribute('data-holat')).not.toBe('done');
+  });
 });
 
 describe('ZanjirChizigi', () => {
@@ -42,6 +65,7 @@ describe('ZanjirChizigi', () => {
       '/admin/f2-tayyorlash?obyekt=5&davr=2026-11',
       '/admin/nakopitelniy?obyekt=5&davr=2026-11&f3=shartnoma',
       '/admin/moliya?obyekt=5&davr=2026-11&tab=tolov',
+      '/admin/holat/5?obyekt=5&davr=2026-11#slichitelniy',
     ]);
     expect(screen.getByTestId('zanjir-qadam-aosr').getAttribute('aria-current')).toBe('step');
     expect(screen.getByTestId('zanjir-qadam-f2').getAttribute('aria-current')).toBeNull();

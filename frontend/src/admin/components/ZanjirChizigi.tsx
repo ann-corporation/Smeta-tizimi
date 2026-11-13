@@ -4,7 +4,8 @@ import type { ComponentType } from 'react';
 import { t } from '../../i18n/til';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { useForma3Holat, useIshOyi } from '../../lib/pto-markazi/useQadamMalumot';
-import { ZANJIR_YOL, zanjirHisobla, zanjirKirishYasa, type QadamHolat, type ZanjirKirish, type ZanjirQadamId, type ZanjirTavsiya } from '../../lib/zanjir/qadamlar';
+import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
+import { ZANJIR_YOL, zanjirHisobla, zanjirKirishYasa, zanjirRolKoradi, type QadamHolat, type ZanjirKirish, type ZanjirQadamId, type ZanjirTavsiya } from '../../lib/zanjir/qadamlar';
 
 /**
  * Pudratchi ish zanjiri chizig'i — YAGONA «keyingi qadam» vidjeti (obyekt sahifasi va zanjirning hamma qadam sahifalari).
@@ -27,20 +28,26 @@ const HOLAT_SINF: Record<QadamHolat, string> = {
   unknown: 'border-dashed border-border bg-surface text-text-mute',
 };
 
-export function ZanjirChizigi({ joriy, obyektId, aosr }: { joriy?: ZanjirBelgi | null; obyektId?: number | null; aosr?: ZanjirKirish['aosr'] }) {
+/** Sahifa o'zi yuklagan qo'shimcha sonlar (smeta qator soni, fakt qamrovi, slichitelniy farqi) — yo'q bo'lsa «—»/noma'lum. */
+export type ZanjirQoshimcha = Partial<Pick<ZanjirKirish, 'smetaQator' | 'faktQamrov' | 'slichitelniy'>>;
+
+export function ZanjirChizigi({ joriy, obyektId, aosr, qoshimcha }: { joriy?: ZanjirBelgi | null; obyektId?: number | null; aosr?: ZanjirKirish['aosr']; qoshimcha?: ZanjirQoshimcha }) {
   const ws = usePTOWorkspace();
+  const { joriy: kompaniya } = useKompaniya();
   const routerda = useInRouterContext();
   const id = obyektId ?? ws.scope?.objectId ?? null;
   if (!routerda || id == null) return null;
-  return <Chizig obyektId={id} joriy={joriy ?? null} aosr={aosr ?? null} />;
+  /* Faqat obyekt bilan ishlaydigan pudratchi rollari; texnadzor/buyurtmachi ko'rinishi o'zgarmaydi. */
+  if (!zanjirRolKoradi(kompaniya?.rol)) return null;
+  return <Chizig obyektId={id} joriy={joriy ?? null} aosr={aosr ?? null} qoshimcha={qoshimcha} />;
 }
 
-function Chizig({ obyektId: id, joriy, aosr }: { obyektId: number; joriy: ZanjirBelgi | null; aosr: ZanjirKirish['aosr'] }) {
+function Chizig({ obyektId: id, joriy, aosr, qoshimcha }: { obyektId: number; joriy: ZanjirBelgi | null; aosr: ZanjirKirish['aosr']; qoshimcha?: ZanjirQoshimcha }) {
   const ws = usePTOWorkspace();
   const io = useIshOyi(id);
   const aktlar = io.malumot.aktlar;
   const obyekt = (ws.objects ?? []).find((o) => o.id === id) ?? null;
-  const asos = { obyekt, aktlar, oy: io.oy, aosr };
+  const asos = { obyekt, aktlar, oy: io.oy, aosr, ...qoshimcha };
   /* Forma 3 soni faqat shu oyda tasdiqlangan F2 bor bo'lsagina o'qiladi (mavjud kelishuv) — boshqa holatda null (noma'lum). */
   const f3Kerak = (zanjirKirishYasa(asos).f2TasdiqBuOyda ?? 0) > 0;
   const forma3 = useForma3Holat(id, io.oy, f3Kerak);
@@ -51,7 +58,7 @@ function Chizig({ obyektId: id, joriy, aosr }: { obyektId: number; joriy: Zanjir
     if (q === 'f3') p.set('f3', 'shartnoma');
     if (q === 'tolov') p.set('tab', 'tolov');
     const s = p.toString();
-    return { pathname: q === 'smeta' ? `${ZANJIR_YOL.smeta}/${id}` : ZANJIR_YOL[q], search: s ? `?${s}` : '' };
+    return { pathname: q === 'smeta' || q === 'slichitelniy' ? `${ZANJIR_YOL[q]}/${id}` : ZANJIR_YOL[q], search: s ? `?${s}` : '', hash: q === 'slichitelniy' ? '#slichitelniy' : '' };
   };
   const keyingi = natija.keyingi;
 
@@ -93,7 +100,7 @@ function Chizig({ obyektId: id, joriy, aosr }: { obyektId: number; joriy: Zanjir
   );
 }
 
-function KeyingiBlok({ keyingi, to }: { keyingi: ZanjirTavsiya; to: { pathname: string; search: string } }) {
+function KeyingiBlok({ keyingi, to }: { keyingi: ZanjirTavsiya; to: { pathname: string; search: string; hash: string } }) {
   const sabab = keyingi.eslatma ? `${keyingi.sabab} · ${keyingi.eslatma}` : keyingi.sabab;
   return (
     <>
