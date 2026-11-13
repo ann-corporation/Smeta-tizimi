@@ -1,10 +1,10 @@
 import { useInRouterContext, Link } from 'react-router-dom';
 import { ArrowRight, Check, CircleDashed, Lock, HelpCircle } from 'lucide-react';
-import type { ReactNode } from 'react';
+import type { ComponentType } from 'react';
 import { t } from '../../i18n/til';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { useForma3Holat, useIshOyi } from '../../lib/pto-markazi/useQadamMalumot';
-import { ZANJIR_YOL, zanjirHisobla, zanjirKirishYasa, type QadamHolat, type ZanjirKirish, type ZanjirQadamId } from '../../lib/zanjir/qadamlar';
+import { ZANJIR_YOL, zanjirHisobla, zanjirKirishYasa, type QadamHolat, type ZanjirKirish, type ZanjirQadamId, type ZanjirTavsiya } from '../../lib/zanjir/qadamlar';
 
 /**
  * Pudratchi ish zanjiri chizig'i — YAGONA «keyingi qadam» vidjeti (obyekt sahifasi va zanjirning hamma qadam sahifalari).
@@ -15,13 +15,7 @@ import { ZANJIR_YOL, zanjirHisobla, zanjirKirishYasa, type QadamHolat, type Zanj
  */
 export type ZanjirBelgi = ZanjirQadamId;
 
-const IKONKA: Record<QadamHolat, ReactNode> = {
-  done: <Check aria-hidden className="h-3.5 w-3.5" />,
-  current: <ArrowRight aria-hidden className="h-3.5 w-3.5" />,
-  blocked: <Lock aria-hidden className="h-3.5 w-3.5" />,
-  not_started: <CircleDashed aria-hidden className="h-3.5 w-3.5" />,
-  unknown: <HelpCircle aria-hidden className="h-3.5 w-3.5" />,
-};
+const IKONKA: Record<QadamHolat, ComponentType<{ className?: string; 'aria-hidden'?: boolean }>> = { done: Check, current: ArrowRight, blocked: Lock, not_started: CircleDashed, unknown: HelpCircle };
 const HOLAT_NOMI: Record<QadamHolat, () => string> = {
   done: () => t('Bajarilgan'), current: () => t('Hozir'), blocked: () => t('Bloklangan'), not_started: () => t('Navbatda'), unknown: () => t('Noma‘lum'),
 };
@@ -67,6 +61,7 @@ function Chizig({ obyektId: id, joriy, aosr }: { obyektId: number; joriy: Zanjir
         {natija.qadamlar.map((q, i) => {
           const faol = joriy === q.id;
           const tavsiya = keyingi?.id === q.id;
+          const Ikonka = IKONKA[q.holat];
           return (
             <li key={q.id} className="min-w-0 flex-1 basis-[7.5rem]" data-holat={q.holat}>
               <Link
@@ -79,7 +74,7 @@ function Chizig({ obyektId: id, joriy, aosr }: { obyektId: number; joriy: Zanjir
                 <span className="flex min-w-0 items-center gap-1.5">
                   <span className="shrink-0 tabular-nums">{i + 1}</span>
                   <span className="min-w-0 truncate font-semibold">{q.nom}</span>
-                  <span className="ml-auto shrink-0" role="img" aria-label={HOLAT_NOMI[q.holat]()}>{IKONKA[q.holat]}</span>
+                  <span className="ml-auto shrink-0" role="img" aria-label={HOLAT_NOMI[q.holat]()}><Ikonka aria-hidden className="h-3.5 w-3.5" /></span>
                 </span>
                 <span className="min-w-0 truncate text-xs leading-tight opacity-80" data-testid={`zanjir-izoh-${q.id}`}>{q.izoh}</span>
               </Link>
@@ -91,24 +86,22 @@ function Chizig({ obyektId: id, joriy, aosr }: { obyektId: number; joriy: Zanjir
         {io.aniq ? (
           <span className="text-sm text-text-mute" data-testid="ish-oyi" title={io.manba === 'faollik' ? t('Oxirgi fakt yoki F2 bor oy') : undefined}>{t('Ish oyi')}: <b className="ml-1 text-text">{io.oy}</b></span>
         ) : null}
-        {keyingi ? (
-          <>
-            <Link
-              to={havola(keyingi.id)}
-              data-testid="keyingi-qadam"
-              className="fz-btn fz-btn--primary inline-flex min-h-[44px] max-w-full items-center justify-center gap-2 text-sm font-semibold no-underline"
-            >
-              <span className="truncate">{keyingi.amal}</span>
-              <ArrowRight aria-hidden className="h-4 w-4 shrink-0" />
-            </Link>
-            <span className="min-w-0 flex-1 basis-48 text-sm text-text-dim" data-testid="keyingi-sabab">
-              {keyingi.sabab}{keyingi.eslatma ? ` · ${keyingi.eslatma}` : ''}
-            </span>
-          </>
-        ) : natija.tugallandi ? (
-          <span className="text-sm text-ok" data-testid="zanjir-tugadi">{t('Zanjir shu oy uchun yopilgan')}</span>
-        ) : null}
+        {keyingi && <KeyingiBlok keyingi={keyingi} to={havola(keyingi.id)} />}
+        {!keyingi && natija.tugallandi && <span className="text-sm text-ok" data-testid="zanjir-tugadi">{t('Zanjir shu oy uchun yopilgan')}</span>}
       </div>
     </nav>
+  );
+}
+
+function KeyingiBlok({ keyingi, to }: { keyingi: ZanjirTavsiya; to: { pathname: string; search: string } }) {
+  const sabab = keyingi.eslatma ? `${keyingi.sabab} · ${keyingi.eslatma}` : keyingi.sabab;
+  return (
+    <>
+      <Link to={to} data-testid="keyingi-qadam" className="fz-btn fz-btn--primary inline-flex min-h-[44px] max-w-full items-center justify-center gap-2 text-sm font-semibold no-underline">
+        <span className="truncate">{keyingi.amal}</span>
+        <ArrowRight aria-hidden className="h-4 w-4 shrink-0" />
+      </Link>
+      <span className="min-w-0 flex-1 basis-48 text-sm text-text-dim" data-testid="keyingi-sabab">{sabab}</span>
+    </>
   );
 }
