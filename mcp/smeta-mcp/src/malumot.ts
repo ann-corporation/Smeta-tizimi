@@ -1,4 +1,4 @@
-/** Bazadan umumiy o'qishlar (frontend o'qiydigan manbalar bilan bir xil: t2_qator, t2_qator_holat, ustama RPC, podval). */
+﻿/** Bazadan umumiy o'qishlar (frontend o'qiydigan manbalar bilan bir xil: t2_qator, t2_qator_holat, ustama RPC, podval). */
 import type { Mijoz } from './db';
 import { podvalTanla, ustamaliHisobla, type KatKesim, type UstamaNatija } from './frontend';
 import { son } from './format';
@@ -45,6 +45,8 @@ export type Ustama = {
   hisobla: (k: KatKesim) => UstamaNatija | null;
   holat: 'tayyor' | 'yoq';
   izoh?: string;
+  /** Svod yaxlit xulosasi (t2_obyekt_nakrutka_v1.svod_yaxlit): belgili bo'lim qatorlariga ustama hisoblanmaydi (bolimSummalari 4-argumenti). */
+  svod?: unknown;
 };
 
 /**
@@ -53,7 +55,7 @@ export type Ustama = {
  */
 export async function ustamaOl(m: Mijoz, obyektId: number, aktorId: number | null, shartnomaId: number | null = null): Promise<Ustama> {
   if (aktorId == null) return { hisobla: () => null, holat: 'yoq', izoh: 'aktor o\'rnatilmagan — ustamali hisoblanmadi (aktor_tanla).' };
-  const r = await m.query<{ n: { ok?: boolean; code?: string; koeffitsientlar?: Record<string, number> } | null }>(
+  const r = await m.query<{ n: { ok?: boolean; code?: string; koeffitsientlar?: Record<string, number>; svod_yaxlit?: unknown } | null }>(
     'select public.t2_obyekt_nakrutka_v1(p_obyekt_id => $1::bigint, p_actor_id => $2::bigint, p_shartnoma_id => $3::bigint) as n', [obyektId, aktorId, shartnomaId]);
   const n = r.rows[0]?.n;
   if (!n || n.ok !== true || !n.koeffitsientlar) return { hisobla: () => null, holat: 'yoq', izoh: `ustama koeffitsienti o'qilmadi${n?.code ? ` (${n.code})` : ''}` };
@@ -62,7 +64,7 @@ export async function ustamaOl(m: Mijoz, obyektId: number, aktorId: number | nul
   const p = podvalTanla(pod as unknown as Parameters<typeof podvalTanla>[0], { obyektId, shartnomaId });
   const podval = p ? { versiya: 1 as const, nom: p.nom, qatorlar: p.qatorlar } : null;
   const koef = n.koeffitsientlar;
-  return { hisobla: (k) => ustamaliHisobla(k, koef, podval as Parameters<typeof ustamaliHisobla>[2]), holat: 'tayyor', ...(podval ? { izoh: `podval: ${podval.nom}` } : {}) };
+  return { hisobla: (k) => ustamaliHisobla(k, koef, podval as Parameters<typeof ustamaliHisobla>[2]), holat: 'tayyor', svod: n.svod_yaxlit ?? null, ...(podval ? { izoh: `podval: ${podval.nom}` } : {}) };
 }
 
 /** Kesimning to'liq ustamasiz yig'indisi (kat noma'lum ham); summasi noma'lum qatorlar bo'lsa ham ma'lum qismi. */

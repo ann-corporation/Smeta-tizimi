@@ -1,4 +1,4 @@
-import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
+﻿import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { NakopitelniyGrafik } from '../../components/nakopitelniy/NakopitelniyGrafik';
 import { nakFaktJami } from '../../lib/nakopitelniy-korinish';
@@ -16,6 +16,7 @@ import { shartnomaSvodOl, sverkaXato, sverkaYozuvYoz, t2NakopitelniyToliq, tolov
 import { shartnomaSvodi, somga, sverkaHisobla, sverkaMatniniOqi, tiyin, type F3Holat, type SvodShartnoma, type SverkaImportNatija, type TolovTur } from '../../lib/nakopitelniy-svod';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { HujjatToliqEmasXato, NDS_SUKUT_FOIZ, shartnomaSvodXlsx, sverkaXlsx } from '../../lib/nakopitelniy-vedomost-export';
+import type { SvodYaxlit } from '../../lib/svod-yaxlit';
 import { t } from '../../i18n/til';
 import PulTahlil from '../../components/boss-decision/PulTahlil';
 import { forma3Hujjat, forma3SotuvdanXlsx, type Forma3ExportOptions, type Forma3Shakl } from '../../lib/forma3-export';
@@ -360,7 +361,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       const tay = await forma3Tayyorgarlik({ kompaniyaId: companyId, yil: Number(davr.slice(0, 4)), pudratchi: pudratchiRek, zakazchik: zakazchikRek, imzo: tomonlar });
       if (tay.yetishmaydi.length && !(await tasdiqSora({ sarlavha: 'Форма № 3: данные не заполнены', matn: 'Не заполнено: ' + tay.yetishmaydi.join('; ') + '. Эти строки останутся пустыми. Продолжить?', tasdiqMatni: 'Всё равно выгрузить' }))) return;
       const h = forma3Hujjat(
-        { nakopitelniy: [{ obyekt_id: Number(objectId), obyektNom, qatorlar: rows }], f2Oylik, f2Hajm: f3CertifiedHajm(taf.qatorlar, companyId, Number(objectId), davr.slice(0, 7)) },
+        { nakopitelniy: [{ obyekt_id: Number(objectId), obyektNom, qatorlar: rows, svodYaxlit: (nakrutkaJavob?.svod_yaxlit ?? null) as SvodYaxlit | null }], f2Oylik, f2Hajm: f3CertifiedHajm(taf.qatorlar, companyId, Number(objectId), davr.slice(0, 7)) },
         {
           shakl: f3Shakl, obyektNom, davr, asosiyObyektId: Number(objectId), imzo: tomonlar, nakrutka, podval, nkManba: nakrutkaJavob?.nk_manba ?? null, ndsFoiz: stavkaOl(),
           smetaNakrutka, ozgarishlar, lineage, lineageRequired: Boolean(lineage), davrAktlari,
