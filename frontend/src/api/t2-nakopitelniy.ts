@@ -40,8 +40,11 @@ export type NakopitelniyQator = {
   contract_qoldiq_hajm?: number | null;
   contract_qoldiq_summa?: number | null;
   ledger_semantics?: 'v1';
-  jami_baseline_summa: number; jami_actual_summa: number | null; narx_variance_summa: number;
+  /** Pul bo'yicha yopiladigan qatorda (birlik «сум», narx 1) baseline/farq — null («qo'llanmaydi»), 0 emas. */
+  jami_baseline_summa: number | null; jami_actual_summa: number | null; narx_variance_summa: number | null;
   bajarilish_foiz: number | null;
+  /** Pul bo'yicha yopiladigan ish (t2_pul_bilan_yopiladi_v1); eski RPC da yo'q — frontend predikatidan. */
+  pul_bilan?: boolean;
 };
 
 export type NakopitelniyDavr = {
@@ -52,12 +55,16 @@ export type NakopitelniyDavr = {
 export type NakopitelniyJami = {
   smeta_summa: number; fakt_summa: number; oldingi_summa: number; joriy_tasdiqlangan_summa: number;
   joriy_qoralama_summa: number; jami_tasdiqlangan_summa: number; qoldiq_summa: number;
-  f2_mumkin_summa: number; baseline_summa: number; narx_variance_summa: number;
+  f2_mumkin_summa: number; baseline_summa: number | null; narx_variance_summa: number | null;
   pending_ozgarish_delta: number; bajarilish_foiz: number | null;
   /** v2: smeta summasi faqat barglardan (rs/mat/ob); summasi noma'lum barglar soni. */
   smeta_summa_asos?: 'barglar'; smeta_summa_nomalum?: number;
   /** v2: t2_obyekt_nakrutka kaskadi (null — obyektda nakrutka yo'q). */
   smeta_nakrutka?: SmetaNakrutka | null;
+  /** 20261219000000: server summa paketlari — ASL smeta (qo'shimcha/zamena kirmaydi) va JORIY smeta (ular bilan). Eski RPC da yo'q. */
+  smeta_asl?: unknown; smeta_joriy?: unknown;
+  /** Pul bo'yicha yopiladigan qatorlar soni va ularning summasi (hajm/narx farqiga kirmaydi). */
+  pul_bilan_soni?: number; pul_bilan_summa?: number | null;
 };
 
 /** Smeta: to'g'ri xarajat → ИТОГО-4 (без НДС) → НДС → ВСЕГО (t2_obyekt_nakrutka). */

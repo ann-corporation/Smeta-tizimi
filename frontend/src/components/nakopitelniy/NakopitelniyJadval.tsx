@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { pulBilanYopiladi } from '../../lib/hisob-yadro';
 import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import { t, tilLocale } from '../../i18n/til';
 import { FmtN } from '../../lib/format';
@@ -196,7 +197,7 @@ export function NakopitelniyJadval({ qatorlar, korinadigan, oyKesim, jami, trunc
           {q.kod ? <span className="fz-c-shifr" style={{ marginRight: 6 }}>{q.kod}</span> : null}{q.nom}
           {q.ozgarish_izoh && <span className="fz-chip fz-chip--accent" style={{ marginLeft: 6 }}>{q.zamena ? t('zamena') : t('qo‘shimcha')}</span>}
         </td>
-        <td className="fz-c-unit" style={{ textAlign: 'center' }}>{q.birlik || '—'}</td>
+        <td className="fz-c-unit" style={{ textAlign: 'center' }}>{q.birlik || '—'}{(q.pul_bilan ?? pulBilanYopiladi(q.birlik, q.smeta_narx)) && <span className="fz-chip fz-chip--accent" style={{ marginLeft: 4 }} data-testid="pul-bilan-belgi" title={t('Pul bo‘yicha yopiladigan ish: hajm va narx farqi qo‘llanmaydi, bajarilish — yopilgan pul foizi')}>{t('Pul bo‘yicha')}</span>}</td>
         <td className="fz-c-num" style={chap}><FmtN val={jamiHajmSafe(q)} kasr={3} /></td>
         <td className="fz-c-num">{q.smeta_narx == null ? '—' : <FmtN val={q.smeta_narx} />}</td>
         <td className="fz-c-num">{amount.smeta == null ? '—' : <FmtN val={amount.smeta} />}</td>
