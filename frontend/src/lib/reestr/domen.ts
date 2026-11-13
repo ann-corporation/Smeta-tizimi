@@ -69,6 +69,8 @@ export const PREFIKS: Readonly<Record<Domen, readonly string[]>> = {
     't2_document', 't2_fayl', 't2_papka', 't2_arxiv', 't2_arxivla', 't2_arxivdan', 't2_r2', 't2_hujjat', 't2_replica', 't2_sheets_writeback',
     't2_project_storage', 't2_object_storage', 't2_company_storage', 't2_storage', 't2_obyekt_hujjat',
     't2_boss_documents',
+    // Shaxsiy imzo (ADR_SHAXSIY_IMZO.md): imzo kalitlari/imzolar va eksport nashrlari (manba QR) hujjat domeniga tegishli.
+    't2_imzo', 't2_nashr',
   ],
   bozor: ['t2_bz', 't2_birja', 't2_mutaxassis', 't2_mutaxassislar', 't2_baho', 't2_reyting'],
   tender: ['t2_tender', 't2_tenderlar', 't2_tn'],

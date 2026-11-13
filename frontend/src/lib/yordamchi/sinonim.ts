@@ -86,6 +86,7 @@ export const SAHIFA_SINONIM: Readonly<Record<string, Sinonim>> = {
   '/admin/mutaxassis': { uz: ['xizmatlarim', 'mutaxassis'], ru: ['мои услуги', 'специалист'], en: ['my services', 'specialist'] },
   '/admin/osuvchi': { uz: ['tizim o‘rganishi', 'tajribam', 'o‘rganish halqasi'], ru: ['обучение системы', 'опыт системы', 'где затрудняются'], en: ['system learning', 'learning loop', 'where users struggle'] },
   '/admin/akkaunt': { uz: ['akkaunt', 'profil'], ru: ['аккаунт', 'профиль'], en: ['account', 'profile'] },
+  '/admin/imzo': { uz: ['imzo', 'mening imzom', 'imzo qo‘y', 'imzoni tekshir', 'mening imzolarim', 'elektron imzo'], ru: ['подпись', 'моя подпись', 'поставить подпись', 'проверить подпись', 'мои подписи', 'электронная подпись'], en: ['signature', 'my signature', 'sign document', 'verify signature', 'my signatures', 'electronic signature'] },
   '/admin/sozlamalar': { uz: ['sozlamalar markazi', 'mening sozlamalarim'], ru: ['центр настроек', 'мои настройки'], en: ['settings center', 'my settings'] },
   '/admin/boshqaruv': { uz: ['platforma', 'boshqaruv'], ru: ['платформа', 'управление платформой'], en: ['platform', 'platform admin'] },
   '/admin/tizim-xaritasi': { uz: ['tizim xaritasi'], ru: ['карта системы'], en: ['system map'] },
