@@ -3,7 +3,7 @@
  * Poydevor: migratsiya 20261218500000 (t2_ai_*), shlyuz /api/ai-ishchi. Hamma ishchi sukut bo'yicha O'CHIQ; yoqish — kompaniya boss'i
  * (tizim ishchilari — superadmin). Agent faqat o'qiydi va taklif beradi: pul/hujjatni o'zi tasdiqlamaydi. Token kompaniya hamyonidan yechiladi.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { aiIshchiOl, aiIshchiYoz, type IshchiQatori, type ManbaQatori, type NatijaQatori, type SarfMalumoti, type YozFn } from '../../api/ai-ishchi';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
@@ -24,7 +24,11 @@ function IshchiKarta({ w, kid, band, onYoz }: { w: IshchiQatori; kid: number | n
   const [jadval, setJadval] = useState(w.jadval);
   const [aiX, setAiX] = useState(w.ai_xulosa);
   const [maxT, setMaxT] = useState(String(w.max_token_ish));
-  useEffect(() => { setJadval(w.jadval); setAiX(w.ai_xulosa); setMaxT(String(w.max_token_ish)); }, [w.jadval, w.ai_xulosa, w.max_token_ish]);
+  /* Server qiymati HAQIQATAN o'zgargandagina forma yangilanadi. Mount'dagi effect foydalanuvchi allaqachon kiritgan qiymatni
+     eskisiga qaytarib qo'yardi (kechikkan passiv effekt — beqaror «yoqish» testi sababi). */
+  const serverKaliti = `||`;
+  const oldingi = useRef(serverKaliti);
+  useEffect(() => { if (oldingi.current === serverKaliti) return; oldingi.current = serverKaliti; setJadval(w.jadval); setAiX(w.ai_xulosa); setMaxT(String(w.max_token_ish)); }, [serverKaliti, w.jadval, w.ai_xulosa, w.max_token_ish]);
   const saqla = (yoqilgan: boolean) => onYoz(() => aiIshchiYoz({ amal: 'sozlama_saqla', kompaniya_id: kid, ishchi: w.kod, yoqilgan, jadval, soat: w.soat, ai_xulosa: aiX, max_token_ish: Number(maxT) || 3000 }), yoqilgan ? 'Ishchi yoqildi' : 'Ishchi saqlandi');
   return (
     <div className="fz-panel space-y-2" data-testid={`ishchi-${w.kod}`}>
@@ -93,7 +97,8 @@ function NatijaKarta({ n, nomi, onHolat }: { n: NatijaQatori; nomi: string; onHo
 /** Platforma byudjetining fon ishchilar ulushi (faqat tizim/superadmin): chat (Jarvis) uchun zaxira doim qoladi. */
 function FonUlushi({ foiz, onYoz }: { foiz: number; onYoz: YozFn }) {
   const [v, setV] = useState(String(foiz));
-  useEffect(() => { setV(String(foiz)); }, [foiz]);
+  const oldingiFoiz = useRef(foiz);
+  useEffect(() => { if (oldingiFoiz.current === foiz) return; oldingiFoiz.current = foiz; setV(String(foiz)); }, [foiz]);
   return (
     <div className="fz-panel flex flex-wrap items-center gap-2 text-[12px]" data-testid="fon-ulushi">
       <label className="flex items-center gap-1">{t('Fon ishchilar ulushi (% platforma byudjeti)')}

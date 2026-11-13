@@ -42,7 +42,8 @@ export type Niyat =
   | DarsJavobi
   | { tur: 'nomalum'; yaqin: SahifaHavola[] };
 
-export type SahifaAmalQisqa = { id: string; nom: string; kalitlar?: readonly string[]; tasdiq?: boolean };
+/** izoh — taklif kartasida ko'rsatiladi (masalan token narxi); pul — ikkinchi «Tasdiqlayman» talab qiladi (token/pul/hujjat). */
+export type SahifaAmalQisqa = { id: string; nom: string; kalitlar?: readonly string[]; tasdiq?: boolean; izoh?: string; pul?: boolean };
 
 export type NiyatKontekst = {
   /** Hozirgi sahifa ro'yxatdan o'tkazgan amallar (registry hook). */
@@ -75,6 +76,7 @@ const YETISHMAYDI = stem(['yetishmayapti', 'yetishmaydi', 'yetishmayotgan', 'qam
 const QORALAMA_ANIQ = new Set(stem(['yarat', 'yaratib', 'tuz', 'tuzib', 'tayyorla', 'tayyorlab', 'tayyorlang', 'yaratib', 'создай', 'создать', 'подготовь', 'подготовить', 'draft', 'create', 'prepare', 'make']));
 const SAVOL_SOZLARI = stem(['qayerda', 'qani', 'nima', 'nega', 'qanday', 'где', 'что', 'почему', 'зачем', 'what', 'where', 'why', 'how']);
 const YORDAM_RE = /^(nimalar? qila olasan|nimalar? qila olasiz|nima qila olasan|nima qila olasiz|yordam|help|imkoniyatlaring|imkoniyatlar|what can you do|что ты умеешь|что ты можешь|помощь)\s*[?!.]*$/;
+const UZUN_SAVOL_SOZ = 10;
 const QORALAMA_SAHIFALARI = new Set(['/admin/f2-tayyorlash', '/admin/aosr', '/admin/nakopitelniy', '/admin/fakt', '/admin/zayavka', '/admin/m29']);
 
 /** Imlo xatosiga bardoshlilik: uzun (≥7) so'zlarda bitta harf farqi (almashtirish/tushib qolish/ortiqcha/o'rin almashishi) yetarli. */
@@ -96,7 +98,8 @@ export function niyatAniqla(matn: string, ctx: NiyatKontekst): Niyat {
   { const hid = joriyHujjatOl(); const s = hid ? ctx.sahifalar.find((x) => x.yol === '/admin/imzo') : null;   // joriy hujjat bor: imzolash shu hujjat bilan ochiladi
     if (hid && s && IMZO_QOY_RE.test(xom)) return { tur: 'navigatsiya', sahifa: { yol: s.yol, nom: s.nom, url: imzolashUrl(hid) }, obyekt: null, oy: null, qoralama: false, aniqOchish: true }; }
   { const kq = kimSavoli(xom); if (kq) return { tur: 'kim', qism: kq }; }
-  { const v = vositaTop(xom); if (v) return { tur: 'vosita', id: v.id }; }
+  /* Sahifa o'z amalini (masalan «F2 ni Excel ga yuklash») e'lon qilgan bo'lsa — «vositasi yo'q» javobi uni bosib ketmaydi. */
+  { const v = vositaTop(xom); if (v && !(v.id === 'yoq' && sahifaAmalTop(sozlar(xom).filter((x) => !TOLDIRUVCHI.has(x)), ctx.sahifaAmallar))) return { tur: 'vosita', id: v.id }; }
   const yukSlot = yukSlotAjrat(xom);
   if (yukSlot) return { tur: 'navigatsiya', sahifa: { yol: '/admin/yuk-chaqirish', nom: 'Yuk chaqirish', url: yukSlotUrl(yukSlot) }, obyekt: null, oy: null, qoralama: true, aniqOchish: true };
   { const dars = darsSavoli(xom, { ochiqYollar: new Set(ctx.sahifalar.map((s) => s.yol)) }); if (dars) return dars; }
@@ -159,6 +162,12 @@ export function niyatAniqla(matn: string, ctx: NiyatKontekst): Niyat {
   if (oHolat && (!sahifaNatija || sahifaNatija.tur !== 'aniq' || sahifaTokenlari.length === 0)) {
     if (amaldagi) { const hs = ctx.sahifalar.find((s) => s.yol === '/admin/holat'); return { tur: 'oqish', vosita: 'holat', arg: null, obyekt: amaldagi, sahifa: hs ? havola(hs, amaldagi, oyKalit) : null }; }
     if (ctx.obyektlar.length) return { tur: 'obyektTanla', nomzodlar: ctx.obyektlar.slice(0, 6), davom: 'oqish' };
+  }
+
+  /* Uzun gap, ochish fe'li yo'q — bu maslahat/tahlil savoli («faktlar kiritilmagan, qanday yo'lga qo'yamiz?»): ichida tasodifan
+     uchragan sahifa so'zlari («smeta», «fakt») sahifa tanlash oynasini chiqarmaydi; javobni AI beradi, yaqin sahifalar tugma bo'ladi. */
+  if (kontent.length >= UZUN_SAVOL_SOZ && !ochish && (sahifaNatija?.tur !== 'aniq' || sahifaNatija.qoplanish < 0.5)) {
+    return { tur: 'nomalum', yaqin: yaqinSahifalar(kontent, ctx.sahifalar).map((x) => havola(x, amaldagi, oyKalit)) };
   }
 
   /* 3) Navigatsiya (sahifa nomi + ixtiyoriy obyekt/oy). */

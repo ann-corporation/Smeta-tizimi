@@ -11,7 +11,7 @@ import { CommandPalette } from './CommandPalette';
 import { qidiruvMos } from './commandPaletteQidiruv';
 
 const BANDLAR = [
-  { yol: '/admin/obyektlar', nom: 'Obyektlar va smeta yuklash', guruh: 'Ish (PTO)' },
+  { yol: '/admin/obyektlar', nom: 'Obyektlar', guruh: 'Ish (PTO)' },
   { yol: '/admin/f2', nom: 'F2 import (tayyor F2 faylidan)', guruh: 'Ish (PTO)' },
   { yol: '/admin/f2-reestr', nom: 'F2 reestri', guruh: 'Ish (PTO)' },
 ];

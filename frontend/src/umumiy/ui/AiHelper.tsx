@@ -96,7 +96,7 @@ export function AiHelper() {
     const tugat = () => { window.removeEventListener('pointermove', harakat); window.removeEventListener('pointerup', tugat); };
     window.addEventListener('pointermove', harakat); window.addEventListener('pointerup', tugat);
   };
-  const vosita = useMemo(() => (joriyId ? { kompaniyaId: joriyId, kim, obyekt: joriyObyekt, obyektlar, sahifalar, api: haqiqiyVositaApi(joriyId), opId: yangiOperationId } : null), [joriyId, kim, joriyObyekt, obyektlar, sahifalar]);
+  const vosita = useMemo(() => (joriyId ? { kompaniyaId: joriyId, kim, obyekt: joriyObyekt, obyektlar, sahifalar, api: haqiqiyVositaApi(joriyId), opId: yangiOperationId, qidir: motor.vositalar ? (arg: string) => Promise.resolve(motor.vositalar!.oqi({ vosita: 'qidir', arg })).then(String) : undefined } : null), [joriyId, kim, joriyObyekt, obyektlar, sahifalar, motor.vositalar]);
   const hujjat = useMemo(() => (joriyId ? haqiqiyHujjatDeps(joriyId) : null), [joriyId]);
   const yordamchi: YordamchiUlanish | undefined = useMemo(() => (sahifalar.length ? { sahifalar, obyektlar, joriyObyekt, obyektTanla: (id: number) => ws.setObjectId(id), motor, hujjat, sahifaAmallar, sahifaAmalBajar: (id: string) => { sahifaAmaliniBajar(id); }, kim, vosita } : undefined), [sahifalar, obyektlar, joriyObyekt, ws, motor, hujjat, sahifaAmallar, kim, vosita]);
   const [tayyor, setTayyor] = useState<TayyorSavol | null>(null);

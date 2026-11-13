@@ -3,7 +3,7 @@ import { act,cleanup,fireEvent,render,screen,waitFor } from '@testing-library/re
 import { MemoryRouter } from 'react-router-dom';
 import { studioKontekstUla } from '../../lib/jarvis/studio-kontekst';
 const m=vi.hoisted(()=>({savol:vi.fn(),katalog:vi.fn()}));
-vi.mock('../../api/t2-agent-ish',()=>({kasbSavolOqim:m.savol,tizimYordamSavol:vi.fn()}));
+vi.mock('../../api/t2-agent-ish',()=>({suhbatRoyxatOl: vi.fn(async () => null), suhbatServerga: vi.fn(async () => null), suhbatServerdanOl: vi.fn(async () => null), kasbSavolOqim:m.savol,tizimYordamSavol:vi.fn()}));
 vi.mock('../../lib/jarvis/katalog-kontekst',()=>({narxSavolimi:(s:string)=>s.includes('narx'),katalogKonteksti:m.katalog,vaqtBilan:(p:Promise<unknown>)=>p}));
 vi.mock('./AiBaho',()=>({AiBaho:()=>null}));vi.mock('./AiHarakatKarta',()=>({AiHarakatKarta:()=>null}));
 import { AiChat } from './AiChat';

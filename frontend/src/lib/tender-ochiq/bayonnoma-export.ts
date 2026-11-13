@@ -50,6 +50,7 @@ export async function bayonnomaXlsx(b: Bayonnoma): Promise<{ bytes: Uint8Array; 
   ws.addRow([]);
   ws.addRow(['Mazmun xeshi', b.xesh]);
   ws.columns.forEach((c, i) => { c.width = i === 1 ? 40 : 18; });
+  ws.pageSetup = { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
   const buf = await wb.xlsx.writeBuffer();
   return { bytes: new Uint8Array(buf as ArrayBuffer), faylNomi: `tender-bayonnoma-${t.raqam ?? t.id}.xlsx`.replace(/[^\w.-]+/g, '_') };
 }

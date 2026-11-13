@@ -33,6 +33,7 @@ import { QiymatUchlik } from '../../umumiy/ui/QiymatUchlik';
 import { serverUchligi } from '../../lib/ustamali-summa';
 import { f2HujjatKaliti, f2HujjatKonteksti, type F2HujjatKonteksti } from '../../api/f2-hujjat-kontekst';
 import { mazmunXeshi, tokenBilan } from '../../api/t2-token';
+import { useYordamchiSahifaAmallari } from '../../lib/yordamchi/sahifa-amal-store';
 import { hujjatArxivla } from '../../api/t2-hujjat-arxiv';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
@@ -324,6 +325,8 @@ export function F2TarixNative() {
 
   /* Egasi (2026-10-02): tasdiqlangan F2 ham yangi Ф-2 shablonida chiqadi. Sertifikatlangan raqamlar aynan
    * (lib/f2-akt-hujjat). Token: bitta F2 (obyekt + oy + raqam) uchun bir marta — qayta chiqarish bepul. */
+  /* Jarvis (registry hook): tanlangan F2 ni Excel ga yuklash — shu sahifaning o'z yo'li (tokenBilan, xesh bo'yicha qayta yuklash bepul). */
+  useYordamchiSahifaAmallari(selectedAkt ? [{ id: 'f2.eksport', nom: t('F2 ni Excel ga yuklash (tanlangan akt)'), kalitlar: ['f2 excel', 'f2 eksport', 'f2 yuklab ber', 'ф2 excel', 'f2 xlsx'], tasdiq: true, pul: true, izoh: t('Token yechiladi (hujjat hajmiga qarab; aniq summa yuklashdan keyin ko‘rsatiladi); shu hujjatni qayta yuklash — bepul.'), run: () => { void hujjatChiqar(selectedAkt, false); } }] : []);
   async function hujjatChiqar(akt: T2AktReestr, korish: boolean) {
     const kompaniyaId = workspace.companyId ?? joriy?.id;
     if (!kompaniyaId || chiqarilmoqda) return;

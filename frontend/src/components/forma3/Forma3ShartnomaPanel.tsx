@@ -215,8 +215,8 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
           </select>
         </label>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span className="fz-kpi__label">{t('Hisobot oyi')}</span>
-          <input className="input" type="month" aria-label={t('Hisobot oyi')} value={oy} disabled={!!ishlayapti} onChange={(e) => setOy(e.target.value)} />
+          <span className="fz-kpi__label">{t('Oy')}</span>
+          <input className="input" type="month" aria-label={t('Oy')} value={oy} disabled={!!ishlayapti} onChange={(e) => setOy(e.target.value)} />
           {oyTaklif && <span className="fz-kpi__label" data-testid="f3-oy-taklif">{oy === oyTaklif ? t('Oxirgi tasdiqlangan F2 oyi') : <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" onClick={() => setOy(oyTaklif)}>{t('Oxirgi F2 oyi: {oy}', { oy: oyTaklif })}</button>}</span>}
         </label>
         <button type="button" className="fz-btn fz-btn--ghost" disabled={shartnomaId == null || yuklanmoqda || !!ishlayapti} onClick={() => void yukla()}>

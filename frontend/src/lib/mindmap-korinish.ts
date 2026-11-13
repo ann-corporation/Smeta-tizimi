@@ -16,7 +16,7 @@ export const HOLAT_TARTIB: XHolat[] = ['xavf', 'etibor', 'yaxshi', 'nomalum'];
 const HOLAT_OGIRLIK: Record<XHolat, number> = { xavf: 0, etibor: 1, nomalum: 2, yaxshi: 3 };
 
 /** `tizim` / `modul` / `platforma` — «Tizim xaritasi» (lib/tizim-xaritasi.ts) tugunlari; kompaniya xaritasida uchramaydi. */
-export type XTur = 'kompaniya' | 'loyiha' | 'obyekt' | 'guruh' | 'jamoa' | 'odam' | 'tizim' | 'modul' | 'platforma';
+export type XTur = 'kompaniya' | 'loyiha' | 'shartnoma' | 'obyekt' | 'guruh' | 'jamoa' | 'odam' | 'tizim' | 'modul' | 'platforma';
 
 /* ───────────── Jamoa (v4: odamlar) ───────────── */
 export type JamoaGuruhKalit = 'rahbariyat' | 'pto' | 'prorab' | 'bugalter' | 'boshqa';
@@ -440,9 +440,13 @@ export type Joylashuv = { joylar: Map<string, Joy>; chegara: Chegara; tomon: Map
 export const OLCHAM = {
   ildiz: { w: 228, h: 108 },
   loyiha: { w: 206, h: 80 },
+  /** Vizual xaritadagi shartnoma tuguni (loyiha va obyekt orasida). */
+  shartnoma: { w: 224, h: 80 },
   obyekt: { w: 252, h: 84 },
   /** Ildiz markazidan loyiha / obyekt markazigacha. */
   dx1: 262, dx2: 530,
+  /** Shartnomali daraxt: loyiha → shartnoma → obyekt ustunlari markazi; shartnomalar orasidagi bo'sh joy. */
+  dxSh: 530, dxObSh: 838, shartnomaOraligi: 12,
   qator: 94, loyihaOraligi: 26,
   /** Jamoa shoxi: kompaniya tagida, odam kartalari qatorlarda (qatorda ko'pi bilan `odamQatorda`). */
   jamoa: { w: 228, h: 64 }, odam: { w: 200, h: 64 }, odamDx: 214, odamQatorda: 5, jamoaBoshlanish: 96,
@@ -457,7 +461,12 @@ export function mindmapJoyla(d: XDaraxt, yigilgan: ReadonlySet<string> = new Set
   const tomon = new Map<string, -1 | 1>();
   const root = d.tugunlar.get(d.ildiz)!;
   const korinadi = (l: XTugun) => (yigilgan.has(l.id) ? 0 : l.bolalar.length);
-  const band = (l: XTugun) => Math.max(1, korinadi(l)) * OLCHAM.qator;
+  const shartnomaBor = (l: XTugun) => l.bolalar.some((id) => d.tugunlar.get(id)?.tur === 'shartnoma' || d.tugunlar.get(id)?.id.startsWith('shartnomasiz:'));
+  /** Shartnoma (yoki «Shartnomasiz» guruh) bandi: ostidagi obyektlar soni (yig'ilgan bo'lsa — bitta qator). */
+  const shBand = (s: XTugun) => Math.max(1, korinadi(s)) * OLCHAM.qator;
+  const band = (l: XTugun) => (shartnomaBor(l)
+    ? l.bolalar.reduce((n, id, i) => n + shBand(d.tugunlar.get(id)!) + (i ? OLCHAM.shartnomaOraligi : 0), 0)
+    : Math.max(1, korinadi(l)) * OLCHAM.qator);
   const tomonlar: Record<'1' | '-1', XTugun[]> = { '1': [], '-1': [] };
   let ong = 0, chap = 0;
   for (const id of root.bolalar) {
@@ -474,7 +483,20 @@ export function mindmapJoyla(d: XDaraxt, yigilgan: ReadonlySet<string> = new Set
       const b = band(l);
       joylar.set(l.id, { x: s * OLCHAM.dx1, y: y + b / 2, ...OLCHAM.loyiha });
       tomon.set(l.id, s);
-      if (!yigilgan.has(l.id)) {
+      if (!yigilgan.has(l.id) && shartnomaBor(l)) {
+        let sy = y;
+        for (const sid of l.bolalar) {
+          const sh = d.tugunlar.get(sid)!;
+          const sb = shBand(sh);
+          joylar.set(sid, { x: s * OLCHAM.dxSh, y: sy + sb / 2, ...OLCHAM.shartnoma });
+          tomon.set(sid, s);
+          if (!yigilgan.has(sid)) sh.bolalar.forEach((oid, i) => {
+            joylar.set(oid, { x: s * OLCHAM.dxObSh, y: sy + i * OLCHAM.qator + OLCHAM.qator / 2, ...OLCHAM.obyekt });
+            tomon.set(oid, s);
+          });
+          sy += sb + OLCHAM.shartnomaOraligi;
+        }
+      } else if (!yigilgan.has(l.id)) {
         l.bolalar.forEach((oid, i) => {
           joylar.set(oid, { x: s * OLCHAM.dx2, y: y + i * OLCHAM.qator + OLCHAM.qator / 2, ...OLCHAM.obyekt });
           tomon.set(oid, s);
