@@ -76,7 +76,7 @@ test('rollback also times out without claiming recovery',async t=>{
 });
 test('call budget stops execution before deployment',async t=>{
  const q=await setup(t),job=await q.read('test');job.maxCalls=3;await q.save(job);
- const calls=[];assert.equal((await q.run('test',workers())).state,'failed');assert.equal(calls.length,3);
+ const calls=[];assert.equal((await q.run('test',workers(calls))).state,'failed');assert.equal(calls.length,3);
 });
 test('CLI creates and reads a private job without printing its goal',async t=>{
  const {execFile}=await import('node:child_process');const {promisify}=await import('node:util');const {writeFile}=await import('node:fs/promises');
