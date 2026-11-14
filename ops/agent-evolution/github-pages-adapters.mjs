@@ -12,8 +12,11 @@ export function createAdapters(config) {
  if(!Array.isArray(config.sourceFiles)||!config.sourceFiles.length||config.sourceFiles.some(p=>!p.startsWith('ops/agent-evolution/')||!p.endsWith('.mjs')))throw Error('SOURCE_SCOPE_REQUIRED');
  const root=config.worktree;
  const git=(args,signal)=>run('git',args,{cwd:root,signal});
- const api=async(path,signal)=>JSON.parse(await run('gh',['api',`repos/${config.repo}/${path}`],{signal}));
- const checks=async(sha,signal)=>(await api(`commits/${sha}/check-runs?per_page=100`,signal)).check_runs;
+ const checks=async(sha,signal)=>{
+  const pages=JSON.parse(await run('gh',['api','--paginate','--slurp',`repos/${config.repo}/commits/${sha}/check-runs?per_page=100`],{signal}));
+  if(!Array.isArray(pages)||pages.some(p=>!Array.isArray(p.check_runs)))throw Error('INVALID_CHECK_PAGES');
+  return pages.flatMap(p=>p.check_runs);
+ };
  const snapshot=async()=>Promise.all(config.sourceFiles.map(async path=>({path,content:await readFile(await safePath(root,path),'utf8')})));
  const model=(role,job,prompt,schema,signal)=>modelJson({entry:config.codexEntry,model:config.model,directory:join(config.privateDirectory,job.id,role),prompt,schema,signal});
  const assertHead=async(sha,signal)=>{if((await git(['rev-parse','HEAD'],signal)).trim()!==sha)throw Error('WORKTREE_HEAD_CHANGED');};
