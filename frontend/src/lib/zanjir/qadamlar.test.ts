@@ -11,8 +11,8 @@ const holatlar = (k: ZanjirKirish) => Object.fromEntries(zanjirHisobla(k).qadaml
 
 describe('zanjirHisobla — tartib', () => {
   it('tartib: smeta, fakt, АОСР, F2, F3, to‘lov (АОСР F2 dan oldin)', () => {
-    expect(ZANJIR_TARTIB).toEqual(['smeta', 'fakt', 'aosr', 'f2', 'f3', 'tolov', 'slichitelniy']);
-    expect(zanjirHisobla(tayyor()).qadamlar.map((q) => q.id)).toEqual(['smeta', 'fakt', 'aosr', 'f2', 'f3', 'tolov', 'slichitelniy']);
+    expect(ZANJIR_TARTIB).toEqual(['smeta', 'fakt', 'aosr', 'f2', 'nakopitelniy', 'f3', 'tolov', 'slichitelniy']);
+    expect(zanjirHisobla(tayyor()).qadamlar.map((q) => q.id)).toEqual(['smeta', 'fakt', 'aosr', 'f2', 'nakopitelniy', 'f3', 'tolov', 'slichitelniy']);
     expect(ZANJIR_TARTIB.indexOf('aosr')).toBeLessThan(ZANJIR_TARTIB.indexOf('f2'));
   });
   it('hammasi bajarilgan — tavsiya yo‘q, tugallandi', () => {
@@ -113,7 +113,7 @@ describe('zanjirHisobla — noma‘lum (NULL ≠ 0)', () => {
   it('hamma ma‘lumot null — hech qadam done emas, hech narsa 0 deb olinmaydi', () => {
     const k: ZanjirKirish = { smeta: { bor: null, narxsiz: null }, faktSaqlangan: null, faktQoralama: null, aosr: null, f2BuOyda: null, f2TasdiqBuOyda: null, forma3: null, tolovYozilgan: null, oy: '2026-11' };
     const n = zanjirHisobla(k);
-    expect(n.qadamlar.map((q) => q.holat)).toEqual(['unknown', 'unknown', 'unknown', 'unknown', 'unknown', 'unknown', 'unknown']);
+    expect(n.qadamlar.map((q) => q.holat)).toEqual(['unknown', 'unknown', 'unknown', 'unknown', 'unknown', 'unknown', 'unknown', 'unknown']);
     expect(n.tugallandi).toBe(false);
     expect(n.keyingi).toMatchObject({ id: 'smeta', aniq: false });
   });
@@ -205,5 +205,51 @@ describe('zanjirHisobla — obyekt darajasi vs oy darajasi (Stella va haykal xat
     expect(h.f2).toMatchObject({ holat: 'blocked', izoh: 'Avval fakt kerak' });
     expect(h.f3).toMatchObject({ holat: 'blocked', izoh: 'Avval F2 tasdiqlanishi kerak' });
     expect(h.slichitelniy).toMatchObject({ holat: 'blocked', izoh: 'Avval F2 tasdiqlanishi kerak' });
+  });
+});
+
+describe('Nakopitelniy qadami (F-2 va Forma 3 orasida)', () => {
+  const qadam = (k: ZanjirKirish, id: string) => zanjirHisobla(k).qadamlar.find((q) => q.id === id)!;
+  it('tartib: F2 dan keyin, Forma 3 dan oldin; yo‘l — nakopitelniy sahifasi', () => {
+    expect(ZANJIR_TARTIB.indexOf('nakopitelniy')).toBe(ZANJIR_TARTIB.indexOf('f2') + 1);
+    expect(ZANJIR_TARTIB.indexOf('nakopitelniy')).toBeLessThan(ZANJIR_TARTIB.indexOf('f3'));
+  });
+  it('tasdiqlangan F-2 bor — done, oxirgi F-2 oyi izohda; tavsiyani to‘smaydi', () => {
+    const k = tayyor({ f2TasdiqJami: 3, f2OxirgiOy: '2026-03', f2TasdiqBuOyda: 0, f2BuOyda: false });
+    expect(qadam(k, 'nakopitelniy')).toMatchObject({ holat: 'done' });
+    expect(qadam(k, 'nakopitelniy').izoh).toBe('2026-03 gacha tasdiqlangan F-2 lar asosida tayyor');
+  });
+  it('F-2 umuman yo‘q — blocked (Avval F2 tasdiqlanishi kerak); noma‘lum — unknown, 0 emas', () => {
+    expect(qadam(tayyor({ f2TasdiqJami: 0, f2TasdiqBuOyda: 0 }), 'nakopitelniy')).toMatchObject({ holat: 'blocked', izoh: 'Avval F2 tasdiqlanishi kerak' });
+    expect(qadam(tayyor({ f2TasdiqJami: null, f2TasdiqBuOyda: null, f2BuOyda: null }), 'nakopitelniy').holat).toBe('unknown');
+  });
+});
+
+describe('zanjirHisobla — fakt holatda bor, fakt hujjatlari qoralama (Stella 152 yolg‘oni)', () => {
+  const akt = (o: Partial<MarkazAkt>): MarkazAkt => ({ tur: 'fakt', holat: 'qoralama', lifecycle_status: null, oy: '2026-11-01', yaratildi: '2026-11-03T10:00:00Z', hujjat_jami: 1, yozilgan_jami: 1, ...o });
+  const asos = { obyekt: { jami: 100, narxsiz: 0 }, oy: '2026-11', aosrReestr: { jami: 34, boglanmagan: 0 }, slichitelniy: { farqli: 3, barglar: 40 } } as const;
+  const f2lar = [akt({ tur: 'f2', holat: 'tasdiqlangan', oy: '2026-03-01' })];
+  const qad = (k: ZanjirKirish) => Object.fromEntries(zanjirHisobla(k).qadamlar.map((q) => [q.id, q]));
+  it('faqat qoralama fakt hujjati + holatda fakt bor — АОСР va F2 bloklanmaydi, fakt bajarilgan', () => {
+    const h = qad(zanjirKirishYasa({ ...asos, aktlar: [akt({}), akt({}), ...f2lar], faktHolatda: true }));
+    expect(h.fakt.holat).toBe('done');
+    expect(h.aosr.holat).not.toBe('blocked');
+    expect(h.f2.holat).not.toBe('blocked');
+    expect(h.f2.izoh).not.toMatch(/Avval/);
+  });
+  it('fakt hujjati umuman yo‘q (aktlar bo‘sh), lekin holatda fakt bor — bloklanmaydi', () => {
+    const h = qad(zanjirKirishYasa({ ...asos, aktlar: f2lar, faktHolatda: true }));
+    expect(h.aosr.holat).not.toBe('blocked');
+    expect(h.f2.holat).not.toBe('blocked');
+  });
+  it('holatda ham fakt yo‘q va hujjat yo‘q — «Avval fakt kerak» saqlanadi', () => {
+    const h = qad(zanjirKirishYasa({ ...asos, aktlar: [], faktHolatda: false, aosrReestr: { jami: 0, boglanmagan: 0 } }));
+    expect(h.aosr).toMatchObject({ holat: 'blocked', izoh: 'Avval fakt kerak' });
+    expect(h.f2).toMatchObject({ holat: 'blocked', izoh: 'Avval fakt kerak' });
+  });
+  it('zanjirDaraxtdan: fakt_summa > 0 (hajm 0) ham fakt hisoblanadi; hammasi 0 — yo‘q', () => {
+    const rows = [{ id: 2, tur: 'bl' }];
+    expect(zanjirDaraxtdan(rows, [{ qator_id: 2, fakt_hajm: 0, fakt_summa: 5 }], 0).faktHolatda).toBe(true);
+    expect(zanjirDaraxtdan(rows, [{ qator_id: 2, fakt_hajm: 0, fakt_summa: 0 }], 0).faktHolatda).toBe(false);
   });
 });

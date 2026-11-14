@@ -26,9 +26,10 @@ import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { useQaytaUlanish } from '../../desktop/qayta-ulanish';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { ostatkaHujjatQur, slichitelniyHujjatQur, ustamaManbaOl } from '../../lib/oylik-hujjat/ostatka-slichitelniy';
-import { slichitelniyModeli } from '../../lib/slichitelniy-vedomost';
+import { slichitelniyFarqSoni } from '../../lib/slichitelniy-farq-soni';
 import { zanjirDaraxtdan } from '../../lib/zanjir/qadamlar';
 import { tolovHolatiSvoddan, type TolovHolati } from '../../lib/zanjir/tolovHolati';
+import { bandsizdaBajar } from '../../lib/bandsizda-bajar';
 import { shartnomaSvodOl } from '../../api/t2-nakopitelniy';
 import { sbAosrReestrOl } from '../../api/t2-aosr';
 import { SlichitelniyTayyorlik } from './SlichitelniyTayyorlik';
@@ -107,31 +108,36 @@ export function HolatNative() {
   /* To'lov qadami: bitta mavjud akt-sverka svodi (shartnomaSvodOl) — faqat shu sahifada, daraxt yuklangach; o'qilmasa/bog'lanmagan — null (noma'lum). */
   const [zanjirTolov, setZanjirTolov] = useState<{ kalit: string; v: TolovHolati | null } | null>(null);
   const tolovKalit = validId && joriy?.id ? `${joriy.id}:${obyektId}` : '';
+  /* Tezlik (2026-11-14): ikkala tarmoq o'qishi (butun kompaniya svodi, АОСР reestri) daraxt va qo'shimchalar to'liq o'rnashgach, brauzer bo'sh turganda boshlanadi — daraxt o'qishi/chizishi bilan raqobatlashmaydi. */
+  const ikkilamchiTayyor = !loading && daraxtXom.length > 0 && qoshimchaHolat !== 'yuklanmoqda';
   useEffect(() => {
-    if (!tolovKalit || !joriy?.id || loading || daraxtXom.length === 0) return;
+    if (!tolovKalit || !joriy?.id || !ikkilamchiTayyor) return;
     let faol = true;
-    void shartnomaSvodOl(joriy.id).then((r) => { if (faol) setZanjirTolov({ kalit: tolovKalit, v: r.ok ? tolovHolatiSvoddan(r.natija.shartnomalar, obyektId) : null }); }).catch(() => { if (faol) setZanjirTolov({ kalit: tolovKalit, v: null }); });
-    return () => { faol = false; };
-  }, [tolovKalit, joriy?.id, obyektId, loading, daraxtXom.length]);
+    const bekor = bandsizdaBajar(() => { if (faol) void shartnomaSvodOl(joriy.id).then((r) => { if (faol) setZanjirTolov({ kalit: tolovKalit, v: r.ok ? tolovHolatiSvoddan(r.natija.shartnomalar, obyektId) : null }); }).catch(() => { if (faol) setZanjirTolov({ kalit: tolovKalit, v: null }); }); });
+    return () => { faol = false; bekor(); };
+  }, [tolovKalit, joriy?.id, obyektId, ikkilamchiTayyor]);
   /* АОСР qadami obyekt darajasida: bitta mavjud reestr o'qishi (jami / ishga bog'lanmaganlar); o'qilmasa — null (noma'lum). */
   const [zanjirAosr, setZanjirAosr] = useState<{ kalit: string; v: { jami: number; boglanmagan: number } | null } | null>(null);
   const aosrKalit = validId ? String(obyektId) : '';
   useEffect(() => {
-    if (!aosrKalit) return;
+    if (!aosrKalit || !ikkilamchiTayyor) return;
     let faol = true;
-    void Promise.resolve().then(() => sbAosrReestrOl(obyektId)).then((r) => {
+    const bekor = bandsizdaBajar(() => { if (faol) void sbAosrReestrOl(obyektId).then((r) => {
       if (!faol) return;
       const q = r.ok ? (r.qatorlar ?? []).filter((a) => a.holat !== 'bekor') : null;
       setZanjirAosr({ kalit: aosrKalit, v: q ? { jami: q.length, boglanmagan: q.filter((a) => !(a.boglangan_ish_soni > 0)).length } : null });
-    }).catch(() => { if (faol) setZanjirAosr({ kalit: aosrKalit, v: null }); });
-    return () => { faol = false; };
-  }, [aosrKalit, obyektId]);
-  const zanjirQoshimcha = useMemo(() => {
+    }).catch(() => { if (faol) setZanjirAosr({ kalit: aosrKalit, v: null }); }); });
+    return () => { faol = false; bekor(); };
+  }, [aosrKalit, obyektId, ikkilamchiTayyor]);
+  /* Daraxtdan hisoblanadigan qism (O(n), to'liq model QURILMAYDI) — tolov/АОСР javobi kelganda qayta hisoblanmaydi. */
+  const zanjirDaraxtSonlari = useMemo(() => {
     if (!validId || loading || daraxtXom.length === 0) return undefined;
     let farqli: number | null = null;
-    try { const m = slichitelniyModeli(daraxtXom, holatXom); farqli = m.ortiq + m.kam; } catch { farqli = null; }
-    return { ...zanjirDaraxtdan(daraxtXom, holatXom, farqli), tolov: zanjirTolov?.kalit === tolovKalit ? zanjirTolov.v : null, aosrReestr: zanjirAosr?.kalit === aosrKalit ? zanjirAosr.v : null };
-  }, [validId, loading, daraxtXom, holatXom, zanjirTolov, tolovKalit, zanjirAosr, aosrKalit]);
+    try { farqli = slichitelniyFarqSoni(daraxtXom, holatXom); } catch { farqli = null; }
+    return zanjirDaraxtdan(daraxtXom, holatXom, farqli);
+  }, [validId, loading, daraxtXom, holatXom]);
+  const zanjirQoshimcha = useMemo(() => zanjirDaraxtSonlari && ({ ...zanjirDaraxtSonlari, tolov: zanjirTolov?.kalit === tolovKalit ? zanjirTolov.v : null, aosrReestr: zanjirAosr?.kalit === aosrKalit ? zanjirAosr.v : null }),
+    [zanjirDaraxtSonlari, zanjirTolov, tolovKalit, zanjirAosr, aosrKalit]);
   useEffect(() => {
     if (exportsOpen && tree.length > 0 && typeof window !== 'undefined' && window.location.hash === '#slichitelniy') document.getElementById('slichitelniy')?.scrollIntoView?.({ block: 'center' });
   }, [exportsOpen, tree.length]);

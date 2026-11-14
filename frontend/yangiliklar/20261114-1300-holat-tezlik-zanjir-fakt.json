@@ -1,0 +1,8 @@
+{
+  "sana": "2026-11-14",
+  "sarlavha": "Obyekt sahifasi tezroq ochiladi; zanjirda fakt to‘g‘ri sanaladi",
+  "bandlar": [
+    "Obyekt (Holat) sahifasida zanjir sonlari endi to‘liq slichitelniy modelini qurmasdan, bir o‘tishda hisoblanadi; shartnoma svodi va АОСР reestri daraxt o‘rnashgach, brauzer bo‘sh turganda o‘qiladi.",
+    "Zanjir: obyektda fakt holat ma‘lumotida (masalan F-2 importdan) bor bo‘lsa, АОСР va F2 «Avval fakt kerak» bilan bloklanmaydi — fakt hujjatlari qoralamada bo‘lsa ham."
+  ]
+}
