@@ -35,7 +35,7 @@ import { qidiruvKaliti } from '../../i18n/lotin-kirill';
 import { useHotkeys, yordamOch } from '../../lib/hotkeys/useHotkeys';
 import { inputdami, sarlavhaBilan } from '../../lib/hotkeys/core';
 import { HOLAT_FILTRLAR, holatFiltrMos, keyingiMoslik, qoldimOl, qoldimYoz, type HolatFiltr } from '../../lib/fakt-klaviatura';
-import { JURNAL_XATO_MATN, bolimMaxraji, bolimSummalari, bolimTarkibi, jurnalQur, kiritmaSoni, ochiqBor, qoldiqUlushi, type BolimSumma, type JurnalBolim, type JurnalHolat, type JurnalIsh, type JurnalQator, type Kiritma, type Rejim, type ZamenaBoglanish } from '../../lib/fakt-jurnal';
+import { JURNAL_XATO_MATN, bolimMaxraji, bolimSummalari, bolimTarkibi, faktFormulaKonteksti, formulaXatosi, jurnalQur, kiritmaSoni, ochiqBor, qoldiqUlushi, type BolimSumma, type JurnalBolim, type JurnalHolat, type JurnalIsh, type JurnalQator, type Kiritma, type Rejim, type ZamenaBoglanish } from '../../lib/fakt-jurnal';
 import { zamenaBoglanishOl } from '../../lib/fakt-zamena-boglanish';
 import { tuzatishBoglanishlari } from '../../lib/smeta-anatomiya/tuzatish';
 import { almashtirildiMatn, ochiqdanOrtiqcha, ochiqQoldiq } from '../../lib/zamena-qoldiq';
@@ -66,6 +66,7 @@ import { useKatakFokus, useVirtualSatrlar } from '../../lib/ish-varaq/virtual-sa
 import { chiqarilganlarOl } from '../../lib/ish-varaq/model';
 import { useFaktSaqlash } from '../../lib/ish-varaq/fakt-saqlash';
 import { faktPaketiQur } from '../../lib/ish-varaq/paket';
+import { FORMULA_ERROR_UZ, formulaMi } from '../../lib/formula/number-formula';
 import { kataAmali } from '../../lib/ish-varaq/kata-klavish';
 import { useSahifaTarkHimoyasi, useSaqlanmaganHimoya } from '../../lib/ish-varaq/saqlanmagan-himoya';
 
@@ -257,7 +258,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   const smetalar = useMemo(() => { const h = new Map(states.map((x) => [x.qator_id, x.smeta_hajm == null ? null : Number(x.smeta_hajm)])); return new Map(rows.map((r) => [r.id, h.get(r.id) ?? (r.hajm == null ? null : Number(r.hajm))])); }, [rows, states]);
   // Tuzatish qatorlari (qalinlik/norma tuzatishi) — smeta yadrosi bog'laydi; fakti asosiy ishga ergashadi (hosila, qo'lda kiritilmaydi).
   const tuzatish = useMemo(() => tuzatishBoglanishlari(rows), [rows]);
-  const paket = useMemo(() => faktPaketiQur(kiritmalar, faktlar, smetalar, tuzatish), [kiritmalar, faktlar, smetalar, tuzatish]);
+  // Formula nomlari (=SMETA-FAKT, =QOLDIQ …): har qatorning joriy qiymatlari; faqat kiritma matnini songa aylantiradi.
+  const formulaKontekst = useMemo(() => new Map([...barchaById].map(([id, x]) => [id, faktFormulaKonteksti(x)])), [barchaById]);
+  const paket = useMemo(() => faktPaketiQur(kiritmalar, faktlar, smetalar, tuzatish, formulaKontekst), [kiritmalar, faktlar, smetalar, tuzatish, formulaKontekst]);
 
   /** Tuzatish qatorining kutilayotgan fakti (asos kiritmasi bilan) — faqat ko'rsatish. */
   const tuzatishKutilgan = (q: JurnalQator): number | null => {
@@ -416,7 +419,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
 
   /** Qatorning (kiritma bilan) fakti: «+» — joriy + bugun; «=» — jami; kiritma yo'q/xato — joriy. */
   const samaraliFakt = (q: JurnalQator) => {
-    const k = kiritmalar[q.id]; const n = k ? kiritmaSoni(k.qiymat, q.smeta) : null;
+    const k = kiritmalar[q.id]; const n = k ? kiritmaSoni(k.qiymat, q.smeta, formulaKontekst.get(q.id)) : null;
     return typeof n !== 'number' || !Number.isFinite(n) ? q.fakt : k!.rejim === '+' ? q.fakt + n : n;
   };
   /** Ishga ergashadigan material (ichki yoki alohida) uchun taklif (ish ulushida; zamena/bajarilmaydi qismi ayrilgan), yoki null. */
@@ -530,11 +533,14 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
     }
     const k = kiritmalar[q.id] ?? { rejim: '+' as Rejim, qiymat: '' };
     const xato = paket.xatolar.get(q.id);
-    const yangiFakt = (() => { const n = kiritmaSoni(k.qiymat, q.smeta); if (typeof n !== 'number' || !Number.isFinite(n)) return null; return k.rejim === '+' ? q.fakt + n : n; })();
+    const yangiFakt = (() => { const n = kiritmaSoni(k.qiymat, q.smeta, formulaKontekst.get(q.id)); if (typeof n !== 'number' || !Number.isFinite(n)) return null; return k.rejim === '+' ? q.fakt + n : n; })();
     // Ochiq qoldiqdan (smeta − fakt − almashtirilgan − bajarilmaydi; yagona formula) oshsa — faqat ogohlantirish, bloklanmaydi.
     const ortiqcha = xato || yangiFakt == null ? null : ochiqdanOrtiqcha({ smeta: q.smeta, fakt: yangiFakt, almashtirilgan: q.almashtirilgan, bajarilmaydi: q.bajarilmaydi });
     const oshdi = (ortiqcha ?? 0) > 0;
-    const izoh = yangiFakt != null && <div className={`absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap text-[10.5px] ${oshdi ? 'font-semibold text-warn' : 'text-text-mute'}`} data-testid={oshdi ? 'qoldiqdan-oshdi' : undefined}>→ {fmt(yangiFakt)}{q.smeta ? ` / ${fmt(q.smeta)}` : ''}{oshdi ? ` · ${t('qoldiqdan oshdi')} +${fmt(ortiqcha)}` : ''}</div>;
+    // Formula natijasi saqlashdan OLDIN ko'rinadi: «=SMETA-FAKT» → «= 40 · → …».
+    const formulaSon = formulaMi(k.qiymat) ? kiritmaSoni(k.qiymat, q.smeta, formulaKontekst.get(q.id)) : null;
+    const formulaNatija = typeof formulaSon === 'number' && Number.isFinite(formulaSon) ? `= ${fmt(formulaSon)} · ` : '';
+    const izoh = yangiFakt != null && <div className={`absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap text-[10.5px] ${oshdi ? 'font-semibold text-warn' : 'text-text-mute'}`} data-testid={oshdi ? 'qoldiqdan-oshdi' : undefined}>{formulaNatija}→ {fmt(yangiFakt)}{q.smeta ? ` / ${fmt(q.smeta)}` : ''}{oshdi ? ` · ${t('qoldiqdan oshdi')} +${fmt(ortiqcha)}` : ''}</div>;
     // Birlik xatosi gumoni (bloklamaydi): smeta birligi «100М3» bo'lsa 300 → 3,00 taklifi, bir tugmada tuzatiladi.
     const birlikOgoh = xato ? null : qiymatBirlikOgohi(k.qiymat, k.rejim, q.smeta, q.fakt, q.birlik);
     const asosiy = <div className="flex flex-wrap-reverse items-center justify-end gap-1">
@@ -544,9 +550,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
       </div>
       <div className="relative">
         <input ref={(el) => { if (el) inputlar.current.set(q.id, el); else inputlar.current.delete(q.id); }} onFocus={(e) => { e.currentTarget.select(); setFokusId(q.id); tahrirBosh(q.id); }} value={k.qiymat} onChange={(e) => kirit(q.id, { qiymat: e.target.value })} onKeyDown={(e) => klaviatura(e, q.id)} onPaste={(e) => joyla(e, q.id)} inputMode="decimal"
-          placeholder={k.rejim === '+' ? t('bugun') : t('jami')} title={t('Son yoki foiz (masalan 50% — smeta hajmining yarmi). Enter — pastga, Excel ustunini joylash mumkin.')} aria-label={`${k.rejim === '+' ? 'Bugun bajarildi' : 'Jami fakt'}: ${q.nom}`}
+          placeholder={k.rejim === '+' ? t('bugun') : t('jami')} title={`${t('Son yoki foiz (masalan 50% — smeta hajmining yarmi). Enter — pastga, Excel ustunini joylash mumkin.')} ${t('Formula: =SMETA-FAKT, =QOLDIQ, =SMETA*0.5 (nomlar: SMETA, FAKT, QOLDIQ, F2_MUMKIN)')}`} aria-label={`${k.rejim === '+' ? 'Bugun bajarildi' : 'Jami fakt'}: ${q.nom}`}
           className={`h-7 w-[80px] rounded-[var(--radius-sm)] border bg-bg px-2 text-right font-mono text-[13px] tabular-nums outline-none focus:border-accent ${xato || oshdi ? 'border-warn' : k.qiymat ? 'border-accent' : 'border-border-strong'}`} />
-        {xato ? <div className="absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap text-[10.5px] font-semibold text-warn">{t(JURNAL_XATO_MATN[xato])}</div> : izoh}
+        {xato ? <div className="absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap text-[10.5px] font-semibold text-warn">{t(xato === 'FORMULA_XATO' ? FORMULA_ERROR_UZ[formulaXatosi(k.qiymat, q.smeta, formulaKontekst.get(q.id)) ?? 'SYNTAX'] : JURNAL_XATO_MATN[xato])}</div> : izoh}
       </div>
     </div>;
     // Doim bir xil o'ram: ogohlantirish paydo bo'lganda input qayta yaratilmaydi (fokus yo'qolmaydi).
@@ -688,7 +694,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
       } },
       { kalit: 'fakt', nom: t('Fakt hajm'), tur: 'son', qiymat: (r) => r.q.fakt },
       { kalit: 'f2', nom: t('F2 hajmi'), tur: 'son', qiymat: (r) => f2Ol(r.q) },
-      { kalit: 'kiritma', nom: t('Bu fakt'), tur: 'son', qiymat: (r) => { const n = kiritmaSoni(kiritmalar[r.q.id]?.qiymat ?? '', r.q.smeta); return typeof n === 'number' && Number.isFinite(n) ? n : null; } },
+      { kalit: 'kiritma', nom: t('Bu fakt'), tur: 'son', qiymat: (r) => { const n = kiritmaSoni(kiritmalar[r.q.id]?.qiymat ?? '', r.q.smeta, formulaKontekst.get(r.q.id)); return typeof n === 'number' && Number.isFinite(n) ? n : null; } },
       { kalit: 'ochiq', nom: t('Ochiq qoldiq'), tur: 'son', qiymat: (r) => (chiqR(r.q) ? null : r.q.qoldiq) },
       { kalit: 'f2mumkin', nom: t('F2 ga olish mumkin'), tur: 'son', qiymat: (r) => f2OlishMumkin(holatMap.get(r.q.id)) },
       { kalit: 'summa', nom: t('Fakt summasi'), tur: 'son', qiymat: (r) => { const ts = taxminKesim(r.q); return ts && !chiqR(r.q) ? ts.faktSumma : null; } },
