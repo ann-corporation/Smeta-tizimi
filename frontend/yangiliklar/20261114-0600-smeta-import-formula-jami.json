@@ -1,0 +1,10 @@
+{
+  "sana": "2026-11-14",
+  "sarlavha": "Smeta yuklash: natijasiz formulalar hisoblanadi, fayl jami bilan solishtiriladi",
+  "bandlar": [
+    "Excelda formulasi bor, lekin natijasi saqlanmagan fayllar (masalan ekspertiza smetalari) endi 0 emas — tizim formulalarni o‘zi hisoblaydi. Hisoblab bo‘lmasa, «Excelda saqlab qayta yuklang» deb aniq aytadi.",
+    "Ko‘rib chiqishda resurslar yig‘indisi faylning «to‘g‘ridan-to‘g‘ri xarajat» qatori bilan solishtiriladi: 0,5% dan katta farq — sariq ogohlantirish, 2% dan katta — importdan oldin tasdiq so‘raladi. Transport/ombor qatorlari ustama sifatida alohida hisoblanadi.",
+    "RES da bir xil nomli, lekin turli narxli qatorlar (masalan ikki xil LED fonar) endi tartib bilan juftlanadi — avval ikkinchisi birinchisining narxini olib, jami oshib ketardi.",
+    "Birlik narxi yo‘q, lekin summasi bor qatorlar «narxsiz» deb sanalmaydi. Natijadagi «Narxlashga o‘tish» tugmasi narxlash bo‘limini ochadi."
+  ]
+}

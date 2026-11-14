@@ -9,7 +9,7 @@ const m = vi.hoisted(() => ({
 }));
 vi.mock('../kontekst/KompaniyaKontekst', () => ({ useKompaniya: () => ({ joriyId: m.id }) }));
 vi.mock('../../api/t2-agent-ish', () => ({
-  kasbOl: m.kasbOl, kasbSavolOqim: m.savol, tizimYordamSavol: m.yordam, modellarOl: m.modellar, modelShaxsiyOl: m.shaxsiyModel, modelShaxsiyTanla: m.tanla, modelSiyosatOl: m.siyosat,
+  kasbOl: m.kasbOl, suhbatRoyxatOl: vi.fn(async () => null), suhbatServerga: vi.fn(async () => null), suhbatServerdanOl: vi.fn(async () => null), kasbSavolOqim: m.savol, tizimYordamSavol: m.yordam, modellarOl: m.modellar, modelShaxsiyOl: m.shaxsiyModel, modelShaxsiyTanla: m.tanla, modelSiyosatOl: m.siyosat,
   uslubOl: m.uslubOl, uslubSaqla: m.uslubSaqla, uslubTozala: m.uslubTozala, javobBaho: m.baho,
   openrouterModellarOl: vi.fn(async () => ({ ok: true, natija: { jami: 1, tavsiya: [], talab: { min: 50, izoh: 'Umumiy' }, natija: [] } })), modelOpenrouterdanQosh: vi.fn(),
   jurnalOl: vi.fn(async () => ({ ok: true, natija: { hamma: false, natija: [] } })), shaxsiyOl: vi.fn(async () => ({ ok: true, natija: { til: 'auto', uslub: 'qisqa', ishonch: 'jiddiy' } })), shaxsiySaqla: vi.fn(), harakatQarori: vi.fn(), harakatNatijasi: vi.fn(),

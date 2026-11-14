@@ -1,0 +1,8 @@
+{
+  "Shakl": { "ru": "Формат", "en": "Format" },
+  "Yuklab olish shakli": { "ru": "Формат выгрузки", "en": "Download format" },
+  "ZIP — papkalar, har hujjat alohida fayl": { "ru": "ZIP — папки, каждый документ отдельным файлом", "en": "ZIP — folders, one file per document" },
+  "Bitta Excel — barcha varaqlar bir faylda": { "ru": "Один Excel — все листы в одном файле", "en": "Single Excel — all sheets in one file" },
+  "Yuklab olish (ZIP paket)": { "ru": "Скачать (ZIP-пакет)", "en": "Download (ZIP package)" },
+  "Yuklandi; {n} ta F2 kirmadi (sababi — paket reestri faylida)": { "ru": "Скачано; {n} Ф-2 не вошли (причина — в Реестр пакета.xlsx)", "en": "Downloaded; {n} F-2 not included (reason in Реестр пакета.xlsx)" }
+}

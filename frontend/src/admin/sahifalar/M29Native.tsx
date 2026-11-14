@@ -97,8 +97,8 @@ function Sessiya({ companyId }: { companyId: number }) {
               <option value="">{t('Tanlang')}</option><ObyektOptionlari obyektlar={objects} />
             </select>
           </label>
-          <label className="text-[12px] font-medium text-text-dim">{t('Hisobot oyi')}
-            <select aria-label={t('Hisobot oyi')} value={davr} onChange={(e) => setDavr(e.target.value)} disabled={!oylar.length}
+          <label className="text-[12px] font-medium text-text-dim">{t('Oy')}
+            <select aria-label={t('Oy')} value={davr} onChange={(e) => setDavr(e.target.value)} disabled={!oylar.length}
               className="mt-1 block h-8 w-full px-2 text-[13px]">
               {!oylar.length && <option value="">—</option>}
               {oylar.map((o) => <option key={o} value={o}>{oyNomi(o)}</option>)}

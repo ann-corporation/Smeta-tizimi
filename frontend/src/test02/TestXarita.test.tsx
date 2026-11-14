@@ -36,7 +36,7 @@ const kontekst = (j: any, superadmin = false) => ({ joriy: j, superadmin });
 function mount(url = '/', props: Parameters<typeof TestXarita>[0] = {}) {
   return render(<MemoryRouter initialEntries={[url]}><TestXarita {...props} /></MemoryRouter>);
 }
-/** Asosiy ko'rinish — «Boshqaruv»; qolganlari (Xarita, Ro'yxat, 2D, Tahrir) «Boshqa ko'rinishlar» ostida. */
+/** Asosiy ko'rinishlar — «Xarita» (sukut) va «Jadval»; qolganlari (Ro'yxat, 2D, Tahrir) «Boshqa ko'rinishlar» ostida. */
 const boshqaKorinishlar = () => fireEvent.click(screen.getByTestId('boshqa-korinishlar'));
 const yuklandi = () => waitFor(() => expect(screen.getByRole('heading', { name: 'Boshqaruv pulti' })).toBeTruthy());
 
@@ -44,6 +44,7 @@ beforeAll(() => {
   if (!('ResizeObserver' in globalThis)) (globalThis as any).ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
 });
 beforeEach(() => {
+  try { window.localStorage.clear(); } catch { /* ko‘rinish tanlovi (mindmap-korinish-v2) testlar orasida o‘tmasin */ }
   m.graf.mockReset();
   m.graf.mockImplementation(async () => ({ ok: true, graf: grafFixture() }));
   m.kompaniya.current = kontekst(joriy());

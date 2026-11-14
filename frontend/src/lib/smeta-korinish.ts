@@ -82,6 +82,17 @@ export function umumiyKesim(tree: readonly TreeNode[]): Kesim {
   return yig(tree.map(uchlik));
 }
 
+/**
+ * Fakt / F2 ulushlari MAXRAJI = «Smeta + o'zgarishlar» (egasi 2026-11-14: qo'shimcha ish ham obyekt qiymati). `umumiyKesim` ulushlari
+ * asl smetaga nisbatan (qo'shimchali fakt/F2 ni asl smetaga bo'lib 100% dan oshiradi); maxraj noma'lum/≤0 bo'lsa ulush noma'lum (null).
+ * Yangi formula emas: maxrajni chaqiruvchi beradi (`bajarilishMaxraji`, server qatlami).
+ */
+export function ulushlarniMaxrajgaKeltir(k: Kesim, maxraj: number | null | undefined): Kesim {
+  const m = n(maxraj);
+  const ul = (x: number | null) => (m != null && m > 0 && x != null ? Math.min(1, Math.max(0, x / m)) : null);
+  return { ...k, f2Ulush: ul(k.f2), faktUlush: ul(k.fakt) };
+}
+
 /** Asl smeta barglari (kesim uchun): asl zanjirdagi barglar (qo'shimcha/zamena tugunlari va ularning ichi kirmaydi). */
 export function* aslBarglar(nodes: readonly TreeNode[]): Generator<TreeNode> {
   for (const x of nodes) {

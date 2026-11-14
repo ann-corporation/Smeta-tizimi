@@ -16,6 +16,7 @@ import { aiHisobli, aiXatoJavobi, aiXatoMalumoti, modelOf } from '../_shared/age
 import { tizimPrompti, tashqiMatnOra, profilDarajasi, type Muhit } from '../_shared/agent-prompt';
 import { vebOl, vebUrlTekshir } from '../_shared/agent-veb';
 import { xotiraOqi } from '../_shared/jarvis-xotira';
+import { kontekstAktorTozala, kontekstOl, keshliRpc } from '../_shared/agent-kontekst-kesh';
 import { xotiraBloklari } from '../../src/lib/smeta-ai/tajriba';
 import { kimMendan, kimPromptBloki } from '../../src/lib/yordamchi/kim';
 import { NIYAT_SXEMA, niyatLlmTekshir, niyatTizimi } from '../../src/lib/yordamchi/niyat-llm';
@@ -106,7 +107,8 @@ const oqishIchki = async (ctx: EventContext<Env, string, unknown>, sa: boolean):
   }
   if (bolim === 'kasb') {
     if (kid == null) return xato('kompaniya_id kerak');
-    return chiqar(await rpcData(ctx.env, 't2_agent_kasb_v1', { p_actor_id: k.actor, p_kompaniya_id: kid }));
+    /* Panel ochilganda chaqiriladi; xabar yuborilganda server shu keshdan foydalanadi (bir xil aktor+kompaniya) — ikkinchi RPC yo'q. */
+    return chiqar(await keshliRpc(ctx.env, k.actor, kid, 't2_agent_kasb_v1', { p_actor_id: k.actor, p_kompaniya_id: kid }));
   }
   /* OpenRouter'ning jonli ro'yxati + shu ishchi uchun moslik bahosi va ogohlantirishlar. Kalit kerak emas (ommaviy API). */
   if (bolim === 'openrouter_modellar') {
@@ -252,22 +254,19 @@ async function kasbQuvur(env: Env, actor: number, kid: number, so: Yuk, log: (be
   const t0 = Date.now();
   const savol = matn(so.savol, 2000) ?? '';
   const sessiya = crypto.randomUUID();
-  log('🔐', 'Lavozimingiz aniqlanmoqda…');
   /* 2026-10-20 (tezlik): baza uzoqda (~0.3 s har borib-kelish) — bir-biriga bog'liq bo'lmagan chaqiruvlar PARALLEL.
-     Avval ~9 ta ketma-ket chaqiruv edi; endi to'lqinlar: (lavozim, sozlama, uslub) → (ma'lumot, qidiruv, qoidalar, bilim). */
-  const [kr, sh, us, men, xotira] = await Promise.all([
-    rpcData(env, 't2_agent_kasb_v1', { p_actor_id: actor, p_kompaniya_id: kid }),
-    rpcData(env, 't2_agent_shaxsiy_v1', { p_actor_id: actor }),
-    /* O'rganilgan uslub (migratsiya qo'llanmagan bo'lsa yoki xato bo'lsa — jim o'tkazib yuboriladi, chat ishlayveradi). */
-    rpcData(env, 't2_agent_uslub_v1', { p_actor_id: actor }).catch(() => null),
-    /* KIM: sessiya aktorining ismi, kompaniyasi, roli va ruxsatlari (baza a'zolikni tekshiradi). Xato bo'lsa — rol bilan davom etamiz. */
-    rpcData(env, 't2_men_v1', { p_actor_id: actor }).catch(() => null),
+     2026-11-14: aktor+lavozim+kim+sozlama BITTA kontekst chaqiruvida (`kontekstOl`, qisqa TTL kesh): keyingi xabarlarda bu RPC'lar bazaga bormaydi.
+     «Lavozimingiz aniqlanmoqda» kabi texnik qadam chatga chiqarilmaydi (log yo'q). */
+  const [ktx, xotira] = await Promise.all([
+    kontekstOl(env, actor, kid),
     /* XOTIRA (shaxs / kompaniya / tizim): hamma Jarvis yo'llarida bir xil mavjud t2_agent_xotira; xato bo'lsa — bo'sh. */
     xotiraOqi(env, actor, kid).catch(() => ({ tizim: [], kompaniya: [], foydalanuvchi: [] })),
   ]);
+  const { kasb: kr, shaxsiy: sh, uslub: us, men } = ktx;
   if (!kr.ok) return { status: kr.status, body: kr.data };
   const kasb = kr.data as unknown as KasbMalumoti;
   const ish = { nom: kasb.nom, rol: kasb.rol, profil: kasb.profil };
+  /* Texnik qadam: jurnalga yoziladi, klientda (AiQadamlar) faqat yig'ilgan tafsilot ichida — jonli qatorda ko'rinmaydi. */
   log('👤', `Lavozim: ${kasb.rol} → «${kasb.nom}» ishchisi ulandi`);
   const til = String(sh.data.til ?? 'auto'); const uslub = String(sh.data.uslub ?? 'qisqa');
   const uslubOchiq = !!us?.ok && us.data.yoqilgan !== false;
@@ -410,6 +409,17 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
 
   if (amal === 'xotira_yoz') {
     return chiqar(await rpcData(env, 't2_agent_xotira_yoz_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_profil: profil, p_kalit: String(so.kalit ?? ''), p_mazmun: String(so.mazmun ?? '').slice(0, 4000) }));
+  }
+  /* JARVIS SUHBATLARI (serverda, t2_jarvis_suhbat): faqat egasi o'qiydi; actor sessiyadan, a'zolik bazada (scope_guard); model chaqirilmaydi. */
+  if (amal === 'suhbat_royxat' || amal === 'suhbat_ol' || amal === 'suhbat_saqla' || amal === 'suhbat_ochir') {
+    if (kid == null) return xato('Kompaniyani tanlang', 422);
+    const klient = String(so.klient_id ?? '');
+    if (amal === 'suhbat_royxat') return chiqar(await rpcData(env, 't2_jarvis_suhbat_royxat_v1', { p_actor_id: k.actor, p_kompaniya_id: kid }));
+    if (!/^[A-Za-z0-9_.-]{1,40}$/.test(klient)) return xato('klient_id notoвЂgвЂri');
+    if (amal === 'suhbat_ol') return chiqar(await rpcData(env, 't2_jarvis_suhbat_ol_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: klient }));
+    if (amal === 'suhbat_ochir') return chiqar(await rpcData(env, 't2_jarvis_suhbat_ochir_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: klient }));
+    const xabarlar = (Array.isArray(so.xabarlar) ? so.xabarlar : []).slice(-60).map((x) => { const r = (x ?? {}) as Record<string, unknown>; return { r: r.r === 'user' ? 'user' : 'ai', m: matn(r.m, 400) ?? '' }; }).filter((x) => x.m);
+    return chiqar(await rpcData(env, 't2_jarvis_suhbat_saqla_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: klient, p_sarlavha: matn(so.sarlavha, 80) ?? '', p_xabarlar: xabarlar }));
   }
   if (amal === 'taklif_yarat') {
     const mz = so.mazmun && typeof so.mazmun === 'object' && !Array.isArray(so.mazmun) ? so.mazmun : null;
@@ -588,7 +598,7 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
     const savol = matn(so.savol, 300);
     if (!savol) return xato('savol kerak');
     try {
-      const [kr, men] = await Promise.all([rpcData(env, 't2_agent_kasb_v1', { p_actor_id: k.actor, p_kompaniya_id: kid }), rpcData(env, 't2_men_v1', { p_actor_id: k.actor }).catch(() => null)]);
+      const [kr, men] = await Promise.all([keshliRpc(env, k.actor, kid, 't2_agent_kasb_v1', { p_actor_id: k.actor, p_kompaniya_id: kid }), keshliRpc(env, k.actor, null, 't2_men_v1', { p_actor_id: k.actor }).catch(() => null)]);
       if (!kr.ok) return chiqar(kr);
       const kasb = kr.data as unknown as KasbMalumoti;
       const kimB = kimPromptBloki(kimMendan(men?.ok ? (men.data as never) : { context_kompaniyalar: [{ kompaniya_id: kid, nom: '', effective_role: kasb.rol }] }, kid, { sahifa: matn(so.sahifa, 160), obyektNomi: matn(so.obyekt_nomi, 120) }));
@@ -641,9 +651,10 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
   }
   /* Foydalanuvchi uslubi: ko'rish (GET uslub), ko'rsatma/yoqish-o'chirish, o'rganilganni tozalash. Hammasi faqat o'zining qatori. */
   if (amal === 'uslub_saqla') {
+    kontekstAktorTozala(k.actor);
     return chiqar(await rpcData(env, 't2_agent_uslub_saqla_v1', { p_actor_id: k.actor, p_korsatma: matn(so.korsatma, 600), p_yoqilgan: so.yoqilgan !== false }));
   }
-  if (amal === 'uslub_tozala') return chiqar(await rpcData(env, 't2_agent_uslub_tozala_v1', { p_actor_id: k.actor }));
+  if (amal === 'uslub_tozala') { kontekstAktorTozala(k.actor); return chiqar(await rpcData(env, 't2_agent_uslub_tozala_v1', { p_actor_id: k.actor })); }
   /* Javobga baho (👍/👎, «qisqaroq/batafsilroq»): uslubga ta'sir qiladi; yomon/noaniq baho tizim signaliga (matnsiz) aylanadi — tizim agenti sahifa/profil bo'yicha to'playdi. */
   if (amal === 'javob_baho') {
     const baho = String(so.baho ?? '') as Baho;
@@ -739,6 +750,7 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
     return Response.json({ ok: true, korildi: royxat.length, ozgardi, takliflar: yaratildi, xatolar, natija }, JAVOB);
   }
   if (amal === 'shaxsiy_saqla') {
+    kontekstAktorTozala(k.actor);
     return chiqar(await rpcData(env, 't2_agent_shaxsiy_saqla_v1', { p_actor_id: k.actor, p_til: String(so.til ?? ''), p_uslub: String(so.uslub ?? ''), p_ishonch: String(so.ishonch ?? '') }));
   }
   if (amal === 'harakat_qaror') {

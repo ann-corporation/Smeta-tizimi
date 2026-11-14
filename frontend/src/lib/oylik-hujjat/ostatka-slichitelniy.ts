@@ -13,11 +13,17 @@ import { obyektPodvaliOqi, ustamaKontekstXatosi } from '../../api/t2-nakrutka-po
 import { f2HujjatKonteksti } from '../../api/f2-hujjat-kontekst';
 import { ozgarishniQosh } from '../lrv-ozgarish';
 import { ostatkaHujjatModeli, ostatkaHujjatXlsx, ostatkaIstisnolari, type OstatkaIstisno, type OstatkaModel } from '../ostatka-export';
-import { slichitelniyHujjatXlsx, slichitelniyModeli, type SlichitelniyModel } from '../slichitelniy-vedomost';
+import { slichitelniyHujjatXlsx, slichitelniyModeli, type BekorAkt, type SlichitelniyModel } from '../slichitelniy-vedomost';
+import { bajarilmadiRoyxatOl } from '../../api/t2-bajarilmadi';
+import { sbOqi } from '../../api/supabase';
+import { t2ToliqOqi } from '../../api/t2-toliq-oqish';
 import { yaxlitQatorIdlari } from '../svod-yaxlit';
 import type { ImzoNomlar } from '../hujjat-yozuvchi';
-import { AsosXarita } from '../slichitelniy-asos';
-import { slichitelniyAsosOl } from '../../api/t2-slichitelniy-asos';
+import type { F3DavrAkt } from '../forma3-export';
+import { nakopitelniyAktlarKOplate } from './nakopitelniy';
+
+/** Slichitelniy — «hozirgi holat»: barcha oylardagi tasdiqlangan F-2 lar (hisobot oyi chegarasi yo'q). */
+export const SLICH_DAVR = '9999-12';
 import type { NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
 import type { Podval } from '../nakrutka-konstruktor';
 import type { SvodYaxlit } from '../svod-yaxlit';
@@ -76,15 +82,50 @@ export function ostatkaHujjatQur(k: OstatkaKirish): { model: OstatkaModel; fayl:
   return { model, fayl: { bytes, faylNomi } };
 }
 
-export type SlichitelniyKirish = OstatkaKirish & { faqatFarq?: boolean; /** Fakt asosli rejim: «Основание» ustuni + asoslar reestri (RPC o'qilmasa berilmaydi). */ asos?: AsosXarita | null };
+export type SlichitelniyKirish = OstatkaKirish & { faqatFarq?: boolean;
+  /** Faol «bajarilmadi» qator idlari (t2_qator_bajarilmadi) — hujjatda joyida «НЕ ВЫПОЛНЯЕТСЯ» belgisi bilan. */
+  bajarilmadiIdlar?: ReadonlySet<number> | null;
+  /** Bekor qilingan Ф-2 lar — faqat ma'lumot ilovasi (jamiga kirmaydi). */
+  bekorAktlar?: ReadonlyArray<BekorAkt>;
+  /** Barcha tasdiqlangan F-2 aktlari o'z podvali bilan (`nakopitelniyAktlarKOplate`); null — o'qilmadi (hujjatda ogohlantirish); berilmasa — solishtirilmaydi. */
+  aktlarKOplate?: ReadonlyArray<F3DavrAkt> | null };
 
 export function slichitelniyHujjatQur(k: SlichitelniyKirish): { model: SlichitelniyModel; fayl: { bytes: Uint8Array; faylNomi: string } | null } {
   const faqatFarq = k.faqatFarq ?? false;
-  const model = slichitelniyModeli(k.rows as T2Qator[], k.states as T2QatorHolat[], { faqatFarq, istisnolar: k.istisnolar, svodYaxlit: k.ustama.svodYaxlit });
+  const model = slichitelniyModeli(k.rows as T2Qator[], k.states as T2QatorHolat[], { faqatFarq, istisnolar: k.istisnolar, svodYaxlit: k.ustama.svodYaxlit, bajarilmadiIdlar: k.bajarilmadiIdlar ?? null });
   if (!model.barglar) return { model, fayl: null };
   const { bytes, faylNomi } = slichitelniyHujjatXlsx(model, { obyektNomi: k.obyektNom, imzo: k.imzo, faqatFarq, istisnolar: k.istisnolar, nakrutka: k.ustama.koeffitsientlar, podval: k.ustama.podval, nkManba: k.ustama.nkManba,
-    svodYaxlit: k.ustama.svodYaxlit, yaxlitIdlar: yaxlitQatorIdlari(k.rows, k.ustama.svodYaxlit), asos: k.asos ?? null });
+    svodYaxlit: k.ustama.svodYaxlit, yaxlitIdlar: yaxlitQatorIdlari(k.rows, k.ustama.svodYaxlit), aktlarKOplate: k.aktlarKOplate, bekorAktlar: k.bekorAktlar });
   return { model, fayl: { bytes, faylNomi } };
+}
+
+/** Faol «bajarilmadi» qator idlari; o'qilmasa — null (hujjat belgisiz, lekin qatorlar baribir o'z joyida). */
+export async function bajarilmadiIdlariOl(kompaniyaId: number, obyektId: number): Promise<ReadonlySet<number> | null> {
+  try { const r = await bajarilmadiRoyxatOl(kompaniyaId, obyektId); return r.ok ? new Set(r.qatorlar.filter((x) => x.holat === 'faol').map((x) => Number(x.qator_id))) : null; } catch { return null; }
+}
+
+export type BekorAktManba = { id: number; raqam: string | null; oy: string | null; holat?: string | null; lifecycle_status?: string | null; lifecycle_reason?: string | null; correction_of_akt_id?: number | null; hujjat_jami?: number | null };
+
+/** Bekor qilingan Ф-2 lar (tur='f2', lifecycle 'cancelled' yoki holat 'bekor'): raqam, sana, qaysi akt almashtirgan (`correction_of_akt_id`), sabab. Faqat ma'lumot — jamiga kirmaydi. */
+export function bekorAktlarQur(aktlar: readonly BekorAktManba[]): BekorAkt[] {
+  const nom = (a: BekorAktManba) => (a.raqam ? `№ ${a.raqam}` : `#${a.id}`);
+  const almashtirgan = new Map<number, BekorAktManba[]>();
+  for (const a of aktlar) if (a.correction_of_akt_id != null) { const l = almashtirgan.get(a.correction_of_akt_id); if (l) l.push(a); else almashtirgan.set(a.correction_of_akt_id, [a]); }
+  return aktlar.filter((a) => a.lifecycle_status === 'cancelled' || a.holat === 'bekor')
+    .sort((x, y) => String(x.oy ?? '').localeCompare(String(y.oy ?? '')) || x.id - y.id)
+    .map((a) => ({
+      nomer: nom(a), sana: a.oy ? a.oy.slice(0, 10) : null, summa: a.hujjat_jami ?? null,
+      almashtirgan: (almashtirgan.get(a.id) ?? []).filter((x) => x.lifecycle_status !== 'cancelled' && x.holat !== 'bekor').map(nom).join(', ') || null,
+      sabab: a.lifecycle_reason ?? null,
+    }));
+}
+
+/** Kichik so'rov: obyektning Ф-2 aktlari (t2_akt, mavjud ruxsat ro'yxati). O'qilmasa — bo'sh (hujjat varaqsiz). */
+export async function bekorAktlarOl(obyektId: number): Promise<BekorAkt[]> {
+  try {
+    const r = await t2ToliqOqi<BekorAktManba>(sbOqi, { jadval: 't2_akt', filtr: `obyekt_id=eq.${obyektId}&tur=eq.f2`, ustunlar: 'id,raqam,oy,holat,lifecycle_status,lifecycle_reason,correction_of_akt_id,hujjat_jami', limit: 5000 }, 'id');
+    return bekorAktlarQur(Array.isArray(r) ? r : []);
+  } catch { return []; }
 }
 
 export type PaketHujjatNatija = { ok: true; nom: string; bytes: Uint8Array } | { ok: false; bosh?: boolean; xato: string };
@@ -98,10 +139,10 @@ export async function ostatkaPaketFayli(p: { kompaniyaId: number; obyektId: numb
   const u = await ustamaManbaOl(p.kompaniyaId, p.obyektId);
   if (!u.ok) return { ok: false, xato: u.xato };
   const kirish: OstatkaKirish = { rows: d.rows, states: d.states, istisnolar, ustama: u.ustama, obyektNom: p.obyektNom, imzo: p.imzo };
-  // Slichitelniy paketda ham sahifa bilan BIR XIL quruvchi: asoslar o'qilsa «Основание» ustuni + reestr; o'qilmasa — asossiz (jim yiqilmaydi, sahifada ogohlantiriladi).
-  let asos: AsosXarita | null = null;
-  if (p.tur === 'slichitelniy') { const j = await slichitelniyAsosOl(p.kompaniyaId, p.obyektId, 1).catch(() => null); asos = j && j.ok ? new AsosXarita(j) : null; }
-  const r = p.tur === 'ostatka' ? ostatkaHujjatQur(kirish) : slichitelniyHujjatQur({ ...kirish, asos });
+  // Slichitelniy: «ranee предъявлено» к оплате — aktlarning o'z podvali bilan (nakopitelniy/F-3 bilan bir xil manba); o'qilmasa jim emas — hujjatda ogohlantirish.
+  const aktlarKOplate = p.tur === 'slichitelniy' ? await nakopitelniyAktlarKOplate(p.kompaniyaId, p.obyektId, p.obyektNom, SLICH_DAVR) : undefined;
+  const bajarilmadiIdlar = p.tur === 'slichitelniy' ? await bajarilmadiIdlariOl(p.kompaniyaId, p.obyektId) : null;
+  const r = p.tur === 'ostatka' ? ostatkaHujjatQur(kirish) : slichitelniyHujjatQur({ ...kirish, aktlarKOplate, bajarilmadiIdlar, bekorAktlar: await bekorAktlarOl(p.obyektId) });
   if (!r.fayl) return { ok: false, bosh: true, xato: p.tur === 'ostatka' ? 'ostatka yo‘q (barcha ishlar bajarilgan)' : 'solishtiriladigan pozitsiya yo‘q' };
   return { ok: true, nom: r.fayl.faylNomi, bytes: r.fayl.bytes };
 }

@@ -68,11 +68,18 @@ const AMAL_NOMI: Record<AgentAmal['tur'], string> = { material: 'Loyiha material
   narx: 'Narx qo‘yish', stavka_tasdiq: 'Stavkalarni tasdiqlash', stavka: 'Foiz stavkasi', resurs_kat: 'Nakrutka kategoriyasi', bosqich: 'Bosqichga o‘tish', hujjat: 'Hujjat yuklash',
   qosh: 'Ishlarni smetaga qo‘shish', takror_tasdiq: 'Alohida hisoblashni tasdiqlash', narx_tasdiq: 'AI narxlarini tasdiqlash' };
 
-export function SmetaAiChat(props: Parameters<typeof SmetaAiChatCore>[0]) {
-  return <SmetaAiChatCore key={`${props.kompaniyaId}:${props.doc.draftId}:${props.katalog?.manifest.revision ?? 'loading'}`} {...props} />;
+type DraftRef = { current: { scope: string; matn: string } };
+
+/** Katalog tayyor bo‘lganda (revision o‘zgarib) ichki holat qayta tiklanadi (suhbat tarixi revision bo‘yicha); yuborilmagan matn esa saqlanib qoladi. */
+export function SmetaAiChat(props: Omit<Parameters<typeof SmetaAiChatCore>[0], 'draft'>) {
+  const draft = useRef({ scope: '', matn: '' });
+  const scope = `${props.kompaniyaId}:${props.doc.draftId}`;
+  if (draft.current.scope !== scope) draft.current = { scope, matn: '' };
+  return <SmetaAiChatCore key={`${scope}:${props.katalog?.manifest.revision ?? 'loading'}`} {...props} draft={draft} />;
 }
 
-function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich, selectedWorkId }: {
+function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich, selectedWorkId, draft }: {
+  draft: DraftRef;
   doc: EstimateDoc; katalog: AiKatalog | null; kompaniyaId: number | null; command: (c: StudioCommand) => boolean; newId: () => string;
   /** Opens a studio step (pricing / documents) so the agent can run that step's action. */
   onBosqich?: (b: 'lrv' | 'narx' | 'res') => void;
@@ -113,7 +120,8 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
     const validated = manbaMaterialiniTekshir(suhbatJavobiniTekshir({ ishlar: saqlangan.ishlar }), source);
     return birlashtir(saqlangan.ishlar, validated.ishlar);
   });
-  const [matn, setMatn] = useState('');
+  const [matn, setMatn] = useState(draft.current.matn);
+  useEffect(() => { draft.current.matn = matn; }, [matn, draft]);
   const [band, setBand] = useState<'' | 'suhbat' | 'tanlash' | 'qoshish' | 'amal'>('');
   // What the estimator is doing, step by step (owner 2026-10-16: "shunchaki «o'ylayapti» emas — Claude Code'dagidek izohlab borsin").
   const [qadamlar, setQadamlar] = useState<Qadam[]>([]);

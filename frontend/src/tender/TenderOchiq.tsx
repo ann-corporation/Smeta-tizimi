@@ -80,7 +80,7 @@ function Lot({ id }: { id: number }) {
         </table>
       </div>
       {!lot.muddat_otgan && <Link to="/" state={{ qaytish: `/admin/tender?id=${lot.id}` }} className={`${katta} bg-blue-600 text-white`}>{t('Taklif berish')}</Link>}
-      <p className="text-[12px] text-text-mute">{t('Taklif berish uchun hisob va kompaniya a‘zoligi (ta‘minot ruxsati) kerak. Yakka shaxs bo‘lsangiz kompaniya ochish so‘rovini yuboring.')}</p>
+      <p className="text-[12px] text-text-mute">{t('Taklif berish uchun hisob va kompaniya a‘zoligi (ta‘minot ruxsati) kerak. Yakka shaxs bo‘lsangiz kirgach kompaniyangizni o‘zingiz darhol ochasiz.')}</p>
     </div>
   );
 }

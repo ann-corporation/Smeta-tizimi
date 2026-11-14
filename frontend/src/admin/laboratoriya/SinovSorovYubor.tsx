@@ -10,7 +10,7 @@ import { sinovTurlariOl, sorovYubor, type SinovTuri } from '../../api/t2-lab-sor
 import { t, tilOl } from '../../i18n/til';
 import { inp, tugma, tugmaAsosiy } from '../zakazchik/tomon-yordam';
 
-export type SorovKontekst = { obyektId: number; aosrId?: number | null; aosrNom?: string | null; qatorId?: number | null; qatorNom?: string | null; aslSorovId?: number | null; sinovTuri?: string };
+export type SorovKontekst = { obyektId: number; aosrId?: number | null; aosrNom?: string | null; qatorId?: number | null; qatorNom?: string | null; aslSorovId?: number | null; sinovTuri?: string; konstruksiya?: string };
 
 const turNomi = (x: Pick<SinovTuri, 'nom' | 'nom_ru'>) => (tilOl() === 'ru' && x.nom_ru ? x.nom_ru : x.nom);
 
@@ -19,7 +19,7 @@ export function SinovSorovYubor({ kompaniyaId, kontekst, onYuborildi, onYopish }
   const [turlar, setTurlar] = useState<SinovTuri[]>([]);
   const [aloqaId, setAloqaId] = useState<number | ''>('');
   const [turi, setTuri] = useState(kontekst.sinovTuri ?? '');
-  const [konstruksiya, setKonstruksiya] = useState('');
+  const [konstruksiya, setKonstruksiya] = useState(kontekst.konstruksiya ?? '');
   const [joy, setJoy] = useState('');
   const [namuna, setNamuna] = useState('');
   const [muddat, setMuddat] = useState('');

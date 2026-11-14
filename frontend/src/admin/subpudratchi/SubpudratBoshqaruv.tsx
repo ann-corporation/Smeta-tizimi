@@ -5,7 +5,7 @@
  * va bitta subpudrat xarajati yoziladi. Smeta qatori o'zgarmaydi. Narxlar QQS siz; pul hisobi lib/hisob-yadro orqali.
  */
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Handshake, HardHat, Inbox, RefreshCw } from 'lucide-react';
 import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
@@ -49,6 +49,13 @@ export default function SubpudratBoshqaruv() {
   const [shartnomalar, setShartnomalar] = useState<Shartnoma[]>([]);
   const [shartnomaId, setShartnomaId] = useState<number | null>(null);
   const [ulgurji, setUlgurji] = useState('');
+  /* Karta (mindmap) dan kelganda: ?obyekt=&aloqa= — obyekt va subpudratchi oldindan tanlanadi (qayta yozilmaydi, shu sahifaning o‘zi). */
+  const [qidiruvParam] = useSearchParams();
+  useEffect(() => {
+    const o = Number(qidiruvParam.get('obyekt')), a = Number(qidiruvParam.get('aloqa'));
+    if (Number.isSafeInteger(o) && o > 0) setObyektId(o);
+    if (Number.isSafeInteger(a) && a > 0) setAloqaId(a);
+  }, [qidiruvParam]);
 
   const obyekt = obyektlar.find((o) => o.id === obyektId) ?? obyektlar[0] ?? null;
   const oid = obyekt?.id ?? null;

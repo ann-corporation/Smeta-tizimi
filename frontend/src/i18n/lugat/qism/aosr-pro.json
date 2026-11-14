@@ -1,0 +1,134 @@
+{
+ "Kitob uchun akt yo‘q": {
+  "ru": "Нет актов для книги",
+  "en": "No acts for the book"
+ },
+ "✓ Pechat kitobi tayyor: {n} akt": {
+  "ru": "✓ Печатная книга готова: актов — {n}",
+  "en": "✓ Print book ready: {n} acts"
+ },
+ "Kitob yasalmadi: {x}": {
+  "ru": "Книга не сформирована: {x}",
+  "en": "Book was not built: {x}"
+ },
+ "Avto-qoralamalarni bekor qilish": {
+  "ru": "Аннулировать авто-черновики",
+  "en": "Cancel auto drafts"
+ },
+ "Tizim avtomatik yasagan {n} ta qoralama bekor qilinsinmi? (o‘chirilmaydi, tarixda qoladi; yuborilgan va protokolli aktlarga tegilmaydi)": {
+  "ru": "Аннулировать черновиков, созданных системой автоматически: {n}? (не удаляются, остаются в истории; отправленные и с протоколами не затрагиваются)",
+  "en": "Cancel {n} drafts created automatically by the system? (not deleted, kept in history; sent acts and acts with protocols are untouched)"
+ },
+ "✓ {n} ta avto-qoralama bekor qilindi": {
+  "ru": "✓ Аннулировано авто-черновиков: {n}",
+  "en": "✓ Auto drafts cancelled: {n}"
+ },
+ "Tanlangan ishning yashiriladigan bosqichlari bo‘yicha АОСР qoralamalari (zamin → … → qoplama asosi)": {
+  "ru": "Черновики АОСР по скрываемым этапам выбранной работы (грунт → … → основание под покрытие)",
+  "en": "AOSR drafts per concealed stage of the selected work (soil → … → covering base)"
+ },
+ "Zanjirli qoralama": {
+  "ru": "Цепочка черновиков",
+  "en": "Chained drafts"
+ },
+ "Akt, boshlanish va tugash sanalari bo‘sh chop etiladi — sanani o‘zingiz qo‘yasiz": {
+  "ru": "Даты акта, начала и окончания печатаются пустыми — проставите сами",
+  "en": "Act, start and end dates are printed blank — you fill them in"
+ },
+ "sanasiz chop": {
+  "ru": "печать без дат",
+  "en": "print without dates"
+ },
+ "Bitta Excel: har akt alohida varaq (ШНК 3.01.01-22 Прил.6) + hajm hisobi va laboratoriya ilovalari": {
+  "ru": "Один Excel: каждый акт на отдельном листе (ШНК 3.01.01-22 Прил.6) + ведомость объёмов и лабораторные приложения",
+  "en": "One Excel: each act on its own sheet (ShNK 3.01.01-22 App.6) + volume statement and laboratory annexes"
+ },
+ "Pechat kitobi": {
+  "ru": "Печатная книга",
+  "en": "Print book"
+ },
+ "Tizim avtomatik yasagan, yuborilmagan qoralamalarni bekor qilish": {
+  "ru": "Аннулировать неотправленные черновики, созданные системой автоматически",
+  "en": "Cancel unsent drafts created automatically by the system"
+ },
+ "Avto-qoralamalar ({n})": {
+  "ru": "Авто-черновики ({n})",
+  "en": "Auto drafts ({n})"
+ },
+ "Talab qilinadi:": {
+  "ru": "Требуется:",
+  "en": "Required:"
+ },
+ "Laboratoriyaga so‘rov": {
+  "ru": "Запрос в лабораторию",
+  "en": "Laboratory request"
+ },
+ "Kubik seriyasi va sertifikatlar ro‘yxati Excel ilovasida (Прил) chiqadi.": {
+  "ru": "Серии кубиков и перечень сертификатов — в приложении Excel (лист «Прил»).",
+  "en": "Cube series and the certificate list are in the Excel annex (sheet \"Прил\")."
+ },
+ "Tizim avtomatik yasagan qoralama — haqiqiy akt emas. Tekshiring yoki bekor qiling.": {
+  "ru": "Черновик создан системой автоматически — не настоящий акт. Проверьте или аннулируйте.",
+  "en": "Draft created automatically by the system — not a real act. Review or cancel it."
+ },
+ "avto-qoralama": {
+  "ru": "авто-черновик",
+  "en": "auto draft"
+ },
+ "Boshlang‘ich raqamni kiriting": {
+  "ru": "Укажите начальный номер",
+  "en": "Enter the starting number"
+ },
+ "Zanjirli qoralama: yashiriladigan bosqichlar": {
+  "ru": "Цепочка черновиков: скрываемые этапы",
+  "en": "Chained drafts: concealed stages"
+ },
+ "Smetadagi ish va resurslardan aniqlangan bosqichlar qurilish tartibida. Smetada yo‘q bosqich yaratilmaydi.": {
+  "ru": "Этапы, определённые по работам и ресурсам сметы, в порядке строительства. Этап, которого нет в смете, не создаётся.",
+  "en": "Stages detected from estimate works and resources, in construction order. A stage absent from the estimate is not created."
+ },
+ "Tanlangan ishlardan bosqich aniqlanmadi — «Belgilanganlardan akt» orqali qo‘lda yarating.": {
+  "ru": "По выбранным работам этап не определён — создайте вручную через «Акт из отмеченных».",
+  "en": "No stage detected for the selected works — create manually via \"Act from selected\"."
+ },
+ "{n} material": {
+  "ru": "материалов: {n}",
+  "en": "{n} materials"
+ },
+ "Smetada dalili yo‘q bosqichlar: {x}": {
+  "ru": "Этапы без подтверждения в смете: {x}",
+  "en": "Stages with no evidence in the estimate: {x}"
+ },
+ "Bosqichi aniqlanmagan ishlar: {x}": {
+  "ru": "Работы с неопределённым этапом: {x}",
+  "en": "Works with an undetermined stage: {x}"
+ },
+ "Boshlang‘ich raqam": {
+  "ru": "Начальный номер",
+  "en": "Starting number"
+ },
+ "sanalarni fakt jurnalidan to‘ldirish (aks holda bo‘sh)": {
+  "ru": "заполнить даты из журнала факта (иначе пусто)",
+  "en": "fill dates from the fact journal (otherwise blank)"
+ },
+ "Qoralamalarni yaratish ({n})": {
+  "ru": "Создать черновики ({n})",
+  "en": "Create drafts ({n})"
+ },
+ "Zamin": {
+  "ru": "Грунт",
+  "en": "Soil"
+ },
+ "Podgotovka": {
+  "ru": "Подготовка",
+  "en": "Bedding"
+ },
+ "Gidroizolyatsiya": {
+  "ru": "Гидроизоляция",
+  "en": "Waterproofing"
+ },
+ "Qoplama asosi": {
+  "ru": "Основание под покрытие",
+  "en": "Covering base"
+ }
+}

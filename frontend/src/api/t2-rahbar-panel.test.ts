@@ -19,6 +19,16 @@ describe('rahbarPanelTozala', () => {
     expect(r.pul_oqimi.oylar).toEqual([]);
     expect(r.tasdiq_kutmoqda).toEqual([]);
   });
+
+  it('smeta_joriy: kalit yo‘q (eski server) → undefined; null → noma’lum (null); paket → paket', () => {
+    const r = rahbarPanelTozala({
+      ok: true, kartalar: { portfel: { smeta: paket, smeta_joriy: { ...paket, qqs_bilan: 120 } } },
+      obyektlar: [{ obyekt_id: 1, smeta: paket }, { obyekt_id: 2, smeta: paket, smeta_joriy: null }],
+    });
+    expect(r.kartalar.portfel.smeta_joriy?.qqs_bilan).toBe(120);
+    expect(r.obyektlar[0].smeta_joriy).toBeUndefined();
+    expect(r.obyektlar[1].smeta_joriy).toBeNull();
+  });
 });
 
 describe('rahbarPanelOl', () => {

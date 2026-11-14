@@ -48,7 +48,7 @@ export function dataPermission(name: string, write: boolean, body: Record<string
     if (n === 'akt_yarat') return body.tur === 'fakt' ? 'fakt.write' : 'f2.prepare';
     if (/f2|(^|_)akt_/.test(n)) return 'f2.prepare';
   } else if (/f2|(^|_)akt(?:_|$)|viborka|nakop/.test(n)) return 'f2.read';
-  if (/tolov|xarajat|faktura|bux|debitor|financial|boss|rahbar_panel|rahbar_pult/.test(n)) return write ? 'financial.write' : 'financial.read';
+  if (/tolov|xarajat|faktura|bux|debitor|financial|boss|rahbar_panel|rahbar_pult|moslash_qutisi/.test(n)) return write ? 'financial.write' : 'financial.read';
   if (/fakt/.test(n)) return write ? 'fakt.write' : 'fakt.read';
   if (/narx|price|nakrutka|alias/.test(n)) return write ? 'narx.write' : 'narx.read';
   if (/qator|smeta|daraxt|ish_turi|resurs_kategoriya|qoshimcha_ish|zamena_ish|resurs_bola|ish_resurs/.test(n)) return write ? 'smeta.write' : 'smeta.read';

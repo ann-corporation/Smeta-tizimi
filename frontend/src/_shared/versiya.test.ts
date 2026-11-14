@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { yangiliklarniYig } from '../../scripts/yangiliklar-yigish.mjs';
-import { resolve } from 'node:path';
+import { resolve, join } from 'node:path';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { chunkXatosimi, htmldanKirishSkripti, korilmaganlar, reloadQoriqchisiniTozala, saqlanmaganIsh, saqlanmaganIshBormi, versiyaKuzatuvi, yangiliklarniAjrat, yangiVersiyaChiqdimi } from './versiya';
 
 describe('«Nima yangi» (egasi 2026-10-25: versiya almashganda nima o‘zgarganini aytsin)', () => {
@@ -21,6 +23,19 @@ describe('«Nima yangi» (egasi 2026-10-25: versiya almashganda nima o‘zgargan
     expect(y.length).toBe(json.yozuvlar.length);
     expect(new Set(y.map((x) => x.id)).size).toBe(y.length);
     for (const x of y) { expect(x.sarlavha.trim()).not.toBe(''); expect(x.bandlar.length).toBeGreaterThan(0); }
+  });
+  it('ikki fayl BIR XIL vaqt prefiksi bilan — build yiqilmaydi, ikkalasi ham ro‘yxatda, nom tartibida; eski id formati saqlanadi', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'yangilik-'));
+    try {
+      const yoz = (nom: string, sarlavha: string) => writeFileSync(join(dir, nom), JSON.stringify({ sana: '2026-11-13', sarlavha, bandlar: ['x'] }));
+      yoz('20261113-1500-b-ikkinchi.json', 'B'); yoz('20261113-1500-a-birinchi.json', 'A'); yoz('20261113-1500-c-uchinchi.json', 'C'); yoz('20261113-1600-keyin.json', 'K');
+      const a = yangiliklarniYig(dir).yozuvlar;
+      expect(a.map((x) => x.sarlavha)).toEqual(['K', 'C', 'B', 'A']);
+      const asos = 20261113 * 10000 + 1500;
+      expect(a.find((x) => x.sarlavha === 'A')!.id).toBe(asos); // asl formula (ko‘rilgan belgi buzilmaydi)
+      expect(new Set(a.map((x) => x.id)).size).toBe(4);
+      expect(yangiliklarniYig(dir).yozuvlar).toEqual(a); // barqaror
+    } finally { rmSync(dir, { recursive: true, force: true }); }
   });
 });
 

@@ -29,7 +29,10 @@ export async function hujjatDizayniniYukla(kompaniyaId: number | null | undefine
 import type { Podval } from '../lib/nakrutka-konstruktor';
 import type { SvodYaxlit } from '../lib/svod-yaxlit';
 
-/** svodYaxlit — smeta darajasidagi hujjatlar (LRV) uchun; tasdiqlangan F2 hujjati undan foydalanmaydi. */
+/**
+ * svodYaxlit — svod yaxlit bo'limlari: smeta darajasidagi hujjatlar (LRV) VA F2 akti (`f2AktTayyorla`: belgili bo'lim qatorlari
+ * ustamasiz, faqat QQS — server `_t2_f2_ustamali` kesim.svod va imzolangan hujjat bilan bir xil) foydalanadi.
+ */
 export type F2HujjatKonteksti = { imzo: ImzoNomlar; shartnoma: string | null; nakrutka: Partial<NakrutkaKoeffitsientlar> | null; podval: Podval | null; svodYaxlit?: SvodYaxlit | null; nkManba?: string | null;
   /** Ustama/podval o'qilmadi — sabab (smeta darajasidagi hujjatlar bloklanadi; null — hammasi o'qildi). */
   xato?: string | null };

@@ -8,7 +8,7 @@ vi.mock('../kontekst/KompaniyaKontekst', () => ({
   useKompaniya: () => ({ joriyId: 5, superadmin: false, kompaniyalar: [{}], foydalanuvchi: { id: 7, ism: 'Sinov Boss', login: 'sinov' }, joriy: { id: 5, nom: 'Sinov MChJ', rol: 'boss', permissions: ['f2.approve', 'f2.cancel', 'financial.write', 'financial.read'] } }),
 }));
 vi.mock('../../api/t2-agent-ish', () => ({
-  kasbOl: m.kasbOl, kasbSavolOqim: m.savol, niyatLlmOl: m.llm, jurnalOl: vi.fn(async () => ({ ok: true, natija: { hamma: false, natija: [] } })),
+  kasbOl: m.kasbOl, suhbatRoyxatOl: vi.fn(async () => null), suhbatServerga: vi.fn(async () => null), suhbatServerdanOl: vi.fn(async () => null), kasbSavolOqim: m.savol, niyatLlmOl: m.llm, jurnalOl: vi.fn(async () => ({ ok: true, natija: { hamma: false, natija: [] } })),
   shaxsiyOl: vi.fn(async () => ({ ok: true, natija: { til: 'auto', uslub: 'qisqa', ishonch: 'jiddiy' } })), shaxsiySaqla: vi.fn(), harakatQarori: vi.fn(), harakatNatijasi: vi.fn(),
   modellarOl: vi.fn(async () => ({ ok: false, error: 'yoq' })), modelShaxsiyOl: vi.fn(async () => ({ ok: false, error: 'yoq' })), modelShaxsiyTanla: vi.fn(), modelSiyosatOl: vi.fn(async () => ({ ok: false, error: 'yoq' })),
   uslubOl: vi.fn(async () => ({ ok: false, error: 'yoq' })), uslubSaqla: vi.fn(), uslubTozala: vi.fn(), tizimYordamSavol: vi.fn(),
@@ -60,7 +60,7 @@ it('LLM «suhbat» yoki xato -> mavjud suhbat oqimi davom etadi; so‘rov takror
   render(view()); och(); await screen.findByText('Holat?');
   send('qxzv plmk');
   expect(await screen.findByText('Mana javob.')).toBeTruthy();
-  expect(screen.getAllByText('qxzv plmk').length).toBe(1);
+  expect(screen.getAllByText('qxzv plmk', { selector: 'p' }).length).toBe(1);
   expect(m.savol).toHaveBeenCalledTimes(1);
 });
 

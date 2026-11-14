@@ -1,0 +1,18 @@
+{
+  "Fakt va F2 (QQS bilan) hisoblanmoqda…": {
+    "ru": "Факт и Ф2 (с НДС) считаются…",
+    "en": "Fact and F2 (incl. VAT) are being calculated…"
+  },
+  "Fakt va F2 (QQS bilan) hisoblanmadi — ustamasiz summa ko‘rsatilmoqda.": {
+    "ru": "Факт и Ф2 (с НДС) не рассчитаны — показана сумма без наценки.",
+    "en": "Fact and F2 (incl. VAT) could not be calculated — amount without markup is shown."
+  },
+  "Fakt va F2 ustamasiz ko‘rsatilmoqda. QQS bilan hisoblash og‘ir — kerak bo‘lsa yoqing.": {
+    "ru": "Факт и Ф2 показаны без наценки. Расчёт с НДС тяжёлый — включите при необходимости.",
+    "en": "Fact and F2 are shown without markup. The VAT-inclusive calculation is heavy — enable it if needed."
+  },
+  "QQS bilan hisoblash": {
+    "ru": "Посчитать с НДС",
+    "en": "Calculate incl. VAT"
+  }
+}

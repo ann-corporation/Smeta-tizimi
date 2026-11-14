@@ -29,7 +29,7 @@ export type Amal = {
 };
 
 export const AMALLAR: readonly Amal[] = [
-  { kalit: 'obyekt.yangi', turi: 'yozish', capability: 'smeta.write', ilova: 'pto', sahifa: 'obyektlar', yol: '/admin/obyektlar', nom: 'Yangi obyekt / smeta yuklash', sinonimlar: ['yangi obyekt', 'obyekt qo‘shish', 'smeta yuklash', 'новый объект', 'загрузить смету'] },
+  { kalit: 'obyekt.yangi', turi: 'yozish', capability: 'smeta.write', ilova: 'pto', sahifa: 'obyektlar', yol: '/admin/obyektlar', nom: 'Yangi obyekt', sinonimlar: ['yangi obyekt', 'obyekt qo‘shish', 'smeta yuklash', 'новый объект', 'загрузить смету'] },
   { kalit: 'smeta.narxlash', turi: 'yozish', capability: 'narx.write', ilova: 'pto', sahifa: 'smeta-narxlash', yol: '/admin/smeta-narxlash', nom: 'Smetani narxlash', sinonimlar: ['narxlash', 'narx qo‘yish', 'расценить смету'] },
   { kalit: 'fakt.kiritish', turi: 'yozish', capability: 'fakt.write', ilova: 'ff', sahifa: 'fakt', yol: '/admin/fakt', nom: 'Fakt kiritish', sinonimlar: ['fakt yozish', 'bajarilgan ish', 'факт', 'выполнено'] },
   { kalit: 'f2.tayyorlash', turi: 'yozish', capability: 'f2.prepare', ilova: 'ff', sahifa: 'f2-tayyorlash', yol: '/admin/f2-tayyorlash', nom: 'F2 tayyorlash', sinonimlar: ['f2 yaratish', 'yangi f2', 'подготовить ф2'] },

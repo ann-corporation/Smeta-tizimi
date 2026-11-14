@@ -5,7 +5,7 @@ import type { JurnalHolat } from './fakt-jurnal';
 import { ochiqQoldiq } from './zamena-qoldiq';
 import { chiqarilganmi } from './resurs-amal';
 import { faktSummaF2Narxda, katJami, qatorSumma, yigindi2 } from './hisob-yadro';
-import { svodKorinishKesimi, yaxlitQatorIdlari, type SvodYaxlit } from './svod-yaxlit';
+import { svodFaktKesimi, type SvodYaxlit } from './svod-yaxlit';
 
 /**
  * Fakt Studio yig'indisi (egasi 2026-10-24): fakt kiritish ekranida doimiy ko'rinadigan hisob.
@@ -31,7 +31,7 @@ export function faktYigindiHisobla(
   rows: readonly Qator[],
   states: readonly JurnalHolat[],
   bajarilmadi: readonly Pick<BajarilmadiQator, 'qator_id' | 'bajarilmagan_hajm' | 'holat'>[] = [],
-  /** Svod yaxlit (server) — bo'lim fakti yaxlit summaga masshtablanadi (`svodKorinishKesimi`). */
+  /** Svod yaxlit (server) — svod bo'limida fakt F-2 usulida, taqsimlanmaydi (`svodFaktKesimi`, yagona qoida). */
   svod?: SvodYaxlit | null,
 ): FaktYigindi {
   const holat = new Map(states.map((s) => [s.qator_id, s]));
@@ -63,15 +63,10 @@ export function faktYigindiHisobla(
     faktEl.push(e);
     if (yangiMi(r)) yangiEl.push(e);
   }
-  // Kesim va jami — yadrodan (`svodKorinishKesimi`): svod bo'limi yaxlit × (fakt / BUTUN bo'lim smetasi), ustama yo'q.
-  const bolimSmeta = new Map<number, number>();
-  for (const b of svod?.bolimlar ?? []) {
-    const ids = yaxlitQatorIdlari(rows, { ...svod!, bolimlar: [b] });
-    bolimSmeta.set(Number(b.qator_id), yigindi2(rows.filter((r) => ids.has(r.id) && BARG.has(r.tur ?? '')).map((r) => son(holat.get(r.id)?.smeta_summa))));
-  }
+  // Kesim va jami — yadrodan (`svodFaktKesimi`): svod bo'limida fakt F-2 usulida (ЧЕЛ/МАШ — ustama kaskadi, qolgani to'g'ri narx), taqsimsiz.
   const f = { id: (e: El) => e.id, kat: (e: El) => e.kat, summa: (e: El) => e.summa, smeta: (e: El) => e.smeta };
-  const faktKesim = svodKorinishKesimi(rows, faktEl, f, svod, { bolimSmeta });
-  const yangiKesim = svodKorinishKesimi(rows, yangiEl, f, svod, { bolimSmeta });
+  const faktKesim = svodFaktKesimi(rows, faktEl, f, svod);
+  const yangiKesim = svodFaktKesimi(rows, yangiEl, f, svod);
   const jami = (k: KatKesim) => yigindi2([katJami(k.summalar), k.nomalum, k.yaxlit?.qqssiz]);  const bajarilmadiKesim = bosKatKesim();
   const bajL: number[] = []; let bajarilmadiNarxsiz = 0; let bajarilmadiSoni = 0;
   for (const b of bajarilmadi) {

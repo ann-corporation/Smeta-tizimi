@@ -6,6 +6,7 @@
  * Yangi biznes qoida yo'q: coverage/fakt/imzochi ma'lumoti o'qiladi; noma'lum — bo'sh (o'ylab topilmaydi).
  */
 import type { AosrCoverage } from '../api/t2-aosr';
+import { resursKatmi } from './aosr-resurs';
 import type { AosrKomissiyaYozuv, AosrMalumot, AosrV2 } from '../api/t2-ijro';
 import type { ObyektImzochi } from '../api/obyekt-imzochi';
 import { aosrKomissiyaTartibi } from './aosr-export';
@@ -16,7 +17,7 @@ import { RAZDELSIZ, razdelXaritasi, type QatorMeta, type RazdelInfo } from './ra
 export { RAZDELSIZ };
 export type { QatorMeta, RazdelInfo };
 
-const resursmi = (c: { kat?: string | null }) => c.kat === 'mat' || c.kat === 'ob';
+const resursmi = (c: { kat?: string | null }) => resursKatmi(c.kat);
 
 /** Razdel yo'llarini solishtirish: yo'l — tartib raqamlari zanjiri (ildizdan). */
 export function yolSolishtir(a: readonly number[], b: readonly number[]): number {

@@ -7,7 +7,8 @@ const buy = vi.hoisted(() => ({ buyurtmalarOl: vi.fn(), buyurtmaTafsilotOl: vi.f
 const tomon = vi.hoisted(() => ({ aloqalarOl: vi.fn() }));
 vi.mock('./KompaniyaTanlov', () => ({ useKompaniya: () => ({ joriy: { id: 17, nom: 'Xaridor MChJ' } }) }));
 vi.mock('../api/t2-zayavka', () => zay);
-vi.mock('../api/supabase', () => ({ sbT2ObyektlarOlKomp: vi.fn(async () => ({ qatorlar: [{ id: 5, nom: 'Obyekt A' }] })), yangiOperationId: () => 'op-1' }));
+const sbOqi = vi.hoisted(() => vi.fn());
+vi.mock('../api/supabase', () => ({ sbOqi, sbT2ObyektlarOlKomp: vi.fn(async () => ({ qatorlar: [{ id: 5, nom: 'Obyekt A' }] })), yangiOperationId: () => 'op-1' }));
 vi.mock('../api/t2-buyurtma', async (asl) => ({ ...(await asl<typeof import('../api/t2-buyurtma')>()), ...buy }));
 vi.mock('../api/t2-tomon', () => tomon);
 const toast = vi.hoisted(() => vi.fn());
@@ -24,6 +25,8 @@ const faolAloqa = { id: 8, holat: 'faol', turi: 'shartnoma', nom: null, qarshi_k
 beforeEach(() => {
   [zay, buy, tomon].forEach((m) => Object.values(m).forEach((f) => f.mockReset()));
   toast.mockReset();
+  sbOqi.mockReset();
+  sbOqi.mockResolvedValue({ ok: true, qatorlar: [] });
   zay.sbZayavkalarOl.mockResolvedValue({ qatorlar: [zayavka()] });
   zay.sbZayavkaHolatYoz.mockResolvedValue({ ok: true });
   buy.buyurtmalarOl.mockResolvedValue({ ok: true, qatorlar: [], keyingi_id: null });
@@ -33,6 +36,18 @@ afterEach(cleanup);
 
 const ochish = () => render(<MemoryRouter><TestZayavka /></MemoryRouter>);
 const jadvaldagiTugma = async () => within(await screen.findByRole('table')).getByRole('button', { name: 'Buyurtma berish' });
+
+describe('Zayavka sahifasi: smetadan material tanlash', () => {
+  it('smeta materiallari KIRILL kat (МАТ, ОБ) bo‘yicha so‘raladi va tanlov ro‘yxatiga tushadi (avval lotin mat/ob — doim bo‘sh edi)', async () => {
+    sbOqi.mockResolvedValue({ ok: true, qatorlar: [{ nom: 'Бетон B25', birlik: 'м3', hajm: 40 }] });
+    const { container } = render(<MemoryRouter initialEntries={['/admin/zayavka?obyekt=5&yarat=1']}><TestZayavka /></MemoryRouter>);
+    await waitFor(() => expect(sbOqi).toHaveBeenCalledTimes(1));
+    const so = sbOqi.mock.calls[0][0] as { jadval: string; filtr: string };
+    expect(so.jadval).toBe('t2_qator');
+    expect(decodeURIComponent(so.filtr)).toBe('obyekt_id=eq.5&kat=in.(МАТ,ОБ)');
+    await waitFor(() => expect(container.querySelector('datalist#zayavka-materiallar option')?.getAttribute('value')).toBe('Бетон B25'));
+  });
+});
 
 describe('Zayavka sahifasi: Buyurtma berish', () => {
   it('faqat ta\'minotdagi zayavkada ko\'rinadi; eski «Buyurtma» holat tugmasi o\'rniga', async () => {

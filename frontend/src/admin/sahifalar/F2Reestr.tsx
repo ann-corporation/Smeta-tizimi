@@ -29,10 +29,11 @@ import { F2DavomRoyxat } from './F2DavomRoyxat';
 import { F2OylikPaket } from './F2OylikPaket';
 import { F2Portfel } from './F2Portfel';
 import { F2Takrorlar } from './F2Takrorlar';
+import { ozgarishlarOl } from '../../api/t2-ozgarish';
 import { f2ReestrOl, obyektF2Fayllari, type ReestrMalumot } from '../../api/t2-f2-reestr';
 import type { CenterDocument } from '../../api/t2-hujjat-canonical';
 import { aktsizFayllar, bosqich, filtrla, reestrQur, tartibla, type F2Bosqich, type Ogoh, type ReestrAkt, type ReestrFiltr, type ReestrJami, type ReestrQator, type Summa } from '../../lib/f2-reestr/reestr';
-import { manbaTaqsimot, reestrUlush } from '../../lib/f2-reestr/reestr-korinish';
+import { bajarilishMaxraji, manbaTaqsimot, reestrUlush } from '../../lib/f2-reestr/reestr-korinish';
 import type { Ustun } from '../../umumiy/jadval-filtr/ustunFiltr';
 import { useJadvalFiltr } from '../../umumiy/jadval-filtr/useJadvalFiltr';
 import { FiltrHolatQatori, UstunFiltrTugma } from '../../umumiy/jadval-filtr/UstunFiltrTugma';
@@ -107,11 +108,14 @@ function AktlarJadval({ aktlar, nomi }: { aktlar: ReestrAkt[]; nomi: ReadonlyMap
   </>;
 }
 
-/** «Smeta = 100%» chizig'i: import (kulrang) + tizimda yasalgan (firuza) + manbasi aniqlanmagan. Summa nisbati — jismoniy bajarilish emas. */
+/** «Smeta + o'zgarishlar = 100%» chizig'i: import (kulrang) + tizimda yasalgan (firuza) + manbasi aniqlanmagan. Summa nisbati — jismoniy bajarilish emas. */
 function SmetaChizigi({ q }: { q: ReestrQator }) {
-  const u = reestrUlush({ tasdiqlangan: q.boyicha.tasdiqlangan, tasdiqImport: q.tasdiqImport, tasdiqTizim: q.tasdiqTizim }, q.obyekt.jami);
+  const m = bajarilishMaxraji(q.obyekt);
+  const u = reestrUlush({ tasdiqlangan: q.boyicha.tasdiqlangan, tasdiqImport: q.tasdiqImport, tasdiqTizim: q.tasdiqTizim }, m.summa);
   if (u.foiz == null) return <span className="fz-meter__f" title={t('Smeta summasi noma’lum — nisbat hisoblanmaydi')}>—</span>;
-  const izoh = t('Tasdiqlangan F2 / smeta (summa nisbati, ustamasiz; jismoniy bajarilish emas)');
+  const izoh = m.joriy
+    ? t('Tasdiqlangan F2 / (asl smeta + o‘zgarishlar) (summa nisbati, ustamasiz; asl smeta: {asl}; jismoniy bajarilish emas)', { asl: pulQisqa(q.obyekt.jami ?? 0) })
+    : t('Tasdiqlangan F2 / asl smeta (summa nisbati, ustamasiz; o‘zgarishlar hali hisoblanmagan; jismoniy bajarilish emas)');
   return (
     <span className={`fz-meter ${u.oshdi ? 'fz-meter--over' : ''}`} title={izoh} aria-label={`${izoh}: ${Math.round(u.foiz)}%`}>
       <span className="fz-meter__t">
@@ -225,7 +229,19 @@ export default function F2Reestr() {
   const yangilaJim = useCallback(() => { void yukla(); }, [yukla]);
 
   const reestr = useMemo(() => (malumot ? reestrQur(malumot) : null), [malumot]);
-  const qatorlar = useMemo(() => (reestr ? tartibla(filtrla(reestr.qatorlar, filtr)) : []), [reestr, filtr]);
+  /** Bajarilish maxraji = smeta + o'zgarishlar: tasdiqlangan F2 si bor obyektlar uchun server «O'zgarishlar» (yagona manba), o'qilmaguncha asl smeta. */
+  const [ozgarishlar, setOzgarishlar] = useState<ReadonlyMap<number, number>>(new Map());
+  useEffect(() => {
+    setOzgarishlar(new Map());
+    if (!reestr) return;
+    const idlar = reestr.qatorlar.filter(q => q.boyicha.tasdiqlangan.malum > 0 && q.obyekt.jami != null).map(q => q.obyekt.id);
+    if (!idlar.length) return;
+    let tirik = true;
+    void ozgarishlarOl(idlar).then(m => { if (tirik) setOzgarishlar(m); }).catch(() => undefined);
+    return () => { tirik = false; };
+  }, [reestr]);
+  const reestrQatorlar = useMemo(() => (reestr ? reestr.qatorlar.map(q => (ozgarishlar.has(q.obyekt.id) ? { ...q, obyekt: { ...q.obyekt, ozgarish: ozgarishlar.get(q.obyekt.id) } } : q)) : []), [reestr, ozgarishlar]);
+  const qatorlar = useMemo(() => tartibla(filtrla(reestrQatorlar, filtr)), [reestrQatorlar, filtr]);
   /** Smeta ustuni (egasi 2026-10-27): sukut — obyekt qiymati QQS bilan; «Ustamali» (QQS siz) yoki «Ustamasiz» tanlash mumkin; jami qatorida har doim uchalasi. */
   const [summaTur, setSummaTur] = useState<'qqs' | 'ustamasiz' | 'ustamali'>('qqs');
   const portfelHammasi = useMemo(() => (reestr ? reestr.qatorlar.map(q => ({ obyektId: q.obyekt.id })) : []), [reestr]);
@@ -312,7 +328,7 @@ export default function F2Reestr() {
         <table className="fz-table min-w-[1040px]">
           <thead><tr>
             <th className="w-8" /><th>{t('Obyekt')}{F('obyekt')}{F('loyiha')}</th><th>{t('Shartnoma')}{F('shartnoma')}</th>
-            <th className="fz-c-num">{t('Smeta')}{F('smeta')}</th><th className="fz-c-num">{t('Tasdiqlangan F2')}{F('tasdiq')}</th><th>{t('Smetaga nisbatan')}{F('nisbat')}</th>
+            <th className="fz-c-num">{t('Smeta')}{F('smeta')}</th><th className="fz-c-num">{t('Tasdiqlangan F2')}{F('tasdiq')}</th><th title={t('Tasdiqlangan F2 / (asl smeta + o‘zgarishlar), ustamasiz')}>{t('Smeta + o‘zgarishlarga nisbatan')}{F('nisbat')}</th>
             <th className="fz-c-num">{t('Import / tizimda')}{F('import')}{F('tizim')}</th><th>{t('Jarayonda · rad · bekor')}{F('holat')}</th>
             <th>{t('Oxirgi oy')}{F('oy')}</th><th />
           </tr></thead>

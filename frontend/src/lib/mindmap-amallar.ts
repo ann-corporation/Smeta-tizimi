@@ -160,7 +160,7 @@ export const AMALLAR: readonly AmalTarif[] = [
   // ── Jamoa va kompaniya ──
   { kalit: 'jamoa.azolar', tur: 'jamoa', nom: () => t('Rolni o‘zgartirish (A’zolar)'), ikon: 'odamlar', bajar: 'yol', yol: () => AZOLAR_YOLI },
   { kalit: 'kompaniya.loyihalar', tur: 'kompaniya', nom: () => t('Loyihalar sahifasi'), ikon: 'loyiha', bajar: 'yol', yol: () => '/admin/loyiha' },
-  { kalit: 'kompaniya.obyektlar', tur: 'kompaniya', nom: () => t('Obyektlar va smeta yuklash'), ikon: 'royxat', bajar: 'yol', yol: () => '/admin/obyektlar' },
+  { kalit: 'kompaniya.obyektlar', tur: 'kompaniya', nom: () => t('Obyektlar'), ikon: 'royxat', bajar: 'yol', yol: () => '/admin/obyektlar' },
   { kalit: 'kompaniya.topshiriqlar', tur: 'kompaniya', nom: () => t('Mening topshiriqlarim'), ikon: 'vazifa', bajar: 'yol', yol: () => '/admin/topshiriqlar' },
 
   // ── Resurslar (panel ro‘yxati) ──

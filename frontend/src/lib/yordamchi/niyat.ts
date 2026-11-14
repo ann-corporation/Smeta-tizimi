@@ -42,7 +42,8 @@ export type Niyat =
   | DarsJavobi
   | { tur: 'nomalum'; yaqin: SahifaHavola[] };
 
-export type SahifaAmalQisqa = { id: string; nom: string; kalitlar?: readonly string[]; tasdiq?: boolean };
+/** izoh — taklif kartasida ko'rsatiladi (masalan token narxi); pul — ikkinchi «Tasdiqlayman» talab qiladi (token/pul/hujjat). */
+export type SahifaAmalQisqa = { id: string; nom: string; kalitlar?: readonly string[]; tasdiq?: boolean; izoh?: string; pul?: boolean };
 
 export type NiyatKontekst = {
   /** Hozirgi sahifa ro'yxatdan o'tkazgan amallar (registry hook). */
@@ -97,7 +98,8 @@ export function niyatAniqla(matn: string, ctx: NiyatKontekst): Niyat {
   { const hid = joriyHujjatOl(); const s = hid ? ctx.sahifalar.find((x) => x.yol === '/admin/imzo') : null;   // joriy hujjat bor: imzolash shu hujjat bilan ochiladi
     if (hid && s && IMZO_QOY_RE.test(xom)) return { tur: 'navigatsiya', sahifa: { yol: s.yol, nom: s.nom, url: imzolashUrl(hid) }, obyekt: null, oy: null, qoralama: false, aniqOchish: true }; }
   { const kq = kimSavoli(xom); if (kq) return { tur: 'kim', qism: kq }; }
-  { const v = vositaTop(xom); if (v) return { tur: 'vosita', id: v.id }; }
+  /* Sahifa o'z amalini (masalan «F2 ni Excel ga yuklash») e'lon qilgan bo'lsa — «vositasi yo'q» javobi uni bosib ketmaydi. */
+  { const v = vositaTop(xom); if (v && !(v.id === 'yoq' && sahifaAmalTop(sozlar(xom).filter((x) => !TOLDIRUVCHI.has(x)), ctx.sahifaAmallar))) return { tur: 'vosita', id: v.id }; }
   const yukSlot = yukSlotAjrat(xom);
   if (yukSlot) return { tur: 'navigatsiya', sahifa: { yol: '/admin/yuk-chaqirish', nom: 'Yuk chaqirish', url: yukSlotUrl(yukSlot) }, obyekt: null, oy: null, qoralama: true, aniqOchish: true };
   { const dars = darsSavoli(xom, { ochiqYollar: new Set(ctx.sahifalar.map((s) => s.yol)) }); if (dars) return dars; }

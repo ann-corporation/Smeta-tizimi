@@ -13,7 +13,7 @@
  * hammasi o'zi qayta hisoblanadi. Narxsiz resurs (ongli tanlov) — summa bo'sh va jami bo'sh (H7: NULL ≠ 0).
  */
 import type { F2Bolim, F2Qator } from './f2-tayyor';
-import { RANG_TARTIB, RasmiyVaraq, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, summaSozBilan, yaxlit2, type ImzoNomlar, type QatorRangi, type RangMavzusi, type Qiymat, type RasmiyUstun } from './hujjat-yozuvchi';
+import { RANG_TARTIB, RasmiyVaraq, hujjatFaylNomi, rasmiyKitob, summaSozBilan, yaxlit2, type ImzoNomlar, type ImzoTomon, type QatorRangi, type RangMavzusi, type Qiymat, type RasmiyUstun } from './hujjat-yozuvchi';
 import { davrMatni } from './nakopitelniy-vedomost-export';
 import { lrvKalitYoz } from './lrv-qayta-import';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
@@ -24,6 +24,8 @@ import { BOLIMSIZ_KALIT, f2BolimIerarxiya } from './f2-bolim-daraxti';
 import { sumRefs } from './hujjat-yozuvchi/formula';
 import type { T2Qator } from '../api/supabase';
 import { NARX_ANIQLANMAGAN, mashinistMehnati } from './narx-bildirishnoma';
+import { YAXLIT_KAT } from './svod-yaxlit';
+import { f2YaxlitQator } from './f2-akt-eksport';
 
 /** Vedomost qatori: bitta resurs (kat + nom kaliti + birlik kaliti) va bitta narx; narxi farqli guruhlar alohida qatorlarga ajraladi. */
 type VedQator = { guruh: string; kat: NakrutkaKat | null; kodlar: string[]; nom: string; birlik: string; qatorlar: number[]; summaQatorlar: number[]; hajm: number; summa: number | null; narx: number | null; narxFarqli: boolean; /** Eng yuqori razdel (uchastka/fayl) - vedomost shu bo'yicha bo'limlanadi (iyerarxiya bo'lsa). */ ildiz: number | null; ildizNom: string };
@@ -57,6 +59,11 @@ export type F2HujjatOpsiya = {
   eskiSmetaPodval?: { podval: Podval | null; nakrutka: Partial<NakrutkaKoeffitsientlar> | null; nkManba?: string | null; ndsFoiz?: number | null };
   /** Smeta qatorlari (rz zanjiri): berilsa - hujjatda uchastka/fayl > razdel > ichki razdel iyerarxiyasi. */
   rows?: readonly T2Qator[];
+  /**
+   * Svod yaxlit bo'limi ichidagi qator idlari (imzolangan hujjat va server `_t2_f2_ustamali` kesim.svod bilan bir xil): bu qatorlarga
+   * ustama hisoblanmaydi — summa ИТОГО-4 ga ustamasiz qo'shiladi, QQS bir marta. ЧЕЛ/МАШ qatorlari mustasno (oddiy kategoriya).
+   */
+  yaxlitIds?: ReadonlySet<number>;
 };
 
 const USTUNLAR: RasmiyUstun[] = [
@@ -64,12 +71,14 @@ const USTUNLAR: RasmiyUstun[] = [
   { sarlavha: 'Шифр, код', kenglik: 17, tur: 'kod' },
   /* Egasi (2026-11-06, «qatorlar semiz»): nom ustuni kengroq, birlik torroq (mazmun talab qilsa `kerak` o'zi kengaytiradi) —
      uzun nom kamroq qatorga o'raladi; qator balandligi chegarasi — «Hujjat dizayni» `qatorMaks`. */
-  { sarlavha: 'Наименование работ и затрат', kenglik: 66, tur: 'matn' },
+  { sarlavha: 'Наименование работ и ресурсов', kenglik: 66, tur: 'matn' },
   { sarlavha: 'Ед. изм.', kenglik: 10, tur: 'birlik' },
-  { sarlavha: 'Расход на ед.', kenglik: 12, tur: 'norma' },
-  { sarlavha: 'Количество', kenglik: 14, tur: 'hajm' },
-  { sarlavha: 'Цена за ед., сум', kenglik: 16, tur: 'narx' },
-  { sarlavha: 'Сумма, сум', kenglik: 18, tur: 'pul' },
+  /* Ikki qavatli sarlavha — imzolangan Ф-2 shakli (egasi 2026-11-14, «hujjatlar tuzilishi»): «Количество: на единицу | по проекту»,
+   * «Сметная стоимость: на.ед.изм. | общая». Ustun tartibi va ma'nosi o'zgarmaydi (E norma, F hajm, G narx, H summa). */
+  { sarlavha: 'на единицу', kenglik: 12, tur: 'norma', guruh: 'Количество' },
+  { sarlavha: 'по проекту', kenglik: 14, tur: 'hajm', guruh: 'Количество' },
+  { sarlavha: 'на.ед.изм., сум', kenglik: 16, tur: 'narx', guruh: 'Сметная стоимость' },
+  { sarlavha: 'общая, сум', kenglik: 18, tur: 'pul', guruh: 'Сметная стоимость' },
   /* I — LRV_PLUS'dagi kabi qator turi (rz/bl/rs/mat/ob): tizimning o'z F2 importi aynan shu belgidan o'qiydi —
      hujjat qaytib yuklanganda ish/resurs/material ADASHMAYDI. */
   { sarlavha: 'Тип', kenglik: 7, tur: 'birlik', belgi: true },
@@ -78,6 +87,27 @@ const USTUNLAR: RasmiyUstun[] = [
   /* K — yashirin КАЛИТ <t2_qator.id>:<barmoq izi> (round-trip: texnadzor tuzatgan fayl qaytganda F2 import aniq bog'laydi; lrv-qayta-import himoyasi). Chop etilmaydi. */
   { sarlavha: 'КАЛИТ', kenglik: 10, tur: 'texnik', yashirin: true },
 ];
+
+/** Imzolangan Ф-2 imzo yorliqlari (lavozim) — faqat shu hujjat turi uchun. */
+const TN_LAVOZIM = 'Представитель Тех.надзора Заказчика';
+/** Etalon tartibi: ЗАКАЗЧИК (Тех.надзор) ×2 → [СУБПОДРЯДЧИК] → ПОДРЯДЧИК (Производитель работ). Ikkinchi ЗАКАЗЧИК — texnadzor vakili (nomi imzo.texnadzor). */
+const f2ImzoTomonlari = (n?: ImzoNomlar): ImzoTomon[] => [
+  { rol: 'ЗАКАЗЧИК', nom: n?.zakazchik ?? null, lavozim: TN_LAVOZIM },
+  { rol: 'ЗАКАЗЧИК', nom: n?.texnadzor ?? null, lavozim: TN_LAVOZIM },
+  ...(n?.subpudratchi ? [{ rol: 'СУБПОДРЯДЧИК' as const, nom: n.subpudratchi, lavozim: 'Производитель работ Субподрядчика' }] : []),
+  { rol: 'ПОДРЯДЧИК', nom: n?.pudratchi ?? null, lavozim: 'Производитель работ' },
+];
+
+const OY_NOM = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+/** «За сентябрь месяц 2025 года» (imzolangan Ф-2); davr noma'lum shaklda bo'lsa — umumiy davrMatni. */
+export function davrSozBilan(davr: string): string {
+  const m = /^(\d{4})-(\d{2})/.exec(davr || '');
+  const oy = m ? OY_NOM[Number(m[2]) - 1] : undefined;
+  return m && oy ? `За ${oy} месяц ${m[1]} года` : `за отчетный период: ${davrMatni(davr)}`;
+}
+
+/** Hujjat nomi — imzolangan Ф-2 muqovasi bilan bir xil («АКТ О ПРИЁМКЕ ВЫПОЛНЕННЫХ РАБОТ (Форма № 02)»). */
+export const F2_SARLAVHA = 'АКТ О ПРИЁМКЕ ВЫПОЛНЕННЫХ РАБОТ';
 
 const yaxlit6 = (x: number) => Math.round(x * 1e6) / 1e6;
 
@@ -100,17 +130,25 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
   const raqam = (o.raqam ?? '').trim();
   const v = new RasmiyVaraq({
     nom: o.varaqNomi || 'Ф-2',
-    sarlavha: `АКТ ПРИЕМКИ ВЫПОЛНЕННЫХ РАБОТ${raqam ? ` № ${raqam}` : ''} (ФОРМА № 2)`,
-    ostSarlavha: [`за отчетный период: ${davrMatni(o.davr)}`],
-    titul: [['Объект:', o.obyektNom], ['Заказчик:', o.imzo?.zakazchik], ['Подрядчик:', o.imzo?.pudratchi], ...(o.imzo?.subpudratchi ? [['Субподрядчик:', o.imzo.subpudratchi] as const] : []), ['Договор:', o.shartnoma]],
+    sarlavha: `${F2_SARLAVHA}${raqam ? ` № ${raqam}` : ''} (ФОРМА № 02)`,
+    // Imzolangan Ф-2 tartibi: Подрядчик → Заказчик → «АКТ …» → «О выполненных работах по объекту …» → «За … месяц … года»; Договор — pastda.
+    yuqoriTitul: [['Подрядчик:', o.imzo?.pudratchi], ['Заказчик:', o.imzo?.zakazchik], ...(o.imzo?.subpudratchi ? [['Субподрядчик:', o.imzo.subpudratchi] as const] : [])],
+    ostSarlavha: [`О выполненных работах по объекту «${o.obyektNom}»`, davrSozBilan(o.davr)],
+    titul: [['Договор:', o.shartnoma]],
     ustunlar: USTUNLAR,
     yonalish: 'portrait',
   });
 
   let n = 0;
+  /* № п/п imzolangan Ф-2 kabi iyerarxik: ish — 5, uning resurslari — 5.1, 5.2 … (mustaqil resurs/material — oddiy tartib raqami). */
+  let ishRaqami = 0;
+  let ishOsti = 0;
+  const ishBoshla = (): number => { ishRaqami = n; ishOsti = 0; return n; };
+  const ishOstiRaqam = (): string => `${ishRaqami}.${++ishOsti}`;
   let jamiJS: number | null = 0;
   const ks = Object.fromEntries(NAKRUTKA_KATLAR.map((k) => [k, 0])) as KatSummalar;
   let nomJS = 0; // kategoriyasi ko'rsatilmagan summa
+  let yaxlitJS = 0; // svod yaxlit bo'limi qatorlari (ustamasiz, faqat QQS)
   /** Narxsiz qatorlar soni (mashinist mehnati sanalmaydi) — hujjat oxirida «Внимание: N строк без цены» (egasi 2026-11-06). */
   let narxsizN = 0;
   const bolimJamiQatorlari: number[] = [];
@@ -124,7 +162,8 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
   /** Resurs vedomosti uchun: har resurs qaysi qatorga yozilgani (kalit — kat|kod|nom|birlik). */
   const vedomost = new Map<string, VedQator>();
   /** `ishQatori` — barg ish (bl) o'z summasi bilan: ish uslubida, lekin pul qatori (audit C B3). */
-  const resursYoz = (x: F2Qator, kod: string | null, norma: number | null, ishQator: number | null, ishQatori = false): number => {
+  /** ishOstida — ishi (BL) shu aktda bor, lekin resurs avto emas (zamena/qo'shimcha bolalari, tur='mat'): № N.k va resurs (kursiv) ko'rinishi; «Тип» belgisi va import o'zgarmaydi. */
+  const resursYoz = (x: F2Qator, kod: string | null, norma: number | null, ishQator: number | null, ishQatori = false, ishOstida = false): number => {
     // Kategoriya faqat qatorning o'zidan (tur bo'yicha МАТ/ОБ taxmin yo'q); yo'q — ustamasiz qism (podvalda alohida).
     const kat = nakrutkaKat(x.kat);
     /** m4: hujjat hajmi noma'lum — katak bo'sh (0 emas), summa formulaga bog'lanmaydi. */
@@ -145,7 +184,8 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     const narxsizBelgi = !narxBor && !summaBor && !mashinistMehnati(x);
     if (narxsizBelgi) narxsizN++;
     oxirgiSumma = summaBor ? x.summa : null;
-    if (oxirgiSumma != null) { jamiJS = (jamiJS ?? 0) + oxirgiSumma; if (kat) ks[kat] += oxirgiSumma; else nomJS += oxirgiSumma; }
+    const yaxlitQator = !!o.yaxlitIds && f2YaxlitQator(o.yaxlitIds, x);
+    if (oxirgiSumma != null) { jamiJS = (jamiJS ?? 0) + oxirgiSumma; if (yaxlitQator) yaxlitJS += oxirgiSumma; else if (kat) ks[kat] += oxirgiSumma; else nomJS += oxirgiSumma; }
     const qatorR = v.r;
     const guruh = resursGuruhKaliti(kat, x.nom, x.birlik);
     const vk = `${joriyIldiz?.kalit ?? ''}|${guruh}|${narxBor ? x.narx : '-'}`;
@@ -156,14 +196,15 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     if (oxirgiSumma != null) { vd.summa = yaxlit2((vd.summa ?? 0) + oxirgiSumma); vd.summaQatorlar.push(qatorR); }
     vedomost.set(vk, vd);
     return v.qator(ishQatori ? 'ish' : 'oddiy', (r): Qiymat[] => [
-      ++n, shifrKorinish(kod), x.nom, x.birlik ?? '',
+      ishQator != null || ishOstida ? ishOstiRaqam() : ++n, shifrKorinish(kod), x.nom, x.birlik ?? '',
       norma != null ? { n: norma, uslub: 'norma' } : null,
       hajmNomalum ? null : ishgaBogliq ? { f: `ROUND(E${r}*F${ishQator},6)`, v: yaxlit6(x.hajm) } : x.hajm,
       narxBor ? x.narx : null,
       // «—» (matn): SUM uni o'tkazib yuboradi, ИТОГО dagi «bo'sh summa» tekshiruvi esa uni yetishmovchilik deb sanamaydi.
       summaQiymat ? x.summa : narxBor ? { f: `ROUND(F${r}*G${r},2)`, v: hisob } : (narxsizBelgi ? NARX_ANIQLANMAGAN : ongliNarxsiz ? '—' : null),
-      x.tur, kat ?? '', lrvKalitYoz(x.id, kod, x.nom, x.birlik),
-    ], ishQatori ? { daraja: 1 } : { daraja: 2, rang: kat && (RANG_TARTIB as readonly string[]).includes(kat) ? kat as QatorRangi : null });
+      // J — podval SUMIF kaliti: yaxlit qator YAXLIT_KAT («СВОД») — ustama SUMIF ga kirmaydi (nakopitelniy bilan bir xil).
+      x.tur, yaxlitQator ? YAXLIT_KAT : kat ?? '', lrvKalitYoz(x.id, kod, x.nom, x.birlik),
+    ], ishQatori ? { daraja: 1 } : { daraja: 2, rang: kat && (RANG_TARTIB as readonly string[]).includes(kat) ? kat as QatorRangi : null, ...(ishOstida ? { uslub: 'rs' as const } : {}) });
   };
 
   /* M13 (audit C): ishi aktda yo'q resurs (avto ham) ham chiqadi — ish sarlavhasisiz mustaqil qator (yadro uni sanaydi). */
@@ -182,6 +223,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
       const avto = bl ? ish.resurslar.filter((r) => r.avto && tanlangan.has(r.id)) : [];
       const mustaqil = ish.resurslar.filter((r) => tanlangan.has(r.id) && (!r.avto || !bl));
       let blQ: number | null = null;
+      let bolaRaqam = false;
       if (bl && !avto.length && bl.summa != null) {
         // B3: barg ish (resurssiz / М/К) — o'z summasi bilan pul qatori (server barg qoidasi, F3 bilan bir xil).
         blQ = resursYoz(bl, ish.kod, null, null, true);
@@ -192,11 +234,13 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
         const blHajmi = (bl as F2Qator & { hajmNomalum?: true }).hajmNomalum ? null : bl.hajm;
         blQ = v.qator('ish', (r): Qiymat[] => [++n, shifrKorinish(ish.kod), ish.nom, ish.birlik ?? '', null, blHajmi, null,
           avto.length ? { f: `SUM(H${r + 1}:H${r + avto.length})`, v: ishJS } : null, 'bl', '', lrvKalitYoz(ish.id, ish.kod, ish.nom, ish.birlik)], { daraja: 1 });
+        ishBoshla();
+        bolaRaqam = true;
         tarkib.push(blQ);
         qosh(ishJS);
         for (const r of avto) resursYoz(tanlangan.get(r.id)!, r.kod, r.norma, blQ);
       }
-      for (const r of mustaqil) { tarkib.push(resursYoz(tanlangan.get(r.id)!, r.kod, null, null)); qosh(oxirgiSumma); }
+      for (const r of mustaqil) { tarkib.push(resursYoz(tanlangan.get(r.id)!, r.kod, null, null, false, bolaRaqam)); qosh(oxirgiSumma); }
     }
     for (const r of alohida) { tarkib.push(resursYoz(tanlangan.get(r.id)!, r.kod, null, null)); qosh(oxirgiSumma); }
     return { tarkib, js: bolimJS };
@@ -222,24 +266,28 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     v.bolim(`Сторно Ф-2 № ${b.nom}`, { daraja: 0 });
     const bBosh = v.r;
     const bks = Object.fromEntries(NAKRUTKA_KATLAR.map((k) => [k, 0])) as KatSummalar;
-    let bNom = 0; let bJami = 0;
+    let bNom = 0; let bJami = 0; let bYax = 0;
     for (const q of b.qatorlar) {
       if (bargEmasIsh(q)) continue;
       const kat = nakrutkaKat(q.kat);
-      if (q.summa != null) { bJami += q.summa; if (kat) bks[kat] += q.summa; else bNom += q.summa; }
+      if (q.summa != null) { bJami += q.summa; if (o.yaxlitIds && f2YaxlitQator(o.yaxlitIds, q)) bYax += q.summa; else if (kat) bks[kat] += q.summa; else bNom += q.summa; }
     }
     const tarkib = eskiDaraxtYoz(eskiDaraxt(b.qatorlar, rowById), bargEmasIsh, {
-      qator: (q, daraja) => {
+      qator: (q, daraja, ishOstida) => {
         const kat = nakrutkaKat(q.kat);
         const belgi = q.summa == null && !mashinistMehnati(q);
         if (belgi) narxsizN++;
-        return v.qator('oddiy', (): Qiymat[] => [++n, shifrKorinish(q.kod), q.nom, q.birlik ?? '', null, q.hajm, q.narx, q.summa == null ? (belgi ? NARX_ANIQLANMAGAN : '—') : q.summa, q.tur, kat ?? '', null],
+        return v.qator('oddiy', (): Qiymat[] => [ishOstida ? ishOstiRaqam() : ++n, shifrKorinish(q.kod), q.nom, q.birlik ?? '', null, q.hajm, q.narx, q.summa == null ? (belgi ? NARX_ANIQLANMAGAN : '—') : q.summa, q.tur, o.yaxlitIds && f2YaxlitQator(o.yaxlitIds, q) ? YAXLIT_KAT : kat ?? '', null],
           { daraja, rang: kat && (RANG_TARTIB as readonly string[]).includes(kat) ? kat as QatorRangi : null });
       },
-      ish: (q, resSoni, resJS) => v.qator('ish', (r): Qiymat[] => [++n, shifrKorinish(q.kod), q.nom, q.birlik ?? '', null, q.hajm, null,
-        // Ishning o'z summasi bo'lsa — aynan o'zi; bo'lmasa — resurslari yig'indisi (qiymatlar ustida formula: natija eski F2 bilan bir xil).
-        q.summa != null ? q.summa : resSoni ? { f: `SUM(H${r + 1}:H${r + resSoni})`, v: yaxlit2(resJS) } : null,
-        'bl', '', null], { daraja: 1 }),
+      ish: (q, resSoni, resJS) => {
+        const rq = v.qator('ish', (r): Qiymat[] => [++n, shifrKorinish(q.kod), q.nom, q.birlik ?? '', null, q.hajm, null,
+          // Ishning o'z summasi bo'lsa — aynan o'zi; bo'lmasa — resurslari yig'indisi (qiymatlar ustida formula: natija eski F2 bilan bir xil).
+          q.summa != null ? q.summa : resSoni ? { f: `SUM(H${r + 1}:H${r + resSoni})`, v: yaxlit2(resJS) } : null,
+          'bl', '', null], { daraja: 1 });
+        ishBoshla();
+        return rq;
+      },
       jami: (matn, t, js) => jamiQator(matn, t, js),
       bolim: (matn) => v.bolim(matn, { daraja: 0 }),
     });
@@ -250,7 +298,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     if (b.nk == null && sp.ndsFoiz != null && Number.isFinite(sp.ndsFoiz) && sp.ndsFoiz >= 0) bnk.НДС = sp.ndsFoiz;
     const bPodval = b.nk == null && sp.podval ? serverMerosKoefQoy(sp.podval, bnk, sp.nkManba) : null;
     const pr = nakrutkaPodvaliYoz(v, { podval: bPodval, katUstun: 'J', oraliq: [bBosh, bOxirgi], pulUstunlar: ['H'], foizUstun: 'G', nk: bnk, katSummalar: { H: bks }, kfJadval: false,
-      nomalum: Math.abs(bNom) >= 0.005 ? { H: yaxlit2(bNom) } : null,
+      nomalum: Math.abs(bNom) >= 0.005 ? { H: yaxlit2(bNom) } : null, yaxlitOldin: Math.abs(bYax) >= 0.005 ? { H: yaxlit2(bYax) } : null,
       sarlavha: `РАСЧЕТ К ОПЛАТЕ — Сторно Ф-2 № ${b.nom} (${b.nk ? 'подвал исходного документа' : 'подвал сметы'})`, vsegoNom: `ВСЕГО К ОПЛАТЕ — Сторно Ф-2 № ${b.nom}` });
     eskiVsegoQatorlar.push(pr.vsegoQator);
     eskiVsegoJS += pr.natija.H.vsego ?? 0;
@@ -301,6 +349,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     if (o.ndsFoiz != null && Number.isFinite(o.ndsFoiz) && o.ndsFoiz >= 0) nk.НДС = o.ndsFoiz;
     const podval = o.podval ? serverMerosKoefQoy(o.podval, nk, o.nkManba) : null;
     const yp = nakrutkaPodvaliYoz(v, { podval, katUstun: 'J', oraliq: [birinchi, oxirgi], pulUstunlar: ['H'], foizUstun: 'G', nk, katSummalar: { H: ks }, kfJadval: false, nomalum: Math.abs(nomJS) >= 0.005 ? { H: yaxlit2(nomJS) } : null,
+      yaxlitOldin: Math.abs(yaxlitJS) >= 0.005 ? { H: yaxlit2(yaxlitJS) } : null,
       ...(eski.length ? { sarlavha: 'РАСЧЕТ К ОПЛАТЕ — новые позиции (подвал сметы)', vsegoNom: 'ВСЕГО К ОПЛАТЕ — новые позиции' } : {}) });
     yangiVsegoQator = yp.vsegoQator;
     yangiVsegoJS = yp.natija.H.vsego ?? 0;
@@ -316,7 +365,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
   const jamiTolov = (yangiVsegoQator != null || eski.length) ? yaxlit2(yangiVsegoJS + eskiVsegoJS) : null;
   if (jamiTolov != null && Number.isFinite(jamiTolov) && !narxsizN) { v.bosh(); v.izoh(`Сумма прописью: ${summaSozBilan(jamiTolov)} с НДС`); }
   if (narxsizN) { v.bosh(); v.narxsizOgoh(narxsizN); }
-  v.imzo(imzoTomonlari(o.imzo?.subpudratchi ? ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СУБПОДРЯДЧИК', 'ТЕХНАДЗОР'] : ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР'], o.imzo));
+  v.imzo(f2ImzoTomonlari(o.imzo));
   const ved = [...vedomost.values()];
   const narxlari = new Map<string, number>();
   const nk2 = (x: VedQator) => `${x.ildiz}|${x.guruh}`;
@@ -396,7 +445,7 @@ function eskiDaraxtYoz(
   els: readonly EskiEl[],
   /** Smetada bolasi bor ish — o'z summasi sanalmaydi (server barg qoidasi), katagi resurslari yig'indisi. */
   bargEmas: (q: EskiBlokQator) => boolean,
-  y: { qator: (q: EskiBlokQator, daraja: number) => number; ish: (bl: EskiBlokQator, resSoni: number, resJS: number) => number;
+  y: { qator: (q: EskiBlokQator, daraja: number, ishOstida?: boolean) => number; ish: (bl: EskiBlokQator, resSoni: number, resJS: number) => number;
     jami: (matn: string, tarkib: readonly number[], js: number) => number; bolim: (matn: string) => number },
 ): { satrlar: number[]; js: number } {
   const yoz = (xs: readonly EskiEl[]): { satrlar: number[]; js: number } => {
@@ -409,7 +458,7 @@ function eskiDaraxtYoz(
         const bl = bargEmas(bl0) ? { ...bl0, summa: null } : bl0;
         const resJS = resurslar.reduce((s, q) => s + (q.summa ?? 0), 0);
         satrlar.push(y.ish(bl, resurslar.length, resJS));
-        for (const q of resurslar) { const r = y.qator(q, 2); if (bl.summa != null) satrlar.push(r); }
+        for (const q of resurslar) { const r = y.qator(q, 2, true); if (bl.summa != null) satrlar.push(r); }
         js += (bl.summa ?? 0) + resJS;
         continue;
       }
@@ -449,7 +498,7 @@ function resursVedomosti(
   const ref = (c: string, r: number) => `'${o.nom}'!${c}${r}`;
   const w = new RasmiyVaraq({
     nom: 'Ведомость ресурсов',
-    sarlavha: `ВЕДОМОСТЬ РЕСУРСОВ К АКТУ${o.raqam ? ` № ${o.raqam}` : ''} (ФОРМА № 2)`,
+    sarlavha: `ВЕДОМОСТЬ РЕСУРСОВ К АКТУ${o.raqam ? ` № ${o.raqam}` : ''} (ФОРМА № 02)`,
     ostSarlavha: [`за отчетный период: ${davrMatni(o.davr)}`],
     titul: [['Объект:', o.obyektNom]],
     ustunlar: VED_USTUNLAR,

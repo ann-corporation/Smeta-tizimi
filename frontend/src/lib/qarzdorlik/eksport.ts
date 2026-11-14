@@ -135,9 +135,10 @@ export async function qarzdorlikXlsxYarat(shartnomalar: ReadonlyArray<EksportSha
   }
   const darajalar = new Map<number, 'bl' | 'vsego'>(pozQatorlar.map((q) => [q, 'bl'] as const));
   darajalar.set(r + 1, 'vsego');
-  exceljsJadvalUslubi(ws, { sarlavha: 4, oxir: r + 1, darajalar, yonalish: 'landscape' });
   // Qator turi belgisi (13-ustun) texnik: dizaynda ko'rsatish o'chiq bo'lsa yashirin (asl qiymat o'qishga qoladi).
+  // Yashirish uslubdan OLDIN: yashirin ustun katagi o'ralmaydi va qator balandligiga ta'sir qilmaydi (egasi 2026-11-13).
   if (!joriyHujjatDizayni().tipKorsat) ws.getColumn(13).hidden = true;
+  exceljsJadvalUslubi(ws, { sarlavha: 4, oxir: r + 1, darajalar, yonalish: 'landscape' });
   const buf = await wb.xlsx.writeBuffer();
   return buf as ArrayBuffer;
 }

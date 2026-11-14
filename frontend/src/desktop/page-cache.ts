@@ -24,6 +24,7 @@ export function desktopPageFetch(base: typeof fetch, invoke: NativeInvoke, optio
   let serial: Promise<unknown> = Promise.resolve(), offline = false;
   const pending = new Map<string, Promise<Context>>();
   const warmed = new Map<number, { at: number; value: Context }>();
+  const faktEpoch = new Map<number, number>();
   const expiry = new Map<string, ReturnType<typeof setTimeout>>();
   const queue = <T>(work: () => Promise<T>): Promise<T> => {
     const next = serial.then(work, work); serial = next.catch(() => undefined); return next;
@@ -47,7 +48,7 @@ export function desktopPageFetch(base: typeof fetch, invoke: NativeInvoke, optio
   async function context(object: number, company?: number): Promise<Context> {
     await session();
     if (!positive(object)) throw new Error('DESKTOP_OBJECT_INVALID');
-    const key = company + '/' + object;
+    const key = company + '/' + object + '/' + (faktEpoch.get(object) ?? 0);
     const existing = pending.get(key); if (existing) return existing;
     const task = queue(async () => {
       if (!company) {
@@ -153,6 +154,12 @@ export function desktopPageFetch(base: typeof fetch, invoke: NativeInvoke, optio
     try {
       const before = await session(), response = await base(req);
       if (await invalidatesDesktopSession(response)) { await runtime.revoke(); return response; }
+      if (object && url.pathname === '/api/sb-yoz' && (body?.amal === 'fakt_yoz_v2' || body?.amal === 'fakt_belgila_v2') &&
+          response.ok && (await response.clone().json().catch(() => null))?.ok === true) {
+        // The journal rereads Fakt after saving. Force that read to revalidate the disk packet too.
+        faktEpoch.set(object, (faktEpoch.get(object) ?? 0) + 1);
+        warmed.delete(object);
+      }
       // A background session ping must not relabel the currently displayed saved object as fresh.
       if (!readable || !response.ok || !same(before, await session())) return response;
       const j = await response.clone().json(); if (j?.ok === false) return response;
@@ -162,11 +169,14 @@ export function desktopPageFetch(base: typeof fetch, invoke: NativeInvoke, optio
             { body: j, until: Number(j.tugaydi) || Date.now() + 72 * 3600_000 }, before, signature, sequence);
         } else if (object) {
           // A burst of existing keyset/projection reads must not download the full package for every page.
+          const epoch = faktEpoch.get(object) ?? 0;
           const prior = warmed.get(object);
           const c = !offline && prior && Date.now() - prior.at < 10_000 ? prior.value : await context(object);
-          if (!c.offline) warmed.set(object, { at: Date.now(), value: c });
-          await save('pages/' + c.company + '/' + object, signature, j, before, signature, sequence);
-          if (!c.offline) setStatus(false);
+          if ((faktEpoch.get(object) ?? 0) === epoch) {
+            if (!c.offline) warmed.set(object, { at: Date.now(), value: c });
+            await save('pages/' + c.company + '/' + object, signature, j, before, signature, sequence);
+            if (!c.offline) setStatus(false);
+          }
         } else if (body?.jadval === 't2_obyekt_jami' && Array.isArray(j.qatorlar)) {
           const guards = new Map<number, DesktopLeaseGuard | undefined>();
           for (const o of j.qatorlar) if (positive(o.id) && positive(o.kompaniya_id)) {

@@ -1,5 +1,5 @@
 {
-  "Xush kelibsiz! Hisobingiz tayyor. Keyingi qadam: kompaniya oching (so‘rov) yoki direktordan taklif oling.": { "ru": "Добро пожаловать! Аккаунт готов. Следующий шаг: откройте компанию (заявка) или получите приглашение от директора.", "en": "Welcome! Your account is ready. Next step: open a company (request) or get an invitation from a director." },
+  "Xush kelibsiz! Hisobingiz tayyor. Keyingi qadam: kompaniyangizni o‘zingiz oching yoki direktordan taklif oling.": { "ru": "Добро пожаловать! Аккаунт готов. Следующий шаг: откройте свою компанию сами или получите приглашение от директора.", "en": "Welcome! Your account is ready. Next step: open your own company or get an invitation from a director." },
   "Kompaniyangizni oching": { "ru": "Откройте свою компанию", "en": "Open your company" },
   "Bitta qadam: nomini yozing — kompaniya darhol ochiladi va siz uning rahbari bo‘lasiz. STIR keyin ham to‘ldiriladi.": { "ru": "Один шаг: впишите название — компания откроется сразу, и вы станете её руководителем. ИНН можно указать позже.", "en": "One step: enter the name — the company opens immediately and you become its head. The tax ID can be added later." },
   "Kompaniya nomini yozing (kamida 2 belgi).": { "ru": "Введите название компании (минимум 2 символа).", "en": "Enter the company name (at least 2 characters)." },

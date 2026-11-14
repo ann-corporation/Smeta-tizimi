@@ -10,6 +10,10 @@ import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { hujjatTuri, legacyHujjatmi, pullikTurmi, tolovDalili, tolovRad } from '../_shared/hujjat-tolov';
+import { mazmunXeshi } from '../../src/api/mazmun-xesh';
+
+/** Mazmun xeshi uchun baytlarni xotiraga o'qish chegarasi (hujjat-yukla CANONICAL_HASH_INLINE_LIMIT bilan bir xil). */
+const MAZMUN_CHEGARA = 25 * 1024 * 1024;
 
 type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; R2_CANONICAL: R2Bucket; HUJJAT_TOLOV_MAJBURIY_SANA?: string };
 
@@ -70,12 +74,25 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
        (bir xil mazmun xeshi bir marta to'langan bo'lsa qayta yuklash bepul). P0 dan oldingi hujjatlar avvalgidek beriladi.
        Reyestr turini o'qib bo'lmasa - avvalgi xulq (faqat a'zolik tekshiruvi): bu yerda yangi to'siq qo'yilmaydi. */
     const reg = await hujjatTuri(ctx.env, id);
+    const blobKey = row.blob_key || row.r2_key;
+    let oldindanBuf: ArrayBuffer | null = null;
     if (reg && pullikTurmi(reg.document_type) && !legacyHujjatmi(ctx.env, reg.created_at)) {
-      const rad = tolovRad(await tolovDalili(ctx.env, reg.kompaniya_id, { turi: reg.document_type as string, sha256: reg.sha256 || row.sha256 || '', obyektId: reg.obyekt_id }));
+      let holat = await tolovDalili(ctx.env, reg.kompaniya_id, { turi: reg.document_type as string, sha256: reg.sha256 || row.sha256 || '', obyektId: reg.obyekt_id });
+      /* Reyestrdagi sha256 — xom bayt xeshi; mijoz/server tokenga esa MAZMUN xeshini (ichki fayllar, docProps'siz) yozadi.
+         xlsx/zip uchun ular farq qiladi — xom xesh bilan dalil topilmay, to'langan hujjat ham 402 berardi. Shuning uchun
+         xom xesh topmasa (F2 dan tashqari) baytlarning mazmun xeshi bilan qayta tekshiriladi (faqat inline chegaragacha). */
+      if (holat === 'yoq' && reg.document_type !== 'f2_hujjat') {
+        const o = await ctx.env.R2_CANONICAL.get(blobKey);
+        if (o && o.size > 0 && o.size <= MAZMUN_CHEGARA) {
+          oldindanBuf = await o.arrayBuffer();
+          holat = await tolovDalili(ctx.env, reg.kompaniya_id, { turi: reg.document_type as string, sha256: await mazmunXeshi(new Uint8Array(oldindanBuf)), obyektId: reg.obyekt_id });
+        }
+      }
+      const rad = tolovRad(holat);
       if (rad) return rad;
     }
     // blob_key — jismoniy obyekt (mazmun boshqa hujjat bilan baham ko'rilgan bo'lsa); aks holda r2_key ning o'zi.
-    const obj = await ctx.env.R2_CANONICAL.get(row.blob_key || row.r2_key);
+    const obj = oldindanBuf ? { body: oldindanBuf } : await ctx.env.R2_CANONICAL.get(blobKey);
     if (!obj) {
       // Never fall back to Drive silently.
       return Response.json({ ok: false, code: 'CANONICAL_BINARY_MISSING', document_id: id, r2_key: row.r2_key }, { status: 502 });
