@@ -67,3 +67,12 @@ test('call budget stops execution before deployment',async t=>{
  const q=await setup(t),job=await q.read('test');job.maxCalls=3;await q.save(job);
  const calls=[];assert.equal((await q.run('test',workers(calls))).state,'failed');assert.equal(calls.length,3);
 });
+test('CLI creates and reads a private job without printing its goal',async t=>{
+ const {execFile}=await import('node:child_process');const {promisify}=await import('node:util');const {writeFile}=await import('node:fs/promises');
+ const dir=await mkdtemp(join(tmpdir(),'evolution-cli-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+ const spec=join(dir,'spec.json');await writeFile(spec,JSON.stringify({id:'cli-test',goal:'PRIVATE SYNTHETIC GOAL',baseSha,ownedPaths:['src/ui'],deadline:new Date(Date.now()+60000).toISOString()}));
+ const cli=new URL('./cli.mjs',import.meta.url);const {fileURLToPath}=await import('node:url');
+ const run=promisify(execFile);const created=await run(process.execPath,[fileURLToPath(cli),'create',join(dir,'jobs'),spec]);
+ assert.equal(JSON.parse(created.stdout).state,'queued');assert.ok(!created.stdout.includes('PRIVATE'));
+ const status=await run(process.execPath,[fileURLToPath(cli),'status',join(dir,'jobs'),'cli-test']);assert.equal(JSON.parse(status.stdout).calls,0);
+});
