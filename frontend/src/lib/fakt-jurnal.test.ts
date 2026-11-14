@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { T2Qator } from '../api/supabase';
-import { bolimSummalari, bolimTarkibi, nakopitelniyMoslik, holatTur, jurnalPaket, jurnalQur, qoldiqUlushi, sonOqi, zamenaTartibla } from './fakt-jurnal';
+import { bolimMaxraji, bolimSummalari, bolimTarkibi, nakopitelniyMoslik, holatTur, jurnalPaket, jurnalQur, qoldiqUlushi, sonOqi, zamenaTartibla } from './fakt-jurnal';
 
 const q = (o: Partial<T2Qator> & { id: number; tur: string }): T2Qator => ({
   obyekt_id: 1, obyekt: null, kompaniya_id: 1, ota_id: null, daraja: 0, tartib: o.id, kod: null, nom: 'n', birlik: 'м3',
@@ -165,6 +165,9 @@ describe('Fakt jurnali — ierarxiya, zamena tartibi, summalar (2026-10-25)', ()
     const f = nakopitelniyMoslik(s.get(0)!, { smeta_summa: 1400, jami_tasdiqlangan_summa: 5500 });
     expect(f).toMatchObject({ mos: false, f2Farq: -100, smetaFarq: 0 });
     expect(nakopitelniyMoslik(s.get(0)!, null)).toMatchObject({ mos: true, f2Farq: null, smetaJami: 1400 });
+    // Bo'lim maxraji (bajarilish og'irligi) = asl smeta + qo'shimcha/zamena; asl smeta o'zgarmaydi.
+    expect(bolimMaxraji(s.get(0))).toBe(nakopitelniyMoslik(s.get(0)!, null).smetaJami);
+    expect(bolimMaxraji(undefined)).toBeNull();
   });
 });
 
