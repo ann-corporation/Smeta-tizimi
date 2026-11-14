@@ -11,7 +11,8 @@ import { summaPaket, type SummaPaket } from '../lib/summa-paket';
 export type ManbaYoq = string[];
 
 export type RahbarKartalar = {
-  portfel: { shartnoma_qqs_bilan: number | null; shartnoma_soni: number; smeta: SummaPaket | null };
+  portfel: { shartnoma_qqs_bilan: number | null; shartnoma_soni: number; smeta: SummaPaket | null; /** Asl + o'zgarishlar (kesh); undefined — eski server; 
+ull — noma'lum. */ smeta_joriy?: SummaPaket | null };
   bajarildi: {
     davr: SummaPaket | null; jami: SummaPaket | null; akt_soni: number;
     foiz_smeta: number | null; foiz_shartnoma: number | null;
@@ -34,7 +35,7 @@ export type RahbarOy = { oy: string; bajarildi: number; tolov: number | null; xa
 export type RahbarObyekt = {
   obyekt_id: number; nom: string; holat: string | null; loyiha_id: number | null; loyiha_nom: string | null;
   shartnoma: { id: number; raqam: string | null; qqs_bilan: number | null; umumiy: boolean } | null;
-  smeta: SummaPaket | null; fakt: SummaPaket | null; f2: SummaPaket | null;
+  smeta: SummaPaket | null; smeta_joriy?: SummaPaket | null; fakt: SummaPaket | null; f2: SummaPaket | null;
   f2_qoralama: { qqs_bilan: number | null; ustamali: number | null; soni: number };
   f3: { sotuv: number | null; soni: number } | null;
   tolangan: number | null; tolangan_foiz: number | null; qarz: number | null; marja_foiz: number | null;
@@ -81,12 +82,12 @@ export function rahbarPanelTozala(x: Record<string, unknown>): RahbarPanel {
   const baj = obyektmi(k.bajarildi) ? k.bajarildi : {};
   const kartalar = {
     ...k,
-    portfel: { ...portfel, smeta: summaPaket(portfel.smeta) },
+    portfel: { ...portfel, smeta: summaPaket(portfel.smeta), ...('smeta_joriy' in portfel ? { smeta_joriy: summaPaket(portfel.smeta_joriy) } : {}) },
     bajarildi: { ...baj, davr: summaPaket(baj.davr), jami: summaPaket(baj.jami) },
   } as unknown as RahbarKartalar;
   const pul = (obyektmi(x.pul_oqimi) ? x.pul_oqimi : {}) as Record<string, unknown>;
   const obyektlar = ro<Record<string, unknown>>(x.obyektlar).map((o) => ({
-    ...o, smeta: summaPaket(o.smeta), fakt: summaPaket(o.fakt), f2: summaPaket(o.f2),
+    ...o, smeta: summaPaket(o.smeta), ...('smeta_joriy' in o ? { smeta_joriy: summaPaket(o.smeta_joriy) } : {}), fakt: summaPaket(o.fakt), f2: summaPaket(o.f2),
   })) as unknown as RahbarObyekt[];
   return {
     ...(x as unknown as RahbarPanel),

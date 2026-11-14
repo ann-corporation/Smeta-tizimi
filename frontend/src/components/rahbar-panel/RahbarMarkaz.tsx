@@ -9,6 +9,8 @@ import { AlertTriangle, ArrowUpRight, Clock } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { FmtN } from '../../lib/format';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
+import { SmetaJamiJuft } from '../../umumiy/ui/SmetaJamiJuft';
+import { smetaJuftlik } from '../../lib/smeta-jami';
 import { useJadvalFiltr } from '../../umumiy/jadval-filtr/useJadvalFiltr';
 import { FiltrHolatQatori, UstunFiltrTugma } from '../../umumiy/jadval-filtr/UstunFiltrTugma';
 import type { Ustun } from '../../umumiy/jadval-filtr/ustunFiltr';
@@ -93,7 +95,7 @@ export function RahbarKartalar({ p }: { p: RahbarPanel }) {
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7" aria-label={t('Asosiy ko‘rsatkichlar')}>
       <Karta nom={t('Portfel')} savol={t('Jami qancha ishim bor?')} holat={kartaHolati('portfel', p)} href="/admin/shartnoma-liniya"
         ost={<>{t('Shartnomalar (QQS bilan)')}: {k.portfel.shartnoma_qqs_bilan != null ? <FmtN val={k.portfel.shartnoma_qqs_bilan} /> : t('kiritilmagan')} · {k.portfel.shartnoma_soni}</>}>
-        <SummaJuft paket={k.portfel.smeta} yorliq={t('Smeta, QQS bilan')} kiritishYoli={{ yol: '/admin/smeta-studio' }} />
+        <SmetaJamiJuft juft={smetaJuftlik(k.portfel.smeta, k.portfel.smeta_joriy)} kiritishYoli={{ yol: '/admin/smeta-studio' }} />
       </Karta>
       <Karta nom={t('Bajarildi (fakt)')} savol={t('Haqiqatda qancha ish bajarildi?')} holat={kartaHolati('fakt', p)} href="/admin/fakt"
         ost={<span data-testid="fakt-karta-ost">
@@ -219,7 +221,7 @@ export function ObyektlarMatritsa({ p, onTanla }: { p: RahbarPanel; onTanla?: (o
     { kalit: 'nom', nom: t('Obyekt'), tur: 'matn', qiymat: (o) => o.nom },
     { kalit: 'loyiha', nom: t('Loyiha'), tur: 'matn', qiymat: (o) => o.loyiha_nom ?? t('Loyihasiz') },
     { kalit: 'shartnoma', nom: t('Shartnoma (QQS bilan)'), tur: 'son', qiymat: (o) => o.shartnoma?.qqs_bilan ?? null },
-    { kalit: 'smeta', nom: t('Smeta (QQS bilan)'), tur: 'son', qiymat: (o) => o.smeta?.qqs_bilan ?? null },
+    { kalit: 'smeta', nom: t('Asl smeta (QQS bilan)'), tur: 'son', qiymat: (o) => o.smeta?.qqs_bilan ?? null },
     { kalit: 'fakt', nom: t('Fakt (QQS bilan)'), tur: 'son', qiymat: (o) => o.fakt?.qqs_bilan ?? null },
     { kalit: 'f2', nom: t('F2 (QQS bilan)'), tur: 'son', qiymat: (o) => o.f2?.qqs_bilan ?? null },
     { kalit: 'tolangan', nom: t('To‘langan %'), tur: 'son', qiymat: (o) => o.tolangan_foiz },
@@ -256,7 +258,7 @@ export function ObyektlarMatritsa({ p, onTanla }: { p: RahbarPanel; onTanla?: (o
                   {onTanla && <button type="button" className="block text-[10.5px] text-accent underline" onClick={() => onTanla(o)} data-testid="obyekt-panel-och">{t('▸ obyekt paneli')}</button>}</td>
                 <td className="text-[12px] text-text-dim">{o.loyiha_nom ?? '—'}</td>
                 <td className="fz-c-num">{o.shartnoma?.qqs_bilan != null ? <><FmtN val={o.shartnoma.qqs_bilan} />{o.shartnoma.umumiy && <span className="block text-[10px] text-text-mute">{t('bir nechta obyekt uchun')}</span>}</> : <span className="text-text-mute">{t('kiritilmagan')}</span>}</td>
-                <td className="fz-c-num"><SummaJuft paket={o.smeta} kichik kesimYoq className="items-end text-right" /></td>
+                <td className="fz-c-num"><SmetaJamiJuft juft={smetaJuftlik(o.smeta, o.smeta_joriy)} kichik kesimYoq className="items-end text-right" /></td>
                 <td><Bosqichlar o={o} /></td>
                 <td className="fz-c-num" data-testid="matritsa-fakt"><SummaJuft paket={o.fakt} kichik kesimYoq className="items-end text-right" /></td>
                 <td className="fz-c-num"><SummaJuft paket={o.f2} kichik kesimYoq className="items-end text-right" /></td>

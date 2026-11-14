@@ -1,0 +1,62 @@
+{
+  "Asl smeta, QQS bilan": {
+    "ru": "Исходная смета, с НДС",
+    "en": "Original estimate, incl. VAT"
+  },
+  "Smeta (asl = joriy), QQS bilan": {
+    "ru": "Смета (исходная = текущая), с НДС",
+    "en": "Estimate (original = current), incl. VAT"
+  },
+  "Joriy smeta (qo‘shimcha ishlar bilan)": {
+    "ru": "Текущая смета (с дополнительными работами)",
+    "en": "Current estimate (with additional works)"
+  },
+  "Pul bo‘yicha": {
+    "ru": "По деньгам",
+    "en": "By money"
+  },
+  "Pul bo‘yicha yopiladigan ish: hajm va narx farqi qo‘llanmaydi, bajarilish — yopilgan pul foizi": {
+    "ru": "Работа закрывается по деньгам: отклонение по объёму и цене не применяется, выполнение — процент закрытых денег",
+    "en": "Money-closed work: volume and price variance do not apply; completion is the percent of money closed"
+  },
+  "qo‘llanmaydi": {
+    "ru": "не применяется",
+    "en": "not applicable"
+  },
+  "F2 / asl smeta: {p}%": {
+    "ru": "Ф-2 / исходная смета: {p}%",
+    "en": "F-2 / original estimate: {p}%"
+  },
+  "F2 / joriy smeta: {p}%": {
+    "ru": "Ф-2 / текущая смета: {p}%",
+    "en": "F-2 / current estimate: {p}%"
+  },
+  "asl smetaning {p}%": {
+    "ru": "{p}% исходной сметы",
+    "en": "{p}% of original estimate"
+  },
+  "joriy smetaning {p}%": {
+    "ru": "{p}% текущей сметы",
+    "en": "{p}% of current estimate"
+  },
+  "Asl smeta: noma’lum (server yangilanishi kutilmoqda)": {
+    "ru": "Исходная смета: неизвестна (ожидается обновление сервера)",
+    "en": "Original estimate: unknown (server update pending)"
+  },
+  "Asl smeta (QQS bilan)": {
+    "ru": "Исходная смета (с НДС)",
+    "en": "Original estimate (incl. VAT)"
+  },
+  "asl smetadan {f}%": {
+    "ru": "{f}% от исходной сметы",
+    "en": "{f}% of original estimate"
+  },
+  "Asl smeta jami": {
+    "ru": "Итого исходная смета",
+    "en": "Original estimate total"
+  },
+  "Asl smeta jami — faol obyektlarning shartnoma smetasi (qo‘shimcha/zamena ishlarsiz, nakrutkasiz); joriy smeta (qo‘shimcha ishlar bilan) alohida ko‘rsatiladi, o‘zgarish qoralamalari kirmaydi.": {
+    "ru": "Итого исходная смета — договорная смета активных объектов (без дополнительных работ и замен, без накрутки); текущая смета (с дополнительными работами) показана отдельно, черновики изменений не входят.",
+    "en": "Original estimate total — contract estimate of active objects (without additional works/replacements, without markup); the current estimate (with additional works) is shown separately; change drafts are excluded."
+  }
+}

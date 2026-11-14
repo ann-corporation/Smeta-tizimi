@@ -114,7 +114,7 @@ function Xulosa({ data, e, ph }: { data: Dashboard; e: BossExecutive | null; ph:
         <KpiKarta nom={t('F2: tekshiruv / qoralama')} qiymat={jarayon} ost={t('Tasdiqlangan aktlardan alohida')} />
         <KpiKarta nom={t('Muhim ochiq signallar')} qiymat={<span className={data.signal.kritik_soni > 0 ? 'text-danger' : ''}>{data.signal.kritik_soni}</span>} ost={signalIzoh} />
       </div>
-      <p className="text-[12px] text-text-mute">{t('Smeta jami — faol obyektlar bo‘limlari yig‘indisi (nakrutkasiz); smeta o‘zgarishining qoralamalari (qoralama) bunga kirmaydi.')} {t('Summalar hisob asosi bilan ko‘rsatilgan. Smeta va F2 nisbatidan jismoniy bajarilish foizi chiqarilmaydi. Narxsiz qatorlar bo‘lsa, summa qisman.')}</p>
+      <p className="text-[12px] text-text-mute">{t('Asl smeta jami — faol obyektlarning shartnoma smetasi (qo‘shimcha/zamena ishlarsiz, nakrutkasiz); joriy smeta (qo‘shimcha ishlar bilan) alohida ko‘rsatiladi, o‘zgarish qoralamalari kirmaydi.')} {t('Summalar hisob asosi bilan ko‘rsatilgan. Smeta va F2 nisbatidan jismoniy bajarilish foizi chiqarilmaydi. Narxsiz qatorlar bo‘lsa, summa qisman.')}</p>
     </section>
   );
 }

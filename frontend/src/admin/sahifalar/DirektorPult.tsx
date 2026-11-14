@@ -10,6 +10,8 @@ import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
 import { Sahifa, Skelet } from '../../umumiy/ui/Sahifa';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
+import { SmetaJamiJuft } from '../../umumiy/ui/SmetaJamiJuft';
+import { smetaJuftlik } from '../../lib/smeta-jami';
 import { FmtN } from '../../lib/format';
 import { t } from '../../i18n/til';
 import { useRahbarPult, type RahbarPult } from '../../api/t2-rahbar-pult';
@@ -42,7 +44,7 @@ export function PultPlitkalari({ d }: { d: RahbarPult }) {
       <Plitka yol="/admin/obyektlar" nom="Portfel" testId="pult-portfel"
         ost={<>{t('Obyektlar')}: {soniMatn(portfel.obyekt_soni)} · {t('Shartnomalar')}: {soniMatn(portfel.shartnoma_soni)}
           {portfel.shartnoma_qqs_bilan != null && <> · {t('Shartnoma, QQS bilan')}: <FmtN val={portfel.shartnoma_qqs_bilan} kasr={0} /></>}</>}>
-        {portfel.smeta ? <SummaJuft paket={portfel.smeta} yorliq={t('Smeta, QQS bilan')} kichik kesimYoq /> : yoq}
+        {portfel.smeta ? <SmetaJamiJuft juft={smetaJuftlik(portfel.smeta)} kichik kesimYoq /> : yoq}
       </Plitka>
 
       <Plitka yol="/admin/f2-reestr" nom="Bu oy bajarildi" testId="pult-oy"
