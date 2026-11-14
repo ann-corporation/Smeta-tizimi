@@ -530,6 +530,7 @@ export function HolatNative() {
               <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}><h3 className="fz-card__title" style={{ fontSize: 14, lineHeight: '20px' }}>{t('Smeta XLSX yuklash')}</h3></div>
               {activeTab === 'yuklash' && <div className="p-4"><SmetaYuklaNative obyektId={obyektId} onImportlandi={yuklash}
                 onSmetaOchish={() => setActiveTab('smeta')}
+                onNarxlashOchish={() => setActiveTab('narx')}
                 onFaktgaOtish={() => navigate(`/admin/fakt?obyekt=${obyektId}`)}
                 onVersiyaSaqla={(fayl) => { setVersiyaFayli(fayl); setActiveTab('versiya'); }} /></div>}
             </section>

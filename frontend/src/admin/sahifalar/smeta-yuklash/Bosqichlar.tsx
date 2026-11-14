@@ -165,10 +165,10 @@ export function JamiKorinish({ k }: { k: OldindanKorinish }) {
         <span className="fz-kpi__label">{t('Ustama podvali')}</span>
         <span className="fz-kpi__value" style={{ fontSize: 13 }}>{podvalMatn}</span>
       </div>
-      {k.farqPryamye != null && (
-        <div className="fz-kpi">
+      {k.pryamyeFarq != null && (
+        <div className="fz-kpi" data-testid="pryamye-farq">
           <span className="fz-kpi__label">{t('Fayldagi «to‘g‘ridan-to‘g‘ri xarajat» bilan farq')}</span>
-          <span className="fz-kpi__value" style={Math.abs(k.farqPryamye) > 1 ? { color: 'var(--warn)', fontSize: 14 } : { fontSize: 14 }}>{pul(k.farqPryamye)}</span>
+          <span className="fz-kpi__value" style={{ fontSize: 14, ...(k.pryamyeFarq.daraja === 'tasdiq' ? { color: 'var(--danger)' } : k.pryamyeFarq.daraja === 'ogoh' ? { color: 'var(--warn)' } : {}) }}>{pul(k.pryamyeFarq.farq)}</span>
         </div>
       )}
     </div>
