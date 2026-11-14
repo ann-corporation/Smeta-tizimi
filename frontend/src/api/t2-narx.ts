@@ -16,6 +16,7 @@
  * ikkita haqiqat paydo bo'lardi — F2 moslashtirishda aynan shu xato
  * 1000 baravarlik zararga olib kelgan.
  */
+import { obyektlarEskirdi } from './obyektlar-kesh-belgi';
 import { sbOqi, type SbJavob } from './supabase';
 
 /* ── Narxlar markazi qatori (`t2_narx_markaz` ko'rinishi) ────────── */
@@ -163,6 +164,7 @@ async function yoz(yuk: Record<string, unknown>): Promise<NarxNatija> {
       body: JSON.stringify(yuk),
     });
     const j = (await r.json()) as NarxNatija;
+    if (j.ok) obyektlarEskirdi();
     return { ...j, ms: Math.round(performance.now() - t0) };
   } catch (e: any) {
     return { ok: false, error: 'Tarmoq: ' + (e?.message || String(e)),

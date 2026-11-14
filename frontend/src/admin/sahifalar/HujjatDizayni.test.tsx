@@ -14,7 +14,7 @@ describe('Hujjatlar dizayni', () => {
     expect(hujjatMavzusi('f2')).toBe('kulrang');
     expect(fillRangi(kitob())).toContain(`FF${MAVZU_HEX.kulrang.bolim}`);
     render(<HujjatDizayni />);
-    fireEvent.click(screen.getByRole('radio', { name: /Акт Ф-2 \(форма № 2\) va resurs vedomosti: Ko‘k/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /Акт Ф-2 \(форма № 02\) va resurs vedomosti: Ko‘k/ }));
     expect(hujjatMavzusi('f2')).toBe('kok');
     expect(hujjatMavzusi('f3')).toBe('kulrang');                                    // boshqa tur o'zgarmaydi
     expect(fillRangi(kitob())).toContain(`FF${MAVZU_HEX.kok.bolim}`);

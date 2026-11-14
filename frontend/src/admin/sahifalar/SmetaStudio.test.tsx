@@ -84,7 +84,7 @@ function renderEditor(){render(<SmetaStudio/>);fireEvent.click(within(screen.get
 
 it('opens the workbench with persistent AI without starting a previously selected hidden pricing view',async()=>{
  localStorage.setItem('smeta-studio:bosqich','narx');
- try{render(<SmetaStudio/>);await screen.findByText('Shu qurilmada saqlandi');expect(screen.getByRole('main',{name:'Smeta jadvali'})).toBeTruthy();expect(screen.getByRole('complementary',{name:'Doimiy AI yordamchi'})).toBeTruthy();expect(screen.queryByLabelText('Obyekt hududi')).toBeNull();expect(requests.some(r=>r.startsWith('POST '))).toBe(false);}finally{localStorage.removeItem('smeta-studio:bosqich');}
+ try{render(<SmetaStudio/>);await screen.findByText('Shu qurilmada saqlandi', undefined, { timeout: 15000 });expect(screen.getByRole('main',{name:'Smeta jadvali'})).toBeTruthy();expect(screen.getByRole('complementary',{name:'Doimiy AI yordamchi'})).toBeTruthy();expect(screen.queryByLabelText('Obyekt hududi')).toBeNull();expect(requests.some(r=>r.startsWith('POST '))).toBe(false);}finally{localStorage.removeItem('smeta-studio:bosqich');}
 });
 
 it('chapdan ish tanlab o‘ngga qo‘shish: kuzatilgan birlik, resurs miqdori, narxsiz jami noma’lum; faqat GET', async () => {

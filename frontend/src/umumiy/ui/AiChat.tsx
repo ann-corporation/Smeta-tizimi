@@ -3,7 +3,7 @@ import ReactMarkdown, { type Components } from 'react-markdown';
 import { mdBolaklar } from '../../lib/yordamchi/jadval';
 import { ArrowRight, Bot, Mic, MicOff, Send, Square, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { kasbSavolOqim, niyatLlmOl, tizimYordamSavol, type KasbIshchi, type KasbYakun, type Qadam, type SahifaIshora } from '../../api/t2-agent-ish';
+import { kasbSavolOqim, niyatLlmOl, suhbatRoyxatOl, suhbatServerdanOl, suhbatServerga, type ServerSuhbat, tizimYordamSavol, type KasbIshchi, type KasbYakun, type Qadam, type SahifaIshora } from '../../api/t2-agent-ish';
 import { jarvisKichikGap } from '../../lib/jarvis/intent';
 import { katalogKonteksti, narxSavolimi, vaqtBilan, type KatalogKontekst } from '../../lib/jarvis/katalog-kontekst';
 import { t } from '../../i18n/til';
@@ -20,6 +20,7 @@ import { toast } from './Toast';
 import { AiBaho } from './AiBaho';
 import { AiHarakatKarta } from './AiHarakatKarta';
 import { AiQadamlar } from './AiQadamlar';
+import { ISHCHI_HODISA, type IshchiHodisa } from './useIshchiNatija';
 import { TOIFA_NOMI } from './ai-harakat';
 import { studioKontekstObuna, studioKontekstOl, studioKontekstScope } from '../../lib/jarvis/studio-kontekst';
 
@@ -107,6 +108,18 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     return () => window.removeEventListener('ai:yangi-suhbat', f);
   }, [tarixKalit]);
 
+  /* AI ishchi natijasi tayyor bo'lganda (panel ochiq, yengil polling — useIshchiNatija) chatda xabar: sarlavha + qisqa xulosa + inbox havolasi. */
+  useEffect(() => {
+    if (!yordamchi) return undefined;
+    const f = (e: Event) => {
+      const d = (e as CustomEvent<IshchiHodisa>).detail;
+      if (!d) return;
+      setXabarlar((p) => [...p, { id: `ishchi-${d.id}`, rol: 'ai', jarvis: true, matn: `**${t('AI ishchi natijasi tayyor')}:** ${d.sarlavha}\n\n${(d.xulosa ?? '').slice(0, 400)}`, sahifalar: [{ yol: '/admin/ai-agentlar', nom: t('AI ishchilar') }] }]);
+    };
+    window.addEventListener(ISHCHI_HODISA, f);
+    return () => window.removeEventListener(ISHCHI_HODISA, f);
+  }, [!!yordamchi]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => { if (tayyorSavol?.matn) { void yubor(tayyorSavol.matn); onOqildi?.(); } /* faqat yangi hodisada */ // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tayyorSavol?.id]);
 
@@ -119,8 +132,39 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     if (!yordamchi || !xabarlar.length || xabarlar.some((x) => x.jonli)) return;
     const yangi = suhbatArxivla(suhbatOqi(arxivKalit), suhbatId.current, xabarlar.map((x) => ({ rol: x.rol, matn: x.matn, jonli: x.jonli })));
     suhbatYoz(arxivKalit, yangi); setArxiv(yangi);
-  }, [xabarlar, arxivKalit, yordamchi]);
-  const suhbatDavom = (s: Suhbat) => { suhbatId.current = s.id; setXabarlar(s.xabarlar.map((x, i) => ({ id: `${s.id}-${i}`, rol: x.rol, matn: x.matn, jarvis: x.rol === 'ai' }))); };
+    /* Serverga (qurilmalar orasida): 1.5 s kutib, xato bo'lsa jim — brauzer nusxasi zaxira. */
+    if (kompaniyaId == null || foydalanuvchiId == null) return;
+    const id = suhbatId.current; const s = yangi.find((q) => q.id === id);
+    if (!s) return;
+    const tm = setTimeout(() => { void suhbatServerga(kompaniyaId, id, s.sarlavha, s.xabarlar.map((x) => ({ r: x.rol, m: x.matn }))); }, 1500);
+    return () => clearTimeout(tm);
+  }, [xabarlar, arxivKalit, yordamchi]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [serverRoyxat, setServerRoyxat] = useState<ServerSuhbat[]>([]);
+  useEffect(() => { let tirik = true; setServerRoyxat([]); if (kompaniyaId != null && foydalanuvchiId != null && yordamchi) void suhbatRoyxatOl(kompaniyaId).then((r) => { if (tirik && r) setServerRoyxat(r); }); return () => { tirik = false; }; }, [kompaniyaId, foydalanuvchiId, !!yordamchi]); // eslint-disable-line react-hooks/exhaustive-deps
+  /* Ko'rinadigan ro'yxat: brauzer nusxasi + faqat serverda bor (boshqa qurilma) suhbatlar. */
+  const korinadigan = useMemo(() => {
+    const bor = new Set(arxiv.map((s) => s.id));
+    const sv = serverRoyxat.filter((s) => !bor.has(s.id)).map((s) => ({ id: s.id, sarlavha: s.sarlavha, yangilandi: Date.parse(s.yangilandi) || 0, xabarlar: [] as Suhbat['xabarlar'], server: true as const }));
+    return [...arxiv.map((s) => ({ ...s, server: false as const })), ...sv].sort((a, b) => b.yangilandi - a.yangilandi);
+  }, [arxiv, serverRoyxat]);
+  const serverdanDavom = async (s: Suhbat) => {
+    const r = kompaniyaId != null ? await suhbatServerdanOl(kompaniyaId, s.id) : null;
+    suhbatId.current = s.id;
+    if (!r) { toast(t('Suhbatni yuklab bo‘lmadi'), 'warn'); return; }
+    const x = r.xabarlar ?? (r.qisqartma ? [{ r: 'ai' as const, m: `${t('Eski suhbat (qisqartma)')}: ${r.qisqartma}` }] : []);
+    setXabarlar(x.map((q, i) => ({ id: `${s.id}-${i}`, rol: q.r, matn: q.m, jarvis: q.r === 'ai' })));
+  };
+  const suhbatDavom = (s: Suhbat & { server?: boolean }) => { if (s.server) { void serverdanDavom(s); return; } suhbatId.current = s.id; setXabarlar(s.xabarlar.map((x, i) => ({ id: `${s.id}-${i}`, rol: x.rol, matn: x.matn, jarvis: x.rol === 'ai' }))); };
+  /* QURILMA ALMASHGANDA: bu qurilmada tarix yo'q (brauzer arxivi va joriy chat bo'sh), serverda esa oxirgi 48 soatdagi suhbat bor — o'zi tiklanadi (bir marta). */
+  const tiklandi = useRef<string | null>(null);
+  useEffect(() => {
+    if (!yordamchi || tiklandi.current === arxivKalit || xabarlarRef.current.length || arxiv.length || !serverRoyxat.length) return;
+    const s = [...serverRoyxat].sort((a, b) => Date.parse(b.yangilandi) - Date.parse(a.yangilandi))[0];
+    const vaqt = Date.parse(s.yangilandi);
+    if (!Number.isFinite(vaqt) || Date.now() - vaqt > 48 * 3_600_000) return;
+    tiklandi.current = arxivKalit;
+    void serverdanDavom({ id: s.id, sarlavha: s.sarlavha, yangilandi: vaqt, xabarlar: [] });
+  }, [serverRoyxat, arxiv.length, arxivKalit, !!yordamchi]); // eslint-disable-line react-hooks/exhaustive-deps
   const ochish = (yol: string) => { navigate(yol); onOtish?.(); };
   /* Javobdagi ichki havolalar (/admin/...) sahifani qayta yuklamay, router orqali ochiladi; tashqilari yangi oynada. */
   const markdownBogla = useMemo(() => ({
@@ -314,10 +358,10 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
             {kasb.taqiq_izoh && <p className="mt-2 text-[11px] text-text-mute">🔒 {kasb.taqiq_izoh}</p>}
           </div>
         )}
-        {xabarlar.length === 0 && yordamchi && arxiv.length > 0 && (
+        {xabarlar.length === 0 && yordamchi && korinadigan.length > 0 && (
           <div className="rounded-xl border border-border p-3 text-sm" data-testid="jarvis-suhbatlar">
             <div className="text-xs font-semibold text-text-dim">{t('Oldingi suhbatlar')}</div>
-            <ul className="mt-1.5 space-y-1">{arxiv.slice(0, 6).map((s) => (
+            <ul className="mt-1.5 space-y-1">{korinadigan.slice(0, 6).map((s) => (
               <li key={s.id}><button type="button" onClick={() => suhbatDavom(s)} className="w-full truncate rounded px-2 py-1 text-left text-xs text-text hover:bg-surface-2" title={s.sarlavha}>{s.sarlavha}</button></li>))}</ul>
           </div>
         )}

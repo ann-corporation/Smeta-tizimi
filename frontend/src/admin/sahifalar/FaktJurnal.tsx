@@ -35,7 +35,7 @@ import { qidiruvKaliti } from '../../i18n/lotin-kirill';
 import { useHotkeys, yordamOch } from '../../lib/hotkeys/useHotkeys';
 import { inputdami, sarlavhaBilan } from '../../lib/hotkeys/core';
 import { HOLAT_FILTRLAR, holatFiltrMos, keyingiMoslik, qoldimOl, qoldimYoz, type HolatFiltr } from '../../lib/fakt-klaviatura';
-import { JURNAL_XATO_MATN, bolimSummalari, bolimTarkibi, jurnalQur, kiritmaSoni, ochiqBor, qoldiqUlushi, type BolimSumma, type JurnalBolim, type JurnalHolat, type JurnalIsh, type JurnalQator, type Kiritma, type Rejim, type ZamenaBoglanish } from '../../lib/fakt-jurnal';
+import { JURNAL_XATO_MATN, bolimMaxraji, bolimSummalari, bolimTarkibi, jurnalQur, kiritmaSoni, ochiqBor, qoldiqUlushi, type BolimSumma, type JurnalBolim, type JurnalHolat, type JurnalIsh, type JurnalQator, type Kiritma, type Rejim, type ZamenaBoglanish } from '../../lib/fakt-jurnal';
 import { zamenaBoglanishOl } from '../../lib/fakt-zamena-boglanish';
 import { tuzatishBoglanishlari } from '../../lib/smeta-anatomiya/tuzatish';
 import { almashtirildiMatn, ochiqdanOrtiqcha, ochiqQoldiq } from '../../lib/zamena-qoldiq';
@@ -1016,7 +1016,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   </div> : null;
 
   const tanlanganBolim = bolimlar.find((b) => b.id === bolimId);
-  const obyektUlushi = useMemo(() => obyektUlushiHisobla(bolimlar, (id) => summalar.get(id)?.smeta.ustamasiz), [bolimlar, summalar]);
+  const obyektUlushi = useMemo(() => obyektUlushiHisobla(bolimlar, (id) => bolimMaxraji(summalar.get(id))), [bolimlar, summalar]);
   const xulosa = useMemo(() => jurnalXulosa(bolimlar, bolimIshlari), [bolimlar, bolimIshlari]);
   const bolimKorinadi = (b: (typeof bolimlar)[number]) => { let p = b.otaId; while (p != null) { if (yopiqBolim.has(p)) return false; p = bolimlar.find((x) => x.id === p)?.otaId ?? null; } return true; };
   const bolaliBolim = useMemo(() => new Set(bolimlar.map((b) => b.otaId).filter((x): x is number => x != null)), [bolimlar]);

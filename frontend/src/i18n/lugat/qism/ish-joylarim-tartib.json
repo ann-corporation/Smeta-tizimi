@@ -1,0 +1,10 @@
+{
+ "Barcha ish joylaringizdan yig‘ilgan · «{nom}» ishlari birinchi": {
+  "ru": "Собрано из всех ваших рабочих мест · сначала задачи «{nom}»",
+  "en": "Collected from all your workspaces · «{nom}» tasks first"
+ },
+ "Barcha ish joylaringizdan yig‘ilgan": {
+  "ru": "Собрано из всех ваших рабочих мест",
+  "en": "Collected from all your workspaces"
+ }
+}

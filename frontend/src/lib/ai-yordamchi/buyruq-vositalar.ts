@@ -9,6 +9,7 @@
 import type { T2Qator, T2QatorHolat } from '../../api/supabase';
 import { bolimSummalari, jurnalQur, type JurnalHolat } from '../fakt-jurnal';
 import { qidiruvTayyorla } from '../qidiruv-normalizatsiya';
+import type { SvodYaxlit } from '../svod-yaxlit';
 import { bosKatKesim, katKesimgaQosh, type KatKesim } from '../ustamali-summa';
 import { qoldiqHajmi } from '../zamena-qoldiq';
 import { t } from '../../i18n/til';
@@ -28,10 +29,10 @@ import type { SahifaVositalar } from './sikl';
 export type OchiqSahifa = { yol: string; nom: string };
 export type BuyruqMalumot = FaktMalumot & { rows: readonly T2Qator[]; qatorById: ReadonlyMap<number, T2Qator>; sahifalar?: readonly OchiqSahifa[]; naryadlar?: readonly NaryadQisqa[]; loyihaFarq?: LoyihaFarqMalumot | null; slichAsos?: AsosJavob | null; ustaBugun?: { satrlar: readonly NaryadSatr[]; oyDaromad: number | null } };
 
-export function buyruqMalumotQur(rows: readonly T2Qator[], states: readonly (T2QatorHolat | JurnalHolat)[], opts: { obyektNomi?: string; ustamali?: UstamaliFn; sahifalar?: readonly OchiqSahifa[]; naryadlar?: readonly NaryadQisqa[]; loyihaFarq?: LoyihaFarqMalumot | null; slichAsos?: AsosJavob | null; ustaBugun?: { satrlar: readonly NaryadSatr[]; oyDaromad: number | null } } = {}): BuyruqMalumot {
+export function buyruqMalumotQur(rows: readonly T2Qator[], states: readonly (T2QatorHolat | JurnalHolat)[], opts: { obyektNomi?: string; ustamali?: UstamaliFn; sahifalar?: readonly OchiqSahifa[]; naryadlar?: readonly NaryadQisqa[]; loyihaFarq?: LoyihaFarqMalumot | null; slichAsos?: AsosJavob | null; ustaBugun?: { satrlar: readonly NaryadSatr[]; oyDaromad: number | null }; /** Svod yaxlit (server): yaxlit bo'limlarga ustama YO'Q — ekran (FaktJurnal) bilan bir xil jami. */ svodYaxlit?: SvodYaxlit | null } = {}): BuyruqMalumot {
   const holatlar = states as readonly JurnalHolat[];
   const { bolimlar, bolimIshlari } = jurnalQur(rows, holatlar);
-  return { obyektNomi: opts.obyektNomi, bolimlar, bolimIshlari, holatMap: new Map(holatlar.map((s) => [s.qator_id, s])), summalar: bolimSummalari(rows, holatlar),
+  return { obyektNomi: opts.obyektNomi, bolimlar, bolimIshlari, holatMap: new Map(holatlar.map((s) => [s.qator_id, s])), summalar: bolimSummalari(rows, holatlar, undefined, opts.svodYaxlit ?? null),
     bajHajm: new Map(), ustamali: opts.ustamali, rows, qatorById: new Map(rows.map((r) => [r.id, r])), sahifalar: opts.sahifalar, naryadlar: opts.naryadlar, ustaBugun: opts.ustaBugun, loyihaFarq: opts.loyihaFarq ?? null, slichAsos: opts.slichAsos ?? null };
 }
 

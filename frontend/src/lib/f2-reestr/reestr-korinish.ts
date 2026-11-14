@@ -3,6 +3,7 @@
  * Yangi biznes formula YO'Q: reestrQur bergan summalarni smeta (=100%) ga nisbatan chiziq bo'laklariga ajratadi.
  * Bu SUMMA nisbati — jismoniy bajarilish foizi emas. NULL ≠ 0: smeta noma'lum yoki ≤ 0 bo'lsa foiz ham noma'lum (null).
  */
+import { yaxlit2 } from '../hisob-yadro';
 import { bosqich, type Summa } from './reestr';
 
 export type ReestrUlush = {
@@ -14,6 +15,19 @@ export type ReestrUlush = {
 };
 
 const ulush = (qism: number, butun: number) => Math.max(0, qism) / butun;
+
+/**
+ * Bajarilish foizi maxraji = «Smeta + o'zgarishlar» (egasi 2026-11-14: qo'shimcha ish ham bajariladigan ish).
+ * Asl smeta (`jami`) o'zgarmaydi va alohida ko'rinadi; faqat nisbat maxraji asl + o'zgarishlar. Yangi hisoblagich yo'q:
+ * `ozgarish` — serverning `t2_smeta_ozgarish_qatlam_v1` natijasi. O'zgarish noma'lum bo'lsa — asl (joriy: false, yorliq shuni aytadi).
+ */
+export function bajarilishMaxraji(o: { jami: number | null | undefined; ozgarish?: number | null }): { summa: number | null; joriy: boolean } {
+  const asl = o.jami == null || !Number.isFinite(Number(o.jami)) ? null : Number(o.jami);
+  const oz = o.ozgarish == null || !Number.isFinite(Number(o.ozgarish)) ? null : Number(o.ozgarish);
+  if (asl == null) return { summa: null, joriy: false };
+  if (oz == null) return { summa: asl, joriy: false };
+  return { summa: yaxlit2(asl + oz), joriy: true };
+}
 
 export function reestrUlush(p: { tasdiqlangan: Summa; tasdiqImport: Summa; tasdiqTizim: Summa }, smeta: number | null | undefined): ReestrUlush {
   const s = smeta == null || !Number.isFinite(Number(smeta)) ? null : Number(smeta);

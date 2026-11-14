@@ -58,6 +58,8 @@ export const zamenaQosh = tool({
         if (!['rs', 'mat', 'ob'].includes(asl.tur)) throw new Error(`rejim "resurs": almashtiriladigan qator resurs (rs/mat/ob) bo'lsin, bu — ${asl.tur}`);
         if (a.resurslar?.length !== 1) throw new Error('rejim "resurs": `resurslar` da aynan bitta resurs bering');
         if (a.ish) ogoh.push('rejim "resurs": `ish` e\'tiborga olinmadi');
+        // Sinov 2026-11-14: fakt_hajm resurs rejimida jimgina tashlab yuborilardi (asl_holat o'zgarmay qolardi) — endi aniq ogohlantiriladi.
+        if (a.fakt_hajm != null) ogoh.push('rejim "resurs": `fakt_hajm` e\'tiborga olinmadi (faqat rejim "ish" da) — zamena resursi faktini fakt_yoz bilan kiriting; asl qator "almashtirilgan" ulushi zamena fakti bo\'yicha hisoblanadi');
       } else {
         if (!a.ish) throw new Error('rejim "ish": `ish {nom, birlik, hajm}` majburiy');
         for (const [i, r] of (a.resurslar ?? []).entries()) if (r.norma == null && (r.hajm == null || r.hajm === 0)) throw new Error(`resurs ${i + 1}: norma (>0) yoki aniq hajm (≠0) kerak`);

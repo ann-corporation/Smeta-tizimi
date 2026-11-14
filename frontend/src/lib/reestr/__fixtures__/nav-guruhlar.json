@@ -40,7 +40,7 @@
           {
             "yol": "/admin/obyektlar",
             "ilova": "pto",
-            "nom": "Obyektlar va smeta yuklash",
+            "nom": "Obyektlar",
             "ruxsat": [
               "smeta.read"
             ],
@@ -249,22 +249,6 @@
             "yol": "/admin/foto",
             "ilova": "ff",
             "nom": "Foto-dalil",
-            "ruxsat": [
-              "control.company.read",
-              "fakt.write",
-              "fakt.read+self.work.write"
-            ]
-          }
-        ]
-      },
-      {
-        "nom": "Bugun (telefon)",
-        "ikonka": "HardHat",
-        "sahifalar": [
-          {
-            "yol": "/admin/bugun",
-            "ilova": "ff",
-            "nom": "Bugun (usta, telefon)",
             "ruxsat": [
               "control.company.read",
               "fakt.write",
@@ -497,7 +481,7 @@
           {
             "yol": "/admin/aosr",
             "ilova": "hujjat",
-            "nom": "АОСР va laboratoriya",
+            "nom": "Yashirin ishlar akti (АОСР)",
             "ruxsat": [
               "control.company.read",
               "document.write",
@@ -586,9 +570,7 @@
             "ruxsat": [
               "design.write",
               "design.issue",
-              "control.company.read",
-              "project.write",
-              "object.write"
+              "control.company.read"
             ]
           }
         ]
@@ -1046,6 +1028,21 @@
             ]
           }
         ]
+      },
+      {
+        "nom": "Ruxsatlar jadvali",
+        "ikonka": "ShieldCheck",
+        "sahifalar": [
+          {
+            "yol": "/admin/ruxsatlar-jadvali",
+            "ilova": "yadro",
+            "nom": "Ruxsatlar jadvali",
+            "ruxsat": [
+              "control.company.read"
+            ],
+            "scope": "COMPANY_SCOPED"
+          }
+        ]
       }
     ]
   },
@@ -1055,6 +1052,18 @@
     "ikonka": "User",
     "qatlam": "shaxsiy",
     "bandlar": [
+      {
+        "nom": "Bugun",
+        "ikonka": "LayoutDashboard",
+        "sahifalar": [
+          {
+            "yol": "/admin/bugun",
+            "ilova": "yadro",
+            "nom": "Bugun",
+            "ruxsat": []
+          }
+        ]
+      },
       {
         "nom": "Ish joylarim",
         "ikonka": "LayoutDashboard",

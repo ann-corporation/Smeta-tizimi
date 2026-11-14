@@ -1,0 +1,165 @@
+import { useInRouterContext, Link } from 'react-router-dom';
+import { AlertTriangle, ArrowRight, Check, CircleDashed, HelpCircle } from 'lucide-react';
+import type { ComponentType } from 'react';
+import { t } from '../../i18n/til';
+import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
+import { useForma3Holat, useIshOyi } from '../../lib/pto-markazi/useQadamMalumot';
+import { bugungiOy, faolOy } from '../../lib/pto-markazi/oy';
+import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
+import { ZANJIR_YOL, zanjirHisobla, zanjirKirishYasa, zanjirRolKoradi, type QadamHolat, type ZanjirKirish, type ZanjirQadamId, type ZanjirTavsiya } from '../../lib/zanjir/qadamlar';
+
+/**
+ * Pudratchi ish zanjiri chizig'i — YAGONA «keyingi qadam» vidjeti (obyekt sahifasi va zanjirning hamma qadam sahifalari).
+ * Smeta → Fakt → АОСР → F2 → Forma 3 → To'lov. Hisob — lib/zanjir/qadamlar (sof); bu yerda faqat chizish.
+ * Ma'lumot: mavjud keshlangan hook (akt reestri; obyekt sahifasi bilan bir so'rov), obyekt jami — workspace ro'yxatidan.
+ * Yangi so'rov YO'Q. Sahifada bor bo'lgan qo'shimcha ma'lumot (masalan АОСР qamrovi) `aosr` orqali beriladi; yo'q bo'lsa — noma'lum.
+ * Har qadam — o'sha ish bajariladigan sahifaga havola (obyekt va tanlangan davr qidiruv qatorida ketadi).
+ */
+export type ZanjirBelgi = ZanjirQadamId;
+
+const IKONKA: Record<QadamHolat, ComponentType<{ className?: string; 'aria-hidden'?: boolean }>> = { done: Check, current: ArrowRight, blocked: AlertTriangle, not_started: CircleDashed, unknown: HelpCircle };
+const HOLAT_NOMI: Record<QadamHolat, () => string> = {
+  done: () => t('Bajarilgan'), current: () => t('Hozir'), blocked: () => t('Diqqat'), not_started: () => t('Navbatda'), unknown: () => t('Noma‘lum'),
+};
+const HOLAT_SINF: Record<QadamHolat, string> = {
+  done: 'border-ok/30 bg-ok/10 text-ok',
+  current: 'border-accent bg-accent/10 text-text',
+  blocked: 'border-border bg-surface-2/60 text-text-mute',
+  not_started: 'border-border bg-surface text-text-dim',
+  unknown: 'border-dashed border-border bg-surface text-text-mute',
+};
+
+/** Sahifa o'zi yuklagan qo'shimcha sonlar (smeta qator soni, fakt qamrovi, slichitelniy farqi) — yo'q bo'lsa «—»/noma'lum. */
+export type ZanjirQoshimcha = Partial<Pick<ZanjirKirish, 'smetaQator' | 'faktQamrov' | 'faktHolatda' | 'slichitelniy' | 'tolov' | 'aosrReestr'>>;
+
+export function ZanjirChizigi({ joriy, obyektId, aosr, qoshimcha }: { joriy?: ZanjirBelgi | null; obyektId?: number | null; aosr?: ZanjirKirish['aosr']; qoshimcha?: ZanjirQoshimcha }) {
+  const ws = usePTOWorkspace();
+  const { joriy: kompaniya } = useKompaniya();
+  const routerda = useInRouterContext();
+  const id = obyektId ?? ws.scope?.objectId ?? null;
+  if (!routerda) return null;
+  /* Faqat obyekt bilan ishlaydigan pudratchi rollari; texnadzor/buyurtmachi ko'rinishi o'zgarmaydi. */
+  if (!zanjirRolKoradi(kompaniya?.rol)) return null;
+  /* Obyekt tanlanmagan (kompaniya darajasi): qadamlar baribir bosiladi, holat — «Noma'lum» (hech narsa taxmin qilinmaydi). */
+  if (id == null) return ws.companyId == null ? null : <KompaniyaChizig joriy={joriy ?? null} search={ws.scopeSearch?.(null) ?? ''} />;
+  return <Chizig obyektId={id} joriy={joriy ?? null} aosr={aosr ?? null} qoshimcha={qoshimcha} />;
+}
+
+function Chizig({ obyektId: id, joriy, aosr, qoshimcha }: { obyektId: number; joriy: ZanjirBelgi | null; aosr: ZanjirKirish['aosr']; qoshimcha?: ZanjirQoshimcha }) {
+  const ws = usePTOWorkspace();
+  const io = useIshOyi(id);
+  const obyekt = (ws.objects ?? []).find((o) => o.id === id) ?? null;
+  /* Obyekt ro'yxatda tasdiqlanmagan (ro'yxat yuklanmoqda / o'qilmadi — masalan server vaqt chegarasi): hech narsa taxmin qilinmaydi,
+   * hamma qadam «Noma'lum»; «Avval … kerak» (aniq to'siq) faqat tasdiqlangan obyektda chiqadi (NULL ≠ 0). */
+  const tasdiqlangan = obyekt != null;
+  const aktlar = tasdiqlangan ? io.malumot.aktlar : null;
+  const asos = { obyekt, aktlar, oy: io.oy, aosr: tasdiqlangan ? aosr : null, ...(tasdiqlangan ? qoshimcha : {}) };
+  /* Forma 3 soni faqat shu oyda tasdiqlangan F2 bor bo'lsagina o'qiladi (mavjud kelishuv) — boshqa holatda null (noma'lum). */
+  const f3Kerak = (zanjirKirishYasa(asos).f2TasdiqBuOyda ?? 0) > 0;
+  const forma3 = useForma3Holat(id, io.oy, f3Kerak);
+  const natija = zanjirHisobla(zanjirKirishYasa({ ...asos, forma3 }));
+  const search = ws.scopeSearch?.(id) ?? '';
+  const havola = (q: ZanjirQadamId) => {
+    const p = new URLSearchParams(search);
+    if (q === 'f3') p.set('f3', 'shartnoma');
+    if (q === 'tolov') p.set('tab', 'tolov');
+    const s = p.toString();
+    return { pathname: q === 'smeta' || q === 'slichitelniy' ? `${ZANJIR_YOL[q]}/${id}` : ZANJIR_YOL[q], search: s ? `?${s}` : '', hash: q === 'slichitelniy' ? '#slichitelniy' : '' };
+  };
+  const keyingi = natija.keyingi;
+  /* URL dagi oy ustun; lekin u boshqa oy bo'lsa va obyektning oxirgi faollik oyi boshqacha bo'lsa — taklif havolasi. */
+  const faolOyi = io.manba === 'tanlangan' ? faolOy(aktlar) : null;
+  const faolTaklif = faolOyi && faolOyi !== io.oy ? (() => { const p = new URLSearchParams(search); p.set('davr', faolOyi); return { oy: faolOyi, search: `?${p.toString()}` }; })() : null;
+
+  return (
+    <nav aria-label={t('Ish zanjiri')} data-testid="zanjir-chizigi" className="flex min-w-0 flex-col gap-2">
+      <ol className="m-0 flex min-w-0 list-none flex-wrap gap-1.5 p-0">
+        {natija.qadamlar.map((q, i) => {
+          const faol = joriy === q.id;
+          const tavsiya = keyingi?.id === q.id;
+          const Ikonka = IKONKA[q.holat];
+          return (
+            <li key={q.id} className="min-w-0 flex-1 basis-[7.5rem]" data-holat={q.holat}>
+              <Link
+                to={havola(q.id)}
+                aria-current={faol ? 'step' : undefined}
+                title={`${q.nom} — ${q.izoh}`}
+                data-testid={`zanjir-qadam-${q.id}`}
+                className={`flex h-full min-h-[44px] min-w-0 flex-col justify-center gap-0.5 rounded-lg border px-2 py-1.5 text-sm no-underline transition-colors hover:border-accent/60 ${HOLAT_SINF[q.holat]} ${faol ? 'ring-2 ring-accent/60' : ''} ${tavsiya ? 'font-semibold' : ''}`}
+              >
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className="shrink-0 tabular-nums">{i + 1}</span>
+                  <span className="min-w-0 truncate font-semibold">{q.nom}</span>
+                  <span className="ml-auto shrink-0" role="img" aria-label={HOLAT_NOMI[q.holat]()}><Ikonka aria-hidden className="h-3.5 w-3.5" /></span>
+                </span>
+                <span className="min-w-0 truncate text-xs leading-tight opacity-80" data-testid={`zanjir-izoh-${q.id}`}>{q.izoh}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ol>
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+        {io.aniq ? (
+          <span className="text-sm text-text-mute" data-testid="ish-oyi" title={io.manba === 'faollik' ? t('Oxirgi fakt yoki F2 bor oy') : undefined}>{t('Ish oyi')}: <b className="ml-1 text-text">{io.oy}</b></span>
+        ) : null}
+        {faolTaklif && (
+          <Link to={{ search: faolTaklif.search }} data-testid="faol-oy-taklif" className="text-sm text-accent underline">
+            {t('Oxirgi faollik oyi')}: {faolTaklif.oy}
+          </Link>
+        )}
+        {!tasdiqlangan && (
+          <span className="text-sm text-text-mute" data-testid="zanjir-obyekt-oqilmadi">
+            {ws.loading?.hierarchy ? t('Obyekt ma’lumoti yuklanmoqda…') : t('Obyekt ma’lumoti o‘qilmadi — holatlar noma’lum.')}
+            {!ws.loading?.hierarchy && <> <button type="button" className="text-accent underline" onClick={() => ws.refresh?.()}>{t('Qayta yuklash')}</button></>}
+          </span>
+        )}
+        {keyingi && <KeyingiBlok keyingi={keyingi} to={havola(keyingi.id)} />}
+        {!keyingi && natija.tugallandi && <span className="text-sm text-ok" data-testid="zanjir-tugadi">{t('Zanjir shu oy uchun yopilgan')}</span>}
+      </div>
+    </nav>
+  );
+}
+
+/** Kompaniya darajasi: obyekt yo'q — ma'lumot yo'q, shuning uchun hamma qadam «Noma'lum»; har biri o'z sahifasiga havola. */
+function KompaniyaChizig({ joriy, search }: { joriy: ZanjirBelgi | null; search: string }) {
+  const natija = zanjirHisobla(zanjirKirishYasa({ obyekt: null, aktlar: null, oy: bugungiOy() }));
+  return (
+    <nav aria-label={t('Ish zanjiri')} data-testid="zanjir-chizigi" className="flex min-w-0 flex-col gap-2">
+      <ol className="m-0 flex min-w-0 list-none flex-wrap gap-1.5 p-0">
+        {natija.qadamlar.map((q, i) => {
+          const Ikonka = IKONKA.unknown;
+          const p = new URLSearchParams(search);
+          if (q.id === 'tolov') p.set('tab', 'tolov');
+          const s = p.toString();
+          return (
+            <li key={q.id} className="min-w-0 flex-1 basis-[7.5rem]" data-holat="unknown">
+              <Link to={{ pathname: ZANJIR_YOL[q.id], search: s ? `?${s}` : '', hash: q.id === 'slichitelniy' ? '#slichitelniy' : '' }} aria-current={joriy === q.id ? 'step' : undefined} data-testid={`zanjir-qadam-${q.id}`}
+                title={`${q.nom} — ${t('Obyekt tanlang')}`}
+                className={`flex h-full min-h-[44px] min-w-0 flex-col justify-center gap-0.5 rounded-lg border px-2 py-1.5 text-sm no-underline transition-colors hover:border-accent/60 ${HOLAT_SINF.unknown} ${joriy === q.id ? 'ring-2 ring-accent/60' : ''}`}>
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className="shrink-0 tabular-nums">{i + 1}</span>
+                  <span className="min-w-0 truncate font-semibold">{q.nom}</span>
+                  <span className="ml-auto shrink-0" role="img" aria-label={HOLAT_NOMI.unknown()}><Ikonka aria-hidden className="h-3.5 w-3.5" /></span>
+                </span>
+                <span className="min-w-0 truncate text-xs leading-tight opacity-80">{t('Obyekt tanlang')}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
+function KeyingiBlok({ keyingi, to }: { keyingi: ZanjirTavsiya; to: { pathname: string; search: string; hash: string } }) {
+  const sabab = keyingi.eslatma ? `${keyingi.sabab} · ${keyingi.eslatma}` : keyingi.sabab;
+  return (
+    <>
+      <Link to={to} data-testid="keyingi-qadam" className="fz-btn fz-btn--primary inline-flex min-h-[44px] max-w-full items-center justify-center gap-2 text-sm font-semibold no-underline">
+        <span className="truncate">{keyingi.amal}</span>
+        <ArrowRight aria-hidden className="h-4 w-4 shrink-0" />
+      </Link>
+      <span className="min-w-0 flex-1 basis-48 text-sm text-text-dim" data-testid="keyingi-sabab">{sabab}</span>
+    </>
+  );
+}

@@ -67,6 +67,7 @@
   "Smetadan oshdi": { "ru": "Превышение сметы", "en": "Over estimate" },
   "Smetasiz": { "ru": "Без сметы", "en": "No estimate" },
   "Son emas": { "ru": "Не число", "en": "Not a number" },
+  "Noaniq: «1.234» ming yoki o‘nli? 1234 yoki 1,234 deb yozing (o‘nli uchun vergul, ming uchun bo‘shliq)": { "ru": "Неоднозначно: «1.234» — тысячи или десятичная? Пишите 1234 или 1,234 (запятая — десятичная, пробел — тысячи)", "en": "Ambiguous: is «1.234» thousands or decimal? Write 1234 or 1,234 (comma = decimal, space = thousands)" },
   "Jami fakt manfiy bo‘lib qoladi": { "ru": "Итоговый факт станет отрицательным", "en": "Total actual would become negative" },
   "Chegirma ishi: fakt smeta kabi manfiy bo‘lishi kerak": { "ru": "Вычитаемая работа: факт должен быть отрицательным, как смета", "en": "Deduction work: actual must be negative like the estimate" },
   "0 qo‘shilmaydi": { "ru": "0 не добавляется", "en": "0 is not added" }

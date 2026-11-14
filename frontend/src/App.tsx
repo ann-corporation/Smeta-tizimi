@@ -1,6 +1,7 @@
-import { lazy, Suspense } from 'react';
+﻿import { lazy, Suspense } from 'react';
 import { t } from './i18n/til';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
+import { SAHIFALAR } from './lib/reestr/sahifa';
 import { useEffect } from 'react';
 import { titleForPath } from './lib/pageTitle';
 import { SahifaYuklanmoqda } from './umumiy/ui/SahifaYuklanmoqda';
@@ -21,7 +22,6 @@ const TgKirish = lazy(() => import('./telegram/TgKirish'));
 const HolatNative = lazy(() => import('./admin/sahifalar/HolatNative'));
 const FaktNative = lazy(() => import('./admin/sahifalar/FaktNative'));
 const GrafikSahifa = lazy(() => import('./admin/sahifalar/GrafikSahifa'));
-const UstaBugun = lazy(() => import('./admin/sahifalar/UstaBugun'));
 const FaylBoglash = lazy(() => import('./admin/sahifalar/FaylBoglash'));
 /* TIZIM_02 — Supabase sinov muhiti. Tizim_01 ga TEGMAYDI. */
 const TestShell     = lazy(() => import('./test02/TestShell'));
@@ -75,6 +75,8 @@ const HujjatDizayni = lazy(() => import('./admin/sahifalar/HujjatDizayni'));
 const SmetaStudio = lazy(() => import('./admin/sahifalar/SmetaStudio'));
 const Tokenlar = lazy(() => import('./admin/sahifalar/Tokenlar'));
 const IshJoylarim = lazy(() => import('./admin/sahifalar/IshJoylarim'));
+const Bugun = lazy(() => import('./admin/sahifalar/Bugun'));
+const RuxsatlarJadvali = lazy(() => import('./admin/sahifalar/RuxsatlarJadvali'));
 const KursSahifa = lazy(() => import('./components/kurs/KursSahifa'));
 const Topshiriqlar = lazy(() => import('./admin/sahifalar/Topshiriqlar'));
 const Mutaxassis = lazy(() => import('./admin/sahifalar/Mutaxassis'));
@@ -179,7 +181,6 @@ export default function App() {
 
           <Route path="holat" element={<HolatNative />} />
           <Route path="holat/:id" element={<HolatNative />} />
-        <Route path="bugun" element={<Suspense fallback={<SahifaYuklanmoqda />}><UstaBugun /></Suspense>} />
           {/* 2026-10-25 (tizim xaritasi P1): F2 bo'limi — sidebarda bitta «F2» bandi, tepada tablar.
               Yo'lsiz layout: sahifalar va ularning URL'lari o'zgarmagan. */}
           <Route element={<BolimTablari />}>
@@ -269,6 +270,11 @@ export default function App() {
           {/* Yetkazuvchi tomoni «Bugun» (ekotizim V3): kelgan so'rovlar, takliflar, buyurtmalar, transport. */}
           <Route path="yetkazuvchi" element={<Suspense fallback={<SahifaYuklanmoqda />}><YetkazuvchiBugun /></Suspense>} />
           <Route path="ish-joylarim" element={<Suspense fallback={<SahifaYuklanmoqda />}><IshJoylarim /></Suspense>} />
+          {/* Ekotizim V2 (2-qadam): «Bugun» — rol bosh sahifasi; «Ruxsatlar jadvali» — rol x sahifa (faqat o'qish, reestrdan hosila). */}
+          <Route path="bugun" element={<Suspense fallback={<SahifaYuklanmoqda />}><Bugun /></Suspense>} />
+          <Route path="ruxsatlar-jadvali" element={<Suspense fallback={<SahifaYuklanmoqda />}><RuxsatlarJadvali /></Suspense>} />
+          {/* Reestrdagi eski yo'llar (Sahifa.eskiYollar) yangi yo'lga yo'naltiriladi — hech qaysi eski havola o'lmaydi. */}
+          {SAHIFALAR.flatMap((sh) => (sh.eskiYollar ?? []).map((eski) => <Route key={`eski-${eski}`} path={eski.replace(/^\/admin\//, '')} element={<Navigate to={sh.yol} replace />} />))}
           <Route path="kurs" element={<Suspense fallback={<SahifaYuklanmoqda />}><KursSahifa /></Suspense>} />
           {/* T6: mutaxassis profili va kompaniyalarga xizmat taklifi. */}
           {/* Egasi 2026-10-02: platforma boshqaruv paneli (faqat superadmin; server tekshiradi). */}

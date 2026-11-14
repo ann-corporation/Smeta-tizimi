@@ -1,0 +1,10 @@
+{
+  "sana": "2026-12-19",
+  "sarlavha": "Jarvis: slichitelniy sikli, zamena/qo‘shimcha saqlash, suhbatni tiklash va ishchi natijasi xabari",
+  "bandlar": [
+    "Jarvis slichitelniy siklini bajaradi: «к доплате» — F-2 qoralama, «к снятию» — tuzatuvchi qoralama (taklif kartasi va tasdiq bilan; tasdiqlash F2 tarixida qoladi).",
+    "Zamena va qo‘shimcha ishni Jarvis orqali saqlash mumkin (taklif kartasi va tasdiq bilan); slichitelniy va АОСР kitobi sahifasini bir buyruq bilan ochadi.",
+    "Boshqa qurilmada Jarvisni ochsangiz, oxirgi suhbatingiz o‘zi tiklanadi; AI ishchi natijasi tayyor bo‘lsa chatda xabar chiqadi.",
+    "Moslash qutisi endi kunlik hisoblanadi va tez ochiladi."
+  ]
+}

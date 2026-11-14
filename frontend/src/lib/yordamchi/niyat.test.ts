@@ -177,3 +177,25 @@ describe('hujjat niyatlari (qarz, F2 ro‘yxati, АОСР, qoralama)', () => {
     expect(n).toMatchObject({ tur: 'sahifaAmal', amal: { id: 'studio.catalog' } });
   });
 });
+
+/* Egasi 2026-11-13: Jarvis har savolga dars (qo‘llanma) qaytarardi — «qanday/qanaqa» + bitta tasodifiy so‘z yetarli edi. */
+describe('dars faqat haqiqiy «qanday qilaman» savoliga (egasi skrinshoti)', () => {
+  const OB = [...OBYEKTLAR, { id: 20, nom: 'Stella' }];
+  it('«stella obyektimizda ahvol qanaqa jigar?» -> Stella holati (dars emas)', () => {
+    const n = niyatAniqla('stella obyektimizda ahvol qanaqa jigar?', ctx({ obyektlar: OB }));
+    expect(n.tur).toBe('oqish');
+    if (n.tur === 'oqish') { expect(n.vosita).toBe('holat'); expect(n.obyekt.id).toBe(20); }
+  });
+  it('uzun maslahat savoli dars emas (AI javobiga ketadi)', () => {
+    const n = niyatAniqla('hozir juda ko‘p faktlar kiritilmaganda jigar. yani smetadagi ish faktda qilingan ishga mos emas. shuni qanday qilib to‘g‘ri yo‘lga qo‘ysak bo‘ladi?', ctx({ obyektlar: OB }));
+    expect(n.tur).toBe('nomalum'); // sahifa tanlash oynasi ham emas: AI javob beradi
+  });
+  it('«Bu nimani bildiradi va qanday hisoblangan? «QQS bilan …»» dars emas', () => {
+    const n = niyatAniqla('Bu nimani bildiradi va qanday hisoblangan? «QQS bilan 48 696 309 054 .96»', ctx({ obyektlar: OB }));
+    expect(n.tur).not.toBe('dars');
+  });
+  it('haqiqiy o‘rganish savoli hali ham dars: «F-2 ni qanday tayyorlayman?»', () => {
+    expect(niyatAniqla('F-2 ni qanday tayyorlayman?', ctx()).tur).toBe('dars');
+    expect(niyatAniqla('smetani qanday yuklayman', ctx()).tur).toBe('dars');
+  });
+});

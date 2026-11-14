@@ -63,7 +63,9 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
   const { data: line, isPending, error, refetch } = useCompanyLineage(companyId);
   const financials = useObjectFinancials(companyId, objects);
   /** Fakt va F2 uchligi — server paketi (rahbar paneli); panel o‘qilmasa ustamasiz yorlig‘i bilan eski ko‘rinish. */
-  const rp = useRahbarPanel(companyId);
+  /** Og'ir paket (~14 s) sahifa ochilishida so'ralmaydi: foydalanuvchi tugmani bossa yoki keshda tayyor bo'lsa. */
+  const [rpSorandi, setRpSorandi] = useState(false);
+  const rp = useRahbarPanel(companyId, undefined, null, rpSorandi);
   const paketlar = useMemo(() => new Map((rp.data?.obyektlar ?? []).map(o => [o.obyekt_id, { fakt: o.fakt, f2: o.f2 }] as const)), [rp.data]);
   const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState('');
@@ -159,6 +161,10 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
       <label className="relative ml-auto w-full sm:w-80"><Search size={15} className="absolute left-2.5 top-[9px] text-text-mute" aria-hidden="true" /><input aria-label={t('Navigator qidiruvi')} className="h-8 w-full rounded-md border border-[var(--border-strong)] bg-bg pl-8 pr-3 text-[13px]" placeholder={t('Nom bo‘yicha qidirish')} value={query} onChange={e => setQuery(e.target.value)} /></label>
       <Link className="fz-btn fz-btn--sm" to="/admin/shartnoma-liniya"><Settings aria-hidden="true" />{t('Shartnomalarni boshqarish')}</Link>
     </div>
+    {paketlar.size === 0 && <div className="fz-note flex flex-wrap items-center gap-3 text-[12px]">
+      <span>{rp.isFetching ? t('Fakt va F2 (QQS bilan) hisoblanmoqda…') : rp.isError ? t('Fakt va F2 (QQS bilan) hisoblanmadi — ustamasiz summa ko‘rsatilmoqda.') : t('Fakt va F2 ustamasiz ko‘rsatilmoqda. QQS bilan hisoblash og‘ir — kerak bo‘lsa yoqing.')}</span>
+      {!rp.isFetching && <button type="button" className="fz-btn fz-btn--sm" onClick={() => { if (rpSorandi) void rp.refetch(); else setRpSorandi(true); }}>{rp.isError ? t('Qayta urinish') : t('QQS bilan hisoblash')}</button>}
+    </div>}
     {!contractRaw ? <div className="fz-table-wrap"><table className="fz-table"><thead><tr><th>{projectId !== undefined ? t('Shartnoma') : t('Loyiha')}</th>{FINANCIAL_METRICS.map(metric => <th key={metric} className="fz-c-num">{t(financialLabels[metric])}</th>)}</tr></thead><tbody>
       {projectId === undefined ? <>
         {line.loyihalar.filter(p => matches(p.nom) || line.obyektlar.some(o => o.loyiha_id === p.id && matches(o.nom))).map(p => row(`p${p.id}`,p.nom, projectObjects(line, p.id), () => { go(p.id); }, <FolderKanban size={20} className="shrink-0 text-accent" />, `${line.shartnomalar.filter(s => s.loyiha_id === p.id).length} ${t('shartnoma')}`))}

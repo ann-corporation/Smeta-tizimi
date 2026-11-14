@@ -1,0 +1,11 @@
+{
+  "sana": "2026-11-14",
+  "sarlavha": "Накопительная ведомость: har F-2 o'z podvali bilan, zamena va bajarilmagan ishlar ko'rinadi, formulalar tirik",
+  "bandlar": [
+    "Har tasdiqlangan F-2 alohida ustun (raqam va oy bilan): akt summasi imzolangan hujjatdan aynan, «с начала» va qoldiq esa tirik formulalar. Sahifa jadvali ham shu tuzilmada.",
+    "Qatorlarda «К оплате» va ustamali ustunlar yo'q: nakrutka, НДС va ВСЕГО faqat podvalda — smeta, fakt va har F-2 uchun o'z podvali (aktning o'z foizlari), imzolangan ВСЕГО bilan solishtirish qatori, hamda «с начала» podvali.",
+    "Zamena asl qatorning tagida «ВЗАМЕН ПОЗ. N», asl qatorda «ИСКЛЮЧАЕТСЯ / ЗАМЕНЕНО ПОЗ. M» va minus (исключаемая часть) qatori; qo'shimcha ish «ДОП. РАБОТА» belgisi bilan. Yangi varaq «Свод изменений»: до → исключаемые → замена → доп. работы → после (formulalar).",
+    "«Bajarilmadi» deb belgilangan qatorlar hujjatdan yo'qolmaydi: o'z joyida «НЕ ВЫПОЛНЯЕТСЯ» belgisi, sababi va smeta summasi bilan. Bekor qilingan F-2 lar (akt reestridan) jamiga kirmaydi, lekin «Свод изменений» da (raqam, qaysi akt bilan almashtirilgan) ko'rinadi. Imzolangan aktning o'z podvali bo'lsa, ustun podvali hujjat summalaridan aynan ko'chiriladi.",
+    "Fakt summasi endi alohida ustun (fakt hajmi × smeta narxi, formula)."
+  ]
+}

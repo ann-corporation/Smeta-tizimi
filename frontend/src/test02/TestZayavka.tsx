@@ -7,7 +7,7 @@ import { toast } from '../umumiy/ui/Toast';
 import { sbZayavkalarOl, sbZayavkaYoz, sbZayavkaHolatYoz, type T2Zayavka, type ZayavkaHolat } from '../api/t2-zayavka';
 import { sbOqi, sbT2ObyektlarOlKomp, type T2Obyekt } from '../api/supabase';
 import { usePTOWorkspace } from '../umumiy/kontekst/PTOWorkspaceContext';
-import { materialTakliflari, materialTopish, type SmetaMaterial } from '../lib/zayavka-material';
+import { materialTakliflari, materialTopish, smetaMaterialFiltri, type SmetaMaterial } from '../lib/zayavka-material';
 import { Sahifa } from '../umumiy/ui/Sahifa';
 import { FmtN } from '../lib/format';
 import { t } from '../i18n/til';
@@ -128,7 +128,7 @@ export default function TestZayavka() {
     const id = Number(formObyektId);
     if (!joriy || !Number.isSafeInteger(id) || id <= 0) return;
     let faol = true;
-    void sbOqi<SmetaMaterial>({ jadval: 't2_qator', filtr: 'obyekt_id=eq.' + id + '&kat=in.(mat,ob)', ustunlar: 'nom,birlik,hajm', limit: 20000 })
+    void sbOqi<SmetaMaterial>({ jadval: 't2_qator', filtr: smetaMaterialFiltri(id), ustunlar: 'nom,birlik,hajm', limit: 20000 })
       .then((r) => { if (faol && r.ok) setSmetaMat(r.qatorlar ?? []); }).catch(() => undefined);
     return () => { faol = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- joriy?.id: obyekt identifikatori barqaror (joriy obyekti har renderda yangi bo'lishi mumkin)

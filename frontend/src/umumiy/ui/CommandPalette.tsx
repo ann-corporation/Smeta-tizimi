@@ -1,20 +1,22 @@
 import { useState, useEffect, useId, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Building, CornerDownLeft } from 'lucide-react';
+import { Search, Building, CornerDownLeft, Zap, FileSignature, FileText } from 'lucide-react';
 import { useKompaniya } from '../kontekst/KompaniyaKontekst';
 import { sbT2ObyektlarOlKomp, type T2Obyekt } from '../../api/supabase';
+import { sbT2ShartnomalarOl } from '../../api/t2-shartnoma';
+import { hujjatRoyxatOl } from '../../api/t2-hujjat-canonical';
 import { t } from '../../i18n/til';
-import { qidiruvMos } from './commandPaletteQidiruv';
+import { sahifaVaAmalQidir, yozuvQidir, type QidiruvNatija } from '../../lib/reestr/qidiruv';
 
 /** Sidebar bilan BIR manba: AdminShell rol/ruxsat/modul filtridan o'tgan bandlarni beradi (qattiq havola yo'q). */
 export type PaletteBand = { yol: string; nom: string; guruh: string };
 
-type Natija = { kalit: string; yol: string; nom: string; izoh: string; tur: 'sahifa' | 'obyekt' };
+type Natija = QidiruvNatija;
 
 const OBYEKT_CHEGARA = 8;
 
-export function CommandPalette({ bandlar }: { bandlar: PaletteBand[] }) {
+export function CommandPalette({ bandlar, permissions }: { bandlar: PaletteBand[]; permissions?: readonly string[] | null }) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [faol, setFaol] = useState(0);
@@ -30,6 +32,20 @@ export function CommandPalette({ bandlar }: { bandlar: PaletteBand[] }) {
       const r = await sbT2ObyektlarOlKomp(kompaniyaId as number);
       return r.ok ? ((r.qatorlar || []) as T2Obyekt[]) : [];
     },
+    enabled: isOpen && kompaniyaId != null,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  /* Shartnoma va hujjatlar (nom/raqam bo'yicha) — faqat palitra ochilganda, joriy kompaniya. */
+  const shartnomalar = useQuery({
+    queryKey: ['palitra-shartnomalar', kompaniyaId],
+    queryFn: async () => { const r = await sbT2ShartnomalarOl(kompaniyaId as number, false); return r.ok ? ((r.qatorlar || []) as Array<{ id: number; raqam: string; nom: string | null; taraf: string | null }>) : []; },
+    enabled: isOpen && kompaniyaId != null,
+    staleTime: 5 * 60 * 1000,
+  });
+  const hujjatlar = useQuery({
+    queryKey: ['palitra-hujjatlar', kompaniyaId],
+    queryFn: async () => { const r = await hujjatRoyxatOl({ kompaniyaId: kompaniyaId as number, limit: 500 }); return (r.documents || []) as Array<{ id: number | string; filename: string }>; },
     enabled: isOpen && kompaniyaId != null,
     staleTime: 5 * 60 * 1000,
   });
@@ -53,14 +69,16 @@ export function CommandPalette({ bandlar }: { bandlar: PaletteBand[] }) {
 
   if (!isOpen) return null;
 
-  const sahifalar: Natija[] = bandlar
-    .filter((b) => !query || qidiruvMos(`${t(b.nom)} ${b.nom} ${t(b.guruh)} ${b.yol}`, query))
-    .map((b) => ({ kalit: b.yol, yol: b.yol, nom: t(b.nom), izoh: t(b.guruh), tur: 'sahifa' }));
-  const obyektNatija: Natija[] = query
-    ? (obyektlar.data || []).filter((o) => qidiruvMos(o.nom || '', query)).slice(0, OBYEKT_CHEGARA)
-      .map((o) => ({ kalit: `obyekt-${o.id}`, yol: `/admin/holat/${o.id}`, nom: o.nom, izoh: t('Obyekt'), tur: 'obyekt' }))
-    : [];
-  const natijalar = [...sahifalar, ...obyektNatija];
+  const reestrNatija = sahifaVaAmalQidir(query, bandlar.map((x) => ({ yol: x.yol, nom: t(x.nom), guruh: t(x.guruh) })), permissions);
+  const amalNatija: Natija[] = reestrNatija.filter((n) => n.tur === 'amal');
+  const sahifalar: Natija[] = reestrNatija.filter((n) => n.tur === 'sahifa');
+  const obyektNatija: Natija[] = yozuvQidir(obyektlar.data || [], query, (o) => o.nom || '', OBYEKT_CHEGARA)
+    .map((o) => ({ kalit: `obyekt-${o.id}`, yol: `/admin/holat/${o.id}`, nom: o.nom, izoh: t('Obyekt'), tur: 'obyekt' as const }));
+  const shartnomaNatija: Natija[] = yozuvQidir(shartnomalar.data || [], query, (x) => `${x.raqam} ${x.nom ?? ''} ${x.taraf ?? ''}`, OBYEKT_CHEGARA)
+    .map((x) => ({ kalit: `shartnoma-${x.id}`, yol: '/admin/shartnoma-liniya', nom: `№ ${x.raqam}${x.nom ? ' — ' + x.nom : ''}`, izoh: t('Shartnoma'), tur: 'shartnoma' as const }));
+  const hujjatNatija: Natija[] = yozuvQidir(hujjatlar.data || [], query, (x) => x.filename || '', OBYEKT_CHEGARA)
+    .map((x) => ({ kalit: `hujjat-${x.id}`, yol: '/admin/documents', nom: x.filename, izoh: t('Hujjat'), tur: 'hujjat' as const }));
+  const natijalar = [...amalNatija, ...sahifalar, ...obyektNatija, ...shartnomaNatija, ...hujjatNatija];
 
   const handleSelect = (route: string) => {
     navigate(route);
@@ -84,7 +102,7 @@ export function CommandPalette({ bandlar }: { bandlar: PaletteBand[] }) {
       role="option"
       className={`w-full flex items-center gap-3 px-3 py-2 text-left rounded-[var(--radius-sm)] transition-colors ${i === faol ? 'bg-[var(--accent-soft)] text-text' : 'text-text-dim hover:bg-surface-3 hover:text-text'}`}
     >
-      {n.tur === 'obyekt' ? <Building size={16} className="text-text-dim flex-shrink-0" /> : <Search size={16} className="text-accent flex-shrink-0" />}
+      {n.tur === 'obyekt' ? <Building size={16} className="text-text-dim flex-shrink-0" /> : n.tur === 'amal' ? <Zap size={16} className="text-accent flex-shrink-0" /> : n.tur === 'shartnoma' ? <FileSignature size={16} className="text-text-dim flex-shrink-0" /> : n.tur === 'hujjat' ? <FileText size={16} className="text-text-dim flex-shrink-0" /> : <Search size={16} className="text-accent flex-shrink-0" />}
       <span className="flex-1 truncate">{n.nom}</span>
       <span className="text-[11px] text-text-dim truncate max-w-[40%]">{n.izoh}</span>
       {i === faol && <CornerDownLeft size={14} className="text-text-dim flex-shrink-0" />}
@@ -113,14 +131,18 @@ export function CommandPalette({ bandlar }: { bandlar: PaletteBand[] }) {
         </div>
 
         <div className="overflow-y-auto p-2" role="listbox" aria-label={t('Natijalar')}>
-          {sahifalar.length > 0 && (
-            <div className="px-3 py-2 text-[11px] font-semibold text-text-mute uppercase tracking-[.06em] mb-1">{t('Sahifalar')}</div>
-          )}
-          {sahifalar.map((n, i) => qator(n, i))}
-          {obyektNatija.length > 0 && (
-            <div className="px-3 py-2 text-[11px] font-semibold text-text-mute uppercase tracking-[.06em] mb-1 mt-2">{t('Obyektlar')}</div>
-          )}
-          {obyektNatija.map((n, i) => qator(n, sahifalar.length + i))}
+          {([
+            [t('Amallar'), amalNatija, 0],
+            [t('Sahifalar'), sahifalar, amalNatija.length],
+            [t('Obyektlar'), obyektNatija, amalNatija.length + sahifalar.length],
+            [t('Shartnomalar'), shartnomaNatija, amalNatija.length + sahifalar.length + obyektNatija.length],
+            [t('Hujjatlar'), hujjatNatija, amalNatija.length + sahifalar.length + obyektNatija.length + shartnomaNatija.length],
+          ] as Array<[string, Natija[], number]>).map(([sarlavha, royxat, boshlanish]) => royxat.length > 0 && (
+            <div key={sarlavha}>
+              <div className="px-3 py-2 text-[11px] font-semibold text-text-mute uppercase tracking-[.06em] mb-1 mt-1">{sarlavha}</div>
+              {royxat.map((n, i) => qator(n, boshlanish + i))}
+            </div>
+          ))}
           {natijalar.length === 0 && (
             <div className="px-4 py-8 text-center text-text-dim">{t('Hech narsa topilmadi')}</div>
           )}

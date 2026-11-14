@@ -195,6 +195,10 @@
     "ru": "маржа",
     "en": "margin"
   },
+  "smeta + o‘zgarishlardan {f}%": {
+    "ru": "{f}% от сметы с изменениями",
+    "en": "{f}% of estimate + changes"
+  },
   "smetadan {f}%": {
     "ru": "{f}% от сметы",
     "en": "{f}% of estimate"

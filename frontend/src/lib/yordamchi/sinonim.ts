@@ -79,6 +79,7 @@ export const SAHIFA_SINONIM: Readonly<Record<string, Sinonim>> = {
   '/admin/tokenlar': { uz: ['tokenlar', 'obuna', 'balans'], ru: ['токены', 'подписка', 'баланс'], en: ['tokens', 'subscription', 'balance'] },
   '/admin/ai-agentlar': { uz: ['ai ishchilar', 'ai agentlar', 'agentlar'], ru: ['ии сотрудники', 'ai сотрудники', 'агенты'], en: ['ai workers', 'agents'] },
   '/admin/korzinka': { uz: ['korzinka', 'ochirilganlar'], ru: ['корзина', 'удаленные'], en: ['trash', 'recycle bin', 'deleted'] },
+  '/admin/ruxsatlar-jadvali': { uz: ['ruxsatlar jadvali', 'kim nimani koradi', 'rollar jadvali'], ru: ['таблица прав', 'права доступа', 'матрица ролей'], en: ['permissions matrix', 'role matrix', 'access table'] },
   '/admin/kurs': { uz: ['kurs', 'darslar', 'qollanma', 'organish'], ru: ['курс', 'уроки', 'обучение'], en: ['course', 'lessons', 'learning'] },
   '/admin/ish-joylarim': { uz: ['ish joylarim', 'ish joylari'], ru: ['мои рабочие места', 'рабочие места'], en: ['my workspaces', 'workspaces'] },
   '/admin/topshiriqlar': { uz: ['topshiriqlar', 'topshiriq', 'vazifalar'], ru: ['задания', 'задачи', 'мои задачи'], en: ['tasks', 'my tasks'] },

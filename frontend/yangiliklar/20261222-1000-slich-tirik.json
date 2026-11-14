@@ -1,0 +1,11 @@
+{
+    "sana":  "2026-11-14",
+    "bandlar":  [
+                    "Tanada faqat to\u0027g\u0027ri xarajat: \"К оплате\" va ustamali ustunlar olib tashlandi; ustama, QQS va yaxlit svod summasi faqat podvalda (ИТОГО ПРЯМЫЕ → ustamalar → ИТОГО-4 → НДС → ВСЕГО).",
+                    "Svod bo\u0027limi jamiga ikki marta kirmaydi: tanada qatorlari spravochno, yaxlit summa podvalda bitta qator; soxta og\u0027ishlar yo\u0027qoldi.",
+                    "Hamma summa, jami va farq — tirik Excel formulasi; tasdiqlangan F-2 summalari imzolangan hujjatdan aynan qiymat.",
+                    "Zamena asl qator tagida (ko\u0027k), qo\u0027shimcha ish (sariq), «Свод изменений»da до → исключаемые → замена → доп. работы → после formulalar bilan.",
+                    "Bajarilmadi va исключаемые qatorlar o\u0027z joyida belgisi bilan, smeta ko\u0027rinadi, fakt 0, farq minus; bekor qilingan Ф-2 lar alohida ma\u0027lumot varag\u0027ida (jamiga kirmaydi)."
+                ],
+    "sarlavha":  "Slichitelniy: tirik formulalar, ustama faqat podvalda, svod bir marta"
+}

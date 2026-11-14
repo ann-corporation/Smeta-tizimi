@@ -26,7 +26,7 @@
   "Byudjet (QQS bilan)": { "ru": "Бюджет (с НДС)", "en": "Budget (incl. VAT)" },
   "Joy / sana": { "ru": "Место / дата", "en": "Place / date" },
   "Taklif berish": { "ru": "Подать предложение", "en": "Submit a bid" },
-  "Taklif berish uchun hisob va kompaniya a‘zoligi (ta‘minot ruxsati) kerak. Yakka shaxs bo‘lsangiz kompaniya ochish so‘rovini yuboring.": { "ru": "Для подачи предложения нужен аккаунт и членство в компании (право на поставку). Физлицам — отправьте запрос на открытие компании.", "en": "Bidding needs an account and company membership (supply permission). Individuals should send a company-opening request." },
+  "Taklif berish uchun hisob va kompaniya a‘zoligi (ta‘minot ruxsati) kerak. Yakka shaxs bo‘lsangiz kirgach kompaniyangizni o‘zingiz darhol ochasiz.": { "ru": "Для подачи предложения нужен аккаунт и членство в компании (право на поставку). Физлицо после входа сразу открывает свою компанию само.", "en": "Bidding needs an account and company membership (supply permission). Individuals open their own company right after signing in." },
   "Ish / subpudrat": { "ru": "Работы / субподряд", "en": "Work / subcontract" },
   "Texnika ijarasi": { "ru": "Аренда техники", "en": "Equipment rental" },
   "Material": { "ru": "Материалы", "en": "Materials" },
