@@ -3,11 +3,14 @@
 Из корня репозитория на Windows с Node.js, Rust MSVC и Windows SDK:
 
 ```powershell
+.\frontend\src-tauri\desktop-build.ps1 -PreflightOnly
 .\frontend\src-tauri\desktop-build.ps1 -ReleaseDir C:\Temp\smeta-release-0.1.0
 .\frontend\src-tauri\desktop-release-r2.ps1 -ReleaseDir C:\Temp\smeta-release-0.1.0
 ```
 
 Каталог выпуска должен быть новым. Скрипт собирает x64 NSIS, сохраняет INSTALL_RU.md и UTF-8 installer-manifest.json: версия, архитектура, имя файла, байты, SHA-256, UTC-дата и статус подписи. NotSigned — разрешённый владельцем вариант без подписи.
+
+До сборки задайте `VITE_DESKTOP_LEASE_PK` и `VITE_DESKTOP_LEASE_KID` для целевого сервера. Скрипт проверяет формат публичного ключа и идентификатор до установки зависимостей. `-PreflightOnly` завершает проверку без сборки и сетевых запросов. Соответствие ключа серверу подтверждается приёмкой с подписанным разрешением на объект. Приватный ключ остаётся на сервере.
 
 Для подписи передайте -SignerThumbprint сертификата текущего пользователя. SignTool должен быть в PATH; SMETA_SIGN_TIMESTAMP_URL — утверждённый HTTPS RFC 3161 endpoint. Манифест создаётся после подписи и проверки. При загрузке подписанного выпуска также нужен -ApprovedSignerThumbprint.
 

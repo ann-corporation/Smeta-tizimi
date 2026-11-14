@@ -51,10 +51,13 @@ export function desktopBootstrap(options: {
         const opened = await runtime.open(hint.company, hint.object);
         if (!opened.permissions.includes('company.read') || !same(before, await info())) throw new Error('DESKTOP_RESUME_CHANGED');
         // Cold navigation needs the leased object row even if its first live list preceded the lease.
-        // Only identity/name come from the verified snapshot; absent business fields stay absent.
+        // Keep only the previously authorized project link for this exact object. Money stays out of navigation.
         const cache = scopedCache(before), key = 'pages/' + hint.company + '/' + hint.object;
-        const saved = await cache.get<Record<string, unknown>>(key) ?? {};
-        await cache.set(key, { ...saved, object: { id: hint.object, kompaniya_id: hint.company, nom: opened.paket.obyekt_nom } });
+        const saved = await cache.get<Record<string, unknown> & { object?: { id?: unknown; kompaniya_id?: unknown; loyiha_id?: unknown } }>(key);
+        const prior = saved?.object;
+        const project = prior?.id === hint.object && prior.kompaniya_id === hint.company && positive(prior.loyiha_id) ? prior.loyiha_id : undefined;
+        await cache.set(key, { ...saved, object: { id: hint.object, kompaniya_id: hint.company, nom: opened.paket.obyekt_nom,
+          ...(project === undefined ? {} : { loyiha_id: project }) } });
         if (!same(before, await info())) throw new Error('DESKTOP_RESUME_CHANGED');
         // Existing provider revalidates this UI selection against current membership. It grants no rights.
         options.storage.setItem('t2_kompaniya_kontekst', JSON.stringify({ uid: hint.actor, id: hint.company, global: false }));

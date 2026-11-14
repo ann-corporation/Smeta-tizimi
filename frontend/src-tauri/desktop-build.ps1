@@ -1,10 +1,23 @@
 [CmdletBinding()]
 param(
     [string] $ReleaseDir,
-    [ValidatePattern('^[a-fA-F0-9]{40}$')][string] $SignerThumbprint
+    [ValidatePattern('^[a-fA-F0-9]{40}$')][string] $SignerThumbprint,
+    [switch] $PreflightOnly
 )
 
 $ErrorActionPreference = 'Stop'
+$leaseKey = $env:VITE_DESKTOP_LEASE_PK
+$leaseKid = $env:VITE_DESKTOP_LEASE_KID
+# A 32-byte raw Ed25519 key has 43 unpadded base64url characters and two zero padding bits.
+if ($leaseKey -cnotmatch '\A[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]\z') {
+    throw 'Set VITE_DESKTOP_LEASE_PK to the approved raw 32-byte Ed25519 public key in unpadded base64url.'
+}
+if ($leaseKid -cnotmatch '\A[A-Za-z0-9._-]{1,80}\z') {
+    throw 'Set VITE_DESKTOP_LEASE_KID to the approved server key ID.'
+}
+if ($env:SMETA_DESKTOP_BFF_ORIGIN -and $env:SMETA_DESKTOP_BFF_ORIGIN -notmatch '\Ahttps://') {
+    throw 'SMETA_DESKTOP_BFF_ORIGIN must use HTTPS for a release build.'
+}
 if ($SignerThumbprint -and -not $ReleaseDir) { throw 'Signing requires -ReleaseDir.' }
 if ($ReleaseDir) {
     $ReleaseDir = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($ReleaseDir)
@@ -16,6 +29,7 @@ if ($SignerThumbprint) {
         throw 'Set SMETA_SIGN_TIMESTAMP_URL to the approved HTTPS timestamp endpoint.'
     }
 }
+if ($PreflightOnly) { 'DESKTOP_RELEASE_PREFLIGHT_OK'; return }
 
 $desktopFrontend = Split-Path -Parent $PSScriptRoot
 $target = 'x86_64-pc-windows-msvc'
