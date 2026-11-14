@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "tauri": "npx --yes @tauri-apps/cli@2.12.4",
     "typecheck:functions": "tsc -p tsconfig.functions.json",
     "build": "tsc -b && tsc -p tsconfig.functions.json && npx cross-env NODE_OPTIONS=--max-old-space-size=8192 vite build",
     "lint": "oxlint",
