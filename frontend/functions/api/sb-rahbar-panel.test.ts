@@ -43,6 +43,16 @@ describe('rahbar_panel_v1 (o‘qish shlyuzi)', () => {
       expect(rpc.length).toBe(0);
     }
   });
+  it('rahbar_pult_v1: actor sessiyadan, kompaniya a’zolik bilan', async () => {
+    const { res, q } = await sb({ soro: 'rahbar_pult_v1', kompaniya_id: 17, p_actor_id: 999 });
+    expect(res.status).toBe(200);
+    expect(q!.pathname).toBe('/rest/v1/rpc/t2_rahbar_pult_v1');
+    expect(q!.searchParams.get('p_actor_id')).toBe('7');
+    expect(q!.searchParams.get('p_kompaniya_id')).toBe('17');
+    const { rpc } = await sb({ soro: 'rahbar_pult_v1', kompaniya_id: 18 });
+    expect(rpc.length).toBe(0);
+    expect(dataPermission('rahbar_pult_v1', false)).toBe('financial.read');
+  });
   it('ruxsat — financial.read', () => {
     expect(dataPermission('rahbar_panel_v1', false)).toBe('financial.read');
     expect(requestPermission('sb', 'POST', { soro: 'rahbar_panel_v1' }, new URLSearchParams())).toBe('financial.read');

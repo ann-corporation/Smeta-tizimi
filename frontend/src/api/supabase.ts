@@ -23,7 +23,7 @@
  */
 
 import { t2ToliqOqiParallel } from './t2-toliq-oqish';
-import { obyektlarEskirdi } from './obyektlar-kesh-belgi';
+import { obyektlarEskirdi, obyektlarModuldaKesh } from './obyektlar-kesh-belgi';
 import { ogirYuklashKut } from './ogir-sorov-navbat';
 import { lrvPozitsiyaRaqamlari, ozgarishBor, ozgarishXaritasi } from '../lib/lrv-ozgarish';
 
@@ -191,6 +191,7 @@ export function sbDaraxtQur(qatorlar: SbHolatQator[]): SbTugun[] {
  * ══════════════════════════════════════════════════════════════════ */
 import type { TreeNode } from './types';
 import { f2MumkinIshorali, faktSummaF2Narxda } from '../lib/hisob-yadro';
+import { birlash } from './birlash';
 
 export function sbTreeQur(qatorlar: SbHolatQator[]): TreeNode[] {
   const son = (v: unknown) => Number(v) || 0;
@@ -287,15 +288,19 @@ export type T2Obyekt = {
   versiya: number; loyiha_id: number | null;
 };
 
-export function sbT2ObyektlarOl(kompaniyaId: number) {
+/**
+ * Obyektlar ro'yxati (`t2_obyekt_jami`, og'ir view) — BITTA keshlangan yo'l: bir vaqtdagi so'rovlar birlashadi,
+ * 60 s ichida qayta o'qilmaydi; yozishdan keyin `obyektlarEskirdi()` keshni tozalaydi. `majburiy` — keshni chetlab o'tadi.
+ */
+export function sbT2ObyektlarOl(kompaniyaId: number, opts?: { majburiy?: boolean }): Promise<SbJavob<T2Obyekt>> {
   if (!Number.isInteger(kompaniyaId) || kompaniyaId <= 0) {
     return Promise.resolve({ ok: false, qatorlar: [] as T2Obyekt[],
       error: 'kompaniya_id majburiy' });
   }
-  return sbOqi<T2Obyekt>({
+  return obyektlarModuldaKesh(kompaniyaId, () => sbOqi<T2Obyekt>({
     jadval: 't2_obyekt_jami', filtr: 'kompaniya_id=eq.' + kompaniyaId,
     tartib: 'nom.asc', limit: 5000,
-  });
+  }), opts?.majburiy === true).then((j) => (j.qatorlar ? { ...j, qatorlar: j.qatorlar.slice() } : j));
 }
 
 /** `t2_daraxt` — hisoblangan daraxt qatorlari (view). */
@@ -392,7 +397,10 @@ export type T2AktReestr = {
  * Audit C m2 (2026-11-06): avval `limit 500` tur filtrsiz edi — fakt aktlari ko'p obyektda F2 lar kesilardi. Endi `tur`
  * filtri (ixtiyoriy), tartib noyob (oy.desc, id.desc) va to'liq bo'lmagan javob — `ok: false` (jim kesish yo'q).
  */
-export async function sbT2AktReestrOl(obyektId: number, tur?: 'f2' | 'fakt'): Promise<SbJavob<T2AktReestr>> {
+export function sbT2AktReestrOl(obyektId: number, tur?: 'f2' | 'fakt'): Promise<SbJavob<T2AktReestr>> {
+  return birlash('akt-reestr:' + obyektId + ':' + (tur ?? ''), () => sbT2AktReestrOlYakka(obyektId, tur));
+}
+async function sbT2AktReestrOlYakka(obyektId: number, tur?: 'f2' | 'fakt'): Promise<SbJavob<T2AktReestr>> {
   // Nakopitelniy to'liq yuklanayotgan bo'lsa — tugashini kutadi (prod 2026-10-27: parallel og'ir so'rovlar 30 s timeout).
   await ogirYuklashKut();
   const r = await sbOqi<T2AktReestr>({
@@ -526,15 +534,23 @@ export function sbT2TreeQur(qatorlar: T2Qator[], holatlar?: T2QatorHolat[]): Tre
    * bu to'g'ri va o'zgarmaydi. Ota RZ ko'rinishi uchun esa bola RZ larning
    * jamisi qo'shiladi (pastdan yuqoriga). SQL `sum()` kabi: null tashlanadi,
    * hammasi null bo'lsa — null (0 emas). */
-  const rzJami = (n: TreeNode): number | null => {
-    let jami: number | null = n.smeta ?? null;
-    for (const b of n.children ?? []) {
-      if (b.type !== 'rz') continue;
-      const bj = rzJami(b);
+  /* Bo'lim jami = BARG (bolasiz) qatorlar yig'indisi — server summa paketi (`_t2_summa_agg_v1`) bilan bir xil qoida.
+   * Saqlangan `rz.summa` (t2_rollup) ba'zi bo'limlarda barglardan eskirgan bo'ladi (HISOB_YADRO_V1: «smeta jami» 6 xil chiqishi ildizi),
+   * shuning uchun bo'lim summasi saqlangan qiymatdan emas, barglardan olinadi. Hammasi null bo'lsa — null (0 emas). */
+  const bargJami = (n: TreeNode): number | null => {
+    const bl = n.children ?? [];
+    if (!bl.length) return n.smeta ?? null;
+    let jami: number | null = null;
+    for (const b of bl) {
+      const bj = bargJami(b);
       if (bj != null) jami = (jami ?? 0) + bj;
     }
-    n.smeta = jami;
     return jami;
+  };
+  const rzJami = (n: TreeNode): number | null => {
+    for (const b of n.children ?? []) if (b.type === 'rz') rzJami(b);
+    n.smeta = bargJami(n);
+    return n.smeta;
   };
   for (const n of ildiz) if (n.type === 'rz') rzJami(n);
 
@@ -545,12 +561,14 @@ export function sbT2TreeQur(qatorlar: T2Qator[], holatlar?: T2QatorHolat[]): Tre
   const pulJami = (n: TreeNode): void => {
     const b = n.children ?? [];
     if (!b.length) return;
-    let fakt = 0, f2 = 0, mum = 0;
+    let fakt = 0, f2 = 0, mum = 0, ost: number | null = null;
     for (const c of b) {
       pulJami(c);
       fakt += c.stFakt ?? 0; f2 += c.stF2 ?? 0; mum += c.stF2Mum ?? 0;
+      // Qoldiq: serverning qator qoldig'i (smeta − F2 − almashtirilgan) barglardan yig'iladi; noma'lum (null) tashlanadi, hammasi null — null.
+      if (c.stOst != null) ost = (ost ?? 0) + c.stOst;
     }
-    n.stFakt = fakt; n.stF2 = f2; n.stF2Mum = mum;
+    n.stFakt = fakt; n.stF2 = f2; n.stF2Mum = mum; n.stOst = ost;
   };
   for (const n of ildiz) pulJami(n);
   return ildiz;
@@ -588,8 +606,8 @@ export function sbT2KompaniyalarOl() {
 }
 
 /** Obyektlar — kompaniya berilsa faqat o'shaniki. */
-export function sbT2ObyektlarOlKomp(kompaniyaId: number) {
-  return sbT2ObyektlarOl(kompaniyaId);
+export function sbT2ObyektlarOlKomp(kompaniyaId: number, opts?: { majburiy?: boolean }) {
+  return sbT2ObyektlarOl(kompaniyaId, opts);
 }
 
 /* ── YOZISH ─────────────────────────────────────────────────────── */
@@ -626,6 +644,7 @@ export async function sbT2QatorTahrir(
                              kutilgan_versiya: kutilganVersiya }),
     });
     const j = (await r.json()) as T2TahrirNatija;
+    if (j.ok) obyektlarEskirdi();
     return { ...j, ms: Math.round(performance.now() - t0) };
   } catch {
     return { ok: false, error: 'O‘zgarishni saqlab bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.',
@@ -645,8 +664,10 @@ export type AktBuzilish = {
 };
 
 export type AktNatija = {
-  ok: boolean; error?: string; sabab?: string; xabar?: string; izoh?: string;
+  ok: boolean; bogliq?: unknown; error?: string; sabab?: string; xabar?: string; izoh?: string;
   operation_id?: string;
+  /** F2 yaratishda avto podval holati (t2_akt_yarat_v2): bor=false + ogohlantirish — obyektning smeta podvali topilmadi (qulf yo'q). */
+  podval?: { bor?: boolean; manba?: string; ogohlantirish?: string; xabar?: string };
   akt_id?: number; qator_id?: number; takror?: boolean; holat?: string; tur?: string; oy?: string;
   qator_soni?: number; narxsiz?: number; jami?: number | null; toliq?: boolean;
   buzilish?: AktBuzilish[] | null; maslahat?: string;
@@ -706,6 +727,8 @@ export async function yozAmali(yuk: Record<string, unknown>): Promise<AktNatija>
       ms: ms() }; }
     if (r.status === 401) { j.ok = false; j.code = 'SESSION_EXPIRED'; j.error = SESSIYA_TUGAGAN; }
     else if (!r.ok) { j.ok = false; if (!j.error) j.error = `HTTP ${r.status}: yozish so'rovi rad etildi`; if (!j.code) j.code = r.status >= 500 ? 'SERVER' : r.status === 403 ? 'FORBIDDEN' : undefined; }
+    /* Har muvaffaqiyatli yozish obyektlar ro'yxati jami (qator soni, summa, narxsiz) ni o'zgartirishi mumkin. */
+    if (j.ok) obyektlarEskirdi();
     return { ...j, ms: ms() };
   } catch (e) {
     if (chegaraOtdimi(e)) return { ok: false, code: 'TIMEOUT', error: 'Server 90 soniyada javob bermadi — amal serverda bajarilgan bo‘lishi mumkin. Sahifani yangilab tekshiring; qayta saqlash xavfsiz (bir xil amal ID, ikkinchi hujjat yaratilmaydi).', ms: ms() };
@@ -972,6 +995,7 @@ export function sbT2AktTasdiqlash(aktId: number, kutilganVersiya?: number,
                     kutilgan_versiya: kutilganVersiya, operation_id: operationId });
 }
 
+/** Qoralama — eski yo'l; tasdiqlangan F2 — shlyuz lifecycle (approved→cancelled) ga yo'naltiradi. Bog'liqlik bo'lsa javobda code: DEPENDENTS_EXIST + ogliq; matn — lib/f2-bekor 2BekorXatoMatni. */
 export function sbT2AktBekor(aktId: number, sabab: string,
                              kutilganVersiya?: number): Promise<AktNatija> {
   return yozAmali({ amal: 'akt_bekor', akt_id: aktId, sabab,
@@ -1189,7 +1213,9 @@ export async function sbObyektLokatsiyaBelgila(id: number, lat: number, lng: num
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ amal: 'obyekt_yangila', id, nomi: '', kutilgan_versiya: kutilganVersiya, lat, lng })
   });
-  return await res.json();
+  const j = await res.json() as { ok?: boolean };
+  if (j?.ok) obyektlarEskirdi();
+  return j;
 }
 
 /** T2-PTO-OWNER-CRITICAL-CLOSURE P0-1: native obyekt yaratish -- Drive

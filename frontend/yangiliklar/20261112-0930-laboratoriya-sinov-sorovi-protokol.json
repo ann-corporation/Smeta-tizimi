@@ -1,0 +1,9 @@
+{
+    "sana":  "2026-11-12",
+    "sarlavha":  "Laboratoriya tizimda: sinov so‘rovi, protokol, АОСР bilan avtomatik bog‘lanish",
+    "bandlar":  [
+                    "АОСР ichidan yoki «Laboratoriya» sahifasidan sinov so‘rovi yuborasiz (beton kub, grunt zichligi, payvand, gidravlik, elektr). Laboratoriya o‘z «Bugun» ro‘yxatida ko‘radi, tur bo‘yicha maydonlarni to‘ldiradi, mos / mos emas deb belgilaydi va protokol faylini biriktiradi.",
+                    "Protokol АОСР va ish qatoriga o‘zi ilova bo‘ladi. «Mos emas» yoki natijasi kutilayotgan majburiy sinov bo‘lsa АОСР tasdiqqa yuborilmaydi; qayta sinov mos bo‘lsa predpisaniya o‘zi yopiladi.",
+                    "Laboratoriya hisobi (QQS bilan) laboratoriya shartnomangiz bo‘lsa qarzdorlikka avtomatik tushadi."
+                ]
+}

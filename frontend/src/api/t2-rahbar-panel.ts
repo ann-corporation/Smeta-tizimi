@@ -15,6 +15,8 @@ export type RahbarKartalar = {
   bajarildi: {
     davr: SummaPaket | null; jami: SummaPaket | null; akt_soni: number;
     foiz_smeta: number | null; foiz_shartnoma: number | null;
+    /** `true` — foiz_smeta maxraji «smeta + o'zgarishlar»; yo'q/`false` — hamma/ba'zi obyektda joriy noma'lum, asl smeta. */
+    foiz_smeta_joriy?: boolean;
     /** Qo'lda reestr — MANBA EMAS, faqat «tizim ↔ reestr» farqi. */
     reestr: { qqs_bilan: number; soni: number; farq: number } | null;
   };
@@ -36,7 +38,7 @@ export type RahbarObyekt = {
   f2_qoralama: { qqs_bilan: number | null; ustamali: number | null; soni: number };
   f3: { sotuv: number | null; soni: number } | null;
   tolangan: number | null; tolangan_foiz: number | null; qarz: number | null; marja_foiz: number | null;
-  bajarilish: { fakt: number | null; f2: number | null; f3: number | null };
+  bajarilish: { fakt: number | null; f2: number | null; f3: number | null; /** maxraj: smeta + o'zgarishlar (true) yoki asl smeta */ joriy?: boolean };
   signal: { soni: number; kritik: number; eng_kop: string | null };
 };
 
@@ -122,10 +124,11 @@ export async function rahbarPanelOl(p: {
 }
 
 /** Rahbar paneli server paketi (F2 uchligi uchun): xato bo‘lsa `data` undefined — UI «hisoblanmadi» deydi (0 emas). */
-export function useRahbarPanel(kompaniyaId: number | null | undefined, davr?: { dan: string | null; gacha: string | null }, obyektId?: number | null) {
+/** `yoqilgan=false` — so'rov yuborilmaydi (keshda bo'lsa o'qiladi): og'ir paket faqat kerak bo'lganda (lazy) so'raladi. */
+export function useRahbarPanel(kompaniyaId: number | null | undefined, davr?: { dan: string | null; gacha: string | null }, obyektId?: number | null, yoqilgan = true) {
   const dan = davr?.dan ?? null, gacha = davr?.gacha ?? null, oid = obyektId ?? null;
   return useQuery({
-    queryKey: ['rahbar-panel-v1', kompaniyaId, dan, gacha, oid], enabled: kompaniyaId != null, staleTime: 60_000, retry: 1,
+    queryKey: ['rahbar-panel-v1', kompaniyaId, dan, gacha, oid], enabled: kompaniyaId != null && yoqilgan, staleTime: 60_000, retry: 1,
     queryFn: async () => {
       const r = await rahbarPanelOl({ kompaniyaId: kompaniyaId as number, davrDan: dan, davrGacha: gacha, obyektId: oid });
       if (!r.ok) throw new Error(r.error);

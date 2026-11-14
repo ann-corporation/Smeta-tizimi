@@ -1,0 +1,10 @@
+{
+  "id": 115,
+  "sana": "2026-11-06",
+  "sarlavha": "Ф-2 pereraschet Excel: tirik formulalar, tartibli storno va ixcham qatorlar",
+  "bandlar": [
+    "Qoralama F2 Excel'ida yangi hajmlar bloki formulalar bilan: resurs = norma × ish hajmi, summa = hajm × narx, ish, razdel, ИТОГО va podval (transport/sklad → прочие → … → НДС → ВСЕГО) hammasi formula. Texnadzor hajmni o‘zgartirsa hammasi qayta hisoblanadi; ochilganda summalar tizimdagi bilan tiyingacha bir xil. Tasdiqlangan F2 avvalgidek faqat qiymat.",
+    "Storno (minus) bloki eski F2 qiymatlarini aynan ko‘chiradi, lekin endi tuzilmali: razdel sarlavhalari (ichki razdelda to‘liq yo‘l), ish ostida uning resurslari, har razdel jami — smeta tartibida.",
+    "«Hujjatlar dizayni»da yangi sozlama — «Qator balandligi»: uzun nomli qator ko‘pi bilan N matn qatoriga cho‘ziladi (sukut 3, 0 — cheklovsiz). Kompaniya dizayni endi har F2 eksportida serverdan olinadi (boshqa qurilmada ham qo‘llanadi); nom ustuni kengroq."
+  ]
+}

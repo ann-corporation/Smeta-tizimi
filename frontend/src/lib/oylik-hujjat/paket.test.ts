@@ -37,7 +37,7 @@ vi.mock('../../api/t2-nakopitelniy', async (orig) => ({
 
 import { ostatkaHujjatQur, slichitelniyHujjatQur, ostatkaPaketFayli } from './ostatka-slichitelniy';
 import { m29HujjatQur, m29KirishOl, m29PaketFayli } from './m29';
-import { nakopitelniyHujjatQur, nakopitelniyOylarOl, nakopitelniyPaketFayli, nakopitelniyUstamaOl, nakopitelniyYukla } from './nakopitelniy';
+import { nakopitelniyAktlarKOplate, nakopitelniyHujjatQur, nakopitelniyOylarOl, nakopitelniyPaketFayli, nakopitelniyUstamaOl, nakopitelniyYukla } from './nakopitelniy';
 import { obyektHujjatlariniYigish } from './paket';
 import { daraxtToliqOl, istisnolarOl, ustamaManbaOl } from './ostatka-slichitelniy';
 
@@ -113,7 +113,8 @@ describe('sahifa yo‘li === paket yo‘li (bayt-bayt)', () => {
     if ('xato' in y) throw new Error(y.xato);
     const ustama = await nakopitelniyUstamaOl(1, 7);
     const oylar = await nakopitelniyOylarOl(7, String(y.r.davr));
-    const sahifa = nakopitelniyHujjatQur({ qatorlar: y.qatorlar, jami: y.r.jami ?? null, obyektNom: 'Obyekt-A', davr: String(y.r.davr), ustama, oylar, imzo, ndsFoiz: 12 });
+    const aktlarKOplate = await nakopitelniyAktlarKOplate(1, 7, 'Obyekt-A', String(y.r.davr));
+    const sahifa = nakopitelniyHujjatQur({ qatorlar: y.qatorlar, jami: y.r.jami ?? null, obyektNom: 'Obyekt-A', davr: String(y.r.davr), ustama, oylar, imzo, ndsFoiz: 12, aktlarKOplate });
     const paket = await nakopitelniyPaketFayli({ kompaniyaId: 1, obyektId: 7, obyektNom: 'Obyekt-A', oy: '2026-09', imzo, ndsFoiz: 12 });
     expect(paket.ok && teng(paket.bytes, sahifa.bytes)).toBe(true);
   });

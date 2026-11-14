@@ -1,0 +1,11 @@
+{
+  "sana": "2026-11-13",
+  "sarlavha": "Slichitelniy vedomost: har farq qatoriga asos (АОСР va texnadzor qarori)",
+  "bandlar": [
+    "Slichitelniy Excel faylida yangi «Основание» ustuni: farqli qator uchun bog‘langan АОСР (raqam, sana, holat, hajm) va texnadzor qarori (kim, qaysi kompaniya, qachon). Asosi yo‘q farq qatori aniq «основание отсутствует» deb belgilanadi (bloklamaydi).",
+    "Faylning oxirida yangi varaq: asos hujjatlari reestri.",
+    "«Smeta va Fakt / LRV» sahifasida yangi bo‘lim «Slichitelniy tayyorligi»: farqli qatorlar, asosi borlari, texnadzor tasdiqlaganlari va «nima yetishmaydi» ro‘yxati; tanlangan qatorlar uchun АОСР qoralamalarini bir bosishda yaratish va texnadzorga yuborish.",
+    "АОСР ↔ smeta qatori bog‘i endi hajm bilan saqlanadi (АОСР qatorning qancha hajmini tasdiqlaydi). Qoralama yaratilganda hajm fakt jurnalidan taklif qilinadi.",
+    "Jarvis (Ctrl+K): «slichitelniy tayyorligini ko‘rsat» va «asosi yo‘q qatorlar» savollari."
+  ]
+}

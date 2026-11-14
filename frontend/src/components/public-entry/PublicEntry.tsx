@@ -27,13 +27,13 @@ export const OWNER_PHONE = '+998505012566';
 const PHONE_LABEL = '+998 50 501 25 66';
 /** Product name is a brand, not translatable copy. */
 export const BRAND = 'TIZIM_02', BRAND_WORD = 'TIZIM', BRAND_NUMBER = '02';
-type Props = { children: ReactNode; onChooseAuth: (mode: 'login' | 'signup') => void; screenshots?: readonly ProductScreenshot[]; supportPort?: PublicSupportPort };
+type Props = { children: ReactNode; onChooseAuth: (mode: 'login' | 'signup') => void; screenshots?: readonly ProductScreenshot[]; supportPort?: PublicSupportPort; /** Allaqachon tizimda: «Tizimga kirish» o'rniga ilovaga o'tish tugmasi. */ kirgan?: boolean; onOpenApp?: () => void };
 type Local = (s: EntryCopy) => string;
 
 const copy = {
   uz: {
     capabilities: 'Imkoniyatlar', workflow: 'Qanday ishlaydi', contact: 'Aloqa', login: 'Tizimga kirish', signup: "Ro'yxatdan o'tish",
-    start: 'Hisob ochish', tour: 'Imkoniyatlarni ko‘rish',
+    start: 'Hisob ochish', tour: 'Imkoniyatlarni ko‘rish', openApp: 'Boshqaruv paneliga o‘tish',
     faq: 'Boshlashdan oldin',
     q1: 'Mavjud Excel smetam bilan ishlay olamanmi?', a1: 'Smeta importi mavjud. Fayl tuzilishi tahlil qilinadi; noaniq varaq yoki bog‘lanish operator tomonidan tekshirilishi kerak.',
     q2: 'Login va ro‘yxatdan o‘tish qayerda?', a2: 'Shu sahifadagi kirish blokidan foydalaning. Yangi hisob uchun ro‘yxatdan o‘tishni tanlang va email tasdiqlash bosqichini bajaring.',
@@ -44,7 +44,7 @@ const copy = {
   },
   ru: {
     capabilities: 'Возможности', workflow: 'Как это работает', contact: 'Контакты', login: 'Войти', signup: 'Регистрация',
-    start: 'Создать аккаунт', tour: 'Посмотреть возможности',
+    start: 'Создать аккаунт', tour: 'Посмотреть возможности', openApp: 'Перейти в панель управления',
     faq: 'Перед началом',
     q1: 'Можно работать с моей сметой Excel?', a1: 'Импорт сметы доступен. Структура файла анализируется; неоднозначные листы и связи необходимо проверить оператору.',
     q2: 'Где вход и регистрация?', a2: 'Используйте форму на этой странице. Для нового аккаунта выберите регистрацию и подтвердите email.',
@@ -55,7 +55,7 @@ const copy = {
   },
   en: {
     capabilities: 'Features', workflow: 'How it works', contact: 'Contact', login: 'Sign in', signup: 'Sign up',
-    start: 'Create an account', tour: 'Explore features',
+    start: 'Create an account', tour: 'Explore features', openApp: 'Open the dashboard',
     faq: 'Before you begin',
     q1: 'Can I use my existing Excel estimate?', a1: 'Estimate import is available. The file structure is analysed; ambiguous sheets and links require operator review.',
     q2: 'Where do I sign in or sign up?', a2: 'Use the form on this page. Select registration for a new account and complete email verification.',
@@ -75,7 +75,7 @@ function SectionHead({ eyebrow, title, note, id }: { eyebrow: string; title: str
   </Reveal>;
 }
 
-export function PublicEntry({ children, onChooseAuth, screenshots = [], supportPort }: Props) {
+export function PublicEntry({ children, onChooseAuth, screenshots = [], supportPort, kirgan = false, onOpenApp }: Props) {
   const { til, t } = useTil();
   const c = copy[til === 'ru' ? 'ru' : til === 'en' ? 'en' : 'uz'];
   const [help, setHelp] = useState(false);
@@ -94,16 +94,17 @@ export function PublicEntry({ children, onChooseAuth, screenshots = [], supportP
     close: local(['Yopish uchun shu sarlavhani qayta bosing.', 'Нажмите заголовок повторно, чтобы свернуть.', 'Select the heading again to collapse.']),
   };
   const choose = (mode: 'login' | 'signup') => {
+    if (kirgan && onOpenApp) { onOpenApp(); return; }
     onChooseAuth(mode);
     document.getElementById('entry-account')?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
     document.getElementById('entry-account')?.focus({ preventScroll: true });
   };
   const faq = [[c.q1, c.a1], [c.q2, c.a2], [c.q3, c.a3]];
-  const startButton = (extra = '') => <Magnetic><button type="button" className={`entry-primary ${extra}`} onClick={() => choose('signup')}>{text(c.start)}<ArrowRight size={18} aria-hidden="true" /></button></Magnetic>;
+  const startButton = (extra = '') => <Magnetic><button type="button" className={`entry-primary ${extra}`} onClick={() => choose('signup')}>{text(kirgan ? c.openApp : c.start)}<ArrowRight size={18} aria-hidden="true" /></button></Magnetic>;
 
   return <MotionConfig reducedMotion="user"><div className="public-entry">
     <a className="entry-skip" href="#entry-account">{text(c.skip)}</a>
-    <EntryHeader c={c} text={text} local={local} onLogin={() => choose('login')} start={startButton('entry-primary--sm')} />
+    <EntryHeader c={c} text={text} local={local} onLogin={() => choose('login')} kirgan={kirgan} start={startButton('entry-primary--sm')} />
     <main>
       <Hero local={local}>
         <p className="entry-eyebrow"><i className="entry-rhomb" aria-hidden="true" />{local(scopeCopy.eyebrow)}</p>
@@ -195,13 +196,13 @@ export function PublicEntry({ children, onChooseAuth, screenshots = [], supportP
   </div></MotionConfig>;
 }
 
-function EntryHeader({ c, text, local, onLogin, start }: { c: typeof copy.uz; text: (s: string) => string; local: Local; onLogin: () => void; start: ReactNode }) {
+function EntryHeader({ c, text, local, onLogin, start, kirgan = false }: { c: typeof copy.uz; text: (s: string) => string; local: Local; onLogin: () => void; start: ReactNode; kirgan?: boolean }) {
   const { scrollYProgress } = useScroll();
   const bar = useSpring(scrollYProgress, { stiffness: 200, damping: 30, restDelta: 0.001 });
   return <header className="entry-header">
     <a className="entry-brand" href="#entry-top"><span className="entry-brand-mark" aria-hidden="true"><i /></span>{BRAND_WORD}<span className="entry-brand-number">{BRAND_NUMBER}</span></a>
     <nav aria-label={text(c.capabilities)}><a href="#entry-chain">{text(c.workflow)}</a><a href="#entry-roles">{local(scopeCopy.audiences)}</a><a href="#entry-features">{text(c.capabilities)}</a><a href="#entry-pricing">{local(ic.priceEyebrow)}</a><a href="#entry-contact">{text(c.contact)}</a></nav>
-    <div className="entry-header-actions"><TilTanlagich ixcham /><button type="button" className="entry-small-button" onClick={onLogin}>{text(c.login)}</button><span className="entry-header-start">{start}</span></div>
+    <div className="entry-header-actions"><TilTanlagich ixcham /><button type="button" className="entry-small-button" onClick={onLogin}>{text(kirgan ? c.openApp : c.login)}</button><span className="entry-header-start">{start}</span></div>
     <motion.i className="entry-progress" style={{ scaleX: bar }} aria-hidden="true" />
   </header>;
 }

@@ -23,6 +23,7 @@ export const OGOH_MATN: Record<string, string> = {
   tuzatma_kutilmoqda: 'Tasdiq kutayotgan jarima/bonus bor',
   stavka_kiritilmagan: 'NDFL/INPS stavkalari kiritilmagan',
   manfiy: 'Hisoblangan summa manfiy',
+  naryad_kunlari_chiqarildi: 'Naryad davriga tushgan kunlar tabel bo‘yicha to‘lanmadi',
 };
 
 export type TabelJami = Record<TabelBelgi, number>;
@@ -56,14 +57,14 @@ export function tatildanTaklif(tatillar: readonly HrTatil[], kadrId: number, kun
 }
 
 export type KpiJami = {
-  soni: number; baza: number; kpi: number; bonus: number; jarima: number; hisoblangan: number; ndfl: number; inps: number; sof: number; f2_summa: number;
+  soni: number; baza: number; naryad: number; kpi: number; bonus: number; jarima: number; hisoblangan: number; ndfl: number; inps: number; sof: number; f2_summa: number;
   /** Qiymati noma'lum (NULL) bo'lgan xodimlar soni: hisoblangan / sof. Jamiga kirmaydi, 0 deb ham olinmaydi. */
   nomalum_hisoblangan: number; nomalum_sof: number; toliq_emas: number;
 };
 export function kpiJamlari(q: readonly HrKpiQator[]): KpiJami {
   return {
     soni: q.length,
-    baza: yigindi2(q.map((x) => x.baza)), kpi: yigindi2(q.map((x) => x.kpi_f2)), bonus: yigindi2(q.map((x) => x.bonus)), jarima: yigindi2(q.map((x) => x.jarima)),
+    baza: yigindi2(q.map((x) => x.baza)), naryad: yigindi2(q.map((x) => x.naryad_summa ?? null)), kpi: yigindi2(q.map((x) => x.kpi_f2)), bonus: yigindi2(q.map((x) => x.bonus)), jarima: yigindi2(q.map((x) => x.jarima)),
     hisoblangan: yigindi2(q.map((x) => x.hisoblangan)), ndfl: yigindi2(q.map((x) => x.ndfl)), inps: yigindi2(q.map((x) => x.inps)), sof: yigindi2(q.map((x) => x.sof)),
     f2_summa: yigindi2(q.map((x) => x.f2_summa)),
     nomalum_hisoblangan: q.filter((x) => x.hisoblangan == null).length, nomalum_sof: q.filter((x) => x.sof == null).length, toliq_emas: q.filter((x) => !x.toliq).length,

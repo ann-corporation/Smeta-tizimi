@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { TreeNode } from '../api/types';
-import { aslBarglar, aslSmeta, bolimlarKorinishi, katSmeta, oshganQatorlar, umumiyKesim } from './smeta-korinish';
+import { aslBarglar, aslSmeta, bolimlarKorinishi, katSmeta, oshganQatorlar, ulushlarniMaxrajgaKeltir, umumiyKesim } from './smeta-korinish';
 
 const node = (p: Partial<TreeNode>): TreeNode => ({ type: 'rs', nom: 'x', varaq: 'v', row: 0, smetaHajm: null, smeta: null, narx: null, fakt: null, qoldiq: null, f2ol: 0, f2mum: 0, ...p });
 const tree: TreeNode[] = [
   node({ id: 1, type: 'rz', nom: 'Razdel 1', smeta: 1000, stFakt: 600, stF2: 400, children: [
-    node({ id: 2, type: 'bl', nom: 'Ish', children: [
+    node({ id: 2, type: 'bl', nom: 'Ish', smetaHajm: 10, faktHajm: 12, children: [
       node({ id: 3, kat: 'ЧЕЛ', smeta: 300, smetaHajm: 10, faktHajm: 12 }),
       node({ id: 4, kat: 'МАТ', smeta: 700, smetaHajm: 5, faktHajm: 2 }),
       node({ id: 7, kat: 'МАТ', smeta: null, zamena: true }),
@@ -22,6 +22,21 @@ describe('smeta anatomiyasi', () => {
     expect(k.toliq).toBe(false);
     expect(k.f2Ulush).toBeCloseTo(0.4);
     expect(k.faktUlush).toBeCloseTo(0.6);
+  });
+  it('sintetik: asl kichik + qo‘shimcha katta — ulush maxraji smeta + o‘zgarishlar (asl emas), 100% dan oshmaydi', () => {
+    const t2: TreeNode[] = [
+      node({ id: 1, type: 'rz', nom: 'Asl', smeta: 100, stFakt: 100, stF2: 100 }),
+      node({ id: 2, type: 'rz', nom: 'Qo‘shimcha', smeta: 900, stFakt: 800, stF2: 600, qoshimcha: true, ozgarishGuruh: 'qoshimcha' }),
+    ];
+    const k = umumiyKesim(t2);
+    expect(k).toMatchObject({ smeta: 100, fakt: 900, f2: 700 }); // asl smeta o'zgarmaydi
+    const j = ulushlarniMaxrajgaKeltir(k, 100 + 900);
+    expect(j.smeta).toBe(100);
+    expect(j.faktUlush).toBeCloseTo(0.9);
+    expect(j.f2Ulush).toBeCloseTo(0.7);
+    expect(ulushlarniMaxrajgaKeltir(k, 100).f2Ulush).toBe(1); // eski xato: asl maxrajda 100% ga yopishardi
+    expect(ulushlarniMaxrajgaKeltir(k, null)).toMatchObject({ faktUlush: null, f2Ulush: null });
+    expect(ulushlarniMaxrajgaKeltir(k, 0).faktUlush).toBeNull();
   });
   it('bo‘limlar: ish/resurs soni, oshgan, zamena', () => {
     const [a, b] = bolimlarKorinishi(tree);

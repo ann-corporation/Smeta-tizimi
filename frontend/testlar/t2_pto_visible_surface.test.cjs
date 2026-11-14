@@ -28,14 +28,17 @@ function must(label, condition, reason) {
 
 const shell = noComment(read('frontend', 'src', 'admin', 'AdminShell.tsx'));
 /* 2026-10-26: menyu tuzilmasi — yagona navigatsiya reestrida (lib/nav/navReestr.ts); AdminShell faqat ulaydi. */
-const reestr = noComment(read('frontend', 'src', 'lib', 'nav', 'navReestr.ts'));
+const reestr = noComment(read('frontend', 'src', 'lib', 'reestr', 'sahifa.ts') + '\n' + read('frontend', 'src', 'lib', 'nav', 'navReestr.ts')); // sahifalar yagona reestrda (lib/reestr)
 const oldStart = shell.indexOf('const ESKI_TIZIM_MENYU');
 const oldMenu = oldStart < 0 ? '' : shell.slice(oldStart, shell.indexOf('export default function AdminShell'));
 const t2Start = reestr.indexOf('export const NAV_GURUHLAR');
 must('canonical navigation declaration exists', t2Start >= 0 && /NAV_GURUHLAR|menyuQur/.test(shell));
-/* Platforma guruhi (faqat superadmin) — oddiy ish menyusi emas; test/texnik yo'llar faqat shu guruhda bo'lishi mumkin. */
-const platformaStart = reestr.indexOf("id: 'platforma'");
-const t2Menu = reestr.slice(t2Start, platformaStart < 0 ? reestr.indexOf('export const NAV_SAHIFALAR') : platformaStart);
+/* Platforma guruhi (faqat superadmin) — oddiy ish menyusi emas; test/texnik yo'llar faqat shu guruhda bo'lishi mumkin.
+   2026-11-11: sahifalar yagona reestrda (lib/reestr/sahifa.ts) — har sahifa bitta qatorda, guruhi `navGuruh` maydonida. */
+const sahifaQatorlari = reestr.split('\n').filter((l) => /\byol:\s*'/.test(l) && /\bnavGuruh:\s*'/.test(l));
+const t2Menu = sahifaQatorlari.filter((l) => !/navGuruh:\s*'platforma'/.test(l)).join('\n');
+const platformaMenu = sahifaQatorlari.filter((l) => /navGuruh:\s*'platforma'/.test(l)).join('\n');
+const platformaStart = 0;
 const exactMenuPath = (source, route) => new RegExp(`yol:\\s*['"]${route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]`).test(source);
 
 console.log('\n── T2 / legacy navigation boundary ──');
@@ -50,7 +53,7 @@ must('canonical nav uses production routes only', !/\/admin\/test\//.test(t2Menu
 must('Smeta va Fakt / LRV va Fakt kiritish ishchi menyuda',
   /yol:\s*['"]\/admin\/holat['"][\s\S]{0,120}nom:\s*['"]Smeta va Fakt \/ LRV['"]/.test(t2Menu) && exactMenuPath(t2Menu, '/admin/fakt'),
   'LRV va Fakt kiritish ishchi menyuda bo‘lishi kerak');
-must('fayl bog‘lash (texnik) faqat platforma guruhida', exactMenuPath(reestr.slice(platformaStart), '/admin/fayl-boglash') && !exactMenuPath(t2Menu, '/admin/fayl-boglash'));
+must('fayl bog‘lash (texnik) faqat platforma guruhida', exactMenuPath(platformaMenu, '/admin/fayl-boglash') && !exactMenuPath(t2Menu, '/admin/fayl-boglash'));
 for (const route of ['/admin/dashboard', '/admin/obyektlar', '/admin/holat', '/admin/f2', '/admin/f2-tayyorlash', '/admin/f2-tarix', '/admin/hujjat-nazorat', '/admin/narxlar', '/admin/documents']) {
   must(route + ' is present in the canonical IA', exactMenuPath(t2Menu, route),
     route + ' production information architecture ichida bo‘lishi kerak');

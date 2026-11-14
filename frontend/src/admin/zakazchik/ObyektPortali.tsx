@@ -38,7 +38,7 @@ export default function ObyektPortali() {
   useEffect(() => {
     if (!kompaniyaId || !Number.isFinite(aloqaId) || !Number.isFinite(obyektId)) return;
     let bekor = false;
-    void Promise.all([zakazchikObyektlarOl(kompaniyaId), taqdimlarOl(kompaniyaId, { yonalish: 'kelgan', aloqaId })]).then(([o, q]) => {
+    void Promise.all([zakazchikObyektlarOl(kompaniyaId, { obyektId }), taqdimlarOl(kompaniyaId, { yonalish: 'kelgan', aloqaId })]).then(([o, q]) => {
       if (bekor) return;
       const e = [o, q].find((x) => !x.ok);
       setXato(e && !e.ok ? e.error : '');

@@ -1,0 +1,5 @@
+{
+  "Yuborib bo‘lmaydi: bu hujjatni qabul qiladigan tomon (buyurtmachi yoki texnadzor) bilan faol aloqa yo‘q. Hujjat faqat aloqadagi tomonga yuboriladi.": { "ru": "Отправить нельзя: нет активной связи со стороной, принимающей этот документ (заказчик или технадзор). Документ отправляется только связанной стороне.", "en": "Cannot send: no active link with a party that accepts this document (customer or supervision). A document goes only to a linked party." },
+  "Hujjatda {n} ta kamchilik bor": { "ru": "В документе замечаний: {n}", "en": "The document has {n} issues" },
+  "Kamchiliklar bilan yuboraman": { "ru": "Отправляю с замечаниями", "en": "Send with the issues" }
+}

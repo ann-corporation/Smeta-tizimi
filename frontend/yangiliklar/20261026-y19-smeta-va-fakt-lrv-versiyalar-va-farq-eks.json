@@ -1,0 +1,11 @@
+{
+  "id": 19,
+  "sana": "2026-10-26",
+  "sarlavha": "Smeta va Fakt / LRV: «Versiyalar va farq» — ekspertizagacha smeta bilan solishtirish va da'vo ro'yxati",
+  "bandlar": [
+    "Obyekt sahifasida yangi «Versiyalar va farq» tabi: boshqa smeta versiyasining LRV fayl(lar)ini yuklang (masalan ekspertizaga topshirilgan, ekspertizagacha). Joriy smeta o'zgarmaydi — versiya faqat solishtirish uchun saqlanadi.",
+    "Tizim har pozitsiyani joriy smeta bilan moslaydi: o'zgarmagan, kamaygan, oshgan, almashtirilgan (zamena), o'chirilgan, yangi va noaniq (ishonch % bilan). Bo'limlar bo'yicha eski / joriy / kesilgan / oshgan summalar — ustamasiz va ustamali.",
+    "Noaniq mosliklarni «Mos» / «Mos emas» bilan tasdiqlang; kesilgan pozitsiyalar bo'yicha qaror qo'ying: qurilgan, qurilmagan yoki qisman (qurilgan hajmni kiriting). Klaviatura: H, Y, Q, T, R, ↑/↓, Ctrl+S.",
+    "Ekspertiza kesgan, lekin qurilgan hajm avtomatik minus qilinmaydi — «da'vo» sifatida alohida hisoblanadi. «Da'vo ro'yxati (Excel)» — rasmiy hujjat (rus tilida, NDS faqat oxirida)."
+  ]
+}

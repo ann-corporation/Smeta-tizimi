@@ -1,0 +1,11 @@
+{
+  "id": 44,
+  "sana": "2026-10-29",
+  "sarlavha": "Telegram bot @qur_uz_bot va Telegram ichidagi ilova",
+  "bandlar": [
+    "Akkaunt → Bildirishnomalar → «Telegramni ulash»: bitta bosish bilan Telegram hisobingiz tizimga ulanadi (havola 10 daqiqa, bir marta ishlaydi). Uzish — shu yerdan yoki botda /chiqish.",
+    "Botdagi «Smeta» menyu tugmasi tizimni Telegram ichida ochadi — siz o'z rolingiz va ruxsatlaringiz bilan kirasiz, alohida parol kerak emas.",
+    "Bot buyruqlari: /men (hisob, ish joylari, rollar), /ilova, /yordam, /chiqish. Yangi topshiriq berilsa — Telegramga xabar (o'chirib qo'yish mumkin).",
+    "Keyingi bosqichlar: fakt kiritish (rasm/ovoz), F2 holati, ombor KELDI/BERDIM, rahbar kunlik xulosasi — bot orqali."
+  ]
+}

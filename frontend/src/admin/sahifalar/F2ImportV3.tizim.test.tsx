@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, configure, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const m = vi.hoisted(() => ({
@@ -31,6 +31,8 @@ beforeEach(() => {
   m.faylBaytlari.mockResolvedValue(new Uint8Array([1, 2, 3]));
   m.f2AktlarniOqiFonda.mockResolvedValue([{ fayl: 'F2 sentabr.xlsx', varaq: 'Akt', davr: '2026-09', davrMatn: 'сентябрь 2026', daraxt: [], jami: { pryamye: null, ranee: null }, qatorlarJami: 0, ishlarSoni: 0, barglarSoni: 0, ogohlantirishlar: [] }]);
 });
+// Og'ir sahifa (F2ImportV3) + CI parallel yuklamasi: asinxron kutish 1 s yetmay qoladi — sinov vaqtga emas, holatga bog'liq bo'lsin.
+configure({ asyncUtilTimeout: 5000 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe('F2 import — tizimdagi F2 fayldan tanlash', () => {

@@ -5,6 +5,7 @@ vi.mock('../_shared/auth', () => ({ tekshir: m.tekshir }));
 
 import { buyruqIssueMatni, izTozala, onRequestGet, onRequestPost } from './agent-ish';
 import { mijozNarxKeshTozala } from '../_shared/ai-mijoz-narx';
+import { kontekstKeshTozala } from '../_shared/agent-kontekst-kesh';
 
 const env = (o: Record<string, unknown> = {}) => ({ SUPABASE_URL: 'https://x.supabase.co', SUPABASE_KEY: 'svc', SESSIYA_KALIT: 's', AGENT_ISH_YOQILGAN: '1', GROQ_API_KEY: 'g', ...o });
 /** Platforma superadmini (middleware bazadan olgan vakolat) — model katalogi/ustama kabi tizim amallari faqat shunga. */
@@ -17,7 +18,7 @@ const rpcJavob = (d: unknown) => new Response(JSON.stringify(d), { status: 200 }
 const sarfRpc = (u: string) => (String(u).includes('t2_agent_sarf_') ? rpcJavob({ ok: true })
   : String(u).includes('t2_agent_kompaniya_sozlama_v1') ? rpcJavob({ ok: true, ai_yoqilgan: true, kuzatuv_ruxsat: true }) : null);
 
-beforeEach(() => { m.tekshir.mockResolvedValue({ foydalanuvchi_id: 7 }); });
+beforeEach(() => { kontekstKeshTozala(); m.tekshir.mockResolvedValue({ foydalanuvchi_id: 7 }); });
 afterEach(() => vi.unstubAllGlobals());
 
 describe('agent-ish shlyuzi', () => {
@@ -442,7 +443,7 @@ describe('agent-ish shlyuzi', () => {
       expect(r.headers.get('content-type')).toContain('x-ndjson');
       const satrlar = (await r.text()).trim().split('\n').map((x) => JSON.parse(x) as { t: string; matn?: string; javob?: string; ok?: boolean });
       const qadamlar = satrlar.filter((x) => x.t === 'qadam');
-      expect(qadamlar.length).toBeGreaterThan(5); expect(qadamlar[0].matn).toContain('Lavozimingiz');
+      expect(qadamlar.length).toBeGreaterThan(5); expect(qadamlar.some((q) => (q.matn ?? '').includes('aniqlanmoqda'))).toBe(false);   // «lavozim aniqlanmoqda» qadami endi yo‘q
       const yakun = satrlar[satrlar.length - 1];
       expect(yakun).toMatchObject({ t: 'yakun', ok: true, javob: 'Tayyor' });
     });

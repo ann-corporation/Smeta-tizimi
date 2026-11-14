@@ -1,9 +1,9 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Lock, LockOpen, Plus, Save } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
 import { yangiOperationId } from '../../api/supabase';
-import { buxDavr, buxHisobSaqla, buxMoslikSaqla, buxXato, type BuxHolat, type BuxHisob } from '../../api/t2-bux-hisob';
+import { buxDavr, buxDavrBlok, buxHisobSaqla, buxHisobTasdiq, buxMoslikSaqla, buxShablonTanla, buxSozlamaOl, buxXato, type BuxHolat, type BuxHisob, type BuxSozlama } from '../../api/t2-bux-hisob';
 import { Izoh, XatoQator } from './umumiy';
 import { ddmmyyyy, kirit, td, th, yorliq } from './yordamchi';
 
@@ -18,27 +18,45 @@ const QOIDA_NOM: Record<string, () => string> = {
   'tolov.kirim': () => t('Buyurtmachidan kelgan to‘lov'), 'tolov.chiqim': () => t('Kontragentga to‘langan to‘lov'),
   'boshlangich.kreditor': () => t('Kreditor boshlang‘ich qoldig‘i'), 'ish_haqi.hisoblash': () => t('Ish haqi hisoblandi (Kadrlar — keyin)'),
   'ish_haqi.tolash': () => t('Ish haqi to‘landi (Kadrlar — keyin)'), 'param.nds_foiz': () => t('QQS stavkasi, %'),
+  'taqdim.f2': () => t('Qabul qilingan Forma-2: kapital qo‘yilma (QQS siz)'), 'taqdim.nds': () => t('Qabul qilingan Forma-2: kiruvchi QQS'),
+  'xarajat.chel': () => t('Xarajat: mehnat (ЧЕЛ)'), 'xarajat.mash': () => t('Xarajat: mexanizm (МАШ)'), 'xarajat.ob': () => t('Xarajat: uskuna (ОБ)'),
+  'xarajat.mat': () => t('Xarajat: material (МАТ) — o‘chirilgan'), 'xarajat.sub': () => t('Xarajat: subpudrat (SUB) — o‘chirilgan'), 'xarajat.otk': () => t('Xarajat: boshqa (OTK) — o‘chirilgan'),
 };
 
 function oylar(n = 6, d = new Date()): string[] {
   return Array.from({ length: n }, (_, i) => { const x = new Date(d.getFullYear(), d.getMonth() - i, 1); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-01`; });
 }
 
-/** Sozlama: hisoblar rejasi, avto-provodka qoidalari, davrni yopish (ogohlantirish asosida). */
-export function Sozlama({ kid, holat, onOzgardi, yozadi, tasdiqlaydi }: { kid: number; holat: BuxHolat; onOzgardi: () => void; yozadi: boolean; tasdiqlaydi: boolean }) {
+export type SozlamaBolim = 'reja' | 'qoida' | 'davr';
+
+/** Sozlama bo'limlari: Hisoblar rejasi (план счетов), Qoidalar (правила проводок), Davrni yopish (закрытие периода). */
+export function Sozlama({ kid, holat, onOzgardi, yozadi, tasdiqlaydi, bolim, versiya = 0 }: {
+  kid: number; holat: BuxHolat; onOzgardi: () => void; yozadi: boolean; tasdiqlaydi: boolean; bolim: SozlamaBolim; versiya?: number;
+}) {
   const [xato, setXato] = useState<string | null>(null);
+  const [soz, setSoz] = useState<BuxSozlama | null>(null);
+  useEffect(() => {
+    let tirik = true;
+    void buxSozlamaOl(kid).then((r) => { if (tirik && r.ok) setSoz(r.natija); });
+    return () => { tirik = false; };
+  }, [kid, versiya, holat]);
   return (
     <div className="space-y-6">
       <XatoQator xato={xato} />
-      <DavrYopish kid={kid} holat={holat} onOzgardi={onOzgardi} tasdiqlaydi={tasdiqlaydi} setXato={setXato} />
-      <Qoidalar kid={kid} holat={holat} onOzgardi={onOzgardi} tasdiqlaydi={tasdiqlaydi} setXato={setXato} />
-      <Reja kid={kid} holat={holat} onOzgardi={onOzgardi} yozadi={yozadi} setXato={setXato} />
+      {bolim === 'davr' && <DavrYopish kid={kid} holat={holat} onOzgardi={onOzgardi} tasdiqlaydi={tasdiqlaydi} setXato={setXato} soz={soz} />}
+      {bolim === 'qoida' && <Qoidalar kid={kid} holat={holat} onOzgardi={onOzgardi} tasdiqlaydi={tasdiqlaydi} setXato={setXato} soz={soz} />}
+      {bolim === 'reja' && <Reja kid={kid} holat={holat} onOzgardi={onOzgardi} yozadi={yozadi} tasdiqlaydi={tasdiqlaydi} setXato={setXato} />}
     </div>
   );
 }
 
-function DavrYopish({ kid, holat, onOzgardi, tasdiqlaydi, setXato }: { kid: number; holat: BuxHolat; onOzgardi: () => void; tasdiqlaydi: boolean; setXato: (x: string | null) => void }) {
+function DavrYopish({ kid, holat, onOzgardi, tasdiqlaydi, setXato, soz }: { kid: number; holat: BuxHolat; onOzgardi: () => void; tasdiqlaydi: boolean; setXato: (x: string | null) => void; soz: BuxSozlama | null }) {
   const [og, setOg] = useState<{ oy: string; royxat: Array<{ kod: string; xabar: string }> } | null>(null);
+  const blokYoq = async (blok: boolean) => {
+    const r = await buxDavrBlok(kid, blok, yangiOperationId());
+    if (!r.ok) { setXato(buxXato(r)); return; }
+    setXato(null); toast(blok ? t('Yopiq oyga yozish bloklandi') : t('Yopiq oyga yozish faqat ogohlantiradi'), 'ok'); onOzgardi();
+  };
   const holatOy = useMemo(() => new Map(holat.davrlar.map((d) => [d.oy, d.holat])), [holat.davrlar]);
   const amal = async (oy: string, a: 'yop' | 'och', tasdiq: boolean) => {
     const r = await buxDavr({ kompaniyaId: kid, oy, amal: a, tasdiq, operationId: yangiOperationId() });
@@ -48,7 +66,14 @@ function DavrYopish({ kid, holat, onOzgardi, tasdiqlaydi, setXato }: { kid: numb
   };
   return (
     <section className="space-y-2" aria-label={t('Davrni yopish')}>
-      <h3 className="text-[13px] font-semibold">{t('Davrni yopish')}<Izoh matn={t('Yopilgan oyga yangi provodka tushsa tizim to‘xtatmaydi, faqat ogohlantiradi. Yopish uchun «tasdiqlash» ruxsati kerak.')} /></h3>
+      <h3 className="text-[13px] font-semibold">{t('Davrni yopish (закрытие периода)')}<Izoh matn={t('Yopilgan oyga provodka yozilmaydi (blok yoqilgan bo‘lsa). Yopish uchun «tasdiqlash» ruxsati kerak.')} /></h3>
+      {soz && (
+        <label className="flex items-center gap-2 text-[12.5px]">
+          <input type="checkbox" aria-label={t('Yopiq oyga yozishni bloklash')} checked={soz.davr_blok} disabled={!tasdiqlaydi} onChange={(e) => void blokYoq(e.target.checked)} />
+          {t('Yopiq oyga yozishni bloklash')}
+          <Izoh matn={t('O‘chirilsa, yopiq oyga provodka tushganda tizim to‘xtatmaydi, faqat ogohlantiradi.')} />
+        </label>
+      )}
       {og && (
         <div role="alert" className="rounded-md border border-warn/50 bg-warn/10 p-2 text-[12.5px]">
           <p className="flex items-center gap-1 font-medium"><AlertTriangle size={14} /> {t('Yopishdan oldin ogohlantirish:')}</p>
@@ -76,8 +101,15 @@ function DavrYopish({ kid, holat, onOzgardi, tasdiqlaydi, setXato }: { kid: numb
   );
 }
 
-function Qoidalar({ kid, holat, onOzgardi, tasdiqlaydi, setXato }: { kid: number; holat: BuxHolat; onOzgardi: () => void; tasdiqlaydi: boolean; setXato: (x: string | null) => void }) {
+const SHABLON_NOM: Record<string, () => string> = { pudratchi: () => t('Pudratchi (sotuvchi tomon)'), buyurtmachi: () => t('Buyurtmachi (xaridor tomon)') };
+
+function Qoidalar({ kid, holat, onOzgardi, tasdiqlaydi, setXato, soz }: { kid: number; holat: BuxHolat; onOzgardi: () => void; tasdiqlaydi: boolean; setXato: (x: string | null) => void; soz: BuxSozlama | null }) {
   const faol = holat.hisoblar.filter((h) => h.faol);
+  const shablonTanla = async (shablon: string) => {
+    const r = await buxShablonTanla(kid, shablon, yangiOperationId());
+    if (!r.ok) { setXato(buxXato(r)); return; }
+    setXato(null); toast(t('Shablon tanlandi: {n} ta qoida qo‘shildi', { n: r.moslik_qoshildi ?? 0 }), 'ok'); onOzgardi();
+  };
   const [tahrir, setTahrir] = useState<Record<string, { dt: string; kt: string; q: string }>>({});
   const op = useRef<Record<string, string>>({});
   const saqla = async (kalit: string) => {
@@ -89,7 +121,16 @@ function Qoidalar({ kid, holat, onOzgardi, tasdiqlaydi, setXato }: { kid: number
   };
   return (
     <section className="space-y-2" aria-label={t('Provodka qoidalari')}>
-      <h3 className="text-[13px] font-semibold">{t('Provodka qoidalari')}<Izoh matn={t('Qaysi hujjat qaysi hisoblarga yoziladi. O‘zgartirsangiz, tarix saqlanadi: eski provodkalar storno qilinib, yangi hisoblarga qayta yoziladi.')} /></h3>
+      <h3 className="text-[13px] font-semibold">{t('Provodka qoidalari (правила проводок)')}<Izoh matn={t('Qaysi hujjat qaysi hisoblarga yoziladi. O‘zgartirsangiz, tarix saqlanadi: eski provodkalar storno qilinib, yangi hisoblarga qayta yoziladi. Debet/Kredit bo‘sh qoida — o‘chirilgan (provodka yozilmaydi).')} /></h3>
+      {soz && (
+        <div className="flex flex-wrap items-center gap-2 text-[12.5px]">
+          <span className="text-text-mute">{t('Qoida shabloni (tomon turi):')}</span>
+          <select aria-label={t('Qoida shabloni')} className={`${kirit} w-64`} value={soz.shablon} disabled={!tasdiqlaydi} onChange={(e) => void shablonTanla(e.target.value)}>
+            {soz.shablonlar.map((s) => <option key={s.shablon} value={s.shablon}>{SHABLON_NOM[s.shablon]?.() ?? s.shablon}</option>)}
+          </select>
+          <Izoh matn={t('Shablon tanlansa, uning qoidalari qo‘shiladi (mavjud qoidalar o‘zgarmaydi). Keyin hammasini tahrirlash mumkin.')} />
+        </div>
+      )}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[720px] text-[12.5px]" aria-label={t('Provodka qoidalari')}>
           <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th className={th}>{t('Hujjat')}</th><th className={th}>{t('Debet')}</th><th className={th}>{t('Kredit')}</th><th className={th} /></tr></thead>
@@ -118,14 +159,21 @@ function Qoidalar({ kid, holat, onOzgardi, tasdiqlaydi, setXato }: { kid: number
 function HisobTanla({ nom, faol, v, on }: { nom: string; faol: BuxHisob[]; v: string; on: (v: string) => void }) {
   return (
     <select aria-label={nom} className={`${kirit} w-64`} value={v} onChange={(e) => on(e.target.value)}>
+      <option value="">{t('— o‘chirilgan —')}</option>
       {faol.map((h) => <option key={h.kod} value={h.kod}>{h.kod} · {h.nom_uz}</option>)}
     </select>
   );
 }
 
-function Reja({ kid, holat, onOzgardi, yozadi, setXato }: { kid: number; holat: BuxHolat; onOzgardi: () => void; yozadi: boolean; setXato: (x: string | null) => void }) {
+function Reja({ kid, holat, onOzgardi, yozadi, tasdiqlaydi, setXato }: { kid: number; holat: BuxHolat; onOzgardi: () => void; yozadi: boolean; tasdiqlaydi: boolean; setXato: (x: string | null) => void }) {
   const [yangi, setYangi] = useState({ kod: '', nom_uz: '', nom_ru: '', tur: 'aktiv', ka: false });
   const op = useRef(yangiOperationId());
+  const tasdiq = async (kodlar: string[]) => {
+    const r = await buxHisobTasdiq(kid, kodlar, yangiOperationId());
+    if (!r.ok) { setXato(buxXato(r)); return; }
+    setXato(null); toast(t('{n} ta hisob tasdiqlandi', { n: r.tasdiqlandi ?? 0 }), 'ok'); onOzgardi();
+  };
+  const tekshirilmagan = holat.hisoblar.filter((h) => h.tekshirilsin).map((h) => h.kod);
   const yoz = async (h: { kod: string; nom_uz: string; nom_ru: string; tur: string; ka: boolean; faol: boolean }) => {
     const r = await buxHisobSaqla({ kompaniyaId: kid, kod: h.kod, nomUz: h.nom_uz, nomRu: h.nom_ru, tur: h.tur, kontragentAnalitika: h.ka, faol: h.faol, operationId: op.current });
     op.current = yangiOperationId();
@@ -134,14 +182,20 @@ function Reja({ kid, holat, onOzgardi, yozadi, setXato }: { kid: number; holat: 
   };
   return (
     <section className="space-y-2" aria-label={t('Hisoblar rejasi')}>
-      <h3 className="text-[13px] font-semibold">{t('Hisoblar rejasi')}<Izoh matn={t('O‘zbekiston NSBU № 21 asosidagi namuna reja. Kodlarni rasmiy reja bilan solishtiring; nomini o‘zgartirish, yangi hisob qo‘shish va keraksizini o‘chirish (faolsizlantirish) mumkin.')} /></h3>
+      <h3 className="text-[13px] font-semibold">{t('Hisoblar rejasi (план счетов)')}<Izoh matn={t('O‘zbekiston NSBU № 21 asosidagi namuna reja. Kodlarni rasmiy reja bilan solishtiring; nomini o‘zgartirish, yangi hisob qo‘shish va keraksizini o‘chirish (faolsizlantirish) mumkin.')} /></h3>
+      {tekshirilmagan.length > 0 && (
+        <p className="flex flex-wrap items-center gap-2 text-[12px] text-warn">
+          <AlertTriangle size={13} /> {t('T — tekshirilsin: {n} ta hisob kodi buxgalter tomonidan rasmiy reja bilan hali tasdiqlanmagan.', { n: tekshirilmagan.length })}
+          {tasdiqlaydi && <button type="button" className="fz-btn" onClick={() => void tasdiq(tekshirilmagan)}>{t('Hammasini tasdiqlash')}</button>}
+        </p>
+      )}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[760px] text-[12.5px]" aria-label={t('Hisoblar ro‘yxati')}>
           <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th className={th}>{t('Kod')}</th><th className={th}>{t('Nomi')}</th><th className={th}>{t('Turi')}</th><th className={th}>{t('Kontragent bo‘yicha')}<Izoh matn={t('Belgilangan hisob kontragentlar kesimida yuritiladi (xaridor, yetkazuvchi).')} /></th><th className={th}>{t('Faol')}</th></tr></thead>
           <tbody>
             {holat.hisoblar.map((h) => (
               <tr key={h.kod} className={`border-t border-border/50 ${h.faol ? '' : 'text-text-mute'}`}>
-                <td className={`${td} font-medium`}>{h.kod}</td><td className={td}>{h.nom_uz}<span className="block text-[10.5px] text-text-mute">{h.nom_ru}</span></td>
+                <td className={`${td} font-medium`}>{h.kod}{h.tekshirilsin && <span className="ml-1 rounded border border-warn/60 px-1 text-[10px] text-warn" title={t('T — tekshirilsin (buxgalter tasdiqlamagan)')}>T</span>}</td><td className={td}>{h.nom_uz}<span className="block text-[10.5px] text-text-mute">{h.nom_ru}</span></td>
                 <td className={td}>{TURLAR.find(([k]) => k === h.tur)?.[1]() ?? h.tur}</td>
                 <td className={td}>{h.kontragent_analitika ? t('Ha') : '—'}</td>
                 <td className={td}>{yozadi

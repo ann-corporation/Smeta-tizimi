@@ -63,6 +63,13 @@ describe('individual permission request gate',()=>{
   it('missing target never chooses a more privileged company',async()=>{
     expect((await run({second:true,denied:['narx.write'],body:{amal:'narx_belgila'}})).response.status).toBe(403);
   });
+  it('muhr-isit: begona obyekt 403 (handler/R2/baza ga tegilmaydi); oz obyekti 200; smeta.read rad etilsa 403',async()=>{
+    const b={obyekt_id:5};
+    const own=await run({path:'/api/muhr-isit',body:b});expect(own.response.status).toBe(200);expect(own.next).toHaveBeenCalledTimes(1);
+    const foreign=await run({path:'/api/muhr-isit',entityCompany:18,body:b});expect(foreign.response.status).toBe(403);expect(foreign.next).not.toHaveBeenCalled();
+    const denied=await run({path:'/api/muhr-isit',denied:['smeta.read'],body:b});expect(denied.response.status).toBe(403);expect(denied.next).not.toHaveBeenCalled();
+    expect(foreign.upstream.some(p=>/muhr_isit|storage|r2/i.test(p))).toBe(false);
+  });
   it('cancel/approve permissions are distinct even through lifecycle aliases',async()=>{
     expect((await run({denied:['f2.cancel'],body:{amal:'akt_lifecycle_transition_v1',to_status:'cancelled',kompaniya_id:17}})).response.status).toBe(403);
     expect((await run({denied:['f2.approve'],body:{amal:'akt_lifecycle_transition_v1',to_status:'submitted',kompaniya_id:17}})).response.status).toBe(200);

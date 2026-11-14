@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Truck } from 'lucide-react';
+import { transportSorovYoli } from '../../lib/yetkazuvchi/transport-sorov';
 import { toast } from '../../umumiy/ui/Toast';
 import { FmtN } from '../../lib/format';
 import { t } from '../../i18n/til';
 import { IJROCHI_QADAM } from '../../lib/yetkazuvchi/buyurtma-holat';
 import {
-  buyurtmaOlishYoz, buyurtmaOtish, buyurtmaTafsilotOl, buyurtmaXatosi, buyurtmalarOl, type BuyurtmaQator, type BuyurtmaRoyxatQator,
+  buyurtmaOlishYoz, buyurtmaOtish, buyurtmaTafsilotOl, buyurtmaTolovHolatiOl, buyurtmaXatosi, buyurtmalarOl, type BuyurtmaQator, type BuyurtmaRoyxatQator, type TolovHolatiQator,
 } from '../../api/t2-buyurtma';
 import { BuyurtmaChip } from './BuyurtmaChip';
 import { kompaniyaNomi, useFaolAloqalar } from './aloqalar';
+
+const TOLOV_NOMI = { tolangan: 'To‘langan', qisman: 'Qisman to‘langan', tolanmagan: 'To‘lanmagan' } as const;
 
 /**
  * «Menga kelgan buyurtmalar» (yetkazuvchi kabineti): har holatda BITTA asosiy tugma -
@@ -16,6 +20,7 @@ import { kompaniyaNomi, useFaolAloqalar } from './aloqalar';
  * ombor/manzil so'raladi (faqat kerak bo'lganda). Yakuniy qabulni xaridor beradi (yetkazuvchi shu yerda kutadi).
  */
 export function BuyurtmaKabinet({ kompaniyaId }: { kompaniyaId: number }) {
+  const navigate = useNavigate();
   const aloqalar = useFaolAloqalar(kompaniyaId);
   const [qatorlar, setQatorlar] = useState<BuyurtmaRoyxatQator[] | null>(null);
   const [xato, setXato] = useState<string | null>(null);
@@ -35,6 +40,13 @@ export function BuyurtmaKabinet({ kompaniyaId }: { kompaniyaId: number }) {
     return () => { bekor = true; };
   }, [kompaniyaId, kalit]);
   const qaytaYukla = () => setKalit((k) => k + 1);
+  /* To'lov holati (xaridor 	olov_holati grant bergan bo'lsa). Alohida so'rov: yiqilsa ro'yxat ishlayveradi. */
+  const [tolov, setTolov] = useState<Record<number, TolovHolatiQator>>({});
+  useEffect(() => {
+    let bekor = false;
+    void buyurtmaTolovHolatiOl(kompaniyaId).then((r) => { if (!bekor && r.ok) setTolov(Object.fromEntries(r.qatorlar.map((x) => [x.buyurtma_id, x]))); });
+    return () => { bekor = true; };
+  }, [kompaniyaId, kalit]);
 
   const tarkibniKoz = async (b: BuyurtmaRoyxatQator) => {
     if (ochiq === b.id) { setOchiq(null); return; }
@@ -56,6 +68,17 @@ export function BuyurtmaKabinet({ kompaniyaId }: { kompaniyaId: number }) {
       toast(t('Saqlandi'), 'ok');
       setOlishId(null);
       qaytaYukla();
+    } finally { setBandId(null); }
+  };
+
+  /** «Transport so'rash»: buyurtma tarkibi va manzillari bilan Yuk birjasida yangi e'lon (marshrut va og'irlik oldindan to'ldiriladi). */
+  const transportSora = async (b: BuyurtmaRoyxatQator) => {
+    setBandId(b.id);
+    try {
+      const r = await buyurtmaTafsilotOl(kompaniyaId, b.id);
+      if (!r.ok) { toast(t(r.error), 'danger'); return; }
+      const m = (v: unknown) => (typeof v === 'string' ? v : null);
+      navigate(transportSorovYoli({ buyurtmaId: b.id, qatorlar: r.qatorlar, olishManzil: m(r.buyurtma.olish.manzil) ?? m(r.buyurtma.olish.ombor_nomi), yetkazishManzil: m(r.buyurtma.shart.manzil) }));
     } finally { setBandId(null); }
   };
 
@@ -96,7 +119,11 @@ export function BuyurtmaKabinet({ kompaniyaId }: { kompaniyaId: number }) {
                   </span>
                   <span className="inline-flex flex-wrap items-center gap-2">
                     <BuyurtmaChip holat={b.holat} />
+                    {tolov[b.id] && <span className="fz-chip" title={t('To‘lov holati xaridor ochgan ma’lumot bo‘yicha')}>{tolov[b.id].ruxsat ? (tolov[b.id].tolov_holati ? t(TOLOV_NOMI[tolov[b.id].tolov_holati as keyof typeof TOLOV_NOMI]) : t('To‘lov: ma’lumot yo‘q')) : t('To‘lov: xaridor ko‘rsatmagan')}</span>}
                     <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" onClick={() => void tarkibniKoz(b)}>{ochiq === b.id ? t('Yashirish') : t('Tarkibi')}</button>
+                    {(b.holat === 'bajarilmoqda' || b.holat === 'tayyor') && (
+                      <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" disabled={band} onClick={() => void transportSora(b)}>{t('Transport so‘rash')}</button>
+                    )}
                     {band ? <span className="animate-pulse text-[12px] text-text-mute">{t('Kuting…')}</span> : q ? (<>
                       {b.holat === 'yuborildi' && <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" onClick={() => void qadam(b, 'rad')}>{t('Rad etish')}</button>}
                       <button type="button" className="fz-btn fz-btn--primary fz-btn--sm" onClick={() => void qadam(b, q.ga)}>{t(q.tugma)}</button>

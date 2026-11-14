@@ -1,0 +1,32 @@
+-- ROLLBACK: 20261216400000_t2_logistika_yuk_p1_v1
+-- DIQQAT: t2_yb_joy (oxirgi joy/iz) va yangi ustunlardagi ma'lumot yo'qoladi; t2_yb_yuk/bron asosiy qatorlari qoladi. BEGIN/COMMIT yo'q.
+drop function if exists public.t2_yb_p1_reys_v1(bigint);
+drop function if exists public.t2_yb_p1_ega_kuzat_v1(bigint, bigint, bigint);
+drop function if exists public.t2_yb_p1_yuk_qosh_v1(bigint, bigint, uuid, jsonb);
+drop function if exists public.t2_yb_p1_joy_v1(bigint, jsonb);
+drop function if exists public.t2_yb_p1_qadam_v1(bigint, uuid, jsonb);
+drop function if exists public.t2_yb_p1_qabul_v1(bigint, uuid, jsonb);
+drop function if exists public.t2_yb_p1_yaqin_v1(bigint, jsonb);
+drop function if exists public.t2_yb_p1_holat_v1(bigint, uuid, jsonb);
+drop function if exists public._t2_yb_masofa_km(numeric, numeric, numeric, numeric);
+drop table if exists public.t2_yb_joy;
+drop index if exists public.t2_yb_tashuvchi_onlayn_idx;
+drop index if exists public.t2_yb_yuk_buyurtma_idx;
+alter table public.t2_yb_bron drop constraint if exists t2_yb_bron_imzo_chk;
+alter table public.t2_yb_bron drop constraint if exists t2_yb_bron_qabul_nom_chk;
+alter table public.t2_yb_bron drop constraint if exists t2_yb_bron_qadam_chk;
+alter table public.t2_yb_bron drop column if exists imzo_r2_kalit;
+alter table public.t2_yb_bron drop column if exists qabul_nom;
+alter table public.t2_yb_bron drop column if exists keldi_vaqt;
+alter table public.t2_yb_bron drop column if exists qadam;
+alter table public.t2_yb_tashuvchi drop column if exists joy_vaqt;
+alter table public.t2_yb_tashuvchi drop column if exists joy_lng;
+alter table public.t2_yb_tashuvchi drop column if exists joy_lat;
+alter table public.t2_yb_tashuvchi drop column if exists onlayn;
+alter table public.t2_yb_yuk drop column if exists qabul_so_rov_vaqt;
+alter table public.t2_yb_yuk drop column if exists buyurtma_id;
+alter table public.t2_yb_yuk drop column if exists zayavka_id;
+alter table public.t2_yb_yuk drop constraint if exists t2_yb_yuk_mashina_sinf_chk;
+alter table public.t2_yb_yuk drop column if exists mashina_sinf;
+alter table public.t2_yb_yuk drop constraint if exists t2_yb_yuk_narx_rejim_chk;
+alter table public.t2_yb_yuk drop column if exists narx_rejim;

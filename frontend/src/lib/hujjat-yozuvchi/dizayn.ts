@@ -38,6 +38,8 @@ export type HujjatDizayn = {
   tipKorsat: boolean;
   xonaPul: number;
   xonaHajm: number;
+  /** Foiz katagi son formati (sukut 0.00); F-3 etalonida `0.0"%"`. Qiymat o'zgarmaydi (faqat ko'rinish). */
+  foizKod?: string;
   chegara: ChegaraTuri;
   /** BL qatorida yuqori chiziq qalinroq (yangi ish ko'rinsin). */
   blQalinChiziq: boolean;

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { Db } from '../../../frontend/src/lib/snapshot-r2/sovuq';
 import { sha256Hex } from '../../../frontend/src/lib/snapshot-r2/sovuq';
 import type { Env, R2BucketLike } from '../src/env';
-import { _healthKeshniTozala, dbHajmMb, healthDbMb, r2Binding, sovutishCron, sovutishPartiya } from '../src/sovutish';
+import { _healthKeshniTozala, dbHajmMb, healthDbMb, r2Binding, sovutishCron, sovutishPartiya, songgiQaror } from '../src/sovutish';
 
 type Blok = { xesh: string; jadval: string; matn: string | null; r2_key?: string; r2_sha?: string; tasdiq?: boolean };
 
@@ -136,5 +136,22 @@ describe('snapshot sovutish cron', () => {
     expect(await healthDbMb({} as Env, 2000, soxtaDb([], 999 * 1048576).db)).toBe(300); // keshdan
     expect(await healthDbMb({} as Env, 400_000, soxtaDb([], 320 * 1048576).db)).toBe(320);
     _healthKeshniTozala();
+  });
+});
+
+describe('so\'nggi snapshotni sovutish (baza hajmi bosimi)', () => {
+  it('songgiQaror: 1/0 majburiy; auto — faqat 450 MB va undan yuqorida; hajm noma\'lum bo\'lsa yo\'q', () => {
+    expect(songgiQaror('1', 100)).toBe(true);
+    expect(songgiQaror('0', 999)).toBe(false);
+    expect(songgiQaror(undefined, 449)).toBe(false);
+    expect(songgiQaror(undefined, 450)).toBe(true);
+    expect(songgiQaror('auto', null)).toBe(false);
+  });
+  it('sovutishPartiya nomzod so\'rovi 3-parametr sifatida songgiHam ni uzatadi (sukut: false)', async () => {
+    const korilgan: unknown[][] = [];
+    const db: Db = { async query(sql, p = []) { if (sql.includes('sovuq_nomzod')) { korilgan.push(p); return { rows: [] }; } throw new Error('kutilmagan SQL'); } };
+    await sovutishPartiya(db, r2Binding(soxtaR2().b));
+    await sovutishPartiya(db, r2Binding(soxtaR2().b), { songgiHam: true });
+    expect(korilgan.map((p) => p[2])).toEqual([false, true]);
   });
 });

@@ -1,4 +1,4 @@
-import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { matnSora, tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { useCallback, useEffect, useMemo, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { Ban, CheckCircle2, ChevronDown, ChevronRight, Cpu, MinusCircle, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Repeat2, RotateCcw, Save, Search, Trash2, X } from 'lucide-react';
 import { chiqarilganmi, chiqarishRuxsat, MEHNAT_ZAMENA_YOQ, mehnatResursmi } from '../../lib/resurs-amal';
@@ -35,7 +35,7 @@ import { qidiruvKaliti } from '../../i18n/lotin-kirill';
 import { useHotkeys, yordamOch } from '../../lib/hotkeys/useHotkeys';
 import { inputdami, sarlavhaBilan } from '../../lib/hotkeys/core';
 import { HOLAT_FILTRLAR, holatFiltrMos, keyingiMoslik, qoldimOl, qoldimYoz, type HolatFiltr } from '../../lib/fakt-klaviatura';
-import { JURNAL_XATO_MATN, bolimSummalari, bolimTarkibi, jurnalQur, kiritmaSoni, ochiqBor, qoldiqUlushi, type BolimSumma, type JurnalBolim, type JurnalHolat, type JurnalIsh, type JurnalQator, type Kiritma, type Rejim, type ZamenaBoglanish } from '../../lib/fakt-jurnal';
+import { JURNAL_XATO_MATN, bolimMaxraji, bolimSummalari, bolimTarkibi, jurnalQur, kiritmaSoni, ochiqBor, qoldiqUlushi, type BolimSumma, type JurnalBolim, type JurnalHolat, type JurnalIsh, type JurnalQator, type Kiritma, type Rejim, type ZamenaBoglanish } from '../../lib/fakt-jurnal';
 import { zamenaBoglanishOl } from '../../lib/fakt-zamena-boglanish';
 import { tuzatishBoglanishlari } from '../../lib/smeta-anatomiya/tuzatish';
 import { almashtirildiMatn, ochiqdanOrtiqcha, ochiqQoldiq } from '../../lib/zamena-qoldiq';
@@ -130,6 +130,9 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   const ishAlmashtir = (id: number) => setTeskari((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const [yopiqBolim, setYopiqBolim] = useState<Set<number>>(new Set());
   const [saqlangan, setSaqlangan] = useState<Set<number>>(new Set());
+  /* «Saqlandi» belgisini olib tashlovchi taymer: unmount da bekor qilinadi (aks holda kech setState teardown dan keyin ishlaydi). */
+  const saqlanganTaymer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (saqlanganTaymer.current) clearTimeout(saqlanganTaymer.current); }, []);
   const [modal, setModal] = useState<{ rejim: AbcRejim; tahrir?: AbcTahrir | null; normativId?: string | null } | null>(null);
   const rowById = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows]);
   /**
@@ -175,7 +178,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
     } else toast('Bu resurs qo‘shilgan ish ichida — ishning o‘zini tahrirlang.', 'warn');
   };
   const ochir = async (q: JurnalQator) => {
-    const sabab = window.prompt(`«${q.nom}» o‘chirilsinmi? ${q.zamena ? 'Asl qator qaytadi.' : 'Ish va uning resurslari, fakti o‘chiriladi (arxivda qoladi).'}\nSabab (ixtiyoriy):`, '');
+    const sabab = await matnSora({ matn: `«${q.nom}» o‘chirilsinmi? ${q.zamena ? 'Asl qator qaytadi.' : 'Ish va uning resurslari, fakti o‘chiriladi (arxivda qoladi).'}`, yorliq: 'Sabab (ixtiyoriy):', tasdiqMatni: 'O‘chirish', xavfli: true });
     if (sabab === null) return;
     const r = await ishAbcOchir({ kompaniyaId, obyektId, qatorId: q.id, sabab: sabab || undefined, operationId: yangiOperationId() });
     if (!r.ok) { toast(abcXato(r), 'danger'); return; }
@@ -459,7 +462,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   const { band, saqla, saqlaKlav, ishda: ishdaRef } = useFaktSaqlash({
     obyektId, sana, kiritmalar, paket, faktlar, smetalar, ozgarishSoni, holatniYangila, tozala, qoralamaYozDarhol, qoralamaTozala, fokusgaOt: (id) => fokusgaOt(id),
     qatorOl: (id) => barchaById.get(id), izoh: `Fakt jurnali: ${paket.qatorlar.length} qator`,
-    onSaqlandi: (ids) => { setSaqlangan(ids); setTimeout(() => setSaqlangan(new Set()), 2500); },
+    onSaqlandi: (ids) => { setSaqlangan(ids); if (saqlanganTaymer.current) clearTimeout(saqlanganTaymer.current); saqlanganTaymer.current = setTimeout(() => setSaqlangan(new Set()), 2500); },
   });
   // Saqlanmagan kiritma bor — yangi versiya chiqsa sahifa avtomatik yangilanmaydi (banner qoralama saqlanganini aytadi).
   useSaqlanmaganHimoya('fakt-jurnal', ozgarishSoni);
@@ -1013,7 +1016,7 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
   </div> : null;
 
   const tanlanganBolim = bolimlar.find((b) => b.id === bolimId);
-  const obyektUlushi = useMemo(() => obyektUlushiHisobla(bolimlar, (id) => summalar.get(id)?.smeta.ustamasiz), [bolimlar, summalar]);
+  const obyektUlushi = useMemo(() => obyektUlushiHisobla(bolimlar, (id) => bolimMaxraji(summalar.get(id))), [bolimlar, summalar]);
   const xulosa = useMemo(() => jurnalXulosa(bolimlar, bolimIshlari), [bolimlar, bolimIshlari]);
   const bolimKorinadi = (b: (typeof bolimlar)[number]) => { let p = b.otaId; while (p != null) { if (yopiqBolim.has(p)) return false; p = bolimlar.find((x) => x.id === p)?.otaId ?? null; } return true; };
   const bolaliBolim = useMemo(() => new Set(bolimlar.map((b) => b.otaId).filter((x): x is number => x != null)), [bolimlar]);

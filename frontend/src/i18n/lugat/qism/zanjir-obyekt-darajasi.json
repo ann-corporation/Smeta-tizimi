@@ -1,0 +1,12 @@
+{
+  "Oxirgi faollik oyi": { "ru": "Последний активный месяц", "en": "Last active month" },
+  "Bu oyda yo‘q · jami {n} ta tasdiqlangan F-2 (oxirgisi {oy})": { "ru": "В этом месяце нет · всего утверждённых Ф-2: {n} (последний {oy})", "en": "None this month · {n} approved F-2 in total (latest {oy})" },
+  "Bu oyda yo‘q · jami {n} ta tasdiqlangan F-2": { "ru": "В этом месяце нет · всего утверждённых Ф-2: {n}", "en": "None this month · {n} approved F-2 in total" },
+  "{n} ta fakt qoralamada · {m} ta saqlangan": { "ru": "{n} факт(ов) в черновике · {m} сохранено", "en": "{n} fact drafts · {m} saved" },
+  "Hali АОСР yo‘q": { "ru": "АОСР ещё нет", "en": "No АОСР yet" },
+  "{j} ta АОСР, {b} tasi ishga bog‘lanmagan": { "ru": "АОСР: {j}, не привязано к работам: {b}", "en": "{j} АОСР, {b} not linked to works" },
+  "АОСР ni bog‘lang": { "ru": "Привяжите АОСР", "en": "Link АОСР" },
+  "{j} ta АОСР, hammasi ishga bog‘langan": { "ru": "АОСР: {j}, все привязаны к работам", "en": "{j} АОСР, all linked to works" },
+  "Shartnoma bo‘yicha Forma 3 tuzilgan": { "ru": "Форма 3 по договору составлена", "en": "Form 3 issued for the contract" },
+  " · {m} ta tasdiqlangan F-2": { "ru": " · утверждённых Ф-2: {m}", "en": " · {m} approved F-2" }
+}

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Plus, Undo2, X } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
 import { yangiOperationId } from '../../api/supabase';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { buxJurnalOl, buxQolda, buxStorno, buxXato, type BuxHisob, type BuxJurnal } from '../../api/t2-bux-hisob';
-import { MANBA_NOM } from '../../lib/buxgalteriya/hisob';
+import { MANBA_NOM, manbaYol } from '../../lib/buxgalteriya/hisob';
 import { sonOl } from '../../lib/qarzdorlik/parse';
 import { Izoh, Son, XatoQator } from './umumiy';
 import { DT_IZOH, KT_IZOH, bugun, ddmmyyyy, kirit, td, th, yorliq, type Davr } from './yordamchi';
@@ -37,6 +38,7 @@ export function Jurnal({ kid, davr, versiya, hisoblar, hisob, onHisob, onOzgardi
     <div className="space-y-3">
       <XatoQator xato={xato} />
       <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[13px] font-semibold">{t('Provodkalar jurnali (журнал проводок)')}</span>
         <select aria-label={t('Hisob bo‘yicha filtr')} className={`${kirit} w-64`} value={hisob} onChange={(e) => onHisob(e.target.value)}>
           <option value="">{t('Hamma hisoblar')}</option>
           {hisoblar.map((h) => <option key={h.kod} value={h.kod}>{h.kod} · {h.nom_uz}</option>)}
@@ -59,7 +61,7 @@ export function Jurnal({ kid, davr, versiya, hisoblar, hisob, onHisob, onOzgardi
                 <td className={td}>{ddmmyyyy(p.sana)}</td><td className={td}>{p.dt}</td><td className={td}>{p.kt}</td>
                 <td className={`${td} text-right`}><Son v={p.summa} /></td>
                 <td className={td}>{p.kontragent ?? '—'}</td>
-                <td className={td}>{p.hujjat ?? p.izoh ?? '—'} <span className="text-[10.5px] text-text-mute">{MANBA_NOM[p.manba_tur] ? t(MANBA_NOM[p.manba_tur]) : p.manba_tur}</span></td>
+                <td className={td}>{manbaYol(p.manba_tur) ? <Link to={manbaYol(p.manba_tur) as string} className="text-accent underline" title={t('Hujjatga o‘tish')}>{p.hujjat ?? p.izoh ?? '—'}</Link> : (p.hujjat ?? p.izoh ?? '—')} <span className="text-[10.5px] text-text-mute">{MANBA_NOM[p.manba_tur] ? t(MANBA_NOM[p.manba_tur]) : p.manba_tur}</span></td>
                 <td className={td}>{TUR_NOM[p.tur]?.() ?? p.tur}</td>
                 <td className={td}>{yozadi && p.tur === 'qolda' && <button type="button" className="fz-btn" title={t('Teskari yozuv (storno) yozadi')} onClick={() => void storno(p.id)}><Undo2 size={12} /> {t('Storno')}</button>}</td>
               </tr>

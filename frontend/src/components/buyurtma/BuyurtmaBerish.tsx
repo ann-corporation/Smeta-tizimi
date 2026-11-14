@@ -56,7 +56,7 @@ export function BuyurtmaBerish({ kompaniyaId, zayavka, yetkazuvchilar, onYop, on
       <p className="text-[13px] text-text-dim"><b>{zayavka.itemText}</b></p>
       {yoq ? (
         <section className="fz-note" role="alert">
-          <span>{t('Yetkazuvchi tizimga ulanmagan — taklif yuboring')}. <Link to="/admin/aloqalar" className="underline">{t('Taklif yuborish')}</Link></span>
+          <span>{t('Yetkazuvchi tizimga ulanmagan — taklif yuboring')}. <Link to="/admin/kontragentlar?tab=aloqa" className="underline">{t('Taklif yuborish')}</Link></span>
         </section>
       ) : (<>
         <OpsMaydon nom={t('Yetkazuvchi')} majburiy>

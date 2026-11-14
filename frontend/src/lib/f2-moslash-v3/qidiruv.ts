@@ -4,6 +4,8 @@
  * - lotin/kirill ko'rinishi bir xil harflar tenglashtiriladi (operator ko'pincha lotinda yozadi, smeta kirillda);
  * - kod, nom va birlik bo'yicha. Qidiruv faqat ko'rinishni o'zgartiradi — hech qanday bog'lanishni emas.
  */
+import { lugatKengaytir } from '../qurilish-lugat';
+
 const LOTIN_KIRILL: Record<string, string> = {
   A: 'А', B: 'В', C: 'С', E: 'Е', H: 'Н', K: 'К', M: 'М', O: 'О', P: 'Р', T: 'Т', X: 'Х', Y: 'У', Ё: 'Е',
 };
@@ -36,7 +38,8 @@ export function qidiruvMoslagich(q: string): ((matn: string) => boolean) | null 
   const n = qidiruvNormal(q);
   if (n.length < 2) return null;
   // Har so'z uchun variantlar: ko'rinishi bir xil harflar (B25 → В25) va lotin transliteratsiyasi (beton → БЕТОН).
-  const sozlar = q.toUpperCase().split(/\s+/).filter(Boolean).map((w) => [...new Set([qidiruvNormal(w), translit(w)])]);
+  // + yagona qurilish lug'ati: «g'isht» → КИРПИЧ, КЛАДК (o'zbekcha/ruscha ish so'zlari ↔ smeta tili).
+  const sozlar = q.toUpperCase().split(/\s+/).filter(Boolean).map((w) => [...new Set([qidiruvNormal(w), translit(w), ...lugatKengaytir(w).map(qidiruvNormal)])]);
   return (matn: string) => {
     const m = qidiruvNormal(matn);
     return sozlar.every((v) => v.some((s) => m.includes(s)));

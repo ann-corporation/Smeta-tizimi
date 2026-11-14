@@ -7,7 +7,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as RKe
 import { createPortal } from 'react-dom';
 import {
   Building2, ClipboardCheck, ClipboardList, CreditCard, FileSignature, FileText, FolderKanban, Gauge, HardHat, History,
-  Layers, ListTree, Lock, Plus, Sigma, Truck, Upload, UserCog, UserPlus, Users, Warehouse, type LucideIcon,
+  Layers, Link2, ListTree, Lock, Pencil, Plus, Sigma, Truck, Unlink, Upload, UserCog, UserPlus, Users, Warehouse, type LucideIcon,
 } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { menyuJoyi, type Amal, type AmalIkon } from '../../lib/mindmap-amallar';
@@ -21,7 +21,7 @@ const IKON: Record<AmalIkon, LucideIcon> = {
   gauge: Gauge, fakt: ClipboardList, f2: FileSignature, tarix: History, jamlanma: Sigma, yuklash: Upload, zayavka: FileText,
   yangi: Plus, masul: UserPlus, vazifa: ClipboardCheck, royxat: ListTree, loyiha: FolderKanban, hujjat: Layers,
   shartnoma: FileSignature, tolov: CreditCard, sklad: Warehouse, odamlar: Users, rol: UserCog, kontragent: Building2,
-  texnika: Truck, kadr: HardHat,
+  texnika: Truck, kadr: HardHat, ulash: Link2, uzish: Unlink, nomlash: Pencil,
 };
 
 export type MenyuHolati = { nishonNom: string; amallar: Amal[]; x: number; y: number };

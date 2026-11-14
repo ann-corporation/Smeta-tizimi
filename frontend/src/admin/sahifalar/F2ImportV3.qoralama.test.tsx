@@ -49,6 +49,8 @@ async function start() {
 describe('F2 independent working draft', () => {
   it('restores a committed correction after tree refresh failure without losing source or other decisions', async () => {
     await start();
+    await waitFor(() => expect(m.match).toHaveBeenCalledTimes(1)); // avto-moslash fayl tanlanganda bir marta
+    m.match.mockClear();
     m.tree.mockRejectedValueOnce(new Error('refresh failed'));
     fireEvent.click(screen.getByRole('button',{name:'Tuzatish natijasini qo‘llash'}));
     await screen.findByText('refresh failed');
@@ -68,9 +70,10 @@ describe('F2 independent working draft', () => {
     await screen.findByText('Bu obyekt va oy uchun F2 akt allaqachon bor. Bog‘lashni davom ettirishingiz mumkin — faqat yangi akt saqlanmaydi.');
     // Raqamsiz akt shu oyda bor — dublikat paneli ham (A-15) bloklaydi; har ikki havola yangi oynada ochiladi.
     for (const l of screen.getAllByRole('link',{name:'Mavjud F2 tarixini boshqa oynada ochish'})) expect(l.getAttribute('target')).toBe('_blank');
-    const button=screen.getByRole('button',{name:'Mos qatorlarni bog‘lash'}) as HTMLButtonElement;
-    expect(button.disabled).toBe(false); fireEvent.click(button);
+    // Avto-moslash fayl tanlanganda o'zi ishlaydi (mavjud F2 uni to'smaydi); qayta bog'lash tugmasi ochiq qoladi.
     await waitFor(() => expect(m.match).toHaveBeenCalledTimes(1));
+    const button=screen.getByRole('button',{name:'Mos qatorlarni bog‘lash'}) as HTMLButtonElement;
+    expect(button.disabled).toBe(false);
     expect((screen.getByRole('button',{name:/F2 ni yozish/}) as HTMLButtonElement).disabled).toBe(true);
     expect(m.create).not.toHaveBeenCalled();
     expect(screen.getByText('Qo‘lda bog‘lanish: 7')).toBeTruthy();
@@ -85,7 +88,7 @@ describe('F2 independent working draft', () => {
     fireEvent.click(screen.getByRole('button',{name:'Qayta tekshirish'}));
     await waitFor(()=>expect((screen.getByRole('button',{name:'Mos qatorlarni bog‘lash'}) as HTMLButtonElement).disabled).toBe(false));
     expect(screen.getByText('Qo‘lda bog‘lanish: 7')).toBeTruthy();
-    expect(m.match).not.toHaveBeenCalled(); expect(m.create).not.toHaveBeenCalled();
+    expect(m.match).toHaveBeenCalledTimes(1); expect(m.create).not.toHaveBeenCalled(); // faqat avto-moslash; qayta tekshirish qayta moslamaydi
   });
 
   it('undo (button and Ctrl+Z) reverts the last local linking decision without any server write', async () => {
@@ -101,14 +104,28 @@ describe('F2 independent working draft', () => {
     expect(m.create).not.toHaveBeenCalled(); expect(m.update).not.toHaveBeenCalled();
   });
 
-  it('selection never links; explicit button preserves manual decisions', async () => {
+  it('file selection auto-matches confident lines and shows a short «Tekshiring» list; manual decisions survive; nothing is written', async () => {
     await start();
-    expect(m.match).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Mos qatorlarni bog‘lash' }));
     await waitFor(() => expect(m.match).toHaveBeenCalledTimes(1));
-    expect(m.match.mock.calls[0][2].ishBog.get('plus')).toBe(7);
+    expect(await screen.findByText('Qo‘lda bog‘lanish: 7')).toBeTruthy(); // avto-moslash qo'lda qarorni bosmaydi
+    expect(m.create).not.toHaveBeenCalled(); expect(m.update).not.toHaveBeenCalled(); expect(m.cloudSave).not.toHaveBeenCalled();
+    // Dvigatel hech narsa topmadi — qatorlar ✕: «Tekshiring» ro'yxati yoki «hammasi ✓» xabari chiqadi (tugunlar mustaqil resurs).
+    expect(screen.getByTestId('f2-tekshiring')).toBeTruthy();
+    // Qayta bog'lash tugmasi ochiq: qo'lda qarorni saqlaydi.
+    fireEvent.click(screen.getByRole('button', { name: 'Mos qatorlarni bog‘lash' }));
+    await waitFor(() => expect(m.match).toHaveBeenCalledTimes(2));
+    expect(m.match.mock.calls[1][2].ishBog.get('plus')).toBe(7);
     expect(await screen.findByText('Qo‘lda bog‘lanish: 7')).toBeTruthy();
     expect(m.create).not.toHaveBeenCalled();
+  });
+
+  it('avto-bog‘lanishni operator Orqaga bilan qaytara oladi (serverga hech narsa yozilmaydi)', async () => {
+    m.match.mockResolvedValue({ natijalar: new Map([['minus', { qatorId: 7, holat: 'aniq', usul: 'kod' }]]), rzDiag: [], stat: { aniq: 1, xotira: 0, taklif: 0, topilmadi: 1 } });
+    await start();
+    await waitFor(() => expect(m.match).toHaveBeenCalledTimes(1));
+    const orqaga = await screen.findByRole('button', { name: /Orqaga/ });
+    expect(m.create).not.toHaveBeenCalled(); expect(m.update).not.toHaveBeenCalled();
+    expect(orqaga).toBeTruthy();
   });
 
   async function restored(yozishOchiq = true) {
@@ -294,11 +311,13 @@ describe('F2 independent working draft', () => {
     expect(saved!.aktlar[0].daraxt[0].hajm).toBe(-10);
     expect(saved!.source.blob.size).toBe(8);
     expect(m.create).not.toHaveBeenCalled();
+    await waitFor(() => expect(m.match).toHaveBeenCalledTimes(1)); // faqat birinchi yuklashdagi avto-moslash
+    m.match.mockClear();
     cleanup(); render(<F2ImportV3 />);
     fireEvent.click(await screen.findByRole('button', { name: /Saqlangan ishni davom ettirish/ }));
     await screen.findByText('Qo‘lda bog‘lanish: 7');
     await waitFor(() => expect((screen.getByRole('button', { name: /F2 ni yozish/ }) as HTMLButtonElement).disabled).toBe(false));
-    expect(m.parse).toHaveBeenCalledTimes(1); expect(m.match).not.toHaveBeenCalled();
+    expect(m.parse).toHaveBeenCalledTimes(1); expect(m.match).not.toHaveBeenCalled(); // tiklashda qayta moslanmaydi
     expect(m.tree).toHaveBeenCalledTimes(2);
   });
 

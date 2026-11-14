@@ -1,0 +1,11 @@
+{
+  "sana": "2026-11-14",
+  "sarlavha": "Smeta yuklash: 5 qadamli yo‘l — fayl, tekshiruv, ko‘rib chiqish, import, natija",
+  "bandlar": [
+    "Yuklashdan oldin jami ko‘rinadi: resurslar yig‘indisi (ustamasiz), QQS bilan jami, faylda ustama podvali topildimi, shifrsiz qatorlar va narxsiz resurslar ro‘yxati.",
+    "Narx faylning o‘z RES varag‘ida bo‘lsa, ko‘rib chiqishda u hisobga olinadi — endi «narx yo‘q» deb noto‘g‘ri ogohlantirmaydi.",
+    "Ish va hajm varag‘i topilmasa, ekran qotib qolmaydi: sabab, varaqlar ro‘yxati va «Boshqa fayl tanlash» chiqadi.",
+    "Xatolar oddiy tilda (internet uzildi, fayl juda katta, parol bilan himoyalangan); yuklash vaqtida «To‘xtatish» tugmasi bor.",
+    "Natijada keyingi qadam aytiladi: narxsiz resurs qolsa — narxlash, so‘ng fakt."
+  ]
+}

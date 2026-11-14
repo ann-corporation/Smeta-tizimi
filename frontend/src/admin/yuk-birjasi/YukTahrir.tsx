@@ -14,7 +14,10 @@ import { nuqtaOqi, TOLOV_SHAKLI_NOM, YUK_TURI_NOM } from './yuk-ui';
 const son = (v: string): number | null => { const n = Number(v.replace(',', '.')); return v.trim() !== '' && Number.isFinite(n) && n > 0 ? n : null; };
 const bugunISO = () => new Date().toISOString().slice(0, 10);
 
-export function YukTahrir({ ochiq, kompaniyaId, onYop, onSaqlandi }: { ochiq: boolean; kompaniyaId: number; onYop: () => void; onSaqlandi: (id: number) => void }) {
+/** Buyurtmadan transport so'ralganda oldindan to'ldiriladigan maydonlar (yetkazuvchi: «Transport so'rash»). */
+export type YukBoshlang = { nom?: string; aNom?: string; bNom?: string; tonna?: string; izoh?: string };
+
+export function YukTahrir({ ochiq, kompaniyaId, onYop, onSaqlandi, boshlang }: { ochiq: boolean; kompaniyaId: number; onYop: () => void; onSaqlandi: (id: number) => void; boshlang?: YukBoshlang }) {
   const [nom, setNom] = useState('');
   const [yukTuri, setYukTuri] = useState<YukTuri>('sochma');
   const [aNom, setANom] = useState('');
@@ -37,6 +40,15 @@ export function YukTahrir({ ochiq, kompaniyaId, onYop, onSaqlandi }: { ochiq: bo
   const [band, setBand] = useState(false);
   const [masofaBand, setMasofaBand] = useState(false);
   const op = useRef(yangiOperationId());
+
+  useEffect(() => {
+    if (!ochiq || !boshlang) return;
+    if (boshlang.nom) setNom(boshlang.nom);
+    if (boshlang.aNom) setANom(boshlang.aNom);
+    if (boshlang.bNom) setBNom(boshlang.bNom);
+    if (boshlang.tonna) setTonna(boshlang.tonna);
+    if (boshlang.izoh) setIzoh(boshlang.izoh);
+  }, [ochiq, boshlang]);
 
   useEffect(() => {
     if (!ochiq) return;

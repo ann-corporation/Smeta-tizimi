@@ -30,7 +30,7 @@ import { saqlanmaganIsh } from '../../_shared/versiya';
 import { t, t as tarj } from '../../i18n/til';
 import { almashtirildiMatn, qoralamaAlmashtirilgan } from '../../lib/zamena-qoldiq';
 import { qatorBajarilish } from '../../lib/f2-hujjat-korinish';
-import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { matnSora, tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { F2Oyna } from './F2Oyna';
 
 /**
@@ -282,6 +282,8 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   // ── Qo'shilgan qatorlar (qo'shimcha/zamena): TAHRIRLASH va O'CHIRISH. Asl smeta qatorlari — o'zgarmas (server ham rad etadi). ──
   const [abc, setAbc] = useState<{ rejim: AbcRejim; tahrir: AbcTahrir; eskiIdlar: number[]; rejali?: boolean; saqlash?: Parameters<typeof IshAbcModal>[0]['saqlash'] } | null>(null);
   const mutationLock = useRef(false);
+  /** Sabab dialogi ochiq paytda qayta bosish ikkinchi dialog/yozuv ochmasin (dialog asinxron — oldingi bloklovchi prompt buni o'zi ta'minlagan). */
+  const ochirDialogOchiq = useRef(false);
   const mutationOps = useRef(new Map<string, string>());
   const [mutationBusy, setMutationBusy] = useState(false);
   const zamenaAsl = p.zamenaAsl ?? BOSH_XARITA;
@@ -339,12 +341,14 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     } else xab('Bu resurs siz qo‘shgan ish ichida — ishning o‘zini tahrirlang.');
   }
   async function qoshilganOchir(id: number) {
-    if (p.disabled || mutationLock.current) return;
+    if (p.disabled || mutationLock.current || ochirDialogOchiq.current) return;
     if (id < 0) { p.onRejaliOchir?.(id); xab('Saqlanmagan qator qoralamadan olib tashlandi.'); return; }
     const r = p.raw.get(id);
     if (!r || !qoshilganmi(r)) { xab('Bu qator smetadan — o‘chirilmaydi. Faqat siz qo‘shgan qatorlar o‘chiriladi.'); return; }
-    const sabab = window.prompt(`«${r.nom ?? ''}» o‘chirilsinmi? ${r.zamena ? 'Zamena bekor bo‘ladi, smetaning asl qatori qoladi.' : r.tur === 'rz' ? 'Bo‘lim va uning ichidagi barcha qatorlar o‘chiriladi (arxivda saqlanadi).' : 'Qator va uning resurslari o‘chiriladi (arxivda saqlanadi).'} Unga bog‘langan F2 qatorlari qayta bog‘lash uchun bo‘shaydi. Smetadagi qator summasi: ${r.summa == null ? 'noma’lum' : fmt(r.summa, 2)}.\nSabab (ixtiyoriy):`, '');
-    if (sabab === null) return;
+    ochirDialogOchiq.current = true;
+    const sabab = await matnSora({ tasdiqMatni: 'O‘chirish', xavfli: true, yorliq: 'Sabab (ixtiyoriy):', matn: `«${r.nom ?? ''}» o‘chirilsinmi? ${r.zamena ? 'Zamena bekor bo‘ladi, smetaning asl qatori qoladi.' : r.tur === 'rz' ? 'Bo‘lim va uning ichidagi barcha qatorlar o‘chiriladi (arxivda saqlanadi).' : 'Qator va uning resurslari o‘chiriladi (arxivda saqlanadi).'} Unga bog‘langan F2 qatorlari qayta bog‘lash uchun bo‘shaydi. Smetadagi qator summasi: ${r.summa == null ? 'noma’lum' : fmt(r.summa, 2)}.` });
+    ochirDialogOchiq.current = false;
+    if (sabab === null || mutationLock.current) return;
     const eskiIdlar = pastdagiIdlar(id);
     if (p.onOchirishRejali) {
       p.onOchirishRejali({ qatorId: id, versiya: r.versiya, eskiIdlar, nom: r.nom ?? '', sabab: sabab || 'F2 import: xato qo‘shilgan' });
@@ -666,7 +670,7 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
   async function resursOrnigaIsh(f0: F2Tugun, s: SmetaQator) {
     const hajm = Number(f0.hajm);
     if (!Number.isFinite(hajm) || hajm === 0) { xab('F2 ishining hajmi bo‘sh yoki 0 — avval hujjatdagi hajmni tekshiring.'); return; }
-    const sabab = window.prompt(`«${s.nom ?? ''}» o‘rniga «${f0.nom}» ishi yoziladi (resurs o‘zi o‘zgarmaydi).\nSabab:`, 'Material buyurtmachidan (masalan karyer) — o‘rniga ish bajarilgan');
+    const sabab = await matnSora({ matn: `«${s.nom ?? ''}» o‘rniga «${f0.nom}» ishi yoziladi (resurs o‘zi o‘zgarmaydi).`, yorliq: 'Sabab:', boshlangich: 'Material buyurtmachidan (masalan karyer) — o‘rniga ish bajarilgan', majburiy: true });
     if (sabab === null || !sabab.trim()) return;
     // Boshqa joyga bog'langan resurslar o'z bog'lanishini saqlaydi; ish ostida va bog'lashda — bir xil ro'yxat (tartib mos).
     const f: F2Tugun = { ...f0, bolalar: otadigan(f0).filter((r) => Number.isFinite(Number(r.hajm)) && Number(r.hajm) !== 0) };
@@ -980,9 +984,9 @@ export function F2V3Workbench(p: F2V3WorkbenchProps) {
     oxirgiSBelgi.current = id;
   }
   /** Yangi bo'lim (qoralamaga): ota null — smetaning yuqori darajasi; keyin — shu darajadagi bo'limdan keyin. */
-  function yangiBolim(ota: SmetaQator | null, keyin?: SmetaQator) {
+  async function yangiBolim(ota: SmetaQator | null, keyin?: SmetaQator) {
     if (!p.onBolimRejali || p.disabled || mutationBusy) return;
-    const nom = window.prompt(ota ? `«${(ota.nom ?? '').slice(0, 60)}» ${tarj('ichida yangi bo‘lim nomi:')}` : tarj('Yangi bo‘lim nomi:'), '');
+    const nom = await matnSora({ matn: ota ? `«${(ota.nom ?? '').slice(0, 60)}» ${tarj('ichida yangi bo‘lim nomi:')}` : tarj('Yangi bo‘lim nomi:'), kopQator: false, tasdiqMatni: 'Qo‘shish' });
     if (nom == null) return;
     const id = p.onBolimRejali(nom, ota?.id ?? null, keyin?.id);
     if (id == null) { xab(tarj('Bo‘lim nomini yozing (1–300 belgi).')); return; }

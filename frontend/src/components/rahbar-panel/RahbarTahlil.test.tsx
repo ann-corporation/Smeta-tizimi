@@ -58,6 +58,6 @@ describe('Excel eksport', () => {
     expect(qator('Сдано заказчику (утверждённые Ф2, всего)').getCell(2).value).toBe(112);
     const ob = wb.getWorksheet('Объекты')!;
     expect(ob.getRow(1).getCell(8).value).toBe('Факт, с НДС');
-  });
+  }, 60_000);   // exceljs dinamik importi + xlsx yozish/o'qish yuklangan CI da sekin: aniq yuqori chegara (standart 5 s emas)
 });
 

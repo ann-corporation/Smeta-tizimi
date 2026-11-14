@@ -21,9 +21,9 @@ describe('F2 tasdiqlash rejimlari', () => {
     expect(f2QadamTugmasi('korporativ', 'approved')).toBeNull();
   });
   it('shaxsiy: bitta «Yakunlash (shaxsiy)» va natija «Tasdiqlangan» deb ko‘rsatilmaydi', () => {
-    expect(f2QadamTugmasi('shaxsiy', 'draft')).toBe('Yakunlash (shaxsiy)');
+    expect(f2QadamTugmasi('shaxsiy', 'draft')).toBe('Yakunlash (pudratchi, tasdiq emas)');
     expect(f2QadamTugmasi('shaxsiy', 'approved')).toBeNull();
-    expect(f2HolatYorligi('approved', 'shaxsiy')).toBe('Yakunlangan (shaxsiy)');
+    expect(f2HolatYorligi('approved', 'shaxsiy')).toBe('Pudratchi yakunladi (tasdiq emas)');
     expect(f2HolatYorligi('approved', 'korporativ')).toBe('Tasdiqlangan');
   });
   it('SoD rad etish kodlari tushunarli xabarga aylanadi', () => {

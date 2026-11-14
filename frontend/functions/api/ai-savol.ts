@@ -5,7 +5,7 @@ import { AI_KORSATMA, type AiUmumiy } from '../../src/api/t2-ai';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { AiByudjetXatosi, aiHisobli } from '../_shared/ai-hisobli';
 import { jarvisKichikGap, jarvisRahmatJavobi, jarvisSalomJavobi } from '../../src/lib/jarvis/intent';
-import { jarvisHelp, jarvisMoney, jarvisEvidenceAnswer } from '../../src/lib/jarvis/answers';
+import { jarvisHelp, jarvisMoney, jarvisEvidenceAnswer, jarvisGrafikJavobi } from '../../src/lib/jarvis/answers';
 
 type Env = AiEnv & {
   SESSIYA_KALIT: string;
@@ -154,6 +154,9 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     if (!kontekst?.ok) return xato(String((kontekst && 'xabar' in kontekst && (kontekst as { xabar?: string }).xabar) || 'Kontekst olinmadi'), 422);
     const exact = jarvisEvidenceAnswer(savol, kontekst);
     if (exact) return Response.json({ ok: true, agent: 'Jarvis', javob: exact, dalil: { tur: 'kompaniya', id: kompaniyaId, rpc: 't2_ai_umumiy' }, requires_approval: false, provider: 'local', model: 'evidence', ms: Date.now() - boshlandi });
+    // P6/P7: grafik / kechikish / pul oqimi savoli - sahifaga havola (raqam to'qilmaydi).
+    const grafik = jarvisGrafikJavobi(savol, kontekst);
+    if (grafik) return Response.json({ ok: true, agent: 'Jarvis', javob: grafik, dalil: { tur: 'kompaniya', id: kompaniyaId, rpc: 't2_ai_umumiy' }, requires_approval: false, provider: 'local', model: 'navigation', ms: Date.now() - boshlandi });
 
     const dalil = umumiyMatn(kontekst);
     const text = 'MA\'LUMOT (tizimdan):\n' + dalil + '\n\nSAVOL: ' + savol;

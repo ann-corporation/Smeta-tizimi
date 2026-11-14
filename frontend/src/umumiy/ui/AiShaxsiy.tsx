@@ -5,6 +5,7 @@ import { t } from '../../i18n/til';
 import { toast } from './Toast';
 import { TOIFA_NOMI } from './ai-harakat';
 import { AiUslub } from './AiUslub';
+import { AiXotira } from './AiXotira';
 
 const ISHONCH: Array<[ShaxsiySozlama['ishonch'], string, string]> = [
   ['sora', 'Har doim so‘rasin', 'Omborga yozish, grafik o‘zgartirish va eslatma ham — hammasi sizning tasdig‘ingizdan keyin.'],
@@ -13,7 +14,7 @@ const ISHONCH: Array<[ShaxsiySozlama['ishonch'], string, string]> = [
 ];
 
 /** Shaxsiy sozlamalar: AI ishchim kim, nimani ko'radi, qachon mendan so'raydi, qaysi tilda va qanday uslubda gapiradi. */
-export function AiShaxsiy({ kasb, kuzatuvYoqilgan, kuzatuvAlmashtir }: { kasb: KasbIshchi | null; kuzatuvYoqilgan: boolean; kuzatuvAlmashtir: (v: boolean) => void }) {
+export function AiShaxsiy({ kasb, kuzatuvYoqilgan, kuzatuvAlmashtir, kompaniyaId = null }: { kompaniyaId?: number | null; kasb: KasbIshchi | null; kuzatuvYoqilgan: boolean; kuzatuvAlmashtir: (v: boolean) => void }) {
   const [s, setS] = useState<ShaxsiySozlama>({ til: 'auto', uslub: 'qisqa', ishonch: 'jiddiy' });
   const [yuklandi, setYuklandi] = useState(false);
   useEffect(() => { void shaxsiyOl().then((r) => { if (r.ok) setS({ til: r.natija.til, uslub: r.natija.uslub, ishonch: r.natija.ishonch }); setYuklandi(true); }); }, []);
@@ -60,6 +61,7 @@ export function AiShaxsiy({ kasb, kuzatuvYoqilgan, kuzatuvAlmashtir }: { kasb: K
       </fieldset>
 
       <AiUslub />
+      <AiXotira kompaniyaId={kompaniyaId} />
 
       <section className="rounded-xl border border-border p-3">
         <label className="flex cursor-pointer items-start gap-2">

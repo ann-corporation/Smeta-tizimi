@@ -195,6 +195,8 @@ export function useAzolikRuxsatlari(kompaniyaId: number | null | undefined) {
 /** Faqat superadmin uchun — server rolni qayta tekshiradi. */
 export const kompaniyaYarat = (i: KompaniyaYaratInput) => post('create', i);
 export const kompaniyaRoyxatSoraw = (i: RoyxatSorawInput) => post('royxat_soraw', i);
+/** L0 2026-11-13: oddiy foydalanuvchi o'z birinchi kompaniyasini darhol ochadi (boss); STIR ixtiyoriy. */
+export const kompaniyaOziOch = (i: KompaniyaYaratInput) => post('ozi_och', i);
 export const kompaniyaRoyxatTasdiqla = (i: RoyxatTasdiqlaInput) => post('royxat_tasdiqla', i);
 export const kompaniyaRoyxatRadEt = (i: RoyxatRadEtInput) => post('royxat_rad_et', i);
 export const azoQosh = (i: MemberAddInput) => post('member_add', i);
@@ -220,6 +222,7 @@ export function useOnboardingCommands() {
   return {
     azolikRuxsatSet:useMutation({mutationFn:azolikRuxsatSet,onSuccess:done}),
     yarat: useMutation({ mutationFn: kompaniyaYarat, onSuccess: done }),
+    oziOch: useMutation({ mutationFn: kompaniyaOziOch, onSuccess: done }),
     royxatSoraw: useMutation({ mutationFn: kompaniyaRoyxatSoraw, onSuccess: () => qc.invalidateQueries({ queryKey: ['kompaniyaRoyxatlar'] }) }),
     royxatTasdiqla: useMutation({ mutationFn: kompaniyaRoyxatTasdiqla, onSuccess: royxatDone }),
     royxatRadEt: useMutation({ mutationFn: kompaniyaRoyxatRadEt, onSuccess: () => qc.invalidateQueries({ queryKey: ['kompaniyaRoyxatlar'] }) }),

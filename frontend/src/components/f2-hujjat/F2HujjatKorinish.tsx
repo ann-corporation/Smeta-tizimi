@@ -38,7 +38,7 @@ const STAMP: Record<PtoLifecycleStatus, string> = {
 
 function Yol({ status, rejim, kim, sana }: { status: PtoLifecycleStatus; rejim: F2TasdiqRejimi; kim?: string | null; sana?: string | null }) {
   const qadamlar: { id: string; nom: string }[] = rejim === 'shaxsiy'
-    ? [{ id: 'draft', nom: 'Qoralama' }, { id: 'approved', nom: 'Yakunlangan (shaxsiy)' }]
+    ? [{ id: 'draft', nom: 'Qoralama' }, { id: 'approved', nom: 'Pudratchi yakunladi (tasdiq emas)' }]
     : [{ id: 'draft', nom: 'Qoralama' }, { id: 'submitted', nom: 'Tekshirishga yuborilgan' }, { id: 'checked', nom: 'Tekshirilgan' }, { id: 'approved', nom: 'Tasdiqlangan' }];
   const tartib = rejim === 'shaxsiy' ? ['draft', 'approved'] : ['draft', 'submitted', 'checked', 'approved'];
   const yomon = status === 'rejected' || status === 'cancelled';

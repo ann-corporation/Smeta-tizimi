@@ -98,6 +98,8 @@ export function bolimBarglari<T extends { id: number; tur: string; bolalar: read
 export function bolimJamilari(
   qatorlar: ReadonlyArray<{ id: number; ota_id?: number | null; tur?: string | null; hajm?: number | null; narx?: number | null }>,
   faktHajm: (id: number) => number | null, svod: SvodYaxlit | null | undefined,
+  /** Qator fakt summasi (QQS siz) — berilsa hajm × narx o'rniga shu (masalan F2 narxidagi fakt, `faktSummaF2Narxda`). null — noma'lum. */
+  faktSumma?: (id: number, narx: number) => number | null,
 ): Map<number, { qqssiz: number; svodSumma: number | null; smeta: number; fakt: number; faktNomalum: number }> {
   const out = new Map<number, { qqssiz: number; svodSumma: number | null; smeta: number; fakt: number; faktNomalum: number }>();
   for (const b of svod?.bolimlar ?? []) {
@@ -109,11 +111,32 @@ export function bolimJamilari(
       smeta += (q.hajm ?? 0) * q.narx;
       // Fakt noma'lum — 0 emas: faqat ma'lum qatorlar yig'iladi, noma'lumlar soni qaytariladi (diqqat uchun).
       const fh = faktHajm(q.id);
-      if (fh == null) faktNomalum++; else fakt += fh * q.narx;
+      const fs = fh == null ? null : faktSumma ? faktSumma(q.id, q.narx) : fh * q.narx;
+      if (fs == null) faktNomalum++; else fakt += fs;
     }
     out.set(Number(b.qator_id), { qqssiz: Number(b.qqssiz), svodSumma: b.svod_summa == null ? null : Number(b.svod_summa), smeta: r2(smeta), fakt: r2(fakt), faktNomalum });
   }
   return out;
+}
+/**
+ * SVOD BO'LIMIDA FAKT — YAGONA QOIDA (egasi: «F-2 bor qatorda fakt F-2 narxida»; server _t2_summa_agg_v1('fakt') bilan aynan):
+ * fakt F-2 bilan BIR XIL usulda — ЧЕЛ/МАШ oddiy kategoriya (ustama kaskadi), qolgan svod qatorlari to'g'ri narx × (1+QQS);
+ * fakt svod summasiga TAQSIMLANMAYDI (eski «svod × fakt / smeta» bekor). Barcha sahifa/eksport/AI/MCP shu opsiyalardan foydalanadi.
+ */
+export const SVOD_FAKT_REJIMI = { masshtab: false, f2: true } as const;
+export function svodFaktKesimi<T>(
+  daraxt: ReadonlyArray<{ id: number; ota_id?: number | null }>, barglar: readonly T[],
+  f: Parameters<typeof svodKorinishKesimi<T>>[2], svod: SvodYaxlit | null | undefined,
+  o: Omit<NonNullable<Parameters<typeof svodKorinishKesimi<T>>[4]>, 'masshtab' | 'f2' | 'qoldiqF2'> = {},
+): Kesim {
+  return svodKorinishKesimi(daraxt, barglar, f, svod, { ...o, ...SVOD_FAKT_REJIMI });
+}
+/**
+ * SVOD BO'LIMI QOLDIG'I (QQS siz) = smeta (yaxlit) − fakt: fakt bo'lim barglari bo'yicha to'g'ri narxda (taqsimsiz, svodFaktKesimi
+ * bilan bir qoida); noma'lum fakt yig'ilmaydi (alohida son). Yaxlit noma'lum — null.
+ */
+export function svodQoldigi(yaxlitQqssiz: number | null | undefined, faktJami: number | null | undefined): number | null {
+  return yaxlitQqssiz == null || !Number.isFinite(yaxlitQqssiz) || faktJami == null || !Number.isFinite(faktJami) ? null : r2(yaxlitQqssiz - faktJami);
 }
 /**
  * EKRAN kesimi (eksport bilan bir model, egasi qoidasi): oddiy barglar — kategoriya kesimi; svod bo'limi barglari —

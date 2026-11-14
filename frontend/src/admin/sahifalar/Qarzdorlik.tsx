@@ -1,5 +1,6 @@
 import { t } from '../../i18n/til';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ChevronDown, ChevronRight, Download, FileUp, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
@@ -13,6 +14,7 @@ import { ASOS_TURLAR, qarzHisobla, qatorSumma, royxatJami, type AsosQator, type 
 import { parseVaraqlar, readWorkbookGrids, sonOl, type ImportNatija } from '../../lib/qarzdorlik/parse';
 import { qarzdorlikXlsxYarat } from '../../lib/qarzdorlik/eksport';
 import { DebitorPanel } from './DebitorPanel';
+import { ZanjirChizigi } from '../components/ZanjirChizigi';
 
 const kirit = 'w-full rounded-md border border-border bg-surface px-2 py-1 text-[12.5px] text-text outline-none focus:border-accent';
 const yorliq = 'mb-1 block text-[11px] font-medium uppercase tracking-wide text-text-mute';
@@ -308,11 +310,7 @@ export function Qarzdorlik() {
     const faylNomi = `ОБОСНОВАНИЕ_ЗАДОЛЖЕННОСТИ_${new Date().toISOString().slice(0, 10)}.xlsx`;
     // Har hujjat token yechadi; bir xil mazmunni qayta yuklash bepul.
     const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'QARZDORLIK', sabab: 'Обоснование задолженности' }, () => {
-      const url = URL.createObjectURL(new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-      const a = document.createElement('a');
-      a.href = url; a.download = faylNomi;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      downloadBlob(bytes, faylNomi, undefined, { turi: 'qarzdorlik' });   // yagona yo'l: tizim imzosi + manba QR
     });
     toast(r.xabar, r.ok ? 'ok' : 'danger');
   };
@@ -332,6 +330,7 @@ export function Qarzdorlik() {
       )}
     >
       <div className="space-y-3">
+        <ZanjirChizigi joriy="tolov" />
         {xato && <p role="alert" className="text-[13px] text-danger">{xato}</p>}
         {kid != null && <DebitorPanel kid={kid} />}
         {import_ && kid && <ImportOyna kid={kid} obyektlar={royxat?.obyektlar ?? []} onYop={() => setImport(false)} onTayyor={() => { setImport(false); void yukla(); }} />}

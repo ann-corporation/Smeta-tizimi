@@ -88,6 +88,13 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       return reply('t2_forma3_shartnoma_aktlar_v1', await rpc(ctx.env, 't2_forma3_shartnoma_aktlar_v1',
         { p_shartnoma_id: shartnomaId, p_actor_id: actorId, p_davr_boshi: boshi, p_davr_oxiri: oxiri }), 'FORMA3_SHARTNOMA_AKTLAR_FAILED');
     }
+    if (amal === 'forma3-shartnoma-royxat') {
+      // P4 ESF: shartnomaning mavjud Forma 3 lari (ESF bo'limi har biri uchun ochiladi).
+      const shartnomaId = num(u.searchParams.get('shartnoma_id'));
+      if (shartnomaId == null || !Number.isInteger(shartnomaId) || shartnomaId <= 0) return Response.json({ ok: false, code: 'PARAMS' }, { status: 400 });
+      return reply('t2_forma3_shartnoma_royxat_v1', await rpc(ctx.env, 't2_forma3_shartnoma_royxat_v1',
+        { p_shartnoma_id: shartnomaId, p_actor_id: actorId }), 'FORMA3_SHARTNOMA_ROYXAT_FAILED');
+    }
     if (obyektId == null) return Response.json({ ok: false, code: 'OBYEKT_REQUIRED' }, { status: 400 });
 
     switch (amal) {
@@ -161,6 +168,26 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         return reply('t2_forma3_qoida_belgila_v1', await rpc(ctx.env, 't2_forma3_qoida_belgila_v1', {
           p_forma3_id: Number(b.forma3_id), p_actor_id: actorId, p_qoida_manba: String(b.qoida_manba), p_operation_id: opId,
         }), 'FORMA3_QOIDA_FAILED');
+      case 'shartnoma-esf-id': {
+        // P4 ESF tayyorlash: shartnomaning my3 / kapital.imv / kadastr ID maydonlari (20261215300000).
+        const turi = b.id_turi == null || b.id_turi === '' ? null : String(b.id_turi);
+        if (!Number.isInteger(Number(b.shartnoma_id)) || Number(b.shartnoma_id) <= 0 || (turi != null && !['my3', 'kapital', 'kadastr'].includes(turi)))
+          return Response.json({ ok: false, code: 'PARAMS' }, { status: 400 });
+        const s = (v: unknown) => (v == null ? null : String(v).slice(0, 64));
+        return reply('t2_shartnoma_esf_id_v1', await rpc(ctx.env, 't2_shartnoma_esf_id_v1', {
+          p_actor_id: actorId, p_shartnoma_id: Number(b.shartnoma_id), p_id_turi: turi,
+          p_my3: s(b.my3), p_kapital: s(b.kapital), p_kadastr: s(b.kadastr),
+        }), 'SHARTNOMA_ESF_ID_FAILED');
+      }
+      case 'forma3-esf-holat': {
+        const holat = b.holat == null || b.holat === '' ? null : String(b.holat);
+        if (!Number.isInteger(Number(b.forma3_id)) || Number(b.forma3_id) <= 0 || (holat != null && !['tayyor', 'yuborildi', 'qabul', 'rad'].includes(holat)))
+          return Response.json({ ok: false, code: 'PARAMS' }, { status: 400 });
+        return reply('t2_forma3_esf_holat_v1', await rpc(ctx.env, 't2_forma3_esf_holat_v1', {
+          p_actor_id: actorId, p_forma3_id: Number(b.forma3_id), p_holat: holat,
+          p_tashqi_id: b.tashqi_id == null ? null : String(b.tashqi_id).slice(0, 128),
+        }), 'FORMA3_ESF_HOLAT_FAILED');
+      }
       default:
         return Response.json({ ok: false, code: 'AMAL_INVALID', amal }, { status: 400 });
     }

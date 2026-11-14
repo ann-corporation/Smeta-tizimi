@@ -20,6 +20,7 @@ import {
 import { Bajarilish, HolatChiziq, HolatHalqa, Romb } from './belgilar';
 import { foizMatn, holatIzohi, holatNomi, pulQ } from './holat';
 import { RESURS_YOLI } from '../../lib/mindmap-yollar';
+import { takrorsizMuammolar } from '../../lib/mindmap-pult-daraxt';
 import { Avatar, JamoaPanel, MasullarBlok, OdamPanel, type MasulBoshqaruv } from './XaritaJamoa';
 import { guruhNomi as guruhNomiOl } from './jamoa-nomlar';
 import { resursNishoni, tugunNishoni, type AmalNishon } from '../../lib/mindmap-amallar';
@@ -126,6 +127,18 @@ function PulBloki({ x, pulYoq = false }: { x: XTugun; pulYoq?: boolean }) {
 }
 
 /** Ochiq signallar (server `t2_mindmap_signal_summary`): soni, kritik soni va eng og‘ir 3 tasi. `null` — manba yo‘q. */
+/** Bir xil matnli signallar bitta qatorda (×soni) — takror ko‘rinmaydi. */
+function signalGuruhlari(signallar: XTugun['topSignallar']): { matn: string; soni: number; severity: string | null }[] {
+  const m = new Map<string, { matn: string; soni: number; severity: string | null }>();
+  for (const s of signallar) {
+    const matn = (s.title ?? '').trim() || t('Nomsiz signal');
+    const k = matn.toLocaleLowerCase('uz-UZ');
+    const bor = m.get(k);
+    if (bor) bor.soni += 1; else m.set(k, { matn, soni: 1, severity: s.severity });
+  }
+  return [...m.values()];
+}
+
 function SignalBloki({ x }: { x: XTugun }) {
   if (x.signalSoni == null) {
     return <p className="text-[12px] text-text-mute">{t('Signal ma’lumoti yo‘q (server yangilanmagan).')}</p>;
@@ -135,8 +148,8 @@ function SignalBloki({ x }: { x: XTugun }) {
   return (
     <section className="space-y-1.5" aria-label={t('Ochiq signallar')} data-testid="xarita-signallar">
       <div className="fz-panel__h"><span className="inline-flex items-center gap-1.5"><ShieldAlert aria-hidden className="h-3.5 w-3.5" />{t('Ochiq signallar')}</span><span>{t('{n} ta · {k} kritik', { n: x.signalSoni, k: x.kritikSoni ?? 0 })}</span></div>
-      {x.topSignallar.map((s, i) => (
-        <div key={i} className={'fz-note ' + (SIGNAL_DARAJA[s.severity ?? ''] ?? 'fz-note--info')}><AlertTriangle aria-hidden /><span>{s.title || t('Nomsiz signal')}</span></div>
+      {signalGuruhlari(x.topSignallar).map((g) => (
+        <div key={g.matn} className={'fz-note ' + (SIGNAL_DARAJA[g.severity ?? ''] ?? 'fz-note--info')}><AlertTriangle aria-hidden /><span className="break-words">{g.matn}{g.soni > 1 ? ' ×' + g.soni : ''}</span></div>
       ))}
       {qolgan > 0 && <p className="text-[11.5px] text-text-mute">{t('Yana {n} ta signal — Tizim boshqaruv markazida.', { n: qolgan })}</p>}
     </section>
@@ -401,8 +414,8 @@ function KompaniyaPanel({ root, daraxt, onTanla, guruhNomi, onHolatFiltr, holatF
                 <button type="button" onClick={() => onTanla(o.id)} className="flex w-full items-start gap-2 rounded-[var(--radius-sm)] px-1.5 py-1 text-left hover:bg-[var(--surface-3)]">
                   <Romb holat={o.holat} olcham={8} className="mt-1.5" />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-semibold text-text">{o.nom}</span>
-                    <span className="block truncate text-[11.5px] text-text-mute">{[...o.belgilar.map((q) => q.matn), ...o.topSignallar.map((q) => q.title ?? '').filter(Boolean)].join(' · ') || (o.oshgan ? t('F2 ortiqcha') : '')}</span>
+                    <span className="block break-words text-[13px] font-semibold text-text" title={o.nom}>{o.nom}</span>
+                    <span className="line-clamp-2 break-words text-[11.5px] text-text-mute">{takrorsizMuammolar(o.belgilar, o.topSignallar).map((m) => m.matn + (m.soni > 1 ? ' ×' + m.soni : '')).join(' · ') || (o.oshgan ? t('F2 ortiqcha') : '')}</span>
                   </span>
                   <ChevronRight aria-hidden className="mt-1 h-3.5 w-3.5 text-text-mute" />
                 </button>

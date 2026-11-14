@@ -1,0 +1,7 @@
+{
+  "{oy} gacha tasdiqlangan F-2 lar asosida tayyor": { "ru": "Готово по утверждённым Ф-2 до {oy}", "en": "Ready from approved F-2 up to {oy}" },
+  "Tasdiqlangan F-2 lar asosida tayyor": { "ru": "Готово по утверждённым Ф-2", "en": "Ready from approved F-2" },
+  "Tasdiqlangan F-2 yo‘q — nakopitelniy bo‘sh": { "ru": "Утверждённых Ф-2 нет — накопительная ведомость пуста", "en": "No approved F-2 — the cumulative statement is empty" },
+  "Nakopitelniyni ko‘ring": { "ru": "Откройте накопительную ведомость", "en": "Open the cumulative statement" },
+  "Nakopitelniyni tekshiring": { "ru": "Проверьте накопительную ведомость", "en": "Check the cumulative statement" }
+}

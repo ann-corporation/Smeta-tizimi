@@ -23,7 +23,7 @@ type Bolim = 'tizim' | 'mening' | 'savat';
 type AmalParam = NonNullable<Parameters<typeof faylAmal>[2]>;
 import { R2DublikatPanel } from './R2DublikatPanel';
 import { DbHajmPanel } from './DbHajmPanel';
-import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { matnSora, tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { FAYL_TURI_NOMI, FAYL_TURI_RANG, faylTurTaqsimot } from '../../lib/fayl-korinish';
 
 const EXCEL = /spreadsheet|excel|\.xlsx?$/i;
@@ -84,18 +84,18 @@ function CompanyFileManager({ kompaniyaId }: { kompaniyaId: number }) {
       toast(muvaffaqiyat, 'ok'); setKochirish(null); void yukla(); return true;
     } finally { setBand(null); }
   };
-  const faylNomla = (f: Fayl) => {
-    const yangi = window.prompt(t('Yangi nom (bo‘sh qoldirilsa — asl nom: {asl})', { asl: f.asl_nom ?? f.nom }), f.nom);
+  const faylNomla = async (f: Fayl) => {
+    const yangi = await matnSora({ matn: t('Yangi nom (bo‘sh qoldirilsa — asl nom: {asl})', { asl: f.asl_nom ?? f.nom }), boshlangich: f.nom, kopQator: false, tasdiqMatni: 'Saqlash' });
     if (yangi == null || yangi.trim() === f.nom) return;
     void amal('nomla', { documentId: f.id, nom: yangi.trim() || null }, t('Nomi o‘zgartirildi'));
   };
-  const papkaYarat = (ota: number | null) => {
-    const nom = window.prompt(t('Yangi papka nomi'));
+  const papkaYarat = async (ota: number | null) => {
+    const nom = await matnSora({ matn: 'Yangi papka nomi', majburiy: true, kopQator: false, tasdiqMatni: 'Yaratish' });
     if (!nom?.trim()) return;
     void amal('papka_yarat', { nom: nom.trim(), otaPapkaId: ota }, t('Papka yaratildi'));
   };
-  const papkaNomla = (p: FaylPapka) => {
-    const nom = window.prompt(t('Papkaning yangi nomi'), p.nom);
+  const papkaNomla = async (p: FaylPapka) => {
+    const nom = await matnSora({ matn: 'Papkaning yangi nomi', boshlangich: p.nom, majburiy: true, kopQator: false, tasdiqMatni: 'Saqlash' });
     if (!nom?.trim() || nom.trim() === p.nom) return;
     void amal('papka_nomla', { papkaId: p.id, nom: nom.trim() }, t('Papka nomi o‘zgartirildi'));
   };

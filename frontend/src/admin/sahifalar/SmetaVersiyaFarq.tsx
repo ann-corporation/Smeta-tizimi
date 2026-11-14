@@ -5,6 +5,7 @@
  * «Da'vo ro'yxati» Excel. Smeta tushunish faqat `smeta-anatomiya` orqali; asl smeta (t2_qator) O'ZGARMAYDI.
  * Egasi qarorlari: ekspertiza kesgan, lekin qurilgan hajm — fakt, himoya qilinadi (avtomatik minus yo'q).
  */
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { AlertTriangle, Download, RefreshCw, Save, Upload } from 'lucide-react';
 import { yangiOperationId, type T2Qator } from '../../api/supabase';
@@ -19,6 +20,7 @@ import { kitobAnatomiyasi } from '../../lib/smeta-anatomiya';
 import { anatomiyadanPozitsiyalar, qatorlardanPozitsiyalar, type JQator } from '../../lib/smeta-versiya/pozitsiya';
 import { versiyaMoslash } from '../../lib/smeta-versiya/moslash';
 import { bolimgaQosh, bosBolim, katalogQur, kesimQosh, pozitsiyaPul, qarorKerak, qatorPul, type BolimJami, type QatorPul } from '../../lib/smeta-versiya/hisob';
+import { versiyaNomi } from './smeta-yuklash/xulosa';
 import { davaXlsx, type DavaEksportQator } from '../../lib/smeta-versiya/dava-export';
 import { son, type JPozitsiya, type MoslikHolat, type MoslikQator, type PozitsiyaQator, type Qaror, type SmetaVersiya, type Tasdiq, type VersiyaTur } from '../../lib/smeta-versiya/turlar';
 import { bosKatKesim, type KatKesim } from '../../lib/ustamali-summa';
@@ -59,8 +61,10 @@ type Qator = {
 
 const bolimKalit = (kod: string | null | undefined, nom: string | null | undefined) => [kod, nom].filter(Boolean).join(' ') || '—';
 
-export function SmetaVersiyaFarq({ kompaniyaId, obyektId, obyektNom, joriyQatorlar, tomonlar }: {
+export function SmetaVersiyaFarq({ kompaniyaId, obyektId, obyektNom, joriyQatorlar, tomonlar, boshlangichFayl = null }: {
   kompaniyaId: number; obyektId: number; obyektNom: string; joriyQatorlar: readonly T2Qator[]; tomonlar: ImzoNomlar;
+  /** Yuklash ustasidan kelgan fayl: forma oldindan to'ldiriladi (foydalanuvchi qayta tanlamaydi). */
+  boshlangichFayl?: File | null;
 }) {
   const [versiyalar, setVersiyalar] = useState<SmetaVersiya[] | null>(null);
   const [tanlangan, setTanlangan] = useState<number | null>(null);
@@ -116,8 +120,11 @@ export function SmetaVersiyaFarq({ kompaniyaId, obyektId, obyektNom, joriyQatorl
   const joriyById = useMemo(() => new Map(joriy.pozitsiyalar.map((p) => [p.qatorId, p])), [joriy]);
 
   /* ── Yuklash: fayl(lar) → anatomiya → pozitsiyalar → moslash → bazaga (bo'laklab, idempotent) ── */
+  useEffect(() => { if (boshlangichFayl) setFayllar([boshlangichFayl]); }, [boshlangichFayl]);
+  /** Nom: foydalanuvchi yozgan yorliq yoki sana — fayl nomi bilan aralashtirilmaydi. */
+  const versiyaNomiHozir = versiyaNomi(nom);
   const yukla = async () => {
-    if (!fayllar.length || !nom.trim() || band) return;
+    if (!fayllar.length || band) return;
     setXato(''); setBand(t('Fayllar o‘qilmoqda…'));
     try {
       const kitoblar = [];
@@ -136,7 +143,7 @@ export function SmetaVersiyaFarq({ kompaniyaId, obyektId, obyektNom, joriyQatorl
       const ids = yuklashIdlar.current;
       const tekshir = (r: VersiyaNatija) => { if (!r.ok) throw new Error(versiyaXatoMatni(r)); return r; };
       setBand(t('Versiya yaratilmoqda…'));
-      const y = tekshir(await versiyaYarat({ kompaniyaId, obyektId, nom: nom.trim(), tur, manbaSana: manbaSana || null,
+      const y = tekshir(await versiyaYarat({ kompaniyaId, obyektId, nom: versiyaNomiHozir, tur, manbaSana: manbaSana || null,
         fayllar: fayllar.map((f) => ({ nom: f.name, hajm: f.size })), izoh: ogohlar.slice(0, 20).join('\n') || undefined, operationId: ids[0] }));
       const vid = Number(y.versiya_id);
       for (let i = 0; i < posBolak; i++) {
@@ -263,7 +270,7 @@ export function SmetaVersiyaFarq({ kompaniyaId, obyektId, obyektNom, joriyQatorl
   };
 
   const bekorQil = async () => {
-    if (!versiya || !window.confirm(t('«{nom}» versiyasi bekor qilinadi (o‘chirilmaydi, ro‘yxatdan yashiriladi). Davom etasizmi?', { nom: versiya.nom }))) return;
+    if (!versiya || !(await tasdiqSora({ matn: t('«{nom}» versiyasi bekor qilinadi (o‘chirilmaydi, ro‘yxatdan yashiriladi). Davom etasizmi?', { nom: versiya.nom }), xavfli: true, tasdiqMatni: 'Bekor qilish' }))) return;
     const r = await versiyaBekor({ kompaniyaId, versiyaId: versiya.id, operationId: yangiOperationId() });
     if (!r.ok) { toast(versiyaXatoMatni(r), 'danger'); return; }
     setTanlangan(null); await royxatYukla();
@@ -297,20 +304,22 @@ export function SmetaVersiyaFarq({ kompaniyaId, obyektId, obyektNom, joriyQatorl
   return (
     <div className="space-y-3 text-[13px]" data-testid="smeta-versiya-farq">
       <p className="text-[12px] text-text-dim">{t('Boshqa smeta versiyasini (masalan, ekspertizagacha bo‘lgan smeta) yuklang — tizim uni joriy smeta bilan pozitsiya bo‘yicha solishtiradi. Joriy smeta o‘zgarmaydi; ekspertiza qisqartirgan, lekin qurilgan hajm «talab» sifatida alohida hisoblanadi.')}</p>
+      <p className="text-[12px] text-text-dim" data-testid="versiya-izoh">{t('«Eski versiya» — siz yuklagan fayl. «Yangi versiya» — tizimdagi joriy smeta. Farq: eskisidan yangisiga nima o‘zgardi.')}</p>
 
       <section className="karta p-3 space-y-2" aria-label={t('Versiya yuklash')}>
         <div className="flex flex-wrap items-end gap-2">
           <label className="text-[12px]">{t('Smeta fayl(lar)i')}
             <input aria-label={t('Versiya fayllari')} type="file" multiple accept=".xls,.xlsx,.xlsm" className="ml-2" disabled={!!band}
-              onChange={(e) => { const f = Array.from(e.target.files ?? []); setFayllar(f); if (!nom && f[0]) setNom(f[0].name.replace(/\.[^.]+$/, '')); }} />
+              onChange={(e) => { setFayllar(Array.from(e.target.files ?? [])); }} />
+            {fayllar.length > 0 && <span className="ml-2 text-text-mute">{fayllar.map((f) => f.name).join(', ')}</span>}
           </label>
-          <label className="text-[12px]">{t('Nomi')}<input className="ml-1 w-56 border rounded px-2 py-1" value={nom} onChange={(e) => setNom(e.target.value)} /></label>
+          <label className="text-[12px]">{t('Versiya yorlig‘i (ixtiyoriy)')}<input className="ml-1 w-56 border rounded px-2 py-1" value={nom} placeholder={versiyaNomi('')} onChange={(e) => setNom(e.target.value)} /></label>
           <label className="text-[12px]">{t('Turi')}
             <select className="ml-1 border rounded px-2 py-1" value={tur} onChange={(e) => setTur(e.target.value as VersiyaTur)}>
               {(Object.keys(TUR_NOMI) as VersiyaTur[]).map((k) => <option key={k} value={k}>{t(TUR_NOMI[k])}</option>)}
             </select></label>
           <label className="text-[12px]">{t('Manba sanasi')}<input type="date" className="ml-1 border rounded px-2 py-1" value={manbaSana} onChange={(e) => setManbaSana(e.target.value)} /></label>
-          <button type="button" className="tugma tugma-asosiy inline-flex items-center gap-1.5" disabled={!fayllar.length || !nom.trim() || !!band} onClick={() => void yukla()}>
+          <button type="button" className="tugma tugma-asosiy inline-flex items-center gap-1.5" disabled={!fayllar.length || !!band} onClick={() => void yukla()}>
             <Upload size={14} /> {t('Yuklash va solishtirish')}
           </button>
         </div>
@@ -322,7 +331,7 @@ export function SmetaVersiyaFarq({ kompaniyaId, obyektId, obyektNom, joriyQatorl
 
       {versiyalar && versiyalar.length > 0 && (
         <div className="flex flex-wrap items-end gap-2">
-          <label className="text-[12px]">{t('Versiya')}
+          <label className="text-[12px]">{t('Eski versiya')}
             <select className="ml-2 border rounded px-2 py-1 max-w-[420px]" value={tanlangan ?? ''} onChange={(e) => setTanlangan(e.target.value ? Number(e.target.value) : null)}>
               {versiyalar.map((v) => <option key={v.id} value={v.id}>{v.nom} · {t(TUR_NOMI[v.tur])}{v.manba_sana ? ` · ${v.manba_sana}` : ''}{v.holat !== 'tayyor' ? ` · ${t('chala yuklangan')}` : ''}</option>)}
             </select></label>
@@ -343,7 +352,7 @@ export function SmetaVersiyaFarq({ kompaniyaId, obyektId, obyektNom, joriyQatorl
             <table className="w-full text-[12px]">
               <thead className="bg-surface-2 text-text-mute"><tr>
                 <th className="px-2 py-1 text-left">{t('Bo‘lim (lokal smeta)')}</th>
-                <th className="px-2 text-right">{t('Eski versiya')}</th><th className="px-2 text-right">{t('Joriy smeta')}</th>
+                <th className="px-2 text-right">{t('Eski versiya')}</th><th className="px-2 text-right">{t('Yangi versiya (joriy smeta)')}</th>
                 <th className="px-2 text-right">{t('Kesilgan')}</th><th className="px-2 text-right">{t('Oshgan')}</th>
                 <th className="px-2 text-right">{t('Talab (qurilgan)')}</th><th className="px-2 text-right">{t('Qaror kutilmoqda')}</th>
               </tr></thead>
@@ -395,7 +404,7 @@ export function SmetaVersiyaFarq({ kompaniyaId, obyektId, obyektNom, joriyQatorl
             <table className="w-full border-collapse text-[11.5px]" onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); void saqla(); } }}>
               <thead className="sticky top-0 z-[1] bg-surface-2 text-text-mute"><tr>
                 <th className="px-2 py-1 text-left">{t('Holat')}</th><th className="px-2 text-left">{t('Pozitsiya (eski → joriy)')}</th><th className="px-2">{t('Birlik')}</th>
-                <th className="px-2 text-right">{t('Eski hajm')}</th><th className="px-2 text-right">{t('Joriy hajm')}</th><th className="px-2 text-right">{t('Farq (ustamasiz)')}</th>
+                <th className="px-2 text-right">{t('Eski versiya hajmi')}</th><th className="px-2 text-right">{t('Yangi (joriy) versiya hajmi')}</th><th className="px-2 text-right">{t('Farq (ustamasiz)')}</th>
                 <th className="px-2 text-left">{t('Qaror')}</th><th className="px-2 text-right">{t('Qurilgan hajm')}</th><th className="px-2 text-right">{t('Talab (ustamasiz)')}</th>
               </tr></thead>
               <tbody ref={jadval} onKeyDown={klaviatura}>
@@ -403,7 +412,7 @@ export function SmetaVersiyaFarq({ kompaniyaId, obyektId, obyektNom, joriyQatorl
                   <Fragment key={q.m.id}>
                     <tr data-qator tabIndex={0} onFocus={() => setFokus(i)}
                       className={`border-t border-border/50 outline-none focus:bg-accent/10 ${ozgarish.has(q.m.id) ? 'bg-warn/5' : ''}`}>
-                      <td className={`px-2 py-1 ${HOLAT_RANG[q.m.holat]}`}>{holatNomi(q.m.holat)}{q.m.ishonch != null && q.m.ishonch < 100 ? ` · ${q.m.ishonch}%` : ''}
+                      <td className={`px-2 py-1 ${HOLAT_RANG[q.m.holat]}`}>{holatNomi(q.m.holat)}{q.m.ishonch != null && q.m.ishonch < 100 ? ` · ${t('moslik ishonchi')} ${q.m.ishonch}%` : ''}
                         {q.tasdiq === 'kutilmoqda' && <div className="text-warn">{t('tasdiq kutilmoqda')}</div>}
                         {q.tasdiq === 'tasdiqlandi' && <div className="text-success">{t('tasdiqlangan')}</div>}
                         {q.tasdiq === 'rad' && <div className="text-danger">{t('rad etilgan')}</div>}</td>

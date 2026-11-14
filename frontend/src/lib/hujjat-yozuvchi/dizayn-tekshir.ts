@@ -5,20 +5,30 @@
  *   2. daraja shrifti: BL qalin, RS kursiv, MAT/OB qalin (dizayn sozlamasiga ko'ra);
  *   3. har daraja katagida to'rt tomonlama ramka (dizaynda ramka yoqilgan bo'lsa);
  *   4. hech bir ustun o'z sonidan tor emas (formatlangan son, minglik ajratgich bilan);
- *   5. uzun matn katagi o'ralgan (wrap) yoki katakka sig'dirilgan (shrinkToFit — shifr/birlik).
+ *   5. uzun matn katagi o'ralgan (wrap); shrinkToFit YO'Q (egasi 2026-11-13: «katta matn juda kichik ko'rinyapti»);
+ *   6. yashirin ustun (Тип, Кат., КАЛИТ …) katagi o'ralmagan; son katagi o'ralmagan va kichraymaydi;
+ *   7. qator balandligi: ht yo'q qator bir qatorga sig'adi; jadval qatori balandligi FAQAT ko'rinadigan ustunlardan;
+ *   8. chop etish: A4, bir sahifa eniga (fitToWidth=1), yo'nalish, sarlavha qatorlari har sahifada (Print_Titles).
  */
 import { strFromU8, unzipSync } from 'fflate';
+import { unEsc } from './ooxml';
 import { sonUzunligi, type DarajaKalit, type HujjatDizayn } from './dizayn';
 import { uslubniOch } from './rasmiy';
+import { qatorBalandligi, SUKUT_QATOR_PT, type BalandlikKatak } from './qator-balandlik';
 
 export type TekshirKatak = { ref: string; col: number; qator: number; s: number; matn: string | null; son: number | null; daraja: DarajaKalit | null };
 export type XfOqildi = {
   numFmtId: number; fontId: number; fillId: number; borderId: number;
-  wrap: boolean; indent: number; horizontal: string | null;
+  wrap: boolean; /** shrinkToFit="1" */ shrink: boolean; indent: number; horizontal: string | null;
 };
 export type DizaynVaraq = {
   ustunlar: Array<{ kenglik: number; yashirin: boolean }>;
   birlashgan: Set<string>;
+  /** Birlashma diapazonlari: boshlang'ich katak → oxirgi ustun indeksi (bir qatorli birlashma). */
+  birlashmaOxiri: Map<string, number>;
+  /** Print_Titles (workbook defined name) bormi. */
+  chopSarlavha: boolean;
+  chop: { bittaEnli: boolean; yonalish: string | null; qogoz: string | null };
   qatorlar: Array<{ r: number; ht: number | null; kataklar: TekshirKatak[] }>;
 };
 export type DizaynOqildi = {
@@ -49,14 +59,19 @@ export function dizaynOqi(bytes: Uint8Array): DizaynOqildi {
   });
   const xflar = [...blok('cellXfs').matchAll(/<xf\b([^>]*?)(?:\/>|>([\s\S]*?)<\/xf>)/g)].map((m) => ({
     numFmtId: Number(attr(m[1], 'numFmtId') ?? 0), fontId: Number(attr(m[1], 'fontId') ?? 0), fillId: Number(attr(m[1], 'fillId') ?? 0), borderId: Number(attr(m[1], 'borderId') ?? 0),
-    wrap: /wrapText="1"|shrinkToFit="1"/.test(m[2] ?? ''), indent: Number(/indent="(\d+)"/.exec(m[2] ?? '')?.[1] ?? 0), horizontal: /horizontal="(\w+)"/.exec(m[2] ?? '')?.[1] ?? null,
+    wrap: /wrapText="1"/.test(m[2] ?? ''), shrink: /shrinkToFit="1"/.test(m[2] ?? ''), indent: Number(/indent="(\d+)"/.exec(m[2] ?? '')?.[1] ?? 0), horizontal: /horizontal="(\w+)"/.exec(m[2] ?? '')?.[1] ?? null,
   }));
-  const varaqlar: DizaynVaraq[] = Object.keys(z).filter((k) => /^xl\/worksheets\/sheet\d+\.xml$/.test(k)).sort((a, b) => Number(/(\d+)/.exec(a)![1]) - Number(/(\d+)/.exec(b)![1])).map((k) => {
+  const wbXml = z['xl/workbook.xml'] ? strFromU8(z['xl/workbook.xml']) : '';
+  const varaqlar: DizaynVaraq[] = Object.keys(z).filter((k) => /^xl\/worksheets\/sheet\d+\.xml$/.test(k)).sort((a, b) => Number(/(\d+)/.exec(a)![1]) - Number(/(\d+)/.exec(b)![1])).map((k, vi) => {
     const x = strFromU8(z[k]);
     const ustunlar: DizaynVaraq['ustunlar'] = [];
     for (const m of x.matchAll(/<col\s[^>]*?\/>/g)) ustunlar[Number(attr(m[0], 'min')) - 1] = { kenglik: Number(attr(m[0], 'width') ?? 9), yashirin: attr(m[0], 'hidden') === '1' };
     const birlashgan = new Set<string>();
-    for (const m of x.matchAll(/<mergeCell ref="([A-Z]+\d+):[A-Z]+\d+"\/>/g)) birlashgan.add(m[1]);
+    const birlashmaOxiri = new Map<string, number>();
+    for (const m of x.matchAll(/<mergeCell ref="([A-Z]+\d+):([A-Z]+)(\d+)"\/>/g)) { birlashgan.add(m[1]); birlashmaOxiri.set(m[1], ustunRaqami(m[2])); }
+    const chopSarlavha = new RegExp(`<definedName\\b[^>]*name="_xlnm\\.Print_Titles"[^>]*localSheetId="${vi}"|<definedName\\b[^>]*localSheetId="${vi}"[^>]*name="_xlnm\\.Print_Titles"`).test(wbXml);
+    const ps = /<pageSetup\b[^>]*\/>/.exec(x)?.[0] ?? '';
+    const chop = { bittaEnli: /<pageSetUpPr\b[^>]*fitToPage="1"/.test(x) && (attr(ps, 'fitToWidth') ?? '1') === '1', yonalish: attr(ps, 'orientation'), qogoz: attr(ps, 'paperSize') };
     const qatorlar = [...x.matchAll(/<row\s([^>]*?)(?:\/>|>([\s\S]*?)<\/row>)/g)].map((rm) => {
       const kataklar = [...(rm[2] ?? '').matchAll(/<c\s([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)].map((cm): TekshirKatak => {
         const ref = attr(cm[1], 'r')!;
@@ -70,7 +85,7 @@ export function dizaynOqi(bytes: Uint8Array): DizaynOqildi {
       });
       return { r: Number(attr(rm[1], 'r')), ht: attr(rm[1], 'ht') != null ? Number(attr(rm[1], 'ht')) : null, kataklar };
     });
-    return { ustunlar, birlashgan, qatorlar };
+    return { ustunlar, birlashgan, birlashmaOxiri, chopSarlavha, chop, qatorlar };
   });
   return { numFmts, fontlar, fonlar, chegaralar, xflar, varaqlar };
 }
@@ -84,6 +99,50 @@ function formatXonalari(id: number, kodlar: Map<number, string>): { min: number;
   if (n < 0) return { min: 0, max: 0 };
   const fr = kod.slice(n + 1);
   return { min: (fr.match(/0/g) ?? []).length, max: (fr.match(/[0#]/g) ?? []).length };
+}
+
+/** Katak o'rash/kichraytirish/balandlik/chop qoidalari (egasi 2026-11-13) — bitta varaq uchun. */
+function qoidaXatolari(o: DizaynOqildi, v: DizaynVaraq, nom: string, d: HujjatDizayn): string[] {
+  const xato: string[] = [];
+  const eni = (k: TekshirKatak): number => {
+    const oxir = v.birlashmaOxiri.get(k.ref) ?? k.col;
+    let e = 0;
+    for (let c = k.col; c <= oxir; c++) if (!v.ustunlar[c]?.yashirin) e += v.ustunlar[c]?.kenglik ?? 9;
+    return e;
+  };
+  const balandlikKatak = (k: TekshirKatak, korinadiganFaqat: boolean): BalandlikKatak | null => {
+    const xf = o.xflar[k.s];
+    if (!xf?.wrap || k.matn == null || k.son != null) return null;
+    const yashirin = v.ustunlar[k.col]?.yashirin === true;
+    if (korinadiganFaqat && yashirin) return null;
+    const f = o.fontlar[xf.fontId];
+    return { matn: unEsc(k.matn), eni: eni(k), yashirin, qalin: f?.qalin, sz: f?.sz, otstup: xf.indent };
+  };
+  for (const q of v.qatorlar) {
+    for (const k of q.kataklar) {
+      const xf = o.xflar[k.s];
+      if (!xf) continue;
+      if (xf.shrink) xato.push(`${nom}: ${k.ref} shrinkToFit (matn kichrayadi — o'rash kerak)`);
+      const yashirin = v.ustunlar[k.col]?.yashirin === true;
+      if (yashirin && xf.wrap) xato.push(`${nom}: ${k.ref} yashirin ustun katagi o'ralgan (qatorni shishiradi)`);
+      if (k.son != null && xf.wrap && !yashirin) xato.push(`${nom}: ${k.ref} son katagi o'ralgan (son o'ralmaydi — ustun kengayadi)`);
+    }
+    // 7) qator balandligi. Birlashmali qatorlar (sarlavha, imzo, bo'lim) o'z hisobi bilan — tekshirilmaydi.
+    if (q.kataklar.some((k) => v.birlashgan.has(k.ref))) continue;
+    const hamma = qatorBalandligi(q.kataklar.map((k) => balandlikKatak(k, false)).filter((x): x is BalandlikKatak => !!x), { maks: d.qatorMaks });
+    const korinadi = qatorBalandligi(q.kataklar.map((k) => balandlikKatak(k, true)).filter((x): x is BalandlikKatak => !!x), { maks: d.qatorMaks });
+    if (q.ht == null && korinadi != null) xato.push(`${nom}: ${q.r}-qator o'ralgan matn uchun balandlik berilmagan (matn kesiladi)`);
+    const jadvalQatori = q.kataklar.some((k) => k.daraja != null);
+    if (jadvalQatori && q.ht != null && (korinadi == null ? q.ht > SUKUT_QATOR_PT + 0.5 : Math.abs(q.ht - korinadi) > 0.6)) {
+      xato.push(`${nom}: ${q.r}-qator balandligi ${q.ht} — ko'rinadigan ustunlardan kutilgan ${korinadi ?? 'sukut'}${hamma != null && hamma !== korinadi ? ' (yashirin ustun semirtirgan)' : ''}`);
+    }
+  }
+  // 8) chop etish sozlamasi
+  if (!v.chop.bittaEnli) xato.push(`${nom}: chop — bir sahifa eniga (fitToPage + fitToWidth=1) o'rnatilmagan`);
+  if (v.chop.yonalish !== 'portrait' && v.chop.yonalish !== 'landscape') xato.push(`${nom}: chop yo'nalishi (orientation) berilmagan`);
+  if (v.chop.qogoz == null) xato.push(`${nom}: qog'oz o'lchami (paperSize) berilmagan`);
+  if (!v.chopSarlavha && v.qatorlar.length > 2) xato.push(`${nom}: sarlavha qatorlari har sahifada takrorlanmaydi (Print_Titles yo'q)`);
+  return xato;
 }
 
 /**
@@ -122,6 +181,7 @@ export function hujjatDizaynTekshir(bytes: Uint8Array, d: HujjatDizayn): string[
       // 5) o'rash
       if (k.matn != null && !v.birlashgan.has(k.ref) && ust && !ust.yashirin && k.matn.length > ust.kenglik && !xf.wrap) xato.push(`${nom}: ${k.ref} uzun matn o'ralmagan`);
     }
+    xato.push(...qoidaXatolari(o, v, nom, d));
   });
   return xato;
 }

@@ -1,0 +1,90 @@
+{
+  "Ruxsatlar jadvali": {
+    "ru": "Таблица прав доступа",
+    "en": "Permissions matrix"
+  },
+  "Ta‘minot": {
+    "ru": "Снабжение",
+    "en": "Supply"
+  },
+  "Mening ishlarim, kirgan hujjatlar va navbat": {
+    "ru": "Мои дела, входящие документы и очередь",
+    "en": "My work, incoming documents and queue"
+  },
+  "Smeta, narx, fakt, F2 va nakopitelniy": {
+    "ru": "Смета, цены, факт, Ф2 и накопительная",
+    "en": "Estimate, pricing, actuals, F2 and cumulative"
+  },
+  "Hujjatlar, AOSR, chizmalar, nazorat": {
+    "ru": "Документы, АОСР, чертежи, контроль",
+    "en": "Documents, AOSR, drawings, control"
+  },
+  "Sklad, zayavka, tender, kadrlar va texnika": {
+    "ru": "Склад, заявки, тендеры, кадры и техника",
+    "en": "Warehouse, requests, tenders, staff and machinery"
+  },
+  "To‘lov, xarajat, shartnoma, qarzdorlik": {
+    "ru": "Оплаты, расходы, договоры, задолженность",
+    "en": "Payments, expenses, contracts, debts"
+  },
+  "Buyurtmachi, kontragent, kiruvchi hujjatlar": {
+    "ru": "Заказчик, контрагенты, входящие документы",
+    "en": "Client, counterparties, incoming documents"
+  },
+  "A‘zolar, rollar, sozlamalar, ruxsatlar": {
+    "ru": "Участники, роли, настройки, права",
+    "en": "Members, roles, settings, permissions"
+  },
+  "Shaxmatka, bron, bitim (modul yoqilganda)": {
+    "ru": "Шахматка, бронь, сделка (при включенном модуле)",
+    "en": "Floor plan, booking, deal (when module enabled)"
+  },
+  "Kunlik ishlaringiz — bir bosishda.": {
+    "ru": "Ваши ежедневные дела — в одно касание.",
+    "en": "Your daily work — one click away."
+  },
+  "Hozircha sizga ochiq sahifa yo‘q.": {
+    "ru": "Пока нет доступных вам страниц.",
+    "en": "No pages are available to you yet."
+  },
+  "Sahifa, amal, obyekt, shartnoma yoki hujjat izlash…": {
+    "ru": "Поиск страницы, действия, объекта, договора или документа…",
+    "en": "Search a page, action, site, contract or document…"
+  },
+  "Kim qaysi sahifani ko‘radi: rol bo‘yicha. Jadval yagona sahifa reestridan avtomatik quriladi; bu yerda hech narsa o‘zgartirilmaydi.": {
+    "ru": "Кто какие страницы видит — по ролям. Таблица строится автоматически из единого реестра страниц; здесь ничего не меняется.",
+    "en": "Who sees which page, by role. The table is built automatically from the single page registry; nothing is changed here."
+  },
+  "hamma kirgan": {
+    "ru": "все вошедшие",
+    "en": "everyone signed in"
+  },
+  "ko‘radi": {
+    "ru": "видит",
+    "en": "sees"
+  },
+  "ko‘rmaydi": {
+    "ru": "не видит",
+    "en": "does not see"
+  },
+  "Yana…": {
+    "ru": "Ещё…",
+    "en": "More…"
+  },
+  "Yana… (yig‘ish)": {
+    "ru": "Ещё… (свернуть)",
+    "en": "More… (collapse)"
+  },
+  "Eski menyuga qaytish": {
+    "ru": "Вернуться к старому меню",
+    "en": "Back to the old menu"
+  },
+  "Yangi menyu (7 ish joyi)": {
+    "ru": "Новое меню (7 рабочих мест)",
+    "en": "New menu (7 workspaces)"
+  },
+  "Sahifa, amal, obyekt, shartnoma, hujjat izlash...": {
+    "ru": "Поиск страницы, действия, объекта, договора, документа...",
+    "en": "Search page, action, site, contract, document..."
+  }
+}

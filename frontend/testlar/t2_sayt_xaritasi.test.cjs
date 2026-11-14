@@ -10,7 +10,7 @@ const assert = require('assert');
 
 const ROOT = path.join(__dirname, '..');
 const read = (...parts) => fs.readFileSync(path.join(ROOT, ...parts), 'utf8');
-const shell = read('src', 'lib', 'nav', 'navReestr.ts'); // yagona navigatsiya reestri (AdminShell shundan o'qiydi)
+const shell = read('src', 'lib', 'reestr', 'sahifa.ts') + '\n' + read('src', 'lib', 'nav', 'navReestr.ts'); // sahifalar yagona reestrda (lib/reestr), navReestr hosila
 const app = read('src', 'App.tsx');
 const sb = read('functions', 'api', 'sb.ts');
 const sbWrite = read('functions', 'api', 'sb-yoz.ts');

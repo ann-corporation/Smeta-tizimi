@@ -1,4 +1,5 @@
 /** Topshiriqlar (P1) - minimal ekran: "Menga" / "Mendan" ro'yxati, berish, holat o'tkazish. Katta tugmalar, mobil uchun. */
+import { matnSora } from '../../umumiy/ui/Tasdiq';
 import { useCallback, useEffect, useState } from 'react';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { harakatlar, topshiriqBer, topshiriqlarOl, topshiriqOtish, topshiriqXato, type Topshiriq, type TopshiriqHolat } from '../../api/t2-topshiriq';
@@ -38,7 +39,7 @@ export default function Topshiriqlar() {
 
   async function otkaz(q: Topshiriq, holat: TopshiriqHolat, izohKerak?: boolean) {
     if (!joriyId) return;
-    const izoh = izohKerak ? (window.prompt(t('Sababini yozing')) ?? '').trim() : undefined;
+    const izoh = izohKerak ? ((await matnSora({ matn: 'Sababini yozing', majburiy: true })) ?? '').trim() : undefined;
     if (izohKerak && !izoh) return;
     const r = await topshiriqOtish({ kompaniyaId: joriyId, topshiriq: q, holat, izoh });
     if (!r.ok) setXato(topshiriqXato(r)); else await yukla();

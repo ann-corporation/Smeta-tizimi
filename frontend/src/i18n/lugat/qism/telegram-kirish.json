@@ -1,0 +1,12 @@
+{
+  "Saytdagi kirish so‘rovi. Moslik raqami: {belgi}. Saytda ham aynan shu raqam ko‘rinib tursa, pastdagi tugma orqali O‘ZINGIZNING telefon raqamingizni yuboring. Ko‘rinmasa yoki bu so‘rovni siz boshlamagan bo‘lsangiz — hech narsa yubormang.": {
+    "ru": "Запрос на вход с сайта. Код сверки: {belgi}. Если на сайте виден этот же код, отправьте СВОЙ номер телефона кнопкой ниже. Если код не совпадает или вы не начинали этот запрос — ничего не отправляйте.",
+    "en": "Sign-in request from the website. Match code: {belgi}. If the website shows the same code, share YOUR OWN phone number with the button below. If it does not match, or you did not start this request, send nothing."
+  },
+  "Raqamimni yuborish": { "ru": "Отправить мой номер", "en": "Share my number" },
+  "Raqam tasdiqlandi. Saytga qayting — kirish avtomatik tugaydi.": { "ru": "Номер подтверждён. Вернитесь на сайт — вход завершится автоматически.", "en": "Number confirmed. Go back to the website — sign-in will finish automatically." },
+  "Faqat o‘zingizning raqamingizni yuboring (pastdagi tugma orqali). Boshqa odamning kontakti qabul qilinmaydi.": { "ru": "Отправляйте только свой номер (кнопкой ниже). Контакт другого человека не принимается.", "en": "Send only your own number (with the button below). Someone else's contact is not accepted." },
+  "Hozircha faqat O‘zbekiston (+998) raqamlari qabul qilinadi. Saytdan qaytadan boshlang.": { "ru": "Пока принимаются только номера Узбекистана (+998). Начните заново на сайте.", "en": "Only Uzbekistan (+998) numbers are accepted for now. Start again on the website." },
+  "So‘rov topilmadi yoki muddati tugagan (5 daqiqa). Saytdan qaytadan boshlang.": { "ru": "Запрос не найден или истёк (5 минут). Начните заново на сайте.", "en": "Request not found or expired (5 minutes). Start again on the website." },
+  "Telegram orqali kirish hozircha yoqilmagan.": { "ru": "Вход через Telegram пока не включён.", "en": "Sign-in via Telegram is not enabled yet." }
+}

@@ -95,6 +95,10 @@ export function podvalQatorRaqami(bosh: number, podval: Podval | null | undefine
 export type PodvalOpsiya = {
   /** Yashirin kategoriya ustuni harfi (barg qatorlarida ЧЕЛ/МАШ/…). */
   katUstun: string;
+  /** Ba'zi pul ustunlari uchun boshqa toifa ustuni (masalan, Ф-2 ustunlari). */
+  katUstunPer?: Record<string, string>;
+  /** Ba'zi pul ustunlari uchun yig'iladigan ustun boshqa (yashirin hisob ustuni). */
+  summaUstunPer?: Record<string, string>;
   /** Ma'lumot oralig'i (SUMIF diapazoni) — birinchi va oxirgi qator. */
   oraliq: readonly [number, number];
   /** Pul ustunlari (to'g'ri xarajat) — har biriga alohida kaskad. */
@@ -130,6 +134,8 @@ export type PodvalOpsiya = {
   nomalumF?: Record<string, string> | null;
   /** Yaxlit `qqssiz_ustamadan_keyin` bosqichi: QQS siz summa, ustamalardan keyin ИТОГО-4 ga (faqat QQS oladi). */
   yaxlitOldin?: Record<string, number> | null;
+  /** Yaxlit qatorida bo'sh qoldiriladigan ustunlar (qiymati hisobga 0 bo'lib kiradi, katak bo'sh) — masalan ikki xil daraja solishtiriladigan farq. */
+  yaxlitBosh?: readonly string[];
 };
 
 /** QQS foizi: podvalning `nds` foiz qatori (standart podvalda — koeffitsientlardagi НДС). Noma'lum — null. */
@@ -208,9 +214,9 @@ export function nakrutkaPodvaliYoz(v: RasmiyVaraq, o: PodvalOpsiya): { bosh: num
   const kfJS = yadroKf(podval);
   const kfQator = podvalKfQatorlari(bosh, o.podval, yaxlitBor, nomalumBor, oldinBor);
   const row = (fill: (cells: Qiymat[], r: number) => void) => (r: number) => { const c: Qiymat[] = Array(n).fill(null); fill(c, r); return c; };
-  const qismQatori = (nom: string, q: Record<string, number>, qf: Record<string, string> | null | undefined) => v.qator('oddiy', row((c) => {
+  const qismQatori = (nom: string, q: Record<string, number>, qf: Record<string, string> | null | undefined, bosh?: readonly string[]) => v.qator('oddiy', row((c) => {
     c[mc] = nom;
-    for (const col of o.pulUstunlar) c[colIdx(col)] = qf?.[col] ? { f: qf[col], v: yaxlit2(q[col] ?? 0) } : yaxlit2(q[col] ?? 0);
+    for (const col of o.pulUstunlar) c[colIdx(col)] = bosh?.includes(col) ? null : qf?.[col] ? { f: qf[col], v: yaxlit2(q[col] ?? 0) } : yaxlit2(q[col] ?? 0);
   }));
   const [a, b] = o.oraliq;
 
@@ -224,7 +230,7 @@ export function nakrutkaPodvaliYoz(v: RasmiyVaraq, o: PodvalOpsiya): { bosh: num
         if (bor && o.katHajm.birlikUstun) c[colIdx(o.katHajm.birlikUstun)] = k === 'ЧЕЛ' ? 'чел.-ч' : k === 'МАШ' ? 'маш.-ч' : '';
         for (const [hc, x] of Object.entries(o.katHajm.qiymat)) if (x[k] != null) c[colIdx(hc)] = x[k]!;
       }
-      for (const col of o.pulUstunlar) c[colIdx(col)] = o.katFormulasiz ? yaxlit2(o.katSummalar[col][k]) : { f: `SUMIF(${o.katUstun}${a}:${o.katUstun}${b},"${k}",${col}${a}:${col}${b})`, v: yaxlit2(o.katSummalar[col][k]) };
+      for (const col of o.pulUstunlar) c[colIdx(col)] = o.katFormulasiz ? yaxlit2(o.katSummalar[col][k]) : { f: `SUMIF(${o.katUstunPer?.[col] ?? o.katUstun}${a}:${o.katUstunPer?.[col] ?? o.katUstun}${b},"${k}",${o.summaUstunPer?.[col] ?? col}${a}:${o.summaUstunPer?.[col] ?? col}${b})`, v: yaxlit2(o.katSummalar[col][k]) };
     }));
   }
   // Podval qatorlari (standart ham maxsus ham — yagona formula quruvchisi). Formulalar tirik (`$` siz).
@@ -239,7 +245,7 @@ export function nakrutkaPodvaliYoz(v: RasmiyVaraq, o: PodvalOpsiya): { bosh: num
     if (q.kod === 'itogo4' && oldinBor) qoshR.push(qismQatori(YAXLIT_OLDIN_PODVAL_NOM, o.yaxlitOldin!, null));
     if (q.kod === 'itogo4' && nomalumBor) qoshR.push(qismQatori(NOMALUM_PODVAL_NOM, o.nomalum!, o.nomalumF));
     // Yaxlit svod (QQS bilan) — НДС dan keyin, ВСЕГО dan oldin.
-    if (q.kod === oxirgi && yaxlitBor) yaxR = qismQatori(YAXLIT_PODVAL_NOM, o.yaxlit!, o.yaxlitF);
+    if (q.kod === oxirgi && yaxlitBor) yaxR = qismQatori(YAXLIT_PODVAL_NOM, o.yaxlit!, o.yaxlitF, o.yaxlitBosh);
     const r = v.r;
     qr[q.kod] = r;
     v.qator(q.kod === oxirgi ? 'vsego' : q.tur === 'jami' ? 'jami' : 'oddiy', row((c) => {

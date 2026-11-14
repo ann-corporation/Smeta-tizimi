@@ -1,0 +1,37 @@
+name: ai-ishchilar
+
+# Fon AI ishchilari: rejalangan ishlarni navbatga qo'yadi (t2_ai_jadval_v1), AI xulosa va internet kuzatuvchi qadamlarini bajaradi.
+# Har chaqiruv — bitta HTTP so'rov (/api/ai-ishchi-bajar); javobda faqat sonlar. Limit/hamyon tekshiruvi serverda (aiHisobli); hamma ishchi sukut bo'yicha O'CHIQ,
+# shuning uchun yoqilgan ishchi yo'q bo'lsa bu workflow hech narsa sarflamaydi.
+# Yoqish: GitHub sir KUZATUV_KALIT (>= 24 belgi, bilim-kuzatuv bilan BIR XIL) + repo o'zgaruvchisi PROD_URL (masalan https://smeta-tizimi.pages.dev).
+# Cloudflare Pages sirlari: KUZATUV_KALIT (shu qiymat). Sozlanmasa ish jim o'tkazib yuboriladi.
+on:
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-ishchilar
+  cancel-in-progress: false
+
+jobs:
+  bajar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      KUZATUV_KALIT: ${{ secrets.KUZATUV_KALIT }}
+      PROD_URL: ${{ vars.PROD_URL }}
+    steps:
+      - name: AI ishchilar navbatini bajarish
+        run: |
+          if [ -z "$KUZATUV_KALIT" ] || [ -z "$PROD_URL" ]; then
+            echo "KUZATUV_KALIT yoki PROD_URL sozlanmagan - o'tkazib yuborildi."; exit 0
+          fi
+          code=$(curl -sS -o resp.json -w '%{http_code}' -X POST "$PROD_URL/api/ai-ishchi-bajar" \
+            -H 'Content-Type: application/json' -H "X-Kuzatuv-Kalit: $KUZATUV_KALIT" \
+            --data '{}' --max-time 120 || echo 000)
+          echo "ai-ishchi-bajar -> HTTP $code"; head -c 600 resp.json; echo
+          if [ "$code" != "200" ]; then echo "::warning::ai-ishchi-bajar muvaffaqiyatsiz (HTTP $code)"; fi

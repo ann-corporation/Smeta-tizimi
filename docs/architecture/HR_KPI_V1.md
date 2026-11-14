@@ -91,3 +91,12 @@ Farqlar (v1 qasddan tor):
 - **Jarima oqimi**: reja — taklif -> komissiya -> apellyatsiya. v1 — qoralama -> `payroll.write` egasi tasdiqlaydi/rad etadi (o'z yozuvini tasdiqlamaydi).
 - **Ruxsat**: v1 yangi ruxsat qo'shmaydi (F1 katalogidagilar yetadi).
 - **Buxgalteriya**: BU hujjat doirasida emas (buxgalteriya agenti). Ilgak: `t2_hr_oylik_buxgalteriya_v1` va `provodka_holat/provodka_id`; hisob kodlari va provodka sxemasi buxgalteriya modulida.
+
+## 8. «Ishga tushirish» (2026-11-12, migratsiya 20261216100000)
+
+Qarorlar (lead sukutlari; egasi o'zgartirishi mumkin, har biri bitta joyda): D1 maosh turi - brigada/usta `donabay` (naryad), ofis/ITR `oylik` (`frontend/src/lib/hr/qarorlar.ts` HR_ROL_BAZA_TURI; `t2_hr_xodim.baza_turi`); D2 KPI rol bo'yicha (SQL `_t2_hr_kpi_qoida_v1` sukut + `t2_hr_kpi_qoida`); D3 KPI faqat ko'rsatiladi (`t2_hr_sozlama.kpi_pulga_tasir`, sukut false); D4 tabelni brigadir/prorab belgilaydi, kadr tasdiqlaydi, jarima/bonusni `payroll.write` tasdiqlaydi (muallif o'zi emas); D5 xodim faqat o'zini ko'radi (`t2_hr_men_v1`).
+
+- Yagona xodim ro'yxati: `t2_kadr_mustaqil` + `t2_hr_xodim` (1:1). `t2_erp_kadr` va eski ERP kadr UI yangi modulga aralashmaydi.
+- Naryad: xodimning foydalanuvchisiga (`t2_naryad.usta_foydalanuvchi_id`) to'langan mehnat puli (`t2_xarajat`, kat ЧЕЛ, shu oy) ish haqida «donabay» qism bo'lib ko'rinadi; naryad davriga tushgan tabel kunlari baza hisobiga kirmaydi; yangi xarajat qatori YARATILMAYDI. Ustun/jadval yo'q bo'lsa qism NULL («—»).
+- KPI ko'rsatkichlari (bitta batch `_t2_hr_kpi_hisob_v1`): f2_hajm, f2_vaqtida, aosr_vaqtida, naryad_qabul, davomat. Ma'lumot yo'q = NULL; maqsad yo'q = ball yo'q.
+- `_t2_hr_hisob_v1` endi qatlam: eski funksiya `_t2_hr_hisob_asos_v1` ga qayta nomlangan (rollback qaytaradi).

@@ -1,0 +1,14 @@
+{
+  "К снятию (Ф-2 fakt dan ko‘p)": { "ru": "К снятию (предъявлено по Ф-2 больше факта)", "en": "To be removed (billed in F-2 above fact)" },
+  "Hajmsiz summa farqi": { "ru": "Разница по сумме при нулевом объёме", "en": "Amount difference at zero quantity" },
+  "К доплате (fakt Ф-2 dan ko‘p)": { "ru": "К доплате (факт больше предъявленного по Ф-2)", "en": "To be added (fact above F-2 billed)" },
+  "pereraschet hisoblanmadi. Qayta urinib ko‘ring.": { "ru": "перерасчёт не рассчитан. Повторите попытку.", "en": "reconciliation was not calculated. Please try again." },
+  "Pereraschet — к доплате (+) / к снятию (−): fakt − ilgari Ф-2 da olingan": { "ru": "Перерасчёт — к доплате (+) / к снятию (−): факт − ранее предъявленное по Ф-2", "en": "Reconciliation — to add (+) / to remove (−): fact − previously billed in F-2" },
+  "Slichitelniy hujjati bilan bir xil hisob: qancha qo‘shimcha olish mumkin yoki qancha qaytarish kerak. Faqat o‘qiydi — smeta va tasdiqlangan aktlar o‘zgarmaydi.": { "ru": "Тот же расчёт, что в сличительной ведомости: сколько можно доплатить или вернуть. Только чтение — смета и утверждённые акты не меняются.", "en": "Same calculation as the reconciliation statement: how much can be added or must be returned. Read-only — the estimate and approved acts do not change." },
+  "К доплате (+)": { "ru": "К доплате (+)", "en": "To add (+)" },
+  "К снятию (−)": { "ru": "К снятию (−)", "en": "To remove (−)" },
+  "chap: к снятию (−)": { "ru": "слева: к снятию (−)", "en": "left: to remove (−)" },
+  "o‘ng: к доплате (+)": { "ru": "справа: к доплате (+)", "en": "right: to add (+)" },
+  "Pereraschet = slichitelniy hujjati bilan bir xil hisob (fakt Ф-2 narxida − tasdiqlangan Ф-2). Ф-2 qoralama (к доплате) va tuzatuvchi minus qoralama (к снятию) — «Slichitelniy sikli» panelida.": { "ru": "Перерасчёт = тот же расчёт, что в сличительной ведомости (факт по цене Ф-2 − утверждённая Ф-2). Черновики Ф-2 (к доплате) и корректирующие минус-черновики (к снятию) — в панели «Цикл сличительной».", "en": "Reconciliation = same calculation as the reconciliation statement (fact at F-2 price − approved F-2). F-2 drafts (to add) and corrective minus drafts (to remove) are in the reconciliation cycle panel." },
+  "Fakt smetadan ortiq — к доплате ga kiradi (qo‘shimcha kelishuv kerak)": { "ru": "Факт больше сметы — входит в к доплате (нужно доп. соглашение)", "en": "Fact above estimate — included in to-add (supplementary agreement needed)" }
+}

@@ -1,0 +1,11 @@
+{
+  "sana": "2026-11-13",
+  "sarlavha": "Buyurtmachi kabineti: yuklanguncha «0» ko‘rinmaydi, hujjatni bir bosishda ko‘rib qaror chiqarasiz",
+  "bandlar": [
+    "Buyurtmachi kabineti ochilganda aloqa, obyekt va hujjat sonlari yuklanguncha «0» emas, yuklanish belgisi ko‘rinadi; qaysi ma‘lumot avval kelsa, o‘sha darrov chiqadi. Kompaniyani almashtirganda eski kompaniya raqamlari qolib ketmaydi (laboratoriya kabineti ham shunday).",
+    "«Qaror kutayotgan hujjat» qatorida «Qaror chiqarish» tugmasi: bir bosishda hujjat ochiladi, shu yerning o‘zida qabul qilish, tuzatish so‘rash yoki rad etish mumkin.",
+    "Hujjat yuborishda «Kimga» ro‘yxati faqat shu hujjatni qabul qila oladigan tomonlarni (F2 — buyurtmachi va texnadzor; АОСР — yana loyihachi) ko‘rsatadi. Kamchilikli hujjatni yuborishda aniq ogohlantirish chiqadi va yuborish uchun tasdiqlash kerak.",
+    "Yuborilgan АОСР ro‘yxatda «Qoralama» bo‘lib qolmaydi — «Yuborilgan», «Ko‘rilmoqda» yoki qaror holati ko‘rinadi.",
+    "Menyuda «Kiruvchi (tomonlar)» bandi uchga bo‘lindi: Kiruvchi (tomonlar), Hujjat aylanishi va Subpudrat. «Fayl bog‘lash (texnik)», «Tizim xaritasi» va «Platforma boshqaruvi» faqat platforma administratoriga ko‘rinadi."
+  ]
+}

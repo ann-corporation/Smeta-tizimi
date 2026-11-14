@@ -1,3 +1,4 @@
+import { matnSora } from '../../umumiy/ui/Tasdiq';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { useEffect, useMemo, useState } from 'react';
 import { PackageMinus, RotateCcw } from 'lucide-react';
@@ -67,7 +68,7 @@ export function M29Chiqim({ kompaniyaId, obyektId, davr, materiallar, onYangilan
 
   const bekor = async () => {
     if (!hujjat) return;
-    const sabab = window.prompt(t('M-29 bekor qilinadi: ombordan chiqimlar qaytariladi. Sababini yozing:'));
+    const sabab = await matnSora({ matn: 'M-29 bekor qilinadi: ombordan chiqimlar qaytariladi. Sababini yozing:', majburiy: true, tasdiqMatni: 'Bekor qilish', xavfli: true });
     if (!sabab?.trim()) return;
     setBand(true);
     try {

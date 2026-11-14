@@ -2,7 +2,7 @@
  * Yuk birjasi — yuk egasi (ta’minot xodimi) ekrani: yuk e’lon qilish, takliflarni ko‘rish, qabul / qarshi narx, bron, holat va isbot.
  * Tashuvchi (haydovchi) tomoni Telegram botda (PR4). Narx — tavsiya (t·km), yakuniy narx va to‘lov shaklini tomonlar kelishadi.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Plus, RefreshCw } from 'lucide-react';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
@@ -14,7 +14,7 @@ import { YUK_YAKUNIY } from '../../lib/yuk-birjasi/holat';
 import { FmtN } from '../../lib/format';
 import { Bosh, sanaKun, TOLOV_SHAKLI_NOM, YukHolatBelgi } from './yuk-ui';
 import { YukTafsilot } from './YukTafsilot';
-import { YukTahrir } from './YukTahrir';
+import { YukTahrir, type YukBoshlang } from './YukTahrir';
 
 type Tab = 'faol' | 'yopiq';
 
@@ -26,8 +26,14 @@ export default function YukBirjasiSahifa() {
   const [xato, setXato] = useState<string | null>(null);
   const [yuk, setYuk] = useState(false);
   const [qidiruv, setQidiruv] = useState('');
-  const [yangi, setYangi] = useState(false);
+  const [yangi, setYangi] = useState(() => params.get('yangi') === '1');
   const tanlangan = Number(params.get('id')) || null;
+  /* Yetkazuvchi «Transport so'rash» (buyurtmadan): marshrut va yuk oldindan to'ldiriladi (/admin/yuk-birjasi?yangi=1&nom=&a=&b=&tonna=&izoh=). */
+  const nomP = params.get('nom'), aP = params.get('a'), bP = params.get('b'), tonnaP = params.get('tonna'), izohP = params.get('izoh');
+  const boshlang = useMemo<YukBoshlang | undefined>(() => (params.get('yangi') === '1'
+    ? { nom: nomP ?? undefined, aNom: aP ?? undefined, bNom: bP ?? undefined, tonna: tonnaP ?? undefined, izoh: izohP ?? undefined } : undefined),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [nomP, aP, bP, tonnaP, izohP]);
 
   const yukla = useCallback(async () => {
     if (!joriy) return;
@@ -80,7 +86,7 @@ export default function YukBirjasiSahifa() {
           </>
         )}
       </div>
-      <YukTahrir ochiq={yangi} kompaniyaId={joriy.id} onYop={() => setYangi(false)} onSaqlandi={(id) => { setYangi(false); void yukla(); ochish(id); }} />
+      <YukTahrir ochiq={yangi} kompaniyaId={joriy.id} boshlang={boshlang} onYop={() => setYangi(false)} onSaqlandi={(id) => { setYangi(false); void yukla(); ochish(id); }} />
     </Sahifa>
   );
 }

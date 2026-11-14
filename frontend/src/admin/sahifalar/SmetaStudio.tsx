@@ -19,7 +19,8 @@ import { WorkspaceReview } from '../../components/smeta-studio-workspace/Workspa
 import { WorkSheet } from '../../components/smeta-studio-workspace/WorkSheet';
 import { QuantityWorkbench } from '../../components/smeta-studio-workspace/QuantityWorkbench';
 import { StudioInspector, type InspectorTab } from '../../components/smeta-studio-workspace/StudioInspector';
-import { StudioCommandMenu, type DeskAction } from '../../components/smeta-studio-workspace/StudioCommandMenu';
+import { StudioCommandMenu, studioAmallar, type DeskAction } from '../../components/smeta-studio-workspace/StudioCommandMenu';
+import { useYordamchiSahifaAmallari } from '../../lib/yordamchi/sahifa-amal-store';
 import { StudioSections } from '../../components/smeta-studio-workspace/StudioSections';
 import '../../components/smeta-studio-workspace/studio-desk.css';
 import { CloudDrafts } from '../../components/smeta-studio-workspace/CloudDrafts';
@@ -87,6 +88,13 @@ export default function SmetaStudio() {
   const [serverVersiya, setServerVersiya] = useState(0);
   const [panels,setPanels]=useState<2|3>(()=>lsGet('studio:panels')==='2' ? 2 : 3);
   const [commandOpen,setCommandOpen]=useState(false);
+  const [advanced,setAdvanced]=useState(()=>lsGet('studio:advanced')==='1');
+  const [inspectorOpen,setInspectorOpen]=useState(false);
+  const [catalogOpen,setCatalogOpen]=useState(false);
+  const aiPanel=useRef<HTMLElement>(null);
+  function focusAi(){aiPanel.current?.querySelector('textarea')?.focus();}
+  function toggleAdvanced(){const next=!advanced;setAdvanced(next);lsSet('studio:advanced',next ? '1' : '0');}
+
   const [leftWidth,setLeftWidth]=useState(()=>Math.max(210,Math.min(340,Number(lsGet('studio:left-width')) || 250))),[rightWidth,setRightWidth]=useState(()=>Math.max(310,Math.min(470,Number(lsGet('studio:right-width')) || 350)));
   useEffect(()=>{lsSet('studio:panels',String(panels));lsSet('studio:left-width',String(leftWidth));lsSet('studio:right-width',String(rightWidth));},[panels,leftWidth,rightWidth]);
   const [inspectorTab,setInspectorTab]=useState<InspectorTab>('work');
@@ -208,9 +216,13 @@ export default function SmetaStudio() {
   },[autoSave,doc,joriyId,serverVersiya]);
   // Yagona klaviatura moduli (lib/hotkeys, «?» yordam): buyruqlar paneli, bekor qilish / qaytarish.
   useHotkeys('studio', t('Smeta Studio'), [
-    { id: 'studio.panel', keys: 'ctrl+k', nom: t('Buyruqlar paneli'), inInput: true, run: () => { setCommandOpen(v => !v); } },
     { id: 'studio.undo', keys: 'ctrl+z', nom: t('Bekor qilish'), run: () => { setHist(h => undo(h)); } },
     { id: 'studio.redo', keys: ['ctrl+shift+z', 'ctrl+y'], nom: t('Qaytarish'), run: () => { setHist(h => redo(h)); } },
+  ]);
+  /* Ctrl+K — yagona yordamchi (Jarvis). Studio buyruqlari unga reestr orqali beriladi: «katalogdan ish qo'sh», «smetani tekshir», «serverga saqla»… */
+  useYordamchiSahifaAmallari([
+    ...studioAmallar().map((a) => ({ id: `studio.${a.id}`, nom: a.label, tasdiq: a.id === 'save', run: () => deskAction(a.id) })),
+    { id: 'studio.panel', nom: t('Tez amallar va ishlar'), kalitlar: [t('ish qidirish')], run: () => setCommandOpen(true) },
   ]);
   function run(cmd: StudioCommand): boolean {
     try { setHist(h => dispatch(h, cmd)); setXato(''); return true; }
@@ -309,13 +321,16 @@ export default function SmetaStudio() {
     setSaqlash({ holat: 'xato', matn, edits: null });
   }
 
-  function openWork(id:string) {setFocusWorkId(id);setRevealToken(v=>v+1);}
+  function openWork(id:string) {setCatalogOpen(false);setInspectorTab('work');setInspectorOpen(true);setFocusWorkId(id);setRevealToken(v=>v+1);}
+  /** Klaviatura bilan qatorlar orasida yurish: faqat tanlaydi, katalogni yopmaydi va inspektorni ochmaydi. */
+  function selectWork(id:string) {setFocusWorkId(id);}
   const selectedWorkId=focusWorkId && doc.occurrences[focusWorkId] ? focusWorkId : Object.values(doc.occurrences)[0]?.id ?? null;
   function deskAction(action:DeskAction) {
     if(action==='save'){void serverga();return;}
-    if(action==='catalog'){setPanels(3);setBosqich('lrv');return;}
+    if(action==='catalog'){setCatalogOpen(true);setInspectorOpen(false);setPanels(3);setBosqich('lrv');return;}
     if(action==='review'){setReviewOpen(true);setWorkspaceView('editor');return;}
-    setInspectorTab(action);
+    if(action==='ai'){focusAi();return;}
+    setInspectorOpen(true);setInspectorTab(action);
   }
   async function openCloud(docFromServer:EstimateDoc,version:number) {
     const requestedCompany=joriyId;
@@ -344,7 +359,7 @@ export default function SmetaStudio() {
     : <span className="studio-total__plain"><span><b>{jamiSon == null ? '—' : <FmtN val={jamiSon} />}</b><em>{doc.currency}</em></span><small>{t('ustama: obyekt bog‘lanmagan')}</small></span>;
   const serverText = serverVersiya === 0 ? { tur: 'fz-stamp--draft', matn: t('Serverga saqlanmagan') }
     : lastServerSave.current?.snapshot === doc ? { tur: 'fz-stamp--ok', matn: t('Serverda: v{n}', { n: serverVersiya }) } : { tur: 'fz-stamp--info', matn: t('Server versiyasi: v{n}', { n: serverVersiya }) };
-  return <div className="studio-desk">
+  return <div className="studio-desk" data-simple={!advanced} data-inspecting={inspectorOpen}>
     <KoeffitsientlarPaneli doc={doc} command={amal} kompaniyaId={joriyId ?? null} agentOnly/>
     <header className="studio-desk-header">
       <div className="studio-brand"><span className="studio-brand-icon" aria-hidden="true" />
@@ -352,7 +367,7 @@ export default function SmetaStudio() {
       <div className="studio-desk-actions">
         <button className="fz-btn fz-btn--sm" aria-label={t('Bekor qilish')} disabled={!hist.past.length} onClick={()=>setHist(undo)} title={t('Ctrl+Z')}><Undo2 aria-hidden="true"/> {t('Bekor qilish')}</button>
         <button className="fz-btn fz-btn--sm" aria-label={t('Qaytarish')} disabled={!hist.future.length} onClick={()=>setHist(redo)} title={t('Ctrl+Y')}><Redo2 aria-hidden="true"/> {t('Qaytarish')}</button>
-        <button className="fz-btn fz-btn--sm" onClick={()=>setInspectorTab('ai')}>{t('Smetachi AI')}</button>
+        <button className="fz-btn fz-btn--sm" onClick={focusAi}>{t('Smetachi AI')}</button>
         <details className="studio-popover"><summary className="fz-btn fz-btn--sm">{t('Fayl')} ▾</summary><div>
           <button className="fz-btn fz-btn--sm" disabled={draftBusy || saqlash.holat==='saqlanmoqda'} onClick={()=>void yangiQoralama()}>{t('Yangi qoralama')}</button>
           <button className="fz-btn fz-btn--sm" disabled={draftBusy} onClick={()=>void kutubxona()}>{t('Saqlangan qoralamalar')}</button>
@@ -380,16 +395,22 @@ export default function SmetaStudio() {
       <ul className="max-h-64 overflow-auto studio-draft-list">{drafts.map(d=><li key={d.draftId} className="border-b border-border py-2 text-sm"><button type="button" className="text-left underline" disabled={draftBusy || saqlash.holat==='saqlanmoqda'} onClick={()=>void qoralamaOch(d.draftId)}>{d.title || d.objectLabel || t('Nomsiz smeta')}</button><span className="ml-2 text-xs text-text-dim">{t('{n} ta ish',{n:d.works})} · {new Date(d.savedAt).toLocaleString()}</span></li>)}</ul>
     </section>}
 
-    <div className="studio-commandbar">
-      <div className="studio-mode-buttons" aria-label={t('Panel tartibi')}><button aria-pressed={panels===2} onClick={()=>setPanels(2)}>{t('2 panel')}</button><button aria-pressed={panels===3} onClick={()=>setPanels(3)}>{t('3 panel')}</button></div>
+    <div className="studio-guided-bar">
+      <div><strong>{t(!ishlarSoni ? 'Birinchi ishni qo‘shing' : hajmsiz ? 'Ishlarning hajmini kiriting' : 'Narxlarni tekshiring va hujjatni oling')}</strong>
+      <p>{t(!ishlarSoni ? 'AI yordamchiga maqsadingizni yozing yoki katalogdan ish qo‘shing.' : hajmsiz ? 'Jadvaldagi Hajm kataklariga miqdor yoki formula yozing.' : 'Hajmlar kiritilgan. Narxlar bo‘limida yetishmayotgan narxlarni to‘ldiring, keyin Hujjatlarga o‘ting.')}</p></div>
+      <button className="fz-btn fz-btn--sm" aria-pressed={advanced} onClick={toggleAdvanced}>{t(advanced ? 'Sodda ish joyi' : 'Batafsil ish joyi')}</button>
+      <button className="fz-btn fz-btn--sm" onClick={()=>{setCatalogOpen(true);setPanels(3);setBosqich('lrv');}}>{t('Katalogdan ish qo‘shish')}</button>
+    </div>
+    {advanced && <div className="studio-commandbar">
+      <div className="studio-mode-buttons" aria-label={t('Panel tartibi')}><button aria-pressed={panels===2} onClick={()=>setPanels(2)}>{t('Katalogsiz')}</button><button aria-pressed={panels===3} onClick={()=>setPanels(3)}>{t('Katalog bilan')}</button></div>
       <button className="studio-quick-open" onClick={()=>setCommandOpen(true)}><Search aria-hidden="true"/>{t('Amal yoki ishni topish…')}<kbd className="fz-kbd">{t('Ctrl K')}</kbd></button>
       <div className="studio-hints" aria-label={t('Klaviatura yordami')}><span><kbd className="fz-kbd">{'Ctrl'}</kbd> <kbd className="fz-kbd">Z</kbd> {t('bekor')}</span><span><kbd className="fz-kbd">↑</kbd> <kbd className="fz-kbd">↓</kbd> {t('ish tanlash')}</span><span><kbd className="fz-kbd">↵</kbd> {t('hajmni saqlash')}</span></div>
       <div className="studio-resize"><label>{t('Katalog')} <input aria-label={t('Katalog paneli kengligi')} type="range" min="210" max="340" value={leftWidth} onChange={e=>setLeftWidth(Number(e.target.value))}/></label><label>{t('Nazoratchi')} <input aria-label={t('Nazorat paneli kengligi')} type="range" min="310" max="470" value={rightWidth} onChange={e=>setRightWidth(Number(e.target.value))}/></label></div>
-    </div>
+    </div>}
     <div className="studio-columns" data-panels={panels} style={{'--studio-left':`${leftWidth}px`,'--studio-right':`${rightWidth}px`} as CSSProperties}>
-      <section hidden={panels===2} aria-label={t('Normativ katalog')} className="studio-library studio-pane">
-        <div className="studio-pane-title"><span className="studio-step">01</span><strong>{t('Katalog va bo‘limlar')}</strong><span className="studio-count">{(katalog?.manifest.counts.basis ?? katalog?.manifest.counts.works)?.toLocaleString('ru') ?? '…'}</span></div>
-        <label className="studio-source">{t('Kutubxona manbasi')}
+      <section hidden={advanced ? panels===2 : !catalogOpen} aria-label={t('Normativ katalog')} className="studio-library studio-pane">
+        <div className="studio-pane-title"><span className="studio-step">01</span><strong>{t('Katalog va bo‘limlar')}</strong>{!advanced && <button type="button" className="fz-btn fz-btn--sm" onClick={()=>setCatalogOpen(false)}>{t('Yopish')}</button>}<span className="studio-count">{(katalog?.manifest.counts.basis ?? katalog?.manifest.counts.works)?.toLocaleString('ru') ?? '…'}</span></div>
+        <details className="studio-library-settings" open={advanced}><summary>{t('Kutubxona va bo‘lim sozlamalari')}</summary><label className="studio-source">{t('Kutubxona manbasi')}
           <select className="studio-select" aria-label={t('Kutubxona manbasi')} value={catalogSource} onChange={e => {
             lsSet('studio:catalog-source', e.target.value);
             catalogSession.current++;
@@ -400,7 +421,7 @@ export default function SmetaStudio() {
             <option value="library">{t('Nomlangan kutubxona · 2.8.1')}</option>
           </select>
         </label>
-        <StudioSections doc={doc} target={nishon} onTarget={setNishon} command={amal}/>
+        <StudioSections doc={doc} target={nishon} onTarget={setNishon} command={amal}/></details>
         <div className="studio-pane-scroll">
           <details className="studio-context"><summary>{t('Smeta va obyekt sozlamalari')}</summary><ObjectBinding doc={doc} company={joriyId ?? null} command={amal}/></details>
         {katalogHolat === 'yuklanmoqda' && <p className="text-text-dim">{t('Normativ katalog yuklanmoqda...')}</p>}
@@ -440,9 +461,9 @@ export default function SmetaStudio() {
         {openedViews.includes('res') && <div hidden={workspaceView!=='editor' || reviewOpen || bosqich!=='res'}><DocumentCenter doc={doc} calculation={hisob} onReview={()=>{setWorkspaceView('editor');setReviewOpen(true);}}><ResBosqichi key={`${joriyId}:${doc.draftId}`} doc={doc} hisob={hisob} unitText={unitText} katalog={katalog} kompaniyaId={joriyId ?? null} onBack={() => setBosqich('narx')} /></DocumentCenter></div>}
 
           <div hidden={workspaceView!=='editor' || reviewOpen || bosqich!=='lrv'}>
-            <DraftAnatomy doc={doc} calculation={hisob} unitText={unitText}/>
-            <div className="studio-lrv-bar"><div className="studio-seg"><button aria-pressed={worksheet} onClick={()=>setWorksheet(true)}>{t('Jadval')}</button><button aria-pressed={!worksheet} onClick={()=>setWorksheet(false)}>{t('Tarkib va bo‘limlar')}</button></div><button className="fz-btn fz-btn--sm" style={{marginLeft:'auto'}} onClick={()=>{setPanels(3);setBosqich('lrv');}}><Plus aria-hidden="true"/>{t('Ish qo‘shish')}</button></div>
-            {worksheet && <WorkSheet docked unitText={unitText} activeWorkId={selectedWorkId} revealToken={revealToken} doc={doc} calculation={hisob} command={amal} onWork={openWork} renderDetails={()=>null}/>}
+            {advanced && <DraftAnatomy doc={doc} calculation={hisob} unitText={unitText}/>}
+            <div className="studio-lrv-bar"><div className="studio-seg"><button aria-pressed={worksheet} onClick={()=>setWorksheet(true)}>{t('Jadval')}</button><button aria-pressed={!worksheet} onClick={()=>setWorksheet(false)}>{t('Tarkib va bo‘limlar')}</button></div><button className="fz-btn fz-btn--sm" style={{marginLeft:'auto'}} onClick={()=>{setCatalogOpen(true);setInspectorOpen(false);setPanels(3);setBosqich('lrv');}}><Plus aria-hidden="true"/>{t('Ish qo‘shish')}</button></div>
+            {worksheet && <WorkSheet docked unitText={unitText} activeWorkId={selectedWorkId} revealToken={revealToken} doc={doc} calculation={hisob} command={amal} onWork={openWork} onSelect={selectWork} renderDetails={()=>null}/>}
         <div hidden={worksheet} className="studio-docview">
         <SmetaDocumentPanel focusWorkId={focusWorkId} renderWorkDetails={id => {
           const shifr = doc.occurrences[id]?.source.code;
@@ -456,11 +477,15 @@ export default function SmetaStudio() {
             <details className="px-3 py-2 text-xs"><summary>{t('Loyiha materiallari')}</summary><MateriallarPaneli doc={doc} command={amal}/></details>
           </div>
         </div>
-      </main>
-      <StudioInspector unitText={unitText} doc={doc} calculation={hisob} workId={selectedWorkId} onWork={openWork} command={amal} pricing={{source:narxKat,unitText,region:hudud || null}} tab={inspectorTab} onTab={setInspectorTab}
+      <div className="studio-inspector-host" hidden={!inspectorOpen}><button className="fz-btn fz-btn--sm" onClick={()=>setInspectorOpen(false)}>{t('Tafsilotlarni yopish')}</button><StudioInspector unitText={unitText} doc={doc} calculation={hisob} workId={selectedWorkId} onWork={openWork} command={amal} pricing={{source:narxKat,unitText,region:hudud || null}} tab={inspectorTab} onTab={setInspectorTab}
         coefficients={selectedWorkId ? <KoeffitsientlarPaneli key={`${joriyId}:${doc.draftId}:${selectedWorkId}`} doc={doc} command={amal} kompaniyaId={joriyId ?? null} workId={selectedWorkId}/> : null}
-        ai={<SmetaAiChat key={`${catalogSource}:${katalog?.manifest.revision ?? "loading"}`} selectedWorkId={selectedWorkId} doc={doc} katalog={katalog} kompaniyaId={joriyId ?? null} command={c => aiSession === catalogSession.current && !!katalog ? amal(c) : false} newId={uid} onBosqich={b => { if (aiSession === catalogSession.current) setBosqich(b); }}/>}
-        calculator={<QuantityWorkbench key={doc.draftId} doc={doc} command={amal} onWork={openWork}/>}/>
+        ai={null}
+        calculator={<QuantityWorkbench key={doc.draftId} doc={doc} command={amal} onWork={openWork}/>}/></div>
+      </main>
+      <aside ref={aiPanel} className="studio-ai-permanent studio-pane" aria-label={t('Doimiy AI yordamchi')}>
+        <div className="studio-pane-title"><strong>{t('Smetachi AI')}</strong><span>{t('Smeta bilan birga ishlaydi')}</span></div>
+        <div className="studio-ai-body"><SmetaAiChat key={catalogSource} selectedWorkId={selectedWorkId} doc={doc} katalog={katalog} kompaniyaId={joriyId ?? null} command={c => aiSession === catalogSession.current && !!katalog ? amal(c) : false} newId={uid} onBosqich={b => { if (aiSession === catalogSession.current) setBosqich(b); }}/></div>
+      </aside>
     </div>
     {commandOpen && <StudioCommandMenu doc={doc} onAction={deskAction} onClose={()=>setCommandOpen(false)} onWork={id=>{openWork(id);setBosqich('lrv');setWorksheet(true);}}/>}
     <footer className="studio-footer">

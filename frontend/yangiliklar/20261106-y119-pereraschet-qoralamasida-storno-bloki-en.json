@@ -1,0 +1,12 @@
+{
+  "id": 119,
+  "sana": "2026-11-06",
+  "sarlavha": "Pereraschet qoralamasida storno bloki endi ko‘rinadi va tahrirlanadi",
+  "bandlar": [
+    "F2 tayyorlashda ochilgan pereraschet qoralamasida «Storno blokini ko‘rish va tahrirlash»: storno qatorlari razdel → ish → resurs daraxtida. Qatorni yoki butun razdelni stornodan olish, qayta qo‘shish, storno hajmini qisman qilish (eski F2 hajmidan oshmaydi). «Saqlash» bilan yoziladi.",
+    "Ochiq qoralamada «Eski F2 ni storno qilish» endi yangi qoralama ochmaydi — storno qatorlari shu qoralamaga qo‘shiladi. Saqlanmagan kiritmalar bo‘lsa, oldin ogohlantiriladi.",
+    "Storno faqat tasdiqlangan F2 dan: qoralama F2 tanlanmaydi; manbasi tasdiqlanmagan qoralamada saqlashdan oldin aniq sabab ko‘rsatiladi.",
+    "«Faktni 0 ga» endi faqat stornolangan hajmni qaytaradi (butun faktni emas); yarim qolgan storno qoralamasini davom ettirish mumkin; avval stornolangan qatorlar sukut bo‘yicha belgisiz.",
+    "Eski smeta versiyasidagi storno qatorlari nomi, kategoriyasi va razdeli to‘g‘ri chiqadi; ish va mashinist mehnati «summa noma‘lum» deb sanalmaydi; taxminiy summalar ≈ bilan."
+  ]
+}

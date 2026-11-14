@@ -16,14 +16,20 @@ export const ZAXIRA_BOSH_SAHIFA = '/admin/ish-joylarim';
  *  effektiv rol va ruxsat bo'yicha `rolBoshSahifasi` ni qo'llaydi. Kirish sahifasi rolni O'ZI hal qilmaydi. */
 export const MAVJUD_FOYDALANUVCHI_KIRISH = '/admin';
 
+/** Yangi o'zi ro'yxatdan o'tgan hisob (a'zoliksiz): ishga kirishning YAGONA ko'rinadigan qadami — birinchi kompaniyasini O'ZI darhol
+ *  ochadi (#404, `t2_kompaniya_ozi_och_v1`; tasdiq kutilmaydi) yoki direktor taklifi. Faqat QO'SHIMCHA kompaniya — STIR bilan so'rov
+ *  (platforma administratori tasdiqlaydi). Tokenlar sahifasi kompaniyasiz ishlamaydi. */
+export const YANGI_HISOB_KIRISH = '/admin/kompaniya';
+
 const ROL_BOSH_SAHIFA: Readonly<Record<string, string>> = {
-  superadmin: '/admin/obyektlar',
-  admin: '/admin/obyektlar',
+  /* Navigatsiya oqimi (2026-11-11): admin/superadmin ham rahbar paneliga (avval Obyektlar sahifasiga tushardi). */
+  superadmin: '/admin/dashboard',
+  admin: '/admin/dashboard',
   pto: '/admin/obyektlar',
   bugalter: '/admin/obyektlar',
   prorab: '/admin/obyektlar',
-  boss: '/admin/dashboard',
-  rahbar: '/admin/dashboard',
+  boss: '/admin/pult',
+  rahbar: '/admin/pult',
   buyurtmachi: '/admin/zakazchik',
   usta: '/admin/fakt',
   brigadir: '/admin/fakt',
@@ -31,8 +37,8 @@ const ROL_BOSH_SAHIFA: Readonly<Record<string, string>> = {
   taminotchi: '/admin/logistika',
   mexanik: '/admin/erp',
   kadr: '/admin/erp',
-  inspektor: '/admin/aosr',
-  loyihachi: '/admin/documents',
+  inspektor: '/admin/nazorat',
+  loyihachi: '/admin/loyihachi',
 };
 
 /** Joriy kompaniya konteksti bo'yicha bosh sahifa (RolBoshSahifa ishlatadi). Kompaniya tanlanmagan (global rejim,

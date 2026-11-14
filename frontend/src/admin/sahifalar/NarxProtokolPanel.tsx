@@ -4,6 +4,7 @@
  * 2) Buyurtmachi imzolagan nusxa yuklanadi (R2, o'zgarmas) + kuchga kirish oyi → tasdiqlanadi.
  * 3) Shu oydan F2 tayyorlashda narx protokoldan olinadi (lib/f2-tayyor: protokol → oldingi F2 → smeta).
  */
+import { matnSora } from '../../umumiy/ui/Tasdiq';
 import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, FileSpreadsheet, FileUp, XCircle } from 'lucide-react';
 import {
@@ -92,7 +93,7 @@ export function NarxProtokolPanel(p: { kompaniyaId: number; obyektId: number; ob
   };
 
   const bekor = async (pr: NarxProtokol) => {
-    const sabab = window.prompt(t('Bekor qilish sababi'));
+    const sabab = await matnSora({ matn: 'Bekor qilish sababi', majburiy: true, tasdiqMatni: 'Bekor qilish', xavfli: true });
     if (!sabab?.trim()) return;
     const r = await narxProtokolBekor(pr.id, sabab.trim());
     if (!r.ok) { toast(r.error || t('Bekor qilinmadi'), 'danger'); return; }

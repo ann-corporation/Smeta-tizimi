@@ -10,7 +10,7 @@ import { dataPermission } from './permission-policy';
 export const RUXSATSIZ_BUYRUQ = 'command.unregistered';
 
 /** Tanadagi maydonga qarab ruxsati o'zgaradigan buyruqlar (masalan F2 holat o'tishi: bekor / tuzatish / tasdiq). */
-export const DINAMIK_BUYRUQLAR: ReadonlySet<string> = new Set(["akt_lifecycle_transition_v1","akt_yarat","buyurtma_otish_v1"]);
+export const DINAMIK_BUYRUQLAR: ReadonlySet<string> = new Set(["akt_lifecycle_transition_v1","akt_yarat","buyurtma_otish_v1","naryad_yoz_v1","naryad_usta_bajarildi_v1","osuvchi_yoz_v1"]);
 
 export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   qoshimcha_ish_yarat_v1: 'smeta.write',
@@ -28,6 +28,9 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   ish_kartasi_saqla_v1: 'smeta.write',
   ish_kartasi_arxiv_v1: 'smeta.write',
   ish_kartasi_ulush_saqla_v1: 'smeta.write',
+  naryad_usta_bajarildi_v1: 'smeta.write', // 20261216700000: dinamik — tanada naryad_amal='bajarildi' bo'lsa self.work.write|smeta.write (naryad_yoz_v1 bilan bir xil); RPC usta_foydalanuvchi_id = actor ni tekshiradi
+  osuvchi_yoz_v1: 'company.read', // 20261217400000: dinamik (permission-policy.ts): taklif_* - control.global.write, sozlama_saqla - control.company.write; RPC ham tekshiradi
+  naryad_yoz_v1: 'smeta.write', // 20261214800000: hisobla — RPC yana financial.write talab qiladi
   shartnoma_saqla_v2: 'document.write',
   qarzdorlik_saqla_v1: 'financial.write',
   qarzdorlik_import_v1: 'financial.write',
@@ -39,6 +42,7 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   hr_tuzatma_saqla_v1: 'hr.tabel.write',
   hr_tuzatma_qaror_v1: 'payroll.write',
   hr_oylik_v1: 'payroll.write',
+  hr_kpi_qoida_saqla_v1: 'payroll.write',
   bux_boshlash_v1: 'financial.write',
   bux_hisob_saqla_v1: 'financial.write',
   bux_moslik_saqla_v1: 'financial.write',
@@ -46,6 +50,18 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   bux_qolda_v1: 'financial.write',
   bux_storno_v1: 'financial.write',
   bux_davr_v1: 'financial.write',
+  bux_shablon_tanla_v1: 'financial.write',
+  bux_davr_blok_v1: 'financial.write',
+  bux_hisob_tasdiq_v1: 'financial.write',
+  bux_saldo_import_v1: 'financial.write',
+  bux_saldo_bekor_v1: 'financial.write',
+  bux_tannarx_v1: 'financial.write',
+  bux_hisobot_saqla_v1: 'financial.write',
+  bux_bank_yuklash_v1: 'financial.write',
+  bux_bank_qabul_v1: 'financial.write',
+  bux_kassa_yoz_v1: 'financial.write',
+  bux_kassa_bekor_v1: 'financial.write',
+  bux_taqsim_saqla_v1: 'financial.write',
   bux_bank_import_v1: 'financial.write',
   bux_tashqi_v1: 'financial.write',
   shartnoma_oylik_paket_saqla_v1: 'document.write',
@@ -135,7 +151,7 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   buyurtma_qabul_v1: 'procurement.write',
   buyurtma_qabul_yakunla_v1: 'procurement.write',
   buyurtma_royxat_v1: 'procurement.read',
-  buyurtma_tafsilot_v1: 'procurement.read',
+  buyurtma_tafsilot_v1: 'procurement.read', buyurtma_tolov_holati_v1: 'procurement.read',
   viborka_smetadan_toldir: 'smeta.write',
   viborka_qabul_yoz: 'document.write',
   shartnoma_saqla: 'document.write',
@@ -148,6 +164,9 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   xarajat_yoz: 'financial.write',
   xarajat_tahrir: 'financial.write',
   xarajat_ochir: 'financial.write',
+  arxivla_v1: 'document.write',
+  arxivdan_tiklash_v1: 'document.write',
+  arxiv_butunlay_v1: 'document.write', // RPC faqat admin/superadminga ruxsat beradi
   korzinkaga_tashlash: 'document.write',
   korzinkadan_tiklash: 'document.write',
   butunlay_ochirish: 'document.write',
@@ -156,6 +175,8 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   aosr_bekor: 'document.write',
   aosr_bog_saqla: 'document.write',
   aosr_bog_ochir: 'document.write',
+  aosr_bog_hajm_v1: 'document.write',
+  aosr_asos_qoralama_v1: 'document.write',
   aosr_yoz_v2: 'document.write',
   lab_protokol_yoz: 'document.write',
   lab_protokol_bekor: 'document.write',
@@ -221,7 +242,13 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   yb_yuk_saqla_v1: 'procurement.write', yb_yuk_elon_v1: 'procurement.write', yb_yuk_bekor_v1: 'procurement.write', yb_yuk_baho_v1: 'procurement.write', yb_yuk_nizo_v1: 'procurement.write',
   yb_yuk_javob_v1: 'procurement.approve', yb_yuk_tasdiq_v1: 'procurement.approve',
   moliya_qolda_yoz_v1: 'financial.write',
+  solishtiruv_tushuntir_v1: 'financial.write',
+  solishtiruv_yangila_v1: 'financial.write',
   fakt_yoz_v2: 'fakt.write',
+  /* Usta «Bugun»: qoralama/zayavka — self.work.write (RPC ham tekshiradi); qaror — fakt.write. */
+  usta_fakt_qoralama_v1: 'self.work.write',
+  usta_zayavka_v1: 'self.work.write',
+  usta_fakt_qaror_v1: 'fakt.write',
   fakt_belgila_v2: 'fakt.write',
   fakt_belgila: 'fakt.write',
   azolik_qosh: 'company.member.manage',
