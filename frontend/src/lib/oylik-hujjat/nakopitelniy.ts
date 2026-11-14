@@ -16,33 +16,46 @@ import type { SvodYaxlit } from '../svod-yaxlit';
 import type { ImzoNomlar } from '../hujjat-yozuvchi';
 import type { F3DavrAkt } from '../forma3-export';
 import { aktlarBahosiOl } from './akt-baho';
+import { bajarilmadiRoyxatOl, type BajarilmadiQator } from '../../api/t2-bajarilmadi';
+import { f2AktUstunlari } from '../nakopitelniy-akt-ustun';
 
 type OkJavob = Extract<NakopitelniyJavob, { ok: true }>;
 export type NakopitelniyOyKesim = ReturnType<typeof f2OyKesimi>;
 
 /** Nakopitelniy qatorlarini daraxt ma'lumotlari (ota/daraja), o'zgarish izohi va norma bilan boyitadi va DARAXT tartibiga soladi. */
-export function nakopitelniyQatorlarniTayyorla(xom: readonly NakopitelniyQator[], model: SmetaModel | null): NakopitelniyQator[] {
+export function nakopitelniyQatorlarniTayyorla(xom: readonly NakopitelniyQator[], model: SmetaModel | null, bajarilmadi: readonly BajarilmadiQator[] | null = null): NakopitelniyQator[] {
+  const bj = new Map((bajarilmadi ?? []).filter((b) => b.holat === 'faol').map((b) => [b.qator_id, b] as const));
   const meta = new Map<number, { ota_id: number | null; daraja: number | null }>();
   if (model) for (const q of model.byId.values()) meta.set(q.id, { ota_id: q.ota_id, daraja: q.daraja });
-  return tartibla(xom.map((q) => ({ ...q, ...(meta.get(q.qator_id) ?? {}), ozgarish_izoh: ozgarishIzohi(q, model), norma: model?.byId.get(q.qator_id)?.norma ?? null })), model);
+  return tartibla(xom.map((q) => {
+    const b = bj.get(q.qator_id);
+    return { ...q, ...(meta.get(q.qator_id) ?? {}), ozgarish_izoh: ozgarishIzohi(q, model), norma: model?.byId.get(q.qator_id)?.norma ?? null,
+      almashtirgan_id: model?.almashtiradi.get(q.qator_id) ?? null,
+      ...(b ? { bajarilmadi_hajm: b.hajm == null ? null : Number(b.hajm), bajarilmadi_sabab: b.sabab_kod, bajarilmadi_izoh: b.sabab_izoh, bajarilmadi_zamena_id: b.zamena_qator_id } : {}) };
+  }), model);
 }
 
 export type NakopitelniyYuklangan = {
   r: OkJavob; model: SmetaModel; qatorlar: NakopitelniyQator[];
   /** Tasdiqlangan F2 oyi kesimi (jadval ustunlari / grafik); F2 tafsiloti to'liq o'qilmasa - null. */
   oyKesim: NakopitelniyOyKesim | null;
+  /** Har F-2 alohida ustun (podvalsiz — sahifa jadvali uchun); F2 tafsiloti to'liq o'qilmasa null. */
+  aktUstun: ReturnType<typeof f2AktUstunlari> | null;
 };
 
 /** Obyekt nakopitelniy vedomosti: server sahifalari + yagona smeta modeli + F2 oy kesimi. Xato - sabab matni bilan. */
-export async function nakopitelniyYukla(objId: number, davr: string | null, opts: { onProgress?: (p: NakopitelniyProgress) => void } = {}): Promise<NakopitelniyYuklangan | { xato: string }> {
-  const [r, model, taf] = await Promise.all([
+export async function nakopitelniyYukla(objId: number, davr: string | null, opts: { onProgress?: (p: NakopitelniyProgress) => void; kompaniyaId?: number | null } = {}): Promise<NakopitelniyYuklangan | { xato: string }> {
+  const [r, model, taf, bj] = await Promise.all([
     t2NakopitelniyToliq(objId, davr || null, false, { onProgress: opts.onProgress }),
     smetaModeliniYukla(objId),
     sbT2F2TafsilotOl({ obyektId: objId, tur: 'f2' }).catch(() => null),
+    // «Bajarilmadi» belgilari — qator hujjatdan yo'qolmaydi (egasi 2026-11-14); o'qilmasa hujjat belgisiz chiqadi (xato emas).
+    opts.kompaniyaId ? bajarilmadiRoyxatOl(opts.kompaniyaId, objId).then((x) => (x.ok ? x.qatorlar : null)).catch(() => null) : Promise.resolve(null),
   ]);
   if (!r.ok) return { xato: r.xato || r.code || 'Yuklanmadi' };
   const oyKesim = taf?.ok && taf.toliq !== false && taf.qatorlar && r.davr ? f2OyKesimi(taf.qatorlar, String(r.davr).slice(0, 7)) : null;
-  return { r, model, qatorlar: nakopitelniyQatorlarniTayyorla(r.qatorlar, model), oyKesim };
+  return { r, model, qatorlar: nakopitelniyQatorlarniTayyorla(r.qatorlar, model, bj), oyKesim,
+    aktUstun: taf?.ok && taf.toliq !== false && taf.qatorlar && r.davr ? f2AktUstunlari(taf.qatorlar, String(r.davr).slice(0, 7), []) : null };
 }
 
 export type NakopitelniyUstama = {
@@ -92,11 +105,23 @@ export async function nakopitelniyAktlarKOplate(kompaniyaId: number, objId: numb
     return await aktlarBahosiOl({ kompaniyaId, obyektId: objId, obyektNom, qatorlar: taf.qatorlar, davr });
   } catch { return null; }
 }
+/** Har tasdiqlangan F-2 — alohida ustun, o'z podvali bilan (egasi 2026-11-14). O'qilmasa null — oy kesimi, bitta umumiy podval. */
+export async function nakopitelniyAktUstunOl(kompaniyaId: number, objId: number, obyektNom: string, davr: string): Promise<NakopitelniyOylar | null> {
+  try {
+    const taf = await sbT2F2TafsilotOl({ obyektId: objId, tur: 'f2' });
+    if (!taf.ok || taf.toliq === false || !taf.qatorlar || !davr) return null;
+    const baho = await aktlarBahosiOl({ kompaniyaId, obyektId: objId, obyektNom, qatorlar: taf.qatorlar, davr });
+    return f2AktUstunlari(taf.qatorlar, davr, baho);
+  } catch { return null; }
+}
 export type NakopitelniyHujjatKirish = {
   qatorlar: readonly NakopitelniyQator[]; jami: Pick<NakopitelniyJami, 'smeta_summa'> | null; obyektNom: string; davr: string;
   ustama: NakopitelniyUstama; oylar: NakopitelniyOyKesim | null; imzo?: ImzoNomlar; ndsFoiz: number | null;
   /** Hisobot oyigacha hamma tasdiqlangan F2 (har biri o'z podvali bilan): «К ОПЛАТЕ» oy va «с начала» jami shulardan. null — o'qilmadi (qator hisobi). */
   aktlarKOplate?: ReadonlyArray<F3DavrAkt> | null;
+  /** Har F-2 — alohida ustun (
+akopitelniyAktUstunOl); berilsa oylar o'rniga shu. */
+  aktUstun?: NakopitelniyOylar | null;
 };
 
 /** Nakopitelniy hujjati: sahifa ham, paket ham shu funksiyani chaqiradi. */
@@ -104,7 +129,7 @@ export function nakopitelniyHujjatQur(k: NakopitelniyHujjatKirish): { bytes: Uin
   const smetaNakrutka = nakopitelniySmetaNakrutka(k.ustama, k.jami).qiymat;
   return nakopitelniyVedomostHujjat(k.qatorlar, {
     obyektNom: k.obyektNom, davr: k.davr, imzo: k.imzo, ndsFoiz: k.ndsFoiz, smetaNakrutka, nakrutka: k.ustama.koeffitsientlar, podval: k.ustama.podval,
-    nkManba: k.ustama.javob?.nk_manba ?? null, oylar: k.oylar as NakopitelniyOylar | null, svodYaxlit: (k.ustama.javob?.svod_yaxlit ?? null) as SvodYaxlit | null, aktlarKOplate: k.aktlarKOplate,
+    nkManba: k.ustama.javob?.nk_manba ?? null, oylar: (k.aktUstun?.oylar.length ? k.aktUstun : k.oylar) as NakopitelniyOylar | null, svodYaxlit: (k.ustama.javob?.svod_yaxlit ?? null) as SvodYaxlit | null, aktlarKOplate: k.aktlarKOplate,
   });
 }
 
@@ -112,7 +137,7 @@ export type NakopitelniyPaketNatija = { ok: true; nom: string; bytes: Uint8Array
 
 /** Paket yo'li: shartnoma oyi = hisobot davri. Shu oyda TASDIQLANGAN F2 bo'lmasa nakopitelniy yasalmaydi. */
 export async function nakopitelniyPaketFayli(p: { kompaniyaId: number; obyektId: number; obyektNom: string; oy: string; imzo?: ImzoNomlar; ndsFoiz: number | null }): Promise<NakopitelniyPaketNatija> {
-  const y = await nakopitelniyYukla(p.obyektId, `${p.oy}-01`);
+  const y = await nakopitelniyYukla(p.obyektId, `${p.oy}-01`, { kompaniyaId: p.kompaniyaId });
   if ('xato' in y) return { ok: false, xato: y.xato };
   const davr: NakopitelniyDavr | undefined = y.r.davrlar.find((d) => d.oy.slice(0, 7) === p.oy);
   if (!davr?.certified) return { ok: false, bosh: true, xato: 'shu oyda tasdiqlangan F2 yo‘q' };
@@ -124,8 +149,9 @@ export async function nakopitelniyPaketFayli(p: { kompaniyaId: number; obyektId:
   let oylar: NakopitelniyOyKesim | null;
   try { oylar = await nakopitelniyOylarOl(p.obyektId, davrQiymat); } catch { oylar = null; }
   try {
-    const aktlarKOplate = await nakopitelniyAktlarKOplate(p.kompaniyaId, p.obyektId, p.obyektNom, davrQiymat);
-    const h = nakopitelniyHujjatQur({ qatorlar: y.qatorlar, jami: y.r.jami ?? null, obyektNom: p.obyektNom, davr: davrQiymat, ustama, oylar, imzo: p.imzo, ndsFoiz: p.ndsFoiz, aktlarKOplate });
+    const aktUstun = await nakopitelniyAktUstunOl(p.kompaniyaId, p.obyektId, p.obyektNom, davrQiymat);
+    const aktlarKOplate = aktUstun?.oylar.length ? undefined : await nakopitelniyAktlarKOplate(p.kompaniyaId, p.obyektId, p.obyektNom, davrQiymat);
+    const h = nakopitelniyHujjatQur({ qatorlar: y.qatorlar, jami: y.r.jami ?? null, obyektNom: p.obyektNom, davr: davrQiymat, ustama, oylar, imzo: p.imzo, ndsFoiz: p.ndsFoiz, aktlarKOplate, aktUstun });
     return { ok: true, nom: h.faylNomi, bytes: h.bytes };
   } catch { return { ok: false, xato: 'Excel fayli tuzilmadi' }; }
 }

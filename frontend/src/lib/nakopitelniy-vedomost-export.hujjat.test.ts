@@ -46,12 +46,12 @@ describe('Накопительная ведомость — hujjat standarti', (
     expect(t.fullCalcOnLoad).toBe(true);
     const v = t.varaqlar[0];
     expect(v.a4 && v.bittaEnli && v.yonalish === 'landscape').toBe(true);
-    expect(v.printArea).toMatch(/!\$A\$1:\$S\$\d+$/);
+    expect(v.printArea).toMatch(/!\$A\$1:\$R\$\d+$/);
     expect(v.printTitles).toBeTruthy();
     expect(imzoRollariBormi(t, ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СОСТАВИЛ']).yoq).toEqual([]);
     expect(t.matnlar).toEqual(expect.arrayContaining(['НАКОПИТЕЛЬНАЯ ВЕДОМОСТЬ ВЫПОЛНЕННЫХ РАБОТ', 'за отчетный период: сентябрь 2026 г. (учтены только утвержденные акты формы № 2)', 'ВСЕГО ПО ОБЪЕКТУ', 'ИТОГО ПО РАЗДЕЛУ: РАЗДЕЛ 1. ЗЕМЛЯНЫЕ РАБОТЫ']));
     // UI == Excel: ВСЕГО "с начала строительства" keshi = jamilar.jami.
-    const vsego = v.kataklar.filter((k) => k.f?.includes('SUMIF(U') && Number(k.v) === jamilar.jami);
+    const vsego = v.kataklar.filter((k) => k.f?.includes('SUMIF(T') && Number(k.v) === jamilar.jami);
     expect(vsego.length).toBeGreaterThan(0);
   });
 
@@ -102,26 +102,25 @@ describe('Накопительная ведомость — hujjat standarti', (
     expect(t.taqiqlangan).toEqual([]);
     expect(t.dollarFormulalar).toEqual([]);
     expect(t.keshsizFormulalar).toEqual([]);
-    expect(t.matnlar).toEqual(expect.arrayContaining(['К ОПЛАТЕ (с накладными расходами и НДС)', 'ВСЕГО К ОПЛАТЕ (С НАКЛАДНЫМИ РАСХОДАМИ И НДС)', 'ПРЯМЫЕ ЗАТРАТЫ — ВСЕГО', 'ИТОГО-4 (БЕЗ НДС)']));
-    // Kaskad (за период, L): ЧЕЛ 200 000,50; МАТ 180 000 + 4 590 000.
-    const L = r.kaskad!.L!;
+    expect(t.matnlar).toEqual(expect.arrayContaining(['ВСЕГО К ОПЛАТЕ (С НАКЛАДНЫМИ РАСХОДАМИ И НДС)', 'ПРЯМЫЕ ЗАТРАТЫ — ВСЕГО', 'ИТОГО-4 (БЕЗ НДС)']));
+    // Kaskad (за период, M): ЧЕЛ 200 000,50; МАТ 180 000 + 4 590 000.
+    const L = r.kaskad!.M!;
     expect(L.pryamye).toBe(4_970_000.5);
     expect(L.vsego).toBeGreaterThan(L.pryamye);
-    // Qator к оплате yig'indisi podval ВСЕГО bilan teng (faqat yaxlitlash farqi).
-    expect(Math.abs((r.kOplata.davr ?? 0) - L.vsego)).toBeLessThan(0.05);
-    expect(Math.abs((r.kOplata.jami ?? 0) - r.kaskad!.N!.vsego)).toBeLessThan(0.05);
+    // Podval ВСЕГО = kOplata (yagona manba); qatorlarda «К ОПЛАТЕ» ustunlari YO'Q (egasi 2026-11-14: ustama faqat podvalda).
+    expect(r.kOplata.davr).toBe(L.vsego);
+    expect(r.kOplata.jami).toBe(r.kaskad!.O!.vsego);
     const k = t.varaqlar[0].kataklar;
-    // Qator formulasi: ROUND(L×Kf) — Kf katagi foiz kataklaridan formula.
-    expect(k.some((c) => /^ROUND\(L\d+\*F\d+,2\)$/.test(c.f ?? ''))).toBe(true);
-    expect(k.some((c) => /^\(1\+F\d+\/100\)\*\(1\+F\d+\/100\+F\d+\/100\)\*\(1\+F\d+\/100\)$/.test(c.f ?? ''))).toBe(true);
-    expect(k.some((c) => /^SUMIF\(T\d+:T\d+,"МАТ",L\d+:L\d+\)$/.test(c.f ?? ''))).toBe(true);
+    expect(k.some((c) => /^ROUND\([A-Z]+\d+\*F\d+,2\)$/.test(c.f ?? '') && !/SUMIF/.test(c.f ?? ''))).toBe(false);
+    expect(t.matnlar.some((m) => /^К ОПЛАТЕ \(/.test(m))).toBe(false);
+    expect(k.some((c) => /^SUMIF\(S\d+:S\d+,"МАТ",M\d+:M\d+\)$/.test(c.f ?? ''))).toBe(true);
   });
 
   it('nakrutka foizlari berilmasa — к оплате NOMA‘LUM (0 % deb olinmaydi), hujjatda aytiladi', () => {
     // Qasddan o'zgarish (hisob yadrosi): avval 0 % deb olinardi (к оплате = прямые + НДС). Endi foiz faqat podvaldan.
     const r = nakopitelniyVedomostHujjat(ROWS, { obyektNom: 'Объект', davr: '2026-09', ndsFoiz: 12 });
     const t = hujjatTekshir(r.bytes);
-    expect(r.kaskad!.L).toBeNull();
+    expect(r.kaskad!.M).toBeNull();
     expect(r.kOplata.davr).toBeNull();
     void yaxlit;
     expect(t.matnlar.some((m) => m.includes('Проценты накладных и прочих расходов'))).toBe(true);
@@ -151,10 +150,10 @@ describe('Накопительная ведомость — har oy alohida ustun
     const v = t.varaqlar[0];
     const nomKatak = v.kataklar.find((k) => k.matn === 'ЗАТРАТЫ ТРУДА РАБОЧИХ')!;
     const row = nomKatak.ref.replace(/^[A-Z]+/, '');
-    // Oylar: I/J (avg), K/L (sen), M/N (okt); ИТОГО: O (hajm) = I+K+M, P (summa) = J+L+N
-    expect(v.kataklar.find((k) => k.ref === `O${row}`)?.f).toBe(`I${row}+K${row}+M${row}`);
-    expect(Number(v.kataklar.find((k) => k.ref === `P${row}`)?.v)).toBe(500_000.5);
+    // Oylar: J/K (avg), L/M (sen), N/O (okt); ИТОГО: P (hajm) = J+L+N, Q (summa) = K+M+O
     expect(v.kataklar.find((k) => k.ref === `P${row}`)?.f).toBe(`J${row}+L${row}+N${row}`);
+    expect(Number(v.kataklar.find((k) => k.ref === `Q${row}`)?.v)).toBe(500_000.5);
+    expect(v.kataklar.find((k) => k.ref === `Q${row}`)?.f).toBe(`K${row}+M${row}+O${row}`);
   });
 });
 

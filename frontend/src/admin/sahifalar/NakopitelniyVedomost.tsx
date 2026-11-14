@@ -28,7 +28,7 @@ import { aktlarBahosiOl } from '../../lib/oylik-hujjat/akt-baho';
 import { ozgarishRoyxatOl } from '../../api/t2-document-control';
 import { t2ObyektNakrutka, type NakrutkaKaskad, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
 import type { Podval } from '../../lib/hisob-yadro';
-import { nakopitelniyAktlarKOplate, nakopitelniyHujjatQur, nakopitelniyOylarOl, nakopitelniyQatorlarniTayyorla, nakopitelniySmetaNakrutka, nakopitelniyUstamaOl, nakopitelniyUstamaTayyorEmas, nakopitelniyYukla, type NakopitelniyUstama } from '../../lib/oylik-hujjat/nakopitelniy';
+import { nakopitelniyAktlarKOplate, nakopitelniyAktUstunOl, nakopitelniyHujjatQur, nakopitelniyOylarOl, nakopitelniyQatorlarniTayyorla, nakopitelniySmetaNakrutka, nakopitelniyUstamaOl, nakopitelniyUstamaTayyorEmas, nakopitelniyYukla, type NakopitelniyUstama } from '../../lib/oylik-hujjat/nakopitelniy';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { hujjatArxivla } from '../../api/t2-hujjat-arxiv';
@@ -43,6 +43,8 @@ import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { AmalMenyu } from '../../components/nakopitelniy/AmalMenyu';
 import { DavrChiziq } from '../../components/nakopitelniy/DavrChiziq';
 import { NakopitelniyKpi } from '../../components/nakopitelniy/NakopitelniyKpi';
+import { bajarilmadiRoyxatOl } from '../../api/t2-bajarilmadi';
+import { f2AktUstunlari } from '../../lib/nakopitelniy-akt-ustun';
 import { NakopitelniyJadval } from '../../components/nakopitelniy/NakopitelniyJadval';
 import { ShartnomaQuvur } from '../../components/nakopitelniy/ShartnomaQuvur';
 import { PereraschetBolimi } from './PereraschetBolimi';
@@ -82,6 +84,8 @@ function Sessiya({ companyId }: { companyId: number }) {
   const [xato, setXato] = useState('');
   /** Egasi 2026-09-30: jadvalda ham har tasdiqlangan F2 oyi alohida ustun (+ ИТОГО). */
   const [oyKesim, setOyKesim] = useState<ReturnType<typeof f2OyKesimi> | null>(null);
+  /** Har F-2 — alohida ustun (xlsx bilan bir tuzilma); F2 tafsiloti o'qilmasa — oy ustunlari. */
+  const [aktUstun, setAktUstun] = useState<ReturnType<typeof f2AktUstunlari> | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -172,7 +176,7 @@ function Sessiya({ companyId }: { companyId: number }) {
     setBusy(true); setXato('');
     try {
       // Yagona smeta modeli (lib/smeta-model): daraxt, zamena bog'lanishi va o'zgarish izohlari bir joydan.
-      const y = await nakopitelniyYukla(objId, tanlanganDavr || null, { onProgress: (p) => { if (currentRequest === requestId.current) setProgress(p); } });
+      const y = await nakopitelniyYukla(objId, tanlanganDavr || null, { kompaniyaId: companyId, onProgress: (p) => { if (currentRequest === requestId.current) setProgress(p); } });
       if (currentRequest !== requestId.current) return;
       if ('xato' in y) { setXato(y.xato); setQatorlar([]); return; }
       const { r, model } = y;
@@ -180,6 +184,7 @@ function Sessiya({ companyId }: { companyId: number }) {
       // Egasi 2026-09-29: qo'shimcha/zamena qatorlarining tartib raqami smeta oxirida — barcha hujjatlar DARAXT tartibida.
       setQatorlar(y.qatorlar);
       setOyKesim(y.oyKesim);
+      setAktUstun(y.aktUstun?.aktlar?.length ? y.aktUstun : null);
       setJami(r.jami); setDavrlar(r.davrlar); setDavr(r.davr); setObyektNom(r.obyekt.nom);
       setLoyihaId(r.obyekt.loyiha_id);
       setObyektKompaniyaId(r.obyekt.kompaniya_id);
@@ -252,7 +257,8 @@ function Sessiya({ companyId }: { companyId: number }) {
         return null;
       }
       if (r.truncated) { setXato('Hujjat yasalmadi: server ro‘yxatni to‘liq bermadi — chala hujjat chiqarilmaydi.'); return null; }
-      return nakopitelniyQatorlarniTayyorla(r.qatorlar, modelRef.current);
+      const bj = await bajarilmadiRoyxatOl(companyId, Number(objectId)).then((x) => (x.ok ? x.qatorlar : null)).catch(() => null);
+      return nakopitelniyQatorlarniTayyorla(r.qatorlar, modelRef.current, bj);
     } finally { setEksportBusy(false); setProgress(null); }
   };
   const stavkaOl = (): number | null => {
@@ -408,8 +414,10 @@ function Sessiya({ companyId }: { companyId: number }) {
       if (!rows) return;
       // Egasi 2026-09-30: har tasdiqlangan F2 oyi alohida ustun + ИТОГО (manba — F3 bilan bir xil certified F2).
       const oylar = await nakopitelniyOylarOl(Number(objectId), davr);
-      const aktlarKOplate = await nakopitelniyAktlarKOplate(companyId, Number(objectId), obyektNom, davr);
-      const h = nakopitelniyHujjatQur({ qatorlar: rows, jami, obyektNom, davr, ustama, oylar, imzo: tomonlar, ndsFoiz: stavkaOl(), aktlarKOplate });
+      // Har F-2 — o'z ustuni va o'z podvali (egasi 2026-11-14); o'qilmasa eski yo'l (oy kesimi + obyekt podvali, замечание bilan).
+      const aktUstunH = await nakopitelniyAktUstunOl(companyId, Number(objectId), obyektNom, davr);
+      const aktlarKOplate = aktUstunH?.oylar.length ? undefined : await nakopitelniyAktlarKOplate(companyId, Number(objectId), obyektNom, davr);
+      const h = nakopitelniyHujjatQur({ qatorlar: rows, jami, obyektNom, davr, ustama, oylar, imzo: tomonlar, ndsFoiz: stavkaOl(), aktlarKOplate, aktUstun: aktUstunH });
       const t = await hujjatTokenBilan({ kompaniyaId: companyId, bytes: h.bytes, hujjat: 'NAKOPITELNIY', sabab: `Накопительная ведомость · ${obyektNom} · ${davr}`, obyekt: objectId },
         () => { if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi); });
       if (!t.ok) toast(t.xabar, 'danger'); else if (t.xabar) toast(t.xabar, 'ok');
@@ -548,7 +556,7 @@ function Sessiya({ companyId }: { companyId: number }) {
         {f3Rejim !== 'shartnoma' && jami && <NakopitelniyGrafik kesim={oyKesim} smeta={jami.smeta_summa} fakt={nakFaktJami(qatorlar, jami.fakt_summa, truncated).summa} />}
 
         {f3Rejim !== 'shartnoma' && qatorlar.length > 0 && (
-          <NakopitelniyJadval qatorlar={qatorlar} korinadigan={gorunumRows} oyKesim={oyKesim} jami={jami} truncated={truncated} filtrBor={!!filtr} />
+          <NakopitelniyJadval qatorlar={qatorlar} korinadigan={gorunumRows} oyKesim={aktUstun ?? oyKesim} aktlar={aktUstun?.aktlar} davr={davr} jami={jami} truncated={truncated} filtrBor={!!filtr} />
         )}
 
         {qatorlar.length > 0 && (
