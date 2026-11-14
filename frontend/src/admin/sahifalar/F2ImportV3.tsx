@@ -1479,8 +1479,10 @@ function Sessiya({ companyId }: { companyId: number }) {
           podvalIzoh = pr?.ok ? ` ${t('Hujjat podvali saqlandi.')}` : ` ${t('Hujjat podvali saqlanmadi (smeta podvali qoladi).')}`;
         }
       }
+      // Avto podval (server, 20261221810000): smeta podvali topilmasa qulf yo'q — faqat ogohlantirish.
+      if (r.podval?.bor === false && r.podval.ogohlantirish) podvalIzoh += ` ${t('Diqqat: obyektning smeta podvali topilmadi, nakrutka foizlari shartnoma yoki standart stavka boʻyicha hisoblanadi.')}`;
       setTekshiruv((v) => v + 1);
-      qadam('akt', 'tayyor', `#${r.akt_id ?? '?'} · ${payload.rows.length} ${t('qator')}`);
+      qadam('akt', 'tayyor', `#${r.akt_id ?? '?'}· ${payload.rows.length} ${t('qator')}`);
       setSessiyaKiritilgan((s) => new Set([...s, akt.varaq]));
       setDone(`F2 qoralamasi ${mavjudQoralama ? 'yangilandi' : 'saqlandi'} (akt #${r.akt_id ?? '?'}, ${payload.rows.length} qator). Tasdiqlangach Nakopitelniyga kiradi — F2 tarixi sahifasida.${podvalIzoh}`);
       if (yozish.qolgan.length) setServerHolat(`Diqqat: ${yozish.qolgan.length} ta bog‘lanmagan yoki tasdiqlanmagan qator aktga kiritilmadi. Ular manba faylida ${draft.server ? `va server ish qoralamasi #${draft.server.jobId} da ` : ''}saqlangan. Akt faqat tasdiqlangan bog‘lanishlardan tuzildi.`);
