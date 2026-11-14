@@ -76,3 +76,10 @@ test('CLI creates and reads a private job without printing its goal',async t=>{
  assert.equal(JSON.parse(created.stdout).state,'queued');assert.ok(!created.stdout.includes('PRIVATE'));
  const status=await run(process.execPath,[fileURLToPath(cli),'status',join(dir,'jobs'),'cli-test']);assert.equal(JSON.parse(status.stdout).calls,0);
 });
+
+test('timed-out preview cannot report recovery while a late effect remains possible',async t=>{
+ const q=await setup(t),a=workers();let rollbackCalled=false;
+ a.preview=async()=>new Promise(()=>{});a.rollback=async()=>{rollbackCalled=true;return {restored:true,artifactId:'old'};};
+ assert.equal((await q.run('test',a,{timeoutMs:20})).state,'needs_reconciliation');
+ assert.equal(rollbackCalled,false);
+});

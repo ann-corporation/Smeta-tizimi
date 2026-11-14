@@ -74,7 +74,7 @@ export class EvolutionQueue {
 
   /** Adapters are supplied by the trusted controller, NEVER loaded from a patch or job. */
   async run(id, adapters, { signal, timeoutMs = 60000 } = {}) {
-    requireValue(Number.isInteger(timeoutMs) && timeoutMs > 0 && timeoutMs <= 300000, 'INVALID_TIMEOUT');
+    requireValue(Number.isInteger(timeoutMs) && timeoutMs > 0 && timeoutMs <= 1800000, 'INVALID_TIMEOUT');
     return this.locked(id, async () => {
       const job = await this.read(id);
       if (['completed', 'cancelled', 'rolled_back', 'rollback_failed'].includes(job.state)) return job;
@@ -110,7 +110,7 @@ export class EvolutionQueue {
         job.state = 'completed';
       } catch (e) {
         job.state = ['AbortError', 'TimeoutError'].includes(e.name) ? 'needs_reconciliation' : 'failed'; job.error = e.message;
-        if (job.previewAttempted) {
+        if (job.previewAttempted && !['AbortError', 'TimeoutError'].includes(e.name)) {
           // Separate emergency capacity; rollback remains available after normal budget/deadline exhaustion.
           job.state = 'rollback_required'; await this.save(job);
           try {

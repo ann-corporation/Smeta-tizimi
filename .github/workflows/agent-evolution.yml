@@ -1,0 +1,18 @@
+name: Agent evolution
+on:
+  push:
+    branches: ['codex/agent-evolution*', 'agent-evolution/**']
+  pull_request:
+    paths: ['ops/agent-evolution/**', '.github/workflows/agent-evolution.yml']
+permissions:
+  contents: read
+jobs:
+  agent-evolution:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node --test ops/agent-evolution/*.test.mjs
