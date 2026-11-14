@@ -84,7 +84,9 @@ describe('Накопительная ведомость — hujjat standarti', (
     const t = hujjatTekshir(bytes);
     // ПЕСОК: smeta noma'lum + qabul qilingan > fakt; БЕТОН: qabul qilingan > fakt.
     // + nakrutka foizlari berilmagan (4-band)
-    expect(t.matnlar.some((s) => s.startsWith('ПОЗИЦИИ, ТРЕБУЮЩИЕ ВНИМАНИЯ (4)'))).toBe(true);
+    // Ro'yxat hujjat tanasida emas, alohida xizmat varag'ida (egasi 2026-11-14).
+    expect(t.matnlar.some((s) => s.startsWith('ПОЗИЦИИ, ТРЕБУЮЩИЕ ВНИМАНИЯ'))).toBe(false);
+    expect(t.matnlar.some((s) => s.startsWith('ЗАМЕЧАНИЯ К СПРАВКЕ'))).toBe(true);
     expect(t.matnlar.some((s) => s.includes('нет объема или стоимости по смете'))).toBe(true);
     expect(t.taqiqlangan).toEqual([]);
   });
@@ -122,7 +124,8 @@ describe('Накопительная ведомость — hujjat standarti', (
     expect(r.kaskad!.L).toBeNull();
     expect(r.kOplata.davr).toBeNull();
     void yaxlit;
-    expect(t.matnlar.some((m) => m.includes('Проценты накладных и прочих расходов') && m.includes('не заданы'))).toBe(true);
+    expect(t.matnlar.some((m) => m.includes('Проценты накладных и прочих расходов'))).toBe(true);
+    expect(t.matnlar.some((m) => m.includes('не заданы для объекта'))).toBe(true);
   });
 
   it('qirqilgan ro‘yxatdan hujjat yasalmaydi (chala hujjat — rasmiy emas)', () => {
@@ -254,5 +257,20 @@ describe('Накопительная ведомость — F2 summasi jamidan t
     expect(chelSvodda).toBe(chelOddiy);
     // МАТ esa bo'lim ichida yaxlit: faqat QQS (10 000 × 1,12).
     expect(ikkalasi).toBeCloseTo(chelOddiy + 11_200, 2);
+  });
+});
+
+describe('Накопительная ведомость — К ОПЛАТЕ aktlar o‘z podvali bilan va xizmat varag‘i', () => {
+  it('aktlarKOplate: oy va с начала = aktlar ВСЕГО yig‘indisi; jami qator hujjatda; замечания alohida varaqda', () => {
+    const nakrutka = { 'ТРАНСПОРТ_МАТЕРИАЛ': 5, 'СКЛАДСКИЕ_МАТЕРИАЛ': 2, 'СКЛАДСКИЕ_МК': 0.75, 'ТРАНСПОРТ_КАБЕЛЬ': 1.5, 'ПРОЧИЕ_ПОДРЯДЧИК': 18, 'ТРАНСПОРТ_ОБОРУД': 2, 'ЗАГОТ_СКЛАД_ОБОРУД': 1.2, 'СТРАХОВАНИЕ': 0.32, 'РИСК': 0, 'НДС': 12 };
+    const mk = (id: number, oy: string, v: number) => ({ aktId: id, raqam: String(id), oy, hujjatPodvali: true, ustamasiz: v, ustamali: v, qqs: 0, qqsBilan: v });
+    const r = nakopitelniyVedomostHujjat(ROWS, { obyektNom: 'Объект', davr: '2026-09', ndsFoiz: 12, nakrutka, aktlarKOplate: [mk(1, '2026-08', 1_000), mk(2, '2026-09', 2_500)] });
+    expect(r.kOplata).toEqual({ davr: 2_500, jami: 3_500 });
+    const t = hujjatTekshir(r.bytes);
+    expect(t.matnlar.filter((m) => /АКТАМ Ф-2/.test(m))).toContain('ИТОГО К ОПЛАТЕ ПО АКТАМ Ф-2 (С НДС)');
+    expect(t.varaqlar.length).toBe(2);
+    expect(t.matnlar.some((s) => s.startsWith('ПОЗИЦИИ, ТРЕБУЮЩИЕ ВНИМАНИЯ'))).toBe(false);
+    const nom = nakopitelniyVedomostHujjat(ROWS, { obyektNom: 'Объект', davr: '2026-09', ndsFoiz: 12, nakrutka, aktlarKOplate: [{ ...mk(2, '2026-09', 1), qqsBilan: null }] });
+    expect(nom.kOplata.davr).toBeNull();
   });
 });

@@ -6,9 +6,8 @@
  */
 import { sbT2F2TafsilotOl } from '../../api/t2-narx';
 import type { SvodYaxlit } from '../svod-yaxlit';
-import { portfelObyektOl } from '../../api/f2-oylik-paket';
 import { ozgarishRoyxatOl } from '../../api/t2-document-control';
-import { oyAktlarBahosi } from '../f2-oylik-paket/portfel';
+import { aktlarBahosiOl } from './akt-baho';
 import { f3CertifiedHajm, f3CertifiedSources } from '../pto-document-lineage/f3-sources';
 import { f3AktlarniFiltrla, type Forma3ShartnomaObyekt } from '../forma3-export';
 import type { NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
@@ -62,24 +61,13 @@ export async function forma3ShartnomaManbalari(p: {
     // Hisobot oyigacha (oy <= davr) HAMMA tasdiqlangan aktlar — har biri O'Z F2 podvali bilan (M12): F3 ning «с начала строительства»,
     // «с начала года» va «за месяц» ustunlari bir xil usulda, imzolangan F2 hujjatlari ВСЕГО yig'indisi (server `_t2_summa_paket_v1` bilan
     // tiyinigacha). Hisobot oyining TANLANMAGAN aktlari hech bir ustunga kirmaydi (f3AktlarniFiltrla bilan bir xil).
-    const aktlarBoshigacha = new Map<number, { id: number; oy: string; raqam: string | null }>();
-    for (const l of taf.qatorlar) {
-      const lOy = String(l.oy).slice(0, 7);
-      if (l.akt_holat !== 'tasdiqlangan' || lOy > p.oy) continue;
-      if (lOy === p.oy && !p.tanlangan.has(l.akt_id)) continue;
-      aktlarBoshigacha.set(l.akt_id, { id: l.akt_id, oy: l.oy, raqam: l.raqam ?? null });
-    }
     let davrAktlari: Forma3ShartnomaObyekt['davrAktlari'] = [];
     let aktlarJami: Forma3ShartnomaObyekt['aktlarJami'] = [];
-    if (aktlarBoshigacha.size) {
-      try {
-        const pm = await portfelObyektOl(p.kompaniyaId, ob.id, [...aktlarBoshigacha.keys()]);
-        const baho = oyAktlarBahosi(pm, [...aktlarBoshigacha.values()], ob.nom, new Map([...aktlarBoshigacha.values()].map((a) => [a.id, a.raqam] as const)));
-        aktlarJami = baho.map((b) => ({ ...b, oy: String(aktlarBoshigacha.get(b.aktId)?.oy ?? '').slice(0, 7) }));
-        davrAktlari = aktlarJami.filter((b) => b.oy === p.oy);
-      } catch {
-        return { ok: false, xato: `${ob.nom}: F2 hujjatlarining o‘z podvali bo‘yicha summa hisoblanmadi — F3 tuzilmadi. Qayta urinib ko‘ring.` };
-      }
+    try {
+      aktlarJami = await aktlarBahosiOl({ kompaniyaId: p.kompaniyaId, obyektId: ob.id, obyektNom: ob.nom, qatorlar: taf.qatorlar, davr: p.oy, tanlangan: p.tanlangan });
+      davrAktlari = aktlarJami.filter((b) => b.oy === p.oy);
+    } catch {
+      return { ok: false, xato: `${ob.nom}: F2 hujjatlarining o‘z podvali bo‘yicha summa hisoblanmadi — F3 tuzilmadi. Qayta urinib ko‘ring.` };
     }
     const manba = f3AktlarniFiltrla({ nakopitelniy: [{ obyekt_id: ob.id, obyektNom: ob.nom, qatorlar: y.qatorlar, svodYaxlit: (ustama.javob?.svod_yaxlit ?? null) as SvodYaxlit | null }], f2Oylik, f2Hajm }, p.oy, p.tanlangan);
     out.push({

@@ -60,6 +60,8 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
   const [oyTaklif, setOyTaklif] = useState<string | null>(null);
   const [royxat, setRoyxat] = useState<Forma3ShartnomaAktlar | null>(null);
   const [belgilangan, setBelgilangan] = useState<Set<number>>(new Set());
+  /** Etalon shakli: har obyekt alohida varaqda + oxirida jamlama (sukut); o'chiq — hamma obyekt bitta varaqda. */
+  const [alohidaVaraq, setAlohidaVaraq] = useState(true);
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [ishlayapti, setIshlayapti] = useState('');
   const [xato, setXato] = useState('');
@@ -163,7 +165,7 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
       const h = forma3ShartnomaHujjat(m.obyektlar, {
         davr: oy, shartnomaRaqam: sh.raqam, shartnomaNom: sh.nom, shartnomaSana: sh.sana, shartnomaSumma: sh.jami_nds_bilan ?? sh.summa_bez_nds,
         // Real hujjat: «Отчетный период: с» = shartnomaning oldingi Forma 3 sanasi (oy boshi emas).
-        oldingiF3Sana: f3OldingiSana(f3lar, chegara.boshi),
+        oldingiF3Sana: f3OldingiSana(f3lar, chegara.boshi), varaqRejim: alohidaVaraq ? 'alohida' : 'bitta',
         imzo, pudratchi, zakazchik, raqam: tay.raqam,
       });
       setDiqqat(h.diqqat);
@@ -245,6 +247,10 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
               ))}
             </fieldset>
           ))}
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+            <input type="checkbox" checked={alohidaVaraq} disabled={!!ishlayapti} onChange={(e) => setAlohidaVaraq(e.target.checked)} />
+            {t('Har obyekt alohida varaqda (oxirida jamlama varaq)')}
+          </label>
           <div>
             <button type="button" className="fz-btn fz-btn--primary" disabled={!yuboriladi.length || !!ishlayapti || sh == null} onClick={() => void yarat()}>
               <FileSpreadsheet /> {t('Forma 3 yaratish')}
