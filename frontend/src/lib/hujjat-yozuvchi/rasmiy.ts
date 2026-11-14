@@ -196,7 +196,7 @@ for (const k of RANG_TARTIB) if (MAVZU_HEX.rangsiz[k] === '') MAVZU_HEX.rangsiz[
 
 /** Hujjat turlari (egasi: "tizimning o'zida har hujjat dizaynini tanlash mumkin bo'lsin"). Sozlamalarda shu ro'yxat. */
 export const HUJJAT_TURLARI = {
-  f2: 'Акт Ф-2 (форма № 2) va resurs vedomosti',
+  f2: 'Акт Ф-2 (форма № 02) va resurs vedomosti',
   f3: 'Справка Ф-3 (форма № 3)',
   nakopitelniy: 'Накопительная ведомость',
   obosnovanie: 'Обоснование выполненных объёмов, не закрытых Ф-2',

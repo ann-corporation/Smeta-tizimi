@@ -13,7 +13,7 @@
  * hammasi o'zi qayta hisoblanadi. Narxsiz resurs (ongli tanlov) — summa bo'sh va jami bo'sh (H7: NULL ≠ 0).
  */
 import type { F2Bolim, F2Qator } from './f2-tayyor';
-import { RANG_TARTIB, RasmiyVaraq, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, summaSozBilan, yaxlit2, type ImzoNomlar, type QatorRangi, type RangMavzusi, type Qiymat, type RasmiyUstun } from './hujjat-yozuvchi';
+import { RANG_TARTIB, RasmiyVaraq, hujjatFaylNomi, rasmiyKitob, summaSozBilan, yaxlit2, type ImzoNomlar, type ImzoTomon, type QatorRangi, type RangMavzusi, type Qiymat, type RasmiyUstun } from './hujjat-yozuvchi';
 import { davrMatni } from './nakopitelniy-vedomost-export';
 import { lrvKalitYoz } from './lrv-qayta-import';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
@@ -89,7 +89,14 @@ const USTUNLAR: RasmiyUstun[] = [
 ];
 
 /** Imzolangan Ф-2 imzo yorliqlari (lavozim) — faqat shu hujjat turi uchun. */
-const F2_IMZO_LAVOZIM = { ЗАКАЗЧИК: 'Представитель Заказчика', ПОДРЯДЧИК: 'Производитель работ', СУБПОДРЯДЧИК: 'Производитель работ Субподрядчика', ТЕХНАДЗОР: 'Представитель Тех.надзора Заказчика' } as const;
+const TN_LAVOZIM = 'Представитель Тех.надзора Заказчика';
+/** Etalon tartibi: ЗАКАЗЧИК (Тех.надзор) ×2 → [СУБПОДРЯДЧИК] → ПОДРЯДЧИК (Производитель работ). Ikkinchi ЗАКАЗЧИК — texnadzor vakili (nomi imzo.texnadzor). */
+const f2ImzoTomonlari = (n?: ImzoNomlar): ImzoTomon[] => [
+  { rol: 'ЗАКАЗЧИК', nom: n?.zakazchik ?? null, lavozim: TN_LAVOZIM },
+  { rol: 'ЗАКАЗЧИК', nom: n?.texnadzor ?? null, lavozim: TN_LAVOZIM },
+  ...(n?.subpudratchi ? [{ rol: 'СУБПОДРЯДЧИК' as const, nom: n.subpudratchi, lavozim: 'Производитель работ Субподрядчика' }] : []),
+  { rol: 'ПОДРЯДЧИК', nom: n?.pudratchi ?? null, lavozim: 'Производитель работ' },
+];
 
 const OY_NOM = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
 /** «За сентябрь месяц 2025 года» (imzolangan Ф-2); davr noma'lum shaklda bo'lsa — umumiy davrMatni. */
@@ -358,7 +365,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
   const jamiTolov = (yangiVsegoQator != null || eski.length) ? yaxlit2(yangiVsegoJS + eskiVsegoJS) : null;
   if (jamiTolov != null && Number.isFinite(jamiTolov) && !narxsizN) { v.bosh(); v.izoh(`Сумма прописью: ${summaSozBilan(jamiTolov)} с НДС`); }
   if (narxsizN) { v.bosh(); v.narxsizOgoh(narxsizN); }
-  v.imzo(imzoTomonlari(o.imzo?.subpudratchi ? ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СУБПОДРЯДЧИК', 'ТЕХНАДЗОР'] : ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР'], o.imzo, F2_IMZO_LAVOZIM));
+  v.imzo(f2ImzoTomonlari(o.imzo));
   const ved = [...vedomost.values()];
   const narxlari = new Map<string, number>();
   const nk2 = (x: VedQator) => `${x.ildiz}|${x.guruh}`;

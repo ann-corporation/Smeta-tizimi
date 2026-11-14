@@ -29,7 +29,7 @@ describe('Ф-2 hujjati (LRV_PLUS asosiy ustunlari, tirik formulalar)', () => {
     expect(t.taqiqlangan).toEqual([]);
     expect(t.dollarFormulalar).toEqual([]);
     expect(t.keshsizFormulalar).toEqual([]);
-    expect(imzoRollariBormi(t, ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР']).yoq).toEqual([]);
+    expect(imzoRollariBormi(t, ['ЗАКАЗЧИК', 'ПОДРЯДЧИК']).yoq).toEqual([]);
     const k = t.varaqlar[0].kataklar;
     // Ish hajmi o'zgarsa — resurs miqdori o'zgaradi: F(resurs) = ROUND(E × F(ish); 6).
     const ishF = k.find((x) => x.ref.startsWith('F') && x.v === '67.4')!;
@@ -97,7 +97,7 @@ describe('Ф-2 hujjati (LRV_PLUS asosiy ustunlari, tirik formulalar)', () => {
     // Podval tartibi: ИТОГО ПРЯМЫЕ → ustamalar → ИТОГО-1 … → ИТОГО-4 → НДС → ВСЕГО → propis → imzolar
     const yorliq = grid.map((x) => String(x[2] ?? x[0] ?? ''));
     const idx = (s: string) => yorliq.findIndex((x) => x.startsWith(s));
-    const tartibi = ['ИТОГО ПРЯМЫЕ ЗАТРАТЫ ПО АКТУ', 'ТРАНСПОРТНЫЕ РАСХОДЫ — МАТЕРИАЛЫ', 'ИТОГО-1', 'ПРОЧИЕ РАСХОДЫ ПОДРЯДЧИКА', 'ИТОГО-2', 'ИТОГО-3', 'СТРАХОВАНИЕ ОБЪЕКТА', 'ИТОГО-4', 'НДС', 'ВСЕГО К ОПЛАТЕ', 'Сумма прописью', 'ЗАКАЗЧИК:', 'ПОДРЯДЧИК:', 'ТЕХНАДЗОР:'];
+    const tartibi = ['ИТОГО ПРЯМЫЕ ЗАТРАТЫ ПО АКТУ', 'ТРАНСПОРТНЫЕ РАСХОДЫ — МАТЕРИАЛЫ', 'ИТОГО-1', 'ПРОЧИЕ РАСХОДЫ ПОДРЯДЧИКА', 'ИТОГО-2', 'ИТОГО-3', 'СТРАХОВАНИЕ ОБЪЕКТА', 'ИТОГО-4', 'НДС', 'ВСЕГО К ОПЛАТЕ', 'Сумма прописью', 'ЗАКАЗЧИК:', 'ЗАКАЗЧИК:', 'ПОДРЯДЧИК:'];
     const joylar = tartibi.map(idx);
     expect(joylar.every((j) => j >= 0)).toBe(true);
     expect([...joylar].sort((a, c) => a - c)).toEqual(joylar);
@@ -105,8 +105,9 @@ describe('Ф-2 hujjati (LRV_PLUS asosiy ustunlari, tirik formulalar)', () => {
     expect(grid.flat().filter((x) => x === '(подпись)')).toHaveLength(3);
     expect(grid.flat().filter((x) => x === 'М.П.')).toHaveLength(3);
     // Imzo lavozim yorliqlari (faqat Ф-2): imzo-rol tekshiruvi buzilmaydi
-    expect(grid.flat()).toEqual(expect.arrayContaining(['(Представитель Заказчика, Ф.И.О.)', '(Производитель работ, Ф.И.О.)', '(Представитель Тех.надзора Заказчика, Ф.И.О.)']));
-    expect(imzoRollariBormi(t, ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР']).yoq).toEqual([]);
+    expect(grid.flat()).toEqual(expect.arrayContaining(['(Производитель работ, Ф.И.О.)', '(Представитель Тех.надзора Заказчика, Ф.И.О.)']));
+    expect(grid.flat().filter((x) => x === '(Представитель Тех.надзора Заказчика, Ф.И.О.)')).toHaveLength(2); // etalon: ЗАКАЗЧИК ×2 → ПОДРЯДЧИК
+    expect(imzoRollariBormi(t, ['ЗАКАЗЧИК', 'ПОДРЯДЧИК']).yoq).toEqual([]);
   });
 
   it('zamena/qo‘shimcha ish bolalari (tur=mat, kat ЧЕЛ/МАШ): № N.k va kursiv resurs ko‘rinishi; «Тип» (MAT) o‘zgarmaydi', () => {
@@ -170,7 +171,7 @@ describe('Ф-2 hujjati (LRV_PLUS asosiy ustunlari, tirik formulalar)', () => {
     expect(imzoRollari({})).toEqual(['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР']);
     const { b, q } = tayyorla();
     const t = hujjatTekshir(f2Hujjat(b, q, { obyektNom: 'Fast Food 1-etaj', davr: '2026-10', imzo: n }).bytes);
-    expect(imzoRollariBormi(t, ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СУБПОДРЯДЧИК', 'ТЕХНАДЗОР']).yoq).toEqual([]);
+    expect(imzoRollariBormi(t, ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СУБПОДРЯДЧИК']).yoq).toEqual([]);
     expect(t.matnlar.some((m) => m.startsWith('Субподрядчик:'))).toBe(true);
   });
 
