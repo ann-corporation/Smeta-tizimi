@@ -8,6 +8,10 @@ import { solishtiruvOl } from '../../../api/t2-solishtiruv';
 import { aloqalarOl, murojaatlarOl, murojaatTurlariOl, murojaatYarat, resurslarOl, taqdimYubor, taqdimlarOl, tolovXabarlariOl, bugunOl } from '../../../api/t2-tomon';
 import { smetaXotiraYoz, smetaXotirasi } from '../../../api/smeta-ai';
 import { friksiyaYoz } from '../../osuvchi/friksiya';
+import { rahbarPanelOl } from '../../../api/t2-rahbar-panel';
+import { aiIshchiOl, aiIshchiYoz } from '../../../api/ai-ishchi';
+import { moslashQutisiOl } from '../../../api/t2-moslash';
+import type { SummaPaket } from '../../summa-paket';
 import type { VositaApi } from './tur';
 
 const holat = (r: { ok: boolean; error?: string }) => ({ ok: r.ok, error: r.error });
@@ -16,8 +20,9 @@ const xom = <T,>(r: { ok: true; natija: T } | { ok: false }): T | null => (r.ok 
 export function haqiqiyVositaApi(k: number): VositaApi {
   return {
     bugun: async () => {
-      const [b, m, t, x] = await Promise.all([bugunOl(k), murojaatlarOl(k, { yonalish: 'menga', holat: 'ochiq' }), taqdimlarOl(k, { yonalish: 'kelgan' }), tolovXabarlariOl(k, { yonalish: 'menga', holat: 'xabar' })]);
+      const [b, m, t, x, ms] = await Promise.all([bugunOl(k), murojaatlarOl(k, { yonalish: 'menga', holat: 'ochiq' }), taqdimlarOl(k, { yonalish: 'kelgan' }), tolovXabarlariOl(k, { yonalish: 'menga', holat: 'xabar' }), moslashQutisiOl(k)]);
       const q: Array<{ nom: string; soni: number; yol?: string }> = [];
+      if (ms) q.push({ nom: 'Moslash qutisi (tizim topgan tafovutlar)', soni: ms.jami, yol: '/admin/solishtiruv' });
       const kechikkan = b.ok ? b.natija.kutayotgan.murojaat_kechikkan : 0;
       if (m.ok) q.push({ nom: 'Menga ochiq murojaatlar', soni: m.natija.length, yol: '/admin/murojaatlar' });
       if (kechikkan) q.push({ nom: 'Muddati o‘tgan murojaatlar', soni: kechikkan, yol: '/admin/murojaatlar' });
@@ -56,6 +61,30 @@ export function haqiqiyVositaApi(k: number): VositaApi {
     xotiraOl: async () => { try { const x = await smetaXotirasi(k); return x.yozuvlar.map((y) => ({ daraja: y.daraja, kalit: y.kalit, mazmun: y.mazmun })); } catch { return null; } },
     xotiraYoz: async (daraja, kalit, mazmun) => { try { const ok = await smetaXotiraYoz(k, mazmun, daraja, kalit); return { ok, error: ok ? undefined : 'Xotira yozilmadi (ruxsat yoki limit)' }; } catch (e) { return { ok: false, error: e instanceof Error ? e.message : 'Xato' }; } },
     friksiya: (niyat) => friksiyaYoz('jarvis', 'qila_olmadi', 'nol_qidiruv', niyat),
+    obyektHolat: async (obyektId) => {
+      const r = await rahbarPanelOl({ kompaniyaId: k, obyektId });
+      const o = r.ok ? r.natija.obyektlar.find((x) => x.obyekt_id === obyektId) : null;
+      if (!o) return null;
+      const u = (p: SummaPaket | null) => (p ? { qqs_bilan: p.qqs_bilan, ustamali: p.ustamali, ustamasiz: p.ustamasiz, narxsiz_soni: p.narxsiz_soni } : null);
+      return { nom: o.nom, shartnoma: o.shartnoma ? { raqam: o.shartnoma.raqam, qqs_bilan: o.shartnoma.qqs_bilan, umumiy: o.shartnoma.umumiy } : null,
+        smeta: u(o.smeta), fakt: u(o.fakt), f2: u(o.f2), f2Qoralama: { qqs_bilan: o.f2_qoralama.qqs_bilan, soni: o.f2_qoralama.soni }, f3: o.f3,
+        tolangan: o.tolangan, qarz: o.qarz, bajarilish: o.bajarilish, signal: { soni: o.signal.soni, kritik: o.signal.kritik },
+        diqqat: r.ok ? r.natija.diqqat.filter((d) => d.obyekt_id === obyektId).map((d) => ({ kod: String(d.kod), soni: d.soni })) : [] };
+    },
+    f2TasdiqgaYubor: async (aktId, versiya, op) => holat(await t2AktLifecycleTransition({ kompaniyaId: k, aktId, toStatus: 'submitted', expectedVersion: versiya, operationId: op })),
+    ishchilar: async () => {
+      const r = await aiIshchiOl('ishchilar', k);
+      return r.ok ? r.data.royxat.map((x) => ({ kod: x.kod, nom: x.nom, doira: x.doira, yoqilgan: x.yoqilgan, jadval: x.jadval, yangiNatija: x.yangi_natija, oxirgiHolat: x.oxirgi?.holat ?? null, oxirgiVaqt: x.oxirgi?.yaratildi ?? null })) : null;
+    },
+    ishchiNatijalari: async () => {
+      const r = await aiIshchiOl('inbox', k);
+      return r.ok ? r.data.royxat.map((x) => ({ ishchi: x.ishchi_kod, sarlavha: x.sarlavha, xulosa: x.xulosa, holat: x.holat, yaratildi: x.yaratildi })) : null;
+    },
+    ishchiTopshir: async (kod, op) => {
+      const r = await aiIshchiYoz({ amal: 'ishga_tushir', kompaniya_id: k, ishchi: kod, operation_id: op });
+      return r.ok ? { ok: true } : { ok: false, error: r.error };
+    },
+    moslash: () => moslashQutisiOl(k),
   };
 }
 

@@ -7,6 +7,7 @@ import { oyAjrat } from '../kontekst-ajrat';
 import { jarvisKalitmi, xotiraBuyrugi, xotiraKalit, xotiraTekshir } from '../xotira';
 import { sozlar } from '../matn';
 import { borMi, katOl, nomMosmi, pulMatn, sanaOl, summaOl, tanlovTop } from './yordam';
+import { PTO_VOSITALARI } from './pto-liniya';
 import type { Slot, Variant, Vosita, VositaJavob, VositaKont } from './tur';
 
 const ALOQA_FAOL = (x: { faol: boolean }) => x.faol;
@@ -315,7 +316,7 @@ const yoqVosita: Vosita = {
   },
 };
 
-export const VOSITALAR: readonly Vosita[] = [slichitelniyVosita, zamenaVosita, xotiraKorsatVosita, xotiraYozVosita, xotiraUnutVosita, bugunVosita, solishtiruvVosita, f2Amal('tasdiq'), f2Amal('bekor'), xarajatVosita, tolovVosita, murojaatVosita, taqdimVosita, yoqVosita];
+export const VOSITALAR: readonly Vosita[] = [...PTO_VOSITALARI, slichitelniyVosita, zamenaVosita, xotiraKorsatVosita, xotiraYozVosita, xotiraUnutVosita, bugunVosita, solishtiruvVosita, f2Amal('tasdiq'), f2Amal('bekor'), xarajatVosita, tolovVosita, murojaatVosita, taqdimVosita, yoqVosita];
 
 /** Amal reestri (#399) kelganda shu nuqtadan ulanadi: reestr yozuvidan Vosita hosil qilish (hozircha qo'lda ro'yxat). */
 export function reestrdanVosita(_yozuv: unknown): Vosita | null { return null; }

@@ -6,6 +6,7 @@
  * Amal reestri (#399) kelganda `Vosita` shu shaklda reestr yozuvidan hosil qilinadi (`reestrdanVosita` chok nuqtasi).
  */
 import type { KimMalumot } from '../kim';
+import type { MoslashQutisi } from '../../../api/t2-moslash';
 import type { ObyektQisqa } from '../kontekst-ajrat';
 import type { YordamchiSahifa } from '../sahifa-qidiruv';
 
@@ -35,7 +36,35 @@ export type VositaApi = {
   xotiraYoz: (daraja: 'foydalanuvchi' | 'kompaniya', kalit: string, mazmun: string) => Promise<{ ok: boolean; error?: string }>;
   /** «Jarvis qila olmadi: <niyat>» — o'suvchi tizim friksiya sensoriga. */
   friksiya: (niyat: string) => void;
+  /** PTO liniyasi (2026-11-14). Hammasi ixtiyoriy: yo'q bo'lsa vosita halol «hozircha yo'q» deydi. */
+  /** Obyekt holati — SERVER summa paketi (`_t2_summa_paket_v1`: svod/yaxlit hisobga olingan); mijozda qayta hisoblanmaydi. null — o'qilmadi. */
+  obyektHolat?: (obyektId: number) => Promise<ObyektHolatMalumot | null>;
+  /** F2 ni tasdiqlashga yuborish (lifecycle draft -> submitted, expected_version bilan, operation_id bilan takrorsiz). */
+  f2TasdiqgaYubor?: (aktId: number, versiya: number, operationId: string) => Promise<{ ok: boolean; error?: string }>;
+  /** AI ishchilar (fon): ro'yxat, inbox, topshirish (mavjud /api/ai-ishchi oqimi). null — o'qilmadi. */
+  ishchilar?: () => Promise<IshchiQisqa[] | null>;
+  ishchiNatijalari?: () => Promise<IshchiNatijaQisqa[] | null>;
+  ishchiTopshir?: (kod: string, operationId: string) => Promise<{ ok: boolean; error?: string }>;
+  /** Moslash qutisi (kunlik avtomat tekshiruvlar, FAQAT o'qish). null — o'qilmadi. */
+  moslash?: () => Promise<MoslashQutisi | null>;
 };
+
+/** Server paketi uchligi: QQS bilan (asosiy) · ustamali (ИТОГО-4) · ustamasiz (прямые). null — noma'lum (0 emas). */
+export type PaketUchlik = { qqs_bilan: number; ustamali: number; ustamasiz: number; narxsiz_soni?: number };
+export type ObyektHolatMalumot = {
+  nom: string;
+  shartnoma: { raqam: string | null; qqs_bilan: number | null; umumiy: boolean } | null;
+  smeta: PaketUchlik | null; fakt: PaketUchlik | null; f2: PaketUchlik | null;
+  f2Qoralama: { qqs_bilan: number | null; soni: number };
+  f3: { sotuv: number | null; soni: number } | null;
+  tolangan: number | null; qarz: number | null;
+  bajarilish: { fakt: number | null; f2: number | null; f3: number | null };
+  signal: { soni: number; kritik: number };
+  /** Server «diqqat» belgilari shu obyekt uchun (kod: soni). */
+  diqqat: Array<{ kod: string; soni: number | null }>;
+};
+export type IshchiQisqa = { kod: string; nom: string; doira: 'kompaniya' | 'tizim'; yoqilgan: boolean; jadval: string; yangiNatija: number; oxirgiHolat: string | null; oxirgiVaqt: string | null };
+export type IshchiNatijaQisqa = { ishchi: string; sarlavha: string; xulosa: string; holat: string; yaratildi: string };
 
 export type VositaKont = {
   kompaniyaId: number;

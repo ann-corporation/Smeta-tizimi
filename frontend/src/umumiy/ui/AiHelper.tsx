@@ -20,6 +20,7 @@ import { AiJurnal } from './AiJurnal';
 import { AiShaxsiy } from './AiShaxsiy';
 import { useAiKuzatuv } from './useAiKuzatuv';
 import { kimMalumoti } from './yordamchi/kim-ulanish';
+import { kasbKeshOl, kasbKeshYoz } from '../../lib/yordamchi/kasb-kesh';
 import { haqiqiyVositaApi } from '../../lib/yordamchi/vosita/haqiqiy';
 import { yangiOperationId } from '../../api/supabase';
 import { amalRejim, oynaKaliti, oynaOqi, oynaYoz, olchamlash, surish, suzuvchiRect, yonOlcham, yonSukut, type OynaHolat, type Rejim } from '../../lib/yordamchi/oyna';
@@ -111,12 +112,14 @@ export function AiHelper() {
     return () => window.removeEventListener('ai:ochish', eshit);
   }, []);
 
+  /* KONTEKST BIR MARTA: lavozim sessiya bo'yicha keshlanadi (kasb-kesh) — panel qayta ochilganda so'rov yo'q; eskirsa fonda yangilanadi. */
   useEffect(() => {
     let tirik = true;
-    setKasb(null);
-    if (joriyId && isOpen) void kasbOl(joriyId).then((r) => { if (tirik && r.ok) setKasb(r.natija); });
+    const keshda = joriyId && isOpen ? kasbKeshOl(uid, joriyId) : null;
+    setKasb(keshda?.kasb ?? null);
+    if (joriyId && isOpen && (!keshda || keshda.eskirgan)) void kasbOl(joriyId).then((r) => { if (r.ok) kasbKeshYoz(uid, joriyId, r.natija); if (tirik && r.ok) setKasb(r.natija); });
     return () => { tirik = false; };
-  }, [joriyId, isOpen]);
+  }, [joriyId, isOpen, uid]);
 
   /* Ctrl+K — YAGONA yordamchi (Jarvis) hamma joyda, Smeta Studiyada ham (Studio buyruqlari reestr orqali unga beriladi). */
   const hotkeyFaol = !location.pathname.startsWith('/boss');

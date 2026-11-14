@@ -19,6 +19,7 @@ import { koRsatHavolasi } from '../../../lib/kurs/tutor';
 import { osuvchiMatni } from '../../../lib/osuvchi/jarvis';
 import { kimJavobi, type KimMalumot } from '../../../lib/yordamchi/kim';
 import { vositaIshla } from '../../../lib/yordamchi/vosita/ishla';
+import { obyektHolatMatni } from '../../../lib/yordamchi/vosita/pto-liniya';
 import type { Davom, Variant, VositaKont } from '../../../lib/yordamchi/vosita/tur';
 
 /** AiChat ga beriladigan yagona yordamchi ulanishi (AiHelper yig'adi). */
@@ -106,7 +107,12 @@ export async function yordamchiIshla(n: Niyat, matn: string, d: IshlovDeps): Pro
     case 'oqish': {
       if (d.motor.obyektId !== n.obyekt.id || d.motor.holat === 'yuklanmoqda') return { tur: 'kut', obyektId: n.obyekt.id };
       if (!d.motor.vositalar) return { tur: 'javob', xato: true, matn: d.motor.xato || t('Obyekt ma’lumotini o‘qib bo‘lmadi.') };
-      const natija = String(await d.motor.vositalar.oqi({ vosita: n.vosita, arg: n.arg }));
+      let natija = String(await d.motor.vositalar.oqi({ vosita: n.vosita, arg: n.arg }));
+      /* Obyekt holati: pul qismi SERVER summa paketidan (svod/yaxlit hisobga olingan, QQS bilan → ustamali → ustamasiz). O'qilmasa — jim, yuqoridagi ma'lumot qoladi. */
+      if (n.vosita === 'holat' && d.vosita?.api.obyektHolat) {
+        const sh = await d.vosita.api.obyektHolat(n.obyekt.id).catch(() => null);
+        if (sh) natija = `${natija}\n\n${obyektHolatMatni(sh)}`;
+      }
       return { tur: 'javob', matn: `**${n.obyekt.nom}**\n\n${natija}`, havolalar: n.sahifa ? [h(n.sahifa)] : undefined };
     }
 
