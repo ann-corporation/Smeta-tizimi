@@ -49,7 +49,7 @@ export const PREFIKS: Readonly<Record<Domen, readonly string[]>> = {
     't2_akt', 't2_f2', 't2_forma3', 't2_aosr', 't2_nakopitelniy', 't2_fakt', 't2_foto', 't2_usta', 't2_lab', 't2_chizma',
     't2_sub', 't2_nazorat', 't2_imzochi', 't2_obyekt_imzochi', 't2_obyekt_imzochilar', 't2_kozgu', 't2_grafik', 't2_bajarilmadi',
     't2_qator_bajarilmadi', 't2_qator_holat', 't2_tekshiruv', 't2_primitiv', 't2_erp_sifat', 't2_ortiqcha', 't2_workbench', 't2_viborka_qabul_yoz',
-    't2_qator_f2da', 't2_qoshilgan_tarixda',
+    't2_qator_f2da', 't2_qoshilgan_tarixda', 't2_rs_hosila',
   ],
   resurs: [
     't2_buyurtma', 't2_buyurtmalar', 't2_procurement', 't2_sklad', 't2_skladga', 't2_m29', 't2_texnika', 't2_zayavka', 't2_erp_taminot',

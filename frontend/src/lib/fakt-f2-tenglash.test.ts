@@ -33,15 +33,15 @@ describe('Fakt = F2 — reja', () => {
     const r = faktF2Reja(bolimIshlariYigish(1, bolimIshlari, bolalar, true), holat);
     expect(r.paket).toEqual([{ qator_id: 10, hajm: 5 }]);          // Ish A: 8 − 3; Beton: f2<fakt → yozilmaydi; Ish B teng; rs yo'q
     expect(r.qatorlar[0].avtomatik).toBe(1);
-    expect(r.jamiSumma).toBe(500);
-    expect(r.otkazildi.manfiyReja).toBe(1);                         // chegirma qatori o'tkazib yuboriladi
+    expect(r.jamiSumma).toBe(1500);                                 // 5 × 100 + rs Ishchi (normasiz: smeta ulushi 20/10 = 2) 5 × 2 × 100
+    expect(r.otkazildi.manfiyReja).toBe(1);                        // chegirma qatori o'tkazib yuboriladi
   });
 
   it('ichki bo‘limsiz — faqat o‘z bo‘limi; narxsiz qator sanaladi', () => {
     const h = new Map(holat); h.set(10, st(10, 10, 3, 8, null));
     const r = faktF2Reja(bolimIshlariYigish(1, bolimIshlari, bolalar, false), h);
-    expect(r.narxsiz).toBe(1);
-    expect(r.jamiSumma).toBe(0);
+    expect(r.narxsiz).toBe(0);                                     // ish narxsiz, lekin rs (smeta ulushi) ergashadi — summa bor
+    expect(r.jamiSumma).toBe(1000);
   });
 
   it('mat/ob resurs alohida sozlanadi: F2 > fakt bo‘lsa o‘z farqi bilan qo‘shiladi', () => {
@@ -68,19 +68,19 @@ describe('Fakt = F2 — butun obyekt', () => {
     const h = new Map(holat); h.set(20, st(20, 4, 1, 4, null));
     const r = obyektF2Reja(guruhlar(), h);
     const j0 = tenglashJami(r, new Set(), new Set());
-    expect(j0.ustamasiz).toBe(500);
+    expect(j0.ustamasiz).toBe(1500);
     expect(j0.narxsiz).toBe(1);
-    expect(j0.bolimlar.map((b) => [b.nom, b.soni, b.ustamasiz])).toEqual([['Bo‘lim', 1, 500], ['Ichki', 1, null]]);
+    expect(j0.bolimlar.map((b) => [b.nom, b.soni, b.ustamasiz])).toEqual([['Bo‘lim', 1, 1500], ['Ichki', 1, null]]);
     const j1 = tenglashJami(r, new Set([10]), new Set());
     expect(j1.paket).toEqual([{ qator_id: 20, hajm: 3 }]);
     expect(j1.ustamasiz).toBeNull();
     expect(tenglashJami(r, new Set(), new Set(['Ichki'])).paket).toEqual([{ qator_id: 10, hajm: 5 }]);
   });
 
-  it('o‘z narxi yo‘q ish: summa — ergashadigan rs (norma bor): delta × norma × rs smeta narxi (view BL_NORMA bilan bir xil); normasiz rs ergashmaydi', () => {
+  it('o‘z narxi yo‘q ish: summa — ergashadigan rs (norma bor): delta × norma × rs smeta narxi (view BL_NORMA bilan bir xil); normasiz rs smeta ulushi bilan ergashadi', () => {
     const h = new Map(holat); h.set(10, st(10, 10, 3, 8, null)); h.set(11, st(11, 20, 6, 16, 100));
     const r0 = obyektF2Reja(guruhlar(), h);
-    expect(r0.qatorlar[0].summa).toBeNull();          // rs 11 normasiz — serverda ham ergashmaydi
+    expect(r0.qatorlar[0].summa).toBe(1000);          // rs 11 normasiz — serverda smeta ulushi (20/10) bilan ergashadi (_t2_rs_hosila_v1): 5 × 2 × 100
     const rowsN = rows.map((x) => (x.id === 11 ? { ...x, norma: 2 } as T2Qator : x));
     const j = jurnalQur(rowsN, states);
     const r = obyektF2Reja([...j.bolimlar.map((b) => ({ nom: b.nom, ishlar: j.bolimIshlari.get(b.id) ?? [] }))], h);
@@ -200,6 +200,17 @@ describe('Fakt = F2 — F2 narxi faktga (egasi 2026-10-28)', () => {
       expect(j3.ustamasiz).toBeNull();
       expect(j3.rsIstisno).toEqual({ soni: 1, summa: 144 });
       expect(faktF2Reja(jur(rowsN), h).paket.some((p) => p.qator_id === 11)).toBe(false);
+    });
+  });
+
+  describe('norma NULL rs — server hosilasi (_t2_rs_hosila_v1): rs smeta / ish smeta ulushi', () => {
+    it('norma yo‘q rs ishga smeta ulushi bilan ergashadi: 5 × (5/10) × 4 = 10', () => {
+      const rowsN = rows.map((x) => (x.id === 11 ? { ...x, norma: 2 } as T2Qator : x));
+      const rsN = q({ id: 14, tur: 'rs', ota_id: 10, kat: 'МАШ', nom: 'rs14' } as Partial<T2Qator> & { id: number; tur: string });
+      const j = jurnalQur([...rowsN, rsN], [...states, st(14, 5, 0, 0, 4)]); const b = new Map<number, number[]>(); for (const x of j.bolimlar) if (x.otaId != null) b.set(x.otaId, [...(b.get(x.otaId) ?? []), x.id]);
+      const h = new Map(holat); h.set(10, st(10, 10, 3, 8, null)); h.set(11, { ...st(11, 20, 6, 16, 5) }); h.set(14, { qator_id: 14, smeta_hajm: 5, fakt_hajm: 0, f2_hajm: 0, smeta_narx: 4 });
+      const r = faktF2Reja(bolimIshlariYigish(1, j.bolimIshlari, b, true), h, null, { f2Narx: f2NarxYigish([l(40, 11, 16, 9)]), directFakt: new Map() });
+      expect(r.qatorlar.find((x) => x.id === 10)?.rsHosila).toEqual({ soni: 1, summa: 10 });
     });
   });
 
