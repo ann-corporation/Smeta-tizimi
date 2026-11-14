@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 
 const STEPS = ['diagnose', 'engineer', 'review', 'verify', 'preview', 'observe'];
 const SHA = /^[a-f0-9]{40}$/;
+const TASK_KINDS = ['defect', 'feature', 'usability', 'performance', 'reliability'];
 const ID = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}$/;
 function requireValue(ok, message) { if (!ok) throw new Error(message); }
 function pathsValid(paths) {
@@ -54,7 +55,10 @@ export class EvolutionQueue {
     try { handle = await open(lock, 'wx', 0o600); } catch (e) { if (e.code === 'EEXIST') throw new Error('JOB_LOCKED'); throw e; }
     try { return await callback(); } finally { await handle.close(); await rm(lock); }
   }
-  async create({ id, goal, baseSha, ownedPaths, maxAttempts = 2, maxCalls = 12, deadline }) {
+  async create({ id, goal, baseSha, ownedPaths, maxAttempts = 2, maxCalls = 12, deadline, taskKind = 'defect', acceptanceCriteria = [] }) {
+    requireValue(TASK_KINDS.includes(taskKind), 'INVALID_TASK_KIND');
+    requireValue(Array.isArray(acceptanceCriteria) && acceptanceCriteria.length <= 12 && acceptanceCriteria.every(c => typeof c === 'string' && c.trim().length > 0 && c.length <= 500), 'INVALID_ACCEPTANCE_CRITERIA');
+    requireValue(taskKind === 'defect' || acceptanceCriteria.length > 0, 'ACCEPTANCE_CRITERIA_REQUIRED');
     requireValue(typeof goal === 'string' && goal.trim().length > 0 && goal.length <= 4000, 'GOAL_REQUIRED');
     requireValue(SHA.test(baseSha) && pathsValid(ownedPaths), 'INVALID_SCOPE');
     requireValue(Number.isInteger(maxAttempts) && maxAttempts > 0 && maxAttempts <= 5, 'INVALID_ATTEMPTS');
@@ -62,7 +66,7 @@ export class EvolutionQueue {
     requireValue(Number.isFinite(Date.parse(deadline)) && Date.parse(deadline) > Date.now(), 'INVALID_DEADLINE');
     return this.locked(id, async () => {
       try { await this.read(id); throw new Error('JOB_EXISTS'); } catch (e) { if (e.code !== 'ENOENT') throw e; }
-      const job = { schema: 1, id, goal, baseSha, ownedPaths, environment: 'preview', maxAttempts, maxCalls, deadline,
+      const job = { schema: 1, id, goal, taskKind, acceptanceCriteria, baseSha, ownedPaths, environment: 'preview', maxAttempts, maxCalls, deadline,
         state: 'queued', attempts: 0, calls: 0, results: {}, events: [] };
       await this.save(job); return job;
     });
@@ -98,7 +102,11 @@ export class EvolutionQueue {
           const payload = ['preview', 'observe'].includes(step) ? releaseGate(job) : null;
           if(step === 'preview') { job.previewAttempted = true; await this.save(job); }
           const result = await invoke(step, payload);
-          if (step === 'diagnose') requireValue(result.reproduced === true && result.evidenceId, 'REPRODUCTION_REQUIRED');
+          if (step === 'diagnose') {
+            requireValue(result.evidenceId, 'BASELINE_EVIDENCE_REQUIRED');
+            if ((job.taskKind ?? 'defect') === 'defect') requireValue(result.reproduced === true, 'REPRODUCTION_REQUIRED');
+            else requireValue(result.baselineRecorded === true, 'BASELINE_REQUIRED');
+          }
           if (step === 'preview') {
             const url = new URL(result.url);
             requireValue(url.protocol === 'https:' && !url.username && !url.password && result.headSha === payload.headSha, 'INVALID_PREVIEW');

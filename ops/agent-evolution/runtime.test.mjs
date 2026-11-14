@@ -94,3 +94,15 @@ test('timed-out preview cannot report recovery while a late effect remains possi
  assert.equal((await q.run('test',a,{timeoutMs:20})).state,'needs_reconciliation');
  assert.equal(rollbackCalled,false);
 });
+
+test('feature and usability work require explicit acceptance and baseline, not a fake bug',async t=>{
+ const q=await setup(t);
+ await assert.rejects(q.create({id:'feature',goal:'Add capability',baseSha,ownedPaths:['src/ui'],taskKind:'feature',deadline:new Date(Date.now()+60000).toISOString()}),/ACCEPTANCE_CRITERIA_REQUIRED/);
+ await q.create({id:'feature',goal:'Add capability',baseSha,ownedPaths:['src/ui'],taskKind:'feature',acceptanceCriteria:['New user can select a conversation'],deadline:new Date(Date.now()+60000).toISOString()});
+ const a=workers();a.diagnose=async()=>({baselineRecorded:true,evidenceId:'baseline'});
+ assert.equal((await q.run('feature',a)).state,'completed');
+});
+test('non-defect tasks reject a claimed reproduction without baseline evidence',async t=>{
+ const q=await setup(t),j=await q.read('test');j.taskKind='performance';j.acceptanceCriteria=['Measured latency decreases without correctness regression'];await q.save(j);
+ const result=await q.run('test',workers());assert.equal(result.state,'failed');assert.equal(result.error,'BASELINE_REQUIRED');
+});
