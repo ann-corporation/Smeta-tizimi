@@ -255,18 +255,23 @@ jobs:
         run: |
           npx vite build --config src-tauri/vite.desktop.config.ts
           (cd src-tauri && cargo test --locked)
-      - name: Build universal DMG
+      - name: Build universal DMG (unsigned)
+        # Tauri treats a present-but-empty APPLE_CERTIFICATE as a signing request, so the unsigned
+        # build must not define the APPLE_* variables at all.
+        if: env.MAC_SIGNING != 'true'
+        run: npx --yes @tauri-apps/cli@${TAURI_CLI} build --target universal-apple-darwin --bundles dmg --ci
+      - name: Build universal DMG (signed + notarized)
+        if: env.MAC_SIGNING == 'true'
         env:
-          # Empty on pull_request and when secrets are absent => unsigned (ad-hoc) DMG.
-          APPLE_CERTIFICATE: ${{ env.MAC_SIGNING == 'true' && secrets.APPLE_CERTIFICATE || '' }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ env.MAC_SIGNING == 'true' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
-          APPLE_SIGNING_IDENTITY: ${{ env.MAC_SIGNING == 'true' && secrets.APPLE_SIGNING_IDENTITY || '' }}
-          APPLE_ID: ${{ env.MAC_SIGNING == 'true' && secrets.APPLE_ID || '' }}
-          APPLE_PASSWORD: ${{ env.MAC_SIGNING == 'true' && secrets.APPLE_PASSWORD || '' }}
-          APPLE_TEAM_ID: ${{ env.MAC_SIGNING == 'true' && secrets.APPLE_TEAM_ID || '' }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: npx --yes @tauri-apps/cli@${TAURI_CLI} build --target universal-apple-darwin --bundles dmg --ci
+      - name: Collect DMG
         run: |
-          set +x
-          npx --yes @tauri-apps/cli@${TAURI_CLI} build --target universal-apple-darwin --bundles dmg --ci
           VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
           DMG=$(find src-tauri/target/universal-apple-darwin/release/bundle/dmg -name '*.dmg' | head -n1)
           test -n "$DMG" || { echo "DMG not found"; exit 1; }

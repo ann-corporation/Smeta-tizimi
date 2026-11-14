@@ -32,6 +32,8 @@ keyring = { version = "=3.6.3", features = ["apple-native"] }
 # Android Keystore (AES-256-GCM, non-exportable key) via the in-repo plugin.
 [target.'cfg(target_os = "android")'.dependencies]
 smeta-keystore = { path = "plugins/smeta-keystore" }
+# Android has no system OpenSSL for native-tls: build it from source (openssl-src) for the NDK target.
+openssl = { version = "0.10", features = ["vendored"] }
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
