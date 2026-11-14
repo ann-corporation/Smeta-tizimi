@@ -30,3 +30,11 @@ test('smoke refuses arbitrary hosts before sending requests',async()=>{
 test('service scope cannot include frontend, credentials or workflows',()=>{
  for(const path of ['.env','.github/workflows/a.yml','frontend/src/a.mjs'])assert.throws(()=>createAdapters({repo:'a/b',project:'p',sourceFiles:[path]}),/SOURCE_SCOPE_REQUIRED/);
 });
+
+test('smoke bounds streamed response and verifies shell',async t=>{
+ const original=globalThis.fetch;t.after(()=>{globalThis.fetch=original;});
+ globalThis.fetch=async()=>new Response('<html><div id="root"></div></html>');
+ const evidence=await fetchPreview('https://1234abcd.smeta-tizimi.pages.dev','smeta-tizimi');assert.equal(evidence.sha256.length,64);
+ globalThis.fetch=async()=>new Response('x'.repeat(3_000_001));
+ await assert.rejects(fetchPreview('https://1234abcd.smeta-tizimi.pages.dev','smeta-tizimi'),/PREVIEW_SIZE_LIMIT/);
+});

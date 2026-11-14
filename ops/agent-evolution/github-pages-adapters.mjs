@@ -38,7 +38,7 @@ export function createAdapters(config) {
    await writePatch(root,validatePatch(result.files,config.sourceFiles));
    await git(['diff','--check'],signal);
    await git(['add','--',...result.files.map(f=>f.path)],signal);
-   await git(['commit','-m',`fix(agent-evolution): ${job.id}`],signal);
+   await git(['-c','user.name=Codex','-c','user.email=noreply@openai.com','commit','-m',`fix(agent-evolution): ${job.id}`],signal);
    const headSha=(await git(['rev-parse','HEAD'],signal)).trim();
    const changedPaths=(await git(['diff','--name-only',job.baseSha,headSha],signal)).trim().split('\n');
    return {actor:`codex-engineer:${job.id}`,headSha,changedPaths};

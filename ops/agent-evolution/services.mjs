@@ -41,7 +41,11 @@ export async function fetchPreview(url,project,signal){
  if(!/^[a-z0-9-]+$/.test(project))throw Error("INVALID_PROJECT");
  const parsed=new URL(url);if(parsed.protocol!=='https:'||parsed.username||parsed.password||!new RegExp(`^[a-f0-9]{8}\\.${project.replaceAll('-','\\-')}\\.pages\\.dev$`).test(parsed.hostname)||parsed.port)throw Error('PREVIEW_HOST_REJECTED');
  const response=await fetch(url,{signal,redirect:'error'});if(!response.ok)throw Error('PREVIEW_HTTP_'+response.status);
- const body=await response.text();if(body.length>3_000_000||!body.includes('<html')||!body.includes('id="root"'))throw Error('PREVIEW_SHELL_MISSING');
+ const reader=response.body?.getReader();if(!reader)throw Error('PREVIEW_BODY_MISSING');
+ const chunks=[];let size=0;
+ try{for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>3_000_000){await reader.cancel();throw Error('PREVIEW_SIZE_LIMIT');}chunks.push(value);}}
+ finally{reader.releaseLock();}
+ const body=Buffer.concat(chunks).toString('utf8');if(!body.includes('<html')||!body.includes('id="root"'))throw Error('PREVIEW_SHELL_MISSING');
  return {sha256:createHash('sha256').update(body).digest('hex'),bytes:Buffer.byteLength(body)};
 }
 export async function writePatch(root,files){for(const f of files){const target=await safePath(root,f.path);await mkdir(dirname(target),{recursive:true});await writeFile(target,f.content);}}
