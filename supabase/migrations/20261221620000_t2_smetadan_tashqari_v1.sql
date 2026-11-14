@@ -65,6 +65,8 @@ returns jsonb language sql stable set search_path = public, pg_temp as $fn$
 $fn$;
 revoke all on function public._t2_summa_paket_tashqari_v1(jsonb, jsonb) from public, anon, authenticated;
 grant execute on function public._t2_summa_paket_tashqari_v1(jsonb, jsonb) to service_role;
+comment on function public._t2_summa_paket_tashqari_v1(jsonb, jsonb) is
+  'Smetadan tashqari bo''lim summasi (paket qismi). versiya: texnik — o''zi t2_qator o''qimaydi; yamalgan funksiyalardagi tq daraxti faqat _t2_smeta_qatlam_qator_v1 (faol versiya) natijasini filtrlaydi.';
 
 -- 4) _t2_summa_agg_v1 (7 arg), 5) _t2_summa_paket_v1, 6) t2_smeta_ozgarish_qatlam_v1 — yamoq.
 do $mig$
