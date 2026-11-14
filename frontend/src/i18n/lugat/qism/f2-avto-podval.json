@@ -1,0 +1,6 @@
+{
+  "Diqqat: obyektning smeta podvali topilmadi, nakrutka foizlari shartnoma yoki standart stavka boʻyicha hisoblanadi.": {
+    "ru": "Внимание: подвал сметы объекта не найден, проценты накрутки считаются по договору или по стандартной ставке.",
+    "en": "Warning: the object's estimate footer was not found; markup percentages are calculated from the contract or the default rate."
+  }
+}

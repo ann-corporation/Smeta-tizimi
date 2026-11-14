@@ -666,6 +666,8 @@ export type AktBuzilish = {
 export type AktNatija = {
   ok: boolean; bogliq?: unknown; error?: string; sabab?: string; xabar?: string; izoh?: string;
   operation_id?: string;
+  /** F2 yaratishda avto podval holati (t2_akt_yarat_v2): bor=false + ogohlantirish — obyektning smeta podvali topilmadi (qulf yo'q). */
+  podval?: { bor?: boolean; manba?: string; ogohlantirish?: string; xabar?: string };
   akt_id?: number; qator_id?: number; takror?: boolean; holat?: string; tur?: string; oy?: string;
   qator_soni?: number; narxsiz?: number; jami?: number | null; toliq?: boolean;
   buzilish?: AktBuzilish[] | null; maslahat?: string;
