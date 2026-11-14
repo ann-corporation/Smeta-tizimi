@@ -1,0 +1,6 @@
+{
+  "smeta + o‘zgarishlardan": { "ru": "от сметы + изменений", "en": "of estimate + changes" },
+  "Qoldiq (smeta + o‘zgarishlar − F2)": { "ru": "Остаток (смета + изменения − Ф2)", "en": "Remainder (estimate + changes − F2)" },
+  "shundan asl smeta: {a}, o‘zgarishlar: {o} (QQS bilan)": { "ru": "из них исходная смета: {a}, изменения: {o} (с НДС)", "en": "of which original estimate: {a}, changes: {o} (incl. VAT)" },
+  "o‘zgarishlar o‘qilmadi — faqat asl smeta ko‘rsatilgan": { "ru": "изменения не прочитаны — показана только исходная смета", "en": "changes not loaded — only the original estimate is shown" }
+}
