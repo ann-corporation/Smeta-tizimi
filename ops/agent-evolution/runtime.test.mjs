@@ -36,7 +36,7 @@ test('rollback failure stays explicit and cannot auto retry deployment',async t=
 test('retry skips recorded stages and reuses operation id',async t=>{
  const q=await setup(t),calls=[],a=workers(calls),real=a.engineer;let n=0;
  a.engineer=async r=>{if(!n++){calls.push(r.operationId);throw Error('temporary');}return real(r);};
- assert.equal((await q.run('test',a)).state,'failed');assert.equal((await q.run('test',a)).state,'completed');
+ assert.equal((await q.run('test',a)).state,'failed');const recovered=await q.run('test',a);assert.equal(recovered.state,'completed');assert.equal(recovered.error,undefined);
  assert.equal(calls.filter(x=>x==='test:diagnose').length,1);assert.equal(calls.filter(x=>x==='test:engineer').length,2);
 });
 test('duplicate jobs and unsafe paths are rejected',async t=>{
@@ -49,6 +49,17 @@ test('concurrent run is locked',async t=>{
  await assert.rejects(q.run('test',a),/JOB_LOCKED/);release();await first;
 });
 test('cancelled task cannot run',async t=>{const q=await setup(t);await q.cancel('test');assert.equal((await q.run('test',workers())).state,'cancelled');});
+for(const state of ['needs_reconciliation','rollback_failed']) {
+ test(`cancel rejects an uncertain preview and preserves ${state}`,async t=>{
+  const q=await setup(t),a=workers();
+  a.preview=async()=>{throw state==='needs_reconciliation' ? new DOMException('response lost','TimeoutError') : Error('response lost');};
+  a.rollback=async()=>({restored:false});
+  const before=await q.run('test',a);
+  assert.equal(before.state,state);assert.equal(before.previewAttempted,true);assert.equal(before.results.preview,undefined);
+  await assert.rejects(q.cancel('test'),{message:'PREVIEW_ALREADY_CREATED'});
+  assert.deepEqual(await q.read('test'),before);
+ });
+}
 test('production is not a supported target',()=>assert.throws(()=>releaseGate({environment:'production',ownedPaths:['src/ui'],baseSha,results:{engineer:{headSha,actor:'a',changedPaths:['src/ui/x']},review:{headSha,actor:'b',passed:true},verify:{headSha,baseSha,passed:true,artifactId:'x',rollbackArtifactId:'y'}}}),/PRODUCTION_NOT_ENABLED/));
 test('timeout cannot be blindly retried while remote outcome is unknown',async t=>{
  const q=await setup(t),a=workers();a.diagnose=async()=>new Promise(()=>{});

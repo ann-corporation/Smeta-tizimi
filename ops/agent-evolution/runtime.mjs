@@ -68,7 +68,7 @@ export class EvolutionQueue {
     });
   }
   async cancel(id) { return this.locked(id, async () => {
-    const job = await this.read(id); requireValue(!job.results.preview, 'PREVIEW_ALREADY_CREATED');
+    const job = await this.read(id); requireValue(!job.previewAttempted && !job.results.preview, 'PREVIEW_ALREADY_CREATED');
     job.state = 'cancelled'; await this.save(job); return job;
   }); }
 
@@ -80,7 +80,7 @@ export class EvolutionQueue {
       if (['completed', 'cancelled', 'rolled_back', 'rollback_failed'].includes(job.state)) return job;
       requireValue(!job.previewAttempted && job.state !== 'needs_reconciliation', 'RECONCILIATION_REQUIRED');
       requireValue(job.attempts < job.maxAttempts, 'ATTEMPTS_EXHAUSTED');
-      job.attempts++; job.state = 'running'; await this.save(job);
+      job.attempts++; delete job.error; job.state = 'running'; await this.save(job);
       const invoke = async (name, payload) => {
         requireValue(job.calls < job.maxCalls, 'CALL_BUDGET_EXHAUSTED');
         requireValue(Date.now() < Date.parse(job.deadline), 'DEADLINE_EXCEEDED');
