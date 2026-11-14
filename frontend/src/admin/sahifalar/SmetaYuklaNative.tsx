@@ -842,7 +842,7 @@ export function narxlarniDaraxtgaQoll(
     narxsizlar.push({ uid: n.uid, kod: n.kod, nom: n.nom, bir: n.bir, hajm: n.hajm, sabab, ...(taklif ? { taklif } : {}) });
   };
   /* Bir xil nom+birlik, turli narx (RES da 2 xil «LED fonar»): LRV dagi qatorlar soni RES dagi bilan teng bo‘lsa — tartib bilan
-     juftlanadi. Aks holda eski xatti-harakat (birinchi narx). Real: ЭО НАВАИ da ikkinchi fonar birinchisining narxini olib, +14,06 mln chiqqan. */
+     juftlanadi. Aks holda eski xatti-harakat (birinchi narx). Real faylda ikkinchi qator birinchisining narxini olib, jami oshib ketgan edi. */
   const lrvSoni = new Map<string, number>();
   const sanash = (n: AktNode) => {
     if (n.children?.length) { n.children.forEach(sanash); return; }

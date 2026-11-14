@@ -50,7 +50,7 @@ export type PryamyeFarq = {
 const TRANSPORT_KODLARI = ['tr_mat', 'tr_kab', 'tr_ob', 'skl_mat', 'skl_mk', 'zag_ob'];
 
 /**
- * Fayl «прямые» tarkibida RES dagi transport/ombor xarajatlari ham bo‘lishi mumkin (ЭО НАВАИ: materiallar + transport).
+ * Fayl «прямые» tarkibida RES dagi transport/ombor xarajatlari ham bo‘lishi mumkin (materiallar + transport).
  * Tizimda ular ustama kaskadida alohida hisoblanadi, shuning uchun resurslar yig‘indisi bilan solishtirishda ular chiqarib tashlanadi.
  * Qaysi transport qatorlari «прямые» ga kirgani faylda yozilmagan — eng kichik farq beradigan to‘plam tanlanadi (taxmin emas, tekshiruv).
  */

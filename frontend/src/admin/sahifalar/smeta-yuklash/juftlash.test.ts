@@ -8,7 +8,7 @@ import type { AktNode } from '../../../lib/f2-match-engine';
 const bos = { lrvTanlanmagan: false, narxsiz: 0, resursJami: 0, vedomostChiqarildi: 0, tekisVaraqlar: [], tushunilmadiVaraq: 0 };
 const barg = (uid: string, nom: string, hajm: number): AktNode => ({ uid, type: 'mat', kod: 'С', nom, bir: 'ШТ', hajm });
 
-describe('RES da bir xil nomli, turli narxli qatorlar (ЭО НАВАИ: ikki xil LED fonar)', () => {
+describe('RES da bir xil nomli, turli narxli qatorlar (ikki xil LED fonar)', () => {
   const res = [
     { kod: 'С', nom: 'LED FONAR', birlik: 'ШТ', narx: 1000 },
     { kod: 'С', nom: 'LED FONAR', birlik: 'ШТ', narx: 900 },
