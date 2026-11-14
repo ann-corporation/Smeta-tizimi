@@ -71,13 +71,15 @@ export type RasmiyVaraqSozlama = {
    * Sukut true; smeta bo'lmagan varaq (masalan erkin matnli xat) false bilan o'chiradi.
    */
   kattaHarf?: boolean;
-  /** Hujjat nomi, masalan "АКТ ПРИЕМКИ ВЫПОЛНЕННЫХ РАБОТ (ФОРМА № 2)". */
+  /** Hujjat nomi, masalan "АКТ ПРИЕМКИ ВЫПОЛНЕННЫХ РАБОТ (ФОРМА № 02)". */
   sarlavha: string;
   ostSarlavha?: readonly string[];
   /** Titul: [yorliq, qiymat]. Qiymat bo'sh — chiziq. */
   titul?: ReadonlyArray<readonly [string, string | null | undefined]>;
   /** Titul ostidagi ALOHIDA son katagi (F-3 etalonida shartnoma summasi: yorliq | son | «сўм»); son — haqiqiy son (pul formatida). */
   titulSumma?: { yorliq: string; qiymat: number | null; birlik: string };
+  /** Titul, sarlavhadan OLDIN (imzolangan Ф-2 shakli: tomonlar yuqorida). */
+  yuqoriTitul?: ReadonlyArray<readonly [string, string | null | undefined]>;
   /**
    * Ikki tomon rekvizitlari — YONMA-YON (chap ПОДРЯДЧИК, o'ng ЗАКАЗЧИК),
    * haqiqiy SPRAVKA-SCHET-FAKTURA blankasidagi kabi: "Подрядчик: … | Заказчик: …",
@@ -198,7 +200,7 @@ for (const k of RANG_TARTIB) if (MAVZU_HEX.rangsiz[k] === '') MAVZU_HEX.rangsiz[
 
 /** Hujjat turlari (egasi: "tizimning o'zida har hujjat dizaynini tanlash mumkin bo'lsin"). Sozlamalarda shu ro'yxat. */
 export const HUJJAT_TURLARI = {
-  f2: 'Акт Ф-2 (форма № 2) va resurs vedomosti',
+  f2: 'Акт Ф-2 (форма № 02) va resurs vedomosti',
   f3: 'Справка Ф-3 (форма № 3)',
   nakopitelniy: 'Накопительная ведомость',
   obosnovanie: 'Обоснование выполненных объёмов, не закрытых Ф-2',
@@ -464,6 +466,8 @@ export class RasmiyVaraq {
     this.korinadigan = this.ustunlar.map((u, i) => (u.yashirin ? -1 : i)).filter((i) => i >= 0);
     const oxir = this.oxirgiUstun;
 
+    // Titul sarlavhadan OLDIN (imzolangan Ф-2: «Подрядчик / Заказчик», keyin «АКТ …»).
+    if (o.yuqoriTitul?.length) { this.titulQatorlari(o.yuqoriTitul, oxir); this.put([]); }
     this.put([katakXml(0, RS.sarlavha, o.sarlavha)], balandlik(o.sarlavha, this.kenglikJami(0, oxir), 18));
     this.merge(0, this.r - 1, oxir);
     for (const s of o.ostSarlavha ?? []) {
@@ -504,16 +508,11 @@ export class RasmiyVaraq {
     }
     if (o.titul?.length) {
       this.put([]);
-      // Yorliq ustun(lar)i: chapdan kamida 16 belgi eni (tor № ustunida kesilmasin).
-      let yorliqOxiri = 0;
-      while (yorliqOxiri < oxir - 1 && this.kenglikJami(0, yorliqOxiri) < 16) yorliqOxiri++;
-      for (const [yorliq, qiymat] of o.titul) {
-        const q = (qiymat ?? '').trim() || '________________________________________';
-        const r = this.put([katakXml(0, RS.titulYorliq, yorliq), katakXml(yorliqOxiri + 1, RS.titulQiymat, q)], balandlik(q, this.kenglikJami(yorliqOxiri + 1, oxir)));
-        if (yorliqOxiri > 0) this.merge(0, r, yorliqOxiri);
-        this.merge(yorliqOxiri + 1, r, oxir);
-      }
+      this.titulQatorlari(o.titul, oxir);
       if (o.titulSumma) {
+        // Yorliq ustun(lar)i: chapdan kamida 16 belgi eni (titulQatorlari bilan bir xil).
+        let yorliqOxiri = 0;
+        while (yorliqOxiri < oxir - 1 && this.kenglikJami(0, yorliqOxiri) < 16) yorliqOxiri++;
         const ts = o.titulSumma;
         const c0 = yorliqOxiri + 1, c1 = Math.min(oxir - 1, c0 + 3);
         const r = this.put([katakXml(0, RS.titulYorliq, ts.yorliq), katakXml(c0, RS.pul, ts.qiymat), katakXml(c1 + 1, RS.titulQiymat, ts.birlik)]);
@@ -593,6 +592,18 @@ export class RasmiyVaraq {
     this.raqamQatori = this.put(this.ustunlar.map((u, i) => katakXml(i, RS.raqam, u.yashirin ? null : ++n)));
   }
 
+  /** Titul qatorlari: yorliq (chapda, kamida 16 belgi eni) + qiymat (qolgan eni bo'ylab birlashgan). */
+  private titulQatorlari(titul: ReadonlyArray<readonly [string, string | null | undefined]>, oxir: number): void {
+    let yorliqOxiri = 0;
+    while (yorliqOxiri < oxir - 1 && this.kenglikJami(0, yorliqOxiri) < 16) yorliqOxiri++;
+    for (const [yorliq, qiymat] of titul) {
+      const q = (qiymat ?? '').trim() || '________________________________________';
+      const r = this.put([katakXml(0, RS.titulYorliq, yorliq), katakXml(yorliqOxiri + 1, RS.titulQiymat, q)], balandlik(q, this.kenglikJami(yorliqOxiri + 1, oxir)));
+      if (yorliqOxiri > 0) this.merge(0, r, yorliqOxiri);
+      this.merge(yorliqOxiri + 1, r, oxir);
+    }
+  }
+
   /** Keyingi yoziladigan qator raqami (1-asosli). */
   get r(): number { return this.qatorlar.length + 1; }
   get oxirgiUstun(): number { return this.korinadigan[this.korinadigan.length - 1] ?? 0; }
@@ -619,14 +630,14 @@ export class RasmiyVaraq {
 
   /** Jadval qatori. `qiymatlar` ustunlar tartibida; funksiya berilsa — qator
    * raqamini oladi (nisbiy formulalar o'z qatoriga havola qilishi uchun). */
-  qator(tur: RasmiyQatorTuri, qiymatlar: readonly Qiymat[] | ((r: number) => readonly Qiymat[]), o?: { daraja?: number; rang?: QatorRangi | null }): number {
+  qator(tur: RasmiyQatorTuri, qiymatlar: readonly Qiymat[] | ((r: number) => readonly Qiymat[]), o?: { daraja?: number; rang?: QatorRangi | null; /** Ko'rinish darajasi «Тип» belgisidan mustaqil (faqat uslub; belgi va import o'zgarmaydi). */ uslub?: DarajaKalit }): number {
     const r = this.r;
     const xom = typeof qiymatlar === 'function' ? qiymatlar(r) : qiymatlar;
     const q = this.kattaHarf ? xom.map((v, i) => (typeof v === 'string' && MATN_TURLARI.has(this.ustunlar[i]?.tur) ? kattaHarfga(v) : v)) : xom;
     const rang = o?.rang !== undefined ? o.rang : TUR_RANGI[tur];
     // Daraja (BL/RS/MAT/OB/razdel/jami/ВСЕГО): «Тип» belgi ustuni qiymati yoki qator turi/toifasidan — BITTA resolver.
     const belgiI = this.ustunlar.findIndex((u) => u.belgi);
-    const lv = darajaAniqla(tur, belgiI >= 0 ? q[belgiI] : null, rang);
+    const lv = o?.uslub ?? darajaAniqla(tur, belgiI >= 0 ? q[belgiI] : null, rang);
     if (lv === 'bl') this.zebraTartib++;
     const dz = lv ? this.dizayn.daraja[lv] : null;
     const qalin = lv ? dz!.qalin : tur !== 'oddiy';
@@ -777,7 +788,7 @@ export class RasmiyVaraq {
       const r = this.put([katakXml(0, RS.imzoMatn, imzoMatni(t.rol, t.nom)), katakXml(imzoC, RS.imzoMatn, IMZO_IMZO_CHIZIQ)], 24);
       this.merge(0, r, Math.max(mc, imzoC - 1));
       const r2 = this.put([
-        katakXml(0, RS.imzoIzoh, imzoMuhrli(t.rol) ? IMZO_IZOH : IMZO_IZOH_SHAXS),
+        katakXml(0, RS.imzoIzoh, t.lavozim ? `(${t.lavozim}, Ф.И.О.)` : imzoMuhrli(t.rol) ? IMZO_IZOH : IMZO_IZOH_SHAXS),
         katakXml(imzoC, RS.imzoIzoh, IMZO_PODPIS),
         ...(imzoMuhrli(t.rol) && oxir > imzoC ? [katakXml(oxir, RS.imzoIzoh, IMZO_MP)] : []),
       ]);

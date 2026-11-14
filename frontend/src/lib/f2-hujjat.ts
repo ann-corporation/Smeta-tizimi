@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Ф-2 hujjati — LRV_PLUS'ning asosiy ustunlari asosida (egasi, 2026-10-02: "LRV PLUS dagi asosiy ustunlar,
  * summagacha + I dagi markirovka; eski tizim uchun o'ngdagi yordamchi ustunlar kerak emas").
  *
@@ -13,7 +13,7 @@
  * hammasi o'zi qayta hisoblanadi. Narxsiz resurs (ongli tanlov) — summa bo'sh va jami bo'sh (H7: NULL ≠ 0).
  */
 import type { F2Bolim, F2Qator } from './f2-tayyor';
-import { RANG_TARTIB, RasmiyVaraq, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, summaSozBilan, yaxlit2, type ImzoNomlar, type QatorRangi, type RangMavzusi, type Qiymat, type RasmiyUstun } from './hujjat-yozuvchi';
+import { RANG_TARTIB, RasmiyVaraq, hujjatFaylNomi, rasmiyKitob, summaSozBilan, yaxlit2, type ImzoNomlar, type ImzoTomon, type QatorRangi, type RangMavzusi, type Qiymat, type RasmiyUstun } from './hujjat-yozuvchi';
 import { davrMatni } from './nakopitelniy-vedomost-export';
 import { lrvKalitYoz } from './lrv-qayta-import';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
@@ -88,6 +88,24 @@ const USTUNLAR: RasmiyUstun[] = [
   { sarlavha: 'КАЛИТ', kenglik: 10, tur: 'texnik', yashirin: true },
 ];
 
+/** Imzolangan Ф-2 imzo yorliqlari (lavozim) — faqat shu hujjat turi uchun. */
+const TN_LAVOZIM = 'Представитель Тех.надзора Заказчика';
+/** Etalon tartibi: ЗАКАЗЧИК (Тех.надзор) ×2 → [СУБПОДРЯДЧИК] → ПОДРЯДЧИК (Производитель работ). Ikkinchi ЗАКАЗЧИК — texnadzor vakili (nomi imzo.texnadzor). */
+const f2ImzoTomonlari = (n?: ImzoNomlar): ImzoTomon[] => [
+  { rol: 'ЗАКАЗЧИК', nom: n?.zakazchik ?? null, lavozim: TN_LAVOZIM },
+  { rol: 'ЗАКАЗЧИК', nom: n?.texnadzor ?? null, lavozim: TN_LAVOZIM },
+  ...(n?.subpudratchi ? [{ rol: 'СУБПОДРЯДЧИК' as const, nom: n.subpudratchi, lavozim: 'Производитель работ Субподрядчика' }] : []),
+  { rol: 'ПОДРЯДЧИК', nom: n?.pudratchi ?? null, lavozim: 'Производитель работ' },
+];
+
+const OY_NOM = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+/** «За сентябрь месяц 2025 года» (imzolangan Ф-2); davr noma'lum shaklda bo'lsa — umumiy davrMatni. */
+export function davrSozBilan(davr: string): string {
+  const m = /^(\d{4})-(\d{2})/.exec(davr || '');
+  const oy = m ? OY_NOM[Number(m[2]) - 1] : undefined;
+  return m && oy ? `За ${oy} месяц ${m[1]} года` : `за отчетный период: ${davrMatni(davr)}`;
+}
+
 /** Hujjat nomi — imzolangan Ф-2 muqovasi bilan bir xil («АКТ О ПРИЁМКЕ ВЫПОЛНЕННЫХ РАБОТ (Форма № 02)»). */
 export const F2_SARLAVHA = 'АКТ О ПРИЁМКЕ ВЫПОЛНЕННЫХ РАБОТ';
 
@@ -113,8 +131,10 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
   const v = new RasmiyVaraq({
     nom: o.varaqNomi || 'Ф-2',
     sarlavha: `${F2_SARLAVHA}${raqam ? ` № ${raqam}` : ''} (ФОРМА № 02)`,
-    ostSarlavha: [`за отчетный период: ${davrMatni(o.davr)}`],
-    titul: [['Объект:', o.obyektNom], ['Заказчик:', o.imzo?.zakazchik], ['Подрядчик:', o.imzo?.pudratchi], ...(o.imzo?.subpudratchi ? [['Субподрядчик:', o.imzo.subpudratchi] as const] : []), ['Договор:', o.shartnoma]],
+    // Imzolangan Ф-2 tartibi: Подрядчик → Заказчик → «АКТ …» → «О выполненных работах по объекту …» → «За … месяц … года»; Договор — pastda.
+    yuqoriTitul: [['Подрядчик:', o.imzo?.pudratchi], ['Заказчик:', o.imzo?.zakazchik], ...(o.imzo?.subpudratchi ? [['Субподрядчик:', o.imzo.subpudratchi] as const] : [])],
+    ostSarlavha: [`О выполненных работах по объекту «${o.obyektNom}»`, davrSozBilan(o.davr)],
+    titul: [['Договор:', o.shartnoma]],
     ustunlar: USTUNLAR,
     yonalish: 'portrait',
   });
@@ -142,7 +162,8 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
   /** Resurs vedomosti uchun: har resurs qaysi qatorga yozilgani (kalit — kat|kod|nom|birlik). */
   const vedomost = new Map<string, VedQator>();
   /** `ishQatori` — barg ish (bl) o'z summasi bilan: ish uslubida, lekin pul qatori (audit C B3). */
-  const resursYoz = (x: F2Qator, kod: string | null, norma: number | null, ishQator: number | null, ishQatori = false): number => {
+  /** ishOstida — ishi (BL) shu aktda bor, lekin resurs avto emas (zamena/qo'shimcha bolalari, tur='mat'): № N.k va resurs (kursiv) ko'rinishi; «Тип» belgisi va import o'zgarmaydi. */
+  const resursYoz = (x: F2Qator, kod: string | null, norma: number | null, ishQator: number | null, ishQatori = false, ishOstida = false): number => {
     // Kategoriya faqat qatorning o'zidan (tur bo'yicha МАТ/ОБ taxmin yo'q); yo'q — ustamasiz qism (podvalda alohida).
     const kat = nakrutkaKat(x.kat);
     /** m4: hujjat hajmi noma'lum — katak bo'sh (0 emas), summa formulaga bog'lanmaydi. */
@@ -175,7 +196,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     if (oxirgiSumma != null) { vd.summa = yaxlit2((vd.summa ?? 0) + oxirgiSumma); vd.summaQatorlar.push(qatorR); }
     vedomost.set(vk, vd);
     return v.qator(ishQatori ? 'ish' : 'oddiy', (r): Qiymat[] => [
-      ishQator != null ? ishOstiRaqam() : ++n, shifrKorinish(kod), x.nom, x.birlik ?? '',
+      ishQator != null || ishOstida ? ishOstiRaqam() : ++n, shifrKorinish(kod), x.nom, x.birlik ?? '',
       norma != null ? { n: norma, uslub: 'norma' } : null,
       hajmNomalum ? null : ishgaBogliq ? { f: `ROUND(E${r}*F${ishQator},6)`, v: yaxlit6(x.hajm) } : x.hajm,
       narxBor ? x.narx : null,
@@ -183,7 +204,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
       summaQiymat ? x.summa : narxBor ? { f: `ROUND(F${r}*G${r},2)`, v: hisob } : (narxsizBelgi ? NARX_ANIQLANMAGAN : ongliNarxsiz ? '—' : null),
       // J — podval SUMIF kaliti: yaxlit qator YAXLIT_KAT («СВОД») — ustama SUMIF ga kirmaydi (nakopitelniy bilan bir xil).
       x.tur, yaxlitQator ? YAXLIT_KAT : kat ?? '', lrvKalitYoz(x.id, kod, x.nom, x.birlik),
-    ], ishQatori ? { daraja: 1 } : { daraja: 2, rang: kat && (RANG_TARTIB as readonly string[]).includes(kat) ? kat as QatorRangi : null });
+    ], ishQatori ? { daraja: 1 } : { daraja: 2, rang: kat && (RANG_TARTIB as readonly string[]).includes(kat) ? kat as QatorRangi : null, ...(ishOstida ? { uslub: 'rs' as const } : {}) });
   };
 
   /* M13 (audit C): ishi aktda yo'q resurs (avto ham) ham chiqadi — ish sarlavhasisiz mustaqil qator (yadro uni sanaydi). */
@@ -202,6 +223,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
       const avto = bl ? ish.resurslar.filter((r) => r.avto && tanlangan.has(r.id)) : [];
       const mustaqil = ish.resurslar.filter((r) => tanlangan.has(r.id) && (!r.avto || !bl));
       let blQ: number | null = null;
+      let bolaRaqam = false;
       if (bl && !avto.length && bl.summa != null) {
         // B3: barg ish (resurssiz / М/К) — o'z summasi bilan pul qatori (server barg qoidasi, F3 bilan bir xil).
         blQ = resursYoz(bl, ish.kod, null, null, true);
@@ -213,11 +235,12 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
         blQ = v.qator('ish', (r): Qiymat[] => [++n, shifrKorinish(ish.kod), ish.nom, ish.birlik ?? '', null, blHajmi, null,
           avto.length ? { f: `SUM(H${r + 1}:H${r + avto.length})`, v: ishJS } : null, 'bl', '', lrvKalitYoz(ish.id, ish.kod, ish.nom, ish.birlik)], { daraja: 1 });
         ishBoshla();
+        bolaRaqam = true;
         tarkib.push(blQ);
         qosh(ishJS);
         for (const r of avto) resursYoz(tanlangan.get(r.id)!, r.kod, r.norma, blQ);
       }
-      for (const r of mustaqil) { tarkib.push(resursYoz(tanlangan.get(r.id)!, r.kod, null, null)); qosh(oxirgiSumma); }
+      for (const r of mustaqil) { tarkib.push(resursYoz(tanlangan.get(r.id)!, r.kod, null, null, false, bolaRaqam)); qosh(oxirgiSumma); }
     }
     for (const r of alohida) { tarkib.push(resursYoz(tanlangan.get(r.id)!, r.kod, null, null)); qosh(oxirgiSumma); }
     return { tarkib, js: bolimJS };
@@ -342,7 +365,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
   const jamiTolov = (yangiVsegoQator != null || eski.length) ? yaxlit2(yangiVsegoJS + eskiVsegoJS) : null;
   if (jamiTolov != null && Number.isFinite(jamiTolov) && !narxsizN) { v.bosh(); v.izoh(`Сумма прописью: ${summaSozBilan(jamiTolov)} с НДС`); }
   if (narxsizN) { v.bosh(); v.narxsizOgoh(narxsizN); }
-  v.imzo(imzoTomonlari(o.imzo?.subpudratchi ? ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СУБПОДРЯДЧИК', 'ТЕХНАДЗОР'] : ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР'], o.imzo));
+  v.imzo(f2ImzoTomonlari(o.imzo));
   const ved = [...vedomost.values()];
   const narxlari = new Map<string, number>();
   const nk2 = (x: VedQator) => `${x.ildiz}|${x.guruh}`;
