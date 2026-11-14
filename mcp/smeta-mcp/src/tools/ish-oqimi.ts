@@ -495,7 +495,7 @@ export const qoshimchaIsh = tool({
 
 export const faktYoz = tool({
   nom: 'fakt_yoz',
-  tavsif: 'Fakt yozish (t2_fakt_yoz_v2): `qatorlar [{qator_id, hajm}]` — DELTA (minus — kamaytirish), `sana` (standart bugun), `izoh`, `raqam`. Javob: qator bo\'yicha fakt oldin→keyin (namuna).',
+  tavsif: 'Fakt yozish (t2_fakt_yoz_v2): `qatorlar [{qator_id, hajm}]` — DELTA (minus — kamaytirish), `sana` (standart bugun), `izoh`, `raqam`. Javob: qator bo\'yicha fakt oldin→keyin (namuna). Narxi NULL qator bo\'lsa — ogohlantirish «narxsiz qator: summa bo\'sh, narx_tuzat bilan narx qo\'ying» (yozuv BLOKLANMAYDI; narx 0 narxsiz emas).',
   kirish: {
     obyekt_id: obyektIdS, sana: sanaS.optional(),
     qatorlar: z.array(z.object({ qator_id: z.number().int().positive(), hajm: z.number().refine((v) => v !== 0, 'hajm 0 bo\'lmasin') })).min(1).max(5000),
@@ -504,7 +504,7 @@ export const faktYoz = tool({
   yozadi: true,
   bajar: async (a, mu) => {
     const aktor = mu.aktorKerak(); const dry = quruq(a.dry_run); const n = a.korsat ?? 10;
-    return mu.yozish({ tool: 'fakt_yoz', args: a, dryRun: dry, obyektId: a.obyekt_id, izoh: a.izoh }, async (m) => {
+    return mu.yozish({ tool: 'fakt_yoz', args: a, dryRun: dry, obyektId: a.obyekt_id, izoh: a.izoh }, async (m, ogoh) => {
       await obyektBormi(m, a.obyekt_id);
       const ids = a.qatorlar.map((q) => q.qator_id);
       const oq = async () => new Map((await m.query<{ qator_id: number; nom: string | null; fakt_hajm: number | null }>('select qator_id, nom, fakt_hajm from public.t2_qator_holat where obyekt_id = $1 and qator_id = any($2::bigint[])', [a.obyekt_id, ids])).rows.map((r) => [Number(r.qator_id), r]));
@@ -514,7 +514,11 @@ export const faktYoz = tool({
       const res = await rpcOk(m, 't2_fakt_yoz_v2', { p_obyekt_id: a.obyekt_id, p_sana: a.sana ?? new Date().toISOString().slice(0, 10), p_qatorlar: a.qatorlar, p_actor_id: aktor,
         p_operation_id: a.operation_id ?? randomUUID(), p_izoh: a.izoh ?? null, p_raqam: a.raqam ?? null, p_actor_label: `mcp:actor:${aktor}` }, aktor);
       const keyin = await oq();
-      return { akt_id: res.akt_id ?? null, qatorlar: a.qatorlar.length, ...(n ? { namuna: a.qatorlar.slice(0, n).map((q) => ({ qator_id: q.qator_id, nom: qisqa(oldin.get(q.qator_id)?.nom, 50), delta: q.hajm, fakt: [oldin.get(q.qator_id)?.fakt_hajm ?? null, keyin.get(q.qator_id)?.fakt_hajm ?? null] })) } : {}) };
+      // Narxsiz qator (narx NULL): fakt yoziladi (BLOKLANMAYDI), summa bo'sh — server (t2_fakt_yoz_v2) qaytargan ogohlantirish chiqariladi. Narx 0 — narxsiz emas.
+      const narxsiz = Number(res.narxsiz_soni) > 0 ? Number(res.narxsiz_soni) : 0;
+      const narxsizQ = Array.isArray(res.narxsiz_qatorlar) ? (res.narxsiz_qatorlar as Array<{ qator_id: number; nom?: string | null }>) : [];
+      if (narxsiz) ogoh.push(`narxsiz qator: summa bo'sh, narx_tuzat bilan narx qo'ying — ${narxsiz} ta (${narxsizQ.slice(0, 10).map((x) => `#${x.qator_id}`).join(', ')}${narxsiz > 10 ? ', …' : ''})`);
+      return { akt_id: res.akt_id ?? null, qatorlar: a.qatorlar.length, ...(narxsiz ? { narxsiz_soni: narxsiz, narxsiz_qatorlar: narxsizQ.slice(0, 50) } : {}), ...(n ? { namuna: a.qatorlar.slice(0, n).map((q) => ({ qator_id: q.qator_id, nom: qisqa(oldin.get(q.qator_id)?.nom, 50), delta: q.hajm, fakt: [oldin.get(q.qator_id)?.fakt_hajm ?? null, keyin.get(q.qator_id)?.fakt_hajm ?? null] })) } : {}) };
     });
   },
 });
