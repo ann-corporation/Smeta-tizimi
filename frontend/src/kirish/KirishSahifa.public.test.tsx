@@ -9,6 +9,8 @@ vi.mock('react-router-dom', async (original) => ({ ...(await original<typeof imp
 vi.mock('./GoogleKirish', () => ({ default: () => null }));
 // Desktop yuklab olish bloki mount paytida /desktop-release.json ni fetch qiladi; bu testlar faqat kirish API chaqiruvlarini sanaydi.
 vi.mock('../components/public-entry/DesktopDownload', () => ({ DesktopDownload: () => null }));
+// Yuklab olish bo'limi /mobile-release.json va /desktop-release.json ni fetch qiladi — bu testlarda kerak emas.
+vi.mock('../components/public-entry/AppDownloads', () => ({ AppDownloads: () => null }));
 vi.mock('../umumiy/ui/Toast', () => ({ toast: vi.fn() }));
 import KirishSahifa from './KirishSahifa';
 

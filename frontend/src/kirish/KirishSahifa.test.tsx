@@ -9,6 +9,7 @@ vi.mock('../umumiy/ui/Toast', () => ({ toast: m.toast }));
 vi.mock('./GoogleKirish', () => ({ default: () => null }));
 // Desktop yuklab olish bloki mount paytida /desktop-release.json ni fetch qiladi; bu testlar faqat kirish API chaqiruvlarini sanaydi.
 vi.mock('../components/public-entry/DesktopDownload', () => ({ DesktopDownload: () => null }));
+vi.mock('../components/public-entry/AppDownloads', () => ({ AppDownloads: () => null }));
 
 import KirishSahifa from './KirishSahifa';
 
