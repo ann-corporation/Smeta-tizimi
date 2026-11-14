@@ -2,7 +2,7 @@
  * Pudratchi ish zanjiri — YAGONA sof model (React/tarmoq yo'q).
  *
  * Tartib (qurilish mantig'i): Smeta (yuklangan, narxlangan) → Fakt → АОСР (yashirin ishlar, F2 dan OLDIN) →
- * F2 (oylik akt) → Forma 3 / nakopitelniy → To'lov va akt-sverka.
+ * F2 (oylik akt) → Nakopitelniy (tasdiqlangan F2 lardan hisobot) → Forma 3 → To'lov va akt-sverka.
  *
  * Kirish — sahifa allaqachon yuklagan ma'lumot. NULL ≠ 0: noma'lum (o'qilmadi) hech qachon «bajarildi» emas:
  * u `unknown` holat bo'ladi va taxmin qilinmaydi. Yangi hisob dvigateli yo'q — sonlar mavjud o'qishlardan (markazHolati).
@@ -14,11 +14,11 @@ import { t } from '../../i18n/til';
 import { markazHolati, type MarkazAkt } from '../pto-markazi/markaz';
 import { bosqich } from '../f2-reestr/reestr';
 
-export type ZanjirQadamId = 'smeta' | 'fakt' | 'aosr' | 'f2' | 'f3' | 'tolov' | 'slichitelniy';
+export type ZanjirQadamId = 'smeta' | 'fakt' | 'aosr' | 'f2' | 'nakopitelniy' | 'f3' | 'tolov' | 'slichitelniy';
 export type QadamHolat = 'done' | 'current' | 'blocked' | 'not_started' | 'unknown';
 
 /** Zanjir tartibi (testlar, UI va menyu uchun yagona manba). */
-export const ZANJIR_TARTIB: readonly ZanjirQadamId[] = ['smeta', 'fakt', 'aosr', 'f2', 'f3', 'tolov', 'slichitelniy'];
+export const ZANJIR_TARTIB: readonly ZanjirQadamId[] = ['smeta', 'fakt', 'aosr', 'f2', 'nakopitelniy', 'f3', 'tolov', 'slichitelniy'];
 
 /** Har qadam bajariladigan sahifa (obyekt/oy qidiruv qatori — chaqiruvchi qo'shadi). */
 export const ZANJIR_YOL: Record<ZanjirQadamId, string> = {
@@ -26,6 +26,7 @@ export const ZANJIR_YOL: Record<ZanjirQadamId, string> = {
   fakt: '/admin/fakt',
   aosr: '/admin/aosr',
   f2: '/admin/f2-tayyorlash',
+  nakopitelniy: '/admin/nakopitelniy',
   f3: '/admin/nakopitelniy',
   tolov: '/admin/moliya',
   /** Obyekt sahifasidagi «Slichitelniy» bo'limi (hash bilan ochiladi). */
@@ -108,7 +109,7 @@ const oydaYoqIzoh = (k: ZanjirKirish): string => k.f2OxirgiOy
   : t('Bu oyda yo‘q · jami {n} ta tasdiqlangan F-2', { n: k.f2TasdiqJami as number });
 
 const NOMLAR: Record<ZanjirQadamId, () => string> = {
-  smeta: () => t('Smeta'), fakt: () => t('Fakt'), aosr: () => t('АОСР'), f2: () => t('F2'), slichitelniy: () => t('Slichitelniy'), f3: () => t('Forma 3'),tolov: () => t('To‘lov'),
+  smeta: () => t('Smeta'), fakt: () => t('Fakt'), aosr: () => t('АОСР'), f2: () => t('F2'), nakopitelniy: () => t('Nakopitelniy'), slichitelniy: () => t('Slichitelniy'), f3: () => t('Forma 3'),tolov: () => t('To‘lov'),
 };
 
 /** Qadamning o'z ma'lumotidan holati + izoh + amal (oldingi qadamlarga bog'liq emas). */
@@ -154,6 +155,17 @@ function ozi(id: ZanjirQadamId, k: ZanjirKirish): { own: Own; izoh: string; amal
       if (oydaYoq(k)) return { own: 'idle', izoh: oydaYoqIzoh(k), amal: t('F2 ni ko‘ring') };
       return { own: 'todo', izoh: t('{oy} uchun F2 hali yo‘q', { oy: k.oy }), amal: t('F2 tayyorlang') };
     }
+    case 'nakopitelniy': {
+      /* Nakopitelniy — saqlanmaydigan hisobot: tasdiqlangan F2 lardan har ochilganda yangidan hisoblanadi. «Bor» = obyektda tasdiqlangan F2 bor
+       * (oxirgisi shu oygacha qamrab olinadi); F2 umuman yo‘q bo‘lsa — blocked (bloklovchi). Noma‘lum (akt reestri o‘qilmagan) — unknown. */
+      const jami = f2Jami(k);
+      if (jami == null) return { own: 'unknown', izoh: nomalum, amal: t('Nakopitelniyni tekshiring') };
+      if (jami > 0) {
+        const oxirgi = k.f2OxirgiOy ?? (musbat(k.f2TasdiqBuOyda) ? k.oy : null);
+        return { own: 'done', izoh: oxirgi ? t('{oy} gacha tasdiqlangan F-2 lar asosida tayyor', { oy: oxirgi }) : t('Tasdiqlangan F-2 lar asosida tayyor'), amal: t('Nakopitelniyni ko‘ring') };
+      }
+      return { own: 'todo', izoh: t('Tasdiqlangan F-2 yo‘q — nakopitelniy bo‘sh'), amal: t('Nakopitelniyni ko‘ring') };
+    }
     case 'f3': {
       if (musbat(k.forma3)) return { own: 'done', izoh: t('Forma 3 tuzilgan'), amal: t('Forma 3 ni ko‘ring') };
       if (!musbat(k.f2TasdiqBuOyda) && k.tolov && k.tolov.f3Jami > 0) return { own: 'done', izoh: t('Shartnoma bo‘yicha Forma 3 tuzilgan'), amal: t('Forma 3 ni ko‘ring') };
@@ -193,7 +205,7 @@ function bloklovchi(id: ZanjirQadamId, k: ZanjirKirish, tugamagan: ReadonlySet<Z
     /* Obyekt darajasi: «Avval fakt kerak» faqat obyektda umuman (saqlangan) fakt bo'lmasa — qoralama yoki boshqa oy to'smaydi. */
     case 'aosr': case 'f2': return (k.faktSaqlangan === 0 && k.faktHolatda !== true) || k.smeta.bor === false ? t('Avval fakt kerak') : null;
     /* F3 va slichitelniy: obyektda tasdiqlangan F2 umuman bo'lmasa bloklanadi (oyga qarab emas). */
-    case 'f3': return f2Jami(k) === 0 ? t('Avval F2 tasdiqlanishi kerak') : null;
+    case 'nakopitelniy': case 'f3': return f2Jami(k) === 0 ? t('Avval F2 tasdiqlanishi kerak') : null;
     case 'slichitelniy': return f2Jami(k) === 0 ? t('Avval F2 tasdiqlanishi kerak') : null;
     case 'tolov': return tugamagan.has('f3') && !(k.tolov && k.tolov.f3Jami > 0) ? t('Avval Forma 3 kerak') : null;
     default: return null;

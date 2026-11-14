@@ -30,11 +30,13 @@ import {
 } from './hujjat-yozuvchi';
 import { shartnomaSvodi, somga, svodJami, sverkaHisobla, tiyin, type SvodShartnoma } from './nakopitelniy-svod';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
+import type { F3DavrAkt } from './forma3-export';
+import { diqqatGuruh, zamechaniyaVaraq } from './hujjat-yozuvchi/zamechaniya';
 import {
   NAKRUTKA_KATLAR, NOMALUM_KAT, kOplate, kategoriyaKf, nakrutkaKat, nakrutkaPodvaliYoz, podvalKfQatorlari, podvalNdsFoiz, podvalQatorRaqami,
   type KatSummalar, type NakrutkaHisobJS,
 } from './nakrutka-podval';
-import { serverMerosKoefQoy, yaxlitKOplate, yaxlitKOplateTaqsim, yaxlitQatorlarga, type Podval } from './hisob-yadro';
+import { f2YaxlitdanChiqadi, serverMerosKoefQoy, yaxlitKOplate, yaxlitKOplateTaqsim, yaxlitQatorlarga, type Podval } from './hisob-yadro';
 import { narxBildirishnomaKerak, narxsizSoni } from './narx-bildirishnoma';
 import { bargUslubi } from './qator-uslubi';
 import { YAXLIT_IZOH, YAXLIT_KAT, svodYaxlitQqs, yaxlitQatorIdlari, type SvodYaxlit } from './svod-yaxlit';
@@ -63,6 +65,8 @@ export interface NakopitelniyVedomostExportOptions {
   oylar?: NakopitelniyOylar | null;
   /** Svod yaxlit bo'limlari (t2_obyekt_nakrutka_v1.svod_yaxlit): avlod qatorlariga ustama qo'llanmaydi, podvalda alohida qator. */
   svodYaxlit?: SvodYaxlit | null;
+  /** Hisobot oyigacha HAMMA tasdiqlangan F2 aktlari (har biri O'Z podvali bilan, `oy` bilan): «К ОПЛАТЕ» oy va «с начала» jami shulardan (F-3 bilan bir xil). */
+  aktlarKOplate?: ReadonlyArray<F3DavrAkt> | null;
 }
 
 /** Tasdiqlangan F2 qatorlari oy bo'yicha: oylar — 'YYYY-MM' o'sish tartibida (oxirgisi — hisobot davri). */
@@ -149,8 +153,11 @@ export type NakopitelniyJamilar = { smeta: number; oldingi: number; joriy: numbe
 /** Hujjat jamilari — barglar bo'yicha (UI shu sonni ko'rsatadi, Excel ВСЕГО bilan teng). */
 export function nakopitelniyJamilar(qatorlar: readonly NakopitelniyQator[]): NakopitelniyJamilar {
   let smeta = 0, oldingi = 0, joriy = 0;
+  // Resurssiz ish (daraxtda bolasi yo'q `bl`) ham o'z pulini olib yuradi — barg kabi sanaladi (hujjat qatorlari bilan bir xil qoida).
+  const ota = new Set(qatorlar.map((q) => q.ota_id).filter((x): x is number => x != null));
+  const daraxtBor = ota.size > 0;
   for (const q of qatorlar) {
-    if (!BARG.has(q.tur)) continue;
+    if (!BARG.has(q.tur) && !(q.tur === 'bl' && daraxtBor && !ota.has(q.qator_id))) continue;
     smeta += q.smeta_summa ?? 0;   // egasi qoidasi: narxsiz qator jamini bo'shatmaydi (bildirishnoma alohida)
     oldingi += q.oldingi_summa;
     joriy += q.joriy_summa;
@@ -223,6 +230,9 @@ export function nakopitelniyVedomostHujjat(
     }
   }
 
+  // Resurssiz ish (bolasi yo'q `bl`: КСМ transport, М/К ...) o'z puli bilan qiymat qatori — barg kabi sanaladi. Aks holda uning F2 summasi
+  // jamidan jim tushib qolardi (real obyektda server jamisidan kam chiqqan). Ish hajmi ogohlantirishi `q.tur === 'bl'` bo'yicha qoladi.
+  if (canonicalTree) for (const node of nodes) if (node.tur === 'bl' && !node.bolalar.length) node.tur = 'barg';
   /** Qator bo'yicha: davrlar yig'indisi (с начала) va hisobot davri (oxirgi davr). */
   const jamiH = (q: NakopitelniyQator) => davrlar.reduce((s, d) => s + d.hajm(q), 0);
   /* Noma'lum oy summasi (null) jamiga qo'shilmaydi — faqat ma'lum qism (katak bo'sh, diqqat ro'yxatida aytiladi). */
@@ -240,7 +250,7 @@ export function nakopitelniyVedomostHujjat(
     const i = reja.length;
     const row: Rej = { tur: node.tur, q: node.q, bolalar: [], daraja: node.daraja, ota };
     reja.push(row);
-    if (node.tur === 'bl' && node.q.smeta_hajm != null && node.q.smeta_hajm >= 0 && jamiH(node.q) > node.q.smeta_hajm + 1e-9) {
+    if (node.q.tur === 'bl' && node.q.smeta_hajm != null && node.q.smeta_hajm >= 0 && jamiH(node.q) > node.q.smeta_hajm + 1e-9) {
       diqqat.push({ nom: nomi(node.q), sabab: `объем по утвержденным Ф-2 (${fmt(jamiH(node.q))}) превышает объем сметы (${fmt(node.q.smeta_hajm)} ${node.q.birlik ?? ''}); проверьте привязку, единицы и корректировочные акты` });
     }
     if (node.tur === 'barg') {
@@ -277,7 +287,14 @@ export function nakopitelniyVedomostHujjat(
   const ndsFoiz = podvalNdsFoiz(podval, nk);
   const podvalBosh = bosh + reja.length + 2;
   const yaxIds = yaxlitQatorIdlari(qatorlar.map((q) => ({ id: q.qator_id, ota_id: q.ota_id })), o.svodYaxlit);
-  const yaxlitmi = (q: NakopitelniyQator) => yaxIds.has(q.qator_id);
+  /* Svod yaxlit bo'limi: SMETA ustunida (G va остаток) bo'limning BARCHA avlodlari yaxlit; F2 ustunlarida (oylar, с начала, к оплате) ЧЕЛ/МАШ
+   * oddiy kategoriya — server `_t2_summa_agg_v1` va F3 bilan aynan (`f2YaxlitdanChiqadi`). Avval hamma ustunda bir xil edi: ЧЕЛ/МАШ F2 summalari
+   * ustamasiz qolib, «К ОПЛАТЕ» server/F3 dan ~12 % kam chiqardi (real obyektda ~12 %). */
+  const yaxlitmiG = (q: NakopitelniyQator) => yaxIds.has(q.qator_id);
+  const yaxlitmi = (q: NakopitelniyQator) => yaxIds.has(q.qator_id) && !f2YaxlitdanChiqadi(q.kat);
+  /* Aralash bo'lim (yaxlit bo'lim ichida ЧЕЛ/МАШ bor): kategoriya belgisi (yashirin ustun) smeta va F2 ustunlari uchun har xil bo'la olmaydi —
+   * podval kategoriya yig'indilari SUMIF o'rniga qiymat bilan yoziladi (F3 podvali kabi). */
+  const aralash = qatorlar.some((q) => BARG.has(q.tur) && yaxlitmiG(q) && !yaxlitmi(q));
   const yaxlitBor = !!o.svodYaxlit && bargRows.length > 0;
   // Svod yaxlit (egasi): bo'lim smetasi qatorlarga tiyingacha taqsimlanadi (Σ = yaxlit aynan); F2 summalari aynan,
   // ularning к оплате ×(1+QQS) bo'lim bo'yicha taqsim (Σ aynan). Qoldiq = taqsimlangan smeta − F2.
@@ -292,7 +309,7 @@ export function nakopitelniyVedomostHujjat(
     const bilinmas = lq.filter((q) => q.smeta_summa == null).length;
     if (bilinmas) diqqat.push({ nom: `Раздел по своду: ${b.nom ?? b.qator_id}`, sabab: `нет сметной стоимости по ${bilinmas} поз. — в распределение суммы свода не включены` });
     for (const [k, f] of [['per', perS], ['jami', jamiS]] as const) {
-      for (const [id, x] of yaxlitKOplateTaqsim(new Map(lq.map((q) => [q.qator_id, f(q)])), ndsFoiz) ?? []) koTaqsim.set(`${id}${k}`, x);
+      for (const [id, x] of yaxlitKOplateTaqsim(new Map(lq.filter((q) => !f2YaxlitdanChiqadi(q.kat)).map((q) => [q.qator_id, f(q)])), ndsFoiz) ?? []) koTaqsim.set(`${id}${k}`, x);
     }
   }
   const smetaOf = (q: NakopitelniyQator): number | null => gTaqsim.get(q.qator_id) ?? q.smeta_summa;
@@ -376,8 +393,9 @@ export function nakopitelniyVedomostHujjat(
     }, { daraja: x.daraja ?? 0 });
     else if (x.tur === 'barg' || x.tur === 'bl') {
       const barg = x.tur === 'barg';
-      const tartib = barg ? '' : String(++no);
-      const us = barg ? bargUslubi(q!.tur === 'rs' || q!.tur === 'mat' || q!.tur === 'ob' ? q!.tur : null) : { tur: 'ish' as const, rang: undefined };
+      const ishQ = q!.tur === 'bl'; // resurssiz ish (barg sifatida sanalgan) — hujjatda ish qatori kabi raqamlanadi va ajratiladi
+      const tartib = barg && !ishQ ? '' : String(++no);
+      const us = barg && !ishQ ? bargUslubi(q!.tur === 'rs' || q!.tur === 'mat' || q!.tur === 'ob' ? q!.tur : null) : { tur: 'ish' as const, rang: undefined };
       r = v.qator(us.tur, (rr) => {
         const c: Qiymat[] = Array(U.ustunlar.length).fill(null);
         c[0] = tartib; c[1] = q!.kod ?? ''; c[2] = nomIzohBilan(q!.nom ?? '', q!.ozgarish_izoh); c[3] = q!.birlik ?? '';
@@ -477,7 +495,8 @@ export function nakopitelniyVedomostHujjat(
       for (const i of bargRows) {
         const q = reja[i].q!;
         const kat = nakrutkaKat(q.kat);
-        if (!kat || yaxlitmi(q)) continue;
+        // Smeta (G) va остаток — bo'limning barcha avlodlari yaxlit; F2 ustunlari — ЧЕЛ/МАШ oddiy kategoriya.
+        if (!kat || ((p === 'G' || p === U.ostS) ? yaxlitmiG(q) : yaxlitmi(q))) continue;
         ks[kat] += p === U.ostS ? (q.smeta_summa == null ? 0 : q.smeta_summa - jamiS(q)) : (pulOf(q, p) ?? 0);
       }
       katSummalar[p] = ks;
@@ -491,7 +510,8 @@ export function nakopitelniyVedomostHujjat(
     if (yaxlitBor && svQ && ndsFoiz != null) {
       const yq = bargRows.map((i) => reja[i].q!).filter(yaxlitmi);
       const qb = (x: number) => yaxlitKOplate(x, ndsFoiz) as number;
-      const jamiQb = qb(yq.reduce((t, q) => t + jamiS(q), 0));
+      // Остаток: svod summasi − bo'limdagi BARCHA F2 (ЧЕЛ/МАШ ham: ularning smeta ulushi svodga kiradi) × (1+QQS).
+      const jamiQb = qb(bargRows.map((i) => reja[i].q!).filter(yaxlitmiG).reduce((t, q) => t + jamiS(q), 0));
       yaxlit = {};
       for (const c of U.pul) {
         yaxlit[c] = c === 'G' ? svQ.qqsBilan : c === U.ostS ? yaxlit2(svQ.qqsBilan - jamiQb) : qb(yq.reduce((t, q) => t + (pulOf(q, c) ?? 0), 0));
@@ -504,9 +524,30 @@ export function nakopitelniyVedomostHujjat(
       nomalum = Object.fromEntries(U.pul.map((p) => [p, yaxlit2(nq.reduce((t, q) => t + (p === U.ostS ? (smetaOf(q) == null ? 0 : smetaOf(q)! - jamiS(q)) : pulOf(q, p) ?? 0), 0))]));
       nomalumF = Object.fromEntries(U.pul.map((p) => [p, `SUMIF(${U.kat}${a1}:${U.kat}${b1},"${NOMALUM_KAT}",${p}${a1}:${p}${b1})`]));
     }
-    const p = nakrutkaPodvaliYoz(v, { podval, katUstun: U.kat, oraliq: [a1, b1], pulUstunlar: U.pul, foizUstun: 'F', nk, katSummalar, yaxlit, nomalum, nomalumF });
+    const p = nakrutkaPodvaliYoz(v, { podval, katUstun: U.kat, oraliq: [a1, b1], pulUstunlar: U.pul, foizUstun: 'F', nk, katSummalar, yaxlit, nomalum, nomalumF, ...(aralash ? { katFormulasiz: true } : {}) });
     if (p.bosh !== podvalBosh) throw new Error('NAKOPITELNIY_PODVAL_SILJIDI');
     kaskad = p.kaskad;
+  }
+  /* «К ОПЛАТЕ» oy va «с начала» — HAR F2 O'Z podvali bilan (imzolangan F2 hujjatlari ВСЕГО yig'indisi; server `_t2_summa_paket_v1` bilan tiyinigacha,
+   * F-3 bilan bir xil). Qatorlardagi «К ОПЛАТЕ» obyektning joriy podvali bilan hisoblanadi — aktlar podvali boshqa bo'lsa jami farq qiladi. */
+  let aktKO: { davr: number | null; jami: number | null } | null = null;
+  if (o.aktlarKOplate) {
+    const oyD = o.davr.slice(0, 7);
+    const hamma = o.aktlarKOplate.filter((a) => !a.oy || a.oy.slice(0, 7) <= oyD);
+    const jamla = (l: ReadonlyArray<F3DavrAkt>): number | null => { let s = 0; for (const a of l) { if (a.qqsBilan == null) return null; s += a.qqsBilan; } return yaxlit2(s); };
+    aktKO = { davr: jamla(hamma.filter((a) => a.oy?.slice(0, 7) === oyD)), jami: jamla(hamma) };
+    v.bosh();
+    v.bolim('К ОПЛАТЕ ПО АКТАМ Ф-2 (накрутка и НДС — по подвалу каждого акта)', { daraja: 0 });
+    v.qator('vsego', () => {
+      const c: Qiymat[] = Array(U.ustunlar.length).fill(null);
+      c[2] = 'ИТОГО К ОПЛАТЕ ПО АКТАМ Ф-2 (с НДС)';
+      c[col(U.koPer)] = aktKO!.davr; c[col(U.koJami)] = aktKO!.jami;
+      return c;
+    });
+    if (aktKO.davr == null || aktKO.jami == null) diqqat.push({ nom: 'К ОПЛАТЕ ПО АКТАМ Ф-2', sabab: 'сумма хотя бы одного акта Ф-2 не определена (проценты подвала неизвестны) — итог оставлен пустым, а не нулевым' });
+    for (const [nom, akt, qat] of [['за отчетный период', aktKO.davr, kOplataJami.davr], ['с начала строительства', aktKO.jami, kOplataJami.jami]] as const) {
+      if (akt != null && qat != null && Math.abs(akt - qat) >= 0.005) diqqat.push({ nom: `К ОПЛАТЕ ${nom}`, sabab: `сумма по строкам (подвал объекта: ${fmt2(qat)}) отличается от суммы актов Ф-2 по их собственным подвалам (${fmt2(akt)}); к оплате принята сумма актов Ф-2` });
+    }
   }
   // Egasi qoidasi (2026-11-06): smeta narxi/summasi yo'q barglar — jamilar yonida «итог неполный» (smeta summa katagi formulalarda — bo'sh qoladi, ro'yxat diqqat da).
   v.narxsizOgoh(narxsizSoni(bargRows.map((i) => reja[i].q!), (q) => q.smeta_narx ?? q.smeta_summa));
@@ -522,10 +563,11 @@ export function nakopitelniyVedomostHujjat(
   if (sn && sn.vsego != null) {
     v.izoh(`Сметная стоимость объекта: прямые затраты ${fmt2(j.smeta)} сум; с накладными расходами и прочими затратами (без НДС) ${fmt2(sn.itogo4)} сум; НДС${ndsFoiz != null ? ` ${String(ndsFoiz).replace('.', ',')} %` : ''} ${fmt2(sn.nds)} сум; всего с НДС ${fmt2(sn.vsego)} сум.`);
   }
-  v.diqqat(diqqat);
+  // Hal qilinmagan joylar (yuzlab qator) hujjat tanasiga CHIQMAYDI — F-3 dagidek alohida xizmat varag'i «Замечания (служебный)».
+  const zv = zamechaniyaVaraq(diqqatGuruh(diqqat), `за отчетный период: ${davrMatni(o.davr)}`);
   v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СОСТАВИЛ'], o.imzo));
-  const { bytes } = rasmiyKitob([v], { tur: 'nakopitelniy' });
-  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNom, hujjat: 'НАКОПИТЕЛЬНАЯ_ВЕДОМОСТЬ', davr: o.davr.slice(0, 7) }), jamilar: j, kaskad, kOplata: kOplataJami };
+  const { bytes } = rasmiyKitob([v, ...(zv ? [zv] : [])], { tur: 'nakopitelniy' });
+  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNom, hujjat: 'НАКОПИТЕЛЬНАЯ_ВЕДОМОСТЬ', davr: o.davr.slice(0, 7) }), jamilar: j, kaskad, kOplata: aktKO ?? kOplataJami };
 }
 
 function fmt2(x: number): string {
