@@ -64,6 +64,21 @@ jobs:
           sdkmanager "platforms;${ANDROID_PLATFORM}" "build-tools;${ANDROID_BUILD_TOOLS}" "ndk;${ANDROID_NDK}" "platform-tools"
           echo "NDK_HOME=${ANDROID_HOME}/ndk/${ANDROID_NDK}" >> "$GITHUB_ENV"
           echo "ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/${ANDROID_NDK}" >> "$GITHUB_ENV"
+          # Vendored OpenSSL (openssl-src) needs ar/ranlib for each target; NDK r23+ ships only llvm-ar/llvm-ranlib.
+          LLVM_BIN="${ANDROID_HOME}/ndk/${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          test -x "$LLVM_BIN/llvm-ranlib" || { echo "llvm-ranlib not found in NDK"; exit 1; }
+          for T in aarch64_linux_android armv7_linux_androideabi x86_64_linux_android i686_linux_android; do
+            echo "AR_${T}=${LLVM_BIN}/llvm-ar" >> "$GITHUB_ENV"
+            echo "RANLIB_${T}=${LLVM_BIN}/llvm-ranlib" >> "$GITHUB_ENV"
+          done
+          # OpenSSL's Makefile calls "<cross-prefix>-ranlib"/"-ar" directly: provide those names as links to the LLVM tools.
+          SHIM="$RUNNER_TEMP/ndk-shim"; mkdir -p "$SHIM"
+          for P in aarch64-linux-android arm-linux-androideabi armv7a-linux-androideabi x86_64-linux-android i686-linux-android; do
+            ln -sf "$LLVM_BIN/llvm-ranlib" "$SHIM/$P-ranlib"
+            ln -sf "$LLVM_BIN/llvm-ar" "$SHIM/$P-ar"
+          done
+          echo "$SHIM" >> "$GITHUB_PATH"
+          echo "${LLVM_BIN}" >> "$GITHUB_PATH"
       - name: Rust toolchain + Android targets
         run: |
           rustup toolchain install "${RUST_TOOLCHAIN}" --profile minimal \
