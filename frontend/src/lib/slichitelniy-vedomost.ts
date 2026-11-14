@@ -108,6 +108,9 @@ export type SlichitelniyQator = {
   /** Pereraschet: fakt − tasdiqlangan Ф-2 (hajm va summa). + к доплате, − к снятию. Noma'lum (fakt/narx/Ф-2 summasi NULL) — null. */
   doplataHajm: number | null;
   doplataSumma: number | null;
+  /** Jamilar uchun: «к доплате» (+) / «к снятию» (−) ulushi (barg). Oddiy qator: doplataSumma ishorasiga qarab; svod bo'limida — bo'lim sof farqi birinchi qatorda, qolganlarda 0. */
+  doplataPlus?: number | null;
+  doplataMinus?: number | null;
   /** Zamena qatori: u almashtirgan asl qator id (`replaces_line_id`) — «взамен поз. N». */
   almashtiradiId?: number | null;
   /** Asl qator: uni almashtirgan zamena qatorlari id — «исключается (заменена поз. N)». */
@@ -137,6 +140,13 @@ export type SlichitelniyModel = {
 };
 
 const BARG = new Set(['rs', 'mat', 'ob']);
+
+/** Svod (yaxlit) bo'limlari barglari: bo'lim qator id si → `qatorlar` indekslari (tartib bilan). Faqat svod taqsimi qo'llangan barglar. */
+export function svodGuruhlari(qatorlar: readonly SlichitelniyQator[]): Map<number, number[]> {
+  const g = new Map<number, number[]>();
+  qatorlar.forEach((r, i) => { if (r.tur === 'barg' && r.yaxlitTaqsim != null) { const a = g.get(r.yaxlitTaqsim); if (a) a.push(i); else g.set(r.yaxlitTaqsim, [i]); } });
+  return g;
+}
 const EPS = 1e-9;
 const nol = (x: number): number => (Math.abs(x) < EPS ? 0 : x);
 
@@ -326,9 +336,17 @@ export function slichitelniyModeli(qatorlar: readonly T2Qator[], holatlar: reado
   const nomalum = ildizlar.reduce((s, i) => s + out[i].nomalum, 0);
   const js = (f: (x: SlichitelniyQator) => number | null) => (!ildizlar.length ? null : yigindi2(ildizlar.map((i) => f(out[i]))));
   const lar = out.filter((r) => r.tur === 'barg');
+  // «К доплате» / «к снятию» yig'indisi: oddiy qatorda — qator bo'yicha; svod (yaxlit) bo'limida — BO'LIM bo'yicha sof farq (bo'lim bitta summa:
+  // Ф-2 qayta yozilganda ichki tarkib o'zgaradi, qator ichidagi + va − bir-birini qoplaydi). Sof farq bo'limning birinchi qatoriga qo'yiladi.
+  const guruh = svodGuruhlari(out);
+  for (const r of lar) { const d = r.doplataSumma; r.doplataPlus = d != null && d > 0 ? d : null; r.doplataMinus = d != null && d < 0 ? d : null; }
+  for (const idx of guruh.values()) {
+    const net = yigindi2(idx.map((i) => out[i].doplataSumma)) ?? 0;
+    idx.forEach((i, k) => { out[i].doplataPlus = k === 0 && net > 0 ? net : 0; out[i].doplataMinus = k === 0 && net < 0 ? net : 0; });
+  }
   const pereraschet: SlichitelniyPereraschet = {
-    doplata: yigindi2(lar.map((r) => (r.doplataSumma != null && r.doplataSumma > 0 ? r.doplataSumma : null))) ?? 0,
-    snyatie: yigindi2(lar.map((r) => (r.doplataSumma != null && r.doplataSumma < 0 ? r.doplataSumma : null))) ?? 0,
+    doplata: yigindi2(lar.map((r) => r.doplataPlus ?? null)) ?? 0,
+    snyatie: yigindi2(lar.map((r) => r.doplataMinus ?? null)) ?? 0,
     net: js((x) => x.doplataSumma) ?? 0,
     nomalum,
   };
@@ -473,6 +491,17 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
     const vs = idx.map((k) => koOf(k, c));
     return { f: sumRefs(c, rows), v: yaxlit2(vs.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0)) };
   };
+  const svodG = svodGuruhlari(model.qatorlar);
+  /** «К доплате» / «к снятию» к оплате (W) ulushi: oddiy qator — o'z ishorasi; svod bo'limi — bo'lim sofi birinchi qatorda, qolganlarda 0. */
+  const koPM = (i: number): [number | null, number | null] => {
+    const q = model.qatorlar[i];
+    if (q.tur !== 'barg') return [null, null];
+    const g = q.yaxlitTaqsim != null ? svodG.get(q.yaxlitTaqsim) : undefined;
+    if (!g) { const x = koOf(i, 'W'); return [x != null && x > 0 ? x : null, x != null && x < 0 ? x : null]; }
+    if (g[0] !== i) return [0, 0];
+    const net = yaxlit2(g.reduce((s, k) => s + (koOf(k, 'W') ?? 0), 0));
+    return [net > 0 ? net : 0, net < 0 ? net : 0];
+  };
   /** Pereraschet kataklari (S..AA) barg qatorida: fakt − Ф-2; к оплате (смета, Ф-2, доплата); yashirin Д+/С− (Свод изменений uchun). */
   const perBarg = (q: SlichitelniyQator, i: number, n: number): Qiymat[] => {
     const kat = nakrutkaKat(q.kat);
@@ -480,14 +509,21 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
     const kx: string | null = yaxlitQqs ? (ndsQ == null || ndsFoiz == null ? null : yaxKf) : kfJS[kat!] == null ? null : `F${kfQ[kat!]}`;
     const kxF2: string | null = f2Ustamali(q) ? (kat == null || kfJS[kat] == null ? null : `F${kfQ[kat]}`) : kx;
     const sg = (c: 'T' | 'W', f: (s: number) => number, rf: string): Qiymat => ({ f: `IF(${c}${n}="","",${rf}(${c}${n},0))`, v: (() => { const x = c === 'T' ? q.doplataSumma : koOf(i, 'W'); return x == null ? '' : f(x); })() });
+    const grp = q.yaxlitTaqsim != null ? svodG.get(q.yaxlitTaqsim) : undefined;
+    // Svod bo'limi: Д+/С− — bo'lim sof farqi (birinchi qatorda MAX/MIN(SUM(bo'lim qatorlari),0)), qolgan qatorlarda 0.
+    const pm = (c: 'T' | 'W', mx: boolean): Qiymat => {
+      if (!grp) return sg(c, mx ? (x) => Math.max(x, 0) : (x) => Math.min(x, 0), mx ? 'MAX' : 'MIN');
+      if (grp[0] !== i) return 0;
+      return { f: `${mx ? 'MAX' : 'MIN'}(${sumRefs(c, grp.map(rowOf))},0)`, v: (c === 'T' ? (mx ? q.doplataPlus : q.doplataMinus) : koPM(i)[mx ? 0 : 1]) ?? 0 };
+    };
     return [
       { f: `IF(H${n}="","",ROUND(H${n}-J${n},6))`, v: q.doplataHajm ?? '' },
       q.yaxlitTaqsim != null ? qiy(q.doplataSumma) : { f: `IF(OR(I${n}="",K${n}=""),"",ROUND(I${n}-K${n},2))`, v: q.doplataSumma ?? '' },
       koTaqsim.has(`${i}G`) ? koTaqsim.get(`${i}G`)! : kx == null ? null : { f: `IF(G${n}="","",ROUND(G${n}*${kx},2))`, v: koOf(i, 'U') ?? '' },
       kxF2 == null ? null : { f: `IF(K${n}="","",ROUND(K${n}*${kxF2},2))`, v: koOf(i, 'V') ?? '' },
       kxF2 == null ? null : q.yaxlitTaqsim != null ? { f: `IF(T${n}="","",ROUND(T${n}*${kxF2},2))`, v: koOf(i, 'W') ?? '' } : { f: `IF(OR(P${n}="",V${n}=""),"",ROUND(P${n}-V${n},2))`, v: koOf(i, 'W') ?? '' },
-      sg('T', (x) => Math.max(x, 0), 'MAX'), sg('T', (x) => Math.min(x, 0), 'MIN'),
-      kxF2 == null ? null : sg('W', (x) => Math.max(x, 0), 'MAX'), kxF2 == null ? null : sg('W', (x) => Math.min(x, 0), 'MIN'),
+      pm('T', true), pm('T', false),
+      kxF2 == null ? null : pm('W', true), kxF2 == null ? null : pm('W', false),
       // Ф-2 podval toifasi (yashirin): svod bo'limidagi ЧЕЛ/МАШ — o'z toifasi, qolgan svod — «СВОД», qolgani — oddiy toifa.
       f2Ustamali(q) ? kat : yax(q) ? YAXLIT_KAT : kat ?? NOMALUM_KAT,
       // Podval hisobi uchun yashirin: fakt va og'ish — Ф-2 usulida (svod qatorlarida taqsimlanmagan, to'g'ri narxda).
@@ -566,7 +602,7 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
     if (r !== rowOf(i)) throw new Error('SLICHITELNIY_QATOR_SILJIDI');
   });
   /** Barglarning к оплате доплата/снятие (W) — ВСЕГО dagi Z/AA va Свод uchun. */
-  const barglarKo: Array<number | null> = model.qatorlar.map((q, i) => (q.tur === 'barg' ? koOf(i, 'W') : null));
+  const barglarKo: Array<[number | null, number | null]> = model.qatorlar.map((q, i) => (q.tur === 'barg' ? koPM(i) : [null, null]));
   if (model.ildizlar.length) {
     const nomalum = model.ildizlar.reduce((s, i) => s + model.qatorlar[i].nomalum, 0);
     const ref = (c: string) => sumRefs(c, model.ildizlar.map(rowOf));
@@ -582,8 +618,8 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
       koYig(model.ildizlar, 'U'), koYig(model.ildizlar, 'V'), koYig(model.ildizlar, 'W'),
       { f: `SUM(X${bosh}:X${bosh + model.qatorlar.length - 1})`, v: model.pereraschet.doplata },
       { f: `SUM(Y${bosh}:Y${bosh + model.qatorlar.length - 1})`, v: model.pereraschet.snyatie },
-      { f: `SUM(Z${bosh}:Z${bosh + model.qatorlar.length - 1})`, v: yigindi2(barglarKo.map((x) => (x != null && x > 0 ? x : null))) ?? 0 },
-      { f: `SUM(AA${bosh}:AA${bosh + model.qatorlar.length - 1})`, v: yigindi2(barglarKo.map((x) => (x != null && x < 0 ? x : null))) ?? 0 },
+      { f: `SUM(Z${bosh}:Z${bosh + model.qatorlar.length - 1})`, v: yigindi2(barglarKo.map((x) => x[0])) ?? 0 },
+      { f: `SUM(AA${bosh}:AA${bosh + model.qatorlar.length - 1})`, v: yigindi2(barglarKo.map((x) => x[1])) ?? 0 },
     ]);
     // Nakrutka podvali (смета, выполнено, принято Ф-2, отклонение, к доплате) — к оплате.
     v.bosh();
@@ -670,12 +706,11 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
     type Satr = { sm: number | null; fk: number | null; f2: number | null; plus: number; minus: number; net: number | null };
     const pryamyeSatr = (ri: number): Satr => {
       const r = model.qatorlar[ri];
-      const d = yaprok(ri).map((k) => model.qatorlar[k].doplataSumma);
-      return { sm: r.smetaSumma, fk: r.faktSumma, f2: r.f2Summa, plus: yigindi2(d.map((x) => (x != null && x > 0 ? x : null))) ?? 0, minus: yigindi2(d.map((x) => (x != null && x < 0 ? x : null))) ?? 0, net: r.doplataSumma };
+      return { sm: r.smetaSumma, fk: r.faktSumma, f2: r.f2Summa, plus: yigindi2(yaprok(ri).map((k) => model.qatorlar[k].doplataPlus ?? null)) ?? 0, minus: yigindi2(yaprok(ri).map((k) => model.qatorlar[k].doplataMinus ?? null)) ?? 0, net: r.doplataSumma };
     };
     const qqsSatr = (ri: number): Satr => {
-      const d = yaprok(ri).map((k) => koOf(k, 'W'));
-      return { sm: koSum(ri, 'U'), fk: koSum(ri, 'P'), f2: koSum(ri, 'V'), plus: yigindi2(d.map((x) => (x != null && x > 0 ? x : null))) ?? 0, minus: yigindi2(d.map((x) => (x != null && x < 0 ? x : null))) ?? 0, net: koSum(ri, 'W') };
+      const pmK = yaprok(ri).map((k) => koPM(k));
+      return { sm: koSum(ri, 'U'), fk: koSum(ri, 'P'), f2: koSum(ri, 'V'), plus: yigindi2(pmK.map((x) => x[0])) ?? 0, minus: yigindi2(pmK.map((x) => x[1])) ?? 0, net: koSum(ri, 'W') };
     };
     const blok = (sarlavha: string, rejim: 'qqs' | 'ustamali' | 'pryamye', qqsQatorlar: readonly number[] | null): number[] => {
       sv.bolim(sarlavha, { daraja: 0 });
@@ -719,7 +754,7 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
     }
     blok('ПРЯМЫЕ ЗАТРАТЫ (БЕЗ НАКРУТКИ, БЕЗ НДС)', 'pryamye', null);
     sv.izoh('К доплате (+) — выполнено больше, чем предъявлено по Ф-2; к снятию (−) — предъявлено по Ф-2 больше, чем выполнено. «Ранее предъявлено по Ф-2» — сумма утвержденных актов Ф-2 с учетом знака корректирующих (сторно) актов; сумма выполнения при наличии Ф-2 — по цене утвержденной Ф-2, иначе по сметной цене.');
-    sv.izoh('Сумма к доплате и к снятию — по позициям (положительные и отрицательные разницы раздела суммируются отдельно, взаимно не погашаются). Итого перерасчет (±) = факт − предъявлено по Ф-2.');
+    sv.izoh('Сумма к доплате и к снятию — по позициям (положительные и отрицательные разницы раздела суммируются отдельно, взаимно не погашаются); разделы по своду (единая сумма) — по разделу в целом: итоговая разница раздела. Итого перерасчет (±) = факт − предъявлено по Ф-2.');
     if (!qqsBor) sv.izoh('Ставка НДС / накладные расходы объекта не заданы — блоки «с накладными и НДС» не формируются (проценты не принимаются равными 0).');
     else if (Object.values(kfJS).some((x) => x == null)) sv.izoh('Часть процентов накладных расходов не задана — позиции этих видов затрат в блоках «с накладными» пустые (не 0).');
     const nomSoni = model.ildizlar.reduce((t, i) => t + model.qatorlar[i].nomalum, 0);
