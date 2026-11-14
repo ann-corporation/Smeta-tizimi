@@ -29,7 +29,7 @@ const IMZO_KUZATUV = ['texnadzor', 'buyurtmachi'] as const;
 
 export const HUJJAT_TURLARI = {
   f2: {
-    kalit: 'f2', nom: 'Forma-2 (bajarilgan ishlar akti)', nomRu: 'Форма № 2', holat: 'ishlaydi',
+    kalit: 'f2', nom: 'Forma-2 (bajarilgan ishlar akti)', nomRu: 'Форма № 02', holat: 'ishlaydi',
     eksport: { modul: 'lib/f2-akt-hujjat.ts', izoh: 'F2 akt xlsx (hujjat-yozuvchi)' },
     majburiy: [
       { kalit: 'obyekt', nom: 'Obyekt', manba: 'obyekt' },

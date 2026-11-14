@@ -69,7 +69,7 @@ export function oylikReestrXlsx(rows: readonly PaketAkt[], o: { oy: string; tash
   const oraliq = !!o.davr;
   const titul: Array<readonly [string, string | null | undefined]> = [['Подрядчик:', o.tashkilot ?? o.imzo?.pudratchi]];
   if (o.loyiha) titul.push(['Проект:', o.loyiha]);
-  const r1 = new RasmiyVaraq({ nom: 'Реестр Ф-2', sarlavha: 'РЕЕСТР АКТОВ ВЫПОЛНЕННЫХ РАБОТ (ФОРМА № 2)', ostSarlavha: [`за отчетный период: ${davr}`], titul, ustunlar: REESTR_USTUN, yonalish: 'landscape' });
+  const r1 = new RasmiyVaraq({ nom: 'Реестр Ф-2', sarlavha: 'РЕЕСТР АКТОВ ВЫПОЛНЕННЫХ РАБОТ (ФОРМА № 02)', ostSarlavha: [`за отчетный период: ${davr}`], titul, ustunlar: REESTR_USTUN, yonalish: 'landscape' });
   const pulQ: Record<PulK, number[]> = { jami: [], nds: [], ustamali: [], ustamasiz: [] };
   let no = 0;
   for (const r of rows) {
