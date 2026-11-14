@@ -168,7 +168,7 @@ describe('svod yaxlit — butun tarkib aynan yaxlit summaga yig‘iladi (qator d
     const m = slichitelniyModeli(DARAXT, HF, { svodYaxlit: SVOD });
     const yq = m.qatorlar.filter((x) => x.yaxlitTaqsim != null);
     expect(yq.length).toBe(2);
-    expect(r2(yq.reduce((t, x) => t + (x.smetaSumma ?? 0), 0))).toBe(1200);
+    expect(r2(yq.reduce((t, x) => t + (x.smetaSumma ?? 0), 0))).toBe(1000); // tana: to'g'ri narx (taqsimsiz); yaxlit summa (1344 QQS bilan) faqat podvalda
     // fakt 850 (to'g'ri narx, taqsimsiz) - qator ichida hajm x narx = summa
     expect(r2(yq.reduce((t, x) => t + (x.faktSumma ?? 0), 0))).toBe(850);
     const r = slichitelniyHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', nakrutka: NK, yaxlitIdlar: IDLAR, svodYaxlit: SVOD });
