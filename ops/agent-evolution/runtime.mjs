@@ -68,7 +68,7 @@ export class EvolutionQueue {
     });
   }
   async cancel(id) { return this.locked(id, async () => {
-    const job = await this.read(id); requireValue(!job.results.preview, 'PREVIEW_ALREADY_CREATED');
+    const job = await this.read(id); requireValue(!job.previewAttempted && !job.results.preview, 'PREVIEW_ALREADY_CREATED');
     job.state = 'cancelled'; await this.save(job); return job;
   }); }
 

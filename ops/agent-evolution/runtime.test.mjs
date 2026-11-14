@@ -49,6 +49,17 @@ test('concurrent run is locked',async t=>{
  await assert.rejects(q.run('test',a),/JOB_LOCKED/);release();await first;
 });
 test('cancelled task cannot run',async t=>{const q=await setup(t);await q.cancel('test');assert.equal((await q.run('test',workers())).state,'cancelled');});
+for(const state of ['needs_reconciliation','rollback_failed']) {
+ test(`cancel rejects an uncertain preview and preserves ${state}`,async t=>{
+  const q=await setup(t),a=workers();
+  a.preview=async()=>{throw state==='needs_reconciliation' ? new DOMException('response lost','TimeoutError') : Error('response lost');};
+  a.rollback=async()=>({restored:false});
+  const before=await q.run('test',a);
+  assert.equal(before.state,state);assert.equal(before.previewAttempted,true);assert.equal(before.results.preview,undefined);
+  await assert.rejects(q.cancel('test'),{message:'PREVIEW_ALREADY_CREATED'});
+  assert.deepEqual(await q.read('test'),before);
+ });
+}
 test('production is not a supported target',()=>assert.throws(()=>releaseGate({environment:'production',ownedPaths:['src/ui'],baseSha,results:{engineer:{headSha,actor:'a',changedPaths:['src/ui/x']},review:{headSha,actor:'b',passed:true},verify:{headSha,baseSha,passed:true,artifactId:'x',rollbackArtifactId:'y'}}}),/PRODUCTION_NOT_ENABLED/));
 test('timeout cannot be blindly retried while remote outcome is unknown',async t=>{
  const q=await setup(t),a=workers();a.diagnose=async()=>new Promise(()=>{});
@@ -65,7 +76,7 @@ test('rollback also times out without claiming recovery',async t=>{
 });
 test('call budget stops execution before deployment',async t=>{
  const q=await setup(t),job=await q.read('test');job.maxCalls=3;await q.save(job);
- const calls=[];assert.equal((await q.run('test',workers(calls))).state,'failed');assert.equal(calls.length,3);
+ const calls=[];assert.equal((await q.run('test',workers())).state,'failed');assert.equal(calls.length,3);
 });
 test('CLI creates and reads a private job without printing its goal',async t=>{
  const {execFile}=await import('node:child_process');const {promisify}=await import('node:util');const {writeFile}=await import('node:fs/promises');
