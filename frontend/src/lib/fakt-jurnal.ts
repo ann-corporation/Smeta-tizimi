@@ -311,6 +311,15 @@ export function bolimSummalari(rows: readonly T2Qator[], states: readonly Jurnal
  * qiymati noma'lum bo'lsa farq ham null (solishtirilmaydi).
  */
 export type NakMoslik = { smetaJami: number | null; smetaFarq: number | null; f2Farq: number | null; mos: boolean };
+/**
+ * Bajarilish maxraji bo'limda = asl smeta + qo'shimcha/zamena qatorlari (ustamasiz) — qo'shimcha ish ham bajariladigan ish.
+ * Asl smeta o'zgarmaydi (`smeta`); faqat bo'lim og'irligi (obyekt bajarilishi o'rtachasi) shu maxrajdan. NULL ≠ 0.
+ */
+export function bolimMaxraji(s: Pick<BolimSumma, 'smeta' | 'qoshimcha'> | undefined): number | null {
+  if (!s) return null;
+  const a = s.smeta.ustamasiz; const q = s.qoshimcha.ustamasiz;
+  return a == null && q == null ? null : yigindi2([a, q]);
+}
 export function nakopitelniyMoslik(j: BolimSumma, nak: { smeta_summa?: number | null; jami_tasdiqlangan_summa?: number | null } | null): NakMoslik {
   const s = j.smeta.ustamasiz; const q = j.qoshimcha.ustamasiz;
   // Pul — yadro (ROUND 2); NULL ≠ 0: ikkalasi noma'lum bo'lsagina null.

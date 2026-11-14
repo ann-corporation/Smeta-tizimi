@@ -78,6 +78,25 @@ async function smetaOzgarishQatlamOqi(obyektId: number): Promise<QatlamJavob> {
   return { ok: true, natija: { ...n, ok: true } };
 }
 
+/**
+ * Bir necha obyekt uchun «O'zgarishlar» (ustamasiz) — bajarilish foizi maxraji uchun (smeta + o'zgarishlar). Yagona manba:
+ * `smetaOzgarishQatlamOl` (parallel hisoblagich yo'q). Cheklangan parallellik; o'qilmagan obyekt xaritada YO'Q (chaqiruvchi asl smetaga yiqiladi).
+ */
+export async function ozgarishlarOl(obyektIdlar: readonly number[], parallel = 4): Promise<Map<number, number>> {
+  const out = new Map<number, number>();
+  const idlar = [...new Set(obyektIdlar)];
+  let i = 0;
+  await Promise.all(Array.from({ length: Math.min(parallel, idlar.length) }, async () => {
+    while (i < idlar.length) {
+      const id = idlar[i++];
+      const r = await smetaOzgarishQatlamOl(id).catch(() => null);
+      const v = r && r.ok ? r.natija.ozgarish?.ustamasiz : null;
+      if (v != null && Number.isFinite(Number(v))) out.set(id, Number(v));
+    }
+  }));
+  return out;
+}
+
 export async function ozgarishMalumotOl(obyektId: number): Promise<OzgarishMalumot | null> {
   const r = await t2ToliqOqi<{ id: number; change_type: string | null; replaces_line_id: number | null }>(sbOqi, {
     jadval: 't2_qator', filtr: `obyekt_id=eq.${obyektId}&change_type=not.is.null`, ustunlar: 'id,change_type,replaces_line_id', limit: 200000,
