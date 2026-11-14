@@ -273,4 +273,12 @@ describe('Накопительная ведомость — К ОПЛАТЕ aktl
     const nom = nakopitelniyVedomostHujjat(ROWS, { obyektNom: 'Объект', davr: '2026-09', ndsFoiz: 12, nakrutka, aktlarKOplate: [{ ...mk(2, '2026-09', 1), qqsBilan: null }] });
     expect(nom.kOplata.davr).toBeNull();
   });
+
+  it('zanjir: aktlar o‘qilmadi (null) — «К ОПЛАТЕ» qator hisobida qoladi, lekin jim emas: замечание; berilmasa (eski chaqiruv) — o‘zgarmaydi', () => {
+    const nakrutka = { 'ТРАНСПОРТ_МАТЕРИАЛ': 5, 'СКЛАДСКИЕ_МАТЕРИАЛ': 2, 'СКЛАДСКИЕ_МК': 0.75, 'ТРАНСПОРТ_КАБЕЛЬ': 1.5, 'ПРОЧИЕ_ПОДРЯДЧИК': 18, 'ТРАНСПОРТ_ОБОРУД': 2, 'ЗАГОТ_СКЛАД_ОБОРУД': 1.2, 'СТРАХОВАНИЕ': 0.32, 'РИСК': 0, 'НДС': 12 };
+    const boshqa = { obyektNom: 'Объект', davr: '2026-09', ndsFoiz: 12, nakrutka };
+    const matn = (b: Uint8Array) => hujjatTekshir(b).matnlar.join('\n');
+    expect(matn(nakopitelniyVedomostHujjat(ROWS, { ...boshqa, aktlarKOplate: null }).bytes)).toMatch(/АКТ[ЫОВ]* Ф-2[\s\S]*не прочитан|не прочитан[\s\S]*АКТ[ЫОВ]* Ф-2/i);
+    expect(matn(nakopitelniyVedomostHujjat(ROWS, boshqa).bytes)).not.toMatch(/не прочитан/i);
+  });
 });

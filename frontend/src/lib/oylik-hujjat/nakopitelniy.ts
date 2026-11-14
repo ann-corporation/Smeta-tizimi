@@ -104,7 +104,7 @@ export function nakopitelniyHujjatQur(k: NakopitelniyHujjatKirish): { bytes: Uin
   const smetaNakrutka = nakopitelniySmetaNakrutka(k.ustama, k.jami).qiymat;
   return nakopitelniyVedomostHujjat(k.qatorlar, {
     obyektNom: k.obyektNom, davr: k.davr, imzo: k.imzo, ndsFoiz: k.ndsFoiz, smetaNakrutka, nakrutka: k.ustama.koeffitsientlar, podval: k.ustama.podval,
-    nkManba: k.ustama.javob?.nk_manba ?? null, oylar: k.oylar as NakopitelniyOylar | null, svodYaxlit: (k.ustama.javob?.svod_yaxlit ?? null) as SvodYaxlit | null, aktlarKOplate: k.aktlarKOplate ?? null,
+    nkManba: k.ustama.javob?.nk_manba ?? null, oylar: k.oylar as NakopitelniyOylar | null, svodYaxlit: (k.ustama.javob?.svod_yaxlit ?? null) as SvodYaxlit | null, aktlarKOplate: k.aktlarKOplate,
   });
 }
 
