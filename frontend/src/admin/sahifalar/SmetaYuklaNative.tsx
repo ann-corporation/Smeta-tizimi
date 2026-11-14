@@ -36,6 +36,7 @@ import { t } from '../../i18n/til';
 import { IshVarogiTopilmadi, JamiKorinish, MuammolarRoyxati, NatijaEkrani, SanoqQatori, VaraqTanlagich, YopishqoqPanel, YuklashQadamlari } from './smeta-yuklash/Bosqichlar';
 import { bosqichIndeksi, daraxtSanoq, muammolarRoyxati, qaytaYuklashMatni, type ExcelTizimXulosa, type Muammo, type YuklashSanoq } from './smeta-yuklash/xulosa';
 import { faylOqishXatosi, importXatoMatni, oldindanKorinish } from './smeta-yuklash/korinish';
+import { keshsizFormulalarniToldir, type ToldirNatija, type ToldirVaraq } from '../../lib/hujjat-tekshir/toldir';
 
 /** Yuklash ustasidan tashqi sahifaga (HolatNative) chiqish: tab almashtirish, fakt sahifasi, versiya sifatida saqlash. */
 export type YuklashYonaltirish = {
@@ -230,6 +231,9 @@ export type ResNarxIndeks = {
    *  va chel Chas birliklaridan topish ... Bunaqa usul variantlar sonini
    *  kamaytirib ishni tezlatadi". */
   byBirlik: Map<string, ResBirlikYozuv[]>;
+  /** Bir xil nom+birlik, LEKIN turli narxli RES qatorlari (masalan ikki xil LED fonar): narxlar RES tartibida.
+   *  LRV da shuncha qator bo‘lsa — tartib bilan juftlanadi (bittasining narxi hammasiga yopishmasin). */
+  kopNarx: Map<string, number[]>;
   /** Asl yozuvlar — narxsiz qatorlarga faqat TAKLIF (narxTaklifiniTop) uchun. */
   yozuvlar?: readonly ResNarxYozuv[];
 };
@@ -706,7 +710,16 @@ export function resNarxIndeksiQur(rows: ResNarxYozuv[]): ResNarxIndeks {
       if (r.kat && !katByKodNomBir.has(kb)) katByKodNomBir.set(kb, r.kat);
     }
   }
-  return { byNomBir, byKodNomBir, katByNomBir, katByKodNomBir, nomlar, byBirlik, yozuvlar: rows };
+  const hammasi = new Map<string, number[]>();
+  for (const r of rows) {
+    const nk = resKalit(r.nom);
+    if (!nk) continue;
+    const nb = nk + '|' + resKalit(r.birlik);
+    const a = hammasi.get(nb);
+    if (a) a.push(r.narx); else hammasi.set(nb, [r.narx]);
+  }
+  const kopNarx = new Map([...hammasi].filter(([, a]) => a.length > 1 && new Set(a).size > 1));
+  return { byNomBir, byKodNomBir, katByNomBir, katByKodNomBir, nomlar, byBirlik, kopNarx, yozuvlar: rows };
 }
 
 /**
@@ -828,6 +841,17 @@ export function narxlarniDaraxtgaQoll(
     const taklif = (sabab === 'res_da_yoq' || sabab === 'birlik_mos_emas') && idx.yozuvlar ? narxTaklifiniTop(n, idx.yozuvlar) : null;
     narxsizlar.push({ uid: n.uid, kod: n.kod, nom: n.nom, bir: n.bir, hajm: n.hajm, sabab, ...(taklif ? { taklif } : {}) });
   };
+  /* Bir xil nom+birlik, turli narx (RES da 2 xil «LED fonar»): LRV dagi qatorlar soni RES dagi bilan teng bo‘lsa — tartib bilan
+     juftlanadi. Aks holda eski xatti-harakat (birinchi narx). Real: ЭО НАВАИ da ikkinchi fonar birinchisining narxini olib, +14,06 mln chiqqan. */
+  const lrvSoni = new Map<string, number>();
+  const sanash = (n: AktNode) => {
+    if (n.children?.length) { n.children.forEach(sanash); return; }
+    if ((n.type !== 'rs' && n.type !== 'mat' && n.type !== 'ob') || (n.narx != null && n.narx !== 0)) return;
+    const nk = resKalit(n.nom);
+    if (nk) { const k = nk + '|' + resKalit(n.bir); lrvSoni.set(k, (lrvSoni.get(k) ?? 0) + 1); }
+  };
+  if (idx.kopNarx?.size) tree.forEach(sanash);
+  const juftSana = new Map<string, number>();
   function walk(n: AktNode): AktNode {
     if (n.children && n.children.length) return { ...n, children: n.children.map(walk) };
     if (n.type !== 'rs' && n.type !== 'mat' && n.type !== 'ob') return n;
@@ -836,8 +860,10 @@ export function narxlarniDaraxtgaQoll(
     if (!nk) { belgila(n, 'nomsiz'); return n; }
     const nb = nk + '|' + resKalit(n.bir);
     let narx: number | undefined;
+    const juft = idx.kopNarx?.get(nb);
+    if (juft && lrvSoni.get(nb) === juft.length) { const i = juftSana.get(nb) ?? 0; juftSana.set(nb, i + 1); narx = juft[i]; }
     const kk = resKalit(n.kod);
-    if (kk) narx = idx.byKodNomBir.get(kk + '|' + nb);
+    if (narx == null && kk) narx = idx.byKodNomBir.get(kk + '|' + nb);
     if (narx == null) narx = idx.byNomBir.get(nb);
 
     /* ══ BIRLIK BO'YICHA ZAXIRA MOSLASH ═══════════════════════════════
@@ -934,6 +960,8 @@ export function narxsizImportHisobi(tree: AktNode[]): { jami: number; narxsiz: n
     if (n.type !== 'rs' && n.type !== 'mat' && n.type !== 'ob') return;
     jami++;
     if (n.narx != null && n.narx !== 0) return;
+    // Ekspertiza (БРВ × koeff) kabi hujjatda birlik narxi yo‘q, lekin qator summasi bor — bu narxli qator (summa noma’lum emas).
+    if (typeof n.summa === 'number' && Number.isFinite(n.summa) && n.summa !== 0) return;
     if (mashinistMehnatimi(n.nom)) { normativ++; return; }
     narxsiz++;
   };
@@ -1172,6 +1200,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi, yonaltirish }: { com
    *  aynan shu qadam tugagach yoziladi). */
   const [importQadamlari, setImportQadamlari] = useState<ImportQadam[]>([]);
   const [reimportDiff, setReimportDiff] = useState<SmetaReimportDiff | null>(null);
+  const [formulaHisobot, setFormulaHisobot] = useState<ToldirNatija | null>(null);
   /** Owner: bitta faylda ham LRV, ham RES varaqlari bo'lishi mumkin --
    *  har bir varaq turi mazmuniga qarab avtomatik taxmin qilinadi
    *  (varaqTuriTaxmin), foydalanuvchi shu yerda tasdiqlaydi/tuzatadi. */
@@ -1310,6 +1339,11 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi, yonaltirish }: { com
       if (file.size > MAX_FILE_BYTES) throw new Error(`Fayl ${MAX_FILE_BYTES / 1024 / 1024} MB dan katta.`);
       const workbook = await readXlsxFonda(await file.arrayBuffer());
       if (generation.current !== token) return;
+      // Formulasi bor, lekin natijasi (kesh) yozilmagan kataklar (openpyxl va h.k.) — jami 0 chiqmasin: o‘zimiz hisoblaymiz.
+      setFormulaHisobot(keshsizFormulalarniToldir(workbook.sheets.flatMap((s) => {
+        const sh = workbook.sheet(s.name);
+        return sh ? [{ nom: s.name, rows: sh.rows as ToldirVaraq['rows'], formulalar: sh.formulalar }] : [];
+      })));
       setBook(workbook);
 
       // Har bir varaq mazmuniga qarab LRV/RES/e'tiborsiz deb taxmin
@@ -1848,6 +1882,15 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi, yonaltirish }: { com
         setPhase(t('Import to‘xtatildi: narxsiz qatorlar')); return;
       }
 
+      // Faylning o‘z «прямые» jamidan >2% farq: import jim o‘tmasin — ongli tasdiq.
+      const pf = korinish?.pryamyeFarq;
+      if (pf?.daraja === 'tasdiq' && !(await tasdiqSora({
+        matn: t('Resurslar yig‘indisi faylning «to‘g‘ridan-to‘g‘ri xarajat» qatoridan {foiz}% ga farq qiladi — ba’zi qatorlar o‘qilmagan bo‘lishi mumkin. Baribir import qilinsinmi?', { foiz: pf.foiz.toLocaleString('ru-RU', { maximumFractionDigits: 2 }) }),
+        xavfli: true, tasdiqMatni: 'Baribir davom etish' }))) {
+        qadam('Fayl jami bilan solishtirish'); yakunla('xato', t('Fayl jamidan farq katta — import to‘xtatildi'));
+        setPhase(t('Import to‘xtatildi: fayl jamidan farq katta')); return;
+      }
+
       if (!rawFile.current) throw new Error('Smeta manba fayli topilmadi. XLSX faylni qayta tanlang.');
       qadam('Manba fayl R2 saqlashga yuklanmoqda');
       const sourceDocumentId = await sourceniR2gaYukla(rawFile.current, Number(objectId));
@@ -2056,13 +2099,15 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi, yonaltirish }: { com
       lrvTanlanmagan: false, narxsiz, resursJami: h.jami,
       narxsizQatorlar: tahlil.narxsizRoyxat.filter((r) => r.sabab !== 'mashinist_normativ').map((r) => `${r.kod || '—'} · ${r.nom || '(nomsiz)'} — ${NARXSIZ_SABAB_MATN[r.sabab]}`),
       kodsizIsh: korinish?.kodsizIsh, podvalYoq: korinish?.podval === 'topilmadi',
+      formulaHisoblandi: formulaHisobot?.hisoblandi, formulaHisoblanmadi: formulaHisobot?.hisoblanmadi,
+      pryamyeFarq: korinish?.pryamyeFarq,
       vedomostChiqarildi: tahlil.hisobotlar.reduce((x, y) => x + y.vedomostChiqarildi, 0),
       tekisVaraqlar: tahlil.hisobotlar.filter((x) => !x.ierarxiya).map((x) => ({ manba: x.manba, sabab: x.sabab })),
       tushunilmadiVaraq: hamroh?.tushunilmadi.length ?? 0,
       excelTizim,
     });
     return { sanoq: daraxtSanoq(tahlil.tree), muammolar, narxsizSoni: narxsiz };
-  }, [tahlil, hamroh, korinish, excelTizim]);
+  }, [tahlil, hamroh, korinish, excelTizim, formulaHisobot]);
   if (xulosa) natijaKorinish.current = xulosa;
   const oqimQadami = bosqichIndeksi({ natija: !!result, band: busy || importQadamlari.length > 0, kitob: !!book, ustunlar: !!cols, tahlil: !!xulosa });
   const yanaFayl = () => { reset(); setBook(null); rawFile.current = null; natijaKorinish.current = null; setImportQadamlari([]); setPhase(''); setError(''); };

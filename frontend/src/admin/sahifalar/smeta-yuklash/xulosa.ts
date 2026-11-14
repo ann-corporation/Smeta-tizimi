@@ -40,6 +40,11 @@ export type MuammoKirish = {
   kodsizIsh?: number;
   /** Faylda ustama podvali topilmadi (oldindan ko‘rishda ogohlantirish). */
   podvalYoq?: boolean;
+  /** Keshsiz formulalar: tizim hisoblagani / hisoblay olmagani. */
+  formulaHisoblandi?: number;
+  formulaHisoblanmadi?: number;
+  /** Resurs yig‘indisi ↔ fayl «прямые» farqi (korinish.ts). */
+  pryamyeFarq?: { farq: number; foiz: number; daraja: 'mos' | 'ogoh' | 'tasdiq'; faylPryamye: number; transportKodlari: string[] } | null;
 };
 export type ExcelTizimXulosa = {
   excelVsego: number | null; tizimVsego: number | null; farq: number | null; mos: boolean; taxminiy: boolean;
@@ -67,6 +72,25 @@ export function muammolarRoyxati(k: MuammoKirish): Muammo[] {
     out.push({
       kalit: 'podval-yoq', ton: 'info',
       matn: t('Faylda ustama (nakrutka) podvali topilmadi. Foizlar kompaniya sozlamasidan olinadi — jami taxminiy bo‘ladi.'),
+    });
+  }
+  if ((k.formulaHisoblanmadi ?? 0) > 0) {
+    out.push({
+      kalit: 'formula-hisoblanmadi', ton: 'xato',
+      matn: t('Faylda {n} ta formula hisoblanmagan (natijasi yozilmagan) va tizim ularni hisoblay olmadi. Faylni Excelda ochib, saqlab (Ctrl+S) qayta yuklang.', { n: k.formulaHisoblanmadi ?? 0 }),
+    });
+  } else if ((k.formulaHisoblandi ?? 0) > 0) {
+    out.push({
+      kalit: 'formula-hisoblandi', ton: 'info',
+      matn: t('Faylda {n} ta formula natijasiz saqlangan edi — tizim ularni o‘zi hisobladi.', { n: k.formulaHisoblandi ?? 0 }),
+    });
+  }
+  const pf = k.pryamyeFarq;
+  if (pf && pf.daraja !== 'mos') {
+    out.push({
+      kalit: 'pryamye-farq', ton: pf.daraja === 'tasdiq' ? 'xato' : 'ogoh',
+      matn: t('Resurslar yig‘indisi faylning «to‘g‘ridan-to‘g‘ri xarajat» qatoridan {foiz}% ga farq qiladi (farq {farq}). Importdan oldin qaysi qatorlar o‘qilmaganini tekshiring.', { foiz: pf.foiz.toLocaleString('ru-RU', { maximumFractionDigits: 2 }), farq: pulMatn(pf.farq) }),
+      tafsilot: [t('Fayl: {fayl}', { fayl: pulMatn(pf.faylPryamye) }), ...(pf.transportKodlari.length ? [t('Transport/ombor qatorlari ustama sifatida alohida hisoblanadi va taqqoslashdan chiqarildi.')] : [])],
     });
   }
   if (k.vedomostChiqarildi > 0) {

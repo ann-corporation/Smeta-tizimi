@@ -3,6 +3,7 @@
  * Pul hisobi faqat `lib/hisob-yadro` orqali (yigindi2, qqsBilan); bu yerda faqat o'qiladi va solishtiriladi.
  */
 import { qqsBilan, yigindi2 } from '../../../lib/hisob-yadro';
+import { jamiQatorlarYigindisi } from '../../../lib/nakrutka-smetadan';
 import { t } from '../../../i18n/til';
 
 export type KorinishTugun = { type: string; kod?: string; nom?: string; summa?: number; children?: KorinishTugun[] };
@@ -31,12 +32,47 @@ export type OldindanKorinish = {
   podvalFoizSoni: number;
   /** Shifri (kodi) yo'q ish qatorlari soni. */
   kodsizIsh: number;
+  /** Tizim resurs yig‘indisi ↔ faylning «прямые затраты» (transport/ombor qatorlari ustama sifatida alohida — hisobga olinadi). */
+  pryamyeFarq: PryamyeFarq | null;
 };
+
+export type PryamyeFarq = {
+  farq: number;
+  /** |farq| / fayl «прямые», foizda. */
+  foiz: number;
+  /** mos ≤ 0,5 %; ogoh 0,5–2 % (sariq); tasdiq > 2 % (importdan oldin tasdiq so‘raladi). */
+  daraja: 'mos' | 'ogoh' | 'tasdiq';
+  faylPryamye: number;
+  /** Faylning «прямые» tarkibiga kirgan va tizimda ustama (nakrutka) sifatida alohida hisoblanadigan transport/ombor qatorlari. */
+  transportKodlari: string[];
+};
+
+const TRANSPORT_KODLARI = ['tr_mat', 'tr_kab', 'tr_ob', 'skl_mat', 'skl_mk', 'zag_ob'];
+
+/**
+ * Fayl «прямые» tarkibida RES dagi transport/ombor xarajatlari ham bo‘lishi mumkin (ЭО НАВАИ: materiallar + transport).
+ * Tizimda ular ustama kaskadida alohida hisoblanadi, shuning uchun resurslar yig‘indisi bilan solishtirishda ular chiqarib tashlanadi.
+ * Qaysi transport qatorlari «прямые» ga kirgani faylda yozilmagan — eng kichik farq beradigan to‘plam tanlanadi (taxmin emas, tekshiruv).
+ */
+export function pryamyeTaqqos(resursSumma: number | null, oqish: PodvalOqishQisqa | null): PryamyeFarq | null {
+  const pryamye = yigish(oqish, 'pryamye');
+  if (resursSumma == null || pryamye == null || pryamye <= 0) return null;
+  const tr = (oqish?.qatorlar ?? []).filter((x) => TRANSPORT_KODLARI.includes(x.kod) && x.summa != null && x.summa > 0).slice(0, 8);
+  let eng = { farq: yigindi2([resursSumma, -pryamye]), kodlar: [] as string[] };
+  for (let mask = 1; mask < (1 << tr.length); mask++) {
+    const tanlangan = tr.filter((_, i) => mask & (1 << i));
+    const s = yigindi2(tanlangan.map((x) => x.summa as number));
+    const farq = yigindi2([resursSumma, -pryamye, s]);
+    if (Math.abs(farq) < Math.abs(eng.farq) - 0.005) eng = { farq, kodlar: tanlangan.map((x) => x.kod) };
+  }
+  const foiz = Math.abs(eng.farq) / pryamye * 100;
+  return { farq: eng.farq, foiz, daraja: foiz > 2 ? 'tasdiq' : foiz > 0.5 ? 'ogoh' : 'mos', faylPryamye: pryamye, transportKodlari: eng.kodlar };
+}
 
 const yigish = (oqish: PodvalOqishQisqa | null, kod: string): number | null => {
   const q = (oqish?.qatorlar ?? []).filter((x) => x.kod === kod && x.summa != null);
   if (!q.length) return null;
-  return yigindi2(q.map((x) => (x.summa as number) * x.masshtab));
+  return yigindi2([jamiQatorlarYigindisi(q.map((x) => (x.summa as number) * x.masshtab))]);
 };
 
 export function oldindanKorinish(tree: readonly KorinishTugun[], oqish: PodvalOqishQisqa | null): OldindanKorinish {
@@ -61,6 +97,7 @@ export function oldindanKorinish(tree: readonly KorinishTugun[], oqish: PodvalOq
     faylVsego: yigish(oqish, 'vsego'),
     faylPryamye,
     farqPryamye: resursSumma != null && faylPryamye != null ? yigindi2([resursSumma, -faylPryamye]) : null,
+    pryamyeFarq: pryamyeTaqqos(resursSumma, oqish),
     podval: holat === 'topildi' || holat === 'qisman' ? holat : 'topilmadi',
     podvalFoizSoni: Object.keys(oqish?.koeffitsientlar ?? {}).length,
     kodsizIsh,
