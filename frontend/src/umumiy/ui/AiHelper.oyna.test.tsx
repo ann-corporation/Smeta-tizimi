@@ -112,6 +112,6 @@ it('suhbatlar ro‘yxati: yangi suhbatdan keyin oldingisi ko‘rinadi va davom e
   expect(screen.queryAllByTestId('ai-javob-karta').length).toBe(0);
   const royxat = await screen.findByTestId('jarvis-suhbatlar');
   fireEvent.click(royxat.querySelector('button')!);
-  expect(await screen.findByText('men kimman')).toBeTruthy();
+  expect(await screen.findByText('men kimman', { selector: 'p' })).toBeTruthy();
   expect(JSON.parse(localStorage.getItem('jarvis-suhbatlar:7:5') ?? '[]')).toHaveLength(1);
 });
