@@ -18,7 +18,7 @@ F2 dublikat tekshiruvi, Qamrov %. Pul — NDS siz; har summa ustamasiz va ustama
 | `obyekt_holat(obyekt_id, daraja?, bolim_id?)` | o'qish | bo'lim daraxti: smeta/fakt/F2/qoldiq/almashtirilgan (ustamasiz+ustamali), Nakopitelniy jami |
 | `qator(id)` / `qator_qidir(obyekt_id, matn\|kod\|tur)` | o'qish | qator + ota zanjiri + bolalar + fakt/F2 tarixi |
 | `f2_royxat(obyekt_id, tur?)` / `f2(akt_id)` | o'qish | aktlar; akt qatorlari va jami |
-| `pereraschet(obyekt_id, bolim_id?)` | o'qish | `lib/pereraschet.ts` — ortiqcha/olinmagan/narx farqi/chegirma |
+| `pereraschet(obyekt_id, bolim_id?)` | o'qish | `lib/pereraschet-yagona.ts` — slichitelniy modeli: к доплате / к снятию (hujjat bilan bir xil son) |
 | `snapshot_royxat`, `snapshot_farq` | o'qish | `snapshot` sxemasi |
 | `aktor(qidir?)`, `aktor_tanla(id)` | sessiya | RPC aktorini tanlash (t2_foydalanuvchi) |
 | `rpc(nom, args, obyekt_id?, dry_run)` | **yozish** | istalgan RPC; `p_actor_id`/`p_kim`/`p_actor_label`/`p_operation_id` avtomatik |

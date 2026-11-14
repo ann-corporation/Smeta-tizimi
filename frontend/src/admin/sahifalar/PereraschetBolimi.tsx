@@ -1,21 +1,20 @@
 /**
  * PERERASCHET bo'limi (Nakopitelniy sahifasida; egasi 2026-10-25): «pereraschet qilsang shuncha pul ziyod olasan yoki
- * shuncha minus kirasan». Hisob — `lib/pereraschet.ts` (sof), hujjat — `lib/pereraschet-export.ts`.
- * Faqat O'QIYDI: asl smeta va tasdiqlangan aktlar o'zgarmaydi. «Tuzatuvchi F2 qoralamasi» — oddiy F2 qoralama
- * (t2_akt_yarat_v2), tasdiqlash egasida (F2 tarixida); avtomatik yozish yo'q.
+ * shuncha minus kirasan». Hisob — `lib/pereraschet-yagona.ts` (sof), hujjat — `lib/pereraschet-export.ts`.
+ * Faqat O'QIYDI: asl smeta va tasdiqlangan aktlar o'zgarmaydi. HISOB — slichitelniy modeli (lib/pereraschet-yagona.ts); F2 qoralama — slichitelniy sikli.
  */
-import { Fragment, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Calculator, ChevronDown, ChevronRight, Download, FilePlus2 } from 'lucide-react';
-import { sbOqi, sbT2AktYaratV2, yangiOperationId } from '../../api/supabase';
+import { Fragment, useMemo, useState, type CSSProperties } from 'react';
+import { AlertTriangle, Calculator, ChevronDown, ChevronRight, Download } from 'lucide-react';
+import { sbOqi, type T2Qator, type T2QatorHolat } from '../../api/supabase';
 import { t2ToliqOqiParallel } from '../../api/t2-toliq-oqish';
 import { sbT2F2TafsilotOl, type F2Tafsilot } from '../../api/t2-narx';
-import { tokenBilan } from '../../api/t2-token';
-import { PERERASCHET_USTUNLAR, pereraschetBolimlari, pereraschetHisobla, tuzatuvchiYuk, type BandTur, type PNatijaQator, type PQator, type TekshirSabab } from '../../lib/pereraschet';
+import { PERERASCHET_USTUNLAR, pereraschetBolimlari, type BandTur, type PNatijaQator, type PQator, type TekshirSabab } from '../../lib/pereraschet';
+import { pereraschetYagona, YAGONA_HOLAT_USTUNLAR, YAGONA_QATOR_USTUNLAR } from '../../lib/pereraschet-yagona';
+import { ustamaManbaOl } from '../../lib/oylik-hujjat/ostatka-slichitelniy';
+import type { SvodYaxlit } from '../../lib/svod-yaxlit';
 import { pereraschetXlsx } from '../../lib/pereraschet-export';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
-import { bloklarmi, dublikatTekshiruv } from '../../lib/f2-dublikat/tekshiruv';
 import type { ImzoNomlar } from '../../lib/hujjat-yozuvchi';
 import { FmtN } from '../../lib/format';
 import { t } from '../../i18n/til';
@@ -23,8 +22,6 @@ import { toast } from '../../umumiy/ui/Toast';
 import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { QiymatUchlik } from '../../umumiy/ui/QiymatUchlik';
-import { Maydon } from '../../umumiy/ui/Sahifa';
-import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { IkkiTomonQator, MiniFarq, Eksa, Rang } from '../../components/nakopitelniy/PereraschetGrafik';
 import { useObyektF2Aktlari } from './F2DublikatPanel';
 import { katKesimYigish, qiymatUchligi, uchlikAyir, type KatKesim } from '../../lib/ustamali-summa';
@@ -32,7 +29,7 @@ import { PereraschetFakt } from './PereraschetFakt';
 import { SummaYorliq } from '../../umumiy/ui/QiymatUchlik';
 
 const SAHIFA = 100;
-const bandNomi = (b: BandTur) => ({ ortiqcha: t('Ortiqcha olingan'), narx_farqi: t('Narx farqi'), olinmagan: t('Olinmay qolgan (faktda bor)'), chegirma: t('Chegirma (исключать) — asosiy ishga mutanosib emas') })[b];
+const bandNomi = (b: BandTur) => ({ ortiqcha: t('К снятию (Ф-2 fakt dan ko‘p)'), narx_farqi: t('Hajmsiz summa farqi'), olinmagan: t('К доплате (fakt Ф-2 dan ko‘p)'), chegirma: t('Chegirma (исключать) — asosiy ishga mutanosib emas') })[b];
 const tekshirNomi = (s: TekshirSabab) => ({
   birlik_shubha: t('Birlik shubhasi (nisbat 5 martadan ortiq)'),
   smeta_hajm_yoq: t('Smetada hajm yo‘q yoki 0'),
@@ -49,8 +46,8 @@ const rangSof = (x: number) => RANG[String(Math.sign(x))] ?? 'var(--text-dim)';
 export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, ndsFoiz }: {
   companyId: number; obyektId: number; obyektNom: string; tomonlar: ImzoNomlar; ndsFoiz: number | null;
 }) {
-  const navigate = useNavigate();
   const [rows, setRows] = useState<PQator[] | null>(null);
+  const [modelKirish, setModelKirish] = useState<{ qatorlar: T2Qator[]; holatlar: T2QatorHolat[]; svod: SvodYaxlit | null } | null>(null);
   const [zamena, setZamena] = useState<{ z: Set<number>; a: Set<number> }>({ z: new Set(), a: new Set() });
   /** Rejim: «F2 vs smeta» (mavjud) yoki «Fakt bo'yicha qayta hisob» (egasi 2026-10-26). */
   const [rejim, setRejim] = useState<'smeta' | 'fakt'>('smeta');
@@ -61,24 +58,29 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
   const [sahifa, setSahifa] = useState(0);
   const [ochiq, setOchiq] = useState<number | null>(null);
   const [tarix, setTarix] = useState<F2Tafsilot[] | null>(null);
-  const [tanlangan, setTanlangan] = useState<Set<number>>(new Set());
   const [raqam, setRaqam] = useState('');
   const [oy, setOy] = useState(() => new Date().toISOString().slice(0, 7));
   const [yozilmoqda, setYozilmoqda] = useState(false);
   const [yangila, setYangila] = useState(0);
-  const operationId = useRef(yangiOperationId());
   const ustama = useUstamaliSumma(obyektId, { kompaniyaId: companyId });
   const { aktlar } = useObyektF2Aktlari(rows ? obyektId : null, yangila);
 
   const yukla = async () => {
     setBusy(true); setXato(''); setTarix(null); setOchiq(null);
     try {
-      const [h, z, qs] = await Promise.all([
+      const [h, z, qs, mq, mh, u] = await Promise.all([
         t2ToliqOqiParallel<PQator>(sbOqi, { jadval: 't2_qator_holat', filtr: 'obyekt_id=eq.' + obyektId, ustunlar: PERERASCHET_USTUNLAR, limit: 200000 }, 'qator_id'),
         /* Pereraschet — F2 tarixi (t2_qator_holat barcha versiyalar): zamena/qo'shimcha to'plamlari ham shu doirada ('tarix'). */
         sbOqi<{ id: number; replaces_line_id: number | null }>({ jadval: 't2_qator', filtr: `obyekt_id=eq.${obyektId}&replaces_line_id=not.is.null`, ustunlar: 'id,replaces_line_id', limit: 20000, versiya: 'tarix' }),
         t2ToliqOqiParallel<{ id: number }>(sbOqi, { jadval: 't2_qator', filtr: `obyekt_id=eq.${obyektId}&qoshimcha=is.true`, ustunlar: 'id', limit: 200000, versiya: 'tarix' }, 'id'),
+        /* Yagona hisob (slichitelniy modeli): joriy smeta daraxti + holat + svod yaxlit — hujjat bilan bir xil manbalar. */
+        t2ToliqOqiParallel<T2Qator>(sbOqi, { jadval: 't2_qator', filtr: 'obyekt_id=eq.' + obyektId, ustunlar: YAGONA_QATOR_USTUNLAR, limit: 200000 }, 'id'),
+        t2ToliqOqiParallel<T2QatorHolat>(sbOqi, { jadval: 't2_qator_holat', filtr: 'obyekt_id=eq.' + obyektId, ustunlar: YAGONA_HOLAT_USTUNLAR, limit: 200000 }, 'qator_id'),
+        ustamaManbaOl(companyId, obyektId),
       ]);
+      if (!mq.ok || mq.toliq === false || !mh.ok || mh.toliq === false) { setXato(t('Smeta qatorlari to‘liq o‘qilmadi — pereraschet chala ma’lumot ustida hisoblanmaydi.')); setRows(null); return; }
+      if (!u.ok) { setXato(`${u.xato} — ${t('pereraschet hisoblanmadi. Qayta urinib ko‘ring.')}`); setRows(null); return; }
+      setModelKirish({ qatorlar: mq.qatorlar ?? [], holatlar: mh.qatorlar ?? [], svod: u.ustama.svodYaxlit ?? null });
       if (!h.ok || h.toliq === false) { setXato(t('Smeta qatorlari to‘liq o‘qilmadi — pereraschet chala ma’lumot ustida hisoblanmaydi.')); setRows(null); return; }
       if (!z.ok) { setXato(t('Zamena bog‘lanishlari o‘qilmadi — qayta urinib ko‘ring.')); setRows(null); return; }
       if (!qs.ok || qs.toliq === false) { setXato(t('Qo‘shimcha (smetadan tashqari) qatorlar o‘qilmadi — qayta urinib ko‘ring.')); setRows(null); return; }
@@ -87,15 +89,14 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
       for (const x of z.qatorlar ?? []) { zs.add(Number(x.id)); if (x.replaces_line_id != null) as.add(Number(x.replaces_line_id)); }
       setZamena({ z: zs, a: as });
       setRows(h.qatorlar ?? []);
-      setTanlangan(new Set()); setSahifa(0);
+      setSahifa(0);
     } catch { setXato(t('Ma’lumotni yuklab bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.')); }
     finally { setBusy(false); }
   };
 
   const bolimlar = useMemo(() => (rows ? pereraschetBolimlari(rows) : []), [rows]);
-  const yaxlitIdlari = ustama.yaxlitIdlari;
-  const yaxlitIdlar = useMemo(() => (rows ? yaxlitIdlari?.(rows.map((r) => ({ id: r.qator_id, ota_id: r.ota_id }))) : undefined), [rows, yaxlitIdlari]);
-  const natija = useMemo(() => (rows ? pereraschetHisobla(rows, { zamenaIdlar: zamena.z, aslIdlar: zamena.a, bolimId: bolim, yaxlitIdlar }) : null), [rows, zamena, bolim, yaxlitIdlar]);
+  /* YAGONA hisob: slichitelniy modeli (`lib/pereraschet-yagona.ts`) — pereraschet va slichitelniy hujjati bitta son beradi. */
+  const natija = useMemo(() => (rows && modelKirish ? pereraschetYagona(modelKirish.qatorlar, modelKirish.holatlar, { svodYaxlit: modelKirish.svod, bolimId: bolim }) : null), [rows, modelKirish, bolim]);
   const bolimNomi = bolim != null ? bolimlar.find((b) => b.id === bolim)?.nom ?? null : null;
 
   /** Ustamali (ИТОГО-4, NDS siz): kat noma'lum qism ustamasiz qo'shiladi (SummaJuft bilan bir xil qoida). */
@@ -128,41 +129,14 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
     } catch { toast(t('Excel fayli tuzilmadi.'), 'danger'); }
   };
 
-  const yuk = useMemo(() => (natija ? tuzatuvchiYuk(natija.hisobda, tanlangan) : []), [natija, tanlangan]);
-  const yukJami = yuk.reduce((s, y) => s + y.certifiedAmount, 0);
-  const masalalar = useMemo(() => (yuk.length ? dublikatTekshiruv({ aktlar, oy, raqam, jami: yukJami, ozAktId: null, manbaAktIdlar: [] }) : []), [yuk, aktlar, oy, raqam, yukJami]);
-  const qoralama = async () => {
-    if (!yuk.length || yozilmoqda) return;
-    if (!raqam.trim()) { toast(t('Tuzatuvchi F2 raqamini kiriting (masalan 12-П).'), 'warn'); return; }
-    if (bloklarmi(masalalar)) { toast(masalalar.filter((m) => m.daraja === 'blok').map((m) => m.matn).join('\n'), 'danger'); return; }
-    const ogoh = masalalar.filter((m) => m.daraja === 'ogoh').map((m) => m.matn);
-    if (!(await tasdiqSora({ matn: [t('Tanlangan {n} qatordan tuzatuvchi F2 QORALAMASI yaratiladi (tasdiqlash — F2 tarixida, egasi tomonidan). Davom etasizmi?', { n: String(yuk.length) }), ...ogoh].join('\n\n') }))) return;
-    setYozilmoqda(true);
-    try {
-      const yacheyka = yuk.length * 3;
-      const r = await tokenBilan({ kompaniyaId: companyId, amal: 'f2_qoralama', birlikSoni: yacheyka, meta: { obyekt: obyektId, qator: yuk.length, yacheyka, manba: 'pereraschet' } }, async () => {
-        const res = await sbT2AktYaratV2({ obyektId, oy: `${oy}-01`, operationId: operationId.current, raqam: raqam.trim(), qatorlar: yuk });
-        if (!res.ok) throw new Error(res.error || res.xabar || 'F2 qoralama yaratilmadi.');
-        return res;
-      });
-      if (!r.ok) { toast(r.xabar, 'danger'); return; }
-      operationId.current = yangiOperationId();
-      setTanlangan(new Set()); setYangila((x) => x + 1);
-      toast(t('Tuzatuvchi F2 qoralamasi yaratildi. Tasdiqlash — F2 tarixida.'), 'ok', undefined, 12000, { label: t('Ochish'), onClick: () => navigate(`/admin/f2-tarix?obyekt=${obyektId}`) });
-    } catch { toast(t('Javob olinmadi. Qayta urinib ko‘ring.'), 'danger'); }
-    finally { setYozilmoqda(false); }
-  };
-
   const qatorlar = natija?.hisobda ?? [];
   const korinadi = qatorlar.slice(sahifa * SAHIFA, sahifa * SAHIFA + SAHIFA);
   const sahifaSoni = Math.max(1, Math.ceil(qatorlar.length / SAHIFA));
-  const belgila = (id: number) => setTanlangan((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
-  const hammasi = (tur: 'plus' | 'minus' | 'hammasi' | 'yoq') => setTanlangan(new Set(tur === 'yoq' ? [] : qatorlar.filter((q) => tur === 'hammasi' || Math.sign(q.sof) === (tur === 'plus' ? 1 : -1)).map((q) => q.qatorId)));
 
   const tarixRow = (q: PNatijaQator) => {
     const t2 = (tarix ?? []).filter((x) => x.qator_id === q.qatorId);
     return (
-      <tr style={{ background: 'var(--surface-2)' }}><td colSpan={9}>
+      <tr style={{ background: 'var(--surface-2)' }}><td colSpan={8}>
         {!tarix && <span style={{ color: 'var(--text-mute)' }}>{t('Yuklanmoqda…')}</span>}
         {!!tarix && !t2.length && <span style={{ color: 'var(--text-mute)' }}>{t('Bu qator F2 aktlarida topilmadi.')}</span>}
         {!!tarix && t2.length > 0 && (
@@ -191,8 +165,8 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
     <section className="fz-card" data-testid="pereraschet" aria-label={t('Pereraschet')}>
       <div className="fz-card__head" style={{ flexWrap: 'wrap' }}>
         <div>
-          <h2 className="fz-card__title">{t('Pereraschet — ortiqcha olingan / olinmay qolgan hajm va narx farqi')}</h2>
-          <p className="fz-card__sub">{t('Qayta hisoblansa: qancha ortiqcha olish mumkin yoki qancha qaytarish kerak. Faqat o‘qiydi — smeta va tasdiqlangan aktlar o‘zgarmaydi.')}</p>
+          <h2 className="fz-card__title">{t('Pereraschet — к доплате (+) / к снятию (−): fakt − ilgari Ф-2 da olingan')}</h2>
+          <p className="fz-card__sub">{t('Slichitelniy hujjati bilan bir xil hisob: qancha qo‘shimcha olish mumkin yoki qancha qaytarish kerak. Faqat o‘qiydi — smeta va tasdiqlangan aktlar o‘zgarmaydi.')}</p>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-2)' }}>
           <div role="group" aria-label={t('Pereraschet rejimi')} style={{ display: 'inline-flex', gap: 2 }}>
@@ -201,7 +175,7 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
           </div>
           {rows && (
             <select aria-label={t('Uchastka / razdel')} className="input" style={{ height: 'var(--control-md)', padding: '0 8px', maxWidth: 300 }} value={bolim ?? ''}
-              onChange={(e) => { setBolim(e.target.value ? Number(e.target.value) : null); setSahifa(0); setTanlangan(new Set()); }}>
+              onChange={(e) => { setBolim(e.target.value ? Number(e.target.value) : null); setSahifa(0); }}>
               <option value="">{t('Butun obyekt')}</option>
               {bolimlar.map((b) => <option key={b.id} value={b.id}>{' '.repeat(b.daraja * 3)}{b.nom}</option>)}
             </select>
@@ -230,11 +204,11 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
           <>
             <div className="fz-kpis">
               <div className="fz-kpi">
-                <span className="fz-kpi__label"><i style={{ background: 'var(--ok)' }} />{t('Olish mumkin (+)')}</span>
+                <span className="fz-kpi__label"><i style={{ background: 'var(--ok)' }} />{t('К доплате (+)')}</span>
                 <SummaJuft obyektId={obyektId} kompaniyaId={companyId} ustamasiz={natija.jami.plus} katKesim={natija.plusKesim} />
               </div>
               <div className="fz-kpi">
-                <span className="fz-kpi__label"><i style={{ background: 'var(--danger)' }} />{t('Qaytarish kerak (−)')}</span>
+                <span className="fz-kpi__label"><i style={{ background: 'var(--danger)' }} />{t('К снятию (−)')}</span>
                 <SummaJuft obyektId={obyektId} kompaniyaId={companyId} ustamasiz={natija.jami.minus} katKesim={natija.minusKesim} />
               </div>
               <div className="fz-kpi">
@@ -246,7 +220,7 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
             <div className="fz-panel">
               <div className="fz-panel__h"><span>{t('Umumiy natija: plyus va minus')}</span><span>{ustamaBor ? t('ustamali') : t('ustamasiz')}</span></div>
               <IkkiTomonQator nom={t('Sof natija')} sub={t('Qatorlar soni: {n}', { n: natija.jami.soni })} plus={heroPlus} minus={heroMinus} max={Math.max(heroPlus, heroMinus)} sof={heroSof} baland={22} />
-              <Eksa><Rang rang="var(--danger)" matn={t('chap: qaytarish kerak (−)')} /><Rang rang="var(--ok)" matn={t('o‘ng: olish mumkin (+)')} /></Eksa>
+              <Eksa><Rang rang="var(--danger)" matn={t('chap: к снятию (−)')} /><Rang rang="var(--ok)" matn={t('o‘ng: к доплате (+)')} /></Eksa>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))', gap: 'var(--space-4)' }}>
@@ -270,26 +244,12 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
               )}
             </div>
 
-            <div className="fz-panel">
-              <div className="fz-panel__h"><span>{t('Tuzatuvchi F2 qoralamasi')}</span><span>{t('tanlangan: {n}', { n: tanlangan.size })}</span></div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 'var(--space-2)' }}>
-                <button type="button" className="fz-btn fz-btn--sm" onClick={() => hammasi('minus')}>{t('Barcha minuslarni tanlash')}</button>
-                <button type="button" className="fz-btn fz-btn--sm" onClick={() => hammasi('plus')}>{t('Barcha pluslarni tanlash')}</button>
-                <button type="button" className="fz-btn fz-btn--sm fz-btn--ghost" onClick={() => hammasi('yoq')}>{t('Tanlovni tozalash')}</button>
-                <span style={{ flex: 1 }} />
-                <Maydon nom={t('F2 raqami')}><input className="input" style={{ width: 110, height: 'var(--control-sm)', padding: '0 8px' }} value={raqam} onChange={(e) => setRaqam(e.target.value)} placeholder={t('12-П')} /></Maydon>
-                <Maydon nom={t('Oy')}><input type="month" className="input" style={{ height: 'var(--control-sm)', padding: '0 8px' }} value={oy} onChange={(e) => setOy(e.target.value)} /></Maydon>
-                <button type="button" disabled={!yuk.length || yozilmoqda} onClick={() => void qoralama()} className="fz-btn fz-btn--primary">
-                  <FilePlus2 /> {t('Tuzatuvchi F2 qoralamasi')} ({yuk.length}; <FmtN val={yukJami} />)
-                </button>
-              </div>
-              {masalalar.length > 0 && <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12 }}>{masalalar.map((m, i) => <li key={i} style={{ color: m.daraja === 'blok' ? 'var(--danger)' : 'var(--warn)' }}>{m.matn}</li>)}</ul>}
-            </div>
+            <div className="fz-note fz-note--info"><span>{t('Pereraschet = slichitelniy hujjati bilan bir xil hisob (fakt Ф-2 narxida − tasdiqlangan Ф-2). Ф-2 qoralama (к доплате) va tuzatuvchi minus qoralama (к снятию) — «Slichitelniy sikli» panelida.')}</span></div>
 
             <div className="fz-table-wrap" style={{ maxHeight: '60vh' }}>
               <table className="fz-table">
                 <thead><tr>
-                  <th style={{ width: 28 }} /><th style={th}>{t('Ish / resurs')}</th><th>{t('Birlik')}</th>
+                  <th style={th}>{t('Ish / resurs')}</th><th>{t('Birlik')}</th>
                   <th style={thN}>{t('Smeta hajm')}</th><th style={thN}>{t('Fakt')}</th><th style={thN}>{t('F2 hajm')}</th>
                   <th style={thN}>{t('Smeta narx / F2 narx')}<SummaYorliq tur="narx" /></th><th style={th}>{t('Sabab')}</th><th style={thN}>{t('Summa (ustamasiz)')}</th>
                 </tr></thead>
@@ -297,7 +257,6 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
                   {korinadi.map((q) => (
                     <Fragment key={q.qatorId}>
                       <tr style={{ cursor: 'pointer' }} onClick={() => void tarixOch(q.qatorId)}>
-                        <td onClick={(e) => e.stopPropagation()}><input type="checkbox" aria-label={t('Tanlash')} checked={tanlangan.has(q.qatorId)} onChange={() => belgila(q.qatorId)} /></td>
                         <td><span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{ochiq === q.qatorId ? <ChevronDown size={12} /> : <ChevronRight size={12} />}{q.kod ? `${q.kod} ` : ''}{q.nom}</span>
                           <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>{q.bolimYol.join(' › ')}</div></td>
                         <td className="fz-c-unit" style={{ textAlign: 'center' }}>{q.birlik ?? '—'}</td>
@@ -307,7 +266,7 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
                         <td className="fz-c-num">{q.smetaNarx == null ? '—' : <FmtN val={q.smetaNarx} />} / {q.f2Narx == null ? '—' : <FmtN val={q.f2Narx} />}</td>
                         <td style={{ fontSize: 12 }}>{q.bandlar.map((b) => <div key={b.tur} style={{ color: rangSof(b.summa) }}>{bandNomi(b.tur)}: <FmtN val={b.summa} /></div>)}
                           {q.chegirma?.asosiy && <div style={{ color: 'var(--text-mute)' }}>{t('Asosiy ish {kod}: F2 {x}% olingan, chegirma {y}% qo‘llangan', { kod: q.chegirma.asosiy.kod ?? '', x: (Math.min(1, Math.max(0, q.chegirma.asosiy.ulush)) * 100).toFixed(1), y: (q.chegirma.y * 100).toFixed(1) })}</div>}
-                          {q.eslatma.includes('smetadan_tashqari') && <div style={{ color: 'var(--text-mute)' }}>{t('Smetadan tashqari fakt (pulga kirmaydi, qo‘shimcha kelishuv kerak)')}</div>}
+                          {q.eslatma.includes('smetadan_tashqari') && <div style={{ color: 'var(--text-mute)' }}>{t('Fakt smetadan ortiq — к доплате ga kiradi (qo‘shimcha kelishuv kerak)')}</div>}
                           {q.eslatma.includes('narx_farqi_hisoblanmadi') && <div style={{ color: 'var(--text-mute)' }}>{t('F2 summasi noma’lum — narx farqi hisoblanmadi')}</div>}</td>
                         <td className="fz-c-num" style={{ fontWeight: 600, color: rangSof(q.sof) }}>
                           <FmtN val={q.sof} />
@@ -317,7 +276,7 @@ export function PereraschetBolimi({ companyId, obyektId, obyektNom, tomonlar, nd
                       {ochiq === q.qatorId && tarixRow(q)}
                     </Fragment>
                   ))}
-                  {!korinadi.length && <tr><td colSpan={9} style={{ color: 'var(--text-mute)' }}>{t('Pereraschetga tushadigan qator topilmadi.')}</td></tr>}
+                  {!korinadi.length && <tr><td colSpan={8} style={{ color: 'var(--text-mute)' }}>{t('Pereraschetga tushadigan qator topilmadi.')}</td></tr>}
                 </tbody>
               </table>
             </div>

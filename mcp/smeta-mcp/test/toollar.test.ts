@@ -136,13 +136,15 @@ describe('obyekt_holat va pereraschet (frontend mantig\'i bilan)', () => {
     expect(r.bolimlar[0].id).toBe(1);
     expect(r.bolimlar[0].smeta.ustamasiz).toBe(100);
   });
-  it('pereraschet: F2 smetadan oshgan — ortiqcha (minus)', async () => {
+  it('pereraschet: fakt < F-2 — к снятию (minus), slichitelniy modeli', async () => {
     const { mu } = mockMuhit(javob);
     const j = await toolChaqir(pereraschet, mu, { obyekt_id: 900 });
     expect(j.isError).toBeFalsy();
     const r = JSON.parse(j.content[0].text);
     expect(r.jami.minus).toBeGreaterThan(0);
-    expect(r.tur_boyicha.ortiqcha.minus).toBe(20);
+    expect(r.jami.minus).toBe(70);
+    expect(r.jami.plus).toBe(0);
+    expect(r.tur_boyicha.ortiqcha.minus).toBe(70);
     expect(r.hisobda.qatorlar[0].qator_id).toBe(3);
   });
 });

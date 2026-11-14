@@ -26,12 +26,18 @@ export type TsiklYuk = {
   sigmadi: { soni: number; summa: number };
   /** Noma'lum (fakt, narx yoki Ф-2 summasi NULL) pozitsiyalar soni. */
   nomalum: number;
+  /** Har bir pulga kirgan barg: model indeksi, YAKUNIY ishorali summa (svod bo'limida sof farqqa keltirilgan) va hajm (0 — hajmsiz narx farqi).
+   *  Qoralamaga sig'magan (hajmsiz) qatorlar ham shu yerda — pereraschet jami (`pereraschet-yagona.ts`) shundan. */
+  effektiv: TsiklEffektiv[];
 };
+
+export type TsiklEffektiv = { idx: number; summa: number; hajm: number; qator?: TsiklQator };
 
 const MANBA = { source: 'slichitelniy_tsikl', sourceReference: 'Перерасчёт (сличительная ведомость)' };
 
-export function slichitelniyTsiklYuki(model: SlichitelniyModel, yaxlitIdlar?: ReadonlySet<number> | null): TsiklYuk {
+export function slichitelniyTsiklYuki(model: SlichitelniyModel, yaxlitIdlar?: ReadonlySet<number> | null, ruxsat?: ReadonlySet<number> | null): TsiklYuk {
   const doplata: TsiklQator[] = []; const snyatie: TsiklQator[] = [];
+  const effektiv: TsiklEffektiv[] = [];
   const plusKesim = bosKatKesim(); const minusKesim = bosKatKesim();
   const sigmadi = { soni: 0, summa: 0 };
   let nomalum = 0;
@@ -46,6 +52,7 @@ export function slichitelniyTsiklYuki(model: SlichitelniyModel, yaxlitIdlar?: Re
   }
   model.qatorlar.forEach((q, i) => {
     if (q.tur !== 'barg') return;
+    if (ruxsat && !ruxsat.has(i)) return;
     let d = q.doplataSumma;
     if (d == null) { if (q.nomalum) nomalum++; return; }
     if (Math.abs(d) < 0.005) return;
@@ -57,12 +64,15 @@ export function slichitelniyTsiklYuki(model: SlichitelniyModel, yaxlitIdlar?: Re
     }
     const yx = !!yaxlitIdlar?.has(q.id) || q.yaxlitTaqsim != null;
     if (d > 0) katKesimgaQosh(plusKesim, q.kat ?? null, d, yx); else katKesimgaQosh(minusKesim, q.kat ?? null, -d, yx);
+    const eff: TsiklEffektiv = { idx: i, summa: d, hajm: dh == null || Math.abs(dh) < 1e-9 ? 0 : dh };
+    effektiv.push(eff);
     if (dh == null || Math.abs(dh) < 1e-9) { sigmadi.soni++; sigmadi.summa += d; return; }
     const qator: TsiklQator = {
       qatorId: q.id, certifiedQuantity: dh, certifiedUnitPrice: d / dh, certifiedAmount: d,
       rawSnapshot: { ...MANBA, bolim: d > 0 ? 'doplata' : 'snyatie', faktHajm: q.faktHajm, f2Hajm: q.f2Hajm, enteredQuantity: dh, enteredAmount: d },
       izoh: d > 0 ? 'Перерасчёт: к доплате (факт больше ранее предъявленного по Ф-2)' : 'Перерасчёт: к снятию (предъявлено по Ф-2 больше факта)',
     };
+    eff.qator = qator;
     (d > 0 ? doplata : snyatie).push(qator);
     if (L) { const a = lumpQatorlar.get(q.yaxlitTaqsim!); if (a) a.push(qator); else lumpQatorlar.set(q.yaxlitTaqsim!, [qator]); }
   });
@@ -75,8 +85,9 @@ export function slichitelniyTsiklYuki(model: SlichitelniyModel, yaxlitIdlar?: Re
     if (qoldiq) { const o = qs[qs.length - 1]; o.certifiedAmount = yaxlit2(o.certifiedAmount + qoldiq); }
   }
   sigmadi.summa = yaxlit2(sigmadi.summa);
+  for (const e of effektiv) if (e.qator) e.summa = e.qator.certifiedAmount;
   return {
-    doplata, snyatie, plusKesim, minusKesim, sigmadi, nomalum,
+    doplata, snyatie, plusKesim, minusKesim, sigmadi, nomalum, effektiv,
     doplataJami: yaxlit2(doplata.reduce((s, x) => s + x.certifiedAmount, 0)),
     snyatieJami: yaxlit2(snyatie.reduce((s, x) => s + x.certifiedAmount, 0)),
   };
