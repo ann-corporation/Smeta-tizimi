@@ -14,7 +14,7 @@
 --    Bekor qilinganda: avto yozuv 'bekor'; qo'lda (rasmiy) yozuv akt_id=null bilan qoladi (reestrda bor, tizimda F2 yo'q);
 --    tasdiqlangan almashtiruvchi akt bo'lsa — yozuv unga ko'chadi.
 -- 3) t2_akt_yarat_v2 javobiga 'podval' qo'shiladi (pg_get_functiondef + replace; langar aynan 1 marta, aks holda XATO).
--- 4) Backfill (alohida migratsiya 20261221820000) va reestr to'ldirish funksiyasi t2_f2_reestr_toldir_v1 (faqat chaqirilganda).
+-- 4) Backfill (alohida migratsiya 20261221830000) va reestr to'ldirish funksiyasi t2_f2_reestr_toldir_v1 (faqat chaqirilganda).
 
 create or replace function public._t2_akt_podval_smeta_v1(p_akt_id bigint, p_manba text default 'smeta', p_tasdiq boolean default false)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $f$
