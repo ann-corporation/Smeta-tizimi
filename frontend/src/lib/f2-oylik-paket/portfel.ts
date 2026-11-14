@@ -11,6 +11,10 @@ import type { F2Tafsilot } from '../../api/t2-narx';
 import type { PereraschetAktQator } from '../f2-pereraschet';
 import { bahoMoliya, f2AktBaho, f2AktTayyorla, type F2AktEksportKirish, type F2AktTayyor } from '../f2-akt-eksport';
 import type { F3DavrAkt } from '../forma3-export';
+import type { AktPodvalNk } from '../hisob-yadro';
+
+/** F3DavrAkt + aktning o'z podvali (nk) va podval birliklari soni (nakopitelniy: har F-2 ustuni o'z podvali bilan). */
+export type F3DavrAktKeng = F3DavrAkt & { nk?: AktPodvalNk | null; birlikSoni?: number; /** Aktning o'z podvalidagi IMZOLANGAN hujjat ВСЕГО (t2_akt_podval.hujjat_vsego); yo'q — null. */ imzolangan?: number | null; /** Aktning o'z podval qatorlari (imzolangan summalar). */ podvalQatorlar?: ReadonlyArray<{ kod: string; nom: string; foiz: number | null; summa: number | null }> | null };
 
 export type PortfelKesim = { tur: 'shartnoma'; id: number } | { tur: 'obyekt'; id: number };
 
@@ -112,13 +116,13 @@ export function portfelAktMoliya(m: PortfelObyektKirish, akt: Pick<ReestrAkt, 'i
  * (`f2AktTayyorla` → `f2AktBaho`; storno bloki o'z podvali, yo'q — smeta podvali). F3 oy jami = shu F2 hujjatlari ВСЕГО yig'indisi.
  * Akt qatori smetada topilmasa — throw (F3 yarim summa bilan tuzilmaydi).
  */
-export function oyAktlarBahosi(m: PortfelObyektKirish, aktlar: ReadonlyArray<Pick<ReestrAkt, 'id' | 'oy' | 'raqam'>>, obyektNom: string, raqamlar: ReadonlyMap<number, string | null>): F3DavrAkt[] {
-  const out: F3DavrAkt[] = [];
+export function oyAktlarBahosi(m: PortfelObyektKirish, aktlar: ReadonlyArray<Pick<ReestrAkt, 'id' | 'oy' | 'raqam'>>, obyektNom: string, raqamlar: ReadonlyMap<number, string | null>): F3DavrAktKeng[] {
+  const out: F3DavrAktKeng[] = [];
   for (const a of aktlar) {
     const k = portfelAktTayyor(m, { ...a, holat: 'tasdiqlangan' }, obyektNom, raqamlar);
     if (!k) continue;
     const b = f2AktBaho(k, m.kontekst);
-    out.push({ aktId: a.id, raqam: a.raqam, hujjatPodvali: b.birliklar.some((u) => u.manba === 'hujjat'), ustamasiz: b.ustamasiz, ustamali: b.ustamali, qqs: b.qqs, qqsBilan: b.qqsBilan });
+    out.push({ aktId: a.id, raqam: a.raqam, hujjatPodvali: b.birliklar.some((u) => u.manba === 'hujjat'), ustamasiz: b.ustamasiz, ustamali: b.ustamali, qqs: b.qqs, qqsBilan: b.qqsBilan, nk: k.ozNk ?? null, birlikSoni: b.birliklar.length, imzolangan: (m.podvallar.get(`${a.id}:`) as { hujjat_vsego?: number | null } | undefined)?.hujjat_vsego ?? null, podvalQatorlar: (m.podvallar.get(`${a.id}:`) as { qatorlar?: Array<{ kod: string; nom: string; foiz: number | null; summa: number | null }> } | undefined)?.qatorlar ?? null });
   }
   return out;
 }
