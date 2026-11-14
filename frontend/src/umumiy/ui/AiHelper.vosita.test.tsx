@@ -60,7 +60,7 @@ it('LLM «suhbat» yoki xato -> mavjud suhbat oqimi davom etadi; so‘rov takror
   render(view()); och(); await screen.findByText('Holat?');
   send('qxzv plmk');
   expect(await screen.findByText('Mana javob.')).toBeTruthy();
-  expect(screen.getAllByText('qxzv plmk').length).toBe(1);
+  expect(screen.getAllByText('qxzv plmk', { selector: 'p' }).length).toBe(1);
   expect(m.savol).toHaveBeenCalledTimes(1);
 });
 
