@@ -39,7 +39,9 @@ Write-Host "sha256: $sha"
 if ($DryRun) {
     Write-Host 'Dry run: nothing uploaded.'
 } else {
-    & npx wrangler@4 r2 object put "$Bucket/$key" --file $item.FullName --content-type $contentType --remote
+    # cmd /c: PowerShell 5.1 with ErrorActionPreference=Stop treats npm/wrangler stderr warnings as fatal.
+    $cmd = 'npx --yes wrangler@4 r2 object put "' + $Bucket + '/' + $key + '" --file "' + $item.FullName + '" --content-type ' + $contentType + ' --remote 2>&1'
+    cmd /c $cmd | Out-Host
     if ($LASTEXITCODE -ne 0) { throw 'wrangler upload failed.' }
 }
 $manifest = [ordered]@{
