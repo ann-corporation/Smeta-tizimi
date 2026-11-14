@@ -13,6 +13,7 @@ import { bosKatKesim, type KatKesim } from './ustamali-summa';
 import { ochiqQoldiq } from './zamena-qoldiq';
 import { ayirma2, faktSummaF2Narxda, hajmMasshtab, katJami, yigindi2 } from './hisob-yadro';
 import { svodFaktKesimi, svodKorinishKesimi, yaxlitQatorIdlari, type SvodYaxlit } from './svod-yaxlit';
+import { formulaMi, numberFormula, type FormulaContext, type FormulaError } from './formula/number-formula';
 
 export type JurnalHolat = {
   qator_id: number; smeta_hajm: number | null; fakt_hajm: number | null;
@@ -404,33 +405,51 @@ export function foizOqi(v: string): number | null {
  * Kiritma soni: oddiy son (`sonOqi`) yoki smeta foizi — hajm = smeta × foiz (yadro `hajmMasshtab`, 6 xona).
  * '+' rejimda — bugungi hajm (smetaning foizi), '=' rejimda — jami fakt. Foiz, lekin smeta noma'lum/0 — 'SMETASIZ' (to'qilmaydi).
  */
-export function kiritmaSoni(v: string, smeta: number | null | undefined): number | null | 'SMETASIZ' {
+export function kiritmaSoni(v: string, smeta: number | null | undefined, kontekst?: FormulaContext): number | null | 'SMETASIZ' {
+  // «=SMETA-FAKT», «=QOLDIQ», «=SMETA*0.5»: xavfsiz formula (eval yo'q); faqat yozilgan matn songa aylanadi, hisob qoidalari o'zgarmaydi.
+  // Noto'g'ri formula — NaN (xato; hech narsa saqlanmaydi). Bo'sh matn formulaga kirmaydi — null.
+  if (formulaMi(v)) {
+    const r = numberFormula(v, { ...kontekst, SMETA: smeta });
+    return r.ok ? yaxlit(r.value) : NaN;
+  }
   const f = foizOqi(v);
   if (f == null) return sonOqi(v);
   if (smeta == null || !Number.isFinite(smeta) || smeta === 0) return 'SMETASIZ';
   return hajmMasshtab(smeta, f / 100);
 }
 
-export type JurnalXato = 'SON_EMAS' | 'NOANIQ' | 'MANFIY' | 'NOL' | 'ISHORA' | 'FOIZ_SMETASIZ';
+/** Formula xatosining sababi (katak ostida ko'rsatish uchun); formula bo'lmasa yoki to'g'ri bo'lsa — null. */
+export function formulaXatosi(v: string, smeta: number | null | undefined, kontekst?: FormulaContext): FormulaError | null {
+  if (!formulaMi(v)) return null;
+  const r = numberFormula(v, { ...kontekst, SMETA: smeta });
+  return r.ok ? null : r.error;
+}
+
+/** Qator kontekstidan formula nomlari: SMETA, FAKT, QOLDIQ, F2_MUMKIN (noma'lum qiymat — null, 0 emas). */
+export function faktFormulaKonteksti(q: Pick<JurnalQator, 'smeta' | 'fakt' | 'qoldiq' | 'f2Mumkin'>): FormulaContext {
+  return { SMETA: q.smeta, FAKT: q.fakt, QOLDIQ: q.qoldiq, F2_MUMKIN: q.f2Mumkin };
+}
+
+export type JurnalXato = 'SON_EMAS' | 'NOANIQ' | 'MANFIY' | 'NOL' | 'ISHORA' | 'FOIZ_SMETASIZ' | 'FORMULA_XATO';
 export const JURNAL_XATO_MATN: Record<JurnalXato, string> = {
   SON_EMAS: 'Son emas', NOANIQ: 'Noaniq: «1.234» ming yoki o‘nli? 1234 yoki 1,234 deb yozing (o‘nli uchun vergul, ming uchun bo‘shliq)', MANFIY: 'Jami fakt manfiy bo‘lib qoladi', ISHORA: 'Chegirma ishi: fakt smeta kabi manfiy bo‘lishi kerak', NOL: '0 qo‘shilmaydi',
-  FOIZ_SMETASIZ: 'Foiz uchun smeta hajmi kerak',
+  FOIZ_SMETASIZ: 'Foiz uchun smeta hajmi kerak', FORMULA_XATO: 'Formula noto‘g‘ri',
 };
 
 /**
  * Kiritmalarni bitta delta paketiga: "+" → n; "=" → n − joriy fakt (o'zgarish yo'q bo'lsa tashlanadi).
  * `faktlar` — joriy server qiymatlari (qator_id → fakt).
  */
-export function jurnalPaket(kiritmalar: Readonly<Record<number, Kiritma>>, faktlar: ReadonlyMap<number, number>, smetalar?: ReadonlyMap<number, number | null>) {
+export function jurnalPaket(kiritmalar: Readonly<Record<number, Kiritma>>, faktlar: ReadonlyMap<number, number>, smetalar?: ReadonlyMap<number, number | null>, kontekstlar?: ReadonlyMap<number, FormulaContext>) {
   const qatorlar: { qator_id: number; hajm: number }[] = [];
   const xatolar = new Map<number, JurnalXato>();
   for (const [k, v] of Object.entries(kiritmalar)) {
     const id = Number(k); const joriy = faktlar.get(id);
     if (joriy == null) continue;
-    const n = kiritmaSoni(v.qiymat, smetalar?.get(id));
+    const n = kiritmaSoni(v.qiymat, smetalar?.get(id), kontekstlar?.get(id));
     if (n === 'SMETASIZ') { xatolar.set(id, 'FOIZ_SMETASIZ'); continue; }
     if (n == null) continue;
-    if (!Number.isFinite(n)) { xatolar.set(id, sonTahlil(v.qiymat).noaniq ? 'NOANIQ' : 'SON_EMAS'); continue; }
+    if (!Number.isFinite(n)) { xatolar.set(id, formulaMi(v.qiymat) ? 'FORMULA_XATO' : sonTahlil(v.qiymat).noaniq ? 'NOANIQ' : 'SON_EMAS'); continue; }
     const delta = v.rejim === '+' ? n : yaxlit(n - joriy);
     if (v.rejim === '+' && n === 0) { xatolar.set(id, 'NOL'); continue; }
     // Reja ishorasi: musbat reja — jami fakt manfiy bo'lmaydi; chegirma (manfiy reja) — jami fakt musbat bo'lmaydi.

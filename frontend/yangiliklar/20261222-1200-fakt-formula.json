@@ -1,0 +1,8 @@
+{
+  "sana": "2026-11-15",
+  "sarlavha": "Fakt hajm katagida formula",
+  "bandlar": [
+    "Fakt hajm katagiga formula yozish mumkin: =SMETA-FAKT, =QOLDIQ, =SMETA*0.5. Nomlar: SMETA, FAKT, QOLDIQ, F2_MUMKIN; amallar + - * / va qavslar.",
+    "Natija saqlashdan oldin katak ostida ko‘rinadi. Noto‘g‘ri formula saqlanmaydi (xato ko‘rsatiladi), bo‘sh katak NULL bo‘lib qoladi; oddiy son va foiz avvalgidek ishlaydi."
+  ]
+}

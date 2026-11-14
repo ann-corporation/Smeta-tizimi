@@ -1,0 +1,10 @@
+{
+  "Formula: =SMETA-FAKT, =QOLDIQ, =SMETA*0.5 (nomlar: SMETA, FAKT, QOLDIQ, F2_MUMKIN)": { "ru": "Формула: =SMETA-FAKT, =QOLDIQ, =SMETA*0.5 (имена: SMETA, FAKT, QOLDIQ, F2_MUMKIN)", "en": "Formula: =SMETA-FAKT, =QOLDIQ, =SMETA*0.5 (names: SMETA, FAKT, QOLDIQ, F2_MUMKIN)" },
+  "Formula noto‘g‘ri": { "ru": "Формула неверна", "en": "Invalid formula" },
+  "Formula yozilishi noto‘g‘ri": { "ru": "Формула записана неверно", "en": "Formula syntax is invalid" },
+  "Noma’lum nom (SMETA, FAKT, QOLDIQ, F2_MUMKIN)": { "ru": "Неизвестное имя (SMETA, FAKT, QOLDIQ, F2_MUMKIN)", "en": "Unknown name (SMETA, FAKT, QOLDIQ, F2_MUMKIN)" },
+  "Formula uchun kerakli qiymat noma’lum": { "ru": "Не известно значение, нужное для формулы", "en": "A value the formula needs is unknown" },
+  "0 ga bo‘lish mumkin emas": { "ru": "Деление на 0 невозможно", "en": "Division by 0 is not possible" },
+  "Son yoki formula kiriting": { "ru": "Введите число или формулу", "en": "Enter a number or a formula" },
+  "Formula juda murakkab": { "ru": "Формула слишком сложная", "en": "Formula is too complex" }
+}
