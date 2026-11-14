@@ -75,7 +75,7 @@ function OtishTugmalari({ royxat, ochish }: { royxat?: SahifaIshora[]; ochish: (
 }
 
 /** Kasb ishchisi bilan suhbat: har savolda AI qadamlari JONLI ko'rinadi; harakat takliflari tasdiq kartasi bilan keladi. */
-export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, onOtish, onOqildi, yordamchi, foydalanuvchiId = null }: { foydalanuvchiId?: number | null; kompaniyaId: number | null; kasb: KasbIshchi | null; sahifa: string; generatsiya: number; tayyorSavol?: TayyorSavol | null; onOtish?: () => void; onOqildi?: () => void; yordamchi?: YordamchiUlanish }) {
+function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, onOtish, onOqildi, yordamchi, foydalanuvchiId = null }: { foydalanuvchiId?: number | null; kompaniyaId: number | null; kasb: KasbIshchi | null; sahifa: string; generatsiya: number; tayyorSavol?: TayyorSavol | null; onOtish?: () => void; onOqildi?: () => void; yordamchi?: YordamchiUlanish }) {
   const navigate = useNavigate();
   const [xabarlar, setXabarlar] = useState<Xabar[]>([]);
   const [matn, setMatn] = useState('');
@@ -88,6 +88,7 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const suhbatAvlod = useRef(0);
   const gen = useRef(scope);
   gen.current = `${scope}|${suhbatAvlod.current}`;
+  useEffect(() => () => { gen.current = 'unmounted'; abort.current?.abort(); }, []);
   const yaRef = useRef(yordamchi); yaRef.current = yordamchi;
   const xabarlarRef = useRef<Xabar[]>([]); xabarlarRef.current = xabarlar;
   /** Obyekt ma'lumoti yuklanishini kutayotgan buyruq (obyekt tanlangach avtomatik davom etadi). */
@@ -223,8 +224,8 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
         setMatn(''); setBand(true); busy.current = true;
         const ctrl0 = new AbortController(); abort.current = ctrl0;
         const lr = await niyatLlmOl(kompaniyaId, s, { tarix: tarixOl().filter((x) => !(x.rol === 'user' && x.matn === s.slice(0, 600))), sahifa, obyektNomi: ya.joriyObyekt?.nom ?? null, signal: ctrl0.signal });
-        busy.current = false; setBand(false);
         if (gen.current !== boshlangich) return;
+        busy.current = false; setBand(false);
         if (lr?.tur === 'noaniq') { xabarYangila(id + 'a', (x) => ({ ...x, jonli: false, qadamlar: undefined, matn: lr.savol ?? '', tanlov: lr.variantlar.map((v) => ({ nom: v, matn: v })) })); return; }
         const n2 = lr?.tur === 'buyruq' && lr.qayta ? niyatAniqla(lr.qayta, { sahifalar: ya.sahifalar, obyektlar: ya.obyektlar, joriyObyekt: ya.joriyObyekt, sahifaAmallar: ya.sahifaAmallar }) : null;
         if (lr?.qayta && n2 && n2.tur !== 'nomalum') { n = n2; ishMatn = lr.qayta; oldindanQoyildi = true; }
@@ -447,4 +448,9 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
       </div>
     </>
   );
+}
+
+/** Actor/company change mounts isolated state before any old history can render. */
+export function AiChat(props: Parameters<typeof AiChatContent>[0]) {
+  return <AiChatContent key={`${props.foydalanuvchiId ?? "anonymous"}:${props.kompaniyaId ?? "general"}`} {...props} />;
 }

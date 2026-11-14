@@ -3,15 +3,17 @@ import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-libra
 import { MemoryRouter } from 'react-router-dom';
 import type { YordamchiUlanish } from './yordamchi/ishlov';
 import type { KasbIshchi } from '../../api/t2-agent-ish';
-const m=vi.hoisted(()=>({ask:vi.fn(),load:vi.fn(),list:vi.fn()}));
-vi.mock('../../api/t2-agent-ish',()=>({suhbatRoyxatOl:m.list,suhbatServerga:vi.fn(async()=>null),suhbatServerdanOl:m.load,kasbSavolOqim:m.ask,tizimYordamSavol:vi.fn()}));
+const m=vi.hoisted(()=>({ask:vi.fn(),load:vi.fn(),list:vi.fn(),intent:vi.fn()}));
+vi.mock('../../api/t2-agent-ish',()=>({niyatLlmOl:m.intent,suhbatRoyxatOl:m.list,suhbatServerga:vi.fn(async()=>null),suhbatServerdanOl:m.load,kasbSavolOqim:m.ask,tizimYordamSavol:vi.fn()}));
 vi.mock('./AiBaho',()=>({AiBaho:()=>null}));vi.mock('./AiHarakatKarta',()=>({AiHarakatKarta:()=>null}));
+vi.mock('../../lib/yordamchi/niyat',()=>({niyatAniqla:()=>({tur:'nomalum',yaqin:[]})}));
+vi.mock('../../lib/yordamchi/niyat-llm',()=>({niyatLlmGaMosmi:()=>true}));
 import {AiChat} from './AiChat';
 const helper={sahifalar:[],obyektlar:[],joriyObyekt:null,motor:{holat:'tayyor'}} as unknown as YordamchiUlanish;
 const role={rol:'pto',profil:'pto',nom:'PTO',vazifa:'Smeta',kategoriyalar:[],namuna_savollar:[],taqiq_izoh:'',boshqalar:[]} as KasbIshchi;
 const view=(uid=7)=><MemoryRouter><AiChat kompaniyaId={17} foydalanuvchiId={uid} kasb={role} sahifa="/admin" generatsiya={0} yordamchi={helper}/></MemoryRouter>;
 const choose=(id:string)=>fireEvent.change(screen.getByLabelText('Suhbatni tanlash'),{target:{value:id}});
-beforeEach(()=>{localStorage.clear();sessionStorage.clear();m.ask.mockReset();m.load.mockReset();m.list.mockReset().mockResolvedValue([]);
+beforeEach(()=>{localStorage.clear();sessionStorage.clear();m.ask.mockReset();m.intent.mockReset();m.load.mockReset();m.list.mockReset().mockResolvedValue([]);
  localStorage.setItem('jarvis-suhbatlar:7:17',JSON.stringify(['a','b'].map(id=>({id,sarlavha:'Chat '+id,yangilandi:Date.now(),xabarlar:[{rol:'user',matn:'Message '+id}]}))));});
 afterEach(cleanup);
 it('conversation switch remains visible during a conversation',async()=>{render(view());await act(async()=>{});choose('a');expect(screen.getByText('Message a', {selector:'p'})).toBeTruthy();expect(screen.getByLabelText('Suhbatni tanlash')).toBeTruthy();choose('b');expect(screen.queryByText('Message a', {selector:'p'})).toBeNull();expect(screen.getByText('Message b', {selector:'p'})).toBeTruthy();});
@@ -21,3 +23,16 @@ it('new conversation invalidates a late model answer',async()=>{let done!:(v:unk
  await act(async()=>done({ok:true,javob:'OLD ANSWER'}));expect(screen.queryByText('OLD ANSWER')).toBeNull();});
 it('changing actor cannot copy the previous user history into the new archive',async()=>{const v=render(view());choose('a');v.rerender(view(8));await waitFor(()=>expect(screen.queryByText('Message a', {selector:'p'})).toBeNull());expect(localStorage.getItem('jarvis-suhbatlar:8:17')).toBeNull();expect(sessionStorage.getItem('jarvis-chat:8:17')).not.toContain('Message a');});
 it('late server conversation cannot overwrite a newer local selection',async()=>{let done!:(v:unknown)=>void;m.list.mockResolvedValue([{id:'remote',sarlavha:'Remote',yangilandi:new Date().toISOString()}]);m.load.mockReturnValue(new Promise(r=>done=r));render(view());await screen.findByRole('option',{name:'Remote'});choose('remote');choose('b');await act(async()=>done({xabarlar:[{r:'ai',m:'OLD SERVER'}]}));expect(screen.queryByText('OLD SERVER')).toBeNull();expect(screen.getByText('Message b', {selector:'p'})).toBeTruthy();});
+
+it('late intent cannot unlock a newer conversation request',async()=>{
+ let oldDone!:(v:unknown)=>void,newDone!:(v:unknown)=>void;
+ m.intent.mockReturnValueOnce(new Promise(r=>oldDone=r)).mockReturnValueOnce(new Promise(r=>newDone=r));
+ m.ask.mockResolvedValue({ok:true,javob:'OK'});
+ const active={...helper,sahifalar:[{}]} as YordamchiUlanish;
+ render(<MemoryRouter><AiChat kompaniyaId={17} foydalanuvchiId={7} kasb={role} sahifa="/admin" generatsiya={0} yordamchi={active}/></MemoryRouter>);
+ const send=(text:string)=>{fireEvent.change(screen.getByRole('textbox'),{target:{value:text}});fireEvent.keyDown(screen.getByRole('textbox'),{key:'Enter'});};
+ send('Birinchi vazifani tekshir');await waitFor(()=>expect(m.intent).toHaveBeenCalledTimes(1));
+ fireEvent.click(screen.getByRole('button',{name:'Yangi suhbat'}));send('Ikkinchi vazifani tekshir');await waitFor(()=>expect(m.intent).toHaveBeenCalledTimes(2));
+ await act(async()=>oldDone(null));send('Uchinchi vazifani tekshir');expect(m.intent).toHaveBeenCalledTimes(2);
+ await act(async()=>newDone(null));
+});
