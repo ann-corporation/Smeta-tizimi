@@ -1,1 +1,25 @@
-{"name":"SMETA TIZIM 02","short_name":"SMETA 02","description":"Qurilish smetasi, fakt va hujjatlar. Usta uchun: Bugun.","lang":"uz","start_url":"/","scope":"/","display":"standalone","background_color":"#0b1220","theme_color":"#0b1220","icons":[{"src":"/favicon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}],"shortcuts":[{"name":"Bugun (usta)","short_name":"Bugun","url":"/admin/bugun"}]}
+{
+  "name": "SMETA TIZIM 02",
+  "short_name": "SMETA 02",
+  "description": "Qurilish smetasi, fakt va hujjatlar. Usta uchun: Bugun.",
+  "lang": "uz",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0e1113",
+  "theme_color": "#0e1113",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "/ikonlar/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/ikonlar/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/ikonlar/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Bugun", "short_name": "Bugun", "url": "/admin/bugun" },
+    { "name": "Fakt kiritish", "short_name": "Fakt", "url": "/admin/fakt" },
+    { "name": "Obyektlar", "short_name": "Obyektlar", "url": "/admin/obyektlar" }
+  ]
+}
