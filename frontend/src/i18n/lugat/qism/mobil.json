@@ -1,0 +1,70 @@
+{
+    "Bosh sahifa":  {
+                        "ru":  "Главная",
+                        "en":  "Home"
+                    },
+    "Obyektlar":  {
+                      "ru":  "Объекты",
+                      "en":  "Sites"
+                  },
+    "Fakt":  {
+                 "ru":  "Факт",
+                 "en":  "Actuals"
+             },
+    "Hujjatlar":  {
+                      "ru":  "Документы",
+                      "en":  "Documents"
+                  },
+    "Tasdiqlar":  {
+                      "ru":  "Согласования",
+                      "en":  "Approvals"
+                  },
+    "Bugun":  {
+                  "ru":  "Сегодня",
+                  "en":  "Today"
+              },
+    "Buxgalteriya":  {
+                         "ru":  "Бухгалтерия",
+                         "en":  "Accounting"
+                     },
+    "Kadrlar":  {
+                    "ru":  "Кадры",
+                    "en":  "HR"
+                },
+    "Nazorat":  {
+                    "ru":  "Надзор",
+                    "en":  "Supervision"
+                },
+    "Kabinet":  {
+                    "ru":  "Кабинет",
+                    "en":  "Portal"
+                },
+    "Ombor":  {
+                  "ru":  "Склад",
+                  "en":  "Warehouse"
+              },
+    "Taminot":  {
+                    "ru":  "Снабжение",
+                    "en":  "Supply"
+                },
+    "Jarvis":  {
+                   "ru":  "Jarvis",
+                   "en":  "Jarvis"
+               },
+    "Menyu":  {
+                  "ru":  "Меню",
+                  "en":  "Menu"
+              },
+    "Pastki navigatsiya":  {
+                               "ru":  "Нижняя навигация",
+                               "en":  "Bottom navigation"
+                           },
+    "Menyuni ochish":  {
+                           "ru":  "Открыть меню",
+                           "en":  "Open menu"
+                       },
+    "Jarvis AI ni ochish":  {
+                                "ru":  "Открыть Jarvis AI",
+                                "en":  "Open Jarvis AI"
+                            }
+}

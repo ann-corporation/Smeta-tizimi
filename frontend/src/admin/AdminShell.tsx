@@ -28,6 +28,8 @@ import { QollanmaBoshqaruv } from '../components/qollanma/QollanmaKarta';
 import { KursYordam } from '../components/kurs/KursYordam';
 import { KursYurish } from '../components/kurs/KursYurish';
 import { NimaYangiBelgi } from '../components/qollanma/NimaYangiBelgi';
+import { MobilTabPanel } from '../components/mobil/MobilTabPanel';
+import '../dizayn/mobil.css';
 import { BolimTablariKontekst } from './bolimTablariKontekst';
 import { NAV_GURUHLAR, NAV_SAHIFALAR, navSahifa, type NavIkonka } from '../lib/nav/navReestr';
 import { menyuQur, ilovalarRoyxati, kundalikIshlar, type NavKontekst } from '../lib/nav/navFiltr';
@@ -259,6 +261,8 @@ function AdminShellInner() {
   const tabGuruhlari = yangiMenyu
     ? ishGuruhlar.flatMap(g => [...g.menyular, ...(g.yana ?? [])].flatMap(m => m.tablar ? [m.tablar] : []))
     : hammasiGuruhlar.flatMap(g => g.menyular.flatMap(m => m.tablar ? [m.tablar] : []));
+  /* Telefon pastki paneli (components/mobil): tabga faqat shu rol/ruxsat/modul filtridan o'tgan sahifalar chiqadi. */
+  const mobilKorinadi = new Set<string>([...palitraBandlari.map((b) => b.yol), ...kundalikBandlar.map((b) => b.yol)]);
   const bandFaol = (m: MenyuQator, isActive: boolean) => isActive || !!m.tablar?.some(tb => joy.pathname === tb.yol || joy.pathname.startsWith(tb.yol + '/'));
 
   return (
@@ -372,14 +376,14 @@ function AdminShellInner() {
           <button type="button" className="os-mobile-only os-menu-button" aria-label={mobilMenyuOchiq ? 'Navigatsiyani yopish' : 'Navigatsiyani ochish'} aria-expanded={mobilMenyuOchiq} onClick={() => setMobilMenyuOchiq((open) => !open)}>
             {mobilMenyuOchiq ? <X size={17} /> : <Menu size={17} />}
           </button>
-          <IlovaIshgaTushirgich ilovalar={ilovalar} joriy={joriyIlova} onTanla={(kod) => { setOxirgiIlova(kod); setHammasiRejim(false); try { localStorage.setItem('fz-ilova', kod); } catch { /* xotira yopiq */ } }} />
-          <OrqaOldinga />
+          <span className="os-mobil-yashir"><IlovaIshgaTushirgich ilovalar={ilovalar} joriy={joriyIlova} onTanla={(kod) => { setOxirgiIlova(kod); setHammasiRejim(false); try { localStorage.setItem('fz-ilova', kod); } catch { /* xotira yopiq */ } }} /></span>
+          <span className="os-mobil-yashir"><OrqaOldinga /></span>
           <span data-kurs="kompaniya-tanlagich" className="contents"><KompaniyaTanlagich /></span>
           {k.superadmin && <span className="hidden rounded-md border border-accent/25 px-2 py-1 text-[10px] text-accent 2xl:inline">{t('Platforma roli')}: superadmin</span>}
           {k.superadmin && k.joriy?.membershipRole && <span className="hidden text-[10px] text-text-dim 2xl:inline">{t('Kompaniyadagi rol')}: {k.joriy.membershipRole}</span>}
           <PTOWorkspaceBar />
-          <span data-kurs="jarvis" className="contents"><AiHelperTugma /></span>
-          <div className="ml-auto flex items-center gap-2"><button type="button" onClick={() => window.dispatchEvent(new CustomEvent('palitra:och'))} data-kurs="qidirish" aria-label={t('Sahifa yoki obyekt izlash...')} title={t('Sahifa yoki obyekt izlash...')} className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2 text-[12px] text-text-dim hover:text-text"><Search size={14} aria-hidden="true" /><span className="hidden xl:inline">{t('Qidirish')}</span></button><NimaYangiBelgi /><KursYordam /><QollanmaBoshqaruv foydalanuvchi={sess.data?.email} /><TilTanlagich ixcham /><Qongiroqcha /><AkkauntTugmasi /></div>
+          <span data-kurs="jarvis" className="contents os-mobil-yashir"><AiHelperTugma /></span>
+          <div className="ml-auto flex items-center gap-2"><button type="button" onClick={() => window.dispatchEvent(new CustomEvent('palitra:och'))} data-kurs="qidirish" aria-label={t('Sahifa yoki obyekt izlash...')} title={t('Sahifa yoki obyekt izlash...')} className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2 text-[12px] text-text-dim hover:text-text"><Search size={14} aria-hidden="true" /><span className="hidden xl:inline">{t('Qidirish')}</span></button><span className="os-mobil-yashir"><NimaYangiBelgi /><KursYordam /><QollanmaBoshqaruv foydalanuvchi={sess.data?.email} /></span><TilTanlagich ixcham /><Qongiroqcha /><AkkauntTugmasi /></div>
         </div>
 
         {/* ⚠️ 2026-09-07 (Claude, P0): AVVAL bu yerda `sess.data.yozaOladi`
@@ -422,6 +426,7 @@ function AdminShellInner() {
             {moduleOpen ? <SahifaChegarasi><RuxsatGuard /></SahifaChegarasi> : <p role="alert" className="karta p-4 text-sm">{t('Bu modul kompaniyada o‘chirilgan.')}</p>}
           </BolimTablariKontekst.Provider>
         </div>
+        <MobilTabPanel rol={effektivRol} korinadi={mobilKorinadi} menyuOchiq={mobilMenyuOchiq} onMenyu={() => setMobilMenyuOchiq((o) => !o)} />
       </main>
 
       <F2NavbatChip />
