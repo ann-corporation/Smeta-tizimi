@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 const m = vi.hoisted(() => ({
@@ -17,7 +17,7 @@ import { qadamMalumotKeshTozala } from '../../lib/pto-markazi/useQadamMalumot';
 
 const akt = (o: Record<string, unknown>) => ({ tur: 'fakt', holat: 'tasdiqlangan', oy: '2026-11-01', yaratildi: '2026-11-03T00:00:00Z', hujjat_jami: 1, yozilgan_jami: 1, ...o });
 const chiz = (p: Parameters<typeof ZanjirChizigi>[0] = {}) => render(<MemoryRouter><ZanjirChizigi {...p} /></MemoryRouter>);
-const TARTIB = ['smeta', 'fakt', 'aosr', 'f2', 'f3', 'tolov', 'slichitelniy'];
+const TARTIB = ['smeta', 'fakt', 'aosr', 'f2', 'nakopitelniy', 'f3', 'tolov', 'slichitelniy'];
 
 afterEach(() => {
   cleanup(); qadamMalumotKeshTozala(); vi.clearAllMocks(); rolHolati.rol = null;
@@ -46,13 +46,34 @@ describe('ZanjirChizigi — rol va qo‘shimcha sonlar', () => {
 });
 
 describe('ZanjirChizigi', () => {
-  it('obyekt tanlanmagan — hech narsa chizilmaydi', () => {
+  it('obyekt tanlanmagan (kompaniya darajasi) — 8 qadam chiziladi, hammasi bosiladigan havola va «Noma‘lum»; reestr so‘ralmaydi', () => {
     m.ws.scope.objectId = null; m.akt.mockResolvedValue({ ok: true, qatorlar: [] }); m.davom.mockResolvedValue({ ok: true, qatorlar: [] });
-    const { container } = chiz();
-    expect(container.innerHTML).toBe('');
+    chiz();
+    const li = Array.from(screen.getByTestId('zanjir-chizigi').querySelectorAll('li'));
+    expect(li).toHaveLength(8);
+    expect(li.every((x) => x.getAttribute('data-holat') === 'unknown' && x.querySelector('a')?.getAttribute('href'))).toBe(true);
+    expect(m.akt).not.toHaveBeenCalled();
   });
 
-  it('6 qadam to‘g‘ri tartibda (АОСР F2 dan oldin); hammasi obyekt va davr bilan havola; joriy sahifa belgilanadi', () => {
+  it('obyekt ro‘yxatda tasdiqlanmagan (ro‘yxat o‘qilmadi/vaqt chegarasi) — reestrda fakt qoralamasi bo‘lsa ham hech qaysi qadam «Diqqat/blocked» emas, hammasi «Noma‘lum»', async () => {
+    m.ws.objects = []; // obyektlar ro'yxati o'qilmadi
+    m.akt.mockResolvedValue({ ok: true, qatorlar: [akt({ holat: 'qoralama' }), akt({ holat: 'qoralama' })] }); m.davom.mockResolvedValue({ ok: true, qatorlar: [] });
+    chiz();
+    await screen.findByTestId('zanjir-obyekt-oqilmadi');
+    const holatlar = Array.from(screen.getByTestId('zanjir-chizigi').querySelectorAll('li')).map((x) => x.getAttribute('data-holat'));
+    expect(holatlar).toEqual(Array(8).fill('unknown'));
+    expect(screen.getByTestId('zanjir-chizigi').textContent).not.toMatch(/Avval/);
+  });
+
+  it('obyektda faqat fakt qoralamasi bor — АОСР va F2 «Avval fakt kerak» bilan to‘silmaydi', async () => {
+    m.akt.mockResolvedValue({ ok: true, qatorlar: [akt({ holat: 'qoralama' }), akt({ holat: 'qoralama' })] }); m.davom.mockResolvedValue({ ok: true, qatorlar: [] });
+    chiz();
+    await waitFor(() => expect(screen.getByTestId('zanjir-izoh-fakt').textContent).toMatch(/2 ta fakt qoralamada/));
+    expect(screen.getByTestId('zanjir-izoh-aosr').textContent).not.toMatch(/Avval fakt/);
+    expect(screen.getByTestId('zanjir-izoh-f2').textContent).not.toMatch(/Avval fakt/);
+  });
+
+  it('8 qadam to‘g‘ri tartibda (АОСР F2 dan oldin); hammasi obyekt va davr bilan havola; joriy sahifa belgilanadi', () => {
     m.akt.mockReturnValue(new Promise(() => undefined)); m.davom.mockReturnValue(new Promise(() => undefined));
     chiz({ joriy: 'aosr' });
     const nav = screen.getByTestId('zanjir-chizigi');
@@ -63,6 +84,7 @@ describe('ZanjirChizigi', () => {
       '/admin/fakt?obyekt=5&davr=2026-11',
       '/admin/aosr?obyekt=5&davr=2026-11',
       '/admin/f2-tayyorlash?obyekt=5&davr=2026-11',
+      '/admin/nakopitelniy?obyekt=5&davr=2026-11',
       '/admin/nakopitelniy?obyekt=5&davr=2026-11&f3=shartnoma',
       '/admin/moliya?obyekt=5&davr=2026-11&tab=tolov',
       '/admin/holat/5?obyekt=5&davr=2026-11#slichitelniy',

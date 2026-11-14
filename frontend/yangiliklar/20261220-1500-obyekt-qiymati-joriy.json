@@ -1,0 +1,9 @@
+{
+  "sana": "2026-12-20",
+  "sarlavha": "Obyekt qiymati endi smeta + o‘zgarishlar",
+  "bandlar": [
+    "Obyekt sahifasidagi asosiy «Smeta qiymati» kartasi asl smeta + qo‘shimcha/zamena o‘zgarishlarini ko‘rsatadi (QQS bilan, keyin ustamali, ustamasiz); ostida «shundan asl smeta va o‘zgarishlar».",
+    "Fakt va F2 foizlari, progress chiziq va qoldiq endi smeta + o‘zgarishlarga nisbatan — qo‘shimcha ishli obyektda 100 % dan oshmaydi.",
+    "O‘zgarishlar o‘qilmasa — asl smeta va «o‘zgarishlar o‘qilmadi» belgisi (0 emas)."
+  ]
+}

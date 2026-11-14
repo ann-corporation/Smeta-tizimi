@@ -7,6 +7,7 @@ import { oyAjrat } from '../kontekst-ajrat';
 import { jarvisKalitmi, xotiraBuyrugi, xotiraKalit, xotiraTekshir } from '../xotira';
 import { sozlar } from '../matn';
 import { borMi, katOl, nomMosmi, pulMatn, sanaOl, summaOl, tanlovTop } from './yordam';
+import { PTO_VOSITALARI } from './pto-liniya';
 import type { Slot, Variant, Vosita, VositaJavob, VositaKont } from './tur';
 
 const ALOQA_FAOL = (x: { faol: boolean }) => x.faol;
@@ -237,7 +238,7 @@ const zamenaVosita: Vosita = {
     const soz = xom.replace(/\b(zamena|qoshimcha|qo['‘’ʻ`]shimcha|ish|ishni|kerak|chiqdi|qilay|taklif)\b/giu, ' ').replace(/\s+/g, ' ').trim();
     const topilgan = c.qidir && soz.length >= 3 ? await c.qidir(soz).catch(() => '') : '';
     const fakt = c.sahifalar.filter((s) => s.yol === '/admin/fakt' || s.yol === '/admin/smeta-studio').slice(0, 2).map((s) => ({ yol: s.yol, nom: s.nom }));
-    return { tur: 'javob', matn: [`**${ob.nom}** — smetada yo‘q ish bo‘lsa tartib (smeta normasi avval):`, '1. Mavjud smeta qatori yoki normasini toping (pastda qidiruv natijasi).', '2. Mos kelmasa — zamena (Fakt sahifasida qator ustida «zamena»): asl qator o‘zgarmaydi, almashtirish alohida qatlamda.', '3. Oxirgi chora — bog‘liq qatordan keyin qo‘shimcha ish.', topilgan ? `\n**Mavjud qatorlar:**\n${topilgan}` : soz.length >= 3 ? '\nBu so‘z bo‘yicha mavjud qator topilmadi.' : ''].filter(Boolean).join('\n'), havolalar: fakt };
+    return { tur: 'javob', matn: [`**${ob.nom}** — smetada yo‘q ish bo‘lsa tartib (smeta normasi avval):`, '1. Mavjud smeta qatori yoki normasini toping (pastda qidiruv natijasi).', '2. Mos kelmasa — zamena (Fakt sahifasida qator ustida «zamena»): asl qator o‘zgarmaydi, almashtirish alohida qatlamda.', '3. Oxirgi chora — bog‘liq qatordan keyin qo‘shimcha ish.', '4. Saqlash: «zamena saqla asl: … yangi: … birlik: … hajm: … sabab: …» (yoki «qo‘shimcha saqla …») — taklif kartasi va tasdiq bilan.', topilgan ? `\n**Mavjud qatorlar:**\n${topilgan}` : soz.length >= 3 ? '\nBu so‘z bo‘yicha mavjud qator topilmadi.' : ''].filter(Boolean).join('\n'), havolalar: fakt };
   },
 };
 
@@ -315,7 +316,7 @@ const yoqVosita: Vosita = {
   },
 };
 
-export const VOSITALAR: readonly Vosita[] = [slichitelniyVosita, zamenaVosita, xotiraKorsatVosita, xotiraYozVosita, xotiraUnutVosita, bugunVosita, solishtiruvVosita, f2Amal('tasdiq'), f2Amal('bekor'), xarajatVosita, tolovVosita, murojaatVosita, taqdimVosita, yoqVosita];
+export const VOSITALAR: readonly Vosita[] = [...PTO_VOSITALARI, slichitelniyVosita, zamenaVosita, xotiraKorsatVosita, xotiraYozVosita, xotiraUnutVosita, bugunVosita, solishtiruvVosita, f2Amal('tasdiq'), f2Amal('bekor'), xarajatVosita, tolovVosita, murojaatVosita, taqdimVosita, yoqVosita];
 
 /** Amal reestri (#399) kelganda shu nuqtadan ulanadi: reestr yozuvidan Vosita hosil qilish (hozircha qo'lda ro'yxat). */
 export function reestrdanVosita(_yozuv: unknown): Vosita | null { return null; }

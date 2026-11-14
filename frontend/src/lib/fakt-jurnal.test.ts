@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { T2Qator } from '../api/supabase';
-import { bolimSummalari, bolimTarkibi, nakopitelniyMoslik, holatTur, jurnalPaket, jurnalQur, qoldiqUlushi, sonOqi, zamenaTartibla } from './fakt-jurnal';
+import { bolimMaxraji, bolimSummalari, bolimTarkibi, nakopitelniyMoslik, holatTur, jurnalPaket, jurnalQur, qoldiqUlushi, sonOqi, zamenaTartibla } from './fakt-jurnal';
 
 const q = (o: Partial<T2Qator> & { id: number; tur: string }): T2Qator => ({
   obyekt_id: 1, obyekt: null, kompaniya_id: 1, ota_id: null, daraja: 0, tartib: o.id, kod: null, nom: 'n', birlik: 'м3',
@@ -150,12 +150,13 @@ describe('Fakt jurnali — ierarxiya, zamena tartibi, summalar (2026-10-25)', ()
     expect(s.get(2)?.f2.ustamasiz).toBe(300 + 70 + 30);
     expect(s.get(1)?.f2.ustamasiz).toBe(5400);
     // Fakt yozilganidek (F2 dan chiqarilmaydi): F2 hajmi berilmagan qatorlarda — odatdagi fakt summasi.
-    expect(s.get(0)?.fakt.ustamasiz).toBe(200 + 10 + 100);
+    // Ish faktining o'zi (10) bolalari bor ishda qo'shilmaydi (rollup; server fakt faqat barglar) — faqat bolalar: 200 + 100.
+    expect(s.get(0)?.fakt.ustamasiz).toBe(200 + 100);
     expect(s.get(0)?.faktF2).toEqual({ f2Narxda: 0 });
     // Narx qoidasi: 10-qatorda tasdiqlangan F2 (0,5 hajm, 30 so'm → 60 so'm/birlik) — fakt 1 × 60 (smeta narxi emas).
     const h2 = h.map((x) => (x.qator_id === 10 ? { ...x, f2_hajm: 0.5 } : x));
     const s2 = bolimSummalari(r, h2);
-    expect(s2.get(0)?.fakt.ustamasiz).toBe(200 + 10 + 60);
+    expect(s2.get(0)?.fakt.ustamasiz).toBe(200 + 60);
     expect(s2.get(0)?.faktF2).toEqual({ f2Narxda: 1 });
     expect(s.get(0)?.smeta.ustamasiz).toBe(1400);          // faqat barglar (asl)
     expect(s.get(0)?.qoldiq.ustamasiz).toBe(700 + 370 - 5000 - 70);
@@ -164,6 +165,9 @@ describe('Fakt jurnali — ierarxiya, zamena tartibi, summalar (2026-10-25)', ()
     const f = nakopitelniyMoslik(s.get(0)!, { smeta_summa: 1400, jami_tasdiqlangan_summa: 5500 });
     expect(f).toMatchObject({ mos: false, f2Farq: -100, smetaFarq: 0 });
     expect(nakopitelniyMoslik(s.get(0)!, null)).toMatchObject({ mos: true, f2Farq: null, smetaJami: 1400 });
+    // Bo'lim maxraji (bajarilish og'irligi) = asl smeta + qo'shimcha/zamena; asl smeta o'zgarmaydi.
+    expect(bolimMaxraji(s.get(0))).toBe(nakopitelniyMoslik(s.get(0)!, null).smetaJami);
+    expect(bolimMaxraji(undefined)).toBeNull();
   });
 });
 

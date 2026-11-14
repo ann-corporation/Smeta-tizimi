@@ -53,9 +53,12 @@ function Ikki({ summa, hajm, kasr = 3 }: { summa: number | null | undefined; haj
   </>;
 }
 
-export function NakopitelniyJadval({ qatorlar, korinadigan, oyKesim, jami, truncated, filtrBor }: {
+export function NakopitelniyJadval({ qatorlar, korinadigan, oyKesim, jami, truncated, filtrBor, aktlar, davr }: {
   qatorlar: NakopitelniyQator[]; korinadigan: NakopitelniyQator[]; oyKesim: OyKesim | null; jami: NakopitelniyJami | null; truncated: boolean; filtrBor: boolean;
+  /** Har F-2 alohida ustun (Excel bilan bir tuzilma): ustun kaliti → akt (raqam, oy). Berilmasa ustun = oy. */
+  aktlar?: ReadonlyArray<{ kalit: string; raqam: string | null; oy: string }>; davr?: string;
 }) {
+  const aktBy = useMemo(() => new Map((aktlar ?? []).map((a) => [a.kalit, a] as const)), [aktlar]);
   const [limit, setLimit] = useState(QADAM);
   const [yigilgan, setYigilgan] = useState<Set<number>>(new Set());
   // Qidiruv/ma'lumot almashganda boshiga qaytadi.
@@ -117,13 +120,13 @@ export function NakopitelniyJadval({ qatorlar, korinadigan, oyKesim, jami, trunc
       { kalit: 'f2ga', nom: t('F2 ga olish mumkin'), tur: 'son', qiymat: (q) => led(q).f2AvailableQuantity },
       { kalit: 'shartnoma', nom: t('Shartnomadan qoldi'), tur: 'son', qiymat: (q) => led(q).contractualRemainingQuantity },
     ];
-    for (const oy of oyKesim?.oylar ?? []) u.push({ kalit: 'oy:' + oy, nom: davrNomi(oy, tilLocale()), tur: 'son', qiymat: (q) => oyKesim?.qiymat.get(q.qator_id)?.get(oy)?.summa });
+    for (const oy of oyKesim?.oylar ?? []) u.push({ kalit: 'oy:' + oy, nom: aktBy.get(oy) ? `Ф-2${aktBy.get(oy)!.raqam ? ' № ' + aktBy.get(oy)!.raqam : ''} · ${davrNomi(aktBy.get(oy)!.oy, tilLocale())}` : davrNomi(oy, tilLocale()), tur: 'son', qiymat: (q) => oyKesim?.qiymat.get(q.qator_id)?.get(oy)?.summa });
     if (!oyKesim?.oylar.length) {
       u.push({ kalit: 'oldingi', nom: t('Oldingi F2'), tur: 'son', qiymat: (q) => q.oldingi_summa });
       u.push({ kalit: 'joriy', nom: t('Joriy F2'), tur: 'son', qiymat: (q) => q.joriy_summa });
     }
     return u;
-  }, [oyKesim]);
+  }, [oyKesim, aktBy]);
   const f = useJadvalFiltr(korinadigan, ustunlar, daraxt);
   const F = (kalit: string) => <UstunFiltrTugma {...f.tugma(kalit)} />;
   const korinar = useMemo(() => (yigilgan.size ? f.natija.filter((q) => !yashirin.has(q.qator_id)) : f.natija), [f.natija, yashirin, yigilgan]);
@@ -132,8 +135,8 @@ export function NakopitelniyJadval({ qatorlar, korinadigan, oyKesim, jami, trunc
   const almashtir = (id: number) => setYigilgan((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
   const locale = tilLocale();
-  const oyNomi = (oy: string) => davrNomi(oy, locale);
-  const oxirgiOy = oyUstunlar ? oyUstunlar[oyUstunlar.length - 1] : null;
+  const oyNomi = (oy: string) => { const a = aktBy.get(oy); return a ? `Ф-2${a.raqam ? ' № ' + a.raqam : ''} · ${davrNomi(a.oy, locale)}` : davrNomi(oy, locale); };
+  const oxirgiOy = oyUstunlar ? (aktBy.size && davr ? ([...oyUstunlar].reverse().find((k) => aktBy.get(k)?.oy === davr.slice(0, 7)) ?? null) : oyUstunlar[oyUstunlar.length - 1]) : null;
   const oyKenglik = 116;
   const thG = (rang: string): CSSProperties => ({ top: 0, height: 26, textAlign: 'center', fontSize: 10.5, borderBottom: `2px solid ${rang}`, ...chap });
   const th2: CSSProperties = { top: 26, height: 30, textAlign: 'right' };
@@ -195,6 +198,7 @@ export function NakopitelniyJadval({ qatorlar, korinadigan, oyKesim, jami, trunc
         <td style={{ position: 'sticky', left: 0, zIndex: 1, background: 'inherit', ...bosh(q), maxWidth: 'clamp(200px, 24vw, 420px)' }} title={q.ozgarish_izoh || q.kod || ''}>
           {q.kod ? <span className="fz-c-shifr" style={{ marginRight: 6 }}>{q.kod}</span> : null}{q.nom}
           {q.ozgarish_izoh && <span className="fz-chip fz-chip--accent" style={{ marginLeft: 6 }}>{q.zamena ? t('zamena') : t('qo‘shimcha')}</span>}
+          {(q.bajarilmadi_sabab != null || (q.bajarilmadi_hajm ?? 0) > 0) && <span className="fz-chip" style={{ marginLeft: 6 }} title={q.bajarilmadi_izoh ?? undefined}>{t('Bajarilmagan')}</span>}
         </td>
         <td className="fz-c-unit" style={{ textAlign: 'center' }}>{q.birlik || '—'}</td>
         <td className="fz-c-num" style={chap}><FmtN val={jamiHajmSafe(q)} kasr={3} /></td>

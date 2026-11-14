@@ -108,6 +108,10 @@ export type ObyektMeta = {
   ortiqcha_soni?: number;
   /** Smeta 0/`null` bo'lsa `null` — yolg'on «0%» ko'rsatilmaydi. */
   fakt_foiz: number | null; f2_foiz: number | null;
+  /** Foiz maxraji: `joriy` — asl smeta + o'zgarishlar (`smeta_joriy`); `asl` — joriy noma'lum, asl smeta (belgi bilan). Eski RPCda yo'q. */
+  foiz_maxraj?: 'joriy' | 'asl';
+  /** Smeta + o'zgarishlar (ustamasiz); noma'lum bo'lsa `null` (0 emas). `smeta` — asl, o'zgarmaydi. */
+  smeta_joriy?: number | null;
   zayavka: number;
   kozgu: string | null;
   belgi: MindmapBelgi[];

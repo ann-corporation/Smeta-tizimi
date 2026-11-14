@@ -46,6 +46,7 @@ const ikki = (): Forma3ShartnomaObyekt[] => [
   obyekt(2, 'Sinov obyekti B', 20_000_000, [['2026-03', 4_000_000], ['2026-04', 1_500_000]]),
 ];
 const OPT: Forma3ShartnomaOptions = {
+  varaqRejim: 'bitta',
   davr: '2026-03', shartnomaRaqam: 'T-1', shartnomaNom: 'Sinov shartnomasi', shartnomaSana: '2026-01-15', shartnomaSumma: 33_600_000,
   raqam: '2', hujjatSana: '2026-04-05', oldingiF3Sana: '2026-03-07',
 };
@@ -209,7 +210,10 @@ describe('Forma 3 (shartnoma) — real hujjat shakli', () => {
     expect(hammaMatn).toContain('Sinov shartnomasi');
     expect(qatorOf(top(v, 'Sinov shartnomasi'))).toBe(ro);
     const d = hammaMatn.find((m) => m.startsWith('№ T-1'))!;
-    expect(d).toMatch(/^№ T-1 от 15\.01\.2026 г\. Общая договорная текущая стоимость: 33[\s ]600[\s ]000,00 сум$/);
+    // Summa endi matn ichida emas — alohida katakda (yorliq | son | «сум»), etalondagidek.
+    expect(d).toBe('№ T-1 от 15.01.2026 г.');
+    expect(hammaMatn).toContain('Общая договорная текущая стоимость:');
+    expect([...v.kataklar.values()].some((k) => Number(k.v) === 33_600_000 && !k.f)).toBe(true);
   });
 
   it('narastayushchiy: ketma-ket F-3 larda гр.10 (с начала) = oldingi F-3 гр.10 + shu F-3 гр.16 (за месяц); гр.13 ham', () => {
@@ -251,7 +255,11 @@ describe('Forma 3 (shartnoma) — real hujjat shakli', () => {
     expect(son(x.kataklar.get(`P${qatorOf(top(x, '1. SINOV OBYEKTI A')) + 3}`))).toBeGreaterThan(0);
     expect(hh.oyKOplate).toBeNull();
     expect(hh.propis).toBeNull();
-    expect([...x.kataklar.values()].map(matn).some((s) => /ПОЗИЦИИ, ТРЕБУЮЩИЕ ВНИМАНИЯ/.test(s))).toBe(true);
+    // Sababi buyurtmachiga beriladigan справка tanasida emas — alohida xizmat varag'ida (egasi 2026-11-14).
+    expect([...x.kataklar.values()].map(matn).some((s) => /ПОЗИЦИИ, ТРЕБУЮЩИЕ ВНИМАНИЯ|не заданы для объекта/.test(s))).toBe(false);
+    const zam = hujjatTekshir(hh.bytes).matnlar.join('\n');
+    expect(zam).toMatch(/ЗАМЕЧАНИЯ К СПРАВКЕ/);
+    expect(zam).toMatch(/проценты накладных и прочих расходов не заданы для объекта/);
   });
 });
 

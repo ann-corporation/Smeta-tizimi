@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 vi.mock('../../test02/KompaniyaTanlov', () => ({ useKompaniya: () => ({ joriy: { id: 17 } }) }));
-vi.mock('../../api/supabase', () => ({ sbT2ObyektlarOlKomp: async () => ({ ok: true, qatorlar: [{ id: 127, kompaniya_id: 17, nom: 'Obyekt X', loyiha_id: 7, qator_soni: 3 }] }), yangiOperationId: () => 'test' }));
+vi.mock('../../api/supabase', () => ({ sbT2ObyektlarOlKomp: async () => ({ ok: true, qatorlar: [{ id: 127, kompaniya_id: 17, nom: 'Obyekt X', loyiha_id: 7, qator_soni: 3 }] }), yangiOperationId: () => 'test', sbOqi: async () => ({ ok: true, qatorlar: [] }) }));
 vi.mock('../../umumiy/daraxt/useT2Daraxt', () => ({
   useT2Daraxt: () => ({ rows: [{ id: 1, tur: 'rz', nom: 'R' }], states: [], tree: [{ id: 1, nom: 'Razdel', smeta: 100, stFakt: 0, stF2: 20 }], price: [], loading: false, yangilanmoqda: false, error: '', yuklash: vi.fn(), holatniYangila: vi.fn(), qatorniYangila: vi.fn() }),
 }));

@@ -6,7 +6,7 @@ import { t, tilLocale } from '../../i18n/til';
 import { davrNomi } from '../../lib/f2-hujjat-korinish';
 import { shifrKorinish } from '../../lib/f2-resurs-guruh';
 import { bosqich, type F2Bosqich, type ReestrAkt, type ReestrQator } from '../../lib/f2-reestr/reestr';
-import { reestrUlush } from '../../lib/f2-reestr/reestr-korinish';
+import { bajarilishMaxraji, reestrUlush } from '../../lib/f2-reestr/reestr-korinish';
 import type { F2Bolim, F2Ish, F2Resurs } from '../../lib/f2-tayyor';
 import type { Ustun } from '../../umumiy/jadval-filtr/ustunFiltr';
 import { raqamTozala } from '../../lib/raqam-belgi';
@@ -38,8 +38,8 @@ export function reestrUstunlar(smeta: (q: ReestrQator) => number | null | undefi
     { kalit: 'shartnoma', nom: t('Shartnoma'), tur: 'matn', qiymat: shartnomaMatni },
     { kalit: 'smeta', nom: t('Smeta'), tur: 'son', qiymat: smeta },
     { kalit: 'tasdiq', nom: t('Tasdiqlangan F2'), tur: 'son', qiymat: (q) => summaQiymat(q.boyicha.tasdiqlangan) },
-    { kalit: 'nisbat', nom: t('Smetaga nisbatan'), tur: 'son', qiymat: (q) => {
-      const u = reestrUlush({ tasdiqlangan: q.boyicha.tasdiqlangan, tasdiqImport: q.tasdiqImport, tasdiqTizim: q.tasdiqTizim }, q.obyekt.jami);
+    { kalit: 'nisbat', nom: t('Smeta + o‘zgarishlarga nisbatan'), tur: 'son', qiymat: (q) => {
+      const u = reestrUlush({ tasdiqlangan: q.boyicha.tasdiqlangan, tasdiqImport: q.tasdiqImport, tasdiqTizim: q.tasdiqTizim }, bajarilishMaxraji(q.obyekt).summa);
       return u.foiz == null ? null : Math.round(u.foiz);
     } },
     { kalit: 'import', nom: t('Import'), tur: 'son', qiymat: (q) => summaQiymat(q.tasdiqImport) },

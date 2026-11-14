@@ -1,0 +1,10 @@
+{
+  "smetadan tashqari: {s} (QQS bilan) — qiymatga kirmaydi, fakt va F-2 da hisoblanadi": {
+    "ru": "вне сметы: {s} (с НДС) — в стоимость не входит, учитывается в факте и Ф-2",
+    "en": "outside the estimate: {s} (incl. VAT) — not part of the value, counted in actuals and F-2"
+  },
+  "Smetadan tashqari bo‘limlar ({n}): obyekt qiymatiga kirmaydi, lekin fakt va F-2 da hisoblanadi": {
+    "ru": "Разделы вне сметы ({n}): не входят в стоимость объекта, но учитываются в факте и Ф-2",
+    "en": "Sections outside the estimate ({n}): not part of the object value, but counted in actuals and F-2"
+  }
+}

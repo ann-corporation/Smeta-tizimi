@@ -53,7 +53,7 @@ export type PortfelSvodOpsiya = {
 /** «Свод» varag'i. `p` — kesimning to'liq portfeli (bekor ham, ular kulrang). */
 export function portfelSvodVaraq(p: Portfel, o: PortfelSvodOpsiya): RasmiyVaraq {
   const v = new RasmiyVaraq({
-    nom: 'Свод', sarlavha: 'СВОД АКТОВ ВЫПОЛНЕННЫХ РАБОТ (ФОРМА № 2)', ostSarlavha: [o.kesimMatni],
+    nom: 'Свод', sarlavha: 'СВОД АКТОВ ВЫПОЛНЕННЫХ РАБОТ (ФОРМА № 02)', ostSarlavha: [o.kesimMatni],
     titul: [['Подрядчик:', o.tashkilot ?? o.imzo?.pudratchi]], ustunlar: USTUN, yonalish: 'landscape',
   });
   type Q = Record<Kolon, number[]>;

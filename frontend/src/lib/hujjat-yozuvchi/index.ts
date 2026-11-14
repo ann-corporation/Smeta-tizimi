@@ -17,6 +17,7 @@ export * from './kitob';
 export * from './imzo';
 export * from './fayl-nomi';
 export * from './rasmiy';
+export * from './zamechaniya';
 export * from './dizayn';
 export * from './dizayn-tekshir';
 export * from './exceljs-dizayn';

@@ -20,6 +20,7 @@ import { toast } from './Toast';
 import { AiBaho } from './AiBaho';
 import { AiHarakatKarta } from './AiHarakatKarta';
 import { AiQadamlar } from './AiQadamlar';
+import { ISHCHI_HODISA, type IshchiHodisa } from './useIshchiNatija';
 import { TOIFA_NOMI } from './ai-harakat';
 import { studioKontekstObuna, studioKontekstOl, studioKontekstScope } from '../../lib/jarvis/studio-kontekst';
 
@@ -107,6 +108,18 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     return () => window.removeEventListener('ai:yangi-suhbat', f);
   }, [tarixKalit]);
 
+  /* AI ishchi natijasi tayyor bo'lganda (panel ochiq, yengil polling — useIshchiNatija) chatda xabar: sarlavha + qisqa xulosa + inbox havolasi. */
+  useEffect(() => {
+    if (!yordamchi) return undefined;
+    const f = (e: Event) => {
+      const d = (e as CustomEvent<IshchiHodisa>).detail;
+      if (!d) return;
+      setXabarlar((p) => [...p, { id: `ishchi-${d.id}`, rol: 'ai', jarvis: true, matn: `**${t('AI ishchi natijasi tayyor')}:** ${d.sarlavha}\n\n${(d.xulosa ?? '').slice(0, 400)}`, sahifalar: [{ yol: '/admin/ai-agentlar', nom: t('AI ishchilar') }] }]);
+    };
+    window.addEventListener(ISHCHI_HODISA, f);
+    return () => window.removeEventListener(ISHCHI_HODISA, f);
+  }, [!!yordamchi]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => { if (tayyorSavol?.matn) { void yubor(tayyorSavol.matn); onOqildi?.(); } /* faqat yangi hodisada */ // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tayyorSavol?.id]);
 
@@ -142,6 +155,16 @@ export function AiChat({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     setXabarlar(x.map((q, i) => ({ id: `${s.id}-${i}`, rol: q.r, matn: q.m, jarvis: q.r === 'ai' })));
   };
   const suhbatDavom = (s: Suhbat & { server?: boolean }) => { if (s.server) { void serverdanDavom(s); return; } suhbatId.current = s.id; setXabarlar(s.xabarlar.map((x, i) => ({ id: `${s.id}-${i}`, rol: x.rol, matn: x.matn, jarvis: x.rol === 'ai' }))); };
+  /* QURILMA ALMASHGANDA: bu qurilmada tarix yo'q (brauzer arxivi va joriy chat bo'sh), serverda esa oxirgi 48 soatdagi suhbat bor — o'zi tiklanadi (bir marta). */
+  const tiklandi = useRef<string | null>(null);
+  useEffect(() => {
+    if (!yordamchi || tiklandi.current === arxivKalit || xabarlarRef.current.length || arxiv.length || !serverRoyxat.length) return;
+    const s = [...serverRoyxat].sort((a, b) => Date.parse(b.yangilandi) - Date.parse(a.yangilandi))[0];
+    const vaqt = Date.parse(s.yangilandi);
+    if (!Number.isFinite(vaqt) || Date.now() - vaqt > 48 * 3_600_000) return;
+    tiklandi.current = arxivKalit;
+    void serverdanDavom({ id: s.id, sarlavha: s.sarlavha, yangilandi: vaqt, xabarlar: [] });
+  }, [serverRoyxat, arxiv.length, arxivKalit, !!yordamchi]); // eslint-disable-line react-hooks/exhaustive-deps
   const ochish = (yol: string) => { navigate(yol); onOtish?.(); };
   /* Javobdagi ichki havolalar (/admin/...) sahifani qayta yuklamay, router orqali ochiladi; tashqilari yangi oynada. */
   const markdownBogla = useMemo(() => ({

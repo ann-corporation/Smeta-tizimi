@@ -37,7 +37,7 @@ describe('Сличительная ведомость (H1–H9)', () => {
     expect([r('ЗАТРАТЫ ТРУДА').farqHajm, r('ЗАТРАТЫ ТРУДА').farqSumma, r('ЗАТРАТЫ ТРУДА').izoh]).toEqual([4, 100_000, 'выполнено сверх сметы']);
     expect([r('ПЕСОК').farqHajm, r('ПЕСОК').izoh]).toEqual([0, '']);
     // Asl smeta o'zgarmaydi: qo'shimcha ish smetada yo'q (smeta 0), fakt 0 — og'ish 0.
-    expect([r('БЕТОН В25').smetaSumma, r('БЕТОН В25').farqSumma, r('БЕТОН В25').izoh]).toEqual([0, 0, 'дополнительная работа; объем по смете 0']);
+    expect([r('БЕТОН В25').smetaSumma, r('БЕТОН В25').farqSumma, r('БЕТОН В25').izoh]).toEqual([0, 0, 'доп. работа (нет в смете); объем по смете 0']);
     expect(r('ЗАСЫПКА ПАЗУХ').smetaSumma).toBe(560_000);
     expect(m.jami).toEqual({ smeta: 560_000, fakt: 660_000, f2: 460_000, farq: 100_000 });
     expect([m.barglar, m.ortiq, m.kam]).toEqual([3, 1, 0]);
@@ -63,8 +63,8 @@ describe('Сличительная ведомость (H1–H9)', () => {
     expect(v.a4 && v.bittaEnli && v.yonalish === 'landscape').toBe(true);
     expect(v.printTitles).toBeTruthy();
     expect(imzoRollariBormi(t, ['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР', 'СОСТАВИЛ']).yoq).toEqual([]);
-    expect(t.matnlar).toEqual(expect.arrayContaining(['СЛИЧИТЕЛЬНАЯ ВЕДОМОСТЬ', 'ОТКЛОНЕНИЕ (ФАКТ − СМЕТА)', 'ВСЕГО ПО ОБЪЕКТУ', 'ИТОГО ПО РАЗДЕЛУ: СМЕТА № 01-01 ОЗЕРА']));
-    const vsego = v.kataklar.find((k) => k.matn === 'ВСЕГО ПО ОБЪЕКТУ')!;
+    expect(t.matnlar).toEqual(expect.arrayContaining(['СЛИЧИТЕЛЬНАЯ ВЕДОМОСТЬ', 'ОТКЛОНЕНИЕ (ФАКТ − СМЕТА)', 'ИТОГО ПО РАЗДЕЛУ: СМЕТА № 01-01 ОЗЕРА']));
+    const vsego = v.kataklar.find((k) => (k.matn ?? '').startsWith('ИТОГО ПО ОБЪЕКТУ'))!;
     const row = vsego.ref.replace(/^[A-Z]+/, '');
     expect(Number(v.kataklar.find((k) => k.ref === `M${row}`)?.v)).toBe(100_000);
     expect(Number(v.kataklar.find((k) => k.ref === `G${row}`)?.v)).toBe(560_000);

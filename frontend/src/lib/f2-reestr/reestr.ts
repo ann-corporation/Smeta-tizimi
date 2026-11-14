@@ -35,7 +35,11 @@ export function aktsizFayllar<T extends { id: string | number }>(fayllar: T[], a
   const bor = new Set(aktlar.map(a => a.hujjat_id).filter((x): x is number => x != null));
   return fayllar.filter(f => !bor.has(Number(f.id)));
 }
-export type ReestrObyekt = { id: number; nom: string; loyiha_id: number | null; jami: number | null; narxsiz: number | null };
+/**
+ * `jami` — ASL smeta (CONST, ustamasiz). `ozgarish` — server «O'zgarishlar» (qo'shimcha + zamena farqi − bajarilmadi, ustamasiz);
+ * hali o'qilmagan/o'qib bo'lmagan bo'lsa undefined/null — bajarilish maxraji asl smetaga yiqiladi (`bajarilishMaxraji`).
+ */
+export type ReestrObyekt = { id: number; nom: string; loyiha_id: number | null; jami: number | null; narxsiz: number | null; ozgarish?: number | null };
 export type ReestrShartnoma = { id: number; raqam: string; nom: string | null; jami_nds_bilan: number | null; summa_bez_nds: number | null };
 
 /** Ma'lum summa, summasi noma'lum aktlar soni va jami aktlar soni. */

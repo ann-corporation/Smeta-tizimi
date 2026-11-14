@@ -347,7 +347,9 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
         if (!alive) return;
         if (!projectResult.ok || !objectResult.ok) {
           setError(projectResult.error || objectResult.error || 'PTO iyerarxiyasini yuklab bo‘lmadi.');
-          setProjects([]); setObjects([]);
+          /* Vaqt chegarasi/tarmoq xatosi: ilgari to'g'ri o'qilgan ro'yxat O'CHIRILMAYDI — aks holda alidateHierarchy bo'sh ro'yxatga qarab
+           * URL dagi obyektni (?obyekt=) jim o'chirardi (egasi 2026-11-14: AOSR/Holat sahifasida obyekt tushib qoldi). Hech qachon yuklanmagan bo'lsa — bo'sh (tasdiqlanmagan). */
+          if (loadedCompanyRef.current !== companyId) { setProjects([]); setObjects([]); }
           return;
         }
         setError(null);

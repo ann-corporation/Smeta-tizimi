@@ -71,11 +71,15 @@ export type RasmiyVaraqSozlama = {
    * Sukut true; smeta bo'lmagan varaq (masalan erkin matnli xat) false bilan o'chiradi.
    */
   kattaHarf?: boolean;
-  /** Hujjat nomi, masalan "АКТ ПРИЕМКИ ВЫПОЛНЕННЫХ РАБОТ (ФОРМА № 2)". */
+  /** Hujjat nomi, masalan "АКТ ПРИЕМКИ ВЫПОЛНЕННЫХ РАБОТ (ФОРМА № 02)". */
   sarlavha: string;
   ostSarlavha?: readonly string[];
   /** Titul: [yorliq, qiymat]. Qiymat bo'sh — chiziq. */
   titul?: ReadonlyArray<readonly [string, string | null | undefined]>;
+  /** Titul ostidagi ALOHIDA son katagi (F-3 etalonida shartnoma summasi: yorliq | son | «сўм»); son — haqiqiy son (pul formatida). */
+  titulSumma?: { yorliq: string; qiymat: number | null; birlik: string };
+  /** Titul, sarlavhadan OLDIN (imzolangan Ф-2 shakli: tomonlar yuqorida). */
+  yuqoriTitul?: ReadonlyArray<readonly [string, string | null | undefined]>;
   /**
    * Ikki tomon rekvizitlari — YONMA-YON (chap ПОДРЯДЧИК, o'ng ЗАКАЗЧИК),
    * haqiqiy SPRAVKA-SCHET-FAKTURA blankasidagi kabi: "Подрядчик: … | Заказчик: …",
@@ -94,6 +98,8 @@ export type RasmiyVaraqSozlama = {
   yonalish?: 'portrait' | 'landscape';
   /** Chapdagi nechta ustun muzlatilsin (masalan № | Шифр | Наименование) — o'ngga varaqlaganda ko'rinib turadi. */
   muzlatUstun?: number;
+  /** false — sarlavha qatorlari muzlatilmaydi (sukut: muzlatiladi). Titul/rekvizit balandligi katta bo'lgan blankada (Forma 3: 22 qator) muzlatish ekranning yarmini egallab, jadvalni varaqlab bo'lmay qoladi. */
+  muzlatma?: boolean;
   /** Avtofiltr (raqamlash qatorida) — ishchi hujjatlarda qidirish/saralash uchun (LRV). Oxiri: `filtrOxiri()`. */
   filtr?: boolean;
   /** Hujjat dizayni (kompaniya sozlamasi); berilmasa — joriy (`hujjatDizayniniOrnat`) yoki sukut «Kontrastli». */
@@ -194,7 +200,7 @@ for (const k of RANG_TARTIB) if (MAVZU_HEX.rangsiz[k] === '') MAVZU_HEX.rangsiz[
 
 /** Hujjat turlari (egasi: "tizimning o'zida har hujjat dizaynini tanlash mumkin bo'lsin"). Sozlamalarda shu ro'yxat. */
 export const HUJJAT_TURLARI = {
-  f2: 'Акт Ф-2 (форма № 2) va resurs vedomosti',
+  f2: 'Акт Ф-2 (форма № 02) va resurs vedomosti',
   f3: 'Справка Ф-3 (форма № 3)',
   nakopitelniy: 'Накопительная ведомость',
   obosnovanie: 'Обоснование выполненных объёмов, не закрытых Ф-2',
@@ -344,7 +350,8 @@ export function rasmiyStylesXml(mavzu: RangMavzusi = 'kulrang', d: HujjatDizayn 
   ];
   const LEV_BORDER: Record<DarajaKalit, number> = { rz: 1, bl: 3, rs: 1, mat: 1, ob: 1, jami: 4, vsego: 5 };
   const pf = pulFmtId(d);
-  const fmtOf: Record<LevKind, number> = { matn: 0, markaz: 0, pul: pf, hajm: 165, norma: 166, foiz: 2, markazSon: 0, texnik: 0 };
+  const foizId = d.foizKod ? 168 : 2;
+  const fmtOf: Record<LevKind, number> = { matn: 0, markaz: 0, pul: pf, hajm: 165, norma: 166, foiz: foizId, markazSon: 0, texnik: 0 };
   const alOf = (k: LevKind, otstup: number): string => (k === 'matn' ? `horizontal="left" vertical="top" wrapText="1"${otstup > 0 ? ` indent="${otstup}"` : ''}`
     // Egasi 2026-11-13: shrinkToFit YO'Q — shifr/birlik matni o'raladi (qator balandligi hisoblanadi), son o'ralmaydi.
     : k === 'markaz' ? 'horizontal="center" vertical="top" wrapText="1"'
@@ -365,15 +372,15 @@ export function rasmiyStylesXml(mavzu: RangMavzusi = 'kulrang', d: HujjatDizayn 
   const headerXf = xf(0, FONT_HEADER, 1, C, sarFill);
   const headerYashirinXf = xf(0, FONT_HEADER, 1, 'horizontal="center" vertical="center"', sarFill);
   const xflar = [
-    ...XF_BAZA.map((f) => f(0, pf)),
-    ...RANG_TARTIB.flatMap((r, i) => XF_BAZA.map((f) => kursivga(r, f(2 + i, pf)))),
+    ...XF_BAZA.map((f, k) => (k === 12 && foizId !== 2 ? xf(foizId, 0, 1, R, 0) : f(0, pf))),
+    ...RANG_TARTIB.flatMap((r, i) => XF_BAZA.map((f, k) => kursivga(r, k === 12 && foizId !== 2 ? xf(foizId, 0, 1, R, 2 + i) : f(2 + i, pf)))),
     ...levXfs, headerXf, headerYashirinXf,
   ];
   const mavzuFill = RANG_TARTIB.map((r) => (hex[r] ? `<fill><patternFill patternType="solid"><fgColor rgb="FF${hex[r]}"/><bgColor indexed="64"/></patternFill></fill>` : '<fill><patternFill patternType="none"/></fill>')).join('');
   const qoshFillXml = qoshFill.map((h) => `<fill><patternFill patternType="solid"><fgColor rgb="FF${h}"/><bgColor indexed="64"/></patternFill></fill>`).join('');
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
   + '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-  + `<numFmts count="3"><numFmt numFmtId="165" formatCode="${hajmFmtKod(d)}"/><numFmt numFmtId="166" formatCode="0.0000##"/><numFmt numFmtId="167" formatCode="${pulFmtKod(d)}"/></numFmts>`
+  + `<numFmts count="${d.foizKod ? 4 : 3}"><numFmt numFmtId="165" formatCode="${hajmFmtKod(d)}"/><numFmt numFmtId="166" formatCode="0.0000##"/><numFmt numFmtId="167" formatCode="${pulFmtKod(d)}"/>${d.foizKod ? `<numFmt numFmtId="168" formatCode="${xmlEsc(d.foizKod)}"/>` : ''}</numFmts>`
   + `<fonts count="${fonts.length}">${fonts.join('')}</fonts>`
   + `<fills count="${fillBaza + qoshFill.length}"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>${mavzuFill}${qoshFillXml}</fills>`
   + `<borders count="${borders.length}">${borders.join('')}</borders>`
@@ -436,6 +443,7 @@ export class RasmiyVaraq {
   readonly raqamQatori: number;
   private readonly korinadigan: number[];
   private readonly muzlatUstun: number;
+  private readonly muzlatmaYoq: boolean;
   private readonly filtrBor: boolean;
   private filtrOxir: number | null = null;
   private readonly kattaHarf: boolean;
@@ -447,6 +455,7 @@ export class RasmiyVaraq {
   constructor(o: RasmiyVaraqSozlama) {
     this.nom = o.nom.replace(/[\\/?*[\]:]/g, '_').slice(0, 31);
     this.muzlatUstun = Math.max(0, o.muzlatUstun ?? 0);
+    this.muzlatmaYoq = o.muzlatma === false;
     this.kattaHarf = o.kattaHarf !== false;
     this.filtrBor = !!o.filtr;
     this.dizayn = o.dizayn ?? joriyHujjatDizayni();
@@ -457,6 +466,8 @@ export class RasmiyVaraq {
     this.korinadigan = this.ustunlar.map((u, i) => (u.yashirin ? -1 : i)).filter((i) => i >= 0);
     const oxir = this.oxirgiUstun;
 
+    // Titul sarlavhadan OLDIN (imzolangan Ф-2: «Подрядчик / Заказчик», keyin «АКТ …»).
+    if (o.yuqoriTitul?.length) { this.titulQatorlari(o.yuqoriTitul, oxir); this.put([]); }
     this.put([katakXml(0, RS.sarlavha, o.sarlavha)], balandlik(o.sarlavha, this.kenglikJami(0, oxir), 18));
     this.merge(0, this.r - 1, oxir);
     for (const s of o.ostSarlavha ?? []) {
@@ -497,14 +508,16 @@ export class RasmiyVaraq {
     }
     if (o.titul?.length) {
       this.put([]);
-      // Yorliq ustun(lar)i: chapdan kamida 16 belgi eni (tor № ustunida kesilmasin).
-      let yorliqOxiri = 0;
-      while (yorliqOxiri < oxir - 1 && this.kenglikJami(0, yorliqOxiri) < 16) yorliqOxiri++;
-      for (const [yorliq, qiymat] of o.titul) {
-        const q = (qiymat ?? '').trim() || '________________________________________';
-        const r = this.put([katakXml(0, RS.titulYorliq, yorliq), katakXml(yorliqOxiri + 1, RS.titulQiymat, q)], balandlik(q, this.kenglikJami(yorliqOxiri + 1, oxir)));
+      this.titulQatorlari(o.titul, oxir);
+      if (o.titulSumma) {
+        // Yorliq ustun(lar)i: chapdan kamida 16 belgi eni (titulQatorlari bilan bir xil).
+        let yorliqOxiri = 0;
+        while (yorliqOxiri < oxir - 1 && this.kenglikJami(0, yorliqOxiri) < 16) yorliqOxiri++;
+        const ts = o.titulSumma;
+        const c0 = yorliqOxiri + 1, c1 = Math.min(oxir - 1, c0 + 3);
+        const r = this.put([katakXml(0, RS.titulYorliq, ts.yorliq), katakXml(c0, RS.pul, ts.qiymat), katakXml(c1 + 1, RS.titulQiymat, ts.birlik)]);
         if (yorliqOxiri > 0) this.merge(0, r, yorliqOxiri);
-        this.merge(yorliqOxiri + 1, r, oxir);
+        if (c1 > c0) this.merge(c0, r, c1);
       }
     }
     this.put([]);
@@ -579,6 +592,18 @@ export class RasmiyVaraq {
     this.raqamQatori = this.put(this.ustunlar.map((u, i) => katakXml(i, RS.raqam, u.yashirin ? null : ++n)));
   }
 
+  /** Titul qatorlari: yorliq (chapda, kamida 16 belgi eni) + qiymat (qolgan eni bo'ylab birlashgan). */
+  private titulQatorlari(titul: ReadonlyArray<readonly [string, string | null | undefined]>, oxir: number): void {
+    let yorliqOxiri = 0;
+    while (yorliqOxiri < oxir - 1 && this.kenglikJami(0, yorliqOxiri) < 16) yorliqOxiri++;
+    for (const [yorliq, qiymat] of titul) {
+      const q = (qiymat ?? '').trim() || '________________________________________';
+      const r = this.put([katakXml(0, RS.titulYorliq, yorliq), katakXml(yorliqOxiri + 1, RS.titulQiymat, q)], balandlik(q, this.kenglikJami(yorliqOxiri + 1, oxir)));
+      if (yorliqOxiri > 0) this.merge(0, r, yorliqOxiri);
+      this.merge(yorliqOxiri + 1, r, oxir);
+    }
+  }
+
   /** Keyingi yoziladigan qator raqami (1-asosli). */
   get r(): number { return this.qatorlar.length + 1; }
   get oxirgiUstun(): number { return this.korinadigan[this.korinadigan.length - 1] ?? 0; }
@@ -605,14 +630,14 @@ export class RasmiyVaraq {
 
   /** Jadval qatori. `qiymatlar` ustunlar tartibida; funksiya berilsa — qator
    * raqamini oladi (nisbiy formulalar o'z qatoriga havola qilishi uchun). */
-  qator(tur: RasmiyQatorTuri, qiymatlar: readonly Qiymat[] | ((r: number) => readonly Qiymat[]), o?: { daraja?: number; rang?: QatorRangi | null }): number {
+  qator(tur: RasmiyQatorTuri, qiymatlar: readonly Qiymat[] | ((r: number) => readonly Qiymat[]), o?: { daraja?: number; rang?: QatorRangi | null; /** Ko'rinish darajasi «Тип» belgisidan mustaqil (faqat uslub; belgi va import o'zgarmaydi). */ uslub?: DarajaKalit }): number {
     const r = this.r;
     const xom = typeof qiymatlar === 'function' ? qiymatlar(r) : qiymatlar;
     const q = this.kattaHarf ? xom.map((v, i) => (typeof v === 'string' && MATN_TURLARI.has(this.ustunlar[i]?.tur) ? kattaHarfga(v) : v)) : xom;
     const rang = o?.rang !== undefined ? o.rang : TUR_RANGI[tur];
     // Daraja (BL/RS/MAT/OB/razdel/jami/ВСЕГО): «Тип» belgi ustuni qiymati yoki qator turi/toifasidan — BITTA resolver.
     const belgiI = this.ustunlar.findIndex((u) => u.belgi);
-    const lv = darajaAniqla(tur, belgiI >= 0 ? q[belgiI] : null, rang);
+    const lv = o?.uslub ?? darajaAniqla(tur, belgiI >= 0 ? q[belgiI] : null, rang);
     if (lv === 'bl') this.zebraTartib++;
     const dz = lv ? this.dizayn.daraja[lv] : null;
     const qalin = lv ? dz!.qalin : tur !== 'oddiy';
@@ -628,10 +653,10 @@ export class RasmiyVaraq {
       const texnik = u.yashirin === true || u.tur === 'texnik';
       if (!texnik && typeof v === 'string') matnlar.push({ matn: v, col: i, qalin, otstup: u.tur === 'matn' ? dz?.otstup ?? 0 : 0, sz });
       const markazUstun = u.tur === 'tartib' || u.tur === 'kod' || u.tur === 'birlik';
-      if (!lv) return katakXml(i, rangli(texnik ? RS.oddiy : ku === 'norma' ? RS.norma : ku === 'foiz' ? RS.foiz : markazUstun && typeof v === 'number' ? RS.markazSon : uslub(tur, u.tur), rang), v);
+      if (!lv) return katakXml(i, rangli(texnik ? RS.oddiy : ku === 'norma' ? RS.norma : ku === 'foiz' ? RS.foiz : markazUstun && (typeof v === 'number' || u.tur === 'tartib') ? RS.markazSon : uslub(tur, u.tur), rang), v);
       const sonmi = u.tur === 'pul' || u.tur === 'narx';
       const kind: LevKind = texnik ? 'texnik' : ku === 'norma' ? 'norma' : ku === 'foiz' ? 'foiz' : sonmi ? 'pul' : u.tur === 'hajm' ? 'hajm' : u.tur === 'norma' ? 'norma' : u.tur === 'foiz' ? 'foiz'
-        : markazUstun ? (typeof v === 'number' ? 'markazSon' : 'markaz') : 'matn';
+        : markazUstun ? (typeof v === 'number' || u.tur === 'tartib' ? 'markazSon' : 'markaz') : 'matn';
       return katakXml(i, this.darajaUslubi(lv, kind, rang), v);
     });
     return this.put(cells, undefined, o?.daraja, matnlar);
@@ -763,7 +788,7 @@ export class RasmiyVaraq {
       const r = this.put([katakXml(0, RS.imzoMatn, imzoMatni(t.rol, t.nom)), katakXml(imzoC, RS.imzoMatn, IMZO_IMZO_CHIZIQ)], 24);
       this.merge(0, r, Math.max(mc, imzoC - 1));
       const r2 = this.put([
-        katakXml(0, RS.imzoIzoh, imzoMuhrli(t.rol) ? IMZO_IZOH : IMZO_IZOH_SHAXS),
+        katakXml(0, RS.imzoIzoh, t.lavozim ? `(${t.lavozim}, Ф.И.О.)` : imzoMuhrli(t.rol) ? IMZO_IZOH : IMZO_IZOH_SHAXS),
         katakXml(imzoC, RS.imzoIzoh, IMZO_PODPIS),
         ...(imzoMuhrli(t.rol) && oxir > imzoC ? [katakXml(oxir, RS.imzoIzoh, IMZO_MP)] : []),
       ]);
@@ -799,7 +824,8 @@ export class RasmiyVaraq {
     const y = this.raqamQatori, x = this.muzlatUstun;
     const bosh = `${ustunHarfi(x)}${y + 1}`;
     // Ustun ham muzlatilsa — to'rt qismli panel (OOXML: topRight, bottomLeft, bottomRight tanlovlari).
-    const pane = x > 0
+    const pane = this.muzlatmaYoq ? ''
+      : x > 0
       ? `<pane xSplit="${x}" ySplit="${y}" topLeftCell="${bosh}" activePane="bottomRight" state="frozen"/><selection pane="topRight"/><selection pane="bottomLeft"/><selection pane="bottomRight" activeCell="${bosh}" sqref="${bosh}"/>`
       : `<pane ySplit="${y}" topLeftCell="A${y + 1}" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A${y + 1}" sqref="A${y + 1}"/>`;
     const filtr = this.filtrRef;

@@ -3,7 +3,8 @@
  * pereraschet, ustamali summa (kaskad + podval), fakt jurnali (bo'lim summalari), F2 import (o'qish → moslash →
  * ish joyi → exact yozish yuki), F2 dublikat tekshiruvi. Brauzer modullari stubs.mjs da almashtiriladi.
  */
-export { pereraschetHisobla, PERERASCHET_USTUNLAR, type PQator, type PNatija, type PNatijaQator } from '../../../frontend/src/lib/pereraschet';
+export { pereraschetYagona, YAGONA_QATOR_USTUNLAR, YAGONA_HOLAT_USTUNLAR } from '../../../frontend/src/lib/pereraschet-yagona';
+export type { PNatija, PNatijaQator } from '../../../frontend/src/lib/pereraschet';
 export { ustamaliHisobla, bosKatKesim, katKesimgaQosh, type KatKesim, type UstamaNatija } from '../../../frontend/src/lib/ustamali-summa';
 export type { SvodYaxlit } from '../../../frontend/src/lib/svod-yaxlit';
 export { podvalTanla } from '../../../frontend/src/api/t2-nakrutka-podval';

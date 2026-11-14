@@ -70,11 +70,14 @@ describe('sinov-fakt: svod yaxlit obyekt kartalari sintetik (real nisbatlari saq
     expect(sum('f2') / sum('fakt')).toBeGreaterThan(1);
     expect(sum('f2') / sum('fakt')).toBeLessThan(1.01);
   });
-  it('kartalar QQS bilan', () => {
-    const fakt = karta('fakt', {}), f2 = karta('f2', { masshtab: false, f2: true }), ost = karta('ost', {});
+  it("fakt va F2 svod bolimida BIR XIL usulda: bir xil summa → QQS bilan ham deyarli bir xil", () => {
+    const oldingiFakt = karta('fakt', {}); // eski usul: svod bo'limi masshtablanadi
+    const fakt = karta('fakt', { masshtab: false, f2: true }), f2 = karta('f2', { masshtab: false, f2: true });
     expect(fakt.q.qqsBilan).not.toBeNull();
-    // Fakt (svod bo'limlari masshtablanadi) va F2 (aynan) ustamasiz deyarli teng, QQS bilanda farq bor - sinov hujjati (dizayn qoidasi, egasi tasdiqlaydi).
-    expect(f2.q.qqsBilan! - fakt.q.qqsBilan!).toBeGreaterThan(0);
+    const nisbat = fakt.q.qqsBilan! / f2.q.qqsBilan!;
+    expect(nisbat).toBeGreaterThan(0.995);   // ustamasiz fakt/F2 ≈ 0,9981
+    expect(nisbat).toBeLessThanOrEqual(1);
+    // eski usulda farq ~2,4% edi (regressiya belgisi)
+    expect(oldingiFakt.q.qqsBilan! / f2.q.qqsBilan!).toBeLessThan(0.985);
   });
 });
-

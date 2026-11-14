@@ -15,6 +15,8 @@ export type RahbarKartalar = {
   bajarildi: {
     davr: SummaPaket | null; jami: SummaPaket | null; akt_soni: number;
     foiz_smeta: number | null; foiz_shartnoma: number | null;
+    /** `true` — foiz_smeta maxraji «smeta + o'zgarishlar»; yo'q/`false` — hamma/ba'zi obyektda joriy noma'lum, asl smeta. */
+    foiz_smeta_joriy?: boolean;
     /** Qo'lda reestr — MANBA EMAS, faqat «tizim ↔ reestr» farqi. */
     reestr: { qqs_bilan: number; soni: number; farq: number } | null;
   };
@@ -36,7 +38,7 @@ export type RahbarObyekt = {
   f2_qoralama: { qqs_bilan: number | null; ustamali: number | null; soni: number };
   f3: { sotuv: number | null; soni: number } | null;
   tolangan: number | null; tolangan_foiz: number | null; qarz: number | null; marja_foiz: number | null;
-  bajarilish: { fakt: number | null; f2: number | null; f3: number | null };
+  bajarilish: { fakt: number | null; f2: number | null; f3: number | null; /** maxraj: smeta + o'zgarishlar (true) yoki asl smeta */ joriy?: boolean };
   signal: { soni: number; kritik: number; eng_kop: string | null };
 };
 

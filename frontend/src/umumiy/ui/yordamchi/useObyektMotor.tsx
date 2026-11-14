@@ -127,8 +127,8 @@ export function useObyektMotor({ kompaniyaId, obyektId, obyektNomi, faol, sahifa
   }, [yoqilgan, obyektId, kompaniyaId]); // faqat obyekt almashganda (og'ir so'rov: har fakt yozuvida qayta o'qilmaydi)
 
   const m: BuyruqMalumot | null = useMemo(
-    () => (data && data.obyektId === obyektId ? buyruqMalumotQur(data.rows, data.states, { obyektNomi, sahifalar, loyihaFarq, slichAsos, ustamali: (s) => ustamaliRef.current(s), naryadlar, ustaBugun }) : null),
-    [data, obyektId, obyektNomi, sahifalar, naryadlar, ustaBugun, loyihaFarq, slichAsos]);
+    () => (data && data.obyektId === obyektId ? buyruqMalumotQur(data.rows, data.states, { obyektNomi, sahifalar, loyihaFarq, slichAsos, ustamali: (s) => ustamaliRef.current(s), naryadlar, ustaBugun, svodYaxlit: h.svodYaxlit }) : null),
+    [data, obyektId, obyektNomi, sahifalar, naryadlar, ustaBugun, loyihaFarq, slichAsos, h.svodYaxlit]);
   const mRef = useRef<BuyruqMalumot | null>(m); mRef.current = m;
   const bos = useMemo(() => buyruqMalumotQur([], []), []);
   const yangila = useCallback(() => setVersiya((v) => v + 1), []);
