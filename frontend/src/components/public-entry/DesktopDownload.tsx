@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { tilLocale, useTil } from '../../i18n/til';
 import { desktopReleaseLinks, parseDesktopRelease } from './desktop-release';
 
-export function DesktopDownload() {
-  const { t, til } = useTil();
+type DesktopRelease = NonNullable<ReturnType<typeof parseDesktopRelease>>;
+
+/** Windows manifestini yuklaydi; yo‘q yoki yaroqsiz bo‘lsa null. */
+export function useDesktopRelease() {
   const [release, setRelease] = useState<ReturnType<typeof parseDesktopRelease>>(null);
-  const [copyStatus, setCopyStatus] = useState<'copied' | 'failed'>();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -22,7 +23,17 @@ export function DesktopDownload() {
     return () => controller.abort();
   }, []);
 
-  if (!release) return null;
+  return release;
+}
+
+export function DesktopDownload() {
+  const release = useDesktopRelease();
+  return release ? <DesktopDownloadDetails release={release} /> : null;
+}
+
+export function DesktopDownloadDetails({ release }: { release: DesktopRelease }) {
+  const { t, til } = useTil();
+  const [copyStatus, setCopyStatus] = useState<'copied' | 'failed'>();
   const links = desktopReleaseLinks(release);
   const size = new Intl.NumberFormat(tilLocale(til), {
     style: 'unit', unit: 'megabyte', maximumFractionDigits: 2,

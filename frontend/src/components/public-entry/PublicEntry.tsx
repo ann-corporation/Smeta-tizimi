@@ -20,7 +20,7 @@ import { GirihField } from './intro/GirihField';
 import { Magnetic } from './intro/Magnetic';
 import { useScrollStory } from './intro/hooks';
 import { Reveal } from './intro/Reveal';
-import { DesktopDownload } from './DesktopDownload';
+import { AppDownloads } from './AppDownloads';
 export type { ProductScreenshot } from './ProductShowcase';
 
 export const OWNER_PHONE = '+998505012566';
@@ -110,13 +110,14 @@ export function PublicEntry({ children, onChooseAuth, screenshots = [], supportP
         <p className="entry-eyebrow"><i className="entry-rhomb" aria-hidden="true" />{local(scopeCopy.eyebrow)}</p>
         <h1>{local(scopeCopy.title)}<br /><span>{local(ic.accent)}</span></h1>
         <p className="entry-description">{local(ic.lead)}</p>
-        <div className="entry-actions">{startButton()}<a className="entry-secondary" href="#entry-chain">{text(c.tour)}<ChevronDown size={17} aria-hidden="true" /></a></div>
+        <div className="entry-actions">{startButton()}<a className="entry-secondary" href="#entry-chain">{text(c.tour)}<ChevronDown size={17} aria-hidden="true" /></a><a className="entry-secondary" href="#entry-download">{t('Yuklab olish')}</a></div>
         <div className="entry-hero-facts">
           <span className="entry-free"><i className="entry-rhomb" aria-hidden="true" />{local(ic.free)}</span>
           <a className="entry-hero-contact" href={`tel:${OWNER_PHONE}`}><Phone size={15} aria-hidden="true" />{PHONE_LABEL}<span>{text(c.contact)}</span></a>
         </div>
-        <DesktopDownload />
       </Hero>
+
+      <AppDownloads />
 
       <section id="entry-chain" className="entry-band entry-band--chain" aria-labelledby="entry-chain-title">
         <ChainFlow local={local} />

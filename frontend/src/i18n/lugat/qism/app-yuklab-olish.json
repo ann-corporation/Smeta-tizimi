@@ -1,0 +1,52 @@
+{
+  "Yuklab olish": { "ru": "Скачать", "en": "Download" },
+  "Ilovani oʻz qurilmangizga oling": { "ru": "Установите приложение на своё устройство", "en": "Get the app on your device" },
+  "Windows, macOS, Android, iPhone va iPad uchun — yoki oʻrnatmasdan, brauzerda.": {
+    "ru": "Для Windows, macOS, Android, iPhone и iPad — или без установки, в браузере.",
+    "en": "For Windows, macOS, Android, iPhone and iPad — or right in the browser, no install."
+  },
+  "Sizning qurilmangiz": { "ru": "Ваше устройство", "en": "Your device" },
+  "Tez orada": { "ru": "Скоро", "en": "Coming soon" },
+  "Windows oʻrnatuvchisi tez orada chiqadi.": { "ru": "Установщик для Windows скоро появится.", "en": "The Windows installer is coming soon." },
+  "Android ilovasi tez orada chiqadi.": { "ru": "Приложение для Android скоро появится.", "en": "The Android app is coming soon." },
+  "Android uchun APK yuklab olish": { "ru": "Скачать APK для Android", "en": "Download APK for Android" },
+  "Android API {minSdk} va yuqori": { "ru": "Android API {minSdk} и выше", "en": "Android API {minSdk} or newer" },
+  "Bu sinov yigʻmasi (imzolanmagan) — faqat sinash uchun. Oʻrnatishdan oldin SHA-256 ni tekshiring.": {
+    "ru": "Это тестовая (неподписанная) сборка — только для проверки. Перед установкой сверьте SHA-256.",
+    "en": "This is a test (unsigned) build — for testing only. Verify the SHA-256 before installing."
+  },
+  "Oʻrnatish": { "ru": "Установка", "en": "Installation" },
+  "APK faylni yuklab oling va oching.": { "ru": "Скачайте APK-файл и откройте его.", "en": "Download the APK file and open it." },
+  "Telefon soʻrasa, «Nomaʼlum manbalarga ruxsat» (Install unknown apps) ni yoqing.": {
+    "ru": "Если телефон попросит, разрешите «Установку из неизвестных источников» (Install unknown apps).",
+    "en": "If the phone asks, allow “Install unknown apps” for your browser or file manager."
+  },
+  "Oʻrnatishni tasdiqlang va ilovani oching.": { "ru": "Подтвердите установку и откройте приложение.", "en": "Confirm the installation and open the app." },
+  "TestFlight orqali ochish": { "ru": "Открыть в TestFlight", "en": "Open in TestFlight" },
+  "App Store’dan yuklab olish": { "ru": "Скачать из App Store", "en": "Download from the App Store" },
+  "Safari orqali ilova sifatida oʻrnating": { "ru": "Установите как приложение через Safari", "en": "Install as an app via Safari" },
+  "Saytni Safari’da oching.": { "ru": "Откройте сайт в Safari.", "en": "Open the site in Safari." },
+  "Pastdagi «Ulashish» tugmasini bosing.": { "ru": "Нажмите кнопку «Поделиться» внизу экрана.", "en": "Tap the Share button at the bottom of the screen." },
+  "«Bosh ekranga qoʻshish» ni tanlang va tasdiqlang.": { "ru": "Выберите «На экран “Домой”» и подтвердите.", "en": "Choose “Add to Home Screen” and confirm." },
+  "App Store — tez orada": { "ru": "App Store — скоро", "en": "App Store — coming soon" },
+  "macOS ilovasi tez orada chiqadi.": { "ru": "Приложение для macOS скоро появится.", "en": "The macOS app is coming soon." },
+  "macOS uchun DMG yuklab olish": { "ru": "Скачать DMG для macOS", "en": "Download DMG for macOS" },
+  "Bu yigʻma Apple tomonidan tasdiqlanmagan — birinchi ochishda «Baribir ochish» kerak bo‘ladi. Oldin SHA-256 ni tekshiring.": {
+    "ru": "Сборка не заверена Apple — при первом запуске понадобится «Всё равно открыть». Сначала сверьте SHA-256.",
+    "en": "This build is not notarized by Apple — you will need “Open Anyway” on first launch. Verify the SHA-256 first."
+  },
+  "DMG ni oching va ilovani «Applications» papkasiga suring.": { "ru": "Откройте DMG и перетащите приложение в папку «Программы» (Applications).", "en": "Open the DMG and drag the app into the Applications folder." },
+  "Ilovani ochishga urining — macOS bloklasa, «Sozlamalar → Maxfiylik va xavfsizlik» ga kiring.": {
+    "ru": "Попробуйте открыть приложение — если macOS заблокирует, зайдите в «Настройки → Конфиденциальность и безопасность».",
+    "en": "Try opening the app — if macOS blocks it, go to System Settings → Privacy & Security."
+  },
+  "Pastda «Baribir ochish» (Open Anyway) tugmasini bosib, tasdiqlang.": { "ru": "Внизу нажмите «Всё равно открыть» (Open Anyway) и подтвердите.", "en": "Scroll down, click “Open Anyway” and confirm." },
+  "Ilovani oching — qoʻshimcha sozlash kerak emas.": { "ru": "Откройте приложение — дополнительная настройка не нужна.", "en": "Open the app — no extra setup needed." },
+  "Windows": { "ru": "Windows", "en": "Windows" },
+  "Android": { "ru": "Android", "en": "Android" },
+  "macOS": { "ru": "macOS", "en": "macOS" },
+  "iPhone / iPad": { "ru": "iPhone / iPad", "en": "iPhone / iPad" },
+  "Brauzer": { "ru": "Браузер", "en": "Browser" },
+  "Oʻrnatishsiz — hozir kirish uchun.": { "ru": "Без установки — войти прямо сейчас.", "en": "No install — sign in right now." },
+  "Brauzerda ochish": { "ru": "Открыть в браузере", "en": "Open in browser" }
+}

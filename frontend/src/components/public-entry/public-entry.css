@@ -615,3 +615,23 @@
 .entry-auth-alt[aria-expanded="true"] { color: var(--accent-text); }
 #entry-parol-forma:not([hidden]) { margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
 .entry-auth-resend svg { vertical-align: -2px; }
+
+/* Yuklab olish bo'limi: Windows / Android / iPhone-iPad / brauzer kartalari (320px dan, gorizontal scroll yo'q). */
+.entry-dl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; }
+.entry-dl-card { display: flex; flex-direction: column; gap: 8px; min-width: 0; overflow-wrap: anywhere; padding: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md, 14px); }
+.entry-dl-card[data-current="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); order: -1; }
+@media (min-width: 900px) { .entry-dl-card[data-current="true"] { order: 0; } }
+.entry-dl-card header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.entry-dl-card h3 { margin: 0; font-size: 18px; font-weight: 600; }
+.entry-dl-card h4 { margin: 10px 0 0; font-size: 14px; font-weight: 600; color: var(--text); }
+.entry-dl-icon { display: inline-flex; color: var(--accent-text); }
+.entry-dl-badge, .entry-dl-pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--accent-soft); color: var(--accent-text); }
+.entry-dl-pill { background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--border); }
+.entry-dl-card p { margin: 0; }
+.entry-dl-note { color: var(--text-dim); font-size: 13px; line-height: 1.5; }
+.entry-dl-note code { display: block; font-size: 12px; overflow-wrap: anywhere; }
+.entry-dl-warn { padding: 8px 10px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); font-size: 13px; }
+.entry-dl-steps { margin: 0; padding-inline-start: 20px; color: var(--text-dim); font-size: 13px; line-height: 1.6; }
+.entry-dl-cta { align-self: flex-start; max-width: 100%; white-space: normal; text-align: center; }
+.entry-dl-web-link { padding-inline: 0; }
+.entry-dl-ios-art { max-width: 100%; height: auto; color: var(--accent-text); }
