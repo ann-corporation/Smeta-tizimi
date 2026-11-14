@@ -1452,6 +1452,11 @@ export function forma3ShartnomaHujjat(obyektlar: ReadonlyArray<Forma3ShartnomaOb
   const zak = o.zakazchik ?? {};
   const diqqat = [...y.diqqat];
   if (!zak.toliqNom && !o.imzo?.zakazchik) diqqat.push({ nom: 'Заказчик', sabab: 'реквизиты заказчика не заданы — строки заказчика оставлены для заполнения' });
+  // Smeta qiymati (гр. 6, QQS bilan) shartnoma summasidan farq qilsa — jim qolmaydi (qo'shimcha kelishuv / smeta o'zgarishi tekshirilsin).
+  const smetaJami = y.jami.G.vsego;
+  if (o.shartnomaSumma != null && smetaJami != null && Math.abs(smetaJami - o.shartnomaSumma) > 1) {
+    diqqat.push({ nom: 'ИТОГО ПО ДОГОВОРУ', sabab: `стоимость по смете с НДС (гр. 6: ${fmt2(smetaJami)}) не равна общей стоимости договора (${fmt2(o.shartnomaSumma)}) — проверьте допсоглашения и смету` });
+  }
   // Tizimda shartnoma raqami «№5 (01.02.2026)» ko'rinishida saqlanadi (sana qavs ichida) — hujjatda «№ 5 (01.02.2026) от 01.02.2026 г.»
   // bo'lib sana ikki marta chiqardi. Real hujjat: «Договор №5 от 01.02.2026г.». Qavsdagi sana olib tashlanadi (sana yo'q bo'lsa — undan olinadi).
   const raqamXom = raqamTozala(o.shartnomaRaqam);

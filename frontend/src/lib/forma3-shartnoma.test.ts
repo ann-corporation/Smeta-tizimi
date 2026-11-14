@@ -287,3 +287,14 @@ describe('Forma 3 shartnoma — hujjat tuzilishi va kumulyativ ustunlar (egasi 2
     expect(h.davr.oxiri).toBe('2020-03-31');
   });
 });
+
+describe('Forma 3 shartnoma — smeta qiymati va shartnoma summasi', () => {
+  it('smeta (QQS bilan) shartnoma summasidan farq qilsa — xizmat varag‘ida ogohlantirish; teng bo‘lsa yo‘q', () => {
+    const obs = ikkiObyekt();
+    const smeta = f3ShartnomaYigish(obs, '2026-03').jami.G.vsego!;
+    const farqli = forma3ShartnomaHujjat(obs, { davr: '2026-03', shartnomaRaqam: 'T-1', shartnomaSumma: smeta + 5_000_000 });
+    expect(farqli.diqqat.some((d) => d.nom === 'ИТОГО ПО ДОГОВОРУ' && /не равна общей стоимости договора/.test(d.sabab))).toBe(true);
+    const teng = forma3ShartnomaHujjat(obs, { davr: '2026-03', shartnomaRaqam: 'T-1', shartnomaSumma: smeta });
+    expect(teng.diqqat.some((d) => /не равна общей стоимости договора/.test(d.sabab))).toBe(false);
+  });
+});
