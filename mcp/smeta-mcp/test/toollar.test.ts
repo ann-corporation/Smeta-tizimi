@@ -2,7 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import { serverYasa, TOOLLAR } from '../src/server';
 import { toolChaqir } from '../src/tool';
-import { obyektHolat, pereraschet } from '../src/tools/obyekt';
+import { f2, obyektHolat, pereraschet } from '../src/tools/obyekt';
+import { faktYoz } from '../src/tools/ish-oqimi';
 import { sqlOqish } from '../src/tools/oqish';
 import { faktQamrov, qamrovMavjud } from '../src/tools/qamrov';
 import { qatorTahrir, rpc } from '../src/tools/yozish';
@@ -146,6 +147,56 @@ describe('obyekt_holat va pereraschet (frontend mantig\'i bilan)', () => {
     expect(r.jami.plus).toBe(0);
     expect(r.tur_boyicha.ortiqcha.minus).toBe(70);
     expect(r.hisobda.qatorlar[0].qator_id).toBe(3);
+  });
+});
+
+describe('f2 (bitta akt) — summa YAGONA server yadrosidan', () => {
+  // Qatorlar yig'indisidan (kesim) farqli qiymat: yadro podvaldagi sklad effektiv foizini hisobga oladi, kesim hisobi esa yo'q.
+  const PAKET = { ustamasiz: 1000, ustamali: 1234.56, qqs_bilan: 1382.71, ustamasiz_qism: 0, nk_manba: 'smeta_podvali' };
+  const javob = (sql: string) => umumiy(sql)
+    ?? (sql.includes('from public.t2_akt where id') ? [{ id: 55, obyekt_id: 900, kompaniya_id: 1, tur: 'f2', holat: 'tasdiqlangan', shartnoma_id: null }]
+      : sql.includes('from public.t2_akt_qator aq') ? [{ id: 1, qator_id: 3, tur: 'rs', kod: '1-1', nom: 'MEHNAT', birlik: 'чел.-ч', kat: 'ЧЕЛ', hajm: 10, narx: 10, summa: 100, certified_amount: null, s: 100 }]
+        : sql.includes('_t2_summa_paket_v1') ? [{ p: PAKET }] : []);
+  it('summa.ustamali = _t2_summa_paket_v1(aktlar, [akt]) natijasi (parallel hisob emas)', async () => {
+    const { mu, h } = mockMuhit(javob);
+    const j = await toolChaqir(f2, mu, { akt_id: 55 });
+    expect(j.isError).toBeFalsy();
+    const r = JSON.parse(j.content[0].text);
+    expect(r.summa.manba).toBe('yadro:_t2_summa_paket_v1');
+    expect(r.summa.ustamasiz).toBe(1000);
+    expect(r.summa.ustamali).toBe(1234.56);
+    expect(r.summa.nds).toBeCloseTo(148.15, 2);
+    const q = h.sorovlar.find((x) => x.sql.includes('_t2_summa_paket_v1'))!;
+    expect(q.params).toEqual([900, 'aktlar', 55]);
+  });
+  it('yadro paketi yo\'q bo\'lsa — zaxira kesim, manbasi ko\'rsatiladi', async () => {
+    const { mu } = mockMuhit((sql) => (sql.includes('_t2_summa_paket_v1') ? [] : javob(sql)));
+    const r = JSON.parse((await toolChaqir(f2, mu, { akt_id: 55 })).content[0].text);
+    expect(r.summa.manba).toBe('zaxira:kesim');
+  });
+});
+
+describe('fakt_yoz — narxsiz qator ogohlantirishi (bloklamaydi)', () => {
+  const javob = (res: Record<string, unknown>) => (sql: string) => umumiy(sql)
+    ?? (sql.includes('from public.t2_obyekt where id') ? [{ id: 900, nom: 'Sinov', kompaniya_id: 1 }]
+      : sql.includes('from public.t2_qator_holat') ? [{ qator_id: 5, nom: 'MATERIAL', fakt_hajm: 0 }, { qator_id: 6, nom: 'NOL NARX', fakt_hajm: 0 }]
+        : sql.includes('proargnames') ? [FAKT_TAVSIF]
+          : sql.includes('"t2_fakt_yoz_v2"(') ? [{ t2_fakt_yoz_v2: res }] : []);
+  it('server narxsiz_soni qaytarsa — yozuv bajariladi, ogohlantirish va qator ro\'yxati chiqadi', async () => {
+    const { mu } = mockMuhit(javob({ ok: true, akt_id: 31, narxsiz_soni: 1, narxsiz_qatorlar: [{ qator_id: 5, kod: 'M1', nom: 'MATERIAL' }], narxsiz_ogohlantirish: 'narxsiz qator: summa bo\'sh, narx_tuzat bilan narx qo\'ying' }));
+    const j = await toolChaqir(faktYoz, mu, { obyekt_id: 900, sana: '2026-10-26', qatorlar: [{ qator_id: 5, hajm: 2 }, { qator_id: 6, hajm: 1 }] });
+    expect(j.isError).toBeFalsy();
+    const r = JSON.parse(j.content[0].text);
+    expect(r.natija.akt_id).toBe(31);
+    expect(r.natija.narxsiz_soni).toBe(1);
+    expect(r.natija.narxsiz_qatorlar[0].qator_id).toBe(5);
+    expect(r.ogohlantirishlar.join(' ')).toMatch(/narxsiz qator: summa bo'sh, narx_tuzat bilan narx qo'ying — 1 ta \(#5\)/);
+  });
+  it('narxsiz yo\'q (narx 0 ham narxsiz emas) — ogohlantirish yo\'q', async () => {
+    const { mu } = mockMuhit(javob({ ok: true, akt_id: 32 }));
+    const r = JSON.parse((await toolChaqir(faktYoz, mu, { obyekt_id: 900, sana: '2026-10-26', qatorlar: [{ qator_id: 6, hajm: 1 }] })).content[0].text);
+    expect(r.natija.narxsiz_soni).toBeUndefined();
+    expect(r.ogohlantirishlar.join(' ')).not.toMatch(/narxsiz/);
   });
 });
 
