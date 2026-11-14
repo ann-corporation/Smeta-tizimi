@@ -25,7 +25,7 @@ describe('F2 reestri ko‘rinishi — smeta = 100% ga nisbatan chiziq', () => {
     expect(r.tizimUlush).toBeCloseTo(0.2);
     expect(r.oshdi).toBe(true);
   });
-  it('Stella kabi holat: asl smeta kichik, qo‘shimcha katta — maxraj smeta + o‘zgarishlar, foiz 100% dan oshmaydi', () => {
+  it('Qo‘shimcha ishi katta obyekt: asl smeta kichik, qo‘shimcha katta — maxraj smeta + o‘zgarishlar, foiz 100% dan oshmaydi', () => {
     const p = { tasdiqlangan: s(400), tasdiqImport: s(400), tasdiqTizim: s(0, 0) };
     const obyekt = { jami: 60, ozgarish: 420 };            // asl 60, qo'shimcha +420 → joriy 480
     expect(reestrUlush(p, obyekt.jami).foiz).toBeCloseTo(666.7, 1);       // eski xato: F2 / asl
