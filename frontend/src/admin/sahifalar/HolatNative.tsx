@@ -99,7 +99,8 @@ export function HolatNative() {
   useQaytaUlanish(useCallback(() => { setError(''); if (validId) void yuklash(); }, [validId, yuklash]));
   /* SMETA CONST (egasi 2026-10-27): asl smeta muhridan farq — daraxt qayta yuklanganda yangilanadi. */
   const muhr = useMuhrFarq(validId ? obyektId : null, daraxtXom);
-  useEffect(() => { setOchiqPanel(null); setExportsOpen(false); setActiveTab(panelTab); setError(''); }, [obyektId, joriy?.id, requestedPanel, panelTab]);
+  /* Obyekt/kompaniya almashsa bo'limlar yopiladi — lekin #slichitelniy havolasi bilan kelingan bo'lsa ochiq qoladi (kompaniya keyin yuklansa ham). */
+  useEffect(() => { setOchiqPanel(null); setExportsOpen(window.location.hash === '#slichitelniy'); setActiveTab(panelTab); setError(''); }, [obyektId, joriy?.id, requestedPanel, panelTab]);
   /* Panellar faqat DARAXT xatosiga qaraydi (obyektlar ro'yxati yoki eksport xatosi ularni yashirmaydi). */
   const error = daraxtXato;
   // Taqqoslash ham aynan to'liq o'qilgan kanonik qatorlardan; ikkinchi 20k cut-off yo'q.
