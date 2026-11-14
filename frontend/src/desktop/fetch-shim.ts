@@ -5,16 +5,16 @@ export type NativeHttpResponse = { status: number; body: string; etag: string | 
 /** Tauri global core API. No renderer command returns a Bearer credential. */
 export function nativeInvoke<T>(command: string, args?: Record<string, unknown>): Promise<T> {
   const bridge = (window as unknown as { __TAURI__?: { core?: { invoke?: NativeInvoke } } }).__TAURI__?.core?.invoke;
-  if (!bridge || window.location.origin !== 'http://tauri.localhost') return Promise.reject(new Error('DESKTOP_NATIVE_REQUIRED'));
+  if (!bridge || window.location.origin !== localOriginNow()) return Promise.reject(new Error('DESKTOP_NATIVE_REQUIRED'));
   return bridge<T>(command, args);
 }
 
 /** Only local /api calls go through Rust, which supplies credential/Origin and refuses redirects. */
-export function desktopFetch(original: typeof fetch, invoke: NativeInvoke, localOrigin = 'http://tauri.localhost', offline?: Parameters<typeof desktopPageFetch>[2]): typeof fetch {
+export function desktopFetch(original: typeof fetch, invoke: NativeInvoke, localOrigin = localOriginNow(), offline?: Parameters<typeof desktopPageFetch>[2]): typeof fetch {
   const transport: typeof fetch = async (input, init) => {
     const raw = input instanceof Request ? input.url : String(input);
     const url = new URL(raw, localOrigin);
-    if (url.origin !== localOrigin || !url.pathname.startsWith('/api/')) return original(input, init);
+    if (!isLocalUrl(url, localOrigin) || !url.pathname.startsWith('/api/')) return original(input, init);
     const request = new Request(url.href, input instanceof Request ? input : undefined);
     const combined = new Request(request, init);
     if (combined.signal.aborted) throw new DOMException('Aborted', 'AbortError');
@@ -39,3 +39,4 @@ export function desktopFetch(original: typeof fetch, invoke: NativeInvoke, local
   return offline ? desktopPageFetch(transport, invoke, offline) : transport;
 }
 import { desktopPageFetch } from './page-cache';
+import { isLocalUrl, localOriginNow } from './local-origin';

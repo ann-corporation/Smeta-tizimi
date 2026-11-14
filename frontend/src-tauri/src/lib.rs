@@ -13,9 +13,28 @@ fn builder() -> tauri::Builder<tauri::Wry> {
         cache::desktop_cache_keys
     ])
 }
+// iOS Keychain items survive app deletion while the sandbox (and cache) does not. A missing install marker means a
+// fresh install: erase any orphaned credential before the UI can use it.
+#[cfg(all(target_os = "ios", not(test)))]
+fn ios_fresh_install_wipe(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    use maxfiy::Vault;
+    use tauri::Manager;
+    let dir = app.path().app_local_data_dir()?;
+    let marker = dir.join("install-marker-v1");
+    if !marker.exists() {
+        maxfiy::OsVault.delete()?;
+        std::fs::create_dir_all(&dir)?;
+        std::fs::write(&marker, b"1")?;
+    }
+    Ok(())
+}
 #[cfg(not(test))]
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    builder()
+    let builder = builder();
+    #[cfg(target_os = "android")]
+    let builder = builder.plugin(smeta_keystore::init());
+    builder
         .setup(|_app| {
             #[cfg(feature = "desktop-e2e")]
             {
@@ -25,6 +44,8 @@ pub fn run() {
                     );
                 }
             }
+            #[cfg(target_os = "ios")]
+            ios_fresh_install_wipe(_app)?;
             Ok(())
         })
         .run(tauri::generate_context!())

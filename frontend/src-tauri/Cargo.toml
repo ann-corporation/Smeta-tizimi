@@ -15,13 +15,23 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = [] }
-keyring = { version = "=3.6.3", features = ["windows-native"] }
 reqwest = { version = "=0.13.5", default-features = false, features = ["native-tls"] }
 aes-gcm = "=0.10.3"
 base64 = "=0.23.1"
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.154"
 zeroize = "=1.9.1"
+
+# Secret storage per platform. No mock/fallback vault ships: unsupported targets fail closed.
+[target.'cfg(target_os = "windows")'.dependencies]
+keyring = { version = "=3.6.3", features = ["windows-native"] }
+
+[target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]
+keyring = { version = "=3.6.3", features = ["apple-native"] }
+
+# Android Keystore (AES-256-GCM, non-exportable key) via the in-repo plugin.
+[target.'cfg(target_os = "android")'.dependencies]
+smeta-keystore = { path = "plugins/smeta-keystore" }
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]

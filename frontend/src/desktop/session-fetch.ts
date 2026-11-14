@@ -1,3 +1,4 @@
+import { isLocalUrl, localOriginNow } from './local-origin';
 /** A successful native login replaces the identity. Old cache callbacks must not invalidate its successor. */
 export function desktopSessionFetch(create: (events: { status: (offline: boolean) => void; invalidate: () => void }) => typeof fetch,
   events: { status: (offline: boolean) => void; invalidate: () => void; ended: () => void }): typeof fetch {
@@ -10,8 +11,8 @@ export function desktopSessionFetch(create: (events: { status: (offline: boolean
   return async (input, init) => {
     const request = current, response = await request(input, init);
     if (request !== current) throw new Error('DESKTOP_SESSION_CHANGED'); // Never deliver a retired identity's body.
-    const url = new URL(input instanceof Request ? input.url : String(input), 'http://tauri.localhost');
-    if (response.ok && url.origin === 'http://tauri.localhost' && url.pathname === '/api/kirish') current = bind();
+    const url = new URL(input instanceof Request ? input.url : String(input), localOriginNow());
+    if (response.ok && isLocalUrl(url) && url.pathname === '/api/kirish') current = bind();
     else if (response.status === 401) events.ended();
     return response;
   };
@@ -21,7 +22,7 @@ export function desktopEntryFetch(original: typeof fetch, pages: typeof fetch, o
   remember: () => Promise<void>): typeof fetch {
   return async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input), origin);
-    if (url.origin !== origin || !url.pathname.startsWith('/api/')) return original(input, init);
+    if (!isLocalUrl(url, origin) || !url.pathname.startsWith('/api/')) return original(input, init);
     const response = await pages(input, init);
     if (response.ok) await remember();
     return response;

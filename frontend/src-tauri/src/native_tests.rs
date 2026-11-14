@@ -54,7 +54,10 @@ fn token_chegarasi() {
 }
 #[test]
 fn only_packaged_main_origin() {
-    let local = tauri::Url::parse("http://tauri.localhost/admin?test=1").unwrap();
+    #[cfg(any(target_os = "macos", target_os = "ios"))]
+    let (local, other_platform) = (tauri::Url::parse("tauri://localhost/admin?test=1").unwrap(), "http://tauri.localhost");
+    #[cfg(not(any(target_os = "macos", target_os = "ios")))]
+    let (local, other_platform) = (tauri::Url::parse("http://tauri.localhost/admin?test=1").unwrap(), "tauri://localhost");
     assert!(caller_tekshir("main", "main", &local).is_ok());
     assert!(caller_tekshir("other", "main", &local).is_err());
     assert!(caller_tekshir("main", "child", &local).is_err());
@@ -65,8 +68,10 @@ fn only_packaged_main_origin() {
         "http://tauri.localhost.evil",
         "http://tauri.localhost:8080",
         "http://user@tauri.localhost",
-        "tauri://localhost",
+        "tauri://user@localhost",
         "about:blank",
+        "tauri://localhost.evil",
+        other_platform,
     ] {
         assert!(
             caller_tekshir("main", "main", &tauri::Url::parse(url).unwrap()).is_err(),

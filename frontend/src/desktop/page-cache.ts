@@ -1,3 +1,4 @@
+import { isLocalUrl, localOriginNow } from './local-origin';
 import { paketdanHolatlar, paketdanQatorlar, type Paket } from '../ombor/paket';
 import { NativeDesktopCache } from './native-cache';
 import { DesktopOfflineRuntime, invalidatesDesktopSession, type NativeSessionInfo } from './offline-runtime';
@@ -139,8 +140,8 @@ export function desktopPageFetch(base: typeof fetch, invoke: NativeInvoke, optio
     return Response.json(j);
   }
   return async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input), 'http://tauri.localhost');
-    if (url.origin !== 'http://tauri.localhost' || !url.pathname.startsWith('/api/')) return base(input, init);
+    const url = new URL(input instanceof Request ? input.url : String(input), localOriginNow());
+    if (!isLocalUrl(url) || !url.pathname.startsWith('/api/')) return base(input, init);
     const req = new Request(input instanceof Request ? input : url, init), method = req.method;
     if (req.signal.aborted) throw new DOMException('Aborted', 'AbortError');
     if (url.pathname === '/api/chiqish') { runtime.dispose(); expiry.forEach(clearTimeout); expiry.clear(); return base(input, init); }
