@@ -208,6 +208,24 @@ describe('zanjirHisobla — obyekt darajasi vs oy darajasi (Stella va haykal xat
   });
 });
 
+describe('NULL ≠ 0 — noma‘lum hech qachon «Avval … kerak» (blocked) emas', () => {
+  const asos = { obyekt: { jami: 100, narxsiz: 0 }, oy: '2026-11' };
+  it('akt reestri o‘qilmadi (null) — hamma qadam noma‘lum yoki bajarilgan, blocked yo‘q', () => {
+    const q = zanjirHisobla(zanjirKirishYasa({ ...asos, aktlar: null })).qadamlar;
+    expect(q.filter((x) => x.holat === 'blocked')).toEqual([]);
+    expect(q.every((x) => !/Avval/.test(x.izoh))).toBe(true);
+  });
+  it('obyekt ro‘yxatda yo‘q (smeta noma‘lum) va reestr null — blocked yo‘q', () => {
+    const q = zanjirHisobla(zanjirKirishYasa({ obyekt: null, aktlar: null, oy: '2026-11' })).qadamlar;
+    expect(q.every((x) => x.holat === 'unknown')).toBe(true);
+  });
+  it('faqat fakt qoralamasi bor (saqlangani yo‘q) — АОСР/F2 «Avval fakt kerak» emas', () => {
+    const qor = { tur: 'fakt', holat: 'qoralama', oy: '2026-11-01', yaratildi: '2026-11-03T00:00:00Z', hujjat_jami: null, yozilgan_jami: null } as MarkazAkt;
+    const h = Object.fromEntries(zanjirHisobla(zanjirKirishYasa({ ...asos, aktlar: [qor, qor] })).qadamlar.map((x) => [x.id, x]));
+    expect(h.aosr.holat).not.toBe('blocked');
+    expect(h.f2.holat).not.toBe('blocked');
+  });
+});
 describe('Nakopitelniy qadami (F-2 va Forma 3 orasida)', () => {
   const qadam = (k: ZanjirKirish, id: string) => zanjirHisobla(k).qadamlar.find((q) => q.id === id)!;
   it('tartib: F2 dan keyin, Forma 3 dan oldin; yo‘l — nakopitelniy sahifasi', () => {
