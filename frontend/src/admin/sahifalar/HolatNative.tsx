@@ -7,7 +7,7 @@ import { ObyektPodvalOgohi } from './SmetaPodvalNakrutka';
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 import { marketReadPrice } from '../../lib/smeta-studio/market-comparison';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArxivTugma } from '../../components/arxiv/ArxivTugma';
 import { AlertTriangle, ArrowLeft, Ban, ChevronDown, Eye, FileSpreadsheet, FileText, Info, MoreHorizontal, Plus, Upload, X } from 'lucide-react';
 import { SmetaTree } from '../../umumiy/daraxt/SmetaTree';
@@ -62,6 +62,9 @@ export function HolatNative() {
   const requestedPanel = searchParams.get('panel');
   /* Zanjir chizig'idagi «Slichitelniy» havolasi (#slichitelniy) — hujjatlar bo'limini ochadi va shu qatorga o'tadi. */
   const [exportsOpen,setExportsOpen] = useState(() => typeof window !== 'undefined' && window.location.hash === '#slichitelniy');
+  /* Sahifa ichida (yoki qayta) bosilganda ham: hash o'zgarsa yoki havola yana bosilsa (location.key) — bo'lim ochiladi. */
+  const location = useLocation();
+  useEffect(() => { if (location.hash === '#slichitelniy') setExportsOpen(true); }, [location.hash, location.key]);
   const panelTab = requestedPanel === 'smeta' ? 'yuklash' : requestedPanel === 'versiya' ? 'versiya' : 'smeta';
   const [activeTab, setActiveTab] = useState(panelTab);
   /** Yuklash ustasidan «Yangi versiya sifatida saqlash» — fayl «Versiyalar va farq» formasiga oldindan qo'yiladi. */
@@ -96,7 +99,8 @@ export function HolatNative() {
   useQaytaUlanish(useCallback(() => { setError(''); if (validId) void yuklash(); }, [validId, yuklash]));
   /* SMETA CONST (egasi 2026-10-27): asl smeta muhridan farq — daraxt qayta yuklanganda yangilanadi. */
   const muhr = useMuhrFarq(validId ? obyektId : null, daraxtXom);
-  useEffect(() => { setOchiqPanel(null); setExportsOpen(false); setActiveTab(panelTab); setError(''); }, [obyektId, joriy?.id, requestedPanel, panelTab]);
+  /* Obyekt/kompaniya almashsa bo'limlar yopiladi — lekin #slichitelniy havolasi bilan kelingan bo'lsa ochiq qoladi (kompaniya keyin yuklansa ham). */
+  useEffect(() => { setOchiqPanel(null); setExportsOpen(window.location.hash === '#slichitelniy'); setActiveTab(panelTab); setError(''); }, [obyektId, joriy?.id, requestedPanel, panelTab]);
   /* Panellar faqat DARAXT xatosiga qaraydi (obyektlar ro'yxati yoki eksport xatosi ularni yashirmaydi). */
   const error = daraxtXato;
   // Taqqoslash ham aynan to'liq o'qilgan kanonik qatorlardan; ikkinchi 20k cut-off yo'q.
@@ -140,8 +144,8 @@ export function HolatNative() {
   const zanjirQoshimcha = useMemo(() => zanjirDaraxtSonlari && ({ ...zanjirDaraxtSonlari, tolov: zanjirTolov?.kalit === tolovKalit ? zanjirTolov.v : null, aosrReestr: zanjirAosr?.kalit === aosrKalit ? zanjirAosr.v : null }),
     [zanjirDaraxtSonlari, zanjirTolov, tolovKalit, zanjirAosr, aosrKalit]);
   useEffect(() => {
-    if (exportsOpen && tree.length > 0 && typeof window !== 'undefined' && window.location.hash === '#slichitelniy') document.getElementById('slichitelniy')?.scrollIntoView?.({ block: 'center' });
-  }, [exportsOpen, tree.length]);
+    if (exportsOpen && tree.length > 0 && location.hash === '#slichitelniy') document.getElementById('slichitelniy')?.scrollIntoView?.({ block: 'center' });
+  }, [exportsOpen, tree.length, location.hash, location.key]);
   /* Obyekt yozuvi: sahifa ro'yxatidan, bo'lmasa PTO kontekstidan (ikkalasi ham kanonik t2_obyekt_jami). */
   const selected = obyektlar.find((o) => o.id === obyektId && o.kompaniya_id === joriy?.id)
     ?? workspace.objects.find((o) => o.id === obyektId && o.kompaniya_id === joriy?.id) ?? null;

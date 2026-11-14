@@ -1,5 +1,5 @@
 import { useInRouterContext, Link } from 'react-router-dom';
-import { ArrowRight, Check, CircleDashed, Lock, HelpCircle } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Check, CircleDashed, HelpCircle } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { t } from '../../i18n/til';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
@@ -17,9 +17,9 @@ import { ZANJIR_YOL, zanjirHisobla, zanjirKirishYasa, zanjirRolKoradi, type Qada
  */
 export type ZanjirBelgi = ZanjirQadamId;
 
-const IKONKA: Record<QadamHolat, ComponentType<{ className?: string; 'aria-hidden'?: boolean }>> = { done: Check, current: ArrowRight, blocked: Lock, not_started: CircleDashed, unknown: HelpCircle };
+const IKONKA: Record<QadamHolat, ComponentType<{ className?: string; 'aria-hidden'?: boolean }>> = { done: Check, current: ArrowRight, blocked: AlertTriangle, not_started: CircleDashed, unknown: HelpCircle };
 const HOLAT_NOMI: Record<QadamHolat, () => string> = {
-  done: () => t('Bajarilgan'), current: () => t('Hozir'), blocked: () => t('Bloklangan'), not_started: () => t('Navbatda'), unknown: () => t('Noma‘lum'),
+  done: () => t('Bajarilgan'), current: () => t('Hozir'), blocked: () => t('Diqqat'), not_started: () => t('Navbatda'), unknown: () => t('Noma‘lum'),
 };
 const HOLAT_SINF: Record<QadamHolat, string> = {
   done: 'border-ok/30 bg-ok/10 text-ok',
