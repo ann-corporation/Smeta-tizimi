@@ -17,7 +17,8 @@ import type { ImzoNomlar } from '../hujjat-yozuvchi';
 import type { F3DavrAkt } from '../forma3-export';
 import { aktlarBahosiOl } from './akt-baho';
 import { bajarilmadiRoyxatOl, type BajarilmadiQator } from '../../api/t2-bajarilmadi';
-import { f2AktUstunlari } from '../nakopitelniy-akt-ustun';
+import { f2AktUstunlari, type BekorAktKirish } from '../nakopitelniy-akt-ustun';
+import { sbOqi } from '../../api/supabase';
 
 type OkJavob = Extract<NakopitelniyJavob, { ok: true }>;
 export type NakopitelniyOyKesim = ReturnType<typeof f2OyKesimi>;
@@ -111,8 +112,23 @@ export async function nakopitelniyAktUstunOl(kompaniyaId: number, objId: number,
     const taf = await sbT2F2TafsilotOl({ obyektId: objId, tur: 'f2' });
     if (!taf.ok || taf.toliq === false || !taf.qatorlar || !davr) return null;
     const baho = await aktlarBahosiOl({ kompaniyaId, obyektId: objId, obyektNom, qatorlar: taf.qatorlar, davr });
-    return f2AktUstunlari(taf.qatorlar, davr, baho);
+    // Bekor (cancelled) aktlar akt reestridan: o'qilmasa — ilova bo'sh (hujjat to'xtamaydi).
+    const bekor = await bekorAktlarOl(objId).catch(() => []);
+    return f2AktUstunlari(taf.qatorlar, davr, baho, bekor);
   } catch { return null; }
+}
+
+/** Akt reestridagi bekor (cancelled) F-2 lar: almashtirgan akt — correction_of_akt_id yoki lifecycle_reason matnidagi «akt N». Sabab matni hujjatga ko'chirilmaydi. */
+export async function bekorAktlarOl(objId: number): Promise<BekorAktKirish[]> {
+  const r = await sbOqi<{ id: number; raqam: string | null; oy: string; holat: string; lifecycle_status: string | null; correction_of_akt_id: number | null; lifecycle_reason: string | null }>({
+    jadval: 't2_akt', filtr: `obyekt_id=eq.${objId}&tur=eq.f2&holat=eq.bekor`, ustunlar: 'id,raqam,oy,holat,lifecycle_status,correction_of_akt_id,lifecycle_reason', limit: 2000,
+  });
+  if (!r.ok) return [];
+  return (r.qatorlar ?? []).filter((a) => a.lifecycle_status == null || a.lifecycle_status === 'cancelled' || a.holat === 'bekor').map((a) => {
+    const m = /(?:yangi\s+)?akt\s+(\d+)/i.exec(a.lifecycle_reason ?? '');
+    const id = a.correction_of_akt_id ?? (m ? Number(m[1]) : null);
+    return { aktId: Number(a.id), raqam: a.raqam, oy: String(a.oy).slice(0, 7), almashtirganId: id != null && id !== a.id ? id : null };
+  });
 }
 export type NakopitelniyHujjatKirish = {
   qatorlar: readonly NakopitelniyQator[]; jami: Pick<NakopitelniyJami, 'smeta_summa'> | null; obyektNom: string; davr: string;

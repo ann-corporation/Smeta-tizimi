@@ -83,6 +83,8 @@ export interface NakopitelniyAktMeta {
   qqsBilan: number | null;
   /** Aktning o'z podvalidagi IMZOLANGAN hujjat ВСЕГО (t2_akt_podval.hujjat_vsego): berilsa — nazorat qatori shu bilan solishtiradi (yadro bahosi o'rniga). */
   imzolangan?: number | null;
+  /** Aktning o'z podval QATORLARI (t2_akt_podval.qatorlar): ustun podvali shulardan QIYMAT sifatida ko'chiriladi (foiz ko'rinadi, summa imzolangan). */
+  podvalQatorlar?: ReadonlyArray<{ kod: string; nom: string; foiz: number | null; summa: number | null }> | null;
   /** Akt bir necha podval birligidan iborat (storno bloklari) — nazorat qatorida izohlanadi. */
   birlikSoni?: number;
 }
@@ -525,7 +527,7 @@ export function nakopitelniyVedomostHujjat(
     });
     kaskad = {};
     const natijalar: Record<string, { vsego: number | null; qiymat: Record<string, number | null> }> = {};
-    const blokInfo = new Map<string, { bosh: number; vsegoQator: number; yaxlitBor: boolean; nomalumBor: boolean; podval: Podval | null; nk: Partial<NakrutkaKoeffitsientlar>; yaxlitQator: number | null }>();
+    const blokInfo = new Map<string, { bosh: number; vsegoQator: number; yaxlitBor: boolean; nomalumBor: boolean; podval: Podval | null; nk: Partial<NakrutkaKoeffitsientlar>; yaxlitQator: number | null; qatorMap?: Record<string, number> }>();
     const colQiymat = (q: NakopitelniyQator, c: string): number => (pulOf(q, c) ?? 0);
 
     /** Bitta podval bloki: har pul ustuni uchun kaskad (foiz × asos — tirik formulalar). */
@@ -585,6 +587,38 @@ export function nakopitelniyVedomostHujjat(
         const c = U.davrS[k];
         const a = d.akt!;
         const oz = a.nk != null;
+        const imzoQator = oz && a.podvalQatorlar?.some((s) => s.kod === 'vsego' && s.summa != null) ? a.podvalQatorlar : null;
+        if (imzoQator) {
+          // Imzolangan akt podvali: summalar hujjatdan AYNAN (qiymat), foiz ko'rinadi — formula faqat smeta/fakt/«с начала»/остаток podvallarida.
+          v.bosh();
+          v.bolim(`ПОДВАЛ АКТА Ф-2${a.raqam ? ` № ${a.raqam}` : ''} (${davrMatni(a.oy)}) — подписанный документ (суммы акта, значения)`, { daraja: 0 });
+          const rowsMap: Record<string, number> = {}; const qv: Record<string, number | null> = {};
+          for (const s of imzoQator) {
+            rowsMap[s.kod] = v.qator(s.kod === 'vsego' ? 'vsego' : /^(itogo|pryamye)/.test(s.kod) ? 'jami' : 'oddiy', () => {
+              const cc: Qiymat[] = Array(U.ustunlar.length).fill(null);
+              cc[2] = s.nom;
+              if (s.foiz != null) cc[col('F')] = { n: s.foiz, uslub: 'foiz' };
+              cc[col(c)] = s.summa;
+              return cc;
+            });
+            qv[s.kod] = s.summa;
+          }
+          const ustunJami = yaxlit2(bargRows.reduce((t, i) => t + (pulOf(reja[i].q!, c) ?? 0), 0));
+          if (qv.pryamye != null) {
+            v.qator('oddiy', () => {
+              const cc: Qiymat[] = Array(U.ustunlar.length).fill(null);
+              cc[2] = 'Контроль: прямые затраты по столбцу (формула) − «итого прямые затраты» подписанного акта';
+              cc[col(c)] = { f: `ROUND(${c}${vsegoR}-${c}${rowsMap.pryamye},2)`, v: yaxlit2(ustunJami - qv.pryamye!) };
+              return cc;
+            });
+            if (Math.abs(ustunJami - qv.pryamye) >= 0.005) diqqat.push({ nom: `Ф-2${a.raqam ? ` № ${a.raqam}` : ''}`, sabab: `прямые затраты по столбцу (${fmt2(ustunJami)}) отличаются от итога подписанного акта (${fmt2(qv.pryamye)}) на ${fmt2(ustunJami - qv.pryamye)}` });
+          }
+          natijalar[c] = { vsego: qv.vsego ?? null, qiymat: qv };
+          blokInfo.set(c, { bosh: rowsMap.pryamye ?? rowsMap.vsego, vsegoQator: rowsMap.vsego, yaxlitBor: false, nomalumBor: false, podval: null, nk: {}, yaxlitQator: null, qatorMap: rowsMap });
+          kaskad![c] = qv.pryamye != null && qv.itogo4 != null && qv.nds != null && qv.vsego != null ? ({ pryamye: qv.pryamye, itogo4: qv.itogo4, nds: qv.nds, vsego: qv.vsego } as NakrutkaHisobJS) : null;
+          if (a.oy.slice(0, 7) === oyD) davrJami = davrJami == null || qv.vsego == null ? null : davrJami + qv.vsego;
+          return;
+        }
         const bl = blokYoz(oz
           ? { sarlavha: `ПОДВАЛ АКТА Ф-2${a.raqam ? ` № ${a.raqam}` : ''} (${davrMatni(a.oy)}) — собственный подвал акта`, cols: [c], nk: {}, podval: aktPodvaliPodval(a.nk!), akt: a, smetaTuri: false }
           : { sarlavha: `ПОДВАЛ АКТА Ф-2${a.raqam ? ` № ${a.raqam}` : ''} (${davrMatni(a.oy)}) — у акта нет своего подвала: подвал сметы`, cols: [c], nk, podval, akt: a, smetaTuri: false });
@@ -619,7 +653,7 @@ export function nakopitelniyVedomostHujjat(
         for (const c of aktCols) {
           const val = natijalar[c].qiymat[kod];
           const bi = blokInfo.get(c)!;
-          const rn = kod === 'vsego' ? bi.vsegoQator : podvalQatorRaqami(bi.bosh, bi.podval, kod, bi.yaxlitBor, bi.nomalumBor);
+          const rn = bi.qatorMap?.[kod] ?? (kod === 'vsego' ? bi.vsegoQator : podvalQatorRaqami(bi.bosh, bi.podval, kod, bi.yaxlitBor, bi.nomalumBor));
           if (val == null) return { f: null, v: null };
           s += val;
           if (rn != null) refs.push(`${c}${rn}`);

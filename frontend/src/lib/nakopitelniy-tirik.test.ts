@@ -55,7 +55,6 @@ function aktlar(): { oylar: NakopitelniyOylar; vs1: number; vs2: number } {
   const rows = [
     taf(11, '5', '2026-08', 3, 2, 2_000), taf(11, '5', '2026-08', 5, 1, 500),
     taf(12, '6', '2026-09', 3, 1, 1_000), taf(12, '6', '2026-09', 4, 2, 2_400),
-    taf(13, '7', '2026-09', 4, 1, 1_200, 'bekor'), taf(14, '6', '2026-09', 4, 2, 2_400, 'bekor'),
   ];
   const vs1 = kutilganVsego(NK_1, [{ kat: 'МАТ', summa: 2_000 }, { kat: 'МАТ', summa: 500 }]);
   const vs2 = kutilganVsego(NK_2, [{ kat: 'МАТ', summa: 1_000 }, { kat: 'МАТ', summa: 2_400 }]);
@@ -63,7 +62,7 @@ function aktlar(): { oylar: NakopitelniyOylar; vs1: number; vs2: number } {
     { aktId: 11, raqam: '5', hujjatPodvali: true, ustamasiz: 2_500, ustamali: null, qqs: null, qqsBilan: vs1, nk: NK_1, birlikSoni: 1 },
     { aktId: 12, raqam: '6', hujjatPodvali: true, ustamasiz: 3_400, ustamali: null, qqs: null, qqsBilan: vs2, nk: NK_2, birlikSoni: 1 },
   ];
-  return { oylar: f2AktUstunlari(rows, '2026-09', baho), vs1, vs2 };
+  return { oylar: f2AktUstunlari(rows, '2026-09', baho, [{ aktId: 13, raqam: '7', oy: '2026-09' }, { aktId: 14, raqam: '6', oy: '2026-09', almashtirganId: 12 }]), vs1, vs2 };
 }
 
 const OPT = { obyektNom: 'Объект', davr: '2026-09', ndsFoiz: 12, nakrutka: NK_1 };
@@ -227,6 +226,34 @@ describe('nakopitelniy: svod (yaxlit) bo‘lim bir marta sanaladi', () => {
     const podval = hujjatTekshir(h.bytes).matnlar.filter((m) => /по своду целой суммой|Свод яхлит|СВОД/i.test(m) && !/БАРЕЛЬЕФ/.test(m));
     expect(podval.length).toBeGreaterThan(0);
     expect(formulalarniQaytaHisobla(h.bytes).farq).toEqual([]);
+  });
+});
+
+describe('nakopitelniy: imzolangan akt podvali — qiymat, aynan ko‘chiriladi', () => {
+  it('o‘z podval qatorlari berilsa: foiz ko‘rinadi, summa — imzolangan QIYMAT (formula emas), ВСЕГО aynan; «с начала» — formula', () => {
+    const { rows } = smeta();
+    const { oylar } = aktlar();
+    const imzo = [
+      { kod: 'pryamye', nom: 'ИТОГО ПРЯМЫЕ ЗАТРАТЫ', foiz: null, summa: 2_500 },
+      { kod: 'itogo4', nom: 'ИТОГО', foiz: null, summa: 3_000.11 },
+      { kod: 'nds', nom: 'НДС', foiz: 12, summa: 360.01 },
+      { kod: 'vsego', nom: 'ВСЕГО СТОИМОСТЬ СТРОИТЕЛЬСТВА', foiz: null, summa: 3_360.12 },
+    ];
+    const buzuq: NakopitelniyOylar = { ...oylar, aktlar: oylar.aktlar!.map((a: NakopitelniyAktMeta) => (a.aktId === 11 ? { ...a, podvalQatorlar: imzo } : a)) };
+    const h = hujjat(rows, buzuq);
+    const c = kataklar(h.bytes);
+    const vr = c.find((k) => k.ref.startsWith('C') && k.matn === 'ВСЕГО СТОИМОСТЬ СТРОИТЕЛЬСТВА')!.ref.slice(1);
+    const cell = c.find((k) => k.ref === `K${vr}`)!;
+    expect(Number(cell.v)).toBe(3_360.12);
+    expect(cell.f ?? null).toBeNull();
+    const ndsRow = c.find((k) => k.ref.startsWith('C') && k.matn === 'НДС')!.ref.slice(1);
+    expect(Number(c.find((k) => k.ref === `F${ndsRow}`)?.v)).toBe(12);
+    expect(h.kaskad!.K!.vsego).toBe(3_360.12);
+    // nazorat: ustun jami (2 500) − imzolangan «прямые» (2 500) = 0
+    expect(formulalarniQaytaHisobla(h.bytes).farq).toEqual([]);
+    expect(h.kOplata.jami).toBeCloseTo(3_360.12 + aktlar().vs2, 2);
+    // «с начала» ВСЕГО — aktlar ВСЕГО yig'indisi formulasi
+    expect(c.some((k) => /^ROUND\(K\d+\+M\d+,2\)$/.test(k.f ?? ''))).toBe(true);
   });
 });
 
