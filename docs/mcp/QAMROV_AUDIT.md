@@ -108,7 +108,7 @@ ishlatishga majbur bo'lgan joylar.
 
 | amal | manba | oldin | keyin | MCP tool |
 |---|---|---|---|---|
-| Pereraschet hisobi | lib/pereraschet.ts | ✅ | ✅ | pereraschet |
+| Pereraschet hisobi | lib/pereraschet-yagona.ts | ✅ | ✅ | pereraschet |
 | Storno yozish | t2_akt_correction_create_v1 | 🟡 | 🟡 | rpc |
 
 ## 8. Shartnoma va DS

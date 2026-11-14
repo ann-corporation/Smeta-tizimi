@@ -3,7 +3,7 @@ import { qqsBilan, qqsFormulasi, qqsSumma } from './hisob-yadro';
  * «ПЕРЕРАСЧЁТ — <объект>» rasmiy hujjati (egasi 2026-10-25): buyurtmachi bilan pereraschet asosi.
  * Hujjat standarti H1–H9 (RasmiyVaraq): narx NDS SIZ, summalar formulada (to'g'ri xarajat), ustamali (obyekt kaskadi)
  * qiymati alohida qatorda, NDS faqat OXIRIDA bir marta. Tekshirish kerak qatorlar pulga KIRMAYDI — «требуют проверки»
- * ro'yxatida sababi bilan. Hisob — `lib/pereraschet.ts`; bu yerda faqat yozish.
+ * ro'yxatida sababi bilan. Hisob — `lib/pereraschet-yagona.ts`; bu yerda faqat yozish.
  */
 import {
   RasmiyVaraq, bugunSana, hujjatFaylNomi, imzoTomonlari, rasmiyKitob, sumRefs,
@@ -13,9 +13,9 @@ import type { BandTur, PNatija, PNatijaQator, TekshirSabab } from './pereraschet
 import type { BoglanmaganSabab, FNatija, FPozitsiya, FaktTekshirSabab } from './pereraschet-fakt';
 
 export const PERERASCHET_BAND_RU: Record<BandTur, string> = {
-  ortiqcha: 'Излишне предъявлено (Ф-2 > сметы)',
-  narx_farqi: 'Разница в цене (Ф-2 к смете)',
-  olinmagan: 'Не предъявлено (выполнено по факту)',
+  ortiqcha: 'К снятию: предъявлено по Ф-2 больше факта',
+  narx_farqi: 'Разница по сумме Ф-2 при нулевом объёме',
+  olinmagan: 'К доплате: факт больше предъявленного по Ф-2',
   chegirma: 'Исключение (вычет) — пропорционально основной работе',
 };
 export const PERERASCHET_TEKSHIR_RU: Record<TekshirSabab, string> = {
@@ -49,33 +49,33 @@ const USTUNLAR: RasmiyUstun[] = [
   { sarlavha: 'по смете', kenglik: 12, tur: 'hajm', guruh: 'ОБЪЁМ' },
   { sarlavha: 'по факту', kenglik: 12, tur: 'hajm', guruh: 'ОБЪЁМ' },
   { sarlavha: 'предъявлено Ф-2', kenglik: 12, tur: 'hajm', guruh: 'ОБЪЁМ' },
-  { sarlavha: 'цена по смете', kenglik: 14, tur: 'narx', guruh: 'БЕЗ НДС' },
+  { sarlavha: 'цена Ф-2', kenglik: 14, tur: 'narx', guruh: 'БЕЗ НДС' },
   { sarlavha: 'сумма Ф-2', kenglik: 16, tur: 'pul', guruh: 'БЕЗ НДС' },
   { sarlavha: 'Основание перерасчёта', kenglik: 26, tur: 'matn' },
   { sarlavha: 'объём к перерасчёту', kenglik: 12, tur: 'hajm' },
   { sarlavha: 'к получению (+)', kenglik: 16, tur: 'pul', guruh: 'СУММА ПЕРЕРАСЧЁТА' },
   { sarlavha: 'к возврату (−)', kenglik: 16, tur: 'pul', guruh: 'СУММА ПЕРЕРАСЧЁТА' },
 ];
-// Ustun harflari: E smeta, F fakt, G F2, H narx, I F2 summa, K hajm, L plus, M minus.
+// Ustun harflari: E smeta, F fakt, G F2, H narx (Ф-2), I F2 summa, K hajm (fakt − Ф-2, ishorali), L plus, M minus.
 
 const q = (x: number | null | undefined): Qiymat => (x == null ? null : x);
 
 function qatorYoz(v: RasmiyVaraq, p: PNatijaQator, no: () => number, plusQ: number[], minusQ: number[]): void {
+  // Baholash narxi: Ф-2 birlik narxi (fakt F-2 narxida baholanadi); yo'q bo'lsa — smeta narxi.
+  const narx = p.f2Narx ?? p.smetaNarx;
   for (const b of p.bandlar) {
     const r = v.qator('oddiy', (n) => {
       let plus: Qiymat = null; let minus: Qiymat = null;
-      if (b.tur === 'chegirma') { if (b.summa > 0) plus = { f: `ROUND(K${n}*H${n},2)`, v: b.summa }; else minus = { f: `ROUND(-K${n}*H${n},2)`, v: -b.summa }; }
-      else if (b.tur === 'ortiqcha') minus = { f: `ROUND(K${n}*H${n},2)`, v: -b.summa };
-      else if (b.tur === 'olinmagan') plus = { f: `ROUND(K${n}*H${n},2)`, v: b.summa };
-      else if (b.summa > 0) plus = { f: `ROUND(G${n}*H${n}-I${n},2)`, v: b.summa };
-      else minus = { f: `ROUND(I${n}-G${n}*H${n},2)`, v: -b.summa };
-      const hajm: Qiymat = b.tur === 'ortiqcha' ? { f: `ROUND(G${n}-E${n},6)`, v: -b.hajm }
-        : b.tur === 'olinmagan' || b.tur === 'chegirma' ? b.hajm : null;
+      // Slichitelniy qoidasi: (fakt − Ф-2) hajmi × Ф-2 birlik narxi. Hajmsiz (narx_farqi) farq — qiymat (formulasiz).
+      const hajmli = Math.abs(b.hajm) > 1e-9 && narx != null;
+      if (hajmli) { if (b.summa > 0) plus = { f: `ROUND(K${n}*H${n},2)`, v: b.summa }; else minus = { f: `ROUND(-K${n}*H${n},2)`, v: -b.summa }; }
+      else if (b.summa > 0) plus = b.summa; else minus = -b.summa;
+      const hajm: Qiymat = Math.abs(b.hajm) > 1e-9 ? b.hajm : null;
       const ch = b.tur === 'chegirma' && p.chegirma?.asosiy
         ? `основная работа ${p.chegirma.asosiy.kod ?? ''} предъявлена на ${(Math.min(1, Math.max(0, p.chegirma.asosiy.ulush)) * 100).toFixed(1)}%, исключение применено на ${(p.chegirma.y * 100).toFixed(1)}%` : '';
       const izoh = [PERERASCHET_BAND_RU[b.tur], ch,p.eslatma.includes('fakt_norma') && b.tur === 'olinmagan' ? 'факт по норме работы' : '',
         p.almashtirilgan > 0 ? `заменено ${p.almashtirilgan}` : ''].filter(Boolean).join('; ');
-      return [no(), p.kod, p.nom, p.birlik, q(p.smetaHajm), q(p.faktHajm), q(p.f2Hajm), q(p.smetaNarx), q(p.f2Summa), izoh, hajm, plus, minus];
+      return [no(), p.kod, p.nom, p.birlik, q(p.smetaHajm), q(p.faktHajm), q(p.f2Hajm), q(narx), q(p.f2Summa), izoh, hajm, plus, minus];
     });
     if (b.summa > 0) plusQ.push(r); else minusQ.push(r);
   }
