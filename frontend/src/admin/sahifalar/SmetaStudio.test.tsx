@@ -445,3 +445,10 @@ it('starts with a simple workspace and reveals advanced controls only on request
  fireEvent.click(within(screen.getByRole('region',{name:'Normativ katalog'})).getByRole('button',{name:'Yopish'}));
  expect((screen.getByLabelText('Smetachiga xabar') as HTMLTextAreaElement).value).toBe('TEST persistent intent');
 });
+it('katalog yuklanayotganda yozilgan AI xabari katalog tayyor bo‘lgach yo‘qolmaydi',async()=>{
+ aiSources.length=0;render(<SmetaStudio/>);
+ const box=screen.getByLabelText('Smetachiga xabar') as HTMLTextAreaElement;fireEvent.change(box,{target:{value:'yuborilmagan qoralama'}});
+ await waitFor(()=>expect(aiSources.some(p=>!!p.katalog)).toBe(true),{timeout:15000});
+ const after=screen.getByLabelText('Smetachiga xabar') as HTMLTextAreaElement;
+ expect(after.value).toBe('yuborilmagan qoralama');
+});

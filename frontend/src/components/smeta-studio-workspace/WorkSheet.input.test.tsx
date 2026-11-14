@@ -39,3 +39,14 @@ it('Enter moves through the page boundary to the next quantity',()=>{
  mount(fixture(51));const last=screen.getByLabelText('Hajm: E49');last.focus();fireEvent.change(last,{target:{value:'7'}});fireEvent.keyDown(last,{key:'Enter'});
  expect(document.activeElement).toBe(screen.getByLabelText('Hajm: E50'));
 });
+it('Enter bilan qatorlar orasida yurish katalogni yopmaydi va tafsilotni ochmaydi (faqat tanlaydi)',()=>{
+ const onWork=vi.fn(),onSelect=vi.fn();const doc=fixture();
+ render(<WorkSheet doc={doc} calculation={calcDoc(doc)} command={()=>true} onWork={onWork} onSelect={onSelect} renderDetails={()=>null}/>);
+ const first=screen.getByLabelText('Hajm: E0');first.focus();fireEvent.change(first,{target:{value:'3'}});fireEvent.keyDown(first,{key:'Enter'});
+ expect(onSelect).toHaveBeenCalledWith('w1');expect(onWork).not.toHaveBeenCalled();expect(document.activeElement).toBe(screen.getByLabelText('Hajm: E1'));
+});
+it('bo‘sh hajm katagida Enter keyingisiga o‘tadi va hajm null qoladi (hech qachon 0 emas)',()=>{
+ const h=mount();const first=screen.getByLabelText('Hajm: E0');first.focus();fireEvent.keyDown(first,{key:'Enter'});
+ expect(document.activeElement).toBe(screen.getByLabelText('Hajm: E1'));expect(h.doc().occurrences.w0.quantity).toBeNull();
+ for(const c of h.calls.mock.calls)expect((c[0] as {quantity?:unknown}).quantity ?? null).not.toBe('0');
+});

@@ -25,8 +25,8 @@ function useNarrow(): boolean {
 }
 const num = (v: string | null) => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
 
-export function WorkSheet({doc,calculation,command,onWork,renderDetails,activeWorkId,revealToken=0,docked=false,unitText}: {
-  doc:EstimateDoc;calculation:DocCalc;command:(c:StudioCommand)=>boolean;onWork:(id:string)=>void;renderDetails:(id:string)=>ReactNode;activeWorkId?:string|null;revealToken?:number;docked?:boolean;unitText?:Parameters<typeof ishKesimi>[3];
+export function WorkSheet({doc,calculation,command,onWork,onSelect,renderDetails,activeWorkId,revealToken=0,docked=false,unitText}: {
+  doc:EstimateDoc;calculation:DocCalc;command:(c:StudioCommand)=>boolean;onWork:(id:string)=>void;/** Klaviatura (Enter) bilan keyingi qatorga o‘tish: faqat tanlash, tafsilot ochmaydi. Berilmasa onWork. */onSelect?:(id:string)=>void;renderDetails:(id:string)=>ReactNode;activeWorkId?:string|null;revealToken?:number;docked?:boolean;unitText?:Parameters<typeof ishKesimi>[3];
 }) {
   const [search,setSearch]=useState(''), [selected,setSelected]=useState<string[]>([]), [page,setPage]=useState(0);
   const narrow=useNarrow();
@@ -42,7 +42,7 @@ export function WorkSheet({doc,calculation,command,onWork,renderDetails,activeWo
     const position=filtered.findIndex(w=>w.id===id);
     const next=position>=0 ? filtered[position+direction] : null;
     if(!next)return;
-    setPage(Math.floor((position+direction)/50));setQuantityFocus(next.id);onWork(next.id);
+    setPage(Math.floor((position+direction)/50));setQuantityFocus(next.id);(onSelect ?? onWork)(next.id);
   }
   const revealed=useRef('');
   const keyboardRoot=useRef<HTMLElement>(null);
