@@ -4,6 +4,7 @@ import {
   type ImzoNomlar, type Qiymat, type RasmiyUstun,
 } from './hujjat-yozuvchi';
 import type { OstatkaIstisno } from './ostatka-export';
+import type { F3DavrAkt } from './forma3-export';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { NAKRUTKA_KATLAR, NOMALUM_KAT, kOplate, kategoriyaKf, nakrutkaKat, nakrutkaPodvaliYoz, podvalKfQatorlari, podvalNdsFoiz, podvalQatorRaqami, type KatSummalar } from './nakrutka-podval';
 import { YAXLIT_IZOH, YAXLIT_KAT, bolimBarglari, bolimQqsBilan, svodYaxlitQqs, type SvodYaxlit } from './svod-yaxlit';
@@ -57,6 +58,9 @@ export type SlichitelniyOpsiya = {
   /** Smetada yo'q bajarilgan ishlar (qo'shimcha/zamena): 'daraxt' (sukut) — asosiy varaqdagi «ДОПОЛНИТЕЛЬНЫЕ РАБОТЫ» bo'limi va zamena juftlari;
    *  'alohida' — qo'shimcha ravishda alohida varaq «Работы вне сметы». */
   vneSmeta?: 'alohida' | 'daraxt';
+  /** Barcha tasdiqlangan F-2 aktlari — har biri O'Z podvali bilan (`aktlarBahosiOl`). Berilsa — «ranee предъявлено» к оплате aktlar yig'indisi bilan
+   *  solishtiriladi; null — aktlar o'qilmadi (jim emas, ogohlantirish); berilmasa — solishtirilmaydi. */
+  aktlarKOplate?: ReadonlyArray<F3DavrAkt> | null;
 };
 
 /** Model opsiyalari. Fakt hajmi yozilganidek; fakt summasi — tasdiqlangan F2 bor qatorda F2 narxida (yadro). */
@@ -669,6 +673,26 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
   if (model.qatorlar.some((q) => q.almashtirilganIdlar?.length)) v.izoh('Замена: заменяемая позиция отмечена «исключается» (факт 0), новая — «взамен поз. N»; пары связаны по привязке замены в смете.');
   if (yaxlitBor) v.izoh(YAXLIT_IZOH);
   if (Object.values(kfJS).some((x) => x == null)) v.izoh('Проценты накладных и прочих расходов для объекта не заданы — стоимость к оплате не определена (проценты не принимаются равными 0).');
+  /* Zanjir (F-2 aktlar → slichitelniy): «ranee предъявлено» к оплате qator hisobida OBYEKT podvali bilan; imzolangan F-2 aktlari esa O'Z podvali
+   * bilan. Farq bo'lsa jim qolmaydi (nakopitelniy «К ОПЛАТЕ ПО АКТАМ Ф-2» bilan bir xil). Qism pozitsiyali («faqat farq») ko'rinishda solishtirib bo'lmaydi. */
+  if (o.aktlarKOplate !== undefined && !o.faqatFarq) {
+    const P = model.ildizlar.map((i) => koOf(i, 'P'));
+    const W = model.ildizlar.map((i) => koOf(i, 'W'));
+    const p = P.length ? yigindi2Qatiy(P) : null;
+    const w = W.length ? yigindi2Qatiy(W) : null;
+    const nomi = 'К ОПЛАТЕ ПО АКТАМ Ф-2';
+    if (o.aktlarKOplate === null) {
+      v.diqqat([{ nom: 'Акты Ф-2', sabab: 'суммы утвержденных актов Ф-2 по их подвалам не прочитаны — «ранее предъявлено» к оплате рассчитано по подвалу объекта и может отличаться от фактически предъявленного' }], nomi);
+    } else if (p != null && w != null && o.aktlarKOplate.length) {
+      const stroki = yaxlit2(p - w);
+      const akt = o.aktlarKOplate.some((a) => a.qqsBilan == null) ? null : yaxlit2(o.aktlarKOplate.reduce((t, a) => t + (a.qqsBilan as number), 0));
+      const f = (x: number) => x.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      if (akt == null) v.diqqat([{ nom: 'Акты Ф-2', sabab: 'сумма хотя бы одного акта Ф-2 не определена — сравнение с суммой по строкам невозможно' }], nomi);
+      else if (Math.abs(akt - stroki) >= 0.005) {
+        v.diqqat([{ nom: 'Ранее предъявлено по Ф-2 (с НДС)', sabab: `по строкам (подвал объекта) ${f(stroki)}, по актам Ф-2 (подвал каждого акта) ${f(akt)}; «к доплате» с учетом актов: ${f(yaxlit2(p - akt))}` }], nomi);
+      }
+    }
+  }
   v.diqqat(model.diqqat);
   if (katsiz.length) v.diqqat(katsiz.map((nom) => ({ nom, sabab: 'не указан вид затрат — к оплате без накрутки (только НДС), в расчете отдельной строкой' })), 'ВИД ЗАТРАТ НЕ УКАЗАН');
   v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'ТЕХНАДЗОР', 'СОСТАВИЛ'], o.imzo));

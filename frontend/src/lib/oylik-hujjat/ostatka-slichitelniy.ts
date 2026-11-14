@@ -16,6 +16,11 @@ import { ostatkaHujjatModeli, ostatkaHujjatXlsx, ostatkaIstisnolari, type Ostatk
 import { slichitelniyHujjatXlsx, slichitelniyModeli, type SlichitelniyModel } from '../slichitelniy-vedomost';
 import { yaxlitQatorIdlari } from '../svod-yaxlit';
 import type { ImzoNomlar } from '../hujjat-yozuvchi';
+import type { F3DavrAkt } from '../forma3-export';
+import { nakopitelniyAktlarKOplate } from './nakopitelniy';
+
+/** Slichitelniy — «hozirgi holat»: barcha oylardagi tasdiqlangan F-2 lar (hisobot oyi chegarasi yo'q). */
+export const SLICH_DAVR = '9999-12';
 import type { NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
 import type { Podval } from '../nakrutka-konstruktor';
 import type { SvodYaxlit } from '../svod-yaxlit';
@@ -74,14 +79,16 @@ export function ostatkaHujjatQur(k: OstatkaKirish): { model: OstatkaModel; fayl:
   return { model, fayl: { bytes, faylNomi } };
 }
 
-export type SlichitelniyKirish = OstatkaKirish & { faqatFarq?: boolean };
+export type SlichitelniyKirish = OstatkaKirish & { faqatFarq?: boolean;
+  /** Barcha tasdiqlangan F-2 aktlari o'z podvali bilan (`nakopitelniyAktlarKOplate`); null — o'qilmadi (hujjatda ogohlantirish); berilmasa — solishtirilmaydi. */
+  aktlarKOplate?: ReadonlyArray<F3DavrAkt> | null };
 
 export function slichitelniyHujjatQur(k: SlichitelniyKirish): { model: SlichitelniyModel; fayl: { bytes: Uint8Array; faylNomi: string } | null } {
   const faqatFarq = k.faqatFarq ?? false;
   const model = slichitelniyModeli(k.rows as T2Qator[], k.states as T2QatorHolat[], { faqatFarq, istisnolar: k.istisnolar, svodYaxlit: k.ustama.svodYaxlit });
   if (!model.barglar) return { model, fayl: null };
   const { bytes, faylNomi } = slichitelniyHujjatXlsx(model, { obyektNomi: k.obyektNom, imzo: k.imzo, faqatFarq, istisnolar: k.istisnolar, nakrutka: k.ustama.koeffitsientlar, podval: k.ustama.podval, nkManba: k.ustama.nkManba,
-    svodYaxlit: k.ustama.svodYaxlit, yaxlitIdlar: yaxlitQatorIdlari(k.rows, k.ustama.svodYaxlit) });
+    svodYaxlit: k.ustama.svodYaxlit, yaxlitIdlar: yaxlitQatorIdlari(k.rows, k.ustama.svodYaxlit), aktlarKOplate: k.aktlarKOplate });
   return { model, fayl: { bytes, faylNomi } };
 }
 
@@ -96,7 +103,9 @@ export async function ostatkaPaketFayli(p: { kompaniyaId: number; obyektId: numb
   const u = await ustamaManbaOl(p.kompaniyaId, p.obyektId);
   if (!u.ok) return { ok: false, xato: u.xato };
   const kirish: OstatkaKirish = { rows: d.rows, states: d.states, istisnolar, ustama: u.ustama, obyektNom: p.obyektNom, imzo: p.imzo };
-  const r = p.tur === 'ostatka' ? ostatkaHujjatQur(kirish) : slichitelniyHujjatQur(kirish);
+  // Slichitelniy: «ranee предъявлено» к оплате — aktlarning o'z podvali bilan (nakopitelniy/F-3 bilan bir xil manba); o'qilmasa jim emas — hujjatda ogohlantirish.
+  const aktlarKOplate = p.tur === 'slichitelniy' ? await nakopitelniyAktlarKOplate(p.kompaniyaId, p.obyektId, p.obyektNom, SLICH_DAVR) : undefined;
+  const r = p.tur === 'ostatka' ? ostatkaHujjatQur(kirish) : slichitelniyHujjatQur({ ...kirish, aktlarKOplate });
   if (!r.fayl) return { ok: false, bosh: true, xato: p.tur === 'ostatka' ? 'ostatka yo‘q (barcha ishlar bajarilgan)' : 'solishtiriladigan pozitsiya yo‘q' };
   return { ok: true, nom: r.fayl.faylNomi, bytes: r.fayl.bytes };
 }

@@ -25,7 +25,8 @@ import { t } from '../../i18n/til';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { useQaytaUlanish } from '../../desktop/qayta-ulanish';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
-import { ostatkaHujjatQur, slichitelniyHujjatQur, ustamaManbaOl } from '../../lib/oylik-hujjat/ostatka-slichitelniy';
+import { SLICH_DAVR, ostatkaHujjatQur, slichitelniyHujjatQur, ustamaManbaOl } from '../../lib/oylik-hujjat/ostatka-slichitelniy';
+import { nakopitelniyAktlarKOplate } from '../../lib/oylik-hujjat/nakopitelniy';
 import { slichitelniyFarqSoni } from '../../lib/slichitelniy-farq-soni';
 import { zanjirDaraxtdan } from '../../lib/zanjir/qadamlar';
 import { tolovHolatiSvoddan, type TolovHolati } from '../../lib/zanjir/tolovHolati';
@@ -336,7 +337,9 @@ export function HolatNative() {
       const u = await ustamaManbaOl(joriy.id, obyektId);
       if (!u.ok) { setError(`Slichitelniy: ${u.xato} — hujjat tuzilmadi. Qayta urinib ko‘ring.`); return; }
       // Egasi (2026-11-14): «Asos» (АОСР) ustuni hujjatda kerak emas; asos tayyorligi ichki panelda (SlichitelniyTayyorlik) qoladi.
-      const { model, fayl } = slichitelniyHujjatQur({ rows: daraxtXom, states: holatXom, istisnolar, ustama: u.ustama, obyektNom, imzo: tomonlar, faqatFarq: slichFaqatFarq });
+      // «Ranee предъявлено» к оплате — F-2 aktlarining o'z podvali bilan solishtiriladi (o'qilmasa hujjatda ogohlantirish, jim emas).
+      const aktlarKOplate = await nakopitelniyAktlarKOplate(joriy.id, obyektId, obyektNom, SLICH_DAVR);
+      const { model, fayl } = slichitelniyHujjatQur({ rows: daraxtXom, states: holatXom, istisnolar, ustama: u.ustama, obyektNom, imzo: tomonlar, faqatFarq: slichFaqatFarq, aktlarKOplate });
       if (!fayl) { toast(slichFaqatFarq ? 'Farq yo‘q: barcha pozitsiyalarda fakt smeta bilan teng.' : 'Solishtiriladigan pozitsiya yo‘q.', 'warn'); return; }
       const { bytes, faylNomi } = fayl;
       const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes, hujjat: 'SLICHITELNIY', sabab: `Сличительная ведомость · ${obyektNom}`, obyekt: obyektId },

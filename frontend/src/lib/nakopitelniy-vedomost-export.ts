@@ -548,6 +548,9 @@ export function nakopitelniyVedomostHujjat(
     for (const [nom, akt, qat] of [['за отчетный период', aktKO.davr, kOplataJami.davr], ['с начала строительства', aktKO.jami, kOplataJami.jami]] as const) {
       if (akt != null && qat != null && Math.abs(akt - qat) >= 0.005) diqqat.push({ nom: `К ОПЛАТЕ ${nom}`, sabab: `сумма по строкам (подвал объекта: ${fmt2(qat)}) отличается от суммы актов Ф-2 по их собственным подвалам (${fmt2(akt)}); к оплате принята сумма актов Ф-2` });
     }
+  } else if (o.aktlarKOplate === null) {
+    // Zanjir: aktlar o'qilmadi — «К ОПЛАТЕ» obyekt podvali bilan qoladi, lekin foydalanuvchi bilishi shart (ilgari jim edi).
+    diqqat.push({ nom: 'К ОПЛАТЕ ПО АКТАМ Ф-2', sabab: 'акты Ф-2 по их подвалам не прочитаны — «К ОПЛАТЕ» рассчитано по подвалу объекта и может отличаться от суммы подписанных актов Ф-2' });
   }
   // Egasi qoidasi (2026-11-06): smeta narxi/summasi yo'q barglar — jamilar yonida «итог неполный» (smeta summa katagi formulalarda — bo'sh qoladi, ro'yxat diqqat da).
   v.narxsizOgoh(narxsizSoni(bargRows.map((i) => reja[i].q!), (q) => q.smeta_narx ?? q.smeta_summa));
