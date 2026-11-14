@@ -37,9 +37,12 @@ pub(crate) trait Vault {
     fn delete(&self) -> NativeResult<()>;
 }
 pub(crate) struct OsVault;
+// Windows Credential Manager / macOS+iOS Keychain through `keyring`.
+#[cfg(any(target_os = "windows", target_os = "macos", target_os = "ios"))]
 fn entry() -> NativeResult<keyring::Entry> {
     keyring::Entry::new(SERVICE, ACCOUNT).map_err(|_| "DESKTOP_CREDENTIAL_UNAVAILABLE")
 }
+#[cfg(any(target_os = "windows", target_os = "macos", target_os = "ios"))]
 impl Vault for OsVault {
     fn read(&self) -> NativeResult<Option<String>> {
         match entry()?.get_password() {
@@ -58,6 +61,37 @@ impl Vault for OsVault {
             Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
             Err(_) => Err("DESKTOP_CREDENTIAL_DELETE_FAILED"),
         }
+    }
+}
+// Android Keystore through the in-repo smeta-keystore plugin (AES-256-GCM, non-exportable key).
+#[cfg(target_os = "android")]
+impl Vault for OsVault {
+    fn read(&self) -> NativeResult<Option<String>> {
+        smeta_keystore::get()
+    }
+    fn write(&self, value: &str) -> NativeResult<()> {
+        smeta_keystore::set(value)
+    }
+    fn delete(&self) -> NativeResult<()> {
+        smeta_keystore::delete()
+    }
+}
+// Any other target (e.g. Linux build hosts) has no secret store: fail closed, never a plaintext fallback.
+#[cfg(not(any(
+    target_os = "windows",
+    target_os = "macos",
+    target_os = "ios",
+    target_os = "android"
+)))]
+impl Vault for OsVault {
+    fn read(&self) -> NativeResult<Option<String>> {
+        Err("DESKTOP_CREDENTIAL_UNAVAILABLE")
+    }
+    fn write(&self, _: &str) -> NativeResult<()> {
+        Err("DESKTOP_CREDENTIAL_UNAVAILABLE")
+    }
+    fn delete(&self) -> NativeResult<()> {
+        Err("DESKTOP_CREDENTIAL_UNAVAILABLE")
     }
 }
 pub(crate) struct SessiyaBusena {
@@ -198,11 +232,19 @@ pub(crate) fn fresh_key() -> NativeResult<(String, String)> {
         id.iter().map(|v| format!("{v:02x}")).collect(),
     ))
 }
+// Packaged UI origin: WebView2/Android WebView serve http://tauri.localhost, WKWebView (macOS/iOS) tauri://localhost.
+#[cfg(any(target_os = "macos", target_os = "ios"))]
+fn local_scheme_host(url: &tauri::Url) -> bool {
+    url.scheme() == "tauri" && url.host_str() == Some("localhost")
+}
+#[cfg(not(any(target_os = "macos", target_os = "ios")))]
+fn local_scheme_host(url: &tauri::Url) -> bool {
+    url.scheme() == "http" && url.host_str() == Some("tauri.localhost")
+}
 fn caller_tekshir(window: &str, webview: &str, url: &tauri::Url) -> NativeResult<()> {
     if window != "main"
         || webview != "main"
-        || url.scheme() != "http"
-        || url.host_str() != Some("tauri.localhost")
+        || !local_scheme_host(url)
         || url.port().is_some()
         || !url.username().is_empty()
         || url.password().is_some()
