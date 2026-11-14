@@ -1,0 +1,11 @@
+{
+  "sana": "2026-11-14",
+  "sarlavha": "АОСР sahifasi: obyekt tushib qolmaydi, zanjir noto'g'ri «Avval ... kerak» demaydi",
+  "bandlar": [
+    "Server sekin javob berib obyektlar ro'yxati o'qilmay qolganda manzildagi obyekt endi o'chib ketmaydi; ro'yxat oldin o'qilgan bo'lsa saqlanadi.",
+    "Obyekt tasdiqlanmagan bo'lsa zanjirning hamma qadami «Noma'lum» bo'ladi va «Qayta yuklash» tugmasi chiqadi; aniq ma'lumotsiz «Avval ... kerak» ko'rsatilmaydi.",
+    "Faqat fakt qoralamasi bor obyektda АОСР va F2 «Avval fakt kerak» bilan belgilanmaydi.",
+    "АОСР sahifasi obyektlar ro'yxati yuklangandan keyin o'z ma'lumotini so'raydi (og'ir so'rovlar bir vaqtda yig'ilmaydi); obyekt tanlanmagan bo'lsa obyekt tanlash taklif qilinadi.",
+    "Obyekt tanlanmagan bo'lsa ham zanjirning 8 qadami ko'rinadi va bosiladi."
+  ]
+}

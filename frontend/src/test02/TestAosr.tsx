@@ -102,6 +102,8 @@ export default function TestAosr() {
   const [forma, setForma] = useState<AktForma | null>(null);
   const [pForma, setPForma] = useState<(LabProtokolMalumot & { id?: number; versiya?: number; aosr_ids?: number[] }) | null>(null);
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
+  /** Asosiy ro'yxat bir marta o'qildi (zanjir chizig'i shundan keyin so'raydi — og'ir so'rovlar parallel yig'ilib qolmasin). */
+  const [yuklandi, setYuklandi] = useState(false);
   const [saqlanmoqda, setSaqlanmoqda] = useState(false);
   const [faqatAktsiz, setFaqatAktsiz] = useState(false);
   const [qatorMeta, setQatorMeta] = useState<QatorMetaYozuv[]>([]);
@@ -147,7 +149,7 @@ export default function TestAosr() {
     if (!obyektId || !kompaniyaId) return;
     setYuklanmoqda(true);
     Promise.all([sbAosrV2Ol(kompaniyaId, obyektId), sbAosrCoverageOl(obyektId), sbLabProtokollarOl(kompaniyaId, obyektId)]).then(([a, c, p]) => {
-      setYuklanmoqda(false);
+      setYuklanmoqda(false); setYuklandi(true);
       const aq = a.ok ? a.qatorlar ?? [] : [];
       setAktlar(aq);
       setCoverage(c.ok ? c.qatorlar ?? [] : []);
@@ -160,7 +162,10 @@ export default function TestAosr() {
     });
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { yukla(); setForma(null); setPForma(null); }, [obyektId, kompaniyaId]);
+  /* Obyektlar ro'yxati (og'ir t2_obyekt_jami view) hali yuklanayotgan bo'lsa — sahifa so'rovlari kutadi: parallel og'ir so'rovlar serverni to'ldirib 60 s vaqt chegarasiga olib kelardi. */
+  const ierarxiyaYuklanmoqda = ws.isProvider && !!ws.loading?.hierarchy;
+  useEffect(() => { setYuklandi(false); setForma(null); setPForma(null); }, [obyektId, kompaniyaId]);
+  useEffect(() => { if (!ierarxiyaYuklanmoqda) yukla(); }, [obyektId, kompaniyaId, ierarxiyaYuklanmoqda]);
 
   const faolAktlar = aktlar.filter((a) => a.holat !== 'bekor');
   /* Reestr tartibi (bir xil hamma joyda): razdel tartibi → ish sanasi → raqam; laboratoriya talabi kalit so'z qoidasidan. */
@@ -471,7 +476,17 @@ export default function TestAosr() {
         </select></label>}
     >
       <div className="flex flex-col gap-3">
-        {obyektId ? <ZanjirChizigi joriy="aosr" obyektId={obyektId} aosr={coverage.length > 0 ? { yashirin: qoplama.yashirinJami, aktsiz: qoplama.yashirinAktsiz } : null} /> : null}
+        {!obyektId ? (
+          <div className="fz-card" data-testid="aosr-obyekt-tanla">
+            <div className="fz-card__head"><div><h2 className="fz-card__title">{t('Obyektni tanlang')}</h2><p className="fz-card__sub">{ws.error ? t('Obyektlar ro‘yxati o‘qilmadi — qayta yuklang.') : t('АОСР shu obyekt bo‘yicha yuritiladi.')}</p></div>
+              {ws.error && <button type="button" className="fz-btn fz-btn--sm" onClick={() => ws.refresh?.()}>{t('Qayta yuklash')}</button>}
+            </div>
+            <div className="flex flex-wrap gap-2 p-3">
+              {(ws.isProvider ? ws.objects : obyektlar).map((o) => <button key={o.id} type="button" className="fz-btn fz-btn--sm" onClick={() => { setObyektId(o.id); setQidiruv((p) => { const x = new URLSearchParams(p); x.set('obyekt', String(o.id)); return x; }, { replace: true }); }}>{o.nom}</button>)}
+            </div>
+          </div>
+        ) : null}
+        {obyektId && yuklandi ? <ZanjirChizigi joriy="aosr" obyektId={obyektId} aosr={coverage.length > 0 ? { yashirin: qoplama.yashirinJami, aktsiz: qoplama.yashirinAktsiz } : null} qoshimcha={coverage.length > 0 ? { faktHolatda: coverage.some((c) => Number(c.fakt_hajm) > 0) } : undefined} /> : null}
         <OpsKpiQator yorliq={t('Ijro hujjatlari ko‘rsatkichlari')}>
           <OpsKpi nom={t('Yashirin ishlar qoplamasi')} rang={qoplama.yashirinAktsiz ? 'var(--warn)' : 'var(--ok)'}
             qiymat={<span className={qoplama.yashirinAktsiz ? 'text-warn' : ''}>{foiz(qoplama.yashirinUlush)}</span>}

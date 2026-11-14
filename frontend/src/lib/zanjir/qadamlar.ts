@@ -203,7 +203,8 @@ function bloklovchi(id: ZanjirQadamId, k: ZanjirKirish, tugamagan: ReadonlySet<Z
   switch (id) {
     case 'fakt': return k.smeta.bor === false ? t('Avval smetani yuklang') : null;
     /* Obyekt darajasi: «Avval fakt kerak» faqat obyektda umuman (saqlangan) fakt bo'lmasa — qoralama yoki boshqa oy to'smaydi. */
-    case 'aosr': case 'f2': return (k.faktSaqlangan === 0 && k.faktHolatda !== true) || k.smeta.bor === false ? t('Avval fakt kerak') : null;
+    /* NULL ≠ 0: faqat ANIQ ma'lumot to'sadi (akt reestri o'qilgan, saqlangan ham, qoralama ham fakt yo'q). Fakt qoralamasi bor — ish boshlangan, to'smaydi. */
+    case 'aosr': case 'f2': return (k.faktSaqlangan === 0 && !musbat(k.faktQoralama) && k.faktHolatda !== true) || k.smeta.bor === false ? t('Avval fakt kerak') : null;
     /* F3 va slichitelniy: obyektda tasdiqlangan F2 umuman bo'lmasa bloklanadi (oyga qarab emas). */
     case 'nakopitelniy': case 'f3': return f2Jami(k) === 0 ? t('Avval F2 tasdiqlanishi kerak') : null;
     case 'slichitelniy': return f2Jami(k) === 0 ? t('Avval F2 tasdiqlanishi kerak') : null;
