@@ -17,7 +17,7 @@ import { qadamMalumotKeshTozala } from '../../lib/pto-markazi/useQadamMalumot';
 
 const akt = (o: Record<string, unknown>) => ({ tur: 'fakt', holat: 'tasdiqlangan', oy: '2026-11-01', yaratildi: '2026-11-03T00:00:00Z', hujjat_jami: 1, yozilgan_jami: 1, ...o });
 const chiz = (p: Parameters<typeof ZanjirChizigi>[0] = {}) => render(<MemoryRouter><ZanjirChizigi {...p} /></MemoryRouter>);
-const TARTIB = ['smeta', 'fakt', 'aosr', 'f2', 'f3', 'tolov', 'slichitelniy'];
+const TARTIB = ['smeta', 'fakt', 'aosr', 'f2', 'nakopitelniy', 'f3', 'tolov', 'slichitelniy'];
 
 afterEach(() => {
   cleanup(); qadamMalumotKeshTozala(); vi.clearAllMocks(); rolHolati.rol = null;
@@ -52,7 +52,7 @@ describe('ZanjirChizigi', () => {
     expect(container.innerHTML).toBe('');
   });
 
-  it('6 qadam to‘g‘ri tartibda (АОСР F2 dan oldin); hammasi obyekt va davr bilan havola; joriy sahifa belgilanadi', () => {
+  it('8 qadam to‘g‘ri tartibda (АОСР F2 dan oldin); hammasi obyekt va davr bilan havola; joriy sahifa belgilanadi', () => {
     m.akt.mockReturnValue(new Promise(() => undefined)); m.davom.mockReturnValue(new Promise(() => undefined));
     chiz({ joriy: 'aosr' });
     const nav = screen.getByTestId('zanjir-chizigi');
@@ -63,6 +63,7 @@ describe('ZanjirChizigi', () => {
       '/admin/fakt?obyekt=5&davr=2026-11',
       '/admin/aosr?obyekt=5&davr=2026-11',
       '/admin/f2-tayyorlash?obyekt=5&davr=2026-11',
+      '/admin/nakopitelniy?obyekt=5&davr=2026-11',
       '/admin/nakopitelniy?obyekt=5&davr=2026-11&f3=shartnoma',
       '/admin/moliya?obyekt=5&davr=2026-11&tab=tolov',
       '/admin/holat/5?obyekt=5&davr=2026-11#slichitelniy',
