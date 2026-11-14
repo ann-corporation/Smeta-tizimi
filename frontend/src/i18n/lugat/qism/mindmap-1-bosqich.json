@@ -47,6 +47,14 @@
     "ru": "Факт / смета (без наценки)",
     "en": "Actual / estimate (no markup)"
   },
+  "Fakt / (smeta + o‘zgarishlar)": {
+    "ru": "Факт / (смета + изменения)",
+    "en": "Actual / (estimate + changes)"
+  },
+  "F2 (tasdiqlangan) / (smeta + o‘zgarishlar)": {
+    "ru": "Ф2 (утверждённые) / (смета + изменения)",
+    "en": "F2 (approved) / (estimate + changes)"
+  },
   "Faqat ko‘rish rejimi": {
     "ru": "Режим только просмотра",
     "en": "View-only mode"

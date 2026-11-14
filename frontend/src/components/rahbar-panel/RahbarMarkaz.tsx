@@ -105,7 +105,7 @@ export function RahbarKartalar({ p }: { p: RahbarPanel }) {
       <Karta nom={t('Topshirildi (F2)')} savol={t('Buyurtmachiga qanchasini topshirdim?')} holat={kartaHolati('bajarildi', p)} trend={trend} href="/admin/f2-reestr"
         ost={<>
           {t('Tasdiqlangan F2')}: {k.bajarildi.akt_soni}
-          {f2FoizBor && <> · {t('smetadan {f}%', { f: k.bajarildi.foiz_smeta ?? 0 })}</>}
+          {f2FoizBor && <> · {t(k.bajarildi.foiz_smeta_joriy ? 'smeta + o‘zgarishlardan {f}%' : 'smetadan {f}%', { f: k.bajarildi.foiz_smeta ?? 0 })}</>}
           {reestrFarqBor && <span className="block text-warn">{t('Reestr bilan farq')}: <FmtN val={k.bajarildi.reestr?.farq ?? 0} /></span>}
           {topshirilmaganBor && (
             <span className={`mt-1 block border-t border-border/60 pt-1 ${topshirilmaganMusbat ? 'text-warn' : ''}`} data-testid="topshirilmagan">

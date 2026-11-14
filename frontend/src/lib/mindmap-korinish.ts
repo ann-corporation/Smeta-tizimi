@@ -10,6 +10,7 @@
 import type { MindmapBelgi, MindmapGraf, MindmapKorinish, MindmapSignal, MindmapTugun, TugunTur } from '../api/t2-mindmap';
 import type { TizimMeta, TizimTugunTur } from '../api/t2-tizim-xaritasi';
 import { qidiruvdaBor } from '../i18n/lotin-kirill';
+import { bajarilishMaxraji } from './f2-reestr/reestr-korinish';
 
 export type XHolat = 'xavf' | 'etibor' | 'yaxshi' | 'nomalum';
 export const HOLAT_TARTIB: XHolat[] = ['xavf', 'etibor', 'yaxshi', 'nomalum'];
@@ -81,6 +82,8 @@ export type XTugun = {
   smeta: number | null;
   /** Jamlanmadagi barcha obyektlarning smetasi ma’lummi. */
   smetaToliq: boolean;
+  /** Bajarilish foizi maxraji: asl smeta + o‘zgarishlar (joriy noma’lum bo‘lsa — asl). `smeta` (asl) o‘zgarmaydi. */
+  maxraj: number | null;
   fakt: number | null;
   /** F2 — FAQAT tasdiqlangan (v3). Eski RPCda qoralama aralash bo‘lishi mumkin (`f2Tasdiqlangan=false`). */
   f2: number | null;
@@ -232,7 +235,7 @@ const LOYIHASIZ = 'guruh:loyihasiz';
 export function bosTugun(id: string, tur: XTur, nom: string, manba: MindmapTugun | null, ota: string | null, daraja: 0 | 1 | 2): XTugun {
   return {
     id, tur, nom, manba, ota, bolalar: [], daraja, tomon: 0, holat: 'nomalum',
-    smeta: null, smetaToliq: false, fakt: null, f2: null, faktFoiz: null, f2Foiz: null,
+    smeta: null, smetaToliq: false, maxraj: null, fakt: null, f2: null, faktFoiz: null, f2Foiz: null,
     belgilar: [], zayavka: null, narxsiz: null, obyektSoni: 0, holatSanoq: bosHolat(), resurs: bosResurs(), oshgan: false,
     f2Qoralama: null, f2Tasdiqlangan: false, signalSoni: null, kritikSoni: null, topSignallar: [], masullar: [], odam: null,
   };
@@ -279,8 +282,11 @@ export function daraxtQur(graf: MindmapGraf): XDaraxt {
     x.signalSoni = son(m?.signal_count);
     x.kritikSoni = son(m?.critical_count);
     x.topSignallar = topSignallarOl(o);
-    x.faktFoiz = son(m?.fakt_foiz) ?? foiz(x.fakt, x.smeta);
-    x.f2Foiz = son(m?.f2_foiz) ?? foiz(x.f2, x.smeta);
+    // Zaxira (eski RPC): maxraj — yagona yordamchi (asl + o'zgarish), parallel hisoblagich yo'q.
+    const joriy = son(m?.smeta_joriy);
+    x.maxraj = bajarilishMaxraji({ jami: x.smeta, ozgarish: joriy != null && x.smeta != null ? joriy - x.smeta : null }).summa;
+    x.faktFoiz = son(m?.fakt_foiz) ?? foiz(x.fakt, x.maxraj);
+    x.f2Foiz = son(m?.f2_foiz) ?? foiz(x.f2, x.maxraj);
     x.belgilar = belgilariOl(o);
     x.zayavka = son(m?.zayavka);
     x.narxsiz = son(m?.narxsiz);
@@ -328,8 +334,10 @@ export function daraxtQur(graf: MindmapGraf): XDaraxt {
     x.f2 = bolalar.length ? yigindi(bolalar.map((b) => b.f2)).jami : null;
     // Foiz faqat smetasi ma’lum obyektlar bo‘yicha (smetasiz obyektning fakti maxrajsiz qo‘shilmaydi).
     const maLum = bolalar.filter((b) => b.smeta != null);
-    x.faktFoiz = foiz(yigindi(maLum.map((b) => b.fakt)).jami, x.smeta);
-    x.f2Foiz = foiz(yigindi(maLum.map((b) => b.f2)).jami, x.smeta);
+    x.maxraj = yigindi(bolalar.map((b) => b.maxraj)).jami;
+    const maxrajMalum = yigindi(maLum.map((b) => b.maxraj)).jami ?? x.smeta;
+    x.faktFoiz = foiz(yigindi(maLum.map((b) => b.fakt)).jami, maxrajMalum);
+    x.f2Foiz = foiz(yigindi(maLum.map((b) => b.f2)).jami, maxrajMalum);
     const qor = yigindi(bolalar.map((b) => b.f2Qoralama));
     x.f2Qoralama = qor.toliq ? qor.jami : null; // qisman ma’lum bo‘lsa — to‘liq deb ko‘rsatilmaydi
     // Aralash (eski/yangi) obyektlar bo‘lsa — F2 asosi tasdiqlangan deb aytilmaydi.
