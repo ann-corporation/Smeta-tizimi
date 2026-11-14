@@ -1,0 +1,7 @@
+{
+  "Obyekt tanlang": { "ru": "Выберите объект", "en": "Select an object" },
+  "Obyekt ma’lumoti yuklanmoqda…": { "ru": "Данные объекта загружаются…", "en": "Loading object data…" },
+  "Obyekt ma’lumoti o‘qilmadi — holatlar noma’lum.": { "ru": "Данные объекта не прочитаны — состояния неизвестны.", "en": "Object data could not be read — statuses are unknown." },
+  "Obyektlar ro‘yxati o‘qilmadi — qayta yuklang.": { "ru": "Список объектов не прочитан — перезагрузите.", "en": "The object list could not be read — reload." },
+  "АОСР shu obyekt bo‘yicha yuritiladi.": { "ru": "АОСР ведётся по выбранному объекту.", "en": "AOSR is kept per selected object." }
+}

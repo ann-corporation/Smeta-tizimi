@@ -39,4 +39,19 @@ describe('PTO ish doirasi: tarmoq qaytganda (cold reconnect)', () => {
     expect(api.error).toBeNull();
     expect(h.loyihaChaqiruv).toBeGreaterThan(oldin);
   });
+
+  it('ro‘yxat bir marta o‘qilgach, keyingi o‘qish vaqt chegarasi/xato bilan tugasa — URL dagi obyekt o‘chmaydi', async () => {
+    h.offline = false;
+    let qidiruv = '';
+    const { useLocation } = await import('react-router-dom');
+    function Joy() { qidiruv = useLocation().search; return null; }
+    render(<MemoryRouter initialEntries={['/admin/aosr?loyiha=1&obyekt=127']}><PTOWorkspaceProvider><Probe /><Joy /></PTOWorkspaceProvider></MemoryRouter>);
+    await waitFor(() => expect(api.objects).toHaveLength(1));
+    h.offline = true;
+    act(() => api.refresh());
+    await waitFor(() => expect(api.error).toBe('Tarmoq yo‘q'));
+    await new Promise((r) => setTimeout(r, 30));
+    expect(qidiruv).toContain('obyekt=127');
+    expect(api.objects).toHaveLength(1);
+  });
 });

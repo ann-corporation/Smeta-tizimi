@@ -4,7 +4,7 @@ import type { ComponentType } from 'react';
 import { t } from '../../i18n/til';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
 import { useForma3Holat, useIshOyi } from '../../lib/pto-markazi/useQadamMalumot';
-import { faolOy } from '../../lib/pto-markazi/oy';
+import { bugungiOy, faolOy } from '../../lib/pto-markazi/oy';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { ZANJIR_YOL, zanjirHisobla, zanjirKirishYasa, zanjirRolKoradi, type QadamHolat, type ZanjirKirish, type ZanjirQadamId, type ZanjirTavsiya } from '../../lib/zanjir/qadamlar';
 
@@ -37,18 +37,23 @@ export function ZanjirChizigi({ joriy, obyektId, aosr, qoshimcha }: { joriy?: Za
   const { joriy: kompaniya } = useKompaniya();
   const routerda = useInRouterContext();
   const id = obyektId ?? ws.scope?.objectId ?? null;
-  if (!routerda || id == null) return null;
+  if (!routerda) return null;
   /* Faqat obyekt bilan ishlaydigan pudratchi rollari; texnadzor/buyurtmachi ko'rinishi o'zgarmaydi. */
   if (!zanjirRolKoradi(kompaniya?.rol)) return null;
+  /* Obyekt tanlanmagan (kompaniya darajasi): qadamlar baribir bosiladi, holat — «Noma'lum» (hech narsa taxmin qilinmaydi). */
+  if (id == null) return ws.companyId == null ? null : <KompaniyaChizig joriy={joriy ?? null} search={ws.scopeSearch?.(null) ?? ''} />;
   return <Chizig obyektId={id} joriy={joriy ?? null} aosr={aosr ?? null} qoshimcha={qoshimcha} />;
 }
 
 function Chizig({ obyektId: id, joriy, aosr, qoshimcha }: { obyektId: number; joriy: ZanjirBelgi | null; aosr: ZanjirKirish['aosr']; qoshimcha?: ZanjirQoshimcha }) {
   const ws = usePTOWorkspace();
   const io = useIshOyi(id);
-  const aktlar = io.malumot.aktlar;
   const obyekt = (ws.objects ?? []).find((o) => o.id === id) ?? null;
-  const asos = { obyekt, aktlar, oy: io.oy, aosr, ...qoshimcha };
+  /* Obyekt ro'yxatda tasdiqlanmagan (ro'yxat yuklanmoqda / o'qilmadi — masalan server vaqt chegarasi): hech narsa taxmin qilinmaydi,
+   * hamma qadam «Noma'lum»; «Avval … kerak» (aniq to'siq) faqat tasdiqlangan obyektda chiqadi (NULL ≠ 0). */
+  const tasdiqlangan = obyekt != null;
+  const aktlar = tasdiqlangan ? io.malumot.aktlar : null;
+  const asos = { obyekt, aktlar, oy: io.oy, aosr: tasdiqlangan ? aosr : null, ...(tasdiqlangan ? qoshimcha : {}) };
   /* Forma 3 soni faqat shu oyda tasdiqlangan F2 bor bo'lsagina o'qiladi (mavjud kelishuv) — boshqa holatda null (noma'lum). */
   const f3Kerak = (zanjirKirishYasa(asos).f2TasdiqBuOyda ?? 0) > 0;
   const forma3 = useForma3Holat(id, io.oy, f3Kerak);
@@ -102,9 +107,46 @@ function Chizig({ obyektId: id, joriy, aosr, qoshimcha }: { obyektId: number; jo
             {t('Oxirgi faollik oyi')}: {faolTaklif.oy}
           </Link>
         )}
+        {!tasdiqlangan && (
+          <span className="text-sm text-text-mute" data-testid="zanjir-obyekt-oqilmadi">
+            {ws.loading?.hierarchy ? t('Obyekt ma’lumoti yuklanmoqda…') : t('Obyekt ma’lumoti o‘qilmadi — holatlar noma’lum.')}
+            {!ws.loading?.hierarchy && <> <button type="button" className="text-accent underline" onClick={() => ws.refresh?.()}>{t('Qayta yuklash')}</button></>}
+          </span>
+        )}
         {keyingi && <KeyingiBlok keyingi={keyingi} to={havola(keyingi.id)} />}
         {!keyingi && natija.tugallandi && <span className="text-sm text-ok" data-testid="zanjir-tugadi">{t('Zanjir shu oy uchun yopilgan')}</span>}
       </div>
+    </nav>
+  );
+}
+
+/** Kompaniya darajasi: obyekt yo'q — ma'lumot yo'q, shuning uchun hamma qadam «Noma'lum»; har biri o'z sahifasiga havola. */
+function KompaniyaChizig({ joriy, search }: { joriy: ZanjirBelgi | null; search: string }) {
+  const natija = zanjirHisobla(zanjirKirishYasa({ obyekt: null, aktlar: null, oy: bugungiOy() }));
+  return (
+    <nav aria-label={t('Ish zanjiri')} data-testid="zanjir-chizigi" className="flex min-w-0 flex-col gap-2">
+      <ol className="m-0 flex min-w-0 list-none flex-wrap gap-1.5 p-0">
+        {natija.qadamlar.map((q, i) => {
+          const Ikonka = IKONKA.unknown;
+          const p = new URLSearchParams(search);
+          if (q.id === 'tolov') p.set('tab', 'tolov');
+          const s = p.toString();
+          return (
+            <li key={q.id} className="min-w-0 flex-1 basis-[7.5rem]" data-holat="unknown">
+              <Link to={{ pathname: ZANJIR_YOL[q.id], search: s ? `?${s}` : '', hash: q.id === 'slichitelniy' ? '#slichitelniy' : '' }} aria-current={joriy === q.id ? 'step' : undefined} data-testid={`zanjir-qadam-${q.id}`}
+                title={`${q.nom} — ${t('Obyekt tanlang')}`}
+                className={`flex h-full min-h-[44px] min-w-0 flex-col justify-center gap-0.5 rounded-lg border px-2 py-1.5 text-sm no-underline transition-colors hover:border-accent/60 ${HOLAT_SINF.unknown} ${joriy === q.id ? 'ring-2 ring-accent/60' : ''}`}>
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className="shrink-0 tabular-nums">{i + 1}</span>
+                  <span className="min-w-0 truncate font-semibold">{q.nom}</span>
+                  <span className="ml-auto shrink-0" role="img" aria-label={HOLAT_NOMI.unknown()}><Ikonka aria-hidden className="h-3.5 w-3.5" /></span>
+                </span>
+                <span className="min-w-0 truncate text-xs leading-tight opacity-80">{t('Obyekt tanlang')}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ol>
     </nav>
   );
 }
