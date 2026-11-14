@@ -54,6 +54,8 @@ export type ZanjirKirish = {
   smetaQator?: number | null;
   /** Fakt qamrovi, % (fakti bor ish qatorlari ulushi); yo'q/null — son ko'rsatilmaydi. */
   faktQamrov?: number | null;
+  /** Holat ma'lumotida (t2_qator_holat) fakt_hajm/fakt_summa > 0 qator bor — fakt hujjatlari holatidan qat'i nazar (import/boshqa yo'l). Yo'q/null — noma'lum. */
+  faktHolatda?: boolean | null;
   /** Slichitelniy: smetadan farqli (ortiq/kam) ish qatorlari; null/yo'q — shu sahifada hisoblanmagan (noma'lum). */
   slichitelniy?: { farqli: number; barglar: number } | null;
   /**
@@ -122,6 +124,10 @@ function ozi(id: ZanjirQadamId, k: ZanjirKirish): { own: Own; izoh: string; amal
       return { own: 'done', izoh: musbat(k.smetaQator) ? t('{n} ish qatori, hammasi narxlangan', { n: k.smetaQator }) : t('Smeta yuklangan va narxlangan'), amal: t('Smetani ko‘ring') };
     }
     case 'fakt': {
+      /* Fakt holatda bor (F-2 import va h.k.) — hujjat reestri qoralama/bo'sh bo'lsa ham u «bor»; faqat saqlangan fakt akti toza bo'lsa eski yo'l. */
+      if (k.faktHolatda === true && !(musbat(k.faktSaqlangan) && !musbat(k.faktQoralama))) {
+        return { own: 'done', izoh: k.faktQamrov != null ? t('Obyektda fakt bor, qamrov {p}%', { p: k.faktQamrov }) : t('Obyektda fakt bor'), amal: t('Faktni ko‘ring') };
+      }
       if (k.faktSaqlangan == null) return { own: 'unknown', izoh: nomalum, amal: t('Faktni tekshiring') };
       if (musbat(k.faktQoralama)) {
         const izoh = k.faktSaqlangan > 0 ? t('{n} ta fakt qoralamada · {m} ta saqlangan', { n: k.faktQoralama, m: k.faktSaqlangan }) : t('{n} ta fakt qoralamada', { n: k.faktQoralama });
@@ -197,7 +203,7 @@ function bloklovchi(id: ZanjirQadamId, k: ZanjirKirish, tugamagan: ReadonlySet<Z
   switch (id) {
     case 'fakt': return k.smeta.bor === false ? t('Avval smetani yuklang') : null;
     /* Obyekt darajasi: «Avval fakt kerak» faqat obyektda umuman (saqlangan) fakt bo'lmasa — qoralama yoki boshqa oy to'smaydi. */
-    case 'aosr': case 'f2': return k.faktSaqlangan === 0 || k.smeta.bor === false ? t('Avval fakt kerak') : null;
+    case 'aosr': case 'f2': return (k.faktSaqlangan === 0 && k.faktHolatda !== true) || k.smeta.bor === false ? t('Avval fakt kerak') : null;
     /* F3 va slichitelniy: obyektda tasdiqlangan F2 umuman bo'lmasa bloklanadi (oyga qarab emas). */
     case 'nakopitelniy': case 'f3': return f2Jami(k) === 0 ? t('Avval F2 tasdiqlanishi kerak') : null;
     case 'slichitelniy': return f2Jami(k) === 0 ? t('Avval F2 tasdiqlanishi kerak') : null;
@@ -253,6 +259,7 @@ export function zanjirKirishYasa(p: {
   tolovYozilgan?: number | null;
   smetaQator?: number | null;
   faktQamrov?: number | null;
+  faktHolatda?: boolean | null;
   slichitelniy?: ZanjirKirish['slichitelniy'];
   tolov?: ZanjirKirish['tolov'];
   aosrReestr?: ZanjirKirish['aosrReestr'];
@@ -279,6 +286,7 @@ export function zanjirKirishYasa(p: {
     tolovYozilgan: p.tolovYozilgan ?? null,
     smetaQator: p.smetaQator ?? null,
     faktQamrov: p.faktQamrov ?? null,
+    faktHolatda: p.faktHolatda ?? null,
     slichitelniy: p.slichitelniy ?? null,
     tolov: p.tolov ?? null,
     oy: p.oy,
@@ -288,14 +296,16 @@ export function zanjirKirishYasa(p: {
 /** Obyekt sahifasi allaqachon yuklagan daraxt+holatdan zanjir sonlari (yangi so'rov yo'q). Bo'sh daraxt — hammasi null. */
 export function zanjirDaraxtdan(
   rows: ReadonlyArray<{ id: number; tur: string | null }>,
-  states: ReadonlyArray<{ qator_id: number; fakt_hajm: number }>,
+  states: ReadonlyArray<{ qator_id: number; fakt_hajm: number; fakt_summa?: number | null }>,
   slichFarqli: number | null,
-): { smetaQator: number | null; faktQamrov: number | null; slichitelniy: { farqli: number; barglar: number } | null } {
+): { smetaQator: number | null; faktQamrov: number | null; slichitelniy: { farqli: number; barglar: number } | null; faktHolatda?: boolean } {
   const ishlar = rows.filter((r) => r.tur === 'bl');
   if (ishlar.length === 0) return { smetaQator: null, faktQamrov: null, slichitelniy: null };
   const fakt = new Map(states.map((s) => [s.qator_id, Number(s.fakt_hajm)]));
   const faktli = ishlar.filter((r) => (fakt.get(r.id) ?? 0) > 0).length;
+  const faktHolatda = states.some((s) => Number(s.fakt_hajm) > 0 || Number(s.fakt_summa ?? 0) > 0);
   return {
+    faktHolatda,
     smetaQator: ishlar.length,
     faktQamrov: Math.round((faktli / ishlar.length) * 100),
     slichitelniy: slichFarqli == null ? null : { farqli: slichFarqli, barglar: ishlar.length },

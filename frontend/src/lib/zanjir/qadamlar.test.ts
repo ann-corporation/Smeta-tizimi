@@ -224,3 +224,32 @@ describe('Nakopitelniy qadami (F-2 va Forma 3 orasida)', () => {
     expect(qadam(tayyor({ f2TasdiqJami: null, f2TasdiqBuOyda: null, f2BuOyda: null }), 'nakopitelniy').holat).toBe('unknown');
   });
 });
+
+describe('zanjirHisobla — fakt holatda bor, fakt hujjatlari qoralama (Stella 152 yolg‘oni)', () => {
+  const akt = (o: Partial<MarkazAkt>): MarkazAkt => ({ tur: 'fakt', holat: 'qoralama', lifecycle_status: null, oy: '2026-11-01', yaratildi: '2026-11-03T10:00:00Z', hujjat_jami: 1, yozilgan_jami: 1, ...o });
+  const asos = { obyekt: { jami: 100, narxsiz: 0 }, oy: '2026-11', aosrReestr: { jami: 34, boglanmagan: 0 }, slichitelniy: { farqli: 3, barglar: 40 } } as const;
+  const f2lar = [akt({ tur: 'f2', holat: 'tasdiqlangan', oy: '2026-03-01' })];
+  const qad = (k: ZanjirKirish) => Object.fromEntries(zanjirHisobla(k).qadamlar.map((q) => [q.id, q]));
+  it('faqat qoralama fakt hujjati + holatda fakt bor — АОСР va F2 bloklanmaydi, fakt bajarilgan', () => {
+    const h = qad(zanjirKirishYasa({ ...asos, aktlar: [akt({}), akt({}), ...f2lar], faktHolatda: true }));
+    expect(h.fakt.holat).toBe('done');
+    expect(h.aosr.holat).not.toBe('blocked');
+    expect(h.f2.holat).not.toBe('blocked');
+    expect(h.f2.izoh).not.toMatch(/Avval/);
+  });
+  it('fakt hujjati umuman yo‘q (aktlar bo‘sh), lekin holatda fakt bor — bloklanmaydi', () => {
+    const h = qad(zanjirKirishYasa({ ...asos, aktlar: f2lar, faktHolatda: true }));
+    expect(h.aosr.holat).not.toBe('blocked');
+    expect(h.f2.holat).not.toBe('blocked');
+  });
+  it('holatda ham fakt yo‘q va hujjat yo‘q — «Avval fakt kerak» saqlanadi', () => {
+    const h = qad(zanjirKirishYasa({ ...asos, aktlar: [], faktHolatda: false, aosrReestr: { jami: 0, boglanmagan: 0 } }));
+    expect(h.aosr).toMatchObject({ holat: 'blocked', izoh: 'Avval fakt kerak' });
+    expect(h.f2).toMatchObject({ holat: 'blocked', izoh: 'Avval fakt kerak' });
+  });
+  it('zanjirDaraxtdan: fakt_summa > 0 (hajm 0) ham fakt hisoblanadi; hammasi 0 — yo‘q', () => {
+    const rows = [{ id: 2, tur: 'bl' }];
+    expect(zanjirDaraxtdan(rows, [{ qator_id: 2, fakt_hajm: 0, fakt_summa: 5 }], 0).faktHolatda).toBe(true);
+    expect(zanjirDaraxtdan(rows, [{ qator_id: 2, fakt_hajm: 0, fakt_summa: 0 }], 0).faktHolatda).toBe(false);
+  });
+});

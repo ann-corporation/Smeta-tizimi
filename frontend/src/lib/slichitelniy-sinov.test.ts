@@ -59,3 +59,75 @@ describe('Slichitelniy: real obyekt topilmalari', () => {
   });
 });
 
+
+describe('Slichitelniy: fakt va Ф-2 server qoidasi (svod bo‘limi)', () => {
+  const NK = { ТРАНСПОРТ_МАТЕРИАЛ: 5, СКЛАДСКИЕ_МАТЕРИАЛ: 2, СКЛАДСКИЕ_МК: 0.75, ТРАНСПОРТ_КАБЕЛЬ: 1.5, ПРОЧИЕ_ПОДРЯДЧИК: 18, ТРАНСПОРТ_ОБОРУД: 2, ЗАГОТ_СКЛАД_ОБОРУД: 0, СТРАХОВАНИЕ: 0.32, РИСК: 0, НДС: 12 };
+  it('svod bo‘limida ЧЕЛ/МАШ — ustama kaskadi, qolgani to‘g‘ri narx × (1+НДС); fakt va Ф-2 bir xil usulda, fakt taqsimlanmaydi', async () => {
+    const rows = [q(30, null, 'rz', null), q(31, 30, 'bl', 1), q(32, 31, 'rs', 0.3, { kat: 'ЧЕЛ', nom: 'ТРУД СВОД' }), q(33, 31, 'mat', 0.7, { kat: 'МАТ', nom: 'МАТЕРИАЛ СВОД' })];
+    const holat = [h(31, 1, 0.6), h(32, 0.15, 0.1), h(33, 0.7, 0.5)];
+    const svod = { qqssiz: 1200, barglar: 1000, summasiz: 0, bolimlar: [{ id: 1, qator_id: 30, nom: 'С', svod_summa: 1344, qqs_stavka: 12, qqssiz: 1200, barglar: 1000, asos: 'svod', dalil: {} }] } as unknown as SvodYaxlit;
+    const m = slichitelniyModeli(rows, holat, { svodYaxlit: svod });
+    const { yaxlitQatorIdlari } = await import('./svod-yaxlit');
+    const { bytes } = slichitelniyHujjatXlsx(m, { obyektNomi: 'О', sana: '2026-11-14', nakrutka: NK, svodYaxlit: svod, yaxlitIdlar: yaxlitQatorIdlari(rows, svod) });
+    const ExcelJS = (await import('exceljs')).default;
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(bytes as unknown as ArrayBuffer);
+    const ws = wb.getWorksheet('Сличительная ведомость')!;
+    const kesh = (n: string, col: number): number => { let x = NaN; ws.eachRow((row) => { if (String(row.getCell(3).value) === n) { const v = row.getCell(col).value as unknown; x = Number(v && typeof v === 'object' && 'result' in (v as object) ? (v as { result: number }).result : v); } }); return x; };
+    const kfChel = 1.18 * 1.0032 * 1.12;
+    expect(kesh('ТРУД СВОД', 22)).toBeCloseTo(100 * kfChel, 1);   // Ф-2: ЧЕЛ — kaskad
+    expect(kesh('ТРУД СВОД', 16)).toBeCloseTo(150 * kfChel, 1);   // fakt: xuddi shunday (to‘g‘ri narxdagi fakt, taqsimsiz)
+    expect(kesh('МАТЕРИАЛ СВОД', 22)).toBeCloseTo(500 * 1.12, 1); // Ф-2: qolgani yaxlit × QQS
+    expect(kesh('МАТЕРИАЛ СВОД', 16)).toBeCloseTo(700 * 1.12, 1); // fakt: xuddi shunday
+  });
+});
+describe('Slichitelniy: hujjat ichida qator nazorati', () => {
+  const NK2 = { ТРАНСПОРТ_МАТЕРИАЛ: 5, СКЛАДСКИЕ_МАТЕРИАЛ: 2, СКЛАДСКИЕ_МК: 0.75, ТРАНСПОРТ_КАБЕЛЬ: 1.5, ПРОЧИЕ_ПОДРЯДЧИК: 18, ТРАНСПОРТ_ОБОРУД: 2, ЗАГОТ_СКЛАД_ОБОРУД: 0, СТРАХОВАНИЕ: 0.32, РИСК: 0, НДС: 12 };
+  it('har qatorda hajm × narx = summa (smeta; svodga taqsimlanmagan qatorlarda), fakt = hajm × narx (F-2 narxi qoidasi bilan, svodda ham), bo‘lim yig‘indisi = ИТОГО', async () => {
+    const rows = [
+      q(1, null, 'rz', null), q(2, 1, 'bl', 3), q(3, 2, 'rs', 2, { kat: 'ЧЕЛ', nom: 'ТРУД', narx: 25000 }), q(4, 2, 'mat', 5.5, { kat: 'МАТ', nom: 'ПЕСОК', narx: 12000 }),
+      q(30, null, 'rz', null, { nom: 'СВОД' }), q(31, 30, 'bl', 1), q(32, 31, 'rs', 0.3, { kat: 'ЧЕЛ', nom: 'ТРУД СВОД' }), q(33, 31, 'mat', 0.7, { kat: 'МАТ', nom: 'МАТЕРИАЛ СВОД' }),
+    ];
+    const holat = [h(2, 3), h(3, 2, 1), h(4, 5.5, 5.5), h(31, 1), h(32, 0.15, 0.1), h(33, 0.7, 0.5)];
+    const svod = { qqssiz: 1200, barglar: 1000, summasiz: 0, bolimlar: [{ id: 1, qator_id: 30, nom: 'С', svod_summa: 1344, qqs_stavka: 12, qqssiz: 1200, barglar: 1000, asos: 'svod', dalil: {} }] } as unknown as SvodYaxlit;
+    const m = slichitelniyModeli(rows, holat, { svodYaxlit: svod });
+    // model: svod qatorlarida fakt taqsimlanmagan (to‘g‘ri narx), smeta — svod summasiga
+    const lump = m.qatorlar.filter((x) => x.yaxlitTaqsim != null);
+    expect(lump.map((x) => x.faktSumma)).toEqual([150, 700]);
+    expect(Math.round(lump.reduce((t, x) => t + (x.smetaSumma ?? 0), 0) * 100) / 100).toBe(1200);
+    // model darajasida: har yig‘indi qator = bolalar yig‘indisi
+    for (const r of m.qatorlar) {
+      if (r.tur === 'barg' || !r.bolalar.length) continue;
+      for (const k of ['smetaSumma', 'faktSumma', 'f2Summa'] as const) {
+        const s = Math.round(r.bolalar.reduce((t, i) => t + (m.qatorlar[i][k] ?? 0), 0) * 100) / 100;
+        expect(Math.round((r[k] ?? 0) * 100) / 100).toBe(s);
+      }
+    }
+    const { yaxlitQatorIdlari } = await import('./svod-yaxlit');
+    const { bytes } = slichitelniyHujjatXlsx(m, { obyektNomi: 'О', sana: '2026-11-14', nakrutka: NK2, svodYaxlit: svod, yaxlitIdlar: yaxlitQatorIdlari(rows, svod) });
+    const ExcelJS = (await import('exceljs')).default;
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(bytes as unknown as ArrayBuffer);
+    const ws = wb.getWorksheet('Сличительная ведомость')!;
+    const cv = (r: number, c: number): number | null => { const v = ws.getCell(r, c).value as unknown; const x = v && typeof v === 'object' && 'result' in (v as object) ? (v as { result: unknown }).result : v; return x === '' || x == null ? null : Number(x); };
+    let bosh = 0;
+    ws.eachRow((row, rn) => { if (!bosh && String(row.getCell(3).value) === m.qatorlar[0].nom) bosh = rn; });
+    expect(bosh).toBeGreaterThan(0);
+    const r2c = (x: number) => Math.round((x + Number.EPSILON) * 100) / 100;
+    m.qatorlar.forEach((x, i) => {
+      if (x.tur !== 'barg') return;
+      const r = bosh + i;
+      const E = cv(r, 5), F = cv(r, 6), G = cv(r, 7), H = cv(r, 8), I = cv(r, 9), J = cv(r, 10), K = cv(r, 11);
+      if (x.yaxlitTaqsim == null && E != null && F != null) expect(G).toBe(r2c(E * F));        // smeta: hajm × narx
+      if (H != null && F != null) expect(I).toBe(!J || K == null ? r2c(H * F) : r2c((H * K) / J)); // fakt: hajm × narx yoki F-2 narxi (svodda ham)
+    });
+    // ИТОГО / ВSEGО: yig‘indi qatori keshi = bolalar keshi yig‘indisi (G, I, K ustunlari)
+    m.qatorlar.forEach((x, i) => {
+      if (x.tur === 'barg' || !x.bolalar.length) return;
+      for (const c of [7, 9, 11]) {
+        const s = r2c(x.bolalar.reduce((t, k) => t + (cv(bosh + k, c) ?? 0), 0));
+        expect(cv(bosh + i, c) ?? 0).toBeCloseTo(s, 2);
+      }
+    });
+  });
+});

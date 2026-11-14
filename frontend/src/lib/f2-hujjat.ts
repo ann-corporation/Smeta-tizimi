@@ -71,12 +71,14 @@ const USTUNLAR: RasmiyUstun[] = [
   { sarlavha: 'Шифр, код', kenglik: 17, tur: 'kod' },
   /* Egasi (2026-11-06, «qatorlar semiz»): nom ustuni kengroq, birlik torroq (mazmun talab qilsa `kerak` o'zi kengaytiradi) —
      uzun nom kamroq qatorga o'raladi; qator balandligi chegarasi — «Hujjat dizayni» `qatorMaks`. */
-  { sarlavha: 'Наименование работ и затрат', kenglik: 66, tur: 'matn' },
+  { sarlavha: 'Наименование работ и ресурсов', kenglik: 66, tur: 'matn' },
   { sarlavha: 'Ед. изм.', kenglik: 10, tur: 'birlik' },
-  { sarlavha: 'Расход на ед.', kenglik: 12, tur: 'norma' },
-  { sarlavha: 'Количество', kenglik: 14, tur: 'hajm' },
-  { sarlavha: 'Цена за ед., сум', kenglik: 16, tur: 'narx' },
-  { sarlavha: 'Сумма, сум', kenglik: 18, tur: 'pul' },
+  /* Ikki qavatli sarlavha — imzolangan Ф-2 shakli (egasi 2026-11-14, «hujjatlar tuzilishi»): «Количество: на единицу | по проекту»,
+   * «Сметная стоимость: на.ед.изм. | общая». Ustun tartibi va ma'nosi o'zgarmaydi (E norma, F hajm, G narx, H summa). */
+  { sarlavha: 'на единицу', kenglik: 12, tur: 'norma', guruh: 'Количество' },
+  { sarlavha: 'по проекту', kenglik: 14, tur: 'hajm', guruh: 'Количество' },
+  { sarlavha: 'на.ед.изм., сум', kenglik: 16, tur: 'narx', guruh: 'Сметная стоимость' },
+  { sarlavha: 'общая, сум', kenglik: 18, tur: 'pul', guruh: 'Сметная стоимость' },
   /* I — LRV_PLUS'dagi kabi qator turi (rz/bl/rs/mat/ob): tizimning o'z F2 importi aynan shu belgidan o'qiydi —
      hujjat qaytib yuklanganda ish/resurs/material ADASHMAYDI. */
   { sarlavha: 'Тип', kenglik: 7, tur: 'birlik', belgi: true },
@@ -85,6 +87,9 @@ const USTUNLAR: RasmiyUstun[] = [
   /* K — yashirin КАЛИТ <t2_qator.id>:<barmoq izi> (round-trip: texnadzor tuzatgan fayl qaytganda F2 import aniq bog'laydi; lrv-qayta-import himoyasi). Chop etilmaydi. */
   { sarlavha: 'КАЛИТ', kenglik: 10, tur: 'texnik', yashirin: true },
 ];
+
+/** Hujjat nomi — imzolangan Ф-2 muqovasi bilan bir xil («АКТ О ПРИЁМКЕ ВЫПОЛНЕННЫХ РАБОТ (Форма № 02)»). */
+export const F2_SARLAVHA = 'АКТ О ПРИЁМКЕ ВЫПОЛНЕННЫХ РАБОТ';
 
 const yaxlit6 = (x: number) => Math.round(x * 1e6) / 1e6;
 
@@ -107,7 +112,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
   const raqam = (o.raqam ?? '').trim();
   const v = new RasmiyVaraq({
     nom: o.varaqNomi || 'Ф-2',
-    sarlavha: `АКТ ПРИЕМКИ ВЫПОЛНЕННЫХ РАБОТ${raqam ? ` № ${raqam}` : ''} (ФОРМА № 2)`,
+    sarlavha: `${F2_SARLAVHA}${raqam ? ` № ${raqam}` : ''} (ФОРМА № 02)`,
     ostSarlavha: [`за отчетный период: ${davrMatni(o.davr)}`],
     titul: [['Объект:', o.obyektNom], ['Заказчик:', o.imzo?.zakazchik], ['Подрядчик:', o.imzo?.pudratchi], ...(o.imzo?.subpudratchi ? [['Субподрядчик:', o.imzo.subpudratchi] as const] : []), ['Договор:', o.shartnoma]],
     ustunlar: USTUNLAR,
@@ -115,6 +120,11 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
   });
 
   let n = 0;
+  /* № п/п imzolangan Ф-2 kabi iyerarxik: ish — 5, uning resurslari — 5.1, 5.2 … (mustaqil resurs/material — oddiy tartib raqami). */
+  let ishRaqami = 0;
+  let ishOsti = 0;
+  const ishBoshla = (): number => { ishRaqami = n; ishOsti = 0; return n; };
+  const ishOstiRaqam = (): string => `${ishRaqami}.${++ishOsti}`;
   let jamiJS: number | null = 0;
   const ks = Object.fromEntries(NAKRUTKA_KATLAR.map((k) => [k, 0])) as KatSummalar;
   let nomJS = 0; // kategoriyasi ko'rsatilmagan summa
@@ -165,7 +175,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
     if (oxirgiSumma != null) { vd.summa = yaxlit2((vd.summa ?? 0) + oxirgiSumma); vd.summaQatorlar.push(qatorR); }
     vedomost.set(vk, vd);
     return v.qator(ishQatori ? 'ish' : 'oddiy', (r): Qiymat[] => [
-      ++n, shifrKorinish(kod), x.nom, x.birlik ?? '',
+      ishQator != null ? ishOstiRaqam() : ++n, shifrKorinish(kod), x.nom, x.birlik ?? '',
       norma != null ? { n: norma, uslub: 'norma' } : null,
       hajmNomalum ? null : ishgaBogliq ? { f: `ROUND(E${r}*F${ishQator},6)`, v: yaxlit6(x.hajm) } : x.hajm,
       narxBor ? x.narx : null,
@@ -202,6 +212,7 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
         const blHajmi = (bl as F2Qator & { hajmNomalum?: true }).hajmNomalum ? null : bl.hajm;
         blQ = v.qator('ish', (r): Qiymat[] => [++n, shifrKorinish(ish.kod), ish.nom, ish.birlik ?? '', null, blHajmi, null,
           avto.length ? { f: `SUM(H${r + 1}:H${r + avto.length})`, v: ishJS } : null, 'bl', '', lrvKalitYoz(ish.id, ish.kod, ish.nom, ish.birlik)], { daraja: 1 });
+        ishBoshla();
         tarkib.push(blQ);
         qosh(ishJS);
         for (const r of avto) resursYoz(tanlangan.get(r.id)!, r.kod, r.norma, blQ);
@@ -239,17 +250,21 @@ export function f2HujjatVaraqlar(bolimlar: readonly F2Bolim[], qatorlar: readonl
       if (q.summa != null) { bJami += q.summa; if (o.yaxlitIds && f2YaxlitQator(o.yaxlitIds, q)) bYax += q.summa; else if (kat) bks[kat] += q.summa; else bNom += q.summa; }
     }
     const tarkib = eskiDaraxtYoz(eskiDaraxt(b.qatorlar, rowById), bargEmasIsh, {
-      qator: (q, daraja) => {
+      qator: (q, daraja, ishOstida) => {
         const kat = nakrutkaKat(q.kat);
         const belgi = q.summa == null && !mashinistMehnati(q);
         if (belgi) narxsizN++;
-        return v.qator('oddiy', (): Qiymat[] => [++n, shifrKorinish(q.kod), q.nom, q.birlik ?? '', null, q.hajm, q.narx, q.summa == null ? (belgi ? NARX_ANIQLANMAGAN : '—') : q.summa, q.tur, o.yaxlitIds && f2YaxlitQator(o.yaxlitIds, q) ? YAXLIT_KAT : kat ?? '', null],
+        return v.qator('oddiy', (): Qiymat[] => [ishOstida ? ishOstiRaqam() : ++n, shifrKorinish(q.kod), q.nom, q.birlik ?? '', null, q.hajm, q.narx, q.summa == null ? (belgi ? NARX_ANIQLANMAGAN : '—') : q.summa, q.tur, o.yaxlitIds && f2YaxlitQator(o.yaxlitIds, q) ? YAXLIT_KAT : kat ?? '', null],
           { daraja, rang: kat && (RANG_TARTIB as readonly string[]).includes(kat) ? kat as QatorRangi : null });
       },
-      ish: (q, resSoni, resJS) => v.qator('ish', (r): Qiymat[] => [++n, shifrKorinish(q.kod), q.nom, q.birlik ?? '', null, q.hajm, null,
-        // Ishning o'z summasi bo'lsa — aynan o'zi; bo'lmasa — resurslari yig'indisi (qiymatlar ustida formula: natija eski F2 bilan bir xil).
-        q.summa != null ? q.summa : resSoni ? { f: `SUM(H${r + 1}:H${r + resSoni})`, v: yaxlit2(resJS) } : null,
-        'bl', '', null], { daraja: 1 }),
+      ish: (q, resSoni, resJS) => {
+        const rq = v.qator('ish', (r): Qiymat[] => [++n, shifrKorinish(q.kod), q.nom, q.birlik ?? '', null, q.hajm, null,
+          // Ishning o'z summasi bo'lsa — aynan o'zi; bo'lmasa — resurslari yig'indisi (qiymatlar ustida formula: natija eski F2 bilan bir xil).
+          q.summa != null ? q.summa : resSoni ? { f: `SUM(H${r + 1}:H${r + resSoni})`, v: yaxlit2(resJS) } : null,
+          'bl', '', null], { daraja: 1 });
+        ishBoshla();
+        return rq;
+      },
       jami: (matn, t, js) => jamiQator(matn, t, js),
       bolim: (matn) => v.bolim(matn, { daraja: 0 }),
     });
@@ -407,7 +422,7 @@ function eskiDaraxtYoz(
   els: readonly EskiEl[],
   /** Smetada bolasi bor ish — o'z summasi sanalmaydi (server barg qoidasi), katagi resurslari yig'indisi. */
   bargEmas: (q: EskiBlokQator) => boolean,
-  y: { qator: (q: EskiBlokQator, daraja: number) => number; ish: (bl: EskiBlokQator, resSoni: number, resJS: number) => number;
+  y: { qator: (q: EskiBlokQator, daraja: number, ishOstida?: boolean) => number; ish: (bl: EskiBlokQator, resSoni: number, resJS: number) => number;
     jami: (matn: string, tarkib: readonly number[], js: number) => number; bolim: (matn: string) => number },
 ): { satrlar: number[]; js: number } {
   const yoz = (xs: readonly EskiEl[]): { satrlar: number[]; js: number } => {
@@ -420,7 +435,7 @@ function eskiDaraxtYoz(
         const bl = bargEmas(bl0) ? { ...bl0, summa: null } : bl0;
         const resJS = resurslar.reduce((s, q) => s + (q.summa ?? 0), 0);
         satrlar.push(y.ish(bl, resurslar.length, resJS));
-        for (const q of resurslar) { const r = y.qator(q, 2); if (bl.summa != null) satrlar.push(r); }
+        for (const q of resurslar) { const r = y.qator(q, 2, true); if (bl.summa != null) satrlar.push(r); }
         js += (bl.summa ?? 0) + resJS;
         continue;
       }
@@ -460,7 +475,7 @@ function resursVedomosti(
   const ref = (c: string, r: number) => `'${o.nom}'!${c}${r}`;
   const w = new RasmiyVaraq({
     nom: 'Ведомость ресурсов',
-    sarlavha: `ВЕДОМОСТЬ РЕСУРСОВ К АКТУ${o.raqam ? ` № ${o.raqam}` : ''} (ФОРМА № 2)`,
+    sarlavha: `ВЕДОМОСТЬ РЕСУРСОВ К АКТУ${o.raqam ? ` № ${o.raqam}` : ''} (ФОРМА № 02)`,
     ostSarlavha: [`за отчетный период: ${davrMatni(o.davr)}`],
     titul: [['Объект:', o.obyektNom]],
     ustunlar: VED_USTUNLAR,

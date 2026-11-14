@@ -39,7 +39,7 @@ describe('Ф-2 hujjati (LRV_PLUS asosiy ustunlari, tirik formulalar)', () => {
     expect(k.find((x) => x.ref === `H${ishQ}`)?.f).toMatch(/^SUM\(H\d+:H\d+\)$/);
     expect(k.some((x) => x.f?.startsWith('SUMIF(J'))).toBe(true);                 // podval — xarajat turi bo'yicha
     expect(t.matnlar.some((s) => s.includes('ИТОГО ПО РАЗДЕЛУ «НАРУЖНАЯ ОТДЕЛКА»'))).toBe(true);
-    expect(t.matnlar).toContain('АКТ ПРИЕМКИ ВЫПОЛНЕННЫХ РАБОТ № 1 (ФОРМА № 2)');
+    expect(t.matnlar).toContain('АКТ О ПРИЁМКЕ ВЫПОЛНЕННЫХ РАБОТ № 1 (ФОРМА № 02)');
     expect(k.some((x) => /^[L-Z]\d/.test(x.ref))).toBe(false);                     // ko'rinadigan A–I + yashirin J (kat), K (КАЛИТ), boshqa yo'q
   });
 
@@ -64,6 +64,44 @@ describe('Ф-2 hujjati (LRV_PLUS asosiy ustunlari, tirik formulalar)', () => {
     // Har qator hajmi aktdagi bilan aynan (resurs hajmi — formulaning keshi).
     const aktHajm = new Set(q.map((x) => `${x.nom}|${x.hajm}`));
     for (const x of barglar) expect(aktHajm.has(`${x.nom}|${x.hajm}`)).toBe(true);
+  });
+
+  it('TUZILMA (imzolangan Ф-2 shakli): titul, ikki qavatli sarlavha, iyerarxik №, podval tartibi, imzo, chop sozlamasi — kelajakda buzilmasin', async () => {
+    const { b, q } = tayyorla();
+    const r = f2Hujjat(b, q, { obyektNom: 'Fast Food 1-etaj', davr: '2026-10', raqam: '7', nakrutka: NAMUNA_NAKRUTKA, ndsFoiz: 12, shartnoma: '№ 45',
+      imzo: { zakazchik: 'ЗАКАЗЧИК-1', pudratchi: 'ПОДРЯДЧИК-1' } });
+    const t = hujjatTekshir(r.bytes);
+    const v0 = t.varaqlar[0];
+    // Chop: A4, bir sahifa eni, sarlavha qatorlari har sahifada takrorlanadi (ikki qavatli sarlavha — ikki qator).
+    expect(v0.a4).toBe(true);
+    expect(v0.printTitles).toMatch(/\$?\d+:\$?\d+$/);
+    const grid = (await readXlsx(r.bytes)).sheet('Ф-2')!.rows;
+    const matn = (i: number) => String(grid[i]?.[0] ?? '');
+    // Titul
+    expect(matn(0)).toBe('АКТ О ПРИЁМКЕ ВЫПОЛНЕННЫХ РАБОТ № 7 (ФОРМА № 02)');
+    expect(matn(1)).toMatch(/^за отчетный период:/);
+    expect(grid.slice(2, 7).map((x) => x[0]).filter(Boolean)).toEqual(['Объект:', 'Заказчик:', 'Подрядчик:', 'Договор:']);
+    // Jadval sarlavhasi: 1-qator guruhlar, 2-qator ustunlar, 3-qator raqamlash 1…8
+    const h1 = grid.findIndex((x) => x[0] === '№ п/п');
+    expect(grid[h1].slice(0, 8)).toEqual(['№ п/п', 'Шифр, код', 'Наименование работ и ресурсов', 'Ед. изм.', 'Количество', '', 'Сметная стоимость', '']); // guruh katagi birlashgan (E:F, G:H)
+    const h2 = grid.findIndex((x, i) => i > h1 && x[4] === 'на единицу');
+    expect(h2).toBeGreaterThan(h1);
+    expect(grid[h2].slice(0, 8)).toEqual(['', '', '', '', 'на единицу', 'по проекту', 'на.ед.изм., сум', 'общая, сум']);
+    expect(grid[h2 + 1].slice(0, 8)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    // № п/п iyerarxik: ish — N, uning resurslari — N.1, N.2 …
+    const tartib = grid.slice(h2 + 2).map((x) => x[0]).filter((x) => x != null && x !== '' && /^\d+(\.\d+)?$/.test(String(x))).map(String);
+    expect(tartib.slice(0, 4)).toEqual(['1', '1.1', '1.2', '1.3']);
+    expect(tartib.filter((x) => !x.includes('.')).length).toBeGreaterThanOrEqual(3);
+    // Podval tartibi: ИТОГО ПРЯМЫЕ → ustamalar → ИТОГО-1 … → ИТОГО-4 → НДС → ВСЕГО → propis → imzolar
+    const yorliq = grid.map((x) => String(x[2] ?? x[0] ?? ''));
+    const idx = (s: string) => yorliq.findIndex((x) => x.startsWith(s));
+    const tartibi = ['ИТОГО ПРЯМЫЕ ЗАТРАТЫ ПО АКТУ', 'ТРАНСПОРТНЫЕ РАСХОДЫ — МАТЕРИАЛЫ', 'ИТОГО-1', 'ПРОЧИЕ РАСХОДЫ ПОДРЯДЧИКА', 'ИТОГО-2', 'ИТОГО-3', 'СТРАХОВАНИЕ ОБЪЕКТА', 'ИТОГО-4', 'НДС', 'ВСЕГО К ОПЛАТЕ', 'Сумма прописью', 'ЗАКАЗЧИК:', 'ПОДРЯДЧИК:', 'ТЕХНАДЗОР:'];
+    const joylar = tartibi.map(idx);
+    expect(joylar.every((j) => j >= 0)).toBe(true);
+    expect([...joylar].sort((a, c) => a - c)).toEqual(joylar);
+    // Imzo bloki: har tomon — nom/lavozim qatori, "(подпись)", М.П. (tashkilotlar)
+    expect(grid.flat().filter((x) => x === '(подпись)')).toHaveLength(3);
+    expect(grid.flat().filter((x) => x === 'М.П.')).toHaveLength(3);
   });
 
   it('КАЛИТ round-trip: yashirin K ustuni har ish/resurs qatorini t2_qator.id ga aniq bog‘laydi; tahrirlangan/nusxalangan/begona kalit bog‘lanmaydi', async () => {

@@ -82,10 +82,11 @@ describe('sahifalar yadro bilan: Fakt jurnali / Fakt Studio = Сличитель
     expect(s.get(0)?.smeta.kesim.summasizSoni).toBe(1);
   });
 
-  it('fakt: sahifa = eksport; svod — yaxlit × (F2 narxidagi fakt / smeta)', () => {
-    expect(model.jami.fakt).toBe(2410); // 360 (1 200 × 300 / 1 000) + 1 750 + 800 − 500
+  it('fakt: sahifa = eksport = hujjat; svod bo‘limida fakt F-2 usulida (taqsimlanmaydi, to‘g‘ri narx)', () => {
+    // Egasi qoidasi: «F-2 bor qatorda fakt F-2 narxida»; svod bo'limida fakt ham F-2 kabi — svod summasiga TAQSIMLANMAYDI (eski 10-30 qoidasi bekor).
+    expect(model.jami.fakt).toBe(2350); // 300 (to'g'ri narx) + 1 750 + 800 − 500
     expect(s.get(0)?.fakt.ustamasiz).toBe(model.jami.fakt);
-    expect(s.get(10)?.fakt.ustamasiz).toBe(360);
+    expect(s.get(10)?.fakt.ustamasiz).toBe(300);
     const y = faktYigindiHisobla(DARAXT, JH, [], SVOD);
     expect(y.faktUstamasiz).toBe(model.jami.fakt);
     expect(y.faktF2Narxda).toBe(4); // 12, 22, 23, 25 (26 — fakt NULL, summa yo'q)
