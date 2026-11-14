@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest';
 import ExcelJS from 'exceljs';
 import JSZip from 'jszip';
 import type { T2Qator, T2QatorHolat } from '../api/supabase';
-import { slichitelniyHujjatXlsx, slichitelniyModeli, QOSHIMCHA_BOLIM_NOMI } from './slichitelniy-vedomost';
+import { slichitelniyHujjatXlsx, slichitelniyModeli, ozgarishSvodi, QOSHIMCHA_BOLIM_NOMI, type BekorAkt } from './slichitelniy-vedomost';
 import { yaxlitQatorIdlari, type SvodYaxlit } from './svod-yaxlit';
-import { kategoriyaKf } from './nakrutka-podval';
+import { NAKRUTKA_KATLAR } from './nakrutka-podval';
+import { kaskad, standartPodval } from './hisob-yadro';
 import { namunaSaqla } from './hujjat-yozuvchi/test-yordam';
 
 /*
@@ -215,12 +216,12 @@ async function yuk(bytes: Uint8Array): Promise<ExcelJS.Workbook> {
 const ASOSIY = 'Сличительная ведомость';
 const SVOD_V = 'Свод изменений';
 
-function qur(extra: { svod?: boolean; holat?: T2QatorHolat[]; vne?: 'alohida' | 'daraxt' } = {}) {
+function qur(extra: { svod?: boolean; holat?: T2QatorHolat[]; vne?: 'alohida' | 'daraxt'; bajar?: ReadonlySet<number>; bekor?: BekorAkt[] } = {}) {
   const rows = extra.svod === false ? DARAXT.filter((x) => x.id < 30) : DARAXT;
   const holat = extra.holat ?? HOLAT;
-  const model = slichitelniyModeli(rows, holat, extra.svod === false ? {} : { svodYaxlit: SVOD });
+  const model = slichitelniyModeli(rows, holat, { ...(extra.svod === false ? {} : { svodYaxlit: SVOD }), bajarilmadiIdlar: extra.bajar ?? null });
   const r = slichitelniyHujjatXlsx(model, { obyektNomi: 'Объект', sana: '2026-11-14', nakrutka: NK, svodYaxlit: extra.svod === false ? null : SVOD,
-    yaxlitIdlar: extra.svod === false ? null : yaxlitQatorIdlari(rows, SVOD), vneSmeta: extra.vne });
+    yaxlitIdlar: extra.svod === false ? null : yaxlitQatorIdlari(rows, SVOD), vneSmeta: extra.vne, bekorAktlar: extra.bekor });
   namunaSaqla('slichitelniy_pereraschet.xlsx', r.bytes);
   return { model, r, rows };
 }
@@ -312,38 +313,35 @@ describe('Сличительная ведомость — xlsx (exceljs bilan qa
     expect(ws.getCell('S11').value).toBeDefined();
   });
 
-  it('har ustun formulasi: S/T (fakt − F-2), U/V/W (к оплате), X/Y/Z/AA (ajratish) — qator darajasida', async () => {
+  it('tana: har qatorda perereschet formulalari (N/O), ajratish U/V; ustamali / «к оплате» ustunlari YO‘Q', async () => {
     const { r, model } = qur();
     const wb = await yuk(r.bytes);
     const ws = wb.getWorksheet(ASOSIY)!;
     const f = (ref: string) => ({ formula: (ws.getCell(ref).value as { formula: string }).formula, result: keshOl(wb, ASOSIY, ref) });
     const n = qatorNomi(wb, 'ТРУД БЕТОН');
-    expect(f(`S${n}`).formula).toBe(`IF(H${n}="","",ROUND(H${n}-J${n},6))`);
-    expect(f(`T${n}`).formula).toBe(`IF(OR(I${n}="",K${n}=""),"",ROUND(I${n}-K${n},2))`);
-    expect(f(`S${n}`).result).toBe(10);
-    expect(f(`T${n}`).result).toBe(5000);
-    expect(f(`W${n}`).formula).toBe(`IF(OR(P${n}="",V${n}=""),"",ROUND(P${n}-V${n},2))`);
-    expect(f(`X${n}`).formula).toBe(`IF(T${n}="","",MAX(T${n},0))`);
-    expect(f(`Y${n}`).formula).toBe(`IF(T${n}="","",MIN(T${n},0))`);
-    // к оплате: ЧЕЛ Kf bilan
-    const kf = kategoriyaKf(NK).ЧЕЛ!;
-    expect(f(`U${n}`).result).toBe(r2(10_000 * kf));              // smeta 20 × 500
-    expect(f(`V${n}`).result).toBe(r2(5000 * kf));                // F-2 summa 5000
-    expect(f(`W${n}`).result).toBe(r2(r2(10_000 * kf) - r2(5000 * kf)));
-    expect(f(`Z${n}`).result).toBe(f(`W${n}`).result);
-    expect(f(`AA${n}`).result).toBe(0);
-    // снятие qatori
+    expect(f(`N${n}`).formula).toBe(`IF(H${n}="","",ROUND(H${n}-J${n},6))`);
+    expect(f(`O${n}`).formula).toBe(`IF(OR(I${n}="",K${n}=""),"",ROUND(I${n}-K${n},2))`);
+    expect(f(`N${n}`).result).toBe(10);
+    expect(f(`O${n}`).result).toBe(5000);
+    expect(f(`U${n}`).formula).toBe(`IF(O${n}="","",MAX(O${n},0))`);
+    expect(f(`V${n}`).formula).toBe(`IF(O${n}="","",MIN(O${n},0))`);
+    expect(f(`U${n}`).result).toBe(5000);
+    expect(f(`V${n}`).result).toBe(0);
     const k = qatorNomi(wb, 'КИРПИЧ');
-    expect(f(`T${k}`).result).toBe(-4000);
-    expect(f(`Y${k}`).result).toBe(-4000);
-    expect(f(`X${k}`).result).toBe(0);
-    expect(Number(f(`AA${k}`).result)).toBeLessThan(0);
-    // noma'lum fakt — T bo'sh ('' natija), ТРЕБУЮТ ВНИМАНИЯ (O) = 1, X/Y bo'sh
+    expect(f(`O${k}`).result).toBe(-4000);
+    expect(f(`V${k}`).result).toBe(-4000);
+    expect(f(`U${k}`).result).toBe(0);
+    // noma'lum fakt — O bo'sh ('' natija), «ТРЕБУЮТ ВНИМАНИЯ» (Q) = 1, U/V bo'sh
     const z = qatorNomi(wb, 'МАТЕРИАЛ БЕЗ ФАКТА');
-    expect(f(`T${z}`).result).toBe('');
-    expect(f(`X${z}`).result).toBe('');
-    expect(f(`O${z}`).result).toBe(1);
+    expect(f(`O${z}`).result).toBe('');
+    expect(f(`U${z}`).result).toBe('');
+    expect(f(`Q${z}`).result).toBe(1);
     expect(model.pereraschet.nomalum).toBeGreaterThanOrEqual(1);
+    // (d) tanada «к оплате» / накрутка / ustamali sarlavha yo'q; ko'rinadigan ustunlar 16 ta (A–P)
+    const sarl = [9, 10].flatMap((i) => (ws.getRow(i).values as unknown[]).map((x) => String(x ?? '')));
+    expect(sarl.join('|')).not.toMatch(/К ОПЛАТЕ|НАКЛАДН|НАКРУТ|С НАКРУТКОЙ/i);
+    const korinadigan = ws.columns.filter((c) => !c.hidden).length;
+    expect(korinadigan).toBe(16);
   });
 
   it('formula == kesh: hamma formulali katak mini-hisoblagich bilan qayta hisoblanadi (ikkala varaq, podval, Свод)', async () => {
@@ -371,59 +369,166 @@ describe('Сличительная ведомость — xlsx (exceljs bilan qa
     expect(nomos, nomos.slice(0, 8).join('\n')).toEqual([]);
   });
 
-  it('almashtirish va qo‘shimcha bo‘lim hujjatda: izohlar, «ДОПОЛНИТЕЛЬНЫЕ РАБОТЫ» bo‘limi, yaxlit bo‘lim', async () => {
+  it('(a) zamena asl qator tagida: izohlar, formula; qo‘shimcha bo‘lim; svod bo‘limi qatorlari formulali', async () => {
     const { r } = qur();
     const wb = await yuk(r.bytes);
     const ws = wb.getWorksheet(ASOSIY)!;
     const eski = qatorNomi(wb, 'ПОЗИЦИЯ СТАРАЯ'), yangi = qatorNomi(wb, 'ПОЗИЦИЯ НОВАЯ ВЗАМЕН');
-    expect(String(ws.getCell(`N${eski}`).value)).toMatch(/ИСКЛЮЧАЕТСЯ \(ЗАМЕНЕНА ПОЗ\. \d/);
-    expect(String(ws.getCell(`N${yangi}`).value)).toMatch(/ВЗАМЕН ПОЗ\. \d/);
+    expect(String(ws.getCell(`P${eski}`).value)).toMatch(/ИСКЛЮЧАЕТСЯ \(ЗАМЕНЕНА ПОЗ\. \d/);
+    expect(String(ws.getCell(`P${yangi}`).value)).toMatch(/ВЗАМЕН ПОЗ\. \d/);
     expect(ws.getCell(`H${eski}`).value).toBe(0);                  // fakt 0
+    // zamena asl qatorning TAGIDA (eski bl → uning resursi → yangi bl): oraliq faqat asl resursi
+    expect(yangi - eski).toBe(2);
+    // asl qatorda smeta summasi ko'rinadi (formula), farq formulasi minusni beradi
+    const eskiRes = qatorNomi(wb, 'МАТЕРИАЛ СТАРЫЙ');
+    expect(typeof (ws.getCell(`G${eskiRes}`).value as { formula: string }).formula).toBe('string');
+    expect(keshOl(wb, ASOSIY, `G${eskiRes}`)).toBe(12_000);
+    expect(keshOl(wb, ASOSIY, `M${eskiRes}`)).toBe(-12_000);
+    expect(typeof (ws.getCell(`M${eskiRes}`).value as { formula: string }).formula).toBe('string');
     const bolim = qatorNomi(wb, QOSHIMCHA_BOLIM_NOMI);
     expect(qatorNomi(wb, 'ДОП РАБОТА ПЛИТКА')).toBeGreaterThan(bolim);
     expect(qatorNomi(wb, 'ПЛИТКА ДОП')).toBeGreaterThan(bolim);
-    // svod bo'lim: fakt taqsimlanmaydi - formula (hajm x narx)
+    expect(String(ws.getCell(`P${qatorNomi(wb, 'ДОП РАБОТА ПЛИТКА')}`).value)).toContain('ДОП. РАБОТА');
+    // svod bo'limi qatorlari: fakt formula (hajm x narx), perereschet O formula (endi qiymat emas)
     const s = qatorNomi(wb, 'ТРУД СВОД');
     expect(typeof (ws.getCell(`I${s}`).value as { formula: string }).formula).toBe('string');
-    // к доплате: to'g'ri narxdagi fakt − Ф-2 (taqsimlanmagan) — qiymat; QQS bilan ustuni (W) shu qiymatdan formula
-    expect(typeof ws.getCell(`T${s}`).value).toBe('number');
-    expect(typeof (ws.getCell(`W${s}`).value as { formula: string }).formula).toBe('string');
+    expect(typeof (ws.getCell(`O${s}`).value as { formula: string }).formula).toBe('string');
+    expect(String(ws.getCell(`P${s}`).value)).toMatch(/СПРАВОЧНО/);
   });
 
-  it('Свод изменений: bo‘lim bo‘yicha smeta/fakt/F-2/к доплате/к снятию; jami QQS bilan birinchi, keyin ustamali, ustamasiz', async () => {
+  it('(c) har summa katagi formula; tasdiqlangan F-2 (J/K) — aynan qiymat', async () => {
+    const { r, model } = qur();
+    const wb = await yuk(r.bytes);
+    const ws = wb.getWorksheet(ASOSIY)!;
+    let barglar = 0;
+    model.qatorlar.forEach((q) => {
+      if (q.tur !== 'barg') return;
+      const n = ws.getRow(qatorNomi(wb, q.nom)).number; // qator
+      for (const c of ['G', 'I', 'M', 'O']) {
+        const v = ws.getCell(`${c}${n}`).value as unknown;
+        if (q.faktServerdan && c === 'I') continue;
+        expect(v && typeof v === 'object' && 'formula' in (v as object), `${q.nom} ${c}${n}`).toBe(true);
+      }
+      for (const c of ['J', 'K']) expect(typeof ws.getCell(`${c}${n}`).value !== 'object' || ws.getCell(`${c}${n}`).value === null, `${q.nom} ${c}${n} qiymat`).toBe(true);
+      barglar++;
+    });
+    expect(barglar).toBeGreaterThanOrEqual(10);
+    // bo'lim / ИТОГО / ВСЕГО jamilari ham formula
+    const vs = qatorNomi(wb, 'ИТОГО ПО ОБЪЕКТУ: ПРЯМЫЕ ЗАТРАТЫ (БЕЗ НАКЛАДНЫХ И НДС, БЕЗ РАЗДЕЛОВ ПО СВОДУ)');
+    for (const c of ['G', 'I', 'K', 'M', 'O']) expect(typeof (ws.getCell(`${c}${vs}`).value as { formula: string }).formula).toBe('string');
+  });
+
+  it('(b) svod bo‘limi bir marta: tana jami svodsiz, yaxlit summa faqat podvalda (bitta katak)', async () => {
+    const { r, model } = qur();
+    const wb = await yuk(r.bytes);
+    const ws = wb.getWorksheet(ASOSIY)!;
+    // tana jami: svod qatorlari kirmaydi (fakt: svodsiz 7500+… ; svod fakti 850 alohida)
+    const vs = qatorNomi(wb, 'ИТОГО ПО ОБЪЕКТУ: ПРЯМЫЕ ЗАТРАТЫ (БЕЗ НАКЛАДНЫХ И НДС, БЕЗ РАЗДЕЛОВ ПО СВОДУ)');
+    expect(keshOl(wb, ASOSIY, `I${vs}`)).toBe(model.tana.fakt);
+    expect(model.jami.fakt).toBe(r2((model.tana.fakt ?? 0) + 850));
+    expect(model.svodIldizlar).toHaveLength(1);
+    // yaxlit svod summasi (QQS bilan 1344) butun varaqda G ustunida FAQAT BIR marta (podval yaxlit qatori)
+    let marta = 0;
+    for (let i = 1; i <= ws.rowCount; i++) if (keshOl(wb, ASOSIY, `G${i}`) === 1344) marta++;
+    expect(marta).toBe(1);
+    // svod qatorlari tanada to'g'ri narxda (1000 / 850 / 600) va jamilarga kirmaydi
+    const s = qatorNomi(wb, 'ТРУД СВОД');
+    expect(keshOl(wb, ASOSIY, `I${s}`)).toBe(150);
+  });
+
+  it('(e) podval ВСЕГО = yadro hisobi (smeta / fakt / Ф-2 / otklonenie / perereschet ustunlari; svod bir marta)', async () => {
+    const { r, model } = qur();
+    const wb = await yuk(r.bytes);
+    const ws = wb.getWorksheet(ASOSIY)!;
+    const vsegoRow = qatorNomi(wb, 'ВСЕГО К ОПЛАТЕ (С НАКЛАДНЫМИ РАСХОДАМИ И НДС)');
+    const kat = (q: (typeof model.qatorlar)[number]) => q.kat as string | null;
+    const bo = Object.fromEntries(['G', 'I', 'K', 'M', 'O'].map((c) => {
+      const ks = Object.fromEntries(NAKRUTKA_KATLAR.map((k) => [k, 0])) as Record<string, number>;
+      for (const q of model.qatorlar) {
+        if (q.tur !== 'barg' || !kat(q)) continue;
+        const svodMeh = q.yaxlitTaqsim != null && (kat(q) === 'ЧЕЛ' || kat(q) === 'МАШ');
+        if (q.yaxlitTaqsim != null && (c === 'G' || !svodMeh)) continue;
+        const val = c === 'G' ? q.smetaSumma : c === 'I' ? q.faktSumma : c === 'K' ? q.f2Summa : c === 'M' ? (q.yaxlitTaqsim != null ? q.faktSumma : q.farqSumma) : q.doplataSumma;
+        if (val != null) ks[kat(q)!] += val;
+      }
+      return [c, ks];
+    }));
+    const podval = standartPodval(NK);
+    const yaxK = (x: number) => r2(x * 1.12);
+    const yaxlit: Record<string, number> = { G: 1344, I: yaxK(700), K: yaxK(500), M: r2(yaxK(700) - 1344), O: yaxK(200) };
+    for (const c of ['G', 'I', 'K', 'M', 'O']) {
+      const nat = kaskad(bo[c] as never, podval, { asosiy: c === 'G', yaxlit: { qqsBilan: yaxlit[c] } });
+      expect(keshOl(wb, ASOSIY, `${c}${vsegoRow}`), `ВСЕГО ${c}`).toBeCloseTo(nat.vsego as number, 2);
+    }
+    expect(vsegoRow).toBeGreaterThan(0);
+  });
+
+  it('Свод изменений: до → исключаемые → замена → доп → после (formulalar), bo‘limlar, svod bir marta, podval jami; formula = kesh', async () => {
     const { r, model } = qur();
     const wb = await yuk(r.bytes);
     const ws = wb.getWorksheet(SVOD_V)!;
-    const sarlavhalar: Array<{ row: number; matn: string }> = [];
-    const vsegolar: number[] = [];
-    ws.eachRow((row, rn) => {
-      const a = String(row.getCell(1).value ?? ''), b = String(row.getCell(2).value ?? '');
-      if (/^С НАКЛАДНЫМИ РАСХОДАМИ И НДС|^С НАКЛАДНЫМИ РАСХОДАМИ \(БЕЗ НДС\)|^ПРЯМЫЕ ЗАТРАТЫ/.test(a)) sarlavhalar.push({ row: rn, matn: a });
-      if (b === 'ВСЕГО ПО ОБЪЕКТУ') vsegolar.push(rn);
-    });
-    expect(sarlavhalar.map((x) => x.matn.split(' ')[1] ?? x.matn)).toHaveLength(3);
-    expect(sarlavhalar[0].matn).toMatch(/С НАКЛАДНЫМИ РАСХОДАМИ И НДС/);   // QQS bilan — birinchi
-    expect(sarlavhalar[1].matn).toMatch(/БЕЗ НДС/);                         // ustamali
-    expect(sarlavhalar[2].matn).toMatch(/ПРЯМЫЕ ЗАТРАТЫ/);                  // ustamasiz
-    expect(vsegolar).toHaveLength(3);
-    const pry = vsegolar[2];
-    const v = (c: string, rn = pry) => Number(keshOl(wb, SVOD_V, `${c}${rn}`));
-    expect(v('C')).toBe(model.jami.smeta);
-    expect(v('D')).toBe(model.jami.fakt);
-    expect(v('E')).toBe(model.jami.f2);
-    expect(v('F')).toBe(model.pereraschet.doplata);
-    expect(v('G')).toBe(model.pereraschet.snyatie);
-    expect(r2(v('H'))).toBe(r2(model.pereraschet.net));
-    // bo'limlar soni = ildizlar (asosiy, qo'shimcha, svod)
-    const bolimQ = (rn0: number, rn1: number) => { let n = 0; for (let i = rn0 + 1; i < rn1; i++) if (typeof ws.getCell(`A${i}`).value === 'number') n++; return n; };
-    expect(bolimQ(sarlavhalar[2].row, pry)).toBe(model.ildizlar.length);
-    expect(model.ildizlar).toHaveLength(3);
-    // QQS bilan blok: smeta/fakt/F-2 ustamali blokdan Kf marta katta; ustamali = QQS bilan / 1,12
-    const qqs = vsegolar[0], ust = vsegolar[1];
-    expect(v('D', qqs)).toBeGreaterThan(v('D', ust));
-    expect(v('D', ust)).toBe(r2(v('D', qqs) / 1.12));
-    // «ТРЕБУЮТ ВНИМАНИЯ» — pryamye blok oxirida
-    expect(v('I', pry)).toBe(model.pereraschet.nomalum);
+    const H = new Hisob(wb);
+    const rowOf = (pref: string): number => { let x = 0; ws.eachRow((row, rn) => { if (String(row.getCell(2).value ?? '').toUpperCase().startsWith(pref.toUpperCase())) x = rn; }); return x; };
+    const v = (c: string, rn: number) => Number(H.get(SVOD_V, `${c}${rn}`));
+    const oz = ozgarishSvodi(model);
+    const dorow = rowOf('Смета до изменений'), a = rowOf('(а) Замена'), b = rowOf('(б) Замена'), vv = rowOf('(в) Дополнительные'), posle = rowOf('СМЕТА ПОСЛЕ ИЗМЕНЕНИЙ');
+    expect([dorow, a, b, vv, posle].every((x) => x > 0)).toBe(true);
+    expect(a).toBe(dorow + 1); expect(b).toBe(a + 1); expect(vv).toBe(b + 1); expect(posle).toBe(vv + 1);
+    expect(typeof (ws.getCell(`C${dorow}`).value as { formula: string }).formula).toBe('string');
+    expect(r2(v('C', dorow))).toBe(oz.asl.reja);
+    expect(r2(v('C', a))).toBe(oz.istisno.reja);          // minus
+    expect(oz.istisno.reja).toBeLessThan(0);
+    expect(r2(v('C', b))).toBe(oz.zamena.reja);
+    expect(r2(v('C', vv))).toBe(oz.qoshimcha.reja);
+    expect(r2(v('C', posle))).toBe(oz.keyin.reja);
+    expect(r2(v('D', posle))).toBe(oz.keyin.fakt);
+    expect(r2(v('H', posle))).toBe(oz.keyin.doplata);
+    // bo'limlar (svodsiz) jami = tana
+    const pry = rowOf('ИТОГО: ПРЯМЫЕ ЗАТРАТЫ');
+    expect(r2(v('C', pry))).toBe(model.tana.smeta);
+    expect(r2(v('D', pry))).toBe(model.tana.fakt);
+    expect(r2(v('E', pry))).toBe(model.tana.f2);
+    // svod: bir qator, perereschet to'g'ri narxda (to'g'ri farq 250); smeta katagi bo'sh
+    const sv = rowOf('РАЗДЕЛ ПО СВОДУ:');
+    expect(sv).toBeGreaterThan(0);
+    expect(r2(v('H', sv))).toBe(250);
+    expect(ws.getCell(`C${sv}`).value).toBeNull();
+    // podval jami (ustama + QQS bilan) asosiy varaq podvalidan havola
+    const pod = rowOf('ВСЕГО ПО ПОДВАЛУ');
+    expect(typeof (ws.getCell(`C${pod}`).value as { formula: string }).formula).toBe('string');
+    expect(rowOf('в том числе: разделы по своду')).toBe(pod + 1);
+    expect(v('C', pod + 1)).toBe(1344);
+  });
+
+  it('(7) «bajarilmadi» va исключаемые — hujjatda o‘z joyida belgisi bilan, smeta ko‘rinadi, fakt 0, farq minus; bekor F-2 lar jamiga kirmaydi', async () => {
+    const rows = [...DARAXT, q(40, 1, 'bl', 2, 'НЕ ВЫПОЛНЕНО БЛОК'), q(41, 40, 'mat', 2, 'НЕ ВЫПОЛНЕНО МАТ', { kat: 'МАТ', narx: 5000 })];
+    const holat = [...HOLAT, h(40, 0), h(41, 0)];
+    const model = slichitelniyModeli(rows, holat, { svodYaxlit: SVOD, bajarilmadiIdlar: new Set([40, 41]) });
+    const bytes = slichitelniyHujjatXlsx(model, { obyektNomi: 'Объект', sana: '2026-11-14', nakrutka: NK, svodYaxlit: SVOD, yaxlitIdlar: yaxlitQatorIdlari(rows, SVOD),
+      bekorAktlar: [{ nomer: '№ 7', sana: '2026-10-01', summa: 123, almashtirgan: '№ 8', sabab: 'исправлен' }] }).bytes;
+    const wb = await yuk(bytes);
+    const ws = wb.getWorksheet(ASOSIY)!;
+    const n = qatorNomi(wb, 'НЕ ВЫПОЛНЕНО МАТ');
+    expect(String(ws.getCell(`P${n}`).value)).toContain('НЕ ВЫПОЛНЯЕТСЯ');
+    expect(keshOl(wb, ASOSIY, `G${n}`)).toBe(10_000);   // smeta ko'rinadi
+    expect(keshOl(wb, ASOSIY, `I${n}`)).toBe(0);        // fakt 0
+    expect(keshOl(wb, ASOSIY, `M${n}`)).toBe(-10_000);  // farq formulasi minus
+    expect(typeof (ws.getCell(`M${n}`).value as { formula: string }).formula).toBe('string');
+    // «Свод изменений»: alohida ro'yxat qatori
+    const sv = wb.getWorksheet(SVOD_V)!;
+    const matn: string[] = [];
+    sv.eachRow((row) => matn.push(String(row.getCell(2).value ?? '')));
+    expect(matn.some((s) => s.startsWith('НЕ ВЫПОЛНЯЕТСЯ (ОТМЕЧЕНО'))).toBe(true);
+    expect(matn.some((s) => s.startsWith('ИСКЛЮЧАЕТСЯ (ЗАМЕНЕНО'))).toBe(true);
+    // bekor F-2: alohida varaq, jamiga kirmaydi
+    expect(wb.worksheets.map((w) => w.name)).toContain('Отмененные Ф-2');
+    const bk = wb.getWorksheet('Отмененные Ф-2')!;
+    const bt: string[] = [];
+    bk.eachRow((row) => row.eachCell((c) => bt.push(String(c.value ?? ''))));
+    expect(bt.join('|')).toContain('№ 8');
+    expect(bt.join('|')).toContain('СПРАВОЧНО');
+    const vs = qatorNomi(wb, 'ИТОГО ПО ОБЪЕКТУ: ПРЯМЫЕ ЗАТРАТЫ (БЕЗ НАКЛАДНЫХ И НДС, БЕЗ РАЗДЕЛОВ ПО СВОДУ)');
+    expect(keshOl(wb, ASOSIY, `K${vs}`)).toBe(model.tana.f2);
   });
 
   it('NULL ≠ 0: fakt noma‘lum qatori jamilarni «ТРЕБУЮТ ВНИМАНИЯ» ga o‘tkazadi, Свод da izoh «Итог неполный»', async () => {
