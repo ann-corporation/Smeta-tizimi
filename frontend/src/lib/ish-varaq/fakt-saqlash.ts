@@ -105,6 +105,8 @@ export function useFaktSaqlash(o: {
       tozala(); op.current = { id: yangiOperationId(), imzo: null };
       qoralamaTozala();
       toast(`${ids.size} ta qator saqlandi — F2 qoldig‘i yangilandi.`, 'ok');
+      // Narxsiz qator: fakt yozildi (bloklanmaydi), lekin summasi bo'sh — narx qo'yilguncha pulga kirmaydi (egasi qoidasi: NULL ≠ 0).
+      if (r.narxsiz) toast(t('{n} ta qator narxsiz — summa bo‘sh. Narx qo‘ying (Narxlash yoki narx_tuzat).', { n: r.narxsiz }), 'warn', undefined, 12000);
       // Saqlash tugadi — tugma darhol bo'shaydi; holat fonda yangilanadi (sekin o'qish tugmani qotirmasin).
       setBand(false);
       void Promise.resolve(holatniYangila([...ids])).catch(() => toast('Saqlandi, lekin jadvalni yangilab bo‘lmadi — sahifani yangilang.', 'warn'));

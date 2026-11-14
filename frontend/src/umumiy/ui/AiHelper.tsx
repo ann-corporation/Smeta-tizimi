@@ -19,8 +19,10 @@ import { AiFikrPanel } from './AiFikrPanel';
 import { AiJurnal } from './AiJurnal';
 import { AiShaxsiy } from './AiShaxsiy';
 import { useAiKuzatuv } from './useAiKuzatuv';
+import { useIshchiNatija } from './useIshchiNatija';
 import { kimMalumoti } from './yordamchi/kim-ulanish';
 import { amalIjroniUla } from '../../lib/yordamchi/vosita/amal-vosita';
+import { kasbKeshOl, kasbKeshYoz } from '../../lib/yordamchi/kasb-kesh';
 import { haqiqiyVositaApi } from '../../lib/yordamchi/vosita/haqiqiy';
 import { yangiOperationId } from '../../api/supabase';
 import { amalRejim, oynaKaliti, oynaOqi, oynaYoz, olchamlash, surish, suzuvchiRect, yonOlcham, yonSukut, type OynaHolat, type Rejim } from '../../lib/yordamchi/oyna';
@@ -63,6 +65,7 @@ export function AiHelper() {
   useEffect(() => { if (isOpen) setOchilgan(true); }, [isOpen]);
   const [kasb, setKasb] = useState<KasbIshchi | null>(null);
   const kuzatuv = useAiKuzatuv(joriyId ?? undefined);
+  useIshchiNatija(joriyId ?? null, isOpen);
   const sahifalar = useYordamchiSahifalar();
   const ws = usePTOWorkspace();
   const obyektlar = useMemo(() => (ws.isProvider ? ws.objects.map((o) => ({ id: o.id, nom: o.nom ?? '' })).filter((o) => o.nom) : []), [ws.isProvider, ws.objects]);
@@ -100,7 +103,7 @@ export function AiHelper() {
     const tugat = () => { window.removeEventListener('pointermove', harakat); window.removeEventListener('pointerup', tugat); };
     window.addEventListener('pointermove', harakat); window.addEventListener('pointerup', tugat);
   };
-  const vosita = useMemo(() => (joriyId ? { kompaniyaId: joriyId, kim, obyekt: joriyObyekt, obyektlar, sahifalar, api: haqiqiyVositaApi(joriyId), opId: yangiOperationId } : null), [joriyId, kim, joriyObyekt, obyektlar, sahifalar]);
+  const vosita = useMemo(() => (joriyId ? { kompaniyaId: joriyId, kim, obyekt: joriyObyekt, obyektlar, sahifalar, api: haqiqiyVositaApi(joriyId), opId: yangiOperationId, qidir: motor.vositalar ? (arg: string) => Promise.resolve(motor.vositalar!.oqi({ vosita: 'qidir', arg })).then(String) : undefined } : null), [joriyId, kim, joriyObyekt, obyektlar, sahifalar, motor.vositalar]);
   const hujjat = useMemo(() => (joriyId ? haqiqiyHujjatDeps(joriyId) : null), [joriyId]);
   const yordamchi: YordamchiUlanish | undefined = useMemo(() => (sahifalar.length ? { sahifalar, obyektlar, joriyObyekt, obyektTanla: (id: number) => ws.setObjectId(id), motor, hujjat, sahifaAmallar, sahifaAmalBajar: (id: string) => { sahifaAmaliniBajar(id); }, kim, vosita } : undefined), [sahifalar, obyektlar, joriyObyekt, ws, motor, hujjat, sahifaAmallar, kim, vosita]);
   const [tayyor, setTayyor] = useState<TayyorSavol | null>(null);
@@ -115,12 +118,14 @@ export function AiHelper() {
     return () => window.removeEventListener('ai:ochish', eshit);
   }, []);
 
+  /* KONTEKST BIR MARTA: lavozim sessiya bo'yicha keshlanadi (kasb-kesh) — panel qayta ochilganda so'rov yo'q; eskirsa fonda yangilanadi. */
   useEffect(() => {
     let tirik = true;
-    setKasb(null);
-    if (joriyId && isOpen) void kasbOl(joriyId).then((r) => { if (tirik && r.ok) setKasb(r.natija); });
+    const keshda = joriyId && isOpen ? kasbKeshOl(uid, joriyId) : null;
+    setKasb(keshda?.kasb ?? null);
+    if (joriyId && isOpen && (!keshda || keshda.eskirgan)) void kasbOl(joriyId).then((r) => { if (r.ok) kasbKeshYoz(uid, joriyId, r.natija); if (tirik && r.ok) setKasb(r.natija); });
     return () => { tirik = false; };
-  }, [joriyId, isOpen]);
+  }, [joriyId, isOpen, uid]);
 
   /* Ctrl+K — YAGONA yordamchi (Jarvis) hamma joyda, Smeta Studiyada ham (Studio buyruqlari reestr orqali unga beriladi). */
   const hotkeyFaol = !location.pathname.startsWith('/boss');

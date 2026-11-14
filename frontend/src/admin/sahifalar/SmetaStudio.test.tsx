@@ -61,6 +61,7 @@ beforeAll(() => {
 });
 afterAll(() => vi.restoreAllMocks());
 beforeEach(async () => {
+  localStorage.setItem('studio:advanced','1');
   vi.mocked(NormLibraryCatalog.open).mockReset();
   localStorage.setItem('studio:catalog-source', 'legacy');
   aiSources.length = 0;
@@ -81,9 +82,9 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 function renderEditor(){render(<SmetaStudio/>);fireEvent.click(within(screen.getByRole('navigation',{name:'Smeta ish joyi'})).getByRole('button',{name:'Ishlar'}));fireEvent.click(screen.getByRole('button',{name:'Tarkib va bo‘limlar'}));}
 
-it('opens the three-panel workbench without starting a previously selected hidden pricing view',async()=>{
+it('opens the workbench with persistent AI without starting a previously selected hidden pricing view',async()=>{
  localStorage.setItem('smeta-studio:bosqich','narx');
- try{render(<SmetaStudio/>);await screen.findByText('Shu qurilmada saqlandi');expect(screen.getByRole('main',{name:'Smeta jadvali'})).toBeTruthy();expect(screen.getByRole('complementary',{name:'Tanlangan ish nazorati'})).toBeTruthy();expect(screen.queryByLabelText('Obyekt hududi')).toBeNull();expect(requests.some(r=>r.startsWith('POST '))).toBe(false);}finally{localStorage.removeItem('smeta-studio:bosqich');}
+ try{render(<SmetaStudio/>);await screen.findByText('Shu qurilmada saqlandi', undefined, { timeout: 15000 });expect(screen.getByRole('main',{name:'Smeta jadvali'})).toBeTruthy();expect(screen.getByRole('complementary',{name:'Doimiy AI yordamchi'})).toBeTruthy();expect(screen.queryByLabelText('Obyekt hududi')).toBeNull();expect(requests.some(r=>r.startsWith('POST '))).toBe(false);}finally{localStorage.removeItem('smeta-studio:bosqich');}
 });
 
 it('chapdan ish tanlab o‘ngga qo‘shish: kuzatilgan birlik, resurs miqdori, narxsiz jami noma’lum; faqat GET', async () => {
@@ -202,7 +203,7 @@ it('sekin A javobi B tanlovining retseptini almashtirmaydi', async () => {
 it('workspace navigation preserves the unsent AI message and manual document changes',async()=>{
  renderEditor();
  await screen.findByLabelText('Smeta nomi');
- fireEvent.click(screen.getByRole('tab',{name:'Smetachi AI'}));
+ fireEvent.click(screen.getByRole('button',{name:'Smetachi AI'}));
  fireEvent.change(screen.getByLabelText('Smetachiga xabar'),{target:{value:'TEST ONLY unsent plan'}});
  const title=screen.getByLabelText('Smeta nomi');fireEvent.change(title,{target:{value:'TEST shared estimate'}});fireEvent.submit(title.closest('form')!);
  const nav=screen.getByRole('navigation',{name:'Smeta ish joyi'});
@@ -212,7 +213,7 @@ it('workspace navigation preserves the unsent AI message and manual document cha
  fireEvent.click(within(nav).getByRole('button',{name:'Ishlar'}));
  expect((screen.getByLabelText('Smeta nomi') as HTMLInputElement).value).toBe('TEST shared estimate');
  expect((screen.getByLabelText('Smeta obyekti') as HTMLInputElement).value).toBe('TEST unsent manual field');
- fireEvent.click(screen.getByRole('tab',{name:'Hajm'}));fireEvent.click(screen.getByRole('tab',{name:'Smetachi AI'}));
+ fireEvent.click(screen.getByRole('button',{name:'Smetachi AI'}));
  expect((screen.getByLabelText('Smetachiga xabar') as HTMLTextAreaElement).value).toBe('TEST ONLY unsent plan');
 });
 it('new estimate archives the previous draft and reopening restores the same document',async()=>{
@@ -286,20 +287,20 @@ it('keeps the worksheet visible while selecting works and preserves an unsaved i
  fireEvent.change(quantity,{target:{value:'3'}});fireEvent.click(screen.getByRole('button',{name:/Smetaga qo‘shish/}));
  fireEvent.change(quantity,{target:{value:'4'}});fireEvent.click(screen.getByRole('button',{name:/Smetaga qo‘shish/}));
  const table=screen.getByRole('region',{name:'Smeta ishlar jadvali'});
- const inspector=screen.getByRole('complementary',{name:'Tanlangan ish nazorati'});
  const rows=within(table).getAllByRole('button',{name:/^E6-1-1/});
  expect(rows).toHaveLength(2);
  fireEvent.click(rows[1]);
+ const inspector=screen.getByRole('complementary',{name:'Tanlangan ish nazorati'});
  await waitFor(()=>expect((within(inspector).getByRole('textbox',{name:'Ish hajmi'}) as HTMLInputElement).value).toBe('4'));
  expect(within(table).getByRole('table')).toBeTruthy();
  const field=within(inspector).getByRole('textbox',{name:'Ish hajmi'});fireEvent.change(field,{target:{value:'7,5'}});
- fireEvent.click(within(inspector).getByRole('tab',{name:'Smetachi AI'}));
+ fireEvent.click(screen.getByRole('button',{name:'Smetachi AI'}));
  fireEvent.change(screen.getByLabelText('Smetachiga xabar'),{target:{value:'TEST unsent selected work question'}});
  fireEvent.click(within(inspector).getByRole('tab',{name:'Hajm'}));
  expect((within(inspector).getByRole('textbox',{name:'Ish hajmi'}) as HTMLInputElement).value).toBe('7,5');
  fireEvent.click(rows[0]);
  expect((within(inspector).getByRole('textbox',{name:'Ish hajmi'}) as HTMLInputElement).value).toBe('3');
- fireEvent.click(within(inspector).getByRole('tab',{name:'Smetachi AI'}));
+ fireEvent.click(screen.getByRole('button',{name:'Smetachi AI'}));
  expect((screen.getByLabelText('Smetachiga xabar') as HTMLTextAreaElement).value).toBe('TEST unsent selected work question');
  fireEvent.click(within(inspector).getByRole('tab',{name:'Resurs'}));
  expect(within(inspector).queryByRole('button',{name:'Ishni olib tashlash'})).toBeNull();
@@ -424,4 +425,30 @@ it('restores the selected library and displays explicit source scale with a phys
     // literal measures are resolved from each occurrence during export.
     expect(workUnitOf(library)('unparsed source measure')).toBeNull();
   } finally { unit.mockRestore(); open.mockReset(); }
+});
+
+it('starts with a simple workspace and reveals advanced controls only on request',async()=>{
+ localStorage.removeItem('studio:advanced');render(<SmetaStudio/>);
+ expect(await screen.findByText('Birinchi ishni qo‘shing')).toBeTruthy();
+ expect(screen.queryByLabelText('Panel tartibi')).toBeNull();
+ expect(screen.queryByRole('tab',{name:'Hajm'})).toBeNull();
+ fireEvent.click(screen.getByRole('button',{name:'Batafsil ish joyi'}));
+ expect(screen.getByLabelText('Panel tartibi')).toBeTruthy();
+ expect(localStorage.getItem('studio:advanced')).toBe('1');
+ fireEvent.click(screen.getByRole('button',{name:'Sodda ish joyi'}));
+ expect(screen.queryByLabelText('Panel tartibi')).toBeNull();
+ fireEvent.click(screen.getByRole('button',{name:'Smetachi AI'}));
+ expect(document.activeElement).toBe(screen.getByLabelText('Smetachiga xabar'));
+ fireEvent.change(screen.getByLabelText('Smetachiga xabar'),{target:{value:'TEST persistent intent'}});
+ fireEvent.click(screen.getByRole('button',{name:'Katalogdan ish qo‘shish'}));
+ expect(screen.getByRole('complementary',{name:'Doimiy AI yordamchi'})).toBeTruthy();
+ fireEvent.click(within(screen.getByRole('region',{name:'Normativ katalog'})).getByRole('button',{name:'Yopish'}));
+ expect((screen.getByLabelText('Smetachiga xabar') as HTMLTextAreaElement).value).toBe('TEST persistent intent');
+});
+it('katalog yuklanayotganda yozilgan AI xabari katalog tayyor bo‘lgach yo‘qolmaydi',async()=>{
+ aiSources.length=0;render(<SmetaStudio/>);
+ const box=screen.getByLabelText('Smetachiga xabar') as HTMLTextAreaElement;fireEvent.change(box,{target:{value:'yuborilmagan qoralama'}});
+ await waitFor(()=>expect(aiSources.some(p=>!!p.katalog)).toBe(true),{timeout:15000});
+ const after=screen.getByLabelText('Smetachiga xabar') as HTMLTextAreaElement;
+ expect(after.value).toBe('yuborilmagan qoralama');
 });

@@ -1,0 +1,6 @@
+{
+  "{n} ta qator narxsiz — summa bo‘sh. Narx qo‘ying (Narxlash yoki narx_tuzat).": {
+    "ru": "Строк без цены: {n} — сумма пустая. Укажите цену (Ценообразование или narx_tuzat).",
+    "en": "{n} line(s) without a price — the amount is empty. Set a price (Pricing or narx_tuzat)."
+  }
+}

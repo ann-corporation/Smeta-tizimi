@@ -164,6 +164,15 @@ describe('zamena_qosh (mock)', () => {
     expect(j.isError).toBe(true);
     expect(j.content[0].text).toMatch(/aynan bitta resurs/);
   });
+  it('rejim resurs: fakt_hajm jimgina tashlanmaydi — ogohlantirish (sinov-fakt)', async () => {
+    const { mu } = mockMuhit((sql, p) => umumiy(sql, p)
+      ?? (sql.includes('versiya_holat from public.t2_qator where id') ? [{ id: 12, ota_id: 11, tur: 'mat', versiya_holat: 'faol' }]
+        : sql.includes('from public.t2_qator_holat where qator_id') ? [{ qoldiq_hajm: 10, almashtirilgan_hajm: 0, smeta_hajm: 10 }]
+          : sql.includes('"t2_ish_abc_saqla_v1"(') ? [{ x: { ok: true, qator_id: 501, change_id: 9 } }] : []));
+    const j = await toolChaqir(zamenaQosh, mu, { obyekt_id: 900, almashtirilayotgan_qator_id: 12, resurslar: [{ nom: 'Granit', birlik: 'm2', kat: 'МАТ', hajm: 4.5 }], fakt_hajm: 4.5, sabab: 'almashtirildi' });
+    expect(j.isError, j.content[0].text).toBeFalsy();
+    expect(JSON.parse(j.content[0].text).ogohlantirishlar.join(' ')).toMatch(/fakt_hajm.*e'tiborga olinmadi/);
+  });
 });
 
 describe('ish_ochir (mock)', () => {

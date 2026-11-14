@@ -52,6 +52,10 @@ export type FaktNatija = {
     qator_id: number; nom: string; bor: number; qoshilmoqda: number; chegara: number;
   }> | null;
   ogohlantirish_soni?: number;
+  /** Narxsiz (summasi bo'sh) qatorlar soni — fakt yoziladi (BLOKLANMAYDI), lekin summa narx qo'yilguncha bo'sh. Narx 0 — narxsiz emas. */
+  narxsiz_soni?: number;
+  narxsiz_qatorlar?: Array<{ qator_id: number; kod: string | null; nom: string | null }> | null;
+  narxsiz_ogohlantirish?: string;
   izoh?: string;
   xabar?: string;
   takror?: boolean;

@@ -9,7 +9,7 @@
 
 export type ImzoRol = 'ЗАКАЗЧИК' | 'ПОДРЯДЧИК' | 'СУБПОДРЯДЧИК' | 'ТЕХНАДЗОР' | 'СОСТАВИЛ' | 'ПРОВЕРИЛ';
 
-export type ImzoTomon = { rol: ImzoRol; nom?: string | null };
+export type ImzoTomon = { rol: ImzoRol; nom?: string | null; /** Hujjat turiga xos lavozim yorlig'i (masalan Ф-2: «Производитель работ») — izoh qatori (lavozim, Ф.И.О.). Berilmasa — umumiy izoh. */ lavozim?: string };
 
 /** Oferta va tomonlar nomi uchun qisqa kirish: tashkilot yoki F.I.O. */
 export type ImzoNomlar = { zakazchik?: string; pudratchi?: string; subpudratchi?: string; texnadzor?: string; tuzuvchi?: string; tekshiruvchi?: string };
@@ -27,7 +27,7 @@ export function imzoMatni(rol: ImzoRol, nom?: string | null): string {
 }
 
 /** Hujjat turiga mos tomonlar ro'yxati (tartib — hujjatdagi tartib). */
-export function imzoTomonlari(rollar: readonly ImzoRol[], nomlar?: ImzoNomlar): ImzoTomon[] {
+export function imzoTomonlari(rollar: readonly ImzoRol[], nomlar?: ImzoNomlar, lavozimlar?: Partial<Record<ImzoRol, string>>): ImzoTomon[] {
   const nomi: Record<ImzoRol, string | undefined> = {
     ЗАКАЗЧИК: nomlar?.zakazchik,
     ПОДРЯДЧИК: nomlar?.pudratchi,
@@ -36,7 +36,7 @@ export function imzoTomonlari(rollar: readonly ImzoRol[], nomlar?: ImzoNomlar): 
     СОСТАВИЛ: nomlar?.tuzuvchi,
     ПРОВЕРИЛ: nomlar?.tekshiruvchi,
   };
-  return rollar.map((rol) => ({ rol, nom: nomi[rol] ?? null }));
+  return rollar.map((rol) => ({ rol, nom: nomi[rol] ?? null, ...(lavozimlar?.[rol] ? { lavozim: lavozimlar[rol] } : {}) }));
 }
 
 /** Tashkilot tomonlari (muhr qo'yiladi) va shaxslar (СОСТАВИЛ/ПРОВЕРИЛ). */

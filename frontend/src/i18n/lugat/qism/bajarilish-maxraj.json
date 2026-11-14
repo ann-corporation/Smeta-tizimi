@@ -1,0 +1,18 @@
+{
+  "Smeta + o‘zgarishlarga nisbatan": {
+    "ru": "Относительно сметы + изменений",
+    "en": "Relative to estimate + changes"
+  },
+  "Tasdiqlangan F2 / (asl smeta + o‘zgarishlar), ustamasiz": {
+    "ru": "Утверждённые Ф2 / (исходная смета + изменения), без накруток",
+    "en": "Approved F2 / (original estimate + changes), without markups"
+  },
+  "Tasdiqlangan F2 / (asl smeta + o‘zgarishlar) (summa nisbati, ustamasiz; asl smeta: {asl}; jismoniy bajarilish emas)": {
+    "ru": "Утверждённые Ф2 / (исходная смета + изменения) (соотношение сумм, без накруток; исходная смета: {asl}; не физическое выполнение)",
+    "en": "Approved F2 / (original estimate + changes) (amount ratio, without markups; original estimate: {asl}; not physical progress)"
+  },
+  "Tasdiqlangan F2 / asl smeta (summa nisbati, ustamasiz; o‘zgarishlar hali hisoblanmagan; jismoniy bajarilish emas)": {
+    "ru": "Утверждённые Ф2 / исходная смета (соотношение сумм, без накруток; изменения ещё не рассчитаны; не физическое выполнение)",
+    "en": "Approved F2 / original estimate (amount ratio, without markups; changes not calculated yet; not physical progress)"
+  }
+}

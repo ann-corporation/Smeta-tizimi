@@ -87,7 +87,7 @@ export const KUNDALIK_ISHLAR: ReadonlyArray<{ yol: string; nom: string; ikonka: 
   { yol: '/admin/f2-tayyorlash', nom: 'F2 tayyorlash', ikonka: 'FileOutput' },
   { yol: '/admin/f2', nom: 'F2 faylni yuklash (Excel)', ikonka: 'FileOutput' },
   { yol: '/admin/nakopitelniy', nom: 'Forma 3 va nakopitelniy', ikonka: 'FileStack' },
-  { yol: '/admin/aosr', nom: 'Yashirin ish akti', ikonka: 'ShieldCheck' },
+  { yol: '/admin/aosr', nom: 'Yashirin ishlar akti (АОСР)', ikonka: 'ShieldCheck' },
   { yol: '/admin/logistika', nom: 'Ombor (kirim, chiqim)', ikonka: 'Box' },
 ];
 

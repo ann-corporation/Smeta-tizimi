@@ -129,13 +129,13 @@ describe('/api/ai-ishchi-bajar (cron)', () => {
     const j = await r.json() as Record<string, unknown>;
     expect(j).toMatchObject({ ok: true, jadval: { navbatga: 2, bajarildi: 2 }, internet: 0, ai: 0 });
     expect(JSON.stringify(j)).not.toMatch(/kompaniya|nom|summa/i);
-    expect(rpcNomi(f)).toEqual(['t2_ai_jadval_v1', 't2_ai_bajaruvchi_navbat_v1']);
+    expect(rpcNomi(f)).toEqual(['t2_ai_jadval_v1', 't2_moslash_kunlik_v1', 't2_ai_bajaruvchi_navbat_v1']);
   });
 
   it('AGENT_ISH_YOQILGAN=0: navbat bajarilmaydi (model yo‘q)', async () => {
     const f = vi.fn(async () => rpcJ({ ok: true, navbatga: 0, bajarildi: 0 })); vi.stubGlobal('fetch', f);
     const r = await bajar(env({ KUZATUV_KALIT: kalit, AGENT_ISH_YOQILGAN: '0' }), { 'X-Kuzatuv-Kalit': kalit });
     expect((await r.json() as { ai: string }).ai).toBe('ochirilgan');
-    expect(rpcNomi(f)).toEqual(['t2_ai_jadval_v1']);
+    expect(rpcNomi(f)).toEqual(['t2_ai_jadval_v1', 't2_moslash_kunlik_v1']);
   });
 });

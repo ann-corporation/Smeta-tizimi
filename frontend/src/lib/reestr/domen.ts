@@ -31,7 +31,7 @@ export const DOMENLAR: Readonly<Record<Domen, { nom: string; vazifa: string }>> 
 
 /** Token chegarasida ENG UZUN prefiks yutadi. Boshidagi "_" va "trg_" prefiksi olib tashlangandan keyin solishtiriladi. */
 export const PREFIKS: Readonly<Record<Domen, readonly string[]>> = {
-  ai: ['t2_agent', 't2_ai', 't2_addrepl', 't2_tajriba', 't2_friksiya', 't2_osuvchi'],
+  ai: ['t2_agent', 't2_ai', 't2_jarvis', 't2_addrepl', 't2_tajriba', 't2_friksiya', 't2_osuvchi'],
   loyiha: [
     't2_loyiha', 't2_obyekt', 't2_object', 't2_tuzilma', 't2_daraxt', 't2_lm', 't2_yakunlash', 't2_hudud', 't2_mindmap',
     't2_obyekt_yangila', 't2_hodisa_obyekt',
@@ -49,7 +49,7 @@ export const PREFIKS: Readonly<Record<Domen, readonly string[]>> = {
     't2_akt', 't2_f2', 't2_forma3', 't2_aosr', 't2_nakopitelniy', 't2_fakt', 't2_foto', 't2_usta', 't2_lab', 't2_chizma',
     't2_sub', 't2_nazorat', 't2_imzochi', 't2_obyekt_imzochi', 't2_obyekt_imzochilar', 't2_kozgu', 't2_grafik', 't2_bajarilmadi',
     't2_qator_bajarilmadi', 't2_qator_holat', 't2_tekshiruv', 't2_primitiv', 't2_erp_sifat', 't2_ortiqcha', 't2_workbench', 't2_viborka_qabul_yoz',
-    't2_qator_f2da', 't2_qoshilgan_tarixda',
+    't2_qator_f2da', 't2_qoshilgan_tarixda', 't2_rs_hosila',
   ],
   resurs: [
     't2_buyurtma', 't2_buyurtmalar', 't2_procurement', 't2_sklad', 't2_skladga', 't2_m29', 't2_texnika', 't2_zayavka', 't2_erp_taminot',
@@ -86,7 +86,7 @@ export const PREFIKS: Readonly<Record<Domen, readonly string[]>> = {
     't2_korzinkadan', 't2_korzinkaga', 't2_invariant', 't2_json', 't2_son', 't2_yashirin', 't2_butunmi', 't2_kasrmi', 't2_kopruk',
     't2_butunlay', 't2_qidiruv', 't2_lugat', 'rls_auto_enable', 't2_erp_amal',
     // 2026-11-13: tizim hajmi, telefon normallashtirish, telegram kirish, solishtiruv (modullararo yaxlitlik tekshiruvi)
-    't2_baza', 't2_telefon', 't2_tg', 't2_solishtiruv',
+    't2_baza', 't2_telefon', 't2_tg', 't2_solishtiruv', 't2_moslash',
     'v_boss', 't2_ozi', 't2_tahrir',
   ],
 };
@@ -113,6 +113,7 @@ export const ISTISNO: Readonly<Record<string, { domen: Domen; izoh: string; noan
   t2_obyekt_nk_v1: { domen: 'smeta', izoh: 'obyekt nakrutkasi (smeta podvalidan)' },
   t2_obyekt_doira_ok: { domen: 'loyiha', izoh: 'obyekt doirasi ruxsati - loyiha tekshiruvi' },
   t2_obyekt_kompaniya_azo: { domen: 'platforma', izoh: 'a\'zolik tekshiruvi (kompaniya doirasi)' },
+  _t2_fn_zaxira: { domen: 'platforma', izoh: 'yamalgan funksiyalarning asl matni (migratsiya rollback zaxirasi)' },
   t2_obyekt_loyihaga_biriktir: { domen: 'loyiha', izoh: 'obyektni loyihaga bog\'lash' },
   t2_obyekt_ulash_v1: { domen: 'tomonlar', izoh: 'obyektni tomonga ulash (kompaniyalararo)' },
   t2_obyekt_ulashlar_v1: { domen: 'tomonlar', izoh: 'obyekt ulashlari (kompaniyalararo)' },
@@ -275,7 +276,7 @@ export function asosNom(nom: string): string {
 
 /** SQL hisob yadrosi: pul/QQS arifmetikasi FAQAT shu funksiyalarda yoziladi (frontendda lib/hisob-yadro). Boshqalari - meros ro'yxatida. */
 export const HISOB_YADRO_SQL: readonly string[] = [
-  '_t2_summa_paket_hisob_v1', '_t2_summa_paket_jam_v1', '_t2_summa_agg_v1', '_t2_summa_paket_v1', '_t2_kaskad_yakun_v1',
+  '_t2_summa_paket_hisob_v1', '_t2_summa_paket_jam_v1', '_t2_summa_agg_v1', '_t2_summa_paket_v1', '_t2_kaskad_yakun_v1', '_t2_summa_paket_tashqari_v1',
   't2_nakrutka_yaxlit_qosh_v1', 't2_nakrutka_yaxlit_qosh_v2', 't2_svod_yaxlit_obyekt_v1', 't2_narxla',
 ];
 

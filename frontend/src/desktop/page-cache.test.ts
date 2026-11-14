@@ -19,6 +19,7 @@ async function setup() {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
   const disk = new Map<string, number[]>(), info = { foydalanuvchi_id: 2 as number | null, device_id: '00000000-0000-4000-8000-000000000001', generation: 0 };
   let phase: 'online' | 'offline' | '401' | '403' | '503' = 'online';
+  let faktHajm = 2;
   const invoke: NativeInvoke = vi.fn(async (command, args) => {
     if (command === 'desktop_session_info') return { ...info } as never;
     if (args?.expectedGeneration !== undefined && args.expectedGeneration !== info.generation) throw new Error('DESKTOP_SESSION_STALE');
@@ -38,12 +39,13 @@ async function setup() {
         permissions: ['company.read', 'smeta.read', 'f2.read', 'narx.read'], device_id: info.device_id, berildi: Date.now(), tugaydi: Date.now() + 3600_000, versiya: 1 }));
       return Response.json({ ok: true, lease: { alg: 'Ed25519', kid: 'test', payload: b64(payload), imzo: b64(new Uint8Array(await crypto.subtle.sign('Ed25519', pair.privateKey, payload))) } });
     }
-    if (path === '/api/obyekt-paket') return Response.json(raw, { headers: { ETag: 'v1' } });
+    if (path === '/api/obyekt-paket') return Response.json({ ...raw, h: { ...raw.h, fakt_hajm: [faktHajm] } }, { headers: { ETag: 'v' + faktHajm } });
+    if (path === '/api/sb-yoz') { faktHajm = 3; return Response.json({ ok: true }); }
     if (path === '/api/sessiya') return Response.json({ ok: true, foydalanuvchi_id: 2, tugaydi: Date.now() + 7200_000, yozaOladi: true, kompaniyalar: [{ kompaniya_id: 3 }, { kompaniya_id: 9 }] });
     if (path === '/api/company' && new URL(r.url).searchParams.has('authorize')) return Response.json({ ok: true, allowed: true, company_id: 3, permissions: ['company.read', 'document.write'] });
     if (path === '/api/company') return Response.json({ ok: true, foydalanuvchi: { id: 2 }, azoliklar: [{ kompaniya_id: 3 }, { kompaniya_id: 9 }] });
     const q = r.method === 'POST' ? await r.json() : {};
-    return Response.json({ ok: true, qatorlar: q.jadval === 't2_obyekt_jami' ? [{ id: 4, kompaniya_id: 3, nom: 'SYNTHETIC' }] : q.jadval === 't2_daraxt' ? paketdanQatorlar(paketDekod(raw)) : [{ id: 8, hujjat_jami: null }], toliq: true, jamiServerda: 1 });
+    return Response.json({ ok: true, qatorlar: q.jadval === 't2_obyekt_jami' ? [{ id: 4, kompaniya_id: 3, nom: 'SYNTHETIC' }] : q.jadval === 't2_daraxt' ? paketdanQatorlar(paketDekod(raw)) : q.jadval === 't2_qator_holat' ? [{ qator_id: 7, fakt_hajm: faktHajm }] : [{ id: 8, hujjat_jami: null }], toliq: true, jamiServerda: 1 });
   });
   const status = vi.fn(), invalidate = vi.fn();
   const create = () => desktopPageFetch(base, invoke, { publicKey: pk, kid: 'test', status, invalidate });
@@ -51,6 +53,15 @@ async function setup() {
 }
 const sb = (f: typeof fetch, body: unknown) => f('/api/sb', { method: 'POST', body: JSON.stringify(body) }).then(r => r.json());
 const tree = { jadval: 't2_daraxt', filtr: 'obyekt_id=eq.4', ustunlar: 'id,hajm,narx,summa', limit: 200000 };
+it('refreshes the leased object packet on the first read after a successful Fakt write', async () => {
+  const h = await setup(), f = h.create();
+  const holat = { jadval: 't2_qator_holat', filtr: 'obyekt_id=eq.4', ustunlar: 'qator_id,fakt_hajm' };
+  expect((await sb(f, holat)).qatorlar).toEqual([{ qator_id: 7, fakt_hajm: 2 }]);
+  await f('/api/sb-yoz', { method: 'POST', body: JSON.stringify({ amal: 'fakt_yoz_v2', obyekt_id: 4 }) });
+  expect((await sb(f, holat)).qatorlar).toEqual([{ qator_id: 7, fakt_hajm: 3 }]);
+  h.phase('offline');
+  expect((await sb(h.create(), holat)).qatorlar).toEqual([{ qator_id: 7, fakt_hajm: 3 }]);
+});
 it('existing SB reader works after restart: scoped bootstrap, F2 exact response, NULL and own footer', async () => {
   const h = await setup(), live = h.create(); await live('/api/sessiya'); await live('/api/company?me=1');
   const guard = '/api/company?authorize=1&permission=company.read&kompaniya_id=3'; await live(guard);

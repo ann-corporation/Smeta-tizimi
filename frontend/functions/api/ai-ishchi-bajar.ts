@@ -37,6 +37,9 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (k === 'sozlanmagan') return javob({ ok: false, error: 'Davriy ishchi sozlanmagan' }, 503);
   if (k === 'rad') return javob({ ok: false, error: 'Kalit noto‘g‘ri' }, 401);
   const jadval = await rpcData(env, 't2_ai_jadval_v1', {});
+  /* Moslash qutisi keshi: kuniga bir marta, har chaqiruvda eng eskirgan 1 kompaniya (og'ir hisob — qutu jadvaldan o'qiydi). FAQAT o'qish/hisoblash; AI yo'q, token yo'q.
+     Migratsiya (20261218800000) qo'llanmagan bo'lsa — jim o'tkaziladi. */
+  await rpcData(env, 't2_moslash_kunlik_v1', { p_limit: 1 }).catch(() => null);
   if (env.AGENT_ISH_YOQILGAN === '0') return javob({ ok: true, jadval: jadval.ok ? { navbatga: jadval.data.navbatga ?? 0, bajarildi: jadval.data.bajarildi ?? 0 } : null, ai: 'ochirilgan' });
   const hisob = { n: 0 };
   const r = await navbatniBajar(haqiqiyBogliq(env, hisob), hisob, 5);

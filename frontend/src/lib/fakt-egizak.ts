@@ -21,7 +21,7 @@ export const RAD_SABAB_MATN: Record<EgizakRadSabab, string> = {
   topilmadi: 'egizak smetasida mos qator topilmadi',
   qoshimcha_yoq: 'qo‘shimcha qator egizakda yo‘q (F2 egizak nusxasi bilan yarating)',
   tur: 'bu qatorga fakt qo‘lda kiritilmaydi',
-  SON_EMAS: 'Son emas', MANFIY: 'Jami fakt manfiy bo‘lib qoladi', ISHORA: 'Chegirma ishi: fakt smeta kabi manfiy bo‘lishi kerak', NOL: '0 qo‘shilmaydi',
+  SON_EMAS: 'Son emas', NOANIQ: 'Noaniq son: «1.234» ming yoki o‘nli? 1234 yoki 1,234 deb yozing', MANFIY: 'Jami fakt manfiy bo‘lib qoladi', ISHORA: 'Chegirma ishi: fakt smeta kabi manfiy bo‘lishi kerak', NOL: '0 qo‘shilmaydi',
   FOIZ_SMETASIZ: 'Foiz uchun smeta hajmi kerak',
 };
 

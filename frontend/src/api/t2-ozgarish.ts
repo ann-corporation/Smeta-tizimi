@@ -26,6 +26,8 @@ export type QoshimchaGuruh = {
 export type ZamenaGuruh = {
   qator_id: number; tur: string; kod?: string; nom?: string; birlik?: string; hajm?: number; almashtirish_hajm?: number;
   summa?: number; narxsiz: boolean; barg_soni: number;
+  /** `f2_narx` — summaning bir qismi tasdiqlangan F-2 sertifikat narxidan (t2_qator.narx NULL; faqat o'qishda fallback). */
+  narx_manba?: 'f2_narx'; f2_narx_soni?: number; narxsiz_barg_soni?: number;
   asl_id?: number; asl_kod?: string; asl_nom?: string; asl_birlik?: string; asl_hajm?: number; asl_summa?: number;
   /** Aslning almashtirilgan qismi (reja); `farq` = summa − almashtirilgan. Narxsiz zamenada ikkalasi ham yo'q (noma'lum). */
   almashtirilgan_summa?: number; farq?: number; almashtirish_noaniq?: boolean;
@@ -35,8 +37,17 @@ export type BajarilmadiGuruh = {
   id: number; qator_id: number; tur: string; kod?: string; nom?: string; birlik?: string; smeta_hajm?: number;
   bajarilmagan_hajm?: number; summa?: number; asos?: OzgarishAsos;
 };
+/**
+ * Smetadan tashqari bo'limlar (`t2_svod_yaxlit.smetadan_tashqari`, migratsiya 20261221620000): obyekt qiymatiga KIRMAYDI,
+ * lekin fakt / F-2 da hisoblanadi. Server hisobi; yo'q yoki soni 0 — belgili bo'lim yo'q.
+ */
+export type SmetadanTashqari = {
+  soni?: number; ustamasiz?: number; qqs_foiz?: number; qqs_bilan?: number;
+  qatorlar?: Array<{ qator_id: number; nom?: string; summa?: number }>;
+};
 export type SmetaOzgarishQatlam = {
   ok: true; obyekt_id: number;
+  smetadan_tashqari?: SmetadanTashqari;
   asl: { paket: SummaPaket | null; ustamasiz: number; narxsiz_soni: number };
   joriy: { paket: SummaPaket | null; ustamasiz: number };
   ozgarish: {
@@ -48,6 +59,7 @@ export type SmetaOzgarishQatlam = {
   qoshimcha: { soni: number; summa: number; narxsiz_soni: number; asossiz_soni: number; qisqartirildi: boolean; qatorlar: QoshimchaGuruh[] };
   zamena: {
     soni: number; zamena_summa: number; almashtirilgan_summa: number; farq: number; narxsiz_soni: number; noaniq_soni: number;
+    f2_narx_soni?: number; narxsiz_barg_soni?: number;
     asossiz_soni: number; qisqartirildi: boolean; qatorlar: ZamenaGuruh[];
   };
   bajarilmadi: { soni: number; summa: number; narxsiz_soni: number; qatorlar: BajarilmadiGuruh[] };
@@ -73,6 +85,25 @@ async function smetaOzgarishQatlamOqi(obyektId: number): Promise<QatlamJavob> {
   const n = j.natija;
   if (!j.ok || !n || n.ok !== true) return { ok: false, error: j.error || n?.code || 'SMETA_OZGARISH_OQILMADI' };
   return { ok: true, natija: { ...n, ok: true } };
+}
+
+/**
+ * Bir necha obyekt uchun «O'zgarishlar» (ustamasiz) — bajarilish foizi maxraji uchun (smeta + o'zgarishlar). Yagona manba:
+ * `smetaOzgarishQatlamOl` (parallel hisoblagich yo'q). Cheklangan parallellik; o'qilmagan obyekt xaritada YO'Q (chaqiruvchi asl smetaga yiqiladi).
+ */
+export async function ozgarishlarOl(obyektIdlar: readonly number[], parallel = 4): Promise<Map<number, number>> {
+  const out = new Map<number, number>();
+  const idlar = [...new Set(obyektIdlar)];
+  let i = 0;
+  await Promise.all(Array.from({ length: Math.min(parallel, idlar.length) }, async () => {
+    while (i < idlar.length) {
+      const id = idlar[i++];
+      const r = await smetaOzgarishQatlamOl(id).catch(() => null);
+      const v = r && r.ok ? r.natija.ozgarish?.ustamasiz : null;
+      if (v != null && Number.isFinite(Number(v))) out.set(id, Number(v));
+    }
+  }));
+  return out;
 }
 
 export async function ozgarishMalumotOl(obyektId: number): Promise<OzgarishMalumot | null> {

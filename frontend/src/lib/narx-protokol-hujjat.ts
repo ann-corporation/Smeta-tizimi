@@ -70,7 +70,7 @@ export function narxProtokolXlsx(qatorlar: readonly ProtokolQator[], o: Protokol
   const v = new RasmiyVaraq({
     nom: 'Протокол цен',
     sarlavha: `ПРОТОКОЛ СОГЛАСОВАНИЯ ЦЕН № ${o.raqam}`,
-    ostSarlavha: [`от ${sanaMatn(o.sana)}`, o.maqsad ?? 'на ресурсы, применяемые при расчетах за выполненные работы (форма № 2)'],
+    ostSarlavha: [`от ${sanaMatn(o.sana)}`, o.maqsad ?? 'на ресурсы, применяемые при расчетах за выполненные работы (форма № 02)'],
     titul: [['Объект:', o.obyektNomi], ['Заказчик:', o.imzo?.zakazchik], ['Подрядчик:', o.imzo?.pudratchi]],
     ustunlar: ustunlar(o),
     yonalish: 'landscape',

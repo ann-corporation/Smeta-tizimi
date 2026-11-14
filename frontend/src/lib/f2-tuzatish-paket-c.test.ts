@@ -252,7 +252,7 @@ describe('F3 (Форма № 3)', () => {
       { obyektNom: 'X', davr: '2026-11', asosiyObyektId: 8, nakrutka: NK, davrAktlari });
     expect(h.oyKOplate).toBe(kut);
     // Hujjatda: per-akt blok jami va «ИТОГО К ОПЛАТЕ ЗА ОТЧЕТНЫЙ МЕСЯЦ» — shu summa (smeta podvali kaskadi emas)
-    const v = kitobOqi(h.bytes).get('ФОРМА № 3')!;
+    const v = kitobOqi(h.bytes).get('СЧЁТ-ФАКТ.')!;
     const [r] = qatorTop(v, 'ИТОГО К ОПЛАТЕ ЗА ОТЧЕТНЫЙ МЕСЯЦ ПО АКТАМ');
     expect([...v.entries()].some(([ref, c]) => ref.endsWith(String(r)) && typeof c.v === 'number' && Math.abs(c.v - kut) < 0.005)).toBe(true);
     expect(h.diqqat.some((d) => d.sabab.includes('собственным подвалам'))).toBe(true);

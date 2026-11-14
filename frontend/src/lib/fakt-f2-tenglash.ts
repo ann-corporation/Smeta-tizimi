@@ -197,7 +197,10 @@ function summaHisob(q: JurnalQator, ish: JurnalIsh | null, delta: number, holat:
   const narx = narxYoq ? null : f2n ?? smetaNarx(q.id);
   const oz = narx == null ? null : yaxlit(delta * narx);
   const f2Manbali = f2n != null || narxYoq;
-  const ergash = ish && !f2Manbali ? ish.avtomatik.filter((r) => r.otaId === ish.id && r.norma != null && !ozgacha(r)) : [];
+  // norma NULL rs: server hosilasi (t2_qator_holat, _t2_rs_hosila_v1) = rs smeta hajmi × ish fakti / ish smeta hajmi — samarali norma = rs smeta / ish smeta.
+  const norma = (r: JurnalQator): number | null =>
+    r.norma != null ? r.norma : r.smeta != null && ish?.smeta != null && ish.smeta !== 0 ? r.smeta / ish.smeta : null;
+  const ergash = ish && !f2Manbali ? ish.avtomatik.filter((r) => r.otaId === ish.id && norma(r) != null && !ozgacha(r)) : [];
   let summa: number | null = oz;
   let rsHosila: SummaNatija['rsHosila'];
   if (ergash.length) {
@@ -205,7 +208,7 @@ function summaHisob(q: JurnalQator, ish: JurnalIsh | null, delta: number, holat:
     rsHosila = { soni: 0, summa: null };
     for (const r of ergash) {
       const rn = smetaNarx(r.id);
-      const v = rn == null ? null : yaxlit(delta * (r.norma as number) * rn);
+      const v = rn == null ? null : yaxlit(delta * (norma(r) as number) * rn);
       katKesimgaQosh(kesim, r.kat, v);
       rsHosila.soni += 1;
       if (v != null) { summa = (summa ?? 0) + v; rsHosila.summa = yaxlit((rsHosila.summa ?? 0) + v); }

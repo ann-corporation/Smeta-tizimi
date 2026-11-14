@@ -40,7 +40,7 @@
           {
             "yol": "/admin/obyektlar",
             "ilova": "pto",
-            "nom": "Obyektlar va smeta yuklash",
+            "nom": "Obyektlar",
             "ruxsat": [
               "smeta.read"
             ],
@@ -481,7 +481,7 @@
           {
             "yol": "/admin/aosr",
             "ilova": "hujjat",
-            "nom": "АОСР va laboratoriya",
+            "nom": "Yashirin ishlar akti (АОСР)",
             "ruxsat": [
               "control.company.read",
               "document.write",
@@ -570,9 +570,7 @@
             "ruxsat": [
               "design.write",
               "design.issue",
-              "control.company.read",
-              "project.write",
-              "object.write"
+              "control.company.read"
             ]
           }
         ]

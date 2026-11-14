@@ -15,6 +15,7 @@ import {
 import { HOLAT_RANG, foizMatn, holatNomi, pulQ } from './holat';
 import { guruhNomi as jamoaGuruhNomi, rolNomi } from './jamoa-nomlar';
 import { JAMOA_ID } from '../../lib/mindmap-korinish';
+import { shartnomasizmi } from '../../lib/mindmap-xarita-shartnoma';
 import { modulHolati, modulNomi, oldin } from '../../lib/tizim-xaritasi';
 
 type Props = {
@@ -30,6 +31,9 @@ type Props = {
   guruhNomi: string;
   /** Tugun amallari menyusi (o‘ng tugma, ContextMenu / Shift+F10): ekran koordinatasi bilan. */
   onAmallar?: (id: string, x: number, y: number) => void;
+  /** Tugundagi ko‘rinib turuvchi «+» (bola yaratish): faqat shu tugunda yaratish amali bo‘lsa chiziladi. */
+  onYaratish?: (id: string, x: number, y: number) => void;
+  yaratishBor?: (id: string) => boolean;
   children?: React.ReactNode;
 };
 
@@ -66,7 +70,7 @@ function ariaMatn(x: XTugun, guruhNomi: string): string {
   return parts.join(', ');
 }
 
-export function XaritaKanvas({ daraxt, joylashuv, tanlangan, onTanla, yoritilgan, yigilgan, onYigToggle, onHammasiniYig, guruhNomi, onAmallar, children }: Props) {
+export function XaritaKanvas({ daraxt, joylashuv, tanlangan, onTanla, yoritilgan, yigilgan, onYigToggle, onHammasiniYig, guruhNomi, onAmallar, onYaratish, yaratishBor, children }: Props) {
   const kamQisqarish = useReducedMotion();
   const quti = useRef<HTMLDivElement>(null);
   const [olcham, setOlcham] = useState({ w: 0, h: 0 });
@@ -329,13 +333,16 @@ export function XaritaKanvas({ daraxt, joylashuv, tanlangan, onTanla, yoritilgan
                   ? <IxchamKarta nom={x.tur === 'tizim' ? t('Tizim') : x.nom} holat={x.holat} w={j.w} h={j.h} tanlangan={tanlangan === x.id} fokus={fokusId === x.id} fon={x.tur === 'modul' ? undefined : 'var(--surface-2)'} />
                   : <TizimKarta x={x} w={j.w} h={j.h} tanlangan={tanlangan === x.id} fokus={fokusId === x.id}
                       yigilgan={yigilgan.has(x.id)} tomon={joylashuv.tomon.get(x.id) ?? 1} onYig={() => onYigToggle(x.id)} />)}
+                {(x.tur === 'shartnoma' || shartnomasizmi(x.id)) && (ixcham
+                  ? <IxchamKarta nom={shartnomasizmi(x.id) ? t('Shartnomasiz') : x.nom} holat={x.holat} w={j.w} h={j.h} tanlangan={tanlangan === x.id} fokus={fokusId === x.id} fon="var(--surface-2)" />
+                  : <ShartnomaKarta x={x} w={j.w} h={j.h} tanlangan={tanlangan === x.id} fokus={fokusId === x.id} yigilgan={yigilgan.has(x.id)} tomon={joylashuv.tomon.get(x.id) ?? 1} onYig={() => onYigToggle(x.id)} pulYoq={pulYoq} />)}
                 {!x.tizim && x.tur === 'kompaniya' && (ixcham
                   ? <IxchamKarta nom={x.nom || t('Kompaniya')} holat={x.holat} w={j.w} h={j.h} tanlangan={tanlangan === x.id} fokus={fokusId === x.id} fon="var(--surface-2)" />
                   : <IldizKarta x={x} w={j.w} h={j.h} tanlangan={tanlangan === x.id} fokus={fokusId === x.id} />)}
-                {(x.tur === 'loyiha' || x.tur === 'guruh') && ixcham && (
+                {(x.tur === 'loyiha' || (x.tur === 'guruh' && !shartnomasizmi(x.id))) && ixcham && (
                   <IxchamKarta nom={x.tur === 'guruh' ? guruhNomi : x.nom} holat={x.holat} w={j.w} h={j.h} tanlangan={tanlangan === x.id} fokus={fokusId === x.id} fon="var(--surface-2)" />
                 )}
-                {(x.tur === 'loyiha' || x.tur === 'guruh') && !ixcham && (
+                {(x.tur === 'loyiha' || (x.tur === 'guruh' && !shartnomasizmi(x.id))) && !ixcham && (
                   <LoyihaKarta x={x} w={j.w} h={j.h} nom={x.tur === 'guruh' ? guruhNomi : x.nom} tanlangan={tanlangan === x.id} fokus={fokusId === x.id}
                     yigilgan={yigilgan.has(x.id)} tomon={joylashuv.tomon.get(x.id) ?? 1} onYig={() => onYigToggle(x.id)} maxSmeta={maxLoyihaSmeta} pulYoq={pulYoq} />
                 )}
@@ -346,6 +353,11 @@ export function XaritaKanvas({ daraxt, joylashuv, tanlangan, onTanla, yoritilgan
                 {x.tur === 'odam' && x.odam && (ixcham
                   ? <IxchamKarta nom={x.nom} holat="nomalum" w={j.w} h={j.h} tanlangan={tanlangan === x.id} fokus={fokusId === x.id} />
                   : <OdamKarta x={x} w={j.w} h={j.h} tanlangan={tanlangan === x.id} fokus={fokusId === x.id} />)}
+                {onAmallar && !ixcham && !x.tizim && x.tur !== 'guruh' && x.tur !== 'jamoa' && (
+                  <TugunTugmalari w={j.w} nom={x.tur === 'kompaniya' ? x.nom || t('Kompaniya') : x.nom}
+                    onMenyu={(px, py) => onAmallar(x.id, px, py)}
+                    onYarat={onYaratish && yaratishBor?.(x.id) ? (px, py) => onYaratish(x.id, px, py) : undefined} />
+                )}
               </motion.g>
             );
           })}
@@ -369,6 +381,31 @@ export function XaritaKanvas({ daraxt, joylashuv, tanlangan, onTanla, yoritilgan
 }
 
 /* ───────────── Tugun kartalari (SVG) ───────────── */
+
+/** Tugun burchagidagi ko‘rinib turuvchi tugmalar: «+» — bola yaratish, «⋯» — barcha amallar (o‘ng tugma kerak emas, telefonda ham ishlaydi). */
+function TugunTugmalari({ w, nom, onMenyu, onYarat }: { w: number; nom: string; onMenyu: (x: number, y: number) => void; onYarat?: (x: number, y: number) => void }) {
+  const ochish = (e: React.MouseEvent<SVGGElement>, f: (x: number, y: number) => void) => {
+    e.stopPropagation();
+    const r = e.currentTarget.getBoundingClientRect();
+    f(r.left, r.bottom + 4);
+  };
+  const tugma = (cx: number, kalit: string, sarlavha: string, f: (x: number, y: number) => void, ichi: React.ReactNode) => (
+    <g key={kalit} data-boshqaruv data-tugun-tugma={kalit} role="button" tabIndex={-1} aria-label={sarlavha + ': ' + nom} aria-haspopup="menu"
+      onClick={(e) => ochish(e, f)} onPointerDown={(e) => e.stopPropagation()} style={{ cursor: 'pointer' }}>
+      <title>{sarlavha}</title>
+      <circle cx={cx} cy={-2} r={11} style={{ fill: 'var(--surface)', stroke: 'var(--accent)' }} strokeWidth={1.4} />
+      {ichi}
+    </g>
+  );
+  return (
+    <g>
+      {onYarat && tugma(w - 36, 'yarat', t('Yangi qo‘shish'), onYarat,
+        <path d={`M ${w - 41} -2 H ${w - 31} M ${w - 36} -7 V 3`} strokeWidth={2} strokeLinecap="round" style={{ stroke: 'var(--accent-text)' }} />)}
+      {tugma(w - 12, 'menyu', t('Amallar'), onMenyu,
+        <g style={{ fill: 'var(--accent-text)' }}><circle cx={w - 17} cy={-2} r={1.6} /><circle cx={w - 12} cy={-2} r={1.6} /><circle cx={w - 7} cy={-2} r={1.6} /></g>)}
+    </g>
+  );
+}
 
 function Ramka({ w, h, tanlangan, fokus, fon = 'var(--surface)', chegara = 'var(--border)' }: { w: number; h: number; tanlangan: boolean; fokus: boolean; fon?: string; chegara?: string }) {
   return (
@@ -480,11 +517,13 @@ function IldizKarta({ x, w, h, tanlangan, fokus }: { x: XTugun; w: number; h: nu
   );
 }
 
+const guruhEmas = (x: XTugun) => x.tur !== 'guruh';
 function LoyihaKarta({ x, w, h, nom, tanlangan, fokus, yigilgan, tomon, onYig, maxSmeta, pulYoq }: {
   x: XTugun; w: number; h: number; nom: string; tanlangan: boolean; fokus: boolean; yigilgan: boolean; tomon: -1 | 1; onYig: () => void; maxSmeta: number; pulYoq: boolean;
 }) {
   const r = hajmOlcham(x.smeta, maxSmeta, 6, 11);
-  const [n1, n2] = ikkiQator(nom, w - 46, 14.5);
+  const muammo = guruhEmas(x) ? (x.signalSoni ?? 0) : 0;
+  const [n1, n2] = ikkiQator(nom, w - 46 - (muammo > 0 ? 30 : 0), 14.5);
   const guruh = x.tur === 'guruh';
   const tx = tomon === 1 ? w + 3 : -23;
   const y0 = n2 ? 22 : 28;
@@ -503,6 +542,57 @@ function LoyihaKarta({ x, w, h, nom, tanlangan, fokus, yigilgan, tomon, onYig, m
       </text>
       <MeterSvg x={36} y={yMet} w={w - 92} h={7} faktFoiz={x.faktFoiz} f2Foiz={x.f2Foiz} smetaBor={x.smeta != null} />
       <text x={w - 10} y={yMet + 7} textAnchor="end" style={{ fill: 'var(--text-dim)', font: '600 12px var(--font-mono)' }}>{foizMatn(x.f2Foiz)}</text>
+      {muammo > 0 && (
+        <g data-muammo-belgi={muammo} transform={`translate(${w - 34} 8)`}>
+          <title>{t('{n} ta muammo', { n: muammo })}</title>
+          <rect width={26} height={17} rx={4} style={{ fill: (x.kritikSoni ?? 0) > 0 ? 'var(--danger-soft)' : 'var(--warn-soft)' }} />
+          <text x={13} y={12.5} textAnchor="middle" style={{ fill: (x.kritikSoni ?? 0) > 0 ? 'var(--danger)' : 'var(--warn)', font: '700 11.5px var(--font-mono)' }}>{String(muammo)}</text>
+        </g>
+      )}
+      {x.bolalar.length > 0 && (
+        <g data-boshqaruv onClick={(e) => { e.stopPropagation(); onYig(); }} onPointerDown={(e) => e.stopPropagation()}
+          transform={`translate(${tx} ${h / 2 - 10})`} style={{ cursor: 'pointer' }}>
+          <title>{yigilgan ? t('Obyektlarni ko‘rsatish ({n})', { n: x.bolalar.length }) : t('Obyektlarni yig‘ish')}</title>
+          <circle cx={10} cy={10} r={10} style={{ fill: 'var(--surface)', stroke: yigilgan ? 'var(--accent)' : 'var(--border-strong)' }} />
+          {yigilgan
+            ? <text x={10} y={14} textAnchor="middle" style={{ fill: 'var(--accent-text)', font: '700 11px var(--font-mono)' }}>{String(x.bolalar.length)}</text>
+            : <path d="M5.5 10 H14.5" strokeWidth={1.8} style={{ stroke: 'var(--text-dim)' }} />}
+        </g>
+      )}
+    </g>
+  );
+}
+
+/** Shartnoma (yoki «Shartnomasiz» guruh) tuguni: raqam/nom, QQS bilan summa (null — «—»), obyekt soni, F2 %, muammo belgisi. */
+function ShartnomaKarta({ x, w, h, tanlangan, fokus, yigilgan, tomon, onYig, pulYoq }: { x: XTugun; w: number; h: number; tanlangan: boolean; fokus: boolean; yigilgan: boolean; tomon: -1 | 1; onYig: () => void; pulYoq: boolean }) {
+  const guruh = shartnomasizmi(x.id);
+  const nom = guruh ? t('Shartnomasiz') : x.nom;
+  const muammo = (x.signalSoni ?? 0) + x.belgilar.filter((b) => b.daraja === 'ogoh').length;
+  const [n1, n2] = ikkiQator(nom, w - 46 - (muammo > 0 ? 30 : 0), 14.5);
+  const summaRaqam = guruh ? null : typeof x.manba?.meta?.summa === 'number' ? x.manba.meta.summa : null;
+  const summa = guruh ? (x.smeta == null ? '—' : (x.smetaToliq ? '' : '≈ ') + pulQ(x.smeta)) : (pulYoq || summaRaqam == null ? '—' : pulQ(summaRaqam));
+  const tx = tomon === 1 ? w + 3 : -23;
+  const y0 = n2 ? 20 : 26;
+  const ySub = n2 ? 52 : 46;
+  const yMet = n2 ? 62 : 58;
+  return (
+    <g data-shartnoma-karta>
+      <title>{nom}</title>
+      <Ramka w={w} h={h} tanlangan={tanlangan} fokus={fokus} fon="var(--surface-2)" chegara="var(--border-strong)" />
+      {guruh && <rect width={w} height={h} rx={8} fill="none" strokeDasharray="5 4" style={{ stroke: 'var(--border-strong)' }} />}
+      <RombSvg cx={19} cy={y0 - 5} r={6} holat={x.holat} />
+      <text x={36} y={y0} style={{ fill: 'var(--text)', font: SHRIFT_NOM(14.5) }}>{n1}</text>
+      {n2 && <text x={36} y={y0 + 17} style={{ fill: 'var(--text)', font: SHRIFT_NOM(14.5) }}>{n2}</text>}
+      <text x={36} y={ySub} style={{ fill: 'var(--text-dim)', font: '500 12px var(--font-mono)' }}>{(guruh ? '' : t('Shartnoma') + ' ') + summa}</text>
+      <text x={36} y={yMet + 8} style={{ fill: 'var(--text-dim)', font: '500 12px var(--font-sans)' }}>{t('{n} ta obyekt', { n: x.obyektSoni })}</text>
+      <text x={w - 10} y={yMet + 8} textAnchor="end" style={{ fill: 'var(--text-dim)', font: '600 12px var(--font-mono)' }}>{pulYoq || x.smeta == null ? '' : 'F2 ' + foizMatn(x.f2Foiz)}</text>
+      {muammo > 0 && (
+        <g data-muammo-belgi={muammo} transform={`translate(${w - 34} 8)`}>
+          <title>{t('{n} ta muammo', { n: muammo })}</title>
+          <rect width={26} height={17} rx={4} style={{ fill: (x.kritikSoni ?? 0) > 0 ? 'var(--danger-soft)' : 'var(--warn-soft)' }} />
+          <text x={13} y={12.5} textAnchor="middle" style={{ fill: (x.kritikSoni ?? 0) > 0 ? 'var(--danger)' : 'var(--warn)', font: '700 11.5px var(--font-mono)' }}>{String(muammo)}</text>
+        </g>
+      )}
       {x.bolalar.length > 0 && (
         <g data-boshqaruv onClick={(e) => { e.stopPropagation(); onYig(); }} onPointerDown={(e) => e.stopPropagation()}
           transform={`translate(${tx} ${h / 2 - 10})`} style={{ cursor: 'pointer' }}>

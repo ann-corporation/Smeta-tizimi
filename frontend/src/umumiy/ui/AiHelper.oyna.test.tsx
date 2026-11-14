@@ -11,7 +11,7 @@ vi.mock('../kontekst/KompaniyaKontekst', () => ({
   }),
 }));
 vi.mock('../../api/t2-agent-ish', () => ({
-  kasbOl: m.kasbOl, kasbSavolOqim: m.savol, jurnalOl: vi.fn(async () => ({ ok: true, natija: { hamma: false, natija: [] } })),
+  kasbOl: m.kasbOl, suhbatRoyxatOl: vi.fn(async () => null), suhbatServerga: vi.fn(async () => null), suhbatServerdanOl: vi.fn(async () => null), kasbSavolOqim: m.savol, jurnalOl: vi.fn(async () => ({ ok: true, natija: { hamma: false, natija: [] } })),
   shaxsiyOl: vi.fn(async () => ({ ok: true, natija: { til: 'auto', uslub: 'qisqa', ishonch: 'jiddiy' } })), shaxsiySaqla: vi.fn(),
   harakatQarori: vi.fn(), harakatNatijasi: vi.fn(),
   modellarOl: vi.fn(async () => ({ ok: false, error: 'yoq' })), modelShaxsiyOl: vi.fn(async () => ({ ok: false, error: 'yoq' })), modelShaxsiyTanla: vi.fn(), modelSiyosatOl: vi.fn(async () => ({ ok: false, error: 'yoq' })),
@@ -112,6 +112,6 @@ it('suhbatlar ro‘yxati: yangi suhbatdan keyin oldingisi ko‘rinadi va davom e
   expect(screen.queryAllByTestId('ai-javob-karta').length).toBe(0);
   const royxat = await screen.findByTestId('jarvis-suhbatlar');
   fireEvent.click(royxat.querySelector('button')!);
-  expect(await screen.findByText('men kimman')).toBeTruthy();
+  expect(await screen.findByText('men kimman', { selector: 'p' })).toBeTruthy();
   expect(JSON.parse(localStorage.getItem('jarvis-suhbatlar:7:5') ?? '[]')).toHaveLength(1);
 });

@@ -112,6 +112,19 @@ export function ustamaTasiri(s: KatSummalar, eski: Partial<NakrutkaKoeffitsientl
   };
 }
 
+/**
+ * Bir kodli jami qatori faylda bir necha marta uchrashi mumkin: svod varag‘ida «JAMI» ustuni va lokal ustuni (bir xil son),
+ * yoki bir necha lokal + umumiy. Eng kattasi qolganlar yig‘indisiga teng bo‘lsa — u umumiy jami (ikki marta sanalmaydi);
+ * aks holda qatorlar alohida lokal jamilari: yig‘iladi.
+ */
+export function jamiQatorlarYigindisi(qiymatlar: readonly number[]): number {
+  if (qiymatlar.length < 2) return qiymatlar[0] ?? 0;
+  const eng = Math.max(...qiymatlar);
+  const qolgan = qiymatlar.reduce((s, x) => s + x, 0) - eng;
+  if (eng > 0 && Math.abs(eng - qolgan) <= Math.max(0.05, eng * 0.005)) return eng;
+  return qiymatlar.reduce((s, x) => s + x, 0);
+}
+
 /** Fayl (yoki R2 dagi asl fayl) → anatomiya kitobi → podval o'qishi. */
 export async function fayldanNakrutkaOqi(nom: string, bytes: ArrayBuffer): Promise<NakrutkaPodvalOqish> {
   const wb = await readXlsxFonda(bytes);
@@ -172,7 +185,7 @@ export function excelBilanTizim(o: NakrutkaPodvalOqish, cats: KatSummalar, joriy
   const k = kaskad(cats, standartPodval(nk));
   const hujjat = (kod: string): number | null => {
     const q = o.qatorlar.filter((x) => x.kod === kod && x.summa != null);
-    return q.length ? q.reduce((s, x) => s + (x.summa as number) * x.masshtab, 0) : null;
+    return q.length ? jamiQatorlarYigindisi(q.map((x) => (x.summa as number) * x.masshtab)) : null;
   };
   const yaxlit = (x: number | null) => (x == null ? null : yaxlit2(x));
   const qatorlar: ExcelTizimQator[] = [];

@@ -12,7 +12,7 @@ import { yangiOperationId, type T2Kompaniya } from '../../api/supabase';
 import { forma3ShartnomaAktlarOl, forma3ShartnomaRoyxatOl, forma3Yarat, type Forma3ShartnomaAktlar, type Forma3ShartnomaRoyxatQator } from '../../api/t2-document-control';
 import { forma3ShartnomaHujjat, type Forma3Rekvizit, type F3ShartnomaYigindi } from '../../lib/forma3-export';
 import { Forma3EsfBolim } from './Forma3EsfBolim';
-import { f3AktTanlov, f3OyChegarasi, f3YuboriladiganAktlar } from '../../lib/forma3-shartnoma';
+import { f3AktTanlov, f3OldingiSana, f3OyChegarasi, f3YuboriladiganAktlar } from '../../lib/forma3-shartnoma';
 import { bugungiOy, f3BoshOy, oyOldin } from '../../lib/pto-markazi/oy';
 import { forma3ShartnomaManbalari } from '../../lib/oylik-hujjat/forma3-shartnoma';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
@@ -60,6 +60,8 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
   const [oyTaklif, setOyTaklif] = useState<string | null>(null);
   const [royxat, setRoyxat] = useState<Forma3ShartnomaAktlar | null>(null);
   const [belgilangan, setBelgilangan] = useState<Set<number>>(new Set());
+  /** Etalon shakli: har obyekt alohida varaqda + oxirida jamlama (sukut); o'chiq — hamma obyekt bitta varaqda. */
+  const [alohidaVaraq, setAlohidaVaraq] = useState(true);
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [ishlayapti, setIshlayapti] = useState('');
   const [xato, setXato] = useState('');
@@ -131,7 +133,7 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
       });
       if (!m.ok) { setXato(m.xato); return; }
       const zakazchik = zakazchikRekvizit(shartnoma, (id) => kompaniyalar.find((x) => x.id === id)) as Forma3Rekvizit;
-      const h = forma3ShartnomaHujjat(m.obyektlar, { davr: fOy, shartnomaRaqam: shartnoma.raqam, shartnomaNom: shartnoma.nom, shartnomaSumma: shartnoma.jami_nds_bilan ?? shartnoma.summa_bez_nds, imzo, pudratchi, zakazchik });
+      const h = forma3ShartnomaHujjat(m.obyektlar, { davr: fOy, shartnomaRaqam: shartnoma.raqam, shartnomaNom: shartnoma.nom, shartnomaSana: shartnoma.sana, shartnomaSumma: shartnoma.jami_nds_bilan ?? shartnoma.summa_bez_nds, oldingiF3Sana: f3OldingiSana(f3lar, f.davr_boshi), imzo, pudratchi, zakazchik });
       setEsf({ yigindi: h.yigindi, zakazchik, forma3Id: f.id, raqam: f.raqam, holat: f.esf_holat, tashqiId: f.esf_tashqi_id, shartnomaId, oy: fOy });
     } catch {
       setXato(t('Forma 3 fayli tuzilmadi. Hujjat manbalari va bog‘lanishlarini tekshiring.'));
@@ -161,7 +163,9 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
       if (tay.yetishmaydi.length && !(await tasdiqSora({ sarlavha: t('Forma 3: ma‘lumotlar to‘liq emas'), matn: t('To‘ldirilmagan: {r}. Bu qatorlar bo‘sh qoladi. Davom etasizmi?', { r: tay.yetishmaydi.join('; ') }), tasdiqMatni: t('Baribir yaratish') }))) return;
       const zakazchik = tay.zakazchik ?? zakazchik0;
       const h = forma3ShartnomaHujjat(m.obyektlar, {
-        davr: oy, shartnomaRaqam: sh.raqam, shartnomaNom: sh.nom, shartnomaSumma: sh.jami_nds_bilan ?? sh.summa_bez_nds,
+        davr: oy, shartnomaRaqam: sh.raqam, shartnomaNom: sh.nom, shartnomaSana: sh.sana, shartnomaSumma: sh.jami_nds_bilan ?? sh.summa_bez_nds,
+        // Real hujjat: «Отчетный период: с» = shartnomaning oldingi Forma 3 sanasi (oy boshi emas).
+        oldingiF3Sana: f3OldingiSana(f3lar, chegara.boshi), varaqRejim: alohidaVaraq ? 'alohida' : 'bitta',
         imzo, pudratchi, zakazchik, raqam: tay.raqam,
       });
       setDiqqat(h.diqqat);
@@ -215,8 +219,8 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
           </select>
         </label>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span className="fz-kpi__label">{t('Hisobot oyi')}</span>
-          <input className="input" type="month" aria-label={t('Hisobot oyi')} value={oy} disabled={!!ishlayapti} onChange={(e) => setOy(e.target.value)} />
+          <span className="fz-kpi__label">{t('Oy')}</span>
+          <input className="input" type="month" aria-label={t('Oy')} value={oy} disabled={!!ishlayapti} onChange={(e) => setOy(e.target.value)} />
           {oyTaklif && <span className="fz-kpi__label" data-testid="f3-oy-taklif">{oy === oyTaklif ? t('Oxirgi tasdiqlangan F2 oyi') : <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" onClick={() => setOy(oyTaklif)}>{t('Oxirgi F2 oyi: {oy}', { oy: oyTaklif })}</button>}</span>}
         </label>
         <button type="button" className="fz-btn fz-btn--ghost" disabled={shartnomaId == null || yuklanmoqda || !!ishlayapti} onClick={() => void yukla()}>
@@ -243,6 +247,10 @@ export function Forma3ShartnomaPanel({ companyId, pudratchi, kompaniyalar, imzo,
               ))}
             </fieldset>
           ))}
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+            <input type="checkbox" checked={alohidaVaraq} disabled={!!ishlayapti} onChange={(e) => setAlohidaVaraq(e.target.checked)} />
+            {t('Har obyekt alohida varaqda (oxirida jamlama varaq)')}
+          </label>
           <div>
             <button type="button" className="fz-btn fz-btn--primary" disabled={!yuboriladi.length || !!ishlayapti || sh == null} onClick={() => void yarat()}>
               <FileSpreadsheet /> {t('Forma 3 yaratish')}

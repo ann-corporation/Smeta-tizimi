@@ -70,7 +70,9 @@ const MOLIYA = a('moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'ko
 const TAMINOT = a('logistika', 'zayavka', 'tender', 'yuk-birjasi', 'yuk-chaqirish', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'tender-ochiq', 'erp', 'hr');
 /* «Yetkazuvchi: bugun» — faqat yetkazuvchi roli (supply.*) va rahbariyat; ichki xodim (PTO, prorab) ko'rmaydi (egasi 2026-11-12). */
 const TAMINOT_R = a('logistika', 'zayavka', 'tender', 'yuk-birjasi', 'yuk-chaqirish', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'tender-ochiq', 'yetkazuvchi', 'erp', 'hr');
-const ISH = [...OBYEKT, ...SMETA, ...FAKT, ...F2, ...MOLIYA, ...HUJJAT, ...TAMINOT];
+/* «Loyihachi: bugun» — loyihachi tomonining uyi (design.write/design.issue) va rahbariyat; ichki xodim (PTO, prorab) ko'rmaydi (pudratchi menyu tozalash PR-1). */
+const HUJJAT_ICHKI = bez(HUJJAT, 'loyihachi');
+const ISH = [...OBYEKT, ...SMETA, ...FAKT, ...F2, ...MOLIYA, ...HUJJAT_ICHKI, ...TAMINOT];
 const ISH_R = [...OBYEKT, ...SMETA, ...FAKT, ...F2, ...MOLIYA, ...HUJJAT, ...TAMINOT_R];
 /* Uy sotish (20261124000000): alohida domen — sales.* (PTO da yo'q). */
 const SOTUV = a('sotuv');
@@ -112,7 +114,7 @@ describe('rol menyusi — snapshot (yagona navigatsiya reestri)', () => {
 
 describe('egasi qarori 2026-10-26: PTO qurilishdagi pulga aloqador HAMMA joyni ko‘radi', () => {
   /* «Uy sotish» — qurilish zanjiri emas (sales.* domeni, PTO roliga berilmagan): bu qoidaga kirmaydi. */
-  const ishYollari = NAV_SAHIFALAR.filter((s) => s.guruh.qatlam === 'ish' && s.guruh.id !== 'sotuv' && s.yol !== '/admin/yetkazuvchi').map((s) => s.yol);
+  const ishYollari = NAV_SAHIFALAR.filter((s) => s.guruh.qatlam === 'ish' && s.guruh.id !== 'sotuv' && s.yol !== '/admin/yetkazuvchi' && s.yol !== '/admin/loyihachi').map((s) => s.yol);
 
   it('ish qatlamining har bandi PTO menyusida (ekotizim katalogi)', () => {
     const m = menyu('pto');

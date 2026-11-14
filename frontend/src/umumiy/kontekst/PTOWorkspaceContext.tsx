@@ -347,7 +347,9 @@ export function PTOWorkspaceProvider({ children }: { children: ReactNode }) {
         if (!alive) return;
         if (!projectResult.ok || !objectResult.ok) {
           setError(projectResult.error || objectResult.error || 'PTO iyerarxiyasini yuklab bo‘lmadi.');
-          setProjects([]); setObjects([]);
+          /* Vaqt chegarasi/tarmoq xatosi: ilgari to'g'ri o'qilgan ro'yxat O'CHIRILMAYDI — aks holda alidateHierarchy bo'sh ro'yxatga qarab
+           * URL dagi obyektni (?obyekt=) jim o'chirardi (egasi 2026-11-14: AOSR/Holat sahifasida obyekt tushib qoldi). Hech qachon yuklanmagan bo'lsa — bo'sh (tasdiqlanmagan). */
+          if (loadedCompanyRef.current !== companyId) { setProjects([]); setObjects([]); }
           return;
         }
         setError(null);
@@ -570,8 +572,8 @@ export function PTOWorkspaceBar() {
         <option value="">Obyekt tanlang</option>
         <ObyektOptionlari obyektlar={objects} kompaniyaId={workspace.companyId} />
       </select>
-      <label className="sr-only" htmlFor="pto-period-select">Davr</label>
-      <input id="pto-period-select" type="month" aria-label="PTO davr" title={t('Yagona oy: F2, nakopitelniy va hujjatlar shu oy bilan ishlaydi')} value={workspace.scope.periodId ?? ''} onChange={(event) => workspace.setPeriodId(event.target.value || null)} className={`${tanlov} w-[132px]`} />
+      <label className="sr-only" htmlFor="pto-period-select">{t('Oy')}</label>
+      <input id="pto-period-select" type="month" aria-label={t('Oy')} title={t('Yagona oy: F2, nakopitelniy va hujjatlar shu oy bilan ishlaydi')} value={workspace.scope.periodId ?? ''} onChange={(event) => workspace.setPeriodId(event.target.value || null)} className={`${tanlov} w-[132px]`} />
       <details className="relative">
         <summary className={`flex h-8 cursor-pointer list-none items-center gap-1 rounded-md border px-2 text-xs ${manbaTanlangan ? 'border-accent/40 text-accent' : 'border-border text-text-dim'}`}>{t('Manba')} ▾</summary>
         <div className="absolute left-0 top-9 z-40 flex w-[280px] flex-col gap-2 rounded-lg border border-border bg-surface p-2 shadow-lg">

@@ -1,11 +1,11 @@
 /**
- * Obyekt, qator, F2 va pereraschet o'qishlari. Hisob frontend sof mantig'idan (bolimSummalari, jurnalQur, pereraschetHisobla,
+ * Obyekt, qator, F2 va pereraschet o'qishlari. Hisob frontend sof mantig'idan (bolimSummalari, jurnalQur, pereraschetYagona,
  * ustamaliHisobla) — UI ko'rsatadigan raqamlar bilan bir xil. Pul: NDS siz; ustamasiz + ustamali (NDS alohida).
  */
 import { z } from 'zod';
-import { bolimSummalari, bosKatKesim, jurnalQur, katKesimgaQosh, pereraschetHisobla, PERERASCHET_USTUNLAR, type BolimSumma, type JurnalHolat, type PNatijaQator, type PQator } from '../frontend';
-import { qatorTozala, sahifala, son, summaJuft } from '../format';
-import { holatlarOl, kesimJami, obyektBormi, qatorlarOl, ustamaOl, type HolatRow, type QatorRow, type Ustama } from '../malumot';
+import { bolimSummalari, bosKatKesim, jurnalQur, katKesimgaQosh, pereraschetYagona, YAGONA_HOLAT_USTUNLAR, YAGONA_QATOR_USTUNLAR, type BolimSumma, type JurnalHolat, type PNatijaQator } from '../frontend';
+import { pul, qatorTozala, sahifala, son, summaJuft } from '../format';
+import { holatlarOl, kesimJami, obyektBormi, qatorlarOl, serverPaket, ustamaOl, type HolatRow, type QatorRow, type Ustama } from '../malumot';
 import { obyektIdS, tool } from '../tool';
 
 type T2QatorFE = Parameters<typeof jurnalQur>[0][number];
@@ -45,7 +45,11 @@ export const obyektHolat = tool({
     const ob = await obyektBormi(m, a.obyekt_id);
     const [rows, states] = await Promise.all([qatorlarOl(m, a.obyekt_id), holatlarOl(m, a.obyekt_id)]);
     const u = await ustamaOl(m, a.obyekt_id, mu.aktorId);
-    const sum = bolimSummalari(fe(rows), holatFe(states));
+    // Svod yaxlit bo'limlariga ustama YO'Q (UI: FaktJurnal/IshVaraq `bolimSummalari(..., svodYaxlit)` bilan bir xil) — oldin bu yerda uzatilmagan edi
+    // va ОБ qatorli svod bo'limiga (Stella bronza) ustama qo'shilib jami server/kesh dan oshib ketardi.
+    const sum = bolimSummalari(fe(rows), holatFe(states), undefined, u.svod ?? null);
+    // Yagona yadro (SQL _t2_summa_paket_v1) — kesh va ekran jami shu; yuqoridagi daraxt jami u bilan tiyingacha mos bo'lishi kerak.
+    const yadro = { smeta: await serverPaket(m, a.obyekt_id, 'smeta'), f2: await serverPaket(m, a.obyekt_id, 'f2'), fakt: await serverPaket(m, a.obyekt_id, 'fakt') };
     const { bolimlar } = jurnalQur(fe(rows), holatFe(states));
     // Almashtirilgan (zamena qoplagan) summa — bo'limlar bo'yicha (bolimSummalari da yo'q ko'rsatkich).
     const byId = new Map(rows.map((r) => [r.id, r]));
@@ -86,6 +90,7 @@ export const obyektHolat = tool({
       qatorlar_soni: rows.length,
       [ildiz != null ? 'bolim' : 'jami']: { ...(ildizB ? { id: ildizB.id, nom: ildizB.nom, ulush: ildizB.ulush } : {}), ...juftlar(sum.get(ildizKalit), u), almashtirilgan: almJuft(ildizKalit) },
       bolimlar: tanlangan.map((b) => ({ ...b, ...juftlar(sum.get(b.id), u), almashtirilgan: almJuft(b.id) })),
+      yadro_jami: yadro,
       ...(nak !== undefined ? { nakopitelniy_jami: nak } : {}),
       izoh: 'summalar NDS siz; «ustamali» — ИТОГО-4 (kat noma\'lum qism ustamasiz qo\'shilgan); nds — alohida. null — noma\'lum (0 emas).',
     };
@@ -168,7 +173,15 @@ export const f2 = tool({
     for (const q of r.rows) katKesimgaQosh(kesim, q.kat, son(q.s));
     const u = await ustamaOl(m, Number(akt.obyekt_id), mu.aktorId, akt.shartnoma_id == null ? null : Number(akt.shartnoma_id));
     const s = sahifala(r.rows.map(({ s: _s, ...x }) => qatorTozala(x)), a.limit ?? 300, a.offset ?? 0);
-    return { akt: qatorTozala(akt), summa: summaJuft(kesimJami(kesim), u.hisobla(kesim)), ...s };
+    // Akt jami — YAGONA yadro (SQL _t2_summa_paket_v1 'aktlar'): akt o'z podvali, svod/yaxlit va ustamasiz qism hisobga olinadi.
+    // Oddiy kesim (obyekt podvali) faqat yadro o'qilmasa zaxira.
+    const yadro = await serverPaket(m, Number(akt.obyekt_id), 'aktlar', a.akt_id);
+    const juft = summaJuft(kesimJami(kesim), u.hisobla(kesim));
+    const summa = yadro && yadro.ustamali != null
+      ? { ...juft, ustamasiz: yadro.ustamasiz, ustamali: yadro.ustamali, nds: yadro.qqs_bilan != null ? Math.round((yadro.qqs_bilan - yadro.ustamali) * 100) / 100 : juft.nds,
+          matn: `${pul(yadro.ustamasiz) ?? '—'} / ustamali ${pul(yadro.ustamali)}${yadro.qqs_bilan != null ? ` (+NDS ${pul(yadro.qqs_bilan - yadro.ustamali)})` : ''}`, manba: 'yadro:_t2_summa_paket_v1', ustamasiz_qism: yadro.ustamasiz_qism }
+      : { ...juft, manba: 'zaxira:kesim' };
+    return { akt: qatorTozala(akt), summa, ...s };
   }),
 });
 
@@ -180,24 +193,26 @@ const pQator = (q: PNatijaQator) => ({
 
 export const pereraschet = tool({
   nom: 'pereraschet',
-  tavsif: 'Pereraschet (frontend lib/pereraschet.ts — aynan o\'sha hisob): ortiqcha olingan (minus), olinmagan (plus), narx farqi, chegirma; '
-    + 'tekshirish kerak qatorlar alohida (pulga kirmaydi). Jami ustamasiz va ustamali (NDS siz). `bolim_id` — filtr.',
+  tavsif: 'Pereraschet = slichitelniy hisobi (frontend lib/pereraschet-yagona.ts → slichitelniyModeli; ekran va Excel bilan AYNAN bir son): '
+    + 'fakt (tasdiqlangan F-2 narxida) − ilgari F-2 da olingan; plus = к доплате, minus = к снятию (mutlaq qiymat); smeta bilan cheklanmaydi (fakt smetadan oshsa ham к доплате); '
+    + 'svod/yaxlit bo\'limi — bitta sof farq. Narx/F-2 summasi noma\'lum qatorlar pulga kirmaydi, `tekshirish` da (NULL ≠ 0). Jami ustamasiz va ustamali (NDS siz). `bolim_id` — filtr.',
   kirish: { obyekt_id: obyektIdS, bolim_id: z.number().int().positive().optional(), limit: z.number().int().positive().max(5000).optional(), offset: z.number().int().min(0).optional() },
   yozadi: false,
   bajar: async (a, mu) => mu.oqish(async (m) => {
     await obyektBormi(m, a.obyekt_id);
-    const [h, z] = await Promise.all([
-      m.query<PQator>(`select ${PERERASCHET_USTUNLAR} from public.t2_qator_holat where obyekt_id = $1`, [a.obyekt_id]),
-      m.query<{ id: number; replaces_line_id: number }>('select id, replaces_line_id from public.t2_qator where obyekt_id = $1 and replaces_line_id is not null', [a.obyekt_id]),
+    // Slichitelniy hujjati bilan bir xil manbalar: joriy (faol) smeta daraxti + t2_qator_holat + server svod yaxlit.
+    const [qs, hs, u] = await Promise.all([
+      m.query<Record<string, unknown>>(`select ${YAGONA_QATOR_USTUNLAR} from public.t2_qator where obyekt_id = $1 and versiya_holat = 'faol' order by tartib nulls last, id`, [a.obyekt_id]),
+      holatlarOl(m, a.obyekt_id, YAGONA_HOLAT_USTUNLAR),
+      ustamaOl(m, a.obyekt_id, mu.aktorId),
     ]);
-    const n = pereraschetHisobla(h.rows, { zamenaIdlar: new Set(z.rows.map((r) => Number(r.id))), aslIdlar: new Set(z.rows.map((r) => Number(r.replaces_line_id))), bolimId: a.bolim_id ?? null });
-    const u = await ustamaOl(m, a.obyekt_id, mu.aktorId);
+    const n = pereraschetYagona(qs.rows as unknown as Parameters<typeof pereraschetYagona>[0], hs as unknown as Parameters<typeof pereraschetYagona>[1], { svodYaxlit: u.svod ?? null, bolimId: a.bolim_id ?? null });
     const plus = summaJuft(n.jami.plus, u.hisobla(n.plusKesim));
     const minus = summaJuft(n.jami.minus, u.hisobla(n.minusKesim));
     const limit = a.limit ?? 50, offset = a.offset ?? 0;
     return {
-      jami: { ...n.jami, plus_juft: plus, minus_juft: minus, izoh: 'plus — olish mumkin; minus — qaytarish (mutlaq qiymat); sof = plus − minus. NDS siz.' },
-      tur_boyicha: n.turBoyicha, fakt_norma_plus: n.faktNormaPlus, tekshirish_taxminiy: n.tekshirTaxminiy,
+      jami: { ...n.jami, plus_juft: plus, minus_juft: minus, noma_lum_soni: n.nomalum, izoh: 'plus — к доплате; minus — к снятию (mutlaq qiymat); sof = plus − minus. NDS siz. Slichitelniy hujjati bilan bir xil hisob.' },
+      tur_boyicha: n.turBoyicha,
       bolimlar: n.bolimlar.slice(0, 40),
       hisobda: sahifala(n.hisobda.map(pQator), limit, offset),
       tekshirish: sahifala(n.tekshirish.map(pQator), limit, offset),

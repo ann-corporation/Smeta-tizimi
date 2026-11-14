@@ -46,6 +46,17 @@ it('cold native session + signed scoped snapshot restores only the existing obje
   h.phase('online'); expect(await h.create().restore()).toBe('/admin/holat/4');
   expect(h.request.mock.calls.some(([p]) => String(p).includes('obyekt-paket'))).toBe(true);
 });
+it.each([{ company: 3, object: 4, project: 11, expected: 11 }, { company: 9, object: 4, project: 11 },
+  { company: 3, object: 5, project: 11 }, { company: 3, object: 4, project: 0 }])(
+  'cold bootstrap retains only a valid same-scope project link ($company/$object/$project)',
+  async ({ company, object, project, expected }) => {
+    const h = await setup();
+    h.disk.set('pages/3/4', { object: { id: object, kompaniya_id: company, loyiha_id: project, nom: 'OLD', fakt_summa: 999 } });
+    expect(await h.create().restore()).toBe('/admin/holat/4');
+    expect(h.disk.get('pages/3/4')).toEqual({ object: { id: 4, kompaniya_id: 3, nom: 'SYNTHETIC',
+      ...(expected ? { loyiha_id: expected } : {}) } });
+  },
+);
 it.each(['actor', 'device', 'missing', 'denied', 'expired', 'rollback', 'signature', 'tamper', 'malformed', 'scope', 'permission'] as const)('rejects %s and removes an untrusted hint', async mode => {
   const h = await setup();
   if (mode === 'actor') h.info.foydalanuvchi_id = 9;

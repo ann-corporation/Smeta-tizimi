@@ -39,7 +39,7 @@ import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
 import { qolganSummaMatni } from './f2-qolgan-summa';
 import { katKesimNomalumBilan, katKesimYigish } from '../../lib/ustamali-summa';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
-import { ObyektQadamlari } from '../components/ObyektQadamlari';
+import { ZanjirChizigi } from '../components/ZanjirChizigi';
 import { F2TekshiringRoyxat } from './F2TekshiringRoyxat';
 import { tiyingaYaxlitla, type F2Akt, type F2Tugun } from '../../lib/smeta-anatomiya/f2';
 import { f2AktlarniOqiFonda, f2MoslashV3Fonda } from '../../lib/f2-moslash-v3/fonda';
@@ -1479,6 +1479,8 @@ function Sessiya({ companyId }: { companyId: number }) {
           podvalIzoh = pr?.ok ? ` ${t('Hujjat podvali saqlandi.')}` : ` ${t('Hujjat podvali saqlanmadi (smeta podvali qoladi).')}`;
         }
       }
+      // Avto podval (server, 20261221810000): smeta podvali topilmasa qulf yo'q — faqat ogohlantirish.
+      if (r.podval?.bor === false && r.podval.ogohlantirish) podvalIzoh += ` ${t('Diqqat: obyektning smeta podvali topilmadi, nakrutka foizlari shartnoma yoki standart stavka boʻyicha hisoblanadi.')}`;
       setTekshiruv((v) => v + 1);
       qadam('akt', 'tayyor', `#${r.akt_id ?? '?'} · ${payload.rows.length} ${t('qator')}`);
       setSessiyaKiritilgan((s) => new Set([...s, akt.varaq]));
@@ -1530,7 +1532,7 @@ function Sessiya({ companyId }: { companyId: number }) {
   return (
     <Sahifa sarlavha="F2 import" tavsif="Fayl → akt → moslash → qoralamaga yozish. Har bosqichda nimani tekshirish kerakligi ko‘rsatiladi.">
     <div className="w-full space-y-3">
-      <ObyektQadamlari joriy="f2-import" />
+      <ZanjirChizigi joriy="f2" />
       {routerda &&<F2UrlSinxron faol={!!ij} jobId={Number.isSafeInteger(Number(serverId)) && Number(serverId) > 0 ? Number(serverId) : null} aktId={tahrirAkt} />}
       <p role="status" className="m-0 text-[13px] text-text-dim">{holat}</p>
       <section className="fz-card flex flex-wrap items-center gap-2 p-4 text-[12px]" aria-label={t('Ish holati')}>

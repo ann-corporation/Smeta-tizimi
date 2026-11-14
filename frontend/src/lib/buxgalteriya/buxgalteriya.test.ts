@@ -3,6 +3,8 @@ import { bankKalitlari, bankMosla, bankParse, bankYuk, csvGrid } from './bank';
 import { kontragentGuruhla, ndsJami, osvMuvozanat, saldoTomoni, sverkaQatorlari } from './hisob';
 import { aktSverkaHujjat, osvHujjat } from './eksport';
 import type { BuxShartnoma } from '../../api/t2-bux-hisob';
+import { hujjatTekshir } from '../hujjat-yozuvchi';
+import { readXlsx } from '../f2-import-parse/xlsxReader';
 
 // Faqat sintetik ma'lumot.
 const SH: BuxShartnoma[] = [
@@ -81,6 +83,37 @@ describe('akt-sverka Excel', () => {
     expect(r.bytes[0]).toBe(0x50); // ZIP (PK)
     expect(r.faylNomi).toContain('АКТ_СВЕРКИ');
     expect(r.faylNomi.endsWith('.xlsx')).toBe(true);
+  });
+
+  it('TUZILMA (1C akt-sverka shakli): sarlavha, jadval ustunlari, shartnoma bloklari, jamilar, imzo', async () => {
+    const h = (sana: string, dt: number, kt: number, sh: string, hujjat: string) => ({ sana, hisob: '4010', manba_tur: 'forma3', manba_id: 1, hujjat, shartnoma_id: 1, shartnoma_raqam: sh, dt, kt, izoh: null });
+    const r = aktSverkaHujjat({ kompaniya: 'TEST ORG', kontragent: 'TEST BUYURTMACHI', dan: '2026-01-01', gacha: '2026-01-31', ochilish: 100,
+      hujjatlar: [h('2026-01-05', 1000, 0, 'T-1', 'Продажа 1'), h('2026-01-10', 0, 400, 'T-1', 'Оплата 1'), h('2026-01-20', 500, 0, 'T-2', 'Продажа 2'), h('2026-01-25', 0, 50, 'T-2', 'Оплата 2')] });
+    const t = hujjatTekshir(r.bytes);
+    const m = t.matnlar;
+    // Sarlavha bloki
+    expect(m[0]).toBe('АКТ СВЕРКИ');
+    expect(m).toContain('взаимных расчетов за период: 01.01.2026 - 31.01.2026');
+    expect(m).toContain('между TEST ORG и TEST BUYURTMACHI');
+    // Jadval sarlavhasi: Дата | Документ | (организация) Дебет Кредит | (контрагент) Дебет Кредит — 6 ustun
+    expect(m.filter((x) => x === 'По данным организации' || x === 'По данным контрагента')).toHaveLength(2);
+    expect(m.filter((x) => x === 'Дебет')).toHaveLength(2);
+    expect(m.filter((x) => x === 'Кредит')).toHaveLength(2);
+    // Tartib: boshlang'ich saldo → shartnoma bloki → итого → oborot → yakuniy saldo
+    const tartib = ['Сальдо начальное на 01.01.2026 г.', 'дог. №T-1', 'Итого по договору:', 'дог. №T-2', 'Итого по договору:', 'Обороты за период', 'Сальдо конечное на 31.01.2026 г.'];
+    let i = -1;
+    for (const x of tartib) { const j = m.indexOf(x, i + 1); expect(j, x).toBeGreaterThan(i); i = j; }
+    expect(m.filter((x) => x === 'Итого по договору:')).toHaveLength(2);
+    expect(m).toContain('От TEST ORG');
+    expect(m).toContain('От TEST BUYURTMACHI');
+    // Jamilar: oborot Dt 1500, Kt 450; yakuniy saldo 100 + 1500 − 450 = 1150 (Dt tomon)
+    const grid = (await readXlsx(r.bytes)).sheet('Акт сверки')!.rows;
+    const qiymat = (matn: string, ustun: number) => Number(grid.find((q) => q[1] === matn)?.[ustun]);
+    expect(qiymat('Обороты за период', 2)).toBe(1500);
+    expect(qiymat('Обороты за период', 3)).toBe(450);
+    expect(qiymat('Сальдо конечное на 31.01.2026 г.', 2)).toBe(1150);
+    expect(qiymat('Сальдо конечное на 31.01.2026 г.', 3)).toBe(0);
+    expect(t.matnlar.some((x) => x.includes('задолженность в пользу TEST ORG') && x.includes('1'))).toBe(true);
   });
 });
 
