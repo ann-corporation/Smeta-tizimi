@@ -47,7 +47,18 @@ export type VositaApi = {
   ishchiTopshir?: (kod: string, operationId: string) => Promise<{ ok: boolean; error?: string }>;
   /** Moslash qutisi (kunlik avtomat tekshiruvlar, FAQAT o'qish). null — o'qilmadi. */
   moslash?: () => Promise<MoslashQutisi | null>;
+  /** Slichitelniy sikli (mavjud `lib/slichitelniy-tsikl.ts`, hujjat bilan bir xil hisob): к доплате / к снятию yuki. null — hisoblanmadi. */
+  slichitelniyHisob?: (obyektId: number) => Promise<TsiklHisob | null>;
+  /** Tsikl qoralamasi (F-2 qoralama, TASDIQLANMAYDI): token mexanizmi bilan, operation_id bilan takrorsiz. */
+  slichitelniyYarat?: (p: { obyektId: number; tur: 'doplata' | 'snyatie'; oy: string; raqam: string; operationId: string }) => Promise<{ ok: boolean; error?: string }>;
+  /** Obyekt smeta qatorlaridan qidirish (kod/nom bo'laklari bo'yicha, ≤ 6). */
+  qatorTop?: (obyektId: number, matn: string) => Promise<QatorQisqa[] | null>;
+  /** Zamena / qo'shimcha ISH saqlash (mavjud sb-yoz: zamena_ish_yarat_v1 / qoshimcha_ish_yarat_v1). Asl smeta qatori o'zgarmaydi. */
+  zamenaSaqla?: (p: { obyektId: number; rejim: 'zamena' | 'qoshimcha'; qator: QatorQisqa; nom: string; birlik: string; hajm: number; sabab: string; operationId: string }) => Promise<{ ok: boolean; error?: string }>;
 };
+
+export type TsiklHisob = { doplata: { soni: number; jami: number }; snyatie: { soni: number; jami: number }; sigmadi: number; nomalum: number };
+export type QatorQisqa = { id: number; kod: string | null; nom: string; birlik: string | null; tur: string | null; otaId: number | null; versiya: number };
 
 /** Server paketi uchligi: QQS bilan (asosiy) · ustamali (ИТОГО-4) · ustamasiz (прямые). null — noma'lum (0 emas). */
 export type PaketUchlik = { qqs_bilan: number; ustamali: number; ustamasiz: number; narxsiz_soni?: number };

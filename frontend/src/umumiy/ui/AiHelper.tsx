@@ -19,6 +19,7 @@ import { AiFikrPanel } from './AiFikrPanel';
 import { AiJurnal } from './AiJurnal';
 import { AiShaxsiy } from './AiShaxsiy';
 import { useAiKuzatuv } from './useAiKuzatuv';
+import { useIshchiNatija } from './useIshchiNatija';
 import { kimMalumoti } from './yordamchi/kim-ulanish';
 import { kasbKeshOl, kasbKeshYoz } from '../../lib/yordamchi/kasb-kesh';
 import { haqiqiyVositaApi } from '../../lib/yordamchi/vosita/haqiqiy';
@@ -60,6 +61,7 @@ export function AiHelper() {
   useEffect(() => { if (isOpen) setOchilgan(true); }, [isOpen]);
   const [kasb, setKasb] = useState<KasbIshchi | null>(null);
   const kuzatuv = useAiKuzatuv(joriyId ?? undefined);
+  useIshchiNatija(joriyId ?? null, isOpen);
   const sahifalar = useYordamchiSahifalar();
   const ws = usePTOWorkspace();
   const obyektlar = useMemo(() => (ws.isProvider ? ws.objects.map((o) => ({ id: o.id, nom: o.nom ?? '' })).filter((o) => o.nom) : []), [ws.isProvider, ws.objects]);

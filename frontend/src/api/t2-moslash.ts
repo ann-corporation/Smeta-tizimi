@@ -4,7 +4,7 @@
  */
 export type MoslashTur = 'f2_podval_farq' | 'f2_podval_yoq' | 'kesh_eskirgan' | 'fakt_kam_f2' | 'narxsiz' | 'f3_f2_farq';
 export type MoslashBand = { tur: MoslashTur | string; obyekt_id: number | null; obyekt_nom: string | null; akt_id: number | null; akt_raqam: string | null; summa: number | null; farq: number | null; izoh: string; havola: string };
-export type MoslashQutisi = { jami: number; tur_soni: Record<string, number>; bandlar: MoslashBand[]; hisoblandi: string | null };
+export type MoslashQutisi = { jami: number; tur_soni: Record<string, number>; bandlar: MoslashBand[]; hisoblandi: string | null; hisoblanmagan?: boolean; eskirgan?: boolean };
 
 const son = (v: unknown): number | null => (v == null || v === '' ? null : Number.isFinite(Number(v)) ? Number(v) : null);
 
@@ -18,7 +18,7 @@ export function moslashTozala(x: unknown): MoslashQutisi | null {
     izoh: String(b.izoh ?? ''), havola: typeof b.havola === 'string' && b.havola.startsWith('/') && !b.havola.startsWith('//') ? b.havola : '/admin/solishtiruv',
   }));
   const ts = o.tur_soni && typeof o.tur_soni === 'object' ? Object.fromEntries(Object.entries(o.tur_soni as Record<string, unknown>).map(([k, v]) => [k, son(v) ?? 0])) : {};
-  return { jami: son(o.jami) ?? bandlar.length, tur_soni: ts, bandlar, hisoblandi: typeof o.hisoblandi === 'string' ? o.hisoblandi : null };
+  return { jami: son(o.jami) ?? bandlar.length, tur_soni: ts, bandlar, hisoblandi: typeof o.hisoblandi === 'string' ? o.hisoblandi : null, ...(o.hisoblanmagan === true ? { hisoblanmagan: true } : {}), ...(o.eskirgan === true ? { eskirgan: true } : {}) };
 }
 
 /** null — o'qilmadi (ruxsat yo'q, migratsiya qo'llanmagan yoki tarmoq): «bo'sh» deb ko'rsatilmaydi. */

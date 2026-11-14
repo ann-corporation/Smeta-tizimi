@@ -5,7 +5,7 @@
 --   (b) obyekt keshi (t2_obyekt_kesh) vs jonli _t2_summa_paket_v1: qiymat farqi > 1 so'm va obyekt «iflos» deb belgilanmagan -> 'kesh_eskirgan'.
 --   (c) fakt < F-2 (ustamasiz, obyekt bo'yicha): 'fakt_kam_f2' — «к снятию» nomzodi (summa = F-2 − fakt).
 --   (d) narxsiz qatorlar (smeta + F-2 paketlari narxsiz_soni): 'narxsiz'.
---   (e) F-3 (t2_forma3.sotuv_summa, bekor emas) yig'indisi vs tasdiqlangan F-2 lar yig'indisi (QQS bilan), farq > 1: 'f3_f2_farq'.
+--   (e) F-3 (t2_forma3.manba='sotuv', sotuv_summa) shartnoma bo'yicha yig'indisi vs shartnomaga bog'langan obyektlar F-2 yig'indisi (QQS bilan), farq > 1: 'f3_f2_farq'.
 -- Xavfsizlik: a'zolik + financial.read (rahbar paneli bilan bir xil); service_role. Natija <= 300 band (summa bo'yicha kamayish tartibida).
 -- Migratsiyani EGASI qo'llaydi. Rollback: .rollback.sql. Qabul: .acceptance.sql.
 
@@ -70,14 +70,17 @@ begin
            '/admin/narxlar'
       from ob o where coalesce((v_sm -> (o.id::text) ->> 'narxsiz_soni')::bigint, 0) + coalesce((v_f2 -> (o.id::text) ->> 'narxsiz_soni')::bigint, 0) > 0
     union all
-    -- (e) F-3 vs F-2 lar yig'indisi (QQS bilan)
-    select 'f3_f2_farq', o.id, null, null, f3.sotuv, (f3.sotuv - coalesce((v_f2 -> (o.id::text) ->> 'qqs_bilan')::numeric, 0)),
-           'F-3 jami F-2 lar yig''indisidan farq qiladi', '/admin/nakopitelniy'
-      from ob o
-      join (select f.obyekt_id, sum(f.sotuv_summa) as sotuv from public.t2_forma3 f
-             where f.kompaniya_id = p_kompaniya_id and f.holat <> 'bekor' group by f.obyekt_id) f3 on f3.obyekt_id = o.id
-     where abs(f3.sotuv - coalesce((v_f2 -> (o.id::text) ->> 'qqs_bilan')::numeric, 0)) > 1
-  ), z as (
+    -- (e) F-3 (manba='sotuv', 1C sotuv summasi QQS bilan) yig'indisi vs shartnomaga bog'langan obyektlar F-2 lari (QQS bilan). F-3 «с начала» saqlanmaydi
+    --     (forma3-export: F-2 yig'indisi, oy <= davr) — saqlangan summa faqat manba='sotuv' qatorlarda, shartnoma darajasida.
+    select 'f3_f2_farq', (sh.obyektlar)[1], null::bigint, sh.raqam, f3.sotuv,
+           (f3.sotuv - coalesce((select sum((v_f2 -> (o::text) ->> 'qqs_bilan')::numeric) from unnest(sh.obyektlar) o), 0)),
+           'F-3 (sotuv) jami F-2 lar yig''indisidan farq qiladi', '/admin/nakopitelniy'
+      from (select s.id, s.raqam, array(select b.obyekt_id from public.t2_shartnoma_bog b where b.shartnoma_id = s.id and b.holat = 'faol' order by b.obyekt_id) as obyektlar
+              from public.t2_shartnoma s where s.kompaniya_id = p_kompaniya_id and s.holat <> 'bekor' and coalesce(s.asosiy, true)) sh
+      join (select f.shartnoma_id, sum(f.sotuv_summa) as sotuv from public.t2_forma3 f
+             where f.kompaniya_id = p_kompaniya_id and f.holat <> 'bekor' and f.manba = 'sotuv' group by f.shartnoma_id) f3 on f3.shartnoma_id = sh.id
+     where cardinality(sh.obyektlar) > 0
+       and abs(f3.sotuv - coalesce((select sum((v_f2 -> (o::text) ->> 'qqs_bilan')::numeric) from unnest(sh.obyektlar) o), 0)) > 1  ), z as (
     select b.*, o.nom as obyekt_nom from b left join ob o on o.id = b.obyekt_id
      order by abs(coalesce(b.farq, b.summa, 0)) desc, b.tur limit 300
   )
