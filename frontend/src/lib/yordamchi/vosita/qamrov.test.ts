@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SAHIFALAR } from '../../reestr/sahifa';
 import { NIYAT_OQIMLARI, QAMROV, QAMROV_BOSHLIQLARI, jarvisQamrovi } from './qamrov';
-import { VOSITALAR } from './reestr';
+import { VOSITALAR, AMAL_VOSITALARI } from './reestr';
 
 describe('VOSITA QAMROVI — reestrdagi har sahifa uchun «Jarvis bu yerda nima qila oladi»', () => {
   it('har sahifa qamrov jadvalida bor (yangi sahifa qo‘shilsa — qamrov.ts ga qator qo‘shing)', () => {
@@ -21,7 +21,8 @@ describe('VOSITA QAMROVI — reestrdagi har sahifa uchun «Jarvis bu yerda nima 
     }
   });
   it('har vosita (yoq dan tashqari) kamida bitta sahifada ko‘rsatilgan — isrof bo‘lmasin', () => {
-    const ishlatilgan = new Set(Object.values(QAMROV).flatMap((v) => v.qila));
+    // Reestr (lib/reestr/amal.ts) dan hosila vositalar o'z sahifasi (Amal.sahifa) orqali qoplanadi — qo'lda jadval talab qilinmaydi.
+    const ishlatilgan = new Set([...Object.values(QAMROV).flatMap((v) => v.qila), ...AMAL_VOSITALARI.map((v) => v.id)]);
     expect(VOSITALAR.map((v) => v.id).filter((id) => id !== 'yoq' && !ishlatilgan.has(id))).toEqual([]);
   });
   it('yozuv amali bor sahifa «sahifada» ro‘yxatida halol ko‘rsatilgan; yordamchi ishlaydi', () => {

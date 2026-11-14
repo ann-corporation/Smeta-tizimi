@@ -7,6 +7,9 @@ import { sbT2ObyektlarOlKomp, type T2Obyekt } from '../../api/supabase';
 import { sbT2ShartnomalarOl } from '../../api/t2-shartnoma';
 import { hujjatRoyxatOl } from '../../api/t2-hujjat-canonical';
 import { t } from '../../i18n/til';
+import { AMAL_MAP } from '../../lib/reestr/amal';
+import { IJROCHILAR } from '../../lib/reestr/amal-ijro';
+import { amalIshga } from '../../lib/reestr/amal-mavzu';
 import { sahifaVaAmalQidir, yozuvQidir, type QidiruvNatija } from '../../lib/reestr/qidiruv';
 
 /** Sidebar bilan BIR manba: AdminShell rol/ruxsat/modul filtridan o'tgan bandlarni beradi (qattiq havola yo'q). */
@@ -80,7 +83,10 @@ export function CommandPalette({ bandlar, permissions }: { bandlar: PaletteBand[
     .map((x) => ({ kalit: `hujjat-${x.id}`, yol: '/admin/documents', nom: x.filename, izoh: t('Hujjat'), tur: 'hujjat' as const }));
   const natijalar = [...amalNatija, ...sahifalar, ...obyektNatija, ...shartnomaNatija, ...hujjatNatija];
 
-  const handleSelect = (route: string) => {
+  const handleSelect = (route: string, n?: Natija) => {
+    /* Amal reestri: ijrochisi bor amal Jarvis oqimini ochadi (savol -> ko'rinish -> tasdiq); aks holda amal sahifasiga o'tadi. */
+    const amalKalit = n?.tur === 'amal' ? n.kalit.replace(/^amal:/, '') : null;
+    if (amalKalit && IJROCHILAR[amalKalit]) { const a = AMAL_MAP.get(amalKalit); if (a) { amalIshga(a); setIsOpen(false); setQuery(''); return; } }
     navigate(route);
     setIsOpen(false);
     setQuery('');
@@ -89,14 +95,14 @@ export function CommandPalette({ bandlar, permissions }: { bandlar: PaletteBand[
   const klaviatura = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); setFaol((i) => Math.min(i + 1, natijalar.length - 1)); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setFaol((i) => Math.max(i - 1, 0)); }
-    else if (e.key === 'Enter' && natijalar[faol]) { e.preventDefault(); handleSelect(natijalar[faol].yol); }
+    else if (e.key === 'Enter' && natijalar[faol]) { e.preventDefault(); handleSelect(natijalar[faol].yol, natijalar[faol]); }
   };
 
   const qator = (n: Natija, i: number) => (
     <button
       key={n.kalit}
       type="button"
-      onClick={() => handleSelect(n.yol)}
+      onClick={() => handleSelect(n.yol, n)}
       onMouseEnter={() => setFaol(i)}
       aria-selected={i === faol}
       role="option"
