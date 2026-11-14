@@ -87,6 +87,12 @@ export function SmetaOzgarishQatlam({ obyektId }: { obyektId: number | null }) {
           <span className="fz-kpi__sub">{t('hosila ko‘rsatkich, smeta o‘rnini bosmaydi')}</span></div>
       </div>
 
+      {(d.smetadan_tashqari?.soni ?? 0) > 0 && <div className="fz-note text-[11.5px]" role="note" data-testid="smeta-tashqari">
+        <p>{t('Smetadan tashqari bo‘limlar ({n}): obyekt qiymatiga kirmaydi, lekin fakt va F-2 da hisoblanadi', { n: String(d.smetadan_tashqari?.soni) })}</p>
+        {d.smetadan_tashqari?.qqs_bilan != null && <p data-testid="smeta-tashqari-jami">{t('smetadan tashqari: {s} (QQS bilan) — qiymatga kirmaydi, fakt va F-2 da hisoblanadi', { s: Math.round(d.smetadan_tashqari.qqs_bilan).toLocaleString('ru-RU') })}</p>}
+        {(d.smetadan_tashqari?.qatorlar ?? []).map((x) => <p key={x.qator_id} className="text-text-mute">{x.nom ?? `#${x.qator_id}`} — <FmtN val={x.summa ?? null} kasr={0} /> <small>{t('ustamasiz')}</small></p>)}
+      </div>}
+
       {bor && <div className="fz-legend" style={{ gridTemplateColumns: 'auto 1fr auto' }}>
         <span>+</span><span>{t('Qo‘shimcha ishlar')} ({d.qoshimcha.soni})</span>
         {qator(oz.qoshimcha, k.q)}

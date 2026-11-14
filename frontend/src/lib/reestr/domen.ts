@@ -276,7 +276,7 @@ export function asosNom(nom: string): string {
 
 /** SQL hisob yadrosi: pul/QQS arifmetikasi FAQAT shu funksiyalarda yoziladi (frontendda lib/hisob-yadro). Boshqalari - meros ro'yxatida. */
 export const HISOB_YADRO_SQL: readonly string[] = [
-  '_t2_summa_paket_hisob_v1', '_t2_summa_paket_jam_v1', '_t2_summa_agg_v1', '_t2_summa_paket_v1', '_t2_kaskad_yakun_v1',
+  '_t2_summa_paket_hisob_v1', '_t2_summa_paket_jam_v1', '_t2_summa_agg_v1', '_t2_summa_paket_v1', '_t2_kaskad_yakun_v1', '_t2_summa_paket_tashqari_v1',
   't2_nakrutka_yaxlit_qosh_v1', 't2_nakrutka_yaxlit_qosh_v2', 't2_svod_yaxlit_obyekt_v1', 't2_narxla',
 ];
 

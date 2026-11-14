@@ -94,6 +94,8 @@ export function SmetaAnatomiya({ tree, obyektId }: { tree: readonly TreeNode[]; 
   else if (aslPaket) qiymatSumma = <SummaJuft paket={aslPaket} className={qiymatSinf} />;
   else qiymatSumma = <SummaJuft obyektId={obyektId} ustamasiz={umumiy.smeta} katKesim={kesim} className={qiymatSinf} />;
   const aslQQS =aslPaket?.qqs_bilan ?? null, ozQQS = qatlam?.ozgarish.qqs_bilan ?? null;
+  // Smetadan tashqari bo'lim (masalan ekspert xizmati): server qiymatga kiritmaydi, alohida ko'rsatiladi (hisob serverda).
+  const tashqariQQS = qatlam?.smetadan_tashqari && (qatlam.smetadan_tashqari.soni ?? 0) > 0 && qatlam.smetadan_tashqari.qqs_bilan != null ? Number(qatlam.smetadan_tashqari.qqs_bilan) : null;
   const pct = (x: number | null) => (x == null ? '—' : `${Math.round(x * 100)}%`);
   const toliqEmas = umumiy.toliq ? null : t('To‘liq emas: {s} bo‘limda smeta, {f} da fakt, {f2} da F2 summasi noma’lum — ko‘rsatilgan qiymat faqat ma’lum qismlar yig‘indisi', { s: umumiy.nomalum.smeta, f: umumiy.nomalum.fakt, f2: umumiy.nomalum.f2 });
   const nomalumBelgi = (soni: number) => (soni > 0 ? <span className="fz-chip fz-chip--warn" title={toliqEmas ?? undefined}>{t('qisman')}</span> : null);
@@ -108,6 +110,7 @@ export function SmetaAnatomiya({ tree, obyektId }: { tree: readonly TreeNode[]; 
             {maxraj.joriy
               ? <span className="fz-kpi__sub" data-testid="obyekt-qiymati-tarkib">{t('shundan asl smeta: {a}, o‘zgarishlar: {o} (QQS bilan)', { a: aslQQS == null ? '—' : Math.round(aslQQS).toLocaleString('ru-RU'), o: ozQQS == null ? '—' : Math.round(ozQQS).toLocaleString('ru-RU') })}</span>
               : <span className="fz-kpi__sub fz-note--warn" data-testid="obyekt-qiymati-oqilmadi">{t('o‘zgarishlar o‘qilmadi — faqat asl smeta ko‘rsatilgan')}</span>}
+            {tashqariQQS != null && <span className="fz-kpi__sub" data-testid="obyekt-qiymati-tashqari">{t('smetadan tashqari: {s} (QQS bilan) — qiymatga kirmaydi, fakt va F-2 da hisoblanadi', { s: Math.round(tashqariQQS).toLocaleString('ru-RU') })}</span>}
           </div>
           <div className="fz-kpi"><span className="fz-kpi__label"><i className="fz-bg-nomalum" style={{ background: 'var(--info)' }} />{t('Bajarilgan (fakt)')}</span><SummaJuft obyektId={obyektId} ustamasiz={umumiy.fakt} katKesim={kartaKesim.fakt} yorliq={t('Fakt, QQS bilan')} />{nomalumBelgi(umumiy.nomalum.fakt)}<span className="fz-kpi__sub">{pct(kor.faktUlush)} {maxraj.joriy ? t('smeta + o‘zgarishlardan') : t('smetadan')}</span></div>
           <div className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: 'var(--accent)' }} />{t('F2 bilan topshirilgan')}</span><SummaJuft obyektId={obyektId} ustamasiz={umumiy.f2} katKesim={kartaKesim.f2} yorliq={t('F2, QQS bilan')} />{nomalumBelgi(umumiy.nomalum.f2)}<span className="fz-kpi__sub">{pct(kor.f2Ulush)} {maxraj.joriy ? t('smeta + o‘zgarishlardan') : t('smetadan')}</span></div>
