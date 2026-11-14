@@ -18,10 +18,23 @@ export async function safePath(root,path) {
  let at=base;for(const part of path.split('/')){at=join(at,part);try{if((await lstat(at)).isSymbolicLink())throw Error('SYMLINK_REJECTED');}catch(e){if(e.code!=='ENOENT')throw e;}}
  return target;
 }
-export function validatePatch(files,allowed,maxBytes=60000){
+/** Tests and workflows are the only CI gate; the model must never be able to weaken them. */
+export function isProtectedPath(path){return typeof path==='string'&&(path.endsWith('.test.mjs')||path.startsWith('.github/'));}
+export function withinOwned(path,owned){return Array.isArray(owned)&&owned.some(p=>path===p||path.startsWith(p+'/'));}
+const ENV_ALLOW=['PATH','Path','HOME','USERPROFILE','APPDATA','LOCALAPPDATA','SystemRoot','SYSTEMROOT','TEMP','TMP','CODEX_HOME'];
+/** Allowlisted environment for the model child: no GitHub, database or Cloudflare credentials. */
+export function childEnv(env=process.env){
+ const out={};for(const k of ENV_ALLOW)if(env[k]!==undefined)out[k]=env[k];
+ for(const k of Object.keys(out))if(/^(GH_|GITHUB_|CLOUDFLARE_|CF_|SMETA_)/i.test(k))delete out[k];
+ return out;
+}
+export function validatePatch(files,allowed,maxBytes=60000,ownedPaths){
  if(!Array.isArray(files)||files.length===0||files.length>8)throw Error('INVALID_PATCH');
  const paths=new Set();let bytes=0;
- for(const f of files){if(!allowed.includes(f.path)||paths.has(f.path)||typeof f.content!=='string')throw Error('PATCH_SCOPE');paths.add(f.path);bytes+=Buffer.byteLength(f.content);}
+ for(const f of files){if(!allowed.includes(f.path)||paths.has(f.path)||typeof f.content!=='string')throw Error('PATCH_SCOPE');
+  if(isProtectedPath(f.path))throw Error('PATCH_PROTECTED_PATH');
+  if(ownedPaths!==undefined&&!withinOwned(f.path,ownedPaths))throw Error('OUTSIDE_OWNED_PATHS');
+  paths.add(f.path);bytes+=Buffer.byteLength(f.content);}
  if(bytes>maxBytes)throw Error('PATCH_SIZE');return files;
 }
 export async function modelJson({entry,directory,prompt,schema,signal,model}){
@@ -29,7 +42,7 @@ export async function modelJson({entry,directory,prompt,schema,signal,model}){
  await rm(output,{force:true}); await writeFile(schemaFile,JSON.stringify(schema));
  const args=[entry,'exec','--ignore-user-config','--ephemeral','--skip-git-repo-check','--sandbox','read-only','--disable','shell_tool','--disable','multi_agent','--disable','apps','--disable','plugins','-c','web_search="disabled"','-c','project_doc_max_bytes=0','-c','model_reasoning_effort="low"','--output-schema',schemaFile,'-o',output,'-C',directory];
  if(model)args.push('-m',model);args.push('-');
- await run(process.execPath,args,{cwd:directory,input:prompt,signal});return JSON.parse(await readFile(output,'utf8'));
+ await run(process.execPath,args,{cwd:directory,input:prompt,signal,env:childEnv()});return JSON.parse(await readFile(output,'utf8'));
 }
 export function previewEvidence(checks,sha,project){
  const candidates=checks.filter(c=>c.name==='Cloudflare Pages'&&c.app?.slug==='cloudflare-workers-and-pages'&&c.head_sha===sha&&c.conclusion==='success').sort((a,b)=>b.id-a.id);

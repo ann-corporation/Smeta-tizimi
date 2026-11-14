@@ -4,7 +4,7 @@ import { drainQueue } from './worker.mjs';
 import { createAdapters } from './github-pages-adapters.mjs';
 const [configFile,id]=process.argv.slice(2);
 try {
- if(!configFile||!id)throw Error('Usage: node live.mjs PRIVATE_CONFIG_JSON JOB_ID');
+ if(!configFile||!id)throw Error('Usage: node live.mjs PRIVATE_CONFIG_JSON JOB_ID|--queue');
  const config=JSON.parse(await readFile(configFile,'utf8'));
  const controller=new AbortController();process.once('SIGINT',()=>controller.abort());
  const queue=new EvolutionQueue(config.queueDirectory);
