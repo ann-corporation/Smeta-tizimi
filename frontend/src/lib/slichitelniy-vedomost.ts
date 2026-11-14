@@ -666,13 +666,14 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
     // Smeta: svod bo'limi yaxlit summasi QQS BILAN (server, bir marta); svod ma'lumoti yo'q — to'g'ri narxdagi tarkib × (1+QQS).
     const svQ = o.svodYaxlit && !o.faqatFarq ? svodYaxlitQqs(o.svodYaxlit, ndsFoiz)?.qqsBilan ?? null : null;
     const gSum = svQ ?? yaxlitKOplate(yigindi2(yi.map((i) => model.qatorlar[i].smetaSumma)), ndsFoiz) ?? 0;
-    yaxlit = { G: gSum, I: pSum, K: kSum, M: yaxlit2(pSum - gSum), O: tSum };
+    // Svod qatorida «farq (fakt − smeta)» katagi bo'sh: ikki xil daraja (svod ustamali, fakt to'g'ri narx × НДС) — solishtirish faqat перерасчет (fakt − Ф-2) orqali.
+    yaxlit = { G: gSum, I: pSum, K: kSum, M: 0, O: tSum };
     const bir = (c: string) => `ROUND(${sumif(YAXLIT_KAT, c)}*${yaxKf},2)`;
-    yaxlitF = { I: bir('I'), K: bir('K'), M: `ROUND(I${yaxQator}-G${yaxQator},2)`, O: bir('O') };
+    yaxlitF = { I: bir('I'), K: bir('K'), O: bir('O') };
   }
   const nomalumP = nomalumBor ? Object.fromEntries(Object.entries(nomalumQ).map(([k, x]) => [k, yaxlit2(x)])) : null;
   const nomalumF = nomalumBor ? Object.fromEntries(COLS.map((col) => [col, sumif(NOMALUM_KAT, col)])) : null;
-  const p = nakrutkaPodvaliYoz(v, { podval, katUstun: 'R', katUstunPer: { I: 'S', K: 'S', M: 'S', O: 'S' }, summaUstunPer: { M: 'T' }, oraliq: [a1, b1], pulUstunlar: COLS, foizUstun: 'F', nk, katSummalar, yaxlit, yaxlitF, nomalum: nomalumP, nomalumF });
+  const p = nakrutkaPodvaliYoz(v, { podval, katUstun: 'R', katUstunPer: { I: 'S', K: 'S', M: 'S', O: 'S' }, summaUstunPer: { M: 'T' }, oraliq: [a1, b1], pulUstunlar: COLS, foizUstun: 'F', nk, katSummalar, yaxlit, yaxlitF, yaxlitBosh: ['M'], nomalum: nomalumP, nomalumF });
   if (p.vsegoQator <= 0 || (ndsQ != null && p.kfQator.ЧЕЛ !== podvalKfQatorlari(podStart, podval, yaxlitBor, nomalumBor).ЧЕЛ)) throw new Error('SLICHITELNIY_PODVAL_SILJIDI');
   // Spravochno: svod ichidagi ЧЕЛ/МАШ (fakt va Ф-2 da — ustama bilan, smetada — svod summasi ichida): ЧЕЛ/МАШ qatorlari nega farq qilishi tushunarli bo'lsin.
   const svodMehnat = model.qatorlar.filter(f2Ustamali);
@@ -697,7 +698,7 @@ export function slichitelniyHujjatXlsx(model: SlichitelniyModel, o: Slichitelniy
   if (model.qatorlar.some((q) => q.almashtirilganIdlar?.length)) v.izoh('Замена: заменяемая позиция отмечена «исключается» (факт 0, смета видна, отклонение — минус), новая стоит сразу под ней — «взамен поз. N» (синий фон); дополнительные работы — желтый фон.');
   if (model.qatorlar.some((q) => q.bajarilmadi)) v.izoh('«НЕ ВЫПОЛНЯЕТСЯ» — позиция отмечена как невыполненная: остается в ведомости на своем месте, смета видна, факт 0, отклонение отрицательное.');
   if (yaxlitBor) v.izoh(YAXLIT_IZOH);
-  if (yaxlitBor) v.izoh('Разделы по своду: строки раздела показаны справочно (прямые цены), в итоги тела не входят. В подвале раздел один раз: по смете — единая сумма свода (с НДС), по факту и Ф-2 — прямые цены × (1+НДС) (труд — с накладными по правилу Ф-2). Отклонение по этой строке сопоставляет разные уровни (свод с накладными и прямые цены) — для сравнения используйте перерасчет (факт − Ф-2).');
+  if (yaxlitBor) v.izoh('Разделы по своду: строки раздела показаны справочно (прямые цены), в итоги тела не входят. В подвале раздел один раз: по смете — единая сумма свода (с НДС), по факту и Ф-2 — прямые цены × (1+НДС) (труд — с накладными по правилу Ф-2). Графа «отклонение» в строке свода пуста: два уровня (свод с накладными и прямые цены) — сравнение только через перерасчет (факт − Ф-2).');
   if (Object.values(kfJS).some((x) => x == null)) v.izoh('Проценты накладных и прочих расходов для объекта не заданы — стоимость с накладными не определена (проценты не принимаются равными 0).');
   /* Zanjir (F-2 aktlar → slichitelniy): podval K ВСЕГО (obyekt podvali) imzolangan F-2 aktlari (O'Z podvali) bilan solishtiriladi. */
   const vs = (c: string): number | null => p.natija[c]?.vsego ?? null;

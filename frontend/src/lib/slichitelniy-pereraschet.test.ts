@@ -455,12 +455,16 @@ describe('Сличительная ведомость — xlsx (exceljs bilan qa
     }));
     const podval = standartPodval(NK);
     const yaxK = (x: number) => r2(x * 1.12);
-    const yaxlit: Record<string, number> = { G: 1344, I: yaxK(700), K: yaxK(500), M: r2(yaxK(700) - 1344), O: yaxK(200) };
+    const yaxlit: Record<string, number> = { G: 1344, I: yaxK(700), K: yaxK(500), M: 0, O: yaxK(200) };
     for (const c of ['G', 'I', 'K', 'M', 'O']) {
       const nat = kaskad(bo[c] as never, podval, { asosiy: c === 'G', yaxlit: { qqsBilan: yaxlit[c] } });
       expect(keshOl(wb, ASOSIY, `${c}${vsegoRow}`), `ВСЕГО ${c}`).toBeCloseTo(nat.vsego as number, 2);
     }
     expect(vsegoRow).toBeGreaterThan(0);
+    let sq = 0; for (let i = 1; i <= ws.rowCount; i++) if (String(ws.getCell(`C${i}`).value ?? '').startsWith('РАЗДЕЛЫ ПО СВОДУ ЦЕЛОЙ')) sq = i;
+    expect(sq).toBeGreaterThan(0);
+    expect(ws.getCell(`M${sq}`).value ?? null).toBeNull();
+    expect(keshOl(wb, ASOSIY, `G${sq}`)).toBe(1344);
   });
 
   it('Свод изменений: до → исключаемые → замена → доп → после (formulalar), bo‘limlar, svod bir marta, podval jami; formula = kesh', async () => {
@@ -556,5 +560,17 @@ describe('Сличительная ведомость — xlsx (exceljs bilan qa
     const n = qatorNomi(wb, 'ПЕСОК КОРР');
     expect(H.get(ASOSIY, `T${n}`)).toBe(0);
     expect(keshOl(wb, ASOSIY, `T${n}`)).toBe(0);
+  });
+});
+
+describe('bekorAktlarQur (t2_akt: cancelled + correction_of_akt_id)', () => {
+  it('bekor akt: raqam, sana, almashtirgan akt, sabab; bekor emas — kirmaydi', async () => {
+    const { bekorAktlarQur } = await import('./oylik-hujjat/ostatka-slichitelniy');
+    const r = bekorAktlarQur([
+      { id: 1, raqam: '7', oy: '2026-10-01', lifecycle_status: 'cancelled', lifecycle_reason: 'ошибка', hujjat_jami: 100 },
+      { id: 2, raqam: '8', oy: '2026-10-01', lifecycle_status: 'approved', correction_of_akt_id: 1 },
+      { id: 3, raqam: '9', oy: '2026-11-01', lifecycle_status: 'approved' },
+    ]);
+    expect(r).toEqual([{ nomer: '№ 7', sana: '2026-10-01', summa: 100, almashtirgan: '№ 8', sabab: 'ошибка' }]);
   });
 });
