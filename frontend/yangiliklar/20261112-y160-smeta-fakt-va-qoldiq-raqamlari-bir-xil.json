@@ -1,0 +1,11 @@
+{
+  "id": 160,
+  "sana": "2026-11-12",
+  "sarlavha": "Smeta, fakt va qoldiq raqamlari hamma sahifada bir xil",
+  "bandlar": [
+    "Bir obyektning smetasi hamma joyda (boshqaruv paneli, obyektlar, loyiha, xarita, F2 reestri, obyekt holati) bitta qoida bilan hisoblanadi — asl smeta qatorlari yig‘indisi. Qo‘shimcha va zamena alohida «Smeta va o‘zgarishlar» blokida ko‘rinadi.",
+    "Ish varag‘ida fakt ikki marta sanalmaydi; Nakopitelniy fakti ish darajasida kiritilgan faktni resurslarga ham beradi. «Smetadan oshgan» ro‘yxatida ishlar ko‘rinadi. Qoldiqdan «bajarilmaydi» ishlar chiqariladi.",
+    "To‘lov kiritilmagan bo‘lsa «To‘langan 0» o‘rniga «—» ko‘rinadi. F3 va F2 Excel hujjatlarida tiyinlik yaxlitlash farqi alohida «Округление» qatorida ko‘rsatiladi.",
+    "Smeta yuklanganda fayldagi o‘z foizlar (podval) darhol obyektga yoziladi (faylda yo‘q ustama = 0%) va «Excel jami ↔ tizim jami» solishtiruvi natijada ko‘rsatiladi."
+  ]
+}

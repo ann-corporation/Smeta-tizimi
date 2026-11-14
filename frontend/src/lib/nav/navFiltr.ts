@@ -16,7 +16,7 @@ import { ROLE_PERMISSIONS, type CompanyMembershipRole } from '../company-authori
 import { menyuRuxsati } from '../company-authorization/route-permission';
 import { menyuModulYoqilgan } from '../modullar';
 import { menyuRolYopiq } from './menyuRolYopiq';
-import { NAV_GURUHLAR, NAV_SAHIFALAR, faqatSuperadminYolmi, ruxsatMos, type NavGuruh, type NavIkonka, type NavQatlam } from './navReestr';
+import { KUNDALIK_ISHLAR, NAV_GURUHLAR, NAV_SAHIFALAR, faqatSuperadminYolmi, ruxsatMos, type NavGuruh, type NavIkonka, type NavQatlam } from './navReestr';
 import { ILOVALAR, type IlovaKod, type IlovaTa } from '../ilova/ilovalar';
 
 export type NavKontekst = {
@@ -30,6 +30,8 @@ export type NavKontekst = {
   tizimXaritasi?: boolean;
   /** Ilova menyusi (ekotizim P1): berilsa — faqat shu ilova sahifalari; yo'q yoki 'hammasi' — «Barcha bo'limlar» (hammasi). */
   ilova?: IlovaKod | 'hammasi';
+  /** Qo'shimcha (hali ishlatilmaydigan) bo'limlar: 'hammasi' (sukut, o'zgarishsiz) | 'yashir' (asosiy menyu) | 'faqat' (`Qo'shimcha bo'limlar` guruhi). */
+  qoshimcha?: 'hammasi' | 'yashir' | 'faqat';
 };
 
 /** Platforma darajasidagi ruxsat bilan ochiladigan sahifa (kompaniya capability si emas). */
@@ -69,7 +71,8 @@ export function menyuQur(k: NavKontekst, guruhlar: readonly NavGuruh[] = NAV_GUR
   return guruhlar.map((g) => ({
     id: g.id, nom: g.nom, ikonka: g.ikonka, qatlam: g.qatlam,
     bandlar: g.bandlar.flatMap((b): MenyuBand[] => {
-      const sahifalar = b.sahifalar.filter((s) => ilovaMenyusida(s.ilova, k.ilova) && sahifaKorinadi(g, s.yol, k));
+      const sahifalar = b.sahifalar.filter((s) => ilovaMenyusida(s.ilova, k.ilova) && sahifaKorinadi(g, s.yol, k)
+        && (k.qoshimcha === 'yashir' ? !s.qoshimcha : k.qoshimcha === 'faqat' ? !!s.qoshimcha : true));
       if (!sahifalar.length) return [];
       const band: MenyuBand = { yol: sahifalar[0].yol, nom: b.sahifalar.length > 1 ? b.nom : sahifalar[0].nom, ikonka: b.ikonka };
       /* Tabli band: tablar faqat ko'ringan sahifalardan; bittasi qolsa ham tab-guruh saqlanadi (BolimTablari 2+ da chizadi). */
@@ -77,6 +80,14 @@ export function menyuQur(k: NavKontekst, guruhlar: readonly NavGuruh[] = NAV_GUR
       return [band];
     }),
   })).filter((g) => g.bandlar.length > 0);
+}
+
+/** Yon menyu tepasidagi «Kundalik ishlar»: reestrdagi KUNDALIK_ISHLAR dan shu kontekstda ko'rinadiganlari (yagona filtr). */
+export function kundalikIshlar(k: NavKontekst): Array<{ yol: string; nom: string; ikonka: NavIkonka }> {
+  return KUNDALIK_ISHLAR.filter((b) => {
+    const s = NAV_SAHIFALAR.find((x) => x.yol === b.yol);
+    return !!s && sahifaKorinadi(s.guruh, s.yol, k);
+  });
 }
 
 /** Test/hisobot uchun: menyudagi barcha ko'ringan yo'llar (tablar bilan). */
@@ -88,7 +99,8 @@ export function menyuYollari(menyu: readonly MenyuGuruh[]): string[] {
  *  yol — ilovaning birinchi ko'rinadigan sahifasi (bosilganda shu ochiladi). */
 export type IlovaKarta = IlovaTa & { yol: string; sahifaSoni: number };
 export function ilovalarRoyxati(k: NavKontekst): IlovaKarta[] {
-  const hammasi = menyuQur({ ...k, ilova: 'hammasi' });
+  /* Qo'shimcha (hali ishlatilmaydigan) bo'limlar ilova ishga tushirgichni to'ldirmaydi — ular yon menyudagi «Qo'shimcha bo'limlar»da. */
+  const hammasi = menyuQur({ ...k, ilova: 'hammasi', qoshimcha: 'yashir' });
   const yollar = new Set(menyuYollari(hammasi));
   const natija: IlovaKarta[] = [];
   for (const i of [...ILOVALAR].sort((a, b) => a.tartib - b.tartib)) {

@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
@@ -16,6 +16,7 @@ const BEPUL: Record<string, string> = {
   'umumiy/hujjat/HujjatKorinish.tsx': 'ko‘rish oynasi — bu baytlar ochilishdan oldin token bilan to‘langan',
   'admin/sahifalar/FaylMenejer.tsx': 'foydalanuvchining o‘zi yuklagan fayllari (uning mulki)',
   'admin/sahifalar/NormSmetaWorkbench.tsx': 'ichki review JSON (katalog tekshiruvi), hujjat emas',
+  'components/imzo/ImzoUi.tsx': 'imzolangan nusxa (IMZO varag‘i qo‘shilgan) — avval to‘langan hujjatning qayta yuklanishi; takror yechilmaydi (egasi 2026-11-13), imzolashning o‘zi token yechadi (t2-imzo.ts, hujjat: IMZO)',
   'lib/lrv-plus-export.ts': '`lrvPlusYuklab` — chaqiruvchisi yo‘q (LRV HolatNative orqali token bilan beriladi)',
 };
 

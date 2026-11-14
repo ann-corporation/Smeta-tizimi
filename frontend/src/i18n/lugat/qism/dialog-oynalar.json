@@ -1,0 +1,9 @@
+{
+  "Baribir davom etish": { "ru": "Всё равно продолжить", "en": "Continue anyway" },
+  "Sabab (ixtiyoriy):": { "ru": "Причина (необязательно):", "en": "Reason (optional):" },
+  "Sabab:": { "ru": "Причина:", "en": "Reason:" },
+  "Sabab (auditga yoziladi):": { "ru": "Причина (записывается в аудит):", "en": "Reason (recorded in the audit):" },
+  "Rad etish sababi (majburiy):": { "ru": "Причина отказа (обязательно):", "en": "Reason for rejection (required):" },
+  "Bekor qilish sababi:": { "ru": "Причина отмены:", "en": "Reason for cancellation:" },
+  "Bog'lanishni uzasizmi? (Yozuvlarning o'zi O'CHMAYDI)": { "ru": "Разорвать связь? (Сами записи НЕ удаляются)", "en": "Break the link? (The records themselves are NOT deleted)" }
+}

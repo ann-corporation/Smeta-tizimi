@@ -3,7 +3,7 @@
  *
  * POST { amal:'kod', email }                         → 6 xonali kod emailga (Resend); { ok, tasdiqlash_id }
  * POST { amal:'tasdiqla', tasdiqlash_id, email, kod, ism?, operation_id }
- *      → mavjud hisob bo'lsa kirish, bo'lmasa yangi hisob (o'z kompaniyasi + bepul tarif); /api/kirish bilan bir xil
+ *      → mavjud hisob bo'lsa kirish, bo'lmasa yangi hisob (FAQAT shaxsiy hisob: a'zoliksiz, kompaniya/tarif YO'Q — 20261111460000; ishga kirish: taklif yoki STIR so'rovi); /api/kirish bilan bir xil
  *        imzolangan sessiya cookie. Javob: { ok, yangi, rol, demo }.
  *
  * Xavfsizlik: kodning o'zi bazaga yozilmaydi (HMAC xesh, SESSIYA_KALIT bilan); 10 daqiqa, 5 urinish, email/IP limitlari

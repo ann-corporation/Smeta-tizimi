@@ -2,13 +2,14 @@ import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { ContractScopePanel } from '../../components/contract-scope/ContractScopePanel';
 import { ObjectMoneySummary } from '../../components/pto-workspace/ObjectMoneySummary';
 import { ObjectTrail } from '../../components/pto-workspace/ObjectTrail';
-import { ObyektQadamlari } from '../components/ObyektQadamlari';
+import { ZanjirChizigi } from '../components/ZanjirChizigi';
 import { ObyektPodvalOgohi } from './SmetaPodvalNakrutka';
 import { MarketPriceComparison } from '../../components/smeta-studio-pro/MarketPriceComparison';
 import { marketReadPrice } from '../../lib/smeta-studio/market-comparison';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, Ban, ChevronDown, Eye, FileSpreadsheet, Info, MoreHorizontal, Plus, Upload, X } from 'lucide-react';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ArxivTugma } from '../../components/arxiv/ArxivTugma';
+import { AlertTriangle, ArrowLeft, Ban, ChevronDown, Eye, FileSpreadsheet, FileText, Info, MoreHorizontal, Plus, Upload, X } from 'lucide-react';
 import { SmetaTree } from '../../umumiy/daraxt/SmetaTree';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
@@ -24,7 +25,16 @@ import { t } from '../../i18n/til';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
 import { useQaytaUlanish } from '../../desktop/qayta-ulanish';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
-import { ostatkaHujjatQur, slichitelniyHujjatQur, ustamaManbaOl } from '../../lib/oylik-hujjat/ostatka-slichitelniy';
+import { SLICH_DAVR, bajarilmadiIdlariOl, bekorAktlarOl, ostatkaHujjatQur, slichitelniyHujjatQur, ustamaManbaOl } from '../../lib/oylik-hujjat/ostatka-slichitelniy';
+import { nakopitelniyAktlarKOplate } from '../../lib/oylik-hujjat/nakopitelniy';
+import { slichitelniyFarqSoni } from '../../lib/slichitelniy-farq-soni';
+import { zanjirDaraxtdan } from '../../lib/zanjir/qadamlar';
+import { tolovHolatiSvoddan, type TolovHolati } from '../../lib/zanjir/tolovHolati';
+import { bandsizdaBajar } from '../../lib/bandsizda-bajar';
+import { shartnomaSvodOl } from '../../api/t2-nakopitelniy';
+import { sbAosrReestrOl } from '../../api/t2-aosr';
+import { SlichitelniyTayyorlik } from './SlichitelniyTayyorlik';
+import { SlichitelniyTsikl } from './SlichitelniyTsikl';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { HujjatTomonlariPanel, useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
 import { toast } from '../../umumiy/ui/Toast';
@@ -38,7 +48,6 @@ import { SmetaAnatomiya } from '../../components/smeta-hujjat/SmetaAnatomiya';
 import { SmetaVersiyaFarq, VersiyaAlmashtirilganBelgi } from './SmetaVersiyaFarq';
 import { yaxlitQatorIdlari } from '../../lib/svod-yaxlit';
 import { MuhrFarqXulosa, useMuhrFarq } from '../../umumiy/daraxt/MuhrFarqXulosa';
-import { KeyingiQadamPanel } from '../../components/qollanma/KeyingiQadamPanel';
 import { IshVaraq } from './IshVaraq';
 
 /**
@@ -51,13 +60,19 @@ export function HolatNative() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedPanel = searchParams.get('panel');
-  const [exportsOpen,setExportsOpen] = useState(false);
+  /* Zanjir chizig'idagi «Slichitelniy» havolasi (#slichitelniy) — hujjatlar bo'limini ochadi va shu qatorga o'tadi. */
+  const [exportsOpen,setExportsOpen] = useState(() => typeof window !== 'undefined' && window.location.hash === '#slichitelniy');
+  /* Sahifa ichida (yoki qayta) bosilganda ham: hash o'zgarsa yoki havola yana bosilsa (location.key) — bo'lim ochiladi. */
+  const location = useLocation();
+  useEffect(() => { if (location.hash === '#slichitelniy') setExportsOpen(true); }, [location.hash, location.key]);
   const panelTab = requestedPanel === 'smeta' ? 'yuklash' : requestedPanel === 'versiya' ? 'versiya' : 'smeta';
   const [activeTab, setActiveTab] = useState(panelTab);
+  /** Yuklash ustasidan «Yangi versiya sifatida saqlash» — fayl «Versiyalar va farq» formasiga oldindan qo'yiladi. */
+  const [versiyaFayli, setVersiyaFayli] = useState<File | null>(null);
   /* Ish varag'i rejimi (egasi 2026-11-11): URL `?rejim=varaq` (route emas); sukut — Daraxt. Og'ir panellar — bitta «Boshqa» tugmasi ortida. */
   const varaq = searchParams.get('rejim') === 'varaq';
   const [boshqaOchiq, setBoshqaOchiq] = useState(false);
-  const rejimQoy = (r: 'daraxt' | 'varaq') => setSearchParams((p) => { const n = new URLSearchParams(p); if (r === 'varaq') n.set('rejim', 'varaq'); else n.delete('rejim'); return n; }, { replace: true });
+  const rejimQoy = (r: 'daraxt' | 'varaq') => setSearchParams((p) => { const n = new URLSearchParams(p); if (r === 'varaq') { n.set('rejim', 'varaq'); n.delete('panel'); setBoshqaOchiq(false); } else n.delete('rejim'); return n; }, { replace: true }); /* panel parametri qolsa (masalan «Smeta va bajarilish» tabi) varaq pastga tushib, tugma «ishlamayotgandek» ko'rinardi */
   /* Daraxt rejimida hamma panel ko'rinadi; varaq rejimida — faqat «Boshqa» ochiq bo'lganda (yoki ?panel= bilan aniq so'ralganda). */
   const panellar = !varaq || boshqaOchiq || requestedPanel != null;
   const { joriy } = useKompaniya();
@@ -84,7 +99,8 @@ export function HolatNative() {
   useQaytaUlanish(useCallback(() => { setError(''); if (validId) void yuklash(); }, [validId, yuklash]));
   /* SMETA CONST (egasi 2026-10-27): asl smeta muhridan farq — daraxt qayta yuklanganda yangilanadi. */
   const muhr = useMuhrFarq(validId ? obyektId : null, daraxtXom);
-  useEffect(() => { setOchiqPanel(null); setExportsOpen(false); setActiveTab(panelTab); setError(''); }, [obyektId, joriy?.id, requestedPanel, panelTab]);
+  /* Obyekt/kompaniya almashsa bo'limlar yopiladi — lekin #slichitelniy havolasi bilan kelingan bo'lsa ochiq qoladi (kompaniya keyin yuklansa ham). */
+  useEffect(() => { setOchiqPanel(null); setExportsOpen(window.location.hash === '#slichitelniy'); setActiveTab(panelTab); setError(''); }, [obyektId, joriy?.id, requestedPanel, panelTab]);
   /* Panellar faqat DARAXT xatosiga qaraydi (obyektlar ro'yxati yoki eksport xatosi ularni yashirmaydi). */
   const error = daraxtXato;
   // Taqqoslash ham aynan to'liq o'qilgan kanonik qatorlardan; ikkinchi 20k cut-off yo'q.
@@ -93,6 +109,43 @@ export function HolatNative() {
     .map(r => ({ id: String(r.id), name: r.nom, unit: r.birlik, price: marketReadPrice(r.narx) })) : [], [daraxtXom, activeTab]);
   const istisno = useOstatkaIstisnolari(validId ? obyektId : null);
   const workspace = usePTOWorkspace();
+  /* Zanjir chizig'i uchun sonlar: sahifa allaqachon yuklagan daraxt+holatdan (yangi so'rov yo'q). Yuklanmagan/bo'sh — hammasi null. */
+  /* To'lov qadami: bitta mavjud akt-sverka svodi (shartnomaSvodOl) — faqat shu sahifada, daraxt yuklangach; o'qilmasa/bog'lanmagan — null (noma'lum). */
+  const [zanjirTolov, setZanjirTolov] = useState<{ kalit: string; v: TolovHolati | null } | null>(null);
+  const tolovKalit = validId && joriy?.id ? `${joriy.id}:${obyektId}` : '';
+  /* Tezlik (2026-11-14): ikkala tarmoq o'qishi (butun kompaniya svodi, АОСР reestri) daraxt va qo'shimchalar to'liq o'rnashgach, brauzer bo'sh turganda boshlanadi — daraxt o'qishi/chizishi bilan raqobatlashmaydi. */
+  const ikkilamchiTayyor = !loading && daraxtXom.length > 0 && qoshimchaHolat !== 'yuklanmoqda';
+  useEffect(() => {
+    if (!tolovKalit || !joriy?.id || !ikkilamchiTayyor) return;
+    let faol = true;
+    const bekor = bandsizdaBajar(() => { if (faol) void shartnomaSvodOl(joriy.id).then((r) => { if (faol) setZanjirTolov({ kalit: tolovKalit, v: r.ok ? tolovHolatiSvoddan(r.natija.shartnomalar, obyektId) : null }); }).catch(() => { if (faol) setZanjirTolov({ kalit: tolovKalit, v: null }); }); });
+    return () => { faol = false; bekor(); };
+  }, [tolovKalit, joriy?.id, obyektId, ikkilamchiTayyor]);
+  /* АОСР qadami obyekt darajasida: bitta mavjud reestr o'qishi (jami / ishga bog'lanmaganlar); o'qilmasa — null (noma'lum). */
+  const [zanjirAosr, setZanjirAosr] = useState<{ kalit: string; v: { jami: number; boglanmagan: number } | null } | null>(null);
+  const aosrKalit = validId ? String(obyektId) : '';
+  useEffect(() => {
+    if (!aosrKalit || !ikkilamchiTayyor) return;
+    let faol = true;
+    const bekor = bandsizdaBajar(() => { if (faol) void sbAosrReestrOl(obyektId).then((r) => {
+      if (!faol) return;
+      const q = r.ok ? (r.qatorlar ?? []).filter((a) => a.holat !== 'bekor') : null;
+      setZanjirAosr({ kalit: aosrKalit, v: q ? { jami: q.length, boglanmagan: q.filter((a) => !(a.boglangan_ish_soni > 0)).length } : null });
+    }).catch(() => { if (faol) setZanjirAosr({ kalit: aosrKalit, v: null }); }); });
+    return () => { faol = false; bekor(); };
+  }, [aosrKalit, obyektId, ikkilamchiTayyor]);
+  /* Daraxtdan hisoblanadigan qism (O(n), to'liq model QURILMAYDI) — tolov/АОСР javobi kelganda qayta hisoblanmaydi. */
+  const zanjirDaraxtSonlari = useMemo(() => {
+    if (!validId || loading || daraxtXom.length === 0) return undefined;
+    let farqli: number | null = null;
+    try { farqli = slichitelniyFarqSoni(daraxtXom, holatXom); } catch { farqli = null; }
+    return zanjirDaraxtdan(daraxtXom, holatXom, farqli);
+  }, [validId, loading, daraxtXom, holatXom]);
+  const zanjirQoshimcha = useMemo(() => zanjirDaraxtSonlari && ({ ...zanjirDaraxtSonlari, tolov: zanjirTolov?.kalit === tolovKalit ? zanjirTolov.v : null, aosrReestr: zanjirAosr?.kalit === aosrKalit ? zanjirAosr.v : null }),
+    [zanjirDaraxtSonlari, zanjirTolov, tolovKalit, zanjirAosr, aosrKalit]);
+  useEffect(() => {
+    if (exportsOpen && tree.length > 0 && location.hash === '#slichitelniy') document.getElementById('slichitelniy')?.scrollIntoView?.({ block: 'center' });
+  }, [exportsOpen, tree.length, location.hash, location.key]);
   /* Obyekt yozuvi: sahifa ro'yxatidan, bo'lmasa PTO kontekstidan (ikkalasi ham kanonik t2_obyekt_jami). */
   const selected = obyektlar.find((o) => o.id === obyektId && o.kompaniya_id === joriy?.id)
     ?? workspace.objects.find((o) => o.id === obyektId && o.kompaniya_id === joriy?.id) ?? null;
@@ -143,6 +196,12 @@ export function HolatNative() {
    * tepadan qo'lda qayta tanlashi kerak edi. Scope setter'larining o'zi
    * kompaniya/loyiha chegarasini tekshiradi -- bu yerda hech qanday
    * ruxsat kengaytirilmaydi, faqat ochilgan obyekt bilan moslashtiriladi. */
+  /* Navigatsiya oqimi: yuqoridagi (yagona) tanlovda obyekt bor, lekin sahifa obyektsiz ochilgan (/admin/holat) — sahifa
+   * o'sha obyektni o'zi ochadi; «Obyektni tanlang» ikkinchi marta so'ralmaydi. */
+  useEffect(() => {
+    if (validId || !workspace.isProvider || workspace.scope.objectId == null || workspace.loading.hierarchy) return;
+    navigate(`/admin/holat/${workspace.scope.objectId}${workspace.scopeSearch(workspace.scope.objectId)}`, { replace: true });
+  }, [validId, workspace, navigate]);
   const yangilanganObyekt = useRef<number | null>(null);
   useEffect(() => {
     if (!validId || workspace.loading.hierarchy) return;
@@ -281,7 +340,10 @@ export function HolatNative() {
     try {
       const u = await ustamaManbaOl(joriy.id, obyektId);
       if (!u.ok) { setError(`Slichitelniy: ${u.xato} — hujjat tuzilmadi. Qayta urinib ko‘ring.`); return; }
-      const { model, fayl } = slichitelniyHujjatQur({ rows: daraxtXom, states: holatXom, istisnolar, ustama: u.ustama, obyektNom, imzo: tomonlar, faqatFarq: slichFaqatFarq });
+      // Egasi (2026-11-14): «Asos» (АОСР) ustuni hujjatda kerak emas; asos tayyorligi ichki panelda (SlichitelniyTayyorlik) qoladi.
+      // «Ranee предъявлено» к оплате — F-2 aktlarining o'z podvali bilan solishtiriladi (o'qilmasa hujjatda ogohlantirish, jim emas).
+      const aktlarKOplate = await nakopitelniyAktlarKOplate(joriy.id, obyektId, obyektNom, SLICH_DAVR);
+      const { model, fayl } = slichitelniyHujjatQur({ rows: daraxtXom, states: holatXom, istisnolar, ustama: u.ustama, obyektNom, imzo: tomonlar, faqatFarq: slichFaqatFarq, aktlarKOplate, bajarilmadiIdlar: await bajarilmadiIdlariOl(joriy.id, obyektId), bekorAktlar: await bekorAktlarOl(obyektId) });
       if (!fayl) { toast(slichFaqatFarq ? 'Farq yo‘q: barcha pozitsiyalarda fakt smeta bilan teng.' : 'Solishtiriladigan pozitsiya yo‘q.', 'warn'); return; }
       const { bytes, faylNomi } = fayl;
       const t = await hujjatTokenBilan({ kompaniyaId: joriy.id, bytes, hujjat: 'SLICHITELNIY', sabab: `Сличительная ведомость · ${obyektNom}`, obyekt: obyektId },
@@ -326,12 +388,14 @@ export function HolatNative() {
       yangilanmoqda={loading || yangilanmoqda}
       amallar={<>
         {selected && <button type="button" className="fz-btn" aria-expanded={exportsOpen} onClick={() => setExportsOpen(v => !v)}><FileSpreadsheet aria-hidden="true" />{t('Hujjatlar va eksport')}<ChevronDown aria-hidden="true" style={{ transform: exportsOpen ? 'rotate(180deg)' : undefined, transition: 'transform .12s' }} /></button>}
-        {validId && <button type="button" onClick={() => navigate(`/admin/fakt?obyekt=${obyektId}`)} className="fz-btn fz-btn--primary"><Plus aria-hidden="true" />{t('Fakt kiritish')}</button>}
+        {selected && <ArxivTugma tur="obyekt" id={selected.id} nom={selected.nom} kichik={false} onDone={() => { workspace.setObjectId(null); workspace.refresh(); navigate('/admin/obyektlar'); }} />}
+        {validId && <button type="button" onClick={() => navigate(`/admin/fakt?obyekt=${obyektId}`)} className="fz-btn"><Plus aria-hidden="true" />{t('Fakt kiritish')}</button>}
+        {validId && <button type="button" data-testid="f2-tayyorlash-tugma" onClick={() => navigate(`/admin/f2-tayyorlash?obyekt=${obyektId}`)} className="fz-btn fz-btn--primary"><FileText aria-hidden="true" />{t('F-2 tayyorlash')}</button>}
       </>}
     >
       {korinish.oyna}
       <div className="flex min-h-0 flex-col gap-3">
-        {validId && <ObyektQadamlari obyektId={obyektId} />}
+        {validId && <ZanjirChizigi obyektId={obyektId} qoshimcha={zanjirQoshimcha} />}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <button type="button" onClick={() => navigate('/admin/obyektlar')} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" aria-label="Obyektlarga qaytish" title={t('Obyektlarga qaytish')}><ArrowLeft aria-hidden="true" /></button>
           {validId && <div className="min-w-0 flex-1"><ObjectTrail companyId={joriy?.id ?? null} objectId={obyektId} /></div>}
@@ -341,17 +405,14 @@ export function HolatNative() {
               style={{ height: 28, cursor: 'pointer', border: 0, fontWeight: varaq === (r === 'varaq') ? 600 : 500, background: varaq === (r === 'varaq') ? 'var(--surface)' : 'transparent', color: varaq === (r === 'varaq') ? 'var(--accent-text)' : 'var(--text-dim)' }}>{nom}</button>)}
           </div>}
           {varaq && validId && <button type="button" className="fz-btn fz-btn--sm" aria-expanded={boshqaOchiq} onClick={() => setBoshqaOchiq((v) => !v)} data-testid="boshqa-tugma"><MoreHorizontal aria-hidden="true" />{t('Boshqa')}</button>}
-          <label className="ml-auto flex min-w-[240px] max-w-[420px] flex-1 items-center gap-2 text-[12px] font-medium text-text-dim">
+          {!(workspace.isProvider && workspace.companyId != null) && <label className="ml-auto flex min-w-[240px] max-w-[420px] flex-1 items-center gap-2 text-[12px] font-medium text-text-dim">
             <span className="shrink-0">{t('Obyekt')}</span>
             <select value={validId ? String(obyektId) : ''} onChange={(e) => { const nextId = Number(e.target.value); if (Number.isSafeInteger(nextId) && nextId > 0) navigate(`/admin/holat/${nextId}${workspace.scopeSearch(nextId)}`); else { workspace.setObjectId(null); navigate('/admin/holat'); } }} className="h-8 min-w-0 flex-1 rounded-md border border-[var(--border-strong)] bg-surface-2 px-2 text-[13px] text-text">
               <option value="">{t('-- obyektni tanlang --')}</option>
               <ObyektOptionlari obyektlar={obyektlar} />
             </select>
-          </label>
+          </label>}
         </div>
-
-        {/* Egasi (2026-11-05): «Keyingi qadam» murabbiyi — smeta → podval → fakt → F2 → tasdiqlash → portfel. */}
-        {validId && selected && !varaq && <KeyingiQadamPanel obyektId={obyektId} smetaBor={loading || daraxtXato ? null : daraxtXom.length > 0} />}
 
         {exportsOpen && selected && <section className="fz-card" aria-label={t('Hujjatlar va eksport')}>
           <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}>
@@ -370,6 +431,7 @@ export function HolatNative() {
                 'ЛРВ: butun smeta Ф-2 shaklida — guruhlash, filtr, fakt / F2 / ostatka, resurs vedomosti va svod formulalarda')}
               {eksportQator('Ostatka vedomosti', 'Bajarilmay qolgan ishlar (smeta − fakt), RZ ierarxiyasi, jami va imzolar.', 'Ostatka Excel', 'Ostatka ko‘rish', () => void ostatkaEksport(false), () => void ostatkaEksport(true),
                 'ВЕДОМОСТЬ ОСТАТКА РАБОТ: bajarilmay qolgan ishlar (smeta − fakt) smeta shaklida, RZ ierarxiyasi, ИТОГО, imzolar.')}
+              <div id="slichitelniy" className="scroll-mt-24" />
               {eksportQator('Slichitelniy vedomost', 'Smeta va haqiqatda bajarilgan hajm (va tasdiqlangan F2) har pozitsiya bo‘yicha, farq summasi bilan.', 'Slichitelniy Excel', 'Slichitelniy ko‘rish', () => void slichitelniyEksport(false), () => void slichitelniyEksport(true),
                 'СЛИЧИТЕЛЬНАЯ ВЕДОМОСТЬ: smeta va haqiqatda bajarilgan hajm (va tasdiqlangan Ф-2) har pozitsiya bo\'yicha, farq (+/−) summasi bilan, imzolar.',
                 <label className="mt-1 inline-flex items-center gap-1.5 text-[11.5px] text-text-dim" title={t('Slichitelniy vedomostga faqat fakt smetadan farq qiladigan pozitsiyalar kirsin')}>
@@ -424,6 +486,26 @@ export function HolatNative() {
         {/* Firuza (egasi 2026-10-25): smeta anatomiyasi — daraxt ustida bir qarashda holat (smeta / fakt / F2 / qoldiq — yagona jami). */}
         {daraxtKorinadi && tree.length > 0 && activeTab === 'smeta' && panellar && <SmetaAnatomiya tree={tree} obyektId={obyektId} />}
         {daraxtKorinadi && tree.length > 0 && activeTab === 'smeta' && panellar && <MuhrFarqXulosa royxat={muhr.royxat} />}
+        {daraxtKorinadi && !loading && !error && activeTab === 'smeta' && panellar && joriy?.id != null && (
+          <details className="fz-card" open={ochiqPanel === 'tayyorlik'} onToggle={(e) => setOchiqPanel(e.currentTarget.open ? 'tayyorlik' : null)}>
+            <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-[13px] font-semibold text-text">
+              <Info size={15} aria-hidden="true" className="text-text-mute" />
+              <span>{t('Slichitelniy tayyorligi (farq asoslari)')}</span>
+              <span className="ml-auto text-[11.5px] font-normal text-text-mute">{ochiqPanel === 'tayyorlik' ? t('yopish ▴') : t('ochish ▾')}</span>
+            </summary>
+            {ochiqPanel === 'tayyorlik' && <div className="border-t border-border px-4 py-3"><SlichitelniyTayyorlik kompaniyaId={joriy.id} obyektId={obyektId} /></div>}
+          </details>
+        )}
+        {daraxtKorinadi && !loading && !error && activeTab === 'smeta' && panellar && joriy?.id != null && (
+          <details className="fz-card" open={ochiqPanel === 'tsikl'} onToggle={(e) => setOchiqPanel(e.currentTarget.open ? 'tsikl' : null)}>
+            <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-[13px] font-semibold text-text">
+              <Info size={15} aria-hidden="true" className="text-text-mute" />
+              <span>{t('Slichitelniy sikli: к доплате / к снятию → Ф-2 qoralama')}</span>
+              <span className="ml-auto text-[11.5px] font-normal text-text-mute">{ochiqPanel === 'tsikl' ? t('yopish ▴') : t('ochish ▾')}</span>
+            </summary>
+            {ochiqPanel === 'tsikl' && <div className="border-t border-border px-4 py-3"><SlichitelniyTsikl kompaniyaId={joriy.id} obyektId={obyektId} qatorlar={daraxtXom} holatlar={holatXom} /></div>}
+          </details>
+        )}
         {daraxtKorinadi && !loading && !error && activeTab === 'smeta' && panellar && (
           <details className="fz-card" open={ochiqPanel === 'istisno'} onToggle={(e) => setOchiqPanel(e.currentTarget.open ? 'istisno' : null)}>
             <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-[13px] font-semibold text-text">
@@ -445,26 +527,31 @@ export function HolatNative() {
         {panellar && activeTab === 'shartnoma' && daraxtKorinadi && !loading && !error && <ContractScopePanel key={`${joriy?.id}:${obyektId}`} objectId={obyektId} lines={daraxtXom.map(q => ({ id: q.id, ota_id: q.ota_id, tur: q.tur, nom: q.nom ?? '', summa: q.summa, versiya: q.versiya }))} />}
         {panellar && activeTab === 'narx' && daraxtKorinadi && !loading && !error && <MarketPriceComparison lines={marketLines} objectId={obyektId} companyId={joriy?.id ?? null} />}
 
-        {panellar && daraxtKorinadi && !loading && !error && (
+        {/* Yuklash ustasi import paytida yuklanish (loading) belgisi bilan UNMOUNT bo'lmaydi — aks holda natija ekrani yo'qolib, bo'sh «Fayl» bosqichiga qaytardi. */}
+        {panellar && daraxtKorinadi && !error && (
           <div key={`${joriy?.id}|${obyektId}`} className="shrink-0 space-y-3" aria-label="LRV kundalik boshqaruv panellari">
             <section hidden={activeTab !== 'yuklash'} className="fz-card">
               <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}><h3 className="fz-card__title" style={{ fontSize: 14, lineHeight: '20px' }}>{t('Smeta XLSX yuklash')}</h3></div>
-              {activeTab === 'yuklash' && <div className="p-4"><SmetaYuklaNative obyektId={obyektId} onImportlandi={yuklash} /></div>}
+              {activeTab === 'yuklash' && <div className="p-4"><SmetaYuklaNative obyektId={obyektId} onImportlandi={yuklash}
+                onSmetaOchish={() => setActiveTab('smeta')}
+                onNarxlashOchish={() => setActiveTab('narx')}
+                onFaktgaOtish={() => navigate(`/admin/fakt?obyekt=${obyektId}`)}
+                onVersiyaSaqla={(fayl) => { setVersiyaFayli(fayl); setActiveTab('versiya'); }} /></div>}
             </section>
             {/* PTO-CORE-001: tashqi smeta versiyasi (ekspertizagacha …) → farq → da'vo; joriy smeta o'zgarmaydi. */}
-            {activeTab === 'versiya' && joriy?.id != null && (
+            {activeTab === 'versiya' && !loading && joriy?.id != null && (
               <section className="fz-card">
                 <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}><h3 className="fz-card__title" style={{ fontSize: 14, lineHeight: '20px' }}>{t('Versiyalar va farq')}</h3></div>
-                <div className="p-4"><SmetaVersiyaFarq kompaniyaId={joriy.id} obyektId={obyektId} obyektNom={obyektNom} joriyQatorlar={daraxtXom} tomonlar={tomonlar} /></div>
+                <div className="p-4"><SmetaVersiyaFarq kompaniyaId={joriy.id} obyektId={obyektId} obyektNom={obyektNom} joriyQatorlar={daraxtXom} tomonlar={tomonlar} boshlangichFayl={versiyaFayli} /></div>
               </section>
             )}
             <section hidden={activeTab !== 'resurs'} className="fz-card">
               <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}><h3 className="fz-card__title" style={{ fontSize: 14, lineHeight: '20px' }}>{t('Resurs vedomosti')}</h3></div>
-              {activeTab === 'resurs' && <div className="p-4"><ResursVedomostNative obyektId={obyektId} /></div>}
+              {activeTab === 'resurs' && !loading && <div className="p-4"><ResursVedomostNative obyektId={obyektId} /></div>}
             </section>
             <section hidden={activeTab !== 'narx'} className="fz-card">
               <div className="fz-card__head" style={{ minHeight: 44, padding: '8px 16px' }}><h3 className="fz-card__title" style={{ fontSize: 14, lineHeight: '20px' }}>{t('Narx nazorati')}</h3></div>
-              {activeTab === 'narx' && <div className="p-4"><NarxNazoratNative obyektId={obyektId} /></div>}
+              {activeTab === 'narx' && !loading && <div className="p-4"><NarxNazoratNative obyektId={obyektId} /></div>}
             </section>
           </div>
         )}

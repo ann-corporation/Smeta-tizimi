@@ -36,7 +36,7 @@ export async function rahbarXlsx(p: RahbarPanel, o: { qamrovNomi: string; sana?:
   const fk = faktKarta(p);
   paket('Выполнено (факт, всего)', fk.fakt, fk.foizSmeta != null ? `${fk.foizSmeta}% от сметы` : '');
   paket('Сдано заказчику (утверждённые Ф2, период)', k.bajarildi.davr, `Актов: ${k.bajarildi.akt_soni}`);
-  paket('Сдано заказчику (утверждённые Ф2, всего)', k.bajarildi.jami, k.bajarildi.foiz_smeta != null ? `${k.bajarildi.foiz_smeta}% от сметы` : '');
+  paket('Сдано заказчику (утверждённые Ф2, всего)', k.bajarildi.jami, k.bajarildi.foiz_smeta != null ? `${k.bajarildi.foiz_smeta}% ${k.bajarildi.foiz_smeta_joriy ? 'от сметы с изменениями' : 'от сметы'}` : '');
   yakka('Выполнено, но не сдано (факт − утв. Ф2)', fk.topshirilmagan, fk.diqqatSoni > 0 ? `Объектов во «Внимании»: ${fk.diqqatSoni}` : '');
   yakka('Оплачено (период)', k.tolandi.davr);
   yakka('Дебиторка', k.debitor.qiymat, k.debitor.yosh ? `0–30: ${k.debitor.yosh.k0_30}; 30–60: ${k.debitor.yosh.k30_60}; 60+: ${k.debitor.yosh.k60}` : '');

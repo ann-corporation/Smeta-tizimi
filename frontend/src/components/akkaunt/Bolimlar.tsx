@@ -19,6 +19,7 @@ import { SERVER_YANGILANMAGAN, ProfilXatosi, useProfil, xatoMatn } from '../../a
 import { ProfilForma } from './ProfilForma';
 import { TelegramKarta } from '../../telegram/TelegramKarta';
 import { BirlashtirKarta } from './BirlashtirKarta';
+import { KirishUsullariKarta } from './KirishUsullariKarta';
 import { GoogleKarta, ParolForma, SessiyaKarta } from './XavfsizlikKartalar';
 import { Karta, Nota, Qator, Skelet, Tezorada, XatoQayta } from './AkkauntUi';
 import { Avatar } from './AkkauntTugmasi';
@@ -109,7 +110,7 @@ export function KirishBolimi() {
   return (
     <div className="flex flex-col gap-4">
       <ProfilXatoNota q={q} />
-      <ProfilKutish q={q}>{(d) => <BirlashtirKarta profil={d.profil} />}</ProfilKutish>
+      <><ProfilKutish q={q}>{(d) => <BirlashtirKarta profil={d.profil} />}</ProfilKutish><KirishUsullariKarta /></>
     </div>
   );
 }

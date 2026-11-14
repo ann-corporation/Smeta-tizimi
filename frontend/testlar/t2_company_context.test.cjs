@@ -45,7 +45,7 @@ must('AdminShell va BossShell YAGONA tizimdanChiq ni ishlatadi', /tizimdanChiq/.
 console.log('\n── P0-4: route scope klassifikatsiyasi ──');
 must('routeScope.ts har route ni klasslashtiradi', /GLOBAL|COMPANY_SCOPED|PROJECT_SCOPED|OBJECT_SCOPED/.test(scope));
 // 2026-10-26: menyudagi sahifalarning scope'i yagona navigatsiya reestrida (routeScope.ts undan yig'adi).
-const navReestr = R('frontend', 'src', 'lib', 'nav', 'navReestr.ts');
+const navReestr = R('frontend', 'src', 'lib', 'reestr', 'sahifa.ts') + '\n' + R('frontend', 'src', 'lib', 'nav', 'navReestr.ts'); // sahifalar yagona reestrda (lib/reestr)
 must('/admin/kompaniya = GLOBAL (kompaniya tanlash shart emas)', /yol: '\/admin\/kompaniya'[^\n]*scope: 'GLOBAL'/.test(navReestr) && /NAV_SAHIFALAR/.test(scope));
 must('company-scoped sahifa <KompaniyaKerak/> ko\'rsatadi (xom matn emas)', bor('frontend','src','umumiy','kontekst','KompaniyaKerak.tsx') && /Global rejim|Kompaniya tanlanmagan/.test(kerak));
 for (const f of ['HujjatNazoratPage.tsx', 'DocumentsPage.tsx', 'ParticipantsPage.tsx']) {

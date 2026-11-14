@@ -192,3 +192,16 @@ describe('ruxsat siyosati (RPC dagi capability lar bilan)', () => {
     expect(writeCommandPermission('buyurtma_nomalum')).toBe('command.unregistered');
   });
 });
+
+describe('buyurtma_tolov_holati_v1 (yetkazuvchi: to‘lov holati)', () => {
+  it('t2_yet_tolov_holati_v1 ga faqat actor va kompaniya bilan boradi; operation_id kerak emas', async () => {
+    const { res, rpc } = await chaqir({ amal: 'buyurtma_tolov_holati_v1', kompaniya_id: 17, p_actor_id: 999, ortiqcha: 'x' }, { rpcJavob: { ok: true, qatorlar: [] } });
+    expect(res.status).toBe(200);
+    expect(rpc).toHaveLength(1);
+    expect(rpc[0].yol).toBe('/rest/v1/rpc/t2_yet_tolov_holati_v1');
+    expect(rpc[0].body).toEqual({ p_actor_id: 7, p_kompaniya_id: 17 });
+  });
+  it('ruxsat: procurement.read', () => {
+    expect(writeCommandPermission('buyurtma_tolov_holati_v1')).toBe('procurement.read');
+  });
+});

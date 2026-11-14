@@ -18,7 +18,7 @@ F2 dublikat tekshiruvi, Qamrov %. Pul — NDS siz; har summa ustamasiz va ustama
 | `obyekt_holat(obyekt_id, daraja?, bolim_id?)` | o'qish | bo'lim daraxti: smeta/fakt/F2/qoldiq/almashtirilgan (ustamasiz+ustamali), Nakopitelniy jami |
 | `qator(id)` / `qator_qidir(obyekt_id, matn\|kod\|tur)` | o'qish | qator + ota zanjiri + bolalar + fakt/F2 tarixi |
 | `f2_royxat(obyekt_id, tur?)` / `f2(akt_id)` | o'qish | aktlar; akt qatorlari va jami |
-| `pereraschet(obyekt_id, bolim_id?)` | o'qish | `lib/pereraschet.ts` — ortiqcha/olinmagan/narx farqi/chegirma |
+| `pereraschet(obyekt_id, bolim_id?)` | o'qish | `lib/pereraschet-yagona.ts` — slichitelniy modeli: к доплате / к снятию (hujjat bilan bir xil son) |
 | `snapshot_royxat`, `snapshot_farq` | o'qish | `snapshot` sxemasi |
 | `aktor(qidir?)`, `aktor_tanla(id)` | sessiya | RPC aktorini tanlash (t2_foydalanuvchi) |
 | `rpc(nom, args, obyekt_id?, dry_run)` | **yozish** | istalgan RPC; `p_actor_id`/`p_kim`/`p_actor_label`/`p_operation_id` avtomatik |
@@ -132,13 +132,14 @@ Namunalar:
 | `ish_ochir(obyekt_id, qator_id, sabab, fakt_bilan?)` | `t2_ish_abc_ochir_v2` / `_v1` | qo'shilgan ish/zamenani o'chirish; sof nol fakt xavfsiz arxivlanadi, F2 da — rad |
 | `f2_qoralama_yangila(akt_idlar, narxlar?, narx_qoida?, qosh_yangi?)` | `t2_f2_qoralama_yangila_v1` | qoralama hajmi = joriy fakt qoldig'i (boshqa qoralamalar ayirilgan), narx = max(smeta, xarid) |
 | `f2_yarat(obyekt_id, oy, qatorlar[{qator_id,hajm,narx?,summa?}], raqam?)` | `t2_akt_yarat_v2` | aniq certified_* qatorli F2; bl/narx 0 — price_intentionally_absent |
-| `akt_bekor(akt_idlar, sabab)` | `t2_akt_bekor` / lifecycle cancelled | fakt hujjati yoki F2 qoralamani bekor qilish |
+| `akt_bekor(akt_idlar, sabab)` | `t2_akt_bekor` / lifecycle cancelled | fakt hujjati yoki F2 (qoralama va tasdiqlangan) ni bekor qilish; tasdiqlangan F2 — lifecycle, bog'liq Forma 3/storno/muhr bo'lsa DEPENDENTS_EXIST aniq ro'yxat bilan |
 | `forma3(amal, obyekt_id \| loyiha_id, davr_boshi?, davr_oxiri?, akt_idlar?)` | `t2_forma3_royxat_v1` / `t2_forma3_yarat_v1` | Форма 3 ro'yxati / yaratish |
 | `nakopitelniy(obyekt_id, davr?, bolim_id?, matn?)` | `t2_nakopitelniy_v2` (o'qish) | barcha sahifalar, server jami, bo'lim kesimi |
 | `ostatka(obyekt_id, bolim_id?, faqat?)` | `t2_qator_holat` (o'qish) | qoldiq / ortiqcha / zamena / almashtirilgan — qator va bo'lim bo'yicha |
 | `shartnoma_moslash(obyekt_idlar \| shartnoma_id, pozitsiyalar)` | — (o'qish) | shartnoma/hisob-faktura pozitsiyalari → smeta qatori nomzodlari (ishonch bilan) |
 | `fakt_jurnal(obyekt_id, qator_idlar? \| bolim_id?, sana_dan?, sana_gacha?)` | — (o'qish) | fakt yozuvlari tarixi va qator bo'yicha sof fakt |
 | `normativ_qidir(obyekt_id, matn, tur?)` | `t2_normativ_qidir_v1` / `t2_resurs_qidir_v1` / `t2_ish_turi_qidir_v1` | ShNK, resurs va ish turi variantlari |
+| `slichitelniy(obyekt_id, faqat?, limit?)` | `t2_aosr_slichitelniy_v1` | slichitelniy tayyorligi: farqli qatorlar + asos (АОСР, texnadzor qarori) + «nima yetishmaydi» (o'qish) |
 
 ## Ishlatish namunalari
 

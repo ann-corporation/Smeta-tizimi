@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -11,14 +11,14 @@ import { CommandPalette } from './CommandPalette';
 import { qidiruvMos } from './commandPaletteQidiruv';
 
 const BANDLAR = [
-  { yol: '/admin/obyektlar', nom: 'Obyektlar va smeta yuklash', guruh: 'Ish (PTO)' },
+  { yol: '/admin/obyektlar', nom: 'Obyektlar', guruh: 'Ish (PTO)' },
   { yol: '/admin/f2', nom: 'F2 import (tayyor F2 faylidan)', guruh: 'Ish (PTO)' },
   { yol: '/admin/f2-reestr', nom: 'F2 reestri', guruh: 'Ish (PTO)' },
 ];
 
 const och = (path = '/admin/obyektlar') => {
   render(<QueryClientProvider client={new QueryClient()}><MemoryRouter initialEntries={[path]}><CommandPalette bandlar={BANDLAR} /></MemoryRouter></QueryClientProvider>);
-  fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+  act(() => { window.dispatchEvent(new Event('palitra:och')); });
 };
 
 afterEach(() => { cleanup(); m.navigate.mockReset(); });
@@ -45,8 +45,9 @@ describe('CommandPalette (Ctrl+K)', () => {
     fireEvent.click(await screen.findByText('Amfiteatr'));
     expect(m.navigate).toHaveBeenCalledWith('/admin/holat/42');
   });
-  it('smeta studiyasida o‘z paneli bor — ikkinchi oyna ochilmaydi', async () => {
-    och('/admin/smeta-studio');
+  it('Ctrl+K qidiruv panelini OCHMAYDI (Ctrl+K — yagona yordamchi Jarvis; ikki oyna chiqmaydi)', async () => {
+    render(<QueryClientProvider client={new QueryClient()}><MemoryRouter initialEntries={['/admin/obyektlar']}><CommandPalette bandlar={BANDLAR} /></MemoryRouter></QueryClientProvider>);
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
   it('qidiruv apostrof va registrga sezgir emas', () => {

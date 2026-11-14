@@ -48,8 +48,9 @@ export function pozitsiyaPul(p: { kod: string | null; nom: string | null; birlik
   const resurslar = p.resurslar.length ? p.resurslar : [{ kod: p.kod, nom: p.nom, birlik: p.birlik, norma: 1, hajm: p.hajm }];
   let summa = 0; let narxlandi = 0; let narxsiz = 0;
   for (const r of resurslar) {
-    let q = r.hajm;
-    if (q == null && r.norma != null && p.hajm != null) q = r.norma * p.hajm;
+    // Pozitsiya hajmi o'zgarsa resurs sarfi ham o'zgaradi: norma × pozitsiya hajmi ustun; fayldagi mutlaq resurs hajmi (eski hajmda qolgan)
+    // faqat norma yo'q bo'lganda olinadi — aks holda hajm 35 → 40 bo'lsa ham pul farqi 0,00 chiqardi (sayt auditi, band 102).
+    let q = r.norma != null && p.hajm != null ? r.norma * p.hajm : r.hajm;
     const n = k.get(kodNorm(r.kod));
     if (q == null) { narxsiz++; continue; }
     if (!n) { if (q !== 0) narxsiz++; continue; }

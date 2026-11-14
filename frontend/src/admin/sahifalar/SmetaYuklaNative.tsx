@@ -1,3 +1,5 @@
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { obyektlarEskirdi } from '../../api/obyektlar-kesh-belgi';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, CheckCircle2, XCircle, UploadCloud, AlertTriangle, Info, FileSpreadsheet } from 'lucide-react';
 import { sbT2DaraxtOl, sbT2ObyektlarOlKomp, sbT2ResursKategoriyaBelgila, yangiOperationId, type T2Obyekt, type T2Qator, type T2ResursKategoriya } from '../../api/supabase';
@@ -21,7 +23,7 @@ import { varaqniTahlilQil } from '../../lib/smeta-anatomiya/varaq';
 import { hamrohDaraxti, hamrohTanlovniYig, lrvDaraxti, ustunSozlamasi, ustunXaritasigaQayt, varaqRoli, type HamrohTanlovKalitlari } from '../../lib/smeta-anatomiya/yuklash';
 import { kitobHamrohlari } from '../../lib/smeta-anatomiya';
 import { nakrutkaPodvaliniOqi, nakrutkaVaraqlari } from '../../lib/smeta-anatomiya/nakrutka';
-import { SmetaPodvalNakrutka } from './SmetaPodvalNakrutka';
+import { SmetaPodvalNakrutka, podvalniAvtoYoz } from './SmetaPodvalNakrutka';
 import type { Katak, KirishKitob } from '../../lib/smeta-anatomiya/turlar';
 import { HamrohVaraqlarPaneli } from './HamrohVaraqlarPaneli';
 import { smetaQaytaImportDiff, type SmetaReimportDiff, type SmetaReimportLine } from '../../lib/smeta-reimport-diff';
@@ -31,6 +33,19 @@ import { allToplamRollari } from '../../lib/smeta-anatomiya/all-toplam';
 import { bezSkladKategoriyaAniqla } from '../../lib/resurs-kategoriyasi/bez-sklad';
 import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
 import { t } from '../../i18n/til';
+import { IshVarogiTopilmadi, JamiKorinish, MuammolarRoyxati, NatijaEkrani, SanoqQatori, VaraqTanlagich, YopishqoqPanel, YuklashQadamlari } from './smeta-yuklash/Bosqichlar';
+import { bosqichIndeksi, daraxtSanoq, muammolarRoyxati, qaytaYuklashMatni, type ExcelTizimXulosa, type Muammo, type YuklashSanoq } from './smeta-yuklash/xulosa';
+import { faylOqishXatosi, importXatoMatni, oldindanKorinish } from './smeta-yuklash/korinish';
+import { keshsizFormulalarniToldir, type ToldirNatija, type ToldirVaraq } from '../../lib/hujjat-tekshir/toldir';
+
+/** Yuklash ustasidan tashqi sahifaga (HolatNative) chiqish: tab almashtirish, fakt sahifasi, versiya sifatida saqlash. */
+export type YuklashYonaltirish = {
+  onSmetaOchish?: () => void;
+  onFaktgaOtish?: () => void;
+  /** Natija ekranidagi «Narxlashga o‘tish» (narxsiz resurs qolgan bo‘lsa). */
+  onNarxlashOchish?: () => void;
+  onVersiyaSaqla?: (fayl: File) => void;
+};
 
 /**
  * T2-FINAL-CLEAN-CUTOVER P0.2: native Smeta XLSX -> canonical Supabase, off
@@ -139,6 +154,7 @@ async function smetaSorov(yuk: Record<string, unknown>): Promise<SmetaYuklaJavob
     });
     const j = await r.json().catch(() => null) as SmetaYuklaJavob | null;
     if (!j) return { ok: false, code: 'BAD_RESPONSE', xato: 'Server javobi o‘qilmadi.' };
+    if (j.ok) obyektlarEskirdi(); // smeta yuklash obyekt jami/qator sonini o'zgartiradi
     return j;
   } catch {
     return { ok: false, code: 'NETWORK', xato: 'Tarmoq uzildi. Qayta urinib ko‘ring.' };
@@ -215,6 +231,9 @@ export type ResNarxIndeks = {
    *  va chel Chas birliklaridan topish ... Bunaqa usul variantlar sonini
    *  kamaytirib ishni tezlatadi". */
   byBirlik: Map<string, ResBirlikYozuv[]>;
+  /** Bir xil nom+birlik, LEKIN turli narxli RES qatorlari (masalan ikki xil LED fonar): narxlar RES tartibida.
+   *  LRV da shuncha qator bo‘lsa — tartib bilan juftlanadi (bittasining narxi hammasiga yopishmasin). */
+  kopNarx: Map<string, number[]>;
   /** Asl yozuvlar — narxsiz qatorlarga faqat TAKLIF (narxTaklifiniTop) uchun. */
   yozuvlar?: readonly ResNarxYozuv[];
 };
@@ -691,7 +710,16 @@ export function resNarxIndeksiQur(rows: ResNarxYozuv[]): ResNarxIndeks {
       if (r.kat && !katByKodNomBir.has(kb)) katByKodNomBir.set(kb, r.kat);
     }
   }
-  return { byNomBir, byKodNomBir, katByNomBir, katByKodNomBir, nomlar, byBirlik, yozuvlar: rows };
+  const hammasi = new Map<string, number[]>();
+  for (const r of rows) {
+    const nk = resKalit(r.nom);
+    if (!nk) continue;
+    const nb = nk + '|' + resKalit(r.birlik);
+    const a = hammasi.get(nb);
+    if (a) a.push(r.narx); else hammasi.set(nb, [r.narx]);
+  }
+  const kopNarx = new Map([...hammasi].filter(([, a]) => a.length > 1 && new Set(a).size > 1));
+  return { byNomBir, byKodNomBir, katByNomBir, katByKodNomBir, nomlar, byBirlik, kopNarx, yozuvlar: rows };
 }
 
 /**
@@ -808,10 +836,22 @@ export function narxlarniDaraxtgaQoll(
   const narxsizlar: NarxsizQator[] = [];
   const resBosh = idx.nomlar.size === 0;
   const belgila = (n: AktNode, sabab: NarxsizSabab) => {
-    mosEmasSoni++;
+    // Mashinist mehnati narxi mashina-soat stavkasi ichida: ma'lumot, «narxsiz» emas (yagona qoida, lib/narx-bildirishnoma).
+    if (sabab !== 'mashinist_normativ') mosEmasSoni++;
     const taklif = (sabab === 'res_da_yoq' || sabab === 'birlik_mos_emas') && idx.yozuvlar ? narxTaklifiniTop(n, idx.yozuvlar) : null;
     narxsizlar.push({ uid: n.uid, kod: n.kod, nom: n.nom, bir: n.bir, hajm: n.hajm, sabab, ...(taklif ? { taklif } : {}) });
   };
+  /* Bir xil nom+birlik, turli narx (RES da 2 xil «LED fonar»): LRV dagi qatorlar soni RES dagi bilan teng bo‘lsa — tartib bilan
+     juftlanadi. Aks holda eski xatti-harakat (birinchi narx). Real faylda ikkinchi qator birinchisining narxini olib, jami oshib ketgan edi. */
+  const lrvSoni = new Map<string, number>();
+  const sanash = (n: AktNode) => {
+    if (n.children?.length) { n.children.forEach(sanash); return; }
+    if ((n.type !== 'rs' && n.type !== 'mat' && n.type !== 'ob') || (n.narx != null && n.narx !== 0)) return;
+    const nk = resKalit(n.nom);
+    if (nk) { const k = nk + '|' + resKalit(n.bir); lrvSoni.set(k, (lrvSoni.get(k) ?? 0) + 1); }
+  };
+  if (idx.kopNarx?.size) tree.forEach(sanash);
+  const juftSana = new Map<string, number>();
   function walk(n: AktNode): AktNode {
     if (n.children && n.children.length) return { ...n, children: n.children.map(walk) };
     if (n.type !== 'rs' && n.type !== 'mat' && n.type !== 'ob') return n;
@@ -820,8 +860,10 @@ export function narxlarniDaraxtgaQoll(
     if (!nk) { belgila(n, 'nomsiz'); return n; }
     const nb = nk + '|' + resKalit(n.bir);
     let narx: number | undefined;
+    const juft = idx.kopNarx?.get(nb);
+    if (juft && lrvSoni.get(nb) === juft.length) { const i = juftSana.get(nb) ?? 0; juftSana.set(nb, i + 1); narx = juft[i]; }
     const kk = resKalit(n.kod);
-    if (kk) narx = idx.byKodNomBir.get(kk + '|' + nb);
+    if (narx == null && kk) narx = idx.byKodNomBir.get(kk + '|' + nb);
     if (narx == null) narx = idx.byNomBir.get(nb);
 
     /* ══ BIRLIK BO'YICHA ZAXIRA MOSLASH ═══════════════════════════════
@@ -918,6 +960,8 @@ export function narxsizImportHisobi(tree: AktNode[]): { jami: number; narxsiz: n
     if (n.type !== 'rs' && n.type !== 'mat' && n.type !== 'ob') return;
     jami++;
     if (n.narx != null && n.narx !== 0) return;
+    // Ekspertiza (БРВ × koeff) kabi hujjatda birlik narxi yo‘q, lekin qator summasi bor — bu narxli qator (summa noma’lum emas).
+    if (typeof n.summa === 'number' && Number.isFinite(n.summa) && n.summa !== 0) return;
     if (mashinistMehnatimi(n.nom)) { normativ++; return; }
     narxsiz++;
   };
@@ -1112,77 +1156,11 @@ function YuklashZona({ ariaLabel, sarlavha, izoh, onFile, kichik = false }: {
   );
 }
 
-/** Oqim bosqichlari: Fayl → Tekshiruv → Import → Natija. */
-function OqimBosqichlari({ joriy }: { joriy: number }) {
-  const nomlar = ['Fayl', 'Tekshiruv', 'Import', 'Natija'];
-  return (
-    <ol aria-label={t('Yuklash bosqichlari')} className="flex flex-wrap items-center gap-x-2 gap-y-1" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-      {nomlar.map((nom, i) => (
-        <li key={nom} aria-current={i === joriy ? 'step' : undefined} className="flex items-center gap-2 text-[12.5px]" style={{ color: i <= joriy ? 'var(--text)' : 'var(--text-mute)', fontWeight: i === joriy ? 600 : 500 }}>
-          <span className={`fz-chip ${i < joriy ? 'fz-chip--accent' : ''}`} style={i === joriy ? { background: 'var(--accent)', color: 'var(--on-accent)' } : undefined}>{i < joriy ? '✓' : i + 1}</span>
-          {t(nom)}
-          {i < nomlar.length - 1 && <span aria-hidden="true" className="mx-1 h-px w-6 bg-border" />}
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-/** Tahlil natijasi: hujjat anatomiyasi (bo'lim / ish / resurs soni), resurs turlari ulushi va ogohlantirishlar. */
-function TahlilKarta({ tree, hisobotlar, varaqSoni }: { tree: AktNode[]; hisobotlar: AnatomiyaHisobot[]; varaqSoni: number }) {
-  const sanoq = { rz: 0, bl: 0, rs: 0, mat: 0, ob: 0 };
-  const yur = (n: AktNode) => { sanoq[n.type]++; n.children?.forEach(yur); };
-  tree.forEach(yur);
-  const resurs = sanoq.rs + sanoq.mat + sanoq.ob;
-  const h = narxsizImportHisobi(tree);
-  const vedomost = hisobotlar.reduce((x, y) => x + y.vedomostChiqarildi, 0);
-  const tekis = hisobotlar.filter((x) => !x.ierarxiya);
-  const bolak = [
-    { kalit: 'rs', nom: 'Mehnat / mashina (rs)', bg: 'fz-bg-chel', n: sanoq.rs },
-    { kalit: 'mat', nom: 'Materiallar', bg: 'fz-bg-mat', n: sanoq.mat },
-    { kalit: 'ob', nom: 'Jihozlar', bg: 'fz-bg-ob', n: sanoq.ob },
-  ].filter((x) => x.n > 0);
-  const tekshiruv: Array<{ ton: 'ok' | 'warn' | 'bad'; matn: string }> = [
-    { ton: 'ok', matn: t('{n} ta LRV varag‘i o‘qildi, {r} ta bo‘lim topildi', { n: varaqSoni, r: sanoq.rz }) },
-    h.narxsiz > 0
-      ? { ton: 'bad', matn: t('{n} ta resursda narx yo‘q yoki 0 ({jami} dan) — RES bilan narxlang', { n: h.narxsiz, jami: h.jami }) }
-      : { ton: 'ok', matn: t('Barcha resurslarda narx bor') },
-    ...(h.normativ > 0 ? [{ ton: 'ok' as const, matn: t('{n} ta mashinist mehnati normativ bo‘yicha 0 — xato emas', { n: h.normativ }) }] : []),
-    ...(vedomost > 0 ? [{ ton: 'warn' as const, matn: t('«ВЕДОМОСТЬ РЕСУРСОВ» bo‘limidan {n} ta qator ish sifatida qo‘shilmadi (ikki marta sanalmasin)', { n: vedomost }) }] : []),
-    ...tekis.map((x) => ({ ton: 'warn' as const, matn: t('«{nom}»: tekis tuzilma ishlatildi — {sabab}', { nom: x.manba, sabab: x.sabab ?? '—' }) })),
-  ];
-  return (
-    <section className="fz-panel" aria-label={t('Hujjat anatomiyasi')} data-testid="smeta-tahlil">
-      <div className="fz-panel__h"><span>{t('Hujjat anatomiyasi')}</span><span>{t('import qilinishidan oldin')}</span></div>
-      <div className="fz-kpis">
-        {([['Bo‘limlar', sanoq.rz], ['Ishlar', sanoq.bl], ['Resurslar', resurs]] as const).map(([nom, n]) => (
-          <div key={nom} className="fz-kpi"><span className="fz-kpi__label">{t(nom)}</span><span className="fz-kpi__value">{n.toLocaleString('ru-RU')}</span></div>
-        ))}
-      </div>
-      {resurs > 0 && (
-        <div className="space-y-1.5">
-          <div className="fz-split" role="img" aria-label={t('Resurs turlari ulushi')}>
-            {bolak.map((x) => <i key={x.kalit} className={x.bg} style={{ flex: x.n }} title={`${t(x.nom)}: ${x.n}`} />)}
-          </div>
-          <div className="flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-text-dim">
-            {bolak.map((x) => <span key={x.kalit} className="inline-flex items-center gap-1.5 tabular-nums"><i aria-hidden="true" className={x.bg} style={{ width: 8, height: 8, borderRadius: 2 }} />{t(x.nom)} <b className="text-text">{x.n}</b> <small className="text-text-mute">({Math.round((x.n / resurs) * 100)}%)</small></span>)}
-          </div>
-        </div>
-      )}
-      <ul className="fz-check" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-        {tekshiruv.map((q, i) => (
-          <li key={i} className={`fz-check__q fz-check__q--${q.ton}`}>
-            {q.ton === 'ok' ? <CheckCircle2 aria-hidden="true" /> : q.ton === 'warn' ? <AlertTriangle aria-hidden="true" /> : <XCircle aria-hidden="true" />}
-            <span>{q.matn}</span>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: number; fixedObjectId?: number; onImportlandi?: () => void }) {
+function Sessiya({ companyId, fixedObjectId, onImportlandi, yonaltirish }: { companyId: number; fixedObjectId?: number; onImportlandi?: () => void; yonaltirish?: YuklashYonaltirish }) {
   const workspace = usePTOWorkspace();
+  /** Import tugagach tahlil daraxti yo'qoladi — natija ekrani uchun sanoq va muammolar shu yerda saqlanadi. */
+  const natijaKorinish = useRef<{ sanoq: YuklashSanoq; muammolar: Muammo[]; narxsizSoni?: number } | null>(null);
+  const [texnikOchiq, setTexnikOchiq] = useState(false);
   const [objects, setObjects] = useState<T2Obyekt[]>([]);
   const [objectId, setObjectId] = useState(fixedObjectId ? String(fixedObjectId) : '');
   const [book, setBook] = useState<XlsxWorkbook | null>(null);
@@ -1195,6 +1173,10 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
   const [result, setResult] = useState<{ qator_soni: number } | null>(null);
   /** Import boshlanishida obyektda smeta bor edimi: yo'q bo'lsa (YANGI smeta) — podval foizlari avtomatik saqlanadi. */
   const smetaOldinBor = useRef<boolean | null>(null);
+  /** Import tugashi bilan fayl podvali obyektga yozildi (sahifa qayta chizilsa ham podval yo'qolmaydi) — ichki avto-yozuv takrorlanmasin. */
+  const podvalYozildi = useRef(false);
+  /** Import tugagach: fayl jami ↔ tizim jami (Tekshiruv/natija xulosasiga qo'shiladi). */
+  const [excelTizim, setExcelTizim] = useState<ExcelTizimXulosa | null>(null);
   // JONLI_SINOV_TOPILMALARI #15: yakunlash yiqilsa sessiya «ochiq» qoladi (bo'laklar bazada) — qayta yubormasdan
   // shu sessiyani yakunlash yoki toza bekor qilish; katta importda rollup yiqilsa — faqat rollupni qayta chaqirish.
   const [ochiqImport, setOchiqImport] = useState<{ sessiyaId: number; paket: boolean; obyektId: number } | null>(null);
@@ -1218,6 +1200,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
    *  aynan shu qadam tugagach yoziladi). */
   const [importQadamlari, setImportQadamlari] = useState<ImportQadam[]>([]);
   const [reimportDiff, setReimportDiff] = useState<SmetaReimportDiff | null>(null);
+  const [formulaHisobot, setFormulaHisobot] = useState<ToldirNatija | null>(null);
   /** Owner: bitta faylda ham LRV, ham RES varaqlari bo'lishi mumkin --
    *  har bir varaq turi mazmuniga qarab avtomatik taxmin qilinadi
    *  (varaqTuriTaxmin), foydalanuvchi shu yerda tasdiqlaydi/tuzatadi. */
@@ -1356,6 +1339,11 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       if (file.size > MAX_FILE_BYTES) throw new Error(`Fayl ${MAX_FILE_BYTES / 1024 / 1024} MB dan katta.`);
       const workbook = await readXlsxFonda(await file.arrayBuffer());
       if (generation.current !== token) return;
+      // Formulasi bor, lekin natijasi (kesh) yozilmagan kataklar (openpyxl va h.k.) — jami 0 chiqmasin: o‘zimiz hisoblaymiz.
+      setFormulaHisobot(keshsizFormulalarniToldir(workbook.sheets.flatMap((s) => {
+        const sh = workbook.sheet(s.name);
+        return sh ? [{ nom: s.name, rows: sh.rows as ToldirVaraq['rows'], formulalar: sh.formulalar }] : [];
+      })));
       setBook(workbook);
 
       // Har bir varaq mazmuniga qarab LRV/RES/e'tiborsiz deb taxmin
@@ -1405,7 +1393,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
         });
         await reimportPreview(lrvManbalar, token);
       }
-    } catch { if (generation.current === token) setError('Fayl o‘qilmadi. XLSX faylni tekshiring.'); }
+    } catch (e) { if (generation.current === token) setError(faylOqishXatosi(e, MAX_FILE_BYTES / 1024 / 1024)); }
     finally { setBusy(false); }
   }
 
@@ -1620,7 +1608,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
         categoryCandidates.push(...resKategoriyaNomzodlariniOl(rows), ...daraxtKategoriyaNomzodlari(applied, idx));
       }
       const paketNarxHisobi = narxsizImportHisobi(pricedTrees.flatMap((p) => p.tree));
-      if (paketNarxHisobi.narxsiz > 0 && !window.confirm(narxsizImportOgohlantirishi(paketNarxHisobi))) {
+      if (paketNarxHisobi.narxsiz > 0 && !(await tasdiqSora({ matn: narxsizImportOgohlantirishi(paketNarxHisobi), xavfli: true, tasdiqMatni: 'Baribir davom etish' }))) {
         setPhase(t('Import to‘xtatildi: narxsiz qatorlar')); return;
       }
       if (categoryCandidates.length) await katNomzodlariniSaqla(categoryCandidates);
@@ -1680,7 +1668,9 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       if (done.rollup_xato) setRollupObyekt(objId);
       setResult({ qator_soni: done.qator_soni || 0 });
       setObjects((prev) => prev.map((o) => o.id === objId ? { ...o, qator_soni: done.qator_soni ?? o.qator_soni } : o));
-      setPhase('Smeta paketi tayyor'); onImportlandi?.();
+      const pvP = await podvalniAvtoYoz({ kompaniyaId: companyId, obyektId: objId, oqish: nakrutkaOqish, fayl: rawFile.current?.name, mavjudSmeta: smetaOldinBor.current === true });
+      podvalYozildi.current = pvP.holat === 'yozildi'; setExcelTizim(pvP.taqqos ?? null);
+      setPhase(pvP.holat === 'yozildi' ? 'Smeta paketi tayyor — smeta podvali obyektga yozildi' : 'Smeta paketi tayyor'); onImportlandi?.();
     } catch (e) { setError(e instanceof Error ? e.message : 'Smeta paketi import qilinmadi.'); }
     finally { setBusy(false); setPaketBand(false); }
   }
@@ -1762,7 +1752,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
     setTiklashBand(true); setError(''); setPhase('Kanonik bazaga yozilmoqda (qayta urinish)');
     try {
       const j = await smetaSorov({ amal: ochiqImport.paket ? 'paket_import_yakunla' : 'import_yakunla', kompaniyaId: companyId, sessiyaId: ochiqImport.sessiyaId });
-      if (!j.ok) { setError(t('Yakunlash bajarilmadi ({kod}). Keyinroq qayta urining yoki importni bekor qiling.', { kod: j.code || 'xato' })); return; }
+      if (!j.ok) { setError(importXatoMatni(j.code, j.xato, t('Yakunlash bajarilmadi')) + ' ' + t('Qayta urining yoki importni bekor qiling.')); return; }
       const objId = ochiqImport.obyektId;
       setOchiqImport(null);
       if (j.rollup_xato) setRollupObyekt(objId);
@@ -1774,11 +1764,11 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
 
   async function importniBekorQil() {
     if (!ochiqImport || ochiqImport.paket || tiklashBand) return;
-    if (!window.confirm(t('Ochiq import sessiyasi bekor qilinsinmi? Yuborilgan bo‘laklar o‘chiriladi, smeta yozilmaydi.'))) return;
+    if (!(await tasdiqSora({ matn: 'Ochiq import sessiyasi bekor qilinsinmi? Yuborilgan bo‘laklar o‘chiriladi, smeta yozilmaydi.', xavfli: true, tasdiqMatni: 'Bekor qilish' }))) return;
     setTiklashBand(true); setError('');
     try {
       const j = await smetaSorov({ amal: 'import_bekor', kompaniyaId: companyId, sessiyaId: ochiqImport.sessiyaId });
-      if (!j.ok) { setError(t('Bekor qilib bo‘lmadi ({kod}).', { kod: j.code || 'xato' })); return; }
+      if (!j.ok) { setError(importXatoMatni(j.code, j.xato, t('Bekor qilib bo‘lmadi'))); return; }
       setOchiqImport(null); setPhase(t('Import bekor qilindi.'));
     } finally { setTiklashBand(false); }
   }
@@ -1788,7 +1778,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
     setTiklashBand(true); setError('');
     try {
       const j = await smetaSorov({ amal: 'import_rollup', kompaniyaId: companyId, obyektId: rollupObyekt });
-      if (!j.ok) { setError(t('Jamlar hisoblanmadi ({kod}). Keyinroq qayta urining.', { kod: j.code || 'xato' })); return; }
+      if (!j.ok) { setError(importXatoMatni(j.code, j.xato, t('Jamlar hisoblanmadi'))); return; }
       setRollupObyekt(null); setPhase(t('Jamlar hisoblandi.')); onImportlandi?.();
     } finally { setTiklashBand(false); }
   }
@@ -1887,9 +1877,18 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
 
       // #11: narxsiz smeta jim o'tmasin -- ongli tasdiq (blok emas, lekin ko'rinadigan).
       const narxHisobi = narxsizImportHisobi(importTree);
-      if (narxHisobi.narxsiz > 0 && !window.confirm(narxsizImportOgohlantirishi(narxHisobi))) {
+      if (narxHisobi.narxsiz > 0 && !(await tasdiqSora({ matn: narxsizImportOgohlantirishi(narxHisobi), xavfli: true, tasdiqMatni: 'Baribir davom etish' }))) {
         qadam('Narxsiz smeta'); yakunla('xato', t('{n} ta qatorda narx yo‘q — import to‘xtatildi, RES narxlarini ulang', { n: narxHisobi.narxsiz }));
         setPhase(t('Import to‘xtatildi: narxsiz qatorlar')); return;
+      }
+
+      // Faylning o‘z «прямые» jamidan >2% farq: import jim o‘tmasin — ongli tasdiq.
+      const pf = korinish?.pryamyeFarq;
+      if (pf?.daraja === 'tasdiq' && !(await tasdiqSora({
+        matn: t('Resurslar yig‘indisi faylning «to‘g‘ridan-to‘g‘ri xarajat» qatoridan {foiz}% ga farq qiladi — ba’zi qatorlar o‘qilmagan bo‘lishi mumkin. Baribir import qilinsinmi?', { foiz: pf.foiz.toLocaleString('ru-RU', { maximumFractionDigits: 2 }) }),
+        xavfli: true, tasdiqMatni: 'Baribir davom etish' }))) {
+        qadam('Fayl jami bilan solishtirish'); yakunla('xato', t('Fayl jamidan farq katta — import to‘xtatildi'));
+        setPhase(t('Import to‘xtatildi: fayl jamidan farq katta')); return;
       }
 
       if (!rawFile.current) throw new Error('Smeta manba fayli topilmadi. XLSX faylni qayta tanlang.');
@@ -1921,7 +1920,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
           throw new Error('Bu obyektda smeta allaqachon mavjud — ustidan yozilmaydi (xavfsizlik uchun).');
         }
         yakunla('xato', bosh.xato || bosh.code || 'noma’lum xato');
-        throw new Error('Import boshlanmadi (' + (bosh.code || 'xato') + ')' + (bosh.xato ? ': ' + bosh.xato : '') + '.');
+        throw new Error(importXatoMatni(bosh.code, bosh.xato, t('Import boshlanmadi')));
       }
       /* Allaqachon yakunlangan sessiya (masalan tarmoq uzilib, javob
          yetib kelmagan holat) -- ikkinchi smeta yaratilmaydi. */
@@ -1944,7 +1943,7 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
         if (!jonli()) return;
         if (!b.ok) {
           yakunla('xato', `${i + 1}-bo‘lak: ` + (b.xato || b.code || 'noma’lum xato'));
-          throw new Error('Bo‘lak yuborilmadi (' + (b.code || 'xato') + ').');
+          throw new Error(importXatoMatni(b.code, b.xato, t('{n}-qism yuborilmadi', { n: i + 1 })));
         }
         tafsilotYangila(`${i + 1}/${bolaklar.length} bo‘lak — ${b.jami ?? 0} qator qabul qilindi`);
       }
@@ -1959,13 +1958,17 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
           throw new Error('Bu obyektda smeta allaqachon mavjud — ustidan yozilmaydi (xavfsizlik uchun).');
         }
         yakunla('xato', j.xato || j.code || 'noma’lum xato');
-        throw new Error('Import bajarilmadi (' + (j.code || 'xato') + ')' + (j.xato ? ': ' + j.xato : '') + '.');
+        throw new Error(importXatoMatni(j.code, j.xato, t('Import bajarilmadi')));
       }
       setOchiqImport(null);
       if (j.rollup_xato) setRollupObyekt(Number(objectId));
       yakunla('tayyor', (j.qator_soni || 0) + ' qator yozildi' + (j.rollup_xato ? ' — jamlar hisoblanmadi, «Jamlarni qayta hisoblash» ni bosing' : ''));
       setResult({ qator_soni: j.qator_soni || 0 }); setPhase('Tayyor');
       setObjects(prev => prev.map(o => o.id === Number(objectId) ? { ...o, qator_soni: j.qator_soni ?? o.qator_soni } : o));
+      // Foizlar DOIM smeta podvalidan (egasi): import tugagach fayl podvali darhol yoziladi; tashqi sahifa qayta chizilganda yo'qolmaydi.
+      const pv = await podvalniAvtoYoz({ kompaniyaId: companyId, obyektId: Number(objectId), oqish: nakrutkaOqish, fayl: rawFile.current?.name, mavjudSmeta: smetaOldinBor.current === true });
+      podvalYozildi.current = pv.holat === 'yozildi'; setExcelTizim(pv.taqqos ?? null);
+      if (pv.holat === 'yozildi') setPhase(pv.taxminiy ? 'Tayyor — smeta podvali yozildi (ba‘zi foizlar taxminiy)' : 'Tayyor — smeta podvali yozildi');
       // Bu sahifa ko'pincha boshqa "asosiy" sahifa (masalan HolatNative)
       // ichida kichik panel sifatida ochiladi -- import muvaffaqiyatli
       // bo'lgach o'sha tashqi sahifa o'z daraxtini/summasini avtomatik
@@ -2002,11 +2005,11 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
   }, [alreadyHasSmeta, objectId, companyId]);
   async function qoralamaniOchir() {
     if (!objectId || !bogliqlik?.qoralama) return;
-    if (!window.confirm(t('{n} qatorlik qoralama smeta o‘chirilsinmi? F2/fakt bog‘lanmagan, shuning uchun yo‘qotish yo‘q. Keyin to‘g‘rilangan faylni yuklaysiz.', { n: bogliqlik.qator_soni ?? selectedObject?.qator_soni ?? 0 }))) return;
+    if (!(await tasdiqSora({ matn: t('{n} qatorlik qoralama smeta o‘chirilsinmi? F2/fakt bog‘lanmagan, shuning uchun yo‘qotish yo‘q. Keyin to‘g‘rilangan faylni yuklaysiz.', { n: bogliqlik.qator_soni ?? selectedObject?.qator_soni ?? 0 }), xavfli: true, tasdiqMatni: 'O‘chirish' }))) return;
     setTozalashBand(true); setError('');
     try {
       const j = await smetaSorov({ amal: 'smeta_tozala', kompaniyaId: companyId, obyektId: Number(objectId), operationId: yangiOperationId() });
-      if (!j.ok) { setError(j.xato || t('O‘chirib bo‘lmadi ({kod}).', { kod: j.code || 'xato' })); return; }
+      if (!j.ok) { setError(importXatoMatni(j.code, j.xato, t('O‘chirib bo‘lmadi'))); return; }
       const id = Number(objectId);
       reset(); rawFile.current = null; sourceDocumentId.current = undefined; sourceOperationId.current = ''; importOperationId.current = '';
       setObjects(prev => prev.map(o => o.id === id ? { ...o, qator_soni: 0 } : o));
@@ -2078,15 +2081,47 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
       });
       if (!manbalar.length) return null;
       const hisobotlar: AnatomiyaHisobot[] = [];
-      const tree = tanlanganLrvVaraqlaridanDaraxtQur(manbalar, { hisobot: (h) => hisobotlar.push(h) });
-      return tree.length ? { tree, hisobotlar, varaqSoni: manbalar.length } : null;
+      const tree0 = tanlanganLrvVaraqlaridanDaraxtQur(manbalar, { hisobot: (h) => hisobotlar.push(h) });
+      if (!tree0.length) return null;
+      /* Ko‘rib chiqish import bilan BIR XIL natija ko‘rsatishi uchun: fayldagi RES varaqlari narxlari shu yerda ham qo‘llanadi
+         (aks holda «136 ta resursda narx yo‘q» deb noto‘g‘ri ogohlantirardi — narx shu faylning RES varag‘ida turgan bo‘lsa ham). */
+      const q = narxlarniDaraxtgaQoll(tree0, resNarxIndeksiQur(resSatrlariBarchaManbadan()));
+      return { tree: q.tree, hisobotlar, varaqSoni: manbalar.length, narxsizRoyxat: q.narxsizlar };
     } catch { return null; }
-  }, [book, cols, result, varaqTeglari, inFileLrvCols, sheetName]);
-  const oqimQadami = result ? 3 : (book && cols) ? 1 : 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [book, cols, result, varaqTeglari, inFileLrvCols, inFileResCols, resBook, resSheetNames, resColsBySheet, sheetName]);
+  const korinish = useMemo(() => (tahlil ? oldindanKorinish(tahlil.tree, nakrutkaOqish) : null), [tahlil, nakrutkaOqish]);
+  const xulosa = useMemo(() => {
+    if (!tahlil) return null;
+    const h = narxsizImportHisobi(tahlil.tree);
+    const narxsiz = h.narxsiz;
+    const muammolar = muammolarRoyxati({
+      lrvTanlanmagan: false, narxsiz, resursJami: h.jami,
+      narxsizQatorlar: tahlil.narxsizRoyxat.filter((r) => r.sabab !== 'mashinist_normativ').map((r) => `${r.kod || '—'} · ${r.nom || '(nomsiz)'} — ${NARXSIZ_SABAB_MATN[r.sabab]}`),
+      kodsizIsh: korinish?.kodsizIsh, podvalYoq: korinish?.podval === 'topilmadi',
+      formulaHisoblandi: formulaHisobot?.hisoblandi, formulaHisoblanmadi: formulaHisobot?.hisoblanmadi,
+      pryamyeFarq: korinish?.pryamyeFarq,
+      vedomostChiqarildi: tahlil.hisobotlar.reduce((x, y) => x + y.vedomostChiqarildi, 0),
+      tekisVaraqlar: tahlil.hisobotlar.filter((x) => !x.ierarxiya).map((x) => ({ manba: x.manba, sabab: x.sabab })),
+      tushunilmadiVaraq: hamroh?.tushunilmadi.length ?? 0,
+      excelTizim,
+    });
+    return { sanoq: daraxtSanoq(tahlil.tree), muammolar, narxsizSoni: narxsiz };
+  }, [tahlil, hamroh, korinish, excelTizim, formulaHisobot]);
+  if (xulosa) natijaKorinish.current = xulosa;
+  const oqimQadami = bosqichIndeksi({ natija: !!result, band: busy || importQadamlari.length > 0, kitob: !!book, ustunlar: !!cols, tahlil: !!xulosa });
+  const yanaFayl = () => { reset(); setBook(null); rawFile.current = null; natijaKorinish.current = null; setImportQadamlari([]); setPhase(''); setError(''); };
+  const natijaRejimi = !!result;
+  const varaqQatorlari = book ? book.sheets.map((s) => {
+    const teg = varaqTeglari[s.name] ?? 'etibor_bermaslik';
+    const taxmin = teg === 'lrv' ? t('Ish va hajm') : teg === 'res' ? t('Narxlar') : teg === 'hamroh' ? t('Svod / perevozka') : t('Kerak emas (taxmin)');
+    return { nom: s.name, teg, taxmin };
+  }) : [];
+  const versiyaSifatidaSaqla = () => { if (rawFile.current) yonaltirish?.onVersiyaSaqla?.(rawFile.current); };
 
   return (
     <div className="space-y-4 p-1">
-      <OqimBosqichlari joriy={oqimQadami} />
+      <YuklashQadamlari joriy={oqimQadami} />
       {!fixedObjectId && <label className="block text-sm">Obyekt
         <select aria-label="Obyekt" className="ml-2 h-8 rounded-md border border-[var(--border-strong)] bg-surface-2 px-2"
           value={objectId} onChange={e => {
@@ -2097,9 +2132,22 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
           {objects.map(o => <option key={o.id} value={o.id}>{o.nom}{o.qator_soni ? ` (${o.qator_soni} qator bor)` : ' (bo‘sh)'}</option>)}
         </select>
       </label>}
-      {objectId && alreadyHasSmeta && (
+      {natijaRejimi && (
+        <NatijaEkrani
+          qatorSoni={result?.qator_soni ?? 0}
+          sanoq={natijaKorinish.current?.sanoq ?? null}
+          muammolar={natijaKorinish.current?.muammolar ?? []}
+          rollupXato={rollupObyekt != null}
+          onSmeta={yonaltirish?.onSmetaOchish}
+          onFakt={yonaltirish?.onFaktgaOtish}
+          narxsizSoni={natijaKorinish.current?.narxsizSoni ?? 0}
+          onNarxlash={yonaltirish?.onNarxlashOchish}
+          onYana={yanaFayl}
+        />
+      )}
+      {!natijaRejimi && objectId && alreadyHasSmeta && (
         <div className="space-y-3">
-          <div role="alert" className="fz-note fz-note--warn"><AlertTriangle aria-hidden="true" /><span><b>{t('Qayta import — faqat ko‘rib chiqish (preview).')}</b> Bu obyektda allaqachon {selectedObject?.qator_soni} qatorlik smeta bor. Eski qatorlar o‘zgarmaydi; yangi fayl faqat non-destructive diff preview sifatida tekshiriladi.</span></div>
+          <div role="alert" className="fz-note fz-note--warn" data-testid="qayta-yuklash-matn"><AlertTriangle aria-hidden="true" /><span><b>{t('Smeta allaqachon bor.')}</b> {qaytaYuklashMatni(selectedObject?.qator_soni)}</span></div>
           {bogliqlik?.ok && bogliqlik.qoralama && (
             <div className="fz-note fz-note--info items-center" data-testid="smeta-qoralama">
               <Info aria-hidden="true" />
@@ -2118,9 +2166,9 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
               </p>
             </div>
           )}
-          <YuklashZona ariaLabel="Smeta revision fayli" sarlavha={t('Smeta yangi revisioni (preview)')} izoh={t('Faylni shu yerga tashlang yoki bosib tanlang — .xlsx, .xlsm, .xls. Hech narsa yozilmaydi, faqat farq ko‘rsatiladi.')} onFile={(f) => void upload(f)} kichik />
+          <YuklashZona ariaLabel="Smeta revision fayli" sarlavha={t('Yangi versiya faylini tanlang')} izoh={t('Faylni shu yerga tashlang yoki bosib tanlang — .xlsx, .xlsm, .xls. Avval farq ko‘rsatiladi; saqlash faqat o‘zingiz bosganingizda.')} onFile={(f) => void upload(f)} kichik />
           {reimportDiff && <section className="fz-panel" aria-label="Smeta qayta import diff">
-            <div className="flex items-center gap-2"><span className="fz-stamp fz-stamp--ok">{t('Diff tayyor')}</span><p className="font-semibold">Diff tayyor — hech qanday yozish bajarilmadi</p></div>
+            <div className="flex items-center gap-2"><span className="fz-stamp fz-stamp--ok">{t('Diff tayyor')}</span><p className="font-semibold">{t('Farq tayyor — hozircha hech narsa saqlanmadi')}</p></div>
             <div className="fz-kpis">
               <div className="fz-kpi"><span className="fz-kpi__label">{t('O‘zgarmagan')}</span><b className="fz-kpi__value">{reimportDiff.same.length}</b></div>
               <div className="fz-kpi"><span className="fz-kpi__label">{t('Qo‘shilgan')}</span><b className="fz-kpi__value" style={{ color: 'var(--ok)' }}>{reimportDiff.added.length}</b></div>
@@ -2133,9 +2181,15 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
             </ul>}
             {reimportDiff.history.length > 8 && <p className="text-text-mute">Yana {reimportDiff.history.length - 8} ta candidate mavjud — operator review va yangi revision RPC talab qilinadi.</p>}
           </section>}
+          {book && reimportDiff && yonaltirish?.onVersiyaSaqla && (
+            <YopishqoqPanel>
+              <button type="button" className="fz-btn fz-btn--primary fz-btn--lg" disabled={busy} onClick={versiyaSifatidaSaqla}>{t('Yangi versiya sifatida saqlash')}</button>
+              <span className="text-[12px] text-text-mute">{t('Fayl «Versiyalar va farq» bo‘limiga o‘tadi; nomi — siz yozgan yorliq yoki sana.')}</span>
+            </YopishqoqPanel>
+          )}
         </div>
       )}
-      {objectId && !alreadyHasSmeta && (
+      {!natijaRejimi && objectId && !alreadyHasSmeta && (
         <>
           {!book && <YuklashZona ariaLabel="Smeta fayli" sarlavha={t('Smeta faylini shu yerga tashlang yoki bosib tanlang')}
             izoh={t('Qabul qilinadi: .xlsx, .xlsm, .xls. LRV (ish va hajm) varag‘i kerak; resurs narxlari uchun RES varag‘i ixtiyoriy. Import qilishdan oldin tahlil ko‘rsatiladi — hech narsa darhol yozilmaydi.')} onFile={(f) => void upload(f)} />}
@@ -2230,7 +2284,16 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
         </>
       )}
       {busy && importQadamlari.length === 0 && <p role="status" className="flex items-center gap-2 text-[12.5px] text-text-dim"><Loader2 size={14} className="animate-spin" aria-hidden="true" />{phase}…</p>}
-      {importQadamlari.length > 0 && <ImportQadamlarPaneli qadamlar={importQadamlari} />}
+      {importQadamlari.length > 0 && !natijaRejimi && <ImportQadamlarPaneli qadamlar={importQadamlari} />}
+      {busy && importQadamlari.length > 0 && !natijaRejimi && (
+        <div className="flex flex-wrap items-center gap-2 text-[12.5px]">
+          <button type="button" className="fz-btn" data-testid="import-toxtat"
+            onClick={() => { generation.current++; setBusy(false); setPhase(t('Import to‘xtatildi.')); setError(t('Import to‘xtatildi. Serverga yuborilgan qismlar saqlangan — davom ettirish yoki bekor qilish mumkin.')); }}>
+            {t('To‘xtatish')}
+          </button>
+          <span className="text-text-mute">{t('Katta fayl bir necha daqiqa olishi mumkin. Smeta eng oxirgi qadamda yoziladi — undan oldin to‘xtatsangiz, hech narsa yarim yozilmaydi.')}</span>
+        </div>
+      )}
       {error && <div role="alert" className="fz-note fz-note--danger"><XCircle aria-hidden="true" /><span>{error}</span></div>}
       {!busy && (ochiqImport || rollupObyekt != null) && (
         <div className="flex flex-wrap items-center gap-2 text-[13px]">
@@ -2240,62 +2303,48 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
           {rollupObyekt != null && <button type="button" disabled={tiklashBand} className="fz-btn fz-btn--primary" onClick={() => void rollupniQaytaUrin()}>{t('Jamlarni qayta hisoblash')}</button>}
         </div>
       )}
-      {book && !result && hamroh && (
-        <HamrohVaraqlarPaneli erkin={hamroh.erkin} svod={hamroh.svod} tushunilmadi={hamroh.tushunilmadi} tanlov={hamrohTanlov} onTanlov={setHamrohTanlov} />
+      {!natijaRejimi && book && !cols && !busy && !alreadyHasSmeta && objectId && (
+        <IshVarogiTopilmadi varaqlar={book.sheets.map((s) => s.name)} onYana={yanaFayl}>
+          {book.sheets.length > 0 && <VaraqTanlagich varaqlar={varaqQatorlari} onTanla={(nom, teg) => varaqTegBelgila(book, nom, teg)} bosh={busy} />}
+        </IshVarogiTopilmadi>
       )}
-      {objectId && (book ? nakrutkaOqish : alreadyHasSmeta) && (
-        <SmetaPodvalNakrutka kompaniyaId={companyId} obyektId={Number(objectId)} oqish={book ? nakrutkaOqish : null} fayl={rawFile.current?.name}
-          avtoSaqla={!!book && !!result && smetaOldinBor.current != null} mavjudSmeta={smetaOldinBor.current === true} />
-      )}
-      {book && cols && !result && (
+      {!natijaRejimi && book && cols && !alreadyHasSmeta && (
         <>
           <div className="fz-note fz-note--info items-center">
             <FileSpreadsheet aria-hidden="true" />
-            <span className="flex-1"><b>{rawFile.current?.name ?? t('Fayl')}</b> — {t('{n} ta varaq o‘qildi. Quyida tuzilma tekshiriladi; import faqat «Import qilish» bosilganda bajariladi.', { n: book.sheets.length })}</span>
+            <span className="flex-1"><b>{rawFile.current?.name ?? t('Fayl')}</b> — {t('{n} ta varaq o‘qildi. Hozircha hech narsa saqlanmadi; saqlash «Smetani yuklash» bosilganda.', { n: book.sheets.length })}</span>
           </div>
-          {tahlil && <TahlilKarta tree={tahlil.tree} hisobotlar={tahlil.hisobotlar} varaqSoni={tahlil.varaqSoni} />}
-          {!tahlil && <div className="fz-note fz-note--warn"><AlertTriangle aria-hidden="true" /><span>{t('Hali birorta LRV varag‘i va uning ustunlari tanlanmagan — tuzilma ko‘rsatilmaydi.')}</span></div>}
+          <section className="fz-panel" aria-label={t('Tekshiruv natijasi')} data-testid="smeta-tahlil">
+            <div className="fz-panel__h"><span>{t('Tekshiruv natijasi')}</span></div>
+            {xulosa ? <SanoqQatori sanoq={xulosa.sanoq} /> : null}
+            {korinish ? <JamiKorinish k={korinish} /> : null}
+            {xulosa
+              ? <MuammolarRoyxati muammolar={xulosa.muammolar} bosh={t('Muammo topilmadi — yuklashga tayyor.')} />
+              : <MuammolarRoyxati muammolar={muammolarRoyxati({ lrvTanlanmagan: true, narxsiz: 0, resursJami: 0, vedomostChiqarildi: 0, tekisVaraqlar: [], tushunilmadiVaraq: 0 })} />}
+            {narxsizlar.length > 0 && (
+              <button type="button" className="fz-btn fz-btn--sm" onClick={() => setTexnikOchiq(true)}>{t('Narxsiz qatorlar ro‘yxatini ko‘rish')}</button>
+            )}
+          </section>
+          {book.sheets.length > 1 && <VaraqTanlagich varaqlar={varaqQatorlari} onTanla={(nom, teg) => varaqTegBelgila(book, nom, teg)} bosh={busy} />}
+          {bookAll?.tndr.some((n) => varaqTeglari[n] === 'res') && (
+            <div className="fz-note fz-note--warn" data-testid="tndr-ogohlantirish">
+              <AlertTriangle aria-hidden="true" />
+              <span>{t('TNDR — tender narxi, transport ichida: RES narx manbai sifatida faqat ongli tanlang (ustama ikki marta hisoblanishi mumkin).')}</span>
+            </div>
+          )}
+          <details className="fz-card" open={texnikOchiq} onToggle={(e) => setTexnikOchiq(e.currentTarget.open)} data-testid="texnik-sozlamalar">
+            <summary className="cursor-pointer px-4 py-2.5 text-[13px] font-semibold">{t('Qo‘shimcha sozlamalar (texnik: ustunlar, narx fayli, podval, solishtirish)')}</summary>
+            <div className="space-y-4 p-3">
+          {hamroh && <HamrohVaraqlarPaneli erkin={hamroh.erkin} svod={hamroh.svod} tushunilmadi={hamroh.tushunilmadi} tanlov={hamrohTanlov} onTanlov={setHamrohTanlov} />}
+          {objectId && nakrutkaOqish && (
+            <SmetaPodvalNakrutka kompaniyaId={companyId} obyektId={Number(objectId)} oqish={nakrutkaOqish} fayl={rawFile.current?.name} avtoSaqla={false} mavjudSmeta={false} />
+          )}
           {book.sheets.length > 1 && (
             <div className="fz-panel">
-              <p className="text-[12px] font-semibold text-text">
-                Varaqlar — har biri LRV yoki RES sifatida taxmin qilindi, kerak bo‘lsa tuzating
-              </p>
-              <p className="text-[11px] text-text-mute">
-                Bitta faylda ham LRV (ish/hajm ierarxiyasi), ham RES (narx katalogi) varaqlari bo‘lishi mumkin.
-                Bir obyekt ichidagi bir nechta uchastka uchun bir nechta LRV varag‘ini belgilang: ular alohida
-                manba ildizlari ostida bitta kanonik importga tushadi. RES belgilangan varaq(lar)ning narxlari
-                hammasidan birlashtirib qo‘llanadi.
-              </p>
-              <table className="fz-table">
-                <thead><tr className="text-text-mute text-left"><th className="font-normal pb-1">Varaq</th><th className="font-normal pb-1">LRV</th><th className="font-normal pb-1">RES</th></tr></thead>
-                <tbody>
-                  {book.sheets.map(s => (
-                    <tr key={s.name} className="border-t border-border/40">
-                      <td className="py-1 pr-2">{s.name}{varaqTeglari[s.name] === 'hamroh' && <span className="text-text-mute"> · {t('hamroh (svod / perevozka)')}</span>}</td>
-                      <td className="py-1 pr-2">
-                        <input type="checkbox" aria-label={`${s.name} — LRV`}
-                          checked={varaqTeglari[s.name] === 'lrv'}
-                          onChange={e => varaqTegBelgila(book, s.name, e.target.checked ? 'lrv' : 'etibor_bermaslik')} />
-                      </td>
-                      <td className="py-1">
-                        <input type="checkbox" aria-label={`${s.name} — RES`}
-                          checked={varaqTeglari[s.name] === 'res'}
-                          onChange={e => varaqTegBelgila(book, s.name, e.target.checked ? 'res' : 'etibor_bermaslik')} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
               {bookAll && (
                 <p className="text-[11px] text-text-mute" data-testid="all-toplam">
                   {t('ALL to‘plami: LRV — «{f5}», RES — «{res}»; VED/TNDR avtomatik e’tiborsiz (hajm vedomosti / tender narxi).', { f5: bookAll.f5, res: bookAll.res })}
                 </p>
-              )}
-              {bookAll?.tndr.some((n) => varaqTeglari[n] === 'res') && (
-                <div className="fz-note fz-note--warn" data-testid="tndr-ogohlantirish">
-                  <AlertTriangle aria-hidden="true" />
-                  <span>{t('TNDR — tender narxi, transport ichida: RES narx manbai sifatida faqat ongli tanlang (ustama ikki marta hisoblanishi mumkin).')}</span>
-                </div>
               )}
               {book.sheets.filter(s => varaqTeglari[s.name] === 'lrv').map(s => {
                 const c = inFileLrvCols[s.name];
@@ -2498,11 +2547,14 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
                 qatorlarni bildirishi va sababini keltirib bera olishi kerak" --
                 avval faqat "N ta narxsiz qoldi" degan SON chiqardi. */}
             {narxsizlar.length > 0 && (
-              <div className="fz-panel" style={{ borderColor: "color-mix(in srgb, var(--danger) 40%, transparent)" }} data-testid="narxsiz-royxat">
-                <p className="text-[12px]">
-                  <b className="text-danger">{narxsizlar.length} ta qator narxsiz qoldi.</b>{' '}
+              <div className="fz-panel" style={{ borderColor: narxsizlar.some(x => x.sabab !== 'mashinist_normativ') ? "color-mix(in srgb, var(--danger) 40%, transparent)" : undefined }} data-testid="narxsiz-royxat">
+                {narxsizlar.some(x => x.sabab !== 'mashinist_normativ') && <p className="text-[12px]">
+                  <b className="text-danger">{narxsizlar.filter(x => x.sabab !== 'mashinist_normativ').length} ta qator narxsiz qoldi.</b>{' '}
                   Bu qatorlar smetaga <b>narxsiz</b> yozildi — obyekt jami summasi shu qadar to‘liq emas.
-                </p>
+                </p>}
+                {narxsizlar.some(x => x.sabab === 'mashinist_normativ') && <p className="text-[11.5px] text-text-mute" data-testid="mashinist-axborot">
+                  {narxsizlar.filter(x => x.sabab === 'mashinist_normativ').length} ta «mashinist mehnati» qatori — narxi mashina-soat stavkasi ichida (ogohlantirish emas, jamga ta’sir qilmaydi).
+                </p>}
                 <p className="text-[11px] text-text-mute">
                   {(Object.keys(NARXSIZ_SABAB_MATN) as NarxsizSabab[])
                     .map(s => ({ s, n: narxsizlar.filter(x => x.sabab === s).length }))
@@ -2549,31 +2601,28 @@ function Sessiya({ companyId, fixedObjectId, onImportlandi }: { companyId: numbe
               </div>
             )}
           </div>
-          <div className="fz-panel" style={{ background: 'var(--surface-2)' }}>
-            <div className="fz-panel__h"><span>{t('Import qarori')}</span></div>
-            <p className="text-[12.5px] text-text-dim">{t('Bu obyektda smeta yo‘q, shuning uchun import yangi smeta yaratadi. Keyinchalik shu obyektga yangi fayl yuklansa — u faqat farq (preview) sifatida ko‘rsatiladi va mavjud smetani o‘zgartirmaydi.')}</p>
-            <div className="flex flex-wrap items-center gap-3">
-              <button type="button" className="fz-btn fz-btn--primary fz-btn--lg" disabled={busy} onClick={() => void importQil()}>
-                {t('Ushbu ustunlar bilan import qilish')}
-              </button>
             </div>
-          </div>
+          </details>
+          <YopishqoqPanel>
+            <button type="button" className="fz-btn fz-btn--primary fz-btn--lg" disabled={busy || !xulosa} onClick={() => void importQil()}>
+              {busy ? t('Yuklanmoqda…') : t('Smetani yuklash')}
+            </button>
+            <span className="text-[12px] text-text-mute">{t('Bu obyektda smeta yo‘q — fayl yangi smeta sifatida yoziladi. Keyingi fayllar eskisining ustiga yozilmaydi, yangi versiya bo‘lib saqlanadi.')}</span>
+          </YopishqoqPanel>
         </>
       )}
-      {result && (
-        <div role="status" className="fz-panel" style={{ borderColor: 'color-mix(in srgb, var(--ok) 45%, transparent)' }}>
-          <div className="flex items-center gap-2"><span className="fz-stamp fz-stamp--ok">{t('Import tugadi')}</span></div>
-          <p className="text-success">Tayyor: {result.qator_soni} qator canonical Supabase’ga yozildi.</p>
-          <p className="text-[12.5px] text-text-dim">{t('Keyingi qadam: «Smeta va bajarilish» bo‘limiga o‘ting — daraxt, jami summalar va narxsiz qatorlar o‘sha yerda. Narxsiz resurslar bo‘lsa, «Narxlar nazorati» orqali to‘ldiring.')}</p>
-        </div>
+      {(natijaRejimi || alreadyHasSmeta) && objectId && (book ? nakrutkaOqish : alreadyHasSmeta) && (
+        <SmetaPodvalNakrutka kompaniyaId={companyId} obyektId={Number(objectId)} oqish={book ? nakrutkaOqish : null} fayl={rawFile.current?.name}
+          avtoSaqla={!!book && !!result && smetaOldinBor.current != null} mavjudSmeta={smetaOldinBor.current === true} />
       )}
     </div>
   );
 }
 
-export default function SmetaYuklaNative({ obyektId, onImportlandi }: { obyektId?: number; onImportlandi?: () => void } = {}) {
+export default function SmetaYuklaNative({ obyektId, onImportlandi, ...yonaltirish }: { obyektId?: number; onImportlandi?: () => void } & YuklashYonaltirish = {}) {
   const { joriy, yuklanmoqda } = useKompaniya();
   if (yuklanmoqda) return <p>Kompaniya yuklanmoqda…</p>;
   if (!joriy?.id) return <p>Kompaniyani tanlang.</p>;
-  return <Sessiya key={`${joriy.id}:${obyektId ?? 'all'}`} companyId={joriy.id} fixedObjectId={obyektId} onImportlandi={onImportlandi} />;
+  return <Sessiya key={`${joriy.id}:${obyektId ?? 'all'}`} companyId={joriy.id} fixedObjectId={obyektId} onImportlandi={onImportlandi} yonaltirish={yonaltirish} />;
 }
+

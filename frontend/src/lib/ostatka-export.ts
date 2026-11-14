@@ -5,8 +5,8 @@ import {
 } from './hujjat-yozuvchi';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
 import { NAKRUTKA_KATLAR, NOMALUM_KAT, kOplate, kategoriyaKf, nakrutkaKat, nakrutkaPodvaliYoz, podvalKfQatorlari, podvalNdsFoiz, podvalQatorRaqami, type KatSummalar } from './nakrutka-podval';
-import { YAXLIT_IZOH, YAXLIT_KAT, bolimBarglari, bolimJamilari, bolimQqsBilan, type SvodYaxlit } from './svod-yaxlit';
-import { NDS_SUKUT_FOIZ, ayirma2, faktSummaF2Narxda, qatorSumma, serverMerosKoefQoy, yaxlit2 as yadroYaxlit2, yaxlitBolimJami, yaxlitKOplateTaqsim, yaxlitQatorlarga, yigindi2, yigindi2Qatiy, type Podval } from './hisob-yadro';
+import { YAXLIT_IZOH, YAXLIT_KAT, bolimBarglari, bolimJamilari, bolimQqsBilan, svodQoldigi, type SvodYaxlit } from './svod-yaxlit';
+import { NDS_SUKUT_FOIZ, ayirma2, faktSummaF2Narxda, qatorSumma, serverMerosKoefQoy, yaxlit2 as yadroYaxlit2, yaxlitKOplate, yaxlitKOplateTaqsim, yaxlitQatorlarga, yigindi2, yigindi2Qatiy, type Podval } from './hisob-yadro';
 import { mashinistMehnati, narxBildirishnomaKerak, narxsizSoni } from './narx-bildirishnoma';
 import { bargUslubi } from './qator-uslubi';
 
@@ -198,6 +198,8 @@ export type OstatkaModel = {
   /** Yuqori darajadagi qatorlar (ВСЕГО shular yig'indisi). */
   ildizlar: number[];
   oshibKetgan: Array<{ nom: string; birlik: string; smetaHajm: number; faktHajm: number; yol: string }>;
+  /** Svod bo'limlari, fakti smetadan (yaxlit summa) oshgan: manfiy qoldiq yo'qolmasin — «ПРЕВЫШЕНИЕ» ro'yxati (QQS siz). */
+  svodOshgan: Array<{ nom: string; qatorId: number; smeta: number; fakt: number; oshgan: number }>;
   diqqat: Array<{ nom: string; sabab: string; joy?: string }>;
   barglar: number;
   /** Tasdiqlangan istisnolar — «ИСКЛЮЧЕНО ИЗ ОСТАТКА», ВСЕГО ga kirmaydi. */
@@ -242,6 +244,7 @@ export function ostatkaHujjatModeli(qatorlar: readonly T2Qator[], holatlar: read
   const istisnoOf = new Map(istisnolar.map((x) => [x.qatorId, x]));
   const out: OstatkaModelQator[] = [];
   const oshib: OstatkaModel['oshibKetgan'] = [];
+  const svodOshgan: OstatkaModel['svodOshgan'] = [];
   const diqqat: OstatkaModel['diqqat'] = [];
   let no = 0;
   let barglar = 0;
@@ -291,7 +294,7 @@ export function ostatkaHujjatModeli(qatorlar: readonly T2Qator[], holatlar: read
       row.bolalar = b;
       row.nomalum = b.reduce((s, i) => s + out[i].nomalum, 0);
       row.summa = yigindi2(b.map((i) => out[i].summa));   // egasi qoidasi: summa har doim ko'rinadi
-      row.narx = row.summa != null && row.ostatkaHajm ? row.summa / row.ostatkaHajm : null;
+      row.narx = row.summa != null && row.ostatkaHajm ? yadroYaxlit2(row.summa / row.ostatkaHajm) : null;
       return idx;
     }
     // rz (yoki noma'lum tur) — bo'lim; bolalari bo'lmasa kirmaydi.
@@ -310,18 +313,26 @@ export function ostatkaHujjatModeli(qatorlar: readonly T2Qator[], holatlar: read
 
   const ildizlar: number[] = [];
   for (const q of bolalar.get(null) ?? []) { const i = qayta(q, 0, null, 0); if (i != null) ildizlar.push(i); }
-  // Svod yaxlit bo'limlari (egasi): bo'lim qoldig'i = yaxlit − yaxlit × (bo'lim fakti / bo'lim smetasi) — butun bo'lim bo'yicha;
-  // u qoldiq qatorlariga tiyingacha taqsimlanadi (Σ = bo'lim qoldig'i aynan), so'ng yuqori jamilar qayta yig'iladi.
+  // Svod yaxlit bo'limlari (egasi): bo'lim qoldig'i = smeta (yaxlit) − fakt; fakt TAQSIMLANMAYDI — F-2 bilan bir usul (qator hajm × narx,
+  // F-2 bor qatorda F-2 narxida; yagona qoida `svodFaktKesimi`/`svodQoldigi`). Qoldiq qoldiq qatorlariga tiyingacha taqsimlanadi
+  // (Σ = bo'lim qoldig'i aynan), so'ng yuqori jamilar qayta yig'iladi.
   const yaxlitTaqsimlangan = new Map<number, number>();
   let yaxlitBolimlar: OstatkaModel['yaxlitBolimlar'] = undefined;
   if (svod?.bolimlar?.length) {
-    const bj = bolimJamilari(rows, (id) => { const h = holat.get(id); return h ? Number(h.fakt_hajm ?? 0) : null; }, svod);
+    const bj = bolimJamilari(rows, (id) => { const h = holat.get(id); return h ? Number(h.fakt_hajm ?? 0) : null; }, svod, (id, narx) => {
+      const h = holat.get(id);
+      if (!h) return null;
+      const fakt = Number(h.fakt_hajm ?? 0);
+      // F-2 bor qatorda fakt summasi F-2 narxida (yadro `faktSummaF2Narxda`), aks holda hajm × narx.
+      return faktSummaF2Narxda(fakt, h.f2_hajm == null ? null : Number(h.f2_hajm), h.f2_summa == null ? null : Number(h.f2_summa), qatorSumma(fakt, narx)).summa;
+    });
     yaxlitBolimlar = bj;
     for (const [qatorId, b] of bj) {
       const leaves = bolimBarglari(out, qatorId);
-      const fakt = yaxlitBolimJami(b.qqssiz, b.smeta, b.fakt);
-      if (!leaves?.length || fakt == null) continue;
-      const t = yaxlitQatorlarga(yadroYaxlit2(b.qqssiz - fakt), leaves.map((i) => ({ id: i, summa: out[i].summa })));
+      const qoldiqJami = svodQoldigi(b.qqssiz, b.fakt);
+      if (qoldiqJami != null && qoldiqJami < -0.005) svodOshgan.push({ nom: byId.get(qatorId)?.nom ?? `строка ${qatorId}`, qatorId, smeta: b.qqssiz, fakt: b.fakt, oshgan: yadroYaxlit2(-qoldiqJami) });
+      if (!leaves?.length || qoldiqJami == null) continue;
+      const t = yaxlitQatorlarga(qoldiqJami, leaves.map((i) => ({ id: i, summa: out[i].summa })));
       // Noma'lum (null) qatorlar taqsimga kirmaydi, null qoladi; bo'lim fakti noma'lum qatorlarsiz — diqqatga.
       const bilinmas = leaves.filter((i) => out[i].summa == null).length + b.faktNomalum;
       if (bilinmas) diqqat.push({ nom: `Раздел по своду (строка ${qatorId})`, sabab: `нет данных о выполнении или цене по ${bilinmas} поз. — в распределение суммы свода не включены` });
@@ -332,7 +343,7 @@ export function ostatkaHujjatModeli(qatorlar: readonly T2Qator[], holatlar: read
       const r = out[i];
       if (r.tur === 'barg' || !r.bolalar.length) return r.summa;
       r.summa = yigindi2(r.bolalar.map(qayt));
-      if (r.tur === 'bl') r.narx = r.summa != null && r.ostatkaHajm ? r.summa / r.ostatkaHajm : null;
+      if (r.tur === 'bl') r.narx = r.summa != null && r.ostatkaHajm ? yadroYaxlit2(r.summa / r.ostatkaHajm) : null;
       return r.summa;
     };
     out.forEach((r, i) => { if (r.tur === 'itogo') { qayt(i); const rz = out.find((x) => x.tur === 'rz' && x.id === r.id); if (rz) rz.summa = r.summa; } else if (r.tur === 'bl') qayt(i); });
@@ -358,7 +369,7 @@ export function ostatkaHujjatModeli(qatorlar: readonly T2Qator[], holatlar: read
       const normali = kids.filter((k) => OST_BARG.has(k.tur ?? '') && k.norma != null);
       // Har resurs summasi yadroda: ROUND(norma × Δ × narx, 2); jami — qat'iy (narxsiz resurs — noma'lum).
       summa = ch == null || !normali.length ? null : yigindi2Qatiy(normali.map((k) => qatorSumma(Number(k.norma) * ch, k.narx)));
-      narx = summa != null && ch ? summa / ch : null;
+      narx = summa != null && ch ? yadroYaxlit2(summa / ch) : null;
     }
     chiqarilgan.push({
       id: q.id, kod: q.kod ?? '', nom: q.nom ?? '', birlik: q.birlik ?? '', yol: yolOf(q), bl: q.tur === 'bl',
@@ -368,7 +379,7 @@ export function ostatkaHujjatModeli(qatorlar: readonly T2Qator[], holatlar: read
   const rowIdx = new Map(rows.map((q, i) => [q.id, i]));
   chiqarilgan.sort((a, b) => (rowIdx.get(a.id) ?? 0) - (rowIdx.get(b.id) ?? 0));
   const chiqarilganJami = yigindi2Qatiy(chiqarilgan.map((c) => c.summa));
-  return { qatorlar: out, jami, ildizlar, oshibKetgan: oshib, diqqat, barglar, chiqarilgan, chiqarilganJami, yaxlitTaqsimlangan, yaxlitBolimlar };
+  return { qatorlar: out, jami, ildizlar, oshibKetgan: oshib, svodOshgan, diqqat, barglar, chiqarilgan, chiqarilganJami, yaxlitTaqsimlangan, yaxlitBolimlar };
 }
 
 const OSTATKA_USTUNLAR: RasmiyUstun[] = [
@@ -433,10 +444,10 @@ export function ostatkaHujjatXlsx(model: OstatkaModel, o: OstatkaHujjatOpsiya): 
     const guruh = new Map<number, Map<number, number>>();
     model.qatorlar.forEach((q, i) => { const b = taqsim.get(q.id); if (b != null && q.tur === 'barg' && q.summa != null) { if (!guruh.has(b)) guruh.set(b, new Map()); guruh.get(b)!.set(i, q.summa); } });
     for (const [bid, g] of guruh) {
-      // Bo'lim qoldig'i QQS BILAN = svod − svod × (fakt / smeta) (svod summasi yakuniy, egasi 2026-10-30) — qatorlarga taqsim.
+      // Bo'lim qoldig'i QQS BILAN = svod − fakt × (1+QQS) (svod summasi yakuniy, egasi 2026-10-30; fakt taqsimlanmaydi) — qatorlarga taqsim.
       const b = model.yaxlitBolimlar?.get(bid);
       const qb = b ? bolimQqsBilan({ svod_summa: b.svodSumma, qqssiz: b.qqssiz }, ndsFoiz) : null;
-      const fq = qb == null || !b ? null : yaxlitBolimJami(qb, b.smeta, b.fakt);
+      const fq = qb == null || !b ? null : yaxlitKOplate(b.fakt, ndsFoiz);
       const t = fq == null ? yaxlitKOplateTaqsim(g, ndsFoiz) : yaxlitQatorlarga(yadroYaxlit2((qb as number) - fq), [...g].map(([id, summa]) => ({ id, summa })));
       for (const [i, v] of t ?? []) koTaqsim.set(i, v);
     }
@@ -567,6 +578,12 @@ export function ostatkaHujjatXlsx(model: OstatkaModel, o: OstatkaHujjatOpsiya): 
       sabab: `выполнено ${fmt(x.faktHajm)} при объеме по смете ${fmt(x.smetaHajm)} (превышение ${fmt(x.faktHajm - x.smetaHajm)}); в остаток не включено`,
     })), 'ВЫПОЛНЕНО СВЕРХ СМЕТНОГО ОБЪЕМА');
   }
+  if (model.svodOshgan.length) {
+    v.diqqat(model.svodOshgan.map((x) => ({
+      nom: `Раздел по своду: ${x.nom}`,
+      sabab: `ПРЕВЫШЕНИЕ: выполнено ${fmt(x.fakt)} при сумме свода ${fmt(x.smeta)} (без НДС), превышение ${fmt(x.oshgan)}; остаток по разделу отрицательный, в строки не распределён`,
+    })), 'ПРЕВЫШЕНИЕ');
+  }
   if (model.chiqarilgan.length) {
     v.diqqat(model.chiqarilgan.map((c, i) => ({
       nom: `поз. И-${i + 1} ${c.nom}${c.birlik ? `, ${c.birlik}` : ''}`,
@@ -577,7 +594,7 @@ export function ostatkaHujjatXlsx(model: OstatkaModel, o: OstatkaHujjatOpsiya): 
   v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СОСТАВИЛ'], o.imzo));
   const { bytes } = rasmiyKitob([v], { tur: 'ostatka' });
   const kv = model.ildizlar.map(koOf);
-  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNomi, hujjat: 'ОСТАТОК_РАБОТ', davr: sana }), kOplata: kv.length && !kv.some((x) => x == null) ? yaxlit2(kv.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0)) : null, kOplataVsego };
+  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNomi, hujjat: 'ОСТАТОК_РАБОТ', davr: sana }), kOplata: kv.length && !kv.some((x) => x == null) ? yadroYaxlit2(kv.reduce<number>((a2, b2) => a2 + (b2 ?? 0), 0)) : null, kOplataVsego };
 }
 
 function fmt(n: number): string {

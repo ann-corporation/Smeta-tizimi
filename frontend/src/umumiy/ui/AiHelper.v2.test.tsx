@@ -9,7 +9,7 @@ const m = vi.hoisted(() => ({
 }));
 vi.mock('../kontekst/KompaniyaKontekst', () => ({ useKompaniya: () => ({ joriyId: m.id }) }));
 vi.mock('../../api/t2-agent-ish', () => ({
-  kasbOl: m.kasbOl, kasbSavolOqim: m.savol, tizimYordamSavol: m.yordam, modellarOl: m.modellar, modelShaxsiyOl: m.shaxsiyModel, modelShaxsiyTanla: m.tanla, modelSiyosatOl: m.siyosat,
+  kasbOl: m.kasbOl, suhbatRoyxatOl: vi.fn(async () => null), suhbatServerga: vi.fn(async () => null), suhbatServerdanOl: vi.fn(async () => null), kasbSavolOqim: m.savol, tizimYordamSavol: m.yordam, modellarOl: m.modellar, modelShaxsiyOl: m.shaxsiyModel, modelShaxsiyTanla: m.tanla, modelSiyosatOl: m.siyosat,
   uslubOl: m.uslubOl, uslubSaqla: m.uslubSaqla, uslubTozala: m.uslubTozala, javobBaho: m.baho,
   openrouterModellarOl: vi.fn(async () => ({ ok: true, natija: { jami: 1, tavsiya: [], talab: { min: 50, izoh: 'Umumiy' }, natija: [] } })), modelOpenrouterdanQosh: vi.fn(),
   jurnalOl: vi.fn(async () => ({ ok: true, natija: { hamma: false, natija: [] } })), shaxsiyOl: vi.fn(async () => ({ ok: true, natija: { til: 'auto', uslub: 'qisqa', ishonch: 'jiddiy' } })), shaxsiySaqla: vi.fn(), harakatQarori: vi.fn(), harakatNatijasi: vi.fn(),
@@ -18,12 +18,12 @@ vi.mock('./useAiKuzatuv', () => ({ useAiKuzatuv: () => ({ taklif: null, yoqilgan
 vi.mock('./AiFikrPanel', () => ({ AiFikrPanel: () => <div>fikr-panel</div> }));
 vi.mock('../../i18n/til', () => ({ t: (s: string) => s }));
 vi.mock('./Toast', () => ({ toast: vi.fn() }));
-import { AiHelper } from './AiHelper';
+import { AiHelper, AiHelperTugma } from './AiHelper';
 
 const KASB = { rol: 'prorab', profil: 'prorab', nom: 'Prorab yordamchisi', vazifa: 'Ish borishi va ombor.', kategoriyalar: ['obyektlar'], namuna_savollar: ['Omborda nima bor?'], taqiq_izoh: null, boshqalar: [] };
 const KATALOG = [{ id: 'google/gemini-2.5-flash-lite', nom: 'Gemini Flash Lite', tavsif: null, narx_izoh: null, vision: false }];
 function Joy() { const l = useLocation(); return <div data-testid="joy">{l.pathname}</div>; }
-const view = () => <MemoryRouter initialEntries={['/admin/f2']}><AiHelper /><Joy /></MemoryRouter>;
+const view = () => <MemoryRouter initialEntries={['/admin/f2']}><AiHelperTugma /><AiHelper /><Joy /></MemoryRouter>;
 const och = () => fireEvent.click(screen.getByLabelText('Jarvis AI yordamchisini ochish'));
 beforeEach(() => {
   m.id = 11; Element.prototype.scrollIntoView = vi.fn();

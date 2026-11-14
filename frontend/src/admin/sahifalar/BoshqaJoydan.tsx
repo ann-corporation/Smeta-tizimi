@@ -8,6 +8,14 @@ import { boshlangichHajm, boshqaJoySabab, variantResurslari } from '../../lib/xo
 import type { XotiraQator } from '../../lib/xotira-fakt/parse';
 import { useHotkeys } from '../../lib/hotkeys/useHotkeys';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
+import { TAJRIBA_BELGI, tajribaKalit, tajribaNatija, tajribaTaklif, tajribaYoz, useFriksiya, type TajribaTaklif } from '../../lib/osuvchi';
+
+/** O'rganish halqasi: tanlangan variantning barqaror belgisi = «shifr|nom kaliti» (kompaniya/obyektdan mustaqil). */
+const variantBelgi = (v: { kod: string | null; nom: string }): string => `${(v.kod ?? '').trim()}|${tajribaKalit(v.nom).slice(0, 200)}`;
+const variantMos = (v: { kod: string | null; nom: string }, belgi: string): boolean => {
+  const [kod, nom] = belgi.split('|');
+  return !!kod && (v.kod ?? '').trim() === kod ? true : !!nom && tajribaKalit(v.nom).slice(0, 200) === nom;
+};
 
 const fmt = (v: number | null | undefined) => (v == null ? '—' : Number(v).toLocaleString('ru-RU', { maximumFractionDigits: 3 }));
 
@@ -40,17 +48,22 @@ export function BoshqaJoydan({ kompaniyaId, obyektId, qator, bolimlar, onYop, on
   const operationId = useRef(yangiOperationId());
   const navbat = useRef(0);
   const qRef = useRef<HTMLInputElement>(null);
+  /* O'rganish halqasi: shu fakt yozuvi matni (xom) uchun oldin tanlangan variant — ro'yxatda birinchi, «taklif (tajribadan)» belgisi bilan. Foydalanuvchi saqlaganda tasdiq/tuzatish yoziladi. */
+  const kuzatuv = useFriksiya('boshqa-joydan', 'olish', kompaniyaId);
+  const matnKaliti = tajribaKalit(qator.xom || qator.nom);
+  const [tajribaT, setTajribaT] = useState<TajribaTaklif | null>(null);
+  useEffect(() => { let faol = true; void tajribaTaklif('moslash', matnKaliti, { kompaniyaId }).then((x) => { if (faol) setTajribaT(x); }); return () => { faol = false; }; }, [kompaniyaId, matnKaliti]);
 
   useEffect(() => {
     if (tanlangan || q.trim().length < 3) { setVariantlar([]); return; }
     const n = ++navbat.current;
     const tm = setTimeout(() => {
       setYuklanmoqda(true);
-      void ishTuriQidir(obyektId, q).then((v) => { if (n === navbat.current) { setVariantlar(v.filter((x) => x.manba === 'smeta' && x.sostav.length > 0)); setFaol(0); } })
+      void ishTuriQidir(obyektId, q).then((v) => { if (n === navbat.current) { setVariantlar(v.filter((x) => x.manba === 'smeta' && x.sostav.length > 0).sort((a, b) => Number(!!tajribaT && variantMos(b, tajribaT.qiymat)) - Number(!!tajribaT && variantMos(a, tajribaT.qiymat)))); setFaol(0); } })
         .finally(() => { if (n === navbat.current) setYuklanmoqda(false); });
     }, 300);
     return () => clearTimeout(tm);
-  }, [q, obyektId, tanlangan]);
+  }, [q, obyektId, tanlangan, tajribaT]);
 
   const tanla = (v: IshTuriVariant) => {
     setTanlangan(v); setResurslar(variantResurslari(v)); setHajm(boshlangichHajm(qator, v.birlik)); setSabab(boshqaJoySabab(v, qator.xom));
@@ -80,7 +93,10 @@ export function BoshqaJoydan({ kompaniyaId, obyektId, qator, bolimlar, onYop, on
         resurslar: resurslar.map((r) => { const n = son(r.norma); return { kat: r.kat, kod: r.kod.trim() || null, nom: r.nom.trim(), birlik: r.birlik.trim(), norma: n != null && n > 0 ? n : null, hajm: n != null && n > 0 ? null : son(r.hajm ?? ''), narx: son(r.narx), narx_manba: r.manba }; }),
         faktHajm: h,
       });
-      if (!res.ok) { setXato(abcXato(res)); return; }
+      if (!res.ok) { kuzatuv().xato(String((res as { code?: unknown }).code ?? 'SAQLANMADI')); setXato(abcXato(res)); return; }
+      kuzatuv().tugadi();
+      const belgi = variantBelgi(tanlangan);
+      void tajribaYoz({ domen: 'moslash', kalit: matnKaliti, qiymat: belgi, ...tajribaNatija(tajribaT, belgi) }, { kompaniyaId });
       const id = Number.isSafeInteger(Number((res as { qator_id?: unknown }).qator_id)) ? Number((res as { qator_id?: unknown }).qator_id) : null;
       await onSaqlandi({ id, nom: tanlangan.nom, birlik: tanlangan.birlik ?? '', hajm: h, jami: hisob.jami });
     } catch { setXato(t('Javob olinmadi. Qayta bosing — takroriy saqlash xavfsiz.')); } finally { setBand(false); }
@@ -108,7 +124,7 @@ export function BoshqaJoydan({ kompaniyaId, obyektId, qator, bolimlar, onYop, on
               {variantlar.map((v, i) => (
                 <li key={`${v.qator_id}-${i}`} role="option" aria-selected={i === faol} onMouseEnter={() => setFaol(i)} onClick={() => tanla(v)}
                   className={`cursor-pointer border-b border-border/50 px-3 py-2 text-[12px] ${i === faol ? 'bg-accent/10' : 'hover:bg-surface-2'}`}>
-                  <div className="flex justify-between gap-3"><span className="font-medium text-text">{v.nom}</span><span className="shrink-0 text-text-mute">{v.birlik}</span></div>
+                  <div className="flex justify-between gap-3"><span className="font-medium text-text">{v.nom}{tajribaT && variantMos(v, tajribaT.qiymat) && <span data-testid="tajriba-belgi" className="ml-2 rounded bg-accent/15 px-1 text-[10px] text-accent" title={tajribaT.sabab}>{TAJRIBA_BELGI()}</span>}</span><span className="shrink-0 text-text-mute">{v.birlik}</span></div>
                   <div className="mt-0.5 flex gap-3 text-[10px] text-text-mute"><span className="font-mono">{v.kod}</span><span>{t('{n} resurs', { n: v.sostav.length })}</span><span>{v.shu_obyekt ? t('shu obyekt smetasida') : t('{n} ta smetada', { n: v.soni ?? 1 })}</span></div>
                 </li>
               ))}

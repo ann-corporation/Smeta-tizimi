@@ -34,14 +34,33 @@ describe('role integration architecture',()=>{
       /* Email kod bilan kirish/ro'yxat (2026-10-26): login'dan OLDINGI ochiq nuqta (kirish/kirish-google kabi) — sessiya yo'q.
          Kod HMAC xeshi, 10 daqiqa, 5 urinish, email/IP limitlari bazada; origin tekshiruvi (kirish-email.test.ts). */
       'kirish-email',
+      /* Emailsiz kirish (2026-11-13): /api/kirish-taklif — 'qabul' KIRMASDAN (kod/havola xeshi, SQL da bir martalik/limit), 'yarat/royxat/bekor/ulash' —
+         actor faqat sessiyadan + roleAuthority, huquq SQL da (company.member.manage | hr.write; kadr faqat dala rollari). /api/kirish-telegram — KIRMASDAN:
+         nonce + brauzer siri xeshi, bot kontakti (contact.user_id == from.id). Ikkalasi KIRISH_*_YOQILGAN sozlamasi bilan o'chiriladi; origin tekshiruvi
+         (kirish-taklif.test.ts, kirish-telegram.test.ts; acceptance 20261217200000). */
+      'kirish-taklif', 'kirish-telegram',
       /* Sozlamalar markazi (2026-10-26): kompaniya sozlamalari (imzo tomonlari, hujjat dizayni, F2 tasdiq rejimi). Actor sessiyadan;
          o'qish company.read, yozish company.profile.update — har RPC ichida t2_effective_authorization_v1 (kompaniya-sozlama.test.ts). */
       'kompaniya-sozlama',
       /* Yuk birjasi (2026-11-04): faqat sessiya + masofa hisobi (kompaniya ma'lumotiga tegmaydi); O'zbekiston ramkasi, foydalanuvchi bo'yicha 30/daqiqa limit, kalit mijozda yo'q (yuk-marshrut.test.ts). */
       'yuk-marshrut',
+      /* Bozor P1 (2026-11-12): /api/bozor — actor sessiyadan, faqat t2_bz_* RPC oq ro'yxati (functions/_shared/bozor.ts); a'zolik/procurement.* va egalik RPC ichida (acceptance 20261216500000).
+         /api/bozor-ochiq — KIRMASDAN GET, faqat faol e'lon va e'lon qilingan maydonlar (t2_bz_ochiq_*); /api/bozor-rasm — foto: POST sessiya + o'z prefiksi, GET faqat faol e'longa biriktirilgan kalit. */
+      'bozor', 'bozor-ochiq', 'bozor-rasm',
+      /* Tender ochiq rejim (2026-11-12): /api/tender-ochiq — KIRMASDAN GET, faqat doira='ochiq' va holat='elon' lot, narxsiz (t2_tn_ochiq_*); /api/tender-p1 — sessiya, faqat t2_tn_* RPC oq ro'yxati (functions/_shared/tender-ochiq.ts); a'zolik, procurement ruxsati va muhr RPC ichida (acceptance 20261216510000). */
+      'tender-ochiq', 'tender-p1',
+      /* Yuk tashish P1 (2026-11-12): actor sessiyadan; faqat t2_yb_* RPC oq ro'yxati (functions/_shared/yuk-tashish.ts); a'zolik/ruxsat/tenant RPC ichida (acceptance 20261216400000); yuk-dalil — kichik rasm, faqat o'z R2 prefiksi. */
+      'yuk-tashish', 'yuk-dalil',
+      /* Shaxsiy imzo (2026-12-18, ADR_SHAXSIY_IMZO): /api/imzo - actor FAQAT sessiyadan, origin tekshiruvi; kalit egasi, a'zolik (hujjat kompaniyasi yoki taqdim/aloqa yo'li),
+         vakolat va zanjir har RPC ichida bazada; imzo bazaga yozilishidan OLDIN ochiq kalit bilan tekshiriladi (imzo.test.ts). /api/imzo-ochiq - KIRMASDAN GET: token (128 bit) bo'yicha,
+         summa/fayl nomi/mazmun qaytmaydi, topilmasa bir xil 404, IP bo'yicha tezlik cheklovi (imzo.test.ts, imzo-nashr.test.ts; acceptance 20261218000000). */
+      'imzo', 'imzo-ochiq',
       /* Bildirishnoma yetkazish (2026-11-05): sessiyasiz FON ISHI (GitHub Actions). Kirish faqat X-Cron-Kalit == BILDIRISHNOMA_CRON_KALIT
          (sozlanmagan → 503, noto'g'ri → 403); kompaniya ma'lumoti qaytmaydi, faqat service_role navbat RPC lari (bildirishnoma-yetkaz.test.ts). */
-      'bildirishnoma-yetkaz']);
+      'bildirishnoma-yetkaz',
+      /* AI ishchilar fon bajaruvchisi (2026-11-13): sessiyasiz FON ISHI (GitHub Actions). Kirish faqat X-Kuzatuv-Kalit == KUZATUV_KALIT (>=24 belgi; sozlanmagan -> 503, noto'g'ri -> 401);
+         javobda faqat sonlar; model chaqiruvi aiHisobli orqali (limit/hamyon), ish aktori — ishchini yoqqan odam, ruxsat har qadamda bazada qayta tekshiriladi (ai-ishchi.test.ts). */
+      'ai-ishchi-bajar']);
     const routes=readdirSync(resolve(root,'frontend/functions/api')).filter(n=>n.endsWith('.ts')&&!n.endsWith('.test.ts')&&!n.startsWith('_')).map(n=>n.slice(0,-3));
     expect(routes.filter(n=>!SCOPED_APIS.has(n)&&!exceptions.has(n))).toEqual([]);
   });

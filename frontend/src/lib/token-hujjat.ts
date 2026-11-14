@@ -13,53 +13,11 @@
  * Aynan shu mazmun qayta yuklansa — bepul (xesh); berish xato bersa — token qaytadi (`tokenBilan`).
  * Hisob yo'q hujjat (AOSR, reestr — faqat kiritilgan maʼlumot) uchun faqat toifaning asosiy narxi olinadi.
  */
-import { unzipSync, strFromU8 } from 'fflate';
+import { xlsxYacheykaSoni } from './xlsx-yacheyka';
+import { toast } from '../umumiy/ui/Toast';
 import { mazmunXeshi, tokenBilan, type NarxTafsilot, type TokenAmal } from '../api/t2-token';
 
-const VARAQ = /^xl\/worksheets\/[^/]+\.xml$/;
-const KATAK = /<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
-const FORMULA = /<f\b/;
-const MANZIL = /\br="([A-Z]+\d+)"/;
-
-/** Varaqdagi hisoblangan (formula bor) kataklar: manzil → katak XML (manba bilan solishtirish uchun). */
-function hisoblanganlar(xml: string): Map<string, string> {
-  const m = new Map<string, string>();
-  let i = 0;
-  for (const k of xml.matchAll(KATAK)) {
-    if (!k[2] || !FORMULA.test(k[2])) continue;
-    m.set(MANZIL.exec(k[1])?.[1] ?? `#${i++}`, k[0]);
-  }
-  return m;
-}
-
-/** Bitta varaq XML idagi tizim hisoblagan (formula bor) kataklar soni. */
-export function varaqYacheykaSoni(xml: string): number {
-  return hisoblanganlar(xml).size;
-}
-
-function varaqlar(bytes: Uint8Array): Record<string, Uint8Array> | null {
-  try { return unzipSync(bytes); } catch { return null; }
-}
-
-/**
- * Faylning hisoblangan kataklari: xlsx — barcha varaqlar; zip paket — ichidagi har xlsx.
- * `manba` (foydalanuvchining asl xlsx fayli) berilsa — undagi aynan bir xil katak sanalmaydi: tizim faqat o'zi
- * qo'shgan yoki o'zgartirgan hisob uchun pul oladi. O'qib bo'lmasa 0 (faqat toifaning asosiy narxi).
- */
-export function xlsxYacheykaSoni(bytes: Uint8Array, manba?: Uint8Array | null): number {
-  const fayllar = varaqlar(bytes);
-  if (!fayllar) return 0;
-  const asl = manba ? varaqlar(manba) : null;
-  let n = 0;
-  for (const [nom, b] of Object.entries(fayllar)) {
-    if (/\.xlsx$/i.test(nom)) { n += xlsxYacheykaSoni(b); continue; }
-    if (!VARAQ.test(nom)) continue;
-    const yangi = hisoblanganlar(strFromU8(b));
-    const eski = asl?.[nom] ? hisoblanganlar(strFromU8(asl[nom])) : null;
-    for (const [manzil, katak] of yangi) if (eski?.get(manzil) !== katak) n++;
-  }
-  return n;
-}
+export { varaqYacheykaSoni, xlsxYacheykaSoni } from './xlsx-yacheyka';
 
 export type HujjatTokenNatija =
   | { ok: true; xabar: string; sarflandi: number; yacheykalar: number; bepulTakror: boolean; hisob?: NarxTafsilot }
@@ -70,13 +28,17 @@ export type HujjatTokenNatija =
  * yechilgandan KEYIN chaqiriladi. `yacheykalar` berilmasa fayldan sanaladi (`manba` bilan — asl fayl ayirib).
  */
 export async function hujjatTokenBilan(
-  p: { kompaniyaId: number; bytes: Uint8Array; hujjat: string; sabab: string; obyekt?: number | string | null; amal?: TokenAmal; yacheykalar?: number; manba?: Uint8Array | null },
+  p: { kompaniyaId: number; bytes: Uint8Array; hujjat: string; sabab: string; obyekt?: number | string | null; amal?: TokenAmal; yacheykalar?: number; manba?: Uint8Array | null; /** Paket: har fayl hisoblangan katak soni — narx har fayl narxining YIG'INDISI (bitta yechim). */ fayllar?: number[] },
   yetkaz: () => void | Promise<void>,
   d: { tokenBilan: typeof tokenBilan; mazmunXeshi: typeof mazmunXeshi } = { tokenBilan, mazmunXeshi },
 ): Promise<HujjatTokenNatija> {
-  const yacheykalar = p.yacheykalar ?? xlsxYacheykaSoni(p.bytes, p.manba);
+  /* Yuklab olish 8–15 s hech narsa ko'rsatmasdi: bosilgan zahoti «tayyorlanmoqda», natija esa chaqiruvchi toast'ida (token narxi bilan). */
+  toast('Hujjat tayyorlanmoqda… (token narxi tayyor bo‘lgach ko‘rsatiladi)', 'ok');
+  const paketFayllar = p.fayllar && p.fayllar.length ? p.fayllar : null;
+  const yacheykalar = paketFayllar ? paketFayllar.reduce((s, x) => s + x, 0) : p.yacheykalar ?? xlsxYacheykaSoni(p.bytes, p.manba);
   const xesh = await d.mazmunXeshi(p.bytes);
-  const meta: Record<string, string | number> = { hujjat: p.hujjat, sabab: p.sabab.slice(0, 200), yacheyka: yacheykalar, sanoq: 'formula', xesh };
+  const meta: Record<string, string | number | number[]> = { hujjat: p.hujjat, sabab: p.sabab.slice(0, 200), yacheyka: yacheykalar, sanoq: 'formula', xesh };
+  if (paketFayllar) meta.fayl_yacheykalar = paketFayllar;
   if (p.obyekt != null && p.obyekt !== '') meta.obyekt = p.obyekt;
   const r = await d.tokenBilan({ kompaniyaId: p.kompaniyaId, amal: p.amal ?? 'hujjat', birlikSoni: yacheykalar, meta }, async () => { await yetkaz(); return true; });
   if (!r.ok) return { ok: false, xabar: r.xabar };

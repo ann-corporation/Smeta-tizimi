@@ -1,0 +1,11 @@
+{
+  "id": 133,
+  "sana": "2026-11-11",
+  "sarlavha": "Perevozka smetadagidek: т·км bilan, aniq o'lchovlari bilan",
+  "bandlar": [
+    "«Расчёт затрат транспорта» (трансп.) varag'i import qilinganda perevozka endi bitta ish bo'ladi: hajmi — jami т·км, narxi — 1 т·км narxi, summasi — varaqdagi ИТОГО bilan tiyinigacha teng.",
+    "Ish ostida har material alohida qator: nomida miqdor, tonna va masofa yoziladi (masalan «ПЕРЕВОЗКА: ГПС — 7 469,8158 М3 = 11 204,7237 Т × 14,5 КМ») — F2 da materialma-material bajarish mumkin.",
+    "Perevozka endi hech qachon «1 komplekt» yoki «1 dona» bo'lib kirmaydi; т·км bo'sh qatorlar kirmaydi.",
+    "Podval tekshiruvida yangi ogohlantirish: transport smetada aniq qatorlar bilan HAM, podvaldagi transport foizi bilan HAM bo'lsa — «ikki marta sanalishi mumkin» deb ko'rsatiladi."
+  ]
+}

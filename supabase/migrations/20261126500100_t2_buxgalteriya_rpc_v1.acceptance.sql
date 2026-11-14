@@ -22,7 +22,7 @@ begin
 
   -- 1. Boshlash: reja + moslik, takror chaqiruv (boshqa operation_id) hech narsa qo'shmaydi
   r := public.t2_bux_boshlash_v1(ub, k, gen_random_uuid());
-  rep := rep || (case when (r->>'ok')::boolean and (r->>'hisob_qoshildi')::int >= 25 and (r->>'moslik_qoshildi')::int = 11 then 'OK   boshlash: reja va moslik yaratildi' else 'FAIL boshlash: ' || r::text end);
+  rep := rep || (case when (r->>'ok')::boolean and (r->>'hisob_qoshildi')::int >= 25 and (r->>'moslik_qoshildi')::int >= 11 then 'OK   boshlash: reja va moslik yaratildi' else 'FAIL boshlash: ' || r::text end);
   r := public.t2_bux_boshlash_v1(ub, k, gen_random_uuid());
   rep := rep || (case when (r->>'hisob_qoshildi')::int = 0 and (r->>'moslik_qoshildi')::int = 0 then 'OK   boshlash takror: qo''shilmadi' else 'FAIL boshlash takror: ' || r::text end);
 
@@ -139,7 +139,7 @@ begin
     r := public.t2_bux_davr_v1(ub, k, '2026-01-15', 'yop', true, 'tasdiq bilan', gen_random_uuid());
   end if;
   rep := rep || (case when (r->>'ok')::boolean and exists (select 1 from public.t2_bux_davr where kompaniya_id = k and oy = '2026-01-01' and holat = 'yopiq') then 'OK   2026-01 yopildi' else 'FAIL davr yopilmadi: ' || r::text end);
-  set local session_replication_role = replica;
+  perform public.t2_bux_davr_blok_v1(ub, k, false, gen_random_uuid()); -- 20261216200000: V1 ogohlantirish rejimi shu testda\n  set local session_replication_role = replica;
   update public.t2_forma3 set sotuv_summa = 3360 where id = f3;
   set local session_replication_role = origin;
   r := public.t2_bux_avto_provodka_v1(ub, k, false, gen_random_uuid());

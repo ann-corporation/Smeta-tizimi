@@ -10,7 +10,7 @@ import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from
 import { Link } from 'react-router-dom';
 import { Activity, Bot, Building2, Coins, CreditCard, Crown, FileSearch, Send, Settings, ToggleLeft, Users } from 'lucide-react';
 import { Sahifa, Skelet } from '../../umumiy/ui/Sahifa';
-import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { matnSora, tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { GrafikPanel, Legenda, OylikUstunlar, Tasma, UfqiyUstunlar } from '../../components/boshqaruv-grafik/Grafiklar';
 import { toast } from '../../umumiy/ui/Toast';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
@@ -48,8 +48,8 @@ const BOLIMLAR: { id: Bolim; nom: string; Ikonka: typeof Users }[] = [
 ];
 
 /** Sabab so'rash (audit uchun majburiy). */
-function sababSora(savol: string): string | null {
-  const s = window.prompt(savol + '\n\nSabab (auditga yoziladi):');
+async function sababSora(savol: string): Promise<string | null> {
+  const s = await matnSora({ matn: savol, yorliq: 'Sabab (auditga yoziladi):', majburiy: true, tasdiqMatni: 'Davom etish' });
   return s && s.trim() ? s.trim() : null;
 }
 
@@ -145,13 +145,13 @@ function Foydalanuvchilar({ kompaniyalar }: { kompaniyalar: BKompaniya[] }) {
 
   const holat = async (f: BFoydalanuvchi) => {
     const yangi = f.holat === 'faol' ? 'bekor' : 'faol';
-    const sabab = sababSora(`${f.login} — ${yangi === 'bekor' ? 'BLOKLASH (tizimga kira olmaydi)' : 'qayta faollashtirish'}`);
+    const sabab = await sababSora(`${f.login} — ${yangi === 'bekor' ? 'BLOKLASH (tizimga kira olmaydi)' : 'qayta faollashtirish'}`);
     if (!sabab) return;
     const r = await boshqaruvYoz('foydalanuvchi_holat', { foydalanuvchi_id: f.id, holat: yangi, sabab });
     toast(r.xabar, r.ok ? 'ok' : 'danger'); if (r.ok) void yukla();
   };
   const azolik = async (fid: number, kid: number, rol: string | null, savol: string) => {
-    const sabab = sababSora(savol); if (!sabab) return;
+    const sabab = await sababSora(savol); if (!sabab) return;
     const r = await boshqaruvYoz('azolik', { foydalanuvchi_id: fid, kompaniya_id: kid, rol, sabab });
     toast(r.xabar, r.ok ? 'ok' : 'danger'); if (r.ok) { setRolUchun(null); void yukla(); }
   };
@@ -211,16 +211,16 @@ function Foydalanuvchilar({ kompaniyalar }: { kompaniyalar: BKompaniya[] }) {
 // ─── Kompaniyalar va obunalar ───
 function Kompaniyalar({ d, xato, yukla, tariflar }: { d: BKompaniya[] | null; xato: string | null; yukla: () => void; tariflar: TokenTarif[] }) {
   const toldir = async (k: BKompaniya) => {
-    const m = window.prompt(`${k.nom} — nechta token qo'shilsin? (manfiy — tuzatish)`);
+    const m = await matnSora({ matn: `${k.nom} — nechta token qo'shilsin? (manfiy — tuzatish)`, majburiy: true, kopQator: false });
     if (!m) return; const miqdor = Number(m.replace(/\s/g, '').replace(',', '.'));
     if (!Number.isFinite(miqdor) || miqdor === 0) { toast('Miqdor noto‘g‘ri', 'danger'); return; }
-    const izoh = sababSora(`${k.nom}: ${miqdor > 0 ? '+' : ''}${miqdor} token (to'lov raqami yoki sabab)`); if (!izoh) return;
+    const izoh = await sababSora(`${k.nom}: ${miqdor > 0 ? '+' : ''}${miqdor} token (to'lov raqami yoki sabab)`); if (!izoh) return;
     const tur = miqdor < 0 ? 'tuzatish' : /bonus|sovg/i.test(izoh) ? 'bonus' : 'toldirish';
     const r = await tokenToldir({ maqsadKompaniyaId: k.id, miqdor, tur, izoh });
     toast(r.ok ? 'Token yozildi' : tokenXato(r), r.ok ? 'ok' : 'danger'); if (r.ok) yukla();
   };
   const tarif = async (k: BKompaniya, kod: string) => {
-    const oy = Number(window.prompt(`${k.nom} — "${tariflar.find((t) => t.kod === kod)?.nom}" necha oyga?`, '1'));
+    const oy = Number(await matnSora({ matn: `${k.nom} — "${tariflar.find((t) => t.kod === kod)?.nom}" necha oyga?`, boshlangich: '1', majburiy: true, kopQator: false }));
     if (!Number.isInteger(oy) || oy < 1 || oy > 24) return;
     const r = await obunaBelgila({ maqsadKompaniyaId: k.id, tarif: kod, oylar: oy });
     toast(r.ok ? 'Obuna belgilandi, oylik tokenlar yozildi' : tokenXato(r), r.ok ? 'ok' : 'danger'); if (r.ok) yukla();
@@ -262,7 +262,7 @@ function SagaNavbat() {
   const { d, xato } = useOqi<{ kutilmoqda: BSagaKutilmoqda[] }>('token_saga', {}, String(yangi));
   const [xabar, setXabar] = useState('');
   async function hal(s: BSagaKutilmoqda, qaror: 'qaytar' | 'yakunlandi') {
-    const sabab = window.prompt(qaror === 'qaytar' ? t('Qaytarish sababi (audit uchun):') : t('Nega yakunlangan deb belgilanmoqda (audit uchun):'), qaror === 'qaytar' ? t('Amal natijasi kelmadi') : '');
+    const sabab = await matnSora({ matn: qaror === 'qaytar' ? 'Qaytarish sababi (audit uchun):' : 'Nega yakunlangan deb belgilanmoqda (audit uchun):', boshlangich: qaror === 'qaytar' ? t('Amal natijasi kelmadi') : '' });
     if (sabab == null) return;
     const r = await boshqaruvYoz('token_saga_hal', { sarf_operation_id: s.sarf_operation_id, qaror, sabab });
     setXabar(r.ok ? (qaror === 'qaytar' ? `${son(s.token)} ${t('token qaytarildi')} — ${s.kompaniya}` : t('Yakunlangan deb belgilandi')) : r.xabar);
@@ -383,7 +383,7 @@ function Tolovlar() {
   const [holat, setHolat] = useState('kutilmoqda');
   const { d, xato, yukla } = useOqi<BTolov[]>('tolovlar', { holat }, holat);
   const hal = async (s: BTolov, qaror: 'tasdiqlandi' | 'rad') => {
-    const sabab = qaror === 'rad' ? sababSora(t('Rad etish sababi'))
+    const sabab = qaror === 'rad' ? await sababSora(t('Rad etish sababi'))
       : await tasdiqSora({ sarlavha: t('Toʻlovni tasdiqlash'), matn: t('{k}: {s} soʻm uchun {n} token yozilsinmi? Pul hisobingizga tushganini tekshirdingizmi?', { k: s.kompaniya, s: son(s.summa_som), n: son(s.token) }), tasdiqMatni: t('Tasdiqlash') }) ? 'tasdiq' : null;
     if (!sabab) return;
     const r = await boshqaruvYoz('tolov_hal', { sorov_id: s.id, qaror, sabab: qaror === 'rad' ? sabab : null });
@@ -477,8 +477,8 @@ function Sozlamalar({ kompaniyaId }: { kompaniyaId: number | null }) {
     const r = await boshqaruvYoz('tarif', { kod: tf.kod, nom: tf.nom, oylik_token: tf.oylik_token, narx_som: tf.narx_som, faol: tf.faol !== false });
     toast(r.xabar, r.ok ? 'ok' : 'danger'); if (r.ok) void yukla();
   };
-  const yangiTarif = () => {
-    const kod = window.prompt(t('Yangi tarif kodi (lotin, masalan: pto_korporativ)')); if (!kod) return;
+  const yangiTarif = async () => {
+    const kod = await matnSora({ matn: 'Yangi tarif kodi (lotin, masalan: pto_korporativ)', majburiy: true, kopQator: false }); if (!kod) return;
     setTariflar((p) => [...p, { kod: kod.trim().toLowerCase(), nom: 'Yangi tarif', oylik_token: 0, narx_som: 0 }]);
   };
   const ozgar = <T,>(set: (f: (p: T[]) => T[]) => void, i: number, qism: Partial<T>) => set((p) => p.map((x, j) => (j === i ? { ...x, ...qism } : x)));

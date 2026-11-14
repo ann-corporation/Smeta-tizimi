@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Download } from 'lucide-react';
 import { t, tilLocale } from '../../i18n/til';
+import { toast } from '../../umumiy/ui/Toast';
+import { useKompaniya } from '../../test02/KompaniyaTanlov';
+import { hujjatTokenBilan } from '../../lib/token-hujjat';
+import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { buxOsvOl, type BuxOsv } from '../../api/t2-bux-hisob';
+import { osvHujjat } from '../../lib/buxgalteriya/eksport';
 import { osvMuvozanat, saldoTomoni } from '../../lib/buxgalteriya/hisob';
 import { yigindi2 } from '../../lib/hisob-yadro';
 import { Izoh, Son, SonBosh, XatoQator } from './umumiy';
@@ -27,10 +32,21 @@ export function Osv({ kid, davr, versiya, onHisob }: { kid: number; davr: Davr; 
     };
   }, [d]);
   const m = d ? osvMuvozanat(d) : null;
+  const { joriy } = useKompaniya();
+  const eksport = async () => {
+    if (!d) return;
+    const { bytes, faylNomi } = osvHujjat({ kompaniya: (joriy as { nom?: string } | null | undefined)?.nom ?? null, osv: d });
+    const r = await hujjatTokenBilan({ kompaniyaId: kid, bytes, hujjat: 'OBOROT_SALDO', sabab: `Оборотно-сальдовая ведомость · ${d.dan}..${d.gacha}` }, () => downloadBlob(bytes, faylNomi));
+    toast(r.ok ? (r.xabar || t('Oborot-saldo yuklandi')) : r.xabar, r.ok ? 'ok' : 'danger');
+  };
 
   return (
     <div className="space-y-3">
       <XatoQator xato={xato} />
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[13px] font-semibold">{t('Oborot-saldo vedomost (оборотно-сальдовая ведомость, ОСВ)')}</span>
+        <button type="button" className="fz-btn" disabled={!d || d.qatorlar.length === 0} title={t('Excel (token yechiladi)')} onClick={() => void eksport()}><Download size={13} /> {t('Excel')}</button>
+      </div>
       {m && (m.muvozanatda
         ? <p className="flex items-center gap-1 text-[12.5px] text-ok"><CheckCircle2 size={14} /> {t('Jami Debet = jami Kredit: hisob muvozanatda.')}</p>
         : <p role="alert" className="flex items-center gap-1 text-[12.5px] text-danger"><AlertTriangle size={14} /> {t('Muvozanat buzilgan: Debet va Kredit farqi bor.')}</p>)}

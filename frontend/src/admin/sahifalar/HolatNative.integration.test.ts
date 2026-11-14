@@ -9,9 +9,16 @@ describe('kanonik LRV sahifasi kundalik native oqimni birlashtiradi', () => {
     expect(source).toContain("import SmetaYuklaNative from './SmetaYuklaNative';");
     expect(source).toContain("import ResursVedomostNative from './ResursVedomostNative';");
     expect(source).toContain("import NarxNazoratNative from './NarxNazoratNative';");
-    expect(source).toContain('<SmetaYuklaNative obyektId={obyektId} onImportlandi={yuklash} />');
+    expect(source).toContain('<SmetaYuklaNative obyektId={obyektId} onImportlandi={yuklash}');
     expect(source).toContain('<ResursVedomostNative obyektId={obyektId} />');
     expect(source).toContain('<NarxNazoratNative obyektId={obyektId} />');
+  });
+
+  it('yuklash ustasi yuklanish belgisi bilan unmount bo‘lmaydi (import natijasi yo‘qolmasin)', () => {
+    expect(source).toContain('{panellar && daraxtKorinadi && !error && (');
+    expect(source).not.toContain('{panellar && daraxtKorinadi && !loading && !error && (\n          <div key=');
+    expect(source).toContain('onSmetaOchish=');
+    expect(source).toContain('onVersiyaSaqla=');
   });
 
   it('eski GAS kompozit sahifani canonical LRV oqimiga qaytarmaydi', () => {

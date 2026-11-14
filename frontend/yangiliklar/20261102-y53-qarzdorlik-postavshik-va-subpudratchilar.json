@@ -1,0 +1,12 @@
+{
+  "id": 53,
+  "sana": "2026-11-02",
+  "sarlavha": "Qarzdorlik: postavshik va subpudratchilar oldidagi qarz hujjat bilan asoslanadi",
+  "bandlar": [
+    "Yangi sahifa Moliya → Qarzdorlik: har kontragent shartnomasi bo'yicha shartnoma summasi, qabul qilingan, to'langan va QARZ (+ biz qarzmiz, − ular qarz) ko'rinadi.",
+    "Qatorni ochsangiz — nakladnoy, akt, to'lov va boshlang'ich qoldiq asoslari; to'g'ridan-to'g'ri tahrirlanadi, bitta «Saqlash» bilan yoziladi. Minus hajm/summa (qaytarish) ruxsat.",
+    "«Excel import»: ОБОСНОВАНИЕ ЗАДОЛЖЕННОСТИ shabloni yoki finansoviy spravka (Контрагент, Договор, Оплата, Факт задолженность, прогноз) — avval ko'rib chiqasiz, keyin saqlanadi; qayta yuklash takror yozmaydi.",
+    "Spravkadagi qarz tizim hisobi bilan solishtiriladi: FARQ asoslanmagan qismni ko'rsatadi; ortiqcha to'lov/avans, shartnomadan oshgan qabul va summasi noma'lum qatorlar ogohlantiriladi.",
+    "«Excel eksport» — egasining shabloni bilan bir xil joylashuvda."
+  ]
+}

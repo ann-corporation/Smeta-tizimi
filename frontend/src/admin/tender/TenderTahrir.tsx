@@ -53,6 +53,11 @@ export function TenderTahrir({ ochiq, kompaniyaId, tahrir, onYop, onSaqlandi }: 
     setOp(yangiOperationId());
     void tenderYetkazuvchilarOl(kompaniyaId).then((r) => { if (r.ok) setYetkazuvchilar(r.natija.qatorlar); });
     void sbT2ObyektlarOlKomp(kompaniyaId).then((r) => setObyektlar(r.qatorlar || []));
+    if (!tahrir) {
+      /* Sukut muddatlar (yangi tender): savol — 3 kun, taklif — 7 kun, soat 18:00 (o'zgartirish mumkin). */
+      const lokal = (kun: number) => { const d = new Date(); d.setDate(d.getDate() + kun); d.setHours(18, 0, 0, 0); const p = (n: number) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
+      setMuddat((x) => x || lokal(7)); setSavolMuddat((x) => x || lokal(3));
+    }
     if (tahrir) {
       const r = tahrir.rfq;
       setSarlavha(r.nom); setTur(r.tur); setDoira(r.doira); setMuddat(isoDanLokal(r.muddat)); setSavolMuddat(isoDanLokal(r.savol_muddat)); setValyuta(r.valyuta);

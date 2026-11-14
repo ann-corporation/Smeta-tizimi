@@ -25,13 +25,15 @@ export type AmalTur =
   | 'kompaniya' | 'loyiha' | 'obyekt' | 'jamoa' | 'odam'
   | 'shartnoma' | 'sklad' | 'zayavka' | 'kontragent' | 'texnika' | 'kadr';
 
-export type AmalBajar = 'yol' | 'modal' | 'panel';
+export type AmalBajar = 'yol' | 'modal' | 'panel' | 'pult';
 export type AmalModal = 'masul' | 'vazifa';
 /** `tanla` — tugunni tanlaydi (panelda ro‘yxat); `masul` — «Mas‘ullar» blokidagi biriktirish maydoniga fokus. */
 export type AmalPanel = 'tanla' | 'masul';
 export type AmalIkon =
   | 'gauge' | 'fakt' | 'f2' | 'tarix' | 'jamlanma' | 'yuklash' | 'zayavka' | 'yangi' | 'masul' | 'vazifa'
-  | 'royxat' | 'loyiha' | 'hujjat' | 'shartnoma' | 'tolov' | 'sklad' | 'odamlar' | 'rol' | 'kontragent' | 'texnika' | 'kadr';
+  | 'royxat' | 'loyiha' | 'hujjat' | 'shartnoma' | 'tolov' | 'sklad' | 'odamlar' | 'rol' | 'kontragent' | 'texnika' | 'kadr'
+  /** Boshqaruv pulti amallari (lib/mindmap-pult): biriktirish / uzish / nomlash. */
+  | 'ulash' | 'uzish' | 'nomlash';
 
 /** Amal nishoni — menyu ochilgan tugun (yoki panel ro‘yxatidagi resurs). */
 export type AmalNishon = {
@@ -93,6 +95,8 @@ export type Amal = {
   mumkin: boolean;
   /** Yopiq bo‘lsa — qisqa sabab (tooltip). */
   sabab: string | null;
+  /** bajar === 'pult': lib/mindmap-pult amal kaliti (oldindan ko‘rish + tasdiq modali ochiladi). */
+  pult?: string | null;
 };
 
 /* ───────────── Ruxsat yordamchilari ───────────── */
@@ -156,7 +160,7 @@ export const AMALLAR: readonly AmalTarif[] = [
   // ── Jamoa va kompaniya ──
   { kalit: 'jamoa.azolar', tur: 'jamoa', nom: () => t('Rolni o‘zgartirish (A’zolar)'), ikon: 'odamlar', bajar: 'yol', yol: () => AZOLAR_YOLI },
   { kalit: 'kompaniya.loyihalar', tur: 'kompaniya', nom: () => t('Loyihalar sahifasi'), ikon: 'loyiha', bajar: 'yol', yol: () => '/admin/loyiha' },
-  { kalit: 'kompaniya.obyektlar', tur: 'kompaniya', nom: () => t('Obyektlar va smeta yuklash'), ikon: 'royxat', bajar: 'yol', yol: () => '/admin/obyektlar' },
+  { kalit: 'kompaniya.obyektlar', tur: 'kompaniya', nom: () => t('Obyektlar'), ikon: 'royxat', bajar: 'yol', yol: () => '/admin/obyektlar' },
   { kalit: 'kompaniya.topshiriqlar', tur: 'kompaniya', nom: () => t('Mening topshiriqlarim'), ikon: 'vazifa', bajar: 'yol', yol: () => '/admin/topshiriqlar' },
 
   // ── Resurslar (panel ro‘yxati) ──

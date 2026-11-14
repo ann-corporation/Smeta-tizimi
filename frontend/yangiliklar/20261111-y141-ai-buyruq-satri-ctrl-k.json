@@ -1,0 +1,11 @@
+{
+  "id": 141,
+  "sana": "2026-11-11",
+  "sarlavha": "AI buyruq satri (Ctrl+K)",
+  "bandlar": [
+    "PTO sahifalarida Ctrl+K bosing: bitta satrga buyruq yozing (masalan «narxsiz qatorlarni ko‘rsat» yoki «beton faktiga +5 qo‘sh») — AI obyekt ma’lumotini o‘qib, taklif kartasini beradi: nima o‘zgaradi, eski → yangi va summa farqi (ustamali va ustamasiz).",
+    "«Bajarish» bosilgandagina yoziladi (mavjud fakt yozish yo‘li, har yozuvda operation_id). Narx tuzatish kabi pul ta’sirli amalda ikkinchi «Tasdiqlayman» tugmasi ham kerak.",
+    "Mikrofon tugmasi (UZ/RU): ovoz faqat satrni to‘ldiradi — avtomatik yuborilmaydi va hech qachon tasdiqlamaydi. Brauzer ovozni qo‘llamasa tugma ko‘rinmaydi.",
+    "Yuborishdan oldin taxminiy token narxi ko‘rinadi; aynan bir xil buyruq qayta berilsa, token qayta yechilmaydi. Yangi buyruqlar: narxsiz qatorlar va qoldiq."
+  ]
+}

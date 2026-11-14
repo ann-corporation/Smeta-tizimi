@@ -1,0 +1,26 @@
+{
+  "Suhbatni tanlash": {
+    "ru": "Выбрать разговор",
+    "en": "Choose conversation"
+  },
+  "Kontekst: umumiy suhbat": {
+    "ru": "Контекст: общий разговор",
+    "en": "Context: general conversation"
+  },
+  "Kontekst: kompaniya #{id}": {
+    "ru": "Контекст: компания №{id}",
+    "en": "Context: company #{id}"
+  },
+  "Suhbat serverga saqlanmoqda…": {
+    "ru": "Сохранение разговора на сервер…",
+    "en": "Saving conversation to server…"
+  },
+  "Suhbatning ixcham nusxasi serverga saqlandi": {
+    "ru": "Краткая копия разговора сохранена на сервере",
+    "en": "Compact conversation copy saved to server"
+  },
+  "Serverga saqlanmadi — bu oynani yopmang": {
+    "ru": "Не сохранено на сервере — не закрывайте это окно",
+    "en": "Not saved to server — keep this window open"
+  }
+}

@@ -66,7 +66,7 @@ describe('gateway xaritasi', () => {
 describe('menyu: ilova va ishga tushirgich', () => {
   it('boss: ko\'rinadigan ilovalar tartib bilan, har birining birinchi sahifasi bor', () => {
     const l = ilovalarRoyxati(k());
-    expect(l.map((i) => i.kod)).toEqual(['pto', 'ff', 'moliya', 'sotuv', 'xarid', 'hr', 'logistika', 'hujjat']);
+    expect(l.map((i) => i.kod)).toEqual(['pto', 'ff', 'moliya', 'sotuv', 'logistika', 'hujjat']);
     for (const i of l) expect(menyuYollari(menyuQur(k())), i.kod).toContain(i.yol);
   });
   it('ilova menyusi faqat shu ilova sahifalarini beradi, «Barcha bo\'limlar» (hammasi) — hammasini', () => {
@@ -97,6 +97,6 @@ describe('menyu: ilova va ishga tushirgich', () => {
     expect(ilovalarRoyxati(usta).map((i) => i.kod)).toEqual(['ff']);
   });
   it('holat noma\'lum (modullar kelmagan) — hech narsa yashirilmaydi', () => {
-    expect(ilovalarRoyxati(k({ modullar: undefined })).length).toBe(8);
+    expect(ilovalarRoyxati(k({ modullar: undefined })).length).toBe(6); /* HR/Tender/Uy sotish — «Qo'shimcha bo'limlar»da, launcherda emas */
   });
 });

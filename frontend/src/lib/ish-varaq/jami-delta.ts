@@ -1,15 +1,13 @@
 /**
  * Ish varag'i pastki panel: SAQLANMAGAN kiritmalar bilan jami (delta) — sof mantiq. Yangi pul formulasi yo'q:
  *  - fakt: o'zgargan HAJM (delta) × qator birlik narxi, narx qoidasi yadrodan — `faktSummaF2Narxda` (tasdiqlangan F2 bor qatorda F2 narxida);
- *  - F2: qoralama qatorlari summasi F2 tayyorlashning mavjud zanjiridan (`f2Qatorlar`) keladi, bu yerda faqat yig'iladi;
  *  - ustamali ko'rinish — `SummaJuft` (kesim → ustama podvali), bu yerda faqat KATEGORIYA KESIMI va ustamasiz yig'indi.
  * NULL ≠ 0: birlik narxi noma'lum qator deltasi `null` (kesimda «narxsiz» sanaladi), 0 emas.
  */
 import type { T2Qator } from '../../api/supabase';
 import { ayirma2, faktSummaF2Narxda, qatorSumma, yigindi2 } from '../hisob-yadro';
 import type { JurnalHolat, JurnalIsh, JurnalQator, SummaKesim } from '../fakt-jurnal';
-import type { F2Qator } from '../f2-tayyor';
-import { bosKatKesim, katKesimgaQosh, katKesimYigish, type KatKesim } from '../ustamali-summa';
+import { bosKatKesim, katKesimgaQosh, type KatKesim } from '../ustamali-summa';
 
 export type SummaDelta = { id: number; kat: string | null; summa: number | null };
 
@@ -62,24 +60,4 @@ export function deltaFaqat(deltalar: readonly SummaDelta[]): SummaKesim {
   for (const d of deltalar) katKesimgaQosh(kesim, d.kat, d.summa);
   const qiymatlar = deltalar.map((d) => d.summa);
   return { ustamasiz: bormi(qiymatlar) ? yigindi2(qiymatlar) : null, kesim };
-}
-
-const f2Barg = (q: F2Qator[]) => q.filter((x) => x.tur !== 'bl');
-
-/** F2 qoralama jami (barcha qoralama qatorlari): ustamasiz + kesim; narxsiz qatorlar kesimda sanaladi (0 emas). */
-export function f2QoralamaJami(q: F2Qator[]): SummaKesim {
-  const b = f2Barg(q);
-  const kesim = katKesimYigish(b, (x) => x.kat, (x) => x.summa);
-  const qiymatlar = b.map((x) => x.summa);
-  return { ustamasiz: bormi(qiymatlar) ? yigindi2(qiymatlar) : null, kesim };
-}
-
-/** F2 qoralama o'zgarishi (saqlanmagan − saqlangan): kesim va ustamasiz farq. */
-export function f2QoralamaDelta(yangi: F2Qator[], saqlangan: F2Qator[]): SummaKesim {
-  const y = f2Barg(yangi); const s = f2Barg(saqlangan).filter((x) => x.summa != null);
-  const elementlar = [...y.map((x) => ({ kat: x.kat, summa: x.summa })), ...s.map((x) => ({ kat: x.kat, summa: -(x.summa as number) }))];
-  const kesim = katKesimYigish(elementlar, (x) => x.kat, (x) => x.summa);
-  const yJami = bormi(y.map((x) => x.summa)) ? yigindi2(y.map((x) => x.summa)) : null;
-  const sJami = bormi(s.map((x) => x.summa)) ? yigindi2(s.map((x) => x.summa)) : null;
-  return { ustamasiz: yJami == null && sJami == null ? null : ayirma2(yJami ?? 0, sJami ?? 0), kesim };
 }

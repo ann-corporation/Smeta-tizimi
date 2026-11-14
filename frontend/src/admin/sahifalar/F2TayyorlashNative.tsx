@@ -19,7 +19,9 @@ import { IshMaterialOgohRoyxat } from '../../components/fakt/IshMaterialOgoh';
 import { FmtN } from '../../lib/format';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { usePTOWorkspace } from '../../umumiy/kontekst/PTOWorkspaceContext';
-import { ObyektQadamlari } from '../components/ObyektQadamlari';
+import { ZanjirChizigi } from '../components/ZanjirChizigi';
+import { useIshOyi } from '../../lib/pto-markazi/useQadamMalumot';
+import { oydaFaktSoni } from '../../lib/pto-markazi/oy';
 import { sbOqi, sbT2AktYaratV2, sbT2F2QoralamaYangila, sbT2DaraxtOl, sbT2ObyektlarOlKomp, yangiOperationId, type T2Obyekt, type T2Qator } from '../../api/supabase';
 import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
 import { sbQatorHolatOl, sbF2QoralamaHajmlar, type QatorHolat } from '../../api/t2-fakt';
@@ -42,6 +44,7 @@ import { aktdanKiritma } from '../../lib/f2-akt-kiritma';
 import { f2VersiyaKochirmaOl } from '../../api/t2-f2-versiya-kochirma';
 import { avvalgiF2Xaritasi, type F2VersiyaKochirma } from '../../lib/f2-versiya-kochirma';
 import { f2Hujjat } from '../../lib/f2-hujjat';
+import { yaxlitQatorIdlari } from '../../lib/svod-yaxlit';
 import { stornoBlokniSaqla, stornoQaytarHajm, stornoQatorimi, type SaqlanganAktQator } from '../../lib/f2-storno';
 import { F2StornoBlokTahrir } from './F2StornoBlokTahrir';
 import { f2StornoQatorTarixOl, type StornoTarixQator } from '../../api/t2-f2-storno';
@@ -170,7 +173,10 @@ export function F2TayyorlashNative() {
   /** «Yangi qatorlar smeta narxida» (pereraschet qoralamasida sukut YOQIQ): null — operator tanlamagan. */
   const [smetaNarxTanlov, setSmetaNarxTanlov] = useState<boolean | null>(null);
   /** «Faktdan F2» (Fakt jurnalidan ?oy=YYYY-MM): davr fakt sahifasida tanlangan bo'lsa — shu oy. */
-  const [oy, setOy] = useState(() => { const p = params.get('oy'); return p && /^\d{4}-\d{2}$/.test(p) ? `${p}-01` : oyBoshlanishi(); });
+  /* Yagona oy (egasi 2026-11-11): F2 oyi yuqoridagi umumiy oydan olinadi; sahifaning o'z oy tanlovi yo'q. Provider bo'lmasa — mahalliy holat. */
+  const [oyMahalliy, setOyMahalliy] = useState(() => { const p = params.get('oy'); return p && /^\d{4}-\d{2}$/.test(p) ? `${p}-01` : oyBoshlanishi(); });
+  const oy = workspace.isProvider && workspace.scope.periodId ? `${workspace.scope.periodId}-01` : oyMahalliy;
+  const setOy = (v: string) => { setOyMahalliy(v); if (workspace.isProvider && /^\d{4}-\d{2}/.test(v)) workspace.setPeriodId(v.slice(0, 7)); };
   const [raqam, setRaqam] = useState('');
   const [qidir, setQidir] = useState('');
   /** Bitta almashtirgich: faqat shu davrda hajmi kiritilgan ishlar (hamma bo'limlardan). */
@@ -188,7 +194,11 @@ export function F2TayyorlashNative() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  /* Qoralama yozilgach sahifa ichida doimiy «Tasdiqlashga o'tish» (toast 12 soniyada yo'qolardi). Obyekt almashsa yashiriladi. */
+  const [qoralamaYozildi, setQoralamaYozildi] = useState<{ obyektId: number; n: number } | null>(null);
   const [aosrsiz, setAosrsiz] = useState<AosrCoverage[]>([]);
+  /** Zanjir chizig'i uchun АОСР qamrovi; null — hali o'qilmadi / o'qilmadi (noma'lum, 0 emas). */
+  const [aosrQamrov, setAosrQamrov] = useState<{ yashirin: number; aktsiz: number } | null>(null);
   const [aosrKoz, setAosrKoz] = useState<Map<number, AosrIshora>>(new Map());
   /** Shartnoma liniyasidan: imzolovchilar (buyurtmachi, pudratchi, subpudratchi, texnadzor) va shartnoma raqami. */
   const [avto, setAvto] = useState<{ imzo: ImzoNomlar; shartnoma: string | null }>({ imzo: {}, shartnoma: null });
@@ -232,7 +242,7 @@ export function F2TayyorlashNative() {
     sessObyekt.current = null;
     const raqam = ++sorov.current;
     const dolzarb = () => raqam === sorov.current;
-    if (!validId) { setRows([]); setHolat([]); setProtokolQ([]); setAosrsiz([]); setAosrKoz(new Map()); return; }
+    if (!validId) { setRows([]); setHolat([]); setProtokolQ([]); setAosrsiz([]); setAosrQamrov(null); setAosrKoz(new Map()); return; }
     tezlik.current = tezlikBelgisi('f2-tayyorlash');
     setLoading(true); setError(''); setRows([]); setHolat([]); setAkt(null); setAktXato(''); setStornoTahrir(null); setStornoTahrirOchiq(false); aktQollandi.current = null;
     setProtokolXato(false); setQoralamaXato(false); yukKalit.current = '';
@@ -258,7 +268,7 @@ export function F2TayyorlashNative() {
         const ok = !!r?.ok && r.toliq !== false;
         setProtokolQ(ok ? (r.qatorlar || []).filter((x) => x.holat === 'tasdiqlangan') : []); setProtokolXato(!ok);
       }).catch(() => { if (dolzarb()) { setProtokolQ([]); setProtokolXato(true); } });
-      void sbAosrCoverageOl(obyektId).then((c) => { if (dolzarb()) { setAosrsiz(c.ok ? (c.qatorlar || []).filter((x) => x.yashirin && !x.akt_bor) : []); setAosrKoz(new Map(c.ok ? (c.qatorlar || []).map((x) => [x.qator_id, aosrIshora(x)] as const) : [])); } }).catch(() => { if (dolzarb()) setAosrsiz([]); });
+      void sbAosrCoverageOl(obyektId).then((c) => { if (dolzarb()) { setAosrQamrov(c.ok ? { yashirin: (c.qatorlar || []).filter((x) => x.yashirin).length, aktsiz: (c.qatorlar || []).filter((x) => x.yashirin && !x.akt_bor).length } : null); setAosrsiz(c.ok ? (c.qatorlar || []).filter((x) => x.yashirin && !x.akt_bor) : []); setAosrKoz(new Map(c.ok ? (c.qatorlar || []).map((x) => [x.qator_id, aosrIshora(x)] as const) : [])); } }).catch(() => { if (dolzarb()) { setAosrsiz([]); setAosrQamrov(null); } });
       void Promise.resolve().then(() => f2VersiyaKochirmaOl(obyektId)).then((r) => { if (dolzarb()) setKochirma(r.ok ? r.natija : null); }).catch(() => { if (dolzarb()) setKochirma(null); });
       // Boshqa qoralamalardagi hajm o'qilmasa (A-14) — QORALAMA_TAKROR himoyasi jim o'chmaydi: xato holati.
       void Promise.resolve().then(() => sbF2QoralamaHajmlar(obyektId, aktId)).then((qh) => { if (dolzarb()) { setQoralamaHajm(qh.ok ? qh.hajm : new Map()); setQoralamaXato(!qh.ok); } }).catch(() => { if (dolzarb()) { setQoralamaHajm(new Map()); setQoralamaXato(true); } });
@@ -565,6 +575,21 @@ export function F2TayyorlashNative() {
   /** Ko'rinish (egasi 2026-10-25: F2 ni tayyorlash paytida hujjat sifatida ko'rish) — faqat ko'rsatish, hisob o'zgarmaydi. */
   const katTaq = useMemo(() => qoralamaKatTaqsimot(qatorlar), [qatorlar]);
   const raqamTaklif = useMemo(() => (aktId == null ? keyingiF2Raqam(obyektAktlari) : null), [aktId, obyektAktlari]);
+  /* Avtomatlashtirish (audit 2026-11-11): davr — obyektning oxirgi fakt/F2 oyi (URL/kontekstda aniq oy bo'lmasa), F2 raqami — keyingi bo'sh raqam.
+   * Operator o'zi o'zgartirsa, avtomatik qiymat uni bosmaydi. Hech narsa tasdiqlanmaydi — faqat bo'sh maydonlar to'ldiriladi. */
+  const ishOy = useIshOyi(validId ? obyektId : null);
+  const oyAvto = useRef(!params.get('oy'));
+  useEffect(() => {
+    if (!oyAvto.current || !ishOy.aniq || aktId != null) return;
+    oyAvto.current = false;
+    setOy(`${ishOy.oy}-01`);
+  }, [ishOy.aniq, ishOy.oy, aktId]);
+  const raqamQoyil = useRef(false);
+  useEffect(() => {
+    if (raqamQoyil.current || aktId != null || !raqamTaklif) return;
+    setRaqam((r) => (r.trim() ? r : raqamTaklif));
+  }, [raqamTaklif, aktId]);
+  const oyFaktSoni = oydaFaktSoni(ishOy.malumot.aktlar, oy);
 
 
 
@@ -786,7 +811,8 @@ export function F2TayyorlashNative() {
         return;
       }
       if (typeof r.versiya === 'number') aktVersiya.current.set(akt.id, r.versiya);
-      toast(t('F2 qoralama yangilandi (akt #{id}, {n} qator). Tasdiqlash - F2 tarixida.', { id: String(akt.id), n: String(qatorlar.length) }), 'ok', undefined, 12000, { label: 'Ochish', onClick: () => navigate(`/admin/f2-tarix?obyekt=${obyektId}`) });
+      toast(t('F2 qoralama yangilandi (akt #{id}, {n} qator). Tasdiqlash - F2 tarixida.', { id: String(akt.id), n: String(qatorlar.length) }), 'ok');
+      setQoralamaYozildi({ obyektId, n: qatorlar.length });
       await yuklash();
     } catch { toast(t('Javob olinmadi. Qayta urinib ko‘ring.'), 'danger'); }
   };
@@ -812,7 +838,8 @@ export function F2TayyorlashNative() {
       });
       if (!tk.ok) { toast(tk.xabar, 'danger'); return; }
       f2SessiyaTozala(obyektId); // saqlandi — saqlanmagan kiritma qolmadi
-      toast(t('F2 qoralama yaratildi ({n} token). Tasdiqlash — F2 tarixida.', { n: tk.sarflandi }), 'ok', undefined, 12000, { label: 'Ochish', onClick: () => navigate(`/admin/f2-tarix?obyekt=${obyektId}`) });
+      toast(t('F2 qoralama yaratildi ({n} token). Tasdiqlash — F2 tarixida.', { n: tk.sarflandi }), 'ok');
+      setQoralamaYozildi({ obyektId, n: qatorlar.length });
       await yuklash();
     } catch { toast(t('Javob olinmadi. Shu amal IDsi bilan qayta urinishingiz mumkin.'), 'danger'); }
     finally { saqlashQulf.current = false; setSaving(false); }
@@ -847,6 +874,8 @@ export function F2TayyorlashNative() {
         obyektNom: object.nom, davr: oy, raqam, imzo: { ...avto.imzo, ...qolda }, shartnoma: avto.shartnoma,
         ndsFoiz: stavka,
         nakrutka: nk?.ok ? nk.koeffitsientlar ?? null : null, podval, nkManba: nk?.ok ? nk.nk_manba ?? null : null, rows,
+        // Svod yaxlit bo'lim qatorlari ustamasiz (imzolangan hujjat/server bilan bir xil).
+        yaxlitIds: yaxlitQatorIdlari(rows, nk?.ok ? nk.svod_yaxlit ?? null : null),
         eskiBloklar: eskiBloklar.length ? eskiBloklarHujjat(eskiBloklar, blokNk) : undefined,
       });
       // Token (egasi 2026-10-02): hujjat avval yaratiladi (xato bo'lsa token olinmaydi), keyin "f2_hujjat" sarfi bilan beriladi.
@@ -1124,7 +1153,14 @@ export function F2TayyorlashNative() {
   return <Sahifa sarlavha="F2 tayyorlash" tavsif="Ishni tanlang — resurslar, narx va summa avtomatik; har narx manbasi ko‘rinadi">
     {korinish.oyna}
     <div ref={moneyScope} className="flex min-h-full flex-col gap-3">
-      {validId && <ObyektQadamlari joriy="f2-yasash" obyektId={obyektId} />}
+      {validId && <ZanjirChizigi joriy="f2" obyektId={obyektId} aosr={aosrQamrov} />}
+      {validId && qoralamaYozildi?.obyektId === obyektId && (
+        <div role="status" data-testid="f2-tasdiqlashga-otish" className="fz-note fz-note--ok flex flex-wrap items-center gap-3">
+          <span className="min-w-0 flex-1">{t('F2 qoralama saqlandi ({n} qator). Endi uni tekshirib tasdiqlang.', { n: String(qoralamaYozildi.n) })}</span>
+          <button type="button" className="fz-btn fz-btn--primary" onClick={() => navigate(`/admin/f2-tarix?obyekt=${obyektId}`)}>{t('Tasdiqlashga o‘tish')}</button>
+          <button type="button" className="fz-btn fz-btn--ghost fz-btn--sm" onClick={() => setQoralamaYozildi(null)}>{t('Yopish')}</button>
+        </div>
+      )}
       {validId && <TayyorlanganF2lar kompaniyaId={joriy?.id} obyektId={obyektId} />}
       <section className="fz-card flex flex-wrap items-end gap-3 p-3" aria-label={t('F2 parametrlari')}>
         <label className="min-w-[240px] flex-1 text-[12px] font-medium text-text-dim">{t('Obyekt')}
@@ -1132,9 +1168,10 @@ export function F2TayyorlashNative() {
             <option value="">{t('-- obyektni tanlang --')}</option>{validId && !obyektlar.some((item) => item.id === obyektId) && <option value={obyektId}>{t('Obyekt')} {'#'}{obyektId}</option>}<ObyektOptionlari obyektlar={obyektlar} />
           </select>
         </label>
-        <label className="text-[12px] font-medium text-text-dim">{t('Davr')}<input aria-label="F2 davri" type="month" disabled={aktId != null} title={aktId != null ? t('Qoralama davri tahrirda o‘zgarmaydi') : undefined} value={oy.slice(0, 7)} onChange={(event) => setOy(`${event.target.value}-01`)} className="mt-1.5 block rounded-lg border border-border bg-surface-2 px-3 py-2 text-text" /></label>
+        {workspace.isProvider ? <div className="text-[12px] font-medium text-text-dim" title={t('Oyni yuqoridagi «Oy» dan o‘zgartiring')}>{t('Oy')}<div aria-label="F2 davri" className="mt-1.5 block rounded-lg border border-border bg-surface-2 px-3 py-2 text-text">{oy.slice(0, 7)}</div></div> : <label className="text-[12px] font-medium text-text-dim">{t('Oy')}<input aria-label="F2 davri" type="month" disabled={aktId != null} title={aktId != null ? t('Qoralama davri tahrirda o‘zgarmaydi') : undefined} value={oy.slice(0, 7)} onChange={(event) => { oyAvto.current = false; setOy(`${event.target.value}-01`); }} className="mt-1.5 block rounded-lg border border-border bg-surface-2 px-3 py-2 text-text" /></label>}
+        {validId && aktId == null && oyFaktSoni != null && <p className="m-0 max-w-[20rem] self-center text-[12px] text-text-dim" role="status" data-testid="oy-fakt-xabar">{oyFaktSoni > 0 ? t('Shu oyda {n} ta fakt yozuvi bor.', { n: oyFaktSoni }) : ishOy.manba === 'faollik' && ishOy.oy !== oy.slice(0, 7) ? t('Shu oyda fakt yozuvi yo‘q. Oxirgi faollik oyi: {oy}.', { oy: ishOy.oy }) : t('Shu oyda fakt yozuvi yo‘q.')}</p>}
         <div className="text-[12px] font-medium text-text-dim">
-          <label>{t('F2 raqami')}<input aria-label="F2 raqami" value={raqam} disabled={aktId != null} onChange={(e) => setRaqam(e.target.value)} placeholder={raqamTaklif ? t('masalan {r}', { r: raqamTaklif }) : t('masalan 7')} className="mt-1.5 block w-28 rounded-lg border border-border bg-surface-2 px-3 py-2 text-text" /></label>
+          <label>{t('F2 raqami')}<input aria-label="F2 raqami" value={raqam} disabled={aktId != null} onChange={(e) => { raqamQoyil.current = true; setRaqam(e.target.value); }} placeholder={raqamTaklif ? t('masalan {r}', { r: raqamTaklif }) : t('masalan 7')} className="mt-1.5 block w-28 rounded-lg border border-border bg-surface-2 px-3 py-2 text-text" /></label>
           {raqamTaklif && !raqam.trim() && aktId == null && <button type="button" onClick={() => setRaqam(raqamTaklif)} className="fz-btn fz-btn--ghost fz-btn--sm mt-1" title={t('Shu obyektdagi eng katta F2 raqamidan keyingisi')}><Sparkles aria-hidden="true" />{t('Keyingi: № {r}', { r: raqamTaklif })}</button>}
         </div>
         {validId && !loading && holat.length > 0 && <div role="group" aria-label={t('Hajm manbai')} className="text-[12px] font-medium text-text-dim">{t('Hajm manbai')}

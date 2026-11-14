@@ -42,8 +42,10 @@ export type PortfelSvodOpsiya = {
   kesimMatni: string;
   tashkilot?: string | null;
   imzo?: ImzoNomlar;
-  /** Akt id → Excel varaq nomi (kitobga kirgan Ф-2). */
+  /** Akt id → Excel varaq nomi (kitobga kirgan Ф-2) yoki, ZIP rejimida, paketdagi fayl yo'li. */
   varaqlar: ReadonlyMap<number, string>;
+  /** ZIP paket: har akt alohida fayl — izohda «файл «…»» (aks holda «лист «…»»). */
+  faylRejimi?: boolean;
   /** Akt id → kirmaslik sababi (masalan, token yetmadi). */
   kirmadi?: ReadonlyMap<number, string>;
 };
@@ -51,7 +53,7 @@ export type PortfelSvodOpsiya = {
 /** «Свод» varag'i. `p` — kesimning to'liq portfeli (bekor ham, ular kulrang). */
 export function portfelSvodVaraq(p: Portfel, o: PortfelSvodOpsiya): RasmiyVaraq {
   const v = new RasmiyVaraq({
-    nom: 'Свод', sarlavha: 'СВОД АКТОВ ВЫПОЛНЕННЫХ РАБОТ (ФОРМА № 2)', ostSarlavha: [o.kesimMatni],
+    nom: 'Свод', sarlavha: 'СВОД АКТОВ ВЫПОЛНЕННЫХ РАБОТ (ФОРМА № 02)', ostSarlavha: [o.kesimMatni],
     titul: [['Подрядчик:', o.tashkilot ?? o.imzo?.pudratchi]], ustunlar: USTUN, yonalish: 'landscape',
   });
   type Q = Record<Kolon, number[]>;
@@ -81,7 +83,7 @@ export function portfelSvodVaraq(p: Portfel, o: PortfelSvodOpsiya): RasmiyVaraq 
     for (const oy of ob.oylar) {
       for (const r of oy.aktlar) {
         const bekor = r.bosqich === 'bekor';
-        const izoh = [o.varaqlar.get(r.akt.id) ? `лист «${o.varaqlar.get(r.akt.id)}»` : '', bekor ? 'аннулирован — в итоги не входит' : '',
+        const izoh = [o.varaqlar.get(r.akt.id) ? `${o.faylRejimi ? 'файл' : 'лист'} «${o.varaqlar.get(r.akt.id)}»` : '', bekor ? 'аннулирован — в итоги не входит' : '',
           o.kirmadi?.get(r.akt.id) ?? '', r.moliya?.taxminiy ? 'приблизительно' : '', r.moliyaXato ? 'строки акта не прочитаны' : '',
           r.moliya && r.moliya.narxsizQator > 0 ? `строк без цены: ${r.moliya.narxsizQator}` : ''].filter(Boolean).join('; ');
         if (!bekor) narxsizN += r.moliya?.narxsizQator ?? 0;

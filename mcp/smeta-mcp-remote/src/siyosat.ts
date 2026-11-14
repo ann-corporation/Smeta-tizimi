@@ -12,12 +12,12 @@ import { toolChaqir, type ToolJavob, type ToolTarif } from '../../smeta-mcp/src/
 import { argYashir } from '../../smeta-mcp/src/maxfiy';
 import { bajarilmadi, f2Holat, f2QoralamaTahrir, f2QoralamaYarat, faktYoz, narxTuzat, podvalTahrir, qoshimchaIsh, yoyilma } from '../../smeta-mcp/src/tools/ish-oqimi';
 import { f2, f2Royxat, obyektHolat, obyektlar, pereraschet, qator, qatorQidir } from '../../smeta-mcp/src/tools/obyekt';
-import { aktBekor, f2QoralamaYangila, f2Yarat, faktJurnal, forma3, ishOchir, nakopitelniy, normativQidir, ostatka, shartnomaMoslash, zamenaQosh } from '../../smeta-mcp/src/tools/pto';
+import { aktBekor, f2QoralamaYangila, f2Yarat, faktJurnal, forma3, ishOchir, nakopitelniy, normativQidir, ostatka, shartnomaMoslash, slichitelniy, zamenaQosh } from '../../smeta-mcp/src/tools/pto';
 import { snapshotFarq, snapshotOl, snapshotQaytar, snapshotRoyxat } from '../../smeta-mcp/src/tools/snapshot';
 import { havolaSoni, havolalarYig, kompaniyalargaAylantir } from './doira';
 import { oqishMumkin, yozishMumkin, type Vakolat } from './vakolat';
 
-export const OQISH: ToolTarif[] = [obyektlar, obyektHolat, qator, qatorQidir, f2Royxat, f2, pereraschet, nakopitelniy, ostatka, faktJurnal, normativQidir, shartnomaMoslash, yoyilma, snapshotRoyxat, snapshotFarq];
+export const OQISH: ToolTarif[] = [obyektlar, obyektHolat, qator, qatorQidir, f2Royxat, f2, pereraschet, nakopitelniy, ostatka, faktJurnal, normativQidir, shartnomaMoslash, slichitelniy, yoyilma, snapshotRoyxat, snapshotFarq];
 export const YOZISH: ToolTarif[] = [faktYoz, f2QoralamaYarat, f2QoralamaTahrir, f2QoralamaYangila, f2Holat, f2Yarat, zamenaQosh, ishOchir, aktBekor, forma3, bajarilmadi, qoshimchaIsh, narxTuzat, podvalTahrir, snapshotOl, snapshotQaytar];
 export const MASOFAVIY_TOOLLAR: ToolTarif[] = [...OQISH, ...YOZISH];
 

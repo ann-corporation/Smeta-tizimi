@@ -18,6 +18,7 @@
  */
 import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
+import { vakolatKeshTozala } from '../_shared/role-authority';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { xavfsizXato } from '../_shared/xato';
 
@@ -31,6 +32,9 @@ const RPC = {
      `royxat_soraw` orqali so'rov yuboradi -- kompaniya/a'zolik superadmin
      tasdiqlagandan keyingina paydo bo'ladi. */
   create: 't2_kompaniya_yarat_v1',
+  /* 2026-11-13 (L0): oddiy foydalanuvchi o'z (birinchi) kompaniyasini DARHOL ochadi va unda boss bo'ladi (tasdiqsiz, 1 ta; STIR ixtiyoriy,
+     band STIR rad). Qo'shimcha kompaniyalar — eski royxat_soraw oqimi (superadmin tasdig'i). Cheklovlar RPC ichida (20261217210000). */
+  ozi_och: 't2_kompaniya_ozi_och_v1',
   royxat_soraw: 't2_kompaniya_royxat_soraw_v1',
   royxat_royxat: 't2_kompaniya_royxat_royxat_v1',
   royxat_tasdiqla: 't2_kompaniya_royxat_tasdiqla_v1',
@@ -77,6 +81,7 @@ function statusFor(code: string, raw: string): number {
   if (code === 'AUTHORIZATION_DENIED' || code === 'SUPERADMIN_REQUIRED' || code === 'MANAGE_ROLE_REQUIRED' || /42501|direktor|a'zo|azo|membership|PERMISSION/i.test(code + raw)) return 403;
   if (['PROTECTED_AUTHORITY','MANAGEMENT_ROLE_REQUIRED','ACCOUNT_OWNER_REQUIRED'].includes(code)) return 403;
   if (code === 'OPERATION_ID_REQUIRED' || code === 'PAROL_QISQA' || code === 'RUXSAT_NOTOGRI' || /INVALID|REQUIRED/.test(code)) return 400;
+  if (code === 'OZI_OCHILGAN' || code === 'INN_BAND') return 409;
   if (code === 'ALREADY_MEMBER' || code === 'LAST_DIRECTOR' || code === 'STALE_VERSION') return 409;
   if(code==='OPERATION_CONFLICT') return 409;
   if(code==='LAST_SUPERADMIN') return 409;
@@ -211,7 +216,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     if(action==='azolik_ruxsat_set') {
       if (!Number.isSafeInteger(b.expected_version) || b.expected_version<0 || !b.permissions || typeof b.permissions!=='object' || Array.isArray(b.permissions)) return Response.json({ok:false,code:'REQUEST_INVALID'},{status:400});
       body={p_actor_id:a.id,p_kompaniya_id:Number(b.kompaniya_id),p_azolik_id:Number(b.azolik_id),p_permissions:b.permissions,p_expected_version:b.expected_version,p_operation_id:opId};
-    } else if (action === 'create' || action === 'royxat_soraw') {
+    } else if (action === 'create' || action === 'royxat_soraw' || action === 'ozi_och') {
       body = { p_actor_id: a.id, p_nom: String(b.nom ?? ''), p_inn: b.inn == null ? null : String(b.inn), p_telefon: b.telefon == null ? null : String(b.telefon), p_operation_id: opId };
     } else if (action === 'royxat_tasdiqla') {
       body = { p_actor_id: a.id, p_royxat_id: Number(b.royxat_id), p_operation_id: opId };
@@ -245,6 +250,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       if (known) return Response.json({ ok: false, code, reason: j?.reason, versiya: j?.versiya, xato: j?.xato }, { status: statusFor(code, text) });
       return xavfsizXato('UPSTREAM', statusFor(code, text), text);
     }
+    if (action === 'ozi_och') vakolatKeshTozala(a.id); // yangi a'zolik darhol ko'rinsin
     return Response.json({ ...j, operation_id: opId });
   } catch (err: any) {
     return xavfsizXato('UPSTREAM', 500, err?.message || String(err));

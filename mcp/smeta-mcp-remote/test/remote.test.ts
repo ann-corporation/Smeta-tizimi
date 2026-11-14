@@ -38,7 +38,7 @@ const jim = () => undefined;
 describe('tool ro\'yxati', () => {
   it('domen toollari ochiq, xom SQL/RPC va lokal-fayl toollari yo\'q', async () => {
     const nomlar = MASOFAVIY_TOOLLAR.map((t) => t.nom);
-    for (const n of ['obyektlar', 'obyekt_holat', 'qator', 'qator_qidir', 'f2_royxat', 'f2', 'nakopitelniy', 'ostatka', 'fakt_jurnal', 'normativ_qidir', 'shartnoma_moslash',
+    for (const n of ['obyektlar', 'obyekt_holat', 'qator', 'qator_qidir', 'f2_royxat', 'f2', 'nakopitelniy', 'ostatka', 'fakt_jurnal', 'normativ_qidir', 'shartnoma_moslash', 'slichitelniy',
       'fakt_yoz', 'f2_qoralama_yarat', 'f2_qoralama_tahrir', 'f2_qoralama_yangila', 'f2_yarat', 'zamena_qosh', 'ish_ochir', 'akt_bekor', 'forma3', 'snapshot_ol', 'snapshot_royxat', 'snapshot_farq', 'snapshot_qaytar']) {
       expect(nomlar).toContain(n);
     }

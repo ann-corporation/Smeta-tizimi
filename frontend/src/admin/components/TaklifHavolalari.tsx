@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import { Copy, Link2, Loader2, X } from 'lucide-react';
 import { t } from '../../i18n/til';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { ROLE_LABELS } from '../../lib/company-authorization/permission-labels';
 import { TAKLIF_ROLLARI, ishJoyiXato, taklifBekor, taklifHavolasi, taklifYarat, takliflar, type Taklif, type TaklifRoli } from '../../api/t2-ish-joyi';
 
@@ -36,7 +37,7 @@ export function TaklifHavolalari({ kompaniyaId, isDirector }: { kompaniyaId: num
     void yukla();
   }
   async function bekor(id: number) {
-    if (!window.confirm(t('Havola bekor qilinsinmi? U orqali endi hech kim qo‘shila olmaydi (qo‘shilganlar qoladi).'))) return;
+    if (!(await tasdiqSora({ matn: 'Havola bekor qilinsinmi? U orqali endi hech kim qo‘shila olmaydi (qo‘shilganlar qoladi).', xavfli: true }))) return;
     const r = await taklifBekor(kompaniyaId, id);
     if (!r.ok) { setXato(ishJoyiXato(r)); return; }
     void yukla();

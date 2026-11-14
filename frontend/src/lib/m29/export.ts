@@ -54,6 +54,15 @@ export function m29DavrMatni(davr: string): string {
   return m ? `${OYLAR[Number(m[2]) - 1]} ${m[1]} г.` : davr;
 }
 
+/**
+ * «Отчёт №» avtomatik: M-29 har obyekt uchun OYLIK hisobot, shuning uchun obyekt bo'yicha yil ichidagi tartib raqami =
+ * hisobot oyining raqami (may → 5). Alohida hisoblagich kerak emas, takrorlanmaydi; davr noto'g'ri bo'lsa — bo'sh.
+ */
+export function m29RaqamAvto(davr: string): string | null {
+  const m = /^(\d{4})-(\d{2})/.exec(davr);
+  return m && Number(m[2]) >= 1 && Number(m[2]) <= 12 ? String(Number(m[2])) : null;
+}
+
 /** Ustunlar: A–E, keyin oldingi oylar (har biri 2 ustun), keyin hisobot oyi, с начала, narx, sklad. */
 function m29Ustunlar(oylar: readonly string[]): RasmiyUstun[] {
   const oy: RasmiyUstun[] = oylar.flatMap((m) => [
@@ -81,8 +90,9 @@ export function m29Hujjat(n: M29Natija, o: M29ExportOpsiya): M29HujjatNatija {
     ],
     titul: [
       ['Объект:', o.obyektNom],
+      ['Заказчик:', o.imzo?.zakazchik ?? null],
       ['Подрядчик:', o.pudratchi ?? null],
-      ['Отчёт №:', o.raqam ?? null],
+      ['Отчёт №:', o.raqam ?? m29RaqamAvto(n.davr)],
       ['Дата составления:', bugunSana().split('-').reverse().join('.')],
     ],
     ustunlar: m29Ustunlar(oldingi.map((x) => x.oy)),

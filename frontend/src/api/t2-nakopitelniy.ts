@@ -33,6 +33,10 @@ export type NakopitelniyQator = {
   qoldiq_hajm: number; qoldiq_summa: number;
   /** Zamena qoplagan qism (t2_almashtirilgan_hajm; qoldiq_* shuni ALLAQACHON ayirgan). Eski RPC da yo'q. */
   almashtirilgan_hajm?: number; almashtirilgan_summa?: number | null;
+  /** Zamena qatori qaysi asl qator o'rniga (smeta-model `almashtiradi`; hujjatda «взамен поз. N»). */
+  almashtirgan_id?: number | null;
+  /** «Bajarilmadi» (t2_qator_bajarilmadi, faol): bajarilmagan hajm (null — butun qator), sabab kodi, izoh, zamena qatori. Qator hujjatdan yo'qolmaydi. */
+  bajarilmadi_hajm?: number | null; bajarilmadi_sabab?: string | null; bajarilmadi_izoh?: string | null; bajarilmadi_zamena_id?: number | null;
   /** Additive v1 ledger wrapper fields; absent until that source migration is applied. */
   smeta_qoldiq_hajm?: number | null;
   smeta_qoldiq_summa?: number | null;

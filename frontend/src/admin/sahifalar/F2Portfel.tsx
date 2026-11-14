@@ -20,15 +20,17 @@ import { f2HujjatKaliti } from '../../api/f2-hujjat-kontekst';
 import { mazmunXeshi, tokenBilan } from '../../api/t2-token';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
-import { rasmiyKitob } from '../../lib/hujjat-yozuvchi';
+import { hujjatFaylNomi, rasmiyKitob } from '../../lib/hujjat-yozuvchi';
 import { f2HujjatVaraqlar } from '../../lib/f2-hujjat';
 import { davrNomi } from '../../lib/f2-hujjat-korinish';
 import { barchaShartnomalar } from '../../lib/f2-oylik-paket/shartnoma';
-import type { OyJami, PaketAkt } from '../../lib/f2-oylik-paket/oylik';
+import { oyKaliti, type OyJami, type PaketAkt } from '../../lib/f2-oylik-paket/oylik';
 import {
   aktVaraqNomi, portfelAktlari, portfelAktMoliya, portfelAktTayyor, portfelEksportAktlari, portfelGuruhla, type PortfelJami, type PortfelKesim,
 } from '../../lib/f2-oylik-paket/portfel';
 import { portfelKitob, portfelSvodVaraq, type PortfelAktVaraq } from '../../lib/f2-oylik-paket/portfel-eksport';
+import { paketRejasi, paketReestriXlsx, paketZipi, type PaketHujjat } from '../../lib/f2-oylik-paket/portfel-zip';
+import { davrMatni } from '../../lib/nakopitelniy-vedomost-export';
 import type { Summa } from '../../lib/f2-reestr/reestr';
 import { raqamTozala } from '../../lib/raqam-belgi';
 
@@ -90,6 +92,8 @@ function PortfelIchi({ kompaniyaId, malumot, tashkilot, yangila }: { kompaniyaId
   const [hisob, setHisob] = useState<Map<number, { moliya: PaketAkt['moliya']; xato: boolean }>>(new Map());
   const [qoralamalar, setQoralamalar] = useState(false);
   const [band, setBand] = useState(false);
+  /** Yuklab olish shakli: ZIP — papkalar, har hujjat alohida fayl (sukut); excel — bitta kitob, har akt alohida varaq. */
+  const [shakl, setShakl] = useState<'zip' | 'excel'>('zip');
   const kesh = useRef(new Map<string, Promise<PortfelObyektMalumot>>());
   const versiya = useRef(0);
   useEffect(() => { kesh.current = new Map(); setHisob(new Map()); }, [kompaniyaId, malumot]);
@@ -161,6 +165,8 @@ function PortfelIchi({ kompaniyaId, malumot, tashkilot, yangila }: { kompaniyaId
     setBand(true);
     try {
       const aktVaraqlar: PortfelAktVaraq[] = [];
+      const zipHujjatlar: PaketHujjat[] = [];
+      const BOSQICH_RU = { tasdiqlangan: 'утверждён', jarayonda: 'черновик / на проверке', rad: 'отклонён', bekor: 'аннулирован' } as const;
       const varaqNomi = new Map<number, string>();
       const kirmadi = new Map<number, string>();
       let imzo: PortfelObyektMalumot['kontekst']['imzo'] | undefined;
@@ -180,9 +186,33 @@ function PortfelIchi({ kompaniyaId, malumot, tashkilot, yangila }: { kompaniyaId
           if (!q.ok) { kirmadi.set(r.akt.id, `лист не сформирован: ${q.xabar}`); continue; }
           aktVaraqlar.push({ varaq: x.varaqlar[0], formulali: !k.opsiya.formulasiz });
           varaqNomi.set(r.akt.id, nom);
+          // ZIP: har akt ALOHIDA fayl — F2 tarixidagi «Ф-2 Excel» bilan bir xil mazmun (tasdiqlangan — formulasiz, qoralama — formulali).
+          if (shakl === 'zip') {
+            const fayl = rasmiyKitob(x.varaqlar, { tur: 'f2', formulasiz: k.opsiya.formulasiz });
+            zipHujjatlar.push({ tur: 'akt', obyekt: r.obyektNom, hujjat: 'Акт Ф-2', raqam: r.akt.raqam?.trim() || null, davr: r.akt.oy ? davrMatni(r.akt.oy) : null, oyKalit: oyKaliti(r.akt.oy),
+              holat: BOSQICH_RU[r.bosqich], summa: r.moliya?.jami ?? null, qoralama: r.bosqich !== 'tasdiqlangan', aktId: r.akt.id, bytes: fayl.bytes });
+          }
         } catch { kirmadi.set(r.akt.id, 'лист не сформирован: строки акта не прочитаны'); }
       }
       const kesimMatni = kesim.tur === 'shartnoma' ? `по договору ${kesimNomi}` : `по объекту: ${kesimNomi}`;
+      if (shakl === 'zip') {
+        // Bir paket — BIR marta to'lov (ZIP baytlari xeshi bilan; ichidagi har Ф-2 yuqorida F2 tarixi kaliti bilan to'langan).
+        const reja0 = paketRejasi(zipHujjatlar, { svodKesim: kesimNomi });
+        const yollar = new Map(reja0.filter((q) => q.hujjat.aktId != null).map((q) => [q.hujjat.aktId!, q.yol] as const));
+        const svod = portfelSvodVaraq(portfel, { kesimMatni, tashkilot, imzo, varaqlar: yollar, kirmadi, faylRejimi: true });
+        const svodKitob = rasmiyKitob([svod], { tur: 'f2' });
+        const hammasi: PaketHujjat[] = [...zipHujjatlar, { tur: 'svod', obyekt: null, hujjat: 'Свод Ф-2', raqam: null, davr: null, holat: null, summa: malum(portfel.jami.hammasi.jami), bytes: svodKitob.bytes }];
+        const reja = paketRejasi(hammasi, { svodKesim: kesimNomi });
+        const kirmadiMatn = [...kirmadi].map(([id, sabab]) => `${rows.find((x) => x.akt.id === id)?.obyektNom ?? ''} · Ф-2 № ${rows.find((x) => x.akt.id === id)?.akt.raqam ?? id}: ${sabab}`);
+        const reestr = paketReestriXlsx(reja, { kesimMatni, tashkilot, imzo, kirmadi: kirmadiMatn });
+        const zip = paketZipi(reja, reestr);
+        const zipNom = hujjatFaylNomi({ obyekt: tashkilot ?? undefined, hujjat: `ПАКЕТ_Ф-2_${kesimNomi}`.slice(0, 80), kengaytma: 'zip' });
+        const rz = await hujjatTokenBilan({ kompaniyaId, bytes: zip, hujjat: 'F2_PORTFEL', sabab: `Пакет Ф-2 ${kesimMatni}`, obyekt: kesim.tur === 'obyekt' ? kesim.id : null },
+          () => downloadBlob(zip, zipNom, 'application/zip'));
+        if (!rz.ok) { toast(rz.xabar, 'danger'); return; }
+        toast(kirmadi.size ? t('Yuklandi; {n} ta F2 kirmadi (sababi — paket reestri faylida)', { n: kirmadi.size }) : (rz.xabar || t('Yuklandi')), kirmadi.size ? 'warn' : 'ok');
+        return;
+      }
       const svod = portfelSvodVaraq(portfel, { kesimMatni, tashkilot, imzo, varaqlar: varaqNomi, kirmadi });
       const kitob = portfelKitob(svod, aktVaraqlar, { nom: kesimNomi, tashkilot });
       const r = await hujjatTokenBilan({ kompaniyaId, bytes: kitob.bytes, hujjat: 'F2_PORTFEL', sabab: `Свод Ф-2 ${kesimMatni}`, obyekt: kesim.tur === 'obyekt' ? kesim.id : null },
@@ -215,10 +245,13 @@ function PortfelIchi({ kompaniyaId, malumot, tashkilot, yangila }: { kompaniyaId
       <span className="ml-auto flex flex-wrap items-center gap-2">
         <button type="button" onClick={() => { kesh.current = new Map(); setHisob(new Map()); yangila(); }} disabled={band}
           className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[12px] disabled:opacity-50"><RefreshCw size={14} /> {t('Yangilash')}</button>
+        <label>{t('Shakl')}
+          <select aria-label={t('Yuklab olish shakli')} value={shakl} onChange={(e) => setShakl(e.target.value === 'excel' ? 'excel' : 'zip')} className="input mt-1 block h-8" disabled={band}>
+            <option value="zip">{t('ZIP — papkalar, har hujjat alohida fayl')}</option><option value="excel">{t('Bitta Excel — barcha varaqlar bir faylda')}</option></select></label>
         <label className="inline-flex items-center gap-1.5"><input type="checkbox" checked={qoralamalar} onChange={(e) => setQoralamalar(e.target.checked)} /> {t('Qoralamalarni ham qo‘shish')}</label>
         <button type="button" onClick={() => void yuklabOl()} disabled={band || !rows.length || hisoblanmoqda}
           className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-[12px] font-semibold text-[color:var(--on-accent)] disabled:opacity-50">
-          <Download size={14} /> {band ? t('Yig‘ilmoqda…') : t('Yuklab olish (bitta Excel)')}</button>
+          <Download size={14} /> {band ? t('Yig‘ilmoqda…') : shakl === 'zip' ? t('Yuklab olish (ZIP paket)') : t('Yuklab olish (bitta Excel)')}</button>
       </span>
     </div>
 

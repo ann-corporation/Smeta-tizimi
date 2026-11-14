@@ -20,7 +20,7 @@ export function useIxtiyoriyQueryClient(): QueryClient | null {
 export async function obyektlarKeshdan(
   qc: QueryClient | null | undefined, kompaniyaId: number, majburiy = false,
 ): Promise<SbJavob<T2Obyekt>> {
-  if (!qc) return sbT2ObyektlarOlKomp(kompaniyaId) as Promise<SbJavob<T2Obyekt>>;
+  if (!qc) return sbT2ObyektlarOlKomp(kompaniyaId, majburiy ? { majburiy: true } : undefined) as Promise<SbJavob<T2Obyekt>>;
   obyektlarKlientiQayd(qc);
   try {
     const qatorlar = await qc.fetchQuery({
@@ -28,7 +28,7 @@ export async function obyektlarKeshdan(
       staleTime: majburiy ? 0 : OBYEKTLAR_STALE_MS,
       retry: false,
       queryFn: async () => {
-        const r = await sbT2ObyektlarOlKomp(kompaniyaId);
+        const r = await sbT2ObyektlarOlKomp(kompaniyaId, majburiy ? { majburiy: true } : undefined);
         if (!r.ok) throw new Error(r.error || 'OBYEKTLAR_OQILMADI');
         return (r.qatorlar || []) as T2Obyekt[];
       },

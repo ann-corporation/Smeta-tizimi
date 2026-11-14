@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Building2, CheckCircle2, FileEdit, Search, User } from 'lucide-react';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { IshJoyiAmallari } from '../../umumiy/kontekst/IshJoyiAmallari';
+import { KompaniyaOching } from '../components/KompaniyaOching';
 import { BoshHolat, Sahifa, Skelet } from '../../umumiy/ui/Sahifa';
 import { ishJoylarim, type IshJoyiKarta, type MeningIshim } from '../../api/t2-ish-joyi';
 import { ROLE_LABELS } from '../../lib/company-authorization/permission-labels';
@@ -37,6 +38,12 @@ export function qachon(iso: string | null, hozir = Date.now()): string {
   if (d < 60 * 24 * 30) return `${Math.round(d / 1440)} ${t('kun')}`;
   return new Date(iso).toLocaleDateString('ru-RU');
 }
+/** Faol (joriy) ish joyi ishlari birinchi; qolgan tartib saqlanadi (barqaror). Kompaniya almashganda qayta chaqiriladi. */
+export function ishlarniTartibla<T extends { kompaniya_id: number }>(ishlar: readonly T[], joriyId: number | null): T[] {
+  if (joriyId == null) return [...ishlar];
+  return [...ishlar.filter((x) => x.kompaniya_id === joriyId), ...ishlar.filter((x) => x.kompaniya_id !== joriyId)];
+}
+
 /** Noma'lum summa — «—» (0 emas). */
 const summa = (n: number | null) => (n == null ? '—' : `${n.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ${t('so‘m')}`);
 
@@ -121,8 +128,11 @@ export default function IshJoylarim() {
     const s = q.trim().toLowerCase();
     return (joylar ?? []).filter((j) => !s || j.nom.toLowerCase().includes(s));
   }, [joylar, q]);
-  const tasdiq = ishlar.filter((x) => x.tur === 'f2_tasdiq');
-  const qoralama = ishlar.filter((x) => x.tur === 'f2_qoralama');
+  // Ro'yxat BARCHA ish joylaridan yig'iladi; faol kompaniya ishlari birinchi, almashganda qayta tartiblanadi.
+  const tartibli = useMemo(() => ishlarniTartibla(ishlar, k.joriyId ?? null), [ishlar, k.joriyId]);
+  const tasdiq = tartibli.filter((x) => x.tur === 'f2_tasdiq');
+  const qoralama = tartibli.filter((x) => x.tur === 'f2_qoralama');
+  const joriyNom = (joylar ?? []).find((j) => j.kompaniya_id === k.joriyId)?.nom ?? '';
 
   function ochJoy(id: number, yol = '/admin/obyektlar') {
     if (k.joriyId !== id) k.tanla(id);
@@ -147,14 +157,15 @@ export default function IshJoylarim() {
             {korinadi.length > 0 && <ul className="fz-list">
               {korinadi.map((j) => <JoyQatori key={j.kompaniya_id} j={j} joriy={k.joriyId === j.kompaniya_id} onOch={ochJoy} />)}
             </ul>}
-            {joylar && !korinadi.length && <BoshHolat matn={boshMatn} />}
+            {joylar && !joylar.length && <KompaniyaOching />}
+            {joylar && !!joylar.length && !korinadi.length && <BoshHolat matn={boshMatn} />}
           </section>
 
           <section aria-label={t('Mening ishlarim')} className="fz-card">
             <div className="fz-card__head">
               <div>
                 <h2 className="fz-card__title">{t('Mening ishlarim')}</h2>
-                <p className="fz-card__sub">{t('barcha ish joylaridan')}</p>
+                <p className="fz-card__sub">{joriyNom ? t('Barcha ish joylaringizdan yig‘ilgan · «{nom}» ishlari birinchi', { nom: joriyNom }) : t('Barcha ish joylaringizdan yig‘ilgan')}</p>
               </div>
               {ishlar.length > 0 && <span className="fz-chip fz-chip--accent">{ishlar.length}</span>}
             </div>

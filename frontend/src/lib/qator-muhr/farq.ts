@@ -52,6 +52,13 @@ export function muhrBelgisi(f: Pick<QatorMuhrFarq, 'holat' | 'faqat_narx_qoyildi
   return { soz: 'O‘zgargan', ton: 'warn', izoh: 'Qator asl smetadan farq qiladi' };
 }
 
+/**
+ * Asl qiymati R2 da (sovuq muhr) bo'lib, qator keyin o'zgargan/o'chirilgan: view `ozgargan` + bo'sh `maydonlar` yoki `ochirilgan` + bo'sh
+ * tur/kod/nom beradi — reader /api/muhr-isit orqali qiymatni qaytarib, qayta o'qiydi (docs/architecture/ADR_MUHR_R2.md §4).
+ */
+export const muhrSovuqKerak = (f: Pick<QatorMuhrFarq, 'holat' | 'maydonlar' | 'tur' | 'kod' | 'nom'>): boolean =>
+  (f.holat === 'ozgargan' && (f.maydonlar ?? []).length === 0) || (f.holat === 'ochirilgan' && !f.tur && !f.kod && !f.nom);
+
 /** Haqiqiy (xavfli) o'zgarish: muhrdan farq, «narx qo'yildi» emas. */
 export const haqiqiyOzgarish = (f: Pick<QatorMuhrFarq, 'holat' | 'faqat_narx_qoyildi'>) => f.holat === 'ozgargan' && !f.faqat_narx_qoyildi;
 

@@ -47,7 +47,9 @@ export default function BossDashboard() {
   const q = useBossDashboard(joriy?.id);
   /* Tezlik: Portfolio faqat boss paneli kelgach ochiladi — rahbar paneli so'rovi shu paytgacha kutardi (ketma-ket).
      Shu kalit (davr = hammasi) bilan parallel boshlanadi; Portfolio va ProjectNavigator keshdan oladi. */
-  useRahbarPanel(joriy?.id, davrOraligi('hammasi'));
+  const [davr, setDavr] = useState<DavrTur>('hammasi');
+  const davrQ = davrOraligi(davr);
+  const rp = useRahbarPanel(joriy?.id, davrQ);
   if (!joriy?.id) return <KompaniyaKerak nima={t('Rahbar paneli')} />;
   const data = q.data?.kompaniya.kompaniya_id === joriy.id ? q.data : undefined;
   const yangila = () => void q.refetch();
@@ -66,7 +68,8 @@ export default function BossDashboard() {
           <span>{t('Rahbar paneli yuklanmadi. Qayta urinib ko‘ring.')}</span>
           <button type="button" className="fz-btn fz-btn--sm ml-auto" onClick={yangila}>{t('Qayta urinish')}</button>
         </div>}
-        {data && !q.isError && <Portfolio key={joriy.id} data={data} />}
+        <Markaz key={'m' + joriy.id} kompaniyaId={joriy.id} nom={joriy.nom} rp={rp} davr={davr} setDavr={setDavr} davrQ={davrQ} />
+        {data && !q.isError && <Portfolio key={joriy.id} data={data} rp={rp} />}
       </div>
     </Sahifa>
   );
@@ -244,40 +247,32 @@ function Obyektlar({ e, onAsos, ph }: { e: BossExecutive; onAsos: (objectId: num
   );
 }
 
-function Portfolio({ data }: { data: Dashboard }) {
-  const e = trustedExecutive(data);
-  const [davr, setDavr] = useState<DavrTur>('hammasi');
-  const davrQ = davrOraligi(davr);
-  const rp = useRahbarPanel(data.kompaniya.kompaniya_id, davrQ);
+type RahbarHolati = ReturnType<typeof useRahbarPanel>;
+
+/** Boshqaruv markazi (issue #195 §1–§5): server paketi. Tezlik: boss paneli (alohida og'ir so'rov) kelishini KUTMAYDI —
+ *  kartalar o'z paketi kelishi bilan darhol ko'rinadi (bosqichma-bosqich chizish). */
+function Markaz({ kompaniyaId, nom, rp, davr, setDavr, davrQ }: {
+  kompaniyaId: number; nom: string | null | undefined; rp: RahbarHolati; davr: DavrTur; setDavr: (d: DavrTur) => void; davrQ: { dan: string | null; gacha: string | null };
+}) {
   const [tanlangan, setTanlangan] = useState<{ id: number; nom: string } | null>(null);
   const eksport = async () => {
     if (!rp.data) return;
-    const nom = data.kompaniya.nom ?? String(data.kompaniya.kompaniya_id);
-    const { bytes, faylNomi } = await rahbarXlsx(rp.data, { qamrovNomi: nom });
-    const r = await hujjatTokenBilan({ kompaniyaId: data.kompaniya.kompaniya_id, bytes, hujjat: 'RAHBAR_PANEL', sabab: `Панель руководителя · ${nom}` },
+    const qamrov = nom ?? String(kompaniyaId);
+    const { bytes, faylNomi } = await rahbarXlsx(rp.data, { qamrovNomi: qamrov });
+    const r = await hujjatTokenBilan({ kompaniyaId, bytes, hujjat: 'RAHBAR_PANEL', sabab: `Панель руководителя · ${qamrov}` },
       () => downloadBlob(bytes, faylNomi));
     if (!r.ok) toast(t(r.xabar), 'danger'); else if (r.xabar) toast(t(r.xabar), 'ok');
   };
   const ph: PanelHolat = { panel: rp.data, yuklanmoqda: rp.isPending && rp.fetchStatus !== 'idle' };
-  const [reports, setReports] = useState(false);
-  const [reportObject, setReportObject] = useState<number | undefined>();
-  const [reportProject, setReportProject] = useState<number | null | undefined>();
-  const reportKey = `${reportObject ?? 'company'}-${reportProject === undefined ? 'company' : reportProject === null ? 'unassigned' : reportProject}`;
-  const hisobotniOch = (id?: number, pid?: number | null) => {
-    setReportObject(id); setReportProject(pid); setReports(true);
-    requestAnimationFrame(() => document.getElementById('boss-reports')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-  };
-  const toggleReports = () => { setReportObject(undefined); setReportProject(undefined); setReports(!reports); };
   // Markaz bo'limlari faqat to'liq javob bilan (eski/qisman javob — faqat avvalgi bo'limlar).
   const markaz = rp.data && rp.data.kartalar?.tolandi && Array.isArray(rp.data.pul_oqimi?.oylar) && Array.isArray(rp.data.diqqat) ? rp.data : null;
   const obyektNomi = (id: number | null) => rp.data?.obyektlar.find((o) => o.obyekt_id === id)?.nom ?? (id != null ? `#${id}` : t('Kompaniya'));
   return <>
-    {/* Boshqaruv markazi (issue #195 §1–§5): server paketi — bitta manba. */}
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h2 className="fz-card__title">{t('Boshqaruv markazi')}</h2>
       <div className="flex flex-wrap items-center gap-2">
         <DavrTanlov qiymat={davr} onChange={setDavr} />
-        <button type="button" className="fz-btn fz-btn--sm" disabled={!markaz} onClick={() => void eksport()}><FileDown size={14} aria-hidden="true" />{t('Excel')}</button>
+        <button type="button" className="fz-btn fz-btn--sm" disabled={!markaz || !rp.data} title={!markaz || !rp.data ? t('Boshqaruv markazi hali yuklanmadi — Excel tayyor bo‘lgach yoqiladi') : undefined} onClick={() => void eksport()}><FileDown size={14} aria-hidden="true" />{t('Excel')}</button>
       </div>
     </div>
     {rp.isError && <div role="alert" className="fz-note fz-note--danger"><AlertTriangle aria-hidden="true" /><span>{t('Boshqaruv markazi yuklanmadi.')}</span>
@@ -292,10 +287,26 @@ function Portfolio({ data }: { data: Dashboard }) {
       </div>
       <ObyektlarMatritsa p={markaz} onTanla={(o) => { setTanlangan({ id: o.obyekt_id, nom: o.nom });
         requestAnimationFrame(() => document.getElementById('obyekt-paneli')?.scrollIntoView({ behavior: 'smooth', block: 'start' })); }} />
-      {tanlangan && <div id="obyekt-paneli"><ObyektPaneli key={tanlangan.id} kompaniyaId={data.kompaniya.kompaniya_id} obyektId={tanlangan.id} nom={tanlangan.nom} davr={davrQ} onYop={() => setTanlangan(null)} /></div>}
+      {tanlangan && <div id="obyekt-paneli"><ObyektPaneli key={tanlangan.id} kompaniyaId={kompaniyaId} obyektId={tanlangan.id} nom={tanlangan.nom} davr={davrQ} onYop={() => setTanlangan(null)} /></div>}
       <TahlilYorliqlari p={markaz} />
     </>}
 
+  </>;
+}
+
+function Portfolio({ data, rp }: { data: Dashboard; rp: RahbarHolati }) {
+  const e = trustedExecutive(data);
+  const ph: PanelHolat = { panel: rp.data, yuklanmoqda: rp.isPending && rp.fetchStatus !== 'idle' };
+  const [reports, setReports] = useState(false);
+  const [reportObject, setReportObject] = useState<number | undefined>();
+  const [reportProject, setReportProject] = useState<number | null | undefined>();
+  const reportKey = `${reportObject ?? 'company'}-${reportProject === undefined ? 'company' : reportProject === null ? 'unassigned' : reportProject}`;
+  const hisobotniOch = (id?: number, pid?: number | null) => {
+    setReportObject(id); setReportProject(pid); setReports(true);
+    requestAnimationFrame(() => document.getElementById('boss-reports')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
+  const toggleReports = () => { setReportObject(undefined); setReportProject(undefined); setReports(!reports); };
+  return <>
     <details className="fz-card" open>
       <summary className="fz-card__head cursor-pointer font-semibold">{t('Avvalgi xulosa (portfel modeli)')}</summary>
       <div className="fz-card__body"><Xulosa data={data} e={e} ph={ph} /></div>

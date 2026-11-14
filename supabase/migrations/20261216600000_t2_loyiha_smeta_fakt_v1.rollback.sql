@@ -1,0 +1,22 @@
+-- Rollback: 20261216600000_t2_loyiha_smeta_fakt_v1 (additiv migratsiyaning teskarisi).
+drop function if exists public.t2_loyiha_smeta_v1(bigint,bigint,bigint);
+drop function if exists public.t2_loyiha_royxat_v1(bigint,bigint,bigint);
+drop function if exists public.t2_loyiha_farq_v1(bigint,bigint,bigint);
+drop function if exists public.t2_loyiha_qaror_v1(bigint,bigint,bigint,text,bigint,text,bigint,text);
+drop function if exists public.t2_loyiha_boglash_v1(bigint,bigint,bigint,bigint,numeric,text,text);
+drop function if exists public.t2_loyiha_tasdiq_v1(bigint,bigint,bigint[],text);
+drop function if exists public.t2_loyiha_yoz_v1(bigint,bigint,bigint,text,integer,bigint,jsonb,uuid);
+drop function if exists public._t2_lm_smeta_ich(bigint,bigint);
+drop function if exists public._t2_lm_royxat_ich(bigint,bigint);
+drop function if exists public._t2_lm_farq_ich(bigint,bigint);
+drop function if exists public._t2_lm_qaror_ich(bigint,bigint,text,bigint,text,bigint,text,bigint);
+drop function if exists public._t2_lm_boglash_ich(bigint,bigint,bigint,numeric,text,text,bigint);
+drop function if exists public._t2_lm_tasdiq_ich(bigint,bigint[],text,bigint);
+drop function if exists public._t2_lm_yoz_ich(bigint,bigint,text,integer,bigint,jsonb,bigint,uuid);
+drop function if exists public._t2_lm_norm(numeric,text);
+drop function if exists public._t2_lm_koef(text);
+drop function if exists public._t2_lm_baza(text);
+drop function if exists public._t2_lm_bk(text);
+drop table if exists public.t2_loyiha_qaror;
+drop table if exists public.t2_loyiha_moslik;
+drop table if exists public.t2_loyiha_miqdor;

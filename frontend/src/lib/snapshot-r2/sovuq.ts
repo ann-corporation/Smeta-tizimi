@@ -1,4 +1,4 @@
-﻿/**
+/**
  * snapshot.bolak_mazmun sovuq mazmuni R2 ga (saqlash dietasi). Bu modul BITTA joyda yashaydi va ikki joyda ishlatiladi:
  *   - ops/scripts/snapshot-r2-sovut.mjs (ko'chirish: R2 ga yoz → QAYTA O'QI → sha256 → faqat shundan keyin bazada NULL);
  *   - testlar (R2 zaxira o'qish yo'li). MCP repozitoriysida xuddi shu mantiq nusxa (mcp/smeta-mcp/src/snapshot-r2.ts).
@@ -17,7 +17,7 @@ export type Nomzod = { xesh: string; jadval: string; qator_soni: number; bayt: n
 export type Log = (xabar: string) => void;
 
 const enc = new TextEncoder();
-const dec = new TextDecoder('utf-8', { fatal: true });
+const dec = new TextDecoder('utf-8', { fatal: true } as unknown as ConstructorParameters<typeof TextDecoder>[1]);
 /** SHA-256 (hex) — WebCrypto: node, vitest va brauzerda bir xil. */
 export async function sha256Hex(b: Uint8Array | string): Promise<string> {
   const d = await crypto.subtle.digest('SHA-256', (typeof b === 'string' ? enc.encode(b) : b) as BufferSource);

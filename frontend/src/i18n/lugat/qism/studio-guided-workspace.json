@@ -1,0 +1,62 @@
+{
+  "Birinchi ishni qo‘shing": {
+    "ru": "Добавьте первую работу",
+    "en": "Add your first work item"
+  },
+  "Ishlarning hajmini kiriting": {
+    "ru": "Укажите объёмы работ",
+    "en": "Enter work quantities"
+  },
+  "Narxlarni tekshiring va hujjatni oling": {
+    "ru": "Проверьте цены и получите документ",
+    "en": "Review prices and get the document"
+  },
+  "Jadvaldagi Hajm kataklariga miqdor yoki formula yozing.": {
+    "ru": "Введите количество или формулу в ячейки «Объём».",
+    "en": "Enter a quantity or formula in the Quantity cells."
+  },
+  "Hajmlar kiritilgan. Narxlar bo‘limida yetishmayotgan narxlarni to‘ldiring, keyin Hujjatlarga o‘ting.": {
+    "ru": "Объёмы введены. Заполните недостающие цены в разделе «Цены», затем перейдите к документам.",
+    "en": "Quantities are entered. Fill missing prices under Prices, then open Documents."
+  },
+  "Sodda ish joyi": {
+    "ru": "Простое рабочее место",
+    "en": "Simple workspace"
+  },
+  "Batafsil ish joyi": {
+    "ru": "Расширенное рабочее место",
+    "en": "Advanced workspace"
+  },
+  "Katalogsiz": {
+    "ru": "Без каталога",
+    "en": "Without catalogue"
+  },
+  "Katalog bilan": {
+    "ru": "С каталогом",
+    "en": "With catalogue"
+  },
+  "Kutubxona va bo‘lim sozlamalari": {
+    "ru": "Настройки каталога и разделов",
+    "en": "Catalogue and section settings"
+  },
+  "AI yordamchiga maqsadingizni yozing yoki katalogdan ish qo‘shing.": {
+    "ru": "Опишите цель помощнику AI или добавьте работу из каталога.",
+    "en": "Tell the AI assistant your goal or add work from the catalogue."
+  },
+  "Katalogdan ish qo‘shish": {
+    "ru": "Добавить работу из каталога",
+    "en": "Add work from catalogue"
+  },
+  "Tafsilotlarni yopish": {
+    "ru": "Закрыть подробности",
+    "en": "Close details"
+  },
+  "Doimiy AI yordamchi": {
+    "ru": "Постоянный AI-помощник",
+    "en": "Persistent AI assistant"
+  },
+  "Smeta bilan birga ishlaydi": {
+    "ru": "Работает с вашей сметой",
+    "en": "Works with your estimate"
+  }
+}

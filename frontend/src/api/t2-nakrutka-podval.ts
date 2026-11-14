@@ -6,6 +6,7 @@
  *   obyekt podvali → shartnoma podvali → kompaniya podvali → null (standart kaskad, koeffitsientlardan).
  */
 import { sbOqi } from './supabase';
+import { birlash } from './birlash';
 import { ustamaOzgardi } from '../umumiy/ui/ustama-kesh';
 import type { Podval, PodvalQator } from '../lib/nakrutka-konstruktor';
 import { serverCatsdan } from '../lib/hisob-yadro';
@@ -20,7 +21,7 @@ export type PodvalYozuv = {
 export type PodvalDoira = { obyektId?: number | null; shartnomaId?: number | null };
 
 export function sbPodvallarOl(kompaniyaId: number) {
-  return sbOqi<PodvalYozuv>({ jadval: 't2_nakrutka_podval_royxat', filtr: 'kompaniya_id=eq.' + kompaniyaId, tartib: 'yangilandi.desc', limit: 500 });
+  return birlash('podvallar:' + kompaniyaId, () => sbOqi<PodvalYozuv>({ jadval: 't2_nakrutka_podval_royxat', filtr: 'kompaniya_id=eq.' + kompaniyaId, tartib: 'yangilandi.desc', limit: 500 }));
 }
 
 /** Doira bo'yicha amaldagi podval (maxsus bo'lmasa — null, ya'ni standart). */

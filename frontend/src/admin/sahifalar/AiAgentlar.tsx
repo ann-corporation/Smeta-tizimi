@@ -7,6 +7,7 @@
  * har ishga tushirish — run; ruxsat etilgan buyruq/tool ro'yxati; inson tasdig'i; audit.
  * Agent biznes hisobini o'zi qilmaydi — faqat kanonik buyruqlarni tayyorlaydi.
  */
+import { matnSora } from '../../umumiy/ui/Tasdiq';
 import { ObyektOptionlari } from '../../umumiy/ui/ObyektOptionlari';
 import { useCallback, useEffect, useState } from 'react';
 import { AgentControlCenter } from '../../components/agent-control/AgentControlCenter';
@@ -21,6 +22,7 @@ import { narxOgish } from '../../lib/narx-korinish';
 import { OgishMeter } from '../../components/narx/NarxKorinish';
 import { AgentModellar } from './AgentModellar';
 import { AgentTakliflar } from './AgentTakliflar';
+import { AiIshchilar } from './AiIshchilar';
 
 /** Ishga tushiriladigan ishchi agentlar (server: functions/api/agent-control.ts ISHCHILAR). */
 const ISHCHILAR = {
@@ -30,7 +32,7 @@ const ISHCHILAR = {
 } as const;
 
 export default function AiAgentlar() {
-  const { joriy } = useKompaniya();
+  const { joriy, superadmin } = useKompaniya();
   const [data, setData] = useState<AgentControlReadModel | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +40,8 @@ export default function AiAgentlar() {
   const [obyektId, setObyektId] = useState<number | null>(null);
   const [natija, setNatija] = useState<Record<string, unknown> | null>(null);
   const [ishchi, setIshchi] = useState<keyof typeof ISHCHILAR>('quality_handover');
-  /* Platforma/tizim agentlari bu yerda YO'Q — ular Boshqaruv → AI markazi da (faqat superadmin). */
+  /* Fon AI ishchilari (kompaniya) va — faqat superadmin uchun — tizim ishchilari/manbalar: <AiIshchilar/> (migratsiya 20261218500000).
+     Model tanlash va boshqaruvchi agent takliflari Boshqaruv → AI markazi da qoladi. */
   useEffect(() => {
     if (!joriy?.id) return;
     void sbT2ObyektlarOlKomp(joriy.id).then((r) => { const q = r.ok ? r.qatorlar ?? [] : []; setObyektlar(q); setObyektId(q[0]?.id ?? null); });
@@ -100,6 +103,8 @@ export default function AiAgentlar() {
         </div>
       )}
       {joriy?.id && <AgentKompaniyaSozlama kompaniyaId={joriy.id} />}
+      {joriy?.id && <AiIshchilar kid={joriy.id} tizim={false} />}
+      {superadmin && <AiIshchilar kid={null} tizim />}
       {joriy?.id && (
         <details className="fz-panel">
           <summary className="cursor-pointer text-sm font-medium">{t('Kompaniya AI sozlamalari (admin)')}</summary>
@@ -114,9 +119,11 @@ export default function AiAgentlar() {
         onRefresh={() => void yukla()}
         onApprove={(_a, run) => void amal(() => agentApprovalDecide({ run_id: run.run_id, decision: 'approve', expected_version: run.versiya, operation_id: yangiOperationId() }), 'Tasdiqlandi')}
         onReject={(_a, run) => {
-          const sabab = window.prompt('Rad etish sababi (majburiy):')?.trim();
-          if (!sabab) return;
-          void amal(() => agentApprovalDecide({ run_id: run.run_id, decision: 'reject', sabab, expected_version: run.versiya, operation_id: yangiOperationId() }), 'Rad etildi');
+          void matnSora({ matn: 'Rad etish sababi (majburiy):', majburiy: true, tasdiqMatni: 'Rad etish', xavfli: true }).then((javob) => {
+            const sabab = javob?.trim();
+            if (!sabab) return;
+            void amal(() => agentApprovalDecide({ run_id: run.run_id, decision: 'reject', sabab, expected_version: run.versiya, operation_id: yangiOperationId() }), 'Rad etildi');
+          });
         }}
         onTransition={(run, holat) => {
           // Ishchi agent bor bo'lsa — «Boshlash» uni ishga tushiradi (tahlil → ko'rib chiqishga).

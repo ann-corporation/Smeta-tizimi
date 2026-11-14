@@ -11,7 +11,7 @@ export const SAHIFA_YOLI: Partial<Record<TugunTur, (id: number, nom: string) => 
   sklad:      () => '/admin/logistika',
   texnika:    () => '/admin/erp?modul=texnika',
   kadr:       () => '/admin/erp?modul=kadrlar',
-  kontragent: () => '/admin/crm',
+  kontragent: () => '/admin/kontragentlar',
   zayavka:    () => '/admin/zayavka',
 };
 
@@ -42,5 +42,5 @@ export function belgiYoli(tugun: Pick<MindmapTugun, 'id' | 'tur' | 'entity_id'>,
 /** Kanonik sahifalar (legacy `/admin/test/*` va faqat-yo‘naltiruvchi manzillar emas). */
 export const RESURS_YOLI: Record<string, string> = {
   shartnoma: '/admin/shartnoma-liniya', sklad: '/admin/logistika', texnika: '/admin/erp?modul=texnika',
-  kadr: '/admin/erp?modul=kadrlar', kontragent: '/admin/crm',
+  kadr: '/admin/erp?modul=kadrlar', kontragent: '/admin/kontragentlar',
 };

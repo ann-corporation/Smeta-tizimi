@@ -1,0 +1,11 @@
+{
+  "id": 121,
+  "sana": "2026-11-06",
+  "sarlavha": "F2 tayyorlash: saqlash nega yopiqligi har doim ko‘rinadi, narxsiz resurs qoralamani to‘smaydi",
+  "bandlar": [
+    "Saqlash tugmasi yonida va «Tekshiruv» tepasida yagona sabablar ro‘yxati — har biri bir bosishli amal (qayta urinish, qatorga o‘tish) bilan; «toza» faqat sabab yo‘q bo‘lganda.",
+    "Narxi topilmagan resurs qoralamada narxsiz saqlanadi (ogohlantirish); tasdiqlashdan oldin narx yoki ongli «narxsiz» kerak.",
+    "Zamena, narx protokoli, boshqa qoralamalar va akt qatorlari o‘qilmasa — jim davom etilmaydi, saqlash to‘xtaydi; katta aktlar to‘liq (sahifalab) o‘qiladi.",
+    "1e-7 kabi kichik hajmlar endi to‘g‘ri ko‘rinadi, hajmi 0 bo‘lib qoladigan resurs qatorlari yuborilmaydi; server xatolari tushunarli matn bilan."
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "sana": "2026-11-12",
+  "sarlavha": "Xodim o‘z oyligi va KPI sini ko‘radi; kadrlar bo‘limi 3 qadamda ishga tushadi",
+  "bandlar": [
+    "«Mening oyligim va KPI»: har xodim faqat o‘z ish haqini ko‘radi — baza, KPI, bonus, jarima, naryad (donabay) puli, ushlanmalar va qo‘lga. Kadrlar bo‘limida xodimni foydalanuvchisiga ulash kifoya. Yordamchiga «mening oyligim» deb ayting.",
+    "Naryad puli ish haqida ikki marta to‘lanmaydi: naryad davriga tushgan tabel kunlari qayta hisoblanmaydi, summa t2_xarajat bilan bir xil qoladi.",
+    "KPI rol bo‘yicha o‘zi hisoblanadi (prorab — F2 hajmi, PTO — F2 va АОСР vaqtida, brigadir — qabul qilingan naryad va davomat), har ko‘rsatkich «qayerdan olindi» bilan. Hozircha KPI faqat ko‘rsatiladi; pulga ta’sirini Sozlamalarda yoqish mumkin.",
+    "Kadrlar bo‘limi bo‘sh bo‘lsa 3 katta qadam chiqadi: sozlamalar, xodimlar, tabel. Xodim qo‘shish tezlashdi: ism, lavozim va maosh turi yetarli."
+  ]
+}

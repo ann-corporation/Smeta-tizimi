@@ -45,6 +45,8 @@ export type AiKontekst = {
     fakt_summa: number; f2_summa: number; f2_mumkin_summa: number;
     /** Smeta 0 bo'lsa `null` — yolg'on «0%» ko'rsatilmaydi. */
     fakt_foiz: number | null; f2_foiz: number | null;
+    /** Foiz maxraji: `joriy` — asl smeta + o'zgarishlar; `asl` — asl smeta (o'zgarishlar hali hisoblanmagan); `rz_jami` — kesh yo'q, rz yig'indisi. */
+    foiz_maxraj?: 'joriy' | 'asl' | 'rz_jami' | null; maxraj_summa?: number | null;
   };
   eng_qimmat: Array<{
     nom: string; birlik: string | null; kat: string | null;
@@ -119,6 +121,12 @@ export function aiKontekstMatni(k: AiKontekst): string {
       .map(([nom, v]) => `${nom} ${pul(v.summa)} (${v.qator} qator)`).join(', '));
   }
 
+  const maxraj = k.bajarish.foiz_maxraj;
+  if (maxraj && (k.bajarish.fakt_foiz != null || k.bajarish.f2_foiz != null)) {
+    qatorlar.push(maxraj === 'joriy'
+      ? `Foiz maxraji: smeta + o'zgarishlar (${pul(k.bajarish.maxraj_summa)}); asl smeta alohida: ${pul(k.smeta.jami)}`
+      : `Foiz maxraji: ${maxraj === 'asl' ? 'asl smeta' : 'smeta qatorlari yig\'indisi'} (${pul(k.bajarish.maxraj_summa)}) — o'zgarishlar hisobga olinmagan, foiz 100% dan oshishi mumkin`);
+  }
   qatorlar.push(
     `BAJARILGAN (ФАКТ): ${pul(k.bajarish.fakt_summa)}` +
       (k.bajarish.fakt_foiz != null ? ` (${k.bajarish.fakt_foiz}%)` : ''),

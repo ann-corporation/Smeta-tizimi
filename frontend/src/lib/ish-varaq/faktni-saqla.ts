@@ -10,7 +10,8 @@ import { casZiddiyat } from '../fakt-foiz-grid';
 
 export type FaktPaketQator = { qator_id: number; hajm: number };
 export type FaktSaqlashNatijasi =
-  | { ok: true; idlar: Set<number>; /** Server shu operation_id ni avval bajargan (hech narsa yangi yozilmadi). */ takror: boolean }
+  | { ok: true; idlar: Set<number>; /** Server shu operation_id ni avval bajargan (hech narsa yangi yozilmadi). */ takror: boolean;
+      /** Narxsiz (summasi bo'sh) qatorlar soni — fakt yozildi, lekin summa narx qo'yilguncha bo'sh (bloklanmaydi, ogohlantiriladi). */ narxsiz?: number }
   | { ok: false; sabab: 'HOLAT'; kod?: string; matn?: string }
   | { ok: false; sabab: 'CAS'; ziddiyat: Array<{ id: number; brauzer: number; server: number | null }> }
   | { ok: false; sabab: 'YOZ'; matn: string; tarmoq: boolean; kod?: string };
@@ -34,5 +35,5 @@ export async function faktPaketniYoz(a: {
   await topshirilganPaketOgohi(a.obyektId, a.sana); // topshirilgan oylik paket bo'lsa - ogohlantirish (saqlashni to'smaydi)
   const r = await sbFaktYoz({ obyektId: a.obyektId, sana: a.sana, operationId: a.operationId, qatorlar: a.qatorlar, izoh: a.izoh });
   if (!r.ok) return { ok: false, sabab: 'YOZ', matn: r.error || r.xabar || 'Fakt saqlanmadi.', tarmoq: r.code === 'NETWORK' || r.code === 'OFFLINE' || r.code === 'SEND_FAILED', kod: r.code };
-  return { ok: true, idlar: new Set(a.qatorlar.map((x) => x.qator_id)), takror: r.takror === true };
+  return { ok: true, idlar: new Set(a.qatorlar.map((x) => x.qator_id)), takror: r.takror === true, narxsiz: Number(r.narxsiz_soni) > 0 ? Number(r.narxsiz_soni) : 0 };
 }

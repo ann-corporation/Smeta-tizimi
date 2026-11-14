@@ -1,0 +1,32 @@
+-- ROLLBACK: 20261216410000_t2_logistika_yuk_p2_v1
+-- DIQQAT: t2_yb_haydovchi, t2_yb_bekor va yangi ustunlardagi ma'lumot yo'qoladi (tayinlashlar, bekor yozuvlari, arxiv kalitlari). Sozlama defaultlari o'chadi. BEGIN/COMMIT yo'q.
+drop trigger if exists t2_yb_p2_yaqin on public.t2_yb_yuk;
+drop trigger if exists t2_yb_p2_bekor on public.t2_yb_bron;
+drop function if exists public._t2_yb_p2_yaqin_trg();
+drop function if exists public._t2_yb_p2_bekor_trg();
+drop function if exists public.t2_yb_p2_sozlama_saqla_v1(bigint, uuid, jsonb);
+drop function if exists public.t2_yb_p2_iz_arxivla_v1(bigint, bigint, text);
+drop function if exists public.t2_yb_p2_iz_ol_v1(bigint, bigint);
+drop function if exists public.t2_yb_p2_ega_kuzat_v1(bigint, bigint, bigint);
+drop function if exists public.t2_yb_p2_buyurtma_yuklar_v1(bigint, bigint, bigint[]);
+drop function if exists public.t2_yb_p2_park_ol_v1(bigint, jsonb);
+drop function if exists public.t2_yb_p2_reys_v1(bigint);
+drop function if exists public.t2_yb_p2_dalil_v1(bigint, uuid, jsonb);
+drop function if exists public.t2_yb_p2_joy_v1(bigint, jsonb);
+drop function if exists public.t2_yb_p2_qadam_v1(bigint, uuid, jsonb);
+drop function if exists public.t2_yb_p2_tayinla_v1(bigint, uuid, jsonb);
+drop function if exists public.t2_yb_p2_haydovchi_qosh_v1(bigint, uuid, jsonb);
+drop function if exists public.t2_yb_p2_qabul_v1(bigint, uuid, jsonb);
+drop function if exists public._t2_yb_p2_bron_ruxsat(public.t2_yb_bron, bigint);
+delete from public.t2_yb_sozlama where kalit in ('narx_baza', 'narx_km_sinf', 'yuklash_narx', 'kutish_soat_narx', 'yaqin_radius_km');
+drop table if exists public.t2_yb_bekor;
+drop table if exists public.t2_yb_haydovchi;
+drop index if exists public.t2_yb_bron_haydovchi_idx;
+alter table public.t2_yb_joy drop constraint if exists t2_yb_joy_iz_kalit_chk;
+alter table public.t2_yb_joy drop column if exists iz_daqiqa;
+alter table public.t2_yb_joy drop column if exists iz_km;
+alter table public.t2_yb_joy drop column if exists iz_nuqta_soni;
+alter table public.t2_yb_joy drop column if exists iz_r2_kalit;
+alter table public.t2_yb_joy drop column if exists arxivlandi;
+alter table public.t2_yb_bron drop column if exists tayinlandi_vaqt;
+alter table public.t2_yb_bron drop column if exists haydovchi_id;

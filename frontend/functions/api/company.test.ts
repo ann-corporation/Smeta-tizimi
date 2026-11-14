@@ -132,6 +132,27 @@ describe('company -- kompaniya yaratish/so\'rov (T2-COMPANY-CREATE-GATE-001)', (
     expect(await res.json()).toMatchObject({ ok: true, royxat_id: 11, holat: 'kutilmoqda' });
   });
 
+  it('"ozi_och" -> t2_kompaniya_ozi_och_v1: actor SESSIYADAN (klient p_actor_id yubora olmaydi), STIR ixtiyoriy; OZI_OCHILGAN/INN_BAND -> 409', async () => {
+    const yuklar: any[] = [];
+    const javob = { v: { ok: true, kompaniya_id: 55, rol: 'boss' } as Record<string, unknown> };
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init: { body: string }) => {
+      expect(url).toContain('/rpc/t2_kompaniya_ozi_och_v1');
+      yuklar.push(JSON.parse(init.body));
+      return { ok: true, text: async () => JSON.stringify(javob.v) } as Response;
+    }));
+    const res = await onRequestPost(await ctxOf({ action: 'ozi_och', nom: 'Sinov MChJ', p_actor_id: 999, kompaniya_id: 1 }));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: true, kompaniya_id: 55, rol: 'boss' });
+    expect(yuklar[0]).toMatchObject({ p_actor_id: 3, p_nom: 'Sinov MChJ', p_inn: null });
+    expect(Object.keys(yuklar[0]).sort()).toEqual(['p_actor_id', 'p_inn', 'p_nom', 'p_operation_id', 'p_telefon']);
+    for (const code of ['OZI_OCHILGAN', 'INN_BAND']) {
+      javob.v = { ok: false, code };
+      const r = await onRequestPost(await ctxOf({ action: 'ozi_och', nom: 'Sinov MChJ', inn: '123456789' }));
+      expect(r.status).toBe(409);
+      expect(await r.json()).toMatchObject({ ok: false, code });
+    }
+  });
+
   it('"royxat_tasdiqla" faqat royxat_id va aktyor sessiyadan uzatadi', async () => {
     const fetchSpy = vi.fn(async (url: string, init: { body: string }) => {
       expect(url).toContain('/rpc/t2_kompaniya_royxat_tasdiqla_v1');

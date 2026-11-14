@@ -1,0 +1,11 @@
+{
+  "id": 22,
+  "sana": "2026-10-26",
+  "sarlavha": "Pereraschet: «Fakt bo'yicha qayta hisob» rejimi",
+  "bandlar": [
+    "Nakopitelniy → Pereraschet: yangi «Fakt bo'yicha qayta hisob» tugmasi. Har smeta pozitsiyasi uchun «bo'lishi kerak» = fakt × smeta narxi, «olingan» = barcha tasdiqlangan F2 (tuzatish aktlari bilan); farq plyus yoki minus bo'lib ko'rinadi.",
+    "Smetaga bog'lanmagan eski F2 qatorlari (smeta yo'q paytida o'tkazilgan arzon ishlar, F2 importida qo'shilgan narxsiz qatorlar, «(ekspertizagacha)» bo'lim) alohida ro'yxatda — to'liq minus.",
+    "Ikki format, natija bir xil: «To'liq storno + qayta» (olinganning hammasi minus, fakt bo'yicha yangidan) yoki «Faqat farq». Excel «ПЕРЕРАСЧЁТ ПО ФАКТУ» ikkala varaq bilan; F2 qoralamasi yaratiladi, tasdiqlash — F2 tarixida.",
+    "«Fakti yo'q, lekin F2 olingan» pozitsiyalarni bir bosishda Fakt jurnalida filtr bilan ochib, faktni qayta belgilash mumkin."
+  ]
+}

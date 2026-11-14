@@ -14,6 +14,7 @@ import { useMen } from '../../api/t2-men';
 import { PROFIL_KALIT, googleUlash, hisobBirlashtir, xatoMatn, type BirlashtirNatija, type Profil } from '../../api/profil';
 import { rolNomi } from './akkaunt-lib';
 import { INPUT_SINF, INPUT_STIL, Karta, Maydon, Nota, Qator } from './AkkauntUi';
+import { BirlashtirIsbot } from './KirishUsullariKarta';
 
 /** `qolgan_rollar` elementi satr yoki `{ rol }` bo‘lishi mumkin — ko‘rsatiladigan matn (aniqlanmasa — null). */
 export function rolElementi(x: unknown): string | null {
@@ -182,6 +183,7 @@ export function BirlashtirKarta({ profil }: { profil: Profil }) {
           </div>
         </form>
       )}
+      {!natija && ochiq && <BirlashtirIsbot onNatija={setNatija} />}
     </Karta>
   );
 }
