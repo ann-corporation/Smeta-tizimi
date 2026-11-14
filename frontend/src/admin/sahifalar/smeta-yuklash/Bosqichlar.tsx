@@ -2,10 +2,11 @@ import type { ReactNode } from 'react';
 import { AlertTriangle, CheckCircle2, Info, XCircle } from 'lucide-react';
 import { t } from '../../../i18n/til';
 import type { Muammo, YuklashSanoq } from './xulosa';
+import type { OldindanKorinish } from './korinish';
 
 /** 3 bosqichli yo'l: Fayl tanlash → Tekshiruv → Import. `joriy` 3 bo'lsa — hammasi tayyor. */
 export function YuklashQadamlari({ joriy }: { joriy: number }) {
-  const nomlar = ['Fayl tanlash', 'Tekshiruv', 'Import'];
+  const nomlar = ['Fayl tanlash', 'Tekshiruv', 'Ko‘rib chiqish', 'Import', 'Natija'];
   return (
     <ol aria-label={t('Yuklash bosqichlari')} className="flex flex-wrap items-center gap-x-2 gap-y-1" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
       {nomlar.map((nom, i) => (
@@ -112,9 +113,11 @@ export function YopishqoqPanel({ children }: { children: ReactNode }) {
 }
 
 /** Import natijasi: nima yozildi, muammolar, keyingi qadamlar. */
-export function NatijaEkrani({ qatorSoni, sanoq, muammolar, rollupXato, onSmeta, onFakt, onYana }: {
+export function NatijaEkrani({ qatorSoni, sanoq, muammolar, rollupXato, narxsizSoni = 0, onSmeta, onFakt, onNarxlash, onYana }: {
   qatorSoni: number; sanoq: YuklashSanoq | null; muammolar: readonly Muammo[]; rollupXato?: boolean;
-  onSmeta?: () => void; onFakt?: () => void; onYana?: () => void;
+  /** Narxsiz qolgan resurslar soni — keyingi qadam «narxlash» bo‘lishini aytadi. */
+  narxsizSoni?: number;
+  onSmeta?: () => void; onFakt?: () => void; onNarxlash?: () => void; onYana?: () => void;
 }) {
   return (
     <section role="status" className="fz-panel" data-testid="yuklash-natija" style={{ borderColor: 'color-mix(in srgb, var(--ok) 45%, transparent)' }}>
@@ -123,11 +126,64 @@ export function NatijaEkrani({ qatorSoni, sanoq, muammolar, rollupXato, onSmeta,
       {sanoq && <SanoqQatori sanoq={sanoq} />}
       {rollupXato && <p className="text-[12.5px] text-warn">{t('Jami summalar hali hisoblanmadi — «Jamlarni qayta hisoblash» tugmasini bosing.')}</p>}
       <MuammolarRoyxati muammolar={muammolar} bosh={t('Yuklashda muammo bo‘lmadi.')} />
+      <div className="fz-note fz-note--info" data-testid="keyingi-qadam">
+        <Info aria-hidden="true" />
+        <span>
+          <b>{t('Keyingi qadam:')}</b>{' '}
+          {narxsizSoni > 0
+            ? t('{n} ta resursga narx qo‘ying (narxlash) — shundan keyin smeta jami to‘liq bo‘ladi. So‘ng fakt (bajarilgan hajm) kiritiladi.', { n: narxsizSoni.toLocaleString('ru-RU') })
+            : t('smetani ko‘zdan kechiring, so‘ng fakt (bajarilgan hajm) kiritishni boshlang.')}
+        </span>
+      </div>
       <div className="flex flex-wrap items-center gap-2">
         {onSmeta && <button type="button" className="fz-btn fz-btn--primary" onClick={onSmeta}>{t('Smetani ochish')}</button>}
+        {onNarxlash && narxsizSoni > 0 && <button type="button" className="fz-btn" onClick={onNarxlash}>{t('Narxlashga o‘tish')}</button>}
         {onFakt && <button type="button" className="fz-btn" onClick={onFakt}>{t('Faktga o‘tish')}</button>}
         {onYana && <button type="button" className="fz-btn" onClick={onYana}>{t('Yana fayl yuklash')}</button>}
       </div>
+    </section>
+  );
+}
+
+const pul = (x: number | null) => (x == null ? '—' : x.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+
+/** «Ko‘rib chiqish»: jami (QQS bilan birinchi), ustama podvali topildimi. Noma’lum summa — «—», hech qachon 0 emas. */
+export function JamiKorinish({ k }: { k: OldindanKorinish }) {
+  const podvalMatn = k.podval === 'topildi' ? t('topildi ({n} ta foiz)', { n: k.podvalFoizSoni })
+    : k.podval === 'qisman' ? t('qisman topildi ({n} ta foiz)', { n: k.podvalFoizSoni }) : t('topilmadi');
+  return (
+    <div className="fz-kpis" data-testid="yuklash-jami">
+      <div className="fz-kpi">
+        <span className="fz-kpi__label">{k.faylVsego != null ? t('Fayldagi jami (QQS bilan)') : t('Resurslar jami (QQS {f}% bilan)', { f: k.qqsFoiz })}</span>
+        <span className="fz-kpi__value">{pul(k.faylVsego != null ? k.faylVsego : k.resursQqsBilan)}</span>
+      </div>
+      <div className="fz-kpi">
+        <span className="fz-kpi__label">{t('Resurslar yig‘indisi (ustamasiz, QQS siz)')}</span>
+        <span className="fz-kpi__value">{pul(k.resursSumma)}</span>
+      </div>
+      <div className="fz-kpi">
+        <span className="fz-kpi__label">{t('Ustama podvali')}</span>
+        <span className="fz-kpi__value" style={{ fontSize: 13 }}>{podvalMatn}</span>
+      </div>
+      {k.farqPryamye != null && (
+        <div className="fz-kpi">
+          <span className="fz-kpi__label">{t('Fayldagi «to‘g‘ridan-to‘g‘ri xarajat» bilan farq')}</span>
+          <span className="fz-kpi__value" style={Math.abs(k.farqPryamye) > 1 ? { color: 'var(--warn)', fontSize: 14 } : { fontSize: 14 }}>{pul(k.farqPryamye)}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Faylda «Ish va hajm» varag‘i topilmadi: foydalanuvchi qotib qolmasin — sabab, varaqlar va chiqish yo‘li. */
+export function IshVarogiTopilmadi({ varaqlar, onYana, children }: { varaqlar: readonly string[]; onYana: () => void; children?: ReactNode }) {
+  return (
+    <section className="fz-panel" role="alert" data-testid="lrv-topilmadi">
+      <div className="flex items-center gap-2"><span className="fz-stamp fz-stamp--warn">{t('Ish va hajm varag‘i topilmadi')}</span></div>
+      <p className="text-[13px]">{t('Bu faylda ishlar va hajmlar jadvali (LRV) topilmadi. Faylda {n} ta varaq bor: {nomlar}.', { n: varaqlar.length, nomlar: varaqlar.slice(0, 8).join(', ') || '—' })}</p>
+      <p className="text-[12px] text-text-mute">{t('Bu svod, titul yoki dastur sarlavhasi bo‘lishi mumkin. Agar ish va hajmlar boshqa faylda bo‘lsa — o‘shani tanlang. Varaq turini o‘zingiz belgilash uchun quyida ro‘yxat bor.')}</p>
+      {children}
+      <div className="flex flex-wrap gap-2"><button type="button" className="fz-btn fz-btn--primary" onClick={onYana}>{t('Boshqa fayl tanlash')}</button></div>
     </section>
   );
 }

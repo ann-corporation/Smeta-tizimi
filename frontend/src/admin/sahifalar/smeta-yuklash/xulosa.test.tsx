@@ -31,18 +31,20 @@ describe('smeta yuklash ustasi — xulosa', () => {
     expect(s).not.toContain('yangi smeta yaratadi');
   });
 
-  it('bosqich indeksi: natija 3, tayyor fayl 1, bo‘sh 0', () => {
-    expect(bosqichIndeksi({ natija: true, band: false, kitob: true, ustunlar: true })).toBe(3);
+  it('bosqich indeksi: fayl 0, tekshiruv 1, ko‘rib chiqish 2, import 3, natija 4', () => {
+    expect(bosqichIndeksi({ natija: true, band: false, kitob: true, ustunlar: true })).toBe(4);
     expect(bosqichIndeksi({ natija: false, band: false, kitob: true, ustunlar: true })).toBe(1);
-    expect(bosqichIndeksi({ natija: false, band: true, kitob: true, ustunlar: true })).toBe(2);
+    expect(bosqichIndeksi({ natija: false, band: false, kitob: true, ustunlar: true, tahlil: true })).toBe(2);
+    expect(bosqichIndeksi({ natija: false, band: true, kitob: true, ustunlar: true, tahlil: true })).toBe(3);
+    expect(bosqichIndeksi({ natija: false, band: false, kitob: true, ustunlar: false })).toBe(1);
     expect(bosqichIndeksi({ natija: false, band: false, kitob: false, ustunlar: false })).toBe(0);
   });
 });
 
 describe('smeta yuklash ustasi — komponentlar', () => {
-  it('3 bosqich ko‘rsatiladi', () => {
+  it('5 bosqich ko‘rsatiladi', () => {
     render(<YuklashQadamlari joriy={1} />);
-    expect(screen.getAllByRole('listitem')).toHaveLength(3);
+    expect(screen.getAllByRole('listitem')).toHaveLength(5);
   });
 
   it('muammolar ro‘yxatida «tafsilot» ochiladigan qism bor', () => {
