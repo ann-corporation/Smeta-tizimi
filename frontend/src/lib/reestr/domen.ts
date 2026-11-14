@@ -113,6 +113,7 @@ export const ISTISNO: Readonly<Record<string, { domen: Domen; izoh: string; noan
   t2_obyekt_nk_v1: { domen: 'smeta', izoh: 'obyekt nakrutkasi (smeta podvalidan)' },
   t2_obyekt_doira_ok: { domen: 'loyiha', izoh: 'obyekt doirasi ruxsati - loyiha tekshiruvi' },
   t2_obyekt_kompaniya_azo: { domen: 'platforma', izoh: 'a\'zolik tekshiruvi (kompaniya doirasi)' },
+  _t2_fn_zaxira: { domen: 'platforma', izoh: 'yamalgan funksiyalarning asl matni (migratsiya rollback zaxirasi)' },
   t2_obyekt_loyihaga_biriktir: { domen: 'loyiha', izoh: 'obyektni loyihaga bog\'lash' },
   t2_obyekt_ulash_v1: { domen: 'tomonlar', izoh: 'obyektni tomonga ulash (kompaniyalararo)' },
   t2_obyekt_ulashlar_v1: { domen: 'tomonlar', izoh: 'obyekt ulashlari (kompaniyalararo)' },

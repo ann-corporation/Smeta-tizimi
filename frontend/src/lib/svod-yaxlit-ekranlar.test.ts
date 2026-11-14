@@ -177,12 +177,12 @@ describe('svod yaxlit — butun tarkib aynan yaxlit summaga yig‘iladi (qator d
     expect(qiymatBor(r.bytes, r2(700 * 1.12))).toBe(true);
     expect(qiymatBor(r.bytes, r2(1344 * 0.85))).toBe(false);
   });
-  it('Ostatka modeli: bo‘lim qoldig‘i = svod − svod × fakt/smeta, qatorlarga aynan taqsim', () => {
+  it('Ostatka modeli: bo‘lim qoldig‘i = svod − fakt (taqsimsiz, to‘g‘ri narx), qatorlarga aynan taqsim', () => {
     const m = ostatkaHujjatModeli(DARAXT, HF, [], SVOD);
     const yq = m.qatorlar.filter((x) => m.yaxlitTaqsimlangan?.has(x.id));
-    expect(r2(yq.reduce((t, x) => t + (x.summa ?? 0), 0))).toBe(r2(1200 - 1020));
+    expect(r2(yq.reduce((t, x) => t + (x.summa ?? 0), 0))).toBe(r2(1200 - 850)); // fakt taqsimlanmaydi: 150 × 1 + 700 × 1
     const r = ostatkaHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', nakrutka: NK, yaxlitIdlar: IDLAR });
-    expect(qiymatBor(r.bytes, r2(1344 - 1344 * 0.85))).toBe(true); // qoldiq к оплате (QQS bilan) aynan
+    expect(qiymatBor(r.bytes, r2(1344 - 850 * 1.12))).toBe(true); // qoldiq к оплате (QQS bilan) = svod − fakt × (1+QQS) aynan
   });
 });
 
@@ -225,3 +225,33 @@ describe('fakt F2 yonida — ishoraga qarab (manfiy qatorlar nolga tushirilmaydi
     expect(m.qatorlar.find((x) => x.id === 3)!.faktHajm).toBe(2);
     expect(m.qatorlar.find((x) => x.id === 3)!.faktSumma).toBeNull();
   });});
+
+describe('svod bo‘limi fakti yaxlit summadan oshdi — Ostatka «ПРЕВЫШЕНИЕ» (manfiy qoldiq yo‘qolmaydi)', () => {
+  const HO = DARAXT.map((x) => h(x.id, x.id === 12 ? 0.3 : x.id === 13 ? 1.5 : 0)); // 300 + 1 500 = 1 800 > 1 200
+  it('svodOshgan: bo‘lim, smeta (svod QQS siz), fakt va ortiqcha; hujjatda ПРЕВЫШЕНИЕ', () => {
+    const m = ostatkaHujjatModeli(DARAXT, HO, [], SVOD);
+    expect(m.svodOshgan).toHaveLength(1);
+    expect(m.svodOshgan[0]).toMatchObject({ qatorId: 10, smeta: 1200, fakt: 1800, oshgan: 600 });
+    const r = ostatkaHujjatXlsx(m, { obyektNomi: 'Объект', sana: '2026-09-25', nakrutka: NK, yaxlitIdlar: IDLAR });
+    expect(tekshir(r.bytes).matnlar.some((x: string) => x.includes('ПРЕВЫШЕНИЕ'))).toBe(true);
+  });
+  it('fakt smetadan oshmasa — ro‘yxat bo‘sh', () => {
+    expect(ostatkaHujjatModeli(DARAXT, DARAXT.map((x) => h(x.id, x.id === 13 ? 0.7 : 0)), [], SVOD).svodOshgan).toHaveLength(0);
+  });
+});
+
+describe('Slichitelniy: fakt summasi serverdan (narx yo‘q/0 yoki F-2 summasi yozilmagan) — server bilan tiyinigacha', () => {
+  const D: T2Qator[] = [q(1, null, 'rz', null), q(2, 1, 'bl', 1), { ...q(3, 2, 'rs', 2, 'МАШ'), narx: null }, { ...q(4, 2, 'rs', 4, 'МАТ'), narx: 0 }, q(5, 2, 'rs', 3, 'МАТ')];
+  const H = [h(1, 0), h(2, 0),
+    { ...h(3, 2), fakt_summa: 500 },                                           // narxsiz, serverda fakt summasi bor
+    { ...h(4, 3), fakt_summa: 302.5 },                                         // narx 0
+    { ...h(5, 3), fakt_summa: 0, f2_hajm: 3, f2_summa: 0, f2_summa_yoq: 1 }] as unknown as T2QatorHolat[]; // F-2 hajmi bor, summasi yozilmagan
+  it('faktSumma = server fakt_summa, belgi va izoh; boshqa qatorlar o‘zgarmaydi', () => {
+    const m = slichitelniyModeli(D, H);
+    const f = (id: number) => m.qatorlar.find((x) => x.id === id && x.tur === 'barg')!;
+    expect(f(3).faktSumma).toBe(500); expect(f(3).faktServerdan).toBe(true); expect(f(3).izoh).toContain('по сумме факта');
+    expect(f(4).faktSumma).toBe(302.5);
+    expect(f(5).faktSumma).toBe(0); expect(f(5).faktServerdan).toBe(true);
+    expect(m.jami.fakt).toBe(802.5);
+  });
+});

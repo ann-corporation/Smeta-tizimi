@@ -26,6 +26,8 @@ export type QoshimchaGuruh = {
 export type ZamenaGuruh = {
   qator_id: number; tur: string; kod?: string; nom?: string; birlik?: string; hajm?: number; almashtirish_hajm?: number;
   summa?: number; narxsiz: boolean; barg_soni: number;
+  /** `f2_narx` — summaning bir qismi tasdiqlangan F-2 sertifikat narxidan (t2_qator.narx NULL; faqat o'qishda fallback). */
+  narx_manba?: 'f2_narx'; f2_narx_soni?: number; narxsiz_barg_soni?: number;
   asl_id?: number; asl_kod?: string; asl_nom?: string; asl_birlik?: string; asl_hajm?: number; asl_summa?: number;
   /** Aslning almashtirilgan qismi (reja); `farq` = summa − almashtirilgan. Narxsiz zamenada ikkalasi ham yo'q (noma'lum). */
   almashtirilgan_summa?: number; farq?: number; almashtirish_noaniq?: boolean;
@@ -48,6 +50,7 @@ export type SmetaOzgarishQatlam = {
   qoshimcha: { soni: number; summa: number; narxsiz_soni: number; asossiz_soni: number; qisqartirildi: boolean; qatorlar: QoshimchaGuruh[] };
   zamena: {
     soni: number; zamena_summa: number; almashtirilgan_summa: number; farq: number; narxsiz_soni: number; noaniq_soni: number;
+    f2_narx_soni?: number; narxsiz_barg_soni?: number;
     asossiz_soni: number; qisqartirildi: boolean; qatorlar: ZamenaGuruh[];
   };
   bajarilmadi: { soni: number; summa: number; narxsiz_soni: number; qatorlar: BajarilmadiGuruh[] };
