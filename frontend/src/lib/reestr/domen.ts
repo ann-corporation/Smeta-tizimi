@@ -86,7 +86,7 @@ export const PREFIKS: Readonly<Record<Domen, readonly string[]>> = {
     't2_korzinkadan', 't2_korzinkaga', 't2_invariant', 't2_json', 't2_son', 't2_yashirin', 't2_butunmi', 't2_kasrmi', 't2_kopruk',
     't2_butunlay', 't2_qidiruv', 't2_lugat', 'rls_auto_enable', 't2_erp_amal',
     // 2026-11-13: tizim hajmi, telefon normallashtirish, telegram kirish, solishtiruv (modullararo yaxlitlik tekshiruvi)
-    't2_baza', 't2_telefon', 't2_tg', 't2_solishtiruv',
+    't2_baza', 't2_telefon', 't2_tg', 't2_solishtiruv', 't2_moslash',
     'v_boss', 't2_ozi', 't2_tahrir',
   ],
 };

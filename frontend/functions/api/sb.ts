@@ -312,6 +312,8 @@ export const onRequestPost: PagesFunction<{
         rahbar_panel_v1: 'kompaniya_actor',
         /* Direktor pulti (V3): 6 plitka — «tayyor hisoblar» (t2_obyekt_kesh) orqali tez. `stable`; a'zolik + financial.read ichida. */
         rahbar_pult_v1: 'kompaniya_actor',
+        /* Moslash qutisi (2026-11-14): kunlik avtomat tekshiruvlar bitta ro'yxatda. FAQAT O'QISH; `stable`; a'zolik + financial.read ichida. */
+        moslash_qutisi_v1: 'kompaniya_actor',
         /* Egasi 2026-10-02: token balansi, tarif, narxlar, harakatlar (sotiladigan PTO). */
         token_holat_v1: 'kompaniya_actor',
         /* Egasi 2026-10-21 («Telegram modeli»): kompaniyada qaysi modullar yoqilgan — menyu shundan (a'zolik ichida). */
