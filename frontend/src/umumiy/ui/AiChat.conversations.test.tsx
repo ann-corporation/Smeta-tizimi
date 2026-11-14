@@ -28,7 +28,7 @@ it('late intent cannot unlock a newer conversation request',async()=>{
  let oldDone!:(v:unknown)=>void,newDone!:(v:unknown)=>void;
  m.intent.mockReturnValueOnce(new Promise(r=>oldDone=r)).mockReturnValueOnce(new Promise(r=>newDone=r));
  m.ask.mockResolvedValue({ok:true,javob:'OK'});
- const active={...helper,sahifalar:[{}]} as YordamchiUlanish;
+ const active={...helper,sahifalar:[{yol:'/admin',nom:'Admin'}]} as YordamchiUlanish;
  render(<MemoryRouter><AiChat kompaniyaId={17} foydalanuvchiId={7} kasb={role} sahifa="/admin" generatsiya={0} yordamchi={active}/></MemoryRouter>);
  const send=(text:string)=>{fireEvent.change(screen.getByRole('textbox'),{target:{value:text}});fireEvent.keyDown(screen.getByRole('textbox'),{key:'Enter'});};
  send('Birinchi vazifani tekshir');await waitFor(()=>expect(m.intent).toHaveBeenCalledTimes(1));
@@ -36,3 +36,7 @@ it('late intent cannot unlock a newer conversation request',async()=>{
  await act(async()=>oldDone(null));send('Uchinchi vazifani tekshir');expect(m.intent).toHaveBeenCalledTimes(2);
  await act(async()=>newDone(null));
 });
+
+it('server save failure is visible instead of silently claiming persistence',async()=>{render(view());choose('a');await waitFor(()=>expect(screen.getByRole('status').textContent).toContain('Serverga saqlanmadi'),{timeout:2500});});
+
+it('reopening preserves the selected conversation identity without duplicate archives',async()=>{const v=render(view());choose('a');v.unmount();render(view());await act(async()=>{});const archive=JSON.parse(localStorage.getItem('jarvis-suhbatlar:7:17')!);expect(archive.map((q:{id:string})=>q.id).sort()).toEqual(['a','b']);expect(screen.getByText('Message a',{selector:'p'})).toBeTruthy();});

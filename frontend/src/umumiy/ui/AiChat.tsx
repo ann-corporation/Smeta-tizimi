@@ -80,6 +80,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const [xabarlar, setXabarlar] = useState<Xabar[]>([]);
   const [matn, setMatn] = useState('');
   const [band, setBand] = useState(false);
+  const [saqlashHolati, setSaqlashHolati] = useState<'idle' | 'saving' | 'saved' | 'local'>('idle');
   const oxir = useRef<HTMLDivElement>(null);
   const abort = useRef<AbortController | null>(null);
   const busy = useRef(false);
@@ -102,12 +103,15 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const suhbatToxtat = () => {
     suhbatAvlod.current++; gen.current = `${scope}|${suhbatAvlod.current}`;
     abort.current?.abort(); busy.current = false; kutish.current = null; davomRef.current = null;
-    setBand(false); setMatn('');
+    setBand(false); setMatn(''); setSaqlashHolati('idle');
   };
   useEffect(() => { setTarixEga(tarixKalit); kutish.current = null; setXabarlar(tarixKalit ? tarixOqi(tarixKalit) : []); setMatn(''); setBand(false); busy.current = false; davomRef.current = null; abort.current?.abort();
     return () => { abort.current?.abort(); };
   }, [scope, tarixKalit]);
-  useEffect(() => { if (tarixKalit && tarixEga === tarixKalit) tarixYoz(tarixKalit, xabarlar); }, [xabarlar, tarixKalit, tarixEga]);
+  useEffect(() => { if (tarixKalit && tarixEga === tarixKalit) {
+    tarixYoz(tarixKalit, xabarlar);
+    try { sessionStorage.setItem(tarixKalit + ':id', suhbatId.current); } catch { /* xotira yopiq */ }
+  } }, [xabarlar, tarixKalit, tarixEga]);
   useEffect(() => { oxir.current?.scrollIntoView?.({ behavior: 'smooth' }); }, [xabarlar]);
   /* «Yangi suhbat»: tarix tozalanadi (sarlavhadagi tugma `ai:yangi-suhbat` hodisasini yuboradi). */
   useEffect(() => {
@@ -135,7 +139,12 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const arxivKalit = suhbatKaliti(foydalanuvchiId, kompaniyaId);
   const [arxiv, setArxiv] = useState<Suhbat[]>([]);
   const suhbatId = useRef(`s${Date.now()}`);
-  useEffect(() => { setArxiv(foydalanuvchiId != null ? suhbatOqi(arxivKalit) : []); suhbatId.current = `s${Date.now()}`; }, [arxivKalit, foydalanuvchiId]);
+  useEffect(() => {
+    setArxiv(foydalanuvchiId != null ? suhbatOqi(arxivKalit) : []);
+    let oldId: string | null = null;
+    try { oldId = tarixKalit ? sessionStorage.getItem(tarixKalit + ':id') : null; } catch { /* xotira yopiq */ }
+    suhbatId.current = oldId && /^[a-zA-Z0-9-]{1,100}$/.test(oldId) ? oldId : crypto.randomUUID();
+  }, [arxivKalit, foydalanuvchiId, tarixKalit]);
   useEffect(() => {
     if (!yordamchi || !tarixKalit || tarixEga !== tarixKalit || !xabarlar.length || xabarlar.some((x) => x.jonli)) return;
     const yangi = suhbatArxivla(suhbatOqi(arxivKalit), suhbatId.current, xabarlar.map((x) => ({ rol: x.rol, matn: x.matn, jonli: x.jonli })));
@@ -144,8 +153,12 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     if (kompaniyaId == null || foydalanuvchiId == null) return;
     const id = suhbatId.current; const s = yangi.find((q) => q.id === id);
     if (!s) return;
-    const tm = setTimeout(() => { void suhbatServerga(kompaniyaId, id, s.sarlavha, s.xabarlar.map((x) => ({ r: x.rol, m: x.matn }))); }, 1500);
-    return () => clearTimeout(tm);
+    let tirik = true; const avlod = gen.current;
+    setSaqlashHolati('saving');
+    const tm = setTimeout(() => { void suhbatServerga(kompaniyaId, id, s.sarlavha, s.xabarlar.map((x) => ({ r: x.rol, m: x.matn }))).then((r) => {
+      if (tirik && gen.current === avlod && suhbatId.current === id) setSaqlashHolati(r?.ok ? 'saved' : 'local');
+    }).catch(() => { if (tirik && gen.current === avlod && suhbatId.current === id) setSaqlashHolati('local'); }); }, 1500);
+    return () => { tirik = false; clearTimeout(tm); };
   }, [xabarlar, arxivKalit, yordamchi, tarixKalit, tarixEga]); // eslint-disable-line react-hooks/exhaustive-deps
   const [serverRoyxat, setServerRoyxat] = useState<ServerSuhbat[]>([]);
   useEffect(() => { let tirik = true; setServerRoyxat([]); if (kompaniyaId != null && foydalanuvchiId != null && yordamchi) void suhbatRoyxatOl(kompaniyaId).then((r) => { if (tirik && r) setServerRoyxat(r); }); return () => { tirik = false; }; }, [kompaniyaId, foydalanuvchiId, !!yordamchi]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -348,6 +361,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
           <button type="button" onClick={() => window.dispatchEvent(new Event('ai:yangi-suhbat'))} className="rounded border border-border px-2 py-1 text-sm">{t('Yangi suhbat')}</button>
         </div>
         <p className="mt-1 text-xs text-text-dim">{kompaniyaId == null ? t('Kontekst: umumiy suhbat') : t('Kontekst: kompaniya #{id}', { id: String(kompaniyaId) })}{yordamchi.joriyObyekt ? ' · ' + yordamchi.joriyObyekt.nom : ''}</p>
+        {saqlashHolati !== 'idle' && <p role="status" className="mt-1 text-xs text-text-dim">{saqlashHolati === 'saving' ? t('Suhbat serverga saqlanmoqda…') : saqlashHolati === 'saved' ? t('Suhbatning ixcham nusxasi serverga saqlandi') : t('Serverga saqlanmadi — bu oynani yopmang')}</p>}
       </div>}
       <div className="flex-1 space-y-4 overflow-y-auto p-4" aria-live="polite">
         {studioScope && kasb?.kategoriyalar.includes('smeta_pul') && <p className="rounded-lg border border-border p-2 text-xs text-text-dim">{t('Jarvis joriy qoralamani o‘qiydi; u hali tasdiqlangan hujjat emas.')}</p>}
