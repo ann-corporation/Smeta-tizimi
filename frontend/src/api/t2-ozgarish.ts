@@ -37,8 +37,17 @@ export type BajarilmadiGuruh = {
   id: number; qator_id: number; tur: string; kod?: string; nom?: string; birlik?: string; smeta_hajm?: number;
   bajarilmagan_hajm?: number; summa?: number; asos?: OzgarishAsos;
 };
+/**
+ * Smetadan tashqari bo'limlar (`t2_svod_yaxlit.smetadan_tashqari`, migratsiya 20261221620000): obyekt qiymatiga KIRMAYDI,
+ * lekin fakt / F-2 da hisoblanadi. Server hisobi; yo'q yoki soni 0 — belgili bo'lim yo'q.
+ */
+export type SmetadanTashqari = {
+  soni?: number; ustamasiz?: number; qqs_foiz?: number; qqs_bilan?: number;
+  qatorlar?: Array<{ qator_id: number; nom?: string; summa?: number }>;
+};
 export type SmetaOzgarishQatlam = {
   ok: true; obyekt_id: number;
+  smetadan_tashqari?: SmetadanTashqari;
   asl: { paket: SummaPaket | null; ustamasiz: number; narxsiz_soni: number };
   joriy: { paket: SummaPaket | null; ustamasiz: number };
   ozgarish: {
