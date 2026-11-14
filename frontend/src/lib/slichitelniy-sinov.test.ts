@@ -23,7 +23,7 @@ describe('Slichitelniy: real obyekt topilmalari', () => {
     expect(m.qatorlar.find((x) => x.nom === QOSHIMCHA_BOLIM_NOMI)).toBeTruthy();
     const lump = m.qatorlar.find((x) => x.id === 3)!;
     expect(lump.yaxlitTaqsim).toBe(1);
-    expect(lump.smetaSumma).toBe(4000); // svod summasi (QQS siz), ko‘chirilmagan
+    expect(lump.smetaSumma).toBe(2000); // tana: to‘g‘ri narx (2 × 1000), yaxlit svod summasi tanaga taqsimlanmaydi; ko‘chirilmagan
     const tashqari = m.qatorlar.find((x) => x.id === 6)!;
     expect([tashqari.smetaHajm, tashqari.smetaSumma]).toEqual([0, 0]); // asl smetada yo‘q
     expect(tashqari.farqSumma).toBe(1000); // fakt 1 × 1000 − 0
@@ -73,12 +73,22 @@ describe('Slichitelniy: fakt va Ф-2 server qoidasi (svod bo‘limi)', () => {
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(bytes as unknown as ArrayBuffer);
     const ws = wb.getWorksheet('Сличительная ведомость')!;
-    const kesh = (n: string, col: number): number => { let x = NaN; ws.eachRow((row) => { if (String(row.getCell(3).value) === n) { const v = row.getCell(col).value as unknown; x = Number(v && typeof v === 'object' && 'result' in (v as object) ? (v as { result: number }).result : v); } }); return x; };
+    const cv = (r: number, c: string): number => { const v = ws.getCell(`${c}${r}`).value as unknown; return Number(v && typeof v === 'object' ? ('result' in (v as object) ? (v as { result: number }).result : 0) : v); };
+    const qNom = (nom: string): number => { let x = 0; ws.eachRow((row, rn) => { if (String(row.getCell(3).value).startsWith(nom)) x = rn; }); return x; };
     const kfChel = 1.18 * 1.0032 * 1.12;
-    expect(kesh('ТРУД СВОД', 22)).toBeCloseTo(100 * kfChel, 1);   // Ф-2: ЧЕЛ — kaskad
-    expect(kesh('ТРУД СВОД', 16)).toBeCloseTo(150 * kfChel, 1);   // fakt: xuddi shunday (to‘g‘ri narxdagi fakt, taqsimsiz)
-    expect(kesh('МАТЕРИАЛ СВОД', 22)).toBeCloseTo(500 * 1.12, 1); // Ф-2: qolgani yaxlit × QQS
-    expect(kesh('МАТЕРИАЛ СВОД', 16)).toBeCloseTo(700 * 1.12, 1); // fakt: xuddi shunday
+    // Podval (ustama faqat shu yerda): ЧЕЛ qatori — svod ichidagi mehnat fakt va Ф-2 da ustama kaskadida (server qoidasi), smetada — yo‘q (butun svod yaxlit).
+    const chel = qNom('ПРЯМЫЕ ЗАТРАТЫ: ЗАРАБОТНАЯ ПЛАТА РАБОЧИХ');
+    expect(cv(chel, 'G')).toBe(0);
+    expect(cv(chel, 'I')).toBeCloseTo(150, 1);
+    expect(cv(chel, 'K')).toBeCloseTo(100, 1);
+    // Yaxlit svod qatori: smeta — svod summasi QQS bilan (1344), fakt/Ф-2 — qolgan svod qatorlari to‘g‘ri narx × (1+НДС) (700 / 500)
+    const yq = qNom('РАЗДЕЛЫ ПО СВОДУ');
+    expect(cv(yq, 'G')).toBeCloseTo(1344, 1);
+    expect(cv(yq, 'I')).toBeCloseTo(700 * 1.12, 1);
+    expect(cv(yq, 'K')).toBeCloseTo(500 * 1.12, 1);
+    // Tana: ustamali ustun yo‘q, svod qatori tanada to‘g‘ri narxda (spravochno)
+    expect(cv(qNom('ТРУД СВОД'), 'I')).toBeCloseTo(150, 1);
+    expect(kfChel).toBeGreaterThan(1);
   });
 });
 describe('Slichitelniy: hujjat ichida qator nazorati', () => {
@@ -94,10 +104,10 @@ describe('Slichitelniy: hujjat ichida qator nazorati', () => {
     // model: svod qatorlarida fakt taqsimlanmagan (to‘g‘ri narx), smeta — svod summasiga
     const lump = m.qatorlar.filter((x) => x.yaxlitTaqsim != null);
     expect(lump.map((x) => x.faktSumma)).toEqual([150, 700]);
-    expect(Math.round(lump.reduce((t, x) => t + (x.smetaSumma ?? 0), 0) * 100) / 100).toBe(1200);
+    expect(Math.round(lump.reduce((t, x) => t + (x.smetaSumma ?? 0), 0) * 100) / 100).toBe(1000); // tana: to‘g‘ri narx
     // model darajasida: har yig‘indi qator = bolalar yig‘indisi
     for (const r of m.qatorlar) {
-      if (r.tur === 'barg' || !r.bolalar.length) continue;
+      if (r.tur === 'barg' || r.tur === 'rz' || !r.bolalar.length) continue; // svod ildizi (rz) — jamisiz, spravochno
       for (const k of ['smetaSumma', 'faktSumma', 'f2Summa'] as const) {
         const s = Math.round(r.bolalar.reduce((t, i) => t + (m.qatorlar[i][k] ?? 0), 0) * 100) / 100;
         expect(Math.round((r[k] ?? 0) * 100) / 100).toBe(s);
@@ -118,12 +128,12 @@ describe('Slichitelniy: hujjat ichida qator nazorati', () => {
       if (x.tur !== 'barg') return;
       const r = bosh + i;
       const E = cv(r, 5), F = cv(r, 6), G = cv(r, 7), H = cv(r, 8), I = cv(r, 9), J = cv(r, 10), K = cv(r, 11);
-      if (x.yaxlitTaqsim == null && E != null && F != null) expect(G).toBe(r2c(E * F));        // smeta: hajm × narx
+      if (E != null && F != null) expect(G, x.nom).toBe(r2c(E * F));        // smeta: hajm × narx
       if (H != null && F != null) expect(I).toBe(!J || K == null ? r2c(H * F) : r2c((H * K) / J)); // fakt: hajm × narx yoki F-2 narxi (svodda ham)
     });
     // ИТОГО / ВSEGО: yig‘indi qatori keshi = bolalar keshi yig‘indisi (G, I, K ustunlari)
     m.qatorlar.forEach((x, i) => {
-      if (x.tur === 'barg' || !x.bolalar.length) return;
+      if (x.tur === 'barg' || !x.bolalar.length || x.tur === 'rz') return;
       for (const c of [7, 9, 11]) {
         const s = r2c(x.bolalar.reduce((t, k) => t + (cv(bosh + k, c) ?? 0), 0));
         expect(cv(bosh + i, c) ?? 0).toBeCloseTo(s, 2);

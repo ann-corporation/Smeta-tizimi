@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { T2Qator, T2QatorHolat } from '../api/supabase';
 import { slichitelniyHujjatXlsx, slichitelniyModeli } from './slichitelniy-vedomost';
 import { slichitelniyTsiklYuki } from './slichitelniy-tsikl';
@@ -52,7 +52,7 @@ describe('slichitelniy: svod bo‘limi — к доплате / к снятию b
     const ws = wb.getWorksheet('Сличительная ведомость')!;
     const kesh = (v: unknown): number => Number(v && typeof v === 'object' && 'result' in (v as object) ? (v as { result: number }).result : v);
     let d = NaN, s = NaN;
-    ws.eachRow((row) => { if (String(row.getCell(3).value) === 'ВСЕГО ПО ОБЪЕКТУ') { d = kesh(row.getCell(24).value); s = kesh(row.getCell(25).value); } });
+    ws.eachRow((row) => { if (String(row.getCell(3).value).startsWith('ИТОГО ПО ОБЪЕКТУ')) { d = kesh(row.getCell(21).value); s = kesh(row.getCell(22).value); } });
     expect(d).toBe(m.pereraschet.doplata);
     expect(s).toBe(m.pereraschet.snyatie);
   });

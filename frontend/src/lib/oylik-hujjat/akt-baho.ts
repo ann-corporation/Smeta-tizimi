@@ -5,7 +5,7 @@
  */
 import { portfelObyektOl } from '../../api/f2-oylik-paket';
 import { oyAktlarBahosi } from '../f2-oylik-paket/portfel';
-import type { F3DavrAkt } from '../forma3-export';
+import type { F3DavrAktKeng as F3DavrAkt } from '../f2-oylik-paket/portfel';
 
 export type AktQatorKirish = { akt_id: number; akt_holat?: string | null; oy: string; raqam?: string | null };
 
