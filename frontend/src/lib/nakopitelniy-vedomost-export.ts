@@ -30,6 +30,8 @@ import {
 } from './hujjat-yozuvchi';
 import { shartnomaSvodi, somga, svodJami, sverkaHisobla, tiyin, type SvodShartnoma } from './nakopitelniy-svod';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
+import type { F3DavrAkt } from './forma3-export';
+import { diqqatGuruh, zamechaniyaVaraq } from './hujjat-yozuvchi/zamechaniya';
 import {
   NAKRUTKA_KATLAR, NOMALUM_KAT, kOplate, kategoriyaKf, nakrutkaKat, nakrutkaPodvaliYoz, podvalKfQatorlari, podvalNdsFoiz, podvalQatorRaqami,
   type KatSummalar, type NakrutkaHisobJS,
@@ -63,6 +65,8 @@ export interface NakopitelniyVedomostExportOptions {
   oylar?: NakopitelniyOylar | null;
   /** Svod yaxlit bo'limlari (t2_obyekt_nakrutka_v1.svod_yaxlit): avlod qatorlariga ustama qo'llanmaydi, podvalda alohida qator. */
   svodYaxlit?: SvodYaxlit | null;
+  /** Hisobot oyigacha HAMMA tasdiqlangan F2 aktlari (har biri O'Z podvali bilan, `oy` bilan): «К ОПЛАТЕ» oy va «с начала» jami shulardan (F-3 bilan bir xil). */
+  aktlarKOplate?: ReadonlyArray<F3DavrAkt> | null;
 }
 
 /** Tasdiqlangan F2 qatorlari oy bo'yicha: oylar — 'YYYY-MM' o'sish tartibida (oxirgisi — hisobot davri). */
@@ -524,6 +528,27 @@ export function nakopitelniyVedomostHujjat(
     if (p.bosh !== podvalBosh) throw new Error('NAKOPITELNIY_PODVAL_SILJIDI');
     kaskad = p.kaskad;
   }
+  /* «К ОПЛАТЕ» oy va «с начала» — HAR F2 O'Z podvali bilan (imzolangan F2 hujjatlari ВСЕГО yig'indisi; server `_t2_summa_paket_v1` bilan tiyinigacha,
+   * F-3 bilan bir xil). Qatorlardagi «К ОПЛАТЕ» obyektning joriy podvali bilan hisoblanadi — aktlar podvali boshqa bo'lsa jami farq qiladi. */
+  let aktKO: { davr: number | null; jami: number | null } | null = null;
+  if (o.aktlarKOplate) {
+    const oyD = o.davr.slice(0, 7);
+    const hamma = o.aktlarKOplate.filter((a) => !a.oy || a.oy.slice(0, 7) <= oyD);
+    const jamla = (l: ReadonlyArray<F3DavrAkt>): number | null => { let s = 0; for (const a of l) { if (a.qqsBilan == null) return null; s += a.qqsBilan; } return yaxlit2(s); };
+    aktKO = { davr: jamla(hamma.filter((a) => a.oy?.slice(0, 7) === oyD)), jami: jamla(hamma) };
+    v.bosh();
+    v.bolim('К ОПЛАТЕ ПО АКТАМ Ф-2 (накрутка и НДС — по подвалу каждого акта)', { daraja: 0 });
+    v.qator('vsego', () => {
+      const c: Qiymat[] = Array(U.ustunlar.length).fill(null);
+      c[2] = 'ИТОГО К ОПЛАТЕ ПО АКТАМ Ф-2 (с НДС)';
+      c[col(U.koPer)] = aktKO!.davr; c[col(U.koJami)] = aktKO!.jami;
+      return c;
+    });
+    if (aktKO.davr == null || aktKO.jami == null) diqqat.push({ nom: 'К ОПЛАТЕ ПО АКТАМ Ф-2', sabab: 'сумма хотя бы одного акта Ф-2 не определена (проценты подвала неизвестны) — итог оставлен пустым, а не нулевым' });
+    for (const [nom, akt, qat] of [['за отчетный период', aktKO.davr, kOplataJami.davr], ['с начала строительства', aktKO.jami, kOplataJami.jami]] as const) {
+      if (akt != null && qat != null && Math.abs(akt - qat) >= 0.005) diqqat.push({ nom: `К ОПЛАТЕ ${nom}`, sabab: `сумма по строкам (подвал объекта: ${fmt2(qat)}) отличается от суммы актов Ф-2 по их собственным подвалам (${fmt2(akt)}); к оплате принята сумма актов Ф-2` });
+    }
+  }
   // Egasi qoidasi (2026-11-06): smeta narxi/summasi yo'q barglar — jamilar yonida «итог неполный» (smeta summa katagi formulalarda — bo'sh qoladi, ro'yxat diqqat da).
   v.narxsizOgoh(narxsizSoni(bargRows.map((i) => reja[i].q!), (q) => q.smeta_narx ?? q.smeta_summa));
   v.bosh();
@@ -538,10 +563,11 @@ export function nakopitelniyVedomostHujjat(
   if (sn && sn.vsego != null) {
     v.izoh(`Сметная стоимость объекта: прямые затраты ${fmt2(j.smeta)} сум; с накладными расходами и прочими затратами (без НДС) ${fmt2(sn.itogo4)} сум; НДС${ndsFoiz != null ? ` ${String(ndsFoiz).replace('.', ',')} %` : ''} ${fmt2(sn.nds)} сум; всего с НДС ${fmt2(sn.vsego)} сум.`);
   }
-  v.diqqat(diqqat);
+  // Hal qilinmagan joylar (yuzlab qator) hujjat tanasiga CHIQMAYDI — F-3 dagidek alohida xizmat varag'i «Замечания (служебный)».
+  const zv = zamechaniyaVaraq(diqqatGuruh(diqqat), `за отчетный период: ${davrMatni(o.davr)}`);
   v.imzo(imzoTomonlari(['ЗАКАЗЧИК', 'ПОДРЯДЧИК', 'СОСТАВИЛ'], o.imzo));
-  const { bytes } = rasmiyKitob([v], { tur: 'nakopitelniy' });
-  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNom, hujjat: 'НАКОПИТЕЛЬНАЯ_ВЕДОМОСТЬ', davr: o.davr.slice(0, 7) }), jamilar: j, kaskad, kOplata: kOplataJami };
+  const { bytes } = rasmiyKitob([v, ...(zv ? [zv] : [])], { tur: 'nakopitelniy' });
+  return { bytes, faylNomi: hujjatFaylNomi({ obyekt: o.obyektNom, hujjat: 'НАКОПИТЕЛЬНАЯ_ВЕДОМОСТЬ', davr: o.davr.slice(0, 7) }), jamilar: j, kaskad, kOplata: aktKO ?? kOplataJami };
 }
 
 function fmt2(x: number): string {

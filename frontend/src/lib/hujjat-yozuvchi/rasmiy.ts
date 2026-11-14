@@ -76,6 +76,8 @@ export type RasmiyVaraqSozlama = {
   ostSarlavha?: readonly string[];
   /** Titul: [yorliq, qiymat]. Qiymat bo'sh — chiziq. */
   titul?: ReadonlyArray<readonly [string, string | null | undefined]>;
+  /** Titul ostidagi ALOHIDA son katagi (F-3 etalonida shartnoma summasi: yorliq | son | «сўм»); son — haqiqiy son (pul formatida). */
+  titulSumma?: { yorliq: string; qiymat: number | null; birlik: string };
   /** Titul, sarlavhadan OLDIN (imzolangan Ф-2 shakli: tomonlar yuqorida). */
   yuqoriTitul?: ReadonlyArray<readonly [string, string | null | undefined]>;
   /**
@@ -348,7 +350,8 @@ export function rasmiyStylesXml(mavzu: RangMavzusi = 'kulrang', d: HujjatDizayn 
   ];
   const LEV_BORDER: Record<DarajaKalit, number> = { rz: 1, bl: 3, rs: 1, mat: 1, ob: 1, jami: 4, vsego: 5 };
   const pf = pulFmtId(d);
-  const fmtOf: Record<LevKind, number> = { matn: 0, markaz: 0, pul: pf, hajm: 165, norma: 166, foiz: 2, markazSon: 0, texnik: 0 };
+  const foizId = d.foizKod ? 168 : 2;
+  const fmtOf: Record<LevKind, number> = { matn: 0, markaz: 0, pul: pf, hajm: 165, norma: 166, foiz: foizId, markazSon: 0, texnik: 0 };
   const alOf = (k: LevKind, otstup: number): string => (k === 'matn' ? `horizontal="left" vertical="top" wrapText="1"${otstup > 0 ? ` indent="${otstup}"` : ''}`
     // Egasi 2026-11-13: shrinkToFit YO'Q — shifr/birlik matni o'raladi (qator balandligi hisoblanadi), son o'ralmaydi.
     : k === 'markaz' ? 'horizontal="center" vertical="top" wrapText="1"'
@@ -369,15 +372,15 @@ export function rasmiyStylesXml(mavzu: RangMavzusi = 'kulrang', d: HujjatDizayn 
   const headerXf = xf(0, FONT_HEADER, 1, C, sarFill);
   const headerYashirinXf = xf(0, FONT_HEADER, 1, 'horizontal="center" vertical="center"', sarFill);
   const xflar = [
-    ...XF_BAZA.map((f) => f(0, pf)),
-    ...RANG_TARTIB.flatMap((r, i) => XF_BAZA.map((f) => kursivga(r, f(2 + i, pf)))),
+    ...XF_BAZA.map((f, k) => (k === 12 && foizId !== 2 ? xf(foizId, 0, 1, R, 0) : f(0, pf))),
+    ...RANG_TARTIB.flatMap((r, i) => XF_BAZA.map((f, k) => kursivga(r, k === 12 && foizId !== 2 ? xf(foizId, 0, 1, R, 2 + i) : f(2 + i, pf)))),
     ...levXfs, headerXf, headerYashirinXf,
   ];
   const mavzuFill = RANG_TARTIB.map((r) => (hex[r] ? `<fill><patternFill patternType="solid"><fgColor rgb="FF${hex[r]}"/><bgColor indexed="64"/></patternFill></fill>` : '<fill><patternFill patternType="none"/></fill>')).join('');
   const qoshFillXml = qoshFill.map((h) => `<fill><patternFill patternType="solid"><fgColor rgb="FF${h}"/><bgColor indexed="64"/></patternFill></fill>`).join('');
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
   + '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-  + `<numFmts count="3"><numFmt numFmtId="165" formatCode="${hajmFmtKod(d)}"/><numFmt numFmtId="166" formatCode="0.0000##"/><numFmt numFmtId="167" formatCode="${pulFmtKod(d)}"/></numFmts>`
+  + `<numFmts count="${d.foizKod ? 4 : 3}"><numFmt numFmtId="165" formatCode="${hajmFmtKod(d)}"/><numFmt numFmtId="166" formatCode="0.0000##"/><numFmt numFmtId="167" formatCode="${pulFmtKod(d)}"/>${d.foizKod ? `<numFmt numFmtId="168" formatCode="${xmlEsc(d.foizKod)}"/>` : ''}</numFmts>`
   + `<fonts count="${fonts.length}">${fonts.join('')}</fonts>`
   + `<fills count="${fillBaza + qoshFill.length}"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>${mavzuFill}${qoshFillXml}</fills>`
   + `<borders count="${borders.length}">${borders.join('')}</borders>`
@@ -506,6 +509,16 @@ export class RasmiyVaraq {
     if (o.titul?.length) {
       this.put([]);
       this.titulQatorlari(o.titul, oxir);
+      if (o.titulSumma) {
+        // Yorliq ustun(lar)i: chapdan kamida 16 belgi eni (titulQatorlari bilan bir xil).
+        let yorliqOxiri = 0;
+        while (yorliqOxiri < oxir - 1 && this.kenglikJami(0, yorliqOxiri) < 16) yorliqOxiri++;
+        const ts = o.titulSumma;
+        const c0 = yorliqOxiri + 1, c1 = Math.min(oxir - 1, c0 + 3);
+        const r = this.put([katakXml(0, RS.titulYorliq, ts.yorliq), katakXml(c0, RS.pul, ts.qiymat), katakXml(c1 + 1, RS.titulQiymat, ts.birlik)]);
+        if (yorliqOxiri > 0) this.merge(0, r, yorliqOxiri);
+        if (c1 > c0) this.merge(c0, r, c1);
+      }
     }
     this.put([]);
 
