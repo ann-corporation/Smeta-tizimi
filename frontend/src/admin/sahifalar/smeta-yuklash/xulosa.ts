@@ -34,6 +34,12 @@ export type MuammoKirish = {
   tushunilmadiVaraq: number;
   /** Excel jami ↔ tizim jami (lib/nakrutka-smetadan.excelBilanTizim natijasi; bu yerda faqat matnga o'giriladi). */
   excelTizim?: ExcelTizimXulosa | null;
+  /** Narxsiz resurslar nomlari (tafsilot: qatorga bosib ko‘rish). */
+  narxsizQatorlar?: ReadonlyArray<string>;
+  /** Shifri yo‘q ish qatorlari soni. */
+  kodsizIsh?: number;
+  /** Faylda ustama podvali topilmadi (oldindan ko‘rishda ogohlantirish). */
+  podvalYoq?: boolean;
 };
 export type ExcelTizimXulosa = {
   excelVsego: number | null; tizimVsego: number | null; farq: number | null; mos: boolean; taxminiy: boolean;
@@ -51,7 +57,16 @@ export function muammolarRoyxati(k: MuammoKirish): Muammo[] {
     out.push({
       kalit: 'narxsiz', ton: 'ogoh',
       matn: t('{n} ta resursda narx yo‘q ({jami} dan). Ular smetaga narxsiz yoziladi, jami to‘liq bo‘lmaydi.', { n: k.narxsiz, jami: k.resursJami }),
-      tafsilot: [t('Narxlar fayldagi «RES» varag‘idan olinadi. Alohida narx faylingiz bo‘lsa, «Qo‘shimcha sozlamalar» ichida yuklang.')],
+      tafsilot: [t('Narxlar fayldagi «RES» varag‘idan olinadi. Alohida narx faylingiz bo‘lsa, «Qo‘shimcha sozlamalar» ichida yuklang.'), ...(k.narxsizQatorlar ?? []).slice(0, 25)],
+    });
+  }
+  if ((k.kodsizIsh ?? 0) > 0) {
+    out.push({ kalit: 'kodsiz', ton: 'info', matn: t('{n} ta ish qatorida shifr (kod) yo‘q — ular nomi bo‘yicha saqlanadi.', { n: k.kodsizIsh ?? 0 }) });
+  }
+  if (k.podvalYoq) {
+    out.push({
+      kalit: 'podval-yoq', ton: 'info',
+      matn: t('Faylda ustama (nakrutka) podvali topilmadi. Foizlar kompaniya sozlamasidan olinadi — jami taxminiy bo‘ladi.'),
     });
   }
   if (k.vedomostChiqarildi > 0) {
@@ -102,10 +117,11 @@ export function qaytaYuklashMatni(qatorSoni: number | null | undefined): string 
   return t('Bu obyektda {n} qatorlik smeta bor. Yangi fayl uning ustiga yozilmaydi: u yangi versiya sifatida saqlanadi va joriy smeta bilan solishtiriladi (nima qo‘shildi, nima yo‘qoldi). Joriy smeta o‘zgarmaydi.', { n: qatorSoni ?? 0 });
 }
 
-/** Bosqich: 0 fayl, 1 tekshiruv, 2 import ketmoqda, 3 tayyor. */
-export function bosqichIndeksi(h: { natija: boolean; band: boolean; kitob: boolean; ustunlar: boolean }): number {
-  if (h.natija) return 3;
-  if (h.band && h.kitob) return 2;
-  if (h.kitob && h.ustunlar) return 1;
+/** Bosqich: 0 fayl tanlash, 1 tekshiruv, 2 ko'rib chiqish, 3 import ketmoqda, 4 natija. */
+export function bosqichIndeksi(h: { natija: boolean; band: boolean; kitob: boolean; ustunlar: boolean; tahlil?: boolean }): number {
+  if (h.natija) return 4;
+  if (h.band && h.kitob) return 3;
+  if (h.kitob && h.ustunlar) return h.tahlil ? 2 : 1;
+  if (h.kitob) return 1;
   return 0;
 }
