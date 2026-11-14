@@ -1,0 +1,14 @@
+{
+  "Suhbatni tanlash": {
+    "ru": "Выбрать разговор",
+    "en": "Choose conversation"
+  },
+  "Kontekst: umumiy suhbat": {
+    "ru": "Контекст: общий разговор",
+    "en": "Context: general conversation"
+  },
+  "Kontekst: kompaniya #{id}": {
+    "ru": "Контекст: компания №{id}",
+    "en": "Context: company #{id}"
+  }
+}
