@@ -6,7 +6,9 @@ import { reportMoneyValidity } from '../../lib/money-input';
  * foydalanuvchilar, obunalar, hisob, audit, sozlamalar, funksiyalar". Faqat platforma superadmini; server
  * (/api/boshqaruv → bazadagi _t2_boshqaruv_tekshir) yakuniy qo'riqchi. Har o'zgarish sabab bilan auditga yoziladi.
  */
-import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { SaqlashPaneli } from '../../umumiy/ui/SaqlashPaneli';
+import { ozgarishSoni } from '../../umumiy/ui/ozgarish-soni';
 import { Link } from 'react-router-dom';
 import { Activity, Bot, Building2, Coins, CreditCard, Crown, FileSearch, Send, Settings, ToggleLeft, Users } from 'lucide-react';
 import { Sahifa, Skelet } from '../../umumiy/ui/Sahifa';
@@ -437,22 +439,28 @@ function Sozlamalar({ kompaniyaId }: { kompaniyaId: number | null }) {
   // Narxni sinab ko'rish (egasi 2026-10-17: "har bir yacheyka yoki AI ustamasini o'zim belgilay olay, kerakli narxni sinab ko'rib").
   const [misolKatak, setMisolKatak] = useState('213');
   const [ustama, setUstama] = useState('');
+  /** Serverdan o'qilgan holat — pastdagi yagona saqlash paneli «saqlanmagan o'zgarish» sonini shunga nisbatan sanaydi (Asosiy sozlamalar + AI ustamasi). */
+  const [aslSoz, setAslSoz] = useState<TokenSozlama | null>(null);
+  const [aslUstama, setAslUstama] = useState('');
+  const sozMaydon = useRef<HTMLDivElement>(null);
   const [misolUsd, setMisolUsd] = useState('0.03');
   const yukla = useCallback(async () => {
     if (!kompaniyaId) return;
     const h = await tokenHolatOl(kompaniyaId);
-    if (h.ok) { setNarxlar(h.natija.narxlar); setTariflar(h.natija.tariflar); setSoz(h.natija.sozlama); setDemo(h.natija.demo_obyekt_id); }
+    if (h.ok) { setNarxlar(h.natija.narxlar); setTariflar(h.natija.tariflar); setSoz(h.natija.sozlama); setAslSoz(h.natija.sozlama); setDemo(h.natija.demo_obyekt_id); }
     const o = await sbT2ObyektlarOlKomp(kompaniyaId);
     if (o.ok) setObyektlar(o.qatorlar ?? []);
     const mk = await markazOl();
-    if (mk.ok) setUstama(String(mk.natija.ustama_foiz));
+    if (mk.ok) { setUstama(String(mk.natija.ustama_foiz)); setAslUstama(String(mk.natija.ustama_foiz)); }
   }, [kompaniyaId]);
   useEffect(() => { void yukla(); }, [yukla]);
   const ustamaSaqla = async () => {
     const v = Number(ustama);
-    if (ustama.trim() === '' || !Number.isFinite(v) || v < 0 || v > 1000) { toast(t('Ustama 0 dan 1000 gacha bo‘lishi kerak'), 'warn'); return; }
+    if (ustama.trim() === '' || !Number.isFinite(v) || v < 0 || v > 1000) { toast(t('Ustama 0 dan 1000 gacha bo‘lishi kerak'), 'warn'); return false; }
     const r = await ustamaBelgila(null, v);
-    if (r.ok) { toast(t('Ustama saqlandi'), 'ok'); void yukla(); } else toast(r.error, 'danger');
+    if (r.ok) { toast(t('Ustama saqlandi'), 'ok'); void yukla(); return true; }
+    toast(r.error, 'danger');
+    return false;
   };
   /** AI chaqiruvi mijozga: tannarx $ × (1 + ustama%) × kurs ÷ 1 token narxi, kamida 1 token (server t2_agent_sarf_yoz_v1 bilan bir xil). */
   const aiMisol = (() => {
@@ -465,9 +473,10 @@ function Sozlamalar({ kompaniyaId }: { kompaniyaId: number | null }) {
   const katakSoni = Math.max(0, Number(misolKatak) || 0);
 
   const sozSaqla = async () => {
-    if (!soz) return;
+    if (!soz) return true;
     const r = await boshqaruvYoz('sozlama', { ...soz });
     toast(r.xabar, r.ok ? 'ok' : 'danger'); if (r.ok) void yukla();
+    return r.ok;
   };
   const narxSaqla = async (n: TokenNarx) => {
     const r = await boshqaruvYoz('narx', { amal_kod: n.amal, asos_som: n.asos_som, birlik: n.birlik, birlik_som: n.birlik_som, min_som: n.min_som, max_som: n.max_som, foyda_foiz: n.foyda_foiz, faol: n.faol });
@@ -481,13 +490,23 @@ function Sozlamalar({ kompaniyaId }: { kompaniyaId: number | null }) {
     const kod = await matnSora({ matn: 'Yangi tarif kodi (lotin, masalan: pto_korporativ)', majburiy: true, kopQator: false }); if (!kod) return;
     setTariflar((p) => [...p, { kod: kod.trim().toLowerCase(), nom: 'Yangi tarif', oylik_token: 0, narx_som: 0 }]);
   };
+  const sozOzgarish = ozgarishSoni(soz, aslSoz, ['token_som', 'foyda_foiz', 'royxat_bonus_token', 'usd_kurs', 'tolov_rekvizit']);
+  const ustamaOzgardi = ustama !== aslUstama;
+  /** Bitta panel: o'zgargan bo'limlarni ketma-ket saqlaydi (har birining mavjud saqlash funksiyasi o'zgarmagan). */
+  const hammaniSaqla = async () => {
+    if (!reportMoneyValidity(sozMaydon.current)) return false;
+    if (sozOzgarish > 0 && !(await sozSaqla())) return false;
+    if (ustamaOzgardi && !(await ustamaSaqla())) return false;
+    return true;
+  };
+  const bekorHammasi = () => { setSoz(aslSoz); setUstama(aslUstama); };
   const ozgar = <T,>(set: (f: (p: T[]) => T[]) => void, i: number, qism: Partial<T>) => set((p) => p.map((x, j) => (j === i ? { ...x, ...qism } : x)));
   const raqam = (v: string) => (v === '' ? null : Number(v));
   const kir = 'input h-7 px-2';
 
   if (!kompaniyaId) return <p className="karta p-4 text-text-dim">{t('Sozlamalarni koʻrish uchun yuqorida istalgan kompaniyani tanlang (sozlamalar butun platforma uchun umumiy).')}</p>;
   return (
-    <div className="space-y-3">
+    <div ref={sozMaydon} className="space-y-3">
       {soz && (
         <section className="karta p-4">
           <h2 className="mb-2 text-[14px] font-semibold text-text">{t('Asosiy sozlamalar')}</h2>
@@ -500,7 +519,6 @@ function Sozlamalar({ kompaniyaId }: { kompaniyaId: number | null }) {
           <label className="mt-2 block text-[12px] text-text-dim">{t('Toʻlov rekvizitlari (foydalanuvchilarga koʻrinadi: karta raqami, egasi, bank, hisob raqam)')}
             <textarea rows={3} className="input mt-1 w-full px-2 py-1.5 text-[13px]" value={soz.tolov_rekvizit ?? ''} onChange={(e) => setSoz({ ...soz, tolov_rekvizit: e.target.value })} />
           </label>
-          <button type="button" className="fz-btn fz-btn--primary mt-2" onClick={(e) => { if (reportMoneyValidity(e.currentTarget.closest('section'))) void sozSaqla(); }}>{t('Saqlash')}</button>
         </section>
       )}
       <section className="fz-table-wrap p-4">
@@ -541,7 +559,6 @@ function Sozlamalar({ kompaniyaId }: { kompaniyaId: number | null }) {
         <div className="flex flex-wrap items-end gap-3 text-[12px] text-text-dim">
           <label className="flex flex-col gap-1">{t('Standart ustama (%)')}<input type="number" min={0} max={1000} className={`${kir} w-28`} value={ustama} onChange={(e) => setUstama(e.target.value)} /></label>
           <label className="flex flex-col gap-1">{t('Sinov: bitta AI javob tannarxi ($)')}<MoneyInput  min={0} step="0.001" className={`${kir} w-28`} value={misolUsd} onValueChange={(moneyValue) => setMisolUsd(moneyValue)} /></label>
-          <button type="button" className="fz-btn fz-btn--primary fz-btn--sm" onClick={() => void ustamaSaqla()}>{t('Saqlash')}</button>
         </div>
         {aiMisol && <p className="mt-2 text-[12px] tabular-nums text-text" data-testid="ai-misol">{t('Misol: ${u} tannarx → mijozga ${m} = {s} soʻm = {n} token (foyda ≈ {f} soʻm)', { u: misolUsd, m: aiMisol.mijozUsd.toFixed(4), s: son(aiMisol.som), n: son(aiMisol.tok), f: son(aiMisol.foydaSom) })}</p>}
       </section>
@@ -573,6 +590,7 @@ function Sozlamalar({ kompaniyaId }: { kompaniyaId: number | null }) {
           {demo != null && !obyektlar.some((o) => o.id === demo) && <option value={demo}>#{demo}</option>}
         </select>
       </section>
+      <SaqlashPaneli kalit="boshqaruv-sozlamalar" soni={sozOzgarish + (ustamaOzgardi ? 1 : 0)} saqla={hammaniSaqla} bekor={bekorHammasi} />
     </div>
   );
 }
