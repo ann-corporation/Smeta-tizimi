@@ -18,7 +18,9 @@ const KATALOG = new Set(['company.member.manage', 'company.profile.update', 'com
   /* Xarid/ta'minot capability lari (20261108010000_t2_ekotizim_f1_ruxsat_v1; effective-authorization.ts) — tender amallari ishlatadi. */
   'procurement.read', 'procurement.write', 'procurement.approve', 'supply.offer', 'supply.fulfil',
   /* 2026-11-04 HR + KPI (F1 katalogida bor) */ 'hr.write', 'hr.tabel.write', 'payroll.write',
-  /* usta Bugun (20261108010000 katalogida bor) */ 'self.work.write']);
+  /* usta Bugun (20261108010000 katalogida bor) */ 'self.work.write',
+  /* omborchi kirim/chiqim (20261108010000 katalogida bor) */ 'warehouse.write']);
+const bolak = (p: string) => p.split('|');
 
 describe('yozish buyruqlari reyestri', () => {
   it('sb-yoz dagi har amal reyestrda (yoki dinamik ro‘yxatda), reyestrda ortiqcha amal yo‘q', () => {
@@ -27,7 +29,14 @@ describe('yozish buyruqlari reyestri', () => {
     expect(Object.keys(WRITE_COMMAND_POLICY).filter((a) => !amallar.includes(a))).toEqual([]);
   });
   it('har ruxsat — DB katalogidagi haqiqiy ruxsat nomi', () => {
-    expect(Object.entries(WRITE_COMMAND_POLICY).filter(([, p]) => !KATALOG.has(p))).toEqual([]);
+    expect(Object.entries(WRITE_COMMAND_POLICY).filter(([, p]) => !bolak(p).every((x) => KATALOG.has(x)))).toEqual([]);
+  });
+  it('ombor kirim/chiqim: omborchi (warehouse.write) va pto/prorab (document.write) ikkalasi yoza oladi; boshqa buyruqlar kengaymagan', () => {
+    for (const a of ['skladga_yozish', 'sklad_berdim_v1']) expect(bolak(writeCommandPermission(a)).sort()).toEqual(['document.write', 'warehouse.write']);
+    // Faqat shu ikki buyruq warehouse.write qabul qiladi; qolgan sklad yozuvlari (kirim import/storno) document.write bo'lib qoladi.
+    expect(Object.entries(WRITE_COMMAND_POLICY).filter(([, p]) => p.includes('warehouse.write')).map(([a]) => a).sort()).toEqual(['sklad_berdim_v1', 'skladga_yozish']);
+    expect(writeCommandPermission('sklad_kirim_import_v1')).toBe('document.write');
+    expect(writeCommandPermission('sklad_kirim_storno_v1')).toBe('document.write');
   });
   it('noma’lum amal — hech kimda yo‘q ruxsat (fail-closed); dinamik F2 o‘tishi tanaga qaraydi', () => {
     expect(writeCommandPermission('yangi_tekshirilmagan_amal')).toBe(RUXSATSIZ_BUYRUQ);

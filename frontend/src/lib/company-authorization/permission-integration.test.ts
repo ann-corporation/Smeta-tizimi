@@ -43,6 +43,7 @@ describe('role integration architecture',()=>{
          bilet sessiya tokeniga + brauzer siri xeshiga bog'langan (HMAC, qisqa muddat); 'almash' — bir martalik bilet + ilova siri (xesh mos bo'lsa)
          bilan sessiya o'rnatadi. Origin tekshiruvi; actor/tenant ma'lumoti o'qilmaydi (ilova-bilet.test.ts). */
       'ilova-kirish',
+ /* Foydalanuvchi o'z ilova tanlovi (pin/tartib; 2026-11-15): actor FAQAT sessiyadan, a'zolik SQL da (t2_modul_tanlov_*_v1 AZO_EMAS), faqat o'z qatori; ruxsat/modul holatini o'zgartirmaydi (modullarim.test.ts). */ 'modullarim',
       /* Sozlamalar markazi (2026-10-26): kompaniya sozlamalari (imzo tomonlari, hujjat dizayni, F2 tasdiq rejimi). Actor sessiyadan;
          o'qish company.read, yozish company.profile.update — har RPC ichida t2_effective_authorization_v1 (kompaniya-sozlama.test.ts). */
       'kompaniya-sozlama',

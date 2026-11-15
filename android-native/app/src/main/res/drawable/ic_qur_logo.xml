@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- QUR mark, converted from frontend/public/brand/qur-belgi-oq.svg (white strokes; tint at the call site). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="137.01dp"
+    android:height="137.01dp"
+    android:viewportWidth="137.01"
+    android:viewportHeight="137.01">
+    <group
+        android:translateX="66.89"
+        android:translateY="65.5">
+        <path
+            android:pathData="M-26,-34V12A15,15 0 0,0 4,12V-34"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="9" />
+        <path
+            android:pathData="M4,-34H18A14,14 0 0,1 18,-6H4"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="9" />
+        <path
+            android:pathData="M13,-6L41.94,37.11"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="9" />
+        <path
+            android:pathData="M-56,0A56,56 0 1,0 56,0A56,56 0 1,0 -56,0"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="9" />
+        <path
+            android:pathData="M41.94,37.11L60,64"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="9" />
+    </group>
+</vector>

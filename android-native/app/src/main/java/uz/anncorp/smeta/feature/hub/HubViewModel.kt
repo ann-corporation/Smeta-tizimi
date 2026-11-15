@@ -1,0 +1,112 @@
+package uz.anncorp.smeta.feature.hub
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import uz.anncorp.smeta.core.data.ModulesRepository
+import uz.anncorp.smeta.core.data.ObjectsRepository
+import uz.anncorp.smeta.core.data.Picks
+import uz.anncorp.smeta.core.data.Prefs
+import uz.anncorp.smeta.core.data.RowsRepository
+import uz.anncorp.smeta.core.data.WorkContext
+import uz.anncorp.smeta.core.db.ObyektEntity
+import uz.anncorp.smeta.core.db.QatorEntity
+import javax.inject.Inject
+
+data class HubUi(
+    val hasCompany: Boolean = false,
+    val loading: Boolean = true,
+    /** Null while unknown (offline / not loaded): the catalogue shows everything, like the website does while loading. */
+    val permissions: Set<String>? = null,
+    val offModules: Set<String> = emptySet(),
+    val picks: Picks = Picks(),
+    val query: String = "",
+    val edit: Boolean = false,
+    val objectHits: List<ObyektEntity> = emptyList(),
+    val rowHits: List<QatorEntity> = emptyList(),
+    val recent: List<ObyektEntity> = emptyList(),
+    val objectCount: Int = -1,
+)
+
+/** Pure: objects whose name contains the query (case-insensitive), at most [limit]. */
+internal fun matchObjects(all: List<ObyektEntity>, query: String, limit: Int = 8): List<ObyektEntity> {
+    val q = query.trim()
+    return if (q.length < 2) emptyList() else all.filter { it.nom.contains(q, ignoreCase = true) }.take(limit)
+}
+
+/** Pure: recent ids resolved against the cached list, keeping recency order and dropping objects that no longer exist. */
+internal fun resolveRecent(ids: List<Long>, all: List<ObyektEntity>): List<ObyektEntity> {
+    val byId = all.associateBy { it.id }
+    return ids.mapNotNull { byId[it] }
+}
+
+@OptIn(ExperimentalCoroutinesApi::class, kotlinx.coroutines.FlowPreview::class)
+@HiltViewModel
+class HubViewModel @Inject constructor(
+    private val modules: ModulesRepository,
+    private val objects: ObjectsRepository,
+    private val rows: RowsRepository,
+    private val work: WorkContext,
+    private val prefs: Prefs,
+) : ViewModel() {
+    private val _state = MutableStateFlow(HubUi())
+    val state: StateFlow<HubUi> = _state.asStateFlow()
+    private val query = MutableStateFlow("")
+
+    init {
+        // Reload access + picks whenever the selected workplace changes.
+        viewModelScope.launch {
+            work.current.map { it?.companyId }.distinctUntilChanged().collect { id ->
+                if (id == null) { _state.update { it.copy(hasCompany = false, loading = false) }; return@collect }
+                _state.update { it.copy(hasCompany = true, loading = true) }
+                val picks = modules.picks(id)
+                _state.update { it.copy(picks = picks) }
+                val a = modules.access(id)
+                _state.update { it.copy(permissions = a.permissions, offModules = a.offModules, loading = false) }
+            }
+        }
+        // Objects of this workplace (cached) -> recent + count.
+        viewModelScope.launch {
+            combine(work.current.flatMapLatest { w -> if (w == null) flowOf(emptyList()) else objects.observe(w.companyId) }, prefs.recent) { all, ids -> all to ids }
+                .collect { (all, ids) -> _state.update { it.copy(recent = resolveRecent(ids, all), objectCount = all.size) } }
+        }
+        // Debounced global search: modules are filtered in the UI; objects and cached smeta rows here.
+        viewModelScope.launch {
+            query.debounce(250).collect { q ->
+                val w = work.current.value
+                if (w == null || q.trim().length < 2) { _state.update { it.copy(objectHits = emptyList(), rowHits = emptyList()) }; return@collect }
+                val all = objects.observe(w.companyId).first()
+                val hits = matchObjects(all, q)
+                val rowHits = runCatching { rows.searchCompany(w.companyId, q) }.getOrDefault(emptyList())
+                _state.update { it.copy(objectHits = hits, rowHits = rowHits) }
+            }
+        }
+    }
+
+    fun setQuery(v: String) { query.value = v; _state.update { it.copy(query = v) } }
+    fun toggleEdit() = _state.update { it.copy(edit = !it.edit) }
+    fun togglePin(code: String) = savePicks(_state.value.picks.toggle(code))
+    fun move(code: String, delta: Int) = savePicks(_state.value.picks.move(code, delta))
+
+    private fun savePicks(p: Picks) {
+        _state.update { it.copy(picks = p) } // instant; the server copy is synced best-effort
+        val id = work.current.value?.companyId ?: return
+        viewModelScope.launch {
+            val saved = modules.save(id, p)
+            _state.update { it.copy(picks = it.picks.copy(version = saved.version)) }
+        }
+    }
+}

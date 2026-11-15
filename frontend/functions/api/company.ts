@@ -40,6 +40,9 @@ const RPC = {
   royxat_tasdiqla: 't2_kompaniya_royxat_tasdiqla_v1',
   royxat_rad_et: 't2_kompaniya_royxat_rad_et_v1',
   member_add: 't2_azolik_qosh_v1',
+  /* USERNAME-V1: @username / telefon / email (aniq) bo'yicha KUTILADIGAN taklif — maqsad foydalanuvchi qabul qilmaguncha a'zo emas
+     (qabul: /api/profil taklif_javob). `member_` prefiksi -> company.member.manage; direktor tekshiruvi RPC ichida. */
+  member_invite: 't2_kompaniya_taklif_yubor_v1',
   member_role: 't2_azolik_rol_ozgartir_v1',
   member_remove: 't2_azolik_ochir_v1',
   /* T2-AUTH-PASSWORD-MIGRATION-001: director issues/resets a bcrypt password
@@ -83,6 +86,9 @@ function statusFor(code: string, raw: string): number {
   if (code === 'OPERATION_ID_REQUIRED' || code === 'PAROL_QISQA' || code === 'RUXSAT_NOTOGRI' || /INVALID|REQUIRED/.test(code)) return 400;
   if (code === 'OZI_OCHILGAN' || code === 'INN_BAND') return 409;
   if (code === 'ALREADY_MEMBER' || code === 'LAST_DIRECTOR' || code === 'STALE_VERSION') return 409;
+  if (code === 'TOPILMADI') return 404;
+  if (code === 'LIMIT') return 429;
+  if (code === 'RUXSAT_YOQ') return 403;
   if(code==='OPERATION_CONFLICT') return 409;
   if(code==='LAST_SUPERADMIN') return 409;
   // T2-COMPANY-CREATE-GATE-001: so'rov allaqachon ko'rib chiqilgan (qayta tasdiqlash/rad etish).
@@ -224,6 +230,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       body = { p_actor_id: a.id, p_royxat_id: Number(b.royxat_id), p_sabab: b.sabab == null ? null : String(b.sabab), p_operation_id: opId };
     } else if (action === 'member_add') {
       body = { p_actor_id: a.id, p_kompaniya_id: Number(b.kompaniya_id), p_login: String(b.login ?? ''), p_rol: String(b.rol ?? ''), p_email: b.email == null ? null : String(b.email), p_ism: b.ism == null ? null : String(b.ism), p_operation_id: opId };
+    } else if (action === 'member_invite') {
+      body = { p_actor_id: a.id, p_kompaniya_id: Number(b.kompaniya_id), p_qiymat: String(b.qiymat ?? '').slice(0, 254), p_rol: String(b.rol ?? ''), p_operation_id: opId };
     } else if (action === 'member_role') {
       body = { p_actor_id: a.id, p_azolik_id: Number(b.azolik_id), p_yangi_rol: String(b.rol ?? ''), p_operation_id: opId };
     } else if (action === 'azolik_ruxsat_ber' || action === 'azolik_ruxsat_olib_tashla') {
@@ -247,7 +255,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const code = (j && j.code) || 'COMPANY_COMMAND_FAILED';
       // Domen xato kodlari (LAST_DIRECTOR, ALREADY_MEMBER, ROLE_INVALID, ...) frontendga kerak — ular xavfsiz.
       const known = code && code !== 'COMPANY_COMMAND_FAILED';
-      if (known) return Response.json({ ok: false, code, reason: j?.reason, versiya: j?.versiya, xato: j?.xato }, { status: statusFor(code, text) });
+      if (known) return Response.json({ ok: false, code, reason: j?.reason, versiya: j?.versiya, xato: j?.xato,
+        ...(code === 'TOPILMADI' ? { tur: j?.tur, telefon_taklif: j?.telefon_taklif === true, telefon: typeof j?.telefon === 'string' ? j.telefon : null } : {}) }, { status: statusFor(code, text) });
       return xavfsizXato('UPSTREAM', statusFor(code, text), text);
     }
     if (action === 'ozi_och') vakolatKeshTozala(a.id); // yangi a'zolik darhol ko'rinsin

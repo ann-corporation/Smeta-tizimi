@@ -15,8 +15,9 @@ import { type BotJavob, type Callback, type TgRasm, bugunJavobi, fotoAmali, jarv
 import { callbackIshlaV2, faktTaklif, fotoQidiruv, menyuTugmasi, qidiruvKonteksti } from '../../_shared/telegram-bot-oqim';
 import { startTugmalari } from '../../_shared/telegram-tugma';
 import { NONCE_PREFIKS, kalitYaroqli, nonceYaroqli, xesh, yoqilgan } from '../../_shared/kirish-emailsiz';
+import { menUsernameQatori, taklifJavobi, usernameCallback, usernameJavobi, usernameTaklifi } from '../../_shared/telegram-username';
 
-type Xabar = { message_id?: number; reply_to_message?: { from?: { is_bot?: boolean }; text?: string }; text?: string; caption?: string; photo?: TgRasm[]; contact?: { phone_number?: string; user_id?: number }; chat?: { id?: number; type?: string }; from?: { id?: number; is_bot?: boolean; language_code?: string } };
+type Xabar = { message_id?: number; reply_to_message?: { from?: { is_bot?: boolean }; text?: string }; text?: string; caption?: string; photo?: TgRasm[]; contact?: { phone_number?: string; user_id?: number }; chat?: { id?: number; type?: string }; from?: { id?: number; is_bot?: boolean; language_code?: string; username?: string } };
 export type Update = { update_id?: number; message?: Xabar; edited_message?: Xabar; callback_query?: Callback };
 
 const ROL_NOMI: Record<string, string> = {
@@ -48,6 +49,14 @@ async function callbackAjrat(env: TgEnv, cb: Callback, tgId: number | undefined)
   const til = tilAniqla(cb.from?.language_code);
   const a = await tgRpc<{ ok?: boolean; ulangan?: boolean; foydalanuvchi_id?: number }>(env, 't2_telegram_aniqla_v1', { p_telegram_user_id: tgId });
   if (!a?.ok || !a.ulangan || !a.foydalanuvchi_id) { await javobBer(tgT('Avval hisobni ulang', til)); return 'cb_ulanmagan'; }
+  if (typeof cb.data === 'string' && cb.data.startsWith('usr:')) {
+    /* USERNAME-V1: Telegram username ni QURAI username qilish — foydalanuvchi tugma bilan tasdiqlaydi; qiymat RPC da qayta tekshiriladi. */
+    const u = await usernameCallback(env, a.foydalanuvchi_id, til, cb.data);
+    await javobBer(u.toast || undefined);
+    if (u.xabar) await xabarYubor(env, chat.id as number, u.xabar.matn);
+    if (Number.isSafeInteger(cb.message?.message_id)) await tgApi(env, 'editMessageReplyMarkup', { chat_id: chat.id, message_id: cb.message?.message_id, reply_markup: { inline_keyboard: [] } });
+    return 'cb:' + u.amal;
+  }
   const r = await callbackIshlaV2(env, a.foydalanuvchi_id, til, cb, chat.id as number);
   await javobBer(r.toast || undefined);
   if (r.xabar) await yubor(env, chat.id as number, r.xabar);
@@ -146,6 +155,9 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
       await xabarYubor(env, chatId, [tgT('Assalomu alaykum! QURAI boti.', til),
         ism ? tgT('Hisob ulangan: {ism}', til, { ism }) : tgT('Hisob ulangan.', til), '', yordamMatni(til)].join('\n'), { reply_markup: startTugmalari(env, til) });
       await menyuTugmasi(env, uid, til, chatId);
+      /* USERNAME-V1: QURAI username bo'sh va Telegram username mos bo'lsa — tasdiq so'raladi (jimgina yozilmaydi). */
+      const taklif = await usernameTaklifi(env, uid, til, msg.from?.username);
+      if (taklif) await xabarYubor(env, chatId, taklif.matn, { reply_markup: taklif.markup });
       return 'salom';
     }
     case 'bugun': await yubor(env, chatId, await bugunJavobi(env, uid, til)); return 'bugun';
@@ -168,11 +180,14 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
       await xabarYubor(env, chatId, [
         tgT('Siz: {ism}', til, { ism }),
         ...(m.platform_role === 'superadmin' ? [tgT('Platforma roli: superadmin', til)] : []),
+        ...(await menUsernameQatori(env, uid, til)),
         qatorlar.length ? tgT('Ish joylari va rollar:', til) : tgT('Hali hech qaysi ish joyiga a’zo emassiz.', til),
         ...qatorlar,
       ].join('\n'), { reply_markup: miniAppTugma(env, til) });
       return 'men';
     }
+    case 'username': await xabarYubor(env, chatId, await usernameJavobi(env, uid, til, b?.arg ?? '')); return 'username';
+    case 'taklif': await xabarYubor(env, chatId, await taklifJavobi(env, uid, til, b?.arg ?? '')); return 'taklif';
     case 'chiqish': case 'logout': {
       const r = await tgRpc<{ ok?: boolean; uzildi?: boolean }>(env, 't2_telegram_uz_v1', { p_actor_id: null, p_telegram_user_id: tgId, p_manba: 'bot', p_operation_id: crypto.randomUUID() });
       await xabarYubor(env, chatId, r?.ok ? tgT('Telegram hisobingiz tizimdan uzildi. Qayta ulash uchun saytdagi «Telegramni ulash» tugmasidan foydalaning.', til)

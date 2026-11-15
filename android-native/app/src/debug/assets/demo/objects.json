@@ -1,0 +1,6 @@
+{"ok":true,"soni":4,"jamiServerda":4,"toliq":true,"qatorlar":[
+ {"id":101,"nom":"Demo korpus A","tur":"turar-joy","kompaniya_id":1,"qator_soni":412,"jami":1232381500,"narxsiz":1,"yangilandi":"2026-11-12T09:30:00Z"},
+ {"id":102,"nom":"Demo maktab binosi","tur":"ijtimoiy","kompaniya_id":1,"qator_soni":980,"jami":4580250000.5,"narxsiz":0,"yangilandi":"2026-11-10T14:05:00Z"},
+ {"id":103,"nom":"Demo yo'l va ko'prik","tur":"infratuzilma","kompaniya_id":1,"qator_soni":233,"jami":null,"narxsiz":233,"yangilandi":null},
+ {"id":104,"nom":"Demo omborxona","tur":"sanoat","kompaniya_id":1,"qator_soni":120,"jami":318700000,"narxsiz":3,"yangilandi":"2026-11-01T08:00:00Z"}
+]}
