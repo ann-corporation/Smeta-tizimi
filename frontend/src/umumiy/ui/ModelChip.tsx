@@ -9,7 +9,7 @@ import { toast } from './Toast';
  * tavsiya, «mos emas» ogohlantirishi va narx — ModelTanlagich beradi. Faqat superadmin tasdiqlagan katalogdan; tanlanmasa — admin belgilagan standart.
  * Migratsiya/server hali tayyor bo'lmasa chip jim yashirinadi (AI ishlayveradi).
  */
-export function ModelChip({ profil, kompaniyaId, yorliq }: { profil: string; kompaniyaId: number | null; yorliq?: string }) {
+export function ModelChip({ profil, kompaniyaId, yorliq, ixcham = false }: { profil: string; kompaniyaId: number | null; yorliq?: string; ixcham?: boolean }) {
   const [katalog, setKatalog] = useState<ModelKatalogi[] | null>(null);
   const [tanlov, setTanlov] = useState<string | null>(null);
   const [standart, setStandart] = useState<string | null>(null);
@@ -45,12 +45,12 @@ export function ModelChip({ profil, kompaniyaId, yorliq }: { profil: string; kom
     );
   }
   return (
-    <div className="border-b border-border bg-surface px-3 py-2" data-testid="model-chip">
-      <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wide text-text-mute">
+    <div className={`border-b border-border bg-surface px-3 ${ixcham ? 'py-1' : 'py-2'}`} data-testid="model-chip">
+      {!ixcham && <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wide text-text-mute">
         <span>{t('AI modeli')}</span>
         <span className="normal-case">{tanlov ? t('sizning tanlovingiz') : standart ? `${t('standart')}: ${nom(standart)}` : t('server standarti')}</span>
-      </div>
-      <ModelTanlagich profil={profil} qiymat={tanlov} katalog={katalog} rejim="kompaniya" onTanla={(id) => void tanla(id)} yorliq={yorliq ?? t('Shu funksiya uchun AI modelini tanlash')} />
+      </div>}
+      <ModelTanlagich profil={profil} qiymat={tanlov} katalog={katalog} rejim="kompaniya" onTanla={(id) => void tanla(id)} yorliq={yorliq ?? t('Shu funksiya uchun AI modelini tanlash')} ixcham={ixcham} />
     </div>
   );
 }

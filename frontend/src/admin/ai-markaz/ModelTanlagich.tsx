@@ -71,8 +71,10 @@ function Qator({ m, narx, tavsiya, katalogda, tanlangan, onTanla }: { m: ModelMo
  * kuchsiz model tanlansa — sababi bilan tasdiq so'raladi. Superadmin OpenRouter'dagi ISTALGAN modelni qidirib katalogga qo'sha oladi;
  * kompaniya admini faqat platforma tasdiqlagan katalogdan tanlaydi (xarajat nazorati).
  */
-export function ModelTanlagich({ profil, qiymat, katalog, rejim, onTanla, yorliq }: {
+export function ModelTanlagich({ profil, qiymat, katalog, rejim, onTanla, yorliq, ixcham = false }: {
   profil: string; qiymat: string | null; katalog: ModelKatalogi[]; rejim: 'superadmin' | 'kompaniya'; onTanla: (modelId: string | null) => void; yorliq: string;
+  /** Telefon: narx qatori va В«TalabВ» izohi yashirin (joy tejash); ro'yxat ichida narx baribir ko'rinadi. */
+  ixcham?: boolean;
 }) {
   const [och, setOch] = useState(false);
   const [q, setQ] = useState('');
@@ -143,13 +145,13 @@ export function ModelTanlagich({ profil, qiymat, katalog, rejim, onTanla, yorliq
         <span className="min-w-0 flex-1 truncate">{joriy?.nom ?? katalog.find((x) => x.id === qiymat)?.nom ?? (qiymat ?? t('Server standarti'))}</span>
         {joriy && <Nishon m={joriy} />}<ChevronDown size={14} className="shrink-0 text-text-mute" />
       </button>
-      {qiymat && <div className="mt-0.5 flex justify-end"><NarxBelgi n={narxi(qiymat)} /></div>}
+      {qiymat && !ixcham && <div className="mt-0.5 flex justify-end"><NarxBelgi n={narxi(qiymat)} /></div>}
       {joriy?.ogohlantirish && (
         <p role="alert" className={`mt-1 flex items-start gap-1 rounded px-1.5 py-1 text-[11px] ${joriy.daraja === 'kuchsiz' ? 'bg-danger/10 text-danger' : 'bg-warn/10 text-warn'}`}>
           <AlertTriangle size={12} className="mt-0.5 shrink-0" />{joriy.ogohlantirish}
         </p>
       )}
-      {talab && !och && <p className="mt-1 text-[10px] text-text-mute">{t('Talab')}: ≥ {talab.min} · {t(talab.izoh)}</p>}
+      {talab && !och && !ixcham && <p className="mt-1 text-[10px] text-text-mute">{t('Talab')}: ≥ {talab.min} · {t(talab.izoh)}</p>}
       {och && (
         <div className="absolute left-0 right-0 z-30 mt-1 max-h-96 overflow-y-auto rounded-lg border border-border bg-surface shadow-2xl" style={{ minWidth: '22rem' }}>
           {rejim === 'superadmin' && (
