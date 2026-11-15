@@ -25,6 +25,14 @@ Havola manifestdagi maydonlardan yasaladi (tashqi URL qabul qilinmaydi). iOS hav
 4. Tayyor `mobile-release.json` ni deploy bilan birga chiqaring. Faylni **faqat** haqiqiy fayl joylangandan keyin qo‘shing.
 5. Orqaga qaytarish: manifest faylini olib tashlash (karta «Tez orada» ga qaytadi).
 
+## Windows reliz CI da qanday yasaladi
+
+`mobile.yml` dagi `windows` job (windows-latest) ishlab chiqarish NSIS o'rnatuvchisini `desktop-build.ps1 -ReleaseDir $RUNNER_TEMP\windows-release` bilan yig'adi (imzosiz, `NotSigned`), so'ng `desktop-release-verify.ps1 -AllowUnsigned` bilan manifest xeshini tekshiradi va `windows-installer` artefaktini (30 kun) yuklaydi: `.exe`, `INSTALL_RU.md`, `installer-manifest.json`. `desktop-windows.yml` (sintetik e2e) alohida va o'zgarmagan.
+
+- Egasi repo o'zgaruvchilarini (Variables) o'rnatishi shart: `SMETA_DESKTOP_LEASE_PK` (raw 32 bayt Ed25519 ochiq kalit, base64url) va `SMETA_DESKTOP_LEASE_KID`. Bo'sh bo'lsa job qadamlarni o'tkazib yuboradi (notice), PR CI qizarmaydi.
+- BFF origin berilmaydi: ilova standart `https://smeta-tizimi.pages.dev` ni ishlatadi.
+- Imzosiz `.exe` v* tag `release` jobiga biriktirilmaydi (siyosat: faqat imzolangan). Nashr: artefaktni yuklab, xeshni `Get-FileHash` bilan qayta tekshiring, `desktop-release-r2.ps1` + `generate-desktop-release.mjs` (yuqoridagi 2-4 qadamlar).
+
 ## Imzo holatlari (sahifada ko‘rinadigan ogohlantirishlar)
 
 - Android `signed:false` (debug APK): «sinov yig‘masi» ogohlantirishi. Release imzo uchun keystore kerak.
