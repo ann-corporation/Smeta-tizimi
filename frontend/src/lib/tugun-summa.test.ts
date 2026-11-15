@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { tugunSummalari, ustamaBor, type TugunQator, type UstamaKirish } from './tugun-summa';
+import { hamilton, tugunDaraxti, tugunSummalari, tugunSummalariXom, ustamaBor, type TugunQator, type UstamaKirish } from './tugun-summa';
 import { svodFaktKesimi, svodKorinishKesimi } from './svod-yaxlit';
 import { qiymatUchligi, ustamaliHisobla } from './ustamali-summa';
 import { yaxlit2 } from './hisob-yadro';
@@ -82,38 +82,92 @@ describe('tugunSummalari - yagona yadro, uch shakl', () => {
   });
 });
 
-describe('RECONCILIATION: tugunlar yig\'indisi === obyekt jami (tiyingacha, sintetik fixture)', () => {
-  const obyekt = (rows: TugunQator[], k: 'smeta' | 'fakt' | 'f2') => {
-    const leaves = rows.filter((x) => x.tur !== 'rz' && x.tur !== 'bl');
-    const daraxt = rows.map((x) => ({ id: x.id, ota_id: x.ota_id }));
-    const jami = rows.filter((x) => x.tur === 'rz').reduce((t, x) => t + (x[k] ?? 0), 0);
-    const f = { id: (x: TugunQator) => x.id, kat: (x: TugunQator) => x.kat, summa: (x: TugunQator) => x[k], smeta: (x: TugunQator) => x.smeta };
-    const kesim = k === 'fakt' ? svodFaktKesimi(daraxt, leaves, f, null, { jami }) : svodKorinishKesimi(daraxt, leaves, f, null, { jami, masshtab: k === 'smeta', f2: k === 'f2' });
-    return qiymatUchligi(ustamaliHisobla(kesim, NK as never, null), jami);
-  };
+describe('RECONCILIATION: tugunlar yig\'indisi === obyekt jami, TIYINGACHA (Hamilton taqsimoti)', () => {
+  const SHAKL = ['ustamasiz', 'ustamali', 'qqsBilan'] as const;
+  const KOR = ['smeta', 'fakt', 'f2'] as const;
 
-  for (const k of ['smeta', 'fakt', 'f2'] as const) {
-    it(`${k}: sum(RZ) = obyekt (QQS bilan, ustamali, ustamasiz)`, () => {
-      const rows = fixture();
-      const m = tugunSummalari(rows, UST);
-      const rzlar = rows.filter((x) => x.tur === 'rz');
-      const jami = obyekt(rows, k);
-      for (const shakl of ['ustamasiz', 'ustamali', 'qqsBilan'] as const) {
-        const yig = yaxlit2(rzlar.reduce((t, x) => t + (m.get(x.id)![k][shakl] ?? 0), 0));
-        // Yagona ROUND 2 (tiyin): bo'limlar yig'indisi obyekt qiymatidan 1 tiyindan ortiq farq qilmaydi (har bo'lim alohida yaxlitlanadi).
-        expect(Math.abs(r2(yig - (jami[shakl] ?? 0)))).toBeLessThanOrEqual(0.01 * rzlar.length);
-      }
-      // Ustamasiz - aynan (yaxlitlash yo'q): tiyingacha teng.
-      expect(yaxlit2(rzlar.reduce((t, x) => t + (m.get(x.id)![k].ustamasiz ?? 0), 0))).toBe(jami.ustamasiz);
-    });
-  }
-
-  it('BL lar yig\'indisi o\'z RZ ning ustamasiziga teng (tiyingacha)', () => {
+  it('obyekt -> RZ: har ko\'rinish va shakl uchun aynan teng', () => {
     const rows = fixture();
-    const m = tugunSummalari(rows, UST);
+    const d = tugunDaraxti(rows, UST);
+    const rzlar = rows.filter((x) => x.tur === 'rz');
+    for (const k of KOR) for (const sh of SHAKL) expect(yaxlit2(rzlar.reduce((t, x) => t + (d.tugunlar.get(x.id)![k][sh] ?? 0), 0))).toBe(d.obyekt[k][sh]);
+  });
+
+  it('RZ -> BL: har RZ o\'z BL lari yig\'indisiga aynan teng', () => {
+    const rows = fixture();
+    const d = tugunDaraxti(rows, UST);
     for (const rz of rows.filter((x) => x.tur === 'rz')) {
       const bl = rows.filter((x) => x.ota_id === rz.id && x.tur === 'bl');
-      for (const k of ['smeta', 'fakt', 'f2'] as const) expect(yaxlit2(bl.reduce((t, x) => t + (m.get(x.id)![k].ustamasiz ?? 0), 0))).toBe(m.get(rz.id)![k].ustamasiz);
+      for (const k of KOR) for (const sh of SHAKL) expect(yaxlit2(bl.reduce((t, x) => t + (d.tugunlar.get(x.id)![k][sh] ?? 0), 0))).toBe(d.tugunlar.get(rz.id)![k][sh]);
+    }
+  });
+
+  it('obyekt jami = butun daraxt yadro natijasi (bir marta yaxlitlangan), taqsimot uni o\'zgartirmaydi', () => {
+    const rows = fixture();
+    const leaves = rows.filter((x) => x.tur !== 'rz' && x.tur !== 'bl');
+    const daraxt = rows.map((x) => ({ id: x.id, ota_id: x.ota_id }));
+    const jami = rows.filter((x) => x.tur === 'rz').reduce((t, x) => t + (x.smeta ?? 0), 0);
+    const kesim = svodKorinishKesimi(daraxt, leaves, { id: (x) => x.id, kat: (x) => x.kat, summa: (x) => x.smeta, smeta: (x) => x.smeta }, null, { jami, masshtab: true, f2: false });
+    expect(tugunDaraxti(rows, UST).obyekt.smeta).toEqual(qiymatUchligi(ustamaliHisobla(kesim, NK as never, null), jami));
+  });
+
+  it('har tugun o\'z yaxlitlangan qiymatidan bir necha tiyindan (<= 5) ortiq farq qilmaydi va ishorasi o\'zgarmaydi (minus qator saqlanadi)', () => {
+    const rows = fixture();
+    const xom = tugunSummalariXom(rows, UST);
+    const d = tugunDaraxti(rows, UST);
+    for (const [id, t] of d.tugunlar) for (const k of KOR) for (const sh of SHAKL) {
+      const a = t[k][sh], b = xom.get(id)![k][sh];
+      if (a == null || b == null) { expect(a).toBe(b); continue; }
+      expect(Math.abs(a - b)).toBeLessThanOrEqual(0.05);
+      if (b !== 0) expect(Math.sign(a)).toBe(Math.sign(b));
+    }
+    const b2 = rows.filter((x) => x.tur === 'bl')[1];
+    expect(d.tugunlar.get(b2.id)!.f2.ustamali!).toBeLessThan(0);
+  });
+
+  it('hamilton: tiyinlar eng katta kasr qoldig\'iga; yig\'indi aynan; ishora almashmaydi; yaroqsiz kirish null', () => {
+    expect(hamilton(10, [3.33, 3.33, 3.34])).toEqual([333, 333, 334]);
+    expect(hamilton(10.01, [3.33, 3.33, 3.34])!.reduce((a, b) => a + b, 0)).toBe(1001);
+    expect(hamilton(-0.03, [-0.01, -0.01, -0.01])).toEqual([-1, -1, -1]);
+    const r = hamilton(100, [-0.2, 50.2, 50.0])!; // minus og'irlik minusligicha qoladi
+    expect(r.reduce((a, b) => a + b, 0)).toBe(10000); expect(r[0]).toBeLessThanOrEqual(0);
+    expect(hamilton(5, [1, -1])).toBeNull(); // og'irliklar yig'indisi 0
+    expect(hamilton(5, [])).toBeNull();
+  });
+
+  it('tasodifiy daraxtlar (100 ta, urug\'li): har ota = bolalar yig\'indisi, tiyingacha, ishora saqlanadi', () => {
+    let s = 12345; const rnd = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+    for (let it = 0; it < 100; it++) {
+      id = 0;
+      const rows: TugunQator[] = [];
+      const kats = ['ЧЕЛ', 'МАШ', 'МАТ', 'ОБ'];
+      const nrz = 1 + Math.floor(rnd() * 4);
+      for (let a = 0; a < nrz; a++) {
+        const rz = q('rz', null, null, 0, 0, 0); rows.push(rz);
+        const nbl = 1 + Math.floor(rnd() * 5);
+        for (let b = 0; b < nbl; b++) {
+          const bl = q('bl', rz.id, null, 0, 0, 0); rows.push(bl);
+          const nl = 1 + Math.floor(rnd() * 4);
+          for (let l = 0; l < nl; l++) {
+            const sm = Math.round(rnd() * 5_000_000) / 100 * 100 / 100;
+            rows.push(q(rnd() > 0.5 ? 'mat' : 'rs', bl.id, kats[Math.floor(rnd() * 4)], sm, Math.round(rnd() * sm * 100) / 100, rnd() > 0.85 ? -Math.round(rnd() * sm * 50) / 100 : Math.round(rnd() * sm * 100) / 100));
+          }
+        }
+      }
+      const tot = (n: TugunQator, k: 'smeta' | 'fakt' | 'f2'): number => rows.filter((x) => x.ota_id === n.id).reduce((t, x) => t + ((x.tur === 'bl' ? tot(x, k) : x[k]) ?? 0), 0);
+      for (const n of rows.filter((x) => x.tur === 'bl')) { n.smeta = tot(n, 'smeta'); n.fakt = tot(n, 'fakt'); n.f2 = tot(n, 'f2'); }
+      for (const n of rows.filter((x) => x.tur === 'rz')) { n.smeta = tot(n, 'smeta'); n.fakt = tot(n, 'fakt'); n.f2 = tot(n, 'f2'); }
+      const d = tugunDaraxti(rows, UST); const xom = tugunSummalariXom(rows, UST);
+      const rzlar = rows.filter((x) => x.tur === 'rz');
+      for (const k of KOR) for (const sh of ['ustamali', 'qqsBilan'] as const) {
+        if (d.obyekt[k][sh] == null) continue;
+        expect(yaxlit2(rzlar.reduce((t, x) => t + (d.tugunlar.get(x.id)![k][sh] ?? 0), 0))).toBe(d.obyekt[k][sh]);
+        for (const rz of rzlar) {
+          const bl = rows.filter((x) => x.ota_id === rz.id && x.tur === 'bl');
+          expect(yaxlit2(bl.reduce((t, x) => t + (d.tugunlar.get(x.id)![k][sh] ?? 0), 0))).toBe(d.tugunlar.get(rz.id)![k][sh]);
+        }
+        for (const [nid, t] of d.tugunlar) { const a = t[k][sh], b = xom.get(nid)![k][sh]; if (a != null && b != null && b !== 0) expect(Math.sign(a)).toBe(Math.sign(b)); }
+      }
     }
   });
 });

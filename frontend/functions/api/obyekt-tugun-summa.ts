@@ -2,7 +2,7 @@
  * obyekt-tugun-summa.ts - har RZ/BL tuguni uchun smeta / fakt / F-2 summalari UCHTA shaklda (QQS bilan, ustamali QQS siz, ustamasiz).
  *
  *   GET /api/obyekt-tugun-summa?obyekt_id=N
- *     -> { ok, obyekt_id, ustama: 'bor' | 'yoq', sabab?, tugunlar: [[id, [s_qqs, s_ustamali, s_ustamasiz], [f_...], [a_...]]] }   (a = F-2; null = noma'lum, 0 emas)
+ *     -> { ok, obyekt_id, ustama: 'bor' | 'yoq', sabab?, obyekt: [smeta3, fakt3, f2_3], tugunlar: [[id, [s_qqs, s_ustamali, s_ustamasiz], [f_...], [a_...]]] }   (a = F-2; null = noma'lum, 0 emas)
  *
  * Hisob QURILMADA YO'Q va yangi qoida YO'Q: `src/lib/tugun-summa.ts` ekrandagi bo'lim kartalari (SmetaAnatomiya) ishlatadigan yagona yadroni
  * (svodKorinishKesimi / svodFaktKesimi -> ustamaliHisobla -> qiymatUchligi) chaqiradi; ustama manbai `ustamaManbaOl` (t2_obyekt_nakrutka_v1 + obyekt podvali) -
@@ -18,7 +18,7 @@ import { otaKompaniyasi } from '../_shared/ota-kompaniya';
 import { ichkiRejimda } from '../_shared/hujjat-ichki';
 import { PAKET_RUXSATLARI } from './obyekt-paket';
 import { daraxtToliqOl, ustamaManbaOl } from '../../src/lib/oylik-hujjat/ostatka-slichitelniy';
-import { tugunSummalari, type TugunQator } from '../../src/lib/tugun-summa';
+import { tugunDaraxti, type TugunQator } from '../../src/lib/tugun-summa';
 
 type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string };
 const NO_STORE = { 'Cache-Control': 'no-store' };
@@ -62,10 +62,10 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       return { id: r.id, ota_id: r.ota_id, tur: String(r.tur), kat: r.kat, smeta: r.summa, fakt: h?.fakt_summa ?? null, f2: h?.f2_summa ?? null };
     });
     const ustama = natija.u.ok ? natija.u.ustama : null;
-    const m = tugunSummalari(qatorlar, ustama);
+    const d = tugunDaraxti(qatorlar, ustama);\n    const m = d.tugunlar;
     const uch = (x: { qqsBilan: number | null; ustamali: number | null; ustamasiz: number | null }) => [x.qqsBilan, x.ustamali, x.ustamasiz];
     const tugunlar = [...m].map(([id, t]) => [id, uch(t.smeta), uch(t.fakt), uch(t.f2)]);
-    return Response.json({ ok: true, obyekt_id: obyektId, ustama: ustama ? 'bor' : 'yoq', ...(ustama ? {} : { sabab: natija.u.ok ? 'USTAMA_YOQ' : natija.u.xato.slice(0, 160) }), tugunlar }, { headers: NO_STORE });
+    return Response.json({ ok: true, obyekt_id: obyektId, ustama: ustama ? 'bor' : 'yoq', obyekt: [uch(d.obyekt.smeta), uch(d.obyekt.fakt), uch(d.obyekt.f2)], ...(ustama ? {} : { sabab: natija.u.ok ? 'USTAMA_YOQ' : natija.u.xato.slice(0, 160) }), tugunlar }, { headers: NO_STORE });
   } catch (err: unknown) {
     return xato(502, 'TUGUN_SUMMA_XATO', err instanceof Error ? err.message.slice(0, 160) : 'Hisoblab bo\'lmadi');
   }

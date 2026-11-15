@@ -10,7 +10,8 @@
 import { svodFaktKesimi, svodKorinishKesimi, type SvodYaxlit } from './svod-yaxlit';
 import { qiymatUchligi, ustamaliHisobla, type QiymatUchlik } from './ustamali-summa';
 import type { NakrutkaKoeffitsientlar } from '../api/t2-nakrutka';
-import type { Podval } from './hisob-yadro';
+import { yaxlit2, type Podval } from './hisob-yadro';
+import { tiyin } from './nakopitelniy-svod';
 
 export type TugunQator = {
   id: number;
@@ -37,7 +38,7 @@ const son = (v: number | null | undefined): number | null => (v == null || !Numb
 export const ustamaBor = (u: UstamaKirish | null | undefined): boolean => !!u && (u.podval != null || (u.koeffitsientlar != null && Object.keys(u.koeffitsientlar).length > 0));
 
 /** Har RZ/BL tuguni uchun uchlik. Qator tartibi muhim emas; ota_id zanjiri bo'yicha barglar topiladi (rekursiyasiz - chuqur daraxt xavfsiz). */
-export function tugunSummalari(qatorlar: readonly TugunQator[], ustama: UstamaKirish | null): Map<number, TugunUchlik> {
+function tugunHisob(qatorlar: readonly TugunQator[], ustama: UstamaKirish | null): { obyekt: TugunUchlik; nodes: Map<number, TugunUchlik>; bolalar: Map<number, TugunQator[]> } {
   const bolalar = new Map<number, TugunQator[]>();
   for (const q of qatorlar) if (q.ota_id != null) { const b = bolalar.get(q.ota_id); if (b) b.push(q); else bolalar.set(q.ota_id, [q]); }
   const daraxt = qatorlar.map((q) => ({ id: q.id, ota_id: q.ota_id }));
@@ -59,5 +60,78 @@ export function tugunSummalari(qatorlar: readonly TugunQator[], ustama: UstamaKi
     const uchlik = (k: keyof typeof kesimlar, ustamasiz: number | null): QiymatUchlik => qiymatUchligi(bor ? ustamaliHisobla(kesimlar[k], ustama!.koeffitsientlar, ustama!.podval) : null, ustamasiz);
     out.set(tugun.id, { smeta: uchlik('smeta', smetaJami), fakt: uchlik('fakt', faktJami), f2: uchlik('f2', f2Jami) });
   }
-  return out;
+  // OBYEKT jami: butun daraxt barglari bo'yicha BIR marta (jami = razdellar summasi) - veb obyekt kartasi bilan bir xil yadro.
+  const barglarJami = qatorlar.filter((x) => x.tur !== 'rz' && x.tur !== 'bl');
+  const rzlar = qatorlar.filter((x) => x.tur === 'rz');
+  const yig = (k: 'smeta' | 'fakt' | 'f2'): number | null => (rzlar.some((x) => son(x[k]) != null) ? rzlar.reduce((t, x) => t + (son(x[k]) ?? 0), 0) : null);
+  const fo = (summa: (x: TugunQator) => number | null) => ({ id: (x: TugunQator) => x.id, kat: (x: TugunQator) => x.kat, summa, smeta: (x: TugunQator) => son(x.smeta) });
+  const jS = yig('smeta'), jF = yig('fakt'), jA = yig('f2');
+  const ks = {
+    smeta: svodKorinishKesimi(daraxt, barglarJami, fo((x) => son(x.smeta)), svod, { jami: jS, masshtab: true, f2: false }),
+    fakt: svodFaktKesimi(daraxt, barglarJami, fo((x) => son(x.fakt)), svod, { jami: jF }),
+    f2: svodKorinishKesimi(daraxt, barglarJami, fo((x) => son(x.f2)), svod, { jami: jA, masshtab: false, f2: true }),
+  };
+  const ou = (k: keyof typeof ks, j: number | null): QiymatUchlik => qiymatUchligi(bor ? ustamaliHisobla(ks[k], ustama!.koeffitsientlar, ustama!.podval) : null, j);
+  return { obyekt: { smeta: ou('smeta', jS), fakt: ou('fakt', jF), f2: ou('f2', jA) }, nodes: out, bolalar };
 }
+
+/**
+ * TIYINGACHA TAQSIMLASH (egasi qoidasi: "summa tiyinigacha"). Ustamali va QQS bilan shakllari har tugunda alohida yaxlitlanadi (ROUND 2),
+ * shuning uchun bolalar yig'indisi ota qiymatidan bir necha tiyinga farq qilishi mumkin. Bu yerda ota qiymati BIR marta yaxlitlanadi
+ * (obyekt: butun daraxt yadro natijasi), so'ng tiyinlar bolalarga eng katta kasr qoldig'i (Hamilton) usulida taqsimlanadi:
+ * obyekt -> RZ -> BL, rekursiv. Ota o'z barg qatorlariga ega bo'lsa, ularning ulushi alohida "qoldiq" o'rnida turadi (bolalar yig'indisi + qoldiq = ota).
+ * Ishora hech qachon almashmaydi (musbat kasr taxmin pastga yaxlitlanganda >= 0, manfiy <= 0 qoladi); ma'lum bo'lmagan (null) qiymat yoki
+ * nolga teng og'irlik yig'indisi bo'lsa taqsimlanmaydi - tugun o'z qiymatida qoladi.
+ */
+export function hamilton(jami: number, ogirliklar: readonly number[]): number[] | null {
+  const T = tiyin(jami), w = ogirliklar.map((x) => tiyin(x)), n = w.length;
+  const W = w.reduce((a, b) => a + b, 0);
+  if (!n || W === 0) return null;
+  const ideal = w.map((x) => (T * x) / W);
+  const baza = ideal.map((x) => Math.floor(x));
+  const qoldiq = T - baza.reduce((a, b) => a + b, 0);
+  if (qoldiq < 0 || qoldiq > n) return null;
+  const tartib = ideal.map((x, i) => ({ i, r: x - baza[i] })).sort((a, b) => b.r - a.r || a.i - b.i);
+  for (let k = 0; k < qoldiq; k++) baza[tartib[k].i] += 1;
+  // Ota va bolalar yig'indisi orasidagi farq yaxlitlash darajasidan (har bola uchun bir necha tiyin) katta bo'lsa - bu yaxlitlash emas, haqiqiy farq: yashirilmaydi, taqsimlanmaydi.
+  if (Math.abs(T - W) > 5 * n + 5) return null;
+  return baza;
+}
+
+type Shakl = 'qqsBilan' | 'ustamali';
+const KOR = ['smeta', 'fakt', 'f2'] as const;
+
+function taqsimla(obyekt: TugunUchlik, nodes: Map<number, TugunUchlik>, qatorlar: readonly TugunQator[], bolalar: Map<number, TugunQator[]>): void {
+  const tugunBolalar = (id: number | null): number[] => (id == null ? qatorlar.filter((q) => q.ota_id == null && q.tur === 'rz') : bolalar.get(id) ?? []).filter((q) => q.tur === 'rz' || q.tur === 'bl').map((q) => q.id);
+  for (const k of KOR) for (const sh of ['qqsBilan', 'ustamali'] as Shakl[]) {
+    const stek: Array<{ ota: number | null; qiymat: number | null }> = [{ ota: null, qiymat: obyekt[k][sh] }];
+    while (stek.length) {
+      const { ota, qiymat } = stek.pop()!;
+      const ids = tugunBolalar(ota).filter((id) => nodes.has(id));
+      if (qiymat == null || !ids.length) continue;
+      const own = ids.map((id) => nodes.get(id)![k][sh]);
+      if (own.some((x) => x == null)) { for (const id of ids) stek.push({ ota: id, qiymat: nodes.get(id)![k][sh] }); continue; }
+      const sum = own.reduce((a, b) => a + (b as number), 0);
+      // Ota o'z barg qatorlariga ega bo'lsa (razdel ostida bevosita resurslar) - ularning ulushi alohida qoldiq o'rnida; yo'q bo'lsa bolalar yig'indisi = ota.
+      const ozBarg = (ota == null ? qatorlar.filter((q) => q.ota_id == null) : bolalar.get(ota) ?? []).some((q) => q.tur !== 'rz' && q.tur !== 'bl');
+      const w = ozBarg ? [...(own as number[]), yaxlit2(qiymat - sum)] : (own as number[]);
+      const r = hamilton(qiymat, w);
+      if (r) ids.forEach((id, i) => { const t = nodes.get(id)!; nodes.set(id, { ...t, [k]: { ...t[k], [sh]: yaxlit2(r[i] / 100) } }); });
+      for (const id of ids) stek.push({ ota: id, qiymat: nodes.get(id)![k][sh] });
+    }
+  }
+}
+
+export type TugunDaraxti = { obyekt: TugunUchlik; tugunlar: Map<number, TugunUchlik> };
+
+/** Obyekt jami + har RZ/BL tuguni; ustamali va QQS bilan shakllari tiyingacha taqsimlangan (ota = bolalar yig'indisi). */
+export function tugunDaraxti(qatorlar: readonly TugunQator[], ustama: UstamaKirish | null): TugunDaraxti {
+  const { obyekt, nodes, bolalar } = tugunHisob(qatorlar, ustama);
+  taqsimla(obyekt, nodes, qatorlar, bolalar);
+  return { obyekt, tugunlar: nodes };
+}
+
+export const tugunSummalari = (qatorlar: readonly TugunQator[], ustama: UstamaKirish | null): Map<number, TugunUchlik> => tugunDaraxti(qatorlar, ustama).tugunlar;
+
+/** Taqsimlashdan OLDINGI (har tugun alohida yaxlitlangan) qiymatlar - faqat solishtirish/test uchun. */
+export const tugunSummalariXom = (qatorlar: readonly TugunQator[], ustama: UstamaKirish | null): Map<number, TugunUchlik> => tugunHisob(qatorlar, ustama).nodes;
