@@ -1,0 +1,42 @@
+﻿# Smoke e2e (Playwright): faqat ochiq oqimlar, login/real ma'lumot yo'q. vite preview ustida.
+name: E2E
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Build
+        run: npx vite build
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+      - name: Playwright chromium
+        run: npx playwright install --with-deps chromium
+      - name: Smoke e2e
+        run: npm run e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: frontend/test-results
+          retention-days: 7

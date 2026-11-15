@@ -10,6 +10,7 @@ import { Archive, Plus, Save, Search, Wand2, X } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { toast } from '../../umumiy/ui/Toast';
 import { FmtN } from '../../lib/format';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
@@ -214,6 +215,7 @@ export default function NarxTekshiruv() {
 
   const arxivla = async () => {
     if (!shakl?.id || shakl.versiya == null || !kid) return;
+    if (!(await tasdiqSora({ matn: t('Karta arxivga o‘tkaziladi: ro‘yxatdan yashiriladi (o‘chirilmaydi). Davom etasizmi?'), tasdiqMatni: t('Arxivga'), xavfli: true }))) return;
     const r = await kartaArxiv({ kompaniyaId: kid, id: shakl.id, kutilganVersiya: shakl.versiya, operationId: yangiOperationId() });
     if (!r.ok) { toast(r.error || t('Arxivlab bo‘lmadi'), 'danger'); return; }
     setShakl(null); void yukla();

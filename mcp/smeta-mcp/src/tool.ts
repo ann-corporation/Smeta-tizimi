@@ -8,7 +8,7 @@ export type ToolTarif<S extends z.ZodRawShape = z.ZodRawShape> = {
   tavsif: string;
   kirish: S;
   yozadi: boolean;
-  bajar: (a: z.objectOutputType<S, z.ZodTypeAny>, mu: Muhit) => Promise<unknown>;
+  bajar: (a: z.infer<z.ZodObject<S>>, mu: Muhit) => Promise<unknown>;
 };
 
 export const tool = <S extends z.ZodRawShape>(t: ToolTarif<S>): ToolTarif => t as unknown as ToolTarif;

@@ -16,7 +16,8 @@
     "site-map:check": "node scripts/generate-site-map.mjs --check",
     "korpus": "vitest run src/lib/smeta-anatomiya/korpus",
     "i18n:baza": "node scripts/i18n-baza.mjs",
-    "test:perf": "npx cross-env PERF=1 vitest run --no-file-parallelism"
+    "test:perf": "npx cross-env PERF=1 vitest run --no-file-parallelism",
+    "e2e": "playwright test -c e2e/playwright.config.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
@@ -50,7 +51,9 @@
     "xlsx-js-style": "^1.2.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@cloudflare/workers-types": "^4.20260702.1",
+    "@playwright/test": "^1.65.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@types/leaflet": "^1.9.21",
