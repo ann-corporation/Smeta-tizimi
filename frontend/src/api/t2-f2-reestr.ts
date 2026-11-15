@@ -2,7 +2,7 @@
  * F2 reestri uchun faqat o'qish (lib/f2-reestr): kompaniyaning obyektlari, F2 aktlari (t2_akt_reestr), shartnoma bog'lanishlari,
  * loyihalar va har aktning manbasi (import ishi / manba hujjati / tizimda yasalgan). Hech narsa yozilmaydi.
  */
-import { sbOqi, sbT2ObyektlarOlKomp, type T2AktReestr } from './supabase';
+import { sbOqi, sbT2AktReestrKompaniyaOl, sbT2ObyektlarOlKomp } from './supabase';
 import { sbT2ShartnomaBogOl, sbT2ShartnomalarOl, type ShartnomaBog } from './t2-shartnoma';
 import { sbT2LoyihalarOl } from './t2-loyiha';
 import { hujjatRoyxatOl, type CenterDocument } from './t2-hujjat-canonical';
@@ -30,7 +30,7 @@ export type ReestrMalumot = {
 export async function f2ReestrOl(kompaniyaId: number): Promise<ReestrMalumot> {
   const [ob, ak, sh, ly, hj, bk] = await Promise.all([
     sbT2ObyektlarOlKomp(kompaniyaId),
-    sbOqi<T2AktReestr>({ jadval: 't2_akt_reestr', filtr: `kompaniya_id=eq.${kompaniyaId}&tur=eq.f2`, tartib: 'oy.desc', limit: 5000 }),
+    sbT2AktReestrKompaniyaOl(kompaniyaId, 'f2'),
     sbT2ShartnomalarOl(kompaniyaId, false),
     sbT2LoyihalarOl(kompaniyaId),
     hujjatRoyxatOl({ kompaniyaId, limit: 1000 }).catch(() => null),

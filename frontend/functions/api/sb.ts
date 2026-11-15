@@ -230,6 +230,10 @@ export const onRequestPost: PagesFunction<{
         /* 20261203001300 (egasi 2026-11-06 «smeta — const»): asl smeta + asoslangan o'zgarishlar (qo'shimcha, zamena farqi,
            bajarilmaydi) + «smeta + o'zgarishlar» hosilasi. `stable`; a'zolik + smeta.read RPC ichida. */
         smeta_ozgarish_qatlam_v1: 'obyekt_actor',
+        /* Tezlik (20261222400000): akt reestri (obyekt / kompaniya) va qator muhri farqi - view'lar o'rniga keshli RPC (iflos bo'lsa jonli view). `stable`; a'zolik + f2.read / smeta.read RPC ichida. */
+        akt_reestr_obyekt_v1: 'obyekt_actor',
+        akt_reestr_kompaniya_v1: 'kompaniya_actor',
+        qator_muhr_farq_obyekt_v1: 'obyekt_actor',
         /* T2-GAS-EXIT-001 §5/§6: resumable F2 import job — resumption reads.
            Both RPCs are `stable` (read-only) and membership-checked inside
            the function itself via job_id -> kompaniya_id, same law as above. */
@@ -459,6 +463,13 @@ export const onRequestPost: PagesFunction<{
         const kid = Number(so.kompaniya_id);
         if (!Number.isSafeInteger(kid) || kid <= 0) return Response.json({ ok: false, error: 'kompaniya_id noto\'g\'ri' });
         q.set('p_kompaniya_id', String(kid));
+      }
+      if (so.soro === 'akt_reestr_obyekt_v1' || so.soro === 'akt_reestr_kompaniya_v1') {
+        const tur = (so as { tur?: unknown }).tur;
+        if (tur != null && tur !== '') {
+          if (tur !== 'f2' && tur !== 'fakt') return Response.json({ ok: false, error: 'tur f2 yoki fakt bo\'lishi kerak' });
+          q.set('p_tur', tur);
+        }
       }
       if (so.soro === 'aosr_slichitelniy_v1' && (so as { limit?: unknown }).limit != null) {
         const lim = Number((so as { limit?: unknown }).limit);
