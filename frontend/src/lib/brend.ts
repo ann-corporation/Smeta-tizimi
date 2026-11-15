@@ -32,6 +32,8 @@ export function yuzaAniqla(w: YuzaMuhit | undefined = typeof window === 'undefin
   if (!w) return 'Sayt';
   const tg = w.Telegram?.WebApp;
   if (tg && (tg.initData || (tg.platform && tg.platform !== 'unknown'))) return 'Telegram';
+  // Android ilova ichidagi WebView (lib/app-embed.ts): User-Agent da QURAIApp/<versiya> — «QURAI · Android» belgisi bir marta chiqadi.
+  if (/QURAIApp\//.test(w.navigator?.userAgent ?? '')) return 'Android';
   const tauri = !!w.__TAURI__ || !!w.__TAURI_INTERNALS__ || /^https?:\/\/tauri\.localhost$/.test(w.location?.origin ?? '') || w.location?.protocol === 'tauri:';
   if (tauri) return /Android/i.test(w.navigator?.userAgent ?? '') ? 'Android' : 'Windows';
   return 'Sayt';

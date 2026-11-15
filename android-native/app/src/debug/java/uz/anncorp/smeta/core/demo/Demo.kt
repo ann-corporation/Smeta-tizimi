@@ -79,6 +79,8 @@ private class DemoBff(private val context: Context, private val json: Json, priv
             path.startsWith("/api/sessiya") -> ApiResult(200, session["sessiya"])
             path.startsWith("/api/ish-joyi") && method == "POST" -> ok("""{"ok":true,"kompaniya_id":1}""")
             // Server-driven workspace fixtures (generated from the real server function): picked by the requested cabinet, else by files/rol.flag (prorab | rahbar | texnadzor).
+            // Server-driven module catalogue ("Barcha modullar"), generated from the real server function (functions/_shared/modul-katalog.ts) for a synthetic PTO member.
+            path.startsWith("/api/ish-joyi") && path.contains("bolim=katalog") -> ok(asset("katalog.json"))
             path.startsWith("/api/ish-joyi") && path.contains("bolim=ish_stoli") -> ok(asset("ish_stoli_${demoParty(path)}.json"))
             // The file nowork.flag simulates a fresh company-less account (onboarding screen).
             path.startsWith("/api/ish-joyi") -> if (File(context.filesDir, "nowork.flag").exists()) ok("""{"ok":true,"ish_joylari":[]}""") else if (File(context.filesDir, "boss.flag").exists()) ok(session["ish_joyi"].toString().replace("\"prorab\"", "\"direktor\"")) else ApiResult(200, session["ish_joyi"])

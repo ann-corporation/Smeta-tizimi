@@ -26,6 +26,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { useQueryClient } from '@tanstack/react-query';
 import { useMen, type Men } from '../../api/t2-men';
 import { nashrKontekstOrnat } from '../../lib/imzo/nashr-kontekst';
+import { appEmbedKompaniya } from '../../lib/app-embed';
 
 export type KompaniyaMavqe = 'zakazchik' | 'pudratchi' | 'loyihachi' | string;
 
@@ -158,8 +159,10 @@ export function KompaniyaProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!men) return;
     const s = olSaqlangan();
-    const wantId = s && s.uid === men.foydalanuvchi.id ? s.id : null;
-    const wantGlobal = !!(s && s.uid === men.foydalanuvchi.id && s.global);
+    // Android ilovadagi veb konteyner: ilovada tanlangan ish joyi ustun (faqat a'zo bo'lingan kompaniya — pastdagi `valid` tekshiradi).
+    const appId = appEmbedKompaniya();
+    const wantId = appId ?? (s && s.uid === men.foydalanuvchi.id ? s.id : null);
+    const wantGlobal = appId == null && !!(s && s.uid === men.foydalanuvchi.id && s.global);
 
     if (wantGlobal && superadmin) { setGlobalRejim(true); yoz(null, true); return; }
     const valid = kompaniyalar.find((k) => k.id === wantId);

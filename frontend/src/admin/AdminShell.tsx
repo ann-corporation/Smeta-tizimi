@@ -38,6 +38,7 @@ import { useYangiMenyu } from '../lib/nav/yangiMenyu';
 import { ILOVA_MAP, type IlovaKod } from '../lib/ilova/ilovalar';
 import { IlovaIshgaTushirgich } from '../components/ilova/IlovaIshgaTushirgich';
 import { YuzaBelgisi } from '../components/brend/YuzaBelgisi';
+import { appEmbedMi } from '../lib/app-embed';
 import { useTizimRuxsat } from '../api/t2-tizim-xaritasi';
 import { useModullar } from '../api/t2-modul';
 import { useModulTanlov } from '../api/modullarim';
@@ -275,7 +276,7 @@ function AdminShellInner() {
   const bandFaol = (m: MenyuQator, isActive: boolean) => isActive || !!m.tablar?.some(tb => joy.pathname === tb.yol || joy.pathname.startsWith(tb.yol + '/'));
 
   return (
-    <div className="os-app-shell flex h-screen overflow-hidden text-text relative font-sans">
+    <div className="os-app-shell flex h-screen overflow-hidden text-text relative font-sans" data-embed={appEmbedMi() ? "1" : undefined}>
       <HotkeyYordam />
       {!k.globalRejim && k.joriy && <ModullarimBirinchi kompaniyaId={k.joriy.id} />}
       <IsmQadam />

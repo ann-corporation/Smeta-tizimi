@@ -380,4 +380,19 @@
     <string name="hub_kpi_paid">Paid</string>
     <string name="hub_kpi_problems">Problems</string>
     <string name="hub_kpi_approvals">Awaiting approval</string>
+    <!-- Barcha modullar (server-driven catalogue) + in-app web container -->
+    <string name="hub_all_modules">All modules</string>
+    <string name="hub_all_modules_hint">Every page of the system: opens in the app or inside the website</string>
+    <string name="am_search">Search a module or page</string>
+    <string name="am_in_app">In the app</string>
+    <string name="am_offline_copy">Showing the offline copy</string>
+    <string name="am_empty">Nothing found</string>
+    <string name="am_failed">Could not load the module list</string>
+    <string name="am_count">Results: %1$d</string>
+    <string name="hub_sec_pages">Pages</string>
+    <string name="web_renewing">Renewing the session…</string>
+    <string name="web_download_started">Downloading the file…</string>
+    <string name="web_download_failed">Could not download the file</string>
+    <string name="web_upload_choose">Choose a file</string>
+    <string name="web_offline_banner">No internet: the page will not refresh</string>
 </resources>

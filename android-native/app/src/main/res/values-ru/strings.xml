@@ -380,4 +380,19 @@
     <string name="hub_kpi_paid">Оплачено</string>
     <string name="hub_kpi_problems">Проблемы</string>
     <string name="hub_kpi_approvals">Ждут утверждения</string>
+    <!-- Barcha modullar (server-driven catalogue) + in-app web container -->
+    <string name="hub_all_modules">Все модули</string>
+    <string name="hub_all_modules_hint">Все страницы системы: открываются в приложении или внутри сайта</string>
+    <string name="am_search">Поиск модуля или страницы</string>
+    <string name="am_in_app">В приложении</string>
+    <string name="am_offline_copy">Показана офлайн-копия</string>
+    <string name="am_empty">Ничего не найдено</string>
+    <string name="am_failed">Не удалось загрузить список модулей</string>
+    <string name="am_count">Найдено: %1$d</string>
+    <string name="hub_sec_pages">Страницы</string>
+    <string name="web_renewing">Обновляем сессию…</string>
+    <string name="web_download_started">Файл скачивается…</string>
+    <string name="web_download_failed">Не удалось скачать файл</string>
+    <string name="web_upload_choose">Выбрать файл</string>
+    <string name="web_offline_banner">Нет интернета: страница не обновится</string>
 </resources>
