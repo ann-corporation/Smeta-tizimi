@@ -194,7 +194,7 @@ class PeopleRepositoryTest {
         assertEquals(PeopleResult.Err(PeopleError.UNAUTHORIZED), PeopleRepository(PeopleRecorder { _, _ -> ApiResult(401, null) }).invites())
     }
 
-    @Test fun featureFlagIsOffByDefault() = assertFalse(Features.USERNAME)
+    @Test fun featureFlagIsOnByDefault() = assertTrue(Features.USERNAME)
 }
 
 class JarvisRepositoryTest {
