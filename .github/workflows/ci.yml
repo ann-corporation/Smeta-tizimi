@@ -1,21 +1,30 @@
-# Majburiy CI (egasi 2026-10-02: universal skelet §60 — "CI yashil bo'lmasa main yo'q").
-# Agent qo'lda yuritadigan gate'lar endi har push/PR da avtomatik: typecheck, lint, tekshir, sayt xaritasi, test, build.
+# Majburiy CI (egasi 2026-10-02: universal skelet par.60 - "CI yashil bo'lmasa main yo'q").
+# Agent qo'lda yuritadigan gate'lar har PR da avtomatik: typecheck, lint, tekshir, sayt xaritasi, test, build.
+#
+# 2026-11-15 (CI tezlashtirish, docs/ops/CI_TEZLIK.md): hech bir tekshiruv olib tashlanmadi, faqat parallellashtirildi:
+#   - bir PR uchun ikki marta (push + pull_request) yurish yo'q: push faqat main/tag, PR hammasi pull_request orqali;
+#   - frontend: static (tsc/oxlint/site-map/tekshir) + unit testlar 4 shardga + build - bir vaqtda;
+#   - tsbuildinfo va vitest keshlari; "ci-gate" yagona yig'ma holat.
 name: CI
 
 on:
   push:
-    # 2026-10-21 (audit, egasi ADR-7): ish branch'larida ham CI — main'ga faqat yashil commit o'tadi.
-    branches: ['**']
+    branches: [main]
+    tags: ['v*']
   pull_request:
 
+permissions:
+  contents: read
+
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  frontend:
+  # Tez statik tekshiruvlar (tsc, oxlint, sayt xaritasi, biznes invariantlar/guard testlar) - testlar bilan parallel.
+  static:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: frontend
@@ -27,6 +36,14 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      # tsc -b / tsc -p incremental: tsbuildinfo node_modules/.tmp da. Kesh faqat tezlik beradi, natija o'zgarmaydi.
+      - name: tsbuildinfo keshi
+        uses: actions/cache@v4
+        with:
+          path: frontend/node_modules/.tmp
+          key: tsbuildinfo-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json', 'frontend/tsconfig*.json') }}-${{ github.sha }}
+          restore-keys: |
+            tsbuildinfo-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json', 'frontend/tsconfig*.json') }}-
       - name: Typecheck (app)
         run: npx tsc -b
       - name: Typecheck (functions)
@@ -37,15 +54,73 @@ jobs:
         run: npm run site-map:check
       - name: Biznes invariantlar va governance
         run: npm run tekshir
-      - name: Unit testlar
-        run: npx vitest run --no-file-parallelism
+
+  # Unit testlar 4 shardga bo'lingan (avval bitta ketma-ket ~18 daqiqa). Har shard ichida --no-file-parallelism saqlangan.
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Vitest keshi
+        uses: actions/cache@v4
+        with:
+          path: frontend/node_modules/.vite
+          key: vitest-${{ runner.os }}-${{ matrix.shard }}-${{ hashFiles('frontend/package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            vitest-${{ runner.os }}-${{ matrix.shard }}-${{ hashFiles('frontend/package-lock.json') }}-
+      - name: Unit testlar (shard ${{ matrix.shard }}/4)
+        run: npx vitest run --no-file-parallelism --shard=${{ matrix.shard }}/4
+
+  # Unumdorlik testlari (ma'lumot uchun, main ni qizil qilmaydi) - alohida job, asosiy yo'lni sekinlatmaydi.
+  perf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
       - name: Unumdorlik testlari (ma'lumot uchun, main ni qizil qilmaydi)
         continue-on-error: true
         run: npm run test:perf
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
       - name: Build
         run: npx cross-env NODE_OPTIONS=--max-old-space-size=6144 vite build
 
-  # MCP server (mcp/smeta-mcp): frontend sof mantig'ini bundle qiladi — frontend lib o'zgarishi uni buzmasligi shu yerda ushlanadi.
+  # MCP server (mcp/smeta-mcp): frontend sof mantig'ini bundle qiladi - frontend lib o'zgarishi uni buzmasligi shu yerda ushlanadi.
   mcp:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -67,7 +142,7 @@ jobs:
       - name: Build
         run: node build.mjs
 
-  # Masofaviy MCP (mcp/smeta-mcp-remote, Cloudflare Worker): umumiy tool yadrosi ../smeta-mcp/src. Deploy QILINMAYDI —
+  # Masofaviy MCP (mcp/smeta-mcp-remote, Cloudflare Worker): umumiy tool yadrosi ../smeta-mcp/src. Deploy QILINMAYDI -
   # faqat typecheck, test va wrangler --dry-run bundle (sirsiz).
   mcp-remote:
     runs-on: ubuntu-latest
@@ -91,3 +166,17 @@ jobs:
         run: npx wrangler deploy --dry-run --outdir dist/wr
         env:
           WRANGLER_SEND_METRICS: 'false'
+
+  # Yagona yig'ma holat: majburiy tekshiruv sifatida faqat shuni belgilash kifoya.
+  # perf ataylab kiritilmagan (u ma'lumot uchun, continue-on-error).
+  ci-gate:
+    if: always()
+    needs: [static, unit, build, mcp, mcp-remote]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Hamma majburiy joblar yashilmi
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | node -e "const n=JSON.parse(require('fs').readFileSync(0,'utf8'));const bad=Object.entries(n).filter(([,v])=>v.result!=='success');if(bad.length){console.error('Yiqilgan:',bad.map(([k,v])=>k+'='+v.result).join(', '));process.exit(1)}console.log('Hammasi yashil')"

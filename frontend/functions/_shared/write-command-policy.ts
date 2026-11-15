@@ -83,7 +83,7 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   /* C11 PR-B: RPC (t2_sklad_markaziy_prixod_import_v1/_storno_v1) ham document.write talab qiladi. */
   sklad_kirim_import_v1: 'document.write',
   sklad_kirim_storno_v1: 'document.write',
-  sklad_berdim_v1: 'document.write',
+  sklad_berdim_v1: 'warehouse.write|document.write', // 2026-11-15: omborchi (warehouse.write) ham yoza oladi; document.write (pto/prorab) saqlanadi. RPC: 20261224110000 (tasdiq kutadi)
   token_sarfla_v1: 'company.read',
   token_qaytar_v1: 'company.read',
   token_yakunla_v1: 'company.read',
@@ -114,7 +114,7 @@ export const WRITE_COMMAND_POLICY: Readonly<Record<string, string>> = {
   akt_bekor: 'f2.cancel',
   narx_belgila: 'narx.write',
   narx_sana_qosh: 'narx.write',
-  skladga_yozish: 'document.write',
+  skladga_yozish: 'warehouse.write|document.write', // 2026-11-15: omborchi kirim/chiqim (middleware | — ikkalasidan biri)
   faktura_yoz: 'financial.write',
   ish_turi_yoz: 'smeta.write',
   shaxsiy_smeta_yarat: 'smeta.write',

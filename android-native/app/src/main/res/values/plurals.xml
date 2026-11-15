@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Uzbek (default): the noun does not change after a number, but every count string is a plural resource so that
+     the three languages share one mechanism and no "1 rows" style bugs can appear. -->
+<resources>
+    <plurals name="p1_rows">
+        <item quantity="one">%1$d qator</item>
+        <item quantity="other">%1$d qator</item>
+    </plurals>
+    <plurals name="p1_unpriced">
+        <item quantity="one">%1$d ta narxsiz qator</item>
+        <item quantity="other">%1$d ta narxsiz qator</item>
+    </plurals>
+    <plurals name="p1_card_unpriced_warn">
+        <item quantity="one">%1$d ta qator narxsiz — jami to\'liq emas</item>
+        <item quantity="other">%1$d ta qator narxsiz — jami to\'liq emas</item>
+    </plurals>
+    <plurals name="p1_warn_unpriced">
+        <item quantity="one">Narxsiz qatorlar: %1$d</item>
+        <item quantity="other">Narxsiz qatorlar: %1$d</item>
+    </plurals>
+    <plurals name="p1_banner_offline">
+        <item quantity="one">Oflayn — %1$d ta yozuv navbatda</item>
+        <item quantity="other">Oflayn — %1$d ta yozuv navbatda</item>
+    </plurals>
+    <plurals name="p1_banner_sending">
+        <item quantity="one">%1$d ta yozuv yuborilmoqda</item>
+        <item quantity="other">%1$d ta yozuv yuborilmoqda</item>
+    </plurals>
+    <plurals name="p1_banner_failed">
+        <item quantity="one">%1$d ta yozuv rad etildi — ko\'rish</item>
+        <item quantity="other">%1$d ta yozuv rad etildi — ko\'rish</item>
+    </plurals>
+    <plurals name="p1_draft_bar">
+        <item quantity="one">Qoralama: %1$d qator</item>
+        <item quantity="other">Qoralama: %1$d qator</item>
+    </plurals>
+    <plurals name="p1_exceeding_n">
+        <item quantity="one">%1$d ta qator smetadan oshadi</item>
+        <item quantity="other">%1$d ta qator smetadan oshadi</item>
+    </plurals>
+    <plurals name="p1_outbox_lines">
+        <item quantity="one">%1$d qator · %2$s</item>
+        <item quantity="other">%1$d qator · %2$s</item>
+    </plurals>
+    <plurals name="p2_signout_body">
+        <item quantity="one">%1$d ta yozuv hali yuborilmagan. Chiqishdan oldin nima qilamiz?</item>
+        <item quantity="other">%1$d ta yozuv hali yuborilmagan. Chiqishdan oldin nima qilamiz?</item>
+    </plurals>
+    <plurals name="p2_signout_left">
+        <item quantity="one">%1$d ta yozuv yuborilmadi (oflayn yoki rad etilgan).</item>
+        <item quantity="other">%1$d ta yozuv yuborilmadi (oflayn yoki rad etilgan).</item>
+    </plurals>
+    <plurals name="p2_today_unread">
+        <item quantity="one">%1$d ta o\'qilmagan</item>
+        <item quantity="other">%1$d ta o\'qilmagan</item>
+    </plurals>
+</resources>

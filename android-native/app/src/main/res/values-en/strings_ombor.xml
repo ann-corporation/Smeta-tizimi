@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ombor_nav">Stock</string>
+    <string name="ombor_title">Warehouse stock</string>
+    <string name="ombor_search_hint">Material name or code</string>
+    <string name="ombor_scan">Scan barcode or QR</string>
+    <string name="ombor_clear">Clear</string>
+    <string name="ombor_close">Close</string>
+    <string name="ombor_scope_label">Place: %1$s</string>
+    <string name="ombor_scope_all">All objects</string>
+    <string name="ombor_scope_pick">Where to look</string>
+    <string name="ombor_scope_central_header">Central warehouses</string>
+    <string name="ombor_scope_objects_header">Objects</string>
+    <string name="ombor_central_tag">Central warehouse</string>
+    <plurals name="ombor_materials">
+        <item quantity="one">%d material</item>
+        <item quantity="other">%d materials</item>
+    </plurals>
+    <string name="ombor_last_movement">Last movement: %1$s</string>
+    <string name="ombor_no_movement">No movement date</string>
+    <string name="ombor_loading">Loading stock…</string>
+    <string name="ombor_empty">No stock here</string>
+    <string name="ombor_empty_search">Nothing found</string>
+    <string name="ombor_forbidden">You are not allowed to view the warehouse</string>
+    <string name="ombor_offline_empty">Offline and no saved stock</string>
+    <string name="ombor_pick_hint">Tap a material to issue it</string>
+
+    <string name="ombor_btn_receive">Receive</string>
+    <string name="ombor_btn_issue">Issue</string>
+    <string name="ombor_receive_title">Receive into stock</string>
+    <string name="ombor_issue_title">Issue from stock</string>
+    <string name="ombor_field_object">Object</string>
+    <string name="ombor_field_source">From</string>
+    <string name="ombor_field_target_object">To which object</string>
+    <string name="ombor_field_material">Material name</string>
+    <string name="ombor_field_unit">Unit</string>
+    <string name="ombor_field_qty">Quantity</string>
+    <string name="ombor_field_supplier">Supplier (optional)</string>
+    <string name="ombor_field_receiver">Issued to (optional)</string>
+    <string name="ombor_field_note">Note, document number (optional)</string>
+    <string name="ombor_field_date">Date</string>
+    <string name="ombor_receiver_usta">Master</string>
+    <string name="ombor_receiver_brigada">Crew</string>
+    <string name="ombor_receiver_prarab">Foreman</string>
+    <string name="ombor_receiver_boshqa">Other</string>
+    <string name="ombor_choose">Choose</string>
+    <string name="ombor_suggest">Materials in stock</string>
+    <string name="ombor_photo_soon">Delivery-note photo — next version</string>
+    <string name="ombor_save_queue">Add to queue</string>
+    <string name="ombor_queue_note">Saved even offline and sent automatically later.</string>
+    <string name="ombor_queued">Added to the queue</string>
+    <string name="ombor_over_stock">Only %1$s %2$s in stock. The server will check.</string>
+    <string name="ombor_stock_here">In stock: %1$s %2$s</string>
+    <string name="ombor_err_name">Enter the material name</string>
+    <string name="ombor_err_unit">Enter the unit</string>
+    <string name="ombor_err_qty">Quantity: a positive number, comma or dot (up to 6 decimals)</string>
+    <string name="ombor_err_source">Choose where to issue from</string>
+    <string name="ombor_err_target">Choose an object</string>
+    <string name="ombor_err_date">Invalid date</string>
+    <string name="ombor_pick_title">Choose</string>
+    <string name="ombor_pick_search">Search</string>
+
+    <string name="ombor_scan_title">Scan a code</string>
+    <string name="ombor_scan_hint">Point the camera at a barcode or QR. The result fills the search field.</string>
+    <string name="ombor_scan_permission">Camera access is needed to scan.</string>
+    <string name="ombor_scan_grant">Allow</string>
+
+    <string name="ombor_outbox_prixod">Receive: %1$s — %2$s %3$s</string>
+    <string name="ombor_outbox_rasxod">Issue: %1$s — %2$s %3$s</string>
+    <string name="ombor_outbox_berdim">Central warehouse to object: %1$s — %2$s %3$s</string>
+    <plurals name="ombor_queued_count">
+        <item quantity="one">%d operation queued</item>
+        <item quantity="other">%d operations queued</item>
+    </plurals>
+</resources>

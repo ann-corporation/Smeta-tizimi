@@ -12,6 +12,7 @@ import KirishSahifa from './kirish/KirishSahifa';
 import QoshilSahifa from './kirish/QoshilSahifa';
 import TaklifSahifa from './kirish/TaklifSahifa';
 import UlashSahifa from './kirish/UlashSahifa';
+import { BrauzerKirish, IlovaQaytdi } from './kirish/IlovaKirish';
 
 const AdminShell = lazy(() => import('./admin/AdminShell'));
 const BossShell = lazy(() => import('./boss/BossShell'));
@@ -146,6 +147,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<KirishSahifa />} />
         {/* «Telegram modeli»: ish joyiga taklif havolasi (kirish talab qilinsa — kirgach shu yerga qaytadi). */}
+        <Route path="/brauzer-kirish" element={<BrauzerKirish />} />
+        <Route path="/ilova-qaytdi" element={<IlovaQaytdi />} />
         <Route path="/qoshil/:kod" element={<QoshilSahifa />} />
         <Route path="/taklif" element={<TaklifSahifa />} />
         <Route path="/taklif/:token" element={<TaklifSahifa />} />
