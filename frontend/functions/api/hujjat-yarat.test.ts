@@ -44,11 +44,11 @@ beforeEach(() => {
 });
 
 describe('/api/hujjat-yarat — yagona hujjat dvigateli', () => {
-  it('royxat: serverdan mavjud hujjatlar (F-2 bekorsiz + F3 yo\'q bo\'lsa faqat F-2), formatlar bilan', async () => {
+  it('royxat: serverdan mavjud hujjatlar (F-2 bekorsiz, oylik va obyekt hujjatlari), formatlar bilan', async () => {
     const r = await onRequestPost(so({ amal: 'royxat', kompaniya_id: 17, obyekt_id: 79 }));
     const j = await r.json() as { ok: boolean; hujjatlar: Array<{ kalit: string; tur: string; formatlar: string[]; parametrlar: Record<string, number> }> };
     expect(j.ok).toBe(true);
-    expect(j.hujjatlar.map((h) => h.kalit)).toEqual(['f2:246']);
+    expect(j.hujjatlar.map((h) => h.kalit)).toEqual(['f2:246', 'nakopitelniy:2026-10', 'm29:2026-10', 'slichitelniy', 'ostatka']);
     expect(j.hujjatlar[0].formatlar).toEqual(['xlsx', 'pdf']);
     expect(j.hujjatlar[0].parametrlar).toEqual({ akt_id: 246 });
   });
@@ -87,7 +87,7 @@ describe('/api/hujjat-yarat — yagona hujjat dvigateli', () => {
 
   it('rad etishlar: bekor akt, begona kompaniya, noma\'lum tur/format, parametr yo\'q — token yechilmaydi', async () => {
     const cases: Array<[Record<string, unknown>, number, string]> = [
-      [{ tur: 'f2', akt_id: 247 }, 409, 'AKT_BEKOR'],
+      [{ tur: 'f2', akt_id: 247 }, 409, 'QATOR_YOQ'], // bekor akt: t2_akt_qator qatorlari yo'q (mock) — hujjatsiz
       [{ tur: 'f2', akt_id: 999 }, 404, 'AKT_TOPILMADI'],
       [{ tur: 'f2', kompaniya_id: 18, akt_id: 246 }, 404, 'AKT_TOPILMADI'],
       [{ tur: 'f2' }, 400, 'PARAMETR_YOQ'],

@@ -18,8 +18,9 @@ import { cachedAuthority } from '../_shared/permission-policy';
 import { tekshir } from '../_shared/auth';
 import { serverQaytar, serverSarfla, sarfRad } from '../_shared/hujjat-sarf';
 import { ichkiRejimda } from '../_shared/hujjat-ichki';
-import { sbT2AktReestrOl, sbT2KompaniyalarOl } from '../../src/api/supabase';
-import { portfelObyektOl } from '../../src/api/f2-oylik-paket';
+import { sbT2AktReestrOl, sbT2KompaniyalarOl, sbT2ObyektlarOlKomp } from '../../src/api/supabase';
+import { portfelObyektOl, smetaTarixBilan, type AktQatorXom } from '../../src/api/f2-oylik-paket';
+import { bekorQatorlari } from '../../src/lib/f2-bekor-qator';
 import { paketAktExcel } from '../../src/lib/f2-oylik-paket/portfel';
 import { f2HujjatKaliti } from '../../src/api/f2-hujjat-kontekst';
 import { shartnomaSvodOl } from '../../src/api/t2-nakopitelniy';
@@ -28,6 +29,10 @@ import { f3ShaklTozala, forma3SotuvdanXlsx } from '../../src/lib/forma3-export';
 import { hujjatKorinishi } from '../../src/lib/hujjat-yozuvchi/korinish';
 import { korinishdanPdf } from '../../src/lib/hujjat-pdf/pdf';
 import { mazmunXeshi } from '../../src/api/mazmun-xesh';
+import { nakopitelniyPaketFayli } from '../../src/lib/oylik-hujjat/nakopitelniy';
+import { ostatkaPaketFayli, paketImzosiOl } from '../../src/lib/oylik-hujjat/ostatka-slichitelniy';
+import { m29PaketFayli, pudratchiNomiOl } from '../../src/lib/oylik-hujjat/m29';
+import { NDS_SUKUT_FOIZ } from '../../src/lib/nakopitelniy-vedomost-export';
 
 type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string };
 export type HujjatFormat = 'xlsx' | 'pdf';
@@ -38,7 +43,8 @@ const musbat = (v: unknown): number | null => (Number.isSafeInteger(Number(v)) &
 class Rad extends Error { constructor(readonly status: number, readonly code: string, msg: string) { super(msg); } }
 const rad = (e: Rad) => Response.json({ ok: false, code: e.code, xato: e.message }, { status: e.status });
 
-type Tayyor = { bytes: Uint8Array; faylNomi: string; turi: 'f2_hujjat' | 'f3'; obyektId: number; davr: string | null; xesh: string };
+type Tayyor = { bytes: Uint8Array; faylNomi: string; turi: string; obyektId: number; davr: string | null; xesh: string };
+const OY = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 async function royxat(kompaniyaId: number, obyektId: number) {
   const r = await sbT2AktReestrOl(obyektId, 'f2');
@@ -49,6 +55,14 @@ async function royxat(kompaniyaId: number, obyektId: number) {
     kalit: `f2:${a.id}`, tur: 'f2', sarlavha: `Ф-2 № ${a.raqam || '—'} · ${(a.oy || '').slice(0, 7)}`, holat: a.holat, summa: a.hujjat_jami ?? null,
     parametrlar: { akt_id: a.id }, formatlar: FORMATLAR,
   }));
+  // Oylik/obyekt hujjatlari (sayt sahifalari bilan bir xil quruvchilar): tasdiqlangan F2 oylari bo'yicha Nakopitelniy va M-29; obyekt bo'yicha Slichitelniy va Ostatka.
+  const oylar = [...new Set(aktlar.filter((a) => a.holat === 'tasdiqlangan').map((a) => (a.oy || '').slice(0, 7)).filter((o) => OY.test(o)))].sort().reverse();
+  for (const oy of oylar) {
+    hujjatlar.push({ kalit: `nakopitelniy:${oy}`, tur: 'nakopitelniy', sarlavha: `Накопительная ведомость · ${oy}`, holat: 'tasdiqlangan', summa: null, parametrlar: { oy_son: Number(oy.replace('-', '')) }, oy, formatlar: FORMATLAR });
+    hujjatlar.push({ kalit: `m29:${oy}`, tur: 'm29', sarlavha: `М-29 · ${oy}`, holat: 'tasdiqlangan', summa: null, parametrlar: { oy_son: Number(oy.replace('-', '')) }, oy, formatlar: FORMATLAR });
+  }
+  hujjatlar.push({ kalit: 'slichitelniy', tur: 'slichitelniy', sarlavha: 'Сличительная ведомость', holat: 'joriy', summa: null, parametrlar: {}, formatlar: FORMATLAR });
+  hujjatlar.push({ kalit: 'ostatka', tur: 'ostatka', sarlavha: 'Ведомость остатков', holat: 'joriy', summa: null, parametrlar: {}, formatlar: FORMATLAR });
   const svod = await shartnomaSvodOl(kompaniyaId);
   if (svod.ok) {
     for (const sh of svod.natija.shartnomalar) {
@@ -67,10 +81,15 @@ async function f2Yasa(kompaniyaId: number, obyektId: number, aktId: number): Pro
   if (!reestr.ok || reestr.toliq === false) throw new Rad(502, 'REESTR_OQILMADI', 'F-2 reestri o‘qilmadi');
   const akt = (reestr.qatorlar ?? []).find((a) => a.id === aktId);
   if (!akt || akt.kompaniya_id !== kompaniyaId) throw new Rad(404, 'AKT_TOPILMADI', 'F-2 topilmadi');
-  if (akt.holat === 'bekor') throw new Rad(409, 'AKT_BEKOR', 'Bekor qilingan F-2 hujjati yasalmaydi');
   let m;
-  try { m = await portfelObyektOl(kompaniyaId, obyektId, [aktId], aktId); }
-  catch (e) { throw new Rad(502, 'MALUMOT_OQILMADI', e instanceof Error ? e.message.slice(0, 160) : 'Ma‘lumot o‘qilmadi'); }
+  try {
+    m = await portfelObyektOl(kompaniyaId, obyektId, [aktId], aktId);
+    if (akt.holat === 'bekor') {
+      // Bekor akt: 	2_f2_tafsilot uni ko'rsatmaydi — sayt (F2 tarixi) kabi 	2_akt_qator + smeta (tarix bilan) dan qatorlar.
+      const lines = bekorQatorlari(akt, (m.aktQatorlar.get(aktId) ?? []) as AktQatorXom[], new Map(m.smeta.map((r) => [r.id, r] as const)));
+      m = { ...m, tafsilot: lines, smeta: await smetaTarixBilan(obyektId, m.smeta, lines.map((l) => l.qator_id)) };
+    }
+  } catch (e) { throw new Rad(502, 'MALUMOT_OQILMADI', e instanceof Error ? e.message.slice(0, 160) : 'Ma‘lumot o‘qilmadi'); }
   const raqamlar = new Map((reestr.qatorlar ?? []).map((a) => [a.id, a.raqam ?? null] as const));
   let h;
   try { h = paketAktExcel(m, akt, akt.obyekt || '', raqamlar); }
@@ -90,6 +109,20 @@ async function f3Yasa(kompaniyaId: number, obyektId: number, shartnomaId: number
   const h = forma3SotuvdanXlsx(sh, f3Id, { tashkilot, shakl: f3ShaklTozala(shakl) });
   if (!h) throw new Rad(409, 'F3_HISOBLANMADI', 'Форма № 3 hisoblanmadi (sana/summa yo‘q)');
   return { bytes: h.bytes, faylNomi: h.faylNomi, turi: 'f3', obyektId, davr: null, xesh: await mazmunXeshi(h.bytes) };
+}
+
+/** Oylik/obyekt hujjatlari: sayt sahifalari va oylik paket ishlatadigan AYNAN o'sha `*PaketFayli` quruvchilari (paket.test: sahifa yo'li bilan bayt-bayt teng). */
+async function obyektHujjati(tur: 'nakopitelniy' | 'm29' | 'slichitelniy' | 'ostatka', kompaniyaId: number, obyektId: number, oySon: number | null, ndsFoiz: number | null): Promise<Tayyor> {
+  const [obyektlar, imzo] = await Promise.all([sbT2ObyektlarOlKomp(kompaniyaId), paketImzosiOl(kompaniyaId, obyektId)]);
+  const ob = (obyektlar.qatorlar ?? []).find((o) => o.id === obyektId);
+  if (!ob) throw new Rad(404, 'OBYEKT_TOPILMADI', 'Obyekt topilmadi');
+  const oy = oySon ? `${String(oySon).slice(0, 4)}-${String(oySon).slice(4, 6)}` : null;
+  if ((tur === 'nakopitelniy' || tur === 'm29') && (!oy || !OY.test(oy))) throw new Rad(400, 'PARAMETR_YOQ', 'oy_son (YYYYMM) kerak');
+  const r = tur === 'nakopitelniy' ? await nakopitelniyPaketFayli({ kompaniyaId, obyektId, obyektNom: ob.nom, oy: oy!, imzo, ndsFoiz })
+    : tur === 'm29' ? await m29PaketFayli({ kompaniyaId, obyektId, obyektNom: ob.nom, oy: oy!, imzo, pudratchi: await pudratchiNomiOl(kompaniyaId).catch(() => null) })
+      : await ostatkaPaketFayli({ kompaniyaId, obyektId, obyektNom: ob.nom, imzo, tur });
+  if (!r.ok) throw new Rad(409, r.bosh ? 'HUJJAT_BOSH' : 'HUJJAT_TUZILMADI', r.xato.slice(0, 200));
+  return { bytes: r.bytes, faylNomi: r.nom, turi: tur, obyektId, davr: oy, xesh: await mazmunXeshi(r.bytes) };
 }
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
@@ -120,7 +153,11 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         if (!sh || !f3) throw new Rad(400, 'PARAMETR_YOQ', 'shartnoma_id va f3_id kerak');
         return f3Yasa(kompaniyaId, obyektId, sh, f3, b.shakl);
       }
-      throw new Rad(400, 'TUR_NOMA_LUM', 'tur: f2 yoki forma3');
+      if (b.tur === 'nakopitelniy' || b.tur === 'm29' || b.tur === 'slichitelniy' || b.tur === 'ostatka') {
+        const nds = b.nds_foiz == null ? NDS_SUKUT_FOIZ : Number(b.nds_foiz);
+        return obyektHujjati(b.tur, kompaniyaId, obyektId, musbat(b.oy_son), Number.isFinite(nds) && nds >= 0 ? nds : NDS_SUKUT_FOIZ);
+      }
+      throw new Rad(400, 'TUR_NOMA_LUM', 'tur: f2, forma3, nakopitelniy, m29, slichitelniy yoki ostatka');
     });
 
     // Token: hujjat yaratildi — endi yechiladi (qayta yuklash bepul). PDF/XLSX bir hujjat: ikkinchisi takror.
