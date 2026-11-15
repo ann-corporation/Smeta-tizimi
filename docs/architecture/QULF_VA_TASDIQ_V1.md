@@ -2,7 +2,7 @@
 
 Egasi talabi: tizimda PIN; sahifa/dastur bir muddat ishlatilmasa PIN'ga tushsin; maksimal qulaylik uchun Windows Hello / biometrik (Face ID, barmoq izi); pul va imzolash amallarida ham shu.
 
-Holat: **kod tayyor, migratsiya qo'llanmagan** (`supabase/migrations/20261225000000_t2_qulf_v1.sql` — egasi tasdig'ini kutadi). Migratsiyasiz hech narsa buzilmaydi: `/api/qulf` 501 `QULF_YOQ` qaytaradi, step-up darvozasi o'tkazib yuboradi, mijoz qulfi yoqilmaydi.
+Holat: **kod tayyor, migratsiya qo'llanmagan** (`supabase/migrations/20261225100000_t2_qulf_v1.sql` — egasi tasdig'ini kutadi). Migratsiyasiz hech narsa buzilmaydi: `/api/qulf` 501 `QULF_YOQ` qaytaradi, step-up darvozasi o'tkazib yuboradi, mijoz qulfi yoqilmaydi.
 
 ## 1. Ikki alohida qatlam (muhim)
 
@@ -63,7 +63,7 @@ Mijoz qulfini localStorage tozalab chetlab o'tish mumkin (bu faqat ko'rinishni y
 Himoyalangan tasdiq (`tqy:` «Ha, tasdiqlayman») `STEP_UP_KERAK` olsa bot **hech narsani tasdiqlamaydi** va Mini App ga yo'naltiradi (`tasdiq_step_up`). PIN'ni chatda so'rash (bir martalik, xabar o'chiriladi) ataylab qilinmadi: PIN chat tarixi/eksportida qolmasin.
 
 ## 6. Ochiq masalalar
-1. Migratsiya egasi tomonidan qo'llanishi (`20261225000000_t2_qulf_v1`) + Pages env `QULF_RP_ID` / `QULF_ORIGINS` (ixtiyoriy).
+1. Migratsiya egasi tomonidan qo'llanishi (`20261225100000_t2_qulf_v1`) + Pages env `QULF_RP_ID` / `QULF_ORIGINS` (ixtiyoriy).
 2. Windows qobig'ida Windows Hello (yuqoriga qarang); Rust o'zgarishi (`transport.rs` allowlist) `cargo test` bilan tekshirilishi kerak.
 3. Android Keystore attestation zanjirini tekshirish.
 4. Telegram PIN-javob oqimi (hozir Mini App'ga yo'naltirish).

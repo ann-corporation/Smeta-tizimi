@@ -1,4 +1,4 @@
-/** QulfStore -- Supabase REST (service_role). Migratsiya: 20261225000000_t2_qulf_v1. Jadval yo'q (migratsiya qo'llanmagan) -> QulfYoq. */
+/** QulfStore -- Supabase REST (service_role). Migratsiya: 20261225100000_t2_qulf_v1. Jadval yo'q (migratsiya qo'llanmagan) -> QulfYoq. */
 import { supabaseBaseUrl } from './supabase-url';
 import type { KalitQator, QulfStore } from './qulf-amal';
 import type { QulfQator, Rejim, Talab } from './qulf';
