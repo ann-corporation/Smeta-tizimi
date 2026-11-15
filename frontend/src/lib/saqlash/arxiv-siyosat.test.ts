@@ -6,7 +6,7 @@ import { arxivKalit, yuklashTekshir } from '../../../functions/_shared/r2-saqlas
 
 const ILDIZ = join(process.cwd(), '..');
 const MIG = join(ILDIZ, 'supabase', 'migrations');
-const ASOS = '20261224100000_t2_arxiv_platforma_v1.sql';
+const ASOS = '20261224300000_t2_arxiv_platforma_v1.sql';
 const migratsiyalar = () => readdirSync(MIG).filter((f) => f.endsWith('.sql') && !/\.(rollback|acceptance)\.sql$/.test(f)).sort();
 
 describe('saqlash siyosati reyestri', () => {
