@@ -65,7 +65,7 @@ export function KompaniyaTanlagich() {
   if (k.kompaniyalar.length === 1 && !k.superadmin) {
     return (
       <span className="inline-flex items-center gap-1.5 text-[11px] text-text-dim">
-        <IshJoyiBelgi turi={k.kompaniyalar[0].turi} /> {t('Ish joyi:')} <b className="text-text">{k.kompaniyalar[0].nom}</b> <IshJoyiAmallari />
+        <IshJoyiBelgi turi={k.kompaniyalar[0].turi} /> <span className="os-ish-yorliq">{t('Ish joyi:')}</span> <b className="min-w-0 truncate text-text">{k.kompaniyalar[0].nom}</b> <IshJoyiAmallari />
       </span>
     );
   }
@@ -75,7 +75,7 @@ export function KompaniyaTanlagich() {
   return (
     <span className="inline-flex items-center gap-1.5">
       {k.globalRejim ? <Globe size={12} className="text-accent" /> : <IshJoyiBelgi turi={k.joriy?.turi} />}
-      <span className="text-[11px] text-text-dim">{t('Ish joyi:')}</span>
+      <span className="os-ish-yorliq text-[11px] text-text-dim">{t('Ish joyi:')}</span>
       <span className="relative inline-flex items-center">
         <select
           value={joriyQiymat}

@@ -597,7 +597,7 @@ h1, h2 { font-family: var(--font-display); }
 .fz-kpi__label i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
 .fz-kpi__value { font: 600 20px/26px var(--font-display); font-variant-numeric: tabular-nums; color: var(--text); }
 .fz-kpi__sub { font-size: 12px; line-height: 16px; color: var(--text-mute); font-variant-numeric: tabular-nums; }
-.fz-bolim { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(160px, 1fr) 170px; gap: 6px 16px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.fz-bolim { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(160px, 1fr) minmax(170px, max-content); gap: 6px 16px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
 .fz-bolim:last-child { border-bottom: 0; }
 .fz-bolim__nom { min-width: 0; }
 .fz-bolim__nom b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
