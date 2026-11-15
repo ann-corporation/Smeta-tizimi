@@ -13,6 +13,7 @@ import { onRequestGet as fotoDalilGet, onRequestPost as fotoDalilPost } from '..
 import { onRequestGet as profilGet, onRequestPost as profilPost } from '../profil';
 import { onRequestPost as kirishTaklifPost } from '../kirish-taklif';
 import { onRequestPost as aiSavolPost } from '../ai-savol';
+import { onRequestGet as qulfGet, onRequestPost as qulfPost } from '../qulf';
 
 // Native Android BFF (P0). Same trust model as api/desktop/bff.ts: verified device Bearer -> server-only cookie -> unchanged
 // middleware + handler. Roles never come from the token; the unchanged middleware derives fresh authority from the database.
@@ -32,8 +33,9 @@ const handlers: Record<string, Record<string, PagesFunction<Env>>> = {
   '/api/profil': { GET: profilGet, POST: profilPost },
   '/api/kirish-taklif': { POST: kirishTaklifPost },
   '/api/ai-savol': { POST: aiSavolPost },
+  '/api/qulf': { GET: qulfGet, POST: qulfPost },
 } as never;
-export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol)(?:\?[^#\s]*)?$/;
+export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol|qulf)(?:\?[^#\s]*)?$/;
 /** /api/profil also hosts account-security actions (parol, google/telegram ulash, hisob_birlashtir, sessions): the native device token may NOT reach them.\n *  Only the @username / people-search / invite-answer actions are exposed (USERNAME_V1). */
 export const MOBIL_PROFIL_AMAL: ReadonlySet<string> = new Set(['username_ol','username_tekshir','username_belgila','username_sozlama','qidir','kompaniyadosh_qidir','username_ommaviy','taklif_royxat','taklif_javob']);
 /** /api/kirish-taklif is public-by-design (qabul = sign-up without a session): the device may only reach yarat (director creates a phone invite link/code). */
@@ -74,7 +76,7 @@ export const onRequestPost: PagesFunction<Env> = async ctx => {
   let b: Record<string, unknown>;
   try { b = JSON.parse(await boundedBody(ctx.request)); }
   catch (err) { return desktopFail(err instanceof Error && err.message === 'BODY_TOO_LARGE' ? 413 : 400, 'BODY_INVALID'); }
-  if (!b || typeof b !== 'object' || Array.isArray(b) || Object.keys(b).some(k => !['path','method','body','etag'].includes(k)) ||
+  if (!b || typeof b !== 'object' || Array.isArray(b) || Object.keys(b).some(k => !['path','method','body','etag','tasdiq'].includes(k)) ||
     typeof b.path !== 'string' || b.path.length > 8192 || !MOBIL_PATH.test(b.path) ||
     typeof b.method !== 'string' || !['GET','POST'].includes(b.method)) return desktopFail(400, 'TARGET_INVALID');
   const target = new URL(b.path, new URL(ctx.request.url).origin);
@@ -85,6 +87,8 @@ export const onRequestPost: PagesFunction<Env> = async ctx => {
     const cookie = await imzola({ rol: sess.rol, foydalanuvchi_id: sess.foydalanuvchi_id }, ctx.env.SESSIYA_KALIT, sess.exp - SESSIYA_MUDDAT_MS);
     const headers = new Headers({ Cookie: 'sess=' + cookie, Origin: target.origin, 'Sec-Fetch-Site': 'same-origin' });
     if (typeof b.etag === 'string') headers.set('If-None-Match', b.etag);
+    headers.set('X-Qulf-Kanal', 'mobil'); // QULF: tasdiq tokeni qurilma kanaliga bog'langan (BFF har so'rovda yangi sessiya jti beradi)
+    if (typeof b.tasdiq === 'string' && b.tasdiq.length <= 600) headers.set('X-Tasdiq', b.tasdiq);
     if (b.method === 'POST') headers.set('Content-Type', 'application/json');
     const request = new Request(target.href, { method: b.method, headers,
       ...(b.method === 'POST' ? { body: typeof b.body === 'string' ? b.body : JSON.stringify(b.body ?? {}) } : {}),

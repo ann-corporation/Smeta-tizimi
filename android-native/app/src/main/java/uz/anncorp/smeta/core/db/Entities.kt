@@ -46,6 +46,41 @@ data class QatorEntity(
 @Entity(tableName = "qator_fts")
 data class QatorFts(val kod: String?, val nom: String)
 
+/**
+ * One node of the estimate tree exactly as the object packet carries it: RZ (section) -> BL (work) -> RS / MAT / OB (resources).
+ * [ord] is the depth-first position (children ordered by tartib, id: the order the web tree shows), [depth] the nesting level.
+ * Volumes and the markup-free amounts are server values. A node without a value keeps null (not 0).
+ */
+@Entity(tableName = "smeta_node", primaryKeys = ["obyektId", "id"], indices = [Index(value = ["obyektId", "ord"])])
+data class NodeEntity(
+    val obyektId: Long,
+    val id: Long,
+    val parentId: Long?,
+    val ord: Int,
+    val depth: Int,
+    /** rz | bl | rs | mat | ob */
+    val tur: String,
+    val kat: String?,
+    val kod: String?,
+    val nom: String,
+    val birlik: String?,
+    val hajm: Double?,
+    val narx: Double?,
+    val summa: Double?,
+    val norma: Double?,
+    val faktHajm: Double,
+    val faktSumma: Double,
+    val f2Hajm: Double,
+    val f2Summa: Double,
+    val almashtirilgan: Double,
+    val hasChildren: Boolean,
+) {
+    val isRz get() = tur == "rz"
+    val isBl get() = tur == "bl"
+    val isResource get() = tur == "rs" || tur == "mat" || tur == "ob"
+    val qoldiq: Double? get() = hajm?.let { it - faktHajm - almashtirilgan }
+}
+
 @Entity(tableName = "meta")
 data class MetaEntity(@PrimaryKey val key: String, val value: String)
 
@@ -66,6 +101,8 @@ data class DraftEntity(
     /** Volume still open on the estimate when the line was added (null = estimate volume unknown). */
     val qoldiq: Double? get() = smetaHajm?.let { it - faktHajm - almashtirilgan }
     val exceeds: Boolean get() = qoldiq?.let { hajm > it + 1e-9 } ?: false
+    /** A negative volume (normaga keltirish) that would take the row's total fact below zero. Only warns, like the server. */
+    val goesBelowZero: Boolean get() = hajm < 0.0 && faktHajm + hajm < -1e-9
 }
 
 object OutboxState {

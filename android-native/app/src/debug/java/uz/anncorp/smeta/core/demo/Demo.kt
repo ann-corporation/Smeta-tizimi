@@ -53,7 +53,7 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
             path.startsWith("/api/sessiya") -> ApiResult(200, session["sessiya"])
             path.startsWith("/api/ish-joyi") && method == "POST" -> ok("""{"ok":true,"kompaniya_id":1}""")
             // The file nowork.flag simulates a fresh company-less account (onboarding screen).
-            path.startsWith("/api/ish-joyi") -> if (File(context.filesDir, "nowork.flag").exists()) ok("""{"ok":true,"ish_joylari":[]}""") else ApiResult(200, session["ish_joyi"])
+            path.startsWith("/api/ish-joyi") -> if (File(context.filesDir, "nowork.flag").exists()) ok("""{"ok":true,"ish_joylari":[]}""") else if (File(context.filesDir, "boss.flag").exists()) ok(session["ish_joyi"].toString().replace("\"prorab\"", "\"direktor\"")) else ApiResult(200, session["ish_joyi"])
             path.startsWith("/api/profil") && method == "POST" -> profil(body as? JsonObject)
             path.startsWith("/api/kirish-taklif") && method == "POST" -> ok("""{"ok":true,"kod":"48213907","havola":"https://smeta-tizimi.pages.dev/taklif/DEMOTOKEN"}""")
             path.startsWith("/api/ai-savol") && method == "POST" -> {
@@ -68,7 +68,7 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
                 if (v.contains("yoq") || v.startsWith("+")) ApiResult(404, buildJsonObject { put("ok", false); put("code", "TOPILMADI"); put("tur", "telefon"); put("telefon_taklif", true); put("telefon", "+998901234567") }, "TOPILMADI")
                 else ok("""{"ok":true,"taklif_id":55,"holat":"kutmoqda","profil":{"id":31,"ism":"Sardor Karimov","username":"sardor_k","avatar_rang":"#3b82f6"}}""")
             }            path.startsWith("/api/company") && method == "POST" -> ok("""{"ok":true,"kompaniya_id":1}""")
-            path.startsWith("/api/company") -> ok("""{"ok":true,"context_kompaniyalar":[{"kompaniya_id":1,"effective_role":"pto","permissions":["company.read","smeta.read","fakt.read","fakt.write","f2.read","f2.prepare","narx.read","document.write","warehouse.read"]}]}""")
+            path.startsWith("/api/company") -> ok("""{"ok":true,"context_kompaniyalar":[{"kompaniya_id":1,"effective_role":"pto","permissions":[${if (File(context.filesDir, "boss.flag").exists()) "\"control.company.read\",\"financial.write\"," else ""}"company.read","smeta.read","fakt.read","fakt.write","f2.read","f2.prepare","narx.read","document.write","warehouse.read"]}]}""")
             path.startsWith("/api/modullarim") -> if (method == "POST") ok("""{"ok":true,"versiya":1}""") else ok("""{"ok":true,"tanlangan":["fakt","foto","f2"],"tartib":["fakt","foto","f2"],"versiya":1}""")
             path.startsWith("/api/obyekt-paket") -> {
                 val id = path.substringAfter("obyekt_id=").toLongOrNull() ?: return ApiResult(400, null)
@@ -84,6 +84,7 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
                 val jadval = s("jadval"); val filtr = s("filtr").orEmpty()
                 when {
                     s("soro") == "rahbar_panel_v1" -> ok(asset("panel.json"))
+                    s("soro") == "akt_reestr_obyekt_v1" -> ok(asset("f2list.json"))
                     s("soro") == "modul_holat_v1" -> ok("""{"ok":true,"natija":{"ok":true,"modullar":[{"kod":"module.hr","holat":"off"},{"kod":"module.moliya","holat":"on"}]}}""")
                     jadval == "t2_obyekt_jami" -> ok(asset("objects.json"))
                     jadval == "t2_sklad_qoldiq" -> ok(asset("ombor_stock.json"))

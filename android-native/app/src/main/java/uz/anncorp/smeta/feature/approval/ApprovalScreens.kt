@@ -135,6 +135,7 @@ private fun ApprovalRow(a: ApprovalItem, onClick: () -> Unit) {
 
 @Composable
 fun ApprovalDetailScreen(onBack: () -> Unit, vm: ApprovalDetailViewModel = hiltViewModel()) {
+    uz.anncorp.smeta.feature.lock.SecureScreen() // approvals show money: no screenshots / recents thumbnail
     val ui by vm.state.collectAsStateWithLifecycle()
     val snack = remember { SnackbarHostState() }
     var confirm by rememberSaveable { mutableStateOf<Decision?>(null) }

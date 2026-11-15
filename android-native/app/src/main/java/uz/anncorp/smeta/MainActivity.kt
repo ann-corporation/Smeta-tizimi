@@ -7,6 +7,13 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.foundation.layout.Box
+import kotlinx.coroutines.delay
+import android.view.WindowManager
+import uz.anncorp.smeta.core.security.AppLockController
+import uz.anncorp.smeta.feature.lock.AppLockLayer
+import uz.anncorp.smeta.feature.lock.ScreenSecurity
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavType
@@ -32,6 +39,9 @@ import uz.anncorp.smeta.feature.work.OutboxScreen
 import uz.anncorp.smeta.feature.work.ObjectsScreen
 import uz.anncorp.smeta.feature.web.WebModuleScreen
 import uz.anncorp.smeta.feature.jarvis.JarvisScreen
+import uz.anncorp.smeta.feature.rahbar.RahbarScreen
+import uz.anncorp.smeta.feature.smeta.SmetaBrowseScreen
+import uz.anncorp.smeta.feature.f2.F2ListScreen
 import uz.anncorp.smeta.feature.people.CompanyInviteScreen
 import uz.anncorp.smeta.feature.people.InvitesScreen
 import uz.anncorp.smeta.feature.signup.InviteScreen
@@ -47,6 +57,12 @@ import javax.inject.Inject
 class MainActivity : AppCompatActivity() {
     @Inject lateinit var prefs: Prefs
     @Inject lateinit var events: AuthEvents
+    @Inject lateinit var lock: AppLockController
+
+    /** QULF: every touch/key counts as activity for the idle lock; background/foreground drive the lock timer. */
+    override fun onUserInteraction() { super.onUserInteraction(); lock.touch() }
+    override fun onStart() { super.onStart(); lock.onStart() }
+    override fun onStop() { lock.onStop(); super.onStop() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,7 +77,19 @@ class MainActivity : AppCompatActivity() {
                     navigationBarStyle = if (dark) SystemBarStyle.dark(bg) else SystemBarStyle.light(light, light),
                 )
             }
-            QuraiTheme(dark) { AppNav(events, if (uz.anncorp.smeta.core.demo.Demo.enabled(this@MainActivity)) HOME else SPLASH) }
+            val q by lock.qulf.collectAsStateWithLifecycle()
+            LaunchedEffect(Unit) { lock.refresh(); while (true) { delay(1000); lock.tick() } }
+            // FLAG_SECURE for the whole app while the lock is on (no screenshots, blank recents thumbnail).
+            LaunchedEffect(q?.enabled, lock.protectScreen) {
+                ScreenSecurity.global = lock.protectScreen
+                if (lock.protectScreen) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE) else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            }
+            QuraiTheme(dark) {
+                Box {
+                    AppNav(events, lock, if (uz.anncorp.smeta.core.demo.Demo.enabled(this@MainActivity)) HOME else SPLASH)
+                    AppLockLayer(lock)
+                }
+            }
         }
     }
 }
@@ -81,15 +109,19 @@ private const val WEB = "web?path={path}&title={title}"
 private const val PICK_FAKT = "pick/fakt"
 private const val PICK_PHOTO = "pick/photo"
 private const val JARVIS = "jarvis"
+private const val RAHBAR = "rahbar"
+private const val SMETA = "smeta/{id}"
+private const val F2LIST = "f2/{id}"
 private const val PEOPLE_INVITE = "people/invite"
 private const val PEOPLE_INVITES = "people/invites"
 
 @Composable
-private fun AppNav(events: AuthEvents, start: String) {
+private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
     val nav = rememberNavController()
     // Revoked/expired device or explicit sign-out: always back to Login with a clean stack.
     LaunchedEffect(Unit) {
         events.logout.collect {
+            lock.reset()
             nav.navigate(LOGIN) { popUpTo(nav.graph.id) { inclusive = true }; launchSingleTop = true }
         }
     }
@@ -109,12 +141,13 @@ private fun AppNav(events: AuthEvents, start: String) {
             InviteScreen(onBack = { nav.popBackStack() }, onSignedIn = { nav.navigate(HOME) { popUpTo(LOGIN) { inclusive = true } } })
         }
         composable(HOME) {
+            LaunchedEffect(Unit) { lock.refresh() }
             HomeScreen(
                 onOpenObject = { nav.navigate("object/$it") }, onOpenFakt = { nav.navigate("fakt/$it") },
                 onOpenApproval = { nav.navigate("approval/$it") }, onOutbox = { nav.navigate(OUTBOX) },
                 onOpenWeb = { path, title -> nav.navigate("web?path=${Uri.encode(path)}&title=${Uri.encode(title)}") },
                 onPickFakt = { nav.navigate(PICK_FAKT) }, onPickPhoto = { nav.navigate(PICK_PHOTO) },
-                onJarvis = { nav.navigate(JARVIS) }, onInvite = { nav.navigate(PEOPLE_INVITE) }, onInvites = { nav.navigate(PEOPLE_INVITES) },
+                onJarvis = { nav.navigate(JARVIS) }, onRahbar = { nav.navigate(RAHBAR) }, onInvite = { nav.navigate(PEOPLE_INVITE) }, onInvites = { nav.navigate(PEOPLE_INVITES) },
             )
         }
         val idArg = listOf(navArgument("id") { type = NavType.LongType })
@@ -135,6 +168,13 @@ private fun AppNav(events: AuthEvents, start: String) {
         composable(PICK_FAKT) { PickObjectScreen(R.string.mod_fact, onBack = { nav.popBackStack() }) { nav.navigate("fakt/$it") } }
         composable(PICK_PHOTO) { PickObjectScreen(R.string.mod_photo, onBack = { nav.popBackStack() }) { nav.navigate("photo/$it") } }
         composable(JARVIS) { JarvisScreen(onBack = { nav.popBackStack() }) }
+        composable(RAHBAR) {
+            RahbarScreen(onBack = { nav.popBackStack() }, onOpenObject = { nav.navigate("object/$it") }, onOpenApprovals = { nav.popBackStack() })
+        }
+        composable(SMETA, idArg) { SmetaBrowseScreen(onBack = { nav.popBackStack() }, onDraft = { nav.navigate("draft/$it") }) }
+        composable(F2LIST, idArg) {
+            F2ListScreen(onBack = { nav.popBackStack() }, onOpenWeb = { path, title -> nav.navigate("web?path=${Uri.encode(path)}&title=${Uri.encode(title)}") })
+        }
         composable(PEOPLE_INVITE) { CompanyInviteScreen(onBack = { nav.popBackStack() }) }
         composable(PEOPLE_INVITES) { InvitesScreen(onBack = { nav.popBackStack() }, onAccepted = { nav.navigate(HOME) { popUpTo(HOME) { inclusive = true } } }) }
         composable(OUTBOX) { OutboxScreen(onBack = { nav.popBackStack() }, onEditDraft = { nav.navigate("draft/$it") }) }
@@ -152,7 +192,10 @@ private fun PickObjectScreen(@androidx.annotation.StringRes title: Int, onBack: 
 
 @Composable
 private fun CardRoute(nav: androidx.navigation.NavHostController) {
-    ObjectCardScreen(onBack = { nav.popBackStack() }, onEnterFakt = { nav.navigate("fakt/$it") }, onPhoto = { nav.navigate("photo/$it") }, onOutbox = { nav.navigate(OUTBOX) })
+    ObjectCardScreen(
+        onBack = { nav.popBackStack() }, onEnterFakt = { nav.navigate("fakt/$it") }, onPhoto = { nav.navigate("photo/$it") }, onOutbox = { nav.navigate(OUTBOX) },
+        onSmeta = { nav.navigate("smeta/$it") }, onF2 = { nav.navigate("f2/$it") },
+    )
 }
 
 

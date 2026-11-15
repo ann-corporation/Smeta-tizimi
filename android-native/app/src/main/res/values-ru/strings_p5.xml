@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="p5_minus_tip_t">Отрицательный объём</string>
+    <string name="p5_minus_tip_b">Для пересчёта (приведения к норме) или исправления ошибки объём можно ввести со знаком минус. Кнопка ± меняет знак. Если итоговый факт строки уйдёт ниже нуля, приложение предупредит.</string>
+    <string name="p5_minus_row">Минус: объём вычитается из факта строки.</string>
+    <string name="p5_minus_below_zero">Итоговый факт станет ниже нуля (%1$s). Всё равно можно сохранить.</string>
+    <string name="p5_minus_below_zero_short">Итоговый факт станет ниже нуля</string>
+    <plurals name="p5_below_zero_n">
+        <item quantity="one">В %1$d строке итоговый факт станет ниже нуля</item>
+        <item quantity="few">В %1$d строках итоговый факт станет ниже нуля</item>
+        <item quantity="many">В %1$d строках итоговый факт станет ниже нуля</item>
+        <item quantity="other">В %1$d строках итоговый факт станет ниже нуля</item>
+    </plurals>
+
+    <string name="p5_info_cd">Пояснение: «%1$s»</string>
+    <string name="p5_got_it">Понятно</string>
+    <string name="p5_clear">Очистить</string>
+    <string name="p1_card_f2_short">Ф-2</string>
+
+    <string name="tip_fakt_t">Факт</string>
+    <string name="tip_fakt_b">Факт — фактически выполненная работа. Его вводит сотрудник на объекте (мастер, прораб) в объёмах. Факт ещё не означает, что работа сдана заказчику.</string>
+    <string name="tip_f2_t">Ф-2</string>
+    <string name="tip_f2_b">Ф-2 — акт выполненных работ, сданный и принятый заказчиком. Расчёты ведутся по этому документу. Факт — это работа, которую ещё готовят к сдаче в Ф-2.</string>
+    <string name="tip_smeta_t">Смета</string>
+    <string name="tip_smeta_b">Смета — запланированные работы по объекту, их объёмы и цены. Стоимость объекта берётся из сметы.</string>
+    <string name="tip_qqs_t">НДС и наценка</string>
+    <string name="tip_qqs_b">Стоимость объекта сначала показана с НДС (12 %). Ниже две суммы без НДС: «с наценкой» — прямые затраты плюс накладные и плановая прибыль; «без наценки» — только работа, материалы и труд (прямые затраты). Все суммы приходят с сервера, телефон их сам не считает.</string>
+    <string name="tip_progress_t">Выполнение</string>
+    <string name="tip_progress_b">Внешнее кольцо — какой процент сметы выполнен (факт). Внутреннее — какой процент принят в Ф-2. Если больше 100 %, выполнено больше сметы.</string>
+
+    <string name="p5_btn_photo">Фото</string>
+    <string name="p5_btn_smeta">Смета</string>
+    <string name="p5_btn_f2">Ф-2</string>
+    <string name="p5_ring_hint">Внешнее — факт, внутреннее — Ф-2</string>
+    <string name="p5_sections">Выполнение по разделам</string>
+    <string name="p5_sections_tip">Процент факта и Ф-2 от сметной суммы каждого раздела. Суммы по разделам не показываются, только проценты.</string>
+    <string name="p5_section_other">Строки без раздела</string>
+    <string name="p5_show_all">Все (%1$d)</string>
+    <string name="p5_show_less">Свернуть</string>
+    <string name="p5_f2_timeline">Последние Ф-2</string>
+    <string name="p5_all_f2">Все</string>
+
+    <string name="mod_smeta_native">Смета</string>
+    <string name="p5_smeta_readonly">Только просмотр. Правка сметы — на сайте.</string>
+    <string name="p5_smeta_search_hint">Ищите по коду или названию.</string>
+    <string name="p5_row_unpriced">Строка без цены</string>
+    <string name="p5_leg_done_not_accepted">Выполнено, не принято</string>
+    <string name="p5_leg_open">Осталось</string>
+
+    <string name="f2_title">Документы Ф-2</string>
+    <string name="f2_forbidden">Нет доступа к Ф-2</string>
+    <string name="f2_forbidden_body">У вас нет права просмотра Ф-2 по этому объекту. Обратитесь к руководителю.</string>
+    <string name="f2_empty">Ф-2 пока нет</string>
+    <string name="f2_empty_hint">Когда по принятым работам будет подготовлен Ф-2, он появится здесь.</string>
+    <string name="f2_open_web">Открыть реестр Ф-2 на сайте</string>
+    <string name="f2_pdf_hint">Скачивание PDF и Excel, а также суммы — в реестре на сайте.</string>
+    <string name="f2_summary">Состояние Ф-2</string>
+    <string name="f2_act_title">Ф-2 № %1$s</string>
+    <string name="f2_flag_unpriced">%1$d без цены</string>
+    <string name="f2_flag_minus">%1$d с минусом</string>
+    <string name="f2_flag_diff">расхождение с реестром</string>
+    <string name="f2_flag_diff_long">Сумма документа отличается от суммы строк в системе. Проверьте на сайте.</string>
+    <string name="f2_month">Месяц</string>
+    <string name="f2_rows">Количество строк</string>
+    <string name="f2_unpriced">Строки без цены</string>
+    <string name="f2_minus_rows">Строки с минусом</string>
+    <string name="f2_sums_on_web">Суммы акта (с НДС, с наценкой и без) показаны в реестре Ф-2 на сайте.</string>
+    <string name="f2_st_draft">Черновик</string>
+    <string name="f2_st_submitted">Отправлен</string>
+    <string name="f2_st_checked">Проверен</string>
+    <string name="f2_st_approved">Принят</string>
+    <string name="f2_st_rejected">Отклонён</string>
+    <string name="f2_st_cancelled">Отменён</string>
+    <string name="f2_st_superseded">Заменён</string>
+    <string name="f2_st_unknown">Неизвестно</string>
+    <string name="f2_ex_draft">Черновик: документ ещё готовится, заказчику не отправлен.</string>
+    <string name="f2_ex_submitted">Отправлен: документ на проверке, ждём ответа.</string>
+    <string name="f2_ex_checked">Проверен: прошёл внутреннюю проверку, ждёт утверждения.</string>
+    <string name="f2_ex_approved">Принят: документ утверждён, его сумма входит в итог Ф-2 по объекту.</string>
+    <string name="f2_ex_rejected">Отклонён: документ возвращён, нужно исправить и отправить снова.</string>
+    <string name="f2_ex_cancelled">Отменён: документ больше не учитывается.</string>
+    <string name="f2_ex_superseded">Заменён: вместо него создана новая версия.</string>
+    <string name="f2_ex_unknown">Статус не определён. Проверьте в реестре на сайте.</string>
+
+    <string name="mod_rahbar">Панель руководителя</string>
+    <string name="mod_rahbar_d">Состояние компании и объектов, предупреждения</string>
+    <string name="rb_forbidden">Нет доступа к панели руководителя</string>
+    <string name="rb_forbidden_body">Панель для руководства компании и пользователей с финансовым правом.</string>
+    <string name="rb_offline_empty">Офлайн — панель ещё не сохранена</string>
+    <plurals name="rb_objects_n">
+        <item quantity="one">%1$d объект</item>
+        <item quantity="few">%1$d объекта</item>
+        <item quantity="many">%1$d объектов</item>
+        <item quantity="other">%1$d объекта</item>
+    </plurals>
+    <string name="rb_company_totals">Итого по компании</string>
+    <string name="rb_ring_hint">Внешнее кольцо — факт, внутреннее — Ф-2 (к смете)</string>
+    <string name="rb_contracts">Договоры (с НДС) · количество</string>
+    <plurals name="rb_f2_count">
+        <item quantity="one">Принято Ф-2: %1$d</item>
+        <item quantity="few">Принято Ф-2: %1$d</item>
+        <item quantity="many">Принято Ф-2: %1$d</item>
+        <item quantity="other">Принято Ф-2: %1$d</item>
+    </plurals>
+    <string name="rb_cash">Денежный поток и задолженность</string>
+    <string name="rb_paid">Оплачено (всего)</string>
+    <string name="rb_receivable">Дебиторка (нам должны)</string>
+    <string name="rb_payable">Кредиторка (мы должны)</string>
+    <string name="rb_months">По месяцам</string>
+    <string name="rb_months_tip">Три столбца на месяц: выполненные работы (Ф-2), поступившая оплата и расходы. Серый короткий столбец — данные не введены.</string>
+    <string name="rb_leg_done">Выполнено</string>
+    <string name="rb_leg_paid">Оплата</string>
+    <string name="rb_leg_cost">Расход</string>
+    <string name="rb_forecast">Прогноз на %1$d дн.</string>
+    <string name="rb_fc_unpaid">Неоплаченные Ф-2</string>
+    <string name="rb_fc_expected">Ожидаемое поступление</string>
+    <string name="rb_not_entered">не введено</string>
+    <string name="rb_approvals">Ждут утверждения</string>
+    <string name="rb_approvals_hint">Документы, ожидающие решения руководителя</string>
+    <string name="rb_attention">Требует внимания</string>
+    <string name="rb_attention_tip">Проблемы, найденные системой: важные сверху. Нажмите строку с названием объекта, чтобы открыть его карточку.</string>
+    <string name="rb_attention_none">Пока проблем не найдено.</string>
+    <string name="rb_att_unhanded">Выполнено, но Ф-2 не сдан</string>
+    <string name="rb_att_f2_over">Ф-2 превышает факт</string>
+    <string name="rb_att_over_est">Объём сверх сметы</string>
+    <string name="rb_att_no_f3">Ф-2 принят, Ф-3 не выставлен</string>
+    <string name="rb_att_limit">Близко к лимиту договора</string>
+    <string name="rb_att_late">Оплата просрочена более 60 дней</string>
+    <string name="rb_att_registry">Сумма в системе и в реестре расходится</string>
+    <string name="rb_att_unpriced">Строки без цены</string>
+    <string name="rb_att_stock">Отрицательный остаток на складе</string>
+    <string name="rb_att_other">Нужна проверка</string>
+    <string name="rb_objects">Объекты</string>
+    <string name="rb_debt">Долг</string>
+    <plurals name="rb_f2_drafts">
+        <item quantity="one">%1$d черновик Ф-2</item>
+        <item quantity="few">%1$d черновика Ф-2</item>
+        <item quantity="many">%1$d черновиков Ф-2</item>
+        <item quantity="other">%1$d черновика Ф-2</item>
+    </plurals>
+    <string name="sm_expand_all">Развернуть всё</string>
+    <string name="sm_collapse_all">Свернуть всё</string>
+    <string name="sm_tree_tip_t">Дерево сметы</string>
+    <string name="sm_tree_tip_b">Смета как на сайте: раздел (RZ) → работа (BL) → ресурсы (RS труд/механизмы, MAT материалы, OB оборудование). Нажмите раздел, чтобы раскрыть. Поиск показывает найденную строку вместе с родительскими разделами. Суммы строк без НДС и без наценки; суммы с НДС и с наценкой — в стоимости объекта вверху.</string>
+    <string name="sm_counts">Показано: %1$d · всего узлов: %2$d · работ: %3$d</string>
+    <plurals name="sm_works">
+        <item quantity="one">%1$d работа</item>
+        <item quantity="few">%1$d работы</item>
+        <item quantity="many">%1$d работ</item>
+        <item quantity="other">%1$d работы</item>
+    </plurals>
+    <string name="sm_sum_plain">Сумма (без наценки)</string>
+    <string name="sm_norm">Норма</string>
+    <string name="sm_qty">Кол-во</string>
+    <string name="sm_price">Цена</string>
+    <string name="p5_enter_fakt_short">Факт</string>    <string name="sm_amount">Сумма</string>
+</resources>

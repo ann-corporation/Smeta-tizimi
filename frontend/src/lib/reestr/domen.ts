@@ -80,7 +80,7 @@ export const PREFIKS: Readonly<Record<Domen, readonly string[]>> = {
     /* USERNAME-V1: @username, band so'zlar, o'zgartirish tarixi (platforma identifikatori). */
     't2_username',
     't2_kompaniya', 't2_azolik', 't2_azo', 't2_foydalanuvchi', 't2_capability', 't2_role', 't2_permission', 't2_require_permission',
-    't2_effective', 't2_audit', 't2_outbox', 't2_signal', 't2_job', 't2_obuna', 't2_tarif', 't2_token', 't2_boshqaruv', 't2_desktop', 't2_mobil',
+    't2_effective', 't2_audit', 't2_outbox', 't2_signal', 't2_job', 't2_obuna', 't2_tarif', 't2_token', 't2_boshqaruv', 't2_desktop', 't2_mobil', 't2_qulf',
     't2_telegram', 't2_tg_kirish', 't2_telefon_norm', 't2_bildirishnoma', 't2_bildirishnomalar', 't2_royxat', 't2_ozi_royxat', 't2_sozlama', 't2_deploy',
     't2_integration', 't2_google', 't2_email_kod', 't2_parol', 't2_sessiya', 't2_system_control', 't2_control', 't2_onboarding',
     't2_hodisa', 't2_ozgarish', 't2_db', 't2_dieta', 't2_benchmark', 't2_tizim', 't2_boss', 't2_rahbar', 't2_demo', 't2_tmp', 't2_modul',

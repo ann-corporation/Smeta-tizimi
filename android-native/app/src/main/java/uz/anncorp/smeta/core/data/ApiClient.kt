@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -18,11 +19,14 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import uz.anncorp.smeta.core.security.StepUpHandler
+import uz.anncorp.smeta.core.security.TasdiqStore
 import java.io.IOException
 import java.util.UUID
 
 const val ANDROID_ORIGIN = "app://qurai-android"
 const val VERSION_HEADER = "X-Smeta-Desktop-Version"
+const val STEP_UP_CODE = "STEP_UP_KERAK"
 
 /** Emits when the server rejects the device credential or the user signs out; the UI returns to Login. */
 class AuthEvents {
@@ -77,18 +81,33 @@ class ApiClient(
     private val json: Json,
     versionName: String,
     base: OkHttpClient = OkHttpClient(),
+    /** In-memory step-up marker sent as envelope field 	asdiq (QULF). */
+    private val tasdiq: TasdiqStore? = null,
 ) : BffApi {
+    /** Set by the app-lock controller; asked to confirm (PIN/biometrics) when the server answers 403 STEP_UP_KERAK. Null = no step-up UI (tests, demo). */
+    @Volatile var stepUp: StepUpHandler? = null
+
     val http: OkHttpClient = base.newBuilder()
         .addInterceptor(NativeHeadersInterceptor({ tokens.token() }, versionName) { tokens.clear(); events.emitLogout() })
         .build()
 
     /** Calls an allow-listed API path through POST /api/mobil/bff (the server derives all authority from the device). */
     override suspend fun bff(path: String, method: String, body: JsonElement?, etag: String?): ApiResult {
+        val first = bffOnce(path, method, body, etag)
+        val handler = stepUp
+        if (first.status != 403 || first.code != STEP_UP_CODE || handler == null) return first
+        val methods = ((first.body as? JsonObject)?.get("usullar") as? JsonArray).orEmpty().mapNotNull { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
+        // Money/signature action needs a fresh PIN/biometric confirmation: ask once, then replay the same request with the new token.
+        return if (handler.request(methods)) bffOnce(path, method, body, etag) else first
+    }
+
+    private suspend fun bffOnce(path: String, method: String, body: JsonElement?, etag: String?): ApiResult {
         val envelope = buildJsonObject {
             put("path", path)
             put("method", method)
             if (body != null && body !is JsonNull) put("body", body)
             if (etag != null) put("etag", etag)
+            tasdiq?.current()?.let { put("tasdiq", it) }
         }
         return post("/api/mobil/bff", envelope)
     }

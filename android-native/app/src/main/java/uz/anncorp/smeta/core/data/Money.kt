@@ -22,7 +22,12 @@ import kotlinx.serialization.json.JsonPrimitive
 data class SumPack(val qqsBilan: Double, val ustamali: Double, val ustamasiz: Double)
 
 @Serializable
-data class ObjectMoney(val smeta: SumPack? = null, val fakt: SumPack? = null, val f2: SumPack? = null, val f2DraftCount: Int? = null) {
+data class ObjectMoney(
+    val smeta: SumPack? = null, val fakt: SumPack? = null, val f2: SumPack? = null, val f2DraftCount: Int? = null,
+    /** Server-provided progress percentages (`bajarilish`), contract value (QQS-inclusive), payments and debt; null = unknown. */
+    val factPct: Double? = null, val f2Pct: Double? = null, val f3Pct: Double? = null,
+    val contractQqs: Double? = null, val paid: Double? = null, val debt: Double? = null,
+) {
     val any get() = smeta != null || fakt != null || f2 != null
 }
 
@@ -52,7 +57,12 @@ fun parseRahbarPanel(body: JsonElement?): Map<Long, ObjectMoney>? {
     for (e in list) {
         val o = e.obj() ?: continue
         val id = o["obyekt_id"].num()?.toLong() ?: continue
-        out[id] = ObjectMoney(parseSumPack(o["smeta"]), parseSumPack(o["fakt"]), parseSumPack(o["f2"]), o["f2_qoralama"].obj()?.get("soni").num()?.toInt())
+        val b = o["bajarilish"].obj()
+        out[id] = ObjectMoney(
+            parseSumPack(o["smeta"]), parseSumPack(o["fakt"]), parseSumPack(o["f2"]), o["f2_qoralama"].obj()?.get("soni").num()?.toInt(),
+            b?.get("fakt").num(), b?.get("f2").num(), b?.get("f3").num(),
+            o["shartnoma"].obj()?.get("qqs_bilan").num(), o["tolangan"].num(), o["qarz"].num(),
+        )
     }
     return out
 }
