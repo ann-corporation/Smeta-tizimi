@@ -1,5 +1,6 @@
 mod cache;
 mod maxfiy;
+mod oflayn;
 mod shell;
 mod transport;
 fn builder() -> tauri::Builder<tauri::Wry> {
@@ -11,7 +12,16 @@ fn builder() -> tauri::Builder<tauri::Wry> {
         cache::desktop_cache_read,
         cache::desktop_cache_write,
         cache::desktop_cache_delete,
-        cache::desktop_cache_keys
+        cache::desktop_cache_keys,
+        oflayn::oflayn_holat,
+        oflayn::oflayn_kesh_yoz,
+        oflayn::oflayn_kesh_oqi,
+        oflayn::oflayn_kesh_tozala,
+        oflayn::oflayn_navbat_qosh,
+        oflayn::oflayn_navbat_royxat,
+        oflayn::oflayn_navbat_ochir,
+        oflayn::oflayn_qobiq_tayyor,
+        oflayn::oflayn_qobiq_bor
     ])
 }
 // iOS Keychain items survive app deletion while the sandbox (and cache) does not. A missing install marker means a

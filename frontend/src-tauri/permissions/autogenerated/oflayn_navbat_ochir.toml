@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-oflayn-navbat-ochir"
+description = "Enables the oflayn_navbat_ochir command without any pre-configured scope."
+commands.allow = ["oflayn_navbat_ochir"]
+
+[[permission]]
+identifier = "deny-oflayn-navbat-ochir"
+description = "Denies the oflayn_navbat_ochir command without any pre-configured scope."
+commands.deny = ["oflayn_navbat_ochir"]

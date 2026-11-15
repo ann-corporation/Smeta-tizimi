@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-oflayn-qobiq-bor"
+description = "Enables the oflayn_qobiq_bor command without any pre-configured scope."
+commands.allow = ["oflayn_qobiq_bor"]
+
+[[permission]]
+identifier = "deny-oflayn-qobiq-bor"
+description = "Denies the oflayn_qobiq_bor command without any pre-configured scope."
+commands.deny = ["oflayn_qobiq_bor"]

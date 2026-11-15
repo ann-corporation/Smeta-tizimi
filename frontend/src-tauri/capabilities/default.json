@@ -5,5 +5,5 @@
   "windows": ["main"],
   "webviews": ["main"],
   "local": true,
-  "permissions": ["core:default", "session-local"]
+  "permissions": ["core:default", "session-local", "oflayn-loader"]
 }

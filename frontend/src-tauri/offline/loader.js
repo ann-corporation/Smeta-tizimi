@@ -18,13 +18,25 @@
       .then(function () { clearTimeout(timer); return true; }, function () { clearTimeout(timer); return false; });
   }
 
+  // Offline start: if the site has precached its app shell (service worker), open the site anyway; the service worker
+  // serves the shell and the site's data comes from the encrypted native cache. The marker is written by the site
+  // (oflayn_qobiq_tayyor) after the shell precache finished; it is a boolean here, no user data.
+  function shellBor() {
+    var core = window.__TAURI_INTERNALS__;
+    if (!core || typeof core.invoke !== 'function') return Promise.resolve(false);
+    return Promise.resolve(core.invoke('oflayn_qobiq_bor')).then(function (v) { return v === true; }, function () { return false; });
+  }
+
   function start() {
     off.hidden = true;
     busy.hidden = false;
     probe().then(function (ok) {
       if (ok) { location.replace(SITE); return; }
-      busy.hidden = true;
-      off.hidden = false;
+      shellBor().then(function (bor) {
+        if (bor) { location.replace(SITE); return; }
+        busy.hidden = true;
+        off.hidden = false;
+      });
     });
   }
 

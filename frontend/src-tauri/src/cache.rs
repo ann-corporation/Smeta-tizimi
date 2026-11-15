@@ -30,51 +30,49 @@ fn cache_key(key: &str) -> NativeResult<String> {
 fn aad(c: &Credential, key: &str) -> Vec<u8> {
     format!("v1|{}|{}|{}|{key}", c.actor, c.device, c.cache_id).into_bytes()
 }
-fn cipher(c: &Credential) -> NativeResult<Aes256Gcm> {
+fn cipher_raw(key_b64: &str) -> NativeResult<Aes256Gcm> {
     let key = Zeroizing::new(
         STANDARD
-            .decode(&c.key)
+            .decode(key_b64)
             .map_err(|_| "DESKTOP_CACHE_KEY_INVALID")?,
     );
     Aes256Gcm::new_from_slice(&key).map_err(|_| "DESKTOP_CACHE_KEY_INVALID")
 }
-fn seal(c: &Credential, key: &str, value: &[u8]) -> NativeResult<Vec<u8>> {
-    cache_key(key)?;
-    if value.len() > LIMIT {
+/// Shared AES-256-GCM seal ("SC01" | nonce | ciphertext). The caller supplies key, AAD binding and size limit.
+pub(crate) fn seal_raw(key_b64: &str, aad: &[u8], value: &[u8], limit: usize) -> NativeResult<Vec<u8>> {
+    if value.len() > limit {
         return Err("DESKTOP_CACHE_TOO_LARGE");
     }
     let mut nonce = [0u8; 12];
     OsRng
         .try_fill_bytes(&mut nonce)
         .map_err(|_| "DESKTOP_RANDOM_FAILED")?;
-    let encrypted = cipher(c)?
-        .encrypt(
-            Nonce::from_slice(&nonce),
-            Payload {
-                msg: value,
-                aad: &aad(c, key),
-            },
-        )
+    let encrypted = cipher_raw(key_b64)?
+        .encrypt(Nonce::from_slice(&nonce), Payload { msg: value, aad })
         .map_err(|_| "DESKTOP_CACHE_ENCRYPT_FAILED")?;
     let mut out = b"SC01".to_vec();
     out.extend_from_slice(&nonce);
     out.extend_from_slice(&encrypted);
     Ok(out)
 }
-fn unseal(c: &Credential, key: &str, bytes: &[u8]) -> NativeResult<Vec<u8>> {
-    cache_key(key)?;
-    if bytes.len() < 32 || bytes.len() > LIMIT + 32 || &bytes[..4] != b"SC01" {
+pub(crate) fn unseal_raw(key_b64: &str, aad: &[u8], bytes: &[u8], limit: usize) -> NativeResult<Vec<u8>> {
+    if bytes.len() < 32 || bytes.len() > limit + 32 || &bytes[..4] != b"SC01" {
         return Err("DESKTOP_CACHE_INVALID");
     }
-    cipher(c)?
+    cipher_raw(key_b64)?
         .decrypt(
             Nonce::from_slice(&bytes[4..16]),
-            Payload {
-                msg: &bytes[16..],
-                aad: &aad(c, key),
-            },
+            Payload { msg: &bytes[16..], aad },
         )
         .map_err(|_| "DESKTOP_CACHE_AUTH_FAILED")
+}
+fn seal(c: &Credential, key: &str, value: &[u8]) -> NativeResult<Vec<u8>> {
+    cache_key(key)?;
+    seal_raw(&c.key, &aad(c, key), value, LIMIT)
+}
+fn unseal(c: &Credential, key: &str, bytes: &[u8]) -> NativeResult<Vec<u8>> {
+    cache_key(key)?;
+    unseal_raw(&c.key, &aad(c, key), bytes, LIMIT)
 }
 fn directory(root: &Path, c: &Credential) -> NativeResult<PathBuf> {
     // Check each owned directory component. Caller cannot choose any disk path.

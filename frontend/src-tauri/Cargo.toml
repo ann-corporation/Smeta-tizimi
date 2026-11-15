@@ -36,6 +36,9 @@ smeta-keystore = { path = "plugins/smeta-keystore" }
 # Android has no system OpenSSL for native-tls: build it from source (openssl-src) for the NDK target.
 openssl = { version = "0.10", features = ["vendored"] }
 
+[dev-dependencies]
+tauri = { version = "2", features = ["test"] }
+
 [features]
 custom-protocol = ["tauri/custom-protocol"]
 # Legacy "local bundle + native BFF/offline lease" mode (default OFF). Build with

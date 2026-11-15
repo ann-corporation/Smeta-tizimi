@@ -2,3 +2,13 @@
 identifier = "session-local"
 description = "Native BFF and encrypted cache; local main webview only, runtime origin checked."
 commands.allow = ["desktop_request", "desktop_logout", "desktop_session_info", "desktop_session_clear", "desktop_cache_read", "desktop_cache_write", "desktop_cache_delete", "desktop_cache_keys"]
+
+[[permission]]
+identifier = "oflayn-remote"
+description = "Narrow offline bridge for the live site: encrypted actor-bound read cache, Fakt write queue, status. Granted to the remote origin only via capabilities/remote.json. No filesystem, shell or plugin access."
+commands.allow = ["oflayn_holat", "oflayn_kesh_yoz", "oflayn_kesh_oqi", "oflayn_kesh_tozala", "oflayn_navbat_qosh", "oflayn_navbat_royxat", "oflayn_navbat_ochir", "oflayn_qobiq_tayyor"]
+
+[[permission]]
+identifier = "oflayn-loader"
+description = "Startup loader (local origin only): may ask whether an offline app shell exists."
+commands.allow = ["oflayn_qobiq_bor"]

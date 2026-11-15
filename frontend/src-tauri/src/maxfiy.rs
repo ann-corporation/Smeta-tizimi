@@ -7,9 +7,9 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use zeroize::Zeroize;
 pub(crate) type NativeResult<T> = Result<T, &'static str>;
 #[cfg(not(feature = "desktop-e2e"))]
-const SERVICE: &str = "uz.anncorp.smeta";
+pub(crate) const SERVICE: &str = "uz.anncorp.smeta";
 #[cfg(feature = "desktop-e2e")]
-const SERVICE: &str = "uz.anncorp.smeta.e2e";
+pub(crate) const SERVICE: &str = "uz.anncorp.smeta.e2e";
 const ACCOUNT: &str = "desktop-session-v1";
 // Upper bound matches the BFF's DESKTOP_SESSION_MS; actual expiry is the shorter
 // of device issuance and freshly validated /api/sessiya authority.
@@ -241,7 +241,7 @@ fn local_scheme_host(url: &tauri::Url) -> bool {
 fn local_scheme_host(url: &tauri::Url) -> bool {
     url.scheme() == "http" && url.host_str() == Some("tauri.localhost")
 }
-fn caller_tekshir(window: &str, webview: &str, url: &tauri::Url) -> NativeResult<()> {
+pub(crate) fn caller_tekshir(window: &str, webview: &str, url: &tauri::Url) -> NativeResult<()> {
     if window != "main"
         || webview != "main"
         || !local_scheme_host(url)
