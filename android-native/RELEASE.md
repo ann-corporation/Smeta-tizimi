@@ -10,7 +10,7 @@
 
 Secrets (same names as `mobile.yml`): `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`. They enter only the sign step via `env:`; the keystore is decoded into `$RUNNER_TEMP` and deleted right after signing. Only the public certificate SHA-256 digest is printed.
 
-Permission policy (`aapt2 dump permissions`): allowed `INTERNET`, `CAMERA`, `ACCESS_NETWORK_STATE`, `POST_NOTIFICATIONS`, plus what WorkManager/AndroidX merge in (`WAKE_LOCK`, `RECEIVE_BOOT_COMPLETED`, `FOREGROUND_SERVICE`, `uz.anncorp.smeta.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`). Anything else fails the build. When a feature needs a new permission, update the allow-list in the workflow in the same PR.
+Permission policy (`aapt2 dump permissions`): allowed `INTERNET`, `CAMERA`, `ACCESS_NETWORK_STATE`, `POST_NOTIFICATIONS`, `USE_BIOMETRIC`/`USE_FINGERPRINT` (qulf), plus what WorkManager/AndroidX merge in (`WAKE_LOCK`, `RECEIVE_BOOT_COMPLETED`, `FOREGROUND_SERVICE`, `uz.anncorp.smeta.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`). Anything else fails the build. When a feature needs a new permission, update the allow-list in the workflow in the same PR.
 
 Artifact `android-native-apk` contains `qurai-<versionName>-native-release.apk` and `android-native-manifest.json`:
 `{version, generatedAtUtc, file, bytes, sha256, signed, minSdk}` (the input format of `frontend/scripts/generate-mobile-release.mjs android`). `versionName` must match `d{1,4}.d{1,4}.d{1,6}` (server `ilovaVersiya()` rule); CI fails otherwise.

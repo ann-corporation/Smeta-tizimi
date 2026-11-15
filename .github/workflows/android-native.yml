@@ -104,9 +104,9 @@ jobs:
         run: |
           BT="${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS}"
           "$BT/aapt2" dump permissions "$APK_PATH" | tee "$RUNNER_TEMP/perms.txt"
-          # Allowed: app needs (INTERNET, CAMERA, ACCESS_NETWORK_STATE, POST_NOTIFICATIONS), WorkManager (WAKE_LOCK,
+          # Allowed: app needs (INTERNET, CAMERA, ACCESS_NETWORK_STATE, POST_NOTIFICATIONS, USE_BIOMETRIC/USE_FINGERPRINT for the PIN/biometric lock), WorkManager (WAKE_LOCK,
           # RECEIVE_BOOT_COMPLETED, FOREGROUND_SERVICE) and the AndroidX dynamic-receiver permission of this app id.
-          ALLOWED='^(android\.permission\.(INTERNET|CAMERA|ACCESS_NETWORK_STATE|POST_NOTIFICATIONS|WAKE_LOCK|RECEIVE_BOOT_COMPLETED|FOREGROUND_SERVICE)|uz\.anncorp\.smeta\.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION)$'
+          ALLOWED='^(android\.permission\.(INTERNET|CAMERA|ACCESS_NETWORK_STATE|POST_NOTIFICATIONS|USE_BIOMETRIC|USE_FINGERPRINT|WAKE_LOCK|RECEIVE_BOOT_COMPLETED|FOREGROUND_SERVICE)|uz\.anncorp\.smeta\.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION)$'
           BAD=$(sed -n "s/^uses-permission[^:]*: name='\([^']*\)'.*/\1/p" "$RUNNER_TEMP/perms.txt" | grep -Ev "$ALLOWED" || true)
           if [ -n "$BAD" ]; then echo "Disallowed permissions:"; echo "$BAD"; exit 1; fi
       - name: Release manifest JSON
