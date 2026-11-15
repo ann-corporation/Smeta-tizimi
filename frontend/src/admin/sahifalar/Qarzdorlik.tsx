@@ -113,9 +113,9 @@ function Tafsilot({ sh, kid, onSaqlandi }: { sh: QarzShartnoma; kid: number; onS
         ))}
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="max-h-[70vh] overflow-auto">
         <table className="w-full min-w-[980px] text-[12px]">
-          <thead>
+          <thead className="sticky top-0 z-10 bg-surface">
             <tr className="text-left text-[11px] uppercase text-text-mute">
               <th className="px-1 py-1">{t('Turi')}</th><th className="px-1 py-1">{t('Hujjat №')}</th><th className="px-1 py-1">{t('Sana')}</th><th className="px-1 py-1">{t('Nomi')}</th>
               <th className="px-1 py-1">{t('Birlik')}</th><th className="px-1 py-1">{t('Hajm')}</th><th className="px-1 py-1">{t('Narx')}</th><th className="px-1 py-1">{t('Summa (QQS bilan)')}</th>

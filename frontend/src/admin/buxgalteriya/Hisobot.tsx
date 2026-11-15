@@ -50,9 +50,9 @@ export function Hisobot({ kid, davr, versiya }: { kid: number; davr: Davr; versi
       {d && d.xaritalanmagan.length > 0 && (
         <p role="alert" className="flex items-center gap-1 text-[12.5px] text-warn"><AlertTriangle size={14} /> {t('Shaklga kirmagan hisoblar (qoldig‘i bor): {royxat}', { royxat: d.xaritalanmagan.join(', ') })}</p>
       )}
-      <div className="overflow-x-auto">
+      <div className="max-h-[70vh] overflow-auto">
         <table className="w-full min-w-[640px] text-[12.5px]" aria-label={t('Hisobot')}>
-          <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th className={th}>{t('Kod')}</th><th className={th}>{t('Ko‘rsatkich')}</th><th className={th}>{t('Hisoblar')}</th><th className={`${th} text-right`}>{t('Summa')}</th></tr></thead>
+          <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left text-[11px] uppercase text-text-mute"><th className={th}>{t('Kod')}</th><th className={th}>{t('Ko‘rsatkich')}</th><th className={th}>{t('Hisoblar')}</th><th className={`${th} text-right`}>{t('Summa')}</th></tr></thead>
           <tbody>
             {!d && <tr><td colSpan={4} className="px-2 py-6 text-center text-text-mute">{t('Yuklanmoqda…')}</td></tr>}
             {(d?.qatorlar ?? []).map((q) => (

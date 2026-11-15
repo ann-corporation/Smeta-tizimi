@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, CircleHelp, CircleSlash, Save, Search, Trash2, TriangleAlert } from 'lucide-react';
+import { Check, CircleHelp, CircleSlash, Search, Trash2, TriangleAlert } from 'lucide-react';
 import { yangiOperationId, type T2Qator, type T2QatorHolat } from '../../api/supabase';
 import { sbFaktYoz } from '../../api/t2-fakt';
 import { t2ObyektNakrutka, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
@@ -12,6 +12,7 @@ import { savatHajmi, savatJami, savatPaketi, savatdanOlish, savatgaQosh, type Sa
 import { miqdorBoshlang, nomzodHajmi } from '../../lib/xotira-fakt/tanlash';
 import { jurnalQur } from '../../lib/fakt-jurnal';
 import { toast } from '../../umumiy/ui/Toast';
+import { SaqlashPaneli } from '../../umumiy/ui/SaqlashPaneli';
 import { BoshqaJoydan, type YaratilganQator } from './BoshqaJoydan';
 import { IshAbcModal } from './IshAbcModal';
 import { katalogBoshlang } from '../../lib/xotira-fakt/boshqaJoy';
@@ -64,13 +65,6 @@ export function XotiradanFakt({ kompaniyaId, obyektId, rows, states, holatniYang
     void t2ObyektNakrutka(obyektId).then((r) => { if (!bekor) setNk(r.ok && r.koeffitsientlar ? r.koeffitsientlar : null); }).catch(() => { if (!bekor) setNk(null); });
     return () => { bekor = true; };
   }, [obyektId]);
-
-  useEffect(() => {
-    if (!savat.length) return;
-    const k = (e: BeforeUnloadEvent) => { e.preventDefault(); };
-    window.addEventListener('beforeunload', k);
-    return () => window.removeEventListener('beforeunload', k);
-  }, [savat.length]);
 
   const moslash = () => {
     const q = qatorlarniOqi(matn);
@@ -129,16 +123,17 @@ export function XotiradanFakt({ kompaniyaId, obyektId, rows, states, holatniYang
 
   const saqla = async () => {
     const paket = savatPaketi(savat);
-    if (!paket.length || saqlanmoqda) return;
+    if (!paket.length || saqlanmoqda) return false;
     setSaqlanmoqda(true);
     try {
       const r = await sbFaktYoz({ obyektId, sana: new Date().toISOString().slice(0, 10), operationId: operationId.current, qatorlar: paket, izoh: `Xotiradan fakt: ${paket.length} qator` });
-      if (!r.ok) { toast(r.error || r.xabar || t('Fakt saqlanmadi.'), 'danger'); return; }
+      if (!r.ok) { toast(r.error || r.xabar || t('Fakt saqlanmadi.'), 'danger'); return false; }
       toast(t('Fakt saqlandi: {n} qator.', { n: paket.length }), 'ok');
       operationId.current = yangiOperationId();
       setSavat([]); setNatijalar([]); setUi({}); setMatn('');
       await holatniYangila();
-    } catch { toast(t('Javob olinmadi. Qayta urinib koʻring.'), 'danger'); } finally { setSaqlanmoqda(false); }
+      return true;
+    } catch { toast(t('Javob olinmadi. Qayta urinib koʻring.'), 'danger'); return false; } finally { setSaqlanmoqda(false); }
   };
 
   const aktivNatija = natijalar[aktivQator];
@@ -153,7 +148,6 @@ export function XotiradanFakt({ kompaniyaId, obyektId, rows, states, holatniYang
 
   useHotkeys('xotira-fakt', t('Xotiradan fakt'), [
     { id: 'xotira.moslash', keys: 'ctrl+enter', nom: t('Matnni smetaga moslash'), inInput: true, run: () => { moslash(); } },
-    { id: 'xotira.saqla', keys: 'ctrl+s', nom: t('Saqlash'), inInput: true, run: () => { void saqla(); } },
     { id: 'xotira.pastga', keys: 'arrowdown', nom: t('Keyingi nomzod'), run: () => nomzodSur(1) },
     { id: 'xotira.tepaga', keys: 'arrowup', nom: t('Oldingi nomzod'), run: () => nomzodSur(-1) },
     { id: 'xotira.qatorPast', keys: 'ctrl+arrowdown', nom: t('Keyingi qator'), inInput: true, run: () => qatorSur(1) },
@@ -262,7 +256,7 @@ export function XotiradanFakt({ kompaniyaId, obyektId, rows, states, holatniYang
           {jami.narxsiz > 0 && <div className="text-[11px] text-warn">{t('Narxsiz qatorlar: {n} — jamiga kirmaydi', { n: jami.narxsiz })}</div>}
         </dl>
         <div className="flex gap-2">
-          <button type="button" onClick={() => void saqla()} disabled={!savat.length || saqlanmoqda} className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-[12px] font-semibold text-[color:var(--on-accent)] disabled:opacity-50"><Save size={14} />{saqlanmoqda ? t('Saqlanmoqda…') : t('Saqlash')}</button>
+          <SaqlashPaneli kalit="xotira-fakt" soni={savat.length} band={saqlanmoqda} saqla={saqla} className="flex-1" />
           <button type="button" onClick={() => navigate(`/admin/f2-tayyorlash?obyekt=${obyektId}`)} className="rounded-lg border border-accent/40 bg-accent/5 px-3 py-2 text-[12px] font-semibold text-text hover:bg-accent/10">{t('F2 tayyorlash →')}</button>
         </div>
       </aside>

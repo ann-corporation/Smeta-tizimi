@@ -9,6 +9,7 @@ import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { toast } from '../../umumiy/ui/Toast';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { sbT2ObyektlarOlKomp, type T2Obyekt } from '../../api/supabase';
 import {
   aloqaHolati, aloqaTafsilotOl, aloqalarOl, grantBekor, grantSaqla, kodBilanQabul, kompaniyaQidir, resurslarOl, taklifYubor, taklifgaJavob,
@@ -144,7 +145,7 @@ function GrantEditor({ kompaniyaId, aloqa, tafsilot, resurslar, yangila }: { kom
     toast(t('{n} ta ruxsat saqlandi', { n: r.natija.saqlandi ?? grantlar.length }), 'ok');
     setTanlanganObyekt(new Set()); setTanlanganResurs({}); yangila();
   };
-  const bekor = async (id: number) => { const r = await grantBekor(kompaniyaId, id); if (!r.ok) toast(r.error, 'danger'); else { toast(t('Ruxsat qaytarildi'), 'ok'); yangila(); } };
+  const bekor = async (id: number) => { if (!(await tasdiqSora({ matn: t('Ruxsat qaytarib olinsinmi? Tomon endi bu ma‘lumotlarni ko‘ra olmaydi.'), tasdiqMatni: t('Qaytarib olish'), xavfli: true }))) return; const r = await grantBekor(kompaniyaId, id); if (!r.ok) toast(r.error, 'danger'); else { toast(t('Ruxsat qaytarildi'), 'ok'); yangila(); } };
 
   return (
     <div className="space-y-3">
@@ -266,8 +267,8 @@ export default function TomonlarAloqa() {
         <div className="grid gap-4 lg:grid-cols-2"><YangiAloqa kompaniyaId={kompaniyaId} onYaratildi={() => void yukla()} /><KodQabul kompaniyaId={kompaniyaId} onQabul={() => void yukla()} /></div>
         <Bolim sarlavha="Aloqalar">
           {aloqalar.length === 0 ? <p className="text-sm text-text-dim">{t('Hali aloqa yo‘q. Yuqoridan qarshi tomon INN sini kiriting yoki sizga yuborilgan kodni qabul qiling.')}</p> : (
-            <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-xs">
-              <thead className="text-left text-text-dim"><tr><th className="px-2 py-1.5">{t('Qarshi tomon')}</th><th className="px-2 py-1.5">{t('Rollar (men → u)')}</th><th className="px-2 py-1.5">{t('Holat')}</th>
+            <div className="max-h-[70vh] overflow-auto"><table className="w-full min-w-[760px] text-xs">
+              <thead className="sticky top-0 z-10 bg-surface text-left text-text-dim"><tr><th className="px-2 py-1.5">{t('Qarshi tomon')}</th><th className="px-2 py-1.5">{t('Rollar (men → u)')}</th><th className="px-2 py-1.5">{t('Holat')}</th>
                 <th className="px-2 py-1.5 text-right">{t('Bergan / olgan ruxsat')}</th><th className="px-2 py-1.5 text-right">{t('Ochiq hujjat (kelgan / yuborilgan)')}</th></tr></thead>
               <tbody>{aloqalar.map((a) => (
                 <Fragment key={a.id}>

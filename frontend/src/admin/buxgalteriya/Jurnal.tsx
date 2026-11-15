@@ -47,9 +47,9 @@ export function Jurnal({ kid, davr, versiya, hisoblar, hisob, onHisob, onOzgardi
         <span className="text-[11.5px] text-text-mute">{t('Provodka o‘zgartirilmaydi: xato bo‘lsa «Storno» (teskari yozuv) qiling.')}</span>
       </div>
       {forma && <QoldaForma kid={kid} hisoblar={hisoblar} onYop={() => setForma(false)} onTayyor={() => { setForma(false); void yukla(); onOzgardi(); }} />}
-      <div className="overflow-x-auto">
+      <div className="max-h-[70vh] overflow-auto">
         <table className="w-full min-w-[960px] text-[12.5px]" aria-label={t('Provodkalar jurnali')}>
-          <thead><tr className="text-left text-[11px] uppercase text-text-mute">
+          <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left text-[11px] uppercase text-text-mute">
             <th className={th}>{t('Sana')}</th><th className={th}>{t('Debet')}<Izoh matn={DT_IZOH()} /></th><th className={th}>{t('Kredit')}<Izoh matn={KT_IZOH()} /></th>
             <th className={`${th} text-right`}>{t('Summa')}</th><th className={th}>{t('Kontragent')}</th><th className={th}>{t('Hujjat')}</th><th className={th}>{t('Turi')}</th><th className={th} />
           </tr></thead>

@@ -138,9 +138,9 @@ function Qoidalar({ kid, holat, onOzgardi, tasdiqlaydi, setXato, soz }: { kid: n
           <Izoh matn={t('Shablon tanlansa, uning qoidalari qo‘shiladi (mavjud qoidalar o‘zgarmaydi). Keyin hammasini tahrirlash mumkin.')} />
         </div>
       )}
-      <div className="overflow-x-auto">
+      <div className="max-h-[70vh] overflow-auto">
         <table className="w-full min-w-[720px] text-[12.5px]" aria-label={t('Provodka qoidalari')}>
-          <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th className={th}>{t('Hujjat')}</th><th className={th}>{t('Debet')}</th><th className={th}>{t('Kredit')}</th><th className={th} /></tr></thead>
+          <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left text-[11px] uppercase text-text-mute"><th className={th}>{t('Hujjat')}</th><th className={th}>{t('Debet')}</th><th className={th}>{t('Kredit')}</th><th className={th} /></tr></thead>
           <tbody>{holat.moslik.map((m) => {
             const par = m.kalit.startsWith('param.'); const x = tahrir[m.kalit];
             const nom = QOIDA_NOM[m.kalit]?.() ?? m.izoh ?? m.kalit;
@@ -197,9 +197,9 @@ function Reja({ kid, holat, onOzgardi, yozadi, tasdiqlaydi, setXato }: { kid: nu
           {tasdiqlaydi && <button type="button" className="fz-btn" onClick={() => void tasdiq(tekshirilmagan)}>{t('Hammasini tasdiqlash')}</button>}
         </p>
       )}
-      <div className="overflow-x-auto">
+      <div className="max-h-[70vh] overflow-auto">
         <table className="w-full min-w-[760px] text-[12.5px]" aria-label={t('Hisoblar ro‘yxati')}>
-          <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th className={th}>{t('Kod')}</th><th className={th}>{t('Nomi')}</th><th className={th}>{t('Turi')}</th><th className={th}>{t('Kontragent bo‘yicha')}<Izoh matn={t('Belgilangan hisob kontragentlar kesimida yuritiladi (xaridor, yetkazuvchi).')} /></th><th className={th}>{t('Faol')}</th></tr></thead>
+          <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left text-[11px] uppercase text-text-mute"><th className={th}>{t('Kod')}</th><th className={th}>{t('Nomi')}</th><th className={th}>{t('Turi')}</th><th className={th}>{t('Kontragent bo‘yicha')}<Izoh matn={t('Belgilangan hisob kontragentlar kesimida yuritiladi (xaridor, yetkazuvchi).')} /></th><th className={th}>{t('Faol')}</th></tr></thead>
           <tbody>
             {holat.hisoblar.map((h) => (
               <tr key={h.kod} className={`border-t border-border/50 ${h.faol ? '' : 'text-text-mute'}`}>

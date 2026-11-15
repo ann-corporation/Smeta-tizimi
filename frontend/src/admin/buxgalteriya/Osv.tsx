@@ -50,9 +50,9 @@ export function Osv({ kid, davr, versiya, onHisob }: { kid: number; davr: Davr; 
       {m && (m.muvozanatda
         ? <p className="flex items-center gap-1 text-[12.5px] text-ok"><CheckCircle2 size={14} /> {t('Jami Debet = jami Kredit: hisob muvozanatda.')}</p>
         : <p role="alert" className="flex items-center gap-1 text-[12.5px] text-danger"><AlertTriangle size={14} /> {t('Muvozanat buzilgan: Debet va Kredit farqi bor.')}</p>)}
-      <div className="overflow-x-auto">
+      <div className="max-h-[70vh] overflow-auto">
         <table className="w-full min-w-[900px] text-[12.5px]" aria-label={t('Oborot-saldo vedomost')}>
-          <thead>
+          <thead className="sticky top-0 z-10 bg-surface">
             <tr className="text-[10.5px] uppercase text-text-mute"><th colSpan={2} /><th colSpan={2} className="text-center">{t('Davr boshida')}</th><th colSpan={2} className="text-center">{t('Davr oboroti')}</th><th colSpan={2} className="text-center">{t('Davr oxirida')}</th></tr>
             <tr className="text-left text-[11px] uppercase text-text-mute">
               <th className={th}>{t('Hisob')}</th><th className={th}>{t('Nomi')}</th>

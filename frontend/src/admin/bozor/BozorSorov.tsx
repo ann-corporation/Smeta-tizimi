@@ -76,9 +76,9 @@ function Taqqoslash({ kompaniyaId, sorovId, yangila }: { kompaniyaId: number; so
     <div className="flex flex-col gap-2">
       {d.ogohlantirish === 'urtacha' && <p role="status" className="rounded-lg bg-surface-2 p-2 text-[13px]">{t('Bir nechta taklif bor: narx manbasiga arifmetik o‘rtacha yoziladi (QQS siz)')}: <b><FmtN val={d.urtacha} /></b> / {d.sorov.birlik}.</p>}
       {d.takliflar.length === 0 ? <p className="text-text-mute">{t('Hozircha taklif yo‘q.')}</p> : (
-        <div className="overflow-x-auto">
+        <div className="max-h-[70vh] overflow-auto">
           <table className="w-full min-w-[560px] text-[14px]">
-            <thead><tr className="text-left text-text-mute"><th>{t('Sotuvchi')}</th><th className="text-right">{t('Narx (QQS siz)')}</th><th className="text-right">{t('Jami (QQS siz)')}</th><th>{t('Muddat')}</th><th>{t('Yetkazish')}</th><th>{t('Reyting')}</th><th /></tr></thead>
+            <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left text-text-mute"><th>{t('Sotuvchi')}</th><th className="text-right">{t('Narx (QQS siz)')}</th><th className="text-right">{t('Jami (QQS siz)')}</th><th>{t('Muddat')}</th><th>{t('Yetkazish')}</th><th>{t('Reyting')}</th><th /></tr></thead>
             <tbody>
               {d.takliflar.map((x) => (
                 <tr key={x.id} className={`border-t border-border ${x.holat === 'tanlandi' ? 'bg-surface-2 font-semibold' : x.holat === 'rad' ? 'text-text-mute' : ''}`}>

@@ -8,12 +8,13 @@ vi.mock('../../api/t2-bajarilmadi', async (asl) => ({
   bajarilmadiRoyxatOl: m.royxat, bajarilmadiBelgila: m.belgila, bajarilmadiBekor: m.bekor,
 }));
 import { BajarilmadiPanel } from './BajarilmadiPanel';
+import { sinovUlagichOrnat } from '../../umumiy/ui/tasdiq-yadro';
 
 const q = { id: 10, tur: 'bl', kod: 'E6-1', nom: 'Beton quyish', birlik: 'm3', hajm: 10 } as unknown as T2Qator;
 const h = [{ qator_id: 10, fakt_hajm: 3 }] as unknown as T2QatorHolat[];
 const yozuv = { id: 5, obyekt_id: 8, qator_id: 10, kod: 'E6-1', nom: 'Beton quyish', birlik: 'm3', tur: 'bl', smeta_hajm: 10, fakt_hajm: 3, hajm: null, bajarilmagan_hajm: 7,
   sabab_kod: 'texnik_sabab', sabab_izoh: null, hujjat_id: null, hujjat_nom: null, sana: '2026-10-24', zamena_qator_id: null, holat: 'faol', kim: 'Anvar', yaratildi: '2026-10-24T05:00:00Z' };
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
+afterEach(() => { cleanup(); vi.clearAllMocks(); sinovUlagichOrnat(null); });
 
 describe('Bajarilmadi paneli', () => {
   it('qator tanlanadi, sabab bilan belgilanadi (smeta qatoriga tegilmaydi); yozuv ro‘yxatda ko‘rinadi va bekor qilinadi', async () => {
@@ -27,6 +28,7 @@ describe('Bajarilmadi paneli', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Bajarilmadi deb belgilash' }));
     await waitFor(() => expect(m.belgila).toHaveBeenCalledTimes(1));
     expect(m.belgila.mock.calls[0][0]).toMatchObject({ kompaniyaId: 123, obyektId: 8, sabab: 'buyurtmachi_chiqardi', qatorlar: [{ qator_id: 10, hajm: null }] });
+    sinovUlagichOrnat({ tasdiq: () => true });
     const bekor = await screen.findByRole('button', { name: 'Bekor qilish' });
     fireEvent.click(bekor);
     await waitFor(() => expect(m.bekor).toHaveBeenCalledWith(expect.objectContaining({ kompaniyaId: 123, id: 5 })));

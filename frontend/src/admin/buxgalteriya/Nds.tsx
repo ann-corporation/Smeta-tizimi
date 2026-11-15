@@ -10,9 +10,9 @@ function Reyestr({ nom, qatorlar, izoh }: { nom: string; qatorlar: BuxNdsQator[]
   return (
     <section className="space-y-1">
       <h3 className="text-[13px] font-semibold">{nom}<Izoh matn={izoh} /></h3>
-      <div className="overflow-x-auto">
+      <div className="max-h-[70vh] overflow-auto">
         <table className="w-full min-w-[820px] text-[12.5px]" aria-label={nom}>
-          <thead><tr className="text-left text-[11px] uppercase text-text-mute">
+          <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left text-[11px] uppercase text-text-mute">
             <th className={th}>{t('Sana')}</th><th className={th}>{t('Hujjat')}</th><th className={th}>{t('Kontragent')}</th><th className={th}>{t('STIR')}</th>
             <th className={`${th} text-right`}>{t('QQS siz')}</th><th className={`${th} text-right`}>{t('QQS')}</th><th className={`${th} text-right`}>{t('QQS bilan')}</th>
           </tr></thead>

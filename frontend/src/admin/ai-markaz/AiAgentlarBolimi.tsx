@@ -75,7 +75,7 @@ export function AiAgentlarBolimi({ markaz }: { markaz: Markaz | null }) {
         <h2 className="mb-1 text-[14px] font-semibold text-text">{t('Modellar galereyasi')}</h2>
         <p className="mb-2 text-[12px] text-text-mute">{t('OpenRouter orqali istalgan model qo‘shiladi. Narxlarni (1 million token uchun, dollarda) kiriting — xarajat hisobi va limit shunga tayanadi. Narx kiritilmasa, haqiqiy narx provayderdan olinadi.')}</p>
         <table className="w-full text-[12px]">
-          <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th>{t('Model')}</th><th>{t('Kirish $/1M')}</th><th>{t('Chiqish $/1M')}</th><th>{t('Rasm')}</th></tr></thead>
+          <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left text-[11px] uppercase text-text-mute"><th>{t('Model')}</th><th>{t('Kirish $/1M')}</th><th>{t('Chiqish $/1M')}</th><th>{t('Rasm')}</th></tr></thead>
           <tbody>{d.katalog.map((m) => (
             <tr key={m.id} className="border-t border-border/60"><td className="py-1"><div className="text-text">{m.nom}</div><div className="text-[10px] text-text-mute">{m.id}</div></td>
               <td>{m.narx_kirish_usd ?? '—'}</td><td>{m.narx_chiqish_usd ?? '—'}</td><td>{m.vision ? '👁' : ''}</td></tr>

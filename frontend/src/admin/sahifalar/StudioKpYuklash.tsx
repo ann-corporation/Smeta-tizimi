@@ -115,7 +115,7 @@ export function StudioKpYuklash({ kompaniyaId, onSaqlandi }: { kompaniyaId: numb
         </div>
         {k.ndsDalil && <p className="text-[11px] text-text-mute">{t('Hujjatda')}: «{k.ndsDalil}»</p>}
         {k.nds === 'nomalum' && <p className="text-[11px] text-warn">{t('Smeta narxi QQSsiz bo‘lishi shart — hujjatdagi narx QQS bilanmi, QQSsizmi, tanlang.')}</p>}
-        <div className="max-h-48 overflow-auto"><table className="w-full text-[11.5px]"><thead className="text-text-mute"><tr>
+        <div className="max-h-48 overflow-auto"><table className="w-full text-[11.5px]"><thead className="sticky top-0 z-10 bg-surface text-text-mute"><tr>
           <th className="text-left">{t('Nomi')}</th><th className="text-left">{t('Birlik')}</th><th className="text-right">{t('Narx')}</th></tr></thead>
           <tbody>{k.qatorlar.slice(0, 30).map((q, i) => <tr key={i} className="border-t border-border/50"><td>{q.nom}</td><td>{q.birlik ?? '—'}</td><td className="text-right tabular-nums">{q.narx?.toLocaleString('ru-RU')}</td></tr>)}</tbody>
         </table></div>

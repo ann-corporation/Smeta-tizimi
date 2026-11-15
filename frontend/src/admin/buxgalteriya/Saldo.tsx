@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { FileUp, Undo2 } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { yangiOperationId } from '../../api/supabase';
 import { buxSaldoBekor, buxSaldoImport, buxTolovOl, buxXato, type SaldoNatija } from '../../api/t2-bux-hisob';
 import { csvGrid } from '../../lib/buxgalteriya/bank';
@@ -55,6 +56,7 @@ export function Saldo({ kid, onOzgardi, tasdiqlaydi }: { kid: number; onOzgardi:
     toast(t('Boshlang‘ich qoldiq yozildi: {n} ta provodka', { n: r.yozildi ?? 0 }), 'ok'); onOzgardi();
   };
   const bekor = async () => {
+    if (!(await tasdiqSora({ matn: t('Hamma boshlang‘ich qoldiq provodkalari storno qilinadi. Davom etasizmi?'), tasdiqMatni: t('Bekor qilish'), xavfli: true }))) return;
     setBand(true);
     const r = await buxSaldoBekor(kid, yangiOperationId());
     setBand(false);

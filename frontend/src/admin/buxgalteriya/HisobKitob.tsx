@@ -62,9 +62,9 @@ export function HisobKitob({ kid, davr, versiya }: { kid: number; davr: Davr; ve
         <div><span className="mb-1 block text-[11px] uppercase text-text-mute">{t('Bizga qarz (debitor)')}<Izoh matn={t('Xaridor va buyurtmachilarning bizdan qarzi (4010 hisob saldosi, Debet tomonda).')} /></span><Son v={jami.debitor} qalin /></div>
         <div><span className="mb-1 block text-[11px] uppercase text-text-mute">{t('Biz qarzmiz (kreditor)')}<Izoh matn={t('Yetkazuvchi va pudratchilar oldidagi qarzimiz (6010 hisob saldosi, Kredit tomonda).')} /></span><Son v={jami.kreditor} qalin /></div>
       </div>
-      <div className="overflow-x-auto">
+      <div className="max-h-[70vh] overflow-auto">
         <table className="w-full min-w-[820px] text-[12.5px]" aria-label={t('Kontragent bilan hisob-kitob')}>
-          <thead>
+          <thead className="sticky top-0 z-10 bg-surface">
             <tr className="text-left text-[11px] uppercase text-text-mute">
               <th className="w-6" /><th className={th}>{t('Kontragent')}</th><th className={th}>{t('STIR')}</th>
               <th className={`${th} text-right`}>{t('Bizga qarz')}</th><th className={`${th} text-right`}>{t('Biz qarzmiz')}</th><th className={th} />
