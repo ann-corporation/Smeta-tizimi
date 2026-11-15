@@ -20,6 +20,7 @@ import { kontekstAktorTozala, kontekstOl, keshliRpc } from '../_shared/agent-kon
 import { xotiraBloklari } from '../../src/lib/smeta-ai/tajriba';
 import { kimMendan, kimPromptBloki } from '../../src/lib/yordamchi/kim';
 import { NIYAT_SXEMA, niyatLlmTekshir, niyatTizimi } from '../../src/lib/yordamchi/niyat-llm';
+import { pulJavobi } from '../_shared/agent-pul-javob';
 import { suhbatTarixi, faktMatni, kasbPrompti, mavzuTaqiqi, radMatni, toifalarniTanla, harakatMatni, javobniAjrat, MAVZU_NOMI, type KasbMalumoti, type Toifa } from '../_shared/agent-kasb';
 import { bilimBolimi, dbBilimYozuvlari, navigatsiyaSorovi, sahifaQidirish, tizimYordamJavobi, yolTekshir } from '../_shared/agent-bilim';
 import { BILIM_SXEMA, BILIM_VAZIFA, bilimKodi, bilimTakliflariniAjrat } from '../_shared/agent-bilim-yigish';
@@ -293,6 +294,13 @@ async function kasbQuvur(env: Env, actor: number, kid: number, so: Yuk, log: (be
     await yozJurnal('rad', javob, qadamlar, { rad: true });
     return { status: 200, body: { ok: true, kasb: ish, rad: true, model: 'local', javob } };
   }
+  /* Ustama (nakrutka) va QQS bilan smeta qiymati: tizim ma'lumotidan ANIQ hisob, model chaqirilmaydi. */
+  const pulMatni = await pulJavobi((nom, yuk) => rpcData(env, nom, yuk), { actor, kid, savol, tarix: so.tarix, obyektId: sonmi(so.obyekt_id) ? Number(so.obyekt_id) : null, ruxsat: kasb.kategoriyalar }).catch(() => null);
+  if (pulMatni) {
+    qd('💰', 'Smeta qiymati tizim hisobidan (nakrutka/QQS) — model chaqirilmadi, token sarflanmadi');
+    await yozJurnal('savol', pulMatni, qadamlar, {});
+    return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', javob: pulMatni } };
+  }
   const toifalar = toifalarniTanla(savol, kasb.kategoriyalar, matn(so.sahifa, 160));
   qd('🧭', `Savol tahlil qilindi — kerakli ma’lumot: ${nomlar(toifalar)}`);
   qd('🗄️', 'Tizimdan ma’lumot olinmoqda (faqat lavozimingizga ruxsat etilgan)…');
@@ -347,7 +355,7 @@ async function kasbQuvur(env: Env, actor: number, kid: number, so: Yuk, log: (be
   if (bilim) qd('📚', 'Tizim bilimi qo‘shildi: savolga tegishli atama va sahifa mantiqi');
   const uslubB = uslubBolimi(uslubXus, uslubKorsatma, uslubOchiq);
   if (uslubB) qd('🎨', 'Sizning uslubingizga moslashtirilmoqda (Sozlamalar → Mening AI ishchim)');
-  /* Suhbat tarixi («uni», «shu obyektda», «yana bitta»): oxirgi ≤6 xabar, har biri ≤500 belgi; ma'lumot sifatida (ko'rsatma emas). */
+  /* Suhbat tarixi («uni», «shu obyektda», «yana bitta»): boshlang‘ich maqsad + so‘nggi xabarlar, umumiy qat’iy hajm limiti; ma’lumot sifatida (ko‘rsatma emas). */
   const tarixMatni = suhbatTarixi(so.tarix);
   const kimB = kimPromptBloki(kimMendan(men?.ok ? (men.data as never) : { context_kompaniyalar: [{ kompaniya_id: kid, nom: '', effective_role: kasb.rol }] }, kid, { til: til === 'auto' ? null : til, sahifa: sahifaYoli, obyektNomi: matn(so.obyekt_nomi, 120) }));
   const xotiraB = xotiraBloklari(xotira);

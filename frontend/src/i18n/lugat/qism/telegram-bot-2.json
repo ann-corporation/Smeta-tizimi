@@ -80,5 +80,8 @@
   "Fakt qatoriga biriktirish": { "ru": "Прикрепить к строке факта", "en": "Attach to a fact row" },
   "fakt qoralamasi: /fakt <obyekt#> <nima va qancha> (tokenlar sarflanadi)": {
     "ru": "черновик факта: /fakt <объект#> <что и сколько> (расходуются токены)",
-    "en": "actual-work draft: /fakt <site#> <what and how much> (tokens are spent)" }
+    "en": "actual-work draft: /fakt <site#> <what and how much> (tokens are spent)" },
+  "Bu tasdiq PIN yoki biometrik talab qiladi. Hech narsa tasdiqlanmadi — Mini App da tasdiqlang.": {
+    "ru": "Это подтверждение требует PIN-кода или биометрии. Ничего не подтверждено — подтвердите в Mini App.",
+    "en": "This approval needs your PIN or biometrics. Nothing was approved — confirm in the Mini App." }
 }

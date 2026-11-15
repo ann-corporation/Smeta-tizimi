@@ -11,8 +11,8 @@ import java.io.File
 import java.security.SecureRandom
 
 @Database(
-    entities = [ObyektEntity::class, QatorEntity::class, QatorFts::class, MetaEntity::class, DraftEntity::class, OutboxEntity::class],
-    version = 2, exportSchema = false,
+    entities = [ObyektEntity::class, QatorEntity::class, QatorFts::class, MetaEntity::class, DraftEntity::class, OutboxEntity::class, NodeEntity::class],
+    version = 3, exportSchema = false,
 )
 abstract class AppDb : RoomDatabase() {
     abstract fun obyekt(): ObyektDao
@@ -20,10 +20,11 @@ abstract class AppDb : RoomDatabase() {
     abstract fun meta(): MetaDao
     abstract fun draft(): DraftDao
     abstract fun outbox(): OutboxDao
+    abstract fun node(): NodeDao
 
     /** Sign-out: drop everything that is cached from the server. Unsent writes are kept (they belong to the user's work). */
     suspend fun clearCaches() {
-        obyekt().clear(); qator().clear(); meta().clear(); draft().clearAll()
+        obyekt().clear(); qator().clear(); node().clear(); meta().clear(); draft().clearAll()
     }
 
     companion object {
@@ -40,7 +41,7 @@ abstract class AppDb : RoomDatabase() {
             }
             return Room.databaseBuilder(context, AppDb::class.java, name)
                 .openHelperFactory(SupportOpenHelperFactory(passphrase))
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .fallbackToDestructiveMigration()
                 .build()
         }
@@ -50,6 +51,15 @@ abstract class AppDb : RoomDatabase() {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE qator ADD COLUMN bolim TEXT")
                 // Forget the packet ETags: otherwise the server answers 304 and the cached rows would never get their section.
+                db.execSQL("DELETE FROM meta WHERE `key` LIKE 'paket_etag:%'")
+            }
+        }
+
+        /** v3: the full estimate tree (RZ / BL / resources). Unsent writes and drafts are untouched; packet ETags are forgotten so the tree fills on the next sync. */
+        val MIGRATION_2_3 = object : androidx.room.migration.Migration(2, 3) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `smeta_node` (`obyektId` INTEGER NOT NULL, `id` INTEGER NOT NULL, `parentId` INTEGER, `ord` INTEGER NOT NULL, `depth` INTEGER NOT NULL, `tur` TEXT NOT NULL, `kat` TEXT, `kod` TEXT, `nom` TEXT NOT NULL, `birlik` TEXT, `hajm` REAL, `narx` REAL, `summa` REAL, `norma` REAL, `faktHajm` REAL NOT NULL, `faktSumma` REAL NOT NULL, `f2Hajm` REAL NOT NULL, `f2Summa` REAL NOT NULL, `almashtirilgan` REAL NOT NULL, `hasChildren` INTEGER NOT NULL, PRIMARY KEY(`obyektId`, `id`))")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_smeta_node_obyektId_ord` ON `smeta_node` (`obyektId`, `ord`)")
                 db.execSQL("DELETE FROM meta WHERE `key` LIKE 'paket_etag:%'")
             }
         }

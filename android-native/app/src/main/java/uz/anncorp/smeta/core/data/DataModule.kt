@@ -13,6 +13,11 @@ import okhttp3.OkHttpClient
 import uz.anncorp.smeta.BuildConfig
 import uz.anncorp.smeta.core.db.AppDb
 import uz.anncorp.smeta.core.demo.Demo
+import uz.anncorp.smeta.core.security.AppLockController
+import uz.anncorp.smeta.core.security.DeviceKey
+import uz.anncorp.smeta.core.security.LockPrefs
+import uz.anncorp.smeta.core.security.QulfRepository
+import uz.anncorp.smeta.core.security.TasdiqStore
 import java.io.File
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
@@ -37,8 +42,19 @@ object DataModule {
     fun prefs(@ApplicationContext c: Context) = Prefs(c.getSharedPreferences("qurai_prefs", Context.MODE_PRIVATE))
 
     @Provides @Singleton
-    fun apiClient(tokens: TokenStore, events: AuthEvents, json: Json, http: OkHttpClient) =
-        ApiClient(BuildConfig.API_BASE_URL.toHttpUrl(), tokens, events, json, BuildConfig.VERSION_NAME, http)
+    fun apiClient(tokens: TokenStore, events: AuthEvents, json: Json, http: OkHttpClient, tasdiq: TasdiqStore) =
+        ApiClient(BuildConfig.API_BASE_URL.toHttpUrl(), tokens, events, json, BuildConfig.VERSION_NAME, http, tasdiq)
+
+    /** QULF: in-memory step-up marker, server QULF client and the app-lock controller (also the ApiClient's step-up handler). */
+    @Provides @Singleton
+    fun tasdiqStore() = TasdiqStore()
+
+    @Provides @Singleton
+    fun qulfRepository(api: BffApi, tasdiq: TasdiqStore) = QulfRepository(api, tasdiq)
+
+    @Provides @Singleton
+    fun appLock(@ApplicationContext c: Context, repo: QulfRepository, tasdiq: TasdiqStore, client: ApiClient): AppLockController =
+        AppLockController(repo, tasdiq, LockPrefs(c.getSharedPreferences("qurai_lock", Context.MODE_PRIVATE)), DeviceKey()).also { client.stepUp = it }
 
     @Provides @Singleton
     fun authRepository(tokens: TokenStore, json: Json, http: OkHttpClient) = AuthRepository(
@@ -87,6 +103,12 @@ object DataModule {
 
     @Provides @Singleton
     fun moneyRepository(api: BffApi, db: AppDb, json: Json) = MoneyRepository(api, db, json)
+
+    @Provides @Singleton
+    fun rahbarRepository(api: BffApi, db: AppDb, json: Json, money: MoneyRepository) = RahbarRepository(api, db, json, money)
+
+    @Provides @Singleton
+    fun f2Repository(api: BffApi, db: AppDb, json: Json) = F2Repository(api, db, json)
 
     @Provides @Singleton
     fun approvalsRepository(api: BffApi, db: AppDb) = ApprovalsRepository(api) { id -> db.obyekt().get(id)?.nom }

@@ -37,6 +37,28 @@ class FormatTest {
         assertEquals(7.0, parseVolume("7,")!!, 0.0)
     }
 
+    @Test fun parseVolumeAcceptsNegativeForNormagaKeltirish() {
+        assertEquals(-2.5, parseVolume("-2,5")!!, 0.0)
+        assertEquals(-2.5, parseVolume("\u22122,5")!!, 0.0)   // true minus sign
+        assertEquals(-0.3, parseVolume("-0,3")!!, 0.0)
+        assertEquals(-0.3, parseVolume("\u22120.3")!!, 0.0)
+        assertEquals(-2.5, parseVolume("\u20132,5")!!, 0.0)   // en dash from some keyboards
+        assertEquals(-1234.567, parseVolume("-1 234,567")!!, 0.0)
+        assertEquals(-7.0, parseVolume("-7")!!, 0.0)
+        assertEquals(0.0, parseVolume("-0,0004")!!, 0.0)       // rounds to zero: never negative zero
+        assertEquals(-1.235, parseVolume("-1,2345")!!, 0.0)
+    }
+
+    @Test fun toggleMinusFlipsTheSign() {
+        assertEquals("-5", toggleMinus("5")); assertEquals("5", toggleMinus("-5")); assertEquals("-", toggleMinus(""))
+        assertEquals("2,5", toggleMinus("\u22122,5"))
+    }
+
+    @Test fun faktAfterCanGoBelowZero() {
+        assertEquals(-0.5, faktAfter(2.0, -2.5), 0.0)
+        assertEquals(4.5, faktAfter(2.0, 2.5), 0.0)
+        assertEquals(0.3, faktAfter(0.1, 0.2), 0.0)
+    }
     @Test fun volumeRoundsHalfUpToThreeDecimals() {
         assertEquals(1.235, parseVolume("1,2345")!!, 0.0)
         assertEquals(1.234, parseVolume("1,2344")!!, 0.0)
@@ -45,7 +67,7 @@ class FormatTest {
     }
 
     @Test fun volumeRejectsGarbage() {
-        listOf("", " ", ",", ".", "abc", "1,2,3", "1.2.3", "-5", "+5", "1e5", "12,5m").forEach { assertNull("'$it'", parseVolume(it)) }
+        listOf("", " ", ",", ".", "abc", "1,2,3", "1.2.3", "+5", "1e5", "--5", "5-", "-", "-,", "- -5", "-1e5", "12,5m").forEach { assertNull("'$it'", parseVolume(it)) }
     }
 
     @Test fun volumeFormatTrimsZeros() {

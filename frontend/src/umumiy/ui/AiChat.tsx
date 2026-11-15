@@ -1,3 +1,4 @@
+import { suhbatKonteksti } from '../../lib/ai-yordamchi/suhbat-kontekst';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import { mdBolaklar } from '../../lib/yordamchi/jadval';
@@ -108,12 +109,13 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   /** Serverdan faqat qisqartma sifatida yuklangan suhbat id si: yangi xabar qo'shilganda asl nusxa ustiga yozilmaydi, yangi suhbat (fork) bo'ladi. */
   const qisqartmaDan = useRef<string | null>(null);
   const yuklashNomer = useRef(0);
+  const [yuklanayotgan, setYuklanayotgan] = useState<string | null>(null);
   const suhbatToxtat = () => {
-    yuklashNomer.current++; suhbatAvlod.current++; gen.current = `${scope}|${suhbatAvlod.current}`;
+    setYuklanayotgan(null); yuklashNomer.current++; suhbatAvlod.current++; gen.current = `${scope}|${suhbatAvlod.current}`;
     abort.current?.abort(); busy.current = false; kutish.current = null; davomRef.current = null;
     setBand(false); setMatn(''); setSaqlashHolati('idle');
   };
-  useEffect(() => { setTarixEga(tarixKalit); kutish.current = null; const tiklangan = tarixKalit ? tarixOqi(tarixKalit) : []; yuklanganImzo.current = xabarImzo(tiklangan); qisqartmaDan.current = null; setXabarlar(tiklangan); setMatn(''); setBand(false); busy.current = false; davomRef.current = null; abort.current?.abort();
+  useEffect(() => { setYuklanayotgan(null); setTarixEga(tarixKalit); kutish.current = null; const tiklangan = tarixKalit ? tarixOqi(tarixKalit) : []; yuklanganImzo.current = xabarImzo(tiklangan); qisqartmaDan.current = null; setXabarlar(tiklangan); setMatn(''); setBand(false); busy.current = false; davomRef.current = null; abort.current?.abort();
     return () => { abort.current?.abort(); };
   }, [scope, tarixKalit]);
   useEffect(() => { if (tarixKalit && tarixEga === tarixKalit) {
@@ -184,10 +186,12 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const serverdanDavom = async (s: Suhbat) => {
     /* Avval yuklaymiz: xato bo'lsa joriy (oqayotgan) javob bekor qilinmaydi. */
     const boshlangich = gen.current; const nomer = ++yuklashNomer.current;
+    setYuklanayotgan(s.sarlavha);
     let r: Awaited<ReturnType<typeof suhbatServerdanOl>> = null;
     try { r = kompaniyaId != null ? await suhbatServerdanOl(kompaniyaId, s.id) : null; }
     catch { /* Yuklash xatosi quyida ko'rsatiladi. */ }
     if (gen.current !== boshlangich || yuklashNomer.current !== nomer) return;
+    setYuklanayotgan(null);
     if (!r) { toast(t('Suhbatni yuklab bo‘lmadi'), 'warn'); return; }
     const toLiq = !!r.xabarlar;
     const x = r.xabarlar ?? (r.qisqartma ? [{ r: 'ai' as const, m: `${t('Eski suhbat (qisqartma)')}: ${r.qisqartma}` }] : []);
@@ -224,7 +228,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   }), []);
 
   const xabarYangila = (xid: string, f: (x: Xabar) => Xabar) => setXabarlar((p) => p.map((x) => (x.id === xid ? f(x) : x)));
-  const tarixOl = () => xabarlarRef.current.filter((x) => x.matn && !x.jonli).slice(-6).map((x) => ({ rol: x.rol === 'user' ? 'user' as const : 'assistant' as const, matn: x.matn.slice(0, 600) }));
+  const tarixOl = (joriyId?: string) => suhbatKonteksti(xabarlarRef.current.filter((x) => x.matn && !x.jonli && x.id !== joriyId).map((x) => ({ rol: x.rol === 'user' ? 'user' as const : 'assistant' as const, matn: x.matn }))).xabarlar;
 
   /** Yagona yordamchi natijasini xabarga yozadi; navigatsiya — sahifani ochadi (yozuv emas). */
   const yordamchiNatijasi = (id: string, r: IshlovNatija) => {
@@ -258,7 +262,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
         setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', matn: '', jonli: true, jarvis: true, qadamlar: [{ ms: 0, belgi: '🧭', matn: t('Gapni tushunyapman…') }], kutadi: s }]);
         setMatn(''); setBand(true); busy.current = true;
         const ctrl0 = new AbortController(); abort.current = ctrl0;
-        const lr = await niyatLlmOl(kompaniyaId, s, { tarix: tarixOl().filter((x) => !(x.rol === 'user' && x.matn === s.slice(0, 600))), sahifa, obyektNomi: ya.joriyObyekt?.nom ?? null, signal: ctrl0.signal });
+        const lr = await niyatLlmOl(kompaniyaId, s, { tarix: tarixOl(id), sahifa, obyektNomi: ya.joriyObyekt?.nom ?? null, signal: ctrl0.signal });
         if (gen.current !== boshlangich) return;
         busy.current = false; setBand(false);
         if (lr?.tur === 'noaniq') { xabarYangila(id + 'a', (x) => ({ ...x, jonli: false, qadamlar: undefined, matn: lr.savol ?? '', tanlov: lr.variantlar.map((v) => ({ nom: v, matn: v })) })); return; }
@@ -277,7 +281,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
         let r: IshlovNatija;
         try {
           r = await yordamchiIshla(n, ishMatn, {
-            kompaniyaId, sahifalar: ya.sahifalar, motor: ya.motor, tarix: tarixOl().filter((x) => !(x.rol === 'user' && x.matn === s.slice(0, 600))), hujjat: ya.hujjat ?? undefined, sahifaAmalBajar: ya.sahifaAmalBajar, kim: ya.kim, vosita: ya.vosita,
+            kompaniyaId, sahifalar: ya.sahifalar, motor: ya.motor, tarix: tarixOl(id), hujjat: ya.hujjat ?? undefined, sahifaAmalBajar: ya.sahifaAmalBajar, kim: ya.kim, vosita: ya.vosita,
             qadam: (q) => { if (gen.current === boshlangich) xabarYangila(id + 'a', (x) => ({ ...x, qadamlar: [...(x.qadamlar ?? []), { ms: 0, belgi: q.holat === 'xato' ? '✗' : '⏳', matn: q.matn }] })); },
             tirikmi: () => gen.current === boshlangich && !ctrl.signal.aborted,
           });
@@ -332,7 +336,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     if (katalog.length && gen.current === boshlangich)
       setXabarlar((p) => p.map((x) => (x.id === id + 'a' ? { ...x, qadamlar: [...(x.qadamlar ?? []), { ms: 0, belgi: '📚', matn: t('Platforma narx indeksidan {n} ta mos qator olindi', { n: katalog.length }) }] } : x)));
     const yakun = await kasbSavolOqim(kompaniyaId, s, {
-      sahifa, signal: ctrl.signal, katalog, studio, obyektNomi: ya?.joriyObyekt?.nom ?? null, tarix: tarixOl().filter((x) => !(x.rol === 'user' && x.matn === s.slice(0, 600))),
+      sahifa, signal: ctrl.signal, katalog, studio, obyektNomi: ya?.joriyObyekt?.nom ?? null, tarix: tarixOl(id),
       qadam: (q) => { if (gen.current === boshlangich) setXabarlar((p) => p.map((x) => (x.id === id + 'a' ? { ...x, qadamlar: [...(x.qadamlar ?? []), q] } : x))); },
     });
     if (gen.current !== boshlangich) return;   // kompaniya almashdi — eski javob ko'rsatilmaydi
@@ -383,6 +387,10 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
           {!ixcham && <button type="button" onClick={() => window.dispatchEvent(new Event('ai:yangi-suhbat'))} className="rounded border border-border px-2 py-1 text-sm">{t('Yangi suhbat')}</button>}
         </div>
         {!ixcham && <p className="mt-1 text-xs text-text-dim">{kompaniyaId == null ? t('Kontekst: umumiy suhbat') : t('Kontekst: kompaniya #{id}', { id: String(kompaniyaId) })}{yordamchi.joriyObyekt ? ' · ' + yordamchi.joriyObyekt.nom : ''}</p>}
+        {yuklanayotgan !== null && <div className="mt-1 flex items-center gap-2 text-xs" data-testid="jarvis-conversation-loading">
+          <span role="status">{t('Suhbat yuklanmoqda: {nom}', {nom: yuklanayotgan})}</span>
+          <button type="button" onClick={() => { yuklashNomer.current++; setYuklanayotgan(null); }} className="rounded border border-border px-2 py-1">{t('Suhbat yuklashni bekor qilish')}</button>
+        </div>}
         {saqlashHolati !== 'idle' && <p role="status" className="mt-1 text-xs text-text-dim">{saqlashHolati === 'saving' ? t('Suhbat serverga saqlanmoqda…') : saqlashHolati === 'saved' ? t('Suhbatning ixcham nusxasi serverga saqlandi') : t('Serverga saqlanmadi — bu oynani yopmang')}</p>}
       </div>}
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4" aria-live="polite">

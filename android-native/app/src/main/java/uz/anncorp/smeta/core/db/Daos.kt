@@ -56,6 +56,10 @@ interface QatorDao {
     @Query("SELECT * FROM qator WHERE obyektId = :obyektId AND (:bolim IS NULL OR bolim = :bolim) ORDER BY qatorId LIMIT :limit")
     fun first(obyektId: Long, bolim: String?, limit: Int): Flow<List<QatorEntity>>
 
+    /** Every cached row of one object in estimate order (the smeta browser groups them by section). */
+    @Query("SELECT * FROM qator WHERE obyektId = :obyektId ORDER BY qatorId")
+    fun all(obyektId: Long): Flow<List<QatorEntity>>
+
     @Query("SELECT DISTINCT bolim FROM qator WHERE obyektId = :obyektId AND bolim IS NOT NULL ORDER BY bolim COLLATE NOCASE")
     fun sections(obyektId: Long): Flow<List<String>>
 
@@ -77,6 +81,30 @@ interface QatorDao {
     suspend fun get(obyektId: Long, qatorId: Long): QatorEntity?
 
     @Query("DELETE FROM qator")
+    suspend fun clear()
+}
+
+@Dao
+interface NodeDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(rows: List<NodeEntity>)
+
+    @Query("DELETE FROM smeta_node WHERE obyektId = :obyektId")
+    suspend fun deleteForObyekt(obyektId: Long)
+
+    @Transaction
+    suspend fun replaceForObyekt(obyektId: Long, rows: List<NodeEntity>) {
+        deleteForObyekt(obyektId); rows.chunked(2000).forEach { insertAll(it) }
+    }
+
+    /** The whole tree of one object in depth-first (web) order. Re-emits when the packet is synced again. */
+    @Query("SELECT * FROM smeta_node WHERE obyektId = :obyektId ORDER BY ord")
+    fun all(obyektId: Long): Flow<List<NodeEntity>>
+
+    @Query("SELECT COUNT(*) FROM smeta_node WHERE obyektId = :obyektId")
+    suspend fun count(obyektId: Long): Int
+
+    @Query("DELETE FROM smeta_node")
     suspend fun clear()
 }
 
