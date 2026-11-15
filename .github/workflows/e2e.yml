@@ -1,8 +1,11 @@
-﻿# Smoke e2e (Playwright): faqat ochiq oqimlar, login/real ma'lumot yo'q. vite preview ustida.
+# Smoke e2e (Playwright): faqat ochiq oqimlar, login/real ma'lumot yo'q. vite preview ustida.
 name: E2E
 
 on:
   pull_request:
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/e2e.yml'
 
 permissions:
   contents: read
