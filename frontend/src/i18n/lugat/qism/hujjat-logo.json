@@ -1,0 +1,4 @@
+{
+  "Logo va kolontitul": { "ru": "Логотип и колонтитулы", "en": "Logo and header/footer" },
+  "QURAI belgisi QR kod markazida, chop ko‘rinishi sarlavhasi va pastki kolontitulida. Katak qiymatlariga ta’sir qilmaydi.": { "ru": "Знак QURAI в центре QR-кода, в заголовке печатной формы и в нижнем колонтитуле. На значения ячеек не влияет.", "en": "QURAI mark in the centre of the QR code, in the print header and footer. Does not affect cell values." }
+}

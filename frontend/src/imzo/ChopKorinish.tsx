@@ -60,8 +60,8 @@ export function ChopKorinish({ kanon, token, origin, sarlavha, imzolar, yopish }
       </div>
       {logo && (
         <div className="chop-logo" data-chop-logo="1">
-          <img src="/brand/qurai-gorizontal.svg" alt="QURAI" />
-          <span style={{ fontSize: 9, color: '#808080' }}>smeta-tizimi.pages.dev</span>
+          <img src="/brand/qurai-gorizontal.svg" alt={'QURAI'} />
+          <span style={{ fontSize: 9, color: '#808080' }}>{'smeta-tizimi.pages.dev'}</span>
         </div>
       )}
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 8 }}>
@@ -90,7 +90,7 @@ export function ChopKorinish({ kanon, token, origin, sarlavha, imzolar, yopish }
           ))}</tbody></table>
         )}
       </section>
-      {logo && <div className="chop-past" data-chop-past="1"><span>QURAI · smeta-tizimi.pages.dev</span><span>{url.replace(/^https?:\/\//, '')}</span></div>}
+      {logo && <div className="chop-past" data-chop-past="1"><span>{'QURAI · smeta-tizimi.pages.dev'}</span><span>{url.replace(/^https?:\/\//, '')}</span></div>}
     </div>
   );
 }
