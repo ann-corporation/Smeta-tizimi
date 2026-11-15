@@ -87,6 +87,8 @@ export const GENERATED_SITE_MAP = {
   ],
   "appRouteSegments": [
     "/",
+    "/brauzer-kirish",
+    "/ilova-qaytdi",
     "/qoshil/:kod",
     "/taklif",
     "/taklif/:token",
