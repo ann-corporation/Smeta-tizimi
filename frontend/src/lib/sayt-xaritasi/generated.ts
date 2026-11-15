@@ -139,7 +139,6 @@ export const GENERATED_SITE_MAP = {
     "smeta-narxlash",
     "oferta",
     "narxlar",
-    "storage",
     "mindmap",
     "documents",
     "hujjat-nazorat",
