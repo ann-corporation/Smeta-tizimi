@@ -31,7 +31,7 @@ async function setup(matn = 'Synthetic clause.', iqtibos_anchor?: string, gzip =
     : Response.json(dbResult));
   vi.stubGlobal('fetch', rpc);
   const cookie = 'sess=' + await imzola({ rol: 'pto', foydalanuvchi_id: 7 }, secret);
-  const env = { SESSIYA_KALIT: secret, SUPABASE_URL: 'https://synthetic.invalid', SUPABASE_KEY: 'synthetic', NORMATIV_R2: { get } };
+  const env = { SESSIYA_KALIT: secret, SUPABASE_URL: 'https://synthetic.invalid', SUPABASE_KEY: 'synthetic', NORMATIV_R2: { get }, NORMATIV_DB_FALLBACK: '1' };
   const call = (query = 'kompaniya_id=3&q=06-01-01', signed = true) =>
     onRequestGet({ request: new Request('https://test.invalid/api/normativ-qidir?' + query,
       { headers: signed ? { Cookie: cookie } : {} }), env } as unknown as Parameters<typeof onRequestGet>[0]);

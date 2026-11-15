@@ -32,3 +32,8 @@ norma_kod, tahrir, title. Для ZIP добавьте точное имя member
 Для отбора кандидатов таблиц: python tools/normativ-ingest/table_candidates.py <ingest-queue.json> <private-output.json>. Заголовки сверяются с PDF перед добавлением в annotations.
 
 Поле iqtibos_anchor (до 160 символов) должно дословно присутствовать в извлечённом тексте. table_candidates.py проверяет только PDF units формата page-N.
+
+## ShNK R2 search index (no database)
+1. `node tools/normativ-ingest/shnk_repack.mjs --report <REPORT_DIR>` - one gzip bundle per document (Range-readable), index merged into 128 hashed buckets, `.doc` texts packaged as paragraph blocks (`source_type=doc`), `corpus.json.gz` with sha256 per object, `upload-manifest.json`.
+2. `tools/normativ-ingest/r2_yukla_shnk.ps1 -ReportDir <REPORT_DIR>` - dry run by default; `-DryRun:$false` uploads to `smeta-tizimi-canonical` under `normativ/shnk/v1/` (ledger `upload.done`, corpus last).
+3. Reader: `frontend/functions/_shared/normativ-r2-index.ts` (used by `api/normativ-qidir`). Env: `NORMATIV_R2_PREFIX`, `NORMATIV_R2_STATES` (default `PUBLISHED`), `NORMATIV_DB_FALLBACK=1` (old DB tables, only while the R2 corpus is missing).

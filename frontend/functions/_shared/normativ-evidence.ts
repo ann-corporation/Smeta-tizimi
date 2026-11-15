@@ -5,7 +5,7 @@ const MAX_UNPACKED_BYTES = 4 * 1024 * 1024;
 
 // Chunks are stored gzip-compressed (Phase 1 packaging); plain JSON stays readable. The sha256/bayt
 // checks above always apply to the stored bytes, so decompression runs only after integrity passes.
-async function unpackChunk(bytes: ArrayBuffer): Promise<ArrayBuffer> {
+export async function unpackChunk(bytes: ArrayBuffer): Promise<ArrayBuffer> {
   const head = new Uint8Array(bytes, 0, Math.min(2, bytes.byteLength));
   if (head.length < 2 || head[0] !== 0x1f || head[1] !== 0x8b) return bytes;
   const reader = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip')).getReader();
