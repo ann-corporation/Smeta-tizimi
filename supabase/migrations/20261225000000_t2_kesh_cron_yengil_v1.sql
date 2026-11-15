@@ -1,4 +1,4 @@
-﻿-- IO YENGIL (db-yengil, 2026-11-15). Sabab: 20261222300000/400000 dan keyin har daqiqalik cron (job 20) 40 gacha iflos obyektning OG'IR natijalarini
+-- IO YENGIL (db-yengil, 2026-11-15). Sabab: 20261222300000/400000 dan keyin har daqiqalik cron (job 20) 40 gacha iflos obyektning OG'IR natijalarini
 -- (muhr_farq 13-18 s, qatlam ~8 s, price_control ~4 s) qayta hisoblab diskka yozdi -> Supabase free disk IO budjeti tugadi.
 -- Yechim (yangi pul mantig'i YO'Q, hisob funksiyalari o'zgarmaydi):
 --  1) YENGIL yangilash (jami/ustama uchun kesh: smeta/fakt/f2/f2_oy + jami_kesh): har 2 daqiqada, <=5 obyekt, vaqt budjeti obyektlar ORASIDA tekshiriladi,
@@ -10,6 +10,14 @@
 -- Eski t2_obyekt_kesh_yangila_v1 / _t2_kesh_hisobla_v1 O'ZGARMAYDI (qo'lda chaqirish va rollback uchun qoladi), faqat cron endi ularni chaqirmaydi.
 -- Qo'llashdan oldin: egasi ruxsati (cron o'zgarishi). Qo'llangach yangi joblar FAOL.
 
+-- Natija keshi (loyiha domeni) qatorlarini obyekt bo'yicha o'chirish: smeta-domen cron to'g'ridan-to'g'ri yozmasin (domen qo'riqchisi).
+create or replace function public._t2_obyekt_natija_kesh_tozala_v1(p_obyekt_id bigint)
+ returns void
+ language sql
+ security definer
+ set search_path to 'public', 'pg_temp'
+as $f$ delete from public.t2_obyekt_natija_kesh where obyekt_id = p_obyekt_id $f$;
+revoke all on function public._t2_obyekt_natija_kesh_tozala_v1(bigint) from public, anon, authenticated;
 -- Yengil hisob: _t2_kesh_hisobla_v1 dan faqat oxirgi qator (natija keshi) olib tashlangan nusxa.
 create or replace function public._t2_kesh_yengil_hisobla_v1(p_obyekt_id bigint)
  returns void
@@ -76,7 +84,7 @@ begin
       perform public._t2_kesh_yengil_hisobla_v1(r.obyekt_id);
       if r.versiya is not null then
         -- Og'ir kesh eskirdi: qatorlari o'chiriladi, ochiq funksiyalar jonli hisoblaydi, tunda qayta to'ldiriladi.
-        delete from public.t2_obyekt_natija_kesh where obyekt_id = r.obyekt_id;
+        perform public._t2_obyekt_natija_kesh_tozala_v1(r.obyekt_id);
         delete from public.t2_obyekt_kesh_iflos where obyekt_id = r.obyekt_id and versiya = r.versiya;
       end if;
       v_soni := v_soni + 1;

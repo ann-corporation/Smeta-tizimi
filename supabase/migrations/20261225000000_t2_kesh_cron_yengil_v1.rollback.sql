@@ -23,3 +23,5 @@ end $cron$;
 drop function if exists public.t2_kesh_ogir_yangila_v1(integer, integer);
 drop function if exists public.t2_kesh_yengil_yangila_v1(integer, integer, integer);
 drop function if exists public._t2_kesh_yengil_hisobla_v1(bigint);
+
+drop function if exists public._t2_obyekt_natija_kesh_tozala_v1(bigint);
