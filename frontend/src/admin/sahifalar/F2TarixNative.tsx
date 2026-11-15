@@ -23,7 +23,7 @@ import { avtoNarxsizSoni, f2HolatYorligi, f2KeyingiQadam, f2LifecyclePlan, f2Lif
 import { f2Ierarxiya, type F2IerSmeta } from '../../lib/f2-ierarxiya';
 import { T2_DARAXT_USTUNLARI } from '../../api/t2-daraxt-ustunlar';
 import type { T2Qator } from '../../api/supabase';
-import { f2Hujjat } from '../../lib/f2-hujjat';
+import { bekorQatorlari } from '../../lib/f2-bekor-qator';
 import { aktPodvallariniOl } from '../../api/t2-akt-podval';
 import { aktPodvalXaritasi, type AktPodvalQator } from '../../lib/akt-podval';
 import { bahoMoliya, f2AktBaho, f2AktTayyorla } from '../../lib/f2-akt-eksport';
@@ -31,8 +31,8 @@ import type { AktMoliya } from '../../lib/f2-oylik-paket/oylik';
 import { aktQatorlariOl, smetaTarixBilan, type AktQatorXom } from '../../api/f2-oylik-paket';
 import { QiymatUchlik } from '../../umumiy/ui/QiymatUchlik';
 import { serverUchligi } from '../../lib/ustamali-summa';
-import { f2HujjatKaliti, f2HujjatKonteksti, type F2HujjatKonteksti } from '../../api/f2-hujjat-kontekst';
-import { mazmunXeshi, tokenBilan } from '../../api/t2-token';
+import { f2HujjatKonteksti, type F2HujjatKonteksti } from '../../api/f2-hujjat-kontekst';
+import { hujjatYarat as hujjatYaratYuklab } from '../../api/hujjat-yarat';
 import { useYordamchiSahifaAmallari } from '../../lib/yordamchi/sahifa-amal-store';
 import { hujjatArxivla } from '../../api/t2-hujjat-arxiv';
 import { useHujjatKorinish } from '../../umumiy/hujjat/HujjatKorinish';
@@ -69,28 +69,6 @@ function aktTayyor(akt: T2AktReestr, smeta: readonly T2Qator[], lines: readonly 
 }
 /** Foydalanuvchiga aynan ko'rsatiladigan yuklash xatosi (audit C M2/B5: smeta yoki F2 qatorlari to'liq o'qilmadi). */
 class YuklashXato extends Error {}
-
-const son = (v: unknown): number | null => (v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
-
-/**
- * Bekor qilingan akt qatorlari (audit C m8): `t2_f2_tafsilot` bekor aktni ko'rsatmaydi — `t2_akt_qator` + smeta (tarix bilan)
- * dan faqat KO'RISH uchun tafsilot shakli (qiymatlar aynan, qayta hisob yo'q).
- */
-function bekorQatorlari(akt: T2AktReestr, aq: readonly AktQatorXom[], smeta: ReadonlyMap<number, T2Qator>): F2Detail[] {
-  return aq.map((q) => {
-    const r = smeta.get(q.qator_id);
-    const hajm = son(q.certified_quantity) ?? son(q.hajm);
-    const narx = son(q.certified_unit_price) ?? son(q.narx);
-    const summa = son(q.certified_amount) ?? son(q.summa);
-    return {
-      akt_id: akt.id, obyekt_id: akt.obyekt_id, kompaniya_id: akt.kompaniya_id, tur: 'f2', oy: akt.oy, akt_holat: akt.holat, raqam: akt.raqam,
-      akt_kim: null, akt_sana: akt.yaratildi, akt_qator_id: q.id, qator_id: q.qator_id, kod: r?.kod ?? null, nom: r?.nom ?? null, birlik: r?.birlik ?? null,
-      kat: r?.kat ?? null, qator_tur: r?.tur ?? null, hajm: hajm as number, narx, summa, izoh: null,
-      certified_quantity: son(q.certified_quantity), certified_unit_price: son(q.certified_unit_price), certified_amount: son(q.certified_amount),
-      gorunish_hajm: hajm, gorunish_narx: narx, gorunish_summa: summa,
-    };
-  });
-}
 
 /**
  * F2 ning kundalik ko‘rib chiqish va tasdiqlash oynasi.
@@ -327,52 +305,27 @@ export function F2TarixNative() {
    * (lib/f2-akt-hujjat). Token: bitta F2 (obyekt + oy + raqam) uchun bir marta — qayta chiqarish bepul. */
   /* Jarvis (registry hook): tanlangan F2 ni Excel ga yuklash — shu sahifaning o'z yo'li (tokenBilan, xesh bo'yicha qayta yuklash bepul). */
   useYordamchiSahifaAmallari(selectedAkt ? [{ id: 'f2.eksport', nom: t('F2 ni Excel ga yuklash (tanlangan akt)'), kalitlar: ['f2 excel', 'f2 eksport', 'f2 yuklab ber', 'ф2 excel', 'f2 xlsx'], tasdiq: true, pul: true, izoh: t('Token yechiladi (hujjat hajmiga qarab; aniq summa yuklashdan keyin ko‘rsatiladi); shu hujjatni qayta yuklash — bepul.'), run: () => { void hujjatChiqar(selectedAkt, false); } }] : []);
+  /* Yagona hujjat dvigateli (egasi 2026-11-16): Ф-2 ni SERVER yasaydi (`POST /api/hujjat-yarat`, quruvchi — `f2Hujjat`, ma'lumot
+   * yuklovchilari va o'z podvali/bekor akt qoidalari server tomonda, mobil ilova bilan bir xil); token ham serverda
+   * (obyekt + oy + raqam kaliti — qayta yuklash bepul). Bu yerda faqat so'rov, ko'rsatish va R2 arxiv. */
   async function hujjatChiqar(akt: T2AktReestr, korish: boolean) {
     const kompaniyaId = workspace.companyId ?? joriy?.id;
     if (!kompaniyaId || chiqarilmoqda) return;
-    const object = obyektlar.find((o) => o.id === obyektId);
     setChiqarilmoqda(true);
     try {
-      const ctx = await f2HujjatKonteksti(kompaniyaId, obyektId);
-      // Ustama/podval o'qilmasa F2 hujjati jimgina standart podval yoki ustamasiz chiqmaydi.
-      if (ctx.xato) { toast(`F2 hujjati tuzilmadi: ${ctx.xato}`, 'danger'); return; }
-      // F2 hujjati O'Z podvali bilan (egasi 2026-11-03): podval/qator o'qilmasa jim smeta podvaliga o'tilmaydi.
-      // B4: shu aktning qatorlari — akt_id filtri, noyob tartib, to'liq (bekor akt — t2_akt_qator dan ko'rinish).
-      const [pv, aqM, d] = await Promise.all([
-        aktPodvallariniOl(obyektId),
-        aktQatorlariOl(obyektId, [akt.id]).catch(() => null),
-        akt.holat === 'bekor' ? Promise.resolve(null) : sbT2F2TafsilotOl({ obyektId, tur: 'f2', aktId: akt.id }),
-      ]);
-      if (!pv.ok || !aqM) { toast(`F2 hujjati tuzilmadi: ${t('hujjat podvali o‘qilmadi')}`, 'danger'); return; }
-      if (d && !d.ok) { toast(t('F2 qatorlari to‘liq o‘qilmadi — hujjat tuzilmadi. Qayta yangilang.'), 'danger'); return; }
-      const aq = aqM.get(akt.id) ?? [];
-      const lines = d ? ((d.qatorlar ?? []) as F2Detail[]) : bekorQatorlari(akt, aq, smetaById);
-      // B2: yangi o'qilgan qatorlar uchun ham eski versiya smeta qatorlari.
-      const smeta = await smetaTarixBilan(obyektId, smetaRows, lines.map((l) => l.qator_id));
-      // Yagona tayyorlash (lib/f2-akt-eksport): F2 portfeli ham aynan shu yo'ldan foydalanadi.
-      const k = aktTayyor(akt, smeta, lines, aq, aktPodvalXaritasi(pv.podvallar), ctx, new Map(f2Reestr.map((a) => [a.id, a.raqam ?? null] as const)), object?.nom || '');
-      if (!k) { toast('Bu hujjatda chiqariladigan qator yo‘q.', 'danger'); return; }
-      // B2: topilmagan qator bor — hujjat BLOKLANADI (yarim Ф-2 summasi yadro/serverdan farq qiladi).
-      if (k.topilmagan) { toast(t('{n} ta qator smetada (eski versiyalarda ham) topilmadi — Ф-2 hujjati tuzilmadi', { n: k.topilmagan }), 'danger', undefined, 9000); return; }
-      const h = f2Hujjat(k.bolimlar, k.qatorlar, k.opsiya);
-      const xesh = f2HujjatKaliti(obyektId, akt.oy || '', akt.raqam) ?? `akt:${akt.id}:${await mazmunXeshi(h.bytes)}`;
-      const r = await tokenBilan({ kompaniyaId, amal: 'f2_hujjat', birlikSoni: h.yacheykalar,
-        meta: { hujjat: 'F2', sabab: `F2 №${akt.raqam || '—'} · ${object?.nom || ''} · ${(akt.oy || '').slice(0, 7)}`.slice(0, 200), obyekt: obyektId, akt: akt.id, yacheyka: h.yacheykalar, xesh } }, async () => {
-        if (korish) korinish.ochish(h.bytes, h.faylNomi); else downloadBlob(h.bytes, h.faylNomi);
-        return true;
-      });
-      if (!r.ok) toast(r.xabar, 'danger');
-      else if (r.bepulTakror) toast('Bu hujjat avval to‘langan — qayta yuklash bepul', 'ok');
-      else toast(`${r.sarflandi} token · ${Number(r.hisob?.yakuniy_som ?? 0).toLocaleString('ru-RU')} so‘m (${h.yacheykalar} yacheyka)`, 'ok');
+      const r = await hujjatYaratYuklab({ kompaniyaId, obyektId, tur: 'f2', parametrlar: { akt_id: akt.id } });
+      if (!r.ok) { toast(r.code === 'F2_QATOR_TOPILMADI' ? t('Ф-2 hujjati tuzilmadi: {x}', { x: r.xabar }) : r.xabar, 'danger', undefined, 9000); return; }
+      if (korish) korinish.ochish(r.bytes, r.faylNomi); else downloadBlob(r.bytes, r.faylNomi);
+      if (r.bepulTakror) toast('Bu hujjat avval to‘langan — qayta yuklash bepul', 'ok');
+      else if (r.sarflandi) toast(`${r.sarflandi} token`, 'ok');
       // Tasdiqlangan F2 — R2 arxivga o'zgarmas versiya (bir xil mazmun qayta saqlanmaydi). Hujjat berishni to'xtatmaydi.
-      if (r.ok && akt.holat === 'tasdiqlangan') {
-        void hujjatArxivla({ kompaniyaId, obyektId, turi: 'f2_hujjat', faylNomi: h.faylNomi, bytes: h.bytes, davr: (akt.oy || '').slice(0, 7) })
+      if (akt.holat === 'tasdiqlangan') {
+        void hujjatArxivla({ kompaniyaId, obyektId, turi: 'f2_hujjat', faylNomi: r.faylNomi, bytes: r.bytes, davr: (akt.oy || '').slice(0, 7) })
           .then((a) => { if (!a.ok) toast('Hujjat arxivga saqlanmadi — keyinroq qayta chiqaring.', 'warn'); else if (!a.takror) toast(`Arxivga saqlandi (v${a.versiya})`, 'ok'); });
       }
     } catch { toast('Ф-2 hujjatini yaratib bo‘lmadi.', 'danger'); }
     finally { setChiqarilmoqda(false); }
   }
-
   /** Shaxsiy: bitta bosishda yakunlash. Korporativ: faqat keyingi bosqich (SoD bazada tekshiriladi). */
   async function tasdiqlash(akt: T2AktReestr) {
     if (rejim === 'shaxsiy') { await holatniOzgartir(akt, ['submitted', 'checked', 'approved']); return; }

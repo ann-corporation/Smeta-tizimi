@@ -26,7 +26,7 @@ export async function obyektPaketOl(obyektId: number): Promise<PaketJavob> {
 export async function obyektPaketTekshir(obyektId: number, etag?: string): Promise<PaketTekshirJavob> {
   try {
     const r = await vaqtliFetch('/api/obyekt-paket?obyekt_id=' + encodeURIComponent(String(obyektId)),
-      { credentials: 'same-origin', cache: 'no-store', ...(etag ? { headers: { 'If-None-Match': etag } } : {}) }, OQISH_CHEGARA_MS);
+      { credentials: 'same-origin', cache: 'no-store', ...(etag ? { headers: { 'If-None-Match': etag } } : {}) } as RequestInit, OQISH_CHEGARA_MS);
     if (r.status === 304) {
       const actual = r.headers.get('ETag');
       if (!etag || !actual || actual.replace(/^W\//, '') !== etag.replace(/^W\//, '')) {

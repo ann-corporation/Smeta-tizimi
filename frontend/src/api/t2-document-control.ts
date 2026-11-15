@@ -33,7 +33,7 @@ async function get(params: Record<string, string | number | null | undefined>) {
   const q = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) if (v != null && v !== '') q.set(k, String(v));
   const r = await fetch('/api/hujjat-nazorat?' + q.toString());
-  const j = await r.json().catch(() => null);
+  const j = await r.json().catch(() => null) as any; // eslint-disable-line @typescript-eslint/no-explicit-any
   if (!r.ok || !j || j.ok !== true) throw toErr(j, r.status);
   return j;
 }
@@ -41,7 +41,7 @@ async function post(body: Record<string, unknown>) {
   const r = await fetch('/api/hujjat-nazorat', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   });
-  const j = await r.json().catch(() => null);
+  const j = await r.json().catch(() => null) as any; // eslint-disable-line @typescript-eslint/no-explicit-any
   if (!r.ok || !j || j.ok !== true) throw toErr(j, r.status);
   return j;
 }

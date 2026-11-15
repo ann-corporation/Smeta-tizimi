@@ -81,7 +81,7 @@ function yangila(til: Til, saqla: boolean): void {
 function xabarBer(): void { tinglovchilar.forEach((f) => f()); }
 
 /** Bitta foydalanuvchi bir necha tabda ishlasa, ko‘rinish tili ham bir xil qoladi. */
-if (typeof window !== 'undefined') window.addEventListener('storage', (event) => {
+if (typeof window !== 'undefined') window.addEventListener('storage', (event: { key: string | null; newValue: string | null }) => {
   if (event.key !== KALIT || !event.newValue) return;
   if (TILLAR.some((x) => x.kod === event.newValue)) yangila(event.newValue as Til, false);
 });

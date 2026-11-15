@@ -19,7 +19,8 @@ import { HujjatToliqEmasXato, NDS_SUKUT_FOIZ, shartnomaSvodXlsx, sverkaXlsx } fr
 import type { SvodYaxlit } from '../../lib/svod-yaxlit';
 import { t } from '../../i18n/til';
 import PulTahlil from '../../components/boss-decision/PulTahlil';
-import { forma3Hujjat, forma3SotuvdanXlsx, type Forma3ExportOptions, type Forma3Shakl } from '../../lib/forma3-export';
+import { hujjatYarat as hujjatYaratYuklab } from '../../api/hujjat-yarat';
+import { forma3Hujjat, type Forma3ExportOptions, type Forma3Shakl } from '../../lib/forma3-export';
 import { Forma3ShaklTanlagich } from '../../components/forma3/Forma3ShaklTanlagich';
 import { Forma3RejimTanlagich, Forma3ShartnomaPanel, type F3Rejim } from '../../components/forma3/Forma3ShartnomaPanel';
 import { f3ShaklOl, f3ShaklSaqla } from '../../lib/forma3-shakl-tanlov';
@@ -640,6 +641,15 @@ function ShartnomaSvodBolimi({ companyId, shartnomaId, tashkilot }: { companyId:
     if (!r.ok) { toast(r.xabar, 'danger'); return; }
     if (r.xabar) toast(r.xabar, 'ok');
   }
+  /* Saqlangan Форма № 3: yagona hujjat dvigateli (server `forma3SotuvdanXlsx` bilan yasaydi va tokenni o'zi yechadi). */
+  async function f3ServerdanYukla(sh: SvodShartnoma, f3Id: number) {
+    const obyektId = sh.obyektlar[0]?.id;
+    if (!obyektId) { toast(t('Shartnomaga obyekt bog‘lanmagan — Форма № 3 yasalmadi'), 'danger'); return; }
+    const r = await hujjatYaratYuklab({ kompaniyaId: companyId, obyektId, tur: 'forma3', parametrlar: { shartnoma_id: sh.id, f3_id: f3Id, shakl: f3Shakl } });
+    if (!r.ok) { toast(r.xabar, 'danger'); return; }
+    downloadBlob(r.bytes, r.faylNomi);
+    toast(r.bepulTakror ? t('Bu hujjat avval to‘langan — qayta yuklash bepul') : `${r.sarflandi} token`, 'ok');
+  }
   async function yoz(tur: SverkaYozuvTur, malumot: Record<string, string | number | null>, yozuvId?: number, versiya?: number) {
     const r = await sverkaYozuvYoz({ kompaniyaId: companyId, shartnomaId, tur, yozuvId, kutilganVersiya: versiya, malumot, operationId: yangiOperationId() });
     if (!r.ok) toast(t(sverkaXato(r)), 'danger');
@@ -736,7 +746,7 @@ function ShartnomaSvodBolimi({ companyId, shartnomaId, tashkilot }: { companyId:
                             <option value="imzolangan">{t('imzolandi')}</option>
                           </select>
                           <button type="button" title={t('F3 (Excel)')} aria-label={t('F3 (Excel)')} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm"
-                            onClick={() => void ber(forma3SotuvdanXlsx(sh, f3.id, { tashkilot, shakl: f3Shakl }), 'F3', `Форма №3${f3Shakl === 'bir_qatorli' ? ' (одностр.)' : ''} · № ${raqamTozala(sh.raqam)} · ${f3.sotuv_sana ?? ''}`)}><Download /></button>
+                            onClick={() => void f3ServerdanYukla(sh, f3.id)}><Download /></button>
                           <button type="button" title={t('Bekor qilish')} aria-label={t('Bekor qilish')} className="fz-btn fz-btn--ghost fz-btn--icon fz-btn--sm" style={{ color: 'var(--danger)' }} onClick={() => void bekor('f3_sotuv', f3.id, f3.versiya)}><Trash2 /></button>
                         </span>
                       )}
