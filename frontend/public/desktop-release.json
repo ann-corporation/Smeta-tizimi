@@ -1,10 +1,10 @@
 {
-  "version": "0.1.0",
+  "version": "0.1.1",
   "arch": "x64",
-  "generatedAtUtc": "2026-11-15T06:27:20.0502571Z",
-  "file": "Smeta Tizimi_0.1.0_x64-setup.exe",
-  "bytes": 3627771,
-  "sha256": "32a8e101f3b154201d91215afeff4ea6b5d36e839e126047ac0dd6e960fdd351",
+  "generatedAtUtc": "2026-11-15T10:40:30.0255833Z",
+  "file": "QURAI_0.1.1_x64-setup.exe",
+  "bytes": 3634182,
+  "sha256": "59adea6c34dda9874e0bdc1d885052d0e079507bc2fd705e4e10f84cf488f241",
   "signature": "NotSigned",
   "signerThumbprint": null
 }
