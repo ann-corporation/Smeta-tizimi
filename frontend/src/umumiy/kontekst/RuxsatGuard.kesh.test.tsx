@@ -9,6 +9,7 @@ vi.mock('./KompaniyaKontekst', () => ({ useKompaniya: () => ({ superadmin: false
 vi.mock('./KompaniyaKerak', () => ({ KompaniyaKerak: () => <div>kutilmoqda</div> }));
 vi.mock('../../api/t2-authz', () => ({ useAuthorize: () => az.v }));
 vi.mock('./chiqish', () => ({ tizimdanChiq: vi.fn() }));
+vi.mock('../../lib/company-authorization/route-permission', () => ({ routePermission: () => 'company.read' }));
 
 import { RuxsatGuard, ruxsatKeshYoz, ruxsatKeshOqi } from './RuxsatGuard';
 
