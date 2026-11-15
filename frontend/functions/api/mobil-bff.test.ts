@@ -1,4 +1,4 @@
-// @vitest-environment node
+﻿// @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { base64url, deviceHash, ANDROID_ORIGIN, DESKTOP_ORIGIN } from '../_shared/desktop-device';
 import { sessiyaOl } from '../_shared/auth';
@@ -77,6 +77,15 @@ describe('mobil BFF (Android native)', () => {
     const f = await bff('/api/foto-dalil', 'POST', { amal: 'ochir', id: 1 });
     expect(f.status).not.toBe(400);
   });
+  it('allows invite-code join (ish-joyi POST) and module picks (modullarim) as the device actor, never a client actor', async () => {
+    const j = await bff('/api/ish-joyi', 'POST', { amal: 'qoshil', kod: 'ABCD' });
+    const notTarget = async (r: Response) => expect(((await r.json().catch(() => ({}))) as { code?: string }).code).not.toBe('TARGET_INVALID');
+    await notTarget(j);
+    await notTarget(await bff('/api/modullarim?kompaniya_id=8'));
+    const m = await bff('/api/modullarim', 'POST', { kompaniya_id: 8, tanlangan: [], tartib: [], expected_version: 0 });
+    await notTarget(m);
+    expect((await bff('/api/kirish-taklif', 'POST', {})).status).toBe(400);
+  });
   it('bounds body size to 2 MB', async () => {
     expect((await gateway(ctx(native({ path: '/api/sb', method: 'POST', body: 'a'.repeat(2 * 1024 * 1024) })))).status).toBe(413);
   });
@@ -85,3 +94,4 @@ describe('mobil BFF (Android native)', () => {
     expect((await gateway(ctx(native({ path: '/api/sessiya', method: 'GET', extra: 1 })))).status).toBe(400);
   });
 });
+

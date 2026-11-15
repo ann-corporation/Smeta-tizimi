@@ -1,4 +1,4 @@
-import { imzola, sessiyaOl, SESSIYA_MUDDAT_MS } from '../../_shared/auth';
+﻿import { imzola, sessiyaOl, SESSIYA_MUDDAT_MS } from '../../_shared/auth';
 import { desktopDenyCode, desktopFail, verifiedDesktopDevice, type DesktopEnv } from '../../_shared/desktop-device';
 import { onRequest as existingMiddleware } from '../_middleware';
 import { onRequestGet as sessionGet } from '../sessiya';
@@ -6,7 +6,8 @@ import { onRequestGet as packetGet } from '../obyekt-paket';
 import { onRequestPost as sbPost } from '../sb';
 import { onRequestGet as companyGet, onRequestPost as companyPost } from '../company';
 import { onRequestPost as writePost } from '../sb-yoz';
-import { onRequestGet as workplaceGet } from '../ish-joyi';
+import { onRequestGet as workplaceGet, onRequestPost as workplacePost } from '../ish-joyi';
+import { onRequestGet as modulesGet, onRequestPost as modulesPost } from '../modullarim';
 import { onRequestGet as hujjatAylanishGet, onRequestPost as hujjatAylanishPost } from '../hujjat-aylanish';
 import { onRequestGet as fotoDalilGet, onRequestPost as fotoDalilPost } from '../foto-dalil';
 import { onRequestPost as aiSavolPost } from '../ai-savol';
@@ -18,7 +19,8 @@ type Env = DesktopEnv & Record<string, any>;
 // Static imports only. This is not a network proxy and cannot reach arbitrary URLs.
 const handlers: Record<string, Record<string, PagesFunction<Env>>> = {
   '/api/sessiya': { GET: sessionGet },
-  '/api/ish-joyi': { GET: workplaceGet },
+  '/api/ish-joyi': { GET: workplaceGet, POST: workplacePost },
+  '/api/modullarim': { GET: modulesGet, POST: modulesPost },
   '/api/company': { GET: companyGet, POST: companyPost },
   '/api/sb': { POST: sbPost },
   '/api/sb-yoz': { POST: writePost },
@@ -27,7 +29,7 @@ const handlers: Record<string, Record<string, PagesFunction<Env>>> = {
   '/api/foto-dalil': { GET: fotoDalilGet, POST: fotoDalilPost },
   '/api/ai-savol': { POST: aiSavolPost },
 } as never;
-export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|company|sb|sb-yoz|obyekt-paket|hujjat-aylanish|foto-dalil|ai-savol)(?:\?[^#\s]*)?$/;
+export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|hujjat-aylanish|foto-dalil|ai-savol)(?:\?[^#\s]*)?$/;
 export const MOBIL_BFF_MAX_BYTES = 2 * 1024 * 1024;
 
 async function boundedBody(request: Request): Promise<string> {
