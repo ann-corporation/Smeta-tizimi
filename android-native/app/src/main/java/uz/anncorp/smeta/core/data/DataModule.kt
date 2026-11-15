@@ -107,5 +107,11 @@ object DataModule {
     fun companyRepository(api: BffApi) = CompanyRepository(api)
 
     @Provides @Singleton
+    fun peopleRepository(api: BffApi) = PeopleRepository(api)
+
+    @Provides @Singleton
+    fun jarvisRepository(api: BffApi) = JarvisRepository(api)
+
+    @Provides @Singleton
     fun modulesRepository(api: BffApi, json: Json, prefs: Prefs) = ModulesRepository(api, json, prefs)
 }

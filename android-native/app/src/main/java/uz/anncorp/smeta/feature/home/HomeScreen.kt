@@ -81,6 +81,7 @@ private val Tabs = listOf(
 fun HomeScreen(
     onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOpenApproval: (Long) -> Unit, onOutbox: () -> Unit,
     onOpenWeb: (path: String, title: String) -> Unit, onPickFakt: () -> Unit, onPickPhoto: () -> Unit,
+    onJarvis: () -> Unit = {}, onInvite: () -> Unit = {}, onInvites: () -> Unit = {},
     vm: HomeViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -93,7 +94,7 @@ fun HomeScreen(
     if (!state.loading && !state.failed && state.selected == null && !state.skipped) {
         OnboardingScreen(
             busy = state.onboardBusy, error = state.onboardError, onCreate = vm::createCompany, onJoin = vm::joinCompany,
-            onSkip = vm::skipOnboarding, onClearError = vm::clearOnboardError,
+            onSkip = vm::skipOnboarding, onClearError = vm::clearOnboardError, onInvites = onInvites,
         )
         return
     }
@@ -121,8 +122,8 @@ fun HomeScreen(
                     Text(stringResource(R.string.home_loading), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 tab == OMBOR_TAB -> { BackHandler { tab = 0 }; OmborScreen(onOutbox) }
-                tab == 4 -> ProfileScreen(state, onTheme = vm::setTheme, onSwitch = { sheet = true }, onSignOut = vm::requestSignOut)
-                else -> TabBody(state, tab, vm::load, openObject, onOpenFakt, onOpenApproval, { tab = it }, onOutbox, onOpenWeb, onPickFakt, onPickPhoto, vm::resumeOnboarding)
+                tab == 4 -> ProfileScreen(state, onTheme = vm::setTheme, onSwitch = { sheet = true }, onSignOut = vm::requestSignOut, onInvite = onInvite, onInvites = onInvites)
+                else -> TabBody(state, tab, vm::load, openObject, onOpenFakt, onOpenApproval, { tab = it }, onOutbox, onOpenWeb, onPickFakt, onPickPhoto, vm::resumeOnboarding, onJarvis)
             }
         }
     }
@@ -202,7 +203,7 @@ fun RoleChip(role: String) {
 @Composable
 private fun TabBody(
     state: HomeState, tab: Int, onRetry: () -> Unit, onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOpenApproval: (Long) -> Unit,
-    onGoTab: (Int) -> Unit, onOutbox: () -> Unit, onOpenWeb: (String, String) -> Unit, onPickFakt: () -> Unit, onPickPhoto: () -> Unit, onOnboard: () -> Unit,
+    onGoTab: (Int) -> Unit, onOutbox: () -> Unit, onOpenWeb: (String, String) -> Unit, onPickFakt: () -> Unit, onPickPhoto: () -> Unit, onOnboard: () -> Unit, onJarvis: () -> Unit,
     banner: BannerViewModel = hiltViewModel(),
 ) {
     val bannerState by banner.state.collectAsStateWithLifecycle()
@@ -229,6 +230,7 @@ private fun TabBody(
                         NativeTarget.FAKT -> onPickFakt()
                         NativeTarget.PHOTO -> onPickPhoto()
                         NativeTarget.WAREHOUSE -> onGoTab(OMBOR_TAB)
+                        NativeTarget.JARVIS -> onJarvis()
                     }
                 },
                 onWeb = onOpenWeb, onObject = onOpenObject, onFakt = onOpenFakt, onOnboard = onOnboard,

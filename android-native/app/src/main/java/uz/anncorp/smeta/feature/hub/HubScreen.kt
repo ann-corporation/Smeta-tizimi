@@ -82,6 +82,7 @@ private fun iconFor(code: String): ImageVector = when (code) {
     "tasdiq" -> Icons.Filled.CheckCircle
     "bugun" -> Icons.Filled.DateRange
     "ombor" -> Icons.Filled.Place
+    "jarvis" -> Icons.Filled.Star
     "smeta" -> Icons.Filled.List
     "narx" -> Icons.Filled.ShoppingCart
     "f2" -> Icons.Filled.Check

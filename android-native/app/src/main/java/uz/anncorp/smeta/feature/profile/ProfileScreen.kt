@@ -29,7 +29,7 @@ import uz.anncorp.smeta.feature.home.HomeState
 import uz.anncorp.smeta.feature.home.RoleChip
 
 @Composable
-fun ProfileScreen(state: HomeState, onTheme: (ThemeMode) -> Unit, onSwitch: () -> Unit, onSignOut: () -> Unit) {
+fun ProfileScreen(state: HomeState, onTheme: (ThemeMode) -> Unit, onSwitch: () -> Unit, onSignOut: () -> Unit, onInvite: () -> Unit = {}, onInvites: () -> Unit = {}) {
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp)) {
         Section(stringResource(R.string.profile_account)) {
             val email = state.session?.email.orEmpty()
@@ -46,6 +46,10 @@ fun ProfileScreen(state: HomeState, onTheme: (ThemeMode) -> Unit, onSwitch: () -
                     OutlinedButton(onClick = onSwitch, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.workplace_switch)) }
                 }
             }
+        }
+        if (uz.anncorp.smeta.core.data.Features.USERNAME) {
+            Spacer(Modifier.height(16.dp))
+            uz.anncorp.smeta.feature.people.UsernameSection(onInvite = onInvite, onInvites = onInvites)
         }
         Spacer(Modifier.height(16.dp))
         Section(stringResource(R.string.profile_language)) {

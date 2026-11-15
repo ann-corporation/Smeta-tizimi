@@ -31,6 +31,9 @@ import uz.anncorp.smeta.feature.work.ObjectCardScreen
 import uz.anncorp.smeta.feature.work.OutboxScreen
 import uz.anncorp.smeta.feature.work.ObjectsScreen
 import uz.anncorp.smeta.feature.web.WebModuleScreen
+import uz.anncorp.smeta.feature.jarvis.JarvisScreen
+import uz.anncorp.smeta.feature.people.CompanyInviteScreen
+import uz.anncorp.smeta.feature.people.InvitesScreen
 import uz.anncorp.smeta.feature.signup.InviteScreen
 import uz.anncorp.smeta.feature.signup.SignUpScreen
 import uz.anncorp.smeta.core.ui.WorkTopBar
@@ -77,6 +80,9 @@ private const val INVITE = "invite"
 private const val WEB = "web?path={path}&title={title}"
 private const val PICK_FAKT = "pick/fakt"
 private const val PICK_PHOTO = "pick/photo"
+private const val JARVIS = "jarvis"
+private const val PEOPLE_INVITE = "people/invite"
+private const val PEOPLE_INVITES = "people/invites"
 
 @Composable
 private fun AppNav(events: AuthEvents, start: String) {
@@ -108,6 +114,7 @@ private fun AppNav(events: AuthEvents, start: String) {
                 onOpenApproval = { nav.navigate("approval/$it") }, onOutbox = { nav.navigate(OUTBOX) },
                 onOpenWeb = { path, title -> nav.navigate("web?path=${Uri.encode(path)}&title=${Uri.encode(title)}") },
                 onPickFakt = { nav.navigate(PICK_FAKT) }, onPickPhoto = { nav.navigate(PICK_PHOTO) },
+                onJarvis = { nav.navigate(JARVIS) }, onInvite = { nav.navigate(PEOPLE_INVITE) }, onInvites = { nav.navigate(PEOPLE_INVITES) },
             )
         }
         val idArg = listOf(navArgument("id") { type = NavType.LongType })
@@ -127,6 +134,9 @@ private fun AppNav(events: AuthEvents, start: String) {
         }
         composable(PICK_FAKT) { PickObjectScreen(R.string.mod_fact, onBack = { nav.popBackStack() }) { nav.navigate("fakt/$it") } }
         composable(PICK_PHOTO) { PickObjectScreen(R.string.mod_photo, onBack = { nav.popBackStack() }) { nav.navigate("photo/$it") } }
+        composable(JARVIS) { JarvisScreen(onBack = { nav.popBackStack() }) }
+        composable(PEOPLE_INVITE) { CompanyInviteScreen(onBack = { nav.popBackStack() }) }
+        composable(PEOPLE_INVITES) { InvitesScreen(onBack = { nav.popBackStack() }, onAccepted = { nav.navigate(HOME) { popUpTo(HOME) { inclusive = true } } }) }
         composable(OUTBOX) { OutboxScreen(onBack = { nav.popBackStack() }, onEditDraft = { nav.navigate("draft/$it") }) }
     }
 }

@@ -125,3 +125,26 @@ describe('mobil BFF: warehouse (Ombor) paths reach the unchanged sb / sb-yoz han
     expect((await gateway(ctx(native({ path: '/api/sklad', method: 'POST', body: {} })))).status).toBe(400);
   });
 });
+
+describe('mobil BFF: @username (profil) and Jarvis (ai-savol)', () => {
+  const notTarget = async (r: Response) => expect(((await r.json().catch(() => ({}))) as { code?: string }).code).not.toBe('TARGET_INVALID');
+  it.each(['username_ol', 'username_tekshir', 'username_belgila', 'username_sozlama', 'qidir', 'kompaniyadosh_qidir', 'username_ommaviy', 'taklif_royxat', 'taklif_javob'])
+    ('allows the profil action %s', async amal => { await notTarget(await bff('/api/profil', 'POST', { amal })); });
+  it.each(['parol', 'google_ulash', 'google_uzish', 'hisob_birlashtir', 'boshqa_sessiyalar_chiqish', 'usul_uz', 'birlashtir_email_kod', 'yangila', '', undefined])
+    ('refuses the account-security / unknown profil action %s', async amal => {
+      expect((await bff('/api/profil', 'POST', { amal })).status).toBe(400);
+    });
+  it('refuses GET /api/profil and a profil POST without a body', async () => {
+    expect((await bff('/api/profil')).status).toBe(400);
+    expect((await bff('/api/profil', 'POST')).status).toBe(400);
+  });
+  it('kirish-taklif: only the director-side yarat action is reachable (qabul/ulash/royxat/bekor are refused)', async () => {
+    await notTarget(await bff('/api/kirish-taklif', 'POST', { amal: 'yarat', kompaniya_id: 8, ism: 'Test', telefon: '+998900000000', rol: 'pto' }));
+    for (const amal of ['qabul', 'ulash', 'royxat', 'bekor']) expect((await bff('/api/kirish-taklif', 'POST', { amal })).status).toBe(400);
+    expect((await bff('/api/kirish-taklif')).status).toBe(400);
+  });
+  it('dispatches a Jarvis question to ai-savol (POST only) as the device actor', async () => {
+    await notTarget(await bff('/api/ai-savol', 'POST', { savol: 'salom' }));
+    expect((await bff('/api/ai-savol', 'GET')).status).toBe(400);
+  });
+});

@@ -54,7 +54,20 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
             path.startsWith("/api/ish-joyi") && method == "POST" -> ok("""{"ok":true,"kompaniya_id":1}""")
             // The file nowork.flag simulates a fresh company-less account (onboarding screen).
             path.startsWith("/api/ish-joyi") -> if (File(context.filesDir, "nowork.flag").exists()) ok("""{"ok":true,"ish_joylari":[]}""") else ApiResult(200, session["ish_joyi"])
-            path.startsWith("/api/company") && method == "POST" -> ok("""{"ok":true,"kompaniya_id":1}""")
+            path.startsWith("/api/profil") && method == "POST" -> profil(body as? JsonObject)
+            path.startsWith("/api/kirish-taklif") && method == "POST" -> ok("""{"ok":true,"kod":"48213907","havola":"https://smeta-tizimi.pages.dev/taklif/DEMOTOKEN"}""")
+            path.startsWith("/api/ai-savol") && method == "POST" -> {
+                val q = ((body as? JsonObject)?.get("savol") as? JsonPrimitive)?.content.orEmpty()
+                // A question containing "limit" simulates an empty token balance (HTTP 402), so the budget card can be shown.
+                if (q.contains("limit", ignoreCase = true)) ApiResult(402, buildJsonObject { put("ok", false); put("xabar", "AI tokenlari yetarli emas"); put("code", "AI_BYUDJET") }, "AI_BYUDJET")
+                else ok("""{"ok":true,"agent":"Jarvis","javob":"Bugun 3 ta ish bor: 2 ta fakt kiritish va 1 ta tasdiqlash kutmoqda. Birinchi navbatda tasdiqlashni ko'rib chiqing.","provider":"demo","requires_approval":false}""")
+            }
+            path.startsWith("/api/company") && method == "POST" && (body as? JsonObject)?.get("action")?.let { (it as? JsonPrimitive)?.content } == "member_invite" -> {
+                val v = ((body as JsonObject)["qiymat"] as? JsonPrimitive)?.content.orEmpty()
+                // A value containing "yoq" or any phone without an account simulates TOPILMADI; the rest simulates a sent invitation.
+                if (v.contains("yoq") || v.startsWith("+")) ApiResult(404, buildJsonObject { put("ok", false); put("code", "TOPILMADI"); put("tur", "telefon"); put("telefon_taklif", true); put("telefon", "+998901234567") }, "TOPILMADI")
+                else ok("""{"ok":true,"taklif_id":55,"holat":"kutmoqda","profil":{"id":31,"ism":"Sardor Karimov","username":"sardor_k","avatar_rang":"#3b82f6"}}""")
+            }            path.startsWith("/api/company") && method == "POST" -> ok("""{"ok":true,"kompaniya_id":1}""")
             path.startsWith("/api/company") -> ok("""{"ok":true,"context_kompaniyalar":[{"kompaniya_id":1,"effective_role":"pto","permissions":["company.read","smeta.read","fakt.read","fakt.write","f2.read","f2.prepare","narx.read","document.write","warehouse.read"]}]}""")
             path.startsWith("/api/modullarim") -> if (method == "POST") ok("""{"ok":true,"versiya":1}""") else ok("""{"ok":true,"tanlangan":["fakt","foto","f2"],"tartib":["fakt","foto","f2"],"versiya":1}""")
             path.startsWith("/api/obyekt-paket") -> {
@@ -102,5 +115,41 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
         }
     }
 
+    private var demoUsername: String? = "ali_valiyev"
+    private var demoPhoneSearch = "hammasi"
+    private val demoInvites = mutableListOf(
+        """{"id":71,"kompaniya_id":9,"kompaniya_nom":"Demo Qurilish MChJ","rol":"prorab","tugaydi":${System.currentTimeMillis() + 10 * 86_400_000L},"taklif_qiluvchi":{"id":31,"ism":"Sardor Karimov","username":"sardor_k"}}""",
+        """{"id":72,"kompaniya_id":10,"kompaniya_nom":"Namuna Servis","rol":"pto","tugaydi":${System.currentTimeMillis() + 4 * 86_400_000L},"taklif_qiluvchi":{"id":32,"ism":"Dilnoza Rahimova","username":null}}""",
+    )
+
+    /** @username contract (docs/architecture/USERNAME_V1.md) served from memory for the demo. */
+    private fun profil(o: JsonObject?): ApiResult {
+        fun s(k: String) = (o?.get(k) as? JsonPrimitive)?.takeIf { it.isString }?.content
+        val taken = setOf("admin_demo", "qurai_user", "ali_valiyev2", "sardor_k")
+        return when (s("amal")) {
+            "username_ol" -> ok("""{"ok":true,"username":${demoUsername?.let { "\"$it\"" } ?: "null"},"ism":"Ali Valiyev","telefon_qidiruv":"$demoPhoneSearch","bugun_qoldi":4}""")
+            "username_tekshir" -> {
+                val u = s("username").orEmpty()
+                val free = (o?.get("variantlar") as? kotlinx.serialization.json.JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.content }.filter { it !in taken }.take(5)
+                val band = u in taken
+                ok("""{"ok":true,"yaroqli":true,"sabab":null,"bosh":${!band},"band":$band,"variantlar":[${free.joinToString(",") { "\"$it\"" }}]}""")
+            }
+            "username_belgila" -> { demoUsername = s("username"); ok("""{"ok":true,"username":${demoUsername?.let { "\"$it\"" } ?: "null"}}""") }
+            "username_sozlama" -> { demoPhoneSearch = s("telefon_qidiruv") ?: "hammasi"; ok("""{"ok":true,"telefon_qidiruv":"$demoPhoneSearch"}""") }
+            "kompaniyadosh_qidir" -> {
+                val p = s("prefiks").orEmpty().lowercase().removePrefix("@")
+                val all = listOf("""{"id":31,"ism":"Sardor Karimov","username":"sardor_k"}""", """{"id":32,"ism":"Dilnoza Rahimova","username":null}""", """{"id":33,"ism":"Sanjar Aliyev","username":"sanjar_a"}""")
+                ok("""{"ok":true,"royxat":[${all.filter { it.lowercase().contains(p) }.joinToString(",")}]}""")
+            }
+            "username_ommaviy" -> ok("""{"ok":true,"username":{"31":"sardor_k","33":"sanjar_a"}}""")
+            "taklif_royxat" -> ok("""{"ok":true,"royxat":[${demoInvites.joinToString(",")}]}""")
+            "taklif_javob" -> {
+                val id = (o?.get("taklif_id") as? JsonPrimitive)?.content?.toLongOrNull()
+                demoInvites.removeAll { it.contains("\"id\":$id,") }
+                ok("""{"ok":true,"holat":"qabul","kompaniya_id":9,"rol":"prorab"}""")
+            }
+            else -> ApiResult(400, buildJsonObject { put("ok", false) })
+        }
+    }
     override suspend fun upload(companyId: Long, obyektId: Long, body: okhttp3.RequestBody): ApiResult = ok("""{"ok":true,"document_id":777}""")
 }

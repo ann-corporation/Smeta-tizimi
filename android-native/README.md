@@ -77,3 +77,10 @@ Room + SQLCipher cache (key wrapped by Keystore), FTS4 row search, draft batch, 
 - Hub (tab Ilovalar): modules gated by t2_men_v1 permissions + modul_holat_v1 (mirrors the website catalogue). Picks/order are stored server-side via /api/modullarim (migration supabase/migrations/20261224000000_t2_modul_tanlov_v1.sql, NOT applied; the app falls back to a local copy until it is). Web-only modules open in an authenticated WebView through a 30 s one-time ticket (/api/mobil/web-bilet -> /api/mobil/web-kirish, 8 h cookie, wiped on leaving the screen).
 - Warehouse slot: Features.NATIVE_WAREHOUSE (core/data/Modules.kt), off until the ombor branch merges.
 - Debug demo: nowork.flag simulates a company-less account.
+
+
+## P4 (@username, company invites, Jarvis, hardened web ticket)
+
+- **@username / people search** (contract `docs/architecture/USERNAME_V1.md`, server on branch claude/username, PR 527). Profile -> Username (live availability with 400 ms debounce, name-based suggestions, who-can-find-me), `Kompaniyaga taklif` (one field, kind auto-detected, coworker autocomplete, phone fallback to link + one-time code), incoming invites (accept / decline). `Features.USERNAME = false` in release; only a debug build with demo mode and `files/username.flag` shows it. Until the server migration is applied the screens degrade to "coming soon". BFF now allow-lists `/api/profil` (only the nine username/invite actions, never `parol`/ulash/birlashtir) and `/api/kirish-taklif` (only `yarat`).
+- **Web ticket hardening**: single-use ticket (per-isolate nonce set always; DB nonce when `MOBIL_BILET_BIR_MARTALIK=1` and migration `20261224200000_t2_mobil_bilet_v1.sql` is applied - NOT applied), WebView cookie bound to the device and re-verified on every request through `t2_desktop_qurilma_tekshir_v2` (revoking the device ends the web session), 2 h sliding lifetime with a 12 h absolute cap. Device id and token hash travel encrypted (AES-GCM) in the ticket/cookie.
+- **Jarvis**: hub module (`NativeTarget.JARVIS`) -> `/api/ai-savol` through the BFF; HTTP 402 shows a distinct "AI limit reached" card; quick prompts for field work. Charging stays server side (aiHisobli).

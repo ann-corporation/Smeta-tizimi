@@ -60,7 +60,7 @@ private enum class Mode { CHOOSE, CREATE, JOIN }
  * "Kompaniyangizni oching": open your own company (you become its head), join with an invite code, or carry on without one.
  */
 @Composable
-fun OnboardingScreen(busy: Boolean, error: OnboardError?, onCreate: (String, String) -> Unit, onJoin: (String) -> Unit, onSkip: () -> Unit, onClearError: () -> Unit) {
+fun OnboardingScreen(busy: Boolean, error: OnboardError?, onCreate: (String, String) -> Unit, onJoin: (String) -> Unit, onSkip: () -> Unit, onClearError: () -> Unit, onInvites: (() -> Unit)? = null) {
     var mode by rememberSaveable { mutableStateOf(Mode.CHOOSE) }
     var name by rememberSaveable { mutableStateOf("") }
     var inn by rememberSaveable { mutableStateOf("") }
@@ -79,6 +79,7 @@ fun OnboardingScreen(busy: Boolean, error: OnboardError?, onCreate: (String, Str
                     Mode.CHOOSE -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Button(onClick = { onClearError(); mode = Mode.CREATE }, modifier = Modifier.fillMaxWidth().height(56.dp), shape = MaterialTheme.shapes.medium) { Text(stringResource(R.string.ob_create), style = MaterialTheme.typography.titleMedium) }
                         OutlinedButton(onClick = { onClearError(); mode = Mode.JOIN }, modifier = Modifier.fillMaxWidth().height(56.dp), shape = MaterialTheme.shapes.medium) { Text(stringResource(R.string.ob_join), style = MaterialTheme.typography.titleMedium) }
+                        if (onInvites != null && uz.anncorp.smeta.core.data.Features.USERNAME) OutlinedButton(onClick = onInvites, modifier = Modifier.fillMaxWidth().height(56.dp), shape = MaterialTheme.shapes.medium) { Text(stringResource(R.string.pe_invites_title), style = MaterialTheme.typography.titleMedium) }
                         TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text(stringResource(R.string.ob_skip)) }
                     }
                     Mode.CREATE -> {

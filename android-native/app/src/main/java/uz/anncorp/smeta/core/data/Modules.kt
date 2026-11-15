@@ -18,7 +18,7 @@ import uz.anncorp.smeta.R
 enum class ModuleKind { NATIVE, WEB }
 
 /** Native destinations the hub can jump to (the UI maps each to a tab or a route). */
-enum class NativeTarget { OBJECTS, FAKT, PHOTO, APPROVALS, TODAY, WAREHOUSE }
+enum class NativeTarget { OBJECTS, FAKT, PHOTO, APPROVALS, TODAY, WAREHOUSE, JARVIS }
 
 /**
  * One launcher entry. [anyOf] / [moduleCode] mirror the website gating (frontend/src/lib/reestr/sahifa.ts `ruxsat`/`modul`,
@@ -37,8 +37,16 @@ data class ModuleDef(
     val enabled: Boolean = true,
 )
 
-/** Feature flags. Warehouse (Ombor) is merged and enabled. */
-object Features { const val NATIVE_WAREHOUSE = true }
+/**
+ * Feature flags. Warehouse (Ombor) is merged and enabled. USERNAME (@username, people search, company invites; docs/architecture/USERNAME_V1.md)
+ * stays off until migration 20261224100000_t2_username_v1 is applied on the server; only a debug build with the demo flag file `username.flag`
+ * can switch it on (see QuraiApp), so release builds cannot reach the unmigrated endpoints. JARVIS (AI chat) uses the existing /api/ai-savol.
+ */
+object Features {
+    const val NATIVE_WAREHOUSE = true
+    const val JARVIS = true
+    @Volatile @JvmStatic var USERNAME = false
+}
 
 private const val BOSS = "control.company.read"
 
@@ -50,6 +58,7 @@ object ModuleCatalog {
         ModuleDef("tasdiq", R.string.mod_approval, R.string.mod_approval_d, ModuleKind.NATIVE, target = NativeTarget.APPROVALS),
         ModuleDef("bugun", R.string.mod_today, R.string.mod_today_d, ModuleKind.NATIVE, listOf("company.read"), target = NativeTarget.TODAY),
         ModuleDef("ombor", R.string.mod_warehouse, R.string.mod_warehouse_d, ModuleKind.NATIVE, listOf(BOSS, "warehouse.read"), "module.logistika", NativeTarget.WAREHOUSE, enabled = Features.NATIVE_WAREHOUSE),
+        ModuleDef("jarvis", R.string.mod_jarvis, R.string.mod_jarvis_d, ModuleKind.NATIVE, listOf("company.read"), target = NativeTarget.JARVIS, enabled = Features.JARVIS),
         ModuleDef("smeta", R.string.mod_estimate, R.string.mod_estimate_d, ModuleKind.WEB, listOf(BOSS, "smeta.write"), webPath = "/admin/smeta-studio"),
         ModuleDef("narx", R.string.mod_prices, R.string.mod_prices_d, ModuleKind.WEB, listOf(BOSS, "narx.write"), webPath = "/admin/narxlar"),
         ModuleDef("f2", R.string.mod_f2, R.string.mod_f2_d, ModuleKind.WEB, listOf("f2.prepare"), webPath = "/admin/f2-tayyorlash"),
