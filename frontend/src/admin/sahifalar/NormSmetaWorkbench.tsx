@@ -1,3 +1,5 @@
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
+import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { useEffect, useRef, useState } from 'react';
 import { t } from '../../i18n/til';
@@ -6,6 +8,7 @@ import { sumDraftAmounts, type NormDraftLine, type NormSmetaDraft } from '../../
 type Detail = ReturnType<NormCatalog['detail']>;
 type Search = ReturnType<NormCatalog['search']>;
 export default function NormSmetaWorkbench() {
+  const { joriyId } = useKompaniya();
   const worker = useRef<Worker | null>(null), seq = useRef(0);
   const current = useRef<Record<string, number>>({});
   const [busy, setBusy] = useState(false), [ready, setReady] = useState(false);
@@ -39,6 +42,7 @@ export default function NormSmetaWorkbench() {
     setBranches({nodes:[],total:0}); send('branches',{path,page:branchPage});
   }, [ready,path,branchPage]);
   function load(files: File[]) {
+    for (const f of files) void aslFaylSaqla(f, { kompaniyaId: joriyId, turi: 'asl_boshqa' });
     worker.current?.terminate(); worker.current = null; current.current = {};
     pendingDraft.current = false; setDraft([]);
     setPath([]); setBranchPage(0); setBranches({nodes:[],total:0});

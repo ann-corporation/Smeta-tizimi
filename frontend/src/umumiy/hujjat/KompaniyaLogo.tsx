@@ -4,6 +4,7 @@
  * jadvalida base64 sifatida saqlanadi (PNG/JPEG, ≤ 300 KB); yozish faqat
  * boss/admin (server `kompaniya_logo_saqla` darvozasi).
  */
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { useRef, useState, type ReactNode } from 'react';
 import './hujjat-korinish.css';
 import { useQueryClient } from '@tanstack/react-query';
@@ -53,6 +54,7 @@ export function KompaniyaLogoYuklash({ kompaniyaId, isDirector }: { kompaniyaId:
     if (!f) return;
     if (f.type !== 'image/png' && f.type !== 'image/jpeg') { setXato(t('Faqat PNG yoki JPEG.')); return; }
     if (f.size > MAX_BAYT) { setXato(t('Fayl {n} KB — ruxsat ≤ 300 KB.', { n: Math.round(f.size / 1024) })); return; }
+    void aslFaylSaqla(f, { kompaniyaId, turi: 'asl_boshqa' });
     await saqla(f.type, await base64ga(f));
   };
 

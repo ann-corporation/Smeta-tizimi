@@ -5,6 +5,7 @@
  * «Da'vo ro'yxati» Excel. Smeta tushunish faqat `smeta-anatomiya` orqali; asl smeta (t2_qator) O'ZGARMAYDI.
  * Egasi qarorlari: ekspertiza kesgan, lekin qurilgan hajm — fakt, himoya qilinadi (avtomatik minus yo'q).
  */
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { AlertTriangle, Download, RefreshCw, Upload } from 'lucide-react';
@@ -312,7 +313,7 @@ export function SmetaVersiyaFarq({ kompaniyaId, obyektId, obyektNom, joriyQatorl
         <div className="flex flex-wrap items-end gap-2">
           <label className="text-[12px]">{t('Smeta fayl(lar)i')}
             <input aria-label={t('Versiya fayllari')} type="file" multiple accept=".xls,.xlsx,.xlsm" className="ml-2" disabled={!!band}
-              onChange={(e) => { setFayllar(Array.from(e.target.files ?? [])); }} />
+              onChange={(e) => { const tanlangan = Array.from(e.target.files ?? []); for (const f of tanlangan) void aslFaylSaqla(f, { kompaniyaId, obyektId, turi: 'asl_smeta' }); setFayllar(tanlangan); }} />
             {fayllar.length > 0 && <span className="ml-2 text-text-mute">{fayllar.map((f) => f.name).join(', ')}</span>}
           </label>
           <label className="text-[12px]">{t('Versiya yorlig‘i (ixtiyoriy)')}<input className="ml-1 w-56 border rounded px-2 py-1" value={nom} placeholder={versiyaNomi('')} onChange={(e) => setNom(e.target.value)} /></label>

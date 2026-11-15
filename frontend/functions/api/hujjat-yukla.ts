@@ -6,11 +6,11 @@
  *
  *   1. RPC t2_document_canonical_reserve_v1  -> document_id + deterministic r2_key
  *   2. stream bytes -> r2Yoz(R2_CANONICAL, r2_key)
- *   3. RPC t2_document_canonical_finalize_v1 -> 'stored', enqueue Drive mirror job
+ *   3. RPC t2_document_canonical_finalize_v1 -> 'stored'
  *
  * On interruption between 2 and 3 the row stays 'reserved' and the reconcile
- * worker (`apiT2ReplicaSyncTick` / a scheduled function) HEADs R2 and calls
- * t2_document_canonical_reconcile_v1. Drive/GAS are never on this path.
+ * worker (scheduled function) HEADs R2 and calls
+ * t2_document_canonical_reconcile_v1. Google Drive is removed from the system: R2 is the only file store.
  *
  * multipart/form-data:
  *   fayl          File (required)
@@ -168,7 +168,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     // Already stored (retry) — nothing more to do.
     if (reserve.body.canonical_storage_status === 'stored') {
       return Response.json({ ok: true, document_id: documentId, r2_key: r2Key, sha256: reserve.body.sha256,
-        versiya: reserve.body.versiya, drive_sync: 'not_configured', retry: true, dedup: reserve.body.dedup === true });
+        versiya: reserve.body.versiya, retry: true, dedup: reserve.body.dedup === true });
     }
 
     // ── PHASE 2: bytes -> PRIVATE R2 ─────────────────────────────────────
@@ -204,7 +204,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         return Response.json({
           ok: true, document_id: documentId, revision_seq: share.body.revision_seq,
           r2_key: r2Key, sha256: share.body.sha256, sha256_verified: true,
-          size_bytes: declaredSize, versiya: share.body.versiya, drive_sync: 'not_configured', shared_from: share.body.shared_from,
+          size_bytes: declaredSize, versiya: share.body.versiya, shared_from: share.body.shared_from,
         });
       }
       await r2Yoz(ctx.env.R2_CANONICAL, r2Key, buf, meta);
@@ -236,7 +236,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     return Response.json({
       ok: true, document_id: documentId, revision_seq: fin.body.revision_seq,
       r2_key: r2Key, sha256: fin.body.sha256, sha256_verified: fin.body.sha256_verified,
-      size_bytes: declaredSize, versiya: fin.body.versiya, drive_sync: 'not_configured',
+      size_bytes: declaredSize, versiya: fin.body.versiya,
     });
   } catch {
     await tolovQaytar?.();

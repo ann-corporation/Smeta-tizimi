@@ -1,3 +1,4 @@
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { useEffect, useMemo, useState } from 'react';
 import { FileUp, ShieldAlert } from 'lucide-react';
 import { F2Oyna } from './F2Oyna';
@@ -46,6 +47,7 @@ export function F2PodvalBackfillOyna(p: { obyektId: number; kompaniyaId: number;
 
   async function faylTanlandi(file: File | undefined) {
     if (!file) return;
+    void aslFaylSaqla(file, { kompaniyaId: p.kompaniyaId, obyektId: p.obyektId, turi: 'asl_f2' });
     setXato(''); setBand(true); setAktlar(null); setNatija({}); setStorno({});
     try {
       const a = await f2AktlarniOqiFonda(file.name, file);
