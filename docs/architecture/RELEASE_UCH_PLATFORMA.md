@@ -36,6 +36,17 @@ Havola manifestdagi maydonlardan yasaladi (tashqi URL qabul qilinmaydi). iOS hav
 - Google Play / APK uchun: release keystore (CI secrets orqali; repoda yo‘q).
 - Apple Developer akkaunti (yillik): macOS Developer ID imzosi + notarization, iOS TestFlight/App Store.
 - Windows: kod imzo sertifikati (ixtiyoriy; hozir `NotSigned` ogohlantirishi).
-- Hosting: yuqoridagi `/android`, `/macos`, `/windows` yo‘llarini sayt origin’idan berish.
+- Hosting: yuqoridagi `/android`, `/macos`, `/windows` yo‘llari Pages Functions bilan beriladi (pastga qarang).
+
+## Hosting: same-origin Pages Function
+
+`frontend/functions/{windows,android,macos}/[[path]].ts` → umumiy `functions/_shared/reliz-fayl.ts`. Faqat `GET`/`HEAD`, auth yo‘q (`functions/api/_middleware.ts` bu yo‘llarga tegmaydi), mavjud `R2_CANONICAL` binding (yopiq bucket) orqali o‘qiydi.
+
+- Qat’iy tekshiruv (mijoz URL builder bilan bir xil): versiya `x.y.z`, sha256 — 64 ta kichik hex, fayl nomi `.apk` / `.dmg` / `.exe` (Windows uchun yana aynan `INSTALL_RU.md`). Boshqa hamma narsa (traversal, `%2f`, ro‘yxat, noto‘g‘ri kengaytma) → 404, R2 ga murojaat qilinmaydi.
+- R2 kaliti (prefiks kodda qat’iy, boshqa ma’lumotga yo‘l yo‘q):
+  - Windows: `windows/<ver>/<sha256>/<fayl>` (`desktop-release-r2.ps1` bilan bir xil)
+  - Android: `reliz/android/<ver>/<sha256>/<fayl>`; macOS: `reliz/macos/<ver>/<sha256>/<fayl>`
+- Javob: to‘g‘ri `Content-Type`, `Content-Length`, `ETag` (= sha256), `Content-Disposition: attachment`, `Cache-Control: public, max-age=31536000, immutable`, `nosniff`; `Range` (206/416), `If-None-Match` (304); tana stream qilinadi. Obyektning `customMetadata.sha256` bor bo‘lsa va yo‘ldagi xesh bilan mos kelmasa → 404.
+- Yuklash (L0 qo‘lda): `frontend/scripts/reliz-yukla.ps1 -Platform android|macos|windows -File <yo‘l>` — xeshni hisoblaydi, `wrangler r2 object put ... --remote` bilan yuklaydi (`-DryRun` — yuklamasdan) va `generate-mobile-release.mjs` uchun manifest JSON’ni chop etadi.
 
 Repoda hech qanday maxfiy kalit, parol yoki haqiqiy manifest saqlanmaydi.
