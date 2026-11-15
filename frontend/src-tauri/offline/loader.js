@@ -1,4 +1,4 @@
-// Smeta Tizimi "Onlayn qobiq" loader. No IPC is used here. It only checks that the live site is reachable
+// QURAI "Onlayn qobiq" loader. No IPC is used here. It only checks that the live site is reachable
 // and then hands the window over to it; otherwise it shows the offline card with a retry button.
 (function () {
   'use strict';
@@ -31,12 +31,19 @@
     off.hidden = true;
     busy.hidden = false;
     probe().then(function (ok) {
+<<<<<<< ours
       if (ok) { location.replace(SITE); return; }
       shellBor().then(function (bor) {
         if (bor) { location.replace(SITE); return; }
         busy.hidden = true;
         off.hidden = false;
       });
+=======
+      // Ilova ish quroli: kirgan foydalanuvchi to'g'ridan-to'g'ri ish joyiga; kirmagan bo'lsa /admin «Kirish» ni ko'rsatadi.
+      if (ok) { location.replace(SITE + 'admin'); return; }
+      busy.hidden = true;
+      off.hidden = false;
+>>>>>>> theirs
     });
   }
 

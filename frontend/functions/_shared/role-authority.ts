@@ -29,6 +29,8 @@ export function sessiyaBekorQilingan(sess: Pick<Sess, 'exp'>, bekor: number | un
 /** Sessiya ANIQ yaroqsiz (bekor qilingan yoki hisob faol emas/birlashtirilgan) — vaqtinchalik DB xatosidan farqi:
  *  bunday holatda javob 401 bo'lishi kerak (qayta kirish), 503 emas (qayta urinish). Kalit — roleAuthority'ga berilgan sess obyekti. */
 const yaroqsizSessiyalar = new WeakSet<object>();
+type DbVakolat = { authority: Sess | null; bekor?: number; yaroqsiz?: boolean };
+const vakolatUchishda = new Map<number, Promise<DbVakolat>>();
 export function sessiyaYaroqsizmi(sess: object | null | undefined): boolean { return !!sess && yaroqsizSessiyalar.has(sess); }
 /** Yaroqsiz sessiya uchun yagona javob: 401 + cookie tozalanadi. */
 export function yaroqsizSessiyaJavob(): Response {
@@ -46,14 +48,22 @@ export async function roleAuthority(sess: Sess, env: { SUPABASE_URL: string; SUP
     if (sessiyaBekorQilingan(sess, k.bekor)) { yaroqsizSessiyalar.add(sess); return null; }
     return { ...sess, ...k.qiymat };
   }
-  const { authority: yangi, bekor, yaroqsiz } = await roleAuthorityDb(sess, env);
+  // Single-flight: bir sahifa yuklanishi o'nlab parallel /api so'rov yuboradi; kesh sovuq bo'lsa har biri alohida t2_men_v1
+  // (~200 ms DB) chaqirardi. Endi bir foydalanuvchi uchun bitta uchishdagi so'rov hammaga umumiy; xato ham umumiy, keshlanmaydi.
+  let uchishda = vakolatUchishda.get(id);
+  if (!uchishda) {
+    uchishda = roleAuthorityDb(sess, env).finally(() => { vakolatUchishda.delete(id); });
+    vakolatUchishda.set(id, uchishda);
+  }
+  const { authority: yangi, bekor, yaroqsiz } = await uchishda;
   if (yaroqsiz) yaroqsizSessiyalar.add(sess);
   if (yangi) {
     if (vakolatKesh.size > 5000) vakolatKesh.clear();
     vakolatKesh.set(id, { vaqt: Date.now(), qiymat: { rol: yangi.rol, kompaniyalar: yangi.kompaniyalar, permissionsByCompany: yangi.permissionsByCompany, explicitDenialsByCompany: yangi.explicitDenialsByCompany, modullarOffByCompany: yangi.modullarOffByCompany }, bekor });
   } else vakolatKesh.delete(id);
   if (yangi && sessiyaBekorQilingan(sess, bekor)) { yaroqsizSessiyalar.add(sess); return null; }
-  return yangi;
+  // Umumiy natija boshqa sessiya obyektidan yasalgan bo'lishi mumkin: faqat vakolat maydonlari olinadi, qolgani — shu so'rovning o'z sessiyasi.
+  return yangi ? { ...sess, rol: yangi.rol, kompaniyalar: yangi.kompaniyalar, permissionsByCompany: yangi.permissionsByCompany, explicitDenialsByCompany: yangi.explicitDenialsByCompany, modullarOffByCompany: yangi.modullarOffByCompany } : null;
 }
 
 async function roleAuthorityDb(sess: Sess, env: { SUPABASE_URL: string; SUPABASE_KEY: string }): Promise<{ authority: Sess | null; bekor?: number; yaroqsiz?: boolean }> {

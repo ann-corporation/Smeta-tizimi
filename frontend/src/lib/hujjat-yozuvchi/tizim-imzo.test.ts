@@ -33,7 +33,7 @@ describe('Tizim imzosi — har hujjat kolontitul + xususiyat oladi', () => {
     const b = tizimImzosiniQoy(kitob(), META);
     const f = footer(matn(b, 'xl/worksheets/sheet1.xml'));
     const q = kolontitulBolimlari(f);
-    expect(q.L).toContain('Smeta tizimi · smeta-tizimi.pages.dev');
+    expect(q.L).toContain('QURAI · smeta-tizimi.pages.dev');
     expect(q.L).toContain('F2_Obyekt_№5_2026-10');
     expect(q.C).toBe(kolontitulBolimlari(footer(matn(kitob(), 'xl/worksheets/sheet1.xml'))).C);
     expect(q.C).toContain('Страница &P из &N');
@@ -56,12 +56,12 @@ describe('Tizim imzosi — har hujjat kolontitul + xususiyat oladi', () => {
     const core = matn(b, 'docProps/core.xml');
     const app = matn(b, 'docProps/app.xml');
     const kod = tizimImzoKodi(b);
-    expect(core).toContain('<dc:creator>Smeta tizimi</dc:creator>');
+    expect(core).toContain('<dc:creator>QURAI</dc:creator>');
     expect(core).toContain('<dc:title>Форма 2</dc:title>');
     expect(core).toContain('<cp:lastModifiedBy>pto@new-times.uz</cp:lastModifiedBy>');
     expect(core).toContain(`Код проверки ${kod}`);
-    expect(app).toContain('<Company>Smeta tizimi · smeta-tizimi.pages.dev</Company>');
-    expect(app).toContain('<Application>Smeta tizimi</Application>');
+    expect(app).toContain('<Company>QURAI · smeta-tizimi.pages.dev</Company>');
+    expect(app).toContain('<Application>QURAI</Application>');
     const ct = matn(b, '[Content_Types].xml');
     expect(ct).toContain('PartName="/docProps/app.xml"');
     expect(matn(b, '_rels/.rels')).toContain('Target="docProps/app.xml"');
@@ -81,7 +81,7 @@ describe('Tizim imzosi — har hujjat kolontitul + xususiyat oladi', () => {
 
   it('shablonning pastki chap/o‘ng qismi band bo‘lsa — imzo yuqori kolontitulga, shablon matni saqlanadi', () => {
     const xml = '<worksheet xmlns="x"><sheetData/><pageMargins left="0.7"/><headerFooter><oddFooter>&amp;LИсп. Иванов&amp;RЛист &amp;P</oddFooter></headerFooter></worksheet>';
-    const y = varaqqaTizimImzosi(xml, { chap: 'Smeta tizimi · smeta-tizimi.pages.dev', ong: 'Код ABCDE-12345' });
+    const y = varaqqaTizimImzosi(xml, { chap: 'QURAI · smeta-tizimi.pages.dev', ong: 'Код ABCDE-12345' });
     expect(footer(y)).toBe('&LИсп. Иванов&RЛист &P');
     expect(kolontitulBolimlari(footer(y, 'oddHeader')).L).toContain('smeta-tizimi.pages.dev');
     expect(y.indexOf('<oddHeader>')).toBeLessThan(y.indexOf('<oddFooter>'));
@@ -106,7 +106,7 @@ describe('Tizim imzosi — har hujjat kolontitul + xususiyat oladi', () => {
     const b = tizimImzosiniQoy(new Uint8Array(await wb.xlsx.writeBuffer() as ArrayBuffer), META);
     const p = Object.keys(fayllar(b)).find((k) => /^xl\/worksheets\/sheet\d+\.xml$/.test(k))!;
     expect(footer(matn(b, p))).toContain('smeta-tizimi.pages.dev');
-    expect(matn(b, 'docProps/core.xml')).toContain('<dc:creator>Smeta tizimi</dc:creator>');
+    expect(matn(b, 'docProps/core.xml')).toContain('<dc:creator>QURAI</dc:creator>');
   });
 
   it('zip paket (F2 oylik paket) — ichidagi har xlsx imzolanadi; boshqa fayllar tegilmaydi', () => {

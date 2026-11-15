@@ -1,7 +1,7 @@
 [package]
 name = "smeta-desktop"
-version = "0.1.0"
-description = "TIZIM 02 Windows client"
+version = "0.1.1"
+description = "QURAI Windows client"
 edition = "2021"
 rust-version = "1.99"
 publish = false

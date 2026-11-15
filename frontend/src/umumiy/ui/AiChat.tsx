@@ -23,6 +23,7 @@ import { AiQadamlar } from './AiQadamlar';
 import { ISHCHI_HODISA, type IshchiHodisa } from './useIshchiNatija';
 import { TOIFA_NOMI } from './ai-harakat';
 import { studioKontekstObuna, studioKontekstOl, studioKontekstScope } from '../../lib/jarvis/studio-kontekst';
+import { sensorliQurilma } from '../../lib/mobil/korinish-viewport';
 
 type Xabar = { id: string; rol: 'user' | 'ai'; matn: string; yakun?: KasbYakun; qadamlar?: Qadam[]; jonli?: boolean; xato?: boolean; sahifalar?: SahifaIshora[]; yordam?: boolean;
   /** Yagona yordamchi (Jarvis) javobi: navigatsiya/o‘qish/taklif kartasi. */
@@ -77,7 +78,7 @@ function OtishTugmalari({ royxat, ochish }: { royxat?: SahifaIshora[]; ochish: (
 }
 
 /** Kasb ishchisi bilan suhbat: har savolda AI qadamlari JONLI ko'rinadi; harakat takliflari tasdiq kartasi bilan keladi. */
-function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, onOtish, onOqildi, yordamchi, foydalanuvchiId = null }: { foydalanuvchiId?: number | null; kompaniyaId: number | null; kasb: KasbIshchi | null; sahifa: string; generatsiya: number; tayyorSavol?: TayyorSavol | null; onOtish?: () => void; onOqildi?: () => void; yordamchi?: YordamchiUlanish }) {
+function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, onOtish, onOqildi, yordamchi, foydalanuvchiId = null, ixcham = false }: { ixcham?: boolean; foydalanuvchiId?: number | null; kompaniyaId: number | null; kasb: KasbIshchi | null; sahifa: string; generatsiya: number; tayyorSavol?: TayyorSavol | null; onOtish?: () => void; onOqildi?: () => void; yordamchi?: YordamchiUlanish }) {
   const navigate = useNavigate();
   const [xabarlar, setXabarlar] = useState<Xabar[]>([]);
   const [matn, setMatn] = useState('');
@@ -373,18 +374,18 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const UMUMIY_SAVOLLAR = ['Bu sahifa nima uchun kerak?', 'Bu yerdagi raqamlar nimani bildiradi?', 'Keyingi qadam nima?'];
   return (
     <>
-      {yordamchi && <div className="border-b border-border bg-surface-2 px-4 py-2" data-testid="jarvis-conversation-bar">
+      {yordamchi && <div className={`border-b border-border bg-surface-2 px-4 ${ixcham ? 'py-1' : 'py-2'}`} data-testid="jarvis-conversation-bar">
         <div className="flex items-center gap-2">
           <select aria-label={t('Suhbatni tanlash')} value="" onChange={(e) => { const selected = korinadigan.find((q) => q.id === e.target.value); if (selected) suhbatDavom(selected); }} className="min-w-0 flex-1 rounded border border-border bg-surface px-2 py-1 text-sm">
             <option value="">{korinadigan.find((q) => q.id === suhbatId.current)?.sarlavha ?? t('Suhbatni tanlash')}</option>
             {korinadigan.map((q) => <option key={q.id} value={q.id}>{q.sarlavha}</option>)}
           </select>
-          <button type="button" onClick={() => window.dispatchEvent(new Event('ai:yangi-suhbat'))} className="rounded border border-border px-2 py-1 text-sm">{t('Yangi suhbat')}</button>
+          {!ixcham && <button type="button" onClick={() => window.dispatchEvent(new Event('ai:yangi-suhbat'))} className="rounded border border-border px-2 py-1 text-sm">{t('Yangi suhbat')}</button>}
         </div>
-        <p className="mt-1 text-xs text-text-dim">{kompaniyaId == null ? t('Kontekst: umumiy suhbat') : t('Kontekst: kompaniya #{id}', { id: String(kompaniyaId) })}{yordamchi.joriyObyekt ? ' · ' + yordamchi.joriyObyekt.nom : ''}</p>
+        {!ixcham && <p className="mt-1 text-xs text-text-dim">{kompaniyaId == null ? t('Kontekst: umumiy suhbat') : t('Kontekst: kompaniya #{id}', { id: String(kompaniyaId) })}{yordamchi.joriyObyekt ? ' · ' + yordamchi.joriyObyekt.nom : ''}</p>}
         {saqlashHolati !== 'idle' && <p role="status" className="mt-1 text-xs text-text-dim">{saqlashHolati === 'saving' ? t('Suhbat serverga saqlanmoqda…') : saqlashHolati === 'saved' ? t('Suhbatning ixcham nusxasi serverga saqlandi') : t('Serverga saqlanmadi — bu oynani yopmang')}</p>}
       </div>}
-      <div className="flex-1 space-y-4 overflow-y-auto p-4" aria-live="polite">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4" aria-live="polite">
         {studioScope && kasb?.kategoriyalar.includes('smeta_pul') && <p className="rounded-lg border border-border p-2 text-xs text-text-dim">{t('Jarvis joriy qoralamani o‘qiydi; u hali tasdiqlangan hujjat emas.')}</p>}
         {xabarlar.length === 0 && !kompaniyaId && (
           <div className="rounded-xl border border-border bg-surface-2 p-3 text-sm">
@@ -459,9 +460,9 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
         ))}
         <div ref={oxir} />
       </div>
-      <div className="border-t border-border bg-surface-2 p-3">
+      <div className="shrink-0 border-t border-border bg-surface-2 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="relative">
-          <textarea value={matn} onChange={(e) => setMatn(e.target.value)} rows={2} id="jarvis-kirish" data-testid="jarvis-kirish" autoFocus={!!yordamchi}
+          <textarea value={matn} onChange={(e) => setMatn(e.target.value)} rows={2} id="jarvis-kirish" data-testid="jarvis-kirish" autoFocus={!!yordamchi && !ixcham && !sensorliQurilma()}
             placeholder={yordamchi ? t('Masalan: «mindmapni och», «narxsiz qatorlar», «Yevropa 1 F2»') : t('Xabaringizni yozing...')}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void yubor(matn); } }}
             className={`max-h-[40vh] min-h-[72px] w-full resize-none [field-sizing:content] rounded-xl border border-border bg-surface py-3 pl-4 text-sm text-text focus:border-accent focus:outline-none ${ovozBor ? 'pr-28' : 'pr-12'}`} />
@@ -479,7 +480,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
               className="fz-btn fz-btn--primary fz-btn--icon absolute bottom-2 right-2"><Send size={16} /></button>
           )}
         </div>
-        <div className="mt-2 text-center text-[10px] text-text-mute">{t('AI xato qilishi mumkin. Pul va omborga ta’sir qiluvchi harakatlar faqat sizning tasdig‘ingiz bilan bajariladi.')}</div>
+        <div className="mt-2 hidden text-center text-[10px] text-text-mute sm:block">{t('AI xato qilishi mumkin. Pul va omborga ta’sir qiluvchi harakatlar faqat sizning tasdig‘ingiz bilan bajariladi.')}</div>
       </div>
     </>
   );

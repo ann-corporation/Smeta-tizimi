@@ -448,7 +448,7 @@ const noyobNom = (royxat: Set<string>, asos: string): string => {
 export async function aosrKitobExcel(aktlar: readonly AosrKirish[], o: AosrKitobOpsiya = {}): Promise<Uint8Array> {
   const ExcelJSMod = (await import('exceljs')).default; // og'ir kutubxona — faqat eksportda yuklanadi
   const wb = new ExcelJSMod.Workbook();
-  wb.creator = 'Smeta tizimi';
+  wb.creator = 'QURAI';
   const nomlar = new Set<string>();
   const logo = aktlar.find((a) => a.logo?.base64)?.logo ?? null;
   const logoId = logo ? wb.addImage({ base64: logo.base64, extension: logo.ext }) : null;

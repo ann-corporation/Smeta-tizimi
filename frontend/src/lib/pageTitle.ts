@@ -1,5 +1,5 @@
 import { navSahifa } from './nav/navReestr';
-export const APP_TITLE = 'SMETA TIZIM 02';
+export const APP_TITLE = 'QURAI';
 const titles: Array<[RegExp, string]> = [
   [/^\/admin\/storage(?:\/|$)/, 'Fayl saqlash'], [/^\/admin\/(?:test\/)?saqlash(?:\/|$)/, 'Fayl saqlash'],
   [/^\/admin\/mindmap(?:\/|$)/, 'Mindmap'], [/^\/admin\/(?:test\/)?xarita(?:\/|$)/, 'Mindmap'],

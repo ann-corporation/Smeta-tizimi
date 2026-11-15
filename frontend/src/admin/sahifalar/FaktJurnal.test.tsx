@@ -47,7 +47,7 @@ describe('FaktJurnal', () => {
     fireEvent.click(screen.getAllByRole('button', { name: '=' })[0]);
     fireEvent.change(screen.getByLabelText('Jami fakt: Grunt'), { target: { value: '55' } });
     fireEvent.change(screen.getByLabelText('Bugun bajarildi: Qum'), { target: { value: '2,5' } });
-    expect(screen.getByText('2 ta o‘zgarish')).toBeTruthy();
+    expect(screen.getByText('O‘zgarishlar saqlanmagan (2)')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /^Saqlash/ }));
     await waitFor(() => expect(m.yoz).toHaveBeenCalledTimes(1));
     expect(m.yoz).toHaveBeenCalledWith(expect.objectContaining({ obyektId: 8, qatorlar: [{ qator_id: 2, hajm: 15 }, { qator_id: 3, hajm: 2.5 }] }));
@@ -139,7 +139,7 @@ describe('FaktJurnal', () => {
     m.yoz.mockResolvedValue({ ok: true });
     render(<FaktJurnal {...props()} />);
     fireEvent.change(screen.getByLabelText('Bugun bajarildi: Grunt'), { target: { value: '10%' } });
-    expect(screen.getByText('1 ta o‘zgarish')).toBeTruthy();
+    expect(screen.getByText('O‘zgarishlar saqlanmagan (1)')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Ko‘rinadigan ishlar: jami 75%' }));
     expect((screen.getByLabelText('Jami fakt: Grunt') as HTMLInputElement).value).toBe('75%');
     expect((screen.getByLabelText('Jami fakt: Qum') as HTMLInputElement).value).toBe('75%');

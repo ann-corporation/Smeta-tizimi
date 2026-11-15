@@ -1,14 +1,14 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Smeta Tizimi",
-  "version": "0.1.0",
+  "productName": "QURAI",
+  "version": "0.1.1",
   "identifier": "uz.anncorp.smeta",
   "build": {
     "frontendDist": "offline"
   },
   "app": {
     "withGlobalTauri": false,
-    "windows": [{ "label": "main", "title": "Smeta Tizimi", "url": "index.html", "create": false, "width": 1440, "height": 900, "minWidth": 960, "minHeight": 640 }],
+    "windows": [{ "label": "main", "title": "QURAI", "url": "index.html", "create": false, "width": 1440, "height": 900, "minWidth": 960, "minHeight": 640 }],
     "security": {
       "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src https://smeta-tizimi.pages.dev; object-src 'none'; base-uri 'self'; frame-src 'none'"
     }

@@ -11,6 +11,8 @@ import { sbT2LoyihalarOl, type Loyiha } from '../../api/t2-loyiha';
 import { hujjatRoyxatOl, type DocRegistry } from '../../api/t2-hujjat-canonical';
 import type { CenterDocument } from '../../components/document-center';
 import { useQaytaUlanish } from '../../desktop/qayta-ulanish';
+import { SlidersHorizontal } from 'lucide-react';
+import { useMobilEkran } from '../../lib/mobil/useMobilEkran';
 
 /**
  * PTO uchun yagona tenant scope.
@@ -534,6 +536,10 @@ export function PTOWorkspaceBar() {
   const workspace = usePTOWorkspace();
   const location = useLocation();
   const navigate = useNavigate();
+  const mobil = useMobilEkran();
+  const [mobilOchiq, setMobilOchiq] = useState(false);
+  /* Marshrut o'zgarsa telefondagi doira paneli yopiladi. */
+  useEffect(() => { setMobilOchiq(false); }, [location.pathname]);
   if (!workspace.companyId || !isPtoRoute(location.pathname)) return null;
   /* Obyekt yo'lda turadigan sahifa (/admin/holat/:id): yuqoridagi tanlov sahifani o'zi ochadi — ikkinchi tanlov kerak emas. */
   const obyektTanla = (id: number | null) => {
@@ -559,8 +565,8 @@ export function PTOWorkspaceBar() {
   const nomi = (rows: readonly { id: number; nom: string }[], id: number | null) =>
     rows.find((x) => x.id === id)?.nom ?? '';
   const manbaTanlangan = workspace.scope.sourceDocumentId != null || workspace.scope.revisionId != null;
-  return (
-    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5" data-testid="pto-workspace-bar">
+  const ichki = (
+    <>
       <span className="hidden text-[10.5px] font-semibold uppercase tracking-[0.06em] text-text-mute 2xl:inline">{t('Ish doirasi')}</span>
       <label className="sr-only" htmlFor="pto-project-select">Loyiha</label>
       <select id="pto-project-select" aria-label="PTO loyiha" title={nomi(workspace.projects, workspace.scope.projectId)} value={workspace.scope.projectId ?? ''} onChange={(event) => workspace.setProjectId(event.target.value ? Number(event.target.value) : null)} className={`${tanlov} w-[clamp(120px,14vw,220px)]`}>
@@ -591,6 +597,29 @@ export function PTOWorkspaceBar() {
       </details>
       {workspace.loading.hierarchy || workspace.loading.periods || workspace.loading.documents ? <span className="text-[11px] text-text-dim" role="status">Yuklanmoqda…</span> : null}
       {workspace.error ? <span className="max-w-[260px] truncate text-[11px] text-warn" role="alert" title={workspace.error}>{workspace.error}</span> : null}
+    </>
+  );
+  /* Telefon (<768px): yuqori panel BITTA qatorda qolsin (≤56px) — loyiha/obyekt/oy/manba tanlagichlari bitta tugma ortidagi panelda. */
+  if (mobil) {
+    const joriyNom = nomi(objects, workspace.scope.objectId) || nomi(workspace.projects, workspace.scope.projectId);
+    return (
+      <div className="shrink-0" data-testid="pto-workspace-bar">
+        <button type="button" data-testid="pto-doira-tugma" aria-expanded={mobilOchiq} aria-label={`${t('Ish doirasi')}${joriyNom ? `: ${joriyNom}` : ''}`} title={joriyNom || t('Ish doirasi')}
+          onClick={() => setMobilOchiq((v) => !v)}
+          className={`inline-flex h-11 w-11 items-center justify-center rounded-md border ${joriyNom || manbaTanlangan ? 'border-accent/40 text-accent' : 'border-border text-text-dim'}`}>
+          <SlidersHorizontal size={18} aria-hidden="true" />
+        </button>
+        {mobilOchiq && (
+          <div role="group" aria-label={t('Ish doirasi')} data-testid="pto-doira-panel" className="absolute inset-x-0 top-full z-40 flex flex-col gap-2 border-b border-border bg-surface p-3 shadow-lg">
+            {ichki}
+          </div>
+        )}
+      </div>
+    );
+  }
+  return (
+    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5" data-testid="pto-workspace-bar">
+      {ichki}
     </div>
   );
 }

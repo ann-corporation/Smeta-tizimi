@@ -21,6 +21,7 @@ import { narxIzohi } from '../../lib/narx-dalil/izoh';
 import { HUDUDLAR, hududNomi, joylashuvdanHudud } from '../../lib/hudud';
 import { t } from '../../i18n/til';
 import { useHujjatTomonlari } from '../../umumiy/hujjat/HujjatTomonlari';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { toast } from '../../umumiy/ui/Toast';
 import { NarxProtokolPanel } from './NarxProtokolPanel';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
@@ -101,6 +102,7 @@ export default function NarxDalil() {
 
   const ochir = async (d: NarxDalilHolat) => {
     if (!kompaniyaId || !obyektId) return;
+    if (!(await tasdiqSora({ matn: t('Narx dalili olib tashlanadi — qator dalilsiz qoladi. Davom etasizmi?'), tasdiqMatni: t('Olib tashlash'), xavfli: true }))) return;
     const r = await sbNarxDalilOchir(kompaniyaId, obyektId, [d.qator_id]);
     if (r.ok) { toast('Dalil olib tashlandi', 'ok'); await yukla(); } else toast(r.error || 'Xato', 'danger');
   };

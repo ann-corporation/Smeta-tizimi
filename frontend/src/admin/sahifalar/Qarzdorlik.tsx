@@ -2,8 +2,9 @@ import { t } from '../../i18n/til';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
+import { SaqlashPaneli } from '../../umumiy/ui/SaqlashPaneli';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, ChevronDown, ChevronRight, Download, FileUp, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronRight, Download, FileUp, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { toast } from '../../umumiy/ui/Toast';
 import { FmtN } from '../../lib/format';
@@ -76,10 +77,11 @@ function Tafsilot({ sh, kid, onSaqlandi }: { sh: QarzShartnoma; kid: number; onS
   const [sp, setSp] = useState({ qarz: strSon(sh.spravka_qarz), tolangan: strSon(sh.spravka_tolangan), prognoz: strSon(sh.spravka_prognoz) });
   const [saqlanmoqda, setSaqlanmoqda] = useState(false);
   const opRef = useRef<string>(yangiOperationId());
-  const ozgargan = useMemo(() => {
-    if (och.length > 0 || qs.length !== sh.qatorlar.length) return true;
-    if (sp.qarz !== strSon(sh.spravka_qarz) || sp.tolangan !== strSon(sh.spravka_tolangan) || sp.prognoz !== strSon(sh.spravka_prognoz)) return true;
-    return qs.some((q, i) => JSON.stringify(q) !== JSON.stringify(shakldan(sh.qatorlar[i])));
+  /** Saqlanmagan o'zgarishlar soni (qo'shilgan/o'chirilgan/o'zgargan qator + o'zgargan spravka maydonlari). */
+  const ozgarishSoni = useMemo(() => {
+    const spravka = (['qarz', 'tolangan', 'prognoz'] as const).filter((k) => sp[k] !== strSon(sh['spravka_' + k as 'spravka_qarz' | 'spravka_tolangan' | 'spravka_prognoz'])).length;
+    const qator = qs.filter((q, i) => !sh.qatorlar[i] || JSON.stringify(q) !== JSON.stringify(shakldan(sh.qatorlar[i]))).length;
+    return och.length + qator + spravka;
   }, [qs, och, sp, sh]);
 
   const jonli = useMemo(() => qarzHisobla({
@@ -98,6 +100,7 @@ function Tafsilot({ sh, kid, onSaqlandi }: { sh: QarzShartnoma; kid: number; onS
     });
     setSaqlanmoqda(false);
     if (r.ok) { toast(t('Saqlandi'), 'ok'); onSaqlandi(); } else toast(qarzdorlikXato(r), 'danger');
+    return r.ok;
   };
 
   return (
@@ -152,8 +155,8 @@ function Tafsilot({ sh, kid, onSaqlandi }: { sh: QarzShartnoma; kid: number; onS
         {ASOS_TURLAR.map((x) => <button key={x} type="button" className="fz-btn fz-btn--sm" onClick={() => qosh(x)}><Plus size={13} /> {TUR_NOM[x]()}</button>)}
         <span className="ml-auto text-[12px]">{t('Hisob')}: {t('qabul')} <Son v={jonli.qabul} /> · {t('to‘langan')} <Son v={jonli.tolangan} /> · {t('qarz')} <Qarz v={jonli.qarz} />
           {jonli.farq != null && <> · {t('farq')} <Qarz v={jonli.farq} /></>}</span>
-        <button type="button" className="fz-btn fz-btn--primary" disabled={!ozgargan || saqlanmoqda} onClick={() => void saqla()}><Save size={14} /> {t('Saqlash')}</button>
       </div>
+      <SaqlashPaneli kalit={`qarzdorlik-${sh.shartnoma_id}`} soni={ozgarishSoni} saqla={saqla} band={saqlanmoqda} />
       {sh.tolov_t2 != null && <p className="text-[11px] text-text-mute">{t('Tizim to‘lovlari (t2_tolov) alohida hisobga kiritilgan:')} <FmtN val={sh.tolov_t2} /></p>}
     </div>
   );
@@ -233,7 +236,7 @@ function ImportOyna({ kid, obyektlar, onYop, onTayyor }: { kid: number; obyektla
           {natija.shartnomalar.length > 0 && (
             <div className="max-h-72 overflow-auto">
               <table className="w-full min-w-[760px] text-[12px]" aria-label={t('Import ko‘rinishi')}>
-                <thead><tr className="text-left text-[11px] uppercase text-text-mute">
+                <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left text-[11px] uppercase text-text-mute">
                   <th className="px-1 py-1">{t('Kontragent')}</th><th className="px-1 py-1">{t('Shartnoma')}</th><th className="px-1 py-1">{t('Turi')}</th>
                   <th className="px-1 py-1 text-right">{t('Shartnoma summasi')}</th><th className="px-1 py-1 text-right">{t('Asos qatori')}</th>
                   <th className="px-1 py-1 text-right">{t('Hisob qarzi')}</th><th className="px-1 py-1 text-right">{t('Spravka qarzi')}</th>
@@ -353,9 +356,9 @@ export function Qarzdorlik() {
           {jami.qarzNomalum > 0 && <p className="col-span-2 text-[11px] text-text-mute sm:col-span-5">{t('{n} ta shartnomada asos yo‘q — qarzi noma‘lum, jamiga kirmagan.', { n: jami.qarzNomalum })}</p>}
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="max-h-[70vh] overflow-auto">
           <table className="w-full min-w-[1080px] text-[12.5px]" aria-label={t('Qarzdorlik ro‘yxati')}>
-            <thead>
+            <thead className="sticky top-0 z-10 bg-surface">
               <tr className="text-left text-[11px] uppercase text-text-mute">
                 <th className="w-6 px-1 py-2" />
                 <th className="px-2 py-2">{t('Kontragent')}</th><th className="px-2 py-2">{t('Shartnoma')}</th><th className="px-2 py-2">{t('Turi')}</th>

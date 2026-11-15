@@ -21,7 +21,7 @@
  * «To'xtatish» tugmasini beradi — avval bu imkoniyat umuman yo'q edi
  * (foydalanuvchi: «1 soatdan beri shu ahvolda qotib turibdi»).
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, Loader2, CheckCircle2, AlertTriangle, ChevronUp, ChevronDown } from 'lucide-react';
 import { useF2JobHolat, useF2JobTozala } from '../../api/hooks';
 import { toast } from './Toast';
@@ -30,9 +30,19 @@ import { t } from '../../i18n/til';
 
 /** Siljimay turgan ish shu vaqtdan oshsa — qotgan deb ogohlantiramiz */
 const QOTDI_MS = 10 * 60 * 1000;
+/** Eski GAS navbat holati so'rovi sahifa yuklanishi bilan raqobatlashmasin. */
+const JOB_KUZATISH_KECHIKISH_MS = 20_000;
 
 export default function F2NavbatChip() {
-  const job = useF2JobHolat(true);
+  /* TEZLIK: apiF2JobHolat — eski GAS so'rovi (~3 s). Hozir UI hech qayerda GAS yozish ishini boshlamaydi (useF2Navbatga ishlatilmaydi),
+     shuning uchun u sahifa yuklanishining kritik yo'lida turmasligi kerak: sahifa tinchlangach (JOB_KUZATISH_KECHIKISH_MS) bir marta tekshiriladi;
+     faol ish topilsa mavjud refetchInterval kuzatishni davom ettiradi. */
+  const [kuzat, setKuzat] = useState(false);
+  useEffect(() => {
+    const id = window.setTimeout(() => setKuzat(true), JOB_KUZATISH_KECHIKISH_MS);
+    return () => window.clearTimeout(id);
+  }, []);
+  const job = useF2JobHolat(kuzat);
   const tozala = useF2JobTozala();
   const [yigilgan, setYigilgan] = useState(false);
   const [yopilgan, setYopilgan] = useState<string | null>(() => sessionStorage.getItem("f2_chip_yopiq"));

@@ -91,7 +91,7 @@ export default function BossShell() {
           <div className="fz-sidebar__brand">
             <span className="fz-sidebar__mark" aria-hidden="true">S</span>
             <span className="min-w-0">
-              <span className="fz-sidebar__name">{t('Smeta tizimi')}</span>
+              <span className="fz-sidebar__name">{'QURAI'}</span>
               <span className="fz-sidebar__role">{t('Rahbar ish joyi')}</span>
             </span>
           </div>

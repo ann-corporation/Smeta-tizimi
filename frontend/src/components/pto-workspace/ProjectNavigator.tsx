@@ -94,17 +94,19 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
   const contracts = line.shartnomalar.filter(s => s.loyiha_id === projectId);
   const idSet = new Set(ids);
   const objectList = objects.filter(o => idSet.has(o.id) && matches(o.nom));
-  const amount = (objectIds: number[], metric: FinancialMetric, sid?: number) => {
+  const amount = (objectIds: number[], metric: FinancialMetric, sid?: number, kartada = false) => {
+    // Kartada (KPI) barcha 3 qiymat bir xil CHAP tekislanadi; jadval katagida o'ng (raqam ustuni).
+    const tekis = kartada ? 'items-start text-left' : 'items-end text-right';
     const agg = financials.sum(objectIds)[metric];
     if (metric === 'smeta') return <>
       {/* Egasi 2026-10-27: QQS bilan (katta) + ustamali va ustamasiz (kichik) — yagona QiymatUchlik (PortfelSummaJuft). */}
-      <PortfelSummaJuft obyektlar={objectIds.map(obyektId => ({ obyektId, shartnomaId: sid ?? null }))} ustamasiz={agg.present === 0 ? null : agg.known} />
+      <PortfelSummaJuft className={kartada ? tekis : undefined} obyektlar={objectIds.map(obyektId => ({ obyektId, shartnomaId: sid ?? null }))} ustamasiz={agg.present === 0 ? null : agg.known} />
       {agg.unknown > 0 && <span className="mt-1 block text-[11px] font-normal text-text-mute">{t('narxsiz resurslar summaga kirmagan — Narxlar bo‘limida')}</span>}
     </>;
     if ((metric === 'fakt' || metric === 'f2') && paketlar.size > 0) {
       const pk: (SummaPaket | null)[] = objectIds.map(id => paketlar.get(id)?.[metric] ?? null);
       const j = paketlarJami(pk);
-      if (j.q.qqsBilan != null) return <QiymatUchlik q={j.q} kichik className="items-end text-right" yorliq={metric === 'fakt' ? t('Fakt, QQS bilan') : t('F2, QQS bilan')} nomalumSoni={j.nomalumSoni}
+      if (j.q.qqsBilan != null) return <QiymatUchlik q={j.q} kichik className={tekis} yorliq={metric === 'fakt' ? t('Fakt, QQS bilan') : t('F2, QQS bilan')} nomalumSoni={j.nomalumSoni}
         qismlar={objectIds.map(id => ({ kalit: String(id), nom: objects.find(o => o.id === id)?.nom ?? ('#' + id), q: paketUchligi(paketlar.get(id)?.[metric] ?? null) }))} />;
     }
     return <><Value value={agg} money /><SummaYorliq tur="ustamasiz" /></>;
@@ -141,8 +143,8 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
       {projectId !== undefined && <><ChevronRight size={14} className="text-text-mute" /><button className="fz-btn fz-btn--sm" onClick={() => go(projectId)}>{projectName}</button></>}
       {contractRaw && <><ChevronRight size={14} className="text-text-mute" /><span aria-current="page" className="font-semibold">{contract ? `№ ${raqamTozala(contract.raqam)} · ${contract.nom ?? ''}` : t('Shartnomaga biriktirilmagan')}</span></>}
     </nav>
-    <div aria-label={t('Moliyaviy ko‘rsatkichlar')} className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-      {FINANCIAL_METRICS.map(metric => <div key={metric} className="fz-card" style={{ padding: 14 }}><div className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: metricRang[metric], boxShadow: metric === 'ostatka' ? 'inset 0 0 0 1px var(--border-strong)' : undefined }} />{t(financialLabels[metric])}</span><b className="fz-kpi__value">{financials.loading ? t('Hisoblanmoqda…') : amount(ids,metric,contract?.id)}</b></div></div>)}
+    <div aria-label={t('Moliyaviy ko‘rsatkichlar')} className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 xl:grid-cols-4">
+      {FINANCIAL_METRICS.map(metric => <div key={metric} className="fz-card" style={{ padding: 14 }}><div className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: metricRang[metric], boxShadow: metric === 'ostatka' ? 'inset 0 0 0 1px var(--border-strong)' : undefined }} />{t(financialLabels[metric])}</span><b className="fz-kpi__value min-w-0 [overflow-wrap:anywhere]">{financials.loading ? t('Hisoblanmoqda…') : amount(ids,metric,contract?.id,true)}</b></div></div>)}
     </div>
     {!financials.loading && !financials.failed && ids.length > 0 && <div className="fz-panel">
       <div className="fz-panel__h"><span>{t('Umumiy bajarilish')}</span><span>{t('smeta = 100%')}</span></div>
@@ -182,7 +184,7 @@ export function ProjectNavigator({ companyId, objects, onOpen, onEdit, onArchive
         </div>
         {!financials.loading && !financials.failed && <ProgressQadam fin={fin} />}
         <KatTaqsimot obyekt={o} />
-        <div className="grid grid-cols-2 gap-x-3 gap-y-3">{FINANCIAL_METRICS.map(metric => <div key={metric} className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: metricRang[metric], boxShadow: metric === 'ostatka' ? 'inset 0 0 0 1px var(--border-strong)' : undefined }} />{t(financialLabels[metric])}</span><b className="text-[15px] font-semibold">{amount([o.id],metric,contract?.id)}</b></div>)}</div>
+        <div className="grid grid-cols-1 gap-x-3 gap-y-3 min-[480px]:grid-cols-2">{FINANCIAL_METRICS.map(metric => <div key={metric} className="fz-kpi"><span className="fz-kpi__label"><i style={{ background: metricRang[metric], boxShadow: metric === 'ostatka' ? 'inset 0 0 0 1px var(--border-strong)' : undefined }} />{t(financialLabels[metric])}</span><b className="min-w-0 break-words text-[15px] font-semibold [overflow-wrap:anywhere]">{amount([o.id],metric,contract?.id,true)}</b></div>)}</div>
         {technicalDetails([o.id],o.nom)}
         <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-border pt-3"><button className="fz-btn fz-btn--primary flex-1" onClick={() => onOpen(o,contract?.id)}>{t('Smetani ochish')}</button><Link className="fz-btn" to={`/admin/holat/${o.id}?panel=smeta`}><Upload aria-hidden="true" />{t('Smeta yuklash')}</Link><button className="fz-btn fz-btn--icon" aria-label={`${t('Obyektni tahrirlash')}: ${o.nom}`} title={t('Obyektni tahrirlash')} onClick={() => onEdit(o)}><Edit3 aria-hidden="true" /></button>{onShare && <button className="fz-btn fz-btn--icon" aria-label={`${t('Ulashish')}: ${o.nom}`} title={t('Ulashish')} onClick={() => onShare(o)}><Share2 aria-hidden="true" /></button>}<button className="fz-btn" aria-label={`${t('Obyektni arxivlash')}: ${o.nom}`} title={t('Obyektni arxivlash')} onClick={() => onArchive(o)}><Archive aria-hidden="true" />{t('Korzinkaga')}</button></div>
       </article>; })}

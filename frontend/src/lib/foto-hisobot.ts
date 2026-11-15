@@ -4,11 +4,21 @@
  * Rasmlar hisobotga kichik nusxada (<=480 px) kiradi — fayl hajmi nazoratda; asl foto R2 da qoladi.
  */
 import { hisobotQatorlari, type FotoElement, type HisobotQator } from './foto-dalil';
+import { BELGI_CHIZIQ, BELGI_VIEWBOX, BELGI_YOLLAR } from './imzo/qr-belgi';
+import { joriyHujjatDizayni } from './hujjat-yozuvchi/dizayn';
 
 export const HISOBOT_MAX_FOTO = 300;
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-export type HisobotOpts = { obyektNomi: string; dan: string | null; gacha: string | null; sana?: string };
+export type HisobotOpts = { obyektNomi: string; dan: string | null; gacha: string | null; sana?: string; logo?: boolean };
+
+/** QURAI belgisi (inline SVG: yangi oynada tashqi fayl yo'liga bog'liq emas) + sarlavha va pastki kolontitul uchun CSS. */
+function logoBelgisiSvg(): string {
+  const v = BELGI_VIEWBOX;
+  return `<svg class="qlogo" viewBox="${v.x} ${v.y} ${v.w} ${v.h}" width="22" height="22" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="QURAI"><g fill="none" stroke="#000" stroke-width="${BELGI_CHIZIQ}">${BELGI_YOLLAR.map((d) => `<path d="${d}"/>`).join('')}</g></svg>`;
+}
+export const LOGO_CSS = '.qhead{display:flex;align-items:center;gap:6px;border-bottom:1px solid #bbb;padding-bottom:4px;margin-bottom:8px;font:700 13px Arial,sans-serif;letter-spacing:.12em}'
+  + '.qfoot{position:fixed;left:0;right:0;bottom:0;font-size:8px;color:#808080;border-top:1px solid #ddd;padding-top:2px;background:#fff;text-align:center}@media screen{.qfoot{display:none}}';
 export type BlobOl = (documentId: number) => Promise<Blob | null>;
 
 /**
@@ -87,12 +97,13 @@ export async function fotoHisobotHtml(fotolar: readonly FotoElement[], o: Hisobo
     const rasm = blob ? await kichikRasm(blob, 640) : null;
     kartalar.push(`<figure>${rasm ? `<img src="${rasm.dataUrl}" alt="">` : '<div class="yoq">(rasm o‘qilmadi)</div>'}<figcaption><b>${esc(q.sana)}</b> · ${esc(q.razdel)}<br>${esc(q.manba)}${q.izoh ? `<br><i>${esc(q.izoh)}</i>` : ''}</figcaption></figure>`);
   }
+  const logo = o.logo ?? joriyHujjatDizayni().logoKolontitul;
   const html = `<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Фотоотчёт</title><style>
-@page{size:A4;margin:12mm}body{font:12px/1.35 Arial,sans-serif;color:#111}h1{font-size:16px;margin:0 0 4px}p{margin:2px 0}
+${logo ? `${LOGO_CSS}.g{padding-bottom:14px}\n` : ''}@page{size:A4;margin:12mm}body{font:12px/1.35 Arial,sans-serif;color:#111}h1{font-size:16px;margin:0 0 4px}p{margin:2px 0}
 .g{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}figure{margin:0;break-inside:avoid;border:1px solid #bbb;padding:4px}
 img{width:100%;height:auto;display:block}figcaption{font-size:11px;margin-top:3px}.yoq{padding:30px;text-align:center;color:#777}
-</style></head><body><h1>ФОТООТЧЁТ О ХОДЕ СТРОИТЕЛЬСТВА</h1><p>Объект: ${esc(o.obyektNomi)}</p><p>Период: ${esc(davrMatni(o.dan, o.gacha))}</p>
+</style></head><body>${logo ? `<div class="qhead">${logoBelgisiSvg()}<span>QURAI</span></div>` : ''}<h1>ФОТООТЧЁТ О ХОДЕ СТРОИТЕЛЬСТВА</h1><p>Объект: ${esc(o.obyektNomi)}</p><p>Период: ${esc(davrMatni(o.dan, o.gacha))}</p>
 <p>Дата формирования: ${esc(o.sana ?? new Date().toISOString().slice(0, 10))} · Фото: ${qatorlar.length}${ortiqcha ? ` (ещё ${ortiqcha} не вошло, лимит ${HISOBOT_MAX_FOTO})` : ''}</p>
-<div class="g">${kartalar.join('')}</div></body></html>`;
+<div class="g">${kartalar.join('')}</div>${logo ? '<div class="qfoot">QURAI · smeta-tizimi.pages.dev</div>' : ''}</body></html>`;
   return { html, soni: qatorlar.length, ortiqcha };
 }

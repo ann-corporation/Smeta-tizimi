@@ -27,7 +27,7 @@ export function F2MoslashHisoboti({ hisobot }: { hisobot: MoslashHisoboti }) {
       </label>
       <div className="mt-2 max-h-96 overflow-auto">
         <table className="w-full text-[11.5px]">
-          <thead><tr className="text-text-mute">
+          <thead className="sticky top-0 z-10 bg-surface"><tr className="text-text-mute">
             <th className="text-left">{t('Manzil')}</th><th className="text-left">{t('Manba yo‘li')}</th><th className="text-left">{t('Manba qatori')}</th>
             <th className="text-left">{t('Smeta qatori')}</th><th className="text-left">{t('Ishonch')}</th><th className="text-left">{t('Sabab')}</th>
           </tr></thead>

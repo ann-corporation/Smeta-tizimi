@@ -7,7 +7,7 @@
  */
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { AlertTriangle, Download, RefreshCw, Save, Upload } from 'lucide-react';
+import { AlertTriangle, Download, RefreshCw, Upload } from 'lucide-react';
 import { yangiOperationId, type T2Qator } from '../../api/supabase';
 import {
   eskiF2Ol, eskiQatorlarOl, faollashtirishPozitsiyalariOl,
@@ -31,6 +31,7 @@ import type { ImzoNomlar } from '../../lib/hujjat-yozuvchi';
 import { FmtN } from '../../lib/format';
 import { qidiruvdaBor } from '../../i18n/lotin-kirill';
 import { t } from '../../i18n/til';
+import { SaqlashPaneli } from '../../umumiy/ui/SaqlashPaneli';
 import { toast } from '../../umumiy/ui/Toast';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
 import { useUstamaliSumma } from '../../umumiy/ui/useUstamaliSumma';
@@ -241,7 +242,7 @@ export function SmetaVersiyaFarq({ kompaniyaId, obyektId, obyektNom, joriyQatorl
   };
 
   const saqla = async () => {
-    if (!versiya || !ozgarish.size || saqlanmoqda) return;
+    if (!versiya || !ozgarish.size || saqlanmoqda) return false;
     const byId = new Map((mos ?? []).map((m) => [m.id, m]));
     const yuk: QarorYuk[] = [];
     for (const [id, o] of ozgarish) {
@@ -250,7 +251,7 @@ export function SmetaVersiyaFarq({ kompaniyaId, obyektId, obyektNom, joriyQatorl
       if (o.tasdiq) x.tasdiq = o.tasdiq;
       if (o.qaror) {
         x.qaror = o.qaror;
-        if (o.qaror === 'qisman') { if (o.qurilgan_hajm == null || !(o.qurilgan_hajm >= 0)) { toast(t('«Qisman» qarorida qurilgan hajmni kiriting.'), 'warn'); return; } x.qurilgan_hajm = o.qurilgan_hajm; }
+        if (o.qaror === 'qisman') { if (o.qurilgan_hajm == null || !(o.qurilgan_hajm >= 0)) { toast(t('«Qisman» qarorida qurilgan hajmni kiriting.'), 'warn'); return false; } x.qurilgan_hajm = o.qurilgan_hajm; }
       }
       if (o.izoh != null) x.izoh = o.izoh;
       yuk.push(x);
@@ -261,11 +262,12 @@ export function SmetaVersiyaFarq({ kompaniyaId, obyektId, obyektNom, joriyQatorl
       if (!r.ok) {
         toast(versiyaXatoMatni(r), 'danger');
         if (r.code === 'VERSIYA_ZIDDIYAT') { saqlashId.current = yangiOperationId(); await tafsilotYukla(versiya.id); }
-        return;
+        return false;
       }
       saqlashId.current = yangiOperationId();
       toast(t('{n} ta qator saqlandi.', { n: String(yuk.length) }), 'ok');
       await tafsilotYukla(versiya.id);
+      return true;
     } finally { setSaqlanmoqda(false); }
   };
 
@@ -393,8 +395,6 @@ export function SmetaVersiyaFarq({ kompaniyaId, obyektId, obyektNom, joriyQatorl
               </select></label>
             <input className="border rounded px-2 py-1 w-56" placeholder={t('Shifr yoki nom bo‘yicha qidirish')} value={qidiruv} onChange={(e) => { setQidiruv(e.target.value); setSahifa(0); }} />
             <span className="text-text-mute">{t('Qaror kutilmoqda: {n} · tasdiq kutilmoqda: {m}', { n: String(kutilayotgan), m: String(tasdiqKutilmoqda) })}</span>
-            <button type="button" className="tugma tugma-asosiy inline-flex items-center gap-1 ml-auto" disabled={!ozgarish.size || saqlanmoqda} onClick={() => void saqla()}>
-              <Save size={13} /> {t('Saqlash')} ({ozgarish.size})</button>
             <label>{t('QQS, %')}<input className="ml-1 w-14 border rounded px-2 py-1" value={nds} onChange={(e) => setNds(e.target.value)} /></label>
             <button type="button" className="tugma inline-flex items-center gap-1" onClick={() => void excel()}><Download size={13} /> {t('Talablar ro‘yxati (Excel)')}</button>
           </div>
@@ -462,6 +462,7 @@ export function SmetaVersiyaFarq({ kompaniyaId, obyektId, obyektNom, joriyQatorl
               <button type="button" disabled={sahifa + 1 >= sahifaSoni} onClick={() => { setSahifa((p) => p + 1); setFokus(0); }} className="tugma">{t('Keyingi')}</button>
             </div>
           )}
+          <SaqlashPaneli kalit="smeta-versiya-farq" soni={ozgarish.size} saqla={saqla} band={saqlanmoqda} klaviatura={false} bekor={() => setOzgarish(new Map())} />
         </>
       )}
     </div>

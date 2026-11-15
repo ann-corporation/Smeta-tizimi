@@ -337,18 +337,17 @@ html, body, #root { height: 100%; min-height: 100%; }
   }
 }
 
-/* Mobil: kontekst panelidagi PTO ish joyi tanlagichi ikki ustunli katakka o'tadi. */
-@media (max-width: 640px) {
-  .os-app-shell .os-context-bar [data-testid="pto-workspace-bar"] {
-    flex-basis: 100%;
-    order: 3;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: 100%;
-  }
-  .os-app-shell .os-context-bar [data-testid="pto-workspace-bar"] > span { grid-column: 1 / -1; }
-  .os-app-shell .os-context-bar [data-testid="pto-workspace-bar"] select { min-width: 0; max-width: 100%; width: 100%; }
+/* Desktop 768–1899px (Windows ilova 1440x900): PTO ish joyi tanlagichlari (loyiha/obyekt/oy/manba) yuqori panelda
+ * qolgan bo'sh joyga (~170px) siqilib, ustma-ust tushardi. Endi panelning o'z qatoriga (tagiga) o'tadi va bitta
+ * qatorda yoyiladi; 1900px dan keng ekranda avvalgidek bir qatorda. */
+@media (min-width: 768px) and (max-width: 1899px) {
+  .os-app-shell .os-context-bar [data-testid="pto-workspace-bar"] { order: 5; flex: 1 1 100%; width: 100%; }
 }
-@media print {
+/* Mobil (<768px): PTO ish joyi tanlagichlari yuqori paneldagi tugma ortidagi panelda (PTOWorkspaceBar, useMobilEkran) —
+ * panel ichida har tanlov to'liq enda. */
+@media (max-width: 767px) {
+  .os-app-shell .os-context-bar [data-testid="pto-workspace-bar"] :is(select, input, summary) { min-width: 0; max-width: 100%; width: 100%; }
+  .os-app-shell .os-context-bar [data-testid="pto-workspace-bar"] details > div { position: static; width: 100%; margin-top: 8px; }
+}@media print {
   .os-app-shell, .os-app-shell .karta, .os-app-shell .os-workspace { background: white !important; color: black !important; box-shadow: none !important; }
 }

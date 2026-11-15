@@ -135,6 +135,7 @@ export function rpcResult(name: string, payload: Record<string, unknown>, markup
     { kod: 'module.loyiha', nom: 'Loyiha', izoh: null, holat: 'on', manba: 'default', versiya: 0 },
     { kod: 'module.narx', nom: 'Narxlash', izoh: null, holat: 'on', manba: 'default', versiya: 0 },
   ] }, synthetic: true };
+  if (name === 'akt_reestr_obyekt_v1' || name === 'akt_reestr_kompaniya_v1' || name === 'qator_muhr_farq_obyekt_v1') return { ok: true, natija: { ok: true, qatorlar: [] }, synthetic: true };
   if (name === 'price_control_v1' || name === 'bajarilmadi_royxat_v1') return { ok: true, natija: { ok: true, qatorlar: [] }, synthetic: true };
   return null;
 }

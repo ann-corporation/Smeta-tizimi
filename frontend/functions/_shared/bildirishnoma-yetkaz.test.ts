@@ -37,7 +37,7 @@ describe('Telegram yetkazish natijasi (qayta yubormaslik)', () => {
   it('yuborildi — matn, chat va havola uzatiladi', async () => {
     const d = dep();
     expect(await bittaYetkaz(q(1), d)).toEqual({ id: 1, holat: 'yuborildi' });
-    expect(d.yubor).toHaveBeenCalledWith(777, 'Срок по документу истекает\nСрок: 07.11.2026', 'ru', '/admin/hujjat-aylanish?xat=5');
+    expect(d.yubor).toHaveBeenCalledWith(777, 'Срок по документу истекает\nСрок: 07.11.2026', 'ru', '/admin/hujjat-aylanish?xat=5', { mavzu: 'hujjat.muddat_yaqin', parametrlar: expect.objectContaining({ xat_id: 5 }) });
   });
   it('ulanmagan yoki rozi emas — otkazildi, yuborilmaydi', async () => {
     const d = dep({ manzil: vi.fn(async () => ({ yuborish: false })) });

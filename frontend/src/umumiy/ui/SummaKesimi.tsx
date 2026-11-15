@@ -51,7 +51,7 @@ export function SummaKesimi({ paket = null, q = null, zanjir, qismlar, nomalumSo
   const zj = zanjir ?? (paket ? paketZanjiri(paket) : uchlik ? uchlikZanjiri(uchlik) : []);
   return (
     <details className="text-[10.5px] text-text-mute" open={och} data-testid="summa-kesim">
-      <summary className="cursor-pointer select-none" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOch((v) => !v); }}>{sarlavha ?? t('▸ kesim va hisob')}</summary>
+      <summary className="cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOch((v) => !v); }}>{sarlavha ?? t('▸ kesim va hisob')}</summary>
       {och && <span className="mt-0.5 flex flex-col gap-1" data-testid="summa-tafsilot">
         {uchlik && <span className="grid grid-cols-[auto_auto] gap-x-2" data-testid="summa-tafsilot-uchlik">
           <span>{t('QQS bilan')}</span><span className="text-right font-medium text-text" data-testid="tafsilot-qqs"><Son v={uchlik.qqsBilan} kalit="tafsilot-qqs" /></span>
