@@ -303,8 +303,7 @@ jobs:
 
   # Production Windows installer (NSIS, NOT code-signed: Windows has no signing certificate yet).
   # Separate from desktop-windows.yml (synthetic e2e installer). Skipped with a notice (never a failure)
-  # until the owner sets the repository variables SMETA_DESKTOP_LEASE_PK / SMETA_DESKTOP_LEASE_KID.
-  # The BFF origin is intentionally not set: the app defaults to the production origin (transport.rs).
+  # Default build is the "Onlayn qobiq" shell (loads the live site): no lease key required any more.
   windows:
     runs-on: windows-latest
     timeout-minutes: 60
@@ -315,11 +314,12 @@ jobs:
       - name: Lease key gate
         id: gate
         run: |
-          if ($env:VITE_DESKTOP_LEASE_PK -and $env:VITE_DESKTOP_LEASE_KID) {
+          # Onlayn qobiq (default) needs no lease key; the lease pin is only for the legacy -LocalBff build.
+          if ($true) {
             'ready=true' >> $env:GITHUB_OUTPUT
           } else {
             'ready=false' >> $env:GITHUB_OUTPUT
-            '::notice title=Windows installer skipped::Repository variables SMETA_DESKTOP_LEASE_PK and SMETA_DESKTOP_LEASE_KID are not set; the production Windows build is skipped.'
+            '::notice title=Windows installer skipped::unreachable'
           }
       - uses: actions/checkout@v4
         if: steps.gate.outputs.ready == 'true'

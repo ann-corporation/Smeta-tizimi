@@ -2,6 +2,7 @@
 param(
     [string] $ReleaseDir,
     [ValidatePattern('^[a-fA-F0-9]{40}$')][string] $SignerThumbprint,
+    [switch] $LocalBff,
     [switch] $PreflightOnly
 )
 
@@ -9,10 +10,11 @@ $ErrorActionPreference = 'Stop'
 $leaseKey = $env:VITE_DESKTOP_LEASE_PK
 $leaseKid = $env:VITE_DESKTOP_LEASE_KID
 # A 32-byte raw Ed25519 key has 43 unpadded base64url characters and two zero padding bits.
-if ($leaseKey -cnotmatch '\A[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]\z') {
+# Default build = Onlayn qobiq (loads the live site, no lease). Lease pin is only required for the legacy -LocalBff build.
+if ($LocalBff -and $leaseKey -cnotmatch '\A[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]\z') {
     throw 'Set VITE_DESKTOP_LEASE_PK to the approved raw 32-byte Ed25519 public key in unpadded base64url.'
 }
-if ($leaseKid -cnotmatch '\A[A-Za-z0-9._-]{1,80}\z') {
+if ($LocalBff -and $leaseKid -cnotmatch '\A[A-Za-z0-9._-]{1,80}\z') {
     throw 'Set VITE_DESKTOP_LEASE_KID to the approved server key ID.'
 }
 if ($env:SMETA_DESKTOP_BFF_ORIGIN -and $env:SMETA_DESKTOP_BFF_ORIGIN -notmatch '\Ahttps://') {
@@ -50,7 +52,9 @@ try {
     & npm.cmd ci
     if ($LASTEXITCODE -ne 0) { throw 'npm ci failed.' }
     if (Test-Path -LiteralPath $installer) { Remove-Item -LiteralPath $installer }
-    & npx.cmd --yes '@tauri-apps/cli@2.12.4' build --target $target --bundles nsis
+    $extra = @()
+    if ($LocalBff) { $extra = @('--features', 'local-bff', '--config', 'src-tauri/tauri.local-bff.conf.json') }
+    & npx.cmd --yes '@tauri-apps/cli@2.12.4' build --target $target --bundles nsis @extra
     if ($LASTEXITCODE -ne 0) { throw 'Windows build failed.' }
 
     $file = Get-Item -LiteralPath $installer

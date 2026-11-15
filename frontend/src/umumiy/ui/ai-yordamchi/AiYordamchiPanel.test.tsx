@@ -29,6 +29,18 @@ describe('AiYordamchiPanel — AI faqat taklif qiladi', () => {
     await waitFor(() => expect(bajar).toHaveBeenCalledWith([{ tur: 'fakt_hajm', qator: 2, qiymat: '+5', izoh: 'aytilgan hajm' }]));
     await screen.findByText(/kiritmaga tushdi/);
   });
+  it('buyruq satri: desktopda kirish maydoni fokus oladi, telefonda klaviatura o‘zi chiqmaydi', () => {
+    const asl = window.matchMedia;
+    const v: SahifaVositalar = { sahifa: 'fakt', kontekst: () => 'X', oqi: async () => '', tekshir: () => null, nomi: () => '', bajar: async () => [] };
+    const sinov = (mobil: boolean) => {
+      window.matchMedia = ((q: string) => ({ matches: mobil, media: q, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia;
+      const r = render(<AiYordamchiPanel kompaniyaId={17} vositalar={v} saqlashKalit="t3" sarlavha="Fakt AI" namunalar={[]} satr ochiq onOchiq={() => {}} />);
+      const f = document.activeElement === screen.getByTestId('ai-buyruq-kirish');
+      r.unmount();
+      return f;
+    };
+    try { expect(sinov(false)).toBe(true); expect(sinov(true)).toBe(false); } finally { window.matchMedia = asl; }
+  });
   it('byudjet xatosi tushunarli matn bilan', async () => {
     api.suhbat.mockResolvedValue({ ok: false, code: 'BYUDJET_YOQ' });
     const v: SahifaVositalar = { sahifa: 'fakt', kontekst: () => 'X', oqi: async () => '', tekshir: () => null, nomi: () => '', bajar: async () => [] };

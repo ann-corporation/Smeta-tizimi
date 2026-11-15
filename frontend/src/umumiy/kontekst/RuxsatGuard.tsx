@@ -22,7 +22,8 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { routePermission } from '../../lib/company-authorization/route-permission';
 import { faqatSuperadminYolmi } from '../../lib/nav/navReestr';
 import { t } from '../../i18n/til';
-import { ShieldAlert, LogOut, RefreshCw, Loader2 } from 'lucide-react';
+import { useEffect } from 'react';
+import { ShieldAlert, LogOut, RefreshCw } from 'lucide-react';
 import { useKompaniya } from './KompaniyaKontekst';
 import { KompaniyaKerak } from './KompaniyaKerak';
 import { kompaniyaKerakmi } from './routeScope';
@@ -80,20 +81,56 @@ export function RuxsatGuard() {
   return <ServerAuthGate kompaniyaId={k.joriyId} />;
 }
 
+/**
+ * Sessiya keshi: shu brauzer sessiyasida (tab) shu kompaniya uchun server `allowed` degan bo'lsa, qayta yuklashda
+ * sahifa qobig'i 5–9 s «Ruxsat tekshirilmoqda…» bilan bloklanmaydi — kontent darhol chiziladi, server tekshiruvi
+ * parallel qayta o'tadi va rad bo'lsa «Ruxsat yo'q» bilan almashtiradi (keshni ham o'chiradi). Ma'lumot endpointlari
+ * baribir serverda alohida avtorizatsiyadan o'tadi; kesh faqat qisqa muddatli (TTL) va tizimdan chiqishda tozalanadi.
+ */
+const RUXSAT_KESH_PREFIKS = 'fz-ruxsat-ok:';
+const RUXSAT_KESH_TTL_MS = 10 * 60 * 1000;
+// oxlint-disable-next-line react/only-export-components -- test uchun yordamchi, komponent emas
+export function ruxsatKeshOqi(kompaniyaId: number): boolean {
+  try {
+    const v = Number(sessionStorage.getItem(RUXSAT_KESH_PREFIKS + kompaniyaId));
+    return Number.isFinite(v) && v > 0 && Date.now() - v < RUXSAT_KESH_TTL_MS;
+  } catch { return false; }
+}
+// oxlint-disable-next-line react/only-export-components -- test uchun yordamchi, komponent emas
+export function ruxsatKeshYoz(kompaniyaId: number, ok: boolean) {
+  try {
+    if (ok) sessionStorage.setItem(RUXSAT_KESH_PREFIKS + kompaniyaId, String(Date.now()));
+    else sessionStorage.removeItem(RUXSAT_KESH_PREFIKS + kompaniyaId);
+  } catch { /* xotira yopiq — kesh yo'q, oddiy tekshiruv */ }
+}
+
+/** Ruxsat aniqlanguncha ko'rinadigan skelet (matnli spinner emas): sahifa qobig'i bo'sh ekran bo'lib turmaydi. */
+function RuxsatSkelet() {
+  return (
+    <div className="p-4 md:p-8 flex flex-col gap-3" role="status" aria-busy="true" aria-label={t('Yuklanmoqda…')} data-testid="ruxsat-skelet">
+      <div className="h-7 w-1/2 max-w-xs rounded bg-surface-2 animate-pulse" />
+      <div className="h-24 w-full rounded-lg bg-surface-2 animate-pulse" />
+      <div className="h-24 w-full rounded-lg bg-surface-2 animate-pulse" />
+    </div>
+  );
+}
+
 function ServerAuthGate({ kompaniyaId }: { kompaniyaId: number }) {
   const az = useAuthorize('company.read', kompaniyaId, true);
+  const allowed = !!az.data?.allowed;
+  useEffect(() => {
+    if (az.isSuccess) ruxsatKeshYoz(kompaniyaId, allowed);
+    else if (az.isError) ruxsatKeshYoz(kompaniyaId, false);
+  }, [az.isSuccess, az.isError, allowed, kompaniyaId]);
 
   if (az.isLoading) {
-    return (
-      <div className="p-8 text-sm text-text-dim flex items-center gap-2">
-        <Loader2 size={15} className="animate-spin" /> Ruxsat tekshirilmoqda…
-      </div>
-    );
+    // Keshlangan «ruxsat bor» — kontentni darhol chizamiz (server tekshiruvi parallel); aks holda skelet.
+    return ruxsatKeshOqi(kompaniyaId) ? <Outlet /> : <RuxsatSkelet />;
   }
   if (az.isError) {
     return <RuxsatYoq reason={(az.error as any)?.code} />;
   }
-  if (!az.data?.allowed) {
+  if (!allowed) {
     return <RuxsatYoq reason={az.data?.reason} />;
   }
   return <Outlet />;
