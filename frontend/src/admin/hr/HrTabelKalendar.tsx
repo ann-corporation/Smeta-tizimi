@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { CalendarPlus, Check, Save, Wand2 } from 'lucide-react';
+import { SaqlashPaneli } from '../../umumiy/ui/SaqlashPaneli';
+import { CalendarPlus, Check, Wand2 } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { yangiOperationId } from '../../api/supabase';
 import { hrKalendarSaqla, hrTabelSaqla, type HrOy, type HrTatil, type HrXodimlarJavob } from '../../api/t2-hr';
@@ -48,9 +49,10 @@ export function HrTabel({ kid, oy, d, o, qayta }: { kid: number; oy: string; d: 
     const qatorlar = [...idlar].filter((id) => !saqlangan(id)?.yopiq).map((id) => ({
       kadr_id: id, kunlar: kunlari(id), holat: tasdiq ? ('tasdiqlangan' as const) : (holatlar[id] ?? saqlangan(id)?.holat ?? ('qoralama' as const)),
     }));
-    if (!qatorlar.length) return;
+    if (!qatorlar.length) return false;
     const r = await hrTabelSaqla({ kompaniyaId: kid, oy, qatorlar, operationId: yangiOperationId() });
-    if (yozNatija(r, tasdiq ? 'Tabel tasdiqlandi' : 'Tabel saqlandi')) { setTahrir({}); setHolatlar({}); await qayta(); }
+    if (yozNatija(r, tasdiq ? 'Tabel tasdiqlandi' : 'Tabel saqlandi')) { setTahrir({}); setHolatlar({}); await qayta(); return true; }
+    return false;
   };
 
   return (
@@ -61,7 +63,6 @@ export function HrTabel({ kid, oy, d, o, qayta }: { kid: number; oy: string; d: 
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <button type="button" className="fz-btn" onClick={tatildan}><Wand2 size={14} /> {t('Tasdiqlangan tatildan to‘ldirish')}</button>
-        <button type="button" className="fz-btn fz-btn--primary" disabled={!ozgargan} onClick={() => void saqla(false)}><Save size={14} /> {t('Saqlash')}</button>
         <button type="button" className="fz-btn" onClick={() => void saqla(true)}><Check size={14} /> {t('Tabelni tasdiqlash')}</button>
         <span className="text-[12px] text-text-mute">{t('Norma: 5 kunlik {a} kun / {b} soat; 6 kunlik {c} kun', { a: o.norma['5'].kun, b: o.norma['5'].soat, c: o.norma['6'].kun })}</span>
       </div>
@@ -100,6 +101,7 @@ export function HrTabel({ kid, oy, d, o, qayta }: { kid: number; oy: string; d: 
           </tbody>
         </table>
       </div>
+      <SaqlashPaneli kalit="hr-tabel" soni={ozgargan} saqla={() => saqla(false)} bekor={() => { setTahrir({}); setHolatlar({}); }} />
     </div>
   );
 }
@@ -113,9 +115,10 @@ export function HrKalendar({ kid, oy, d, o, qayta }: { kid: number; oy: string; 
 
   const saqla = async () => {
     const kunlar = Object.entries(tahrir).map(([sana, v]) => ({ sana, tur: (v.tur || null) as 'bayram' | 'dam' | 'ish' | null, nom: v.nom || null }));
-    if (!kunlar.length) return;
+    if (!kunlar.length) return false;
     const r = await hrKalendarSaqla({ kompaniyaId: kid, kunlar, operationId: yangiOperationId() });
-    if (yozNatija(r, 'Kalendar saqlandi')) { setTahrir({}); await qayta(); }
+    if (yozNatija(r, 'Kalendar saqlandi')) { setTahrir({}); await qayta(); return true; }
+    return false;
   };
   const standart = async () => {
     const yil = Number(oy.slice(0, 4));
@@ -139,7 +142,6 @@ export function HrKalendar({ kid, oy, d, o, qayta }: { kid: number; oy: string; 
           <h3 className="text-[14px] font-semibold text-text">{t('Ish kalendari')}</h3>
           <span className="text-[12px] text-text-mute">{t('Oylik norma: 5 kunlik {a} kun / {b} soat; 6 kunlik {c} kun / {e} soat', { a: o.norma['5'].kun, b: o.norma['5'].soat, c: o.norma['6'].kun, e: o.norma['6'].soat })}</span>
           <button type="button" className="fz-btn" onClick={() => void standart()}><CalendarPlus size={14} /> {t('Standart bayramlarni qo‘shish ({yil})', { yil: oy.slice(0, 4) })}</button>
-          <button type="button" className="fz-btn fz-btn--primary" disabled={!Object.keys(tahrir).length} onClick={() => void saqla()}><Save size={14} /> {t('Saqlash')}</button>
         </div>
         <p className="mb-2 text-[12px] text-text-mute">{t('Bayramlar ma’lumot sifatida saqlanadi va tahrirlanadi. Hayit va hukumat qarori bilan ko‘chirilgan kunlarni qo‘lda belgilang (bayram / dam / ko‘chirilgan ish kuni).')}</p>
         <div className="fz-table-wrap max-h-[50vh]">
@@ -193,6 +195,7 @@ export function HrKalendar({ kid, oy, d, o, qayta }: { kid: number; oy: string; 
           </table>
         </div>
       </section>
+      <SaqlashPaneli kalit="hr-kalendar" soni={Object.keys(tahrir).length} saqla={saqla} bekor={() => setTahrir({})} />
     </div>
   );
 }

@@ -169,6 +169,19 @@ describe('FaktJurnal — to‘liq klaviatura', () => {
   });
 });
 
+describe('FaktJurnal — Esc kiritilgan batchni o‘chirmaydi', () => {
+  it('katakda ham, sahifada ham Esc — saqlanmagan kiritmalar va panel turaveradi', () => {
+    render(<FaktJurnal {...props()} />);
+    fireEvent.change(kirit('Grunt'), { target: { value: '5' } });
+    fireEvent.change(kirit('Qum'), { target: { value: '3' } });
+    expect(screen.getByTestId('saqlash-paneli').textContent).toMatch(/\(2\)/);
+    fireEvent.keyDown(kirit('Grunt'), { key: 'Escape' });
+    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    expect(kirit('Qum').value).toBe('3');
+    expect(screen.getByTestId('saqlash-paneli').textContent).toMatch(/\(2\)/);
+  });
+});
 describe('fakt-klaviatura (sof)', () => {
   it('keyingiMoslik aylanadi', () => {
     expect(keyingiMoslik([2, 5, 9], null, 1)).toBe(2);

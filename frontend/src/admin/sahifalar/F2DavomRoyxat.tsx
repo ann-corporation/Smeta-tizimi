@@ -102,7 +102,7 @@ export function F2DavomRoyxat({ kompaniyaId, obyektId, onOchish, band, yangilash
       {ochiq.length !== 0 && (
         <div className="max-h-72 overflow-auto">
           <table className="w-full">
-            <thead><tr className="border-b border-border text-left text-text-mute">
+            <thead className="sticky top-0 z-10 bg-surface"><tr className="border-b border-border text-left text-text-mute">
               <th className="px-1">{t('F2 №')}</th><th className="px-1">{t('Oy')}</th><th className="px-1">{t('Fayl')}</th>
               <th className="px-1 text-right" title={t('✓ aniq moslangan qatorlar · ◐ taxminiy (tekshirib tasdiqlang) · ✕ mos qator topilmadi · foiz — aniq moslangan qatorlar ulushi')}>{t('Bog‘langan')}</th><th className="px-1">{t('O‘zgardi')}</th><th className="px-1" />
             </tr></thead>

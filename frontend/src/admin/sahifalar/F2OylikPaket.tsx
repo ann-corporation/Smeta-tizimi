@@ -558,9 +558,9 @@ function PaketIchi({ kompaniyaId, malumot, tashkilot, yangila }: { kompaniyaId: 
     {f3Xabar && <p role="status" className="text-[11.5px] text-text-dim">{f3Xabar}</p>}
     {hisoblanmoqda && <p role="status" className="text-[11.5px] text-text-mute">{t('Summalar (ustamali, QQS) hisoblanmoqda…')}</p>}
 
-    {rows.length === 0 ? <p className="text-text-mute">{t('Bu oyda F2 yo‘q.')}</p> : <div className="overflow-auto rounded-lg border border-border/60">
+    {rows.length === 0 ? <p className="text-text-mute">{t('Bu oyda F2 yo‘q.')}</p> : <div className="max-h-[70vh] overflow-auto rounded-lg border border-border/60">
       <table className="w-full min-w-[1100px] text-[12.5px]">
-        <thead className="bg-surface-2/60 text-left text-[11px] text-text-dim"><tr>
+        <thead className="sticky top-0 z-10 bg-surface-2 text-left text-[11px] text-text-dim"><tr>
           <th className="w-8 px-2 py-2"><input type="checkbox" aria-label={t('Hammasini tanlash')} checked={tanlov.size === rows.length} onChange={(e) => setTanlov(e.target.checked ? new Set(rows.map((r) => r.akt.id)) : new Set())} /></th>
           {oraliq && <th className={sarlavha}>{t('Oy')}</th>}
           <th className={sarlavha}>{t('Obyekt')}</th><th className={sarlavha}>{t('F2 raqami')}</th><th className={sarlavha}>{t('Manba')}</th><th className={sarlavha}>{t('Holat')}</th>
