@@ -35,7 +35,7 @@ export function QulfProvider({ children }: { children: ReactNode }) {
   const kalitlar = holat?.kalitlar ?? [];
   const webauthnBor = !tauriMi() && kalitlar.some((k) => k.tur === 'webauthn');
   /* Holat yuklanguncha oxirgi ma'lum qiymatdan (localStorage) foydalanamiz: sahifa yangilanganda kontent bir lahza ham ochilib qolmasin. */
-  const yoqilgan = holat ? (holat.ok && (!!holat.pin_bor || kalitlar.length > 0)) : lsOl(LS_YOQ) === '1';
+  const yoqilgan = holat ? (holat.ok && ((!!holat.pin_bor && !holat.pin_kalit_boshqa) || kalitlar.length > 0)) : lsOl(LS_YOQ) === '1';
   const daq = holat?.bosh_vaqt_daq ?? (Number(lsOl(LS_DAQ)) || BOSH_STANDART_DAQ);
 
   const yangila = useCallback(async () => {
@@ -44,7 +44,7 @@ export function QulfProvider({ children }: { children: ReactNode }) {
     if (!r.ok) return; // vaqtincha xato: oldingi holat saqlanadi
     setHolat(r);
     lsYoz(LS_DAQ, String(r.bosh_vaqt_daq ?? BOSH_STANDART_DAQ));
-    lsYoz(LS_YOQ, r.pin_bor || (r.kalitlar?.length ?? 0) > 0 ? '1' : null);
+    lsYoz(LS_YOQ, (r.pin_bor && !r.pin_kalit_boshqa) || (r.kalitlar?.length ?? 0) > 0 ? '1' : null);
   }, []);
 
   const qulfla = useCallback(() => { lsYoz(LS_QULF, '1'); setQulflangan(true); }, []);
@@ -111,6 +111,8 @@ export function QulfProvider({ children }: { children: ReactNode }) {
   // Qulf bayrog'i bor, lekin PIN endi yo'q (o'chirilgan): qulfni olib tashlaymiz
   useEffect(() => { if (holat && !yoqilgan && qulflangan) ochish(); }, [holat, yoqilgan, qulflangan, ochish]);
 
+  /* Xavfsizlik klapani: server PIN_YOQ / 501 / PIN_KALIT_BOSHQA / kutilmagan xato desa, qulf foydalanuvchini tutib qolmasin -- eski bayroqni tozalab, ochamiz va holatni qayta o'qiymiz. */
+  const tutilgan = useCallback(() => { lsYoz(LS_YOQ, null); ochish(); void yangila(); }, [ochish, yangila]);
   const bekor = useCallback(() => { const k = kutish.current; kutish.current = []; setTasdiq(null); k.forEach((f) => f(false)); }, []);
   const qiymat = useMemo(() => ({ holat, yangila, qulfla }), [holat, yangila, qulfla]);
 
@@ -118,10 +120,10 @@ export function QulfProvider({ children }: { children: ReactNode }) {
     <QulfKontekst.Provider value={qiymat}>
       {children}
       {yoqilgan && qulflangan && (
-        <QulfOyna rejim="qulf" pinBor={holat ? !!holat.pin_bor : true} biometrik={webauthnBor} onOchildi={ochish} onChiqish={() => { void tizimdanChiq(); }} />
+        <QulfOyna rejim="qulf" pinBor={holat ? !!holat.pin_bor : true} biometrik={webauthnBor} onOchildi={ochish} pinUzunlik={holat?.pin_uzunlik} qolganUrinish={holat?.qolgan_urinish} qolganSoniya={holat?.qolgan_soniya} onTutilgan={tutilgan} onChiqish={() => { void tizimdanChiq(); }} />
       )}
       {tasdiq && !qulflangan && (
-        <QulfOyna rejim="tasdiq" pinBor={tasdiq.usullar.includes('pin')} biometrik={webauthnBor} usullar={tasdiq.usullar} onOchildi={ochish} onBekor={bekor} />
+        <QulfOyna rejim="tasdiq" pinBor={tasdiq.usullar.includes('pin')} biometrik={webauthnBor} usullar={tasdiq.usullar} onOchildi={ochish} onBekor={bekor} onTutilgan={bekor} pinUzunlik={holat?.pin_uzunlik} qolganUrinish={holat?.qolgan_urinish} qolganSoniya={holat?.qolgan_soniya} />
       )}
     </QulfKontekst.Provider>
   );

@@ -46,17 +46,30 @@ async function pinBaytlar(pin: string, uid: number, kalit: string, tuz: Uint8Arr
   const km = await crypto.subtle.importKey('raw', enc.encode(pepper), 'PBKDF2', false, ['deriveBits']);
   return new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: tuz as BufferSource, iterations: iter }, km, 256));
 }
-/** `pbkdf2-sha256$<iter>$<tuz>$<xesh>` */
+/** `pbkdf2-sha256$<iter>$<tuz>$<xesh>[$<kf>.<uzunlik>]` -- kf: server kalitining barmoq izi (kalit boshqa bo'lsa PIN hech qachon mos kelmaydi -- aniq aytamiz), uzunlik: PIN raqamlar soni (PIN o'zi emas). */
 export async function pinXesh(pin: string, uid: number, kalit: string, tuz: Uint8Array = crypto.getRandomValues(new Uint8Array(16))): Promise<string> {
-  return `pbkdf2-sha256$${PIN_ITER}$${base64url(tuz)}$${base64url(await pinBaytlar(pin, uid, kalit, tuz, PIN_ITER))}`;
+  return `pbkdf2-sha256$${PIN_ITER}$${base64url(tuz)}$${base64url(await pinBaytlar(pin, uid, kalit, tuz, PIN_ITER))}$${await kalitIzi(kalit)}.${pin.length}`;
 }
 export async function pinTekshir(pin: string, uid: number, kalit: string, saqlangan: string | null | undefined): Promise<boolean> {
   if (!saqlangan || !PIN_RE.test(pin)) return false;
   const p = saqlangan.split('$');
-  if (p.length !== 4 || p[0] !== 'pbkdf2-sha256') return false;
+  if ((p.length !== 4 && p.length !== 5) || p[0] !== 'pbkdf2-sha256') return false;
   const iter = Number(p[1]);
   if (!Number.isSafeInteger(iter) || iter < 1000 || iter > PIN_ITER) return false;
   try { return teng(base64url(await pinBaytlar(pin, uid, kalit, unbase64url(p[2]), iter)), p[3]); } catch { return false; }
+}
+
+/** Server kalitining qisqa barmoq izi (kalitni oshkor qilmaydi). */
+export async function kalitIzi(kalit: string): Promise<string> { return (await hmacB64(kalit, 'qulf-kf', 'v1')).slice(0, 8); }
+/** Saqlangan xesh boshqa server kaliti bilan yozilganmi (masalan preview/production SESSIYA_KALIT farqi yoki kalit almashtirilgan)? Eski (izsiz) xesh -> false. */
+export async function pinKalitBoshqa(saqlangan: string | null | undefined, kalit: string): Promise<boolean> {
+  const kf = saqlangan?.split('$')[4]?.split('.')[0];
+  return !!kf && kf !== await kalitIzi(kalit);
+}
+/** Saqlangan PIN uzunligi (4..6) yoki noma'lum (eski xesh). */
+export function pinUzunlikOl(saqlangan: string | null | undefined): number | null {
+  const n = Number(saqlangan?.split('$')[4]?.split('.')[1]);
+  return Number.isInteger(n) && n >= 4 && n <= 6 ? n : null;
 }
 
 // ---- Blok holati ---------------------------------------------------------------------------------------------------------

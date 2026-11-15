@@ -68,7 +68,7 @@ fun SecureScreen() {
 
 /** Mounted once above the NavHost: the full-screen lock (content hidden) or the step-up confirm sheet. */
 @Composable
-fun AppLockLayer(c: AppLockController) {
+fun AppLockLayer(c: AppLockController, onSignOut: () -> Unit = {}) {
     val locked by c.locked.collectAsStateWithLifecycle()
     val step by c.stepUp.collectAsStateWithLifecycle()
     val qulf by c.qulf.collectAsStateWithLifecycle()
@@ -86,6 +86,7 @@ fun AppLockLayer(c: AppLockController) {
                 else BiometricGate.unlock(activity!!, t.title, t.subtitle, t.cancel).also { if (it) c.unlockLocal() }
             },
             pinAllowed = qulf?.pinSet ?: true, fullScreen = true, onCancel = null,
+            pinLength = qulf?.pinLength, attemptsLeft = qulf?.attemptsLeft, blockedSeconds = if (qulf?.pinStatus == "BLOKLANGAN") qulf?.secondsLeft ?: 0 else 0, onSignOut = onSignOut,
         )
     } else if (step != null) {
         val methods = step!!.methods
@@ -95,6 +96,7 @@ fun AppLockLayer(c: AppLockController) {
             offerBiometric = hasDevice && activity != null && "qurilma" in methods, autoBiometric = hasDevice && "qurilma" in methods,
             onBiometric = { c.assertWithDevice(activity!!, pt, forStepUp = true) },
             pinAllowed = "pin" in methods, fullScreen = false, onCancel = { c.completeStepUp(false) },
+            pinLength = qulf?.pinLength, attemptsLeft = qulf?.attemptsLeft, blockedSeconds = if (qulf?.pinStatus == "BLOKLANGAN") qulf?.secondsLeft ?: 0 else 0,
         )
     }
 }
@@ -106,6 +108,7 @@ fun promptTexts() = PromptTexts(stringResource(R.string.qulf_prompt_title), stri
 private fun PinScreen(
     title: String, hint: String, onPin: suspend (String) -> QulfOutcome, offerBiometric: Boolean, autoBiometric: Boolean,
     onBiometric: suspend () -> Boolean, pinAllowed: Boolean, fullScreen: Boolean, onCancel: (() -> Unit)?,
+    pinLength: Int? = null, attemptsLeft: Int? = null, blockedSeconds: Int = 0, onSignOut: (() -> Unit)? = null,
 ) {
     var pin by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
@@ -114,13 +117,15 @@ private fun PinScreen(
     fun biometric() { scope.launch { busy = true; val ok = onBiometric(); busy = false; if (!ok) error = R.string.qulf_bio_failed } }
     LaunchedEffect(Unit) { if (autoBiometric && offerBiometric) { delay(250); biometric() } }
     fun submit() {
-        if (pin.length < 4 || busy) return
+        if (pin.length < 4 || busy || blockedSeconds > 0) return
         scope.launch {
             busy = true; error = null
             val r = onPin(pin); busy = false; pin = ""
             if (!r.ok) error = when { r.network -> R.string.qulf_offline; r.code == "BLOKLANGAN" -> R.string.qulf_pin_blocked; r.code == "QAYTA_KIRISH_KERAK" -> R.string.qulf_relogin; else -> R.string.qulf_pin_wrong }
         }
     }
+    // PIN length known (server `pin_uzunlik`): submit automatically on the last digit.
+    LaunchedEffect(pin) { if (pinLength != null && pin.length == pinLength) submit() }
     // Opaque surface that swallows all touches: nothing underneath is visible or clickable.
     Surface(color = if (fullScreen) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.background.copy(alpha = 0.97f),
         modifier = Modifier.fillMaxSize().pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent() } }) {
@@ -131,15 +136,22 @@ private fun PinScreen(
             if (pinAllowed) {
                 Spacer(Modifier.height(20.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    repeat(6) { i -> Box(Modifier.size(12.dp).clip(CircleShape).background(if (i < pin.length) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)) }
+                    repeat(pinLength ?: pin.length.coerceIn(4, 6)) { i -> Box(Modifier.size(12.dp).clip(CircleShape).background(if (i < pin.length) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)) }
                 }
                 Spacer(Modifier.height(16.dp))
-                Keypad(onDigit = { if (pin.length < 6 && !busy) pin += it }, onDelete = { if (!busy) pin = pin.dropLast(1) }, onOk = ::submit, canOk = pin.length >= 4 && !busy)
+                Keypad(onDigit = { if (pin.length < (pinLength ?: 6) && !busy && blockedSeconds <= 0) pin += it }, onDelete = { if (!busy) pin = pin.dropLast(1) }, onOk = ::submit, canOk = pin.length >= 4 && !busy && blockedSeconds <= 0)
             }
+            if (blockedSeconds > 0) { Spacer(Modifier.height(10.dp)); Text(stringResource(R.string.qulf_pin_blocked_min, (blockedSeconds + 59) / 60), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center) }
+            else if (pinAllowed && attemptsLeft != null && attemptsLeft < 5) { Spacer(Modifier.height(6.dp)); Text(stringResource(R.string.qulf_attempts_left, attemptsLeft), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             error?.let { Spacer(Modifier.height(10.dp)); Text(stringResource(it), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center) }
             Spacer(Modifier.height(12.dp))
             if (offerBiometric) OutlinedButton(onClick = ::biometric, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.qulf_biometric)) }
             if (onCancel != null) TextButton(onClick = onCancel) { Text(stringResource(R.string.qulf_cancel)) }
+            // Never a trap: the full-screen lock always offers a way out (forgot PIN -> sign out -> fresh login -> set a new PIN without the old one within 10 min).
+            if (onCancel == null && onSignOut != null) {
+                if (pinAllowed) TextButton(onClick = onSignOut) { Text(stringResource(R.string.qulf_forgot_pin)) }
+                TextButton(onClick = onSignOut) { Text(stringResource(R.string.qulf_sign_out)) }
+            }
         }
     }
 }

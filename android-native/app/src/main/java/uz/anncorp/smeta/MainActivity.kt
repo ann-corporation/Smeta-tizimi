@@ -64,6 +64,7 @@ class MainActivity : AppCompatActivity() {
     @Inject lateinit var prefs: Prefs
     @Inject lateinit var events: AuthEvents
     @Inject lateinit var lock: AppLockController
+    @Inject lateinit var api: uz.anncorp.smeta.core.data.ApiClient
     @Inject lateinit var docCache: uz.anncorp.smeta.core.data.DocCache
 
     /** QULF: every touch/key counts as activity for the idle lock; background/foreground drive the lock timer. */
@@ -102,7 +103,7 @@ class MainActivity : AppCompatActivity() {
             QuraiTheme(dark) {
                 Box {
                     AppNav(events, lock, if (uz.anncorp.smeta.core.demo.Demo.enabled(this@MainActivity)) HOME else SPLASH)
-                    AppLockLayer(lock)
+                    AppLockLayer(lock, onSignOut = { lifecycleScope.launch { api.signOut() } })
                 }
             }
         }
