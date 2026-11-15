@@ -22,7 +22,7 @@ export const KORSATMA_MASOFAVIY = `${KORSATMA.replace(/ RPC aktori:.*$/, '')} Ak
 
 export function masofaviyServer(mu: Muhit, v: Vakolat, sayt?: string): McpServer {
   const s = new McpServer({ name: 'smeta-remote', version: VERSIYA }, { instructions: KORSATMA_MASOFAVIY });
-  s.registerResource('qoidalar', 'smeta://qoidalar', { title: 'Smeta tizimi domen qoidalari', description: 'NDS siz narx, ustamasiz/ustamali, asl smeta const, F2 narxi = max(smeta, xarid), dry_run/tasdiq.', mimeType: 'text/markdown' },
+  s.registerResource('qoidalar', 'smeta://qoidalar', { title: 'QURAI domen qoidalari', description: 'NDS siz narx, ustamasiz/ustamali, asl smeta const, F2 narxi = max(smeta, xarid), dry_run/tasdiq.', mimeType: 'text/markdown' },
     async (uri) => ({ contents: [{ uri: uri.href, mimeType: 'text/markdown', text: QOIDALAR }] }));
   for (const t of MASOFAVIY_TOOLLAR) {
     s.registerTool(t.nom, {

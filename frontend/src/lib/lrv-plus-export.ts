@@ -734,7 +734,7 @@ export async function lrvPlusFaylBaytlari(
   // Fakt jami to'liq emas (F2 narxi noma'lum qatorlar) — «не определена» izohi (jim emas).
   const faktNomalum = hisob.filter((q) => LEAF_TUR.has(q.tur) && q.faktSumma == null).length;
   if (rejim === 'toliq' && faktNomalum && ws['T3']) {
-    (ws['T3'] as { c?: unknown }).c = [{ a: 'Smeta tizimi', t: `Итог по факту неполный: сумма факта не определена по ${faktNomalum} поз. (нет цены по утвержденной Ф-2) — в итог не включены.` }];
+    (ws['T3'] as { c?: unknown }).c = [{ a: 'QURAI', t: `Итог по факту неполный: сумма факта не определена по ${faktNomalum} поз. (нет цены по утвержденной Ф-2) — в итог не включены.` }];
   }
   if (hisob.length) {
     const c1 = hisob[0].row, c2 = hisob[hisob.length - 1].row;

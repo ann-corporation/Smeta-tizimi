@@ -28,6 +28,7 @@ import { sotuvF3lar, type SvodShartnoma } from '../../src/lib/nakopitelniy-svod'
 import { f3ShaklTozala, forma3SotuvdanXlsx } from '../../src/lib/forma3-export';
 import { hujjatKorinishi } from '../../src/lib/hujjat-yozuvchi/korinish';
 import { korinishdanPdf } from '../../src/lib/hujjat-pdf/pdf';
+import { tizimImzoKodi, tizimImzosiniQoy } from '../../src/lib/hujjat-yozuvchi/tizim-imzo';
 import { mazmunXeshi } from '../../src/api/mazmun-xesh';
 import { nakopitelniyPaketFayli } from '../../src/lib/oylik-hujjat/nakopitelniy';
 import { ostatkaPaketFayli, paketImzosiOl } from '../../src/lib/oylik-hujjat/ostatka-slichitelniy';
@@ -167,13 +168,15 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     let faylNomi = tayyor.faylNomi;
     if (format === 'pdf') {
       try {
-        chiqish = await korinishdanPdf(hujjatKorinishi(tayyor.bytes), { faylNomi: tayyor.faylNomi });
+        chiqish = await korinishdanPdf(hujjatKorinishi(tayyor.bytes), { faylNomi: tayyor.faylNomi, kod: tizimImzoKodi(tayyor.bytes) });
         faylNomi = tayyor.faylNomi.replace(/\.xlsx$/i, '') + '.pdf';
       } catch (e) {
         if (s.operationId) await serverQaytar(ctx.env, { actorId, kompaniyaId, sarfOperationId: s.operationId }).catch(() => false);
         throw new Rad(500, 'PDF_YASALMADI', e instanceof Error ? e.message.slice(0, 160) : 'PDF yasalmadi');
       }
     }
+    // QURAI imzosi (kolontitul + xususiyatlar) — veb ham, ilovalar ham bir xil faylni oladi; shablon tanasi o'zgarmaydi.
+    if (format === 'xlsx') chiqish = tizimImzosiniQoy(chiqish, { hujjat: faylNomi });
     const headers = new Headers({
       'Content-Type': MIME[format],
       'Content-Disposition': 'attachment; filename*=UTF-8\'\'' + encodeURIComponent(faylNomi),

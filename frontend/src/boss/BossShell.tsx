@@ -89,7 +89,7 @@ export default function BossShell() {
       <div className="fz-shell-rail fz-shell-rail--pinned">
         <aside className={`fz-sidebar fz-sidebar--open ${mobil ? 'fz-sidebar--mobile' : ''}`} aria-label={t('Rahbar ish joyi')}>
           <div className="fz-sidebar__brand">
-            <span className="fz-sidebar__mark" aria-hidden="true">S</span>
+            <img src="/brand/favicon.svg" alt="" className="fz-sidebar__mark" aria-hidden="true" width={32} height={32} />
             <span className="min-w-0">
               <span className="fz-sidebar__name">{'QURAI'}</span>
               <span className="fz-sidebar__role">{t('Rahbar ish joyi')}</span>

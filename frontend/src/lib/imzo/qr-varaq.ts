@@ -192,7 +192,7 @@ export function imzoVaraqQosh(bytes: Uint8Array, t: ImzoBlokTalab): Uint8Array |
   const [S, B] = uslublarQosh(f);
 
   const rows: string[] = []; const pics: { r0: number; rid: string; id: number; url: string }[] = []; const media: Record<string, Uint8Array> = {};
-  rows.push(`<row r="1" ht="22" customHeight="1">${kat('A1', 'ЭЛЕКТРОННЫЕ ПОДПИСИ И ИСТОЧНИК · ELEKTRON IMZOLAR VA MANBA (Smeta tizimi)', B)}</row>`);
+  rows.push(`<row r="1" ht="22" customHeight="1">${kat('A1', 'ЭЛЕКТРОННЫЕ ПОДПИСИ И ИСТОЧНИК · ELEKTRON IMZOLAR VA MANBA (QURAI)', B)}</row>`);
   rows.push(`<row r="2" ht="44" customHeight="1">${kat('A2', `Hujjat mazmuni kodi / Код содержимого: ${qisqaKod(t.mazmunXesh)}. Imzo tizimdagi hujjat yozuvini himoya qiladi; haqiqiyligi QR orqali tekshiriladi, asl nusxa tizimda saqlanadi. / Подпись защищает запись документа в системе; подлинность проверяется по QR, оригинал хранится в системе.`, S)}</row>`);
   rows.push(`<row r="3" ht="32" customHeight="1">${['Tomon / lavozim · Сторона', 'Kompaniya · Компания', 'F.I.Sh. · Ф.И.О.', 'Holat · Статус', 'Sana-vaqt · Дата-время', 'Imzo kodi · Код подписи', 'QR']
     .map((h, i) => kat(`${'ABCDEFG'[i]}3`, h, B)).join('')}</row>`);

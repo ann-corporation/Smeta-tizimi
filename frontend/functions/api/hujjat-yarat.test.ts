@@ -17,6 +17,7 @@ vi.mock('../../src/api/t2-nakopitelniy', async (orig) => ({ ...(await orig<objec
 vi.mock('../_shared/hujjat-sarf', async (orig) => ({ ...(await orig<object>()), serverSarfla: mocks.sarf, serverQaytar: mocks.qaytar }));
 
 import { onRequestPost } from './hujjat-yarat';
+import { kolontitulsiz, tengKolontitulsiz } from '../_shared/test-golden-yordam';
 import { ichkiRejimda, ichkiSorov, ICHKI_YOLLAR } from '../_shared/hujjat-ichki';
 
 const b = f2Qur(AKT246_ROWS, AKT246_HOLAT);
@@ -60,7 +61,8 @@ describe('/api/hujjat-yarat — yagona hujjat dvigateli', () => {
     const bytes = new Uint8Array(await r.arrayBuffer());
     const k = f2AktTayyorla({ smeta: AKT246_ROWS, lines: tafsilot, aktQatorlar: [], podvallar: new Map(), kontekst, akt: AKT, obyektNom: 'Fast Food 1-etaj', raqamlar: new Map([[246, '1']]) })!;
     const web = f2Hujjat(k.bolimlar, k.qatorlar, k.opsiya);
-    expect([...bytes]).toEqual([...web.bytes]);
+    expect(tengKolontitulsiz(bytes, web.bytes)).toBe(true); // kolontitul (QURAI imzosi) dan boshqa hammasi bayt-bayt teng
+    expect(kolontitulsiz(bytes).size).toBeGreaterThan(0);
     expect(mocks.malumot).toHaveBeenCalledWith(17, 79, [246], 246);
     expect(mocks.sarf).toHaveBeenCalledTimes(1);
     expect(mocks.sarf.mock.calls[0][1]).toMatchObject({ actorId: 9, kompaniyaId: 17, turi: 'f2_hujjat', obyektId: 79, xesh: 'f2:79:2026-10:1' });

@@ -104,6 +104,6 @@ ${logo ? `${LOGO_CSS}.g{padding-bottom:14px}\n` : ''}@page{size:A4;margin:12mm}b
 img{width:100%;height:auto;display:block}figcaption{font-size:11px;margin-top:3px}.yoq{padding:30px;text-align:center;color:#777}
 </style></head><body>${logo ? `<div class="qhead">${logoBelgisiSvg()}<span>QURAI</span></div>` : ''}<h1>ФОТООТЧЁТ О ХОДЕ СТРОИТЕЛЬСТВА</h1><p>Объект: ${esc(o.obyektNomi)}</p><p>Период: ${esc(davrMatni(o.dan, o.gacha))}</p>
 <p>Дата формирования: ${esc(o.sana ?? new Date().toISOString().slice(0, 10))} · Фото: ${qatorlar.length}${ortiqcha ? ` (ещё ${ortiqcha} не вошло, лимит ${HISOBOT_MAX_FOTO})` : ''}</p>
-<div class="g">${kartalar.join('')}</div>${logo ? '<div class="qfoot">QURAI · smeta-tizimi.pages.dev</div>' : ''}</body></html>`;
+<div class="g">${kartalar.join('')}</div>${logo ? '<div class="qfoot">QURAI · qurai.uz orqali tayyorlandi</div>' : ''}</body></html>`;
   return { html, soni: qatorlar.length, ortiqcha };
 }

@@ -14,7 +14,7 @@ import { supabaseBaseUrl } from '../_shared/supabase-url';
 
 type Env = { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; RESEND_API_KEY?: string; EMAIL_FROM?: string };
 /** EMAIL_FROM berilmasa — Resend sinov manzili (domen tasdiqlanmaguncha kod faqat Resend hisobi egasiga yetadi). */
-export const STANDART_FROM = 'Smeta OS <onboarding@resend.dev>';
+export const STANDART_FROM = 'QURAI <onboarding@resend.dev>';
 /** Email tasdiqlanmagan parolli hisobga email kod bilan kirish rad etilgan (hisobni oldindan egallab olish himoyasi). */
 export const PAROLLI_HISOB_KOD = 'EMAIL_TASDIQLANMAGAN_PAROLLI_HISOB';
 export const PAROLLI_HISOB_XABAR = 'Bu email bilan parolli hisob bor. Parol bilan kiring yoki administratorga murojaat qiling.';
@@ -47,11 +47,13 @@ const originYaroqsiz = (req: Request) => {
 };
 
 export function xatTanasi(kod: string): { text: string; html: string } {
-  const text = `Smeta OS — kirish kodi: ${kod}\nKod 10 daqiqa amal qiladi. Uni hech kimga bermang.\nAgar siz so'ramagan bo'lsangiz, bu xatni e'tiborsiz qoldiring.`;
+  const text = `QURAI — kirish kodi: ${kod}\nKod 10 daqiqa amal qiladi. Uni hech kimga bermang.\nAgar siz so'ramagan bo'lsangiz, bu xatni e'tiborsiz qoldiring.`;
   const html = `<div style="font-family:Arial,sans-serif;max-width:420px;margin:0 auto;padding:24px;color:#0e1113">
-<p style="font-size:15px;margin:0 0 12px">Smeta OS — kirish kodi</p>
+<p style="margin:0 0 16px"><img src="https://smeta-tizimi.pages.dev/brand/qur-icon-192.png" width="40" height="40" alt="QURAI" style="vertical-align:middle;border-radius:9px"> <b style="vertical-align:middle;font-size:16px;letter-spacing:1px">QURAI</b></p>
+<p style="font-size:15px;margin:0 0 12px">QURAI — kirish kodi</p>
 <p style="font-size:34px;letter-spacing:8px;font-weight:700;margin:0 0 12px;color:#0b7a72">${kod}</p>
-<p style="font-size:13px;color:#555;margin:0">Kod 10 daqiqa amal qiladi. Uni hech kimga bermang.<br>Agar siz so'ramagan bo'lsangiz, bu xatni e'tiborsiz qoldiring.</p></div>`;
+<p style="font-size:13px;color:#555;margin:0">Kod 10 daqiqa amal qiladi. Uni hech kimga bermang.<br>Agar siz so'ramagan bo'lsangiz, bu xatni e'tiborsiz qoldiring.</p>
+<p style="font-size:11px;color:#888;margin:16px 0 0">QURAI · qurai.uz</p></div>`;
   return { text, html };
 }
 
@@ -85,7 +87,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const xat = xatTanasi(kod);
       const mail = await fetch('https://api.resend.com/emails', {
         method: 'POST', headers: { Authorization: 'Bearer ' + RESEND_API_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: EMAIL_FROM, to: [email], subject: `Smeta OS — kirish kodi: ${kod}`, text: xat.text, html: xat.html }),
+        body: JSON.stringify({ from: EMAIL_FROM, to: [email], subject: `QURAI — kirish kodi: ${kod}`, text: xat.text, html: xat.html }),
       });
       if (!mail.ok) {
         // Resend 403: domen tasdiqlanmagan (sinov rejimi) — kod faqat Resend hisobi egasining emailiga yuboriladi.
