@@ -1,19 +1,19 @@
 {
   "macos": {
-    "version": "0.1.0",
-    "generatedAtUtc": "2026-11-15T06:27:20Z",
-    "file": "smeta-tizimi-0.1.0-macos-universal-unsigned.dmg",
-    "bytes": 4459252,
-    "sha256": "148a371e94dc8eb4f39e8bc3059aedb9f5211d11884953b6a6197ef411b4b7ac",
+    "version": "0.1.1",
+    "generatedAtUtc": "2026-11-15T10:40:30Z",
+    "file": "qurai-0.1.1-macos-universal-unsigned.dmg",
+    "bytes": 4443819,
+    "sha256": "1ecc3ec391ffc6cff0c42650f76223da7af5b2748e324573a3f155d28af07ebe",
     "signed": false,
     "notarized": false
   },
   "android": {
-    "version": "0.1.0",
-    "generatedAtUtc": "2026-11-15T06:27:20Z",
-    "file": "smeta-tizimi-0.1.0-release.apk",
+    "version": "0.1.1",
+    "generatedAtUtc": "2026-11-15T10:40:30Z",
+    "file": "qurai-0.1.1-release.apk",
     "bytes": 35179342,
-    "sha256": "0804edf0e4beef311be37bf8a4b8a0f1157d01d4baf6c3ae270b978b09b3b171",
+    "sha256": "ffdfd45452c398ef5f3c6c674de94f4b07b3b4e4cf5be78530f8088b2342f2ef",
     "signed": true,
     "minSdk": 24
   },
