@@ -1,4 +1,4 @@
-// Applies the Smeta mobile policy to the Tauri-generated Android project. Idempotent; fails loudly if the
+// Applies the QURAI mobile policy to the Tauri-generated Android project. Idempotent; fails loudly if the
 // generated manifest no longer has the shape we patch, so a Tauri upgrade cannot silently drop a setting.
 // Usage: node mobile/android-overlay.mjs <path to gen/android>
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -38,7 +38,7 @@ console.log('android manifest policy applied');
 
 // MainActivity: the generated one calls enableEdgeToEdge(), so the site was drawn under the status bar
 // (clock/battery icons covered the header and its buttons could not be tapped). Pad the content view by the
-// system bars, display cutout and on-screen keyboard instead, and keep dark status-bar icons on the light page.
+// system bars, display cutout and on-screen keyboard instead, and and paint the bars with the site's dark theme colour (index.html theme-color #0e1113) with light icons.
 const activity = join(root, 'app/src/main/java/uz/anncorp/smeta/MainActivity.kt');
 const activitySrc = readFileSync(activity, 'utf8');
 if (!/class MainActivity\s*:\s*TauriActivity\(\)/.test(activitySrc)) throw new Error('MAIN_ACTIVITY_SHAPE_CHANGED');
@@ -55,13 +55,13 @@ class MainActivity : TauriActivity() {
   @Suppress("DEPRECATION")
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    val fon = Color.parseColor("#F4F2EE")
+    val fon = Color.parseColor("#0E1113")
     window.decorView.setBackgroundColor(fon)
     window.statusBarColor = fon
     window.navigationBarColor = fon
     WindowCompat.getInsetsController(window, window.decorView).apply {
-      isAppearanceLightStatusBars = true
-      isAppearanceLightNavigationBars = true
+      isAppearanceLightStatusBars = false
+      isAppearanceLightNavigationBars = false
     }
     val content = findViewById<View>(android.R.id.content)
     ViewCompat.setOnApplyWindowInsetsListener(content) { v, insets ->
