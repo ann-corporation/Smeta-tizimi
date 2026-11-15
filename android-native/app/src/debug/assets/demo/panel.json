@@ -1,0 +1,5 @@
+{"ok":true,"natija":{"ok":true,"obyektlar":[
+ {"obyekt_id":101,"smeta":{"qqs_bilan":1614935115.60,"ustamali":1441906355.00,"ustamasiz":1232381500.00},"fakt":{"qqs_bilan":688126420.80,"ustamali":614398590.00,"ustamasiz":525127000.00},"f2":{"qqs_bilan":396396000.00,"ustamali":353925000.00,"ustamasiz":302500000.00},"f2_qoralama":{"soni":3}},
+ {"obyekt_id":102,"smeta":{"qqs_bilan":6001959600.66,"ustamali":5358892500.59,"ustamasiz":4580250000.50},"fakt":null,"f2":null,"f2_qoralama":{"soni":0}},
+ {"obyekt_id":104,"smeta":{"qqs_bilan":417155040.00,"ustamali":372459857.14,"ustamasiz":318700000.00},"fakt":{"qqs_bilan":41800000.00,"ustamali":37321428.57,"ustamasiz":31900000.00},"f2":null,"f2_qoralama":{"soni":0}}
+]}}

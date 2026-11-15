@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="p1_rows">
+        <item quantity="one">%1$d row</item>
+        <item quantity="other">%1$d rows</item>
+    </plurals>
+    <plurals name="p1_unpriced">
+        <item quantity="one">%1$d row without price</item>
+        <item quantity="other">%1$d rows without price</item>
+    </plurals>
+    <plurals name="p1_card_unpriced_warn">
+        <item quantity="one">%1$d row is unpriced — total is incomplete</item>
+        <item quantity="other">%1$d rows are unpriced — total is incomplete</item>
+    </plurals>
+    <plurals name="p1_warn_unpriced">
+        <item quantity="one">Row without price: %1$d</item>
+        <item quantity="other">Rows without price: %1$d</item>
+    </plurals>
+    <plurals name="p1_banner_offline">
+        <item quantity="one">Offline — %1$d record queued</item>
+        <item quantity="other">Offline — %1$d records queued</item>
+    </plurals>
+    <plurals name="p1_banner_sending">
+        <item quantity="one">Sending %1$d record</item>
+        <item quantity="other">Sending %1$d records</item>
+    </plurals>
+    <plurals name="p1_banner_failed">
+        <item quantity="one">%1$d record rejected — review</item>
+        <item quantity="other">%1$d records rejected — review</item>
+    </plurals>
+    <plurals name="p1_draft_bar">
+        <item quantity="one">Draft: %1$d row</item>
+        <item quantity="other">Draft: %1$d rows</item>
+    </plurals>
+    <plurals name="p1_exceeding_n">
+        <item quantity="one">%1$d row exceeds the estimate</item>
+        <item quantity="other">%1$d rows exceed the estimate</item>
+    </plurals>
+    <plurals name="p1_outbox_lines">
+        <item quantity="one">%1$d row · %2$s</item>
+        <item quantity="other">%1$d rows · %2$s</item>
+    </plurals>
+    <plurals name="p2_signout_body">
+        <item quantity="one">%1$d record has not been sent yet. What should happen before you sign out?</item>
+        <item quantity="other">%1$d records have not been sent yet. What should happen before you sign out?</item>
+    </plurals>
+    <plurals name="p2_signout_left">
+        <item quantity="one">%1$d record was not sent (offline or rejected).</item>
+        <item quantity="other">%1$d records were not sent (offline or rejected).</item>
+    </plurals>
+    <plurals name="p2_today_unread">
+        <item quantity="one">%1$d unread</item>
+        <item quantity="other">%1$d unread</item>
+    </plurals>
+</resources>

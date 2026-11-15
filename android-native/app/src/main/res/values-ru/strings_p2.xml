@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- P2 strings, Russian. -->
+<resources>
+    <string name="m_vat_incl">С НДС</string>
+    <string name="m_markup">С наценкой (без НДС)</string>
+    <string name="m_plain">Без наценки (без НДС)</string>
+    <string name="m_markup_unknown">Сумма с наценкой ещё не загружена или нет права просмотра.</string>
+    <string name="m_object_value">Стоимость объекта</string>
+    <string name="m_estimate">Смета</string>
+
+    <string name="p2_section_all">Все разделы</string>
+    <string name="p2_section_label">Раздел</string>
+
+    <string name="p2_signout_title">Есть неотправленные записи</string>
+    <string name="p2_signout_send">Отправить сейчас</string>
+    <string name="p2_signout_keep">Выйти, сохранив</string>
+    <string name="p2_signout_delete">Выйти, удалив</string>
+    <string name="p2_signout_keep_hint">Записи останутся на устройстве и отправятся при следующем входе.</string>
+    <string name="p2_signout_delete_hint">Записи и фото будут удалены безвозвратно.</string>
+    <string name="p2_signout_sending">Отправка…</string>
+
+    <string name="p2_photo_title">Фото-подтверждение</string>
+    <string name="p2_photo_cam_perm_title">Нужен доступ к камере</string>
+    <string name="p2_photo_cam_perm_body">Разрешите использовать камеру для съёмки или выберите снимок из галереи.</string>
+    <string name="p2_photo_grant">Разрешить</string>
+    <string name="p2_photo_gallery">Галерея</string>
+    <string name="p2_photo_capture">Снять</string>
+    <string name="p2_photo_retake">Переснять</string>
+    <string name="p2_photo_note">Примечание (необязательно)</string>
+    <string name="p2_photo_row">Строка сметы</string>
+    <string name="p2_photo_row_none">Не привязано (общее подтверждение)</string>
+    <string name="p2_photo_row_pick">Выбрать строку</string>
+    <string name="p2_photo_row_change">Изменить</string>
+    <string name="p2_photo_gps">Добавить место съёмки из снимка</string>
+    <string name="p2_photo_gps_hint">Берётся только если есть в самом снимке. По умолчанию выключено; приложение не запрашивает геолокацию.</string>
+    <string name="p2_photo_queue">Добавить в очередь</string>
+    <string name="p2_photo_processing">Подготовка снимка…</string>
+    <string name="p2_photo_failed">Не удалось прочитать снимок. Повторите.</string>
+    <string name="p2_photo_info">%1$d × %2$d · %3$s</string>
+    <string name="p2_photo_entry">Фото-подтверждение</string>
+    <string name="p2_photo_pick_title">Выберите строку сметы</string>
+    <string name="p2_card_photo">Фото-подтверждение</string>
+
+    <string name="p2_appr_title">Согласование</string>
+    <string name="p2_appr_empty">Нет документов на согласование</string>
+    <string name="p2_appr_empty_hint">Новые документы появятся здесь.</string>
+    <string name="p2_appr_overdue">Срок истёк</string>
+    <string name="p2_appr_from">Отправитель: %1$s</string>
+    <string name="p2_appr_due">Срок: %1$s</string>
+    <string name="p2_appr_detail">Документ</string>
+    <string name="p2_appr_type">Тип</string>
+    <string name="p2_appr_number">Номер</string>
+    <string name="p2_appr_object">Объект</string>
+    <string name="p2_appr_date">Дата</string>
+    <string name="p2_appr_total">Сумма документа</string>
+    <string name="p2_appr_total_note">Сумма, сохранённая в документе. Разбивка с наценкой и без — в карточке объекта.</string>
+    <string name="p2_appr_steps">Этапы согласования</string>
+    <string name="p2_step_kutilmoqda">Ожидает</string>
+    <string name="p2_step_navbat">В очереди</string>
+    <string name="p2_step_tasdiqlandi">Согласовал</string>
+    <string name="p2_step_rad">Отклонил</string>
+    <string name="p2_step_qaytarildi">Вернул</string>
+    <string name="p2_appr_approve">Согласовать</string>
+    <string name="p2_appr_return">Вернуть</string>
+    <string name="p2_appr_reject">Отклонить</string>
+    <string name="p2_appr_comment">Комментарий</string>
+    <string name="p2_appr_comment_required">Укажите причину</string>
+    <string name="p2_appr_confirm_approve">Согласовать документ?</string>
+    <string name="p2_appr_confirm_return">Вернуть документ на доработку?</string>
+    <string name="p2_appr_confirm_reject">Отклонить документ?</string>
+    <string name="p2_appr_confirm_yes">Да, продолжить</string>
+    <string name="p2_appr_done_approve">Документ согласован</string>
+    <string name="p2_appr_done_return">Документ возвращён</string>
+    <string name="p2_appr_done_reject">Документ отклонён</string>
+    <string name="p2_appr_not_my_turn">Сейчас не ваша очередь.</string>
+    <string name="p2_appr_err_turn">Сейчас ваше решение не ожидается — возможно, документ уже рассмотрен.</string>
+    <string name="p2_appr_err_changed">Документ изменился. Обновите список и откройте снова.</string>
+    <string name="p2_appr_err_role">Вашей роли недостаточно для этого действия.</string>
+    <string name="p2_appr_err_forbidden">Нет доступа к этому документу.</string>
+    <string name="p2_appr_err_offline">Для согласования нужен интернет.</string>
+    <string name="p2_appr_online_only">Согласование работает только онлайн.</string>
+    <string name="p2_appr_err_generic">Не удалось выполнить (%1$s).</string>
+    <string name="p2_appr_err_load">Не удалось загрузить данные.</string>
+    <string name="p2_doc_f2">Ф-2 (акт выполненных работ)</string>
+    <string name="p2_doc_fakt">Акт факта</string>
+    <string name="p2_doc_aosr">АОСР (акт скрытых работ)</string>
+    <string name="p2_doc_forma3">Форма № 3 (счёт-фактура)</string>
+
+    <string name="p2_today_title">Сегодня</string>
+    <string name="p2_today_approvals">Документы на согласовании</string>
+    <string name="p2_today_f2">Черновики Ф-2</string>
+    <string name="p2_today_fakt">Черновики факта</string>
+    <string name="p2_today_outbox">Неотправленные записи</string>
+    <string name="p2_today_notes">Последние уведомления</string>
+    <string name="p2_today_notes_empty">Уведомлений нет</string>
+    <string name="p2_today_mark_read">Отметить прочитанным</string>
+    <string name="p2_n_approval_waiting">Документ ждёт вашего согласования</string>
+    <string name="p2_n_approved">Документ согласован</string>
+    <string name="p2_n_rejected">Документ отклонён</string>
+    <string name="p2_n_returned">Документ возвращён на доработку</string>
+    <string name="p2_n_letter">Вам пришло новое письмо</string>
+    <string name="p2_n_deadline_near">Срок по документу приближается</string>
+    <string name="p2_n_deadline_passed">Срок по документу истёк</string>
+    <string name="p2_n_drawing">Выпущена новая ревизия чертежа</string>
+    <string name="p2_n_drawing_decision">Принято решение по ревизии чертежа</string>
+</resources>

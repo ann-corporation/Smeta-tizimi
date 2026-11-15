@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ombor (warehouse) module. Default language: Uzbek (Latin). -->
+<resources>
+    <string name="ombor_nav">Ombor</string>
+    <string name="ombor_title">Ombor qoldig\'i</string>
+    <string name="ombor_search_hint">Material nomi yoki kodi</string>
+    <string name="ombor_scan">Shtrix-kod yoki QR skanerlash</string>
+    <string name="ombor_clear">Tozalash</string>
+    <string name="ombor_close">Yopish</string>
+    <string name="ombor_scope_label">Joy: %1$s</string>
+    <string name="ombor_scope_all">Barcha obyektlar</string>
+    <string name="ombor_scope_pick">Qayerdagi qoldiq</string>
+    <string name="ombor_scope_central_header">Markaziy omborlar</string>
+    <string name="ombor_scope_objects_header">Obyektlar</string>
+    <string name="ombor_central_tag">Markaziy ombor</string>
+    <plurals name="ombor_materials">
+        <item quantity="one">%d ta material</item>
+        <item quantity="other">%d ta material</item>
+    </plurals>
+    <string name="ombor_last_movement">Oxirgi harakat: %1$s</string>
+    <string name="ombor_no_movement">Harakat sanasi yo\'q</string>
+    <string name="ombor_loading">Qoldiq yuklanmoqda…</string>
+    <string name="ombor_empty">Bu yerda qoldiq yo\'q</string>
+    <string name="ombor_empty_search">Hech narsa topilmadi</string>
+    <string name="ombor_forbidden">Omborni ko\'rishga ruxsatingiz yo\'q</string>
+    <string name="ombor_offline_empty">Aloqa yo\'q va saqlangan qoldiq yo\'q</string>
+    <string name="ombor_pick_hint">Chiqim uchun materialni bosing</string>
+
+    <string name="ombor_btn_receive">Kirim</string>
+    <string name="ombor_btn_issue">Chiqim</string>
+    <string name="ombor_receive_title">Omborga kirim</string>
+    <string name="ombor_issue_title">Ombordan chiqim</string>
+    <string name="ombor_field_object">Obyekt</string>
+    <string name="ombor_field_source">Qayerdan</string>
+    <string name="ombor_field_target_object">Qaysi obyektga</string>
+    <string name="ombor_field_material">Material nomi</string>
+    <string name="ombor_field_unit">Birlik</string>
+    <string name="ombor_field_qty">Miqdor</string>
+    <string name="ombor_field_supplier">Yetkazuvchi (ixtiyoriy)</string>
+    <string name="ombor_field_receiver">Kimga berildi (ixtiyoriy)</string>
+    <string name="ombor_field_note">Izoh, hujjat raqami (ixtiyoriy)</string>
+    <string name="ombor_field_date">Sana</string>
+    <string name="ombor_receiver_usta">Usta</string>
+    <string name="ombor_receiver_brigada">Brigada</string>
+    <string name="ombor_receiver_prarab">Prorab</string>
+    <string name="ombor_receiver_boshqa">Boshqa</string>
+    <string name="ombor_choose">Tanlang</string>
+    <string name="ombor_suggest">Ombordagi materiallar</string>
+    <string name="ombor_photo_soon">Nakladnaya surati — keyingi versiyada</string>
+    <string name="ombor_save_queue">Navbatga qo\'shish</string>
+    <string name="ombor_queue_note">Aloqa bo\'lmasa ham saqlanadi va keyin o\'zi yuboriladi.</string>
+    <string name="ombor_queued">Navbatga qo\'shildi</string>
+    <string name="ombor_over_stock">Omborda atigi %1$s %2$s bor. Server tekshiradi.</string>
+    <string name="ombor_stock_here">Qoldiq: %1$s %2$s</string>
+    <string name="ombor_err_name">Material nomini kiriting</string>
+    <string name="ombor_err_unit">Birlikni kiriting</string>
+    <string name="ombor_err_qty">Miqdor: musbat son, vergul yoki nuqta bilan (6 xonagacha)</string>
+    <string name="ombor_err_source">Chiqim qayerdan bo\'lishini tanlang</string>
+    <string name="ombor_err_target">Obyektni tanlang</string>
+    <string name="ombor_err_date">Sana noto\'g\'ri</string>
+    <string name="ombor_pick_title">Tanlang</string>
+    <string name="ombor_pick_search">Qidirish</string>
+
+    <string name="ombor_scan_title">Kodni skanerlang</string>
+    <string name="ombor_scan_hint">Shtrix-kod yoki QR ni kameraga ko\'rsating. Natija qidiruv maydoniga tushadi.</string>
+    <string name="ombor_scan_permission">Skanerlash uchun kameraga ruxsat kerak.</string>
+    <string name="ombor_scan_grant">Ruxsat berish</string>
+
+    <string name="ombor_outbox_prixod">Kirim: %1$s — %2$s %3$s</string>
+    <string name="ombor_outbox_rasxod">Chiqim: %1$s — %2$s %3$s</string>
+    <string name="ombor_outbox_berdim">Markaziydan obyektga: %1$s — %2$s %3$s</string>
+    <plurals name="ombor_queued_count">
+        <item quantity="one">%d ta amal navbatda</item>
+        <item quantity="other">%d ta amal navbatda</item>
+    </plurals>
+</resources>

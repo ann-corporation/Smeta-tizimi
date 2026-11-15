@@ -1,0 +1,10 @@
+{"ok":true,"soni":8,"toliq":true,"qatorlar":[
+ {"obyekt_id":101,"turi":"mat","nomi":"Цемент М400 (мешок 50 кг)","birligi":"qop","qoldiq":"240","oxirgi_harakat":"2026-11-13T09:30:00.123+00:00"},
+ {"obyekt_id":101,"turi":"mat","nomi":"Арматура А500С d12","birligi":"t","qoldiq":"3.250","oxirgi_harakat":"2026-11-12T14:05:00+00:00"},
+ {"obyekt_id":101,"turi":"mat","nomi":"Qum yuvilgan","birligi":"m3","qoldiq":"18.5","oxirgi_harakat":"2026-11-10T08:00:00+00:00"},
+ {"obyekt_id":102,"turi":"mat","nomi":"Кирпич керамический","birligi":"dona","qoldiq":"12000","oxirgi_harakat":"2026-11-09T11:20:00+00:00"},
+ {"obyekt_id":102,"turi":"mat","nomi":"Цемент М400 (мешок 50 кг)","birligi":"qop","qoldiq":"60","oxirgi_harakat":"2026-11-05T10:00:00+00:00"},
+ {"obyekt_id":103,"turi":"mat","nomi":"Shebyon 5-20","birligi":"m3","qoldiq":"42","oxirgi_harakat":null},
+ {"obyekt_id":104,"turi":"mat","nomi":"Gvozd 100 mm","birligi":"kg","qoldiq":"15.75","oxirgi_harakat":"2026-10-30T07:45:00+00:00"},
+ {"obyekt_id":104,"turi":"mat","nomi":"Quvur PP d32","birligi":"m","qoldiq":"0","oxirgi_harakat":"2026-10-29T07:45:00+00:00"}
+]}

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="p1_rows">
+        <item quantity="one">%1$d строка</item>
+        <item quantity="few">%1$d строки</item>
+        <item quantity="many">%1$d строк</item>
+        <item quantity="other">%1$d строки</item>
+    </plurals>
+    <plurals name="p1_unpriced">
+        <item quantity="one">%1$d строка без цены</item>
+        <item quantity="few">%1$d строки без цены</item>
+        <item quantity="many">%1$d строк без цены</item>
+        <item quantity="other">%1$d строки без цены</item>
+    </plurals>
+    <plurals name="p1_card_unpriced_warn">
+        <item quantity="one">%1$d строка без цены — итог неполный</item>
+        <item quantity="few">%1$d строки без цены — итог неполный</item>
+        <item quantity="many">%1$d строк без цены — итог неполный</item>
+        <item quantity="other">%1$d строки без цены — итог неполный</item>
+    </plurals>
+    <plurals name="p1_warn_unpriced">
+        <item quantity="one">Строка без цены: %1$d</item>
+        <item quantity="few">Строки без цены: %1$d</item>
+        <item quantity="many">Строк без цены: %1$d</item>
+        <item quantity="other">Строки без цены: %1$d</item>
+    </plurals>
+    <plurals name="p1_banner_offline">
+        <item quantity="one">Офлайн — %1$d запись в очереди</item>
+        <item quantity="few">Офлайн — %1$d записи в очереди</item>
+        <item quantity="many">Офлайн — %1$d записей в очереди</item>
+        <item quantity="other">Офлайн — %1$d записи в очереди</item>
+    </plurals>
+    <plurals name="p1_banner_sending">
+        <item quantity="one">Отправляется %1$d запись</item>
+        <item quantity="few">Отправляются %1$d записи</item>
+        <item quantity="many">Отправляются %1$d записей</item>
+        <item quantity="other">Отправляются %1$d записи</item>
+    </plurals>
+    <plurals name="p1_banner_failed">
+        <item quantity="one">Отклонена %1$d запись — открыть</item>
+        <item quantity="few">Отклонены %1$d записи — открыть</item>
+        <item quantity="many">Отклонено %1$d записей — открыть</item>
+        <item quantity="other">Отклонено %1$d записи — открыть</item>
+    </plurals>
+    <plurals name="p1_draft_bar">
+        <item quantity="one">Черновик: %1$d строка</item>
+        <item quantity="few">Черновик: %1$d строки</item>
+        <item quantity="many">Черновик: %1$d строк</item>
+        <item quantity="other">Черновик: %1$d строки</item>
+    </plurals>
+    <plurals name="p1_exceeding_n">
+        <item quantity="one">%1$d строка сверх сметы</item>
+        <item quantity="few">%1$d строки сверх сметы</item>
+        <item quantity="many">%1$d строк сверх сметы</item>
+        <item quantity="other">%1$d строки сверх сметы</item>
+    </plurals>
+    <plurals name="p1_outbox_lines">
+        <item quantity="one">%1$d строка · %2$s</item>
+        <item quantity="few">%1$d строки · %2$s</item>
+        <item quantity="many">%1$d строк · %2$s</item>
+        <item quantity="other">%1$d строки · %2$s</item>
+    </plurals>
+    <plurals name="p2_signout_body">
+        <item quantity="one">%1$d запись ещё не отправлена. Что сделать перед выходом?</item>
+        <item quantity="few">%1$d записи ещё не отправлены. Что сделать перед выходом?</item>
+        <item quantity="many">%1$d записей ещё не отправлено. Что сделать перед выходом?</item>
+        <item quantity="other">%1$d записи ещё не отправлено. Что сделать перед выходом?</item>
+    </plurals>
+    <plurals name="p2_signout_left">
+        <item quantity="one">%1$d запись не отправлена (офлайн или отклонена).</item>
+        <item quantity="few">%1$d записи не отправлены (офлайн или отклонены).</item>
+        <item quantity="many">%1$d записей не отправлено (офлайн или отклонены).</item>
+        <item quantity="other">%1$d записи не отправлено (офлайн или отклонены).</item>
+    </plurals>
+    <plurals name="p2_today_unread">
+        <item quantity="one">%1$d непрочитанное</item>
+        <item quantity="few">%1$d непрочитанных</item>
+        <item quantity="many">%1$d непрочитанных</item>
+        <item quantity="other">%1$d непрочитанных</item>
+    </plurals>
+</resources>
