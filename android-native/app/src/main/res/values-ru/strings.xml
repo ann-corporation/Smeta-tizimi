@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">QURAI</string>
+    <string name="app_tagline">Контроль строительства</string>
+
+    <string name="login_title">Вход в систему</string>
+    <string name="login_subtitle">Продолжите с вашей рабочей учётной записью</string>
+    <string name="field_login">Логин или телефон</string>
+    <string name="field_password">Пароль</string>
+    <string name="show_password">Показать пароль</string>
+    <string name="btn_sign_in">Войти</string>
+    <string name="btn_google">Войти через Google</string>
+    <string name="btn_telegram">Войти через Telegram</string>
+    <string name="login_or">или</string>
+    <string name="tg_waiting_title">Подтвердите в Telegram</string>
+    <string name="tg_waiting_body">Telegram открыт. Отправьте боту свой номер телефона — вход продолжится автоматически.</string>
+    <string name="tg_cancel">Отмена</string>
+
+    <string name="err_fill_fields">Введите логин и пароль.</string>
+    <string name="err_bad_credentials">Неверный логин или пароль.</string>
+    <string name="err_network">Нет соединения с интернетом. Проверьте сеть и повторите попытку.</string>
+    <string name="err_rate_limited">Слишком много попыток. Повторите чуть позже.</string>
+    <string name="err_disabled">Вход через мобильное приложение временно отключён.</string>
+    <string name="err_update_required">Приложение устарело. Установите новую версию.</string>
+    <string name="err_device_limit">Достигнут лимит устройств. Выйдите на другом устройстве.</string>
+    <string name="err_google_unavailable">Вход через Google сейчас недоступен.</string>
+    <string name="err_google_cancelled">Вход через Google отменён.</string>
+    <string name="err_telegram_off">Вход через Telegram ещё не включён.</string>
+    <string name="err_telegram_expired">Время истекло. Начните заново.</string>
+    <string name="err_telegram_denied">Не удалось войти по этому номеру через Telegram. Выберите другой способ.</string>
+    <string name="err_server">Ошибка сервера. Повторите попытку позже.</string>
+
+    <string name="nav_objects">Объекты</string>
+    <string name="nav_fact">Факт</string>
+    <string name="nav_approval">Согласование</string>
+    <string name="nav_today">Сегодня</string>
+    <string name="nav_profile">Профиль</string>
+    <string name="soon_title">Скоро</string>
+    <string name="soon_body">Этот раздел откроется в следующей версии.</string>
+
+    <string name="workplace_switch">Сменить рабочее место</string>
+    <string name="workplace_none">Рабочие места не найдены</string>
+    <string name="workplace_none_hint">Ваша учётная запись пока не привязана ни к одному рабочему месту. Создайте его в веб-версии или присоединитесь по ссылке-приглашению.</string>
+    <string name="role_label">Роль</string>
+    <string name="home_loading">Загрузка…</string>
+    <string name="retry">Повторить</string>
+    <string name="offline_banner">Офлайн-режим — данные не обновлены.</string>
+
+    <string name="profile_account">Учётная запись</string>
+    <string name="profile_language">Язык</string>
+    <string name="profile_theme">Тема</string>
+    <string name="profile_logout">Выйти</string>
+    <string name="profile_version">Версия %1$s</string>
+    <string name="theme_dark">Тёмная</string>
+    <string name="theme_light">Светлая</string>
+    <string name="theme_system">Системная</string>
+    <string name="lang_uz">O\'zbekcha</string>
+    <string name="lang_ru">Русский</string>
+    <string name="lang_en">English</string>
+</resources>
