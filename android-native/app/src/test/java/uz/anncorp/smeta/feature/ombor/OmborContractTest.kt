@@ -73,8 +73,9 @@ class OmborContractTest {
         assertEquals(OmborAccess(true, true), OmborAccess.forRole("prorab"))
         assertEquals(OmborAccess(true, true), OmborAccess.forRole("PTO"))
         assertEquals(OmborAccess(true, true), OmborAccess.forRole("admin"))
-        // read-only roles: the server needs document.write for both write commands
-        assertEquals(OmborAccess(true, false), OmborAccess.forRole("omborchi"))
+        // omborchi has warehouse.write; the server accepts warehouse.write OR document.write for both write commands
+        assertEquals(OmborAccess(true, true), OmborAccess.forRole("omborchi"))
+        // read-only roles
         assertEquals(OmborAccess(true, false), OmborAccess.forRole("rahbar"))
         assertEquals(OmborAccess(true, false), OmborAccess.forRole("taminotchi"))
         for (r in listOf("usta", "brigadir", "haydovchi", "inspektor", "kadr", "buyurtmachi", "", "xyz")) assertEquals(OmborAccess.None, OmborAccess.forRole(r))

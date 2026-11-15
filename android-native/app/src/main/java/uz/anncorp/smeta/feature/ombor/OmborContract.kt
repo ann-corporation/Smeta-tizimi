@@ -36,9 +36,9 @@ fun isOmborKind(kind: String): Boolean = kind == AMAL_OMBOR_OBYEKT || kind == AM
 // ---------- role gating ----------
 
 /**
- * What the module shows for a role. The bottom-bar entry needs `warehouse.read`; the write buttons need `document.write`,
- * because that is the capability the server enforces for both write commands (frontend/functions/_shared/write-command-policy.ts:
- * skladga_yozish / sklad_berdim_v1 -> document.write). The sets mirror ROLE_PERMISSIONS in
+ * What the module shows for a role. The bottom-bar entry needs `warehouse.read`; the write buttons need `warehouse.write` OR `document.write`,
+ * because the server accepts either for both write commands (frontend/functions/_shared/write-command-policy.ts:
+ * skladga_yozish / sklad_berdim_v1 -> warehouse.write|document.write; PR #530). The sets mirror ROLE_PERMISSIONS in
  * frontend/src/lib/company-authorization/effective-authorization.ts (the mobile BFF exposes the role, not the permission list).
  * Per-member extra permissions are not visible to the app, so the server may still answer 403: that is shown as-is.
  */
@@ -46,7 +46,8 @@ data class OmborAccess(val read: Boolean, val write: Boolean) {
     companion object {
         private val FULL = setOf("superadmin", "admin", "boss")
         private val READ_ROLES = FULL + setOf("rahbar", "bugalter", "pto", "prorab", "omborchi", "mexanik", "taminotchi")
-        private val WRITE_ROLES = FULL + setOf("pto", "prorab")
+        // warehouse.write (omborchi) OR document.write (pto, prorab); the server accepts either for both write commands.
+        private val WRITE_ROLES = FULL + setOf("pto", "prorab", "omborchi")
         val None = OmborAccess(false, false)
         fun forRole(role: String?): OmborAccess {
             val r = role.orEmpty().trim().lowercase()
