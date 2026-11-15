@@ -112,6 +112,7 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
                 else ok("""{"ok":true,"id":7,"holat":"jarayonda"}""")
             }
             path.startsWith("/api/hujjat-royxat") -> ok(DEMO_DOCS)
+            path.startsWith("/api/hujjat-yarat") -> ok(asset("gen_list.json"))
             path.startsWith("/api/foto-dalil") -> ok("""{"ok":true,"id":900}""")
             else -> ApiResult(404, null)
         }
@@ -163,6 +164,14 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
             9003L -> uz.anncorp.smeta.core.data.BytesResult(200, ByteArray(2048) { 7 }, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "F-2 demo.xlsx")
             else -> uz.anncorp.smeta.core.data.BytesResult(404, null, code = "CANONICAL_BINARY_MISSING")
         }
+    }
+
+    /** Demo of server-side generation: the bytes are a REAL file produced by the server engine from a synthetic fixture (assets/demo/gen_f2.*). */
+    override suspend fun bffPostBytes(path: String, body: JsonElement, maxBytes: Long): uz.anncorp.smeta.core.data.BytesResult {
+        val format = body.jsonObject["format"]?.toString()?.trim('"') ?: "pdf"
+        val bytes = context.assets.open("demo/gen_f2.$format").use { it.readBytes() }
+        val mime = if (format == "pdf") "application/pdf" else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        return uz.anncorp.smeta.core.data.BytesResult(200, bytes, mime, "Ф-2 № 1 · 2026-10.$format")
     }
 
     private fun demoPdf(id: Long): ByteArray {

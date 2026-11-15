@@ -115,6 +115,9 @@ object DataModule {
     fun docCache(@ApplicationContext c: Context) = DocCache(File(c.noBackupFilesDir, "docs"), KeystoreCipher("qurai_doc_key"))
 
     @Provides @Singleton
+    fun docGenRepository(api: BffApi) = DocGenRepository(api)
+
+    @Provides @Singleton
     fun documentsRepository(api: BffApi, db: AppDb, json: Json, cache: DocCache) = DocumentsRepository(api, db, json, cache)
 
     @Provides @Singleton

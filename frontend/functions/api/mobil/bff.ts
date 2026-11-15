@@ -17,6 +17,7 @@ import { onRequestPost as agentIshPost } from '../agent-ish';
 import { onRequestGet as qulfGet, onRequestPost as qulfPost } from '../qulf';
 import { onRequestGet as hujjatRoyxatGet } from '../hujjat-royxat';
 import { onRequestGet as hujjatOlGet } from '../hujjat-ol';
+import { onRequestPost as hujjatYaratPost } from '../hujjat-yarat';
 
 // Native Android BFF (P0). Same trust model as api/desktop/bff.ts: verified device Bearer -> server-only cookie -> unchanged
 // middleware + handler. Roles never come from the token; the unchanged middleware derives fresh authority from the database.
@@ -41,8 +42,10 @@ const handlers: Record<string, Record<string, PagesFunction<Env>>> = {
   // P6 documents: canonical registry list + binary download (F-2 PDF/Excel, drawings). GET only; same authorization as the web, bytes stream through unchanged.
   '/api/hujjat-royxat': { GET: hujjatRoyxatGet },
   '/api/hujjat-ol': { GET: hujjatOlGet },
+  // Yagona hujjat dvigateli: server tayyor XLSX/PDF qaytaradi (ro'yxat ham serverdan); ilovada shablon yo'q.
+  '/api/hujjat-yarat': { POST: hujjatYaratPost },
 } as never;
-export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol|agent-ish|qulf|hujjat-royxat|hujjat-ol)(?:\?[^#\s]*)?$/;
+export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol|agent-ish|qulf|hujjat-royxat|hujjat-ol|hujjat-yarat)(?:\?[^#\s]*)?$/;
 /** /api/profil also hosts account-security actions (parol, google/telegram ulash, hisob_birlashtir, sessions): the native device token may NOT reach them.\n *  Only the @username / people-search / invite-answer actions are exposed (USERNAME_V1). */
 export const MOBIL_PROFIL_AMAL: ReadonlySet<string> = new Set(['username_ol','username_tekshir','username_belgila','username_sozlama','qidir','kompaniyadosh_qidir','username_ommaviy','taklif_royxat','taklif_javob']);
 /** /api/kirish-taklif is public-by-design (qabul = sign-up without a session): the device may only reach yarat (director creates a phone invite link/code). */

@@ -20,6 +20,10 @@ export type KorinishKatak = {
   /** Son bo'lsa — qiymat (formatlash uchun). */
   son: number | null;
   qalin: boolean;
+  /** Kursiv shrift (RS qatorlar) — qurilmada PDF chizishda kerak. */
+  kursiv: boolean;
+  /** Katak foni (RRGGBB, '#'siz) yoki null — sarlavha/jami qatorlari ranglari. */
+  fon: string | null;
   tekis: 'left' | 'center' | 'right';
   /** Birlashma: nechta ustun egallaydi (yashirinlarsiz). */
   span: number;
@@ -41,21 +45,28 @@ export type KorinishVaraq = {
 
 const atr = (tag: string, nom: string): string | null => tag.match(new RegExp(`\\b${nom}="([^"]*)"`))?.[1] ?? null;
 
-type Uslub = { qalin: boolean; tekis: 'left' | 'center' | 'right' | null; numFmt: number; fmtKod: string | null };
+type Uslub = { qalin: boolean; kursiv: boolean; fon: string | null; tekis: 'left' | 'center' | 'right' | null; numFmt: number; fmtKod: string | null };
 
 function uslublar(files: Record<string, Uint8Array>): Uslub[] {
   const x = files['xl/styles.xml'] ? strFromU8(files['xl/styles.xml']) : '';
   const fmt = new Map<number, string>();
   for (const m of x.matchAll(/<(?:\w+:)?numFmt\b([^>]*?)\/?>/g)) fmt.set(Number(atr(m[1], 'numFmtId')), unEsc(atr(m[1], 'formatCode') ?? ''));
   const fontlar = [...(x.match(/<(?:\w+:)?fonts\b[^>]*>([\s\S]*?)<\/(?:\w+:)?fonts>/)?.[1] ?? '').matchAll(/<(?:\w+:)?font\b[^>]*?(?:\/>|>([\s\S]*?)<\/(?:\w+:)?font>)/g)]
-    .map((m) => /<(?:\w+:)?b(?:\s[^>]*)?\/?>/.test(m[1] ?? '') && !/<(?:\w+:)?b\s+val="(?:0|false)"/.test(m[1] ?? ''));
+    .map((m) => ({
+      qalin: /<(?:\w+:)?b(?:\s[^>]*)?\/?>/.test(m[1] ?? '') && !/<(?:\w+:)?b\s+val="(?:0|false)"/.test(m[1] ?? ''),
+      kursiv: /<(?:\w+:)?i(?:\s[^>]*)?\/?>/.test(m[1] ?? '') && !/<(?:\w+:)?i\s+val="(?:0|false)"/.test(m[1] ?? ''),
+    }));
+  const fonlar = [...(x.match(/<(?:\w+:)?fills\b[^>]*>([\s\S]*?)<\/(?:\w+:)?fills>/)?.[1] ?? '').matchAll(/<(?:\w+:)?fill\b[^>]*>([\s\S]*?)<\/(?:\w+:)?fill>/g)]
+    .map((m) => { const rgb = m[1].match(/<(?:\w+:)?fgColor\b[^>]*\brgb="([0-9A-Fa-f]{6,8})"/)?.[1]; return rgb && /<(?:\w+:)?patternFill\b[^>]*patternType="solid"/.test(m[1]) ? rgb.slice(-6).toUpperCase() : null; });
   const xfs = x.match(/<(?:\w+:)?cellXfs\b[^>]*>([\s\S]*?)<\/(?:\w+:)?cellXfs>/)?.[1] ?? '';
   return [...xfs.matchAll(/<(?:\w+:)?xf\b([^>]*?)(?:\/>|>([\s\S]*?)<\/(?:\w+:)?xf>)/g)].map((m) => {
     const numFmt = Number(atr(m[1], 'numFmtId') ?? 0);
     const al = (m[2] ?? '').match(/<(?:\w+:)?alignment\b([^>]*?)\/?>/)?.[1] ?? '';
     const h = atr(al, 'horizontal');
     return {
-      qalin: fontlar[Number(atr(m[1], 'fontId') ?? 0)] ?? false,
+      qalin: fontlar[Number(atr(m[1], 'fontId') ?? 0)]?.qalin ?? false,
+      kursiv: fontlar[Number(atr(m[1], 'fontId') ?? 0)]?.kursiv ?? false,
+      fon: fonlar[Number(atr(m[1], 'fillId') ?? 0)] ?? null,
       tekis: h === 'center' || h === 'centerContinuous' ? 'center' : h === 'right' ? 'right' : h === 'left' ? 'left' : null,
       numFmt, fmtKod: fmt.get(numFmt) ?? null,
     };
@@ -131,7 +142,7 @@ export function hujjatKorinishi(bytes: Uint8Array): KorinishVaraq[] {
         let span = 0;
         for (let k = c; k <= oxir; k++) if (!yashirin.has(k)) span++;
         maxC = Math.max(maxC, oxir);
-        kataklar.push({ c, matn, son, qalin: u?.qalin ?? false, tekis: u?.tekis ?? (son != null ? 'right' : 'left'), span: Math.max(1, span), formula: /<(?:\w+:)?f\b/.test(inner) });
+        kataklar.push({ c, matn, son, qalin: u?.qalin ?? false, kursiv: u?.kursiv ?? false, fon: u?.fon ?? null, tekis: u?.tekis ?? (son != null ? 'right' : 'left'), span: Math.max(1, span), formula: /<(?:\w+:)?f\b/.test(inner) });
       }
       const matnlar = kataklar.map((k) => k.matn.trim()).filter(Boolean);
       if (raqamQatori == null && matnlar.length >= 4 && matnlar.every((m, j) => m === String(j + 1))) raqamQatori = r;

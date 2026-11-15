@@ -82,7 +82,7 @@ export async function t2NakrutkaKoefSaqla(p: { kompaniyaId: number; shartnomaId?
       koef_kod: p.koefKod, qiymat: p.qiymat, operation_id: p.operationId || yangiOperationId(),
     }),
   });
-  const natija = await res.json();
+  const natija = (await res.json()) as { ok: boolean; code?: string; error?: string };
   if (natija?.ok) ustamaOzgardi();
   return natija;
 }

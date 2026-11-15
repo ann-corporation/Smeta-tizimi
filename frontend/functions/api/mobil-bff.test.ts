@@ -200,4 +200,11 @@ describe('mobil BFF: documents (hujjat-royxat list + hujjat-ol binary download)'
     expect((await bff('/api/hujjat-ol?id=1', 'POST', {})).status).toBe(400);
     expect((await bff('/api/hujjat-royxat?kompaniya_id=8', 'POST', {})).status).toBe(400);
   });
+  it('routes the unified document engine (hujjat-yarat POST) through the same gates; GET is not exposed', async () => {
+    stubDocs();
+    const r = await bff('/api/hujjat-yarat', 'POST', { amal: 'royxat', kompaniya_id: 8 });
+    expect(r.status).toBe(400);
+    expect((await r.json() as { code: string }).code).toBe('PARAMETR_YOQ'); // handler reached after middleware (document.read for company 8)
+    expect((await bff('/api/hujjat-yarat', 'GET')).status).toBe(400);
+  });
 });
