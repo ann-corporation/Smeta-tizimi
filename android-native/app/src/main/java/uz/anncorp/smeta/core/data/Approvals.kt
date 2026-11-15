@@ -112,7 +112,8 @@ private fun payloadCode(body: JsonElement?): String? = body.obj()?.get("code").s
 
 // ---------- notifications ----------
 
-data class NotificationItem(val id: Long, val mavzu: String, val yaratildi: String?, val oqildi: Boolean)
+/** [zanjirId] = the approval chain the notification points at (parametrlar.zanjir_id), so a tap can open it. */
+data class NotificationItem(val id: Long, val mavzu: String, val yaratildi: String?, val oqildi: Boolean, val zanjirId: Long? = null)
 data class NotificationList(val items: List<NotificationItem>, val unread: Int)
 
 fun parseNotifications(body: JsonElement?): NotificationList? {
@@ -120,7 +121,10 @@ fun parseNotifications(body: JsonElement?): NotificationList? {
     val rows = p["qatorlar"].arr() ?: return null
     val items = rows.mapNotNull { e ->
         val o = e.obj() ?: return@mapNotNull null
-        NotificationItem(o["id"].num()?.toLong() ?: return@mapNotNull null, o["mavzu"].str().orEmpty(), o["yaratildi"].str(), o["oqildi"].str() != null)
+        NotificationItem(
+            o["id"].num()?.toLong() ?: return@mapNotNull null, o["mavzu"].str().orEmpty(), o["yaratildi"].str(), o["oqildi"].str() != null,
+            o["parametrlar"].obj()?.get("zanjir_id").num()?.toLong()?.takeIf { it > 0 },
+        )
     }
     return NotificationList(items, p["oqilmagan"].num()?.toInt() ?: items.count { !it.oqildi })
 }
@@ -229,6 +233,15 @@ class TodayRepository(private val api: BffApi) {
         val list = if (notes.ok) parseNotifications(notes.body) else null
         return TodayData(if (inbox.ok) inboxCount(inbox.body) else null, f2, fakt, list?.items?.take(5).orEmpty(), list?.unread)
     }
+
+    /** Notifications centre: up to [limit] newest notifications (server max is the RPC's own cap), optionally only unread. Null = failed. */
+    suspend fun notifications(limit: Int = 100, onlyUnread: Boolean = false): NotificationList? {
+        val r = api.bff("/api/hujjat-aylanish?bolim=bildirishnomalar&limit=" + if (onlyUnread) "&oqilmagan=1" else "")
+        return if (r.ok) parseNotifications(r.body) else null
+    }
+
+    /** Hub badge: the server's unread counter (limit 1 keeps the answer tiny). Null = unknown. */
+    suspend fun unread(): Int? = notifications(1)?.unread
 
     suspend fun markRead(ids: List<Long>): Boolean = ids.isEmpty() || api.bff("/api/hujjat-aylanish", "POST", markReadPayload(ids)).ok
 }

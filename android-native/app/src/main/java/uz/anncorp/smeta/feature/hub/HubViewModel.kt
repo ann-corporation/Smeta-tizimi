@@ -39,6 +39,8 @@ data class HubUi(
     val rowHits: List<QatorEntity> = emptyList(),
     val recent: List<ObyektEntity> = emptyList(),
     val objectCount: Int = -1,
+    /** Unread notifications (server counter) for the bell badge on the hub; null = unknown. */
+    val unread: Int? = null,
 )
 
 /** Pure: objects whose name contains the query (case-insensitive), at most [limit]. */
@@ -61,6 +63,7 @@ class HubViewModel @Inject constructor(
     private val rows: RowsRepository,
     private val work: WorkContext,
     private val prefs: Prefs,
+    private val today: uz.anncorp.smeta.core.data.TodayRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(HubUi())
     val state: StateFlow<HubUi> = _state.asStateFlow()
@@ -95,6 +98,9 @@ class HubViewModel @Inject constructor(
             }
         }
     }
+
+    /** Re-reads the unread counter (called each time the hub is shown). */
+    fun refreshUnread() { if (work.current.value == null) return; viewModelScope.launch { _state.update { it.copy(unread = today.unread() ?: it.unread) } } }
 
     fun setQuery(v: String) { query.value = v; _state.update { it.copy(query = v) } }
     fun toggleEdit() = _state.update { it.copy(edit = !it.edit) }

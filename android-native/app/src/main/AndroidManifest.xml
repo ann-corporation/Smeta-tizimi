@@ -31,6 +31,17 @@
             </intent-filter>
         </activity>
 
+        <!-- Hands a document the user opened to the share sheet / another app (one-off read grant; no storage permission). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <!-- Persists the per-app language choice on API < 33. -->
         <service
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"

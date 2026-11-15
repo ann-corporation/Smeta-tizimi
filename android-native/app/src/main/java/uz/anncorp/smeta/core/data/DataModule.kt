@@ -110,6 +110,13 @@ object DataModule {
     @Provides @Singleton
     fun f2Repository(api: BffApi, db: AppDb, json: Json) = F2Repository(api, db, json)
 
+    /** Downloaded documents are kept AES-GCM encrypted (own Keystore key) in the no-backup directory; cleared on sign-out. */
+    @Provides @Singleton
+    fun docCache(@ApplicationContext c: Context) = DocCache(File(c.noBackupFilesDir, "docs"), KeystoreCipher("qurai_doc_key"))
+
+    @Provides @Singleton
+    fun documentsRepository(api: BffApi, db: AppDb, json: Json, cache: DocCache) = DocumentsRepository(api, db, json, cache)
+
     @Provides @Singleton
     fun approvalsRepository(api: BffApi, db: AppDb) = ApprovalsRepository(api) { id -> db.obyekt().get(id)?.nom }
 

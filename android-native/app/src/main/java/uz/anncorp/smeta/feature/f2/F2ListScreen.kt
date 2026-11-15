@@ -137,7 +137,7 @@ private fun statusExplain(s: F2Status): String = stringResource(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun F2ListScreen(onBack: () -> Unit, onOpenWeb: (path: String, title: String) -> Unit, vm: F2ListViewModel = hiltViewModel()) {
+fun F2ListScreen(onBack: () -> Unit, onOpenWeb: (path: String, title: String) -> Unit, onDocs: (Long) -> Unit = {}, vm: F2ListViewModel = hiltViewModel()) {
     val ui by vm.state.collectAsStateWithLifecycle()
     var detail by remember { mutableStateOf<F2Act?>(null) }
     val webTitle = stringResource(R.string.mod_f2_registry)
@@ -156,7 +156,8 @@ fun F2ListScreen(onBack: () -> Unit, onOpenWeb: (path: String, title: String) ->
                     item { Summary(ui, acts) }
                     items(acts, key = { it.id }) { a -> ActCard(a) { detail = a } }
                     item {
-                        Button(onClick = { onOpenWeb("/admin/f2-reestr", webTitle) }, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.f2_open_web)) }
+                        Button(onClick = { onDocs(vm.id) }, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text(stringResource(R.string.docs_f2_button)) }
+                        androidx.compose.material3.OutlinedButton(onClick = { onOpenWeb("/admin/f2-reestr", webTitle) }, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget).padding(top = 8.dp)) { Text(stringResource(R.string.f2_open_web)) }
                         Text(stringResource(R.string.f2_pdf_hint), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp))
                     }
                 }

@@ -57,7 +57,7 @@
     <string name="f2_empty">Hali F-2 yo\'q</string>
     <string name="f2_empty_hint">Qabul qilingan ishlar bo\'yicha F-2 tayyorlanganda shu yerda ko\'rinadi.</string>
     <string name="f2_open_web">F-2 reestrini saytda ochish</string>
-    <string name="f2_pdf_hint">PDF va Excel yuklab olish hamda summalar saytdagi reestrda.</string>
+    <string name="f2_pdf_hint">F-2 PDF va Excel fayllari «F-2 hujjatlari» tugmasi orqali ilovaning o\'zida ochiladi. Summalar to\'liq ko\'rinishda saytdagi reestrda.</string>
     <string name="f2_summary">F-2 holati</string>
     <string name="f2_act_title">F-2 № %1$s</string>
     <string name="f2_flag_unpriced">%1$d narxsiz</string>
