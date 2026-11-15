@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { SaqlashPaneli } from '../../umumiy/ui/SaqlashPaneli';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { FmtN } from '../../lib/format';
@@ -29,17 +30,19 @@ const boshForma = (x?: HrXodim): Forma => ({
 
 export function HrXodimlar({ kid, d, qayta, azolar = null, boshidaYangi = false }: { kid: number; d: HrXodimlarJavob; qayta: Qayta; azolar?: HrAzo[] | null; boshidaYangi?: boolean }) {
   const [forma, setForma] = useState<Forma | null>(() => (boshidaYangi ? boshForma() : null));
+  /** Forma ochilgan paytdagi holat — saqlanmagan o'zgarish soni shunga nisbatan. */
+  const [aslForma, setAslForma] = useState<Forma | null>(() => (boshidaYangi ? boshForma() : null));
   const [kengaytirilgan, setKengaytirilgan] = useState(false);
   const [saqlanmoqda, setSaqlanmoqda] = useState(false);
   const yangiMi = forma?.kadrId == null;
-  const ochish = (x?: HrXodim) => { setKengaytirilgan(false); setForma(boshForma(x)); };
+  const ochish = (x?: HrXodim) => { setKengaytirilgan(false); const b = boshForma(x); setForma(b); setAslForma(b); };
   const [qidiruv, setQidiruv] = useState('');
   const royxat = useMemo(() => d.xodimlar.filter((x) => `${x.ism} ${x.lavozim ?? ''}`.toLowerCase().includes(qidiruv.toLowerCase())), [d.xodimlar, qidiruv]);
   const sxemaNomi = (id: number | null) => d.sxemalar.find((s) => s.id === id)?.nom ?? '—';
   const set = <K extends keyof Forma>(k: K, v: Forma[K]) => setForma((f) => (f ? { ...f, [k]: v } : f));
 
   const saqla = async () => {
-    if (!forma) return;
+    if (!forma) return false;
     setSaqlanmoqda(true);
     const obyektlar = forma.obyektlar.filter((o) => o.obyekt_id).map((o) => ({ obyekt_id: Number(o.obyekt_id), ulush_foiz: num(o.ulush) ?? 100, dan: o.dan || null, gacha: o.gacha || null }));
     const profil = {
@@ -51,8 +54,16 @@ export function HrXodimlar({ kid, d, qayta, azolar = null, boshidaYangi = false 
     const pii = d.pii_yopiq ? null : { pinfl: forma.pinfl || null, pasport: forma.pasport || null, telefon: forma.telefon || null, manzil: forma.manzil || null };
     const r = await hrXodimSaqla({ kompaniyaId: kid, kadrId: forma.kadrId, kutilganVersiya: forma.versiya, profil, pii, obyektlar, operationId: yangiOperationId() });
     setSaqlanmoqda(false);
-    if (yozNatija(r, 'Xodim saqlandi')) { setForma(null); await qayta(); }
+    if (yozNatija(r, 'Xodim saqlandi')) { setForma(null); setAslForma(null); await qayta(); return true; }
+    return false;
   };
+  const formaOzgarishSoni = (() => {
+    if (!forma || !aslForma) return 0;
+    const { obyektlar: fo, ...f1 } = forma; const { obyektlar: ao, ...a1 } = aslForma;
+    let n = (Object.keys(f1) as Array<keyof typeof f1>).filter((k) => String(f1[k] ?? '') !== String(a1[k] ?? '')).length;
+    for (let i = 0; i < Math.max(fo.length, ao.length); i++) if (JSON.stringify(fo[i] ?? null) !== JSON.stringify(ao[i] ?? null)) n++;
+    return n;
+  })();
 
   return (
     <div className="flex flex-col gap-3">
@@ -144,10 +155,8 @@ export function HrXodimlar({ kid, d, qayta, azolar = null, boshidaYangi = false 
           )}
 
           </div>
-          <div className="mt-3 flex gap-2">
-            <button type="button" className="fz-btn fz-btn--primary" disabled={saqlanmoqda || !forma.ism.trim()} onClick={() => void saqla()}>{t('Saqlash')}</button>
-            <button type="button" className="fz-btn" onClick={() => setForma(null)}>{t('Bekor qilish')}</button>
-          </div>
+          {formaOzgarishSoni === 0 && <div className="mt-3 flex gap-2"><button type="button" className="fz-btn" onClick={() => setForma(null)}>{t('Bekor qilish')}</button></div>}
+          <SaqlashPaneli kalit="hr-xodim-forma" className="mt-3" soni={formaOzgarishSoni} band={saqlanmoqda} taqiq={!forma.ism.trim()} saqla={saqla} bekor={() => setForma(null)} />
         </div>
       )}
     </div>

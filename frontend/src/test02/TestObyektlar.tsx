@@ -15,6 +15,7 @@ import { useCompanyLineage } from '../components/pto-workspace/useLineage';
 import { t2NakrutkaOldindan } from '../api/t2-nakrutka-paket';
 import { usePTOWorkspace } from '../umumiy/kontekst/PTOWorkspaceContext';
 import { ObyektUlash } from '../components/ulash/ObyektUlash';
+import { OflaynTayyorlash } from '../lib/oflayn/OflaynTayyorlash';
 import { KeyingiQadamPanel } from '../components/qollanma/KeyingiQadamPanel';
 import { YangiObyektMaydonlari, YANGI_LOYIHA } from '../components/pto-workspace/YangiObyektMaydonlari';
 
@@ -209,6 +210,7 @@ export default function TestObyektlar() {
       yangilanmoqda={yuklanmoqda}
       amallar={
         <>
+          <OflaynTayyorlash obyektIds={(currentRows ?? []).map((o) => o.id)} />
           <button type="button" onClick={() => setXaritaKorinadi((v) => !v)} aria-pressed={xaritaKorinadi} className="fz-btn"
             style={xaritaKorinadi ? { borderColor: 'var(--accent)', color: 'var(--accent-text)', background: 'var(--accent-soft)' } : undefined}>
             <MapPin aria-hidden="true" />

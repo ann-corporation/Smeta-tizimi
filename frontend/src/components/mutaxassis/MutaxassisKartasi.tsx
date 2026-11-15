@@ -25,7 +25,7 @@ export function MutaxassisKartasi({ m, children }: { m: MutaxassisKarta; childre
         </div>
       </div>
       {s && s.f2_soni > 0 && <div className="mt-2 rounded-lg border border-ok/30 bg-ok/10 p-2 text-[12px]">
-        <p className="flex items-center gap-1 font-semibold text-ok"><BadgeCheck size={13} /> {t('Smeta tizimi tasdiqlagan tajriba')}</p>
+        <p className="flex items-center gap-1 font-semibold text-ok"><BadgeCheck size={13} /> {t('QURAI tasdiqlagan tajriba')}</p>
         <p className="mt-0.5 text-text">
           <b>{s.f2_soni}</b> {t('ta F2')} ({s.tasdiqlangan_f2} {t('tasdiqlangan')}) · <b>{s.obyektlar}</b> {t('obyekt')} · <b>{qisqaSumma(s.jami_summa)}</b> {t('so‘m')}
         </p>

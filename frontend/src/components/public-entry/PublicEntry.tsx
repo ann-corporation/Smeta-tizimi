@@ -26,7 +26,7 @@ export type { ProductScreenshot } from './ProductShowcase';
 export const OWNER_PHONE = '+998505012566';
 const PHONE_LABEL = '+998 50 501 25 66';
 /** Product name is a brand, not translatable copy. */
-export const BRAND = 'TIZIM_02', BRAND_WORD = 'TIZIM', BRAND_NUMBER = '02';
+export const BRAND = 'QURAI', BRAND_WORD = 'QUR', BRAND_NUMBER = 'AI';
 type Props = { children: ReactNode; onChooseAuth: (mode: 'login' | 'signup') => void; screenshots?: readonly ProductScreenshot[]; supportPort?: PublicSupportPort; /** Allaqachon tizimda: «Tizimga kirish» o'rniga ilovaga o'tish tugmasi. */ kirgan?: boolean; onOpenApp?: () => void };
 type Local = (s: EntryCopy) => string;
 
@@ -40,7 +40,7 @@ const copy = {
     q3: 'Savolim bo‘lsa, kimga murojaat qilaman?', a3: 'Admin bilan telefon orqali bog‘laning. Qaysi sahifada va qaysi amalni bajarayotganda muammo yuz berganini ayting.',
     contactTitle: 'Ishni boshlashda yordam kerakmi?', contactText: 'Tizimdan foydalanish bo‘yicha savol va muammolar yuzasidan admin bilan bog‘laning.', call: 'Qo‘ng‘iroq qilish',
     help: 'Qo‘llanma', helpTitle: 'Tizimdan foydalanish qo‘llanmasi', helpNote: 'Bu yerda ko‘p so‘raladigan savollarga javob topasiz. Ushbu oynadan xabar yuborilmaydi; admin bilan telefon orqali bog‘lanishingiz mumkin.', close: 'Qo‘llanmani yopish',
-    footer: 'TIZIM_02 · Qurilish uchun raqamli ish joyi', skip: 'Kirish formasiga o‘tish',
+    footer: 'QURAI · Qurilish uchun raqamli ish joyi', skip: 'Kirish formasiga o‘tish',
   },
   ru: {
     capabilities: 'Возможности', workflow: 'Как это работает', contact: 'Контакты', login: 'Войти', signup: 'Регистрация',
@@ -51,7 +51,7 @@ const copy = {
     q3: 'К кому обратиться с вопросом?', a3: 'Свяжитесь с администратором по телефону. Укажите страницу и действия перед ошибкой — это поможет разобраться.',
     contactTitle: 'Нужна помощь с началом?', contactText: 'Вопросы и проблемы по системе можно обсудить с администратором.', call: 'Позвонить',
     help: 'Руководство', helpTitle: 'Руководство по системе', helpNote: 'Здесь собраны ответы на частые вопросы. Сообщения из этого окна не отправляются; с администратором можно связаться по телефону.', close: 'Закрыть руководство',
-    footer: 'TIZIM_02 · Цифровое рабочее место для строительства', skip: 'Перейти к форме входа',
+    footer: 'QURAI · Цифровое рабочее место для строительства', skip: 'Перейти к форме входа',
   },
   en: {
     capabilities: 'Features', workflow: 'How it works', contact: 'Contact', login: 'Sign in', signup: 'Sign up',
@@ -62,7 +62,7 @@ const copy = {
     q3: 'Who can help with a question?', a3: 'Call the admin. Include the page name and what you did before the error to help identify the problem.',
     contactTitle: 'Need help getting started?', contactText: 'Contact the admin with questions and issues about the system.', call: 'Call the admin',
     help: 'Guide', helpTitle: 'Getting started guide', helpNote: 'Find answers to common questions here. This panel does not send messages; you can contact the admin by phone.', close: 'Close guide',
-    footer: 'TIZIM_02 · A digital workspace for construction', skip: 'Skip to sign-in form',
+    footer: 'QURAI · A digital workspace for construction', skip: 'Skip to sign-in form',
   },
 };
 
@@ -201,7 +201,7 @@ function EntryHeader({ c, text, local, onLogin, start, kirgan = false }: { c: ty
   const { scrollYProgress } = useScroll();
   const bar = useSpring(scrollYProgress, { stiffness: 200, damping: 30, restDelta: 0.001 });
   return <header className="entry-header">
-    <a className="entry-brand" href="#entry-top"><span className="entry-brand-mark" aria-hidden="true"><i /></span>{BRAND_WORD}<span className="entry-brand-number">{BRAND_NUMBER}</span></a>
+    <a className="entry-brand" href="#entry-top"><svg className="entry-brand-mark" viewBox="-66.89 -65.5 137.01 137.01" aria-hidden="true" fill="none" strokeWidth={9}><path d="M-26 -34V12A15 15 0 0 0 4 12V-34" stroke="currentColor" /><path d="M4 -34H18A14 14 0 0 1 18 -6H4" stroke="currentColor" /><path d="M13 -6L41.94 37.11" stroke="currentColor" /><circle r="56" className="entry-brand-ring" /><path d="M41.94 37.11L60 64" className="entry-brand-ring" /></svg><span className="entry-brand-word">{BRAND_WORD}<span className="entry-brand-number">{BRAND_NUMBER}</span></span></a>
     <nav aria-label={text(c.capabilities)}><a href="#entry-chain">{text(c.workflow)}</a><a href="#entry-roles">{local(scopeCopy.audiences)}</a><a href="#entry-features">{text(c.capabilities)}</a><a href="#entry-pricing">{local(ic.priceEyebrow)}</a><a href="#entry-contact">{text(c.contact)}</a></nav>
     <div className="entry-header-actions"><TilTanlagich ixcham /><button type="button" className="entry-small-button" onClick={onLogin}>{text(kirgan ? c.openApp : c.login)}</button><span className="entry-header-start">{start}</span></div>
     <motion.i className="entry-progress" style={{ scaleX: bar }} aria-hidden="true" />

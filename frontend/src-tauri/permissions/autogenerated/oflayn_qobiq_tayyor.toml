@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-oflayn-qobiq-tayyor"
+description = "Enables the oflayn_qobiq_tayyor command without any pre-configured scope."
+commands.allow = ["oflayn_qobiq_tayyor"]
+
+[[permission]]
+identifier = "deny-oflayn-qobiq-tayyor"
+description = "Denies the oflayn_qobiq_tayyor command without any pre-configured scope."
+commands.deny = ["oflayn_qobiq_tayyor"]

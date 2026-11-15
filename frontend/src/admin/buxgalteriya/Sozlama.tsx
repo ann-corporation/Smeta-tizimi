@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, Lock, LockOpen, Plus, Save } from 'lucide-react';
+import { AlertTriangle, Lock, LockOpen, Plus } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
+import { SaqlashPaneli } from '../../umumiy/ui/SaqlashPaneli';
 import { yangiOperationId } from '../../api/supabase';
 import { buxDavr, buxDavrBlok, buxHisobSaqla, buxHisobTasdiq, buxMoslikSaqla, buxShablonTanla, buxSozlamaOl, buxXato, type BuxHolat, type BuxHisob, type BuxSozlama } from '../../api/t2-bux-hisob';
 import { Izoh, XatoQator } from './umumiy';
@@ -112,12 +113,18 @@ function Qoidalar({ kid, holat, onOzgardi, tasdiqlaydi, setXato, soz }: { kid: n
   };
   const [tahrir, setTahrir] = useState<Record<string, { dt: string; kt: string; q: string }>>({});
   const op = useRef<Record<string, string>>({});
-  const saqla = async (kalit: string) => {
-    const x = tahrir[kalit]; if (!x) return;
+  const saqla = async (kalit: string): Promise<boolean> => {
+    const x = tahrir[kalit]; if (!x) return true;
     const r = await buxMoslikSaqla({ kompaniyaId: kid, kalit, dtKod: x.dt || null, ktKod: x.kt || null, qiymat: x.q === '' ? null : Number(x.q), operationId: op.current[kalit] ?? (op.current[kalit] = yangiOperationId()) });
-    if (!r.ok) { setXato(buxXato(r)); return; }
+    if (!r.ok) { setXato(buxXato(r)); return false; }
     delete op.current[kalit]; setXato(null); setTahrir((a) => { const b = { ...a }; delete b[kalit]; return b; });
     toast(t('Qoida saqlandi. Keyingi «Hujjatlardan yangilash» eski provodkalarni storno qilib yangisini yozadi.'), 'ok'); onOzgardi();
+    return true;
+  };
+  /** Pastki panel: o'zgartirilgan barcha qoidalarni ketma-ket saqlaydi (har biri o'zining mavjud saqlash mantiqi bilan). */
+  const hammasiniSaqla = async () => {
+    for (const kalit of Object.keys(tahrir)) if (!(await saqla(kalit))) return false;
+    return true;
   };
   return (
     <section className="space-y-2" aria-label={t('Provodka qoidalari')}>
@@ -146,12 +153,13 @@ function Qoidalar({ kid, holat, onOzgardi, tasdiqlaydi, setXato, soz }: { kid: n
                   <td className={td}>{tasdiqlaydi ? <HisobTanla nom={`${nom} — ${t('Debet')}`} faol={faol} v={x?.dt ?? m.dt_kod ?? ''} on={(v) => setTahrir((a) => ({ ...a, [m.kalit]: { dt: v, kt: a[m.kalit]?.kt ?? m.kt_kod ?? '', q: '' } }))} /> : (m.dt_kod ?? '—')}</td>
                   <td className={td}>{tasdiqlaydi ? <HisobTanla nom={`${nom} — ${t('Kredit')}`} faol={faol} v={x?.kt ?? m.kt_kod ?? ''} on={(v) => setTahrir((a) => ({ ...a, [m.kalit]: { dt: a[m.kalit]?.dt ?? m.dt_kod ?? '', kt: v, q: '' } }))} /> : (m.kt_kod ?? '—')}</td>
                 </>)}
-                <td className={td}>{x && <button type="button" className="fz-btn" onClick={() => void saqla(m.kalit)}><Save size={12} /> {t('Saqlash')}</button>}</td>
+                <td className={td}>{x && <span className="fz-chip fz-chip--warn">{t('o‘zgargan')}</span>}</td>
               </tr>
             );
           })}</tbody>
         </table>
       </div>
+      <SaqlashPaneli kalit="bux-qoidalar" soni={Object.keys(tahrir).length} saqla={hammasiniSaqla} bekor={() => setTahrir({})} />
     </section>
   );
 }

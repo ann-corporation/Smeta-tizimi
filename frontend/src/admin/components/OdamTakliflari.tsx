@@ -71,7 +71,7 @@ export function OdamTakliflari({ kompaniyaId, isDirector }: { kompaniyaId: numbe
   async function nusxala(nom: string, matn: string) {
     try { await navigator.clipboard.writeText(matn); setNusxa(nom); } catch { setNusxa(''); }
   }
-  const xabarMatni = yangi ? t('Smeta tizimiga taklif. Havola: {h} — yoki telefon raqamingiz + kod: {k}. Kod cheklangan muddat amal qiladi, hech kimga bermang.', { h: yangi.havola, k: yangi.kod }) : '';
+  const xabarMatni = yangi ? t('QURAIga taklif. Havola: {h} — yoki telefon raqamingiz + kod: {k}. Kod cheklangan muddat amal qiladi, hech kimga bermang.', { h: yangi.havola, k: yangi.kod }) : '';
 
   return (
     <div className="karta mt-3 space-y-3 p-4" aria-label={t('Odam taklifi')}>
@@ -109,7 +109,7 @@ export function OdamTakliflari({ kompaniyaId, isDirector }: { kompaniyaId: numbe
           <button type="button" className="tugma h-7" onClick={() => void nusxala('havola', yangi.havola)}><Copy size={12} /> {nusxa === 'havola' ? t('Nusxalandi') : t('Nusxalash')}</button></div>
         <div className="flex flex-wrap gap-2">
           <button type="button" className="tugma h-7" onClick={() => void nusxala('xabar', xabarMatni)}><Copy size={12} /> {nusxa === 'xabar' ? t('Nusxalandi') : t('Tayyor xabarni nusxalash')}</button>
-          <a className="tugma h-7" target="_blank" rel="noreferrer noopener" href={`https://t.me/share/url?url=${encodeURIComponent(yangi.havola)}&text=${encodeURIComponent(t('Smeta tizimiga taklif. Telefon raqamingiz + kod: {k}', { k: yangi.kod }))}`}>{t('Telegram orqali yuborish')}</a>
+          <a className="tugma h-7" target="_blank" rel="noreferrer noopener" href={`https://t.me/share/url?url=${encodeURIComponent(yangi.havola)}&text=${encodeURIComponent(t('QURAIga taklif. Telefon raqamingiz + kod: {k}', { k: yangi.kod }))}`}>{t('Telegram orqali yuborish')}</a>
         </div>
         <p className="text-text-dim">{t('Odamga telefon raqami: {t}. Havola yoki kodni faqat o‘sha odamga bering.', { t: yangi.telefon })}</p>
       </div>}

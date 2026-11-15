@@ -1,6 +1,6 @@
 import { matnSora, tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { useCallback, useEffect, useMemo, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from 'react';
-import { Ban, CheckCircle2, ChevronDown, ChevronRight, Cpu, MinusCircle, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Repeat2, RotateCcw, Save, Search, Trash2, X } from 'lucide-react';
+import { Ban, CheckCircle2, ChevronDown, ChevronRight, Cpu, MinusCircle, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Repeat2, Search, Trash2, X } from 'lucide-react';
 import { chiqarilganmi, chiqarishRuxsat, MEHNAT_ZAMENA_YOQ, mehnatResursmi } from '../../lib/resurs-amal';
 import { ResursChiqarishModal, type ChiqarishQator } from './ResursChiqarishModal';
 import { sbT2ZamenaAlmashtirishBelgila } from '../../api/t2-additional-replacement';
@@ -65,6 +65,7 @@ import { useQoralamaHimoya } from '../../lib/ish-varaq/qoralama-himoya';
 import { useKatakFokus, useVirtualSatrlar } from '../../lib/ish-varaq/virtual-satrlar';
 import { chiqarilganlarOl } from '../../lib/ish-varaq/model';
 import { useFaktSaqlash } from '../../lib/ish-varaq/fakt-saqlash';
+import { SaqlashPaneli } from '../../umumiy/ui/SaqlashPaneli';
 import { faktPaketiQur } from '../../lib/ish-varaq/paket';
 import { FORMULA_ERROR_UZ, formulaMi } from '../../lib/formula/number-formula';
 import { kataAmali } from '../../lib/ish-varaq/kata-klavish';
@@ -78,7 +79,7 @@ const fmt = (v: number | null | undefined) => (v == null ? '—' : Number(v).toL
  * Fakt jurnali: chapda bo'limlar (bajarilish foizi), o'ngda tanlangan bo'lim ishlari (resurslari
  * bilan). Har qatorda "+" (bugun) yoki "=" (jami), 25/50/100% tezkor tugmalar; pastda doimiy
  * saqlash paneli — barcha o'zgarishlar BITTA tranzaksiyada (Ctrl+S). Klaviatura: Enter/↓ keyingi,
- * ↑ oldingi, Esc tozalash, "/" qidiruv.
+ * ↑ oldingi, Esc — katak tahririni bekor qilish (batchni tozalamaydi), "/" qidiruv.
  */
 import type { SaqlashFn } from '../../lib/ish-varaq/fakt-saqlash';
 export type { SaqlashFn, SaqlashNatija } from '../../lib/ish-varaq/fakt-saqlash';
@@ -477,13 +478,12 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
 
   /** Jurnal tugmalari faqat ustida oyna ochiq bo'lmaganda ishlaydi. */
   const jurnalFaol = !modal && !tenglash && !tiklash && !bajModal && !narxModal && !qamrov && !chiqModal && !egizakOyna;
-  // Yagona klaviatura moduli (lib/hotkeys): Ctrl+S saqlash, / qidiruv, F — Fakt = F2 (tanlangan bo'lim), Esc — kiritmalarni tozalash.
+  // Yagona klaviatura moduli (lib/hotkeys): Ctrl+S saqlash, / qidiruv, F — Fakt = F2 (tanlangan bo'lim), Esc batchni TOZALAMAYDI (faqat katak tahriri/oyna yopiladi; bekor qilish — panel tugmasi yoki Ctrl+Z).
   useHotkeys('fakt', t('Fakt jurnali'), [
     { id: 'fakt.saqla', keys: ['ctrl+s', 'ctrl+enter'], nom: t('Saqlash'), inInput: true, run: () => { saqlaKlav(); } },
     { id: 'fakt.qidiruv', keys: '/', nom: t('Qidirish'), run: () => { qidiruvRef.current?.focus(); } },
     { id: 'fakt.f2', keys: 'f', nom: t('Fakt = F2 (tanlangan bo‘lim)'), run: () => { const b = bolimlar.find((x) => x.id === bolimId); if (!b) return false; void tenglashOch(b.nom, bolimIshlariYigish(b.id, bolimIshlari, bolimBolalari, true)); } },
     { id: 'fakt.f2.obyekt', keys: 'shift+f', nom: t('Fakt = F2 (butun obyekt)'), run: () => { if (!bolimlar.length && !ildizIshlari.length) return false; void tenglashObyekt(); } },
-    { id: 'fakt.tozala', keys: 'esc', nom: t('Kiritilganlarni bekor qilish'), run: () => { if (!ozgarishSoni) return false; ommaviy({}); } },
     { id: 'fakt.orqaga', keys: 'ctrl+z', nom: t('Orqaga (ommaviy kiritma)'), run: () => orqaga() },
     { id: 'fakt.qamrov', keys: '%', nom: t('Qamrov % (tanlangan bo‘lim)'), run: () => { if (faolQamrov() !== false) return; const b = bolimlar.find((x) => x.id === bolimId); if (!b || qidiruv) return false; qamrovBolim(b); } },
   ], jurnalFaol);
@@ -1214,16 +1214,12 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
           </section>
         </div>}
 
-      {ozgarishSoni > 0 && <div className="sticky bottom-0 z-20 flex flex-wrap items-center gap-3 rounded-[var(--radius-md)] border border-accent/50 bg-surface px-4 py-2.5" style={{ boxShadow: 'var(--shadow-pop)' }} role="region" aria-label={t('Saqlash paneli')}>
-        <span className="text-[13px] font-semibold text-text">{t('{n} ta o‘zgarish', { n: String(ozgarishSoni) })}</span>
-        {paket.xatolar.size > 0 && <span className="fz-chip fz-chip--warn">{t('{n} tasida xato — tuzating', { n: String(paket.xatolar.size) })}</span>}
-        <span className="text-[12px] text-text-mute">{t('sana: {s}', { s: sana })}</span>
-        <div className="ml-auto flex items-center gap-2">
-          {tarix.length > 0 && <button type="button" onClick={() => orqaga()} className="fz-btn fz-btn--ghost" title={t('Oxirgi ommaviy amalni qaytarish')}>{t('Orqaga')} <kbd className="fz-kbd">Ctrl+Z</kbd></button>}
-          <button onClick={() => ommaviy({})} className="fz-btn fz-btn--ghost"><RotateCcw size={13} /> {t('Bekor qilish')}</button>
-          <button onClick={() => void saqla()} disabled={!paket.ok || band} className="fz-btn fz-btn--primary"><Save size={14} /> {band ? t('Saqlanmoqda…') : t('Saqlash')} <kbd className="fz-kbd">Ctrl+S</kbd></button>
-        </div>
-      </div>}
+      <SaqlashPaneli kalit="fakt-jurnal" soni={ozgarishSoni} saqla={() => saqla()} band={band} taqiq={!paket.ok} klaviatura={false} bekor={() => ommaviy({})}
+        qoshimcha={<>
+          {paket.xatolar.size > 0 && <span className="fz-chip fz-chip--warn">{t('{n} tasida xato — tuzating', { n: String(paket.xatolar.size) })}</span>}
+          <span className="text-[12px] text-text-mute">{t('sana: {s}', { s: sana })}</span>
+        </>}
+        tugmalar={tarix.length > 0 ? <button type="button" onClick={() => orqaga()} className="fz-btn fz-btn--ghost" title={t('Oxirgi ommaviy amalni qaytarish')}>{t('Orqaga')} <kbd className="fz-kbd">Ctrl+Z</kbd></button> : undefined} />
 
       <FaktAiYordamchi kompaniyaId={kompaniyaId} obyektId={obyektId}
         malumot={{ bolimlar, bolimIshlari, holatMap, summalar, bajHajm, materialTakliflari: (id) => takliflarSoni([id]), kiritmaSoni: ozgarishSoni }}

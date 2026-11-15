@@ -4,16 +4,19 @@
  *  • `X-Telegram-Bot-Api-Secret-Token` tekshiriladi (TELEGRAM_WEBHOOK_SECRET); sir sozlanmagan → 503 (fail closed).
  *  • Javob DARHOL 200 — ishlov `waitUntil` da. update_id bo'yicha idempotent (t2_telegram_update_qabul_v1), foydalanuvchi
  *    bo'yicha daqiqalik limit. Faqat shaxsiy chat. Xabar matni/username logga yozilmaydi.
- *  • Buyruqlar: /start <kod> (ulash), /start, /yordam (/help), /men, /ilova (/app), /chiqish. Ulanmagan foydalanuvchi
+ *  • Buyruqlar: /start <kod> (ulash), /start, /yordam (/help), /men, /ilova (/app), /chiqish, /bugun, /obyektlar, /jarvis, /kunlik; rasm → foto-dalil;
+ *    callback_query (menyu, hujjat tasdiqi) — _shared/telegram-bot.ts (V2: docs/architecture/TELEGRAM_BOT_V2.md). Ulanmagan foydalanuvchi
  *    faqat «ulang» ko'rsatmasini oladi. Ulangan foydalanuvchi FAQAT o'z t2_foydalanuvchi sifatida (t2_men_v1).
  */
 import {
-  type TgEnv, type TgTil, fonda, miniAppTugma, saytUrl, tgRpc, tgT, tilAniqla, ulashKodXesh, ulashKodYaroqli, webhookSirTekshir, xabarYubor,
+  type TgEnv, type TgTil, fonda, miniAppTugma, saytUrl, tgApi, tgRpc, tgT, tilAniqla, ulashKodXesh, ulashKodYaroqli, webhookSirTekshir, xabarYubor,
 } from '../../_shared/telegram';
+import { type BotJavob, type Callback, type TgRasm, bugunJavobi, callbackIshla, fotoAmali, jarvisJavobi, kunlikAmali, obyektlarJavobi, yordamMatni } from '../../_shared/telegram-bot';
+import { startTugmalari } from '../../_shared/telegram-tugma';
 import { NONCE_PREFIKS, kalitYaroqli, nonceYaroqli, xesh, yoqilgan } from '../../_shared/kirish-emailsiz';
 
-type Xabar = { message_id?: number; text?: string; contact?: { phone_number?: string; user_id?: number }; chat?: { id?: number; type?: string }; from?: { id?: number; is_bot?: boolean; language_code?: string } };
-export type Update = { update_id?: number; message?: Xabar; edited_message?: Xabar; callback_query?: { id?: string; from?: { id?: number; language_code?: string } } };
+type Xabar = { message_id?: number; text?: string; caption?: string; photo?: TgRasm[]; contact?: { phone_number?: string; user_id?: number }; chat?: { id?: number; type?: string }; from?: { id?: number; is_bot?: boolean; language_code?: string } };
+export type Update = { update_id?: number; message?: Xabar; edited_message?: Xabar; callback_query?: Callback };
 
 const ROL_NOMI: Record<string, string> = {
   superadmin: 'Superadmin', admin: 'Administrator', boss: 'Rahbar (boss)', rahbar: 'Rahbar', bugalter: 'Buxgalter', pto: 'PTO',
@@ -25,19 +28,33 @@ export function buyruqAjrat(matn: string): { buyruq: string; arg: string } | nul
   return m ? { buyruq: m[1].toLowerCase(), arg: (m[2] || '').trim() } : null;
 }
 
-const yordamMatni = (til: TgTil) => [
-  tgT('Buyruqlar:', til),
-  '/men — ' + tgT('men kimman (hisob, kompaniya, rol)', til),
-  '/ilova — ' + tgT('tizimni Telegram ichida ochish', til),
-  '/chiqish — ' + tgT('Telegramni hisobdan uzish', til),
-  '/yordam — ' + tgT('shu ro‘yxat', til),
-].join('\n');
-
 const ulangMatni = (env: TgEnv, til: TgTil) =>
   tgT('Siz hali tizimga ulanmagansiz. Saytga kiring: {sayt} → Akkaunt → Bildirishnomalar → «Telegramni ulash» tugmasini bosing.', til, { sayt: saytUrl(env) });
 
 type Men = { ok?: boolean; foydalanuvchi?: { ism?: string | null; login?: string | null }; platform_role?: string;
   azoliklar?: { nom?: string; rol?: string }[] };
+
+const yubor = (env: TgEnv, chatId: number, j: BotJavob) => xabarYubor(env, chatId, j.matn, j.markup ? { reply_markup: j.markup } : {});
+
+/** Inline tugma bosildi. Faqat shaxsiy chat (chat.id == from.id) va BOG'LANGAN foydalanuvchi; amal ruxsati — mavjud qatlamda (telegram-bot.ts). */
+async function callbackAjrat(env: TgEnv, cb: Callback, tgId: number | undefined): Promise<string> {
+  const chat = cb.message?.chat;
+  const javobBer = (text?: string) => tgApi(env, 'answerCallbackQuery', { callback_query_id: cb.id, ...(text ? { text: text.slice(0, 180) } : {}) });
+  if (!cb.id || !Number.isSafeInteger(tgId) || !chat || chat.type !== 'private' || chat.id !== tgId || !Number.isSafeInteger(chat.id)) {
+    if (cb.id) await javobBer();
+    return 'etibor_yoq';
+  }
+  const til = tilAniqla(cb.from?.language_code);
+  const a = await tgRpc<{ ok?: boolean; ulangan?: boolean; foydalanuvchi_id?: number }>(env, 't2_telegram_aniqla_v1', { p_telegram_user_id: tgId });
+  if (!a?.ok || !a.ulangan || !a.foydalanuvchi_id) { await javobBer(tgT('Avval hisobni ulang', til)); return 'cb_ulanmagan'; }
+  const r = await callbackIshla(env, a.foydalanuvchi_id, til, cb);
+  await javobBer(r.toast || undefined);
+  if (r.xabar) await yubor(env, chat.id as number, r.xabar);
+  if (r.tugmalarniOlibTashla && Number.isSafeInteger(cb.message?.message_id)) {
+    await tgApi(env, 'editMessageReplyMarkup', { chat_id: chat.id, message_id: cb.message?.message_id, reply_markup: { inline_keyboard: [] } });
+  }
+  return 'cb:' + r.amal;
+}
 
 /** Bitta update ni qayta ishlaydi. Test qilinadi (javob — nima yuborilgani; matn loglanmaydi). */
 export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
@@ -48,6 +65,7 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
   if (!q?.ok) return 'baza_xato';
   if (!q.yangi) return 'takror';
   if (q.limit) return 'limit';
+  if (u.callback_query) return callbackAjrat(env, u.callback_query, tgId);
   if (!msg || !msg.chat || msg.chat.type !== 'private' || !Number.isSafeInteger(msg.chat.id) || !Number.isSafeInteger(tgId) || msg.from?.is_bot) return 'etibor_yoq';
   const chatId = msg.chat.id as number;
   const til = tilAniqla(msg.from?.language_code);
@@ -106,10 +124,24 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
   if (!a.ulangan || !a.foydalanuvchi_id) { await xabarYubor(env, chatId, ulangMatni(env, til)); return 'ulanmagan'; }
   const uid = a.foydalanuvchi_id;
 
+  // Rasm (izoh bilan yoki izohsiz) → foto-dalil (umumiy, faktga biriktirilmagan). Fakt summasi/hajmi yozilmaydi.
+  if (Array.isArray(msg.photo) && msg.photo.length) {
+    await yubor(env, chatId, await fotoAmali(env, uid, til, msg.photo.slice(0, 10), String(msg.caption || '').slice(0, 600)));
+    return 'foto';
+  }
+
   switch (b?.buyruq) {
-    case 'start':
-      await xabarYubor(env, chatId, tgT('Assalomu alaykum! Smeta tizimi boti.', til) + '\n\n' + yordamMatni(til), { reply_markup: miniAppTugma(env, til) });
+    case 'start': {
+      const m = await tgRpc<Men>(env, 't2_men_v1', { p_actor_id: uid });
+      const ism = m?.ok ? (m.foydalanuvchi?.ism || m.foydalanuvchi?.login || '') : '';
+      await xabarYubor(env, chatId, [tgT('Assalomu alaykum! QURAI boti.', til),
+        ism ? tgT('Hisob ulangan: {ism}', til, { ism }) : tgT('Hisob ulangan.', til), '', yordamMatni(til)].join('\n'), { reply_markup: startTugmalari(env, til) });
       return 'salom';
+    }
+    case 'bugun': await yubor(env, chatId, await bugunJavobi(env, uid, til)); return 'bugun';
+    case 'obyektlar': await yubor(env, chatId, await obyektlarJavobi(env, uid, til)); return 'obyektlar';
+    case 'jarvis': await yubor(env, chatId, await jarvisJavobi(env, uid, til, b?.arg ?? '')); return 'jarvis';
+    case 'kunlik': await yubor(env, chatId, await kunlikAmali(env, uid, til, b?.arg ?? '')); return 'kunlik';
     case 'yordam': case 'help':
       await xabarYubor(env, chatId, yordamMatni(til), { reply_markup: miniAppTugma(env, til) });
       return 'yordam';

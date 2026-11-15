@@ -55,12 +55,15 @@ export function ierarxiyaOl(kompaniyaId: number): Promise<IerarxiyaManba | null>
         sbOqi<{ id: number; nom: string | null; raqam: string | null; loyiha_id: number | null }>({ jadval: 't2_shartnoma', filtr: `kompaniya_id=eq.${kompaniyaId}&holat=eq.faol`, ustunlar: 'id,nom,raqam,loyiha_id', limit: 5000 }),
       ]);
       if (!l?.ok || !s?.ok) return null;
-      const sIdlar = (s.qatorlar ?? []).map((x) => x.id);
-      const b = sIdlar.length
-        ? await sbOqi<{ obyekt_id: number; shartnoma_id: number }>({ jadval: 't2_shartnoma_bog', filtr: `shartnoma_id=in.(${sIdlar.slice(0, 1000).join(',')})&holat=eq.faol`, ustunlar: 'obyekt_id,shartnoma_id', limit: 20000 })
+      const sIdlar = new Set((s.qatorlar ?? []).map((x) => x.id));
+      // Gateway t2_shartnoma_bog ni faqat obyekt_id=eq.N bilan o'qiydi (ANCHOR_MAJBURIY) — kompaniya ustunli ko'rinishdan
+      // bitta o'qish (f2-reestr bilan bir xil yo'l), keyin shu kompaniyaning faol shartnomalariga cheklanadi.
+      const b = sIdlar.size
+        ? await sbOqi<{ obyekt_id: number; shartnoma_id: number }>({ jadval: 't2_shartnoma_bog_kompaniya', filtr: `kompaniya_id=eq.${kompaniyaId}&holat=eq.faol`, ustunlar: 'obyekt_id,shartnoma_id', limit: 20000 })
         : { ok: true, qatorlar: [] };
       if (!b?.ok) return null;
-      return { loyihalar: l.qatorlar ?? [], shartnomalar: s.qatorlar ?? [], boglar: b.qatorlar ?? [] };
+      const boglar = (b.qatorlar ?? []).filter((x) => sIdlar.has(x.shartnoma_id));
+      return { loyihalar: l.qatorlar ?? [], shartnomalar: s.qatorlar ?? [], boglar };
     } catch { return null; }
   })();
   kesh.set(kompaniyaId, { vaqt: Date.now(), p });

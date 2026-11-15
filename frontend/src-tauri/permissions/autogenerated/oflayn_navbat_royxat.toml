@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-oflayn-navbat-royxat"
+description = "Enables the oflayn_navbat_royxat command without any pre-configured scope."
+commands.allow = ["oflayn_navbat_royxat"]
+
+[[permission]]
+identifier = "deny-oflayn-navbat-royxat"
+description = "Denies the oflayn_navbat_royxat command without any pre-configured scope."
+commands.deny = ["oflayn_navbat_royxat"]

@@ -380,4 +380,24 @@ describe('useT2Daraxt — poyga holatlari va qo‘shimcha belgilar', () => {
     await act(async () => { await p; });
     expect(result.current.qoshimchaHolat).toBe('tayyor');
   });
+
+  it('narx nazorati daraxt o‘qilishini KUTMAYDI (parallel), lekin daraxt xato bo‘lsa natijasi qo‘llanmaydi', async () => {
+    let daraxtTugat!: (v: unknown) => void;
+    api.daraxt.mockImplementationOnce(() => new Promise((res) => { daraxtTugat = res; }));
+    api.narx.mockResolvedValue({ ok: true, qatorlar: [{ qator_id: 3 }] });
+    const { result } = renderHook(() => useT2Daraxt(7));
+    // Daraxt hali kelmagan — narx nazorati allaqachon so'ralgan (ketma-ket to'lqin yo'q).
+    await waitFor(() => expect(api.narx).toHaveBeenCalledTimes(1));
+    expect(result.current.tree.length).toBe(0);
+    expect(result.current.price.length).toBe(0);
+    await act(async () => { daraxtTugat({ ok: true, qatorlar: ROWS }); });
+    await waitFor(() => expect(result.current.price.length).toBe(1));
+    expect(api.narx).toHaveBeenCalledTimes(1);
+
+    // Daraxt xato qaytarsa — narx natijasi ko'rsatilmaydi.
+    api.daraxt.mockResolvedValueOnce({ ok: false, xato: 'x' });
+    const { result: r2 } = renderHook(() => useT2Daraxt(8));
+    await waitFor(() => expect(r2.current.error).not.toBe(''));
+    expect(r2.current.price.length).toBe(0);
+  });
 });

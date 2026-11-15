@@ -7,14 +7,18 @@
  */
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Loader2, Search, Send, X } from 'lucide-react';
+import { Building2, Search, Send, X } from 'lucide-react';
 import { MutaxassisKartasi } from '../../components/mutaxassis/MutaxassisKartasi';
 import { KASB_NOMI, kompaniyaQidir, mutaxassisXato, profilOl, profilSaqla, taklifBekorQil, taklifYubor, takliflarim,
   type Kasb, type MutaxassisKarta, type Statistika, type TopilganKompaniya, type XizmatRoli, type YuborilganTaklif } from '../../api/t2-mutaxassis';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { ROLE_LABELS } from '../../lib/company-authorization/permission-labels';
 import { t } from '../../i18n/til';
+import { SaqlashPaneli } from '../../umumiy/ui/SaqlashPaneli';
+import { ozgarishSoni } from '../../umumiy/ui/ozgarish-soni';
 
+const BOSH_PROFIL = { ochiq: true, kasb: 'pto' as Kasb, hudud: '', tajriba: '', xizmatlar: '', haqida: '', statistika: true };
+const PROFIL_KALITLAR = Object.keys(BOSH_PROFIL) as Array<keyof typeof BOSH_PROFIL>;
 const KASBLAR = Object.keys(KASB_NOMI) as Kasb[];
 const ROLLAR: XizmatRoli[] = ['pto', 'prorab', 'bugalter', 'kuzatuvchi'];
 const HOLAT: Record<YuborilganTaklif['holat'], { nom: string; cls: string }> = {
@@ -26,7 +30,9 @@ export default function Mutaxassis() {
   const k = useKompaniya();
   const navigate = useNavigate();
   const [stat, setStat] = useState<Statistika | null>(null);
-  const [f, setF] = useState({ ochiq: true, kasb: 'pto' as Kasb, hudud: '', tajriba: '', xizmatlar: '', haqida: '', statistika: true });
+  const [f, setF] = useState(BOSH_PROFIL);
+  /** Serverdan o'qilgan / oxirgi saqlangan profil — «saqlanmagan o'zgarish» soni shunga nisbatan. */
+  const [asl, setAsl] = useState(BOSH_PROFIL);
   const [saqlandi, setSaqlandi] = useState('');
   const [band, setBand] = useState(false);
   const [xato, setXato] = useState('');
@@ -42,8 +48,8 @@ export default function Mutaxassis() {
       const d = await profilOl();
       setStat(d.statistika);
       const p = d.profil;
-      if (p) setF({ ochiq: !!p.ochiq, kasb: p.kasb ?? 'pto', hudud: p.hudud ?? '', tajriba: p.tajriba_yil == null ? '' : String(p.tajriba_yil),
-        xizmatlar: (p.xizmatlar ?? []).join(', '), haqida: p.haqida ?? '', statistika: p.statistika_korsat !== false });
+      if (p) { const yangi = { ochiq: !!p.ochiq, kasb: p.kasb ?? 'pto', hudud: p.hudud ?? '', tajriba: p.tajriba_yil == null ? '' : String(p.tajriba_yil),
+        xizmatlar: (p.xizmatlar ?? []).join(', '), haqida: p.haqida ?? '', statistika: p.statistika_korsat !== false }; setF(yangi); setAsl(yangi); }
       setYuborilgan(await takliflarim());
     } catch (e) { setXato(e instanceof Error ? e.message : t('Ma’lumot o‘qilmadi')); }
   }
@@ -58,7 +64,8 @@ export default function Mutaxassis() {
     const r = await profilSaqla({ ochiq: f.ochiq, kasb: f.kasb, hudud: f.hudud, tajriba_yil: f.tajriba === '' ? null : Number(f.tajriba),
       xizmatlar: karta.xizmatlar ?? [], haqida: f.haqida, statistika_korsat: f.statistika });
     setBand(false);
-    if (!r.ok) { setXato(mutaxassisXato(r)); return; }
+    if (!r.ok) { setXato(mutaxassisXato(r)); return false; }
+    setAsl(f);
     setSaqlandi(f.ochiq ? t('Saqlandi. Profilingiz kompaniyalarga ko‘rinadi.') : t('Saqlandi. Profilingiz yopiq — faqat siz taklif yuborgan kompaniya ko‘radi.'));
   }
   async function qidir() {
@@ -104,10 +111,8 @@ export default function Mutaxassis() {
           <label className="grid gap-0.5">{t('O‘zim haqimda')}<textarea className="input min-h-20 w-full text-[12.5px]" maxLength={1500} value={f.haqida} onChange={(e) => setF({ ...f, haqida: e.target.value })} /></label>
           <label className="flex items-center gap-2"><input type="checkbox" checked={f.statistika} onChange={(e) => setF({ ...f, statistika: e.target.checked })} />
             {t('Tizim tasdiqlagan tajribamni ko‘rsatish (F2 soni, obyektlar, summa)')}</label>
-          <div className="flex items-center gap-2">
-            <button type="button" className="fz-btn fz-btn fz-btn--primary h-8" disabled={band} onClick={() => void saqla()}>{band ? <Loader2 size={13} className="animate-spin" /> : null} {t('Saqlash')}</button>
-            {saqlandi && <span role="status" className="fz-chip text-ok">{saqlandi}</span>}
-          </div>
+          {saqlandi && <span role="status" className="fz-chip text-ok">{saqlandi}</span>}
+          <SaqlashPaneli kalit="mutaxassis-profil" soni={ozgarishSoni(f, asl, PROFIL_KALITLAR)} band={band} saqla={saqla} bekor={() => setF(asl)} />
         </div>
         <div className="space-y-2">
           <p className="text-[12px] font-semibold uppercase tracking-wide text-text-mute">{t('Kompaniyalar sizni shunday ko‘radi')}</p>

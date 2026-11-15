@@ -61,7 +61,7 @@ describe('Boshqaruv paneli', () => {
     fireEvent.change(maydon, { target: { value: '250' } });
     // $0.03 × 3,5 × 12 700 / 100 = 13,3 → 14 token
     expect(screen.getByTestId('ai-misol').textContent).toMatch(/= 1\s400 soʻm = 14 token/);
-    fireEvent.click(within(screen.getByRole('region', { name: 'AI ustamasi' })).getByRole('button', { name: 'Saqlash' }));
+    fireEvent.click(within(screen.getByTestId('saqlash-paneli')).getByRole('button', { name: /^Saqlash/ })); // yagona pastki panel
     await waitFor(() => expect(m.ustama).toHaveBeenCalledWith(null, 250));
   });
 

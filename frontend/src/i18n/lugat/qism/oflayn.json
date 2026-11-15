@@ -1,0 +1,50 @@
+{
+  "Oflayn: yozuv navbatga olindi (yuborilmagan). Aloqa qaytganda avtomatik yuboriladi.": {
+    "ru": "Офлайн: запись поставлена в очередь (не отправлена). Отправится автоматически при появлении связи.",
+    "en": "Offline: the entry was queued (not sent). It will be sent automatically when the connection returns."
+  },
+  "Yuborilmagan oflayn yozuvlar bor. Chiqsangiz ular o‘chadi. Aloqani tekshirib yuborilishini kuting yoki yana bir marta «Chiqish» ni bosing.": {
+    "ru": "Есть неотправленные офлайн-записи. При выходе они будут удалены. Проверьте связь и дождитесь отправки или нажмите «Выход» ещё раз.",
+    "en": "There are unsent offline entries. They will be deleted if you sign out. Check the connection and wait for them to be sent, or press “Sign out” again."
+  },
+  "Oflayn — ma’lumot {vaqt} holatiga. Fakt navbatga olinadi; F-2, imzo, to‘lov va import oflayn ishlamaydi.": {
+    "ru": "Офлайн — данные на {vaqt}. Факт ставится в очередь; Ф-2, подпись, оплата и импорт офлайн недоступны.",
+    "en": "Offline — data as of {vaqt}. Fakt entries are queued; F-2, signing, payments and import do not work offline."
+  },
+  "Oflayn. Fakt navbatga olinadi; F-2, imzo, to‘lov va import oflayn ishlamaydi.": {
+    "ru": "Офлайн. Факт ставится в очередь; Ф-2, подпись, оплата и импорт офлайн недоступны.",
+    "en": "Offline. Fakt entries are queued; F-2, signing, payments and import do not work offline."
+  },
+  "Navbatda (yuborilmagan): {n}": {
+    "ru": "В очереди (не отправлено): {n}",
+    "en": "Queued (not sent): {n}"
+  },
+  "Navbatni yuborish uchun qayta kiring.": {
+    "ru": "Войдите снова, чтобы отправить очередь.",
+    "en": "Sign in again to send the queue."
+  },
+  "Server qabul qilmadi: {xato}. Yozuv o‘zgartirilmadi va jim ustidan yozilmaydi.": {
+    "ru": "Сервер не принял запись: {xato}. Запись не изменена и не будет молча перезаписана.",
+    "en": "The server rejected the entry: {xato}. The entry is unchanged and will not be silently overwritten."
+  },
+  "Qayta yuborish": { "ru": "Отправить снова", "en": "Send again" },
+  "Bekor qilish": { "ru": "Отменить", "en": "Cancel" },
+  "Oflayn uchun tayyor: {n} ta obyekt.": {
+    "ru": "Готово для офлайн: объектов — {n}.",
+    "en": "Ready for offline: {n} object(s)."
+  },
+  "Tayyor: {n} ta obyekt; {m} ta yuklash bajarilmadi — aloqani tekshirib qayta urinib ko‘ring.": {
+    "ru": "Готово объектов: {n}; не загружено частей: {m} — проверьте связь и повторите.",
+    "en": "Ready: {n} object(s); {m} download(s) failed — check the connection and try again."
+  },
+  "Oflayn uchun tayyorlash faqat internet bor paytda mumkin.": {
+    "ru": "Подготовка к офлайн-работе возможна только при наличии интернета.",
+    "en": "Preparing for offline use is only possible while online."
+  },
+  "Obyektlar ma’lumotini oflayn ishlash uchun qurilmaga yuklaydi": {
+    "ru": "Загружает данные объектов на устройство для работы офлайн",
+    "en": "Downloads object data to this device for offline work"
+  },
+  "Yuklanmoqda…": { "ru": "Загрузка…", "en": "Loading…" },
+  "Oflayn uchun tayyorlash": { "ru": "Подготовить к офлайн", "en": "Prepare for offline" }
+}

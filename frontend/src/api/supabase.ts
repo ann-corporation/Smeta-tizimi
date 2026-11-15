@@ -403,14 +403,34 @@ export function sbT2AktReestrOl(obyektId: number, tur?: 'f2' | 'fakt'): Promise<
 async function sbT2AktReestrOlYakka(obyektId: number, tur?: 'f2' | 'fakt'): Promise<SbJavob<T2AktReestr>> {
   // Nakopitelniy to'liq yuklanayotgan bo'lsa — tugashini kutadi (prod 2026-10-27: parallel og'ir so'rovlar 30 s timeout).
   await ogirYuklashKut();
-  const r = await sbOqi<T2AktReestr>({
-    jadval: 't2_akt_reestr',
-    filtr: 'obyekt_id=eq.' + obyektId + (tur ? '&tur=eq.' + tur : ''),
-    tartib: 'oy.desc,id.desc',
-    limit: 5000,
-  });
-  if (r.ok && r.toliq === false) return { ...r, ok: false, qatorlar: [], code: 'TOLIQ_EMAS', error: 'Akt reestri to‘liq o‘qilmadi — qayta yangilang.' };
-  return r;
+  // Tezlik (20261222400000): view o'rniga keshli RPC (iflos bo'lsa server jonli view'dan o'qiydi) — natija bir xil, tartib oy.desc,id.desc.
+  return sbSoroQatorlar<T2AktReestr>('akt_reestr_obyekt_v1', { obyekt_id: obyektId, ...(tur ? { tur } : {}) });
+}
+
+/** Kompaniya bo'yicha akt reestri (F2 reestri): har obyekt toza keshdan yoki jonli; `tur` ixtiyoriy. */
+export function sbT2AktReestrKompaniyaOl(kompaniyaId: number, tur?: 'f2' | 'fakt'): Promise<SbJavob<T2AktReestr>> {
+  return sbSoroQatorlar<T2AktReestr>('akt_reestr_kompaniya_v1', { kompaniya_id: kompaniyaId, ...(tur ? { tur } : {}) });
+}
+
+/** `/api/sb {soro}` — RPC natijasi `{ ok, qatorlar }` ko'rinishida (to'liq, kesilmaydi). Xato bo'lsa TASHLAMAYDI. */
+export async function sbSoroQatorlar<T>(soro: string, params: Record<string, unknown>): Promise<SbJavob<T>> {
+  const t0 = performance.now();
+  const ms = () => Math.round(performance.now() - t0);
+  try {
+    const r = await vaqtliFetch('/api/sb', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ soro, ...params }),
+    }, OQISH_CHEGARA_MS);
+    const j = (await r.json()) as { ok?: boolean; natija?: { ok?: boolean; qatorlar?: T[]; code?: string } | null; error?: string; code?: string };
+    if (r.status === 401) return { ok: false, code: 'SESSION_EXPIRED', error: j.error, ms: ms() };
+    if (!j.ok || !j.natija || j.natija.ok !== true) {
+      return { ok: false, code: j.code ?? j.natija?.code, error: j.error ?? 'Ma’lumotni yuklab bo‘lmadi.', ms: ms() };
+    }
+    const q = j.natija.qatorlar ?? [];
+    return { ok: true, qatorlar: q, soni: q.length, jamiServerda: q.length, toliq: true, ms: ms() };
+  } catch (e) {
+    return { ok: false, error: chegaraOtdimi(e) ? 'Server 60 soniyada javob bermadi. Sahifani yangilab qayta urinib ko‘ring.' : 'Ma’lumotni yuklab bo‘lmadi. Birozdan so‘ng qayta urinib ko‘ring.',
+             code: chegaraOtdimi(e) ? 'TIMEOUT' : 'NETWORK', ms: ms() };
+  }
 }
 export async function sbT2DaraxtOl(obyektId: number, ustunlar?: string) {
   const result = await t2ToliqOqiParallel<T2Qator>(sbOqi, {

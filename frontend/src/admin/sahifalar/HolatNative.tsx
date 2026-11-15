@@ -49,6 +49,7 @@ import { SmetaVersiyaFarq, VersiyaAlmashtirilganBelgi } from './SmetaVersiyaFarq
 import { yaxlitQatorIdlari } from '../../lib/svod-yaxlit';
 import { MuhrFarqXulosa, useMuhrFarq } from '../../umumiy/daraxt/MuhrFarqXulosa';
 import { IshVaraq } from './IshVaraq';
+import { useMobilEkran } from '../../lib/mobil/useMobilEkran';
 
 /**
  * Kundalik ISHCHI SMETA/LRV sahifasi. Bu komponentda Sheet nomi, Drive
@@ -58,6 +59,8 @@ import { IshVaraq } from './IshVaraq';
 export function HolatNative() {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
+  const mobil = useMobilEkran();
+  const [amalMenyu, setAmalMenyu] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedPanel = searchParams.get('panel');
   /* Zanjir chizig'idagi «Slichitelniy» havolasi (#slichitelniy) — hujjatlar bo'limini ochadi va shu qatorga o'tadi. */
@@ -380,18 +383,31 @@ export function HolatNative() {
     </div>
   );
 
-  return (
-    <Sahifa
-      sarlavha={selected?.nom ?? 'Obyekt ish joyi'}
-      tavsif={selected ? 'Smeta, bajarilgan ishlar va hujjatlar bir joyda' : 'Obyektni tanlang — smeta, bajarilgan ishlar va hujjatlar bir joyda'}
-      onYangila={validId ? () => void yuklash() : undefined}
-      yangilanmoqda={loading || yangilanmoqda}
-      amallar={<>
+  const amalTugmalar = (<>
         {selected && <button type="button" className="fz-btn" aria-expanded={exportsOpen} onClick={() => setExportsOpen(v => !v)}><FileSpreadsheet aria-hidden="true" />{t('Hujjatlar va eksport')}<ChevronDown aria-hidden="true" style={{ transform: exportsOpen ? 'rotate(180deg)' : undefined, transition: 'transform .12s' }} /></button>}
         {selected && <ArxivTugma tur="obyekt" id={selected.id} nom={selected.nom} kichik={false} onDone={() => { workspace.setObjectId(null); workspace.refresh(); navigate('/admin/obyektlar'); }} />}
         {validId && <button type="button" onClick={() => navigate(`/admin/fakt?obyekt=${obyektId}`)} className="fz-btn"><Plus aria-hidden="true" />{t('Fakt kiritish')}</button>}
         {validId && <button type="button" data-testid="f2-tayyorlash-tugma" onClick={() => navigate(`/admin/f2-tayyorlash?obyekt=${obyektId}`)} className="fz-btn fz-btn--primary"><FileText aria-hidden="true" />{t('F-2 tayyorlash')}</button>}
-      </>}
+  </>);
+
+  return (
+    <Sahifa
+      sarlavha={selected?.nom ?? 'Obyekt ish joyi'}
+      tavsif={selected ? 'Smeta, bajarilgan ishlar va hujjatlar bir joyda' : 'Obyektni tanlang — smeta, bajarilgan ishlar va hujjatlar bir joyda'}
+      onYangila={validId && !mobil ? () => void yuklash() : undefined}
+      yangilanmoqda={loading || yangilanmoqda}
+      amallar={mobil ? (<>
+        {validId && <button type="button" data-testid="f2-tayyorlash-tugma" onClick={() => navigate(`/admin/f2-tayyorlash?obyekt=${obyektId}`)} className="fz-btn fz-btn--primary"><FileText aria-hidden="true" />{t('F-2 tayyorlash')}</button>}
+        <div className="relative">
+          <button type="button" className="fz-btn fz-btn--icon" aria-expanded={amalMenyu} aria-haspopup="menu" aria-label={t('Boshqa')} title={t('Boshqa')} data-testid="holat-amal-menyu" onClick={() => setAmalMenyu(v => !v)}><MoreHorizontal aria-hidden="true" /></button>
+          {amalMenyu && <div role="menu" data-testid="holat-amal-panel" className="absolute right-0 top-full z-30 mt-1 flex w-64 flex-col items-stretch gap-1 rounded-lg border border-border bg-surface p-2 shadow-lg">
+            {validId && <button type="button" role="menuitem" className="fz-btn" disabled={loading || yangilanmoqda} onClick={() => void yuklash()}>{t('Yangilash')}</button>}
+        {selected && <button type="button" className="fz-btn" aria-expanded={exportsOpen} onClick={() => setExportsOpen(v => !v)}><FileSpreadsheet aria-hidden="true" />{t('Hujjatlar va eksport')}<ChevronDown aria-hidden="true" style={{ transform: exportsOpen ? 'rotate(180deg)' : undefined, transition: 'transform .12s' }} /></button>}
+        {selected && <ArxivTugma tur="obyekt" id={selected.id} nom={selected.nom} kichik={false} onDone={() => { workspace.setObjectId(null); workspace.refresh(); navigate('/admin/obyektlar'); }} />}
+        {validId && <button type="button" onClick={() => navigate(`/admin/fakt?obyekt=${obyektId}`)} className="fz-btn"><Plus aria-hidden="true" />{t('Fakt kiritish')}</button>}
+          </div>}
+        </div>
+      </>) : amalTugmalar}
     >
       {korinish.oyna}
       <div className="flex min-h-0 flex-col gap-3">

@@ -1,0 +1,11 @@
+{
+  "sana": "2026-11-15",
+  "sarlavha": "Telefon va Windows ilovasida interfeys tuzatildi",
+  "bandlar": [
+    "Windows ilovasi: obyekt sahifasida loyiha, obyekt, oy va «Manba» tanlagichlari yuqori panelni qoplab, sahifani yon tomonga cho‘zardi. Endi ular panelning o‘z qatorida bitta qatorda turadi; bo‘lim summalari ustuni ham kengayadi (yon aylantirish yo‘qoldi).",
+    "Telefon: yuqori panel bitta qatorga ixchamlandi (menyu, ish joyi, ish doirasi tugmasi, qidiruv, bildirishnoma, akkaunt); til tanlagichi menyu ichiga ko‘chdi.",
+    "Telefon: Obyektlar sahifasidagi moliyaviy kartalar tor ekranda bitta ustunda — katta summalar kesilmaydi va to‘liq ko‘rinadi.",
+    "Telefon: Jarvis to‘liq ekranda to‘g‘ri joylashadi (sarlavha va yopish tugmasi tepada, xabarlar o‘rtada, yozish maydoni pastda klaviatura ustida); ochilganda klaviatura o‘zi chiqmaydi; Android «orqaga» tugmasi Jarvisni yopadi.",
+    "Telefon: klaviatura ochilganda fokusdagi maydon ko‘rinadigan joyga suriladi."
+  ]
+}

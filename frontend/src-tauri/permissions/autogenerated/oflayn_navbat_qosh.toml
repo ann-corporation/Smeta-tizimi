@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-oflayn-navbat-qosh"
+description = "Enables the oflayn_navbat_qosh command without any pre-configured scope."
+commands.allow = ["oflayn_navbat_qosh"]
+
+[[permission]]
+identifier = "deny-oflayn-navbat-qosh"
+description = "Denies the oflayn_navbat_qosh command without any pre-configured scope."
+commands.deny = ["oflayn_navbat_qosh"]

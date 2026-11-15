@@ -10,8 +10,16 @@
 export type QollanmaXotira = { korilgan: string[]; ochiq: boolean };
 
 const PREFIKS = 'fz-qollanma:';
-/** «Keyinroq» — faqat joriy sahifa ochilishi davomida (qayta yuklangach yana chiqadi). */
+/** «Keyinroq» — brauzer sessiyasi davomida (sessionStorage; qayta yuklash ham ko'rsatmaydi). Xotira yopiq bo'lsa — shu xotiradagi zaxira. */
 const keyinroq = new Set<string>();
+const KEYINROQ_KALIT = 'fz-qollanma-keyinroq';
+function keyinroqOqi(): Set<string> {
+  try {
+    const a = JSON.parse(sessionStorage.getItem(KEYINROQ_KALIT) ?? '[]') as unknown;
+    if (Array.isArray(a)) return new Set<string>([...keyinroq, ...a.filter((k): k is string => typeof k === 'string')]);
+  } catch { /* sessionStorage yopiq */ }
+  return keyinroq;
+}
 /** Xotira yopiq bo'lsa — shu sessiyadagi zaxira. */
 const zaxira = new Map<string, QollanmaXotira>();
 
@@ -40,7 +48,7 @@ function yoz(foyd: string, x: QollanmaXotira) {
 /** Avtomatik ko'rsatilsinmi: ko'rilmagan, «Keyinroq» bosilmagan va avto-kartalar o'chirilmagan. */
 export function avtoKorsatilsinmi(foyd: string, kalit: string): boolean {
   const x = xotiraOqi(foyd);
-  return x.ochiq && !x.korilgan.includes(kalit) && !keyinroq.has(foyd + '|' + kalit);
+  return x.ochiq && !x.korilgan.includes(kalit) && !keyinroqOqi().has(foyd + '|' + kalit);
 }
 
 /** «Tushunarli» — shu karta boshqa avtomatik chiqmaydi. */
@@ -49,8 +57,11 @@ export function korildiDeb(foyd: string, kalit: string) {
   if (!x.korilgan.includes(kalit)) yoz(foyd, { ...x, korilgan: [...x.korilgan, kalit] });
 }
 
-/** «Keyinroq» — hozircha yopiladi, keyingi ochilishda yana chiqadi. */
-export function keyinroqDeb(foyd: string, kalit: string) { keyinroq.add(foyd + '|' + kalit); }
+/** «Keyinroq» — shu sessiya davomida shu sahifa uchun qayta chiqmaydi (yangi sessiyada yana chiqadi). */
+export function keyinroqDeb(foyd: string, kalit: string) {
+  keyinroq.add(foyd + '|' + kalit);
+  try { sessionStorage.setItem(KEYINROQ_KALIT, JSON.stringify([...keyinroqOqi()])); } catch { /* zaxira yetadi */ }
+}
 
 /** «Ko'rsatmang» — avtomatik kartalar butunlay o'chadi («?» tugmasi bilan baribir ochiladi). */
 export function avtoOchir(foyd: string, kalit?: string) {
@@ -59,4 +70,4 @@ export function avtoOchir(foyd: string, kalit?: string) {
 }
 
 /** Faqat testlar uchun. */
-export function _qollanmaXotirasiniTozala() { keyinroq.clear(); zaxira.clear(); }
+export function _qollanmaXotirasiniTozala() { keyinroq.clear(); zaxira.clear(); try { sessionStorage.removeItem(KEYINROQ_KALIT); } catch { /* */ } }

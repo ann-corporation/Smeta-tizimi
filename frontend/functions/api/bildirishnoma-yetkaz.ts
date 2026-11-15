@@ -9,6 +9,7 @@
  *  • Matn, chat_id, token loglanmaydi; javobda faqat sonlar.
  */
 import { saytUrl, tengSatr, tgApi, tgRpc, tokenBormi, type TgEnv } from '../_shared/telegram';
+import { bildirishnomaTugmalari } from '../_shared/telegram-tugma';
 import { tgTarjima, xulosa, yetkazPartiya, type Bogliqlik, type Manzil, type NavbatQator, type TgTil } from '../_shared/bildirishnoma-yetkaz';
 
 type Env = TgEnv & { BILDIRISHNOMA_CRON_KALIT?: string };
@@ -36,10 +37,12 @@ export function bogliqlik(env: Env): Bogliqlik {
       if (!m?.ok) return null;
       return { yuborish: !!m.yuborish, chat_id: m.chat_id, til: m.til ?? null };
     },
-    yubor: async (chatId, matn, til, havola) => {
-      const tugma = havola
-        ? { reply_markup: { inline_keyboard: [[{ text: tgTarjima('Hujjatni ochish', til), url: saytUrl(env) + havola }]] } }
-        : {};
+    yubor: async (chatId, matn, til, havola, q) => {
+      // «Ko'rish» — Mini App chuqur havola; hujjat tasdiqi navbatida qo'shimcha «Tasdiqlash» (callback; server qayta tekshiradi — telegram-bot.ts).
+      const mk = q ? bildirishnomaTugmalari(env, til, q.mavzu, havola, q.parametrlar) : null;
+      const tugma = mk
+        ? { reply_markup: mk }
+        : havola ? { reply_markup: { inline_keyboard: [[{ text: tgTarjima('Hujjatni ochish', til), url: saytUrl(env) + havola }]] } } : {};
       const r = await tgApi(env, 'sendMessage', { chat_id: chatId, text: matn.slice(0, 4000), disable_web_page_preview: true, ...tugma });
       // TOKEN_YOQ — so'rov umuman ketmagan; TARMOQ — ketgan-ketmagani noma'lum (qayta yuborilmaydi).
       return { ok: r.ok, description: r.description, yetdi: r.description === 'TOKEN_YOQ' ? false : undefined };

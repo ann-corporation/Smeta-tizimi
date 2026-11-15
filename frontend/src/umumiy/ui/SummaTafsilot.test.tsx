@@ -22,6 +22,8 @@ describe('SummaKesimi — yagona kengayuvchi tafsilot', () => {
   it('yopiq: ichki qatorlar yo‘q; bosilsa joyida ochiladi (uchlik + kesim + kaskad)', () => {
     render(<SummaJuft paket={paket} />);
     expect(screen.queryByTestId('summa-tafsilot')).toBeNull();
+    // Ikki uchburchak yo'q: brauzerning o'z belgisi yashirin (matndagi «▸» yagona belgi).
+    expect(screen.getByText(/kesim va hisob/).className).toMatch(/list-none/);
     fireEvent.click(screen.getByText(/kesim va hisob/));
     const t = within(screen.getByTestId('summa-tafsilot-uchlik'));
     expect(t.getByTestId('tafsilot-qqs').textContent).toMatch(/2\s?022/);

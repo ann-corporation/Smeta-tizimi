@@ -496,7 +496,7 @@ function QarorOyna(p: { f: FarqQator; tur: 'zamena' | 'qoshimcha'; kompaniyaId: 
   };
   return (
     <div role="dialog" aria-label={p.tur === 'zamena' ? t('Zamena') : t('Qo‘shimcha ish')} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="fz-card w-full max-w-md space-y-2 p-4 text-[13px]">
+      <div className="fz-card max-h-[92vh] w-full max-w-md space-y-2 overflow-y-auto p-4 text-[13px]">
         <h3 className="fz-card__title">{p.tur === 'zamena' ? t('Zamena') : t('Qo‘shimcha ish')}</h3>
         <p className="text-xs">{aloqa ? `${t('Bog‘liq smeta qatori')}: ${aloqa.nom.slice(0, 80)}` : t('Bog‘liq qator yo‘q: qo‘shimcha ish bo‘limga qo‘shiladi')}</p>
         {p.tur === 'zamena' && !aloqa && <p className="text-xs text-danger">{t('Zamena uchun avval almashtiriladigan smeta qatorini tanlang')}</p>}

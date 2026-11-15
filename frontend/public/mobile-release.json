@@ -1,23 +1,23 @@
 {
-  "ios": {
-    "mode": "pwa"
+  "macos": {
+    "version": "0.1.0",
+    "generatedAtUtc": "2026-11-15T06:27:20Z",
+    "file": "smeta-tizimi-0.1.0-macos-universal-unsigned.dmg",
+    "bytes": 4459252,
+    "sha256": "148a371e94dc8eb4f39e8bc3059aedb9f5211d11884953b6a6197ef411b4b7ac",
+    "signed": false,
+    "notarized": false
   },
   "android": {
     "version": "0.1.0",
-    "generatedAtUtc": "2026-11-14T23:58:44Z",
+    "generatedAtUtc": "2026-11-15T06:27:20Z",
     "file": "smeta-tizimi-0.1.0-release.apk",
-    "bytes": 51743479,
-    "sha256": "e1409ff5468f8d280f4c2813067ebe7c104d108c7a27e2b6c61b849e7a095a4c",
+    "bytes": 35179342,
+    "sha256": "0804edf0e4beef311be37bf8a4b8a0f1157d01d4baf6c3ae270b978b09b3b171",
     "signed": true,
     "minSdk": 24
   },
-  "macos": {
-    "version": "0.1.0",
-    "generatedAtUtc": "2026-11-14T23:58:44Z",
-    "file": "smeta-tizimi-0.1.0-macos-universal-unsigned.dmg",
-    "bytes": 15520164,
-    "sha256": "cca7e065cfdd76debcd32a65e18dde05170397bd5470de40ca6cf633d12028f2",
-    "signed": false,
-    "notarized": false
+  "ios": {
+    "mode": "pwa"
   }
 }
