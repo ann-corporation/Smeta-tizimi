@@ -55,3 +55,8 @@ Server side: `frontend/functions/_shared/desktop-device.ts` (`ANDROID_ORIGIN`, a
 ## Languages and themes
 
 Strings: `values/` = Uzbek (default), `values-ru/`, `values-en/`. Per-app locale via `AppCompatDelegate.setApplicationLocales` (Profile -> Language; Android 13+ also lists the app in system settings). Theme default is dark; Profile -> Theme switches Dark / Light / System.
+
+## P1 (objects, fact entry, offline)
+
+Room + SQLCipher cache (key wrapped by Keystore), FTS4 row search, draft batch, WorkManager outbox (FIFO, idempotent by operation_id). Debug-only demo mode: `adb shell run-as uz.anncorp.smeta.debug touch files/demo.flag` (`offline.flag` forces the offline banner); the release build contains only an inert stub.
+

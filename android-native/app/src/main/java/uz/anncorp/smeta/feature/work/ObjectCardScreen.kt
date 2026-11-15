@@ -128,7 +128,7 @@ private fun ProgressRow(label: String, value: Double?, percent: Double?, color: 
     Spacer(Modifier.height(6.dp))
     LinearProgressIndicator(
         progress = { ((percent ?: 0.0) / 100.0).coerceIn(0.0, 1.0).toFloat() },
-        modifier = Modifier.fillMaxWidth().height(8.dp), color = color, trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+        modifier = Modifier.fillMaxWidth().height(8.dp), color = color, trackColor = MaterialTheme.colorScheme.surfaceContainerHighest, drawStopIndicator = {},
     )
     Spacer(Modifier.height(4.dp))
     Text(formatMoney(value), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
