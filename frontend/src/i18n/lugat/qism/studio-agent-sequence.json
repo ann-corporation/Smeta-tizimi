@@ -1,0 +1,22 @@
+{
+  "Smeta yangilanishi tasdiqlanmadi. Keyingi amallar bajarilmadi.": {
+    "ru": "Обновление сметы не подтверждено. Последующие действия не выполнены.",
+    "en": "Estimate update was not confirmed. Subsequent actions were not run."
+  },
+  "Avval amal ogohlantirishlarini hal qiling.": {
+    "ru": "Сначала устраните предупреждения действий.",
+    "en": "Resolve action warnings first."
+  },
+  "Alohida hisoblash tasdiqlandi. Qolgan amallarni davom ettiring.": {
+    "ru": "Раздельный расчёт подтверждён. Продолжите оставшиеся действия.",
+    "en": "Separate calculation confirmed. Continue remaining actions."
+  },
+  "Ishlar to‘liq qo‘shilmadi. Keyingi amallar bajarilmadi.": {
+    "ru": "Работы добавлены не полностью. Последующие действия не выполнены.",
+    "en": "Works were not fully added. Subsequent actions were not run."
+  },
+  "Amal bajarilmadi": {
+    "ru": "Действие не выполнено",
+    "en": "Action failed"
+  }
+}
