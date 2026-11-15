@@ -71,6 +71,12 @@ describe('mobil BFF (Android native)', () => {
     expect(res.status).toBe(200);
     expect(calls.find(c => c.path.endsWith('/t2_ish_joylarim_v1'))?.body).toEqual({ p_actor_id: 7 });
   });
+  it('dispatches approval decisions (hujjat-aylanish POST) and photo linking (foto-dalil POST) as the device actor', async () => {
+    const r = await bff('/api/hujjat-aylanish', 'POST', { amal: 'zanjir_qaror', kompaniya_id: 8, zanjir_id: 3, qaror: 'tasdiqlash' });
+    expect(r.status).not.toBe(400);
+    const f = await bff('/api/foto-dalil', 'POST', { amal: 'ochir', id: 1 });
+    expect(f.status).not.toBe(400);
+  });
   it('bounds body size to 2 MB', async () => {
     expect((await gateway(ctx(native({ path: '/api/sb', method: 'POST', body: 'a'.repeat(2 * 1024 * 1024) })))).status).toBe(413);
   });

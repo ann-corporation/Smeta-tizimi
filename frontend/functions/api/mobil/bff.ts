@@ -7,8 +7,8 @@ import { onRequestPost as sbPost } from '../sb';
 import { onRequestGet as companyGet, onRequestPost as companyPost } from '../company';
 import { onRequestPost as writePost } from '../sb-yoz';
 import { onRequestGet as workplaceGet } from '../ish-joyi';
-import { onRequestGet as hujjatAylanishGet } from '../hujjat-aylanish';
-import { onRequestGet as fotoDalilGet } from '../foto-dalil';
+import { onRequestGet as hujjatAylanishGet, onRequestPost as hujjatAylanishPost } from '../hujjat-aylanish';
+import { onRequestGet as fotoDalilGet, onRequestPost as fotoDalilPost } from '../foto-dalil';
 import { onRequestPost as aiSavolPost } from '../ai-savol';
 
 // Native Android BFF (P0). Same trust model as api/desktop/bff.ts: verified device Bearer -> server-only cookie -> unchanged
@@ -23,8 +23,8 @@ const handlers: Record<string, Record<string, PagesFunction<Env>>> = {
   '/api/sb': { POST: sbPost },
   '/api/sb-yoz': { POST: writePost },
   '/api/obyekt-paket': { GET: packetGet },
-  '/api/hujjat-aylanish': { GET: hujjatAylanishGet },
-  '/api/foto-dalil': { GET: fotoDalilGet },
+  '/api/hujjat-aylanish': { GET: hujjatAylanishGet, POST: hujjatAylanishPost },
+  '/api/foto-dalil': { GET: fotoDalilGet, POST: fotoDalilPost },
   '/api/ai-savol': { POST: aiSavolPost },
 } as never;
 export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|company|sb|sb-yoz|obyekt-paket|hujjat-aylanish|foto-dalil|ai-savol)(?:\?[^#\s]*)?$/;
