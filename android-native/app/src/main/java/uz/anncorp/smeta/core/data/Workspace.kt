@@ -126,6 +126,8 @@ sealed interface WsOpen {
 /** Existing screens are the targets: the module code maps to a [NativeTarget]; anything unknown falls back to its web path, else null (button hidden). */
 fun WsAction.open(): WsOpen? {
     val web = target.path?.takeIf { it.startsWith("/") }?.let { WsOpen.Web(it) }
+    // The server still describes Material so'rovi as a web page (older clients and Windows keep using it); this client has the native screen.
+    if (target.code == "zayavka") return WsOpen.Native(NativeTarget.ZAYAVKA)
     if (!target.native) return web
     return when (target.code) {
         "obyektlar" -> WsOpen.Native(NativeTarget.OBJECTS)
@@ -136,6 +138,7 @@ fun WsAction.open(): WsOpen? {
         "ombor" -> if (Features.NATIVE_WAREHOUSE) WsOpen.Native(NativeTarget.WAREHOUSE) else web
         "jarvis" -> if (Features.JARVIS) WsOpen.Native(NativeTarget.JARVIS) else null
         "rahbar" -> WsOpen.Native(NativeTarget.RAHBAR)
+        "zayavka" -> WsOpen.Native(NativeTarget.ZAYAVKA)
         "onboarding" -> WsOpen.Onboard
         else -> web
     }

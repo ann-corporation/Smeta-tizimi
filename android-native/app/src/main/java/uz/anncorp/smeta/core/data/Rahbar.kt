@@ -152,3 +152,16 @@ class RahbarRepository(private val api: BffApi, private val db: AppDb, private v
         return SyncResult.Ok
     }
 }
+
+/**
+ * Hub preview of the boss panel: only numbers the server already returned (percentages from server sums, receivable, paid, counts).
+ * A value the server could not know is null -> dash, never 0.
+ */
+data class RahbarKpi(val factPercent: Double?, val f2Percent: Double?, val receivable: Double?, val paid: Double?, val problems: Int, val approvals: Int, val objects: Int)
+
+fun RahbarPanelData.kpi(): RahbarKpi = RahbarKpi(
+    factPercent = percentOf(cards.fact?.qqsBilan, cards.smeta?.qqsBilan),
+    f2Percent = cards.f2PercentOfSmeta ?: percentOf(cards.f2?.qqsBilan, cards.smeta?.qqsBilan),
+    receivable = cards.receivable, paid = cards.paid,
+    problems = problemObjects().size, approvals = approvals.size, objects = objectCount,
+)

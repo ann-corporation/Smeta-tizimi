@@ -181,7 +181,7 @@ private fun HubGrid(ui: HubUi, arranged: Arranged, searching: Boolean, vm: HubVi
         // Server-driven role workspace first (the cabinet's sections and quick actions); the plain module launcher stays below as "all apps".
         ui.workspace?.let { ws ->
             if (ws.fieldMode && ws.field?.offline == true) item(span = { span }) { Text(stringResource(R.string.ws_field_offline), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.tertiary) }
-            workspaceItems(ws, ui.places, openAction, onObject)
+            workspaceItems(ws, ui.places, openAction, onObject, ui.kpi)
         }
         if (ui.workspace == null && ui.recent.isNotEmpty()) {
             item(span = { span }) { SectionTitle(R.string.hub_sec_recent) }

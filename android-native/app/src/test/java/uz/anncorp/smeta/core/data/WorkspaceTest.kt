@@ -59,7 +59,7 @@ class WorkspaceParseTest {
     @Test fun actionsOpenExistingScreensOrWebPagesOrNothing() {
         val w = parseWorkspace(J.parseToJsonElement(ws(sections)))!!
         assertEquals(WsOpen.Native(NativeTarget.FAKT), w.action("fakt_yoz")!!.open())
-        assertEquals(WsOpen.Web("/admin/zayavka"), w.action("material_sorov")!!.open())
+        assertEquals(WsOpen.Native(NativeTarget.ZAYAVKA), w.action("material_sorov")!!.open()) // the server still says web; this client has the native screen
         assertNull(w.action("yangi")!!.open()) // unknown native code, no web path: hidden, never a dead button
     }
 

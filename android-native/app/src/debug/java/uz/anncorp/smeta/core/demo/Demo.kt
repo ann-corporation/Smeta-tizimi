@@ -96,6 +96,10 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
                     s("soro") == "akt_reestr_obyekt_v1" -> ok(asset("f2list.json"))
                     s("soro") == "modul_holat_v1" -> ok("""{"ok":true,"natija":{"ok":true,"modullar":[{"kod":"module.hr","holat":"off"},{"kod":"module.moliya","holat":"on"}]}}""")
                     jadval == "t2_obyekt_jami" -> ok(asset("objects.json"))
+                    jadval == "t2_zayavka_royxat" -> ok("""{"ok":true,"soni":3,"jamiServerda":3,"toliq":true,"qatorlar":[
+ {"id":31,"kompaniya_id":1,"obyekt_id":101,"item_text":"Armatura A500C d12","requested_qty":3.5,"unit":"t","status":"approved","delivered_qty":0,"required_date":"2026-11-20","priority":"yuqori","created_at":"2026-11-14T09:00:00+00:00"},
+ {"id":30,"kompaniya_id":1,"obyekt_id":101,"item_text":"Sement M400 qop","requested_qty":240,"unit":"qop","status":"partially_delivered","delivered_qty":100,"required_date":null,"priority":"orta","created_at":"2026-11-12T09:00:00+00:00"},
+ {"id":29,"kompaniya_id":1,"obyekt_id":102,"item_text":"Gvozd 100 mm","requested_qty":15.75,"unit":"kg","status":"submitted","delivered_qty":0,"required_date":"2026-11-18","priority":"past","created_at":"2026-11-10T09:00:00+00:00"}]}""")
                     jadval == "t2_sklad_qoldiq" -> ok(asset("ombor_stock.json"))
                     jadval == "t2_sklad_royxat" -> ok(asset("ombor_warehouses.json"))
                     s("soro") == "sklad_markaziy_qoldiq_v1" -> ok(asset("ombor_central.json"))
