@@ -24,7 +24,8 @@ export type NatijaHolat = 'yuborildi' | 'xato' | 'otkazildi' | 'nomalum';
 export type Natija = { id: number; holat: NatijaHolat; xato?: string };
 export type Bogliqlik = {
   manzil: (foydalanuvchiId: number) => Promise<Manzil>;
-  yubor: (chatId: number, matn: string, til: TgTil, havola: string | null) => Promise<YuborishNatija>;
+  /** q — mavzu/parametrlar (tugmalar uchun: «Ko'rish», hujjat tasdiqi). */
+  yubor: (chatId: number, matn: string, til: TgTil, havola: string | null, q?: Pick<NavbatQator, 'mavzu' | 'parametrlar'>) => Promise<YuborishNatija>;
 };
 
 const LUG = matnlar as Record<string, { ru: string; en: string }>;
@@ -73,7 +74,7 @@ export async function bittaYetkaz(q: NavbatQator, dep: Bogliqlik): Promise<Natij
   const matn = telegramMatni(q, til);
   if (!matn) return { id: q.id, holat: 'otkazildi', xato: 'MAVZU_NOMALUM' };
   let r: YuborishNatija;
-  try { r = await dep.yubor(m.chat_id as number, matn, til, bildirishnomaHavolasi({ mavzu: q.mavzu, parametrlar: q.parametrlar })); }
+  try { r = await dep.yubor(m.chat_id as number, matn, til, bildirishnomaHavolasi({ mavzu: q.mavzu, parametrlar: q.parametrlar }), { mavzu: q.mavzu, parametrlar: q.parametrlar }); }
   catch { r = { ok: false, description: 'ISTISNO' }; }
   if (r.ok) return { id: q.id, holat: 'yuborildi' };
   if (r.yetdi === false) return { id: q.id, holat: 'xato', xato: qisqa(r.description) };
