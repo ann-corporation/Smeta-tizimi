@@ -1,0 +1,118 @@
+{
+  "Telegram’ingizda @{tg} username bor. Shuni QURAI username’i qilaylikmi? Odamlar sizni shu orqali topib, kompaniyaga qo‘shadi.": {
+    "ru": "В Telegram у вас есть username @{tg}. Сделать его username в QURAI? По нему вас найдут и добавят в компанию.",
+    "en": "You have the username @{tg} on Telegram. Make it your QURAI username? People will find you by it and add you to companies."
+  },
+  "Ha, @{tg} bo‘lsin": {
+    "ru": "Да, пусть будет @{tg}",
+    "en": "Yes, use @{tg}"
+  },
+  "Yo‘q, keyinroq": {
+    "ru": "Нет, позже",
+    "en": "No, later"
+  },
+  "Username o‘rnatildi: @{u}": {
+    "ru": "Username установлен: @{u}",
+    "en": "Username set: @{u}"
+  },
+  "Username o‘rnatilmadi. Keyinroq urinib ko‘ring.": {
+    "ru": "Username не установлен. Повторите попытку позже.",
+    "en": "Username was not set. Please try again later."
+  },
+  "Xo‘p, keyinroq": {
+    "ru": "Хорошо, позже",
+    "en": "OK, later"
+  },
+  "Username mos emas": {
+    "ru": "Username не подходит",
+    "en": "Username is not valid"
+  },
+  "Server bilan aloqa yo‘q. Birozdan keyin urinib ko‘ring.": {
+    "ru": "Нет связи с сервером. Повторите попытку чуть позже.",
+    "en": "No connection to the server. Please try again shortly."
+  },
+  "Username: @{u}": {
+    "ru": "Username: @{u}",
+    "en": "Username: @{u}"
+  },
+  "Username hali yo‘q. Tanlash: /username <nom>": {
+    "ru": "Username пока нет. Выбрать: /username <имя>",
+    "en": "No username yet. Choose one: /username <name>"
+  },
+  "Foydalanish: /taklif <@username|telefon|email> <rol> [kompaniya kodi]. Rollar: {rollar}": {
+    "ru": "Использование: /taklif <@username|телефон|email> <роль> [код компании]. Роли: {rollar}",
+    "en": "Usage: /taklif <@username|phone|email> <role> [company code]. Roles: {rollar}"
+  },
+  "Taklif uchun ruxsatingiz yo‘q yoki kompaniya aniqlanmadi.": {
+    "ru": "Нет прав на приглашение или компания не определена.",
+    "en": "You have no permission to invite, or the company could not be determined."
+  },
+  "Bir nechta kompaniyangiz bor — oxirida kompaniya kodini yozing: {kodlar}": {
+    "ru": "У вас несколько компаний — укажите в конце код компании: {kodlar}",
+    "en": "You have several companies — add the company code at the end: {kodlar}"
+  },
+  "Taklif yuborildi: {ism}{u}. U qabul qilgach a’zo bo‘ladi.": {
+    "ru": "Приглашение отправлено: {ism}{u}. Участником станет после принятия.",
+    "en": "Invitation sent: {ism}{u}. They become a member after accepting."
+  },
+  "QURAI username’ingiz: /username <nom>": {
+    "ru": "Ваш username в QURAI: /username <имя>",
+    "en": "Your QURAI username: /username <name>"
+  },
+  "odamni kompaniyaga taklif qilish: /taklif <@username|telefon|email> <rol>": {
+    "ru": "пригласить человека в компанию: /taklif <@username|телефон|email> <роль>",
+    "en": "invite a person to a company: /taklif <@username|phone|email> <role>"
+  },
+  "Username kamida 5 belgi bo‘lsin.": {
+    "ru": "Username — минимум 5 символов.",
+    "en": "Username must be at least 5 characters."
+  },
+  "Username 32 belgidan oshmasin.": {
+    "ru": "Username — не более 32 символов.",
+    "en": "Username must be at most 32 characters."
+  },
+  "Faqat kichik lotin harflari, raqamlar va pastki chiziq (_) mumkin.": {
+    "ru": "Допустимы только строчные латинские буквы, цифры и подчёркивание (_).",
+    "en": "Only lowercase Latin letters, digits and underscore (_) are allowed."
+  },
+  "Username harf bilan boshlanishi kerak.": {
+    "ru": "Username должен начинаться с буквы.",
+    "en": "Username must start with a letter."
+  },
+  "Ketma-ket ikki pastki chiziq va oxirgi pastki chiziq mumkin emas.": {
+    "ru": "Нельзя использовать два подчёркивания подряд и подчёркивание в конце.",
+    "en": "Two underscores in a row and a trailing underscore are not allowed."
+  },
+  "Bu nom tizim uchun band qilingan.": {
+    "ru": "Это имя зарезервировано системой.",
+    "en": "This name is reserved by the system."
+  },
+  "Bu username band.": {
+    "ru": "Этот username занят.",
+    "en": "This username is taken."
+  },
+  "Bugun username’ni o‘zgartirish limiti tugadi (kuniga 5 marta).": {
+    "ru": "Лимит изменений username на сегодня исчерпан (5 раз в сутки).",
+    "en": "Today’s username change limit is used up (5 per day)."
+  },
+  "Bu odam allaqachon kompaniya a’zosi.": {
+    "ru": "Этот человек уже участник компании.",
+    "en": "This person is already a member of the company."
+  },
+  "Juda ko‘p so‘rov. Birozdan keyin urinib ko‘ring.": {
+    "ru": "Слишком много запросов. Повторите попытку чуть позже.",
+    "en": "Too many requests. Please try again shortly."
+  },
+  "Bu rolni taklif orqali berib bo‘lmaydi.": {
+    "ru": "Эту роль нельзя выдать через приглашение.",
+    "en": "This role cannot be granted through an invitation."
+  },
+  "Qiymat noto‘g‘ri: @username, telefon yoki email yozing.": {
+    "ru": "Неверное значение: укажите @username, телефон или email.",
+    "en": "Invalid value: enter a @username, phone or email."
+  },
+  "Bu raqam bilan hisob topilmadi. Taklif havolasi/kodini saytdan yarating: Kompaniya → A’zolar.": {
+    "ru": "Аккаунт с этим номером не найден. Создайте ссылку/код приглашения на сайте: Компания → Участники.",
+    "en": "No account found for this number. Create an invitation link/code on the website: Company → Members."
+  }
+}

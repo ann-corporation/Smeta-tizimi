@@ -1,0 +1,262 @@
+{
+  "Username saqlandi": {
+    "ru": "Username сохранён",
+    "en": "Username saved"
+  },
+  "Username o‘chirildi": {
+    "ru": "Username удалён",
+    "en": "Username removed"
+  },
+  "Sozlama saqlandi": {
+    "ru": "Настройка сохранена",
+    "en": "Setting saved"
+  },
+  "Tekshirilmoqda…": {
+    "ru": "Проверка…",
+    "en": "Checking…"
+  },
+  "Bo‘sh — olishingiz mumkin": {
+    "ru": "Свободно — можно занять",
+    "en": "Available — you can take it"
+  },
+  "Username": {
+    "ru": "Username",
+    "en": "Username"
+  },
+  "5–32 belgi: kichik lotin harflari, raqamlar va _; harf bilan boshlanadi.": {
+    "ru": "5–32 символа: строчные латинские буквы, цифры и _; начинается с буквы.",
+    "en": "5–32 characters: lowercase Latin letters, digits and _; starts with a letter."
+  },
+  "masalan: alisher_navoiy": {
+    "ru": "например: alisher_navoiy",
+    "en": "e.g. alisher_navoiy"
+  },
+  "Takliflar": {
+    "ru": "Варианты",
+    "en": "Suggestions"
+  },
+  "Username’ni saqlash": {
+    "ru": "Сохранить username",
+    "en": "Save username"
+  },
+  "O‘chirish": {
+    "ru": "Удалить",
+    "en": "Remove"
+  },
+  "Keyinroq": {
+    "ru": "Позже",
+    "en": "Later"
+  },
+  "Bugun qolgan o‘zgartirishlar": {
+    "ru": "Осталось изменений сегодня",
+    "en": "Changes left today"
+  },
+  "Meni telefon raqami yoki email bo‘yicha kim topa oladi": {
+    "ru": "Кто может найти меня по номеру телефона или email",
+    "en": "Who can find me by phone number or email"
+  },
+  "Faqat aniq moslik; telefon va email hech kimga ko‘rsatilmaydi. @username bo‘yicha topish doim yoqiq.": {
+    "ru": "Только точное совпадение; телефон и email никому не показываются. Поиск по @username всегда включён.",
+    "en": "Exact match only; phone and email are never shown to anyone. Search by @username is always on."
+  },
+  "Hamma": {
+    "ru": "Все",
+    "en": "Everyone"
+  },
+  "Faqat kompaniyadoshlar": {
+    "ru": "Только коллеги по компании",
+    "en": "Company colleagues only"
+  },
+  "Hech kim": {
+    "ru": "Никто",
+    "en": "Nobody"
+  },
+  "Telegram’dagi kabi noyob @username — odamlar sizni kompaniyaga qo‘shish, taklif va topshiriq uchun shu orqali topadi.": {
+    "ru": "Уникальный @username, как в Telegram: по нему вас находят, чтобы добавить в компанию, пригласить или поставить задачу.",
+    "en": "A unique @username, like in Telegram: people find you by it to add you to a company, invite you or assign tasks."
+  },
+  "@username, telefon yoki email": {
+    "ru": "@username, телефон или email",
+    "en": "@username, phone or email"
+  },
+  "Kompaniyadoshlar": {
+    "ru": "Коллеги по компании",
+    "en": "Company colleagues"
+  },
+  "Lavozim": {
+    "ru": "Должность",
+    "en": "Role"
+  },
+  "Taklif yuborish": {
+    "ru": "Отправить приглашение",
+    "en": "Send invitation"
+  },
+  "Odamni @username, telefon raqami yoki email bo‘yicha toping. U taklifni qabul qilgach a’zo bo‘ladi.": {
+    "ru": "Найдите человека по @username, номеру телефона или email. Участником он станет после принятия приглашения.",
+    "en": "Find a person by @username, phone number or email. They become a member after accepting the invitation."
+  },
+  "Aniqlandi: {tur}": {
+    "ru": "Определено: {tur}",
+    "en": "Detected: {tur}"
+  },
+  "Taklif yuborildi": {
+    "ru": "Приглашение отправлено",
+    "en": "Invitation sent"
+  },
+  "Bu raqam bilan hisob topilmadi. Taklif havolasi va kod yaratib, SMS yoki Telegram orqali o‘zingiz yuborishingiz mumkin.": {
+    "ru": "Аккаунт с этим номером не найден. Можно создать ссылку-приглашение и код и отправить их самому по SMS или в Telegram.",
+    "en": "No account found for this number. You can create an invitation link and code and send them yourself via SMS or Telegram."
+  },
+  "Ism": {
+    "ru": "Имя",
+    "en": "Name"
+  },
+  "Odamning ismi": {
+    "ru": "Имя человека",
+    "en": "Person’s name"
+  },
+  "Havola va kod yaratish": {
+    "ru": "Создать ссылку и код",
+    "en": "Create link and code"
+  },
+  "Faqat hozir ko‘rinadi — nusxa oling va odamga yuboring.": {
+    "ru": "Показывается только сейчас — скопируйте и отправьте человеку.",
+    "en": "Shown only now — copy it and send it to the person."
+  },
+  "Havolani nusxalash": {
+    "ru": "Копировать ссылку",
+    "en": "Copy link"
+  },
+  "Kod": {
+    "ru": "Код",
+    "en": "Code"
+  },
+  "Kodni nusxalash": {
+    "ru": "Копировать код",
+    "en": "Copy code"
+  },
+  "username": {
+    "ru": "username",
+    "en": "username"
+  },
+  "telefon raqami": {
+    "ru": "номер телефона",
+    "en": "phone number"
+  },
+  "email": {
+    "ru": "email",
+    "en": "email"
+  },
+  "Kompaniyaga qo‘shildingiz": {
+    "ru": "Вы присоединились к компании",
+    "en": "You joined the company"
+  },
+  "Taklif rad etildi": {
+    "ru": "Приглашение отклонено",
+    "en": "Invitation declined"
+  },
+  "Qabul qilish": {
+    "ru": "Принять",
+    "en": "Accept"
+  },
+  "Rad etish": {
+    "ru": "Отклонить",
+    "en": "Decline"
+  },
+  "Kompaniyaga takliflar": {
+    "ru": "Приглашения в компании",
+    "en": "Company invitations"
+  },
+  "Sizni kompaniyaga taklif qilishdi. Qabul qilmaguncha a’zo bo‘lmaysiz.": {
+    "ru": "Вас пригласили в компанию. Участником вы станете только после принятия.",
+    "en": "You were invited to a company. You will not be a member until you accept."
+  },
+  "Username tanlang": {
+    "ru": "Выберите username",
+    "en": "Choose a username"
+  },
+  "Telegram’dagi kabi @username — odamlar sizni shu orqali topib, kompaniyaga qo‘shadi va topshiriq beradi. Keyinroq ham tanlashingiz mumkin.": {
+    "ru": "@username, как в Telegram: по нему вас найдут, добавят в компанию и поставят задачу. Выбрать можно и позже.",
+    "en": "@username, like in Telegram: people find you by it, add you to a company and assign tasks. You can also choose it later."
+  },
+  "Username kamida 5 belgi bo‘lsin.": {
+    "ru": "Username — минимум 5 символов.",
+    "en": "Username must be at least 5 characters."
+  },
+  "Username 32 belgidan oshmasin.": {
+    "ru": "Username — не более 32 символов.",
+    "en": "Username must be at most 32 characters."
+  },
+  "Faqat kichik lotin harflari, raqamlar va pastki chiziq (_) mumkin.": {
+    "ru": "Допустимы только строчные латинские буквы, цифры и подчёркивание (_).",
+    "en": "Only lowercase Latin letters, digits and underscore (_) are allowed."
+  },
+  "Username harf bilan boshlanishi kerak.": {
+    "ru": "Username должен начинаться с буквы.",
+    "en": "Username must start with a letter."
+  },
+  "Ketma-ket ikki pastki chiziq va oxirgi pastki chiziq mumkin emas.": {
+    "ru": "Нельзя использовать два подчёркивания подряд и подчёркивание в конце.",
+    "en": "Two underscores in a row and a trailing underscore are not allowed."
+  },
+  "Bu nom tizim uchun band qilingan.": {
+    "ru": "Это имя зарезервировано системой.",
+    "en": "This name is reserved by the system."
+  },
+  "Bu username band.": {
+    "ru": "Этот username занят.",
+    "en": "This username is taken."
+  },
+  "Bugun username’ni o‘zgartirish limiti tugadi (kuniga 5 marta).": {
+    "ru": "Лимит изменений username на сегодня исчерпан (5 раз в сутки).",
+    "en": "Today’s username change limit is used up (5 per day)."
+  },
+  "Juda ko‘p so‘rov. Birozdan keyin qayta urinib ko‘ring.": {
+    "ru": "Слишком много запросов. Повторите попытку чуть позже.",
+    "en": "Too many requests. Please try again shortly."
+  },
+  "@username, telefon raqami yoki email kiriting.": {
+    "ru": "Введите @username, номер телефона или email.",
+    "en": "Enter a @username, phone number or email."
+  },
+  "Bunday foydalanuvchi topilmadi.": {
+    "ru": "Такой пользователь не найден.",
+    "en": "No such user found."
+  },
+  "Bu odam allaqachon shu kompaniya a’zosi.": {
+    "ru": "Этот человек уже участник компании.",
+    "en": "This person is already a member of the company."
+  },
+  "Odam taklif qilish uchun ruxsatingiz yo‘q.": {
+    "ru": "У вас нет прав приглашать людей.",
+    "en": "You do not have permission to invite people."
+  },
+  "Bu lavozimni taklif orqali berib bo‘lmaydi.": {
+    "ru": "Эту должность нельзя выдать через приглашение.",
+    "en": "This role cannot be granted through an invitation."
+  },
+  "Taklif topilmadi yoki allaqachon javob berilgan.": {
+    "ru": "Приглашение не найдено или на него уже ответили.",
+    "en": "Invitation not found or already answered."
+  },
+  "Taklif muddati tugagan.": {
+    "ru": "Срок приглашения истёк.",
+    "en": "The invitation has expired."
+  },
+  "Taklif qiluvchining huquqi o‘zgargan — taklif yaroqsiz.": {
+    "ru": "Права пригласившего изменились — приглашение недействительно.",
+    "en": "The inviter’s permissions changed — the invitation is no longer valid."
+  },
+  "Server hali yangilanmagan.": {
+    "ru": "Сервер ещё не обновлён.",
+    "en": "The server has not been updated yet."
+  },
+  "Tarmoq xatosi. Qayta urinib ko‘ring.": {
+    "ru": "Ошибка сети. Повторите попытку.",
+    "en": "Network error. Please try again."
+  },
+  "Amal bajarilmadi. Qayta urinib ko‘ring.": {
+    "ru": "Действие не выполнено. Повторите попытку.",
+    "en": "The action failed. Please try again."
+  }
+}
