@@ -43,7 +43,7 @@ export function masofaviyServer(mu: Muhit, v: Vakolat, sayt?: string): McpServer
   s.registerTool('fetch', {
     title: 'Olish', description: 'Obyekt holati (smeta / fakt / F2 / qoldiq bo\'limlar bo\'yicha, NDS siz): `search` natijasidagi id bo\'yicha. [faqat o\'qish]',
     inputSchema: { id: z.string().min(1).max(40).describe('search natijasidagi id («obyekt:<son>»)') },
-    outputSchema: { id: z.string(), title: z.string(), text: z.string(), url: z.string(), metadata: z.record(z.string()).optional() },
+    outputSchema: { id: z.string(), title: z.string(), text: z.string(), url: z.string(), metadata: z.record(z.string(), z.string()).optional() },
     annotations: ro, _meta: SECURITY_META,
   }, async ({ id }) => olish(id, mu, v, sayt));
   return s;
