@@ -161,3 +161,43 @@ describe('mobil BFF: Jarvis chat (agent-ish) is allowlisted by action', () => {
     expect((await bff('/api/agent-ish', 'POST')).status).toBe(400);
   });
 });
+describe('mobil BFF: documents (hujjat-royxat list + hujjat-ol binary download)', () => {
+  const bytes = new TextEncoder().encode('%PDF-1.4 synthetic');
+  const stubDocs = () => {
+    const base = globalThis.fetch as unknown as (raw: string, init?: RequestInit) => Promise<Response>;
+    vi.stubGlobal('fetch', vi.fn(async (raw: string, init?: RequestInit) => {
+      const u = new URL(String(raw));
+      const b = init?.body ? JSON.parse(String(init.body)) : {};
+      if (u.pathname.endsWith('/t2_document_registry_v1')) { calls.push({ path: u.pathname, body: b }); return Response.json({ ok: true, documents: [], health: [], jami: 0, drive_replica_failed: 0 }); }
+      if (u.pathname.endsWith('/t2_document_canonical_get_v1')) {
+        calls.push({ path: u.pathname, body: b });
+        return Response.json({ ok: true, r2_key: 'k', blob_key: 'k', mime_type: 'application/pdf', original_filename: 'f2.pdf', size_bytes: bytes.length, sha256: 'x' });
+      }
+      if (u.pathname.includes('t2_document_registry')) return Response.json([]);
+      if (u.pathname.endsWith('/t2_obyekt')) return Response.json([{ kompaniya_id: 8 }]);
+      if (u.pathname.endsWith('/t2_men_v1')) return Response.json({ ok: true, platform_role: 'none', foydalanuvchi: { holat: 'faol' }, context_kompaniyalar: [{ kompaniya_id: 8, effective_role: 'pto', permissions: ['company.read', 'document.read'] }] });
+      return base(raw, init);
+    }));
+  };
+  it('lists the registry as the device actor', async () => {
+    stubDocs();
+    const r = await bff('/api/hujjat-royxat?kompaniya_id=8&obyekt_id=5&limit=100');
+    expect(r.status).toBe(200);
+    expect(calls.find(c => c.path.endsWith('/t2_document_registry_v1'))?.body).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 8, p_obyekt_id: 5 });
+  });
+  it('streams the file bytes through the gateway (binary, no-store, no cookie leak)', async () => {
+    stubDocs();
+    const e = { ...env, R2_CANONICAL: { get: async () => ({ body: bytes, size: bytes.length }) } };
+    const res = await gateway({ request: native({ path: '/api/hujjat-ol?id=12', method: 'GET' }), env: e, data: {}, next: vi.fn() } as never);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toBe('application/pdf');
+    expect(res.headers.get('Cache-Control')).toBe('no-store');
+    expect(res.headers.get('Set-Cookie')).toBeNull();
+    expect(new Uint8Array(await res.arrayBuffer())).toEqual(bytes);
+    expect(calls.find(c => c.path.endsWith('/t2_document_canonical_get_v1'))?.body).toEqual({ p_actor_id: 7, p_document_id: 12 });
+  });
+  it('refuses POST and a body on the document paths', async () => {
+    expect((await bff('/api/hujjat-ol?id=1', 'POST', {})).status).toBe(400);
+    expect((await bff('/api/hujjat-royxat?kompaniya_id=8', 'POST', {})).status).toBe(400);
+  });
+});

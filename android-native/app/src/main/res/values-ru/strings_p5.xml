@@ -53,7 +53,7 @@
     <string name="f2_empty">Ф-2 пока нет</string>
     <string name="f2_empty_hint">Когда по принятым работам будет подготовлен Ф-2, он появится здесь.</string>
     <string name="f2_open_web">Открыть реестр Ф-2 на сайте</string>
-    <string name="f2_pdf_hint">Скачивание PDF и Excel, а также суммы — в реестре на сайте.</string>
+    <string name="f2_pdf_hint">PDF и Excel по Ф-2 открываются в приложении кнопкой «Документы Ф-2». Суммы — в реестре на сайте.</string>
     <string name="f2_summary">Состояние Ф-2</string>
     <string name="f2_act_title">Ф-2 № %1$s</string>
     <string name="f2_flag_unpriced">%1$d без цены</string>

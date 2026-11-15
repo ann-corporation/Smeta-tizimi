@@ -63,9 +63,17 @@ data class ApiResult(val status: Int, val body: JsonElement?, val code: String? 
     val unauthorized get() = status == 401
 }
 
+/** Binary answer of a BFF GET (documents). [status]==0 = network failure; [code] is the server error code of a JSON error body. */
+class BytesResult(val status: Int, val bytes: ByteArray?, val mime: String? = null, val filename: String? = null, val code: String? = null) {
+    val ok get() = status in 200..299
+}
+
 /** The only thing feature repositories need from the network layer; a debug-only demo implementation exists. */
 interface BffApi {
     suspend fun bff(path: String, method: String = "GET", body: JsonElement? = null, etag: String? = null): ApiResult
+
+    /** Binary GET through the BFF (document download). Answers larger than [maxBytes] are refused with status 413. */
+    suspend fun bffBytes(path: String, maxBytes: Long): BytesResult = BytesResult(404, null)
 
     /** Multipart upload through POST /api/mobil/yukla (the canonical document upload; tenant scope travels in the query). */
     suspend fun upload(companyId: Long, obyektId: Long, body: okhttp3.RequestBody): ApiResult
@@ -110,6 +118,50 @@ class ApiClient(
             tasdiq?.current()?.let { put("tasdiq", it) }
         }
         return post("/api/mobil/bff", envelope)
+    }
+
+    override suspend fun bffBytes(path: String, maxBytes: Long): BytesResult {
+        val envelope = buildJsonObject {
+            put("path", path)
+            put("method", "GET")
+            tasdiq?.current()?.let { put("tasdiq", it) }
+        }
+        val request = Request.Builder().url(baseUrl.resolve("/api/mobil/bff")!!).post(envelope.toRequestBody()).build()
+        return withContext(Dispatchers.IO) {
+            try {
+                http.newCall(request).execute().use { r ->
+                    val body = r.body
+                    val type = r.header("Content-Type").orEmpty()
+                    val declared = body?.contentLength() ?: -1L
+                    when {
+                        body == null -> BytesResult(r.code, null)
+                        declared > maxBytes -> BytesResult(413, null, code = "TOO_LARGE")
+                        !r.isSuccessful || type.startsWith("application/json") && declared in 0..65536 -> {
+                            // Error (or JSON error body): read the small text and keep only the code.
+                            val parsed = runCatching { json.parseToJsonElement(body.string()) }.getOrNull()
+                            val code = (parsed as? JsonObject)?.get("code")?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
+                            BytesResult(if (r.isSuccessful) 502 else r.code, null, code = code)
+                        }
+                        else -> {
+                            val out = java.io.ByteArrayOutputStream()
+                            val src = body.source()
+                            val buf = okio.Buffer()
+                            var total = 0L
+                            while (true) {
+                                val n = src.read(buf, 8192)
+                                if (n < 0) break
+                                total += n
+                                if (total > maxBytes) return@use BytesResult(413, null, code = "TOO_LARGE")
+                                out.write(buf.readByteArray())
+                            }
+                            BytesResult(r.code, out.toByteArray(), type.substringBefore(';').trim(), parseDispositionName(r.header("Content-Disposition")))
+                        }
+                    }
+                }
+            } catch (e: IOException) {
+                BytesResult(0, null)
+            }
+        }
     }
 
     override suspend fun upload(companyId: Long, obyektId: Long, body: okhttp3.RequestBody): ApiResult {

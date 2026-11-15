@@ -117,7 +117,7 @@ private fun NotificationsCard(items: List<NotificationItem>, unread: Int?, onMar
                         Box(Modifier.size(8.dp).clip(CircleShape).background(if (n.oqildi) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.primary))
                         Column(Modifier.weight(1f).padding(start = 10.dp)) {
                             Text(
-                                notifRes(notifKind(n.mavzu))?.let { stringResource(it) } ?: n.mavzu,
+                                notifRes(notifKind(n.mavzu))?.let { stringResource(it) } ?: stringResource(R.string.nt_other),
                                 style = MaterialTheme.typography.bodyMedium, color = if (n.oqildi) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                             )
                             n.yaratildi?.let { Text(it.replace('T', ' ').take(16), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }

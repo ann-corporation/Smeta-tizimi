@@ -111,6 +111,7 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
                 if ((o?.get("zanjir_id") as? JsonPrimitive)?.content == "8") ApiResult(200, buildJsonObject { put("ok", false); put("code", "NAVBAT_EMAS") }, "NAVBAT_EMAS")
                 else ok("""{"ok":true,"id":7,"holat":"jarayonda"}""")
             }
+            path.startsWith("/api/hujjat-royxat") -> ok(DEMO_DOCS)
             path.startsWith("/api/foto-dalil") -> ok("""{"ok":true,"id":900}""")
             else -> ApiResult(404, null)
         }
@@ -153,4 +154,36 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
         }
     }
     override suspend fun upload(companyId: Long, obyektId: Long, body: okhttp3.RequestBody): ApiResult = ok("""{"ok":true,"document_id":777}""")
+
+    /** Demo document download: ids 9001/9002 are a generated 2-page PDF, 9003 an .xlsx stand-in (no preview), anything else is missing. */
+    override suspend fun bffBytes(path: String, maxBytes: Long): uz.anncorp.smeta.core.data.BytesResult {
+        val id = path.substringAfter("id=").toLongOrNull() ?: return uz.anncorp.smeta.core.data.BytesResult(404, null)
+        return when (id) {
+            9001L, 9002L -> uz.anncorp.smeta.core.data.BytesResult(200, demoPdf(id), "application/pdf", "F-2 demo.pdf")
+            9003L -> uz.anncorp.smeta.core.data.BytesResult(200, ByteArray(2048) { 7 }, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "F-2 demo.xlsx")
+            else -> uz.anncorp.smeta.core.data.BytesResult(404, null, code = "CANONICAL_BINARY_MISSING")
+        }
+    }
+
+    private fun demoPdf(id: Long): ByteArray {
+        val doc = android.graphics.pdf.PdfDocument()
+        for (n in 1..2) {
+            val page = doc.startPage(android.graphics.pdf.PdfDocument.PageInfo.Builder(595, 842, n).create())
+            val p = android.graphics.Paint().apply { textSize = 22f; isAntiAlias = true }
+            page.canvas.drawText("DEMO F-2 #$id", 48f, 80f, p)
+            p.textSize = 14f
+            for (i in 0 until 24) page.canvas.drawText("Qator ${i + 1}   ${(i + 1) * 12}.5 m3   ·   sahifa $n", 48f, 130f + i * 28f, p)
+            doc.finishPage(page)
+        }
+        return java.io.ByteArrayOutputStream().also { doc.writeTo(it); doc.close() }.toByteArray()
+    }
+
+    private companion object {
+        const val DEMO_DOCS = """{"ok":true,"jami":4,"documents":[
+ {"id":"9001","filename":"F-2 2026-11 №501.pdf","type":"f2_hujjat","revision":1,"mime":"application/pdf","size":183500,"sha256":"aa11bb22cc33dd44","canonicalStatus":"READY","updatedAt":"2026-11-14T09:30:00+00:00","createdAt":"2026-11-14T09:30:00+00:00"},
+ {"id":"9003","filename":"F-2 2026-11 №501.xlsx","type":"f2_hujjat","revision":1,"mime":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","size":48200,"sha256":"ee55ff66aa77bb88","canonicalStatus":"READY","updatedAt":"2026-11-14T09:30:00+00:00","createdAt":"2026-11-14T09:30:00+00:00"},
+ {"id":"9002","filename":"Chizma A-3 rev2.pdf","type":"hujjat","revision":2,"mime":"application/pdf","size":2411000,"sha256":"1122334455667788","canonicalStatus":"READY","updatedAt":"2026-11-10T12:00:00+00:00","createdAt":"2026-11-10T12:00:00+00:00"},
+ {"id":"9004","filename":"Shartnoma qo'shimcha kelishuv.pdf","type":"hujjat","revision":1,"mime":"application/pdf","size":0,"sha256":"","canonicalStatus":"UPLOADING","updatedAt":"2026-11-09T08:00:00+00:00","createdAt":"2026-11-09T08:00:00+00:00"}
+]}"""
+    }
 }

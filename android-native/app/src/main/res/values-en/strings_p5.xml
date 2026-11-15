@@ -51,7 +51,7 @@
     <string name="f2_empty">No F-2 yet</string>
     <string name="f2_empty_hint">Once an F-2 is prepared for accepted work it will appear here.</string>
     <string name="f2_open_web">Open the F-2 registry on the website</string>
-    <string name="f2_pdf_hint">PDF and Excel downloads and the sums are in the website registry.</string>
+    <string name="f2_pdf_hint">F-2 PDF and Excel files open in the app with the \"F-2 documents\" button. Sums are in the website registry.</string>
     <string name="f2_summary">F-2 status</string>
     <string name="f2_act_title">F-2 no. %1$s</string>
     <string name="f2_flag_unpriced">%1$d unpriced</string>

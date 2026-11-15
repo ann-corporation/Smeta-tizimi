@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.UnfoldLess
 import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material.icons.filled.Warning
@@ -179,7 +180,7 @@ private fun groups(list: List<NodeEntity>): List<Group> {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun SmetaBrowseScreen(onBack: () -> Unit, onDraft: (Long) -> Unit = {}, vm: SmetaBrowseViewModel = hiltViewModel()) {
+fun SmetaBrowseScreen(onBack: () -> Unit, onDraft: (Long) -> Unit = {}, onJarvis: (Long) -> Unit = {}, vm: SmetaBrowseViewModel = hiltViewModel()) {
     val ui by vm.state.collectAsStateWithLifecycle()
     var editing by remember { mutableStateOf<NodeEntity?>(null) }
     val searching = ui.query.isNotBlank()
@@ -188,6 +189,7 @@ fun SmetaBrowseScreen(onBack: () -> Unit, onDraft: (Long) -> Unit = {}, vm: Smet
         WorkTopBar(
             ui.obyekt?.nom ?: stringResource(R.string.mod_smeta_native), onBack,
             actions = {
+                IconButton(onClick = { onJarvis(vm.id) }, modifier = Modifier.size(TouchTarget)) { Icon(Icons.Filled.AutoAwesome, stringResource(R.string.ja_from_object)) }
                 IconButton(onClick = vm::expandAll, modifier = Modifier.size(TouchTarget)) { Icon(Icons.Filled.UnfoldMore, stringResource(R.string.sm_expand_all)) }
                 IconButton(onClick = vm::collapseAll, modifier = Modifier.size(TouchTarget)) { Icon(Icons.Filled.UnfoldLess, stringResource(R.string.sm_collapse_all)) }
             },
