@@ -70,7 +70,7 @@ private fun EntryCard(e: OutboxEntity, vm: OutboxViewModel, onEditDraft: (Long) 
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(e.obyektNom, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface, maxLines = 2)
+                    Text(uz.anncorp.smeta.feature.ombor.outboxTitle(e), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface, maxLines = 2)
                     Text(stringResource(R.string.p1_outbox_lines, e.lineCount, formatStamp(e.createdAt).orEmpty()), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Surface(shape = RoundedCornerShape(50), color = color.copy(alpha = 0.16f)) {
@@ -86,7 +86,7 @@ private fun EntryCard(e: OutboxEntity, vm: OutboxViewModel, onEditDraft: (Long) 
             if (e.state == OutboxState.FAILED) {
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedButton(onClick = { vm.edit(e.id, onEditDraft) }, modifier = Modifier.heightIn(min = TouchTarget)) { Text(stringResource(R.string.p1_edit)) }
+                    if (!uz.anncorp.smeta.feature.ombor.isOmborKind(e.kind)) OutlinedButton(onClick = { vm.edit(e.id, onEditDraft) }, modifier = Modifier.heightIn(min = TouchTarget)) { Text(stringResource(R.string.p1_edit)) }
                     OutlinedButton(onClick = { vm.retry(e.id) }, modifier = Modifier.heightIn(min = TouchTarget)) { Text(stringResource(R.string.p1_retry_now)) }
                     TextButton(onClick = { vm.delete(e.id) }, modifier = Modifier.heightIn(min = TouchTarget)) { Text(stringResource(R.string.p1_remove), color = MaterialTheme.colorScheme.error) }
                 }

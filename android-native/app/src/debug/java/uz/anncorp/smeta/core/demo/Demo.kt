@@ -62,7 +62,14 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
             path.startsWith("/api/sb-yoz") -> ok(asset("fakt_ok.json"))
             path.startsWith("/api/sb") -> {
                 val jadval = (body as? JsonObject)?.get("jadval")?.let { (it as? JsonPrimitive)?.content }
-                if (jadval == "t2_obyekt_jami") ok(asset("objects.json")) else ApiResult(403, buildJsonObject { put("ok", false) }, "PERMISSION_DENIED")
+                val soro = (body as? JsonObject)?.get("soro")?.let { (it as? JsonPrimitive)?.content }
+                when {
+                    jadval == "t2_obyekt_jami" -> ok(asset("objects.json"))
+                    jadval == "t2_sklad_qoldiq" -> ok(asset("ombor_stock.json"))
+                    jadval == "t2_sklad_royxat" -> ok(asset("ombor_warehouses.json"))
+                    soro == "sklad_markaziy_qoldiq_v1" -> ok(asset("ombor_central.json"))
+                    else -> ApiResult(403, buildJsonObject { put("ok", false) }, "PERMISSION_DENIED")
+                }
             }
             else -> ApiResult(404, null)
         }

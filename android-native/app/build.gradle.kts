@@ -87,6 +87,12 @@ dependencies {
     implementation(libs.sqlite.ktx)
     implementation(libs.work.runtime)
     implementation(libs.icons.extended)
+    // Warehouse barcode/QR scan: CameraX + ML Kit bundled model (works offline, no Play services dependency).
+    implementation(libs.camerax.core)
+    implementation(libs.camerax.camera2)
+    implementation(libs.camerax.lifecycle)
+    implementation(libs.camerax.view)
+    implementation(libs.mlkit.barcode)
     debugImplementation(libs.compose.ui.tooling)
 
     testImplementation(libs.junit)

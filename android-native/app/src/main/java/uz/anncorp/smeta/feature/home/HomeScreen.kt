@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -51,9 +52,13 @@ import uz.anncorp.smeta.core.ui.QurLogo
 import uz.anncorp.smeta.core.ui.SoonPlaceholder
 import uz.anncorp.smeta.feature.company.WorkplaceSheet
 import uz.anncorp.smeta.feature.profile.ProfileScreen
+import uz.anncorp.smeta.feature.ombor.OmborAccess
+import uz.anncorp.smeta.feature.ombor.OmborScreen
 import uz.anncorp.smeta.feature.work.BannerViewModel
 import uz.anncorp.smeta.feature.work.ObjectsScreen
 import uz.anncorp.smeta.core.ui.OutboxBanner
+
+private const val OMBOR_TAB = 5
 
 private data class Tab(@StringRes val label: Int, val icon: ImageVector)
 
@@ -70,6 +75,7 @@ fun HomeScreen(onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOutbo
     val state by vm.state.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var sheet by rememberSaveable { mutableStateOf(false) }
+    val omborAccess = OmborAccess.forRole(state.selected?.rol)
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -77,6 +83,8 @@ fun HomeScreen(onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOutbo
         bottomBar = {
             NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
                 Tabs.forEachIndexed { i, t ->
+                    // Warehouse tab (role-gated) sits before Profile; the other tab indices are unchanged.
+                    if (i == 4 && omborAccess.read) NavigationBarItem(selected = tab == OMBOR_TAB, onClick = { tab = OMBOR_TAB }, icon = { Icon(Icons.Filled.Inventory2, contentDescription = null) }, label = { Text(stringResource(R.string.ombor_nav), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall) })
                     NavigationBarItem(
                         selected = tab == i, onClick = { tab = i },
                         icon = { Icon(t.icon, contentDescription = null) },
@@ -93,6 +101,7 @@ fun HomeScreen(onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOutbo
                     Spacer(Modifier.height(12.dp))
                     Text(stringResource(R.string.home_loading), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                tab == OMBOR_TAB && omborAccess.read -> OmborScreen(onOutbox)
                 tab == 4 -> ProfileScreen(state, onTheme = vm::setTheme, onSwitch = { sheet = true }, onSignOut = vm::signOut)
                 else -> TabBody(state, tab, vm::load, onOpenObject, onOpenFakt, onOutbox)
             }
