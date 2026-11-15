@@ -1,0 +1,13 @@
+{
+  "O‘zgarishlar saqlanmagan ({n})": { "ru": "Изменения не сохранены ({n})", "en": "Unsaved changes ({n})" },
+  "Saqlanmagan o‘zgarishlar bor": { "ru": "Есть несохранённые изменения", "en": "You have unsaved changes" },
+  "Bu sahifada saqlanmagan o‘zgarishlar bor. Chiqsangiz, ular yo‘qoladi.": { "ru": "На этой странице есть несохранённые изменения. Если выйти, они будут потеряны.", "en": "This page has unsaved changes. If you leave, they will be lost." },
+  "Saqlamasdan chiqish": { "ru": "Выйти без сохранения", "en": "Leave without saving" },
+  "Qolish": { "ru": "Остаться", "en": "Stay" },
+  "Saqlab bo‘lmadi": { "ru": "Не удалось сохранить", "en": "Could not save" },
+  "Saqlash": { "ru": "Сохранить", "en": "Save" },
+  "Saqlandi": { "ru": "Сохранено", "en": "Saved" },
+  "Saqlanmoqda…": { "ru": "Сохранение…", "en": "Saving…" },
+  "Saqlash paneli": { "ru": "Панель сохранения", "en": "Save panel" },
+  "Bekor qilish": { "ru": "Отмена", "en": "Cancel" }
+}

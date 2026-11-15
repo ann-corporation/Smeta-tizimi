@@ -65,6 +65,7 @@ import { useQoralamaHimoya } from '../../lib/ish-varaq/qoralama-himoya';
 import { useKatakFokus, useVirtualSatrlar } from '../../lib/ish-varaq/virtual-satrlar';
 import { chiqarilganlarOl } from '../../lib/ish-varaq/model';
 import { useFaktSaqlash } from '../../lib/ish-varaq/fakt-saqlash';
+import { SaqlashPaneli } from '../../umumiy/ui/SaqlashPaneli';
 import { faktPaketiQur } from '../../lib/ish-varaq/paket';
 import { FORMULA_ERROR_UZ, formulaMi } from '../../lib/formula/number-formula';
 import { kataAmali } from '../../lib/ish-varaq/kata-klavish';
@@ -1214,16 +1215,12 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
           </section>
         </div>}
 
-      {ozgarishSoni > 0 && <div className="sticky bottom-0 z-20 flex flex-wrap items-center gap-3 rounded-[var(--radius-md)] border border-accent/50 bg-surface px-4 py-2.5" style={{ boxShadow: 'var(--shadow-pop)' }} role="region" aria-label={t('Saqlash paneli')}>
-        <span className="text-[13px] font-semibold text-text">{t('{n} ta o‘zgarish', { n: String(ozgarishSoni) })}</span>
-        {paket.xatolar.size > 0 && <span className="fz-chip fz-chip--warn">{t('{n} tasida xato — tuzating', { n: String(paket.xatolar.size) })}</span>}
-        <span className="text-[12px] text-text-mute">{t('sana: {s}', { s: sana })}</span>
-        <div className="ml-auto flex items-center gap-2">
-          {tarix.length > 0 && <button type="button" onClick={() => orqaga()} className="fz-btn fz-btn--ghost" title={t('Oxirgi ommaviy amalni qaytarish')}>{t('Orqaga')} <kbd className="fz-kbd">Ctrl+Z</kbd></button>}
-          <button onClick={() => ommaviy({})} className="fz-btn fz-btn--ghost"><RotateCcw size={13} /> {t('Bekor qilish')}</button>
-          <button onClick={() => void saqla()} disabled={!paket.ok || band} className="fz-btn fz-btn--primary"><Save size={14} /> {band ? t('Saqlanmoqda…') : t('Saqlash')} <kbd className="fz-kbd">Ctrl+S</kbd></button>
-        </div>
-      </div>}
+      <SaqlashPaneli kalit="fakt-jurnal" soni={ozgarishSoni} saqla={() => saqla()} band={band} taqiq={!paket.ok} klaviatura={false} bekor={() => ommaviy({})}
+        qoshimcha={<>
+          {paket.xatolar.size > 0 && <span className="fz-chip fz-chip--warn">{t('{n} tasida xato — tuzating', { n: String(paket.xatolar.size) })}</span>}
+          <span className="text-[12px] text-text-mute">{t('sana: {s}', { s: sana })}</span>
+        </>}
+        tugmalar={tarix.length > 0 ? <button type="button" onClick={() => orqaga()} className="fz-btn fz-btn--ghost" title={t('Oxirgi ommaviy amalni qaytarish')}>{t('Orqaga')} <kbd className="fz-kbd">Ctrl+Z</kbd></button> : undefined} />
 
       <FaktAiYordamchi kompaniyaId={kompaniyaId} obyektId={obyektId}
         malumot={{ bolimlar, bolimIshlari, holatMap, summalar, bajHajm, materialTakliflari: (id) => takliflarSoni([id]), kiritmaSoni: ozgarishSoni }}
