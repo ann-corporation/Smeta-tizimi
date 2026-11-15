@@ -86,11 +86,12 @@ export type PortfelObyektMalumot = OyObyektMalumot & {
  * (faqat berilgan aktlar). Faqat o'qish. Biror o'qish xato/to'liq emas bo'lsa — throw (yarim ma'lumotdan summa
  * hisoblanmaydi; podval o'qilmasa jim smeta podvaliga o'tilmaydi).
  */
-export async function portfelObyektOl(kompaniyaId: number, obyektId: number, aktIdlar: readonly number[]): Promise<PortfelObyektMalumot> {
+export async function portfelObyektOl(kompaniyaId: number, obyektId: number, aktIdlar: readonly number[], faqatAktId?: number): Promise<PortfelObyektMalumot> {
   const [daraxt, kontekst, tafsilot, pv, aq] = await Promise.all([
     sbT2DaraxtOl(obyektId, T2_DARAXT_USTUNLARI),
     f2HujjatKonteksti(kompaniyaId, obyektId),
-    sbT2F2TafsilotOl({ obyektId, tur: 'f2' }),
+    // faqatAktId — bitta akt hujjati (mobil/server): tafsilot faqat shu akt bo'yicha o'qiladi (qolgan oylar o'qilmaydi).
+    sbT2F2TafsilotOl({ obyektId, tur: 'f2', ...(faqatAktId != null ? { aktId: faqatAktId } : {}) }),
     aktPodvallariniOl(obyektId),
     aktQatorlariOl(obyektId, aktIdlar),
   ]);

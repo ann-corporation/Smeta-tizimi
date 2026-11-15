@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="docs_mode_gen">Hujjat yaratish</string>
+    <string name="docs_mode_orig">Yuklangan asl fayllar</string>
+    <string name="gen_hint">Hujjat serverda tizimning o\'zidagi shablon va hisob bilan yaratiladi (saytdagi bilan bir xil). Qayta yuklash bepul.</string>
+    <string name="gen_empty">Yaratiladigan hujjat yo\'q</string>
+    <string name="gen_empty_hint">Bu obyektda F-2 yoki Форма № 3 hali yo\'q.</string>
+    <string name="gen_pdf">PDF</string>
+    <string name="gen_xlsx">Excel</string>
+    <string name="gen_working">Hujjat serverda yaratilmoqda…</string>
+    <string name="gen_err_tokens">Token yetmaydi. Veb-saytda «Tokenlar va obuna» bo\'limida to\'ldiring.</string>
+    <string name="gen_err_data">Hujjat yaratilmadi: obyekt ma\'lumoti to\'liq emas (masalan, smetada topilmagan qator).</string>
+    <string name="gen_err_server">Hujjatni yaratib bo\'lmadi. Qayta urinib ko\'ring.</string>
+</resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="docs_mode_gen">Создать документ</string>
+    <string name="docs_mode_orig">Загруженные оригиналы</string>
+    <string name="gen_hint">Документ формируется на сервере по тем же шаблонам и расчётам, что и на сайте. Повторная загрузка бесплатна.</string>
+    <string name="gen_empty">Нет документов для создания</string>
+    <string name="gen_empty_hint">По этому объекту ещё нет Ф-2 или Формы № 3.</string>
+    <string name="gen_pdf">PDF</string>
+    <string name="gen_xlsx">Excel</string>
+    <string name="gen_working">Документ создаётся на сервере…</string>
+    <string name="gen_err_tokens">Не хватает токенов. Пополните в разделе «Токены и подписка» на сайте.</string>
+    <string name="gen_err_data">Документ не создан: данные объекта неполные (например, строка не найдена в смете).</string>
+    <string name="gen_err_server">Не удалось создать документ. Повторите попытку.</string>
+</resources>

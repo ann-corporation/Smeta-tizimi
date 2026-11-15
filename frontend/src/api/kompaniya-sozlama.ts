@@ -29,7 +29,7 @@ export const kompaniyaSozlamaKalit = (kompaniyaId: number | null | undefined) =>
 
 export async function kompaniyaSozlamaOl(kompaniyaId: number): Promise<KompaniyaSozlama> {
   let r: Response;
-  try { r = await fetch(`/api/kompaniya-sozlama?kompaniya_id=${encodeURIComponent(String(kompaniyaId))}`, { credentials: 'same-origin' }); } catch { throw new SozlamaXatosi('TARMOQ', 0); }
+  try { r = await fetch(`/api/kompaniya-sozlama?kompaniya_id=${encodeURIComponent(String(kompaniyaId))}`, { credentials: 'same-origin' } as RequestInit); } catch { throw new SozlamaXatosi('TARMOQ', 0); }
   const j = await r.json().catch(() => null) as (Partial<KompaniyaSozlama> & { ok?: boolean; code?: string }) | null;
   if (r.status === 404) throw new SozlamaXatosi(j?.code ?? SERVER_YANGILANMAGAN, 404);
   if (!r.ok || !j || j.ok !== true) throw new SozlamaXatosi(j?.code ?? 'NOMA_LUM', r.status);
@@ -50,7 +50,7 @@ export async function kompaniyaSozlamaYoz(p: SozlamaYozish): Promise<void> {
     r = await fetch('/api/kompaniya-sozlama', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...p, operation_id: crypto.randomUUID() }),
-    });
+    } as RequestInit);
   } catch { throw new SozlamaXatosi('TARMOQ', 0); }
   const j = await r.json().catch(() => null) as { ok?: boolean; code?: string } | null;
   if (r.status === 404) throw new SozlamaXatosi(j?.code ?? SERVER_YANGILANMAGAN, 404);

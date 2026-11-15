@@ -75,6 +75,9 @@ interface BffApi {
     /** Binary GET through the BFF (document download). Answers larger than [maxBytes] are refused with status 413. */
     suspend fun bffBytes(path: String, maxBytes: Long): BytesResult = BytesResult(404, null)
 
+    /** Binary POST through the BFF (server-side document generation: the server returns the final XLSX/PDF). Same limits/errors as [bffBytes]. */
+    suspend fun bffPostBytes(path: String, body: JsonElement, maxBytes: Long): BytesResult = BytesResult(404, null)
+
     /** Multipart upload through POST /api/mobil/yukla (the canonical document upload; tenant scope travels in the query). */
     suspend fun upload(companyId: Long, obyektId: Long, body: okhttp3.RequestBody): ApiResult
 
@@ -120,10 +123,15 @@ class ApiClient(
         return post("/api/mobil/bff", envelope)
     }
 
-    override suspend fun bffBytes(path: String, maxBytes: Long): BytesResult {
+    override suspend fun bffBytes(path: String, maxBytes: Long): BytesResult = bytesCall(path, "GET", null, maxBytes)
+
+    override suspend fun bffPostBytes(path: String, body: JsonElement, maxBytes: Long): BytesResult = bytesCall(path, "POST", body, maxBytes)
+
+    private suspend fun bytesCall(path: String, method: String, body: JsonElement?, maxBytes: Long): BytesResult {
         val envelope = buildJsonObject {
             put("path", path)
-            put("method", "GET")
+            put("method", method)
+            if (body != null) put("body", body)
             tasdiq?.current()?.let { put("tasdiq", it) }
         }
         val request = Request.Builder().url(baseUrl.resolve("/api/mobil/bff")!!).post(envelope.toRequestBody()).build()

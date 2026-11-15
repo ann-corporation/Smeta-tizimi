@@ -75,7 +75,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import uz.anncorp.smeta.R
+import uz.anncorp.smeta.core.data.DocGenRepository
 import uz.anncorp.smeta.core.data.DocItem
+import uz.anncorp.smeta.core.data.GenItem
+import uz.anncorp.smeta.core.data.GenResult
 import uz.anncorp.smeta.core.data.DocKind
 import uz.anncorp.smeta.core.data.DocType
 import uz.anncorp.smeta.core.data.DocumentsRepository
@@ -105,12 +108,18 @@ data class DocsUi(
     val viewing: Viewing? = null,
     val error: Int? = null,
     val cached: Set<Long> = emptySet(),
+    /** Generation tab (default) vs. the stored originals tab. */
+    val genMode: Boolean = true,
+    val gen: List<GenItem>? = null,
+    val genLoading: Boolean = true,
+    /** key|format of the request in flight. */
+    val generating: String? = null,
 ) {
     val shown: List<DocItem>? get() = docs?.let { d -> if (f2Only) d.filter { it.isF2 } else d }
 }
 
 @HiltViewModel
-class DocumentsViewModel @Inject constructor(handle: SavedStateHandle, objects: ObjectsRepository, private val repo: DocumentsRepository, private val ctx: WorkContext) : ViewModel() {
+class DocumentsViewModel @Inject constructor(handle: SavedStateHandle, objects: ObjectsRepository, private val repo: DocumentsRepository, private val genRepo: DocGenRepository, private val ctx: WorkContext) : ViewModel() {
     val id: Long = checkNotNull(handle["id"])
     private val local = MutableStateFlow(DocsUi(f2Only = handle.get<Boolean>("f2") == true))
 
@@ -119,7 +128,38 @@ class DocumentsViewModel @Inject constructor(handle: SavedStateHandle, objects: 
         l.copy(name = o?.nom.orEmpty(), docs = docs, updatedAt = ts, cached = if (companyId == null) emptySet() else docs.orEmpty().filter { repo.isCached(companyId, it) }.map { it.id }.toSet())
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DocsUi())
 
-    init { refresh() }
+    init { refresh(); loadGen() }
+
+    fun setGenMode(v: Boolean) = local.update { it.copy(genMode = v) }
+
+    fun loadGen() {
+        val companyId = ctx.current.value?.companyId ?: run { local.update { it.copy(genLoading = false) }; return }
+        viewModelScope.launch {
+            local.update { it.copy(genLoading = true) }
+            val list = genRepo.list(companyId, id)
+            local.update { it.copy(genLoading = false, gen = list ?: it.gen) }
+        }
+    }
+
+    /** Asks the server for the final file (the app builds nothing) and opens it in the viewer. */
+    fun generate(item: GenItem, format: String) {
+        val companyId = ctx.current.value?.companyId ?: return
+        if (local.value.generating != null) return
+        local.update { it.copy(generating = item.key + '|' + format, error = null) }
+        viewModelScope.launch {
+            val r = genRepo.generate(companyId, id, item, format)
+            local.update {
+                when (r) {
+                    is GenResult.Ready -> it.copy(generating = null, viewing = Viewing(DocItem(-1, r.name, item.type, r.mime, r.bytes.size.toLong(), "", "", true), r.name, r.mime, r.bytes))
+                    GenResult.Offline -> it.copy(generating = null, error = R.string.docs_err_offline)
+                    GenResult.NoTokens -> it.copy(generating = null, error = R.string.gen_err_tokens)
+                    GenResult.Forbidden -> it.copy(generating = null, error = R.string.docs_err_forbidden)
+                    GenResult.DataIncomplete -> it.copy(generating = null, error = R.string.gen_err_data)
+                    is GenResult.Failed -> it.copy(generating = null, error = R.string.gen_err_server)
+                }
+            }
+        }
+    }
 
     fun refresh() {
         val companyId = ctx.current.value?.companyId ?: run { local.update { it.copy(syncing = false, result = SyncResult.Failed("NO_COMPANY")) }; return }
@@ -174,6 +214,10 @@ fun DocumentsScreen(onBack: () -> Unit, vm: DocumentsViewModel = hiltViewModel()
 @Composable
 private fun DocsList(ui: DocsUi, vm: DocumentsViewModel) {
     Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FilterChip(selected = ui.genMode, onClick = { vm.setGenMode(true) }, label = { Text(stringResource(R.string.docs_mode_gen)) })
+        FilterChip(selected = !ui.genMode, onClick = { vm.setGenMode(false) }, label = { Text(stringResource(R.string.docs_mode_orig)) })
+    }
+    if (!ui.genMode) Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         FilterChip(selected = !ui.f2Only, onClick = { vm.setF2Only(false) }, label = { Text(stringResource(R.string.docs_filter_all)) })
         FilterChip(selected = ui.f2Only, onClick = { vm.setF2Only(true) }, label = { Text(stringResource(R.string.docs_filter_f2)) })
     }
@@ -185,6 +229,7 @@ private fun DocsList(ui: DocsUi, vm: DocumentsViewModel) {
             }
         }
     }
+    if (ui.genMode) { GenList(ui, vm); return }
     PullToRefreshBox(isRefreshing = ui.syncing && ui.docs != null, onRefresh = { vm.refresh() }, modifier = Modifier.fillMaxSize()) {
         val docs = ui.shown
         when {
@@ -197,6 +242,46 @@ private fun DocsList(ui: DocsUi, vm: DocumentsViewModel) {
             else -> LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp, 8.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(docs, key = { it.id }) { d -> DocCard(d, cached = d.id in ui.cached, opening = ui.opening == d.id) { vm.open(d) } }
                 item { UpdatedLine(ui.updatedAt, Modifier.padding(top = 4.dp)) }
+            }
+        }
+    }
+}
+
+/** "Hujjat yaratish": the list comes from the server; each row requests the final PDF or Excel (the app draws nothing itself). */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun GenList(ui: DocsUi, vm: DocumentsViewModel) {
+    val items = ui.gen.orEmpty().let { l -> if (ui.f2Only) l.filter { it.isF2 } else l }
+    PullToRefreshBox(isRefreshing = ui.genLoading && ui.gen != null, onRefresh = { vm.loadGen() }, modifier = Modifier.fillMaxSize()) {
+        when {
+            ui.gen == null && ui.genLoading -> SkeletonList(4)
+            ui.gen == null -> EmptyState(Icons.Filled.Warning, stringResource(R.string.err_server), stringResource(R.string.err_network), stringResource(R.string.retry)) { vm.loadGen() }
+            items.isEmpty() -> EmptyState(Icons.Outlined.Description, stringResource(R.string.gen_empty), stringResource(R.string.gen_empty_hint))
+            else -> LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp, 8.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                item { Text(stringResource(R.string.gen_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                items(items, key = { it.key }) { g -> GenCard(g, ui.generating) { fmt -> vm.generate(g, fmt) } }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GenCard(g: GenItem, generating: String?, onGenerate: (String) -> Unit) {
+    WorkCard(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.Description, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+                Spacer(Modifier.width(12.dp))
+                Text(g.title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface, maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                g.formats.forEach { fmt ->
+                    val busy = generating == g.key + '|' + fmt
+                    val label = stringResource(if (fmt == "pdf") R.string.gen_pdf else R.string.gen_xlsx)
+                    val modifier = Modifier.weight(1f).heightIn(min = TouchTarget)
+                    if (fmt == "pdf") Button(onClick = { onGenerate(fmt) }, enabled = generating == null, modifier = modifier) { if (busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Text(label) }
+                    else OutlinedButton(onClick = { onGenerate(fmt) }, enabled = generating == null, modifier = modifier) { if (busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Text(label) }
+                }
             }
         }
     }
