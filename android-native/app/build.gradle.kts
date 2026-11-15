@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
@@ -17,9 +17,9 @@ android {
         minSdk = 26
         targetSdk = 35
         // Tauri Android build: major*1e6+minor*1e3+patch (0.1.1 -> 1001). Start above it so a native release upgrades it in place.
-        versionCode = 2_000_000
+        versionCode = 2_000_001
         // Format must match the server's ilovaVersiya() regex: d{1,4}.d{1,4}.d{1,6}
-        versionName = "0.1.1"
+        versionName = "0.1.2"
         buildConfigField("String", "API_BASE_URL", "\"https://smeta-tizimi.pages.dev\"")
         resourceConfigurations += listOf("uz", "ru", "en")
     }
