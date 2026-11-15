@@ -52,7 +52,7 @@ export function F2AiRejaBolim({ bolimlar, kompaniyaId, onQoshish }: {
         {reja.qatorlar.length > 0 && <>
           <div className="max-h-[30vh] overflow-auto">
             <table className="w-full text-[12px]">
-              <thead><tr className="text-left text-text-mute"><th className="w-6" /><th>{t('Ish')}</th><th className="text-right">{t('Hajm')}</th><th className="text-right">{t('Qoldiq')}</th><th>{t('Dalil')}</th></tr></thead>
+              <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left text-text-mute"><th className="w-6" /><th>{t('Ish')}</th><th className="text-right">{t('Hajm')}</th><th className="text-right">{t('Qoldiq')}</th><th>{t('Dalil')}</th></tr></thead>
               <tbody>{reja.qatorlar.map((q, i) => <tr key={i} className="border-t border-border/40 align-top">
                 <td className={`py-1 font-semibold ${RANG[q.holat]}`}>{BELGI[q.holat]}</td>
                 <td className="py-1 pr-2">{q.niyat.tavsif}

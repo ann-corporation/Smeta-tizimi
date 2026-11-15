@@ -37,9 +37,9 @@ export function Kartochka({ kid, davr, versiya, hisoblar, hisob, onHisob }: {
       </div>
       {!hisob && <p className="text-[12.5px] text-text-mute">{t('Kartochka ko‘rish uchun hisobni tanlang yoki Oborot-saldodan hisob qatorini bosing.')}</p>}
       {d && o && y && (
-        <div className="overflow-x-auto">
+        <div className="max-h-[70vh] overflow-auto">
           <table className="w-full min-w-[900px] text-[12.5px]" aria-label={t('Hisob kartochkasi')}>
-            <thead><tr className="text-left text-[11px] uppercase text-text-mute">
+            <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left text-[11px] uppercase text-text-mute">
               <th className={th}>{t('Sana')}</th><th className={th}>{t('Hujjat')}</th><th className={th}>{t('Kontragent')}</th><th className={th}>{t('Qarshi hisob')}</th>
               <th className={`${th} text-right`}>{t('Debet')}<Izoh matn={DT_IZOH()} /></th><th className={`${th} text-right`}>{t('Kredit')}<Izoh matn={KT_IZOH()} /></th>
               <th className={`${th} text-right`}>{t('Saldo')}</th>

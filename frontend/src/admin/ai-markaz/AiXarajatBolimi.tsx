@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { byudjetBelgila, ustamaBelgila, type Markaz } from '../../api/t2-agent-ish';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
+import { SaqlashPaneli } from '../../umumiy/ui/SaqlashPaneli';
 import { foiz, usd } from './ai-markaz-yordam';
 import { limitHolati, tokenMatn } from '../../lib/ai-korinish';
 
@@ -18,21 +19,33 @@ export function AiXarajatBolimi({ m, kompaniyalar, yangila }: { m: Markaz; kompa
   const [ust, setUst] = useState(String(m.ustama_foiz ?? 40));
   const [uKId, setUKId] = useState('');
   const [uK, setUK] = useState('');
+  const aslLimit = m.limit_usd != null ? String(m.limit_usd) : '';
+  const aslOgoh = String(m.ogohlantirish_foiz ?? 80);
+  const aslUst = String(m.ustama_foiz ?? 40);
+  const ozgarish = (plLimit !== aslLimit ? 1 : 0) + (ogoh !== aslOgoh ? 1 : 0) + (ust !== aslUst ? 1 : 0);
   const ustFoiz = Number(ust);
   const misol = Number.isFinite(ustFoiz) && ustFoiz >= 0 ? 5 * (1 + ustFoiz / 100) : null;
 
-  const saqla = async (kompaniya: number | null, limit: string, ogohFoiz: number, faol = true) => {
+  const saqla = async (kompaniya: number | null, limit: string, ogohFoiz: number, faol = true): Promise<boolean> => {
     const v = Number(limit);
-    if (!limit.trim() || !Number.isFinite(v) || v < 0) { toast(t('Limit musbat son bo‘lishi kerak'), 'warn'); return; }
+    if (!limit.trim() || !Number.isFinite(v) || v < 0) { toast(t('Limit musbat son bo‘lishi kerak'), 'warn'); return false; }
     const r = await byudjetBelgila(kompaniya, v, ogohFoiz, faol);
     if (r.ok) { toast(t('Limit saqlandi'), 'ok'); yangila(); } else toast(r.error, 'danger');
+    return r.ok;
   };
-  const ustamaSaqla = async (kompaniya: number | null, qiymat: string) => {
+  const ustamaSaqla = async (kompaniya: number | null, qiymat: string): Promise<boolean> => {
     const v = qiymat.trim() === '' ? null : Number(qiymat);
-    if (kompaniya == null && v == null) { toast(t('Ustama foizini kiriting'), 'warn'); return; }
-    if (v != null && (!Number.isFinite(v) || v < 0 || v > 1000)) { toast(t('Ustama 0 dan 1000 gacha bo‘lishi kerak'), 'warn'); return; }
+    if (kompaniya == null && v == null) { toast(t('Ustama foizini kiriting'), 'warn'); return false; }
+    if (v != null && (!Number.isFinite(v) || v < 0 || v > 1000)) { toast(t('Ustama 0 dan 1000 gacha bo‘lishi kerak'), 'warn'); return false; }
     const r = await ustamaBelgila(kompaniya, v);
     if (r.ok) { toast(t('Ustama saqlandi'), 'ok'); yangila(); } else toast(r.error, 'danger');
+    return r.ok;
+  };
+  const saqlaHammasi = async (): Promise<boolean> => {
+    let ok = true;
+    if (ust !== aslUst) ok = (await ustamaSaqla(null, ust)) && ok;
+    if (plLimit !== aslLimit || ogoh !== aslOgoh) ok = (await saqla(null, plLimit, Number(ogoh) || 80)) && ok;
+    return ok;
   };
   const sarfFoiz = m.limit_usd ? foiz(m.oy_sarfi_usd, m.limit_usd) : 0;
   const narxsiz = m.modellar.reduce((a, x) => a + x.narxsiz, 0);
@@ -52,7 +65,6 @@ export function AiXarajatBolimi({ m, kompaniyalar, yangila }: { m: Markaz; kompa
         <p className="mb-2 text-[12px] text-text-mute">{t('Kompaniyadan olinadigan narx = OpenRouter haqiqiy sarfi × (1 + ustama%). Natija so‘mga, so‘ng tokenga aylantirilib, kompaniya hamyonidan yechiladi (kurs va token narxi — «Sozlamalar»da).')}</p>
         <div className="flex flex-wrap items-end gap-2 text-[11px] text-text-mute">
           <label className="flex flex-col gap-1">{t('Standart ustama (%)')}<input inputMode="decimal" value={ust} onChange={(e) => setUst(e.target.value)} className="input h-8 w-24 px-2 text-[13px]" /></label>
-          <button type="button" className="fz-btn fz-btn--primary h-8 px-3 text-[12px]" onClick={() => void ustamaSaqla(null, ust)}>{t('Saqlash')}</button>
           {misol != null && <span className="pb-1.5 text-[12px] text-text-dim">{t('Misol')}: $5.00 → <b className="text-text">{usd(misol)}</b></span>}
         </div>
         <div className="mt-3 flex flex-wrap items-end gap-2 text-[11px] text-text-mute">
@@ -72,7 +84,6 @@ export function AiXarajatBolimi({ m, kompaniyalar, yangila }: { m: Markaz; kompa
         <div className="flex flex-wrap items-end gap-2 text-[11px] text-text-mute">
           <label className="flex flex-col gap-1">{t('Oylik limit ($)')}<MoneyInput inputMode="decimal" value={plLimit} onValueChange={(moneyValue) => setPlLimit(moneyValue)} placeholder={LIMIT_NAMUNA} className="input h-8 w-28 px-2 text-[13px]" /></label>
           <label className="flex flex-col gap-1">{t('Ogohlantirish (%)')}<input inputMode="numeric" value={ogoh} onChange={(e) => setOgoh(e.target.value)} className="input h-8 w-20 px-2 text-[13px]" /></label>
-          <button type="button" className="fz-btn fz-btn--primary h-8 px-3 text-[12px]" onClick={() => void saqla(null, plLimit, Number(ogoh) || 80)}>{t('Saqlash')}</button>
           {m.limit_usd != null && <button type="button" className="fz-btn h-8 px-3 text-[12px] text-danger" onClick={() => void saqla(null, plLimit || String(m.limit_usd), Number(ogoh) || 80, false)}>{t('AI ni to‘xtatish (kill-switch)')}</button>}
         </div>
         <div className="mt-3 flex flex-col gap-1.5" data-testid="ai-limit-holati">
@@ -121,6 +132,7 @@ export function AiXarajatBolimi({ m, kompaniyalar, yangila }: { m: Markaz; kompa
           </tbody></table>
         </section>
       </div>
+      <SaqlashPaneli kalit="ai-xarajat" soni={ozgarish} saqla={saqlaHammasi} bekor={() => { setPlLimit(aslLimit); setOgoh(aslOgoh); setUst(aslUst); }} />
     </div>
   );
 }

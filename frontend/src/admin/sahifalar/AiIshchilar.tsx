@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { aiIshchiOl, aiIshchiYoz, type IshchiQatori, type ManbaQatori, type NatijaQatori, type SarfMalumoti, type YozFn } from '../../api/ai-ishchi';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
+import { SaqlashPaneli } from '../../umumiy/ui/SaqlashPaneli';
 
 const son = (n: number | null | undefined) => (n == null ? '—' : Math.round(n).toLocaleString('ru-RU'));
 const vaqt = (s: string | null | undefined) => (s ? new Date(s).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' }) : '—');
@@ -29,6 +30,7 @@ function IshchiKarta({ w, kid, band, onYoz }: { w: IshchiQatori; kid: number | n
   const serverKaliti = `||`;
   const oldingi = useRef(serverKaliti);
   useEffect(() => { if (oldingi.current === serverKaliti) return; oldingi.current = serverKaliti; setJadval(w.jadval); setAiX(w.ai_xulosa); setMaxT(String(w.max_token_ish)); }, [serverKaliti, w.jadval, w.ai_xulosa, w.max_token_ish]);
+  const ozgarish = (jadval !== w.jadval ? 1 : 0) + (aiX !== w.ai_xulosa ? 1 : 0) + (maxT !== String(w.max_token_ish) ? 1 : 0);
   const saqla = (yoqilgan: boolean) => onYoz(() => aiIshchiYoz({ amal: 'sozlama_saqla', kompaniya_id: kid, ishchi: w.kod, yoqilgan, jadval, soat: w.soat, ai_xulosa: aiX, max_token_ish: Number(maxT) || 3000 }), yoqilgan ? 'Ishchi yoqildi' : 'Ishchi saqlandi');
   return (
     <div className="fz-panel space-y-2" data-testid={`ishchi-${w.kod}`}>
@@ -54,9 +56,9 @@ function IshchiKarta({ w, kid, band, onYoz }: { w: IshchiQatori; kid: number | n
         <label className="flex items-center gap-1">{t('Bitta ish chegarasi (token)')}
           <input className="h-7 w-20 px-1 tabular-nums" inputMode="numeric" value={maxT} onChange={(e) => setMaxT(e.target.value.replace(/[^0-9]/g, ''))} />
         </label>
-        <button type="button" className="fz-btn fz-btn--sm" disabled={band} onClick={() => void saqla(w.yoqilgan)}>{t('Saqlash')}</button>
         <button type="button" className={`fz-btn fz-btn--sm ${w.yoqilgan ? '' : 'fz-btn--primary'}`} disabled={band} onClick={() => void saqla(!w.yoqilgan)}>{w.yoqilgan ? t('O‘chirish') : t('Yoqish')}</button>
       </div>
+      <SaqlashPaneli kalit={`ai-ishchi-${kid ?? 0}-${w.kod}`} soni={ozgarish} band={band} klaviatura={false} saqla={() => saqla(w.yoqilgan)} bekor={() => { setJadval(w.jadval); setAiX(w.ai_xulosa); setMaxT(String(w.max_token_ish)); }} />
       {w.oxirgi && (
         <div className="flex flex-wrap items-center gap-2 text-[12px] text-text-mute" data-testid="ishchi-oxirgi">
           {t('Oxirgi ish')}: {vaqt(w.oxirgi.yaratildi)} <HolatChip holat={w.oxirgi.holat} />

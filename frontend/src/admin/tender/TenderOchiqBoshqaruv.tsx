@@ -153,9 +153,9 @@ function Lot({ kid, rfqId, yangila }: { kid: number; rfqId: number; yangila: () 
       {d.ochilgan && b && (
         <>
           {b.ogohlantirishlar.length > 0 && <p role="alert" className="rounded-lg bg-surface-2 p-2 text-[13px]">{t('Kelishuv belgilari (signal, hukm emas)')}: {b.ogohlantirishlar.map((o) => `${t(o.tur === 'bir_foydalanuvchi' ? 'bir foydalanuvchi' : o.tur === 'bir_xil_jami' ? 'bir xil jami' : 'bir xil narx nisbati')} (#${o.taklif_idlar.join(', #')})`).join('; ')}</p>}
-          <div className="overflow-x-auto">
+          <div className="max-h-[70vh] overflow-auto">
             <table className="w-full min-w-[560px] text-[14px]">
-              <thead><tr className="text-left text-text-mute"><th>{t('Ishtirokchi')}</th><th className="text-right">{t('Jami (QQS siz)')}</th><th>{t('Muddat (kun)')}</th><th>{t('Kafolat (oy)')}</th><th>{t('Holat')}</th><th /></tr></thead>
+              <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left text-text-mute"><th>{t('Ishtirokchi')}</th><th className="text-right">{t('Jami (QQS siz)')}</th><th>{t('Muddat (kun)')}</th><th>{t('Kafolat (oy)')}</th><th>{t('Holat')}</th><th /></tr></thead>
               <tbody>{taqqos.map((x) => (
                 <tr key={x.taklif_id} className={`border-t border-border ${x.holat === 'golib' ? 'bg-surface-2 font-semibold' : ''}`}>
                   <td>{x.kompaniya}</td><td className="text-right tabular-nums"><FmtN val={x.jami} /></td><td>{x.muddat_kun_max ?? '—'}</td><td>{x.kafolat_oy ?? '—'}</td><td>{x.holat}</td>

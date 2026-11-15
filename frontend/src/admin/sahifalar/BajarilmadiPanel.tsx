@@ -9,6 +9,7 @@ import { bajarilmadiXlsx } from '../../lib/bajarilmadi-export';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { t } from '../../i18n/til';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { Info } from 'lucide-react';
 
 const BARG = new Set(['bl', 'rs', 'mat', 'ob']);
@@ -81,6 +82,7 @@ export function BajarilmadiPanel({ kompaniyaId, obyektId, obyektNomi, qatorlar, 
   };
 
   const bekor = async (x: BajarilmadiQator) => {
+    if (!(await tasdiqSora({ matn: t('Belgi bekor qilinsinmi? Resurs yana F2 ga olinadi.'), tasdiqMatni: t('Bekor qilish'), xavfli: true }))) return;
     setBand(true); setXabar(null);
     try {
       const r = await bajarilmadiBekor({ kompaniyaId, id: x.id, sabab: 'Belgi bekor qilindi', operationId: yangiOperationId() });

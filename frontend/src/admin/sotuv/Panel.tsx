@@ -104,9 +104,9 @@ export function Panel({ p, loyihaId, setLoyihaId, bitimOch }: {
 
       <Blok nom={t('Kechikkan to‘lovlar (qo‘ng‘iroq ro‘yxati)')}>
         {!p.kechikkanlar.length ? <p className="text-[12px] text-text-mute">{t('Kechikkan to‘lov yo‘q')}</p> : (
-          <div className="overflow-x-auto">
+          <div className="max-h-[70vh] overflow-auto">
             <table className="w-full text-[12.5px]">
-              <thead className="text-left text-text-mute"><tr><th className="px-1">{t('Mijoz')}</th><th className="px-1">{t('Telefon')}</th><th className="px-1 text-right">{t('Qarz')}</th><th className="px-1 text-right">{t('Kun')}</th></tr></thead>
+              <thead className="sticky top-0 z-10 bg-surface text-left text-text-mute"><tr><th className="px-1">{t('Mijoz')}</th><th className="px-1">{t('Telefon')}</th><th className="px-1 text-right">{t('Qarz')}</th><th className="px-1 text-right">{t('Kun')}</th></tr></thead>
               <tbody>
                 {p.kechikkanlar.map((k) => (
                   <tr key={k.bitim_id} className="border-t border-border/50">

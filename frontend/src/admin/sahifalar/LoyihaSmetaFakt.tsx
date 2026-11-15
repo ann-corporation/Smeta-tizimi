@@ -423,8 +423,8 @@ export default function LoyihaSmetaFakt() {
               <select className={inp} aria-label={t('Varaq')} value={filtrVaraq} onChange={(e) => setFiltrVaraq(e.target.value)}><option value="">{t('Barcha varaqlar')}</option>{varaqlar.map((v) => <option key={v} value={v}>{v}</option>)}</select>
               <label className="text-xs">{t('Kamida (so‘m, QQS bilan)')} <MoneyInput className={inp + ' w-32'} value={minPul} numericValue onValueChange={(r) => setMinPul(Number(r) || 0)} /></label>
             </div>
-            <div className="overflow-x-auto"><table className="w-full text-[13px]">
-              <thead><tr className="text-left"><th>{t('Varaq')}</th><th>{t('Ish')}</th><th className="num">{t('Loyiha')}</th><th className="num">{t('Smeta')}</th><th className="num">{t('Fakt')}</th><th className="num">{t('Farq')}</th><th className="num">{t('Pul (QQS bilan / siz)')}</th><th>{t('Qaror')}</th></tr></thead>
+            <div className="max-h-[70vh] overflow-auto"><table className="w-full text-[13px]">
+              <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left"><th>{t('Varaq')}</th><th>{t('Ish')}</th><th className="num">{t('Loyiha')}</th><th className="num">{t('Smeta')}</th><th className="num">{t('Fakt')}</th><th className="num">{t('Farq')}</th><th className="num">{t('Pul (QQS bilan / siz)')}</th><th>{t('Qaror')}</th></tr></thead>
               <tbody>{korinadigan.map((f, i) => {
                 const m = miqdorOf(f.miqdorId); const nz = m ? nomzodlar.get(m.id) : null;
                 return (

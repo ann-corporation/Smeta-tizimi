@@ -151,7 +151,7 @@ export function BoshqaJoydan({ kompaniyaId, obyektId, qator, bolimlar, onYop, on
               </label>
             </div>
             <table className="w-full text-[12px]">
-              <thead className="bg-surface-2 text-[11px] text-text-dim"><tr><th className="p-1.5 text-left">{t('Resurs')}</th><th className="w-20 p-1.5 text-left">{t('Birlik')}</th><th className="w-24 p-1.5 text-right">{t('Norma')}</th><th className="w-24 p-1.5 text-right">{t('Hajm')}</th><th className="w-28 p-1.5 text-right">{t('Narx')}</th><th className="w-28 p-1.5 text-right">{t('Summa')}</th></tr></thead>
+              <thead className="sticky top-0 z-10 bg-surface-2 text-[11px] text-text-dim"><tr><th className="p-1.5 text-left">{t('Resurs')}</th><th className="w-20 p-1.5 text-left">{t('Birlik')}</th><th className="w-24 p-1.5 text-right">{t('Norma')}</th><th className="w-24 p-1.5 text-right">{t('Hajm')}</th><th className="w-28 p-1.5 text-right">{t('Narx')}</th><th className="w-28 p-1.5 text-right">{t('Summa')}</th></tr></thead>
               <tbody>
                 {resurslar.map((r, i) => (
                   <tr key={i} className="border-t border-border/60">

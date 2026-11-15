@@ -4,6 +4,7 @@ import { t } from '../../i18n/til';
 import { FmtN } from '../../lib/format';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
 import { toast } from '../../umumiy/ui/Toast';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { yangiOperationId } from '../../api/supabase';
 import { HrKpiBlok } from './HrKpiBlok';
 import { hrOylikAmal, hrTuzatmaQaror, hrTuzatmaSaqla, type HrKpi, type HrKpiQator, type HrOy, type HrTuzatma, type HrXodimlarJavob } from '../../api/t2-hr';
@@ -35,10 +36,12 @@ export function HrTuzatmalar({ kid, oy, d, o, qayta }: { kid: number; oy: string
     if (yozNatija(r, 'Qoralama yaratildi (tasdiq kutmoqda)')) { setF({ ...f, izoh: '', qiymat: '', akt: '', sifat: '', fayl: '' }); await qayta(); }
   };
   const qaror = async (x: HrTuzatma, q: 'tasdiqlangan' | 'rad') => {
+    if (q === 'rad' && !(await tasdiqSora({ matn: t('Yozuv rad etilsinmi?'), tasdiqMatni: t('Rad etish'), xavfli: true }))) return;
     const r = await hrTuzatmaQaror({ kompaniyaId: kid, id: x.id, qaror: q, izoh: qarorIzoh || null, kutilganVersiya: x.versiya, operationId: yangiOperationId() });
     if (yozNatija(r, q === 'tasdiqlangan' ? 'Tasdiqlandi' : 'Rad etildi')) await qayta();
   };
   const bekor = async (x: HrTuzatma) => {
+    if (!(await tasdiqSora({ matn: t('Yozuv bekor qilinsinmi?'), tasdiqMatni: t('Bekor qilish'), xavfli: true }))) return;
     const r = await hrTuzatmaSaqla({ kompaniyaId: kid, kutilganVersiya: x.versiya, operationId: yangiOperationId(), tuzatma: { id: x.id, bekor: true } });
     if (yozNatija(r, 'Bekor qilindi')) await qayta();
   };

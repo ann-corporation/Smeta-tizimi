@@ -21,9 +21,9 @@ export function Mijozlar({ kid, bitimlariniOch }: { kid: number; bitimlariniOch:
       {m.error && <p className="fz-note fz-note--danger">{t((m.error as Error).message)}</p>}
       {m.data && !m.data.length && <p className="text-text-mute">{t('Mijoz topilmadi.')}</p>}
       {!!m.data?.length && (
-        <div className="overflow-x-auto rounded-md border border-border">
+        <div className="max-h-[70vh] overflow-auto rounded-md border border-border">
           <table className="w-full text-[12.5px]">
-            <thead className="bg-surface text-left text-text-mute">
+            <thead className="sticky top-0 z-10 bg-surface text-left text-text-mute">
               <tr><th className="px-2 py-1.5">{t('F.I.O.')}</th><th className="px-2">{t('Telefon')}</th><th className="px-2">{t('Manba')}</th><th className="px-2 text-right">{t('Bitimlar')}</th><th className="px-2">{t('Rozilik')}</th><th className="px-2">{t('Qo‘shilgan')}</th></tr>
             </thead>
             <tbody>

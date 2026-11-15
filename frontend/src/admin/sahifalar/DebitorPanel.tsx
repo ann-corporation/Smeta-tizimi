@@ -40,9 +40,9 @@ export function DebitorPanel({ kid }: { kid: number }) {
         <div><span className={yorliq}>{t('Qarz')}</span><b><Son v={jami.qarz} /></b></div>
       </div>
       {jami.qarzNomalum > 0 && <p className="mt-1 text-[11px] text-text-mute">{t('{n} ta shartnomada qarz noma‘lum — jamiga kirmagan.', { n: jami.qarzNomalum })}</p>}
-      <div className="mt-2 overflow-x-auto">
+      <div className="mt-2 max-h-[70vh] overflow-auto">
         <table className="w-full min-w-[820px] text-[12px]" aria-label={t('Buyurtmachi qarzi ro‘yxati')}>
-          <thead><tr className="text-left text-[11px] uppercase text-text-mute">
+          <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left text-[11px] uppercase text-text-mute">
             <th className="px-2 py-1">{t('Buyurtmachi')}</th><th className="px-2 py-1">{t('Shartnoma')}</th>
             <th className="px-2 py-1 text-right">{t('F2 (ustamasiz)')}</th><th className="px-2 py-1 text-right">{t('F3 (hisob-faktura)')}</th>
             <th className="px-2 py-1 text-right">{t('To‘langan')}</th><th className="px-2 py-1 text-right">{t('Qarz')}</th><th className="px-2 py-1" />

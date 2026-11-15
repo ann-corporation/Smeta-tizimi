@@ -1,0 +1,10 @@
+{
+  "Order bekor qilinadi: teskari yozuv (storno) yaratiladi. Davom etasizmi?": { "ru": "Ордер будет отменён: создаётся сторно-запись. Продолжить?", "en": "The order will be cancelled: a reversing (storno) entry is created. Continue?" },
+  "Hamma boshlang‘ich qoldiq provodkalari storno qilinadi. Davom etasizmi?": { "ru": "Все проводки начальных остатков будут сторнированы. Продолжить?", "en": "All opening-balance postings will be reversed. Continue?" },
+  "Belgi bekor qilinsinmi? Resurs yana F2 ga olinadi.": { "ru": "Отменить отметку? Ресурс снова попадёт в Ф-2.", "en": "Cancel the mark? The resource goes back into the F2." },
+  "To‘lov xabari bekor qilinsinmi?": { "ru": "Отменить уведомление об оплате?", "en": "Cancel the payment notice?" },
+  "Ruxsat qaytarib olinsinmi? Tomon endi bu ma‘lumotlarni ko‘ra olmaydi.": { "ru": "Отозвать доступ? Сторона больше не увидит эти данные.", "en": "Revoke access? The party will no longer see this data." },
+  "Qaytarib olish": { "ru": "Отозвать", "en": "Revoke" },
+  "Yozuv bekor qilinsinmi?": { "ru": "Отменить запись?", "en": "Cancel the entry?" },
+  "Yozuv rad etilsinmi?": { "ru": "Отклонить запись?", "en": "Reject the entry?" }
+}

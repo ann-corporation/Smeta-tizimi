@@ -63,9 +63,9 @@ export function KatalogQidiruv() {
       </div>
       {xato && <div role="alert" className="text-[12px] text-danger">{xato}</div>}
       {natija && (
-        <div className="overflow-auto rounded-lg border border-border">
+        <div className="max-h-[70vh] overflow-auto rounded-lg border border-border">
           <table className="w-full min-w-[900px] text-[12px]">
-            <thead className="bg-white/[.03] text-left text-[11px] text-text-mute">
+            <thead className="sticky top-0 z-10 bg-surface-2 text-left text-[11px] text-text-mute">
               <tr><th className="p-2">{t('Nomi')}</th><th className="p-2">{t('Birlik')}</th><th className="p-2 text-right">{t('Narx')}</th><th className="p-2">{t('QQS')}</th><th className="p-2">{t('Ishlab chiqaruvchi')}</th><th className="p-2">{t('Hudud')}</th><th className="p-2">{t('Davr')}</th></tr>
             </thead>
             <tbody>
