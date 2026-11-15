@@ -35,3 +35,40 @@ for (const forbidden of ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'READ
 }
 writeFileSync(file, xml);
 console.log('android manifest policy applied');
+
+// MainActivity: the generated one calls enableEdgeToEdge(), so the site was drawn under the status bar
+// (clock/battery icons covered the header and its buttons could not be tapped). Pad the content view by the
+// system bars, display cutout and on-screen keyboard instead, and keep dark status-bar icons on the light page.
+const activity = join(root, 'app/src/main/java/uz/anncorp/smeta/MainActivity.kt');
+const activitySrc = readFileSync(activity, 'utf8');
+if (!/class MainActivity\s*:\s*TauriActivity\(\)/.test(activitySrc)) throw new Error('MAIN_ACTIVITY_SHAPE_CHANGED');
+writeFileSync(activity, `package uz.anncorp.smeta
+
+import android.graphics.Color
+import android.os.Bundle
+import android.view.View
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+
+class MainActivity : TauriActivity() {
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    window.decorView.setBackgroundColor(Color.parseColor("#F4F2EE"))
+    WindowCompat.getInsetsController(window, window.decorView).apply {
+      isAppearanceLightStatusBars = true
+      isAppearanceLightNavigationBars = true
+    }
+    val content = findViewById<View>(android.R.id.content)
+    ViewCompat.setOnApplyWindowInsetsListener(content) { v, insets ->
+      val bars = insets.getInsets(
+        WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout() or WindowInsetsCompat.Type.ime()
+      )
+      v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+      WindowInsetsCompat.CONSUMED
+    }
+    ViewCompat.requestApplyInsets(content)
+  }
+}
+`);
+console.log('android MainActivity insets applied');
