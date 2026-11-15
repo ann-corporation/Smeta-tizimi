@@ -7,7 +7,7 @@
 --   R2 kalitlari, sha256, registry qatorlari, hujjat metama'lumoti va boshqa hamma Drive'ga aloqasiz ma'lumot O'ZGARMAYDI. Drive id lari o'chirishdan oldin
 --   t2_document_registry_drive_bak jadvaliga nusxalanadi (rollback shundan tiklaydi).
 -- OGOHLANTIRISH: quyidagi funksiyalar drive_* ustunlariga murojaat qiladi va drop dan OLDIN ustunsiz qayta yozilishi kerak (aks holda DO guard to'xtatadi):
---   t2_document_canonical_reserve/reserve_slot/finalize/reconcile/get/share/backfill_v1, t2_document_registry_v1, t2_boss_dashboard_*, t2_hujjat_stuck_health, t2_smeta_paket_import.
+--   t2_document_canonical_reserve/reserve_slot/finalize/reconcile/get/share_v1 (backfill_v1 20261229500000 da o'chiriladi), t2_document_registry_v1, t2_boss_dashboard_*, t2_hujjat_stuck_health, t2_smeta_paket_import.
 -- t2_papka/t2_obyekt/t2_papka_daraxt/t2_company_storage_workspace dagi drive_id ustunlari bu migratsiyaga KIRMAYDI (papka daraxti ADR kerak).
 do $$
 declare v_yolgiz bigint; v_fn text;
