@@ -65,7 +65,7 @@ const OBYEKT = a('pult', 'dashboard', 'obyektlar', 'loyiha', 'participants', 'mi
 const SMETA = a('smeta-studio', 'holat', 'smeta-narxlash', 'narx-dalil', 'narx-tekshiruv', 'nakrutka', 'narxlar', 'narx-manbalari', 'oferta', 'loyiha-smeta');
 const FAKT = a('fakt', 'foto', 'naryad', 'm29');
 const F2 = a('f2-tayyorlash', 'f2', 'f2-tarix', 'f2-reestr', 'nakopitelniy');
-const HUJJAT = a('documents', 'hujjat-nazorat', 'aosr', 'storage', 'nazorat', 'nazorat/tekshiruv', 'nazorat/jurnal', 'chizmalar', 'loyihachi', 'zakazchik', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish', 'subpudrat', 'subpudratchi');
+const HUJJAT = a('documents', 'hujjat-nazorat', 'aosr', 'nazorat', 'nazorat/tekshiruv', 'nazorat/jurnal', 'chizmalar', 'loyihachi', 'zakazchik', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish', 'subpudrat', 'subpudratchi');
 const MOLIYA = a('moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'kontragentlar', 'solishtiruv');
 const TAMINOT = a('logistika', 'zayavka', 'tender', 'yuk-birjasi', 'yuk-chaqirish', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'tender-ochiq', 'erp', 'hr');
 /* «Yetkazuvchi: bugun» — faqat yetkazuvchi roli (supply.*) va rahbariyat; ichki xodim (PTO, prorab) ko'rmaydi (egasi 2026-11-12). */
@@ -89,15 +89,15 @@ const KUTILGAN: Record<string, string[]> = {
   admin: [...ISH_R, ...SOTUV, ...KOMPANIYA, ...SHAXSIY],
   pto: [...ISH, ...SHAXSIY],
   bugalter: [...a('pult', 'dashboard', 'obyektlar', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'moliya', 'shartnoma-liniya', 'qarzdorlik', 'buxgalteriya', 'kontragentlar', 'solishtiruv',
-    'documents', 'hujjat-nazorat', 'storage', 'logistika', 'zayavka', 'tender', 'yuk-birjasi', 'yuk-chaqirish', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'tender-ochiq', 'erp', 'hr', 'sotuv'), ...SHAXSIY],
+    'documents', 'hujjat-nazorat', 'logistika', 'zayavka', 'tender', 'yuk-birjasi', 'yuk-chaqirish', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'tender-ochiq', 'erp', 'hr', 'sotuv'), ...SHAXSIY],
   prorab: [...bez(ISH, 'pult', 'dashboard', 'moliya', 'solishtiruv', 'buxgalteriya', 'qarzdorlik'), ...SHAXSIY],
   usta: [...a('fakt', 'foto'), ...SHAXSIY],
   buyurtmachi: [...a('obyektlar', 'loyiha', 'participants', 'holat', 'f2-tarix', 'f2-reestr', 'nakopitelniy', 'shartnoma-liniya',
-    'documents', 'hujjat-nazorat', 'storage', 'zakazchik', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish'), ...SHAXSIY],
+    'documents', 'hujjat-nazorat', 'zakazchik', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish'), ...SHAXSIY],
   omborchi: [...a('m29', 'logistika', 'zayavka', 'tender', 'yuk-birjasi', 'yuk-chaqirish', 'bozor-sorov', 'bozor-kabinet', 'bozor-moderatsiya', 'tender-ochiq'), ...SHAXSIY],
   haydovchi: [...a('logistika', 'erp'), ...SHAXSIY],
   /* sotuvchi: project.read (S1 rol ta'rifi) tufayli loyiha/hujjat/kiruvchi bandlari ham ko'rinadi — rol ko'lami alohida qaror. */
-  sotuvchi: [...a('loyiha', 'participants', 'documents', 'hujjat-nazorat', 'storage', 'zakazchik', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish', 'sotuv'), ...SHAXSIY],
+  sotuvchi: [...a('loyiha', 'participants', 'documents', 'hujjat-nazorat', 'zakazchik', 'taqdimlar', 'murojaatlar', 'laboratoriya', 'hujjat-aylanish', 'sotuv'), ...SHAXSIY],
 };
 
 describe('rol menyusi — snapshot (yagona navigatsiya reestri)', () => {
@@ -251,7 +251,7 @@ describe('yagona manba — boshqa iste‘molchilar o‘zgarmagan', () => {
       '/admin/participants': 'PROJECT_SCOPED', '/admin/test/aosr': 'PROJECT_SCOPED',
       '/admin/holat': 'OBJECT_SCOPED', '/admin/f2': 'OBJECT_SCOPED', '/admin/f2-tayyorlash': 'OBJECT_SCOPED', '/admin/f2-tarix': 'OBJECT_SCOPED',
       '/admin/fakt': 'OBJECT_SCOPED', '/admin/grafik': 'COMPANY_SCOPED', '/admin/nakopitelniy': 'OBJECT_SCOPED', '/admin/narxlar': 'OBJECT_SCOPED', '/admin/smeta-narxlash': 'OBJECT_SCOPED',
-      '/admin/hujjat-nazorat': 'OBJECT_SCOPED', '/admin/subpudrat': 'OBJECT_SCOPED', '/admin/storage': 'OBJECT_SCOPED', '/admin/test/obyektlar': 'OBJECT_SCOPED', '/admin/test/saqlash': 'OBJECT_SCOPED',
+      '/admin/hujjat-nazorat': 'OBJECT_SCOPED', '/admin/subpudrat': 'OBJECT_SCOPED', '/admin/test/obyektlar': 'OBJECT_SCOPED', '/admin/test/saqlash': 'OBJECT_SCOPED',
     });
   });
 

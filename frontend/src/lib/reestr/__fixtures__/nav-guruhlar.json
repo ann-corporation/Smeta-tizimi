@@ -488,18 +488,6 @@
               "quality.read"
             ],
             "modul": "module.aosr"
-          },
-          {
-            "yol": "/admin/storage",
-            "ilova": "hujjat",
-            "nom": "Fayllar (saqlash)",
-            "ruxsat": [
-              "control.company.read",
-              "project.read",
-              "document.write",
-              "financial.write"
-            ],
-            "scope": "OBJECT_SCOPED"
           }
         ]
       },

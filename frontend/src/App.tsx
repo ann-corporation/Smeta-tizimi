@@ -59,7 +59,6 @@ const TestSozlama   = lazy(() => import('./test02/TestSozlama'));
 const TestTizim     = lazy(() => import('./test02/TestTizim'));
 const TestAosr      = lazy(() => import('./test02/TestAosr'));
 const TestDaraxt    = lazy(() => import('./test02/TestDaraxt'));
-const TestSaqlash   = lazy(() => import('./test02/TestSaqlash'));
 const BossDashboard = lazy(() => import('./admin/sahifalar/BossDashboard'));
 const DirektorPult = lazy(() => import('./admin/sahifalar/DirektorPult'));
 const DocumentsPage = lazy(() => import('./admin/pages/DocumentsPage'));
@@ -234,7 +233,6 @@ export default function App() {
             <Route path="smeta-narxlash" element={<SmetaNarxlashResNative />} />
             <Route path="oferta" element={<OfertaNative />} />
             <Route path="narxlar" element={<Narxlar />} />
-            <Route path="storage" element={<TestSaqlash />} />
             <Route path="mindmap" element={<TestXarita />} />
             <Route path="documents" element={<Suspense fallback={<SahifaYuklanmoqda />}><DocumentsPage /></Suspense>} />
             <Route path="hujjat-nazorat" element={<Suspense fallback={<SahifaYuklanmoqda />}><HujjatNazoratPage /></Suspense>} />
@@ -334,7 +332,6 @@ export default function App() {
             <Route path="xarita" element={<Navigate to="/admin/mindmap" replace />} />
             <Route path="kontragent" element={<Navigate to="/admin/kontragentlar" replace />} />
             <Route path="obyektlar" element={<Navigate to="/admin/obyektlar" replace />} />
-            <Route path="saqlash" element={<Navigate to="/admin/storage" replace />} />
             <Route path="smeta" element={<TestSmetaBirlashgan />} />
             <Route path="daraxt" element={<TestDaraxt />} />
             <Route path="shartnomalar" element={<Navigate to="/admin/shartnoma-liniya" replace />} />

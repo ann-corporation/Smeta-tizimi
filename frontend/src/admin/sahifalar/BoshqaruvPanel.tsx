@@ -601,7 +601,6 @@ function Funksiyalar() {
     { yol: '/admin/sayt-xaritasi', nom: 'Sayt xaritasi', izoh: 'Barcha sahifalar, ular nimani o‘qiydi/yozadi' },
     { yol: '/admin/ai-agentlar', nom: 'AI ishchilar (kompaniya)', izoh: 'Kompaniya agentlari: ishga tushirish va tasdiq' },
     { yol: '/admin/hujjat-dizayn', nom: 'Hujjatlar dizayni', izoh: 'Har hujjat turining rang mavzusi' },
-    { yol: '/admin/storage', nom: 'Fayl saqlash (R2)', izoh: 'Fayllar holati' },
     { yol: '/admin/korzinka', nom: 'Korzinka', izoh: 'O‘chirilganlarni tiklash' },
   ];
   return (

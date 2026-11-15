@@ -48,7 +48,6 @@ export const SAHIFA_SINONIM: Readonly<Record<string, Sinonim>> = {
   '/admin/documents': { uz: ['hujjatlar', 'hujjat'], ru: ['документы', 'документ'], en: ['documents', 'document'] },
   '/admin/hujjat-nazorat': { uz: ['hujjat nazorati'], ru: ['контроль документов'], en: ['document control'] },
   '/admin/aosr': { uz: ['aosr', 'yashirin ishlar', 'laboratoriya'], ru: ['аоср', 'скрытые работы', 'лаборатория'], en: ['aosr', 'hidden works', 'laboratory'] },
-  '/admin/storage': { uz: ['fayllar', 'fayl', 'saqlash'], ru: ['файлы', 'файл', 'хранилище'], en: ['files', 'file storage'] },
   '/admin/zakazchik': { uz: ['buyurtmachi kabineti', 'buyurtmachi'], ru: ['кабинет заказчика', 'заказчик'], en: ['customer portal', 'client cabinet'] },
   '/admin/taqdimlar': { uz: ['tomonlar hujjatlari', 'taqdimlar'], ru: ['документы сторон', 'представления'], en: ['party documents', 'submissions'] },
   '/admin/nazorat': { uz: ['texnik nazorat', 'texnadzor', 'nazorat'], ru: ['технадзор', 'технический надзор'], en: ['technical supervision', 'supervisor'] },

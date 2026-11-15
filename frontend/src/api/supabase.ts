@@ -1213,13 +1213,6 @@ export async function sbObyektOchirish(id: number, nomi: string): Promise<any> {
   const data = await res.json();
   obyektlarEskirdi();
 
-  // 2. Drive'da trash qutisiga ko'chirish
-  fetch('/api/gas', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fn: 'apiT2DriveTrash', args: [{ type: 'obyekt', id, nomi }] })
-  }).catch(console.error);
-
   return data;
 }
 
@@ -1279,13 +1272,6 @@ export async function sbObyektTahrirlash(id: number, nomi: string, tur: string):
     body: JSON.stringify({ amal: 'obyekt_yangila', id, nomi, tur })
   });
   obyektlarEskirdi();
-  
-  // Drive'da nomini yangilash
-  fetch('/api/gas', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fn: 'apiT2DriveRename', args: [{ type: 'obyekt', id, yangiNom: nomi }] })
-  }).catch(console.error);
 
   return await res.json();
 }
@@ -1298,11 +1284,6 @@ export async function sbKorzinkadanTiklash(jadval: string, id: number, nomi: str
   });
   obyektlarEskirdi();
   
-  fetch('/api/gas', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fn: 'apiT2DriveRestore', args: [{ type: jadval, id, nomi }] })
-  }).catch(console.error);
 
   return await res.json();
 }
@@ -1315,11 +1296,6 @@ export async function sbButunlayOchirish(jadval: string, id: number, nomi: strin
   });
   obyektlarEskirdi();
   
-  fetch('/api/gas', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fn: 'apiT2DriveHardDelete', args: [{ type: jadval, id, nomi }] })
-  }).catch(console.error);
 
   return await res.json();
 }

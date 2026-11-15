@@ -113,7 +113,6 @@ const PTO_ROUTE_PREFIXES = [
   '/admin/naryad',
   '/admin/foto',
   '/admin/logistika',
-  '/admin/storage',
 ];
 
 export function isPtoRoute(pathname: string): boolean {

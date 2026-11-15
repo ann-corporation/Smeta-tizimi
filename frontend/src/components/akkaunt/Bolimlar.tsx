@@ -9,7 +9,6 @@ import { useMen, useKompaniyaRoyxatlar } from '../../api/t2-men';
 import { useSessiya } from '../../api/hooks';
 import { ishJoylarim, takliflar } from '../../api/t2-ish-joyi';
 import { tokenHolatOl } from '../../api/t2-token';
-import { companyStorageOl } from '../../api/t2-storage';
 import { TilTanlagich } from '../../i18n/TilTanlagich';
 import { MavzuTanlagich } from '../../umumiy/ui/Mavzu';
 import { t } from '../../i18n/til';
@@ -318,15 +317,9 @@ export function TarifBolimi() {
     queryFn: async () => { const r = await tokenHolatOl(id as number); if (!r.ok) throw new Error(r.error); return r.natija; },
     enabled: !!id, staleTime: 60_000,
   });
-  const saqlash = useQuery({
-    queryKey: ['akkaunt-storage', id],
-    queryFn: async () => { const r = await companyStorageOl(id as number); if (!r.ok) throw new Error('storage'); return r.data; },
-    enabled: !!id, staleTime: 60_000,
-  });
   const karta = (joylar.data?.ishJoylari ?? []).find((x) => x.kompaniya_id === id);
   const jami = joylar.data ? joylar.data.ishJoylari.length : null;
   const obuna = token.data?.obuna;
-  const holat = saqlash.data?.status;
   return (
     <div className="flex flex-col gap-4">
       <div className="fz-kpis">
@@ -341,7 +334,6 @@ export function TarifBolimi() {
             <Qator yorliq="Tarif" qiymat={token.isLoading ? '…' : obuna ? obuna.nom : '—'} />
             <Qator yorliq="Oylik token" qiymat={sonYoki(obuna?.oylik_token)} />
             <Qator yorliq="Obuna tugashi" qiymat={obuna?.tugaydi ?? '—'} />
-            <Qator yorliq="Fayl saqlash holati" qiymat={saqlash.isLoading ? '…' : (holat ?? '—')} />
             <Qator yorliq="Saqlash hajmi (GB)" qiymat="—" />
           </>
         )}
