@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ShieldAlert } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { qatorMuhrFarqOl } from '../../api/t2-qator-muhr';
@@ -19,16 +19,31 @@ export function useMuhrFarq(obyektId: number | null, qatorlar: readonly { id?: n
     for (const r of q) { v += Number(r.versiya) || 0; maxId = Math.max(maxId, Number(r.id) || 0); }
     return `${q.length}:${v}:${maxId}`;
   }, [qatorlar]);
+  /* Tezlik (2026-11-15): farq obyektning o'zi bo'yicha o'qiladi (daraxt qatorlariga bog'liq emas) — obyekt ochilishi bilan DARAXT bilan
+   * PARALLEL boshlanadi (avval daraxt kelgach alohida to'lqin edi). Qatorlar keyin o'zgarsa (imzo boshqa) — qayta o'qiladi;
+   * birinchi qatorlar kelishi (bo'shdan to'lgan) qayta o'qishni talab qilmaydi — ochilishdagi o'qish uni qoplaydi. */
+  const sorov = useRef(0);
+  const oxirgiImzo = useRef('');
+  const oqi = useCallback((id: number) => {
+    const n = ++sorov.current;
+    void qatorMuhrFarqOl(id).then((r) => { if (n === sorov.current && r.ok) setRoyxat((r.qatorlar || []) as QatorMuhrFarq[]); }).catch(() => { /* jim */ });
+  }, []);
   useEffect(() => {
-    let faol = true;
     setRoyxat((p) => (p.length ? [] : p));
-    // Tezlik (2026-11-06): daraxt hali yuklanmagan (bo'sh) paytda o'qilmaydi — avval har ochilishda 2 marta o'qilardi
-    // (bo'sh imzo, keyin qatorlar kelgach). Qatorlar kelishi bilan bir marta o'qiladi.
-    if (obyektId == null || imzo.startsWith('0:')) return;
-    void qatorMuhrFarqOl(obyektId).then((r) => { if (faol && r.ok) setRoyxat((r.qatorlar || []) as QatorMuhrFarq[]); }).catch(() => { /* jim */ });
-    return () => { faol = false; };
-  }, [obyektId, imzo]);
-  const xarita = useMemo(() => muhrXaritasi(royxat), [royxat]);
+    oxirgiImzo.current = '';
+    if (obyektId == null) { sorov.current++; return; }
+    oqi(obyektId);
+    const hisob = sorov;
+    return () => { hisob.current++; };
+  }, [obyektId, oqi]);
+  useEffect(() => {
+    const oldingi = oxirgiImzo.current;
+    oxirgiImzo.current = imzo;
+    if (obyektId == null || imzo.startsWith('0:') || oldingi === '' || oldingi.startsWith('0:')) return;
+    setRoyxat((p) => (p.length ? [] : p));
+    oqi(obyektId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imzo]);  const xarita = useMemo(() => muhrXaritasi(royxat), [royxat]);
   return { royxat, xarita };
 }
 

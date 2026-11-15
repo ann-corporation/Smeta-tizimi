@@ -17,7 +17,7 @@
 import { Fragment, useMemo, useState } from 'react';
 import {
   Building2, Crown, ShieldCheck, Loader2, AlertTriangle, Trash2, Users, LogOut,
-  User, KeyRound, Layers, FolderKanban, Plug, History, Save, RefreshCw,
+  User, KeyRound, Layers, FolderKanban, Plug, History, RefreshCw,
   Send, Clock, CheckCircle2, XCircle, Check, Info, Settings2, Laptop,
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
@@ -40,6 +40,8 @@ import { KompaniyaOching } from '../components/KompaniyaOching';
 import { XizmatTakliflari } from '../components/XizmatTakliflari';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
+import { SaqlashPaneli } from '../../umumiy/ui/SaqlashPaneli';
+import { ozgarishSoni } from '../../umumiy/ui/ozgarish-soni';
 
 const AZO_ROLLAR = ['boss', 'admin', 'rahbar', 'bugalter', 'pto', 'prorab', 'buyurtmachi', 'pudratchi', 'kuzatuvchi'] as const;
 const MAVQE_VARIANTLAR = ['zakazchik', 'pudratchi', 'loyihachi'] as const;
@@ -198,6 +200,8 @@ function AzolarBoshqaruv({ kompaniyaId, kompaniyaNom, isDirector }: { kompaniyaI
   );
 }
 
+const PROFIL_KALITLAR: ReadonlyArray<keyof KompaniyaProfil> = ['toliq_nom', 'inn', 'manzil', 'rahbar', 'telefon', 'bank', 'hisob_raqam', 'mfo', 'mavqe'];
+
 function ProfilTab({ kompaniyaId, isDirector }: { kompaniyaId: number; isDirector: boolean }) {
   const q = useKompaniyaProfil(kompaniyaId);
   const mut = useProfilYangila(kompaniyaId);
@@ -212,7 +216,6 @@ function ProfilTab({ kompaniyaId, isDirector }: { kompaniyaId: number; isDirecto
   if (q.isError) return <Xato matn={xatoMatn((q.error as any)?.code)} />;
   if (!q.data || !p) return null;
 
-  const ozgardi = draft != null;
   const maydon = (k: keyof KompaniyaProfil, nom: string, keng = false) => (
     <label className={`text-[12px] font-medium text-text-dim ${keng ? 'sm:col-span-2' : ''}`}>{nom}
       <input className="input mt-1 w-full" disabled={!isDirector} value={(p[k] as string | null | undefined) ?? ''} onChange={set(k)} />
@@ -244,19 +247,19 @@ function ProfilTab({ kompaniyaId, isDirector }: { kompaniyaId: number; isDirecto
           </label>
         </div>
         {isDirector && (
-          <div className="flex items-center gap-2">
-            <button type="button" className="fz-btn fz-btn--primary" disabled={!ozgardi || mut.isPending}
-              onClick={() => mut.mutate({
-                kompaniya_id: kompaniyaId, expected_version: q.data!.versiya,
-                toliq_nom: p.toliq_nom ?? undefined, inn: p.inn ?? undefined, manzil: p.manzil ?? undefined,
-                rahbar: p.rahbar ?? undefined, telefon: p.telefon ?? undefined, bank: p.bank ?? undefined,
-                hisob_raqam: p.hisob_raqam ?? undefined, mfo: p.mfo ?? undefined, mavqe: p.mavqe ?? undefined,
-              }, { onSuccess: () => setDraft(null) })}>
-              {mut.isPending ? <Loader2 className="animate-spin" size={14} /> : <><Save size={14} /> {t('Saqlash')}</>}
-            </button>
-            {ozgardi && <button type="button" className="fz-btn fz-btn--ghost" onClick={() => setDraft(null)}>{t('bekor qilish')}</button>}
-            {ozgardi && <span className="fz-chip fz-chip--warn">{t('saqlanmagan o‘zgarish')}</span>}
-          </div>
+          <SaqlashPaneli kalit="kompaniya-profil" soni={ozgarishSoni(p, q.data, PROFIL_KALITLAR)} band={mut.isPending}
+            bekor={() => setDraft(null)}
+            saqla={async () => {
+              try {
+                await mut.mutateAsync({
+                  kompaniya_id: kompaniyaId, expected_version: q.data!.versiya,
+                  toliq_nom: p.toliq_nom ?? undefined, inn: p.inn ?? undefined, manzil: p.manzil ?? undefined,
+                  rahbar: p.rahbar ?? undefined, telefon: p.telefon ?? undefined, bank: p.bank ?? undefined,
+                  hisob_raqam: p.hisob_raqam ?? undefined, mfo: p.mfo ?? undefined, mavqe: p.mavqe ?? undefined,
+                });
+                setDraft(null);
+              } catch { return false; /* xato pastda (mut.isError) ko'rsatiladi */ }
+            }} />
         )}
         {mut.isError && (
           <div className="flex flex-wrap items-center gap-2">

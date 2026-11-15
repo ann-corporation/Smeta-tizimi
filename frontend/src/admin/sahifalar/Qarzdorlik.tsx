@@ -236,7 +236,7 @@ function ImportOyna({ kid, obyektlar, onYop, onTayyor }: { kid: number; obyektla
           {natija.shartnomalar.length > 0 && (
             <div className="max-h-72 overflow-auto">
               <table className="w-full min-w-[760px] text-[12px]" aria-label={t('Import ko‘rinishi')}>
-                <thead><tr className="text-left text-[11px] uppercase text-text-mute">
+                <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left text-[11px] uppercase text-text-mute">
                   <th className="px-1 py-1">{t('Kontragent')}</th><th className="px-1 py-1">{t('Shartnoma')}</th><th className="px-1 py-1">{t('Turi')}</th>
                   <th className="px-1 py-1 text-right">{t('Shartnoma summasi')}</th><th className="px-1 py-1 text-right">{t('Asos qatori')}</th>
                   <th className="px-1 py-1 text-right">{t('Hisob qarzi')}</th><th className="px-1 py-1 text-right">{t('Spravka qarzi')}</th>
@@ -356,9 +356,9 @@ export function Qarzdorlik() {
           {jami.qarzNomalum > 0 && <p className="col-span-2 text-[11px] text-text-mute sm:col-span-5">{t('{n} ta shartnomada asos yo‘q — qarzi noma‘lum, jamiga kirmagan.', { n: jami.qarzNomalum })}</p>}
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="max-h-[70vh] overflow-auto">
           <table className="w-full min-w-[1080px] text-[12.5px]" aria-label={t('Qarzdorlik ro‘yxati')}>
-            <thead>
+            <thead className="sticky top-0 z-10 bg-surface">
               <tr className="text-left text-[11px] uppercase text-text-mute">
                 <th className="w-6 px-1 py-2" />
                 <th className="px-2 py-2">{t('Kontragent')}</th><th className="px-2 py-2">{t('Shartnoma')}</th><th className="px-2 py-2">{t('Turi')}</th>

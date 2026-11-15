@@ -26,3 +26,7 @@ bucket_name = "smeta-tizimi-canonical"
 [[r2_buckets]]
 binding = "NORMATIV_R2"
 bucket_name = "smeta-tizimi-canonical"
+
+[vars]
+# D2 kompozit muhr/304 (obyekt-paket): muhr funksiyalari prodda; 304 ~50 ms vs 2-5 s
+OBYEKT_PAKET_ETAG = "1"

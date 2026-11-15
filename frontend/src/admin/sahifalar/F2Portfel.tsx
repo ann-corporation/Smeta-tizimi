@@ -265,9 +265,9 @@ function PortfelIchi({ kompaniyaId, malumot, tashkilot, yangila }: { kompaniyaId
     {portfel.jami.bekorSoni > 0 && <p className="text-[11.5px] text-text-mute">{t('{n} ta bekor qilingan F2 ko‘rsatilgan, jamiga kirmaydi', { n: portfel.jami.bekorSoni })}</p>}
     {hisoblanmoqda && <p role="status" className="text-[11.5px] text-text-mute">{t('Summalar (ustamali, QQS) hisoblanmoqda…')}</p>}
 
-    {rows.length === 0 ? <p className="text-text-mute">{t('Bu kesimda F2 yo‘q.')}</p> : <div className="overflow-auto rounded-lg border border-border/60">
+    {rows.length === 0 ? <p className="text-text-mute">{t('Bu kesimda F2 yo‘q.')}</p> : <div className="max-h-[70vh] overflow-auto rounded-lg border border-border/60">
       <table className="w-full min-w-[960px] text-[12.5px]">
-        <thead className="bg-surface-2/60 text-left text-[11px] text-text-dim"><tr>
+        <thead className="sticky top-0 z-10 bg-surface-2 text-left text-[11px] text-text-dim"><tr>
           <th className={sarlavha}>{t('Oy')}</th><th className={sarlavha}>{t('F2 raqami')}</th><th className={sarlavha}>{t('Holat')}</th>
           <th className={`${sarlavha} text-right`}>{t('QQS bilan')}</th><th className={`${sarlavha} text-right`}>{t('Ustamali (QQS siz)')}</th>
           <th className={`${sarlavha} text-right`}>{t('Ustamasiz')}</th><th className={sarlavha}>{t('Amallar')}</th>
