@@ -106,7 +106,7 @@ describe('ZanjirChizigi', () => {
     chiz({ joriy: 'fakt', aosr: { yashirin: 3, aktsiz: 2 } });
     const keyingi = await screen.findByTestId('keyingi-qadam');
     expect(keyingi.getAttribute('href')).toBe('/admin/aosr?obyekt=5&davr=2026-11');
-    expect(keyingi.textContent).toContain('АОСР');
+    expect(keyingi.textContent).toContain('AOSR');
     expect(screen.getAllByTestId('keyingi-qadam')).toHaveLength(1);
     expect(screen.getByTestId('keyingi-sabab').textContent).toContain('2 ta yashirin ish');
     expect(screen.getByTestId('zanjir-qadam-f2').closest('li')?.getAttribute('data-holat')).toBe('not_started');
@@ -117,7 +117,7 @@ describe('ZanjirChizigi', () => {
     chiz();
     const keyingi = await screen.findByTestId('keyingi-qadam');
     expect(keyingi.getAttribute('href')).toBe('/admin/f2-tayyorlash?obyekt=5&davr=2026-11');
-    expect(screen.getByTestId('keyingi-sabab').textContent).toContain('АОСР holati noma‘lum');
+    expect(screen.getByTestId('keyingi-sabab').textContent).toContain('AOSR holati noma‘lum');
   });
 
   it('F2 tasdiqlangan, Forma 3 yo‘q — keyingi qadam Forma 3 (f3=shartnoma bilan); to‘lov blocked', async () => {
