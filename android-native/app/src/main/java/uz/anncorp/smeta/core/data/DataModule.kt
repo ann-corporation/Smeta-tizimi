@@ -64,7 +64,7 @@ object DataModule {
 
     /** Real network client, or (debug builds only, when the demo flag file exists) fixture-backed demo data. */
     @Provides @Singleton
-    fun bffApi(@ApplicationContext c: Context, api: ApiClient, json: Json): BffApi = Demo.bff(c, json) ?: api
+    fun bffApi(@ApplicationContext c: Context, api: ApiClient, json: Json, tasdiq: TasdiqStore): BffApi = Demo.bff(c, json, { api.stepUp }, tasdiq) ?: api
 
     @Provides @Singleton
     fun updateChecker(@ApplicationContext c: Context, http: OkHttpClient, json: Json): UpdateChecker {
@@ -107,6 +107,9 @@ object DataModule {
         { e -> if (e.kind == KIND_PHOTO) photos.send(e) else api.bff("/api/sb-yoz", "POST", json.parseToJsonElement(e.payloadJson)) },
         json,
     )
+
+    @Provides @Singleton
+    fun nodeSumsRepository(api: BffApi, db: AppDb, json: Json) = NodeSumsRepository(api, db, json)
 
     @Provides @Singleton
     fun moneyRepository(api: BffApi, db: AppDb, json: Json) = MoneyRepository(api, db, json)

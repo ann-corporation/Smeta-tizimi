@@ -40,6 +40,15 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
+        // Release-like build for measurements only (R8-minified, not debuggable, debug-signed) that still carries the debug demo fixtures
+        // (src/debug): `./gradlew assembleBench`. Never shipped: the real release uses src/release, where the demo mode does not exist.
+        create("bench") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".bench"
+            manifestPlaceholders["appLabel"] = "QURAI Bench"
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += "release"
+        }
     }
 
     compileOptions {
@@ -54,7 +63,10 @@ android {
         unitTests.isReturnDefaultValues = true
         unitTests.isIncludeAndroidResources = true
     }
-    sourceSets { getByName("test").resources.srcDir("src/debug/assets") }
+    sourceSets {
+        getByName("test").resources.srcDir("src/debug/assets")
+        getByName("bench") { java.srcDir("src/debug/java"); assets.srcDir("src/debug/assets") }
+    }
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }

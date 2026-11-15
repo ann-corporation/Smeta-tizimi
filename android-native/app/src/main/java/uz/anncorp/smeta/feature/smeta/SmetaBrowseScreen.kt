@@ -103,18 +103,36 @@ import uz.anncorp.smeta.core.ui.WorkTopBar
 import uz.anncorp.smeta.feature.work.VolumeDialog
 import javax.inject.Inject
 
-private class TreeData(val nodes: List<NodeEntity>, val rollups: Map<Long, Rollup>, val expandable: Set<Long>, val bl: Int)
+/** Display strings of a row, formatted ONCE off the main thread when the tree loads (formatting 25 000 rows while scrolling is what made the list janky). */
+class NodeTexts(val nom: String, val v1: String, val v2: String, val v3: String, val v4: String, val sum: String?)
+
+private val NO_TEXTS = NodeTexts("", "", "", "", "", null)
+
+private fun textsOf(list: List<NodeEntity>): Map<Long, NodeTexts> {
+    val out = HashMap<Long, NodeTexts>(list.size * 2)
+    for (n in list) out[n.id] = when {
+        n.isRz -> NodeTexts(n.nom.uppercase(), "", "", "", "", null)
+        n.isBl -> NodeTexts(n.nom.uppercase(), formatVolume(n.hajm), formatVolume(n.faktHajm), formatVolume(n.f2Hajm), formatVolume(n.qoldiq), n.summa?.let { formatMoney(it) })
+        else -> NodeTexts(n.nom, formatVolume(n.norma), formatVolume(n.hajm), n.narx?.let { formatMoney(it) } ?: "\u2014", n.summa?.let { formatMoney(it) } ?: "\u2014", null)
+    }
+    return out
+}
+
+private class TreeData(val nodes: List<NodeEntity>, val rollups: Map<Long, Rollup>, val expandable: Set<Long>, val bl: Int, val texts: Map<Long, NodeTexts> = emptyMap())
 
 data class SmetaUi(
     val obyekt: ObyektEntity? = null,
     val money: ObjectMoney? = null,
     val visible: List<NodeEntity> = emptyList(),
     val rollups: Map<Long, Rollup> = emptyMap(),
+    internal val texts: Map<Long, NodeTexts> = emptyMap(),
     val expanded: Set<Long> = emptySet(),
     val total: Int = 0,
     val blCount: Int = 0,
     val query: String = "",
     val drafted: Map<Long, DraftEntity> = emptyMap(),
+    /** Server-computed per-node sums (QQS bilan first); null until the first answer. */
+    val sums: uz.anncorp.smeta.core.data.NodeSumsPack? = null,
     val syncing: Boolean = true,
     val result: SyncResult? = null,
     val updatedAt: Long? = null,
@@ -129,6 +147,7 @@ data class SmetaUi(
 @HiltViewModel
 class SmetaBrowseViewModel @Inject constructor(
     handle: SavedStateHandle, objects: ObjectsRepository, private val rows: RowsRepository, money: MoneyRepository, private val fakt: FaktRepository,
+    private val nodeSums: uz.anncorp.smeta.core.data.NodeSumsRepository,
 ) : ViewModel() {
     val id: Long = checkNotNull(handle["id"])
     private val query = MutableStateFlow("")
@@ -137,17 +156,18 @@ class SmetaBrowseViewModel @Inject constructor(
 
     private val tree = combine(rows.nodes(id), rows.all(id)) { nodes, flat ->
         val list = if (nodes.isNotEmpty()) nodes else fallbackNodes(flat)
-        TreeData(list, rollups(list), expandableIds(list), list.count { it.isBl })
+        TreeData(list, rollups(list), expandableIds(list), list.count { it.isBl }, textsOf(list))
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, TreeData(emptyList(), emptyMap(), emptySet(), 0))
 
     private val visible = combine(tree, expanded, query.debounce(150)) { t, e, q -> visibleNodes(t.nodes, e, q) }.flowOn(Dispatchers.Default)
 
     val state: StateFlow<SmetaUi> = combine(tree, visible, expanded, query) { t, v, e, q ->
-        SmetaUi(visible = v, rollups = t.rollups, expanded = e, total = t.nodes.size, blCount = t.bl, query = q)
+        SmetaUi(visible = v, rollups = t.rollups, texts = t.texts, expanded = e, total = t.nodes.size, blCount = t.bl, query = q)
     }.combine(combine(objects.observeOne(id), money.observe(id), rows.lastUpdated(id), fakt.drafts(id)) { o, m, ts, d -> arrayOf(o, m, ts, d) }) { ui, x ->
         @Suppress("UNCHECKED_CAST")
         ui.copy(obyekt = x[0] as ObyektEntity?, money = x[1] as ObjectMoney?, updatedAt = x[2] as Long?, drafted = (x[3] as List<DraftEntity>).associateBy { it.qatorId })
     }.combine(sync) { ui, s -> ui.copy(syncing = s.first, result = s.second) }
+        .combine(nodeSums.observe(id)) { ui, s -> ui.copy(sums = s) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SmetaUi())
 
     init { refresh() }
@@ -159,7 +179,10 @@ class SmetaBrowseViewModel @Inject constructor(
     fun addToDraft(n: NodeEntity, hajm: Double) { viewModelScope.launch { fakt.addToDraft(n.toQator(), hajm) } }
     fun removeFromDraft(qatorId: Long) { viewModelScope.launch { fakt.removeFromDraft(id, qatorId) } }
 
-    fun refresh() { viewModelScope.launch { sync.value = true to null; sync.value = false to rows.sync(id) } }
+    fun refresh() {
+        viewModelScope.launch { sync.value = true to null; sync.value = false to rows.sync(id) }
+        viewModelScope.launch { nodeSums.refresh(id) }
+    }
 }
 
 private class Group(val head: NodeEntity?, val rows: List<NodeEntity>)
@@ -215,13 +238,13 @@ fun SmetaBrowseScreen(onBack: () -> Unit, onDraft: (Long) -> Unit = {}, onJarvis
                     item(key = "top") { TopCard(ui) }
                     grouped.forEach { g ->
                         g.head?.let { h ->
-                            stickyHeader(key = "h${h.id}") { RzRow(h, h.id in ui.expanded || searching, ui.rollups[h.id]) { vm.toggle(h.id) } }
+                            stickyHeader(key = "h${h.id}") { RzRow(h, ui.texts[h.id] ?: NO_TEXTS, h.id in ui.expanded || searching, ui.rollups[h.id], ui.sums?.nodes?.get(h.id)) { vm.toggle(h.id) } }
                         }
-                        items(g.rows, key = { it.id }) { n ->
+                        items(g.rows, key = { it.id }, contentType = { if (it.isRz) 0 else if (it.isBl) 1 else 2 }) { n ->
                             when {
-                                n.isRz -> RzRow(n, n.id in ui.expanded || searching, ui.rollups[n.id]) { vm.toggle(n.id) }
-                                n.isBl -> BlRow(n, n.id in ui.expanded, ui.drafted[n.id], onToggle = { vm.toggle(n.id) }, onFakt = { editing = n })
-                                else -> ResRow(n)
+                                n.isRz -> RzRow(n, ui.texts[n.id] ?: NO_TEXTS, n.id in ui.expanded || searching, ui.rollups[n.id], ui.sums?.nodes?.get(n.id)) { vm.toggle(n.id) }
+                                n.isBl -> BlRow(n, ui.texts[n.id] ?: NO_TEXTS, n.id in ui.expanded, ui.drafted[n.id], ui.sums?.nodes?.get(n.id), onToggle = { vm.toggle(n.id) }, onFakt = { editing = n })
+                                else -> ResRow(n, ui.texts[n.id] ?: NO_TEXTS)
                             }
                         }
                     }
@@ -258,6 +281,7 @@ private fun TopCard(ui: SmetaUi) {
                 UpdatedLine(ui.updatedAt, Modifier.weight(1f))
                 InfoTip(stringResource(R.string.sm_tree_tip_t), stringResource(R.string.sm_tree_tip_b))
             }
+            if (ui.sums != null && !ui.sums.hasMarkup) Text(stringResource(R.string.sm_ns_no_markup), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.padding(bottom = 4.dp))
             Text(stringResource(R.string.sm_counts, ui.visible.size, ui.total, ui.blCount), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(8.dp))
             VolumeLegend()
@@ -267,14 +291,14 @@ private fun TopCard(ui: SmetaUi) {
 
 /** Section row (RZ): chevron, UPPERCASE name, work count and the section's fact / F-2 progress (server row amounts). Sticky at the top level. */
 @Composable
-private fun RzRow(n: NodeEntity, open: Boolean, r: Rollup?, onToggle: () -> Unit) {
+private fun RzRow(n: NodeEntity, t: NodeTexts, open: Boolean, r: Rollup?, sums: uz.anncorp.smeta.core.data.NodeSums?, onToggle: () -> Unit) {
     Surface(
         onClick = onToggle, color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth().padding(start = (n.depth * 10).dp).heightIn(min = TouchTarget),
     ) {
         Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(n.nom.uppercase(), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface, maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                Text(t.nom, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface, maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 Icon(if (open) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (r != null) {
@@ -284,13 +308,14 @@ private fun RzRow(n: NodeEntity, open: Boolean, r: Rollup?, onToggle: () -> Unit
                 Spacer(Modifier.height(4.dp))
                 PercentBar(stringResource(R.string.p1_card_f2), r.f2Percent, ChartColors.f2, barHeight = 5.dp)
             }
+            if (sums != null && sums.smeta.qqsBilan != null) NodeSumsBlock(sums)
         }
     }
 }
 
 /** Work row (BL): code, UPPERCASE name, unit, smeta / fakt / F-2 / left volumes, stacked bar, markup-free amount and a direct fact-entry button. */
 @Composable
-private fun BlRow(n: NodeEntity, open: Boolean, draft: DraftEntity?, onToggle: () -> Unit, onFakt: () -> Unit) {
+private fun BlRow(n: NodeEntity, t: NodeTexts, open: Boolean, draft: DraftEntity?, sums: uz.anncorp.smeta.core.data.NodeSums?, onToggle: () -> Unit, onFakt: () -> Unit) {
     Surface(
         onClick = onToggle, enabled = n.hasChildren, color = MaterialTheme.colorScheme.surfaceContainerLow, shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth().padding(start = (n.depth * 10).dp),
@@ -299,32 +324,34 @@ private fun BlRow(n: NodeEntity, open: Boolean, draft: DraftEntity?, onToggle: (
             Row(verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f)) {
                     n.kod?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary) }
-                    Text(n.nom.uppercase(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, maxLines = 5, overflow = TextOverflow.Ellipsis)
+                    Text(t.nom, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, maxLines = 5, overflow = TextOverflow.Ellipsis)
                 }
                 n.birlik?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 8.dp)) }
                 if (n.hasChildren) Icon(if (open) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth()) {
-                VolumeCell(stringResource(R.string.p1_row_smeta), formatVolume(n.hajm), Modifier.weight(1f))
-                VolumeCell(stringResource(R.string.p1_row_fakt), formatVolume(n.faktHajm), Modifier.weight(1f))
-                VolumeCell(stringResource(R.string.p1_card_f2_short), formatVolume(n.f2Hajm), Modifier.weight(1f))
-                VolumeCell(stringResource(R.string.p1_row_left), formatVolume(n.qoldiq), Modifier.weight(1f), bad = (n.qoldiq ?: 0.0) < 0)
+                VolumeCell(stringResource(R.string.p1_row_smeta), t.v1, Modifier.weight(1f))
+                VolumeCell(stringResource(R.string.p1_row_fakt), t.v2, Modifier.weight(1f))
+                VolumeCell(stringResource(R.string.p1_card_f2_short), t.v3, Modifier.weight(1f))
+                VolumeCell(stringResource(R.string.p1_row_left), t.v4, Modifier.weight(1f), bad = (n.qoldiq ?: 0.0) < 0)
             }
             volumeSplit(n.hajm, n.faktHajm, n.f2Hajm, n.almashtirilgan)?.let { sp ->
                 Spacer(Modifier.height(8.dp))
                 StackedVolumeBar(sp.f2, sp.factOnly, sp.open, sp.over, barHeight = 8.dp)
             }
             Spacer(Modifier.height(6.dp))
+            if (sums != null && sums.smeta.qqsBilan != null) NodeSumsBlock(sums)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (n.summa == null && (n.hajm ?: 0.0) > 0.0) {
+                if (sums != null && sums.smeta.qqsBilan != null) { /* the three forms are shown above; the button stays on this row */ Spacer(Modifier.weight(1f)) }
+                else if (n.summa == null && (n.hajm ?: 0.0) > 0.0) {
                     Icon(Icons.Filled.Warning, null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(4.dp))
                     Text(stringResource(R.string.p5_row_unpriced), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.weight(1f))
                 } else {
                     Text(stringResource(R.string.sm_sum_plain), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.width(6.dp))
-                    Text(if (n.summa == null) "—" else formatMoney(n.summa), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                    Text(t.sum ?: "\u2014", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
                 }
                 if (draft != null) {
                     Icon(Icons.Filled.CheckCircle, null, tint = if (draft.hajm < 0.0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary, modifier = Modifier.size(16.dp))
@@ -340,7 +367,7 @@ private fun BlRow(n: NodeEntity, open: Boolean, draft: DraftEntity?, onToggle: (
 
 /** Resource row (RS / MAT / OB) under its work: category chip, code, name, norm, quantity, unit, unit price and amount (markup-free). */
 @Composable
-private fun ResRow(n: NodeEntity) {
+private fun ResRow(n: NodeEntity, t: NodeTexts) {
     Surface(color = MaterialTheme.colorScheme.surfaceContainerLowest, shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth().padding(start = (n.depth * 10).dp)) {
         Column(Modifier.padding(10.dp)) {
             Row(verticalAlignment = Alignment.Top) {
@@ -350,15 +377,15 @@ private fun ResRow(n: NodeEntity) {
                 Spacer(Modifier.width(8.dp))
                 Column(Modifier.weight(1f)) {
                     n.kod?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
-                    Text(n.nom, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                    Text(t.nom, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface, maxLines = 3, overflow = TextOverflow.Ellipsis)
                 }
             }
             Spacer(Modifier.height(6.dp))
             Row(Modifier.fillMaxWidth()) {
-                VolumeCell(stringResource(R.string.sm_norm), formatVolume(n.norma), Modifier.weight(1f))
-                VolumeCell(stringResource(R.string.sm_qty) + n.birlik?.let { " ($it)" }.orEmpty(), formatVolume(n.hajm), Modifier.weight(1.2f))
-                VolumeCell(stringResource(R.string.sm_price), n.narx?.let { formatMoney(it) } ?: "—", Modifier.weight(1.3f))
-                VolumeCell(stringResource(R.string.sm_amount), n.summa?.let { formatMoney(it) } ?: "—", Modifier.weight(1.4f))
+                VolumeCell(stringResource(R.string.sm_norm), t.v1, Modifier.weight(1f))
+                VolumeCell(stringResource(R.string.sm_qty) + n.birlik?.let { " ($it)" }.orEmpty(), t.v2, Modifier.weight(1.2f))
+                VolumeCell(stringResource(R.string.sm_price), t.v3, Modifier.weight(1.3f))
+                VolumeCell(stringResource(R.string.sm_amount), t.v4, Modifier.weight(1.4f))
             }
         }
     }
@@ -383,5 +410,33 @@ fun VolumeLegend(modifier: Modifier = Modifier) {
         LegendDot(ChartColors.f2, stringResource(R.string.p1_card_f2_short))
         LegendDot(ChartColors.fact, stringResource(R.string.p5_leg_done_not_accepted))
         LegendDot(ChartColors.track, stringResource(R.string.p5_leg_open))
+    }
+}
+
+/** Smeta / fakt / F-2 amounts of a node, QQS bilan first (server numbers). Unknown forms are a dash, never 0. */
+@Composable
+private fun NodeSumsBlock(s: uz.anncorp.smeta.core.data.NodeSums) {
+    Column(Modifier.padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        FormsLine(stringResource(R.string.sm_ns_smeta), s.smeta, strong = true)
+        if (s.fakt.ustamasiz != null || s.fakt.qqsBilan != null) FormsLine(stringResource(R.string.p1_card_fakt), s.fakt)
+        if (s.f2.ustamasiz != null || s.f2.qqsBilan != null) FormsLine(stringResource(R.string.p1_card_f2_short), s.f2)
+    }
+}
+
+@Composable
+private fun FormsLine(label: String, f: uz.anncorp.smeta.core.data.Forms, strong: Boolean = false) {
+    Column {
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(label + " - " + stringResource(R.string.m_vat_incl), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+            Text(f.qqsText, style = if (strong) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+        }
+        Row {
+            Text(stringResource(R.string.m_markup), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+            Text(f.ustamaliText, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface)
+        }
+        Row {
+            Text(stringResource(R.string.m_plain), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+            Text(f.ustamasizText, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface)
+        }
     }
 }

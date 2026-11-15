@@ -13,6 +13,9 @@ import uz.anncorp.smeta.core.data.BffApi
 import uz.anncorp.smeta.core.db.AppDb
 import uz.anncorp.smeta.core.db.OutboxEntity
 import uz.anncorp.smeta.core.db.OutboxState
+import uz.anncorp.smeta.core.data.STEP_UP_CODE
+import uz.anncorp.smeta.core.security.StepUpHandler
+import uz.anncorp.smeta.core.security.TasdiqStore
 import java.io.File
 
 /**
@@ -21,9 +24,11 @@ import java.io.File
  * (`adb shell run-as <debug app id> touch files/demo.flag`); `files/offline.flag` additionally forces the offline banner.
  */
 object Demo {
-    fun enabled(context: Context): Boolean = File(context.filesDir, "demo.flag").exists()
+    // The release-like `bench` build (measurements only) has no run-as access to write the flag, so it is always in demo mode.
+    fun enabled(context: Context): Boolean = uz.anncorp.smeta.BuildConfig.BUILD_TYPE == "bench" || File(context.filesDir, "demo.flag").exists()
     fun forcedOffline(context: Context): Boolean? = if (enabled(context) && File(context.filesDir, "offline.flag").exists()) true else null
-    fun bff(context: Context, json: Json): BffApi? = if (enabled(context)) DemoBff(context, json) else null
+    fun bff(context: Context, json: Json, stepUp: () -> StepUpHandler? = { null }, tasdiq: TasdiqStore? = null): BffApi? =
+        if (enabled(context)) DemoStepUpBff(DemoBff(context, json, tasdiq), stepUp) else null
 
     /** `files/update.flag` simulates a newer release on the server (the manifest the app would download). */
     fun updateManifest(context: Context): String? = if (enabled(context) && File(context.filesDir, "update.flag").exists())
@@ -47,7 +52,18 @@ object Demo {
     }
 }
 
-private class DemoBff(private val context: Context, private val json: Json) : BffApi {
+/** Demo counterpart of ApiClient.bff step-up: 403 STEP_UP_KERAK -> ask the lock UI (PIN / biometrics) once -> replay with the fresh token. */
+private class DemoStepUpBff(private val inner: BffApi, private val handler: () -> StepUpHandler?) : BffApi by inner {
+    override suspend fun bff(path: String, method: String, body: JsonElement?, etag: String?): ApiResult {
+        val first = inner.bff(path, method, body, etag)
+        val h = handler()
+        if (first.status != 403 || first.code != STEP_UP_CODE || h == null) return first
+        val methods = ((first.body as? JsonObject)?.get("usullar") as? kotlinx.serialization.json.JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.content }
+        return if (h.request(methods)) inner.bff(path, method, body, etag) else first
+    }
+}
+
+private class DemoBff(private val context: Context, private val json: Json, private val tasdiq: TasdiqStore? = null) : BffApi {
     private fun demoParty(path: String): String {
         val asked = path.substringAfter("kabinet=", "").substringBefore('&').substringAfter(':')
         val flag = File(context.filesDir, "rol.flag").takeIf { it.exists() }?.readText()?.trim().orEmpty()
@@ -83,6 +99,7 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
             }            path.startsWith("/api/company") && method == "POST" -> ok("""{"ok":true,"kompaniya_id":1}""")
             path.startsWith("/api/company") -> ok("""{"ok":true,"context_kompaniyalar":[{"kompaniya_id":1,"effective_role":"pto","permissions":[${if (File(context.filesDir, "boss.flag").exists()) "\"control.company.read\",\"financial.write\"," else ""}"company.read","smeta.read","fakt.read","fakt.write","f2.read","f2.prepare","narx.read","document.write","warehouse.read"]}]}""")
             path.startsWith("/api/modullarim") -> if (method == "POST") ok("""{"ok":true,"versiya":1}""") else ok("""{"ok":true,"tanlangan":["fakt","foto","f2"],"tartib":["fakt","foto","f2"],"versiya":1}""")
+            path.startsWith("/api/obyekt-tugun-summa") -> tugunSumma(path)
             path.startsWith("/api/obyekt-paket") -> {
                 val id = path.substringAfter("obyekt_id=").toLongOrNull() ?: return ApiResult(400, null)
                 if (id == 102L || id == 103L) return ApiResult(403, buildJsonObject { put("ok", false); put("code", "PERMISSION_DENIED") }, "PERMISSION_DENIED")
@@ -92,7 +109,11 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
                 val o = json.parseToJsonElement(asset("paket.json")).jsonObject
                 ApiResult(200, JsonObject(o + ("obyekt_id" to JsonPrimitive(id))), null, "demo-etag-$id")
             }
+            // files/stepup.flag: the money write (fakt) needs a fresh PIN / biometric confirmation, like the real server (403 STEP_UP_KERAK).
+            path.startsWith("/api/sb-yoz") && File(context.filesDir, "stepup.flag").exists() && tasdiq?.current() == null ->
+                ApiResult(403, buildJsonObject { put("ok", false); put("code", STEP_UP_CODE); put("usullar", kotlinx.serialization.json.buildJsonArray { add(JsonPrimitive("pin")); if (qKeys.isNotEmpty()) add(JsonPrimitive("qurilma")) }) }, STEP_UP_CODE)
             path.startsWith("/api/sb-yoz") -> ok(asset("fakt_ok.json"))
+            path.startsWith("/api/qulf") -> qulf(path, method, body as? JsonObject)
             path.startsWith("/api/sb") -> {
                 val o = body as? JsonObject
                 fun s(k: String) = o?.get(k)?.let { (it as? JsonPrimitive)?.content }
@@ -157,6 +178,63 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
         }
     }
 
+    // ---- /api/qulf fixture (PIN + device keys), in memory: a fresh process starts without a PIN ----
+    private var qPin: String? = null
+    private var qTimeout = 5
+    private var qFails = 0
+    private val qKeys = mutableListOf<Pair<Long, String>>() // id to credential id
+    private var qNextKey = 1L
+
+    private fun qulf(path: String, method: String, o: JsonObject?): ApiResult {
+        fun s(k: String) = (o?.get(k) as? JsonPrimitive)?.takeIf { it.isString }?.content
+        fun fail(code: String, status: Int = 200) = ApiResult(status, buildJsonObject { put("ok", false); put("code", code) }, code)
+        if (method == "GET") {
+            val keys = qKeys.joinToString(",") { """{"id":${it.first},"tur":"android","nom":"Demo qurilma"}""" }
+            val methods = listOfNotNull(if (qPin != null) "\"pin\"" else null, if (qKeys.isNotEmpty()) "\"qurilma\"" else null).joinToString(",")
+            return ok("""{"ok":true,"pin_bor":${qPin != null},"bosh_vaqt_daq":$qTimeout,"kalitlar":[$keys],"rejim":"pin","talab":false,"usullar":[$methods],"pin_holat":"ok","qolgan_soniya":0}""")
+        }
+        return when (s("amal")) {
+            "pin_saqla" -> { val n = s("yangi").orEmpty(); if (n.length !in 4..6 || !n.all { it.isDigit() }) fail("PIN_YAROQSIZ") else { qPin = n; ok("""{"ok":true}""") } }
+            "pin_tekshir" -> when {
+                qPin == null -> fail("PIN_YOQ")
+                qFails >= 5 -> ApiResult(429, buildJsonObject { put("ok", false); put("code", "BLOKLANGAN"); put("qolgan_soniya", 30) }, "BLOKLANGAN")
+                s("pin") == qPin -> { qFails = 0; ok("""{"ok":true,"tasdiq_token":"demo-tasdiq-token"}""") }
+                else -> { qFails++; fail("PIN_NOTOGRI") }
+            }
+            "pin_ochir" -> if (s("pin") == qPin) { qPin = null; ok("""{"ok":true}""") } else fail("PIN_NOTOGRI")
+            "vaqt_saqla" -> { qTimeout = (o?.get("daq") as? JsonPrimitive)?.content?.toIntOrNull() ?: qTimeout; ok("""{"ok":true}""") }
+            "kalit_ochir" -> { val id = (o?.get("id") as? JsonPrimitive)?.content?.toLongOrNull(); qKeys.removeAll { it.first == id }; ok("""{"ok":true}""") }
+            "qurilma_reg_boshla" -> ok("""{"ok":true,"chaqiriq":"demo-reg-token","challenge":"demo-challenge-reg"}""")
+            "qurilma_reg_tugat" -> {
+                val spki = runCatching { java.util.Base64.getUrlDecoder().decode(s("ochiq_kalit").orEmpty()) }.getOrNull() ?: return fail("KALIT_YAROQSIZ")
+                val cred = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(java.security.MessageDigest.getInstance("SHA-256").digest(spki))
+                qKeys += qNextKey++ to cred; ok("""{"ok":true}""")
+            }
+            "qurilma_kirish_boshla" -> ok("""{"ok":true,"chaqiriq":"demo-login-token","challenge":"demo-challenge-login","kredensiallar":[${qKeys.joinToString(",") { "\"" + it.second + "\"" }}]}""")
+            // The demo does not verify the signature (that is server work, covered by the server tests); it checks only that the credential is registered.
+            "qurilma_kirish_tugat" -> if (qKeys.any { it.second == s("kredensial_id") }) ok("""{"ok":true,"tasdiq_token":"demo-tasdiq-token"}""") else fail("KREDENSIAL_YOQ")
+            else -> fail("AMAL_NOMA_LUM", 400)
+        }
+    }
+    /** Per-node sums fixture for the 16-node demo packet (ids 1001..1016). `files/noustama.flag` simulates an object without markup (podval). Synthetic. */
+    private fun tugunSumma(path: String): ApiResult {
+        val id = path.substringAfter("obyekt_id=").toLongOrNull() ?: return ApiResult(400, null)
+        if (id == 102L || id == 103L || id == 104L) return ApiResult(404, null)
+        val noMarkup = File(context.filesDir, "noustama.flag").exists()
+        // [id, smeta(plain), fakt(plain), f2(plain)] -> forms with ustamali = plain * 1.17, QQS bilan = ustamali * 1.12 (display fixture only).
+        val rows = listOf(
+            listOf(1001, 78325000.0 + 350840000.0 + 336200000.0, 26162500.0 + 353780000.0, 19500000.0 + 196000000.0),
+            listOf(1002, 78325000.0, 26162500.0, 19500000.0), listOf(1003, 350840000.0, 353780000.0, 196000000.0), listOf(1004, 336200000.0, 0.0, null),
+            listOf(1006, 312837500.0 + 13440000.0 + 97539000.0, 116725000.0 + 5040000.0 + 23419500.0, 87000000.0),
+            listOf(1007, 312837500.0, 116725000.0, 87000000.0), listOf(1008, 13440000.0, 5040000.0, -2500000.0),
+        )
+        fun forms(v: Any?): String {
+            val p = (v as? Double) ?: return "[null,null,null]"
+            return if (noMarkup) "[null,null,$p]" else { val m = Math.round(p * 1.17 * 100) / 100.0; "[${Math.round(m * 1.12 * 100) / 100.0},$m,$p]" }
+        }
+        val list = rows.joinToString(",") { "[${it[0]},${forms(it[1])},${forms(it[2])},${forms(it[3])}]" }
+        return ok("""{"ok":true,"obyekt_id":$id,"ustama":"${if (noMarkup) "yoq" else "bor"}","tugunlar":[$list]}""")
+    }
     /** Synthetic columnar packet (same wire shape as paket.json) with ~26k rows. Deterministic, no real data. */
     private fun bigPacket(id: Long): JsonObject {
         val sections = 40; val works = 160; val res = 3

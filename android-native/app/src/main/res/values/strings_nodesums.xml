@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sm_ns_smeta">Smeta</string>
+    <string name="sm_ns_no_markup">Ustama (podval) topilmadi: qatorlarda faqat ustamasiz summa ko\'rsatiladi.</string>
+</resources>

@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import kotlinx.coroutines.delay
 import android.view.WindowManager
@@ -100,7 +101,8 @@ class MainActivity : AppCompatActivity() {
                 if (lock.protectScreen) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE) else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
             }
             QuraiTheme(dark) {
-                Box {
+                // Every screen sits on the theme background (a screen without its own background used to show the dark window colour in the light theme).
+                Box(androidx.compose.ui.Modifier.background(androidx.compose.material3.MaterialTheme.colorScheme.background)) {
                     AppNav(events, lock, if (uz.anncorp.smeta.core.demo.Demo.enabled(this@MainActivity)) HOME else SPLASH)
                     AppLockLayer(lock)
                 }
