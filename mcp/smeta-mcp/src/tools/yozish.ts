@@ -64,7 +64,7 @@ export const rpc = tool({
     + 'p_actor_id / p_kim / p_actor_label / p_operation_id(uuid) berilmasa avtomatik (sessiya aktori; yangi UUID). Oldin obyekt snapshoti '
     + '(obyekt p_obyekt_id/p_akt_id/p_qator_id/p_request.obyekt_id dan yoki `obyekt_id` dan aniqlanadi). Masalan: t2_fakt_yoz_v2, t2_akt_yarat_v2, '
     + 't2_addrepl_execute_v1, t2_zamena_almashtirish_belgila_v1, t2_akt_bekor. Signaturani `sxema({funksiya})` bilan ko\'ring.',
-  kirish: { nom: z.string().min(1), args: z.record(z.any()).optional(), obyekt_id: obyektIdS.optional(), dry_run: dryRun },
+  kirish: { nom: z.string().min(1), args: z.record(z.string(), z.any()).optional(), obyekt_id: obyektIdS.optional(), dry_run: dryRun },
   yozadi: true,
   bajar: async (a, mu) => {
     const args = a.args ?? {};
@@ -108,7 +108,7 @@ export const qatorTahrir = tool({
   tavsif: 't2_qator qatorini to\'g\'ridan-to\'g\'ri tahrirlash (`maydonlar`: {ustun: qiymat}; har qanday ustun). Triggerlar (versiya, o\'zgarish jurnali) ishlaydi, '
     + 't2.manba=baza, t2.kim=mcp:actor.Asl smeta qatorining hajm/narx/kod/nom… o\'zgarsa — rad etilmaydi, ogohlantirish qaytadi (snapshot_id bilan qaytarish mumkin). '
     + '`kutilgan_versiya` — optimistik qulf (ixtiyoriy).',
-  kirish: { id: z.number().int().positive(), maydonlar: z.record(z.any()), kutilgan_versiya: z.number().int().optional(), dry_run: dryRun },
+  kirish: { id: z.number().int().positive(), maydonlar: z.record(z.string(), z.any()), kutilgan_versiya: z.number().int().optional(), dry_run: dryRun },
   yozadi: true,
   bajar: async (a, mu) => mu.yozish({
     tool: 'qator_tahrir', args: a, dryRun: a.dry_run,
@@ -131,7 +131,7 @@ export const qatorQosh = tool({
   nom: 'qator_qosh',
   tavsif: 't2_qator ga yangi qator (to\'g\'ridan-to\'g\'ri INSERT). `ota_id` berilsa daraja = ota.daraja+1; tartib berilmasa — oxiriga. '
     + 'Qo\'shimcha ish/zamena uchun odatda `rpc` orqali t2_qoshimcha_ish_yarat_v1 / t2_zamena_ish_yarat_v1 ma\'qul (bog\'lanishlar bilan). qoshimcha=false — asl smetaga qo\'shilish ogohlantirishi.',
-  kirish: { obyekt_id: obyektIdS, ota_id: z.number().int().positive().nullable().optional(), maydonlar: z.record(z.any()).describe('tur, kod, nom, birlik, hajm, narx, kat, norma, qoshimcha …'), dry_run: dryRun },
+  kirish: { obyekt_id: obyektIdS, ota_id: z.number().int().positive().nullable().optional(), maydonlar: z.record(z.string(), z.any()).describe('tur, kod, nom, birlik, hajm, narx, kat, norma, qoshimcha …'), dry_run: dryRun },
   yozadi: true,
   bajar: async (a, mu) => mu.yozish({ tool: 'qator_qosh', args: a, dryRun: a.dry_run, obyektId: a.obyekt_id, izoh: String(a.maydonlar.nom ?? '') }, async (m, ogoh) => {
     const v: Record<string, unknown> = { ...a.maydonlar, obyekt_id: a.obyekt_id };
