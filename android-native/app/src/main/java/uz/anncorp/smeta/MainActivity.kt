@@ -29,6 +29,15 @@ import uz.anncorp.smeta.feature.work.DraftScreen
 import uz.anncorp.smeta.feature.work.FaktScreen
 import uz.anncorp.smeta.feature.work.ObjectCardScreen
 import uz.anncorp.smeta.feature.work.OutboxScreen
+import uz.anncorp.smeta.feature.work.ObjectsScreen
+import uz.anncorp.smeta.feature.web.WebModuleScreen
+import uz.anncorp.smeta.feature.signup.InviteScreen
+import uz.anncorp.smeta.feature.signup.SignUpScreen
+import uz.anncorp.smeta.core.ui.WorkTopBar
+import android.net.Uri
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -63,6 +72,11 @@ private const val DRAFT = "draft/{id}"
 private const val OUTBOX = "outbox"
 private const val APPROVAL = "approval/{id}"
 private const val PHOTO = "photo/{id}"
+private const val SIGNUP = "signup"
+private const val INVITE = "invite"
+private const val WEB = "web?path={path}&title={title}"
+private const val PICK_FAKT = "pick/fakt"
+private const val PICK_PHOTO = "pick/photo"
 
 @Composable
 private fun AppNav(events: AuthEvents, start: String) {
@@ -80,12 +94,20 @@ private fun AppNav(events: AuthEvents, start: String) {
             })
         }
         composable(LOGIN) {
-            LoginScreen(onSignedIn = { nav.navigate(HOME) { popUpTo(LOGIN) { inclusive = true } } })
+            LoginScreen(onSignedIn = { nav.navigate(HOME) { popUpTo(LOGIN) { inclusive = true } } }, onSignUp = { nav.navigate(SIGNUP) }, onInvite = { nav.navigate(INVITE) })
+        }
+        composable(SIGNUP) {
+            SignUpScreen(onBack = { nav.popBackStack() }, onSignedIn = { nav.navigate(HOME) { popUpTo(LOGIN) { inclusive = true } } })
+        }
+        composable(INVITE) {
+            InviteScreen(onBack = { nav.popBackStack() }, onSignedIn = { nav.navigate(HOME) { popUpTo(LOGIN) { inclusive = true } } })
         }
         composable(HOME) {
             HomeScreen(
                 onOpenObject = { nav.navigate("object/$it") }, onOpenFakt = { nav.navigate("fakt/$it") },
                 onOpenApproval = { nav.navigate("approval/$it") }, onOutbox = { nav.navigate(OUTBOX) },
+                onOpenWeb = { path, title -> nav.navigate("web?path=${Uri.encode(path)}&title=${Uri.encode(title)}") },
+                onPickFakt = { nav.navigate(PICK_FAKT) }, onPickPhoto = { nav.navigate(PICK_PHOTO) },
             )
         }
         val idArg = listOf(navArgument("id") { type = NavType.LongType })
@@ -100,7 +122,21 @@ private fun AppNav(events: AuthEvents, start: String) {
         composable(PHOTO, idArg) {
             PhotoScreen(onBack = { nav.popBackStack() }, onQueued = { nav.navigate(OUTBOX) { popUpTo(PHOTO) { inclusive = true } } })
         }
+        composable(WEB, listOf(navArgument("path") { type = NavType.StringType; defaultValue = "" }, navArgument("title") { type = NavType.StringType; defaultValue = "" })) { e ->
+            WebModuleScreen(title = e.arguments?.getString("title").orEmpty(), onBack = { nav.popBackStack() })
+        }
+        composable(PICK_FAKT) { PickObjectScreen(R.string.mod_fact, onBack = { nav.popBackStack() }) { nav.navigate("fakt/$it") } }
+        composable(PICK_PHOTO) { PickObjectScreen(R.string.mod_photo, onBack = { nav.popBackStack() }) { nav.navigate("photo/$it") } }
         composable(OUTBOX) { OutboxScreen(onBack = { nav.popBackStack() }, onEditDraft = { nav.navigate("draft/$it") }) }
+    }
+}
+
+/** Full-screen object picker used by the hub's Fact and Photo modules. */
+@Composable
+private fun PickObjectScreen(@androidx.annotation.StringRes title: Int, onBack: () -> Unit, onPick: (Long) -> Unit) {
+    androidx.compose.foundation.layout.Column(androidx.compose.ui.Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+        WorkTopBar(androidx.compose.ui.res.stringResource(title), onBack)
+        ObjectsScreen(onOpen = onPick, pickForFact = true)
     }
 }
 

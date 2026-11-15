@@ -66,6 +66,13 @@ interface QatorDao {
     )
     fun search(obyektId: Long, match: String, bolim: String?, limit: Int): Flow<List<QatorEntity>>
 
+    /** Rows of every cached object of one workplace (global search). Only objects opened before have cached rows. */
+    @Query(
+        "SELECT q.* FROM qator q JOIN qator_fts ON q.rid = qator_fts.rowid JOIN obyekt o ON o.id = q.obyektId " +
+            "WHERE qator_fts MATCH :match AND o.companyId = :companyId ORDER BY q.obyektId, q.qatorId LIMIT :limit",
+    )
+    suspend fun searchCompany(companyId: Long, match: String, limit: Int): List<QatorEntity>
+
     @Query("SELECT * FROM qator WHERE obyektId = :obyektId AND qatorId = :qatorId")
     suspend fun get(obyektId: Long, qatorId: Long): QatorEntity?
 

@@ -26,7 +26,27 @@ import java.util.UUID
 enum class AuthError {
     BAD_CREDENTIALS, NETWORK, RATE_LIMITED, DISABLED, UPDATE_REQUIRED, DEVICE_LIMIT,
     GOOGLE_UNAVAILABLE, GOOGLE_CANCELLED, TELEGRAM_OFF, TELEGRAM_EXPIRED, TELEGRAM_DENIED, SERVER,
+    // sign-up and invite acceptance
+    EMAIL_BAD, EMAIL_OFF, ACCOUNT_EXISTS, CODE_WRONG, WEAK_PASSWORD, INVITE_OFF, INVITE_BAD, INVITE_ACCOUNT_EXISTS,
 }
+
+/** Maps a shared-server sign-up/invite failure code (royxat-*, kirish-taklif) to the app error. Same codes the website shows. */
+internal fun signUpError(status: Int, code: String?): AuthError = when {
+    status == 0 -> AuthError.NETWORK
+    code == "EMAIL_NOTOGRI" -> AuthError.EMAIL_BAD
+    code == "EMAIL_BAND" -> AuthError.ACCOUNT_EXISTS
+    code == "HISOB_BOR" -> AuthError.INVITE_ACCOUNT_EXISTS
+    code == "TAKLIF_RAD" -> AuthError.INVITE_BAD
+    code == "YOQILMAGAN" -> AuthError.INVITE_OFF
+    code == "EMAIL_XIZMATI_SOZLANMAGAN" || code == "EMAIL_YUBORILMADI" || code == "SOZLANMAGAN" -> AuthError.EMAIL_OFF
+    code == "LIMIT" || code == "KOD_URINISH_LIMITI" || code == "KOD_KUTILMOQDA" || status == 429 -> AuthError.RATE_LIMITED
+    code != null && code.startsWith("KOD_") -> AuthError.CODE_WRONG
+    code != null && (code.startsWith("PAROL_") || code == "PASSWORD_WEAK") -> AuthError.WEAK_PASSWORD
+    status in 500..599 -> AuthError.SERVER
+    else -> AuthError.BAD_CREDENTIALS
+}
+
+class EmailCodeSent(val verificationId: String)
 
 sealed interface AuthOutcome {
     data object Success : AuthOutcome
@@ -128,6 +148,38 @@ class AuthRepository(
 
     /** After the poll reports Ready the session cookie is in the jar: trade it for a device credential. */
     suspend fun finishTelegram(session: LoginSession): AuthOutcome = enroll(session)
+
+    // ---- Sign-up (same shared endpoints as the website: royxat-email-kod -> royxat-ozi -> kirish) ---------------
+
+    /** Step 1: the server e-mails a 6-digit code. Returns the verification id to send back with the code. */
+    suspend fun requestEmailCode(session: LoginSession, email: String): Pair<EmailCodeSent?, AuthError?> {
+        val res = call(session, "POST", "/api/royxat-email-kod", buildJsonObject { put("email", email.trim().lowercase()) })
+        val id = res.body.string("tasdiqlash_id")
+        if (res.ok && res.flag("ok") != false && id != null) return EmailCodeSent(id) to null
+        return null to signUpError(res.status, res.code)
+    }
+
+    /** Step 2: create the (company-less) account and sign in. The name and password are chosen here; the company comes next (onboarding). */
+    suspend fun signUpEmail(session: LoginSession, email: String, verificationId: String, code: String, name: String, password: String, operationId: String = UUID.randomUUID().toString()): AuthOutcome {
+        val login = email.trim().lowercase()
+        val res = call(session, "POST", "/api/royxat-ozi", buildJsonObject {
+            put("login", login); put("parol", password); put("ism", name.trim())
+            put("tasdiqlash_id", verificationId); put("kod", code.trim()); put("operation_id", operationId)
+        })
+        if (!res.ok || res.flag("ok") == false) return AuthOutcome.Failure(signUpError(res.status, res.code))
+        return loginPassword(session, login, password)
+    }
+
+    // ---- Invitation (phone + 8-digit code, or /taklif/<token> link): new account with the invited role, no e-mail needed ----
+
+    suspend fun acceptInvite(session: LoginSession, token: String?, phone: String?, code: String?, password: String, operationId: String = UUID.randomUUID().toString()): AuthOutcome {
+        val res = call(session, "POST", "/api/kirish-taklif", buildJsonObject {
+            put("amal", "qabul"); put("parol", password); put("operation_id", operationId)
+            if (token != null) put("token", token) else { put("telefon", phone.orEmpty()); put("kod", code.orEmpty()) }
+        })
+        if (!res.ok || res.flag("ok") == false) return AuthOutcome.Failure(signUpError(res.status, res.code))
+        return enroll(session)
+    }
 
     // ---- Device enrolment --------------------------------------------------------------------------------------
 

@@ -61,4 +61,12 @@ fun AuthError.messageRes(): Int = when (this) {
     AuthError.TELEGRAM_EXPIRED -> R.string.err_telegram_expired
     AuthError.TELEGRAM_DENIED -> R.string.err_telegram_denied
     AuthError.SERVER -> R.string.err_server
+    AuthError.EMAIL_BAD -> R.string.err_email_bad
+    AuthError.EMAIL_OFF -> R.string.err_email_off
+    AuthError.ACCOUNT_EXISTS -> R.string.err_account_exists
+    AuthError.CODE_WRONG -> R.string.err_code_wrong
+    AuthError.WEAK_PASSWORD -> R.string.err_weak_password
+    AuthError.INVITE_OFF -> R.string.err_invite_off
+    AuthError.INVITE_BAD -> R.string.err_invite_bad
+    AuthError.INVITE_ACCOUNT_EXISTS -> R.string.err_invite_account_exists
 }

@@ -51,7 +51,12 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
         val session = json.parseToJsonElement(asset("session.json")).jsonObject
         return when {
             path.startsWith("/api/sessiya") -> ApiResult(200, session["sessiya"])
-            path.startsWith("/api/ish-joyi") -> ApiResult(200, session["ish_joyi"])
+            path.startsWith("/api/ish-joyi") && method == "POST" -> ok("""{"ok":true,"kompaniya_id":1}""")
+            // The file nowork.flag simulates a fresh company-less account (onboarding screen).
+            path.startsWith("/api/ish-joyi") -> if (File(context.filesDir, "nowork.flag").exists()) ok("""{"ok":true,"ish_joylari":[]}""") else ApiResult(200, session["ish_joyi"])
+            path.startsWith("/api/company") && method == "POST" -> ok("""{"ok":true,"kompaniya_id":1}""")
+            path.startsWith("/api/company") -> ok("""{"ok":true,"context_kompaniyalar":[{"kompaniya_id":1,"effective_role":"pto","permissions":["company.read","smeta.read","fakt.read","fakt.write","f2.read","f2.prepare","narx.read","document.write"]}]}""")
+            path.startsWith("/api/modullarim") -> if (method == "POST") ok("""{"ok":true,"versiya":1}""") else ok("""{"ok":true,"tanlangan":["fakt","foto","f2"],"tartib":["fakt","foto","f2"],"versiya":1}""")
             path.startsWith("/api/obyekt-paket") -> {
                 val id = path.substringAfter("obyekt_id=").toLongOrNull() ?: return ApiResult(400, null)
                 if (id == 102L || id == 103L) return ApiResult(403, buildJsonObject { put("ok", false); put("code", "PERMISSION_DENIED") }, "PERMISSION_DENIED")
@@ -66,6 +71,7 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
                 val jadval = s("jadval"); val filtr = s("filtr").orEmpty()
                 when {
                     s("soro") == "rahbar_panel_v1" -> ok(asset("panel.json"))
+                    s("soro") == "modul_holat_v1" -> ok("""{"ok":true,"natija":{"ok":true,"modullar":[{"kod":"module.hr","holat":"off"},{"kod":"module.moliya","holat":"on"}]}}""")
                     jadval == "t2_obyekt_jami" -> ok(asset("objects.json"))
                     jadval == "t2_akt" && filtr.contains("lifecycle_status=eq.draft") -> {
                         val n = if (filtr.contains("tur=eq.f2")) 3 else 5

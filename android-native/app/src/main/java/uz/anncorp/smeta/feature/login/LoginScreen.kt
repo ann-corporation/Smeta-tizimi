@@ -58,7 +58,7 @@ import uz.anncorp.smeta.core.ui.QurLogo
 import uz.anncorp.smeta.core.ui.messageRes
 
 @Composable
-fun LoginScreen(onSignedIn: () -> Unit, vm: LoginViewModel = hiltViewModel()) {
+fun LoginScreen(onSignedIn: () -> Unit, onSignUp: () -> Unit = {}, onInvite: () -> Unit = {}, vm: LoginViewModel = hiltViewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val focus = LocalFocusManager.current
@@ -158,6 +158,11 @@ fun LoginScreen(onSignedIn: () -> Unit, vm: LoginViewModel = hiltViewModel()) {
                     modifier = Modifier.fillMaxWidth().height(52.dp), shape = MaterialTheme.shapes.medium,
                 ) { Text(stringResource(R.string.btn_telegram), style = MaterialTheme.typography.titleSmall) }
 
+                Spacer(Modifier.height(24.dp))
+                Text(stringResource(R.string.login_new_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(8.dp))
+                TextButton(onClick = onSignUp, enabled = enabled, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text(stringResource(R.string.login_create_account), style = MaterialTheme.typography.titleSmall) }
+                TextButton(onClick = onInvite, enabled = enabled, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text(stringResource(R.string.login_have_invite), style = MaterialTheme.typography.titleSmall) }
                 if (state.telegramWaiting) {
                     Spacer(Modifier.height(20.dp))
                     Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {

@@ -102,5 +102,10 @@ object DataModule {
 
     @Provides @Singleton
     fun faktRepository(db: AppDb, outbox: OutboxRepository, json: Json) = FaktRepository(db, outbox, json)
-}
 
+    @Provides @Singleton
+    fun companyRepository(api: BffApi) = CompanyRepository(api)
+
+    @Provides @Singleton
+    fun modulesRepository(api: BffApi, json: Json, prefs: Prefs) = ModulesRepository(api, json, prefs)
+}

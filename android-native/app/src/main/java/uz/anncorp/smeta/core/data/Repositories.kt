@@ -118,6 +118,12 @@ class RowsRepository(private val api: BffApi, private val db: AppDb, private val
 
     fun sections(obyektId: Long): Flow<List<String>> = db.qator().sections(obyektId)
 
+    /** Global search over rows already cached on this device (objects opened before). Empty when the query has no searchable word. */
+    suspend fun searchCompany(companyId: Long, query: String, limit: Int = 20): List<QatorEntity> {
+        val m = ftsMatch(query) ?: return emptyList()
+        return db.qator().searchCompany(companyId, m, limit)
+    }
+
     /**
      * Fills the local row cache. Preferred source is the object packet (one call, ETag 304 when unchanged); a 403 there
      * (no smeta/F-2/price read) falls back to the per-row status table, which a field role may still be allowed to read.

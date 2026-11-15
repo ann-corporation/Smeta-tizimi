@@ -11,16 +11,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -46,35 +49,50 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import uz.anncorp.smeta.R
+import uz.anncorp.smeta.core.data.NativeTarget
 import uz.anncorp.smeta.core.data.Workplace
+import uz.anncorp.smeta.core.ui.OutboxBanner
 import uz.anncorp.smeta.core.ui.QurLogo
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.AlertDialog
-import androidx.compose.ui.res.pluralStringResource
 import uz.anncorp.smeta.feature.approval.ApprovalsScreen
-import uz.anncorp.smeta.feature.today.TodayScreen
 import uz.anncorp.smeta.feature.company.WorkplaceSheet
+import uz.anncorp.smeta.feature.hub.HubScreen
+import uz.anncorp.smeta.feature.onboarding.OnboardingScreen
 import uz.anncorp.smeta.feature.profile.ProfileScreen
+import uz.anncorp.smeta.feature.today.TodayScreen
 import uz.anncorp.smeta.feature.work.BannerViewModel
 import uz.anncorp.smeta.feature.work.ObjectsScreen
-import uz.anncorp.smeta.core.ui.OutboxBanner
 
 private data class Tab(@StringRes val label: Int, val icon: ImageVector)
 
+// 0 Apps (hub), 1 Objects, 2 Approvals, 3 Today, 4 Profile. Fact and Photo are hub modules (and live on the object card).
 private val Tabs = listOf(
+    Tab(R.string.nav_apps, Icons.Filled.Menu),
     Tab(R.string.nav_objects, Icons.Filled.Home),
-    Tab(R.string.nav_fact, Icons.Filled.Create),
     Tab(R.string.nav_approval, Icons.Filled.CheckCircle),
     Tab(R.string.nav_today, Icons.Filled.DateRange),
     Tab(R.string.nav_profile, Icons.Filled.Person),
 )
 
 @Composable
-fun HomeScreen(onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOpenApproval: (Long) -> Unit, onOutbox: () -> Unit, vm: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(
+    onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOpenApproval: (Long) -> Unit, onOutbox: () -> Unit,
+    onOpenWeb: (path: String, title: String) -> Unit, onPickFakt: () -> Unit, onPickPhoto: () -> Unit,
+    vm: HomeViewModel = hiltViewModel(),
+) {
     val state by vm.state.collectAsStateWithLifecycle()
     val signOut by vm.signOutUi.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var sheet by rememberSaveable { mutableStateOf(false) }
+    val openObject: (Long) -> Unit = { vm.opened(it); onOpenObject(it) }
+
+    // A fresh account (Google / Telegram / e-mail sign-up) has no workplace: create one, join with a code, or carry on without.
+    if (!state.loading && !state.failed && state.selected == null && !state.skipped) {
+        OnboardingScreen(
+            busy = state.onboardBusy, error = state.onboardError, onCreate = vm::createCompany, onJoin = vm::joinCompany,
+            onSkip = vm::skipOnboarding, onClearError = vm::clearOnboardError,
+        )
+        return
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -99,7 +117,7 @@ fun HomeScreen(onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOpenA
                     Text(stringResource(R.string.home_loading), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 tab == 4 -> ProfileScreen(state, onTheme = vm::setTheme, onSwitch = { sheet = true }, onSignOut = vm::requestSignOut)
-                else -> TabBody(state, tab, vm::load, onOpenObject, onOpenFakt, onOpenApproval, { tab = 2 }, onOutbox)
+                else -> TabBody(state, tab, vm::load, openObject, onOpenFakt, onOpenApproval, { tab = it }, onOutbox, onOpenWeb, onPickFakt, onPickPhoto, vm::resumeOnboarding)
             }
         }
     }
@@ -177,7 +195,11 @@ fun RoleChip(role: String) {
 }
 
 @Composable
-private fun TabBody(state: HomeState, tab: Int, onRetry: () -> Unit, onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOpenApproval: (Long) -> Unit, onGoApprovals: () -> Unit, onOutbox: () -> Unit, banner: BannerViewModel = hiltViewModel()) {
+private fun TabBody(
+    state: HomeState, tab: Int, onRetry: () -> Unit, onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOpenApproval: (Long) -> Unit,
+    onGoTab: (Int) -> Unit, onOutbox: () -> Unit, onOpenWeb: (String, String) -> Unit, onPickFakt: () -> Unit, onPickPhoto: () -> Unit, onOnboard: () -> Unit,
+    banner: BannerViewModel = hiltViewModel(),
+) {
     val bannerState by banner.state.collectAsStateWithLifecycle()
     val work = tab == 0 || tab == 1
     Column(Modifier.fillMaxSize()) {
@@ -192,21 +214,33 @@ private fun TabBody(state: HomeState, tab: Int, onRetry: () -> Unit, onOpenObjec
                 Text(stringResource(R.string.err_server), color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                 TextButton(onClick = onRetry) { Text(stringResource(R.string.retry)) }
             }
+        } else if (tab == 0) {
+            HubScreen(
+                onNative = { target ->
+                    when (target) {
+                        NativeTarget.OBJECTS -> onGoTab(1)
+                        NativeTarget.APPROVALS -> onGoTab(2)
+                        NativeTarget.TODAY -> onGoTab(3)
+                        NativeTarget.FAKT -> onPickFakt()
+                        NativeTarget.PHOTO -> onPickPhoto()
+                        NativeTarget.WAREHOUSE -> Unit // behind Features.NATIVE_WAREHOUSE until the warehouse module is merged
+                    }
+                },
+                onWeb = onOpenWeb, onObject = onOpenObject, onFakt = onOpenFakt, onOnboard = onOnboard,
+            )
         } else if (state.selected == null && !state.loading) {
             Column(Modifier.fillMaxSize().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                 Text(stringResource(R.string.workplace_none), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
                 Spacer(Modifier.height(8.dp))
                 Text(stringResource(R.string.workplace_none_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                TextButton(onClick = onOnboard) { Text(stringResource(R.string.hub_no_company_action)) }
             }
-        } else if (tab == 0) {
-            ObjectsScreen(onOpen = onOpenObject)
         } else if (tab == 1) {
-            ObjectsScreen(onOpen = onOpenFakt, pickForFact = true)
+            ObjectsScreen(onOpen = onOpenObject, onOpenWeb = { onOpenWeb(it, "") })
         } else if (tab == 2) {
             ApprovalsScreen(onOpen = onOpenApproval)
         } else {
-            TodayScreen(onOpenApprovals = onGoApprovals, onOutbox = onOutbox)
+            TodayScreen(onOpenApprovals = { onGoTab(2) }, onOutbox = onOutbox)
         }
     }
 }
-

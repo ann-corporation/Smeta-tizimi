@@ -49,7 +49,7 @@ import uz.anncorp.smeta.core.ui.WorkCard
 /** Objects of the current workplace. [pickForFact] only changes the hint line; the tap target is decided by the caller. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ObjectsScreen(onOpen: (Long) -> Unit, pickForFact: Boolean = false, vm: ObjectsViewModel = hiltViewModel(key = if (pickForFact) "pick" else "browse")) {
+fun ObjectsScreen(onOpen: (Long) -> Unit, pickForFact: Boolean = false, onOpenWeb: ((String) -> Unit)? = null, vm: ObjectsViewModel = hiltViewModel(key = if (pickForFact) "pick" else "browse")) {
     val ui by vm.state.collectAsStateWithLifecycle()
     Column(Modifier.fillMaxSize()) {
         OutlinedTextField(
@@ -68,7 +68,7 @@ fun ObjectsScreen(onOpen: (Long) -> Unit, pickForFact: Boolean = false, vm: Obje
             when {
                 ui.noCompany -> CenterMessage(null, stringResource(R.string.workplace_none), stringResource(R.string.workplace_none_hint))
                 ui.loading -> Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) { CircularProgressIndicator() }
-                ui.items.isEmpty() -> EmptyOrError(ui, vm)
+                ui.items.isEmpty() -> EmptyOrError(ui, vm, onOpenWeb)
                 else -> LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp, 8.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(ui.items, key = { it.id }) { ObjectRow(it, ui.money[it.id]) { onOpen(it.id) } }
                 }
@@ -78,14 +78,15 @@ fun ObjectsScreen(onOpen: (Long) -> Unit, pickForFact: Boolean = false, vm: Obje
 }
 
 @Composable
-private fun EmptyOrError(ui: ObjectsUi, vm: ObjectsViewModel) {
+private fun EmptyOrError(ui: ObjectsUi, vm: ObjectsViewModel, onOpenWeb: ((String) -> Unit)?) {
     val r = ui.result
     when {
         ui.query.isNotBlank() -> CenterMessage(Icons.Filled.Search, stringResource(R.string.p1_objects_empty_search))
         r is SyncResult.Offline -> CenterMessage(Icons.Filled.CloudOff, stringResource(R.string.p1_objects_offline_empty), stringResource(R.string.err_network), stringResource(R.string.retry)) { vm.refresh() }
         r is SyncResult.Forbidden -> CenterMessage(Icons.Filled.Warning, stringResource(R.string.p1_objects_forbidden))
         r is SyncResult.Failed -> CenterMessage(Icons.Filled.Warning, stringResource(R.string.p1_objects_error), stringResource(R.string.err_server), stringResource(R.string.retry)) { vm.refresh() }
-        else -> CenterMessage(null, stringResource(R.string.p1_objects_empty), stringResource(R.string.p1_objects_empty_hint))
+        else -> if (onOpenWeb != null) CenterMessage(null, stringResource(R.string.hub_first_object), stringResource(R.string.hub_first_object_hint), stringResource(R.string.hub_first_object_action)) { onOpenWeb("/admin/obyektlar") }
+        else CenterMessage(null, stringResource(R.string.p1_objects_empty), stringResource(R.string.p1_objects_empty_hint))
     }
 }
 

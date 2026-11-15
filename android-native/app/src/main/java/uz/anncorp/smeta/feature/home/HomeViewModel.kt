@@ -25,6 +25,10 @@ data class HomeState(
     val workplaces: List<Workplace> = emptyList(),
     val selected: Workplace? = null,
     val theme: ThemeMode = ThemeMode.DARK,
+    val onboardBusy: Boolean = false,
+    val onboardError: uz.anncorp.smeta.core.data.OnboardError? = null,
+    /** The user chose to carry on without a company (the account stays company-less; the hub explains how to start). */
+    val skipped: Boolean = false,
 )
 
 sealed interface SignOutUi {
@@ -46,6 +50,7 @@ class HomeViewModel @Inject constructor(
     private val outbox: uz.anncorp.smeta.core.data.OutboxRepository,
     private val db: uz.anncorp.smeta.core.db.AppDb,
     private val processor: uz.anncorp.smeta.core.data.OutboxProcessor,
+    private val company: uz.anncorp.smeta.core.data.CompanyRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(HomeState(theme = prefs.theme.value))
     val state: StateFlow<HomeState> = _state.asStateFlow()
@@ -78,6 +83,29 @@ class HomeViewModel @Inject constructor(
         prefs.selectCompany(w.companyId)
         _state.update { it.copy(selected = w) }
         work.set(w)
+    }
+
+    fun createCompany(name: String, inn: String) = onboard { company.create(name, inn.ifBlank { null }) }
+    fun joinCompany(code: String) = onboard { company.join(code) }
+    fun resumeOnboarding() = _state.update { it.copy(skipped = false) }
+    fun skipOnboarding() = _state.update { it.copy(skipped = true) }
+    fun clearOnboardError() = _state.update { it.copy(onboardError = null) }
+    /** Remembers the object as recently opened (shown in the hub). */
+    fun opened(objectId: Long) = prefs.pushRecent(objectId)
+
+    private fun onboard(block: suspend () -> uz.anncorp.smeta.core.data.OnboardResult) {
+        if (_state.value.onboardBusy) return
+        _state.update { it.copy(onboardBusy = true, onboardError = null) }
+        viewModelScope.launch {
+            when (val r = block()) {
+                is uz.anncorp.smeta.core.data.OnboardResult.Done -> {
+                    r.companyId?.let { prefs.selectCompany(it) }
+                    _state.update { it.copy(onboardBusy = false, skipped = false) }
+                    load()
+                }
+                is uz.anncorp.smeta.core.data.OnboardResult.Failed -> _state.update { it.copy(onboardBusy = false, onboardError = r.error) }
+            }
+        }
     }
 
     fun setTheme(mode: ThemeMode) {
@@ -114,6 +142,7 @@ class HomeViewModel @Inject constructor(
     private suspend fun signOutNow() {
         _signOut.value = SignOutUi.Idle
         prefs.clearCompany()
+        prefs.clearRecent()
         work.set(null)
         db.clearCaches()   // before the logout event: leaving the screen may cancel this scope
         api.signOut()
