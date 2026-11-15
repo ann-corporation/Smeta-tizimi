@@ -259,6 +259,11 @@
     <string name="ja_q_today_text">My work today: what work is there and what do I need to approve?</string>
     <string name="ja_q_fact">Fact status by object</string>
     <string name="ja_q_fact_text">What is the fact status by object? What is done and what is left?</string>
+    <string name="ja_new_chat">New chat</string>
+    <string name="ja_chats">Chats (%1$d)</string>
+    <string name="ja_chats_empty">No chats yet</string>
+    <string name="ja_q_money">Object total with VAT</string>
+    <string name="ja_q_money_text">What is the object estimate value with markup (nakrutka) and VAT?</string>
     <string name="ja_budget_title">AI limit reached</string>
     <string name="ja_budget_body">Not enough tokens for this question.</string>
     <string name="ja_budget_hint">Ask again after topping up. Nothing was charged for this question.</string>

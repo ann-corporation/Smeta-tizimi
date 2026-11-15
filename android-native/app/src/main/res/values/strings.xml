@@ -260,6 +260,11 @@
     <string name="ja_q_today_text">Bugungi ishlarim: bugun qanday ishlar bor va nimani tasdiqlashim kerak?</string>
     <string name="ja_q_fact">Obyekt bo\'yicha fakt holati</string>
     <string name="ja_q_fact_text">Obyektlar bo\'yicha fakt holati qanday? Nima bajarilgan va nima qolgan?</string>
+    <string name="ja_new_chat">Yangi suhbat</string>
+    <string name="ja_chats">Suhbatlar (%1$d)</string>
+    <string name="ja_chats_empty">Hali suhbat yo\'q</string>
+    <string name="ja_q_money">Obyekt summasi QQS bilan</string>
+    <string name="ja_q_money_text">Obyektning smeta qiymati nakrutka (ustama) va QQS bilan qancha?</string>
     <string name="ja_budget_title">AI limiti tugadi</string>
     <string name="ja_budget_body">Bu savol uchun tokenlar yetarli emas.</string>
     <string name="ja_budget_hint">Hisob to\'ldirilgach qayta so\'rang. Savol uchun hech narsa yechilmadi.</string>

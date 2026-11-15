@@ -5,6 +5,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.RequestBody
 import org.junit.Assert.assertEquals
@@ -215,22 +216,71 @@ class JarvisRepositoryTest {
         assertEquals(JarvisResult.Server("Xato"), JarvisRepository.map(pres("""{"ok":false,"xabar":"Xato"}""", 500)))
     }
 
-    @Test fun askSendsTheQuestionAndCompanyThroughTheBff() = runBlocking {
+    @Test fun askUsesTheAgentIshChatWithHistoryAndObject() = runBlocking {
         val api = PeopleRecorder { _, _ -> pres("""{"ok":true,"javob":"Ha"}""") }
         val repo = JarvisRepository(api)
-        assertEquals(JarvisResult.Answer("Ha", false), repo.ask("  Bugungi ishlarim  ", 8))
+        val hist = listOf(ChatMsg(true, "amfiteatr obyektim haqida malumot ber"), ChatMsg(false, "Smeta: ..."))
+        assertEquals(JarvisResult.Answer("Ha", false), repo.ask("  nakrutka va QQS bilan qancha  ", 8, hist, 42))
         val (path, method, body) = api.calls.single()
-        assertEquals("/api/ai-savol", path); assertEquals("POST", method)
-        assertEquals("Bugungi ishlarim", body!!["savol"]!!.jsonPrimitive.content)
+        assertEquals("/api/agent-ish", path); assertEquals("POST", method)
+        assertEquals("kasb_savol", body!!["amal"]!!.jsonPrimitive.content)
+        assertEquals("nakrutka va QQS bilan qancha", body["savol"]!!.jsonPrimitive.content)
         assertEquals("8", body["kompaniya_id"]!!.jsonPrimitive.content)
+        assertEquals("42", body["obyekt_id"]!!.jsonPrimitive.content)
+        val tarix = body["tarix"]!!.jsonArray
+        assertEquals(2, tarix.size)
+        assertEquals("user", tarix[0].jsonObject["rol"]!!.jsonPrimitive.content)
+        assertEquals("assistant", tarix[1].jsonObject["rol"]!!.jsonPrimitive.content)
         assertTrue(repo.ask("   ", 8) is JarvisResult.Context)
         assertEquals(1, api.calls.size)
         repo.ask("x".repeat(5000), null)
-        assertEquals(JarvisRepository.MAX_QUESTION, api.calls.last().third!!["savol"]!!.jsonPrimitive.content.length)
-        assertFalse(api.calls.last().third!!.containsKey("kompaniya_id"))
+        val last = api.calls.last().third!!
+        assertEquals(JarvisRepository.MAX_QUESTION, last["savol"]!!.jsonPrimitive.content.length)
+        assertFalse(last.containsKey("kompaniya_id")); assertFalse(last.containsKey("obyekt_id")); assertFalse(last.containsKey("tarix"))
+    }
+
+    @Test fun historyIsLimitedToTheLastSixNonBlankTurns() {
+        val h = (1..10).map { ChatMsg(it % 2 == 1, "m$it") } + ChatMsg(true, "   ")
+        val j = JarvisRepository.historyJson(h)
+        assertEquals(6, j.size)
+        assertEquals("m5", j.first().jsonObject["matn"]!!.jsonPrimitive.content)
+        assertEquals("m10", j.last().jsonObject["matn"]!!.jsonPrimitive.content)
+    }
+
+    @Test fun localModelMarkerAndAgentIshErrorTextAreRecognised() {
+        assertEquals(JarvisResult.Answer("Summa", true), JarvisRepository.map(pres("""{"ok":true,"javob":"Summa","model":"local"}""")))
+        assertEquals(JarvisResult.Budget("Limit"), JarvisRepository.map(pres("""{"ok":false,"error":"Limit"}""", 402)))
+        assertEquals(JarvisResult.Context("Kompaniyani tanlang"), JarvisRepository.map(pres("""{"ok":false,"error":"Kompaniyani tanlang"}""", 422)))
+    }
+
+    @Test fun serverChatsAreListedOpenedAndSavedLikeTheWeb() = runBlocking {
+        val api = PeopleRecorder { _, body ->
+            when (body!!["amal"]!!.jsonPrimitive.content) {
+                "suhbat_royxat" -> pres("""{"ok":true,"royxat":[{"id":"a1","sarlavha":"Birinchi","yangilandi":"2026-11-15T10:00:00+00:00","toliq":true}]}""")
+                "suhbat_ol" -> pres("""{"ok":true,"sarlavha":"Birinchi","xabarlar":[{"r":"user","m":"salom"},{"r":"ai","m":"Salom!"}]}""")
+                else -> pres("""{"ok":true}""")
+            }
+        }
+        val repo = JarvisRepository(api)
+        assertEquals(listOf(ChatInfo("a1", "Birinchi", "2026-11-15T10:00:00+00:00")), repo.chats(8))
+        assertEquals(listOf(ChatMsg(true, "salom"), ChatMsg(false, "Salom!")), repo.openChat(8, "a1"))
+        assertEquals("a1", api.calls[1].third!!["klient_id"]!!.jsonPrimitive.content)
+        assertTrue(repo.saveChat(8, "a1", listOf(ChatMsg(true, "  salom \n dunyo "), ChatMsg(false, "Salom!"))))
+        val save = api.calls.last().third!!
+        assertEquals("suhbat_saqla", save["amal"]!!.jsonPrimitive.content)
+        assertEquals("salom dunyo", save["sarlavha"]!!.jsonPrimitive.content)
+        assertEquals("user", save["xabarlar"]!!.jsonArray[0].jsonObject["r"]!!.jsonPrimitive.content)
+        assertEquals("ai", save["xabarlar"]!!.jsonArray[1].jsonObject["r"]!!.jsonPrimitive.content)
+        assertFalse(repo.saveChat(8, "a1", listOf(ChatMsg(false, "faqat javob"))))   // nothing to title the chat with
+    }
+
+    @Test fun chatFailuresAreNullNotEmpty() {
+        assertNull(JarvisRepository.parseChats(ApiResult(500, null)))
+        assertNull(JarvisRepository.parseChats(pres("""{"ok":false}""")))
+        assertNull(JarvisRepository.parseMessages(ApiResult(0, null)))
+        assertEquals(listOf(ChatMsg(false, "Qisqa")), JarvisRepository.parseMessages(pres("""{"ok":true,"qisqartma":"Qisqa","xabarlar":null}""")))
     }
 }
-
 class JarvisModuleTest {
     @Test fun hubListsJarvisWithCompanyReadAndHidesItOtherwise() {
         assertTrue(ModuleCatalog.visible(setOf("company.read"), emptySet()).any { it.code == "jarvis" && it.target == NativeTarget.JARVIS })

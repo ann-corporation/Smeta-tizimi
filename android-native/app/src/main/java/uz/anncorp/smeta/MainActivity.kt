@@ -167,7 +167,7 @@ private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
         }
         composable(PICK_FAKT) { PickObjectScreen(R.string.mod_fact, onBack = { nav.popBackStack() }) { nav.navigate("fakt/$it") } }
         composable(PICK_PHOTO) { PickObjectScreen(R.string.mod_photo, onBack = { nav.popBackStack() }) { nav.navigate("photo/$it") } }
-        composable(JARVIS) { JarvisScreen(onBack = { nav.popBackStack() }) }
+        composable("$JARVIS?obyekt={obyekt}", listOf(navArgument("obyekt") { type = NavType.LongType; defaultValue = -1L })) { JarvisScreen(onBack = { nav.popBackStack() }) }
         composable(RAHBAR) {
             RahbarScreen(onBack = { nav.popBackStack() }, onOpenObject = { nav.navigate("object/$it") }, onOpenApprovals = { nav.popBackStack() })
         }
