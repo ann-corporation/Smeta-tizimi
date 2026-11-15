@@ -93,7 +93,10 @@ private fun EntryCard(e: OutboxEntity, vm: OutboxViewModel, onEditDraft: (Long) 
                     TextButton(onClick = { vm.delete(e.id) }, modifier = Modifier.heightIn(min = TouchTarget)) { Text(stringResource(R.string.p1_remove), color = MaterialTheme.colorScheme.error) }
                 }
             } else if (e.state != OutboxState.DONE) {
-                TextButton(onClick = { vm.delete(e.id) }, modifier = Modifier.heightIn(min = TouchTarget)) { Text(stringResource(R.string.p1_remove), color = MaterialTheme.colorScheme.error) }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedButton(onClick = { vm.retry(e.id) }, modifier = Modifier.heightIn(min = TouchTarget)) { Text(stringResource(R.string.p1_send_now)) }
+                    TextButton(onClick = { vm.delete(e.id) }, modifier = Modifier.heightIn(min = TouchTarget)) { Text(stringResource(R.string.p1_remove), color = MaterialTheme.colorScheme.error) }
+                }
             }
         }
     }

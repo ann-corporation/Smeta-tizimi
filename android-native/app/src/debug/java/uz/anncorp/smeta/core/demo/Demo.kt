@@ -64,6 +64,7 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
             path.startsWith("/api/ish-joyi") -> if (File(context.filesDir, "nowork.flag").exists()) ok("""{"ok":true,"ish_joylari":[]}""") else if (File(context.filesDir, "boss.flag").exists()) ok(session["ish_joyi"].toString().replace("\"prorab\"", "\"direktor\"")) else ApiResult(200, session["ish_joyi"])
             path.startsWith("/api/profil") && method == "POST" -> profil(body as? JsonObject)
             path.startsWith("/api/kirish-taklif") && method == "POST" -> ok("""{"ok":true,"kod":"48213907","havola":"https://smeta-tizimi.pages.dev/taklif/DEMOTOKEN"}""")
+            path.startsWith("/api/agent-ish") && method == "POST" -> agentIsh(body as? JsonObject)
             path.startsWith("/api/ai-savol") && method == "POST" -> {
                 val q = ((body as? JsonObject)?.get("savol") as? JsonPrimitive)?.content.orEmpty()
                 // A question containing "limit" simulates an empty token balance (HTTP 402), so the budget card can be shown.
@@ -123,6 +124,26 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
             path.startsWith("/api/hujjat-yarat") -> ok(asset("gen_list.json"))
             path.startsWith("/api/foto-dalil") -> ok("""{"ok":true,"id":900}""")
             else -> ApiResult(404, null)
+        }
+    }
+
+    private val demoChats = mutableMapOf<String, String>()
+
+    /** Jarvis fixture: money answer from the demo object summary (QQS bilan first), shared chat history in memory. */
+    private fun agentIsh(o: JsonObject?): ApiResult {
+        fun s(k: String) = (o?.get(k) as? JsonPrimitive)?.takeIf { it.isString }?.content
+        return when (s("amal")) {
+            "kasb_savol" -> {
+                val q = s("savol").orEmpty().lowercase()
+                val text = if (q.contains("qqs") || q.contains("summa") || q.contains("qancha"))
+                    "Demo korpus A: QQS bilan 1 614 935 115,60; ustamali (QQS siz) 1 441 906 355,00; ustamasiz (QQS siz) 1 232 381 500,00. 1 ta qator narxsiz."
+                else "Bugun 3 ta ish bor: 2 ta fakt kiritish va 1 ta tasdiqlash kutmoqda."
+                ok(buildJsonObject { put("ok", true); put("javob", text); put("provider", "local") }.toString())
+            }
+            "suhbat_royxat" -> ok("""{"ok":true,"royxat":[${demoChats.keys.joinToString(",") { """{"id":"$it","sarlavha":"Demo suhbat","yangilandi":"2026-11-15T10:00:00+00:00"}""" }}]}""")
+            "suhbat_ol" -> ok("""{"ok":true,"xabarlar":${demoChats[s("klient_id")] ?: "[]"}}""")
+            "suhbat_saqla" -> { s("klient_id")?.let { demoChats[it] = (o?.get("xabarlar"))?.toString() ?: "[]" }; ok("""{"ok":true}""") }
+            else -> ApiResult(400, buildJsonObject { put("ok", false) })
         }
     }
 

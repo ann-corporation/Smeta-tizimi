@@ -119,6 +119,7 @@
     <string name="p1_reason">Причина: %1$s</string>
     <string name="p1_edit">Изменить</string>
     <string name="p1_retry_now">Отправить снова</string>
+    <string name="p1_send_now">Отправить сейчас</string>
     <string name="p1_sent_doc">Документ %1$s</string>
     <string name="p1_warn_over">Сверх сметы: %1$s</string>
     <!-- /P1 -->

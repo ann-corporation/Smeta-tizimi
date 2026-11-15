@@ -243,7 +243,7 @@ private fun CashCard(d: RahbarPanelData) {
                     listOf(ChartColors.f2, ChartColors.fact, ChartColors.warn),
                 )
                 Spacer(Modifier.height(6.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class) androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     LegendDot(ChartColors.f2, stringResource(R.string.rb_leg_done)); LegendDot(ChartColors.fact, stringResource(R.string.rb_leg_paid)); LegendDot(ChartColors.warn, stringResource(R.string.rb_leg_cost))
                 }
             }

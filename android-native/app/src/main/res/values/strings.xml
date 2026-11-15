@@ -120,6 +120,7 @@
     <string name="p1_reason">Sabab: %1$s</string>
     <string name="p1_edit">Tahrirlash</string>
     <string name="p1_retry_now">Qayta yuborish</string>
+    <string name="p1_send_now">Hozir yuborish</string>
     <string name="p1_sent_doc">Hujjat %1$s</string>
     <string name="p1_warn_over">Smetadan oshgan: %1$s</string>
     <!-- /P1 -->

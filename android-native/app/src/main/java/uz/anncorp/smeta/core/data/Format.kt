@@ -93,3 +93,10 @@ const val VAT_RATE = 0.12
 
 /** Net (QQS-free) amount -> amount with QQS (12 %). */
 fun withVat(net: Double?): Double? = net?.let { BigDecimal.valueOf(it).multiply(BigDecimal.valueOf(1.0 + VAT_RATE)).setScale(2, RoundingMode.HALF_UP).toDouble() }
+
+/** ISO date or timestamp from the server ("2026-11-14T08:10:00+00:00") as "14.11.2026 08:10" (date only when no time part); anything unparsable is returned unchanged. */
+fun formatIsoStamp(s: String): String {
+    val m = Regex("^(\\d{4})-(\\d{2})-(\\d{2})(?:[T ](\\d{2}):(\\d{2}))?").find(s.trim()) ?: return s
+    val (y, mo, d, h, mi) = m.destructured
+    return "$d.$mo.$y" + if (h.isNotEmpty()) " $h:$mi" else ""
+}

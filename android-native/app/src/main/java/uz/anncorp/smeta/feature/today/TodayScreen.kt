@@ -120,7 +120,7 @@ private fun NotificationsCard(items: List<NotificationItem>, unread: Int?, onMar
                                 notifRes(notifKind(n.mavzu))?.let { stringResource(it) } ?: stringResource(R.string.nt_other),
                                 style = MaterialTheme.typography.bodyMedium, color = if (n.oqildi) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                             )
-                            n.yaratildi?.let { Text(it.replace('T', ' ').take(16), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                            n.yaratildi?.let { Text(uz.anncorp.smeta.core.data.formatIsoStamp(it), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                         }
                     }
                 }

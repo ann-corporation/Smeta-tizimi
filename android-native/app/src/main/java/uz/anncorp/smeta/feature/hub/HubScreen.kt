@@ -19,7 +19,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBox
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Build
@@ -84,7 +84,7 @@ internal fun iconFor(code: String): ImageVector = when (code) {
     "nazorat" -> Icons.Filled.Warning
     "obyektlar" -> Icons.Filled.Home
     "fakt" -> Icons.Filled.Create
-    "foto" -> Icons.Filled.AccountBox
+    "foto" -> Icons.Filled.CameraAlt
     "tasdiq" -> Icons.Filled.CheckCircle
     "bugun" -> Icons.Filled.DateRange
     "ombor" -> Icons.Filled.Place
