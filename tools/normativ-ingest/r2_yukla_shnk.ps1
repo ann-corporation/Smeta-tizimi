@@ -60,7 +60,9 @@ foreach ($o in $pending) {
   $hash = (Get-FileHash -LiteralPath $o.file -Algorithm SHA256).Hash.ToLowerInvariant()
   if ($hash -ne $o.sha256) { Write-Warning "sha256 mismatch, skipped: $($o.key)"; $failed++; continue }
   $type = if ($o.key.EndsWith('.json.gz')) { 'application/gzip' } else { 'application/octet-stream' }
-  & npx wrangler@4 r2 object put "$Bucket/$($o.key)" --file $o.file --content-type $type --remote
+  # cmd /c: PS 5.1 with ErrorActionPreference=Stop treats npm/wrangler stderr warnings as fatal.
+  $cmd = 'npx --yes wrangler@4 r2 object put "' + $Bucket + '/' + $o.key + '" --file "' + $o.file + '" --content-type ' + $type + ' --remote 2>&1'
+  $null = cmd /c $cmd
   if ($LASTEXITCODE -ne 0) { Write-Warning "upload failed: $($o.key)"; $failed++; continue }
   Add-Content -LiteralPath $ledgerPath -Value ("{0}`t{1}" -f $o.key, $o.sha256) -Encoding UTF8
 }
