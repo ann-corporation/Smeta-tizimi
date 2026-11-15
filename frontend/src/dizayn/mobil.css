@@ -73,7 +73,6 @@ html[data-jarvis-ochiq] .mobil-tab { display: none !important; }
   }
   .mobil-tab__item > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mobil-tab__item--faol { color: var(--accent); }
-  .mobil-tab__item--ai { color: var(--accent); }
   .mobil-tab__item:focus-visible { outline: 2px solid var(--focus, var(--accent)); outline-offset: -3px; }
 }
 @media print { .mobil-tab { display: none !important; } }
