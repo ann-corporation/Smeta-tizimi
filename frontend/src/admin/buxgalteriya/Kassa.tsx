@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Download, Undo2 } from 'lucide-react';
 import { t, tilLocale } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { yangiOperationId } from '../../api/supabase';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
@@ -39,6 +40,7 @@ export function Kassa({ kid, davr, versiya, hisoblar, yozadi, onOzgardi }: { kid
     op.current = yangiOperationId(); setSumma(''); setAsos(''); void yukla(); onOzgardi();
   };
   const bekor = async (id: number) => {
+    if (!(await tasdiqSora({ matn: t('Order bekor qilinadi: teskari yozuv (storno) yaratiladi. Davom etasizmi?'), tasdiqMatni: t('Bekor qilish'), xavfli: true }))) return;
     const r = await buxKassaBekor(kid, id, yangiOperationId());
     if (!r.ok) { setXato(buxXato(r)); return; }
     toast(t('Order bekor qilindi (storno)'), 'ok'); void yukla(); onOzgardi();
@@ -69,18 +71,18 @@ export function Kassa({ kid, davr, versiya, hisoblar, yozadi, onOzgardi }: { kid
       {d && (
         <>
           <p className="text-[12px] text-text-mute">{t('Kassa hisobi')} {d.kassa_hisob}; {t('davr boshida')}: <Son v={d.ochilish} /> · {t('davr oxirida')}: <Son v={d.yopilish} qalin /></p>
-          <div className="overflow-x-auto">
+          <div className="max-h-[70vh] overflow-auto">
             <table className="w-full min-w-[520px] text-[12.5px]" aria-label={t('Kunlik kassa kitobi')}>
-              <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th className={th}>{t('Sana')}</th><th className={`${th} text-right`}>{t('Kirim')}</th><th className={`${th} text-right`}>{t('Chiqim')}</th><th className={`${th} text-right`}>{t('Qoldiq')}</th></tr></thead>
+              <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left text-[11px] uppercase text-text-mute"><th className={th}>{t('Sana')}</th><th className={`${th} text-right`}>{t('Kirim')}</th><th className={`${th} text-right`}>{t('Chiqim')}</th><th className={`${th} text-right`}>{t('Qoldiq')}</th></tr></thead>
               <tbody>
                 {d.kunlar.length === 0 && <tr><td colSpan={4} className="px-2 py-4 text-center text-text-mute">{t('Bu davrda kassa harakati yo‘q.')}</td></tr>}
                 {d.kunlar.map((k) => <tr key={k.sana} className="border-t border-border/50"><td className={td}>{ddmmyyyy(k.sana)}</td><td className={`${td} text-right`}><Son v={k.kirim} /></td><td className={`${td} text-right`}><Son v={k.chiqim} /></td><td className={`${td} text-right`}><Son v={k.qoldiq} /></td></tr>)}
               </tbody>
             </table>
           </div>
-          <div className="overflow-x-auto">
+          <div className="max-h-[70vh] overflow-auto">
             <table className="w-full min-w-[700px] text-[12.5px]" aria-label={t('Kassa orderlari')}>
-              <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th className={th}>{t('Order')}</th><th className={th}>{t('Sana')}</th><th className={th}>{t('Qarshi hisob')}</th><th className={th}>{t('Asos')}</th><th className={`${th} text-right`}>{t('Summa')}</th><th className={th} /></tr></thead>
+              <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left text-[11px] uppercase text-text-mute"><th className={th}>{t('Order')}</th><th className={th}>{t('Sana')}</th><th className={th}>{t('Qarshi hisob')}</th><th className={th}>{t('Asos')}</th><th className={`${th} text-right`}>{t('Summa')}</th><th className={th} /></tr></thead>
               <tbody>
                 {d.orderlar.map((o) => (
                   <tr key={o.id} className={`border-t border-border/50 ${o.holat === 'bekor' ? 'text-text-mute line-through' : ''}`}>

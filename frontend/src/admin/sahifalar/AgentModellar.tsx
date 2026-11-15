@@ -34,9 +34,9 @@ export function AgentModellar({ kompaniyaId, tizim }: { kompaniyaId: number | nu
   return (
     <section className="space-y-2" aria-label={t('Agent modellari')}>
       <h2 className="text-sm font-semibold">{tizim ? t('Tizim agentlari va modellari') : t('Ishchi agentlar va modellari')}</h2>
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="max-h-[70vh] overflow-auto rounded-lg border border-border">
         <table className="w-full text-sm">
-          <thead className="bg-surface-2 text-left text-xs text-text-dim">
+          <thead className="sticky top-0 z-10 bg-surface-2 text-left text-xs text-text-dim">
             <tr><th className="px-3 py-2">{t('Agent')}</th><th className="px-3 py-2">{t('Rejim')}</th><th className="px-3 py-2">{t('Doira')}</th><th className="px-3 py-2">{t('Model')}</th></tr>
           </thead>
           <tbody>

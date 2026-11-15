@@ -56,9 +56,9 @@ export function BankAniq({ kid, versiya, yozadi, onOzgardi }: { kid: number; ver
         {yozadi && <label className="fz-btn cursor-pointer"><FileUp size={14} /> {t('Ko‘chirma yuklash')}<input type="file" className="hidden" accept=".csv,.txt,.xlsx,.xls" aria-label={t('Bank ko‘chirmasi fayli')} disabled={band} onChange={(e) => void faylTanla(e.target.files?.[0])} /></label>}
         {d && <span className="text-[12px] text-text-mute">{t('Navbatda: {n}; qabul qilingan: {q}', { n: d.jami.kutmoqda, q: d.jami.qabul })}</span>}
       </div>
-      <div className="overflow-x-auto">
+      <div className="max-h-[70vh] overflow-auto">
         <table className="w-full min-w-[860px] text-[12.5px]" aria-label={t('Bank navbati')}>
-          <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th className={th}>{t('Sana')}</th><th className={th}>{t('Yo‘nalish')}</th><th className={`${th} text-right`}>{t('Summa')}</th><th className={th}>{t('To‘lov maqsadi')}</th><th className={th}>{t('Taklif')}</th></tr></thead>
+          <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left text-[11px] uppercase text-text-mute"><th className={th}>{t('Sana')}</th><th className={th}>{t('Yo‘nalish')}</th><th className={`${th} text-right`}>{t('Summa')}</th><th className={th}>{t('To‘lov maqsadi')}</th><th className={th}>{t('Taklif')}</th></tr></thead>
           <tbody>
             {d && d.qatorlar.length === 0 && <tr><td colSpan={5} className="px-2 py-6 text-center text-text-mute">{t('Navbat bo‘sh.')}</td></tr>}
             {!d && <tr><td colSpan={5} className="px-2 py-6 text-center text-text-mute">{t('Yuklanmoqda…')}</td></tr>}

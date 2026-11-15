@@ -39,10 +39,10 @@ export function Tannarx({ kid, onOzgardi, tasdiqlaydi }: { kid: number; onOzgard
         {tasdiqlaydi && <button type="button" className="fz-btn" disabled={band} title={t('Shu oygacha yozilgan tannarxni qaytaradi (storno)')} onClick={() => void yur('bekor', false)}><Undo2 size={13} /> {t('Bekor')}</button>}
       </div>
       {d && (
-        <div className="overflow-x-auto" role="status">
+        <div className="max-h-[70vh] overflow-auto" role="status">
           <p className="mb-1 text-[12px] text-text-mute">{t('Obyektlar: {n}; jami farq:', { n: d.soni ?? 0 })} <Son v={d.jami ?? 0} /> ({d.dt} / {d.kt})</p>
           <table className="w-full min-w-[560px] text-[12.5px]" aria-label={t('Tannarx ko‘rigi')}>
-            <thead><tr className="text-left text-[11px] uppercase text-text-mute"><th className={th}>{t('Obyekt')}</th><th className={`${th} text-right`}>{t('Xarajat (2010)')}</th><th className={`${th} text-right`}>{t('Daromad')}</th><th className={`${th} text-right`}>{t('Avval o‘tkazilgan')}</th><th className={`${th} text-right`}>{t('Yoziladi')}</th></tr></thead>
+            <thead className="sticky top-0 z-10 bg-surface"><tr className="text-left text-[11px] uppercase text-text-mute"><th className={th}>{t('Obyekt')}</th><th className={`${th} text-right`}>{t('Xarajat (2010)')}</th><th className={`${th} text-right`}>{t('Daromad')}</th><th className={`${th} text-right`}>{t('Avval o‘tkazilgan')}</th><th className={`${th} text-right`}>{t('Yoziladi')}</th></tr></thead>
             <tbody>
               {(d.qatorlar ?? []).length === 0 && <tr><td colSpan={5} className="px-2 py-4 text-center text-text-mute">{t('O‘zgarish yo‘q.')}</td></tr>}
               {(d.qatorlar ?? []).map((q) => (

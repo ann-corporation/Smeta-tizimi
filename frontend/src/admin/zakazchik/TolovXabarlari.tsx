@@ -5,6 +5,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from '../../umumiy/ui/Toast';
+import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { Kiritma } from '../../umumiy/ui/Sahifa';
 import { t } from '../../i18n/til';
 import { tolovXabarBekor, tolovXabarlariOl, tolovXabarQarori, tolovXabarYoz, type BugunObyekt, type TolovXabari } from '../../api/t2-tomon';
@@ -39,6 +40,7 @@ export function TolovXabariYozish({ kompaniyaId, obyektlar, tanlangan, onOzgardi
     toast(t('To‘lov xabari pudratchiga yuborildi'), 'ok'); setSumma(''); setRaqam(''); setIzoh(''); void ol(); onOzgardi();
   };
   const bekor = async (id: number) => {
+    if (!(await tasdiqSora({ matn: t('To‘lov xabari bekor qilinsinmi?'), tasdiqMatni: t('Bekor qilish'), xavfli: true }))) return;
     const r = await tolovXabarBekor(kompaniyaId, id);
     if (!r.ok) { toast(r.error, 'danger'); return; }
     void ol(); onOzgardi();

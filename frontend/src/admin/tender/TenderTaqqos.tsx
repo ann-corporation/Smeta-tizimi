@@ -81,9 +81,9 @@ export function TenderTaqqos({ kompaniyaId, td, onSaqlandi }: { kompaniyaId: num
         </>}
         <span className="text-[12px] text-text-mute">{t('Narxlar QQS bilan solishtiriladi; eng arzoni yashil.')}</span>
       </div>
-      <div className="overflow-x-auto rounded border border-border">
+      <div className="max-h-[70vh] overflow-auto rounded border border-border">
         <table className="w-full min-w-[640px] border-collapse text-[12.5px]">
-          <thead>
+          <thead className="sticky top-0 z-10 bg-surface">
             <tr className="bg-surface-2 text-left">
               <th className={hujayra}>{t('Pozitsiya')}</th>
               {tartib.map((id, i) => <th key={id} className={`${hujayra} text-right`}><><span className="mr-1 text-text-mute">#{i + 1}</span>{nomi(id)}</></th>)}

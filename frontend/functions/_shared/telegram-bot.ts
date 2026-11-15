@@ -13,15 +13,15 @@
  */
 import { type TgEnv, type TgTil, miniAppYoliTugma, tgFaylOl, tgRpc, tgT } from './telegram';
 import { botChaqiruv } from './telegram-amal';
-import { TASDIQ_HA, TASDIQ_SO_ROV, TASDIQ_YOQ, zanjirIdOl } from './telegram-tugma';
+import { FOTO_BOLIMLAR } from './telegram-tugma';
 import { onRequest as middleware } from '../api/_middleware';
-import { onRequestGet as aylanishGet, onRequestPost as aylanishPost } from '../api/hujjat-aylanish';
+import { onRequestGet as aylanishGet } from '../api/hujjat-aylanish';
 import { onRequestPost as sbPost } from '../api/sb';
 import { onRequestPost as aiSavolPost } from '../api/ai-savol';
 import { onRequestPost as yuklaPost } from '../api/hujjat-yukla';
 import { onRequestPost as fotoDalilPost } from '../api/foto-dalil';
 
-export type BotJavob = { matn: string; markup?: Record<string, unknown> };
+export type BotJavob = { matn: string; markup?: Record<string, unknown>; /** Xabar bilan bog'liq obyekt (menyu tugmasini shunga o'rnatish uchun). */ obyektId?: number };
 type BotEnv = TgEnv & Record<string, unknown>;
 
 /* ───────── yengil limit (bitta isolate ichida; asosiy limit — bazada t2_telegram_update_qabul_v1, 20/daq) ───────── */
@@ -186,27 +186,14 @@ export async function fotoAmali(env: BotEnv, uid: number, til: TgTil, rasmlar: T
       izoh: izoh.replace(/(?:^|\s)#\d{1,12}(?=\s|$)/g, ' ').trim().slice(0, 500) || null, operation_id: op } }, middleware, fotoDalilPost);
   if (b.status !== 200 || !b.body?.ok) return { matn: tgT('Rasm saqlandi, lekin dalilga bog‘lanmadi. Mini App da qayta urinib ko‘ring.', til),
     markup: { inline_keyboard: [[miniAppYoliTugma(env, til, '/admin/foto', 'Foto-dalil')]] } };
+  // 2-bosqich: foto-dalil id si bo'lsa — qatorga biriktirish oqimi (Bo'lim → so'z → qator) callback tugmasi bilan boshlanadi.
+  const fid = b.body.id;
   return { matn: tgT('Rasm «{obyekt}» obyektiga dalil sifatida saqlandi (hali faktga biriktirilmagan). Faktga biriktirish uchun tugmani bosing.', til, { obyekt: obyekt.nom }),
-    markup: { inline_keyboard: [[miniAppYoliTugma(env, til, '/admin/foto', 'Faktga biriktirish')]] } };
+    markup: { inline_keyboard: [[miniAppYoliTugma(env, til, '/admin/foto', 'Faktga biriktirish')],
+      ...(musbat(fid) ? [[{ text: tgT('Fakt qatoriga biriktirish', til), callback_data: `${FOTO_BOLIMLAR}${fid}:${obyekt.id}` }]] : [])] }, obyektId: obyekt.id };
 }
 
-/* ───────── hujjat tasdiqi (inline tugma, ikki bosqich) ───────── */
-/** Bog'langan foydalanuvchi a'zo kompaniyalarida hujjat qarorini ketma-ket sinaydi; birinchi muvaffaqiyat/navbat mosi to'xtatadi. */
-export async function hujjatTasdiqla(env: BotEnv, uid: number, zanjirId: number): Promise<'ok' | 'navbat_emas' | 'xato'> {
-  const m = await menOl(env, uid);
-  if (!m?.ok) return 'xato';
-  let xato = false;
-  for (const a of azolik(m)) {
-    const r = await botChaqiruv<{ ok?: boolean; code?: string }>(env, uid,
-      { api: 'hujjat-aylanish', json: { amal: 'zanjir_qaror', kompaniya_id: a.kompaniya_id, zanjir_id: zanjirId, qaror: 'tasdiqlash' } }, middleware, aylanishPost);
-    if (r.status === 200 && r.body?.ok) return 'ok';
-    if (r.status === 200 && r.body?.code === 'NAVBAT_EMAS') continue;    // bu kompaniyada navbat yo'q
-    if ([401, 403].includes(r.status)) continue;                         // ruxsat/a'zolik yo'q — jim
-    xato = true;                                                         // server/tarmoq xatosi
-  }
-  return xato ? 'xato' : 'navbat_emas';
-}
-
+/* ───────── callback (menyu). Hujjat tasdiqi va 2-bosqich oqimlari: telegram-bot-oqim.ts (callbackIshlaV2) ───────── */
 export type Callback = { id?: string; from?: { id?: number; language_code?: string }; data?: string; message?: { message_id?: number; chat?: { id?: number; type?: string } } };
 
 /** Callback ishlovi. `uid` — chaqiruvchi (bog'lanishdan). Qaytadi: javob matni (answerCallbackQuery) + ixtiyoriy yangi xabar/markup tozalash. */
@@ -215,20 +202,6 @@ export async function callbackIshla(env: BotEnv, uid: number, til: TgTil, cb: Ca
   if (d === 'm:b') { const j = await bugunJavobi(env, uid, til); return { toast: '', xabar: j, amal: 'menyu_bugun' }; }
   if (d === 'm:o') { const j = await obyektlarJavobi(env, uid, til); return { toast: '', xabar: j, amal: 'menyu_obyekt' }; }
   if (d === 'm:y') return { toast: '', xabar: { matn: yordamMatni(til) }, amal: 'menyu_yordam' };
-  const so = zanjirIdOl(d, TASDIQ_SO_ROV);
-  if (so) {
-    return { toast: tgT('Tasdiqni tasdiqlang', til), amal: 'tasdiq_sorov', xabar: { matn: tgT('Hujjat № {id} ni tasdiqlaysizmi? Bu qaror qaytarilmaydi.', til, { id: so }),
-      markup: { inline_keyboard: [[{ text: tgT('Ha, tasdiqlayman', til), callback_data: TASDIQ_HA + so }, { text: tgT('Bekor', til), callback_data: TASDIQ_YOQ + so }],
-        [miniAppYoliTugma(env, til, `/admin/hujjat-aylanish?zanjir=${so}`, 'Ko‘rish')]] } } };
-  }
-  const yoq = zanjirIdOl(d, TASDIQ_YOQ);
-  if (yoq) return { toast: tgT('Bekor qilindi', til), amal: 'tasdiq_bekor', tugmalarniOlibTashla: true };
-  const ha = zanjirIdOl(d, TASDIQ_HA);
-  if (ha) {
-    const n = await hujjatTasdiqla(env, uid, ha);
-    const t = n === 'ok' ? 'Hujjat tasdiqlandi.' : n === 'navbat_emas' ? 'Hozir sizning qaroringiz kutilmayapti yoki ruxsatingiz yo‘q.' : 'Server xatosi. Mini App da urinib ko‘ring.';
-    return { toast: tgT(n === 'ok' ? 'Tasdiqlandi' : 'Bajarilmadi', til), xabar: { matn: tgT(t, til) }, tugmalarniOlibTashla: true, amal: 'tasdiq_' + n };
-  }
   return { toast: tgT('Noma’lum tugma', til), amal: 'nomalum' };
 }
 
@@ -238,6 +211,7 @@ export const yordamMatni = (til: TgTil) => [
   '/bugun — ' + tgT('bugungi qisqa xulosa', til),
   '/obyektlar — ' + tgT('obyektlar ro‘yxati', til),
   '/jarvis — ' + tgT('Jarvis ga savol (tokenlar sarflanadi)', til),
+  '/fakt — ' + tgT('fakt qoralamasi: /fakt <obyekt#> <nima va qancha> (tokenlar sarflanadi)', til),
   '/kunlik — ' + tgT('kunlik xulosani yoqish/o‘chirish', til),
   '/men — ' + tgT('men kimman (hisob, kompaniya, rol)', til),
   '/ilova — ' + tgT('tizimni Telegram ichida ochish', til),

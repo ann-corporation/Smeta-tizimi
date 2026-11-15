@@ -280,48 +280,95 @@ describe('bildirishnoma tugmalari (Ko‘rish / Tasdiqlash)', () => {
 
 describe('callback: hujjat tasdiqi — bog‘lanish + ruxsat SERVERDA', () => {
   const qaror = (javob: unknown = { ok: true, holat: 'tasdiqlandi' }) => ({ t2_hujjat_zanjir_qaror_v1: () => javob });
+  /** Zanjir tafsiloti (mavjud o‘qish RPC si): navbat shu kompaniyada (`men`). `raund`/`tartib` — qadam belgisi manbai. */
+  const tafsilot = (over: Record<string, unknown> = {}, qadamlar: unknown[] = [{ tartib: 1, rol: 'pto', holat: 'navbat', men: true }]): Handler => () => ({
+    ok: true, qadamlar,
+    zanjir: { id: 5, hujjat_turi: 'f2', sarlavha: 'F-2 oktyabr', holat: 'jarayonda', raund: 1, obyekt_id: 79, manba_jadval: 't2_akt', manba_id: 11, yaratildi: '2026-11-10T08:00:00Z', ...over },
+  });
+  const hujjatOqish = (zanjir: Handler = tafsilot()): Record<string, Handler> => ({
+    t2_hujjat_zanjir_tafsilot_v1: zanjir,
+    t2_akt: () => satrlar([{ id: 11, raqam: 'F2-04', oy: '2026-10-31', tur: 'f2', hujjat_jami: 1234567.5, obyekt_id: 79 }]),
+    t2_obyekt: () => satrlar([{ id: 79, nom: 'Fast Food 1-etaj', kompaniya_id: 17 }]),
+  });
 
-  it('«Tasdiqlash» — faqat tasdiq so‘raydi, RPC chaqirilmaydi', async () => {
-    const c = net(asos(qaror()));
+  it('«Tasdiqlash» — hujjat tafsiloti (tur, raqam, obyekt, sana, jami) + qadam belgili «Ha»; RPC chaqirilmaydi', async () => {
+    const c = net(asos({ ...qaror(), ...hujjatOqish() }));
     expect(await updateIshla(ENV, cb('tq:5') as never)).toBe('cb:tasdiq_sorov');
     expect(c.rpc).not.toContain('t2_hujjat_zanjir_qaror_v1');
+    expect(c.yuk.t2_hujjat_zanjir_tafsilot_v1[0]).toEqual({ p_actor_id: UID, p_kompaniya_id: 17, p_zanjir_id: 5 });
     expect(c.tg.map((x) => x.metod)).toEqual(['answerCallbackQuery', 'sendMessage']);
-    const d = c.tg[1].yuk.reply_markup.inline_keyboard[0].map((t: any) => t.callback_data);
-    expect(d).toEqual(['tqy:5', 'tqn:5']);
+    const t = c.tg[1].yuk.text as string;
+    expect(t).toContain('Hujjat № 5'); expect(t).toContain('F-2 (bajarilgan ishlar akti)'); expect(t).toContain('Raqami: F2-04');
+    expect(t).toContain('Obyekt: Fast Food 1-etaj'); expect(t).toContain('Sana: 2026-10-31'); expect(t).toContain('Jami: 1 234 567,5');
+    const d = c.tg[1].yuk.reply_markup.inline_keyboard[0].map((x: any) => x.callback_data);
+    expect(d).toEqual(['tqy:5:1-1', 'tqn:5']); d.forEach((x: string) => expect(x.length).toBeLessThanOrEqual(64));
   });
-  it('«Ha» — DB foydalanuvchisi (Telegram id emas) nomidan mavjud RPC; tugmalar olib tashlanadi', async () => {
-    const c = net(asos(qaror()));
-    expect(await updateIshla(ENV, cb('tqy:5') as never)).toBe('cb:tasdiq_ok');
+  it('tafsilot manbasi yo‘q (akt o‘qilmadi) — noma’lum maydonlar «—» (0 emas)', async () => {
+    const c = net(asos({ ...qaror(), ...hujjatOqish(tafsilot({ manba_jadval: null, manba_id: null, obyekt_id: null })) }));
+    await updateIshla(ENV, cb('tq:5') as never);
+    const t = c.tg[1].yuk.text as string;
+    expect(t).toContain('Raqami: —'); expect(t).toContain('Obyekt: —'); expect(t).toContain('Jami: —'); expect(t).not.toContain('Jami: 0');
+  });
+  it('navbat sizniki emas — so‘rovda «Ha» tugmasi chiqmaydi', async () => {
+    const c = net(asos({ ...qaror(), ...hujjatOqish(tafsilot({}, [{ tartib: 1, rol: 'pto', holat: 'navbat', men: false }])) }));
+    expect(await updateIshla(ENV, cb('tq:5') as never)).toBe('cb:tasdiq_sorov_navbat_emas');
+    expect(JSON.stringify(c.tg)).not.toContain('tqy:');
+  });
+  it('«Ha» — qadam belgisi mos: DB foydalanuvchisi nomidan mavjud RPC; tugmalar olib tashlanadi', async () => {
+    const c = net(asos({ ...qaror(), ...hujjatOqish() }));
+    expect(await updateIshla(ENV, cb('tqy:5:1-1') as never)).toBe('cb:tasdiq_ok');
     expect(c.yuk.t2_hujjat_zanjir_qaror_v1).toEqual([{ p_actor_id: UID, p_kompaniya_id: 17, p_zanjir_id: 5, p_qaror: 'tasdiqlash', p_izoh: null }]);
     expect(javobMatni(c)).toContain('tasdiqlandi');
     expect(c.tg.find((x) => x.metod === 'editMessageReplyMarkup')!.yuk).toMatchObject({ chat_id: TG, message_id: 42, reply_markup: { inline_keyboard: [] } });
   });
+  it('ESKIRGAN «Ha»: so‘rovdan keyin zanjir keyingi qadamga/raundga o‘tgan — hech narsa tasdiqlanmaydi', async () => {
+    for (const [nom, zanjir] of [
+      ['keyingi qadam', tafsilot({}, [{ tartib: 2, rol: 'rahbar', holat: 'navbat', men: true }])],
+      ['yangi raund (qaytarilib qayta yuborilgan)', tafsilot({ raund: 2 })],
+      ['yopilgan', tafsilot({ holat: 'tasdiqlandi' })],
+    ] as [string, Handler][]) {
+      vakolatKeshTozala();
+      const c = net(asos({ ...qaror(), ...hujjatOqish(zanjir) }));
+      const amal = await updateIshla(ENV, cb('tqy:5:1-1') as never);
+      expect(amal, nom).toMatch(/^cb:tasdiq_(eskirgan|navbat_emas)$/);
+      expect(c.rpc, nom).not.toContain('t2_hujjat_zanjir_qaror_v1');
+      expect(javobMatni(c), nom).not.toContain('Hujjat tasdiqlandi.');
+    }
+  });
+  it('belgisiz (eski) «Ha» — tasdiqlanmaydi, RPC chaqirilmaydi', async () => {
+    const c = net(asos({ ...qaror(), ...hujjatOqish() }));
+    expect(await updateIshla(ENV, cb('tqy:5') as never)).toBe('cb:tasdiq_eskirgan');
+    expect(c.rpc).not.toContain('t2_hujjat_zanjir_qaror_v1'); expect(c.rpc).not.toContain('t2_hujjat_zanjir_tafsilot_v1');
+  });
   it('ulanmagan Telegram — callback hech narsa qilmaydi', async () => {
-    const c = net({ t2_telegram_update_qabul_v1: qabul, t2_telegram_aniqla_v1: () => ({ ok: true, ulangan: false }), ...qaror() });
-    expect(await updateIshla(ENV, cb('tqy:5') as never)).toBe('cb_ulanmagan');
+    const c = net({ t2_telegram_update_qabul_v1: qabul, t2_telegram_aniqla_v1: () => ({ ok: true, ulangan: false }), ...qaror(), ...hujjatOqish() });
+    expect(await updateIshla(ENV, cb('tqy:5:1-1') as never)).toBe('cb_ulanmagan');
     expect(c.rpc).not.toContain('t2_hujjat_zanjir_qaror_v1'); expect(c.rpc).not.toContain('t2_men_v1');
   });
   it('ruxsat yo‘q (document.read yo‘q → middleware rad) — RPC chaqirilmaydi', async () => {
-    const c = net(asos({ ...qaror(), t2_men_v1: men(['company.read']) }));
-    expect(await updateIshla(ENV, cb('tqy:5') as never)).toBe('cb:tasdiq_navbat_emas');
+    const c = net(asos({ ...qaror(), ...hujjatOqish(), t2_men_v1: men(['company.read']) }));
+    expect(await updateIshla(ENV, cb('tqy:5:1-1') as never)).toBe('cb:tasdiq_navbat_emas');
     expect(c.rpc).not.toContain('t2_hujjat_zanjir_qaror_v1'); expect(javobMatni(c)).toContain('ruxsatingiz yo‘q');
   });
-  it('navbat sizniki emas (RPC NAVBAT_EMAS) — keyingi kompaniya sinab ko‘riladi, hech narsa tasdiqlanmagan deb aytilmaydi', async () => {
-    const c = net(asos({ t2_men_v1: men(ALL, 'pto', [17, 18]), t2_hujjat_zanjir_qaror_v1: (b) => (b.p_kompaniya_id === 18 ? { ok: true, holat: 'tasdiqlandi' } : { ok: false, code: 'NAVBAT_EMAS' }) }));
-    expect(await updateIshla(ENV, cb('tqy:5') as never)).toBe('cb:tasdiq_ok');
-    expect(c.yuk.t2_hujjat_zanjir_qaror_v1.map((b) => b.p_kompaniya_id)).toEqual([17, 18]);
-    const c2 = net(asos({ t2_hujjat_zanjir_qaror_v1: () => ({ ok: false, code: 'NAVBAT_EMAS' }) }));
-    vakolatKeshTozala();
-    expect(await updateIshla(ENV, cb('tqy:6') as never)).toBe('cb:tasdiq_navbat_emas');
-    expect(javobMatni(c2)).not.toContain('tasdiqlandi.');
+  it('bir nechta kompaniya: navbat bor kompaniyada qaror (boshqa kompaniyaga tegilmaydi)', async () => {
+    const c = net(asos({ t2_men_v1: men(ALL, 'pto', [17, 18]), ...hujjatOqish(), t2_hujjat_zanjir_tafsilot_v1: (b) => tafsilot({}, [{ tartib: 1, rol: 'pto', holat: 'navbat', men: b.p_kompaniya_id === 18 }])(b, new URL('http://x')),
+      t2_hujjat_zanjir_qaror_v1: () => ({ ok: true, holat: 'tasdiqlandi' }) }));
+    expect(await updateIshla(ENV, cb('tqy:5:1-1') as never)).toBe('cb:tasdiq_ok');
+    expect(c.yuk.t2_hujjat_zanjir_qaror_v1.map((b) => b.p_kompaniya_id)).toEqual([18]);
+  });
+  it('RPC NAVBAT_EMAS (poyga) — «tasdiqlandi» deb aytilmaydi', async () => {
+    const c = net(asos({ ...hujjatOqish(), t2_hujjat_zanjir_qaror_v1: () => ({ ok: false, code: 'NAVBAT_EMAS' }) }));
+    expect(await updateIshla(ENV, cb('tqy:5:1-1') as never)).toBe('cb:tasdiq_navbat_emas');
+    expect(javobMatni(c)).not.toContain('tasdiqlandi.');
   });
   it('soxta/buzilgan callback_data va boshqa chatdan kelgan callback — rad', async () => {
-    const c = net(asos(qaror()));
-    for (const d of ['tqy:abc', 'tqy:0', 'tqy:5;x', 'tqy:99999999999999999999', 'zzz']) expect(await updateIshla(ENV, cb(d) as never)).toBe('cb:nomalum');
+    const c = net(asos({ ...qaror(), ...hujjatOqish() }));
+    for (const d of ['tqy:abc', 'tqy:0:1-1', 'tqy:5:1-1;x', 'tqy:99999999999999999999:1-1', 'tqy:5:x']) expect(await updateIshla(ENV, cb(d) as never)).toBe('cb:tasdiq_eskirgan');
+    for (const d of ['zzz', 'fb:abc', 'fq:1:2', 'fs:1:2:0', 'fd:1:2:3:4']) expect(['cb:nomalum', 'cb:fakt_notogri']).toContain(await updateIshla(ENV, cb(d) as never));
     expect(c.rpc).not.toContain('t2_hujjat_zanjir_qaror_v1');
-    const boshqa = cb('tqy:5', { message: { message_id: 1, chat: { id: 999, type: 'private' } } });
+    const boshqa = cb('tqy:5:1-1', { message: { message_id: 1, chat: { id: 999, type: 'private' } } });
     expect(await updateIshla(ENV, boshqa as never)).toBe('etibor_yoq');
-    const guruh = cb('tqy:5', { message: { message_id: 1, chat: { id: TG, type: 'group' } } });
+    const guruh = cb('tqy:5:1-1', { message: { message_id: 1, chat: { id: TG, type: 'group' } } });
     expect(await updateIshla(ENV, guruh as never)).toBe('etibor_yoq');
     expect(c.rpc).not.toContain('t2_hujjat_zanjir_qaror_v1');
   });
@@ -378,5 +425,216 @@ describe('xavfsizlik: ichki sessiya va matnlar', () => {
     net(asos({ t2_hujjat_kiruvchi_v1: () => ({ ok: true, sanoq: { zanjir: 1 } }), t2_akt: aktSoni(0, 0), t2_obyekt: () => satrlar([]) }));
     await updateIshla(ENV, msg('/bugun') as never); await updateIshla(ENV, msg('/obyektlar') as never);
     expect(JSON.stringify(spies.flatMap((s) => s.mock.calls))).not.toContain(TOKEN);
+  });
+});
+
+/* ───────────────────────── 2-bosqich: rasm → fakt qatori, /fakt qoralama, menyu tugmasi ───────────────────────── */
+const obyektH: Handler = (_b, url) => (url.search.includes('select=kompaniya_id') ? [{ kompaniya_id: 17 }] : satrlar([{ id: 79, nom: 'Fast Food', kompaniya_id: 17 }, { id: 80, nom: 'Sinov bog', kompaniya_id: 17 }]));
+/** t2_qator: bo‘limlar (tur=rz), qidiruv (tur=in.(bl,mat,ob)), ota zanjiri (id=in.(…)), bitta qator (id=eq.N). 301 → 201 → 101 (Beton), 302 → 202 → 999 (boshqa bo‘lim). */
+const qatorH: Handler = (_b, url) => {
+  const u = decodeURIComponent(url.search);
+  const egalik = /select=id,kompaniya_id&id=in\.\(([\d,]+)\)/.exec(u);   // sb-yoz yozish izolyatsiyasi: qator egasi kompaniya
+  if (egalik) return egalik[1].split(',').map((id) => ({ id: Number(id), kompaniya_id: 17 }));
+  if (u.includes('tur=eq.rz')) return satrlar([{ id: 101, kod: '03', nom: 'Beton ishlari' }, { id: 102, kod: '04', nom: 'Armatura' }]);
+  if (u.includes('tur=in.(bl,mat,ob)')) return satrlar([{ id: 301, ota_id: 201, kod: '03.01', nom: 'Beton quyish', birlik: 'm3' }, { id: 302, ota_id: 202, kod: '09.01', nom: 'Beton plita', birlik: 'm3' }]);
+  if (/(?:^|[?&])id=in\.\(/.test(u)) return satrlar([{ id: 201, ota_id: 101 }, { id: 202, ota_id: 999 }]);
+  const id = Number(/(?:^|[?&])id=eq\.(\d+)/.exec(u)?.[1]);
+  const q: Record<number, unknown> = { 101: { id: 101, kod: '03', nom: 'Beton ishlari' }, 301: { id: 301, kod: '03.01', nom: 'Beton quyish', birlik: 'm3' }, 302: { id: 302, kod: '09.01', nom: 'Beton plita', birlik: 'm3' } };
+  return satrlar(q[id] ? [q[id]] : []);
+};
+const QATOR = { t2_obyekt: obyektH, t2_qator: qatorH };
+const YOZUVCHI = /(_yoz|_yarat|_qaror|_tasdiq|bogla|sarf|update|ochir|fakt_belgila|akt_qator)/;
+const tugmalar = (c: Net, i = -1) => c.tg.filter((x) => x.metod === 'sendMessage').at(i)!.yuk.reply_markup.inline_keyboard.flat() as any[];
+
+describe('rasm → fakt qatori: Bo‘lim → so‘z → qator → foto-dalil yangila', () => {
+  const fotoH = { ...QATOR, t2_foto_dalil_yangila_v1: () => ({ ok: true, id: 9 }) };
+  const rasmUpd = () => msg('', { text: undefined, caption: '#79', photo: [{ file_id: 'AgACbig123456789012', width: 1280, height: 960, file_size: 5 }] });
+  const yuk: Record<string, Handler> = {
+    t2_obyekt: obyektH, t2_document_registry: () => [{ kompaniya_id: 17 }],
+    t2_document_canonical_reserve_v1: () => ({ ok: true, document_id: 55, r2_key: 'k/55', canonical_storage_status: 'reserved' }),
+    t2_document_canonical_finalize_v1: () => ({ ok: true, revision_seq: 1, sha256: 'x', sha256_verified: true, versiya: 1 }),
+    t2_foto_dalil_bogla_v1: () => ({ ok: true, id: 9 }),
+  };
+  const tgH = { getFile: () => ({ ok: true, result: { file_path: 'photos/file_1.jpg', file_size: 5 } }) };
+
+  it('rasm saqlangach «Fakt qatoriga biriktirish» tugmasi (fb:<foto>:<obyekt>) va menyu tugmasi shu obyektda', async () => {
+    const c = net(asos(yuk), tgH);
+    expect(await updateIshla(ENV, rasmUpd() as never)).toBe('foto');
+    const t = tugmalar(c);
+    expect(t.find((x) => x.callback_data)!.callback_data).toBe('fb:9:79');
+    expect(t[0].web_app.url).toBe(SITE + '/tg?to=' + encodeURIComponent('/admin/foto'));
+    const mb = c.tg.find((x) => x.metod === 'setChatMenuButton')!.yuk;
+    expect(mb).toMatchObject({ chat_id: TG, menu_button: { type: 'web_app', web_app: { url: SITE + '/tg?to=' + encodeURIComponent('/admin/fakt?obyekt=79') } } });
+  });
+
+  it('to‘liq oqim: bo‘limlar → bo‘lim → javob-so‘z → qator → yangila (manba=qator); faqat o‘sha bo‘lim qatorlari; fakt yozilmaydi', async () => {
+    const c = net(asos(fotoH));
+    expect(await updateIshla(ENV, cb('fb:9:79') as never)).toBe('cb:foto_bolimlar');
+    expect(tugmalar(c).map((x) => x.callback_data)).toEqual(['fd:9:79:101', 'fd:9:79:102']);
+    expect(javobMatni(c)).toContain('Fast Food');
+    // bo'lim tanlandi → force_reply + kontekst belgisi
+    expect(await updateIshla(ENV, cb('fd:9:79:101') as never)).toBe('cb:foto_bolim');
+    const so = c.tg.filter((x) => x.metod === 'sendMessage').at(-1)!.yuk;
+    expect(so.reply_markup.force_reply).toBe(true); expect(so.text).toContain('[fq:9:79:101]'); expect(so.text).toContain('Beton ishlari');
+    // foydalanuvchi shu xabarga javob yozadi
+    const javob = msg('beton', { reply_to_message: { from: { is_bot: true }, text: so.text } });
+    expect(await updateIshla(ENV, javob as never)).toBe('foto_qidiruv');
+    const t = tugmalar(c);
+    expect(t.map((x) => x.callback_data)).toEqual(['fq:9:79:301']);   // 302 — boshqa bo'lim ostida: chiqmaydi
+    expect(decodeURIComponent(c.urls.filter((u) => u.includes('/t2_qator')).join('\n'))).toContain('nom=ilike.*beton*');
+    t.forEach((x) => expect(x.callback_data.length).toBeLessThanOrEqual(64));
+    // qator tanlandi
+    expect(await updateIshla(ENV, cb('fq:9:79:301') as never)).toBe('cb:foto_biriktirildi');
+    expect(c.yuk.t2_foto_dalil_yangila_v1).toEqual([{ p_actor_id: UID, p_kompaniya_id: 17, p_id: 9, p_izoh: null, p_ai_izoh: null, p_ai_taklif: null, p_manba_ozgar: true, p_manba_turi: 'qator', p_manba_id: 301 }]);
+    expect(javobMatni(c)).toContain('qatoriga dalil sifatida biriktirildi'); expect(javobMatni(c)).toContain('03.01 Beton quyish');
+    expect(c.rpc.filter((r) => YOZUVCHI.test(r) && r !== 't2_foto_dalil_yangila_v1' && r !== 't2_telegram_update_qabul_v1')).toEqual([]);
+  });
+
+  it('javob bot xabariga emas / belgisiz / buzilgan belgi — qidiruv ishlamaydi (oddiy matn e’tiborsiz)', async () => {
+    const c = net(asos(fotoH));
+    for (const reply of [{ from: { is_bot: false }, text: '[fq:9:79:101]' }, { from: { is_bot: true }, text: 'salom' }, { from: { is_bot: true }, text: '[fq:9:x:101]' }, undefined]) {
+      expect(await updateIshla(ENV, msg('beton', { reply_to_message: reply }) as never)).toBe('nomalum');
+    }
+    expect(c.rpc).not.toContain('t2_qator');
+  });
+  it('begona obyekt/ruxsat: sb tenant filtri obyektni bermasa — hech narsa yozilmaydi', async () => {
+    const c = net(asos({ ...fotoH, t2_obyekt: () => satrlar([]) }));
+    expect(await updateIshla(ENV, cb('fq:9:79:301') as never)).toBe('cb:foto_obyekt');
+    expect(c.rpc).not.toContain('t2_foto_dalil_yangila_v1');
+  });
+  it('yangila rad etsa (RPC MANBA_TOPILMADI / foto yo‘q) — «biriktirildi» deb aytilmaydi', async () => {
+    const c = net(asos({ ...fotoH, t2_foto_dalil_yangila_v1: () => ({ ok: false, code: 'TOPILMADI' }) }));
+    expect(await updateIshla(ENV, cb('fq:9:79:301') as never)).toBe('cb:foto_biriktirish_xato');
+    expect(javobMatni(c)).not.toContain('biriktirildi');
+  });
+  it('mos qator yo‘q — qayta javob berishni so‘raydi; bir harfli so‘z — rad', async () => {
+    const c = net(asos({ ...fotoH, t2_qator: () => satrlar([]) }));
+    const ctx = { from: { is_bot: true }, text: 'x [fq:9:79:101]' };
+    await updateIshla(ENV, msg('zzzz', { reply_to_message: ctx }) as never);
+    expect(javobMatni(c)).toContain('mos qator topilmadi');
+    await updateIshla(ENV, msg('a', { reply_to_message: ctx }) as never);
+    expect(javobMatni(c)).toContain('Kamida bitta so‘z');
+  });
+  it('ruscha: tugma va xabarlar ruscha', async () => {
+    const c = net(asos(fotoH));
+    const u = cb('fb:9:79'); (u.callback_query.from as any).language_code = 'ru';
+    await updateIshla(ENV, u as never);
+    expect(javobMatni(c)).toContain('К какому разделу');
+  });
+});
+
+describe('/fakt <obyekt#> <matn> — AI taklifi → ko‘rib chiqish → faqat QORALAMA', () => {
+  const niyat = (o: Record<string, unknown> = {}) => ({ text: JSON.stringify({ niyatlar: [{ tavsif: 'beton quyish', birlik: 'm3', hajm: '12,5', razdel: null, ...o }] }), provider: 'openrouter', model: 'm' });
+  const hamma = (extra: Record<string, Handler> = {}) => asos({ ...QATOR, ...extra });
+  const envAi = { ...ENV, OPENROUTER_API_KEY: 'test' };
+
+  it('hisobli AI (smeta_ai/smeta_f2_niyat, actor + kompaniya); ko‘rib chiqish matni va «Saqlash» (fs:…) tugmasi; hali hech narsa yozilmagan', async () => {
+    ai.hisobli.mockResolvedValue(niyat());
+    const c = net(hamma());
+    expect(await updateIshla(envAi as never, msg('/fakt 79 beton quyish 12,5 m3') as never)).toBe('fakt');
+    expect(ai.hisobli).toHaveBeenCalledTimes(1);
+    expect(ai.hisobli.mock.calls[0].slice(1, 5)).toEqual([UID, 17, 'smeta_ai', 'smeta_f2_niyat']);
+    const t = javobMatni(c);
+    expect(t).toContain('QORALAMASI'); expect(t).toContain('Fast Food'); expect(t).toContain('Hajm: 12,5 m3'); expect(t).toContain('03.01 Beton quyish');
+    const b = tugmalar(c);
+    expect(b.map((x) => x.callback_data)).toEqual(['fs:79:301:12500', 'fs:79:302:12500', 'fx']);
+    b.forEach((x) => expect(x.callback_data.length).toBeLessThanOrEqual(64));
+    expect(c.rpc.filter((r) => YOZUVCHI.test(r) && r !== 't2_telegram_update_qabul_v1')).toEqual([]);
+  });
+
+  it('«Saqlash» — sb-yoz usta_fakt_qoralama_v1 (QORALAMA): actor=DB foydalanuvchisi; tasdiq/jurnal RPC lari chaqirilmaydi; takror bosish — bir xil operation_id', async () => {
+    ai.hisobli.mockResolvedValue(niyat());
+    const c = net(hamma({ t2_usta_fakt_qoralama_v1: () => ({ ok: true, qator_soni: 1, holat: 'qoralama' }) }));
+    expect(await updateIshla(envAi as never, cb('fs:79:301:12500') as never)).toBe('cb:fakt_saqlandi');
+    expect(await updateIshla(envAi as never, cb('fs:79:301:12500') as never)).toBe('cb:fakt_saqlandi');
+    const [a, b] = c.yuk.t2_usta_fakt_qoralama_v1;
+    expect(a).toMatchObject({ p_actor_id: UID, p_kompaniya_id: 17, p_obyekt_id: 79, p_qatorlar: [{ qator_id: 301, hajm: 12.5 }], p_foto_hujjat_id: null });
+    expect(a.p_sana).toMatch(/^\d{4}-\d{2}-\d{2}$/); expect(a.p_operation_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(b.p_operation_id).toBe(a.p_operation_id);
+    expect(c.rpc.filter((r) => YOZUVCHI.test(r) && !['t2_usta_fakt_qoralama_v1', 't2_telegram_update_qabul_v1'].includes(r))).toEqual([]);
+    expect(c.rpc).not.toContain('t2_usta_fakt_qaror_v1'); expect(c.rpc).not.toContain('t2_fakt_yoz_v2');
+    expect(javobMatni(c)).toContain('qoralamasi saqlandi'); expect(javobMatni(c)).toContain('Tasdiqlanmagan');
+    expect(ai.hisobli).not.toHaveBeenCalled();   // saqlash qo'shimcha token sarflamaydi
+    expect(c.tg.find((x) => x.metod === 'editMessageReplyMarkup')!.yuk.reply_markup.inline_keyboard).toEqual([]);
+  });
+  it('ruxsat yo‘q (self.work.write yo‘q) — middleware/RPC rad: qoralama saqlanmadi', async () => {
+    const c = net(hamma({ t2_men_v1: men(ALL.filter((p) => p !== 'self.work.write' && p !== 'fakt.write')), t2_usta_fakt_qoralama_v1: () => ({ ok: true }) }));
+    await updateIshla(envAi as never, cb('fs:79:301:12500') as never);
+    expect(c.rpc).not.toContain('t2_usta_fakt_qoralama_v1'); expect(javobMatni(c)).toContain('saqlanmadi');
+  });
+  it('byudjet/limit tugagan — server xabari; qator qidirilmaydi, hech narsa yozilmaydi', async () => {
+    ai.hisobli.mockRejectedValue(new ai.Xato('BYUDJET_YOQ', 'AI uchun oylik limit belgilanmagan'));
+    const c = net(hamma());
+    await updateIshla(envAi as never, msg('/fakt 79 beton quyish 12,5 m3') as never);
+    expect(javobMatni(c)).toContain('oylik limit'); expect(c.rpc).not.toContain('t2_qator');
+  });
+  it('begona obyekt / format / uzun matn / limit: AI chaqirilmaydi', async () => {
+    const c = net(hamma());
+    for (const t of ['/fakt', '/fakt beton', '/fakt 999 beton 5', '/fakt 79 ' + 'x'.repeat(501)]) await updateIshla(envAi as never, msg(t) as never);
+    expect(ai.hisobli).not.toHaveBeenCalled();
+    const j = javobMatni(c); expect(j).toContain('Format: /fakt'); expect(j).toContain('sizga ochiq emas'); expect(j).toContain('juda uzun');
+    ai.hisobli.mockResolvedValue(niyat()); limitTozala();
+    for (let i = 0; i < 7; i++) await updateIshla(envAi as never, msg('/fakt 79 beton quyish ' + i) as never);
+    expect(ai.hisobli).toHaveBeenCalledTimes(5); expect(javobMatni(c)).toContain('Juda ko‘p so‘rov');
+  });
+  it('hajm aniqlanmasa yoki ifoda bo‘lsa — saqlash tugmasi yo‘q (taxmin qilinmaydi)', async () => {
+    for (const hajm of [null, 'ko‘p', '5*3', '-4', '0']) {
+      limitTozala(); vakolatKeshTozala(); ai.hisobli.mockResolvedValue(niyat({ hajm }));
+      const c = net(hamma());
+      await updateIshla(envAi as never, msg('/fakt 79 beton quyish') as never);
+      expect(javobMatni(c), String(hajm)).toContain('Hajm aniqlanmadi'); expect(JSON.stringify(c.tg)).not.toContain('fs:');
+    }
+  });
+  it('mos qator topilmasa — taklif yo‘q, Mini App havolasi; AI javobi noto‘g‘ri bo‘lsa — yozuv yo‘q', async () => {
+    ai.hisobli.mockResolvedValue(niyat());
+    let c = net(hamma({ t2_qator: () => satrlar([]) }));
+    await updateIshla(envAi as never, msg('/fakt 79 beton quyish 5') as never);
+    expect(javobMatni(c)).toContain('mos smeta qatori topilmadi'); expect(JSON.stringify(c.tg)).not.toContain('fs:');
+    limitTozala(); vakolatKeshTozala(); ai.hisobli.mockResolvedValue({ text: 'bu json emas', provider: 'p', model: 'm' });
+    c = net(hamma());
+    await updateIshla(envAi as never, msg('/fakt 79 beton quyish 5') as never);
+    expect(c.rpc.filter((r) => YOZUVCHI.test(r) && r !== 't2_telegram_update_qabul_v1')).toEqual([]);
+  });
+  it('buzilgan «Saqlash» (hajm 0, begona qator) — yozilmaydi', async () => {
+    const c = net(hamma({ t2_usta_fakt_qoralama_v1: () => ({ ok: true }) }));
+    expect(await updateIshla(envAi as never, cb('fs:79:301:0') as never)).toBe('cb:fakt_notogri');
+    expect(await updateIshla(envAi as never, cb('fs:79:777:1000') as never)).toBe('cb:fakt_qator_yoq');
+    expect(c.rpc).not.toContain('t2_usta_fakt_qoralama_v1');
+  });
+  it('«Bekor» — tugmalar olib tashlanadi, hech narsa yozilmaydi', async () => {
+    const c = net(hamma());
+    expect(await updateIshla(envAi as never, cb('fx') as never)).toBe('cb:fakt_bekor');
+    expect(c.rpc.filter((r) => YOZUVCHI.test(r) && r !== 't2_telegram_update_qabul_v1')).toEqual([]);
+  });
+});
+
+describe('Mini App menyu tugmasi — oxirgi obyekt', () => {
+  it('/start: tugma obyektsiz bo‘lsa — eng so‘nggi yangilangan faol obyekt (deep link); obyektli bo‘lsa tegilmaydi', async () => {
+    let c = net(asos({ t2_obyekt: obyektH }), { getChatMenuButton: () => ({ ok: true, result: { type: 'commands' } }) });
+    await updateIshla(ENV, msg('/start') as never);
+    expect(c.tg.find((x) => x.metod === 'setChatMenuButton')!.yuk.menu_button.web_app.url).toBe(SITE + '/tg?to=' + encodeURIComponent('/admin/fakt?obyekt=79'));
+    expect(decodeURIComponent(c.urls.find((u) => u.includes('/t2_obyekt'))!)).toContain('order=yangilandi.desc');
+    vakolatKeshTozala();
+    c = net(asos({ t2_obyekt: obyektH }), { getChatMenuButton: () => ({ ok: true, result: { type: 'web_app', web_app: { url: SITE + '/tg?to=' + encodeURIComponent('/admin/fakt?obyekt=80') } } }) });
+    await updateIshla(ENV, msg('/ilova') as never);
+    expect(c.tg.some((x) => x.metod === 'setChatMenuButton')).toBe(false);
+  });
+  it('obyekt yo‘q / Telegram xatosi — buyruq baribir ishlaydi', async () => {
+    const c = net(asos({ t2_obyekt: () => satrlar([]) }), { setChatMenuButton: () => ({ ok: false, description: 'x' }) });
+    expect(await updateIshla(ENV, msg('/start') as never)).toBe('salom');
+    expect(c.tg.some((x) => x.metod === 'setChatMenuButton')).toBe(false);
+  });
+});
+
+describe('2-bosqich xavfsizlik: loglar va javoblarda token/matn yo‘q', () => {
+  it('console ga yozilmaydi; Telegram yukida token yo‘q (tasdiq, foto oqimi, /fakt)', async () => {
+    const spies = [vi.spyOn(console, 'log'), vi.spyOn(console, 'info'), vi.spyOn(console, 'warn'), vi.spyOn(console, 'error')];
+    ai.hisobli.mockResolvedValue({ text: JSON.stringify({ niyatlar: [{ tavsif: 'beton quyish', birlik: 'm3', hajm: '5', razdel: null }] }), provider: 'p', model: 'm' });
+    const c = net(asos({ ...QATOR, t2_hujjat_zanjir_tafsilot_v1: () => ({ ok: true, zanjir: { id: 5, hujjat_turi: 'f2', holat: 'jarayonda', raund: 1 }, qadamlar: [{ tartib: 1, holat: 'navbat', men: true }] }),
+      t2_usta_fakt_qoralama_v1: () => ({ ok: true }), t2_foto_dalil_yangila_v1: () => ({ ok: true }) }));
+    for (const u of [cb('tq:5'), cb('fb:9:79'), cb('fd:9:79:101'), cb('fq:9:79:301'), msg('/fakt 79 beton quyish 5'), cb('fs:79:301:5000')]) await updateIshla({ ...ENV, OPENROUTER_API_KEY: 'test' } as never, u as never);
+    expect(JSON.stringify(c.tg)).not.toContain(TOKEN); expect(c.urls.join(' ')).not.toContain(TOKEN);
+    expect(JSON.stringify(spies.flatMap((s) => s.mock.calls))).not.toContain(TOKEN);
+    expect(JSON.stringify(spies.flatMap((s) => s.mock.calls))).not.toContain('beton');
   });
 });

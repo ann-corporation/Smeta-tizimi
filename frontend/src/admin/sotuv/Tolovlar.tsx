@@ -26,9 +26,9 @@ export function Tolovlar({ kid, bitimId, tolovlar, valyuta, tolovRuxsat, shartno
         {tolovRuxsat && <button type="button" className="fz-btn fz-btn--sm" onClick={() => setQosh(true)}><Plus size={14} aria-hidden="true" />{t('To‘lov qo‘shish')}</button>}
       </div>
       {!tolovlar.length ? <p className="text-[12px] text-text-mute">{t('To‘lov yo‘q')}</p> : (
-        <div className="overflow-x-auto">
+        <div className="max-h-[70vh] overflow-auto">
           <table className="w-full text-[12px]">
-            <thead className="text-left text-text-mute"><tr><th className="px-1">{t('Sana')}</th><th className="px-1">{t('Tur')}</th><th className="px-1">{t('Usul')}</th><th className="px-1">{t('Hujjat')}</th><th className="px-1 text-right">{t('Summa')}</th><th /></tr></thead>
+            <thead className="sticky top-0 z-10 bg-surface text-left text-text-mute"><tr><th className="px-1">{t('Sana')}</th><th className="px-1">{t('Tur')}</th><th className="px-1">{t('Usul')}</th><th className="px-1">{t('Hujjat')}</th><th className="px-1 text-right">{t('Summa')}</th><th /></tr></thead>
             <tbody>
               {tolovlar.map((p) => (
                 <tr key={p.id} className={`border-t border-border/50 ${p.holat === 'bekor' ? 'text-text-mute line-through' : ''}`}>
