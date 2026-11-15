@@ -14,12 +14,6 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import uz.anncorp.smeta.R
 
-/** Where a module opens: a native screen, or the website page inside the authenticated in-app WebView. */
-enum class ModuleKind { NATIVE, WEB }
-
-/** Native destinations the hub can jump to (the UI maps each to a tab or a route). */
-enum class NativeTarget { OBJECTS, FAKT, PHOTO, APPROVALS, TODAY, WAREHOUSE, JARVIS, RAHBAR }
-
 /**
  * One launcher entry. [anyOf] / [moduleCode] mirror the website gating (frontend/src/lib/reestr/sahifa.ts `ruxsat`/`modul`,
  * lib/ilova/ilovalar.ts): visible when the user holds at least one listed permission (empty = everyone) and the company has not
@@ -36,17 +30,6 @@ data class ModuleDef(
     val webPath: String? = null,
     val enabled: Boolean = true,
 )
-
-/**
- * Feature flags. Warehouse (Ombor) is merged and enabled. USERNAME (@username, people search, company invites; docs/architecture/USERNAME_V1.md)
- * is on: migration 20261224100000_t2_username_v1 is applied and the server (/api/profil username actions, /api/company member_invite,
- * BFF allow-list) is live on main. Kept as a var so tests can still switch it off. JARVIS (AI chat) uses the existing /api/ai-savol.
- */
-object Features {
-    const val NATIVE_WAREHOUSE = true
-    const val JARVIS = true
-    @Volatile @JvmStatic var USERNAME = true
-}
 
 private const val BOSS = "control.company.read"
 

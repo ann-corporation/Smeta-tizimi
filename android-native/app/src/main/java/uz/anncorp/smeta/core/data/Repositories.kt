@@ -48,14 +48,6 @@ class ConnectivityMonitor(private val context: Context, private val forced: () -
     }.distinctUntilChanged()
 }
 
-sealed interface SyncResult {
-    data object Ok : SyncResult
-    data object Offline : SyncResult
-    /** The server said this user may not read it (403): the UI shows what is allowed instead. */
-    data object Forbidden : SyncResult
-    data class Failed(val code: String?) : SyncResult
-}
-
 private fun ApiResult.failure(): SyncResult = when {
     networkError -> SyncResult.Offline
     status == 403 -> SyncResult.Forbidden
