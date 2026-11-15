@@ -19,6 +19,7 @@ import { SERVER_YANGILANMAGAN, ProfilXatosi, useProfil, xatoMatn } from '../../a
 import { ProfilForma } from './ProfilForma';
 import { UsernameKarta } from '../username/UsernameKarta';
 import { KelganTakliflar } from '../username/KelganTakliflar';
+import { ModullarimTanlagich } from '../modullarim/ModullarimTanlagich';
 import { TelegramKarta } from '../../telegram/TelegramKarta';
 import { BirlashtirKarta } from './BirlashtirKarta';
 import { KirishUsullariKarta } from './KirishUsullariKarta';
@@ -381,6 +382,21 @@ export function HubBolimi() {
       </div>
       <Link to="/admin/sozlamalar" className="fz-btn fz-btn--sm self-start">{t('Sozlamalar markazini ochish')}</Link>
       <p className="text-[11px] text-text-mute flex items-center gap-1 m-0"><Info size={12} aria-hidden="true" />{t('Ko‘rinadigan sahifalar rolingiz ruxsatlariga bog‘liq; yakuniy tekshiruv serverda.')}</p>
+    </div>
+  );
+}
+
+/* ───────── Modullarim (Telegram modeli: o‘zim tanlagan ilovalar) ───────── */
+export function ModullarimBolimi() {
+  const k = useKompaniya();
+  const kid = k.globalRejim ? null : k.joriy?.id ?? null;
+  return (
+    <div className="flex flex-col gap-4">
+      <Karta sarlavha="Modullarim" tavsif="Yon menyuda faqat o‘zingiz ishlatadigan modullar ko‘rinsin. Bu tanlov Android, Windows va Telegram bilan bir xil.">
+        {kid
+          ? <ModullarimTanlagich kompaniyaId={kid} />
+          : <Nota tur="info">{t('Modullarni tanlash uchun avval kompaniya tanlang yoki oching.')} <Link className="underline" to="/admin/kompaniya">{t('Kompaniya sahifasiga o‘tish')}</Link></Nota>}
+      </Karta>
     </div>
   );
 }

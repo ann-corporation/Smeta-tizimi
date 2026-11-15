@@ -1,0 +1,150 @@
+{
+  "Modullarim": {
+    "ru": "Мои модули",
+    "en": "My modules"
+  },
+  "Modullarim saqlandi": {
+    "ru": "Мои модули сохранены",
+    "en": "My modules saved"
+  },
+  "Qaysi modullar kerak?": {
+    "ru": "Какие модули вам нужны?",
+    "en": "Which modules do you need?"
+  },
+  "Kerakli modullarni belgilang — yon menyuda faqat shular ko‘rinadi. Hech narsa belgilanmasa, sizga ochiq hamma modul ko‘rinadi. Tanlov sizga yangi ruxsat bermaydi.": {
+    "ru": "Отметьте нужные модули — в боковом меню останутся только они. Если ничего не отмечено, видны все доступные вам модули. Выбор не даёт новых прав.",
+    "en": "Tick the modules you need — only they will show in the side menu. If nothing is ticked, every module you can access is shown. Your choice never grants new permissions."
+  },
+  "Tanlovingiz shu qurilmada saqlanadi; server tayyor bo‘lgach boshqa qurilmalar bilan ham sinxronlanadi.": {
+    "ru": "Ваш выбор сохраняется на этом устройстве; когда сервер будет готов, он синхронизируется и с другими устройствами.",
+    "en": "Your choice is saved on this device; once the server is ready it will sync to your other devices too."
+  },
+  "Hozircha sizga ochiq modul yo‘q.": {
+    "ru": "Пока нет доступных вам модулей.",
+    "en": "No modules are available to you yet."
+  },
+  "Yon menyuda faqat o‘zingiz ishlatadigan modullar ko‘rinsin. Bu tanlov Android, Windows va Telegram bilan bir xil.": {
+    "ru": "Пусть в боковом меню будут только модули, которыми вы пользуетесь. Выбор общий для Android, Windows и Telegram.",
+    "en": "Show only the modules you use in the side menu. The choice is shared with Android, Windows and Telegram."
+  },
+  "Modullarni tanlash uchun avval kompaniya tanlang yoki oching.": {
+    "ru": "Чтобы выбрать модули, сначала выберите или откройте компанию.",
+    "en": "To pick modules, first choose or open a company."
+  },
+  "Ismingiz nima?": {
+    "ru": "Как вас зовут?",
+    "en": "What is your name?"
+  },
+  "Hamkasblaringiz sizni shu ism bilan ko‘radi. Keyin profilda o‘zgartirish mumkin.": {
+    "ru": "Коллеги будут видеть вас под этим именем. Позже его можно изменить в профиле.",
+    "en": "Your colleagues will see you under this name. You can change it later in your profile."
+  },
+  "Kompaniyasiz ham ishlashingiz mumkin": {
+    "ru": "Можно работать и без компании",
+    "en": "You can work without a company too"
+  },
+  "Kompaniya ochish yoki taklif bilan qo‘shilish — yuqoridagi kartada. Hozircha shaxsiy sozlamalaringiz tayyor:": {
+    "ru": "Открыть компанию или присоединиться по приглашению можно в карточке выше. Пока доступны личные настройки:",
+    "en": "Open a company or join by invitation in the card above. Meanwhile your personal settings are ready:"
+  },
+  "Profil va @username": {
+    "ru": "Профиль и @username",
+    "en": "Profile and @username"
+  },
+  "Ismingiz va @username — odamlar sizni shu orqali topadi.": {
+    "ru": "Ваше имя и @username — по ним вас находят люди.",
+    "en": "Your name and @username — people find you with them."
+  },
+  "Telefon, Telegram, Google va email — bitta hisob.": {
+    "ru": "Телефон, Telegram, Google и email — один аккаунт.",
+    "en": "Phone, Telegram, Google and email — one account."
+  },
+  "Kompaniyaga qo‘shilgach, kerakli modullarni o‘zingiz tanlaysiz.": {
+    "ru": "После вступления в компанию вы сами выберете нужные модули.",
+    "en": "After joining a company you pick the modules you need."
+  },
+  "Telefon raqamingizga taklif kodi kelganmi?": {
+    "ru": "Вам пришёл код приглашения на телефон?",
+    "en": "Did an invitation code arrive on your phone?"
+  },
+  "Telefon va kod bilan ro‘yxatdan o‘ting": {
+    "ru": "Зарегистрируйтесь по телефону и коду",
+    "en": "Sign up with phone and code"
+  },
+  "Bugungi ishlar va topshiriqlar": {
+    "ru": "Сегодняшние дела и поручения",
+    "en": "Today's work and tasks"
+  },
+  "Obyektlar ro‘yxati va holati": {
+    "ru": "Список и состояние объектов",
+    "en": "Site list and status"
+  },
+  "Narx katalogi va manbalar": {
+    "ru": "Каталог цен и источники",
+    "en": "Price catalogue and sources"
+  },
+  "Bajarilgan ish faktini kiritish": {
+    "ru": "Ввод факта выполненных работ",
+    "en": "Enter actuals of completed work"
+  },
+  "Foto dalillar": {
+    "ru": "Фотофиксация",
+    "en": "Photo evidence"
+  },
+  "F2 qoralamasi va tasdiq": {
+    "ru": "Черновик Ф-2 и утверждение",
+    "en": "F2 draft and approval"
+  },
+  "Tasdiqlangan F2 lar": {
+    "ru": "Утверждённые Ф-2",
+    "en": "Approved F2s"
+  },
+  "To‘lov, xarajat, shartnoma": {
+    "ru": "Платежи, расходы, договоры",
+    "en": "Payments, expenses, contracts"
+  },
+  "Provodka jurnali va hisobotlar": {
+    "ru": "Журнал проводок и отчёты",
+    "en": "Postings journal and reports"
+  },
+  "Hujjatlar va tomonlar": {
+    "ru": "Документы и стороны",
+    "en": "Documents and parties"
+  },
+  "Yashirin ishlar akti": {
+    "ru": "Акт скрытых работ",
+    "en": "Hidden works act"
+  },
+  "Logistika": {
+    "ru": "Логистика",
+    "en": "Logistics"
+  },
+  "Ta‘minot, reys, ombor": {
+    "ru": "Снабжение, рейсы, склад",
+    "en": "Supply, trips, warehouse"
+  },
+  "Ombor kirim-chiqimi": {
+    "ru": "Приход и расход склада",
+    "en": "Warehouse receipts and issues"
+  },
+  "Shaxmatka, bron, bitim": {
+    "ru": "Шахматка, бронь, сделка",
+    "en": "Floor grid, booking, deal"
+  },
+  "Rahbar uchun umumiy ko‘rinish": {
+    "ru": "Общий обзор для руководителя",
+    "en": "Overview for the manager"
+  },
+  "Hisobotlar": {
+    "ru": "Отчёты",
+    "en": "Reports"
+  },
+  "Boshqaruv hisobotlari": {
+    "ru": "Управленческие отчёты",
+    "en": "Management reports"
+  },
+  "A‘zolar va kompaniya sozlamalari": {
+    "ru": "Участники и настройки компании",
+    "en": "Members and company settings"
+  }
+}

@@ -9,7 +9,7 @@ import { Bell, Building2, CreditCard, Fingerprint, KeyRound, LaptopMinimal, Layo
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { t } from '../../i18n/til';
 import {
-  BildirishnomaBolimi, HubBolimi, KirishBolimi, KompaniyalarBolimi, KorinishBolimi, ProfilBolimi, TarifBolimi, XavfsizlikBolimi,
+  BildirishnomaBolimi, HubBolimi, KirishBolimi, KompaniyalarBolimi, KorinishBolimi, ModullarimBolimi, ProfilBolimi, TarifBolimi, XavfsizlikBolimi,
 } from '../../components/akkaunt/Bolimlar';
 import { DesktopBolimi } from '../../components/akkaunt/DesktopBolimi';
 import { ImzoBolimi } from '../../components/imzo/KalitlarKarta';
@@ -19,6 +19,7 @@ const BOLIMLAR = [
   { id: 'kirish', nom: 'Kirish usullari', Ikon: KeyRound, Korinish: KirishBolimi },
   { id: 'profil', nom: 'Profil', Ikon: UserRound, Korinish: ProfilBolimi },
   { id: 'kompaniyalar', nom: 'Kompaniyalar va rollar', Ikon: Building2, Korinish: KompaniyalarBolimi },
+  { id: 'modullarim', nom: 'Modullarim', Ikon: LayoutGrid, Korinish: ModullarimBolimi },
   { id: 'xavfsizlik', nom: 'Xavfsizlik', Ikon: ShieldCheck, Korinish: XavfsizlikBolimi },
   { id: 'qulf', nom: 'PIN va biometrik', Ikon: Fingerprint, Korinish: QulfBolimi },
   { id: 'imzo', nom: 'Mening imzom', Ikon: PenLine, Korinish: ImzoBolimi },

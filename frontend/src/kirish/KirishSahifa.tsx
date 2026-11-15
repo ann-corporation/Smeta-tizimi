@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Lock, User, ArrowRight, Phone, Send, Mail } from 'lucide-react';
 import { toast } from '../umumiy/ui/Toast';
@@ -249,6 +249,9 @@ export default function KirishSahifa() {
                   <summary>{t('Emailingiz yo‘qmi? Telegram orqali ro‘yxatdan o‘ting')}</summary>
                   <TelegramKirish ismKerak onKirdi={telegramNatija} />
                 </details>}
+                <p className="entry-auth-foot" data-testid="telefon-royxat">
+                  {t('Telefon raqamingizga taklif kodi kelganmi?')} <Link className="underline" to="/taklif">{t('Telefon va kod bilan ro‘yxatdan o‘ting')}</Link>
+                </p>
 
                 <p className="entry-auth-foot">
                   {t('Bepul tarif: 300 token. Har hujjat narxi «Tokenlar» bo‘limidagi narx jadvalida. Keyin tarifni «Tokenlar va obuna» bo‘limida tanlaysiz.')}
