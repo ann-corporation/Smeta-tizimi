@@ -6,7 +6,8 @@
  * narxi u yerda yo'q — shu sababli Narxlash bandiga alohida tab sifatida qo'shildi.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Archive, Plus, Save, Search, Wand2, X } from 'lucide-react';
+import { SaqlashPaneli } from '../../umumiy/ui/SaqlashPaneli';
+import { Archive, Plus, Search, Wand2, X } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
@@ -54,6 +55,16 @@ const kartadanShakl = (k: IshKarta): Shakl => ({
   qamrov: qamrovToldir(k.qamrov), naryad_narx: k.naryad_narx, usta_nom: k.usta_nom ?? '', izoh: k.izoh ?? '', bog: k.bog,
 });
 
+/** Karta shaklidagi saqlanmagan o'zgarishlar soni: o'zgargan maydonlar + o'zgargan/qo'shilgan/olib tashlangan bog' qatorlari. */
+function shaklOzgarishSoni(joriy: Shakl, asl: Shakl | null): number {
+  if (!asl) return 0;
+  const j = (v: unknown) => JSON.stringify(v ?? null);
+  let n = 0;
+  for (const k of ['nom', 'tur', 'birlik', 'naryad_narx', 'usta_nom', 'izoh', 'parametrlar', 'ulush', 'qamrov'] as const) if (j(joriy[k]) !== j(asl[k])) n++;
+  const uz = Math.max(joriy.bog.length, asl.bog.length);
+  for (let i = 0; i < uz; i++) if (j(joriy.bog[i]) !== j(asl.bog[i])) n++;
+  return n;
+}
 const sonOl = (s: string): number | null => {
   const x = s.replace(/\s/g, '').replace(',', '.');
   if (x === '') return null;
@@ -77,6 +88,8 @@ export default function NarxTekshiruv() {
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [xato, setXato] = useState<string | null>(null);
   const [shakl, setShakl] = useState<Shakl | null>(null);
+  /** Shakl ochilgan/saqlangan paytdagi holat — «saqlanmagan o'zgarish» soni shunga nisbatan. */
+  const [aslShakl, setAslShakl] = useState<Shakl | null>(null);
   const [saqlanmoqda, setSaqlanmoqda] = useState(false);
   const [tanlov, setTanlov] = useState<number[]>([]);
   const [qatorlar, setQatorlar] = useState<ReadonlyMap<number, SmetaQator>>(new Map());
@@ -189,9 +202,9 @@ export default function NarxTekshiruv() {
   const bogOzgar = (i: number, o: Partial<KartaBogYozuv>) => shakl && setShakl({ ...shakl, bog: shakl.bog.map((b, j) => (j === i ? { ...b, ...o } : b)) });
 
   const saqla = async () => {
-    if (!shakl || !kid) return;
-    if (!shakl.nom.trim()) { toast(t('Karta nomini kiriting'), 'danger'); return; }
-    if (shakl.ulush && !ulushYaroqli(shakl.ulush)) { toast(t('Bosqich ulushlari yig‘indisi 100 bo‘lishi kerak'), 'danger'); return; }
+    if (!shakl || !kid) return false;
+    if (!shakl.nom.trim()) { toast(t('Karta nomini kiriting'), 'danger'); return false; }
+    if (shakl.ulush && !ulushYaroqli(shakl.ulush)) { toast(t('Bosqich ulushlari yig‘indisi 100 bo‘lishi kerak'), 'danger'); return false; }
     setSaqlanmoqda(true);
     const r = await kartaSaqla({
       kompaniyaId: kid, id: shakl.id, kutilganVersiya: shakl.versiya, operationId: yangiOperationId(),
@@ -206,11 +219,13 @@ export default function NarxTekshiruv() {
     if (!r.ok) {
       const kod = `${r.code ?? ''} ${r.error ?? ''}`;
       toast(/NOM_BAND/.test(kod) ? t('Bu nomli karta allaqachon bor') : /STALE_VERSION/.test(kod) ? t('Karta shu orada o‘zgargan — yangilab qayta urinib ko‘ring') : (r.error || t('Saqlab bo‘lmadi')), 'danger');
-      return;
+      return false;
     }
     toast(t('Karta saqlandi'));
-    setShakl({ ...shakl, id: r.id ?? shakl.id, versiya: r.versiya ?? shakl.versiya });
+    const saqlangan = { ...shakl, id: r.id ?? shakl.id, versiya: r.versiya ?? shakl.versiya };
+    setShakl(saqlangan); setAslShakl(saqlangan);
     void yukla();
+    return true;
   };
 
   const arxivla = async () => {
@@ -218,7 +233,7 @@ export default function NarxTekshiruv() {
     if (!(await tasdiqSora({ matn: t('Karta arxivga o‘tkaziladi: ro‘yxatdan yashiriladi (o‘chirilmaydi). Davom etasizmi?'), tasdiqMatni: t('Arxivga'), xavfli: true }))) return;
     const r = await kartaArxiv({ kompaniyaId: kid, id: shakl.id, kutilganVersiya: shakl.versiya, operationId: yangiOperationId() });
     if (!r.ok) { toast(r.error || t('Arxivlab bo‘lmadi'), 'danger'); return; }
-    setShakl(null); void yukla();
+    setShakl(null); setAslShakl(null); void yukla();
   };
 
   const kompUlushSaqla = async (tur: KartaTur, ulush: BosqichUlush) => {
@@ -233,7 +248,7 @@ export default function NarxTekshiruv() {
   return (
     <Sahifa sarlavha={t('Narx tekshiruvi')} tavsif={t('Usta aytgan narxni smetamiz 1 amaliy birlikka beradigan narx bilan solishtiring')}
       onYangila={() => void yukla()} yangilanmoqda={yuklanmoqda}
-      amallar={<button type="button" className={tugma} onClick={() => { setShakl(yangiShakl()); setTakliflar([]); }}><Plus size={14} />{t('Yangi karta')}</button>}>
+      amallar={<button type="button" className={tugma} onClick={() => { const y = yangiShakl(); setShakl(y); setAslShakl(y); setTakliflar([]); }}><Plus size={14} />{t('Yangi karta')}</button>}>
       {xato && <div role="alert" className="mb-3 rounded-md border border-danger/40 bg-danger/5 p-2 text-[13px] text-danger">{xato}</div>}
       <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
         <aside className="space-y-2">
@@ -243,7 +258,7 @@ export default function NarxTekshiruv() {
             <div key={k.id} className={`flex items-center gap-2 rounded-md border px-2 py-1.5 text-[13px] ${shakl?.id === k.id ? 'border-accent' : 'border-border'}`}>
               <input type="checkbox" aria-label={t('Solishtirishga qo‘shish')} checked={tanlov.includes(k.id)}
                 onChange={(e) => setTanlov((x) => (e.target.checked ? [...x, k.id] : x.filter((y) => y !== k.id)))} />
-              <button type="button" className="flex-1 text-left" onClick={() => { setShakl(kartadanShakl(k)); setTakliflar([]); }}>
+              <button type="button" className="flex-1 text-left" onClick={() => { const s = kartadanShakl(k); setShakl(s); setAslShakl(s); setTakliflar([]); }}>
                 <span className="font-medium">{k.nom}</span> <span className="text-text-mute">· {turNomi(k.tur)} · {k.birlik}</span>
               </button>
             </div>
@@ -359,10 +374,11 @@ export default function NarxTekshiruv() {
                 )}
               </div>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button type="button" className={tugma} disabled={saqlanmoqda} onClick={() => void saqla()}><Save size={14} />{t('Saqlash')}</button>
-                {shakl.id && <button type="button" className={tugma} onClick={() => void arxivla()}><Archive size={14} />{t('Arxivga')}</button>}
-              </div>
+              {shakl.id && <div className="mt-3 flex flex-wrap gap-2">
+                <button type="button" className={tugma} onClick={() => void arxivla()}><Archive size={14} />{t('Arxivga')}</button>
+              </div>}
+              <SaqlashPaneli kalit="narx-tekshiruv-karta" className="mt-3" soni={shaklOzgarishSoni(shakl, aslShakl)} band={saqlanmoqda}
+                saqla={saqla} bekor={() => aslShakl && setShakl(aslShakl)} />
             </section>
           )}
 
