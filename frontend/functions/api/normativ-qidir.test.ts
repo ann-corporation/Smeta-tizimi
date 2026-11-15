@@ -6,10 +6,15 @@ import { onRequestGet } from './normativ-qidir';
 
 afterEach(() => { vi.unstubAllGlobals(); vakolatKeshTozala(); });
 
-async function setup(matn = 'Synthetic clause.', iqtibos_anchor?: string) {
+async function gzipBytes(data: Uint8Array): Promise<Uint8Array> {
+  return new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+}
+
+async function setup(matn = 'Synthetic clause.', iqtibos_anchor?: string, gzip = false) {
   const secret = 'synthetic-k3-cookie-secret';
   const source = 'a'.repeat(64);
-  const bytes = new TextEncoder().encode(JSON.stringify({ source_sha: source, matn, iqtibos_anchor }));
+  const plain = new TextEncoder().encode(JSON.stringify({ source_sha: source, matn, iqtibos_anchor }));
+  const bytes = gzip ? await gzipBytes(plain) : plain;
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
   const sha = Array.from(digest, b => b.toString(16).padStart(2, '0')).join('');
   const row = {
@@ -44,6 +49,20 @@ it('returns verified citation with null page fields and a protected chunk lookup
   expect(JSON.parse(String(h.rpc.mock.calls[1][1]?.body))).toMatchObject({ p_actor_id: 7, p_kompaniya_id: 3 });
   expect((await h.call(citation.havola.split('?')[1])).status).toBe(200);
   expect(JSON.parse(String(h.rpc.mock.calls.at(-1)?.[1]?.body))).toMatchObject({ p_q: null, p_hujjat_id: h.row.hujjat_id, p_sha: h.row.sha256 });
+});
+
+it('reads gzip-packed chunks only after the stored-bytes sha256 check passes', async () => {
+  const h = await setup('Synthetic packed clause.', undefined, true);
+  const { natijalar: [citation] } = await (await h.call()).json() as { natijalar: { iqtibos: string }[] };
+  expect(citation.iqtibos).toBe('Synthetic packed clause.');
+  const tampered = await setup('Synthetic packed clause.', undefined, true);
+  tampered.bytes[tampered.bytes.length - 1] ^= 1;
+  expect(await (await tampered.call()).json()).toEqual({ ok: false, code: 'SOURCE_UNAVAILABLE' });
+});
+
+it('fails closed when a gzip chunk unpacks beyond the reader limit', async () => {
+  const h = await setup('x'.repeat(5 * 1024 * 1024), undefined, true);
+  expect(await (await h.call()).json()).toEqual({ ok: false, code: 'SOURCE_UNAVAILABLE' });
 });
 
 it('uses a redirect mode supported by Cloudflare Workers fetch (follow|manual, never error)', async () => {

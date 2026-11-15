@@ -58,7 +58,7 @@ def manifest(inventory, top, root, out):
 
 def dryrun(queue, out):
     rows = json.loads(Path(queue).read_text(encoding='utf-8'))
-    plan, total_objects, total_bytes, chunks = [], 0, 0, 0
+    plan, total_objects, total_bytes, chunks, chunk_total, original_total = [], 0, 0, 0, 0, 0
     for item in rows:
         res = subprocess.run([sys.executable, str(ROOT / 'scripts' / 'normativ' / 'r2_upload.py'),
                               item['job_dir'], item['source'], item['title']],
@@ -69,10 +69,14 @@ def dryrun(queue, out):
         data = json.loads(res.stdout)
         n_chunks = sum(1 for o in data['objects'] if o['key'].startswith('normativ/chunks/'))
         size = sum(o['bayt'] for o in data['objects'])
+        chunk_size = sum(o['bayt'] for o in data['objects'] if o['key'].startswith('normativ/chunks/'))
+        original_size = size - chunk_size - sum(o['bayt'] for o in data['objects'] if o['key'].startswith('normativ/manifests/'))
         total_objects += len(data['objects']); total_bytes += size; chunks += n_chunks
+        chunk_total += chunk_size; original_total += original_size
         plan.append(dict(path=item['path'], norma_kod=item['norma_kod'], flags=item['flags'], objects=len(data['objects']),
-                         chunks=n_chunks, bytes=size))
+                         chunks=n_chunks, bytes=size, chunk_bytes=chunk_size, original_bytes=original_size))
     summary = dict(documents=len(plan), objects=total_objects, chunks=chunks, r2_bytes=total_bytes,
+                   chunk_bytes=chunk_total, original_bytes=original_total,
                    with_flags=sum(1 for p in plan if p.get('flags')), errors=sum(1 for p in plan if 'error' in p))
     atomic(Path(out), dict(summary=summary, plan=plan))
     print(json.dumps(summary))
