@@ -1,4 +1,22 @@
 {
+  "macos": {
+    "version": "0.1.0",
+    "generatedAtUtc": "2026-11-15T06:27:20Z",
+    "file": "smeta-tizimi-0.1.0-macos-universal-unsigned.dmg",
+    "bytes": 4459252,
+    "sha256": "148a371e94dc8eb4f39e8bc3059aedb9f5211d11884953b6a6197ef411b4b7ac",
+    "signed": false,
+    "notarized": false
+  },
+  "android": {
+    "version": "0.1.0",
+    "generatedAtUtc": "2026-11-15T06:27:20Z",
+    "file": "smeta-tizimi-0.1.0-release.apk",
+    "bytes": 35179342,
+    "sha256": "0804edf0e4beef311be37bf8a4b8a0f1157d01d4baf6c3ae270b978b09b3b171",
+    "signed": true,
+    "minSdk": 24
+  },
   "ios": {
     "mode": "pwa"
   }
