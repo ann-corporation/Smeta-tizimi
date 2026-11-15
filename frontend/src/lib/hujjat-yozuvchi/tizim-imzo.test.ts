@@ -33,7 +33,7 @@ describe('Tizim imzosi — har hujjat kolontitul + xususiyat oladi', () => {
     const b = tizimImzosiniQoy(kitob(), META);
     const f = footer(matn(b, 'xl/worksheets/sheet1.xml'));
     const q = kolontitulBolimlari(f);
-    expect(q.L).toContain('QURAI · smeta-tizimi.pages.dev');
+    expect(q.L).toContain('QURAI · qurai.uz orqali tayyorlandi');
     expect(q.L).toContain('F2_Obyekt_№5_2026-10');
     expect(q.C).toBe(kolontitulBolimlari(footer(matn(kitob(), 'xl/worksheets/sheet1.xml'))).C);
     expect(q.C).toContain('Страница &P из &N');
@@ -60,7 +60,7 @@ describe('Tizim imzosi — har hujjat kolontitul + xususiyat oladi', () => {
     expect(core).toContain('<dc:title>Форма 2</dc:title>');
     expect(core).toContain('<cp:lastModifiedBy>pto@new-times.uz</cp:lastModifiedBy>');
     expect(core).toContain(`Код проверки ${kod}`);
-    expect(app).toContain('<Company>QURAI · smeta-tizimi.pages.dev</Company>');
+    expect(app).toContain('<Company>QURAI · qurai.uz orqali tayyorlandi</Company>');
     expect(app).toContain('<Application>QURAI</Application>');
     const ct = matn(b, '[Content_Types].xml');
     expect(ct).toContain('PartName="/docProps/app.xml"');
@@ -74,7 +74,7 @@ describe('Tizim imzosi — har hujjat kolontitul + xususiyat oladi', () => {
     expect(tizimImzoKodi(a)).toBe(tizimImzoKodi(kitob()));
     const qayta = tizimImzosiniQoy(a, META);
     const f = footer(matn(qayta, 'xl/worksheets/sheet1.xml'));
-    expect(f.match(/smeta-tizimi\.pages\.dev/g)).toHaveLength(1);
+    expect(f.match(/qurai\.uz/g)).toHaveLength(1);
     expect(f.match(/Код /g)).toHaveLength(1);
     expect(tizimImzoKodi(tizimImzosiniQoy(kitob(2000), META))).not.toBe(tizimImzoKodi(a));
   });
@@ -105,7 +105,7 @@ describe('Tizim imzosi — har hujjat kolontitul + xususiyat oladi', () => {
     ws.getCell('A1').value = 'СЧЕТ-ФАКТУРА';
     const b = tizimImzosiniQoy(new Uint8Array(await wb.xlsx.writeBuffer() as ArrayBuffer), META);
     const p = Object.keys(fayllar(b)).find((k) => /^xl\/worksheets\/sheet\d+\.xml$/.test(k))!;
-    expect(footer(matn(b, p))).toContain('smeta-tizimi.pages.dev');
+    expect(footer(matn(b, p))).toContain('qurai.uz');
     expect(matn(b, 'docProps/core.xml')).toContain('<dc:creator>QURAI</dc:creator>');
   });
 
@@ -114,7 +114,7 @@ describe('Tizim imzosi — har hujjat kolontitul + xususiyat oladi', () => {
     const b = tizimImzosiniQoy(paket, { foydalanuvchi: 'x', vaqt: VAQT });
     const f = fayllar(b);
     expect(strFromU8(f['izoh.txt'])).toBe('salom');
-    expect(footer(strFromU8(unzipSync(f['F2/akt.xlsx'])['xl/worksheets/sheet1.xml']))).toContain('pages.dev · akt');
+    expect(footer(strFromU8(unzipSync(f['F2/akt.xlsx'])['xl/worksheets/sheet1.xml']))).toContain('tayyorlandi · akt');
   });
 
   it('xlsx bo‘lmagan fayl (json, pdf, buzilgan) o‘zgarishsiz qaytadi — berish to‘xtamaydi', () => {

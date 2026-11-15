@@ -8,9 +8,12 @@
  * Sahifa: A4; keng jadval — albom, tor — kitob; jadval sarlavhasi har sahifada takrorlanadi; pastda fayl nomi va «N / M».
  */
 import type { KorinishVaraq, KorinishQator } from '../hujjat-yozuvchi/korinish';
+import { BREND_HUJJAT_MATN } from '../brend';
+import { qrPng } from '../imzo/qr';
+import { BREND_LOGO_PNG_B64 } from './brend-logo.generated';
 import { SHRIFT_BOLD, SHRIFT_BOLDITALIC, SHRIFT_ITALIC, SHRIFT_NORMAL } from './shriftlar.generated';
 
-export type PdfOpsiya = { faylNomi: string; sarlavha?: string };
+export type PdfOpsiya = { faylNomi: string; sarlavha?: string; /** Hujjat tekshirish kodi (XXXXX-XXXXX) — kolontitul matni uchun. */ kod?: string; /** QR manzili (<BREND_URL yoki joriy origin>/t/<token>); berilmasa QR chiqmaydi — domen qattiq yozilmaydi. */ tekshirHavola?: string };
 
 const SHRIFT = 'LiberationSans';
 const NBSP = ' ';
@@ -86,20 +89,28 @@ export async function korinishdanPdf(varaqlar: readonly KorinishVaraq[], o: PdfO
       y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 1.5;
     }
     jadval(doc, {
-      startY: y, margin: { left: MARGIN, right: MARGIN, bottom: 12 }, theme: 'grid', tableWidth: kenglik, columnStyles: ustunUslub,
+      startY: y, margin: { left: MARGIN, right: MARGIN, bottom: 17 }, theme: 'grid', tableWidth: kenglik, columnStyles: ustunUslub,
       styles: asos, headStyles: { fontStyle: 'bold', halign: 'center', fillColor: [235, 235, 235], textColor: 0 },
       head: bosh.map((q) => qatorHujayralari(v, q)), body: tana.map((q) => qatorHujayralari(v, q)),
       showHead: 'everyPage', rowPageBreak: 'avoid',
     });
   });
 
+  // QURAI kolontituli (egasi 2026-11-16): logo + «QURAI · qurai.uz orqali tayyorlandi», sahifa raqami, markazida QURAI belgisi bor tekshirish QR i.
+  // Faqat sahifa pastki chetida; hujjat tanasi (jadval, summalar) tegilmaydi.
   const n = doc.getNumberOfPages();
+  
+  const qr = o.tekshirHavola ? qrPng(o.tekshirHavola, 4, true).png : null;
+  const logoUrl = 'data:image/png;base64,' + BREND_LOGO_PNG_B64;
   for (let i = 1; i <= n; i++) {
     doc.setPage(i);
     const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
     doc.setFont(SHRIFT, 'normal'); doc.setFontSize(7); doc.setTextColor(90);
-    doc.text(o.faylNomi.replace(/\.xlsx$/i, ''), 10, H - 5, { maxWidth: W - 40 });
-    doc.text(`${i} / ${n}`, W - 10, H - 5, { align: 'right' });
+    doc.addImage(logoUrl, 'PNG', MARGIN, H - 9.2, 4.6, 4.6);
+    doc.text(BREND_HUJJAT_MATN, MARGIN + 6, H - 6.2, { maxWidth: W - 2 * MARGIN - 45 });
+    doc.text(o.faylNomi.replace(/\.xlsx$/i, '') + (o.kod ? ` · ${o.kod}` : ''), MARGIN + 6, H - 3.4, { maxWidth: W - 2 * MARGIN - 45 });
+    doc.text(`${i} / ${n}`, W - MARGIN - 13, H - 5, { align: 'right' });
+    if (qr) doc.addImage(qr, 'PNG', W - MARGIN - 11, H - 15.5, 11, 11);
   }
   return new Uint8Array(doc.output('arraybuffer'));
 }

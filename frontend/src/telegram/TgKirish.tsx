@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { t } from '../i18n/til';
 import { initDataOl, tgMiniAppKirish, tgSignal, tgXato } from '../api/t2-telegram';
 import { tgIchkiYol } from '../lib/tg-yol';
+import { yuzaBelgisi } from '../lib/brend';
 
 type Holat = { tur: 'kutish' } | { tur: 'tashqarida' } | { tur: 'ulanmagan' } | { tur: 'xato'; matn: string };
 
@@ -33,7 +34,7 @@ export default function TgKirish() {
   return (
     <main className="min-h-screen bg-bg flex items-center justify-center p-4">
       <section className="fz-card p-5 w-full max-w-sm flex flex-col gap-3 text-center" aria-live="polite">
-        <h1 className="text-lg font-semibold text-text m-0">{'QURAI'}</h1>
+        <h1 className="text-lg font-semibold text-text m-0">{yuzaBelgisi('Telegram')}</h1>
         {holat.tur === 'kutish' && <p className="text-[13px] text-text-dim m-0">{t('Telegram orqali kirilmoqda…')}</p>}
         {holat.tur === 'tashqarida' && (
           <>

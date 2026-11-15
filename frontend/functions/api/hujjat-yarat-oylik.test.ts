@@ -43,6 +43,7 @@ import { ostatkaHujjatQur, slichitelniyHujjatQur, daraxtToliqOl, istisnolarOl, u
 import { m29HujjatQur, m29KirishOl } from '../../src/lib/oylik-hujjat/m29';
 import { nakopitelniyAktlarKOplate, nakopitelniyHujjatQur, nakopitelniyOylarOl, nakopitelniyUstamaOl, nakopitelniyYukla } from '../../src/lib/oylik-hujjat/nakopitelniy';
 import { onRequestPost } from './hujjat-yarat';
+import { tengKolontitulsiz } from '../_shared/test-golden-yordam';
 function q(id: number, ota_id: number | null, tur: string, hajm: number | null, extra: Partial<T2Qator> = {}): T2Qator {
   return {
     id, obyekt_id: 7, obyekt: 'X', kompaniya_id: 1, ota_id, daraja: 0, tartib: id, tur, kod: 'K' + id, nom: 'POZITSIYA ' + id,
@@ -78,7 +79,8 @@ beforeEach(() => {
 });
 
 const IMZO0 = {} as Record<string, string>;
-const teng = (a: Uint8Array, b: Uint8Array) => a.byteLength === b.byteLength && a.every((x, i) => x === b[i]);
+/** GOLDEN: kolontitul (QURAI imzosi) dan boshqa hammasi bayt-bayt teng. */
+const teng = tengKolontitulsiz;
 const so = (body: unknown) => ({ request: new Request('https://t2.test/api/hujjat-yarat', { method: 'POST', headers: { Cookie: 'sess=x', 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
   env: { SUPABASE_URL: 'https://x', SUPABASE_KEY: 'k', SESSIYA_KALIT: 's' }, data: { roleAuthority: { foydalanuvchi_id: 9, rol: 'pto' } } }) as never;
 const yarat = (extra: Record<string, unknown>, format = 'xlsx') => onRequestPost(so({ amal: 'yarat', format, kompaniya_id: 1, obyekt_id: 7, ...extra }));

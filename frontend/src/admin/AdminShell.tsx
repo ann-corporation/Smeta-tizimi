@@ -37,6 +37,7 @@ import { ISH_JOYI_NAV, ishJoyiMenyu } from '../lib/nav/ishJoyiMenyu';
 import { useYangiMenyu } from '../lib/nav/yangiMenyu';
 import { ILOVA_MAP, type IlovaKod } from '../lib/ilova/ilovalar';
 import { IlovaIshgaTushirgich } from '../components/ilova/IlovaIshgaTushirgich';
+import { YuzaBelgisi } from '../components/brend/YuzaBelgisi';
 import { useTizimRuxsat } from '../api/t2-tizim-xaritasi';
 import { useModullar } from '../api/t2-modul';
 import { useModulTanlov } from '../api/modullarim';
@@ -295,7 +296,7 @@ function AdminShellInner() {
           <KompaniyaLogoRasm
             kompaniyaId={k.globalRejim ? null : k.joriy?.id}
             className="w-8 h-8 rounded-md object-contain bg-white flex-shrink-0"
-            zaxira={<span className="fz-sidebar__mark" aria-hidden="true">{(!k.globalRejim && k.joriy?.nom ? k.joriy.nom : 'S').trim().charAt(0).toUpperCase()}</span>}
+            zaxira={<img src="/brand/favicon.svg" alt="" className="fz-sidebar__mark" aria-hidden="true" width={32} height={32} />}
           />
           {sidebarKengaygan && (
             <div className="min-w-0 flex-1">
@@ -387,6 +388,7 @@ function AdminShellInner() {
           <button type="button" className="os-mobile-only os-menu-button" aria-label={mobilMenyuOchiq ? 'Navigatsiyani yopish' : 'Navigatsiyani ochish'} aria-expanded={mobilMenyuOchiq} onClick={() => setMobilMenyuOchiq((open) => !open)}>
             {mobilMenyuOchiq ? <X size={17} /> : <Menu size={17} />}
           </button>
+          <YuzaBelgisi modul={ilovalar.find((i) => i.kod === joriyIlova)?.nom ?? null} />
           <span className="os-mobil-yashir"><IlovaIshgaTushirgich ilovalar={ilovalar} joriy={joriyIlova} onTanla={(kod) => { setOxirgiIlova(kod); setHammasiRejim(false); try { localStorage.setItem('fz-ilova', kod); } catch { /* xotira yopiq */ } }} /></span>
           <span className="os-mobil-yashir"><OrqaOldinga /></span>
           <span data-kurs="kompaniya-tanlagich" className="contents"><KompaniyaTanlagich /></span>

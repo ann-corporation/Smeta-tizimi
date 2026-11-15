@@ -1,5 +1,6 @@
 import { navSahifa } from './nav/navReestr';
-export const APP_TITLE = 'QURAI';
+import { BREND, sahifaSarlavhasi } from './brend';
+export const APP_TITLE = BREND;
 const titles: Array<[RegExp, string]> = [
   [/^\/admin\/storage(?:\/|$)/, 'Fayl saqlash'], [/^\/admin\/(?:test\/)?saqlash(?:\/|$)/, 'Fayl saqlash'],
   [/^\/admin\/mindmap(?:\/|$)/, 'Mindmap'], [/^\/admin\/(?:test\/)?xarita(?:\/|$)/, 'Mindmap'],
@@ -16,8 +17,8 @@ const titles: Array<[RegExp, string]> = [
 /** Sahifa nomi: avval aniq qoidalar, keyin YAGONA navigatsiya reestri (menyu nomi bilan bir xil), oxirida umumiy. */
 export function titleForPath(pathname: string): string {
   const match = titles.find(([pattern]) => pattern.test(pathname));
-  if (match) return `${match[1]} | ${APP_TITLE}`;
+  if (match) return sahifaSarlavhasi(match[1]);
   const reestr = pathname.startsWith('/admin/') ? navSahifa(pathname.replace(/\/+$/, '')) : null;
-  if (reestr) return `${reestr.nom} | ${APP_TITLE}`;
-  return pathname.startsWith('/admin') ? `Rahbar paneli | ${APP_TITLE}` : APP_TITLE;
+  if (reestr) return sahifaSarlavhasi(reestr.nom);
+  return pathname.startsWith('/admin') ? sahifaSarlavhasi('Rahbar paneli') : APP_TITLE;
 }

@@ -636,3 +636,5 @@
 .entry-dl-cta { align-self: flex-start; max-width: 100%; white-space: normal; text-align: center; }
 .entry-dl-web-link { padding-inline: 0; }
 .entry-dl-ios-art { max-width: 100%; height: auto; color: var(--accent-text); }
+
+.entry-yuza { margin-left: 2px; font: 500 12px/1 var(--font-display); letter-spacing: .06em; color: var(--text-dim, currentColor); opacity: .8; }

@@ -23,10 +23,11 @@
 import { strFromU8, strToU8, unzipSync, zipSync, type Unzipped } from 'fflate';
 import { isZip, unEsc, xmlEsc } from './ooxml';
 import { tizimImzoJoriyFoydalanuvchi } from './tizim-imzo-foydalanuvchi';
+import { BREND, BREND_SAYT, BREND_HUJJAT_MATN } from '../brend';
 
-export const TIZIM_IMZO_BREND = 'QURAI';
-export const TIZIM_IMZO_SAYT = 'smeta-tizimi.pages.dev';
-const BELGI = `${TIZIM_IMZO_BREND} · ${TIZIM_IMZO_SAYT}`;
+export const TIZIM_IMZO_BREND = BREND;
+export const TIZIM_IMZO_SAYT = BREND_SAYT;
+const BELGI = BREND_HUJJAT_MATN;
 const KOD_RE = /Код [0-9A-Z]{5}-[0-9A-Z]{5}/;
 /** Excel kolontitul qismi uchun cheklov (255 belgidan oshsa Excel faylni «tiklaydi»). */
 const MAX_KOLONTITUL = 250;
@@ -100,7 +101,7 @@ export function kolontitulBolimlari(s: string): Bolim {
 const yigish = (b: Bolim): string => `${b.L ? `&L${b.L}` : ''}${b.C ? `&C${b.C}` : ''}${b.R ? `&R${b.R}` : ''}`;
 const amp = (s: string): string => s.replace(/&/g, '&&');
 /** Avvalgi tizim imzosi (qayta imzolashda) — bo'sh deb qaraladi. */
-const bizniki = (s: string): boolean => s.includes(TIZIM_IMZO_SAYT) || KOD_RE.test(s);
+const bizniki = (s: string): boolean => s.includes(TIZIM_IMZO_SAYT) || s.includes('smeta-tizimi.pages.dev') || KOD_RE.test(s);
 const tozala = (b: Bolim): Bolim => ({ L: bizniki(b.L) ? '' : b.L, C: b.C, R: bizniki(b.R) ? '' : b.R });
 
 function sanaMatni(d: Date): string {
@@ -141,7 +142,7 @@ export function varaqqaTizimImzosi(xml: string, q: { chap: string; ong: string }
   for (const t of turlar) {
     const past = tozala(kolontitulBolimlari(natija[`${t}Footer`] ?? ''));
     const tepa = tozala(kolontitulBolimlari(natija[`${t}Header`] ?? ''));
-    if (!past.L && !past.R) { past.L = q.chap; past.R = q.ong; }
+    if (!past.L && !past.R) { past.L = q.chap; past.R = q.ong; if (!past.C) past.C = '&7&P / &N'; } // sahifa raqami har doim bor (shablonning o'z markaziy matni saqlanadi)
     else if (!tepa.L && !tepa.R) { tepa.L = q.chap; tepa.R = q.ong; }
     else past.R = `${past.R} ${q.chap} ${q.ong}`;
     natija[`${t}Footer`] = yigish(past);

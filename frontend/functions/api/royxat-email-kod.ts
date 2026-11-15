@@ -28,7 +28,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     const start = await rpc(ctx.env, 't2_royxat_email_kod_yarat_v1', { p_email: email, p_kod_xesh: await xesh(kod + '|' + email, ctx.env.SESSIYA_KALIT), p_ip_belgi: ipBelgi });
     const d = await start.json().catch(() => null) as { ok?: boolean; code?: string; xabar?: string; tasdiqlash_id?: string } | null;
     if (!start.ok || !d?.ok || !d.tasdiqlash_id) return Response.json({ ok: false, code: d?.code, xabar: d?.xabar || 'Kod yuborib bo‘lmadi.' }, { status: 400 });
-    const mail = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: 'Bearer ' + ctx.env.RESEND_API_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: ctx.env.EMAIL_FROM, to: [email], subject: 'Smeta OS — tasdiqlash kodi', text: `Smeta OS ro‘yxatdan o‘tish kodi: ${kod}\nKod 10 daqiqa amal qiladi. Uni hech kimga bermang.` }) });
+    const mail = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: 'Bearer ' + ctx.env.RESEND_API_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: ctx.env.EMAIL_FROM, to: [email], subject: 'QURAI — tasdiqlash kodi', text: `QURAI ro‘yxatdan o‘tish kodi: ${kod}\nKod 10 daqiqa amal qiladi. Uni hech kimga bermang.` }) });
     if (!mail.ok) return Response.json({ ok: false, code: 'EMAIL_YUBORILMADI', xabar: 'Kod yuborib bo‘lmadi. Keyinroq urinib ko‘ring.' }, { status: 502 });
     const sent = await rpc(ctx.env, 't2_royxat_email_kod_yuborildi_v1', { p_tasdiqlash_id: d.tasdiqlash_id });
     if (!sent.ok) return Response.json({ ok: false, xabar: 'Kod yuborildi, lekin tasdiqlash holati saqlanmadi. Yangisini so‘rang.' }, { status: 502 });

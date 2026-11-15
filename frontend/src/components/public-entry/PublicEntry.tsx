@@ -21,6 +21,7 @@ import { Magnetic } from './intro/Magnetic';
 import { useScrollStory } from './intro/hooks';
 import { Reveal } from './intro/Reveal';
 import { AppDownloads } from './AppDownloads';
+import { yuzaAniqla } from '../../lib/brend';
 export type { ProductScreenshot } from './ProductShowcase';
 
 export const OWNER_PHONE = '+998505012566';
@@ -201,7 +202,7 @@ function EntryHeader({ c, text, local, onLogin, start, kirgan = false }: { c: ty
   const { scrollYProgress } = useScroll();
   const bar = useSpring(scrollYProgress, { stiffness: 200, damping: 30, restDelta: 0.001 });
   return <header className="entry-header">
-    <a className="entry-brand" href="#entry-top"><svg className="entry-brand-mark" viewBox="-66.89 -65.5 137.01 137.01" aria-hidden="true" fill="none" strokeWidth={9}><path d="M-26 -34V12A15 15 0 0 0 4 12V-34" stroke="currentColor" /><path d="M4 -34H18A14 14 0 0 1 18 -6H4" stroke="currentColor" /><path d="M13 -6L41.94 37.11" stroke="currentColor" /><circle r="56" className="entry-brand-ring" /><path d="M41.94 37.11L60 64" className="entry-brand-ring" /></svg><span className="entry-brand-word">{BRAND_WORD}<span className="entry-brand-number">{BRAND_NUMBER}</span></span></a>
+    <a className="entry-brand" href="#entry-top"><svg className="entry-brand-mark" viewBox="-66.89 -65.5 137.01 137.01" aria-hidden="true" fill="none" strokeWidth={9}><path d="M-26 -34V12A15 15 0 0 0 4 12V-34" stroke="currentColor" /><path d="M4 -34H18A14 14 0 0 1 18 -6H4" stroke="currentColor" /><path d="M13 -6L41.94 37.11" stroke="currentColor" /><circle r="56" className="entry-brand-ring" /><path d="M41.94 37.11L60 64" className="entry-brand-ring" /></svg><span className="entry-brand-word">{BRAND_WORD}<span className="entry-brand-number">{BRAND_NUMBER}</span></span><span className="entry-yuza" data-yuza={yuzaAniqla()}>{"· " + yuzaAniqla()}</span></a>
     <nav aria-label={text(c.capabilities)}><a href="#entry-chain">{text(c.workflow)}</a><a href="#entry-roles">{local(scopeCopy.audiences)}</a><a href="#entry-features">{text(c.capabilities)}</a><a href="#entry-pricing">{local(ic.priceEyebrow)}</a><a href="#entry-contact">{text(c.contact)}</a></nav>
     <div className="entry-header-actions"><TilTanlagich ixcham /><button type="button" className="entry-small-button" onClick={onLogin}>{text(kirgan ? c.openApp : c.login)}</button><span className="entry-header-start">{start}</span></div>
     <motion.i className="entry-progress" style={{ scaleX: bar }} aria-hidden="true" />

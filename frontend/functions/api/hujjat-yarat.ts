@@ -28,13 +28,18 @@ import { sotuvF3lar, type SvodShartnoma } from '../../src/lib/nakopitelniy-svod'
 import { f3ShaklTozala, forma3SotuvdanXlsx } from '../../src/lib/forma3-export';
 import { hujjatKorinishi } from '../../src/lib/hujjat-yozuvchi/korinish';
 import { korinishdanPdf } from '../../src/lib/hujjat-pdf/pdf';
+import { tekshirBazasi } from '../../src/lib/brend';
+import { imzoRpc } from '../_shared/imzo';
+import { hujjatMazmunXeshi } from '../../src/lib/imzo/mazmun';
+import { tasodifiyToken } from '../../src/lib/imzo/yadro';
+import { tizimImzoKodi, tizimImzosiniQoy } from '../../src/lib/hujjat-yozuvchi/tizim-imzo';
 import { mazmunXeshi } from '../../src/api/mazmun-xesh';
 import { nakopitelniyPaketFayli } from '../../src/lib/oylik-hujjat/nakopitelniy';
 import { ostatkaPaketFayli, paketImzosiOl } from '../../src/lib/oylik-hujjat/ostatka-slichitelniy';
 import { m29PaketFayli, pudratchiNomiOl } from '../../src/lib/oylik-hujjat/m29';
 import { NDS_SUKUT_FOIZ } from '../../src/lib/nakopitelniy-vedomost-export';
 
-type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string };
+type Env = { SUPABASE_URL: string; SUPABASE_KEY: string; SESSIYA_KALIT: string; BREND_URL?: string };
 export type HujjatFormat = 'xlsx' | 'pdf';
 const FORMATLAR: readonly HujjatFormat[] = ['xlsx', 'pdf'];
 const MIME: Record<HujjatFormat, string> = { xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', pdf: 'application/pdf' };
@@ -45,6 +50,14 @@ const rad = (e: Rad) => Response.json({ ok: false, code: e.code, xato: e.message
 
 type Tayyor = { bytes: Uint8Array; faylNomi: string; turi: string; obyektId: number; davr: string | null; xesh: string };
 const OY = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+/** Hujjat nashri tokeni (t2_nashr_tayyor_v1: bir xil mazmun — mavjud token). Xatoda null. */
+async function nashrTokeni(env: Env, actorId: number, kompaniyaId: number, obyektId: number, t: Tayyor): Promise<string | null> {
+  try {
+    const j = await imzoRpc(env, 't2_nashr_tayyor_v1', { p_actor_id: actorId, p_kompaniya_id: kompaniyaId, p_obyekt_id: obyektId, p_turi: t.turi, p_atama: t.faylNomi.replace(/\.xlsx$/i, '').slice(0, 160), p_xesh: await hujjatMazmunXeshi(t.bytes), p_token: tasodifiyToken() });
+    return j?.ok && typeof j.token === 'string' ? j.token : null;
+  } catch { return null; }
+}
 
 async function royxat(kompaniyaId: number, obyektId: number) {
   const r = await sbT2AktReestrOl(obyektId, 'f2');
@@ -167,13 +180,18 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     let faylNomi = tayyor.faylNomi;
     if (format === 'pdf') {
       try {
-        chiqish = await korinishdanPdf(hujjatKorinishi(tayyor.bytes), { faylNomi: tayyor.faylNomi });
+        // QR: hujjat nashri tokeni (mavjud /t/<token> ochiq tekshiruv sahifasi); baza — BREND_URL yoki joriy sayt. Xato bo'lsa QR siz beriladi.
+        const token = await nashrTokeni(ctx.env, actorId, kompaniyaId, obyektId, tayyor);
+        const baza = tekshirBazasi(ctx.env, ctx.request.url);
+        chiqish = await korinishdanPdf(hujjatKorinishi(tayyor.bytes), { faylNomi: tayyor.faylNomi, kod: tizimImzoKodi(tayyor.bytes), ...(token ? { tekshirHavola: `${baza}/t/${token}` } : {}) });
         faylNomi = tayyor.faylNomi.replace(/\.xlsx$/i, '') + '.pdf';
       } catch (e) {
         if (s.operationId) await serverQaytar(ctx.env, { actorId, kompaniyaId, sarfOperationId: s.operationId }).catch(() => false);
         throw new Rad(500, 'PDF_YASALMADI', e instanceof Error ? e.message.slice(0, 160) : 'PDF yasalmadi');
       }
     }
+    // QURAI imzosi (kolontitul + xususiyatlar) — veb ham, ilovalar ham bir xil faylni oladi; shablon tanasi o'zgarmaydi.
+    if (format === 'xlsx') chiqish = tizimImzosiniQoy(chiqish, { hujjat: faylNomi });
     const headers = new Headers({
       'Content-Type': MIME[format],
       'Content-Disposition': 'attachment; filename*=UTF-8\'\'' + encodeURIComponent(faylNomi),

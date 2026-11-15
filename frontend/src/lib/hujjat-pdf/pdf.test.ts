@@ -25,6 +25,13 @@ describe('hujjat-pdf: Excel dan PDF (yagona dvigatel)', () => {
     expect(matn).toMatch(/LiberationSans/);
   });
 
+  it('QURAI kolontituli: har sahifada logo va tekshirish QR i (rasm obyektlari) bor', async () => {
+    const h = yasa();
+    const pdf = await korinishdanPdf(hujjatKorinishi(h.bytes), { faylNomi: h.faylNomi, kod: 'ABCDE-12345' });
+    const rasmlar = new TextDecoder('latin1').decode(pdf).match(/\/Subtype\s*\/Image/g) ?? [];
+    expect(rasmlar.length).toBeGreaterThanOrEqual(2); // logo + QR (sahifalar bo'yicha qayta ishlatiladi)
+  });
+
   it('sarlavha, ustun sarlavhasi va tana to\'g\'ri bo\'linadi; tana qatorlari Excel bilan bir xil sonda', () => {
     const v = hujjatKorinishi(yasa().bytes)[0];
     const { titul, bosh, tana } = varaqBolinishi(v);
