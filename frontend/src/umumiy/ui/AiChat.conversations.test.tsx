@@ -105,3 +105,15 @@ it('late previous load does not clear the current loading indicator',async()=>{
  expect(screen.getByTestId('jarvis-conversation-loading').textContent).toContain('r2');
  await act(async()=>second({xabarlar:[{r:'ai',m:'SECOND'}]}));expect(screen.queryByTestId('jarvis-conversation-loading')).toBeNull();expect(screen.getByText('SECOND')).toBeTruthy();
 });
+
+it('the model receives the initial goal and complete long constraints after many turns',async()=>{
+ const goal='Maqsad: '+ 'x'.repeat(1500)+' oxirgi muhim talab';
+ sessionStorage.setItem('jarvis-chat:7:17',JSON.stringify(Array.from({length:24},(_,i)=>({id:'old-'+i,rol:i%2?'ai':'user',matn:i?'Turn '+i:goal}))));
+ m.ask.mockResolvedValue({ok:true,javob:'OK'});render(view());send('Davom et');await waitFor(()=>expect(m.ask).toHaveBeenCalledTimes(1));
+ const history=m.ask.mock.calls[0][2].tarix;expect(history[0].matn).toBe(goal);expect(history).toHaveLength(16);expect(history.at(-1).matn).toBe('Turn 23');
+});
+it('a repeated question does not erase an earlier identical user message',async()=>{
+ sessionStorage.setItem('jarvis-chat:7:17',JSON.stringify([{id:'old',rol:'user',matn:'Takror tekshir'},{id:'reply',rol:'ai',matn:'Old result'}]));
+ m.ask.mockResolvedValue({ok:true,javob:'OK'});render(view());send('Takror tekshir');await waitFor(()=>expect(m.ask).toHaveBeenCalledTimes(1));
+ expect(m.ask.mock.calls[0][2].tarix).toEqual([{rol:'user',matn:'Takror tekshir'},{rol:'assistant',matn:'Old result'}]);
+});

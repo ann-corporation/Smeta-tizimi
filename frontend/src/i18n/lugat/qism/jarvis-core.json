@@ -1,0 +1,18 @@
+{
+  "Kerakli ma’lumot o‘qilmadi. Amal taklifi yaratilmagan.": {
+    "ru": "Не удалось прочитать необходимые данные. Предложение действия не создано.",
+    "en": "Required data could not be read. No action proposal was created."
+  },
+  "Tekshiruv yakunlanmadi. Savolni aniqlashtiring yoki qayta urinib ko‘ring.": {
+    "ru": "Проверка не завершена. Уточните вопрос или повторите попытку.",
+    "en": "Verification did not finish. Clarify the request or try again."
+  },
+  "Amal yakunlanmadi. Holatni tekshirib, qayta urinib ko‘ring.": {
+    "ru": "Действие не завершено. Проверьте состояние перед повторной попыткой.",
+    "en": "The action did not finish. Check its state before trying again."
+  },
+  "Ma’lumot o‘zgardi. Amal taklifini qayta tekshiring.": {
+    "ru": "Данные изменились. Перепроверьте предложение действия.",
+    "en": "Data changed. Review the action proposal again."
+  }
+}

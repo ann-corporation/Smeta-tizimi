@@ -40,19 +40,35 @@ export const vositaYorligi = (s: OqishSorovi) => `${VOSITA_NOMI[s.vosita] ? t(VO
 export async function agentSikli(p: { kompaniyaId: number; xabarlar: SahifaXabar[]; vositalar: SahifaVositalar; qadam?: (q: SiklQadam) => void; tirikmi?: () => boolean }): Promise<SiklNatija> {
   const natijalar: OqishNatija[] = [];
   const bajarilgan = new Set<string>();
+  const bekorQilindi = () => p.tirikmi !== undefined && !p.tirikmi();
   for (let i = 0; i < MAX_AYLANISH; i++) {
     const oxirgi = i === MAX_AYLANISH - 1;
-    const r = await sahifaSuhbat(p.kompaniyaId, p.vositalar.sahifa, p.xabarlar, p.vositalar.kontekst(), natijalar, oxirgi);
-    if (p.tirikmi && !p.tirikmi()) return { ok: false, code: 'BEKOR' };
+    if (bekorQilindi()) return { ok: false, code: 'BEKOR' };
+    const kontekst = p.vositalar.kontekst();
+    if (bekorQilindi()) return { ok: false, code: 'BEKOR' };
+    const r = await sahifaSuhbat(p.kompaniyaId, p.vositalar.sahifa, p.xabarlar, kontekst, natijalar, oxirgi);
+    if (bekorQilindi()) return { ok: false, code: 'BEKOR' };
     if (!r.ok) return { ok: false, code: r.code, message: r.message };
-    const yangi = r.oqish.filter((s) => !bajarilgan.has(`${s.vosita}|${s.arg ?? ''}`));
-    if (!oxirgi && yangi.length) {
+    const shuJavobda = new Set<string>();
+    const yangi = r.oqish.filter((s) => {
+      const kalit = JSON.stringify([s.vosita, s.arg ?? null]);
+      if (bajarilgan.has(kalit) || shuJavobda.has(kalit)) return false;
+      shuJavobda.add(kalit);
+      return true;
+    });
+    if (r.oqish.length && (oxirgi || !yangi.length)) return { ok: false, code: 'AYLANISH_TUGADI' };
+    if (yangi.length) {
       for (const s of yangi) {
-        bajarilgan.add(`${s.vosita}|${s.arg ?? ''}`);
+        if (bekorQilindi()) return { ok: false, code: 'BEKOR' };
+        bajarilgan.add(JSON.stringify([s.vosita, s.arg ?? null]));
         p.qadam?.({ matn: vositaYorligi(s), holat: 'ishda' });
-        let natija: string;
+        if (bekorQilindi()) return { ok: false, code: 'BEKOR' };
+        let natija = '';
+        let xato: string | undefined;
         try { natija = String(await p.vositalar.oqi(s)).slice(0, NATIJA_MAX); }
-        catch (e) { natija = `XATO: ${e instanceof Error ? e.message : String(e)}`; }
+        catch (e) { xato = e instanceof Error ? e.message : String(e); }
+        if (bekorQilindi()) return { ok: false, code: 'BEKOR' };
+        if (xato !== undefined) return { ok: false, code: 'OQISH_XATO' };
         natijalar.push({ ...s, natija });
       }
       continue;

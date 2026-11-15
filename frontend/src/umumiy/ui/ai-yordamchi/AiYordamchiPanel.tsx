@@ -19,6 +19,8 @@ import { OVOZ_TILLAR, ovozBoshla, ovozQollanadimi, ovozSukutTil, type OvozTil } 
 import { buyruqKeshdan, buyruqKeshgaYoz } from '../../../lib/ai-yordamchi/buyruq-narx';
 
 const XATO: Record<string, string> = {
+  OQISH_XATO: 'Kerakli ma’lumot o‘qilmadi. Amal taklifi yaratilmagan.',
+  AYLANISH_TUGADI: 'Tekshiruv yakunlanmadi. Savolni aniqlashtiring yoki qayta urinib ko‘ring.',
   AI_NOT_CONFIGURED: 'AI hali sozlanmagan (Cloudflare’da AI kaliti yo‘q).',
   BYUDJET_YOQ: 'AI uchun oylik limit belgilanmagan — Boshqaruv → AI markazi → Xarajat bo‘limida limit qo‘ying.',
   BYUDJET_TUGADI: 'AI oylik limiti tugadi.', TOKEN_YETMAYDI: 'Tokenlar yetarli emas — hisobni to‘ldiring.',
@@ -28,7 +30,7 @@ const xatoMatn = (code: string, message?: string) => t(XATO[code] ?? message ?? 
 
 type Taklif = SahifaAmal & { ogoh: string | null; tanlangan: boolean };
 
-export function AiYordamchiPanel({ kompaniyaId, vositalar, saqlashKalit, sarlavha, namunalar, qoshimcha, satr = false, ochiq: ochiqProp, onOchiq, ovoz = false, narxChip, amalQoshimcha, keshKalit }: {
+function AiYordamchiPanelContent({ kompaniyaId, vositalar, saqlashKalit, sarlavha, namunalar, qoshimcha, satr = false, ochiq: ochiqProp, onOchiq, ovoz = false, narxChip, amalQoshimcha, keshKalit }: {
   kompaniyaId: number; vositalar: SahifaVositalar;
   /** Suhbat shu kalit bilan (masalan obyekt bo'yicha) brauzerda saqlanadi — faqat qulaylik. */
   saqlashKalit: string; sarlavha: string; namunalar: readonly string[];
@@ -55,6 +57,7 @@ export function AiYordamchiPanel({ kompaniyaId, vositalar, saqlashKalit, sarlavh
   useEffect(() => { try { localStorage.setItem(kalit, JSON.stringify(xabarlar.slice(-30))); } catch { /* storage off */ } }, [xabarlar, kalit]);
   const [matn, setMatn] = useState('');
   const [band, setBand] = useState(false);
+  const busy = useRef(false);
   const [holat, setHolat] = useState('');
   const [qadamlar, setQadamlar] = useState<AgentQadam[]>([]);
   const [takliflar, setTakliflar] = useState<Taklif[]>([]);
@@ -87,7 +90,8 @@ export function AiYordamchiPanel({ kompaniyaId, vositalar, saqlashKalit, sarlavh
 
   async function yubor(txt?: string) {
     const m = (txt ?? matn).trim();
-    if (!m || band) return;
+    if (!m || busy.current) return;
+    busy.current = true;
     tinglov.current?.toxtat();
     const yangi = [...xabarlar, { rol: 'user' as const, matn: m }];
     setXabarlar(yangi); setMatn(''); setHolat(''); setBand(true); setQadamlar([]); setTakliflar([]); setPulTasdiq(false);
@@ -111,24 +115,31 @@ export function AiYordamchiPanel({ kompaniyaId, vositalar, saqlashKalit, sarlavh
       setXabarlar(x => [...x, { rol: 'assistant', matn: [r.javob, ...r.savollar.map(s => '• ' + s)].filter(Boolean).join('\n') || t('Tushunarli.') }]);
       setTakliflar(r.amallar.map(a => ({ ...a, tanlangan: !a.ogoh })));
       if (r.ogohlantirish) setHolat(r.ogohlantirish);
-    } finally { if (tirik.current) setBand(false); }
+    } catch { if (tirik.current) setHolat(t('Amal yakunlanmadi. Holatni tekshirib, qayta urinib ko‘ring.')); }
+    finally { if (tirik.current) { busy.current = false; setBand(false); } }
   }
 
   const pulMi = (a: SahifaAmal) => vRef.current.pul?.(a) === true;
 
   /** `tasdiqlangan` — pul ta'sirli amalda ikkinchi aniq tasdiq («Tasdiqlayman») berilgan. */
   async function bajar(tasdiqlangan = false) {
+    if (busy.current || !tirik.current) return;
     const tanlangan = takliflar.filter(a => a.tanlangan && !a.ogoh);
     if (!tanlangan.length) return;
     if (!tasdiqlangan && tanlangan.some(pulMi)) { setPulTasdiq(true); return; }
-    setPulTasdiq(false);
+    if (tanlangan.some(a => vRef.current.tekshir(a))) {
+      setTakliflar(xs => xs.map(a => { const ogoh = vRef.current.tekshir(a); return {...a, ogoh, tanlangan: a.tanlangan && !ogoh}; }));
+      setPulTasdiq(false); setHolat(t('Ma’lumot o‘zgardi. Amal taklifini qayta tekshiring.')); return;
+    }
+    busy.current = true; setPulTasdiq(false);
     setBand(true);
     try {
       const natija = await vRef.current.bajar(tanlangan.map(({ tanlangan: _t, ogoh: _o, ...a }) => a));
       if (!tirik.current) return;
       setTakliflar([]);
       if (natija.length) setXabarlar(x => [...x, { rol: 'assistant', matn: natija.join('\n') }]);
-    } finally { if (tirik.current) setBand(false); }
+    } catch { if (tirik.current) { setTakliflar([]); setHolat(t('Amal yakunlanmadi. Holatni tekshirib, qayta urinib ko‘ring.')); } }
+    finally { if (tirik.current) { busy.current = false; setBand(false); } }
   }
 
   const amalQatorlari = takliflar.map(a => ({ nom: vositalar.nomi(a), izoh: a.izoh, ogoh: a.ogoh, tanlangan: a.tanlangan, pul: pulMi(a), qoshimcha: amalQoshimcha?.(a) }));
@@ -180,7 +191,7 @@ export function AiYordamchiPanel({ kompaniyaId, vositalar, saqlashKalit, sarlavh
     <div className="flex items-center gap-2">
       <Sparkles size={16} className="text-accent" />
       <h3 className="flex-1 text-[13px] font-semibold text-text">{sarlavha}</h3>
-      {xabarlar.length > 0 && <button type="button" className="text-[11px] text-text-mute underline" onClick={() => { setXabarlar([]); setTakliflar([]); setQadamlar([]); setPulTasdiq(false); }}>{t('Yangi suhbat')}</button>}
+      {xabarlar.length > 0 && <button type="button" className="text-[11px] text-text-mute underline" disabled={band} onClick={() => { setXabarlar([]); setTakliflar([]); setQadamlar([]); setPulTasdiq(false); }}>{t('Yangi suhbat')}</button>}
       <button type="button" onClick={() => setOchiq(false)} aria-label={t('Yopish')} className="rounded p-1 text-text-dim hover:bg-surface-3 hover:text-text"><X size={16} /></button>
     </div>
     <ModelChip profil="smeta_ai" kompaniyaId={kompaniyaId} />
@@ -204,4 +215,9 @@ export function AiYordamchiPanel({ kompaniyaId, vositalar, saqlashKalit, sarlavh
     </form>
     <p className="text-center text-[10px] text-text-mute">{t('AI faqat taklif qiladi: fakt, zamena, narx va F2 faqat sizning tasdig‘ingiz bilan yoziladi; asl smeta o‘zgarmaydi.')}</p>
   </aside>;
+}
+
+/** Changing company/object scope discards old proposals before rendering the new scope. */
+export function AiYordamchiPanel(props: Parameters<typeof AiYordamchiPanelContent>[0]) {
+  return <AiYordamchiPanelContent key={`${props.kompaniyaId}:${props.saqlashKalit}`} {...props} />;
 }

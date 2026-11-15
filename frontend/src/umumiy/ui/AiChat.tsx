@@ -1,3 +1,4 @@
+import { suhbatKonteksti } from '../../lib/ai-yordamchi/suhbat-kontekst';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import { mdBolaklar } from '../../lib/yordamchi/jadval';
@@ -227,7 +228,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   }), []);
 
   const xabarYangila = (xid: string, f: (x: Xabar) => Xabar) => setXabarlar((p) => p.map((x) => (x.id === xid ? f(x) : x)));
-  const tarixOl = () => xabarlarRef.current.filter((x) => x.matn && !x.jonli).slice(-6).map((x) => ({ rol: x.rol === 'user' ? 'user' as const : 'assistant' as const, matn: x.matn.slice(0, 600) }));
+  const tarixOl = (joriyId?: string) => suhbatKonteksti(xabarlarRef.current.filter((x) => x.matn && !x.jonli && x.id !== joriyId).map((x) => ({ rol: x.rol === 'user' ? 'user' as const : 'assistant' as const, matn: x.matn }))).xabarlar;
 
   /** Yagona yordamchi natijasini xabarga yozadi; navigatsiya — sahifani ochadi (yozuv emas). */
   const yordamchiNatijasi = (id: string, r: IshlovNatija) => {
@@ -261,7 +262,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
         setXabarlar((p) => [...p, { id, rol: 'user', matn: s }, { id: id + 'a', rol: 'ai', matn: '', jonli: true, jarvis: true, qadamlar: [{ ms: 0, belgi: '🧭', matn: t('Gapni tushunyapman…') }], kutadi: s }]);
         setMatn(''); setBand(true); busy.current = true;
         const ctrl0 = new AbortController(); abort.current = ctrl0;
-        const lr = await niyatLlmOl(kompaniyaId, s, { tarix: tarixOl().filter((x) => !(x.rol === 'user' && x.matn === s.slice(0, 600))), sahifa, obyektNomi: ya.joriyObyekt?.nom ?? null, signal: ctrl0.signal });
+        const lr = await niyatLlmOl(kompaniyaId, s, { tarix: tarixOl(id), sahifa, obyektNomi: ya.joriyObyekt?.nom ?? null, signal: ctrl0.signal });
         if (gen.current !== boshlangich) return;
         busy.current = false; setBand(false);
         if (lr?.tur === 'noaniq') { xabarYangila(id + 'a', (x) => ({ ...x, jonli: false, qadamlar: undefined, matn: lr.savol ?? '', tanlov: lr.variantlar.map((v) => ({ nom: v, matn: v })) })); return; }
@@ -280,7 +281,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
         let r: IshlovNatija;
         try {
           r = await yordamchiIshla(n, ishMatn, {
-            kompaniyaId, sahifalar: ya.sahifalar, motor: ya.motor, tarix: tarixOl().filter((x) => !(x.rol === 'user' && x.matn === s.slice(0, 600))), hujjat: ya.hujjat ?? undefined, sahifaAmalBajar: ya.sahifaAmalBajar, kim: ya.kim, vosita: ya.vosita,
+            kompaniyaId, sahifalar: ya.sahifalar, motor: ya.motor, tarix: tarixOl(id), hujjat: ya.hujjat ?? undefined, sahifaAmalBajar: ya.sahifaAmalBajar, kim: ya.kim, vosita: ya.vosita,
             qadam: (q) => { if (gen.current === boshlangich) xabarYangila(id + 'a', (x) => ({ ...x, qadamlar: [...(x.qadamlar ?? []), { ms: 0, belgi: q.holat === 'xato' ? '✗' : '⏳', matn: q.matn }] })); },
             tirikmi: () => gen.current === boshlangich && !ctrl.signal.aborted,
           });
@@ -335,7 +336,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     if (katalog.length && gen.current === boshlangich)
       setXabarlar((p) => p.map((x) => (x.id === id + 'a' ? { ...x, qadamlar: [...(x.qadamlar ?? []), { ms: 0, belgi: '📚', matn: t('Platforma narx indeksidan {n} ta mos qator olindi', { n: katalog.length }) }] } : x)));
     const yakun = await kasbSavolOqim(kompaniyaId, s, {
-      sahifa, signal: ctrl.signal, katalog, studio, obyektNomi: ya?.joriyObyekt?.nom ?? null, tarix: tarixOl().filter((x) => !(x.rol === 'user' && x.matn === s.slice(0, 600))),
+      sahifa, signal: ctrl.signal, katalog, studio, obyektNomi: ya?.joriyObyekt?.nom ?? null, tarix: tarixOl(id),
       qadam: (q) => { if (gen.current === boshlangich) setXabarlar((p) => p.map((x) => (x.id === id + 'a' ? { ...x, qadamlar: [...(x.qadamlar ?? []), q] } : x))); },
     });
     if (gen.current !== boshlangich) return;   // kompaniya almashdi — eski javob ko'rsatilmaydi
