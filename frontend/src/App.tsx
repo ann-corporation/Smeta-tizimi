@@ -332,7 +332,6 @@ export default function App() {
             <Route path="xarita" element={<Navigate to="/admin/mindmap" replace />} />
             <Route path="kontragent" element={<Navigate to="/admin/kontragentlar" replace />} />
             <Route path="obyektlar" element={<Navigate to="/admin/obyektlar" replace />} />
-            <Route path="saqlash" element={<Navigate to="/admin/storage" replace />} />
             <Route path="smeta" element={<TestSmetaBirlashgan />} />
             <Route path="daraxt" element={<TestDaraxt />} />
             <Route path="shartnomalar" element={<Navigate to="/admin/shartnoma-liniya" replace />} />

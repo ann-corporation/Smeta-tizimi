@@ -35,7 +35,7 @@ export const QAMROV: Readonly<Record<string, Qamrov>> = {
   subpudratchi: q(['bugun'], ['subpudrat akt topshirish']), subpudrat: q([], ['subpudrat akt tasdiqlash']),
   documents: q(['murojaat_yubor'], ['hujjat yuklash/versiya']), 'hujjat-nazorat': q([], ['hujjat o‘zgarishini tasdiqlash']),
   aosr: q(['niyat:aosrQoralama', 'niyat:oqish', 'slichitelniy', 'slichitelniy_tsikl', 'hujjat_yasa'], ['АОСР pechat kitobi (Jarvis АОСР sahifasini ochadi; Excel va «sanasiz» tanlovi sahifada)', 'АОСР tasdiqlash/imzolash', 'АОСР ni smeta qatoriga ommaviy bog‘lash (taklif — #413 dan keyin)']),
-  storage: q([], ['fayl yuklash/o‘chirish']), nazorat: q(['murojaat_yubor']), 'nazorat/tekshiruv': q([], ['tekshiruv kiritish']), 'nazorat/jurnal': q([]),
+  nazorat: q(['murojaat_yubor']), 'nazorat/tekshiruv': q([], ['tekshiruv kiritish']), 'nazorat/jurnal': q([]),
   zakazchik: q(['bugun', 'murojaat_yubor']), taqdimlar: q(['taqdim_yubor', 'bugun'], ['taqdimga qaror (qabul/rad)']),
   murojaatlar: q(['murojaat_yubor', 'bugun'], ['murojaatga javob berish/yopish']), chizmalar: q([], ['chizma yuklash/revizya']),
   loyihachi: q(['bugun']), laboratoriya: q(['murojaat_yubor'], ['sinov so‘rovi/protokol']), 'hujjat-aylanish': q(['bugun'], ['hujjat tasdiqlash zanjiri']),
