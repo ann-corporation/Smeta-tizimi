@@ -35,6 +35,9 @@ class HomeViewModel @Inject constructor(
     private val sessions: SessionRepository,
     private val api: ApiClient,
     private val prefs: Prefs,
+    private val work: uz.anncorp.smeta.core.data.WorkContext,
+    private val outbox: uz.anncorp.smeta.core.data.OutboxRepository,
+    private val db: uz.anncorp.smeta.core.db.AppDb,
 ) : ViewModel() {
     private val _state = MutableStateFlow(HomeState(theme = prefs.theme.value))
     val state: StateFlow<HomeState> = _state.asStateFlow()
@@ -47,6 +50,7 @@ class HomeViewModel @Inject constructor(
             val check = sessions.check()
             val session = (check as? SessionCheck.Valid)?.info
             val list = sessions.workplaces()
+            if (session != null) outbox.resumeAfterLogin()
             _state.update {
                 val wp = list ?: it.workplaces
                 it.copy(
@@ -58,12 +62,14 @@ class HomeViewModel @Inject constructor(
                     selected = pickWorkplace(wp, prefs.selectedCompany.value),
                 )
             }
+            work.set(_state.value.selected)
         }
     }
 
     fun select(w: Workplace) {
         prefs.selectCompany(w.companyId)
         _state.update { it.copy(selected = w) }
+        work.set(w)
     }
 
     fun setTheme(mode: ThemeMode) {
@@ -73,6 +79,8 @@ class HomeViewModel @Inject constructor(
 
     fun signOut() {
         prefs.clearCompany()
-        viewModelScope.launch { api.signOut() }
+        work.set(null)
+        viewModelScope.launch { api.signOut(); db.clearCaches() }
     }
 }
+

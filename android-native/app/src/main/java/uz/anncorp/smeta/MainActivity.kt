@@ -9,6 +9,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -21,6 +23,10 @@ import uz.anncorp.smeta.feature.home.HomeScreen
 import uz.anncorp.smeta.feature.login.LoginScreen
 import uz.anncorp.smeta.feature.splash.SplashScreen
 import uz.anncorp.smeta.feature.splash.StartRoute
+import uz.anncorp.smeta.feature.work.DraftScreen
+import uz.anncorp.smeta.feature.work.FaktScreen
+import uz.anncorp.smeta.feature.work.ObjectCardScreen
+import uz.anncorp.smeta.feature.work.OutboxScreen
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -41,7 +47,7 @@ class MainActivity : AppCompatActivity() {
                     navigationBarStyle = if (dark) SystemBarStyle.dark(bg) else SystemBarStyle.light(light, light),
                 )
             }
-            QuraiTheme(dark) { AppNav(events) }
+            QuraiTheme(dark) { AppNav(events, if (uz.anncorp.smeta.core.demo.Demo.enabled(this@MainActivity)) HOME else SPLASH) }
         }
     }
 }
@@ -49,9 +55,13 @@ class MainActivity : AppCompatActivity() {
 private const val SPLASH = "splash"
 private const val LOGIN = "login"
 private const val HOME = "home"
+private const val OBJECT = "object/{id}"
+private const val FAKT = "fakt/{id}"
+private const val DRAFT = "draft/{id}"
+private const val OUTBOX = "outbox"
 
 @Composable
-private fun AppNav(events: AuthEvents) {
+private fun AppNav(events: AuthEvents, start: String) {
     val nav = rememberNavController()
     // Revoked/expired device or explicit sign-out: always back to Login with a clean stack.
     LaunchedEffect(Unit) {
@@ -59,7 +69,7 @@ private fun AppNav(events: AuthEvents) {
             nav.navigate(LOGIN) { popUpTo(nav.graph.id) { inclusive = true }; launchSingleTop = true }
         }
     }
-    NavHost(nav, startDestination = SPLASH) {
+    NavHost(nav, startDestination = start) {
         composable(SPLASH) {
             SplashScreen(onRoute = { r ->
                 if (nav.currentDestination?.route == SPLASH) nav.navigate(if (r == StartRoute.HOME) HOME else LOGIN) { popUpTo(SPLASH) { inclusive = true } }
@@ -68,6 +78,22 @@ private fun AppNav(events: AuthEvents) {
         composable(LOGIN) {
             LoginScreen(onSignedIn = { nav.navigate(HOME) { popUpTo(LOGIN) { inclusive = true } } })
         }
-        composable(HOME) { HomeScreen() }
+        composable(HOME) { HomeScreen(onOpenObject = { nav.navigate("object/$it") }, onOpenFakt = { nav.navigate("fakt/$it") }, onOutbox = { nav.navigate(OUTBOX) }) }
+        val idArg = listOf(navArgument("id") { type = NavType.LongType })
+        composable(OBJECT, idArg) { CardRoute(nav) }
+        composable(FAKT, idArg) {
+            FaktScreen(onBack = { nav.popBackStack() }, onDraft = { nav.navigate("draft/$it") }, onOutbox = { nav.navigate(OUTBOX) })
+        }
+        composable(DRAFT, idArg) {
+            DraftScreen(onBack = { nav.popBackStack() }, onOutbox = { nav.navigate(OUTBOX) }, onSaved = { nav.navigate(OUTBOX) { popUpTo(HOME) } })
+        }
+        composable(OUTBOX) { OutboxScreen(onBack = { nav.popBackStack() }, onEditDraft = { nav.navigate("draft/$it") }) }
     }
 }
+
+@Composable
+private fun CardRoute(nav: androidx.navigation.NavHostController) {
+    ObjectCardScreen(onBack = { nav.popBackStack() }, onEnterFakt = { nav.navigate("fakt/$it") }, onOutbox = { nav.navigate(OUTBOX) })
+}
+
+

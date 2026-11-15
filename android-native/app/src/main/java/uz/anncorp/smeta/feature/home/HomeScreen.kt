@@ -51,6 +51,9 @@ import uz.anncorp.smeta.core.ui.QurLogo
 import uz.anncorp.smeta.core.ui.SoonPlaceholder
 import uz.anncorp.smeta.feature.company.WorkplaceSheet
 import uz.anncorp.smeta.feature.profile.ProfileScreen
+import uz.anncorp.smeta.feature.work.BannerViewModel
+import uz.anncorp.smeta.feature.work.ObjectsScreen
+import uz.anncorp.smeta.core.ui.OutboxBanner
 
 private data class Tab(@StringRes val label: Int, val icon: ImageVector)
 
@@ -63,7 +66,7 @@ private val Tabs = listOf(
 )
 
 @Composable
-fun HomeScreen(vm: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOutbox: () -> Unit, vm: HomeViewModel = hiltViewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var sheet by rememberSaveable { mutableStateOf(false) }
@@ -91,7 +94,7 @@ fun HomeScreen(vm: HomeViewModel = hiltViewModel()) {
                     Text(stringResource(R.string.home_loading), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 tab == 4 -> ProfileScreen(state, onTheme = vm::setTheme, onSwitch = { sheet = true }, onSignOut = vm::signOut)
-                else -> TabBody(state, tab, vm::load)
+                else -> TabBody(state, tab, vm::load, onOpenObject, onOpenFakt, onOutbox)
             }
         }
     }
@@ -134,9 +137,12 @@ fun RoleChip(role: String) {
 }
 
 @Composable
-private fun TabBody(state: HomeState, tab: Int, onRetry: () -> Unit) {
+private fun TabBody(state: HomeState, tab: Int, onRetry: () -> Unit, onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOutbox: () -> Unit, banner: BannerViewModel = hiltViewModel()) {
+    val bannerState by banner.state.collectAsStateWithLifecycle()
+    val work = tab == 0 || tab == 1
     Column(Modifier.fillMaxSize()) {
-        if (state.offline) {
+        if (work) OutboxBanner(bannerState, onOutbox)
+        if (state.offline && !work) {
             Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.offline_banner), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
             }
@@ -152,8 +158,13 @@ private fun TabBody(state: HomeState, tab: Int, onRetry: () -> Unit) {
                 Spacer(Modifier.height(8.dp))
                 Text(stringResource(R.string.workplace_none_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
             }
+        } else if (tab == 0) {
+            ObjectsScreen(onOpen = onOpenObject)
+        } else if (tab == 1) {
+            ObjectsScreen(onOpen = onOpenFakt, pickForFact = true)
         } else {
             SoonPlaceholder(Modifier.fillMaxSize())
         }
     }
 }
+

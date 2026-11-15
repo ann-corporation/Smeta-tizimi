@@ -53,10 +53,15 @@ class NativeHeadersInterceptor(
 }
 
 /** Result of a call through the BFF. [status]==0 means the network failed before any HTTP answer. */
-data class ApiResult(val status: Int, val body: JsonElement?, val code: String? = null) {
+data class ApiResult(val status: Int, val body: JsonElement?, val code: String? = null, val etag: String? = null) {
     val ok get() = status in 200..299
     val networkError get() = status == 0
     val unauthorized get() = status == 401
+}
+
+/** The only thing feature repositories need from the network layer; a debug-only demo implementation exists. */
+interface BffApi {
+    suspend fun bff(path: String, method: String = "GET", body: JsonElement? = null, etag: String? = null): ApiResult
 }
 
 class ApiClient(
@@ -66,17 +71,18 @@ class ApiClient(
     private val json: Json,
     versionName: String,
     base: OkHttpClient = OkHttpClient(),
-) {
+) : BffApi {
     val http: OkHttpClient = base.newBuilder()
         .addInterceptor(NativeHeadersInterceptor({ tokens.token() }, versionName) { tokens.clear(); events.emitLogout() })
         .build()
 
     /** Calls an allow-listed API path through POST /api/mobil/bff (the server derives all authority from the device). */
-    suspend fun bff(path: String, method: String = "GET", body: JsonElement? = null): ApiResult {
+    override suspend fun bff(path: String, method: String, body: JsonElement?, etag: String?): ApiResult {
         val envelope = buildJsonObject {
             put("path", path)
             put("method", method)
             if (body != null && body !is JsonNull) put("body", body)
+            if (etag != null) put("etag", etag)
         }
         return post("/api/mobil/bff", envelope)
     }
@@ -101,7 +107,7 @@ class ApiClient(
                 val text = r.body?.string().orEmpty()
                 val parsed = runCatching { json.parseToJsonElement(text) }.getOrNull()
                 val code = (parsed as? JsonObject)?.get("code")?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
-                ApiResult(r.code, parsed, code)
+                ApiResult(r.code, parsed, code, r.header("ETag"))
             }
         } catch (e: IOException) {
             ApiResult(0, null)
@@ -110,3 +116,4 @@ class ApiClient(
 
     private fun JsonObject.toRequestBody() = toString().toRequestBody("application/json; charset=utf-8".toMediaType())
 }
+

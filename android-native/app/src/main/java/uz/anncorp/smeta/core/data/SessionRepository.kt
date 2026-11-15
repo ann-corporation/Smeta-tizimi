@@ -36,7 +36,7 @@ sealed interface SessionCheck {
 }
 
 /** Read-only calls for P0: who am I, and which workplaces/roles do I have. Authority is always decided server-side. */
-class SessionRepository(private val api: ApiClient, private val json: Json) {
+class SessionRepository(private val api: BffApi, private val json: Json) {
     suspend fun check(): SessionCheck {
         val r = api.bff("/api/sessiya")
         return when {
@@ -56,3 +56,4 @@ class SessionRepository(private val api: ApiClient, private val json: Json) {
 
     private inline fun <reified T> decode(e: JsonElement?): T? = e?.let { runCatching { json.decodeFromJsonElement<T>(it) }.getOrNull() }
 }
+
