@@ -24,6 +24,26 @@ describe('vakolat keshi (egasi 2026-10-21: har so‘rovda qayta tekshirish ortiq
     expect(fetcher).toHaveBeenCalledTimes(3);
   });
 });
+describe('single-flight (parallel so‘rovlar bitta t2_men_v1 ga birlashadi)', () => {
+  it('sovuq keshda 5 parallel so‘rov = 1 DB chaqiruvi; har biri o‘z sessiyasini saqlaydi; xato birlashadi va keshlanmaydi', async () => {
+    let ochish: (r: Response) => void = () => {};
+    const fetcher = vi.fn(() => new Promise<Response>((res) => { ochish = res; }));
+    vi.stubGlobal('fetch', fetcher);
+    const sessiyalar = [1, 2, 3, 4, 5].map((n) => ({ ...sess, jti: 'j' + n, exp: Date.now() + 10000 + n }));
+    const hammasi = Promise.all(sessiyalar.map((s) => roleAuthority(s, env)));
+    ochish(Response.json(model('none', 'pto')));
+    const natija = await hammasi;
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    natija.forEach((r, i) => { expect(r?.rol).toBe('pto'); expect(r?.jti).toBe('j' + (i + 1)); expect(r?.exp).toBe(sessiyalar[i].exp); });
+    vakolatKeshTozala();
+    fetcher.mockImplementation(() => Promise.resolve(new Response('{}', { status: 500 })));
+    const xato = await Promise.all([roleAuthority(sess, env), roleAuthority(sess, env)]);
+    expect(xato).toEqual([null, null]);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(await roleAuthority(sess, env)).toBeNull();
+    expect(fetcher).toHaveBeenCalledTimes(3);
+  });
+});
 describe('fresh server authority', () => {
   it('mixed boss A / reader B cannot write B through an entity ID', () => {
     const s = { ...sess, kompaniyalar: [{ kompaniya_id: 1, rol: 'boss' }, { kompaniya_id: 17, rol: 'rahbar' }] };
