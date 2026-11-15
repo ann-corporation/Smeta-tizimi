@@ -8,7 +8,12 @@
 
 export const BREND = 'QURAI';
 export const BREND_SAYT = 'qurai.uz';
-export const BREND_ORIGIN = `https://${BREND_SAYT}`;
+/** QR/tekshirish bazasi: env BREND_URL, bo'lmasa joriy so'rov origini (qurai.uz QR ga qattiq yozilmaydi). */
+export const tekshirBazasi = (env: { BREND_URL?: string } | undefined, requestUrl: string): string => {
+  const e = (env?.BREND_URL ?? '').trim().replace(/\/+$/, '');
+  if (/^https:\/\/[^\s/]+$/i.test(e)) return e;
+  return new URL(requestUrl).origin;
+};
 /** Har hujjat kolontitulidagi imzo matni. */
 export const BREND_HUJJAT_MATN = `${BREND} · ${BREND_SAYT} orqali tayyorlandi`;
 

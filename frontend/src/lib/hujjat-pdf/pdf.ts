@@ -8,12 +8,12 @@
  * Sahifa: A4; keng jadval — albom, tor — kitob; jadval sarlavhasi har sahifada takrorlanadi; pastda fayl nomi va «N / M».
  */
 import type { KorinishVaraq, KorinishQator } from '../hujjat-yozuvchi/korinish';
-import { BREND_HUJJAT_MATN, BREND_ORIGIN } from '../brend';
+import { BREND_HUJJAT_MATN } from '../brend';
 import { qrPng } from '../imzo/qr';
 import { BREND_LOGO_PNG_B64 } from './brend-logo.generated';
 import { SHRIFT_BOLD, SHRIFT_BOLDITALIC, SHRIFT_ITALIC, SHRIFT_NORMAL } from './shriftlar.generated';
 
-export type PdfOpsiya = { faylNomi: string; sarlavha?: string; /** Hujjat tekshirish kodi (XXXXX-XXXXX) — kolontitul QR i va matni uchun. */ kod?: string };
+export type PdfOpsiya = { faylNomi: string; sarlavha?: string; /** Hujjat tekshirish kodi (XXXXX-XXXXX) — kolontitul matni uchun. */ kod?: string; /** QR manzili (<BREND_URL yoki joriy origin>/t/<token>); berilmasa QR chiqmaydi — domen qattiq yozilmaydi. */ tekshirHavola?: string };
 
 const SHRIFT = 'LiberationSans';
 const NBSP = ' ';
@@ -99,8 +99,8 @@ export async function korinishdanPdf(varaqlar: readonly KorinishVaraq[], o: PdfO
   // QURAI kolontituli (egasi 2026-11-16): logo + «QURAI · qurai.uz orqali tayyorlandi», sahifa raqami, markazida QURAI belgisi bor tekshirish QR i.
   // Faqat sahifa pastki chetida; hujjat tanasi (jadval, summalar) tegilmaydi.
   const n = doc.getNumberOfPages();
-  const tekshirHavola = o.kod ? `${BREND_ORIGIN}/t/${o.kod}` : BREND_ORIGIN;
-  const qr = qrPng(tekshirHavola, 4, true).png;
+  
+  const qr = o.tekshirHavola ? qrPng(o.tekshirHavola, 4, true).png : null;
   const logoUrl = 'data:image/png;base64,' + BREND_LOGO_PNG_B64;
   for (let i = 1; i <= n; i++) {
     doc.setPage(i);
@@ -110,7 +110,7 @@ export async function korinishdanPdf(varaqlar: readonly KorinishVaraq[], o: PdfO
     doc.text(BREND_HUJJAT_MATN, MARGIN + 6, H - 6.2, { maxWidth: W - 2 * MARGIN - 45 });
     doc.text(o.faylNomi.replace(/\.xlsx$/i, '') + (o.kod ? ` · ${o.kod}` : ''), MARGIN + 6, H - 3.4, { maxWidth: W - 2 * MARGIN - 45 });
     doc.text(`${i} / ${n}`, W - MARGIN - 13, H - 5, { align: 'right' });
-    doc.addImage(qr, 'PNG', W - MARGIN - 11, H - 15.5, 11, 11);
+    if (qr) doc.addImage(qr, 'PNG', W - MARGIN - 11, H - 15.5, 11, 11);
   }
   return new Uint8Array(doc.output('arraybuffer'));
 }
