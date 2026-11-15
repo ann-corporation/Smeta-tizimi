@@ -46,5 +46,25 @@
   "Qo‘shimcha: {plus} ta; kamayish: {minus} ta; aniqlanmagan: {unknown} ta; sig‘magan: {unmatched} ta.": {
     "ru": "Дополнения: {plus}; уменьшения: {minus}; неизвестно: {unknown}; не сопоставлено: {unmatched}.",
     "en": "Additions: {plus}; reductions: {minus}; unknown: {unknown}; unmatched: {unmatched}."
+  },
+  "Jarvisga vazifa": {
+    "ru": "Задача для Jarvis",
+    "en": "Task for Jarvis"
+  },
+  "Masalan: shu obyektning smeta, fakt va F2 farqlarini tekshir": {
+    "ru": "Например: проверь расхождения сметы, факта и Ф2 по объекту",
+    "en": "For example: check differences between the estimate, actuals and F2"
+  },
+  "Reja tuzish": {
+    "ru": "Составить план",
+    "en": "Create plan"
+  },
+  "Rejani bajarish": {
+    "ru": "Выполнить план",
+    "en": "Run plan"
+  },
+  "Reja tuzilmadi. Hech qanday amal bajarilmadi.": {
+    "ru": "План не составлен. Никакие действия не выполнены.",
+    "en": "Plan could not be created. No actions were executed."
   }
 }

@@ -97,3 +97,11 @@ export function vazifaSaqla(
     expected_revision: expectedRevision,
   }, 'task', task.scope, signal);
 }
+import {parseGoalPlan,type GoalPlan} from '../lib/ai-yordamchi/vazifa-reja';
+export async function vazifaReja(scope:TaskScope,goal:string,signal?:AbortSignal):Promise<{ok:true;plan:GoalPlan}|{ok:false;error:string}>{
+ try{
+  const response=await fetch('/api/agent-ish',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({amal:'vazifa_reja',kompaniya_id:scope.companyId,obyekt_id:scope.objectId,goal}),signal});
+  const body=await response.json();const plan=response.ok && body?.ok===true?parseGoalPlan(body.plan):null;
+  return plan?{ok:true,plan}:{ok:false,error:typeof body?.error==='string'?body.error:'PLAN_FAILED'};
+ }catch{return {ok:false,error:'PLAN_FAILED'};}
+}

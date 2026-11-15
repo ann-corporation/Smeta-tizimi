@@ -1,3 +1,4 @@
+import { GOAL_PLAN_SCHEMA, GOAL_PLAN_SYSTEM, parseGoalPlan } from '../../src/lib/ai-yordamchi/vazifa-reja';
 import { taskPayload } from '../_shared/jarvis-vazifa';
 /**
  * agent-ish.ts — AI agent ISH MUHITI shlyuzi: kontekst/qoida/xotira, takliflar (admin tasdig'i), tasdiqlangan veb-manbalar, savol.
@@ -41,7 +42,7 @@ const matn = (v: unknown, n: number) => (v == null || String(v).trim() === '' ? 
 const PROFIL = /^[a-z_]{3,40}$/;
 
 /** Model chaqiradigan (token sarflaydigan) amallar. */
-const AI_AMALLAR = new Set(['savol', 'kasb_savol', 'jarvis_niyat', 'veb_tahlil', 'veb_ol', 'rivojlanish_tahlil', 'qadam_taklif', 'bilim_yigish']);
+const AI_AMALLAR = new Set(['vazifa_reja', 'savol', 'kasb_savol', 'jarvis_niyat', 'veb_tahlil', 'veb_ol', 'rivojlanish_tahlil', 'qadam_taklif', 'bilim_yigish']);
 const chiqar = (r: RpcNatija) => Response.json(r.data, { status: r.status, ...JAVOB });
 const xato = (m: string, status = 400) => Response.json({ ok: false, error: m }, { status, ...JAVOB });
 
@@ -410,6 +411,18 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
 
   if (amal === 'xotira_yoz') {
     return chiqar(await rpcData(env, 't2_agent_xotira_yoz_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_profil: profil, p_kalit: String(so.kalit ?? ''), p_mazmun: String(so.mazmun ?? '').slice(0, 4000) }));
+  }
+  if (amal === 'vazifa_reja') {
+    const oid=so.obyekt_id; const goal=typeof so.goal==='string'?so.goal.trim():'';
+    if(kid==null || !Number.isSafeInteger(oid) || Number(oid)<=0 || !goal || goal.length>2000) return xato('Vazifa maqsadi va obyekt kerak',422);
+    const guard=await rpcData(env,'t2_agent_scope_guard_v1',{p_actor_id:k.actor,p_kompaniya_id:kid,p_loyiha_id:null,p_obyekt_id:Number(oid)});
+    if(!guard.ok)return chiqar(guard);
+    try {
+      const response=await aiHisobli(env,k.actor,kid,null,'jarvis_vazifa_reja',{system:GOAL_PLAN_SYSTEM,text:tashqiMatnOra('user-goal',goal),tier:'fast',temperature:0,maxOutputTokens:700,jsonSchema:GOAL_PLAN_SCHEMA,totalTimeoutMs:15000});
+      const plan=parseGoalPlan(parseJsonText(response.text));
+      if(!plan)return xato('AI reja formati noto‘g‘ri. Amal bajarilmadi.',502);
+      return Response.json({ok:true,plan},JAVOB);
+    } catch(e){return aiXatoJavobi(e);}
   }
   if (['vazifa_royxat','vazifa_ol','vazifa_saqla'].includes(amal)) {
     const oid = so.obyekt_id;

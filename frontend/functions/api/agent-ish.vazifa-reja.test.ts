@@ -1,0 +1,12 @@
+import {it,expect,vi,beforeEach} from 'vitest';
+const m=vi.hoisted(()=>({auth:vi.fn(),rpc:vi.fn(),ai:vi.fn()}));
+vi.mock('../_shared/auth',()=>({tekshir:m.auth}));
+vi.mock('../_shared/agent-rpc',()=>({rpcData:m.rpc}));
+vi.mock('../_shared/agent-hisob',()=>({aiHisobli:m.ai,modelOf:()=>undefined,aiXatoJavobi:()=>Response.json({ok:false},{status:502}),aiXatoMalumoti:()=>({})}));
+import {onRequestPost} from './agent-ish';
+const call=(extra:Record<string,unknown>={},off=false)=>onRequestPost({request:new Request('https://test/api/agent-ish',{method:'POST',body:JSON.stringify({amal:'vazifa_reja',kompaniya_id:17,obyekt_id:101,goal:'Smeta bilan fakt farqini tekshir',...extra})}),env:{SUPABASE_URL:'https://test',SUPABASE_KEY:'test',SESSIYA_KALIT:'test',...(off?{AGENT_ISH_YOQILGAN:'0'}:{})},data:{}} as never);
+beforeEach(()=>{vi.clearAllMocks();m.auth.mockResolvedValue({foydalanuvchi_id:7});m.rpc.mockResolvedValue({ok:true,status:200,data:{ok:true}});m.ai.mockResolvedValue({text:JSON.stringify({supported:true,explanation:'Reja',questions:[],steps:['object.summary','object.discrepancies']})});});
+it('checks object scope before the budgeted provider call',async()=>{const r=await call();expect(r.status).toBe(200);expect(m.rpc).toHaveBeenCalledWith(expect.anything(),'t2_agent_scope_guard_v1',{p_actor_id:7,p_kompaniya_id:17,p_loyiha_id:null,p_obyekt_id:101});expect(m.rpc.mock.invocationCallOrder[0]).toBeLessThan(m.ai.mock.invocationCallOrder[0]);expect(m.ai.mock.calls[0].slice(1,5)).toEqual([7,17,null,'jarvis_vazifa_reja']);});
+it('denied scope never calls model',async()=>{m.rpc.mockResolvedValue({ok:false,status:403,data:{ok:false}});expect((await call()).status).toBe(403);expect(m.ai).not.toHaveBeenCalled();});
+it('kill switch prevents provider calls',async()=>{expect((await call({},true)).status).toBe(503);expect(m.ai).not.toHaveBeenCalled();});
+it('invented write tool is rejected',async()=>{m.ai.mockResolvedValue({text:JSON.stringify({supported:true,explanation:'Write',questions:[],steps:['write.fact']})});expect((await call()).status).toBe(502);});
