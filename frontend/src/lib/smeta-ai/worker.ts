@@ -13,6 +13,7 @@ import { ifodaHisobla } from './ifoda';
 import { includedWorkReviews } from './included-work';
 import type { Birlik, IshNiyati, TanlovNomzodi, TanlovSorovi } from './protokol';
 import { MatnIndeks } from './matn-qidiruv';
+import { NormMoslash, type MoslashNomzod } from './norm-moslash';
 
 export type AiKatalog = NormDetailSource & {
   search(q: string, page: number): { rows: NormWork[]; total: number };
@@ -164,8 +165,84 @@ export function birlikMos(k: Pick<AiKatalog, 'unit' | 'sourceBasis'>, w: NormWor
   return base == null ? null : base === BIRLIK_KALIT[b];
 }
 
-/** Search with the model's normative phrases; fall back to word stems (Russian endings vary). */
-export function nomzodlarTop(k: AiKatalog, ish: Pick<IshNiyati, 'qidiruv' | 'birlik' | 'toplam'> & { tavsif?: string }, limit = 15): TanlovNomzodi[] {
+// ------------------------------------------------------------------------------------------------------------------
+// Norm matching pipeline (lib/smeta-ai/norm-moslash): BM25 retrieval + strict unit filter + evidence re-rank + calibrated
+// confidence. `nomzodlarTop` now returns the <= 20 evidence-ranked shortlist (the LLM reranks only these, only for lines
+// the pipeline is unsure about); `avtoTanlov` is the line's own decision (auto-select / ≤ 3 candidates / "mos topilmadi").
+// ------------------------------------------------------------------------------------------------------------------
+const MOSLASH = new WeakMap<object, NormMoslash>();
+/** One pipeline per catalogue revision (≈ 2 s to build for 48 000 works): never rebuilt per line. */
+export function moslashOl(k: AiKatalog): NormMoslash | null {
+  if (!k.allWorks) return null;
+  let x = MOSLASH.get(k);
+  if (!x) {
+    x = new NormMoslash({ allWorks: () => k.allWorks!(), tableLabel: id => k.tableLabel(id), collectionTitle: k.collectionTitle ? c => k.collectionTitle!(c) : undefined });
+    MOSLASH.set(k, x);
+  }
+  return x;
+}
+const TOPLAM_KOD = /^([EЕЦУ]\d+)-/i;
+/** Collections ("Е06") of the works already chosen in the same section: they steer the next lines of that section. */
+export function qoshniToplamlar(ish: Pick<AiIsh, 'id' | 'bolim'>, boshqalar: readonly AiIsh[]): string[] {
+  return boshqalar.filter(o => o.id !== ish.id && o.bolim === ish.bolim && o.tanlangan).map(o => TOPLAM_KOD.exec(o.tanlangan!.kod)?.[1]).filter((c): c is string => !!c);
+}
+export type AvtoNatija = { nomzodlar: TanlovNomzodi[]; avto: TanlanganIsh | null; holat: 'AVTO' | 'TEKSHIRISH' | 'TOPILMADI' | 'KOD'; ms: number };
+
+const toNomzod = (n: MoslashNomzod): TanlovNomzodi => ({ id: n.id, kod: n.kod, nom: n.nom, birlik: n.birlik, jadval: n.jadval, toplam: n.toplam, ishonch: n.ishonch });
+
+export function avtoTanlov(k: AiKatalog, ish: Pick<IshNiyati, 'qidiruv' | 'birlik' | 'toplam'> & { tavsif?: string; id?: string; bolim?: string }, boshqalar: readonly AiIsh[] = [], limit = 20): AvtoNatija | null {
+  const nm = moslashOl(k);
+  if (!nm) return null;
+  const t0 = performance.now();
+  // An explicit norm code (the model or the user wrote «Е6-1-1» / «С310-1005») is looked up directly and wins.
+  const kodlar = ish.qidiruv.filter(q => KOD.test(q.trim())).flatMap(q => k.search(q.trim(), 0).rows.slice(0, 3));
+  const matnli = ish.qidiruv.filter(q => !KOD.test(q.trim()));
+  const izoh = `${ish.tavsif ?? ''} ${ish.qidiruv.join(' ')}`;
+  const sonlar = tavsifSonlari(ish.tavsif);
+  const hint = new Set((ish.toplam ?? []).map(c => c.replace(/^Е/, 'E')));
+  const nom = matnli[0] ?? ish.tavsif ?? '';
+  const kont = nm.kontekst({ nom, birlik: ish.birlik, bolim: ish.bolim ? [ish.bolim] : [], tavsif: ish.tavsif ?? null, sonlarMatn: ish.tavsif ?? null,
+    qoshni: ish.id ? qoshniToplamlar({ id: ish.id, bolim: ish.bolim ?? '' }, boshqalar) : [],
+    qoshimcha: [...matnli.slice(1), ...(sonlar.length && matnli[0] ? [`${matnli[0]} ${sonlar.join(' ')}`] : [])] });
+  // Production fixes kept as hard rules: special-purpose collections only when the model named them; no norm with a condition the user
+  // never stated; a stated transport distance keeps only its band.
+  let raw = nm.rerank(kont, Math.max(limit, 40)).filter(h => {
+    const c = h.d.coll;
+    if (MAXSUS_TOPLAM.has(c) && !hint.has(c)) return false;
+    return !aytilmaganShart(h.d.w.name ?? '', izoh);
+  });
+  if (raw.some(h => masofaOraligi(h.d.w.name ?? '', izoh) === true)) raw = raw.filter(h => masofaOraligi(h.d.w.name ?? '', izoh) !== false);
+  raw = raw.slice(0, limit);
+  const r = nm.natija(raw);
+  const shortlist = raw.map((h): TanlovNomzodi => { const top = r.nomzodlar.find(n => n.id === h.d.w.id); return top ? toNomzod(top) : { id: h.d.w.id, kod: h.d.w.code, nom: h.d.w.name ?? '', birlik: workMeasure(k, h.d.w.unitCode),
+    jadval: k.tableLabel(h.d.w.id), toplam: k.collectionTitle?.(h.d.w.collection) ?? h.d.w.collection ?? null }; });
+  const direct = kodlar.map((w): TanlovNomzodi => ({ id: w.id, kod: w.code, nom: w.name ?? '', birlik: workMeasure(k, w.unitCode), jadval: k.tableLabel(w.id), toplam: k.collectionTitle?.(w.collection) ?? w.collection ?? null, ishonch: 0.99 }));
+  const nomzodlar = [...direct, ...shortlist.filter(n => !direct.some(d => d.id === n.id))].slice(0, limit);
+  const ms = Math.round((performance.now() - t0) * 100) / 100;
+  if (direct.length) return { nomzodlar, avto: { workId: direct[0].id, kod: direct[0].kod, nom: direct[0].nom, birlik: direct[0].birlik, sabab: 'shifr bo‘yicha aniq topildi' }, holat: 'KOD', ms };
+  const top = r.tanlangan;
+  return { nomzodlar, holat: r.holat, ms,
+    avto: top ? { workId: top.id, kod: top.kod, nom: top.nom, birlik: top.birlik, sabab: `tizim tanlovi (ishonch ${Math.round(top.ishonch * 100)}%; ${top.sabab.join(', ') || 'nom bo‘yicha eng yaqin'}) — tekshiring` } : null };
+}
+
+/**
+ * ≤ 3 candidates for the user (the chosen one first), each with its confidence; empty when nothing fits ("mos topilmadi").
+ * Used after the LLM step so the picker never shows 15 variants.
+ */
+export function kichikNomzodlar(ish: Pick<AiIsh, 'nomzodlar' | 'tanlangan'>, max = 3): TanlovNomzodi[] {
+  const chosen = ish.tanlangan ? ish.nomzodlar.find(n => n.id === ish.tanlangan!.workId) : null;
+  const rest = ish.nomzodlar.filter(n => n.id !== chosen?.id && n.ishonch != null);
+  return [...(chosen ? [chosen] : []), ...rest].slice(0, max);
+}
+
+/** Search with the model's normative phrases (pipeline above; the older lexical path remains for catalogues without a work list). */
+export function nomzodlarTop(k: AiKatalog, ish: Pick<IshNiyati, 'qidiruv' | 'birlik' | 'toplam'> & { tavsif?: string; id?: string; bolim?: string }, limit = 20, boshqalar: readonly AiIsh[] = []): TanlovNomzodi[] {
+  const r = avtoTanlov(k, ish, boshqalar, limit);
+  return r ? r.nomzodlar : nomzodlarTopEski(k, ish, Math.min(limit, 15));
+}
+
+/** The previous candidate step (BM25 + 15 variants); kept as the eval baseline and as the fallback. */
+export function nomzodlarTopEski(k: AiKatalog, ish: Pick<IshNiyati, 'qidiruv' | 'birlik' | 'toplam'> & { tavsif?: string }, limit = 15): TanlovNomzodi[] {
   const x = ishIndeksi(k);
   if (x) return bm25Nomzodlar(k, x, ish, limit);
   const found = new Map<string, NormWork>();

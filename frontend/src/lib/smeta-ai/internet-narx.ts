@@ -12,22 +12,33 @@
  */
 import { NDS_SUKUT_FOIZ, qqsSizNarx, yaxlit2 } from '../hisob-yadro';
 import { narxBirlikKoef, type Qadoq } from './narx-birlik';
+import { kalkulyatsiyaMatni, narxHisobla, pulMatni } from './narx-hisob';
 
 export type InternetSorov = { id: string; nom: string; birlik: string | null; kat: string | null };
 export type InternetDavo = { url: string; nom: string; narx: number; birlik: string | null; nds: 'bilan' | 'siz' | 'nomalum'; sotuvchi: string;
   /** Content of ONE page unit when the page sells a package/piece (1 мешок = 50 кг, 1 лист = 3 м2). */
   qadoq?: Qadoq | null;
   /** Verbatim page fragment with the product name and the price (fallback evidence for JS-rendered pages). */
-  iqtibos?: string };
+  iqtibos?: string;
+  /** Date written on the page / listing (YYYY-MM-DD) when the page shows one; null otherwise. */
+  sana?: string | null };
 /** «yuqori» — price and product read on the opened page; «orta» — page JS-rendered/unreadable, the quoted fragment holds both. */
 export type InternetIshonch = 'yuqori' | 'orta';
 export type InternetManba = InternetDavo & { domen: string; tekshirildi: boolean; sabab: string | null;
   /** Estimate-unit, VAT-free price derived from this source (null when the unit cannot be converted exactly). */
-  smetaNarx: number | null; koef: number | null; ishonch?: InternetIshonch | null; birlikIzoh?: string | null };
+  smetaNarx: number | null; koef: number | null; ishonch?: InternetIshonch | null; birlikIzoh?: string | null;
+  /** Day the page was opened (YYYY-MM-DD): with the link, the title and the price as found it is the price's provenance. */
+  topilgan?: string | null;
+  /** The unit calculation, one line per step («12 500 so'm/кг (QQS siz) × 1000 = 12 500 000 so'm/т»). */
+  kalkulyatsiya?: string[];
+  /** Assumptions behind the conversion (density from a reference table, price per «100 м2», unknown VAT): the estimator must see them. */
+  taxmin?: string[] };
 export type InternetNatija = { id: string; narx: number | null; manbalar: InternetManba[]; izoh: string;
   ishonch?: InternetIshonch | null; tarqoq?: number | null; kesh?: boolean };
 
 export const QQS = 1.12;
+/** The unknown-VAT note is part of the owner's standing rule (÷ 1,12), not an extra assumption about the unit conversion. */
+const QQS_FARAZ = /^QQS holati/;
 
 /**
  * Preferred Uzbek domains (company-editable; this is the default). Checked 2026-11-05 with a web search: the commodity
@@ -87,6 +98,7 @@ QOIDALAR:
 - Narx qop/varaq/rulon/dona uchun bo'lsa: qadoq_miqdor va qadoq_birlik — sahifada YOZILGAN tarkib (мешок 50 кг → 50, кг;
   лист 3 м2 → 3, м2; profil 3 м → 3, м); yozilmagan bo'lsa null.
 - iqtibos — sahifadagi mahsulot nomi va narx yozilgan AYNAN matn bo'lagi (≤ 300 belgi), o'zgartirmasdan.
+- sana — sahifada/e'londa yozilgan sana (YYYY-MM-DD); yozilmagan bo'lsa null (o'ylab topmang).
 - nds — sahifada QQS (НДС) bilanmi: "bilan", "siz" yoki "nomalum".
 - Mahsulot xarakteristikasi (marka, klass, diametr, o'lcham, qalinlik) resursga AYNAN mos bo'lsin; mos kelmasa olmang.
 - 1–4 manba; topilmasa manbalar bo'sh va izohda nima uchun. Dollar narxi, chet el saytlari, 2 yildan eski narxlar olinmaydi.
@@ -97,7 +109,8 @@ export const INTERNET_NARX_SXEMA = { name: 'internet_narx', schema: { type: 'obj
   natijalar: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'manbalar', 'izoh'], properties: {
     id: { type: 'string' }, izoh: { type: 'string' },
     manbalar: { type: 'array', items: { type: 'object', additionalProperties: false,
-      required: ['url', 'nom', 'narx', 'birlik', 'nds', 'sotuvchi', 'qadoq_miqdor', 'qadoq_birlik', 'iqtibos'], properties: {
+      required: ['url', 'nom', 'narx', 'birlik', 'nds', 'sotuvchi', 'qadoq_miqdor', 'qadoq_birlik', 'iqtibos', 'sana'], properties: {
+      sana: { type: ['string', 'null'] },
       url: { type: 'string' }, nom: { type: 'string' }, narx: { type: 'number' }, birlik: { type: ['string', 'null'] },
       nds: { type: 'string', enum: ['bilan', 'siz', 'nomalum'] }, sotuvchi: { type: 'string' },
       qadoq_miqdor: { type: ['number', 'null'] }, qadoq_birlik: { type: ['string', 'null'] }, iqtibos: { type: 'string' } } } } } } } } } };
@@ -128,8 +141,9 @@ export function internetJavobiniTekshir(raw: unknown, sorovlar: InternetSorov[])
       const qadoq = Number.isFinite(qm) && qm > 0 && qm < 1e6 && qb ? { miqdor: qm, birlik: qb } : null;
       const birlik = str(s.birlik, 30);
       // A currency written into the unit field is not a unit.
+      const sana = /^\d{4}-\d{2}-\d{2}$/.test(str(s.sana, 10)) ? str(s.sana, 10) : null;
       return [{ url, nom: str(s.nom, 300), narx, birlik: birlik && !/^(сум|сўм|so.?m|uzs)$/i.test(birlik) ? birlik : null, nds, sotuvchi: str(s.sotuvchi, 120),
-        qadoq, iqtibos: str(s.iqtibos, 400) } satisfies InternetDavo];
+        qadoq, iqtibos: str(s.iqtibos, 400), sana } satisfies InternetDavo];
     });
     out.set(id, { davolar, izoh: str(r.izoh, 400) });
   }
@@ -179,7 +193,8 @@ export const qqsSiz = (d: Pick<InternetDavo, 'narx' | 'nds'>) => (d.nds === 'siz
 
 /** The resource's price from verified sources: their mean in the estimate unit; null when nothing was verified. */
 export function internetNarxi(manbalar: InternetManba[]): number | null {
-  const ok = manbalar.filter(m => m.tekshirildi && m.smetaNarx != null).map(m => m.smetaNarx as number);
+  // A price without a link is never a price: only verified sources with an https URL count.
+  const ok = manbalar.filter(m => m.tekshirildi && m.smetaNarx != null && /^https:\/\/[^\s]+$/i.test(m.url)).map(m => m.smetaNarx as number);
   return ok.length ? yaxlit2(ok.reduce((s, v) => s + v, 0) / ok.length) : null;
 }
 
@@ -201,13 +216,17 @@ export type SahifaOqish = { ok: true; url: string; matn: string } | { ok: false;
  *   page JS-rendered/unreachable, or the page shows the product but the price is script-filled → the quoted fragment must
  *   contain the price and the product tokens → «orta». A source without an https URL never passes.
  */
-export function manbaniBahola(v: InternetDavo, s: InternetSorov, domen: string, p: SahifaOqish): InternetManba {
+export function manbaniBahola(v: InternetDavo, s: InternetSorov, domen: string, p: SahifaOqish, bugun?: string): InternetManba {
   const o = narxBirlikKoef(v.birlik, s.birlik, v.qadoq ?? null);
-  const koef = o.koef;
-  const asos: InternetManba = { ...v, domen, koef, birlikIzoh: o.koef == null ? null : o.izoh,
-    smetaNarx: koef == null ? null : yaxlit2(qqsSiz(v) * koef), tekshirildi: false, sabab: null, ishonch: null };
+  // The calculation (lib/smeta-ai/narx-hisob): exact multiples as before, plus «price per 100 м2» and t↔m3 through a density — both flagged.
+  const h = narxHisobla({ narx: v.narx, manbaBirlik: v.birlik, smetaBirlik: s.birlik, nds: v.nds, qadoq: v.qadoq ?? null, nom: s.nom });
+  const koef = o.koef ?? (h.ok ? h.koef : null);
+  const birlikFaraz = h.ok ? h.taxmin.filter(t => !QQS_FARAZ.test(t)) : [];
+  const asos: InternetManba = { ...v, domen, koef, birlikIzoh: koef == null ? null : (birlikFaraz.length && h.ok ? kalkulyatsiyaMatni(h) : o.koef != null ? o.izoh : null),
+    smetaNarx: koef == null ? null : h.ok ? h.narx : yaxlit2(qqsSiz(v) * koef), tekshirildi: false, sabab: null, ishonch: null,
+    topilgan: bugun ?? null, ...(h.ok ? { kalkulyatsiya: h.qadamlar, ...(h.taxmin.length ? { taxmin: h.taxmin } : {}) } : {}) };
   if (!/^https:\/\/[^\s]+$/i.test(v.url) || !domen) return { ...asos, sabab: 'havola yo‘q yoki https emas' };
-  if (o.koef == null) return { ...asos, sabab: o.sabab };
+  if (koef == null) return { ...asos, sabab: !h.ok && /zichlik/.test(h.sabab) ? h.sabab : 'sabab' in o ? o.sabab : null };
   const matn = p.ok ? p.matn : '';
   const url = p.ok ? p.url : v.url;
   // A package conversion is used only when its content number is written on the page or in the quoted fragment.
@@ -243,7 +262,22 @@ export function internetXulosa(manbalar: InternetManba[], domenlar: readonly str
   if (narx == null) return { narx: null, ishonch: null, tarqoq: null };
   const tarqoq = narxTarqoqligi(ok.map(m => m.smetaNarx as number));
   const sahifada = ok.filter(m => m.ishonch !== 'orta');
-  const yuqori = (ok.length >= 2 && sahifada.length >= 1 && (tarqoq ?? 0) <= TARQOQ_CHEGARA)
-    || (ok.length === 1 && sahifada.length === 1 && afzalDomen(ok[0].domen, domenlar));
+  // A conversion that rests on an assumption (reference density, «100 м2» read as a multiple, unknown VAT) never rates «yuqori».
+  const farazsiz = ok.every(m => !m.taxmin?.some(t => !QQS_FARAZ.test(t)));
+  const yuqori = farazsiz && ((ok.length >= 2 && sahifada.length >= 1 && (tarqoq ?? 0) <= TARQOQ_CHEGARA)
+    || (ok.length === 1 && sahifada.length === 1 && afzalDomen(ok[0].domen, domenlar)));
   return { narx, ishonch: yuqori ? 'yuqori' : 'orta', tarqoq };
+}
+
+/**
+ * What the estimator sees for ONE source: the product title, the link, the date and the price exactly as found, then the
+ * VAT-free conversion to the smeta unit with its calculation. A source without a link has no display (it is not a price).
+ */
+export type ManbaKorsatma = { sarlavha: string; url: string; sana: string | null; topilgan: string | null; topilganNarx: string;
+  smetaNarx: number | null; kalkulyatsiya: string[]; taxmin: string[]; tekshirildi: boolean };
+export function manbaKorsatma(m: InternetManba): ManbaKorsatma | null {
+  if (!/^https:\/\/[^\s]+$/i.test(m.url)) return null;
+  const topilgan = `${pulMatni(m.narx)} so'm/${m.birlik ?? '—'} (${m.nds === 'bilan' ? 'QQS bilan' : m.nds === 'siz' ? 'QQS siz' : 'QQS holati noma‘lum'})`;
+  return { sarlavha: m.nom || m.sotuvchi || m.domen, url: m.url, sana: m.sana ?? null, topilgan: m.topilgan ?? null, topilganNarx: topilgan,
+    smetaNarx: m.smetaNarx, kalkulyatsiya: m.kalkulyatsiya ?? [], taxmin: m.taxmin ?? [], tekshirildi: m.tekshirildi };
 }

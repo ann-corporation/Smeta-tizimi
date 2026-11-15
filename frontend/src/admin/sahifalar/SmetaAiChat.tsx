@@ -40,7 +40,7 @@ async function ilovaTayyorla(f: File): Promise<Ilova> {
   return { nom: f.name, mimeType, data: btoa(s) };
 }
 import { manbaMaterialiniTekshir, suhbatJavobiniTekshir, type SuhbatXabari, type TanlovNomzodi, type TanlovSorovi } from '../../lib/smeta-ai/protokol';
-import { birlashtir, katalogSahifasi, nomzodlarTop, smetagaQoshish, tanlovSorovi, tanlovDalili, tanlovZidmi, tasdiqKerak, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
+import { avtoTanlov, birlashtir, katalogSahifasi, kichikNomzodlar, nomzodlarTop, smetagaQoshish, tanlovSorovi, tanlovDalili, tanlovZidmi, tasdiqKerak, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
 import { ifodaHisobla } from '../../lib/smeta-ai/ifoda';
 import { foundationReference } from '../../lib/smeta-ai/normative-reference';
 import { includedWorkReviews } from '../../lib/smeta-ai/included-work';
@@ -142,8 +142,16 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
   /** Ground intents in the catalogue: candidates by search, then the cheap model picks among them. */
   async function asosla(list: AiIsh[]): Promise<AiIsh[]> {
     if (!katalog || kompaniyaId == null) return list;
-    let next = list.map(i => (i.nomzodlar.length ? i : { ...i, nomzodlar: nomzodlarTop(katalog, i) }));
+    // 1) Local matching pipeline (BM25 + strict unit filter + evidence + calibrated confidence): a confident line is marked at once,
+    //    the model only reranks the shortlist of lines the pipeline is unsure about.
+    let next = list.map(i => {
+      if (i.nomzodlar.length) return i;
+      const r = avtoTanlov(katalog, i, list);
+      if (!r) return { ...i, nomzodlar: nomzodlarTop(katalog, i) };
+      return { ...i, nomzodlar: r.nomzodlar, tanlangan: !i.tanlangan && r.avto ? r.avto : i.tanlangan };
+    });
     for (const i of next.filter(x => !x.tanlangan)) qadam(t('Katalogdan qidiryapman «{q}» — {n} ta nomzod', { q: i.qidiruv[0] ?? i.tavsif, n: i.nomzodlar.length }));
+    for (const i of next.filter(x => x.tanlangan && !x.tanlangan.qolda && !list.find(o => o.id === x.id)?.tanlangan)) qadam(t('«{i}» → {k} {n} — tizim tanlovi', { i: i.tavsif, k: i.tanlangan!.kod, n: i.tanlangan!.nom.slice(0, 70) }), 'ok');
     next = next.map(i => i.tanlangan && !i.tanlangan.qolda && tanlovZidmi(i, { ...i.tanlangan, id: i.tanlangan.workId }, next) ? { ...i, tanlangan: null } : i);
     if (tirik.current) setIshlar(next);
     // Up to two rounds: when no candidate fits, the model rephrases in normative wording and the catalogue is searched again.
@@ -152,16 +160,17 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
       const sor = next.filter(i => !i.tanlangan && (i.nomzodlar.length || round === 0) && (!qaytaIds || qaytaIds.has(i.id))).map(i => tanlovSorovi(i, next));
       if (!sor.length) break;
       setBand('tanlash');
-      // Small batches: a bill of quantities easily has dozens of works × 15 long norm names (one request hit the size limit).
+      // Only the lines the pipeline could not settle reach the model (it reranks ≤ 20 candidates each). Batches of 8 sent eight at a time:
+      // a 100-line smeta is ≈ 60 unsure lines = ONE wave of model calls (it was 34 batches of 3 in 9 sequential waves, capped at 40 lines).
+      // A failed batch does not stop the others.
       const tanlovlar: Array<{ id: string; ishId: string | null; sabab: string; qidiruv?: string[] }> = [];
       let xatoBor = false;
-      // Batches of 3 sent four at a time: 8 works × 15 long norms ran past the 20 s model limit (production 2026-10-16),
-      // one work answers in ≈ 9 s. A failed batch does not stop the others.
+      const SOROV_CHEGARA = 120, TOP_HAJMI = 8, PARALLEL = 8;
       const toplar: TanlovSorovi[][] = [];
-      for (let b = 0; b < Math.min(sor.length, 40); b += 3) toplar.push(sor.slice(b, Math.min(b + 3, 40)));
+      for (let b = 0; b < Math.min(sor.length, SOROV_CHEGARA); b += TOP_HAJMI) toplar.push(sor.slice(b, Math.min(b + TOP_HAJMI, SOROV_CHEGARA)));
       qadam(t('AI {n} ta ish uchun nomzodlarni solishtirmoqda (tizim tajribasi va yuklangan smetalar amaliyoti bilan)…', { n: sor.length }));
-      for (let b = 0; b < toplar.length; b += 4) {
-        const javoblar = await Promise.all(toplar.slice(b, b + 4).map(t => smetachiTanla(kompaniyaId, t)));
+      for (let b = 0; b < toplar.length; b += PARALLEL) {
+        const javoblar = await Promise.all(toplar.slice(b, b + PARALLEL).map(t => smetachiTanla(kompaniyaId, t)));
         if (!tirik.current) return list;
         for (const r of javoblar) { if (r.ok) tanlovlar.push(...r.tanlovlar); else { setHolat(xato(r.code, r.message)); xatoBor = true; } }
       }
@@ -179,7 +188,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
         if (round === 0 && c?.qidiruv?.length) {
           const extra = nomzodlarTop(katalog, { ...i, qidiruv: c.qidiruv });
           const fresh = extra.filter(x => !i.nomzodlar.some(o => o.id === x.id));
-          if (fresh.length) { qayta.add(i.id); return { ...i, nomzodlar: [...fresh, ...i.nomzodlar].slice(0, 15) }; }
+          if (fresh.length) { qayta.add(i.id); return { ...i, nomzodlar: [...fresh, ...i.nomzodlar].slice(0, 20) }; }
         }
         return i;
       });
@@ -187,8 +196,9 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
       if (!qayta.size) break;
       qaytaIds = qayta;
     }
-    // A declined or ambiguous choice stays unresolved until the user clarifies it.
-    return next;
+    // A declined or ambiguous choice stays unresolved until the user clarifies it. The user sees at most 3 candidates (the chosen one
+    // first, each with its confidence); «katalogda topilmadi» when nothing fits — the manual search still reaches the whole catalogue.
+    return next.map(i => ({ ...i, nomzodlar: kichikNomzodlar(i) }));
   }
 
   async function yubor(txt?: string) {
@@ -401,7 +411,7 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
             <select className="input mt-0.5 h-7 w-full text-[11.5px]" value={i.tanlangan?.workId ?? ''}
               onChange={e => { const n = i.nomzodlar.find(x => x.id === e.target.value); ishniYangila(i.id, { tanlangan: n ? { workId: n.id, kod: n.kod, nom: n.nom, birlik: n.birlik, sabab: t('qo‘lda tanlandi'), qolda: true } : null }); }}>
               <option value="">{i.nomzodlar.length ? t('— tanlang ({n} nomzod) —', { n: i.nomzodlar.length }) : t('— katalogda topilmadi —')}</option>
-              {i.nomzodlar.map(n => <option key={n.id} value={n.id}>{n.kod} · {n.nom}{n.birlik ? ` (${n.birlik})` : ''}{n.toplam ? ` — ${n.toplam}` : ''}</option>)}
+              {i.nomzodlar.map(n => <option key={n.id} value={n.id}>{n.kod} · {n.nom}{n.birlik ? ` (${n.birlik})` : ''}{n.toplam ? ` — ${n.toplam}` : ''}{n.ishonch != null ? ` · ${Math.round(n.ishonch * 100)}%` : ''}</option>)}
             </select></label>
           {katalog && <KatalogQidiruv katalog={katalog} onPick={n => ishniYangila(i.id, {
             nomzodlar: [...i.nomzodlar.filter(x => x.id !== n.id), n],
