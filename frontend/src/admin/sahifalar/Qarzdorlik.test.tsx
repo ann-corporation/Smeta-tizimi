@@ -48,12 +48,10 @@ describe('Qarzdorlik', () => {
     const q = (await screen.findByText('TEST POSTAVSHIK A')).closest('tr') as HTMLElement;
     fireEvent.click(q);
     const panel = await screen.findByLabelText('Qarz asoslari');
-    const saqlash = within(panel).getByRole('button', { name: /Saqlash/ }) as HTMLButtonElement;
-    expect(saqlash.disabled).toBe(true);
+    expect(within(panel).queryByRole('button', { name: /Saqlash/ })).toBeNull(); // toza — saqlash paneli yo‘q
     const hujjatlar = within(panel).getAllByLabelText('Hujjat №') as HTMLInputElement[];
     fireEvent.change(hujjatlar[0], { target: { value: 'N-1A' } });
-    expect(saqlash.disabled).toBe(false);
-    fireEvent.click(saqlash);
+    fireEvent.click(within(panel).getByRole('button', { name: /Saqlash/ }));
     await waitFor(() => expect(m.saqla).toHaveBeenCalledTimes(1));
     const arg = m.saqla.mock.calls[0][0];
     expect(arg).toMatchObject({ kompaniyaId: 1, shartnomaId: 1, kutilganVersiya: 3, ochirilgan: [] });
