@@ -4,6 +4,7 @@
  * tashlanadi → brauzerda yangi reviziya quriladi → server (faqat superadmin) R2 ga yozadi va faollashtiradi. Barcha
  * kompaniyalar Studio'da shu indeksdan narxlaydi. Narx doim QQSsiz; QQS holati noma'lum prays-list qabul qilinmaydi.
  */
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { useEffect, useMemo, useState } from 'react';
 import { t } from '../../i18n/til';
 import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
@@ -42,6 +43,7 @@ export default function NarxIndeksPaneli() {
     if (!list?.length) return;
     setXato(''); setXabar('');
     for (const f of [...list]) {
+      void aslFaylSaqla(f, { kompaniyaId: joriyId, turi: 'asl_narx' });
       setBand(t('{f} o‘qilmoqda...', { f: f.name }));
       try {
         const nom = f.name.toLowerCase();

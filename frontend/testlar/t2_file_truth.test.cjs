@@ -13,9 +13,7 @@ const must = (label, cond) => { assert(cond, label); console.log('  ✅ ' + labe
 
 const upload = R('frontend', 'functions', 'api', 'hujjat-yukla.ts');
 const download = R('frontend', 'functions', 'api', 'hujjat-ol.ts');
-const internal = R('frontend', 'functions', 'api', 'hujjat-r2.ts');
 const client = R('frontend', 'src', 'api', 't2-hujjat-canonical.ts');
-const worker = R('Smeta tizimi', '98_T2ReplicaSync.js');
 const mig = R('supabase', 'migrations', '20260902120000_t2_file_truth_r2_canonical_v1.sql');
 const rollback = R('supabase', 'migrations', '20260902120000_t2_file_truth_r2_canonical_v1.rollback.sql');
 const doc = R('docs', 'architecture', 'FILE_TRUTH_AND_SECONDARY_REPLICA_V1.md');
@@ -26,8 +24,6 @@ must('canonical upload/download use the PRIVATE R2_CANONICAL binding', /R2_CANON
 must('canonical path never touches the public R2_ARCHIVE bucket', !/R2_ARCHIVE/.test(allCanonicalTs));
 must('canonical path never links the public read domain (r2.qurilish-os.uz)', !/qurilish-os\.uz|r2\.[a-z-]+\.uz/.test(allCanonicalTs));
 must('every download goes through an authenticated Cloudflare endpoint', /tekshir\(ctx\.request\.headers\.get\('Cookie'\)/.test(download) && !/fetch\((['"`]https?:\/\/[^/]+\/[^)]*r2)/i.test(download));
-must('internal replica read is secret-authed, not a browser endpoint', /X-Replica-Sync-Secret/.test(internal) && /REPLICA_SYNC_SECRET/.test(internal));
-must('internal read still checks the doc belongs to the company + is stored', /canonical_storage_status=eq\.stored/.test(internal) && /kompaniya_id=eq/.test(internal));
 
 console.log('\n── 2. True large-file path (no false streaming claims) ──');
 must('small file: buffered once + server re-hash + verify', /file\.arrayBuffer\(\)[\s\S]*sha256Hex\(buf\)[\s\S]*serverSha !== clientSha/.test(upload));
@@ -46,15 +42,11 @@ must('reserve r2_key derived from document_id, not from name', /format\('docs\/%
 must('interrupted upload triggers reconcile (202, row stays reserved)', /status: 202[\s\S]*canonical_storage_status: 'reserved'|DOCUMENT_FINALIZE_FAILED/.test(upload));
 must('hash mismatch on small file -> reconcile cleanup + reject', /CANONICAL_HASH_MISMATCH[\s\S]*t2_document_canonical_reconcile_v1|t2_document_canonical_reconcile_v1[\s\S]*CANONICAL_HASH_MISMATCH/.test(upload));
 
-console.log('\n── 4. Replica worker present + bounded, no global Drive scan ──');
-must('GAS replica worker exists (apiT2ReplicaSyncTick)', /function apiT2ReplicaSyncTick\s*\(/.test(worker));
-must('worker claims a bounded batch of jobs', /t2_replica_job_claim_v1[\s\S]*p_limit:T2RS_BATCH/.test(worker) && /T2RS_BATCH = \d+/.test(worker));
-must('worker respects the GAS time budget', /T2RS_MAX_MS/.test(worker) && /Date\.now\(\)-t0 > T2RS_MAX_MS/.test(worker));
-must('mirror uses the stored object folder_id, never a Drive scan', /t2_object_storage_binding\?obyekt_id=eq/.test(worker) && !/searchFiles|getFoldersByName/.test(worker));
-must('mirror reads canonical bytes via the internal secret endpoint', /R2_INTERNAL_URL[\s\S]*X-Replica-Sync-Secret/.test(worker));
-must('write-back: rename -> metadata command', /t2_document_replica_rename_v1/.test(worker));
-must('write-back: delete -> replica-missing command (R2 retained)', /t2_document_replica_deleted_v1/.test(worker));
-must('worker never hard-deletes canonical R2', !/deleteObject|R2.*\.delete\(|removeFile.*r2/i.test(worker));
+console.log('\n-- 4. Google Drive removed: no replica worker, no internal mirror endpoint, no Drive scan --');
+must('GAS Drive replica worker file is gone', !fs.existsSync(path.join(__dirname, '..', '..', 'Smeta tizimi', '98_T2ReplicaSync.js')));
+must('internal mirror endpoint hujjat-r2 is gone', !fs.existsSync(path.join(__dirname, '..', 'functions', 'api', 'hujjat-r2.ts')));
+must('canonical upload response no longer advertises a Drive sync state', !/drive_sync/.test(upload));
+must('canonical TS path never calls Google Drive APIs', !/googleapis\.com\/drive|DriveApp/.test(allCanonicalTs));
 
 console.log('\n── 5. Security + conflict invariants ──');
 must('download denies unauthenticated (401)', /if \(!sess\) return Response\.json\(\{ ok: false, code: 'AUTH_REQUIRED' \}, \{ status: 401 \}\)/.test(download));

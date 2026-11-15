@@ -3,6 +3,7 @@
  * Nega kerak: t2_akt.hujjat_jami — bog'langan qatorlar PRYAMYE yig'indisi (hujjat jami emas), ba'zi F2 tizimda umuman yo'q.
  * Fayl brauzerda o'qiladi; moslash: obyekt nomi → shartnoma, № → F2 akt. Topilmaganini operator tanlaydi. t2_akt o'zgarmaydi.
  */
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { useMemo, useState } from 'react';
 import { AlertTriangle, Save, Upload } from 'lucide-react';
 import { t } from '../../i18n/til';
@@ -23,6 +24,7 @@ export function F2ReestrBolimi({ companyId, shartnomalar, moslash, yangila }: { 
   async function fayl(list: FileList | null) {
     const f = list?.[0];
     if (!f) return;
+    void aslFaylSaqla(f, { kompaniyaId: companyId, turi: 'asl_f2' });
     setTahlil(reestrCsvOqi(await f.text()));
     setTanlov({});
   }

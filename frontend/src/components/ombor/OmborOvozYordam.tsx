@@ -1,3 +1,4 @@
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../../i18n/til';
 import type { PrixodMaydonlar } from '../../lib/ombor-prixod/qoralama';
@@ -76,7 +77,7 @@ export function OmborOvozYordam({kompaniyaId,takliflar,onTaklif}:{
         <label className="flex min-h-[48px] cursor-pointer items-center rounded-md border border-border px-3 text-[12px]">{t('Ovoz fayli')}
           <input type="file" accept="audio/*" className="sr-only" aria-label={t('Ovoz fayli')} disabled={band||yozmoqda||boshlanmoqda}
             onChange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value='';if(!f)return;setXato('');
-              if(f.size>MAX_AUDIO){setAudio(null);setXato(t('Ovoz fayli juda katta. Qisqaroq yozuvni tanlang.'));}else setAudio(f);}} />
+              if(f.size>MAX_AUDIO){setAudio(null);setXato(t('Ovoz fayli juda katta. Qisqaroq yozuvni tanlang.'));}else{setAudio(f);void aslFaylSaqla(f,{kompaniyaId,turi:'asl_boshqa'});}}} />
         </label>
         <button type="button" className="fz-btn min-h-[48px]" disabled={!audio||band||yozmoqda||boshlanmoqda||kompaniyaId<=0} onClick={()=>void matngaOgir()}>{band?t('Ovoz o‘qilmoqda…'):t('Matnga o‘girish')}</button>
         {band&&<button type="button" className="fz-btn min-h-[48px]" onClick={()=>request.current?.abort()}>{t('Bekor qilish')}</button>}

@@ -1,5 +1,8 @@
 # File Truth & Secondary Replica v1 (FILE-TRUTH-001)
 
+> **2026-11-15 - GOOGLE DRIVE OLIB TASHLANDI (egasi qarori).** Bu hujjatdagi Drive/replika qismlari (`98_T2ReplicaSync.js`, `/api/hujjat-r2`, `drive_sync`, replika navbati) TARIXIY: kod olib tashlandi. Yagona fayl haqiqati - private R2 (`r2Yoz`, `functions/_shared/r2-saqlash.ts`) + `t2_document_registry`. Har yuklangan ASL fayl R2 ga saqlanadi (`aslFaylSaqla` / `hujjat-yukla`). Drive ustunlarini DB dan olib tashlash: `20261230000000_t2_drive_ustunlar_drop_v1` (qo'llanmagan).
+
+
 Status: DRAFT — SOURCE READY, NOT APPLIED. Owner: Claude (Lead Engineer/Architect).
 Base: `origin/main @ 2361d10`. Production writes forbidden for this task.
 

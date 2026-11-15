@@ -57,7 +57,7 @@ const olfn = R('frontend', 'functions', 'api', 'hujjat-ol.ts');
 must('uses the private R2_CANONICAL binding', /R2_CANONICAL/.test(yukla) && /R2_CANONICAL/.test(olfn));
 must('no public r2.dev / custom-domain URL on the canonical path', !/r2\.dev|r2\.qurilish-os\.uz|pub-[0-9a-f]+\.r2/.test(yukla + olfn + ftMig));
 must('canonical download requires a valid session', /tekshir\(ctx\.request\.headers\.get\('Cookie'\)/.test(olfn) && /AUTH_REQUIRED/.test(olfn));
-must('internal replica read is shared-secret authed + constant behaviour', /X-Replica-Sync-Secret/.test(R('frontend','functions','api','hujjat-r2.ts')) && /!ctx\.env\.REPLICA_SYNC_SECRET \|\| secret !== ctx\.env\.REPLICA_SYNC_SECRET/.test(R('frontend','functions','api','hujjat-r2.ts')));
+must('internal replica read endpoint (hujjat-r2) is removed with Drive', !fs.existsSync(path.join(__dirname,'..','functions','api','hujjat-r2.ts')));
 
 console.log('\n── 4. Upload validation + path safety ──');
 must('size is required and capped (413 FILE_TOO_LARGE)', /declaredSize > maxBytes/.test(yukla) && /FILE_TOO_LARGE/.test(yukla) && /status: 413/.test(yukla));

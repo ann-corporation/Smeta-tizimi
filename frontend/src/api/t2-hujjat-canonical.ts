@@ -15,7 +15,8 @@ export type CanonicalDoc = {
   sha256: string;
   size_bytes: number;
   versiya: number;
-  drive_sync: 'pending' | 'syncing' | 'synced' | 'failed' | 'conflict' | 'not_configured';
+  /** Eskirgan (Drive olib tashlangan): server endi yubormaydi. */
+  drive_sync?: 'pending' | 'syncing' | 'synced' | 'failed' | 'conflict' | 'not_configured';
 };
 
 export type UploadNatija =
