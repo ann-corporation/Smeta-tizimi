@@ -1,0 +1,84 @@
+{
+  "F-2 (bajarilgan ishlar akti)": { "ru": "Ф-2 (акт выполненных работ)", "en": "F-2 (work completion act)" },
+  "Fakt akti": { "ru": "Акт факта", "en": "Actual-work act" },
+  "AOSR (yashirin ishlar dalolatnomasi)": { "ru": "АОСР (акт освидетельствования скрытых работ)", "en": "AOSR (hidden works acceptance act)" },
+  "Forma № 3 (schyot-faktura)": { "ru": "Форма № 3 (счёт-фактура)", "en": "Form No. 3 (invoice)" },
+  "Hujjat topilmadi yoki unga ruxsatingiz yo‘q.": { "ru": "Документ не найден или у вас нет к нему доступа.", "en": "The document was not found or you have no access to it." },
+  "Hujjat № {id} ni tasdiqlaysizmi?": { "ru": "Согласовать документ № {id}?", "en": "Approve document No. {id}?" },
+  "Turi: {v}": { "ru": "Тип: {v}", "en": "Type: {v}" },
+  "Raqami: {v}": { "ru": "Номер: {v}", "en": "Number: {v}" },
+  "Obyekt: {v}": { "ru": "Объект: {v}", "en": "Site: {v}" },
+  "Sana: {v}": { "ru": "Дата: {v}", "en": "Date: {v}" },
+  "Jami: {v}": { "ru": "Итого: {v}", "en": "Total: {v}" },
+  "Sarlavha: {v}": { "ru": "Название: {v}", "en": "Title: {v}" },
+  "soʻm": { "ru": "сум", "en": "UZS" },
+  "Bu qaror qaytarilmaydi.": { "ru": "Это решение нельзя отменить.", "en": "This decision cannot be undone." },
+  "Eskirgan tugma": { "ru": "Кнопка устарела", "en": "Button expired" },
+  "Hujjat holati soʻrovdan keyin oʻzgargan. Hech narsa tasdiqlanmadi — yangi «Tasdiqlash» tugmasini bosing yoki Mini App da oching.": {
+    "ru": "Состояние документа изменилось после запроса. Ничего не согласовано — нажмите новую кнопку «Согласовать» или откройте в Mini App.",
+    "en": "The document changed after the prompt. Nothing was approved — press a fresh “Approve” button or open it in the Mini App." },
+  "Bu tugma eskirgan. Hech narsa tasdiqlanmadi — yangi «Tasdiqlash» tugmasini bosing.": {
+    "ru": "Эта кнопка устарела. Ничего не согласовано — нажмите новую кнопку «Согласовать».",
+    "en": "This button is outdated. Nothing was approved — press a fresh “Approve” button." },
+  "Bu obyekt sizga ochiq emas.": { "ru": "Этот объект вам недоступен.", "en": "This site is not available to you." },
+  "Bu obyektda bo‘limlar topilmadi.": { "ru": "В этом объекте разделы не найдены.", "en": "No sections found in this site." },
+  "Obyekt: {obyekt}. Rasm qaysi bo‘limga tegishli? ({a}–{b} / {n})": { "ru": "Объект: {obyekt}. К какому разделу относится фото? ({a}–{b} / {n})", "en": "Site: {obyekt}. Which section is the photo for? ({a}–{b} / {n})" },
+  "Bo‘lim topilmadi.": { "ru": "Раздел не найден.", "en": "Section not found." },
+  "Bo‘lim: {nom}": { "ru": "Раздел: {nom}", "en": "Section: {nom}" },
+  "Qator nomidan so‘z yozing — shu xabarga javob bering (masalan: beton, armatura).": {
+    "ru": "Напишите слово из названия строки — ответом на это сообщение (например: бетон, арматура).",
+    "en": "Type a word from the row name — reply to this message (e.g. concrete, rebar)." },
+  "so‘z yozing…": { "ru": "напишите слово…", "en": "type a word…" },
+  "Kamida bitta so‘z (2 ta harfdan) yozing.": { "ru": "Напишите хотя бы одно слово (от 2 букв).", "en": "Type at least one word (2+ letters)." },
+  "Bu bo‘limda mos qator topilmadi. Boshqa so‘z bilan shu xabarga qayta javob bering.": {
+    "ru": "В этом разделе подходящая строка не найдена. Ответьте на это сообщение другим словом.",
+    "en": "No matching row in this section. Reply to the same message with another word." },
+  "Qatorni tanlang — rasm shu qatorga dalil bo‘lib biriktiriladi (fakt hajmi o‘zgarmaydi):": {
+    "ru": "Выберите строку — фото будет прикреплено к ней как доказательство (объём факта не меняется):",
+    "en": "Pick the row — the photo is attached to it as evidence (the actual quantity does not change):" },
+  "Qator topilmadi.": { "ru": "Строка не найдена.", "en": "Row not found." },
+  "Rasm «{qator}» qatoriga dalil sifatida biriktirildi. Fakt hajmi o‘zgarmadi.": {
+    "ru": "Фото прикреплено к строке «{qator}» как доказательство. Объём факта не изменён.",
+    "en": "The photo was attached to row “{qator}” as evidence. The actual quantity was not changed." },
+  "Rasm topilmadi (olib tashlangan bo‘lishi mumkin).": { "ru": "Фото не найдено (возможно, удалено).", "en": "Photo not found (it may have been removed)." },
+  "Biriktirib bo‘lmadi (ruxsat yo‘q yoki server xatosi). Mini App da urinib ko‘ring.": {
+    "ru": "Не удалось прикрепить (нет доступа или ошибка сервера). Попробуйте в Mini App.",
+    "en": "Could not attach (no access or server error). Try in the Mini App." },
+  "Format: /fakt <obyekt#> <nima va qancha>. Masalan: /fakt 79 beton quyildi 12,5 m3": {
+    "ru": "Формат: /fakt <объект#> <что и сколько>. Например: /fakt 79 бетон залит 12,5 м3",
+    "en": "Format: /fakt <site#> <what and how much>. Example: /fakt 79 concrete poured 12.5 m3" },
+  "Matn juda uzun (500 belgigacha).": { "ru": "Текст слишком длинный (до 500 символов).", "en": "The text is too long (up to 500 characters)." },
+  "AI limiti tugagan yoki belgilanmagan.": { "ru": "Лимит ИИ исчерпан или не задан.", "en": "The AI limit is used up or not set." },
+  "Bu amal uchun ruxsatingiz yo‘q.": { "ru": "У вас нет доступа к этому действию.", "en": "You do not have access to this action." },
+  "AI hozir javob bera olmadi. Birozdan keyin urinib ko‘ring.": { "ru": "ИИ сейчас не ответил. Попробуйте позже.", "en": "The AI did not respond. Please try again later." },
+  "Matndan ish va hajm ajratib bo‘lmadi. Aniqroq yozing: /fakt <obyekt#> <nima va qancha>": {
+    "ru": "Не удалось выделить работу и объём. Напишите точнее: /fakt <объект#> <что и сколько>",
+    "en": "Could not extract the work and quantity. Be more specific: /fakt <site#> <what and how much>" },
+  "Hajm aniqlanmadi (oddiy son kerak). Masalan: /fakt {oid} {tavsif} 12,5": {
+    "ru": "Объём не определён (нужно обычное число). Например: /fakt {oid} {tavsif} 12,5",
+    "en": "The quantity was not recognised (a plain number is needed). Example: /fakt {oid} {tavsif} 12.5" },
+  "Obyektda mos smeta qatori topilmadi: «{tavsif}». Boshqacha yozib ko‘ring yoki Mini App da kiriting.": {
+    "ru": "В объекте не найдена подходящая строка сметы: «{tavsif}». Напишите иначе или введите в Mini App.",
+    "en": "No matching estimate row in the site: “{tavsif}”. Rephrase or enter it in the Mini App." },
+  "Fakt QORALAMASI (tasdiqlanmagan) — ko‘rib chiqing:": { "ru": "ЧЕРНОВИК факта (не утверждён) — проверьте:", "en": "Actual-work DRAFT (not approved) — please review:" },
+  "Ish: {v}": { "ru": "Работа: {v}", "en": "Work: {v}" },
+  "Hajm: {v}": { "ru": "Объём: {v}", "en": "Quantity: {v}" },
+  "Smeta qatori (tanlang):": { "ru": "Строка сметы (выберите):", "en": "Estimate row (choose):" },
+  "«Saqlash» faqat qoralama yozadi; PTO/prorab tasdiqlaydi.": { "ru": "«Сохранить» создаёт только черновик; утверждает ПТО/прораб.", "en": "“Save” only writes a draft; the PTO/foreman approves it." },
+  "Saqlash": { "ru": "Сохранить", "en": "Save" },
+  "Tugma eskirgan.": { "ru": "Кнопка устарела.", "en": "The button is outdated." },
+  "Fakt qoralamasi saqlandi: {qator} — {hajm}. Tasdiqlanmagan; PTO/prorab Mini App da tasdiqlaydi.": {
+    "ru": "Черновик факта сохранён: {qator} — {hajm}. Не утверждён; ПТО/прораб утвердит в Mini App.",
+    "en": "Actual-work draft saved: {qator} — {hajm}. Not approved; the PTO/foreman approves it in the Mini App." },
+  "Sana yaroqsiz (qoralama faqat oxirgi 31 kun uchun).": { "ru": "Недопустимая дата (черновик только за последние 31 день).", "en": "Invalid date (drafts only for the last 31 days)." },
+  "Qoralama saqlanmadi (ruxsat yo‘q yoki server xatosi). Mini App da kiriting.": {
+    "ru": "Черновик не сохранён (нет доступа или ошибка сервера). Введите в Mini App.",
+    "en": "The draft was not saved (no access or server error). Enter it in the Mini App." },
+  "Tizim": { "ru": "Система", "en": "App" },
+  "Biriktirildi": { "ru": "Прикреплено", "en": "Attached" },
+  "Qoralama saqlandi": { "ru": "Черновик сохранён", "en": "Draft saved" },
+  "Fakt qatoriga biriktirish": { "ru": "Прикрепить к строке факта", "en": "Attach to a fact row" },
+  "fakt qoralamasi: /fakt <obyekt#> <nima va qancha> (tokenlar sarflanadi)": {
+    "ru": "черновик факта: /fakt <объект#> <что и сколько> (расходуются токены)",
+    "en": "actual-work draft: /fakt <site#> <what and how much> (tokens are spent)" }
+}
