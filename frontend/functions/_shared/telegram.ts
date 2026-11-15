@@ -13,6 +13,7 @@ import { supabaseBaseUrl } from './supabase-url';
 import { tgChuqurHavola } from '../../src/lib/tg-yol';
 import matnlar from '../../src/i18n/lugat/qism/telegram-bot.json';
 import kirishMatnlar from '../../src/i18n/lugat/qism/telegram-kirish.json';
+import bot2Matnlar from '../../src/i18n/lugat/qism/telegram-bot-2.json';
 
 export type TgEnv = {
   SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT?: string;
@@ -33,7 +34,7 @@ export const miniAppUrl = (env: TgEnv) => saytUrl(env) + '/tg';
 export const tokenBormi = (env: TgEnv) => /^\d+:[A-Za-z0-9_-]{20,}$/.test(String(env.TELEGRAM_BOT_TOKEN || '').trim());
 
 /* ───────── i18n (lugat/qism/telegram-bot.json; kalit = o'zbek lotin matn) ───────── */
-const LUG = { ...(matnlar as Record<string, { ru: string; en: string }>), ...(kirishMatnlar as Record<string, { ru: string; en: string }>) };
+const LUG = { ...(matnlar as Record<string, { ru: string; en: string }>), ...(kirishMatnlar as Record<string, { ru: string; en: string }>), ...(bot2Matnlar as Record<string, { ru: string; en: string }>) };
 export function tilAniqla(languageCode: unknown): TgTil {
   const s = String(languageCode || '').toLowerCase();
   return s.startsWith('ru') ? 'ru' : s.startsWith('en') ? 'en' : 'uz';
