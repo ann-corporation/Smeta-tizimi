@@ -1,7 +1,7 @@
-﻿# ShNK Phase 1 (top-30, text PDFs). Default = OFFLINE dry-run (no DB, no R2). -Apply is L0-owner only.
-# Prereq: uv (https://docs.astral.sh/uv/); inventory from D:\BOG_MIYASI\90_HISOBOTLAR\2026-11-15_SHNK_INVENTAR
+# ShNK Phase 1 (top-30, text PDFs). Default = OFFLINE dry-run (no DB, no R2). -Apply is L0-owner only.
+# Prereq: uv (https://docs.astral.sh/uv/); -Inv = local private inventory folder (outside repo)
 param(
-  [string]$Inv = 'D:\BOG_MIYASI\90_HISOBOTLAR\2026-11-15_SHNK_INVENTAR',
+  [Parameter(Mandatory)][string]$Inv,
   [string]$Root = 'D:/ShNK',
   [switch]$Apply,
   [int]$Actor = 0
