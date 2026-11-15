@@ -89,6 +89,12 @@ object DataModule {
     fun moneyRepository(api: BffApi, db: AppDb, json: Json) = MoneyRepository(api, db, json)
 
     @Provides @Singleton
+    fun rahbarRepository(api: BffApi, db: AppDb, json: Json, money: MoneyRepository) = RahbarRepository(api, db, json, money)
+
+    @Provides @Singleton
+    fun f2Repository(api: BffApi, db: AppDb, json: Json) = F2Repository(api, db, json)
+
+    @Provides @Singleton
     fun approvalsRepository(api: BffApi, db: AppDb) = ApprovalsRepository(api) { id -> db.obyekt().get(id)?.nom }
 
     @Provides @Singleton

@@ -92,6 +92,8 @@ class MoneyRepository(private val api: BffApi, private val db: AppDb, private va
     suspend fun refreshCompany(companyId: Long): SyncResult = fetch(rahbarPanelRequest(companyId))
     suspend fun refreshObject(companyId: Long, obyektId: Long): SyncResult = fetch(rahbarPanelRequest(companyId, obyektId))
 
+    suspend fun store(map: Map<Long, ObjectMoney>) { map.forEach { (id, m) -> db.meta().put(MetaEntity("money:$id", json.encodeToString(m))) } }
+
     private suspend fun fetch(req: kotlinx.serialization.json.JsonObject): SyncResult {
         val r = api.bff("/api/sb", "POST", req)
         if (!r.ok) return r.failure()
@@ -118,6 +120,11 @@ class RowsRepository(private val api: BffApi, private val db: AppDb, private val
 
     fun sections(obyektId: Long): Flow<List<String>> = db.qator().sections(obyektId)
 
+    fun all(obyektId: Long): Flow<List<QatorEntity>> = db.qator().all(obyektId)
+
+    /** The full estimate tree (empty when the object was read through the row-status fallback: no hierarchy there). */
+    fun nodes(obyektId: Long): Flow<List<uz.anncorp.smeta.core.db.NodeEntity>> = db.node().all(obyektId)
+
     /** Global search over rows already cached on this device (objects opened before). Empty when the query has no searchable word. */
     suspend fun searchCompany(companyId: Long, query: String, limit: Int = 20): List<QatorEntity> {
         val m = ftsMatch(query) ?: return emptyList()
@@ -136,7 +143,7 @@ class RowsRepository(private val api: BffApi, private val db: AppDb, private val
         if (p.status == 304) { touch(obyektId); return SyncResult.Ok }
         if (p.ok) {
             val data = parsePaket(p.body)?.takeIf { it.obyektId == obyektId } ?: return SyncResult.Failed("BAD_SHAPE")
-            store(obyektId, data.rows, RowSource.PACKET, p.etag)
+            store(obyektId, data.rows, RowSource.PACKET, p.etag, data.nodes)
             return SyncResult.Ok
         }
         if (p.status != 403) return p.failure()
@@ -148,8 +155,9 @@ class RowsRepository(private val api: BffApi, private val db: AppDb, private val
         return SyncResult.Ok
     }
 
-    private suspend fun store(obyektId: Long, rows: List<QatorEntity>, src: String, etag: String?) {
+    private suspend fun store(obyektId: Long, rows: List<QatorEntity>, src: String, etag: String?, nodes: List<uz.anncorp.smeta.core.db.NodeEntity> = emptyList()) {
         db.qator().replaceForObyekt(obyektId, rows)
+        db.node().replaceForObyekt(obyektId, nodes)
         val m = db.meta()
         m.put(MetaEntity("rows_src:$obyektId", src))
         if (etag != null) m.put(MetaEntity("paket_etag:$obyektId", etag))

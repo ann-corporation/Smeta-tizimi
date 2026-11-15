@@ -10,6 +10,7 @@ import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import uz.anncorp.smeta.core.db.ObyektEntity
+import uz.anncorp.smeta.core.db.NodeEntity
 import uz.anncorp.smeta.core.db.QatorEntity
 
 /*
@@ -81,7 +82,7 @@ fun parseHolatRows(obyektId: Long, rows: List<JsonObject>): List<QatorEntity> = 
 
 // ---------- /api/obyekt-paket ----------
 
-data class PaketData(val obyektId: Long, val nom: String?, val rows: List<QatorEntity>)
+data class PaketData(val obyektId: Long, val nom: String?, val rows: List<QatorEntity>, val nodes: List<NodeEntity> = emptyList())
 
 const val PAKET_FORMAT = "t2-paket/1"
 
@@ -143,7 +144,42 @@ fun parsePaket(body: JsonElement?): PaketData? {
             bolim = sectionOf(i),
         )
     }
-    return PaketData(obyektId, o["obyekt_nom"].str(), out)
+    // The whole tree (RZ -> BL -> RS/MAT/OB) in web order: children sorted by tartib then id, depth-first.
+    val tartib = col(q, "tartib"); val norma = col(q, "norma"); val katCol = col(q, "kat"); val dKat = dict("kat")
+    val kids = HashMap<Int, MutableList<Int>>(); val roots = ArrayList<Int>()
+    for (i in 0 until n) {
+        val p = if (ota == null) null else ota[i].num()?.toLong()?.let { indexById[it] }
+        if (p == null || p == i) roots += i else kids.getOrPut(p) { ArrayList() } += i
+    }
+    val byOrder = Comparator<Int> { a, b -> (tartib?.get(a).num() ?: a.toDouble()).compareTo(tartib?.get(b).num() ?: b.toDouble()).let { c -> if (c != 0) c else (ids[a].num() ?: 0.0).compareTo(ids[b].num() ?: 0.0) } }
+    roots.sortWith(byOrder); kids.values.forEach { it.sortWith(byOrder) }
+    val order = IntArray(n) { -1 }; val depthOf = IntArray(n); var next = 0
+    val seen = BooleanArray(n)
+    fun walk(start: Int, startDepth: Int) {
+        val stack = ArrayDeque<Int>(); stack.addLast(start); depthOf[start] = startDepth
+        while (stack.isNotEmpty()) {
+            val i = stack.removeLast()
+            if (seen[i]) continue
+            seen[i] = true; order[i] = next++
+            kids[i]?.asReversed()?.forEach { c -> if (!seen[c]) { depthOf[c] = depthOf[i] + 1; stack.addLast(c) } }
+        }
+    }
+    roots.forEach { walk(it, 0) }
+    for (i in 0 until n) if (!seen[i]) walk(i, 0)   // a cycle / orphan loop is still shown, never dropped
+    val nodes = arrayOfNulls<NodeEntity>(n)
+    for (i in 0 until n) {
+        val id = ids[i].num()?.toLong() ?: return null
+        val t = lookup(dTur, tur[i]) ?: return null
+        val parentIdx = if (ota == null) null else ota[i].num()?.toLong()?.let { indexById[it] }?.takeIf { it != i }
+        nodes[order[i]] = NodeEntity(
+            obyektId, id, parentIdx?.let { ids[it].num()?.toLong() }, order[i], depthOf[i], t,
+            katCol?.let { lookup(dKat, it[i]) }, lookup(dKod, kod[i]), lookup(dNom, nom[i]).orEmpty(), lookup(dBirlik, birlik[i]),
+            smetaOverride?.get(id.toString()).num() ?: hajm[i].num(), narx[i].num(), summa[i].num(), norma?.get(i).num(),
+            fh[i].num() ?: 0.0, fs[i].num() ?: 0.0, f2h[i].num() ?: 0.0, f2s[i].num() ?: 0.0,
+            replaced?.get(id.toString()).num() ?: 0.0, kids[i]?.isNotEmpty() == true,
+        )
+    }
+    return PaketData(obyektId, o["obyekt_nom"].str(), out, nodes.filterNotNull())
 }
 
 /** Object-level sums derived from the work rows (the unit prices are QQS-free, so these are QQS-free too). */

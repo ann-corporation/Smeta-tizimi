@@ -19,6 +19,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -59,16 +61,17 @@ internal fun notifRes(k: NotifKind): Int? = when (k) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TodayScreen(onOpenApprovals: () -> Unit, onOutbox: () -> Unit, vm: TodayViewModel = hiltViewModel()) {
+fun TodayScreen(onOpenApprovals: () -> Unit, onOutbox: () -> Unit, showRahbar: Boolean = false, onRahbar: () -> Unit = {}, vm: TodayViewModel = hiltViewModel()) {
     val ui by vm.state.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refresh() }
     PullToRefreshBox(isRefreshing = false, onRefresh = vm::refresh, modifier = Modifier.fillMaxSize()) {
         if (ui.loading) {
-            Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) { CircularProgressIndicator() }
+            uz.anncorp.smeta.core.ui.SkeletonList(4)
         } else if (ui.failed) {
             CenterMessage(null, stringResource(R.string.p2_appr_err_load), null, stringResource(R.string.retry)) { vm.refresh() }
         } else {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (showRahbar) Counter(stringResource(R.string.mod_rahbar), null, onRahbar, hint = stringResource(R.string.mod_rahbar_d))
                 Counter(stringResource(R.string.p2_today_approvals), ui.approvals, onOpenApprovals)
                 if (ui.executive) {
                     Counter(stringResource(R.string.p2_today_f2), ui.f2Drafts, null)
@@ -82,11 +85,14 @@ fun TodayScreen(onOpenApprovals: () -> Unit, onOutbox: () -> Unit, vm: TodayView
 }
 
 @Composable
-private fun Counter(label: String, value: Int?, onClick: (() -> Unit)?) {
+private fun Counter(label: String, value: Int?, onClick: (() -> Unit)?, hint: String? = null) {
     WorkCard(onClick = onClick, modifier = Modifier.heightIn(min = TouchTarget)) {
         Row(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
-            Text(value?.toString() ?: "—", style = MaterialTheme.typography.headlineSmall, color = if ((value ?: 0) > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+            Column(Modifier.weight(1f)) {
+                Text(label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+                if (hint != null) Text(hint, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (hint != null) Icon(androidx.compose.material.icons.Icons.Filled.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) else Text(value?.toString() ?: "—", style = MaterialTheme.typography.headlineSmall, color = if ((value ?: 0) > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

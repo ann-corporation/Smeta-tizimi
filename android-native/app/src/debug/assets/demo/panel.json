@@ -1,5 +1,46 @@
-{"ok":true,"natija":{"ok":true,"obyektlar":[
- {"obyekt_id":101,"smeta":{"qqs_bilan":1614935115.60,"ustamali":1441906355.00,"ustamasiz":1232381500.00},"fakt":{"qqs_bilan":688126420.80,"ustamali":614398590.00,"ustamasiz":525127000.00},"f2":{"qqs_bilan":396396000.00,"ustamali":353925000.00,"ustamasiz":302500000.00},"f2_qoralama":{"soni":3}},
- {"obyekt_id":102,"smeta":{"qqs_bilan":6001959600.66,"ustamali":5358892500.59,"ustamasiz":4580250000.50},"fakt":null,"f2":null,"f2_qoralama":{"soni":0}},
- {"obyekt_id":104,"smeta":{"qqs_bilan":417155040.00,"ustamali":372459857.14,"ustamasiz":318700000.00},"fakt":{"qqs_bilan":41800000.00,"ustamali":37321428.57,"ustamasiz":31900000.00},"f2":null,"f2_qoralama":{"soni":0}}
-]}}
+{"ok":true,"natija":{"ok":true,"generated_at":"2026-11-14T09:00:00Z","versiya":1,"qamrov":{"kompaniya_id":1,"obyekt_id":null,"obyekt_soni":4},
+ "kartalar":{
+  "portfel":{"shartnoma_qqs_bilan":9200000000.00,"shartnoma_soni":3,"smeta":{"qqs_bilan":8034049756.26,"ustamali":7173258712.73,"ustamasiz":6131331500.50}},
+  "bajarildi":{"davr":null,"jami":{"qqs_bilan":396396000.00,"ustamali":353925000.00,"ustamasiz":302500000.00},"akt_soni":4,"foiz_smeta":4.9,"foiz_shartnoma":4.3,"reestr":null},
+  "tolandi":{"davr":null,"jami":210000000.00,"yozuv_soni":6,"manbalar_yoq":[]},
+  "debitor":{"qiymat":186396000.00,"hujjatlangan":396396000.00,"tolangan":210000000.00,"yosh":{"k0_30":96396000.00,"k30_60":60000000.00,"k60":30000000.00},"asos":"f2","manbalar_yoq":[]},
+  "kreditor":{"qiymat":null,"manbalar_yoq":["kreditor reestri"]},
+  "rentabellik":{"daromad":302500000.00,"tannarx":null,"marja":null,"foiz":null,"manbalar_yoq":["xarajat reestri"]}},
+ "fakt":{"qqs_bilan":729926420.80,"ustamali":651720018.57,"ustamasiz":557027000.00},
+ "f2_qoralama":null,
+ "pul_oqimi":{"oylar":[
+   {"oy":"2026-06","bajarildi":40000000.00,"tolov":30000000.00,"xarajat":null},
+   {"oy":"2026-07","bajarildi":65000000.00,"tolov":40000000.00,"xarajat":null},
+   {"oy":"2026-08","bajarildi":90000000.00,"tolov":50000000.00,"xarajat":22000000.00},
+   {"oy":"2026-09","bajarildi":70000000.00,"tolov":60000000.00,"xarajat":31000000.00},
+   {"oy":"2026-10","bajarildi":81396000.00,"tolov":30000000.00,"xarajat":18000000.00},
+   {"oy":"2026-11","bajarildi":50000000.00,"tolov":null,"xarajat":null}],
+  "prognoz":{"kun":30,"qoralama_f2":120000000.00,"tolanmagan_f2":186396000.00,"kutilayotgan":306396000.00,"majburiyatlar":null,"manbalar_yoq":["majburiyatlar"]}},
+ "obyektlar":[
+  {"obyekt_id":101,"nom":"Demo korpus A","holat":"faol","shartnoma":{"id":1,"raqam":"D-1","qqs_bilan":2000000000.00,"umumiy":false},
+   "smeta":{"qqs_bilan":1614935115.60,"ustamali":1441906355.00,"ustamasiz":1232381500.00},"fakt":{"qqs_bilan":688126420.80,"ustamali":614398590.00,"ustamasiz":525127000.00},"f2":{"qqs_bilan":396396000.00,"ustamali":353925000.00,"ustamasiz":302500000.00},
+   "f2_qoralama":{"qqs_bilan":null,"ustamali":null,"soni":3},"f3":null,"tolangan":210000000.00,"tolangan_foiz":10.5,"qarz":186396000.00,"marja_foiz":null,
+   "bajarilish":{"fakt":42.6,"f2":24.5,"f3":null},"signal":{"soni":3,"kritik":1,"eng_kop":"missing_price"}},
+  {"obyekt_id":102,"nom":"Demo maktab binosi","holat":"faol","shartnoma":{"id":2,"raqam":"D-2","qqs_bilan":6500000000.00,"umumiy":false},
+   "smeta":{"qqs_bilan":6001959600.66,"ustamali":5358892500.59,"ustamasiz":4580250000.50},"fakt":null,"f2":null,
+   "f2_qoralama":{"qqs_bilan":null,"ustamali":null,"soni":0},"f3":null,"tolangan":null,"tolangan_foiz":null,"qarz":null,"marja_foiz":null,
+   "bajarilish":{"fakt":null,"f2":null,"f3":null},"signal":{"soni":0,"kritik":0,"eng_kop":null}},
+  {"obyekt_id":103,"nom":"Demo yo'l va ko'prik","holat":"faol","shartnoma":null,
+   "smeta":null,"fakt":null,"f2":null,"f2_qoralama":{"qqs_bilan":null,"ustamali":null,"soni":0},"f3":null,"tolangan":null,"tolangan_foiz":null,"qarz":null,"marja_foiz":null,
+   "bajarilish":{"fakt":null,"f2":null,"f3":null},"signal":{"soni":2,"kritik":0,"eng_kop":"missing_price"}},
+  {"obyekt_id":104,"nom":"Demo omborxona","holat":"faol","shartnoma":{"id":3,"raqam":"D-3","qqs_bilan":700000000.00,"umumiy":false},
+   "smeta":{"qqs_bilan":417155040.00,"ustamali":372459857.14,"ustamasiz":318700000.00},"fakt":{"qqs_bilan":41800000.00,"ustamali":37321428.57,"ustamasiz":31900000.00},"f2":null,
+   "f2_qoralama":{"qqs_bilan":null,"ustamali":null,"soni":0},"f3":null,"tolangan":null,"tolangan_foiz":null,"qarz":null,"marja_foiz":null,
+   "bajarilish":{"fakt":10.0,"f2":null,"f3":null},"signal":{"soni":0,"kritik":0,"eng_kop":null}}
+ ],
+ "diqqat":[
+  {"kod":"f2_faktdan_oshgan","obyekt_id":101,"nom":"Demo korpus A","summa_tasir":12500000.00,"soni":2},
+  {"kod":"tolov_kechikkan","obyekt_id":101,"nom":"Demo korpus A","summa_tasir":30000000.00,"soni":1},
+  {"kod":"narxsiz","obyekt_id":103,"nom":"Demo yo'l va ko'prik","summa_tasir":null,"soni":233},
+  {"kod":"fakt_topshirilmagan","obyekt_id":104,"nom":"Demo omborxona","summa_tasir":41800000.00,"soni":null}
+ ],
+ "tasdiq_kutmoqda":[
+  {"tur":"f2","id":501,"obyekt_id":101,"nom":"Demo korpus A","bosqich":"direktor","summa":120000000.00,"qachondan":"2026-11-10T08:00:00Z","kim":"3"},
+  {"tur":"zayavka","id":77,"obyekt_id":104,"nom":"Demo omborxona","bosqich":"direktor","summa":null,"qachondan":"2026-11-12T08:00:00Z","kim":"4"}
+ ],
+ "signal_guruh":[],"shartnomalar":[]}}

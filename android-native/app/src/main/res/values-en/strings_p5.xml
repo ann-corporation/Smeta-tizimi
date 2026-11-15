@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="p5_minus_tip_t">Negative volume</string>
+    <string name="p5_minus_tip_b">To recalculate (bring to the norm) or fix a mistake you can enter a volume with a minus sign. The ± key flips the sign. If the row\'s total fact would drop below zero, the app warns you.</string>
+    <string name="p5_minus_row">Minus: the volume is subtracted from the row\'s fact.</string>
+    <string name="p5_minus_below_zero">Total fact will be below zero (%1$s). You can still save.</string>
+    <string name="p5_minus_below_zero_short">Total fact will be below zero</string>
+    <plurals name="p5_below_zero_n">
+        <item quantity="one">%1$d row will have a total fact below zero</item>
+        <item quantity="other">%1$d rows will have a total fact below zero</item>
+    </plurals>
+
+    <string name="p5_info_cd">Explanation: \"%1$s\"</string>
+    <string name="p5_got_it">Got it</string>
+    <string name="p5_clear">Clear</string>
+    <string name="p1_card_f2_short">F-2</string>
+
+    <string name="tip_fakt_t">Fact</string>
+    <string name="tip_fakt_b">Fact is the work actually done. A field person (foreman, site manager) enters it as volumes. Fact does not yet mean the work was handed to the client.</string>
+    <string name="tip_f2_t">F-2</string>
+    <string name="tip_f2_b">F-2 is the act of completed work handed to and accepted by the client. Payments follow this document. Fact is work still being prepared for an F-2.</string>
+    <string name="tip_smeta_t">Estimate (smeta)</string>
+    <string name="tip_smeta_b">The estimate lists the planned work of an object with volumes and prices. The object value comes from it.</string>
+    <string name="tip_qqs_t">VAT (QQS) and markup</string>
+    <string name="tip_qqs_b">The object value is shown with VAT (QQS, 12 %) first. Below are two VAT-free sums: \"with markup\" is direct cost plus overheads and planned profit; \"without markup\" is only work, materials and labour (direct cost). All sums come from the server; the phone never calculates them.</string>
+    <string name="tip_progress_t">Progress</string>
+    <string name="tip_progress_b">The outer ring is the percent of the estimate done (fact). The inner ring is the percent accepted in F-2. Above 100 % means more work was done than the estimate.</string>
+
+    <string name="p5_btn_photo">Photo</string>
+    <string name="p5_btn_smeta">Smeta</string>
+    <string name="p5_btn_f2">F-2</string>
+    <string name="p5_ring_hint">Outer: fact, inner: F-2</string>
+    <string name="p5_sections">Progress by section</string>
+    <string name="p5_sections_tip">Fact and F-2 as a percent of each section\'s estimate amount. Amounts are not shown per section, only percentages.</string>
+    <string name="p5_section_other">Rows without a section</string>
+    <string name="p5_show_all">All (%1$d)</string>
+    <string name="p5_show_less">Show less</string>
+    <string name="p5_f2_timeline">Latest F-2s</string>
+    <string name="p5_all_f2">All</string>
+
+    <string name="mod_smeta_native">Estimate</string>
+    <string name="p5_smeta_readonly">View only. Estimates are edited on the website.</string>
+    <string name="p5_smeta_search_hint">Search by code or name.</string>
+    <string name="p5_row_unpriced">Row without a price</string>
+    <string name="p5_leg_done_not_accepted">Done, not accepted</string>
+    <string name="p5_leg_open">Remaining</string>
+
+    <string name="f2_title">F-2 documents</string>
+    <string name="f2_forbidden">No access to F-2</string>
+    <string name="f2_forbidden_body">You do not have the right to view F-2 for this object. Ask your manager.</string>
+    <string name="f2_empty">No F-2 yet</string>
+    <string name="f2_empty_hint">Once an F-2 is prepared for accepted work it will appear here.</string>
+    <string name="f2_open_web">Open the F-2 registry on the website</string>
+    <string name="f2_pdf_hint">PDF and Excel downloads and the sums are in the website registry.</string>
+    <string name="f2_summary">F-2 status</string>
+    <string name="f2_act_title">F-2 no. %1$s</string>
+    <string name="f2_flag_unpriced">%1$d unpriced</string>
+    <string name="f2_flag_minus">%1$d with minus</string>
+    <string name="f2_flag_diff">differs from registry</string>
+    <string name="f2_flag_diff_long">The document total differs from the sum of rows in the system. Check on the website.</string>
+    <string name="f2_month">Month</string>
+    <string name="f2_rows">Number of rows</string>
+    <string name="f2_unpriced">Unpriced rows</string>
+    <string name="f2_minus_rows">Rows with minus</string>
+    <string name="f2_sums_on_web">The act\'s sums (with VAT, with and without markup) are shown in the F-2 registry on the website.</string>
+    <string name="f2_st_draft">Draft</string>
+    <string name="f2_st_submitted">Submitted</string>
+    <string name="f2_st_checked">Checked</string>
+    <string name="f2_st_approved">Accepted</string>
+    <string name="f2_st_rejected">Rejected</string>
+    <string name="f2_st_cancelled">Cancelled</string>
+    <string name="f2_st_superseded">Superseded</string>
+    <string name="f2_st_unknown">Unknown</string>
+    <string name="f2_ex_draft">Draft: the document is still being prepared and was not sent to the client.</string>
+    <string name="f2_ex_submitted">Submitted: the document is under review, waiting for an answer.</string>
+    <string name="f2_ex_checked">Checked: passed the internal check, waiting for approval.</string>
+    <string name="f2_ex_approved">Accepted: the document is approved and its sum counts in the object\'s F-2 total.</string>
+    <string name="f2_ex_rejected">Rejected: the document was returned, fix it and send again.</string>
+    <string name="f2_ex_cancelled">Cancelled: the document no longer counts.</string>
+    <string name="f2_ex_superseded">Superseded: a new version replaced it.</string>
+    <string name="f2_ex_unknown">Status unknown. Check the registry on the website.</string>
+
+    <string name="mod_rahbar">Boss panel</string>
+    <string name="mod_rahbar_d">Company and object status, alerts</string>
+    <string name="rb_forbidden">No access to the boss panel</string>
+    <string name="rb_forbidden_body">The panel is for company management and users with the finance right.</string>
+    <string name="rb_offline_empty">Offline — the panel is not saved yet</string>
+    <plurals name="rb_objects_n">
+        <item quantity="one">%1$d object</item>
+        <item quantity="other">%1$d objects</item>
+    </plurals>
+    <string name="rb_company_totals">Company totals</string>
+    <string name="rb_ring_hint">Outer ring: fact, inner ring: F-2 (against the estimate)</string>
+    <string name="rb_contracts">Contracts (with VAT) · count</string>
+    <plurals name="rb_f2_count">
+        <item quantity="one">Accepted F-2: %1$d</item>
+        <item quantity="other">Accepted F-2: %1$d</item>
+    </plurals>
+    <string name="rb_cash">Cash flow and debts</string>
+    <string name="rb_paid">Paid (total)</string>
+    <string name="rb_receivable">Receivable (owed to us)</string>
+    <string name="rb_payable">Payable (we owe)</string>
+    <string name="rb_months">By month</string>
+    <string name="rb_months_tip">Three bars per month: work done (F-2), payments received and costs. A short grey bar means the data was not entered.</string>
+    <string name="rb_leg_done">Done</string>
+    <string name="rb_leg_paid">Payment</string>
+    <string name="rb_leg_cost">Cost</string>
+    <string name="rb_forecast">Forecast for the next %1$d days</string>
+    <string name="rb_fc_unpaid">Unpaid F-2</string>
+    <string name="rb_fc_expected">Expected income</string>
+    <string name="rb_not_entered">not entered</string>
+    <string name="rb_approvals">Waiting for approval</string>
+    <string name="rb_approvals_hint">Documents waiting for a manager\'s decision</string>
+    <string name="rb_attention">Needs attention</string>
+    <string name="rb_attention_tip">Problems the system found: the most important first. Tap a row with an object name to open its card.</string>
+    <string name="rb_attention_none">No problems found for now.</string>
+    <string name="rb_att_unhanded">Work done but F-2 not handed over</string>
+    <string name="rb_att_f2_over">F-2 exceeds fact</string>
+    <string name="rb_att_over_est">Volume above the estimate</string>
+    <string name="rb_att_no_f3">F-2 accepted, F-3 not issued</string>
+    <string name="rb_att_limit">Close to the contract limit</string>
+    <string name="rb_att_late">Payment overdue by more than 60 days</string>
+    <string name="rb_att_registry">System and registry sums differ</string>
+    <string name="rb_att_unpriced">Unpriced rows</string>
+    <string name="rb_att_stock">Negative warehouse stock</string>
+    <string name="rb_att_other">Needs a check</string>
+    <string name="rb_objects">Objects</string>
+    <string name="rb_debt">Debt</string>
+    <plurals name="rb_f2_drafts">
+        <item quantity="one">%1$d F-2 draft</item>
+        <item quantity="other">%1$d F-2 drafts</item>
+    </plurals>
+    <string name="sm_expand_all">Expand all</string>
+    <string name="sm_collapse_all">Collapse all</string>
+    <string name="sm_tree_tip_t">Estimate tree</string>
+    <string name="sm_tree_tip_b">The estimate as on the website: section (RZ) → work (BL) → resources (RS labour/machines, MAT materials, OB equipment). Tap a section to open it. Search shows a matching row together with its parent sections. Row amounts are VAT-free and without markup; the VAT-inclusive and with-markup amounts are in the object value above.</string>
+    <string name="sm_counts">Shown: %1$d · nodes total: %2$d · works: %3$d</string>
+    <plurals name="sm_works">
+        <item quantity="one">%1$d work</item>
+        <item quantity="other">%1$d works</item>
+    </plurals>
+    <string name="sm_sum_plain">Amount (no markup)</string>
+    <string name="sm_norm">Norm</string>
+    <string name="sm_qty">Qty</string>
+    <string name="sm_price">Price</string>
+    <string name="p5_enter_fakt_short">Fact</string>    <string name="sm_amount">Amount</string>
+</resources>
