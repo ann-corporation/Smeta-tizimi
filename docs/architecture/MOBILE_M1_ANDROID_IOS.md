@@ -47,7 +47,8 @@ Android Gradle + Kotlin plugin kompilyatsiyasi (`KeystorePlugin.kt`, Tauri Kotli
 2026-11-15 qaror: o'rnatilgan ilovalar (Android, iOS, Windows, macOS) endi **saytning o'zi**: oyna https://smeta-tizimi.pages.dev ni jonli yuklaydi. Hamma /api/* yo'llari, sessiya cookie va hamma rollar (PTO, prorab, buxgalter, kadr, texnadzor, direktor) saytdagidek ishlaydi va har doim yangi versiya.
 
 - Ishga tushganda `src-tauri/offline/index.html` (uz/ru/en) tarmoqni tekshiradi; bor bo'lsa saytga o'tadi, yo'q bo'lsa «Qayta urinish» tugmasi chiqadi.
-- Masofaviy origin'ga Tauri IPC berilmaydi: `capabilities/default.json` faqat `local: true`, `remote.urls` yo'q, `withGlobalTauri: false`. Sayt oddiy veb-sahifa.
+- Masofaviy origin'ga Tauri IPC faqat TOR ko'prik bilan beriladi (2026-11-15, OFLAYN_REJIM_V1.md): capabilities/remote.json faqat https://smeta-tizimi.pages.dev va faqat 8 ta oflayn_* buyruq (kesh/navbat/holat); capabilities/default.json hamon faqat local: true, withGlobalTauri: false. Fayl tizimi, shell, opener, desktop_* remote'ga berilmagan.
 - Navigatsiya qo'riqchisi (`src/shell.rs`): ilovada faqat `smeta-tizimi.pages.dev` va Google kirish (`accounts.google.com`) qoladi; boshqa havolalar tizim brauzerida (`tauri-plugin-opener`) ochiladi.
 - Android: fayl/kamera tanlash wry'ning `onShowFileChooser` orqali ishlaydi (`capture` bo'lsa CAMERA ruxsati so'raladi), orqaga tugmasi WebView tarixi bo'ylab yuradi.
 - Eski rejim (mahalliy bundle + native BFF/oflayn lease) o'chirilmagan: `--features local-bff --config src-tauri/tauri.local-bff.conf.json` (Windows: `desktop-build.ps1 -LocalBff`). Standart holatda o'chiq.
+- Oflayn rejim (kesh, Fakt navbati, oflayn qobiq): OFLAYN_REJIM_V1.md. Remote origin'ga faqat tor oflayn_* ko'prigi beriladi (capabilities/remote.json).

@@ -1,5 +1,5 @@
-//! "Onlayn qobiq" (default): the window loads the live website. The remote origin gets NO Tauri IPC
-//! (capabilities are `local: true` only); this module only decides which navigations stay in the webview.
+//! "Onlayn qobiq" (default): the window loads the live website. The remote origin gets only the narrow
+//! `oflayn_*` bridge (capabilities/remote.json, see oflayn.rs); this module only decides which navigations stay in the webview.
 #![cfg_attr(feature = "local-bff", allow(dead_code))]
 use tauri::Url;
 
