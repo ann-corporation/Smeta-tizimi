@@ -1,0 +1,9 @@
+{
+  "sana": "2026-11-15",
+  "sarlavha": "Ilovalarda oflayn rejim",
+  "bandlar": [
+    "Windows va Android ilovasida internet uzilsa, oxirgi ko‘rilgan ma’lumot ekranda qoladi va tepada «Oflayn — ma’lumot HH:MM holatiga» belgisi chiqadi. Qiymatlar aynan oxirgi yuklangandek, hech narsa qayta hisoblanmaydi.",
+    "Oflayn paytda Fakt kiritish navbatga tushadi («navbatda, yuborilmagan») va aloqa qaytganda tartib bilan yuboriladi. Server qabul qilmasa (qator o‘zgargan, F-2 tasdiqlangan) yozuv jim ustidan yozilmaydi — ko‘rsatiladi. F-2, imzo, to‘lov va import oflayn ishlamaydi.",
+    "«Oflayn uchun tayyorlash» tugmasi (Loyihalar va obyektlar sahifasida) tanlangan obyektlarni ochmasdan qurilmaga yuklaydi. Ma’lumot shifrlanadi, faqat shu foydalanuvchiga tegishli, 72 soatdan keyin ishlatilmaydi."
+  ]
+}
