@@ -18,6 +18,9 @@
  *   POST { amal: 'narx_internet', kompaniya_id, sorovlar: [{id, nom, birlik, kat}] (≤ 8), hudud? }
  *        → { ok, natijalar }                           (web-search model claims seller pages; every page is opened here and
  *                                                       the price + product marks must be on it — else "not verified")
+ *   POST { amal: 'ustasi_scope', kompaniya_id, matn, fayl_idlar?: string[] }
+ *        -> { ok, scope, rad, kengaytma: { ishlar, savollar, otkazilgan }, shablon }  (AI smeta ustasi: model FAQAT Scope chiqaradi;
+ *                                                       shablon x Scope -> IshNiyati[] va hajm formulasi KOD bilan; hech narsa yozilmaydi)
  *   POST { amal: 'sahifa_suhbat', kompaniya_id, sahifa: 'fakt'|'f2', xabarlar, kontekst, natijalar?, oxirgi? }
  *        → { ok, javob, savollar, oqish, amallar }      (sahifa AI yordamchisi: o'qish vositasi so'rovlari brauzerda bajariladi,
  *                                                       amallar faqat taklif — lib/ai-yordamchi/protokol)
@@ -43,6 +46,7 @@ import { domenlarniTozala, INTERNET_NARX_SXEMA, internetJavobiniTekshir, interne
 import { keshKalit } from '../../src/lib/smeta-ai/ommaviy-narx';
 import { oqishNatijalari, sahifaJavobiniTekshir, sahifaSxema, sahifaTuri } from '../../src/lib/ai-yordamchi/protokol';
 import { SAHIFA_TIZIM, SAHIFA_YORDAM_VERSIYA } from '../../src/lib/ai-yordamchi/prompt';
+import { SCOPE_SXEMA, scopeTekshir, scopeTizim, kengaytir, XUSUSIY_UY } from '../../src/lib/smeta-ustasi';
 import { vebOl, vebUrlTekshir } from '../_shared/agent-veb';
 import { F2_NIYAT_SXEMA, f2NiyatlariniTekshir, KOEF_TANLOV_SXEMA, KP_SXEMA, hajmSonlariniTekshir, koefTanlovlariniTekshir, type KoefSorovi, NARX_TANLOV_SXEMA, SUHBAT_SXEMA, kpJavobiniTekshir, TANLOV_SXEMA, jsonAjrat, manbaMaterialiniTekshir, narxTanlovlariniTekshir, suhbatJavobiniTekshir, tanlovlarniTekshir,
   type IshNiyati, type NarxSorovi, type SuhbatXabari, type TanlovSorovi } from '../../src/lib/smeta-ai/protokol';
@@ -355,6 +359,21 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const { r, obj } = await ishonchliChaqir(chaqir,
         { system: F2_NIYAT_TIZIM, text: `<MATN>\n${matn}\n</MATN>`, tier: 'fast' as AiTier, temperature: 0, reasoning: TANLOV_FIKR, maxOutputTokens: 3000, jsonSchema: F2_NIYAT_SXEMA }, ['niyatlar']);
       return Response.json({ ok: true, niyatlar: f2NiyatlariniTekshir(obj), model: r.model }, { headers: { 'Cache-Control': 'no-store' } });
+    }
+    if (so.amal === 'ustasi_scope') {
+      // AI smeta ustasi (docs/architecture/SMETA_USTASI_V1.md): matn -> Scope (model) -> shablon kengaytirish (kod). Yozuv yo'q (faqat taklif).
+      const matn = clip(so.matn, 6000).trim();
+      if (matn.length < 10) return fail('SOROV_INVALID');
+      // Fayl dalillari keyingi bosqich: hozir qabul qilinmaydi, jim e'tiborsiz qoldirilmaydi.
+      if (Array.isArray(so.fayl_idlar) && so.fayl_idlar.length) return fail('FAYL_HALI_YOQ');
+      const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_ustasi_scope', req);
+      const { r, obj } = await ishonchliChaqir(chaqir,
+        { system: scopeTizim(XUSUSIY_UY), text: `<MATN>\n${matn}\n</MATN>`, tier: 'reasoning' as AiTier, temperature: 0.1, maxOutputTokens: 3000, jsonSchema: SCOPE_SXEMA },
+        ['elementlar', 'olchamlar']);
+      const { scope, rad } = scopeTekshir(obj, XUSUSIY_UY, matn);
+      const kengaytma = kengaytir(scope, XUSUSIY_UY);
+      return Response.json({ ok: true, scope, rad, kengaytma, shablon: { id: XUSUSIY_UY.id, versiya: XUSUSIY_UY.versiya, holat: XUSUSIY_UY.holat }, tushunildi: !!obj, model: r.model },
+        { headers: { 'Cache-Control': 'no-store' } });
     }
     if (so.amal === 'xotira') return Response.json({ ok: true, ...(await xotiraOqi(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, true)) }, { headers: { 'Cache-Control': 'no-store' } });
     if (so.amal === 'xotira_yoz') {
