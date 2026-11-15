@@ -1,4 +1,16 @@
 {
+  "android": {
+    "version": "0.1.1",
+    "generatedAtUtc": "2026-11-15T16:57:12Z",
+    "file": "qurai-0.1.1-native-release.apk",
+    "bytes": 45893454,
+    "sha256": "16caaffd927a1372b83389e5382035800aeb24fc69d8c779e211afd146233df8",
+    "signed": true,
+    "minSdk": 26
+  },
+  "ios": {
+    "mode": "pwa"
+  },
   "macos": {
     "version": "0.1.1",
     "generatedAtUtc": "2026-11-15T10:40:30Z",
@@ -7,17 +19,5 @@
     "sha256": "1ecc3ec391ffc6cff0c42650f76223da7af5b2748e324573a3f155d28af07ebe",
     "signed": false,
     "notarized": false
-  },
-  "android": {
-    "version": "0.1.1",
-    "generatedAtUtc": "2026-11-15T10:40:30Z",
-    "file": "qurai-0.1.1-release.apk",
-    "bytes": 35179342,
-    "sha256": "ffdfd45452c398ef5f3c6c674de94f4b07b3b4e4cf5be78530f8088b2342f2ef",
-    "signed": true,
-    "minSdk": 24
-  },
-  "ios": {
-    "mode": "pwa"
   }
 }
