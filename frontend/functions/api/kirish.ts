@@ -87,6 +87,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         method: 'POST',
         headers: { apikey: ctx.env.SUPABASE_KEY, Authorization: 'Bearer ' + ctx.env.SUPABASE_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ p_login: login, p_parol: parol }),
+        signal: AbortSignal.timeout(12_000), // osilib qolmasin: forma «Kirilmoqda» da muzlab turmasin
       });
       if (rr.ok) supabaseNatija = await rr.json();
     } catch (err) {
@@ -120,6 +121,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const r = await fetch(ctx.env.GAS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        signal: AbortSignal.timeout(15_000),
         body: JSON.stringify({
           __api: 1,
           token: ctx.env.GAS_TOKEN,
