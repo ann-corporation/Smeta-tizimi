@@ -16,7 +16,8 @@ android {
         applicationId = "uz.anncorp.smeta"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
+        // Tauri Android build: major*1e6+minor*1e3+patch (0.1.1 -> 1001). Start above it so a native release upgrades it in place.
+        versionCode = 2_000_000
         // Format must match the server's ilovaVersiya() regex: d{1,4}.d{1,4}.d{1,6}
         versionName = "0.1.1"
         buildConfigField("String", "API_BASE_URL", "\"https://smeta-tizimi.pages.dev\"")
@@ -29,7 +30,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"   // installs next to the Tauri build / a release build
+            manifestPlaceholders["appLabel"] = "QURAI Dev"
+        }
         release {
+            manifestPlaceholders["appLabel"] = "QURAI"
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
