@@ -13,6 +13,7 @@ import { onRequestGet as fotoDalilGet, onRequestPost as fotoDalilPost } from '..
 import { onRequestGet as profilGet, onRequestPost as profilPost } from '../profil';
 import { onRequestPost as kirishTaklifPost } from '../kirish-taklif';
 import { onRequestPost as aiSavolPost } from '../ai-savol';
+import { onRequestPost as agentIshPost } from '../agent-ish';
 
 // Native Android BFF (P0). Same trust model as api/desktop/bff.ts: verified device Bearer -> server-only cookie -> unchanged
 // middleware + handler. Roles never come from the token; the unchanged middleware derives fresh authority from the database.
@@ -32,8 +33,9 @@ const handlers: Record<string, Record<string, PagesFunction<Env>>> = {
   '/api/profil': { GET: profilGet, POST: profilPost },
   '/api/kirish-taklif': { POST: kirishTaklifPost },
   '/api/ai-savol': { POST: aiSavolPost },
+  '/api/agent-ish': { POST: agentIshPost },
 } as never;
-export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol)(?:\?[^#\s]*)?$/;
+export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol|agent-ish)(?:\?[^#\s]*)?$/;
 /** /api/profil also hosts account-security actions (parol, google/telegram ulash, hisob_birlashtir, sessions): the native device token may NOT reach them.\n *  Only the @username / people-search / invite-answer actions are exposed (USERNAME_V1). */
 export const MOBIL_PROFIL_AMAL: ReadonlySet<string> = new Set(['username_ol','username_tekshir','username_belgila','username_sozlama','qidir','kompaniyadosh_qidir','username_ommaviy','taklif_royxat','taklif_javob']);
 /** /api/kirish-taklif is public-by-design (qabul = sign-up without a session): the device may only reach yarat (director creates a phone invite link/code). */
@@ -42,6 +44,8 @@ const amalRuxsat = (amallar: ReadonlySet<string>, method: string, body: unknown)
   if (method !== 'POST') return false;
   try { const o = typeof body === 'string' ? JSON.parse(body) : body; return !!o && typeof o === 'object' && typeof (o as { amal?: unknown }).amal === 'string' && amallar.has((o as { amal: string }).amal); } catch { return false; }
 };
+/** /api/agent-ish also hosts admin/superadmin actions (models, budgets, rules, rivojlanish...): the device may reach ONLY the Jarvis chat (kasb_savol, same aiHisobli charging) and the server-side chat list/save (t2_jarvis_suhbat), identical to web. */
+export const MOBIL_AGENT_AMAL: ReadonlySet<string> = new Set(['kasb_savol','suhbat_royxat','suhbat_ol','suhbat_saqla','suhbat_ochir']);
 export const MOBIL_BFF_MAX_BYTES = 2 * 1024 * 1024;
 
 async function boundedBody(request: Request): Promise<string> {
@@ -79,7 +83,7 @@ export const onRequestPost: PagesFunction<Env> = async ctx => {
     typeof b.method !== 'string' || !['GET','POST'].includes(b.method)) return desktopFail(400, 'TARGET_INVALID');
   const target = new URL(b.path, new URL(ctx.request.url).origin);
   const handler = Object.hasOwn(handlers, target.pathname) ? handlers[target.pathname][b.method] : undefined;
-  if (!handler || (target.pathname === '/api/profil' && !amalRuxsat(MOBIL_PROFIL_AMAL, b.method, b.body)) || (target.pathname === '/api/kirish-taklif' && !amalRuxsat(MOBIL_TAKLIF_AMAL, b.method, b.body)) || (b.method === 'GET' && b.body != null) ||
+  if (!handler || (target.pathname === '/api/profil' && !amalRuxsat(MOBIL_PROFIL_AMAL, b.method, b.body)) || (target.pathname === '/api/kirish-taklif' && !amalRuxsat(MOBIL_TAKLIF_AMAL, b.method, b.body)) || (target.pathname === '/api/agent-ish' && !amalRuxsat(MOBIL_AGENT_AMAL, b.method, b.body)) || (b.method === 'GET' && b.body != null) ||
     (b.etag != null && (typeof b.etag !== 'string' || b.etag.length > 512 || /[\x00-\x1f\x7f]/.test(b.etag)))) return desktopFail(400, 'TARGET_INVALID');
   try {
     const cookie = await imzola({ rol: sess.rol, foydalanuvchi_id: sess.foydalanuvchi_id }, ctx.env.SESSIYA_KALIT, sess.exp - SESSIYA_MUDDAT_MS);

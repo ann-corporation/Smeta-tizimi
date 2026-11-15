@@ -148,3 +148,16 @@ describe('mobil BFF: @username (profil) and Jarvis (ai-savol)', () => {
     expect((await bff('/api/ai-savol', 'GET')).status).toBe(400);
   });
 });
+describe('mobil BFF: Jarvis chat (agent-ish) is allowlisted by action', () => {
+  const notTarget = async (r: Response) => expect(((await r.json().catch(() => ({}))) as { code?: string }).code).not.toBe('TARGET_INVALID');
+  it.each(['kasb_savol', 'suhbat_royxat', 'suhbat_ol', 'suhbat_saqla', 'suhbat_ochir'])('allows %s', async amal => {
+    await notTarget(await bff('/api/agent-ish', 'POST', { amal, kompaniya_id: 8, savol: 'salom' }));
+  });
+  it.each(['model_tanla', 'byudjet_belgila', 'ustama_belgila', 'model_openrouterdan_qosh', 'buyruq_yubor', 'bilim_yoz', 'harakat_qaror', '', undefined])('refuses admin action %s', async amal => {
+    expect((await bff('/api/agent-ish', 'POST', { amal, kompaniya_id: 8 })).status).toBe(400);
+  });
+  it('refuses GET and a body-less POST', async () => {
+    expect((await bff('/api/agent-ish', 'GET')).status).toBe(400);
+    expect((await bff('/api/agent-ish', 'POST')).status).toBe(400);
+  });
+});

@@ -134,7 +134,7 @@ private fun AppNav(events: AuthEvents, start: String) {
         }
         composable(PICK_FAKT) { PickObjectScreen(R.string.mod_fact, onBack = { nav.popBackStack() }) { nav.navigate("fakt/$it") } }
         composable(PICK_PHOTO) { PickObjectScreen(R.string.mod_photo, onBack = { nav.popBackStack() }) { nav.navigate("photo/$it") } }
-        composable(JARVIS) { JarvisScreen(onBack = { nav.popBackStack() }) }
+        composable("$JARVIS?obyekt={obyekt}", listOf(navArgument("obyekt") { type = NavType.LongType; defaultValue = -1L })) { JarvisScreen(onBack = { nav.popBackStack() }) }
         composable(PEOPLE_INVITE) { CompanyInviteScreen(onBack = { nav.popBackStack() }) }
         composable(PEOPLE_INVITES) { InvitesScreen(onBack = { nav.popBackStack() }, onAccepted = { nav.navigate(HOME) { popUpTo(HOME) { inclusive = true } } }) }
         composable(OUTBOX) { OutboxScreen(onBack = { nav.popBackStack() }, onEditDraft = { nav.navigate("draft/$it") }) }
