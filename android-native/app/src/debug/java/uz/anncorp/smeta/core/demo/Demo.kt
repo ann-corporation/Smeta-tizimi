@@ -83,6 +83,8 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
                 val id = path.substringAfter("obyekt_id=").toLongOrNull() ?: return ApiResult(400, null)
                 if (id == 102L || id == 103L) return ApiResult(403, buildJsonObject { put("ok", false); put("code", "PERMISSION_DENIED") }, "PERMISSION_DENIED")
                 if (etag == "demo-etag-$id") return ApiResult(304, null, null, etag)
+                // Object 104 serves a synthetic 26 000-row packet (40 sections x 160 works x 3 resources) to measure tree scrolling and search.
+                if (id == 104L) return ApiResult(200, bigPacket(id), null, "demo-etag-$id")
                 val o = json.parseToJsonElement(asset("paket.json")).jsonObject
                 ApiResult(200, JsonObject(o + ("obyekt_id" to JsonPrimitive(id))), null, "demo-etag-$id")
             }
@@ -96,6 +98,10 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
                     s("soro") == "akt_reestr_obyekt_v1" -> ok(asset("f2list.json"))
                     s("soro") == "modul_holat_v1" -> ok("""{"ok":true,"natija":{"ok":true,"modullar":[{"kod":"module.hr","holat":"off"},{"kod":"module.moliya","holat":"on"}]}}""")
                     jadval == "t2_obyekt_jami" -> ok(asset("objects.json"))
+                    jadval == "t2_zayavka_royxat" -> ok("""{"ok":true,"soni":3,"jamiServerda":3,"toliq":true,"qatorlar":[
+ {"id":31,"kompaniya_id":1,"obyekt_id":101,"item_text":"Armatura A500C d12","requested_qty":3.5,"unit":"t","status":"approved","delivered_qty":0,"required_date":"2026-11-20","priority":"yuqori","created_at":"2026-11-14T09:00:00+00:00"},
+ {"id":30,"kompaniya_id":1,"obyekt_id":101,"item_text":"Sement M400 qop","requested_qty":240,"unit":"qop","status":"partially_delivered","delivered_qty":100,"required_date":null,"priority":"orta","created_at":"2026-11-12T09:00:00+00:00"},
+ {"id":29,"kompaniya_id":1,"obyekt_id":102,"item_text":"Gvozd 100 mm","requested_qty":15.75,"unit":"kg","status":"submitted","delivered_qty":0,"required_date":"2026-11-18","priority":"past","created_at":"2026-11-10T09:00:00+00:00"}]}""")
                     jadval == "t2_sklad_qoldiq" -> ok(asset("ombor_stock.json"))
                     jadval == "t2_sklad_royxat" -> ok(asset("ombor_warehouses.json"))
                     s("soro") == "sklad_markaziy_qoldiq_v1" -> ok(asset("ombor_central.json"))
@@ -147,6 +153,53 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
         }
     }
 
+    /** Synthetic columnar packet (same wire shape as paket.json) with ~26k rows. Deterministic, no real data. */
+    private fun bigPacket(id: Long): JsonObject {
+        val sections = 40; val works = 160; val res = 3
+        val ids = ArrayList<Long>(); val ota = ArrayList<Long?>(); val dar = ArrayList<Int>(); val tart = ArrayList<Int>(); val tur = ArrayList<Int>(); val kat = ArrayList<Int?>()
+        val kod = ArrayList<Int?>(); val nom = ArrayList<Int>(); val bir = ArrayList<Int?>(); val hajm = ArrayList<Double?>(); val narx = ArrayList<Double?>(); val summa = ArrayList<Double?>()
+        var next = 10_000L
+        for (s in 0 until sections) {
+            val sid = next++
+            ids += sid; ota += null; dar += 0; tart += s + 1; tur += 0; kat += null; kod += null; nom += s % 40; bir += null; hajm += null; narx += null; summa += null
+            for (w in 0 until works) {
+                val wid = next++
+                val qty = 10.0 + (w % 17) * 3.5
+                ids += wid; ota += sid; dar += 1; tart += w + 1; tur += 1; kat += null; kod += (s * works + w) % 200; nom += 40 + (w % 120); bir += w % 4; hajm += qty; narx += 1000.0 * (1 + w % 9); summa += qty * 1000.0 * (1 + w % 9)
+                for (r in 0 until res) {
+                    ids += next++; ota += wid; dar += 2; tart += r + 1; tur += if (r == 2) 3 else 2; kat += r; kod += (w * 3 + r) % 200; nom += 160 + (r + w) % 30; bir += r; hajm += qty * (r + 1); narx += 100.0 * (r + 1); summa += qty * (r + 1) * 100.0 * (r + 1)
+                }
+            }
+        }
+        val n = ids.size
+        fun <T> col(l: List<T>, put: (T) -> kotlinx.serialization.json.JsonElement) = kotlinx.serialization.json.JsonArray(l.map(put))
+        fun num(v: Number?) = if (v == null) kotlinx.serialization.json.JsonNull else JsonPrimitive(v)
+        val zero = kotlinx.serialization.json.JsonArray(List(n) { JsonPrimitive(0) })
+        val lugat = buildJsonObject {
+            put("nom", kotlinx.serialization.json.JsonArray((0 until 190).map { JsonPrimitive(if (it < 40) "RAZDEL ${it + 1}" else "POZITSIYA $it") }))
+            put("kod", kotlinx.serialization.json.JsonArray((0 until 200).map { JsonPrimitive("K%03d".format(it)) }))
+            put("birlik", kotlinx.serialization.json.JsonArray(listOf("m3", "t", "m2", "sht").map { JsonPrimitive(it) }))
+            put("tur", kotlinx.serialization.json.JsonArray(listOf("rz", "bl", "rs", "mat", "ob").map { JsonPrimitive(it) }))
+            put("kat", kotlinx.serialization.json.JsonArray(listOf("CHEL", "MASH", "MAT", "OB").map { JsonPrimitive(it) }))
+        }
+        val q = buildJsonObject {
+            put("id", col(ids) { num(it) }); put("ota_id", col(ota) { num(it) }); put("daraja", col(dar) { num(it) }); put("tartib", col(tart) { num(it) })
+            put("tur", col(tur) { num(it) }); put("kat", col(kat) { num(it) }); put("kod", col(kod) { num(it) }); put("nom", col(nom) { num(it) }); put("birlik", col(bir) { num(it) })
+            put("hajm", col(hajm) { num(it) }); put("narx", col(narx) { num(it) }); put("summa", col(summa) { num(it) })
+            put("norma", kotlinx.serialization.json.JsonArray(List(n) { kotlinx.serialization.json.JsonNull }))
+            put("narx_usul", kotlinx.serialization.json.JsonArray(List(n) { kotlinx.serialization.json.JsonNull }))
+            put("versiya", kotlinx.serialization.json.JsonArray(List(n) { JsonPrimitive(1) })); put("qoshimcha", zero); put("zamena", zero); put("xom_qator", JsonObject(emptyMap()))
+        }
+        val fakt = kotlinx.serialization.json.JsonArray(hajm.map { num(if (it == null) 0.0 else it * 0.4) })
+        val h = buildJsonObject {
+            put("fakt_hajm", fakt); put("fakt_summa", zero); put("f2_hajm", zero); put("f2_summa", zero); put("f2_summa_nomalum", zero)
+            put("direct_fakt_hajm", fakt); put("fakt_manbasi", zero); put("almashtirilgan_hajm", JsonObject(emptyMap())); put("almashtirilgan_summa", JsonObject(emptyMap()))
+        }
+        return buildJsonObject {
+            put("format", "t2-paket/1"); put("obyekt_id", id); put("obyekt_nom", "Demo katta obyekt"); put("kompaniya_id", 1); put("soni", n)
+            put("lugat", lugat); put("q", q); put("h", h); put("f2", kotlinx.serialization.json.JsonArray(emptyList())); put("meta", JsonObject(emptyMap()))
+        }
+    }
     private var demoUsername: String? = "ali_valiyev"
     private var demoPhoneSearch = "hammasi"
     private val demoInvites = mutableListOf(
