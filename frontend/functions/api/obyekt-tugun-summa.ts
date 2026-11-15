@@ -62,7 +62,8 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       return { id: r.id, ota_id: r.ota_id, tur: String(r.tur), kat: r.kat, smeta: r.summa, fakt: h?.fakt_summa ?? null, f2: h?.f2_summa ?? null };
     });
     const ustama = natija.u.ok ? natija.u.ustama : null;
-    const d = tugunDaraxti(qatorlar, ustama);\n    const m = d.tugunlar;
+    const d = tugunDaraxti(qatorlar, ustama);
+    const m = d.tugunlar;
     const uch = (x: { qqsBilan: number | null; ustamali: number | null; ustamasiz: number | null }) => [x.qqsBilan, x.ustamali, x.ustamasiz];
     const tugunlar = [...m].map(([id, t]) => [id, uch(t.smeta), uch(t.fakt), uch(t.f2)]);
     return Response.json({ ok: true, obyekt_id: obyektId, ustama: ustama ? 'bor' : 'yoq', obyekt: [uch(d.obyekt.smeta), uch(d.obyekt.fakt), uch(d.obyekt.f2)], ...(ustama ? {} : { sabab: natija.u.ok ? 'USTAMA_YOQ' : natija.u.xato.slice(0, 160) }), tugunlar }, { headers: NO_STORE });
