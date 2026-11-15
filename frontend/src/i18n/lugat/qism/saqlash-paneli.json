@@ -9,5 +9,7 @@
   "Saqlandi": { "ru": "Сохранено", "en": "Saved" },
   "Saqlanmoqda…": { "ru": "Сохранение…", "en": "Saving…" },
   "Saqlash paneli": { "ru": "Панель сохранения", "en": "Save panel" },
-  "Bekor qilish": { "ru": "Отмена", "en": "Cancel" }
+  "Bekor qilish": { "ru": "Отмена", "en": "Cancel" },
+  "Karta arxivga o‘tkaziladi: ro‘yxatdan yashiriladi (o‘chirilmaydi). Davom etasizmi?": { "ru": "Карточка будет архивирована: скрыта из списка (не удаляется). Продолжить?", "en": "The card will be archived: hidden from the list (not deleted). Continue?" },
+  "Narx dalili olib tashlanadi — qator dalilsiz qoladi. Davom etasizmi?": { "ru": "Обоснование цены будет снято — строка останется без обоснования. Продолжить?", "en": "The price evidence will be removed — the line will have no evidence. Continue?" }
 }

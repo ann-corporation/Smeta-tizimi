@@ -83,7 +83,6 @@ function Tafsilot({ sh, kid, onSaqlandi }: { sh: QarzShartnoma; kid: number; onS
     const qator = qs.filter((q, i) => !sh.qatorlar[i] || JSON.stringify(q) !== JSON.stringify(shakldan(sh.qatorlar[i]))).length;
     return och.length + qator + spravka;
   }, [qs, och, sp, sh]);
-  const ozgargan = ozgarishSoni > 0;
 
   const jonli = useMemo(() => qarzHisobla({
     qatorlar: qs.map(asosdan), tolovT2: sh.tolov_t2, shartnomaSumma: sh.shartnoma_summa, spravkaQarz: sonOl(sp.qarz), spravkaTolangan: sonOl(sp.tolangan),
