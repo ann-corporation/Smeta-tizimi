@@ -36,7 +36,7 @@ export function jarvisSalommi(text: string): boolean {
 }
 
 export function jarvisSalomJavobi(): string {
-  return 'Salom! Men Jarvis — TIZIM_02 yordamchisiman. Sizga qanday yordam bera olaman?';
+  return 'Salom! Men Jarvis — QURAI yordamchisiman. Sizga qanday yordam bera olaman?';
 }
 
 export function jarvisRahmatJavobi(): string {

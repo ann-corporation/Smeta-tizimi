@@ -20,7 +20,7 @@
   "Hisob faol emas. Administratorga murojaat qiling.": { "ru": "Аккаунт неактивен. Обратитесь к администратору.", "en": "The account is inactive. Contact the administrator." },
   "Havola topilmadi. Saytdan yangi havola oling.": { "ru": "Ссылка не найдена. Получите новую ссылку на сайте.", "en": "Link not found. Get a new link on the website." },
   "Server bilan aloqa yo‘q. Birozdan keyin urinib ko‘ring.": { "ru": "Нет связи с сервером. Попробуйте чуть позже.", "en": "No connection to the server. Please try again shortly." },
-  "Assalomu alaykum! Smeta tizimi boti.": { "ru": "Здравствуйте! Бот системы Smeta.", "en": "Hello! This is the Smeta system bot." },
+  "Assalomu alaykum! QURAI boti.": { "ru": "Здравствуйте! Бот QURAI.", "en": "Hello! This is the QURAI bot." },
   "Tizimni ochish uchun tugmani bosing.": { "ru": "Нажмите кнопку, чтобы открыть систему.", "en": "Press the button to open the system." },
   "Hisob ma’lumotini o‘qib bo‘lmadi.": { "ru": "Не удалось прочитать данные аккаунта.", "en": "Could not read the account data." },
   "Siz: {ism}": { "ru": "Вы: {ism}", "en": "You: {ism}" },

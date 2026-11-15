@@ -26,7 +26,7 @@ export type { ProductScreenshot } from './ProductShowcase';
 export const OWNER_PHONE = '+998505012566';
 const PHONE_LABEL = '+998 50 501 25 66';
 /** Product name is a brand, not translatable copy. */
-export const BRAND = 'TIZIM_02', BRAND_WORD = 'TIZIM', BRAND_NUMBER = '02';
+export const BRAND = 'QURAI', BRAND_WORD = 'QUR', BRAND_NUMBER = 'AI';
 type Props = { children: ReactNode; onChooseAuth: (mode: 'login' | 'signup') => void; screenshots?: readonly ProductScreenshot[]; supportPort?: PublicSupportPort; /** Allaqachon tizimda: «Tizimga kirish» o'rniga ilovaga o'tish tugmasi. */ kirgan?: boolean; onOpenApp?: () => void };
 type Local = (s: EntryCopy) => string;
 
@@ -40,7 +40,7 @@ const copy = {
     q3: 'Savolim bo‘lsa, kimga murojaat qilaman?', a3: 'Admin bilan telefon orqali bog‘laning. Qaysi sahifada va qaysi amalni bajarayotganda muammo yuz berganini ayting.',
     contactTitle: 'Ishni boshlashda yordam kerakmi?', contactText: 'Tizimdan foydalanish bo‘yicha savol va muammolar yuzasidan admin bilan bog‘laning.', call: 'Qo‘ng‘iroq qilish',
     help: 'Qo‘llanma', helpTitle: 'Tizimdan foydalanish qo‘llanmasi', helpNote: 'Bu yerda ko‘p so‘raladigan savollarga javob topasiz. Ushbu oynadan xabar yuborilmaydi; admin bilan telefon orqali bog‘lanishingiz mumkin.', close: 'Qo‘llanmani yopish',
-    footer: 'TIZIM_02 · Qurilish uchun raqamli ish joyi', skip: 'Kirish formasiga o‘tish',
+    footer: 'QURAI · Qurilish uchun raqamli ish joyi', skip: 'Kirish formasiga o‘tish',
   },
   ru: {
     capabilities: 'Возможности', workflow: 'Как это работает', contact: 'Контакты', login: 'Войти', signup: 'Регистрация',
@@ -51,7 +51,7 @@ const copy = {
     q3: 'К кому обратиться с вопросом?', a3: 'Свяжитесь с администратором по телефону. Укажите страницу и действия перед ошибкой — это поможет разобраться.',
     contactTitle: 'Нужна помощь с началом?', contactText: 'Вопросы и проблемы по системе можно обсудить с администратором.', call: 'Позвонить',
     help: 'Руководство', helpTitle: 'Руководство по системе', helpNote: 'Здесь собраны ответы на частые вопросы. Сообщения из этого окна не отправляются; с администратором можно связаться по телефону.', close: 'Закрыть руководство',
-    footer: 'TIZIM_02 · Цифровое рабочее место для строительства', skip: 'Перейти к форме входа',
+    footer: 'QURAI · Цифровое рабочее место для строительства', skip: 'Перейти к форме входа',
   },
   en: {
     capabilities: 'Features', workflow: 'How it works', contact: 'Contact', login: 'Sign in', signup: 'Sign up',
@@ -62,7 +62,7 @@ const copy = {
     q3: 'Who can help with a question?', a3: 'Call the admin. Include the page name and what you did before the error to help identify the problem.',
     contactTitle: 'Need help getting started?', contactText: 'Contact the admin with questions and issues about the system.', call: 'Call the admin',
     help: 'Guide', helpTitle: 'Getting started guide', helpNote: 'Find answers to common questions here. This panel does not send messages; you can contact the admin by phone.', close: 'Close guide',
-    footer: 'TIZIM_02 · A digital workspace for construction', skip: 'Skip to sign-in form',
+    footer: 'QURAI · A digital workspace for construction', skip: 'Skip to sign-in form',
   },
 };
 

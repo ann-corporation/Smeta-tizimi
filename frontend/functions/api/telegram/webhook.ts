@@ -134,7 +134,7 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
     case 'start': {
       const m = await tgRpc<Men>(env, 't2_men_v1', { p_actor_id: uid });
       const ism = m?.ok ? (m.foydalanuvchi?.ism || m.foydalanuvchi?.login || '') : '';
-      await xabarYubor(env, chatId, [tgT('Assalomu alaykum! Smeta tizimi boti.', til),
+      await xabarYubor(env, chatId, [tgT('Assalomu alaykum! QURAI boti.', til),
         ism ? tgT('Hisob ulangan: {ism}', til, { ism }) : tgT('Hisob ulangan.', til), '', yordamMatni(til)].join('\n'), { reply_markup: startTugmalari(env, til) });
       return 'salom';
     }

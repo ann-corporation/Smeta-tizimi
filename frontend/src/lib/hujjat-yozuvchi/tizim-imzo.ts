@@ -7,10 +7,10 @@
  *
  * Imzo — FAQAT kolontitul va hujjat xususiyatlari: kataklar, maket, Print_Area, rasmiy shakl (F2, F3, LRV)
  * va undagi imzo bloklari (ЗАКАЗЧИК/ПОДРЯДЧИК) o'zgarmaydi. Kolontitul sahifa chetida (margin) bosiladi.
- *   • pastki kolontitul: chapda «Smeta tizimi · smeta-tizimi.pages.dev · <hujjat>», o'ngda
+ *   • pastki kolontitul: chapda «QURAI · smeta-tizimi.pages.dev · <hujjat>», o'ngda
  *     «<foydalanuvchi> · <sana vaqt> · Код <tekshirish kodi>»; markazdagi mavjud matn (Страница &P из &N) saqlanadi.
  *     Shablonning pastki chap/o'ng qismi band bo'lsa — yuqori kolontitulga, u ham band bo'lsa — o'ng qism oxiriga.
- *   • xususiyatlar: Creator / Company / Application «Smeta tizimi», LastModifiedBy — foydalanuvchi,
+ *   • xususiyatlar: Creator / Company / Application «QURAI», LastModifiedBy — foydalanuvchi,
  *     Description va Keywords — tekshirish kodi.
  *
  * Tekshirish kodi — hujjat MAZMUNI xeshi (varaqlar + sharedStrings; kolontitul va docProps hisobga olinmaydi):
@@ -24,7 +24,7 @@ import { strFromU8, strToU8, unzipSync, zipSync, type Unzipped } from 'fflate';
 import { isZip, unEsc, xmlEsc } from './ooxml';
 import { tizimImzoJoriyFoydalanuvchi } from './tizim-imzo-foydalanuvchi';
 
-export const TIZIM_IMZO_BREND = 'Smeta tizimi';
+export const TIZIM_IMZO_BREND = 'QURAI';
 export const TIZIM_IMZO_SAYT = 'smeta-tizimi.pages.dev';
 const BELGI = `${TIZIM_IMZO_BREND} · ${TIZIM_IMZO_SAYT}`;
 const KOD_RE = /Код [0-9A-Z]{5}-[0-9A-Z]{5}/;

@@ -289,7 +289,7 @@ function AdminShellInner() {
           />
           {sidebarKengaygan && (
             <div className="min-w-0 flex-1">
-              <span className="fz-sidebar__name" title={k.joriy?.nom}>{!k.globalRejim && k.joriy?.nom ? k.joriy.nom : 'Smeta tizimi'}</span>
+              <span className="fz-sidebar__name" title={k.joriy?.nom}>{!k.globalRejim && k.joriy?.nom ? k.joriy.nom : 'QURAI'}</span>
               <span className="fz-sidebar__role">
                 {k.superadmin ? 'Superadmin · platforma' : (k.joriy?.rol === 'boss' ? 'Kompaniya rahbari' : (k.joriy?.rol || (k.yuklanmoqda ? '…' : 'Kompaniya tanlanmagan')))}
                 {k.superadmin && k.joriy?.membershipRole && <> · {k.joriy.membershipRole}</>}
