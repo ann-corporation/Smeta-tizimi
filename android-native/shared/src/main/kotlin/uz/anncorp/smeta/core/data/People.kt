@@ -267,7 +267,7 @@ private fun JsonElement.long(): Long? = (this as? JsonPrimitive)?.longOrNull
 private fun JsonElement.int(): Int? = (this as? JsonPrimitive)?.intOrNull
 private fun JsonElement.bool(): Boolean? = (this as? JsonPrimitive)?.booleanOrNull
 private fun JsonElement?.strings(): List<String> = (this as? JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content }
-internal fun JsonElement.profile(): PersonProfile? {
+fun JsonElement.profile(): PersonProfile? {
     val o = this as? JsonObject ?: return null
     return PersonProfile(o["id"]?.long() ?: return null, o.str("ism").orEmpty(), o.str("username"), o.str("avatar_rang"))
 }
