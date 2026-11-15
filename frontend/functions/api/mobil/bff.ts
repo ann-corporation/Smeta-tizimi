@@ -3,6 +3,7 @@ import { desktopDenyCode, desktopFail, verifiedDesktopDevice, type DesktopEnv } 
 import { onRequest as existingMiddleware } from '../_middleware';
 import { onRequestGet as sessionGet } from '../sessiya';
 import { onRequestGet as packetGet } from '../obyekt-paket';
+import { onRequestGet as tugunSummaGet } from '../obyekt-tugun-summa';
 import { onRequestPost as sbPost } from '../sb';
 import { onRequestGet as companyGet, onRequestPost as companyPost } from '../company';
 import { onRequestPost as writePost } from '../sb-yoz';
@@ -32,6 +33,7 @@ const handlers: Record<string, Record<string, PagesFunction<Env>>> = {
   '/api/sb': { POST: sbPost },
   '/api/sb-yoz': { POST: writePost },
   '/api/obyekt-paket': { GET: packetGet },
+  '/api/obyekt-tugun-summa': { GET: tugunSummaGet },
   '/api/hujjat-aylanish': { GET: hujjatAylanishGet, POST: hujjatAylanishPost },
   '/api/foto-dalil': { GET: fotoDalilGet, POST: fotoDalilPost },
   '/api/profil': { GET: profilGet, POST: profilPost },
@@ -45,7 +47,7 @@ const handlers: Record<string, Record<string, PagesFunction<Env>>> = {
   // Yagona hujjat dvigateli: server tayyor XLSX/PDF qaytaradi (ro'yxat ham serverdan); ilovada shablon yo'q.
   '/api/hujjat-yarat': { POST: hujjatYaratPost },
 } as never;
-export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol|agent-ish|qulf|hujjat-royxat|hujjat-ol|hujjat-yarat)(?:\?[^#\s]*)?$/;
+export const MOBIL_PATH = /^\/api\/(sessiya|ish-joyi|modullarim|company|sb|sb-yoz|obyekt-paket|obyekt-tugun-summa|hujjat-aylanish|foto-dalil|profil|kirish-taklif|ai-savol|agent-ish|qulf|hujjat-royxat|hujjat-ol|hujjat-yarat)(?:\?[^#\s]*)?$/;
 /** /api/profil also hosts account-security actions (parol, google/telegram ulash, hisob_birlashtir, sessions): the native device token may NOT reach them.\n *  Only the @username / people-search / invite-answer actions are exposed (USERNAME_V1). */
 export const MOBIL_PROFIL_AMAL: ReadonlySet<string> = new Set(['username_ol','username_tekshir','username_belgila','username_sozlama','qidir','kompaniyadosh_qidir','username_ommaviy','taklif_royxat','taklif_javob']);
 /** /api/kirish-taklif is public-by-design (qabul = sign-up without a session): the device may only reach yarat (director creates a phone invite link/code). */

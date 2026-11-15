@@ -4,7 +4,7 @@ import { base64url, deviceHash, ANDROID_ORIGIN, DESKTOP_ORIGIN } from '../_share
 import { sessiyaOl } from '../_shared/auth';
 import { vakolatKeshTozala } from '../_shared/role-authority';
 import { otaKeshTozala } from '../_shared/ota-kesh';
-import { onRequestPost as gateway } from './mobil/bff';
+import { onRequestPost as gateway, MOBIL_PATH } from './mobil/bff';
 
 const env = { SUPABASE_URL: 'https://synthetic.supabase.co', SUPABASE_KEY: 'synthetic-only', SESSIYA_KALIT: 'synthetic-only'.repeat(3),
   GAS_URL: 'https://synthetic.invalid', GAS_TOKEN: 'synthetic' };
@@ -206,5 +206,13 @@ describe('mobil BFF: documents (hujjat-royxat list + hujjat-ol binary download)'
     expect(r.status).toBe(400);
     expect((await r.json() as { code: string }).code).toBe('PARAMETR_YOQ'); // handler reached after middleware (document.read for company 8)
     expect((await bff('/api/hujjat-yarat', 'GET')).status).toBe(400);
+  });
+});
+
+describe('MOBIL_PATH allow-list: per-node sums', () => {
+  it('obyekt-tugun-summa (GET, obyekt_id) is reachable; look-alikes are not', () => {
+    expect(MOBIL_PATH.test('/api/obyekt-tugun-summa?obyekt_id=4')).toBe(true);
+    expect(MOBIL_PATH.test('/api/obyekt-tugun-summa-x?obyekt_id=4')).toBe(false);
+    expect(MOBIL_PATH.test('/api/obyekt-tugun')).toBe(false);
   });
 });

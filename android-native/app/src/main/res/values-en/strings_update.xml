@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="upd_title">New version</string>
+    <string name="upd_body">Version %1$s is available. Download it to update.</string>
+    <string name="upd_later">Later</string>
+    <string name="upd_get">Download</string>
+</resources>

@@ -10,6 +10,7 @@ import uz.anncorp.smeta.core.db.AppDb
 object Demo {
     fun enabled(context: Context): Boolean = false
     fun forcedOffline(context: Context): Boolean? = null
-    fun bff(context: Context, json: Json): BffApi? = null
+    fun bff(context: Context, json: Json, stepUp: () -> uz.anncorp.smeta.core.security.StepUpHandler? = { null }, tasdiq: uz.anncorp.smeta.core.security.TasdiqStore? = null): BffApi? = null
     suspend fun seed(context: Context, db: AppDb) {}
+    fun updateManifest(context: Context): String? = null
 }
