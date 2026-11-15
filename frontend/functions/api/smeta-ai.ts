@@ -345,7 +345,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         { system: (kim ? kim + '\n\n' : '') + tizim + xotiraBloklari(xotira), text, tier: 'reasoning' as AiTier, temperature: 0.2, maxOutputTokens: 5000, jsonSchema: sahifaSxema(sahifa) },
         ['javob', 'amallar', 'oqish']);
       const out = sahifaJavobiniTekshir(obj, sahifa);
-      return Response.json({ ok: true, ...out, ...(oxirgi ? { oqish: [] } : {}), tushunildi: !!obj, model: r.model, versiya: SAHIFA_YORDAM_VERSIYA,
+      if (oxirgi && out.oqish.length) return fail('AYLANISH_TUGADI', 422);
+      return Response.json({ ok: true, ...out, tushunildi: !!obj, model: r.model, versiya: SAHIFA_YORDAM_VERSIYA,
         ...(ogohlantirish ? { ogohlantirish } : {}) }, { headers: { 'Cache-Control': 'no-store' } });
     }
     if (so.amal === 'f2_niyat') {
