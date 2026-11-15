@@ -53,8 +53,8 @@ export const onRequestPost: PagesFunction<Env> = async ctx => {
     const headers = new Headers({ Cookie: 'sess=' + cookie, Origin: target.origin, 'Sec-Fetch-Site': 'same-origin', 'Content-Type': contentType });
     const request = new Request(target.href, { method: 'POST', headers, body: bytes });
     const data = {};
-    const internal = { ...ctx, request, data, next: () => uploadPost({ ...ctx, request, data } as typeof ctx) as Promise<Response> };
-    const response = await existingMiddleware(internal as typeof ctx);
+    const internal = { ...ctx, request, data, next: () => uploadPost({ ...ctx, request, data } as never) as Promise<Response> };
+    const response = await existingMiddleware(internal as never);
     const responseHeaders = new Headers(response.headers);
     responseHeaders.delete('Set-Cookie');
     responseHeaders.set('Cache-Control', 'no-store');
