@@ -60,7 +60,7 @@ export function UsernameKarta({ ism, login, rejim = 'karta', telegramUsername, o
         if (!r.ok) { setHolat('xato'); setXatoKod(r.code); return; }
         setTekshiruv(r);
         setHolat(r.bosh ? 'tayyor' : 'bosh_emas');
-        setXatoKod(r.sabab);
+        setXatoKod(r.ushlangan ? 'USERNAME_USHLANGAN' : r.sabab);
       });
     }, DEBOUNCE_MS);
     return () => clearTimeout(id);

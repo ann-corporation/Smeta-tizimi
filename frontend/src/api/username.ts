@@ -8,7 +8,7 @@ import { t } from '../i18n/til';
 export type OdamProfil = { id: number; ism: string; username: string | null; avatar_rang: string | null };
 export type TelefonQidiruv = 'hammasi' | 'kompaniyadosh' | 'hech';
 export type UsernameHolat = { username: string | null; ism: string | null; telefon_qidiruv: TelefonQidiruv; bugun_qoldi: number };
-export type UsernameTekshiruv = { yaroqli: boolean; sabab: string | null; bosh: boolean; band: boolean; variantlar: string[] };
+export type UsernameTekshiruv = { yaroqli: boolean; sabab: string | null; bosh: boolean; band: boolean; ushlangan?: boolean; variantlar: string[] };
 export type QidiruvNatija = { topildi: boolean; tur: 'username' | 'telefon' | 'email'; profil: OdamProfil | null };
 export type KelganTaklif = { id: number; kompaniya_id: number; kompaniya_nom: string; rol: string; tugaydi: string; taklif_qiluvchi: OdamProfil };
 export type Natija<T> = ({ ok: true } & T) | { ok: false; code: string; status: number } & Partial<{ tur: string; telefon_taklif: boolean; telefon: string | null }>;
@@ -43,6 +43,7 @@ const XATO: Readonly<Record<string, string>> = {
   USERNAME_UNDERSCORE: 'Ketma-ket ikki pastki chiziq va oxirgi pastki chiziq mumkin emas.',
   USERNAME_BAND_SOZ: 'Bu nom tizim uchun band qilingan.',
   USERNAME_BAND: 'Bu username band.',
+  USERNAME_USHLANGAN: 'Bu username yaqinda bo‘shatilgan — avvalgi egasi uchun 7 kun band.',
   USERNAME_LIMIT: 'Bugun username’ni o‘zgartirish limiti tugadi (kuniga 5 marta).',
   LIMIT: 'Juda ko‘p so‘rov. Birozdan keyin qayta urinib ko‘ring.',
   KOP_URINISH: 'Juda ko‘p so‘rov. Birozdan keyin qayta urinib ko‘ring.',

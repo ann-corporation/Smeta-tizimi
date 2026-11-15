@@ -57,9 +57,10 @@ describe('/api/profil — username', () => {
   });
 
   it('username_belgila: null — o‘chirish; band → 409; limit → 429', async () => {
-    const f = mockFetch({ t2_username_belgila_v1: (b: any) => (b.p_username === null ? { ok: true, username: null } : b.p_username === 'band_user' ? { ok: false, code: 'USERNAME_BAND' } : { ok: false, code: 'USERNAME_LIMIT' }) });
+    const f = mockFetch({ t2_username_belgila_v1: (b: any) => (b.p_username === null ? { ok: true, username: null } : b.p_username === 'band_user' ? { ok: false, code: 'USERNAME_BAND' } : b.p_username === 'ushlangan_user' ? { ok: false, code: 'USERNAME_USHLANGAN' } : { ok: false, code: 'USERNAME_LIMIT' }) });
     expect(await J(await post({ amal: 'username_belgila', username: null }))).toEqual({ ok: true, username: null });
     expect((await post({ amal: 'username_belgila', username: 'band_user' })).status).toBe(409);
+    expect((await post({ amal: 'username_belgila', username: 'ushlangan_user' })).status).toBe(409);
     expect((await post({ amal: 'username_belgila', username: 'limit_user' })).status).toBe(429);
     expect(chaqiruv(f, 't2_username_belgila_v1')[0].p_username).toBeNull();
   });

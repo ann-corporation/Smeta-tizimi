@@ -4,7 +4,7 @@
 --
 --  1) t2_foydalanuvchi: username (kichik harf, 5..32, [a-z0-9_], harf bilan boshlanadi, "__" va oxirgi "_" yo'q, band so'zlar yo'q, noyob),
 --     telefon_qidiruv ('hammasi' | 'kompaniyadosh' | 'hech', sukut 'hammasi' — faqat ANIQ moslik).
---  2) t2_username_zahira (band so'zlar), t2_username_tarix (o'zgartirish tarixi -> sutkasiga 5 ta limit), t2_qidiruv_log (kim, qaysi tur, topildimi — QIYMAT SAQLANMAYDI).
+--  2) t2_username_zahira (band so'zlar), t2_username_ushlash (bo'shatilgan nom 7 kun avvalgi egasi uchun band), t2_username_tarix (o'zgartirish tarixi -> sutkasiga 5 ta limit), t2_qidiruv_log (kim, qaysi tur, topildimi — QIYMAT SAQLANMAYDI).
 --  3) RPC lar (service_role, actor = p_actor_id): belgila, tekshir(+variantlar), ol, sozlama, qidir (username|telefon|email, exact), kompaniyadosh_qidir (prefiks, faqat
 --     kompaniyadoshlar orasida), ommaviy (id -> username, faqat kompaniyadoshlar), taklif yubor / royxat / javob (KUTILADIGAN taklif — hech kim jimgina a'zo qilinmaydi).
 -- Telefon/email HECH QACHON javobda qaytmaydi. Qidiruv: soatiga 30 (telefon/email) va 120 (username) — _t2_kirish_limit_v1 orqali; har qidiruv logga yoziladi.
@@ -45,6 +45,13 @@ create table if not exists public.t2_username_tarix (
   eski text, yangi text, yaratildi timestamptz not null default now());
 create index if not exists t2_username_tarix_user_idx on public.t2_username_tarix (foydalanuvchi_id, yaratildi desc);
 
+-- Bo'shatilgan/o'zgartirilgan username 7 kun avvalgi egasi uchun «band» (ushlab turiladi); shu muddatda faqat avvalgi egasi qaytarib ola oladi.
+create table if not exists public.t2_username_ushlash (
+  nom text primary key check (nom = lower(nom)),
+  egasi_id bigint not null references public.t2_foydalanuvchi(id) on delete cascade,
+  tugaydi timestamptz not null);
+create index if not exists t2_username_ushlash_egasi_idx on public.t2_username_ushlash (egasi_id);
+
 create table if not exists public.t2_qidiruv_log (
   id bigint generated always as identity primary key,
   actor_id bigint not null, tur text not null check (tur in ('username','telefon','email','noaniq')), topildi boolean not null,
@@ -65,9 +72,10 @@ create index if not exists t2_kompaniya_taklif_user_idx on public.t2_kompaniya_t
 
 alter table public.t2_username_zahira enable row level security;
 alter table public.t2_username_tarix enable row level security;
+alter table public.t2_username_ushlash enable row level security;
 alter table public.t2_qidiruv_log enable row level security;
 alter table public.t2_kompaniya_taklif enable row level security;
-revoke all on public.t2_username_zahira, public.t2_username_tarix, public.t2_qidiruv_log, public.t2_kompaniya_taklif from public, anon, authenticated;
+revoke all on public.t2_username_zahira, public.t2_username_tarix, public.t2_username_ushlash, public.t2_qidiruv_log, public.t2_kompaniya_taklif from public, anon, authenticated;
 
 -- ───────── 3. ichki yordamchilar ─────────
 -- null = yaroqli; aks holda sabab kodi. Kiruvchi qiymat '@' siz, kichik harfga keltirilgan bo'lishi kerak.
@@ -82,6 +90,11 @@ begin
   if exists (select 1 from public.t2_username_zahira where nom = p) or p like 'qurai%' or p like 'admin\_%' escape '\' then return 'USERNAME_BAND_SOZ'; end if;
   return null;
 end $f$;
+
+-- true = p_nom boshqa foydalanuvchi uchun 7 kunlik ushlashda (p_actor_id — o'zi bo'lsa ushlash to'siq emas).
+create or replace function public._t2_username_ushlangan_v1(p_nom text, p_actor_id bigint) returns boolean
+language sql stable security definer set search_path = public, pg_temp as $f$
+  select exists (select 1 from public.t2_username_ushlash where nom = p_nom and tugaydi > now() and egasi_id is distinct from p_actor_id) $f$;
 
 create or replace function public._t2_username_norm_v1(p text) returns text
 language sql immutable as $f$ select nullif(lower(regexp_replace(btrim(coalesce(p,'')), '^@+', '')), '') $f$;
@@ -154,6 +167,7 @@ begin
     v_xato := public._t2_username_xato_v1(v_yangi);
     if v_xato is not null then return jsonb_build_object('ok', false, 'code', v_xato); end if;
     if exists (select 1 from public.t2_foydalanuvchi where lower(username) = v_yangi and id <> p_actor_id) then return jsonb_build_object('ok', false, 'code', 'USERNAME_BAND'); end if;
+    if public._t2_username_ushlangan_v1(v_yangi, p_actor_id) then return jsonb_build_object('ok', false, 'code', 'USERNAME_USHLANGAN'); end if;
   end if;
   -- birinchi marta belgilash (eski null) limitga kirmaydi; keyingi o'zgartirish/o'chirish — sutkasiga 5 ta.
   if v_eski is not null then
@@ -165,6 +179,12 @@ begin
   exception when unique_violation then return jsonb_build_object('ok', false, 'code', 'USERNAME_BAND');
   end;
   insert into public.t2_username_tarix (foydalanuvchi_id, eski, yangi) values (p_actor_id, v_eski, v_yangi);
+  -- eski nom 7 kun avvalgi egasi uchun ushlanadi; yangi nomni o'zi qaytarib olgan bo'lsa ushlash tugaydi.
+  if v_eski is not null then
+    insert into public.t2_username_ushlash (nom, egasi_id, tugaydi) values (v_eski, p_actor_id, now() + interval '7 days')
+      on conflict (nom) do update set egasi_id = excluded.egasi_id, tugaydi = excluded.tugaydi;
+  end if;
+  if v_yangi is not null then delete from public.t2_username_ushlash where nom = v_yangi and egasi_id = p_actor_id; end if;
   v_res := jsonb_build_object('ok', true, 'username', v_yangi);
   insert into public.t2_onboarding_command_log (operation_id, actor_id, command, natija) values (p_operation_id, p_actor_id, 'username_belgila', v_res);
   return v_res;
@@ -173,7 +193,7 @@ end $f$;
 -- Bo'shligi tekshiruvi + (ixtiyoriy) variantlardan bo'shlarini qaytaradi (takliflar mijozda ismdan yasaladi, bu yerda faqat bo'shligi tasdiqlanadi).
 create or replace function public.t2_username_tekshir_v1(p_actor_id bigint, p_username text, p_variantlar text[] default '{}') returns jsonb
 language plpgsql security definer set search_path = public, pg_temp as $f$
-declare v_u text := public._t2_username_norm_v1(p_username); v_xato text; v_band boolean := false; v_bosh text[] := '{}'; v text;
+declare v_u text := public._t2_username_norm_v1(p_username); v_xato text; v_band boolean := false; v_ush boolean := false; v_bosh text[] := '{}'; v text;
 begin
   if not public._t2_actor_faol_v1(p_actor_id) then return jsonb_build_object('ok', false, 'code', 'ACTOR_NOT_FOUND'); end if;
   if not public._t2_kirish_limit_v1('username_tekshir', p_actor_id::text, interval '1 hour', 240) then return jsonb_build_object('ok', false, 'code', 'LIMIT'); end if;
@@ -181,16 +201,17 @@ begin
     v_xato := public._t2_username_xato_v1(v_u);
     if v_xato is null then
       v_band := exists (select 1 from public.t2_foydalanuvchi where lower(username) = v_u and id <> p_actor_id);
+      v_ush := public._t2_username_ushlangan_v1(v_u, p_actor_id);
     end if;
   else v_xato := 'USERNAME_QISQA'; end if;
   foreach v in array coalesce(p_variantlar, '{}') loop
     exit when array_length(v_bosh, 1) >= 5;
     v := public._t2_username_norm_v1(v);
-    if v is not null and public._t2_username_xato_v1(v) is null and not exists (select 1 from public.t2_foydalanuvchi where lower(username) = v and id <> p_actor_id) then
+    if v is not null and public._t2_username_xato_v1(v) is null and not exists (select 1 from public.t2_foydalanuvchi where lower(username) = v and id <> p_actor_id) and not public._t2_username_ushlangan_v1(v, p_actor_id) then
       v_bosh := array_append(v_bosh, v);
     end if;
   end loop;
-  return jsonb_build_object('ok', true, 'yaroqli', v_xato is null, 'sabab', v_xato, 'bosh', v_xato is null and not v_band, 'band', v_band, 'variantlar', to_jsonb(v_bosh));
+  return jsonb_build_object('ok', true, 'yaroqli', v_xato is null, 'sabab', v_xato, 'bosh', v_xato is null and not v_band and not v_ush, 'band', v_band or v_ush, 'ushlangan', v_ush, 'variantlar', to_jsonb(v_bosh));
 end $f$;
 
 create or replace function public.t2_username_sozlama_v1(p_actor_id bigint, p_telefon_qidiruv text) returns jsonb
@@ -329,13 +350,13 @@ begin
 end $f$;
 
 -- ───────── 7. huquqlar (faqat service_role) ─────────
-revoke all on function public._t2_username_xato_v1(text), public._t2_username_norm_v1(text), public._t2_azo_kompaniyadosh_v1(bigint,bigint),
+revoke all on function public._t2_username_xato_v1(text), public._t2_username_norm_v1(text), public._t2_azo_kompaniyadosh_v1(bigint,bigint), public._t2_username_ushlangan_v1(text,bigint),
   public._t2_foydalanuvchi_qidir_ichki_v1(bigint,text), public._t2_profil_min_v1(bigint), public._t2_actor_faol_v1(bigint),
   public.t2_username_ol_v1(bigint), public.t2_username_belgila_v1(bigint,text,uuid), public.t2_username_tekshir_v1(bigint,text,text[]),
   public.t2_username_sozlama_v1(bigint,text), public.t2_foydalanuvchi_qidir_v1(bigint,text), public.t2_foydalanuvchi_kompaniyadosh_qidir_v1(bigint,text,bigint),
   public.t2_username_ommaviy_v1(bigint,bigint[]), public.t2_kompaniya_taklif_yubor_v1(bigint,bigint,text,text,uuid),
   public.t2_kompaniya_taklif_royxat_v1(bigint), public.t2_kompaniya_taklif_javob_v1(bigint,bigint,boolean,uuid) from public, anon, authenticated;
-grant execute on function public._t2_username_xato_v1(text), public._t2_username_norm_v1(text), public._t2_azo_kompaniyadosh_v1(bigint,bigint),
+grant execute on function public._t2_username_xato_v1(text), public._t2_username_norm_v1(text), public._t2_azo_kompaniyadosh_v1(bigint,bigint), public._t2_username_ushlangan_v1(text,bigint),
   public._t2_foydalanuvchi_qidir_ichki_v1(bigint,text), public._t2_profil_min_v1(bigint), public._t2_actor_faol_v1(bigint),
   public.t2_username_ol_v1(bigint), public.t2_username_belgila_v1(bigint,text,uuid), public.t2_username_tekshir_v1(bigint,text,text[]),
   public.t2_username_sozlama_v1(bigint,text), public.t2_foydalanuvchi_qidir_v1(bigint,text), public.t2_foydalanuvchi_kompaniyadosh_qidir_v1(bigint,text,bigint),

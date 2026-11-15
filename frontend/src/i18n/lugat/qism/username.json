@@ -203,6 +203,10 @@
     "ru": "Это имя зарезервировано системой.",
     "en": "This name is reserved by the system."
   },
+  "Bu username yaqinda bo‘shatilgan — avvalgi egasi uchun 7 kun band.": {
+    "ru": "Этот username недавно освободили — он 7 дней зарезервирован за прежним владельцем.",
+    "en": "This username was recently released — it is reserved for its previous owner for 7 days."
+  },
   "Bu username band.": {
     "ru": "Этот username занят.",
     "en": "This username is taken."

@@ -23,6 +23,7 @@ const XATO: Record<string, string> = {
   USERNAME_UNDERSCORE: 'Ketma-ket ikki pastki chiziq va oxirgi pastki chiziq mumkin emas.',
   USERNAME_BAND_SOZ: 'Bu nom tizim uchun band qilingan.',
   USERNAME_BAND: 'Bu username band.',
+  USERNAME_USHLANGAN: 'Bu username yaqinda bo‘shatilgan — avvalgi egasi uchun 7 kun band.',
   USERNAME_LIMIT: 'Bugun username’ni o‘zgartirish limiti tugadi (kuniga 5 marta).',
 };
 

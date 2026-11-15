@@ -78,7 +78,7 @@ function rpcXato(j: Rpc | null): Response {
   const code = typeof j.code === 'string' ? j.code : 'SERVER_XATO';
   if (code === 'ACTOR_NOT_FOUND') return json({ ok: false, code }, 401);
   if (code === 'SERVER_YANGILANMAGAN' || code === 'TAKLIF_TOPILMADI') return json({ ok: false, code }, 404);
-  if (code === 'USERNAME_BAND') return json({ ok: false, code }, 409);
+  if (code === 'USERNAME_BAND' || code === 'USERNAME_USHLANGAN') return json({ ok: false, code }, 409);
   if (code === 'USERNAME_LIMIT' || code === 'LIMIT') return json({ ok: false, code }, 429);
   if (TALAB_KODLARI.has(code)) {
     const extra = code === 'GOOGLE_BOSHQA_HISOB' && typeof j.boshqa_login === 'string' ? { boshqa_login: j.boshqa_login } : {};

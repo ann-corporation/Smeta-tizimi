@@ -1,10 +1,11 @@
 -- Acceptance: 20261224100000 t2_username_v1. SINTETIK yozuvlar (o'zi yaratadi). Tashqi tranzaksiya ichida (begin ... rollback) ishga tushiriladi.
 -- U1 huquqlar: anon/authenticated yo'q, service_role bor. U2 format qoidalari + band so'zlar. U3 noyoblik (katta-kichik harfga befarq).
 -- U4 sutkasiga 5 o'zgartirish limiti. U5 qidiruv: username/telefon/email aniq, telefon/email qaytmaydi, privacy 'hech'/'kompaniyadosh'.
+-- U7 7 kunlik ushlash: bo'shatilgan nom avvalgi egasi uchun band; boshqa ola olmaydi, egasi qaytarib oladi, muddat o'tgach boshqa oladi.
 -- U6 taklif: kutiladi, a'zo qilinmaydi; qabul qilgach a'zo; huquqsiz rad; topilmasa telefon taklifi belgisi.
 do $acc$
 declare
-  v_a bigint; v_b bigint; v_c bigint; v_k bigint; r jsonb; f text; i integer; s text := floor(random()*1e9)::text; tel text := '+99890' || lpad((floor(random()*9000000)+1000000)::bigint::text, 7, '0');
+  v_a bigint; v_b bigint; v_c bigint; v_d bigint; v_e bigint; v_k bigint; r jsonb; f text; i integer; s text := floor(random()*1e9)::text; tel text := '+99890' || lpad((floor(random()*9000000)+1000000)::bigint::text, 7, '0');
 begin
   foreach f in array array['t2_username_belgila_v1(bigint,text,uuid)','t2_username_tekshir_v1(bigint,text,text[])','t2_foydalanuvchi_qidir_v1(bigint,text)','t2_kompaniya_taklif_yubor_v1(bigint,bigint,text,text,uuid)','t2_kompaniya_taklif_javob_v1(bigint,bigint,boolean,uuid)','t2_username_ommaviy_v1(bigint,bigint[])'] loop
     if to_regprocedure('public.' || f) is null then raise exception 'ACCEPT_FAIL: % yo''q', f; end if;
@@ -65,5 +66,25 @@ begin
   if r->>'ok' <> 'true' or not exists (select 1 from public.t2_azolik where foydalanuvchi_id = v_a and kompaniya_id = v_k and holat = 'faol' and rol = 'prorab') then raise exception 'ACCEPT_FAIL: qabul %', r; end if;
   r := public.t2_kompaniya_taklif_yubor_v1(v_b, v_k, '+99891'||lpad((floor(random()*9000000)+1000000)::bigint::text,7,'0'), 'prorab', gen_random_uuid());
   if r->>'code' <> 'TOPILMADI' or (r->>'telefon_taklif')::boolean is not true then raise exception 'ACCEPT_FAIL: hisobsiz telefon %', r; end if;
+  -- U7 ushlash (sintetik D, E; nom 'sinov_h'||s)
+  insert into public.t2_foydalanuvchi (login, ism, holat) values ('un-d-'||s||'@sinov.invalid','Sinov Tort','faol') returning id into v_d;
+  insert into public.t2_foydalanuvchi (login, ism, holat) values ('un-e-'||s||'@sinov.invalid','Sinov Besh','faol') returning id into v_e;
+  r := public.t2_username_belgila_v1(v_d, 'sinov_h'||s, gen_random_uuid());
+  if r->>'ok' <> 'true' then raise exception 'ACCEPT_FAIL: U7 belgilash %', r; end if;
+  r := public.t2_username_belgila_v1(v_d, null, gen_random_uuid());
+  if r->>'ok' <> 'true' then raise exception 'ACCEPT_FAIL: U7 bo''shatish %', r; end if;
+  r := public.t2_username_belgila_v1(v_e, 'sinov_h'||s, gen_random_uuid());
+  if r->>'code' <> 'USERNAME_USHLANGAN' then raise exception 'ACCEPT_FAIL: U7 ushlangan nom boshqaga berildi %', r; end if;
+  r := public.t2_username_tekshir_v1(v_e, 'sinov_h'||s, '{}');
+  if (r->>'bosh')::boolean is not false or (r->>'ushlangan')::boolean is not true then raise exception 'ACCEPT_FAIL: U7 tekshir %', r; end if;
+  r := public.t2_username_tekshir_v1(v_d, 'sinov_h'||s, '{}');
+  if (r->>'bosh')::boolean is not true then raise exception 'ACCEPT_FAIL: U7 avvalgi egasi uchun bo''sh bo''lishi kerak %', r; end if;
+  r := public.t2_username_belgila_v1(v_d, 'sinov_h'||s, gen_random_uuid());
+  if r->>'ok' <> 'true' then raise exception 'ACCEPT_FAIL: U7 avvalgi egasi qaytarib ololmadi %', r; end if;
+  if exists (select 1 from public.t2_username_ushlash where nom = 'sinov_h'||s) then raise exception 'ACCEPT_FAIL: U7 qaytarilgach ushlash qolib ketdi'; end if;
+  r := public.t2_username_belgila_v1(v_d, null, gen_random_uuid());
+  update public.t2_username_ushlash set tugaydi = now() - interval '1 second' where nom = 'sinov_h'||s;
+  r := public.t2_username_belgila_v1(v_e, 'sinov_h'||s, gen_random_uuid());
+  if r->>'ok' <> 'true' or r->>'username' <> 'sinov_h'||s then raise exception 'ACCEPT_FAIL: U7 7 kundan keyin boshqa ololmadi %', r; end if;
   raise notice 'ACCEPT_OK t2_username_v1';
 end $acc$;
