@@ -115,9 +115,10 @@ export function useT2Daraxt(obyektId: number | null) {
     return t;
   }, [avvalgi]);
 
-  const narxNazorati = useCallback(async (id: number, e: number) => {
+  /** `oldindan` — daraxt o'qishi bilan PARALLEL boshlangan so'rov (tezlik: ketma-ket to'lqin yo'q); natija faqat daraxt muvaffaqiyatli o'qilgach qo'llanadi. */
+  const narxNazorati = useCallback(async (id: number, e: number, oldindan?: ReturnType<typeof priceControlOl> | null) => {
     const raqam = ++narxNavbat.current;
-    const p = await priceControlOl(id).catch(() => null);
+    const p = await (oldindan ?? priceControlOl(id)).catch(() => null);
     if (raqam === narxNavbat.current && tirik(e, id)) { setPrice(p?.ok ? p.qatorlar : []); keshgaYoz(id, e); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keshgaYoz]);
@@ -155,6 +156,9 @@ export function useT2Daraxt(obyektId: number | null) {
     const readStart = desktopReadStatus();
     // Offline transport blocks secondary reads until the core object read reconnects.
     const qoshP = readStart.offline ? null : qoshimchalarniOl(obyektId);
+    // Narx nazorati daraxtga bog'liq emas: daraxt o'qilishi bilan bir vaqtda ketadi (avval daraxtdan KEYIN, alohida to'lqin edi).
+    const narxP = readStart.offline ? null : priceControlOl(obyektId);
+    narxP?.catch(() => null);
     const jarayon = (async (): Promise<boolean> => {
       try {
         // Yagona o'qish (lib/oylik-hujjat): oylik paket ham aynan shu funksiyadan foydalanadi.
@@ -171,7 +175,7 @@ export function useT2Daraxt(obyektId: number | null) {
         const readEnd = desktopReadStatus();
         setTasdiqDavri(!readEnd.offline && readEnd.offlineEpoch === readStart.offlineEpoch ? readEnd.offlineEpoch : null);
         keshgaYoz(obyektId, e);
-        void narxNazorati(obyektId, e);
+        void narxNazorati(obyektId, e, narxP);
         return true;
       } catch {
         if (toliq === toliqNavbat.current && tirik(e, obyektId)) setError('Kanonik daraxt o‘qilmadi. Tarmoq yoki ruxsatni tekshiring.');
