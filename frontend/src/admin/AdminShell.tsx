@@ -341,6 +341,7 @@ function AdminShellInner() {
         </div>
 
         <div className="fz-sidebar__foot">
+          <div className="os-mobile-only px-3 py-1" data-testid="mobil-til"><TilTanlagich /></div>
           <button
             type="button"
             onClick={() => setMahkam(v => !v)}
@@ -383,7 +384,7 @@ function AdminShellInner() {
           {k.superadmin && k.joriy?.membershipRole && <span className="hidden text-[10px] text-text-dim 2xl:inline">{t('Kompaniyadagi rol')}: {k.joriy.membershipRole}</span>}
           <PTOWorkspaceBar />
           <span data-kurs="jarvis" className="contents os-mobil-yashir"><AiHelperTugma /></span>
-          <div className="ml-auto flex items-center gap-2"><button type="button" onClick={() => window.dispatchEvent(new CustomEvent('palitra:och'))} data-kurs="qidirish" aria-label={t('Sahifa yoki obyekt izlash...')} title={t('Sahifa yoki obyekt izlash...')} className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2 text-[12px] text-text-dim hover:text-text"><Search size={14} aria-hidden="true" /><span className="hidden xl:inline">{t('Qidirish')}</span></button><span className="os-mobil-yashir"><NimaYangiBelgi /><KursYordam /><QollanmaBoshqaruv foydalanuvchi={sess.data?.email} /></span><TilTanlagich ixcham /><Qongiroqcha /><AkkauntTugmasi /></div>
+          <div className="ml-auto flex items-center gap-2"><button type="button" onClick={() => window.dispatchEvent(new CustomEvent('palitra:och'))} data-kurs="qidirish" aria-label={t('Sahifa yoki obyekt izlash...')} title={t('Sahifa yoki obyekt izlash...')} className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2 text-[12px] text-text-dim hover:text-text"><Search size={14} aria-hidden="true" /><span className="hidden xl:inline">{t('Qidirish')}</span></button><span className="os-mobil-yashir"><NimaYangiBelgi /><KursYordam /><QollanmaBoshqaruv foydalanuvchi={sess.data?.email} /></span><span className="os-mobil-yashir"><TilTanlagich ixcham /></span><Qongiroqcha /><AkkauntTugmasi /></div>
         </div>
 
         {/* ⚠️ 2026-09-07 (Claude, P0): AVVAL bu yerda `sess.data.yozaOladi`

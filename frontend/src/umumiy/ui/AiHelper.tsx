@@ -25,7 +25,8 @@ import { amalIjroniUla } from '../../lib/yordamchi/vosita/amal-vosita';
 import { kasbKeshOl, kasbKeshYoz } from '../../lib/yordamchi/kasb-kesh';
 import { haqiqiyVositaApi } from '../../lib/yordamchi/vosita/haqiqiy';
 import { yangiOperationId } from '../../api/supabase';
-import { amalRejim, oynaKaliti, oynaOqi, oynaYoz, olchamlash, surish, suzuvchiRect, yonOlcham, yonSukut, type OynaHolat, type Rejim } from '../../lib/yordamchi/oyna';
+import { amalRejim, oynaKaliti, oynaOqi, oynaYoz, olchamlash, surish, suzuvchiRect, telefonmi, yonOlcham, yonSukut, type OynaHolat, type Rejim } from '../../lib/yordamchi/oyna';
+import { sensorliQurilma, useKorinishOlchami } from '../../lib/mobil/korinish-viewport';
 
 type Tab = 'chat' | 'jurnal' | 'fikr' | 'sozlama';
 const TABLAR: Array<[Tab, string]> = [['chat', 'Suhbat'], ['jurnal', 'Jurnal'], ['fikr', 'Fikr / muammo'], ['sozlama', 'Sozlamalar']];
@@ -84,6 +85,21 @@ export function AiHelper() {
   useEffect(() => { if (yuklanganUid.current === uid) oynaYoz(oynaKaliti(uid), oyna); }, [oyna, uid]);
   const rejim: Rejim = amalRejim(oyna, vp.w);
   const yonW = oyna.yonW || yonSukut(vp.w);
+  /* TELEFON: to'liq ekranli varaq ko'rinadigan maydon (visualViewport) balandligida; Android «orqaga» tugmasi uni yopadi. */
+  const telefon = telefonmi(vp.w);
+  const korinish = useKorinishOlchami(isOpen && telefon);
+  useEffect(() => {
+    if (!isOpen || !telefon) return;
+    let popdan = false;
+    try { window.history.pushState({ ...(window.history.state ?? {}), __jarvis: true }, ''); } catch { return; }
+    const yop = () => { popdan = true; setIsOpen(false); };
+    window.addEventListener('popstate', yop);
+    return () => {
+      window.removeEventListener('popstate', yop);
+      /* Boshqa yo'l bilan (X, Esc) yopilsa — biz qo'shgan tarix yozuvini ham olib tashlaymiz. */
+      if (!popdan && window.history.state?.__jarvis) window.history.back();
+    };
+  }, [isOpen, telefon]);
   /* Yon panel: sahifa torayadi (ustini yopmaydi). */
   useEffect(() => {
     if (!isOpen || rejim !== 'yon') return;
@@ -129,8 +145,8 @@ export function AiHelper() {
 
   /* Ctrl+K — YAGONA yordamchi (Jarvis) hamma joyda, Smeta Studiyada ham (Studio buyruqlari reestr orqali unga beriladi). */
   const hotkeyFaol = !location.pathname.startsWith('/boss');
-  /* Ochilganda kiritish maydoniga fokus (suhbat yashirin saqlanadi, qayta mount bo'lmaydi). */
-  useEffect(() => { if (isOpen && tab === 'chat') setTimeout(() => (document.getElementById('jarvis-kirish') as HTMLTextAreaElement | null)?.focus(), 0); }, [isOpen, tab]);
+  /* Ochilganda kiritish maydoniga fokus (teginish ekranida YO'Q — klaviatura o'zi chiqib ketmasin) (suhbat yashirin saqlanadi, qayta mount bo'lmaydi). */
+  useEffect(() => { if (isOpen && tab === 'chat' && !sensorliQurilma()) setTimeout(() => (document.getElementById('jarvis-kirish') as HTMLTextAreaElement | null)?.focus(), 0); }, [isOpen, tab]);
   useHotkeys('jarvis', t('Jarvis yordamchisi'), [
     { id: 'jarvis.och', keys: 'ctrl+k', nom: t('Jarvis yordamchisini ochish / yopish'), inInput: true, run: () => { setIsOpen((o) => !o); setTab('chat'); } },
     { id: 'jarvis.yop', keys: 'esc', nom: t('Jarvis yordamchisini yopish'), inInput: true, run: () => { if (!isOpen) return false; setIsOpen(false); } },
@@ -157,20 +173,20 @@ export function AiHelper() {
     <>
       {location.pathname.startsWith('/admin') && <AiSelektsiya />}
       {ochilgan && (
-        <div hidden={!isOpen} role="dialog" aria-modal="false" aria-label={t('Jarvis AI yordamchisi')} data-testid="jarvis-oyna" data-rejim={rejim}
-          style={rejim === 'kichik' ? suzuvchiRect(oyna, vp.w, vp.h) : rejim === 'yon' ? { width: yonW } : undefined}
+        <div hidden={!isOpen} role="dialog" aria-modal="false" aria-label={t('Jarvis AI yordamchisi')} data-testid="jarvis-oyna" data-jarvis="1" data-rejim={rejim}
+          style={rejim === 'kichik' ? suzuvchiRect(oyna, vp.w, vp.h) : rejim === 'yon' ? { width: yonW } : telefon ? { top: korinish?.yuqori ?? 0, bottom: 'auto', height: korinish ? korinish.balandlik : '100dvh' } : undefined}
           className={`fixed z-50 ${isOpen ? 'flex' : 'hidden'} flex-col overflow-hidden border-border bg-surface shadow-2xl ${rejim === 'kichik' ? 'rounded-2xl border' : rejim === 'yon' ? 'bottom-0 right-0 top-0 border-l' : 'inset-0'}`}>
           {rejim === 'yon' && <div role="separator" aria-orientation="vertical" aria-label={t('Panel kengligi')} data-testid="jarvis-yon-tutqich" onPointerDown={(e) => sur(e, 'yon')} className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize hover:bg-accent/40" />}
           <div data-testid="jarvis-sarlavha" onPointerDown={(e) => { if (rejim === 'kichik' && !(e.target as HTMLElement).closest('button')) sur(e, 'ko'); }} onDoubleClick={() => rejimOl(rejim === 'toliq' ? 'kichik' : 'toliq')}
             className={`flex shrink-0 items-center justify-between border-b border-border bg-surface-2 px-4 py-3 ${rejim === 'kichik' ? 'cursor-move select-none touch-none' : ''}`}>
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20 text-accent"><Bot size={20} /></div>
               <div>
-                <h3 className="text-sm font-semibold text-text">{kasb?.nom ?? 'Jarvis AI'}{kim.ism || kim.login ? <span className="ml-1 font-normal text-text-dim" data-testid="jarvis-kim">· {kim.ism ?? kim.login}{kim.kompaniya ? ` · ${kim.kompaniya.nom}` : ''}</span> : null}</h3>
-                <p className="flex items-center gap-1 text-xs text-text-dim"><span className="h-1.5 w-1.5 rounded-full bg-ok"></span> {t('Sizning lavozimingizga mos AI ishchi')} · {KALIT}</p>
+                <h3 className="truncate text-sm font-semibold text-text">{kasb?.nom ?? 'Jarvis AI'}{kim.ism || kim.login ? <span className="ml-1 font-normal text-text-dim" data-testid="jarvis-kim">· {kim.ism ?? kim.login}{kim.kompaniya ? ` · ${kim.kompaniya.nom}` : ''}</span> : null}</h3>
+                <p className="hidden items-center gap-1 text-xs text-text-dim sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-ok"></span> {t('Sizning lavozimingizga mos AI ishchi')} · {KALIT}</p>
               </div>
             </div>
-            <div className="flex items-center">
+            <div className="flex shrink-0 items-center">
               <button type="button" data-testid="jarvis-yangi-suhbat" onClick={() => { setTab('chat'); window.dispatchEvent(new CustomEvent('ai:yangi-suhbat')); }} aria-label={t('Yangi suhbat')} title={t('Yangi suhbat')} className="mr-1 rounded p-1 text-text-dim transition-colors hover:bg-surface-3 hover:text-text"><SquarePen size={18} /></button>
               {vp.w >= 640 && <>
                 <button type="button" data-testid="jarvis-rejim-kichik" onClick={() => rejimOl('kichik')} aria-pressed={rejim === 'kichik'} aria-label={t('Kichik oyna')} title={t('Kichik oyna (sudrab ko‘chiriladi)')} className={`rounded p-1 transition-colors hover:bg-surface-3 ${rejim === 'kichik' ? 'text-accent' : 'text-text-dim'}`}><Minimize2 size={18} /></button>
@@ -182,7 +198,7 @@ export function AiHelper() {
                 className={`mr-1 rounded p-1 transition-colors hover:bg-surface-3 ${kuzatuv.yoqilgan ? 'text-accent' : 'text-text-dim'}`}>
                 {kuzatuv.yoqilgan ? <Eye size={18} /> : <EyeOff size={18} />}
               </button>
-              <button onClick={() => setIsOpen(false)} aria-label={t('Yopish')} title={t('Yopish')} className="rounded p-1 text-text-dim transition-colors hover:bg-surface-3 hover:text-text"><X size={20} /></button>
+              <button type="button" data-testid="jarvis-yopish" onClick={() => setIsOpen(false)} aria-label={t('Yopish')} title={t('Yopish')} className="inline-flex h-10 w-10 items-center justify-center rounded p-1 text-text-dim sm:h-auto sm:w-auto transition-colors hover:bg-surface-3 hover:text-text"><X size={20} /></button>
             </div>
           </div>
 

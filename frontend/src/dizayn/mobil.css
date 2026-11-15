@@ -14,12 +14,21 @@
 
   /* Ixcham yuqori panel: faqat kerakli boshqaruv (menyu, kompaniya, qidiruv, til, bildirishnoma, akkaunt). */
   .os-mobil-yashir { display: none; }
+  /* BITTA qator (≤56px): menyu · ish joyi (kengayadi) · ish doirasi · qidiruv · bildirishnoma · akkaunt.
+   * Til tanlagichi menyu (drawer) ichida; «Ish joyi:» yorlig'i yashirin (tanlagich o'zi aniq). PTO doira tanlagichlari
+   * tugma ortidagi panelda (PTOWorkspaceBar) — panel `.os-context-bar` ga nisbatan joylashadi. */
   .os-app-shell .os-context-bar {
-    gap: 6px; flex-wrap: wrap;
-    padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right));
-    padding-top: max(4px, env(safe-area-inset-top));
+    position: relative; gap: 4px; flex-wrap: nowrap; min-height: 52px; align-items: center;
+    padding-left: max(8px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right));
+    padding-top: max(4px, env(safe-area-inset-top)); padding-bottom: 4px;
   }
-  .os-app-shell .os-context-bar [data-kurs="kompaniya-tanlagich"] > * { min-width: 0; max-width: 46vw; }
+  .os-app-shell .os-context-bar > * { flex-shrink: 0; }
+  .os-app-shell .os-context-bar [data-kurs="kompaniya-tanlagich"] { display: block; flex: 1 1 0; min-width: 0; overflow: hidden; }
+  .os-app-shell .os-context-bar [data-kurs="kompaniya-tanlagich"] > * { display: flex; min-width: 0; max-width: 100%; }
+  .os-app-shell .os-context-bar [data-kurs="kompaniya-tanlagich"] .os-ish-yorliq { display: none; }
+  .os-app-shell .os-context-bar [data-kurs="kompaniya-tanlagich"] .relative { min-width: 0; flex: 1 1 0; }
+  .os-app-shell .os-context-bar [data-kurs="kompaniya-tanlagich"] select { min-width: 0; width: 100%; max-width: 100%; text-overflow: ellipsis; }
+  .os-app-shell .os-context-bar > .ml-auto { gap: 2px; }
   .os-app-shell .os-context-bar .os-menu-button { width: 44px; height: 44px; }
 
   /* Tegish maydoni 44px (jadval ichidagi zich boshqaruvlar bundan mustasno). */
@@ -35,8 +44,10 @@
   .os-workspace pre, .os-workspace img, .os-workspace svg { max-width: 100%; }
 
   /* Dialoglar: to'liq ekranli varaq (fon qoplamasi + ichki panel). Rasm ko'rgichlariga tegilmaydi. */
-  .fixed.inset-0[role="dialog"] { padding: 0; align-items: stretch; justify-content: stretch; }
-  .fixed.inset-0[role="dialog"] > :not(img) {
+  /* Jarvis (data-jarvis) o'z ustun-joylashuviga ega (sarlavha / tablar / xabarlar flex:1 / kiritish) — unga tegilmaydi:
+   * aks holda har bola height:100% bo'lib, tablar o'rtada suzib, kiritish maydoni ekrandan chiqib ketardi. */
+  .fixed.inset-0[role="dialog"]:not([data-jarvis]) { padding: 0; align-items: stretch; justify-content: stretch; }
+  .fixed.inset-0[role="dialog"]:not([data-jarvis]) > :not(img) {
     width: 100%; max-width: none; height: 100%; max-height: none; border-radius: 0; overflow: auto;
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }

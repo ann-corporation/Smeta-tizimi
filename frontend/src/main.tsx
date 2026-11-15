@@ -11,9 +11,11 @@ import { reloadQoriqchisiniTozala, versiyaKuzatuvi } from './_shared/versiya';
 import { ustamaKeshiniUla } from './umumiy/ui/ustama-kesh';
 
 import { swRoyxat } from './lib/usta/sw-register';
+import { klaviaturaKorinishiniUla } from './lib/mobil/klaviatura-korinish';
 
 kuzatuvniBoshlash();
 swRoyxat();
+klaviaturaKorinishiniUla();
 versiyaKuzatuvi();
 
 const queryClient = new QueryClient({
