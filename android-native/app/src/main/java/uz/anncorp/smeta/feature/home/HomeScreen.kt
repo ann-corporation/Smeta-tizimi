@@ -56,6 +56,7 @@ import uz.anncorp.smeta.core.data.Workplace
 import uz.anncorp.smeta.core.ui.OutboxBanner
 import uz.anncorp.smeta.core.ui.QurLogo
 import uz.anncorp.smeta.feature.approval.ApprovalsScreen
+import uz.anncorp.smeta.feature.company.CabinetSheet
 import uz.anncorp.smeta.feature.company.WorkplaceSheet
 import uz.anncorp.smeta.feature.hub.HubScreen
 import uz.anncorp.smeta.feature.onboarding.OnboardingScreen
@@ -89,6 +90,8 @@ fun HomeScreen(
     val signOut by vm.signOutUi.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var sheet by rememberSaveable { mutableStateOf(false) }
+    var cabinetSheet by rememberSaveable { mutableStateOf(false) }
+    val workspace by vm.workspace.collectAsStateWithLifecycle()
     val openObject: (Long) -> Unit = { vm.opened(it); onOpenObject(it) }
 
     // A fresh account (Google / Telegram / e-mail sign-up) has no workplace: create one, join with a code, or carry on without.
@@ -102,7 +105,7 @@ fun HomeScreen(
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        topBar = { WorkplaceBar(state.selected, state.workplaces.size > 1) { sheet = true } },
+        topBar = { WorkplaceBar(state.selected, state.workplaces.size > 1, workspace, onCabinets = { cabinetSheet = true }) { sheet = true } },
         bottomBar = {
             NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
                 Tabs.forEachIndexed { i, t ->
@@ -129,6 +132,7 @@ fun HomeScreen(
         }
     }
 
+    if (cabinetSheet) workspace?.let { w -> CabinetSheet(w.cabinets, onPick = { vm.chooseCabinet(it); cabinetSheet = false }, onDismiss = { cabinetSheet = false }) }
     if (sheet) WorkplaceSheet(state.workplaces, state.selected, onPick = { vm.select(it); sheet = false }, onDismiss = { sheet = false })
     SignOutDialog(signOut, onSend = vm::sendThenSignOut, onKeep = vm::keepAndSignOut, onDelete = vm::deleteAndSignOut, onCancel = vm::cancelSignOut)
 }
@@ -168,7 +172,7 @@ private fun SignOutDialog(ui: SignOutUi, onSend: () -> Unit, onKeep: () -> Unit,
 }
 
 @Composable
-private fun WorkplaceBar(selected: Workplace?, canSwitch: Boolean, onClick: () -> Unit) {
+private fun WorkplaceBar(selected: Workplace?, canSwitch: Boolean, workspace: uz.anncorp.smeta.core.data.Workspace?, onCabinets: () -> Unit, onClick: () -> Unit) {
     Surface(color = MaterialTheme.colorScheme.background) {
         Row(
             Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp),
@@ -186,7 +190,14 @@ private fun WorkplaceBar(selected: Workplace?, canSwitch: Boolean, onClick: () -
                 )
                 if (canSwitch) Icon(Icons.Filled.ArrowDropDown, contentDescription = stringResource(R.string.workplace_switch), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            selected?.rol?.takeIf { it.isNotBlank() }?.let { RoleChip(it) }
+            // The chip is the active CABINET (party) from the server; with several cabinets it opens the switcher. Old server: plain role chip.
+            if (workspace != null && workspace.partyName.isNotBlank()) {
+                val several = workspace.cabinets.size > 1
+                Row(Modifier.then(if (several) Modifier.clickable(onClick = onCabinets) else Modifier), verticalAlignment = Alignment.CenterVertically) {
+                    RoleChip(workspace.partyName)
+                    if (several) Icon(Icons.Filled.ArrowDropDown, contentDescription = stringResource(R.string.ws_cabinet_switch), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else selected?.rol?.takeIf { it.isNotBlank() }?.let { RoleChip(it) }
         }
     }
 }

@@ -1,0 +1,145 @@
+{
+ "ok": true,
+ "versiya": 1,
+ "kabinetlar": [
+  {
+   "id": "1:rahbar",
+   "kompaniya_id": 1,
+   "nom": "Demo Qurilish MChJ",
+   "tomon": "rahbar",
+   "tomon_nom": "Pudratchi rahbari",
+   "manba": "azolik",
+   "joriy": true
+  },
+  {
+   "id": "1:texnadzor",
+   "kompaniya_id": 1,
+   "nom": "Demo Qurilish MChJ",
+   "tomon": "texnadzor",
+   "tomon_nom": "Texnadzor / buyurtmachi",
+   "manba": "aloqa",
+   "joriy": false
+  },
+  {
+   "id": "1:subpudratchi",
+   "kompaniya_id": 1,
+   "nom": "Demo Qurilish MChJ",
+   "tomon": "subpudratchi",
+   "tomon_nom": "Subpudratchi",
+   "manba": "aloqa",
+   "joriy": false
+  }
+ ],
+ "joriy": "1:rahbar",
+ "kompaniya_id": 1,
+ "tomon": "rahbar",
+ "tomon_nom": "Pudratchi rahbari",
+ "rejim": "standart",
+ "dala": null,
+ "amallar": [
+  {
+   "id": "hisobot",
+   "nom": "Rahbar paneli",
+   "ikonka": "hisobot",
+   "maqsad": {
+    "tur": "native",
+    "kod": "rahbar"
+   }
+  },
+  {
+   "id": "tasdiqlash",
+   "nom": "Tasdiqlash",
+   "ikonka": "tasdiq",
+   "maqsad": {
+    "tur": "native",
+    "kod": "tasdiq"
+   },
+   "birlamchi": true
+  },
+  {
+   "id": "hujjat_yarat",
+   "nom": "Hujjat yaratish",
+   "ikonka": "hujjat",
+   "maqsad": {
+    "tur": "web",
+    "kod": "hujjat",
+    "yol": "/admin/hujjat-aylanish"
+   }
+  },
+  {
+   "id": "jarvis",
+   "nom": "Jarvis",
+   "ikonka": "jarvis",
+   "maqsad": {
+    "tur": "native",
+    "kod": "jarvis"
+   }
+  },
+  {
+   "id": "f2_reestr",
+   "nom": "F-2 reestri",
+   "ikonka": "f2reestr",
+   "maqsad": {
+    "tur": "web",
+    "kod": "f2reestr",
+    "yol": "/admin/f2-reestr"
+   }
+  },
+  {
+   "id": "moliya",
+   "nom": "Moliya",
+   "ikonka": "moliya",
+   "maqsad": {
+    "tur": "web",
+    "kod": "moliya",
+    "yol": "/admin/moliya"
+   }
+  },
+  {
+   "id": "obyektlar",
+   "nom": "Obyektlar",
+   "ikonka": "obyektlar",
+   "maqsad": {
+    "tur": "native",
+    "kod": "obyektlar"
+   }
+  }
+ ],
+ "bolimlar": [
+  {
+   "id": "kpi",
+   "tur": "kpi",
+   "nom": "Bugungi holat",
+   "manba": "moliya.xulosa",
+   "amal": "hisobot"
+  },
+  {
+   "id": "tasdiq",
+   "tur": "royxat",
+   "nom": "Tasdiqlash navbati",
+   "manba": "tasdiq.navbat",
+   "amal": "tasdiqlash"
+  },
+  {
+   "id": "tez",
+   "tur": "amallar",
+   "nom": "Tezkor amallar",
+   "amallar": [
+    "tasdiqlash",
+    "hujjat_yarat",
+    "jarvis",
+    "f2_reestr",
+    "moliya",
+    "obyektlar"
+   ]
+  },
+  {
+   "id": "obyekt",
+   "tur": "royxat",
+   "nom": "Obyektlar",
+   "manba": "obyektlar.oxirgi",
+   "amal": "obyektlar"
+  }
+ ],
+ "birlamchi_amal": "tasdiqlash"
+}

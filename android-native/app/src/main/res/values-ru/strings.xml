@@ -336,4 +336,8 @@
     <string name="pe_issue_start">Должен начинаться с буквы</string>
     <string name="pe_issue_underscore">_ не подряд и не в конце</string>
     <string name="pe_issue_reserved">Это слово зарезервировано</string>
+    <string name="ws_cabinet_switch">Сменить кабинет</string>
+    <string name="ws_cabinet_hint">Роль — это ваше отношение на объекте или договоре: одна компания может быть подрядчиком здесь, субподрядчиком там и заказчиком в другом месте.</string>
+    <string name="ws_open">Открыть</string>
+    <string name="ws_field_offline">Работает и без интернета — записи встают в очередь</string>
 </resources>

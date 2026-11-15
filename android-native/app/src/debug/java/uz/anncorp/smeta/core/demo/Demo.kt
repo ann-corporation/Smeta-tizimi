@@ -44,6 +44,12 @@ object Demo {
 }
 
 private class DemoBff(private val context: Context, private val json: Json) : BffApi {
+    private fun demoParty(path: String): String {
+        val asked = path.substringAfter("kabinet=", "").substringBefore('&').substringAfter(':')
+        val flag = File(context.filesDir, "rol.flag").takeIf { it.exists() }?.readText()?.trim().orEmpty()
+        return listOf(asked, flag).firstOrNull { it in setOf("prorab", "rahbar", "texnadzor") } ?: "prorab"
+    }
+
     private fun asset(name: String): String = context.assets.open("demo/$name").bufferedReader().use { it.readText() }
     private fun ok(text: String, etag: String? = null) = ApiResult(200, json.parseToJsonElement(text), null, etag)
 
@@ -52,6 +58,8 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
         return when {
             path.startsWith("/api/sessiya") -> ApiResult(200, session["sessiya"])
             path.startsWith("/api/ish-joyi") && method == "POST" -> ok("""{"ok":true,"kompaniya_id":1}""")
+            // Server-driven workspace fixtures (generated from the real server function): picked by the requested cabinet, else by files/rol.flag (prorab | rahbar | texnadzor).
+            path.startsWith("/api/ish-joyi") && path.contains("bolim=ish_stoli") -> ok(asset("ish_stoli_${demoParty(path)}.json"))
             // The file nowork.flag simulates a fresh company-less account (onboarding screen).
             path.startsWith("/api/ish-joyi") -> if (File(context.filesDir, "nowork.flag").exists()) ok("""{"ok":true,"ish_joylari":[]}""") else if (File(context.filesDir, "boss.flag").exists()) ok(session["ish_joyi"].toString().replace("\"prorab\"", "\"direktor\"")) else ApiResult(200, session["ish_joyi"])
             path.startsWith("/api/profil") && method == "POST" -> profil(body as? JsonObject)

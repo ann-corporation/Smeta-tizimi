@@ -67,6 +67,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import uz.anncorp.smeta.R
+import uz.anncorp.smeta.core.data.open
 import uz.anncorp.smeta.core.data.Arranged
 import uz.anncorp.smeta.core.data.ModuleCatalog
 import uz.anncorp.smeta.core.data.ModuleDef
@@ -78,7 +79,9 @@ import uz.anncorp.smeta.core.db.QatorEntity
 import uz.anncorp.smeta.core.ui.CenterMessage
 import uz.anncorp.smeta.core.ui.TouchTarget
 
-private fun iconFor(code: String): ImageVector = when (code) {
+internal fun iconFor(code: String): ImageVector = when (code) {
+    "zayavka" -> Icons.Filled.ShoppingCart
+    "nazorat" -> Icons.Filled.Warning
     "obyektlar" -> Icons.Filled.Home
     "fakt" -> Icons.Filled.Create
     "foto" -> Icons.Filled.AccountBox
@@ -121,6 +124,14 @@ fun HubScreen(
     val context = LocalContext.current
     val visible = remember(ui.permissions, ui.offModules) { ModuleCatalog.visible(ui.permissions, ui.offModules) }
     val arranged = remember(visible, ui.picks, ui.query) { arrange(visible, ui.picks, ui.query) { context.getString(it.title) } }
+    val openAction: (uz.anncorp.smeta.core.data.WsAction) -> Unit = { a ->
+        when (val o = a.open()) {
+            is uz.anncorp.smeta.core.data.WsOpen.Native -> onNative(o.target)
+            is uz.anncorp.smeta.core.data.WsOpen.Web -> onWeb(o.path, a.title)
+            uz.anncorp.smeta.core.data.WsOpen.Onboard -> onOnboard()
+            null -> Unit
+        }
+    }
     val open: (ModuleDef) -> Unit = { m -> if (m.kind == ModuleKind.NATIVE) m.target?.let(onNative) else m.webPath?.let { onWeb(it, context.getString(m.title)) } }
     val searching = ui.query.trim().length >= 2
     androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) { vm.refreshUnread() }
@@ -145,13 +156,13 @@ fun HubScreen(
         when {
             !ui.hasCompany && !ui.loading -> CenterMessage(Icons.Filled.Home, stringResource(R.string.hub_no_company), stringResource(R.string.hub_no_company_hint), stringResource(R.string.hub_no_company_action), onAction = onOnboard)
             ui.loading && ui.permissions == null && !searching -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-            else -> HubGrid(ui, arranged, searching, vm, open, onObject, onFakt, onWeb)
+            else -> HubGrid(ui, arranged, searching, vm, open, openAction, onObject, onFakt, onWeb)
         }
     }
 }
 
 @Composable
-private fun HubGrid(ui: HubUi, arranged: Arranged, searching: Boolean, vm: HubViewModel, open: (ModuleDef) -> Unit, onObject: (Long) -> Unit, onFakt: (Long) -> Unit, onWeb: (String, String) -> Unit) {
+private fun HubGrid(ui: HubUi, arranged: Arranged, searching: Boolean, vm: HubViewModel, open: (ModuleDef) -> Unit, openAction: (uz.anncorp.smeta.core.data.WsAction) -> Unit, onObject: (Long) -> Unit, onFakt: (Long) -> Unit, onWeb: (String, String) -> Unit) {
     val span = GridItemSpan(2)
     LazyVerticalGrid(
         columns = GridCells.Fixed(2), modifier = Modifier.fillMaxSize(),
@@ -167,7 +178,12 @@ private fun HubGrid(ui: HubUi, arranged: Arranged, searching: Boolean, vm: HubVi
             if (ui.rowHits.isNotEmpty()) { item(span = { span }) { SectionTitle(R.string.hub_sec_rows) }; items(ui.rowHits, key = { "r" + it.rid }, span = { span }) { RowHit(it) { onFakt(it.obyektId) } } }
             return@LazyVerticalGrid
         }
-        if (ui.recent.isNotEmpty()) {
+        // Server-driven role workspace first (the cabinet's sections and quick actions); the plain module launcher stays below as "all apps".
+        ui.workspace?.let { ws ->
+            if (ws.fieldMode && ws.field?.offline == true) item(span = { span }) { Text(stringResource(R.string.ws_field_offline), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.tertiary) }
+            workspaceItems(ws, ui.places, openAction, onObject)
+        }
+        if (ui.workspace == null && ui.recent.isNotEmpty()) {
             item(span = { span }) { SectionTitle(R.string.hub_sec_recent) }
             items(ui.recent, key = { "rc" + it.id }, span = { span }) { ObjectChip(it) { onObject(it.id) } }
         }

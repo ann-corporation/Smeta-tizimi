@@ -337,4 +337,8 @@
     <string name="pe_issue_start">Harf bilan boshlanishi kerak</string>
     <string name="pe_issue_underscore">_ ketma-ket yoki oxirida bo\'lmasin</string>
     <string name="pe_issue_reserved">Bu so\'z band qilingan</string>
+    <string name="ws_cabinet_switch">Kabinetni almashtirish</string>
+    <string name="ws_cabinet_hint">Rol — bu obyekt va shartnomadagi munosabatingiz. Bir kompaniya bir joyda pudratchi, boshqasida subpudratchi yoki buyurtmachi bo‘lishi mumkin.</string>
+    <string name="ws_open">Ochish</string>
+    <string name="ws_field_offline">Internetsiz ham ishlaydi — yozuvlar navbatga tushadi</string>
 </resources>
