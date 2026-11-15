@@ -22,7 +22,8 @@
     off.hidden = true;
     busy.hidden = false;
     probe().then(function (ok) {
-      if (ok) { location.replace(SITE); return; }
+      // Ilova ish quroli: kirgan foydalanuvchi to'g'ridan-to'g'ri ish joyiga; kirmagan bo'lsa /admin «Kirish» ni ko'rsatadi.
+      if (ok) { location.replace(SITE + 'admin'); return; }
       busy.hidden = true;
       off.hidden = false;
     });
