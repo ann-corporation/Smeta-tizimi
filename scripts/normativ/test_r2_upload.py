@@ -1,3 +1,4 @@
+import gzip
 import hashlib
 import contextlib
 import io
@@ -55,14 +56,27 @@ class UploadTests(unittest.TestCase):
     def plan(self): return uploader.prepare(self.job,self.src,'synthetic.pdf')
     def test_hashes_allowlist_and_no_body(self):
         plan=self.plan(); chunk=plan['chunks'][0]
-        self.assertEqual(chunk['sha256'],hashlib.sha256((self.job/'page-1.json').read_bytes()).hexdigest())
+        body = next(b for k,b,h in plan['objects'] if k.startswith('normativ/chunks/'))
+        self.assertEqual(chunk['sha256'],hashlib.sha256(body).hexdigest()); self.assertEqual(chunk['bayt'],len(body))
         self.assertEqual(set(plan['doc']),uploader.DOC_KEYS); self.assertEqual(set(chunk),uploader.CHUNK_KEYS)
         self.assertNotIn(b'PRIVATE BODY TEXT',uploader.canonical(chunk))
-        body = next(b for k,b,h in plan['objects'] if k.startswith('normativ/chunks/'))
-        self.assertIn(b'PRIVATE BODY TEXT',body)
-        self.assertEqual(body,(self.job/'page-1.json').read_bytes())
+        packed = json.loads(gzip.decompress(body))
+        self.assertEqual(packed['matn'],'PRIVATE BODY TEXT'); self.assertEqual(packed['source_sha'],self.source_sha)
+        self.assertNotIn('spans',packed); self.assertNotIn('sha',packed); self.assertEqual(packed['qatorlar'],[])
         for key,body,digest in plan['objects']: self.assertEqual(uploader.sha(body),digest)
         self.assertEqual(plan['doc']['source_sha'],self.source_sha)
+    def test_line_bounds_group_spans_and_drop_per_char_boxes(self):
+        spans=[{'text':'A','bbox':[0,100,5,110]},{'text':'B','bbox':[5,100,10,110]},{'text':' ','bbox':[10,100,10,100]},
+               {'text':'C','bbox':[0,80,5,90]},{'text':'D','bbox':[5,80,10,90]}]
+        self.assertEqual(uploader.line_bounds(spans,'AB CD'),[[0,3,0.0,100.0,10.0,110.0],[3,5,0.0,80.0,10.0,90.0]])
+        body,compact=uploader.pack_unit(dict(self.unit,spans=spans,matn='AB CD',coordinate_space='pdf-points/bottom-left'))
+        self.assertNotIn('spans',compact); self.assertEqual(compact['koordinata'],'pdf-points/bottom-left')
+        self.assertEqual(len(compact['qatorlar']),2); self.assertNotIn('LINE_BOUNDS_UNAVAILABLE',compact.get('flags',[]))
+        self.assertEqual(gzip.decompress(body), uploader.canonical(compact))
+    def test_mismatched_spans_flag_line_bounds_unavailable(self):
+        spans=[{'text':'X','bbox':[0,0,1,1]}]
+        body,compact=uploader.pack_unit(dict(self.unit,spans=spans,matn='Y',flags=[]))
+        self.assertEqual(compact['qatorlar'],[]); self.assertIn('LINE_BOUNDS_UNAVAILABLE',compact['flags'])
     def test_default_cli_is_offline_dry_run(self):
         output=io.StringIO()
         with patch.object(sys,'argv',['r2_upload.py',str(self.job),str(self.src),'synthetic.pdf']), \
