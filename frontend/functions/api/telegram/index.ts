@@ -37,6 +37,10 @@ async function actor(req: Request, env: Env): Promise<number | Response> {
 
 export const BUYRUQLAR: Record<'uz' | 'ru' | 'en', { command: string; description: string }[]> = (['uz', 'ru', 'en'] as const).reduce((acc, til) => {
   acc[til] = [
+    { command: 'bugun', description: tgT('bugungi qisqa xulosa', til) },
+    { command: 'obyektlar', description: tgT('obyektlar ro‘yxati', til) },
+    { command: 'jarvis', description: tgT('Jarvis ga savol (tokenlar sarflanadi)', til) },
+    { command: 'kunlik', description: tgT('kunlik xulosani yoqish/o‘chirish', til) },
     { command: 'ilova', description: tgT('tizimni Telegram ichida ochish', til) },
     { command: 'men', description: tgT('men kimman (hisob, kompaniya, rol)', til) },
     { command: 'yordam', description: tgT('shu ro‘yxat', til) },

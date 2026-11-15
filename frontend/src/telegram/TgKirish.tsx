@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { t } from '../i18n/til';
 import { initDataOl, tgMiniAppKirish, tgSignal, tgXato } from '../api/t2-telegram';
+import { tgIchkiYol } from '../lib/tg-yol';
 
 type Holat = { tur: 'kutish' } | { tur: 'tashqarida' } | { tur: 'ulanmagan' } | { tur: 'xato'; matn: string };
 
@@ -22,7 +23,8 @@ export default function TgKirish() {
     if (!initData) { setHolat({ tur: 'tashqarida' }); return; }
     void tgMiniAppKirish(initData).then((r) => {
       if (!tirik) return;
-      if (r.ok) { nav('/admin', { replace: true }); return; }
+      /* Bot tugmasi chuqur havola beradi (`/tg?to=/admin/...`); faqat ichki /admin yo'li qabul qilinadi (lib/tg-yol.ts). */
+      if (r.ok) { nav(tgIchkiYol(new URLSearchParams(window.location.search).get('to')) ?? '/admin', { replace: true }); return; }
       setHolat(r.code === 'ULANMAGAN' ? { tur: 'ulanmagan' } : { tur: 'xato', matn: t(tgXato(r)) });
     });
     return () => { tirik = false; };
