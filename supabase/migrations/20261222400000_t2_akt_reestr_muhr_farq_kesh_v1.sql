@@ -213,3 +213,10 @@ comment on function public._t2_qator_muhr_farq_hisob_v1(bigint) is 'versiya: tex
 comment on function public.t2_akt_reestr_obyekt_v1(bigint, bigint, text) is 'versiya: tarix. Obyekt akt reestri: toza keshdan yoki jonli (view o''zgarmagan). p_tur: f2|fakt|NULL.';
 comment on function public.t2_akt_reestr_kompaniya_v1(bigint, bigint, text) is 'versiya: tarix. Kompaniya akt reestri: har obyekt toza keshdan yoki jonli. p_tur: f2|fakt|NULL.';
 comment on function public.t2_qator_muhr_farq_obyekt_v1(bigint, bigint) is 'versiya: tarix. Obyekt muhr farqi: toza keshdan yoki jonli (view o''zgarmagan).';
+
+-- versiya qo'riqchisi (AGENTS.md 2c): iflos triggerlari faqat obyekt_id topish uchun t2_qator ga qaraydi, qator versiyasi ahamiyatsiz.
+comment on function public._t2_kesh_t2_ozgarish_ins() is 'Natija keshi iflos belgisi (t2_ozgarish). versiya: texnik';
+comment on function public._t2_kesh_t2_ozgarish_del() is 'Natija keshi iflos belgisi (t2_ozgarish). versiya: texnik';
+comment on function public._t2_kesh_t2_ozgarish_upd() is 'Natija keshi iflos belgisi (t2_ozgarish). versiya: texnik';
+comment on function public._t2_kesh_t2_qator_muhr_upd() is 'Natija keshi iflos belgisi (t2_qator_muhr). versiya: texnik';
+comment on function public._t2_kesh_t2_obyekt_nom() is 'Natija keshi iflos belgisi (t2_obyekt.nom). versiya: texnik';
