@@ -14,7 +14,7 @@
  * (soha bo'yicha guruhlangan qatorlar × lavozim ustunlari), window.confirm → tasdiqSora.
  * EGALIK: Claude (integration lane).
  */
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import {
   Building2, Crown, ShieldCheck, Loader2, AlertTriangle, Trash2, Users, LogOut,
   User, KeyRound, Layers, FolderKanban, Plug, History, RefreshCw,
@@ -37,6 +37,9 @@ import { MemberPermissionEditor } from '../components/MemberPermissionEditor';
 import { TaklifHavolalari } from '../components/TaklifHavolalari';
 import { OdamTakliflari } from '../components/OdamTakliflari';
 import { KompaniyaOching } from '../components/KompaniyaOching';
+import { OdamTaklifForma } from '../../components/username/OdamTaklifForma';
+import { UsernameTaklifBanner } from '../../components/username/UsernameTaklifBanner';
+import { usernameOmmaviy } from '../../api/username';
 import { XizmatTakliflari } from '../components/XizmatTakliflari';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
@@ -106,6 +109,15 @@ function AzolarBoshqaruv({ kompaniyaId, kompaniyaNom, isDirector }: { kompaniyaI
      xeshlangan — ochiq matnli qiymat bundan tashqari qayerda ham yo'q). */
   const [korsatilganParol, setKorsatilganParol] = useState<{ login: string; parol: string } | null>(null);
   const faollar = (q.data ?? []).filter((a) => a.holat === 'faol');
+  const [unXarita, setUnXarita] = useState<Record<string, string>>({});
+  const faolIdlar = faollar.map((a) => a.foydalanuvchi_id).join(',');
+  useEffect(() => {
+    const idlar = faolIdlar ? faolIdlar.split(',').map(Number) : [];
+    if (!idlar.length) return;
+    let tirik = true;
+    void usernameOmmaviy(idlar).then((r) => { if (tirik && r.ok) setUnXarita(r.username); });
+    return () => { tirik = false; };
+  }, [faolIdlar]);
 
   const parolBelgila = async (a: { ism?: string | null; login: string; foydalanuvchi_id: number }) => {
     if (!(await tasdiqSora({ sarlavha: t('Vaqtinchalik parol'), matn: t('«{n}» uchun YANGI vaqtinchalik parol o‘rnatilsinmi? Eski parol (agar bo‘lsa) ishlamay qoladi.', { n: a.ism || a.login }) }))) return;
@@ -135,7 +147,7 @@ function AzolarBoshqaruv({ kompaniyaId, kompaniyaNom, isDirector }: { kompaniyaI
             <tbody>
               {faollar.map((a) => (
                 <tr key={a.azolik_id}>
-                  <td><div className="font-medium text-text">{a.ism || a.login}</div><div className="fz-c-shifr">@{a.login}</div></td>
+                  <td><div className="font-medium text-text">{a.ism || a.login}</div><div className="fz-c-shifr">{unXarita[String(a.foydalanuvchi_id)] ? '@' + unXarita[String(a.foydalanuvchi_id)] : '@' + a.login}</div></td>
                   <td className="text-text-dim">{a.email || '—'}</td>
                   <td>{tahrirId === a.azolik_id ? (
                     <span className="flex items-center gap-1.5">
@@ -192,6 +204,7 @@ function AzolarBoshqaruv({ kompaniyaId, kompaniyaNom, isDirector }: { kompaniyaI
             </button>
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {cmd.azoQosh.isError && <div className="sm:col-span-3"><Xato matn={xatoMatn((cmd.azoQosh.error as any)?.code)} /></div>}
+            <div className="sm:col-span-3"><OdamTaklifForma kompaniyaId={kompaniyaId} /></div>
             <p className="flex items-center gap-1 text-[12px] text-text-mute sm:col-span-3"><ShieldCheck size={12} /> {t('superadmin roli bu yerdan berilmaydi — platforma darajasida.')}</p>
           </div>
         )}
@@ -675,6 +688,8 @@ export default function KompaniyaPage() {
             <div className="fz-kpi"><span className="fz-kpi__label">{t('Faol kompaniya')}</span><span className="fz-kpi__value truncate">{k.joriy?.nom ?? '—'}</span><span className="fz-kpi__sub">{k.joriyId ? (joriyDirektor ? t('siz boshqarasiz') : t('faqat ko‘rish va ish')) : t('yuqoridan tanlang')}</span></div>
           </div>
         </section>
+
+        <UsernameTaklifBanner />
 
         {men.onboarding_kerak && !menSuperadmin && <KompaniyaOching />}
 

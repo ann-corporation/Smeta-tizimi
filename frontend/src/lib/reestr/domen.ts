@@ -77,6 +77,8 @@ export const PREFIKS: Readonly<Record<Domen, readonly string[]>> = {
   logistika: ['t2_yb', 't2_tr', 't2_transport'],
   sotuv: ['t2_sotuv'],
   platforma: [
+    /* USERNAME-V1: @username, band so'zlar, o'zgartirish tarixi (platforma identifikatori). */
+    't2_username',
     't2_kompaniya', 't2_azolik', 't2_azo', 't2_foydalanuvchi', 't2_capability', 't2_role', 't2_permission', 't2_require_permission',
     't2_effective', 't2_audit', 't2_outbox', 't2_signal', 't2_job', 't2_obuna', 't2_tarif', 't2_token', 't2_boshqaruv', 't2_desktop', 't2_mobil',
     't2_telegram', 't2_tg_kirish', 't2_telefon_norm', 't2_bildirishnoma', 't2_bildirishnomalar', 't2_royxat', 't2_ozi_royxat', 't2_sozlama', 't2_deploy',

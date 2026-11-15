@@ -20,6 +20,7 @@ import { googleKalitlar, googleOriginlar, googleTokenTekshir, STANDART_CLIENT_ID
 import { kodXesh } from './kirish-email';
 import { NONCE_PREFIKS, TOKEN_FORMAT, ipBelgi, nonceYaroqli, tasodifiyToken, xesh, yoqilgan } from '../_shared/kirish-emailsiz';
 import { deepLink, tokenBormi } from '../_shared/telegram';
+import { qiymatTuri, usernameNorm, usernameXato } from '../_shared/username';
 
 type Env = { SESSIYA_KALIT: string; SUPABASE_URL: string; SUPABASE_KEY: string; GOOGLE_CLIENT_ID?: string; GOOGLE_ORIGINS?: string;
   KIRISH_TELEGRAM_YOQILGAN?: string; TELEGRAM_BOT_TOKEN?: string; TELEGRAM_BOT_USERNAME?: string; TELEGRAM_SAYT_URL?: string };
@@ -34,6 +35,8 @@ const TALAB_KODLARI = new Set([
   'ESKI_PAROL_XATO', 'PAROL_QISQA', 'PAROL_UZUN', 'PAROL_BIR_XIL',
   'GOOGLE_PAROLSIZ', 'GOOGLE_BOSHQA_HISOB', 'GOOGLE_ALLAQACHON_ULANGAN', 'GOOGLE_MALUMOT_NOTOGRI',
   'LOGIN_PAROL_XATO', 'OZI', 'PAROLSIZ_HISOB',
+  'USERNAME_QISQA', 'USERNAME_UZUN', 'USERNAME_FORMAT', 'USERNAME_BOSHLANISH', 'USERNAME_UNDERSCORE', 'USERNAME_BAND_SOZ', 'SOZLAMA_NOTOGRI', 'QIYMAT_NOTOGRI',
+  'TAKLIF_YAROQSIZ', 'TAKLIF_MUDDATI_OTGAN',
   'SUPERADMIN_FARQI', 'TELEGRAM_HISOB_YOQ', 'HISOB_YOQ', 'KOD_YAROQSIZ', 'OXIRGI_USUL', 'EMAIL_LOGIN', 'USUL_TOPILMADI', 'USUL_BIRLASHTIRILGAN', 'DOKAZ_NOTOGRI',
 ]);
 
@@ -74,7 +77,9 @@ function rpcXato(j: Rpc | null): Response {
   if (!j) return json({ ok: false, code: 'SERVER_XATO' }, 500);
   const code = typeof j.code === 'string' ? j.code : 'SERVER_XATO';
   if (code === 'ACTOR_NOT_FOUND') return json({ ok: false, code }, 401);
-  if (code === 'SERVER_YANGILANMAGAN') return json({ ok: false, code }, 404);
+  if (code === 'SERVER_YANGILANMAGAN' || code === 'TAKLIF_TOPILMADI') return json({ ok: false, code }, 404);
+  if (code === 'USERNAME_BAND' || code === 'USERNAME_USHLANGAN') return json({ ok: false, code }, 409);
+  if (code === 'USERNAME_LIMIT' || code === 'LIMIT') return json({ ok: false, code }, 429);
   if (TALAB_KODLARI.has(code)) {
     const extra = code === 'GOOGLE_BOSHQA_HISOB' && typeof j.boshqa_login === 'string' ? { boshqa_login: j.boshqa_login } : {};
     return json({ ok: false, code, ...extra }, 400);
@@ -300,6 +305,91 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       if (!cookie) return json({ ok: false, code: 'CONFIG' }, 503);
       return json({ ok: true, holat: 'tayyor', kochirilgan_kompaniyalar: j.kochirilgan_kompaniyalar ?? [], qolgan_rollar: j.qolgan_rollar ?? [] }, 200, { 'Set-Cookie': cookie });
     }
+    /* ── @username (USERNAME-V1, 20261224100000): actor FAQAT sessiyadan. Qidiruv — aniq moslik; telefon/email hech qachon qaytmaydi. ── */
+    case 'username_ol': {
+      const j = await rpc(env, 't2_username_ol_v1', { p_actor_id: id });
+      if (!j?.ok) return rpcXato(j);
+      return json({ ok: true, username: j.username ?? null, ism: j.ism ?? null, telefon_qidiruv: j.telefon_qidiruv, bugun_qoldi: j.bugun_qoldi });
+    }
+
+    case 'username_belgila': {
+      /* null / '' — o'chirish. Format SQL da ham tekshiriladi (bu yerda oldindan — bekorga chaqiruvni oldini olish). */
+      const norm = b.username === null || b.username === '' ? null : usernameNorm(b.username);
+      if (typeof b.username !== 'string' && b.username !== null) return talab();
+      if (norm !== null) { const x = usernameXato(norm); if (x) return json({ ok: false, code: x }, 400); }
+      const opId = typeof b.operation_id === 'string' && /^[0-9a-f-]{36}$/i.test(b.operation_id) ? b.operation_id : crypto.randomUUID();
+      const j = await rpc(env, 't2_username_belgila_v1', { p_actor_id: id, p_username: norm, p_operation_id: opId });
+      if (!j?.ok) return rpcXato(j);
+      vakolatKeshTozala(id);
+      return json({ ok: true, username: j.username ?? null });
+    }
+
+    case 'username_tekshir': {
+      const norm = usernameNorm(b.username);
+      const variantlar = Array.isArray(b.variantlar) ? b.variantlar.filter((v): v is string => typeof v === 'string').slice(0, 10).map((v) => v.slice(0, 40)) : [];
+      if (typeof b.username !== 'string' || b.username.length > 64) return talab();
+      const x = usernameXato(norm);
+      if (x && norm !== null && norm.length >= 1 && x !== 'USERNAME_QISQA') return json({ ok: true, yaroqli: false, sabab: x, bosh: false, band: false, variantlar: [] });
+      const j = await rpc(env, 't2_username_tekshir_v1', { p_actor_id: id, p_username: norm, p_variantlar: variantlar });
+      if (!j?.ok) return rpcXato(j);
+      return json({ ok: true, yaroqli: j.yaroqli === true, sabab: j.sabab ?? null, bosh: j.bosh === true, band: j.band === true, variantlar: Array.isArray(j.variantlar) ? j.variantlar : [] });
+    }
+
+    case 'username_sozlama': {
+      if (typeof b.telefon_qidiruv !== 'string') return talab();
+      const j = await rpc(env, 't2_username_sozlama_v1', { p_actor_id: id, p_telefon_qidiruv: b.telefon_qidiruv });
+      if (!j?.ok) return rpcXato(j);
+      return json({ ok: true, telefon_qidiruv: j.telefon_qidiruv });
+    }
+
+    case 'qidir': {
+      const qiymat = typeof b.qiymat === 'string' ? b.qiymat.trim() : '';
+      if (!qiymat || qiymat.length > 254 || qiymatTuri(qiymat) === 'noaniq') return json({ ok: false, code: 'QIYMAT_NOTOGRI' }, 400);
+      const j = await rpc(env, 't2_foydalanuvchi_qidir_v1', { p_actor_id: id, p_qiymat: qiymat });
+      if (!j?.ok) return rpcXato(j);
+      return json({ ok: true, topildi: j.topildi === true, tur: j.tur, profil: j.topildi === true ? j.profil : null });
+    }
+
+    case 'kompaniyadosh_qidir': {
+      const prefiks = typeof b.prefiks === 'string' ? b.prefiks.slice(0, 40) : '';
+      const komp = b.kompaniya_id == null ? null : Number(b.kompaniya_id);
+      if (komp !== null && (!Number.isSafeInteger(komp) || komp <= 0)) return talab();
+      const j = await rpc(env, 't2_foydalanuvchi_kompaniyadosh_qidir_v1', { p_actor_id: id, p_prefiks: prefiks, p_kompaniya_id: komp });
+      if (!j?.ok) return rpcXato(j);
+      return json({ ok: true, royxat: Array.isArray(j.royxat) ? j.royxat : [] });
+    }
+
+    case 'username_ommaviy': {
+      const idlar = Array.isArray(b.idlar) ? b.idlar.map(Number).filter((n) => Number.isSafeInteger(n) && n > 0).slice(0, 200) : null;
+      if (!idlar) return talab();
+      const j = await rpc(env, 't2_username_ommaviy_v1', { p_actor_id: id, p_idlar: idlar });
+      if (!j?.ok) return rpcXato(j);
+      return json({ ok: true, username: j.username ?? {} });
+    }
+
+    case 'taklif_royxat': {
+      const j = await rpc(env, 't2_kompaniya_taklif_royxat_v1', { p_actor_id: id });
+      if (!j?.ok) return rpcXato(j);
+      return json({ ok: true, royxat: Array.isArray(j.royxat) ? j.royxat : [] });
+    }
+
+    case 'taklif_javob': {
+      const tid = Number(b.taklif_id);
+      if (!Number.isSafeInteger(tid) || tid <= 0 || typeof b.qabul !== 'boolean') return talab();
+      const opId = typeof b.operation_id === 'string' && /^[0-9a-f-]{36}$/i.test(b.operation_id) ? b.operation_id : crypto.randomUUID();
+      const j = await rpc(env, 't2_kompaniya_taklif_javob_v1', { p_actor_id: id, p_taklif_id: tid, p_qabul: b.qabul, p_operation_id: opId });
+      if (!j?.ok) return rpcXato(j);
+      if (b.qabul) {
+        vakolatKeshTozala(id);
+        // Yangi a'zolik cookie dagi kompaniyalar ro'yxatiga tushsin.
+        const yangi = await roleAuthority(a.verified, env);
+        const cookie = await yangiCookie(env, yangi ?? a.verified);
+        if (!cookie) return json({ ok: false, code: 'CONFIG' }, 503);
+        return json({ ok: true, holat: j.holat, kompaniya_id: j.kompaniya_id ?? null, rol: j.rol ?? null }, 200, { 'Set-Cookie': cookie });
+      }
+      return json({ ok: true, holat: j.holat });
+    }
+
     default:
       return json({ ok: false, code: 'AMAL_NOMALUM' }, 400);
   }

@@ -214,6 +214,8 @@ export const yordamMatni = (til: TgTil) => [
   '/fakt — ' + tgT('fakt qoralamasi: /fakt <obyekt#> <nima va qancha> (tokenlar sarflanadi)', til),
   '/kunlik — ' + tgT('kunlik xulosani yoqish/o‘chirish', til),
   '/men — ' + tgT('men kimman (hisob, kompaniya, rol)', til),
+  '/username — ' + tgT('QURAI username’ingiz: /username <nom>', til),
+  '/taklif — ' + tgT('odamni kompaniyaga taklif qilish: /taklif <@username|telefon|email> <rol>', til),
   '/ilova — ' + tgT('tizimni Telegram ichida ochish', til),
   '/chiqish — ' + tgT('Telegramni hisobdan uzish', til),
   '/yordam — ' + tgT('shu ro‘yxat', til),
