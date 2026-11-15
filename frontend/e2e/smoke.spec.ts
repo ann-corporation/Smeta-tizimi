@@ -45,6 +45,8 @@ test('/admin sessiyasiz «Kirish talab qilinadi» ko‘rsatadi', async ({ page }
 });
 
 test('kirish formasi ochiladi', async ({ page }) => {
+  // «Tizimga kirish» sessiyani tekshiradi; preview'da /api yo'q — haqiqiy 401 ni taqlid qilamiz.
+  await page.route('**/api/sessiya**', (r) => r.fulfill({ status: 401, contentType: 'application/json', body: '{"xato":"sessiya yo\'q"}' }));
   await page.goto('/');
   await page.getByRole('button', { name: 'Tizimga kirish' }).first().click();
   const forma = page.locator('#entry-account');
