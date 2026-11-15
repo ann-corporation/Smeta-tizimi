@@ -1,0 +1,119 @@
+package uz.anncorp.smeta.feature.hub
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridScope
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import uz.anncorp.smeta.R
+import uz.anncorp.smeta.core.data.open
+import uz.anncorp.smeta.core.data.Workspace
+import uz.anncorp.smeta.core.data.WsAction
+import uz.anncorp.smeta.core.data.WsSection
+import uz.anncorp.smeta.core.data.WsSectionType
+import uz.anncorp.smeta.core.db.ObyektEntity
+import uz.anncorp.smeta.core.ui.TouchTarget
+
+/** The sections of a workspace this build can draw. Anything else is skipped (forward compatible); a LIST/KPI without a known feed becomes an "open" card. */
+internal fun renderable(ws: Workspace): List<WsSection> = ws.sections.filter { s ->
+    when (s.type) {
+        WsSectionType.ACTIONS -> s.actionIds.any { ws.action(it)?.open() != null }
+        WsSectionType.TEXT -> !s.text.isNullOrBlank()
+        WsSectionType.LIST, WsSectionType.KPI -> true
+    }
+}
+
+/**
+ * Generic section renderers for the server-driven workspace: action grids (big touch buttons in field mode), lists, KPI cards and text.
+ * Feeds the app already has locally: `obyektlar.oxirgi` and field "today's works by place" (objects = places). Everything else opens its screen.
+ */
+internal fun LazyGridScope.workspaceItems(ws: Workspace, places: List<ObyektEntity>, onAction: (WsAction) -> Unit, onObject: (Long) -> Unit) {
+    val span = GridItemSpan(2)
+    renderable(ws).forEach { s ->
+        val key = "ws:${s.id}"
+        item(key = "$key:h", span = { span }) { SectionHeader(s, ws, onAction) }
+        when (s.type) {
+            WsSectionType.ACTIONS -> {
+                val list = s.actionIds.mapNotNull { ws.action(it) }.filter { it.open() != null }
+                items(list, key = { "$key:${it.id}" }, span = { if (s.big && list.size == 1) span else GridItemSpan(1) }) { a -> ActionButton(a, s.big, ws.primaryAction == a.id, onAction) }
+            }
+            WsSectionType.TEXT -> item(key = "$key:t", span = { span }) { Text(s.text.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            WsSectionType.LIST, WsSectionType.KPI -> {
+                val feed = (s.source == "obyektlar.oxirgi" || (s.groupByPlace && s.source == "bugun.ishlar")) && s.type == WsSectionType.LIST
+                if (feed && places.isNotEmpty()) items(places.take(6), key = { "$key:o${it.id}" }, span = { span }) { PlaceRow(it) { onObject(it.id) } }
+                else item(key = "$key:c", span = { span }) { OpenCard(s, ws.action(s.openAction.orEmpty()), onAction) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(s: WsSection, ws: Workspace, onAction: (WsAction) -> Unit) {
+    val open = ws.action(s.openAction.orEmpty())?.takeIf { it.open() != null }
+    Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(s.title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+        if (open != null && s.type != WsSectionType.ACTIONS) TextButton(onClick = { onAction(open) }) { Text(stringResource(R.string.ws_open)) }
+    }
+}
+
+/** Field mode (`big`): one thumb-sized button, large icon and text - works with gloves; also the primary action is highlighted. */
+@Composable
+private fun ActionButton(a: WsAction, big: Boolean, primary: Boolean, onAction: (WsAction) -> Unit) {
+    Surface(
+        color = if (primary) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth().heightIn(min = if (big) 112.dp else 72.dp).clickable { onAction(a) },
+    ) {
+        Column(Modifier.padding(14.dp)) {
+            Icon(iconFor(a.icon), null, tint = if (primary) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary, modifier = Modifier.size(if (big) 34.dp else 24.dp))
+            Spacer(Modifier.size(if (big) 10.dp else 6.dp))
+            Text(a.title, style = if (big) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleSmall, color = if (primary) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+@Composable
+private fun PlaceRow(o: ObyektEntity, onClick: () -> Unit) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget).clickable(onClick = onClick)) {
+        Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.Home, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.size(10.dp))
+            Text(o.nom, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+@Composable
+private fun OpenCard(s: WsSection, open: WsAction?, onAction: (WsAction) -> Unit) {
+    val go = open?.takeIf { it.open() != null }
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = RoundedCornerShape(14.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget).then(if (go != null) Modifier.clickable { onAction(go) } else Modifier),
+    ) {
+        Row(Modifier.padding(horizontal = 14.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.KeyboardArrowUp, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.size(10.dp))
+            Text(go?.title ?: s.title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}

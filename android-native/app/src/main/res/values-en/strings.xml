@@ -336,4 +336,8 @@
     <string name="pe_issue_start">Must start with a letter</string>
     <string name="pe_issue_underscore">No double or trailing _</string>
     <string name="pe_issue_reserved">This word is reserved</string>
+    <string name="ws_cabinet_switch">Switch cabinet</string>
+    <string name="ws_cabinet_hint">A role is your relationship on an object or contract: one company can be the contractor here, a subcontractor there and the client elsewhere.</string>
+    <string name="ws_open">Open</string>
+    <string name="ws_field_offline">Works offline too — entries are queued</string>
 </resources>

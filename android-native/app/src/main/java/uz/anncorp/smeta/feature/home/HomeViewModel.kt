@@ -51,9 +51,13 @@ class HomeViewModel @Inject constructor(
     private val db: uz.anncorp.smeta.core.db.AppDb,
     private val processor: uz.anncorp.smeta.core.data.OutboxProcessor,
     private val company: uz.anncorp.smeta.core.data.CompanyRepository,
+    private val workspaces: uz.anncorp.smeta.core.data.WorkspaceRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(HomeState(theme = prefs.theme.value))
     val state: StateFlow<HomeState> = _state.asStateFlow()
+
+    /** The selected cabinet's server-driven workspace (shared with the hub): drives the cabinet switcher in the top bar. */
+    val workspace: StateFlow<uz.anncorp.smeta.core.data.Workspace?> = workspaces.current
 
     init { load() }
 
@@ -83,6 +87,14 @@ class HomeViewModel @Inject constructor(
         prefs.selectCompany(w.companyId)
         _state.update { it.copy(selected = w) }
         work.set(w)
+    }
+
+    /** Switches the cabinet (company x party). A cabinet of another company also switches the workplace; the hub reloads from the server. */
+    fun chooseCabinet(c: uz.anncorp.smeta.core.data.WsCabinet) {
+        workspaces.choose(c.id)
+        val target = c.companyId?.let { id -> _state.value.workplaces.firstOrNull { it.companyId == id } }
+        if (target != null && target.companyId != _state.value.selected?.companyId) select(target)
+        else c.companyId?.let { id -> viewModelScope.launch { workspaces.refresh(id) } }
     }
 
     fun createCompany(name: String, inn: String) = onboard { company.create(name, inn.ifBlank { null }) }
@@ -143,6 +155,7 @@ class HomeViewModel @Inject constructor(
         _signOut.value = SignOutUi.Idle
         prefs.clearCompany()
         prefs.clearRecent()
+        workspaces.clear()
         work.set(null)
         db.clearCaches()   // before the logout event: leaving the screen may cancel this scope
         api.signOut()

@@ -38,9 +38,13 @@ data class HubUi(
     val objectHits: List<ObyektEntity> = emptyList(),
     val rowHits: List<QatorEntity> = emptyList(),
     val recent: List<ObyektEntity> = emptyList(),
+    /** Cached objects (the workspace's "places"): recent first, then the rest. */
+    val places: List<ObyektEntity> = emptyList(),
     val objectCount: Int = -1,
     /** Unread notifications (server counter) for the bell badge on the hub; null = unknown. */
     val unread: Int? = null,
+    /** Server-driven role workspace of the selected cabinet (null = not loaded / old server: the plain module launcher is shown). */
+    val workspace: uz.anncorp.smeta.core.data.Workspace? = null,
 )
 
 /** Pure: objects whose name contains the query (case-insensitive), at most [limit]. */
@@ -64,6 +68,7 @@ class HubViewModel @Inject constructor(
     private val work: WorkContext,
     private val prefs: Prefs,
     private val today: uz.anncorp.smeta.core.data.TodayRepository,
+    private val workspaces: uz.anncorp.smeta.core.data.WorkspaceRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(HubUi())
     val state: StateFlow<HubUi> = _state.asStateFlow()
@@ -75,16 +80,19 @@ class HubViewModel @Inject constructor(
             work.current.map { it?.companyId }.distinctUntilChanged().collect { id ->
                 if (id == null) { _state.update { it.copy(hasCompany = false, loading = false) }; return@collect }
                 _state.update { it.copy(hasCompany = true, loading = true) }
+                launch { workspaces.refresh(id) }
                 val picks = modules.picks(id)
                 _state.update { it.copy(picks = picks) }
                 val a = modules.access(id)
                 _state.update { it.copy(permissions = a.permissions, offModules = a.offModules, loading = false) }
             }
         }
+        // The workspace is shared with the top-bar cabinet switcher (HomeViewModel); the hub only renders it.
+        viewModelScope.launch { workspaces.current.collect { w -> _state.update { it.copy(workspace = w) } } }
         // Objects of this workplace (cached) -> recent + count.
         viewModelScope.launch {
             combine(work.current.flatMapLatest { w -> if (w == null) flowOf(emptyList()) else objects.observe(w.companyId) }, prefs.recent) { all, ids -> all to ids }
-                .collect { (all, ids) -> _state.update { it.copy(recent = resolveRecent(ids, all), objectCount = all.size) } }
+                .collect { (all, ids) -> val rec = resolveRecent(ids, all); _state.update { it.copy(recent = rec, places = (rec + all.filter { o -> rec.none { r -> r.id == o.id } }).take(8), objectCount = all.size) } }
         }
         // Debounced global search: modules are filtered in the UI; objects and cached smeta rows here.
         viewModelScope.launch {

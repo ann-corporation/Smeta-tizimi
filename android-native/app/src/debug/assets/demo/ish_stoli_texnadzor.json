@@ -1,0 +1,119 @@
+{
+ "ok": true,
+ "versiya": 1,
+ "kabinetlar": [
+  {
+   "id": "1:texnadzor",
+   "kompaniya_id": 1,
+   "nom": "Demo Qurilish MChJ",
+   "tomon": "texnadzor",
+   "tomon_nom": "Texnadzor / buyurtmachi",
+   "manba": "azolik",
+   "joriy": true
+  },
+  {
+   "id": "1:subpudratchi",
+   "kompaniya_id": 1,
+   "nom": "Demo Qurilish MChJ",
+   "tomon": "subpudratchi",
+   "tomon_nom": "Subpudratchi",
+   "manba": "aloqa",
+   "joriy": false
+  }
+ ],
+ "joriy": "1:texnadzor",
+ "kompaniya_id": 1,
+ "tomon": "texnadzor",
+ "tomon_nom": "Texnadzor / buyurtmachi",
+ "rejim": "standart",
+ "dala": null,
+ "amallar": [
+  {
+   "id": "tasdiqlash",
+   "nom": "Tasdiqlash",
+   "ikonka": "tasdiq",
+   "maqsad": {
+    "tur": "native",
+    "kod": "tasdiq"
+   },
+   "birlamchi": true
+  },
+  {
+   "id": "nazorat",
+   "nom": "Texnik nazorat",
+   "ikonka": "nazorat",
+   "maqsad": {
+    "tur": "web",
+    "kod": "nazorat",
+    "yol": "/admin/nazorat"
+   }
+  },
+  {
+   "id": "buyurtmachi_kabinet",
+   "nom": "Buyurtmachi kabineti",
+   "ikonka": "obyektlar",
+   "maqsad": {
+    "tur": "web",
+    "kod": "zakazchik",
+    "yol": "/admin/zakazchik"
+   }
+  },
+  {
+   "id": "f2_reestr",
+   "nom": "F-2 reestri",
+   "ikonka": "f2reestr",
+   "maqsad": {
+    "tur": "web",
+    "kod": "f2reestr",
+    "yol": "/admin/f2-reestr"
+   }
+  },
+  {
+   "id": "jarvis",
+   "nom": "Jarvis",
+   "ikonka": "jarvis",
+   "maqsad": {
+    "tur": "native",
+    "kod": "jarvis"
+   }
+  },
+  {
+   "id": "obyektlar",
+   "nom": "Obyektlar",
+   "ikonka": "obyektlar",
+   "maqsad": {
+    "tur": "native",
+    "kod": "obyektlar"
+   }
+  }
+ ],
+ "bolimlar": [
+  {
+   "id": "tasdiq",
+   "tur": "royxat",
+   "nom": "Tasdiqlashim kerak",
+   "manba": "tasdiq.navbat",
+   "amal": "tasdiqlash"
+  },
+  {
+   "id": "tez",
+   "tur": "amallar",
+   "nom": "Nazorat",
+   "amallar": [
+    "tasdiqlash",
+    "nazorat",
+    "buyurtmachi_kabinet",
+    "f2_reestr",
+    "jarvis"
+   ]
+  },
+  {
+   "id": "obyekt",
+   "tur": "royxat",
+   "nom": "Obyektlar",
+   "manba": "obyektlar.oxirgi",
+   "amal": "obyektlar"
+  }
+ ],
+ "birlamchi_amal": "tasdiqlash"
+}

@@ -1,0 +1,159 @@
+{
+ "ok": true,
+ "versiya": 1,
+ "kabinetlar": [
+  {
+   "id": "1:prorab",
+   "kompaniya_id": 1,
+   "nom": "Demo Qurilish MChJ",
+   "tomon": "prorab",
+   "tomon_nom": "Prorab / usta (dala)",
+   "manba": "azolik",
+   "joriy": true
+  },
+  {
+   "id": "1:texnadzor",
+   "kompaniya_id": 1,
+   "nom": "Demo Qurilish MChJ",
+   "tomon": "texnadzor",
+   "tomon_nom": "Texnadzor / buyurtmachi",
+   "manba": "aloqa",
+   "joriy": false
+  },
+  {
+   "id": "1:subpudratchi",
+   "kompaniya_id": 1,
+   "nom": "Demo Qurilish MChJ",
+   "tomon": "subpudratchi",
+   "tomon_nom": "Subpudratchi",
+   "manba": "aloqa",
+   "joriy": false
+  }
+ ],
+ "joriy": "1:prorab",
+ "kompaniya_id": 1,
+ "tomon": "prorab",
+ "tomon_nom": "Prorab / usta (dala)",
+ "rejim": "dala",
+ "dala": {
+  "katta_tugma": true,
+  "oflayn": true,
+  "ovoz": true,
+  "foto": true
+ },
+ "amallar": [
+  {
+   "id": "fakt_yoz",
+   "nom": "Fakt yozish",
+   "ikonka": "fakt",
+   "maqsad": {
+    "tur": "native",
+    "kod": "fakt"
+   },
+   "birlamchi": true
+  },
+  {
+   "id": "foto_dalil",
+   "nom": "Foto dalil",
+   "ikonka": "foto",
+   "maqsad": {
+    "tur": "native",
+    "kod": "foto"
+   }
+  },
+  {
+   "id": "material_sorov",
+   "nom": "Material so‘rovi",
+   "ikonka": "zayavka",
+   "maqsad": {
+    "tur": "web",
+    "kod": "zayavka",
+    "yol": "/admin/zayavka"
+   }
+  },
+  {
+   "id": "ombor_chiqim",
+   "nom": "Ombor chiqim",
+   "ikonka": "ombor",
+   "maqsad": {
+    "tur": "native",
+    "kod": "ombor"
+   }
+  },
+  {
+   "id": "bugun",
+   "nom": "Bugungi ishlar",
+   "ikonka": "bugun",
+   "maqsad": {
+    "tur": "native",
+    "kod": "bugun"
+   }
+  },
+  {
+   "id": "tasdiqlash",
+   "nom": "Tasdiqlash",
+   "ikonka": "tasdiq",
+   "maqsad": {
+    "tur": "native",
+    "kod": "tasdiq"
+   }
+  },
+  {
+   "id": "jarvis",
+   "nom": "Jarvis",
+   "ikonka": "jarvis",
+   "maqsad": {
+    "tur": "native",
+    "kod": "jarvis"
+   }
+  },
+  {
+   "id": "obyektlar",
+   "nom": "Obyektlar",
+   "ikonka": "obyektlar",
+   "maqsad": {
+    "tur": "native",
+    "kod": "obyektlar"
+   }
+  }
+ ],
+ "bolimlar": [
+  {
+   "id": "dala",
+   "tur": "amallar",
+   "nom": "Dalada",
+   "katta": true,
+   "amallar": [
+    "fakt_yoz",
+    "foto_dalil",
+    "material_sorov",
+    "ombor_chiqim"
+   ]
+  },
+  {
+   "id": "bugun",
+   "tur": "royxat",
+   "nom": "Bugungi ishlar (joy bo‘yicha)",
+   "manba": "bugun.ishlar",
+   "guruh": "joy",
+   "amal": "bugun"
+  },
+  {
+   "id": "tasdiq",
+   "tur": "royxat",
+   "nom": "Tasdiqlash",
+   "manba": "tasdiq.navbat",
+   "amal": "tasdiqlash"
+  },
+  {
+   "id": "yana",
+   "tur": "amallar",
+   "nom": "Yana",
+   "amallar": [
+    "jarvis",
+    "obyektlar"
+   ]
+  }
+ ],
+ "birlamchi_amal": "fakt_yoz"
+}

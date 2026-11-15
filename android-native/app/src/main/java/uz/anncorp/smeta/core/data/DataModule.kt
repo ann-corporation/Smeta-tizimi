@@ -142,5 +142,8 @@ object DataModule {
     fun jarvisRepository(api: BffApi) = JarvisRepository(api)
 
     @Provides @Singleton
+    fun workspaceRepository(api: BffApi, json: Json, prefs: Prefs) = WorkspaceRepository(api, json, prefs)
+
+    @Provides @Singleton
     fun modulesRepository(api: BffApi, json: Json, prefs: Prefs) = ModulesRepository(api, json, prefs)
 }
