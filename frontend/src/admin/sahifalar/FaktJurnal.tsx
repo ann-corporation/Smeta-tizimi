@@ -79,7 +79,7 @@ const fmt = (v: number | null | undefined) => (v == null ? '—' : Number(v).toL
  * Fakt jurnali: chapda bo'limlar (bajarilish foizi), o'ngda tanlangan bo'lim ishlari (resurslari
  * bilan). Har qatorda "+" (bugun) yoki "=" (jami), 25/50/100% tezkor tugmalar; pastda doimiy
  * saqlash paneli — barcha o'zgarishlar BITTA tranzaksiyada (Ctrl+S). Klaviatura: Enter/↓ keyingi,
- * ↑ oldingi, Esc tozalash, "/" qidiruv.
+ * ↑ oldingi, Esc — katak tahririni bekor qilish (batchni tozalamaydi), "/" qidiruv.
  */
 import type { SaqlashFn } from '../../lib/ish-varaq/fakt-saqlash';
 export type { SaqlashFn, SaqlashNatija } from '../../lib/ish-varaq/fakt-saqlash';
@@ -478,13 +478,12 @@ export function FaktJurnal({ kompaniyaId, obyektId, objects, rows, states, holat
 
   /** Jurnal tugmalari faqat ustida oyna ochiq bo'lmaganda ishlaydi. */
   const jurnalFaol = !modal && !tenglash && !tiklash && !bajModal && !narxModal && !qamrov && !chiqModal && !egizakOyna;
-  // Yagona klaviatura moduli (lib/hotkeys): Ctrl+S saqlash, / qidiruv, F — Fakt = F2 (tanlangan bo'lim), Esc — kiritmalarni tozalash.
+  // Yagona klaviatura moduli (lib/hotkeys): Ctrl+S saqlash, / qidiruv, F — Fakt = F2 (tanlangan bo'lim), Esc batchni TOZALAMAYDI (faqat katak tahriri/oyna yopiladi; bekor qilish — panel tugmasi yoki Ctrl+Z).
   useHotkeys('fakt', t('Fakt jurnali'), [
     { id: 'fakt.saqla', keys: ['ctrl+s', 'ctrl+enter'], nom: t('Saqlash'), inInput: true, run: () => { saqlaKlav(); } },
     { id: 'fakt.qidiruv', keys: '/', nom: t('Qidirish'), run: () => { qidiruvRef.current?.focus(); } },
     { id: 'fakt.f2', keys: 'f', nom: t('Fakt = F2 (tanlangan bo‘lim)'), run: () => { const b = bolimlar.find((x) => x.id === bolimId); if (!b) return false; void tenglashOch(b.nom, bolimIshlariYigish(b.id, bolimIshlari, bolimBolalari, true)); } },
     { id: 'fakt.f2.obyekt', keys: 'shift+f', nom: t('Fakt = F2 (butun obyekt)'), run: () => { if (!bolimlar.length && !ildizIshlari.length) return false; void tenglashObyekt(); } },
-    { id: 'fakt.tozala', keys: 'esc', nom: t('Kiritilganlarni bekor qilish'), run: () => { if (!ozgarishSoni) return false; ommaviy({}); } },
     { id: 'fakt.orqaga', keys: 'ctrl+z', nom: t('Orqaga (ommaviy kiritma)'), run: () => orqaga() },
     { id: 'fakt.qamrov', keys: '%', nom: t('Qamrov % (tanlangan bo‘lim)'), run: () => { if (faolQamrov() !== false) return; const b = bolimlar.find((x) => x.id === bolimId); if (!b || qidiruv) return false; qamrovBolim(b); } },
   ], jurnalFaol);
