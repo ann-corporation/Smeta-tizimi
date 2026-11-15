@@ -17,7 +17,7 @@ must('Drive and Sheets remain secondary replicas, not canonical identity', /\/ap
 must('Workbench frontend uses its typed API port, not direct Supabase', /fetch\('\/api\/hujjat-nazorat\?/.test(workbenchAdapter) && !/supabase\.|createClient\(|\/rest\/v1\//.test(workbenchAdapter));
 must('Workbench gateway has no Drive, Sheets, or GAS interaction', !/DriveApp|SpreadsheetApp|\/api\/gas|googleapis/.test(workbenchGateway));
 must('canonical download has authenticated metadata authorization then private R2', /tekshir\(/.test(download) && /R2_CANONICAL\.get/.test(download) && !/drive|sheets|gas/i.test(download));
-must('canonical upload is reserve -> private R2 -> finalize, not synchronous Drive', /t2_document_canonical_reserve_v1/.test(upload) && /R2_CANONICAL\.put/.test(upload) && /t2_document_canonical_finalize_v1/.test(upload) && !/DriveApp|SpreadsheetApp|\/api\/gas/.test(upload));
+must('canonical upload is reserve -> private R2 -> finalize, not synchronous Drive', /t2_document_canonical_reserve_v1/.test(upload) && /(R2_CANONICAL\.put|r2Yoz\(ctx\.env\.R2_CANONICAL)/.test(upload) && /t2_document_canonical_finalize_v1/.test(upload) && !/DriveApp|SpreadsheetApp|\/api\/gas/.test(upload));
 must('canonical key is not filename identity', !/r2Key\s*=\s*.*file\.name/.test(upload) && /r2_key/.test(upload));
 
 console.log('\n── Tenant, auth, idempotency and optimistic-lock source contracts ──');
