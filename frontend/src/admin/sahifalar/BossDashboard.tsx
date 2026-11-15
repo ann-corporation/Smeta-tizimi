@@ -12,6 +12,7 @@ import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
 import { KpiKarta, Sahifa, Skelet } from '../../umumiy/ui/Sahifa';
 import { useBossDashboard } from '../../api/t2-boss';
 import type { BossSignal } from '../../api/t2-boss';
+import { ichkiKalitNomi } from '../../lib/ichki-kalit';
 import { t } from '../../i18n/til';
 import { amount, filteredObjects, objectUrl, projectUrl, signalUrl, sortedSignals, trustedExecutive, type BossExecutive, type ExecutiveObject } from '../../components/boss-decision/model';
 import Reports from '../../components/boss-decision/Reports';
@@ -129,7 +130,7 @@ const DARAJA_BOSHQA = { cls: 'fz-stamp--info', nom: 'Ma’lumot' };
 function Signallar({ data, objects }: { data: Dashboard; objects: ExecutiveObject[] }) {
   const signals = sortedSignals(data.signal.royxat);
   const labels: Record<string, string> = { document_missing: t('Majburiy hujjat qayd etilmagan'), missing_price: t('Narx asosi yetishmaydi'), data_quality: t('Smeta ma’lumotini tekshirish kerak') };
-  const sarlavha = (s: BossSignal) => labels[s.signal_type ?? ''] ?? s.title ?? t('Ochiq signal');
+  const sarlavha = (s: BossSignal) => labels[s.signal_type ?? ''] ?? (s.title ? ichkiKalitNomi(s.title) : null) ?? (s.signal_type ? ichkiKalitNomi(s.signal_type) : null) ?? t('Ochiq signal');
   const izoh = (s: BossSignal) => `${objects.find(o => String(o.object_id) === String(s.entity_id))?.name ?? t('Kompaniya yozuvi')} · ${s.quantity ?? 1} ${t('qayd')} · ${vaqt(s.detected_at, true)}`;
   return (
     <section className="fz-card">
