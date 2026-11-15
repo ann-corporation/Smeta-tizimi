@@ -38,18 +38,18 @@ const rect = (x0, y0, x1, y1) => poly([[x0, y0], [x1, y0], [x1, y1], [x0, y1]]);
 
 /* Barcha ko'pburchaklar soat yo'nalishida (nonzero to'ldirish, bir-birini yo'q qilmaydi). Baza chizig'i y=0, bosh harf balandligi ~41.25. */
 function harfA(w) {
-  const xa = 22.5; const serif = 0.8;
+  const xa = 22.5; const serif = 1.4;
   const o = 39.5; // qalin shtrix pastki o'ng chegarasi
   return [
     poly([[xa - 1.1, -42], [xa + 1.7, -42], [o, 0], [o - w, 0]]),            // qalin (o'ng) shtrix
-    poly([[xa - 1.7, -41.6], [xa + 0.5, -41.8], [8.4, 0], [6.2, 0]]),        // ingichka (chap) shtrix
-    rect(10.2, -15.4, 31.5, -13.7),                                            // ko'ndalang chiziq
+    poly([[xa - 2.2, -41.6], [xa + 0.8, -41.8], [9.2, 0], [6.0, 0]]),        // ingichka (chap) shtrix
+    rect(10.0, -15.6, 31.8, -13.2),                                            // ko'ndalang chiziq
     rect(0.2, -serif, 14.4, 0),                                                // chap serif
     rect(o - w - 6.5, -serif, o + 6.5, 0),                                     // o'ng serif
   ].join('');
 }
 function harfI(w) {
-  const sx = 12; const serif = 0.8; const yuqori = -41.25; const pastki = 0;
+  const sx = 12; const serif = 1.4; const yuqori = -41.25; const pastki = 0;
   return [
     rect(sx, yuqori, sx + w, pastki),
     rect(sx - 9, yuqori, sx + w + 9, yuqori + serif),
@@ -73,9 +73,9 @@ function yig({ belgi, matn, ai, vaznAI }) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-66.89 -65.5 ${f(KENGLIK)} 137.01" role="img" aria-label="QURAI">${b}<path transform="translate(${tx} ${ty})" fill="${matn}" d="${QUR}"/>${aiYol}</svg>\n`;
 }
 
-const mono = { belgi: { chiziq: '#000' }, matn: '#000', ai: '#000', vaznAI: 4.2 };
-const oq = { belgi: { chiziq: '#fff' }, matn: '#fff', ai: '#fff', vaznAI: 4.2 };
-const rangli = { belgi: { chiziq: NAVY, halqa: GOLD }, matn: NAVY, ai: GOLD, vaznAI: 6.3 };
+const mono = { belgi: { chiziq: '#000' }, matn: '#000', ai: '#000', vaznAI: 6.4 };
+const oq = { belgi: { chiziq: '#fff' }, matn: '#fff', ai: '#fff', vaznAI: 6.4 };
+const rangli = { belgi: { chiziq: NAVY, halqa: GOLD }, matn: NAVY, ai: GOLD, vaznAI: 7.6 };
 
 writeFileSync(join(BRAND, 'qurai-gorizontal.svg'), yig(mono));
 writeFileSync(join(BRAND, 'qurai-gorizontal-oq.svg'), yig(oq));
