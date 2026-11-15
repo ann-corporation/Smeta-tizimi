@@ -22,3 +22,8 @@ _f2lab/
 # export_tool chiqishlari va katta ma'lumot (R2 da turadi, repoda emas)
 /Jihozlar_*
 /abc_resurs.*
+# Wrangler/miniflare local state (never commit)
+.wrangler/
+**/.wrangler/
+.dev.vars
+**/.dev.vars
