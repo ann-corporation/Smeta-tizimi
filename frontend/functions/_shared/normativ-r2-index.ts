@@ -140,7 +140,7 @@ const CODE_BOOST = 50;
 
 export async function searchIndex(bucket: R2Source, corpus: Corpus, opts: SearchOptions): Promise<SearchResult> {
   const prefix = opts.prefix ?? DEFAULT_PREFIX;
-  const states = new Set(opts.states ?? ['PUBLISHED']);
+  const states = new Set(opts.states ?? ['PUBLISHED', 'REVIEW_REQUIRED']);
   const visible = new Map(corpus.docs.filter(d => states.has(d.state) && (!opts.tahrir || d.tahrir === opts.tahrir)).map(d => [d.id, d]));
   const lowerQuery = opts.q.toLowerCase();
   const codeDocs = [...visible.values()].filter(d => d.code.length >= 4 && lowerQuery.includes(d.code.toLowerCase()));

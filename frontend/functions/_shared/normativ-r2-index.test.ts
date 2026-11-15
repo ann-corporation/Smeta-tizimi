@@ -101,7 +101,7 @@ it('search by code and edition; unpublished and doc sources are hidden unless st
   const corpus = (await loadCorpus(r2.bucket, PREFIX)) as Corpus;
   expect((await searchIndex(r2.bucket, corpus, { q: 'ShNK 9.99.01-26', limit: 2, prefix: PREFIX })).hits[0].doc.code).toBe('9.99.01-26');
   expect((await searchIndex(r2.bucket, corpus, { q: '9.99.01-26', tahrir: '1999', limit: 2, prefix: PREFIX })).hits).toHaveLength(0);
-  expect((await searchIndex(r2.bucket, corpus, { q: 'membrane', limit: 3, prefix: PREFIX })).hits).toHaveLength(0);
+  expect((await searchIndex(r2.bucket, corpus, { q: 'membrane', limit: 3, states: ['PUBLISHED'], prefix: PREFIX })).hits).toHaveLength(0);
   const all = await searchIndex(r2.bucket, corpus, { q: 'membrane', limit: 3, states: ['PUBLISHED', 'REVIEW_REQUIRED'], prefix: PREFIX });
   expect(all.hits.map(h => h.unit)).toEqual([0]); // short text = one paragraph block
   const doc = await evidenceFor(r2.bucket, all.hits[0], all.terms, 3, PREFIX);

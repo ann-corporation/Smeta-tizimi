@@ -53,7 +53,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     if (corpus && env.NORMATIV_R2) {
       const bucket = env.NORMATIV_R2;
       const prefix = env.NORMATIV_R2_PREFIX || DEFAULT_PREFIX;
-      const states = env.NORMATIV_R2_STATES ? env.NORMATIV_R2_STATES.split(',').map(s => s.trim()).filter(Boolean) : ['PUBLISHED'];
+      const states = env.NORMATIV_R2_STATES ? env.NORMATIV_R2_STATES.split(',').map(s => s.trim()).filter(Boolean) : ['PUBLISHED', 'REVIEW_REQUIRED'];
       if (doc !== null && sha) {
         const found = corpus.docs.find(d => docUuid(d.source_sha) === doc && states.includes(d.state));
         const unit = found ? await timeout(findUnitBySha(bucket, found, sha, prefix)) : -1;
