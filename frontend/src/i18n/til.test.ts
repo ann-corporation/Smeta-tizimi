@@ -14,6 +14,20 @@ describe('interfeys tili', () => {
     expect(t('Lug‘atda yo‘q')).toBe('Lug‘atda yo‘q');
   });
 
+  it('АОСР qisqartmasi tilga qarab yagona imloda: uz/en — AOSR, ru — kirill АОСР', () => {
+    const KIR = 'АОСР';
+    const kirillManba = `{n} ta yashirin ish ${KIR} siz`;
+    const lotinManba = 'AOSR bog‘lanishi (lug‘atda yo‘q)';
+    expect(t(kirillManba, { n: 3 })).toBe('3 ta yashirin ish AOSR siz');
+    expect(t(lotinManba)).toBe(lotinManba);
+    _tilniTestdaQoy('ru');
+    expect(t(lotinManba)).toBe(`${KIR} bog‘lanishi (lug‘atda yo‘q)`);
+    expect(t('Yashirin ishlar akti (AOSR) yo‘q matn')).toBe(`Yashirin ishlar akti (${KIR}) yo‘q matn`);
+    _tilniTestdaQoy('en');
+    expect(t(`lug‘atda yo‘q ${KIR} matn`)).toBe('lug‘atda yo‘q AOSR matn');
+    expect(t('Saqlash')).toBe('Save');
+  });
+
   it('lugat/qism/*.json bo‘laklari ham yuklanadi', () => {
     _tilniTestdaQoy('ru');
     expect(t('Lug‘at bo‘laklari')).toBe('Части словаря');

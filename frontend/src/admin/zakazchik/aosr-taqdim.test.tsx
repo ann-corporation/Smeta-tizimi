@@ -51,7 +51,7 @@ describe('Texnadzor / buyurtmachi inboxi: АОСР', () => {
     expect(jadval.textContent).toContain('Armatura o‘rnatildi');
     expect(jadval.textContent).toContain('LP-5');
     expect(jadval.textContent).toContain('texnadzor · Test Fio');
-    expect(screen.getByText(/АОСР «tasdiqlangan» bo‘ladi/)).toBeTruthy();
+    expect(screen.getByText(/AOSR «tasdiqlangan» bo‘ladi/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Qabul qilish' }));
     await waitFor(() => expect(m.taqdimQarori).toHaveBeenCalledWith(5, 9, 'qabul', ''));
   });
@@ -83,7 +83,7 @@ describe('Texnadzor / buyurtmachi inboxi: АОСР', () => {
     m.taqdimlarOl.mockResolvedValue({ ok: true, natija: [taqdim(), taqdim({ id: 10, resurs: 'f2', nom: 'Ф-2 № 4', manba_jadval: 't2_akt', manba_id: 7 })] });
     render(<MemoryRouter><TaqdimlarInbox /></MemoryRouter>);
     await screen.findByText('Ф-2 № 4');
-    fireEvent.click(within(screen.getByRole('group', { name: 'Hujjat turi' })).getByRole('button', { name: /АОСР/ }));
+    fireEvent.click(within(screen.getByRole('group', { name: 'Hujjat turi' })).getByRole('button', { name: /(АОСР|AOSR)/ }));
     expect(screen.queryByText('Ф-2 № 4')).toBeNull();
     expect(screen.getByText('АОСР № 12 — Armatura plitasi')).toBeTruthy();
   });
