@@ -9,7 +9,7 @@ import { reportMoneyValidity } from '../../lib/money-input';
  * Oxirgi qator — ВСЕГО. Obyekt tanlansa — uning kategoriya summalarida jonli hisob.
  */
 import { useEffect, useMemo, useState, useRef } from 'react';
-import { ArrowDown, ArrowUp, Plus, RotateCcw, Save, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { t2NakrutkaKoefOl, t2ObyektNakrutka, type NakrutkaKoeffitsientlar } from '../../api/t2-nakrutka';
 import { sbPodvallarOl, sbPodvalSaqla, sbPodvalOchir, podvalTanla, type PodvalYozuv } from '../../api/t2-nakrutka-podval';
 import { yangiOperationId } from '../../api/supabase';
@@ -24,6 +24,7 @@ import { FmtN } from '../../lib/format';
 import { t } from '../../i18n/til';
 import { tasdiqSora } from '../../umumiy/ui/Tasdiq';
 import { kfUstamaFoiz } from '../../lib/narx-korinish';
+import { SaqlashPaneli } from '../../umumiy/ui/SaqlashPaneli';
 
 type Doira = 'kompaniya' | 'shartnoma' | 'obyekt';
 const DOIRA_NOMI: Record<Doira, string> = { kompaniya: 'Kompaniya (sukut)', shartnoma: 'Shartnoma', obyekt: 'Obyekt (smeta)' };
@@ -80,6 +81,8 @@ export function PodvalKonstruktor({ companyId, contractId, objectId }: { company
   const [tahrir, setTahrir] = useState<(Podval & { id?: number; versiya?: number }) | null>(null);
   const [xabar, setXabar] = useState('');
   const [band, setBand] = useState(false);
+  /** Yangi (id siz) maxsus podval ochilgandagi boshlang'ich holat — saqlanmagan o'zgarishlarni sanash uchun. */
+  const yangiBoshi = useRef<string[] | null>(null);
 
   const yukla = async () => {
     const [r, k] = await Promise.all([sbPodvallarOl(companyId), t2NakrutkaKoefOl(companyId, contractId)]);
@@ -118,6 +121,17 @@ export function PodvalKonstruktor({ companyId, contractId, objectId }: { company
   const hisob0 = kat ? podvalHisobla(korinadigan, kat) : null;
   const hisob = hisob0 && svodYaxlit ? { ...hisob0, qiymat: podvalQiymatYaxlit(hisob0.qiymat, korinadigan, svodYaxlitQqs(svodYaxlit, podvalNdsFoizi(korinadigan))) } : hisob0;
   const kf = podvalKf(korinadigan);
+  /** Saqlanmagan o'zgarishlar soni: nom + farqli qatorlar (qo'shilgan/o'chirilgan/o'zgargan). */
+  const ozgarishSoni = (() => {
+    if (!tahrir) return 0;
+    const imzo = (p: { nom?: string; qatorlar: PodvalQator[] }) => [p.nom ?? '', ...p.qatorlar.map((q) => JSON.stringify(q))];
+    const bosh = tahrir.id != null ? (aynanDoira ? imzo(aynanDoira) : null) : yangiBoshi.current;
+    if (!bosh) return 0;
+    const hozir = imzo(tahrir);
+    let n = 0;
+    for (let i = 0; i < Math.max(bosh.length, hozir.length); i++) if (bosh[i] !== hozir[i]) n++;
+    return n;
+  })();
   const belgilangan = podvalBelgilanganSumma(korinadigan);
 
   const qatorYangila = (i: number, p: Partial<PodvalQator>) => setTahrir((t) => (t ? { ...t, qatorlar: t.qatorlar.map((q, j) => (j === i ? { ...q, ...p } : q)) } : t));
@@ -144,15 +158,17 @@ export function PodvalKonstruktor({ companyId, contractId, objectId }: { company
   });
 
   const saqla = async () => {
-    if (!reportMoneyValidity(moneyScope.current)) return;
-    if (!tahrir) return;
-    if (xatolar.length) { setXabar('Avval xatolarni tuzating'); return; }
+    if (!reportMoneyValidity(moneyScope.current)) return false;
+    if (!tahrir) return false;
+    if (xatolar.length) { setXabar('Avval xatolarni tuzating'); return false; }
     setBand(true);
     const r = await sbPodvalSaqla({ kompaniyaId: companyId, doira: doiraParam, nom: tahrir.nom ?? 'Подвал', qatorlar: tahrir.qatorlar, id: tahrir.id, kutilganVersiya: aynanDoira?.versiya, operationId: tahrir.id ? undefined : yangiOperationId() });
     setBand(false);
     setXabar(r.ok ? '✓ Saqlandi — shu doiradagi barcha hujjatlar endi shu podval bilan chiqadi' : r.sabab === 'versiya' ? 'Podval boshqa joyda o‘zgargan — sahifani yangilang' : r.error || 'Xato');
     if (r.ok) await yukla();
+    return r.ok;
   };
+  const bekorQil = () => setTahrir(aynanDoira ? { versiya: 1, nom: aynanDoira.nom, qatorlar: aynanDoira.qatorlar, id: aynanDoira.id } : null);
   const standartgaQayt = async () => {
     if (!aynanDoira) return;
     if (!(await tasdiqSora({ sarlavha: t('Standartga qaytarish'), matn: t('Maxsus podval o‘chirilib, bu doira standart kaskadga qaytsinmi? (tarix saqlanadi)'), tasdiqMatni: t('Standartga qaytarish'), xavfli: true }))) return;
@@ -184,7 +200,7 @@ export function PodvalKonstruktor({ companyId, contractId, objectId }: { company
       </div>
 
       {!tahrir && (
-        <button type="button" onClick={() => setTahrir({ ...structuredClone(amaldagi ? { versiya: 1 as const, nom: amaldagi.nom, qatorlar: amaldagi.qatorlar } : standart), id: undefined, nom: `Подвал — ${DOIRA_NOMI[doira]}` })}
+        <button type="button" onClick={() => { const yangi = { ...structuredClone(amaldagi ? { versiya: 1 as const, nom: amaldagi.nom, qatorlar: amaldagi.qatorlar } : standart), id: undefined, nom: `Подвал — ${DOIRA_NOMI[doira]}` }; yangiBoshi.current = [yangi.nom, ...yangi.qatorlar.map((q) => JSON.stringify(q))]; setTahrir(yangi); }}
           className="fz-btn self-start"><Plus size={13} /> {t('Shu doira uchun maxsus podval yaratish (amaldagidan nusxa)')}</button>
       )}
 
@@ -243,10 +259,10 @@ export function PodvalKonstruktor({ companyId, contractId, objectId }: { company
           <input className="h-7 min-w-[200px] px-2 text-[12px]" value={tahrir.nom ?? ''} onChange={(e) => setTahrir((x) => (x ? { ...x, nom: e.target.value } : x))} placeholder={t('Podval nomi')} />
           <div className="flex-1" />
           {aynanDoira && <button type="button" onClick={() => void standartgaQayt()} className="fz-btn fz-btn--danger fz-btn--sm"><RotateCcw size={13} /> {t('Standartga qaytarish')}</button>}
-          <button type="button" onClick={() => setTahrir(aynanDoira ? { versiya: 1, nom: aynanDoira.nom, qatorlar: aynanDoira.qatorlar, id: aynanDoira.id } : null)} className="fz-btn fz-btn--ghost fz-btn--sm">{t('Bekor')}</button>
-          <button type="button" disabled={band || xatolar.length > 0} onClick={() => void saqla()} className="fz-btn fz-btn--primary fz-btn--sm"><Save size={13} /> {t('Saqlash')}</button>
+          {ozgarishSoni === 0 && <button type="button" onClick={bekorQil} className="fz-btn fz-btn--ghost fz-btn--sm">{t('Bekor')}</button>}
         </div>
       )}
+      {tahrir && <SaqlashPaneli kalit="podval-konstruktor" soni={ozgarishSoni} saqla={saqla} band={band} taqiq={xatolar.length > 0} bekor={bekorQil} />}
       {xatolar.length > 0 && <ul className="fz-note fz-note--danger list-disc pl-8">{xatolar.map((x, i) => <li key={i}>{x.kod ? `«${x.kod}»: ` : ''}{x.xabar}</li>)}</ul>}
       {xabar && <p className="fz-note text-[12px]" role="status">{xabar}</p>}
 
