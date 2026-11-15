@@ -8,6 +8,9 @@ pub const SITE_HOST: &str = "smeta-tizimi.pages.dev";
 /// Google Identity Services sign-in popup/redirect (see src/kirish/GoogleKirish.tsx).
 const AUTH_HOSTS: [&str; 1] = ["accounts.google.com"];
 
+/// Site path that must open in the system browser (OAuth providers refuse embedded WebViews).
+const BROWSER_LOGIN_PATH: &str = "/brauzer-kirish";
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Nav {
     /// Stays in the app webview.
@@ -26,6 +29,11 @@ pub fn classify(url: &Url) -> Nav {
         return Nav::Stay;
     }
     let https = url.scheme() == "https" && url.username().is_empty() && url.password().is_none();
+    // «Brauzer orqali kirish»: Google WebView'da bloklanadi (disallowed_useragent), shuning uchun bu sahifa tizim brauzerida
+    // ochiladi va ilovaga qurai://kirish bilet bilan qaytadi (src/kirish/IlovaKirish.tsx). Yangi IPC kerak emas.
+    if https && url.host_str() == Some(SITE_HOST) && url.path() == BROWSER_LOGIN_PATH {
+        return Nav::External;
+    }
     match url.host_str() {
         Some(host) if https && (host == SITE_HOST || AUTH_HOSTS.contains(&host)) => Nav::Stay,
         _ => Nav::External,
@@ -88,6 +96,12 @@ mod tests {
         assert_eq!(nav("tauri://localhost/index.html"), Nav::Stay);
         assert_eq!(nav("http://tauri.localhost/index.html"), Nav::Stay);
         assert_eq!(nav("about:blank"), Nav::Stay);
+    }
+    #[test]
+    fn browser_login_goes_to_system_browser_but_return_page_stays() {
+        assert_eq!(nav("https://smeta-tizimi.pages.dev/brauzer-kirish?h=abc"), Nav::External);
+        assert_eq!(nav("https://smeta-tizimi.pages.dev/ilova-qaytdi?t=abc"), Nav::Stay);
+        assert_eq!(nav("https://smeta-tizimi.pages.dev/brauzer-kirish-x"), Nav::Stay);
     }
     #[test]
     fn everything_else_goes_external() {
