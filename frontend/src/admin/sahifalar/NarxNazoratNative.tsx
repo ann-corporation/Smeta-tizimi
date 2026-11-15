@@ -168,7 +168,7 @@ export default function NarxNazoratNative({ obyektId: fixedObjectId }: { obyektI
                     return (
                       <tr key={q.qator_id}>
                         <td className="fz-c-shifr">{q.kod || '—'}</td>
-                        <td className="max-w-[280px] truncate" title={q.nom ?? undefined}>{q.nom}</td>
+                        <td className="max-w-[280px] min-w-[160px]"><span className="line-clamp-2 break-words whitespace-normal" title={q.nom ?? undefined}>{q.nom}</span></td>
                         <td className="fz-c-num">{pul(q.reference_unit_price)}</td>
                         <td className="fz-c-num">{pul(q.certified_unit_price)}</td>
                         <td className="fz-c-num" style={{ color: q.price_delta == null ? undefined : q.price_delta > 0 ? 'var(--danger)' : q.price_delta < 0 ? 'var(--ok)' : undefined }}>{q.price_delta == null ? '—' : (q.price_delta > 0 ? '+' : '') + pul(q.price_delta)}</td>

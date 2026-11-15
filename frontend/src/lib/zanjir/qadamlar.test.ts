@@ -48,7 +48,7 @@ describe('zanjirHisobla — tavsiya mantig‘i', () => {
     const k = tayyor({ aosr: { yashirin: 3, aktsiz: 2 }, f2BuOyda: false, f2TasdiqBuOyda: 0, forma3: null, tolovYozilgan: null });
     const n = zanjirHisobla(k);
     expect(n.keyingi).toMatchObject({ id: 'aosr', aniq: true });
-    expect(n.keyingi?.sabab).toBe('2 ta yashirin ish АОСР siz');
+    expect(n.keyingi?.sabab).toBe('2 ta yashirin ish AOSR siz');
     expect(holatlar(k)).toMatchObject({ fakt: 'done', aosr: 'current', f2: 'not_started', f3: 'blocked' });
   });
   it('АОСР yopilgan, F2 yo‘q — F2 tayyorlang', () => {
@@ -122,7 +122,7 @@ describe('zanjirHisobla — noma‘lum (NULL ≠ 0)', () => {
     const n = zanjirHisobla(k);
     expect(holatlar(k).aosr).toBe('unknown');
     expect(n.keyingi?.id).toBe('f2');
-    expect(n.keyingi?.eslatma).toContain('АОСР');
+    expect(n.keyingi?.eslatma).toContain('AOSR');
   });
   it('faqat to‘lov noma‘lum (F3 tayyor) — to‘lov tavsiya qilinadi, lekin aniq emas; tugallandi emas', () => {
     const n = zanjirHisobla(tayyor({ tolovYozilgan: null }));
@@ -182,13 +182,13 @@ describe('zanjirHisobla — obyekt darajasi vs oy darajasi (Stella va haykal xat
     }
   });
   it('АОСР — obyekt darajasida jami soni; Slichitelniy — ochiq, farq va F-2 soni bilan', () => {
-    expect(qadam('aosr')).toMatchObject({ holat: 'done', izoh: '34 ta АОСР, hammasi ishga bog‘langan' });
+    expect(qadam('aosr')).toMatchObject({ holat: 'done', izoh: '34 ta AOSR, hammasi ishga bog‘langan' });
     expect(qadam('slichitelniy')).toMatchObject({ holat: 'not_started' }); // smeta (62 narxsiz) hozirgi qadam, slichitelniy bloklanmagan
     expect(qadam('slichitelniy').izoh).toBe('9 qatorda farq bor · 3 ta tasdiqlangan F-2');
   });
   it('АОСР bog‘lanmaganlar soni ko‘rsatiladi', () => {
     const k = { ...stella(), aosrReestr: { jami: 34, boglanmagan: 5 } };
-    expect(zanjirHisobla(k).qadamlar.find((q) => q.id === 'aosr')).toMatchObject({ holat: 'not_started', izoh: '34 ta АОСР, 5 tasi ishga bog‘lanmagan' });
+    expect(zanjirHisobla(k).qadamlar.find((q) => q.id === 'aosr')).toMatchObject({ holat: 'not_started', izoh: '34 ta AOSR, 5 tasi ishga bog‘lanmagan' });
   });
   it('F-2 va Forma 3 — «Bu oyda yo‘q» + yig‘ma (oxirgi oy), zanjirni to‘smaydi', () => {
     expect(qadam('f2')).toMatchObject({ holat: 'not_started', izoh: 'Bu oyda yo‘q · jami 3 ta tasdiqlangan F-2 (oxirgisi 2026-03)' });

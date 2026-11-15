@@ -12,6 +12,7 @@ export async function tizimdanChiq() {
   try {
     document.cookie = 'sess=; Max-Age=0; path=/';
     for (const k of KONTEKST_KALITLAR) localStorage.removeItem(k);
+    for (let i = sessionStorage.length - 1; i >= 0; i--) { const k = sessionStorage.key(i); if (k && k.startsWith('fz-ruxsat-ok:')) sessionStorage.removeItem(k); }
     qoralamaHammasiniOchir(localStorage); // saqlanmagan fakt qoralamalari keyingi hisobga o'tib ketmasin
   } catch { /* private mode */ }
   window.location.href = '/';

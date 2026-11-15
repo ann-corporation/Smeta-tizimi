@@ -6,6 +6,7 @@
 import { useMemo, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, ArrowUpRight, Clock } from 'lucide-react';
+import { ichkiKalitNomi } from '../../lib/ichki-kalit';
 import { t } from '../../i18n/til';
 import { FmtN } from '../../lib/format';
 import { SummaJuft } from '../../umumiy/ui/SummaJuft';
@@ -266,7 +267,7 @@ export function ObyektlarMatritsa({ p, onTanla }: { p: RahbarPanel; onTanla?: (o
                 <td className="fz-c-num">{o.tolangan_foiz != null ? `${o.tolangan_foiz}%` : <span className="text-text-mute">{t('kiritilmagan')}</span>}</td>
                 <td className="fz-c-num">{o.qarz != null ? <FmtN val={o.qarz} /> : <span className="text-text-mute">{t('kiritilmagan')}</span>}</td>
                 <td className="text-[12px]">{o.signal.soni > 0
-                  ? <span className={o.signal.kritik > 0 ? 'text-danger' : 'text-warn'}>{(o.signal.eng_kop && SIGNAL_NOM[o.signal.eng_kop]?.()) || o.signal.eng_kop} · {o.signal.soni}</span>
+                  ? <span className={o.signal.kritik > 0 ? 'text-danger' : 'text-warn'}>{(o.signal.eng_kop && SIGNAL_NOM[o.signal.eng_kop]?.()) || ichkiKalitNomi(o.signal.eng_kop)} · {o.signal.soni}</span>
                   : <span className="text-text-mute">—</span>}</td>
               </tr>
             ))}
@@ -305,7 +306,7 @@ export function DiqqatRoyxati({ diqqat }: { diqqat: RahbarDiqqat[] }) {
             <li key={`${d.kod}-${d.obyekt_id ?? i}`} className="flex flex-wrap items-center gap-3 px-5 py-2.5">
               <span className="w-5 text-[12px] text-text-mute">{i + 1}</span>
               <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-medium">{DIQQAT_NOM[d.kod]?.() ?? d.kod}</p>
+                <p className="text-[13px] font-medium">{DIQQAT_NOM[d.kod]?.() ?? ichkiKalitNomi(d.kod)}</p>
                 <p className="text-[11.5px] text-text-dim">{d.nom ?? t('Kompaniya bo‘yicha')}{d.soni != null && <> · {d.soni} {t('ta')}</>}</p>
               </div>
               <span className="text-right text-[13px] tabular-nums">{d.summa_tasir != null ? <FmtN val={d.summa_tasir} /> : <span className="text-text-mute">{t('summasi noma’lum')}</span>}</span>
