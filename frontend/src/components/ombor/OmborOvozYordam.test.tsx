@@ -1,6 +1,7 @@
 import { afterEach,expect,it,vi } from 'vitest';
 import { act,cleanup,fireEvent,render,screen,waitFor } from '@testing-library/react';
 import { OmborOvozYordam } from './OmborOvozYordam';
+vi.mock('../../api/t2-asl-fayl',()=>({aslFaylSaqla:vi.fn().mockResolvedValue({ok:true,documentId:1,takror:false})}));
 const takliflar=[{nom:'Sement',birliklar:['qop'],yetkazuvchilar:['Zavod'],manbaQatorlar:[1]}];
 afterEach(()=>{cleanup();vi.unstubAllGlobals();vi.restoreAllMocks();});
 it('manual transcript offers grounded draft fields only after explicit selection; issue cannot enter receipt',()=>{

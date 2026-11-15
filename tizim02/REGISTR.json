@@ -1,14 +1,14 @@
 {
   "versiya": 1,
   "manba": {
-    "jami": 274,
-    "hisobga": 157,
+    "jami": 272,
+    "hisobga": 155,
     "tayyor": 136,
     "qisman": 8,
     "joyida": 107,
     "kerakmas": 10
   },
-  "foiz": 89,
+  "foiz": 90,
   "tizim02Funksiyalari": [
     "apiT2F2Import",
     "apiT2F2Korish",
@@ -125,10 +125,10 @@
     },
     "kopruk": {
       "qatlam": "GAS",
-      "jami": 31,
+      "jami": 29,
       "tayyor": 0,
       "qisman": 0,
-      "kutilmoqda": 12,
+      "kutilmoqda": 10,
       "kerakmas": 0,
       "joyida": 19,
       "funksiyalar": [
