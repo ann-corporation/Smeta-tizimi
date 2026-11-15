@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- QULF (app lock + step-up), Russian. -->
+<resources>
+    <string name="qulf_section">PIN и биометрия</string>
+    <string name="qulf_locked_title">Приложение заблокировано</string>
+    <string name="qulf_locked_hint">Введите PIN-код или разблокируйте биометрией.</string>
+    <string name="qulf_confirm_title">Подтвердите действие</string>
+    <string name="qulf_confirm_hint">Это действие связано с деньгами или подписью. Подтвердите PIN-кодом или биометрией.</string>
+    <string name="qulf_pin_wrong">Неверный PIN</string>
+    <string name="qulf_pin_blocked">Слишком много попыток. Повторите позже.</string>
+    <string name="qulf_relogin">В целях безопасности войдите заново.</string>
+    <string name="qulf_offline">Нет связи. Разблокируйте биометрией.</string>
+    <string name="qulf_bio_failed">Биометрическое подтверждение не прошло.</string>
+    <string name="qulf_biometric">Открыть биометрией</string>
+    <string name="qulf_ok">OK</string>
+    <string name="qulf_cancel">Отмена</string>
+    <string name="qulf_prompt_title">Подтвердите</string>
+    <string name="qulf_prompt_subtitle">Отпечатком пальца или лицом</string>
+    <string name="qulf_pin_set">PIN установлен</string>
+    <string name="qulf_pin_unset">PIN не установлен</string>
+    <string name="qulf_old_pin">Старый PIN</string>
+    <string name="qulf_new_pin">Новый PIN (4–6 цифр)</string>
+    <string name="qulf_set_pin">Установить PIN</string>
+    <string name="qulf_change_pin">Сменить PIN</string>
+    <string name="qulf_remove_pin">Удалить PIN</string>
+    <string name="qulf_pin_saved">PIN сохранён.</string>
+    <string name="qulf_pin_removed">PIN удалён.</string>
+    <string name="qulf_pin_format">PIN должен состоять из 4–6 цифр.</string>
+    <string name="qulf_pin_weak">PIN слишком простой (0000, 1234 и т. п.). Выберите другой.</string>
+    <string name="qulf_step_needed">Сначала подтвердите PIN-кодом или биометрией.</string>
+    <string name="qulf_failed">Не удалось выполнить действие. Повторите попытку.</string>
+    <string name="qulf_saved">Сохранено.</string>
+    <string name="qulf_timeout">Автоблокировка (минуты)</string>
+    <string name="qulf_bio_bound">Этот телефон привязан к биометрии.</string>
+    <string name="qulf_bio_unbound">Этот телефон не привязан к биометрии.</string>
+    <string name="qulf_bio_unavailable">На телефоне не настроен отпечаток пальца или лицо.</string>
+    <string name="qulf_bio_add">Привязать этот телефон к биометрии</string>
+    <string name="qulf_bio_added">Биометрия привязана.</string>
+    <string name="qulf_bio_remove">Отвязать биометрию</string>
+    <string name="qulf_bio_removed">Биометрия отвязана.</string>
+</resources>

@@ -8,6 +8,7 @@ import { onRequestGet as companyGet, onRequestPost as companyPost } from '../com
 import { onRequestPost as writePost } from '../sb-yoz';
 import { onRequestPost as gasPost } from '../gas';
 import { onRequestGet as workplaceGet } from '../ish-joyi';
+import { onRequestGet as qulfGet, onRequestPost as qulfPost } from '../qulf';
 
 type Env = DesktopEnv & { GAS_URL: string; GAS_TOKEN: string; R2_CANONICAL?: R2Bucket; OBYEKT_PAKET_ETAG?: string };
 // Static imports only. This is not a network proxy and cannot reach arbitrary URLs.
@@ -19,6 +20,7 @@ const handlers: Record<string, Record<string, PagesFunction<Env>>> = {
   '/api/sb-yoz': { POST: writePost },
   '/api/gas': { POST: gasPost },
   '/api/ish-joyi': { GET: workplaceGet },
+  '/api/qulf': { GET: qulfGet, POST: qulfPost },
 };
 export const DESKTOP_BFF_MAX_BYTES = 2 * 1024 * 1024;
 
@@ -52,7 +54,7 @@ export const onRequestPost: PagesFunction<Env> = async ctx => {
   try { b = JSON.parse(await boundedBody(ctx.request)); }
   catch (err) { return desktopFail(err instanceof Error && err.message === 'BODY_TOO_LARGE' ? 413 : 400, 'BODY_INVALID'); }
   if (!b || typeof b !== 'object' || Array.isArray(b) || Object.keys(b).some(k => !['path','method','body','etag'].includes(k)) ||
-    typeof b.path !== 'string' || b.path.length > 8192 || !/^\/api\/(sessiya|obyekt-paket|sb|company|sb-yoz|gas|ish-joyi)(?:\?[^#\s]*)?$/.test(b.path) ||
+    typeof b.path !== 'string' || b.path.length > 8192 || !/^\/api\/(sessiya|obyekt-paket|sb|company|sb-yoz|gas|ish-joyi|qulf)(?:\?[^#\s]*)?$/.test(b.path) ||
     typeof b.method !== 'string' || !['GET','POST'].includes(b.method)) return desktopFail(400, 'TARGET_INVALID');
   const target = new URL(b.path, new URL(ctx.request.url).origin);
   const handler = Object.hasOwn(handlers, target.pathname) ? handlers[target.pathname][b.method] : undefined;
@@ -64,6 +66,7 @@ export const onRequestPost: PagesFunction<Env> = async ctx => {
     const cookie = await imzola({ rol: sess.rol, foydalanuvchi_id: sess.foydalanuvchi_id }, ctx.env.SESSIYA_KALIT, sess.exp - SESSIYA_MUDDAT_MS);
     const headers = new Headers({ Cookie: 'sess=' + cookie, Origin: target.origin, 'Sec-Fetch-Site': 'same-origin' });
     if (typeof b.etag === 'string') headers.set('If-None-Match', b.etag);
+    headers.set('X-Qulf-Kanal', 'mobil'); // QULF: tasdiq tokeni qurilma kanaliga bog'langan (BFF har so'rovda yangi sessiya jti beradi); token _tasdiq so'rov parametrida keladi
     if (b.method === 'POST') headers.set('Content-Type', 'application/json');
     const request = new Request(target.href, { method: b.method, headers,
       ...(b.method === 'POST' ? { body: typeof b.body === 'string' ? b.body : JSON.stringify(b.body ?? {}) } : {}),

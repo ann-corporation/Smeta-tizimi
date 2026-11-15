@@ -321,6 +321,12 @@ describe('callback: hujjat tasdiqi — bog‘lanish + ruxsat SERVERDA', () => {
     expect(javobMatni(c)).toContain('tasdiqlandi');
     expect(c.tg.find((x) => x.metod === 'editMessageReplyMarkup')!.yuk).toMatchObject({ chat_id: TG, message_id: 42, reply_markup: { inline_keyboard: [] } });
   });
+  it('QULF: PIN/biometrik talab qilinsa «Ha» botda tasdiqlamaydi — RPC chaqirilmaydi, Mini App ga yo‘naltiradi', async () => {
+    const c = net(asos({ ...qaror(), ...hujjatOqish(), t2_qulf_talab_v1: () => ({ talab: true, rejim: 'pin', pin: true, kalit: false }) }));
+    expect(await updateIshla(ENV, cb('tqy:5:1-1') as never)).toBe('cb:tasdiq_step_up');
+    expect(c.rpc).not.toContain('t2_hujjat_zanjir_qaror_v1');
+    expect(javobMatni(c)).toContain('PIN yoki biometrik');
+  });
   it('ESKIRGAN «Ha»: so‘rovdan keyin zanjir keyingi qadamga/raundga o‘tgan — hech narsa tasdiqlanmaydi', async () => {
     for (const [nom, zanjir] of [
       ['keyingi qadam', tafsilot({}, [{ tartib: 2, rol: 'rahbar', holat: 'navbat', men: true }])],
