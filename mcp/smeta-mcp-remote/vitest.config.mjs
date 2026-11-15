@@ -24,7 +24,7 @@ export default defineConfig({
       { find: /^zod$/, replacement: req.resolve('zod') },
       { find: /^pg$/, replacement: req.resolve('pg') },
       { find: /^fflate$/, replacement: req.resolve('fflate') },
-      { find: /^xlsx$/, replacement: path.join(pkgDir('xlsx'), 'xlsx.mjs') },
+      { find: /^xlsx$/, replacement: path.join(path.dirname(req.resolve('xlsx')), 'xlsx.mjs') },
     ],
   },
   test: { include: ['test/**/*.test.ts'], environment: 'node', server: { deps: { inline: [/frontend[\\/]src/, /smeta-mcp[\\/]src/, /workers-oauth-provider/] } } },
