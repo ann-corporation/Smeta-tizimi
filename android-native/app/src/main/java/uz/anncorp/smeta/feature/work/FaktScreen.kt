@@ -26,6 +26,9 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,6 +58,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import uz.anncorp.smeta.R
 import uz.anncorp.smeta.core.data.SyncResult
 import uz.anncorp.smeta.core.data.formatVolume
+import uz.anncorp.smeta.core.data.formatVolumeSigned
+import uz.anncorp.smeta.core.data.faktAfter
+import uz.anncorp.smeta.core.data.toggleMinus
+import uz.anncorp.smeta.core.data.volumeSplit
+import uz.anncorp.smeta.core.ui.InfoTip
+import uz.anncorp.smeta.core.ui.StackedVolumeBar
+import uz.anncorp.smeta.feature.smeta.VolumeLegend
 import uz.anncorp.smeta.core.data.parseVolume
 import uz.anncorp.smeta.core.db.DraftEntity
 import uz.anncorp.smeta.core.db.QatorEntity
@@ -106,7 +116,7 @@ fun FaktScreen(onBack: () -> Unit, onDraft: (Long) -> Unit, onOutbox: () -> Unit
             }
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when {
-                    ui.results.isEmpty() && ui.syncing && ui.rowCount == 0 -> CenterMessage(null, stringResource(R.string.p1_fakt_loading_rows))
+                    ui.results.isEmpty() && ui.syncing && ui.rowCount == 0 -> uz.anncorp.smeta.core.ui.SkeletonList(5)
                     ui.results.isEmpty() && ui.rowCount == 0 -> when (ui.result) {
                         is SyncResult.Offline -> CenterMessage(Icons.Filled.CloudOff, stringResource(R.string.p1_fakt_offline_empty), null, stringResource(R.string.retry)) { vm.refresh() }
                         is SyncResult.Forbidden -> CenterMessage(Icons.Filled.Warning, stringResource(R.string.p1_fakt_forbidden))
@@ -125,6 +135,7 @@ fun FaktScreen(onBack: () -> Unit, onDraft: (Long) -> Unit, onOutbox: () -> Unit
         VolumeDialog(
             title = row.nom, kod = row.kod, unit = row.birlik, smeta = row.smetaHajm, fakt = row.faktHajm, left = row.qoldiq,
             initial = ui.drafted[row.qatorId]?.hajm,
+            f2 = row.f2Hajm, almashtirilgan = row.almashtirilgan,
             onDismiss = { editing = null },
             onConfirm = { v -> vm.addToDraft(row, v); editing = null },
             onRemove = if (ui.drafted.containsKey(row.qatorId)) ({ vm.removeFromDraft(row.qatorId); editing = null }) else null,
@@ -163,12 +174,16 @@ private fun RowCard(row: QatorEntity, draft: DraftEntity?, onClick: () -> Unit) 
                 Stat(stringResource(R.string.p1_row_fakt), formatVolume(row.faktHajm), Modifier.weight(1f))
                 Stat(stringResource(R.string.p1_row_left), formatVolume(row.qoldiq), Modifier.weight(1f), warn = (row.qoldiq ?: 0.0) < 0)
             }
+            volumeSplit(row.smetaHajm, row.faktHajm, row.f2Hajm, row.almashtirilgan)?.let { sp ->
+                Spacer(Modifier.height(8.dp))
+                StackedVolumeBar(sp.f2, sp.factOnly, sp.open, sp.over, barHeight = 8.dp)
+            }
             if (draft != null) {
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.CheckCircle, null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.width(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.p1_in_draft) + ": " + formatVolume(draft.hajm), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+                    Text(stringResource(R.string.p1_in_draft) + ": " + formatVolumeSigned(draft.hajm), style = MaterialTheme.typography.labelLarge, color = if (draft.hajm < 0.0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary)
                 }
             }
         }
@@ -184,18 +199,24 @@ private fun Stat(label: String, value: String, modifier: Modifier = Modifier, wa
 }
 
 /**
- * Volume entry for one row. Decimal keypad, comma or dot accepted. Exceeding the estimate only WARNS (the server also
- * only warns): the field team may legitimately do more than the estimate.
+ * Volume entry for one row. Comma or dot accepted, and a MINUS is allowed: the web (and fakt_yoz_v2) take negative volumes for
+ * "normaga keltirish" / recalculation. Decimal keypads often have no minus key, so a big sign key sits next to the field; a
+ * typed «-», «−» or «–» works as well. Negative values are red with a true minus sign. Exceeding the estimate, or taking the
+ * row's total fact below zero, only WARNS (the server also only warns).
  */
 @Composable
 fun VolumeDialog(
     title: String, kod: String?, unit: String?, smeta: Double?, fakt: Double, left: Double?, initial: Double?,
     onDismiss: () -> Unit, onConfirm: (Double) -> Unit, onRemove: (() -> Unit)? = null,
+    f2: Double? = null, almashtirilgan: Double = 0.0,
 ) {
-    var text by rememberSaveable { mutableStateOf(initial?.let { formatVolume(it).replace("В ", "") } ?: "") }
+    var text by rememberSaveable { mutableStateOf(initial?.let { formatVolume(it).replace("\u00A0", "") } ?: "") }
     val value = parseVolume(text)
-    val invalid = text.isNotBlank() && (value == null || value <= 0.0)
-    val exceeds = value != null && left != null && value > left + 1e-9
+    val invalid = text.isNotBlank() && text.trim() != "-" && (value == null || value == 0.0)
+    val negative = value != null && value < 0.0
+    val exceeds = value != null && value > 0.0 && left != null && value > left + 1e-9
+    val after = if (value != null && value != 0.0) faktAfter(fakt, value) else null
+    val below = negative && after != null && after < -1e-9
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
     AlertDialog(
@@ -208,17 +229,43 @@ fun VolumeDialog(
                     Stat(stringResource(R.string.p1_row_fakt), formatVolume(fakt), Modifier.weight(1f))
                     Stat(stringResource(R.string.p1_row_left), formatVolume(left), Modifier.weight(1f), warn = (left ?: 0.0) < 0)
                 }
+                volumeSplit(smeta, fakt, f2 ?: 0.0, almashtirilgan)?.takeIf { f2 != null }?.let { sp ->
+                    Spacer(Modifier.height(8.dp))
+                    StackedVolumeBar(sp.f2, sp.factOnly, sp.open, sp.over)
+                    Spacer(Modifier.height(4.dp))
+                    VolumeLegend()
+                }
                 Spacer(Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = text, onValueChange = { text = it }, singleLine = true,
-                    label = { Text(stringResource(R.string.p1_volume)) },
-                    suffix = { unit?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.titleMedium) } },
-                    isError = invalid,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    textStyle = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.fillMaxWidth().focusRequester(focus),
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = text, onValueChange = { text = it }, singleLine = true,
+                        label = { Text(stringResource(R.string.p1_volume)) },
+                        suffix = { unit?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.titleMedium) } },
+                        isError = invalid,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        textStyle = MaterialTheme.typography.headlineSmall.copy(color = if (negative) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface),
+                        modifier = Modifier.weight(1f).focusRequester(focus),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    // Sign key: flips the sign of whatever is typed (Decimal keypads often have no minus).
+                    FilledTonalButton(
+                        onClick = { text = toggleMinus(text) }, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
+                        colors = if (negative) ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer) else ButtonDefaults.filledTonalButtonColors(),
+                        modifier = Modifier.size(TouchTarget),
+                    ) { Text("\u00B1", style = MaterialTheme.typography.headlineSmall) }
+                    InfoTip(stringResource(R.string.p5_minus_tip_t), stringResource(R.string.p5_minus_tip_b))
+                }
                 if (invalid) Text(stringResource(R.string.p1_volume_invalid), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 6.dp))
+                if (negative && !below) {
+                    Text(stringResource(R.string.p5_minus_row), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 6.dp))
+                }
+                if (below) {
+                    Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.Top) {
+                        Icon(Icons.Filled.Warning, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.width(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.p5_minus_below_zero, formatVolumeSigned(after)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                    }
+                }
                 if (exceeds) {
                     Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.Top) {
                         Icon(Icons.Filled.Warning, null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.width(18.dp))
@@ -229,7 +276,7 @@ fun VolumeDialog(
             }
         },
         confirmButton = {
-            Button(onClick = { if (value != null && value > 0.0) onConfirm(value) }, enabled = value != null && value > 0.0, modifier = Modifier.heightIn(min = TouchTarget)) {
+            Button(onClick = { if (value != null && value != 0.0) onConfirm(value) }, enabled = value != null && value != 0.0, modifier = Modifier.heightIn(min = TouchTarget)) {
                 Text(stringResource(if (initial == null) R.string.p1_add_to_draft else R.string.p1_update))
             }
         },
@@ -241,4 +288,3 @@ fun VolumeDialog(
         },
     )
 }
-

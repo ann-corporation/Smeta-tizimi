@@ -39,6 +39,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import uz.anncorp.smeta.R
 import uz.anncorp.smeta.core.data.formatVolume
+import uz.anncorp.smeta.core.data.formatVolumeSigned
 import uz.anncorp.smeta.core.db.DraftEntity
 import uz.anncorp.smeta.core.ui.CenterMessage
 import uz.anncorp.smeta.core.ui.OutboxBanner
@@ -90,6 +91,13 @@ fun DraftScreen(onBack: () -> Unit, onOutbox: () -> Unit, onSaved: () -> Unit, v
                             Text(pluralStringResource(R.plurals.p1_exceeding_n, ui.exceeding, ui.exceeding), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.tertiary)
                         }
                     }
+                    if (ui.belowZero > 0) item(key = "below") {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.Warning, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.width(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(pluralStringResource(R.plurals.p5_below_zero_n, ui.belowZero, ui.belowZero), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                        }
+                    }
                     items(ui.lines, key = { it.qatorId }) { d -> DraftLine(d, onEdit = { editing = d }, onRemove = { vm.remove(d.qatorId) }) }
                 }
             }
@@ -127,10 +135,11 @@ private fun DraftLine(d: DraftEntity, onEdit: () -> Unit, onRemove: () -> Unit) 
                 d.kod?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary) }
                 Text(d.nom, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, maxLines = 2)
                 if (d.exceeds) Text(stringResource(R.string.p1_exceeds, formatVolume(d.qoldiq)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary)
+                if (d.hajm < 0.0) Text(stringResource(if (d.goesBelowZero) R.string.p5_minus_below_zero_short else R.string.p5_minus_row), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
             }
             Spacer(Modifier.width(8.dp))
             Column(horizontalAlignment = Alignment.End) {
-                Text(formatVolume(d.hajm), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                Text(formatVolumeSigned(d.hajm), style = MaterialTheme.typography.titleMedium, color = if (d.hajm < 0.0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
                 Text(d.birlik.orEmpty(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             IconButton(onClick = onRemove, modifier = Modifier.heightIn(min = TouchTarget).width(TouchTarget)) { Icon(Icons.Filled.Delete, stringResource(R.string.p1_remove)) }

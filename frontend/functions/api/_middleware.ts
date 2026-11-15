@@ -3,6 +3,7 @@ import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shar
 import { SCOPED_APIS, requestPermission, yopiqModul } from '../_shared/permission-policy';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { webGate } from '../_shared/mobil-bilet';
+import { qulfDarvoza } from '../_shared/qulf-darvoza';
 
 type Env = { SUPABASE_URL:string; SUPABASE_KEY:string; SESSIYA_KALIT:string };
 const positive = (v:unknown) => Number.isSafeInteger(Number(v)) && Number(v)>0 ? Number(v) : null;
@@ -13,6 +14,12 @@ const inner: PagesFunction<Env> = async ctx => {
   const url = new URL(ctx.request.url);
   let api:string;
   try { api=decodeURIComponent(url.pathname.split('/').filter(Boolean).at(-1)||''); } catch { return fail('PATH_INVALID',400); }
+  /* QULF/TASDIQ (step-up): imzo / hujjat zanjiri qarori ham shu yerda (SCOPED emas); sb-yoz pul buyruqlari ham. Tanani bir marta o'qiydi. */
+  if (ctx.request.method==='POST' && (api==='sb-yoz'||api==='imzo'||api==='hujjat-aylanish') && /application\/json/i.test(ctx.request.headers.get('Content-Type')||'')) {
+    let sb:Record<string,unknown>|null=null;
+    try { const parsed=await ctx.request.clone().json(); if (parsed && typeof parsed==='object' && !Array.isArray(parsed)) sb=parsed as Record<string,unknown>; } catch { sb=null; }
+    if (sb) { const g=await qulfDarvoza(ctx.request,ctx.env,api,sb); if (g) return g; }
+  }
   if (!SCOPED_APIS.has(api)) return ctx.next();
   if (api==='agent-ish' && ctx.request.headers.has('X-Kuzatuv-Kalit')) return ctx.next(); // Existing key auth + action whitelist remains mandatory inside that endpoint.
   const verified = await tekshir(ctx.request.headers.get('Cookie'),ctx.env.SESSIYA_KALIT);

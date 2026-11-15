@@ -139,6 +139,12 @@ export async function tasdiqBajar(env: BotEnv, uid: number, til: TgTil, zanjirId
   const r = await botChaqiruv<{ ok?: boolean; code?: string }>(env, uid,
     { api: 'hujjat-aylanish', json: { amal: 'zanjir_qaror', kompaniya_id: h.kompaniya_id, zanjir_id: zanjirId, qaror: 'tasdiqlash' } }, middleware, aylanishPost);
   if (r.status === 200 && r.body?.ok) return rad('tasdiq_ok', 'Tasdiqlandi', 'Hujjat tasdiqlandi.');
+  /* QULF: PIN/biometrik talab qilinadigan tasdiq botda bajarilmaydi (PIN chatda aylanmasin) -- Mini App ga yo'naltiriladi. */
+  if (r.status === 403 && r.body?.code === 'STEP_UP_KERAK') {
+    return { toast: tgT('Bajarilmadi', til), amal: 'tasdiq_step_up', tugmalarniOlibTashla: true, xabar: {
+      matn: tgT('Bu tasdiq PIN yoki biometrik talab qiladi. Hech narsa tasdiqlanmadi — Mini App da tasdiqlang.', til),
+      markup: { inline_keyboard: [[miniAppYoliTugma(env, til, `/admin/hujjat-aylanish?zanjir=${zanjirId}`, 'Ko‘rish')]] } } };
+  }
   if ((r.status === 200 && r.body?.code === 'NAVBAT_EMAS') || [401, 403].includes(r.status)) return rad('tasdiq_navbat_emas', 'Bajarilmadi', 'Hozir sizning qaroringiz kutilmayapti yoki ruxsatingiz yo‘q.');
   return rad('tasdiq_xato', 'Bajarilmadi', 'Server xatosi. Mini App da urinib ko‘ring.');
 }

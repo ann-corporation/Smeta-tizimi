@@ -17,7 +17,11 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import uz.anncorp.smeta.core.data.ConnectivityMonitor
+import uz.anncorp.smeta.core.data.F2Act
+import uz.anncorp.smeta.core.data.F2Repository
 import uz.anncorp.smeta.core.data.FaktRepository
+import uz.anncorp.smeta.core.data.SectionProgress
+import uz.anncorp.smeta.core.data.sectionProgress
 import uz.anncorp.smeta.core.data.MoneyRepository
 import uz.anncorp.smeta.core.data.ObjectMoney
 import uz.anncorp.smeta.core.data.ObjectsRepository
@@ -102,11 +106,15 @@ data class CardUi(
     val updatedAt: Long? = null,
     val syncing: Boolean = true,
     val result: SyncResult? = null,
+    val sections: List<SectionProgress> = emptyList(),
+    /** Accepted / draft F-2 acts of this object (null = never loaded; empty = none). */
+    val f2: List<F2Act>? = null,
 )
 
 @HiltViewModel
 class ObjectCardViewModel @Inject constructor(
     handle: SavedStateHandle, objects: ObjectsRepository, private val rows: RowsRepository, private val moneyRepo: MoneyRepository, private val ctx: WorkContext,
+    private val f2Repo: F2Repository,
 ) : ViewModel() {
     val id: Long = checkNotNull(handle["id"])
     private val sync = MutableStateFlow<Pair<Boolean, SyncResult?>>(true to null)
@@ -115,6 +123,8 @@ class ObjectCardViewModel @Inject constructor(
         objects.observeOne(id), rows.totals(id), rows.rowCount(id), rows.source(id), rows.lastUpdated(id),
     ) { a, b, c, d, e -> CardUi(a, null, b, c, d, e) }
         .combine(moneyRepo.observe(id)) { ui, m -> ui.copy(money = m) }
+        .combine(rows.all(id)) { ui, list -> ui.copy(sections = sectionProgress(list)) }
+        .combine(f2Repo.observe(id)) { ui, f -> ui.copy(f2 = f) }
         .combine(sync) { ui, s -> ui.copy(syncing = s.first, result = s.second) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CardUi())
 
@@ -125,11 +135,11 @@ class ObjectCardViewModel @Inject constructor(
             sync.value = true to null
             val r = rows.sync(id)
             ctx.current.value?.let { moneyRepo.refreshObject(it.companyId, id) }
+            f2Repo.refresh(id)   // best effort: a role without F-2 read keeps an empty timeline
             sync.value = false to r
         }
     }
 }
-
 data class FaktUi(
     val query: String = "",
     val results: List<QatorEntity> = emptyList(),
@@ -189,6 +199,7 @@ data class DraftUi(
     val role: String = "",
 ) {
     val exceeding get() = lines.count { it.exceeds }
+    val belowZero get() = lines.count { it.goesBelowZero }
 }
 
 @HiltViewModel

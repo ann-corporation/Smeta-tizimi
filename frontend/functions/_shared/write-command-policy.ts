@@ -268,3 +268,29 @@ export function writeCommandPermission(amal: string, body: Record<string, unknow
   if (DINAMIK_BUYRUQLAR.has(amal)) return dataPermission(amal, true, body);
   return Object.prototype.hasOwnProperty.call(WRITE_COMMAND_POLICY, amal) ? WRITE_COMMAND_POLICY[amal] : RUXSATSIZ_BUYRUQ;
 }
+
+/* ═══ QULF/TASDIQ (step-up), 2026-11-15: pul/imzo/tasdiq buyruqlari yangi PIN/biometrik tasdiqni talab qiladi ═══
+ * Talab faqat foydalanuvchida PIN/kalit BOR bo'lsa va kompaniya siyosati 'off' bo'lmasa kuchga kiradi (qulf-darvoza.ts).
+ * Server: api/_middleware.ts -> STEP_UP_KERAK (403). Klient: src/qulf (fetch interseptor) modal ochadi va so'rovni qayta yuboradi.
+ * Yangi pul buyrug'i qo'shilganda shu ro'yxatga ham qo'shing (write-command-policy.test.ts ro'yxat reyestrda borligini tekshiradi). */
+export const STEP_UP_BUYRUQLAR: ReadonlySet<string> = new Set([
+  'bux_kassa_yoz_v1', 'bux_kassa_bekor_v1', 'bux_bank_qabul_v1', 'bux_bank_import_v1', 'bux_storno_v1', 'bux_qolda_v1', 'bux_hisob_tasdiq_v1',
+  'bux_davr_blok_v1', 'bux_saldo_import_v1', 'bux_saldo_bekor_v1', 'tolov_yoz', 'tolov_tahrir', 'tolov_ochir', 'tolov_sorov_yarat_v1',
+  'tolov_taqsimot_saqla_v1', 'sotuv_tolov_yoz_v1', 'sotuv_tolov_bekor_v1', 'hr_oylik_v1', 'hr_tuzatma_qaror_v1', 'akt_tasdiqlash',
+]);
+/** F2 holat o'tishi: faqat tasdiqlashga olib boradigan maqsad (permission-policy dagi 'f2.approve' tarmog'i bilan bir xil). */
+const AKT_QAYTA_TASDIQ_EMAS = new Set(['draft', 'submitted', 'cancelled', 'superseded']);
+/** Boshqa endpointlar: imzo qo'yish / yangi imzo kaliti (api/imzo), hujjat zanjiri qarori (api/hujjat-aylanish: t2_hujjat_zanjir_qaror_v1). */
+export const STEP_UP_API_AMALLAR: Readonly<Record<string, ReadonlySet<string>>> = {
+  imzo: new Set(['yoz', 'kalit_yarat']),
+  'hujjat-aylanish': new Set(['zanjir_qaror']),
+};
+export function stepUpKerak(api: string, b: Record<string, unknown>): boolean {
+  const amal = String(b.amal ?? '');
+  if (api === 'sb-yoz') {
+    if (STEP_UP_BUYRUQLAR.has(amal)) return true;
+    if (amal === 'akt_lifecycle_transition_v1') return !AKT_QAYTA_TASDIQ_EMAS.has(String(b.to_status || b.holat || ''));
+    return false;
+  }
+  return !!STEP_UP_API_AMALLAR[api]?.has(amal);
+}

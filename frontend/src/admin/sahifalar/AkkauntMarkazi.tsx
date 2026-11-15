@@ -5,7 +5,7 @@
 import { useCallback, useRef, type KeyboardEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { Bell, Building2, CreditCard, KeyRound, LaptopMinimal, LayoutGrid, Palette, PenLine, ShieldCheck, UserRound } from 'lucide-react';
+import { Bell, Building2, CreditCard, Fingerprint, KeyRound, LaptopMinimal, LayoutGrid, Palette, PenLine, ShieldCheck, UserRound } from 'lucide-react';
 import { Sahifa } from '../../umumiy/ui/Sahifa';
 import { t } from '../../i18n/til';
 import {
@@ -13,12 +13,14 @@ import {
 } from '../../components/akkaunt/Bolimlar';
 import { DesktopBolimi } from '../../components/akkaunt/DesktopBolimi';
 import { ImzoBolimi } from '../../components/imzo/KalitlarKarta';
+import { QulfBolimi } from '../../qulf/QulfBolimi';
 
 const BOLIMLAR = [
   { id: 'kirish', nom: 'Kirish usullari', Ikon: KeyRound, Korinish: KirishBolimi },
   { id: 'profil', nom: 'Profil', Ikon: UserRound, Korinish: ProfilBolimi },
   { id: 'kompaniyalar', nom: 'Kompaniyalar va rollar', Ikon: Building2, Korinish: KompaniyalarBolimi },
   { id: 'xavfsizlik', nom: 'Xavfsizlik', Ikon: ShieldCheck, Korinish: XavfsizlikBolimi },
+  { id: 'qulf', nom: 'PIN va biometrik', Ikon: Fingerprint, Korinish: QulfBolimi },
   { id: 'imzo', nom: 'Mening imzom', Ikon: PenLine, Korinish: ImzoBolimi },
   { id: 'bildirishnoma', nom: 'Bildirishnomalar', Ikon: Bell, Korinish: BildirishnomaBolimi },
   { id: 'desktop', nom: 'Windows dastur', Ikon: LaptopMinimal, Korinish: DesktopBolimi },
