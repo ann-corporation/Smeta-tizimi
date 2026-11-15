@@ -1,0 +1,50 @@
+{
+  "Brauzer orqali kirish (Google)": {
+    "ru": "Вход через браузер (Google)",
+    "en": "Sign in via browser (Google)"
+  },
+  "Google ilova ichida ishlamaydi: brauzerda kirib, ilovaga qaytasiz": {
+    "ru": "Google не работает внутри приложения: войдите в браузере и вернитесь в приложение",
+    "en": "Google does not work inside the app: sign in in the browser and return to the app"
+  },
+  "Ilovaga qaytilmoqda…": {
+    "ru": "Возврат в приложение…",
+    "en": "Returning to the app…"
+  },
+  "QURAI ilovasini ochish": {
+    "ru": "Открыть приложение QURAI",
+    "en": "Open the QURAI app"
+  },
+  "Tekshirilmoqda…": {
+    "ru": "Проверка…",
+    "en": "Checking…"
+  },
+  "Kirish sahifasi": {
+    "ru": "Страница входа",
+    "en": "Sign-in page"
+  },
+  "Kirilmoqda…": {
+    "ru": "Выполняется вход…",
+    "en": "Signing in…"
+  },
+  "Havola yaroqsiz. Ilovada qaytadan boshlang.": {
+    "ru": "Ссылка недействительна. Начните заново в приложении.",
+    "en": "The link is invalid. Start again in the app."
+  },
+  "Kirib bo‘lmadi. Qaytadan urinib ko‘ring.": {
+    "ru": "Не удалось войти. Попробуйте ещё раз.",
+    "en": "Could not sign in. Please try again."
+  },
+  "Tarmoq xatosi. Qaytadan urinib ko‘ring.": {
+    "ru": "Ошибка сети. Попробуйте ещё раз.",
+    "en": "Network error. Please try again."
+  },
+  "Kirish yakunlanmadi. Ilovada qaytadan boshlang.": {
+    "ru": "Вход не завершён. Начните заново в приложении.",
+    "en": "Sign-in was not completed. Start again in the app."
+  },
+  "Bilet eskirgan yoki yaroqsiz. Qaytadan urinib ko‘ring.": {
+    "ru": "Билет устарел или недействителен. Попробуйте ещё раз.",
+    "en": "The ticket has expired or is invalid. Please try again."
+  }
+}

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Ilova (Tauri Android WebView) kirishi: Google WebView'da bloklanadi (disallowed_useragent), Telegram/GSI popup ochilmaydi.
  * Shuning uchun kirish TIZIM BRAUZERIDA bajariladi va ilovaga bir martalik bilet qaytadi (qurai://kirish?t=...).
  *  1) ilova: sir (tasodifiy) → localStorage; h=sha256(sir) bilan /brauzer-kirish?h= ni ochadi (Rust qobig'i uni tizim brauzeriga uzatadi);
@@ -7,6 +7,7 @@
  */
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { t } from '../i18n/til';
 
 const SIR_KALIT = 'qurai_ilova_sir';
 const XESH_RE = /^[A-Za-z0-9_-]{43}$/;
@@ -42,7 +43,7 @@ export function BrauzerKirish() {
   const [xato, setXato] = useState('');
   const [qurai, setQurai] = useState('');
   useEffect(() => {
-    if (!XESH_RE.test(h)) { setXato('Havola yaroqsiz. Ilovada qaytadan boshlang.'); return; }
+    if (!XESH_RE.test(h)) { setXato(t('Havola yaroqsiz. Ilovada qaytadan boshlang.')); return; }
     let tirik = true;
     void (async () => {
       try {
@@ -50,19 +51,19 @@ export function BrauzerKirish() {
         if (!tirik) return;
         if (r.status === 401) { navigate('/', { replace: true, state: { qaytish: '/brauzer-kirish?h=' + h } }); return; }
         const d = await r.json() as { ok?: boolean; bilet?: string };
-        if (!d.ok || !d.bilet) { setXato('Kirib bo‘lmadi. Qaytadan urinib ko‘ring.'); return; }
+        if (!d.ok || !d.bilet) { setXato(t('Kirib bo‘lmadi. Qaytadan urinib ko‘ring.')); return; }
         const url = 'qurai://kirish?t=' + d.bilet;
         setQurai(url);
         window.location.href = url;
-      } catch { if (tirik) setXato('Tarmoq xatosi. Qaytadan urinib ko‘ring.'); }
+      } catch { if (tirik) setXato(t('Tarmoq xatosi. Qaytadan urinib ko‘ring.')); }
     })();
     return () => { tirik = false; };
   }, [h, navigate]);
   return (
     <main style={{ maxWidth: 420, margin: '20vh auto', padding: 24, textAlign: 'center', fontFamily: 'system-ui, sans-serif' }}>
-      {xato ? <p role="alert">{xato}</p> : qurai
-        ? <><p>Ilovaga qaytilmoqda…</p><p><a href={qurai} style={{ fontWeight: 600 }}>QURAI ilovasini ochish</a></p></>
-        : <p>Tekshirilmoqda…</p>}
+      {xato ? <p role="alert">{xato}</p> : null}
+      {!xato && qurai ? <><p>{t('Ilovaga qaytilmoqda…')}</p><p><a href={qurai} style={{ fontWeight: 600 }}>{t('QURAI ilovasini ochish')}</a></p></> : null}
+      {!xato && !qurai ? <p>{t('Tekshirilmoqda…')}</p> : null}
     </main>
   );
 }
@@ -72,22 +73,22 @@ export function IlovaQaytdi() {
   const loc = useLocation();
   const [xato, setXato] = useState('');
   useEffect(() => {
-    const t = new URLSearchParams(loc.search).get('t') || '';
+    const tb = new URLSearchParams(loc.search).get('t') || '';
     let sir = '';
     try { sir = (JSON.parse(localStorage.getItem(SIR_KALIT) || 'null') as { sir?: string } | null)?.sir || ''; } catch { /* xotira yopiq */ }
-    if (!BILET_RE.test(t) || !sir) { setXato('Kirish yakunlanmadi. Ilovada qaytadan boshlang.'); return; }
+    if (!BILET_RE.test(tb) || !sir) { setXato(t('Kirish yakunlanmadi. Ilovada qaytadan boshlang.')); return; }
     void (async () => {
       try {
-        const r = await fetch('/api/ilova-kirish', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amal: 'almash', bilet: t, sir }) });
-        if (!r.ok) { setXato('Bilet eskirgan yoki yaroqsiz. Qaytadan urinib ko‘ring.'); return; }
+        const r = await fetch('/api/ilova-kirish', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amal: 'almash', bilet: tb, sir }) });
+        if (!r.ok) { setXato(t('Bilet eskirgan yoki yaroqsiz. Qaytadan urinib ko‘ring.')); return; }
         try { localStorage.removeItem(SIR_KALIT); } catch { /* */ }
         window.location.replace('/admin');
-      } catch { setXato('Tarmoq xatosi. Qaytadan urinib ko‘ring.'); }
+      } catch { setXato(t('Tarmoq xatosi. Qaytadan urinib ko‘ring.')); }
     })();
   }, [loc.search]);
   return (
     <main style={{ maxWidth: 420, margin: '20vh auto', padding: 24, textAlign: 'center', fontFamily: 'system-ui, sans-serif' }}>
-      {xato ? <><p role="alert">{xato}</p><p><a href="/">Kirish sahifasi</a></p></> : <p>Kirilmoqda…</p>}
+      {xato ? <><p role="alert">{xato}</p><p><a href="/">{t('Kirish sahifasi')}</a></p></> : <p>{t('Kirilmoqda…')}</p>}
     </main>
   );
 }

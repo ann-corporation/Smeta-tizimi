@@ -39,6 +39,10 @@ describe('role integration architecture',()=>{
          nonce + brauzer siri xeshi, bot kontakti (contact.user_id == from.id). Ikkalasi KIRISH_*_YOQILGAN sozlamasi bilan o'chiriladi; origin tekshiruvi
          (kirish-taklif.test.ts, kirish-telegram.test.ts; acceptance 20261217200000). */
       'kirish-taklif', 'kirish-telegram',
+      /* Ilova (Android WebView) kirishi (2026-11-15): /api/ilova-kirish. 'bilet' — faqat amaldagi sessiya cookie'si bilan (tekshir, yo'q -> 401),
+         bilet sessiya tokeniga + brauzer siri xeshiga bog'langan (HMAC, qisqa muddat); 'almash' — bir martalik bilet + ilova siri (xesh mos bo'lsa)
+         bilan sessiya o'rnatadi. Origin tekshiruvi; actor/tenant ma'lumoti o'qilmaydi (ilova-bilet.test.ts). */
+      'ilova-kirish',
       /* Sozlamalar markazi (2026-10-26): kompaniya sozlamalari (imzo tomonlari, hujjat dizayni, F2 tasdiq rejimi). Actor sessiyadan;
          o'qish company.read, yozish company.profile.update — har RPC ichida t2_effective_authorization_v1 (kompaniya-sozlama.test.ts). */
       'kompaniya-sozlama',
