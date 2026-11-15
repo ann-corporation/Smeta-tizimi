@@ -1,0 +1,11 @@
+{
+  "sana": "2026-11-16",
+  "sarlavha": "QURAI Android 0.1.5 — barcha modullar, material so'rovi, aniq summalar",
+  "bandlar": [
+    "«Barcha modullar»: tizimning har bir bo'limi ilovada — native bo'lmaganlari ilova ichida qayta kirishsiz ochiladi (fayl yuklash, kamera, yuklab olish ishlaydi).",
+    "Material so'rovi daladan: obyekt, material, miqdor, muddat; internetsiz navbat va holat ro'yxati.",
+    "Smeta daraxtida har bo'lim va ish uchun summa QQS bilan, ustamali va ustamasiz — tiyinigacha obyekt jamiga teng.",
+    "Rahbar uchun bosh sahifada asosiy ko'rsatkichlar; yangi versiya chiqsa ilova o'zi xabar beradi.",
+    "PIN qulf yangilandi: OK tugmasi, qolgan urinishlar, «PIN esdan chiqdi» va «Chiqish»."
+  ]
+}
