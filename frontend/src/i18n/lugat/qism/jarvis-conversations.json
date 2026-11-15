@@ -22,5 +22,13 @@
   "Serverga saqlanmadi — bu oynani yopmang": {
     "ru": "Не сохранено на сервере — не закрывайте это окно",
     "en": "Not saved to server — keep this window open"
+  },
+  "Suhbat yuklanmoqda: {nom}": {
+    "ru": "Загружается разговор: {nom}",
+    "en": "Loading conversation: {nom}"
+  },
+  "Suhbat yuklashni bekor qilish": {
+    "ru": "Отменить загрузку разговора",
+    "en": "Cancel loading conversation"
   }
 }
