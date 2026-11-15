@@ -25,6 +25,10 @@ object Demo {
     fun forcedOffline(context: Context): Boolean? = if (enabled(context) && File(context.filesDir, "offline.flag").exists()) true else null
     fun bff(context: Context, json: Json): BffApi? = if (enabled(context)) DemoBff(context, json) else null
 
+    /** `files/update.flag` simulates a newer release on the server (the manifest the app would download). */
+    fun updateManifest(context: Context): String? = if (enabled(context) && File(context.filesDir, "update.flag").exists())
+        """{"android":{"version":"9.9.9","file":"qurai-9.9.9-native-release.apk","sha256":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}}""" else null
+
     /** Seeds a representative outbox once: two queued, one rejected, one sent with warnings. */
     suspend fun seed(context: Context, db: AppDb) {
         if (!enabled(context)) return

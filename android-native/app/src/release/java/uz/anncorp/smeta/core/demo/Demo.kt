@@ -12,4 +12,5 @@ object Demo {
     fun forcedOffline(context: Context): Boolean? = null
     fun bff(context: Context, json: Json): BffApi? = null
     suspend fun seed(context: Context, db: AppDb) {}
+    fun updateManifest(context: Context): String? = null
 }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="upd_title">Yangi versiya</string>
+    <string name="upd_body">Versiya %1$s tayyor. Yangilash uchun yuklab oling.</string>
+    <string name="upd_later">Keyin</string>
+    <string name="upd_get">Yuklab olish</string>
+</resources>

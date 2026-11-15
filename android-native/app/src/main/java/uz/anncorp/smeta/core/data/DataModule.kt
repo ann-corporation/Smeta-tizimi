@@ -67,6 +67,13 @@ object DataModule {
     fun bffApi(@ApplicationContext c: Context, api: ApiClient, json: Json): BffApi = Demo.bff(c, json) ?: api
 
     @Provides @Singleton
+    fun updateChecker(@ApplicationContext c: Context, http: OkHttpClient, json: Json): UpdateChecker {
+        val base = BuildConfig.API_BASE_URL.toHttpUrl()
+        val demo = Demo.updateManifest(c)
+        return UpdateChecker(if (Demo.enabled(c)) ({ demo }) else UpdateChecker.network(http, base), BuildConfig.VERSION_NAME, base, json)
+    }
+
+    @Provides @Singleton
     fun sessionRepository(api: BffApi, json: Json) = SessionRepository(api, json)
 
     @Provides @Singleton
