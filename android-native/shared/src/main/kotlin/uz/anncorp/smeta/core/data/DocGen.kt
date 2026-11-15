@@ -76,7 +76,7 @@ class DocGenRepository(private val api: BffApi) {
 
     /** Asks the server for the final file. Nothing is built or laid out on the device. */
     suspend fun generate(companyId: Long, objectId: Long, item: GenItem, format: String): GenResult {
-        val r = api.bffPostBytes(GEN_PATH, genCreateRequestBody(companyId, objectId, item, format), DocumentsRepository.MAX_BYTES)
+        val r = api.bffPostBytes(GEN_PATH, genCreateRequestBody(companyId, objectId, item, format), DOC_MAX_BYTES)
         if (!r.ok || r.bytes == null || r.bytes.isEmpty()) return mapGenError(r.status, r.code)
         val mime = r.mime?.takeIf { it.isNotBlank() } ?: if (format == "pdf") "application/pdf" else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         return GenResult.Ready(r.filename ?: safeFileName(item.title, "hujjat") + "." + format, mime, r.bytes)
