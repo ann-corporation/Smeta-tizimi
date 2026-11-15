@@ -1,4 +1,4 @@
-// Smeta Tizimi "Onlayn qobiq" loader. No IPC is used here. It only checks that the live site is reachable
+// QURAI "Onlayn qobiq" loader. No IPC is used here. It only checks that the live site is reachable
 // and then hands the window over to it; otherwise it shows the offline card with a retry button.
 (function () {
   'use strict';

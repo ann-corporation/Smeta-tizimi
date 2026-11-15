@@ -108,7 +108,7 @@ export async function updateIshla(env: TgEnv, u: Update): Promise<string> {
 
   switch (b?.buyruq) {
     case 'start':
-      await xabarYubor(env, chatId, tgT('Assalomu alaykum! Smeta tizimi boti.', til) + '\n\n' + yordamMatni(til), { reply_markup: miniAppTugma(env, til) });
+      await xabarYubor(env, chatId, tgT('Assalomu alaykum! QURAI boti.', til) + '\n\n' + yordamMatni(til), { reply_markup: miniAppTugma(env, til) });
       return 'salom';
     case 'yordam': case 'help':
       await xabarYubor(env, chatId, yordamMatni(til), { reply_markup: miniAppTugma(env, til) });

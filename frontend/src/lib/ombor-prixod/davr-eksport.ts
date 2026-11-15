@@ -27,7 +27,7 @@ export function omborDavrQatorlar(rows: readonly OmborHisobotQator[], davr: Ombo
 export async function omborDavrExcel(rows: readonly OmborHisobotQator[], davr: OmborDavr): Promise<Uint8Array> {
   const selected = omborDavrQatorlar(rows, davr);
   const { Workbook } = await import('exceljs');
-  const wb = new Workbook(); wb.creator = 'Smeta Tizimi';
+  const wb = new Workbook(); wb.creator = 'QURAI';
   const title = davr.holat === 'qoralama' ? 'ЧЕРНОВИК — НЕ ПРОВЕДЕНО' : 'РЕЕСТР СКЛАДСКИХ ДВИЖЕНИЙ';
   const note = davr.rasxodKiritilgan ? 'Обороты за период. Начальный и конечный остаток данным отчетом не подтверждаются.'
     : 'Расход ещё не введён. Приход не является подтверждённым остатком.';
