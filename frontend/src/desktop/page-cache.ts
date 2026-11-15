@@ -12,7 +12,7 @@ type Snapshot = { body: Json; until: number };
 const positive = (v: unknown): v is number => Number.isSafeInteger(v) && Number(v) > 0;
 const network = (e: unknown) => e instanceof TypeError || /DESKTOP_HTTP_(FAILED|UNAVAILABLE)/.test(String(e));
 const tables = new Set(['t2_daraxt', 't2_qator_holat', 't2_qator', 't2_akt_reestr', 't2_f2_tafsilot', 't2_akt_qator', 't2_obyekt_jami']);
-const named = new Set(['akt_podval_ol_v1', 'price_control_v1', 'f2_exact_qatorlar_v1']);
+const named = new Set(['akt_podval_ol_v1', 'price_control_v1', 'f2_exact_qatorlar_v1', 'akt_reestr_obyekt_v1', 'qator_muhr_farq_obyekt_v1']);
 const failure = (code: string) => Response.json({ ok: false, code, error: t('Oflayn rejimda faqat oʻqish mumkin.') }, { status: 503 });
 
 /** Same web pages; allowlisted reads only. Disk access follows an independently verified lease. */
@@ -88,7 +88,7 @@ export function desktopPageFetch(base: typeof fetch, invoke: NativeInvoke, optio
       url.pathname === '/api/obyekt-paket' && /^\?obyekt_id=[1-9]\d*$/.test(url.search);
     return method === 'POST' && url.pathname === '/api/sb' && !url.search && body &&
       (tables.has(String(body.jadval)) && Object.keys(body).every(k => ['jadval', 'filtr', 'ustunlar', 'tartib', 'limit', 'versiya'].includes(k)) ||
-       named.has(String(body.soro)) && Object.keys(body).every(k => ['soro', 'obyekt_id', 'akt_id'].includes(k)));
+       named.has(String(body.soro)) && Object.keys(body).every(k => ['soro', 'obyekt_id', 'akt_id', 'tur'].includes(k)));
   }
   function objectId(url: URL, body: Json | null) {
     const direct = Number(url.searchParams.get('obyekt_id') ?? body?.obyekt_id);
