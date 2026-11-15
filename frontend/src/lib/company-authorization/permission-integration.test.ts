@@ -39,6 +39,7 @@ describe('role integration architecture',()=>{
          nonce + brauzer siri xeshi, bot kontakti (contact.user_id == from.id). Ikkalasi KIRISH_*_YOQILGAN sozlamasi bilan o'chiriladi; origin tekshiruvi
          (kirish-taklif.test.ts, kirish-telegram.test.ts; acceptance 20261217200000). */
       'kirish-taklif', 'kirish-telegram',
+ /* Foydalanuvchi o'z ilova tanlovi (pin/tartib; 2026-11-15): actor FAQAT sessiyadan, a'zolik SQL da (t2_modul_tanlov_*_v1 AZO_EMAS), faqat o'z qatori; ruxsat/modul holatini o'zgartirmaydi (modullarim.test.ts). */ 'modullarim',
       /* Sozlamalar markazi (2026-10-26): kompaniya sozlamalari (imzo tomonlari, hujjat dizayni, F2 tasdiq rejimi). Actor sessiyadan;
          o'qish company.read, yozish company.profile.update — har RPC ichida t2_effective_authorization_v1 (kompaniya-sozlama.test.ts). */
       'kompaniya-sozlama',
