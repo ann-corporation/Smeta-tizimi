@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- P6: documents -->
+    <string name="docs_title">Hujjatlar</string>
+    <string name="docs_button">Hujjatlar</string>
+    <string name="docs_f2_button">F-2 hujjatlari (PDF / Excel)</string>
+    <string name="docs_filter_all">Hammasi</string>
+    <string name="docs_filter_f2">F-2</string>
+    <string name="docs_dismiss">Yopish</string>
+    <string name="docs_empty">Hujjat yo\'q</string>
+    <string name="docs_empty_hint">Bu obyekt uchun saqlangan hujjatlar shu yerda ko\'rinadi.</string>
+    <string name="docs_empty_f2">F-2 hujjati yo\'q</string>
+    <string name="docs_type_f2">F-2</string>
+    <string name="docs_type_f3">F-3</string>
+    <string name="docs_type_pack">Oylik paket</string>
+    <string name="docs_type_other">Hujjat</string>
+    <string name="docs_cached">Yuklab olingan</string>
+    <string name="docs_pending">Serverda tayyorlanmoqda</string>
+    <string name="docs_downloading">Hujjat yuklanmoqda…</string>
+    <string name="docs_share">Ulashish</string>
+    <string name="docs_save">Saqlash</string>
+    <string name="docs_saved">Hujjat saqlandi</string>
+    <string name="docs_open_with">Boshqa ilovada ochish</string>
+    <string name="docs_no_preview">Bu fayl turini ilovada ko\'rsatib bo\'lmaydi. Uni boshqa ilovada oching yoki ulashing.</string>
+    <string name="docs_no_app">Bu faylni ochadigan ilova topilmadi.</string>
+    <string name="docs_page_of">%1$d / %2$d</string>
+    <string name="docs_err_offline">Tarmoq yo\'q va bu hujjat hali yuklab olinmagan.</string>
+    <string name="docs_err_pay">Bu pullik hujjat: avval veb-saytda token bilan ochilishi kerak.</string>
+    <string name="docs_err_forbidden">Bu hujjatga ruxsatingiz yo\'q.</string>
+    <string name="docs_err_big">Fayl juda katta (25 MB dan ortiq).</string>
+    <string name="docs_err_missing">Fayl serverda topilmadi.</string>
+    <string name="docs_err_generic">Hujjatni ochib bo\'lmadi. Qayta urinib ko\'ring.</string>
+    <!-- P6: Jarvis from an object -->
+    <string name="ja_from_object">Jarvis: shu obyekt</string>
+    <string name="ja_object_scope">Savollar shu obyekt haqida</string>
+    <string name="ja_q_money_obj_text">Shu obyektning smeta qiymati nakrutka (ustama) va QQS bilan qancha?</string>
+    <!-- P6: notifications centre -->
+    <string name="nt_title">Bildirishnomalar</string>
+    <string name="nt_open">Bildirishnomalarni ochish</string>
+    <string name="nt_filter_all">Hammasi</string>
+    <string name="nt_filter_unread">O\'qilmagan</string>
+    <string name="nt_waiting">Tasdiq kutmoqda</string>
+    <string name="nt_waiting_none">Sizning navbatingizda hujjat yo\'q</string>
+    <string name="nt_unread_n">O\'qilmagan: %1$d</string>
+    <string name="nt_empty">Bildirishnoma yo\'q</string>
+    <string name="nt_mark_all">Hammasini o\'qilgan deb belgilash</string>
+    <string name="nt_other">Yangi xabar</string>
+</resources>

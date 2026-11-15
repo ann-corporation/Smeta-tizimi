@@ -39,13 +39,13 @@ data class ModuleDef(
 
 /**
  * Feature flags. Warehouse (Ombor) is merged and enabled. USERNAME (@username, people search, company invites; docs/architecture/USERNAME_V1.md)
- * stays off until migration 20261224100000_t2_username_v1 is applied on the server; only a debug build with the demo flag file `username.flag`
- * can switch it on (see QuraiApp), so release builds cannot reach the unmigrated endpoints. JARVIS (AI chat) uses the existing /api/ai-savol.
+ * is on: migration 20261224100000_t2_username_v1 is applied and the server (/api/profil username actions, /api/company member_invite,
+ * BFF allow-list) is live on main. Kept as a var so tests can still switch it off. JARVIS (AI chat) uses the existing /api/ai-savol.
  */
 object Features {
     const val NATIVE_WAREHOUSE = true
     const val JARVIS = true
-    @Volatile @JvmStatic var USERNAME = false
+    @Volatile @JvmStatic var USERNAME = true
 }
 
 private const val BOSS = "control.company.read"

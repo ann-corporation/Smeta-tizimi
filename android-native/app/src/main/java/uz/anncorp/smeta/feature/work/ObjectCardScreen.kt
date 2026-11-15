@@ -15,12 +15,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -66,7 +68,7 @@ import uz.anncorp.smeta.core.ui.WorkTopBar
 @Composable
 fun ObjectCardScreen(
     onBack: () -> Unit, onEnterFakt: (Long) -> Unit, onPhoto: (Long) -> Unit, onOutbox: () -> Unit,
-    onSmeta: (Long) -> Unit = {}, onF2: (Long) -> Unit = {},
+    onSmeta: (Long) -> Unit = {}, onF2: (Long) -> Unit = {}, onDocs: (Long) -> Unit = {}, onJarvis: (Long) -> Unit = {},
     vm: ObjectCardViewModel = hiltViewModel(), banner: BannerViewModel = hiltViewModel(),
 ) {
     val ui by vm.state.collectAsStateWithLifecycle()
@@ -111,6 +113,15 @@ fun ObjectCardScreen(
                     }
                     OutlinedButton(onClick = { onF2(vm.id) }, modifier = Modifier.weight(1f).heightIn(min = TouchTarget)) {
                         Icon(Icons.Outlined.Description, null, Modifier.size(20.dp)); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.p5_btn_f2), style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { onDocs(vm.id) }, modifier = Modifier.weight(1f).heightIn(min = TouchTarget)) {
+                        Icon(Icons.Outlined.Folder, null, Modifier.size(20.dp)); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.docs_button), style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                    }
+                    OutlinedButton(onClick = { onJarvis(vm.id) }, modifier = Modifier.weight(1f).heightIn(min = TouchTarget)) {
+                        Icon(Icons.Filled.AutoAwesome, null, Modifier.size(20.dp)); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.mod_jarvis), style = MaterialTheme.typography.labelLarge, maxLines = 1)
                     }
                 }
             }

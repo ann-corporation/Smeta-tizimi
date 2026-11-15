@@ -3,6 +3,7 @@
  * Loyiha | Smeta | Fakt uch ustunli solishtirma, pul ta'siri (lib/hisob-yadro) va har farq uchun qaror (mavjud zamena / qo'shimcha ish RPC lari).
  * Asl smeta o'zgarmaydi. AI bilan o'qish (rasm) alohida PR #266 (`/api/ai-loyiha`) ga tayanadi: bu yerda faqat taklif ro'yxati.
  */
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { matnSora } from '../../umumiy/ui/Tasdiq';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { KompaniyaKerak } from '../../umumiy/kontekst/KompaniyaKerak';
@@ -150,6 +151,7 @@ export default function LoyihaSmetaFakt() {
     try {
       const out: Yuklangan[] = [];
       for (const f of Array.from(files)) {
+        void aslFaylSaqla(f, { kompaniyaId, obyektId: typeof obyektId === 'number' ? obyektId : null, turi: 'asl_boshqa' });
         const buf = await f.arrayBuffer();
         const sha = await sha256Hex(buf);
         let items = await keshdanOl(kompaniyaId!, sha);   // R2 keshi: shu PDF qayta tahlil qilinmaydi

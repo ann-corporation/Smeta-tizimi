@@ -37,6 +37,7 @@ import { MemberPermissionEditor } from '../components/MemberPermissionEditor';
 import { TaklifHavolalari } from '../components/TaklifHavolalari';
 import { OdamTakliflari } from '../components/OdamTakliflari';
 import { KompaniyaOching } from '../components/KompaniyaOching';
+import { KompaniyasizBosh } from '../../components/akkaunt/KompaniyasizBosh';
 import { OdamTaklifForma } from '../../components/username/OdamTaklifForma';
 import { UsernameTaklifBanner } from '../../components/username/UsernameTaklifBanner';
 import { usernameOmmaviy } from '../../api/username';
@@ -692,6 +693,7 @@ export default function KompaniyaPage() {
         <UsernameTaklifBanner />
 
         {men.onboarding_kerak && !menSuperadmin && <KompaniyaOching />}
+        {men.onboarding_kerak && !menSuperadmin && <KompaniyasizBosh />}
 
         <section className="fz-card" aria-label={t('A‘zoliklarim')}>
           <div className="fz-card__head"><h2 className="fz-card__title">{t('A‘zoliklarim')}</h2></div>

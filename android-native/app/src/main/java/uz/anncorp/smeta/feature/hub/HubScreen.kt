@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Search
@@ -43,6 +44,8 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -111,6 +114,7 @@ fun HubScreen(
     onObject: (Long) -> Unit,
     onFakt: (Long) -> Unit,
     onOnboard: () -> Unit,
+    onNotifications: () -> Unit = {},
     vm: HubViewModel = hiltViewModel(),
 ) {
     val ui by vm.state.collectAsStateWithLifecycle()
@@ -119,16 +123,25 @@ fun HubScreen(
     val arranged = remember(visible, ui.picks, ui.query) { arrange(visible, ui.picks, ui.query) { context.getString(it.title) } }
     val open: (ModuleDef) -> Unit = { m -> if (m.kind == ModuleKind.NATIVE) m.target?.let(onNative) else m.webPath?.let { onWeb(it, context.getString(m.title)) } }
     val searching = ui.query.trim().length >= 2
+    androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) { vm.refreshUnread() }
 
     Column(Modifier.fillMaxSize()) {
-        OutlinedTextField(
-            value = ui.query, onValueChange = vm::setQuery, singleLine = true,
-            placeholder = { Text(stringResource(R.string.hub_search)) },
-            leadingIcon = { Icon(Icons.Filled.Search, null) },
-            trailingIcon = { if (ui.query.isNotEmpty()) IconButton(onClick = { vm.setQuery("") }) { Icon(Icons.Filled.Clear, stringResource(R.string.p1_remove)) } },
-            shape = RoundedCornerShape(14.dp),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).heightIn(min = TouchTarget),
-        )
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = ui.query, onValueChange = vm::setQuery, singleLine = true,
+                placeholder = { Text(stringResource(R.string.hub_search)) },
+                leadingIcon = { Icon(Icons.Filled.Search, null) },
+                trailingIcon = { if (ui.query.isNotEmpty()) IconButton(onClick = { vm.setQuery("") }) { Icon(Icons.Filled.Clear, stringResource(R.string.p1_remove)) } },
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.weight(1f).heightIn(min = TouchTarget),
+            )
+            // Notifications centre entry: the badge is the server's unread counter.
+            IconButton(onClick = onNotifications, modifier = Modifier.size(TouchTarget)) {
+                BadgedBox(badge = { if ((ui.unread ?: 0) > 0) Badge { Text(if ((ui.unread ?: 0) > 99) "99+" else ui.unread.toString()) } }) {
+                    Icon(Icons.Filled.Notifications, stringResource(R.string.nt_open))
+                }
+            }
+        }
         when {
             !ui.hasCompany && !ui.loading -> CenterMessage(Icons.Filled.Home, stringResource(R.string.hub_no_company), stringResource(R.string.hub_no_company_hint), stringResource(R.string.hub_no_company_action), onAction = onOnboard)
             ui.loading && ui.permissions == null && !searching -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }

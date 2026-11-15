@@ -55,6 +55,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import uz.anncorp.smeta.R
@@ -93,12 +97,15 @@ internal fun isRecent(updatedAt: String, now: OffsetDateTime = OffsetDateTime.no
     runCatching { OffsetDateTime.parse(updatedAt).isAfter(now.minusHours(48)) }.getOrDefault(false)
 
 @HiltViewModel
-class JarvisViewModel @Inject constructor(private val repo: JarvisRepository, private val ctx: WorkContext, saved: SavedStateHandle) : ViewModel() {
+class JarvisViewModel @Inject constructor(private val repo: JarvisRepository, private val ctx: WorkContext, saved: SavedStateHandle, objects: uz.anncorp.smeta.core.data.ObjectsRepository) : ViewModel() {
     private val _ui = MutableStateFlow(JarvisUi())
     val ui: StateFlow<JarvisUi> = _ui.asStateFlow()
     /** The object the chat was opened from (route arg `obyekt`); sent with every question so «shu obyekt» is exact. */
     private val objectId: Long? = saved.get<Long>("obyekt")?.takeIf { it > 0 }
-    private var known: String? = null   // server updatedAt of the open chat that this screen already shows
+    /** True when opened from an object card / smeta tree (`jarvis?obyekt=ID`): "shu obyekt" questions are about that object. */
+    val scoped: Boolean = objectId != null
+    val objectName: StateFlow<String?> = (objectId?.let { id -> objects.observeOne(id).map { it?.nom } } ?: flowOf(null)).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    private var known: String? = null  // server updatedAt of the open chat that this screen already shows
     private var saving = false
     private var restored = false
 
@@ -183,6 +190,11 @@ fun JarvisScreen(onBack: () -> Unit, vm: JarvisViewModel = hiltViewModel()) {
     val send = { val t = text; text = ""; vm.ask(t) }
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
         WorkTopBar(stringResource(R.string.mod_jarvis), onBack)
+        val objName by vm.objectName.collectAsStateWithLifecycle()
+        if (vm.scoped) Text(
+            stringResource(R.string.ja_object_scope) + (objName?.let { ": $it" } ?: ""),
+            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
         Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SuggestionChip(onClick = { vm.newChat() }, label = { Text(stringResource(R.string.ja_new_chat)) })
             SuggestionChip(onClick = { vm.toggleList() }, label = { Text(stringResource(R.string.ja_chats, ui.chats.size)) })
@@ -213,7 +225,7 @@ fun JarvisScreen(onBack: () -> Unit, vm: JarvisViewModel = hiltViewModel()) {
                 }
             }
         }
-        val q1 = stringResource(R.string.ja_q_money_text)
+        val q1 = stringResource(if (vm.scoped) R.string.ja_q_money_obj_text else R.string.ja_q_money_text)
         val q2 = stringResource(R.string.ja_q_today_text)
         val q3 = stringResource(R.string.ja_q_fact_text)
         Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

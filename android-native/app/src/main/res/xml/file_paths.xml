@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Staged copies of opened documents (DocFiles.stage); removed when the viewer closes and on app start. -->
+    <cache-path name="shared" path="shared/" />
+</paths>

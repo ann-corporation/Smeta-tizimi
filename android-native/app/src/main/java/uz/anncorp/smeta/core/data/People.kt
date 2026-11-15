@@ -15,7 +15,7 @@ import java.util.UUID
 /*
  * @username and exact people search (contract: docs/architecture/USERNAME_V1.md, server: /api/profil + /api/company member_invite).
  * The client only PRE-validates for instant feedback; the database RPC is the final judge. Phone / e-mail are never returned by the server.
- * Everything here is gated by Features.USERNAME until the migration 20261224100000_t2_username_v1 is applied.
+ * Gated by Features.USERNAME (on: migration 20261224100000_t2_username_v1 is applied, server live).
  */
 
 /** Why a @username is not acceptable (client-side pre-check; the same names as the server codes minus the prefix). */

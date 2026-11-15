@@ -5,6 +5,7 @@
  * Oflayn: kiritma IndexedDB navbatiga tushadi, internet qaytganda o'z operation_id bilan yuboriladi (takror xavfsiz).
  * Pul YO'Q: faqat hajm, material nomi, izoh va foto.
  */
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Camera, ClipboardList, Hammer, Mic, Minus, Plus, Users, WifiOff } from 'lucide-react';
 import { useKompaniya } from '../../test02/KompaniyaTanlov';
@@ -277,7 +278,7 @@ export default function UstaBugun() {
         {ekran === 'kirit' && <div className="grid grid-cols-2 gap-2">
           <label className="flex min-h-[56px] cursor-pointer items-center justify-center gap-2 rounded-[var(--radius-md)] border border-border bg-surface text-[16px] font-semibold text-text">
             <Camera size={22} />{foto ? t('Foto bor') : t('Foto')}
-            <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; const b = await fotoSiq(f); setFoto(b); setFotoUrl(URL.createObjectURL(b)); }} />
+            <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; void aslFaylSaqla(f, { kompaniyaId: kid, turi: 'asl_boshqa' }); const b = await fotoSiq(f); setFoto(b); setFotoUrl(URL.createObjectURL(b)); }} />
           </label>
           {ovozBor() ? <Katta onClick={ovozBoshla} className={yozmoqda ? 'bg-danger-soft' : ''} aria-pressed={yozmoqda}><Mic size={22} />{yozmoqda ? t('Eshityapman…') : t('Gapirib yozish')}</Katta> : <div />}
         </div>}

@@ -1,3 +1,4 @@
+import { aslFaylSaqla } from '../api/t2-asl-fayl';
 import { moveRow, RowOrderControls } from '../components/row-order/RowOrderControls';
 import { useState, useEffect, useRef } from 'react';
 import { sbFakturalarOl, sbFakturaYoz, sbSkladgaYozish, sbT2ObyektlarOl, yangiOperationId, type T2Faktura, type T2Obyekt } from '../api/supabase';
@@ -104,6 +105,7 @@ export default function TestFaktura() {
     setIsParsing(true);
     setYangiFaktura(null);
     const file = files[0];
+    void aslFaylSaqla(file, { kompaniyaId: aktKomp, turi: 'asl_boshqa' });
     
     try {
       setParsingStatus(`AI o'qimoqda: ${file.name}`);

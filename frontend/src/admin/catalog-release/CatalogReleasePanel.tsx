@@ -1,3 +1,4 @@
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
@@ -7,7 +8,7 @@ import { useKompaniya } from '../../umumiy/kontekst/KompaniyaKontekst';
 import { t } from '../../i18n/til';
 
 export default function CatalogReleasePanel() {
-  const { superadmin } = useKompaniya();
+  const { superadmin, joriyId } = useKompaniya();
   const [file, setFile] = useState<File | null>(null);
   const [analysis, setAnalysis] = useState<CatalogTahlil | null>(null);
   const [meta, setMeta] = useState<ReleaseMeta | null>(null);
@@ -38,7 +39,8 @@ export default function CatalogReleasePanel() {
     if (!superadmin || !file || !analysis?.importgaTayyor || !meta || !approved) return;
     setBusy(true); setError(''); setMessage('');
     try {
-      const done = await uploadCatalogRelease(file, meta, catalogQatorlariniApiFormatga(analysis.qatorlar), (n, total) => setProgress(Math.floor(n / total * 100)));
+      void aslFaylSaqla(file, { kompaniyaId: joriyId, turi: 'asl_narx' });
+    const done = await uploadCatalogRelease(file, meta, catalogQatorlariniApiFormatga(analysis.qatorlar), (n, total) => setProgress(Math.floor(n / total * 100)));
       setMessage(t('Umumiy katalog saqlandi') + `: ${done.rows.toLocaleString()} · ${done.revision.slice(0, 16)}`); setApproved(false); await refresh();
     } catch (e) { setError((e instanceof Error ? e.message : String(e)) + '. ' + t('Qayta yuklash yozilgan bo‘laklarni takrorlamaydi')); }
     finally { setBusy(false); setProgress(null); }

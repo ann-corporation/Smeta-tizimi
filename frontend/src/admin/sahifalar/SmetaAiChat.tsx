@@ -5,6 +5,7 @@
  * (the model only chooses among found candidates), the CODE computes quantities from the formula, and the
  * user adds the ready works to the estimate in one undoable step.
  */
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../../i18n/til';
 import type { StudioCommand } from '../../lib/smeta-studio/commands';
@@ -335,7 +336,8 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
       <button type="button" aria-label={tinglash ? t('Ovozni to‘xtatish') : t('Ovoz bilan aytish')} className={`fz-btn ${tinglash ? 'fz-btn--primary' : ''}`} onClick={ovoz}>🎤</button>
       <label className="fz-btn fz-btn--sm cursor-pointer" title={t('Loyiha, spetsifikatsiya yoki hajmlar jadvali (rasm, PDF, Excel, Word)')}>📎
         <input aria-label={t('Loyiha hujjati')} type="file" className="hidden" accept=".png,.jpg,.jpeg,.webp,.pdf,.xlsx,.xls,.xlsm,.docx"
-          onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void ilovaTayyorla(f).then(setIlova).catch(err => setHolat(err instanceof Error && err.message === 'FAYL_KATTA' ? t('Fayl juda katta (7 MB gacha).') : t('Bu fayl turini o‘qib bo‘lmaydi (rasm, PDF, Excel, Word).'))); }} /></label>
+          onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void aslFaylSaqla(f, { kompaniyaId, turi: 'asl_boshqa' });
+          if (f) void ilovaTayyorla(f).then(setIlova).catch(err => setHolat(err instanceof Error && err.message === 'FAYL_KATTA' ? t('Fayl juda katta (7 MB gacha).') : t('Bu fayl turini o‘qib bo‘lmaydi (rasm, PDF, Excel, Word).'))); }} /></label>
       <button type="submit" className="fz-btn fz-btn--sm fz-btn--primary ml-auto" disabled={!!band || (!matn.trim() && !ilova)}>{t('Yuborish')}</button>
     </form>
     {holat && <p role="status" className="text-xs text-warn">{holat}</p>}

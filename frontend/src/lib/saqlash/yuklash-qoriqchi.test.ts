@@ -31,15 +31,9 @@ describe('yagona R2 saqlash qoriqchisi', () => {
     expect(buzilgan, 'R2 ga yozish uchun r2Yoz (functions/_shared/r2-saqlash.ts) ishlating:\n' + buzilgan.join('\n')).toEqual([]);
   });
 
-  // Hozircha asl faylni R2 ga saqlamaydigan eski komponentlar (aniq bo'shliq ro'yxati; yangi element QO'SHILMAYDI, faqat olib tashlanadi).
-  const BOSHLIQ = new Set([
-    'src/admin/bozor/BozorKabinet.tsx', 'src/admin/catalog-release/CatalogReleasePanel.tsx', 'src/admin/catalog-release/NarxIndeksPaneli.tsx',
-    'src/admin/sahifalar/F2PodvalBackfillOyna.tsx', 'src/admin/sahifalar/KatalogExtractionReview.tsx', 'src/admin/sahifalar/LoyihaSmetaFakt.tsx',
-    'src/admin/sahifalar/NormSmetaWorkbench.tsx', 'src/admin/sahifalar/SmetaAiChat.tsx', 'src/admin/sahifalar/SmetaVersiyaFarq.tsx',
-    'src/admin/sahifalar/UstaBugun.tsx', 'src/components/ombor/OmborOvozYordam.tsx', 'src/components/sverka-import/F2ReestrBolimi.tsx',
-    'src/test02/TestFaktura.tsx', 'src/umumiy/hujjat/KompaniyaLogo.tsx',
-  ]);
-  const SAQLAYDI = /t2-asl-fayl|hujjat-yukla|t2-hujjat-canonical|t2-hujjat-arxiv|hujjatYukla|aslFaylSaqla|fotoYukla|t2-yuk-tashish|HujjatYuklash/;
+  // Bo'shliq ro'yxati BO'SH: har type=\"file\" komponenti asl faylni R2 ga saqlaydi (egasi qarori 2026-11-15). Yangi element QO'SHILMAYDI.
+  const BOSHLIQ = new Set<string>();
+  const SAQLAYDI = /t2-asl-fayl|hujjat-yukla|t2-hujjat-canonical|t2-hujjat-arxiv|hujjatYukla|aslFaylSaqla|fotoYukla|t2-yuk-tashish|HujjatYuklash|bzRasmYukla/;
 
   it('type="file" komponentlari asl faylni R2 ga saqlaydi (yoki ma\'lum bo\'shliq ro\'yxatida)', () => {
     const yangi: string[] = []; const tuzalgan: string[] = [];
