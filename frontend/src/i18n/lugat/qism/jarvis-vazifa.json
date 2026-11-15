@@ -1,0 +1,50 @@
+{
+  "Jarvis vazifalari": {
+    "ru": "Задачи Jarvis",
+    "en": "Jarvis tasks"
+  },
+  "Obyektni tekshirish": {
+    "ru": "Проверить объект",
+    "en": "Check project"
+  },
+  "Obyekt holati": {
+    "ru": "Состояние объекта",
+    "en": "Project status"
+  },
+  "Farqlar tekshiruvi": {
+    "ru": "Проверка расхождений",
+    "en": "Discrepancy check"
+  },
+  "Tekshirildi": {
+    "ru": "Проверено",
+    "en": "Verified"
+  },
+  "Kutilmoqda": {
+    "ru": "Ожидается",
+    "en": "Pending"
+  },
+  "Natijani ko‘rish": {
+    "ru": "Посмотреть результат",
+    "en": "View result"
+  },
+  "Davom ettirish": {
+    "ru": "Продолжить",
+    "en": "Continue"
+  },
+  "Smeta, fakt va F2 holatini tekshirish": {
+    "ru": "Проверка сметы, факта и Ф2",
+    "en": "Check estimate, actuals and F2"
+  },
+  "Vazifalar serverdan yuklanmadi.": {
+    "ru": "Не удалось загрузить задачи с сервера.",
+    "en": "Could not load tasks from the server."
+  },
+  "Vazifa yakunlanmadi. Saqlangan holatdan davom ettirish mumkin.": {
+    "ru": "Задача не завершена. Можно продолжить с сохранённого состояния.",
+    "en": "Task is incomplete. You can resume from saved state."
+  },
+  "Qo‘shimcha: {plus} ta; kamayish: {minus} ta; aniqlanmagan: {unknown} ta; sig‘magan: {unmatched} ta.": {
+    "ru": "Дополнения: {plus}; уменьшения: {minus}; неизвестно: {unknown}; не сопоставлено: {unmatched}.",
+    "en": "Additions: {plus}; reductions: {minus}; unknown: {unknown}; unmatched: {unmatched}."
+  }
+}

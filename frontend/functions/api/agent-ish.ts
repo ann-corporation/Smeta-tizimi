@@ -1,3 +1,4 @@
+import { taskPayload } from '../_shared/jarvis-vazifa';
 /**
  * agent-ish.ts — AI agent ISH MUHITI shlyuzi: kontekst/qoida/xotira, takliflar (admin tasdig'i), tasdiqlangan veb-manbalar, savol.
  *
@@ -409,6 +410,18 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
 
   if (amal === 'xotira_yoz') {
     return chiqar(await rpcData(env, 't2_agent_xotira_yoz_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_profil: profil, p_kalit: String(so.kalit ?? ''), p_mazmun: String(so.mazmun ?? '').slice(0, 4000) }));
+  }
+  if (['vazifa_royxat','vazifa_ol','vazifa_saqla'].includes(amal)) {
+    const oid = so.obyekt_id;
+    if (kid == null || !Number.isSafeInteger(oid) || Number(oid) <= 0) return xato('Vazifa uchun kompaniya va obyekt kerak', 422);
+    const params = {p_actor_id:k.actor,p_kompaniya_id:kid,p_obyekt_id:Number(oid)};
+    if (amal === 'vazifa_royxat') return chiqar(await rpcData(env,'t2_jarvis_vazifa_royxat_v1',params));
+    const id=String(so.id ?? '');
+    if (!/^[A-Za-z0-9_.-]{1,40}$/.test(id)) return xato('Vazifa identifikatori noto‘g‘ri',422);
+    if (amal === 'vazifa_ol') return chiqar(await rpcData(env,'t2_jarvis_vazifa_ol_v1',{...params,p_id:id}));
+    const task=taskPayload(so.task,{actorId:k.actor,companyId:kid,objectId:Number(oid)});
+    if (!task || task.id!==id || !Number.isSafeInteger(so.expected_revision) || Number(so.expected_revision)<-1 || task.revision!==Number(so.expected_revision)+1) return xato('Vazifa holati noto‘g‘ri',422);
+    return chiqar(await rpcData(env,'t2_jarvis_vazifa_saqla_v1',{...params,p_id:id,p_expected_revision:so.expected_revision,p_task:task}));
   }
   /* JARVIS SUHBATLARI (serverda, t2_jarvis_suhbat): faqat egasi o'qiydi; actor sessiyadan, a'zolik bazada (scope_guard); model chaqirilmaydi. */
   if (amal === 'suhbat_royxat' || amal === 'suhbat_ol' || amal === 'suhbat_saqla' || amal === 'suhbat_ochir') {
