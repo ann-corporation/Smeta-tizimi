@@ -16,6 +16,9 @@
 import type { NormWork } from '../catalog-extraction/norm-catalog';
 import { MatnIndeks, ildizlar } from './matn-qidiruv';
 import { uzRuAlias } from './norm-lugat';
+import { kodKalit } from './resurs-kalit';
+import { qisqartmaOch, sinonimlar } from './norm-sinonim';
+import { xotiraBall, type Xotira } from './norm-xotira';
 
 export type NormManba = {
   allWorks(): NormWork[];
@@ -38,6 +41,8 @@ export type IshSorovi = {
   qoshimcha?: string[];
   /** Text whose numbers (0,5 м3, 380 мм, group 2) count as the line's own numbers although they are not in `nom`. */
   sonlarMatn?: string | null;
+  /** Company memory (compact counters): a code confirmed before for similar text is retrieved and ranked first. */
+  xotira?: Xotira | null;
 };
 
 export type MoslashNomzod = { id: string; kod: string; nom: string; birlik: string | null; jadval: string | null; toplam: string | null;
@@ -110,15 +115,17 @@ const TAMIR_SOZ = /ремонт|восстанов|реконструкц|ta['�
 
 /** Re-rank weights (tuned on half of the approved smetas by file, checked on the other half; see the eval report). */
 export const OGIRLIK = { bm: 0.15, mos: 0.45, birlik: 0.12, sonYes: 0.08, sonNo: 0.10, extra: 0.015, extraMax: 0.06, boshi: 0.06,
-  bolim: 0.08, maxsus: 0.22, tamir: 0.18, qoshni: 0.07, prec: 0.10, bigram: 0.26 };
+  bolim: 0.08, maxsus: 0.22, tamir: 0.18, qoshni: 0.07, prec: 0.10, bigram: 0.26, tabRef: 0.30, xotira: 0.10 };
 export type Ogirlik = typeof OGIRLIK;
 
-type Hujjat = { w: NormWork; coll: string; birlik: Set<Asos>; sonlar: string[]; boshi: string | null; stems: Set<string>; bigrams: Set<string> };
+type Hujjat = { w: NormWork; coll: string; kodK: string; jadvalK: string; birlik: Set<Asos>; sonlar: string[]; boshi: string | null; stems: Set<string>; bigrams: Set<string> };
 const bigramlar = (stems: string[]) => { const s = new Set<string>(); for (let i = 0; i + 1 < stems.length; i++) s.add(stems[i] + ' ' + stems[i + 1]); return s; };
 type Hit = { d: Hujjat; z: number; mos: number; sabab: string[]; birlik: boolean | null };
 /** Everything about one query that does not depend on the weights (retrieval is the slow part: done once). */
 export type Kontekst = { smeta: Set<Asos>; tamir: boolean; hint: Set<string>; qSon: string[]; qBosh: string | null; qoshni: Map<string, number>;
-  qStems: Set<string>; qBigrams: Set<string>; hits: Array<{ id: number; ball: number; mos: number }> };
+  qStems: Set<string>; qBigrams: Set<string>; hits: Array<{ id: number; ball: number; mos: number }>;
+  /** Tables the line itself points to («К НОРМЕ 11-01-011-01»): canonical «Е11-1-11». */ tabRefs: Set<string>;
+  /** Company memory score per canonical code. */ xotira: Map<string, number>; iboralar: string[] };
 
 export class NormMoslash {
   private idx: MatnIndeks;
@@ -127,6 +134,8 @@ export class NormMoslash {
   private collCodes: string[] = [];
   private m: NormManba;
   private og: Ogirlik;
+  private jadvalIdx = new Map<string, number[]>();
+  private kodIdx = new Map<string, number[]>();
   constructor(m: NormManba, og: Ogirlik = OGIRLIK) {
     this.m = m; this.og = og;
     const works = m.allWorks();
@@ -134,8 +143,13 @@ export class NormMoslash {
     const matnlar = works.map(w => { const nom = w.name ?? ''; const a = uzRuAlias(nom); return a ? `${nom} ${a}` : nom; });
     this.docs = works.map((w, i) => {
       const st = ildizlar(matnlar[i]);
-      return { w, coll: collKey(w.collection), birlik: birlikAsoslari(workMeasure(w)), sonlar: sonlar(w.name ?? ''), boshi: st[0] ?? null,
+      const kodK = kodKalit(w.code) ?? '';
+      return { w, coll: collKey(w.collection), kodK, jadvalK: kodK.split('-').slice(0, 3).join('-'), birlik: birlikAsoslari(workMeasure(w)), sonlar: sonlar(w.name ?? ''), boshi: st[0] ?? null,
         stems: new Set(st), bigrams: bigramlar(st) };
+    });
+    this.docs.forEach((d, i) => {
+      const l = this.jadvalIdx.get(d.jadvalK) ?? []; l.push(i); this.jadvalIdx.set(d.jadvalK, l);
+      const c = this.kodIdx.get(d.kodK) ?? []; c.push(i); this.kodIdx.set(d.kodK, c);
     });
     this.idx = new MatnIndeks(works.map((w, i) => ({ id: i, matn: matnlar[i], kontekst: m.tableLabel(w.id) })));
     if (m.collectionTitle) {
@@ -165,9 +179,40 @@ export class NormMoslash {
     const qoshni = new Map<string, number>();
     for (const c of q.qoshni ?? []) { const k = collKey(c); qoshni.set(k, (qoshni.get(k) ?? 0) + 1); }
     const qst = ildizlar(asosiy);
+    // Abbreviations opened («ж/б» -> железобетонный) and everyday words translated («рытье» -> разработка): extra PHRASINGS, the line stays as written.
+    const qisqa = qisqartmaOch(tozaNom), sin = sinonimlar(qisqa);
+    const iboralar = [...new Set([asosiy, tozaNom, qisqa, sin ? `${qisqa} ${sin}` : '', ...(q.qoshimcha ?? [])])].filter(Boolean);
+    // The line may name its own table («ДОБАВЛЯТЬ К НОРМЕ 11-01-011-01»): the answer is a variant of that table.
+    const tabRefs = new Set<string>();
+    for (const m of asosiy.matchAll(/(?<![\d.-])(\d{1,2})-(\d{1,2})-(\d{1,3})(?:-\d{1,2})?(?![\d-])/g)) {
+      for (const harf of ['Е', 'Ц']) { const key = `${harf}${Number(m[1])}-${Number(m[2])}-${Number(m[3])}`; if (this.jadvalIdx.has(key)) tabRefs.add(key); }
+    }
+    const xotira = xotiraBall(q.xotira, asosiy);
+    const hits = this.idx.qidir(iboralar, 200);
+    const mavjud = new Set(hits.map(h => h.id));
+    const top = hits[0]?.ball ?? 1;
+    const qosh = (i: number, ball: number) => { if (!mavjud.has(i)) { mavjud.add(i); hits.push({ id: i, ball, mos: 0.5 }); } };
+    for (const key of tabRefs) for (const i of this.jadvalIdx.get(key) ?? []) qosh(i, top * 0.6);
+    for (const [kod, s] of xotira) if (s >= 0.5) for (const i of this.kodIdx.get(kod) ?? []) qosh(i, top * 0.7);
     return { smeta: birlikAsoslari(q.birlik), tamir: TAMIR_SOZ.test(`${asosiy} ${(q.bolim ?? []).join(' ')} ${q.tavsif ?? ''}`),
       hint: this.bolimToplamlari(q), qSon: sonlar(`${asosiy} ${q.sonlarMatn ?? ''}`), qBosh: qst[0] ?? null, qoshni, qStems: new Set(qst), qBigrams: bigramlar(qst),
-      hits: this.idx.qidir([...new Set([asosiy, tozaNom, ...(q.qoshimcha ?? [])])].filter(Boolean), 120) };
+      hits, tabRefs, xotira, iboralar };
+  }
+
+  /**
+   * Second retrieval restricted to the collections the section already uses (confirmed / auto-selected neighbours + the heading):
+   * a work from the right sbornik that the global top-200 missed is added. Cheap: runs only when such collections exist.
+   */
+  kengaytir(k: Kontekst, toplamlar: Iterable<string>): Kontekst {
+    const set = new Set([...toplamlar].map(collKey).filter(Boolean));
+    if (!set.size) return k;
+    const extra = this.idx.qidir(k.iboralar, 80, i => set.has(this.docs[i].coll));
+    if (!extra.length) return k;
+    const mavjud = new Set(k.hits.map(h => h.id));
+    const top = k.hits[0]?.ball ?? extra[0].ball;
+    const hits = [...k.hits];
+    for (const h of extra) if (!mavjud.has(h.id)) hits.push({ id: h.id, ball: Math.min(h.ball, top * 0.8), mos: h.mos });
+    return { ...k, hits };
   }
 
   /** Evidence re-rank of the retrieved hits. Pure and deterministic. */
@@ -197,6 +242,8 @@ export class NormMoslash {
       if (k.qBigrams.size) { let bg = 0; for (const b of k.qBigrams) if (d.bigrams.has(b)) bg++; z += og.bigram * (bg / k.qBigrams.size); }
       if (k.hint.has(d.coll)) { z += og.bolim; sabab.push("bo'lim mos"); }
       if (qoshniJami) { const s = (k.qoshni.get(d.coll) ?? 0) / qoshniJami; if (s > 0) { z += og.qoshni * Math.min(1, 0.5 + s); sabab.push("qo'shni qatorlar mos"); } }
+      if (k.tabRefs.has(d.jadvalK)) { z += og.tabRef; sabab.push('jadval shifri qatorda'); }
+      const xb = k.xotira.get(d.kodK); if (xb) { z += og.xotira * xb; sabab.push('kompaniya tajribasi'); }
       if (MAXSUS.has(d.coll) && !k.hint.has(d.coll)) z -= og.maxsus;
       if (TAMIR(d.coll) && !k.tamir) z -= og.tamir;
       out.push({ d, z, mos: h.mos, sabab, birlik: bm });

@@ -14,6 +14,7 @@ import { includedWorkReviews } from './included-work';
 import type { Birlik, IshNiyati, TanlovNomzodi, TanlovSorovi } from './protokol';
 import { MatnIndeks } from './matn-qidiruv';
 import { NormMoslash, type MoslashNomzod } from './norm-moslash';
+import type { Xotira } from './norm-xotira';
 
 export type AiKatalog = NormDetailSource & {
   search(q: string, page: number): { rows: NormWork[]; total: number };
@@ -188,9 +189,12 @@ export function qoshniToplamlar(ish: Pick<AiIsh, 'id' | 'bolim'>, boshqalar: rea
 }
 export type AvtoNatija = { nomzodlar: TanlovNomzodi[]; avto: TanlanganIsh | null; holat: 'AVTO' | 'TEKSHIRISH' | 'TOPILMADI' | 'KOD'; ms: number };
 
-const toNomzod = (n: MoslashNomzod): TanlovNomzodi => ({ id: n.id, kod: n.kod, nom: n.nom, birlik: n.birlik, jadval: n.jadval, toplam: n.toplam, ishonch: n.ishonch });
+/** The text company memory is keyed on: the line's own normative phrase (the same text avtoTanlov searches with). */
+export const xotiraMatni = (ish: Pick<IshNiyati, 'qidiruv'> & { tavsif?: string }): string => ish.qidiruv.find(q => !KOD.test(q.trim())) ?? ish.tavsif ?? '';
 
-export function avtoTanlov(k: AiKatalog, ish: Pick<IshNiyati, 'qidiruv' | 'birlik' | 'toplam'> & { tavsif?: string; id?: string; bolim?: string }, boshqalar: readonly AiIsh[] = [], limit = 20): AvtoNatija | null {
+const toNomzod =(n: MoslashNomzod): TanlovNomzodi => ({ id: n.id, kod: n.kod, nom: n.nom, birlik: n.birlik, jadval: n.jadval, toplam: n.toplam, ishonch: n.ishonch });
+
+export function avtoTanlov(k: AiKatalog, ish: Pick<IshNiyati, 'qidiruv' | 'birlik' | 'toplam'> & { tavsif?: string; id?: string; bolim?: string }, boshqalar: readonly AiIsh[] = [], limit = 20, xotira: Xotira | null = null): AvtoNatija | null {
   const nm = moslashOl(k);
   if (!nm) return null;
   const t0 = performance.now();
@@ -201,9 +205,11 @@ export function avtoTanlov(k: AiKatalog, ish: Pick<IshNiyati, 'qidiruv' | 'birli
   const sonlar = tavsifSonlari(ish.tavsif);
   const hint = new Set((ish.toplam ?? []).map(c => c.replace(/^Е/, 'E')));
   const nom = matnli[0] ?? ish.tavsif ?? '';
-  const kont = nm.kontekst({ nom, birlik: ish.birlik, bolim: ish.bolim ? [ish.bolim] : [], tavsif: ish.tavsif ?? null, sonlarMatn: ish.tavsif ?? null,
+  const kont0 = nm.kontekst({ nom, birlik: ish.birlik, xotira, bolim: ish.bolim ? [ish.bolim] : [], tavsif: ish.tavsif ?? null, sonlarMatn: ish.tavsif ?? null,
     qoshni: ish.id ? qoshniToplamlar({ id: ish.id, bolim: ish.bolim ?? '' }, boshqalar) : [],
     qoshimcha: [...matnli.slice(1), ...(sonlar.length && matnli[0] ? [`${matnli[0]} ${sonlar.join(' ')}`] : [])] });
+  // Second retrieval inside the collections this section already uses (chosen neighbours + the heading).
+  const kont = nm.kengaytir(kont0, [...kont0.qoshni.keys(), ...kont0.hint]);
   // Production fixes kept as hard rules: special-purpose collections only when the model named them; no norm with a condition the user
   // never stated; a stated transport distance keeps only its band.
   let raw = nm.rerank(kont, Math.max(limit, 40)).filter(h => {

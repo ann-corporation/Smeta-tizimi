@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { NormWork } from '../catalog-extraction/norm-catalog';
-import { AVTO_CHEGARA, MAX_NOMZOD, NormMoslash, birlikAsoslari, birlikMosmi, ishonchHisobla } from './norm-moslash';
+import { AVTO_CHEGARA, MAX_NOMZOD, OGIRLIK, NormMoslash, birlikAsoslari, birlikMosmi, ishonchHisobla } from './norm-moslash';
 import { uzRuAlias, uzbekMi } from './norm-lugat';
 import { avtoTanlov, kichikNomzodlar, moslashOl, qoshniToplamlar, type AiIsh, type AiKatalog } from './worker';
 
@@ -108,7 +108,7 @@ describe('NormMoslash pipeline', () => {
   });
   it('the retrieval part is reusable: rerank with other weights does not re-retrieve', () => {
     const k = nm.kontekst({ nom: 'Устройство бетонной подготовки', birlik: 'м3' });
-    const a = nm.rerank(k, 3), b = nm.rerank(k, 3, { ...{ bm: 0.5, mos: 0.5, birlik: 0, sonYes: 0, sonNo: 0, extra: 0, extraMax: 0, boshi: 0, bolim: 0, maxsus: 0, tamir: 0, qoshni: 0, prec: 0, bigram: 0 } });
+    const a = nm.rerank(k, 3), b = nm.rerank(k, 3, { ...OGIRLIK, bm: 0.5, mos: 0.5, prec: 0, bigram: 0 });
     expect(a.length).toBeGreaterThan(0);
     expect(b.length).toBeGreaterThan(0);
   });

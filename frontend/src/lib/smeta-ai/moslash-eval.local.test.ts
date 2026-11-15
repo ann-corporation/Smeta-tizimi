@@ -118,7 +118,7 @@ function ogirlikniSoz(nm: NormMoslash, train: Qator[]): Ogirlik {
   let bestS = score(best);
   const steps: Record<keyof Ogirlik, number[]> = { bm: [-0.2, 0.2], mos: [-0.2, 0.2], birlik: [-0.06, 0.06], sonYes: [-0.1, 0.1], sonNo: [-0.06, 0.06], extra: [-0.015, 0.015],
     extraMax: [-0.06, 0.06], boshi: [-0.04, 0.04], bolim: [-0.05, 0.05], maxsus: [-0.06, 0.06], tamir: [-0.1, 0.1], qoshni: [-0.05, 0.05],
-    prec: [-0.08, 0.08], bigram: [-0.08, 0.08] };
+    prec: [-0.08, 0.08], bigram: [-0.08, 0.08], tabRef: [-0.1, 0.1], xotira: [0, 0] };
   for (let pass = 0; pass < 2; pass++) for (const key of Object.keys(steps) as Array<keyof Ogirlik>) for (const dlt of steps[key]) {
     const cand = { ...best, [key]: Math.max(0, Math.round((best[key] + dlt) * 1000) / 1000) };
     const s = score(cand);
