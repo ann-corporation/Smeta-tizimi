@@ -111,10 +111,11 @@ function taqsimla(obyekt: TugunUchlik, nodes: Map<number, TugunUchlik>, qatorlar
       if (qiymat == null || !ids.length) continue;
       const own = ids.map((id) => nodes.get(id)![k][sh]);
       if (own.some((x) => x == null)) { for (const id of ids) stek.push({ ota: id, qiymat: nodes.get(id)![k][sh] }); continue; }
-      const sum = own.reduce((a, b) => a + (b as number), 0);
+      const ownN = own as number[];
+      const sum = ownN.reduce((a: number, b: number) => a + b, 0);
       // Ota o'z barg qatorlariga ega bo'lsa (razdel ostida bevosita resurslar) - ularning ulushi alohida qoldiq o'rnida; yo'q bo'lsa bolalar yig'indisi = ota.
       const ozBarg = (ota == null ? qatorlar.filter((q) => q.ota_id == null) : bolalar.get(ota) ?? []).some((q) => q.tur !== 'rz' && q.tur !== 'bl');
-      const w = ozBarg ? [...(own as number[]), yaxlit2(qiymat - sum)] : (own as number[]);
+      const w = ozBarg ? [...ownN, yaxlit2(qiymat - sum)] : ownN;
       const r = hamilton(qiymat, w);
       if (r) ids.forEach((id, i) => { const t = nodes.get(id)!; nodes.set(id, { ...t, [k]: { ...t[k], [sh]: yaxlit2(r[i] / 100) } }); });
       for (const id of ids) stek.push({ ota: id, qiymat: nodes.get(id)![k][sh] });

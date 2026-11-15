@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { hamilton, tugunDaraxti, tugunSummalari, tugunSummalariXom, ustamaBor, type TugunQator, type UstamaKirish } from './tugun-summa';
-import { svodFaktKesimi, svodKorinishKesimi } from './svod-yaxlit';
+import { svodKorinishKesimi } from './svod-yaxlit';
 import { qiymatUchligi, ustamaliHisobla } from './ustamali-summa';
 import { yaxlit2 } from './hisob-yadro';
 
@@ -26,7 +26,7 @@ function fixture(): TugunQator[] {
   const b3 = q('bl', r2.id, null, 0, 0, 0); rows.push(b3);
   rows.push(q('mat', b3.id, 'МАТ', 4_500_000, 1_500_000, 1_500_000), q('rs', b3.id, 'ЧЕЛ', 1_250_000, 625_000, 625_000));
   // Tugun summalari - serverning yig'indisi (rollup): bl = barglar, rz = bl lar.
-  const sum = (n: TugunQator, k: 'smeta' | 'fakt' | 'f2') => {
+  const sum = (n: TugunQator, k: 'smeta' | 'fakt' | 'f2'): number => {
     const ch = rows.filter((x) => x.ota_id === n.id);
     return ch.reduce((t, x) => t + ((x.tur === 'bl' ? sum(x, k) : x[k]) ?? 0), 0);
   };
@@ -35,8 +35,6 @@ function fixture(): TugunQator[] {
   void rz;
   return rows;
 }
-
-const r2 = (x: number) => Math.round(x * 100) / 100;
 
 describe('tugunSummalari - yagona yadro, uch shakl', () => {
   it('har RZ/BL tuguni uchun uchlik; QQS bilan >= ustamali >= ustamasiz; barglarga tegmaydi', () => {
