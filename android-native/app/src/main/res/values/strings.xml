@@ -62,10 +62,7 @@
     <string name="p1_back">Orqaga</string>
     <string name="p1_updated">Oxirgi yangilanish: %1$s</string>
     <string name="p1_never_updated">Hali yangilanmagan</string>
-    <string name="p1_banner_offline">Oflayn — %1$d ta yozuv navbatda</string>
     <string name="p1_banner_offline_none">Oflayn — saqlangan ma\'lumot ko\'rsatilmoqda</string>
-    <string name="p1_banner_sending">%1$d ta yozuv yuborilmoqda</string>
-    <string name="p1_banner_failed">%1$d ta yozuv rad etildi — ko\'rish</string>
     <string name="p1_objects_search">Obyekt qidirish</string>
     <string name="p1_pick_object">Obyektni tanlang</string>
     <string name="p1_objects_empty">Obyektlar yo\'q</string>
@@ -74,19 +71,13 @@
     <string name="p1_objects_error">Obyektlarni yuklab bo\'lmadi</string>
     <string name="p1_objects_offline_empty">Oflayn — obyektlar hali saqlanmagan</string>
     <string name="p1_objects_forbidden">Obyektlarni ko\'rishga ruxsat yo\'q</string>
-    <string name="p1_vat_incl">QQS bilan</string>
     <string name="p1_no_total">Summa hisoblanmagan</string>
-    <string name="p1_unpriced">%1$d ta narxsiz qator</string>
-    <string name="p1_rows">%1$d qator</string>
     <string name="p1_card_title">Obyekt</string>
     <string name="p1_card_value">Obyekt qiymati</string>
-    <string name="p1_card_smeta_net">Smeta jami (ustamasiz, QQS siz)</string>
-    <string name="p1_card_markup_note">Ustamali summa — veb-versiyada</string>
     <string name="p1_card_fakt">Fakt (bajarilgan)</string>
     <string name="p1_card_f2">F-2 (qabul qilingan)</string>
     <string name="p1_card_progress">Bajarilish</string>
     <string name="p1_card_no_progress">Bajarilish ma\'lumoti hali yuklanmagan</string>
-    <string name="p1_card_unpriced_warn">%1$d ta qator narxsiz — jami to\'liq emas</string>
     <string name="p1_card_enter_fakt">Fakt kiritish</string>
     <string name="p1_card_offline">Oflayn — saqlangan ma\'lumot ko\'rsatilmoqda.</string>
     <string name="p1_card_no_access_title">Ayrim ma\'lumotlarga ruxsat yo\'q</string>
@@ -108,7 +99,6 @@
     <string name="p1_cancel">Bekor qilish</string>
     <string name="p1_remove">O\'chirish</string>
     <string name="p1_open">Ochish</string>
-    <string name="p1_draft_bar">Qoralama: %1$d qator</string>
     <string name="p1_draft_title">Qoralama</string>
     <string name="p1_draft_empty">Qoralama bo\'sh</string>
     <string name="p1_draft_empty_hint">Qatorlarni qidirib, hajm kiriting.</string>
@@ -118,7 +108,6 @@
     <string name="p1_save_queue">Saqlash (navbatga)</string>
     <string name="p1_draft_note">Saqlangach yozuv navbatga tushadi va internet bo\'lishi bilan yuboriladi.</string>
     <string name="p1_draft_note_usta">Sizning rolingiz uchun yozuv tasdiqlash uchun qoralama sifatida yuboriladi.</string>
-    <string name="p1_exceeding_n">%1$d ta qator smetadan oshadi</string>
     <string name="p1_outbox_title">Yuborish navbati</string>
     <string name="p1_outbox_empty">Navbat bo\'sh</string>
     <string name="p1_active">Navbatda</string>
@@ -127,13 +116,11 @@
     <string name="p1_state_paused">Kirish kutilmoqda</string>
     <string name="p1_state_failed">Rad etildi</string>
     <string name="p1_state_done">Yuborildi</string>
-    <string name="p1_outbox_lines">%1$d qator · %2$s</string>
     <string name="p1_attempts">Urinishlar: %1$d</string>
     <string name="p1_reason">Sabab: %1$s</string>
     <string name="p1_edit">Tahrirlash</string>
     <string name="p1_retry_now">Qayta yuborish</string>
     <string name="p1_sent_doc">Hujjat %1$s</string>
     <string name="p1_warn_over">Smetadan oshgan: %1$s</string>
-    <string name="p1_warn_unpriced">Narxsiz qatorlar: %1$d</string>
     <!-- /P1 -->
 </resources>

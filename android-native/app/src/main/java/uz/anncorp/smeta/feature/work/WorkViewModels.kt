@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import uz.anncorp.smeta.core.data.ConnectivityMonitor
 import uz.anncorp.smeta.core.data.FaktRepository
+import uz.anncorp.smeta.core.data.MoneyRepository
+import uz.anncorp.smeta.core.data.ObjectMoney
 import uz.anncorp.smeta.core.data.ObjectsRepository
 import uz.anncorp.smeta.core.data.OutboxRepository
 import uz.anncorp.smeta.core.data.RowsRepository
@@ -51,11 +53,12 @@ data class ObjectsUi(
     val updatedAt: Long? = null,
     val query: String = "",
     val noCompany: Boolean = false,
+    val money: Map<Long, ObjectMoney> = emptyMap(),
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
-class ObjectsViewModel @Inject constructor(private val repo: ObjectsRepository, private val ctx: WorkContext) : ViewModel() {
+class ObjectsViewModel @Inject constructor(private val repo: ObjectsRepository, private val moneyRepo: MoneyRepository, private val ctx: WorkContext) : ViewModel() {
     private val query = MutableStateFlow("")
     private val sync = MutableStateFlow(SyncUi(loading = true))
     private data class SyncUi(val loading: Boolean = false, val refreshing: Boolean = false, val result: SyncResult? = null)
@@ -69,7 +72,8 @@ class ObjectsViewModel @Inject constructor(private val repo: ObjectsRepository, 
     ) { items, ts, q, s, w ->
         val shown = if (q.isBlank()) items else items.filter { it.nom.contains(q.trim(), ignoreCase = true) || (it.tur ?: "").contains(q.trim(), ignoreCase = true) }
         ObjectsUi(shown, s.loading && items.isEmpty(), s.refreshing, s.result, ts, q, noCompany = w == null)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ObjectsUi())
+    }.combine(moneyRepo.observeAll()) { ui, m -> ui.copy(money = m) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ObjectsUi())
 
     init {
         viewModelScope.launch { company.collect { if (it != null) refresh(initial = true) } }
@@ -83,12 +87,15 @@ class ObjectsViewModel @Inject constructor(private val repo: ObjectsRepository, 
             sync.update { it.copy(loading = initial, refreshing = !initial) }
             val r = repo.refresh(w.companyId)
             sync.value = SyncUi(result = r)
+            // Sum packages for the list (best effort: a role without the financial read right simply keeps the dashes).
+            moneyRepo.refreshCompany(w.companyId)
         }
     }
 }
 
 data class CardUi(
     val obyekt: ObyektEntity? = null,
+    val money: ObjectMoney? = null,
     val totals: Totals? = null,
     val rows: Int = 0,
     val source: String? = null,
@@ -98,13 +105,16 @@ data class CardUi(
 )
 
 @HiltViewModel
-class ObjectCardViewModel @Inject constructor(handle: SavedStateHandle, objects: ObjectsRepository, private val rows: RowsRepository) : ViewModel() {
+class ObjectCardViewModel @Inject constructor(
+    handle: SavedStateHandle, objects: ObjectsRepository, private val rows: RowsRepository, private val moneyRepo: MoneyRepository, private val ctx: WorkContext,
+) : ViewModel() {
     val id: Long = checkNotNull(handle["id"])
     private val sync = MutableStateFlow<Pair<Boolean, SyncResult?>>(true to null)
 
     val state: StateFlow<CardUi> = combine(
         objects.observeOne(id), rows.totals(id), rows.rowCount(id), rows.source(id), rows.lastUpdated(id),
-    ) { a, b, c, d, e -> CardUi(a, b, c, d, e) }
+    ) { a, b, c, d, e -> CardUi(a, null, b, c, d, e) }
+        .combine(moneyRepo.observe(id)) { ui, m -> ui.copy(money = m) }
         .combine(sync) { ui, s -> ui.copy(syncing = s.first, result = s.second) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CardUi())
 
@@ -113,7 +123,9 @@ class ObjectCardViewModel @Inject constructor(handle: SavedStateHandle, objects:
     fun refresh() {
         viewModelScope.launch {
             sync.value = true to null
-            sync.value = false to rows.sync(id)
+            val r = rows.sync(id)
+            ctx.current.value?.let { moneyRepo.refreshObject(it.companyId, id) }
+            sync.value = false to r
         }
     }
 }
@@ -127,6 +139,8 @@ data class FaktUi(
     val result: SyncResult? = null,
     val rowCount: Int = 0,
     val updatedAt: Long? = null,
+    val sections: List<String> = emptyList(),
+    val section: String? = null,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class, kotlinx.coroutines.FlowPreview::class)
@@ -138,18 +152,22 @@ class FaktViewModel @Inject constructor(
     private val query = MutableStateFlow("")
     private val sync = MutableStateFlow<Pair<Boolean, SyncResult?>>(true to null)
 
-    private val results = query.debounce(120).flatMapLatest { rows.search(id, it) }
+    private val section = MutableStateFlow<String?>(null)
+    private val results = combine(query.debounce(120), section) { q, s -> q to s }.flatMapLatest { (q, s) -> rows.search(id, q, s) }
 
     val state: StateFlow<FaktUi> = combine(
         query, results, fakt.drafts(id), objects.observeOne(id), sync,
     ) { q, r, d, o, s -> FaktUi(q, r, d.associateBy { it.qatorId }, o?.nom.orEmpty(), s.first, s.second) }
         .combine(rows.rowCount(id)) { ui, n -> ui.copy(rowCount = n) }
         .combine(rows.lastUpdated(id)) { ui, t -> ui.copy(updatedAt = t) }
+        .combine(rows.sections(id)) { ui, list -> ui.copy(sections = list) }
+        .combine(section) { ui, s -> ui.copy(section = s) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), FaktUi())
 
     init { refresh() }
 
     fun setQuery(q: String) { query.value = q }
+    fun setSection(s: String?) { section.value = s }
 
     fun refresh() {
         viewModelScope.launch {

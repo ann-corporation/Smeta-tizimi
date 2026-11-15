@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -86,7 +87,7 @@ fun DraftScreen(onBack: () -> Unit, onOutbox: () -> Unit, onSaved: () -> Unit, v
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Filled.Warning, null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.width(18.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text(stringResource(R.string.p1_exceeding_n, ui.exceeding), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.tertiary)
+                            Text(pluralStringResource(R.plurals.p1_exceeding_n, ui.exceeding, ui.exceeding), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.tertiary)
                         }
                     }
                     items(ui.lines, key = { it.qatorId }) { d -> DraftLine(d, onEdit = { editing = d }, onRemove = { vm.remove(d.qatorId) }) }

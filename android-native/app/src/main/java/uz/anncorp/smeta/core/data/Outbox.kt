@@ -61,12 +61,14 @@ class OutboxProcessor(
         while (true) {
             val e = dao.nextPending() ?: return DrainResult.IDLE.also { dao.purgeDoneBefore(now() - KEEP_DONE_MS) }
             val r = send(e)
+            // A multi-step entry (photo) may have saved progress while sending: always build on the stored row, not the stale copy.
+            val cur = dao.get(e.id) ?: e
             when (judge(r)) {
-                SendVerdict.SUCCESS -> dao.upsert(e.copy(state = OutboxState.DONE, attempts = e.attempts + 1, lastError = null, info = summarise(r)))
+                SendVerdict.SUCCESS -> dao.upsert(cur.copy(state = OutboxState.DONE, attempts = e.attempts + 1, lastError = null, info = if (e.kind == KIND_PHOTO) null else summarise(r)))
                 SendVerdict.UNAUTHORIZED -> { dao.pauseAllPending(); return DrainResult.NEEDS_LOGIN }
-                SendVerdict.REJECTED -> dao.upsert(e.copy(state = OutboxState.FAILED, attempts = e.attempts + 1, lastError = rejectionReason(r)))
+                SendVerdict.REJECTED -> dao.upsert(cur.copy(state = OutboxState.FAILED, attempts = e.attempts + 1, lastError = rejectionReason(r)))
                 SendVerdict.RETRY -> {
-                    dao.upsert(e.copy(attempts = e.attempts + 1, lastError = if (r.networkError) "network" else "HTTP ${r.status}"))
+                    dao.upsert(cur.copy(attempts = e.attempts + 1, lastError = if (r.networkError) "network" else "HTTP ${r.status}"))
                     return DrainResult.RETRY_LATER
                 }
             }
@@ -89,7 +91,7 @@ class OutboxProcessor(
 }
 
 /** UI-side facade: enqueue (idempotent), resume after login, retry, edit-as-draft, delete. */
-class OutboxRepository(private val dao: OutboxDao, private val scheduler: OutboxScheduler) {
+class OutboxRepository(private val dao: OutboxDao, private val scheduler: OutboxScheduler, private val cleanup: (OutboxEntity) -> Unit = {}) {
     /** Returns false when this operation id is already queued (a duplicate replay): nothing new is created. */
     suspend fun enqueue(e: OutboxEntity): Boolean {
         val fresh = dao.insertIgnore(e) != -1L
@@ -102,7 +104,19 @@ class OutboxRepository(private val dao: OutboxDao, private val scheduler: Outbox
         scheduler.schedule()
     }
 
-    suspend fun delete(id: String) = dao.delete(id)
+    suspend fun delete(id: String) {
+        dao.get(id)?.takeIf { it.state != OutboxState.DONE }?.let(cleanup)
+        dao.delete(id)
+    }
+
+    /** Everything not yet delivered (queued / paused / rejected). */
+    suspend fun unsent(): List<OutboxEntity> = dao.unsent()
+
+    /** Drops every undelivered entry (and its local photo files). */
+    suspend fun deleteUnsent() {
+        dao.unsent().forEach(cleanup)
+        dao.deleteUnsent()
+    }
 
     /** After a successful login/session check: paused entries continue. */
     suspend fun resumeAfterLogin() { dao.resumePaused(); scheduler.schedule() }

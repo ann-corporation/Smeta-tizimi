@@ -61,10 +61,37 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
             }
             path.startsWith("/api/sb-yoz") -> ok(asset("fakt_ok.json"))
             path.startsWith("/api/sb") -> {
-                val jadval = (body as? JsonObject)?.get("jadval")?.let { (it as? JsonPrimitive)?.content }
-                if (jadval == "t2_obyekt_jami") ok(asset("objects.json")) else ApiResult(403, buildJsonObject { put("ok", false) }, "PERMISSION_DENIED")
+                val o = body as? JsonObject
+                fun s(k: String) = o?.get(k)?.let { (it as? JsonPrimitive)?.content }
+                val jadval = s("jadval"); val filtr = s("filtr").orEmpty()
+                when {
+                    s("soro") == "rahbar_panel_v1" -> ok(asset("panel.json"))
+                    jadval == "t2_obyekt_jami" -> ok(asset("objects.json"))
+                    jadval == "t2_akt" && filtr.contains("lifecycle_status=eq.draft") -> {
+                        val n = if (filtr.contains("tur=eq.f2")) 3 else 5
+                        ok("""{"ok":true,"soni":1,"jamiServerda":$n,"toliq":true,"qatorlar":[]}""")
+                    }
+                    jadval == "t2_akt" -> ok(asset("akt501.json"))
+                    jadval == "t2_obyekt" -> ok("""{"ok":true,"soni":1,"jamiServerda":1,"toliq":true,"qatorlar":[{"id":101,"nom":"Demo korpus A"}]}""")
+                    else -> ApiResult(403, buildJsonObject { put("ok", false) }, "PERMISSION_DENIED")
+                }
             }
+            path.startsWith("/api/hujjat-aylanish") && method == "GET" -> when {
+                path.contains("bolim=kiruvchi") -> ok(asset("inbox.json"))
+                path.contains("bolim=bildirishnomalar") -> ok(asset("notes.json"))
+                path.contains("bolim=zanjir") -> ok(asset(if (path.contains("zanjir_id=8")) "zanjir8.json" else "zanjir7.json"))
+                else -> ApiResult(400, null)
+            }
+            path.startsWith("/api/hujjat-aylanish") -> {
+                val o = body as? JsonObject
+                // Zanjir 8 simulates "somebody decided first" so the not-your-turn message can be shown.
+                if ((o?.get("zanjir_id") as? JsonPrimitive)?.content == "8") ApiResult(200, buildJsonObject { put("ok", false); put("code", "NAVBAT_EMAS") }, "NAVBAT_EMAS")
+                else ok("""{"ok":true,"id":7,"holat":"jarayonda"}""")
+            }
+            path.startsWith("/api/foto-dalil") -> ok("""{"ok":true,"id":900}""")
             else -> ApiResult(404, null)
         }
     }
+
+    override suspend fun upload(companyId: Long, obyektId: Long, body: okhttp3.RequestBody): ApiResult = ok("""{"ok":true,"document_id":777}""")
 }

@@ -87,6 +87,10 @@ dependencies {
     implementation(libs.sqlite.ktx)
     implementation(libs.work.runtime)
     implementation(libs.icons.extended)
+    implementation(libs.camera.core)
+    implementation(libs.camera.camera2)
+    implementation(libs.camera.lifecycle)
+    implementation(libs.camera.view)
     debugImplementation(libs.compose.ui.tooling)
 
     testImplementation(libs.junit)

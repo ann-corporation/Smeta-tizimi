@@ -19,7 +19,9 @@ import uz.anncorp.smeta.core.data.AuthEvents
 import uz.anncorp.smeta.core.data.Prefs
 import uz.anncorp.smeta.core.ui.QuraiTheme
 import uz.anncorp.smeta.core.ui.isDarkFor
+import uz.anncorp.smeta.feature.approval.ApprovalDetailScreen
 import uz.anncorp.smeta.feature.home.HomeScreen
+import uz.anncorp.smeta.feature.photo.PhotoScreen
 import uz.anncorp.smeta.feature.login.LoginScreen
 import uz.anncorp.smeta.feature.splash.SplashScreen
 import uz.anncorp.smeta.feature.splash.StartRoute
@@ -59,6 +61,8 @@ private const val OBJECT = "object/{id}"
 private const val FAKT = "fakt/{id}"
 private const val DRAFT = "draft/{id}"
 private const val OUTBOX = "outbox"
+private const val APPROVAL = "approval/{id}"
+private const val PHOTO = "photo/{id}"
 
 @Composable
 private fun AppNav(events: AuthEvents, start: String) {
@@ -78,7 +82,12 @@ private fun AppNav(events: AuthEvents, start: String) {
         composable(LOGIN) {
             LoginScreen(onSignedIn = { nav.navigate(HOME) { popUpTo(LOGIN) { inclusive = true } } })
         }
-        composable(HOME) { HomeScreen(onOpenObject = { nav.navigate("object/$it") }, onOpenFakt = { nav.navigate("fakt/$it") }, onOutbox = { nav.navigate(OUTBOX) }) }
+        composable(HOME) {
+            HomeScreen(
+                onOpenObject = { nav.navigate("object/$it") }, onOpenFakt = { nav.navigate("fakt/$it") },
+                onOpenApproval = { nav.navigate("approval/$it") }, onOutbox = { nav.navigate(OUTBOX) },
+            )
+        }
         val idArg = listOf(navArgument("id") { type = NavType.LongType })
         composable(OBJECT, idArg) { CardRoute(nav) }
         composable(FAKT, idArg) {
@@ -87,13 +96,17 @@ private fun AppNav(events: AuthEvents, start: String) {
         composable(DRAFT, idArg) {
             DraftScreen(onBack = { nav.popBackStack() }, onOutbox = { nav.navigate(OUTBOX) }, onSaved = { nav.navigate(OUTBOX) { popUpTo(HOME) } })
         }
+        composable(APPROVAL, idArg) { ApprovalDetailScreen(onBack = { nav.popBackStack() }) }
+        composable(PHOTO, idArg) {
+            PhotoScreen(onBack = { nav.popBackStack() }, onQueued = { nav.navigate(OUTBOX) { popUpTo(PHOTO) { inclusive = true } } })
+        }
         composable(OUTBOX) { OutboxScreen(onBack = { nav.popBackStack() }, onEditDraft = { nav.navigate("draft/$it") }) }
     }
 }
 
 @Composable
 private fun CardRoute(nav: androidx.navigation.NavHostController) {
-    ObjectCardScreen(onBack = { nav.popBackStack() }, onEnterFakt = { nav.navigate("fakt/$it") }, onOutbox = { nav.navigate(OUTBOX) })
+    ObjectCardScreen(onBack = { nav.popBackStack() }, onEnterFakt = { nav.navigate("fakt/$it") }, onPhoto = { nav.navigate("photo/$it") }, onOutbox = { nav.navigate(OUTBOX) })
 }
 
 

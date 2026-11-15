@@ -12,7 +12,7 @@ import java.security.SecureRandom
 
 @Database(
     entities = [ObyektEntity::class, QatorEntity::class, QatorFts::class, MetaEntity::class, DraftEntity::class, OutboxEntity::class],
-    version = 1, exportSchema = false,
+    version = 2, exportSchema = false,
 )
 abstract class AppDb : RoomDatabase() {
     abstract fun obyekt(): ObyektDao
@@ -40,8 +40,14 @@ abstract class AppDb : RoomDatabase() {
             }
             return Room.databaseBuilder(context, AppDb::class.java, name)
                 .openHelperFactory(SupportOpenHelperFactory(passphrase))
+                .addMigrations(MIGRATION_1_2)
                 .fallbackToDestructiveMigration()
                 .build()
+        }
+
+        /** v2: rows get their section name. The cache refills on the next sync; unsent writes and drafts are untouched. */
+        val MIGRATION_1_2 = object : androidx.room.migration.Migration(1, 2) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) { db.execSQL("ALTER TABLE qator ADD COLUMN bolim TEXT") }
         }
 
         internal fun loadOrCreateKey(file: File, cipher: SecretCipher, onNewKey: () -> Unit): ByteArray {

@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -35,6 +36,7 @@ import uz.anncorp.smeta.core.data.formatMoney
 import uz.anncorp.smeta.core.data.num
 import uz.anncorp.smeta.core.data.obj
 import uz.anncorp.smeta.core.data.str
+import uz.anncorp.smeta.core.data.KIND_PHOTO
 import uz.anncorp.smeta.core.db.OutboxEntity
 import uz.anncorp.smeta.core.db.OutboxState
 import uz.anncorp.smeta.core.ui.CenterMessage
@@ -71,7 +73,7 @@ private fun EntryCard(e: OutboxEntity, vm: OutboxViewModel, onEditDraft: (Long) 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(e.obyektNom, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface, maxLines = 2)
-                    Text(stringResource(R.string.p1_outbox_lines, e.lineCount, formatStamp(e.createdAt).orEmpty()), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(if (e.kind == KIND_PHOTO) stringResource(R.string.p2_photo_entry) + " · " + formatStamp(e.createdAt).orEmpty() else pluralStringResource(R.plurals.p1_outbox_lines, e.lineCount, e.lineCount, formatStamp(e.createdAt).orEmpty()), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Surface(shape = RoundedCornerShape(50), color = color.copy(alpha = 0.16f)) {
                     Text(label, style = MaterialTheme.typography.labelMedium, color = color, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
@@ -86,7 +88,7 @@ private fun EntryCard(e: OutboxEntity, vm: OutboxViewModel, onEditDraft: (Long) 
             if (e.state == OutboxState.FAILED) {
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedButton(onClick = { vm.edit(e.id, onEditDraft) }, modifier = Modifier.heightIn(min = TouchTarget)) { Text(stringResource(R.string.p1_edit)) }
+                    if (e.kind != KIND_PHOTO) OutlinedButton(onClick = { vm.edit(e.id, onEditDraft) }, modifier = Modifier.heightIn(min = TouchTarget)) { Text(stringResource(R.string.p1_edit)) }
                     OutlinedButton(onClick = { vm.retry(e.id) }, modifier = Modifier.heightIn(min = TouchTarget)) { Text(stringResource(R.string.p1_retry_now)) }
                     TextButton(onClick = { vm.delete(e.id) }, modifier = Modifier.heightIn(min = TouchTarget)) { Text(stringResource(R.string.p1_remove), color = MaterialTheme.colorScheme.error) }
                 }
@@ -109,6 +111,6 @@ private fun DoneInfo(info: String?) {
             Text(stringResource(R.string.p1_warn_over, wo["nom"].str().orEmpty()), style = MaterialTheme.typography.bodySmall, color = warn)
         }
         val unpriced = o["narxsiz"].num()?.toInt() ?: 0
-        if (unpriced > 0) Text(stringResource(R.string.p1_warn_unpriced, unpriced), style = MaterialTheme.typography.bodySmall, color = warn)
+        if (unpriced > 0) Text(pluralStringResource(R.plurals.p1_warn_unpriced, unpriced, unpriced), style = MaterialTheme.typography.bodySmall, color = warn)
     }
 }

@@ -30,14 +30,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import uz.anncorp.smeta.R
 import uz.anncorp.smeta.core.data.SyncResult
-import uz.anncorp.smeta.core.data.formatMoneyShort
-import uz.anncorp.smeta.core.data.withVat
+import uz.anncorp.smeta.core.data.ObjectMoney
+import uz.anncorp.smeta.core.data.displayMoney
+import uz.anncorp.smeta.core.ui.MoneyDual
 import uz.anncorp.smeta.core.db.ObyektEntity
 import uz.anncorp.smeta.core.ui.CenterMessage
 import uz.anncorp.smeta.core.ui.TouchTarget
@@ -68,7 +70,7 @@ fun ObjectsScreen(onOpen: (Long) -> Unit, pickForFact: Boolean = false, vm: Obje
                 ui.loading -> Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) { CircularProgressIndicator() }
                 ui.items.isEmpty() -> EmptyOrError(ui, vm)
                 else -> LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp, 8.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(ui.items, key = { it.id }) { ObjectRow(it) { onOpen(it.id) } }
+                    items(ui.items, key = { it.id }) { ObjectRow(it, ui.money[it.id]) { onOpen(it.id) } }
                 }
             }
         }
@@ -88,28 +90,24 @@ private fun EmptyOrError(ui: ObjectsUi, vm: ObjectsViewModel) {
 }
 
 @Composable
-private fun ObjectRow(o: ObyektEntity, onClick: () -> Unit) {
+private fun ObjectRow(o: ObyektEntity, money: ObjectMoney?, onClick: () -> Unit) {
     WorkCard(onClick = onClick, modifier = Modifier.heightIn(min = TouchTarget)) {
         Column(Modifier.padding(16.dp)) {
             Text(o.nom, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, maxLines = 2)
             o.tur?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.Bottom) {
-                Column(Modifier.weight(1f)) {
-                    Text(stringResource(R.string.p1_vat_incl), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(
-                        if (o.jami == null) stringResource(R.string.p1_no_total) else formatMoneyShort(withVat(o.jami)),
-                        style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                o.qatorSoni?.let { Text(stringResource(R.string.p1_rows, it), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            // Owner rule: QQS-inclusive value first, and every sum both with and without markup (server packages, never guessed here).
+            MoneyDual(displayMoney(money?.smeta, o.jami), showVat = true, short = true)
+            o.qatorSoni?.let {
+                Spacer(Modifier.height(4.dp))
+                Text(pluralStringResource(R.plurals.p1_rows, it, it), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if ((o.narxsiz ?: 0) > 0) {
                 Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Warning, null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.width(16.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.p1_unpriced, o.narxsiz ?: 0), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.tertiary)
+                    Text(pluralStringResource(R.plurals.p1_unpriced, o.narxsiz ?: 0, o.narxsiz ?: 0), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.tertiary)
                 }
             }
         }

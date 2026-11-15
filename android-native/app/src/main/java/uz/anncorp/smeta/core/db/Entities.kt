@@ -35,6 +35,8 @@ data class QatorEntity(
     val f2Hajm: Double,
     val f2Summa: Double,
     val almashtirilgan: Double,
+    /** Section (razdel) name from the packet's parent chain; null when the source has no hierarchy (row-status fallback). */
+    val bolim: String? = null,
 ) {
     /** Open remainder: estimate - fact - replaced (never below zero is NOT enforced: negative means over the estimate). */
     val qoldiq: Double? get() = smetaHajm?.let { it - faktHajm - almashtirilgan }

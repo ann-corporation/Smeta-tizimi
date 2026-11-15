@@ -72,10 +72,33 @@ object DataModule {
     fun outboxScheduler(@ApplicationContext c: Context): OutboxScheduler = if (Demo.enabled(c)) object : OutboxScheduler { override fun schedule() {} } else WorkManagerScheduler(c)
 
     @Provides @Singleton
-    fun outboxRepository(db: AppDb, scheduler: OutboxScheduler) = OutboxRepository(db.outbox(), scheduler)
+    fun outboxRepository(db: AppDb, scheduler: OutboxScheduler) = OutboxRepository(db.outbox(), scheduler, PhotoRepository.Companion::cleanup)
 
     @Provides @Singleton
-    fun outboxProcessor(db: AppDb, api: BffApi, json: Json) = OutboxProcessor(db.outbox(), { e -> api.bff("/api/sb-yoz", "POST", json.parseToJsonElement(e.payloadJson)) }, json)
+    fun photoSender(db: AppDb, api: BffApi) = PhotoSender(api, db.outbox(), { path -> runCatching { File(path).readBytes() }.getOrNull() }, { path -> runCatching { File(path).delete() } })
+
+    /** One outbox, two kinds of entries: the fact write (sb-yoz) and the photo evidence (upload + link). */
+    @Provides @Singleton
+    fun outboxProcessor(db: AppDb, api: BffApi, json: Json, photos: PhotoSender) = OutboxProcessor(
+        db.outbox(),
+        { e -> if (e.kind == KIND_PHOTO) photos.send(e) else api.bff("/api/sb-yoz", "POST", json.parseToJsonElement(e.payloadJson)) },
+        json,
+    )
+
+    @Provides @Singleton
+    fun moneyRepository(api: BffApi, db: AppDb, json: Json) = MoneyRepository(api, db, json)
+
+    @Provides @Singleton
+    fun approvalsRepository(api: BffApi, db: AppDb) = ApprovalsRepository(api) { id -> db.obyekt().get(id)?.nom }
+
+    @Provides @Singleton
+    fun todayRepository(api: BffApi) = TodayRepository(api)
+
+    @Provides @Singleton
+    fun photoProcessor(@ApplicationContext c: Context) = uz.anncorp.smeta.core.media.PhotoProcessor(c)
+
+    @Provides @Singleton
+    fun photoRepository(@ApplicationContext c: Context, outbox: OutboxRepository) = PhotoRepository(outbox, File(c.noBackupFilesDir, "photos"))
 
     @Provides @Singleton
     fun faktRepository(db: AppDb, outbox: OutboxRepository, json: Json) = FaktRepository(db, outbox, json)

@@ -61,10 +61,7 @@
     <string name="p1_back">Back</string>
     <string name="p1_updated">Last updated: %1$s</string>
     <string name="p1_never_updated">Not updated yet</string>
-    <string name="p1_banner_offline">Offline — %1$d records queued</string>
     <string name="p1_banner_offline_none">Offline — showing saved data</string>
-    <string name="p1_banner_sending">Sending %1$d records</string>
-    <string name="p1_banner_failed">%1$d records rejected — review</string>
     <string name="p1_objects_search">Search objects</string>
     <string name="p1_pick_object">Pick an object</string>
     <string name="p1_objects_empty">No objects</string>
@@ -73,19 +70,13 @@
     <string name="p1_objects_error">Could not load objects</string>
     <string name="p1_objects_offline_empty">Offline — objects are not saved yet</string>
     <string name="p1_objects_forbidden">You are not allowed to view objects</string>
-    <string name="p1_vat_incl">Incl. VAT</string>
     <string name="p1_no_total">No total yet</string>
-    <string name="p1_unpriced">%1$d rows without price</string>
-    <string name="p1_rows">%1$d rows</string>
     <string name="p1_card_title">Object</string>
     <string name="p1_card_value">Object value</string>
-    <string name="p1_card_smeta_net">Estimate total (no markup, excl. VAT)</string>
-    <string name="p1_card_markup_note">Total with markup is in the web version</string>
     <string name="p1_card_fakt">Actual (done)</string>
     <string name="p1_card_f2">F-2 (accepted)</string>
     <string name="p1_card_progress">Progress</string>
     <string name="p1_card_no_progress">Progress data is not loaded yet</string>
-    <string name="p1_card_unpriced_warn">%1$d rows unpriced — total is incomplete</string>
     <string name="p1_card_enter_fakt">Enter actual</string>
     <string name="p1_card_offline">Offline — showing saved data.</string>
     <string name="p1_card_no_access_title">Some data is restricted</string>
@@ -107,7 +98,6 @@
     <string name="p1_cancel">Cancel</string>
     <string name="p1_remove">Delete</string>
     <string name="p1_open">Open</string>
-    <string name="p1_draft_bar">Draft: %1$d rows</string>
     <string name="p1_draft_title">Draft</string>
     <string name="p1_draft_empty">Draft is empty</string>
     <string name="p1_draft_empty_hint">Find rows and enter volumes.</string>
@@ -117,7 +107,6 @@
     <string name="p1_save_queue">Save (queue)</string>
     <string name="p1_draft_note">After saving, the record is queued and sent as soon as you are online.</string>
     <string name="p1_draft_note_usta">For your role the record is sent as a draft for approval.</string>
-    <string name="p1_exceeding_n">%1$d rows exceed the estimate</string>
     <string name="p1_outbox_title">Send queue</string>
     <string name="p1_outbox_empty">The queue is empty</string>
     <string name="p1_active">Queued</string>
@@ -126,13 +115,11 @@
     <string name="p1_state_paused">Waiting for sign-in</string>
     <string name="p1_state_failed">Rejected</string>
     <string name="p1_state_done">Sent</string>
-    <string name="p1_outbox_lines">%1$d rows · %2$s</string>
     <string name="p1_attempts">Attempts: %1$d</string>
     <string name="p1_reason">Reason: %1$s</string>
     <string name="p1_edit">Edit</string>
     <string name="p1_retry_now">Resend</string>
     <string name="p1_sent_doc">Document %1$s</string>
     <string name="p1_warn_over">Over the estimate: %1$s</string>
-    <string name="p1_warn_unpriced">Rows without price: %1$d</string>
     <!-- /P1 -->
 </resources>

@@ -48,7 +48,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import uz.anncorp.smeta.R
 import uz.anncorp.smeta.core.data.Workplace
 import uz.anncorp.smeta.core.ui.QurLogo
-import uz.anncorp.smeta.core.ui.SoonPlaceholder
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.res.pluralStringResource
+import uz.anncorp.smeta.feature.approval.ApprovalsScreen
+import uz.anncorp.smeta.feature.today.TodayScreen
 import uz.anncorp.smeta.feature.company.WorkplaceSheet
 import uz.anncorp.smeta.feature.profile.ProfileScreen
 import uz.anncorp.smeta.feature.work.BannerViewModel
@@ -66,8 +70,9 @@ private val Tabs = listOf(
 )
 
 @Composable
-fun HomeScreen(onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOutbox: () -> Unit, vm: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOpenApproval: (Long) -> Unit, onOutbox: () -> Unit, vm: HomeViewModel = hiltViewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
+    val signOut by vm.signOutUi.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var sheet by rememberSaveable { mutableStateOf(false) }
 
@@ -93,13 +98,48 @@ fun HomeScreen(onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOutbo
                     Spacer(Modifier.height(12.dp))
                     Text(stringResource(R.string.home_loading), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                tab == 4 -> ProfileScreen(state, onTheme = vm::setTheme, onSwitch = { sheet = true }, onSignOut = vm::signOut)
-                else -> TabBody(state, tab, vm::load, onOpenObject, onOpenFakt, onOutbox)
+                tab == 4 -> ProfileScreen(state, onTheme = vm::setTheme, onSwitch = { sheet = true }, onSignOut = vm::requestSignOut)
+                else -> TabBody(state, tab, vm::load, onOpenObject, onOpenFakt, onOpenApproval, { tab = 2 }, onOutbox)
             }
         }
     }
 
     if (sheet) WorkplaceSheet(state.workplaces, state.selected, onPick = { vm.select(it); sheet = false }, onDismiss = { sheet = false })
+    SignOutDialog(signOut, onSend = vm::sendThenSignOut, onKeep = vm::keepAndSignOut, onDelete = vm::deleteAndSignOut, onCancel = vm::cancelSignOut)
+}
+
+/** Unsent records at sign-out: send now / keep them on the device / delete them / stay signed in. */
+@Composable
+private fun SignOutDialog(ui: SignOutUi, onSend: () -> Unit, onKeep: () -> Unit, onDelete: () -> Unit, onCancel: () -> Unit) {
+    when (ui) {
+        SignOutUi.Idle -> Unit
+        SignOutUi.Sending -> AlertDialog(
+            onDismissRequest = {}, confirmButton = {},
+            title = { Text(stringResource(R.string.p2_signout_title)) },
+            text = { Row(verticalAlignment = Alignment.CenterVertically) { CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp); Spacer(Modifier.width(12.dp)); Text(stringResource(R.string.p2_signout_sending)) } },
+        )
+        is SignOutUi.Confirm -> AlertDialog(
+            onDismissRequest = onCancel,
+            title = { Text(stringResource(R.string.p2_signout_title)) },
+            text = {
+                Column {
+                    Text(if (ui.afterSend) pluralStringResource(R.plurals.p2_signout_left, ui.count, ui.count) else pluralStringResource(R.plurals.p2_signout_body, ui.count, ui.count))
+                    Spacer(Modifier.height(10.dp))
+                    Text(stringResource(R.string.p2_signout_keep_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(4.dp))
+                    Text(stringResource(R.string.p2_signout_delete_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            },
+            confirmButton = {
+                Column(horizontalAlignment = Alignment.End) {
+                    if (ui.canSend) TextButton(onClick = onSend) { Text(stringResource(R.string.p2_signout_send)) }
+                    TextButton(onClick = onKeep) { Text(stringResource(R.string.p2_signout_keep)) }
+                    TextButton(onClick = onDelete) { Text(stringResource(R.string.p2_signout_delete), color = MaterialTheme.colorScheme.error) }
+                    TextButton(onClick = onCancel) { Text(stringResource(R.string.p1_cancel)) }
+                }
+            },
+        )
+    }
 }
 
 @Composable
@@ -137,7 +177,7 @@ fun RoleChip(role: String) {
 }
 
 @Composable
-private fun TabBody(state: HomeState, tab: Int, onRetry: () -> Unit, onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOutbox: () -> Unit, banner: BannerViewModel = hiltViewModel()) {
+private fun TabBody(state: HomeState, tab: Int, onRetry: () -> Unit, onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOpenApproval: (Long) -> Unit, onGoApprovals: () -> Unit, onOutbox: () -> Unit, banner: BannerViewModel = hiltViewModel()) {
     val bannerState by banner.state.collectAsStateWithLifecycle()
     val work = tab == 0 || tab == 1
     Column(Modifier.fillMaxSize()) {
@@ -162,8 +202,10 @@ private fun TabBody(state: HomeState, tab: Int, onRetry: () -> Unit, onOpenObjec
             ObjectsScreen(onOpen = onOpenObject)
         } else if (tab == 1) {
             ObjectsScreen(onOpen = onOpenFakt, pickForFact = true)
+        } else if (tab == 2) {
+            ApprovalsScreen(onOpen = onOpenApproval)
         } else {
-            SoonPlaceholder(Modifier.fillMaxSize())
+            TodayScreen(onOpenApprovals = onGoApprovals, onOutbox = onOutbox)
         }
     }
 }

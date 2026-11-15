@@ -77,6 +77,30 @@ class ObjectsRepository(private val api: BffApi, private val db: AppDb, private 
     }
 }
 
+/**
+ * Server-computed sum packages (estimate / fact / F-2, each QQS-inclusive + with markup + without markup) cached per object.
+ * Source: `rahbar_panel_v1` through /api/sb (company-wide for the list, single object for the card). Needs the financial read
+ * right; without it the call is refused (403) and the UI shows only what is known (see [displayMoney]).
+ */
+class MoneyRepository(private val api: BffApi, private val db: AppDb, private val json: Json) {
+    fun observe(obyektId: Long): Flow<ObjectMoney?> = db.meta().observe("money:$obyektId").map { s -> s?.let { runCatching { json.decodeFromString<ObjectMoney>(it) }.getOrNull() } }
+
+    fun observeAll(): Flow<Map<Long, ObjectMoney>> = db.meta().observePrefix("money:").map { list ->
+        list.mapNotNull { m -> m.key.removePrefix("money:").toLongOrNull()?.let { id -> runCatching { json.decodeFromString<ObjectMoney>(m.value) }.getOrNull()?.let { id to it } } }.toMap()
+    }
+
+    suspend fun refreshCompany(companyId: Long): SyncResult = fetch(rahbarPanelRequest(companyId))
+    suspend fun refreshObject(companyId: Long, obyektId: Long): SyncResult = fetch(rahbarPanelRequest(companyId, obyektId))
+
+    private suspend fun fetch(req: kotlinx.serialization.json.JsonObject): SyncResult {
+        val r = api.bff("/api/sb", "POST", req)
+        if (!r.ok) return r.failure()
+        val map = parseRahbarPanel(r.body) ?: return SyncResult.Failed("BAD_SHAPE")
+        map.forEach { (id, m) -> db.meta().put(MetaEntity("money:$id", json.encodeToString(m))) }
+        return SyncResult.Ok
+    }
+}
+
 /** Which source filled the cached rows of an object. */
 object RowSource { const val PACKET = "paket"; const val TABLE = "sb" }
 
@@ -86,10 +110,13 @@ class RowsRepository(private val api: BffApi, private val db: AppDb, private val
     fun source(obyektId: Long): Flow<String?> = db.meta().observe("rows_src:$obyektId")
     fun rowCount(obyektId: Long): Flow<Int> = db.qator().observeCount(obyektId)
 
-    fun search(obyektId: Long, query: String, limit: Int = 100): Flow<List<QatorEntity>> {
-        val m = ftsMatch(query) ?: return db.qator().first(obyektId, limit)
-        return db.qator().search(obyektId, m, limit)
+    /** [bolim] = section filter (null = all sections). */
+    fun search(obyektId: Long, query: String, bolim: String? = null, limit: Int = 100): Flow<List<QatorEntity>> {
+        val m = ftsMatch(query) ?: return db.qator().first(obyektId, bolim, limit)
+        return db.qator().search(obyektId, m, bolim, limit)
     }
+
+    fun sections(obyektId: Long): Flow<List<String>> = db.qator().sections(obyektId)
 
     /**
      * Fills the local row cache. Preferred source is the object packet (one call, ETag 304 when unchanged); a 403 there

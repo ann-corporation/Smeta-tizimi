@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- P2 strings, Uzbek (default). -->
+<resources>
+    <!-- money: every sum both without and with markup -->
+    <string name="m_vat_incl">QQS bilan</string>
+    <string name="m_markup">Ustamali (QQS siz)</string>
+    <string name="m_plain">Ustamasiz (QQS siz)</string>
+    <string name="m_markup_unknown">Ustamali summa hali yuklanmagan yoki ko\'rish huquqi yo\'q.</string>
+    <string name="m_object_value">Obyekt qiymati</string>
+    <string name="m_estimate">Smeta</string>
+
+    <string name="p2_section_all">Barcha bo\'limlar</string>
+    <string name="p2_section_label">Bo\'lim</string>
+
+    <!-- sign-out guard -->
+    <string name="p2_signout_title">Yuborilmagan yozuvlar bor</string>
+    <string name="p2_signout_send">Hozir yuborish</string>
+    <string name="p2_signout_keep">Saqlab chiqish</string>
+    <string name="p2_signout_delete">O\'chirib chiqish</string>
+    <string name="p2_signout_keep_hint">Saqlab chiqsangiz yozuvlar qurilmada qoladi va keyingi kirishda yuboriladi.</string>
+    <string name="p2_signout_delete_hint">O\'chirsangiz yozuvlar va rasmlar butunlay yo\'qoladi.</string>
+    <string name="p2_signout_sending">Yuborilmoqda…</string>
+
+    <!-- photo evidence -->
+    <string name="p2_photo_title">Foto-dalil</string>
+    <string name="p2_photo_cam_perm_title">Kameraga ruxsat kerak</string>
+    <string name="p2_photo_cam_perm_body">Rasmga olish uchun kameradan foydalanishga ruxsat bering yoki rasmni galereyadan tanlang.</string>
+    <string name="p2_photo_grant">Ruxsat berish</string>
+    <string name="p2_photo_gallery">Galereya</string>
+    <string name="p2_photo_capture">Rasmga olish</string>
+    <string name="p2_photo_retake">Qayta olish</string>
+    <string name="p2_photo_note">Izoh (ixtiyoriy)</string>
+    <string name="p2_photo_row">Smeta qatori</string>
+    <string name="p2_photo_row_none">Biriktirilmagan (umumiy dalil)</string>
+    <string name="p2_photo_row_pick">Qatorni tanlash</string>
+    <string name="p2_photo_row_change">O\'zgartirish</string>
+    <string name="p2_photo_gps">Rasmdagi joylashuvni qo\'shish</string>
+    <string name="p2_photo_gps_hint">Faqat rasmning o\'zida bo\'lsa olinadi. Sukut bo\'yicha o\'chiq; ilova joylashuvni so\'ramaydi.</string>
+    <string name="p2_photo_queue">Navbatga qo\'shish</string>
+    <string name="p2_photo_processing">Rasm tayyorlanmoqda…</string>
+    <string name="p2_photo_failed">Rasmni o\'qib bo\'lmadi. Qayta urinib ko\'ring.</string>
+    <string name="p2_photo_info">%1$d × %2$d · %3$s</string>
+    <string name="p2_photo_entry">Foto-dalil</string>
+    <string name="p2_photo_pick_title">Smeta qatorini tanlang</string>
+    <string name="p2_card_photo">Foto-dalil</string>
+
+    <!-- approvals -->
+    <string name="p2_appr_title">Tasdiqlash</string>
+    <string name="p2_appr_empty">Tasdiq kutayotgan hujjat yo\'q</string>
+    <string name="p2_appr_empty_hint">Yangi hujjat kelganda shu yerda ko\'rinadi.</string>
+    <string name="p2_appr_overdue">Muddat o\'tgan</string>
+    <string name="p2_appr_from">Yuboruvchi: %1$s</string>
+    <string name="p2_appr_due">Muddat: %1$s</string>
+    <string name="p2_appr_detail">Hujjat</string>
+    <string name="p2_appr_type">Turi</string>
+    <string name="p2_appr_number">Raqam</string>
+    <string name="p2_appr_object">Obyekt</string>
+    <string name="p2_appr_date">Sana</string>
+    <string name="p2_appr_total">Hujjat summasi</string>
+    <string name="p2_appr_total_note">Hujjatda saqlangan summa. Ustamali va ustamasiz taqsimot obyekt kartasida.</string>
+    <string name="p2_appr_steps">Tasdiq bosqichlari</string>
+    <string name="p2_step_kutilmoqda">Kutmoqda</string>
+    <string name="p2_step_navbat">Navbatda</string>
+    <string name="p2_step_tasdiqlandi">Tasdiqladi</string>
+    <string name="p2_step_rad">Rad etdi</string>
+    <string name="p2_step_qaytarildi">Qaytardi</string>
+    <string name="p2_appr_approve">Tasdiqlash</string>
+    <string name="p2_appr_return">Qaytarish</string>
+    <string name="p2_appr_reject">Rad etish</string>
+    <string name="p2_appr_comment">Izoh</string>
+    <string name="p2_appr_comment_required">Sababni yozing</string>
+    <string name="p2_appr_confirm_approve">Hujjatni tasdiqlaysizmi?</string>
+    <string name="p2_appr_confirm_return">Hujjat qayta ishlashga qaytarilsinmi?</string>
+    <string name="p2_appr_confirm_reject">Hujjat rad etilsinmi?</string>
+    <string name="p2_appr_confirm_yes">Ha, davom etish</string>
+    <string name="p2_appr_done_approve">Hujjat tasdiqlandi</string>
+    <string name="p2_appr_done_return">Hujjat qaytarildi</string>
+    <string name="p2_appr_done_reject">Hujjat rad etildi</string>
+    <string name="p2_appr_not_my_turn">Hozir sizning qaroringiz kutilmayapti.</string>
+    <string name="p2_appr_err_turn">Hozir sizning qaroringiz kutilmayapti — hujjat allaqachon ko\'rib chiqilgan bo\'lishi mumkin.</string>
+    <string name="p2_appr_err_changed">Hujjat o\'zgargan. Ro\'yxatni yangilab, qayta oching.</string>
+    <string name="p2_appr_err_role">Sizning rolingiz bu amal uchun yetarli emas.</string>
+    <string name="p2_appr_err_forbidden">Bu hujjatga ruxsat yo\'q.</string>
+    <string name="p2_appr_err_offline">Tasdiqlash uchun internet kerak.</string>
+    <string name="p2_appr_online_only">Tasdiqlash faqat onlayn rejimda ishlaydi.</string>
+    <string name="p2_appr_err_generic">Bajarib bo\'lmadi (%1$s).</string>
+    <string name="p2_appr_err_load">Ma\'lumotni yuklab bo\'lmadi.</string>
+    <string name="p2_doc_f2">F-2 (bajarilgan ishlar akti)</string>
+    <string name="p2_doc_fakt">Fakt akti</string>
+    <string name="p2_doc_aosr">AOSR (yashirin ishlar dalolatnomasi)</string>
+    <string name="p2_doc_forma3">Forma № 3 (schyot-faktura)</string>
+
+    <!-- today -->
+    <string name="p2_today_title">Bugun</string>
+    <string name="p2_today_approvals">Tasdiq kutayotgan hujjatlar</string>
+    <string name="p2_today_f2">F-2 qoralamalari</string>
+    <string name="p2_today_fakt">Fakt qoralamalari</string>
+    <string name="p2_today_outbox">Yuborilmagan yozuvlar</string>
+    <string name="p2_today_notes">Oxirgi bildirishnomalar</string>
+    <string name="p2_today_notes_empty">Bildirishnoma yo\'q</string>
+    <string name="p2_today_mark_read">O\'qilgan deb belgilash</string>
+    <string name="p2_n_approval_waiting">Hujjat tasdiqingizni kutmoqda</string>
+    <string name="p2_n_approved">Hujjat tasdiqlandi</string>
+    <string name="p2_n_rejected">Hujjat rad etildi</string>
+    <string name="p2_n_returned">Hujjat qayta ishlashga qaytarildi</string>
+    <string name="p2_n_letter">Sizga yangi xat keldi</string>
+    <string name="p2_n_deadline_near">Hujjat muddati yaqinlashmoqda</string>
+    <string name="p2_n_deadline_passed">Hujjat muddati o\'tib ketdi</string>
+    <string name="p2_n_drawing">Yangi chizma revizyasi chiqarildi</string>
+    <string name="p2_n_drawing_decision">Chizma revizyasi bo\'yicha qaror keldi</string>
+</resources>

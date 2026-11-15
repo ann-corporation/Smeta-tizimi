@@ -62,6 +62,9 @@ data class ApiResult(val status: Int, val body: JsonElement?, val code: String? 
 /** The only thing feature repositories need from the network layer; a debug-only demo implementation exists. */
 interface BffApi {
     suspend fun bff(path: String, method: String = "GET", body: JsonElement? = null, etag: String? = null): ApiResult
+
+    /** Multipart upload through POST /api/mobil/yukla (the canonical document upload; tenant scope travels in the query). */
+    suspend fun upload(companyId: Long, obyektId: Long, body: okhttp3.RequestBody): ApiResult
 }
 
 class ApiClient(
@@ -85,6 +88,12 @@ class ApiClient(
             if (etag != null) put("etag", etag)
         }
         return post("/api/mobil/bff", envelope)
+    }
+
+    override suspend fun upload(companyId: Long, obyektId: Long, body: okhttp3.RequestBody): ApiResult {
+        val url = baseUrl.resolve("/api/mobil/yukla")!!.newBuilder()
+            .addQueryParameter("kompaniya_id", companyId.toString()).addQueryParameter("obyekt_id", obyektId.toString()).build()
+        return send(Request.Builder().url(url).post(body).build())
     }
 
     /** Revokes this device on the server (best effort) and forgets the credential locally. */

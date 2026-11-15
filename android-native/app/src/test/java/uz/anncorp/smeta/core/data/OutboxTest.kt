@@ -28,6 +28,8 @@ class FakeOutboxDao : OutboxDao {
     override suspend fun pauseAllPending() { rows.value = rows.value.map { if (it.state == OutboxState.PENDING) it.copy(state = OutboxState.PAUSED) else it } }
     override suspend fun resumePaused() { rows.value = rows.value.map { if (it.state == OutboxState.PAUSED) it.copy(state = OutboxState.PENDING) else it } }
     override suspend fun delete(id: String) { rows.value = rows.value.filterNot { it.id == id && it.state != OutboxState.DONE } }
+    override suspend fun unsent() = rows.value.filter { it.state != OutboxState.DONE }
+    override suspend fun deleteUnsent() { rows.value = rows.value.filter { it.state == OutboxState.DONE } }
     override suspend fun purgeDoneBefore(before: Long) { rows.value = rows.value.filterNot { it.state == OutboxState.DONE && it.createdAt < before } }
 }
 

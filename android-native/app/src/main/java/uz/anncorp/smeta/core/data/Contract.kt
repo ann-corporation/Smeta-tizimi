@@ -113,6 +113,21 @@ fun parsePaket(body: JsonElement?): PaketData? {
     fun lookup(d: List<String>, e: JsonElement): String? = e.num()?.toInt()?.let { d.getOrNull(it) }
     val smetaOverride = h["smeta_hajm"].obj()
     val replaced = h["almashtirilgan_hajm"].obj()
+    // Section name for the section filter: nearest ancestor of kind `rz` (razdel), else the top-most ancestor. Optional column.
+    val ota = col(q, "ota_id")
+    val indexById: Map<Long, Int> = if (ota == null) emptyMap() else HashMap<Long, Int>(n * 2).also { m -> for (i in 0 until n) ids[i].num()?.toLong()?.let { m[it] = i } }
+    fun sectionOf(start: Int): String? {
+        if (ota == null) return null
+        var cur = start; var top: String? = null
+        for (hop in 0 until 12) {
+            val parent = indexById[ota[cur].num()?.toLong() ?: return top] ?: return top
+            val name = lookup(dNom, nom[parent])?.trim()?.takeIf { it.isNotEmpty() }
+            if (lookup(dTur, tur[parent]) == "rz" && name != null) return name
+            if (name != null) top = name
+            cur = parent
+        }
+        return top
+    }
     val out = ArrayList<QatorEntity>(n)
     for (i in 0 until n) {
         if (lookup(dTur, tur[i]) != "bl") continue
@@ -125,6 +140,7 @@ fun parsePaket(body: JsonElement?): PaketData? {
             faktHajm = fh[i].num() ?: 0.0, faktSumma = fs[i].num() ?: 0.0,
             f2Hajm = f2h[i].num() ?: 0.0, f2Summa = f2s[i].num() ?: 0.0,
             almashtirilgan = replaced?.get(id.toString()).num() ?: 0.0,
+            bolim = sectionOf(i),
         )
     }
     return PaketData(obyektId, o["obyekt_nom"].str(), out)

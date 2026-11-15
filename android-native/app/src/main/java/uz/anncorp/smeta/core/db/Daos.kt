@@ -52,15 +52,19 @@ interface QatorDao {
     @Query("SELECT COUNT(*) FROM qator WHERE obyektId = :obyektId")
     suspend fun count(obyektId: Long): Int
 
-    @Query("SELECT * FROM qator WHERE obyektId = :obyektId ORDER BY qatorId LIMIT :limit")
-    fun first(obyektId: Long, limit: Int): Flow<List<QatorEntity>>
+    /** [bolim] null = every section. */
+    @Query("SELECT * FROM qator WHERE obyektId = :obyektId AND (:bolim IS NULL OR bolim = :bolim) ORDER BY qatorId LIMIT :limit")
+    fun first(obyektId: Long, bolim: String?, limit: Int): Flow<List<QatorEntity>>
+
+    @Query("SELECT DISTINCT bolim FROM qator WHERE obyektId = :obyektId AND bolim IS NOT NULL ORDER BY bolim COLLATE NOCASE")
+    fun sections(obyektId: Long): Flow<List<String>>
 
     /** [match] is a prepared FTS4 expression (see [ftsMatch]). */
     @Query(
         "SELECT q.* FROM qator q JOIN qator_fts ON q.rid = qator_fts.rowid " +
-            "WHERE qator_fts MATCH :match AND q.obyektId = :obyektId ORDER BY q.qatorId LIMIT :limit",
+            "WHERE qator_fts MATCH :match AND q.obyektId = :obyektId AND (:bolim IS NULL OR q.bolim = :bolim) ORDER BY q.qatorId LIMIT :limit",
     )
-    fun search(obyektId: Long, match: String, limit: Int): Flow<List<QatorEntity>>
+    fun search(obyektId: Long, match: String, bolim: String?, limit: Int): Flow<List<QatorEntity>>
 
     @Query("SELECT * FROM qator WHERE obyektId = :obyektId AND qatorId = :qatorId")
     suspend fun get(obyektId: Long, qatorId: Long): QatorEntity?
@@ -86,6 +90,10 @@ interface MetaDao {
 
     @Query("SELECT value FROM meta WHERE `key` = :key")
     fun observe(key: String): Flow<String?>
+
+    /** All entries whose key starts with [prefix] (e.g. `money:`). */
+    @Query("SELECT * FROM meta WHERE `key` LIKE :prefix || '%'")
+    fun observePrefix(prefix: String): Flow<List<MetaEntity>>
 
     @Query("DELETE FROM meta")
     suspend fun clear()
@@ -140,6 +148,13 @@ interface OutboxDao {
 
     @Query("SELECT COUNT(*) FROM outbox WHERE state = 'FAILED'")
     fun observeFailedCount(): Flow<Int>
+
+    /** Everything not yet delivered (queued, paused, rejected): what a sign-out would strand. */
+    @Query("SELECT * FROM outbox WHERE state != 'DONE' ORDER BY createdAt, id")
+    suspend fun unsent(): List<OutboxEntity>
+
+    @Query("DELETE FROM outbox WHERE state != 'DONE'")
+    suspend fun deleteUnsent()
 
     @Query("SELECT COUNT(*) FROM outbox WHERE state = 'PENDING'")
     suspend fun pendingCount(): Int

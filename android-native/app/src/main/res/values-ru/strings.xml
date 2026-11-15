@@ -61,10 +61,7 @@
     <string name="p1_back">Назад</string>
     <string name="p1_updated">Последнее обновление: %1$s</string>
     <string name="p1_never_updated">Ещё не обновлялось</string>
-    <string name="p1_banner_offline">Офлайн — в очереди записей: %1$d</string>
     <string name="p1_banner_offline_none">Офлайн — показаны сохранённые данные</string>
-    <string name="p1_banner_sending">Отправляется записей: %1$d</string>
-    <string name="p1_banner_failed">Отклонено записей: %1$d — открыть</string>
     <string name="p1_objects_search">Поиск объекта</string>
     <string name="p1_pick_object">Выберите объект</string>
     <string name="p1_objects_empty">Объектов нет</string>
@@ -73,19 +70,13 @@
     <string name="p1_objects_error">Не удалось загрузить объекты</string>
     <string name="p1_objects_offline_empty">Офлайн — объекты ещё не сохранены</string>
     <string name="p1_objects_forbidden">Нет прав на просмотр объектов</string>
-    <string name="p1_vat_incl">С НДС</string>
     <string name="p1_no_total">Сумма не рассчитана</string>
-    <string name="p1_unpriced">Строк без цены: %1$d</string>
-    <string name="p1_rows">%1$d строк</string>
     <string name="p1_card_title">Объект</string>
     <string name="p1_card_value">Стоимость объекта</string>
-    <string name="p1_card_smeta_net">Итого по смете (без наценки, без НДС)</string>
-    <string name="p1_card_markup_note">Сумма с наценкой — в веб-версии</string>
     <string name="p1_card_fakt">Факт (выполнено)</string>
     <string name="p1_card_f2">Ф-2 (принято)</string>
     <string name="p1_card_progress">Выполнение</string>
     <string name="p1_card_no_progress">Данные о выполнении ещё не загружены</string>
-    <string name="p1_card_unpriced_warn">Строк без цены: %1$d — итог неполный</string>
     <string name="p1_card_enter_fakt">Внести факт</string>
     <string name="p1_card_offline">Офлайн — показаны сохранённые данные.</string>
     <string name="p1_card_no_access_title">Нет доступа к части данных</string>
@@ -107,7 +98,6 @@
     <string name="p1_cancel">Отмена</string>
     <string name="p1_remove">Удалить</string>
     <string name="p1_open">Открыть</string>
-    <string name="p1_draft_bar">Черновик: %1$d строк</string>
     <string name="p1_draft_title">Черновик</string>
     <string name="p1_draft_empty">Черновик пуст</string>
     <string name="p1_draft_empty_hint">Найдите строки и введите объём.</string>
@@ -117,7 +107,6 @@
     <string name="p1_save_queue">Сохранить (в очередь)</string>
     <string name="p1_draft_note">После сохранения запись встаёт в очередь и уходит, как только появится интернет.</string>
     <string name="p1_draft_note_usta">Для вашей роли запись отправляется как черновик на подтверждение.</string>
-    <string name="p1_exceeding_n">Строк сверх сметы: %1$d</string>
     <string name="p1_outbox_title">Очередь отправки</string>
     <string name="p1_outbox_empty">Очередь пуста</string>
     <string name="p1_active">В очереди</string>
@@ -126,13 +115,11 @@
     <string name="p1_state_paused">Ждёт входа</string>
     <string name="p1_state_failed">Отклонено</string>
     <string name="p1_state_done">Отправлено</string>
-    <string name="p1_outbox_lines">%1$d строк · %2$s</string>
     <string name="p1_attempts">Попыток: %1$d</string>
     <string name="p1_reason">Причина: %1$s</string>
     <string name="p1_edit">Изменить</string>
     <string name="p1_retry_now">Отправить снова</string>
     <string name="p1_sent_doc">Документ %1$s</string>
     <string name="p1_warn_over">Сверх сметы: %1$s</string>
-    <string name="p1_warn_unpriced">Строк без цены: %1$d</string>
     <!-- /P1 -->
 </resources>

@@ -27,6 +27,13 @@ data class HomeState(
     val theme: ThemeMode = ThemeMode.DARK,
 )
 
+sealed interface SignOutUi {
+    data object Idle : SignOutUi
+    data object Sending : SignOutUi
+    /** [afterSend]: a send attempt just ran and [count] records are still unsent (offline or rejected). */
+    data class Confirm(val count: Int, val canSend: Boolean, val afterSend: Boolean) : SignOutUi
+}
+
 /** Picks the selected workplace: the saved one if it still exists, otherwise the first. */
 internal fun pickWorkplace(list: List<Workplace>, savedId: Long?): Workplace? = list.firstOrNull { it.companyId == savedId } ?: list.firstOrNull()
 
@@ -38,6 +45,7 @@ class HomeViewModel @Inject constructor(
     private val work: uz.anncorp.smeta.core.data.WorkContext,
     private val outbox: uz.anncorp.smeta.core.data.OutboxRepository,
     private val db: uz.anncorp.smeta.core.db.AppDb,
+    private val processor: uz.anncorp.smeta.core.data.OutboxProcessor,
 ) : ViewModel() {
     private val _state = MutableStateFlow(HomeState(theme = prefs.theme.value))
     val state: StateFlow<HomeState> = _state.asStateFlow()
@@ -77,10 +85,38 @@ class HomeViewModel @Inject constructor(
         _state.update { it.copy(theme = mode) }
     }
 
-    fun signOut() {
+    private val _signOut = MutableStateFlow<SignOutUi>(SignOutUi.Idle)
+    val signOutUi: StateFlow<SignOutUi> = _signOut.asStateFlow()
+
+    /** Sign-out asks first when records are still unsent: send now, keep them on the device, or delete them. */
+    fun requestSignOut() {
+        viewModelScope.launch {
+            val unsent = outbox.unsent()
+            if (unsent.isEmpty()) signOutNow() else _signOut.value = SignOutUi.Confirm(unsent.size, canSend = unsent.any { it.state != uz.anncorp.smeta.core.db.OutboxState.FAILED }, afterSend = false)
+        }
+    }
+
+    fun sendThenSignOut() {
+        viewModelScope.launch {
+            _signOut.value = SignOutUi.Sending
+            outbox.resumeAfterLogin()
+            runCatching { processor.drain() }
+            val left = outbox.unsent()
+            if (left.isEmpty()) signOutNow()
+            else _signOut.value = SignOutUi.Confirm(left.size, canSend = left.any { it.state != uz.anncorp.smeta.core.db.OutboxState.FAILED }, afterSend = true)
+        }
+    }
+
+    fun keepAndSignOut() { viewModelScope.launch { signOutNow() } }
+    fun deleteAndSignOut() { viewModelScope.launch { outbox.deleteUnsent(); signOutNow() } }
+    fun cancelSignOut() { _signOut.value = SignOutUi.Idle }
+
+    private suspend fun signOutNow() {
+        _signOut.value = SignOutUi.Idle
         prefs.clearCompany()
         work.set(null)
-        viewModelScope.launch { api.signOut(); db.clearCaches() }
+        db.clearCaches()   // before the logout event: leaving the screen may cancel this scope
+        api.signOut()
     }
 }
 
