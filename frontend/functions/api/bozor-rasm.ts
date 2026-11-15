@@ -4,6 +4,7 @@
  *  GET ?k=<kalit> (kirmasdan): faqat FAOL e'longa biriktirilgan kalit (t2_bz_ochiq_rasm_v1) bo'lsa R2 dan beriladi; boshqa fayl ochilmaydi.
  */
 import { tekshir } from '../_shared/auth';
+import { r2Yoz } from '../_shared/r2-saqlash';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { operationIdYaroqli, rasmKalitiYaroqli, rasmPrefiks } from '../_shared/bozor';
 
@@ -26,7 +27,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (!kengaytma) return json({ ok: false, code: 'TUR_NOTOGRI' }, 400);
   if (fayl.size <= 0 || fayl.size > MAX) return json({ ok: false, code: 'HAJM_NOTOGRI' }, 400);
   const kalit = `${rasmPrefiks(Number(sess.foydalanuvchi_id))}${op}.${kengaytma}`;
-  await ctx.env.R2_CANONICAL.put(kalit, await fayl.arrayBuffer(), { httpMetadata: { contentType: fayl.type } });
+  await r2Yoz(ctx.env.R2_CANONICAL, kalit, await fayl.arrayBuffer(), { httpMetadata: { contentType: fayl.type } });
   return json({ ok: true, r2_kalit: kalit });
 };
 

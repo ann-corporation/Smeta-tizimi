@@ -4,6 +4,7 @@
  * Javob { ok, r2_kalit, sha256 } → keyin /api/yuk-tashish amal `dalil` (bron egaligini RPC tekshiradi). Kompaniya a'zoligi shart EMAS (yakka haydovchi).
  */
 import { tekshir } from '../_shared/auth';
+import { r2Yoz } from '../_shared/r2-saqlash';
 import { dalilPrefiks, operationIdYaroqli } from '../_shared/yuk-tashish';
 
 type Env = { SESSIYA_KALIT: string; R2_CANONICAL?: R2Bucket };
@@ -27,6 +28,6 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const baytlar = await fayl.arrayBuffer();
   const xesh = [...new Uint8Array(await crypto.subtle.digest('SHA-256', baytlar))].map((x) => x.toString(16).padStart(2, '0')).join('');
   const kalit = `${dalilPrefiks(Number(sess.foydalanuvchi_id))}${op}.${kengaytma}`;
-  await ctx.env.R2_CANONICAL.put(kalit, baytlar, { httpMetadata: { contentType: fayl.type } });
+  await r2Yoz(ctx.env.R2_CANONICAL, kalit, baytlar, { httpMetadata: { contentType: fayl.type } });
   return json({ ok: true, r2_kalit: kalit, sha256: xesh });
 };

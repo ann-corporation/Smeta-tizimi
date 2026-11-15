@@ -19,9 +19,13 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   });
   const j = (r.ok ? await r.json().catch(() => null) : null) as { ok?: boolean; code?: string; db_bytes?: number; top?: unknown[]; snapshot_sovuq?: unknown } | null;
   if (!j || j.ok !== true) return Response.json({ ok: false, code: String(j?.code ?? 'HAJM_OLINMADI') }, { status: 502, headers: { 'Cache-Control': 'no-store' } });
+  /* Arxivlovchi holati (R2 sovuq arxiv): oxirgi ish, sutkada ko'chirilgan qator/bayt, xatolar. Migratsiya qo'llanmagan bo'lsa - null (hajm ko'rsatkichiga ta'sir qilmaydi). */
+  const ar = await fetch(supabaseBaseUrl(ctx.env.SUPABASE_URL) + '/rest/v1/rpc/t2_arxiv_holat_v1', {
+    method: 'POST', headers: { apikey: ctx.env.SUPABASE_KEY, Authorization: 'Bearer ' + ctx.env.SUPABASE_KEY, 'Content-Type': 'application/json' }, body: '{}',
+  }).then((x) => (x.ok ? x.json() : null)).catch(() => null) as Record<string, unknown> | null;
   const lim = Number(ctx.env.DB_LIMIT_MB);
   const limitBytes = (Number.isFinite(lim) && lim > 0 ? lim : 500) * MB;
   const foiz = Math.round((Number(j.db_bytes) / limitBytes) * 1000) / 10;
-  return Response.json({ ok: true, db_bytes: Number(j.db_bytes), limit_bytes: limitBytes, foiz, daraja: darajaOl(foiz), top: j.top ?? [], snapshot_sovuq: j.snapshot_sovuq ?? null },
+  return Response.json({ ok: true, db_bytes: Number(j.db_bytes), limit_bytes: limitBytes, foiz, daraja: darajaOl(foiz), top: j.top ?? [], snapshot_sovuq: j.snapshot_sovuq ?? null, arxiv: ar ? { songgi_ish: ar.songgi_ish ?? null, sutka_qator: Number(ar.sutka_qator ?? 0), sutka_r2_bayt: Number(ar.sutka_r2_bayt ?? 0), hafta_xato: Number(ar.hafta_xato ?? 0), bolaklar: Number(ar.bolaklar ?? 0) } : null },
     { headers: { 'Cache-Control': 'no-store' } });
 };

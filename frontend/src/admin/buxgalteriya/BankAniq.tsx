@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { CheckCircle2, FileUp } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
@@ -23,6 +24,7 @@ export function BankAniq({ kid, versiya, yozadi, onOzgardi }: { kid: number; ver
   useEffect(() => { void yukla(); }, [yukla, versiya]);
 
   const faylTanla = async (f: File | undefined) => {
+    if (f) void aslFaylSaqla(f, { kompaniyaId: kid, turi: 'asl_bank' });
     if (!f) return;
     try {
       const grid = /\.csv$|\.txt$/i.test(f.name) ? csvGrid(await f.text()) : ((await readWorkbookGrids(await f.arrayBuffer()))[0]?.grid ?? []);

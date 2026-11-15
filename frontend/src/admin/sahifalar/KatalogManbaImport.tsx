@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { AlertTriangle, CheckCircle2, FileSpreadsheet, FileText, Loader2, UploadCloud } from 'lucide-react';
 import { readXlsxFonda } from '../../lib/f2-import-parse/xlsxFonda';
 import { catalogQatorlariniApiFormatga, tahlilKatalogXlsx, tahlilMashinaSoatPdf, type CatalogTahlil } from '../../lib/catalog-manba-import';
@@ -83,7 +84,8 @@ export default function KatalogManbaImport() {
     try {
       const next: CatalogTahlil[] = [];
       for (const file of nextFiles) {
-        const bytes = await file.arrayBuffer();
+        void aslFaylSaqla(file, { kompaniyaId, turi: 'asl_narx' });
+      const bytes = await file.arrayBuffer();
         const hash = await sha256(bytes);
         const analysis = /\.pdf$/i.test(file.name)
           ? await tahlilMashinaSoatPdf(bytes, file.name)

@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { FileUp, Undo2 } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
@@ -31,6 +32,7 @@ export function Saldo({ kid, onOzgardi, tasdiqlaydi }: { kid: number; onOzgardi:
   const parse = useMemo(() => (fayl && map ? saldoQatorlar(fayl.grid, map, boshQator, moslik) : null), [fayl, map, boshQator, moslik]);
 
   const faylTanla = async (f: File | undefined) => {
+    if (f) void aslFaylSaqla(f, { kompaniyaId: kid, turi: 'asl_bank' });
     if (!f) return;
     try {
       const grid = /\.csv$|\.txt$/i.test(f.name) ? csvGrid(await f.text()) : ((await readWorkbookGrids(await f.arrayBuffer()))[0]?.grid ?? []);

@@ -5,6 +5,7 @@
  * shu kompaniyaga saqlanadi va narx nomzodlari orasida birinchi bo'lib chiqadi (obosnovaniya: «Коммерческое предложение»).
  */
 import { useState } from 'react';
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { t } from '../../i18n/til';
 import { smetachiKpOqi } from '../../api/smeta-ai';
 import { narxManbaniYukla, type NarxManbaQatorKirish } from '../../api/t2-narx-dalil';
@@ -35,6 +36,7 @@ export function StudioKpYuklash({ kompaniyaId, onSaqlandi }: { kompaniyaId: numb
   async function oqi(f: File | undefined) {
     if (!f || kompaniyaId == null) return;
     setXato(''); setK(null);
+    void aslFaylSaqla(f, { kompaniyaId, turi: 'asl_kp' });
     if (f.size > MAX_FAYL) { setXato(t('Fayl juda katta (7 MB gacha).')); return; }
     setBand(t('Hujjat o‘qilmoqda...'));
     try {
