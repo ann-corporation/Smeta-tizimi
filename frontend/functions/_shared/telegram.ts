@@ -10,6 +10,7 @@
  *  • Xabar matni, username, telefon logga yozilmaydi va bazada saqlanmaydi.
  */
 import { supabaseBaseUrl } from './supabase-url';
+import { tgChuqurHavola } from '../../src/lib/tg-yol';
 import matnlar from '../../src/i18n/lugat/qism/telegram-bot.json';
 import kirishMatnlar from '../../src/i18n/lugat/qism/telegram-kirish.json';
 
@@ -143,6 +144,29 @@ export async function tgApi<T = unknown>(env: TgEnv, metod: string, yuk: Record<
 
 export function miniAppTugma(env: TgEnv, til: TgTil | null) {
   return { inline_keyboard: [[{ text: tgT('Tizimni ochish', til), web_app: { url: miniAppUrl(env) } }]] };
+}
+
+/** Mini App ni aniq ichki sahifada ochuvchi tugma (`/tg?to=/admin/...`); yo'l yaroqsiz bo'lsa — oddiy kirish. */
+export function miniAppYoliTugma(env: TgEnv, til: TgTil | null, yol: string | null | undefined, kalit = 'Tizimni ochish') {
+  return { text: tgT(kalit, til), web_app: { url: tgChuqurHavola(miniAppUrl(env), yol) } };
+}
+
+/** Telegram faylini yuklab oladi (rasm). Fayl URL i token ichida — hech qayerga yozilmaydi/qaytarilmaydi. Katta/yo'q — null. */
+export async function tgFaylOl(env: TgEnv, fileId: string, maxBayt: number): Promise<{ bayt: ArrayBuffer; mime: string } | null> {
+  const token = String(env.TELEGRAM_BOT_TOKEN || '').trim();
+  if (!tokenBormi(env) || !/^[A-Za-z0-9_-]{10,200}$/.test(fileId)) return null;
+  const g = await tgApi<{ file_path?: string; file_size?: number }>(env, 'getFile', { file_id: fileId });
+  const yol = g.result?.file_path;
+  if (!g.ok || !yol || !/^[A-Za-z0-9_\-./]{3,200}$/.test(yol) || yol.includes('..')) return null;
+  if (Number.isFinite(g.result?.file_size) && (g.result?.file_size as number) > maxBayt) return null;
+  try {
+    const r = await fetch(`https://api.telegram.org/file/bot${token}/${yol}`);
+    if (!r.ok) return null;
+    const bayt = await r.arrayBuffer();
+    if (bayt.byteLength === 0 || bayt.byteLength > maxBayt) return null;
+    const mime = /\.png$/i.test(yol) ? 'image/png' : /\.webp$/i.test(yol) ? 'image/webp' : 'image/jpeg';
+    return { bayt, mime };
+  } catch { return null; }
 }
 
 export async function xabarYubor(env: TgEnv, chatId: number, matn: string, qoshimcha: Record<string, unknown> = {}): Promise<boolean> {
