@@ -143,10 +143,12 @@ export function sorovlarniTayyorla(raw: unknown): TanlovSorovi[] | null {
   if (!Array.isArray(raw) || !raw.length || raw.length > 40) return null;
   const out: TanlovSorovi[] = [];
   for (const s of raw as Array<Record<string, unknown>>) {
-    const nomzodlar = (Array.isArray(s?.nomzodlar) ? s.nomzodlar : []).slice(0, 15).map(n => {
+    // ≤ 20: the matching pipeline's shortlist (evidence-ranked); the model only reranks it and only for lines the pipeline is unsure about.
+    const nomzodlar = (Array.isArray(s?.nomzodlar) ? s.nomzodlar : []).slice(0, 20).map(n => {
       const r = (n ?? {}) as Record<string, unknown>;
       return { id: clip(r.id, 40), kod: clip(r.kod, 60), nom: clip(r.nom, 400), birlik: r.birlik == null ? null : clip(r.birlik, 30),
-        jadval: r.jadval == null ? null : clip(r.jadval, 200), toplam: r.toplam == null ? null : clip(r.toplam, 120) };
+        jadval: r.jadval == null ? null : clip(r.jadval, 200), toplam: r.toplam == null ? null : clip(r.toplam, 120),
+        ...(typeof r.ishonch === 'number' && r.ishonch >= 0 && r.ishonch <= 1 ? { ishonch: r.ishonch } : {}) };
     }).filter(n => /^[A-Za-z0-9_:.-]{1,40}$/.test(n.id));
     const id = clip(s?.id, 40);
     // No candidates yet → the model may only answer with new normative phrasings (second search round).
@@ -250,9 +252,12 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       if (!sorovlar) return fail('SOROV_INVALID');
       const chaqir = (req: AiRequest) => aiHisobli(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, 'smeta_ai', 'smeta_ish_tanlash', req);
       // Practice of all estimators on the platform: how often each candidate norm was used and with which coefficient.
-      const tajriba = await tajribaOqi(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, sorovlar.flatMap(x => x.nomzodlar.map(n => n.kod)));
       // Uploaded estimates as a dictionary: how practitioners normed works described like this one (grows with every estimate).
-      const amaliyot = await amaliyotOqi(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, sorovlar.map(x => (x.qidiruv ?? []).join(' ') || x.tavsif.slice(0, 200)));
+      // The two lookups are independent: run together (latency was their sum, before the model call even started).
+      const [tajriba, amaliyot] = await Promise.all([
+        tajribaOqi(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, sorovlar.flatMap(x => x.nomzodlar.map(n => n.kod))),
+        amaliyotOqi(ctx.env, sess.foydalanuvchi_id as number, kompaniyaId, sorovlar.map(x => (x.qidiruv ?? []).join(' ') || x.tavsif.slice(0, 200))),
+      ]);
       const malumot = sorovlar.map((x, i) => ({ ...x, nomzodlar: x.nomzodlar.map(n => { const t = tajribaMatni(tajriba[normaKalit(n.kod) ?? '']); return t ? { ...n, tajriba: t } : n; }),
         ...(amaliyot[i]?.length ? { amaliyot: amaliyot[i].map(a => `${a.kod} — ${a.nom} (${a.soni} smeta qatori${a.koef ? `, ${a.koef}` : ''})`) } : {}) }));
       const { r, obj } = await ishonchliChaqir(chaqir,
@@ -411,7 +416,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const kesh = so.qayta === true ? new Map<string, InternetNatija>() : await keshOqi(ctx.env, actor, kompaniyaId, kalitlar);
       let model: string = INTERNET_MODEL;
       const yangi: Array<{ kalit: string; natija: InternetNatija }> = [];
-      const natijalar: InternetNatija[] = await parallel(sorovlar, 4, async (s, i): Promise<InternetNatija> => {
+      const natijalar: InternetNatija[] = await parallel(sorovlar, 8, async (s, i): Promise<InternetNatija> => {
         const k = kesh.get(kalitlar[i]);
         if (k) return { ...k, id: s.id, kesh: true };
         const { r, obj } = await ishonchliChaqir(chaqir,
@@ -422,10 +427,11 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
           .get(s.id) ?? { davolar: [], izoh: 'model javob bermadi' };
         const manbalar: InternetManba[] = await Promise.all(d.davolar.map(async (v): Promise<InternetManba> => {
           const u = vebUrlTekshir(v.url);
-          if (!u.ok) return manbaniBahola(v, s, '', { ok: false, xato: u.xato });
+          const bugun = new Date().toISOString().slice(0, 10);
+          if (!u.ok) return manbaniBahola(v, s, '', { ok: false, xato: u.xato }, bugun);
           // Any public https page (SSRF-checked, text only, 1 MB, 8 s); its text is scanned by code only, never sent to a model.
           const p = await vebOl(v.url, async () => true, fetch, 200_000);
-          return manbaniBahola(v, s, u.domen, p.ok ? { ok: true, url: p.url, matn: p.matn } : { ok: false, xato: p.xato });
+          return manbaniBahola(v, s, u.domen, p.ok ? { ok: true, url: p.url, matn: p.matn } : { ok: false, xato: p.xato }, bugun);
         }));
         const x = internetXulosa(manbalar, domenlar);
         const natija: InternetNatija = { id: s.id, narx: x.narx, ishonch: x.ishonch, tarqoq: x.tarqoq, manbalar, izoh: d.izoh };

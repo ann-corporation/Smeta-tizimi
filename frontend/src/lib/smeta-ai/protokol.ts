@@ -61,6 +61,8 @@ export function agentAmallariniTekshir(raw: unknown): AgentAmal[] {
 export type SuhbatXabari = { rol: 'user' | 'assistant'; matn: string };
 
 export type TanlovNomzodi = { id: string; kod: string; nom: string; birlik: string | null;
+  /** Calibrated 0..1 confidence of the matching pipeline (lib/smeta-ai/norm-moslash); absent for manual search results. */
+  ishonch?: number;
   /** Normative table title and collection — tell the model WHAT KIND of work a variant belongs to. */
   jadval?: string | null; toplam?: string | null };
 export type TanlovSorovi = { id: string; tavsif: string; birlik: Birlik; material: string | null; nomzodlar: TanlovNomzodi[];
