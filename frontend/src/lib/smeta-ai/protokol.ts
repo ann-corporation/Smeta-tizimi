@@ -68,7 +68,13 @@ export type TanlovNomzodi = { id: string; kod: string; nom: string; birlik: stri
 export type TanlovSorovi = { id: string; tavsif: string; birlik: Birlik; material: string | null; nomzodlar: TanlovNomzodi[];
   /** Normative phrases of the work — the server looks up how estimators normed similar works in uploaded estimates. */
   qidiruv?: string[] };
-export type Tanlov = { id: string; ishId: string | null; sabab: string; /** New normative phrasings when no candidate fits (second search round). */ qidiruv?: string[] };
+export type Tanlov = { id: string; ishId: string | null; sabab: string; /** New normative phrasings when no candidate fits (second search round). */ qidiruv?: string[];
+  /** The two next-best candidate ids (from the list that was sent); with the chosen one they are the user's <= 3 candidates. */ muqobil?: string[] };
+
+/** Added to the work-choice prompt: the model also names its two runners-up (the user sees at most 3 candidates). */
+export const MUQOBIL_QOIDA = `
+QO'SHIMCHA: har tanlovda "muqobil" ham bering — tanlangan ishdan keyin eng mos 2 ta BOSHQA nomzod id si (faqat berilgan id lardan; mos bo'lmasa bo'sh massiv).
+Javob shakli: {"tanlovlar":[{"id":"w1","ishId":"<id yoki null>","muqobil":["<id>","<id>"],"sabab":"","qidiruv":[]}]}`;
 
 /** Price choice for one estimate resource among candidates the BROWSER found (catalogue / company estimates). */
 export type NarxNomzodi = { id: string; nom: string; birlik: string | null; narx: number; manba: string;
@@ -252,7 +258,9 @@ export function tanlovlarniTekshir(raw: unknown, sorovlar: TanlovSorovi[]): Tanl
     const ishId = v ? (exact ?? (byCode.length === 1 ? byCode[0] : undefined))?.id ?? null : null;
     const qXom = r?.qidiruv ?? r?.search;
     const qidiruv = ishId ? [] : (Array.isArray(qXom) ? qXom : []).map(q => str(q, 120)).filter(q => q.length >= 3).slice(0, 3);
-    return { id: s.id, ishId, sabab: str(r?.sabab, 300) || (ishId ? '' : 'Mos normativ ish tanlanmadi'), ...(qidiruv.length ? { qidiruv } : {}) };
+    const ruxsat = new Set(s.nomzodlar.map(n => n.id));
+    const muqobil = (Array.isArray(r?.muqobil) ? r!.muqobil as unknown[] : []).map(x => str(x, 60)).filter((x, i, a) => x && x !== ishId && ruxsat.has(x) && a.indexOf(x) === i).slice(0, 2);
+    return { id: s.id, ishId, sabab: str(r?.sabab, 300) || (ishId ? '' : 'Mos normativ ish tanlanmadi'), ...(qidiruv.length ? { qidiruv } : {}), ...(muqobil.length ? { muqobil } : {}) };
   });
 }
 

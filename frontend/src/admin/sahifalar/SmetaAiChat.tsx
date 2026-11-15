@@ -40,7 +40,8 @@ async function ilovaTayyorla(f: File): Promise<Ilova> {
   return { nom: f.name, mimeType, data: btoa(s) };
 }
 import { manbaMaterialiniTekshir, suhbatJavobiniTekshir, type SuhbatXabari, type TanlovNomzodi, type TanlovSorovi } from '../../lib/smeta-ai/protokol';
-import { avtoTanlov, birlashtir, katalogSahifasi, kichikNomzodlar, nomzodlarTop, smetagaQoshish, tanlovSorovi, tanlovDalili, tanlovZidmi, tasdiqKerak, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
+import { xotiraOl, xotiraSaqla, xotiraYoz } from '../../lib/smeta-ai/norm-xotira';
+import { avtoTanlov, birlashtir, katalogSahifasi, kichikNomzodlar, nomzodlarTop, smetagaQoshish, xotiraMatni, tanlovSorovi, tanlovDalili, tanlovZidmi, tasdiqKerak, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
 import { ifodaHisobla } from '../../lib/smeta-ai/ifoda';
 import { foundationReference } from '../../lib/smeta-ai/normative-reference';
 import { includedWorkReviews } from '../../lib/smeta-ai/included-work';
@@ -144,9 +145,10 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
     if (!katalog || kompaniyaId == null) return list;
     // 1) Local matching pipeline (BM25 + strict unit filter + evidence + calibrated confidence): a confident line is marked at once,
     //    the model only reranks the shortlist of lines the pipeline is unsure about.
+    const xotira = xotiraOl(kompaniyaId);   // company memory: codes confirmed here before for similar text come first
     let next = list.map(i => {
       if (i.nomzodlar.length) return i;
-      const r = avtoTanlov(katalog, i, list);
+      const r = avtoTanlov(katalog, i, list, 20, xotira);
       if (!r) return { ...i, nomzodlar: nomzodlarTop(katalog, i) };
       return { ...i, nomzodlar: r.nomzodlar, tanlangan: !i.tanlangan && r.avto ? r.avto : i.tanlangan };
     });
@@ -261,6 +263,10 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
         if (kompaniyaId != null) {
           const tanlovlar = ishlar.filter(i => r.qoshildi.includes(i.id) && i.tanlangan).map(i => ({ kod: i.tanlangan!.kod, tavsif: i.tavsif.slice(0, 400), birlik: i.birlik, manba: i.tanlangan!.qolda ? 'qolda' as const : 'ai' as const }));
           if (tanlovlar.length) void smetaTajribaYoz(kompaniyaId, tanlovlar);
+          // Company memory: the confirmed line teaches the matcher (counters only, no raw text).
+          const xotira = xotiraOl(kompaniyaId);
+          for (const i of ishlar) if (r.qoshildi.includes(i.id) && i.tanlangan) xotiraYoz(xotira, xotiraMatni(i), i.tanlangan.kod);
+          xotiraSaqla(kompaniyaId, xotira);
         }
         setXabarlar(x => [...x, { rol: 'assistant', matn: t('{n} ta ish smetaga qo‘shildi (bitta “Bekor qilish” bilan qaytariladi).', { n: r.qoshildi.length }) }]);
         const minuslar = r.commands.filter(c => c.type === 'ADD_OCCURRENCE' && c.minus).length;
