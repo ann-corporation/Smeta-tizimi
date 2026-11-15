@@ -8,11 +8,12 @@ describe('i18n: yangi bot matnlarining hammasi uz/ru/en da', () => {
     const lug = JSON.parse(readFileSync(join(process.cwd(), 'src/i18n/lugat/qism/telegram-bot.json'), 'utf8')) as Record<string, { ru: string; en: string }>;
     const kirish = JSON.parse(readFileSync(join(process.cwd(), 'src/i18n/lugat/qism/telegram-kirish.json'), 'utf8')) as Record<string, { ru: string; en: string }>;
     const bot2 = JSON.parse(readFileSync(join(process.cwd(), 'src/i18n/lugat/qism/telegram-bot-2.json'), 'utf8')) as Record<string, { ru: string; en: string }>;
+    const usern = JSON.parse(readFileSync(join(process.cwd(), 'src/i18n/lugat/qism/telegram-username.json'), 'utf8')) as Record<string, { ru: string; en: string }>;
     const yoq: string[] = [];
     for (const f of fayllar) {
       const s = readFileSync(join(process.cwd(), 'functions', f), 'utf8');
       for (const m of s.matchAll(/tgT\(\s*(?:\w+\s*\?\s*)?'((?:[^'\\]|\\.)*)'(?:\s*:\s*'((?:[^'\\]|\\.)*)')?/g)) {
-        for (const k of [m[1], m[2]].filter(Boolean) as string[]) { const e = lug[k] ?? kirish[k] ?? bot2[k]; if (!e?.ru || !e?.en) yoq.push(k); }
+        for (const k of [m[1], m[2]].filter(Boolean) as string[]) { const e = lug[k] ?? kirish[k] ?? bot2[k] ?? usern[k]; if (!e?.ru || !e?.en) yoq.push(k); }
       }
     }
     expect(yoq).toEqual([]);
