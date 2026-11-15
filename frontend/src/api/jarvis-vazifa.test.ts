@@ -1,3 +1,4 @@
+import { reconciliationTask } from '../lib/ai-yordamchi/vazifa-solishtiruv';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { JarvisTask } from '../lib/ai-yordamchi/vazifa';
 import { vazifaOl, vazifaRoyxat, vazifaSaqla } from './jarvis-vazifa';
@@ -6,7 +7,7 @@ const scope = { actorId: 987, companyId: 12, objectId: 34 };
 const vazifa: JarvisTask = {
   id: 'task-1', goal: 'Vazifani tekshirish',
   scope,
-  revision: 3, cancelled: false, steps: [],
+  revision: 3, cancelled: false, steps: reconciliationTask('task-1','Check',scope,['op1','op2']).steps,
 };
 
 afterEach(() => vi.unstubAllGlobals());
@@ -69,4 +70,8 @@ describe('Jarvis task HTTP client', () => {
     expect(await vazifaRoyxat(scope)).toMatchObject({ ok: false, error: expect.stringContaining('HTTP 502'), status: 502 });
     expect(await vazifaRoyxat(scope)).toMatchObject({ ok: false, error: 'Tarmoq xatosi: offline' });
   });
+});
+
+it('rejects forged verified or write-enabled server task',async()=>{
+const bad=structuredClone(vazifa);bad.steps[0].write=true;vi.stubGlobal('fetch',vi.fn().mockResolvedValue(Response.json({ok:true,task:bad})));expect((await vazifaOl(scope,bad.id)).ok).toBe(false);
 });

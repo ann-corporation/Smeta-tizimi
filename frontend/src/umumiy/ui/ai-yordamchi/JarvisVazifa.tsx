@@ -16,7 +16,7 @@ export function JarvisVazifa({scope,api}: {scope:TaskScope;api:VositaApi}) {
   try{
    let task=existing;
    if(!task){task=reconciliationTask(crypto.randomUUID(),t('Smeta, fakt va F2 holatini tekshirish'),scope,[crypto.randomUUID(),crypto.randomUUID()]);await store.save(task,-1);}
-   else {task=await store.load(task.id,scope);if(task.steps.some(s=>s.state==='running')){const next=taskTransition(task,{type:'interrupt'},scope,task.revision);await store.save(next,task.revision);task=next;}}
+   else {task=await store.load(task.id,scope);if(task.steps.some(s=>s.state==='running')){if(task.steps.some(s=>s.write))throw Error('LEASE_REQUIRED');const next=taskTransition(task,{type:'interrupt'},scope,task.revision);await store.save(next,task.revision);task=next;}}
    const executor=reconciliationExecutor(api,async(_scope,operation,output)=>{
     if(operation===task!.steps[0].operationId) return obyektHolatMatni(output as ObyektHolatMalumot).slice(0,2000);
     const r=output as TsiklHisob;

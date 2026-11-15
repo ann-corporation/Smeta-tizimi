@@ -45,7 +45,7 @@ export interface TaskExecutor {
 export async function runTaskStep(id: string, scope: TaskScope, store: TaskStore, executor: TaskExecutor): Promise<JarvisTask> {
   let task = await store.load(id, scope);
   if (task.scope.actorId !== scope.actorId || task.scope.companyId !== scope.companyId || task.scope.objectId !== scope.objectId) throw new Error('SCOPE_CHANGED');
-  // A running step may belong to another worker; only a server lease-expiry recovery may interrupt it.
+  // A running write needs server lease recovery. Read-only UI may explicitly interrupt/retry reads via CAS; never replay a write.
   if (task.cancelled || task.steps.some(s => s.state === 'running')) return task;
   const pending = task.steps.find(s => s.state === 'reconciling');
   const step = pending ?? task.steps.find(s => s.state === 'queued');

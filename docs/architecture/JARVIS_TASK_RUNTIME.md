@@ -11,3 +11,5 @@
 Хранение: docs/architecture/ai-task-checkpoint.sql — исполнимый SQL draft с rollback и PGlite acceptance. До номера миграции/review L0 и применения на сервере API будет явно сообщать об ошибке, без локального fake-success fallback. Не выпускать UI отдельно от schema. Таблица не заменяет t2_ai_ish фоновых работников и не является второй бизнес-базой.
 
 Проверка: runtime и UI/API focused tests; PGlite — синтетическая модель зависимостей, не production permissions audit. Полный owner E2E после применения схемы и preview обязателен. Full history, личный scope, arbitrary planning, approval/write recovery и platform development bridge остаются дальнейшими частями единой задачи.
+
+Read-only recovery: UI может через CAS повторить прерванное чтение, даже если другая вкладка ещё читает; возможен повтор чтения и отказ устаревшего checkpoint, но не бизнес-запись. Это не distributed worker lease. Для write steps UI recovery запрещён; необходимы серверный lease и reconciliation. Не расширять write allowlist без этого контракта.
