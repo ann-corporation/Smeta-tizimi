@@ -52,9 +52,13 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 
 class MainActivity : TauriActivity() {
+  @Suppress("DEPRECATION")
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    window.decorView.setBackgroundColor(Color.parseColor("#F4F2EE"))
+    val fon = Color.parseColor("#F4F2EE")
+    window.decorView.setBackgroundColor(fon)
+    window.statusBarColor = fon
+    window.navigationBarColor = fon
     WindowCompat.getInsetsController(window, window.decorView).apply {
       isAppearanceLightStatusBars = true
       isAppearanceLightNavigationBars = true
