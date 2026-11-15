@@ -14,6 +14,20 @@ describe('servis-worker ro\u2018yxati (guard)', () => {
     expect(swRoyxatMumkin(true)).toBe(false);
   });
 
+  it('Onlayn qobiq (jonli sayt origin\u0027ida __TAURI_INTERNALS__ bor) servis-worker\u0027ni TA\u2019QIQLAMAYDI: oflayn qobiq uchun kerak', () => {
+    const asl = window.location;
+    Object.defineProperty(navigator, 'serviceWorker', { value: { register: vi.fn() }, configurable: true });
+    Object.defineProperty(window, 'location', { value: { origin: 'https://smeta-tizimi.pages.dev', protocol: 'https:' }, configurable: true });
+    try {
+      w.__TAURI_INTERNALS__ = {};
+      expect(tauridami()).toBe(false);
+      expect(swRoyxatMumkin(true)).toBe(true);
+      Object.defineProperty(window, 'location', { value: { origin: 'http://tauri.localhost', protocol: 'http:' }, configurable: true });
+      expect(tauridami()).toBe(true);
+      expect(swRoyxatMumkin(true)).toBe(false);
+    } finally { Object.defineProperty(window, 'location', { value: asl, configurable: true }); }
+  });
+
   it('production emas — ro\u2018yxatdan o\u2018tmaydi', () => {
     expect(swRoyxatMumkin(false)).toBe(false);
   });

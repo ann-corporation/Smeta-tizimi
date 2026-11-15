@@ -1,7 +1,9 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { resolve } from 'node:path'
+import { resolve, join } from 'node:path'
+import { createHash } from 'node:crypto'
+import { writeFileSync } from 'node:fs'
 import { yangiliklarniYig } from './scripts/yangiliklar-yigish.mjs'
 
 const YANGILIKLAR_DIR = resolve(__dirname, 'yangiliklar')
@@ -13,6 +15,17 @@ export default defineConfig(({ mode }) => {
     plugins: [
       tailwindcss(),
       react(),
+      {
+        /* Oflayn qobiq (Tauri "Onlayn qobiq" ilovalari): servis-worker hamma heshli /assets/* ni oldindan keshlashi uchun
+         * ro'yxat. Heshli nom = tarkib; `versiya` shu ro'yxatning xeshi. Faqat nomlar - hech qanday ma'lumot yo'q. */
+        name: 'sw-manifest',
+        apply: 'build',
+        writeBundle(opts, bundle) {
+          const fayllar = ['/', ...Object.keys(bundle).filter((n) => n.startsWith('assets/') && !n.endsWith('.map')).sort().map((n) => '/' + n)]
+          const versiya = createHash('sha256').update(fayllar.join('\n')).digest('hex').slice(0, 16)
+          writeFileSync(join(opts.dir ?? 'dist', 'sw-manifest.json'), JSON.stringify({ versiya, fayllar }))
+        },
+      },
       {
         /* «Nima yangi»: frontend/yangiliklar/*.json (har yangilik alohida fayl — PR to'qnashuvi yo'q) →
          * build paytida /yangiliklar.json ga yig'iladi; dev'da shu yo'l o'sha zahoti yig'ib beriladi. */
