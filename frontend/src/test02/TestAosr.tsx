@@ -669,9 +669,9 @@ export default function TestAosr() {
                     <div key={a.id} className={`cursor-pointer px-4 py-2.5 hover:bg-surface-2 ${a.holat === 'bekor' ? 'opacity-60' : ''}`} onClick={() => setForma({ ...a, komissiya: Array.isArray(a.komissiya) ? a.komissiya : [], holat: a.holat === 'bekor' ? 'yangi' : a.holat })}>
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 md:flex-nowrap">
                             <span className="w-6 shrink-0 text-right text-[11.5px] tabular-nums text-text-mute">{a.holat === 'bekor' ? '' : tartibNomi.get(a.id)}</span>
-                            <span className="truncate text-[13px] font-medium text-text">№ {a.raqam || '—'} · {a.ish_nomi || '—'}</span>
+                            <span className="min-w-0 break-words text-[13px] font-medium text-text md:truncate" title={`№ ${a.raqam || '—'} · ${a.ish_nomi || '—'}`} data-testid="aosr-akt-nom">№ {a.raqam || '—'} · {a.ish_nomi || '—'}</span>
                             {aktHolatBelgisi(a.holat, yuborilgan.get(a.id))}
                             {avtoQoralamami(a) && !yuborilgan.has(a.id) && <span className="fz-chip fz-chip--warn" data-testid="aosr-avto-belgi" title={t('Tizim avtomatik yasagan qoralama — haqiqiy akt emas. Tekshiring yoki bekor qiling.')}>{t('avto-qoralama')}</span>}
                           </div>
@@ -679,7 +679,7 @@ export default function TestAosr() {
                             <span>{t(TUR_NOMI[a.tur])}</span><span>·</span><span>{a.sana ?? t('sana yo‘q')}</span>
                             <span className="fz-chip">{t('{n} ish', { n: a.boglangan_ish_soni })}</span>
                             <span className={`fz-chip ${a.protokol_soni ? 'fz-chip--accent' : ''}`}>{t('{n} protokol', { n: a.protokol_soni })}</span>
-                            {tartibMeta.get(a.id)?.razdel.nom && <span className="truncate" title={tartibMeta.get(a.id)?.razdel.nom}>{tartibMeta.get(a.id)?.razdel.nom}</span>}
+                            {tartibMeta.get(a.id)?.razdel.nom && <span className="min-w-0 break-words md:truncate" title={tartibMeta.get(a.id)?.razdel.nom}>{tartibMeta.get(a.id)?.razdel.nom}</span>}
                             {a.holat !== 'bekor' && (sifat.get(a.id) ?? []).length > 0 && (
                               <span className="fz-chip" title={(sifat.get(a.id) ?? []).map((x) => t(AKT_SIFAT_NOM[x])).join('; ')}>{t('{n} kamchilik', { n: (sifat.get(a.id) ?? []).length })}</span>
                             )}

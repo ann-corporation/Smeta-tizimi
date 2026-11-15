@@ -96,11 +96,11 @@ export function MarketPriceComparison({ lines, objectId, companyId }: MarketPric
       input.length === 0 ? <p role="status">{t('Taqqoslash uchun resurslar yo‘q.')}</p> : null}
     {hasRows && cat && input && <>
       <div className="flex min-w-0 flex-wrap items-end gap-2 rounded border border-border/60 bg-surface-2/30 p-2">
-      <label className="flex min-w-0 max-w-full flex-1 basis-40 flex-col gap-1 text-xs text-text-dim">{t('Katalog davri')} <select className="input h-8 w-full min-w-0 max-w-full text-xs text-text" value={period ? periodKey(period) : ''} onChange={e => setSelection(e.target.value)}>
+      <label className="flex min-w-0 max-w-full flex-1 basis-40 max-md:basis-full flex-col gap-1 text-xs text-text-dim">{t('Katalog davri')} <select className="input h-8 w-full min-w-0 max-w-full text-xs text-text" value={period ? periodKey(period) : ''} onChange={e => setSelection(e.target.value)}>
         {!periods.length && <option value="">{t('Katalog davri noma’lum')}</option>}
         {periods.map(p => <option key={periodKey(p)} value={periodKey(p)}>{t('{yil}-yil, {chorak}-chorak', { yil: p.year, chorak: p.quarter })}</option>)}
       </select></label>
-      <label className="flex min-w-0 max-w-full flex-1 basis-48 flex-col gap-1 text-xs text-text-dim">{t('Katalog hududi')} <select className="input h-8 w-full min-w-0 max-w-full text-xs text-text" value={region} onChange={e => setRegion(e.target.value)}>
+      <label className="flex min-w-0 max-w-full flex-1 basis-48 max-md:basis-full flex-col gap-1 text-xs text-text-dim">{t('Katalog hududi')} <select className="input h-8 w-full min-w-0 max-w-full text-xs text-text" value={region} onChange={e => setRegion(e.target.value)}>
         <option value="">{t('Barcha katalog hududlari')}</option>{regions.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
       </select></label>
       <label className="flex min-w-0 items-center gap-2 py-1.5 text-xs text-text"><input className="shrink-0 accent-accent" type="checkbox" checked={all} onChange={e => setAll(e.target.checked)} />{t('Teng narxlarni ham ko‘rsatish')}</label>
