@@ -6,6 +6,8 @@
 import { useRef, useState } from 'react';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
+import { SaqlashPaneli } from '../../umumiy/ui/SaqlashPaneli';
+import { ozgarishSoni } from '../../umumiy/ui/ozgarish-soni';
 import { yangiOperationId } from '../../api/supabase';
 import { loyihaSaqla, type SotuvPanel } from '../../api/t2-sotuv';
 import { Maydon } from './umumiy';
@@ -34,6 +36,8 @@ function LoyihaForma({ kid, l }: { kid: number; l: Loyiha }) {
     reyestr_raqam: l.reyestr_raqam ?? '', reyestr_sana: l.reyestr_sana?.slice(0, 10) ?? '', eskrou_bank: l.eskrou_bank ?? '', eskrou_hisob: l.eskrou_hisob ?? '',
     topshirish_sana: l.topshirish_sana?.slice(0, 10) ?? '', tavsif: l.tavsif ?? '', bron_soat: String(l.bron_soat ?? 72), sotuvda: l.sotuvda,
   });
+  /** Oxirgi saqlangan (yoki ochilgan) holat — panelning «o'zgarish soni» shunga nisbatan. */
+  const [asl, setAsl] = useState(f);
   const [band, setBand] = useState(false);
   const op = useRef(yangiOperationId());
   const yangila = useSotuvYangila();
@@ -51,7 +55,8 @@ function LoyihaForma({ kid, l }: { kid: number; l: Loyiha }) {
     }, op.current);
     setBand(false);
     op.current = yangiOperationId();
-    if (!r.ok) { toast(xatoMatn(r), 'danger'); return; }
+    if (!r.ok) { toast(xatoMatn(r), 'danger'); return false; }
+    setAsl(f);
     toast(t('Saqlandi')); yangila();
   };
   const txt = (k: Exclude<keyof typeof f, 'sotuvda'>, nom: string, tur = 'text') => (
@@ -74,7 +79,7 @@ function LoyihaForma({ kid, l }: { kid: number; l: Loyiha }) {
         {t('Sotuvda (reklama va bron ochiq)')}
       </label>
       {f.sotuvda && reyestrYoq && <p className="fz-note fz-note--danger">{t('Sotuvga chiqarish uchun reyestr raqami kerak (PP-4732).')}</p>}
-      <div className="flex justify-end"><button type="button" className="fz-btn fz-btn--primary" disabled={!ok || band} onClick={saqla}>{t('Saqlash')}</button></div>
+      <SaqlashPaneli kalit={`sotuv-sozlama-${l.loyiha_id}`} soni={ozgarishSoni(f, asl, Object.keys(f) as Array<keyof typeof f>)} band={band} taqiq={!ok} saqla={saqla} bekor={() => setF(asl)} />
     </div>
   );
 }
