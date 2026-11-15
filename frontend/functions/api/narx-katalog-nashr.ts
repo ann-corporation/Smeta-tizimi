@@ -9,6 +9,7 @@
  * Superadmin re-verified in the database on every call. Company users never write here (their prices stay company-scoped).
  */
 import { superadminActor, type SuperadminEnv } from '../_shared/superadmin';
+import { r2Yoz } from '../_shared/r2-saqlash';
 
 type Env = SuperadminEnv & { R2_CANONICAL: R2Bucket };
 const REVISION = /^[a-f0-9]{16}$/;
@@ -53,7 +54,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const key = prefix + f.path;
       const old = await ctx.env.R2_CANONICAL.head(key);
       if (old) { if (old.customMetadata?.sha256 !== sha) return fail('IMMUTABLE_CONFLICT', 409); continue; }
-      await ctx.env.R2_CANONICAL.put(key, await gzip(bytes), { customMetadata: { sha256: sha, bytes: String(bytes.length), actor: String(actor.id) },
+      await r2Yoz(ctx.env.R2_CANONICAL, key, await gzip(bytes), { customMetadata: { sha256: sha, bytes: String(bytes.length), actor: String(actor.id) },
         httpMetadata: { contentType: 'application/json', contentEncoding: 'gzip', cacheControl: 'private, max-age=31536000, immutable' } });
       yozildi++;
     }
@@ -77,9 +78,9 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       previous = (JSON.parse(txt) as { revision?: string }).revision ?? null;
     }
     const full = { ...manifest, previous, activatedBy: actor.id, activatedAt: new Date().toISOString() };
-    await ctx.env.R2_CANONICAL.put(prefix + 'manifest.json', await gzip(new TextEncoder().encode(JSON.stringify(full))),
+    await r2Yoz(ctx.env.R2_CANONICAL, prefix + 'manifest.json', await gzip(new TextEncoder().encode(JSON.stringify(full))),
       { httpMetadata: { contentType: 'application/json', contentEncoding: 'gzip', cacheControl: 'private, max-age=31536000, immutable' } });
-    await ctx.env.R2_CANONICAL.put('narx-katalog/CURRENT.json', await gzip(new TextEncoder().encode(JSON.stringify({ revision, schema: manifest.schema, previous }))),
+    await r2Yoz(ctx.env.R2_CANONICAL, 'narx-katalog/CURRENT.json', await gzip(new TextEncoder().encode(JSON.stringify({ revision, schema: manifest.schema, previous }))),
       { httpMetadata: { contentType: 'application/json', contentEncoding: 'gzip', cacheControl: 'no-store' } });
     return Response.json({ ok: true, revision, previous }, { headers: { 'Cache-Control': 'no-store' } });
   }

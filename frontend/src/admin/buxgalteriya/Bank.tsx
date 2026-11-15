@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { CheckCircle2, FileUp } from 'lucide-react';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
@@ -49,6 +50,7 @@ export function Bank({ kid, davr, versiya, onOzgardi }: { kid: number; davr: Dav
   }, [d]);
 
   const faylTanla = async (f: File | undefined) => {
+    if (f) void aslFaylSaqla(f, { kompaniyaId: kid, turi: 'asl_bank' });
     if (!f) return;
     try {
       let grid: Grid;

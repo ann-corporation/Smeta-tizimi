@@ -1,4 +1,5 @@
 import { t } from '../../i18n/til';
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { hujjatTokenBilan } from '../../lib/token-hujjat';
 import { downloadBlob } from '../../lib/construction-document-control/export/download-helper';
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
@@ -187,6 +188,7 @@ function ImportOyna({ kid, obyektlar, onYop, onTayyor }: { kid: number; obyektla
   const tanla = async (f: File | undefined) => {
     if (!f) return;
     setFayl(f.name); opRef.current = yangiOperationId();
+    void aslFaylSaqla(f, { kompaniyaId: kid, obyektId, turi: 'asl_qarzdorlik' });
     const b = await f.arrayBuffer(); setBuf(b); await tahlil(b, turi);
   };
   const turOzgar = (v: typeof turi) => { setTuri(v); if (buf) void tahlil(buf, v); };

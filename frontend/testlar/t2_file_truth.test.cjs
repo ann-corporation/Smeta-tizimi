@@ -31,7 +31,7 @@ must('internal read still checks the doc belongs to the company + is stored', /c
 
 console.log('\n── 2. True large-file path (no false streaming claims) ──');
 must('small file: buffered once + server re-hash + verify', /file\.arrayBuffer\(\)[\s\S]*sha256Hex\(buf\)[\s\S]*serverSha !== clientSha/.test(upload));
-must('large file: real stream to R2 (file.stream()), no whole-file buffer', /R2_CANONICAL\.put\(r2Key, file\.stream\(\), meta\)/.test(upload));
+must('large file: real stream to R2 (file.stream()), no whole-file buffer', /(R2_CANONICAL\.put\(r2Key, file\.stream\(\), meta\)|r2Yoz\(ctx\.env\.R2_CANONICAL, r2Key, file\.stream\(\), meta\))/.test(upload));
 must('explicit configurable inline-hash limit', /CANONICAL_HASH_INLINE_LIMIT/.test(upload) && /DEFAULT_INLINE_LIMIT/.test(upload));
 must('explicit configurable hard max upload size (413)', /CANONICAL_MAX_UPLOAD_BYTES/.test(upload) && /FILE_TOO_LARGE/.test(upload) && /status: 413/.test(upload));
 must('limit + behavior documented', /HASH_INLINE_LIMIT|large PDF\/DWG\/XLSX\/ZIP|CANONICAL_MAX_UPLOAD_BYTES/.test(doc) || /streaming/i.test(doc));

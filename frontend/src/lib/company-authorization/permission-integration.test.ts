@@ -14,6 +14,8 @@ describe('role integration architecture',()=>{
       'qulf',
       /* superadminActor: har chaqiruvda bazada qayta tekshiriladi (db-hajm.test.ts — superadmin bo'lmasa 403). */
       'db-hajm',
+      /* Tungi sovuq-arxiv cron (arxiv-tick.test.ts): X-Cron-Kalit (BILDIRISHNOMA_CRON_KALIT, doimiy vaqtli taqqoslash) - sessiya/kompaniya yo'q, faqat tizim ishi. */
+      'arxiv-tick',
       /* Global immutable reference data, not tenant rows: session + pinned file whitelist;
          norm-library.test.ts proves auth fails closed before any R2 access. */
       'norm-library',

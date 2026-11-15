@@ -1,0 +1,41 @@
+﻿name: arxiv-tungi
+
+# Tungi sovuq-arxiv (R2): tarix/log/snapshot/qoralamalarning eski qismi R2 ga ko'chiriladi (docs/ops/MALUMOT_SAQLASH_SIYOSATI.md).
+# Postgres R2 ga yoza olmaydi - shu workflow Pages Function /api/arxiv-tick ni chaqiradi. Oyna 21:00-24:00 UTC (endpoint ham tekshiradi).
+# Sirlar telegram-kunlik bilan bir xil: BILDIRISHNOMA_CRON_KALIT + repo o'zgaruvchisi PROD_URL. Sozlanmasa ish jim o'tkazib yuboriladi.
+# IO byudjeti: har chaqiruv <= 2 partiya/jadval; chaqiruvlar orasida 30 s pauza; <= 40 chaqiruv.
+on:
+  schedule:
+    - cron: '30 21 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: arxiv-tungi
+  cancel-in-progress: false
+
+jobs:
+  arxiv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      BILDIRISHNOMA_CRON_KALIT: ${{ secrets.BILDIRISHNOMA_CRON_KALIT }}
+      PROD_URL: ${{ vars.PROD_URL }}
+    steps:
+      - name: Arxivlash
+        run: |
+          if [ -z "$BILDIRISHNOMA_CRON_KALIT" ] || [ -z "$PROD_URL" ]; then
+            echo "BILDIRISHNOMA_CRON_KALIT yoki PROD_URL sozlanmagan - o'tkazib yuborildi."; exit 0
+          fi
+          for i in $(seq 1 40); do
+            code=$(curl -sS -o resp.json -w '%{http_code}' -X POST "$PROD_URL/api/arxiv-tick" \
+              -H 'Content-Type: application/json' -H "X-Cron-Kalit: $BILDIRISHNOMA_CRON_KALIT" \
+              --data '{}' --max-time 120 || echo 000)
+            echo "HTTP $code"; head -c 300 resp.json; echo
+            if [ "$code" != "200" ]; then echo "::warning::arxiv-tungi muvaffaqiyatsiz (HTTP $code)"; exit 0; fi
+            grep -q '"qoldi":true' resp.json || break
+            grep -q '"oyna":false' resp.json && break
+            sleep 30
+          done

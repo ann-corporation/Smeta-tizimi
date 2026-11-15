@@ -1,4 +1,5 @@
 import { MoneyInput } from '../../umumiy/ui/MoneyInput';
+import { aslFaylSaqla } from '../../api/t2-asl-fayl';
 import { reportMoneyValidity } from '../../lib/money-input';
 /**
  * NarxManbalari.tsx — narx manbalari reestri (egasi Q4/Q5, 2026-10-01): kataloglar (kvartal),
@@ -55,6 +56,7 @@ export default function NarxManbalari() {
 
   const faylTanla = async (f: File | undefined) => {
     if (!f) return;
+    void aslFaylSaqla(f, { kompaniyaId, turi: 'asl_narx' });
     try {
       const wb = await readXlsxFonda(await f.arrayBuffer());
       setKitob(wb); setVaraq(wb.sheets[0]?.name ?? ''); setQolda(null);

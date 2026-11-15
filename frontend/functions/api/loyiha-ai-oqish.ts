@@ -5,6 +5,7 @@
  * Aniq o'qilmagan qiymat null (0 emas); o'ylab topilgan nom/miqdor taqiqlangan (prompt va tekshiruvda).
  */
 import { cachedAuthority } from '../_shared/permission-policy';
+import { r2Yoz } from '../_shared/r2-saqlash';
 import { tekshir } from '../_shared/auth';
 import { aiPublicError } from '../_shared/ai';
 import { AiByudjetXatosi, aiHisobli } from '../_shared/ai-hisobli';
@@ -114,7 +115,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     if (javob.finishReason === 'length') return xato('AI javobi kesildi — jadval qismini kichikroq tanlang', 422, 'KESILDI');
     const v = javobniTekshir(javob.text);
     if (!v.ok) return Response.json({ ok: false, xabar: 'AI javobi sxemaga mos emas', code: v.kod }, { status: 422 });
-    if (r2) await r2.put(kalit, JSON.stringify({ versiya: LOYIHA_AI_VERSIYA, rasm_sha256: rasmSha, model: javob.model, items: v.items }), { httpMetadata: { contentType: 'application/json' }, customMetadata: { kompaniya_id: String(komp.id) } }).catch(() => null);
+    if (r2) await r2Yoz(r2, kalit, JSON.stringify({ versiya: LOYIHA_AI_VERSIYA, rasm_sha256: rasmSha, model: javob.model, items: v.items }), { httpMetadata: { contentType: 'application/json' }, customMetadata: { kompaniya_id: String(komp.id) } }).catch(() => null);
     return Response.json({ ok: true, kesh: false, model: javob.model, items: v.items });
   } catch (e) {
     if (e instanceof AiByudjetXatosi) return Response.json({ ok: false, xabar: e.xabar, code: e.kod }, { status: 402 });
