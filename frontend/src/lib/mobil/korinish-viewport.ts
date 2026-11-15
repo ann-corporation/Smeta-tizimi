@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react';
 
 /** Teginish ekranimi (telefon/planshet) — ekran klaviaturasi bor qurilma. matchMedia yo'q muhitda false. */
 export function sensorliQurilma(): boolean {
-  try { return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches; } catch { return false; }
+  if (typeof window === 'undefined') return false;
+  /* Android WebView ba'zan pointer:fine qaytaradi, shuning uchun bir nechta mustaqil belgi: pointer/any-pointer coarse, maxTouchPoints,
+   * mobil User-Agent, telefon eni (<640px). Desktop (>=1024px, sichqoncha) uchun hech qaysi belgi yo'q. */
+  try { if (typeof window.matchMedia === 'function' && (window.matchMedia('(pointer: coarse)').matches || window.matchMedia('(any-pointer: coarse)').matches)) return true; } catch { /* matchMedia yo'q */ }
+  try { if ((navigator.maxTouchPoints ?? 0) > 0) return true; } catch { /* navigator yo'q */ }
+  try { if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent ?? '')) return true; } catch { /* navigator yo'q */ }
+  return window.innerWidth < 640;
 }
 
 export type KorinishOlchami = { balandlik: number; yuqori: number };

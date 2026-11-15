@@ -53,6 +53,9 @@
   }
 }
 
+/* Jarvis ochiq (telefon, to'liq ekran): pastki tab-panel umuman ko'rinmaydi (AiHelper html[data-jarvis-ochiq] qo'yadi). */
+html[data-jarvis-ochiq] .mobil-tab { display: none !important; }
+
 /* Pastki tab-panel (komponent faqat <768px da chizadi; bu — qo'shimcha himoya). */
 .mobil-tab { display: none; }
 @media (max-width: 767px) {
