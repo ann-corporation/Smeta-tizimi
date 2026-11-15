@@ -45,6 +45,22 @@ describe('ZanjirChizigi — rol va qo‘shimcha sonlar', () => {
   });
 });
 
+describe('ZanjirChizigi — telefon lentasi va to‘liq matn', () => {
+  it('telefonda bitta qatorli yon-aylantiriladigan lenta (snap), desktopda o‘raladi; to‘liq matn aria-label da, izoh 2 qatorgacha', () => {
+    m.akt.mockReturnValue(new Promise(() => undefined)); m.davom.mockReturnValue(new Promise(() => undefined));
+    chiz({ qoshimcha: { slichitelniy: { farqli: 7, barglar: 20 } } });
+    const ol = screen.getByTestId('zanjir-chizigi').querySelector('ol')!;
+    expect(ol.className).toMatch(/\bflex-wrap\b/);                // desktop: o'raladi
+    expect(ol.className).toMatch(/max-md:flex-nowrap/);
+    expect(ol.className).toMatch(/max-md:overflow-x-auto/);
+    expect(ol.className).toMatch(/max-md:snap-x/);
+    const a = screen.getByTestId('zanjir-qadam-slichitelniy');
+    expect(a.getAttribute('aria-label')).toMatch(/7 qatorda farq bor/);
+    expect(screen.getByTestId('zanjir-izoh-slichitelniy').className).toMatch(/line-clamp-2/);
+    expect(screen.getByTestId('zanjir-izoh-slichitelniy').className).not.toMatch(/\btruncate\b/);
+  });
+});
+
 describe('ZanjirChizigi', () => {
   it('obyekt tanlanmagan (kompaniya darajasi) — 8 qadam chiziladi, hammasi bosiladigan havola va «Noma‘lum»; reestr so‘ralmaydi', () => {
     m.ws.scope.objectId = null; m.akt.mockResolvedValue({ ok: true, qatorlar: [] }); m.davom.mockResolvedValue({ ok: true, qatorlar: [] });
