@@ -1,3 +1,4 @@
+import { suhbatKonteksti } from '../../src/lib/ai-yordamchi/suhbat-kontekst';
 /**
  * Kasb agentlari mantig'i (sof funksiyalar): mavzu qo'riqchisi, ma'lumot toifasini tanlash, sahifaga moslashuv, prompt.
  * Chegara MODELGA ishonmaydi: ruxsatsiz mavzu modelga umuman yuborilmaydi (token ham sarflanmaydi), ruxsatsiz ma'lumot bazadan chiqmaydi.
@@ -160,10 +161,8 @@ export function javobniAjrat(xom: string): { javob: string; harakatlar: TaklifHa
 
 /** Mijoz yuborgan suhbat tarixini xavfsiz qisqa matnga aylantiradi (rol faqat user/assistant, matn tozalangan va qisqartirilgan). */
 export function suhbatTarixi(v: unknown): string {
-  if (!Array.isArray(v)) return '';
-  return v.slice(-6).flatMap((x) => {
-    const r = (x ?? {}) as Record<string, unknown>;
-    const m = typeof r.matn === 'string' ? r.matn.replace(/\s+/g, ' ').trim().slice(0, 500) : '';
-    return m ? [`${r.rol === 'user' ? 'Foydalanuvchi' : 'Jarvis'}: ${m}`] : [];
-  }).join('\n');
+  const context = suhbatKonteksti(v);
+  if (!context.xabarlar.length) return "";
+  const note = context.tashlangan || context.qisqartirilgan ? '[PARTIAL CONVERSATION CONTEXT: omitted or shortened content is unknown, do not invent it.]\n' : '[CONVERSATION EXCERPT: do not infer unavailable earlier history.]\n';
+  return note + context.xabarlar.map(x => JSON.stringify({role:x.rol,content:x.matn})).join('\n');
 }

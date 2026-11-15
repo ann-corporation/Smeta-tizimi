@@ -22,14 +22,57 @@ describe('agent sikli (tool-calling brauzerda)', () => {
     expect(qadam).toHaveBeenCalledWith(expect.objectContaining({ matn: expect.stringContaining('beton') }));
     expect(r.ok && r.amallar.map((a) => a.ogoh)).toEqual([null, 'Qator topilmadi']);
   });
-  it('takror so‘rov bajarilmaydi; oxirgi aylanishda server «oxirgi» bilan chaqiriladi', async () => {
+  it('takroriy o‘qishdan keyin asossiz amallarni muvaffaqiyat deb qaytarmaydi', async () => {
     api.suhbat.mockResolvedValue(javob({ oqish: [{ vosita: 'holat', arg: null }] }));
     const oqi = vi.fn(async () => 'h');
     const r = await agentSikli({ kompaniyaId: 17, xabarlar: [{ rol: 'user', matn: '?' }], vositalar: vositalar(oqi) });
     expect(oqi).toHaveBeenCalledTimes(1);
     expect(api.suhbat).toHaveBeenCalledTimes(2);
-    expect(r.ok).toBe(true);
+    expect(r).toEqual({ ok: false, code: 'AYLANISH_TUGADI' });
     expect(MAX_AYLANISH).toBeGreaterThanOrEqual(3);
+  });
+  it('boshlanishidayoq bekor qilingan bo‘lsa provider chaqirilmaydi', async () => {
+    const r = await agentSikli({ kompaniyaId: 17, xabarlar: [], vositalar: vositalar(), tirikmi: () => false });
+    expect(r).toEqual({ ok: false, code: 'BEKOR' });
+    expect(api.suhbat).not.toHaveBeenCalled();
+  });
+  it('provider javobidan keyin bekor qilinsa o‘qish vositasi chaqirilmaydi', async () => {
+    let tirik = true;
+    api.suhbat.mockImplementation(async () => { tirik = false; return javob({ oqish: [{ vosita: 'holat' }] }); });
+    const oqi = vi.fn(async () => 'h');
+    const r = await agentSikli({ kompaniyaId: 17, xabarlar: [], vositalar: vositalar(oqi), tirikmi: () => tirik });
+    expect(r).toEqual({ ok: false, code: 'BEKOR' });
+    expect(api.suhbat).toHaveBeenCalledTimes(1);
+    expect(oqi).not.toHaveBeenCalled();
+  });
+  it('o‘qish vaqtida bekor qilinsa boshqa o‘qish va provider chaqirilmaydi', async () => {
+    let tirik = true;
+    api.suhbat.mockResolvedValue(javob({ oqish: [{ vosita: 'qidir', arg: 'bir' }, { vosita: 'qidir', arg: 'ikki' }] }));
+    const oqi = vi.fn(async () => { tirik = false; return 'natija'; });
+    const r = await agentSikli({ kompaniyaId: 17, xabarlar: [], vositalar: vositalar(oqi), tirikmi: () => tirik });
+    expect(r).toEqual({ ok: false, code: 'BEKOR' });
+    expect(oqi).toHaveBeenCalledTimes(1);
+    expect(api.suhbat).toHaveBeenCalledTimes(1);
+  });
+  it('oxirgi aylanishdagi bajarilmagan o‘qishni bajarilgan deb ko‘rsatmaydi', async () => {
+    let n = 0;
+    api.suhbat.mockImplementation(async () => {
+      return javob({ oqish: [{ vosita: 'qidir', arg: `so‘rov-${n++}` }] });
+    });
+    const oqi = vi.fn(async () => 'natija');
+    const r = await agentSikli({ kompaniyaId: 17, xabarlar: [], vositalar: vositalar(oqi) });
+    expect(r).toEqual({ ok: false, code: 'AYLANISH_TUGADI' });
+    expect(api.suhbat).toHaveBeenCalledTimes(MAX_AYLANISH);
+    expect(oqi).toHaveBeenCalledTimes(MAX_AYLANISH - 1);
+    expect(api.suhbat.mock.calls[MAX_AYLANISH - 1][5]).toBe(true);
+  });
+  it('bir javob ichidagi ayni o‘qish faqat bir marta bajariladi', async () => {
+    const sorov = { vosita: 'holat', arg: null };
+    api.suhbat.mockResolvedValueOnce(javob({ oqish: [sorov, sorov] })).mockResolvedValueOnce(javob({ javob: 'Tayyor' }));
+    const oqi = vi.fn(async () => 'h');
+    const r = await agentSikli({ kompaniyaId: 17, xabarlar: [], vositalar: vositalar(oqi) });
+    expect(oqi).toHaveBeenCalledTimes(1);
+    expect(r.ok && r.javob).toBe('Tayyor');
   });
   it('server xatosi qaytariladi, vosita chaqirilmaydi', async () => {
     api.suhbat.mockResolvedValue({ ok: false, code: 'BYUDJET_YOQ' });
@@ -37,4 +80,11 @@ describe('agent sikli (tool-calling brauzerda)', () => {
     const r = await agentSikli({ kompaniyaId: 17, xabarlar: [{ rol: 'user', matn: '?' }], vositalar: vositalar(oqi) });
     expect(r).toEqual({ ok: false, code: 'BYUDJET_YOQ', message: undefined }); expect(oqi).not.toHaveBeenCalled();
   });
+});
+
+it('failed reading cannot become an actionable model success',async()=>{
+ api.suhbat.mockResolvedValueOnce(javob({oqish:[{vosita:'holat',arg:null}]}));
+ const oqi=vi.fn(async()=>{throw new Error('offline');});
+ const result=await agentSikli({kompaniyaId:17,xabarlar:[],vositalar:vositalar(oqi)});
+ expect(result).toEqual({ok:false,code:'OQISH_XATO'});expect(api.suhbat).toHaveBeenCalledTimes(1);
 });

@@ -36,10 +36,11 @@ describe('sahifa_suhbat (fakt/F2 AI yordamchisi)', () => {
     expect(m.ai.mock.calls[0][4]).toBe('f2_yordam');
     expect(j.amallar.map((a: { tur: string }) => a.tur)).toEqual(['narx']);
   });
-  it('oxirgi aylanishda o‘qish so‘rovi qaytmaydi', async () => {
-    m.ai.mockResolvedValue(javob({ javob: 'Javob', savollar: [], oqish: [{ vosita: 'qidir', arg: 'beton' }], amallar: [] }));
-    const j = await js(await run({ oxirgi: true }));
-    expect(j.oqish).toEqual([]); expect(m.ai.mock.calls[0][5].text).toContain('oxirgi aylanish');
+  it('oxirgi aylanishda yetishmagan dalil muvaffaqiyat sifatida berilmaydi', async () => {
+    m.ai.mockResolvedValue(javob({ javob: 'Javob', savollar: [], oqish: [{ vosita: 'qidir', arg: 'beton' }], amallar: [{ tur: 'fakt_hajm', qator: 12, qiymat: '+5', izoh: 'unverified' }] }));
+    const response = await run({ oxirgi: true });
+    const j = await js(response);
+    expect(response.status).toBe(422); expect(j.ok).toBe(false); expect(j.code).toBe('AYLANISH_TUGADI'); expect(j.amallar).toBeUndefined(); expect(m.ai.mock.calls[0][5].text).toContain('oxirgi aylanish');
   });
   it('byudjet yo‘q — 402, model javobi yo‘q', async () => {
     m.ai.mockRejectedValue(new m.Xato('BYUDJET_YOQ', 'limit yo‘q'));

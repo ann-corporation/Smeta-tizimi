@@ -355,7 +355,7 @@ async function kasbQuvur(env: Env, actor: number, kid: number, so: Yuk, log: (be
   if (bilim) qd('📚', 'Tizim bilimi qo‘shildi: savolga tegishli atama va sahifa mantiqi');
   const uslubB = uslubBolimi(uslubXus, uslubKorsatma, uslubOchiq);
   if (uslubB) qd('🎨', 'Sizning uslubingizga moslashtirilmoqda (Sozlamalar → Mening AI ishchim)');
-  /* Suhbat tarixi («uni», «shu obyektda», «yana bitta»): oxirgi ≤6 xabar, har biri ≤500 belgi; ma'lumot sifatida (ko'rsatma emas). */
+  /* Suhbat tarixi («uni», «shu obyektda», «yana bitta»): boshlang‘ich maqsad + so‘nggi xabarlar, umumiy qat’iy hajm limiti; ma’lumot sifatida (ko‘rsatma emas). */
   const tarixMatni = suhbatTarixi(so.tarix);
   const kimB = kimPromptBloki(kimMendan(men?.ok ? (men.data as never) : { context_kompaniyalar: [{ kompaniya_id: kid, nom: '', effective_role: kasb.rol }] }, kid, { til: til === 'auto' ? null : til, sahifa: sahifaYoli, obyektNomi: matn(so.obyekt_nomi, 120) }));
   const xotiraB = xotiraBloklari(xotira);
