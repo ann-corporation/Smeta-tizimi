@@ -69,6 +69,8 @@ class AppLockController(
     suspend fun unlockWithPin(pin: String): QulfOutcome {
         val r = repo.verifyPin(pin)
         if (r.ok) { state.unlock(); _locked.value = false }
+        else if (r.releasesLock) { prefs.save(false, prefs.timeoutMin()); unlockLocal(); refresh() } // safety valve: never trap the user behind a lock the server cannot verify
+        else if (!r.network) refresh() // attempts left / block countdown
         return r
     }
     fun unlockLocal() { state.unlock(); _locked.value = false }
@@ -86,6 +88,8 @@ class AppLockController(
     suspend fun stepUpWithPin(pin: String): QulfOutcome {
         val r = repo.verifyPin(pin)
         if (r.ok) completeStepUp(true)
+        else if (r.releasesLock) completeStepUp(false)
+        else if (!r.network) refresh()
         return r
     }
 

@@ -96,3 +96,31 @@ class QulfRepositoryTest {
         assertEquals("60", (f.calls[0].third as JsonObject)["daq"]!!.jsonPrimitive.content)
     }
 }
+@OptIn(ExperimentalCoroutinesApi::class)
+class QulfPinLockTest {
+    private val tasdiq = TasdiqStore()
+    private fun repo(vararg a: ApiResult) = FakeBff(ArrayDeque(a.toList())).let { it to QulfRepository(it, tasdiq) }
+
+    @Test fun stateCarriesPinLengthAndAttempts() = runTest {
+        val (_, r) = repo(ok("""{"ok":true,"pin_bor":true,"pin_uzunlik":4,"qolgan_urinish":3,"pin_kalit_boshqa":false,"bosh_vaqt_daq":10,"kalitlar":[],"rejim":"pin","talab":true,"usullar":["pin"]}"""))
+        val s = r.state()!!
+        assertEquals(4, s.pinLength); assertEquals(3, s.attemptsLeft); assertFalse(s.keyMismatch); assertTrue(s.enabled)
+    }
+    @Test fun legacyHashHasUnknownLength() = runTest {
+        val (_, r) = repo(ok("""{"ok":true,"pin_bor":true,"pin_uzunlik":null,"bosh_vaqt_daq":10,"kalitlar":[]}"""))
+        assertNull(r.state()!!.pinLength)
+    }
+    @Test fun pinUnderAnotherServerKeyDoesNotEnableTheLock() = runTest {
+        val (_, r) = repo(ok("""{"ok":true,"pin_bor":true,"pin_kalit_boshqa":true,"bosh_vaqt_daq":10,"kalitlar":[]}"""))
+        assertFalse(r.state()!!.enabled)
+    }
+    @Test fun lockReleasesOnPinYoqKeyMismatchAndServerErrors() = runTest {
+        for ((st, body) in listOf(409 to """{"ok":false,"code":"PIN_YOQ"}""", 409 to """{"ok":false,"code":"PIN_KALIT_BOSHQA"}""", 501 to """{"ok":false,"code":"QULF_YOQ"}""", 503 to """{"ok":false,"code":"QULF_UNAVAILABLE"}""")) {
+            val (_, r) = repo(err(st, body))
+            assertTrue("$st $body", r.verifyPin("1902").releasesLock)
+        }
+        val (_, r1) = repo(err(401, """{"ok":false,"code":"PIN_NOTOGRI"}""")); assertFalse(r1.verifyPin("1111").releasesLock)
+        val (_, r2) = repo(err(429, """{"ok":false,"code":"BLOKLANGAN"}""")); assertFalse(r2.verifyPin("1111").releasesLock)
+        val (_, r3) = repo(ApiResult(0, null)); assertFalse(r3.verifyPin("1111").releasesLock)
+    }
+}

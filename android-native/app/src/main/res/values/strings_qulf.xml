@@ -38,4 +38,8 @@
     <string name="qulf_bio_added">Biometrik bog\'landi.</string>
     <string name="qulf_bio_remove">Biometrikni o\'chirish</string>
     <string name="qulf_bio_removed">Biometrik o\'chirildi.</string>
+    <string name="qulf_pin_blocked_min">Juda ko\'p urinish. %1$d daqiqadan keyin urinib ko\'ring.</string>
+    <string name="qulf_attempts_left">Qolgan urinishlar: %1$d</string>
+    <string name="qulf_forgot_pin">PIN esdan chiqdi</string>
+    <string name="qulf_sign_out">Chiqish</string>
 </resources>

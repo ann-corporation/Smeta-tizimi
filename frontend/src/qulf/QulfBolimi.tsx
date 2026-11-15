@@ -17,6 +17,7 @@ const XATO: Record<string, string> = {
   QAYTA_KIRISH_KERAK: 'Xavfsizlik uchun tizimga qayta kiring.',
   STEP_UP_KERAK: 'Avval PIN yoki biometrik bilan tasdiqlang.',
   QULF_YOQ: 'Xavfsizlik moduli hali yoqilmagan.',
+  PIN_KALIT_BOSHQA:'PIN boshqa muhitda o\'rnatilgan. Qayta kirib, yangi PIN o\'rnating.',
   BEKOR: 'Bekor qilindi',
 };
 const xabarOl = (r: QulfJavob) => (r.code && XATO[r.code] ? t(XATO[r.code]) : r.error ? t(r.error) : t('Amalni bajarib bo‘lmadi. Qayta urinib ko‘ring.'));
@@ -88,6 +89,8 @@ export function QulfBolimi() {
           <button type="button" className="fz-btn fz-btn--primary" disabled={band || !sozlash} onClick={() => void pinSaqla()}><KeyRound size={14} aria-hidden="true" /> {h.pin_bor ? t('PIN ni almashtirish') : t('PIN o‘rnatish')}</button>
           {h.pin_bor && <button type="button" className="fz-btn" disabled={band || eski.length < PIN_MIN} onClick={() => void pinOchir()}>{t('PIN ni o‘chirish')}</button>}
         </div>
+        {h.pin_bor && <Nota tur="info">{t('PIN esdan chiqdimi? Tizimdan chiqib, qayta kiring va 10 daqiqa ichida shu yerda yangi PIN kiriting: eski PIN so\'ralmaydi.')}</Nota>}
+        {h.pin_kalit_boshqa && <Nota tur="warn">{t('PIN boshqa muhitda o\'rnatilgan. Qayta kirib, yangi PIN o\'rnating.')}</Nota>}
         {h.pin_holat === 'BLOKLANGAN' && <Nota tur="warn">{t('Juda ko‘p urinish. 15 daqiqadan keyin urinib ko‘ring.')}</Nota>}
         {h.pin_holat === 'QAYTA_KIRISH_KERAK' && <Nota tur="warn">{t('Xavfsizlik uchun tizimga qayta kiring.')}</Nota>}
       </Karta>

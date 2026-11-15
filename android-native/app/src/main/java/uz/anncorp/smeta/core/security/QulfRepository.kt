@@ -17,10 +17,15 @@ data class QulfDevice(val id: Long, val kind: String, val name: String?)
 data class QulfState(
     val pinSet: Boolean, val timeoutMin: Int, val devices: List<QulfDevice>, val mode: String,
     val required: Boolean, val methods: List<String>, val pinStatus: String, val secondsLeft: Int,
-) { val enabled get() = pinSet || devices.isNotEmpty() }
+    /** Digits of the stored PIN (server `pin_uzunlik`; null = unknown/legacy), attempts left before the 15 min block, and whether the PIN was set under another server key (can never match). */
+    val pinLength: Int? = null, val attemptsLeft: Int = 5, val keyMismatch: Boolean = false,
+) { val enabled get() = (pinSet && !keyMismatch) || devices.isNotEmpty() }
 
 /** Outcome of a /api/qulf call. [code] is the server code (PIN_NOTOGRI, BLOKLANGAN, QAYTA_KIRISH_KERAK, STEP_UP_KERAK, ...). */
-data class QulfOutcome(val ok: Boolean, val code: String? = null, val secondsLeft: Int = 0, val network: Boolean = false)
+data class QulfOutcome(val ok: Boolean, val code: String? = null, val secondsLeft: Int = 0, val network: Boolean = false, val status: Int = 0) {
+    /** The server says no PIN lock can work for this user (no PIN / PIN under another key / module missing / server error): the lock must release, never trap. */
+    val releasesLock get() = !ok && !network && (code == "PIN_YOQ" || code == "PIN_KALIT_BOSHQA" || status == 501 || status == 404 || status >= 500)
+}
 data class DeviceChallenge(val challengeToken: String, val challenge: String, val credentialIds: List<String> = emptyList())
 
 /**
@@ -45,6 +50,7 @@ class QulfRepository(private val api: BffApi, private val tasdiq: TasdiqStore) {
             mode = o["rejim"]?.asStr() ?: "pin", required = o["talab"]?.asBool() == true,
             methods = (o["usullar"] as? JsonArray).orEmpty().mapNotNull { it.asStr() },
             pinStatus = o["pin_holat"]?.asStr() ?: "ok", secondsLeft = o["qolgan_soniya"]?.asInt() ?: 0,
+            pinLength = o["pin_uzunlik"]?.asInt()?.takeIf { it in 4..6 }, attemptsLeft = o["qolgan_urinish"]?.asInt() ?: 5, keyMismatch = o["pin_kalit_boshqa"]?.asBool() == true,
         )
     }
 
@@ -77,7 +83,7 @@ class QulfRepository(private val api: BffApi, private val tasdiq: TasdiqStore) {
 
     private fun ApiResult.outcome(): QulfOutcome = QulfOutcome(
         ok = ok && (body as? JsonObject)?.get("ok")?.asBool() != false, code = code,
-        secondsLeft = (body as? JsonObject)?.get("qolgan_soniya")?.asInt() ?: 0, network = networkError,
+        secondsLeft = (body as? JsonObject)?.get("qolgan_soniya")?.asInt() ?: 0, network = networkError, status = status,
     )
 
     companion object {

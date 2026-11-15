@@ -4,7 +4,7 @@
  */
 import { base64url, unbase64url } from './desktop-device';
 import {
-  chaqiriqTekshir, chaqiriqYarat, ecImzoTekshir, ecSpkiImport, kredensialIdDan, pinHolat, pinTekshir, pinXesh, PIN_RE, qabulUsullar, qurilmaXabar,
+  chaqiriqTekshir, chaqiriqYarat, ecImzoTekshir, ecSpkiImport, kredensialIdDan, pinHolat, pinKalitBoshqa, pinUzunlikOl, BLOK_XATO, pinTekshir, pinXesh, PIN_RE, qabulUsullar, qurilmaXabar,
   rejimYaroqli, sha256, tasdiqTekshir, tasdiqYarat, yangiKirishmi, zaifPin, CHAQIRIQ_MS, type ChaqiriqMaqsad, type QulfQator, type Rejim, type Talab, type TasdiqYuk,
 } from './qulf';
 import { kirishTekshir, regTekshir } from './qulf-webauthn';
@@ -67,6 +67,8 @@ async function pinSinov(k: Kontekst, pin: unknown): Promise<Javob | null> {
   if (!h.ok) return h.code === 'PIN_YOQ' ? xato(409, 'PIN_YOQ', 'PIN o\'rnatilmagan.')
     : h.code === 'QAYTA_KIRISH_KERAK' ? xato(423, 'QAYTA_KIRISH_KERAK', 'Xavfsizlik uchun tizimga qayta kiring.')
     : xato(429, 'BLOKLANGAN', BLOKLANGAN, { qolgan_soniya: h.qolgan_soniya });
+  /* PIN boshqa server kaliti (preview/production SESSIYA_KALIT farqi yoki almashtirilgan kalit) bilan yozilgan: hech qachon mos kelmaydi -- urinish SANALMAYDI, foydalanuvchi qulflanib qolmaydi. */
+  if (await pinKalitBoshqa(q!.pin_hash, k.kalit)) return xato(409, 'PIN_KALIT_BOSHQA', 'PIN boshqa muhitda o\'rnatilgan. Qayta kirib, yangi PIN o\'rnating.');
   const togri = typeof pin === 'string' && await pinTekshir(pin, k.uid, k.kalit, q!.pin_hash);
   const r = await k.store.urinish(k.uid, togri);
   if (togri) return null;
@@ -81,7 +83,7 @@ export async function qulfAmal(k: Kontekst, amal: string, b: Record<string, unkn
       const [q, kl, talab] = await Promise.all([k.store.holat(k.uid), k.store.kalitlar(k.uid), k.store.talab(k.uid, null)]);
       const h = pinHolat(q, k.iat, k.hozir);
       return ok({
-        pin_bor: !!q?.pin_hash, bosh_vaqt_daq: q?.bosh_vaqt_daq ?? 10, kalitlar: bosh(kl), rejim: talab.rejim, talab: talab.talab,
+        pin_bor: !!q?.pin_hash, pin_uzunlik: pinUzunlikOl(q?.pin_hash), qolgan_urinish: Math.max(0, BLOK_XATO - (q?.xato_soni ?? 0)), pin_kalit_boshqa: await pinKalitBoshqa(q?.pin_hash, k.kalit), bosh_vaqt_daq: q?.bosh_vaqt_daq ?? 10, kalitlar: bosh(kl), rejim: talab.rejim, talab: talab.talab,
         usullar: qabulUsullar(talab.rejim, talab),
         pin_holat: h.ok ? 'ok' : h.code, qolgan_soniya: !h.ok && h.code === 'BLOKLANGAN' ? h.qolgan_soniya : 0,
         tasdiq_bor: !!(await joriyTasdiq(k)),
@@ -99,7 +101,8 @@ export async function qulfAmal(k: Kontekst, amal: string, b: Record<string, unkn
       if (zaifPin(yangi)) return xato(400, 'PIN_ZAIF', 'PIN juda oson (0000, 1234 kabi). Boshqasini tanlang.');
       const q = await k.store.holat(k.uid);
       if (q?.pin_hash) {
-        if (b.eski !== undefined && b.eski !== null && b.eski !== '') { const r = await pinSinov(k, b.eski); if (r) return r; }
+        const boshqaKalit = await pinKalitBoshqa(q.pin_hash, k.kalit); // eski PIN tekshirib bo'lmaydi -- faqat yangi to'liq kirish yo'li
+        if (!boshqaKalit && b.eski !== undefined && b.eski !== null && b.eski !== '') { const r = await pinSinov(k, b.eski); if (r) return r; }
         else {
           /* Eski PIN esdan chiqqan: faqat yangi to'liq kirishdan keyin (sessiya 10 daqiqadan eski emas) va u 10-xato blokidan KEYIN chiqarilgan. */
           const qk = q.qayta_kirish_vaqti ? Date.parse(q.qayta_kirish_vaqti) : 0;
