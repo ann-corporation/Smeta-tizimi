@@ -1,0 +1,11 @@
+{
+  "sana": "2026-11-15",
+  "sarlavha": "QURAI Android 0.1.2 — smeta daraxti, minus hajm, Rahbar paneli, kuchli Jarvis",
+  "bandlar": [
+    "Obyekt smetasi endi saytdagidek ierarxiyada ochiladi: bo'lim → ish → resurslar (ishchi, material, mashina); bo'limlarni yig'ish/ochish, qidiruvda bo'lim yo'li saqlanadi.",
+    "Fakt kiritishda minus hajm (normaga keltirish) qabul qilinadi; jami noldan tushsa ogohlantiradi.",
+    "Rahbar paneli: kompaniya jami (QQS bilan, ustamali, ustamasiz), fakt va F-2 foizi, to'lov va qarzlar, tasdiq kutayotganlar, obyekt kartalari.",
+    "Jarvis saytdagi bilan bir xil: «shu obyekt» ni tushunadi, nakrutka/QQS bilan summani bazadan aniq aytadi; suhbatlar sayt va ilovada bir xil.",
+    "PIN-kod va barmoq izi / yuz bilan qulf (kompaniya sozlamasi yoqilgach)."
+  ]
+}
