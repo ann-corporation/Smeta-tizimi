@@ -68,3 +68,12 @@ Room + SQLCipher cache (key wrapped by Keystore), FTS4 row search, draft batch, 
 - Approvals: inbox, detail, approve / return / reject with confirm dialog, online only; the chain is re-read before sending so a changed step is never approved by mistake.
 - Today: pending approvals, F-2 / fact drafts (executive roles), unsent records, last 5 notifications with mark-read.
 - Sign-out asks first when records are unsent (send now / keep / delete). Room schema v2 (section column) has a real migration.
+
+
+## P3 (self sign-up, onboarding, module hub)
+
+- Sign-up uses the shared server endpoints (royxat-email-kod -> royxat-ozi -> kirish; Google/Telegram already create company-less accounts; invitation by /taklif link or phone + 8-digit code via kirish-taklif 'qabul'). Phone + password sign-in is the normal login field (server flag KIRISH_TELEFON_YOQILGAN).
+- Company-less accounts get an onboarding screen: create a company (company ozi_och), join by code (ish-joyi qoshil), or continue without one.
+- Hub (tab Ilovalar): modules gated by t2_men_v1 permissions + modul_holat_v1 (mirrors the website catalogue). Picks/order are stored server-side via /api/modullarim (migration supabase/migrations/20261224000000_t2_modul_tanlov_v1.sql, NOT applied; the app falls back to a local copy until it is). Web-only modules open in an authenticated WebView through a 30 s one-time ticket (/api/mobil/web-bilet -> /api/mobil/web-kirish, 8 h cookie, wiped on leaving the screen).
+- Warehouse slot: Features.NATIVE_WAREHOUSE (core/data/Modules.kt), off until the ombor branch merges.
+- Debug demo: nowork.flag simulates a company-less account.
