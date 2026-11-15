@@ -1,0 +1,19 @@
+{
+  "Kompaniya kontekstini o‘qish": { "ru": "Чтение контекста компании", "en": "Read company context" },
+  "A’zoliklarni o‘qish": { "ru": "Чтение членств", "en": "Read memberships" },
+  "Ruxsatlarni tahlil qilish": { "ru": "Анализ разрешений", "en": "Analyze permissions" },
+  "To‘lovni tayyorlash": { "ru": "Подготовка платежа", "en": "Prepare payment" },
+  "Muddati o‘tgan, to‘lanmagan": { "ru": "Просрочено, не оплачено", "en": "Overdue, unpaid" },
+  "Ustama manbasi": { "ru": "Источник накрутки", "en": "Markup source" },
+  "Muddat tugadi": { "ru": "Срок истёк", "en": "Deadline passed" },
+  "AI sarfi": { "ru": "Расход ИИ", "en": "AI usage" },
+  "Ombor kirimi": { "ru": "Приход на склад", "en": "Warehouse receipt" },
+  "To‘lov majburiyatlari": { "ru": "Платёжные обязательства", "en": "Payment obligations" },
+  "Ish haqi": { "ru": "Заработная плата", "en": "Payroll" },
+  "Rahbar bosh ko‘rinishi": { "ru": "Стартовая сводка руководителя", "en": "Executive overview" },
+  "Ombor kirim hujjati": { "ru": "Приходный складской документ", "en": "Warehouse receipt document" },
+  "Resurs vedomosti (RES)": { "ru": "Ресурсная ведомость (РЕС)", "en": "Resource statement (RES)" },
+  "LRV": { "ru": "ЛРВ", "en": "LRV" },
+  "Hujjat saqlandi": { "ru": "Документ сохранён", "en": "Document stored" },
+  "Akt podvalini yozish": { "ru": "Запись подвала акта", "en": "Write act footer" }
+}

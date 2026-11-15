@@ -17,6 +17,11 @@ import { ZANJIR_YOL, zanjirHisobla, zanjirKirishYasa, zanjirRolKoradi, type Qada
  */
 export type ZanjirBelgi = ZanjirQadamId;
 
+/* Telefon (<768px): 8 qadam birinchi ekranni to'ldirmasin — BITTA qatorli yon-aylantiriladigan lenta (snap).
+ * Desktop: qadamlar o'raladi; izoh 2 qatorgacha (to'liq matn aria-label/title da). */
+const ZANJIR_OL = 'm-0 flex min-w-0 list-none flex-wrap gap-1.5 p-0 max-md:flex-nowrap max-md:snap-x max-md:snap-mandatory max-md:overflow-x-auto max-md:pb-1';
+const ZANJIR_LI = 'min-w-0 flex-1 basis-[7.5rem] max-md:shrink-0 max-md:basis-[9.5rem] max-md:snap-start';
+
 const IKONKA: Record<QadamHolat, ComponentType<{ className?: string; 'aria-hidden'?: boolean }>> = { done: Check, current: ArrowRight, blocked: AlertTriangle, not_started: CircleDashed, unknown: HelpCircle };
 const HOLAT_NOMI: Record<QadamHolat, () => string> = {
   done: () => t('Bajarilgan'), current: () => t('Hozir'), blocked: () => t('Diqqat'), not_started: () => t('Navbatda'), unknown: () => t('Noma‘lum'),
@@ -73,16 +78,17 @@ function Chizig({ obyektId: id, joriy, aosr, qoshimcha }: { obyektId: number; jo
 
   return (
     <nav aria-label={t('Ish zanjiri')} data-testid="zanjir-chizigi" className="flex min-w-0 flex-col gap-2">
-      <ol className="m-0 flex min-w-0 list-none flex-wrap gap-1.5 p-0">
+      <ol className={ZANJIR_OL}>
         {natija.qadamlar.map((q, i) => {
           const faol = joriy === q.id;
           const tavsiya = keyingi?.id === q.id;
           const Ikonka = IKONKA[q.holat];
           return (
-            <li key={q.id} className="min-w-0 flex-1 basis-[7.5rem]" data-holat={q.holat}>
+            <li key={q.id} className={ZANJIR_LI} data-holat={q.holat}>
               <Link
                 to={havola(q.id)}
                 aria-current={faol ? 'step' : undefined}
+                aria-label={`${i + 1}. ${q.nom} — ${q.izoh}`}
                 title={`${q.nom} — ${q.izoh}`}
                 data-testid={`zanjir-qadam-${q.id}`}
                 className={`flex h-full min-h-[44px] min-w-0 flex-col justify-center gap-0.5 rounded-lg border px-2 py-1.5 text-sm no-underline transition-colors hover:border-accent/60 ${HOLAT_SINF[q.holat]} ${faol ? 'ring-2 ring-accent/60' : ''} ${tavsiya ? 'font-semibold' : ''}`}
@@ -92,7 +98,7 @@ function Chizig({ obyektId: id, joriy, aosr, qoshimcha }: { obyektId: number; jo
                   <span className="min-w-0 truncate font-semibold">{q.nom}</span>
                   <span className="ml-auto shrink-0" role="img" aria-label={HOLAT_NOMI[q.holat]()}><Ikonka aria-hidden className="h-3.5 w-3.5" /></span>
                 </span>
-                <span className="min-w-0 truncate text-xs leading-tight opacity-80" data-testid={`zanjir-izoh-${q.id}`}>{q.izoh}</span>
+                <span className="min-w-0 text-xs leading-tight opacity-80 line-clamp-2" data-testid={`zanjir-izoh-${q.id}`}>{q.izoh}</span>
               </Link>
             </li>
           );
@@ -125,14 +131,14 @@ function KompaniyaChizig({ joriy, search }: { joriy: ZanjirBelgi | null; search:
   const natija = zanjirHisobla(zanjirKirishYasa({ obyekt: null, aktlar: null, oy: bugungiOy() }));
   return (
     <nav aria-label={t('Ish zanjiri')} data-testid="zanjir-chizigi" className="flex min-w-0 flex-col gap-2">
-      <ol className="m-0 flex min-w-0 list-none flex-wrap gap-1.5 p-0">
+      <ol className={ZANJIR_OL}>
         {natija.qadamlar.map((q, i) => {
           const Ikonka = IKONKA.unknown;
           const p = new URLSearchParams(search);
           if (q.id === 'tolov') p.set('tab', 'tolov');
           const s = p.toString();
           return (
-            <li key={q.id} className="min-w-0 flex-1 basis-[7.5rem]" data-holat="unknown">
+            <li key={q.id} className={ZANJIR_LI} data-holat="unknown">
               <Link to={{ pathname: ZANJIR_YOL[q.id], search: s ? `?${s}` : '', hash: q.id === 'slichitelniy' ? '#slichitelniy' : '' }} aria-current={joriy === q.id ? 'step' : undefined} data-testid={`zanjir-qadam-${q.id}`}
                 title={`${q.nom} — ${t('Obyekt tanlang')}`}
                 className={`flex h-full min-h-[44px] min-w-0 flex-col justify-center gap-0.5 rounded-lg border px-2 py-1.5 text-sm no-underline transition-colors hover:border-accent/60 ${HOLAT_SINF.unknown} ${joriy === q.id ? 'ring-2 ring-accent/60' : ''}`}>

@@ -46,7 +46,7 @@ export function ResursChiqarishModal({ kompaniyaId, obyektId, sana, qator, onYop
   };
 
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[color-mix(in_srgb,var(--bg)_72%,transparent)] p-4" role="dialog" aria-modal="true" aria-label={t('Resursni ishdan chiqarish')} onKeyDown={tugma}>
-    <div className="karta w-full max-w-md space-y-3 p-4 text-[12px]">
+    <div className="karta max-h-[92vh] w-full max-w-md space-y-3 overflow-y-auto p-4 text-[12px]">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0"><h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-text"><MinusCircle size={15} className="text-danger" aria-hidden="true" />{t('Resursni ishdan chiqarish')}</h3>
           <p className="truncate text-text-dim" title={qator.nom}>{qator.kod ? `${qator.kod} ` : ''}{qator.nom}</p>
