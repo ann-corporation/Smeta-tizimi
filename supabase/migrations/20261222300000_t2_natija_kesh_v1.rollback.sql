@@ -1,4 +1,4 @@
--- Rollback: 20261222200000_t2_natija_kesh_v1. Ochiq funksiyalar, _t2_kesh_hisobla_v1 va t2_obyekt_kesh_yangila_v1 ni oldingi prod ta'rifiga qaytaradi,
+-- Rollback: 20261222300000_t2_natija_kesh_v1. Ochiq funksiyalar, _t2_kesh_hisobla_v1 va t2_obyekt_kesh_yangila_v1 ni oldingi prod ta'rifiga qaytaradi,
 -- triggerlar va kesh jadvalini o'chiradi.
 begin;
 

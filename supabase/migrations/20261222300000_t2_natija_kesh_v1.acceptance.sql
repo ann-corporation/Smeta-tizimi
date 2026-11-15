@@ -1,4 +1,4 @@
--- Qabul (BEGIN..ROLLBACK): 20261222200000_t2_natija_kesh_v1 qo'llangandan KEYIN. Hech narsa saqlanmaydi.
+-- Qabul (BEGIN..ROLLBACK): 20261222300000_t2_natija_kesh_v1 qo'llangandan KEYIN. Hech narsa saqlanmaydi.
 -- 1) Grantlar: kesh jadvali va ichki funksiyalar anon/authenticated ga yopiq.
 -- 2) Har obyekt uchun: keshdan o'qilgan natija == jonli (iflos) natija (jsonb matni bir xil), ikkala funksiya.
 -- 3) Triggerlar: bajarilmadi / o'zgarish yozuvi o'zgarsa obyekt iflos bo'ladi (kesh o'qilmaydi, jonli hisob).
