@@ -120,6 +120,7 @@ fn gateway_request(
                     | "/api/sb-yoz"
                     | "/api/gas"
                     | "/api/obyekt-paket"
+                    | "/api/qulf"
             )
         )
     {
@@ -176,6 +177,7 @@ fn request_path(
             | "/api/sb-yoz"
             | "/api/gas"
             | "/api/obyekt-paket"
+            | "/api/qulf"
             | "/api/desktop/lease"
     ) {
         return Err("DESKTOP_PATH_DENIED");

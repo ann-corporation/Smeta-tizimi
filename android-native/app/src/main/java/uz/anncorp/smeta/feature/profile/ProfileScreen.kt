@@ -52,6 +52,8 @@ fun ProfileScreen(state: HomeState, onTheme: (ThemeMode) -> Unit, onSwitch: () -
             uz.anncorp.smeta.feature.people.UsernameSection(onInvite = onInvite, onInvites = onInvites)
         }
         Spacer(Modifier.height(16.dp))
+        Section(stringResource(R.string.qulf_section)) { uz.anncorp.smeta.feature.lock.QulfSettings() }
+        Spacer(Modifier.height(16.dp))
         Section(stringResource(R.string.profile_language)) {
             val current = AppCompatDelegate.getApplicationLocales().toLanguageTags().substringBefore(',').substringBefore('-').ifBlank { "" }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

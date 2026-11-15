@@ -7,6 +7,13 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.foundation.layout.Box
+import kotlinx.coroutines.delay
+import android.view.WindowManager
+import uz.anncorp.smeta.core.security.AppLockController
+import uz.anncorp.smeta.feature.lock.AppLockLayer
+import uz.anncorp.smeta.feature.lock.ScreenSecurity
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavType
@@ -50,6 +57,12 @@ import javax.inject.Inject
 class MainActivity : AppCompatActivity() {
     @Inject lateinit var prefs: Prefs
     @Inject lateinit var events: AuthEvents
+    @Inject lateinit var lock: AppLockController
+
+    /** QULF: every touch/key counts as activity for the idle lock; background/foreground drive the lock timer. */
+    override fun onUserInteraction() { super.onUserInteraction(); lock.touch() }
+    override fun onStart() { super.onStart(); lock.onStart() }
+    override fun onStop() { lock.onStop(); super.onStop() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,7 +77,19 @@ class MainActivity : AppCompatActivity() {
                     navigationBarStyle = if (dark) SystemBarStyle.dark(bg) else SystemBarStyle.light(light, light),
                 )
             }
-            QuraiTheme(dark) { AppNav(events, if (uz.anncorp.smeta.core.demo.Demo.enabled(this@MainActivity)) HOME else SPLASH) }
+            val q by lock.qulf.collectAsStateWithLifecycle()
+            LaunchedEffect(Unit) { lock.refresh(); while (true) { delay(1000); lock.tick() } }
+            // FLAG_SECURE for the whole app while the lock is on (no screenshots, blank recents thumbnail).
+            LaunchedEffect(q?.enabled, lock.protectScreen) {
+                ScreenSecurity.global = lock.protectScreen
+                if (lock.protectScreen) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE) else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            }
+            QuraiTheme(dark) {
+                Box {
+                    AppNav(events, lock, if (uz.anncorp.smeta.core.demo.Demo.enabled(this@MainActivity)) HOME else SPLASH)
+                    AppLockLayer(lock)
+                }
+            }
         }
     }
 }
@@ -91,11 +116,12 @@ private const val PEOPLE_INVITE = "people/invite"
 private const val PEOPLE_INVITES = "people/invites"
 
 @Composable
-private fun AppNav(events: AuthEvents, start: String) {
+private fun AppNav(events: AuthEvents, lock: AppLockController, start: String) {
     val nav = rememberNavController()
     // Revoked/expired device or explicit sign-out: always back to Login with a clean stack.
     LaunchedEffect(Unit) {
         events.logout.collect {
+            lock.reset()
             nav.navigate(LOGIN) { popUpTo(nav.graph.id) { inclusive = true }; launchSingleTop = true }
         }
     }
@@ -115,6 +141,7 @@ private fun AppNav(events: AuthEvents, start: String) {
             InviteScreen(onBack = { nav.popBackStack() }, onSignedIn = { nav.navigate(HOME) { popUpTo(LOGIN) { inclusive = true } } })
         }
         composable(HOME) {
+            LaunchedEffect(Unit) { lock.refresh() }
             HomeScreen(
                 onOpenObject = { nav.navigate("object/$it") }, onOpenFakt = { nav.navigate("fakt/$it") },
                 onOpenApproval = { nav.navigate("approval/$it") }, onOutbox = { nav.navigate(OUTBOX) },
