@@ -9,7 +9,7 @@ const ochish = (yol: string, foydalanuvchi: string | null = 'pto@misol.uz') => r
 );
 const karta = () => screen.queryByTestId('qollanma-karta');
 
-beforeEach(() => { try { localStorage.clear(); } catch { /* */ } _qollanmaXotirasiniTozala(); });
+beforeEach(() => { try { localStorage.clear(); sessionStorage.clear(); } catch { /* */ } _qollanmaXotirasiniTozala(); });
 afterEach(cleanup);
 
 describe('QollanmaBoshqaruv — birinchi tashrifda bir marta', () => {
@@ -42,11 +42,34 @@ describe('QollanmaBoshqaruv — birinchi tashrifda bir marta', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(karta()).toBeNull();
     cleanup();
-    _qollanmaXotirasiniTozala();                              // sahifa qayta yuklandi
+    ochish('/admin/f2-tarix');                                // sessiya davomida (qayta yuklash ham) yana chiqmaydi
+    expect(karta()).toBeNull();
+    cleanup();
+    sessionStorage.clear(); _qollanmaXotirasiniTozala();      // yangi sessiya
     ochish('/admin/f2-tarix');
     expect(karta()).not.toBeNull();
     fireEvent.click(screen.getByText('Keyinroq'));
     expect(karta()).toBeNull();
+    cleanup();
+    ochish('/admin/f2-tarix');
+    expect(karta()).toBeNull();
+    expect(JSON.parse(sessionStorage.getItem('fz-qollanma-keyinroq') ?? '[]')).toHaveLength(1);
+  });
+
+  it('telefonda avtomatik karta modal emas, yopiladigan chip; chip bosilsa karta ochiladi, yopilsa sessiyada qaytmaydi', () => {
+    const asl = window.matchMedia;
+    window.matchMedia = ((q: string) => ({ matches: true, media: q, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia;
+    try {
+      ochish('/admin/fakt');
+      expect(screen.getByTestId('qollanma-chip')).toBeTruthy();
+      expect(screen.queryByRole('dialog')).toBeNull();
+      fireEvent.click(screen.getByTestId('qollanma-chip-yop'));
+      expect(screen.queryByTestId('qollanma-chip')).toBeNull();
+      cleanup();
+      ochish('/admin/fakt');
+      expect(screen.queryByTestId('qollanma-chip')).toBeNull();
+      expect(karta()).toBeNull();
+    } finally { window.matchMedia = asl; }
   });
 
   it('«Ko‘rsatmang» — avtomatik kartalar butunlay o‘chadi, «?» qoladi', () => {
