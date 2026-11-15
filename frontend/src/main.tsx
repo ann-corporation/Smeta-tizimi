@@ -11,10 +11,8 @@ import { reloadQoriqchisiniTozala, versiyaKuzatuvi } from './_shared/versiya';
 import { ustamaKeshiniUla } from './umumiy/ui/ustama-kesh';
 
 import { swRoyxat } from './lib/usta/sw-register';
-<<<<<<< ours
 import { oflaynBoshlash } from './lib/oflayn';
 import { klaviaturaKorinishiniUla } from './lib/mobil/klaviatura-korinish';
->>>>>>> theirs
 
 kuzatuvniBoshlash();
 // Native qobiqdagi jonli saytda (Windows/Android/iOS/macOS): shifrlangan oflayn kesh + Fakt navbati. Brauzerda hech narsa qilmaydi.

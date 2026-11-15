@@ -31,19 +31,13 @@
     off.hidden = true;
     busy.hidden = false;
     probe().then(function (ok) {
-<<<<<<< ours
-      if (ok) { location.replace(SITE); return; }
+      // Ilova ish quroli: kirgan foydalanuvchi to'g'ridan-to'g'ri ish joyiga; kirmagan bo'lsa /admin «Kirish» ni ko'rsatadi.
+      if (ok) { location.replace(SITE + 'admin'); return; }
       shellBor().then(function (bor) {
-        if (bor) { location.replace(SITE); return; }
+        if (bor) { location.replace(SITE + 'admin'); return; }
         busy.hidden = true;
         off.hidden = false;
       });
-=======
-      // Ilova ish quroli: kirgan foydalanuvchi to'g'ridan-to'g'ri ish joyiga; kirmagan bo'lsa /admin «Kirish» ni ko'rsatadi.
-      if (ok) { location.replace(SITE + 'admin'); return; }
-      busy.hidden = true;
-      off.hidden = false;
->>>>>>> theirs
     });
   }
 
