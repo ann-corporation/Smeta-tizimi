@@ -47,7 +47,11 @@ abstract class AppDb : RoomDatabase() {
 
         /** v2: rows get their section name. The cache refills on the next sync; unsent writes and drafts are untouched. */
         val MIGRATION_1_2 = object : androidx.room.migration.Migration(1, 2) {
-            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) { db.execSQL("ALTER TABLE qator ADD COLUMN bolim TEXT") }
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE qator ADD COLUMN bolim TEXT")
+                // Forget the packet ETags: otherwise the server answers 304 and the cached rows would never get their section.
+                db.execSQL("DELETE FROM meta WHERE `key` LIKE 'paket_etag:%'")
+            }
         }
 
         internal fun loadOrCreateKey(file: File, cipher: SecretCipher, onNewKey: () -> Unit): ByteArray {

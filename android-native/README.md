@@ -60,3 +60,11 @@ Strings: `values/` = Uzbek (default), `values-ru/`, `values-en/`. Per-app locale
 
 Room + SQLCipher cache (key wrapped by Keystore), FTS4 row search, draft batch, WorkManager outbox (FIFO, idempotent by operation_id). Debug-only demo mode: `adb shell run-as uz.anncorp.smeta.debug touch files/demo.flag` (`offline.flag` forces the offline banner); the release build contains only an inert stub.
 
+
+## P2 (photo evidence, approvals, Today)
+
+- Money: every sum is shown QQS-inclusive first plus with and without markup, taken from the server sum packages (ahbar_panel_v1 via /api/sb, same source as the web object card); never derived on the device. Without the financial read right only the markup-free figure is known and the rest shows a dash.
+- Photo evidence: CameraX or gallery, JPEG <= 2 MP / q85, metadata stripped, sha256; queued in the outbox and sent as upload (/api/mobil/yukla, multipart) -> foto-dalil bogla -> optional yangila to a row (same sequence as the Telegram bot). Optional position comes only from the picked image's own EXIF and only after an explicit toggle; the app requests no location permission. CAMERA is requested at runtime.
+- Approvals: inbox, detail, approve / return / reject with confirm dialog, online only; the chain is re-read before sending so a changed step is never approved by mistake.
+- Today: pending approvals, F-2 / fact drafts (executive roles), unsent records, last 5 notifications with mark-read.
+- Sign-out asks first when records are unsent (send now / keep / delete). Room schema v2 (section column) has a real migration.
