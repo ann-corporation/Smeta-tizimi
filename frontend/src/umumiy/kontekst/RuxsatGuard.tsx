@@ -89,12 +89,14 @@ export function RuxsatGuard() {
  */
 const RUXSAT_KESH_PREFIKS = 'fz-ruxsat-ok:';
 const RUXSAT_KESH_TTL_MS = 10 * 60 * 1000;
+// oxlint-disable-next-line react/only-export-components -- test uchun yordamchi, komponent emas
 export function ruxsatKeshOqi(kompaniyaId: number): boolean {
   try {
     const v = Number(sessionStorage.getItem(RUXSAT_KESH_PREFIKS + kompaniyaId));
     return Number.isFinite(v) && v > 0 && Date.now() - v < RUXSAT_KESH_TTL_MS;
   } catch { return false; }
 }
+// oxlint-disable-next-line react/only-export-components -- test uchun yordamchi, komponent emas
 export function ruxsatKeshYoz(kompaniyaId: number, ok: boolean) {
   try {
     if (ok) sessionStorage.setItem(RUXSAT_KESH_PREFIKS + kompaniyaId, String(Date.now()));
