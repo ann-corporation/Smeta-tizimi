@@ -85,3 +85,9 @@ html[data-jarvis-ochiq] .mobil-tab { display: none !important; }
   .mobil-tab__item:focus-visible { outline: 2px solid var(--focus, var(--accent)); outline-offset: -3px; }
 }
 @media print { .mobil-tab { display: none !important; } }
+/* Android ilova ichidagi veb konteyner (lib/app-embed.ts): ilovaning o'z yuqori paneli/pastki navigatsiyasi bor — veb yon menyu va
+ * yuqori panelning takrori yashiriladi, faqat «QURAI · Android» belgisi bir marta qoladi. */
+.os-app-shell[data-embed] :is(.fz-shell-rail, .os-sidebar-backdrop, .mobil-tab, .os-menu-button) { display: none !important; }
+.os-app-shell[data-embed] .os-context-bar > :not([data-yuza]) { display: none !important; }
+.os-app-shell[data-embed] .os-context-bar { min-height: 0; padding-block: 4px; }
+.os-app-shell[data-embed] .os-workspace { padding-bottom: env(safe-area-inset-bottom, 0); }

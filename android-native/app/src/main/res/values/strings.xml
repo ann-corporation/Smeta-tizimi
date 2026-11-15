@@ -381,4 +381,19 @@
     <string name="hub_kpi_paid">To\'langan</string>
     <string name="hub_kpi_problems">Muammoli</string>
     <string name="hub_kpi_approvals">Tasdiq kutmoqda</string>
+    <!-- Barcha modullar (server-driven catalogue) + in-app web container -->
+    <string name="hub_all_modules">Barcha modullar</string>
+    <string name="hub_all_modules_hint">Tizimdagi barcha sahifalar: ilovada yoki sayt ichida ochiladi</string>
+    <string name="am_search">Modul yoki sahifa qidirish</string>
+    <string name="am_in_app">Ilovada</string>
+    <string name="am_offline_copy">Oflayn nusxa ko\'rsatilmoqda</string>
+    <string name="am_empty">Hech narsa topilmadi</string>
+    <string name="am_failed">Modullar ro\'yxatini yuklab bo\'lmadi</string>
+    <string name="am_count">Natija: %1$d ta</string>
+    <string name="hub_sec_pages">Sahifalar</string>
+    <string name="web_renewing">Sessiya yangilanmoqda…</string>
+    <string name="web_download_started">Fayl yuklab olinmoqda…</string>
+    <string name="web_download_failed">Faylni yuklab bo\'lmadi</string>
+    <string name="web_upload_choose">Fayl tanlash</string>
+    <string name="web_offline_banner">Internet yo\'q: sahifa yangilanmaydi</string>
 </resources>

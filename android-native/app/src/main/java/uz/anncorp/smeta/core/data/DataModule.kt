@@ -149,4 +149,7 @@ object DataModule {
 
     @Provides @Singleton
     fun modulesRepository(api: BffApi, json: Json, prefs: Prefs) = ModulesRepository(api, json, prefs)
+
+    @Provides @Singleton
+    fun catalogRepository(api: BffApi, json: Json, @ApplicationContext c: Context) = CatalogRepository(api, json, PrefsCatalogCache(c.getSharedPreferences("qurai_catalog", Context.MODE_PRIVATE)))
 }

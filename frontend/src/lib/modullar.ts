@@ -3,7 +3,7 @@
  * modul emas — doim ko'rinadi. Modul holati noma'lum bo'lsa (yuklanmoqda / xato) menyu yashirilmaydi: bu faqat
  * ko'rinish, xavfsizlikni server alohida tekshiradi.
  */
-import type { Modul } from '../api/t2-modul';
+import type { Modul } from './modul-tur';
 import { NAV_SAHIFALAR, navSahifa } from './nav/navReestr';
 import { ilovaYoqiq } from './ilova/ilovalar';
 

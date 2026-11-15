@@ -11,7 +11,7 @@
  *   5) reestr ruxsati (menyuRuxsati; reestrda yo'q → yo'q) joriy kompaniya capability lariga mosmi.
  * Kompaniya capability lari kelmagan (eski DB javobi) bo'lsa — rolning frontend ko'zgusi (ROLE_PERMISSIONS).
  */
-import type { Modul } from '../../api/t2-modul';
+import type { Modul } from '../modul-tur';
 import { ROLE_PERMISSIONS, type CompanyMembershipRole } from '../company-authorization/effective-authorization';
 import { menyuRuxsati } from '../company-authorization/route-permission';
 import { menyuModulYoqilgan } from '../modullar';

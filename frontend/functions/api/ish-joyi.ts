@@ -15,6 +15,7 @@ import { tekshir } from '../_shared/auth';
 import { supabaseBaseUrl } from '../_shared/supabase-url';
 import { roleAuthority, vakolatKeshTozala } from '../_shared/role-authority';
 import { ishStoliQur, type AloqaQator, type IshJoyiQator } from '../_shared/ish-stoli';
+import { katalogQur } from '../_shared/modul-katalog';
 
 type Env = { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string };
 type Yuk = Record<string, unknown>;
@@ -69,9 +70,39 @@ async function ishStoliJavob(ctx: EventContext<Env, string, unknown>, a: number,
   });
   return Response.json(javob, { status: 200, ...JAVOB });
 }
+/**
+ * GET ?bolim=katalog[&kompaniya_id=][&tanlov=1] — ilova uchun «Barcha modullar»: foydalanuvchi shu kompaniyada ochishi MUMKIN bo'lgan
+ * HAMMA sahifa (veb yon menyu bilan bir xil filtr: ruxsat, kompaniya moduli, rol, superadmin qatlami). Yangi jadval yo'q.
+ * `tanlov=1` — qo'shimcha ravishda foydalanuvchi tanlagan ilovalar (/api/modullarim) bilan toraytiradi; bo'lmasa har sahifada `tanlangan` bayrog'i.
+ */
+async function katalogJavob(ctx: EventContext<Env, string, unknown>, a: number, u: URL): Promise<Response> {
+  const sess0 = cachedAuthority(ctx) ?? await tekshir(ctx.request.headers.get('Cookie'), ctx.env.SESSIYA_KALIT).catch(() => null);
+  const auth = sess0 ? (sess0.permissionsByCompany ? sess0 : await roleAuthority(sess0, { SUPABASE_URL: ctx.env.SUPABASE_URL!, SUPABASE_KEY: ctx.env.SUPABASE_KEY! })) : null;
+  if (!auth) return Response.json({ ok: false, error: 'Vakolat aniqlanmadi' }, { status: 503, ...JAVOB });
+  const q = u.searchParams.get('kompaniya_id');
+  const kid = sonmi(q) ? Number(q) : null;
+  const azo = kid == null ? undefined : auth.kompaniyalar?.find((x) => x.kompaniya_id === kid);
+  const superadmin = auth.rol === 'superadmin';
+  if (kid != null && !azo && !superadmin) return Response.json({ ok: false, code: 'RUXSAT_YOQ', error: 'Bu ish joyiga a’zo emassiz' }, { status: 403, ...JAVOB });
+  let tanlangan: string[] | null = null;
+  if (kid != null) {
+    // Ixtiyoriy: tanlov migratsiyasi hali qo'llanmagan bo'lsa jim o'tamiz (katalog baribir to'liq).
+    const t = await rpc(ctx.env, 't2_modul_tanlov_oqi_v1', { p_actor_id: a, p_kompaniya_id: kid }).catch(() => null);
+    if (t && t.body.ok === true && Array.isArray(t.body.tanlangan)) tanlangan = (t.body.tanlangan as unknown[]).filter((x): x is string => typeof x === 'string');
+  }
+  const javob = katalogQur({
+    superadmin, rol: azo?.rol ?? (superadmin ? 'superadmin' : ''),
+    permissions: kid == null ? null : (auth.permissionsByCompany?.[kid] ?? null),
+    modullarOff: kid == null ? [] : (auth.modullarOffByCompany?.[kid] ?? []),
+    tanlangan, kompaniyaId: kid,
+  });
+  if (u.searchParams.get('tanlov') === '1' && tanlangan && tanlangan.length) javob.sahifalar = javob.sahifalar.filter((s) => s.tanlangan);
+  return Response.json(javob, { status: 200, ...JAVOB });
+}
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const a = await actor(ctx); if (a instanceof Response) return a;
   const u = new URL(ctx.request.url);
+  if (u.searchParams.get('bolim') === 'katalog') return katalogJavob(ctx, a, u);
   // Markaz: barcha ish joylari + barcha joylardan «Mening ishlarim» (faqat o'z a'zoliklari, ruxsatiga qarab — bazada).
   if (u.searchParams.get('bolim') === 'joylarim') {
     const r = await rpc(ctx.env, 't2_ish_joylarim_v1', { p_actor_id: a });

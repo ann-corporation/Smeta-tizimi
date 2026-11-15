@@ -56,6 +56,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import uz.anncorp.smeta.core.data.search
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -136,6 +139,29 @@ fun HubScreen(
     val searching = ui.query.trim().length >= 2
     androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) { vm.refreshUnread() }
 
+    // "Barcha modullar": the server catalogue of EVERY page this user may open (native screen when the app has one, else the in-app web container).
+    var allMode by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+    val catalogVm: AllModulesViewModel = hiltViewModel()
+    val catalogUi by catalogVm.state.collectAsStateWithLifecycle()
+    val lang = remember { uiLang() }
+    // Hub search also finds catalogue pages (Ctrl+K-like): pages that already have a module card are left out to avoid duplicates.
+    val pageHits = remember(catalogUi.catalog, ui.query, visible) {
+        if (!searching) emptyList() else catalogUi.catalog?.search(ui.query).orEmpty()
+            .filter { p -> visible.none { m -> m.webPath == p.path || (p.native != null && m.code == p.native) } }.take(12)
+    }
+    val openPage: (uz.anncorp.smeta.core.data.CatalogItem) -> Unit = { p -> openItem(p, lang, onNative, onWeb) }
+    if (allMode) {
+        androidx.activity.compose.BackHandler { allMode = false }
+        Column(Modifier.fillMaxSize()) {
+            Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { allMode = false }, modifier = Modifier.size(TouchTarget)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.p1_back)) }
+                Text(stringResource(R.string.hub_all_modules), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
+            }
+            AllModulesScreen(onNative = onNative, onWeb = onWeb, vm = catalogVm)
+        }
+        return
+    }
+
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
@@ -156,20 +182,24 @@ fun HubScreen(
         when {
             !ui.hasCompany && !ui.loading -> CenterMessage(Icons.Filled.Home, stringResource(R.string.hub_no_company), stringResource(R.string.hub_no_company_hint), stringResource(R.string.hub_no_company_action), onAction = onOnboard)
             ui.loading && ui.permissions == null && !searching -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-            else -> HubGrid(ui, arranged, searching, vm, open, openAction, onObject, onFakt, onWeb)
+            else -> HubGrid(ui, arranged, searching, vm, open, openAction, onObject, onFakt, onWeb, pageHits, lang, openPage) { allMode = true }
         }
     }
 }
 
 @Composable
-private fun HubGrid(ui: HubUi, arranged: Arranged, searching: Boolean, vm: HubViewModel, open: (ModuleDef) -> Unit, openAction: (uz.anncorp.smeta.core.data.WsAction) -> Unit, onObject: (Long) -> Unit, onFakt: (Long) -> Unit, onWeb: (String, String) -> Unit) {
+private fun HubGrid(
+    ui: HubUi, arranged: Arranged, searching: Boolean, vm: HubViewModel, open: (ModuleDef) -> Unit, openAction: (uz.anncorp.smeta.core.data.WsAction) -> Unit, onObject: (Long) -> Unit, onFakt: (Long) -> Unit, onWeb: (String, String) -> Unit,
+    pageHits: List<uz.anncorp.smeta.core.data.CatalogItem>, lang: String, onPage: (uz.anncorp.smeta.core.data.CatalogItem) -> Unit, onAllModules: () -> Unit,
+) {
     val span = GridItemSpan(2)
     LazyVerticalGrid(
         columns = GridCells.Fixed(2), modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp, 4.dp, 16.dp, 24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (searching) {
-            if (arranged.pinned.isEmpty() && arranged.others.isEmpty() && ui.objectHits.isEmpty() && ui.rowHits.isEmpty()) {
+            if (pageHits.isNotEmpty()) { item(span = { span }) { SectionTitle(R.string.hub_sec_pages) }; items(pageHits, key = { "pg" + it.id }, span = { span }) { CatalogRow(it, lang) { onPage(it) } } }
+            if (arranged.pinned.isEmpty() && arranged.others.isEmpty() && pageHits.isEmpty() && ui.objectHits.isEmpty() && ui.rowHits.isEmpty()) {
                 item(span = { span }) { CenterMessage(Icons.Filled.Search, stringResource(R.string.p1_objects_empty_search), modifier = Modifier.padding(top = 32.dp)) }
             }
             val mods = arranged.pinned + arranged.others
@@ -187,6 +217,7 @@ private fun HubGrid(ui: HubUi, arranged: Arranged, searching: Boolean, vm: HubVi
             item(span = { span }) { SectionTitle(R.string.hub_sec_recent) }
             items(ui.recent, key = { "rc" + it.id }, span = { span }) { ObjectChip(it) { onObject(it.id) } }
         }
+        item(span = { span }) { AllModulesCard(onAllModules) }
         item(span = { span }) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(if (arranged.pinned.isEmpty()) R.string.hub_sec_all else R.string.hub_sec_pinned), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
@@ -200,6 +231,21 @@ private fun HubGrid(ui: HubUi, arranged: Arranged, searching: Boolean, vm: HubVi
         items(arranged.others, key = { "a" + it.code }) { m -> ModuleCard(m, pinned = false, edit = ui.edit, first = false, last = false, vm = vm, onOpen = open) }
         if (ui.objectCount == 0 && ui.permissions?.let { p -> "smeta.write" in p || "object.write" in p || "control.company.read" in p } != false) {
             item(span = { span }) { FirstObjectCard { onWeb("/admin/obyektlar", "") } }
+        }
+    }
+}
+
+/** Entry to the full server catalogue ("Barcha modullar"): 100% of the system is reachable from the app. */
+@Composable
+private fun AllModulesCard(onClick: () -> Unit) {
+    Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget).clickable(onClick = onClick)) {
+        Row(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.Menu, null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+            Spacer(Modifier.size(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.hub_all_modules), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Text(stringResource(R.string.hub_all_modules_hint), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+            }
         }
     }
 }
