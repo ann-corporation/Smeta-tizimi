@@ -33,6 +33,16 @@ describe('useMavzu', () => {
     expect(document.documentElement.dataset.mavzu).toBe('ganch');
   });
 
+  it('theme-color meta joriy mavzu fonini kuzatadi (yo‘q bo‘lsa yaratiladi)', () => {
+    document.head.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.remove());
+    const { result } = renderHook(() => useMavzu());
+    const rang = () => document.querySelector('meta[name="theme-color"]')?.getAttribute('content');
+    act(() => result.current.setMavzu('ganch'));
+    expect(rang()).toBe('#f5f4f0');
+    act(() => result.current.setMavzu('firuza'));
+    expect(rang()).toBe('#0e1113');
+  });
+
   it('MavzuTanlagich: bosilganda almashtiradi', () => {
     render(<MavzuTanlagich />);
     fireEvent.click(screen.getByRole('radio', { name: /Yorug/ }));

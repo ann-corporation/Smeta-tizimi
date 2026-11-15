@@ -23,6 +23,18 @@ describe('MobilTabPanel', () => {
     expect(screen.getByTestId('mobil-tab-menyu')).toBeTruthy();
   });
 
+  it('Jarvis tabi faqat Jarvis ochiq paytda faol; yopilgach faqat joriy sahifa tabi faol', async () => {
+    matchMediaOrnat(true);
+    chiz();
+    const faol = () => Array.from(document.querySelectorAll('.mobil-tab__item--faol')).map((e) => e.getAttribute('data-testid'));
+    expect(faol()).toEqual(['mobil-tab-/admin/obyektlar']);
+    const { act } = await import('@testing-library/react');
+    await act(async () => { document.documentElement.setAttribute('data-jarvis-ochiq', '1'); await Promise.resolve(); });
+    expect(faol()).toContain('mobil-tab-jarvis');
+    await act(async () => { document.documentElement.removeAttribute('data-jarvis-ochiq'); await Promise.resolve(); });
+    expect(faol()).toEqual(['mobil-tab-/admin/obyektlar']);
+  });
+
   it('keng ekranda (desktop/planshet) hech nima chizmaydi', () => {
     matchMediaOrnat(false);
     const { container } = chiz();
