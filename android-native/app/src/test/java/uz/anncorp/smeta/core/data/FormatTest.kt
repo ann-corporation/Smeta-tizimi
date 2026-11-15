@@ -84,4 +84,11 @@ class FormatTest {
         assertEquals("—", formatPercent(percentOf(5.0, 0.0)))
         assertEquals("—", formatPercent(percentOf(null, 10.0)))
     }
+
+    @Test fun isoStampShownAsDayMonthYear() {
+        assertEquals("14.11.2026 08:10", formatIsoStamp("2026-11-14T08:10:00+00:00"))
+        assertEquals("14.11.2026 08:10", formatIsoStamp("2026-11-14 08:10"))
+        assertEquals("20.11.2026", formatIsoStamp("2026-11-20"))
+        assertEquals("kecha", formatIsoStamp("kecha"))
+    }
 }

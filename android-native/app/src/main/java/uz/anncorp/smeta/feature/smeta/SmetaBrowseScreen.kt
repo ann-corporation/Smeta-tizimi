@@ -377,8 +377,9 @@ private fun VolumeCell(label: String, value: String, modifier: Modifier = Modifi
 
 /** Legend shared by the stacked bars (F-2 accepted / done but not accepted / open). */
 @Composable
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 fun VolumeLegend(modifier: Modifier = Modifier) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    androidx.compose.foundation.layout.FlowRow(modifier, horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         LegendDot(ChartColors.f2, stringResource(R.string.p1_card_f2_short))
         LegendDot(ChartColors.fact, stringResource(R.string.p5_leg_done_not_accepted))
         LegendDot(ChartColors.track, stringResource(R.string.p5_leg_open))

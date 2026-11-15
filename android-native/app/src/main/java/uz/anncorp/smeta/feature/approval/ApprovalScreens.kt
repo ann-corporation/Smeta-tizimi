@@ -127,7 +127,7 @@ private fun ApprovalRow(a: ApprovalItem, onClick: () -> Unit) {
                 a.egasi?.takeIf { it.isNotBlank() }?.let { Text(stringResource(R.string.p2_appr_from, it), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis) }
                     ?: Spacer(Modifier.weight(1f))
                 if (a.kechikkan) Text(stringResource(R.string.p2_appr_overdue), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
-                else a.muddat?.takeIf { it.isNotBlank() }?.let { Text(stringResource(R.string.p2_appr_due, it.take(10)), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                else a.muddat?.takeIf { it.isNotBlank() }?.let { Text(stringResource(R.string.p2_appr_due, uz.anncorp.smeta.core.data.formatIsoStamp(it.take(10))), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
         }
     }

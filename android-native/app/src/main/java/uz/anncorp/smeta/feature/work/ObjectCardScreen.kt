@@ -105,22 +105,22 @@ fun ObjectCardScreen(
                 }
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { onPhoto(vm.id) }, modifier = Modifier.weight(1f).heightIn(min = TouchTarget)) {
+                    OutlinedButton(onClick = { onPhoto(vm.id) }, modifier = Modifier.weight(1f).heightIn(min = TouchTarget), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)) {
                         Icon(Icons.Filled.CameraAlt, null, Modifier.size(20.dp)); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.p5_btn_photo), style = MaterialTheme.typography.labelLarge, maxLines = 1)
                     }
-                    OutlinedButton(onClick = { onSmeta(vm.id) }, modifier = Modifier.weight(1f).heightIn(min = TouchTarget)) {
+                    OutlinedButton(onClick = { onSmeta(vm.id) }, modifier = Modifier.weight(1f).heightIn(min = TouchTarget), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)) {
                         Icon(Icons.Outlined.AccountTree, null, Modifier.size(20.dp)); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.p5_btn_smeta), style = MaterialTheme.typography.labelLarge, maxLines = 1)
                     }
-                    OutlinedButton(onClick = { onF2(vm.id) }, modifier = Modifier.weight(1f).heightIn(min = TouchTarget)) {
+                    OutlinedButton(onClick = { onF2(vm.id) }, modifier = Modifier.weight(1f).heightIn(min = TouchTarget), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)) {
                         Icon(Icons.Outlined.Description, null, Modifier.size(20.dp)); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.p5_btn_f2), style = MaterialTheme.typography.labelLarge, maxLines = 1)
                     }
                 }
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { onDocs(vm.id) }, modifier = Modifier.weight(1f).heightIn(min = TouchTarget)) {
+                    OutlinedButton(onClick = { onDocs(vm.id) }, modifier = Modifier.weight(1f).heightIn(min = TouchTarget), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)) {
                         Icon(Icons.Outlined.Folder, null, Modifier.size(20.dp)); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.docs_button), style = MaterialTheme.typography.labelLarge, maxLines = 1)
                     }
-                    OutlinedButton(onClick = { onJarvis(vm.id) }, modifier = Modifier.weight(1f).heightIn(min = TouchTarget)) {
+                    OutlinedButton(onClick = { onJarvis(vm.id) }, modifier = Modifier.weight(1f).heightIn(min = TouchTarget), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)) {
                         Icon(Icons.Filled.AutoAwesome, null, Modifier.size(20.dp)); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.mod_jarvis), style = MaterialTheme.typography.labelLarge, maxLines = 1)
                     }
                 }

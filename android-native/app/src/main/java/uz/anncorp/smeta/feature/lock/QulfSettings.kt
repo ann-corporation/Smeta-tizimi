@@ -87,7 +87,7 @@ fun QulfSettings(vm: QulfSettingsViewModel = hiltViewModel()) {
 
         Spacer(Modifier.height(8.dp))
         Text(stringResource(R.string.qulf_timeout), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+        @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class) androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
             val cur = st?.timeoutMin ?: LockState.DEFAULT_MIN
             TIMEOUTS.forEach { m -> FilterChip(selected = cur == m, onClick = { run(R.string.qulf_saved) { c.setTimeout(m) } }, enabled = st?.enabled == true && !busy, label = { Text("$m") }) }
         }

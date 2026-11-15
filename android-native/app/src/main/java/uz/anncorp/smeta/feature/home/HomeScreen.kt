@@ -186,7 +186,7 @@ private fun WorkplaceBar(selected: Workplace?, canSwitch: Boolean, workspace: uz
             ) {
                 Text(
                     selected?.nom?.ifBlank { null } ?: "QURAI", style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onBackground, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false),
+                    color = MaterialTheme.colorScheme.onBackground, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false),
                 )
                 if (canSwitch) Icon(Icons.Filled.ArrowDropDown, contentDescription = stringResource(R.string.workplace_switch), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
