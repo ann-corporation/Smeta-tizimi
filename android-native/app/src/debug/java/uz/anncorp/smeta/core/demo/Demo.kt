@@ -109,8 +109,8 @@ private class DemoBff(private val context: Context, private val json: Json, priv
                 val o = json.parseToJsonElement(asset("paket.json")).jsonObject
                 ApiResult(200, JsonObject(o + ("obyekt_id" to JsonPrimitive(id))), null, "demo-etag-$id")
             }
-            // files/stepup.flag: the money write (fakt) needs a fresh PIN / biometric confirmation, like the real server (403 STEP_UP_KERAK).
-            path.startsWith("/api/sb-yoz") && File(context.filesDir, "stepup.flag").exists() && tasdiq?.current() == null ->
+            // files/stepup.flag: the approval decision (signature action) needs a fresh PIN / biometric confirmation, like the real server (403 STEP_UP_KERAK).
+            path.startsWith("/api/hujjat-aylanish") && method == "POST" && File(context.filesDir, "stepup.flag").exists() && tasdiq?.current() == null ->
                 ApiResult(403, buildJsonObject { put("ok", false); put("code", STEP_UP_CODE); put("usullar", kotlinx.serialization.json.buildJsonArray { add(JsonPrimitive("pin")); if (qKeys.isNotEmpty()) add(JsonPrimitive("qurilma")) }) }, STEP_UP_CODE)
             path.startsWith("/api/sb-yoz") -> ok(asset("fakt_ok.json"))
             path.startsWith("/api/qulf") -> qulf(path, method, body as? JsonObject)
