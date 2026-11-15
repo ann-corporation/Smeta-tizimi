@@ -1,5 +1,6 @@
 mod cache;
 mod maxfiy;
+mod shell;
 mod transport;
 fn builder() -> tauri::Builder<tauri::Wry> {
     tauri::Builder::default().invoke_handler(tauri::generate_handler![
@@ -31,7 +32,7 @@ fn ios_fresh_install_wipe(app: &tauri::App) -> Result<(), Box<dyn std::error::Er
 #[cfg(not(test))]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = builder();
+    let builder = builder().plugin(tauri_plugin_opener::init());
     #[cfg(target_os = "android")]
     let builder = builder.plugin(smeta_keystore::init());
     builder
@@ -46,6 +47,10 @@ pub fn run() {
             }
             #[cfg(target_os = "ios")]
             ios_fresh_install_wipe(_app)?;
+            // Default "Onlayn qobiq": the config has `create: false`; the window is built here with the
+            // navigation guard. The local-bff legacy mode keeps the config-created window.
+            #[cfg(not(feature = "local-bff"))]
+            shell::create_main_window(_app)?;
             Ok(())
         })
         .run(tauri::generate_context!())
