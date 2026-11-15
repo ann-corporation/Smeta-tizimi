@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { kompaniyaSozlamaOl, kompaniyaSozlamaSaqla, sarfHisobotiOl, type KompaniyaSozlama, type SarfHisoboti } from '../../api/t2-agent-ish';
 import { t } from '../../i18n/til';
 import { toast } from '../../umumiy/ui/Toast';
+import { SaqlashPaneli } from '../../umumiy/ui/SaqlashPaneli';
 import { AgentKompaniyaBilimi } from './AgentKompaniyaBilimi';
 import { AgentModelSiyosati } from './AgentModelSiyosati';
 
@@ -30,14 +31,17 @@ export function AgentKompaniyaSozlama({ kompaniyaId }: { kompaniyaId: number }) 
 
   const saqla = async () => {
     const lim = limit.trim() === '' ? null : Number(limit);
-    if (lim != null && (!Number.isFinite(lim) || lim < 0)) { toast(t('Token limiti musbat son bo‘lishi kerak'), 'warn'); return; }
+    if (lim != null && (!Number.isFinite(lim) || lim < 0)) { toast(t('Token limiti musbat son bo‘lishi kerak'), 'warn'); return false; }
     const r = await kompaniyaSozlamaSaqla(kompaniyaId, { aiYoqilgan: yoq, tokenLimit: lim, kuzatuvRuxsat: kuzatuv });
-    if (r.ok) { toast(t('AI sozlamalari saqlandi'), 'ok'); void yukla(); } else toast(r.error, 'danger');
+    if (r.ok) { toast(t('AI sozlamalari saqlandi'), 'ok'); void yukla(); return true; }
+    toast(r.error, 'danger');
+    return false;
   };
 
   if (xato) return <p className="text-xs text-text-dim">{t('AI sozlamalari mavjud emas')}: {xato}</p>;
   if (!z) return <p className="text-xs text-text-dim">{t('Yuklanmoqda…')}</p>;
   const tahrir = z.tahrir_mumkin;
+  const ozgarish = (yoq !== z.ai_yoqilgan ? 1 : 0) + (kuzatuv !== z.kuzatuv_ruxsat ? 1 : 0) + (limit.trim() !== (z.oylik_token_limit != null ? String(z.oylik_token_limit) : '') ? 1 : 0);
   const limitFoiz = z.oylik_token_limit ? Math.min(100, Math.round((z.oy_token / z.oylik_token_limit) * 100)) : 0;
   return (
     <section className="space-y-3" aria-label={t('Kompaniya AI sozlamalari')}>
@@ -72,7 +76,8 @@ export function AgentKompaniyaSozlama({ kompaniyaId }: { kompaniyaId: number }) 
           <input inputMode="numeric" disabled={!tahrir} value={limit} onChange={(e) => setLimit(e.target.value)} placeholder={t(LIMIT_NAMUNA)} className="input mt-1 h-8 w-40 px-2 text-[13px]" />
         </label>
         {tahrir
-          ? <button type="button" className="tugma-asosiy h-8 px-3 text-[12px]" onClick={() => void saqla()}>{t('Saqlash')}</button>
+          ? <SaqlashPaneli kalit="agent-kompaniya-sozlama" soni={ozgarish} saqla={saqla}
+              bekor={() => { setYoq(z.ai_yoqilgan); setKuzatuv(z.kuzatuv_ruxsat); setLimit(z.oylik_token_limit != null ? String(z.oylik_token_limit) : ''); }} />
           : <p className="text-[12px] text-text-mute">{t('Sozlamalarni admin, boss yoki direktor o‘zgartira oladi.')}</p>}
       </div>
 
