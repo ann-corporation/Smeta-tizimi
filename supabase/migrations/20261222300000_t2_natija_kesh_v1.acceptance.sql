@@ -3,6 +3,13 @@
 -- 2) Har obyekt uchun: keshdan o'qilgan natija == jonli (iflos) natija (jsonb matni bir xil), ikkala funksiya.
 -- 3) Triggerlar: bajarilmadi / o'zgarish yozuvi o'zgarsa obyekt iflos bo'ladi (kesh o'qilmaydi, jonli hisob).
 begin;
+-- jsonb_agg tartibi kafolatlanmagan (katta obyektda ikki jonli hisob ham bayt-bayt farq qiladi) -> massivlar tartibsiz solishtiriladi.
+create or replace function pg_temp.jnorm(j jsonb) returns jsonb language sql immutable as $f$
+  select case jsonb_typeof(j)
+    when 'object' then (select coalesce(jsonb_object_agg(k, pg_temp.jnorm(v)), '{}'::jsonb) from jsonb_each(j) e(k, v))
+    when 'array'  then (select coalesce(jsonb_agg(x order by x::text), '[]'::jsonb) from (select pg_temp.jnorm(v) x from jsonb_array_elements(j) a(v)) s)
+    else j end
+$f$;
 do $test$
 declare
   r record; v_actor bigint; v_kesh text; v_jonli text; v_n int; v_baj record; v_oz record;
@@ -22,15 +29,15 @@ begin
     delete from public.t2_obyekt_kesh_iflos where obyekt_id = r.id;
     perform public._t2_obyekt_natija_kesh_hisobla_v1(r.id);
     -- toza: keshdan
-    v_kesh := public.t2_smeta_ozgarish_qatlam_v1(r.id, v_actor)::text;
+    v_kesh := pg_temp.jnorm(public.t2_smeta_ozgarish_qatlam_v1(r.id, v_actor)::jsonb)::text;
     -- iflos: jonli
     insert into public.t2_obyekt_kesh_iflos(obyekt_id, kompaniya_id, sabab) select id, kompaniya_id, 'qabul' from public.t2_obyekt where id = r.id on conflict (obyekt_id) do nothing;
-    v_jonli := public.t2_smeta_ozgarish_qatlam_v1(r.id, v_actor)::text;
+    v_jonli := pg_temp.jnorm(public.t2_smeta_ozgarish_qatlam_v1(r.id, v_actor)::jsonb)::text;
     if v_kesh is distinct from v_jonli then raise exception 'A2: qatlam kesh != jonli (obyekt %)', r.id; end if;
     delete from public.t2_obyekt_kesh_iflos where obyekt_id = r.id;
-    v_kesh := public.t2_price_control_v1(r.id, v_actor)::text;
+    v_kesh := pg_temp.jnorm(public.t2_price_control_v1(r.id, v_actor)::jsonb)::text;
     insert into public.t2_obyekt_kesh_iflos(obyekt_id, kompaniya_id, sabab) select id, kompaniya_id, 'qabul' from public.t2_obyekt where id = r.id on conflict (obyekt_id) do nothing;
-    v_jonli := public.t2_price_control_v1(r.id, v_actor)::text;
+    v_jonli := pg_temp.jnorm(public.t2_price_control_v1(r.id, v_actor)::jsonb)::text;
     if v_kesh is distinct from v_jonli then raise exception 'A3: narx nazorati kesh != jonli (obyekt %)', r.id; end if;
     delete from public.t2_obyekt_kesh_iflos where obyekt_id = r.id;
   end loop;
