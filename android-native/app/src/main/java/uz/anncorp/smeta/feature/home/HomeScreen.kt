@@ -51,6 +51,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import uz.anncorp.smeta.R
 import uz.anncorp.smeta.core.data.NativeTarget
+import uz.anncorp.smeta.core.data.isBossRole
 import uz.anncorp.smeta.core.data.Workplace
 import uz.anncorp.smeta.core.ui.OutboxBanner
 import uz.anncorp.smeta.core.ui.QurLogo
@@ -81,7 +82,7 @@ private val Tabs = listOf(
 fun HomeScreen(
     onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOpenApproval: (Long) -> Unit, onOutbox: () -> Unit,
     onOpenWeb: (path: String, title: String) -> Unit, onPickFakt: () -> Unit, onPickPhoto: () -> Unit,
-    onJarvis: () -> Unit = {}, onInvite: () -> Unit = {}, onInvites: () -> Unit = {},
+    onJarvis: () -> Unit = {}, onRahbar: () -> Unit = {}, onInvite: () -> Unit = {}, onInvites: () -> Unit = {},
     vm: HomeViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -123,7 +124,7 @@ fun HomeScreen(
                 }
                 tab == OMBOR_TAB -> { BackHandler { tab = 0 }; OmborScreen(onOutbox) }
                 tab == 4 -> ProfileScreen(state, onTheme = vm::setTheme, onSwitch = { sheet = true }, onSignOut = vm::requestSignOut, onInvite = onInvite, onInvites = onInvites)
-                else -> TabBody(state, tab, vm::load, openObject, onOpenFakt, onOpenApproval, { tab = it }, onOutbox, onOpenWeb, onPickFakt, onPickPhoto, vm::resumeOnboarding, onJarvis)
+                else -> TabBody(state, tab, vm::load, openObject, onOpenFakt, onOpenApproval, { tab = it }, onOutbox, onOpenWeb, onPickFakt, onPickPhoto, vm::resumeOnboarding, onJarvis, onRahbar)
             }
         }
     }
@@ -203,7 +204,7 @@ fun RoleChip(role: String) {
 @Composable
 private fun TabBody(
     state: HomeState, tab: Int, onRetry: () -> Unit, onOpenObject: (Long) -> Unit, onOpenFakt: (Long) -> Unit, onOpenApproval: (Long) -> Unit,
-    onGoTab: (Int) -> Unit, onOutbox: () -> Unit, onOpenWeb: (String, String) -> Unit, onPickFakt: () -> Unit, onPickPhoto: () -> Unit, onOnboard: () -> Unit, onJarvis: () -> Unit,
+    onGoTab: (Int) -> Unit, onOutbox: () -> Unit, onOpenWeb: (String, String) -> Unit, onPickFakt: () -> Unit, onPickPhoto: () -> Unit, onOnboard: () -> Unit, onJarvis: () -> Unit, onRahbar: () -> Unit,
     banner: BannerViewModel = hiltViewModel(),
 ) {
     val bannerState by banner.state.collectAsStateWithLifecycle()
@@ -231,6 +232,7 @@ private fun TabBody(
                         NativeTarget.PHOTO -> onPickPhoto()
                         NativeTarget.WAREHOUSE -> onGoTab(OMBOR_TAB)
                         NativeTarget.JARVIS -> onJarvis()
+                        NativeTarget.RAHBAR -> onRahbar()
                     }
                 },
                 onWeb = onOpenWeb, onObject = onOpenObject, onFakt = onOpenFakt, onOnboard = onOnboard,
@@ -247,7 +249,7 @@ private fun TabBody(
         } else if (tab == 2) {
             ApprovalsScreen(onOpen = onOpenApproval)
         } else {
-            TodayScreen(onOpenApprovals = { onGoTab(2) }, onOutbox = onOutbox)
+            TodayScreen(onOpenApprovals = { onGoTab(2) }, onOutbox = onOutbox, showRahbar = isBossRole(state.selected?.rol), onRahbar = onRahbar)
         }
     }
 }

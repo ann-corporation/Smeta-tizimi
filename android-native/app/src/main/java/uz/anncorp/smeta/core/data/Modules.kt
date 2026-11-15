@@ -18,7 +18,7 @@ import uz.anncorp.smeta.R
 enum class ModuleKind { NATIVE, WEB }
 
 /** Native destinations the hub can jump to (the UI maps each to a tab or a route). */
-enum class NativeTarget { OBJECTS, FAKT, PHOTO, APPROVALS, TODAY, WAREHOUSE, JARVIS }
+enum class NativeTarget { OBJECTS, FAKT, PHOTO, APPROVALS, TODAY, WAREHOUSE, JARVIS, RAHBAR }
 
 /**
  * One launcher entry. [anyOf] / [moduleCode] mirror the website gating (frontend/src/lib/reestr/sahifa.ts `ruxsat`/`modul`,
@@ -59,6 +59,7 @@ object ModuleCatalog {
         ModuleDef("bugun", R.string.mod_today, R.string.mod_today_d, ModuleKind.NATIVE, listOf("company.read"), target = NativeTarget.TODAY),
         ModuleDef("ombor", R.string.mod_warehouse, R.string.mod_warehouse_d, ModuleKind.NATIVE, listOf(BOSS, "warehouse.read"), "module.logistika", NativeTarget.WAREHOUSE, enabled = Features.NATIVE_WAREHOUSE),
         ModuleDef("jarvis", R.string.mod_jarvis, R.string.mod_jarvis_d, ModuleKind.NATIVE, listOf("company.read"), target = NativeTarget.JARVIS, enabled = Features.JARVIS),
+        ModuleDef("rahbar", R.string.mod_rahbar, R.string.mod_rahbar_d, ModuleKind.NATIVE, listOf(BOSS, "financial.write"), target = NativeTarget.RAHBAR),
         ModuleDef("smeta", R.string.mod_estimate, R.string.mod_estimate_d, ModuleKind.WEB, listOf(BOSS, "smeta.write"), webPath = "/admin/smeta-studio"),
         ModuleDef("narx", R.string.mod_prices, R.string.mod_prices_d, ModuleKind.WEB, listOf(BOSS, "narx.write"), webPath = "/admin/narxlar"),
         ModuleDef("f2", R.string.mod_f2, R.string.mod_f2_d, ModuleKind.WEB, listOf("f2.prepare"), webPath = "/admin/f2-tayyorlash"),

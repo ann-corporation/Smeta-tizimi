@@ -32,6 +32,9 @@ import uz.anncorp.smeta.feature.work.OutboxScreen
 import uz.anncorp.smeta.feature.work.ObjectsScreen
 import uz.anncorp.smeta.feature.web.WebModuleScreen
 import uz.anncorp.smeta.feature.jarvis.JarvisScreen
+import uz.anncorp.smeta.feature.rahbar.RahbarScreen
+import uz.anncorp.smeta.feature.smeta.SmetaBrowseScreen
+import uz.anncorp.smeta.feature.f2.F2ListScreen
 import uz.anncorp.smeta.feature.people.CompanyInviteScreen
 import uz.anncorp.smeta.feature.people.InvitesScreen
 import uz.anncorp.smeta.feature.signup.InviteScreen
@@ -81,6 +84,9 @@ private const val WEB = "web?path={path}&title={title}"
 private const val PICK_FAKT = "pick/fakt"
 private const val PICK_PHOTO = "pick/photo"
 private const val JARVIS = "jarvis"
+private const val RAHBAR = "rahbar"
+private const val SMETA = "smeta/{id}"
+private const val F2LIST = "f2/{id}"
 private const val PEOPLE_INVITE = "people/invite"
 private const val PEOPLE_INVITES = "people/invites"
 
@@ -114,7 +120,7 @@ private fun AppNav(events: AuthEvents, start: String) {
                 onOpenApproval = { nav.navigate("approval/$it") }, onOutbox = { nav.navigate(OUTBOX) },
                 onOpenWeb = { path, title -> nav.navigate("web?path=${Uri.encode(path)}&title=${Uri.encode(title)}") },
                 onPickFakt = { nav.navigate(PICK_FAKT) }, onPickPhoto = { nav.navigate(PICK_PHOTO) },
-                onJarvis = { nav.navigate(JARVIS) }, onInvite = { nav.navigate(PEOPLE_INVITE) }, onInvites = { nav.navigate(PEOPLE_INVITES) },
+                onJarvis = { nav.navigate(JARVIS) }, onRahbar = { nav.navigate(RAHBAR) }, onInvite = { nav.navigate(PEOPLE_INVITE) }, onInvites = { nav.navigate(PEOPLE_INVITES) },
             )
         }
         val idArg = listOf(navArgument("id") { type = NavType.LongType })
@@ -135,6 +141,13 @@ private fun AppNav(events: AuthEvents, start: String) {
         composable(PICK_FAKT) { PickObjectScreen(R.string.mod_fact, onBack = { nav.popBackStack() }) { nav.navigate("fakt/$it") } }
         composable(PICK_PHOTO) { PickObjectScreen(R.string.mod_photo, onBack = { nav.popBackStack() }) { nav.navigate("photo/$it") } }
         composable(JARVIS) { JarvisScreen(onBack = { nav.popBackStack() }) }
+        composable(RAHBAR) {
+            RahbarScreen(onBack = { nav.popBackStack() }, onOpenObject = { nav.navigate("object/$it") }, onOpenApprovals = { nav.popBackStack() })
+        }
+        composable(SMETA, idArg) { SmetaBrowseScreen(onBack = { nav.popBackStack() }, onDraft = { nav.navigate("draft/$it") }) }
+        composable(F2LIST, idArg) {
+            F2ListScreen(onBack = { nav.popBackStack() }, onOpenWeb = { path, title -> nav.navigate("web?path=${Uri.encode(path)}&title=${Uri.encode(title)}") })
+        }
         composable(PEOPLE_INVITE) { CompanyInviteScreen(onBack = { nav.popBackStack() }) }
         composable(PEOPLE_INVITES) { InvitesScreen(onBack = { nav.popBackStack() }, onAccepted = { nav.navigate(HOME) { popUpTo(HOME) { inclusive = true } } }) }
         composable(OUTBOX) { OutboxScreen(onBack = { nav.popBackStack() }, onEditDraft = { nav.navigate("draft/$it") }) }
@@ -152,7 +165,10 @@ private fun PickObjectScreen(@androidx.annotation.StringRes title: Int, onBack: 
 
 @Composable
 private fun CardRoute(nav: androidx.navigation.NavHostController) {
-    ObjectCardScreen(onBack = { nav.popBackStack() }, onEnterFakt = { nav.navigate("fakt/$it") }, onPhoto = { nav.navigate("photo/$it") }, onOutbox = { nav.navigate(OUTBOX) })
+    ObjectCardScreen(
+        onBack = { nav.popBackStack() }, onEnterFakt = { nav.navigate("fakt/$it") }, onPhoto = { nav.navigate("photo/$it") }, onOutbox = { nav.navigate(OUTBOX) },
+        onSmeta = { nav.navigate("smeta/$it") }, onF2 = { nav.navigate("f2/$it") },
+    )
 }
 
 
