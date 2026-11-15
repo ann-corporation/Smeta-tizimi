@@ -73,6 +73,9 @@ private class DemoBff(private val context: Context, private val json: Json) : Bf
                     s("soro") == "rahbar_panel_v1" -> ok(asset("panel.json"))
                     s("soro") == "modul_holat_v1" -> ok("""{"ok":true,"natija":{"ok":true,"modullar":[{"kod":"module.hr","holat":"off"},{"kod":"module.moliya","holat":"on"}]}}""")
                     jadval == "t2_obyekt_jami" -> ok(asset("objects.json"))
+                    jadval == "t2_sklad_qoldiq" -> ok(asset("ombor_stock.json"))
+                    jadval == "t2_sklad_royxat" -> ok(asset("ombor_warehouses.json"))
+                    s("soro") == "sklad_markaziy_qoldiq_v1" -> ok(asset("ombor_central.json"))
                     jadval == "t2_akt" && filtr.contains("lifecycle_status=eq.draft") -> {
                         val n = if (filtr.contains("tur=eq.f2")) 3 else 5
                         ok("""{"ok":true,"soni":1,"jamiServerda":$n,"toliq":true,"qatorlar":[]}""")

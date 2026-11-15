@@ -2,6 +2,7 @@ package uz.anncorp.smeta.feature.home
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,8 +60,11 @@ import uz.anncorp.smeta.feature.hub.HubScreen
 import uz.anncorp.smeta.feature.onboarding.OnboardingScreen
 import uz.anncorp.smeta.feature.profile.ProfileScreen
 import uz.anncorp.smeta.feature.today.TodayScreen
+import uz.anncorp.smeta.feature.ombor.OmborScreen
 import uz.anncorp.smeta.feature.work.BannerViewModel
 import uz.anncorp.smeta.feature.work.ObjectsScreen
+
+private const val OMBOR_TAB = 5
 
 private data class Tab(@StringRes val label: Int, val icon: ImageVector)
 
@@ -101,7 +105,7 @@ fun HomeScreen(
             NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
                 Tabs.forEachIndexed { i, t ->
                     NavigationBarItem(
-                        selected = tab == i, onClick = { tab = i },
+                        selected = tab == i || (i == 0 && tab == OMBOR_TAB), onClick = { tab = i },
                         icon = { Icon(t.icon, contentDescription = null) },
                         label = { Text(stringResource(t.label), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall) },
                     )
@@ -116,6 +120,7 @@ fun HomeScreen(
                     Spacer(Modifier.height(12.dp))
                     Text(stringResource(R.string.home_loading), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                tab == OMBOR_TAB -> { BackHandler { tab = 0 }; OmborScreen(onOutbox) }
                 tab == 4 -> ProfileScreen(state, onTheme = vm::setTheme, onSwitch = { sheet = true }, onSignOut = vm::requestSignOut)
                 else -> TabBody(state, tab, vm::load, openObject, onOpenFakt, onOpenApproval, { tab = it }, onOutbox, onOpenWeb, onPickFakt, onPickPhoto, vm::resumeOnboarding)
             }
@@ -223,7 +228,7 @@ private fun TabBody(
                         NativeTarget.TODAY -> onGoTab(3)
                         NativeTarget.FAKT -> onPickFakt()
                         NativeTarget.PHOTO -> onPickPhoto()
-                        NativeTarget.WAREHOUSE -> Unit // behind Features.NATIVE_WAREHOUSE until the warehouse module is merged
+                        NativeTarget.WAREHOUSE -> onGoTab(OMBOR_TAB)
                     }
                 },
                 onWeb = onOpenWeb, onObject = onOpenObject, onFakt = onOpenFakt, onOnboard = onOnboard,

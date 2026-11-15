@@ -1,0 +1,131 @@
+package uz.anncorp.smeta.feature.ombor
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import uz.anncorp.smeta.core.data.ObjectsRepository
+import uz.anncorp.smeta.core.data.SyncResult
+import uz.anncorp.smeta.core.data.WorkContext
+import uz.anncorp.smeta.core.db.ObyektEntity
+import java.math.BigDecimal
+import javax.inject.Inject
+
+data class OmborUi(
+    val access: OmborAccess = OmborAccess.None,
+    val scope: OmborScope = OmborScope.AllObjects,
+    val query: String = "",
+    val rows: List<StockRow> = emptyList(),
+    /** Unfiltered rows of the current scope (the entry form suggests material names from these). */
+    val scopeRows: List<StockRow> = emptyList(),
+    val allObjectRows: List<StockRow> = emptyList(),
+    val objects: List<ObyektEntity> = emptyList(),
+    val warehouses: List<Warehouse> = emptyList(),
+    val syncing: Boolean = true,
+    val result: SyncResult? = null,
+    val updatedAt: Long? = null,
+    val noCompany: Boolean = false,
+) {
+    val objectNames: Map<Long, String> get() = objects.associate { it.id to it.nom }
+    val scopes: List<OmborScope>
+        get() = warehouses.map { OmborScope.Central(it.id, it.nomi) } + objects.map { OmborScope.Obyekt(it.id, it.nom) }
+}
+
+@OptIn(ExperimentalCoroutinesApi::class)
+@HiltViewModel
+class OmborViewModel @Inject constructor(
+    private val repo: OmborRepository, private val objects: ObjectsRepository, private val ctx: WorkContext,
+) : ViewModel() {
+    private val query = MutableStateFlow("")
+    private val scope = MutableStateFlow<OmborScope>(OmborScope.AllObjects)
+    private data class Sync(val syncing: Boolean = true, val result: SyncResult? = null)
+    private val sync = MutableStateFlow(Sync())
+
+    private val company = ctx.current
+
+    private data class Data(val rows: List<StockRow>, val wh: List<Warehouse>, val objs: List<ObyektEntity>, val central: List<StockRow>, val ts: Long?)
+
+    private val central: Flow<List<StockRow>> = combine(company, scope) { w, s -> w to s }.flatMapLatest { (w, s) ->
+        if (w != null && s is OmborScope.Central) repo.centralStock(w.companyId, s.id) else flowOf(emptyList())
+    }
+    private val data: Flow<Data> = combine(
+        company.flatMapLatest { w -> if (w == null) flowOf(emptyList()) else repo.objectStock(w.companyId) },
+        company.flatMapLatest { w -> if (w == null) flowOf(emptyList()) else repo.warehouses(w.companyId) },
+        company.flatMapLatest { w -> if (w == null) flowOf(emptyList()) else objects.observe(w.companyId) },
+        central,
+        company.flatMapLatest { w -> if (w == null) flowOf(null) else repo.updated(w.companyId) },
+    ) { a, b, c, d, e -> Data(a, b, c, d, e) }
+
+    val state: StateFlow<OmborUi> = combine(data, query, scope, sync, company) { d, q, s, sy, w ->
+        val base = if (s is OmborScope.Central) d.central else d.rows
+        OmborUi(
+            access = OmborAccess.forRole(w?.rol), scope = s, query = q,
+            rows = filterStock(base, s, q), scopeRows = filterStock(base, s, ""), allObjectRows = d.rows,
+            objects = d.objs, warehouses = d.wh, syncing = sy.syncing, result = sy.result, updatedAt = d.ts, noCompany = w == null,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), OmborUi())
+
+    init {
+        viewModelScope.launch { company.collect { if (it != null) refresh() } }
+    }
+
+    fun setQuery(q: String) { query.value = q }
+
+    fun setScope(s: OmborScope) { scope.value = s; if (s is OmborScope.Central) refresh() }
+
+    fun refresh() {
+        val w = ctx.current.value ?: return
+        val s = scope.value
+        viewModelScope.launch {
+            sync.update { it.copy(syncing = true) }
+            val objectsDone = objects.refresh(w.companyId)
+            val r = repo.refresh(w.companyId)
+            val c = if (s is OmborScope.Central) repo.refreshCentral(w.companyId, s.id) else SyncResult.Ok
+            sync.value = Sync(false, listOf(r, c, objectsDone).firstOrNull { it != SyncResult.Ok } ?: SyncResult.Ok)
+        }
+    }
+
+    /**
+     * Queues a receive/issue. [operationId] comes from the form (created when it opened), so a double tap enqueues once.
+     * Returns the outcome for the screen: queued, already queued, or an input error.
+     */
+    fun submit(
+        op: OmborOp, name: String, unit: String, quantity: String, date: String, source: OmborScope?, target: ObyektEntity?,
+        party: String, partyType: String?, note: String, operationId: String, onDone: (Boolean) -> Unit,
+    ) {
+        val w = ctx.current.value ?: return onDone(false)
+        val qty: BigDecimal = parseQuantity(quantity) ?: return onDone(false)
+        if (validateEntry(op, name, unit, quantity, date, source, target?.id).isNotEmpty()) return onDone(false)
+        viewModelScope.launch {
+            val queued = when {
+                op == OmborOp.RECEIVE && target != null -> repo.queue(
+                    receivePayload(w.companyId, target.id, name, unit, qty, date, party, note, operationId),
+                    AMAL_OMBOR_OBYEKT, operationId, target.id, target.nom,
+                )
+                op == OmborOp.ISSUE && source is OmborScope.Central && target != null -> repo.queue(
+                    transferPayload(w.companyId, source.id, target.id, name, unit, qty, date, party, note, operationId),
+                    AMAL_OMBOR_BERDIM, operationId, target.id, target.nom,
+                )
+                op == OmborOp.ISSUE && source is OmborScope.Obyekt -> repo.queue(
+                    issueFromObjectPayload(w.companyId, source.id, name, unit, qty, date, party, partyType, note, operationId),
+                    AMAL_OMBOR_OBYEKT, operationId, source.id, source.nom,
+                )
+                else -> false
+            }
+            // false = this operation id was already queued (double tap): the user still sees it in the outbox, so close the form.
+            onDone(queued || repo.hasEntry(operationId))
+        }
+    }
+
+    fun newOperationId(): String = repo.newOperationId()
+}

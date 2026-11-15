@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ombor_nav">Склад</string>
+    <string name="ombor_title">Остатки на складе</string>
+    <string name="ombor_search_hint">Название или код материала</string>
+    <string name="ombor_scan">Сканировать штрихкод или QR</string>
+    <string name="ombor_clear">Очистить</string>
+    <string name="ombor_close">Закрыть</string>
+    <string name="ombor_scope_label">Место: %1$s</string>
+    <string name="ombor_scope_all">Все объекты</string>
+    <string name="ombor_scope_pick">Где смотреть остаток</string>
+    <string name="ombor_scope_central_header">Центральные склады</string>
+    <string name="ombor_scope_objects_header">Объекты</string>
+    <string name="ombor_central_tag">Центральный склад</string>
+    <plurals name="ombor_materials">
+        <item quantity="one">%d материал</item>
+        <item quantity="few">%d материала</item>
+        <item quantity="many">%d материалов</item>
+        <item quantity="other">%d материала</item>
+    </plurals>
+    <string name="ombor_last_movement">Последнее движение: %1$s</string>
+    <string name="ombor_no_movement">Даты движения нет</string>
+    <string name="ombor_loading">Загрузка остатков…</string>
+    <string name="ombor_empty">Остатков здесь нет</string>
+    <string name="ombor_empty_search">Ничего не найдено</string>
+    <string name="ombor_forbidden">Нет доступа к просмотру склада</string>
+    <string name="ombor_offline_empty">Нет связи и нет сохранённых остатков</string>
+    <string name="ombor_pick_hint">Нажмите материал для расхода</string>
+
+    <string name="ombor_btn_receive">Приход</string>
+    <string name="ombor_btn_issue">Расход</string>
+    <string name="ombor_receive_title">Приход на склад</string>
+    <string name="ombor_issue_title">Расход со склада</string>
+    <string name="ombor_field_object">Объект</string>
+    <string name="ombor_field_source">Откуда</string>
+    <string name="ombor_field_target_object">На какой объект</string>
+    <string name="ombor_field_material">Название материала</string>
+    <string name="ombor_field_unit">Единица</string>
+    <string name="ombor_field_qty">Количество</string>
+    <string name="ombor_field_supplier">Поставщик (необязательно)</string>
+    <string name="ombor_field_receiver">Кому выдано (необязательно)</string>
+    <string name="ombor_field_note">Примечание, номер документа (необязательно)</string>
+    <string name="ombor_field_date">Дата</string>
+    <string name="ombor_receiver_usta">Мастер</string>
+    <string name="ombor_receiver_brigada">Бригада</string>
+    <string name="ombor_receiver_prarab">Прораб</string>
+    <string name="ombor_receiver_boshqa">Другое</string>
+    <string name="ombor_choose">Выберите</string>
+    <string name="ombor_suggest">Материалы на складе</string>
+    <string name="ombor_photo_soon">Фото накладной — в следующей версии</string>
+    <string name="ombor_save_queue">Добавить в очередь</string>
+    <string name="ombor_queue_note">Сохранится и без связи, отправится автоматически.</string>
+    <string name="ombor_queued">Добавлено в очередь</string>
+    <string name="ombor_over_stock">На складе всего %1$s %2$s. Проверит сервер.</string>
+    <string name="ombor_stock_here">Остаток: %1$s %2$s</string>
+    <string name="ombor_err_name">Введите название материала</string>
+    <string name="ombor_err_unit">Введите единицу</string>
+    <string name="ombor_err_qty">Количество: положительное число, запятая или точка (до 6 знаков)</string>
+    <string name="ombor_err_source">Выберите, откуда расход</string>
+    <string name="ombor_err_target">Выберите объект</string>
+    <string name="ombor_err_date">Неверная дата</string>
+    <string name="ombor_pick_title">Выберите</string>
+    <string name="ombor_pick_search">Поиск</string>
+
+    <string name="ombor_scan_title">Отсканируйте код</string>
+    <string name="ombor_scan_hint">Наведите камеру на штрихкод или QR. Результат попадёт в поле поиска.</string>
+    <string name="ombor_scan_permission">Для сканирования нужен доступ к камере.</string>
+    <string name="ombor_scan_grant">Разрешить</string>
+
+    <string name="ombor_outbox_prixod">Приход: %1$s — %2$s %3$s</string>
+    <string name="ombor_outbox_rasxod">Расход: %1$s — %2$s %3$s</string>
+    <string name="ombor_outbox_berdim">С центрального склада на объект: %1$s — %2$s %3$s</string>
+    <plurals name="ombor_queued_count">
+        <item quantity="one">%d операция в очереди</item>
+        <item quantity="few">%d операции в очереди</item>
+        <item quantity="many">%d операций в очереди</item>
+        <item quantity="other">%d операции в очереди</item>
+    </plurals>
+</resources>

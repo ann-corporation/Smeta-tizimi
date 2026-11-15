@@ -92,9 +92,11 @@ class OnboardingTest {
 class ModulesTest {
     private fun codes(l: List<ModuleDef>) = l.map { it.code }
 
-    @Test fun unknownPermissionsShowEverythingExceptFlaggedOffModules() {
+    @Test fun unknownPermissionsShowEverything() {
         val all = ModuleCatalog.visible(null, emptySet())
-        assertFalse("warehouse is behind a feature flag", "ombor" in codes(all))
+        assertTrue("warehouse is native and listed", "ombor" in codes(all))
+        assertTrue("ombor" in codes(ModuleCatalog.visible(setOf("warehouse.read"), emptySet())))
+        assertFalse("ombor" in codes(ModuleCatalog.visible(setOf("company.read", "fakt.read"), emptySet())))
         assertTrue("fakt" in codes(all) && "moliya" in codes(all))
     }
 

@@ -1,4 +1,4 @@
-﻿// @vitest-environment node
+// @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { base64url, deviceHash, ANDROID_ORIGIN, DESKTOP_ORIGIN } from '../_shared/desktop-device';
 import { sessiyaOl } from '../_shared/auth';
@@ -95,3 +95,33 @@ describe('mobil BFF (Android native)', () => {
   });
 });
 
+describe('mobil BFF: warehouse (Ombor) paths reach the unchanged sb / sb-yoz handlers', () => {
+  const kompaniya_id = 8;
+  const opId = '3f2b8c1e-5a4d-4e6f-9a7b-1c2d3e4f5a6b';
+  // Re-stub fetch so the synthetic upstream also answers the warehouse RPCs; everything else keeps the shared behaviour.
+  const stubWarehouse = () => {
+    const base = globalThis.fetch as unknown as (raw: string, init?: RequestInit) => Promise<Response>;
+    vi.stubGlobal('fetch', vi.fn(async (raw: string, init?: RequestInit) => {
+      const u = new URL(String(raw));
+      if (/\/(t2_sklad_markaziy_qoldiq_v1|t2_sklad_markaziy_berdim_v1|t2_skladga_yozish)$/.test(u.pathname)) {
+        calls.push({ path: u.pathname, body: init?.body ? JSON.parse(String(init.body)) : {} });
+        return Response.json({ ok: true, qatorlar: [], takror: false });
+      }
+      return base(raw, init);
+    }));
+  };
+  it('the allowlist accepts the warehouse read and write targets (no new path is needed)', async () => {
+    stubWarehouse();
+    for (const [path, body] of [
+      ['/api/sb', { soro: 'sklad_markaziy_qoldiq_v1', kompaniya_id, sklad_id: 7, qidir: '', limit: 200 }],
+      ['/api/sb-yoz', { amal: 'sklad_berdim_v1', kompaniya_id, sklad_id: 7, obyekt_id: 101, nomi: 'S', birligi: 'qop', miqdor: '12.5', sana: '2026-11-15', operation_id: opId }],
+      ['/api/sb-yoz', { amal: 'skladga_yozish', kompaniya_id, operatsiya: 'prixod', obyekt_id: 101, turi: 'mat', sana: '2026-11-15', nomi: 'S', birligi: 'qop', obyomi: 12.5, operation_id: opId }],
+    ] as const) {
+      const res = await bff(path, 'POST', body);
+      expect(res.status, path + ' ' + body[('amal' in body ? 'amal' : 'soro') as never]).not.toBe(400);   // 400 = TARGET_INVALID from the gateway
+    }
+  });
+  it('refuses a warehouse call on a path outside the allowlist', async () => {
+    expect((await gateway(ctx(native({ path: '/api/sklad', method: 'POST', body: {} })))).status).toBe(400);
+  });
+});

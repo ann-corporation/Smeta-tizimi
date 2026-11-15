@@ -37,8 +37,8 @@ data class ModuleDef(
     val enabled: Boolean = true,
 )
 
-/** Feature flags. Warehouse (Ombor) is being built on branch claude/android-ombor; flip once it is merged. */
-object Features { const val NATIVE_WAREHOUSE = false }
+/** Feature flags. Warehouse (Ombor) is merged and enabled. */
+object Features { const val NATIVE_WAREHOUSE = true }
 
 private const val BOSS = "control.company.read"
 
@@ -49,7 +49,7 @@ object ModuleCatalog {
         ModuleDef("foto", R.string.mod_photo, R.string.mod_photo_d, ModuleKind.NATIVE, listOf("fakt.read"), target = NativeTarget.PHOTO),
         ModuleDef("tasdiq", R.string.mod_approval, R.string.mod_approval_d, ModuleKind.NATIVE, target = NativeTarget.APPROVALS),
         ModuleDef("bugun", R.string.mod_today, R.string.mod_today_d, ModuleKind.NATIVE, listOf("company.read"), target = NativeTarget.TODAY),
-        ModuleDef("ombor", R.string.mod_warehouse, R.string.mod_warehouse_d, ModuleKind.NATIVE, listOf(BOSS, "project.write", "object.write", "warehouse.read", "procurement.read", "logistics.read"), "module.logistika", NativeTarget.WAREHOUSE, enabled = Features.NATIVE_WAREHOUSE),
+        ModuleDef("ombor", R.string.mod_warehouse, R.string.mod_warehouse_d, ModuleKind.NATIVE, listOf(BOSS, "warehouse.read"), "module.logistika", NativeTarget.WAREHOUSE, enabled = Features.NATIVE_WAREHOUSE),
         ModuleDef("smeta", R.string.mod_estimate, R.string.mod_estimate_d, ModuleKind.WEB, listOf(BOSS, "smeta.write"), webPath = "/admin/smeta-studio"),
         ModuleDef("narx", R.string.mod_prices, R.string.mod_prices_d, ModuleKind.WEB, listOf(BOSS, "narx.write"), webPath = "/admin/narxlar"),
         ModuleDef("f2", R.string.mod_f2, R.string.mod_f2_d, ModuleKind.WEB, listOf("f2.prepare"), webPath = "/admin/f2-tayyorlash"),

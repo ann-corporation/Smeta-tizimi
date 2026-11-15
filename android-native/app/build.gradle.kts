@@ -91,6 +91,7 @@ dependencies {
     implementation(libs.camera.camera2)
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.view)
+    implementation(libs.mlkit.barcode)
     debugImplementation(libs.compose.ui.tooling)
 
     testImplementation(libs.junit)
