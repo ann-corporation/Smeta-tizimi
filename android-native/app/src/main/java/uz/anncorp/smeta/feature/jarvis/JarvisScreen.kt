@@ -251,7 +251,7 @@ class JarvisViewModel @Inject constructor(
             val write = PendingJarvisWrite(
                 target, if (target.etag == null) JarvisRepository.chatTitle(turns) else null, turns,
                 if (target.etag != null) UUID.randomUUID().toString() else null,
-                toMessages(_ui.value.bubbles).takeLast(JarvisRepository.MAX_SAVED).map { it.copy(text = it.text.take(8000)) },
+                toMessages(_ui.value.bubbles).takeLast(JarvisRepository.MAX_SAVED),
             )
             pending = write
             pendingDevice = device

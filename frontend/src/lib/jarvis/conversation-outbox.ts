@@ -14,7 +14,7 @@ type Slot = { operation: string; bytes: Uint8Array };
 const ID = /^[A-Za-z0-9_.-]{1,40}$/;
 const VERSION = /^[a-f0-9]{32}$/;
 const KEY = 'aes-gcm-v1';
-const MAX_BYTES = 240_000;
+const MAX_BYTES = 1_500_000;
 let disk: ReturnType<typeof createStore> | undefined;
 const slotKey = ({ actor, company }: Scope) => `jarvis:pending:v1:${actor}:${company}`;
 const storage = () => typeof indexedDB === 'undefined' || !crypto.subtle ? null :
@@ -25,7 +25,7 @@ function decode(value: unknown): JarvisQueuedWrite {
   const turns = (a: unknown, max: number) => Array.isArray(a) && a.length >= 1 && a.length <= 12 &&
     a.every(t => t && ['user', 'ai'].includes(t.r) && typeof t.m === 'string' && t.m.length >= 1 && t.m.length <= max);
   if (!x || typeof x.id !== 'string' || !ID.test(x.id) || typeof x.operation !== 'string' || !ID.test(x.operation) ||
-    !turns(x.turns, 800) || !turns(x.preview, 8000) || (x.stale != null && typeof x.stale !== 'boolean') ||
+    !turns(x.turns, 32_000) || !turns(x.preview, 32_000) || (x.stale != null && typeof x.stale !== 'boolean') ||
     (x.kind === 'create' ? typeof x.title !== 'string' || !x.title.trim() || x.title.length > 80 || x.operation !== x.id :
       x.kind !== 'append' || typeof x.etag !== 'string' || !VERSION.test(x.etag))) throw new Error('JARVIS_OUTBOX_INVALID');
   return x;

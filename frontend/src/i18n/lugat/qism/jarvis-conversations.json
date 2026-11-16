@@ -15,9 +15,9 @@
     "ru": "Сохранение разговора на сервер…",
     "en": "Saving conversation to server…"
   },
-  "Suhbatning ixcham nusxasi serverga saqlandi": {
-    "ru": "Краткая копия разговора сохранена на сервере",
-    "en": "Compact conversation copy saved to server"
+  "Suhbat serverga saqlandi": {
+    "ru": "Разговор сохранён на сервере",
+    "en": "Conversation saved to server"
   },
   "Serverga saqlanmadi — bu oynani yopmang": {
     "ru": "Не сохранено на сервере — не закрывайте это окно",

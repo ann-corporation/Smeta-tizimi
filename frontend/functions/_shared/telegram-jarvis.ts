@@ -3,8 +3,8 @@ import { onRequestPost as agent } from '../api/agent-ish';
 import { botChaqiruv } from './telegram-amal';
 import { limitOshdi } from './telegram-bot';
 import { saytUrl, tengSatr, tgRpc, tgT, type TgEnv, type TgTil } from './telegram';
+import { validJarvisTurns, type JarvisTurn as Turn } from '../../src/lib/jarvis/conversation-contract';
 
-type Turn = { r: 'user' | 'ai'; m: string };
 type Chat = { id: string; sarlavha: string };
 type Snapshot =
   | { id: string; holat: 'missing' }
@@ -13,7 +13,8 @@ type Sync = { ok?: boolean; royxat?: Chat[]; suhbat?: Snapshot };
 type PageCursor = { at: string; row: string };
 type Page = { ok?: boolean; royxat?: Chat[]; keyingi?: PageCursor | null };
 type Target = { company: number; id: string; mode: 'n' | 'o' };
-export type JarvisBotReply = { matn: string; options?: Record<string, unknown>; transcript?: string[] };
+
+export type JarvisBotReply = { matn: string; options?: Record<string, unknown>; transcript?: string[]; transcriptOptions?: Record<string, unknown> };
 export type JarvisReplyTo = { from?: { is_bot?: boolean }; entities?: { type?: string; url?: string }[] };
 const CHAT_ID = /^[A-Za-z0-9_.-]{1,40}$/;
 const VERSION = /^[a-f0-9]{32}$/;
@@ -24,12 +25,19 @@ const sent = (status: number) => status >= 200 && status < 300;
 const call = <T>(env: TgEnv, actor: number, json: Record<string, unknown>) =>
   botChaqiruv<T>(env, actor, { api: 'agent-ish', json }, middleware, agent);
 const unavailable = (til: TgTil) => ({ matn: tgT('Jarvis suhbatini ochib bo‘lmadi. /jarvis orqali qayta tanlang.', til) });
-const bounded = (s: string, max: number) => [...s.trim()].slice(0, max).join('');
-const validTurns = (value: unknown): value is Turn[] => Array.isArray(value) && value.length <= 12 &&
-  value.every(x => x && (x.r === 'user' || x.r === 'ai') && typeof x.m === 'string' && x.m.length <= 800);
-
 function sync(env: TgEnv, actor: number, company: number, id?: string) {
-  return call<Sync>(env, actor, { amal: 'suhbat_sync', kompaniya_id: company, ...(id ? { klient_id: id } : {}) });
+  return call<Sync>(env, actor, { amal: 'suhbat_sync', kompaniya_id: company, ...(id ? { klient_id: id, full_history: true } : {}) });
+}
+
+function transcriptPage(turns: Turn[], company: number, id: string, page: number, til: TgTil) {
+  const text = turns.map(turn => `${tgT(turn.r === 'user' ? 'Siz yozdingiz' : 'Jarvis', til)}: ${turn.m}`).join('\n\n');
+  const pages = text.match(/[\s\S]{1,1900}/gu) ?? [];
+  const matn = pages[page];
+  if (!matn) return null;
+  const button = (index: number) => ({ text: `${index < page ? '‹' : '›'} ${index + 1}/${pages.length}`,
+    callback_data: `j:t:${company.toString(36)}:${id}:${index}` });
+  const buttons = [...(page > 0 ? [button(page - 1)] : []), ...(page + 1 < pages.length ? [button(page + 1)] : [])];
+  return { matn, options: buttons.length ? { reply_markup: { inline_keyboard: [buttons] } } : undefined };
 }
 
 function pageButton(company: number, cursor: PageCursor | null | undefined, til: TgTil) {
@@ -90,6 +98,15 @@ export async function telegramJarvisMenu(env: TgEnv, actor: number, til: TgTil):
 }
 
 export async function telegramJarvisSelect(env: TgEnv, actor: number, telegram: number, til: TgTil, data: string): Promise<JarvisBotReply> {
+  const page = /^j:t:([a-z0-9]{1,11}):([A-Za-z0-9_.-]{1,40}):(\d{1,3})$/.exec(data);
+  if (page) {
+    const company = parseInt(page[1], 36);
+    if (!number(company)) return unavailable(til);
+    const result = await sync(env, actor, company, page[2]);
+    const chat = result.body?.suhbat;
+    if (!sent(result.status) || result.body?.ok !== true || chat?.id !== page[2] || chat.holat !== 'changed' || !validJarvisTurns(chat.xabarlar)) return unavailable(til);
+    return transcriptPage(chat.xabarlar, company, page[2], Number(page[3]), til) ?? unavailable(til);
+  }
   const older = /^j:p:([1-9]\d{0,15}):([1-9]\d{0,17}):([1-9]\d{0,18})$/.exec(data);
   if (older) {
     const company = Number(older[1]);
@@ -116,18 +133,12 @@ export async function telegramJarvisSelect(env: TgEnv, actor: number, telegram: 
     if (turns === null) {
       return { matn: [name, chat.qisqartma, tgT('Eski suhbat qisqartmasi. Davom etish uchun /jarvis orqali yangi suhbat oching.', til)].filter(Boolean).join('\n\n') };
     }
-    if (!validTurns(turns)) return unavailable(til);
-    const transcript: string[] = [];
-    let page = '';
-    for (const turn of turns) {
-      const line = `${tgT(turn.r === 'user' ? 'Siz yozdingiz' : 'Jarvis', til)}: ${turn.m}`;
-      if (page.length + line.length + 2 > 3900) { transcript.push(page); page = ''; }
-      page = page ? page + '\n\n' + line : line;
-    }
-    if (page) transcript.push(page);
-    if (chat.arxivlangan) return { matn: tgT('Arxiv suhbati. Davom etish uchun /jarvis orqali yangi suhbat oching.', til), transcript };
+    if (!validJarvisTurns(turns)) return unavailable(til);
+    const first = transcriptPage(turns, company, id, 0, til);
+    const transcript = first ? { transcript: [first.matn], transcriptOptions: first.options } : {};
+    if (chat.arxivlangan) return { matn: tgT('Arxiv suhbati. Davom etish uchun /jarvis orqali yangi suhbat oching.', til), ...transcript };
     const entry = await prompt(env, actor, telegram, til, { company, id, mode: 'o' }, name);
-    return { ...entry, transcript };
+    return { ...entry, ...transcript };
   }
   return unavailable(til);
 }
@@ -154,12 +165,12 @@ export async function telegramJarvisReply(
   const chat = r.body?.suhbat;
   if (!sent(r.status) || r.body?.ok !== true || chat?.id !== id) return unavailable(til);
   if (chat.holat === 'missing' ? mode !== 'n' :
-    chat.holat !== 'changed' || chat.arxivlangan || !validTurns(chat.xabarlar) || !VERSION.test(chat.etag)) return unavailable(til);
+    chat.holat !== 'changed' || chat.arxivlangan || !validJarvisTurns(chat.xabarlar) || !VERSION.test(chat.etag)) return unavailable(til);
   const tarix = chat.holat === 'changed' ? chat.xabarlar?.slice(-6).map(x => ({ rol: x.r === 'user' ? 'user' : 'assistant', matn: x.m })) : [];
   const answer = await call<{ ok?: boolean; javob?: string; xabar?: string; error?: string; sahifalar?: Array<{ yol?: string }> }>(env, actor,
     { amal: 'kasb_savol', kompaniya_id: company, savol, tarix, sahifa: '/telegram/jarvis' });
-  const javob = typeof answer.body?.javob === 'string' ? answer.body.javob.trim() : '';
-  if (!sent(answer.status) || answer.body?.ok !== true || !javob) {
+  const javob = typeof answer.body?.javob === 'string' ? answer.body.javob : '';
+  if (!sent(answer.status) || answer.body?.ok !== true || !javob.trim()) {
     const error = answer.body?.xabar ?? answer.body?.error;
     return { matn: answer.status === 402 && typeof error === 'string' ? error.slice(0, 300) : unavailable(til).matn };
   }
@@ -167,7 +178,7 @@ export async function telegramJarvisReply(
     amal: 'suhbat_mutate', kompaniya_id: company, klient_id: id,
     ...(chat.holat === 'changed' ? { harakat: 'append', etag: chat.etag } :
       { harakat: 'create', sarlavha: savol.replace(/\s+/g, ' ').slice(0, 80) }),
-    xabarlar: [{ r: 'user', m: bounded(savol, 400) }, { r: 'ai', m: bounded(javob, 400) }],
+    xabarlar: [{ r: 'user', m: savol }, { r: 'ai', m: javob }],
   });
   if (!sent(result.status) || result.body?.ok !== true || result.body.id !== id || !VERSION.test(result.body.etag ?? '')) {
     return { matn: tgT('Xabar suhbatga saqlanmadi. /jarvis orqali yangilangan suhbatni oching.', til) + '\n\n' + javob.slice(0, 3700) };

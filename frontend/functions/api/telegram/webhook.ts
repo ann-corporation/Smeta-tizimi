@@ -39,7 +39,7 @@ type Men = { ok?: boolean; foydalanuvchi?: { ism?: string | null; login?: string
 
 const yubor = (env: TgEnv, chatId: number, j: BotJavob) => xabarYubor(env, chatId, j.matn, j.markup ? { reply_markup: j.markup } : {});
 async function jarvisYubor(env: TgEnv, chatId: number, reply: JarvisBotReply) {
-  for (const page of reply.transcript ?? []) if (!await xabarYubor(env, chatId, page)) break;
+  for (const page of reply.transcript ?? []) if (!await xabarYubor(env, chatId, page, reply.transcriptOptions)) break;
   await xabarYubor(env, chatId, reply.matn, reply.options);
 }
 

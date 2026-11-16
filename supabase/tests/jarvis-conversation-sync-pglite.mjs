@@ -47,6 +47,45 @@ try {
   assert.equal(await registered(), false);
   await db.exec(migration);
   await db.exec(await sql('../migrations/20270101002100_t2_jarvis_suhbat_history_page.sql'));
+  const extended = await sql('../migrations/20270101002200_t2_jarvis_full_transcript.sql');
+  const extendedRollback = await sql('../migrations/20270101002200_t2_jarvis_full_transcript.rollback.sql');
+  await db.exec('begin');
+  await db.exec(extended);
+  await db.exec(extendedRollback);
+  await db.exec('rollback');
+  await db.exec('begin');
+  await db.exec(extended);
+  const fullTurn = { r: 'ai', m: '  ' + 'ShNQ bo‘yicha aniq izoh 🧱\n'.repeat(270) + 'yakun  ' };
+  const fullChat = await mutate(7, 17, 'full-transcript', null, 'create', 'Full transcript', [fullTurn]);
+  assert.equal(fullChat.ok, true);
+  assert.equal([...(await sync(7, 17, 'full-transcript')).suhbat.qisqartma].length, 600);
+  let fullEtag = fullChat.etag;
+  for (let index = 0; index < 13; index++) {
+    const append = await mutate(7, 17, 'full-transcript', fullEtag, 'append', null, [fullTurn]);
+    assert.equal(append.ok, true);
+    fullEtag = append.etag;
+  }
+  const transcript = (await sync(7, 17, 'full-transcript')).suhbat.xabarlar;
+  assert.equal(transcript.length, 14);
+  assert.deepEqual(transcript[0], fullTurn);
+  assert.equal((await db.query("select public.t2_jarvis_suhbat_saqla_v1(7,17,'full-transcript','old',$1::jsonb) as r", [JSON.stringify([{ r: 'user', m: 'x' }])])).rows[0].r.code, 'SUHBAT_CONFLICT');
+  await db.exec("update public.t2_jarvis_suhbat set yangilandi = now() - interval '91 days' where klient_id = 'full-transcript'");
+  const extendedCandidate = (await db.query('select public.t2_jarvis_suhbat_archive_pick_v1(1) as r')).rows[0].r[0];
+  const extendedHash = createHash('sha256').update(extendedCandidate.body).digest('hex');
+  assert.ok(Buffer.byteLength(extendedCandidate.body) > 32768);
+  assert.equal((await db.query('select public.t2_jarvis_suhbat_archive_commit_v1($1,$2,$3) as r',
+    [extendedCandidate.row, extendedHash, Buffer.byteLength(extendedCandidate.body)])).rows[0].r.archived, true);
+  assert.equal((await db.query('select public.t2_jarvis_suhbat_archive_restore_v1($1,$2) as r',
+    [extendedCandidate.row, extendedCandidate.body])).rows[0].r.restored, true);
+  assert.deepEqual((await sync(7, 17, 'full-transcript')).suhbat.xabarlar, transcript);
+  const capacity = Array.from({ length: 256 }, () => ({ r: 'user', m: 'Short synthetic line' }));
+  await db.query("update public.t2_jarvis_suhbat set xabarlar = $1::jsonb where klient_id = 'full-transcript'", [JSON.stringify(capacity)]);
+  const atCapacity = (await sync(7, 17, 'full-transcript')).suhbat;
+  const rejected = await mutate(7, 17, 'full-transcript', atCapacity.etag, 'append', null, [fullTurn]);
+  assert.equal(rejected.code, 'SUHBAT_FULL');
+  assert.deepEqual((await sync(7, 17, 'full-transcript')).suhbat, atCapacity);
+  await assert.rejects(db.exec(extendedRollback), /preserve transcripts/);
+  await db.exec('rollback');
   for (const role of ['anon', 'authenticated', 'service_role']) {
     for (const target of [signature, writeSignature, 'public.t2_jarvis_suhbat_archive_pick_v1(integer)',
       'public.t2_jarvis_suhbat_archive_commit_v1(bigint,text,integer)',

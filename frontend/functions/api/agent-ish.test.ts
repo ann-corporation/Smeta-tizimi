@@ -72,6 +72,25 @@ describe('agent-ish shlyuzi', () => {
     expect((await post({ ...request, harakat: 'rename', xabarlar: null, sarlavha: 'New title' })).status).toBe(400);
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
+  it('preserves full transcript bytes while serving a short view to older clients', async () => {
+    const longTurn = { r: 'ai', m: '  🧱\n'.repeat(1500) + 'end  ' };
+    const turns = Array.from({ length: 14 }, () => longTurn);
+    const version = 'a'.repeat(32);
+    const mock = vi.fn(async (url: string, _init?: RequestInit) => rpcJavob(url.endsWith('mutate_v1')
+      ? { ok: true, id: 'full-chat', etag: version }
+      : { ok: true, royxat: [], suhbat: { id: 'full-chat', holat: 'changed', etag: version, xabarlar: turns, archive: null } }));
+    vi.stubGlobal('fetch', mock);
+    const scope = { kompaniya_id: 17, klient_id: 'full-chat' };
+    const append = { ...scope, amal: 'suhbat_mutate', harakat: 'append', etag: version, xabarlar: [longTurn] };
+    expect((await post(append)).status).toBe(200);
+    expect(JSON.parse(String(mock.mock.calls[0][1]?.body)).p_xabarlar).toEqual([longTurn]);
+    const read = { ...scope, amal: 'suhbat_sync' };
+    const modern = await (await post({ ...read, full_history: true })).json() as { suhbat: { xabarlar: unknown } };
+    const previous = await (await post(read)).json() as { suhbat: { xabarlar: Array<{ m: string }> } };
+    expect(modern.suhbat.xabarlar).toEqual(turns);
+    expect(previous.suhbat.xabarlar).toHaveLength(12);
+    expect([...previous.suhbat.xabarlar[0].m]).toHaveLength(400);
+  });
   it('creates a new conversation only without a previous version, scoped to the signed-in actor', async () => {
     const fetcher = vi.fn(async (_url: string, _init?: RequestInit) => rpcJavob({ ok: true, id: 'new-chat', etag: 'a'.repeat(32) }));
     vi.stubGlobal('fetch', fetcher);

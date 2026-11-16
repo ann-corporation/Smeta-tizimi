@@ -34,8 +34,8 @@ it('reads a shared transcript and appends the question and answer using the curr
   expect(answer?.matn).not.toContain('/other');
   expect(answer?.options?.reply_markup).toEqual({ force_reply: true });
   expect(payloads()).toEqual([
-    { amal: 'suhbat_sync', kompaniya_id: 17, klient_id: 'chat-1' },
-    { amal: 'suhbat_sync', kompaniya_id: 17, klient_id: 'chat-1' },
+    { amal: 'suhbat_sync', kompaniya_id: 17, klient_id: 'chat-1', full_history: true },
+    { amal: 'suhbat_sync', kompaniya_id: 17, klient_id: 'chat-1', full_history: true },
     { amal: 'kasb_savol', kompaniya_id: 17, savol: 'Next question', sahifa: '/telegram/jarvis', tarix: [
       { rol: 'user', matn: 'First question' }, { rol: 'assistant', matn: 'First answer' },
     ] },
@@ -44,6 +44,21 @@ it('reads a shared transcript and appends the question and answer using the curr
     ] },
   ]);
   expect(request.mock.calls.every(([, actor]) => actor === 7)).toBe(true);
+});
+
+it('opens a long archived reply in bounded pages and checks actor scope on every page', async () => {
+  const long = { ...changed, arxivlangan: true, xabarlar: [{ r: 'ai', m: '🧱'.repeat(1900) + 'end of reply' }] };
+  request.mockResolvedValue(success({ royxat: list, suhbat: long }));
+  const first = await telegramJarvisSelect(env, 7, 11, 'en', 'j:o:17:chat-1');
+  expect(first.transcript).toHaveLength(1);
+  expect(first.transcript?.[0].length).toBeLessThan(4096);
+  const markup = first.transcriptOptions?.reply_markup as { inline_keyboard: Array<Array<{ callback_data: string }>> };
+  const button = markup.inline_keyboard[0][0];
+  expect(button.callback_data.length).toBeLessThanOrEqual(64);
+  const second = await telegramJarvisSelect(env, 7, 11, 'en', button.callback_data);
+  expect(second.matn).toContain('end of reply');
+  expect(request.mock.calls[1][1]).toBe(7);
+  expect(payloads()[1]).toMatchObject({ kompaniya_id: 17, klient_id: 'chat-1', full_history: true });
 });
 
 it('rejects copied, tampered and expired prompts before checking any chat or spending tokens', async () => {

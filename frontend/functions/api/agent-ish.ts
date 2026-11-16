@@ -33,6 +33,7 @@ import { openrouterBalans } from '../_shared/openrouter-balans';
 import { AI_TIZIM_AMALLAR, aiJavobTozala, platformaSuperadminmi } from '../_shared/tizim-maxfiy';
 import { mijozNarxParam, modellarMijozga, orQatorMijozga } from '../_shared/ai-mijoz-narx';
 import { jarvisArchiveRead } from '../_shared/jarvis-conversation-archive';
+import { JARVIS_MAX_MUTATION_BYTES, legacyJarvisTurns, validJarvisTurn } from '../../src/lib/jarvis/conversation-contract';
 
 type Env = AiEnv & { SUPABASE_URL?: string; SUPABASE_KEY?: string; SESSIYA_KALIT: string; KUZATUV_KALIT?: string; KUZATUV_ACTOR_ID?: string; AGENT_ISH_YOQILGAN?: string; GITHUB_AGENT_TOKEN?: string; GITHUB_REPO?: string; R2_CANONICAL?: R2Bucket };
 
@@ -454,6 +455,7 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
         visible.arxivlangan = true;
       } catch { return archiveFailure(); }
     }
+    if (so.full_history !== true && Object.hasOwn(visible, 'xabarlar')) visible.xabarlar = legacyJarvisTurns(visible.xabarlar);
     return chiqar({ ...result, data: { ...result.data, suhbat: visible } });
   }
   if (amal === 'suhbat_mutate') {
@@ -472,9 +474,10 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
       return xato('Suhbat sarlavhasi noto‘g‘ri');
     }
     if (harakat === 'append' || harakat === 'create') {
-      if (!Array.isArray(xabarlar) || xabarlar.length < 1 || xabarlar.length > 12 || !xabarlar.every(x =>
-        x && (x.r === 'user' || x.r === 'ai') && typeof x.m === 'string' && x.m.length <= 800 && [...x.m].length <= 400 && !!x.m.trim()
-      )) return xato('Suhbat xabarlari noto‘g‘ri');
+      if (!Array.isArray(xabarlar) || xabarlar.length < 1 || xabarlar.length > 12 || !xabarlar.every(validJarvisTurn) ||
+          new TextEncoder().encode(JSON.stringify(xabarlar.map(({ r, m }) => ({ r, m })))).byteLength > JARVIS_MAX_MUTATION_BYTES - 256) {
+        return xato('Suhbat xabarlari noto‘g‘ri');
+      }
     } else if (xabarlar != null) return xato('Bu amal xabarlarni o‘zgartirmaydi');
     const result = await rpcData(env, 't2_jarvis_suhbat_mutate_v1', {
       p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: id, p_etag: etag ?? null, p_amal: harakat,
@@ -483,6 +486,7 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
       ...(operation ? { p_operation_id: operation } : {}),
     });
     if (result.data.code === 'SUHBAT_CONFLICT') return Response.json(result.data, { status: 409, ...JAVOB });
+    if (result.data.code === 'SUHBAT_FULL') return Response.json(result.data, { status: 413, ...JAVOB });
     if (result.data.code === 'SUHBAT_NOT_FOUND') return Response.json(result.data, { status: 404, ...JAVOB });
     return chiqar(result);
   }
@@ -499,14 +503,15 @@ const yozishIchki = async (ctx: EventContext<Env, string, unknown>): Promise<Res
     if (amal === 'suhbat_ol') {
       const key = { p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: klient };
       const result = await rpcData(env, 't2_jarvis_suhbat_ol_v1', key);
-      if (!result.ok || result.data.xabarlar !== null) return chiqar(result);
+      if (!result.ok) return chiqar(result);
+      if (result.data.xabarlar !== null) return chiqar({ ...result, data: { ...result.data, xabarlar: legacyJarvisTurns(result.data.xabarlar) } });
       const snapshot = await rpcData(env, 't2_jarvis_suhbat_sync_v1', { ...key, p_etag: null });
       const active = archivedSnapshot(snapshot.data.suhbat);
       if (!snapshot.ok || !active || active.archive == null) return chiqar(result);
       if (active.id !== klient || active.holat !== 'changed' || active.xabarlar !== null) return archiveFailure();
       try {
         const xabarlar = await jarvisArchiveRead(env.R2_CANONICAL, active.archive);
-        return chiqar({ ...result, data: { ...result.data, xabarlar, arxivlangan: true } });
+        return chiqar({ ...result, data: { ...result.data, xabarlar: legacyJarvisTurns(xabarlar), arxivlangan: true } });
       } catch { return archiveFailure(); }
     }
     if (amal === 'suhbat_ochir') return chiqar(await rpcData(env, 't2_jarvis_suhbat_ochir_v1', { p_actor_id: k.actor, p_kompaniya_id: kid, p_klient_id: klient }));

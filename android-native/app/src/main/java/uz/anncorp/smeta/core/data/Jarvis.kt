@@ -76,7 +76,7 @@ class JarvisRepository(private val api: BffApi) {
 
     suspend fun syncChats(companyId: Long, cursor: ChatCursor? = null): ChatSync? =
         parseSync(api.bff(PATH, "POST", buildJsonObject {
-            put("amal", "suhbat_sync"); put("kompaniya_id", companyId)
+            put("amal", "suhbat_sync"); put("kompaniya_id", companyId); put("full_history", true)
             cursor?.let { put("klient_id", it.id); it.etag?.let { tag -> put("etag", tag) } }
         }), cursor)
 
@@ -108,14 +108,14 @@ class JarvisRepository(private val api: BffApi) {
         val create = cursor.etag == null
         if (!CHAT_ID.matches(cursor.id) || (create && title.isNullOrBlank()) ||
             (!create && (!ETAG.matches(cursor.etag.orEmpty()) || title != null)) ||
-            messages.size !in 1..MAX_SAVED || messages.any { it.text.isBlank() }) return ChatWrite.Failed
+            messages.size !in 1..MAX_SAVED || messages.any { !validTranscriptText(it.text) }) return ChatWrite.Failed
         return mutateChat(companyId, cursor, if (create) "create" else "append") {
             if (create) put("sarlavha", title)
             else operationId?.let { put("operation_id", it) }
             deviceId?.let { put("jarvis_device_id", it) }
             put("xabarlar", buildJsonArray {
                 messages.forEach {
-                    add(buildJsonObject { put("r", if (it.mine) "user" else "ai"); put("m", it.text.trim().take(MAX_SAVED_TEXT)) })
+                    add(buildJsonObject { put("r", if (it.mine) "user" else "ai"); put("m", it.text) })
                 }
             })
         }
@@ -183,11 +183,11 @@ class JarvisRepository(private val api: BffApi) {
                     val messages = when (val value = row["xabarlar"]) {
                         JsonNull -> null
                         is JsonArray -> {
-                            if (value.size > MAX_SAVED) return null
+                            if (value.size > MAX_TRANSCRIPT) return null
                             value.map {
                                 val msg = it as? JsonObject ?: return null
                                 val mine = when (msg.string("r")) { "user" -> true; "ai" -> false; else -> return null }
-                                val text = msg.string("m")?.takeIf { it.isNotBlank() && it.length <= MAX_SAVED_TEXT * 2 } ?: return null
+                                val text = msg.string("m")?.takeIf(::validTranscriptText) ?: return null
                                 ChatMsg(mine, text)
                             }
                         }
@@ -203,7 +203,10 @@ class JarvisRepository(private val api: BffApi) {
         const val MAX_QUESTION = 1000
         const val MAX_HISTORY = 6
         const val MAX_SAVED = 12
-        const val MAX_SAVED_TEXT = 400
+        private const val MAX_TRANSCRIPT = 256
+        private const val MAX_SAVED_TEXT = 16_000
+        private fun validTranscriptText(text: String): Boolean = text.isNotBlank() &&
+            text.length <= MAX_SAVED_TEXT * 2 && text.codePointCount(0, text.length) <= MAX_SAVED_TEXT
         const val PATH = "/api/agent-ish"
         const val PAGE = "/android/jarvis"
 

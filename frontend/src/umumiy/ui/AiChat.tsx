@@ -66,15 +66,15 @@ function tarixYoz(kalit: string, x: readonly Xabar[]) {
 
 /** AI ko'rsatgan sahifalarga o'tish tugmalari (yo'llar serverda katalog bilan tekshirilgan). */
 function xabarImzo(a: { rol: string; matn: string }[]): string { return a.map((x) => `${x.rol}:${x.matn}`).join('\u0001'); }
-function ixchamXabarlar(xabarlar: Xabar[]) {
+function suhbatXabarlari(xabarlar: Xabar[]) {
   return xabarlar.flatMap(x => {
-    const m = Array.from(x.matn.trim()).slice(0, 400).join('');
-    return m ? [{ r: x.rol, m }] : [];
+    const m = x.matn;
+    return m.trim() ? [{ r: x.rol, m }] : [];
   });
 }
 const queuedPreview = (xabarlar: Xabar[]) => xabarlar.slice(-12).flatMap(x => {
-  const m = x.matn.trim().slice(0, 8000);
-  return m ? [{ r: x.rol, m }] : [];
+  const m = x.matn;
+  return m.trim() ? [{ r: x.rol, m }] : [];
 });
 
 function OtishTugmalari({ royxat, ochish }: { royxat?: SahifaIshora[]; ochish: (yol: string) => void }) {
@@ -268,7 +268,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
       const stillCurrent = () => gen.current === avlod && remoteAnchor.current === anchor;
       const retry = appendRetry.current?.anchor === anchor ? appendRetry.current : null;
       const until = Math.min(xabarlar.length, anchor.count + 12);
-      const delta = ixchamXabarlar(xabarlar.slice(anchor.count, until));
+      const delta = suhbatXabarlari(xabarlar.slice(anchor.count, until));
       if (retry?.stale || (!retry && !delta.length)) { setSaqlashHolati('local'); return; }
       setSaqlashHolati('saving');
       const save = async () => {
@@ -325,7 +325,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
       const avlod = gen.current;
       const save = async () => {
         if (fresh.sending || discardingPending.current || gen.current !== avlod || yangiServerSuhbat.current !== fresh) return;
-        const messages = ixchamXabarlar(xabarlar.slice(fresh.start));
+        const messages = suhbatXabarlari(xabarlar.slice(fresh.start));
         if (!fresh.first) {
           if (!messages.length || messages.length > 12) { setSaqlashHolati('local'); return; }
           const title = (messages.find(x => x.r === 'user') ?? messages[0]).m.replace(/\s+/g, ' ').slice(0, 80).trim();
@@ -791,7 +791,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
           <span role="status">{t('Suhbat yuklanmoqda: {nom}', {nom: yuklanayotgan})}</span>
           <button type="button" onClick={() => { yuklashNomer.current++; setYuklanayotgan(null); }} className="rounded border border-border px-2 py-1">{t('Suhbat yuklashni bekor qilish')}</button>
         </div>}
-        {saqlashHolati !== 'idle' && <p role="status" className="mt-1 text-xs text-text-dim">{saqlashHolati === 'saving' ? t('Suhbat serverga saqlanmoqda…') : saqlashHolati === 'saved' ? t('Suhbatning ixcham nusxasi serverga saqlandi') : t('Serverga saqlanmadi — bu oynani yopmang')}</p>}
+        {saqlashHolati !== 'idle' && <p role="status" className="mt-1 text-xs text-text-dim">{saqlashHolati === 'saving' ? t('Suhbat serverga saqlanmoqda…') : saqlashHolati === 'saved' ? t('Suhbat serverga saqlandi') : t('Serverga saqlanmadi — bu oynani yopmang')}</p>}
         {saqlashHolati === 'local' && ((yangiServerSuhbat.current?.first && !yangiServerSuhbat.current.stale) ||
           (appendRetry.current && !appendRetry.current.stale)) && <button type="button"
           onClick={() => setSaqlashQadami(i => i + 1)} className="mt-1 rounded border border-border px-2 py-1 text-xs">

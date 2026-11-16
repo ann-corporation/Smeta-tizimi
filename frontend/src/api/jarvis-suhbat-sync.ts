@@ -1,6 +1,7 @@
 import type { ServerSuhbat } from './t2-agent-ish';
+import { validJarvisTurns, type JarvisTurn } from '../lib/jarvis/conversation-contract';
 
-type Message = { r: 'user' | 'ai'; m: string };
+type Message = JarvisTurn;
 type ActiveSnapshot =
   | { id: string; holat: 'missing' }
   | { id: string; holat: 'same'; etag: string }
@@ -18,10 +19,6 @@ const validListRow = (value: unknown): value is ServerSuhbat => {
   return !!row && typeof row.id === 'string' && idPattern.test(row.id) && typeof row.sarlavha === 'string' &&
     typeof row.yangilandi === 'string' && Number.isFinite(Date.parse(row.yangilandi)) && typeof row.toliq === 'boolean';
 };
-const validMessage = (value: unknown): value is Message => {
-  const row = record(value);
-  return !!row && (row.r === 'user' || row.r === 'ai') && typeof row.m === 'string' && row.m.length > 0 && row.m.length <= 800;
-};
 const validList = (value: unknown): value is ServerSuhbat[] => Array.isArray(value) && value.length <= 20 &&
   value.every(validListRow) && new Set(value.map(row => row.id)).size === value.length;
 
@@ -37,7 +34,7 @@ export function parseConversationSync(value: unknown, cursor: Cursor | null): Co
   if (row.holat === 'same' && row.etag === cursor.etag) return { royxat, suhbat: { id: cursor.id, holat: 'same', etag: row.etag } };
   if (row.holat !== 'changed' || typeof row.sarlavha !== 'string' ||
       !(row.qisqartma === null || typeof row.qisqartma === 'string') ||
-      !(row.xabarlar === null || (Array.isArray(row.xabarlar) && row.xabarlar.length <= 12 && row.xabarlar.every(validMessage)))) return null;
+      !(row.xabarlar === null || validJarvisTurns(row.xabarlar))) return null;
   return { royxat, suhbat: { id: cursor.id, holat: 'changed', etag: row.etag, sarlavha: row.sarlavha, xabarlar: row.xabarlar, qisqartma: row.qisqartma,
     ...(row.arxivlangan === true ? { arxivlangan: true as const } : {}) } };
 }
@@ -65,7 +62,7 @@ export async function syncJarvisConversation(company: number, cursor: Cursor | n
   try {
     const response = await fetch('/api/agent-ish', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, signal,
-      body: JSON.stringify({ amal: 'suhbat_sync', kompaniya_id: company, klient_id: cursor?.id ?? null, etag: cursor?.etag ?? null }),
+      body: JSON.stringify({ amal: 'suhbat_sync', kompaniya_id: company, klient_id: cursor?.id ?? null, etag: cursor?.etag ?? null, full_history: true }),
     });
     if (!response.ok) return null;
     return parseConversationSync(await response.json(), cursor);

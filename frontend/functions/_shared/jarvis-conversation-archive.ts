@@ -1,11 +1,11 @@
 import { r2Oqi, r2Yoz, sha256Hex, type R2Bucket } from './r2-saqlash';
 import type { ArxivDeps, IshNatija } from './arxiv';
+import { JARVIS_MAX_ARCHIVE_BYTES as MAX_BYTES, validJarvisTurns, type JarvisTurn } from '../../src/lib/jarvis/conversation-contract';
 
-type Turn = { r: 'user' | 'ai'; m: string };
+type Turn = JarvisTurn;
 type ArchivePointer = { row: string; sha256: string; bytes: number };
 const ROW = /^[1-9]\d{0,18}$/;
 const SHA = /^[a-f0-9]{64}$/;
-const MAX_BYTES = 32768;
 const path = (p: ArchivePointer) => `jarvis-history/v1/${p.row}/${p.sha256}.json`;
 const pointer = (value: unknown): value is ArchivePointer => {
   const p = value as ArchivePointer | null;
@@ -16,8 +16,7 @@ const pointer = (value: unknown): value is ArchivePointer => {
 function parse(bytes: Uint8Array, row: string): Turn[] {
   const envelope = JSON.parse(new TextDecoder('utf-8', { fatal: true, ignoreBOM: false }).decode(bytes)) as { v?: number; row?: string; turns?: Turn[] } | null;
   const turns = envelope?.turns;
-  if (envelope?.v !== 1 || envelope.row !== row || !Array.isArray(turns) || turns.length > 12 ||
-    !turns.every(x => x && (x.r === 'ai' || x.r === 'user') && typeof x.m === 'string' && x.m.length <= 800 && !!x.m.trim())) {
+  if (envelope?.v !== 1 || envelope.row !== row || !validJarvisTurns(turns)) {
     throw new Error('JARVIS_ARCHIVE_BODY');
   }
   return turns.map(x => ({ r: x.r, m: x.m }));
