@@ -126,9 +126,15 @@ export async function jarvisJavobi(env: BotEnv, uid: number, til: TgTil, savol: 
   if (!s) return { matn: tgT('Savolni buyruqdan keyin yozing: /jarvis <savol>', til) };
   if (s.length > JARVIS_MAX_SAVOL) return { matn: tgT('Savol juda uzun (1000 belgigacha).', til) };
   if (limitOshdi('jarvis:' + uid, 5)) return { matn: tgT('Juda ko‘p so‘rov. Bir daqiqadan keyin urinib ko‘ring.', til) };
-  const r = await botChaqiruv<{ ok?: boolean; javob?: string; xabar?: string; code?: string }>(env, uid,
+  const r = await botChaqiruv<{ ok?: boolean; javob?: string; xabar?: string; code?: string; dalil?: { yol?: string } }>(env, uid,
     { api: 'ai-savol', json: { savol: s } }, middleware, aiSavolPost);
-  if (r.status === 200 && r.body?.ok && typeof r.body.javob === 'string' && r.body.javob.trim()) return { matn: r.body.javob.trim().slice(0, 3800) };
+  if (r.status === 200 && r.body?.ok && typeof r.body.javob === 'string' && r.body.javob.trim()) {
+    const yol = r.body.dalil?.yol;
+    if (!yol) return { matn: r.body.javob.trim().slice(0, 3800) };
+    const sourceLink = '\n\n[Manbani ochish](' + yol + ')';
+    const answer = r.body.javob.endsWith(sourceLink) ? r.body.javob.slice(0, -sourceLink.length) : r.body.javob;
+    return { matn: answer.trim().slice(0, 3800), markup: { inline_keyboard: [[miniAppYoliTugma(env, til, yol)]] } };
+  }
   // Byudjet/limit rad — server xabari (matn tayyor, sirsiz); kompaniya tanlanmagan/ruxsat yo'q — Mini App ga yo'naltiramiz.
   if (r.status === 402 && typeof r.body?.xabar === 'string') return { matn: r.body.xabar.slice(0, 300) };
   if ([403, 422].includes(r.status)) return { matn: tgT('Jarvis kompaniyani aniqlay olmadi yoki ruxsat yo‘q. Mini App da kompaniyani tanlab so‘rang.', til),

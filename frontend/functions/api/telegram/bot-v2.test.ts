@@ -150,6 +150,22 @@ describe('/jarvis — umumiy Jarvis yadrosi', () => {
     t2_agent_muhit_v1: () => ({ ok: true, qoidalar: [], xotira: [], manbalar: [] }),
   };
   const envAi = { ...ENV, OPENROUTER_API_KEY: 'test' };
+  it('approved F2 total comes from the canonical read and opens its object in Mini App', async () => {
+    const c = net(asos({
+      ...umumiy,
+      t2_agent_kasb_v1: () => ({ ...umumiy.t2_agent_kasb_v1(), kategoriyalar: ['obyektlar', 'f2_fakt_pul'] }),
+      t2_agent_fakt_v1: () => ({ ok: true, fakt: { obyektlar: [{ id: 79, nom: 'Sinov Bino' }] } }),
+      t2_object_financials_v1: () => ({ ok: true, kompaniya_id: 17, basis: 'direct', objects: [
+        { obyekt_id: 79, f2: { known: 82.5, unknown: 0, present: true } },
+      ] }),
+    }));
+    expect(await updateIshla(envAi as never, msg('/jarvis Sinov Bino F2 jami qancha?') as never)).toBe('jarvis');
+    expect(javobMatni(c)).toContain('82,50');
+    expect(c.yuk.t2_object_financials_v1).toEqual([{ p_actor_id: UID, p_kompaniya_id: 17, p_object_ids: [79] }]);
+    const message = c.tg.find(x => x.metod === 'sendMessage')?.yuk;
+    expect(message.reply_markup.inline_keyboard[0][0].web_app.url).toBe(SITE + '/tg?to=' + encodeURIComponent('/admin/f2-tarix?obyekt=79'));
+    expect(ai.hisobli).not.toHaveBeenCalled();
+  });
   it('hisobli yo‘l: actor + kompaniya + profil/amal; javob yuboriladi; Workers AI chetlab o‘tilmaydi', async () => {
     const worker = vi.fn();
     ai.hisobli.mockResolvedValue({ text: 'Dalilli javob', provider: 'openrouter', model: 'm' });

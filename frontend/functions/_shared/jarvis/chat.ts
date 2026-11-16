@@ -6,6 +6,7 @@ import { kontekstOl } from '../agent-kontekst-kesh';
 import { xotiraBloklari } from '../../../src/lib/smeta-ai/tajriba';
 import { kimMendan, kimPromptBloki } from '../../../src/lib/yordamchi/kim';
 import { pulJavobi, pulSorovi } from '../agent-pul-javob';
+import { objectTotalAnswer, objectTotalIntent } from './object-finance';
 import { suhbatTarixi, faktMatni, kasbPrompti, mavzuTaqiqi, radMatni, toifalarniTanla, harakatMatni, javobniAjrat, MAVZU_NOMI, type KasbMalumoti, type Toifa } from '../agent-kasb';
 import { bilimBolimi, dbBilimYozuvlari, navigatsiyaSorovi, sahifaQidirish, yolTekshir } from '../agent-bilim';
 import { uslubBolimi, uslubYangila, type UslubXususiyat } from '../agent-uslub';
@@ -89,6 +90,15 @@ export async function kasbQuvur(env: JarvisEnv, actor: number, kid: number, so: 
     qd('💰', 'Smeta qiymati tizim hisobidan (nakrutka/QQS) — model chaqirilmadi, token sarflanmadi');
     await yozJurnal('savol', pulMatni, qadamlar, {});
     return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', javob: pulMatni } };
+  }
+  const total = objectTotalIntent(savol);
+  if (total && so.studio == null) {
+    const answer = kasb.kategoriyalar.includes('f2_fakt_pul')
+      ? await objectTotalAnswer((name, body) => rpcData(env, name, body), {
+        actor, company: kid, question: savol, history: so.tarix, objectId: sonmi(so.obyekt_id) ? Number(so.obyekt_id) : null,
+      }, total).catch(() => ({ javob: 'Jami summani tizimdan olib bo‘lmadi. Keyinroq qayta urinib ko‘ring.' }))
+      : { javob: 'Bu obyekt summasini ko‘rish uchun ruxsat kerak.', rad: true as const };
+    return { status: 200, body: { ok: true, kasb: ish, model: 'local', provider: 'local', ...answer } };
   }
   const toifalar = toifalarniTanla(savol, kasb.kategoriyalar, matn(so.sahifa, 160));
   qd('🧭', `Savol tahlil qilindi — kerakli ma’lumot: ${nomlar(toifalar)}`);
