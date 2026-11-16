@@ -3,8 +3,9 @@ import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-libra
 import { MemoryRouter } from 'react-router-dom';
 import type { YordamchiUlanish } from './yordamchi/ishlov';
 import type { KasbIshchi } from '../../api/t2-agent-ish';
-const m=vi.hoisted(()=>({ask:vi.fn(),load:vi.fn(),list:vi.fn(),intent:vi.fn(),save:vi.fn()}));
+const m=vi.hoisted(()=>({ask:vi.fn(),load:vi.fn(),list:vi.fn(),intent:vi.fn(),save:vi.fn(),sync:vi.fn()}));
 vi.mock('../../api/t2-agent-ish',()=>({niyatLlmOl:m.intent,suhbatRoyxatOl:m.list,suhbatServerga:m.save,suhbatServerdanOl:m.load,kasbSavolOqim:m.ask,tizimYordamSavol:vi.fn()}));
+vi.mock('../../api/jarvis-suhbat-sync',()=>({syncJarvisConversation:m.sync}));
 vi.mock('./AiBaho',()=>({AiBaho:()=>null}));vi.mock('./AiHarakatKarta',()=>({AiHarakatKarta:()=>null}));
 vi.mock('../../lib/yordamchi/niyat',()=>({niyatAniqla:()=>({tur:'nomalum',yaqin:[]})}));
 vi.mock('../../lib/yordamchi/niyat-llm',()=>({niyatLlmGaMosmi:()=>true}));
@@ -14,10 +15,63 @@ const role={rol:'pto',profil:'pto',nom:'PTO',vazifa:'Smeta',kategoriyalar:[],nam
 const view=(uid=7,k=17)=><MemoryRouter><AiChat kompaniyaId={k} foydalanuvchiId={uid} kasb={role} sahifa="/admin" generatsiya={0} yordamchi={helper}/></MemoryRouter>;
 const choose=(id:string)=>fireEvent.change(screen.getByLabelText('Suhbatni tanlash'),{target:{value:id}});
 beforeEach(()=>{localStorage.clear();sessionStorage.clear();m.ask.mockReset();m.intent.mockReset();m.load.mockReset();m.list.mockReset().mockResolvedValue([]);m.save.mockReset().mockResolvedValue(null);
+ m.sync.mockReset().mockResolvedValue(null);
  localStorage.setItem('jarvis-suhbatlar:7:17',JSON.stringify(['a','b'].map(id=>({id,sarlavha:'Chat '+id,yangilandi:Date.now(),xabarlar:[{rol:'user',matn:'Message '+id}]}))));});
 afterEach(()=>{vi.useRealTimers();cleanup();});
 const send=(text:string)=>{fireEvent.change(screen.getByRole('textbox'),{target:{value:text}});fireEvent.keyDown(screen.getByRole('textbox'),{key:'Enter'});};
 const tick=(ms:number)=>act(async()=>{await vi.advanceTimersByTimeAsync(ms);});
+
+function remoteFixture() {
+ const row = { id: 'remote', sarlavha: 'Phone chat', yangilandi: new Date().toISOString(), toliq: true };
+ m.list.mockResolvedValue([row]);
+ m.load.mockResolvedValue({ xabarlar: [{ r: 'ai', m: 'Before phone update' }], qisqartma: null });
+ return row;
+}
+
+it('updates an open remote conversation and its title, then clears it after remote deletion', async () => {
+ vi.useFakeTimers();
+ const row = remoteFixture();
+ const renamed = { ...row, sarlavha: 'Renamed on phone' };
+ m.sync.mockResolvedValueOnce({ royxat: [renamed], suhbat: {
+  id: row.id, holat: 'changed', etag: 'a'.repeat(32), sarlavha: renamed.sarlavha,
+  xabarlar: [{ r: 'ai', m: 'After phone update' }], qisqartma: null,
+ } }).mockResolvedValueOnce({ royxat: [], suhbat: { id: row.id, holat: 'missing' } });
+ render(view()); await tick(0); choose(row.id); await tick(0);
+ expect(screen.getByText('Before phone update')).toBeTruthy();
+ await tick(3000);
+ expect(screen.getByText('After phone update')).toBeTruthy();
+ expect(screen.getAllByRole('option', { name: 'Renamed on phone' }).length).toBeGreaterThan(0);
+ expect(m.save).not.toHaveBeenCalled();
+ await tick(3000);
+ expect(screen.queryByText('After phone update')).toBeNull();
+ expect(m.sync.mock.calls[1][1]).toEqual({ id: row.id, etag: 'a'.repeat(32) });
+ expect(m.save).not.toHaveBeenCalled();
+});
+
+it('a late poll cannot replace a different conversation selected during the request', async () => {
+ vi.useFakeTimers();
+ const row = remoteFixture();
+ let finish!: (snapshot: unknown) => void;
+ m.sync.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+ render(view()); await tick(0); choose(row.id); await tick(0); await tick(3000);
+ choose('a');
+ await act(async () => finish({ royxat: [row], suhbat: { id: row.id, holat: 'missing' } }));
+ expect(screen.getByText('Message a', { selector: 'p' })).toBeTruthy();
+ expect(m.save).not.toHaveBeenCalled();
+});
+
+it('a missing remote chat does not wipe the message being typed', async () => {
+ vi.useFakeTimers();
+ const row = remoteFixture();
+ let finish!: (snapshot: unknown) => void;
+ m.sync.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+ render(view()); await tick(0); choose(row.id); await tick(0); await tick(3000);
+ fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Unsaved draft' } });
+ await act(async () => finish({ royxat: [], suhbat: { id: row.id, holat: 'missing' } }));
+ expect(screen.getByDisplayValue('Unsaved draft')).toBeTruthy();
+ expect(screen.getByText('Before phone update')).toBeTruthy();
+ expect(m.save).not.toHaveBeenCalled();
+});
 it('conversation switch remains visible during a conversation',async()=>{render(view());await act(async()=>{});choose('a');expect(screen.getByText('Message a', {selector:'p'})).toBeTruthy();expect(screen.getByLabelText('Suhbatni tanlash')).toBeTruthy();choose('b');expect(screen.queryByText('Message a', {selector:'p'})).toBeNull();expect(screen.getByText('Message b', {selector:'p'})).toBeTruthy();});
 it('new conversation invalidates a late model answer',async()=>{let done!:(v:unknown)=>void;m.ask.mockReturnValue(new Promise(r=>done=r));render(view());
  fireEvent.change(screen.getByRole('textbox'),{target:{value:'Tekshir'}});fireEvent.keyDown(screen.getByRole('textbox'),{key:'Enter'});

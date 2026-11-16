@@ -5,6 +5,7 @@ import { mdBolaklar } from '../../lib/yordamchi/jadval';
 import { ArrowRight, Bot, Mic, MicOff, Send, Square, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { kasbSavolOqim, niyatLlmOl, suhbatRoyxatOl, suhbatServerdanOl, suhbatServerga, type ServerSuhbat, tizimYordamSavol, type KasbIshchi, type KasbYakun, type Qadam, type SahifaIshora } from '../../api/t2-agent-ish';
+import { syncJarvisConversation } from '../../api/jarvis-suhbat-sync';
 import { jarvisKichikGap } from '../../lib/jarvis/intent';
 import { katalogKonteksti, narxSavolimi, vaqtBilan, type KatalogKontekst } from '../../lib/jarvis/katalog-kontekst';
 import { t } from '../../i18n/til';
@@ -106,16 +107,18 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
   const [tarixEga, setTarixEga] = useState<string | null>(null);
   /** Yuklangan/tanlangan suhbat tarkibi imzosi: shu o'zgarmaguncha (haqiqiy yangi xabar yo'q) serverga/arxivga yozilmaydi va yangilandi ko'tarilmaydi. */
   const yuklanganImzo = useRef('');
+  const remoteAnchor = useRef<{ id: string; etag: string | null } | null>(null);
   /** Serverdan faqat qisqartma sifatida yuklangan suhbat id si: yangi xabar qo'shilganda asl nusxa ustiga yozilmaydi, yangi suhbat (fork) bo'ladi. */
   const qisqartmaDan = useRef<string | null>(null);
   const yuklashNomer = useRef(0);
   const [yuklanayotgan, setYuklanayotgan] = useState<string | null>(null);
   const suhbatToxtat = () => {
+    remoteAnchor.current = null;
     setYuklanayotgan(null); yuklashNomer.current++; suhbatAvlod.current++; gen.current = `${scope}|${suhbatAvlod.current}`;
     abort.current?.abort(); busy.current = false; kutish.current = null; davomRef.current = null;
     setBand(false); setMatn(''); setSaqlashHolati('idle');
   };
-  useEffect(() => { setYuklanayotgan(null); setTarixEga(tarixKalit); kutish.current = null; const tiklangan = tarixKalit ? tarixOqi(tarixKalit) : []; yuklanganImzo.current = xabarImzo(tiklangan); qisqartmaDan.current = null; setXabarlar(tiklangan); setMatn(''); setBand(false); busy.current = false; davomRef.current = null; abort.current?.abort();
+  useEffect(() => { setYuklanayotgan(null); setTarixEga(tarixKalit); kutish.current = null; const tiklangan = tarixKalit ? tarixOqi(tarixKalit) : []; yuklanganImzo.current = xabarImzo(tiklangan); remoteAnchor.current = null; qisqartmaDan.current = null; setXabarlar(tiklangan); setMatn(''); setBand(false); busy.current = false; davomRef.current = null; abort.current?.abort();
     return () => { abort.current?.abort(); };
   }, [scope, tarixKalit]);
   useEffect(() => { if (tarixKalit && tarixEga === tarixKalit) {
@@ -176,7 +179,77 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     return () => { tirik = false; clearTimeout(tm); };
   }, [xabarlar, arxivKalit, yordamchi, tarixKalit, tarixEga]); // eslint-disable-line react-hooks/exhaustive-deps
   const [serverRoyxat, setServerRoyxat] = useState<ServerSuhbat[]>([]);
-  useEffect(() => { let tirik = true; setServerRoyxat([]); if (kompaniyaId != null && foydalanuvchiId != null && yordamchi) void suhbatRoyxatOl(kompaniyaId).then((r) => { if (tirik && r) setServerRoyxat(r); }); return () => { tirik = false; }; }, [kompaniyaId, foydalanuvchiId, !!yordamchi]); // eslint-disable-line react-hooks/exhaustive-deps
+  const syncListed = useRef(false);
+  useEffect(() => {
+    let tirik = true;
+    syncListed.current = false;
+    setServerRoyxat([]);
+    if (kompaniyaId != null && foydalanuvchiId != null && yordamchi) {
+      void suhbatRoyxatOl(kompaniyaId).then((r) => { if (tirik && r && !syncListed.current) setServerRoyxat(r); });
+    }
+    return () => { tirik = false; };
+  }, [kompaniyaId, foydalanuvchiId, !!yordamchi]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Only an untouched server-opened conversation accepts remote messages. A local or in-flight
+  // change stays on this device until the versioned write path can reconcile it.
+  const readPoll = useRef(async (_signal: AbortSignal) => false);
+  const pollBlocked = useRef(false);
+  pollBlocked.current = !!matn.trim() || yuklanayotgan !== null || saqlashHolati === 'saving' || saqlashHolati === 'local';
+  readPoll.current = async (signal) => {
+    if (kompaniyaId == null) return false;
+    const avlod = gen.current;
+    const loadNumber = yuklashNomer.current;
+    const requestId = suhbatId.current;
+    const anchor = remoteAnchor.current;
+    const pristine = () => !busy.current && !pollBlocked.current && xabarImzo(xabarlarRef.current) === yuklanganImzo.current;
+    const cursor = anchor?.id === requestId && pristine() ? anchor : null;
+    const sync = await syncJarvisConversation(kompaniyaId, cursor, signal);
+    if (!sync || signal.aborted || gen.current !== avlod) return !!sync;
+    syncListed.current = true;
+    setServerRoyxat(current => current.length === sync.royxat.length && current.every((row, i) => {
+      const fresh = sync.royxat[i];
+      return row.id === fresh.id && row.sarlavha === fresh.sarlavha && row.yangilandi === fresh.yangilandi && row.toliq === fresh.toliq;
+    }) ? current : sync.royxat);
+    const remote = sync.suhbat;
+    if (!remote || !cursor || remoteAnchor.current !== anchor || suhbatId.current !== requestId ||
+        yuklashNomer.current !== loadNumber || !pristine()) return true;
+    if (remote.holat === 'same') return true;
+    davomRef.current = null;
+    if (remote.holat === 'missing') {
+      remoteAnchor.current = null;
+      qisqartmaDan.current = null;
+      suhbatId.current = crypto.randomUUID();
+      yuklanganImzo.current = xabarImzo([]);
+      setXabarlar([]);
+      return true;
+    }
+    const messages = remote.xabarlar ?? (remote.qisqartma ? [{ r: 'ai' as const, m: t('Eski suhbat (qisqartma)') + ': ' + remote.qisqartma }] : []);
+    const next = messages.map((x, i) => ({ id: requestId + '-' + i, rol: x.r, matn: x.m, jarvis: x.r === 'ai' }));
+    if (remote.xabarlar === null) qisqartmaDan.current = requestId;
+    else qisqartmaDan.current = null;
+    remoteAnchor.current = { id: requestId, etag: remote.etag };
+    yuklanganImzo.current = xabarImzo(next);
+    setXabarlar(next);
+    return true;
+  };
+  useEffect(() => {
+    if (!tarixKalit || kompaniyaId == null) return;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
+    let request: AbortController | null = null;
+    const schedule = (ms: number) => { if (!stopped) timer = setTimeout(() => { void poll(); }, ms); };
+    async function poll() {
+      if (document.visibilityState === 'hidden') { schedule(3000); return; }
+      const active = new AbortController();
+      request = active;
+      const timeout = setTimeout(() => active.abort(), 8000);
+      try {
+        const ok = await readPoll.current(active.signal);
+        schedule(ok ? 3000 : 30000);
+      } finally { clearTimeout(timeout); request = null; }
+    }
+    schedule(3000);
+    return () => { stopped = true; clearTimeout(timer); request?.abort(); };
+  }, [tarixKalit, kompaniyaId, scope]);
   /* Ko'rinadigan ro'yxat: brauzer nusxasi + faqat serverda bor (boshqa qurilma) suhbatlar. */
   const korinadigan = useMemo(() => {
     const bor = new Set(arxiv.map((s) => s.id));
@@ -197,6 +270,7 @@ function AiChatContent({ kompaniyaId, kasb, sahifa, generatsiya, tayyorSavol, on
     const x = r.xabarlar ?? (r.qisqartma ? [{ r: 'ai' as const, m: `${t('Eski suhbat (qisqartma)')}: ${r.qisqartma}` }] : []);
     suhbatToxtat();
     suhbatId.current = s.id; qisqartmaDan.current = toLiq || !x.length ? null : s.id;
+    remoteAnchor.current = { id: s.id, etag: null };
     const yangi = x.map((q, i) => ({ id: `${s.id}-${i}`, rol: q.r, matn: q.m, jarvis: q.r === 'ai' }));
     yuklanganImzo.current = xabarImzo(yangi);
     setXabarlar(yangi);
