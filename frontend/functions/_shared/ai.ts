@@ -394,7 +394,7 @@ function providerInit(
     headers['anthropic-version'] = '2023-06-01';
   } else {
     headers.Authorization = 'Bearer ' + key;
-    if (provider === 'openrouter') headers['X-Title'] = 'Smeta-tizimi';
+    if (provider === 'openrouter') headers['X-Title'] = 'QURAI';
   }
   return { url, init: { method: 'POST', headers, body: JSON.stringify(payload) } };
 }
