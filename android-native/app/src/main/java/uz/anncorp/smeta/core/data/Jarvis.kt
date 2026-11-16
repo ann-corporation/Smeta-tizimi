@@ -2,6 +2,7 @@ package uz.anncorp.smeta.core.data
 
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.booleanOrNull
@@ -37,6 +38,7 @@ data class ChatSync(val chats: List<ChatInfo>, val active: ChatSnapshot?)
 
 sealed interface ChatWrite {
     data class Saved(val etag: String) : ChatWrite
+    data object Deleted : ChatWrite
     data object Stale : ChatWrite
     data object Failed : ChatWrite
 }
@@ -76,23 +78,39 @@ class JarvisRepository(private val api: BffApi) {
         if (!CHAT_ID.matches(cursor.id) || (create && title.isNullOrBlank()) ||
             (!create && (!ETAG.matches(cursor.etag.orEmpty()) || title != null)) ||
             messages.size !in 1..MAX_SAVED || messages.any { it.text.isBlank() }) return ChatWrite.Failed
-        val r = api.bff(PATH, "POST", buildJsonObject {
-            put("amal", "suhbat_mutate"); put("kompaniya_id", companyId); put("klient_id", cursor.id)
-            put("harakat", if (create) "create" else "append")
+        return mutateChat(companyId, cursor, if (create) "create" else "append") {
             if (create) put("sarlavha", title)
-            else put("etag", cursor.etag)
             put("xabarlar", buildJsonArray {
                 messages.forEach {
                     add(buildJsonObject { put("r", if (it.mine) "user" else "ai"); put("m", it.text.trim().take(MAX_SAVED_TEXT)) })
                 }
             })
+        }
+    }
+
+    suspend fun renameChat(companyId: Long, cursor: ChatCursor, title: String): ChatWrite {
+        if (title.isBlank() || title.length > 80) return ChatWrite.Failed
+        return mutateChat(companyId, cursor, "rename") { put("sarlavha", title) }
+    }
+
+    suspend fun deleteChat(companyId: Long, cursor: ChatCursor): ChatWrite =
+        mutateChat(companyId, cursor, "delete") {}
+
+    private suspend fun mutateChat(
+        companyId: Long, cursor: ChatCursor, action: String, fields: JsonObjectBuilder.() -> Unit,
+    ): ChatWrite {
+        if (!CHAT_ID.matches(cursor.id) || (action != "create" && !ETAG.matches(cursor.etag.orEmpty()))) return ChatWrite.Failed
+        val r = api.bff(PATH, "POST", buildJsonObject {
+            put("amal", "suhbat_mutate"); put("kompaniya_id", companyId); put("klient_id", cursor.id); put("harakat", action)
+            cursor.etag?.let { put("etag", it) }
+            fields()
         })
         if (r.status == 409 || r.status == 404) return ChatWrite.Stale
-        val body = r.body as? JsonObject
-        val tag = body?.string("etag")
-        return if (r.ok && body?.successful() == true && body.string("id") == cursor.id && tag != null && ETAG.matches(tag)) {
-            ChatWrite.Saved(tag)
-        } else ChatWrite.Failed
+        val body = r.body as? JsonObject ?: return ChatWrite.Failed
+        if (!r.ok || !body.successful() || body.string("id") != cursor.id) return ChatWrite.Failed
+        if (action == "delete") return if (body.string("holat") == "missing") ChatWrite.Deleted else ChatWrite.Failed
+        val tag = body.string("etag")?.takeIf(ETAG::matches) ?: return ChatWrite.Failed
+        return ChatWrite.Saved(tag)
     }
 
     companion object {

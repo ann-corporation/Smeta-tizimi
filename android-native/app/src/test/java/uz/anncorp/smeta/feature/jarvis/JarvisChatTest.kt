@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.RequestBody
@@ -85,11 +86,66 @@ class JarvisChatTest {
         assertEquals(listOf("kasb_savol"), api.actions)
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test fun renameAndDeleteRequireConfirmationAndUseTheLatestAcknowledgedVersion() = withJarvis { (vm, api, _) ->
+        val row = ChatInfo("one", "Synthetic", "2026-11-15T10:00:00+00:00")
+        api.answer = { snapshot(row.id, "a", "Before") }
+        vm.open(row)
+        runCurrent()
+        vm.startEdit(ChatEditAction.RENAME)
+        assertEquals(1, api.actions.size)
+        val tag = "b".repeat(32)
+        val renameReply = CompletableDeferred<ApiResult>()
+        api.answer = { renameReply.await() }
+        vm.confirmEdit("  Weekly   plan  ")
+        runCurrent()
+        assertEquals("a".repeat(32), api.requests[1]["etag"]!!.jsonPrimitive.content)
+        val oldList = CompletableDeferred<ApiResult>()
+        api.answer = { oldList.await() }
+        val poll = async { vm.refresh() }
+        runCurrent()
+        renameReply.complete(payload(200, """{"ok":true,"id":"one","etag":"$tag"}"""))
+        runCurrent()
+        oldList.complete(payload(200, """{"ok":true,"royxat":[{"id":"one","sarlavha":"Synthetic","yangilandi":"2026-11-15T10:00:00+00:00"}],"suhbat":null}"""))
+        poll.await()
+        assertEquals("Weekly plan", vm.ui.value.chats.single().title)
+        vm.startEdit(ChatEditAction.DELETE)
+        assertEquals(3, api.actions.size)
+        api.answer = { payload(200, """{"ok":true,"id":"one","holat":"missing"}""") }
+        vm.confirmEdit("")
+        runCurrent()
+        assertEquals(tag, api.requests.last()["etag"]!!.jsonPrimitive.content)
+        assertEquals("delete", api.requests.last()["harakat"]!!.jsonPrimitive.content)
+        assertTrue(vm.ui.value.bubbles.isEmpty())
+        assertTrue(vm.ui.value.chats.isEmpty())
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test fun staleOrMismatchedDeletionLeavesTheConversationOnScreen() = withJarvis { (vm, api, _) ->
+        val row = ChatInfo("one", "Synthetic", "2026-11-15T10:00:00+00:00")
+        api.answer = { snapshot(row.id, "a", "Before") }
+        vm.open(row)
+        runCurrent()
+        vm.startEdit(ChatEditAction.DELETE)
+        api.answer = { payload(200, """{"ok":true,"id":"another","holat":"missing"}""") }
+        vm.confirmEdit("")
+        runCurrent()
+        assertEquals(ChatSaveIssue.RETRY, vm.ui.value.editIssue)
+        assertEquals(listOf(ChatMsg(false, "Before")), toMessages(vm.ui.value.bubbles))
+        api.answer = { payload(409, """{"ok":false,"code":"SUHBAT_CONFLICT"}""") }
+        vm.confirmEdit("")
+        runCurrent()
+        assertEquals(ChatSaveIssue.STALE, vm.ui.value.editIssue)
+        assertEquals(row.id, vm.ui.value.chatId)
+        assertEquals(listOf(ChatMsg(false, "Before")), toMessages(vm.ui.value.bubbles))
+    }
+
     private class ChatApi : BffApi {
         var answer: suspend () -> ApiResult = { ApiResult(500, null) }
-        val actions = mutableListOf<String>()
+        val requests = mutableListOf<JsonObject>()
+        val actions get() = requests.map { it.getValue("amal").jsonPrimitive.content }
         override suspend fun bff(path: String, method: String, body: JsonElement?, etag: String?): ApiResult {
-            actions.add(body!!.jsonObject.getValue("amal").jsonPrimitive.content)
+            requests.add(body!!.jsonObject)
             return answer()
         }
         override suspend fun upload(companyId: Long, obyektId: Long, body: RequestBody) = error("Unexpected upload")
@@ -107,7 +163,9 @@ class JarvisChatTest {
         } finally { Dispatchers.resetMain() }
     }
 
-    private fun snapshot(id: String, tag: String, text: String) = ApiResult(200, Json.parseToJsonElement(
-        """{"ok":true,"royxat":[],"suhbat":{"id":"$id","holat":"changed","etag":"${tag.repeat(32)}","qisqartma":null,"xabarlar":[{"r":"ai","m":"$text"}]}}""",
-    ))
+    private fun payload(status: Int, text: String) = ApiResult(status, Json.parseToJsonElement(text))
+
+    private fun snapshot(id: String, tag: String, text: String) = payload(200,
+        """{"ok":true,"royxat":[{"id":"$id","sarlavha":"Synthetic","yangilandi":"2026-11-15T10:00:00+00:00"}],"suhbat":{"id":"$id","holat":"changed","etag":"${tag.repeat(32)}","qisqartma":null,"xabarlar":[{"r":"ai","m":"$text"}]}}""",
+    )
 }

@@ -261,6 +261,14 @@
     <string name="ja_q_fact">Fact status by object</string>
     <string name="ja_q_fact_text">What is the fact status by object? What is done and what is left?</string>
     <string name="ja_new_chat">New chat</string>
+    <string name="ja_rename">Rename</string>
+    <string name="ja_delete">Delete conversation</string>
+    <string name="ja_chat_title">Conversation name</string>
+    <string name="ja_delete_prompt">Delete “%1$s” from the server?</string>
+    <string name="ja_rename_save">Save</string>
+    <string name="ja_delete_confirm">Delete</string>
+    <string name="ja_edit_failed">The conversation change was not saved.</string>
+    <string name="ja_edit_stale">This conversation changed on another device. Review the updated conversation.</string>
     <string name="ja_save_failed">The chat could not be saved. Your messages are still in this window.</string>
     <string name="ja_save_stale">The chat changed on another device. Your messages are still in this window.</string>
     <string name="ja_save_retry">Retry save</string>

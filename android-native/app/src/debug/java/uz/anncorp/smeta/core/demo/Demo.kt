@@ -203,10 +203,10 @@ private class DemoBff(private val context: Context, private val json: Json, priv
             "suhbat_mutate" -> {
                 val id = s("klient_id") ?: return ApiResult(400, null)
                 val key = o?.get("kompaniya_id").toString() to id
-                val messages = o?.get("xabarlar") as? JsonArray ?: return ApiResult(400, null)
                 val old = demoChats[key]
                 val chat = when (s("harakat")) {
                     "create" -> {
+                        val messages = o?.get("xabarlar") as? JsonArray ?: return ApiResult(400, null)
                         val title = s("sarlavha") ?: return ApiResult(400, null)
                         if (old != null && (old.title != title || old.messages != messages)) return ApiResult(409, null)
                         old ?: DemoChat(id, title, messages, (++demoChatVersion).toString(16).padStart(32, '0'), java.time.OffsetDateTime.now().toString())
@@ -214,8 +214,21 @@ private class DemoBff(private val context: Context, private val json: Json, priv
                     "append" -> {
                         if (old == null) return ApiResult(404, null)
                         if (old.etag != s("etag")) return ApiResult(409, null)
+                        val messages = o?.get("xabarlar") as? JsonArray ?: return ApiResult(400, null)
                         old.copy(messages = JsonArray((old.messages + messages).takeLast(12)),
                             etag = (++demoChatVersion).toString(16).padStart(32, '0'), updated = java.time.OffsetDateTime.now().toString())
+                    }
+                    "rename" -> {
+                        if (old == null) return ApiResult(404, null)
+                        if (old.etag != s("etag")) return ApiResult(409, null)
+                        val title = s("sarlavha") ?: return ApiResult(400, null)
+                        old.copy(title = title, etag = (++demoChatVersion).toString(16).padStart(32, '0'))
+                    }
+                    "delete" -> {
+                        if (old == null) return ApiResult(404, null)
+                        if (old.etag != s("etag")) return ApiResult(409, null)
+                        demoChats.remove(key)
+                        return ok(buildJsonObject { put("ok", true); put("id", id); put("holat", "missing") }.toString())
                     }
                     else -> return ApiResult(400, null)
                 }

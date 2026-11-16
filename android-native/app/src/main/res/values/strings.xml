@@ -262,6 +262,14 @@
     <string name="ja_q_fact">Obyekt bo\'yicha fakt holati</string>
     <string name="ja_q_fact_text">Obyektlar bo\'yicha fakt holati qanday? Nima bajarilgan va nima qolgan?</string>
     <string name="ja_new_chat">Yangi suhbat</string>
+    <string name="ja_rename">Nomini o‘zgartirish</string>
+    <string name="ja_delete">Suhbatni o‘chirish</string>
+    <string name="ja_chat_title">Suhbat nomi</string>
+    <string name="ja_delete_prompt">Serverdagi «%1$s» suhbatini o‘chirasizmi?</string>
+    <string name="ja_rename_save">Saqlash</string>
+    <string name="ja_delete_confirm">O‘chirish</string>
+    <string name="ja_edit_failed">Suhbatdagi o‘zgarish saqlanmadi.</string>
+    <string name="ja_edit_stale">Suhbat boshqa qurilmada o‘zgargan. Yangilangan suhbatni tekshiring.</string>
     <string name="ja_save_failed">Suhbat saqlanmadi. Xabarlar shu oynada turibdi.</string>
     <string name="ja_save_stale">Suhbat boshqa qurilmada o‘zgargan. Xabarlaringiz shu oynada turibdi.</string>
     <string name="ja_save_retry">Qayta saqlash</string>

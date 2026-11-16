@@ -91,11 +91,14 @@ sealed interface Bubble {
 
 /** [chats] = the server chat list shared with the web; [chatId] = the open chat (its id is the server `klient_id`). */
 enum class ChatSaveIssue { RETRY, STALE }
+enum class ChatEditAction { RENAME, DELETE }
+data class ChatEditor(val action: ChatEditAction, val target: ChatCursor, val title: String)
 data class JarvisUi(
     val bubbles: List<Bubble> = emptyList(), val busy: Boolean = false, val chats: List<ChatInfo> = emptyList(),
     val chatId: String = newChatId(), val showList: Boolean = false, val saveIssue: ChatSaveIssue? = null,
+    val editor: ChatEditor? = null, val editIssue: ChatSaveIssue? = null,
 ) {
-    val canSend: Boolean get() = !busy && saveIssue == null
+    val canSend: Boolean get() = !busy && saveIssue == null && editor == null
 }
 
 internal fun newChatId(): String = UUID.randomUUID().toString()
@@ -187,7 +190,7 @@ class JarvisViewModel @Inject constructor(private val repo: JarvisRepository, pr
                 null
             }
             ChatWrite.Stale -> ChatSaveIssue.STALE
-            ChatWrite.Failed -> ChatSaveIssue.RETRY
+            ChatWrite.Failed, ChatWrite.Deleted -> ChatSaveIssue.RETRY
         }
         _ui.update { it.copy(busy = false, saveIssue = issue) }
     }
@@ -199,6 +202,56 @@ class JarvisViewModel @Inject constructor(private val repo: JarvisRepository, pr
         val epoch = ++generation
         _ui.update { it.copy(busy = true, saveIssue = null) }
         viewModelScope.launch { save(cid, epoch, write) }
+    }
+
+    fun startEdit(action: ChatEditAction) {
+        val state = _ui.value
+        if (!state.canSend || ctx.current.value != workplace) return
+        val target = cursor?.takeIf { it.id == state.chatId && it.etag != null } ?: return
+        val row = state.chats.firstOrNull { it.id == target.id } ?: return
+        _ui.update { it.copy(editor = ChatEditor(action, target, row.title), editIssue = null) }
+    }
+
+    fun dismissEdit() {
+        if (!_ui.value.busy) _ui.update { it.copy(editor = null, editIssue = null) }
+    }
+
+    fun confirmEdit(titleInput: String) {
+        val company = companyId() ?: return
+        val edit = _ui.value.editor ?: return
+        if (_ui.value.busy || ctx.current.value != workplace) return
+        val title = titleInput.trim().replace(Regex("\\s+"), " ")
+        if (edit.action == ChatEditAction.RENAME && (title.isBlank() || title.length > 80)) return
+        if (cursor != edit.target || _ui.value.chatId != edit.target.id) {
+            _ui.update { it.copy(editor = null, editIssue = ChatSaveIssue.STALE) }
+            return
+        }
+        val epoch = ++generation
+        _ui.update { it.copy(busy = true, editIssue = null) }
+        viewModelScope.launch {
+            val result = when (edit.action) {
+                ChatEditAction.RENAME -> repo.renameChat(company, edit.target, title)
+                ChatEditAction.DELETE -> repo.deleteChat(company, edit.target)
+            }
+            if (!current(epoch, company)) return@launch
+            // A list-only poll started during the write may still carry the previous name.
+            generation++
+            when (result) {
+                is ChatWrite.Saved -> {
+                    cursor = edit.target.copy(etag = result.etag)
+                    _ui.update {
+                        it.copy(busy = false, editor = null,
+                            chats = it.chats.map { row -> if (row.id == edit.target.id) row.copy(title = title) else row })
+                    }
+                }
+                ChatWrite.Deleted -> {
+                    _ui.update { it.copy(busy = false, chats = it.chats.filterNot { row -> row.id == edit.target.id }) }
+                    newChat()
+                }
+                ChatWrite.Stale -> _ui.update { it.copy(busy = false, editor = null, editIssue = ChatSaveIssue.STALE) }
+                ChatWrite.Failed -> _ui.update { it.copy(busy = false, editIssue = ChatSaveIssue.RETRY) }
+            }
+        }
     }
 
     /** A foreground request carries the list and the current version, so a slow response cannot change a different chat. */
@@ -236,7 +289,7 @@ class JarvisViewModel @Inject constructor(private val repo: JarvisRepository, pr
         val cid = companyId() ?: return
         if (!_ui.value.canSend || ctx.current.value != workplace) return
         val epoch = ++generation
-        _ui.update { it.copy(busy = true) }
+        _ui.update { it.copy(busy = true, editIssue = null) }
         viewModelScope.launch {
             val snapshot = repo.syncChats(cid, ChatCursor(c.id))
             if (!current(epoch, cid)) return@launch
@@ -253,7 +306,9 @@ class JarvisViewModel @Inject constructor(private val repo: JarvisRepository, pr
         pending = null
         summaryOnly = false
         restored = true
-        _ui.update { it.copy(chatId = newChatId(), bubbles = emptyList(), showList = false, saveIssue = null) }
+        _ui.update {
+            it.copy(chatId = newChatId(), bubbles = emptyList(), showList = false, saveIssue = null, editor = null, editIssue = null)
+        }
     }
     fun toggleList() = _ui.update { it.copy(showList = !it.showList) }
 }
@@ -280,6 +335,33 @@ fun JarvisScreen(onBack: () -> Unit, vm: JarvisViewModel = hiltViewModel()) {
         confirmButton = { TextButton(onClick = { confirmDiscard = false; vm.newChat() }) { Text(stringResource(R.string.ja_discard_confirm)) } },
         dismissButton = { TextButton(onClick = { confirmDiscard = false }) { Text(stringResource(android.R.string.cancel)) } },
     )
+    ui.editor?.let { editor ->
+        val rename = editor.action == ChatEditAction.RENAME
+        var title by remember(editor) { mutableStateOf(editor.title) }
+        AlertDialog(
+            onDismissRequest = vm::dismissEdit,
+            title = { Text(stringResource(if (rename) R.string.ja_rename else R.string.ja_delete)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (rename) OutlinedTextField(
+                        value = title, onValueChange = { if (it.length <= 80) title = it },
+                        label = { Text(stringResource(R.string.ja_chat_title)) }, singleLine = true, enabled = !ui.busy,
+                    ) else Text(stringResource(R.string.ja_delete_prompt, editor.title))
+                    if (ui.editIssue == ChatSaveIssue.RETRY) {
+                        Text(stringResource(R.string.ja_edit_failed), color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { vm.confirmEdit(title) }, enabled = !ui.busy && (!rename || title.isNotBlank())) {
+                    Text(stringResource(if (rename) R.string.ja_rename_save else R.string.ja_delete_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = vm::dismissEdit, enabled = !ui.busy) { Text(stringResource(android.R.string.cancel)) }
+            },
+        )
+    }
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
         WorkTopBar(stringResource(R.string.mod_jarvis), onBack)
         val objName by vm.objectName.collectAsStateWithLifecycle()
@@ -292,6 +374,16 @@ fun JarvisScreen(onBack: () -> Unit, vm: JarvisViewModel = hiltViewModel()) {
                 if (ui.saveIssue == null && text.isBlank()) vm.newChat() else confirmDiscard = true
             }, enabled = !ui.busy, label = { Text(stringResource(R.string.ja_new_chat)) })
             SuggestionChip(onClick = { vm.toggleList() }, label = { Text(stringResource(R.string.ja_chats, ui.chats.size)) })
+        }
+        if (!ui.showList && ui.chats.any { it.id == ui.chatId }) {
+            Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val canEdit = ui.canSend && text.isBlank()
+                SuggestionChip(onClick = { vm.startEdit(ChatEditAction.RENAME) }, enabled = canEdit, label = { Text(stringResource(R.string.ja_rename)) })
+                SuggestionChip(onClick = { vm.startEdit(ChatEditAction.DELETE) }, enabled = canEdit, label = { Text(stringResource(R.string.ja_delete)) })
+            }
+        }
+        if (ui.editIssue == ChatSaveIssue.STALE) {
+            Text(stringResource(R.string.ja_edit_stale), color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 16.dp))
         }
         ui.saveIssue?.let { issue ->
             Text(stringResource(if (issue == ChatSaveIssue.RETRY) R.string.ja_save_failed else R.string.ja_save_stale),

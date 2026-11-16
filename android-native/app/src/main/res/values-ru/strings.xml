@@ -261,6 +261,14 @@
     <string name="ja_q_fact">Статус факта по объекту</string>
     <string name="ja_q_fact_text">Каков статус факта по объектам? Что выполнено и что осталось?</string>
     <string name="ja_new_chat">Новый чат</string>
+    <string name="ja_rename">Переименовать</string>
+    <string name="ja_delete">Удалить беседу</string>
+    <string name="ja_chat_title">Название беседы</string>
+    <string name="ja_delete_prompt">Удалить беседу «%1$s» с сервера?</string>
+    <string name="ja_rename_save">Сохранить</string>
+    <string name="ja_delete_confirm">Удалить</string>
+    <string name="ja_edit_failed">Не удалось сохранить изменение беседы.</string>
+    <string name="ja_edit_stale">Беседа изменилась на другом устройстве. Проверьте обновлённую беседу.</string>
     <string name="ja_save_failed">Не удалось сохранить беседу. Сообщения остались в этом окне.</string>
     <string name="ja_save_stale">Беседа изменилась на другом устройстве. Ваши сообщения остались в этом окне.</string>
     <string name="ja_save_retry">Повторить сохранение</string>
