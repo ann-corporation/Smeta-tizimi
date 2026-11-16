@@ -25,6 +25,47 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
+it('recovers a missing catalogue match from an R2 table and adds the catalogue recipe after approval', async () => {
+  const right = { ...work, code: 'E6-1-1-3', name: 'ПОДГОТОВКА БЕТОННАЯ', tableCode: 'E6-1-1' };
+  const wrong = { ...right, id: 'wrong', code: 'E6-1-1-4', unitCode: 'wrong' };
+  const catalog = {
+    ...katalog, allWorks: () => [right, wrong],
+    unit: (code: string) => ({ ...katalog.unit(code), ...(code === 'wrong' ? { text: '100 М2', base: 'м2' } : {}) }),
+    detail: () => ({ work: right, workCodeAmbiguous: false, recipeCount: 1, recipes: [
+      { id: 'recipe', resourceStatus: 'EXACT', norm: '0.25', candidates: [{ code: 'R-001', name: 'Synthetic resource' }],
+        candidateCount: 1, prices: [], priceCount: 0 },
+    ] }),
+  } as unknown as AiKatalog;
+  const baseFetch = vi.mocked(fetch).getMockImplementation()!;
+  vi.mocked(fetch).mockImplementation(async (url, init) => {
+    if (String(url).startsWith('/api/normativ-qidir?')) {
+      return Response.json({ ok: true, natijalar: [
+        { norma_kod: '4.02.06-04', jadval_kod: null, iqtibos: 'Таблица 06-01-001. Синтетический пример.', sha256: 'a'.repeat(64), sahifa_pdf: 7 },
+      ] });
+    }
+    if (init?.body && JSON.parse(String(init.body)).amal === 'suhbat') {
+      return Response.json({ ok: true, javob: 'Ish ajratildi', savollar: [], ishlar: [
+        { id: 'w1', bolim: 'Asos', tavsif: 'Podbetonka', qidiruv: ['монолитная заливка'],
+          birlik: 'м3', hajmIfoda: '2', material: null, holat: 'TAYYOR' },
+      ] });
+    }
+    return baseFetch(url, init);
+  });
+  const command = vi.fn(() => true);
+  let id = 0;
+  render(<SmetaAiChat doc={emptyDoc('d')} katalog={catalog} kompaniyaId={7} command={command} newId={() => 'id' + ++id} />);
+  fireEvent.change(screen.getByLabelText('Smetachiga xabar'), { target: { value: '2 m3 podbetonka' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Yuborish' }));
+  await screen.findByText(/ShNQ: 4\.02\.06-04, 06-01-001, PDF 7/);
+  expect((screen.getByRole('button', { name: /Tayyorlarini smetaga qo‘shish \(0\)/ }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: 'Ha, to‘g‘ri' }));
+  fireEvent.click(screen.getByRole('button', { name: /Tayyorlarini smetaga qo‘shish \(1\)/ }));
+  await waitFor(() => expect(command).toHaveBeenCalledWith(expect.objectContaining({ commands: expect.arrayContaining([
+    expect.objectContaining({ type: 'ADD_OCCURRENCE', source: expect.objectContaining({ code: right.code }),
+      recipe: [expect.objectContaining({ recipeId: 'recipe', norm: '0.25', resource: expect.objectContaining({ code: 'R-001' }) })] }),
+  ]) })));
+});
+
 it('the operator can search and select a norm outside the AI shortlist without changing the estimate', async () => {
   const commands = vi.fn(() => true);
   const extra = { ...work, id: 'outside', code: 'E6-1-1-22', name: 'BOSHQA NORMA' };

@@ -47,6 +47,17 @@ export function ishIndeksi(k: AiKatalog): IshIndeksi | null {
   return x;
 }
 const KOD = /^[EЕЦУCС]\d{1,3}(?:-\d+){1,4}$/i;
+const codeKey = (code: string) => code.trim().toUpperCase().replace(/^Е/, 'E').replace(/^С/, 'C');
+function exactCandidates(k: AiKatalog, queries: string[], unit: Birlik) {
+  const matches = new Map<string, NormWork>();
+  for (const query of queries.filter(q => KOD.test(q.trim()))) {
+    const key = codeKey(query);
+    for (const row of k.search(query.trim(), 0).rows) {
+      if (codeKey(row.code) === key && birlikMos(k, row, unit) === true) matches.set(row.id, row);
+    }
+  }
+  return [...matches.values()];
+}
 /** Ranked retrieval: every phrasing, collection hint as a boost, unit-incompatible works dropped, ≤3 variants per table. */
 /**
  * Norm variants carrying a condition the user never stated (production run: a plain brick wall became «с облицовкой лицевым
@@ -199,7 +210,7 @@ export function avtoTanlov(k: AiKatalog, ish: Pick<IshNiyati, 'qidiruv' | 'birli
   if (!nm) return null;
   const t0 = performance.now();
   // An explicit norm code (the model or the user wrote «Е6-1-1» / «С310-1005») is looked up directly and wins.
-  const kodlar = ish.qidiruv.filter(q => KOD.test(q.trim())).flatMap(q => k.search(q.trim(), 0).rows.slice(0, 3));
+  const kodlar = exactCandidates(k, ish.qidiruv, ish.birlik);
   const matnli = ish.qidiruv.filter(q => !KOD.test(q.trim()));
   const izoh = `${ish.tavsif ?? ''} ${ish.qidiruv.join(' ')}`;
   const sonlar = tavsifSonlari(ish.tavsif);
@@ -225,7 +236,8 @@ export function avtoTanlov(k: AiKatalog, ish: Pick<IshNiyati, 'qidiruv' | 'birli
   const direct = kodlar.map((w): TanlovNomzodi => ({ id: w.id, kod: w.code, nom: w.name ?? '', birlik: workMeasure(k, w.unitCode), jadval: k.tableLabel(w.id), toplam: k.collectionTitle?.(w.collection) ?? w.collection ?? null, ishonch: 0.99 }));
   const nomzodlar = [...direct, ...shortlist.filter(n => !direct.some(d => d.id === n.id))].slice(0, limit);
   const ms = Math.round((performance.now() - t0) * 100) / 100;
-  if (direct.length) return { nomzodlar, avto: { workId: direct[0].id, kod: direct[0].kod, nom: direct[0].nom, birlik: direct[0].birlik, sabab: 'shifr bo‘yicha aniq topildi' }, holat: 'KOD', ms };
+  if (direct.length === 1) return { nomzodlar, avto: { workId: direct[0].id, kod: direct[0].kod, nom: direct[0].nom, birlik: direct[0].birlik, sabab: 'shifr bo‘yicha aniq topildi' }, holat: 'KOD', ms };
+  if (direct.length > 1) return { nomzodlar, avto: null, holat: 'TEKSHIRISH', ms };
   const top = r.tanlangan;
   return { nomzodlar, holat: r.holat, ms,
     avto: top ? { workId: top.id, kod: top.kod, nom: top.nom, birlik: top.birlik, sabab: `tizim tanlovi (ishonch ${Math.round(top.ishonch * 100)}%; ${top.sabab.join(', ') || 'nom bo‘yicha eng yaqin'}) — tekshiring` } : null };
@@ -237,7 +249,7 @@ export function avtoTanlov(k: AiKatalog, ish: Pick<IshNiyati, 'qidiruv' | 'birli
  */
 export function kichikNomzodlar(ish: Pick<AiIsh, 'nomzodlar' | 'tanlangan'>, max = 3): TanlovNomzodi[] {
   const chosen = ish.tanlangan ? ish.nomzodlar.find(n => n.id === ish.tanlangan!.workId) : null;
-  const rest = ish.nomzodlar.filter(n => n.id !== chosen?.id && n.ishonch != null);
+  const rest = ish.nomzodlar.filter(n => n.id !== chosen?.id && (n.ishonch != null || n.shnq));
   return [...(chosen ? [chosen] : []), ...rest].slice(0, max);
 }
 
@@ -321,7 +333,9 @@ export type QoshishNatija = { commands: StudioCommand[]; qoshildi: string[]; otk
 export function tanlovDalili(ish: AiIsh, k: AiKatalog): string | null {
   const n = ish.tanlangan;
   if (!n) return null;
+  const shnq = ish.nomzodlar.find(candidate => candidate.id === n.workId)?.shnq;
   return [`Katalog: ${k.manifest.revision}; norma: ${n.kod}; birlik: ${n.birlik ?? 'noma’lum'}.`,
+    ...(shnq ? [`ShNQ: ${shnq.code}, ${shnq.table}${shnq.page ? `, PDF ${shnq.page}` : ''}.`] : []),
     `Ish: ${n.nom}. Qidiruv: ${ish.qidiruv.join('; ')}.`,
     ish.material ? `Talab qilingan material: ${ish.material}.` : 'Material xarakteristikasi ko‘rsatilmagan.',
     n.sabab ? `Tanlash sababi: ${n.sabab}.` : 'Tanlash sababi berilmagan — qo‘lda tekshiring.',

@@ -44,6 +44,7 @@ import { xotiraOl, xotiraSaqla, xotiraYoz } from '../../lib/smeta-ai/norm-xotira
 import { avtoTanlov, birlashtir, katalogSahifasi, kichikNomzodlar, nomzodlarTop, smetagaQoshish, xotiraMatni, tanlovSorovi, tanlovDalili, tanlovZidmi, tasdiqKerak, type AiIsh, type AiKatalog } from '../../lib/smeta-ai/worker';
 import { ifodaHisobla } from '../../lib/smeta-ai/ifoda';
 import { foundationReference } from '../../lib/smeta-ai/normative-reference';
+import { shnqNomzodlar } from '../../lib/smeta-ai/shnq-moslash';
 import { includedWorkReviews } from '../../lib/smeta-ai/included-work';
 import { smetachiSuhbat, smetachiTanla, smetaTajribaYoz, smetaXotirasi, smetaXotiraYoz, type XotiraDaraja, type XotiraYozuv } from '../../api/smeta-ai';
 import { ModelChip } from '../../umumiy/ui/ModelChip';
@@ -156,6 +157,21 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
     for (const i of next.filter(x => x.tanlangan && !x.tanlangan.qolda && !list.find(o => o.id === x.id)?.tanlangan)) qadam(t('«{i}» → {k} {n} — tizim tanlovi', { i: i.tavsif, k: i.tanlangan!.kod, n: i.tanlangan!.nom.slice(0, 70) }), 'ok');
     next = next.map(i => i.tanlangan && !i.tanlangan.qolda && tanlovZidmi(i, { ...i.tanlangan, id: i.tanlangan.workId }, next) ? { ...i, tanlangan: null } : i);
     if (tirik.current) setIshlar(next);
+    const unresolved = next.filter(i => !i.tanlangan && 4 > i.nomzodlar.length).slice(0, 16);
+    const grounded = new Map<string, Awaited<ReturnType<typeof shnqNomzodlar>>>();
+    const searchDeadline = AbortSignal.timeout(5500);
+    for (let offset = 0; offset < unresolved.length && !searchDeadline.aborted; offset += 4) {
+      await Promise.all(unresolved.slice(offset, offset + 4).map(async i => {
+        const hits = await shnqNomzodlar(katalog, kompaniyaId, i, next, searchDeadline);
+        if (hits.length) grounded.set(i.id, hits);
+      }));
+      if (!tirik.current) return list;
+    }
+    next = next.map(i => {
+      const hits = grounded.get(i.id);
+      if (!hits) return i;
+      return { ...i, nomzodlar: [...hits, ...i.nomzodlar.filter(n => !hits.some(h => h.id === n.id))].slice(0, 20) };
+    });
     // Up to two rounds: when no candidate fits, the model rephrases in normative wording and the catalogue is searched again.
     let qaytaIds: Set<string> | null = null;
     for (let round = 0; round < 2; round++) {
@@ -182,9 +198,9 @@ function SmetaAiChatCore({ doc, katalog, kompaniyaId, command, newId, onBosqich,
       next = next.map(i => {
         const c = by.get(i.id), n = c?.ishId ? i.nomzodlar.find(x => x.id === c.ishId) : null;
         if (n && !tanlovZidmi(i, n, next)) {
-          const taxmin = /TAXMIN|taxmin|предполож|assum/.test(c!.sabab);
+          const taxmin = !!n.shnq || /TAXMIN|taxmin|предполож|assum/.test(c!.sabab);
           qadam(t('«{i}» → {k} {n} — {s}', { i: i.tavsif, k: n.kod, n: n.nom.slice(0, 70), s: c!.sabab }), taxmin ? 'savol' : 'ok');
-          return { ...i, tanlangan: { workId: n.id, kod: n.kod, nom: n.nom, birlik: n.birlik, sabab: c!.sabab, ...(taxmin ? { taxmin: true } : {}) } };
+          return { ...i, ...(n.shnq ? { tasdiqlandi: false } : {}), tanlangan: { workId: n.id, kod: n.kod, nom: n.nom, birlik: n.birlik, sabab: c!.sabab, ...(taxmin ? { taxmin: true } : {}) } };
         }
         if (c && !c.ishId) qadam(t('«{i}»: mos norma topilmadi{q}', { i: i.tavsif, q: c.qidiruv?.length ? t(' — qayta qidiraman: {q}', { q: c.qidiruv.join('; ') }) : '' }), c.qidiruv?.length ? 'ishda' : 'savol');
         if (round === 0 && c?.qidiruv?.length) {

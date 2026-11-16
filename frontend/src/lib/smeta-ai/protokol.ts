@@ -64,7 +64,8 @@ export type TanlovNomzodi = { id: string; kod: string; nom: string; birlik: stri
   /** Calibrated 0..1 confidence of the matching pipeline (lib/smeta-ai/norm-moslash); absent for manual search results. */
   ishonch?: number;
   /** Normative table title and collection — tell the model WHAT KIND of work a variant belongs to. */
-  jadval?: string | null; toplam?: string | null };
+  jadval?: string | null; toplam?: string | null;
+  shnq?: { code: string; table: string; page: number | null } };
 export type TanlovSorovi = { id: string; tavsif: string; birlik: Birlik; material: string | null; nomzodlar: TanlovNomzodi[];
   /** Normative phrases of the work — the server looks up how estimators normed similar works in uploaded estimates. */
   qidiruv?: string[] };
