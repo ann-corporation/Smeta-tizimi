@@ -42,4 +42,5 @@
     <string name="qulf_attempts_left">Qolgan urinishlar: %1$d</string>
     <string name="qulf_forgot_pin">PIN esdan chiqdi</string>
     <string name="qulf_sign_out">Chiqish</string>
+    <string name="qulf_bio_needs_pin">Biometrik faqat PIN bilan birga ishlaydi. Avval PIN o\'rnating.</string>
 </resources>

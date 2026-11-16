@@ -19,7 +19,9 @@ data class QulfState(
     val required: Boolean, val methods: List<String>, val pinStatus: String, val secondsLeft: Int,
     /** Digits of the stored PIN (server `pin_uzunlik`; null = unknown/legacy), attempts left before the 15 min block, and whether the PIN was set under another server key (can never match). */
     val pinLength: Int? = null, val attemptsLeft: Int = 5, val keyMismatch: Boolean = false,
-) { val enabled get() = (pinSet && !keyMismatch) || devices.isNotEmpty() }
+    /** Server qulf_yoqilgan (null = old server). The lock needs a PIN: a biometric/device key alone never enables it (no fallback = trap). */
+    val serverLockOn: Boolean? = null,
+) { val enabled get() = serverLockOn ?: (pinSet && !keyMismatch) }
 
 /** Outcome of a /api/qulf call. [code] is the server code (PIN_NOTOGRI, BLOKLANGAN, QAYTA_KIRISH_KERAK, STEP_UP_KERAK, ...). */
 data class QulfOutcome(val ok: Boolean, val code: String? = null, val secondsLeft: Int = 0, val network: Boolean = false, val status: Int = 0) {
@@ -50,7 +52,7 @@ class QulfRepository(private val api: BffApi, private val tasdiq: TasdiqStore) {
             mode = o["rejim"]?.asStr() ?: "pin", required = o["talab"]?.asBool() == true,
             methods = (o["usullar"] as? JsonArray).orEmpty().mapNotNull { it.asStr() },
             pinStatus = o["pin_holat"]?.asStr() ?: "ok", secondsLeft = o["qolgan_soniya"]?.asInt() ?: 0,
-            pinLength = o["pin_uzunlik"]?.asInt()?.takeIf { it in 4..6 }, attemptsLeft = o["qolgan_urinish"]?.asInt() ?: 5, keyMismatch = o["pin_kalit_boshqa"]?.asBool() == true,
+            pinLength = o["pin_uzunlik"]?.asInt()?.takeIf { it in 4..6 }, attemptsLeft = o["qolgan_urinish"]?.asInt() ?: 5, keyMismatch = o["pin_kalit_boshqa"]?.asBool() == true, serverLockOn = o["qulf_yoqilgan"]?.asBool(),
         )
     }
 

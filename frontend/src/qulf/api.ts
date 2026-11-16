@@ -5,7 +5,9 @@ export type QulfJavob = { ok: boolean; code?: string; error?: string; [k: string
 export type QulfKalit = { id: number; tur: 'webauthn' | 'android'; nom: string | null; yaratildi: string; oxirgi: string | null };
 export type QulfHolatJavob = QulfJavob & {
   pin_bor?: boolean; bosh_vaqt_daq?: number; kalitlar?: QulfKalit[]; rejim?: 'off' | 'pin' | 'biometric_or_pin'; talab?: boolean;
-  usullar?: string[]; pin_holat?: string; pin_uzunlik?: number | null; qolgan_urinish?: number; pin_kalit_boshqa?: boolean; qolgan_soniya?: number; tasdiq_bor?: boolean;
+  usullar?: string[]; pin_holat?: string; pin_uzunlik?: number | null; qolgan_urinish?: number; pin_kalit_boshqa?: boolean;
+  /** server: mijoz qulfi yoqilganmi (PIN bor, global o'chirgich yoqiq, siyosat off emas); rp_id: WebAuthn domeni; sessiya_iat: kirish vaqti (ms); kalit_pinsiz: eski PINsiz kalit */
+  qulf_yoqilgan?: boolean; rp_id?: string; sessiya_iat?: number; kalit_pinsiz?: boolean; qolgan_soniya?: number; tasdiq_bor?: boolean;
 };
 
 /** Interseptorli fetch: /api/qulf so'rovlariga interseptor aralashmaydi (STEP_UP qayta urinishi yo'q), lekin Windows ilovada tasdiq tokenini yozib oladi. */

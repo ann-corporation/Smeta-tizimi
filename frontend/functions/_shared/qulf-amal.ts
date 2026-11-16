@@ -36,6 +36,8 @@ export type Kontekst = {
   siyosatRuxsat: (kompaniyaId: number) => boolean;
   /** foydalanuvchi a'zo kompaniyalar (siyosat ko'rsatish uchun) */
   kompaniyalar: number[];
+  /** global o'chirgich (env QULF_YOQILGAN=0 -> false): mijoz qulfi va step-up o'chadi */
+  ochiq?: boolean;
 };
 export type Javob = { status: number; body: Record<string, unknown>; tasdiq?: string };
 const ok = (body: Record<string, unknown> = {}, extra: Partial<Javob> = {}): Javob => ({ status: 200, body: { ok: true, ...body }, ...extra });
@@ -58,6 +60,12 @@ async function sozlamaTalabi(k: Kontekst): Promise<Javob | null> {
   if (!q?.pin_hash && kl.length === 0) return null;
   if (await joriyTasdiq(k)) return null;
   return xato(403, 'STEP_UP_KERAK', 'Avval PIN yoki biometrik bilan tasdiqlang.', { usullar: kl.length ? ['pin', 'passkey', 'qurilma'] : ['pin'] });
+}
+
+/** Biometrik/qurilma kaliti faqat PIN ustiga: PINsiz qulf zaxirasiz qoladi va foydalanuvchini tutib qo'yadi. */
+async function pinKerak(k: Kontekst): Promise<Javob | null> {
+  const q = await k.store.holat(k.uid);
+  return q?.pin_hash ? null : xato(409, 'PIN_AVVAL', 'Avval PIN o\'rnating: biometrik faqat PIN bilan birga ishlaydi.');
 }
 
 /** PIN tekshirish (urinish hisobi bilan). Qaytadi: null = to'g'ri, Javob = rad. */
@@ -85,6 +93,9 @@ export async function qulfAmal(k: Kontekst, amal: string, b: Record<string, unkn
       return ok({
         pin_bor: !!q?.pin_hash, pin_uzunlik: pinUzunlikOl(q?.pin_hash), qolgan_urinish: Math.max(0, BLOK_XATO - (q?.xato_soni ?? 0)), pin_kalit_boshqa: await pinKalitBoshqa(q?.pin_hash, k.kalit), bosh_vaqt_daq: q?.bosh_vaqt_daq ?? 10, kalitlar: bosh(kl), rejim: talab.rejim, talab: talab.talab,
         usullar: qabulUsullar(talab.rejim, talab),
+        /* mijoz qulfi: global o'chirgich yoqiq, PIN BOR (PINsiz qulf yo'q), PIN shu kalit bilan yozilgan va kompaniya siyosati 'off' emas */
+        qulf_yoqilgan: k.ochiq !== false && !!q?.pin_hash && talab.rejim !== 'off' && !(await pinKalitBoshqa(q?.pin_hash, k.kalit)),
+        rp_id: k.rpId, sessiya_iat: k.iat, kalit_pinsiz: kl.length > 0 && !q?.pin_hash,
         pin_holat: h.ok ? 'ok' : h.code, qolgan_soniya: !h.ok && h.code === 'BLOKLANGAN' ? h.qolgan_soniya : 0,
         tasdiq_bor: !!(await joriyTasdiq(k)),
       });
@@ -145,6 +156,7 @@ export async function qulfAmal(k: Kontekst, amal: string, b: Record<string, unkn
 
     // ---- WebAuthn (passkey): Windows Hello / Touch ID / Face ID / Android biometrik (brauzer) ----
     case 'webauthn_reg_boshla': {
+      const pn = await pinKerak(k); if (pn) return pn;
       const t = await sozlamaTalabi(k); if (t) return t;
       const kl = (await k.store.kalitlar(k.uid)).filter(x => x.tur === 'webauthn');
       const c = await chaqiriqYarat(k.uid, 'reg', k.kalit, k.hozir);
@@ -160,6 +172,7 @@ export async function qulfAmal(k: Kontekst, amal: string, b: Record<string, unkn
       });
     }
     case 'webauthn_reg_tugat': {
+      { const pn = await pinKerak(k); if (pn) return pn; }
       const cq = await chaqiriqTekshir(b.chaqiriq, k.kalit, k.uid, 'reg', k.hozir);
       if (!cq) return xato(400, 'CHAQIRIQ_YAROQSIZ', 'So\'rov muddati o\'tgan. Qaytadan urinib ko\'ring.');
       if (!(await k.store.chaqiriqIshlat(cq.j, k.uid, new Date(cq.e)))) return xato(409, 'CHAQIRIQ_ISHLATILGAN', 'So\'rov allaqachon ishlatilgan.');
@@ -199,11 +212,13 @@ export async function qulfAmal(k: Kontekst, amal: string, b: Record<string, unkn
 
     // ---- Android qurilma kaliti (Keystore, ES256, setUserAuthenticationRequired): passkey'ga o'xshash protokol ----
     case 'qurilma_reg_boshla': {
+      const pn = await pinKerak(k); if (pn) return pn;
       const t = await sozlamaTalabi(k); if (t) return t;
       const c = await chaqiriqYarat(k.uid, 'qreg', k.kalit, k.hozir);
       return ok({ chaqiriq: c.token, challenge: c.n });
     }
     case 'qurilma_reg_tugat': {
+      { const pn = await pinKerak(k); if (pn) return pn; }
       const cq = await chaqiriqTekshir(b.chaqiriq, k.kalit, k.uid, 'qreg', k.hozir);
       if (!cq) return xato(400, 'CHAQIRIQ_YAROQSIZ', 'So\'rov muddati o\'tgan. Qaytadan urinib ko\'ring.');
       if (!(await k.store.chaqiriqIshlat(cq.j, k.uid, new Date(cq.e)))) return xato(409, 'CHAQIRIQ_ISHLATILGAN', 'So\'rov allaqachon ishlatilgan.');
