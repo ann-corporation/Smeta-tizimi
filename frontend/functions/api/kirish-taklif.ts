@@ -12,10 +12,11 @@
  * keladi va SQL da katalog/ko'tarilmaslik bilan tekshiriladi; qabulda javoblar telefon/taklif bor-yo'qligini bildirmaydi (TAKLIF_RAD).
  * Limitlar (telefon / IP-xesh / kompaniya / taklif qiluvchi) va urinish bloklash — SQL da (20261217200000).
  */
+import { havolaOrigin } from '../../src/lib/sayt-manzil';
 import { imzola, tekshir, type Rol } from '../_shared/auth';
 import { roleAuthority, sessiyaYaroqsizmi, yaroqsizSessiyaJavob } from '../_shared/role-authority';
 import {
-  type KirishEnv, TOKEN_FORMAT, UUID, ipBelgi, json, kalitYaroqli, originYaroqsiz, raqamliKod, sbRpc, sessCookie, taklifMuddatSoat,
+ type KirishEnv, TOKEN_FORMAT, UUID, ipBelgi, json, kalitYaroqli, originYaroqsiz, raqamliKod, sbRpc, sessCookie, taklifMuddatSoat,
   tasodifiyToken, telefonNorm, xesh, yoqilgan,
 } from '../_shared/kirish-emailsiz';
 
@@ -96,7 +97,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     if (!r.data || !r.data.ok) return rad(r.data?.code || 'XATO');
     if (r.data.takror) return json({ ok: true, takror: true, taklif_id: r.data.taklif_id, xabar: 'Bu so‘rov allaqachon bajarilgan; kod qayta ko‘rsatilmaydi.' });
     // Kod va havola FAQAT shu javobda (bir marta). Bazada faqat xesh.
-    const sayt = new URL(request.url).origin;
+    const sayt = havolaOrigin(env, request.url); // eski hostdan kelsa ham havola kanonik domenga
     return json({ ok: true, taklif_id: r.data.taklif_id, tugaydi: r.data.tugaydi, telefon: r.data.telefon, kod, havola: `${sayt}/taklif/${token}` });
   }
 

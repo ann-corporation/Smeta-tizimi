@@ -1,4 +1,4 @@
-﻿// Applies the QURAI mobile policy to the Tauri-generated Android project. Idempotent; fails loudly if the
+// Applies the QURAI mobile policy to the Tauri-generated Android project. Idempotent; fails loudly if the
 // generated manifest no longer has the shape we patch, so a Tauri upgrade cannot silently drop a setting.
 // Usage: node mobile/android-overlay.mjs <path to gen/android>
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -130,7 +130,7 @@ class MainActivity : TauriActivity() {
       return
     }
     i.data = null
-    wv.loadUrl("https://smeta-tizimi.pages.dev/ilova-qaytdi?t=" + t)
+    wv.loadUrl("https://qurai.uz/ilova-qaytdi?t=" + t)
   }
 
   private fun topWebView(v: View): WebView? {

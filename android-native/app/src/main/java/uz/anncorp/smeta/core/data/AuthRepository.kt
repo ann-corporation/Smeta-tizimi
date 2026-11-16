@@ -78,13 +78,15 @@ class AuthRepository(
     private val base: OkHttpClient = OkHttpClient(),
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
-    private val webOrigin = "${baseUrl.scheme}://${baseUrl.host}" + if (baseUrl.port != HttpUrl.defaultPort(baseUrl.scheme)) ":${baseUrl.port}" else ""
 
     fun newSession(): LoginSession {
         val jar = MemoryCookieJar()
         val client = base.newBuilder().cookieJar(jar)
             .addInterceptor { chain ->
-                chain.proceed(chain.request().newBuilder().header("Origin", webOrigin).header(VERSION_HEADER, versionName).build())
+                // Origin of the host actually called (HostFallbackInterceptor may have switched hosts): the server accepts only a same-origin Origin.
+                val u = chain.request().url
+                val o = "${u.scheme}://${u.host}" + if (u.port != HttpUrl.defaultPort(u.scheme)) ":${u.port}" else ""
+                chain.proceed(chain.request().newBuilder().header("Origin", o).header(VERSION_HEADER, versionName).build())
             }.build()
         return LoginSession(client, jar)
     }

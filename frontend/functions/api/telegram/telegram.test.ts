@@ -14,7 +14,7 @@ const TOKEN = '123456789:AAFakeSinovTokenFakeSinovToken_abc';
 const SIR = 'webhook-sir-sinov-0123456789';
 const ENV = { SUPABASE_URL: 'https://sinov.supabase.co', SUPABASE_KEY: 'server-only', SESSIYA_KALIT: 'k'.repeat(32),
   TELEGRAM_BOT_TOKEN: TOKEN, TELEGRAM_WEBHOOK_SECRET: SIR };
-const SITE = 'https://smeta-tizimi.pages.dev';
+const SITE = 'https://qurai.uz';
 
 type Chaqiruv = { rpc: string[]; yuk: Record<string, any>; tg: { metod: string; yuk: any; url: string }[] };
 function tarmoq(rpc: Record<string, (b: any) => unknown>): Chaqiruv {

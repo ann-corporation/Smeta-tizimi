@@ -85,7 +85,7 @@ private class DemoBff(private val context: Context, private val json: Json, priv
             // The file nowork.flag simulates a fresh company-less account (onboarding screen).
             path.startsWith("/api/ish-joyi") -> if (File(context.filesDir, "nowork.flag").exists()) ok("""{"ok":true,"ish_joylari":[]}""") else if (File(context.filesDir, "boss.flag").exists()) ok(session["ish_joyi"].toString().replace("\"prorab\"", "\"direktor\"")) else ApiResult(200, session["ish_joyi"])
             path.startsWith("/api/profil") && method == "POST" -> profil(body as? JsonObject)
-            path.startsWith("/api/kirish-taklif") && method == "POST" -> ok("""{"ok":true,"kod":"48213907","havola":"https://smeta-tizimi.pages.dev/taklif/DEMOTOKEN"}""")
+            path.startsWith("/api/kirish-taklif") && method == "POST" -> ok("""{"ok":true,"kod":"48213907","havola":"https://qurai.uz/taklif/DEMOTOKEN"}""")
             path.startsWith("/api/agent-ish") && method == "POST" -> agentIsh(body as? JsonObject)
             path.startsWith("/api/ai-savol") && method == "POST" -> {
                 val q = ((body as? JsonObject)?.get("savol") as? JsonPrimitive)?.content.orEmpty()
