@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { kompaniyaDizayniniQoy } from '../api/f2-hujjat-kontekst';
-import { DIZAYN_PRESETLAR, SUKUT_DIZAYN, hujjatDizayniniOrnat, joriyHujjatDizayni } from './hujjat-yozuvchi/dizayn';
+import { DIZAYN_PRESETLAR, SUKUT_DIZAYN, hujjatDizayniniOrnat, hujjatDizayniniSaqla, joriyHujjatDizayni } from './hujjat-yozuvchi/dizayn';
 
 /**
  * QOIDA (egasi 2026-11-17): Ф-2 ni FAQAT bitta server dvigateli (`POST /api/hujjat-yarat`) yasaydi — F2 tarixi, F2 oynasi
@@ -39,19 +39,13 @@ describe('Yagona hujjat dvigateli — Ф-2 kirish nuqtalari', () => {
 });
 
 describe('Yagona dizayn manbai — kompaniya sozlamasi', () => {
-  afterEach(() => { hujjatDizayniniOrnat(null); });
+  afterEach(() => { hujjatDizayniniOrnat(null); hujjatDizayniniSaqla(null); });
 
   it('localStorage yo‘q muhitda (Worker) ham kompaniya dizayni qo‘llanadi', () => {
     expect(globalThis.localStorage?.getItem('hujjat-dizayn-uslub') ?? null).toBeNull();
     const maxsus = { ...DIZAYN_PRESETLAR.minimal, preset: 'maxsus', sarlavhaFon: 'AABBCC' };
     kompaniyaDizayniniQoy({ sozlamalar: { 'hujjat.dizayn': { qiymat: { _uslub: maxsus } } } });
     expect(joriyHujjatDizayni().sarlavhaFon).toBe('AABBCC');
-  });
-
-  it('kompaniya dizayni serverda yo‘q bo‘lsa — sukut (eski mahalliy nusxa farq qildirmaydi)', () => {
-    hujjatDizayniniOrnat({ ...SUKUT_DIZAYN, sarlavhaFon: '112233' });
-    kompaniyaDizayniniQoy({ sozlamalar: {} });
-    expect(joriyHujjatDizayni().sarlavhaFon).toBe(SUKUT_DIZAYN.sarlavhaFon);
   });
 
   it('server o‘qilmasa (null) — joriy nusxa o‘zgarmaydi', () => {

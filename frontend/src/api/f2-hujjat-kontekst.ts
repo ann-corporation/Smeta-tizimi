@@ -23,11 +23,6 @@ export function kompaniyaDizayniniQoy(soz: Pick<KompaniyaSozlama, 'sozlamalar'> 
     const d = dizaynTozala(u);
     hujjatDizayniniSaqla(d);   // brauzer: keyingi generatorlar localStorage dan o'qiydi
     hujjatDizayniniOrnat(d);   // Worker (localStorage yo'q): shu so'rov uchun modul holati — server dvigateli ham kompaniya dizaynini qo'llaydi
-  } else {
-    // Kompaniya dizayni serverda YO'Q: yagona manba — sukut. Qurilmadagi eski mahalliy nusxa (boshqa oyna/qurilmada
-    // sinalgan) hujjat ko'rinishini farqlamasin: web, paket va mobil bir xil chiqaradi.
-    hujjatDizayniniSaqla(null);
-    hujjatDizayniniOrnat(null);
   }
 }
 
