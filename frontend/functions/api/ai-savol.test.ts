@@ -9,12 +9,15 @@ import { ByudjetXatosi } from '../_shared/agent-hisob';
 import { kontekstKeshTozala } from '../_shared/agent-kontekst-kesh';
 import { objectTotalIntent } from '../_shared/jarvis/object-finance';
 import { f2RegisterIntent } from '../_shared/jarvis/f2-register';
+import { warehouseIntent } from '../_shared/jarvis/warehouse';
 import { onRequestPost } from './ai-savol';
 
 const object = { id: 34, nom: 'Sinov Bino' };
 let categories: string[];
 let finance: () => Response;
 let register: () => Response;
+let stock: () => Response;
+let men: () => Response;
 const rpc = vi.fn(async (input: string, _init?: RequestInit) => {
   switch (input.split('/').at(-1)) {
     case 't2_agent_kasb_v1': return Response.json({ ok: true, nom: 'Sinov', rol: 'pto', profil: 'company_access', vazifa: 'Sinov', boshqalar: [], namuna_savollar: [], kategoriyalar: categories });
@@ -22,6 +25,8 @@ const rpc = vi.fn(async (input: string, _init?: RequestInit) => {
     case 't2_obyekt_nakrutka_v1': return Response.json({ ok: true, nk_manba: 'smeta_podvali', nakrutka: { pryamye: 100, itogo4: 125, vsego: 140 } });
     case 't2_object_financials_v1': return finance();
     case 't2_akt_reestr_obyekt_v1': return register();
+    case 't2_sklad_markaziy_qoldiq_v1': return stock();
+    case 't2_men_v1': return men();
     case 't2_agent_muhit_v1': return Response.json({ ok: true, qoidalar: [], xotira: [], manbalar: [] });
     default: return Response.json({ ok: true });
   }
@@ -36,6 +41,10 @@ beforeEach(() => {
   auth.mockResolvedValue({ foydalanuvchi_id: 7, kompaniyalar: [{ kompaniya_id: 17 }] });
   ai.mockReset(); rpc.mockClear(); kontekstKeshTozala();
   categories = ['obyektlar', 'smeta_pul'];
+  men = () => Response.json({ ok: true, context_kompaniyalar: [
+    { kompaniya_id: 17, permissions: ['warehouse.read'] },
+  ] });
+  stock = () => Response.json({ ok: true, qatorlar: [{ nomi: 'Sinov sement', birligi: 'kg', qoldiq: 87.375 }] });
   finance = () => Response.json({ ok: true, kompaniya_id: 17, basis: 'direct', objects: [{
     obyekt_id: 34, f2: { known: -102.75, unknown: 1, present: true }, fakt: { known: null, unknown: 2, present: true },
   }] });
@@ -48,6 +57,48 @@ beforeEach(() => {
   vi.stubGlobal('fetch', rpc);
 });
 afterEach(() => vi.unstubAllGlobals());
+
+it.each(['Ombor #7 qoldig‘i: sement', 'Остатки склада №7: sement', 'Омбор №7 қолдиғи: sement'])(
+  'reads current central warehouse stock from the scoped warehouse reader: %s', async question => {
+    expect(await (await run(question, 17, { actor: 99 })).json()).toMatchObject({
+      provider: 'local', javob: expect.stringMatching(/Sinov sement.*87,375 kg/),
+      dalil: { tur: 'ombor', id: 7, rpc: 't2_sklad_markaziy_qoldiq_v1', yol: '/admin/logistika' },
+    });
+    expect(JSON.parse(String(called('t2_sklad_markaziy_qoldiq_v1')[0][1]?.body))).toEqual({
+      p_actor_id: 7, p_kompaniya_id: 17, p_sklad_id: 7, p_qidir: 'sement', p_limit: 9,
+    });
+    expect(ai).not.toHaveBeenCalled();
+  },
+);
+
+it('warehouse permission is scoped to the active company and respects explicit denial', async () => {
+  men = () => Response.json({ ok: true, context_kompaniyalar: [
+    { kompaniya_id: 17, permissions: ['warehouse.read'], explicit_denials: ['warehouse.read'] },
+    { kompaniya_id: 99, permissions: ['warehouse.read'] },
+  ] });
+  expect(await (await run('Ombor #7 qoldig‘i')).json()).toMatchObject({ rad: true });
+  expect(called('t2_sklad_markaziy_qoldiq_v1')).toHaveLength(0);
+  expect(ai).not.toHaveBeenCalled();
+});
+
+it('unavailable warehouse and empty result are distinct and never manufacture zero', async () => {
+  stock = () => Response.json({ ok: false, code: 'WAREHOUSE_SCOPE_MISMATCH' });
+  const denied = await (await run('Ombor #7 qoldig‘i')).json();
+  expect(denied).toMatchObject({ rad: true });
+  expect(denied).not.toHaveProperty('dalil');
+  stock = () => Response.json({ ok: true, qatorlar: [] });
+  expect(await (await run('Ombor #7 qoldig‘i: sement')).json()).toMatchObject({
+    javob: expect.stringContaining('musbat qoldiq topilmadi'),
+  });
+  expect(ai).not.toHaveBeenCalled();
+});
+
+it('warehouse intent asks for a warehouse ID and bypasses write or object balance requests', async () => {
+  expect(await (await run('Markaziy ombor qoldig‘i qancha?')).json()).toMatchObject({ javob: expect.stringContaining('Ombor raqamini yozing') });
+  expect(called('t2_sklad_markaziy_qoldiq_v1')).toHaveLength(0);
+  expect(warehouseIntent('Ombor #7 qoldig‘ini hisobdan chiqar')).toBeNull();
+  expect(warehouseIntent('Obyekt omborining qoldig‘i')).toBeNull();
+});
 
 it('salom va help model yoki DB chaqirmaydi', async () => {
   for (const q of ['salom', 'nimalar qila olasan']) expect((await run(q)).status).toBe(200);

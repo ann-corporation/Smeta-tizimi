@@ -1,6 +1,7 @@
 import { DOCUMENT_ID, SHA256 } from '../normativ-evidence';
 import { readNormativ, type NormativEnv } from '../normativ-read';
 import type { RpcNatija } from '../agent-rpc';
+import { jarvisHasPermission } from './authority';
 
 export function normReference(text: string): string | null {
   const match = /(?:^|[^\p{L}\p{N}])(?:shn[kq]|шн[кқ]|qm[qk]|қмқ|кмк)\s*(\d{1,2}\.\d{2}\.\d{2}(?:-\d{2,4})?)(?![\d.-])/iu.exec(text);
@@ -16,10 +17,7 @@ const codeOf = (text: unknown) => typeof text === 'string'
 
 /** A direct link to a verified source excerpt. Document text never enters an instruction or model prompt. */
 export async function normAnswer(env: Partial<NormativEnv>, actor: number, company: number, code: string, men: RpcNatija | null) {
-  const context = men?.ok && Array.isArray(men.data.context_kompaniyalar)
-    ? men.data.context_kompaniyalar.find(row => row?.kompaniya_id === company) : null;
-  if (!context || !Array.isArray(context.permissions) || !context.permissions.includes('company.read') ||
-      context.explicit_denials?.includes('company.read')) {
+  if (!jarvisHasPermission(men, company, 'company.read')) {
     return { rad: true, javob: 'Normativni ko‘rish uchun kompaniyaga kirish ruxsati kerak.' };
   }
   const { SUPABASE_URL, SUPABASE_KEY } = env;
