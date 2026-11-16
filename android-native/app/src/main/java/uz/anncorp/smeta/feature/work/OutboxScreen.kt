@@ -88,7 +88,7 @@ private fun EntryCard(e: OutboxEntity, vm: OutboxViewModel, onEditDraft: (Long) 
             if (e.state == OutboxState.FAILED) {
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (e.kind != KIND_PHOTO && !uz.anncorp.smeta.feature.ombor.isOmborKind(e.kind) && !uz.anncorp.smeta.feature.zayavka.isZayavkaKind(e.kind)) OutlinedButton(onClick = { vm.edit(e.id, onEditDraft) }, modifier = Modifier.heightIn(min = TouchTarget)) { Text(stringResource(R.string.p1_edit)) }
+                    if (e.kind != KIND_PHOTO && !uz.anncorp.smeta.feature.ombor.isOmborKind(e.kind) && !uz.anncorp.smeta.feature.zayavka.isZayavkaKind(e.kind) && !uz.anncorp.smeta.feature.m29.isM29Kind(e.kind) && !uz.anncorp.smeta.feature.naryad.isNaryadKind(e.kind)) OutlinedButton(onClick = { vm.edit(e.id, onEditDraft) }, modifier = Modifier.heightIn(min = TouchTarget)) { Text(stringResource(R.string.p1_edit)) }
                     OutlinedButton(onClick = { vm.retry(e.id) }, modifier = Modifier.heightIn(min = TouchTarget)) { Text(stringResource(R.string.p1_retry_now)) }
                     TextButton(onClick = { vm.delete(e.id) }, modifier = Modifier.heightIn(min = TouchTarget)) { Text(stringResource(R.string.p1_remove), color = MaterialTheme.colorScheme.error) }
                 }

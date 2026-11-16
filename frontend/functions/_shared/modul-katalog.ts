@@ -25,6 +25,9 @@ export const NATIVE_YOL: Readonly<Record<string, string>> = {
   '/admin/foto': 'foto',
   '/admin/dashboard': 'rahbar',
   '/admin/zayavka': 'zayavka',
+  '/admin/m29': 'm29',
+  '/admin/naryad': 'naryad',
+  '/admin/hujjat-aylanish': 'hujjat',
 };
 
 type Til3 = { uz: string; ru: string; en: string };

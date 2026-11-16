@@ -6,13 +6,20 @@
  * Hujjat kolontituli, QR yozuvi, sarlavha va bosh panel belgisi shu yerdan oladi.
  */
 
+import { havolaOrigin, publicOrigin, webPublicOrigin } from './sayt-manzil';
+
 export const BREND = 'QURAI';
-export const BREND_SAYT = 'qurai.uz';
-/** QR/tekshirish bazasi: env BREND_URL, bo'lmasa joriy so'rov origini (qurai.uz QR ga qattiq yozilmaydi). */
-export const tekshirBazasi = (env: { BREND_URL?: string } | undefined, requestUrl: string): string => {
+/** Sayt domeni: VITE_PUBLIC_ORIGIN (build) yoki qurai.uz — lib/sayt-manzil.ts yagona manba. */
+export const BREND_SAYT = new URL(webPublicOrigin()).host;
+/**
+ * QR/tekshirish bazasi: env BREND_URL, keyin env PUBLIC_ORIGIN; so'rov ESKI hostdan kelsa — kanonik manzil (QR eski domenga
+ * bog'lanib qolmasin); aks holda joriy so'rov origini (preview/localhost).
+ */
+export const tekshirBazasi = (env: { BREND_URL?: string; PUBLIC_ORIGIN?: string } | undefined, requestUrl: string): string => {
   const e = (env?.BREND_URL ?? '').trim().replace(/\/+$/, '');
   if (/^https:\/\/[^\s/]+$/i.test(e)) return e;
-  return new URL(requestUrl).origin;
+  if (env?.PUBLIC_ORIGIN && /^https:\/\/[^\s/]+\/*$/i.test(env.PUBLIC_ORIGIN.trim())) return publicOrigin(env);
+  return havolaOrigin(env, requestUrl);
 };
 /** Har hujjat kolontitulidagi imzo matni. */
 export const BREND_HUJJAT_MATN = `${BREND} · ${BREND_SAYT} orqali tayyorlandi`;

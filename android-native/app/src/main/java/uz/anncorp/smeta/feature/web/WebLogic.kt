@@ -10,10 +10,17 @@ internal val TICKET_PATH = Regex("^/admin(?:/[A-Za-z0-9_.~-]+)*(?:\\?[A-Za-z0-9_
 private fun uriOf(url: String): URI? = runCatching { URI(url) }.getOrNull()
 
 /** Only https pages of the QURAI website itself may load inside the in-app WebView; everything else goes to the system browser. */
-internal fun isOwnHost(url: String, baseUrl: String = BuildConfig.API_BASE_URL): Boolean {
+internal fun isOwnHost(
+    url: String,
+    baseUrl: String = BuildConfig.API_BASE_URL,
+    fallbackHosts: List<String> = BuildConfig.API_FALLBACK_URLS.split(",").mapNotNull { uriOf(it.trim())?.host },
+): Boolean {
     val u = uriOf(url) ?: return false
     val b = uriOf(baseUrl) ?: return false
-    return u.scheme == "https" && u.host != null && u.host.equals(b.host, ignoreCase = true)
+    if (u.scheme != "https" || u.host == null) return false
+    if (u.host.equals(b.host, ignoreCase = true)) return true
+    // Fallback hosts of the domain move (BuildConfig.API_FALLBACK_URLS) are the same website.
+    return fallbackHosts.any { u.host.equals(it, ignoreCase = true) }
 }
 
 /** What to do with a top-level navigation. */

@@ -22,7 +22,7 @@ const TOKEN = '123456789:AAFakeSinovTokenFakeSinovToken_abc';
 const R2 = { put: vi.fn(async () => undefined) };
 const ENV = { SUPABASE_URL: 'https://sinov.supabase.co', SUPABASE_KEY: 'server-only', SESSIYA_KALIT: 'k'.repeat(32), TELEGRAM_BOT_TOKEN: TOKEN,
   TELEGRAM_WEBHOOK_SECRET: 'webhook-sir-sinov-0123456789', BILDIRISHNOMA_CRON_KALIT: 'cron-kalit-sinov-0123456789abcdef', R2_CANONICAL: R2 };
-const SITE = 'https://smeta-tizimi.pages.dev';
+const SITE = 'https://qurai.uz';
 const TG = 5550001; const UID = 7;
 const ALL = PERMISSIONS.filter((p) => !p.startsWith('control.global'));
 

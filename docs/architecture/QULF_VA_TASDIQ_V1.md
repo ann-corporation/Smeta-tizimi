@@ -70,3 +70,9 @@ Himoyalangan tasdiq (`tqy:` «Ha, tasdiqlayman») `STEP_UP_KERAK` olsa bot **hec
 5. Kompaniya siyosati bilan PIN/biometrikni **majburiy o'rnatish** (hozir faqat o'rnatganlarga talab qilinadi).
 6. IP bo'yicha qo'shimcha rate-limit (hozir hisob bo'yicha blok).
 7. Mijoz qulfi serverda majburlanmaydi (faqat ko'rinish); majburlash step-up orqali.
+
+## 2026-11-16: PINsiz biometrik YO'Q, o'chirgich, sessiya grace
+- Biometrik/qurilma kaliti faqat mavjud PIN ustiga ro'yxatdan o'tadi (`PIN_AVVAL`). Kalit bor, PIN yo'q (eski ma'lumot) -> qulf va step-up YOQILMAYDI (`qulf_yoqilgan=false`, `kalit_pinsiz=true`).
+- `holat`: `qulf_yoqilgan`, `rp_id`, `sessiya_iat`. Mijoz biometrikni faqat PIN bor + WebAuthn bor + Tauri emas + rpId domenga mos bo'lsa ko'rsatadi; qulf ekranida PIN klaviaturasi, «PIN esdan chiqdi», «Chiqish» doim.
+- Kirishdan keyin 3 daqiqa (SESSIYA_GRACE_MS) qulflanmaydi; server `sessiya_iat` yangi bo'lsa eski faollik vaqti/qulf bayrog'i tashlanadi.
+- O'chirgich: env `QULF_YOQILGAN=0` -- mijoz qulfi va step-up butunlay o'chadi (standart: yoqiq). Kompaniya siyosati `off` ham mijoz qulfini o'chiradi.

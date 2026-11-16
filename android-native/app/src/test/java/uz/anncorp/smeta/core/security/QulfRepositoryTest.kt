@@ -123,4 +123,13 @@ class QulfPinLockTest {
         val (_, r2) = repo(err(429, """{"ok":false,"code":"BLOKLANGAN"}""")); assertFalse(r2.verifyPin("1111").releasesLock)
         val (_, r3) = repo(ApiResult(0, null)); assertFalse(r3.verifyPin("1111").releasesLock)
     }
-}
+    @Test fun deviceKeyWithoutPinNeverEnablesTheLock() = runTest {
+        val (_, r) = repo(ok("""{"ok":true,"pin_bor":false,"bosh_vaqt_daq":10,"kalitlar":[{"id":4,"tur":"android","nom":"Pixel"}],"qulf_yoqilgan":false}"""))
+        assertFalse(r.state()!!.enabled)
+        val (_, r2) = repo(ok("""{"ok":true,"pin_bor":false,"bosh_vaqt_daq":10,"kalitlar":[{"id":4,"tur":"android","nom":"Pixel"}]}"""))
+        assertFalse(r2.state()!!.enabled) // old server: pin-based fallback
+    }
+    @Test fun serverKillSwitchOrOffPolicyDisablesTheLockEvenWithPin() = runTest {
+        val (_, r) = repo(ok("""{"ok":true,"pin_bor":true,"qulf_yoqilgan":false,"bosh_vaqt_daq":10,"kalitlar":[]}"""))
+        assertFalse(r.state()!!.enabled)
+    }}

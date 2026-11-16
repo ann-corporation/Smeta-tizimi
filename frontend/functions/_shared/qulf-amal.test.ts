@@ -111,9 +111,11 @@ describe('Android qurilma kaliti protokoli', () => {
   async function royxat(m: ReturnType<typeof muhit>) {
     const kp = await gen({ name: 'ECDSA', namedCurve: 'P-256' });
     const spki = new Uint8Array((await crypto.subtle.exportKey('spki', kp.publicKey)) as ArrayBuffer); const kid = await kredensialIdDan(spki);
-    const b = await qulfAmal(m.k({ kanal: 'mobil' }), 'qurilma_reg_boshla', {});
+    await pinQoy(m); // biometrik faqat PIN ustiga
+    const tk = (await qulfAmal(m.k({ kanal: 'mobil' }), 'pin_tekshir', { pin: '4827' })).body.tasdiq_token as string;
+    const b = await qulfAmal(m.k({ kanal: 'mobil', tasdiq: tk }), 'qurilma_reg_boshla', {});
     const imzo = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, kp.privateKey, qurilmaXabar('reg', b.body.challenge as string, kid)));
-    const t = await qulfAmal(m.k({ kanal: 'mobil' }), 'qurilma_reg_tugat', { chaqiriq: b.body.chaqiriq, ochiq_kalit: base64url(spki), imzo: base64url(rawDan(imzo)), nom: 'Pixel' });
+    const t = await qulfAmal(m.k({ kanal: 'mobil', tasdiq: tk }), 'qurilma_reg_tugat', { chaqiriq: b.body.chaqiriq, ochiq_kalit: base64url(spki), imzo: base64url(rawDan(imzo)), nom: 'Pixel' });
     return { kp, kid, t };
   }
   it('ro\'yxat -> kirish -> tasdiq; takroriy chaqiriq rad (replay)', async () => {
@@ -143,9 +145,11 @@ describe('Android qurilma kaliti protokoli', () => {
     const m = muhit();
     const kp = await gen({ name: 'ECDSA', namedCurve: 'P-256' });
     const spki = new Uint8Array((await crypto.subtle.exportKey('spki', kp.publicKey)) as ArrayBuffer);
-    const b = await qulfAmal(m.k({ kanal: 'mobil' }), 'qurilma_reg_boshla', {});
+    await pinQoy(m); // biometrik faqat PIN ustiga
+    const tk = (await qulfAmal(m.k({ kanal: 'mobil' }), 'pin_tekshir', { pin: '4827' })).body.tasdiq_token as string;
+    const b = await qulfAmal(m.k({ kanal: 'mobil', tasdiq: tk }), 'qurilma_reg_boshla', {});
     const imzo = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, kp.privateKey, qurilmaXabar('reg', 'BOSHQA-NONCE', await kredensialIdDan(spki))));
-    const r = await qulfAmal(m.k({ kanal: 'mobil' }), 'qurilma_reg_tugat', { chaqiriq: b.body.chaqiriq, ochiq_kalit: base64url(spki), imzo: base64url(rawDan(imzo)) });
+    const r = await qulfAmal(m.k({ kanal: 'mobil', tasdiq: tk }), 'qurilma_reg_tugat', { chaqiriq: b.body.chaqiriq, ochiq_kalit: base64url(spki), imzo: base64url(rawDan(imzo)) });
     expect(r.status).toBe(401);
     expect(unbase64url(base64url(spki)).length).toBe(spki.length);
   });
@@ -163,4 +167,31 @@ describe('holat', () => {
     expect(JSON.stringify(h.body)).not.toContain('pbkdf2');
   });
   it('noma\'lum amal rad', async () => { expect((await qulfAmal(muhit().k(), 'x', {})).body.code).toBe('AMAL_YOQ'); });
+});
+describe('PINsiz biometrik YOQ (2026-11-16: egasi Windows Hello bilan, PINsiz qulflanib qoldi)', () => {
+  it('PIN yo\'q: passkey ham, qurilma kaliti ham ro\'yxatdan o\'tmaydi (PIN_AVVAL)', async () => {
+    const m = muhit();
+    for (const amal of ['webauthn_reg_boshla', 'qurilma_reg_boshla', 'webauthn_reg_tugat', 'qurilma_reg_tugat']) {
+      const r = await qulfAmal(m.k(), amal, { chaqiriq: 'x' });
+      expect(r.status).toBe(409); expect(r.body.code).toBe('PIN_AVVAL');
+    }
+  });
+  it('mavjud PINsiz kalit (eski ma\'lumot): holatda qulf_yoqilgan=false, kalit_pinsiz=true, usullar bo\'sh, talab yo\'q', async () => {
+    const m = muhit();
+    m.store.kl.push({ id: 1, foydalanuvchi_id: 11, tur: 'webauthn', kredensial_id: 'cred-12345678', ochiq_kalit: 'x'.repeat(50), alg: -7, hisob: 0, transports: [], qurilma_nomi: 'Windows Hello', yaratildi: '2026-11-15T20:38:00Z', oxirgi_ishlatildi: null });
+    const h = (await qulfAmal(m.k(), 'holat', {})).body;
+    expect(h.qulf_yoqilgan).toBe(false); expect(h.kalit_pinsiz).toBe(true); expect(h.usullar).toEqual([]); expect(h.talab).toBe(false);
+  });
+  it('global o\'chirgich (ochiq:false) va kompaniya siyosati off: qulf_yoqilgan=false; PIN bilan yoqiq', async () => {
+    const m = muhit(); await pinQoy(m);
+    expect((await qulfAmal(m.k(), 'holat', {})).body.qulf_yoqilgan).toBe(true);
+    expect((await qulfAmal(m.k({ ochiq: false }), 'holat', {})).body.qulf_yoqilgan).toBe(false);
+    m.store.siyosat.set(3, 'off');
+    expect((await qulfAmal(m.k(), 'holat', {})).body.qulf_yoqilgan).toBe(false);
+  });
+  it('holat rp_id va sessiya_iat ni beradi (mijoz biometrik mosligi va sessiya boshlanishi uchun)', async () => {
+    const m = muhit();
+    const h = (await qulfAmal(m.k(), 'holat', {})).body;
+    expect(h.rp_id).toBe('qur.uz'); expect(h.sessiya_iat).toBe(T0 - 3600_000);
+  });
 });

@@ -30,9 +30,9 @@ export function xotiraStore(hozir: () => number = () => Date.now()): QulfStore &
     async siyosatOl(kid) { return siyosat.get(kid) ?? null; },
     async siyosatYoz(kid, r) { siyosat.set(kid, r); },
     async talab(uid, kid): Promise<Talab> {
-      const rejim: Rejim = (kid != null ? siyosat.get(kid) : undefined) ?? 'pin';
+      const rejim: Rejim = (kid != null ? siyosat.get(kid) : (siyosat.size > 0 && [...siyosat.values()].every(v => v === 'off') ? 'off' : undefined)) ?? 'pin';
       const pin = !!qator.get(uid)?.pin_hash; const kalit = kl.some(x => x.foydalanuvchi_id === uid);
-      return { rejim, pin, kalit, talab: rejim !== 'off' && (pin || (kalit && rejim === 'biometric_or_pin')) };
+      return { rejim, pin, kalit: kalit && pin, talab: rejim !== 'off' && pin };
     },
   };
 }

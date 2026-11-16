@@ -18,7 +18,7 @@ import uz.anncorp.smeta.R
 enum class ModuleKind { NATIVE, WEB }
 
 /** Native destinations the hub can jump to (the UI maps each to a tab or a route). */
-enum class NativeTarget { OBJECTS, FAKT, PHOTO, APPROVALS, TODAY, WAREHOUSE, JARVIS, RAHBAR, ZAYAVKA }
+enum class NativeTarget { OBJECTS, FAKT, PHOTO, APPROVALS, TODAY, WAREHOUSE, JARVIS, RAHBAR, ZAYAVKA, M29, NARYAD, HUJJAT }
 
 /**
  * One launcher entry. [anyOf] / [moduleCode] mirror the website gating (frontend/src/lib/reestr/sahifa.ts `ruxsat`/`modul`,
@@ -67,7 +67,9 @@ object ModuleCatalog {
         ModuleDef("nakop", R.string.mod_accum, R.string.mod_accum_d, ModuleKind.WEB, listOf("f2.read"), webPath = "/admin/nakopitelniy"),
         ModuleDef("moliya", R.string.mod_finance, R.string.mod_finance_d, ModuleKind.WEB, listOf(BOSS, "financial.write"), "module.moliya", webPath = "/admin/moliya"),
         ModuleDef("buxgalteriya", R.string.mod_accounting, R.string.mod_accounting_d, ModuleKind.WEB, listOf(BOSS, "accounting.write"), "module.moliya", webPath = "/admin/buxgalteriya"),
-        ModuleDef("hujjat", R.string.mod_documents, R.string.mod_documents_d, ModuleKind.WEB, listOf(BOSS, "project.read", "document.write"), "module.hujjat", webPath = "/admin/hujjat-aylanish"),
+        ModuleDef("hujjat", R.string.mod_documents, R.string.mod_documents_d, ModuleKind.NATIVE, listOf(BOSS, "project.read", "document.write"), "module.hujjat", NativeTarget.HUJJAT, webPath = "/admin/hujjat-aylanish"),
+        ModuleDef("m29", R.string.mod_m29, R.string.mod_m29_d, ModuleKind.NATIVE, listOf(BOSS, "smeta.write", "warehouse.write"), target = NativeTarget.M29, webPath = "/admin/m29"),
+        ModuleDef("naryad", R.string.mod_naryad, R.string.mod_naryad_d, ModuleKind.NATIVE, listOf(BOSS, "smeta.write", "self.work.read"), target = NativeTarget.NARYAD, webPath = "/admin/naryad"),
         ModuleDef("aosr", R.string.mod_aosr, R.string.mod_aosr_d, ModuleKind.WEB, listOf(BOSS, "document.write"), "module.hujjat", webPath = "/admin/aosr"),
         ModuleDef("tender", R.string.mod_tender, R.string.mod_tender_d, ModuleKind.WEB, listOf(BOSS, "project.write", "object.write", "procurement.read", "supply.offer"), "module.xarid", webPath = "/admin/tender"),
         ModuleDef("logistika", R.string.mod_logistics, R.string.mod_logistics_d, ModuleKind.WEB, listOf(BOSS, "project.write", "object.write", "warehouse.read", "procurement.read", "logistics.read"), "module.logistika", webPath = "/admin/logistika"),

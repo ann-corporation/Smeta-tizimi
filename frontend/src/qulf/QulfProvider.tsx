@@ -6,7 +6,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { qulfSoz, tauriMi, type QulfHolatJavob } from './api';
 import { interseptorOrnat } from './interseptor';
-import { BOSH_STANDART_DAQ, keyingiTekshiruvMs, qulfKerakmi } from './mantiq';
+import { BOSH_STANDART_DAQ, biometrikIshlaydi, keyingiTekshiruvMs, qulfKerakmi, yangiSessiyami } from './mantiq';
 import { QulfOyna } from './QulfOyna';
 import { tizimdanChiq } from '../umumiy/kontekst/chiqish';
 
@@ -14,6 +14,7 @@ const LS_OXIRGI = 'qulf.oxirgi';
 const LS_QULF = 'qulf.qulf';
 const LS_DAQ = 'qulf.daq';
 const LS_YOQ = 'qulf.yoqilgan';
+const LS_SESSIYA = 'qulf.sessiya';
 const FAOLLIK_YOZISH_MS = 5000;
 
 const lsOl = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
@@ -31,20 +32,33 @@ export function QulfProvider({ children }: { children: ReactNode }) {
   const oxirgiFaol = useRef<number>(Number(lsOl(LS_OXIRGI)) || Date.now());
   const yashirinBoshi = useRef<number | null>(null);
   const yozilgan = useRef(0);
+  const sessiyaBoshi = useRef<number | null>(null);
 
   const kalitlar = holat?.kalitlar ?? [];
-  const webauthnBor = !tauriMi() && kalitlar.some((k) => k.tur === 'webauthn');
+  const webauthnBor = biometrikIshlaydi({
+    pinBor: !!holat?.pin_bor, webauthnKalit: kalitlar.some((k) => k.tur === 'webauthn'), rpId: holat?.rp_id, hostname: typeof location !== 'undefined' ? location.hostname : '',
+    tauri: tauriMi(), webauthnMavjud: typeof window !== 'undefined' && !!window.PublicKeyCredential && !!navigator.credentials?.get,
+  });
   /* Holat yuklanguncha oxirgi ma'lum qiymatdan (localStorage) foydalanamiz: sahifa yangilanganda kontent bir lahza ham ochilib qolmasin. */
-  const yoqilgan = holat ? (holat.ok && ((!!holat.pin_bor && !holat.pin_kalit_boshqa) || kalitlar.length > 0)) : lsOl(LS_YOQ) === '1';
+  /* Qulf FAQAT PIN bor bo'lsa yoqiladi (PINsiz biometrik zaxirasiz tutib qo'yadi). Server qulf_yoqilgan: global o'chirgich (QULF_YOQILGAN=0), kompaniya siyosati 'off', PIN boshqa kalit bilan yozilgani. */
+  const yoqilgan = holat ? (holat.ok && (holat.qulf_yoqilgan ?? (!!holat.pin_bor && !holat.pin_kalit_boshqa))) : lsOl(LS_YOQ) === '1';
   const daq = holat?.bosh_vaqt_daq ?? (Number(lsOl(LS_DAQ)) || BOSH_STANDART_DAQ);
 
   const yangila = useCallback(async () => {
     const r = await qulfSoz<QulfHolatJavob>('holat');
     if (r.status === 401 || r.status === 501) { setHolat(null); lsYoz(LS_YOQ, null); return; }
     if (!r.ok) return; // vaqtincha xato: oldingi holat saqlanadi
+    /* Yangi kirish (server sessiya_iat saqlanganidan yangi): eski faollik vaqti va qulf bayrog'i yaroqsiz -- kirgan zahoti qulflanmasin. */
+    if (typeof r.sessiya_iat === 'number') {
+      sessiyaBoshi.current = r.sessiya_iat;
+      if (yangiSessiyami(r.sessiya_iat, Number(lsOl(LS_SESSIYA)) || 0)) {
+        lsYoz(LS_SESSIYA, String(r.sessiya_iat));
+        const n = Date.now(); oxirgiFaol.current = n; yashirinBoshi.current = null; lsYoz(LS_OXIRGI, String(n)); lsYoz(LS_QULF, null); setQulflangan(false);
+      }
+    }
     setHolat(r);
     lsYoz(LS_DAQ, String(r.bosh_vaqt_daq ?? BOSH_STANDART_DAQ));
-    lsYoz(LS_YOQ, (r.pin_bor && !r.pin_kalit_boshqa) || (r.kalitlar?.length ?? 0) > 0 ? '1' : null);
+    lsYoz(LS_YOQ, (r.qulf_yoqilgan ?? (r.pin_bor && !r.pin_kalit_boshqa)) ? '1' : null);
   }, []);
 
   const qulfla = useCallback(() => { lsYoz(LS_QULF, '1'); setQulflangan(true); }, []);
@@ -88,7 +102,7 @@ export function QulfProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!yoqilgan) return;
     const tekshir = () => {
-      if (qulfKerakmi({ yoqilgan, oxirgiFaol: oxirgiFaol.current, yashirinBoshi: yashirinBoshi.current, hozir: Date.now(), daqiqa: daq })) qulfla();
+      if (qulfKerakmi({ yoqilgan, oxirgiFaol: oxirgiFaol.current, yashirinBoshi: yashirinBoshi.current, hozir: Date.now(), daqiqa: daq, sessiyaBoshi: sessiyaBoshi.current })) qulfla();
     };
     const korinish = () => {
       if (document.visibilityState === 'hidden') yashirinBoshi.current = Date.now();

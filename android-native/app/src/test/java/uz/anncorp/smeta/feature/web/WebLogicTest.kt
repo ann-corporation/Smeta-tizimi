@@ -18,6 +18,12 @@ class WebLogicTest {
         assertFalse(isOwnHost("not a url", base))
     }
 
+    @Test fun fallbackHostsOfTheDomainMoveStayInTheContainer() {
+        assertTrue(isOwnHost("https://old.example/admin", base, listOf("old.example")))
+        assertFalse(isOwnHost("http://old.example/admin", base, listOf("old.example")))
+        assertFalse(isOwnHost("https://old.example/admin", base, emptyList()))
+    }
+
     @Test fun navigationActions() {
         assertEquals(NavAction.STAY, navAction("https://qurai.example/admin/x", base))
         assertEquals(NavAction.EXTERNAL, navAction("https://example.org/a", base))

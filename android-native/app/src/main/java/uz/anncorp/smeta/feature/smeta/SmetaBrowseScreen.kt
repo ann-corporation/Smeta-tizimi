@@ -213,8 +213,8 @@ fun SmetaBrowseScreen(onBack: () -> Unit, onDraft: (Long) -> Unit = {}, onJarvis
             ui.obyekt?.nom ?: stringResource(R.string.mod_smeta_native), onBack,
             actions = {
                 IconButton(onClick = { onJarvis(vm.id) }, modifier = Modifier.size(TouchTarget)) { Icon(Icons.Filled.AutoAwesome, stringResource(R.string.ja_from_object)) }
-                IconButton(onClick = vm::expandAll, modifier = Modifier.size(TouchTarget)) { Icon(Icons.Filled.UnfoldMore, stringResource(R.string.sm_expand_all)) }
-                IconButton(onClick = vm::collapseAll, modifier = Modifier.size(TouchTarget)) { Icon(Icons.Filled.UnfoldLess, stringResource(R.string.sm_collapse_all)) }
+                if (ui.expanded.isEmpty()) IconButton(onClick = vm::expandAll, modifier = Modifier.size(TouchTarget)) { Icon(Icons.Filled.UnfoldMore, stringResource(R.string.sm_expand_all)) }
+                else IconButton(onClick = vm::collapseAll, modifier = Modifier.size(TouchTarget)) { Icon(Icons.Filled.UnfoldLess, stringResource(R.string.sm_collapse_all)) }
             },
         )
         OutlinedTextField(

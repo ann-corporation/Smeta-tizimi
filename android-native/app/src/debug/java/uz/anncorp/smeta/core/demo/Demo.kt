@@ -85,7 +85,7 @@ private class DemoBff(private val context: Context, private val json: Json, priv
             // The file nowork.flag simulates a fresh company-less account (onboarding screen).
             path.startsWith("/api/ish-joyi") -> if (File(context.filesDir, "nowork.flag").exists()) ok("""{"ok":true,"ish_joylari":[]}""") else if (File(context.filesDir, "boss.flag").exists()) ok(session["ish_joyi"].toString().replace("\"prorab\"", "\"direktor\"")) else ApiResult(200, session["ish_joyi"])
             path.startsWith("/api/profil") && method == "POST" -> profil(body as? JsonObject)
-            path.startsWith("/api/kirish-taklif") && method == "POST" -> ok("""{"ok":true,"kod":"48213907","havola":"https://smeta-tizimi.pages.dev/taklif/DEMOTOKEN"}""")
+            path.startsWith("/api/kirish-taklif") && method == "POST" -> ok("""{"ok":true,"kod":"48213907","havola":"https://qurai.uz/taklif/DEMOTOKEN"}""")
             path.startsWith("/api/agent-ish") && method == "POST" -> agentIsh(body as? JsonObject)
             path.startsWith("/api/ai-savol") && method == "POST" -> {
                 val q = ((body as? JsonObject)?.get("savol") as? JsonPrimitive)?.content.orEmpty()
@@ -129,6 +129,16 @@ private class DemoBff(private val context: Context, private val json: Json, priv
  {"id":31,"kompaniya_id":1,"obyekt_id":101,"item_text":"Armatura A500C d12","requested_qty":3.5,"unit":"t","status":"approved","delivered_qty":0,"required_date":"2026-11-20","priority":"yuqori","created_at":"2026-11-14T09:00:00+00:00"},
  {"id":30,"kompaniya_id":1,"obyekt_id":101,"item_text":"Sement M400 qop","requested_qty":240,"unit":"qop","status":"partially_delivered","delivered_qty":100,"required_date":null,"priority":"orta","created_at":"2026-11-12T09:00:00+00:00"},
  {"id":29,"kompaniya_id":1,"obyekt_id":102,"item_text":"Gvozd 100 mm","requested_qty":15.75,"unit":"kg","status":"submitted","delivered_qty":0,"required_date":"2026-11-18","priority":"past","created_at":"2026-11-10T09:00:00+00:00"}]}""")
+                    jadval == "t2_m29_hujjat" -> ok("""{"ok":true,"soni":2,"jamiServerda":2,"toliq":true,"qatorlar":[
+ {"id":12,"obyekt_id":101,"davr":"2026-10","holat":"bajarildi","qator_soni":5,"trigger_bekor_soni":2,"manfiy_qoldiq":true,"bajarildi":"2026-11-02T10:00:00+00:00"},
+ {"id":9,"obyekt_id":101,"davr":"2026-09","holat":"bekor","qator_soni":3,"trigger_bekor_soni":0,"manfiy_qoldiq":false,"bajarildi":"2026-10-03T10:00:00+00:00"}]}""")
+                    s("soro") == "naryad_ol_v1" && s("bolim") == "royxat" -> ok("""{"ok":true,"natija":{"ok":true,"naryadlar":[
+ {"id":5,"obyekt_id":101,"raqam":"N-2026-5","usta_nom":"Aziz Karimov","brigada":"Beton brigadasi","holat":"berildi","versiya":3,"qator_soni":2,"reja_summa":18500000,"narxsiz_soni":1,"yaratildi":"2026-11-14T08:00:00+00:00"},
+ {"id":4,"obyekt_id":101,"raqam":"N-2026-4","usta_nom":"Bobur Aliev","holat":"bajarildi","versiya":5,"qator_soni":1,"reja_summa":4200000,"narxsiz_soni":0,"yaratildi":"2026-11-10T08:00:00+00:00"},
+ {"id":3,"obyekt_id":101,"raqam":"N-2026-3","usta_nom":"Aziz Karimov","holat":"hisoblandi","versiya":9,"qator_soni":3,"reja_summa":9000000,"narxsiz_soni":0,"xarajat_summa":8800000,"fakt_holat":"yozildi","yaratildi":"2026-11-01T08:00:00+00:00"}]}}""")
+                    s("soro") == "naryad_ol_v1" -> ok("""{"ok":true,"natija":{"ok":true,"naryad":{"id":5,"obyekt_id":101,"obyekt_nom":"Demo korpus A","raqam":"N-2026-5","holat":"berildi","versiya":3,"usta_nom":"Aziz Karimov","brigada":"Beton brigadasi","qatorlar":[
+ {"id":11,"qator_id":1002,"nom":"Poydevor betoni M300","birlik":"m3","hajm":100,"usta_birlik":"kub","koef":1,"usta_narx_birlik":220000},
+ {"id":12,"qator_id":1003,"nom":"Armatura o\u0027rnatish","birlik":"t","hajm":2.5,"usta_narx":null}]}}}""")
                     jadval == "t2_sklad_qoldiq" -> ok(asset("ombor_stock.json"))
                     jadval == "t2_sklad_royxat" -> ok(asset("ombor_warehouses.json"))
                     s("soro") == "sklad_markaziy_qoldiq_v1" -> ok(asset("ombor_central.json"))
@@ -142,6 +152,9 @@ private class DemoBff(private val context: Context, private val json: Json, priv
                 }
             }
             path.startsWith("/api/hujjat-aylanish") && method == "GET" -> when {
+                path.contains("bolim=zanjirlar") -> ok("""{"ok":true,"natija":[{"id":8,"hujjat_turi":"f2","sarlavha":"F-2 oktyabr (Demo korpus A)","holat":"jarayonda","raund":1,"yaratildi":"2026-11-12T09:00:00+00:00","meniki":true,"egasi_nom":"Demo kompaniya","navbat_menda":false,"navbat_rol":"rahbar"},{"id":6,"hujjat_turi":"akt","sarlavha":"Yashirin ishlar akti","holat":"tasdiqlandi","raund":1,"yaratildi":"2026-11-03T09:00:00+00:00","meniki":true,"egasi_nom":"Demo kompaniya","navbat_menda":false}]}""")
+                path.contains("bolim=xatlar") -> ok("""{"ok":true,"natija":[{"id":9,"turi":"talabnoma","mavzu":"Armatura yetkazish muddati","holat":"yuborilgan","sana":"2026-11-13","javob_muddati":"2026-11-14","kiruvchi_raqam":"K-17","chiquvchi_raqam":"C-3","kiruvchi":true,"qarshi_nom":"Buyurtmachi MChJ","kechikkan":true},{"id":8,"turi":"xat","mavzu":"Ish grafigi","holat":"javob_berildi","sana":"2026-11-05","chiquvchi_raqam":"C-2","kiruvchi":false,"qarshi_nom":"Buyurtmachi MChJ","kechikkan":false}]}""")
+                path.contains("bolim=xat&") -> ok("""{"ok":true,"xat":{"id":9,"turi":"talabnoma","mavzu":"Armatura yetkazish muddati","matn":"Armatura yetkazib berish muddatini 20-noyabrgacha tasdiqlang.","holat":"yuborilgan","sana":"2026-11-13","javob_muddati":"2026-11-14","kiruvchi_raqam":"K-17","chiquvchi_raqam":"C-3","kiruvchi":true,"yuboruvchi_nom":"Buyurtmachi MChJ","qabul_nom":"Demo kompaniya"}}""")
                 path.contains("bolim=kiruvchi") -> ok(asset("inbox.json"))
                 path.contains("bolim=bildirishnomalar") -> ok(asset("notes.json"))
                 path.contains("bolim=zanjir") -> ok(asset(if (path.contains("zanjir_id=8")) "zanjir8.json" else "zanjir7.json"))

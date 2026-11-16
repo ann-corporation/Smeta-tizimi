@@ -22,7 +22,7 @@ import { sbT2AktReestrOl, sbT2KompaniyalarOl, sbT2ObyektlarOlKomp } from '../../
 import { portfelObyektOl, smetaTarixBilan, type AktQatorXom } from '../../src/api/f2-oylik-paket';
 import { bekorQatorlari } from '../../src/lib/f2-bekor-qator';
 import { paketAktExcel } from '../../src/lib/f2-oylik-paket/portfel';
-import { f2HujjatKaliti } from '../../src/api/f2-hujjat-kontekst';
+import { f2HujjatKaliti, hujjatDizayniniYukla } from '../../src/api/f2-hujjat-kontekst';
 import { shartnomaSvodOl } from '../../src/api/t2-nakopitelniy';
 import { sotuvF3lar, type SvodShartnoma } from '../../src/lib/nakopitelniy-svod';
 import { f3ShaklTozala, forma3SotuvdanXlsx } from '../../src/lib/forma3-export';
@@ -156,6 +156,9 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     if (!FORMATLAR.includes(format)) return Response.json({ ok: false, code: 'FORMAT_NOMA_LUM', xato: 'format: xlsx yoki pdf' }, { status: 400 });
 
     const tayyor = await ichkiRejimda(ctx, async () => {
+      // YAGONA dizayn manbai: kompaniya «Hujjat dizayni» (hujjat.dizayn._uslub) HAR hujjat turi uchun shu yerda qo'llanadi
+      // (ilgari faqat kontekst o'qiydigan turlarga tegardi; Worker da localStorage yo'q edi — sukut chiqardi).
+      await hujjatDizayniniYukla(kompaniyaId);
       if (b.tur === 'f2') {
         const aktId = musbat(b.akt_id);
         if (!aktId) throw new Rad(400, 'PARAMETR_YOQ', 'akt_id kerak');

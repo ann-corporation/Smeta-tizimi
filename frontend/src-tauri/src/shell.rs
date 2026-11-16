@@ -4,7 +4,13 @@
 use tauri::Url;
 
 /// The production site. Compile-time constant: IPC, config files and the environment cannot choose it.
-pub const SITE_HOST: &str = "smeta-tizimi.pages.dev";
+pub const SITE_HOST: &str = "qurai.uz";
+/// Previous production host (domain move to qurai.uz): still the same website during the transition, so app pages stay in the webview.
+pub const LEGACY_SITE_HOST: &str = "smeta-tizimi.pages.dev";
+
+fn is_site_host(host: Option<&str>) -> bool {
+    matches!(host, Some(h) if h == SITE_HOST || h == LEGACY_SITE_HOST)
+}
 /// Google Identity Services sign-in popup/redirect (see src/kirish/GoogleKirish.tsx).
 const AUTH_HOSTS: [&str; 1] = ["accounts.google.com"];
 
@@ -31,11 +37,11 @@ pub fn classify(url: &Url) -> Nav {
     let https = url.scheme() == "https" && url.username().is_empty() && url.password().is_none();
     // «Brauzer orqali kirish»: Google WebView'da bloklanadi (disallowed_useragent), shuning uchun bu sahifa tizim brauzerida
     // ochiladi va ilovaga qurai://kirish bilet bilan qaytadi (src/kirish/IlovaKirish.tsx). Yangi IPC kerak emas.
-    if https && url.host_str() == Some(SITE_HOST) && url.path() == BROWSER_LOGIN_PATH {
+    if https && is_site_host(url.host_str()) && url.path() == BROWSER_LOGIN_PATH {
         return Nav::External;
     }
     match url.host_str() {
-        Some(host) if https && (host == SITE_HOST || AUTH_HOSTS.contains(&host)) => Nav::Stay,
+        Some(host) if https && (is_site_host(Some(host)) || AUTH_HOSTS.contains(&host)) => Nav::Stay,
         _ => Nav::External,
     }
 }
@@ -91,6 +97,7 @@ mod tests {
     }
     #[test]
     fn site_auth_and_local_stay() {
+        assert_eq!(nav("https://qurai.uz/obyekt/1?x=2"), Nav::Stay);
         assert_eq!(nav("https://smeta-tizimi.pages.dev/obyekt/1?x=2"), Nav::Stay);
         assert_eq!(nav("https://accounts.google.com/gsi/select"), Nav::Stay);
         assert_eq!(nav("tauri://localhost/index.html"), Nav::Stay);
@@ -99,6 +106,8 @@ mod tests {
     }
     #[test]
     fn browser_login_goes_to_system_browser_but_return_page_stays() {
+        assert_eq!(nav("https://qurai.uz/brauzer-kirish?h=abc"), Nav::External);
+        assert_eq!(nav("https://qurai.uz/ilova-qaytdi?t=abc"), Nav::Stay);
         assert_eq!(nav("https://smeta-tizimi.pages.dev/brauzer-kirish?h=abc"), Nav::External);
         assert_eq!(nav("https://smeta-tizimi.pages.dev/ilova-qaytdi?t=abc"), Nav::Stay);
         assert_eq!(nav("https://smeta-tizimi.pages.dev/brauzer-kirish-x"), Nav::Stay);
@@ -106,6 +115,10 @@ mod tests {
     #[test]
     fn everything_else_goes_external() {
         for u in [
+            "http://qurai.uz/",
+            "https://qurai.uz.evil.example/",
+            "https://evil.qurai.uz/",
+            "https://user@qurai.uz/",
             "http://smeta-tizimi.pages.dev/",
             "https://smeta-tizimi.pages.dev.evil.example/",
             "https://evil.smeta-tizimi.pages.dev/",

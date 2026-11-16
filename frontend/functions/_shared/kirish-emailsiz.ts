@@ -18,6 +18,8 @@ export type KirishEnv = {
   /** Taklif muddati, soat (1..720; sukut 72). */
   KIRISH_TAKLIF_MUDDAT_SOAT?: string;
   TELEGRAM_BOT_TOKEN?: string; TELEGRAM_BOT_USERNAME?: string; TELEGRAM_SAYT_URL?: string; TELEGRAM_WEBHOOK_SECRET?: string;
+  /** Saytning kanonik manzili (lib/sayt-manzil.ts); bo'lmasa qurai.uz. */
+  PUBLIC_ORIGIN?: string;
 };
 
 export const yoqilgan = (v: string | undefined): boolean => ['1', 'true'].includes(String(v ?? '').trim().toLowerCase());

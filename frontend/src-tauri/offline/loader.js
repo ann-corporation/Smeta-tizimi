@@ -2,7 +2,7 @@
 // and then hands the window over to it; otherwise it shows the offline card with a retry button.
 (function () {
   'use strict';
-  var SITE = 'https://smeta-tizimi.pages.dev/';
+  var SITE = 'https://qurai.uz/';
   var lang = String((navigator.language || 'uz')).slice(0, 2).toLowerCase();
   document.documentElement.setAttribute('data-lang', lang === 'ru' || lang === 'en' ? lang : 'uz');
   document.documentElement.lang = document.documentElement.getAttribute('data-lang');

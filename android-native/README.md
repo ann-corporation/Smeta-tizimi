@@ -20,7 +20,7 @@ adb install -r app\build\outputs\apk\debug\app-debug.apk
 adb shell am start -n uz.anncorp.smeta/.MainActivity
 ```
 
-The API base URL is `BuildConfig.API_BASE_URL` (`https://smeta-tizimi.pages.dev`, see `app/build.gradle.kts`).
+The API base URL is `BuildConfig.API_BASE_URL` (`https://qurai.uz`; override with `-PapiBase=`), and `BuildConfig.API_FALLBACK_URLS` (`https://smeta-tizimi.pages.dev`, the old host) is tried in order on a network failure (`core/data/HostFallback.kt`). See `app/build.gradle.kts`.
 
 ## Architecture
 
@@ -36,7 +36,7 @@ Single `:app` module, package `uz.anncorp.smeta`:
 
 ### Auth model (same trust model as the Windows app)
 
-1. Sign-in runs against the normal web endpoints with a **temporary in-memory cookie jar** and `Origin: https://smeta-tizimi.pages.dev`.
+1. Sign-in runs against the normal web endpoints with a **temporary in-memory cookie jar** and `Origin:` = the origin of the host actually called.
 2. `POST /api/desktop/qurilma` (with that cookie and a fresh `operation_id`) issues a long-lived **device token**; the cookie is dropped immediately.
 3. Afterwards every call is `Authorization: Bearer <device token>` + `Origin: app://qurai-android` + `X-Smeta-Desktop-Version: <versionName>`, sent to **`POST /api/mobil/bff`** with `{path, method, body}`. The server allow-lists the paths (`sessiya`, `ish-joyi`, `company`, `sb`, `sb-yoz`, `obyekt-paket`, `hujjat-aylanish`, `foto-dalil`, `ai-savol`) and derives roles/permissions from the database. Roles are never read from the token.
 4. A `401` anywhere clears the token and returns to Login. Sign out calls `DELETE /api/desktop/qurilma` (revokes the device) and forgets the token.

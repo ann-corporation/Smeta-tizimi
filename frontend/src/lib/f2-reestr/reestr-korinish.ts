@@ -29,6 +29,20 @@ export function bajarilishMaxraji(o: { jami: number | null | undefined; ozgarish
   return { summa: yaxlit2(asl + oz), joriy: true };
 }
 
+/**
+ * Obyekt bo'yicha «O'zgarishlar» (ustamasiz) rahbar paketidan: smeta_joriy - smeta (server keshi; qatlam RPC bilan aynan teng).
+ * Joriy smeta noma'lum (null/yo'q) obyekt kiritilmaydi - u uchun chaqiruvchi eski yo'lga tushadi.
+ */
+export function ozgarishlarPaketdan(obyektlar: ReadonlyArray<{ obyekt_id: number; smeta: { ustamasiz: number } | null; smeta_joriy?: { ustamasiz: number } | null }> | undefined): Map<number, number> {
+  const m = new Map<number, number>();
+  for (const o of obyektlar ?? []) {
+    const a = o.smeta?.ustamasiz, j = o.smeta_joriy?.ustamasiz;
+    if (a == null || j == null || !Number.isFinite(Number(a)) || !Number.isFinite(Number(j))) continue;
+    m.set(o.obyekt_id, yaxlit2(Number(j) - Number(a)));
+  }
+  return m;
+}
+
 export function reestrUlush(p: { tasdiqlangan: Summa; tasdiqImport: Summa; tasdiqTizim: Summa }, smeta: number | null | undefined): ReestrUlush {
   const s = smeta == null || !Number.isFinite(Number(smeta)) ? null : Number(smeta);
   if (s == null || s <= 0) return { foiz: null, importUlush: 0, tizimUlush: 0, boshqaUlush: 0, oshdi: false };

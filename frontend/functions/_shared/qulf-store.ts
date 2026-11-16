@@ -66,7 +66,9 @@ export function supabaseStore(env: Env, fetcher: typeof fetch = fetch): QulfStor
     },
     async talab(uid, kid) {
       const r = await rpc('t2_qulf_talab_v1', { p_foydalanuvchi_id: uid, p_kompaniya_id: kid });
-      return { talab: r?.talab === true, rejim: (r?.rejim as Rejim) ?? 'pin', pin: r?.pin === true, kalit: r?.kalit === true } satisfies Talab;
+      const pin = r?.pin === true;
+      /* PINsiz biometrik qulf zaxirasiz qolib foydalanuvchini tutib qo'yadi: kalit bor, PIN yo'q -> talab YO'Q (SQL talab'idan qat'i nazar). */
+      return { talab: r?.talab === true && pin, rejim: (r?.rejim as Rejim) ?? 'pin', pin, kalit: r?.kalit === true && pin } satisfies Talab;
     },
   };
 }

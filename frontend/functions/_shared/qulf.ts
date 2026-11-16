@@ -141,9 +141,11 @@ export async function chaqiriqTekshir(token: unknown, kalit: string, u: number, 
 
 // ---- Siyosat -------------------------------------------------------------------------------------------------------------------
 export type Talab = { talab: boolean; rejim: Rejim; pin: boolean; kalit: boolean };
+/** Qulf/step-up global o'chirgichi: env QULF_YOQILGAN=0 (standart YOQIQ). */
+export const qulfYoqilganmi = (env: { QULF_YOQILGAN?: string } | undefined) => String(env?.QULF_YOQILGAN ?? '1').trim() !== '0';
 /** Qabul qilinadigan usullar: 'pin' -- faqat PIN; 'biometric_or_pin' -- PIN yoki passkey/qurilma kaliti. */
 export function qabulUsullar(rejim: Rejim, t: { pin: boolean; kalit: boolean }): ('pin' | 'passkey' | 'qurilma')[] {
-  if (rejim === 'off') return [];
+  if (rejim === 'off' || !t.pin) return []; // PINsiz qulf yo'q: biometrik faqat PIN ustiga qo'shimcha usul (zaxira doim PIN)
   const u: ('pin' | 'passkey' | 'qurilma')[] = [];
   if (t.pin) u.push('pin');
   if (rejim === 'biometric_or_pin' && t.kalit) u.push('passkey', 'qurilma');
